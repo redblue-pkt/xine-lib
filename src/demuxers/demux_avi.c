@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_avi.c,v 1.171 2003/10/31 23:58:32 tmattern Exp $
+ * $Id: demux_avi.c,v 1.172 2003/11/02 01:08:40 tmattern Exp $
  *
  * demultiplexer for avi streams
  *
@@ -1303,7 +1303,10 @@ static int get_chunk_header(demux_avi_t *this, uint32_t *len, int *audio_stream)
         return AVI_HEADER_AUDIO;
       }
     }
-    lprintf("unknown header: %c %c %c %c\n", data[0], data[1], data[2], data[3]);
+    xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
+            "AVI_HEADER_UNKNOWN: %c %c %c %c, pos=%lld, len=%d\n",
+            data[0], data[1], data[2], data[3],
+            this->input->get_current_pos(this->input), *len);
     return AVI_HEADER_UNKNOWN;
   }
   return AVI_HEADER_UNKNOWN;
@@ -1420,8 +1423,9 @@ static int demux_avi_next_streaming (demux_avi_t *this, int decoder_flags) {
       break;
 
     case AVI_HEADER_UNKNOWN:
-      lprintf("AVI_HEADER_UNKNOWN: len=%d\n", chunk_len);
       current_pos = this->input->get_current_pos(this->input);
+      xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
+              "AVI_HEADER_UNKNOWN: pos=%lld, len=%d\n", current_pos, chunk_len);
       if (this->input->seek(this->input, chunk_len, SEEK_CUR) != (current_pos + chunk_len)) {
         return 0;
       }
