@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_pes.c,v 1.6 2003/07/25 21:02:05 miguelfreitas Exp $
+ * $Id: demux_mpeg_pes.c,v 1.7 2003/08/28 16:42:09 jcdutton Exp $
  *
  * demultiplexer for mpeg 2 PES (Packetized Elementary Streams)
  * reads streams of variable blocksizes
@@ -91,6 +91,7 @@ typedef struct demux_mpeg_pes_s {
   int64_t               dts;
   uint32_t              stream_id;
   int32_t               mpeg1;
+  int32_t               wait_for_program_stream_pack_header;
 
   /* stream index for get_audio/video_frame */
   int                   have_index;
@@ -218,7 +219,8 @@ static void demux_mpeg_pes_parse_pack (demux_mpeg_pes_t *this, int preview_mode)
 
     this->stream_id  = p[3];
     if (this->stream_id == 0xBA) {
-      /* This just fills this->scr, and this->rate */
+      this->wait_for_program_stream_pack_header=0;
+      /* This just fills this->scr, this->rate and this->mpeg1 */
       result = parse_program_stream_pack_header(this, p, buf);
       return;
     } else if (this->stream_id == 0xB9) {
@@ -230,6 +232,12 @@ static void demux_mpeg_pes_parse_pack (demux_mpeg_pes_t *this, int preview_mode)
       buf->free_buffer (buf);
       return;
     }
+    if (this->wait_for_program_stream_pack_header==1) {
+      /* Wait until this->mpeg1 has been initialised. */
+      buf->free_buffer (buf);
+      return;
+    }
+
     this->packet_len = p[4] << 8 | p[5];
 #ifdef LOG
     printf("demux_pes: stream_id=0x%x, packet_len=%d\n",this->stream_id, this->packet_len);
@@ -306,6 +314,8 @@ static void demux_mpeg_pes_parse_pack (demux_mpeg_pes_t *this, int preview_mode)
       return;
     }
     if (result < 0) {
+      xine_log (this->stream->xine, XINE_LOG_MSG,
+		_("demux_mpeg_pes: warning: PACK stream id=0x%x decode failed.\n"), this->stream_id);
       /* What to do here? */
       assert(0);
     }
@@ -1350,6 +1360,9 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   this->scratch    = xine_xmalloc_aligned (512, 4096, (void**) &this->scratch_base);
   this->status     = DEMUX_FINISHED;
   this->have_index = 0;
+  /* Don't start demuxing stream until we see a program_stream_pack_header */
+  /* We need to system header in order to identify is the stream is mpeg1 or mpeg2. */
+  this->wait_for_program_stream_pack_header=1;
 
 #ifdef LOG
   printf ("demux_mpeg_pes:open_plugin:detection_method=%d\n",

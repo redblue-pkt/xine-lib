@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.102 2003/08/26 02:37:21 jcdutton Exp $
+ * $Id: audio_alsa_out.c,v 1.103 2003/08/28 16:42:07 jcdutton Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -376,7 +376,7 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
    */
   err=snd_pcm_open(&this->audio_fd, pcm_device, direction, open_mode);      
   if(err <0 ) {                                                           
-    printf ("audio_alsa_out: snd_pcm_open() failed: %s\n", snd_strerror(err));               
+    printf ("audio_alsa_out: snd_pcm_open() of %s failed: %s\n", pcm_device, snd_strerror(err));               
     printf ("audio_alsa_out: >>> check if another program don't already use PCM <<<\n");     
     return 0;
   }
