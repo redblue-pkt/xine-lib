@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_elem.c,v 1.82 2004/05/10 11:24:28 hadess Exp $
+ * $Id: demux_elem.c,v 1.83 2004/05/14 13:31:49 mroi Exp $
  *
  * demultiplexer for elementary mpeg streams
  */
@@ -204,10 +204,13 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
     for (i = 0; i < read - 4; i++) {
       lprintf ("%02x %02x %02x %02x\n", scratch[i], scratch[i+1], scratch[i+2], scratch[i+3]);
 
-      if (!scratch[i] && !scratch[i+1] && (scratch[i+2] == 0x01) && (scratch[i+3] == 0xb3)) {
-         found = 1;
-	 lprintf ("found header at offset 0x%x\n", i);
-	 break;
+      if ((scratch[i] == 0x00) && (scratch[i+1] == 0x00) && (scratch[i+2] == 0x01)) {
+	if (scratch[i+3] == 0xb3) {
+	  found = 1;
+	  lprintf ("found header at offset 0x%x\n", i);
+	  break;
+	} else
+	  return NULL;
       }
     }
 
