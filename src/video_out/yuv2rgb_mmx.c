@@ -361,7 +361,7 @@ static inline void mmx_unpack_32bgr (uint8_t * image, int cpu)
 
     /* scheduling: this is hopeless */
     movntq (mm6, *image);
-    movq_r2r (mm0, mm6);
+    movq_r2r (mm1, mm6);
     punpcklbw_r2r (mm2, mm6);
     punpckhwd_r2r (mm7, mm6);
     movntq (mm6, *(image+8));
@@ -369,7 +369,7 @@ static inline void mmx_unpack_32bgr (uint8_t * image, int cpu)
     punpckhbw_r2r (mm3, mm5);
     punpcklwd_r2r (mm5, mm4);
     movntq (mm4, *(image+16));
-    movq_r2r (mm0, mm4);
+    movq_r2r (mm1, mm4);
     punpckhbw_r2r (mm2, mm4);
     punpckhwd_r2r (mm5, mm4);
     movntq (mm4, *(image+24));

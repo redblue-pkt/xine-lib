@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.132 2004/10/26 20:10:26 miguelfreitas Exp $
+ * $Id: xine.h.in,v 1.133 2004/11/23 14:35:23 mshopf Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -1181,6 +1181,9 @@ typedef struct {
  * to indicate the visual to use or that no visual will work */
 /* XVisualInfo **data */
 #define XINE_GUI_SEND_SELECT_VISUAL          8
+
+/* Gui is about to destroy drawable */
+#define XINE_GUI_SEND_WILL_DESTROY_DRAWABLE  9
 
 
 /*********************************************************************
