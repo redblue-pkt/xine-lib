@@ -1,0 +1,220 @@
+/* 
+ * Copyright (C) 2000-2001 the xine project
+ * 
+ * This file is part of xine, a unix video player.
+ * 
+ * xine is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ * 
+ * xine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
+ *
+ * $Id: video_out_aa.c,v 1.1 2001/06/10 23:16:23 heikos Exp $
+ *
+ * video_out_aa.c, ascii-art output plugin for xine
+ *
+ */
+
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdarg.h>
+#include <unistd.h>
+#include <string.h>
+#include <fcntl.h>
+#include <errno.h>
+#include <sys/stat.h>
+#include <sys/mman.h>
+#include <sys/time.h>
+
+#include "video_out.h"
+#include "xine_internal.h"
+
+/*
+ * global variables
+ */
+
+typedef struct aa_frame_s {
+
+  vo_frame_t    vo_frame;
+
+  int           width, height;
+  uint8_t      *mem[3];
+
+  int           ratio_code;
+
+} aa_frame_t;
+
+typedef struct {
+
+  vo_driver_t        vo_driver;
+
+  config_values_t   *config;
+
+  int                user_ratio;
+
+} aa_driver_t;
+
+
+/*
+ * our video driver
+ */
+
+static uint32_t aa_get_capabilities (vo_driver_t *this) {
+  return VO_CAP_YV12;
+}
+
+static void *malloc_aligned (size_t alignment, size_t size, void **mem) {
+  void *aligned;
+
+  aligned = malloc (size+alignment);
+  *mem = aligned;
+
+  while ((int) aligned % alignment)
+    aligned++;
+
+  return aligned;
+}
+
+static void aa_dispose_frame (vo_frame_t *vo_img) {
+  /* fixme: implement */
+}
+
+static vo_frame_t *aa_alloc_frame(vo_driver_t *this) {
+  aa_frame_t *frame;
+
+  frame = (aa_frame_t *) malloc (sizeof (aa_frame_t));
+  memset (frame, 0, sizeof (aa_frame_t));
+
+  frame->vo_frame.copy = NULL;
+  frame->vo_frame.field = NULL;
+  frame->vo_frame.dispose = aa_dispose_frame;
+
+  return (vo_frame_t*) frame;
+}
+
+static void aa_update_frame_format (vo_driver_t *this, vo_frame_t *img,
+				    uint32_t width, uint32_t height, 
+				    int ratio_code, int format) {
+
+  int image_size;
+
+  aa_frame_t *frame = (aa_frame_t *) img;
+
+  if ((frame->width != width) || (frame->height != height)) {
+
+    if (frame->mem[0]) {
+      free (frame->mem[0]);
+      frame->mem[0] = NULL;
+    }
+    if (frame->mem[1]) {
+      free (frame->mem[1]);
+      frame->mem[1] = NULL;
+    }
+      
+    if (frame->mem[2]) {
+      free (frame->mem[2]);
+      frame->mem[2] = NULL;
+    }
+
+    image_size = width * height;
+    frame->width  = width;
+    frame->height = height;
+
+    frame->vo_frame.base[0] = malloc_aligned(16,image_size, (void**) &frame->mem[0]);
+    frame->vo_frame.base[1] = malloc_aligned(16,image_size/4, (void**) &frame->mem[1]);
+    frame->vo_frame.base[2] = malloc_aligned(16,image_size/4, (void**) &frame->mem[2]);
+
+    frame->ratio_code = ratio_code;
+
+  }
+}
+
+static void aa_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
+
+  aa_frame_t *frame = (aa_frame_t *) frame_gen;
+
+  /* fixme: implement */
+}
+
+static int aa_get_property (vo_driver_t *this_gen, int property) {
+  aa_driver_t *this = (aa_driver_t*) this_gen;
+  
+  if ( property == VO_PROP_ASPECT_RATIO) {
+    return this->user_ratio ;
+  } else {
+    printf ("video_out_xshm: tried to get unsupported property %d\n", property);
+  }
+
+  return 0;
+}
+
+static int aa_set_property (vo_driver_t *this_gen, 
+			    int property, int value) {
+  aa_driver_t *this = (aa_driver_t*) this_gen;
+
+  if ( property == VO_PROP_ASPECT_RATIO) {
+    if (value>ASPECT_DVB)
+      value = ASPECT_AUTO;
+    this->user_ratio = value;
+
+  } else {
+    printf ("video_out_xshm: tried to set unsupported property %d\n", property);
+  }
+
+  return value;
+}
+
+static void aa_get_property_min_max (vo_driver_t *this_gen, 
+				     int property, int *min, int *max) {
+  *min = 0;
+  *max = 0;
+}
+
+static void aa_exit (vo_driver_t *this_gen) {
+}
+
+
+vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
+
+  aa_driver_t          *this;
+
+  this = (aa_driver_t*) malloc (sizeof (aa_driver_t));
+
+  this->config = config;
+
+  this->vo_driver.get_capabilities     = aa_get_capabilities;
+  this->vo_driver.alloc_frame          = aa_alloc_frame ;
+  this->vo_driver.update_frame_format  = aa_update_frame_format;
+  this->vo_driver.display_frame        = aa_display_frame;
+  this->vo_driver.get_property         = aa_get_property;
+  this->vo_driver.set_property         = aa_set_property;
+  this->vo_driver.get_property_min_max = aa_get_property_min_max;
+  this->vo_driver.gui_data_exchange    = NULL;
+  this->vo_driver.exit                 = aa_exit;
+
+  return (vo_driver_t*) this;
+}    
+
+static vo_info_t vo_info_aa = {
+  VIDEO_OUT_IFACE_VERSION,
+  "aa",
+  "xine video output plugin using the ascii-art library",
+  VISUAL_TYPE_AA,
+  10
+};
+
+vo_info_t *get_video_out_plugin_info() {
+  return &vo_info_aa;
+}
