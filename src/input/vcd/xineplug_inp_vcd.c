@@ -1,5 +1,5 @@
 /*
-  $Id: xineplug_inp_vcd.c,v 1.11 2004/02/28 19:29:38 rockyb Exp $
+  $Id: xineplug_inp_vcd.c,v 1.12 2004/03/05 17:50:29 mroi Exp $
  
   Copyright (C) 2002, 2003, 2004 Rocky Bernstein <rocky@panix.com>
   
@@ -908,7 +908,7 @@ static char *
 vcd_class_get_description (input_class_t *this_gen) 
 {
   dbg_print((INPUT_DBG_CALL|INPUT_DBG_EXT), "called\n");
-  return _(strdup("Video CD plugin with PBC and support for: (X)VCD, (X)SVCD, HQVCD, CVD ... "));
+  return _("Video CD plugin with PBC and support for: (X)VCD, (X)SVCD, HQVCD, CVD ... ");
 }
 
 /*!
@@ -921,7 +921,7 @@ vcd_class_get_description (input_class_t *this_gen)
 static char *
 vcd_class_get_identifier (input_class_t *this_gen) {
   dbg_print((INPUT_DBG_CALL|INPUT_DBG_EXT), "called\n");
-  return strdup(SHORT_PLUGIN_NAME);
+  return SHORT_PLUGIN_NAME;
 }
 
 /* 
@@ -1432,7 +1432,7 @@ vcd_class_get_instance (input_class_t *class_gen, xine_stream_t *stream,
   dbg_print((INPUT_DBG_CALL|INPUT_DBG_EXT), "called with %s\n", mrl);
 
   if ( strncasecmp(check_mrl, MRL_PREFIX, MRL_PREFIX_LEN) ) {
-    return NULL;
+    goto free_and_return;
   }
 
   vcd_get_default_device(class, false);

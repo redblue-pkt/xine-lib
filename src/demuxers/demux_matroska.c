@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_matroska.c,v 1.22 2004/02/12 23:31:19 jstembridge Exp $
+ * $Id: demux_matroska.c,v 1.23 2004/03/05 17:50:30 mroi Exp $
  *
  * demultiplexer for matroska streams
  *
@@ -1762,6 +1762,7 @@ static void demux_matroska_dispose (demux_plugin_t *this_gen) {
     
     free (track);
   }
+  dispose_ebml_parser(this->ebml);
   free (this);
 }
 
@@ -1839,7 +1840,7 @@ static int demux_matroska_get_optional_data (demux_plugin_t *this_gen,
 static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *stream,
                                     input_plugin_t *input) {
 
-  demux_matroska_t *this;
+  demux_matroska_t *this = NULL;
   ebml_parser_t    *ebml = NULL;
 
   lprintf("trying to open %s...\n", input->get_mrl(input));
@@ -1852,7 +1853,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
     input->seek(input, 0, SEEK_SET);
     ebml = new_ebml_parser(stream->xine, input);
     if (!ebml_check_header(ebml))
-      return NULL;
+      goto error;
   }
   break;
 
