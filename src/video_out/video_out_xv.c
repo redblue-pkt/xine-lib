@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.191 2004/03/03 20:09:15 mroi Exp $
+ * $Id: video_out_xv.c,v 1.192 2004/03/16 18:50:33 hadess Exp $
  *
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -65,7 +65,7 @@
 #include <X11/extensions/Xv.h>
 #include <X11/extensions/Xvlib.h>
 
-#define LOG_MODULE "vidoe_out_xv"
+#define LOG_MODULE "video_out_xv"
 #define LOG_VERBOSE
 /*
 #define LOG
@@ -157,6 +157,7 @@ typedef struct {
   XvPortID             xv_port;
   XvAdaptorInfo       *adaptor_info;
   unsigned int         adaptor_num;
+  char                *adaptor_name;
   xine_t              *xine;
 } xv_class_t;
 
@@ -1253,10 +1254,13 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *vi
     for(k = 0; k < nattr; k++) {
       if((attr[k].flags & XvSettable) && (attr[k].flags & XvGettable)) {
 	if(!strcmp(attr[k].name, "XV_HUE")) {
-	  xv_check_capability (this, VO_PROP_HUE, attr[k],
-			       class->adaptor_info[class->adaptor_num].base_id, "XV_HUE",
-			       NULL, NULL);
-
+	  if (!strncmp(class->adaptor_name, "NV", 2)) {
+            xprintf (this->xine, XINE_VERBOSITY_NONE, "video_out_xv: ignoring broken XV_HUE settings on NVidia cards");
+	  } else {
+	    xv_check_capability (this, VO_PROP_HUE, attr[k],
+			         class->adaptor_info[class->adaptor_num].base_id, "XV_HUE",
+			         NULL, NULL);
+	  }
 	} else if(!strcmp(attr[k].name, "XV_SATURATION")) {
 	  xv_check_capability (this, VO_PROP_SATURATION, attr[k],
 			       class->adaptor_info[class->adaptor_num].base_id, "XV_SATURATION",
@@ -1391,6 +1395,7 @@ static void dispose_class (video_driver_class_t *this_gen) {
   XLockDisplay(this->display);
   XvFreeAdaptorInfo (this->adaptor_info);
   XUnlockDisplay(this->display);
+  free (this->adaptor_name);
 
   free (this);
 }
@@ -1485,6 +1490,7 @@ static void *init_class (xine_t *xine, void *visual_gen) {
   this->xv_port                      = xv_port;
   this->adaptor_info                 = adaptor_info;
   this->adaptor_num                  = adaptor_num;
+  this->adaptor_name                 = strdup (adaptor_info[adaptor_num].name);
   this->xine                         = xine;
 
   return this;

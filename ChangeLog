@@ -48,6 +48,8 @@ xine-lib (1-rc3b)
   * option to pass an interface name in RTP MRLs
   * sync to latest libdvdnav fixes some menu problems and tries
     to continue playback in case of errors
+  * ignore the hue setting on NVidia cards using the Xv video output
+    as both the XFree86 and the proprietary driver are broken
 
 xine-lib (1-rc3a)
   * new subtitle formats: jacobsub, subviewer 2.0, subrip 0.9
