@@ -304,16 +304,22 @@ dvd_reader_t *DVDOpen( const char *path )
     if( path == NULL )
       return 0;
 
+    /* Try to open libdvdcss or fall back to standard functions */
+    have_css = dvdinput_setup();
+    
     ret = stat( path, &fileinfo );
     if( ret < 0 ) {
+
+        /* maybe "host:port" url? try opening it with acCeSS library */
+        if( strchr(path,':') ) {
+          return DVDOpenImageFile( path, have_css );
+        }
+      
 	/* If we can't stat the file, give up */
 	fprintf( stderr, "libdvdread: Can't stat %s\n", path );
 	perror("");
 	return 0;
     }
-
-    /* Try to open libdvdcss or fall back to standard functions */
-    have_css = dvdinput_setup();
 
     /* First check if this is a block/char device or a file*/
     if( S_ISBLK( fileinfo.st_mode ) || 
