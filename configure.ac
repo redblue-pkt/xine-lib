@@ -329,6 +329,25 @@ AM_CONDITIONAL(HAVE_MLIB, test x$ac_have_mlib = "xyes")
 AC_SUBST(MLIB_LIBS)
 AC_SUBST(MLIB_CFLAGS)
 
+AC_ARG_WITH(external-ffmpeg,
+  AC_HELP_STRING(
+    [--with-external-ffmpeg],
+    [use external ffmpeg library]
+  ),
+  [external_ffmpeg="$withval"],
+  [external_ffmpeg="no"]
+)
+
+if test x"$external_ffmpeg" != "xno"; then
+  AM_PATH_FFMPEG(
+    AC_DEFINE(HAVE_FFMPEG, 1, [Define this if you have ffmpeg library])
+  )
+else
+  AC_MSG_RESULT([Use included ffmpeg])
+fi
+
+AM_CONDITIONAL(HAVE_FFMPEG, test x"$external_ffmpeg_found" = "xyes")
+
 
 dnl ---------------------------------------------
 dnl Checks for X11
@@ -2196,7 +2215,11 @@ dnl video decoders
 echo " * video decoder plugins:"
 echo "   - MPEG 1,2         - Amiga Bitplane"
 echo "   - Raw RGB          - Raw YUV"
-echo "   - ffmpeg:"
+if test x"$external_ffmpeg_found" = "xyes"; then
+  echo "   - ffmpeg (external library):"
+else
+  echo "   - ffmpeg (internal library):"
+fi
 echo "     - MPEG-4 (ISO, Microsoft, DivX*, XviD)"
 echo "     - Creative YUV    - Motion JPEG"
 echo "     - Cinepak         - MS Video-1"
@@ -2233,7 +2256,11 @@ echo " * audio decoder plugins:"
 echo "   - A52/ra-dnet     - DTS"
 echo "   - MAD (MPG 1/2/3) - GSM 06.10"
 echo "   - linear PCM      - Nosefart (NSF)"
-echo "   - ffmpeg:"
+if test x"$external_ffmpeg_found" = "xyes"; then
+  echo "   - ffmpeg (external library):"
+else
+  echo "   - ffmpeg (internal library):"
+fi
 echo "     - Windows Media Audio v1/v2"
 echo "     - DV            - logarithmic PCM"
 echo "     - 14k4          - 28k8"

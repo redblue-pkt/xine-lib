@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.24 2004/07/30 19:08:48 miguelfreitas Exp $
+ * $Id: video_decoder.c,v 1.25 2004/07/31 18:57:45 valtri Exp $
  *
  * xine video decoder plugin using ffmpeg
  *
@@ -47,7 +47,7 @@
 #include "xine_decoder.h"
 #include "mpeg_parser.h"
 
-#include "libavcodec/libpostproc/postprocess.h"
+#include <postprocess.h>
 
 #define VIDEOBUFSIZE        (128*1024)
 #define SLICE_BUFFER_SIZE   (1194*1024)

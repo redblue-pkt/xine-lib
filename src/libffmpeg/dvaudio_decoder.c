@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dvaudio_decoder.c,v 1.2 2004/03/17 17:03:26 storri Exp $
+ * $Id: dvaudio_decoder.c,v 1.3 2004/07/31 18:57:45 valtri Exp $
  *
  * dv audio decoder based on patch by Dan Dennedy <dan@dennedy.org>
  *
@@ -56,7 +56,7 @@
 #  undef uint64_t
 #endif
 
-#include "libavcodec/avcodec.h"
+#include <avcodec.h>
 #include "libavcodec/dvdata.h"
 
 #ifdef _MSC_VER

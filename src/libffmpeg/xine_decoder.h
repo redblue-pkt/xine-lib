@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.h,v 1.1 2004/01/31 01:19:17 jstembridge Exp $
+ * $Id: xine_decoder.h,v 1.2 2004/07/31 18:57:45 valtri Exp $
  *
  */
  
@@ -36,7 +36,7 @@
 #  undef uint64_t
 #endif
 
-#include "libavcodec/avcodec.h"
+#include <avcodec.h>
 
 #ifdef _MSC_VER
 #  undef malloc
