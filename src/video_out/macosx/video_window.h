@@ -19,7 +19,10 @@
  *
  */
 
-#include <Cocoa/Cocoa.h>
+#ifndef HAVE_VIDEO_WINDOW_H
+#define HAVE_VIDEO_WINDOW_H
+
+#import <Cocoa/Cocoa.h>
 
 typedef enum {
     XINE_FULLSCREEN_OVERSCAN,
@@ -67,13 +70,13 @@ typedef enum {
 @interface XineVideoWindow : NSWindow {
     int               width, height;
     BOOL              keepAspectRatio;
-    XineOpenGLView   *xineView;
+    XineOpenGLView *  xineView;
 }
 
-- (void) setContentSize: (NSSize) size;
+- (id) initWithContentSize:(NSSize)size;
 - (XineOpenGLView *) xineView;
-- (void) setKeepsAspectRatio: (BOOL) i;
-- (int) keepsAspectRatio;
+- (void) setKeepsAspectRatio:(BOOL)flag;
+- (BOOL) keepsAspectRatio;
 @end
 
 
@@ -91,4 +94,6 @@ typedef enum {
 /* XineOpenGLView notifications */
 
 extern NSString *XineViewDidResizeNotification;
+
+#endif /* HAVE_VIDEO_WINDOW_H */
 

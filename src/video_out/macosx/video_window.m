@@ -31,6 +31,8 @@
 
 NSString *XineViewDidResizeNotification = @"XineViewDidResizeNotification";
 
+#define DEFAULT_VIDEO_WINDOW_SIZE (NSMakeSize(320, 200))
+
 @implementation XineVideoWindow
 
 
@@ -38,6 +40,30 @@ NSString *XineViewDidResizeNotification = @"XineViewDidResizeNotification";
     [xineView setViewSizeInMainThread:size];
    
     [super setContentSize: size];
+}
+
+- (id) init
+{
+    return [self initWithContentSize:DEFAULT_VIDEO_WINDOW_SIZE];
+}
+
+- (id) initWithContentSize:(NSSize)size
+{
+    NSScreen *screen = [NSScreen mainScreen];
+    NSSize screen_size = [screen frame].size;
+    
+    /* make a centered window */
+    NSRect frame;
+    frame.size = size;
+    frame.origin.x = (screen_size.width - frame.size.width) / 2;
+    frame.origin.y = (screen_size.height - frame.size.height) / 2;
+
+    unsigned int style_mask = NSTitledWindowMask | NSMiniaturizableWindowMask |
+        NSClosableWindowMask | NSResizableWindowMask;
+
+    return ([self initWithContentRect:frame styleMask:style_mask
+                              backing:NSBackingStoreBuffered defer:NO
+                               screen:screen]);
 }
 
 - (id) initWithContentRect: (NSRect)rect 
@@ -110,7 +136,7 @@ NSString *XineViewDidResizeNotification = @"XineViewDidResizeNotification";
     keepAspectRatio = flag;
 }
 
-- (int) keepsAspectRatio {
+- (BOOL) keepsAspectRatio {
     return keepAspectRatio;
 }
 
