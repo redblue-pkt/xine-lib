@@ -19,7 +19,7 @@
  *
  * AIFF File Demuxer by Mike Melanson (melanson@pcisys.net)
  *
- * $Id: demux_aiff.c,v 1.11 2002/10/12 17:11:58 jkeil Exp $
+ * $Id: demux_aiff.c,v 1.12 2002/10/26 21:27:35 tmmm Exp $
  *
  */
 
@@ -58,13 +58,11 @@
 #define AIFF_SIGNATURE_SIZE 12
 #define PCM_BLOCK_ALIGN 1024
 
-#define VALID_ENDS "aif,aiff"
-
 typedef struct {
 
   demux_plugin_t       demux_plugin;
 
-  xine_t              *xine;
+  xine_stream_t       *stream;
 
   config_values_t     *config;
 
@@ -93,114 +91,38 @@ typedef struct {
   off_t                data_size;
 
   int                  seek_flag;  /* this is set when a seek just occurred */
+
+  char                 last_mrl[1024];
 } demux_aiff_t;
 
-static void *demux_aiff_loop (void *this_gen) {
+typedef struct {
 
-  demux_aiff_t *this = (demux_aiff_t *) this_gen;
-  buf_element_t *buf = NULL;
-  unsigned int remaining_sample_bytes;
-  off_t current_file_pos;
-  int64_t current_pts;
+  demux_class_t     demux_class;
 
-  pthread_mutex_lock( &this->mutex );
-  this->seek_flag = 1;
+  /* class-wide, global variables here */
 
-  /* do-while needed to seek after demux finished */
-  do {
-    /* main demuxer loop */
-    while (this->status == DEMUX_OK) {
+  xine_t           *xine;
+  config_values_t  *config;
+} demux_aiff_class_t;
 
-      /* someone may want to interrupt us */
-      pthread_mutex_unlock( &this->mutex );
-      /* give demux_*_stop a chance to interrupt us */
-      sched_yield();
-      pthread_mutex_lock( &this->mutex );
+/* returns 1 if the AIFF file was opened successfully, 0 otherwise */
+static int open_aiff_file(demux_aiff_t *this) {
 
-      /* just load data chunks from wherever the stream happens to be
-       * pointing; issue a DEMUX_FINISHED status if EOF is reached */
-      remaining_sample_bytes = this->audio_block_align;
-      current_file_pos = 
-        this->input->get_current_pos(this->input) - this->data_start;
-
-      current_pts = current_file_pos;
-      current_pts *= 90000;
-      current_pts /= this->audio_bytes_per_second;
-
-      if (this->seek_flag) {
-        xine_demux_control_newpts(this->xine, current_pts, 0);
-        this->seek_flag = 0;
-      }
-
-      while (remaining_sample_bytes) {
-        buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
-        buf->type = this->audio_type;
-        buf->input_pos = current_file_pos;
-        buf->input_length = this->data_size;
-        buf->input_time = current_pts / 90000;
-        buf->pts = current_pts;
-
-        if (remaining_sample_bytes > buf->max_size)
-          buf->size = buf->max_size;
-        else
-          buf->size = remaining_sample_bytes;
-        remaining_sample_bytes -= buf->size;
-
-        if (this->input->read(this->input, buf->content, buf->size) !=
-          buf->size) {
-         buf->free_buffer(buf);
-          this->status = DEMUX_FINISHED;
-          break;
-        }
-
-        if (!remaining_sample_bytes)
-          buf->decoder_flags |= BUF_FLAG_FRAME_END;
-
-        this->audio_fifo->put (this->audio_fifo, buf);
-      }
-    }
-
-    /* wait before sending end buffers: user might want to do a new seek */
-    while(this->send_end_buffers && this->audio_fifo->size(this->audio_fifo) &&
-          this->status != DEMUX_OK){
-      pthread_mutex_unlock( &this->mutex );
-      xine_usec_sleep(100000);
-      pthread_mutex_lock( &this->mutex );
-    }
-
-  } while (this->status == DEMUX_OK);
-
-  printf ("demux_aiff: demux loop finished (status: %d)\n",
-          this->status);
-
-  /* seek back to the beginning of the data in preparation for another
-   * start */
-  this->input->seek(this->input, this->data_start, SEEK_SET);
-
-  this->status = DEMUX_FINISHED;
-
-  if (this->send_end_buffers) {
-    xine_demux_control_end(this->xine, BUF_FLAG_END_STREAM);
-  }
-
-  this->thread_running = 0;
-  pthread_mutex_unlock(&this->mutex);
-  return NULL;
-}
-
-static int load_aiff_and_send_headers(demux_aiff_t *this) {
-
+  unsigned char signature[AIFF_SIGNATURE_SIZE];
   unsigned char preamble[PREAMBLE_SIZE];
   unsigned int chunk_type;
   unsigned int chunk_size;
   unsigned char buffer[100];
 
-  pthread_mutex_lock(&this->mutex);
+  this->input->seek(this->input, 0, SEEK_SET);
+  if (this->input->read(this->input, signature, AIFF_SIGNATURE_SIZE) !=
+    AIFF_SIGNATURE_SIZE)
+    return 0;
 
-  this->video_fifo  = this->xine->video_fifo;
-  this->audio_fifo  = this->xine->audio_fifo;
-
-  this->status = DEMUX_OK;
+  /* check the signature */
+  if ((BE_32(&signature[0]) != FORM_TAG) ||
+      (BE_32(&signature[8]) != AIFF_TAG))
+    return 0;
 
   /* audio type is PCM unless proven otherwise */
   this->audio_type = BUF_AUDIO_LPCM_BE;
@@ -259,87 +181,144 @@ static int load_aiff_and_send_headers(demux_aiff_t *this) {
   }
 
   /* the audio parameters should have been set at this point */
-  if (!this->audio_channels) {
-    this->status = DEMUX_FINISHED;
-    pthread_mutex_lock(&this->mutex);
-    return DEMUX_CANNOT_HANDLE;
-  }
+  if (!this->audio_channels)
+    return 0;
 
-  /* load stream information */
-  this->xine->stream_info[XINE_STREAM_INFO_AUDIO_CHANNELS] =
-    this->audio_channels;
-  this->xine->stream_info[XINE_STREAM_INFO_AUDIO_SAMPLERATE] =
-    this->audio_sample_rate;
-  this->xine->stream_info[XINE_STREAM_INFO_AUDIO_BITS] =
-    this->audio_bits;
-
-  xine_demux_control_headers_done (this->xine);
-
-  pthread_mutex_unlock (&this->mutex);
-
-  return DEMUX_CAN_HANDLE;
+  return 1;
 }
 
-static int demux_aiff_open(demux_plugin_t *this_gen,
-                           input_plugin_t *input, int stage) {
+static void *demux_aiff_loop (void *this_gen) {
 
   demux_aiff_t *this = (demux_aiff_t *) this_gen;
-  unsigned char signature[AIFF_SIGNATURE_SIZE];
+  buf_element_t *buf = NULL;
+  unsigned int remaining_sample_bytes;
+  off_t current_file_pos;
+  int64_t current_pts;
 
-  this->input = input;
+  pthread_mutex_lock( &this->mutex );
+  this->seek_flag = 1;
 
-  switch(stage) {
-  case STAGE_BY_CONTENT: {
-    if ((input->get_capabilities(input) & INPUT_CAP_SEEKABLE) == 0)
-      return DEMUX_CANNOT_HANDLE;
+  /* do-while needed to seek after demux finished */
+  do {
+    /* main demuxer loop */
+    while (this->status == DEMUX_OK) {
 
-    input->seek(input, 0, SEEK_SET);
-    if (input->read(input, signature, AIFF_SIGNATURE_SIZE) !=
-      AIFF_SIGNATURE_SIZE)
-      return DEMUX_CANNOT_HANDLE;
+      /* someone may want to interrupt us */
+      pthread_mutex_unlock( &this->mutex );
+      /* give demux_*_stop a chance to interrupt us */
+      sched_yield();
+      pthread_mutex_lock( &this->mutex );
 
-    /* check the signature */
-    if ((BE_32(&signature[0]) == FORM_TAG) &&
-        (BE_32(&signature[8]) == AIFF_TAG))
-      return load_aiff_and_send_headers(this);
+      /* just load data chunks from wherever the stream happens to be
+       * pointing; issue a DEMUX_FINISHED status if EOF is reached */
+      remaining_sample_bytes = this->audio_block_align;
+      current_file_pos = 
+        this->input->get_current_pos(this->input) - this->data_start;
 
-    return DEMUX_CANNOT_HANDLE;
-  }
-  break;
+      current_pts = current_file_pos;
+      current_pts *= 90000;
+      current_pts /= this->audio_bytes_per_second;
 
-  case STAGE_BY_EXTENSION: {
-    char *suffix;
-    char *MRL;
-    char *m, *valid_ends;
+      if (this->seek_flag) {
+        xine_demux_control_newpts(this->stream, current_pts, 0);
+        this->seek_flag = 0;
+      }
 
-    MRL = input->get_mrl (input);
+      while (remaining_sample_bytes) {
+        buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
+        buf->type = this->audio_type;
+        buf->input_pos = current_file_pos;
+        buf->input_length = this->data_size;
+        buf->input_time = current_pts / 90000;
+        buf->pts = current_pts;
 
-    suffix = strrchr(MRL, '.');
+        if (remaining_sample_bytes > buf->max_size)
+          buf->size = buf->max_size;
+        else
+          buf->size = remaining_sample_bytes;
+        remaining_sample_bytes -= buf->size;
 
-    if(!suffix)
-      return DEMUX_CANNOT_HANDLE;
+        if (this->input->read(this->input, buf->content, buf->size) !=
+          buf->size) {
+         buf->free_buffer(buf);
+          this->status = DEMUX_FINISHED;
+          break;
+        }
 
-    xine_strdupa(valid_ends, (this->config->register_string(this->config,
-                                                            "mrl.ends_aiff", VALID_ENDS,
-                                                            _("valid mrls ending for aiff demuxer"),
-                                                            NULL, 10, NULL, NULL)));
-    while((m = xine_strsep(&valid_ends, ",")) != NULL) {
+        if (!remaining_sample_bytes)
+          buf->decoder_flags |= BUF_FLAG_FRAME_END;
 
-      while(*m == ' ' || *m == '\t') m++;
-
-      if(!strcasecmp((suffix + 1), m))
-        return load_aiff_and_send_headers(this);
+        this->audio_fifo->put (this->audio_fifo, buf);
+      }
     }
-    return DEMUX_CANNOT_HANDLE;
-  }
-  break;
 
-  default:
-    return DEMUX_CANNOT_HANDLE;
-    break;
+    /* wait before sending end buffers: user might want to do a new seek */
+    while(this->send_end_buffers && this->audio_fifo->size(this->audio_fifo) &&
+          this->status != DEMUX_OK){
+      pthread_mutex_unlock( &this->mutex );
+      xine_usec_sleep(100000);
+      pthread_mutex_lock( &this->mutex );
+    }
+
+  } while (this->status == DEMUX_OK);
+
+  printf ("demux_aiff: demux loop finished (status: %d)\n",
+          this->status);
+
+  /* seek back to the beginning of the data in preparation for another
+   * start */
+  this->input->seek(this->input, this->data_start, SEEK_SET);
+
+  this->status = DEMUX_FINISHED;
+
+  if (this->send_end_buffers) {
+    xine_demux_control_end(this->stream, BUF_FLAG_END_STREAM);
   }
 
-  return DEMUX_CANNOT_HANDLE;
+  this->thread_running = 0;
+  pthread_mutex_unlock(&this->mutex);
+  return NULL;
+}
+
+static void demux_aiff_send_headers(demux_plugin_t *this_gen) {
+
+  demux_aiff_t *this = (demux_aiff_t *) this_gen;
+  buf_element_t *buf;
+
+  pthread_mutex_lock(&this->mutex);
+
+  this->video_fifo  = this->stream->video_fifo;
+  this->audio_fifo  = this->stream->audio_fifo;
+
+  this->status = DEMUX_OK;
+
+  /* load stream information */
+  this->stream->stream_info[XINE_STREAM_INFO_AUDIO_CHANNELS] =
+    this->audio_channels;
+  this->stream->stream_info[XINE_STREAM_INFO_AUDIO_SAMPLERATE] =
+    this->audio_sample_rate;
+  this->stream->stream_info[XINE_STREAM_INFO_AUDIO_BITS] =
+    this->audio_bits;
+
+  /* send start buffers */
+  xine_demux_control_start(this->stream);
+
+  /* send init info to decoders */
+  if (this->audio_fifo && this->audio_type) {
+    buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
+    buf->type = this->audio_type;
+    buf->decoder_flags = BUF_FLAG_HEADER;
+    buf->decoder_info[0] = 0;
+    buf->decoder_info[1] = this->audio_sample_rate;
+    buf->decoder_info[2] = this->audio_bits;
+    buf->decoder_info[3] = this->audio_channels;
+    buf->size = 0;
+    this->audio_fifo->put (this->audio_fifo, buf);
+  }
+
+  xine_demux_control_headers_done (this->stream);
+
+  pthread_mutex_unlock (&this->mutex);
 }
 
 static int demux_aiff_seek (demux_plugin_t *this_gen,
@@ -349,7 +328,6 @@ static int demux_aiff_start (demux_plugin_t *this_gen,
                              off_t start_pos, int start_time) {
 
   demux_aiff_t *this = (demux_aiff_t *) this_gen;
-  buf_element_t *buf;
   int err;
 
   demux_aiff_seek(this_gen, start_pos, start_time);
@@ -358,34 +336,6 @@ static int demux_aiff_start (demux_plugin_t *this_gen,
 
   /* if thread is not running, initialize demuxer */
   if (!this->thread_running) {
-
-    /* print vital stats */
-    xine_log(this->xine, XINE_LOG_MSG,
-      _("demux_aiff: %d Hz, %d channels, %d bits, %d frames\n"),
-      this->audio_sample_rate,
-      this->audio_channels,
-      this->audio_bits,
-      this->audio_frames);
-    xine_log(this->xine, XINE_LOG_MSG,
-      _("demux_aiff: running time: %d min, %d sec\n"),
-      this->running_time / 60,
-      this->running_time % 60);
-
-    /* send start buffers */
-    xine_demux_control_start(this->xine);
-
-    /* send init info to decoders */
-    if (this->audio_fifo && this->audio_type) {
-      buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
-      buf->type = this->audio_type;
-      buf->decoder_flags = BUF_FLAG_HEADER;
-      buf->decoder_info[0] = 0;
-      buf->decoder_info[1] = this->audio_sample_rate;
-      buf->decoder_info[2] = this->audio_bits;
-      buf->decoder_info[3] = this->audio_channels;
-      buf->size = 0;
-      this->audio_fifo->put (this->audio_fifo, buf);
-    }
 
     this->status = DEMUX_OK;
     this->send_end_buffers = 1;
@@ -433,7 +383,7 @@ static int demux_aiff_seek (demux_plugin_t *this_gen,
 
   this->seek_flag = 1;
   status = this->status = DEMUX_OK;
-  xine_demux_flush_engine (this->xine);
+  xine_demux_flush_engine (this->stream);
   pthread_mutex_unlock(&this->mutex);
 
   return status;
@@ -461,13 +411,15 @@ static void demux_aiff_stop (demux_plugin_t *this_gen) {
   pthread_mutex_unlock( &this->mutex );
   pthread_join (this->thread, &p);
 
-  xine_demux_flush_engine(this->xine);
+  xine_demux_flush_engine(this->stream);
 
-  xine_demux_control_end(this->xine, BUF_FLAG_END_USER);
+  xine_demux_control_end(this->stream, BUF_FLAG_END_USER);
 }
 
 static void demux_aiff_dispose (demux_plugin_t *this_gen) {
   demux_aiff_t *this = (demux_aiff_t *) this_gen;
+
+  demux_aiff_stop(this_gen);
 
   pthread_mutex_destroy (&this->mutex);
   free(this);
@@ -479,14 +431,6 @@ static int demux_aiff_get_status (demux_plugin_t *this_gen) {
   return this->status;
 }
 
-static char *demux_aiff_get_id(void) {
-  return "AIFF";
-}
-
-static char *demux_aiff_get_mimetypes(void) {
-  return NULL;
-}
-
 /* return the approximate length in seconds */
 static int demux_aiff_get_stream_length (demux_plugin_t *this_gen) {
 
@@ -495,33 +439,131 @@ static int demux_aiff_get_stream_length (demux_plugin_t *this_gen) {
   return this->running_time;
 }
 
-static void *init_demuxer_plugin(xine_t *xine, void *data) {
+static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *stream,
+                                    input_plugin_t *input_gen) {
 
-  demux_aiff_t *this;
+  input_plugin_t *input = (input_plugin_t *) input_gen;
+  demux_aiff_t   *this;
+
+  if (! (input->get_capabilities(input) & INPUT_CAP_SEEKABLE)) {
+    printf(_("demux_aiff.c: input not seekable, can not handle!\n"));
+    return NULL;
+  }
 
   this         = xine_xmalloc (sizeof (demux_aiff_t));
-  this->config = xine->config;
-  this->xine   = xine;
+  this->stream = stream;
+  this->input  = input;
 
-  (void*) this->config->register_string(this->config,
-                                        "mrl.ends_aiff", VALID_ENDS,
-                                        _("valid mrls ending for aiff demuxer"),
-                                        NULL, 10, NULL, NULL);
-
-  this->demux_plugin.open              = demux_aiff_open;
+  this->demux_plugin.send_headers      = demux_aiff_send_headers;
   this->demux_plugin.start             = demux_aiff_start;
   this->demux_plugin.seek              = demux_aiff_seek;
   this->demux_plugin.stop              = demux_aiff_stop;
   this->demux_plugin.dispose           = demux_aiff_dispose;
   this->demux_plugin.get_status        = demux_aiff_get_status;
-  this->demux_plugin.get_identifier    = demux_aiff_get_id;
   this->demux_plugin.get_stream_length = demux_aiff_get_stream_length;
-  this->demux_plugin.get_mimetypes     = demux_aiff_get_mimetypes;
+  this->demux_plugin.demux_class       = class_gen;
 
   this->status = DEMUX_FINISHED;
-  pthread_mutex_init( &this->mutex, NULL );
+  pthread_mutex_init (&this->mutex, NULL);
 
-  return (demux_plugin_t *) this;
+  switch (stream->content_detection_method) {
+
+  case METHOD_BY_CONTENT:
+
+    if (!open_aiff_file(this)) {
+      free (this);
+      return NULL;
+    }
+
+  break;
+
+  case METHOD_BY_EXTENSION: {
+    char *ending, *mrl;
+
+    mrl = input->get_mrl (input);
+
+    ending = strrchr(mrl, '.');
+    if (!ending) {
+      free (this);
+      return NULL;
+    }
+
+    if (strncasecmp (ending, ".aif", 4) &&
+        strncasecmp (ending, ".aiff", 5)) {
+      free (this);
+      return NULL;
+    }
+
+    if (!open_aiff_file(this)) {
+      free (this);
+      return NULL;
+    }
+
+  }
+
+  break;
+
+  default:
+    free (this);
+    return NULL;
+  }
+
+  strncpy (this->last_mrl, input->get_mrl (input), 1024);
+
+  /* print vital stats */
+  xine_log(this->stream->xine, XINE_LOG_MSG,
+    _("demux_aiff: %d Hz, %d channels, %d bits, %d frames\n"),
+    this->audio_sample_rate,
+    this->audio_channels,
+    this->audio_bits,
+    this->audio_frames);
+  xine_log(this->stream->xine, XINE_LOG_MSG,
+    _("demux_aiff: running time: %d min, %d sec\n"),
+    this->running_time / 60,
+    this->running_time % 60);
+
+  return &this->demux_plugin;
+}
+
+static char *get_description (demux_class_t *this_gen) {
+  return "AIFF file demux plugin";
+}
+
+static char *get_identifier (demux_class_t *this_gen) {
+  return "AIFF";
+}
+
+static char *get_extensions (demux_class_t *this_gen) {
+  return "aif aiff";
+}
+
+static char *get_mimetypes (demux_class_t *this_gen) {
+  return NULL;
+}
+
+static void class_dispose (demux_class_t *this_gen) {
+
+  demux_aiff_class_t *this = (demux_aiff_class_t *) this_gen;
+
+  free (this);
+}
+
+static void *init_plugin (xine_t *xine, void *data) {
+
+  demux_aiff_class_t     *this;
+
+  this         = xine_xmalloc (sizeof (demux_aiff_class_t));
+  this->config = xine->config;
+  this->xine   = xine;
+
+  this->demux_class.open_plugin     = open_plugin;
+  this->demux_class.get_description = get_description;
+  this->demux_class.get_identifier  = get_identifier;
+  this->demux_class.get_mimetypes   = get_mimetypes;
+  this->demux_class.get_extensions  = get_extensions;
+  this->demux_class.dispose         = class_dispose;
+
+  return this;
 }
 
 /*
@@ -530,6 +572,6 @@ static void *init_demuxer_plugin(xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_DEMUX, 11, "aiff", XINE_VERSION_CODE, NULL, init_demuxer_plugin },
+  { PLUGIN_DEMUX, 14, "aiff", XINE_VERSION_CODE, NULL, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
