@@ -212,12 +212,11 @@ AC_SUBST(DYNAMIC_LD_LIBS)
 dnl ---------------------------------------------
 dnl mpeg2lib stuff
 dnl ---------------------------------------------
-AC_SUBST(LIBMPEG2_CONFIG_OBJS)
 AC_SUBST(LIBMPEG2_CFLAGS)
 AC_SUBST(LIBA52_CFLAGS)
 AC_SUBST(LIBFFMPEG_CFLAGS)
 
-LIBMPEG2_CFLAGS="" dnl default include path removed, no more needed.
+LIBMPEG2_CFLAGS=""
 LIBA52_CFLAGS=""
 LIBFFMPEG_CFLAGS="-DSIMPLE_IDCT -DHAVE_AV_CONFIG_H -DRUNTIME_CPUDETECT -DUSE_FASTMEMCPY"
 
@@ -249,7 +248,6 @@ if test x$enable_mlib = xyes; then
 	  CPPFLAGS="$CPPFLAGS -I$mlibhome/include"
 	  AC_CHECK_HEADER(mlib_video.h,
 	       [ LIBS="$LIBS -L$mlibhome/lib -lmlib" 
-                 LIBMPEG2_CONFIG_OBJS="$LIBMPEG2_CONFIG_OBJS idct_mlib.lo motion_comp_mlib.lo" 
                  LIBMPEG2_CFLAGS="$LIBMPEG2_CFLAGS -I$mlibhome/include" 
                  LIBA52_CFLAGS="$LIBA52_CFLAGS -I$mlibhome/include" 
                  LIBFFMPEG_CFLAGS="$LIBFFMPEG_CFLAGS -I$mlibhome/include"
@@ -808,16 +806,6 @@ fi
 
 AM_CONDITIONAL(HAVE_DVDNAV, [test x"$no_dvdnav" != "xyes"])
 
-dnl --------------------------------------------------------------
-dnl define or not WORDS_BIGENDIAN in dvdnav_internal.h
-dnl --------------------------------------------------------------
-if test x$ac_cv_c_bigendian = "xyes"; then
-  BIGENDIAN="#define WORDS_BIGENDIAN 1"
-else
-  BIGENDIAN="#undef WORDS_BIGENDIAN"
-fi
-AC_SUBST(BIGENDIAN)
-
 dnl ---------------------------------------------
 dnl ASF build can be optional
 dnl ---------------------------------------------
@@ -1338,7 +1326,6 @@ src/demuxers/Makefile
 src/dxr3/Makefile
 src/input/Makefile
 src/input/libdvdnav/Makefile
-src/input/libdvdnav/dvdnav_internal.h
 src/input/dvb/Makefile
 src/input/librtsp/Makefile
 src/input/libreal/Makefile
