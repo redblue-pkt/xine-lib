@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.150 2004/12/20 21:22:18 mroi Exp $
+ * $Id: audio_alsa_out.c,v 1.151 2004/12/22 17:51:38 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -133,7 +133,7 @@ static int ao_alsa_get_percent_from_volume(long val, long min, long max) {
 }
 
 /* Stolen from alsa-lib */
-static int snd_mixer_wait(snd_mixer_t *mixer, int timeout) {
+static int my_snd_mixer_wait(snd_mixer_t *mixer, int timeout) {
   struct pollfd  spfds[16];
   struct pollfd *pfds = spfds;
   int            err, count;
@@ -170,7 +170,7 @@ static void *ao_alsa_handle_event_thread(void *data) {
   this->mixer.running = 1;
   do {
 
-    if(snd_mixer_wait(this->mixer.handle, 333) > 0) {
+    if(my_snd_mixer_wait(this->mixer.handle, 333) > 0) {
       int err, mute = 0, swl = 0, swr = 0;
       long right_vol, left_vol;
       int old_mute;
