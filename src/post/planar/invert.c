@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: invert.c,v 1.16 2003/12/05 15:55:02 f1rmb Exp $
+ * $Id: invert.c,v 1.17 2003/12/07 15:33:26 miguelfreitas Exp $
  */
  
 /*
@@ -199,12 +199,16 @@ static vo_frame_t *invert_get_frame(xine_video_port_t *port_gen, uint32_t width,
 
   frame = port->original_port->get_frame(port->original_port,
     width, height, ratio, format, flags);
+
   _x_post_intercept_video_frame(frame, port);
-  /* replace with our own draw function */
-  frame->draw = invert_draw;
-  /* decoders should not copy the frames, since they won't be displayed */
-  frame->proc_slice = NULL;
-  frame->proc_frame = NULL;
+  if( format == XINE_IMGFMT_YV12 || format == XINE_IMGFMT_YUY2 ) {
+    /* replace with our own draw function */
+    frame->draw = invert_draw;
+    /* decoders should not copy the frames, since they won't be displayed */
+    frame->proc_slice = NULL;
+    frame->proc_frame = NULL;
+  }
+
   return frame;
 }
 

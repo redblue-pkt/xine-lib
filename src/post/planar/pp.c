@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: pp.c,v 1.3 2003/11/29 01:23:24 miguelfreitas Exp $
+ * $Id: pp.c,v 1.4 2003/12/07 15:33:26 miguelfreitas Exp $
  *
  * plugin for ffmpeg libpostprocess
  */
@@ -349,8 +349,8 @@ static vo_frame_t *pp_get_frame(xine_video_port_t *port_gen, uint32_t width,
   frame = port->original_port->get_frame(port->original_port,
     width, height, ratio, format, flags);
 
+  _x_post_intercept_video_frame(frame, port);
   if( format == XINE_IMGFMT_YV12 || format == XINE_IMGFMT_YUY2 ) {
-    _x_post_intercept_video_frame(frame, port);
     /* replace with our own draw function */
     frame->draw = pp_draw;
     /* decoders should not copy the frames, since they won't be displayed */

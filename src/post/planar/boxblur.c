@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: boxblur.c,v 1.10 2003/11/11 18:44:59 f1rmb Exp $
+ * $Id: boxblur.c,v 1.11 2003/12/07 15:33:26 miguelfreitas Exp $
  *
  * mplayer's boxblur
  * Copyright (C) 2002 Michael Niedermayer <michaelni@gmx.at>
@@ -307,11 +307,13 @@ static vo_frame_t *boxblur_get_frame(xine_video_port_t *port_gen, uint32_t width
     width, height, ratio, format, flags);
 
   _x_post_intercept_video_frame(frame, port);
-  /* replace with our own draw function */
-  frame->draw = boxblur_draw;
-  /* decoders should not copy the frames, since they won't be displayed */
-  frame->proc_slice = NULL;
-  frame->proc_frame = NULL;
+  if( format == XINE_IMGFMT_YV12 || format == XINE_IMGFMT_YUY2 ) {
+    /* replace with our own draw function */
+    frame->draw = boxblur_draw;
+    /* decoders should not copy the frames, since they won't be displayed */
+    frame->proc_slice = NULL;
+    frame->proc_frame = NULL;
+  }
 
   return frame;
 }
