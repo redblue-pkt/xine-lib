@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dvaudio_decoder.c,v 1.4 2004/08/16 15:31:23 mroi Exp $
+ * $Id: dvaudio_decoder.c,v 1.5 2004/08/26 18:03:40 valtri Exp $
  *
  * dv audio decoder based on patch by Dan Dennedy <dan@dennedy.org>
  *
@@ -58,7 +58,7 @@
 
 #ifdef HAVE_FFMPEG
 #  include <avcodec.h>
-#  include <dvdata.h>
+#  include "libavcodec/dvdata.h"
 #else
 #  include "libavcodec/avcodec.h"
 #  include "libavcodec/dvdata.h"
