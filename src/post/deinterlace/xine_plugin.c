@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_plugin.c,v 1.36 2004/09/29 15:10:03 miguelfreitas Exp $
+ * $Id: xine_plugin.c,v 1.37 2004/09/29 18:30:37 miguelfreitas Exp $
  *
  * advanced video deinterlacer plugin
  * Jun/2003 by Miguel Freitas
@@ -490,6 +490,9 @@ static void deinterlace_close(xine_video_port_t *port_gen, xine_stream_t *stream
 
   port->stream = NULL;
   _flush_frames(this);
+  port->original_port->set_property(port->original_port, 
+                                    XINE_PARAM_VO_DEINTERLACE, 
+                                    0);
   port->original_port->close(port->original_port, stream);
   _x_post_dec_usage(port);
 }
