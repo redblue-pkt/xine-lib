@@ -21,7 +21,7 @@
  * For more information on the FILM file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_film.c,v 1.56 2003/02/01 19:44:06 tmmm Exp $
+ * $Id: demux_film.c,v 1.57 2003/02/07 03:38:16 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -50,11 +50,12 @@
 #define CVID_TAG FOURCC_TAG('c', 'v', 'i', 'd')
 
 typedef struct {
+  int audio;  /* audio = 1, video = 0 */
   off_t sample_offset;
   unsigned int sample_size;
-  unsigned int syncinfo1;
-  unsigned int syncinfo2;
   int64_t pts;
+  int64_t duration;
+  int keyframe;
 } film_sample_t;
 
 typedef struct {
@@ -146,6 +147,7 @@ static int open_film_file(demux_film_t *film) {
   unsigned int i, j;
   unsigned int audio_byte_count = 0;
   int64_t largest_pts = 0;
+  unsigned int pts;
 
   /* initialize structure fields */
   film->bih.biWidth = 0;
@@ -273,41 +275,65 @@ static int open_film_file(demux_film_t *film) {
       film->sample_table =
         xine_xmalloc(film->sample_count * sizeof(film_sample_t));
       for (j = 0; j < film->sample_count; j++) {
+
         film->sample_table[j].sample_offset = 
           BE_32(&film_header[(i + 16) + j * 16 + 0])
           + film_header_size + 16;
         film->sample_table[j].sample_size = 
           BE_32(&film_header[(i + 16) + j * 16 + 4]);
-        film->sample_table[j].syncinfo1 = 
+        pts = 
           BE_32(&film_header[(i + 16) + j * 16 + 8]);
-        film->sample_table[j].syncinfo2 = 
+        film->sample_table[j].duration = 
           BE_32(&film_header[(i + 16) + j * 16 + 12]);
 
-        /* figure out the pts */
-        if (film->sample_table[j].syncinfo1 == 0xFFFFFFFF) {
+        if (pts == 0xFFFFFFFF) {
+
+          film->sample_table[j].audio = 1;
+          film->sample_table[j].keyframe = 0;
+
+          /* figure out audio pts */
           film->sample_table[j].pts = audio_byte_count;
           film->sample_table[j].pts *= 90000;
           film->sample_table[j].pts /= 
             (film->sample_rate * film->audio_channels * (film->audio_bits / 8));
           audio_byte_count += film->sample_table[j].sample_size;
+
+        } else {
+
+          /* figure out video pts, duration, and keyframe */
+          film->sample_table[j].audio = 0;
+
+          /* keyframe if top bit of this field is 0 */
+          if (pts & 0x80000000)
+            film->sample_table[j].keyframe = 0;
+          else
+            film->sample_table[j].keyframe = 1;
+ 
+          /* remove the keyframe bit */
+          film->sample_table[j].pts = pts & 0x7FFFFFFF;
+
+          /* compute the pts */
+          film->sample_table[j].pts *= 90000;
+          film->sample_table[j].pts /= film->frequency;
+
+          /* compute the frame duration */
+          film->sample_table[j].duration *= 90000;
+          film->sample_table[j].duration /= film->frequency;
+
         }
-        else
-          film->sample_table[j].pts = 
-            (90000 * (film->sample_table[j].syncinfo1 & 0x7FFFFFFF)) /
-            film->frequency;
 
         /* use this to calculate the total running time of the file */
         if (film->sample_table[j].pts > largest_pts)
           largest_pts = film->sample_table[j].pts;
 
-        debug_film_load("    sample %4d @ %8llX, %8X bytes, %s, pts %lld%s\n",
+        debug_film_load("    sample %4d @ %8llX, %8X bytes, %s, pts %lld, duration %lld%s\n",
           j,
           film->sample_table[j].sample_offset,
           film->sample_table[j].sample_size,
-          (film->sample_table[j].syncinfo1 == 0xFFFFFFFF) ? "audio" : "video",
+          (film->sample_table[j].audio) ? "audio" : "video",
           film->sample_table[j].pts,
-          ((film->sample_table[j].syncinfo1 == 0xFFFFFFFF) ||
-           (film->sample_table[j].syncinfo1 & 0x80000000)) ? "" : " (keyframe)");
+          film->sample_table[j].duration,
+          (film->sample_table[j].keyframe) ? " (keyframe)" : "");
       }
 
       /*
@@ -370,8 +396,8 @@ static int demux_film_send_chunk(demux_plugin_t *this_gen) {
 
   /* check if we're only sending audio samples until the next keyframe */
   if ((this->waiting_for_keyframe) && 
-      (this->sample_table[i].syncinfo1 != 0xFFFFFFFF)) {
-    if ((this->sample_table[i].syncinfo1 & 0x80000000) == 0) {
+      (!this->sample_table[i].audio)) {
+    if (this->sample_table[i].keyframe) {
       this->waiting_for_keyframe = 0;
     } else {
       /* move on to the next sample */
@@ -381,7 +407,7 @@ static int demux_film_send_chunk(demux_plugin_t *this_gen) {
 
   debug_film_demux("  demux_film: dispatching frame...\n");
 
-  if ((this->sample_table[i].syncinfo1 != 0xFFFFFFFF) &&
+  if ((!this->sample_table[i].audio) &&
     (this->video_type == BUF_VIDEO_CINEPAK)) {
     /* do a special song and dance when loading CVID data */
     if (this->version[0])
@@ -407,9 +433,7 @@ static int demux_film_send_chunk(demux_plugin_t *this_gen) {
 
       /* set the frame duration */
       buf->decoder_flags |= BUF_FLAG_FRAMERATE;
-      buf->decoder_info[0] = this->sample_table[i].syncinfo2;
-      buf->decoder_info[0] *= 90000;
-      buf->decoder_info[0] /= this->frequency;
+      buf->decoder_info[0] = this->sample_table[i].duration;
             
       if (remaining_sample_bytes > buf->max_size)
         buf->size = buf->max_size;
@@ -451,7 +475,7 @@ static int demux_film_send_chunk(demux_plugin_t *this_gen) {
         }
       }
 
-      if ((this->sample_table[i].syncinfo1 & 0x80000000) == 0)
+      if (this->sample_table[i].keyframe)
         buf->decoder_flags |= BUF_FLAG_KEYFRAME;
       if (!remaining_sample_bytes)
         buf->decoder_flags |= BUF_FLAG_FRAME_END;
@@ -461,7 +485,7 @@ static int demux_film_send_chunk(demux_plugin_t *this_gen) {
       this->video_fifo->put(this->video_fifo, buf);
     }
 
-  } else if (this->sample_table[i].syncinfo1 != 0xFFFFFFFF) {
+  } else if (!this->sample_table[i].audio) {
 
     /* load a non-cvid video chunk */
     remaining_sample_bytes = this->sample_table[i].sample_size;
@@ -479,9 +503,7 @@ static int demux_film_send_chunk(demux_plugin_t *this_gen) {
 
       /* set the frame duration */
       buf->decoder_flags |= BUF_FLAG_FRAMERATE;
-      buf->decoder_info[0] = this->sample_table[i].syncinfo2;
-      buf->decoder_info[0] *= 90000;
-      buf->decoder_info[0] /= this->frequency;
+      buf->decoder_info[0] = this->sample_table[i].duration;
             
       if (remaining_sample_bytes > buf->max_size)
         buf->size = buf->max_size;
@@ -496,7 +518,7 @@ static int demux_film_send_chunk(demux_plugin_t *this_gen) {
         break;
       }
 
-      if ((this->sample_table[i].syncinfo1 & 0x80000000) == 0)
+      if (this->sample_table[i].keyframe)
         buf->decoder_flags |= BUF_FLAG_KEYFRAME;
       if (!remaining_sample_bytes)
         buf->decoder_flags |= BUF_FLAG_FRAME_END;
@@ -732,7 +754,7 @@ static int demux_film_seek (demux_plugin_t *this_gen,
 
   /* search back in the table for the nearest keyframe */
   while (best_index) {
-    if ((this->sample_table[best_index].syncinfo1 & 0x80000000) == 0) {
+    if (this->sample_table[best_index].keyframe) {
       break;
     }
     best_index--;
@@ -744,7 +766,7 @@ static int demux_film_seek (demux_plugin_t *this_gen,
   this->waiting_for_keyframe = 1;
   keyframe_pts = this->sample_table[best_index].pts;
   while (best_index) {
-    if ((this->sample_table[best_index].syncinfo1 == 0xFFFFFFFF) &&
+    if ((this->sample_table[best_index].audio) &&
         (this->sample_table[best_index].pts < keyframe_pts)) {
       break;
     }
