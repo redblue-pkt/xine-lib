@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3.c,v 1.34 2002/06/30 10:47:06 mroi Exp $
+ * $Id: video_out_dxr3.c,v 1.35 2002/07/04 15:29:37 mroi Exp $
  */
  
 /* mpeg1 encoding video out plugin for the dxr3.  
@@ -126,7 +126,7 @@ vo_driver_t *init_video_out_plugin(config_values_t *config, void *visual_gen)
   char tmpstr[100];
   const char *confstr;
   int dashpos, encoder, confnum;
-  static char *available_encoders[SUPPORTED_ENCODER_COUNT + 1];
+  static char *available_encoders[SUPPORTED_ENCODER_COUNT + 2];
   static char *videoout_modes[] = { "tv", "overlay", NULL };
   static char *tv_modes[] = { "ntsc", "pal", "pal60" , "default", NULL };
 
