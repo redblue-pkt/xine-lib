@@ -4006,7 +4006,7 @@ static void mpeg4_decode_sprite_trajectory(MpegEncContext * s)
     int a= 2<<s->sprite_warping_accuracy;
     int rho= 3-s->sprite_warping_accuracy;
     int r=16/a;
-    const int vop_ref[4][2]= {{0,0}, {s->width,0}, {0, s->height}, {s->width, s->height}}; // only true for rectangle shapes
+    int vop_ref[4][2]= {{0,0}, {s->width,0}, {0, s->height}, {s->width, s->height}}; // only true for rectangle shapes
     int d[4][2]={{0,0}, {0,0}, {0,0}, {0,0}};
     int sprite_ref[4][2];
     int virtual_ref[2][2];
