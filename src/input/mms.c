@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mms.c,v 1.50 2004/12/13 19:12:56 miguelfreitas Exp $
+ * $Id: mms.c,v 1.51 2004/12/14 08:18:36 tmattern Exp $
  *
  * MMS over TCP protocol
  *   based on work from major mms
@@ -516,18 +516,18 @@ static int get_asf_header (mms_t *this) {
 static void interp_asf_header (mms_t *this) {
 
   int i;
-
+ 
   this->asf_packet_len = 0;
   this->num_stream_ids = 0;
   /*
    * parse header
    */
-   
+
   i = 30;
   while (i < this->asf_header_len) {
     
-    int guid;
     uint64_t length;
+    int guid;
 
     guid = get_guid(this->asf_header, i);
     i += 16;
@@ -784,10 +784,12 @@ int static mms_choose_best_streams(mms_t *this) {
       this->scmd_body [ (i - 1) * 6 + 7 ] = 0x00;
       
       /* forces the asf demuxer to not choose this stream */
-      this->asf_header[this->bitrates_pos[this->stream_ids[i]]]     = 0;
-      this->asf_header[this->bitrates_pos[this->stream_ids[i]] + 1] = 0;
-      this->asf_header[this->bitrates_pos[this->stream_ids[i]] + 2] = 0;
-      this->asf_header[this->bitrates_pos[this->stream_ids[i]] + 3] = 0;
+      if (this->bitrates_pos[this->stream_ids[i]]) {
+        this->asf_header[this->bitrates_pos[this->stream_ids[i]]]     = 0;
+        this->asf_header[this->bitrates_pos[this->stream_ids[i]] + 1] = 0;
+        this->asf_header[this->bitrates_pos[this->stream_ids[i]] + 2] = 0;
+        this->asf_header[this->bitrates_pos[this->stream_ids[i]] + 3] = 0;
+      }
     }
   }
 

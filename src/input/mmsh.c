@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mmsh.c,v 1.31 2004/12/13 21:06:54 tmattern Exp $
+ * $Id: mmsh.c,v 1.32 2004/12/14 08:18:36 tmattern Exp $
  *
  * MMS over HTTP protocol
  *   written by Thibaut Mattern
@@ -349,7 +349,6 @@ static int get_chunk_header (mmsh_t *this) {
   }
   this->chunk_type       = LE_16 (&chunk_header[0]);
   this->chunk_length     = LE_16 (&chunk_header[2]);
-  lprintf ("get_chunk_header2\n");
   
   switch (this->chunk_type) {
     case CHUNK_TYPE_DATA:
@@ -376,7 +375,6 @@ static int get_chunk_header (mmsh_t *this) {
       return 0;
     }
   }
-  lprintf ("get_chunk_header3\n");
   
   switch (this->chunk_type) {
     case CHUNK_TYPE_DATA:
@@ -797,10 +795,12 @@ static int mmsh_connect_int(mmsh_t *this, int bandwidth) {
       lprintf("disabling stream %d\n", this->stream_ids[i]);
 
       /* forces the asf demuxer to not choose this stream */
-      this->asf_header[this->bitrates_pos[this->stream_ids[i]]]     = 0;
-      this->asf_header[this->bitrates_pos[this->stream_ids[i]] + 1] = 0;
-      this->asf_header[this->bitrates_pos[this->stream_ids[i]] + 2] = 0;
-      this->asf_header[this->bitrates_pos[this->stream_ids[i]] + 3] = 0;
+      if (this->bitrates_pos[this->stream_ids[i]]) {
+        this->asf_header[this->bitrates_pos[this->stream_ids[i]]]     = 0;
+        this->asf_header[this->bitrates_pos[this->stream_ids[i]] + 1] = 0;
+        this->asf_header[this->bitrates_pos[this->stream_ids[i]] + 2] = 0;
+        this->asf_header[this->bitrates_pos[this->stream_ids[i]] + 3] = 0;
+      }
     }
   }
   return 1;
