@@ -1,32 +1,34 @@
 xine-lib (1-rc6)
-  * move win32 frontend into separate module
-  * fix Xv initialization to enable multiple instances of the Xv plugin
-  * remove XInitThreads() call from some video out plugins, because it
-    might lead to undefined behaviour; calling XInitThreads() is entirely
-    the frontend's job
-  * include goom2k4-dev18
-  * make sure the streams are played till their very end
-  * support for Annodex files
-  * VobSub-in-Matroska support
-  * guess and use Windows encoding as default for external subtitles
-  * quality improvements for full frame rate deinterlacing modes
-  * Add support for 44100Hz DTS in .wav files.
-  * restore initial xv port attributes on exit [bugs #965572, #957599]
-  * fix brightness drift problem (loss of color) [bugs #947520, #963587]
-  * fix rare heap overflow with some DVD subpictures [bug #923843]
-  * fix stack overflows in the VCD plugin
-  * experimental time stretching plugin: play stream faster or 
+  * Moved win32 frontend into separate module.
+  * Fixed Xv initialization to enable multiple instances of the Xv plugin
+  * Removed XInitThreads() call from some video out plugins because it
+    might lead to undefined behaviour. Calling XInitThreads() is entirely
+    the frontend's job.
+  * Included goom2k4-dev18 support
+  * Made sure the streams are played till their very end
+  * Support implemented for Annodex files
+  * VobSub-in-Matroska support added.
+  * Enable support for guessing and using Windows encoding as
+    default for external subtitles.
+  * Added quality improvements for full frame rate deinterlacing modes
+  * Added support for 44100Hz DTS in .wav files.
+  * Added ability to Restore initial xv port attributes on exit
+    [bugs #965572, #957599]
+  * Fixed brightness drift problem (loss of color) [bugs #947520, #963587]
+  * Fixed rare heap overflow with some DVD subpictures [bug #923843]
+  * Fixed stack overflows in the VCD plugin
+  * Added experimental time stretching plugin: play stream faster or 
     slower than original speed, optionally preserving pitch
-  * another win32 dll crash fix (after playing several files)
-  * configure option for building xine with external ffmpeg library
-  * added api for finer playback speed control (requires frontend support)
-  * support QuickTime 6.3 DLLs
-  * improved response time on video grabber ports
-  * support mp3 audio in mp4 files
-  * use utf-8 for matroska subtitles
+  * Fixed another win32 dll crash (after playing several files)
+  * Added onfigure option for building xine with external ffmpeg library
+  * Added api for finer playback speed control (requires frontend support)
+  * Added support for QuickTime 6.3 DLLs
+  * Improved response time on video grabber ports
+  * Added support for mp3 audio in mp4 files
+  * Added support for using utf-8 for matroska subtitles
   * next stage of MINGW port - engine library compiles now
-  * Improve DVD MRL handling.
-  * Improve Transport stream handling.
+  * Improved DVD MRL handling.
+  * Improved Transport stream handling.
 
 xine-lib (1-rc5)  
   * add support for ejecting removable media on Solaris
