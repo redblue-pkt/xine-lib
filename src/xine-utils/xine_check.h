@@ -6,6 +6,15 @@
 #define XINE_HEALTH_CHECK_OK            0
 #define XINE_HEALTH_CHECK_FAIL          1
 #define XINE_HEALTH_CHECK_UNSUPPORTED   2
+#define XINE_HEALTH_CHECK_NO_SUCH_CHECK 3
+
+#define CHECK_KERNEL    0
+#define CHECK_MTRR      1
+#define CHECK_CDROM     2
+#define CHECK_DVDROM    3
+#define CHECK_DMA       4
+#define CHECK_X         5
+#define CHECK_XV        6
 
 struct xine_health_check_s {
   int status;
@@ -30,12 +39,7 @@ typedef struct {
  * cdrom_dev = Name of the device link for the cdrom drive (e.g. /dev/cdrom)
  * dvd_dev = Name of the device link for the dvd drive (e.g. /dev/dvd)
  */
-xine_health_check_t* xine_health_check(xine_health_check_t*);
-
-#if 0
-/* Get OS information */
-xine_health_check_t* xine_health_check_os(void);
-#endif
+xine_health_check_t* xine_health_check(xine_health_check_t*, int check_num);
 
 /* Get Kernel information */
 xine_health_check_t* xine_health_check_kernel(xine_health_check_t*);

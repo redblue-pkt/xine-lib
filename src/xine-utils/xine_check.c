@@ -65,55 +65,35 @@
 
 
 xine_health_check_t*
-xine_health_check (xine_health_check_t* hc) {
+xine_health_check (xine_health_check_t* hc, int check_num) {
 
-#if 0
-  if (xine_health_check_os() < 0) {
-    retval = -1;
+  switch(check_num) {
+    case CHECK_KERNEL:
+      hc = xine_health_check_kernel (hc);
+      break;
+    case CHECK_MTRR:
+      hc = xine_health_check_mtrr (hc);
+      break;
+    case CHECK_CDROM:
+      hc = xine_health_check_cdrom (hc);
+      break;
+    case CHECK_DVDROM:
+      hc = xine_health_check_dvdrom (hc);
+      break;
+    case CHECK_DMA:
+      hc = xine_health_check_dma (hc);
+      break;
+    case CHECK_X:
+      hc = xine_health_check_x (hc);
+      break;
+    case CHECK_XV:
+      hc = xine_health_check_xv (hc);
+      break;
+    default:
+      hc->status = XINE_HEALTH_CHECK_NO_SUCH_CHECK;
   }
-#endif
-
-  hc = xine_health_check_kernel (hc);
-  if (hc->status == XINE_HEALTH_CHECK_FAIL) {
-    return hc;
-  }
-
-#ifdef ARCH_X86
-  hc = xine_health_check_mtrr (hc);
-  if (hc->status == XINE_HEALTH_CHECK_FAIL) {
-    return hc;
-  }
-#endif /* ARCH_X86 */
-
-  hc = xine_health_check_cdrom (hc);
-  if (hc->status == XINE_HEALTH_CHECK_FAIL) {
-    return hc;
-  }
-
-  hc = xine_health_check_dvdrom (hc);
-  if (hc->status == XINE_HEALTH_CHECK_FAIL) {
-    return hc;
-  }
-
-  hc = xine_health_check_dma (hc);
-  if (hc->status == XINE_HEALTH_CHECK_FAIL) {
-    return hc;
-  }
-
-  hc = xine_health_check_x (hc);
-  if (hc->status == XINE_HEALTH_CHECK_FAIL) {
-    return hc;
-  }
-
-  hc = xine_health_check_xv (hc);
 
   return hc;
-}
-
-int
-xine_health_check_os(void)
-{
-  return 0;
 }
 
 xine_health_check_t*
