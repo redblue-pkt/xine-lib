@@ -411,6 +411,7 @@ void blend_yuv (uint8_t * dst_img, vo_overlay_t * img_overl,
   int rle_remainder;
   int rlelen;
   int x, y;
+  uint8_t clr=0;
   
   uint8_t *dst_y = dst_img + dst_width * y_off + x_off;
   uint8_t *dst_cr = dst_img + dst_width * dst_height +
@@ -431,8 +432,7 @@ void blend_yuv (uint8_t * dst_img, vo_overlay_t * img_overl,
 #endif
 
     for (x = 0; x < src_width;) {
-      uint8_t clr=0;
-      uint16_t o=0;
+      uint16_t o;
 #ifdef LOG_BLEND_YUV
       printf("1:rle_len=%d, remainder=%d, x=%d\n",rlelen, rle_remainder, x);
 #endif
