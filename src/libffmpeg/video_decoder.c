@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.20 2004/07/01 20:16:24 jstembridge Exp $
+ * $Id: video_decoder.c,v 1.21 2004/07/01 20:56:15 jstembridge Exp $
  *
  * xine video decoder plugin using ffmpeg
  *
@@ -118,12 +118,10 @@ struct ff_video_decoder_s {
 static int get_buffer(AVCodecContext *context, AVFrame *av_frame){
   ff_video_decoder_t * this = (ff_video_decoder_t *)context->opaque;
   vo_frame_t *img;
-  int align, width, height;
+  int width  = context->width;
+  int height = context->height;
         
-  align=15;
-    
-  width  = (context->width +align)&~align;
-  height = (context->height+align)&~align;
+  avcodec_align_dimensions(context, &width, &height);
 
   if( (this->context->pix_fmt != PIX_FMT_YUV420P) ||
       (width != this->bih.biWidth) || (height != this->bih.biHeight) ) {
