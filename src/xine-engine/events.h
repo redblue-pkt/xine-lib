@@ -55,6 +55,9 @@ extern "C" {
 #define XINE_EVENT_NEED_NEXT_MRL        17 
 #define XINE_EVENT_INPUT_NEXT           18
 #define XINE_EVENT_INPUT_PREVIOUS       19
+#define XINE_EVENT_INPUT_ANGLE_NEXT     20
+#define XINE_EVENT_INPUT_ANGLE_PREVIOUS 21
+
 
 /*
  * generic event type.
