@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.38 2002/05/13 22:20:45 tmattern Exp $
+ * $Id: demux_asf.c,v 1.39 2002/05/21 00:33:34 tmattern Exp $
  *
  * demultiplexer for asf streams
  *
@@ -1238,7 +1238,7 @@ static int demux_asf_get_status (demux_plugin_t *this_gen) {
   return (this->thread_running?DEMUX_OK:DEMUX_FINISHED);
 }
 
-static void demux_asf_start (demux_plugin_t *this_gen,
+static int demux_asf_start (demux_plugin_t *this_gen,
 			     fifo_buffer_t *video_fifo,
 			     fifo_buffer_t *audio_fifo,
 			     off_t start_pos, int start_time) {
@@ -1246,6 +1246,7 @@ static void demux_asf_start (demux_plugin_t *this_gen,
   demux_asf_t *this = (demux_asf_t *) this_gen;
   buf_element_t *buf;
   int err;
+  int status;
 
   pthread_mutex_lock( &this->mutex );
 
@@ -1338,7 +1339,12 @@ static void demux_asf_start (demux_plugin_t *this_gen,
     }
   }
 
+  /* this->status is saved because we can be interrupted between
+   * pthread_mutex_unlock and return
+   */
+  status = this->status;
   pthread_mutex_unlock( &this->mutex );
+  return status;
 
 /*
   if( !starting && this->status != DEMUX_OK ) {
@@ -1349,11 +1355,11 @@ static void demux_asf_start (demux_plugin_t *this_gen,
 
 }
 
-static void demux_asf_seek (demux_plugin_t *this_gen,
+static int demux_asf_seek (demux_plugin_t *this_gen,
 			     off_t start_pos, int start_time) {
   demux_asf_t *this = (demux_asf_t *) this_gen;
 
-	demux_asf_start (this_gen, this->video_fifo, this->audio_fifo,
+	return demux_asf_start (this_gen, this->video_fifo, this->audio_fifo,
 			 start_pos, start_time);
 }
 
