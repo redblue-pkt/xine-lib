@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_interface.c,v 1.58 2003/09/18 18:14:51 valtri Exp $
+ * $Id: xine_interface.c,v 1.59 2003/10/06 19:19:05 valtri Exp $
  *
  * convenience/abstraction layer, functions to implement
  * libxine's public interface
@@ -602,7 +602,7 @@ xine_osd_t *xine_osd_new(xine_stream_t *stream, int x, int y, int width, int hei
   this->osd.renderer->set_encoding(&this->osd, "");
   return this;
 }
-  
+
 void xine_osd_draw_point(xine_osd_t *this, int x, int y, int color) {
   this->osd.renderer->point(&this->osd, x, y, color);
 } 
@@ -632,6 +632,10 @@ void xine_osd_get_text_size(xine_osd_t *this, const char *text, int *width, int 
 
 void xine_osd_set_font(xine_osd_t *this, const char *fontname, int size) {
   this->osd.renderer->set_font(&this->osd, fontname, size);
+}
+
+void xine_osd_set_encoding(xine_osd_t *this, const char *encoding) {
+  this->osd.renderer->set_encoding(&this->osd, encoding);
 }
 
 void xine_osd_set_position(xine_osd_t *this, int x, int y) {

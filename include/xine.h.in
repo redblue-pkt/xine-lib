@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.95 2003/10/06 12:44:56 mroi Exp $
+ * $Id: xine.h.in,v 1.96 2003/10/06 19:19:04 valtri Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -1671,6 +1671,12 @@ void        xine_osd_get_text_size (xine_osd_t *self, const char *text,
    as 'fontname' here */
 void        xine_osd_set_font      (xine_osd_t *self, const char *fontname,
 				    int size);
+/* 
+ * specifying encoding of texts
+ *   ""   ... means current locale encoding (default)
+ *   NULL ... means latin1
+ */
+void xine_osd_set_encoding(xine_osd_t *self, const char *encoding);
 /* set position were overlay will be blended */
 void        xine_osd_set_position  (xine_osd_t *self, int x, int y);
 void        xine_osd_show          (xine_osd_t *self, int64_t vpts);
