@@ -92,14 +92,15 @@ binary-arch: build install
 	#
 	# build libxine${major} package by moving files from libxine-dev
 	#
-	dh_install --autodest --sourcedir=debian/tmp --list-missing
+	#dh_install --autodest --sourcedir=debian/tmp --list-missing
+	dh_install --autodest --sourcedir=debian/tmp
 	dh_installdocs
 	dh_installchangelogs -k ChangeLog
 	dh_link
 	dh_strip
 	dh_compress
 	dh_fixperms
-	dh_makeshlibs -V 'libxine1 (>= 1-beta8)'
+	dh_makeshlibs -V 'libxine1 (>= 1-beta10)'
 	dh_installdeb
 #	dh_shlibdeps
 	chmod +x debian/shlibdeps.sh
