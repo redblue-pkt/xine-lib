@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.188 2002/11/02 11:34:12 mroi Exp $
+ * $Id: xine.c,v 1.189 2002/11/05 23:29:48 tmattern Exp $
  *
  * top-level xine functions
  *
@@ -379,6 +379,7 @@ static int xine_open_internal (xine_stream_t *stream, const char *mrl) {
    */
 
   xine_close_internal (stream);
+  stream->input_length = 0;
 
 #ifdef LOG
   printf ("xine: engine should be stopped now\n");
@@ -946,7 +947,7 @@ static int xine_get_current_position (xine_stream_t *stream) {
   
   /* pos = stream->mCurInput->seek (0, SEEK_CUR); */
   len = stream->input_length;
-  if (len == 0) len = stream->input_plugin->get_length (stream->input_plugin); 
+  if (len == 0) len = stream->input_plugin->get_length (stream->input_plugin);
   share = (double) stream->input_pos / (double) len * 65535;
 
   pthread_mutex_unlock (&stream->frontend_lock);
