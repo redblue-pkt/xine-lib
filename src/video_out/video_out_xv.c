@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.181 2003/11/11 18:45:00 f1rmb Exp $
+ * $Id: video_out_xv.c,v 1.182 2003/11/26 01:03:32 miguelfreitas Exp $
  *
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -29,6 +29,7 @@
  * xine-specific code by Guenter Bartsch <bartscgr@studbox.uni-stuttgart.de>
  *
  * overlay support by James Courtier-Dutton <James@superbug.demon.co.uk> - July 2001
+ * X11 unscaled overlay support by Miguel Freitas - Nov 2003
  */
 
 #ifdef HAVE_CONFIG_H
@@ -71,6 +72,7 @@
 #include "deinterlace.h"
 #include "xineutils.h"
 #include "vo_scale.h"
+#include "x11osd.h"
 
 /*
 #define LOG
@@ -126,7 +128,8 @@ struct xv_driver_s {
 
   xv_frame_t        *recent_frames[VO_NUM_RECENT_FRAMES];
   xv_frame_t        *cur_frame;
-  vo_overlay_t      *overlay;
+  x11osd            *xoverlay;
+  int                ovl_changed;
 
   /* all scaling information goes here */
   vo_scale_t         sc;
@@ -607,21 +610,51 @@ static void xv_compute_output_size (xv_driver_t *this) {
   }
 }
 
+static void xv_overlay_begin (vo_driver_t *this_gen, 
+			      vo_frame_t *frame_gen, int changed) {
+  xv_driver_t  *this = (xv_driver_t *) this_gen;
+
+  this->ovl_changed = changed;
+
+  if( this->ovl_changed && this->xoverlay ) {
+    XLockDisplay (this->display);
+    x11osd_clear(this->xoverlay); 
+    XUnlockDisplay (this->display);
+  }
+}
+
+static void xv_overlay_end (vo_driver_t *this_gen, vo_frame_t *vo_img) {
+  xv_driver_t  *this = (xv_driver_t *) this_gen;
+
+  if( this->ovl_changed && this->xoverlay ) {
+    XLockDisplay (this->display);
+    x11osd_expose(this->xoverlay);
+    XUnlockDisplay (this->display);
+  }
+
+  this->ovl_changed = 0;
+}
+
 static void xv_overlay_blend (vo_driver_t *this_gen, 
 			      vo_frame_t *frame_gen, vo_overlay_t *overlay) {
+  xv_driver_t  *this = (xv_driver_t *) this_gen;
   xv_frame_t   *frame = (xv_frame_t *) frame_gen;
 
-  /* Alpha Blend here
-   * As XV drivers improve to support Hardware overlay, we will change this function.
-   */
-
   if (overlay->rle) {
-    if (frame->format == XINE_IMGFMT_YV12)
-      blend_yuv(frame->vo_frame.base, overlay, 
-		frame->width, frame->height, frame->vo_frame.pitches);
-    else
-      blend_yuy2(frame->vo_frame.base[0], overlay, 
-		 frame->width, frame->height, frame->vo_frame.pitches[0]);
+    if( overlay->unscaled ) {
+      if( this->ovl_changed && this->xoverlay ) {
+        XLockDisplay (this->display);
+        x11osd_blend(this->xoverlay, overlay); 
+        XUnlockDisplay (this->display);
+      }
+    } else {
+      if (frame->format == XINE_IMGFMT_YV12)
+        blend_yuv(frame->vo_frame.base, overlay, 
+		  frame->width, frame->height, frame->vo_frame.pitches);
+      else
+        blend_yuy2(frame->vo_frame.base[0], overlay, 
+		   frame->width, frame->height, frame->vo_frame.pitches[0]);
+    }
   }
 }
 
@@ -755,6 +788,15 @@ static void xv_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
 
 static int xv_get_property (vo_driver_t *this_gen, int property) {
   xv_driver_t *this = (xv_driver_t *) this_gen;
+
+  switch (property) {
+    case VO_PROP_WINDOW_WIDTH:
+      this->props[property].value = this->sc.gui_width;
+      break;
+    case VO_PROP_WINDOW_HEIGHT:
+      this->props[property].value = this->sc.gui_height;
+      break;
+  }
 
   if (this->xine->verbosity >= XINE_VERBOSITY_LOG) 
     printf ("video_out_xv: property #%d = %d\n", property,
@@ -915,6 +957,9 @@ static int xv_gui_data_exchange (vo_driver_t *this_gen,
                          this->sc.border[i].w, this->sc.border[i].h);
       }
 
+      if(this->xoverlay)
+        x11osd_expose(this->xoverlay);
+
       XSync(this->display, False);
       XUnlockDisplay (this->display);
     }
@@ -927,6 +972,8 @@ static int xv_gui_data_exchange (vo_driver_t *this_gen,
     XLockDisplay (this->display);
     XFreeGC(this->display, this->gc);
     this->gc = XCreateGC (this->display, this->drawable, 0, NULL);
+    if(this->xoverlay)
+      x11osd_drawable_changed(this->xoverlay, this->drawable);
     XUnlockDisplay (this->display);
     this->sc.force_redraw = 1;
     break;
@@ -986,6 +1033,12 @@ static void xv_dispose (vo_driver_t *this_gen) {
       this->recent_frames[i]->vo_frame.dispose
          (&this->recent_frames[i]->vo_frame);
     this->recent_frames[i] = NULL;
+  }
+
+  if( this->xoverlay ) {
+    XLockDisplay (this->display);
+    x11osd_destroy (this->xoverlay);
+    XUnlockDisplay (this->display);
   }
 
   free (this);
@@ -1143,7 +1196,6 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *vi
   memset (this, 0, sizeof(xv_driver_t));
 
   this->display           = visual->display;
-  this->overlay           = NULL;
   this->screen            = visual->screen;
   this->xv_port           = class->xv_port;
   this->config            = config;
@@ -1162,6 +1214,8 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *vi
   this->deinterlace_frame.image = NULL;
   this->use_colorkey            = 0;
   this->colorkey                = 0;
+  this->xoverlay                = NULL;
+  this->ovl_changed             = 0;
   this->x11_old_error_handler   = NULL;
   this->xine                    = class->xine;
 
@@ -1174,9 +1228,9 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *vi
   this->vo_driver.get_capabilities     = xv_get_capabilities;
   this->vo_driver.alloc_frame          = xv_alloc_frame;
   this->vo_driver.update_frame_format  = xv_update_frame_format;
-  this->vo_driver.overlay_begin        = NULL; /* not used */
+  this->vo_driver.overlay_begin        = xv_overlay_begin;
   this->vo_driver.overlay_blend        = xv_overlay_blend;
-  this->vo_driver.overlay_end          = NULL; /* not used */
+  this->vo_driver.overlay_end          = xv_overlay_end;
   this->vo_driver.display_frame        = xv_display_frame;
   this->vo_driver.get_property         = xv_get_property;
   this->vo_driver.set_property         = xv_set_property;
@@ -1321,6 +1375,13 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *vi
 			   _("Software deinterlace method (Key I toggles deinterlacer on/off)"),
 			   NULL, 10, xv_update_deinterlace, this);
   this->deinterlace_enabled = 0;
+
+  XLockDisplay (this->display);
+  this->xoverlay = x11osd_create (this->display, this->screen, this->drawable);
+  XUnlockDisplay (this->display);
+
+  if( this->xoverlay )
+    this->capabilities |= VO_CAP_UNSCALED_OVERLAY;
 
   return &this->vo_driver;
 }

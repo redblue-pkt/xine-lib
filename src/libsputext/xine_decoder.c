@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.65 2003/11/11 18:44:54 f1rmb Exp $
+ * $Id: xine_decoder.c,v 1.66 2003/11/26 01:03:32 miguelfreitas Exp $
  *
  */
 
@@ -49,6 +49,8 @@ typedef enum {
   SUBTITLE_SIZE_SMALL,
   SUBTITLE_SIZE_NORMAL,
   SUBTITLE_SIZE_LARGE,
+  SUBTITLE_SIZE_VERY_LARGE,
+  SUBTITLE_SIZE_HUGE,
 
   SUBTITLE_SIZE_NUM        /* number of values in enum */
 } subtitle_size;
@@ -62,6 +64,7 @@ typedef struct sputext_class_s {
   int                vertical_offset;
   char               font[FONTNAME_SIZE]; /* subtitle font */
   char              *src_encoding;    /* encoding of subtitle file */
+  int                use_unscaled;    /* use unscaled OSD if possible */
 
   xine_t            *xine;
 
@@ -97,11 +100,12 @@ typedef struct sputext_decoder_s {
 
   int64_t            img_duration;
   int64_t            last_subtitle_end; /* no new subtitle before this vpts */
+  int                unscaled; /* use unscaled OSD */
 } sputext_decoder_t;
 
 
 static void update_font_size (sputext_decoder_t *this) {
-  static int sizes[SUBTITLE_SIZE_NUM] = { 16, 20, 24, 32 };
+  static int sizes[SUBTITLE_SIZE_NUM] = { 16, 20, 24, 32, 48, 64 };
 
   int  y;
 
@@ -125,8 +129,60 @@ static void update_font_size (sputext_decoder_t *this) {
     this->renderer->set_font (this->osd, this->class->font, this->font_size);
     this->renderer->set_position (this->osd, 0, y);
   }
+
 }
 
+static void update_output_size (sputext_decoder_t *this) {
+  int unscaled;
+
+  unscaled = this->class->use_unscaled &&
+             (this->stream->video_out->get_capabilities(this->stream->video_out) &
+              VO_CAP_UNSCALED_OVERLAY);
+  if( unscaled != this->unscaled ) {
+    this->unscaled = unscaled;
+    this->width = 0; /* force update */
+  }
+
+  /* initialize decoder if needed */
+  if( this->unscaled ) {
+    if( this->width != this->stream->video_out->get_property(this->stream->video_out, 
+                                                             VO_PROP_WINDOW_WIDTH) ||
+        this->height != this->stream->video_out->get_property(this->stream->video_out, 
+                                                             VO_PROP_WINDOW_HEIGHT) ||
+        !this->img_duration || !this->osd ) {
+
+      int width, height; /* dummy */
+        
+      if( this->stream->video_out->status(this->stream->video_out, NULL,
+                                           &width, &height, &this->img_duration )) {
+
+        this->width = this->stream->video_out->get_property(this->stream->video_out,
+                                                             VO_PROP_WINDOW_WIDTH);
+        this->height = this->stream->video_out->get_property(this->stream->video_out,
+                                                             VO_PROP_WINDOW_HEIGHT);
+
+        if( this->width && this->height && this->img_duration ) {
+          this->renderer = this->stream->osd_renderer;
+          
+          update_font_size (this);
+        }
+      }
+    }
+  } else {
+    if( !this->width || !this->height || !this->img_duration || !this->osd ) {
+        
+      if( this->stream->video_out->status(this->stream->video_out, NULL,
+                                           &this->width, &this->height, &this->img_duration )) {
+                                               
+        if( this->width && this->height && this->img_duration ) {
+          this->renderer = this->stream->osd_renderer;
+          
+          update_font_size (this);
+        }
+      }
+    }
+  }
+}
 
 static void draw_subtitle(sputext_decoder_t *this, int64_t sub_start, int64_t sub_end ) {
   
@@ -182,7 +238,10 @@ static void draw_subtitle(sputext_decoder_t *this, int64_t sub_start, int64_t su
   this->last_subtitle_end = sub_end;
           
   this->renderer->set_text_palette (this->osd, -1, OSD_TEXT1);
-  this->renderer->show (this->osd, sub_start);
+  if (this->unscaled)
+    this->renderer->show_unscaled (this->osd, sub_start);
+  else
+    this->renderer->show (this->osd, sub_start);
   this->renderer->hide (this->osd, sub_end);
   
 #ifdef LOG
@@ -246,19 +305,7 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
    
   while(this->seek_count == extra_info.seek_count) {
   
-    /* initialize decoder if needed */
-    if( !this->width || !this->height || !this->img_duration || !this->osd ) {
-      
-      if( this->stream->video_out->status(this->stream->video_out, NULL,
-                                           &this->width, &this->height, &this->img_duration )) {
-                                             
-        if( this->width && this->height && this->img_duration ) {
-          this->renderer = this->stream->osd_renderer;
-        
-          update_font_size (this);
-        }
-      }
-    }
+    update_output_size( this );
     
     if( this->osd ) {
       
@@ -398,6 +445,13 @@ static void update_subtitle_size(void *class_gen, xine_cfg_entry_t *entry)
   class->subtitle_size = entry->num_value;
 }
 
+static void update_use_unscaled(void *class_gen, xine_cfg_entry_t *entry)
+{
+  sputext_class_t *class = (sputext_class_t *)class_gen;
+
+  class->use_unscaled = entry->num_value;
+}
+
 static spu_decoder_t *sputext_class_open_plugin (spu_decoder_class_t *class_gen, xine_stream_t *stream) {
 
   sputext_class_t *class = (sputext_class_t *)class_gen;
@@ -442,7 +496,7 @@ static void update_src_encoding(void *class_gen, xine_cfg_entry_t *entry)
 static void *init_spu_decoder_plugin (xine_t *xine, void *data) {
 
   static char *subtitle_size_strings[] = { 
-    "tiny", "small", "normal", "large", NULL 
+    "tiny", "small", "normal", "large", "very large", "huge", NULL 
   };
   sputext_class_t *this ;
 
@@ -480,6 +534,11 @@ static void *init_spu_decoder_plugin (xine_t *xine, void *data) {
 				"iso-8859-1", 
 				_("Encoding of subtitles"), 
 				NULL, 10, update_src_encoding, this);
+  this->use_unscaled  = xine->config->register_bool(xine->config, 
+			      "misc.spu_use_unscaled_osd", 
+			       1,
+			       _("Use unscale OSD if possible"), 
+			       NULL, 0, update_use_unscaled, this);
 
   return &this->class;
 }

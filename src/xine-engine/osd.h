@@ -18,7 +18,7 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
  * OSD stuff (text and graphic primitives)
- * $Id: osd.h,v 1.20 2003/11/19 19:43:23 miguelfreitas Exp $
+ * $Id: osd.h,v 1.21 2003/11/26 01:03:32 miguelfreitas Exp $
  */
 
 #ifndef HAVE_OSD_H
@@ -73,7 +73,6 @@ struct xine_osd_s {
   osd_object_t osd;
 };
 
-/* WARNING: this should be kept in sync with include/xine.h.in */
 struct osd_renderer_s {
 
   /*
@@ -200,6 +199,13 @@ struct osd_renderer_s {
   void (*draw_bitmap) (osd_object_t *osd, uint8_t *bitmap,
 		       int x1, int y1, int width, int height,
 		       uint8_t *palette_map);
+
+  /*
+   * send the osd to be displayed (unscaled) at given pts (0=now)
+   * the object is not changed. there may be subsequent drawing  on it.
+   * overlay is blended at output (screen) resolution.
+   */
+  int (*show_unscaled) (osd_object_t *osd, int64_t vpts );
 
   /* private stuff */
 

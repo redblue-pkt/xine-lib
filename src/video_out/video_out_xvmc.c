@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xvmc.c,v 1.7 2003/11/11 18:45:00 f1rmb Exp $
+ * $Id: video_out_xvmc.c,v 1.8 2003/11/26 01:03:32 miguelfreitas Exp $
  * 
  * video_out_xvmc.c, X11 video motion compensation extension interface for xine
  *
@@ -1022,6 +1022,15 @@ static int xvmc_get_property (vo_driver_t *this_gen, int property) {
   xvmc_driver_t *this = (xvmc_driver_t *) this_gen;
 
   lprintf ("video_out_xvmc: xvmc_get_property\n");
+  
+  switch (property) {
+    case VO_PROP_WINDOW_WIDTH:
+      this->props[property].value = this->sc.gui_width;
+      break;
+    case VO_PROP_WINDOW_HEIGHT:
+      this->props[property].value = this->sc.gui_height;
+      break;
+  }
   
   return this->props[property].value;
 }

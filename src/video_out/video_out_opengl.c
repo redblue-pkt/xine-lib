@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_opengl.c,v 1.31 2003/11/11 18:45:00 f1rmb Exp $
+ * $Id: video_out_opengl.c,v 1.32 2003/11/26 01:03:32 miguelfreitas Exp $
  * 
  * video_out_glut.c, glut based OpenGL rendering interface for xine
  * Matthias Hopf <mat@mshopf.de>
@@ -749,6 +749,10 @@ static int opengl_get_property (vo_driver_t *this_gen, int property) {
 	return this->sc.user_ratio ;
     case VO_PROP_BRIGHTNESS:
 	return this->yuv2rgb_gamma;
+    case VO_PROP_WINDOW_WIDTH:
+        return this->sc.gui_width;
+    case VO_PROP_WINDOW_HEIGHT:
+        return this->sc.gui_height;
     default:
 	printf ("video_out_opengl: tried to get unsupported property %d\n", 
 		property);

@@ -17,6 +17,7 @@ libdir = $(XINE_PLUGINDIR)
 if HAVE_X11
 xshm_module = xineplug_vo_out_xshm.la
 syncfb_module = xineplug_vo_out_syncfb.la
+X11OSD = x11osd.c
 if HAVE_XV
 xv_module = xineplug_vo_out_xv.la
 endif
@@ -66,7 +67,8 @@ lib_LTLIBRARIES = $(xshm_module) $(xv_module) $(xvmc_module) $(aa_module) $(pgx6
 	$(vidix_module) $(fb_module) $(sdl_module) $(syncfb_module) \
 	$(stk_module) $(directfb_module) xineplug_vo_out_none.la
 
-xineplug_vo_out_xv_la_SOURCES = deinterlace.c alphablend.c video_out_xv.c
+xineplug_vo_out_xv_la_SOURCES = deinterlace.c alphablend.c video_out_xv.c \
+	$(X11OSD)
 xineplug_vo_out_xv_la_LIBADD = \
 	$(XV_LIB) \
 	$(X_LIBS) \
@@ -84,7 +86,7 @@ xineplug_vo_out_xvmc_la_LIBADD = \
 xineplug_vo_out_xvmc_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 xineplug_vo_out_xshm_la_SOURCES = yuv2rgb.c yuv2rgb_mmx.c yuv2rgb_mlib.c \
-	alphablend.c video_out_xshm.c
+	alphablend.c video_out_xshm.c $(X11OSD)
 xineplug_vo_out_xshm_la_LIBADD = $(MLIB_LIBS) $(X_LIBS) -lXext $(XINE_LIB)
 xineplug_vo_out_xshm_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
@@ -115,7 +117,7 @@ xineplug_vo_out_sdl_la_SOURCES = alphablend.c video_out_sdl.c
 xineplug_vo_out_sdl_la_LIBADD = $(SDL_LIBS) $(XINE_LIB)
 xineplug_vo_out_sdl_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
-xineplug_vo_out_vidix_la_SOURCES = alphablend.c video_out_vidix.c
+xineplug_vo_out_vidix_la_SOURCES = alphablend.c video_out_vidix.c $(X11OSD)
 xineplug_vo_out_vidix_la_LIBADD =  $(X_LIBS) \
 	$(top_builddir)/src/video_out/vidix/libvidix.la \
 	$(top_builddir)/src/video_out/libdha/libdha.la
@@ -133,4 +135,4 @@ xineplug_vo_out_stk_la_LIBADD = $(LIBSTK_LIBS)
 xineplug_vo_out_stk_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 noinst_HEADERS = alphablend.h deinterlace.h video_out_syncfb.h \
-	yuv2rgb.h video_out_win32.h
+	yuv2rgb.h video_out_win32.h x11osd.h

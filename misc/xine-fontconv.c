@@ -446,7 +446,7 @@ void render_font (FT_Face face, char *fontname, int size, int thickness,
           error = FT_Get_Glyph( face->glyph, &glyph );
 	    
           if( i == 0 ) {
-            out_bitmap = create_bitmap( f266CeilToInt(MAX(face->glyph->metrics.horiAdvance, face->glyph->metrics.width + face->glyph->metrics.horiBearingX)),
+            out_bitmap = create_bitmap( f266CeilToInt(thickness + MAX(face->glyph->metrics.horiAdvance, face->glyph->metrics.width + face->glyph->metrics.horiBearingX)),
                                         f266CeilToInt((max_bearing_y<<6) - face->glyph->metrics.horiBearingY + 
                                         face->glyph->metrics.height + thickness) );
           }
@@ -581,6 +581,8 @@ int main(int argc, char *argv[]) {
   render_font (face, argv[2], 20, thickness, unicodes);
   render_font (face, argv[2], 24, thickness, unicodes);
   render_font (face, argv[2], 32, thickness, unicodes);
+  render_font (face, argv[2], 48, thickness, unicodes);
+  render_font (face, argv[2], 64, thickness, unicodes);
 
   list_free(unicodes);
 

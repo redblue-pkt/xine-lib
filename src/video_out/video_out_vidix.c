@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_vidix.c,v 1.51 2003/11/11 18:45:00 f1rmb Exp $
+ * $Id: video_out_vidix.c,v 1.52 2003/11/26 01:03:32 miguelfreitas Exp $
  * 
  * video_out_vidix.c
  *
@@ -58,6 +58,10 @@
 #include "alphablend.h"
 #include "xineutils.h"
 #include "vo_scale.h"
+
+#ifdef HAVE_X11
+#include "x11osd.h"
+#endif
               
 /*
 #define LOG
@@ -122,6 +126,8 @@ struct vidix_driver_s {
   int                 screen;
   Drawable            drawable;
   GC                  gc;
+  x11osd              *xoverlay;
+  int                  ovl_changed;
 #endif
   
   /* fb related stuff */
@@ -574,6 +580,34 @@ static void vidix_update_frame_format (vo_driver_t *this_gen,
   frame->ratio = ratio;
 }
 
+static void vidix_overlay_begin (vo_driver_t *this_gen, 
+			      vo_frame_t *frame_gen, int changed) {
+#ifdef HAVE_X11
+  vidix_driver_t  *this = (vidix_driver_t *) this_gen;
+
+  this->ovl_changed = changed;
+
+  if( this->ovl_changed && this->xoverlay ) {
+    XLockDisplay (this->display);
+    x11osd_clear(this->xoverlay); 
+    XUnlockDisplay (this->display);
+  }
+#endif
+}
+
+static void vidix_overlay_end (vo_driver_t *this_gen, vo_frame_t *vo_img) {
+#ifdef HAVE_X11
+  vidix_driver_t  *this = (vidix_driver_t *) this_gen;
+
+  if( this->ovl_changed && this->xoverlay ) {
+    XLockDisplay (this->display);
+    x11osd_expose(this->xoverlay);
+    XUnlockDisplay (this->display);
+  }
+
+  this->ovl_changed = 0;
+#endif
+}
 
 /*
  *
@@ -581,12 +615,23 @@ static void vidix_update_frame_format (vo_driver_t *this_gen,
 static void vidix_overlay_blend (vo_driver_t *this_gen, vo_frame_t *frame_gen, vo_overlay_t *overlay) {
 
   vidix_frame_t   *frame = (vidix_frame_t *) frame_gen;
+  vidix_driver_t  *this = (vidix_driver_t *) this_gen;
   
   if (overlay->rle) {
-    if( frame->format == XINE_IMGFMT_YV12 )
-      blend_yuv( frame->vo_frame.base, overlay, frame->width, frame->height, frame->vo_frame.pitches);
-    else
-      blend_yuy2( frame->vo_frame.base[0], overlay, frame->width, frame->height, frame->vo_frame.pitches[0]);
+    if( overlay->unscaled ) {
+#ifdef HAVE_X11
+      if( this->ovl_changed && this->xoverlay ) {
+        XLockDisplay (this->display);
+        x11osd_blend(this->xoverlay, overlay); 
+        XUnlockDisplay (this->display);
+      }
+#endif
+    } else { 
+      if( frame->format == XINE_IMGFMT_YV12 )
+        blend_yuv( frame->vo_frame.base, overlay, frame->width, frame->height, frame->vo_frame.pitches);
+      else
+        blend_yuy2( frame->vo_frame.base[0], overlay, frame->width, frame->height, frame->vo_frame.pitches[0]);
+    }
   }
 }
 
@@ -657,6 +702,15 @@ static void vidix_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
 static int vidix_get_property (vo_driver_t *this_gen, int property) {
 
   vidix_driver_t *this = (vidix_driver_t *) this_gen;
+  
+  switch (property) {
+    case VO_PROP_WINDOW_WIDTH:
+      this->props[property].value = this->sc.gui_width;
+      break;
+    case VO_PROP_WINDOW_HEIGHT:
+      this->props[property].value = this->sc.gui_height;
+      break;
+  }
   
 #ifdef LOG  
   printf ("video_out_vidix: property #%d = %d\n", property,
@@ -827,6 +881,8 @@ static int vidix_gui_data_exchange (vo_driver_t *this_gen,
       XLockDisplay(this->display);
       XFreeGC(this->display, this->gc);
       this->gc = XCreateGC(this->display, this->drawable, 0, NULL);
+      if(this->xoverlay)
+        x11osd_drawable_changed(this->xoverlay, this->drawable);
       XUnlockDisplay(this->display);
 #endif
     }
@@ -837,6 +893,14 @@ static int vidix_gui_data_exchange (vo_driver_t *this_gen,
       printf ("video_out_vidix: GUI_DATA_EX_EXPOSE_EVENT\n");
 #endif
     vidix_clean_output_area(this);
+#ifdef HAVE_X11
+    XLockDisplay (this->display);
+    if(this->xoverlay)
+      x11osd_expose(this->xoverlay);
+
+    XSync(this->display, False);
+    XUnlockDisplay (this->display);
+#endif
     break;
 
   case XINE_GUI_SEND_TRANSLATE_GUI_TO_VIDEO:
@@ -871,6 +935,16 @@ static void vidix_exit (vo_driver_t *this_gen) {
     vdlPlaybackOff(this->vidix_handler);
   }
   vdlClose(this->vidix_handler);
+
+#ifdef HAVE_X11
+  if( this->xoverlay ) {
+    XLockDisplay (this->display);
+    x11osd_destroy (this->xoverlay);
+    XUnlockDisplay (this->display);
+  }
+#endif
+
+  free (this);
 }
 
 static vidix_driver_t *open_plugin (video_driver_class_t *class_gen) {
@@ -975,9 +1049,9 @@ static vidix_driver_t *open_plugin (video_driver_class_t *class_gen) {
   this->vo_driver.get_capabilities     = vidix_get_capabilities;
   this->vo_driver.alloc_frame          = vidix_alloc_frame;
   this->vo_driver.update_frame_format  = vidix_update_frame_format;
-  this->vo_driver.overlay_begin        = NULL; /* not used */
+  this->vo_driver.overlay_begin        = vidix_overlay_begin;
   this->vo_driver.overlay_blend        = vidix_overlay_blend;
-  this->vo_driver.overlay_end          = NULL; /* not used */
+  this->vo_driver.overlay_end          = vidix_overlay_end;
   this->vo_driver.display_frame        = vidix_display_frame;
   this->vo_driver.get_property         = vidix_get_property;
   this->vo_driver.set_property         = vidix_set_property;
@@ -1079,6 +1153,8 @@ static vo_driver_t *vidix_open_plugin (video_driver_class_t *class_gen, const vo
   this->screen            = visual->screen;
   this->drawable          = visual->d;
   this->gc                = XCreateGC(this->display, this->drawable, 0, NULL);
+  this->xoverlay          = NULL;
+  this->ovl_changed       = 0;
  
   XGetWindowAttributes(this->display, this->drawable, &window_attributes);
   this->sc.gui_width      = window_attributes.width;
@@ -1111,6 +1187,13 @@ static vo_driver_t *vidix_open_plugin (video_driver_class_t *class_gen, const vo
   vidix_update_colourkey(this);
 
   query_fourccs(this);
+
+  XLockDisplay (this->display);
+  this->xoverlay = x11osd_create (this->display, this->screen, this->drawable);
+  XUnlockDisplay (this->display);
+
+  if( this->xoverlay )
+    this->capabilities |= VO_CAP_UNSCALED_OVERLAY;
 
   return &this->vo_driver;
 }

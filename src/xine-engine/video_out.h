@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.h,v 1.102 2003/11/15 14:54:31 miguelfreitas Exp $
+ * $Id: video_out.h,v 1.103 2003/11/26 01:03:32 miguelfreitas Exp $
  *
  *
  * xine version of video_out.h 
@@ -254,7 +254,9 @@ struct xine_video_port_s {
 #define VO_PROP_MAX_NUM_FRAMES        11
 #define VO_PROP_ZOOM_Y                13
 #define VO_PROP_DISCARD_FRAMES        14 /* not used by drivers */
-#define VO_NUM_PROPERTIES             15
+#define VO_PROP_WINDOW_WIDTH          15 /* read-only */
+#define VO_PROP_WINDOW_HEIGHT         16 /* read-only */
+#define VO_NUM_PROPERTIES             17
 
 /* number of colors in the overlay palette. Currently limited to 256
    at most, because some alphablend functions use an 8-bit index into
@@ -280,6 +282,7 @@ struct xine_video_port_s {
 #define VO_CAP_YUY2                   0x00000002 /* driver can handle YUY2 pictures */
 #define VO_CAP_XVMC_MOCOMP            0x00000004 /* driver can use XvMC motion compensation */
 #define VO_CAP_XVMC_IDCT              0x00000008 /* driver can use XvMC idct acceleration   */
+#define VO_CAP_UNSCALED_OVERLAY       0x00000010 /* driver can blend overlay at output resolution */
 
 /* macroblock modes */
 #define XINE_MACROBLOCK_INTRA 1
@@ -429,7 +432,7 @@ struct vo_overlay_s {
   
   uint32_t          color[OVL_PALETTE_SIZE];  /* color lookup table     */
   uint8_t           trans[OVL_PALETTE_SIZE];  /* mixer key table        */
-  int               rgb_clut;      /* true if clut was converted to rgb*/
+  int               rgb_clut;      /* true if clut was converted to rgb */
 
   int               clip_top;
   int               clip_bottom;
@@ -437,8 +440,8 @@ struct vo_overlay_s {
   int               clip_right;
   uint32_t          clip_color[OVL_PALETTE_SIZE];
   uint8_t           clip_trans[OVL_PALETTE_SIZE];
-  int               clip_rgb_clut;      /* true if clut was converted to rgb*/
-
+  int               clip_rgb_clut; /* true if clut was converted to rgb */
+  int               unscaled;      /* true if it should be blended unscaled */
 };
 
 

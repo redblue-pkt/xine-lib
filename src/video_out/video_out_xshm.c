@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xshm.c,v 1.119 2003/11/11 18:45:00 f1rmb Exp $
+ * $Id: video_out_xshm.c,v 1.120 2003/11/26 01:03:32 miguelfreitas Exp $
  * 
  * video_out_xshm.c, X11 shared memory extension interface for xine
  *
@@ -59,6 +59,7 @@
 #include "yuv2rgb.h"
 #include "xineutils.h"
 #include "vo_scale.h"
+#include "x11osd.h"
 
 /*
 #define LOG
@@ -110,7 +111,8 @@ typedef struct {
   vo_scale_t         sc;
   
   xshm_frame_t      *cur_frame;
-  vo_overlay_t      *overlay;
+  x11osd            *xoverlay;
+  int                ovl_changed;
 
   int (*x11_old_error_handler)  (Display *, XErrorEvent *);
 
@@ -303,7 +305,13 @@ static void dispose_ximage (xshm_driver_t *this,
  */
 
 static uint32_t xshm_get_capabilities (vo_driver_t *this_gen) {
-  return VO_CAP_YV12 | VO_CAP_YUY2;
+  xshm_driver_t *this = (xshm_driver_t *) this_gen;
+  uint32_t capabilities = VO_CAP_YV12 | VO_CAP_YUY2;
+
+  if( this->xoverlay )
+    capabilities |= VO_CAP_UNSCALED_OVERLAY;
+
+  return capabilities;
 }
 
 static void xshm_frame_proc_slice (vo_frame_t *vo_img, uint8_t **src) {
@@ -597,38 +605,71 @@ static void xshm_overlay_clut_yuv2rgb(xshm_driver_t  *this, vo_overlay_t *overla
   }
 }
 
+static void xshm_overlay_begin (vo_driver_t *this_gen, 
+			      vo_frame_t *frame_gen, int changed) {
+  xshm_driver_t  *this  = (xshm_driver_t *) this_gen;
+
+  this->ovl_changed = changed;
+
+  if( this->ovl_changed && this->xoverlay ) {
+    XLockDisplay (this->display);
+    x11osd_clear(this->xoverlay); 
+    XUnlockDisplay (this->display);
+  }
+}
+
+static void xshm_overlay_end (vo_driver_t *this_gen, vo_frame_t *vo_img) {
+  xshm_driver_t  *this  = (xshm_driver_t *) this_gen;
+
+  if( this->ovl_changed && this->xoverlay ) {
+    XLockDisplay (this->display);
+    x11osd_expose(this->xoverlay);
+    XUnlockDisplay (this->display);
+  }
+
+  this->ovl_changed = 0;
+}
+
 static void xshm_overlay_blend (vo_driver_t *this_gen, 
 				vo_frame_t *frame_gen, vo_overlay_t *overlay) {
   xshm_driver_t  *this  = (xshm_driver_t *) this_gen;
   xshm_frame_t   *frame = (xshm_frame_t *) frame_gen;
 
   /* Alpha Blend here */
-   if (overlay->rle) {
-     if (!overlay->rgb_clut || !overlay->clip_rgb_clut)
-       xshm_overlay_clut_yuv2rgb (this, overlay, frame);
-
-     switch (this->bpp) {
-       case 16:
-        blend_rgb16 ((uint8_t *)frame->image->data, overlay,
-		     frame->sc.output_width, frame->sc.output_height,
-		     frame->sc.delivered_width, frame->sc.delivered_height);
-        break;
-       case 24:
-        blend_rgb24 ((uint8_t *)frame->image->data, overlay,
-		     frame->sc.output_width, frame->sc.output_height,
-		     frame->sc.delivered_width, frame->sc.delivered_height);
-        break;
-       case 32:
-        blend_rgb32 ((uint8_t *)frame->image->data, overlay,
-		     frame->sc.output_width, frame->sc.output_height,
-		     frame->sc.delivered_width, frame->sc.delivered_height);
-        break;
-       default:
-        printf("xine-lib:video_out_xshm:xshm_overlay_blend: Cannot blend bpp:%i\n", this->bpp);
+  if (overlay->rle) {
+    if( overlay->unscaled ) {
+      if( this->ovl_changed && this->xoverlay ) {
+        XLockDisplay (this->display);
+        x11osd_blend(this->xoverlay, overlay); 
+        XUnlockDisplay (this->display);
+      }
+    } else {
+      if (!overlay->rgb_clut || !overlay->clip_rgb_clut)
+        xshm_overlay_clut_yuv2rgb (this, overlay, frame);
+ 
+      switch (this->bpp) {
+        case 16:
+         blend_rgb16 ((uint8_t *)frame->image->data, overlay,
+		      frame->sc.output_width, frame->sc.output_height,
+		      frame->sc.delivered_width, frame->sc.delivered_height);
+         break;
+        case 24:
+         blend_rgb24 ((uint8_t *)frame->image->data, overlay,
+		      frame->sc.output_width, frame->sc.output_height,
+		      frame->sc.delivered_width, frame->sc.delivered_height);
+         break;
+        case 32:
+         blend_rgb32 ((uint8_t *)frame->image->data, overlay,
+		      frame->sc.output_width, frame->sc.output_height,
+		      frame->sc.delivered_width, frame->sc.delivered_height);
+         break;
+        default:
+         printf("xine-lib:video_out_xshm:xshm_overlay_blend: Cannot blend bpp:%i\n", this->bpp);
 	/* it should never get here, unless a user tries to play in bpp:8 */
 	break;
-     }        
-   }
+      }
+    }
+  }
 }
 
 static void clean_output_area (xshm_driver_t *this, xshm_frame_t *frame) {
@@ -742,6 +783,10 @@ static int xshm_get_property (vo_driver_t *this_gen, int property) {
     return this->yuv2rgb_contrast;
   case VO_PROP_SATURATION:
     return this->yuv2rgb_saturation;
+  case VO_PROP_WINDOW_WIDTH:
+    return this->sc.gui_width;
+  case VO_PROP_WINDOW_HEIGHT:
+    return this->sc.gui_height;
   default:
     if (this->xine->verbosity >= XINE_VERBOSITY_LOG) {
       printf ("video_out_xshm: tried to get unsupported property %d\n", 
@@ -866,6 +911,9 @@ static int xshm_gui_data_exchange (vo_driver_t *this_gen,
 			   this->sc.border[i].w, this->sc.border[i].h);
 	}
 
+        if(this->xoverlay)
+          x11osd_expose(this->xoverlay);
+
 	XSync(this->display, False);
 	XUnlockDisplay (this->display);
       }
@@ -878,6 +926,8 @@ static int xshm_gui_data_exchange (vo_driver_t *this_gen,
     XLockDisplay (this->display);
     XFreeGC(this->display, this->gc);
     this->gc = XCreateGC (this->display, this->drawable, 0, NULL);
+    if(this->xoverlay)
+      x11osd_drawable_changed(this->xoverlay, this->drawable);
     XUnlockDisplay (this->display);
   break;
 
@@ -914,6 +964,12 @@ static void xshm_dispose (vo_driver_t *this_gen) {
     this->cur_frame->vo_frame.dispose (&this->cur_frame->vo_frame);
 
   this->yuv2rgb_factory->dispose (this->yuv2rgb_factory);
+
+  if( this->xoverlay ) {
+    XLockDisplay (this->display);
+    x11osd_destroy (this->xoverlay);
+    XUnlockDisplay (this->display);
+  }
 
   free (this);
 }
@@ -1018,16 +1074,18 @@ static vo_driver_t *xshm_open_plugin (video_driver_class_t *class_gen, const voi
   XLockDisplay(this->display);
   this->gc		    = XCreateGC (this->display, this->drawable, 0, NULL);
   XUnlockDisplay(this->display);
-  
+  this->xoverlay                = NULL;
+  this->ovl_changed             = 0;
+ 
   this->x11_old_error_handler = NULL;
   this->xine                  = class->xine;
 
   this->vo_driver.get_capabilities     = xshm_get_capabilities;
   this->vo_driver.alloc_frame          = xshm_alloc_frame;
   this->vo_driver.update_frame_format  = xshm_update_frame_format;
-  this->vo_driver.overlay_begin        = NULL; /* not used */
+  this->vo_driver.overlay_begin        = xshm_overlay_begin;
   this->vo_driver.overlay_blend        = xshm_overlay_blend;
-  this->vo_driver.overlay_end          = NULL; /* not used */
+  this->vo_driver.overlay_end          = xshm_overlay_end;
   this->vo_driver.display_frame        = xshm_display_frame;
   this->vo_driver.get_property         = xshm_get_property;
   this->vo_driver.set_property         = xshm_set_property;
@@ -1177,7 +1235,11 @@ static vo_driver_t *xshm_open_plugin (video_driver_class_t *class_gen, const voi
 					 this->yuv2rgb_brightness,
 					 this->yuv2rgb_contrast,
 					 this->yuv2rgb_saturation);
-  
+
+  XLockDisplay (this->display);
+  this->xoverlay = x11osd_create (this->display, this->screen, this->drawable);
+  XUnlockDisplay (this->display);
+
   return &this->vo_driver;
 }
 

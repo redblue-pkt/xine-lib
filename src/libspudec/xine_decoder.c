@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.100 2003/10/23 20:12:33 mroi Exp $
+ * $Id: xine_decoder.c,v 1.101 2003/11/26 01:03:32 miguelfreitas Exp $
  *
  * stuff needed to turn libspu into a xine decoder plugin
  */
@@ -312,7 +312,7 @@ static spu_decoder_t *open_plugin (spu_decoder_class_t *class_gen, xine_stream_t
 
   this->menu_handle = -1;
   this->buttonN = 1;
-  this->event.object.overlay = malloc(sizeof(vo_overlay_t));
+  this->event.object.overlay = xine_xmalloc(sizeof(vo_overlay_t));
  
   pthread_mutex_init(&this->nav_pci_lock, NULL);
 

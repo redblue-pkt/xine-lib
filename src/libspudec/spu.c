@@ -35,7 +35,7 @@
  * along with this program; see the file COPYING.  If not, write to
  * the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: spu.c,v 1.71 2003/11/12 17:53:01 mroi Exp $
+ * $Id: spu.c,v 1.72 2003/11/26 01:03:31 miguelfreitas Exp $
  *
  */
 
@@ -752,6 +752,7 @@ static void spudec_draw_picture (spudec_state_t *state, spudec_seq_t* seq, vo_ov
 
   ovl->num_rle = rle - ovl->rle;
   ovl->rgb_clut = 0;
+  ovl->unscaled = 0;
 #ifdef LOG_DEBUG
   printf ("spu: Num RLE=%d\n",ovl->num_rle);
   printf ("spu: Date size=%d\n",ovl->data_size);

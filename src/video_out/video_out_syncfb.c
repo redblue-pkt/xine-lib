@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_syncfb.c,v 1.92 2003/11/11 18:45:00 f1rmb Exp $
+ * $Id: video_out_syncfb.c,v 1.93 2003/11/26 01:03:32 miguelfreitas Exp $
  * 
  * video_out_syncfb.c, SyncFB (for Matrox G200/G400 cards) interface for xine
  * 
@@ -643,6 +643,15 @@ static void syncfb_display_frame(vo_driver_t* this_gen, vo_frame_t* frame_gen)
 static int syncfb_get_property(vo_driver_t* this_gen, int property)
 {
   syncfb_driver_t* this = (syncfb_driver_t *) this_gen;
+  
+  switch (property) {
+    case VO_PROP_WINDOW_WIDTH:
+      this->props[property].value = this->sc.gui_width;
+      break;
+    case VO_PROP_WINDOW_HEIGHT:
+      this->props[property].value = this->sc.gui_height;
+      break;
+  }
   
   return this->props[property].value;
 }

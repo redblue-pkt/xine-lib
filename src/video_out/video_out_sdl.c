@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_sdl.c,v 1.31 2003/11/11 18:45:00 f1rmb Exp $
+ * $Id: video_out_sdl.c,v 1.32 2003/11/26 01:03:32 miguelfreitas Exp $
  *
  * video_out_sdl.c, Simple DirectMedia Layer
  *
@@ -355,10 +355,15 @@ static void sdl_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
 static int sdl_get_property (vo_driver_t *this_gen, int property) {
 
   sdl_driver_t *this = (sdl_driver_t *) this_gen;
-
-  if ( property == VO_PROP_ASPECT_RATIO)
-    return this->sc.user_ratio ;
-
+  
+  switch (property) {
+    case VO_PROP_WINDOW_WIDTH:
+      return this->sc.gui_width;
+    case VO_PROP_WINDOW_HEIGHT:
+      return this->sc.gui_height;
+    case VO_PROP_ASPECT_RATIO:
+    return this->sc.user_ratio;
+  }
   return 0;
 }
 
