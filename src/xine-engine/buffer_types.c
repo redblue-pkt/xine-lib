@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer_types.c,v 1.91 2005/02/26 19:58:21 miguelfreitas Exp $
+ * $Id: buffer_types.c,v 1.92 2005/03/06 07:18:54 tmmm Exp $
  *
  *
  * contents:
@@ -968,7 +968,7 @@ static audio_db_t audio_db[] = {
 },
 {
   {
-    0
+    meFOURCC('a', 'l', 'a', 'c'),
   },
   BUF_AUDIO_ALAC,
   "Apple Lossless Audio Codec"
