@@ -22,7 +22,7 @@
 ** Commercial non-GPL licensing of this software is possible.
 ** For more info contact Ahead Software through Mpeg4AAClicense@nero.com.
 **
-** $Id: sbr_dec.h,v 1.4 2004/01/11 15:44:05 mroi Exp $
+** $Id: sbr_dec.h,v 1.5 2004/01/26 22:34:11 jstembridge Exp $
 **/
 
 #ifndef __SBR_DEC_H__
@@ -32,6 +32,12 @@
 extern "C" {
 #endif
 
+#ifdef PS_DEC
+#include "ps_dec.h"
+#endif
+#ifdef DRM_PS
+#include "drm_dec.h"
+#endif
 
 /* MAX_NTSRHFG: maximum of number_time_slots * rate + HFGen. 16*2+8 */
 #define MAX_NTSRHFG 40
@@ -58,6 +64,7 @@ typedef struct
 
     uint8_t rate;
     uint8_t just_seeked;
+    uint8_t ret;
 
     uint8_t amp_res[2];
 
@@ -140,9 +147,6 @@ typedef struct
     uint32_t frame;
     uint32_t header_count;
 
-    uint8_t *data;
-    uint16_t data_size;
-
     uint8_t id_aac;
     qmfa_info *qmfa[2];
     qmfs_info *qmfs[2];
@@ -153,14 +157,18 @@ typedef struct
 #ifdef DRM
 	int8_t lcstereo_flag;
 	uint8_t bs_dataextra;
-	uint16_t data_size_bits;
     uint8_t Is_DRM_SBR;
+    drm_ps_info drm_ps;
 #endif
 
 	uint8_t numTimeSlotsRate;
 	uint8_t numTimeSlots;
 	uint8_t tHFGen;
 	uint8_t tHFAdj;
+
+#ifdef PS_DEC
+    ps_info ps;
+#endif
 
     /* to get it compiling */
     /* we'll see during the coding of all the tools, whether
@@ -201,16 +209,18 @@ typedef struct
     uint8_t bs_df_noise[2][3];
 } sbr_info;
 
-sbr_info *sbrDecodeInit(uint16_t framelength
+sbr_info *sbrDecodeInit(uint16_t framelength, uint8_t id_aac,
+                        uint32_t sample_rate
 #ifdef DRM
 						, uint8_t IsDRM
 #endif
 						);
 void sbrDecodeEnd(sbr_info *sbr);
 
-void sbrDecodeFrame(sbr_info *sbr, real_t *left_channel,
-                    real_t *right_channel,
-                    const uint8_t just_seeked, const uint8_t upsample_only);
+uint8_t sbrDecodeCoupleFrame(sbr_info *sbr, real_t *left_chan, real_t *right_chan,
+                             const uint8_t just_seeked, const uint8_t upsample_only);
+uint8_t sbrDecodeSingleFrame(sbr_info *sbr, real_t *channel,
+                             const uint8_t just_seeked, const uint8_t upsample_only);
 
 
 #ifdef __cplusplus

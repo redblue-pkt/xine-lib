@@ -22,7 +22,7 @@
 ** Commercial non-GPL licensing of this software is possible.
 ** For more info contact Ahead Software through Mpeg4AAClicense@nero.com.
 **
-** $Id: syntax.c,v 1.6 2004/01/11 15:44:05 mroi Exp $
+** $Id: syntax.c,v 1.7 2004/01/26 22:34:11 jstembridge Exp $
 **/
 
 /*
@@ -118,7 +118,8 @@ int8_t GASpecificConfig(bitfile *ld, mp4AudioSpecificConfig *mp4ASC,
     mp4ASC->extensionFlag = faad_get1bit(ld DEBUGVAR(1,141,"GASpecificConfig(): ExtensionFlag"));
     if (mp4ASC->channelsConfiguration == 0)
     {
-        program_config_element(&pce, ld);
+        if (program_config_element(&pce, ld))
+            return -3;
         //mp4ASC->channelsConfiguration = pce.channels;
 
         if (pce_out != NULL)
@@ -158,7 +159,7 @@ int8_t GASpecificConfig(bitfile *ld, mp4AudioSpecificConfig *mp4ASC,
    PCEs transmitted in raw data blocks cannot be used to convey decoder
    configuration information.
 */
-uint8_t program_config_element(program_config *pce, bitfile *ld)
+static uint8_t program_config_element(program_config *pce, bitfile *ld)
 {
     uint8_t i;
 
@@ -303,6 +304,9 @@ uint8_t program_config_element(program_config *pce, bitfile *ld)
     }
     pce->comment_field_data[i] = 0;
 
+    if (pce->channels > MAX_CHANNELS)
+        return 22;
+
     return 0;
 }
 
@@ -324,8 +328,6 @@ void decode_sce_lfe(faacDecHandle hDecoder,
         return;
     }
 
-    hInfo->error = single_lfe_channel_element(hDecoder, ld, channels, &tag);
-
     if (hDecoder->pce_set)
         hDecoder->internal_channel[hDecoder->pce.sce_channel[tag]] = channels;
     else
@@ -336,6 +338,8 @@ void decode_sce_lfe(faacDecHandle hDecoder,
     else /* LFE */
         hDecoder->channel_element[channels] = hDecoder->fr_ch_ele;
     hDecoder->element_id[hDecoder->fr_ch_ele] = id_syn_ele;
+
+    hInfo->error = single_lfe_channel_element(hDecoder, ld, channels, &tag);
 
     hDecoder->fr_channels++;
     hDecoder->fr_ch_ele++;
@@ -358,8 +362,6 @@ void decode_cpe(faacDecHandle hDecoder, faacDecFrameInfo *hInfo, bitfile *ld,
         return;
     }
 
-    hInfo->error = channel_pair_element(hDecoder, ld, channels, &tag);
-
     if (hDecoder->pce_set)
     {
         hDecoder->internal_channel[hDecoder->pce.cpe_channel[tag]] = channels;
@@ -372,6 +374,8 @@ void decode_cpe(faacDecHandle hDecoder, faacDecFrameInfo *hInfo, bitfile *ld,
     hDecoder->channel_element[channels] = hDecoder->fr_ch_ele;
     hDecoder->channel_element[channels+1] = hDecoder->fr_ch_ele;
     hDecoder->element_id[hDecoder->fr_ch_ele] = id_syn_ele;
+
+    hInfo->error = channel_pair_element(hDecoder, ld, channels, &tag);
 
     hDecoder->fr_channels += 2;
     hDecoder->fr_ch_ele++;
@@ -431,26 +435,24 @@ void raw_data_block(faacDecHandle hDecoder, faacDecFrameInfo *hInfo,
                 data_stream_element(hDecoder, ld);
                 break;
             case ID_PCE:
-                if ((hInfo->error = program_config_element(pce, ld)) > 0)
-                    return;
-                hDecoder->pce_set = 1;
+                /* 14496-4: 5.6.4.1.2.1.3: */
+                /* program_configuration_element()'s in access units shall be ignored */
+                program_config_element(pce, ld);
+                //if ((hInfo->error = program_config_element(pce, ld)) > 0)
+                //    return;
+                //hDecoder->pce_set = 1;
                 break;
             case ID_FIL:
                 /* one sbr_info describes a channel_element not a channel! */
+                /* if we encounter SBR data here: error */
+                /* SBR data will be read directly in the SCE/LFE/CPE element */
                 if ((hInfo->error = fill_element(hDecoder, ld, drc
 #ifdef SBR_DEC
-                    , (ch_ele-1)
+                    //, (ch_ele == 0) ? INVALID_SBR_ELEMENT : (ch_ele-1)
+                    , INVALID_SBR_ELEMENT
 #endif
                     )) > 0)
                     return;
-#ifdef SBR_DEC
-                if (hDecoder->sbr_used[ch_ele-1])
-                {
-                    hDecoder->sbr_present_flag = 1;
-                    hDecoder->sbr[ch_ele-1]->sample_rate = get_sample_rate(hDecoder->sf_index);
-                    hDecoder->sbr[ch_ele-1]->sample_rate *= 2;
-                }
-#endif
                 break;
             }
         }
@@ -571,6 +573,21 @@ static uint8_t single_lfe_channel_element(faacDecHandle hDecoder, bitfile *ld,
     if (retval > 0)
         return retval;
 
+#ifdef SBR_DEC
+    /* check if next bitstream element is a fill element */
+    /* if so, read it now so SBR decoding can be done in case of a file with SBR */
+    if (faad_showbits(ld, LEN_SE_ID) == ID_FIL)
+    {
+        faad_flushbits(ld, LEN_SE_ID);
+
+        /* one sbr_info describes a channel_element not a channel! */
+        if ((retval = fill_element(hDecoder, ld, hDecoder->drc, hDecoder->fr_ch_ele)) > 0)
+        {
+            return retval;
+        }
+    }
+#endif
+
     /* noiseless coding is done, spectral reconstruction is done now */
     retval = reconstruct_single_channel(hDecoder, ics, &sce, spec_data);
     if (retval > 0)
@@ -664,6 +681,21 @@ static uint8_t channel_pair_element(faacDecHandle hDecoder, bitfile *ld,
     {
         return result;
     }
+
+#ifdef SBR_DEC
+    /* check if next bitstream element is a fill element */
+    /* if so, read it now so SBR decoding can be done in case of a file with SBR */
+    if (faad_showbits(ld, LEN_SE_ID) == ID_FIL)
+    {
+        faad_flushbits(ld, LEN_SE_ID);
+
+        /* one sbr_info describes a channel_element not a channel! */
+        if ((result = fill_element(hDecoder, ld, hDecoder->drc, hDecoder->fr_ch_ele)) > 0)
+        {
+            return result;
+        }
+    }
+#endif
 
     /* noiseless coding is done, spectral reconstruction is done now */
     if ((result = reconstruct_channel_pair(hDecoder, ics1, ics2, &cpe,
@@ -941,30 +973,29 @@ static uint8_t fill_element(faacDecHandle hDecoder, bitfile *ld, drc_info *drc
     if (count > 0)
     {
 #ifdef SBR_DEC
-        hDecoder->sbr_used[sbr_ele] = 0;
         bs_extension_type = (uint8_t)faad_showbits(ld, 4);
 
         if ((bs_extension_type == EXT_SBR_DATA) ||
             (bs_extension_type == EXT_SBR_DATA_CRC))
         {
-            hDecoder->sbr_used[sbr_ele] = 1;
+            if (sbr_ele == INVALID_SBR_ELEMENT)
+                return 24;
 
             if (!hDecoder->sbr[sbr_ele])
             {
-                hDecoder->sbr[sbr_ele] = sbrDecodeInit(hDecoder->frameLength
+                hDecoder->sbr[sbr_ele] = sbrDecodeInit(hDecoder->frameLength,
+                    hDecoder->element_id[sbr_ele], 2*get_sample_rate(hDecoder->sf_index)
 #ifdef DRM
                     , 0
 #endif
                     );
             }
 
-            /* read in all the SBR data for processing later on */
-            hDecoder->sbr[sbr_ele]->data = (uint8_t*)faad_getbitbuffer(ld, count*8);
-            hDecoder->sbr[sbr_ele]->data_size = count;
-            /* save id of previous element, this sbr object belongs to that element */
-            hDecoder->sbr[sbr_ele]->id_aac = hDecoder->element_id[sbr_ele];
+            hDecoder->sbr_present_flag = 1;
+
+            /* parse the SBR data */
+            hDecoder->sbr[sbr_ele]->ret = sbr_extension_data(ld, hDecoder->sbr[sbr_ele], count);
         } else {
-            hDecoder->sbr_used[sbr_ele] = 0;
 #endif
             while (count > 0)
             {
@@ -1121,6 +1152,69 @@ void aac_scalable_main_element(faacDecHandle hDecoder, faacDecFrameInfo *hInfo,
         if (hInfo->error > 0)
             return;
     }
+
+#ifdef DRM
+#ifdef SBR_DEC
+    /* In case of DRM we need to read the SBR info before channel reconstruction */
+    if ((hDecoder->sbr_present_flag == 1) && (hDecoder->object_type == DRM_ER_LC))
+    {
+        bitfile ld_sbr = {0};
+        uint32_t i;
+        uint16_t count = 0;
+        uint8_t *revbuffer;
+        uint8_t *prevbufstart;
+        uint8_t *pbufend;
+
+        /* all forward bitreading should be finished at this point */
+        uint32_t bitsconsumed = faad_get_processed_bits(ld);
+        uint32_t buffer_size = faad_origbitbuffer_size(ld);
+        uint8_t *buffer = (uint8_t*)faad_origbitbuffer(ld);
+
+        if (bitsconsumed + 8 > buffer_size*8)
+        {
+            hInfo->error = 14;
+            return;
+        }
+
+        if (!hDecoder->sbr[0])
+        {
+            hDecoder->sbr[0] = sbrDecodeInit(hDecoder->frameLength, cpe.ele_id,
+                2*get_sample_rate(hDecoder->sf_index), 1);
+        }
+
+        /* Reverse bit reading of SBR data in DRM audio frame */
+        revbuffer = (uint8_t*)faad_malloc(buffer_size*sizeof(uint8_t));
+        prevbufstart = revbuffer;
+        pbufend = &buffer[buffer_size - 1];
+        for (i = 0; i < buffer_size; i++)
+            *prevbufstart++ = tabFlipbits[*pbufend--];
+
+        /* Set SBR data */
+        /* consider 8 bits from AAC-CRC */
+        count = (uint16_t)bit2byte(buffer_size*8 - bitsconsumed);
+        faad_initbits(&ld_sbr, revbuffer, count);
+
+        hDecoder->sbr[0]->lcstereo_flag = hDecoder->lcstereo_flag;
+
+        hDecoder->sbr[0]->sample_rate = get_sample_rate(hDecoder->sf_index);
+        hDecoder->sbr[0]->sample_rate *= 2;
+
+        faad_getbits(&ld_sbr, 8); /* Skip 8-bit CRC */
+
+        hDecoder->sbr[0]->ret = sbr_extension_data(&ld_sbr, hDecoder->sbr[0], count);
+
+        /* check CRC */
+        /* no need to check it if there was already an error */
+        if (hDecoder->sbr[0]->ret == 0)
+            hDecoder->sbr[0]->ret = faad_check_CRC(&ld_sbr, faad_get_processed_bits(&ld_sbr) - 8);
+
+        faad_endbits(&ld_sbr);
+
+        if (revbuffer)
+            faad_free(revbuffer);
+    }
+#endif
+#endif
 
     if (this_layer_stereo)
     {
@@ -1555,6 +1649,10 @@ static uint8_t decode_scale_factors(ic_stream *ics, bitfile *ld)
 
                 break;
             default: /* spectral books */
+
+                /* ics->scale_factors[g][sfb] must be between 0 and 255 */
+
+                ics->scale_factors[g][sfb] = 0;
 
                 /* decode scale factor */
                 t = huffman_scale_factor(ld);

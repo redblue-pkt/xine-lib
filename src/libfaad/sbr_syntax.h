@@ -22,7 +22,7 @@
 ** Commercial non-GPL licensing of this software is possible.
 ** For more info contact Ahead Software through Mpeg4AAClicense@nero.com.
 **
-** $Id: sbr_syntax.h,v 1.4 2004/01/11 15:44:05 mroi Exp $
+** $Id: sbr_syntax.h,v 1.5 2004/01/26 22:34:11 jstembridge Exp $
 **/
 
 #ifndef __SBR_SYNTAX_H__
@@ -55,7 +55,7 @@ extern "C" {
 #define NOISE_FLOOR_OFFSET 6
 
 
-uint8_t sbr_extension_data(bitfile *ld, sbr_info *sbr);
+uint8_t sbr_extension_data(bitfile *ld, sbr_info *sbr, uint16_t cnt);
 
 #ifdef __cplusplus
 }

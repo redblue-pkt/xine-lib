@@ -22,7 +22,7 @@
 ** Commercial non-GPL licensing of this software is possible.
 ** For more info contact Ahead Software through Mpeg4AAClicense@nero.com.
 **
-** $Id: common.h,v 1.10 2004/01/11 15:44:04 mroi Exp $
+** $Id: common.h,v 1.11 2004/01/26 22:34:10 jstembridge Exp $
 **/
 
 #ifndef __COMMON_H__
@@ -73,6 +73,7 @@ extern "C" {
 //#define SCALABLE_DEC
 /* Allow decoding of Digital Radio Mondiale (DRM) */
 //#define DRM
+//#define DRM_PS
 
 /* LD can't do without LTP */
 #ifdef LD_DEC
@@ -100,6 +101,7 @@ extern "C" {
 
 #define SBR_DEC
 //#define SBR_LOW_POWER
+//#define PS_DEC
 
 /* FIXED POINT: No MAIN decoding, forced SBR Low Power decoder */
 #ifdef FIXED_POINT

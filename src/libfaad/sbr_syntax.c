@@ -22,7 +22,7 @@
 ** Commercial non-GPL licensing of this software is possible.
 ** For more info contact Ahead Software through Mpeg4AAClicense@nero.com.
 **
-** $Id: sbr_syntax.c,v 1.4 2004/01/11 15:44:05 mroi Exp $
+** $Id: sbr_syntax.c,v 1.5 2004/01/26 22:34:11 jstembridge Exp $
 **/
 
 #include "common.h"
@@ -37,11 +37,19 @@
 #include "sbr_tf_grid.h"
 #include "sbr_e_nf.h"
 #include "bits.h"
+#ifdef PS_DEC
+#include "ps_dec.h"
+#endif
+#ifdef DRM_PS
+#include "drm_dec.h"
+#endif
 #include "analysis.h"
 
 /* static function declarations */
 static void sbr_header(bitfile *ld, sbr_info *sbr);
 static uint8_t sbr_data(bitfile *ld, sbr_info *sbr);
+static uint16_t sbr_extension(bitfile *ld, sbr_info *sbr,
+                              uint8_t bs_extension_id, uint16_t num_bits_left);
 static uint8_t sbr_single_channel_element(bitfile *ld, sbr_info *sbr);
 static uint8_t sbr_channel_pair_element(bitfile *ld, sbr_info *sbr);
 static uint8_t sbr_grid(bitfile *ld, sbr_info *sbr, uint8_t ch);
@@ -98,9 +106,11 @@ static void sbr_reset(sbr_info *sbr)
 }
 
 /* table 2 */
-uint8_t sbr_extension_data(bitfile *ld, sbr_info *sbr)
+uint8_t sbr_extension_data(bitfile *ld, sbr_info *sbr, uint16_t cnt)
 {
-    uint8_t result;
+    uint8_t result = 0;
+    uint16_t num_align_bits = 0;
+    uint16_t num_sbr_bits = (uint16_t)faad_get_processed_bits(ld);
 
 #ifdef DRM
     if (!sbr->Is_DRM_SBR)
@@ -122,52 +132,73 @@ uint8_t sbr_extension_data(bitfile *ld, sbr_info *sbr)
     if (sbr->bs_header_flag)
         sbr_header(ld, sbr);
 
-    /* TODO: Reset? */
+    /* Reset? */
     sbr_reset(sbr);
 
     /* first frame should have a header */
-    if (sbr->frame == 0 && sbr->bs_header_flag == 0)
-        return 1;
-
-
-    if (sbr->Reset || (sbr->bs_header_flag && sbr->just_seeked))
+    //if (!(sbr->frame == 0 && sbr->bs_header_flag == 0))
+    if (sbr->header_count != 0)
     {
-        uint8_t k2;
-
-        /* calculate the Master Frequency Table */
-        sbr->k0 = qmf_start_channel(sbr->bs_start_freq, sbr->bs_samplerate_mode,
-            sbr->sample_rate);
-        k2 = qmf_stop_channel(sbr->bs_stop_freq, sbr->sample_rate, sbr->k0);
-
-        /* check k0 and k2 */
-        if (sbr->sample_rate >= 48000)
+        if (sbr->Reset || (sbr->bs_header_flag && sbr->just_seeked))
         {
-            if ((k2 - sbr->k0) > 32)
-                return 1;
-        } else if (sbr->sample_rate <= 32000) {
-            if ((k2 - sbr->k0) > 48)
-                return 1;
-        } else { /* (sbr->sample_rate == 44100) */
-            if ((k2 - sbr->k0) > 45)
-                return 1;
+            uint8_t k2;
+
+            /* calculate the Master Frequency Table */
+            sbr->k0 = qmf_start_channel(sbr->bs_start_freq, sbr->bs_samplerate_mode,
+                sbr->sample_rate);
+            k2 = qmf_stop_channel(sbr->bs_stop_freq, sbr->sample_rate, sbr->k0);
+
+            /* check k0 and k2 */
+            if (sbr->sample_rate >= 48000)
+            {
+                if ((k2 - sbr->k0) > 32)
+                    result += 1;
+            } else if (sbr->sample_rate <= 32000) {
+                if ((k2 - sbr->k0) > 48)
+                    result += 1;
+            } else { /* (sbr->sample_rate == 44100) */
+                if ((k2 - sbr->k0) > 45)
+                    result += 1;
+            }
+
+            if (sbr->bs_freq_scale == 0)
+            {
+                result += master_frequency_table_fs0(sbr, sbr->k0, k2,
+                    sbr->bs_alter_scale);
+            } else {
+                result += master_frequency_table(sbr, sbr->k0, k2, sbr->bs_freq_scale,
+                    sbr->bs_alter_scale);
+            }
+            result += derived_frequency_table(sbr, sbr->bs_xover_band, k2);
+
+            result = (result > 0) ? 1 : 0;
         }
 
-        if (sbr->bs_freq_scale == 0)
-        {
-            master_frequency_table_fs0(sbr, sbr->k0, k2, sbr->bs_alter_scale);
-        } else {
-            master_frequency_table(sbr, sbr->k0, k2, sbr->bs_freq_scale,
-                sbr->bs_alter_scale);
-        }
-        if ((result = derived_frequency_table(sbr, sbr->bs_xover_band, k2)) > 0)
-            return result;
+        if (result == 0)
+            result = sbr_data(ld, sbr);
+    } else {
+        result = 1;
     }
 
-    if ((result = sbr_data(ld, sbr)) > 0)
-        return result;
+#ifdef DRM
+    if (!sbr->Is_DRM_SBR)
+#endif
+    {
+        num_sbr_bits = (uint16_t)faad_get_processed_bits(ld) - num_sbr_bits;
+        /* -4 does not apply, bs_extension_type is re-read in this function */
+        num_align_bits = 8*cnt /*- 4*/ - num_sbr_bits;
 
-    /* no error */
-    return 0;
+        while (num_align_bits > 7)
+        {
+            faad_getbits(ld, 8
+                DEBUGVAR(1,999,"sbr_bitstream(): num_align_bits"));
+            num_align_bits -= 8;
+        }
+        faad_getbits(ld, num_align_bits
+            DEBUGVAR(1,999,"sbr_bitstream(): num_align_bits"));
+    }
+
+    return result;
 }
 
 /* table 3 */
@@ -330,19 +361,15 @@ static uint8_t sbr_single_channel_element(bitfile *ld, sbr_info *sbr)
             sbr->bs_extension_id = (uint8_t)faad_getbits(ld, 2
                 DEBUGVAR(1,227,"sbr_single_channel_element(): bs_extension_id"));
             nr_bits_left -= 2;
-            /* sbr_extension(ld, sbr, 0, nr_bits_left); */
-#ifdef DRM
-            if (!sbr->Is_DRM_SBR)
-#endif
-            {
-                sbr->bs_extension_data = (uint8_t)faad_getbits(ld, 6
-                    DEBUGVAR(1,279,"sbr_single_channel_element(): bs_extension_data"));
-            }
+            nr_bits_left -= sbr_extension(ld, sbr, sbr->bs_extension_id, nr_bits_left);
         }
 
         /* Corrigendum */
-        faad_getbits(ld, nr_bits_left
-            DEBUGVAR(1,280,"sbr_single_channel_element(): nr_bits_left"));
+        if (nr_bits_left > 0)
+        {
+            faad_getbits(ld, nr_bits_left
+                DEBUGVAR(1,280,"sbr_single_channel_element(): nr_bits_left"));
+        }
     }
 
     return 0;
@@ -461,19 +488,15 @@ static uint8_t sbr_channel_pair_element(bitfile *ld, sbr_info *sbr)
             sbr->bs_extension_id = (uint8_t)faad_getbits(ld, 2
                 DEBUGVAR(1,236,"sbr_channel_pair_element(): bs_extension_id"));
             nr_bits_left -= 2;
-            /* sbr_extension(ld, sbr, 0, nr_bits_left); */
-#ifdef DRM
-            if (!sbr->Is_DRM_SBR)
-#endif
-            {
-                sbr->bs_extension_data = (uint8_t)faad_getbits(ld, 6
-                    DEBUGVAR(1,280,"sbr_channel_pair_element(): bs_extension_data"));
-            }
+            sbr_extension(ld, sbr, sbr->bs_extension_id, nr_bits_left);
         }
 
         /* Corrigendum */
-        faad_getbits(ld, nr_bits_left
-            DEBUGVAR(1,280,"sbr_channel_pair_element(): nr_bits_left"));
+        if (nr_bits_left > 0)
+        {
+            faad_getbits(ld, nr_bits_left
+                DEBUGVAR(1,280,"sbr_channel_pair_element(): nr_bits_left"));
+        }
     }
 
     return 0;
@@ -617,6 +640,9 @@ static uint8_t sbr_grid(bitfile *ld, sbr_info *sbr, uint8_t ch)
     else
         sbr->L_E[ch] = min(bs_num_env, 4);
 
+    if (sbr->L_E[ch] <= 0)
+        return 1;
+
     if (sbr->L_E[ch] > 1)
         sbr->L_Q[ch] = 2;
     else
@@ -657,6 +683,26 @@ static void invf_mode(bitfile *ld, sbr_info *sbr, uint8_t ch)
     {
         sbr->bs_invf_mode[ch][n] = (uint8_t)faad_getbits(ld, 2
             DEBUGVAR(1,271,"invf_mode(): bs_invf_mode"));
+    }
+}
+
+static uint16_t sbr_extension(bitfile *ld, sbr_info *sbr,
+                              uint8_t bs_extension_id, uint16_t num_bits_left)
+{
+    switch (bs_extension_id)
+    {
+#ifdef PS_DEC
+    case EXTENSION_ID_PS:
+        return ps_data(&(sbr->ps), ld);
+#endif
+#ifdef DRM_PS
+    case DRM_PARAMETRIC_STEREO:
+        return drm_ps_data(&(sbr->drm_ps), ld);
+#endif
+    default:
+        sbr->bs_extension_data = (uint8_t)faad_getbits(ld, 6
+            DEBUGVAR(1,279,"sbr_single_channel_element(): bs_extension_data"));
+        return 6;
     }
 }
 

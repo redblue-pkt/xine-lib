@@ -22,7 +22,7 @@
 ** Commercial non-GPL licensing of this software is possible.
 ** For more info contact Ahead Software through Mpeg4AAClicense@nero.com.
 **
-** $Id: syntax.h,v 1.7 2004/01/11 15:44:05 mroi Exp $
+** $Id: syntax.h,v 1.8 2004/01/26 22:34:11 jstembridge Exp $
 **/
 
 #ifndef __SYNTAX_H__
@@ -33,7 +33,6 @@ extern "C" {
 #endif
 
 #include "decoder.h"
-#include "drc.h"
 #include "bits.h"
 
 #define MAIN       1
@@ -103,6 +102,8 @@ extern "C" {
 #define NOISE_HCB      13
 #define INTENSITY_HCB2 14
 #define INTENSITY_HCB  15
+
+#define INVALID_SBR_ELEMENT 255
 
 int8_t GASpecificConfig(bitfile *ld, mp4AudioSpecificConfig *mp4ASC,
                         program_config *pce);

@@ -22,7 +22,7 @@
 ** Commercial non-GPL licensing of this software is possible.
 ** For more info contact Ahead Software through Mpeg4AAClicense@nero.com.
 **
-** $Id: huffman.c,v 1.2 2004/01/11 15:44:05 mroi Exp $
+** $Id: huffman.c,v 1.3 2004/01/26 22:34:10 jstembridge Exp $
 **/
 
 #include "common.h"
@@ -51,25 +51,18 @@ static uint8_t huffman_binary_pair(uint8_t cb, bitfile *ld, int16_t *sp);
 static uint8_t huffman_binary_pair_sign(uint8_t cb, bitfile *ld, int16_t *sp);
 static int16_t huffman_codebook(uint8_t i);
 
-
 int8_t huffman_scale_factor(bitfile *ld)
 {
-    uint16_t offset = 0;
+    uint8_t bit;
+    int16_t index = 0;
 
-    while (hcb_sf[offset][1])
+    while (index >= 0)
     {
-        uint8_t b = faad_get1bit(ld
-            DEBUGVAR(1,255,"huffman_scale_factor()"));
-        offset += hcb_sf[offset][b];
-
-        if (offset > 240)
-        {
-            /* printf("ERROR: offset into hcb_sf = %d >240!\n", offset); */
-            return -1;
-        }
+        bit = (uint8_t)faad_get1bit(ld);
+        index = hcb_sf[index][bit];
     }
 
-    return hcb_sf[offset][0];
+    return index + 121;
 }
 
 
@@ -118,16 +111,6 @@ static INLINE void huffman_sign_bits(bitfile *ld, int16_t *sp, uint8_t len)
     }
 }
 
-#ifdef _WIN32
-static INLINE uint32_t bsr(uint32_t bits)
-{
-    __asm
-    {
-        bsr eax, dword ptr [bits]
-    }
-}
-#endif
-
 static INLINE int16_t huffman_getescape(bitfile *ld, int16_t sp)
 {
     uint8_t neg, i;
@@ -145,7 +128,6 @@ static INLINE int16_t huffman_getescape(bitfile *ld, int16_t sp)
         neg = 0;
     }
 
-#ifndef _WIN32
     for (i = 4; ; i++)
     {
         if (faad_get1bit(ld
@@ -154,17 +136,6 @@ static INLINE int16_t huffman_getescape(bitfile *ld, int16_t sp)
             break;
         }
     }
-#else
-    /* maximum quantised value is 8192,
-     * so the maximum number of bits for 1 value is log[2](8192)=13
-     * minimum bits used when escape is present is 4 bits
-     * this leaves a maximum of 9 bits to be read at this point
-     */
-    j = faad_showbits(ld, 9) | 0xFFFFFE00;
-    i = 12 - bsr(~j);
-    faad_getbits(ld, i-3
-        DEBUGVAR(1,6,"huffman_getescape(): escape size"));
-#endif
 
     off = faad_getbits(ld, i
         DEBUGVAR(1,9,"huffman_getescape(): escape"));
@@ -355,7 +326,7 @@ uint8_t huffman_spectral_data(uint8_t cb, bitfile *ld, int16_t *sp)
     case 10:
         return huffman_2step_pair_sign(cb, ld, sp);
     case 12: {
-        uint8_t err = huffman_2step_quad(1, ld, sp);
+        uint8_t err = huffman_2step_pair(11, ld, sp);
         sp[0] = huffman_codebook(0); sp[1] = huffman_codebook(1); 
         return err; }
     case 11:

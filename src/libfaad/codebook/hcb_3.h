@@ -22,7 +22,7 @@
 ** Commercial non-GPL licensing of this software is possible.
 ** For more info contact Ahead Software through Mpeg4AAClicense@nero.com.
 **
-** $Id: hcb_3.h,v 1.1 2003/12/30 02:00:12 miguelfreitas Exp $
+** $Id: hcb_3.h,v 1.2 2004/01/26 22:34:12 jstembridge Exp $
 **/
 
 /* Binary search huffman table HCB_3 */
