@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decoder.c,v 1.7 2001/08/07 22:24:05 ehasenle Exp $
+ * $Id: dxr3_decoder.c,v 1.8 2001/08/09 09:55:54 ehasenle Exp $
  *
  * dxr3 video and spu decoder plugin. Accepts the video and spu data
  * from XINE and sends it directly to the corresponding dxr3 devices.
@@ -65,12 +65,12 @@ static void dxr3_presence_test()
 	dxr3_ok = 0;
 	
 	if ((fd = open(devname, O_WRONLY))<0) {
-		fprintf(stderr, "dxr3: not detected. (%s: %s)\n",
+		fprintf(stderr, "dxr3: not detected (%s: %s)\n",
 			devname, strerror(errno));
 		return;
 	}
 	if (ioctl(fd, EM8300_IOCTL_GET_AUDIOMODE, &val)<0) {
-		fprintf(stderr, "dxr3: ioctl failed. (%s)\n", strerror(errno));
+		fprintf(stderr, "dxr3: ioctl failed (%s)\n", strerror(errno));
 		return;
 	}
 	close(fd);
@@ -102,7 +102,7 @@ static void dxr3scr_adjust (scr_plugin_t *scr, uint32_t vpts) {
 	vpts >>= 1;
 
 	if (ioctl(self->fd_control, EM8300_IOCTL_SCR_SET, &vpts))
-		fprintf(stderr, "dxr3scr: adjust failed.\n");
+		fprintf(stderr, "dxr3scr: adjust failed (%s)\n", strerror(errno));
 }
 
 static void dxr3scr_start (scr_plugin_t *scr, uint32_t start_vpts) {
@@ -110,7 +110,7 @@ static void dxr3scr_start (scr_plugin_t *scr, uint32_t start_vpts) {
 	start_vpts >>= 1;
 
 	if (ioctl(self->fd_control, EM8300_IOCTL_SCR_SET, &start_vpts))
-		fprintf(stderr, "dxr3scr: start failed.\n");
+		fprintf(stderr, "dxr3scr: start failed (%s)\n", strerror(errno));
 	/* mis-use start_vpts */
 	start_vpts = 0x900;
 	ioctl(self->fd_control, EM8300_IOCTL_SCR_SETSPEED, &start_vpts);
@@ -121,7 +121,7 @@ static uint32_t dxr3scr_get_current (scr_plugin_t *scr) {
 	uint32_t pts;
 
 	if (ioctl(self->fd_control, EM8300_IOCTL_SCR_GET, &pts))
-		fprintf(stderr, "dxr3scr: get current failed.\n");
+		fprintf(stderr, "dxr3scr: get current failed (%s)\n", strerror(errno));
 
 	return pts << 1;
 }
@@ -205,7 +205,8 @@ static void dxr3_decode_data (video_decoder_t *this_gen, buf_element_t *buf)
 			this->last_pts = vpts;
 
 			if (ioctl(this->fd_video, EM8300_IOCTL_VIDEO_SETPTS, &vpts))
-				fprintf(stderr, "dxr3: set video pts failed.\n");
+				fprintf(stderr, "dxr3: set video pts failed (%s)\n",
+				 strerror(errno));
 		}
 	}
 
@@ -330,7 +331,7 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf)
 		 (this->spu_decoder.metronom, buf->PTS, 0);
 
 		if (ioctl(this->fd_spu, EM8300_IOCTL_SPU_SETPTS, &vpts))
-			fprintf(stderr, "spu write failed\n");
+			fprintf(stderr, "dxr3: spu setpts failed (%s)\n", strerror(errno));
 	}
 
 	written = write(this->fd_spu, buf->content, buf->size);
