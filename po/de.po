@@ -690,9 +690,9 @@ msgid "demux_wav: format 0x%X audio, %d Hz, %d bits/sample, %d %s\n"
 msgstr "demux_wav: Format 0x%X Audio, %d Hz, %d Bits/Sample, %d %s\n"
 
 #: src/demuxers/demux_wav.c:324
-#, fuzzy, c-format
+#, c-format
 msgid "demux_wav: running time = %lld min, %lld sec\n"
-msgstr "demux_wav: Laufzeit: %d min, %d sek\n"
+msgstr "demux_wav: Laufzeit: %lld min, %lld sek\n"
 
 #: src/demuxers/demux_wav.c:328
 #, c-format
@@ -1478,28 +1478,27 @@ msgstr "xine Videoausgabe benutzt libvidix"
 
 #: src/xine-engine/tvmode.c:589
 msgid "TV System"
-msgstr ""
+msgstr "TV System"
 
 #: src/xine-engine/tvmode.c:594
 msgid "Mode Selection Policy"
-msgstr ""
+msgstr "Modusauswahlregeln"
 
 #: src/xine-engine/tvmode.c:617
-#, fuzzy
 msgid "Modes"
-msgstr "codecs"
+msgstr "Modi"
 
 #: src/xine-engine/tvmode.c:627
 msgid "Prefer PAL"
-msgstr ""
+msgstr "Bevorzuge PAL"
 
 #: src/xine-engine/tvmode.c:633
 msgid "Verbose resolution selection"
-msgstr ""
+msgstr "Ausführliche Auflösungsauswahl"
 
 #: src/xine-engine/tvmode.c:639
 msgid "Screen Aspect Ratio"
-msgstr ""
+msgstr "Bildschirmseitenverhältnis"
 
 #: src/xine-engine/video_out.c:306
 #, c-format
@@ -1586,7 +1585,7 @@ msgstr "Wenn !=0, immer auf diese Frequenz anpassen"
 
 #: src/xine-engine/audio_out.c:834
 msgid "adjust if audio is offsync"
-msgstr ""
+msgstr "Anpassen, wenn Audio nicht synchron ist"
 
 #: src/xine-engine/audio_out.c:874
 msgid "Audio volume"
