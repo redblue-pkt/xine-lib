@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.57 2004/07/18 18:02:02 jcdutton Exp $
+ * $Id: xine_decoder.c,v 1.58 2004/08/06 21:51:44 jcdutton Exp $
  *
  * 04-09-2001 DTS passtrough  (C) Joachim Koenig 
  * 09-12-2001 DTS passthrough inprovements (C) James Courtier-Dutton
@@ -149,7 +149,7 @@ static void dts_decode_frame (dts_decoder_t *this, int64_t pts, int preview_mode
   
   lprintf("decode_frame\n");
   audio_buffer = this->stream->audio_out->get_buffer (this->stream->audio_out);
-  audio_buffer->vpts       = 0;
+  audio_buffer->vpts       = pts;
 
     if(this->bypass_mode) {
       /* SPDIF digital output */
