@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.54 2002/05/21 20:39:03 miguelfreitas Exp $
+ * $Id: audio_out.c,v 1.55 2002/05/24 12:23:58 miguelfreitas Exp $
  * 
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -188,13 +188,6 @@ static audio_buffer_t *fifo_remove (audio_fifo_t *fifo) {
   return buf;
 }
 
-/* 
- * This routine is currently not used, but I do not want to loose it.
- * I think "(c) 2001 Andy Lo A Foe <andy@alsaplayer.org>" originally added it
- * to ./xine-lib/src/audio_out/audio_alsa_out.c before the architecture changes
- * So it has moved to here.
- */
-
 void write_pause_burst(ao_instance_t *this, uint32_t num_frames)
 { 
   int error = 0;
@@ -243,7 +236,6 @@ static void ao_fill_gap (ao_instance_t *this, int64_t pts_len) {
     return; 
   }
 
-
   while (num_frames > 0) {
     if (num_frames > ZERO_BUF_SIZE) {
       this->driver->write(this->driver, this->zero_space, ZERO_BUF_SIZE);
@@ -258,8 +250,7 @@ static void ao_fill_gap (ao_instance_t *this, int64_t pts_len) {
 static void ensure_buffer_size (ao_instance_t *this, int size)
 {
   if (this->frame_buffer_size < size) {
-    free (this->frame_buffer);
-    this->frame_buffer = xine_xmalloc (size);
+    this->frame_buffer = realloc( this->frame_buffer, size );
     this->frame_buffer_size = size;
   }
 }
@@ -291,7 +282,9 @@ static void *ao_loop (void *this_gen) {
 #endif
 
     do {
+      pthread_mutex_lock( &this->driver_lock );
       delay = this->driver->delay(this->driver);
+      pthread_mutex_unlock( &this->driver_lock );
 
       /*
        * where, in the timeline is the "end" of the 
@@ -337,6 +330,7 @@ static void *ao_loop (void *this_gen) {
     /*
      * output audio data synced to master clock
      */
+    pthread_mutex_lock( &this->driver_lock );
     
     if (gap < (-1 * AO_MAX_GAP) || !buf->num_frames || 
         this->audio_paused ) {
@@ -429,8 +423,8 @@ static void *ao_loop (void *this_gen) {
 	this->driver->write(this->driver, buf->mem, buf->num_frames);
 	break;
       }
-      
     }
+    pthread_mutex_unlock( &this->driver_lock );
 
     fifo_append (this->free_fifo, buf);
 
@@ -454,7 +448,11 @@ static int ao_open(ao_instance_t *this,
 	    "audio_out: stream audio format is %d kHz sampling rate, %d bits. mode is %d.\n",
 	    rate, bits, mode);
 
-  if ((output_sample_rate=this->driver->open(this->driver,bits,(this->force_rate ? this->force_rate : rate),mode)) == 0) {
+  pthread_mutex_lock( &this->driver_lock );
+  output_sample_rate=this->driver->open(this->driver,bits,(this->force_rate ? this->force_rate : rate),mode);
+  pthread_mutex_unlock( &this->driver_lock );
+  
+  if ( output_sample_rate == 0) {
     printf("audio_out: open failed!\n");
     return 0;
   }; 
@@ -486,7 +484,9 @@ static int ao_open(ao_instance_t *this,
     printf("audio_out: will resample audio from %d to %d\n",
 	   this->input_frame_rate, this->output_frame_rate);
 
+  pthread_mutex_lock( &this->driver_lock );
   this->num_channels      = this->driver->num_channels(this->driver); 
+  pthread_mutex_unlock( &this->driver_lock );
 
   this->frame_rate_factor = (double) this->output_frame_rate / (double) this->input_frame_rate; 
   this->audio_step        = (uint32_t) 90000 * (uint32_t) 32768 / this->input_frame_rate;
@@ -582,14 +582,18 @@ static void ao_close(ao_instance_t *this) {
 
   printf ("audio_out: thread stopped, closing driver\n");
 
+  pthread_mutex_lock( &this->driver_lock );
   this->driver->close(this->driver);  
+  pthread_mutex_unlock( &this->driver_lock );
 }
 
 static void ao_exit(ao_instance_t *this) {
 
   audio_buffer_t *buf, *next;
 
+  pthread_mutex_lock( &this->driver_lock );
   this->driver->exit(this->driver);
+  pthread_mutex_unlock( &this->driver_lock );
 
   free (this->frame_buffer);
   free (this->zero_space);
@@ -625,18 +629,32 @@ static void ao_exit(ao_instance_t *this) {
 
 static uint32_t ao_get_capabilities (ao_instance_t *this) {
   uint32_t result;
+  
+  pthread_mutex_lock( &this->driver_lock );
   result=this->driver->get_capabilities(this->driver);  
+  pthread_mutex_unlock( &this->driver_lock );
+  
   return result;
 }
 
 static int ao_get_property (ao_instance_t *this, int property) {
+  int ret;
 
-  return(this->driver->get_property(this->driver, property));
+  pthread_mutex_lock( &this->driver_lock );
+  ret = this->driver->get_property(this->driver, property);
+  pthread_mutex_unlock( &this->driver_lock );
+  
+  return ret;
 }
 
 static int ao_set_property (ao_instance_t *this, int property, int value) {
+  int ret;
 
-  return(this->driver->set_property(this->driver, property, value));
+  pthread_mutex_lock( &this->driver_lock );
+  ret =  this->driver->set_property(this->driver, property, value);
+  pthread_mutex_unlock( &this->driver_lock );
+  
+  return ret;
 }
 
 static int ao_control (ao_instance_t *this, int cmd, ...) {
@@ -647,7 +665,9 @@ static int ao_control (ao_instance_t *this, int cmd, ...) {
 
   va_start(args, cmd);
   arg = va_arg(args, void*);
+  pthread_mutex_lock( &this->driver_lock );
   rval = this->driver->control(this->driver, cmd, arg);
+  pthread_mutex_unlock( &this->driver_lock );
   va_end(args);
 
   return rval;
@@ -665,6 +685,7 @@ ao_instance_t *ao_new_instance (ao_driver_t *driver, xine_t *xine) {
   this->driver                = driver;
   this->metronom              = xine->metronom;
   this->xine                  = xine;
+  pthread_mutex_init( &this->driver_lock, NULL );
 
   this->open                  = ao_open;
   this->get_buffer            = ao_get_buffer;
@@ -685,8 +706,8 @@ ao_instance_t *ao_new_instance (ao_driver_t *driver, xine_t *xine) {
   this->resample_conf = config->register_enum (config, "audio.resample_mode", 0,
 					       resample_modes, "adjust whether resampling is done or not",
 					       NULL, NULL, NULL);
-  this->force_rate    = config->register_range (config, "audio.force_rate", 0,
-						0, 96000, "if !=0 always resample to given rate",
+  this->force_rate    = config->register_num (config, "audio.force_rate", 0,
+						"if !=0 always resample to given rate",
 						NULL, NULL, NULL);
 
   /*

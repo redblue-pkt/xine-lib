@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.h,v 1.29 2002/05/21 20:39:03 miguelfreitas Exp $
+ * $Id: audio_out.h,v 1.30 2002/05/24 12:23:58 miguelfreitas Exp $
  */
 #ifndef HAVE_AUDIO_OUT_H
 #define HAVE_AUDIO_OUT_H
@@ -197,6 +197,7 @@ struct ao_instance_s {
   /* private stuff */
 
   ao_driver_t    *driver;
+  pthread_mutex_t driver_lock;
   metronom_t     *metronom;
   xine_t         *xine;
 
