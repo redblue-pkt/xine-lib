@@ -35,7 +35,7 @@
  * along with this program; see the file COPYING.  If not, write to
  * the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: spu.c,v 1.54 2002/11/19 13:31:03 jcdutton Exp $
+ * $Id: spu.c,v 1.55 2002/11/20 13:49:05 mroi Exp $
  *
  */
 
@@ -65,7 +65,6 @@
 #define LOG_DEBUG 1
 #define LOG_BUTTON 1
 #define LOG_NAV 1
-#define BIRDCAGE_HACK 1
 */
 
 void spudec_reassembly (spudec_seq_t *seq, uint8_t *pkt_data, u_int pkt_len);
@@ -296,12 +295,6 @@ void spudec_process (spudec_decoder_t *this, uint32_t stream_id) {
   do {
     if (!(cur_seq->finished) ) {
       
-      /* Get do commands to build the event. */
-      spudec_do_commands(&this->state, cur_seq, &this->overlay);
-      /* FIXME: Check for Forced-display or subtitle stream
-       *        For subtitles, open event.
-       *        For menus, store it for later.
-       */
       /* spu_channel is now set based on whether we are in the menu or not. */
       /* Bit 7 is set if only forced display SPUs should be shown */
       if ( (this->stream->spu_channel & 0x1f) != stream_id  ) { 
@@ -317,6 +310,12 @@ void spudec_process (spudec_decoder_t *this, uint32_t stream_id) {
         return;
       }
 
+      /* Get do commands to build the event. */
+      spudec_do_commands(&this->state, cur_seq, &this->overlay);
+      /* FIXME: Check for Forced-display or subtitle stream
+       *        For subtitles, open event.
+       *        For menus, store it for later.
+       */
 #ifdef LOG_DEBUG
       /* spudec_print_overlay( &this->overlay ); */
       printf ("spu: forced display:%s\n", this->state.forced_display ? "Yes" : "No" ); 
@@ -512,12 +511,6 @@ static void spudec_do_commands(spudec_state_t *state, spudec_seq_t* seq, vo_over
       ovl->trans[2] = trans->entry1;
       ovl->trans[1] = trans->entry2;
       ovl->trans[0] = trans->entry3;
-#ifdef BIRDCAGE_HACK
-        ovl->trans[3] = 15;
-        ovl->trans[2] = 15;
-        ovl->trans[1] = 15;
-        ovl->trans[0] = 8;
-#endif
 
 /* FIXME: Force invisible SPUs to be visible. */
 /*
@@ -865,7 +858,7 @@ void spudec_copy_nav_to_overlay(pci_t* nav_pci, uint32_t* clut, int32_t button, 
    * overlay clipping areas are in overlay coordinates;
    * therefore we must subtract the display coordinates of the underlying overlay */
   overlay->clip_left   = (button_ptr->x_start > base->x) ? (button_ptr->x_start - base->x) : 0;
-  overlay->clip_top    = (button_ptr->y_start > base->y) ? (button_ptr->y_start - base->y) : -1;
+  overlay->clip_top    = (button_ptr->y_start > base->y) ? (button_ptr->y_start - base->y) : 0;
   overlay->clip_right  = (button_ptr->x_end   > base->x) ? (button_ptr->x_end   - base->x) : 0;
   overlay->clip_bottom = (button_ptr->y_end   > base->y) ? (button_ptr->y_end   - base->y) : 0;
   if(button_ptr->btn_coln != 0) {
