@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.h,v 1.62 2002/08/05 00:16:28 tmmm Exp $
+ * $Id: buffer.h,v 1.63 2002/08/12 00:11:54 tmmm Exp $
  *
  *
  * contents:
@@ -123,6 +123,7 @@ extern "C" {
 #define BUF_VIDEO_ZYGO		0x022A0000
 #define BUF_VIDEO_TSCC		0x022B0000
 #define BUF_VIDEO_YVU9		0x022C0000
+#define BUF_VIDEO_VQA		0x022D0000
 
 /* audio buffer types:  (please keep in sync with buffer_types.c) */
 
@@ -154,6 +155,7 @@ extern "C" {
 #define BUF_AUDIO_QDESIGN2	0x03180000
 #define BUF_AUDIO_QCLP		0x03190000
 #define BUF_AUDIO_SMJPEG_IMA	0x031A0000
+#define BUF_AUDIO_VQA_IMA	0x031B0000
 
 /* spu buffer types:    */
  
@@ -213,6 +215,8 @@ struct buf_element_s {
  * decoder_info[1] = BUF_SPECIAL_PALETTE
  * decoder_info[2] = number of entries in palette table
  * decoder_info[3] = pointer to palette table
+ * This buffer type is used to provide a file- and decoder-independent
+ * facility to transport RGB color palettes from demuxers to decoders.
  * A palette table is an array of palette_entry_t structures. A decoder
  * should not count on this array to exist for the duration of the
  * program's execution and should copy, manipulate, and store the palette
@@ -225,9 +229,10 @@ struct buf_element_s {
  * decoder_info[1] = BUF_SPECIAL_IDCIN_HUFFMAN_TABLE
  * decoder_info[2] = pointer to a 65536-element byte array containing the
  *  Huffman tables from an Id CIN file
- * A decoder should not count on the byte array to exist for the duration
- * of the program's execution and should copy the data into its own
- * private structures.
+ * This buffer is used to transport the Huffman tables from an Id CIN
+ * file to the Id CIN decoder. A decoder should not count on the byte array
+ * to exist for the duration of the program's execution and should copy the
+ * data into its own private structures.
  */
 #define BUF_SPECIAL_IDCIN_HUFFMAN_TABLE  2
 
@@ -275,6 +280,16 @@ struct buf_element_s {
  * number of bits and channels.
  */
 #define BUF_SPECIAL_LPCM_CONFIG 6
+
+/*
+ * In a BUF_SPECIAL_VQA_VECTOR_SIZE:
+ * decoder_info[1] = BUF_SPECIAL_VQA_VECTOR_SIZE
+ * decoder_info[2] = vector width
+ * decoder_info[3] = vector height
+ * This buffer is used to transport the vector width and height dimensions
+ * from the VQA demuxer to the VQA video decoder.
+ */
+#define BUF_SPECIAL_VQA_VECTOR_SIZE 7
 
 
 typedef struct palette_entry_s palette_entry_t;
