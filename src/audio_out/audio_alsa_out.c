@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.116 2003/10/20 07:04:55 jcdutton Exp $
+ * $Id: audio_alsa_out.c,v 1.117 2003/11/07 18:25:35 jcdutton Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -1379,6 +1379,24 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
 
   snd_pcm_close (this->audio_fd);
   this->audio_fd=NULL;
+
+/* Fallback to "default" if device "front" does not exist */
+/* Needed for some very basic sound cards. */
+  pcm_device = config->register_string(config,
+				       "audio.alsa_front_device",
+				       "front",
+				       _("device used for stereo output"),
+				       NULL,
+				       10, NULL,
+				       NULL);
+  err=snd_pcm_open(&this->audio_fd, pcm_device, SND_PCM_STREAM_PLAYBACK, 1); /* NON-BLOCK mode */
+  if(err <0 ) {
+    config->update_string(config, "audio.alsa_front_device", "default");
+  } else {
+    snd_pcm_close (this->audio_fd);
+    this->audio_fd=NULL;
+  }
+
   this->output_sample_rate = 0;
   if (config->register_bool (config,
                                "audio.a52_pass_through",
