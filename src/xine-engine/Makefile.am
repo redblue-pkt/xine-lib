@@ -14,7 +14,8 @@ endif
 libxine_la_SOURCES = $(nvtv) xine.c metronom.c configfile.c buffer.c \
 	load_plugins.c video_decoder.c buffer_types.c \
 	audio_decoder.c video_out.c audio_out.c resample.c events.c lrb.c \
-	video_overlay.c osd.c scratch.c locale.c demux.c vo_scale.c xine_interface.c
+	video_overlay.c osd.c scratch.c locale.c demux.c vo_scale.c \
+	xine_interface.c post.c
 libxine_la_DEPENDENCIES = @INTLLIBS@ $(XINEUTILS_LIB)
 
 libxine_la_LIBADD = $(THREAD_LIBS) $(DYNAMIC_LD_LIBS) @INTLLIBS@ $(ZLIB_LIBS)\
@@ -27,7 +28,7 @@ libxine_la_LDFLAGS =  \
 include_HEADERS  = buffer.h metronom.h configfile.h vo_scale.h \
         audio_out.h resample.h video_out.h xine_internal.h spu_decoder.h \
 	lrb.h video_overlay.h osd.h scratch.h xine_plugin.h xineintl.h  \
-	plugin_catalog.h audio_decoder.h video_decoder.h
+	plugin_catalog.h audio_decoder.h video_decoder.h post.h
 
 noinst_HEADERS = bswap.h nvtvd.h
 
