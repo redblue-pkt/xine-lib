@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.30 2002/04/23 16:05:12 richwareham Exp $
+ * $Id: xine_decoder.c,v 1.31 2002/04/28 10:12:49 esnel Exp $
  *
  * xine decoder plugin using divx4
  *
@@ -528,7 +528,7 @@ static void divx4_reset(video_decoder_t *this_gen) {
 }
 
 static void divx4_dispose(video_decoder_t *this_gen) {
-  /* FIXME: Do we need anything here? */
+  free (this_gen);
 }
 
 /* This is pretty generic. I took the liberty to increase the
