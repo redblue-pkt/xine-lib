@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_oss_out.c,v 1.9 2001/06/04 17:19:28 guenter Exp $
+ * $Id: audio_oss_out.c,v 1.10 2001/06/05 04:40:53 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -286,7 +286,7 @@ static void ao_write_audio_data(ao_functions_t *this_gen,
     pos = 0;
 
   if (pos>this->bytes_in_buffer) /* buffer ran dry */ 
-    pos = this->bytes_in_buffer;
+    this->bytes_in_buffer = pos;
 
   buffer_vpts += (this->bytes_in_buffer - pos) * 1024 / this->bytes_per_kpts;
 
