@@ -29,7 +29,7 @@
  * - it's possible speeder saving streams in the xine without playing:
  *     xine stream_mrl#rip:file.raw;noaudio;novideo
  *
- * $Id: input_rip.c,v 1.3 2003/09/13 15:34:59 miguelfreitas Exp $
+ * $Id: input_rip.c,v 1.4 2003/09/17 17:14:12 valtri Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -187,47 +187,96 @@ static uint32_t rip_plugin_get_capabilities(input_plugin_t *this_gen) {
  */
 static buf_element_t *rip_plugin_read_block(input_plugin_t *this_gen, fifo_buffer_t *fifo, off_t todo) {
   rip_input_plugin_t *this = (rip_input_plugin_t *)this_gen;
-  buf_element_t *buf;
+  buf_element_t *buf = NULL;
+  off_t retlen, npreview, nread, nwrite, nread_orig, nread_file;
 
   lprintf("reading %lld bytes (curpos = %lld, savepos = %lld) (block)\n", todo, this->curpos, this->savepos);
-  if (this->curpos < this->savepos) {
-  /* reading via rip_plugin_read() */
-    lprintf(" => read %lld bytes by rip plugin (block)\n", todo);
-    
+
+  if (!todo) return NULL;
+
+  /* compute sizes and copy data from preview */
+  if (this->curpos < this->preview_size && this->preview) {
+    npreview = this->preview_size - this->curpos;
+    if (npreview > todo) {
+      npreview = todo;
+      nread = 0;
+    } else {
+      nread = min_off(this->savepos - this->preview_size, todo - npreview);
+    }
+
+    lprintf(" => get %lld bytes from preview (%lld bytes) (block)\n", npreview, this->preview_size);
+  } else {
+    npreview = 0;
+    nread = min_off(this->savepos - this->curpos, todo);
+  }
+  
+  /* size to write into file */
+  nwrite = todo - npreview - nread;
+  /* size to read from file */
+  nread_file = this->regular ? nread : 0;
+  /* size to read from original input plugin */
+  nread_orig = this->regular ? 0 : nread;
+
+  /* create own block by RIP if needed */
+  if (npreview + nread_file) {
     buf = fifo->buffer_pool_alloc(fifo);
     buf->content = buf->mem;
     buf->type = BUF_DEMUX_BLOCK;
-    buf->size = rip_plugin_read(this_gen, buf->content, todo);
-    if (buf->size != todo) {
-      buf->free_buffer(buf);
-      return NULL;
-    }
-  } else {
-  /* normal block reading from original input plugin */
-    lprintf(" => read %lld bytes from original plugin (block)\n", todo);
-    buf = this->main_input_plugin->read_block(this->main_input_plugin, fifo, todo);
-    if (!buf) {
-      lprintf(CLR_FAIL " => reading failed (block)" CLR_RST "\n");
-      return NULL;
-    }
-#ifdef DEBUG
-    /* check assertion */
-    if (buf->size != todo) {
-      printf(CLR_FAIL " => size of block %" PRIi32 "differs from %lld!" CLR_RST "\n", buf->size, todo);
-      buf->free_buffer(buf);
-      return NULL;
-    }
-#endif
-    this->curpos += buf->size;
 
-    if (fwrite(buf->content, buf->size, 1, this->file) != 1) {
-      xine_log(this->stream->xine, XINE_LOG_MSG, 
-        _("input_rip: error writing to file: %s\n"), strerror(errno));
-      buf->free_buffer(buf);
+    /* get data from preview */
+    if (npreview) {
+      lprintf(" => get %lld bytes from the preview (block)\n", npreview);
+      memcpy(buf->content, &this->preview[this->curpos], npreview);
+    }
+    
+    /* re-reading from the file */
+    if (nread_file) {
+      lprintf(" => read %lld bytes from the file (block)\n", nread_file);
+      if (fread(&buf->content[npreview], nread_file, 1, this->file) != 1) {
+        xine_log(this->stream->xine, XINE_LOG_MSG,
+          _("input_rip: reading of saved data failed: %s\n"), strerror(errno));
+        return NULL;
+      }
+    }
+  }
+
+  /* really to read/catch */
+  if (nread_orig + nwrite) {
+    /* read from main input plugin */
+    if (buf) {
+      lprintf(" => read %lld bytes from input plugin (block)\n", nread_orig + nwrite);
+      retlen = this->main_input_plugin->read(this->main_input_plugin, &buf->content[npreview + nread_file], nread_orig + nwrite);
+    } else {
+      lprintf(" => read block of %lld bytes from input plugin (block)\n", nread_orig + nwrite);
+      buf = this->main_input_plugin->read_block(this->main_input_plugin, fifo, nread_orig + nwrite);
+      if (buf) retlen = buf->size;
+      else {
+        lprintf(CLR_FAIL " => returned NULL" CLR_RST "\n");
+        return NULL;
+      }
+    }
+    if (retlen != nread_orig + nwrite) {
+      lprintf(CLR_FAIL " => returned %lld" CLR_RST "\n", retlen);
       return NULL;
     }
-    this->savepos += buf->size;
+
+    /* write to file (only successfully read data) */
+    if (retlen > nread_orig) {
+      nwrite = retlen - nread_orig;
+      if (fwrite(buf->content + this->savepos - this->curpos, nwrite, 1, this->file) != 1) {
+        xine_log(this->stream->xine, XINE_LOG_MSG, 
+          _("input_rip: error writing to file %lld bytes: %s\n"), 
+          retlen - nread_orig, strerror(errno));
+        return NULL;
+      }
+      this->savepos += nwrite;
+      lprintf(" => saved %lld bytes\n", nwrite);
+    } else 
+      nwrite = 0;
   }
+  
+  this->curpos += (npreview + nread + nwrite);
+  buf->size = npreview + nread + nwrite;
 
   return buf;
 }
