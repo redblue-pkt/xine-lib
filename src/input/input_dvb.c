@@ -192,7 +192,9 @@ typedef struct {
   osd_object_t	     *background;
   
   xine_event_queue_t *event_queue;
-
+  /* CRC table for PAT rebuilding */
+  unsigned long       crc32_table[256];
+  
   /* scratch buffer for forward seeking */
   char                seek_buf[BUFSIZE];
 
@@ -273,11 +275,35 @@ static const Param transmissionmode_list [] = {
         { NULL, 0 }
 };
 
+
 struct tm * dvb_mjdtime (char *buf);
 static void do_eit(dvb_input_plugin_t *this);
 
-
 /* Utility Functions */
+
+static void ts_build_crc32_table(dvb_input_plugin_t *this) {
+  uint32_t  i, j, k;
+
+  for( i = 0 ; i < 256 ; i++ ) {
+    k = 0;
+    for (j = (i << 24) | 0x800000 ; j != 0x80000000 ; j <<= 1) {
+      k = (k << 1) ^ (((k ^ j) & 0x80000000) ? 0x04c11db7 : 0);
+    }
+    this->crc32_table[i] = k;
+  }
+}
+
+static uint32_t ts_compute_crc32(dvb_input_plugin_t *this, uint8_t *data, 
+				       uint32_t length, uint32_t crc32) {
+  uint32_t i;
+
+  for(i = 0; i < length; i++) {
+    crc32 = (crc32 << 8) ^ this->crc32_table[(crc32 >> 24) ^ data[i]];
+  }
+  return crc32;
+}
+
+
 static unsigned int getbits(unsigned char *buffer, unsigned int bitpos, unsigned int bitcount)
 {
     unsigned int i;
@@ -711,7 +737,7 @@ static int tuner_tune_it (tuner_t *this, struct dvb_frontend_parameters
   struct pollfd pfd[1]; 
 
   while(1)  {
-    if (ioctl(this->fd_frontend, FE_GET_EVENT, &event) < 0)       /* empty the event queue */
+   if (ioctl(this->fd_frontend, FE_GET_EVENT, &event) < 0)       /* empty the event queue */
     break;
   }
 
@@ -754,12 +780,17 @@ static void parse_pmt(dvb_input_plugin_t *this, const unsigned char *buf, int se
   int has_text=0;
 
   /* Clear all pids, the pmt will tell us which to use */
-  for (x = 0; x < MAXFILTERS; x++)
+  for (x = 0; x < MAXFILTERS; x++){
     this->channels[this->channel].pid[x] = 0;
-    
-  pcr_pid = ((buf[0] & 0x1f) << 8) | buf[1];
+    ioctl(this->tuner->fd_pidfilter[x], DMX_STOP);  
+  }  
 
-  dvb_set_pidfilter(this, PCRFILTER, pcr_pid, DMX_PES_PCR,DMX_OUT_TS_TAP);
+  dvb_set_pidfilter(this, PMTFILTER, this->channels[this->channel].pmtpid, DMX_PES_OTHER,DMX_OUT_TS_TAP);
+  dvb_set_pidfilter(this, PATFILTER, 0, DMX_PES_OTHER,DMX_OUT_TS_TAP);
+
+  pcr_pid = ((buf[0] & 0x1f) << 8) | buf[1];
+  if(pcr_pid!=0x1FFF) /* don't waste time if the PCR is invalid */
+    dvb_set_pidfilter(this, PCRFILTER, pcr_pid, DMX_PES_PCR,DMX_OUT_TS_TAP);
 
   program_info_len = ((buf[2] & 0x0f) << 8) | buf[3];
   buf += program_info_len + 4;
@@ -773,7 +804,7 @@ static void parse_pmt(dvb_input_plugin_t *this, const unsigned char *buf, int se
       case 0x02:
         if(!has_video) {
           printf("input_dvb: Adding VIDEO     : PID 0x%04x\n", elementary_pid);
-	  dvb_set_pidfilter(this, VIDFILTER, elementary_pid, DMX_PES_VIDEO,DMX_OUT_TS_TAP);
+	  dvb_set_pidfilter(this, VIDFILTER, elementary_pid, DMX_PES_OTHER,DMX_OUT_TS_TAP);
 	  has_video=1;
 	} 
 	break;
@@ -782,7 +813,7 @@ static void parse_pmt(dvb_input_plugin_t *this, const unsigned char *buf, int se
       case 0x04:
         if(!has_audio) {
 	  printf("input_dvb: Adding AUDIO     : PID 0x%04x\n", elementary_pid);
-	  dvb_set_pidfilter(this, AUDFILTER, elementary_pid, DMX_PES_AUDIO,DMX_OUT_TS_TAP);
+	  dvb_set_pidfilter(this, AUDFILTER, elementary_pid, DMX_PES_OTHER,DMX_OUT_TS_TAP);
 	  has_audio=1;
 	}
         break;
@@ -831,13 +862,15 @@ static void dvb_parse_si(dvb_input_plugin_t *this) {
   int	result;
   int  	section_len;
   int 	x;
-  struct pollfd pfd; 
+  struct pollfd pfd;
+  
   tuner_t *tuner = this->tuner;
   tmpbuffer = malloc (8192);
   bufptr = tmpbuffer;
 
   pfd.fd=tuner->fd_pidfilter[INTERNAL_FILTER];
   pfd.events = POLLPRI | POLLIN;
+
   /* first - the PAT */  
   dvb_set_pidfilter (this, INTERNAL_FILTER, 0, DMX_PES_OTHER, DMX_OUT_TAP);
   poll(&pfd,1,1500);
@@ -879,10 +912,9 @@ static void dvb_parse_si(dvb_input_plugin_t *this) {
 
   ioctl(tuner->fd_pidfilter[INTERNAL_FILTER], DMX_STOP);
 
+
   parse_pmt(this,tmpbuffer+9,section_len);
   
-  dvb_set_pidfilter(this, PATFILTER, 0, DMX_PES_OTHER,DMX_OUT_TS_TAP);
-  dvb_set_pidfilter(this, PMTFILTER, this->channels[this->channel].pmtpid, DMX_PES_OTHER,DMX_OUT_TS_TAP);
 /*
   dvb_set_pidfilter(this, TSDTFILTER, 0x02,DMX_PES_OTHER,DMX_OUT_TS_TAP);
   dvb_set_pidfilter(this, RSTFILTER, 0x13,DMX_PES_OTHER,DMX_OUT_TS_TAP);
@@ -896,6 +928,7 @@ static void dvb_parse_si(dvb_input_plugin_t *this) {
   if(ioctl(tuner->fd_pidfilter[EITFILTER],DMX_SET_BUFFER_SIZE,8192*this->num_streams_in_this_ts)<0)
     printf("input_dvb: couldn't increase buffer size for EIT: %s \n",strerror(errno)); 
   dvb_set_sectfilter(this, EITFILTER, 0x12,DMX_PES_OTHER,0x4e, 0xff); 
+
   free(tmpbuffer);
 }
 
@@ -1471,6 +1504,56 @@ static void dvb_event_handler (dvb_input_plugin_t *this) {
   }
 }
 
+/* parse TS and re-write PAT to contain only our pmt */
+static void ts_rewrite_packets (dvb_input_plugin_t *this, unsigned char * originalPkt, int len) {
+
+#define PKT_SIZE 188
+#define BODY_SIZE (188-4) 
+  unsigned int  sync_byte;
+  unsigned int  data_offset;
+  unsigned int  data_len;
+  unsigned int 	pid;
+
+  while(len>0){
+  
+    sync_byte                      = originalPkt[0];
+    pid                            = ((originalPkt[1] << 8) | originalPkt[2]) & 0x1fff;
+                                      
+    /*
+     * Discard packets that are obviously bad.
+     */
+
+    data_offset = 4;
+    originalPkt+=data_offset;
+    
+    if (pid == 0 && sync_byte==0x47) {
+      unsigned long crc;
+      
+      originalPkt[3]=13; /* section length including CRC - first 3 bytes */
+      originalPkt[2]=0x80;
+      originalPkt[7]=0; /* section number */
+      originalPkt[8]=0; /* last section number */
+      originalPkt[9]=(this->channels[this->channel].service_id >> 8) & 0xff;
+      originalPkt[10]=this->channels[this->channel].service_id & 0xff;
+      originalPkt[11]=(this->channels[this->channel].pmtpid >> 8) & 0xff;
+      originalPkt[12]=this->channels[this->channel].pmtpid & 0xff;
+
+      crc= ts_compute_crc32 (this, originalPkt+1, 12, 0xffffffff);
+      
+      originalPkt[13]=(crc>>24) & 0xff;
+      originalPkt[14]=(crc>>16) & 0xff;
+      originalPkt[15]=(crc>>8) & 0xff;
+      originalPkt[16]=crc & 0xff;
+      memset(originalPkt+17,0xFF,PKT_SIZE-21); /* stuff the remainder */
+      
+    }
+
+  data_len = PKT_SIZE - data_offset;
+  originalPkt+=data_len;
+  len-=data_len;
+
+  }
+}
 
 static off_t dvb_plugin_read (input_plugin_t *this_gen,
 			      char *buf, off_t len) {
@@ -1486,23 +1569,27 @@ static off_t dvb_plugin_read (input_plugin_t *this_gen,
   pthread_mutex_lock( &this->mutex ); /* protect agains channel changes */
   total=0;
   while (total<len){ 
+  
     n = read (this->fd, &buf[total], len-total);
 
     lprintf ("got %lld bytes (%lld/%lld bytes read)\n", n,total,len);
-  
-    if (n > 0){
+    
+    if (n > 0){  
       this->curpos += n;
       total += n;
     } else if (n<0 && errno!=EAGAIN) {
       pthread_mutex_unlock( &this->mutex );
-      return total;
+
+    return total;
     }
   }
+  ts_rewrite_packets (this, buf,total);
 
   if ((this->record_fd)&&(!this->record_paused))
     write (this->record_fd, buf, total);
 
   pthread_mutex_unlock( &this->mutex );
+
   return total;
 }
 
@@ -1908,6 +1995,8 @@ static int dvb_plugin_open(input_plugin_t * this_gen)
     snprintf(str, 256, "%04d - %s", this->channel, this->channels[this->channel].name);
 
     _x_meta_info_set(this->stream, XINE_META_INFO_TITLE, str);
+    /* compute CRC table for rebuilding pat */
+    ts_build_crc32_table(this);
 
     return 1;
 }
