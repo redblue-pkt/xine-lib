@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.113 2003/11/20 00:42:14 tmattern Exp $
+ * $Id: audio_decoder.c,v 1.114 2003/11/22 11:58:05 f1rmb Exp $
  *
  *
  * functions that implement audio decoding
@@ -186,7 +186,7 @@ static void *audio_decoder_loop (void *stream_gen) {
     case BUF_CONTROL_NEWPTS:
       if (stream->audio_decoder_plugin)
         stream->audio_decoder_plugin->discontinuity (stream->audio_decoder_plugin);
-      if (buf->decoder_flags && BUF_FLAG_SEEK) {
+      if (buf->decoder_flags & BUF_FLAG_SEEK) {
         stream->metronom->handle_audio_discontinuity (stream->metronom, DISC_STREAMSEEK, buf->disc_off);
       } else {
         stream->metronom->handle_audio_discontinuity (stream->metronom, DISC_ABSOLUTE, buf->disc_off);
