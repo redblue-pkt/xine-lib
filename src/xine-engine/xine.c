@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.153 2002/09/09 19:24:48 f1rmb Exp $
+ * $Id: xine.c,v 1.154 2002/09/09 20:43:20 uid86226 Exp $
  *
  * top-level xine functions
  *
@@ -84,7 +84,7 @@ static void _logo_change_cb(void *data, xine_cfg_entry_t *cfg) {
    * current status is XINE_STATUS_STOP or XINE_STATUS_LOGO 
    */
   pthread_mutex_lock (&this->xine_lock);
-  if((this->status == XINE_STATUS_LOGO) || (this->status == XINE_STATUS_STOP)) {
+  if(this->metronom && (this->status == XINE_STATUS_LOGO || this->status == XINE_STATUS_STOP)) {
     xine_stop_internal(this);  
     this->metronom->adjust_clock(this->metronom,
 				 this->metronom->get_current_time(this->metronom) + 30 * 90000 );
