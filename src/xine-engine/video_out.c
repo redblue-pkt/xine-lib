@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.83 2002/03/21 16:21:02 miguelfreitas Exp $
+ * $Id: video_out.c,v 1.84 2002/03/21 22:08:59 guenter Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -151,7 +151,10 @@ static vo_frame_t *vo_remove_from_img_buf_queue (img_buf_fifo_t *queue) {
     if (!queue->first) {
       queue->last = NULL;
       queue->num_buffers = 0;
-      pthread_cond_init  (&queue->not_empty, NULL);
+      /* I think this is a (pretty long-standing) bug
+	 guenter 21/03/2002
+	 pthread_cond_init  (&queue->not_empty, NULL);
+      */
     }
     else {
       queue->num_buffers--;
