@@ -19,7 +19,7 @@
  *
  * RealAudio File Demuxer by Mike Melanson (melanson@pcisys.net)
  *
- * $Id: demux_realaudio.c,v 1.19 2003/04/17 19:01:27 miguelfreitas Exp $
+ * $Id: demux_realaudio.c,v 1.20 2003/05/06 20:19:56 esnel Exp $
  *
  */
 
@@ -104,7 +104,7 @@ static int open_ra_file(demux_ra_t *this) {
     return 0;
 
   /* find the important information */
-  this->data_start = RA_FILE_HEADER_SIZE + RA_AUDIO_HEADER_SIZE;
+  this->data_start = RA_FILE_HEADER_SIZE + BE_32(&audio_header[0x02]);
   this->data_size = BE_32(&audio_header[0x0C]);
   this->wave.nChannels = audio_header[0x27];
   this->wave.nSamplesPerSec = BE_16(&audio_header[0x20]);
@@ -112,6 +112,11 @@ static int open_ra_file(demux_ra_t *this) {
   this->wave.wBitsPerSample = audio_header[0x25];
   this->audio_fourcc = *(unsigned int *)&audio_header[0x2E];
   this->audio_type = formattag_to_buf_audio(this->audio_fourcc);
+
+  /* skip extra header data (such as song title etc.) */
+  if (this->input->seek(this->input, this->data_start, SEEK_SET) !=
+    this->data_start)
+    return 0;
 
   if( !this->audio_type )
     this->audio_type = BUF_AUDIO_UNKNOWN;
