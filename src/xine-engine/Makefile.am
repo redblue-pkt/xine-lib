@@ -16,7 +16,7 @@ libxine_la_LIBADD = cpu_accel.lo \
 	$(DYNAMIC_LD_LIBS)		\
 	-lm 
 
-libxine_la_LDFLAGS =  -version-info 9:0:9
+libxine_la_LDFLAGS =  -version-info 5:0:5
 
 include_HEADERS  = buffer.h metronom.h configfile.h \
 	monitor.h cpu_accel.h attributes.h utils.h \
