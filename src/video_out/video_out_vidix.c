@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_vidix.c,v 1.4 2002/07/10 14:04:42 mroi Exp $
+ * $Id: video_out_vidix.c,v 1.5 2002/07/12 20:19:20 f1rmb Exp $
  * 
  * video_out_vidix.c
  *
@@ -49,7 +49,7 @@
 #include "video_out_x11.h"
 
               
-#define LOG
+#undef LOG
            
 
 #define LIBDIR "/usr/local/lib"

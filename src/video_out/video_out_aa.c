@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_aa.c,v 1.20 2002/06/12 12:22:38 f1rmb Exp $
+ * $Id: video_out_aa.c,v 1.21 2002/07/12 20:19:20 f1rmb Exp $
  *
  * video_out_aa.c, ascii-art output plugin for xine
  *
@@ -119,7 +119,8 @@ static vo_frame_t *aa_alloc_frame(vo_driver_t *this) {
   frame->vo_frame.copy = NULL;
   frame->vo_frame.field = aa_frame_field;
   frame->vo_frame.dispose = aa_dispose_frame;
-
+  frame->vo_frame.driver = this;
+  
   return (vo_frame_t*) frame;
 }
 
@@ -285,6 +286,7 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
   this->vo_driver.alloc_frame          = aa_alloc_frame ;
   this->vo_driver.update_frame_format  = aa_update_frame_format;
   this->vo_driver.display_frame        = aa_display_frame;
+  this->vo_driver.overlay_blend        = NULL;
   this->vo_driver.get_property         = aa_get_property;
   this->vo_driver.set_property         = aa_set_property;
   this->vo_driver.get_property_min_max = aa_get_property_min_max;
