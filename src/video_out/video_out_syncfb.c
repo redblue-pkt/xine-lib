@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_syncfb.c,v 1.74 2002/08/10 21:25:20 miguelfreitas Exp $
+ * $Id: video_out_syncfb.c,v 1.75 2002/08/15 03:12:24 miguelfreitas Exp $
  * 
  * video_out_syncfb.c, SyncFB (for Matrox G200/G400 cards) interface for xine
  * 
@@ -414,7 +414,7 @@ static void syncfb_compute_ideal_size (syncfb_driver_t *this)
   /*
    * zoom
    */
-  zoom_factor = (double)this->props[VO_PROP_ZOOM_FACTOR].value / (double)VO_ZOOM_STEP;
+  zoom_factor = (double)this->props[VO_PROP_ZOOM_X].value / (double)VO_ZOOM_STEP;
    
   this->displayed_width   = this->delivered_width  / zoom_factor;
   this->displayed_height  = this->delivered_height / zoom_factor;
@@ -840,7 +840,7 @@ static int syncfb_set_property(vo_driver_t* this_gen, int property, int value)
       syncfb_clean_output_area(this);
       break;
      
-    case VO_PROP_ZOOM_FACTOR:
+    case VO_PROP_ZOOM_X:
 #ifdef DEBUG_OUTPUT
       printf("video_out_syncfb: debug. (VO_PROP_ZOOM %d <=? %d <=? %d)\n",
 	      VO_ZOOM_MIN, value, VO_ZOOM_MAX);
@@ -1044,7 +1044,7 @@ vo_driver_t *init_video_out_plugin(config_values_t *config, void *visual_gen)
 
    this->props[VO_PROP_INTERLACED].value   = 0;
    this->props[VO_PROP_ASPECT_RATIO].value = ASPECT_AUTO;
-   this->props[VO_PROP_ZOOM_FACTOR].value  = 100;
+   this->props[VO_PROP_ZOOM_X].value  = 100;
 
    /* check for formats we need... */
    this->supported_capabilities = 0;

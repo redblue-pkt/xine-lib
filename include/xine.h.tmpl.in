@@ -28,7 +28,7 @@
  \endverbatim
  */
 /*
- * $Id: xine.h.tmpl.in,v 1.106 2002/08/11 15:06:13 miguelfreitas Exp $
+ * $Id: xine.h.tmpl.in,v 1.107 2002/08/15 03:12:24 miguelfreitas Exp $
  *
  */
 
@@ -300,11 +300,11 @@ int xine_check_version(int major, int minor, int sub);
  */
 #define VO_PROP_AUTOPAINT_COLORKEY   7
 /**
- * \def VO_PROP_ZOOM_FACTOR
+ * \def VO_PROP_ZOOM_X
  * zoom factor (in percent).
  * \sa vo_driver_t
  */
-#define VO_PROP_ZOOM_FACTOR          8
+#define VO_PROP_ZOOM_X               8
 /**
  * \def VO_PROP_PAN_SCAN
  * switch pan&scan on/off
@@ -335,11 +335,18 @@ int xine_check_version(int major, int minor, int sub);
 #define VO_TYPE_DXR3        1
 
 /**
+ * \def VO_PROP_ZOOM_Y
+ * zoom factor (in percent).
+ * \sa vo_driver_t
+ */
+#define VO_PROP_ZOOM_Y                13
+
+/**
  * \def VO_NUM_PROPERTIES
  * Number of available properties property.
  * \sa vo_driver_t
  */
-#define VO_NUM_PROPERTIES             13
+#define VO_NUM_PROPERTIES             14
 
                /** @} end of video_prop */
 

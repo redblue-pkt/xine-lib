@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3.c,v 1.48 2002/08/13 15:44:02 mroi Exp $
+ * $Id: video_out_dxr3.c,v 1.49 2002/08/15 03:12:25 miguelfreitas Exp $
  */
  
 /* mpeg1 encoding video out plugin for the dxr3.  
@@ -652,12 +652,12 @@ static void dxr3_display_frame(vo_driver_t *this_gen, vo_frame_t *frame_gen)
   if (frame->aspect != this->aspect)
     dxr3_set_property(this_gen, VO_PROP_ASPECT_RATIO, frame->vo_frame.ratio);
   if (frame->pan_scan && !this->pan_scan) {
-    dxr3_set_property(this_gen, VO_PROP_ZOOM_FACTOR, 1);
+    dxr3_set_property(this_gen, VO_PROP_ZOOM_X, 1);
     this->pan_scan = 1;
   }
   if (!frame->pan_scan && this->pan_scan) {
     this->pan_scan = 0;
-    dxr3_set_property(this_gen, VO_PROP_ZOOM_FACTOR, -1);
+    dxr3_set_property(this_gen, VO_PROP_ZOOM_X, -1);
   }
   
   if (frame_gen->format != IMGFMT_MPEG && this->enc && this->enc->on_display_frame) {
@@ -698,7 +698,8 @@ static int dxr3_get_property(vo_driver_t *this_gen, int property)
     return this->aspect;
   case VO_PROP_COLORKEY:
     return this->overlay.colorkey;
-  case VO_PROP_ZOOM_FACTOR:
+  case VO_PROP_ZOOM_X:
+  case VO_PROP_ZOOM_Y:
   case VO_PROP_TVMODE:
     return 0;
   case VO_PROP_VO_TYPE:

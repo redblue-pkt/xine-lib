@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xshm.c,v 1.83 2002/08/10 21:25:20 miguelfreitas Exp $
+ * $Id: video_out_xshm.c,v 1.84 2002/08/15 03:12:25 miguelfreitas Exp $
  * 
  * video_out_xshm.c, X11 shared memory extension interface for xine
  *
@@ -58,6 +58,7 @@
 #include "alphablend.h"
 #include "yuv2rgb.h"
 #include "xineutils.h"
+#include "vo_scale.h"
 
 /*
 #define LOG
@@ -69,38 +70,11 @@ typedef struct xshm_frame_s {
   vo_frame_t         vo_frame;
 
   /* frame properties as delivered by the decoder: */
-  int                width, height;
-  int                ratio_code;
+  /* obs: for width/height use vo_scale_t struct */
   int                format;
   int                flags;
 
-  int                user_ratio; 
-
-  /* 
-   * "ideal" size of this frame :
-   * width/height corrected by aspect ratio
-   */
-
-  int                ideal_width, ideal_height;
-
-  /*
-   * "gui" size of this frame:
-   * what gui told us about how much room we have
-   * to display this frame on
-   */
-  
-  int                gui_width, gui_height;
-
-  /*
-   * "output" size of this frame:
-   * this is finally the ideal size "fitted" into the
-   * gui size while maintaining the aspect ratio
-   */
-
-  int                output_width, output_height;
-  
-
-  double             ratio_factor;/* ideal/rgb size must fulfill: height = width * ratio_factor  */
+  vo_scale_t         sc;
 
   XImage            *image;
   XShmSegmentInfo    shminfo;
@@ -135,43 +109,13 @@ typedef struct xshm_driver_s {
   int                yuv2rgb_gamma;
   uint8_t           *yuv2rgb_cmap;
   yuv2rgb_factory_t *yuv2rgb_factory;
-  int                user_ratio;
+
+  vo_scale_t         sc;
   
-  /* force update screen if gamma changes */
-  int                force_redraw;
-
-  /* speed tradeoffs */
-  int		     scaling_disabled;
-
   int                expecting_event; /* completion event */
 
   xshm_frame_t      *cur_frame; /* for completion event handling */
   vo_overlay_t      *overlay;
-
-  /* video pos/size in gui window */
-  int                gui_x;           
-  int                gui_y;
-  int                gui_width;  
-  int                gui_height;
-  int                gui_win_x;
-  int                gui_win_y;
-  
-  /* aspect ratio of pixels on screen */
-  double             display_ratio;
-
-  void              *user_data;
-
-  /* gui callbacks */
-
-  void (*frame_output_cb) (void *user_data,
-			   int video_width, int video_height,
-			   int *dest_x, int *dest_y, 
-			   int *dest_height, int *dest_width,
-			   int *win_x, int *win_y);
-
-  void (*dest_size_cb) (void *user_data,
-			int video_width, int video_height, 
-			int *dest_width, int *dest_height);
 
 } xshm_driver_t;
 
@@ -425,6 +369,7 @@ static vo_frame_t *xshm_alloc_frame (vo_driver_t *this_gen) {
   }
 
   memset (frame, 0, sizeof(xshm_frame_t));
+  memcpy (&frame->sc, &this->sc, sizeof(vo_scale_t));
 
   pthread_mutex_init (&frame->vo_frame.mutex, NULL);
 
@@ -449,110 +394,25 @@ static vo_frame_t *xshm_alloc_frame (vo_driver_t *this_gen) {
 
 static void xshm_compute_ideal_size (xshm_driver_t *this, xshm_frame_t *frame) {
 
-  if (this->scaling_disabled) {
-
-    frame->ideal_width   = frame->width;
-    frame->ideal_height  = frame->height;
-    frame->ratio_factor  = 1.0;
-
-  } else {
-    
-    double image_ratio, desired_ratio, corr_factor;
-
-    image_ratio = (double) frame->width / (double) frame->height;
-
-    switch (frame->user_ratio) {
-    case ASPECT_AUTO:
-      switch (frame->ratio_code) {
-      case XINE_ASPECT_RATIO_ANAMORPHIC:  /* anamorphic     */
-      case XINE_ASPECT_RATIO_PAN_SCAN:    /* we display pan&scan as widescreen */
-	desired_ratio = 16.0 /9.0;
-	break;
-      case XINE_ASPECT_RATIO_211_1:       /* 2.11:1 */
-	desired_ratio = 2.11/1.0;
-	break;
-      case XINE_ASPECT_RATIO_SQUARE:      /* square pels */
-      case XINE_ASPECT_RATIO_DONT_TOUCH:  /* probably non-mpeg stream => don't touch aspect ratio */
-	desired_ratio = image_ratio;
-	break;
-      case 0:                             /* forbidden -> 4:3 */
-	printf ("video_out_xshm: invalid ratio, using 4:3\n");
-      default:
-	printf ("video_out_xshm: unknown aspect ratio (%d) in stream => using 4:3\n",
-		frame->ratio_code);
-      case XINE_ASPECT_RATIO_4_3:         /* 4:3             */
-	desired_ratio = 4.0 / 3.0;
-	break;
-      }
-      break;
-    case ASPECT_ANAMORPHIC:
-      desired_ratio = 16.0 / 9.0;
-      break;
-    case ASPECT_DVB:
-      desired_ratio = 2.0 / 1.0;
-      break;
-    case ASPECT_SQUARE:
-      desired_ratio = image_ratio;
-      break;
-    case ASPECT_FULL:
-    default:
-      desired_ratio = 4.0 / 3.0;
-    }
-
-    frame->ratio_factor = this->display_ratio * desired_ratio;
-
-    /* compiler bug? using frame->ratio_factor here gave me
-       some wrong numbers. */
-    corr_factor = this->display_ratio * desired_ratio / image_ratio ;
-    
-    if (fabs(corr_factor - 1.0) < 0.005) {
-      frame->ideal_width  = frame->width;
-      frame->ideal_height = frame->height;
-
-    } else {
-
-      if (corr_factor >= 1.0) {
-        frame->ideal_width  = frame->width * corr_factor + 0.5;
-        frame->ideal_height = frame->height;
-      } else {
-        frame->ideal_width  = frame->width;
-        frame->ideal_height = frame->height / corr_factor + 0.5;
-      }
-    }
-  }
+  vo_scale_compute_ideal_size( &frame->sc );
 }
 
 static void xshm_compute_rgb_size (xshm_driver_t *this, xshm_frame_t *frame) {
 
-  double x_factor, y_factor;
-
-  /*
-   * make the frame fit into the given destination area
-   */
-  
-  x_factor = (double) frame->gui_width  / (double) frame->ideal_width;
-  y_factor = (double) frame->gui_height / (double) frame->ideal_height;
-  
-  if ( x_factor < y_factor ) {
-    frame->output_width   = (double) frame->ideal_width  * x_factor ;
-    frame->output_height  = (double) frame->ideal_height * x_factor ;
-  } else {
-    frame->output_width   = (double) frame->ideal_width  * y_factor ;
-    frame->output_height  = (double) frame->ideal_height * y_factor ;
-  }
+  vo_scale_compute_output_size( &frame->sc );
 
   /* avoid problems in yuv2rgb */
-  if (frame->output_height < ((frame->height + 15) >> 4))
-    frame->output_height = ((frame->height + 15) >> 4);
-  if (frame->output_width < 8)
-    frame->output_width = 8;
+  if (frame->sc.output_height < ((frame->sc.delivered_height + 15) >> 4))
+    frame->sc.output_height = ((frame->sc.delivered_height + 15) >> 4);
+  if (frame->sc.output_width < 8)
+    frame->sc.output_width = 8;
 
 #ifdef LOG
   printf("video_out_xshm: frame source %d x %d => screen output %d x %d%s\n",
-	 frame->width, frame->height,
-	 frame->output_width, frame->output_height,
-	 ( frame->width != frame->output_width
-	   || frame->height != frame->output_height
+	 frame->sc.delivered_width, frame->sc.delivered_height,
+	 frame->sc.output_width, frame->sc.output_height,
+	 ( frame->sc.delivered_width != frame->sc.output_width
+	   || frame->sc.delivered_height != frame->sc.output_height
 	   ? ", software scaling"
 	   : "" )
 	 );
@@ -575,12 +435,12 @@ static void xshm_update_frame_format (vo_driver_t *this_gen,
 
   do_adapt = 0;
 
-  if ((width != frame->width)
-      || (height != frame->height)
-      || (ratio_code != frame->ratio_code)
+  if ((width != frame->sc.delivered_width)
+      || (height != frame->sc.delivered_height)
+      || (ratio_code != frame->sc.delivered_ratio_code)
       || (flags != frame->flags)
       || (format != frame->format)
-      || (this->user_ratio != frame->user_ratio)) {
+      || (this->sc.user_ratio != frame->sc.user_ratio)) {
 
     do_adapt = 1;
 
@@ -588,27 +448,27 @@ static void xshm_update_frame_format (vo_driver_t *this_gen,
     printf ("video_out_xshm: frame format (from decoder) has changed => adapt\n");
 #endif
 
-    frame->width      = width;
-    frame->height     = height;
-    frame->ratio_code = ratio_code;
-    frame->flags      = flags;
-    frame->format     = format;
-    frame->user_ratio = this->user_ratio;
+    frame->sc.delivered_width      = width;
+    frame->sc.delivered_height     = height;
+    frame->sc.delivered_ratio_code = ratio_code;
+    frame->flags                   = flags;
+    frame->format                  = format;
+    frame->sc.user_ratio           = this->sc.user_ratio;
 
     xshm_compute_ideal_size (this, frame);
   }
 
   /* ask gui what output size we'll have for this frame*/
 
-  this->dest_size_cb (this->user_data, frame->ideal_width, frame->ideal_height,
+  this->sc.dest_size_cb (this->sc.user_data, frame->sc.ideal_width, frame->sc.ideal_height,
 		      &gui_width, &gui_height);
 
-  if ((frame->gui_width != gui_width) || (frame->gui_height != gui_height) 
+  if ((frame->sc.gui_width != gui_width) || (frame->sc.gui_height != gui_height) 
       || do_adapt) {
 
     do_adapt = 1;
-    frame->gui_width  = gui_width;
-    frame->gui_height = gui_height;
+    frame->sc.gui_width  = gui_width;
+    frame->sc.gui_height = gui_height;
 
     xshm_compute_rgb_size (this, frame);
  
@@ -624,7 +484,7 @@ static void xshm_update_frame_format (vo_driver_t *this_gen,
 
 #ifdef LOG
     printf ("video_out_xshm: updating frame to %d x %d\n",
-	    frame->output_width, frame->output_height);
+	    frame->sc.output_width, frame->sc.output_height);
 #endif
 
     XLockDisplay (this->display); 
@@ -654,7 +514,7 @@ static void xshm_update_frame_format (vo_driver_t *this_gen,
     }
 
     frame->image = create_ximage (this, &frame->shminfo,
-				  frame->output_width, frame->output_height);
+				  frame->sc.output_width, frame->sc.output_height);
 
     XUnlockDisplay (this->display); 
 
@@ -662,17 +522,17 @@ static void xshm_update_frame_format (vo_driver_t *this_gen,
       frame->vo_frame.pitches[0] = 8*((width + 7) / 8);
       frame->vo_frame.pitches[1] = 8*((width + 15) / 16);
       frame->vo_frame.pitches[2] = 8*((width + 15) / 16);
-      frame->vo_frame.base[0] = xine_xmalloc_aligned (16, frame->vo_frame.pitches[0] * height,   &frame->chunk[0]);
-      frame->vo_frame.base[1] = xine_xmalloc_aligned (16, frame->vo_frame.pitches[1] * ((height+1)/2), &frame->chunk[1]);
-      frame->vo_frame.base[2] = xine_xmalloc_aligned (16, frame->vo_frame.pitches[2] * ((height+1)/2), &frame->chunk[2]);
+      frame->vo_frame.base[0] = xine_xmalloc_aligned (16, frame->vo_frame.pitches[0] * height,  (void **) &frame->chunk[0]);
+      frame->vo_frame.base[1] = xine_xmalloc_aligned (16, frame->vo_frame.pitches[1] * ((height+1)/2), (void **) &frame->chunk[1]);
+      frame->vo_frame.base[2] = xine_xmalloc_aligned (16, frame->vo_frame.pitches[2] * ((height+1)/2), (void **) &frame->chunk[2]);
     } else {
       frame->vo_frame.pitches[0] = 8*((width + 3) / 4);
-      frame->vo_frame.base[0] = xine_xmalloc_aligned (16, frame->vo_frame.pitches[0] * height, &frame->chunk[0]);
+      frame->vo_frame.base[0] = xine_xmalloc_aligned (16, frame->vo_frame.pitches[0] * height, (void **) &frame->chunk[0]);
       frame->chunk[1] = NULL;
       frame->chunk[2] = NULL;
     }
 
-    frame->stripe_height = 16 * frame->output_height / frame->height;
+    frame->stripe_height = 16 * frame->sc.output_height / frame->sc.delivered_height;
 
     /* printf ("video_out_xshm: stripe height is %d\n", frame->stripe_height); */
 
@@ -684,22 +544,22 @@ static void xshm_update_frame_format (vo_driver_t *this_gen,
     case VO_TOP_FIELD:
     case VO_BOTTOM_FIELD:
       frame->yuv2rgb->configure (frame->yuv2rgb,
-				 frame->width,
+				 frame->sc.delivered_width,
 				 16,
 				 2*frame->vo_frame.pitches[0],
 				 2*frame->vo_frame.pitches[1],
-				 frame->output_width,
+				 frame->sc.output_width,
 				 frame->stripe_height,
 				 frame->image->bytes_per_line*2);
       frame->yuv_stride = frame->image->bytes_per_line*2;
       break;
     case VO_BOTH_FIELDS:
       frame->yuv2rgb->configure (frame->yuv2rgb,
-				 frame->width,
+				 frame->sc.delivered_width,
 				 16,
 				 frame->vo_frame.pitches[0],
 				 frame->vo_frame.pitches[1],
-				 frame->output_width,
+				 frame->sc.output_width,
 				 frame->stripe_height,
 				 frame->image->bytes_per_line);
       frame->yuv_stride = frame->image->bytes_per_line;
@@ -746,18 +606,18 @@ static void xshm_overlay_blend (vo_driver_t *this_gen, vo_frame_t *frame_gen, vo
      switch (this->bpp) {
        case 16:
         blend_rgb16 ((uint8_t *)frame->image->data, overlay,
-		     frame->output_width, frame->output_height,
-		     frame->width, frame->height);
+		     frame->sc.output_width, frame->sc.output_height,
+		     frame->sc.delivered_width, frame->sc.delivered_height);
         break;
        case 24:
         blend_rgb24 ((uint8_t *)frame->image->data, overlay,
-		     frame->output_width, frame->output_height,
-		     frame->width, frame->height);
+		     frame->sc.output_width, frame->sc.output_height,
+		     frame->sc.delivered_width, frame->sc.delivered_height);
         break;
        case 32:
         blend_rgb32 ((uint8_t *)frame->image->data, overlay,
-		     frame->output_width, frame->output_height,
-		     frame->width, frame->height);
+		     frame->sc.output_width, frame->sc.output_height,
+		     frame->sc.delivered_width, frame->sc.delivered_height);
         break;
        default:
 	/* it should never get here */
@@ -766,80 +626,41 @@ static void xshm_overlay_blend (vo_driver_t *this_gen, vo_frame_t *frame_gen, vo
    }
 }
 
-static void clean_output_area (xshm_driver_t *this) {
+static void clean_output_area (xshm_driver_t *this, xshm_frame_t *frame) {
 
+  int i;
+  
+  memcpy( this->sc.border, frame->sc.border, sizeof(this->sc.border) );
+  
   XLockDisplay (this->display);
 
   XSetForeground (this->display, this->gc, this->black.pixel);
-
-  XFillRectangle(this->display, this->drawable, this->gc,
-		 this->gui_x, this->gui_y, 
-		 this->gui_width, this->gui_height);
-
-#if 0
-  int xoffset, yoffset;
-
-  xoffset  = (this->gui_width - frame->output_width) / 2   + this->gui_x;
-  yoffset  = (this->gui_height - frame->output_height) / 2 + this->gui_y;
   
-  /* top black band */
-  XFillRectangle(this->display, this->drawable, this->gc,
-		 this->gui_x, this->gui_y, 
-		 this->gui_width, yoffset - this->gui_y);
-
-  /* left black band */
-  XFillRectangle(this->display, this->drawable, this->gc, 
-		 this->gui_x, this->gui_y, 
-		 xoffset-this->gui_x, this->gui_height);
-
-  /* bottom black band */
-  XFillRectangle(this->display, this->drawable, this->gc,
-		 this->gui_x, yoffset+frame->output_height,
-		 this->gui_width, this->gui_height - yoffset - frame->output_height);
-
-  /* right black band */
-  XFillRectangle(this->display, this->drawable, this->gc, 
-		 xoffset+frame->output_width, this->gui_y, 
-		 this->gui_width - xoffset - frame->output_width, this->gui_height);
-  
-#endif
+  for( i = 0; i < 4; i++ ) {
+    if( this->sc.border[i].w && this->sc.border[i].h )
+      XFillRectangle(this->display, this->drawable, this->gc,
+                     this->sc.border[i].x, this->sc.border[i].y,
+                     this->sc.border[i].w, this->sc.border[i].h);
+  }
 
   XUnlockDisplay (this->display);
 }
 
 static int xshm_redraw_needed (vo_driver_t *this_gen) {
   xshm_driver_t  *this = (xshm_driver_t *) this_gen;
-  int gui_x, gui_y, gui_width, gui_height, gui_win_x, gui_win_y;
   int ret = 0;
 
   if( this->cur_frame ) {
-  
-    this->frame_output_cb (this->user_data,
-			   this->cur_frame->ideal_width, this->cur_frame->ideal_height, 
-			   &gui_x, &gui_y, &gui_width, &gui_height,
-			   &gui_win_x, &gui_win_y );
+    
+    this->sc.ideal_width = this->cur_frame->sc.ideal_width;
+    this->sc.ideal_height = this->cur_frame->sc.ideal_height;
+    if( vo_scale_redraw_needed( &this->sc ) ) {  
 
-    if ( (this->gui_x != gui_x) || (this->gui_y != gui_y)
-	  || (this->gui_width != gui_width) 
-	  || (this->gui_height != gui_height)
-	  || (this->gui_win_x != gui_win_x)
-	  || (this->gui_win_y != gui_win_y) ) {
-
-      this->gui_x      = gui_x;
-      this->gui_y      = gui_y;
-      this->gui_width  = gui_width;
-      this->gui_height = gui_height;
-      this->gui_win_x  = gui_win_x;
-      this->gui_win_y  = gui_win_y;
-
-      clean_output_area (this);
+      clean_output_area (this, this->cur_frame);
       ret = 1;
     }
   } 
   else
-    ret = 1;
-
-  if( this->force_redraw )
     ret = 1;
       
   return ret;
@@ -849,8 +670,6 @@ static void xshm_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
 
   xshm_driver_t  *this = (xshm_driver_t *) this_gen;
   xshm_frame_t   *frame = (xshm_frame_t *) frame_gen;
-  int		  xoffset;
-  int		  yoffset;
 
 #ifdef LOG
   printf ("video_out_xshm: display frame...\n");
@@ -865,11 +684,9 @@ static void xshm_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
     frame->vo_frame.displayed (&frame->vo_frame);
   } else {
 
-    int gui_x, gui_y, gui_width, gui_height, gui_win_x, gui_win_y;
-
 #ifdef LOG
     printf ("video_out_xshm: about to draw frame %d x %d...\n",
-	    frame->output_width, frame->output_height);
+	    frame->sc.output_width, frame->sc.output_height);
 #endif
 
     /* 
@@ -877,42 +694,24 @@ static void xshm_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
      * ask for offset
      */
 
-    this->frame_output_cb (this->user_data,
-			   frame->ideal_width, frame->ideal_height, 
-			   &gui_x, &gui_y, &gui_width, &gui_height,
-			   &gui_win_x, &gui_win_y);
+    this->sc.ideal_width = frame->sc.ideal_width;
+    this->sc.ideal_height = frame->sc.ideal_height;
+    if( vo_scale_redraw_needed( &this->sc ) ) {  
 
-    if ( (this->gui_x != gui_x) || (this->gui_y != gui_y)
-	 || (this->gui_width != gui_width) 
-	 || (this->gui_height != gui_height) 
-	 || (this->gui_win_x != gui_win_x)
-	 || (this->gui_win_y != gui_win_y) ) {
-
-      this->gui_x      = gui_x;
-      this->gui_y      = gui_y;
-      this->gui_width  = gui_width;
-      this->gui_height = gui_height;
-      this->gui_win_x  = gui_win_x;
-      this->gui_win_y  = gui_win_y;
-
-      clean_output_area (this);
+      clean_output_area (this, frame);
     }
     
     if (this->cur_frame) {
 
-      if ( (this->cur_frame->output_width != frame->output_width) 
-	   || (this->cur_frame->output_height != frame->output_height) )
-	clean_output_area (this);
+      if ( (this->cur_frame->sc.output_width != frame->sc.output_width) 
+	   || (this->cur_frame->sc.output_height != frame->sc.output_height) )
+	clean_output_area (this, frame);
 
       this->cur_frame->vo_frame.displayed (&this->cur_frame->vo_frame);
     }
 
     this->cur_frame = frame;
-    this->force_redraw = 0;
     
-    xoffset  = (this->gui_width - frame->output_width) / 2 + this->gui_x;
-    yoffset  = (this->gui_height - frame->output_height) / 2 + this->gui_y;
-
     XLockDisplay (this->display);
 #ifdef LOG
     printf ("video_out_xshm: display locked...\n");
@@ -925,8 +724,8 @@ static void xshm_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
 #endif
       XShmPutImage(this->display,
 		   this->drawable, this->gc, frame->image,
-		   0, 0, xoffset, yoffset,
-		   frame->output_width, frame->output_height, True);
+		   0, 0, frame->sc.output_xoffset, frame->sc.output_yoffset,
+		   frame->sc.output_width, frame->sc.output_height, True);
 
       this->expecting_event = 10;
 
@@ -940,8 +739,8 @@ static void xshm_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
 
       XPutImage(this->display,
 		this->drawable, this->gc, frame->image,
-		0, 0, xoffset, yoffset,
-		frame->output_width, frame->output_height);
+		0, 0, frame->sc.output_xoffset, frame->sc.output_yoffset,
+		frame->sc.output_width, frame->sc.output_height);
 
       XFlush(this->display);
     }
@@ -961,7 +760,7 @@ static int xshm_get_property (vo_driver_t *this_gen, int property) {
 
   switch (property) {
   case VO_PROP_ASPECT_RATIO:
-    return this->user_ratio ;
+    return this->sc.user_ratio ;
   case VO_PROP_MAX_NUM_FRAMES:
     return 15;
   case VO_PROP_BRIGHTNESS:
@@ -974,24 +773,6 @@ static int xshm_get_property (vo_driver_t *this_gen, int property) {
   return 0;
 }
 
-static char *aspect_ratio_name(int a) {
-
-  switch (a) {
-  case ASPECT_AUTO:
-    return "auto";
-  case ASPECT_SQUARE:
-    return "square";
-  case ASPECT_FULL:
-    return "4:3";
-  case ASPECT_ANAMORPHIC:
-    return "16:9";
-  case ASPECT_DVB:
-    return "2:1";
-  default:
-    return "unknown";
-  }
-}
-
 static int xshm_set_property (vo_driver_t *this_gen, 
 			      int property, int value) {
 
@@ -1001,16 +782,16 @@ static int xshm_set_property (vo_driver_t *this_gen,
 
     if (value>=NUM_ASPECT_RATIOS)
       value = ASPECT_AUTO;
-    this->user_ratio = value;
+    this->sc.user_ratio = value;
     printf ("video_out_xshm: aspect ratio changed to %s\n",
-	    aspect_ratio_name(value));
+	    vo_scale_aspect_ratio_name(value));
 
   } else if ( property == VO_PROP_BRIGHTNESS) {
 
     this->yuv2rgb_gamma = value;
     this->yuv2rgb_factory->set_gamma (this->yuv2rgb_factory, value);
 
-    this->force_redraw = 1;
+    this->sc.force_redraw = 1;
 #ifdef LOG
     printf ("video_out_xshm: gamma changed to %d\n",value);
 #endif
@@ -1032,36 +813,6 @@ static void xshm_get_property_min_max (vo_driver_t *this_gen,
     *min = 0;
     *max = 0;
   }
-}
-
-
-static void xshm_translate_gui2video (xshm_driver_t *this,
-				      xshm_frame_t * frame,
-				      int x, int y,
-				      int *vid_x, int *vid_y) {
-
-  if ( (frame->output_width > 0) && (frame->output_height > 0)) {
-    /*
-     * 1.
-     * the xshm driver may center a small output area inside a larger
-     * gui area.  This is the case in fullscreen mode, where we often
-     * have black borders on the top/bottom/left/right side.
-     */
-    x -= ((this->gui_width  - frame->output_width)  >> 1) + this->gui_x;
-    y -= ((this->gui_height - frame->output_height) >> 1) + this->gui_y;
-
-    /*
-     * 2.
-     * the xshm driver scales the delivered area into an output area.
-     * translate output area coordianates into the delivered area
-     * coordiantes.
-     */
-    x = x * frame->width  / frame->output_width;
-    y = y * frame->height / frame->output_height;
-  }
-
-  *vid_x = x;
-  *vid_y = y;
 }
 
 static int xshm_gui_data_exchange (vo_driver_t *this_gen, 
@@ -1098,49 +849,35 @@ static int xshm_gui_data_exchange (vo_driver_t *this_gen,
     if (this->cur_frame) {
       
       XExposeEvent * xev = (XExposeEvent *) data;
-      int		   xoffset;
-      int		   yoffset;
       
       if (xev->count == 0) {
+	int i;
 	
 	XLockDisplay (this->display);
 	
-	xoffset  = (this->cur_frame->gui_width  - this->cur_frame->output_width) / 2;
-	yoffset  = (this->cur_frame->gui_height - this->cur_frame->output_height) / 2;
-
 	  if (this->use_shm) {
 	    
 	    XShmPutImage(this->display,
 			 this->drawable, this->gc, this->cur_frame->image,
-			 0, 0, xoffset, yoffset,
-			 this->cur_frame->output_width, this->cur_frame->output_height,
+			 0, 0, this->cur_frame->sc.output_xoffset, this->cur_frame->sc.output_yoffset,
+			 this->cur_frame->sc.output_width, this->cur_frame->sc.output_height,
 			 False);
 	    
 	  } else {
 	    
 	    XPutImage(this->display, 
 		      this->drawable, this->gc, this->cur_frame->image,
-		      0, 0, xoffset, yoffset,
-		      this->cur_frame->output_width, this->cur_frame->output_height);
+		      0, 0, this->cur_frame->sc.output_xoffset, this->cur_frame->sc.output_yoffset,
+		      this->cur_frame->sc.output_width, this->cur_frame->sc.output_height);
 	  }
 
 	XSetForeground (this->display, this->gc, this->black.pixel);
 
-	if (this->cur_frame->output_height != this->cur_frame->gui_height) {
-	  int y = yoffset + this->cur_frame->output_height;
-
-	  XFillRectangle(this->display, this->drawable, this->gc, 0, 0,
-			 this->cur_frame->gui_width, yoffset);
-	  XFillRectangle(this->display, this->drawable, this->gc, 0, y,
-			 this->cur_frame->gui_width, (this->cur_frame->gui_height - y));
-	}
-	if (this->cur_frame->output_width != this->cur_frame->gui_width) {
-	  int x = xoffset + this->cur_frame->output_width;
-
-	  XFillRectangle(this->display, this->drawable, this->gc, 0, yoffset,
-			 xoffset, this->cur_frame->output_height);
-	  XFillRectangle(this->display, this->drawable, this->gc, x, yoffset,
-			 (this->cur_frame->gui_width - x), this->cur_frame->output_height);
+	for( i = 0; i < 4; i++ ) {
+	  if( this->sc.border[i].w && this->sc.border[i].h )
+	    XFillRectangle(this->display, this->drawable, this->gc,
+			   this->sc.border[i].x, this->sc.border[i].y,
+			   this->sc.border[i].w, this->sc.border[i].h);
 	}
 
 	XFlush (this->display);
@@ -1167,10 +904,10 @@ static int xshm_gui_data_exchange (vo_driver_t *this_gen,
       x11_rectangle_t *rect = data;
       int x1, y1, x2, y2;
       
-      xshm_translate_gui2video(this, this->cur_frame,
+      vo_scale_translate_gui2video(&this->sc,
 			       rect->x, rect->y,
 			       &x1, &y1);
-      xshm_translate_gui2video(this, this->cur_frame,
+      vo_scale_translate_gui2video(&this->sc,
 			       rect->x + rect->w, rect->y + rect->h,
 			       &x2, &y2);
       rect->x = x1;
@@ -1286,17 +1023,15 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
   this->config		    = config;
   this->display		    = visual->display;
   this->screen		    = visual->screen;
-  this->display_ratio	    = visual->display_ratio;
-  this->frame_output_cb     = visual->frame_output_cb;
-  this->dest_size_cb        = visual->dest_size_cb;
-  this->user_data           = visual->user_data;
-  this->gui_x	            = 0;
-  this->gui_y	            = 0;
-  this->gui_width	    = 0;
-  this->gui_height	    = 0;
-  this->user_ratio          = ASPECT_AUTO;
+
+  vo_scale_init( &this->sc, visual->display_ratio, 0, 0 );
+  this->sc.frame_output_cb   = visual->frame_output_cb;
+  this->sc.dest_size_cb      = visual->dest_size_cb;
+  this->sc.user_data         = visual->user_data;
   
-  this->scaling_disabled    = config->register_bool (config, "video.disable_scaling", 0,
+  this->sc.user_ratio        = ASPECT_AUTO;
+  
+  this->sc.scaling_disabled  = config->register_bool (config, "video.disable_scaling", 0,
 						     _("disable all video scaling (faster!)"),
 						     NULL, NULL, NULL);
   this->drawable	    = visual->d;

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.h,v 1.57 2002/08/10 21:25:20 miguelfreitas Exp $
+ * $Id: video_out.h,v 1.58 2002/08/15 03:12:26 miguelfreitas Exp $
  *
  *
  * xine version of video_out.h 
@@ -186,12 +186,13 @@ struct vo_instance_s {
 #define VO_PROP_BRIGHTNESS            5
 #define VO_PROP_COLORKEY              6
 #define VO_PROP_AUTOPAINT_COLORKEY    7
-#define VO_PROP_ZOOM_FACTOR           8 
+#define VO_PROP_ZOOM_X                8 
 #define VO_PROP_PAN_SCAN              9 
 #define VO_PROP_TVMODE		      10 
 #define VO_PROP_MAX_NUM_FRAMES        11
 #define VO_PROP_VO_TYPE               12
-#define VO_NUM_PROPERTIES             13
+#define VO_PROP_ZOOM_Y                13
+#define VO_NUM_PROPERTIES             14
 
 /* Video out types */
 #define VO_TYPE_UNKNOWN               0
