@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.153 2003/04/22 23:30:29 tchamp Exp $
+ * $Id: input_dvd.c,v 1.154 2003/04/23 15:51:02 mroi Exp $
  *
  */
 
@@ -1429,19 +1429,15 @@ static input_plugin_t *dvd_class_get_instance (input_class_t *class_gen, xine_st
   this->num_mrls               = 0;
 */
 
-printf("dvd_class_get_instance2\n");
   pthread_mutex_init(&this->buf_mutex, NULL);
   this->mem_stack              = 0;
   this->freeing                = 0;
   
-printf("dvd_class_get_instance21\n");
   this->event_queue = xine_event_new_queue (this->stream);
-printf("dvd_class_get_instance22\n");
   
   /* config callbacks may react now */
   class->ip = this;
 
-printf("dvd_class_get_instance3\n");
   return &this->input_plugin;
 }
 
@@ -1621,6 +1617,9 @@ static void *init_class (xine_t *xine, void *data) {
 
 /*
  * $Log: input_dvd.c,v $
+ * Revision 1.154  2003/04/23 15:51:02  mroi
+ * silence, please
+ *
  * Revision 1.153  2003/04/22 23:30:29  tchamp
  * Additional changes for win32/msvc port; This is my first real commit so please be gentle with me; Everything builds except for the win32 ui
  *
