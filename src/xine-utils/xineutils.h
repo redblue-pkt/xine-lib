@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xineutils.h,v 1.41 2003/03/02 18:11:37 f1rmb Exp $
+ * $Id: xineutils.h,v 1.42 2003/03/03 17:29:08 mroi Exp $
  *
  */
 #ifndef XINEUTILS_H
@@ -42,12 +42,6 @@ extern "C" {
   
 #include <stdio.h>
 #include <string.h>
-#if HAVE_EXECINFO_H
-#include <execinfo.h>
-#endif
-#if HAVE_UCONTEXT_H
-#include <ucontext.h>
-#endif
 
 #ifdef __SUNPRO_C
 #define inline
@@ -796,31 +790,6 @@ extern int v_g_table[256];
 extern int v_b_table[256];
 
 
-/* Obtain a backtrace and print it to stdout. */
-static inline void print_trace (void) {
-#if HAVE_BACKTRACE
-  /* Code Taken from GNU C Library manual */
-  void *array[10];
-  size_t size;
-  char **strings;
-  size_t i;
-
-  size = backtrace (array, 10);
-  strings = backtrace_symbols (array, size);
-
-  printf ("Obtained %d stack frames.\n", size);
-
-  for (i = 0; i < size; i++) {
-     printf ("%s\n", strings[i]);
-  }
-  free (strings);
-#elif HAVE_PRINTSTACK
-  printstack(STDOUT_FILENO);
-#else
-  printf("stack backtrace not available.\n");
-#endif
-}
-
 /**
  * Provide assert like feature with better description of failure 
  * Thanks to Mark Thomas 
@@ -831,7 +800,7 @@ static inline void print_trace (void) {
     if (!(exp)) {                                                   \
       printf("%s:%s:%d: assertion failed. " desc "\n\n",            \
             __FILE__, __XINE_FUNCTION__, __LINE__, ##args);         \
-      print_trace();                                                \
+      xine_print_trace();                                                \
       abort();                                                      \
     }                                                               \
   } while(0)
@@ -848,7 +817,7 @@ static inline void print_trace (void) {
              __FILE__, __XINE_FUNCTION__, __LINE__);                \
       printf(desc, ##args);                                         \
       printf("\n\n");                                               \
-      print_trace();                                                \
+      xine_print_trace();                                                \
       abort();                                                      \
     }								    \
   } while(0)
@@ -861,7 +830,7 @@ static inline void print_trace (void) {
              __FILE__, __XINE_FUNCTION__, __LINE__);                \
       printf(__VA_ARGS__);                                          \
       printf("\n\n");                                               \
-      print_trace();                                                \
+      xine_print_trace();                                                \
       abort();                                                      \
     }								    \
   } while(0)
