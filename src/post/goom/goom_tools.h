@@ -1,33 +1,33 @@
-#ifndef _GOOMTOOLS_H
-#define _GOOMTOOLS_H
+#ifndef _GOOM_TOOLS_H
+#define _GOOM_TOOLS_H
 
-#define NB_RAND 0x10000
+/**
+ * Random number generator wrapper for faster random number.
+ */
 
-/* in graphic.c */
-extern int *rand_tab;
-static unsigned short rand_pos;
+#define GOOM_NB_RAND 0x10000
 
-#define RAND_INIT(i) \
-	srand (i) ;\
-	if (!rand_tab) rand_tab = (int *) malloc (NB_RAND * sizeof(int)) ;\
-	rand_pos = 1 ;\
-	while (rand_pos != 0) rand_tab [rand_pos++] = rand () ;
+typedef struct _GOOM_RANDOM {
+	int array[GOOM_NB_RAND];
+	unsigned short pos;
+} GoomRandom;
 
+GoomRandom *goom_random_init(int i);
+void goom_random_free(GoomRandom *grandom);
 
-static inline int RAND(void) {
-	++rand_pos;
-	return rand_tab[rand_pos];
+inline static int goom_random(GoomRandom *grandom) {
+	
+	grandom->pos++; /* works because pos is an unsigned short */
+	return grandom->array[grandom->pos];
 }
 
-#define RAND_CLOSE()\
-	free (rand_tab);\
-	rand_tab = 0;
+inline static int goom_irand(GoomRandom *grandom, int i) {
 
+	grandom->pos++;
+	return grandom->array[grandom->pos] % i;
+}
 
-//#define iRAND(i) ((guint32)((float)i * RAND()/RAND_MAX))
-#define iRAND(i) (RAND()%i)
-
-//inline unsigned int RAND(void);
-//inline unsigned int iRAND(int i);
+/* called to change the specified number of value in the array, so that the array does not remain the same*/
+void goom_random_update_array(GoomRandom *grandom, int numberOfValuesToChange);
 
 #endif

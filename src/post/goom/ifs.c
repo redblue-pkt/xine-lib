@@ -1,9 +1,6 @@
-/* -*- Mode: C; tab-width: 4 -*- */
-/* ifs --- modified iterated functions system */
-
-#if !defined( lint ) && !defined( SABER )
-static const char sccsid[] = "@(#)ifs.c	5.00 2002/04/11 baffe";
-#endif
+/*
+ * ifs.c --- modified iterated functions system for goom.
+ */
 
 /*-
  * Copyright (c) 1997 by Massimino Pascal <Pascal.Massimon@ens.fr>
@@ -26,20 +23,36 @@ static const char sccsid[] = "@(#)ifs.c	5.00 2002/04/11 baffe";
  * When shown ifs, Diana Rose (4 years old) said, "It looks like dancing."
  *
  * Revision History:
- * 11-Apr-2002: Make ifs.c system-indendant. (ifs.h added)
+ * 13-Dec-2003: Added some goom specific stuffs (to make ifs a VisualFX).
+ * 11-Apr-2002: jeko@ios-software.com: Make ifs.c system-indendant. (ifs.h added)
  * 01-Nov-2000: Allocation checks
  * 10-May-1997: jwz@jwz.org: turned into a standalone program.
  *              Made it render into an offscreen bitmap and then copy
  *              that onto the screen, to reduce flicker.
  */
 
-//#ifdef STANDALONE
+/* #ifdef STANDALONE */
 
 #include <math.h>
 #include <stdlib.h>
 #include <stdio.h>
 
+#include "goom_config.h"
+
+#ifdef HAVE_MMX
+#include "mmx.h"
+#endif
+
+#include "goom_graphic.h"
 #include "ifs.h"
+#include "goom_tools.h"
+
+typedef struct _ifsPoint
+{
+	gint32  x, y;
+}
+IFSPoint;
+
 
 #define MODE_ifs
 
@@ -51,35 +64,13 @@ static const char sccsid[] = "@(#)ifs.c	5.00 2002/04/11 baffe";
 #define ifs_opts xlockmore_opts
 
 #define DEFAULTS "*delay: 20000 \n" \
- "*ncolors: 100 \n"
+"*ncolors: 100 \n"
 
 #define SMOOTH_COLORS
 
-//#include "xlockmore.h"                /* in xscreensaver distribution */
-//#else /* STANDALONE */
-//#include "xlock.h"            /* in xlockmore distribution */
-//#endif /* STANDALONE */
-
-//#ifdef MODE_ifs
-
-//ModeSpecOpt ifs_opts =
-//{0, (XrmOptionDescRec *) NULL, 0, (argtype *) NULL, (OptionStruct *) NULL};
-
-//#ifdef USE_MODULES
-//ModStruct   ifs_description =
-//{"ifs", "init_ifs", "draw_ifs", "release_ifs",
-// "init_ifs", "init_ifs", (char *) NULL, &ifs_opts,
-// 1000, 1, 1, 1, 64, 1.0, "",
-// "Shows a modified iterated function system", 0, NULL};
-
-//#endif
-
-#include "goom_tools.h"
-
-#define LRAND()                    ((long) (RAND() & 0x7fffffff))
+#define LRAND()            ((long) (goom_random(goomInfo->gRandom) & 0x7fffffff))
 #define NRAND(n)           ((int) (LRAND() % (n)))
-#define MAXRAND                    (2147483648.0)	/* unsigned 1<<31 as a * *
-																									 * * float */
+#define MAXRAND            (2147483648.0/127.0)           /* unsigned 1<<31 / 127.0 (cf goom_tools) as a float */
 
 /*****************************************************/
 
@@ -102,7 +93,7 @@ typedef int F_PT;
 /* PREVIOUS VALUE 
 #define MAX_SIMI  6
 
-* settings for a PC 120Mhz... *
+ * settings for a PC 120Mhz... *
 #define MAX_DEPTH_2  10
 #define MAX_DEPTH_3  6
 #define MAX_DEPTH_4  4
@@ -137,21 +128,23 @@ struct Fractal_Struct
 	int     Cur_Pt, Max_Pt;
 
 	IFSPoint *Buffer1, *Buffer2;
-//      Pixmap      dbuf;
-//      GC          dbuf_gc;
 };
 
-static FRACTAL *Root = (FRACTAL *) NULL, *Cur_F;
+typedef struct _IFS_DATA {
+	FRACTAL *Root;
+	FRACTAL *Cur_F;
 
-/* Used by the Trace recursive method */
-IFSPoint *Buf;
-static int Cur_Pt;
+	/* Used by the Trace recursive method */
+	IFSPoint *Buf;
+	int Cur_Pt;
+	int initalized;
+} IfsData;
 
 
 /*****************************************************/
 
 static  DBL
-Gauss_Rand (DBL c, DBL A, DBL S)
+Gauss_Rand (PluginInfo *goomInfo, DBL c, DBL A, DBL S)
 {
 	DBL     y;
 
@@ -163,7 +156,7 @@ Gauss_Rand (DBL c, DBL A, DBL S)
 }
 
 static  DBL
-Half_Gauss_Rand (DBL c, DBL A, DBL S)
+Half_Gauss_Rand (PluginInfo *goomInfo, DBL c, DBL A, DBL S)
 {
 	DBL     y;
 
@@ -173,15 +166,15 @@ Half_Gauss_Rand (DBL c, DBL A, DBL S)
 }
 
 static void
-Random_Simis (FRACTAL * F, SIMI * Cur, int i)
+Random_Simis (PluginInfo *goomInfo, FRACTAL * F, SIMI * Cur, int i)
 {
 	while (i--) {
-		Cur->c_x = Gauss_Rand (0.0, .8, 4.0);
-		Cur->c_y = Gauss_Rand (0.0, .8, 4.0);
-		Cur->r = Gauss_Rand (F->r_mean, F->dr_mean, 3.0);
-		Cur->r2 = Half_Gauss_Rand (0.0, F->dr2_mean, 2.0);
-		Cur->A = Gauss_Rand (0.0, 360.0, 4.0) * (M_PI / 180.0);
-		Cur->A2 = Gauss_Rand (0.0, 360.0, 4.0) * (M_PI / 180.0);
+		Cur->c_x = Gauss_Rand (goomInfo, 0.0, .8, 4.0);
+		Cur->c_y = Gauss_Rand (goomInfo, 0.0, .8, 4.0);
+		Cur->r = Gauss_Rand (goomInfo, F->r_mean, F->dr_mean, 3.0);
+		Cur->r2 = Half_Gauss_Rand (goomInfo, 0.0, F->dr2_mean, 2.0);
+		Cur->A = Gauss_Rand (goomInfo, 0.0, 360.0, 4.0) * (M_PI / 180.0);
+		Cur->A2 = Gauss_Rand (goomInfo, 0.0, 360.0, 4.0) * (M_PI / 180.0);
 		Cur++;
 	}
 }
@@ -209,75 +202,71 @@ free_ifs (FRACTAL * Fractal)
 /***************************************************************/
 
 void
-init_ifs (int width, int height)
+init_ifs (PluginInfo *goomInfo, IfsData *data)
 {
 	int     i;
 	FRACTAL *Fractal;
+	int width = goomInfo->screen.width;
+	int height = goomInfo->screen.height;
 
-//      printf ("initing ifs\n");
-
-	if (Root == NULL) {
-		Root = (FRACTAL *) malloc (sizeof (FRACTAL));
-		if (Root == NULL)
+	if (data->Root == NULL) {
+		data->Root = (FRACTAL *) malloc (sizeof (FRACTAL));
+		if (data->Root == NULL)
 			return;
-		Root->Buffer1 = (IFSPoint *) NULL;
-		Root->Buffer2 = (IFSPoint *) NULL;
+		data->Root->Buffer1 = (IFSPoint *) NULL;
+		data->Root->Buffer2 = (IFSPoint *) NULL;
 	}
-	Fractal = Root;
+	Fractal = data->Root;
 
-//      fprintf (stderr,"--ifs freeing ex-buffers\n");
 	free_ifs_buffers (Fractal);
-//      fprintf (stderr,"--ifs ok\n");
 
 	i = (NRAND (4)) + 2;					/* Number of centers */
 	switch (i) {
-	case 3:
-		Fractal->Depth = MAX_DEPTH_3;
-		Fractal->r_mean = .6;
-		Fractal->dr_mean = .4;
-		Fractal->dr2_mean = .3;
-		break;
+		case 3:
+			Fractal->Depth = MAX_DEPTH_3;
+			Fractal->r_mean = .6;
+			Fractal->dr_mean = .4;
+			Fractal->dr2_mean = .3;
+			break;
 
-	case 4:
-		Fractal->Depth = MAX_DEPTH_4;
-		Fractal->r_mean = .5;
-		Fractal->dr_mean = .4;
-		Fractal->dr2_mean = .3;
-		break;
+		case 4:
+			Fractal->Depth = MAX_DEPTH_4;
+			Fractal->r_mean = .5;
+			Fractal->dr_mean = .4;
+			Fractal->dr2_mean = .3;
+			break;
 
-	case 5:
-		Fractal->Depth = MAX_DEPTH_5;
-		Fractal->r_mean = .5;
-		Fractal->dr_mean = .4;
-		Fractal->dr2_mean = .3;
-		break;
+		case 5:
+			Fractal->Depth = MAX_DEPTH_5;
+			Fractal->r_mean = .5;
+			Fractal->dr_mean = .4;
+			Fractal->dr2_mean = .3;
+			break;
 
-	default:
-	case 2:
-		Fractal->Depth = MAX_DEPTH_2;
-		Fractal->r_mean = .7;
-		Fractal->dr_mean = .3;
-		Fractal->dr2_mean = .4;
-		break;
+		default:
+		case 2:
+			Fractal->Depth = MAX_DEPTH_2;
+			Fractal->r_mean = .7;
+			Fractal->dr_mean = .3;
+			Fractal->dr2_mean = .4;
+			break;
 	}
-//      fprintf( stderr, "N=%d\n", i );
 	Fractal->Nb_Simi = i;
 	Fractal->Max_Pt = Fractal->Nb_Simi - 1;
 	for (i = 0; i <= Fractal->Depth + 2; ++i)
 		Fractal->Max_Pt *= Fractal->Nb_Simi;
 
 	if ((Fractal->Buffer1 = (IFSPoint *) calloc (Fractal->Max_Pt,
-																							 sizeof (IFSPoint))) == NULL) {
+						     sizeof (IFSPoint))) == NULL) {
 		free_ifs (Fractal);
 		return;
 	}
 	if ((Fractal->Buffer2 = (IFSPoint *) calloc (Fractal->Max_Pt,
-																							 sizeof (IFSPoint))) == NULL) {
+						     sizeof (IFSPoint))) == NULL) {
 		free_ifs (Fractal);
 		return;
 	}
 
-//      printf ("--ifs setting params\n");
 	Fractal->Speed = 6;
 	Fractal->Width = width;				/* modif by JeKo */
 	Fractal->Height = height;			/* modif by JeKo */
@@ -287,107 +276,65 @@ init_ifs (int width, int height)
 	Fractal->Ly = (Fractal->Height - 1) / 2;
 	Fractal->Col = rand () % (width * height);	/* modif by JeKo */
 
-	Random_Simis (Fractal, Fractal->Components, 5 * MAX_SIMI);
-
-	/* 
-	 * #ifndef NO_DBUF
-	 * if (Fractal->dbuf != None)
-	 * XFreePixmap(display, Fractal->dbuf);
-	 * Fractal->dbuf = XCreatePixmap(display, window,
-	 * Fractal->Width, Fractal->Height, 1);
-	 * /* Allocation checked *
-	 * if (Fractal->dbuf != None) {
-	 * XGCValues   gcv;
-	 * 
-	 * gcv.foreground = 0;
-	 * gcv.background = 0;
-	 * gcv.graphics_exposures = False;
-	 * gcv.function = GXcopy;
-	 * 
-	 * if (Fractal->dbuf_gc != None)
-	 * XFreeGC(display, Fractal->dbuf_gc);
-	 * if ((Fractal->dbuf_gc = XCreateGC(display, Fractal->dbuf,
-	 * GCForeground | GCBackground | GCGraphicsExposures | GCFunction,
-	 * &gcv)) == None) {
-	 * XFreePixmap(display, Fractal->dbuf);
-	 * Fractal->dbuf = None;
-	 * } else {
-	 * XFillRectangle(display, Fractal->dbuf,
-	 * Fractal->dbuf_gc, 0, 0, Fractal->Width, Fractal->Height);
-	 * XSetBackground(display, gc, MI_BLACK_PIXEL(mi));
-	 * XSetFunction(display, gc, GXcopy);
-	 * }
-	 * }
-	 * #endif
-	 */
-	// MI_CLEARWINDOW(mi);
-
-	/* don't want any exposure events from XCopyPlane */
-	// XSetGraphicsExposures(display, gc, False);
-
+	Random_Simis (goomInfo, Fractal, Fractal->Components, 5 * MAX_SIMI);
 }
 
 
 /***************************************************************/
 
-/* Should be taken care of already... but just in case */
-#if !defined( __GNUC__ ) && !defined(__cplusplus) && !defined(c_plusplus)
-#undef inline
-#define inline									/* */
-#endif
 static inline void
 Transform (SIMI * Simi, F_PT xo, F_PT yo, F_PT * x, F_PT * y)
 {
 	F_PT    xx, yy;
 
 	xo = xo - Simi->Cx;
-	xo = (xo * Simi->R) >> FIX; // / UNIT;
+	xo = (xo * Simi->R) >> FIX; /* / UNIT; */
 	yo = yo - Simi->Cy;
-	yo = (yo * Simi->R) >> FIX; // / UNIT;
+	yo = (yo * Simi->R) >> FIX; /* / UNIT; */
 
 	xx = xo - Simi->Cx;
-	xx = (xx * Simi->R2) >> FIX; // / UNIT;
+	xx = (xx * Simi->R2) >> FIX; /* / UNIT; */
 	yy = -yo - Simi->Cy;
-	yy = (yy * Simi->R2) >> FIX; // / UNIT;
+	yy = (yy * Simi->R2) >> FIX; /* / UNIT; */
 
 	*x =
-		((xo * Simi->Ct - yo * Simi->St + xx * Simi->Ct2 - yy * Simi->St2)
-		 >> FIX /* / UNIT */ ) + Simi->Cx;
+	  ((xo * Simi->Ct - yo * Simi->St + xx * Simi->Ct2 - yy * Simi->St2)
+	   >> FIX /* / UNIT */ ) + Simi->Cx;
 	*y =
-		((xo * Simi->St + yo * Simi->Ct + xx * Simi->St2 + yy * Simi->Ct2)
-		 >> FIX /* / UNIT */ ) + Simi->Cy;
+	  ((xo * Simi->St + yo * Simi->Ct + xx * Simi->St2 + yy * Simi->Ct2)
+	   >> FIX /* / UNIT */ ) + Simi->Cy;
 }
 
 /***************************************************************/
 
 static void
-Trace (FRACTAL * F, F_PT xo, F_PT yo)
+Trace (FRACTAL * F, F_PT xo, F_PT yo, IfsData *data)
 {
 	F_PT    x, y, i;
 	SIMI   *Cur;
 
-	Cur = Cur_F->Components;
-	for (i = Cur_F->Nb_Simi; i; --i, Cur++) {
+	Cur = data->Cur_F->Components;
+	for (i = data->Cur_F->Nb_Simi; i; --i, Cur++) {
 		Transform (Cur, xo, yo, &x, &y);
 
-		Buf->x = F->Lx + ((x * F->Lx) >> (FIX+1) /* /(UNIT*2) */ );
-		Buf->y = F->Ly - ((y * F->Ly) >> (FIX+1) /* /(UNIT*2) */ );
-		Buf++;
+		data->Buf->x = F->Lx + ((x * F->Lx) >> (FIX+1) /* /(UNIT*2) */ );
+		data->Buf->y = F->Ly - ((y * F->Ly) >> (FIX+1) /* /(UNIT*2) */ );
+		data->Buf++;
 
-		Cur_Pt++;
+		data->Cur_Pt++;
 
 		if (F->Depth && ((x - xo) >> 4) && ((y - yo) >> 4)) {
 			F->Depth--;
-			Trace (F, x, y);
+			Trace (F, x, y, data);
 			F->Depth++;
 		}
 	}
 }
 
 static void
-Draw_Fractal ( /* ModeInfo * mi */ )
+Draw_Fractal (IfsData *data)
 {
-	FRACTAL *F = Root;
+	FRACTAL *F = data->Root;
 	int     i, j;
 	F_PT    x, y, xo, yo;
 	SIMI   *Cur, *Simi;
@@ -406,9 +353,9 @@ Draw_Fractal ( /* ModeInfo * mi */ )
 	}
 
 
-	Cur_Pt = 0;
-	Cur_F = F;
-	Buf = F->Buffer2;
+	data->Cur_Pt = 0;
+	data->Cur_F = F;
+	data->Buf = F->Buffer2;
 	for (Cur = F->Components, i = F->Nb_Simi; i; --i, Cur++) {
 		xo = Cur->Cx;
 		yo = Cur->Cy;
@@ -416,58 +363,30 @@ Draw_Fractal ( /* ModeInfo * mi */ )
 			if (Simi == Cur)
 				continue;
 			Transform (Simi, xo, yo, &x, &y);
-			Trace (F, x, y);
+			Trace (F, x, y, data);
 		}
 	}
 
 	/* Erase previous */
 
-/*	if (F->Cur_Pt) {
-		XSetForeground(display, gc, MI_BLACK_PIXEL(mi));
-		if (F->dbuf != None) {
-			XSetForeground(display, F->dbuf_gc, 0);
-*/
-	/* XDrawPoints(display, F->dbuf, F->dbuf_gc, F->Buffer1, F->Cur_Pt, * * * * 
-	 * CoordModeOrigin); */
-/*			XFillRectangle(display, F->dbuf, F->dbuf_gc, 0, 0,
-				       F->Width, F->Height);
-		} else
-			XDrawPoints(display, window, gc, F->Buffer1, F->Cur_Pt, CoordModeOrigin);
-	}
-	if (MI_NPIXELS(mi) < 2)
-		XSetForeground(display, gc, MI_WHITE_PIXEL(mi));
-	else
-		XSetForeground(display, gc, MI_PIXEL(mi, F->Col % MI_NPIXELS(mi)));
-	if (Cur_Pt) {
-		if (F->dbuf != None) {
-			XSetForeground(display, F->dbuf_gc, 1);
-			XDrawPoints(display, F->dbuf, F->dbuf_gc, F->Buffer2, Cur_Pt,
-				    CoordModeOrigin);
-		} else
-			XDrawPoints(display, window, gc, F->Buffer2, Cur_Pt, CoordModeOrigin);
-	}
-	if (F->dbuf != None)
-		XCopyPlane(display, F->dbuf, window, gc, 0, 0, F->Width, F->Height, 0, 0, 1);
-*/
-
-	F->Cur_Pt = Cur_Pt;
-	Buf = F->Buffer1;
+	F->Cur_Pt = data->Cur_Pt;
+	data->Buf = F->Buffer1;
 	F->Buffer1 = F->Buffer2;
-	F->Buffer2 = Buf;
+	F->Buffer2 = data->Buf;
 }
 
 
 IFSPoint *
-draw_ifs ( /* ModeInfo * mi */ int *nbpt)
+draw_ifs (PluginInfo *goomInfo, int *nbpt, IfsData *data)
 {
 	int     i;
 	DBL     u, uu, v, vv, u0, u1, u2, u3;
 	SIMI   *S, *S1, *S2, *S3, *S4;
 	FRACTAL *F;
 
-	if (Root == NULL)
+	if (data->Root == NULL)
 		return NULL;
-	F = Root;											// [/*MI_SCREEN(mi)*/0];
+	F = data->Root;
 	if (F->Buffer1 == NULL)
 		return NULL;
 
@@ -495,9 +414,7 @@ draw_ifs ( /* ModeInfo * mi */ int *nbpt)
 		S->A2 = u0 * S1->A2 + u1 * S2->A2 + u2 * S3->A2 + u3 * S4->A2;
 	}
 
-	// MI_IS_DRAWN(mi) = True;
-
-	Draw_Fractal ( /* mi */ );
+	Draw_Fractal (data);
 
 	if (F->Count >= 1000 / F->Speed) {
 		S = F->Components;
@@ -516,9 +433,9 @@ draw_ifs ( /* ModeInfo * mi */ int *nbpt)
 
 			*S1 = *S4;
 		}
-		Random_Simis (F, F->Components + 3 * F->Nb_Simi, F->Nb_Simi);
+		Random_Simis (goomInfo, F, F->Components + 3 * F->Nb_Simi, F->Nb_Simi);
 
-		Random_Simis (F, F->Components + 4 * F->Nb_Simi, F->Nb_Simi);
+		Random_Simis (goomInfo, F, F->Components + 4 * F->Nb_Simi, F->Nb_Simi);
 
 		F->Count = 0;
 	}
@@ -527,23 +444,315 @@ draw_ifs ( /* ModeInfo * mi */ int *nbpt)
 
 	F->Col++;
 
-	/* #1 code added by JeKo */
-	(*nbpt) = Cur_Pt;
+	(*nbpt) = data->Cur_Pt;
 	return F->Buffer2;
-	/* #1 end */
 }
 
 
 /***************************************************************/
 
-void
-release_ifs (void)
+static void release_ifs (IfsData *data)
 {
-  if (Root != NULL) {
-	free_ifs(Root);
-	(void) free ((void *) Root);
-	Root = (FRACTAL *) NULL;
-  }
+	if (data->Root != NULL) {
+		free_ifs (data->Root);
+		(void) free ((void *) data->Root);
+		data->Root = (FRACTAL *) NULL;
+	}
 }
 
-//#endif /* MODE_ifs */
+#define RAND() goom_random(goomInfo->gRandom)
+
+static void ifs_update (PluginInfo *goomInfo, Pixel * data, Pixel * back, int increment, IfsData *fx_data)
+{
+	static int couleur = 0xc0c0c0c0;
+	static int v[4] = { 2, 4, 3, 2 };
+	static int col[4] = { 2, 4, 3, 2 };
+
+#define MOD_MER 0
+#define MOD_FEU 1
+#define MOD_MERVER 2
+	static int mode = MOD_MERVER;
+	static int justChanged = 0;
+	static int cycle = 0;
+	int     cycle10;
+
+	int     nbpt;
+	IFSPoint *points;
+	int     i;
+
+	int     couleursl = couleur;
+	int width = goomInfo->screen.width;
+	int height = goomInfo->screen.height;
+
+	cycle++;
+	if (cycle >= 80)
+		cycle = 0;
+
+	if (cycle < 40)
+		cycle10 = cycle / 10;
+	else
+		cycle10 = 7 - cycle / 10;
+
+	{
+		unsigned char *tmp = (unsigned char *) &couleursl;
+
+		for (i = 0; i < 4; i++) {
+			*tmp = (*tmp) >> cycle10;
+			tmp++;
+		}
+	}
+
+	points = draw_ifs (goomInfo, &nbpt, fx_data);
+	nbpt--;
+
+#ifdef HAVE_MMX
+	movd_m2r (couleursl, mm1);
+	punpckldq_r2r (mm1, mm1);
+	for (i = 0; i < nbpt; i += increment) {
+		int     x = points[i].x;
+		int     y = points[i].y;
+
+		if ((x < width) && (y < height) && (x > 0) && (y > 0)) {
+			int     pos = x + (y * width);
+			movd_m2r (back[pos], mm0);
+			paddusb_r2r (mm1, mm0);
+			movd_r2m (mm0, data[pos]);
+		}
+	}
+	emms();/*__asm__ __volatile__ ("emms");*/
+#else
+	for (i = 0; i < nbpt; i += increment) {
+		int     x = (int) points[i].x & 0x7fffffff;
+		int     y = (int) points[i].y & 0x7fffffff;
+
+		if ((x < width) && (y < height)) {
+			int     pos = x + (int) (y * width);
+			int     tra = 0, i = 0;
+			unsigned char *bra = (unsigned char *) &back[pos];
+			unsigned char *dra = (unsigned char *) &data[pos];
+			unsigned char *cra = (unsigned char *) &couleursl;
+
+			for (; i < 4; i++) {
+				tra = *cra;
+				tra += *bra;
+				if (tra > 255)
+					tra = 255;
+				*dra = tra;
+				++dra;
+				++cra;
+				++bra;
+			}
+		}
+	}
+#endif /*MMX*/
+		justChanged--;
+
+	col[ALPHA] = couleur >> (ALPHA * 8) & 0xff;
+	col[BLEU] = couleur >> (BLEU * 8) & 0xff;
+	col[VERT] = couleur >> (VERT * 8) & 0xff;
+	col[ROUGE] = couleur >> (ROUGE * 8) & 0xff;
+
+	if (mode == MOD_MER) {
+		col[BLEU] += v[BLEU];
+		if (col[BLEU] > 255) {
+			col[BLEU] = 255;
+			v[BLEU] = -(RAND() % 4) - 1;
+		}
+		if (col[BLEU] < 32) {
+			col[BLEU] = 32;
+			v[BLEU] = (RAND() % 4) + 1;
+		}
+
+		col[VERT] += v[VERT];
+		if (col[VERT] > 200) {
+			col[VERT] = 200;
+			v[VERT] = -(RAND() % 3) - 2;
+		}
+		if (col[VERT] > col[BLEU]) {
+			col[VERT] = col[BLEU];
+			v[VERT] = v[BLEU];
+		}
+		if (col[VERT] < 32) {
+			col[VERT] = 32;
+			v[VERT] = (RAND() % 3) + 2;
+		}
+
+		col[ROUGE] += v[ROUGE];
+		if (col[ROUGE] > 64) {
+			col[ROUGE] = 64;
+			v[ROUGE] = -(RAND () % 4) - 1;
+		}
+		if (col[ROUGE] < 0) {
+			col[ROUGE] = 0;
+			v[ROUGE] = (RAND () % 4) + 1;
+		}
+
+		col[ALPHA] += v[ALPHA];
+		if (col[ALPHA] > 0) {
+			col[ALPHA] = 0;
+			v[ALPHA] = -(RAND () % 4) - 1;
+		}
+		if (col[ALPHA] < 0) {
+			col[ALPHA] = 0;
+			v[ALPHA] = (RAND () % 4) + 1;
+		}
+
+		if (((col[VERT] > 32) && (col[ROUGE] < col[VERT] + 40)
+				 && (col[VERT] < col[ROUGE] + 20) && (col[BLEU] < 64)
+				 && (RAND () % 20 == 0)) && (justChanged < 0)) {
+			mode = RAND () % 3 ? MOD_FEU : MOD_MERVER;
+			justChanged = 250;
+		}
+	}
+	else if (mode == MOD_MERVER) {
+		col[BLEU] += v[BLEU];
+		if (col[BLEU] > 128) {
+			col[BLEU] = 128;
+			v[BLEU] = -(RAND () % 4) - 1;
+		}
+		if (col[BLEU] < 16) {
+			col[BLEU] = 16;
+			v[BLEU] = (RAND () % 4) + 1;
+		}
+
+		col[VERT] += v[VERT];
+		if (col[VERT] > 200) {
+			col[VERT] = 200;
+			v[VERT] = -(RAND () % 3) - 2;
+		}
+		if (col[VERT] > col[ALPHA]) {
+			col[VERT] = col[ALPHA];
+			v[VERT] = v[ALPHA];
+		}
+		if (col[VERT] < 32) {
+			col[VERT] = 32;
+			v[VERT] = (RAND () % 3) + 2;
+		}
+
+		col[ROUGE] += v[ROUGE];
+		if (col[ROUGE] > 128) {
+			col[ROUGE] = 128;
+			v[ROUGE] = -(RAND () % 4) - 1;
+		}
+		if (col[ROUGE] < 0) {
+			col[ROUGE] = 0;
+			v[ROUGE] = (RAND () % 4) + 1;
+		}
+
+		col[ALPHA] += v[ALPHA];
+		if (col[ALPHA] > 255) {
+			col[ALPHA] = 255;
+			v[ALPHA] = -(RAND () % 4) - 1;
+		}
+		if (col[ALPHA] < 0) {
+			col[ALPHA] = 0;
+			v[ALPHA] = (RAND () % 4) + 1;
+		}
+
+		if (((col[VERT] > 32) && (col[ROUGE] < col[VERT] + 40)
+				 && (col[VERT] < col[ROUGE] + 20) && (col[BLEU] < 64)
+				 && (RAND () % 20 == 0)) && (justChanged < 0)) {
+			mode = RAND () % 3 ? MOD_FEU : MOD_MER;
+			justChanged = 250;
+		}
+	}
+	else if (mode == MOD_FEU) {
+
+		col[BLEU] += v[BLEU];
+		if (col[BLEU] > 64) {
+			col[BLEU] = 64;
+			v[BLEU] = -(RAND () % 4) - 1;
+		}
+		if (col[BLEU] < 0) {
+			col[BLEU] = 0;
+			v[BLEU] = (RAND () % 4) + 1;
+		}
+
+		col[VERT] += v[VERT];
+		if (col[VERT] > 200) {
+			col[VERT] = 200;
+			v[VERT] = -(RAND () % 3) - 2;
+		}
+		if (col[VERT] > col[ROUGE] + 20) {
+			col[VERT] = col[ROUGE] + 20;
+			v[VERT] = -(RAND () % 3) - 2;
+			v[ROUGE] = (RAND () % 4) + 1;
+			v[BLEU] = (RAND () % 4) + 1;
+		}
+		if (col[VERT] < 0) {
+			col[VERT] = 0;
+			v[VERT] = (RAND () % 3) + 2;
+		}
+
+		col[ROUGE] += v[ROUGE];
+		if (col[ROUGE] > 255) {
+			col[ROUGE] = 255;
+			v[ROUGE] = -(RAND () % 4) - 1;
+		}
+		if (col[ROUGE] > col[VERT] + 40) {
+			col[ROUGE] = col[VERT] + 40;
+			v[ROUGE] = -(RAND () % 4) - 1;
+		}
+		if (col[ROUGE] < 0) {
+			col[ROUGE] = 0;
+			v[ROUGE] = (RAND () % 4) + 1;
+		}
+
+		col[ALPHA] += v[ALPHA];
+		if (col[ALPHA] > 0) {
+			col[ALPHA] = 0;
+			v[ALPHA] = -(RAND () % 4) - 1;
+		}
+		if (col[ALPHA] < 0) {
+			col[ALPHA] = 0;
+			v[ALPHA] = (RAND () % 4) + 1;
+		}
+
+		if (((col[ROUGE] < 64) && (col[VERT] > 32) && (col[VERT] < col[BLEU])
+				 && (col[BLEU] > 32)
+				 && (RAND () % 20 == 0)) && (justChanged < 0)) {
+			mode = RAND () % 2 ? MOD_MER : MOD_MERVER;
+			justChanged = 250;
+		}
+	}
+
+	couleur = (col[ALPHA] << (ALPHA * 8))
+		| (col[BLEU] << (BLEU * 8))
+		| (col[VERT] << (VERT * 8))
+		| (col[ROUGE] << (ROUGE * 8));
+}
+
+/** VISUAL_FX WRAPPER FOR IFS */
+
+void ifs_vfx_apply(VisualFX *_this, Pixel *src, Pixel *dest, PluginInfo *goomInfo) {
+
+	IfsData *data = (IfsData*)_this->fx_data;
+	if (!data->initalized) {
+		data->initalized = 1;
+		init_ifs(goomInfo, data);
+	}
+	ifs_update (goomInfo, dest, src, goomInfo->update.ifs_incr, data);
+	/*TODO: trouver meilleur soluce pour increment (mettre le code de gestion de l'ifs dans ce fichier: ifs_vfx_apply) */
+}
+
+void ifs_vfx_init(VisualFX *_this) {
+
+	IfsData *data = (IfsData*)malloc(sizeof(IfsData));
+	data->Root = (FRACTAL*)NULL;
+	data->initalized = 0;
+	_this->fx_data = data;
+}
+
+void ifs_vfx_free(VisualFX *_this) {
+	IfsData *data = (IfsData*)_this->fx_data;
+	release_ifs(data);
+	free(data);
+}
+
+VisualFX ifs_visualfx_create() {
+	VisualFX vfx;
+	vfx.init = ifs_vfx_init;
+	vfx.free = ifs_vfx_free;
+	vfx.apply = ifs_vfx_apply;
+	return vfx;
+}

@@ -1,4 +1,5 @@
 #include "surf3d.h"
+#include "goom_plugin_info.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -12,7 +13,7 @@ grid3d *grid3d_new (int sizex, int defx, int sizez, int defz, v3d center) {
 	s->vertex = malloc (x*y*sizeof(v3d));
 	s->svertex = malloc (x*y*sizeof(v3d));
 	s->center = center;
-	
+
 	g->defx=defx;
 	g->sizex=sizex;
 	g->defz=defz;
@@ -32,47 +33,31 @@ grid3d *grid3d_new (int sizex, int defx, int sizez, int defz, v3d center) {
 	return g;
 }
 
-//#undef HAVE_MMX
-#include "drawmethods.h"
+void grid3d_draw (PluginInfo *plug, grid3d *g, int color, int colorlow,
+	int dist, Pixel *buf, Pixel *back, int W,int H) {
 
-void surf3d_draw (surf3d *s, int color, int dist, int *buf, int *back, int W,int H) {
-	int i;
-	int *p1;
-	int *p2;
-	v2d v2;
-	
-	for (i=0;i<s->nbvertex;i++) {
-		V3D_TO_V2D(s->svertex[i],v2,W,H,dist);
-		p1 = buf + v2.x + (v2.y*W);
-		p2 = back + v2.x + (v2.y*W);
-		if ((v2.x>=0) && (v2.y>=0) && (v2.x<W) && (v2.y<H)) {
-			*p1 = color;
-		}
-	}
-}
-
-void grid3d_draw (grid3d *g, int color, int colorlow,
-									int dist, int *buf, int *back, int W,int H) {
 	int x;
-//	int *p1;
-//	int *p2;
 	v2d v2,v2x;
+
+	v2d *v2_array = malloc(g->surf.nbvertex * sizeof(v2d));
+	v3d_to_v2d(g->surf.svertex, g->surf.nbvertex, W, H, dist, v2_array);
 	
 	for (x=0;x<g->defx;x++) {
 		int z;
-		V3D_TO_V2D(g->surf.svertex[x],v2x,W,H,dist);
+		v2x = v2_array[x];
 
 		for (z=1;z<g->defz;z++) {
-			V3D_TO_V2D(g->surf.svertex[z*g->defx + x],v2,W,H,dist);
+			v2 = v2_array[z*g->defx + x];
 			if (((v2.x != -666) || (v2.y!=-666))
 					&& ((v2x.x != -666) || (v2x.y!=-666))) {
-				draw_line(buf,v2x.x,v2x.y,v2.x,v2.y, colorlow, W, H);
-				draw_line(back,v2x.x,v2x.y,v2.x,v2.y, color, W, H);
-				DRAWMETHOD_DONE();
+				plug->methods.draw_line (buf,v2x.x,v2x.y,v2.x,v2.y, colorlow, W, H);
+				plug->methods.draw_line (back,v2x.x,v2x.y,v2.x,v2.y, color, W, H);
 			}
 			v2x = v2;
 		}
 	}
+
+	free(v2_array);
 }
 
 void surf3d_rotate (surf3d *s, float angle) {

@@ -1,213 +1,305 @@
-.text
-;.section text,__TEXT
-.globl _ppc_zoom	;// name of the function to call by C program
+; PowerPC optimized zoom for Goom
+; © 2001-2003 Guillaume Borios
+; This Source Code is released under the terms of the General Public License
 
-; notes :
-; this routine dynamically computes and applies a zoom filter
-; do not use r0, r1, r2 and r3
-; registers are not saved so the call to this function must be the last thing done in the calling C function
+; Change log :
+; 21 Dec 2003 : Use of altivec is now determined with a parameter
+
+; Section definition : We use a read only section
+.text
+
+; name of the function to call by C program : ppc_zoom
+; We declare this label as a global to extend its scope outside this file
+.globl _ppc_zoom_generic
+.globl _ppc_zoom_G4
+
+; Description :
+; This routine dynamically computes and applies a zoom filter
 
 ; parameters :
-; r3  <=> unsigned int * frompixmap
-; r4  <=> unsigned int * topixmap
-; r5  <=> unsigned int sizeX (in pixels)
-; r6  <=> unsigned int sizeY (in pixels)
+; r3  <=> unsigned int sizeX (in pixels)
+; r4  <=> unsigned int sizeY (in pixels)
+; r5  <=> unsigned int * frompixmap
+; r6  <=> unsigned int * topixmap
 ; r7  <=> unsigned int * brutS
 ; r8  <=> unsigned int * brutD
 ; r9  <=> unsigned int buffratio
 ; r10 <=> int [16][16] precalccoeffs
 
 ; globals after init
-; r3  <=> frompixmap - 1 byte needed for preincremental fetch (replaces r3)
-; r4  <=> topixmap - 1 byte needed for preincremental fetch (replaces r4)
-; r5 <=> ax = x max in 16th of pixels (replaces old r5)
-; r6 <=> ay = y max in 16th of pixels (replaces old r6)
-; r15 <=> row size in bytes
-; r16 <=> 0xFF00FF (mask for parallel 32 bits pixs computing)
+; r5  <=> frompixmap - 1 byte needed for preincremental fetch (replaces r5)
+; r6  <=> topixmap - 1 byte needed for preincremental fetch (replaces r6)
+; r3 <=> ax = x max in 16th of pixels (replaces old r3)
+; r4 <=> ay = y max in 16th of pixels (replaces old r4)
+; r20 <=> row size in bytes
+; r12 <=> 0xFF00FF (mask for parallel 32 bits pixs computing)
 ; r30 <=> brutS - 1 byte needed for preincremental fetch (replaces r7)
 ; r31 <=> brutD - 1 byte needed for preincremental fetch (replaces r8)
 
-; free reg
-; r13
-; r18
+; ABI notes :
+; r1 is the Stack Pointer (SP) => Do not use
+; r13..r31 are non-volatiles => Do not use
 
+_ppc_zoom_generic:
 
-_ppc_zoom:		; symbole global sur lequel on va linker
-
-; avant tout, on va sauver les registres
-stw r13,-76(r1)
-stw r14,-72(r1)
-stw r15,-68(r1)
-stw r16,-64(r1)
-stw r17,-60(r1)
-stw r18,-56(r1)
-stw r19,-52(r1)
-stw r20,-48(r1)
-stw r21,-44(r1)
-stw r22,-40(r1)
-stw r23,-36(r1)
-stw r24,-32(r1)
-stw r25,-28(r1)
-stw r26,-24(r1)
-stw r27,-20(r1)
-stw r28,-16(r1)
-stw r29,-12(r1)
-stw r30,-8(r1)
-stw r31,-4(r1)
-
+; Saves the used non volatile registers in the Mach-O stack s Red-Zone
+stmw 	r18,-56(r1)
 
 ; init
-dcbt	0,r8
-li      r14,0		; valeur par defaut si out of range : 0 (Noir)
+li      r18,0		; Default value if out of range : 0 (Black)
 mr      r11,r10
-lis     r16,0xFF
-mullw   r17,r5,r6	; calcul du nombre de pixels a faire
-dcbt	0,r7
-subi    r30,r8,4
-mulli	r15,r5,4
-srawi   r19,r15,2
-ori     r16,r16,0xFF
-subi    r5,r5,1
-subi    r6,r6,1
-mtspr	ctr,r17		; on met le nombre de pixels a faire dans le compteur de la boucle
-subi    r31,r7,4
-subi    r4,r4,4
-mulli   r5,r5,16
-mulli   r6,r6,16
-li	r13,32
+lis     r12,0xFF
+mullw   r2,r3,r4	; Number of pixels to compute
+subi    r30,r8,0
+slwi	r20,r3,2
+srawi   r19,r20,2
+ori     r12,r12,0xFF
+subi    r3,r3,1
+subi    r4,r4,1
+mtspr	ctr,r2		; Init the loop count (one loop per pixel computed)
+subi    r31,r7,0
+subi    r6,r6,4
+slwi	r3,r3,4
+slwi	r4,r4,4
 
 ;pre init for loop
-lwzu	r17,4(r31)   ; px
-lwzu	r8,4(r30)    ; px2
-lwzu	r10,4(r30)   ; py2
+lwz	r2,0(r31)    ; px
+lwz	r29,4(r31)   ; py
+lwz	r8,0(r30)    ; px2
+lwz	r10,4(r30)   ; py2
 
-1:
-
-lwzu	r29,4(r31)   ; py
+L1:
 
 ; computes dynamically the position to fetch
-sub     r8,r8,r17
+sub     r8,r8,r2
 sub     r10,r10,r29
 mullw   r8,r8,r9
+addi    r31,r31,8
 mullw   r10,r10,r9
+addi    r30,r30,8
+
 srawi   r8,r8,16
 srawi   r10,r10,16
-add     r17,r17,r8
+add     r2,r2,r8
 add     r29,r29,r10
 
-
 ; if px>ax or py>ay goto outofrange
-cmpl    cr1,0,r17,r5
-
-
 ; computes the attenuation coeffs and the original point address
-andi.   r10,r29,0x0F  ;coefv
-cmpl    cr2,0,r29,r6
-andi.   r8,r17,0x0F   ;coefh
+rlwinm  r10,r2,6,28-6,31-6 ; r10 <- (r2 << 2) & 0x000002D0   (r10=(r2%16)*4*16)
+cmpl    cr4,0,r2,r3
+rlwimi  r10, r29, 2, 28-2, 31-2 ; r10 <- ((r29 << 2) & 0x0000002D) | (r10 & !0x0000002D)      (r10=(r10%16)*4 | r10)
+cmpl    cr7,0,r29,r4
 srawi   r29,r29,4     ; pos computing
-bgt-	cr1,Loutofrange
-srawi   r17,r17,4     ; pos computing
-mulli   r10,r10,4
-bgt-	cr2,Loutofrange
+bge-	cr4,L4
+srawi   r2,r2,4       ; pos computing
 mullw   r29, r29,r19  ; pos computing
+bge-	cr7,L4
 
-; NOTA : notation des couches : 00112233 (AARRVVBB)
+; Channels notation : 00112233 (AARRVVBB)
 
-mulli   r8,r8,4*16
-add     r17,r17,r29    		; pos computing
-add     r10,r10,r8
-slwi    r17,r17,2      		; pos computing
-add     r10,r10,r11
-dcbt	0,r10
-add	r17,r17,r3     		; pos computing
-lwz     r10,0(r10)		; chargement des coefs
-dcbt	0,r17
-andi.   r21,r10,0xFF		; isolation du coef1
-srwi    r10,r10,8		; isolation du coeff2 etape 1/2
-lwz	r25,0(r17)		; chargement de col1 ->r25
-andi.   r22,r10,0xFF		; isolation du coef2 etape 2/2
-srwi    r10,r10,8		; isolation du coef3 etape 1/2
-and	r8, r25,r16		; masquage de col1 couches 1 & 3 : 0x00XX00XX
-lwz	r26,4(r17)		; chargement de col2 ->r26
-andi.   r23,r10,0xFF		; isolation du coef3 etape 2/2
-mullw	r8, r8, r21		; application du coef1 sur col1 couches 1 & 3
-srwi    r10,r10,8		; isolation du coef4 etape 1/2
-andi.	r25,r25,0xFF00		; masquage de col1 couche 2 : 0x0000XX00
-add	r17,r17,r15		; ajout d'une ligne pour chargement futur de col3
-dcbt	0,r17
-andi.   r24,r10,0xFF		; isolation du coef4 etape 2/2
-
+add     r2,r2,r29    		; pos computing
+lwzx    r10,r11,r10		; Loads coefs
+slwi    r2,r2,2      		; pos computing
+add	r2,r2,r5     		; pos computing
+rlwinm  r21,r10,0,24,31	        ; Isolates coef1 (??????11 -> 00000011)
+lwz	r25,0(r2)		; Loads col1 -> r25
+lwz	r26,4(r2)		; Loads col2 -> r26
+rlwinm  r22,r10,24,24,31	; Isolates coef2 (????22?? -> 00000022)
+rlwinm  r23,r10,16,24,31	; Isolates coef3 (??33???? -> 00000033)
+add	r2,r2,r20		; Adds one line for future load of col3 and col4
+and	r8, r25,r12		; Masks col1 channels 1 & 3 : 0x00XX00XX
+rlwinm  r24,r10,8,24,31		; Isolates coef4 (44?????? -> 00000044)
+andi.	r25,r25,0xFF00		; Masks col1 channel 2 : 0x0000XX00
+mullw	r8, r8, r21		; Applies coef1 on col1 channels 1 & 3
 
 
 ; computes final pixel color
-and	r10,r26,r16		; masquage de col2 couches 1 & 3 : 0x00XX00XX
-lwz	r27,0(r17)		; chargement de col3 ->r27
-mullw	r25,r25,r21		; application du coef1 sur col1 couche 2
-mullw	r10,r10,r22		; application du coef2 sur col2 couches 1 & 3
-andi.	r29,r26,0xFF00		; masquage de col2 couche 2 : 0x0000XX00
-lwz	r28,4(r17)		; chargement de col4 ->r28
-add	r8 ,r8 ,r10		; ajout de col1 & col2 couches 1 & 3
-mullw	r29,r29,r22		; application du coef2 sur col2 couche 2
-and	r10,r27,r16		; masquage de col3 couches 1 & 3 : 0x00XX00XX
-add	r25,r25,r29		; ajout de col1 & col2 couche 2
-mullw	r10,r10,r23		; application du coef3 sur col3 couches 1 & 3
-andi.	r29,r27,0xFF00		; masquage de col3 couche 2 : 0x0000XX00
-add	r8 ,r8 ,r10		; ajout de col3 à (col1 + col2) couches 1 & 3
-mullw	r29,r29,r23		; application du coef3 sur col3 couche 2
-and	r10,r28,r16		; masquage de col4 couches 1 & 3 : 0x00XX00XX
-add	r25,r25,r29		; ajout de col 3 à (col1 + col2) couche 2
-mullw	r10,r10,r24		; application du coef4 sur col4 couches 1 & 3
-andi.	r28,r28,0xFF00		; masquage de col4 couche 2 : 0x0000XX00
-add	r8 ,r8 ,r10		; ajout de col4 à (col1 + col2 + col3) couches 1 & 3
-lwzu	r17,4(r31)	; px
-dcbt	0,r31
-mullw	r28,r28,r24		; application du coef4 sur col4 couche 2
-
-srawi	r7, r8, 8		; (somme des couches 1 & 3) >> 8
-add	r25,r25,r28		; ajout de col 4 à (col1 + col2 + col3) couche 2
-lwzu	r8,4(r30)    ; px2
-and	r7, r7, r16		; masquage de la valeur résiduelle dans le résultat des couches 1 & 3
-
-srawi	r25, r25, 8		; (somme des couches 2) >> 8
-lwzu	r10,4(r30)   ; py2
-andi.   r25,r25,0xFF00		; masquage de la valeur résiduelle dans le résultat des couches 2
-or	r7, r25, r7		; association des couches (1 & 3) et 2
-stwu	r7,4(r4)		; stockage du résultat final
-bdnz+	1boucle			; itération suivante si besoin
-b       Lend;goto end		; sinon sortie de boucle pour fin
+and	r10,r26,r12		; Masks col2 channels 1 & 3 : 0x00XX00XX
+lwz	r27,0(r2)		; Loads col3 -> r27
+mullw	r10,r10,r22		; Applies coef2 on col2 channels 1 & 3
+mullw	r25,r25,r21		; Applies coef1 on col1 channel 2
+andi.	r29,r26,0xFF00		; Masks col2 channel 2 : 0x0000XX00
+mullw	r29,r29,r22		; Applies coef2 on col2 channel 2
+lwz	r28,4(r2)		; Loads col4 -> r28
+add	r8 ,r8 ,r10		; Adds col1 & col2 channels 1 & 3
+and	r10,r27,r12		; Masks col3 channels 1 & 3 : 0x00XX00XX
+add	r25,r25,r29		; Adds col1 & col2 channel 2
+mullw	r10,r10,r23		; Applies coef3 on col3 channels 1 & 3
+andi.	r29,r27,0xFF00		; Masks col3 channel 2 : 0x0000XX00
+mullw	r29,r29,r23		; Applies coef3 on col3 channel 2
+lwz	r2,0(r31)		; px
+add	r7 ,r8 ,r10		; Adds col3 to (col1 + col2) channels 1 & 3
+and	r10,r28,r12		; Masks col4 channels 1 & 3 : 0x00XX00XX
+mullw	r10,r10,r24		; Applies coef4 on col4 channels 1 & 3
+add	r25,r25,r29		; Adds col 3 to (col1 + col2) channel 2
+lwz 	r8,0(r30)    		; px2
+andi.	r28,r28,0xFF00		; Masks col4 channel 2 : 0x0000XX00
+add	r7 ,r7 ,r10		; Adds col4 to (col1 + col2 + col3) channels 1 & 3
+lwz	r10,4(r30)   		; py2
+mullw	r28,r28,r24		; Applies coef4 on col4 channel 2
+srawi	r7, r7, 8		; (sum of channels 1 & 3) >> 8
+lwz	r29,4(r31)              ; py
+add	r25,r25,r28		; Adds col 4 to (col1 + col2 + col3) channel 2
+rlwimi  r7, r25, 24, 16, 23	; (((sum of channels 2) >> 8 ) & 0x0000FF00) | ((sum of channels 1 and 3) & 0xFFFF00FF)
+stwu	r7,4(r6)		; Stores the computed pixel
+bdnz	L1			; Iterate again if needed
+b       L3	;goto end	; If not, returns from the function
 
 
 ; if out of range
-Loutofrange:
-stwu	r14,4(r4)
-dcbtst	r13,r4		;touch for store
-lwzu	r8,4(r30)    ; px2
-lwzu	r10,4(r30)   ; py2
-lwzu	r17,4(r31)   ; px
-bdnz+	1boucle
+L4:
+stwu	r18,4(r6)
+lwz	r8,0(r30)    ; px2
+lwz	r10,4(r30)   ; py2
+lwz	r2,0(r31)    ; px
+lwz	r29,4(r31)   ; py
+bdnz	L1
 
 
-Lend:		; Fin de la routine, on restore les registres utilisés entre 13 et 31
+L3:
 
-lwz r14,-76(r1)
-lwz r14,-72(r1)
-lwz r15,-68(r1)
-lwz r16,-64(r1)
-lwz r17,-60(r1)
-lwz r18,-56(r1)
-lwz r19,-52(r1)
-lwz r20,-48(r1)
-lwz r21,-44(r1)
-lwz r22,-40(r1)
-lwz r23,-36(r1)
-lwz r24,-32(r1)
-lwz r25,-28(r1)
-lwz r26,-24(r1)
-lwz r27,-20(r1)
-lwz r28,-16(r1)
-lwz r29,-12(r1)
-lwz r30,-8(r1)
-lwz r31,-4(r1)
+; Restore saved registers and return
+lmw	r18,-56(r1)
+blr
 
 
-blr		 ; et on retourne
+
+
+
+
+
+
+_ppc_zoom_G4:
+
+; Saves the used non volatile registers in the Mach-O stack s Red-Zone
+stmw 	r17,-60(r1)
+
+; init
+li      r18,0		; Default value if out of range : 0 (Black)
+mr      r11,r10
+lis     r12,0xFF
+mullw   r2,r3,r4	; Number of pixels to compute
+subi    r30,r8,0
+slwi	r20,r3,2
+srawi   r19,r20,2
+ori     r12,r12,0xFF
+subi    r3,r3,1
+subi    r4,r4,1
+mtspr	ctr,r2		; Init the loop count (one loop per pixel computed)
+subi    r31,r7,0
+subi    r6,r6,4
+slwi	r3,r3,4
+slwi	r4,r4,4
+
+;pre init for loop
+lwz	r2,0(r31)    ; px
+lwz	r29,4(r31)   ; py
+lwz	r8,0(r30)    ; px2
+lwz	r10,4(r30)   ; py2
+
+;*********************
+lis     r17,0x0F01
+
+L100:
+
+; computes dynamically the position to fetch
+;mullw   r8,r8,r29
+;mullw   r2,r2,r29
+;add     r2,r8,r2
+;srawi   r2,r2,17
+
+sub     r8,r8,r2
+sub     r10,r10,r29
+mullw   r8,r8,r9
+addi    r31,r31,8
+mullw   r10,r10,r9
+addi    r30,r30,8
+
+dst     r30,r17,0
+
+srawi    r8,r8,16
+srawi    r10,r10,16
+add     r2,r2,r8
+add     r29,r29,r10
+
+dst     r31,r17,1
+
+; if px>ax or py>ay goto outofrange
+; computes the attenuation coeffs and the original point address
+rlwinm  r10,r2,6,28-6,31-6 ; r10 <- (r2 << 2) & 0x000002D0   (r10=(r2%16)*4*16)
+cmpl    cr4,0,r2,r3
+rlwimi  r10, r29, 2, 28-2, 31-2 ; r10 <- ((r29 << 2) & 0x0000002D) | (r10 & !0x0000002D)      (r10=(r29%16)*4 | r10)
+cmpl    cr7,0,r29,r4
+srawi   r29,r29,4     ; pos computing
+bge-	cr4,L400
+srawi   r2,r2,4       ; pos computing
+mullw   r29, r29,r19  ; pos computing
+bge-	cr7,L400
+
+; Channels notation : 00112233 (AARRVVBB)
+
+add     r2,r2,r29    		; pos computing
+lwzx    r10,r11,r10		; Loads coefs
+slwi    r2,r2,2      		; pos computing
+add	r2,r2,r5     		; pos computing
+rlwinm  r21,r10,0,24,31	        ; Isolates coef1 (??????11 -> 00000011)
+lwz	r25,0(r2)		; Loads col1 -> r25
+lwz	r26,4(r2)		; Loads col2 -> r26
+rlwinm  r22,r10,24,24,31	; Isolates coef2 (????22?? -> 00000022)
+rlwinm  r23,r10,16,24,31	; Isolates coef3 (??33???? -> 00000033)
+add	r2,r2,r20		; Adds one line for future load of col3 and col4
+and	r8, r25,r12		; Masks col1 channels 1 & 3 : 0x00XX00XX
+rlwinm  r24,r10,8,24,31		; Isolates coef4 (44?????? -> 00000044)
+dst     r2,r17,2
+andi.	r25,r25,0xFF00		; Masks col1 channel 2 : 0x0000XX00
+mullw	r8, r8, r21		; Applies coef1 on col1 channels 1 & 3
+
+
+; computes final pixel color
+and	r10,r26,r12		; Masks col2 channels 1 & 3 : 0x00XX00XX
+lwz	r27,0(r2)		; Loads col3 -> r27
+mullw	r10,r10,r22		; Applies coef2 on col2 channels 1 & 3
+mullw	r25,r25,r21		; Applies coef1 on col1 channel 2
+andi.	r29,r26,0xFF00		; Masks col2 channel 2 : 0x0000XX00
+mullw	r29,r29,r22		; Applies coef2 on col2 channel 2
+lwz	r28,4(r2)		; Loads col4 -> r28
+add	r8 ,r8 ,r10		; Adds col1 & col2 channels 1 & 3
+and	r10,r27,r12		; Masks col3 channels 1 & 3 : 0x00XX00XX
+add	r25,r25,r29		; Adds col1 & col2 channel 2
+mullw	r10,r10,r23		; Applies coef3 on col3 channels 1 & 3
+andi.	r29,r27,0xFF00		; Masks col3 channel 2 : 0x0000XX00
+mullw	r29,r29,r23		; Applies coef3 on col3 channel 2
+lwz	r2,0(r31)		; px
+add	r7 ,r8 ,r10		; Adds col3 to (col1 + col2) channels 1 & 3
+and	r10,r28,r12		; Masks col4 channels 1 & 3 : 0x00XX00XX
+mullw	r10,r10,r24		; Applies coef4 on col4 channels 1 & 3
+add	r25,r25,r29		; Adds col 3 to (col1 + col2) channel 2
+lwz 	r8,0(r30)    		; px2
+andi.	r28,r28,0xFF00		; Masks col4 channel 2 : 0x0000XX00
+add	r7 ,r7 ,r10		; Adds col4 to (col1 + col2 + col3) channels 1 & 3
+lwz	r10,4(r30)   		; py2
+mullw	r28,r28,r24		; Applies coef4 on col4 channel 2
+srawi	r7, r7, 8		; (sum of channels 1 & 3) >> 8
+lwz	r29,4(r31)              ; py
+add	r25,r25,r28		; Adds col 4 to (col1 + col2 + col3) channel 2
+rlwimi  r7, r25, 24, 16, 23	; (((sum of channels 2) >> 8 ) & 0x0000FF00) | ((sum of channels 1 and 3) & 0xFFFF00FF)
+stwu	r7,4(r6)		; Stores the computed pixel
+bdnz	L100			; Iterate again if needed
+b       L300	;goto end	; If not, returns from the function
+
+
+; if out of range
+L400:
+stwu	r18,4(r6)
+lwz	r8,0(r30)    ; px2
+lwz	r10,4(r30)   ; py2
+lwz	r2,0(r31)    ; px
+lwz	r29,4(r31)   ; py
+bdnz	L100
+
+
+L300:
+
+; Restore saved registers and return
+lmw	r17,-60(r1)
+blr

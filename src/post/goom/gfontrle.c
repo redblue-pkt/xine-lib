@@ -1,5 +1,6 @@
 /* RGBA C-Source image dump (with zRLE compression) */
-static const struct {
+
+const struct {
   unsigned int width;
   unsigned int height;
   unsigned int bytes_per_pixel;

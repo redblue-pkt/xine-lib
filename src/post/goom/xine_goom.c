@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_goom.c,v 1.53 2004/05/29 14:45:26 mroi Exp $
+ * $Id: xine_goom.c,v 1.54 2004/06/27 11:58:47 mroi Exp $
  *
  * GOOM post plugin.
  *
@@ -39,8 +39,7 @@
 #include "xineutils.h"
 #include "post.h"
 
-#include "goom_config.h"
-#include "goom_core.h"
+#include "goom.h"
 
 #define NUMSAMPLES  512
 #define FPS          10
@@ -77,6 +76,9 @@ struct post_plugin_goom_s {
   
   /* private metronom for syncing the video */
   metronom_t        *metronom;
+  
+  /* goom context */
+  PluginInfo        *goom;
   
   int data_idx;
   gint16 data [2][512];
@@ -269,7 +271,7 @@ static post_plugin_t *goom_open_plugin(post_class_t *class_gen, int inputs,
   this->width_back  = this->width;
   this->height_back = this->height;
 
-  goom_init (this->width_back, this->height_back, 0);
+  this->goom = goom_init (this->width_back, this->height_back);
 
   this->ratio = (double)this->width_back/(double)this->height_back;
 
@@ -320,7 +322,7 @@ static void goom_dispose(post_plugin_t *this_gen)
   if (_x_post_dispose(this_gen)) {
     this->class->ip = NULL;
 
-    goom_close();
+    goom_close(this->goom);
 
     this->metronom->exit(this->metronom);
 
@@ -470,7 +472,7 @@ static void goom_port_put_buffer (xine_audio_port_t *port_gen,
 
       if (!this->skip_frame) {
         /* Try to be fast */
-        goom_frame = (uint8_t *)goom_update (this->data, 0, 0, NULL, NULL);
+        goom_frame = (uint8_t *)goom_update (this->goom, this->data, 0, 0, NULL, NULL);
 
         dest_ptr = frame -> base[0];
         goom_frame_end = goom_frame + 4 * (this->width_back * this->height_back);
@@ -540,8 +542,8 @@ static void goom_port_put_buffer (xine_audio_port_t *port_gen,
       width  = this->width;
       height = this->height;
       if ((width != this->width_back) || (height != this->height_back)) {
-          goom_close();
-          goom_init (this->width, this->height, 0);
+          goom_close(this->goom);
+          this->goom = goom_init (this->width, this->height);
           this->width_back = width;
           this->height_back = height;
 	  this->ratio = (double)width/(double)height;

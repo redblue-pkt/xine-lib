@@ -8,17 +8,15 @@
 #include <stdio.h>
 #include "goom_tools.h"
 #include "drawmethods.h"
+#include "goom_plugin_info.h"
 
-extern unsigned int resolx, c_resoly;
-
-static inline unsigned char
-lighten (unsigned char value, float power)
+static inline unsigned char lighten (unsigned char value, float power)
 {
 	int     val = value;
 	float   t = (float) val * log10(power) / 2.0;
 
 	if (t > 0) {
-		val = (int) t; // (32.0f * log (t));
+		val = (int) t; /* (32.0f * log (t)); */
 		if (val > 255)
 			val = 255;
 		if (val < 0)
@@ -30,8 +28,7 @@ lighten (unsigned char value, float power)
 	}
 }
 
-static void
-lightencolor (int *col, float power)
+static void lightencolor (guint32 *col, float power)
 {
 	unsigned char *color;
 
@@ -106,8 +103,6 @@ void
 goom_lines_set_res (GMLine * gml, int rx, int ry)
 {
 	if (gml != NULL) {
-		//int     i;
-
 		gml->screenX = rx;
 		gml->screenY = ry;
 
@@ -144,11 +139,11 @@ goom_lines_move (GMLine * l)
 	l->power += l->powinc;
 	if (l->power < 1.1f) {
 		l->power = 1.1f;
-		l->powinc = (float) (iRAND (20) + 10) / 300.0f;
+		l->powinc = (float) (goom_irand(l->goomInfo->gRandom,20) + 10) / 300.0f;
 	}
 	if (l->power > 17.5f) {
 		l->power = 17.5f;
-		l->powinc = -(float) (iRAND (20) + 10) / 300.0f;
+		l->powinc = -(float) (goom_irand(l->goomInfo->gRandom,20) + 10) / 300.0f;
 	}
 
 	l->amplitude = (99.0f * l->amplitude + l->amplitudeF) / 100.0f;
@@ -163,20 +158,17 @@ goom_lines_switch_to (GMLine * gml, int IDdest,
 	gml->param = param;
 	gml->amplitudeF = amplitude;
 	gml->color2 = getcouleur (col);
-//  printf ("couleur %d : %x\n",col,gml->color2);
 }
 
 GMLine *
-goom_lines_init (int rx, int ry,
-								 int IDsrc, float paramS, int coulS,
-								 int IDdest, float paramD, int coulD)
+goom_lines_init (PluginInfo *goomInfo, int rx, int ry,
+		 int IDsrc, float paramS, int coulS,
+		 int IDdest, float paramD, int coulD)
 {
-	//int     i;
-	//unsigned char *color;
-	//unsigned char power = 4;
-
 	GMLine *l = (GMLine *) malloc (sizeof (GMLine));
 
+	l->goomInfo = goomInfo;
+	
 	l->points = (GMUnitPointer *) malloc (512 * sizeof (GMUnitPointer));
 	l->points2 = (GMUnitPointer *) malloc (512 * sizeof (GMUnitPointer));
 	l->nbPoints = 512;
@@ -211,8 +203,7 @@ goom_lines_free (GMLine ** l)
 	l = NULL;
 }
 
-void
-goom_lines_draw (GMLine * line, gint16 data[512], unsigned int *p)
+void goom_lines_draw (PluginInfo *plug, GMLine * line, gint16 data[512], Pixel *p)
 {
 	if (line != NULL) {
 		int     i, x1, y1;
@@ -237,8 +228,7 @@ goom_lines_draw (GMLine * line, gint16 data[512], unsigned int *p)
 			x2 = (int) (pt->x + cosa * line->amplitude * data[i]);
 			y2 = (int) (pt->y + sina * line->amplitude * data[i]);
 
-			draw_line (p, x1, y1, x2, y2, color, line->screenX, line->screenY);
-			DRAWMETHOD_DONE ();
+			plug->methods.draw_line (p, x1, y1, x2, y2, color, line->screenX, line->screenY);
 
 			x1 = x2;
 			y1 = y2;

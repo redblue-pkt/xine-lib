@@ -8,12 +8,16 @@
 #include "mathtools.h"
 
 typedef struct {
-	float x,y,z;
+    float x,y,z;
 } v3d;
 
 typedef struct {
-	int x,y;
+    int x,y;
 } v2d;
+
+typedef struct {
+    double x,y;
+} v2g;
 
 /* 
  * projete le vertex 3D sur le plan d'affichage
@@ -23,7 +27,7 @@ typedef struct {
  */
 #define V3D_TO_V2D(v3,v2,width,height,distance) \
 { \
-	int Xp, Yp; \
+  int Xp, Yp; \
   if (v3.z > 2) { \
 	 F2I((distance * v3.x / v3.z),Xp) ; \
  	 F2I((distance * v3.y / v3.z),Yp) ; \
@@ -32,6 +36,8 @@ typedef struct {
   } \
   else v2.x=v2.y=-666; \
 }
+
+void v3d_to_v2d(v3d *src, int nbvertex, int width, int height, float distance, v2d *v2_array);
 
 /*
  * rotation selon Y du v3d vi d'angle a (cosa=cos(a), sina=sin(a))

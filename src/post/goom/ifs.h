@@ -6,30 +6,22 @@
 #define IFS_H
 
 #include "goom_config.h"
+#include "goom_graphic.h"
+#include "goom_plugin_info.h"
+#include "goom_visual_fx.h"
 
-typedef struct _ifsPoint
-{
-	gint32  x, y;
-}
-IFSPoint;
+VisualFX ifs_visualfx_create();
 
-// init ifs for a (width)x(height) output.
-void    init_ifs (int width, int height);
+/* init ifs for a (width)x(height) output. * /
+void init_ifs (PluginInfo *goomInfo, int width, int height);
 
-// draw an ifs on the buffer (which size is width * height)
-// increment means that we draw 1/increment of the ifs's points
-void    ifs_update (guint32 * buffer, guint32 * back, int width, int height,
-										int increment);
+/ * draw an ifs on the buffer (which size is width * height)
+   increment means that we draw 1/increment of the ifs's points * /
+void ifs_update (PluginInfo *goomInfo, Pixel * buffer, Pixel * back, int width, int height, int increment);
 
-// free all ifs's data.
-void    release_ifs (void);
-
-
-/* DONT USE !!! deprecated
- * return a an array of points.
- * WARNING !!! do not free it !!! it also has an internal use..
- */
-IFSPoint *draw_ifs (int *nbPoints);
+/ * free all ifs's data. * /
+void release_ifs ();
+*/
 
 
 #endif

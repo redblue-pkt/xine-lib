@@ -1,14 +1,9 @@
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
 
-#include <inttypes.h>
-
-/* #define VERSION "1.9dev5" */
-/* #define _DEBUG */
+//#define VERSION "1.9.2"
+//#define _DEBUG
 
 #define COLOR_BGRA
-/* #define COLOR_ARGB */
+//#define COLOR_ARGB
 
 #ifdef COLOR_BGRA
 /** position des composantes **/
@@ -24,30 +19,21 @@
 #endif
 		
 
-/*  target */
-#define XMMS_PLUGIN
-/* #define STANDALONE */
+// target
+//#define XMMS_PLUGIN
+#define STANDALONE
 
-/*  for pc users with mmx processors. */
-#if 0
-#ifdef ARCH_X86
-#define HAVE_MMX
-#endif
-#endif
+//#define POWERPC
 
-#ifdef ARCH_PPC
-/*
-#define POWERPC
-*/
-#endif
+#define HAVE_ATHLON
 
-/* #define VERBOSE */
+//#define VERBOSE
 
 #ifndef guint32
-#define guint8  uint8_t
-#define guin16  uint16_t
-#define guint32 uint32_t
-#define gint8   int8_t
-#define gint16  int16_t
-#define gint32  int32_t
+#define guint8 unsigned char
+#define guin16 unsigned short
+#define guint32 unsigned int
+#define gint8 signed char
+#define gint16 signed short int
+#define gint32 signed int
 #endif
