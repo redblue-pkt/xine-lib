@@ -2,7 +2,7 @@
 %define name       libxine1
 %define version    @SPEC_VERSION@
 %define dirversion 1.0.0
-%define release    0.pm.0
+%define release    0
 
 %define major      1
 %define libname    %{shortname}%{major}
@@ -413,7 +413,7 @@ libxine Sound-/Videoeinabeplugin für ogg/theora-Dateien
 #%ifarch i386 i486 i586 i686 i786 i868 i986 k6 k7 athlon
 #%package xvmc
 #Summary:        libxine video output plugin using XVideo-extension with motion compensation
-#Summary:        libxine Videoausgabeplugin per XVideo-Erweiterung mit Motion Compensation
+#Summary(de):    libxine Videoausgabeplugin per XVideo-Erweiterung mit Motion Compensation
 #Group:          Development/Libraries
 #Obsoletes:      libxine0-xvmc
 #
@@ -449,8 +449,7 @@ libxine-Purkulisdke, joka mahdollistaa Win32 DLL:n kdytvn.
 %setup -q -n @TAR_NAME@
 
 %build
-# following line doesn't work with all systems/gcc versions
-# export CFLAGS="-O3 -march=pentium3 -mfpmath=sse,387 -mmmx -msse -mno-3dnow -mno-sse2 -funroll-loops -fomit-frame-pointer -foptimize-sibling-calls -minline-all-stringops -malign-double -m128bit-long-double"
+export CFLAGS="${RPM_OPT_FLAGS}"
 
 if [ ! -f configure ]; then
    NO_CONFIGURE=1 ./autogen.sh
@@ -636,7 +635,7 @@ rm ${RPM_BUILD_DIR}/filelist_libxine1_old
 %endif
 
 %clean
-#rm -rf $RPM_BUILD_ROOT
+rm -rf ${RPM_BUILD_ROOT}
 
 %post -p /sbin/ldconfig
 %postun -p /sbin/ldconfig
