@@ -10,10 +10,7 @@ lib_LTLIBRARIES = libxine.la
 libxine_la_SOURCES = xine.c metronom.c configfile.c buffer.c \
 	load_plugins.c video_decoder.c \
 	audio_decoder.c video_out.c audio_out.c resample.c events.c lrb.c
-libxine_la_LIBADD = $(top_builddir)/src/xine-utils/libxineutils.la\
-	$(THREAD_LIBS) \
-	$(DYNAMIC_LD_LIBS) \
-	-lm 
+libxine_la_LIBADD = $(THREAD_LIBS) $(DYNAMIC_LD_LIBS) -lm 
 
 libxine_la_LDFLAGS =  \
 	-version-info $(LT_CURRENT):$(LT_REVISION):$(LT_AGE) \
@@ -24,9 +21,6 @@ include_HEADERS  = buffer.h metronom.h configfile.h \
 	events.h lrb.h
 
 noinst_HEADERS = bswap.h
-
-$(top_builddir)/src/xine-utils/libxineutils.la:
-	@cd $(top_builddir)/src/xine-utils && make libxineutils.la
 
 debug:
 	@$(MAKE) CFLAGS="$(DEBUG_CFLAGS)"
