@@ -17,12 +17,11 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg.c,v 1.116 2003/04/29 18:43:18 miguelfreitas Exp $
+ * $Id: demux_mpeg.c,v 1.117 2003/05/02 20:48:35 miguelfreitas Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  * reads streams of variable blocksizes
  *
- * currently only used for mpeg-1-files
  *
  */
 
@@ -1025,39 +1024,17 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
     input->seek(input, 0, SEEK_SET);
     if (input->read(input, buf, 16) == 16) {
 
-      if(!buf[0] && !buf[1] && (buf[2] == 0x01)) {
+      /*
+       * look for mpeg header
+       */
+      
+      if (!buf[0] && !buf[1] && (buf[2] == 0x01) 
+	  && (buf[3] == 0xba)) /* if so, take it */
+	break;
 
-	switch(buf[3]) {
-	case 0xba:
-          if((buf[4] & 0xf0) == 0x20) {
-            uint32_t pckbuf ;
-
-	    pckbuf = read_bytes (this, 1);
-	    if ((pckbuf>>4) != 4) {
-	      ok = 1;
-	      break;
-	    }
-	  }
-	  break;
-#if 0
-	case 0xe0:
-	  if((buf[6] & 0xc0) != 0x80) {
-	    uint32_t pckbuf ;
-	    
-	    pckbuf = read_bytes (this, 1);
-	    if ((pckbuf>>4) != 4) {
-	      ok = 1;
-	      break;
-	    }
-	  }
-	  break;
-#endif
-        }
-      }
+      free (this);
+      return NULL;
     }
-
-    if (ok)
-      break;
 
     /* special case for MPEG streams hidden inside QT files; check
      * is there is an mdat atom  */
@@ -1073,24 +1050,10 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
       /* go through the same MPEG detection song and dance */
       if (input->read(input, buf, 6)) {
 
-	if (!buf[0] && !buf[1] && buf[2] == 0x01) {
-	  switch (buf[3]) {
-	  case 0xba:
-	    if ((buf[4] & 0xf0) == 0x20) {
-	      uint32_t pckbuf ;
-
-	      pckbuf = read_bytes (this, 1);
-	      if ((pckbuf>>4) != 4) {
-		ok = 1;
-	      }
-	    }
-	    break;
-	  }
-	}
-      }
-
-      if (ok)
+        if (!buf[0] && !buf[1] && (buf[2] == 0x01) 
+	    && (buf[3] == 0xba)) /* if so, take it */
 	  break;
+      }
 
       free (this);
       return NULL;

@@ -17,9 +17,10 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.174 2003/04/29 18:43:20 miguelfreitas Exp $
+ * $Id: demux_mpeg_block.c,v 1.175 2003/05/02 20:48:35 miguelfreitas Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
+ * used with fixed blocksize devices (like dvd/vcd)
  *
  */
  
@@ -1119,14 +1120,12 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
     
   case METHOD_BY_CONTENT: {
 
-#if 0 /* use demux_mpeg_block for vob files (performance reasons) */
     /* use demux_mpeg for non-block devices */
     if (!(input->get_capabilities(input) & INPUT_CAP_BLOCK)) {
       free (this->scratch_base);
       free (this);
       return NULL;
     }
-#endif
 
     if (((input->get_capabilities(input) & INPUT_CAP_SEEKABLE) != 0) ) {
 
