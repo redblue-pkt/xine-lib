@@ -452,7 +452,7 @@ static tuner_t *tuner_init(xine_t * xine, int adapter)
 }
 
 
-static void dvb_set_pidfilter(dvb_input_plugin_t * this, int filter, ushort pid, int pidtype, int taptype)
+static int dvb_set_pidfilter(dvb_input_plugin_t * this, int filter, ushort pid, int pidtype, int taptype)
 {
     tuner_t *tuner = this->tuner;
 
@@ -467,8 +467,11 @@ static void dvb_set_pidfilter(dvb_input_plugin_t * this, int filter, ushort pid,
     tuner->pesFilterParams[filter].pes_type = pidtype;
     tuner->pesFilterParams[filter].flags = DMX_IMMEDIATE_START;
     if (ioctl(tuner->fd_pidfilter[filter], DMX_SET_PES_FILTER, &tuner->pesFilterParams[filter]) < 0)
+    {
 	   xprintf(tuner->xine, XINE_VERBOSITY_DEBUG, "input_dvb: set_pid: %s\n", strerror(errno));
-
+	   return 0;
+    }
+    return 1;
 }
 
 
@@ -917,7 +920,14 @@ static void dvb_parse_si(dvb_input_plugin_t *this) {
   xprintf(this->stream->xine,XINE_VERBOSITY_DEBUG,"input_dvb: Setting up Internal PAT filter\n");
 
   /* first - the PAT */  
-  dvb_set_pidfilter (this, INTERNAL_FILTER, 0, DMX_PES_OTHER, DMX_OUT_TAP);
+  if(dvb_set_pidfilter (this, INTERNAL_FILTER, 0, DMX_PES_OTHER, DMX_OUT_TAP)==0)
+  {
+    xprintf(this->stream->xine,XINE_VERBOSITY_LOG,"input_dvb: Error up Internal PAT filter - reverting to rc6 hehaviour\n");
+    dvb_set_pidfilter (this,VIDFILTER,this->channels[this->channel].pid[VIDFILTER], DMX_PES_OTHER, DMX_OUT_TS_TAP);
+    dvb_set_pidfilter (this,AUDFILTER,this->channels[this->channel].pid[AUDFILTER], DMX_PES_OTHER, DMX_OUT_TS_TAP);
+    return;
+  }
+
   /* wait for up to 15 seconds */
   if(poll(&pfd,1,15000)<1) /* PAT timed out - weird, but we'll default to using channels.conf info */
   {
