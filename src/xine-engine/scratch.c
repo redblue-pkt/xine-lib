@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: scratch.c,v 1.4 2001/12/11 23:59:00 f1rmb Exp $
+ * $Id: scratch.c,v 1.5 2002/01/13 21:15:48 jcdutton Exp $
  *
  * top-level xine functions
  *
@@ -29,6 +29,7 @@
 
 #include <stdio.h>
 #include <stdarg.h>
+#include <string.h>  /* For memset */
 
 #include "scratch.h"
 #include "xineutils.h"

@@ -641,7 +641,7 @@ static void abort_mmx_missing(void)
 {
   printf("deinterlace: Fatal error, MMX instruction set needed!\n");
   /* FIXME: is it possible to call some "nicer" xine exit function? */
-  exit(1);
+  _exit(1);
 }
 
 /* generic YUV deinterlacer

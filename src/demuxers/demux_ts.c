@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ts.c,v 1.34 2002/01/09 20:20:45 jcdutton Exp $
+ * $Id: demux_ts.c,v 1.35 2002/01/13 21:15:48 jcdutton Exp $
  *
  * Demultiplexer for MPEG2 Transport Streams.
  *
@@ -728,7 +728,7 @@ static void demux_ts_parse_pmt (demux_ts      *this,
     return;
   }
 
-#ifdef TS_PMT LOG
+#ifdef TS_PMT_LOG
   printf ("ts_demux: have all TS packets for the PMT section\n");
 #endif
 

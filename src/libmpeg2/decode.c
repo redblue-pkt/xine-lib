@@ -44,6 +44,8 @@
 
 mpeg2_config_t config;
 
+static void process_userdata(mpeg2dec_t *mpeg2dec, uint8_t *buffer);
+
 void mpeg2_init (mpeg2dec_t * mpeg2dec, 
 		 vo_instance_t * output)
 {

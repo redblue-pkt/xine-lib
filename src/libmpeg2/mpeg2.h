@@ -65,4 +65,7 @@ void mpeg2_find_sequence_header (mpeg2dec_t * mpeg2dec,
 
 void mpeg2_flush (mpeg2dec_t * mpeg2dec);
 
-void process_userdata(mpeg2dec_t *mpeg2dec, uint8_t *buffer);
+/* Not needed, it is defined as static in decode.c, and no-one else called it
+ * currently
+ */
+/* void process_userdata(mpeg2dec_t *mpeg2dec, uint8_t *buffer); */
