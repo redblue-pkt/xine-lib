@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.23 2002/01/15 17:30:51 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.24 2002/01/18 01:24:59 miguelfreitas Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -74,6 +74,7 @@ typedef struct ff_decoder_s {
   unsigned char     *buf;
   int               bufsize;
   int               size;
+  int               skipframes;
 
   AVPicture         av_picture;
   AVCodecContext    context;
@@ -209,6 +210,8 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
     this->buf = malloc( VIDEOBUFSIZE );
     this->bufsize = VIDEOBUFSIZE;
     
+    this->skipframes = 0;
+    
   } else if (this->decoder_ok) {
 
     if( this->size + buf->size > this->bufsize ) {
@@ -249,8 +252,9 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 					VO_BOTH_FIELDS);
 
       img->PTS = buf->PTS;
-      if (len<0) {
-	printf ("ffmpeg: error decompressing frame\n");
+      if (len<0 || this->skipframes) {
+	if( !this->skipframes )
+	  printf ("ffmpeg: error decompressing frame\n");
 	img->bad_frame = 1;
       } else {
 	img->bad_frame = 0;
@@ -330,7 +334,10 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 	  }
 	}
       }
-      img->draw(img);
+      
+      this->skipframes = img->draw(img);
+      if( this->skipframes < 0 )
+        this->skipframes = 0;
       img->free(img);
       
       this->size = 0;
