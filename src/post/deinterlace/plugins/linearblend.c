@@ -42,10 +42,10 @@ static void deinterlace_scanline_linear_blend( uint8_t *output,
                                                deinterlace_scanline_data_t *data,
                                                int width )
 {
-#ifdef ARCH_X86
     uint8_t *t0 = data->t0;
     uint8_t *b0 = data->b0;
     uint8_t *m1 = data->m1;
+#ifdef ARCH_X86
     int i;
 
     // Get width in bytes.
@@ -90,10 +90,15 @@ static void deinterlace_scanline_linear_blend( uint8_t *output,
         m1 += 8;
     }
     while( width-- ) {
-        *output++ = (*t0++ + *b0++ + (2 * *m1++))>>2;
+        *output++ = (*t0++ + *b0++ + (*m1++ << 1)) >> 2;
     }
     sfence();
     emms();
+#else
+    width *= 2;
+    while( width-- ) {
+        *output++ = (*t0++ + *b0++ + (*m1++ << 1)) >> 2;
+    }
 #endif
 }
 
@@ -101,10 +106,11 @@ static void deinterlace_scanline_linear_blend2( uint8_t *output,
                                                 deinterlace_scanline_data_t *data,
                                                 int width )
 {
-#ifdef ARCH_X86
     uint8_t *m0 = data->m0;
     uint8_t *t1 = data->t1;
     uint8_t *b1 = data->b1;
+
+#ifdef ARCH_X86
     int i;
 
     // Get width in bytes.
@@ -149,10 +155,15 @@ static void deinterlace_scanline_linear_blend2( uint8_t *output,
         m0 += 8;
     }
     while( width-- ) {
-        *output++ = (*t1++ + *b1++ + (2 * *m0++))>>2;
+        *output++ = (*t1++ + *b1++ + (*m0++ << 1)) >> 2;
     }
     sfence();
     emms();
+#else
+    width *= 2;
+    while( width-- ) {
+        *output++ = (*t1++ + *b1++ + (*m0++ << 1)) >> 2;
+    }
 #endif
 }
 
@@ -163,7 +174,11 @@ static deinterlace_method_t linearblendmethod =
     "mplayer: Linear Blend",
     "LinearBlend",
     2,
+#ifdef ARCH_X86
     MM_ACCEL_X86_MMX,
+#else
+    0,
+#endif
     0,
     0,
     0,
@@ -181,4 +196,3 @@ void linearblend_plugin_init( void )
 {
     register_deinterlace_method( &linearblendmethod );
 }
-
