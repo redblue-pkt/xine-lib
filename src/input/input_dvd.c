@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.54 2002/08/09 07:34:47 richwareham Exp $
+ * $Id: input_dvd.c,v 1.55 2002/08/09 13:50:17 heikos Exp $
  *
  */
 
@@ -64,14 +64,9 @@
 #endif
 
 /* Xine includes */
-#include <xine/xineutils.h>
-#include <xine/buffer.h>
-#include <xine/input_plugin.h>
-#include <xine/video_out.h>
-#include <xine/events.h>
-#include <xine/metronom.h>
-#include <xine/spu_decoder_api.h>
-#include <xine/xine_internal.h>
+#include <xineutils.h>
+#include <buffer.h>
+#include <xine_internal.h>
 
 /* DVDNAV includes */
 #include <dvdnav.h>
@@ -1398,6 +1393,9 @@ input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
 
 /*
  * $Log: input_dvd.c,v $
+ * Revision 1.55  2002/08/09 13:50:17  heikos
+ * seems to compile better this way :)
+ *
  * Revision 1.54  2002/08/09 07:34:47  richwareham
  * More include fixes
  *
