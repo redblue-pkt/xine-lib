@@ -1,7 +1,7 @@
 #!/bin/sh
 # run this to generate all the initial makefiles, etc.
 
-PROG=gnome-xine
+PROG=xine-lib
 
 # Check how echo works in this /bin/sh
 case `echo -n` in
@@ -70,10 +70,10 @@ run_libtoolize() {
 # AUTOMAKE
 #--------------------
 detect_automake() {
-  if [ -f `which automake-1.6` ]; then
+  if [ `which automake-1.6` -a -f `which automake-1.6` ]; then
     automake_1_6x=yes
   else
-    if [ -f `which automake` ]; then
+    if [ `which automake` -a -f `which automake` ]; then
       AM="`automake --version | sed -n 1p | sed -e 's/[a-zA-Z\ \.\(\)\-]//g'`"
       if test $AM -lt 100 ; then
         AM=`expr $AM \* 10`
@@ -92,14 +92,14 @@ detect_automake() {
 }
 
 run_automake () {
-  if test x"$automake_1_6x" = x"no"; then
+  if test x"$automake_1_6x" != x"yes"; then
     echo "Warning: automake < 1.6. Some warning message might occur from automake"
     echo
   fi
 
   echo $_echo_n " + Running automake: $_echo_c";
 
-  if test x"$automake_1_6x" = "xyes"; then
+  if test x"$automake_1_6x" = x"yes"; then
     automake-1.6 --gnu --add-missing --copy;
   else
     automake --gnu --add-missing --copy;
@@ -113,10 +113,10 @@ run_automake () {
 detect_aclocal() {
 
   # if no automake, don't bother testing for aclocal
-  if [ -f `which aclocal-1.6` ]; then
+  if [ `which aclocal-1.6` -a -f `which aclocal-1.6` ]; then
     aclocal_1_6x=yes
   else
-    if [ -f `which aclocal` ]; then
+    if [ `which aclocal` -a -f `which aclocal` ]; then
       AC="`aclocal --version | sed -n 1p | sed -e 's/[a-zA-Z\ \.\(\)\-]//g'`"
       if test $AC -lt 100 ; then
         AC=`expr $AC \* 10`
