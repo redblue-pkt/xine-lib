@@ -23,8 +23,15 @@
  * formats that various entities have created. Details about the data
  * formats can be found here:
  *   http://www.pcisys.net/~melanson/codecs/
+ * CD-ROM/XA ADPCM decoder by Stuart Caie (kyzer@4u.net)
+ * - based on information in the USENET post by Jac Goudsmit (jac@codim.nl)
+ *   <01bbc34c$dbf64020$f9c8a8c0@cray.codim.nl>
+ * - tested for correctness using Jon Atkins's CDXA software:
+ *   http://jonatkins.org/cdxa/
+ *   this is also useful for extracting streams from Playstation discs
  *
- * $Id: adpcm.c,v 1.28 2003/02/14 00:55:52 miguelfreitas Exp $
+ *
+ * $Id: adpcm.c,v 1.29 2003/02/14 04:32:28 tmmm Exp $
  */
 
 #include <stdio.h>
@@ -83,6 +90,10 @@ static int ea_adpcm_table[] = {
   3, 4, 7, 8, 10, 11, 0, -1, -3, -4
 };
 
+static int xa_adpcm_table[] = {
+  0, 240, 460, 392, 0, 0, -208, -220
+};
+
 #define QT_IMA_ADPCM_PREAMBLE_SIZE 2
 #define QT_IMA_ADPCM_BLOCK_SIZE 0x22
 #define QT_IMA_ADPCM_SAMPLES_PER_BLOCK \
@@ -133,6 +144,12 @@ typedef struct adpcm_decoder_s {
   unsigned short   *decode_buffer;
   unsigned int      in_block_size;
   unsigned int      out_block_size;  /* size in samples (2 bytes/sample) */
+
+  int              xa_mode; /* 1 for mode A, 0 for mode B or mode C */
+  int              xa_p_l;  /* previous sample, left/mono channel */
+  int              xa_p_r;  /* previous sample, right channel */
+  int              xa_pp_l; /* 2nd-previous sample, left/mono channel */
+  int              xa_pp_r; /* 2nd-previous sample, right channel */
 
 } adpcm_decoder_t;
 
@@ -1147,6 +1164,202 @@ static void dialogic_ima_decode_block(adpcm_decoder_t *this, buf_element_t *buf)
   this->size = 0;
 }
 
+
+static void xa_adpcm_decode_block(adpcm_decoder_t *this, buf_element_t *buf) {
+  int32_t p_l, pp_l, coeff_p_l, coeff_pp_l, range_l;
+  int32_t p_r, pp_r, coeff_p_r, coeff_pp_r, range_r;
+  int32_t snd_group, snd_unit, snd_data, samp, i, j;
+  uint8_t *inp;
+
+  /* restore decoding history */
+  p_l  = this->xa_p_l; pp_l = this->xa_pp_l;
+  p_r  = this->xa_p_r; pp_r = this->xa_pp_r;
+
+  inp = &this->buf[0];
+  j = 0;
+
+  if (this->xa_mode) {
+    if (this->channels == 2) {
+      /* mode A (8 bits per sample / 4 sound units) stereo
+       * - sound units 0,2 are left channel, 1,3 are right channel
+       * - sound data (8 bits) is shifted left to 16-bit border, then
+       *   shifted right by the range parameter, therefore it's shifted
+       *   (8-range) bits left.
+       * - two coefficients tables (4 entries each) are merged into one
+       * - coefficients are multiples of 1/256, so '>> 8' is applied
+       *   after multiplication to get correct answer.
+       */
+      for (snd_group = 0; snd_group < 18; snd_group++, inp += 128) {
+	for (snd_unit = 0; snd_unit < 4; snd_unit += 2) {
+	  /* get left channel coeffs and range */
+	  coeff_p_l  = xa_adpcm_table[((inp[snd_unit] >> 4) & 0x3)];
+	  coeff_pp_l = xa_adpcm_table[((inp[snd_unit] >> 4) & 0x3) + 4];
+	  range_l    = 8 - (inp[snd_unit] & 0xF);
+
+	  /* get right channel coeffs and range */
+	  coeff_p_r  = xa_adpcm_table[((inp[snd_unit+1] >> 4) & 0x3)];
+	  coeff_pp_r = xa_adpcm_table[((inp[snd_unit+1] >> 4) & 0x3) + 4];
+	  range_r    = 8 - (inp[snd_unit+1] & 0xF);
+
+	  for (snd_data = 0; snd_data < 28; snd_data++) {
+	    /* left channel */
+	    samp = ((signed char *)inp)[16 + (snd_data << 2) + snd_unit];
+	    samp <<= range_l;
+	    samp += (coeff_p_l * p_l + coeff_pp_l * pp_l) >> 8;
+	    CLAMP_S16(samp);
+	    pp_l = p_l;
+	    p_l = samp;
+	    this->decode_buffer[j++] = (unsigned short) samp;
+
+	    /* right channel */
+	    samp = ((signed char *)inp)[16 + (snd_data << 2) + snd_unit+1];
+	    samp <<= range_r;
+	    samp += (coeff_p_r * p_r + coeff_pp_r * pp_r) >> 8;
+	    CLAMP_S16(samp);
+	    pp_r = p_r;
+	    p_r = samp;
+	    this->decode_buffer[j++] = (unsigned short) samp;
+	  }
+	}
+      }
+    }
+    else {
+      /* mode A (8 bits per sample / 4 sound units) mono
+       * - other details as before
+       */
+      for (snd_group = 0; snd_group < 18; snd_group++, inp += 128) {
+	for (snd_unit = 0; snd_unit < 4; snd_unit++) {
+	  /* get coeffs and range */
+	  coeff_p_l  = xa_adpcm_table[((inp[snd_unit] >> 4) & 0x3)];
+	  coeff_pp_l = xa_adpcm_table[((inp[snd_unit] >> 4) & 0x3) + 4];
+	  range_l    = 8 - (inp[snd_unit] & 0xF);
+
+	  for (snd_data = 0; snd_data < 28; snd_data++) {
+	    samp = ((signed char *)inp)[16 + (snd_data << 2) + snd_unit];
+	    samp <<= range_l;
+	    samp += (coeff_p_l * p_l + coeff_pp_l * pp_l) >> 8;
+	    CLAMP_S16(samp);
+	    pp_l = p_l; p_l = samp;
+	    this->decode_buffer[j++] = (unsigned short) samp;
+	  }
+	}
+      }
+    }
+  }
+  else {
+    if (this->channels == 2) {
+      /* mode B/C (4 bits per sample / 8 sound units) stereo
+       * - sound units 0,2,4,6 are left channel, 1,3,5,7 are right channel
+       * - sound parameters 0-7 are stored as 16 bytes in the order
+       *   "0123012345674567", so inp[x+4] gives sound parameter x while
+       *   inp[x] doesn't.
+       * - sound data (4 bits) is shifted left to 16-bit border, then
+       *   shifted right by the range parameter, therefore it's shifted
+       *   (12-range) bits left.
+       * - other details as before
+       */
+      for (snd_group = 0; snd_group < 18; snd_group++, inp += 128) {
+	for (snd_unit = 0; snd_unit < 8; snd_unit += 2) {
+	  /* get left channel coeffs and range */
+	  coeff_p_l  = xa_adpcm_table[((inp[snd_unit+4] >> 4) & 0x3)];
+	  coeff_pp_l = xa_adpcm_table[((inp[snd_unit+4] >> 4) & 0x3) + 4];
+	  range_l    = 12 - (inp[snd_unit+4] & 0xF);
+
+	  /* get right channel coeffs and range */
+	  coeff_p_r  = xa_adpcm_table[((inp[snd_unit+5] >> 4) & 0x3)];
+	  coeff_pp_r = xa_adpcm_table[((inp[snd_unit+5] >> 4) & 0x3) + 4];
+	  range_r    = 12 - (inp[snd_unit+5] & 0xF);
+
+	  for (snd_data = 0; snd_data < 28; snd_data++) {
+	    /* left channel */
+	    samp = (inp[16 + (snd_data << 2) + (snd_unit >> 1)]) & 0xF;
+	    SE_4BIT(samp);
+	    samp <<= range_l;
+	    samp += (coeff_p_l * p_l + coeff_pp_l * pp_l) >> 8;
+	    CLAMP_S16(samp);
+	    pp_l = p_l;
+	    p_l = samp;
+	    this->decode_buffer[j++] = (unsigned short) samp;
+
+	    /* right channel */
+	    samp = (inp[16 + (snd_data << 2) + (snd_unit >> 1)] >> 4) & 0xF;
+	    SE_4BIT(samp);
+	    samp <<= range_r;
+	    samp += (coeff_p_r * p_r + coeff_pp_r * pp_r) >> 8;
+	    CLAMP_S16(samp);
+	    pp_r = p_r;
+	    p_r = samp;
+	    this->decode_buffer[j++] = (unsigned short) samp;
+	  }
+	}
+      }
+    }
+    else {
+      /* mode B or C (4 bits per sample / 8 sound units) mono
+       * - other details as before
+       */
+      for (snd_group = 0; snd_group < 18; snd_group++, inp += 128) {
+	for (snd_unit = 0; snd_unit < 8; snd_unit++) {
+	  /* get coeffs and range */
+	  coeff_p_l  = xa_adpcm_table[((inp[snd_unit+4] >> 4) & 0x3)];
+	  coeff_pp_l = xa_adpcm_table[((inp[snd_unit+4] >> 4) & 0x3) + 4];
+	  range_l    = 12 - (inp[snd_unit+4] & 0xF);
+
+	  for (snd_data = 0; snd_data < 28; snd_data++) {
+	    samp = inp[16 + (snd_data << 2) + (snd_unit >> 1)];
+	    if (snd_unit & 1) samp >>= 4; samp &= 0xF;
+	    SE_4BIT(samp);
+	    samp <<= range_l;
+	    samp += (coeff_p_l * p_l + coeff_pp_l * pp_l) >> 8;
+	    CLAMP_S16(samp);
+	    pp_l = p_l;
+	    p_l = samp;
+	    this->decode_buffer[j++] = (unsigned short) samp;
+	  }
+	}
+      }
+    }
+  }
+
+  /* store decoding history */
+  this->xa_p_l = p_l; this->xa_pp_l = pp_l;
+  this->xa_p_r = p_r; this->xa_pp_r = pp_r;
+
+  /* despatch the decoded audio */
+  i = 0;
+  while (i < j) {
+    audio_buffer_t *audio_buffer;
+    int bytes_to_send;
+
+    audio_buffer= this->stream->audio_out->get_buffer(this->stream->audio_out);
+    if (audio_buffer->mem_size == 0) {
+      printf ("adpcm: Help! Allocated audio buffer with nothing in it!\n");
+      return;
+    }
+
+    if (((j - i) * 2) > audio_buffer->mem_size) {
+      bytes_to_send = audio_buffer->mem_size;
+    }
+    else {
+      bytes_to_send = (j - i) * 2;
+    }
+
+    xine_fast_memcpy(audio_buffer->mem, &this->decode_buffer[i],
+		     bytes_to_send);
+
+    audio_buffer->num_frames = bytes_to_send / (2 * this->channels);
+    audio_buffer->vpts = buf->pts;
+    buf->pts = 0;
+    this->stream->audio_out->put_buffer(this->stream->audio_out,
+					audio_buffer, this->stream);
+
+    i += bytes_to_send / 2;
+  }
+
+  /* reset input buffer */
+  this->size = 0;
+}
+
 static void adpcm_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
   adpcm_decoder_t *this = (adpcm_decoder_t *) this_gen;
 
@@ -1163,7 +1376,7 @@ static void adpcm_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
     this->size = 0;
 
     /* load the stream information */
-    switch (buf->type) {
+    switch (buf->type & 0xFFFF0000) {
 
       case BUF_AUDIO_MSADPCM:
         this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] =
@@ -1208,6 +1421,11 @@ static void adpcm_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
       case BUF_AUDIO_DIALOGIC_IMA:
         this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] =
           strdup("Dialogic IMA ADPCM");
+        break;
+
+      case BUF_AUDIO_XA_ADPCM:
+        this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] =
+          strdup("CD-ROM/XA ADPCM");
         break;
 
     }
@@ -1274,6 +1492,20 @@ static void adpcm_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
       this->decode_buffer = xine_xmalloc(this->out_block_size * 2);
     }
 
+    /* XA blocks are always 2304 bytes of input data. For output, there
+     * are 18 sound groups. These sound groups have 4 sound units (mode A)
+     * or 8 sound units (mode B or mode C). The sound units have 28 sound
+     * data samples. So, either 18*4*28=2016 or 18*8*28=4032 samples per
+     * sector. 2 bytes per sample means 4032 or 8064 bytes per sector.
+     */
+    if ((buf->type & 0xFFFF0000) == BUF_AUDIO_XA_ADPCM) {
+      /* initialise decoder state */
+      this->xa_mode = buf->decoder_info[2];
+      this->xa_p_l = this->xa_pp_l = this->xa_p_r = this->xa_pp_r = 0;
+      /* allocate 2 bytes per sample */
+      this->decode_buffer = xine_xmalloc((this->xa_mode) ? 4032 : 8064);
+    }
+
     return;
   }
 
@@ -1302,7 +1534,7 @@ static void adpcm_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
   /* time to decode a frame */
   if (buf->decoder_flags & BUF_FLAG_FRAME_END)  {
 
-    switch(buf->type) {
+    switch(buf->type & 0xFFFF0000) {
 
       case BUF_AUDIO_MSADPCM:
         ms_adpcm_decode_block(this, buf);
@@ -1339,6 +1571,10 @@ static void adpcm_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
       case BUF_AUDIO_DIALOGIC_IMA:
         dialogic_ima_decode_block(this, buf);
         break;
+
+      case BUF_AUDIO_XA_ADPCM:
+	xa_adpcm_decode_block(this, buf);
+	break;
     }
   }
 }
@@ -1428,7 +1664,7 @@ static uint32_t audio_types[] = {
   BUF_AUDIO_QTIMAADPCM, BUF_AUDIO_DK3ADPCM,
   BUF_AUDIO_DK4ADPCM, BUF_AUDIO_SMJPEG_IMA,
   BUF_AUDIO_VQA_IMA, BUF_AUDIO_EA_ADPCM, 
-  BUF_AUDIO_DIALOGIC_IMA,
+  BUF_AUDIO_DIALOGIC_IMA, BUF_AUDIO_XA_ADPCM,
   0
  };
 

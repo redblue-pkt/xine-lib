@@ -354,4 +354,7 @@ Marco Zühlke <MZuehlke@myrealbox.com>
 Julio Sánchez <j.sanchezf@terra.es>
   patch for drawing OSD bitmaps
 
+Stuart Caie <kyzer@4u.net>
+  Playstation STR file demuxer, CD-ROM/XA ADPCM decoder
+
 (let us know if we've forgotten anyone)
