@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.128 2003/09/07 20:10:59 tmattern Exp $
+ * $Id: demux_asf.c,v 1.129 2003/09/13 11:50:06 tmattern Exp $
  *
  * demultiplexer for asf streams
  *
@@ -49,14 +49,15 @@
 #define LOG
 */
 
-#define CODEC_TYPE_AUDIO       0
-#define CODEC_TYPE_VIDEO       1
-#define CODEC_TYPE_CONTROL     2
-#define MAX_NUM_STREAMS       23
+#define CODEC_TYPE_AUDIO          0
+#define CODEC_TYPE_VIDEO          1
+#define CODEC_TYPE_CONTROL        2
+#define MAX_NUM_STREAMS          23
 
-#define DEFRAG_BUFSIZE    65536
+#define DEFRAG_BUFSIZE        65536
 
-#define WRAP_THRESHOLD       20*90000
+#define WRAP_THRESHOLD     20*90000
+#define MAX_FRAME_DUR         90000
 
 #define PTS_AUDIO 0
 #define PTS_VIDEO 1
@@ -624,6 +625,14 @@ static void check_newpts (demux_asf_t *this, int64_t pts, int video, int frame_e
 
   diff = pts - this->last_pts[video];
 
+#ifdef LOG
+  if (video) {
+    printf ("demux_asf: VIDEO: pts = %8lld, diff = %8lld\n", pts, pts - this->last_pts[video]);
+  } else {
+    printf ("demux_asf: AUDIO: pts = %8lld, diff = %8lld\n", pts, pts - this->last_pts[video]);
+  }
+#endif
+
   if (pts && (this->send_newpts || (this->last_pts[video] && abs(diff)>WRAP_THRESHOLD)) ) {
 
 #ifdef LOG
@@ -653,7 +662,7 @@ static void check_newpts (demux_asf_t *this, int64_t pts, int video, int frame_e
 
       diff = pts - this->last_frame_pts;
 
-      if ( (diff>0) && (diff < WRAP_THRESHOLD) ) {
+      if ( (diff>0) && (diff < MAX_FRAME_DUR) ) {
 #ifdef LOG
 	printf ("demux_asf: last_frame_pts = %8lld, diff=%8lld\n",
 		this->last_frame_pts, diff);
@@ -880,7 +889,7 @@ static void asf_send_buffer_defrag (demux_asf_t *this, asf_stream_t *stream,
 static int asf_parse_packet_header(demux_asf_t *this) {
 
   int64_t   timestamp;
-  int       duration;
+  int64_t   duration;
   uint8_t   ecd_flags;
   uint8_t   buf[16];
   uint32_t  p_hdr_size;
@@ -966,7 +975,7 @@ static int asf_parse_packet_header(demux_asf_t *this) {
   timestamp = get_le32(this); p_hdr_size += 4;
   duration  = get_le16(this); p_hdr_size += 2;
 #ifdef LOG
-    printf ("demux_asf: timestamp=%lld, duration=%hd\n", timestamp, duration);
+    printf ("demux_asf: timestamp=%lld, duration=%lld\n", timestamp, duration);
 #endif
 
   if ((this->packet_flags >> 5) & 3) {
