@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.3 2001/09/01 17:59:42 jkeil Exp $
+ * $Id: xine_decoder.c,v 1.4 2001/09/01 21:56:38 guenter Exp $
  *
  * stuff needed to turn libmad into a xine decoder plugin
  */
@@ -43,9 +43,10 @@ typedef struct mad_decoder_s {
   struct mad_stream stream;
   struct mad_frame  frame;
 
-  ao_instance_t   *audio_out;
+  ao_instance_t    *audio_out;
   int               output_sampling_rate;
   int               output_open;
+  int               output_mode;
 
   int16_t           samples[MAX_NUM_SAMPLES];
 
@@ -158,18 +159,26 @@ static void mad_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 	}
 
       } else {
+	int mode = (this->frame.header.mode == MAD_MODE_SINGLE_CHANNEL) ? AO_CAP_MODE_MONO : AO_CAP_MODE_STEREO;
 
-	if (!this->output_open) {
+	if (!this->output_open 
+	    || (this->output_sampling_rate != this->frame.header.samplerate)
+	    || (this->output_mode != mode)) {
 
-	  printf ("libmad: audio sample rate %d mode %d\n",
+	  printf ("libmad: audio sample rate %d mode %08x\n",
 		  this->frame.header.samplerate,
-		  this->frame.header.mode);
+		  mode);
+
+	  if (this->output_open) 
+	    this->audio_out->close (this->audio_out);
 
 	  this->audio_out->open(this->audio_out,
 				16, this->frame.header.samplerate, 
-				(this->frame.header.mode == MAD_MODE_SINGLE_CHANNEL) ? AO_CAP_MODE_MONO : AO_CAP_MODE_STEREO);
+				mode);
+
 	  this->output_open = 1;
 	  this->output_sampling_rate = this->frame.header.samplerate;
+	  this->output_mode = mode;
 	}
 
 	mad_synth_frame (&this->synth, &this->frame);
