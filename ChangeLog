@@ -9,6 +9,8 @@ xine-lib (1-beta5)
   * fixed gnome-vfs plugin to be used for remote locations (other than http)
   * at least for DVD input, the language reporting is now channel-aware
   * CD-ROM/XA ADPCM decoder
+  * QT demuxer fixes to select among multiple A/V traks and support 
+    non- and poorly-interleaved files 
 
 xine-lib (1-beta4)
   * http input fixes
