@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xshm.c,v 1.34 2001/09/10 15:42:39 jkeil Exp $
+ * $Id: video_out_xshm.c,v 1.35 2001/09/11 17:12:39 jkeil Exp $
  * 
  * video_out_xshm.c, X11 shared memory extension interface for xine
  *
@@ -731,10 +731,8 @@ static void xshm_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
   int		  yoffset;
 
   if (this->expecting_event) {
-
     this->expecting_event--;
     frame->vo_frame.displayed (&frame->vo_frame);
-
   } else {
 
     if ( (frame->rgb_width != this->last_frame_rgb_width)
@@ -794,7 +792,7 @@ static void xshm_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
     }
 
     XUnlockDisplay (this->display);
-    
+
   }
 }
 
@@ -1041,7 +1039,6 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
 					 0, NULL);
 
   this->prof_yuv2rgb	    = profiler_allocate_slot ("xshm yuv2rgb convert");
-  printf("xshm, yuv2rgb profiler %d\n", this->prof_yuv2rgb);
 
   this->vo_driver.get_capabilities     = xshm_get_capabilities;
   this->vo_driver.alloc_frame          = xshm_alloc_frame;

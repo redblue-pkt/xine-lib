@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * $Id: yuv2rgb.c,v 1.14 2001/09/06 11:57:57 jkeil Exp $
+ * $Id: yuv2rgb.c,v 1.15 2001/09/11 17:12:39 jkeil Exp $
  */
 
 #include "config.h"
@@ -269,7 +269,7 @@ static void yuv2rgb_c_32 (yuv2rgb_t *this, uint8_t * _dst,
   uint8_t  * py_1, * py_2, * pu, * pv;
   uint32_t * r, * g, * b;
   uint32_t * dst_1, * dst_2;
-  int width, height;
+  int width, height, dst_height;
   int dy;
 
   if (this->do_scale) {
@@ -281,9 +281,9 @@ static void yuv2rgb_c_32 (yuv2rgb_t *this, uint8_t * _dst,
 		this->dest_width, this->step_dx);
 
     dy = 0;
-    height = this->source_height;
+    dst_height = this->dest_height;
 
-    for (;;) {
+    for (height = 0;; height++) {
       dst_1 = (uint32_t*)_dst;
       py_1  = this->y_buffer;
       pu    = this->u_buffer;
@@ -313,7 +313,7 @@ static void yuv2rgb_c_32 (yuv2rgb_t *this, uint8_t * _dst,
       dy += this->step_dy;
       _dst += this->rgb_stride;
 
-      while (dy < 32768) {
+      while (--dst_height > 0 && dy < 32768) {
 
 	memcpy (_dst, (uint8_t*)_dst-this->rgb_stride, this->dest_width*4); 
 
@@ -321,7 +321,7 @@ static void yuv2rgb_c_32 (yuv2rgb_t *this, uint8_t * _dst,
 	_dst += this->rgb_stride;
       }
 
-      if (--height <= 0)
+      if (dst_height <= 0)
 	break;
 
       dy -= 32768;
@@ -330,7 +330,7 @@ static void yuv2rgb_c_32 (yuv2rgb_t *this, uint8_t * _dst,
       scale_line (_py, this->y_buffer, 
 		  this->dest_width, this->step_dx);
 
-      if (!(height & 1)) {
+      if (height & 1) {
 	_pu += this->uv_stride;
 	_pv += this->uv_stride;
 	  
@@ -394,7 +394,7 @@ static void yuv2rgb_c_24_rgb (yuv2rgb_t *this, uint8_t * _dst,
   uint8_t * py_1, * py_2, * pu, * pv;
   uint8_t * r, * g, * b;
   uint8_t * dst_1, * dst_2;
-  int width, height;
+  int width, height, dst_height;
   int dy;
 
   if (this->do_scale) {
@@ -407,9 +407,9 @@ static void yuv2rgb_c_24_rgb (yuv2rgb_t *this, uint8_t * _dst,
 		this->dest_width, this->step_dx);
 
     dy = 0;
-    height = this->source_height;
+    dst_height = this->dest_height;
 
-    for (;;) {
+    for (height = 0;; height++) {
       dst_1 = _dst;
       py_1  = this->y_buffer;
       pu    = this->u_buffer;
@@ -439,7 +439,7 @@ static void yuv2rgb_c_24_rgb (yuv2rgb_t *this, uint8_t * _dst,
       dy += this->step_dy;
       _dst += this->rgb_stride;
 
-      while (dy < 32768) {
+      while (--dst_height > 0 && dy < 32768) {
 
 	memcpy (_dst, _dst-this->rgb_stride, this->dest_width*3); 
 
@@ -447,7 +447,7 @@ static void yuv2rgb_c_24_rgb (yuv2rgb_t *this, uint8_t * _dst,
 	_dst += this->rgb_stride;
       }
 
-      if (--height <= 0)
+      if (dst_height <= 0)
 	break;
 
       dy -= 32768;
@@ -456,7 +456,7 @@ static void yuv2rgb_c_24_rgb (yuv2rgb_t *this, uint8_t * _dst,
       scale_line (_py, this->y_buffer, 
 		  this->dest_width, this->step_dx);
 
-      if (!(height & 1)) {
+      if (height & 1) {
 	_pu += this->uv_stride;
 	_pv += this->uv_stride;
 	  
@@ -520,7 +520,7 @@ static void yuv2rgb_c_24_bgr (yuv2rgb_t *this, uint8_t * _dst,
   uint8_t * py_1, * py_2, * pu, * pv;
   uint8_t * r, * g, * b;
   uint8_t * dst_1, * dst_2;
-  int width, height;
+  int width, height, dst_height;
   int dy;
 
   if (this->do_scale) {
@@ -533,9 +533,9 @@ static void yuv2rgb_c_24_bgr (yuv2rgb_t *this, uint8_t * _dst,
 		this->dest_width, this->step_dx);
 
     dy = 0;
-    height = this->source_height;
+    dst_height = this->dest_height;
 
-    for (;;) {
+    for (height = 0;; height++) {
       dst_1 = _dst;
       py_1  = this->y_buffer;
       pu    = this->u_buffer;
@@ -565,7 +565,7 @@ static void yuv2rgb_c_24_bgr (yuv2rgb_t *this, uint8_t * _dst,
       dy += this->step_dy;
       _dst += this->rgb_stride;
 
-      while (dy < 32768) {
+      while (--dst_height > 0 && dy < 32768) {
 
 	memcpy (_dst, _dst-this->rgb_stride, this->dest_width*3); 
 
@@ -573,7 +573,7 @@ static void yuv2rgb_c_24_bgr (yuv2rgb_t *this, uint8_t * _dst,
 	_dst += this->rgb_stride;
       }
 
-      if (--height <= 0)
+      if (dst_height <= 0)
 	break;
 
       dy -= 32768;
@@ -582,7 +582,7 @@ static void yuv2rgb_c_24_bgr (yuv2rgb_t *this, uint8_t * _dst,
       scale_line (_py, this->y_buffer, 
 		  this->dest_width, this->step_dx);
 
-      if (!(height & 1)) {
+      if (height & 1) {
 	_pu += this->uv_stride;
 	_pv += this->uv_stride;
 	  
@@ -647,7 +647,7 @@ static void yuv2rgb_c_16 (yuv2rgb_t *this, uint8_t * _dst,
   uint8_t * py_1, * py_2, * pu, * pv;
   uint16_t * r, * g, * b;
   uint16_t * dst_1, * dst_2;
-  int width, height;
+  int width, height, dst_height;
   int dy;
 
   if (this->do_scale) {
@@ -659,9 +659,9 @@ static void yuv2rgb_c_16 (yuv2rgb_t *this, uint8_t * _dst,
 		this->dest_width, this->step_dx);
 
     dy = 0;
-    height = this->source_height;
+    dst_height = this->dest_height;
 
-    for (;;) {
+    for (height = 0;; height++) {
       dst_1 = (uint16_t*)_dst;
       py_1  = this->y_buffer;
       pu    = this->u_buffer;
@@ -691,7 +691,7 @@ static void yuv2rgb_c_16 (yuv2rgb_t *this, uint8_t * _dst,
       dy += this->step_dy;
       _dst += this->rgb_stride;
 
-      while (dy < 32768) {
+      while (--dst_height > 0 && dy < 32768) {
 
 	memcpy (_dst, (uint8_t*)_dst-this->rgb_stride, this->dest_width*2); 
 
@@ -699,7 +699,7 @@ static void yuv2rgb_c_16 (yuv2rgb_t *this, uint8_t * _dst,
 	_dst += this->rgb_stride;
       }
 
-      if (--height <= 0)
+      if (dst_height <= 0)
 	break;
 
       dy -= 32768;
@@ -708,7 +708,7 @@ static void yuv2rgb_c_16 (yuv2rgb_t *this, uint8_t * _dst,
       scale_line (_py, this->y_buffer, 
 		  this->dest_width, this->step_dx);
 
-      if (!(height & 1)) {
+      if (height & 1) {
 	_pu += this->uv_stride;
 	_pv += this->uv_stride;
 	  
@@ -771,7 +771,7 @@ static void yuv2rgb_c_palette (yuv2rgb_t *this, uint8_t * _dst,
   uint8_t * py_1, * py_2, * pu, * pv;
   uint8_t * r, * g, * b;
   uint8_t * dst_1, * dst_2;
-  int width, height;
+  int width, height, dst_height;
   int dy;
 
   if (this->do_scale) {
@@ -783,9 +783,9 @@ static void yuv2rgb_c_palette (yuv2rgb_t *this, uint8_t * _dst,
 		this->dest_width, this->step_dx);
 
     dy = 0;
-    height = this->source_height;
+    dst_height = this->dest_height;
 
-    for (;;) {
+    for (height = 0;; height++) {
       dst_1 = _dst;
       py_1  = this->y_buffer;
       pu    = this->u_buffer;
@@ -817,7 +817,7 @@ static void yuv2rgb_c_palette (yuv2rgb_t *this, uint8_t * _dst,
       dy += this->step_dy;
       _dst += this->rgb_stride;
 
-      while (dy < 32768) {
+      while (--dst_height > 0 && dy < 32768) {
 
 	memcpy (_dst, (uint8_t*)_dst-this->rgb_stride, this->dest_width*2); 
 
@@ -825,7 +825,7 @@ static void yuv2rgb_c_palette (yuv2rgb_t *this, uint8_t * _dst,
 	_dst += this->rgb_stride;
       }
 
-      if (--height <= 0)
+      if (dst_height <= 0)
 	break;
 
       dy -= 32768;
@@ -834,7 +834,7 @@ static void yuv2rgb_c_palette (yuv2rgb_t *this, uint8_t * _dst,
       scale_line (_py, this->y_buffer, 
 		  this->dest_width, this->step_dx);
 
-      if (!(height & 1)) {
+      if (height & 1) {
 	_pu += this->uv_stride;
 	_pv += this->uv_stride;
 	  
@@ -1086,7 +1086,7 @@ static void yuy22rgb_c_32 (yuv2rgb_t *this, uint8_t * _dst, uint8_t * _p)
 		this->dest_width, this->step_dx);
   
   dy = 0;
-  height = this->source_height;
+  height = this->dest_height;
   
   for (;;) {
     dst_1 = (uint32_t*)_dst;
@@ -1119,7 +1119,7 @@ static void yuy22rgb_c_32 (yuv2rgb_t *this, uint8_t * _dst, uint8_t * _p)
     dy += this->step_dy;
     _dst += this->rgb_stride;
     
-    while (dy < 32768) {
+    while (--height > 0 && dy < 32768) {
       
       memcpy (_dst, (uint8_t*)_dst-this->rgb_stride, this->dest_width*4); 
       
@@ -1127,7 +1127,7 @@ static void yuy22rgb_c_32 (yuv2rgb_t *this, uint8_t * _dst, uint8_t * _p)
       _dst += this->rgb_stride;
     }
     
-    if (--height <= 0)
+    if (height <= 0)
       break;
 
     dy -= 32768;
@@ -1161,7 +1161,7 @@ static void yuy22rgb_c_24_rgb (yuv2rgb_t *this, uint8_t * _dst, uint8_t * _p)
 		this->dest_width, this->step_dx);
   
   dy = 0;
-  height = this->source_height;
+  height = this->dest_height;
   
   for (;;) {
     dst_1 = _dst;
@@ -1193,7 +1193,7 @@ static void yuy22rgb_c_24_rgb (yuv2rgb_t *this, uint8_t * _dst, uint8_t * _p)
     dy += this->step_dy;
     _dst += this->rgb_stride;
     
-    while (dy < 32768) {
+    while (--height > 0 && dy < 32768) {
       
       memcpy (_dst, (uint8_t*)_dst-this->rgb_stride, this->dest_width*3); 
       
@@ -1201,7 +1201,7 @@ static void yuy22rgb_c_24_rgb (yuv2rgb_t *this, uint8_t * _dst, uint8_t * _p)
       _dst += this->rgb_stride;
     }
     
-    if (--height <= 0)
+    if (height <= 0)
       break;
 
     dy -= 32768;
@@ -1235,7 +1235,7 @@ static void yuy22rgb_c_24_bgr (yuv2rgb_t *this, uint8_t * _dst, uint8_t * _p)
 		this->dest_width, this->step_dx);
   
   dy = 0;
-  height = this->source_height;
+  height = this->dest_height;
   
   for (;;) {
     dst_1 = _dst;
@@ -1267,7 +1267,7 @@ static void yuy22rgb_c_24_bgr (yuv2rgb_t *this, uint8_t * _dst, uint8_t * _p)
     dy += this->step_dy;
     _dst += this->rgb_stride;
     
-    while (dy < 32768) {
+    while (--height > 0 && dy < 32768) {
       
       memcpy (_dst, (uint8_t*)_dst-this->rgb_stride, this->dest_width*3); 
       
@@ -1275,7 +1275,7 @@ static void yuy22rgb_c_24_bgr (yuv2rgb_t *this, uint8_t * _dst, uint8_t * _p)
       _dst += this->rgb_stride;
     }
     
-    if (--height <= 0)
+    if (height <= 0)
       break;
 
     dy -= 32768;
@@ -1309,7 +1309,7 @@ static void yuy22rgb_c_16 (yuv2rgb_t *this, uint8_t * _dst, uint8_t * _p)
 		this->dest_width, this->step_dx);
   
   dy = 0;
-  height = this->source_height;
+  height = this->dest_height;
   
   for (;;) {
     dst_1 = (uint16_t*)_dst;
@@ -1341,7 +1341,7 @@ static void yuy22rgb_c_16 (yuv2rgb_t *this, uint8_t * _dst, uint8_t * _p)
     dy += this->step_dy;
     _dst += this->rgb_stride;
     
-    while (dy < 32768) {
+    while (--height > 0 && dy < 32768) {
       
       memcpy (_dst, (uint8_t*)_dst-this->rgb_stride, this->dest_width*2); 
       
@@ -1349,7 +1349,7 @@ static void yuy22rgb_c_16 (yuv2rgb_t *this, uint8_t * _dst, uint8_t * _p)
       _dst += this->rgb_stride;
     }
     
-    if (--height <= 0)
+    if (height <= 0)
       break;
 
     dy -= 32768;

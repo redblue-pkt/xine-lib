@@ -399,6 +399,7 @@ static inline void yuv420_rgb16 (yuv2rgb_t *this,
     int uv_stride  = this->uv_stride;
     int width      = this->source_width;
     int height     = this->source_height;
+    int dst_height = this->dest_height;
     uint8_t *img;
 
     width >>= 3;
@@ -441,7 +442,7 @@ static inline void yuv420_rgb16 (yuv2rgb_t *this,
 		  this->dest_width >> 1, this->step_dx);
       scale_line (py, this->y_buffer, 
 		  this->dest_width, this->step_dx);
-      for (;;) {
+      for (height = 0;; height++) {
 
 	y_buf = this->y_buffer;
 	u_buf = this->u_buffer;
@@ -462,7 +463,7 @@ static inline void yuv420_rgb16 (yuv2rgb_t *this,
 	dy += this->step_dy;
 	image += rgb_stride;
 
-	while (dy < 32768) {
+	while (--dst_height > 0 && dy < 32768) {
 
 	  memcpy (image, image-rgb_stride, this->dest_width*2); 
 
@@ -470,7 +471,7 @@ static inline void yuv420_rgb16 (yuv2rgb_t *this,
 	  image += rgb_stride;
 	}
 
-	if (--height <= 0)
+	if (dst_height <= 0)
 	  break;
 
 	dy -= 32768;
@@ -480,7 +481,7 @@ static inline void yuv420_rgb16 (yuv2rgb_t *this,
 	scale_line (py, this->y_buffer, 
 		    this->dest_width, this->step_dx);
 
-	if (!(height & 1)) {
+	if (height & 1) {
 	  pu += uv_stride;
 	  pv += uv_stride;
 	  
@@ -505,6 +506,7 @@ static inline void yuv420_rgb15 (yuv2rgb_t *this,
     int uv_stride  = this->uv_stride;
     int width      = this->source_width;
     int height     = this->source_height;
+    int dst_height = this->dest_height;
     uint8_t *img;
 
     width >>= 3;
@@ -547,7 +549,7 @@ static inline void yuv420_rgb15 (yuv2rgb_t *this,
 		  this->dest_width >> 1, this->step_dx);
       scale_line (py, this->y_buffer, 
 		  this->dest_width, this->step_dx);
-      for (;;) {
+      for (height = 0;; height++) {
 
 	y_buf = this->y_buffer;
 	u_buf = this->u_buffer;
@@ -568,7 +570,7 @@ static inline void yuv420_rgb15 (yuv2rgb_t *this,
 	dy += this->step_dy;
 	image += rgb_stride;
 
-	while (dy < 32768) {
+	while (--dst_height > 0 && dy < 32768) {
 
 	  memcpy (image, image-rgb_stride, this->dest_width*2); 
 
@@ -576,7 +578,7 @@ static inline void yuv420_rgb15 (yuv2rgb_t *this,
 	  image += rgb_stride;
 	}
 
-	if (--height <= 0)
+	if (dst_height <= 0)
 	  break;
 
 	dy -= 32768;
@@ -585,7 +587,7 @@ static inline void yuv420_rgb15 (yuv2rgb_t *this,
 	scale_line (py, this->y_buffer, 
 		    this->dest_width, this->step_dx);
 
-	if (!(height & 1)) {
+	if (height & 1) {
 	  pu += uv_stride;
 	  pv += uv_stride;
 	  
@@ -609,6 +611,7 @@ static inline void yuv420_rgb24 (yuv2rgb_t *this,
     int uv_stride  = this->uv_stride;
     int width      = this->source_width;
     int height     = this->source_height;
+    int dst_height = this->dest_height;
     uint8_t *img;
 
     /* rgb_stride -= 4 * this->dest_width; */
@@ -650,7 +653,7 @@ static inline void yuv420_rgb24 (yuv2rgb_t *this,
       scale_line (py, this->y_buffer, 
 		  this->dest_width, this->step_dx);
 
-      for (;;) {
+      for (height = 0;; height++) {
 
 	y_buf = this->y_buffer;
 	u_buf = this->u_buffer;
@@ -672,7 +675,7 @@ static inline void yuv420_rgb24 (yuv2rgb_t *this,
 	dy += this->step_dy;
 	image += rgb_stride;
 
-	while (dy < 32768) {
+	while (--dst_height > 0 && dy < 32768) {
 
 	  memcpy (image, image-rgb_stride, this->dest_width*3);
 
@@ -680,7 +683,7 @@ static inline void yuv420_rgb24 (yuv2rgb_t *this,
 	  image += rgb_stride;
 	}
 
-	if (--height <= 0)
+	if (dst_height <= 0)
 	  break;
 
 	dy -= 32768;
@@ -689,7 +692,7 @@ static inline void yuv420_rgb24 (yuv2rgb_t *this,
 	scale_line (py, this->y_buffer, 
 		    this->dest_width, this->step_dx);
 
-	if (!(height & 1)) {
+	if (height & 1) {
 	  pu += uv_stride;
 	  pv += uv_stride;
 	  
@@ -714,6 +717,7 @@ static inline void yuv420_argb32 (yuv2rgb_t *this,
     int uv_stride  = this->uv_stride;
     int width      = this->source_width;
     int height     = this->source_height;
+    int dst_height = this->dest_height;
     uint8_t *img;
 
     /* rgb_stride -= 4 * this->dest_width; */
@@ -755,7 +759,7 @@ static inline void yuv420_argb32 (yuv2rgb_t *this,
       scale_line (py, this->y_buffer, 
 		  this->dest_width, this->step_dx);
 
-      for (;;) {
+      for (height = 0;; height++) {
 
 	y_buf = this->y_buffer;
 	u_buf = this->u_buffer;
@@ -777,7 +781,7 @@ static inline void yuv420_argb32 (yuv2rgb_t *this,
 	dy += this->step_dy;
 	image += rgb_stride;
 
-	while (dy < 32768) {
+	while (--dst_height > 0 && dy < 32768) {
 
 	  memcpy (image, image-rgb_stride, this->dest_width*4); 
 
@@ -785,7 +789,7 @@ static inline void yuv420_argb32 (yuv2rgb_t *this,
 	  image += rgb_stride;
 	}
 
-	if (--height <= 0)
+	if (dst_height <= 0)
 	  break;
 
 	dy -= 32768;
@@ -794,7 +798,7 @@ static inline void yuv420_argb32 (yuv2rgb_t *this,
 	scale_line (py, this->y_buffer, 
 		    this->dest_width, this->step_dx);
 
-	if (!(height & 1)) {
+	if (height & 1) {
 	  pu += uv_stride;
 	  pv += uv_stride;
 	  
@@ -819,6 +823,7 @@ static inline void yuv420_abgr32 (yuv2rgb_t *this,
     int uv_stride  = this->uv_stride;
     int width      = this->source_width;
     int height     = this->source_height;
+    int dst_height = this->dest_height;
     uint8_t *img;
 
     /* rgb_stride -= 4 * this->dest_width; */
@@ -860,7 +865,7 @@ static inline void yuv420_abgr32 (yuv2rgb_t *this,
       scale_line (py, this->y_buffer, 
 		  this->dest_width, this->step_dx);
 
-      for (;;) {
+      for (height = 0;; height++) {
 
 	y_buf = this->y_buffer;
 	u_buf = this->u_buffer;
@@ -882,7 +887,7 @@ static inline void yuv420_abgr32 (yuv2rgb_t *this,
 	dy += this->step_dy;
 	image += rgb_stride;
 
-	while (dy < 32768) {
+	while (--dst_height > 0 && dy < 32768) {
 
 	  memcpy (image, image-rgb_stride, this->dest_width*4); 
 
@@ -890,7 +895,7 @@ static inline void yuv420_abgr32 (yuv2rgb_t *this,
 	  image += rgb_stride;
 	}
 
-	if (--height <= 0)
+	if (dst_height <= 0)
 	  break;
 
 	dy -= 32768;
@@ -899,7 +904,7 @@ static inline void yuv420_abgr32 (yuv2rgb_t *this,
 	scale_line (py, this->y_buffer, 
 		    this->dest_width, this->step_dx);
 
-	if (!(height & 1)) {
+	if (height & 1) {
 	  pu += uv_stride;
 	  pv += uv_stride;
 	  
