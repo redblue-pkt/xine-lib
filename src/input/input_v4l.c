@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2003 the xine project
+ * Copyright (C) 2003-2004 the xine project
  * Copyright (C) 2003 J.Asselman <j.asselman@itsec-ps.nl>
  * 
  * This file is part of xine, a free video player.
@@ -79,15 +79,17 @@
 /* Our CPU can't handle de-interlacing at 768. */
 #define MAX_RES 640
 
-static struct {
+typedef struct {
 	int width;
 	int height;
-} resolutions[] = {
+} resolution_t;
+
+static const resolution_t resolutions[] = {
 	{ 768, 576 },
 	{ 640, 480 },
 	{ 384, 288 },
 	{ 320, 240 },
-	{ 160, 120 },
+	{ 160, 120 }
 };
 
 #define NUM_RESOLUTIONS  (sizeof(resolutions)/sizeof(resolutions[0]))
@@ -150,12 +152,14 @@ typedef struct {
   int64_t                  pts_aud_start;
 #endif
 
+  int                      audio_header_sent;
+  
   int                      rate;               /* Sample rate */
   int                      periods;            /* Number of periods */
   int                      periodsize;         /* Periodsize in bytes */
   int                      bits;
 
-/* Video */
+  /* Video */
   buf_element_t           *vid_frames;
   pthread_mutex_t          vid_frames_lock;
   pthread_cond_t           vid_frame_freed;
@@ -178,7 +182,11 @@ typedef struct {
   struct video_audio       audio;
   struct video_audio       audio_saved;
   struct video_mbuf        gb_buffers;
+  
+  int                      video_header_sent;
+  
   int                      frame_format;
+  const resolution_t      *resolution;
   int                      frame_size;
   int                      use_mmap;
   uint8_t                 *video_buf;
@@ -715,9 +723,8 @@ static void allocate_audio_frames(v4l_input_plugin_t *this)
     /* Audio frame */
     frame = xine_xmalloc(sizeof(buf_element_t));
     
-    frame->decoder_info[1] = this->periodsize;
     frame->content         = xine_xmalloc(this->periodsize);
-    frame->type	           = BUF_AUDIO_RAWPCM;
+    frame->type	           = BUF_AUDIO_LPCM_LE;
     frame->source          = this;
     frame->free_buffer     = store_aud_frame;
     frame->extra_info      = xine_xmalloc(sizeof(extra_info_t));
@@ -768,9 +775,6 @@ static int open_radio_capture_device(v4l_input_plugin_t *this)
   if (set_input_source(this, this->tuner_name) > 0)
     tuner_found = 1;
   
-  _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_CHANNELS, this->periods);
-  _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_BITS, this->bits);
-  _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_SAMPLERATE, this->rate);
   _x_stream_info_set(this->stream, XINE_STREAM_INFO_HAS_AUDIO, 1);
   _x_stream_info_set(this->stream, XINE_STREAM_INFO_HAS_VIDEO, 0);
   
@@ -840,33 +844,14 @@ static int open_video_capture_device(v4l_input_plugin_t *this)
       return 0;
     }
   
-  _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_WIDTH, resolutions[j].width);
-  _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_HEIGHT, resolutions[j].height);
-  _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_CHANNELS, this->periods);
-  _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_BITS, this->bits);
-  _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_SAMPLERATE, this->rate);
+  this->resolution = &resolutions[j];
+  
   _x_stream_info_set(this->stream, XINE_STREAM_INFO_HAS_AUDIO, 1);
   _x_stream_info_set(this->stream, XINE_STREAM_INFO_HAS_VIDEO, 1);
   
   /* Pre-allocate some frames for audio and video so it doesn't have to be 
    * done during capture */
   allocate_audio_frames(this);
-  
-  for (i = 0; i < NUM_FRAMES; i++) {
-    buf_element_t *frame;
-      
-    frame = xine_xmalloc (sizeof (buf_element_t));
-    
-    frame->decoder_info[0] = resolutions[j].width;
-    frame->decoder_info[1] = resolutions[j].height;
-    frame->content         = xine_xmalloc (frame->decoder_info[0] * frame->decoder_info[1] * 3 / 2); 
-    frame->type            = BUF_VIDEO_YUV_FRAMES;
-    frame->source          = this;
-    frame->free_buffer     = store_vid_frame;
-    frame->extra_info      = xine_xmalloc(sizeof(extra_info_t));
-    
-    store_vid_frame(frame);
-  }
   
   /* Unmute audio off video capture device */
   unmute_audio(this);
@@ -961,16 +946,28 @@ static int open_video_capture_device(v4l_input_plugin_t *this)
   
   switch(this->frame_format) {
   case VIDEO_PALETTE_YUV420P:
+    this->frame_format = BUF_VIDEO_I420;
     this->frame_size = (resolutions[j].width * resolutions[j].height * 3) / 2;
     break;
   case VIDEO_PALETTE_YUV422:
+    this->frame_format = BUF_VIDEO_YUY2;
     this->frame_size = resolutions[j].width * resolutions[j].height * 2;
     break;
   }
   
-  /* Save dimensions */
-  _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_WIDTH, resolutions[j].width);
-  _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_HEIGHT, resolutions[j].height);
+  for (i = 0; i < NUM_FRAMES; i++) {
+    buf_element_t *frame;
+      
+    frame = xine_xmalloc (sizeof (buf_element_t));
+    
+    frame->content         = xine_xmalloc (this->frame_size);
+    frame->type            = this->frame_format;
+    frame->source          = this;
+    frame->free_buffer     = store_vid_frame;
+    frame->extra_info      = xine_xmalloc(sizeof(extra_info_t));
+    
+    store_vid_frame(frame);
+  }
   
   /* Using deinterlaceing is highly recommended. Setting to true */
   this->old_interlace = xine_get_param(this->stream, XINE_PARAM_VO_DEINTERLACE);
@@ -1235,6 +1232,47 @@ static buf_element_t *v4l_plugin_read_block (input_plugin_t *this_gen, fifo_buff
     
   v4l_event_handler(this); 
   
+#ifdef HAVE_ALSA
+  if (!this->audio_header_sent) {
+    lprintf("sending audio header\n");
+    
+    buf = alloc_aud_frame (this);
+    
+    buf->size          = 0;
+    buf->decoder_flags = BUF_FLAG_HEADER|BUF_FLAG_STDHEADER|BUF_FLAG_FRAME_END;
+
+    buf->decoder_info[0] = 0;
+    buf->decoder_info[1] = this->exact_rate;
+    buf->decoder_info[2] = this->bits;
+    buf->decoder_info[3] = 2;
+    
+    this->audio_header_sent = 1;
+    
+    return buf;
+  }
+#endif    
+  
+  if (!this->audio_only && !this->video_header_sent) {
+    xine_bmiheader bih;
+    
+    lprintf("sending video header");
+    
+    bih.biSize   = sizeof(xine_bmiheader);
+    bih.biWidth  = this->resolution->width;
+    bih.biHeight = this->resolution->height;
+    
+    buf = alloc_vid_frame (this);
+    
+    buf->size          = sizeof(xine_bmiheader);
+    buf->decoder_flags = BUF_FLAG_HEADER|BUF_FLAG_STDHEADER|BUF_FLAG_FRAME_END;
+
+    memcpy(buf->content, &bih, sizeof(xine_bmiheader));
+    
+    this->video_header_sent = 1;
+    
+    return buf;    
+  }
+  
   if (!this->audio_only) {
     if (!v4l_adjust_realtime_speed(this, fifo, speed)) {
       return NULL;
@@ -1255,6 +1293,8 @@ static buf_element_t *v4l_plugin_read_block (input_plugin_t *this_gen, fifo_buff
   if (video) {
     /* Capture video */
     buf = alloc_vid_frame (this);
+    buf->decoder_flags = BUF_FLAG_FRAME_START|BUF_FLAG_FRAME_END;
+    
     this->gb_buf.frame = this->gb_frame;
     
     lprintf("VIDIOCMCAPTURE\n");
@@ -1316,13 +1356,11 @@ static buf_element_t *v4l_plugin_read_block (input_plugin_t *this_gen, fifo_buff
       }
     } else {
       /* Succesfully read audio data */
-      if (this->rate != this->exact_rate)
-	xprintf(this->stream->xine, XINE_VERBOSITY_LOG, 
-                "input_v4l: HELP: Should pass sample rate %d instead of %d\n", 
-                this->exact_rate, this->rate);
       
-      if (this->pts_aud_start)
+      if (this->pts_aud_start) {
 	buf = alloc_aud_frame (this);
+        buf->decoder_flags = 0;
+      }
       
       /* We want the pts on the start of the sample. As the soundcard starts
        * sampling a new sample as soon as the read function returned with a
@@ -1347,12 +1385,11 @@ static buf_element_t *v4l_plugin_read_block (input_plugin_t *this_gen, fifo_buff
       
       
       /* Tell decoder the number of bytes we have read */
-      buf->decoder_info[0] = pcmreturn;	      	  
-      buf->type = BUF_AUDIO_RAWPCM;
+      buf->size = pcmreturn<<2;	      	  
       
       this->curpos++;
       
-      xine_fast_memcpy(buf->content, this->pcm_data, this->periodsize);
+      xine_fast_memcpy(buf->content, this->pcm_data, buf->size);
     }
   }
 #endif

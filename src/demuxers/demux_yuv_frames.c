@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2003 the xine project
+ * Copyright (C) 2003-2004 the xine project
  * Copyright (C) 2003 Jeroen Asselman <j.asselman@itsec-ps.nl>
  * 
  * This file is part of xine, a free video player.
@@ -20,7 +20,7 @@
  */
 
 /*
- * $Id: demux_yuv_frames.c,v 1.14 2004/01/12 17:35:15 miguelfreitas Exp $
+ * $Id: demux_yuv_frames.c,v 1.15 2004/03/10 22:46:18 jstembridge Exp $
  *
  * dummy demultiplexer for raw yuv frames (delivered by v4l)
  */
@@ -87,11 +87,12 @@ static int switch_buf(demux_yuv_frames_t *this , buf_element_t *buf){
   this->last_pts = buf->pts;
 
   switch (buf->type) {
-    case BUF_VIDEO_YUV_FRAMES:
+    case BUF_VIDEO_I420:
+    case BUF_VIDEO_YUY2:
       this->video_fifo->put(this->video_fifo, buf);
       result = 1;	/* 1, we still should read audio */
       break;
-    case BUF_AUDIO_RAWPCM:
+    case BUF_AUDIO_LPCM_LE:
       if (!_x_stream_info_get(this->stream, XINE_STREAM_INFO_HAS_VIDEO))
         _x_demux_control_newpts(this->stream, buf->pts, 0);
       this->audio_fifo->put(this->audio_fifo, buf);
@@ -120,10 +121,23 @@ static int demux_yuv_frames_send_chunk (demux_plugin_t *this_gen){
 
 static void demux_yuv_frames_send_headers (demux_plugin_t *this_gen){
   demux_yuv_frames_t *this = (demux_yuv_frames_t *) this_gen;
+  buf_element_t      *buf;
 
   this->video_fifo  = this->stream->video_fifo;
   this->audio_fifo  = this->stream->audio_fifo;
 
+  if(_x_stream_info_get(this->stream, XINE_STREAM_INFO_HAS_AUDIO)) {
+    buf = this->input->read_block(this->input, this->audio_fifo, 0);
+    
+    this->audio_fifo->put(this->audio_fifo, buf);
+  }
+  
+  if(_x_stream_info_get(this->stream, XINE_STREAM_INFO_HAS_VIDEO)) {
+    buf = this->input->read_block(this->input, this->video_fifo, 0);
+    
+    this->video_fifo->put(this->video_fifo, buf);
+  }
+  
   this->status = DEMUX_OK;
 }
 
