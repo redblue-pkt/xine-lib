@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xineutils.h,v 1.37 2003/03/01 14:35:54 jkeil Exp $
+ * $Id: xineutils.h,v 1.38 2003/03/02 17:13:03 f1rmb Exp $
  *
  */
 #ifndef XINEUTILS_H
@@ -810,7 +810,7 @@ print_trace (void)
   size = backtrace (array, 10);
   strings = backtrace_symbols (array, size);
 
-  printf ("Obtained %zd stack frames.\n", size);
+  printf ("Obtained %d stack frames.\n", size);
 
   for (i = 0; i < size; i++) {
      printf ("%s\n", strings[i]);
