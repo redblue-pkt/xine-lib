@@ -8,11 +8,11 @@
 
 #ifndef _LOADER_H
 #define _LOADER_H
-#include <wine/windef.h>
-#include <wine/driver.h>
-#include <wine/mmreg.h>
-#include <wine/vfw.h>
-#include <wine/msacm.h>
+#include "windef.h"
+#include "driver.h"
+#include "mmreg.h"
+#include "vfw.h"
+#include "msacm.h"
 #ifdef __cplusplus
 extern "C" {
 #endif

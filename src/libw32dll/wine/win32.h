@@ -3,9 +3,9 @@
 
 #include <time.h>
 
-#include <wine/windef.h>
-#include <wine/winbase.h>
-#include <com.h>
+#include "windef.h"
+#include "winbase.h"
+#include "com.h"
 
 extern void my_garbagecollection(void);
 
