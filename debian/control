@@ -25,7 +25,7 @@ Package: libxine0
 Architecture: any
 Depends: ${shlibs:Depends}
 Recommends: ${shlibs:Recommends}
-Suggests: ${shlibs:Suggests}
+Suggests: ${shlibs:Suggests}, xine-dvdnav
 Conflicts: xine (<< 0.5.0), xine-dvd (<< 0.5.0), xine-dvd-css (<< 0.5.0)
 Replaces: xine-dvd
 Description: the xine video player library, binary files

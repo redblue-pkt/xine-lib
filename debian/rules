@@ -47,6 +47,7 @@ install: build
 
 	$(MAKE) install prefix=$(CURDIR)/debian/libxine-dev/usr
 	mkdir -p $(CURDIR)/debian/libxine$(major)/usr/share/lintian/overrides
+	echo "MAJOR= >>$(major)<<"
 	cp $(CURDIR)/debian/overrides.libxine \
            $(CURDIR)/debian/libxine$(major)/usr/share/lintian/overrides/libxine$(major)
 
