@@ -28,7 +28,6 @@ typedef struct mpeg2dec_s {
     struct picture_s * picture;
     
     uint32_t shift;
-    int is_display_initialized;
     int is_sequence_needed;
     int frames_to_drop, drop_frame;
     int in_slice;
