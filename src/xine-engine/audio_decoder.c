@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.49 2001/10/20 11:51:11 guenter Exp $
+ * $Id: audio_decoder.c,v 1.50 2001/10/22 01:23:08 jcdutton Exp $
  *
  *
  * functions that implement audio decoding
@@ -136,16 +136,9 @@ void *audio_decoder_loop (void *this_gen) {
 
     case BUF_CONTROL_AUDIO_CHANNEL:
       {
-	xine_event_t event;
-
-	printf ("audio_decoder: suggested switching to streamtype %08x\n",
+	printf ("audio_decoder: suggested switching to stream_id %02x\n",
 		buf->decoder_info[0]);
-	
 	this->audio_channel_suggested = buf->decoder_info[0] & 0xff;
-
-	event.type = XINE_EVENT_UI_CHANNELS_CHANGED;
-	xine_send_event(this, &event);
-
       }
       break;
 
@@ -169,7 +162,12 @@ void *audio_decoder_loop (void *this_gen) {
 	
 	uint32_t audio_type = 0;
 	int      i,j;
-
+/*
+        printf("AUDIO DECODER:%08X %08X %08X %08X\n",
+                 buf->type, this->audio_type,
+                 this->audio_channel_suggested,
+                 this->audio_channel);
+ */
         /* update track map */
         
         i = 0;
@@ -190,15 +188,15 @@ void *audio_decoder_loop (void *this_gen) {
 	/* find out which audio type to decode */
 
 	if (this->audio_channel == -1) {
-
-	  if ((this->audio_channel_suggested>=0) && 
-	      ((buf->type & 0xFF) == this->audio_channel_suggested) ) 
-	    audio_type = buf->type;
-	  else 
-	    audio_type = this->audio_track_map[0];
-
-	} else 
+	  audio_type = this->audio_track_map[0];
+	} else {
 	  audio_type = this->audio_track_map[this->audio_channel];
+        }
+	if ((this->audio_channel_suggested>=0) && 
+	    ((buf->type & 0xFF) == this->audio_channel_suggested) ) {
+	  audio_type = buf->type;
+          this->audio_channel_suggested = -1;
+        }
 
 	/* now, decode this buffer if it's the right audio type */
 
@@ -218,12 +216,21 @@ void *audio_decoder_loop (void *this_gen) {
 	    }
 
 	    if (decoder) {
+	      xine_event_t event;
 	      printf ("audio_loop: using decoder >%s< \n",
 		      decoder->get_identifier());
 	      this->cur_audio_decoder_plugin = decoder;
 	      this->cur_audio_decoder_plugin->init (this->cur_audio_decoder_plugin, this->audio_out);
 	      
 	      this->audio_type = audio_type;
+              for (i=0;i < this->audio_track_map_entries; i++) {
+                if ( this->audio_track_map[i] == audio_type) {
+                  this->audio_channel=i;
+                  break;
+                }
+              }
+	      event.type = XINE_EVENT_UI_CHANNELS_CHANGED;
+	      xine_send_event(this, &event);
 	    }
 	  }
 
