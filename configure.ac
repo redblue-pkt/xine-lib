@@ -95,7 +95,7 @@ CFLAGS="$saved_CFLAGS"
 AC_PROG_CC
 AC_HEADER_STDC
 AC_PROG_MAKE_SET
-AC_PROG_EGREP
+dnl AC_PROG_EGREP  needs autoconf 2.54, just hardcode for "egrep"
 AC_PROG_INSTALL
 AC_PROG_LN_S
 AC_PROG_AWK
@@ -1333,7 +1333,7 @@ final_bindir="`eval eval eval eval echo $bindir`"
 
 if test -r /etc/ld.so.conf && ! grep -x "$final_libdir" /etc/ld.so.conf >/dev/null ; then
   if test "$final_libdir" != "/lib" -a "$final_libdir" != "/usr/lib" ; then
-    if ! echo $LD_LIBRARY_PATH | $EGREP "(:|^)$final_libdir(/?:|/?$)" >/dev/null ; then
+    if ! echo $LD_LIBRARY_PATH | egrep "(:|^)$final_libdir(/?:|/?$)" >/dev/null ; then
       echo
       echo "****************************************************************"
       echo "xine-lib will be installed to $final_libdir"
@@ -1354,7 +1354,7 @@ if test -r /etc/ld.so.conf && ! grep -x "$final_libdir" /etc/ld.so.conf >/dev/nu
   fi
 fi
 
-if ! echo $PATH | $EGREP "(:|^)$final_bindir(/?:|/?$)" >/dev/null ; then
+if ! echo $PATH | egrep "(:|^)$final_bindir(/?:|/?$)" >/dev/null ; then
   echo
   echo "****************************************************************"
   echo "xine-config will be installed to $final_bindir"
