@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_video_out.h,v 1.18 2002/04/03 09:40:40 mlampard Exp $
+ * $Id: dxr3_video_out.h,v 1.19 2002/04/04 00:08:36 miguelfreitas Exp $
  *
  */
 
@@ -39,6 +39,7 @@
 #include <linux/em8300.h>
 #include "video_out.h"
 #include "xine_internal.h"
+#include "alphablend.h"
 
 /* for fast_memcpy: */
 #include "xineutils.h"

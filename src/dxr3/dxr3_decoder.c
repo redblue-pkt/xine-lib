@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decoder.c,v 1.68 2002/04/01 12:09:08 miguelfreitas Exp $
+ * $Id: dxr3_decoder.c,v 1.69 2002/04/04 00:08:36 miguelfreitas Exp $
  *
  * dxr3 video and spu decoder plugin. Accepts the video and spu data
  * from XINE and sends it directly to the corresponding dxr3 devices.
@@ -95,6 +95,10 @@ static char devnum[3];
 
 #define MV_COMMAND 0
 
+/* the number of frames to pass after an out-of-sync situation
+   before locking the stream again */
+#define RESYNC_WINDOW_SIZE 50
+
 
 typedef struct dxr3_decoder_s {
 	video_decoder_t video_decoder;
@@ -117,6 +121,7 @@ typedef struct dxr3_decoder_s {
 	/* if disabled by repeat first field, retry after 500 frames */
 	int sync_retry; 
 	int enhanced_mode;
+	int resync_window;
 	int have_header_info;
 	int in_buffer_fill;
 	pthread_t decoder_thread; /* reference to self */
@@ -192,40 +197,41 @@ static int dxr3scr_set_speed (scr_plugin_t *scr, int speed) {
 	switch(speed){
 	case SPEED_PAUSE:
 		em_speed = 0;
-		playmode=EM8300_PLAYMODE_PAUSED;
+		playmode=MVCOMMAND_PAUSE;
 		break;
 	case SPEED_SLOW_4:
 		em_speed = 0x900/4;
-		playmode=EM8300_PLAYMODE_PLAY;
+		playmode=MVCOMMAND_START;
 		break;
 	case SPEED_SLOW_2:
 		em_speed = 0x900/2;
-		playmode=EM8300_PLAYMODE_PLAY;
+		playmode=MVCOMMAND_START;
 		break;
 	case SPEED_NORMAL:
 		em_speed = 0x900;
-		playmode=EM8300_PLAYMODE_PLAY;
+		playmode=MVCOMMAND_SYNC;
 		break;
 	case SPEED_FAST_2:
 		em_speed = 0x900*2;
-		playmode=EM8300_PLAYMODE_SCAN;
+		playmode=MVCOMMAND_START;
 		break;
 	case SPEED_FAST_4:
 		em_speed = 0x900*4;
-		playmode=EM8300_PLAYMODE_SCAN;
+		playmode=MVCOMMAND_START;
 		break;
 	default:
 		em_speed = 0;
-		playmode = EM8300_PLAYMODE_PAUSED;
+		playmode = MVCOMMAND_PAUSE;
 	}
+	
+	if (dxr3_mvcommand(self->fd_control, playmode))
+		printf("dxr3scr: failed to playmode (%s)\n", strerror(errno));
+		
 	if(em_speed>0x900)
 		scanning_mode=1;
 	else
 		scanning_mode=0;
 
-	if (ioctl(self->fd_control, EM8300_IOCTL_SET_PLAYMODE, &playmode))
-		printf("dxr3scr: failed to playmode (%s)\n", strerror(errno));
-		
 	if (ioctl(self->fd_control, EM8300_IOCTL_SCR_SETSPEED, &em_speed))
 		printf("dxr3scr: failed to set speed (%s)\n", strerror(errno));
 
@@ -296,6 +302,9 @@ static int64_t dxr3scr_get_current (scr_plugin_t *scr) {
 	pthread_mutex_lock(&self->mutex);
         if (ioctl(self->fd_control, EM8300_IOCTL_SCR_GET, &pts))
 		printf("dxr3scr: get current failed (%s)\n", strerror(errno));
+	/* FIXME: The pts value read from the card sometimes drops to zero for 
+	   unknown reasons. We catch this here, but we should better find out, why. */
+	if (pts == 0) pts = self->last_pts;
 	if (pts < self->last_pts) /* wrap around detected, compensate with offset */
 		self->offset += (int64_t)1 << 33;
 	self->last_pts = pts;
@@ -379,6 +388,8 @@ static void dxr3_init (video_decoder_t *this_gen, vo_instance_t *video_out)
 
 	this->last_pts = metronom->get_current_time(metronom);
 	this->decoder_thread = pthread_self();
+	
+	this->resync_window = 0;
 	
 	cur_offset = metronom->get_option(metronom, METRONOM_AV_OFFSET);
 	metronom->set_option(metronom, METRONOM_AV_OFFSET, cur_offset - 21600);
@@ -548,10 +559,29 @@ static void dxr3_decode_data (video_decoder_t *this_gen, buf_element_t *buf)
 		skip = img->draw(img);
 	        if (skip <= 0) { /* don't skip */
 			vpts = img->vpts; /* copy so we can free img */
+			
+			if (this->resync_window == 0 && this->scr && this->enhanced_mode && !scanning_mode) {
+				/* we are in sync, so we can lock the stream now */
+				printf("dxr3: in sync, stream locked\n");
+				dxr3_mvcommand(this->fd_control, MVCOMMAND_SYNC);
+				this->resync_window = -RESYNC_WINDOW_SIZE;
+			}
+			if (this->resync_window != 0 && this->resync_window > -RESYNC_WINDOW_SIZE)
+				this->resync_window--;
 		}
 		else { /* metronom says skip, so don't set vpts */
 			printf("dxr3: skip = %d\n", skip);
 			vpts = 0;
+			
+			if (scanning_mode) this->resync_window = 0;
+			if (this->resync_window == 0 && this->scr && this->enhanced_mode && !scanning_mode) {
+				/* switch off sync mode in the card to allow resyncing */
+				printf("dxr3: out of sync, allowing stream resync\n");
+				dxr3_mvcommand(this->fd_control, MVCOMMAND_START);
+				this->resync_window = RESYNC_WINDOW_SIZE;
+			}
+			if (this->resync_window != 0 && this->resync_window < RESYNC_WINDOW_SIZE)
+				this->resync_window++;
 		}
 		img->free(img);
 		this->last_pts += duration; /* predict vpts */
@@ -591,10 +621,6 @@ static void dxr3_decode_data (video_decoder_t *this_gen, buf_element_t *buf)
 	   want to move this code to dxr3_init. */
 	if (!this->scr) {
 		int64_t time;
-		
-		/* if the dxr3_alt_play option is used, change the dxr3 playmode */
-		if(this->enhanced_mode)
-			dxr3_mvcommand(this->fd_control, MVCOMMAND_SYNC);
 		
 		time = this->video_decoder.metronom->get_current_time(
 			this->video_decoder.metronom);
@@ -771,7 +797,9 @@ video_decoder_t *init_video_decoder_plugin (int iface_version,
 	this->video_decoder.close               = dxr3_close;
 	this->video_decoder.get_identifier      = dxr3_get_id;
 	this->video_decoder.flush		= dxr3_flush;
-	this->video_decoder.priority            = 10;
+	this->video_decoder.priority            = cfg->register_num(cfg,
+		"dxr3.decoder_priority", 10, "Dxr3: video decoder priority", NULL, NULL, NULL);
+	
 	this->config			        = cfg;
 
 	this->frame_rate_code = 0;
@@ -792,7 +820,7 @@ video_decoder_t *init_video_decoder_plugin (int iface_version,
 
 	this->enhanced_mode = cfg->register_bool(cfg,
 		"dxr3.alt_play_mode", 
-		0, 
+		1, 
 		"Use alternate Play mode",
 		"Enabling this option will utilise a slightly different play mode",
 		dxr3_update_enhanced_mode, this);

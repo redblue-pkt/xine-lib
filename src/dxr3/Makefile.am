@@ -1,6 +1,6 @@
 CFLAGS = @CFLAGS@ $(X_CFLAGS) $(LINUX_INCLUDE)
 
-EXTRA_DIST = dxr3_decoder.c dxr3_vo_core.c dxr3_video_out.c nav_read.c
+EXTRA_DIST = dxr3_decoder.c dxr3_vo_core.c dxr3_video_out.c nav_read.c alphablend.c
 
 LIBTOOL = $(SHELL) $(top_builddir)/libtool-nofpic
 
@@ -22,12 +22,10 @@ xineplug_decode_dxr3_la_SOURCES = dxr3_decoder.c nav_read.c
 xineplug_decode_dxr3_la_LDFLAGS = -avoid-version -module
 
 xineplug_vo_out_dxr3_la_SOURCES = dxr3_video_out.c \
-		dxr3_vo_core.c mpeg_encoders.c
+		dxr3_vo_core.c mpeg_encoders.c alphablend.c
 xineplug_vo_out_dxr3_la_LIBADD = $(X_LIBS) -lXext
 xineplug_vo_out_dxr3_la_LDFLAGS = -avoid-version \
 		-module $(link_fame) $(link_rte) $(X_LIBS)
-
-include_HEADERS = dxr3_video_out.h 
 
 debug:
 	@$(MAKE) CFLAGS="$(DEBUG_CFLAGS) $(LINUX_INCLUDE)"

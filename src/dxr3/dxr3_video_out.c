@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_video_out.c,v 1.14 2002/04/03 09:40:40 mlampard Exp $
+ * $Id: dxr3_video_out.c,v 1.15 2002/04/04 00:08:36 miguelfreitas Exp $
  *
  * mpeg1 encoding video out plugin for the dxr3.  
  *
@@ -439,16 +439,18 @@ static void dxr3_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen)
 static void dxr3_overlay_blend (vo_driver_t *this_gen, vo_frame_t *frame_gen,
  vo_overlay_t *overlay)
 {
+	/* FIXME: We only blend non-mpeg frames here.
+	   Is there any way to provide overlays for mpeg content? Subpictures? */
 	if ( frame_gen->format != IMGFMT_MPEG )
 	{
-		/* FIXME: Do something useful here.
-		 * we have regular YUV frames, so in principle we can blend
-		 * it just like the Xv driver does. Problem is that the
-		 * alphablend.c code file is not nearby */
-	}
-	else {
-		/* we're using hardware mpeg decoding and have no YUV frames
-		 * we need something else to blend... */
+		dxr3_frame_t *frame = (dxr3_frame_t*)frame_gen;
+		
+		if (overlay->rle) {
+			if( frame_gen->format == IMGFMT_YV12 )
+				blend_yuv( frame->vo_frame.base, overlay, frame->width, frame->height);
+			else
+				blend_yuy2( frame->vo_frame.base[0], overlay, frame->width, frame->height);
+		}
 	}
 }
 
@@ -615,7 +617,7 @@ printf("dxr3_video_out:init_plugin\n");
 "dxr3: driver. See the README.dxr3 for details on configuring an encoder.\n" 
 		);
 	}
-
+	
 	/* default values */
 	this->overlay_enabled = 0;
 	this->aspectratio = ASPECT_FULL;
