@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.10 2002/12/06 01:44:06 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.11 2002/12/06 23:40:26 guenter Exp $
  *
  * thin layer to use real binary-only codecs in xine
  *
@@ -204,9 +204,12 @@ static int init_codec (realdec_decoder_t *this, buf_element_t *buf) {
   init_data.format    = BE_32(&buf->content[30]);
   
 #ifdef LOG
+  printf ("libreal: init_data for rvyuv_init:\n");
   hexdump (&init_data, sizeof (init_data));
   
+  printf ("libreal: buf->content\n");
   hexdump (buf->content, 32);
+  printf ("libreal: extrahdr\n");
   hexdump (extrahdr, 10);
 
   printf ("libreal: init codec %dx%d... %x %x\n", 
@@ -328,6 +331,10 @@ static void realdec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) 
 					transform_out, 
 					this->context);
 
+#ifdef LOG
+	printf ("libreal: transform result: %d\n", result);
+#endif
+
 	xine_fast_memcpy (img->base[0], this->frame_buffer, this->frame_size);
 	xine_fast_memcpy (img->base[1], this->frame_buffer+this->frame_size, 
 			  this->frame_size/4);
@@ -365,16 +372,19 @@ static void realdec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) 
       printf ("libreal: another fragment (%d chunks in buffer)\n", 
 	      this->num_chunks);
 #endif
-      
-      memcpy (this->chunk_buffer+this->chunk_buffer_size, buf->content, buf->size);
 
-      this->chunk_tab[2*this->num_chunks]    = 1;
-      this->chunk_tab[2*this->num_chunks+1]  = this->chunk_buffer_size; 
-      this->num_chunks++;
-      this->chunk_buffer_size               += buf->size;
+      if ( (buf->content[0] & 0x20) == 0) {
 
-      if (buf->pts)
-	this->pts = buf->pts;
+	memcpy (this->chunk_buffer+this->chunk_buffer_size, buf->content, buf->size);
+
+	this->chunk_tab[2*this->num_chunks]    = 1;
+	this->chunk_tab[2*this->num_chunks+1]  = this->chunk_buffer_size; 
+	this->num_chunks++;
+	this->chunk_buffer_size               += buf->size;
+	
+	if (buf->pts)
+	  this->pts = buf->pts;
+      }
 
     }
   }
