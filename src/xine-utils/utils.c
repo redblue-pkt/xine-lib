@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: utils.c,v 1.16 2003/07/16 22:11:14 jstembridge Exp $
+ * $Id: utils.c,v 1.17 2003/07/27 12:47:23 hadess Exp $
  *
  */
 #define	_POSIX_PTHREAD_SEMANTICS 1	/* for 5-arg getpwuid_r on solaris */
@@ -25,6 +25,8 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
+
+#include "xineutils.h"
 
 #include <stdio.h>
 #include <stdlib.h>

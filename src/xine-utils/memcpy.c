@@ -302,7 +302,7 @@ static void * mmx_memcpy(void * to, const void * from, size_t len)
   return retval;
 }
 
-void * mmx2_memcpy(void * to, const void * from, size_t len)
+static void * mmx2_memcpy(void * to, const void * from, size_t len)
 {
   void *retval;
   size_t i;

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.154 2003/05/31 13:33:10 miguelfreitas Exp $
+ * $Id: load_plugins.c,v 1.155 2003/07/27 12:47:23 hadess Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -40,6 +40,7 @@
 #include <ctype.h>
 #include <signal.h>
 
+#define XINE_ENABLE_EXPERIMENTAL_FEATURES 1
 #include "xine_internal.h"
 #include "xine_plugin.h"
 #include "plugin_catalog.h"

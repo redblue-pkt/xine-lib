@@ -61,7 +61,7 @@
  * instructions), these macros will automatically map to those special
  * instructions.
  *
- * $Id: color.c,v 1.20 2003/07/12 04:34:39 miguelfreitas Exp $
+ * $Id: color.c,v 1.21 2003/07/27 12:47:23 hadess Exp $
  */
 
 #include "xine_internal.h"
@@ -202,7 +202,7 @@ void free_yuv_planes(yuv_planes_t *yuv_planes) {
  *
  *   YUY2 map: Y0 U0 Y1 V1  Y2 U2 Y3 V3
  */
-void yuv444_to_yuy2_c(yuv_planes_t *yuv_planes, unsigned char *yuy2_map, 
+static void yuv444_to_yuy2_c(yuv_planes_t *yuv_planes, unsigned char *yuy2_map, 
   int pitch) {
 
   int row_ptr, pixel_ptr;
@@ -316,7 +316,7 @@ void yuv444_to_yuy2_c(yuv_planes_t *yuv_planes, unsigned char *yuy2_map,
  * enough.
  *
  */
-void yuv444_to_yuy2_mmx(yuv_planes_t *yuv_planes, unsigned char *yuy2_map,
+static void yuv444_to_yuy2_mmx(yuv_planes_t *yuv_planes, unsigned char *yuy2_map,
   int pitch) {
 #ifdef ARCH_X86
   int h, i, j, k;
@@ -570,7 +570,7 @@ static void upsample_c_plane_c(unsigned char *src, int src_width,
  * yuv9_to_yv12_c
  *
  */
-void yuv9_to_yv12_c
+static void yuv9_to_yv12_c
   (unsigned char *y_src, int y_src_pitch, unsigned char *y_dest, int y_dest_pitch,
    unsigned char *u_src, int u_src_pitch, unsigned char *u_dest, int u_dest_pitch,
    unsigned char *v_src, int v_src_pitch, unsigned char *v_dest, int v_dest_pitch,
@@ -599,7 +599,7 @@ void yuv9_to_yv12_c
  * yuv411_to_yv12_c
  *
  */
-void yuv411_to_yv12_c
+static void yuv411_to_yv12_c
   (unsigned char *y_src, int y_src_pitch, unsigned char *y_dest, int y_dest_pitch,
    unsigned char *u_src, int u_src_pitch, unsigned char *u_dest, int u_dest_pitch,
    unsigned char *v_src, int v_src_pitch, unsigned char *v_dest, int v_dest_pitch,
@@ -670,7 +670,7 @@ void yuv411_to_yv12_c
  * original conversion routine from Videolan project
  * changed to support interlaced frames and use simple mean interpolation [MF]
  *****************************************************************************/
-void yv12_to_yuy2_c
+static void yv12_to_yuy2_c
   (unsigned char *y_src, int y_src_pitch, 
    unsigned char *u_src, int u_src_pitch, 
    unsigned char *v_src, int v_src_pitch, 
@@ -834,7 +834,7 @@ do {                                                                            
 
 #endif
 
-void yv12_to_yuy2_mmxext
+static void yv12_to_yuy2_mmxext
   (unsigned char *y_src, int y_src_pitch, 
    unsigned char *u_src, int u_src_pitch, 
    unsigned char *v_src, int v_src_pitch, 
@@ -960,7 +960,7 @@ void yv12_to_yuy2_mmxext
     *p_y1++ = *p_line1++; *p_y2++ = *p_line2++;                   \
     *p_v++ = (*p_line1++ + *p_line2++)>>1;
 
-void yuy2_to_yv12_c
+static void yuy2_to_yv12_c
   (unsigned char *yuy2_map, int yuy2_pitch,
    unsigned char *y_dst, int y_dst_pitch, 
    unsigned char *u_dst, int u_dst_pitch, 
@@ -1053,7 +1053,7 @@ do {                                                                            
 
 #endif
 
-void yuy2_to_yv12_mmxext
+static void yuy2_to_yv12_mmxext
   (unsigned char *yuy2_map, int yuy2_pitch,
    unsigned char *y_dst, int y_dst_pitch, 
    unsigned char *u_dst, int u_dst_pitch, 

@@ -151,7 +151,7 @@ int xio_select (xine_stream_t *stream, int fd, int state, int timeout_msec) {
 }
 
 
-off_t xio_rw_abort(xine_stream_t *stream, int fd, int cmd, char *buf, off_t todo) {
+static off_t xio_rw_abort(xine_stream_t *stream, int fd, int cmd, char *buf, off_t todo) {
 
   off_t ret = -1;
   off_t total = 0;

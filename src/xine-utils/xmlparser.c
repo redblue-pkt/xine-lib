@@ -18,7 +18,7 @@
  *  along with this program; if not, write to the Free Software
  *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- *  $Id: xmlparser.c,v 1.4 2003/07/19 00:22:43 tmattern Exp $
+ *  $Id: xmlparser.c,v 1.5 2003/07/27 12:47:23 hadess Exp $
  *
  */
 
@@ -94,7 +94,7 @@ void xml_parser_init(char * buf, int size, int mode) {
   xml_parser_mode = mode;
 }
 
-void xml_parser_free_props(xml_property_t *current_property) {
+static void xml_parser_free_props(xml_property_t *current_property) {
   if (current_property) {
     if (!current_property->next) {
       free_xml_property(current_property);
@@ -129,7 +129,7 @@ void xml_parser_free_tree(xml_node_t *current_node) {
 #define STATE_NODE    1
 #define STATE_COMMENT 7
 
-int xml_parser_get_node (xml_node_t *current_node, char *root_name, int rec) {
+static int xml_parser_get_node (xml_node_t *current_node, char *root_name, int rec) {
   char tok[TOKEN_SIZE];
   char property_name[TOKEN_SIZE];
   char node_name[TOKEN_SIZE];

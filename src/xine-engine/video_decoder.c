@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.135 2003/06/22 17:10:41 mroi Exp $
+ * $Id: video_decoder.c,v 1.136 2003/07/27 12:47:23 hadess Exp $
  *
  */
 
@@ -54,7 +54,7 @@ static void update_spu_decoder (xine_stream_t *stream, int type) {
   return ;
 }
 
-void *video_decoder_loop (void *stream_gen) {
+static void *video_decoder_loop (void *stream_gen) {
 
   buf_element_t   *buf;
   xine_stream_t   *stream = (xine_stream_t *) stream_gen;

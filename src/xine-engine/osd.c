@@ -965,7 +965,7 @@ static int osd_get_text_size(osd_object_t *osd, const char *text, int *width, in
 
 #ifdef HAVE_FT2
   if (osd->ft2 && osd->ft2->useme) {
-    int first = 1, bottom = 0, top = 0;
+    int first = 1;
     FT_GlyphSlot  slot = osd->ft2->face->glyph;
     
     while (*text) {
