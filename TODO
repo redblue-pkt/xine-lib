@@ -91,9 +91,6 @@ optional
 - detect broken savage drivers in health check, disable Xv in that case
 - directfb video output plugin
 - reduce memory footprint (e.g. variable fifo buffer sizes...)
-- Multiple DVD Subtitles displayed at the same time (jcdutton)
-- Move read cache code from libdvdnav into input_dvd.c (jcdutton)
-- Support DVD "Trick" modes. Super Fast forward/reverse (jcdutton)
 - opengl video output plugin (matthias, sopra at stuttgart university)
 - irix audio output plugin (matthias)
 
@@ -111,6 +108,9 @@ Open Tasks
 - MAS support (http://www.mediaapplicationserver.net)
 - nonlinear video editing and compositing frontend (michael) => enix
 - stream format conversion frontend => enix
+- Multiple DVD Subtitles displayed at the same time 
+- Move read cache code from libdvdnav into input_dvd.c
+- Support DVD "Trick" modes. Super Fast forward/reverse
 
 
 xine's future
