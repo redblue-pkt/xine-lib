@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xshm.c,v 1.93 2002/10/13 17:24:29 jkeil Exp $
+ * $Id: video_out_xshm.c,v 1.94 2002/10/22 16:42:25 jkeil Exp $
  * 
  * video_out_xshm.c, X11 shared memory extension interface for xine
  *
@@ -92,8 +92,6 @@ typedef struct xshm_driver_s {
 
   xine_vo_driver_t   vo_driver;
 
-  xine_t            *xine;
-
   /* X11 / XShm related stuff */
   Display           *display;
   int                screen;
@@ -120,6 +118,12 @@ typedef struct xshm_driver_s {
   int (*x11_old_error_handler)  (Display *, XErrorEvent *);
 
 } xshm_driver_t;
+
+typedef struct {
+  video_driver_class_t driver_class;
+
+  config_values_t     *config;
+} xshm_class_t;
 
 
 int gX11Fail;
@@ -304,8 +308,8 @@ static void xshm_frame_copy (vo_frame_t *vo_img, uint8_t **src) {
   xshm_frame_t  *frame = (xshm_frame_t *) vo_img ;
   /*xshm_driver_t *this = (xshm_driver_t *) vo_img->driver; */
 
-  if (frame->rgb_dst + frame->stripe_inc > frame->image->bytes_per_line
-        * frame->image->height + frame->image->data) {
+  if ((char *) frame->rgb_dst + frame->stripe_inc > (char *) frame->image->data
+      	+ frame->image->bytes_per_line * frame->image->height) {
     /* frame->rgb_dst can walk off the end of the frame's image data when
      * xshm_frame_field, which resets it, is not called properly. This can
      * happen with corrupt MPEG streams
@@ -934,10 +938,10 @@ static int xshm_gui_data_exchange (xine_vo_driver_t *this_gen,
       x11_rectangle_t *rect = data;
       int x1, y1, x2, y2;
       
-      vo_scale_translate_gui2video(&this->sc,
+      vo_scale_translate_gui2video(&this->cur_frame->sc,
 			       rect->x, rect->y,
 			       &x1, &y1);
-      vo_scale_translate_gui2video(&this->sc,
+      vo_scale_translate_gui2video(&this->cur_frame->sc,
 			       rect->x + rect->w, rect->y + rect->h,
 			       &x2, &y2);
       rect->x = x1;
@@ -955,7 +959,7 @@ static int xshm_gui_data_exchange (xine_vo_driver_t *this_gen,
   return 0;
 }
 
-static void xshm_exit (xine_vo_driver_t *this_gen) {
+static void xshm_dispose (xine_vo_driver_t *this_gen) {
 
   xshm_driver_t *this = (xshm_driver_t *) this_gen;
   
@@ -1021,11 +1025,15 @@ static char *visual_class_name(Visual *visual) {
   }
 }
 
-static void *init_video_out_plugin (xine_t *xine, void *visual_gen) {
+
+static xine_vo_driver_t *xshm_open_plugin (video_driver_class_t *class_gen, const void *visual_gen) 
+{
+  xshm_class_t         *class = (xshm_class_t *) class_gen;
+  config_values_t      *config = class->config;
+  x11_visual_t         *visual = (x11_visual_t *) visual_gen;
+  Display              *display = visual->display;
 
   xshm_driver_t        *this;
-  x11_visual_t         *visual = (x11_visual_t *) visual_gen;
-  Display              *display = NULL;
   XWindowAttributes     attribs;
   XImage               *myimage;
   XShmSegmentInfo       myshminfo;
@@ -1033,13 +1041,6 @@ static void *init_video_out_plugin (xine_t *xine, void *visual_gen) {
   int			swapped;
   int			cpu_byte_order;
   XColor                dummy;
-
-  visual = (x11_visual_t *) visual_gen;
-  display = visual->display;
-
-  /*
-   * allocate plugin struct
-   */
 
   this = malloc (sizeof (xshm_driver_t));
 
@@ -1050,18 +1051,17 @@ static void *init_video_out_plugin (xine_t *xine, void *visual_gen) {
 
   memset (this, 0, sizeof(xshm_driver_t));
 
-  this->xine		    = xine;
   this->display		    = visual->display;
   this->screen		    = visual->screen;
 
   vo_scale_init( &this->sc, 0, 0 );
-  this->sc.frame_output_cb   = visual->frame_output_cb;
-  this->sc.dest_size_cb      = visual->dest_size_cb;
-  this->sc.user_data         = visual->user_data;
+  this->sc.frame_output_cb  = visual->frame_output_cb;
+  this->sc.dest_size_cb     = visual->dest_size_cb;
+  this->sc.user_data        = visual->user_data;
   
-  this->sc.user_ratio        = ASPECT_AUTO;
+  this->sc.user_ratio       = ASPECT_AUTO;
   
-  this->sc.scaling_disabled  = xine_config_register_bool (xine, "video.disable_scaling", 0,
+  this->sc.scaling_disabled = config->register_bool (config, "video.disable_scaling", 0,
 						     _("disable all video scaling (faster!)"),
 						     NULL, 10, NULL, NULL);
   this->drawable	    = visual->d;
@@ -1083,7 +1083,7 @@ static void *init_video_out_plugin (xine_t *xine, void *visual_gen) {
   this->vo_driver.set_property         = xshm_set_property;
   this->vo_driver.get_property_min_max = xshm_get_property_min_max;
   this->vo_driver.gui_data_exchange    = xshm_gui_data_exchange;
-  this->vo_driver.exit                 = xshm_exit;
+  this->vo_driver.dispose              = xshm_dispose;
   this->vo_driver.redraw_needed        = xshm_redraw_needed;
 
   XAllocNamedColor (this->display,
@@ -1207,7 +1207,7 @@ static void *init_video_out_plugin (xine_t *xine, void *visual_gen) {
 
   this->yuv2rgb_mode  = mode;
   this->yuv2rgb_swap  = swapped;
-  this->yuv2rgb_gamma = xine_config_register_range (xine, "video.xshm_gamma", 0,
+  this->yuv2rgb_gamma = config->register_range (config, "video.xshm_gamma", 0,
 						-100, 100, 
 						_("gamma correction for XShm driver"),
 						NULL, 0, NULL, NULL);
@@ -1219,16 +1219,45 @@ static void *init_video_out_plugin (xine_t *xine, void *visual_gen) {
   return &this->vo_driver;
 }
 
+/*
+ * class functions
+ */
+
+static char* xshm_get_identifier (video_driver_class_t *this_gen) {
+  return "XShm";
+}
+
+static char* xshm_get_description (video_driver_class_t *this_gen) {
+  return _("xine video output plugin using the MIT X shared memory extension");
+}
+
+static void xshm_dispose_class (video_driver_class_t *this_gen) {
+
+  xshm_class_t         *this = (xshm_class_t *) this_gen;
+
+  free (this);
+}
+
+static void *xshm_init_class (xine_t *xine, void *visual_gen) {
+
+  xshm_class_t	       *this = (xshm_class_t *) malloc (sizeof (xshm_class_t));
+
+  this->driver_class.open_plugin     = xshm_open_plugin;
+  this->driver_class.get_identifier  = xshm_get_identifier;
+  this->driver_class.get_description = xshm_get_description;
+  this->driver_class.dispose         = xshm_dispose_class;
+
+  this->config          = xine->config;
+
+  return this;
+}
+
+
 static vo_info_t vo_info_xshm = {
   6,                    /* priority    */
-  "xine video output plugin using the MIT X shared memory extension", /* description */
   XINE_VISUAL_TYPE_X11  /* visual type */
 };
 
-vo_info_t *get_video_out_plugin_info() {
-  vo_info_xshm.description = _("xine video output plugin using the MIT X shared memory extension");
-  return &vo_info_xshm;
-}
 
 /*
  * exported plugin catalog entry
@@ -1236,6 +1265,6 @@ vo_info_t *get_video_out_plugin_info() {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_VIDEO_OUT, 9, "xshm", XINE_VERSION_CODE, &vo_info_xshm, init_video_out_plugin },
+  { PLUGIN_VIDEO_OUT, 10, "xshm", XINE_VERSION_CODE, &vo_info_xshm, xshm_init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
