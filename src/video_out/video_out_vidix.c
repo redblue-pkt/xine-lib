@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_vidix.c,v 1.39 2003/04/23 10:49:48 jstembridge Exp $
+ * $Id: video_out_vidix.c,v 1.40 2003/05/02 00:46:20 jstembridge Exp $
  * 
  * video_out_vidix.c
  *
@@ -59,8 +59,9 @@
 #include "xineutils.h"
 #include "vo_scale.h"
               
-#undef LOG
-           
+/*
+#define LOG
+*/           
 
 #define NUM_FRAMES 3
 
@@ -786,6 +787,26 @@ static void vidix_db_callback(vo_driver_t *this_gen, xine_cfg_entry_t *entry) {
 }
 
 
+static void vidix_rgb_callback(vo_driver_t *this_gen, xine_cfg_entry_t *entry) {
+  int err;
+  vidix_driver_t *this = (vidix_driver_t *) this_gen;
+  
+  this->vidix_eq.cap = VEQ_CAP_RGB_INTENSITY;
+  
+  if(!strcmp(entry->key, "video.vidix_red_intensity")) {
+    this->vidix_eq.red_intensity = entry->num_value;
+  } else if(!strcmp(entry->key, "video.vidix_green_intensity")) {
+    this->vidix_eq.green_intensity = entry->num_value;
+  } else if(!strcmp(entry->key, "video.vidix_blue_intensity")) {
+    this->vidix_eq.blue_intensity = entry->num_value;
+  }  
+
+  if((err = vdlPlaybackSetEq(this->vidix_handler, &this->vidix_eq)))
+    if(this->xine->verbosity >= XINE_VERBOSITY_LOG)
+      printf("video_out_vidix: can't set rgb intensity: %s\n", strerror(err));
+}
+
+
 static void vidix_get_property_min_max (vo_driver_t *this_gen,
 				     int property, int *min, int *max) {
 
@@ -926,6 +947,28 @@ static vidix_driver_t *open_plugin (video_driver_class_t *class_gen) {
         this->props[VO_PROP_HUE].min = -1000;
         this->props[VO_PROP_HUE].max = 1000;
       }
+      
+      if(this->vidix_eq.cap & VEQ_CAP_RGB_INTENSITY) {
+        this->vidix_eq.red_intensity = config->register_range(config,
+          "video.vidix_red_intensity", 0, -1000, 1000, 
+          "red intensity", NULL, 10,
+          (void*) vidix_rgb_callback, this); 
+
+        this->vidix_eq.green_intensity = config->register_range(config,
+          "video.vidix_green_intensity", 0, -1000, 1000, 
+          "green intensity", NULL, 10,
+          (void*) vidix_rgb_callback, this);
+
+        this->vidix_eq.blue_intensity = config->register_range(config,
+          "video.vidix_blue_intensity", 0, -1000, 1000, 
+          "blue intensity", NULL, 10,
+          (void*) vidix_rgb_callback, this);
+  
+       if((err = vdlPlaybackSetEq(this->vidix_handler, &this->vidix_eq)))
+         if(this->xine->verbosity >= XINE_VERBOSITY_LOG)
+           printf("video_out_vidix: can't set rgb intensity: %s\n", 
+                  strerror(err));
+      }      
     }
   }
   
