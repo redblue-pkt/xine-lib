@@ -3,6 +3,7 @@ xine-lib (1.0.0-alpha1)
   * stdin_fifo input plugin
   * vcd input plugin  
   * native Windows Media Audio (a.k.a. WMA, DivX audio) decoding via ffmpeg
+  * DV decoder (ffmpeg)
 
 xine-lib (1.0.0-alpha0) 
 
