@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2000-2001 the xine project
+ * Copyright (C) 2000-2004 the xine project
  * 
  * This file is part of xine, a unix video player.
  * 
@@ -37,7 +37,9 @@
 #ifndef _SYS_UNISTD_H_
 #define _SYS_UNISTD_H_
 
+#ifndef inline
 #define inline __inline
+#endif
 
 #define mkdir( A, B )	_mkdir( A )
 #define lstat			stat

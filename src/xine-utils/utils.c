@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: utils.c,v 1.25 2004/03/29 19:10:36 mroi Exp $
+ * $Id: utils.c,v 1.26 2004/04/06 19:20:16 valtri Exp $
  *
  */
 #define	_POSIX_PTHREAD_SEMANTICS 1	/* for 5-arg getpwuid_r on solaris */
@@ -245,6 +245,86 @@ void *xine_xmalloc_aligned(size_t alignment, size_t size, void **base) {
     
   return ptr;
 }
+
+#if defined(WIN32)
+
+/* Ridiculous hack to return valid xine support
+ * directories. These should be read from
+ * a registry entry set at install time.
+ */
+
+char *exec_path_append_subdir(char *string) {
+  static char tmp_win32_path[1024];
+  char *tmpchar;
+  char *cmdline;
+  char *back_slash;
+  char *fore_slash;
+  char *last_slash;
+
+  /* get program exec command line */
+  cmdline = GetCommandLine();
+
+  /* check for " at beginning of string */
+  if( *cmdline == '\"' ) {
+    /* copy command line, skip first quote */
+    strcpy(tmp_win32_path, cmdline + 1);
+
+    /* terminate at second set of quotes */
+    tmpchar = strchr(tmp_win32_path, '\"');
+    if (tmpchar) *tmpchar = 0;
+  } else {
+    /* copy command line */
+    strcpy(tmp_win32_path, cmdline);
+
+    /* terminate at first space */
+    tmpchar = strchr(tmp_win32_path, ' ');
+    if (tmpchar) *tmpchar = 0;
+  }
+
+  /* find the last occurance of a back
+   * slash or fore slash 
+   */
+  back_slash = strrchr(tmp_win32_path, '\\');
+  fore_slash = strrchr(tmp_win32_path, '/');
+
+  /* make sure the last back slash was not
+   * after a drive letter 
+   */
+  if(back_slash > tmp_win32_path)
+    if(*( back_slash - 1 ) == ':')
+      back_slash = 0;
+
+  /* which slash was the latter slash */
+  if(back_slash > fore_slash)
+    last_slash = back_slash;
+  else
+    last_slash = fore_slash;
+
+  /* detect if we had a relative or
+   * distiguished path ( had a slash )
+   */
+  if(last_slash) {
+    /* we had a slash charachter in our
+     * command line
+     */
+    *(last_slash + 1) = 0;
+
+    /* if had a string to append to the path */
+    if(string)
+    strcat(tmp_win32_path, string);
+  } else {
+    if(string) {
+    /* if had a string to append to the path */
+      strcpy(tmp_win32_path, string);
+    } else {
+    /* no slash, assume local directory */
+      strcpy(tmp_win32_path, ".");
+    }
+  }
+
+  return tmp_win32_path;
+}
+#endif
 
 #ifndef BUFSIZ
 #define BUFSIZ 256

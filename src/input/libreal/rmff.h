@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: rmff.h,v 1.4 2003/12/09 00:02:30 f1rmb Exp $
+ * $Id: rmff.h,v 1.5 2004/04/06 19:20:16 valtri Exp $
  *
  * some functions for real media file headers
  * adopted from joschkas real tools
@@ -32,6 +32,7 @@
 #include <fcntl.h>
 #include <stdlib.h>
 #include <string.h>
+#include <inttypes.h>
 
 
 #ifndef HAVE_RMFF_H
@@ -61,12 +62,6 @@
 #define PN_SAVE_ENABLED         0x01
 #define PN_PERFECT_PLAY_ENABLED 0x02
 #define PN_LIVE_BROADCAST       0x04
-
-#ifdef __CYGWIN__
-#define uint32_t unsigned int
-#define uint16_t unsigned short int
-#define uint8_t unsigned char
-#endif
 
 /*
  * rm header data structs

@@ -43,7 +43,7 @@ RSC=rc.exe
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /YX /FD /c
-# ADD CPP /nologo /MD /W3 /GX /O2 /I "." /I "source" /I "include" /I "contrib/pthreads" /I "contrib/timer" /I "../include" /I ".." /I "../src/video_out" /I "../src/xine-utils" /I "../src/xine-engine" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /D "XINE_COMPILE" /FR /YX /FD /c
+# ADD CPP /nologo /MD /W3 /GX /O2 /I "." /I "source" /I "include" /I "include/msvc" /I "contrib/pthreads" /I "contrib/timer" /I "../include" /I ".." /I "../src/video_out" /I "../src/xine-utils" /I "../src/xine-engine" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /D "XINE_COMPILE" /FR /YX /FD /c
 # ADD BASE MTL /nologo /D "NDEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "NDEBUG" /mktyplib203 /win32
 # ADD BASE RSC /l 0x409 /d "NDEBUG"
@@ -69,7 +69,7 @@ LINK32=link.exe
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /YX /FD /GZ /c
-# ADD CPP /nologo /MDd /W3 /Gm /GX /ZI /Od /I "." /I "source" /I "include" /I "contrib/pthreads" /I "contrib/timer" /I "../include" /I ".." /I "../src/video_out" /I "../src/xine-utils" /I "../src/xine-engine" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /D "XINE_COMPILE" /FR /YX /FD /GZ /c
+# ADD CPP /nologo /MDd /W3 /Gm /GX /ZI /Od /I "." /I "source" /I "include" /I "include/msvc" /I "contrib/pthreads" /I "contrib/timer" /I "../include" /I ".." /I "../src/video_out" /I "../src/xine-utils" /I "../src/xine-engine" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /D "XINE_COMPILE" /FR /YX /FD /GZ /c
 # ADD BASE MTL /nologo /D "_DEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "_DEBUG" /mktyplib203 /win32
 # ADD BASE RSC /l 0x409 /d "_DEBUG"

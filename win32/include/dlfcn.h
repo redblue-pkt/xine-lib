@@ -24,10 +24,17 @@
  *
  */
 
+#ifndef _DLFCN_H
+#define _DLFCN_H
+
+#include <windows.h>
+
 #define RTLD_LAZY	0
 #define RTLD_GLOBAL	0
 
-#define dlopen( A, B ) LoadLibrary( A )
-#define dlclose( A ) FreeLibrary( A )
-#define dlsym( A, B ) ( void * ) GetProcAddress( A, B )
+#define dlopen( A, B ) ( void * )LoadLibrary( A )
+#define dlclose( A ) FreeLibrary( (HMODULE)A )
+#define dlsym( A, B ) ( void * ) GetProcAddress( (HMODULE)A, B )
 #define dlerror() "dlerror"
+
+#endif

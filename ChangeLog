@@ -6,6 +6,7 @@
   * revert changes to the DVD plugin that made it impossible to play mounted
     DVDs
   * use xine network functions in CDDB lookups, fix connection timeout
+  * preparing for future MinGW port
 
 xine-lib (1-rc3b)
   * fix SDL plugin that was broken in rc3

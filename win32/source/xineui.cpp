@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2000-2001 the xine project
+ * Copyright (C) 2000-2004 the xine project
  * 
  * This file is part of xine for win32 video player.
  * 
@@ -106,7 +106,7 @@ static xine_video_port_t *load_video_out_driver(int driver_number, win32_visual_
     /* video output driver auto-probing */
     const char *const *driver_ids;
     int                i;
-    
+
     if((!strcasecmp(video_driver_ids[driver_num], "none")) || 
        (!strcasecmp(video_driver_ids[driver_num], "null"))) {
 
@@ -120,7 +120,7 @@ static xine_video_port_t *load_video_out_driver(int driver_number, win32_visual_
       
     }
     else if(strcasecmp(video_driver_ids[driver_num], "auto")) {
-      
+
       vis = (win32_visual_t *) xine_xmalloc(sizeof(win32_visual_t));
       video_port = xine_open_video_driver(gGui->xine, 
 					  video_driver_ids[driver_num],
@@ -135,9 +135,8 @@ static xine_video_port_t *load_video_out_driver(int driver_number, win32_visual_
      */
     i = 0;
     driver_ids = xine_list_video_output_plugins (gGui->xine);
-
     while (driver_ids[i]) {
-      
+
       printf (("main: probing <%s> video output plugin\n"), driver_ids[i]);
       
       /*vis = (win32_visual_t *) xine_xmalloc(sizeof(win32_visual_t));*/
@@ -155,9 +154,10 @@ static xine_video_port_t *load_video_out_driver(int driver_number, win32_visual_
      
       i++;
     }
-      
+
     if (!video_port) {
       printf (("main: all available video drivers failed.\n"));
+      getchar();
       exit (1);
     }
     
@@ -190,6 +190,7 @@ static xine_video_port_t *load_video_out_driver(int driver_number, win32_visual_
     
     if(!video_port) {
       printf (("main: video driver <%s> failed\n"), video_driver_ids[driver_number]);
+      getchar();
       exit (1);
     }
     
@@ -289,6 +290,7 @@ static xine_audio_port_t *load_audio_out_driver(int driver_number) {
 
       if (!audio_port) {
         printf (("main: audio driver <%s> failed\n"), audio_driver_ids[driver_number]);
+        getchar();
         exit (1);
       }
     
@@ -504,7 +506,6 @@ bool _XINE_UI::InitXine()
   }
 #endif
 
-
     gGui->xine = xine_new();
     xine_config_load(gGui->xine, gGui->configfile);
 
@@ -530,7 +531,6 @@ bool _XINE_UI::InitXine()
    */
   xine_init(gGui->xine);
 
-
   /*
    * load and init output drivers
    */
@@ -539,9 +539,9 @@ bool _XINE_UI::InitXine()
   {
     const char *const *vids = xine_list_video_output_plugins(gGui->xine);
     int                i = 0;
-    
+
     while(vids[i++]);
-    
+
     video_driver_ids = (char **) xine_xmalloc(sizeof(char *) * (i + 1));
     i = 0;
     video_driver_ids[i] = strdup("auto");
@@ -549,7 +549,7 @@ bool _XINE_UI::InitXine()
       video_driver_ids[i + 1] = strdup(vids[i]);
       i++;
     }
-    
+
     video_driver_ids[i + 1] = NULL;
     
     if(video_driver_id) {
@@ -561,8 +561,8 @@ bool _XINE_UI::InitXine()
       }
     }
     gGui->vo_port = load_video_out_driver(driver_num, &win32_visual);
-  }  
-  
+  }
+
   {
     xine_cfg_entry_t  cfg_vo_entry;
     

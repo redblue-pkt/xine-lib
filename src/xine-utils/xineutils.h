@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xineutils.h,v 1.83 2004/03/29 19:10:36 mroi Exp $
+ * $Id: xineutils.h,v 1.84 2004/04/06 19:20:17 valtri Exp $
  *
  */
 #ifndef XINEUTILS_H
@@ -1094,6 +1094,10 @@ char *xine_get_system_encoding(void);
  * get base name
  */
 char *basename (char const *name);
+#endif
+
+#ifdef WIN32
+char *exec_path_append_subdir(char * string);
 #endif
 
 

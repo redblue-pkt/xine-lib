@@ -27,7 +27,7 @@ details. */
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: stdint.h,v 1.1 2004/03/14 09:38:03 valtri Exp $
+ * $Id: stdint.h,v 1.1 2004/04/06 19:20:21 valtri Exp $
  */
 
 /* Modified original CygWin version for using by MSVC port. */
