@@ -381,10 +381,13 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 	    data.aspect = picture->aspect_ratio_information;
 	    xine_event_send(mpeg2dec->stream, &event);
 
-	    if (picture->forward_reference_frame) 
+	    if (picture->forward_reference_frame &&
+		picture->forward_reference_frame != picture->current_frame &&
+		picture->forward_reference_frame != picture->backward_reference_frame)
 	      picture->forward_reference_frame->free (picture->forward_reference_frame);
 	  
-	    if (picture->backward_reference_frame) 
+	    if (picture->backward_reference_frame &&
+		picture->backward_reference_frame != picture->current_frame)
 	      picture->backward_reference_frame->free (picture->backward_reference_frame);
 
 	    mpeg2dec->is_sequence_needed = 0;
@@ -451,7 +454,8 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 						     picture->aspect_ratio_information,
 						     XINE_IMGFMT_YV12,
 						     (VO_PREDICTION_FLAG | picture->picture_structure));
-		    if (picture->forward_reference_frame)
+		    if (picture->forward_reference_frame &&
+		        picture->forward_reference_frame != picture->backward_reference_frame)
 		      picture->forward_reference_frame->free (picture->forward_reference_frame);
 
 		    picture->forward_reference_frame =
@@ -577,7 +581,8 @@ void mpeg2_reset (mpeg2dec_t * mpeg2dec) {
       picture->current_frame->free (picture->current_frame);
     picture->current_frame = NULL;
     
-    if (picture->forward_reference_frame)
+    if (picture->forward_reference_frame &&
+        picture->forward_reference_frame != picture->backward_reference_frame)
       picture->forward_reference_frame->free (picture->forward_reference_frame);
     picture->forward_reference_frame = NULL;
     
@@ -648,7 +653,8 @@ void mpeg2_close (mpeg2dec_t * mpeg2dec)
       picture->current_frame = NULL;
     }
     
-    if (picture->forward_reference_frame) {
+    if (picture->forward_reference_frame &&
+        picture->forward_reference_frame != picture->backward_reference_frame) {
       picture->forward_reference_frame->free (picture->forward_reference_frame);
       picture->forward_reference_frame = NULL;
     }
