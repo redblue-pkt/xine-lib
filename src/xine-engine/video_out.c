@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.191 2004/04/26 17:50:13 mroi Exp $
+ * $Id: video_out.c,v 1.192 2004/05/07 22:49:24 f1rmb Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -400,6 +400,10 @@ static int vo_frame_draw (vo_frame_t *img, xine_stream_t *stream) {
 
     if (frames_to_skip<0)
       frames_to_skip = 0;
+
+    lprintf ("delivery diff : %" PRId64 ", current vpts is %" PRId64 ", %d frames to skip\n",
+	     diff, cur_vpts, frames_to_skip);
+    
   } else {
     frames_to_skip = 0;
 
@@ -410,9 +414,6 @@ static int vo_frame_draw (vo_frame_t *img, xine_stream_t *stream) {
     }
   }
 
-
-  lprintf ("delivery diff : %" PRId64 ", current vpts is %" PRId64 ", %d frames to skip\n",
-	   diff, cur_vpts, frames_to_skip);
 
   if (!img->bad_frame) {
 
@@ -1120,6 +1121,7 @@ int xine_get_next_video_frame (xine_video_port_t *this_gen,
       continue;
     }
 
+    
     /* FIXME: ugly, use conditions and locks instead? */
     
     pthread_mutex_lock(&this->display_img_buf_queue->mutex);
@@ -1468,8 +1470,7 @@ static void vo_flush (xine_video_port_t *this_gen) {
   }
 }
 
-xine_video_port_t *_x_vo_new_port (xine_t *xine, vo_driver_t *driver,
-				int grabonly) {
+xine_video_port_t *_x_vo_new_port (xine_t *xine, vo_driver_t *driver, int grabonly) {
 
   vos_t            *this;
   int               i;
