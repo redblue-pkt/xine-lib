@@ -16,7 +16,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * $Id: layer3.c,v 1.1 2001/08/12 02:57:55 guenter Exp $
+ * $Id: layer3.c,v 1.2 2001/12/01 22:38:31 guenter Exp $
  */
 
 # ifdef HAVE_CONFIG_H
@@ -891,7 +891,7 @@ mad_fixed_t III_requantize(unsigned int value, signed int exp)
     if (exp >= 5) {
       /* overflow */
 # if defined(DEBUG)
-      fprintf(stderr, "requantize overflow (%f * 2^%d)\n",
+      printf ("mad: requantize overflow (%f * 2^%d)\n",
 	      mad_f_todouble(requantized), exp);
 # endif
       requantized = MAD_F_MAX;

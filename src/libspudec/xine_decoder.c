@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.42 2001/11/30 20:35:48 jcdutton Exp $
+ * $Id: xine_decoder.c,v 1.43 2001/12/01 22:38:31 guenter Exp $
  *
  * stuff needed to turn libspu into a xine decoder plugin
  */
@@ -39,7 +39,9 @@
 #include "xineutils.h"
 #include "spu.h"
 
+/*
 #define LOG_DEBUG 1
+*/
 
 static clut_t __default_clut[] = {
   CLUT_Y_CR_CB_INIT(0x00, 0x80, 0x80),

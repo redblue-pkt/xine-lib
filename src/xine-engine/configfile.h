@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: configfile.h,v 1.6 2001/11/30 21:55:06 f1rmb Exp $
+ * $Id: configfile.h,v 1.7 2001/12/01 22:38:32 guenter Exp $
  *
  * config file management
  *
@@ -94,9 +94,6 @@ struct config_values_s {
    * not found in the config file or the current value
    * from the config file otherwise
    */
-
-  void (*register_empty) (config_values_t *this, 
-			  char *key);
 
   char* (*register_string) (config_values_t *this,
 			    char *key, 
@@ -191,6 +188,9 @@ config_values_t *config_file_init (char *filename);
 
 /*
  * $Log: configfile.h,v $
+ * Revision 1.7  2001/12/01 22:38:32  guenter
+ * add avi subtitle decoder (based on mplayer code), minor cleanups, removed register_empty function from configfile (undocumented and doesn't make sense)
+ *
  * Revision 1.6  2001/11/30 21:55:06  f1rmb
  * Add an automatic way for input plugin to add extra valid mrls:
  * add at bottom of init_input_plugin() a line like this:

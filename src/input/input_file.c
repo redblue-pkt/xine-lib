@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_file.c,v 1.30 2001/11/30 00:53:51 f1rmb Exp $
+ * $Id: input_file.c,v 1.31 2001/12/01 22:38:31 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -77,6 +77,7 @@ typedef struct {
   input_plugin_t    input_plugin;
   
   int               fh;
+  FILE             *sub;
   char             *mrl;
   config_values_t  *config;
 
@@ -234,6 +235,7 @@ static off_t get_file_size(char *filepathname, char *origin) {
  *
  */
 static uint32_t file_plugin_get_capabilities (input_plugin_t *this_gen) {
+
   return INPUT_CAP_SEEKABLE | INPUT_CAP_GET_DIR;
 }
 
@@ -242,15 +244,29 @@ static uint32_t file_plugin_get_capabilities (input_plugin_t *this_gen) {
  */
 static int file_plugin_open (input_plugin_t *this_gen, char *mrl) {
 
-  char                *filename;
+  char                *filename, *subtitle;
   file_input_plugin_t *this = (file_input_plugin_t *) this_gen;
 
-  this->mrl = mrl;
+  this->mrl = strdup(mrl); /* FIXME: small memory leak */ 
 
-  if (!strncasecmp (mrl, "file:",5))
-    filename = &mrl[5];
+  if (!strncasecmp (this->mrl, "file:",5))
+    filename = &this->mrl[5];
   else
-    filename = mrl;
+    filename = this->mrl;
+
+  subtitle = strrchr (filename, ':');
+  if (subtitle) {
+    *subtitle = 0;
+    subtitle++;
+
+    printf ("input_file: trying to open subtitle file '%s'\n",
+	    subtitle);
+
+    this->sub = fopen (subtitle, "r");
+
+  } else
+    this->sub = NULL;
+
 
   this->fh = open (filename, O_RDONLY);
 
@@ -689,6 +705,11 @@ static void file_plugin_close (input_plugin_t *this_gen) {
 
   close(this->fh);
   this->fh = -1;
+
+  if (this->sub) {
+    fclose (this->sub);
+    this->sub = NULL;
+  }
 }
 
 /*
@@ -719,6 +740,25 @@ static char *file_plugin_get_identifier (input_plugin_t *this_gen) {
 static int file_plugin_get_optional_data (input_plugin_t *this_gen, 
 					  void *data, int data_type) {
   
+  file_input_plugin_t *this = (file_input_plugin_t *) this_gen;
+
+  printf ("input_file: get optional data, type %08x, sub %d\n",
+	  data_type, this->sub);
+
+
+  if ( (data_type == INPUT_OPTIONAL_DATA_TEXTSPU0)
+       && this->sub ) {
+
+    FILE **tmp;
+
+    /* dirty hacks... */
+
+    tmp = data;
+    *tmp = this->sub;
+
+    return INPUT_OPTIONAL_SUCCESS;
+  }
+
   return INPUT_OPTIONAL_UNSUPPORTED;
 }
 
@@ -763,6 +803,7 @@ input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
   this->input_plugin.is_branch_possible = NULL;
 
   this->fh                     = -1;
+  this->sub                    = NULL;
   this->mrl                    = NULL;
   this->config                 = config;
   

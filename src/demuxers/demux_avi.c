@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_avi.c,v 1.54 2001/11/30 00:53:51 f1rmb Exp $
+ * $Id: demux_avi.c,v 1.55 2001/12/01 22:38:31 guenter Exp $
  *
  * demultiplexer for avi streams
  *
@@ -866,10 +866,11 @@ static void demux_avi_start (demux_plugin_t *this_gen,
 			     fifo_buffer_t *video_fifo, 
 			     fifo_buffer_t *audio_fifo,
 			     off_t start_pos, int start_time) {
-  buf_element_t *buf;
-  demux_avi_t *this = (demux_avi_t *) this_gen;
-  uint32_t video_pts = 0;
-  int err;
+  buf_element_t  *buf;
+  demux_avi_t    *this = (demux_avi_t *) this_gen;
+  uint32_t        video_pts = 0;
+  int             err;
+  unsigned char  *sub;
 
   this->audio_fifo   = audio_fifo;
   this->video_fifo   = video_fifo;
@@ -991,6 +992,23 @@ static void demux_avi_start (demux_plugin_t *this_gen,
     buf->decoder_info[2] = this->avi->a_bits; /* Audio bits */
     buf->decoder_info[3] = this->avi->a_chans; /* Audio bits */
     this->audio_fifo->put (this->audio_fifo, buf);
+  }
+
+  /* 
+   * send external spu file pointer, if present
+   */
+
+  if (this->input->get_optional_data (this->input, &sub, INPUT_OPTIONAL_DATA_TEXTSPU0)) {
+
+    buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
+    buf->content = sub;
+
+    buf->type = BUF_SPU_TEXT;
+    
+    this->video_fifo->put (this->video_fifo, buf);
+
+    printf ("demux_avi: text subtitle file available\n");
+
   }
 
   if ((err = pthread_create (&this->thread, NULL, demux_avi_loop, this)) != 0) {

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.h,v 1.25 2001/11/30 19:31:55 jcdutton Exp $
+ * $Id: buffer.h,v 1.26 2001/12/01 22:38:32 guenter Exp $
  *
  *
  * contents:
@@ -123,6 +123,7 @@ extern "C" {
 #define BUF_SPU_PACKAGE		0x04010000
 #define BUF_SPU_SUBP_CONTROL	0x04020000
 #define BUF_SPU_NAV		0x04030000
+#define BUF_SPU_TEXT            0x04040000
 
 /* demuxer block types: */
 

@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2000 the xine project
+ * Copyright (C) 2000, 2001 the xine project
  * 
  * This file is part of xine, a unix video player.
  * 
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_plugin.h,v 1.17 2001/11/30 21:55:05 f1rmb Exp $
+ * $Id: input_plugin.h,v 1.18 2001/12/01 22:38:31 guenter Exp $
  */
 
 #ifndef HAVE_INPUT_PLUGIN_H
@@ -334,6 +334,9 @@ struct input_plugin_s
 #define INPUT_OPTIONAL_DATA_CLUT      1
 #define INPUT_OPTIONAL_DATA_AUDIOLANG 2
 #define INPUT_OPTIONAL_DATA_SPULANG   3
+#define INPUT_OPTIONAL_DATA_TEXTSPU0  4
+#define INPUT_OPTIONAL_DATA_TEXTSPU1  5
+#define INPUT_OPTIONAL_DATA_TEXTSPU2  6
 
 /*
  * each input plugin _must_ implement this function:

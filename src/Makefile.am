@@ -1,7 +1,7 @@
 
 SUBDIRS = xine-utils xine-engine audio_out video_out dxr3 input libmpeg2 libspudec demuxers \
 	  liba52 libffmpeg liblpcm libw32dll libmad libdts libvfill \
-	  libvorbis libdivx4 
+	  libvorbis libdivx4 libsputext
 
 debug:
 	@list='$(SUBDIRS)'; for subdir in $$list; do \

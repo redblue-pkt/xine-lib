@@ -28,7 +28,7 @@
  \endverbatim
  */
 /*
- * $Id: xine.h.tmpl.in,v 1.58 2001/11/30 21:55:05 f1rmb Exp $
+ * $Id: xine.h.tmpl.in,v 1.59 2001/12/01 22:38:31 guenter Exp $
  *
  */
 
@@ -545,9 +545,6 @@ struct config_values_s {
    * not found in the config file or the current value
    * from the config file otherwise
    */
-
-  void (*register_empty) (config_values_t *self, 
-			  char *key);
 
   char* (*register_string) (config_values_t *self,
 			    char *key, 

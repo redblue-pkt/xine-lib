@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: configfile.c,v 1.12 2001/11/30 21:55:06 f1rmb Exp $
+ * $Id: configfile.c,v 1.13 2001/12/01 22:38:32 guenter Exp $
  *
  * config file management - implementation
  *
@@ -98,27 +98,6 @@ cfg_entry_t *config_file_lookup_entry (config_values_t *this, char *key) {
     entry = entry->next;
 
   return entry;
-}
-
-
-static void config_file_register_empty (config_values_t *this, char *key) {
-  cfg_entry_t *entry;
-  
-  assert(key);
-  
-#ifdef CONFIG_LOG
-  printf ("configfile: register empty %s\n", key);
-#endif
-  
-  entry = config_file_lookup_entry (this, key);
-  
-  /* 
-   * Don't register as empty if entry already exist.
-   */
-  if(entry)
-    return;
-  
-  entry = config_file_add (this, key);
 }
 
 
@@ -594,7 +573,6 @@ config_values_t *config_file_init (char *filename) {
     exit (1);
   }
 
-  this->register_empty  = config_file_register_empty;
   this->register_string = config_file_register_string;
   this->register_range  = config_file_register_range;
   this->register_enum   = config_file_register_enum;
@@ -613,6 +591,9 @@ config_values_t *config_file_init (char *filename) {
 
 /*
  * $Log: configfile.c,v $
+ * Revision 1.13  2001/12/01 22:38:32  guenter
+ * add avi subtitle decoder (based on mplayer code), minor cleanups, removed register_empty function from configfile (undocumented and doesn't make sense)
+ *
  * Revision 1.12  2001/11/30 21:55:06  f1rmb
  * Add an automatic way for input plugin to add extra valid mrls:
  * add at bottom of init_input_plugin() a line like this:

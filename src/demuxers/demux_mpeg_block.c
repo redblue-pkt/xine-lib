@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.66 2001/11/30 21:55:05 f1rmb Exp $
+ * $Id: demux_mpeg_block.c,v 1.67 2001/12/01 22:38:31 guenter Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -104,7 +104,7 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
       
       printf ("demux_mpeg_block: checking if we can branch to %s\n", next_mrl);
 
-      if (this->input->is_branch_possible 
+      if (next_mrl && this->input->is_branch_possible 
 	  && this->input->is_branch_possible (this->input, next_mrl)) {
 
         printf ("demux_mpeg_block: branching\n");
