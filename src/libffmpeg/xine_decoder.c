@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.142 2003/11/27 17:02:36 hadess Exp $
+ * $Id: xine_decoder.c,v 1.143 2003/11/29 13:47:26 miguelfreitas Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -1250,7 +1250,7 @@ static video_decoder_t *ff_video_open_plugin (video_decoder_class_t *class_gen, 
 
   lprintf ("open_plugin\n");
 
-  this = (ff_video_decoder_t *) malloc (sizeof (ff_video_decoder_t));
+  this = (ff_video_decoder_t *) xine_xmalloc (sizeof (ff_video_decoder_t));
 
   this->video_decoder.decode_data         = ff_decode_data;
   this->video_decoder.flush               = ff_flush;
@@ -1585,9 +1585,11 @@ static void ff_audio_reset (audio_decoder_t *this_gen) {
   
   this->size = 0;
 
-  /* try to reset the wma decoder */  
-  avcodec_close (this->context);
-  avcodec_open (this->context, this->codec);
+  /* try to reset the wma decoder */
+  if( this->context ) {  
+    avcodec_close (this->context);
+    avcodec_open (this->context, this->codec);
+  }
 }
 
 static void ff_audio_discontinuity (audio_decoder_t *this_gen) {
@@ -1597,7 +1599,8 @@ static void ff_audio_dispose (audio_decoder_t *this_gen) {
 
   ff_audio_decoder_t *this = (ff_audio_decoder_t *) this_gen;
   
-  avcodec_close (this->context);
+  if( this->context )
+    avcodec_close (this->context);
 
   if (this->output_open)
     this->stream->audio_out->close (this->stream->audio_out, this->stream);
@@ -1619,7 +1622,7 @@ static audio_decoder_t *ff_audio_open_plugin (audio_decoder_class_t *class_gen, 
 
   ff_audio_decoder_t *this ;
 
-  this = (ff_audio_decoder_t *) malloc (sizeof (ff_audio_decoder_t));
+  this = (ff_audio_decoder_t *) xine_xmalloc (sizeof (ff_audio_decoder_t));
 
   this->audio_decoder.decode_data         = ff_audio_decode_data;
   this->audio_decoder.reset               = ff_audio_reset;
