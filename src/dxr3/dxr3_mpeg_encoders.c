@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_mpeg_encoders.c,v 1.15 2003/12/05 15:54:58 f1rmb Exp $
+ * $Id: dxr3_mpeg_encoders.c,v 1.16 2003/12/06 13:26:36 f1rmb Exp $
  */
  
 /* mpeg encoders for the dxr3 video out plugin.
@@ -120,7 +120,7 @@ int dxr3_rte_init(dxr3_driver_t *drv)
   rte_data_t* this;
   
   if (!rte_init()) {
-    xprintf(this->stream->xine, XINE_VERBOSITY_LOG, _("dxr3_mpeg_encoder: failed to init librte\n"));
+    xprintf(drv->class->xine, XINE_VERBOSITY_LOG, _("dxr3_mpeg_encoder: failed to init librte\n"));
     return 0;
   }
   
@@ -156,7 +156,7 @@ static int rte_on_update_format(dxr3_driver_t *drv, dxr3_frame_t *frame)
   }
   
   if ((frame->vo_frame.pitches[0] % 16 != 0) || (frame->oheight % 16 != 0)) {
-    xprintf(this->stream->xine, XINE_VERBOSITY_LOG, 
+    xprintf(drv->class->xine, XINE_VERBOSITY_LOG, 
 	    _("dxr3_mpeg_encoder: rte only handles video dimensions which are multiples of 16\n"));
     return 0;
   }
@@ -167,7 +167,7 @@ static int rte_on_update_format(dxr3_driver_t *drv, dxr3_frame_t *frame)
   /* create new rte context */
   this->context = rte_context_new(this->width, this->height, "mp1e", drv);
   if (!this->context) {
-    xprintf(this->stream->xine, XINE_VERBOSITY_LOG, _("dxr3_mpeg_encoder: failed to get rte context.\n"));
+    xprintf(drv->class->xine, XINE_VERBOSITY_LOG, _("dxr3_mpeg_encoder: failed to get rte context.\n"));
     return 0;
   }
   context = this->context; /* shortcut */
@@ -178,7 +178,7 @@ static int rte_on_update_format(dxr3_driver_t *drv, dxr3_frame_t *frame)
   /* get mpeg codec handle */
   codec = rte_codec_set(context, RTE_STREAM_VIDEO, 0, "mpeg1_video");
   if (!codec) {
-    xprintf(this->stream->xine, XINE_VERBOSITY_LOG, _("dxr3_mpeg_encoder: could not create codec.\n"));
+    xprintf(drv->class->xine, XINE_VERBOSITY_LOG, _("dxr3_mpeg_encoder: could not create codec.\n"));
     rte_context_destroy(context);
     this->context = 0;
     return 0;
@@ -210,27 +210,27 @@ static int rte_on_update_format(dxr3_driver_t *drv, dxr3_frame_t *frame)
    */
   fps = 90000.0 / frame->vo_frame.duration;
   if (!rte_option_set(codec, "virtual_frame_rate", fps))
-    xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
+    xprintf(drv->class->xine, XINE_VERBOSITY_DEBUG, 
 	    "dxr3_mpeg_encoder: WARNING: rte_option_set failed; virtual_frame_rate = %g.\n", fps);
   if (!rte_option_set(codec, "coded_frame_rate", fps))
-    xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
+    xprintf(drv->class->xine, XINE_VERBOSITY_DEBUG, 
 	    "dxr3_mpeg_encoder: WARNING: rte_option_set failed; coded_frame_rate = %g.\n", fps);
   if (!rte_option_set(codec, "bit_rate", (int)this->rte_bitrate))
-    xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
+    xprintf(drv->class->xine, XINE_VERBOSITY_DEBUG,
 	    "dxr3_mpeg_encoder: WARNING: rte_option_set failed; bit_rate = %d.\n", (int)this->rte_bitrate);
   if (!rte_option_set(codec, "gop_sequence", "I"))
-    xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
+    xprintf(drv->class->xine, XINE_VERBOSITY_DEBUG, 
 	    "dxr3_mpeg_encoder: WARNING: rte_option_set failed; gop_sequence = \"I\".\n");
   /* just to be sure, disable motion comp (not needed in I frames) */
   if (!rte_option_set(codec, "motion_compensation", 0))
-    xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
+    xprintf(drv->class->xine, XINE_VERBOSITY_DEBUG,
 	    "dxr3_mpeg_encoder: WARNING: rte_option_set failed; motion_compensation = 0.\n");
   
   rte_set_input(context, RTE_VIDEO, RTE_PUSH, FALSE, NULL, NULL, NULL);
   rte_set_output(context, mp1e_callback, NULL, NULL);
   
   if (!rte_init_context(context)) {
-    xprintf(this->stream->xine, XINE_VERBOSITY_LOG, 
+    xprintf(drv->class->xine, XINE_VERBOSITY_LOG, 
 	    _("dxr3_mpeg_encoder: cannot init the context: %s\n"), context->error);
     rte_context_destroy(context);
     this->context = 0;
@@ -238,7 +238,7 @@ static int rte_on_update_format(dxr3_driver_t *drv, dxr3_frame_t *frame)
   }
   /* do the sync'ing and start encoding */
   if (!rte_start_encoding(context)) {
-    xprintf(this->stream->xine, XINE_VERBOSITY_LOG, 
+    xprintf(drv->class->xine, XINE_VERBOSITY_LOG, 
 	    _("dxr3_mpeg_encoder: cannot start encoding: %s\n"), context->error);
     rte_context_destroy(context);
     this->context = 0;
@@ -246,7 +246,7 @@ static int rte_on_update_format(dxr3_driver_t *drv, dxr3_frame_t *frame)
   }
   this->rte_ptr = rte_push_video_data(context, NULL, 0);
   if (!this->rte_ptr) {
-    xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
+    xprintf(drv->class->xine, XINE_VERBOSITY_DEBUG, 
 	    "dxr3_mpeg_encoder: failed to get encoder buffer pointer.\n");
     return 0;
   }
@@ -311,12 +311,12 @@ static void mp1e_callback(rte_context *context, void *data, ssize_t size, void *
   
   written = write(drv->fd_video, data, size);
   if (written < 0) {
-    xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
+    xprintf(drv->class->xine, XINE_VERBOSITY_DEBUG, 
 	    "dxr3_mpeg_encoder: video device write failed (%s)\n", strerror(errno));
     return;
   }
   if (written != size)
-    xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
+    xprintf(drv->class->xine, XINE_VERBOSITY_DEBUG, 
 	    "dxr3_mpeg_encoder: Could only write %d of %d mpeg bytes.\n", written, size);
 }
 #endif
@@ -381,7 +381,7 @@ static int fame_on_update_format(dxr3_driver_t *drv, dxr3_frame_t *frame)
   
   this->context = fame_open();
   if (!this->context) {
-    xprintf(this->stream->xine, XINE_VERBOSITY_LOG, 
+    xprintf(drv->class->xine, XINE_VERBOSITY_LOG, 
 	    _("dxr3_mpeg_encoder: Couldn't start the FAME library\n"));
     return 0;
   }
@@ -389,7 +389,7 @@ static int fame_on_update_format(dxr3_driver_t *drv, dxr3_frame_t *frame)
   if (!this->buffer)
     this->buffer = (unsigned char *)malloc(DEFAULT_BUFFER_SIZE);
   if (!this->buffer) {
-    xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
+    xprintf(drv->class->xine, XINE_VERBOSITY_DEBUG, 
 	    "dxr3_mpeg_encoder: Couldn't allocate temp buffer for mpeg data\n");
     return 0;
   }
@@ -485,13 +485,13 @@ static int fame_on_display_frame(dxr3_driver_t *drv, dxr3_frame_t *frame)
   
   written = write(drv->fd_video, this->buffer, size);
   if (written < 0) {
-    xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
+    xprintf(drv->class->xine, XINE_VERBOSITY_DEBUG, 
 	    "dxr3_mpeg_encoder: video device write failed (%s)\n",
       strerror(errno));
     return 0;
   }
   if (written != size)
-    xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
+    xprintf(drv->class->xine, XINE_VERBOSITY_DEBUG, 
 	    "dxr3_mpeg_encoder: Could only write %d of %d mpeg bytes.\n",
       written, size);
   return 1;
@@ -527,7 +527,7 @@ static int fame_prepare_frame(fame_data_t *this, dxr3_driver_t *drv, dxr3_frame_
   if (frame->vo_frame.format == XINE_IMGFMT_YUY2) {
     /* need YUY2->YV12 conversion */
     if (!(this->out[0] && this->out[1] && this->out[2]) ) {
-      xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
+      xprintf(drv->class->xine, XINE_VERBOSITY_DEBUG, 
 	      "dxr3_mpeg_encoder: Internal YV12 buffer not created.\n");
       return 0;
     }
