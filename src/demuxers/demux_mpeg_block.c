@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.159 2003/02/13 23:54:25 miguelfreitas Exp $
+ * $Id: demux_mpeg_block.c,v 1.160 2003/02/15 18:27:29 mroi Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -467,8 +467,6 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
       buf->decoder_info[1] = BUF_SPECIAL_SPU_DVD_SUBTYPE;
       buf->decoder_info[2] = SPU_DVD_SUBTYPE_PACKAGE;
       buf->pts       = pts;
-      if( !preview_mode )
-        check_newpts( this, pts, PTS_VIDEO );
       
       buf->extra_info->input_pos = this->input->get_current_pos(this->input);
       buf->extra_info->input_length = this->input->get_length (this->input);
