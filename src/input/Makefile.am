@@ -86,9 +86,9 @@ xineplug_inp_cda_la_LIBADD = $(top_builddir)/src/xine-engine/libxine.la
 xineplug_inp_cda_la_LDFLAGS = -avoid-version -module
 
 include_HEADERS = input_plugin.h
-noinst_HEADERS = read_cache.h net_buf_ctrl.h mms.h
+noinst_HEADERS = net_buf_ctrl.h mms.h
 
-EXTRA_DIST = input_dvd.c input_vcd.c read_cache.c
+EXTRA_DIST = input_dvd.c input_vcd.c
 
 ##
 ## Install header files (default=$includedir/xine)
