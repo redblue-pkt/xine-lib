@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.17 2004/05/12 07:41:43 tmattern Exp $
+ * $Id: video_decoder.c,v 1.18 2004/05/23 16:34:42 jstembridge Exp $
  *
  * xine video decoder plugin using ffmpeg
  *
@@ -859,7 +859,7 @@ static void ff_check_bufsize (ff_video_decoder_t *this, int size) {
 static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
   ff_video_decoder_t *this = (ff_video_decoder_t *) this_gen;
   int i, codec_type;
-  uint8_t *ffbuf = NULL;
+  uint8_t *ffbuf = this->buf;
 
   lprintf ("processing packet type = %08x, len = %d, decoder_flags=%08x\n", 
            buf->type, buf->size, buf->decoder_flags);
@@ -994,7 +994,6 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
       ff_check_bufsize(this, this->size + buf->size);
       xine_fast_memcpy (&this->buf[this->size], buf->content, buf->size);
       this->size += buf->size;
-      ffbuf = this->buf;
       lprintf("accumulate data into this->buf\n");
     }
   }
