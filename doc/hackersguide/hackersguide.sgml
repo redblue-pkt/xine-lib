@@ -11,6 +11,7 @@
     <author><firstname>Heiko</firstname><surname>Sch&auml;fer</surname></author>
     <author><firstname>Richard</firstname><surname>Wareham</surname></author>
     <author><firstname>Miguel</firstname><surname>Freitas</surname></author>
+    <author><firstname>James</firstname><surname>Courtier-Dutton</surname></author>
 
   </authorgroup>
   <copyright>
@@ -925,6 +926,14 @@ struct input_plugin_s
       <para>
       INPUT_CAP_VARIABLE_BITRATE -- xine may not experimentally read from the
       plugin in order to guestimate bit-rate.
+      </para>
+    </listitem>
+     <listitem>
+      <para>
+      INPUT_CAP_PREVIEW -- xine may attempt preview mode. 
+      Requires INPUT_CAP_SEEKABLE. Most input plugins that are SEEKABLE are
+      also PREVIEWable. xine-dvdnav is an exception to this because it blocks
+      the input during a still video image. E.g DVD Menus.
       </para>
     </listitem>
       </itemizedlist>
