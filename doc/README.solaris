@@ -30,14 +30,3 @@ Known Problems
 
   Reboot the machine after modifying /etc/system to activate the new
   shared memory defaults.
-
-* No Video, or video stops after a few frames
-
-  If you're on Solaris 8, try to use XINE with the "alternate libthread
-  implementation".  The alternate thread implementation can be selected
-  at runtime by adding /usr/lib/lwp into the LD_LIBRARY_PATH environment
-  variable:
-
-	LD_LIBRARY_PATH=/usr/lib/lwp
-
-  See also the threads(3THR) man page, "ALTERNATE IMPLEMENTATION"
