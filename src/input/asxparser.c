@@ -12,7 +12,7 @@ void asx_find_entries(char* buff, char** fname,
 
 char *strupr(char *string);
 
-void  first_request(char* buff, char* file,int *len) {
+void first_request(char *buff, char *host, char *file, int *len) {
 
   char *ptr;
 
@@ -21,7 +21,7 @@ void  first_request(char* buff, char* file,int *len) {
   ptr+=sprintf(ptr,"GET %s HTTP/1.0\r\n",file);
   ptr+=sprintf(ptr,"Accept: */*\r\n");
   ptr+=sprintf(ptr,"User-Agent: xine/0.9.8\r\n");
-  ptr+=sprintf(ptr,"Host: %s\r\n", "192.168.0.129");
+  ptr+=sprintf(ptr,"Host: %s\r\n", host);
   ptr+=sprintf(ptr,"Pragma: no-cache,rate=1.000000,stream-time=0,stream-offset=0:0,request-context=1,max-duration=0\r\n");
   ptr+=sprintf(ptr,"Pragma: xClientGUID=%s\r\n", "{33715801-BAB3-9D85-24E9-03B90328270A}");
   ptr+=sprintf(ptr,"Connection: Close\r\n\r\n");
@@ -83,14 +83,14 @@ int asx_parse (char* mrl, char** rname) {
   printf("asxparser: connect passed \n");
   
   l=sizeof(buff);
-  first_request(buff, hostend, &l);
+  first_request(buff, host, hostend, &l);
   write(s,buff,l);
   
   res=read(s,buff, sizeof(buff));
   printf("asxparser: answer1=%s %d byte received \n",buff,res);
   if(!strstr(buff,"mms://")) {
     l=sizeof(buff);
-    first_request(buff, hostend, &l);
+    first_request(buff, host, hostend, &l);
     write(s,buff,l);
     res=read(s,buff, sizeof(buff));
     printf("asxparser: answer2=%s %d byte received\n",buff,res);
