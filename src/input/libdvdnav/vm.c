@@ -20,7 +20,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: vm.c,v 1.30 2004/10/05 19:07:09 hadess Exp $
+ * $Id: vm.c,v 1.31 2004/10/08 20:44:34 mroi Exp $
  *
  */
 
@@ -714,8 +714,8 @@ int vm_get_subp_stream(vm_t *vm, int subpN, int mode) {
     }
   }
   
- if((vm->state).domain != VTS_DOMAIN && streamN == -1)
-   streamN = 0;
+  if((vm->state).domain != VTS_DOMAIN && streamN == -1)
+    streamN = 0;
 
   /* FIXME: Should also check in vtsi/vmgi status what kind of stream it is. */
   return streamN;
@@ -1345,10 +1345,11 @@ static int process_command(vm_t *vm, link_t link_values) {
 	  (vm->state).pgN = 1;
 	  link_values = play_PG(vm);
 	} else { 
-	  /* (vm->state).pgN = ?? this gets the righ value in set_PGN() below */
+	  /* (vm->state).pgN = ?? this gets the right value in set_PGN() below */
 	  (vm->state).cellN = (vm->state).rsm_cellN;
 	  link_values.command = PlayThis;
-	  link_values.data1 = (vm->state).rsm_blockN;
+	  link_values.data1 = (vm->state).rsm_blockN & 0xffff;
+	  link_values.data2 = (vm->state).rsm_blockN >> 16;
 	  if(!set_PGN(vm)) {
 	    /* Were at the end of the PGC, should not happen for a RSM */
 	    assert(0);
@@ -1551,7 +1552,7 @@ static int process_command(vm_t *vm, link_t link_values) {
 #endif
     
   }
-  (vm->state).blockN = link_values.data1;
+  (vm->state).blockN = link_values.data1 | (link_values.data2 << 16);
   return 1;
 }
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dvdnav.c,v 1.31 2004/10/05 19:07:09 hadess Exp $
+ * $Id: dvdnav.c,v 1.32 2004/10/08 20:44:34 mroi Exp $
  *
  */
 
@@ -668,16 +668,10 @@ dvdnav_status_t dvdnav_get_next_cache_block(dvdnav_t *this, uint8_t **buf,
     fprintf(MSG_OUT, "libdvdnav: SPU_STREAM_CHANGE stream_id_wide=%d\n",stream_change->physical_wide);
     fprintf(MSG_OUT, "libdvdnav: SPU_STREAM_CHANGE stream_id_letterbox=%d\n",stream_change->physical_letterbox);
     fprintf(MSG_OUT, "libdvdnav: SPU_STREAM_CHANGE stream_id_pan_scan=%d\n",stream_change->physical_pan_scan);
+    fprintf(MSG_OUT, "libdvdnav: SPU_STREAM_CHANGE returning DVDNAV_STATUS_OK\n");
 #endif
-    if (stream_change->physical_wide != -1 &&
-        stream_change->physical_letterbox != -1 &&
-        stream_change->physical_pan_scan != -1) {
-#ifdef LOG_DEBUG
-      fprintf(MSG_OUT, "libdvdnav: SPU_STREAM_CHANGE returning DVDNAV_STATUS_OK\n");
-#endif
-      pthread_mutex_unlock(&this->vm_lock); 
-      return DVDNAV_STATUS_OK;
-    }
+    pthread_mutex_unlock(&this->vm_lock); 
+    return DVDNAV_STATUS_OK;
   }
 
   /* has the audio channel changed? */  

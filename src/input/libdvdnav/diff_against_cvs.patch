@@ -11,7 +11,7 @@
    this = (dvdnav_t*)malloc(sizeof(dvdnav_t));
 --- src/input/libdvdnav/dvd_reader.c
 +++ src/input/libdvdnav/dvd_reader.c
-@@ -60,6 +60,7 @@
+@@ -61,6 +61,7 @@
  #include <mntent.h>
  #endif
  
@@ -19,7 +19,7 @@
  #include "dvd_udf.h"
  #include "dvd_input.h"
  #include "dvd_reader.h"
-@@ -408,7 +409,7 @@
+@@ -409,7 +410,7 @@
  	    
  	    if( cdir >= 0 ) {
  		chdir( path_copy );
@@ -28,7 +28,7 @@
  		fchdir( cdir );
  		close( cdir );
  		if( new_path ) {
-@@ -594,7 +595,7 @@
+@@ -595,7 +596,7 @@
  
  static int findDVDFile( dvd_reader_t *dvd, const char *file, char *filename )
  {
@@ -37,7 +37,7 @@
      const char *nodirfile;
      int ret;
  
-@@ -628,7 +629,7 @@
+@@ -629,7 +630,7 @@
   */
  static dvd_file_t *DVDOpenFilePath( dvd_reader_t *dvd, char *filename )
  {
@@ -46,7 +46,7 @@
      dvd_file_t *dvd_file;
      struct stat fileinfo;
      dvd_input_t dev;
-@@ -721,7 +722,7 @@
+@@ -722,7 +723,7 @@
  static dvd_file_t *DVDOpenVOBPath( dvd_reader_t *dvd, int title, int menu )
  {
      char filename[ MAX_UDF_FILE_NAME_LEN ];
