@@ -271,7 +271,10 @@ HREF="#AEN297"
 >What do all these <TT
 CLASS="FILENAME"
 >~/.xine/config</TT
-> entries mean?</A
+> (<TT
+CLASS="FILENAME"
+>~/.gxine/config</TT
+>) entries mean?</A
 ></DT
 ></DL
 ></DD
@@ -284,32 +287,32 @@ HREF="#AUDIO"
 ><DL
 ><DT
 ><A
-HREF="#AEN304"
+HREF="#AEN305"
 >What audio drivers does xine support? OSS? Alsa? Arts? Esd?</A
 ></DT
 ><DT
 ><A
-HREF="#AEN307"
+HREF="#AEN308"
 >When I'm watching a movie, the sound effects are much higher volume than the voices</A
 ></DT
 ><DT
 ><A
-HREF="#AEN317"
+HREF="#AEN318"
 >When I play this stream, xine shows video but there's no audio!</A
 ></DT
 ><DT
 ><A
-HREF="#AEN324"
+HREF="#AEN325"
 >Can xine produce 4-/5-channel surround audio output?</A
 ></DT
 ><DT
 ><A
-HREF="#AEN333"
+HREF="#AEN334"
 >What about ac3 output via spdif to an external ac3 decoder?</A
 ></DT
 ><DT
 ><A
-HREF="#AEN339"
+HREF="#AEN340"
 >Changing the volume with the GUI control has no effect! What's up!?</A
 ></DT
 ></DL
@@ -323,27 +326,27 @@ HREF="#VIDEO"
 ><DL
 ><DT
 ><A
-HREF="#AEN344"
+HREF="#AEN345"
 >I can hear the audio - but I don't see a picture!</A
 ></DT
 ><DT
 ><A
-HREF="#AEN347"
+HREF="#AEN348"
 >How can I make xine use the Xv extension and what drivers do I need?</A
 ></DT
 ><DT
 ><A
-HREF="#AEN355"
+HREF="#AEN356"
 >Some parts of my X Desktop get transparent when xine plays the video!</A
 ></DT
 ><DT
 ><A
-HREF="#AEN360"
+HREF="#AEN361"
 >The aspect ratio of the video is wrong!</A
 ></DT
 ><DT
 ><A
-HREF="#AEN363"
+HREF="#AEN364"
 >What is the difference between discarded and skipped frames?</A
 ></DT
 ></DL
@@ -357,47 +360,47 @@ HREF="#ERRORS"
 ><DL
 ><DT
 ><A
-HREF="#AEN373"
+HREF="#AEN374"
 >Starting xine fails with complains about audio drivers/devices!</A
 ></DT
 ><DT
 ><A
-HREF="#AEN380"
+HREF="#AEN381"
 >"no video port found"</A
 ></DT
 ><DT
 ><A
-HREF="#AEN385"
->Unable to open dvd drive (/dev/dvd)</A
+HREF="#AEN386"
+>"Unable to open dvd drive (/dev/dvd)"</A
 ></DT
 ><DT
 ><A
-HREF="#AEN389"
+HREF="#AEN390"
 >"demux error! 00 00 00 (should be 0x000001)"</A
 ></DT
 ><DT
 ><A
-HREF="#AEN394"
+HREF="#AEN395"
 >"audio driver 'oss' failed, using null driver instead"</A
 ></DT
 ><DT
 ><A
-HREF="#AEN405"
->video_out: throwing away image with pts xxx because it's too old</A
+HREF="#AEN406"
+>"video_out: throwing away image with pts xxx because it's too old"</A
 ></DT
 ><DT
 ><A
-HREF="#AEN408"
+HREF="#AEN409"
 >"No video plugin available to decode 'xxxxxx'."</A
 ></DT
 ><DT
 ><A
-HREF="#AEN412"
+HREF="#AEN413"
 >"w32codec: decoder failed to start. Is 'xxxxxx' installed?"</A
 ></DT
 ><DT
 ><A
-HREF="#AEN415"
+HREF="#AEN416"
 >xine just crashed on me - i didn't get any error message</A
 ></DT
 ></DL
@@ -1908,12 +1911,19 @@ NAME="AEN297"
 >What do all these <TT
 CLASS="FILENAME"
 >~/.xine/config</TT
-> entries mean?</H2
-><P
->      You can find information about them in <TT
+> (<TT
 CLASS="FILENAME"
->xine-ui/doc/README.config_en</TT
->.
+>~/.gxine/config</TT
+>) entries mean?</H2
+><P
+>      You can find information about them in 
+      <TT
+CLASS="FILENAME"
+>xine-lib/doc/README.config_en</TT
+>. 
+      Frontends may register additional config entries, you may find out more about
+      them in their documentation. Also the comments in the config file might
+      help.
     </P
 ></DIV
 ></DIV
@@ -1929,7 +1939,7 @@ CLASS="SECT1"
 ><H2
 CLASS="SECT1"
 ><A
-NAME="AEN304"
+NAME="AEN305"
 ></A
 >What audio drivers does xine support? OSS? Alsa? Arts? Esd?</H2
 ><P
@@ -1944,7 +1954,7 @@ CLASS="SECT1"
 ><HR><H2
 CLASS="SECT1"
 ><A
-NAME="AEN307"
+NAME="AEN308"
 ></A
 >When I'm watching a movie, the sound effects are much higher volume than the voices</H2
 ><P
@@ -1996,7 +2006,7 @@ CLASS="SECT1"
 ><HR><H2
 CLASS="SECT1"
 ><A
-NAME="AEN317"
+NAME="AEN318"
 ></A
 >When I play this stream, xine shows video but there's no audio!</H2
 ><P
@@ -2027,7 +2037,7 @@ CLASS="SECT1"
 ><HR><H2
 CLASS="SECT1"
 ><A
-NAME="AEN324"
+NAME="AEN325"
 ></A
 >Can xine produce 4-/5-channel surround audio output?</H2
 ><P
@@ -2096,7 +2106,7 @@ CLASS="SECT1"
 ><HR><H2
 CLASS="SECT1"
 ><A
-NAME="AEN333"
+NAME="AEN334"
 ></A
 >What about ac3 output via spdif to an external ac3 decoder?</H2
 ><P
@@ -2131,7 +2141,7 @@ CLASS="SECT1"
 ><HR><H2
 CLASS="SECT1"
 ><A
-NAME="AEN339"
+NAME="AEN340"
 ></A
 >Changing the volume with the GUI control has no effect! What's up!?</H2
 ><P
@@ -2154,7 +2164,7 @@ CLASS="SECT1"
 ><H2
 CLASS="SECT1"
 ><A
-NAME="AEN344"
+NAME="AEN345"
 ></A
 >I can hear the audio - but I don't see a picture!</H2
 ><P
@@ -2167,7 +2177,7 @@ CLASS="SECT1"
 ><HR><H2
 CLASS="SECT1"
 ><A
-NAME="AEN347"
+NAME="AEN348"
 ></A
 >How can I make xine use the Xv extension and what drivers do I need?</H2
 ><P
@@ -2232,7 +2242,7 @@ CLASS="SECT1"
 ><HR><H2
 CLASS="SECT1"
 ><A
-NAME="AEN355"
+NAME="AEN356"
 ></A
 >Some parts of my X Desktop get transparent when xine plays the video!</H2
 ><P
@@ -2264,7 +2274,7 @@ CLASS="SECT1"
 ><HR><H2
 CLASS="SECT1"
 ><A
-NAME="AEN360"
+NAME="AEN361"
 ></A
 >The aspect ratio of the video is wrong!</H2
 ><P
@@ -2276,7 +2286,7 @@ CLASS="SECT1"
 ><HR><H2
 CLASS="SECT1"
 ><A
-NAME="AEN363"
+NAME="AEN364"
 ></A
 >What is the difference between discarded and skipped frames?</H2
 ><P
@@ -2335,7 +2345,7 @@ CLASS="SECT1"
 ><H2
 CLASS="SECT1"
 ><A
-NAME="AEN373"
+NAME="AEN374"
 ></A
 >Starting xine fails with complains about audio drivers/devices!</H2
 ><P
@@ -2406,7 +2416,7 @@ CLASS="SECT1"
 ><HR><H2
 CLASS="SECT1"
 ><A
-NAME="AEN380"
+NAME="AEN381"
 ></A
 >"no video port found"</H2
 ><P
@@ -2439,9 +2449,9 @@ CLASS="SECT1"
 ><HR><H2
 CLASS="SECT1"
 ><A
-NAME="AEN385"
+NAME="AEN386"
 ></A
->Unable to open dvd drive (/dev/dvd)</H2
+>"Unable to open dvd drive (/dev/dvd)"</H2
 ><P
 >      You probably don't have /dev/dvd (check that). If so, simply create a
       link /dev/dvd that points to your DVD device. Something like...
@@ -2469,7 +2479,7 @@ CLASS="SECT1"
 ><HR><H2
 CLASS="SECT1"
 ><A
-NAME="AEN389"
+NAME="AEN390"
 ></A
 >"demux error! 00 00 00 (should be 0x000001)"</H2
 ><P
@@ -2492,7 +2502,7 @@ CLASS="SECT1"
 ><HR><H2
 CLASS="SECT1"
 ><A
-NAME="AEN394"
+NAME="AEN395"
 ></A
 >"audio driver 'oss' failed, using null driver instead"</H2
 ><P
@@ -2569,9 +2579,9 @@ CLASS="SECT1"
 ><HR><H2
 CLASS="SECT1"
 ><A
-NAME="AEN405"
+NAME="AEN406"
 ></A
->video_out: throwing away image with pts xxx because it's too old</H2
+>"video_out: throwing away image with pts xxx because it's too old"</H2
 ><P
 >      This is a performance related problem.
       
@@ -2585,7 +2595,7 @@ CLASS="SECT1"
 ><HR><H2
 CLASS="SECT1"
 ><A
-NAME="AEN408"
+NAME="AEN409"
 ></A
 >"No video plugin available to decode 'xxxxxx'."</H2
 ><P
@@ -2604,7 +2614,7 @@ CLASS="SECT1"
 ><HR><H2
 CLASS="SECT1"
 ><A
-NAME="AEN412"
+NAME="AEN413"
 ></A
 >"w32codec: decoder failed to start. Is 'xxxxxx' installed?"</H2
 ><P
@@ -2616,7 +2626,7 @@ CLASS="SECT1"
 ><HR><H2
 CLASS="SECT1"
 ><A
-NAME="AEN415"
+NAME="AEN416"
 ></A
 >xine just crashed on me - i didn't get any error message</H2
 ><P

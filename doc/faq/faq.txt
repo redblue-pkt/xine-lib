@@ -64,7 +64,7 @@ Table of Contents
     I have a lot of dropped frames - what can I do?
     I have problems when using xine on FreeBSD, Solaris, ... !
     What is aalib? How do I use it in xine?
-    What do all these ~/.xine/config entries mean?
+    What do all these ~/.xine/config (~/.gxine/config) entries mean?
    
 5. Audio related questions
    
@@ -88,10 +88,10 @@ Table of Contents
    
     Starting xine fails with complains about audio drivers/devices!
     "no video port found"
-    Unable to open dvd drive (/dev/dvd)
+    "Unable to open dvd drive (/dev/dvd)"
     "demux error! 00 00 00 (should be 0x000001)"
     "audio driver 'oss' failed, using null driver instead"
-    video_out: throwing away image with pts xxx because it's too old
+    "video_out: throwing away image with pts xxx because it's too old"
     "No video plugin available to decode 'xxxxxx'."
     "w32codec: decoder failed to start. Is 'xxxxxx' installed?"
     xine just crashed on me - i didn't get any error message
@@ -731,9 +731,11 @@ to use aalib video output.
 
 -------------------------------------------------------------------------------
 
-What do all these ~/.xine/config entries mean?
+What do all these ~/.xine/config (~/.gxine/config) entries mean?
 
-You can find information about them in xine-ui/doc/README.config_en.
+You can find information about them in xine-lib/doc/README.config_en. Frontends
+may register additional config entries, you may find out more about them in
+their documentation. Also the comments in the config file might help.
 
 -------------------------------------------------------------------------------
 
@@ -950,7 +952,7 @@ If all that fails, you can still use plain X11/XShm:
 
 -------------------------------------------------------------------------------
 
-Unable to open dvd drive (/dev/dvd)
+"Unable to open dvd drive (/dev/dvd)"
 
 You probably don't have /dev/dvd (check that). If so, simply create a link /dev
 /dvd that points to your DVD device. Something like...
@@ -1013,7 +1015,7 @@ ability to do four/five channel audio output.
 
 -------------------------------------------------------------------------------
 
-video_out: throwing away image with pts xxx because it's too old
+"video_out: throwing away image with pts xxx because it's too old"
 
 This is a performance related problem. If you have a fast computer and this
 message shows from time to time playing dvd/cdrom, it's very likely that your
