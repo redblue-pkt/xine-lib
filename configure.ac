@@ -102,7 +102,7 @@ AC_PROG_AWK
 dnl ---------------------------------------------
 dnl Check for assembler (ffmpeg need it), don't call this before LIBTOOL
 dnl ---------------------------------------------
-AM_PROG_AS
+AM_PROG_AS_MOD
 
 dnl ---------------------------------------------
 dnl Libtool
