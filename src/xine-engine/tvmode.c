@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: tvmode.c,v 1.6 2002/08/02 14:09:05 mshopf Exp $
+ * $Id: tvmode.c,v 1.7 2002/08/03 17:33:06 siggi Exp $
  *
  * tvmode - TV output selection
  *
@@ -124,7 +124,8 @@ static char *scan_overscan[] = {
 
 
 /* Just turn off warnings */
-void xine_tvmode_exit (xine_t *this);
+void xine_tvmode_exit (void);
+void xine_tvmode_exit2 (xine_t *this);
 
 
 /* Try to connect to nvtvd server */
@@ -489,7 +490,7 @@ static void tvmode_settvstate (xine_t *this, int width, int height, double fps) 
  */
 
 /* Set to 'regular'(0) or 'tv'(1) state, that is if it is enabled */
-int xine_tvmode_switch (xine_t *this, int type, int width, int height, double fps) {
+int xine_tvmode_switch2 (xine_t *this, int type, int width, int height, double fps) {
 
     if (back_card) {
 	switch (type) {
@@ -512,7 +513,7 @@ int xine_tvmode_switch (xine_t *this, int type, int width, int height, double fp
 
 
 /* Addapt (maximum) output size to visible area and set pixel aspect and fps */
-void xine_tvmode_size (xine_t *this, int *width, int *height,
+void xine_tvmode_size2 (xine_t *this, int *width, int *height,
 		       double *pixelratio, double *fps) {
 
     switch (tv_current_type) {
@@ -543,27 +544,28 @@ static void tvmode_system_cb (void *data, cfg_entry_t *entry) {
 static void tvmode_policy_cb (void *data, cfg_entry_t *entry) {
     xine_t *this = (xine_t *) data;
     tv_policy = entry->num_value;
-    xine_tvmode_switch (this, tv_current_type, tv_stream_width,
+    xine_tvmode_switch2 (this, tv_current_type, tv_stream_width,
 			tv_stream_height, tv_stream_fps);
 }
 static void tvmode_mode_cb (void *data, cfg_entry_t *entry) {
     xine_t *this = (xine_t *) data;
     tv_scan_mode = entry->str_value;
-    if (*tv_scan_mode == '-')
+    if (this && *tv_scan_mode == '-')
+	  /*^^^^^^^ FIXME: this check can be removed in new API */
         this->config->update_string (this->config, "tv.modes", tv_scan_mode_default);
-    xine_tvmode_switch (this, tv_current_type, tv_stream_width,
+    xine_tvmode_switch2 (this, tv_current_type, tv_stream_width,
 			tv_stream_height, tv_stream_fps);
 }
 static void tvmode_aspect_cb (void *data, cfg_entry_t *entry) {
     xine_t *this = (xine_t *) data;
     tv_aspect = tv_aspect_aspects[entry->num_value];
-    xine_tvmode_switch (this, tv_current_type, tv_stream_width,
+    xine_tvmode_switch2 (this, tv_current_type, tv_stream_width,
 			tv_stream_height, tv_stream_fps);
 }
 static void tvmode_preferred_fps_cb (void *data, cfg_entry_t *entry) {
     xine_t *this = (xine_t *) data;
     tv_prefered_fps = entry->num_value ? 25 : 30;
-    xine_tvmode_switch (this, tv_current_type, tv_stream_width,
+    xine_tvmode_switch2 (this, tv_current_type, tv_stream_width,
 			tv_stream_height, tv_stream_fps);
 }
 static void tvmode_verbose_cb (void *data, cfg_entry_t *entry) {
@@ -572,7 +574,7 @@ static void tvmode_verbose_cb (void *data, cfg_entry_t *entry) {
 
 
 /* Connect to nvtvd server if possible and register settings */
-void xine_tvmode_init (xine_t *this) {
+void xine_tvmode_init2 (xine_t *this) {
     /* TODO:
      * more config options that can be imagined:
      * - disable deinterlacing for tv mode only
@@ -640,8 +642,32 @@ void xine_tvmode_init (xine_t *this) {
 }
 
 /* Restore old CRT and TV registers and close nvtvd connection */
-void xine_tvmode_exit (xine_t *this) {
+void xine_tvmode_exit2 (xine_t *this) {
 
     tvmode_closedown (this);
 }
 
+/*****************************************************************
+ *
+ * compatibility functions
+ * FIXME: these should be replaced by the *2-functions in the next release
+ */
+
+void xine_tvmode_init () {
+    tvmode_connect (NULL);
+    if (back_card)
+	tvmode_savestate (NULL);
+}
+
+void xine_tvmode_exit () {
+
+    tvmode_closedown (NULL);
+}
+
+int xine_tvmode_switch (int type, int width, int height, double fps){
+  return xine_tvmode_switch2(NULL, type, width, height, fps);
+}
+
+void xine_tvmode_size (int *width, int *height, double *pixelaspect, double *fps){
+  xine_tvmode_size2 (NULL, width, height, pixelaspect, fps);
+}
