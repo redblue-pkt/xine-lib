@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: list.c,v 1.3 2002/09/16 21:49:35 miguelfreitas Exp $
+ * $Id: list.c,v 1.4 2002/10/24 15:01:18 jkeil Exp $
  *
  */
 #ifdef HAVE_CONFIG_H
@@ -54,7 +54,7 @@ void xine_list_free(xine_list_t *l) {
   xine_node_t *node;
 
   if (!l) {
-    fprintf(stderr, "%s(): No list.\n", __FUNCTION__);
+    fprintf(stderr, "%s(): No list.\n", __XINE_FUNCTION__);
     return;
   }
  
@@ -97,7 +97,7 @@ void *xine_list_next_content (xine_list_t *l) {
     
   } 
   else {
-    fprintf(stderr,"%s() WARNING: passed end of list\n", __FUNCTION__);
+    fprintf(stderr,"%s() WARNING: passed end of list\n", __XINE_FUNCTION__);
     return NULL;
   }    
 }
@@ -105,7 +105,7 @@ void *xine_list_next_content (xine_list_t *l) {
 int xine_list_is_empty (xine_list_t *l) {
 
   if (l == NULL){
-	fprintf(stderr, "%s(): list is NULL\n", __FUNCTION__);
+	fprintf(stderr, "%s(): list is NULL\n", __XINE_FUNCTION__);
 	return -1;
   }
   return (l->first != NULL);
