@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.211 2003/01/10 19:15:17 miguelfreitas Exp $
+ * $Id: xine.c,v 1.212 2003/01/10 21:11:12 miguelfreitas Exp $
  *
  * top-level xine functions
  *
@@ -1100,7 +1100,7 @@ int xine_get_pos_length (xine_stream_t *stream, int *pos_stream,
     pthread_mutex_unlock( &stream->current_extra_info_lock );
   }
   if (length_time)
-    *length_time = xine_get_stream_length (stream) * 1000;
+    *length_time = xine_get_stream_length (stream);
 
   return 1;
 }

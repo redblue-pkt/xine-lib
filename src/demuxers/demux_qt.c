@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.140 2003/01/10 11:57:17 miguelfreitas Exp $
+ * $Id: demux_qt.c,v 1.141 2003/01/10 21:11:06 miguelfreitas Exp $
  *
  */
 
@@ -2275,7 +2275,7 @@ static int demux_qt_get_stream_length (demux_plugin_t *this_gen) {
 
   demux_qt_t *this = (demux_qt_t *) this_gen;
 
-  return (this->qt->duration / this->qt->timescale);
+  return (int)((int64_t) 1000 * this->qt->duration / this->qt->timescale);
 }
 
 static uint32_t demux_qt_get_capabilities(demux_plugin_t *this_gen) {

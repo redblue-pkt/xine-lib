@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_eawve.c,v 1.14 2003/01/10 11:57:16 miguelfreitas Exp $
+ * $Id: demux_eawve.c,v 1.15 2003/01/10 21:10:58 miguelfreitas Exp $
  *
  * demux_eawve.c, Demuxer plugin for Electronic Arts' WVE file format
  *
@@ -233,7 +233,7 @@ static int demux_eawve_send_chunk(demux_eawve_t *this)
         buf = this->audio_fifo->buffer_pool_alloc(this->audio_fifo);
         buf->type = BUF_AUDIO_EA_ADPCM;
         buf->extra_info->input_pos = this->input->get_current_pos(this->input);
-        buf->extra_info->input_time = this->sample_counter * 1000 / 22050;
+        buf->extra_info->input_time = (int)((int64_t)this->sample_counter * 1000 / 22050);
         buf->pts = this->sample_counter;
         buf->pts *= 90000;
         buf->pts /= 22050;
@@ -346,7 +346,7 @@ static int demux_eawve_get_status(demux_eawve_t *this)
 
 static int demux_eawve_get_stream_length(demux_eawve_t *this)
 {
-  return this->num_samples / 22050;
+  return (int)((int64_t)this->num_samples * 1000 / 22050);
 }
 
 static uint32_t demux_eawve_get_capabilities(demux_plugin_t *this_gen) {

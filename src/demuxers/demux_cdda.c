@@ -22,7 +22,7 @@
  * linear PCM "decoder" (which in turn sends them directly to the audio
  * output target; this is a really fancy CD-playing architecture).
  *
- * $Id: demux_cdda.c,v 1.2 2003/01/10 11:57:16 miguelfreitas Exp $
+ * $Id: demux_cdda.c,v 1.3 2003/01/10 21:10:58 miguelfreitas Exp $
  *
  */
 
@@ -167,12 +167,13 @@ static int demux_cdda_get_status (demux_plugin_t *this_gen) {
   return this->status;
 }
 
-/* return the approximate length in seconds */
+/* return the approximate length in miliseconds */
 static int demux_cdda_get_stream_length (demux_plugin_t *this_gen) {
 
   demux_cdda_t *this = (demux_cdda_t *) this_gen;
 
-  return this->input->get_length(this->input) / CD_BYTES_PER_SECOND;
+  return (int)((int64_t) this->input->get_length(this->input) 
+                * 1000 / CD_BYTES_PER_SECOND);
 }
 
 static uint32_t demux_cdda_get_capabilities(demux_plugin_t *this_gen)

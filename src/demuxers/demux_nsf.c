@@ -28,7 +28,7 @@
  * For more information regarding the NSF format, visit:
  *   http://www.tripoint.org/kevtris/nes/nsfspec.txt
  *
- * $Id: demux_nsf.c,v 1.5 2003/01/10 11:57:17 miguelfreitas Exp $
+ * $Id: demux_nsf.c,v 1.6 2003/01/10 21:11:05 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -293,7 +293,7 @@ static int demux_nsf_get_status (demux_plugin_t *this_gen) {
   return this->status;
 }
 
-/* return the approximate length in seconds */
+/* return the approximate length in miliseconds */
 static int demux_nsf_get_stream_length (demux_plugin_t *this_gen) {
 
   return 0;

@@ -20,7 +20,7 @@
  * VOX Demuxer by Mike Melanson (melanson@pcisys.net)
  * This a demuxer for .vox files containing raw Dialogic ADPCM data.
  *
- * $Id: demux_vox.c,v 1.2 2003/01/10 11:57:18 miguelfreitas Exp $
+ * $Id: demux_vox.c,v 1.3 2003/01/10 21:11:12 miguelfreitas Exp $
  *
  */
 
@@ -177,12 +177,13 @@ static int demux_vox_get_status (demux_plugin_t *this_gen) {
   return this->status;
 }
 
-/* return the approximate length in seconds */
+/* return the approximate length in miliseconds */
 static int demux_vox_get_stream_length (demux_plugin_t *this_gen) {
 
   demux_vox_t *this = (demux_vox_t *) this_gen;
 
-  return this->input->get_length(this->input) * 2 / DIALOGIC_SAMPLERATE;
+  return (int)((int64_t)this->input->get_length(this->input) 
+               * 2 * 1000 / DIALOGIC_SAMPLERATE);
 }
 
 static uint32_t demux_vox_get_capabilities(demux_plugin_t *this_gen) {

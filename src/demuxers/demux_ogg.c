@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ogg.c,v 1.59 2003/01/10 11:57:17 miguelfreitas Exp $
+ * $Id: demux_ogg.c,v 1.60 2003/01/10 21:11:05 miguelfreitas Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -251,8 +251,8 @@ static void send_ogg_buf (demux_ogg_t *this,
 #endif
 
     buf->extra_info->input_pos     = this->input->get_current_pos (this->input);
-    buf->extra_info->input_time    = buf->extra_info->input_pos * 8 * 1000 /
-                                     this->avg_bitrate;
+    buf->extra_info->input_time    = (int)((uint64_t)buf->extra_info->input_pos 
+                                           * 8 * 1000 / this->avg_bitrate);
     buf->type          = this->buf_types[stream_num] ;
     buf->decoder_flags = decoder_flags;
     
@@ -921,7 +921,8 @@ static int demux_ogg_get_stream_length (demux_plugin_t *this_gen) {
   demux_ogg_t *this = (demux_ogg_t *) this_gen; 
 
   if (this->avg_bitrate)
-    return this->input->get_length (this->input) * 8 / this->avg_bitrate;
+    return (int)((int64_t)1000 * this->input->get_length (this->input) * 8 /
+           this->avg_bitrate);
   else
     return 0;
 }

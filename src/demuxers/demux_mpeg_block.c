@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.154 2003/01/10 11:57:16 miguelfreitas Exp $
+ * $Id: demux_mpeg_block.c,v 1.155 2003/01/10 21:11:01 miguelfreitas Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -209,7 +209,8 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
   buf->extra_info->input_length = this->input->get_length (this->input);
 
   if (this->rate)
-    buf->extra_info->input_time = buf->extra_info->input_pos * 1000 / (this->rate * 50);
+    buf->extra_info->input_time = (int)((int64_t)buf->extra_info->input_pos 
+                                        * 1000 / (this->rate * 50));
 
   if (p[3] == 0xBA) { /* program stream pack header */
 
@@ -236,7 +237,8 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
 	this->rate |= (p[11] >> 1);
       }
 
-      buf->extra_info->input_time = buf->extra_info->input_pos * 1000 / (this->rate * 50);
+      buf->extra_info->input_time = (int)((int64_t)buf->extra_info->input_pos 
+                                          * 1000 / (this->rate * 50));
 
       p   += 12;
 
@@ -964,7 +966,8 @@ static int demux_mpeg_block_get_stream_length (demux_plugin_t *this_gen) {
    */
 
   if (this->rate) 
-    return this->input->get_length (this->input) / (this->rate * 50);
+    return (int)((int64_t) 1000 * this->input->get_length (this->input) /
+                 (this->rate * 50));
   else
     return 0;
 }

@@ -22,7 +22,7 @@
  * tools, visit:
  *   http://mjpeg.sourceforge.net/
  *
- * $Id: demux_yuv4mpeg2.c,v 1.16 2003/01/04 14:48:12 miguelfreitas Exp $
+ * $Id: demux_yuv4mpeg2.c,v 1.17 2003/01/10 21:11:12 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -311,8 +311,8 @@ static int demux_yuv4mpeg2_get_stream_length (demux_plugin_t *this_gen) {
 
   demux_yuv4mpeg2_t *this = (demux_yuv4mpeg2_t *) this_gen;
 
-  return (this->data_size / (this->frame_size + Y4M_FRAME_SIGNATURE_SIZE) /
-    this->fps);
+  return (int)((int64_t) this->data_size * 1000 / 
+               (this->frame_size + Y4M_FRAME_SIGNATURE_SIZE) / this->fps);
 }
 
 static uint32_t demux_yuv4mpeg2_get_capabilities(demux_plugin_t *this_gen) {

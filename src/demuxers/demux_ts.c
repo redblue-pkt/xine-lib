@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ts.c,v 1.74 2003/01/04 14:48:12 miguelfreitas Exp $
+ * $Id: demux_ts.c,v 1.75 2003/01/10 21:11:10 miguelfreitas Exp $
  *
  * Demultiplexer for MPEG2 Transport Streams.
  *
@@ -1762,7 +1762,8 @@ static int demux_ts_get_stream_length (demux_plugin_t *this_gen) {
   demux_ts_t*this = (demux_ts_t*)this_gen;
 
   if (this->rate)
-    return this->input->get_length (this->input) / (this->rate * 50);
+    return (int)((int64_t) this->input->get_length (this->input) 
+                 * 1000 / (this->rate * 50));
   else
     return 0;
 }

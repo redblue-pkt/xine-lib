@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_avi.c,v 1.146 2003/01/10 11:57:16 miguelfreitas Exp $
+ * $Id: demux_avi.c,v 1.147 2003/01/10 21:10:56 miguelfreitas Exp $
  *
  * demultiplexer for avi streams
  *
@@ -1436,7 +1436,7 @@ static int demux_avi_get_stream_length (demux_plugin_t *this_gen) {
   demux_avi_t *this = (demux_avi_t *) this_gen;
 
   if (this->avi) {
-    return get_video_pts(this, this->avi->video_idx.video_frames) / 90000 ;
+    return (int)(get_video_pts(this, this->avi->video_idx.video_frames) / 90);
   }
 
   return 0;

@@ -21,7 +21,7 @@
  * For more information on the FILM file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_film.c,v 1.52 2003/01/10 11:57:16 miguelfreitas Exp $
+ * $Id: demux_film.c,v 1.53 2003/01/10 21:10:59 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -266,7 +266,7 @@ static int open_film_file(demux_film_t *film) {
     i += chunk_size;
   }
 
-  film->total_time = largest_pts / 90000;
+  film->total_time = largest_pts / 90;
 
   return 1;
 }

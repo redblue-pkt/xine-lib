@@ -21,7 +21,7 @@
  * For more information on the SMJPEG file format, visit:
  *   http://www.lokigames.com/development/smjpeg.php3
  *
- * $Id: demux_smjpeg.c,v 1.34 2003/01/10 11:57:17 miguelfreitas Exp $
+ * $Id: demux_smjpeg.c,v 1.35 2003/01/10 21:11:09 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -394,8 +394,8 @@ static int demux_smjpeg_get_status (demux_plugin_t *this_gen) {
 static int demux_smjpeg_get_stream_length (demux_plugin_t *this_gen) {
   demux_smjpeg_t *this = (demux_smjpeg_t *) this_gen;
 
-  /* return total running time in seconds */
-  return this->duration / 1000;
+  /* return total running time in miliseconds */
+  return this->duration;
 }
 
 static uint32_t demux_smjpeg_get_capabilities(demux_plugin_t *this_gen) {

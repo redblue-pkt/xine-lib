@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.96 2003/01/10 11:57:15 miguelfreitas Exp $
+ * $Id: demux_asf.c,v 1.97 2003/01/10 21:10:52 miguelfreitas Exp $
  *
  * demultiplexer for asf streams
  *
@@ -357,9 +357,9 @@ static int asf_read_header (demux_asf_t *this) {
 
           end_time =  get_le64 (this); 
       
-          this->length = get_le64(this) / 10000000; 
+          this->length = get_le64(this) / 10000; 
           if (this->length)
-            this->rate = this->input->get_length (this->input) / this->length;
+            this->rate = this->input->get_length (this->input) / (this->length / 1000);
           else
             this->rate = 0;
 
@@ -805,7 +805,8 @@ static void asf_send_buffer_nodefrag (demux_asf_t *this, asf_stream_t *stream,
 
     buf->extra_info->input_pos  = this->input->get_current_pos (this->input);
     if (this->rate)
-      buf->extra_info->input_time = buf->extra_info->input_pos * 1000 / this->rate;
+      buf->extra_info->input_time = (int)((int64_t)buf->extra_info->input_pos 
+                                          * 1000 / this->rate);
     else
       buf->extra_info->input_time = 0;
 
@@ -902,7 +903,8 @@ static void asf_send_buffer_defrag (demux_asf_t *this, asf_stream_t *stream,
 
 	    buf->extra_info->input_pos  = this->input->get_current_pos (this->input);
 	    if (this->rate)
-	      buf->extra_info->input_time = buf->extra_info->input_pos * 1000 / this->rate;
+	      buf->extra_info->input_time = (int)((int64_t)buf->extra_info->input_pos 
+                                                  * 1000 / this->rate);
 	    else
 	      buf->extra_info->input_time = 0;
           

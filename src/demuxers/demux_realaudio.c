@@ -19,7 +19,7 @@
  *
  * RealAudio File Demuxer by Mike Melanson (melanson@pcisys.net)
  *
- * $Id: demux_realaudio.c,v 1.11 2003/01/10 11:57:17 miguelfreitas Exp $
+ * $Id: demux_realaudio.c,v 1.12 2003/01/10 21:11:09 miguelfreitas Exp $
  *
  */
 
@@ -260,12 +260,12 @@ static int demux_ra_get_status (demux_plugin_t *this_gen) {
   return this->status;
 }
 
-/* return the approximate length in seconds */
+/* return the approximate length in miliseconds */
 static int demux_ra_get_stream_length (demux_plugin_t *this_gen) {
 
   demux_ra_t *this = (demux_ra_t *) this_gen;
 
-  return (int)(this->data_size / this->wave.nAvgBytesPerSec);
+  return (int)((int64_t) this->data_size * 1000 / this->wave.nAvgBytesPerSec);
 }
 
 static uint32_t demux_ra_get_capabilities(demux_plugin_t *this_gen) {

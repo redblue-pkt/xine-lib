@@ -28,7 +28,7 @@
  *   
  *   Based on FFmpeg's libav/rm.c.
  *
- * $Id: demux_real.c,v 1.32 2003/01/10 11:57:17 miguelfreitas Exp $
+ * $Id: demux_real.c,v 1.33 2003/01/10 21:11:08 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -786,8 +786,8 @@ static int demux_real_send_chunk(demux_plugin_t *this_gen) {
       buf->pts           = pts;
       buf->extra_info->input_pos     = this->input->get_current_pos (this->input);
 
-      buf->extra_info->input_time    = buf->extra_info->input_pos * 8 * 1000 / 
-                                       this->avg_bitrate ; 
+      buf->extra_info->input_time    = (int)((int64_t)buf->extra_info->input_pos 
+                                             * 8 * 1000 / this->avg_bitrate); 
       buf->type          = this->video_buf_type;
       
       check_newpts (this, pts, PTS_VIDEO, 0);
@@ -871,8 +871,8 @@ static int demux_real_send_chunk(demux_plugin_t *this_gen) {
     buf->content       = buf->mem;
     buf->pts           = pts;
     buf->extra_info->input_pos     = this->input->get_current_pos (this->input);
-    buf->extra_info->input_time    = buf->extra_info->input_pos * 8 * 1000 /
-                                     this->avg_bitrate ; 
+    buf->extra_info->input_time    = (int)((int64_t)buf->extra_info->input_pos 
+                                           * 8 * 1000 / this->avg_bitrate); 
     buf->type          = this->audio_buf_type;
     buf->decoder_flags = 0;
     buf->size          = size;
@@ -1022,7 +1022,7 @@ static int demux_real_get_stream_length (demux_plugin_t *this_gen) {
   demux_real_t *this = (demux_real_t *) this_gen;
 
   /* duration is stored in the file as milliseconds */
-  return this->duration / 1000;
+  return this->duration;
 }
 
 static uint32_t demux_real_get_capabilities(demux_plugin_t *this_gen) {

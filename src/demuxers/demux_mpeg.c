@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg.c,v 1.103 2003/01/10 11:57:16 miguelfreitas Exp $
+ * $Id: demux_mpeg.c,v 1.104 2003/01/10 21:11:00 miguelfreitas Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  * reads streams of variable blocksizes
@@ -309,8 +309,7 @@ static void parse_mpeg2_packet (demux_mpeg_t *this, int stream_id, int64_t scr) 
 
     buf->extra_info->input_pos = this->input->get_current_pos (this->input);
 
-    if(this->audio_fifo)
-      this->audio_fifo->put (this->audio_fifo, buf);
+    this->audio_fifo->put (this->audio_fifo, buf);
 
   } else if ((stream_id & 0xe0) == 0xc0) {
     int track = stream_id & 0x1f;
@@ -529,7 +528,8 @@ static void parse_mpeg1_packet (demux_mpeg_t *this, int stream_id, int64_t scr) 
     
     buf->extra_info->input_pos = this->input->get_current_pos(this->input);
     if (this->rate)
-      buf->extra_info->input_time = buf->extra_info->input_pos * 1000 / (this->rate * 50);
+      buf->extra_info->input_time = (int)((int64_t)buf->extra_info->input_pos 
+                                          * 1000 / (this->rate * 50));
 
     if(this->audio_fifo)
       this->audio_fifo->put (this->audio_fifo, buf);
@@ -552,7 +552,8 @@ static void parse_mpeg1_packet (demux_mpeg_t *this, int stream_id, int64_t scr) 
     
     buf->extra_info->input_pos = this->input->get_current_pos(this->input);
     if (this->rate)
-      buf->extra_info->input_time = buf->extra_info->input_pos * 1000 / (this->rate * 50);
+      buf->extra_info->input_time = (int)((int64_t)buf->extra_info->input_pos 
+                                          * 1000 / (this->rate * 50));
 
     this->video_fifo->put (this->video_fifo, buf);
 
@@ -875,7 +876,8 @@ static int demux_mpeg_get_stream_length (demux_plugin_t *this_gen) {
   demux_mpeg_t *this = (demux_mpeg_t *) this_gen;
 
   if (this->rate)
-    return this->input->get_length (this->input) / (this->rate * 50);
+    return (int)((int64_t) 1000 * this->input->get_length (this->input) / 
+                 (this->rate * 50));
   else
     return 0;
 
