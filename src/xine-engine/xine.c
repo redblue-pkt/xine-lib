@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.154 2002/09/09 20:43:20 uid86226 Exp $
+ * $Id: xine.c,v 1.155 2002/09/10 14:07:21 mroi Exp $
  *
  * top-level xine functions
  *
@@ -171,7 +171,7 @@ int xine_register_report_codec_cb(xine_p this_ro,
   
   this->report_codec_cb = report_codec;
   this->report_codec_user_data = user_data;
-  return 0;
+  return 1;
 }
 
 void xine_internal_osd (xine_t *this, char *str, int duration) {
@@ -915,10 +915,13 @@ static int xine_get_stream_length (xine_t *this) {
 int xine_get_pos_length (xine_p this_ro, int *pos_stream, 
 			 int *pos_time, int *length_time) {
   xine_t *this = (xine_t *)this_ro;
-
-  *pos_stream  = xine_get_current_position (this); 
-  *pos_time    = this->cur_input_time * 1000;
-  *length_time = xine_get_stream_length (this) * 1000;
+  
+  if (pos_stream)
+    *pos_stream  = xine_get_current_position (this); 
+  if (pos_time)
+    *pos_time    = this->cur_input_time * 1000;
+  if (length_time)
+    *length_time = xine_get_stream_length (this) * 1000;
 
   return 1;
 }
