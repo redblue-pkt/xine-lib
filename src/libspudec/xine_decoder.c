@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.43 2001/12/01 22:38:31 guenter Exp $
+ * $Id: xine_decoder.c,v 1.44 2001/12/09 17:10:12 miguelfreitas Exp $
  *
  * stuff needed to turn libspu into a xine decoder plugin
  */
@@ -182,8 +182,6 @@ static void spu_process (spudec_decoder_t *this, uint32_t stream_id) {
           this->spu_stream_state[stream_id].overlay_handle = -1;
         }
                   
-        this->event.vpts = this->spu_stream_state[stream_id].vpts+(this->state.delay*1000); 
-        
         /*
         printf("spu event %d handle: %d vpts: %d\n", this->event.event_type,
            this->event.object.handle, this->event.vpts ); 
@@ -205,7 +203,18 @@ static void spu_process (spudec_decoder_t *this, uint32_t stream_id) {
         this->overlay.rle=NULL;
         
         this->event.event_type = EVENT_MENU_SPU;
+      }
+        
+      /* if !vpts then we are near a discontinuity but video_out havent detected
+         it yet and we cannot provide correct vpts values. use current_time 
+         instead as an aproximation.
+      */
+      if( this->spu_stream_state[stream_id].vpts ) {
         this->event.vpts = this->spu_stream_state[stream_id].vpts+(this->state.delay*1000); 
+      } else {
+        this->event.vpts = this->xine->metronom->get_current_time(this->xine->metronom)
+                           + (this->state.delay*1000); 
+        printf("libspudec: vpts current time estimation around discontinuity\n");
       }
       this->vo_out->overlay_source->add_event(this->vo_out->overlay_source, (void *)&this->event);
     } else {
@@ -255,6 +264,7 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
   if (buf->PTS) {
     metronom_t *metronom = this->xine->metronom;
     uint32_t vpts = metronom->got_spu_packet(metronom, buf->PTS, 0, buf->SCR);
+    
     if (vpts < this->buf_pts) {
       /* FIXME: Don't do this yet, 
          because it will cause all sorts of 
@@ -406,7 +416,6 @@ static void spudec_event_listener(void *this_gen, xine_event_t *event_gen) {
         overlay_event->object.handle = this->menu_handle;
         overlay_event->object.overlay=overlay;
         overlay_event->event_type = EVENT_MENU_BUTTON;
-        overlay_event->vpts = 0; /* Activate it NOW */
         overlay->clip_top = but->top;
         overlay->clip_bottom = but->bottom;
         overlay->clip_left = but->left;
@@ -422,8 +431,8 @@ static void spudec_event_listener(void *this_gen, xine_event_t *event_gen) {
       } else {
         overlay_event->object.handle = this->menu_handle;
         overlay_event->event_type = EVENT_HIDE_MENU;
-        overlay_event->vpts = 0; /* Activate it NOW */
       }
+      overlay_event->vpts = 0; /* Activate it NOW */
       this->vo_out->overlay_source->add_event(this->vo_out->overlay_source, (void *)overlay_event);
     }
     break;
