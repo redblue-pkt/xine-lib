@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.176 2004/05/17 21:28:06 jcdutton Exp $
+ * $Id: audio_out.c,v 1.177 2004/05/21 13:41:02 tmattern Exp $
  *
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -1781,10 +1781,12 @@ static void ao_flush (xine_audio_port_t *this_gen) {
        * get stuck when using normal cond_wait. probably the signal is missed when
        * we release the mutex above.
        */
-      gettimeofday(&tv, NULL);
-      ts.tv_sec  = tv.tv_sec + 1;
-      ts.tv_nsec = tv.tv_usec * 1000;
-      pthread_cond_timedwait(&this->flush_audio_driver_reached, &this->flush_audio_driver_lock, &ts);
+      if (this->flush_audio_driver) {
+        gettimeofday(&tv, NULL);
+        ts.tv_sec  = tv.tv_sec + 1;
+        ts.tv_nsec = tv.tv_usec * 1000;
+        pthread_cond_timedwait(&this->flush_audio_driver_reached, &this->flush_audio_driver_lock, &ts);
+      }
     }
     this->discard_buffers--;
 
