@@ -29,7 +29,7 @@
  * - it's possible speeder saving streams in the xine without playing:
  *     xine stream_mrl#save:file.raw\;noaudio\;novideo
  *
- * $Id: input_rip.c,v 1.19 2003/12/05 15:55:04 f1rmb Exp $
+ * $Id: input_rip.c,v 1.20 2003/12/05 18:07:04 hadess Exp $
  */
 
 /* TODO:
@@ -543,7 +543,7 @@ input_plugin_t *_x_rip_plugin_get_instance (xine_stream_t *stream, const char *f
     xine_log(stream->xine, XINE_LOG_MSG,
 	     _("input_rip: target directory wasn't specified, please fill out the option 'misc.save_dir'\n"));
     _x_message(stream, XINE_MSG_SECURITY,
-	       _("The stream save feature is disabled until you set misc.save_dir in the configuration."));
+	       _("The stream save feature is disabled until you set misc.save_dir in the configuration."), NULL);
     return NULL;
   }
 
@@ -552,7 +552,7 @@ input_plugin_t *_x_rip_plugin_get_instance (xine_stream_t *stream, const char *f
     xine_log(stream->xine, XINE_LOG_MSG, 
 	     _("input_rip: ripping/caching of this source is not permitted!\n"));
     _x_message(stream, XINE_MSG_SECURITY,
-	       _("xine is not allowed to save from this source. (possibly copyrighted material?)"));
+	       _("xine is not allowed to save from this source. (possibly copyrighted material?)"), NULL);
     return NULL;
   }
 #endif
