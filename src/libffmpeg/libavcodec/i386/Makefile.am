@@ -29,7 +29,7 @@ endif
 
 libavcodec_mmx_la_SOURCES = $(mmx_modules) $(libavcodec_mmx_dummy)
 
-noinst_HEADERS = dsputil_mmx_avg.h  mmx.h
+noinst_HEADERS = dsputil_mmx_avg.h dsputil_mmx_rnd.h mmx.h
 
 .s.lo:
 	$(ASCOMPILE) -o $@ `test -f $< || echo '$(srcdir)/'`$<
