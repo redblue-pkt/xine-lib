@@ -2,14 +2,14 @@ Source: xine-lib
 Section: libs
 Priority: optional
 Maintainer: Siggi Langauf <siggi@debian.org>
-Build-Depends: debhelper (>> 2.0.0), aalib1-dev (>= 1.4p5-2), xlibs-dev (>> 4.1), libesd0-dev, libz-dev, libarts-dev (>=4:2.2.0-final-3), liblircclient-dev, libogg-dev, libvorbis-dev, libasound2-dev [i386]
+Build-Depends: debhelper (>> 2.0.0), aalib1-dev (>= 1.4p5-2), xlibs-dev (>> 4.1), libesd0-dev, libz-dev, libarts-dev (>=4:2.2.0-final-3), liblircclient-dev, libogg-dev, libvorbis-dev, libasound2-dev
 Standards-Version: 3.2.1
 
 Package: libxine-dev
 Architecture: any
 Section: devel
 Depends: libxine0 (= ${Source-Version}), libc6-dev, xlibs-dev, libz-dev, slang1-dev
-Conflicts: xine-ui (<< 0.9.5)
+Conflicts: xine-ui (<< 0.9.10)
 Description: the xine video player library, development packages
  This contains development files (headers, documentation and the like)
  for the xine library (libxine).
@@ -29,16 +29,17 @@ Architecture: any
 Depends: ${shlibs:Depends}
 Recommends: ${shlibs:Recommends}
 Suggests: ${shlibs:Suggests}, xine-dvdnav
-Conflicts: xine (<< 0.5.0), xine-dvd (<< 0.5.0), xine-dvd-css (<< 0.5.0)
+Conflicts: xine (<< 0.5.0), xine-dvd (<< 0.5.0), xine-dvd-css (<< 0.5.0), xine-ui (<< 0.9.10)
 Replaces: xine-dvd
 Description: the xine video/media player library, binary files
  This is the xine media player library (libxine). 
  Libxine provides the complete infrastructure for a video/media player.
  It supports MPEG 1/2 and some AVI and Quicktime videos out of the box,
  so you can use it to play DVDs, (S)VCDs and most video files out there.
- It supports network streams, subtitles and even mp3 files. It's extensible
- to your heart's content via plugins for audio_out, video_out, input media,
- demuxers (stream types), audio/video and subtitle codecs.
+ It supports network streams, subtitles and even mp3 or ogg files.
+ It's extensible to your heart's content via plugins for audio_out,
+ video_out, input media, demuxers (stream types), audio/video and
+ subtitle codecs.
  Building a GUI (or text based) frontend around this should be quite easy.
  The xine-ui package provides one for your convenience, so you can just
  start watching your VCDs ;-)

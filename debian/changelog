@@ -2,11 +2,14 @@ xine-lib (0.9.10-1) unstable; urgency=low
 
   * new upstream release
     * uses new logo mechanism (closes: #145483)
-    * after long fights using sane SONAME (closes: #145668)
+    * after long fights using sane SONAME (closes: #145668, #148099)
+    * safer check and bigger buffer in xine_get_homedir() (closes: #133550)
+    (see upstream ChangeLog for further highlights)
   * build-depends on libz-dev (closes: #14562)
   * libxine-dev depends on slang1-dev (closes: #140842)
+  * removed references to (never released, long obsolete) xine packages
 
- -- Siggi Langauf <siggi@debian.org>  Fri, 10 May 2002 01:58:38 +0200
+ -- Siggi Langauf <siggi@debian.org>  Sun, 26 May 2002 00:00:14 +0200
 
 xine-lib (0.9.9-2) unstable; urgency=low
 
