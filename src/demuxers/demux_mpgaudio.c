@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpgaudio.c,v 1.118 2003/10/13 18:31:34 valtri Exp $
+ * $Id: demux_mpgaudio.c,v 1.119 2003/10/27 23:23:29 tmattern Exp $
  *
  * demultiplexer for mpeg audio (i.e. mp3) streams
  *
@@ -518,19 +518,6 @@ static int sniff_buffer_looks_like_mp3 (input_plugin_t *input)
   return 0;
 }
 
-static void chomp (char *str) {
-
-  int i,len;
-
-  len = strlen(str);
-  i = len - 1;
-  
-  while (((unsigned char)str[i] <= 32) && (i >= 0)) {
-    str[i] = 0;
-    i--;
-  }
-}
-
 static void read_id3_tags (demux_mpgaudio_t *this) {
 
   off_t len;
@@ -544,25 +531,10 @@ static void read_id3_tags (demux_mpgaudio_t *this) {
     if ( (tag.tag[0]=='T') && (tag.tag[1]=='A') && (tag.tag[2]=='G') ) {
 
       lprintf("id3v1 tag found\n");
-
-      tag.title[29]   = 0;
-      tag.artist[29]  = 0;
-      tag.album[29]   = 0;
-      tag.comment[29] = 0;
-
-      chomp (tag.title);
-      chomp (tag.artist);
-      chomp (tag.album);
-      chomp (tag.comment);
-
-      this->stream->meta_info [XINE_META_INFO_TITLE]
-        = strdup (tag.title);
-      this->stream->meta_info [XINE_META_INFO_ARTIST]
-        = strdup (tag.artist);
-      this->stream->meta_info [XINE_META_INFO_ALBUM]
-        = strdup (tag.album);
-      this->stream->meta_info [XINE_META_INFO_COMMENT]
-        = strdup (tag.comment);
+      xine_set_metan_info(this->stream, XINE_META_INFO_TITLE, tag.title, 30);
+      xine_set_metan_info(this->stream, XINE_META_INFO_ARTIST, tag.artist, 30);
+      xine_set_metan_info(this->stream, XINE_META_INFO_ALBUM, tag.album, 30);
+      xine_set_metan_info(this->stream, XINE_META_INFO_COMMENT, tag.comment, 30);
     }
   }
 }
@@ -606,12 +578,6 @@ static int id3v22_parse_frame_header(input_plugin_t *input,
   }
 }
 
-static void mpg123_set_meta_info(xine_stream_t *stream, int info, char* txt) {
-  if (stream->meta_info [info])
-    free(stream->meta_info [info]);
-  stream->meta_info [info] = strdup(txt);
-}
-
 static int id3v22_interp_frame(demux_mpgaudio_t *this,
                                id3v22_frame_header_t *frame_header) {
   /*
@@ -629,27 +595,27 @@ static int id3v22_interp_frame(demux_mpgaudio_t *this,
 
     switch (frame_header->id) {
       case (FOURCC_TAG(0, 'T', 'T', '1')):
-        mpg123_set_meta_info(this->stream, XINE_META_INFO_GENRE, buf + 1);
+        xine_set_meta_info(this->stream, XINE_META_INFO_GENRE, buf + 1);
         break;
 
       case (FOURCC_TAG(0, 'T', 'T', '2')):
-        mpg123_set_meta_info(this->stream, XINE_META_INFO_TITLE, buf + 1);
+        xine_set_meta_info(this->stream, XINE_META_INFO_TITLE, buf + 1);
         break;
 
       case (FOURCC_TAG(0, 'T', 'P', '1')):
-        mpg123_set_meta_info(this->stream, XINE_META_INFO_ARTIST, buf + 1);
+        xine_set_meta_info(this->stream, XINE_META_INFO_ARTIST, buf + 1);
         break;
 
       case (FOURCC_TAG(0, 'T', 'A', 'L')):
-        mpg123_set_meta_info(this->stream, XINE_META_INFO_ALBUM, buf + 1);
+        xine_set_meta_info(this->stream, XINE_META_INFO_ALBUM, buf + 1);
         break;
 
       case (FOURCC_TAG(0, 'T', 'Y', 'E')):
-        mpg123_set_meta_info(this->stream, XINE_META_INFO_YEAR, buf + 1);
+        xine_set_meta_info(this->stream, XINE_META_INFO_YEAR, buf + 1);
         break;
 
       case (FOURCC_TAG(0, 'C', 'O', 'M')):
-        mpg123_set_meta_info(this->stream, XINE_META_INFO_COMMENT, buf + 1 + 3);
+        xine_set_meta_info(this->stream, XINE_META_INFO_COMMENT, buf + 1 + 3);
         break;
 
       default:

@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_ogg.c,v 1.109 2003/10/06 15:46:20 mroi Exp $
+ * $Id: demux_ogg.c,v 1.110 2003/10/27 23:23:29 tmattern Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -514,8 +514,8 @@ static void send_ogg_buf (demux_ogg_t *this,
         while(*ptr) {
           comment=*ptr;
           if ( !strncasecmp ("TITLE=", comment,6) ) {
-            this->title=strdup (comment + strlen ("TITLE=") );
-            this->stream->meta_info[XINE_META_INFO_TITLE] = strdup (this->title);
+            this->title = strdup (comment + strlen ("TITLE=") );
+            xine_set_meta_info(this->stream, XINE_META_INFO_TITLE, this->title);
           }
           if ( !chapter_time && strlen(comment) == 22 &&
               !strncasecmp ("CHAPTER" , comment, 7) &&
@@ -622,15 +622,13 @@ static void send_ogg_buf (demux_ogg_t *this,
         int title_len;
 
         this->chapter_info->current_chapter = chapter;
-        if (this->stream->meta_info[XINE_META_INFO_TITLE])
-          free (this->stream->meta_info[XINE_META_INFO_TITLE]);
         if (chapter >= 0) {
           char t_title[256];
 
           sprintf(t_title, "%s / %s", this->title, this->chapter_info->entries[chapter].name);
-          this->stream->meta_info[XINE_META_INFO_TITLE] = strdup(t_title);
+          xine_set_meta_info(this->stream, XINE_META_INFO_TITLE, t_title);
         } else {
-          this->stream->meta_info[XINE_META_INFO_TITLE] = strdup (this->title);
+          xine_set_meta_info(this->stream, XINE_META_INFO_TITLE, this->title);
         }
         lprintf("new TITLE: %s\n", this->stream->meta_info[XINE_META_INFO_TITLE]);
 
@@ -1145,8 +1143,7 @@ static void demux_ogg_send_header (demux_ogg_t *this) {
 	    this->preview_buffers[stream_num]=3;
 	    this->buf_types[stream_num] = BUF_VIDEO_THEORA;
 
-	    this->stream->meta_info[XINE_META_INFO_VIDEOCODEC]
-              = strdup ("theora");
+	    xine_set_meta_info(this->stream, XINE_META_INFO_VIDEOCODEC, "theora");
 	    this->stream->stream_info[XINE_STREAM_INFO_VIDEO_WIDTH]
 	      = this->t_info.frame_width;
 	    this->stream->stream_info[XINE_STREAM_INFO_VIDEO_HEIGHT]
@@ -1174,8 +1171,7 @@ static void demux_ogg_send_header (demux_ogg_t *this) {
 	  }
 #else
 	  this->buf_types[stream_num] = BUF_VIDEO_THEORA;
-	  this->stream->meta_info[XINE_META_INFO_VIDEOCODEC]
-              = strdup ("theora");
+	  xine_set_meta_info(this->stream, XINE_META_INFO_VIDEOCODEC, "theora");
 #endif
 
 	} else {

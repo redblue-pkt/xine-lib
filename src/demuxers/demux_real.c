@@ -30,7 +30,7 @@
  *   
  *   Based on FFmpeg's libav/rm.c.
  *
- * $Id: demux_real.c,v 1.65 2003/07/25 21:02:05 miguelfreitas Exp $
+ * $Id: demux_real.c,v 1.66 2003/10/27 23:23:29 tmattern Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -473,45 +473,29 @@ unknown:
         /* load the title string */
         field_size = BE_16(&chunk_buffer[stream_ptr]);
         stream_ptr += 2;
-        this->stream->meta_info[XINE_META_INFO_TITLE] =
-          realloc (this->stream->meta_info[XINE_META_INFO_TITLE],
-                   field_size + 1);
-        strncpy(this->stream->meta_info[XINE_META_INFO_TITLE],
-          &chunk_buffer[stream_ptr], field_size);
-        this->stream->meta_info[XINE_META_INFO_TITLE][field_size] = '\0';
+        xine_set_metan_info(this->stream, XINE_META_INFO_TITLE,
+                            &chunk_buffer[stream_ptr], field_size);
         stream_ptr += field_size;
 
         /* load the author string */
         field_size = BE_16(&chunk_buffer[stream_ptr]);
         stream_ptr += 2;
-        this->stream->meta_info[XINE_META_INFO_ARTIST] =
-          realloc (this->stream->meta_info[XINE_META_INFO_ARTIST],
-                   field_size + 1);
-        strncpy(this->stream->meta_info[XINE_META_INFO_ARTIST],
-          &chunk_buffer[stream_ptr], field_size);
-        this->stream->meta_info[XINE_META_INFO_ARTIST][field_size] = '\0';
+        xine_set_metan_info(this->stream, XINE_META_INFO_ARTIST,
+                            &chunk_buffer[stream_ptr], field_size);
         stream_ptr += field_size;
 
         /* load the copyright string as the year */
         field_size = BE_16(&chunk_buffer[stream_ptr]);
         stream_ptr += 2;
-        this->stream->meta_info[XINE_META_INFO_YEAR] =
-          realloc (this->stream->meta_info[XINE_META_INFO_YEAR],
-                   field_size + 1);
-        strncpy(this->stream->meta_info[XINE_META_INFO_YEAR],
-          &chunk_buffer[stream_ptr], field_size);
-        this->stream->meta_info[XINE_META_INFO_YEAR][field_size] = '\0';
+        xine_set_metan_info(this->stream, XINE_META_INFO_YEAR,
+                            &chunk_buffer[stream_ptr], field_size);
         stream_ptr += field_size;
 
         /* load the comment string */
         field_size = BE_16(&chunk_buffer[stream_ptr]);
         stream_ptr += 2;
-        this->stream->meta_info[XINE_META_INFO_COMMENT] =
-          realloc (this->stream->meta_info[XINE_META_INFO_COMMENT],
-                   field_size + 1);
-        strncpy(this->stream->meta_info[XINE_META_INFO_COMMENT],
-          &chunk_buffer[stream_ptr], field_size);
-        this->stream->meta_info[XINE_META_INFO_COMMENT][field_size] = '\0';
+        xine_set_metan_info(this->stream, XINE_META_INFO_COMMENT,
+                            &chunk_buffer[stream_ptr], field_size);
         stream_ptr += field_size;
       }
 
@@ -520,8 +504,8 @@ unknown:
 
     case DATA_TAG:
       if (this->input->read(this->input, data_chunk_header, 
-			    DATA_CHUNK_HEADER_SIZE) != DATA_CHUNK_HEADER_SIZE) {
-	this->status = DEMUX_FINISHED;
+                            DATA_CHUNK_HEADER_SIZE) != DATA_CHUNK_HEADER_SIZE) {
+        this->status = DEMUX_FINISHED;
         return ;
       }
 

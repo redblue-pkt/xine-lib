@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.135 2003/10/16 21:38:03 tmattern Exp $
+ * $Id: demux_asf.c,v 1.136 2003/10/27 23:23:29 tmattern Exp $
  *
  * demultiplexer for asf streams
  *
@@ -627,12 +627,9 @@ static int demux_asf_send_headers_common (demux_asf_t *this, int send_ctrl_start
       xine_demux_control_start(this->stream);
     }
 
-    this->stream->meta_info[XINE_META_INFO_TITLE] =
-      strdup (this->title);
-    this->stream->meta_info[XINE_META_INFO_ARTIST] =
-      strdup (this->author);
-    this->stream->meta_info[XINE_META_INFO_COMMENT] =
-      strdup (this->comment);
+    xine_set_meta_info(this->stream, XINE_META_INFO_TITLE, this->title);
+    xine_set_meta_info(this->stream, XINE_META_INFO_ARTIST, this->author);
+    xine_set_meta_info(this->stream, XINE_META_INFO_COMMENT, this->comment);
 
 
     /*  Choose the best audio and the best video stream.

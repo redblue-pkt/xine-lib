@@ -24,7 +24,7 @@
  * For more information on the MVE file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_wc3movie.c,v 1.41 2003/10/23 05:18:59 tmmm Exp $
+ * $Id: demux_wc3movie.c,v 1.42 2003/10/27 23:23:29 tmattern Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -506,7 +506,7 @@ static int open_mve_file(demux_mve_t *this) {
   this->data_size  = this->input->get_length(this->input) - this->data_start;
   this->video_pts  = 0;
 
-  this->stream->meta_info[XINE_META_INFO_TITLE] = title;
+  xine_set_meta_info(this->stream, XINE_META_INFO_TITLE, title);
 
   return 1;
 }
