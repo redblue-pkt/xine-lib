@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  *
- * $Id: video_out_pgx64.c,v 1.5 2002/10/06 16:12:10 komadori Exp $
+ * $Id: video_out_pgx64.c,v 1.6 2002/10/09 23:48:46 komadori Exp $
  *
  * video_out_pgx64.c, Sun PGX64/PGX24 output plugin for xine
  *
@@ -42,6 +42,7 @@
 
 #include "xine_internal.h"
 #include "alphablend.h"
+#include "bswap.h"
 #include "vo_scale.h"
 #include "xineutils.h"
 
@@ -163,43 +164,27 @@ static void repaint_output_area(pgx64_driver_t *this)
 }
 
 /*
- * Swap the byte order of a 32 bit word
- */
-
-static inline uint32_t swap_uint32(uint32_t value)
-{
-#ifdef WORDS_BIGENDIAN
-  return ((((value) & 0xff000000) >> 24) |
-          (((value) & 0x00ff0000) >>  8) |
-          (((value) & 0x0000ff00) <<  8) |
-          (((value) & 0x000000ff) << 24));
-#else
-  return value;
-#endif
-}
-
-/*
  * Read and write to the little endian framebuffer registers
  */
 
 static inline uint32_t read_reg(pgx64_driver_t *this, int reg)
 {
-  return swap_uint32(this->fbregs[reg]);
+  return le2me_32(this->fbregs[reg]);
 }
 
 static inline void write_reg(pgx64_driver_t *this, int reg, uint32_t value)
 {
-  this->fbregs[reg] = swap_uint32(value);
+  this->fbregs[reg] = le2me_32(value);
 }
 
 static inline void set_reg_bits(pgx64_driver_t *this, int reg, uint32_t mask)
 {
-  this->fbregs[reg] |= swap_uint32(mask);
+  this->fbregs[reg] |= le2me_32(mask);
 }
 
 static inline void clear_reg_bits(pgx64_driver_t *this, int reg, uint32_t mask)
 {
-  this->fbregs[reg] &= swap_uint32(~mask);
+  this->fbregs[reg] &= le2me_32(~mask);
 }
 
 /*
