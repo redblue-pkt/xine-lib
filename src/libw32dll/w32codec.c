@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.46 2001/11/17 14:26:39 f1rmb Exp $
+ * $Id: w32codec.c,v 1.47 2001/11/17 19:41:09 miguelfreitas Exp $
  *
  * routines for using w32 codecs
  * DirectShow support by Miguel Freitas (Nov/2001)
@@ -1074,9 +1074,11 @@ static void w32a_close (audio_decoder_t *this_gen) {
   w32a_decoder_t *this = (w32a_decoder_t *) this_gen;
 
   if( !this->ds_driver ) {
-    acmStreamClose(this->srcstream, 0);
+    if( this->srcstream )
+      acmStreamClose(this->srcstream, 0);
   } else {
-    DS_AudioDecoder_Destroy(this->ds_dec);
+    if( this->ds_dec )
+      DS_AudioDecoder_Destroy(this->ds_dec);
   }
 
   Restore_LDT_Keeper(this->ldt_fs);
