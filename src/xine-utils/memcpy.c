@@ -25,7 +25,7 @@
  * Miguel Freitas split the #ifdefs into several specialized functions that
  * are benchmarked at runtime by xine. Some original comments from Nick
  * have been preserved documenting some MMX/SSE oddities.
- * Also added kernel memcpy function that seems faster than glibc one.
+ * Also added kernel memcpy function that seems faster than libc one.
  *
  */
 
@@ -394,7 +394,7 @@ static struct {
 } memcpy_method[] =
 {
   { NULL, NULL, 0, 0 },
-  { "glibc memcpy()", memcpy, 0, 0 },
+  { "libc memcpy()", memcpy, 0, 0 },
 #if defined(ARCH_X86) && !defined(_MSC_VER)
   { "linux kernel memcpy()", linux_kernel_memcpy, 0, 0 },
   { "MMX optimized memcpy()", mmx_memcpy, 0, MM_MMX },
@@ -464,7 +464,7 @@ void xine_probe_fast_memcpy(xine_t *xine)
   int               i, j, best;
   int               config_flags = -1;
   static char      *memcpy_methods[] = {
-    "probe", "glibc",
+    "probe", "libc",
 #if defined(ARCH_X86) && !defined(_MSC_VER)
     "kernel", "mmx", "mmxext", "sse",
 #endif
