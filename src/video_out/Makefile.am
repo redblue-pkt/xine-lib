@@ -84,7 +84,8 @@ xineplug_vo_out_aa_la_LDFLAGS = -avoid-version -module
 
 xineplug_vo_out_fb_la_SOURCES = yuv2rgb.c yuv2rgb_mmx.c yuv2rgb_mlib.c \
 	alphablend.c video_out_fb.c
-xineplug_vo_out_fb_la_LIBADD = $(top_builddir)/src/xine-utils/libxineutils.la
+xineplug_vo_out_fb_la_LIBADD = $(top_builddir)/src/xine-utils/libxineutils.la \
+	$(top_builddir)/src/xine-engine/libxine.la
 xineplug_vo_out_fb_la_LDFLAGS = -avoid-version -module
 
 xineplug_vo_out_directfb_la_SOURCES = alphablend.c video_out_directfb.c
