@@ -227,34 +227,6 @@ void blend_rgb32 (uint8_t * img, vo_overlay_t * img_overl, int dst_width,
 
 #define BLEND_YUV(dst, src, o) (((src)*o + ((dst)*(0xf-o)))/0xf)
 
-/* FIXME: my_clut should disappear once I find out how to get the clut from the MPEG2 stream. */
-/* It looks like it comes from the ,IFO file, so will have to wait for IFO parser in xine.
- * Here is an extract of another DVD player (oms)
- *               clut = ifoGetCLUT (priv->pgci);
- *               codec->ctrl (codec, CTRL_SPU_SET_CLUT, clut);
- */ 
-/* This happens to work with "The Matrix" using 0(edges), 8(white) */
-
-static clut_t __default_clut[] = {
-  {y: 0x00, cr: 0x80, cb:0x80},
-  {y: 0xbf, cr: 0x80, cb:0x80},
-  {y: 0x10, cr: 0x80, cb:0x80},
-  {y: 0x28, cr: 0x6d, cb:0xef},
-  {y: 0x51, cr: 0xef, cb:0x5a},
-  {y: 0xbf, cr: 0x80, cb:0x80},
-  {y: 0x36, cr: 0x80, cb:0x80},
-  {y: 0x28, cr: 0x6d, cb:0xef},
-  {y: 0xbf, cr: 0x80, cb:0x80},
-  {y: 0x51, cr: 0x80, cb:0x80},
-  {y: 0xbf, cr: 0x80, cb:0x80},
-  {y: 0x10, cr: 0x80, cb:0x80},
-  {y: 0x28, cr: 0x6d, cb:0xef},
-  {y: 0x5c, cr: 0x80, cb:0x80},
-  {y: 0xbf, cr: 0x80, cb:0x80},
-  {y: 0x1c, cr: 0x80, cb:0x80},
-  {y: 0x28, cr: 0x6d, cb:0xef}
-};
-
 void blend_yuv (uint8_t * dst_img, vo_overlay_t * img_overl,
                 int dst_width, int dst_height)
 {
@@ -289,10 +261,10 @@ void blend_yuv (uint8_t * dst_img, vo_overlay_t * img_overl,
 
       /* OK, this looks time consuming.
        * But it gets only evaluated if (o != 0) */
-      if (o) if (img_overl->clip_left   >  x ||
-		 img_overl->clip_right  <= x ||
-		 img_overl->clip_top    >  y ||
-		 img_overl->clip_bottom <= y)
+      if (o) if (img_overl->clip_left   > x ||
+		 img_overl->clip_right  < x ||
+		 img_overl->clip_top    > y ||
+		 img_overl->clip_bottom < y)
 		   o = 0;
 
      if (o) 

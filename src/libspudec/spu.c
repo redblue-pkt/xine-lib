@@ -19,6 +19,8 @@
 * along with this program; see the file COPYING.  If not, write to
 * the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
 *
+* $Id: spu.c,v 1.6 2001/08/14 17:13:33 ehasenle Exp $
+*
 *****/
 
 /*
@@ -74,10 +76,6 @@
 #else
 #define LOG(lvl, fmt...)
 #endif
-
-void spuInit (void)
-{
-}	
 
 /* Return value: reassembly complete = 1 */
 int spuReassembly (spu_seq_t *seq, int start, uint8_t *pkt_data, u_int pkt_len)
@@ -295,13 +293,13 @@ void spuDrawPicture (spu_state_t *state, spu_seq_t* seq, vo_overlay_t *ovl)
 
   ovl->x      = state->o_left;
   ovl->y      = state->o_top;
-  ovl->width  = state->o_right - state->o_left;
-  ovl->height = state->o_bottom - state->o_top;
+  ovl->width  = state->o_right - state->o_left + 1;
+  ovl->height = state->o_bottom - state->o_top + 1;
 
   ovl->clip_top    = 0;
-  ovl->clip_bottom = ovl->height;
+  ovl->clip_bottom = ovl->height - 1;
   ovl->clip_left   = 0;
-  ovl->clip_right  = ovl->width;
+  ovl->clip_right  = ovl->width - 1;
 
   spuUpdateMenu(state, ovl);
 
@@ -331,7 +329,7 @@ void spuDrawPicture (spu_state_t *state, spu_seq_t* seq, vo_overlay_t *ovl)
     }
     
     color = vlc & 0x03;
-    len = vlc>>2;
+    len   = vlc >> 2;
     
     /* if len == 0 -> end sequence - fill to end of line */
     if (!len)
