@@ -30,12 +30,9 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.34 2002/06/02 17:01:27 tmmm Exp $
+ * $Id: demux_qt.c,v 1.35 2002/06/02 19:18:56 tmmm Exp $
  *
  */
-
-#define HAVE_LIBZ
-
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -48,18 +45,13 @@
 #include <string.h>
 #include <stdlib.h>
 #include <ctype.h>
+#include <zlib.h>
 
 #include "xine_internal.h"
 #include "xineutils.h"
 #include "demux.h"
 #include "buffer.h"
 #include "bswap.h"
-
-#ifdef HAVE_LIBZ
-#include <zlib.h>
-#else
-#warning: No zlib support compiled into QT demuxer (no support for compressed headers)
-#endif
 
 typedef unsigned int qt_atom;
 
@@ -880,11 +872,9 @@ static qt_error open_qt_file(qt_info *info, input_plugin_t *input) {
   int64_t preseek_pos;
 
   /* zlib stuff */
-#ifdef HAVE_LIBZ
   z_stream z_state;
   int z_ret_code;
   unsigned char *unzip_buffer;
-#endif
 
   /* reset the file */
   if (input->seek(input, 0, SEEK_SET) != 0) {
@@ -961,10 +951,6 @@ static qt_error open_qt_file(qt_info *info, input_plugin_t *input) {
 
         info->compressed_header = 1;
 
-#ifndef HAVE_LIBZ
-        info->last_error = QT_NO_ZLIB;
-        return info->last_error;
-#else
         if (BE_32(&moov_atom[12]) == CMOV_ATOM) {
           z_state.next_in = &moov_atom[0x28];
           z_state.avail_in = top_level_atom_size - 0x28;
@@ -1012,7 +998,6 @@ static qt_error open_qt_file(qt_info *info, input_plugin_t *input) {
         free (moov_atom);
         moov_atom = unzip_buffer;
         top_level_atom_size = BE_32 (&moov_atom[0]);
-#endif
       }
     } else {
       input->seek(input, top_level_atom_size - ATOM_PREAMBLE_SIZE, SEEK_CUR);
@@ -1299,7 +1284,8 @@ static int demux_qt_start (demux_plugin_t *this_gen,
 
     /* print vital stats */
     xine_log (this->xine, XINE_LOG_FORMAT,
-      _("demux_qt: Apple Quicktime file, running time: %d min, %d sec\n"),
+      _("demux_qt: Apple Quicktime file, %srunning time: %d min, %d sec\n"),
+      (this->qt->compressed_header) ? "compressed header, " : "",
       this->qt->duration / this->qt->time_scale / 60,
       this->qt->duration / this->qt->time_scale % 60);
     if (this->qt->video_codec)
