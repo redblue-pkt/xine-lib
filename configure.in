@@ -5,9 +5,14 @@ dnl
 AC_INIT(src/xine-engine/xine.c)
 
 dnl
-dnl Required Autoconf Version 2.13
+dnl Require autoconf version 2.13
 dnl
 AC_PREREQ(2.13)
+
+dnl
+dnl Require libtool minimum version 1.3.5
+dnl
+AC_PREREQ_LIBTOOL(1.3.5,,AC_MSG_ERROR(*** You should have libtool >= 1.3.5 installed ***))
 
 
 XINE_MAJOR=0
@@ -387,6 +392,7 @@ fi
 AC_SUBST(ACLOCAL_DIR)
 
 AC_CHECK_PROG(DOXYGEN, doxygen, doxygen, no)
+
 
 dnl
 dnl Output configuration files

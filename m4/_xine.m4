@@ -1,4 +1,26 @@
 dnl
+dnl Check for minimum version of libtool
+dnl AC_PREREQ_LIBTOOL([MINIMUM VERSION],[ACTION-IF-FOUND [, ACTION-IF-NOT-FOUND ]])
+AC_DEFUN([AC_PREREQ_LIBTOOL],
+  [
+    lt_min_full=ifelse([$1], ,1.3.5,$1)
+    lt_min=`echo $lt_min_full | sed -e 's/\.//g'`
+    AC_MSG_CHECKING(checking for libtool >= $lt_min_full)
+    lt_version="`grep ^VERSION ./libtool | sed -e 's/\.//g' | sed -e 's/VERSION\=//'`"
+
+    if test $lt_version -lt 100; then
+      lt_version=`expr $lt_version \* 10`
+    fi
+
+    if test $lt_version -lt $lt_min; then
+      AC_MSG_RESULT(no)
+      ifelse([$3], , :, [$3])
+    fi
+    AC_MSG_RESULT(yes)
+    ifelse([$2], , :, [$2])
+  ])
+
+dnl
 AC_DEFUN([AC_CHECK_LIRC],
   [AC_ARG_ENABLE(lirc,
      [  --disable-lirc          Turn off LIRC support.],
