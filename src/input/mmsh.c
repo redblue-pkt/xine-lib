@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mmsh.c,v 1.14 2003/04/13 16:34:51 miguelfreitas Exp $
+ * $Id: mmsh.c,v 1.15 2003/04/25 20:37:21 tmattern Exp $
  *
  * based on mms.c and specs from avifile
  * (http://avifile.sourceforge.net/asf-1.0.htm)
@@ -39,6 +39,7 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <time.h>
+#include <assert.h>
 
 #include "xine_internal.h"
 #include "xineutils.h"
@@ -56,14 +57,15 @@
 
 
 #define MMSH_PORT                  80
+#define MMSH_UNKNOWN                0
 #define MMSH_SEEKABLE               1
 #define MMSH_LIVE                   2
 #define CHUNK_HEADER_LENGTH        12
 #define CHUNK_TYPE_DATA        0x4424
 #define CHUNK_TYPE_END         0x4524
 #define CHUNK_TYPE_ASF_HEADER  0x4824
-#define CHUNK_SIZE              65536
-#define ASF_HEADER_SIZE          8192
+#define CHUNK_SIZE              65536  /* max chunk size */
+#define ASF_HEADER_SIZE          8192  /* max header size */
 
 static const char* mmsh_FirstRequest =
     "GET %s HTTP/1.0\r\n"
@@ -330,8 +332,10 @@ static int send_command (mmsh_t *this, char *cmd)  {
 static int get_answer (mmsh_t *this) {
  
   int done, len, linenum;
+  char *features;
 
   done = 0; len = 0; linenum = 0;
+  this->stream_type = MMSH_UNKNOWN;
 
   while (!done) {
 
@@ -384,17 +388,17 @@ static int get_answer (mmsh_t *this) {
           return 0;
         }
         
-        if (!strncasecmp(this->buf, "Pragma: features", 16)) {
-          if (strstr(this->buf + 16, "seekable")) {
-            printf("libmmsh: seekable stream\n");
-            this->stream_type = MMSH_SEEKABLE;
-          } else {
-            if (strstr(this->buf + 16, "broadcast")) {
-              printf("libmmsh: live stream\n");
-              this->stream_type = MMSH_LIVE;
+        if (!strncasecmp(this->buf, "Pragma:", 7)) {
+          features = strstr(this->buf + 7, "features=");
+          if (features) {
+            if (strstr(features, "seekable")) {
+              printf("libmmsh: seekable stream\n");
+              this->stream_type = MMSH_SEEKABLE;
             } else {
-              printf("libmmsh: unknown stream type\n");
-              this->stream_type = MMSH_SEEKABLE; /* FIXME ? */
+              if (strstr(features, "broadcast")) {
+                printf("libmmsh: live stream\n");
+                this->stream_type = MMSH_LIVE;
+              }
             }
           }
         }
@@ -409,20 +413,11 @@ static int get_answer (mmsh_t *this) {
       len ++;
     }
   }
-  return 1;
-}
-
-static int receive (xine_stream_t *stream, int s, char *buf, size_t count) {
-
-  ssize_t  len;
-
-  len = xine_read_abort (stream, s, buf, count);
-  if (len < 0) {
-    perror ("libmmsh: read error:");
-    return 0;
+  if (this->stream_type == MMSH_UNKNOWN) {
+    printf("libmmsh: unknown stream type\n");
+    this->stream_type = MMSH_SEEKABLE; /* FIXME ? */
   }
-
-  return len;
+  return 1;
 }
 
 static int get_chunk_header (mmsh_t *this) {
@@ -433,9 +428,11 @@ static int get_chunk_header (mmsh_t *this) {
   printf ("libmmsh: get_chunk\n");
 #endif
   /* chunk header */
-  len = receive (this->stream, this->s, chunk_header, CHUNK_HEADER_LENGTH);
+  len = xine_read_abort(this->stream, this->s, chunk_header, CHUNK_HEADER_LENGTH);
   if (len != CHUNK_HEADER_LENGTH) {
-    printf ("libmmsh: chunk header read failed\n");
+#ifdef LOG
+    printf ("libmmsh: chunk header read failed, %d != %d\n", len, CHUNK_HEADER_LENGTH);
+#endif
     return 0;
   }
   this->chunk_type       = get_16 (chunk_header, 0);
@@ -903,6 +900,8 @@ mmsh_t *mmsh_connect (xine_stream_t *stream, const char *url_, int bandwidth) {
       sprintf (this->str, mmsh_LiveRequest, path, host, 2,
                this->num_stream_ids, stream_selection);
       break;
+    default:
+      assert(1);
   }
   
   if (!send_command (this, this->str))
@@ -978,6 +977,7 @@ static int get_media_packet (mmsh_t *this) {
         this->buf_size = this->packet_length;
         return 1;
       } else {
+        printf("libmmsh: read error, %d != %d\n", len, this->chunk_length);
         return 0;
       }
     }
