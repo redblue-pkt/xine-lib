@@ -20,7 +20,7 @@
  * Compact Disc Digital Audio (CDDA) Input Plugin 
  *   by Mike Melanson (melanson@pcisys.net)
  *
- * $Id: input_cdda.c,v 1.5 2003/01/08 10:05:46 jkeil Exp $
+ * $Id: input_cdda.c,v 1.6 2003/01/09 03:26:10 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -298,6 +298,8 @@ typedef struct {
 
   int               mrls_allocated_entries;
   xine_mrl_t      **mrls;
+  
+  char             *autoplaylist[MAX_TRACKS];
 
 } cdda_input_class_t;
 
@@ -476,6 +478,38 @@ static input_plugin_t *open_plugin (input_class_t *cls_gen, xine_stream_t *strea
   return &this->input_plugin;
 }
 
+static char ** cdda_class_get_autoplay_list (input_class_t *this_gen, 
+					    int *num_files) {
+
+  cdda_input_class_t *this = (cdda_input_class_t *) this_gen;
+  cdrom_toc toc;
+  char trackmrl[20];
+  int fd, i;
+
+  /* free old playlist */
+  for( i = 0; this->autoplaylist[i]; i++ ) {
+    free( this->autoplaylist[i] );
+    this->autoplaylist[i] = NULL; 
+  }  
+  
+  /* get the CD TOC */
+  init_cdrom_toc(&toc);
+  fd = open (DEFAULT_CDDA_DEVICE, O_RDONLY);
+  if (fd == -1)
+    return NULL;
+  read_cdrom_toc(fd, &toc);
+  
+  for( i = 0; i <= toc.last_track - toc.first_track; i++ ) {
+    sprintf(trackmrl,"cdda:%d",i+toc.first_track);
+    this->autoplaylist[i] = strdup(trackmrl);    
+  }
+
+  *num_files = toc.last_track - toc.first_track + 1;
+
+  free_cdrom_toc(&toc);
+  return this->autoplaylist;
+}
+
 static char *cdda_class_get_identifier (input_class_t *this_gen) {
   return "cdda";
 }
@@ -515,7 +549,7 @@ static void *init_plugin (xine_t *xine, void *data) {
   this->input_class.get_identifier     = cdda_class_get_identifier;
   this->input_class.get_description    = cdda_class_get_description;
   this->input_class.get_dir            = cdda_class_get_dir;
-  this->input_class.get_autoplay_list  = NULL;
+  this->input_class.get_autoplay_list  = cdda_class_get_autoplay_list;
   this->input_class.dispose            = cdda_class_dispose;
   this->input_class.eject_media        = NULL;
 
