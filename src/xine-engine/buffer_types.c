@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer_types.c,v 1.89 2004/11/30 00:40:59 tmattern Exp $
+ * $Id: buffer_types.c,v 1.90 2005/01/14 15:29:51 jstembridge Exp $
  *
  *
  * contents:
@@ -971,6 +971,13 @@ static audio_db_t audio_db[] = {
   },
   BUF_AUDIO_ALAC,
   "Apple Lossless Audio Codec"
+},
+{
+  {
+    0
+  },
+  BUF_AUDIO_MPC,
+  "Musepack"
 },
 { { 0 }, 0, "last entry" }
 };
