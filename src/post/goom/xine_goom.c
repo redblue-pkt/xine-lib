@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_goom.c,v 1.19 2003/01/05 22:50:37 tmattern Exp $
+ * $Id: xine_goom.c,v 1.20 2003/01/06 22:18:24 tmattern Exp $
  *
  * GOOM post plugin.
  *
@@ -156,7 +156,7 @@ static void *goom_init_plugin(xine_t *xine, void *data)
                                     NULL, 20, NULL, NULL);
   
 #ifdef ARCH_X86
-  if (xine_mm_accel() & MM_ACCEL_X86_MMX) {
+  if (xine_mm_accel() & MM_ACCEL_X86_MMXEXT) {
     this->use_asm = cfg->register_bool (cfg, "post.goom_use_asm", 1,
                                         _("Use Goom asm optimizations"),
                                         NULL, 10, NULL, NULL);
