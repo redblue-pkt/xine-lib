@@ -27,5 +27,5 @@
 extern void *(* fast_memcpy)(void *to, const void *from, size_t len);
 
 /* benchmark available memcpy methods */
-void probe_fast_memcpy(xine_t *this);
+void probe_fast_memcpy(config_values_t *config);
 #endif
