@@ -401,7 +401,6 @@ static unsigned long long int rdtsc(int config_flags)
 {
   /* FIXME: implement an equivalent for using optimized memcpy on other
             architectures */
-#warning "Using rdtsc() hack (via times(NULL))"
   return times(NULL);
 }
 #endif

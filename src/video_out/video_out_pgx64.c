@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  *
- * $Id: video_out_pgx64.c,v 1.22 2002/12/21 12:56:49 miguelfreitas Exp $
+ * $Id: video_out_pgx64.c,v 1.23 2002/12/22 00:35:05 komadori Exp $
  *
  * video_out_pgx64.c, Sun PGX64/PGX24 output plugin for xine
  *
@@ -131,7 +131,7 @@ typedef struct {
   GC gc;
 
   int fbfd;
-  void *fbbase;
+  uint8_t *fbbase;
   volatile uint32_t *fbregs;
   uint32_t top, fb_width, fb_height;
 
@@ -669,7 +669,7 @@ static pgx64_driver_t* init_driver(pgx64_driver_class_t *class)
   pgx64_driver_t *this;
   char *devname;
   int fbfd;
-  void *baseaddr;
+  uint8_t *baseaddr;
   struct fbgattr attr;
 
   printf("video_out_pgx64: PGX64 video output plugin - By Robin Kay\n");

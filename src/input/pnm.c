@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: pnm.c,v 1.5 2002/12/16 23:29:59 miguelfreitas Exp $
+ * $Id: pnm.c,v 1.6 2002/12/22 00:35:04 komadori Exp $
  *
  * pnm protocol implementation 
  * based upon code from joschka
@@ -275,7 +275,7 @@ static ssize_t rm_read(int fd, void *buf, size_t count) {
       return -1;
     }
     
-    ret=read (fd, buf+total, count-total);
+    ret=read (fd, ((uint8_t*)buf)+total, count-total);
 
     if (ret<=0) {
       printf ("input_pnm: read error.\n");

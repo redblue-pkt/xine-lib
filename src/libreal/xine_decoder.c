@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.21 2002/12/21 18:59:46 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.22 2002/12/22 00:35:05 komadori Exp $
  *
  * thin layer to use real binary-only codecs in xine
  *
@@ -230,11 +230,18 @@ static int init_codec (realdec_decoder_t *this, buf_element_t *buf) {
   
   /* setup rv30 codec (codec sub-type and image dimensions): */
   if (init_data.format>=0x20200002){
-    unsigned long cmsg24[4]={this->width,this->height,
-			     this->width,this->height};
-    unsigned long cmsg_data[3]={0x24,1+((init_data.subformat>>16)&7),
-				(unsigned long) &cmsg24};
-    
+    unsigned long cmsg24[4];
+    unsigned long cmsg_data[3];
+
+    cmsg24[0]=this->width;
+    cmsg24[1]=this->height;
+    cmsg24[2]=this->width;
+    cmsg24[3]=this->height;
+
+    cmsg_data[0]=0x24;
+    cmsg_data[1]=1+((init_data.subformat>>16)&7);
+    cmsg_data[2]=(unsigned long)&cmsg24;
+
 #ifdef LOG
     printf ("libreal: cmsg24:\n");
     hexdump (cmsg24, sizeof (cmsg24));
@@ -306,14 +313,14 @@ static void realdec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) 
 	vo_frame_t    *img;
 
 	unsigned long  transform_out[5];
-	unsigned long  transform_in[6]={
-	  this->chunk_buffer_size,/* length of the packet (sub-packets appended) */
-	  0,		          /* unknown, seems to be unused  */
-	  this->num_chunks-1,	  /* number of sub-packets - 1    */
-	  this->chunk_tab,        /* table of sub-packet offsets  */
-	  0,	   	          /* unknown, seems to be unused  */
-	  this->pts/90            /* timestamp (the integer value from the stream) */
-	};
+	unsigned long  transform_in[6];
+
+	transform_in[0] = this->chunk_buffer_size; /* length of the packet (sub-packets appended) */
+	transform_in[1] = 0; /* unknown, seems to be unused  */
+	transform_in[2] = this->num_chunks-1; /* number of sub-packets - 1 */
+	transform_in[3] = this->chunk_tab; /* table of sub-packet offsets */
+	transform_in[4] = 0; /* unknown, seems to be unused  */
+	transform_in[5] = this->pts/90; /* timestamp (the integer value from the stream) */
 
 #ifdef LOG
 	printf ("libreal: got %d chunks in buffer and new frame is starting\n",

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.15 2002/12/21 18:59:46 miguelfreitas Exp $
+ * $Id: audio_decoder.c,v 1.16 2002/12/22 00:35:05 komadori Exp $
  *
  * thin layer to use real binary-only codecs in xine
  *
@@ -318,17 +318,16 @@ static int init_codec (realdec_decoder_t *this, buf_element_t *buf) {
   }
 
   { 
-    ra_init_t init_data={
-      samples_per_sec,
-      bits_per_sample,
-      num_channels,
-      100, /* ??? */
-      subpacket_size,    /* subpacket size    */
-      coded_frame_size,  /* coded frame size  */
-      data_len,          /* codec data length */
-      extras             /* extras            */
-    };
+    ra_init_t init_data;
 
+    init_data.samplerate = samples_per_sec;
+    init_data.bits = bits_per_sample;
+    init_data.channels = num_channels;
+    init_data.unk1 = 100; /* ??? */
+    init_data.subpacket_size = subpacket_size; /* subpacket size */
+    init_data.coded_frame_size = coded_frame_size; /* coded frame size */
+    init_data.codec_data_length = data_len; /* codec data length */
+    init_data.extras = extras; /* extras */
 
 #ifdef LOG
     printf ("libareal: init_data:\n");

@@ -1,5 +1,5 @@
-//TOAST_SPU will define ALL spu entries - no matter the tranparency
-//#define TOAST_SPU
+/*TOAST_SPU will define ALL spu entries - no matter the tranparency*/
+/*#define TOAST_SPU*/
 /* #define PRIV_CLUT */
 /* Currently only blend_yuv(..) works */
 /*

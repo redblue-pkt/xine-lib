@@ -20,7 +20,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: cc_decoder.c,v 1.17 2002/09/04 23:31:09 guenter Exp $
+ * $Id: cc_decoder.c,v 1.18 2002/12/22 00:35:05 komadori Exp $
  *
  * stuff needed to provide closed captioning decoding and display
  *
@@ -230,8 +230,8 @@ char *cc_schemes[NUM_CC_PALETTES + 1] = {
 /* mapping from PAC row code to actual CC row */
 static int  rowdata[] = {10, -1, 0, 1, 2, 3, 11, 12, 13, 14, 4, 5, 6,
 			 7, 8, 9};
-#warning "FIXME: do real TM" 
-/* ¶ must be mapped as a music note in the captioning font */ 
+/* FIXME: do real TM */
+/* must be mapped as a music note in the captioning font */ 
 static char specialchar[] = {'®','°','½','¿','T','¢','£','¶','à',
 			     TRANSP_SPACE,'è','â','ê','î','ô','û'};
 
@@ -266,7 +266,7 @@ struct cc_renderer_s {
      not yet displayed. So we remember the vpts of the show event, and use
      that as the vpts of the hide event upon an osd free.
   */
-#warning "FIXME: bug in OSD or SPU?"
+/*FIXME: bug in OSD or SPU?*/
   int64_t display_vpts;       /* vpts of currently displayed caption */
 
   /* this variable is an even worse hack: in some rare cases, the pts
@@ -379,7 +379,11 @@ static void get_font_metrics(osd_renderer_t *renderer,
   renderer->set_font(testc, (char *) fontname, font_size);
   for (c = 32; c < 256; c++) {
     int tw, th;
-    char buf[2] = { (char) c, '\0' };
+    char buf[2]; 
+
+    buf[0] = (char)c;
+    buf[1] = '\0';
+
     renderer->get_text_size(testc, buf, &tw, &th);
     *maxw = MAX(*maxw, tw);
     *maxh = MAX(*maxh, th);
@@ -630,7 +634,7 @@ static void ccrow_render(cc_renderer_t *renderer, cc_row_t *this, int rownum)
       /* make caption background a uniform box. Without this line, the */
       /* background is uneven for superscript characters. */
       /* Also pad left & right ends of caption to make it more readable */
-#warning "FIXME: There may be off-by one errors in the rendering - check with Miguel"
+/*FIXME: There may be off-by one errors in the rendering - check with Miguel*/
       if (seg == 0)
 	box_x1 -= renderer->max_char_width;
       if (seg == num_seg - 1)
@@ -791,7 +795,7 @@ static void ccmem_init(cc_memory_t *this)
 
 static void ccmem_exit(cc_memory_t *this)
 {
-#warning "FIXME: anything to deallocate?"
+/*FIXME: anything to deallocate?*/
 }
 
 

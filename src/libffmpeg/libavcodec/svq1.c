@@ -26,6 +26,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <alloca.h>
 
 #include "common.h"
 #include "avcodec.h"
@@ -1136,7 +1137,9 @@ static int svq1_decode_frame(AVCodecContext *avctx,
 	current += 16*linesize;
       }
     } else {
-      svq1_pmv_t pmv[width/8+3];
+      svq1_pmv_t *pmv;
+
+      pmv = alloca((width/8+3) * sizeof(svq1_pmv_t));
       /* delta frame */
       memset (pmv, 0, ((width / 8) + 3) * sizeof(svq1_pmv_t));
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mms.c,v 1.16 2002/12/12 23:48:03 tmattern Exp $
+ * $Id: mms.c,v 1.17 2002/12/22 00:35:04 komadori Exp $
  *
  * based on work from major mms
  * utility functions to handle communication with an mms server
@@ -125,7 +125,7 @@ static ssize_t read_timeout(int fd, void *buf, size_t count) {
       return -1;
     }
     
-    ret=read (fd, buf+total, count-total);
+    ret=read (fd, ((uint8_t*)buf)+total, count-total);
 
     if (ret<=0) {
       printf ("mms: read error.\n");

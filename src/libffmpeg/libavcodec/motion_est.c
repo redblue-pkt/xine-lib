@@ -417,7 +417,7 @@ static inline int snake_search(MpegEncContext * s, int *best, int dmin,
     static int x_dir[8]= {1,1,0,-1,-1,-1, 0, 1};
     static int y_dir[8]= {0,1,1, 1, 0,-1,-1,-1};
     int fails=0;
-    int last_d[2]={dmin, dmin};
+    int last_d[2];
 
 /*static int good=0;
 static int bad=0;
@@ -428,6 +428,9 @@ if(256*256*256*64%point==0)
 {
     printf("%d %d %d\n", good, bad, point);
 }*/
+
+    last_d[0] = dmin;
+    last_d[1] = dmin;
 
     for(;;){
         int x= best[0];

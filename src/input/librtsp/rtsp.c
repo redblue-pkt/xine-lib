@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: rtsp.c,v 1.4 2002/12/17 10:33:35 holstsn Exp $
+ * $Id: rtsp.c,v 1.5 2002/12/22 00:35:05 komadori Exp $
  *
  * a minimalistic implementation of rtsp protocol,
  * *not* RFC 2326 compilant yet.
@@ -188,7 +188,7 @@ static ssize_t read_stream(int fd, void *buf, size_t count) {
       return -1;
     }
     
-    ret=read (fd, buf+total, count-total);
+    ret=read (fd, ((uint8_t*)buf)+total, count-total);
 
     if (ret<=0) {
       printf ("rtsp: read error.\n");

@@ -18,6 +18,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 #include <math.h>
+#include <alloca.h>
 #include "common.h"
 #include "avcodec.h"
 #include "dsputil.h"
@@ -229,33 +230,8 @@ static double get_qscale(MpegEncContext *s, RateControlEntry *rce, double rate_f
     const double mb_num= s->mb_num;  
     int i;
 
-    double const_values[]={
-        M_PI,
-        M_E,
-        rce->i_tex_bits*rce->qscale,
-        rce->p_tex_bits*rce->qscale,
-        (rce->i_tex_bits + rce->p_tex_bits)*(double)rce->qscale,
-        rce->mv_bits/mb_num,
-        rce->pict_type == B_TYPE ? (rce->f_code + rce->b_code)*0.5 : rce->f_code,
-        rce->i_count/mb_num,
-        rce->mc_mb_var_sum/mb_num,
-        rce->mb_var_sum/mb_num,
-        rce->pict_type == I_TYPE,
-        rce->pict_type == P_TYPE,
-        rce->pict_type == B_TYPE,
-        rcc->qscale_sum[pict_type] / (double)rcc->frame_count[pict_type],
-        s->qcompress,
-/*        rcc->last_qscale_for[I_TYPE],
-        rcc->last_qscale_for[P_TYPE],
-        rcc->last_qscale_for[B_TYPE],
-        rcc->next_non_b_qscale,*/
-        rcc->i_cplx_sum[I_TYPE] / (double)rcc->frame_count[I_TYPE],
-        rcc->i_cplx_sum[P_TYPE] / (double)rcc->frame_count[P_TYPE],
-        rcc->p_cplx_sum[P_TYPE] / (double)rcc->frame_count[P_TYPE],
-        rcc->p_cplx_sum[B_TYPE] / (double)rcc->frame_count[B_TYPE],
-        (rcc->i_cplx_sum[pict_type] + rcc->p_cplx_sum[pict_type]) / (double)rcc->frame_count[pict_type],
-        0
-    };
+    double const_values[20];
+
     char *const_names[]={
         "PI",
         "E",
@@ -293,6 +269,32 @@ static double get_qscale(MpegEncContext *s, RateControlEntry *rce, double rate_f
         "qp2bits",
         NULL
     };
+
+    const_values[0] = M_PI;
+    const_values[1] = M_E;
+    const_values[2] = rce->i_tex_bits*rce->qscale;
+    const_values[3] = rce->p_tex_bits*rce->qscale;
+    const_values[4] = (rce->i_tex_bits + rce->p_tex_bits)*(double)rce->qscale;
+    const_values[5] = rce->mv_bits/mb_num;
+    const_values[6] = rce->pict_type == B_TYPE ? (rce->f_code + rce->b_code)*0.5 : rce->f_code;
+    const_values[7] = rce->i_count/mb_num;
+    const_values[8] = rce->mc_mb_var_sum/mb_num;
+    const_values[9] = rce->mb_var_sum/mb_num;
+    const_values[10] = rce->pict_type == I_TYPE;
+    const_values[11] = rce->pict_type == P_TYPE;
+    const_values[12] = rce->pict_type == B_TYPE;
+    const_values[13] = rcc->qscale_sum[pict_type] / (double)rcc->frame_count[pict_type];
+    const_values[14] = s->qcompress;
+    /*const_values[] = rcc->last_qscale_for[I_TYPE];
+    const_values[] = rcc->last_qscale_for[P_TYPE];
+    const_values[] = rcc->last_qscale_for[B_TYPE];
+    const_values[] = rcc->next_non_b_qscale;*/
+    const_values[15] = rcc->i_cplx_sum[I_TYPE] / (double)rcc->frame_count[I_TYPE];
+    const_values[16] = rcc->i_cplx_sum[P_TYPE] / (double)rcc->frame_count[P_TYPE];
+    const_values[17] = rcc->p_cplx_sum[P_TYPE] / (double)rcc->frame_count[P_TYPE];
+    const_values[18] = rcc->p_cplx_sum[B_TYPE] / (double)rcc->frame_count[B_TYPE];
+    const_values[19] = (rcc->i_cplx_sum[pict_type] + rcc->p_cplx_sum[pict_type]) / (double)rcc->frame_count[pict_type];
+    const_values[20] = 0;
 
     bits= ff_eval(s->avctx->rc_eq, const_values, const_names, func1, func1_names, NULL, NULL, rce);
     
@@ -471,12 +473,15 @@ static void adaptive_quantization(MpegEncContext *s, double q){
     const float p_masking = s->avctx->p_masking;
     float bits_sum= 0.0;
     float cplx_sum= 0.0;
-    float cplx_tab[s->mb_num];
-    float bits_tab[s->mb_num];
+    float *cplx_tab;
+    float *bits_tab;
     const int qmin= 2; //s->avctx->mb_qmin;
     const int qmax= 31; //s->avctx->mb_qmax;
     Picture * const pic= &s->current_picture;
-    
+
+    cplx_tab = alloca(s->mb_num * sizeof(float));
+    bits_tab = alloca(s->mb_num * sizeof(float));
+
     for(i=0; i<s->mb_num; i++){
         float temp_cplx= sqrt(pic->mc_mb_var[i]);
         float spat_cplx= sqrt(pic->mb_var[i]);

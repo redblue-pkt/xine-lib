@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_buffer.c,v 1.1 2002/12/15 01:47:59 holstsn Exp $
+ * $Id: xine_buffer.c,v 1.2 2002/12/22 00:35:05 komadori Exp $
  *
  *
  * generic dynamic buffer functions. The goals
@@ -99,7 +99,7 @@ typedef struct {
 #define CHECK_MAGIC(x) if (*(((uint8_t *)x)-1)!=XINE_BUFFER_MAGIC) \
   {printf("xine_buffer: FATAL: xine_buffer_header not recognized!\n");exit(1);}
 
-#define GET_HEADER(x) ((xine_buffer_header_t *)(x-XINE_BUFFER_HEADER_SIZE))
+#define GET_HEADER(x) ((xine_buffer_header_t*)(((uint8_t*)x)-XINE_BUFFER_HEADER_SIZE))
 
 /* reallocs buf, if smaller than size. */
 #define GROW_TO(buf, to_size) \
@@ -107,8 +107,7 @@ typedef struct {
     int new_size = (to_size) + GET_HEADER(buf)->chunk_size - \
         ((to_size) % GET_HEADER(buf)->chunk_size);\
     \
-    buf = realloc(buf-XINE_BUFFER_HEADER_SIZE, new_size+XINE_BUFFER_HEADER_SIZE);\
-    buf += XINE_BUFFER_HEADER_SIZE;\
+    buf = ((uint8_t*)realloc(((uint8_t*)buf)-XINE_BUFFER_HEADER_SIZE, new_size+XINE_BUFFER_HEADER_SIZE)) + XINE_BUFFER_HEADER_SIZE;\
     GET_HEADER(buf)->size=new_size; }
 
 /*
@@ -119,7 +118,7 @@ typedef struct {
  */
 void *xine_buffer_init(int chunk_size) {
   
-  void *data=xine_xmalloc(chunk_size+XINE_BUFFER_HEADER_SIZE);
+  uint8_t *data=xine_xmalloc(chunk_size+XINE_BUFFER_HEADER_SIZE);
   xine_buffer_header_t *header=(xine_buffer_header_t*)data;
 
   header->size=chunk_size;
@@ -146,7 +145,7 @@ void *_xine_buffer_free(void *buf) {
   CHECK_MAGIC(buf);
 #endif
 
-  free(buf-XINE_BUFFER_HEADER_SIZE);
+  free(((uint8_t*)buf)-XINE_BUFFER_HEADER_SIZE);
 
   return NULL;
 }
@@ -156,7 +155,7 @@ void *_xine_buffer_free(void *buf) {
  */
 void *xine_buffer_dup(void *buf) {
 
-  void *new;
+  uint8_t *new;
   
 #ifdef CHECKS
   if (!buf) {
@@ -168,9 +167,9 @@ void *xine_buffer_dup(void *buf) {
   CHECK_MAGIC(buf);
 #endif
 
-  new=xine_xmalloc(GET_HEADER(buf)->size+XINE_BUFFER_HEADER_SIZE);
+new=xine_xmalloc(GET_HEADER(buf)->size+XINE_BUFFER_HEADER_SIZE);
 
-  xine_fast_memcpy(new, buf-XINE_BUFFER_HEADER_SIZE, 
+  xine_fast_memcpy(new, ((uint8_t*)buf)-XINE_BUFFER_HEADER_SIZE, 
       GET_HEADER(buf)->size+XINE_BUFFER_HEADER_SIZE);
 
   return new+XINE_BUFFER_HEADER_SIZE;
@@ -195,7 +194,7 @@ void *_xine_buffer_copyin(void *buf, int index, void *data, int len) {
 
   GROW_TO(buf, index+len);
 
-  xine_fast_memcpy(buf+index, data, len);
+  xine_fast_memcpy(((uint8_t*)buf)+index, data, len);
 
   return buf;
 }
@@ -224,7 +223,7 @@ void xine_buffer_copyout(void *buf, int index, void *data, int len) {
       return;
     len = GET_HEADER(buf)->size - index;
   }
-  xine_fast_memcpy(data, buf+index, len);
+  xine_fast_memcpy(data, ((uint8_t*)buf)+index, len);
 }
 
 /*
@@ -246,7 +245,7 @@ void *_xine_buffer_set(void *buf, int index, uint8_t b, int len) {
 
   GROW_TO(buf, index+len);
   
-  memset(buf+index, b, len);
+  memset(((uint8_t*)buf)+index, b, len);
 
   return buf;
 }
@@ -295,7 +294,7 @@ void *_xine_buffer_strcpy(void *buf, int index, char *data) {
 
   GROW_TO(buf, index+strlen(data)+1);
 
-  strcpy(buf+index, data);
+  strcpy(((char*)buf)+index, data);
 
   return buf;
 }
