@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.139 2003/01/29 02:33:36 miguelfreitas Exp $
+ * $Id: load_plugins.c,v 1.140 2003/02/14 00:35:29 miguelfreitas Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -1097,6 +1097,74 @@ demux_plugin_t *find_demux_plugin_by_name(xine_stream_t *stream, const char *nam
   pthread_mutex_unlock(&catalog->lock);
   return NULL;
 }
+
+/*
+ * this is a special test mode for content detection: all demuxers are probed
+ * by content and extension except last_demux_name which is tested after
+ * every other demuxer.
+ *
+ * this way we can make sure no demuxer will interfere on probing of a 
+ * known stream.
+ */
+
+demux_plugin_t *find_demux_plugin_last_probe(xine_stream_t *stream, const char *last_demux_name, input_plugin_t *input) {
+
+  int               i;
+  int               methods[3];
+  xine_t           *xine = stream->xine;
+  plugin_catalog_t *catalog = xine->plugin_catalog;
+  plugin_node_t    *last_demux = NULL;
+  demux_plugin_t   *plugin;
+
+  methods[0] = METHOD_BY_CONTENT;
+  methods[1] = METHOD_BY_EXTENSION;
+  methods[2] = -1;
+
+  i = 0;
+  while (methods[i] != -1) {
+
+    plugin_node_t *node;
+
+    stream->content_detection_method = methods[i];
+
+    pthread_mutex_lock (&catalog->lock);
+
+    node = xine_list_first_content (catalog->demux);
+
+    while (node) {
+
+#ifdef LOG
+      printf ("load_plugins: probing demux '%s'\n", node->info->id);
+#endif
+      if (strcasecmp(node->info->id, last_demux_name) == 0) {
+        last_demux = node;
+      } else {
+	printf("load_plugin: probing '%s' (method %d)...\n", node->info->id, stream->content_detection_method );
+        if ((plugin = ((demux_class_t *)node->plugin_class)->open_plugin(node->plugin_class, stream, input))) {
+	  printf ("load_plugins: using demuxer '%s' (instead of '%s')\n", node->info->id, last_demux_name);
+	  pthread_mutex_unlock (&catalog->lock);
+	  return plugin;
+        }
+      }
+
+      node = xine_list_next_content (stream->xine->plugin_catalog->demux);
+    }
+
+    pthread_mutex_unlock (&catalog->lock);
+
+    i++;
+  }
+
+  stream->content_detection_method = METHOD_BY_CONTENT;
+
+  if ((plugin = ((demux_class_t *)last_demux->plugin_class)->open_plugin(last_demux->plugin_class, stream, input))) {
+    printf ("load_plugins: using demuxer '%s'\n", last_demux_name);
+    return plugin;
+  }
+  
+  return NULL;
+}
+
 
 const char *const *xine_get_autoplay_input_plugin_ids(xine_t *this) {
 

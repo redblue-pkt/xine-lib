@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.229 2003/02/13 16:24:28 mroi Exp $
+ * $Id: xine.c,v 1.230 2003/02/14 00:35:30 miguelfreitas Exp $
  *
  * top-level xine functions
  *
@@ -58,9 +58,9 @@
 #include "xineutils.h"
 #include "compat.h"
 
-
+/*
 #define LOG
-
+*/
 
 void xine_handle_stream_end (xine_stream_t *stream, int non_user) {
 
@@ -547,6 +547,45 @@ static int xine_open_internal (xine_stream_t *stream, const char *mrl) {
 	  if (!(stream->demux_plugin = find_demux_plugin_by_name(stream, demux_name, stream->input_plugin))) {
 	    xine_log(stream->xine, XINE_LOG_MSG,
 	      _("xine: specified demuxer %s failed to start\n"), demux_name);
+	    stream->err = XINE_ERROR_NO_DEMUX_PLUGIN;
+	    stream->status = XINE_STATUS_STOP;
+	    free(demux_name);
+	    return 0;
+	  }
+#ifdef LOG
+	  printf ("xine: demux and input plugin found\n");
+#endif
+
+	  stream->meta_info[XINE_META_INFO_SYSTEMLAYER]
+	   = strdup (stream->demux_plugin->demux_class->get_identifier(stream->demux_plugin->demux_class));
+	  free(demux_name);
+	} else {
+	  printf("xine: error while parsing mrl\n");
+	  stream->err = XINE_ERROR_MALFORMED_MRL;
+	  stream->status = XINE_STATUS_STOP;
+	  return 0;
+	}
+	continue;
+      }
+      if (strncasecmp(stream_setup, "lastdemuxprobe", 14) == 0) {
+        if (*(stream_setup += 14) == ':') {
+	  /* all demuxers will be probed before the specified one */
+	  char *tmp = ++stream_setup;
+	  char *demux_name;
+	  stream_setup = strchr(stream_setup, ';');
+	  if (stream_setup) {
+	    demux_name = (char *)malloc(stream_setup - tmp + 1);
+	    memcpy(demux_name, tmp, stream_setup - tmp);
+	    demux_name[stream_setup - tmp] = '\0';
+	  } else {
+	    demux_name = (char *)malloc(strlen(tmp));
+	    memcpy(demux_name, tmp, strlen(tmp));
+	    demux_name[strlen(tmp)] = '\0';
+	  }
+	  mrl_unescape(demux_name);
+	  if (!(stream->demux_plugin = find_demux_plugin_last_probe(stream, demux_name, stream->input_plugin))) {
+	    xine_log(stream->xine, XINE_LOG_MSG,
+	      _("xine: last_probed demuxer %s failed to start\n"), demux_name);
 	    stream->err = XINE_ERROR_NO_DEMUX_PLUGIN;
 	    stream->status = XINE_STATUS_STOP;
 	    free(demux_name);
