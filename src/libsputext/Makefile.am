@@ -2,10 +2,16 @@ LIBTOOL = $(SHELL) $(top_builddir)/libtool-nofpic
 
 libdir = $(XINE_PLUGINDIR)
 
-lib_LTLIBRARIES = xineplug_decode_sputext.la
+if HAVE_GICONV
+sputext_decoder = xineplug_decode_sputext.la
+endif
 
-xineplug_decode_sputext_la_SOURCES =  xine_decoder.c 
+lib_LTLIBRARIES = $(sputext_decoder)
+
+xineplug_decode_sputext_la_SOURCES = xine_decoder.c 
 xineplug_decode_sputext_la_LDFLAGS = -avoid-version -module
+## libgiconv is only needed with FreeBSD
+xineplug_decode_sputext_la_LIBADD  = $(GICONV_BSD_LIBS)
 
 ##
 ## Install header files (default=$includedir/xine)
