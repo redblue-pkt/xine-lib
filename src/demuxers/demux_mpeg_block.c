@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.109 2002/07/19 03:03:36 miguelfreitas Exp $
+ * $Id: demux_mpeg_block.c,v 1.110 2002/08/07 20:50:45 miguelfreitas Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -270,9 +270,9 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
 
       scr  = (p[4] & 0x02) << 30;
       scr |= (p[5] & 0xFF) << 22;
-      scr |= (p[5] & 0xFE) << 14;
-      scr |= (p[6] & 0xFF) <<  7;
-      scr |= (p[7] & 0xFE) >>  1;
+      scr |= (p[6] & 0xFE) << 14;
+      scr |= (p[7] & 0xFF) <<  7;
+      scr |= (p[8] & 0xFE) >>  1;
 
       /* buf->scr = scr; */
 
