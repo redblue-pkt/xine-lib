@@ -107,13 +107,8 @@ void DrvClose(HDRVR hdrvr)
     DrvFree(hdrvr);
 }
 
-
-#ifdef WIN32_PATH
-char* def_path=WIN32_PATH;	    // path to codecs
-#else
-char* def_path="/usr/lib/win32";    // path to codecs
-#endif
 char* win32_codec_name=NULL;  // must be set before calling DrvOpen() !!!
+char* win32_def_path  =NULL;  // must be set before calling DrvOpen() !!!
 
 HDRVR
 DrvOpen(LPARAM lParam2)

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.9 2001/07/04 14:05:09 uid56437 Exp $
+ * $Id: w32codec.c,v 1.10 2001/07/14 16:55:11 guenter Exp $
  *
  * routines for using w32 codecs
  *
@@ -40,6 +40,7 @@
 #include "xine_internal.h"
 
 extern char*   win32_codec_name; 
+extern char*   win32_def_path;
 
 typedef struct w32v_decoder_s {
   video_decoder_t   video_decoder;
@@ -188,6 +189,8 @@ static void w32v_init_codec (w32v_decoder_t *this) {
   HRESULT ret;
   uint32_t vo_cap;
   int outfmt;
+
+  printf ("init codec...\n");
 
   vo_cap = this->video_out->get_capabilities (this->video_out);
   if (vo_cap & VO_CAP_YUY2)
@@ -574,8 +577,16 @@ video_decoder_t *init_video_decoder_plugin (int iface_version, config_values_t *
 
   w32v_decoder_t *this ;
 
-  if (iface_version != 1)
+  if (iface_version != 1) {
+    printf( "w32codec: plugin doesn't support plugin API version %d.\n"
+	    "w32codec: this means there's a version mismatch between xine and this "
+	    "w32codec: decoder plugin.\nInstalling current input plugins should help.\n",
+	    iface_version);
+    
     return NULL;
+  }
+
+  win32_def_path = cfg->lookup_str (cfg, "win32_path", "/usr/lib/win32");
 
   this = (w32v_decoder_t *) malloc (sizeof (w32v_decoder_t));
 
@@ -593,8 +604,16 @@ audio_decoder_t *init_audio_decoder_plugin (int iface_version, config_values_t *
 
   w32a_decoder_t *this ;
 
-  if (iface_version != 1)
+  if (iface_version != 1) {
+    printf( "w32codec: plugin doesn't support plugin API version %d.\n"
+	    "w32codec: this means there's a version mismatch between xine and this "
+	    "w32codec: decoder plugin.\nInstalling current input plugins should help.\n",
+	    iface_version);
+
     return NULL;
+  }
+
+  win32_def_path = cfg->lookup_str (cfg, "win32_path", "/usr/lib/win32");
 
   this = (w32a_decoder_t *) malloc (sizeof (w32a_decoder_t));
 

@@ -1215,16 +1215,17 @@ int WINAPI expGetModuleFileNameA(int module, char* s, int len)
 int WINAPI expSetUnhandledExceptionFilter(void* filter)
 {
     dbgprintf("SetUnhandledExcFilter\n");
-    return 1;//unsupported and probably won't ever be supported
+    return 1;/*unsupported and probably won't ever be supported */
 }    
-extern char* def_path;
+
+extern char* win32_def_path;
 
 int WINAPI expLoadLibraryA(char* name)
 {
     char qq[256];
     dbgprintf("LoadLibraryA\n");
     printf("They want library %s\n", name);
-    strcpy(qq, def_path);
+    strcpy(qq, win32_def_path);
     strcat(qq, "/");
     strcat(qq, name);
     return LoadLibraryA(qq);
