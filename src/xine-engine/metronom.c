@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.c,v 1.88 2002/08/27 07:10:13 jcdutton Exp $
+ * $Id: metronom.c,v 1.89 2002/09/01 13:49:27 heikos Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -52,9 +52,9 @@
    i guess llabs may not be available everywhere */
 #define abs(x) ( (x<0) ? (-x) : (x) )
 
-/*
+
 #define LOG
-*/
+
 
 /*
  * ****************************************

@@ -745,19 +745,27 @@ static void osd_load_fonts (osd_renderer_t *this, char *path) {
       len = strlen (entry->d_name);
 
       if ( (len>12) && !strncmp (&entry->d_name[len-12], ".xinefont.gz", 12)) {
-
+	
 #ifdef LOG_DEBUG
-      printf ("osd: trying to load font >%s< (ending >%s<)\n",
-	      entry->d_name,&entry->d_name[len-12]);
+	printf ("osd: trying to load font >%s< (ending >%s<)\n",
+		entry->d_name,&entry->d_name[len-12]);
 #endif
 
 	sprintf (pathname, "%s/%s", path, entry->d_name);
-
+	
 	osd_renderer_load_font (this, pathname);
 
       }
     }
-    closedir (dir);
+
+    /*
+     * for a reason that is still unknown this closedir breaks
+     * ac3 passthrough (at least for oss).
+     * Needs to be investigted further...
+     * -- Heiko
+     */
+    /* closedir (dir); */
+
   }
 }
 
