@@ -29,7 +29,7 @@
    \endverbatim
  */
 /*
- * $Id: xine.h.tmpl.in,v 1.12 2001/05/03 18:22:37 f1rmb Exp $
+ * $Id: xine.h.tmpl.in,v 1.13 2001/05/03 22:20:44 f1rmb Exp $
  *
  */
 
@@ -338,6 +338,66 @@ void xine_get_window_property_min_max(xine_t *this, int property, int *min, int 
  *
  */
 void xine_window_handle_event(xine_t *this, void *event);
+
+/**
+ * \fn void xine_set_window_fullscreen(xine_t *this, int fullscreen);
+ * \brief
+ * \param
+ * \return
+ *
+ *
+ */
+void xine_set_window_fullscreen(xine_t *this, int fullscreen);
+
+/**
+ * \fn int xine_get_window_fullscreen(xine_t *this);
+ * \brief
+ * \param
+ * \return
+ *
+ *
+ */
+int xine_get_window_fullscreen(xine_t *this);
+
+/**
+ * \fn void xine_set_window_visible(xine_t *this, int visible);
+ * \brief
+ * \param
+ * \return
+ *
+ *
+ */
+void xine_set_window_visible(xine_t *this, int visible);
+
+/**
+ * \fn int xine_get_window_visible(xine_t *this);
+ * \brief
+ * \param
+ * \return
+ *
+ *
+ */
+int xine_get_window_visible(xine_t *this);
+
+/**
+ * \fn void xine_set_display_cursor(xine_t *this, int show);
+ * \brief
+ * \param
+ * \return
+ *
+ *
+ */
+void xine_set_display_cursor(xine_t *this, int show);
+
+/**
+ * \fn int xine_get_display_cursor(xine_t *this);
+ * \brief
+ * \param
+ * \return
+ *
+ *
+ */
+int xine_get_display_cursor(xine_t *this);
 
 /** @} end of xine_management_api */
 

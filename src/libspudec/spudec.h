@@ -60,8 +60,3 @@ struct spudec_s {
 spudec_t *spudec_init (metronom_t *metronom, fifo_buffer_t *spu_fifo);
 
 #endif /* HAVE_SPUDEC_H */
-
-
-
-
-

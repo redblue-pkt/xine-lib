@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.2 2001/05/03 18:22:37 f1rmb Exp $
+ * $Id: video_out.c,v 1.3 2001/05/03 22:20:45 f1rmb Exp $
  *
  */
 
@@ -327,8 +327,7 @@ static uint32_t vo_get_capabilities (vo_instance_t *this) {
   return this->driver->get_capabilities (this->driver);
 }
 
-static int vo_get_property (vo_instance_t *this,
-			    int property) {
+static int vo_get_property (vo_instance_t *this, int property) {
   return this->driver->get_property (this->driver, property);
 }
 

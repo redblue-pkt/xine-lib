@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.12 2001/05/03 18:22:37 f1rmb Exp $
+ * $Id: xine.c,v 1.13 2001/05/03 22:20:45 f1rmb Exp $
  *
  * top-level xine functions
  *
@@ -565,4 +565,46 @@ void xine_get_window_property_min_max(xine_t *this,
 void xine_window_handle_event(xine_t *this, void *event) {
 
   this->video_out->handle_event(this->video_out, event);
+}
+
+/*
+ *
+ */
+void xine_set_window_fullscreen(xine_t *this, int fullscreen) {
+
+  xine_set_window_property(this, VO_PROP_FULLSCREEN, fullscreen);
+}
+
+/*
+ *
+ */
+int xine_get_window_fullscreen(xine_t *this) {
+
+  return (xine_get_window_property(this, VO_PROP_FULLSCREEN));
+}
+
+/*
+ *
+ */
+void xine_set_window_visible(xine_t *this, int visible) {
+
+  xine_set_window_property(this, VO_PROP_WINDOW_VISIBLE, visible);
+}
+
+/*
+ *
+ */
+int xine_get_window_visible(xine_t *this) {
+
+  return (xine_get_window_property(this, VO_PROP_WINDOW_VISIBLE));
+}
+
+void xine_set_display_cursor(xine_t *this, int show) {
+  
+  xine_set_window_property(this, VO_PROP_CURSOR_VISIBLE, show);
+}
+
+int xine_get_display_cursor(xine_t *this) {
+  
+  return (xine_get_window_property(this, VO_PROP_CURSOR_VISIBLE));
 }

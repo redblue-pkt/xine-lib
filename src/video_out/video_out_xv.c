@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.9 2001/05/01 02:29:00 guenter Exp $
+ * $Id: video_out_xv.c,v 1.10 2001/05/03 22:20:45 f1rmb Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -117,8 +117,30 @@ typedef struct xv_driver_s {
   int              fullscreen_width; /* this is basically how big the screen is */
   int              fullscreen_height;
   int              in_fullscreen;    /* is the window in fullscreen mode? */
+
+  Cursor           cursor[2];        /* Cursor pointers */
+
 } xv_driver_t;
 
+/*
+ * Cursors creation
+ */
+static unsigned char bm_no_data[] = { 0,0,0,0, 0,0,0,0 };
+static void xv_create_cursors (xv_driver_t *this) {
+  Pixmap bm_no;
+
+  bm_no = XCreateBitmapFromData(this->display, this->window, bm_no_data, 8, 8);
+  this->cursor[0] = XCreatePixmapCursor(this->display, bm_no, bm_no,
+					&this->black, &this->black, 0, 0);
+  this->cursor[1] = XCreateFontCursor(this->display,XC_left_ptr);
+}
+
+/* Hide/Show cursor */
+static void xv_display_cursor(vo_driver_t *this_gen, int value) {
+  xv_driver_t *this = (xv_driver_t *) this_gen;
+  
+  XDefineCursor(this->display, this->window, this->cursor[value]);
+}
 
 static uint32_t xv_get_capabilities (vo_driver_t *this_gen) {
 
@@ -581,20 +603,25 @@ static int xv_set_property (vo_driver_t *this_gen,
 
     return this->props[property].value;
   } else {
-    /* FIXME: implement these props
+    /* FIXME: implement these props */
     switch (property) {
       case VO_PROP_WINDOW_VISIBLE:
+	printf("VO_PROP_WINDOW_VISIBLE(%d)\n", value);
       break;
       case VO_PROP_CURSOR_VISIBLE:
+	xv_display_cursor(this_gen, value);
       break;
       case VO_PROP_FULLSCREEN:
+	printf("VO_PROP_FULLSCREEN(%d)\n", value);
       break;
       case VO_PROP_INTERLACED:
+	printf("VO_PROP_INTERLACED(%d)\n", value);
       break;
       case VO_PROP_ASPECT_RATIO:
+	printf("VO_PROP_ASPECT_RATIO(%d)\n", value);
       break;
     }
-    */
+    this->props[property].value = value;
   }
 
   return value;
@@ -922,6 +949,13 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual) {
   xv_calc_format (this, 720, 576, 2);
   xv_setup_window (this);
   
+  /* 
+   * Create cursors, then display the current one.
+   */
+  xv_create_cursors(this);
+  xv_display_cursor(&this->vo_driver, 
+		    this->props[VO_PROP_CURSOR_VISIBLE].value);
+
   return &this->vo_driver;
 }
 
