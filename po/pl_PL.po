@@ -1,18 +1,19 @@
+# translation of pl_PL.po to Polish
 # Polish xine-lib translation file.
-# Copyright (C) 2002 Free Software Foundation, Inc.
-# Bart³omiej Muryn <_4ever_@irc.pl>, 2002.
+# Copyright (C) 2002,2003 Free Software Foundation, Inc.
+# Bart³omiej Muryn <_4ever_@irc.pl>, 2002,2003.
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: xine-lib 0.9.13\n"
+"Project-Id-Version: pl_PL\n"
 "POT-Creation-Date: 2003-04-08 19:47+0200\n"
-"PO-Revision-Date: 2003-01-25 11:05+0100\n"
+"PO-Revision-Date: 2003-05-24 12:36+0200\n"
 "Last-Translator: Bart³omiej Muryn <_4ever_@irc.pl>\n"
 "Language-Team: Polish <pl@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=ISO-8859-2\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Generator: KBabel 0.9.6\n"
+"X-Generator: KBabel 1.0\n"
 "Plural-Forms: nplurals=3; plural=n==1 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 "
 "|| n%100>=20) ? 1 : 2;\n"
 
@@ -82,8 +83,7 @@ msgstr "/dev/dsp# urz±dzenie u¿ywane dla wyj¶cia oss, - 1 => auto_detect"
 # src/audio_out/audio_oss_out.c:708
 #: src/audio_out/audio_oss_out.c:779
 msgid "A/V sync method to use by OSS, depends on driver/hardware"
-msgstr ""
-"metoda synchronizacji A/V u¿ywana przez OSS, zale¿y od sterownika/sprzêtu"
+msgstr "metoda synchronizacji A/V u¿ywana przez OSS, zale¿y od sterownika/sprzêtu"
 
 # src/audio_out/audio_oss_out.c:775
 #: src/audio_out/audio_oss_out.c:854
@@ -135,8 +135,7 @@ msgstr "urz±dzenie u¿ywane do wyj¶cia d¼wiêku z wtyczk± d¼wiêku 'Sun'"
 # src/audio_out/audio_sun_out.c:748
 #: src/audio_out/audio_sun_out.c:965
 msgid "xine audio output plugin using sun-compliant audio devices/drivers"
-msgstr ""
-"wtyczka wyj¶cia d¼wiêku xine kompatybilna z urz±dzeniami/sterownikami sun"
+msgstr "wtyczka wyj¶cia d¼wiêku xine kompatybilna z urz±dzeniami/sterownikami sun"
 
 # src/audio_out/audio_esd_out.c:441
 #: src/audio_out/audio_arts_out.c:360
@@ -238,8 +237,7 @@ msgstr ""
 
 #: src/demuxers/demux_voc.c:151
 #, c-format
-msgid ""
-"unknown VOC compression type (0x%02X); please report to xine developers\n"
+msgid "unknown VOC compression type (0x%02X); please report to xine developers\n"
 msgstr ""
 "nieznany typ kompresji VOC (0x%02X); proszê skontaktowaæ siê z programistami "
 "xine\n"
@@ -247,8 +245,7 @@ msgstr ""
 #: src/demuxers/demux_wc3movie.c:210
 #, c-format
 msgid "demux_wc3movie: SHOT chunk referenced invalid palette (%d >= %d)\n"
-msgstr ""
-"demux_wc3movie: fragment zrzutu odnosi siê do b³êdnej palety (%d >= %d)\n"
+msgstr "demux_wc3movie: fragment zrzutu odnosi siê do b³êdnej palety (%d >= %d)\n"
 
 # src/demuxers/demux_film.c:606
 #. report an unknown chunk and skip it
@@ -298,9 +295,9 @@ msgstr "socket(): %s.\n"
 
 # src/input/input_rtp.c:157
 #: src/input/input_rtp.c:176
-#, fuzzy, c-format
+#, c-format
 msgid "setsockopt(SO_RCVBUF): %s.\n"
-msgstr "socket(): %s.\n"
+msgstr "setsockopt(SO_RCVBUF): %s.\n"
 
 # src/input/input_rtp.c:167
 #: src/input/input_rtp.c:182
@@ -322,31 +319,31 @@ msgstr "nie mogê znale¼æ IP dla '%s'.\n"
 
 # src/input/input_rtp.c:218
 #: src/input/input_rtp.c:233
-#, fuzzy, c-format
+#, c-format
 msgid "unable to bind to '%s'.\n"
-msgstr "nie mogê siê pod³±czyæ do '%s'.\n"
+msgstr "nie da siê dowi±zaæ do '%s'.\n"
 
 # src/input/input_rtp.c:157
 #: src/input/input_rtp.c:262
-#, fuzzy, c-format
+#, c-format
 msgid "recv(): %s.\n"
-msgstr "socket(): %s.\n"
+msgstr "recv(): %s.\n"
 
 #: src/input/input_rtp.c:489
 msgid "RTP: waiting for preview data\n"
-msgstr ""
+msgstr "RTP: oczekiwanie na zapowied¼ danych\n"
 
 #: src/input/input_rtp.c:495
 msgid "RTP: waiting for preview data: timeout\n"
-msgstr ""
+msgstr "RTP: oczekiwanie na zapowied¼ danych: timeout\n"
 
 #: src/input/input_rtp.c:532
 msgid "RTP: stopping reading thread...\n"
-msgstr ""
+msgstr "RTP: zatrzymuje odczyt w±tku...\n"
 
 #: src/input/input_rtp.c:537
 msgid "RTP: reading thread terminated\n"
-msgstr ""
+msgstr "RTP: odczyt w±tku zakoñczony\n"
 
 # src/input/input_rtp.c:311
 #: src/input/input_rtp.c:581
@@ -362,9 +359,8 @@ msgstr "input_rtp: nie mogê utworzyæ nowego w±tku (%s)\n"
 
 # src/input/input_net.c:302
 #: src/input/input_rtp.c:631
-#, fuzzy
 msgid "RTP and UDP input plugin as shipped with xine"
-msgstr "wtyczka wej¶cia net dostarczana z xine"
+msgstr "wtyczka wej¶cia RTP i UDP dostarczana z xine"
 
 # src/input/input_http.c:640
 #: src/input/input_stdin_fifo.c:387
@@ -423,9 +419,8 @@ msgstr "http: nie mogê siê pod³±czyæ do >%s<\n"
 
 # src/input/input_http.c:416 src/input/input_http.c:537
 #: src/input/input_http.c:451
-#, fuzzy
 msgid "input_http: timeout\n"
-msgstr "input_http: b³±d odczytu\n"
+msgstr "input_http: timeout\n"
 
 # src/input/input_http.c:416 src/input/input_http.c:537
 #: src/input/input_http.c:456
@@ -462,9 +457,9 @@ msgstr "input_http: b³êdna odpowied¼ http\n"
 
 # src/input/input_http.c:450
 #: src/input/input_http.c:844
-#, fuzzy, c-format
+#, c-format
 msgid "input_http: 3xx redirection: >%d %s<\n"
-msgstr "input_http: przekierowanie 3xx nie zaimplementowane: >%d %s<\n"
+msgstr "input_http: przekierowanie 3xx: >%d %s<\n"
 
 # src/input/input_http.c:455
 #: src/input/input_http.c:848
@@ -500,10 +495,8 @@ msgstr "wtyczka wyj¶cia obrazu xine u¿ywaj±ca biblioteki ascii-art"
 
 # src/video_out/video_out_syncfb.c:1170
 #: src/video_out/video_out_syncfb.c:1005
-msgid ""
-"xine video output plugin using the SyncFB module for Matrox G200/G400 cards"
-msgstr ""
-"wtyczka wyj¶cia obrazu xine u¿ywaj±ca modu³u SyncFB dla kart Matrox G200/G400"
+msgid "xine video output plugin using the SyncFB module for Matrox G200/G400 cards"
+msgstr "wtyczka wyj¶cia obrazu xine u¿ywaj±ca modu³u SyncFB dla kart Matrox G200/G400"
 
 # src/video_out/video_out_syncfb.c:995
 #: src/video_out/video_out_syncfb.c:1023
@@ -523,8 +516,7 @@ msgstr "korekta gamma dla sterownika XShm"
 # src/video_out/video_out_xshm.c:1445
 #: src/video_out/video_out_xshm.c:1312
 msgid "xine video output plugin using the MIT X shared memory extension"
-msgstr ""
-"wtyczka wyj¶cia obrazu xine u¿ywajaca rozszerzenie dzielonej pamiêci MIT X"
+msgstr "wtyczka wyj¶cia obrazu xine u¿ywajaca rozszerzenie dzielonej pamiêci MIT X"
 
 #: src/video_out/video_out_xv.c:1291
 msgid "Colorkey used for Xv video overlay"
@@ -546,7 +538,7 @@ msgstr "podwójny pufor do synchronizacji obrazu do powrotu plamki"
 
 #: src/video_out/video_out_xv.c:1368
 msgid "workaround for some (buggy) XVideo drivers"
-msgstr ""
+msgstr "obej¶cie problemu niektórych (popsutych) sterowników XVideo"
 
 # src/video_out/video_out_xv.c:1463
 #: src/video_out/video_out_xv.c:1373
@@ -565,10 +557,8 @@ msgstr "urz±dzenie buforu ramki"
 
 # src/video_out/video_out_fb.c:885
 #: src/video_out/video_out_fb.c:1017
-#, fuzzy
 msgid "Xine video output plugin using the Linux frame buffer device"
-msgstr ""
-"wtyczka wyj¶cia obrazu xine u¿ywaj±ca linuxowego urz±dzenia buforu ramki"
+msgstr "xtyczka wyj¶cia obrazu xine u¿ywaj±ca linuxowego urz±dzenia buforu ramki"
 
 # src/video_out/video_out_sdl.c:696
 #: src/video_out/video_out_sdl.c:551
@@ -592,16 +582,13 @@ msgstr "wtyczka wyj¶cia obrazu xine u¿ywaj±ca biblioteki DirectFB"
 
 # src/video_out/video_out_vidix.c:869
 #: src/video_out/video_out_vidix.c:1099
-#, fuzzy
 msgid "xine video output plugin using libvidix for x11"
-msgstr "wtyczka wyj¶cia obrazu xine u¿ywaj±ca libvidix"
+msgstr "wtyczka wyj¶cia obrazu xine u¿ywaj±ca libvidix dla X11"
 
 # src/video_out/video_out_fb.c:885
 #: src/video_out/video_out_vidix.c:1174
-#, fuzzy
 msgid "xine video output plugin using libvidix for linux frame buffer"
-msgstr ""
-"wtyczka wyj¶cia obrazu xine u¿ywaj±ca linuxowego urz±dzenia buforu ramki"
+msgstr "wtyczka wyj¶cia obrazu xine u¿ywaj±ca libvidix dla linuxowego urz±dzenia buforu ramki"
 
 #: src/xine-engine/tvmode.c:302
 msgid "NVidia TV-Out support."
@@ -648,9 +635,9 @@ msgstr "xine: zawiód³ start wybranego demultiplexera %s\n"
 
 # src/xine-engine/xine.c:471
 #: src/xine-engine/xine.c:612
-#, fuzzy, c-format
+#, c-format
 msgid "xine: last_probed demuxer %s failed to start\n"
-msgstr "xine: zawiód³ start wybranego demultiplexera %s\n"
+msgstr "xine: zawiód³ start ostatnio próbowanego demultiplexera %s\n"
 
 # src/xine-engine/xine.c:436
 #: src/xine-engine/xine.c:795
@@ -685,13 +672,15 @@ msgstr "wtyczka"
 
 #: src/xine-engine/audio_out.c:1583
 msgid "choose method to sync audio and video"
-msgstr ""
+msgstr "wybierz metodê synchronizacji d¼wiêku z obrazem"
 
 #: src/xine-engine/audio_out.c:1584
 msgid ""
 "'resample' might be better if you use a DXR3/H+ card and (analog) audio is "
 "processed by your sound card"
 msgstr ""
+"'resample' mog³o by byæ lepsze je¶li u¿yjesz karty DXR3/H+ i (analogowego) d¼wiêku przetwarzanego "
+"przez Twoj± kartê d¼wiêkow±"
 
 # src/xine-engine/audio_out.c:825
 #: src/xine-engine/audio_out.c:1592
@@ -726,20 +715,20 @@ msgstr ""
 
 #: src/xine-engine/osd.c:758
 msgid "osd: font isn't defined\n"
-msgstr ""
+msgstr "osd: nie zosta³ zdefiniowany font\n"
 
 #: src/xine-engine/osd.c:773
 msgid "osd: can't find out current locale character set\n"
-msgstr ""
+msgstr "osd: nie mo¿na znale¼æ zestawu znaków dla aktualnej lokalizacji\n"
 
 #: src/xine-engine/osd.c:785
 #, c-format
 msgid "osd: unsupported conversion %s -> UCS-2\n"
-msgstr ""
+msgstr "osd: niewspierana konwersja %s -> UCS-2\n"
 
 #: src/xine-engine/osd.c:789
 msgid "osd: iconv_open() failed\n"
-msgstr ""
+msgstr "osd: zawiod³o iconv_open()\n"
 
 #. unknown character or character wider than 16 bits, try skip one byte
 #: src/xine-engine/osd.c:805
@@ -748,6 +737,8 @@ msgid ""
 "osd: unknown sequence starting with byte 0x%02X in encoding \"%s\", "
 "skipping\n"
 msgstr ""
+"osd: nieznana sekwencja zaczynaj±ca siê od bajtu 0x%02X w kodowaniu \"%s\", "
+"pomijanie\n"
 
 # src/xine-engine/osd.c:863
 #: src/xine-engine/osd.c:1167
@@ -784,9 +775,9 @@ msgstr ""
 
 # src/xine-engine/load_plugins.c:153
 #: src/xine-engine/load_plugins.c:397
-#, fuzzy, c-format
+#, c-format
 msgid "load_plugins: skipping unreadable plugin directory %s.\n"
-msgstr "load_plugins: nieznany typ wtyczki %d w %s\n"
+msgstr "load_plugins: pomijanie katalogu wtyczek nie do odczytu %s.\n"
 
 # src/xine-engine/load_plugins.c:138
 #: src/xine-engine/load_plugins.c:415
@@ -800,7 +791,7 @@ msgstr ""
 
 #: src/libffmpeg/xine_decoder.c:989
 msgid "ffmpeg mpeg-4 postprocessing quality"
-msgstr ""
+msgstr "jako¶æ post-przetwarzania ffmpeg mpeg-4"
 
 # src/dxr3/video_out_dxr3.c:153
 #: src/dxr3/video_out_dxr3.c:258
@@ -863,7 +854,7 @@ msgstr "wiêksza warto¶æ zwiêksza tolerancjê dla koloru kluczowego overlay"
 
 #: src/dxr3/video_out_dxr3.c:382
 msgid "Crops the overlay area from top and bottom to avoid green lines"
-msgstr ""
+msgstr "Obciêcie obszaru overlay z góry i z do³u aby unikn±æ wy¶wietlania zielonych linii"
 
 # src/dxr3/video_out_dxr3.c:303
 #: src/dxr3/video_out_dxr3.c:395
@@ -926,8 +917,7 @@ msgstr "dxr3enc: czêstotliwo¶æ wyj¶æia rte mpeg (kbit/s)"
 msgid ""
 "The bitrate the mpeg encoder library librte should use for dxr3's encoding "
 "mode"
-msgstr ""
-"czêstotliwo¶æ jak± biblioteka librte powinna u¿yæ dla trybu kodowania dxr3"
+msgstr "czêstotliwo¶æ jak± biblioteka librte powinna u¿yæ dla trybu kodowania dxr3"
 
 # src/dxr3/dxr3_mpeg_encoders.c:389
 #: src/dxr3/dxr3_mpeg_encoders.c:389
@@ -983,9 +973,8 @@ msgstr "metoda kopiowania pamiêci u¿ywana dla du¿ych porcji danych"
 
 # src/libsputext/xine_decoder.c:1078
 #: src/libsputext/xine_decoder.c:419
-#, fuzzy
 msgid "font for external subtitles"
-msgstr "fonty dla napisów avi"
+msgstr "fonty dla zewnêtrznych napisów"
 
 # src/libsputext/xine_decoder.c:1084
 #: src/libsputext/xine_decoder.c:425
@@ -994,15 +983,13 @@ msgstr "rozmiar napisów (wzglêdny rozmiar okna)"
 
 # src/libsputext/xine_decoder.c:1084
 #: src/libsputext/xine_decoder.c:431
-#, fuzzy
 msgid "subtitle vertical offset (relative window size)"
-msgstr "rozmiar napisów (wzglêdny rozmiar okna)"
+msgstr "pionowe wyrównanie napisów (wzglêdny rozmiar okna)"
 
 # src/libsputext/xine_decoder.c:1078
 #: src/libsputext/xine_decoder.c:477
-#, fuzzy
 msgid "encoding of subtitles"
-msgstr "fonty dla napisów avi"
+msgstr "kodowanie napisów"
 
 # src/libspucc/xine_decoder.c:220
 #: src/libspucc/xine_decoder.c:223
@@ -1094,294 +1081,3 @@ msgstr "MS RLE: ramka ptr w³a¶nie wykroczy³a poza granice (2)\n"
 msgid "MS RLE: ended frame decode with bytes left over (%d < %d)\n"
 msgstr "MS RLE: zakoñczono dekodowanie ramki z pozosta³ymi bajtami (%d < %d)\n"
 
-#~ msgid "demux_wav.c: input not seekable, can not handle!\n"
-#~ msgstr "demux_wav.c: wej¶cie nie przeszukiwalne, nie wspierane!\n"
-
-#~ msgid "demux_aiff.c: input not seekable, can not handle!\n"
-#~ msgstr "demux_aiff.c: wej¶cie nie przeszukiwalne, nie wspierane!\n"
-
-#~ msgid "demux_snd.c: input not seekable, can not handle!\n"
-#~ msgstr "demux_snd.c: wej¶cie nie przeszukiwalne, nie wspierane!\n"
-
-#~ msgid "demux_voc.c: input not seekable, can not handle!\n"
-#~ msgstr "demux_voc.c: wej¶cie nie przeszukiwalne, nie wspierane!\n"
-
-# src/dxr3/video_out_dxr3.c:252
-#~ msgid "Dxr3: contrast control"
-#~ msgstr "dxr3: kontrola kontrastu"
-
-# src/dxr3/video_out_dxr3.c:254
-#~ msgid "Dxr3: saturation control"
-#~ msgstr "dxr3: kontrola nasycenia"
-
-# src/dxr3/video_out_dxr3.c:256
-#~ msgid "Dxr3: brightness control"
-#~ msgstr "dxr3: kontrola jasno¶ci"
-
-# src/input/input_http.c:471
-#~ msgid "input_http: Location redirection not implemented\n"
-#~ msgstr "input_http: przekierowanie miejsca nie zaimplementowane\n"
-
-# src/input/input_rtp.c:241
-#~ msgid "OUCH - ran out of buffers\n"
-#~ msgstr "OCH - bufory przepe³nione\n"
-
-# src/input/input_rtp.c:271
-#~ msgid "OUCH - dropped input packet %d %d\n"
-#~ msgstr "OCH - porzucony pakiet wej¶cia %d %d\n"
-
-# src/input/input_rtp.c:450
-#~ msgid "rtp input plugin as shipped with xine"
-#~ msgstr "Wtyczka wej¶cia rtp dostarczana z xine"
-
-# src/input/input_rtp.c:530 src/input/input_rtp.c:535
-#~ msgid "unable to allocate input buffer.\n"
-#~ msgstr "nie moge umiejscowic bufora wejscia.\n"
-
-# src/demuxers/demux_mpgaudio.c:371
-#~ msgid "demux_mpgaudio: no audio driver!\n"
-#~ msgstr "demux_mpegaudio: brak sterownika d¼wiêku!\n"
-
-#~ msgid "demux_qt.c: input not seekable, can not handle!\n"
-#~ msgstr "demux_qt.c: wej¶cie nie jest przeszukiwalne, nie wspierane!\n"
-
-#~ msgid "demux_qt.c: input is block organized, can not handle!\n"
-#~ msgstr "demux_qt.c: wej¶cie jest zorganizowane blokowo, nie wspierane!\n"
-
-#~ msgid "demux_film.c: input not seekable, can not handle!\n"
-#~ msgstr "demux_film.c: wej¶cie nie przeszukiwalne, nie wspierane!\n"
-
-#~ msgid "demux_idcin.c: input not seekable, can not handle!\n"
-#~ msgstr "demux_idcin.c wej¶cie nie przeszukiwalne, nie wspierane!\n"
-
-#~ msgid "demux_mve.c: input not seekable, can not handle!\n"
-#~ msgstr "demux_mve.c: wej¶cie nie przeszukiwalne, nie wspierane!\n"
-
-# src/input/input_file.c:295
-#~ msgid "input_file: trying to open subtitle file '%s'\n"
-#~ msgstr "input_file: próbuje otworzyæ plik z napisami '%s'\n"
-
-#~ msgid "demux_cda.c: input not seekable, can not handle!\n"
-#~ msgstr "demux_cda.c: wej¶cie nie przeszukiwalne, nie wspierane!\n"
-
-# src/input/input_cda.c:435 src/input/input_cda.c:493
-#~ msgid "input_cda: fopen(%s) failed: %s\n"
-#~ msgstr "input_cda: fopen(%s) zawiód³: %s\n"
-
-# src/input/input_cda.c:582
-#~ msgid "input_cda: server '%s:%d' successfuly connected.\n"
-#~ msgstr "input_cda: serwer '%s:%d' pod³±czony.\n"
-
-# src/input/input_cda.c:587
-#~ msgid "input_cda: opening server '%s:%d' failed: %s\n"
-#~ msgstr "input_cda: otwarcie serwera '%s:%d' zawiod³o: %s\n"
-
-# src/input/input_cda.c:755
-#~ msgid "input_cda: ioctl(CDROM_MEDIA_CHANGED) failed: %s.\n"
-#~ msgstr "input_cda: ioctl(CDROM_MEDIA_CHANGED) zawiód³: %s.\n"
-
-# src/input/input_cda.c:822
-#~ msgid "input_cda: ioctl(CDROMSUBCHNL) failed: %s.\n"
-#~ msgstr "input_cda: ioctl(CDROMSUBCHNL) zawiód³: %s.\n"
-
-# src/input/input_cda.c:957
-#~ msgid "input_cda: ioctl(CDIOCSTART) failed: %s.\n"
-#~ msgstr "input_cda: ioctl(CDIOCSTART) zawiód³: %s.\n"
-
-# src/input/input_cda.c:963
-#~ msgid "input_cda: ioctl(CDROMSTART) failed: %s.\n"
-#~ msgstr "input_cda: ioctl(CDROMSTART) zawiód³: %s.\n"
-
-# src/input/input_cda.c:969
-#~ msgid "input_cda: ioctl(CDIOCPLAYMSF) failed: %s.\n"
-#~ msgstr "input_cda: ioctl(CDIOCPLAYMSF) zawiód³: %s.\n"
-
-# src/input/input_cda.c:975
-#~ msgid "input_cda: ioctl(CDROMPLAYMSF) failed: %s.\n"
-#~ msgstr "input_cda: ioctl(CDROMPLAYMSF) zawiód³: %s.\n"
-
-# src/input/input_cda.c:997
-#~ msgid "input_cda: No rights to open %s.\n"
-#~ msgstr "input_cda: Brak uprawnieñ do otwarcia %s.\n"
-
-# src/input/input_cda.c:1000
-#~ msgid "input_cda: open(%s) failed: %s.\n"
-#~ msgstr "input_cda: open(%s) zawiód³: %s.\n"
-
-# src/input/input_cda.c:1094
-#~ msgid "input_cda: ioctl(CDROMCLOSETRAY) failed: %s\n"
-#~ msgstr "input_cda: ioctl(CDROMCLOSETRAY) zawiód³: %s\n"
-
-# src/input/input_cda.c:1099 src/input/input_cda.c:1115
-# src/input/input_cda.c:1120
-#~ msgid "input_cda: ioctl(CDROMEJECT) failed: %s\n"
-#~ msgstr "input_cda: ioctl(CDROMEJECT) zawiód³: %s\n"
-
-# src/input/input_cda.c:1105
-#~ msgid "input_cda: ioctl(CDROM_DRIVE_STATUS) failed: %s\n"
-#~ msgstr "input_cda: ioctl(CDROM_DRIVE_STATUS) zawiód³: %s\n"
-
-# src/input/input_cda.c:1111
-#~ msgid "input_cda: ioctl(CDROMALLOW) failed: %s\n"
-#~ msgstr "input_cda: ioctl(CDROMALLOW) zawiód³: %s\n"
-
-# src/input/input_cda.c:1151
-#~ msgid "input_cda: ioctl(CDIOREADTOCHEADER) failed: %s.\n"
-#~ msgstr "input_cda: ioctl(CDIOREADTOCHEADER) zawiód³: %s.\n"
-
-# src/input/input_cda.c:1159
-#~ msgid "input_cda: ioctl(CDROMREADTOCHDR) failed: %s.\n"
-#~ msgstr "input_cda: ioctl(CDROMREADTOCHDR) zawiód³: %s.\n"
-
-# src/input/input_cda.c:1196
-#~ msgid "input_cda: ioctl(CDIOREADTOCENTRYS) failed: %s.\n"
-#~ msgstr "input_cda: ioctl(CDIOREADTOCENTRYS) zawiód³: %s.\n"
-
-# src/input/input_cda.c:1219
-#~ msgid "input_cda: ioctl(CDROMREADTOCENTRY) failed: %s.\n"
-#~ msgstr "input_cda: ioctl(CDROMREADTOCENTRY) zawiód³: %s.\n"
-
-# src/input/input_cda.c:1401
-#~ msgid "input_cda: malformed MRL. Use cda:/<track #>\n"
-#~ msgstr "input_cda: ¼le sformu³owane MRL. U¿yj cda:/<track #>\n"
-
-# src/input/input_cda.c:1407
-#~ msgid "input_cda: invalid track %d (valid range: 1 .. %d)\n"
-#~ msgstr "input_cda: b³êdna ¶cie¿ka %d (poprawny zakres: 1 .. %d)\n"
-
-# src/input/input_cda.c:1490
-#~ msgid "input_cda: error seek to origin %d not implemented!\n"
-#~ msgstr "input_cda: b³±d wyszukiwania do pocz±tku %d nie zaimplementowany!\n"
-
-# src/input/input_cda.c:1606
-#~ msgid "cd audio plugin as shipped with xine"
-#~ msgstr "wtyczka wej¶cia CD audio dostarczana z xine"
-
-# src/input/input_cda.c:1842
-#~ msgid "path to your local cd audio device file"
-#~ msgstr "¶cie¿ka do pliku lokalnego urz±dzenia cd"
-
-# src/input/input_cda.c:1847
-#~ msgid "cddbp server name"
-#~ msgstr "nazwa serwera cddbp"
-
-# src/input/input_cda.c:1851
-#~ msgid "cddbp server port"
-#~ msgstr "port serwera cddbp"
-
-# src/input/input_cda.c:1858
-#~ msgid "cddbp cache directory"
-#~ msgstr "historia pamiêci podrêcznej cddbp"
-
-# src/demuxers/demux_qt.c:1344
-#~ msgid "demux_qt: Apple Quicktime file, %srunning time: %d min, %d sec\n"
-#~ msgstr ""
-#~ "demux_qt: plik Apple Quicktime, %s czas odtwarzania: %d min, %d sec\n"
-
-# src/demuxers/demux_qt.c:1350
-#~ msgid "demux_qt: '%c%c%c%c' video @ %dx%d\n"
-#~ msgstr "demux_qt: '%c%c%c%c' obraz @ %dx%d\n"
-
-# src/demuxers/demux_qt.c:1359
-#~ msgid "demux_qt: '%c%c%c%c' audio @ %d Hz, %d bits, %d %s\n"
-#~ msgstr "demux_qt: '%c%c%c%c', d¼wiêk %d Hz, %d bits, %d %s\n"
-
-# src/demuxers/demux_qt.c:1367 src/demuxers/demux_smjpeg.c:420
-# src/demuxers/demux_wav.c:322
-#~ msgid "channel"
-#~ msgid_plural "channels"
-#~ msgstr[0] "kana³"
-#~ msgstr[1] "kana³y"
-#~ msgstr[2] "kana³ów"
-
-# src/demuxers/demux_film.c:587
-#~ msgid "demux_film: FILM version %c%c%c%c, running time: %d min, %d sec\n"
-#~ msgstr ""
-#~ "demux_film: versja FILMU %c%c%c%c, czas odtwarzania %d min, %d sec\n"
-
-# src/demuxers/demux_film.c:596
-#~ msgid "demux_film: %c%c%c%c video @ %dx%d, %d Hz playback clock\n"
-#~ msgstr "demux_film: %c%c%c%c obraz @ %dx%d, %d Hz zegar odtwarzania\n"
-
-# src/demuxers/demux_film.c:616
-#~ msgid "demux_film: %d Hz, %d-bit %s%s PCM audio\n"
-#~ msgstr "demux_film: %d Hz, %d-bit %s%s d¼wiêk PCM\n"
-
-# src/demuxers/demux_roq.c:420
-#~ msgid "demux_roq: RoQ file, video is %dx%d, %d frames/sec\n"
-#~ msgstr "demux_roq: plik RoQ, obraz jest %dx%d, %d ramek/sek\n"
-
-# src/demuxers/demux_roq.c:424
-#~ msgid "demux_roq: 16-bit, 22050 Hz %s RoQ DPCM audio\n"
-#~ msgstr "demux_roq: 16-bit, 22050 Hz %s RoQ DPCM d¼wiêk\n"
-
-# src/demuxers/demux_fli.c:311
-#~ msgid "demux_fli: FLI type: %04X, speed: %d/%d\n"
-#~ msgstr "demux_fli: FLI typ: %04X, prêdko¶æ: %d/%d\n"
-
-# src/demuxers/demux_fli.c:315
-#~ msgid "demux_fli: %d frames, %dx%d\n"
-#~ msgstr "demux_fli: %d ramek, %dx%d\n"
-
-# src/demuxers/demux_wav.c:324
-#~ msgid "demux_fli: running time: %d min, %d sec\n"
-#~ msgstr "demux_fli: czas odtwarzania = %d min, %d sek\n"
-
-# src/demuxers/demux_idcin.c:269
-#~ msgid "demux_idcin: Id CIN file, video is %dx%d, 14 frames/sec\n"
-#~ msgstr "demux_idcin: plik Id CIN, obraz jest %dx%d, 14 ramek/sek\n"
-
-# src/demuxers/demux_idcin.c:274
-#~ msgid "demux_idcin: %d-bit, %d Hz %s PCM audio\n"
-#~ msgstr "demux_idcin: %d-bit, %d Hz %s d¼wiêk PCM\n"
-
-# src/demuxers/demux_smjpeg.c:398
-#~ msgid "demux_smjpeg: SMJPEG file, running time: %d min, %d sec\n"
-#~ msgstr "demux_smjpeg: plik SMJPEG, czas odtwarzania: %d min, %d sek\n"
-
-# src/demuxers/demux_smjpeg.c:403
-#~ msgid "demux_smjpeg: '%c%c%c%c' video @ %dx%d\n"
-#~ msgstr "demux_smjpeg: '%c%c%c%c' obraz @ %dx%d\n"
-
-# src/demuxers/demux_smjpeg.c:412
-#~ msgid "demux_smjpeg: '%c%c%c%c' audio @ %d Hz, %d bits, %d %s\n"
-#~ msgstr "demux_smjpeg: '%c%c%c%c' d¼wiêk @ %d Hz, %d bitów, %d %s\n"
-
-# src/demuxers/demux_wav.c:317
-#~ msgid "demux_wav: format 0x%X audio, %d Hz, %d bits/sample, %d %s\n"
-#~ msgstr "demux_wav: format 0x%X d¼wiêk, %d Hz, %d bitów/sample, %d %s\n"
-
-# src/demuxers/demux_wav.c:324
-#~ msgid "demux_wav: running time = %lld min, %lld sec\n"
-#~ msgstr "demux_wav: czas odtwarzania = %lld min, %lld sek\n"
-
-# src/demuxers/demux_wav.c:328
-#~ msgid "demux_wav: average bytes/sec = %d, block alignment = %d\n"
-#~ msgstr "demux_wav: ¶rednia bajtów/sek = %d, wyrównanie bloku = %d\n"
-
-# src/demuxers/demux_qt.c:1359
-#~ msgid "demux_aiff: %d Hz, %d channels, %d bits, %d frames\n"
-#~ msgstr "demux_aiff: %d Hz, %d kana³y, %d bits, %d ramek\n"
-
-# src/demuxers/demux_wav.c:324
-#~ msgid "demux_aiff: running time: %d min, %d sec\n"
-#~ msgstr "demux_aiff: czas odtwarzania = %d min, %d sek\n"
-
-# src/demuxers/demux_qt.c:1359
-#~ msgid "demux_snd: %d Hz, %d channels, %d bits, %d frames\n"
-#~ msgstr "demux_snd: %d Hz, %d kana³ów, %d bits, %d ramek\n"
-
-# src/demuxers/demux_wav.c:324
-#~ msgid "demux_snd: running time: %d min, %d sec\n"
-#~ msgstr "demux_snd: czas odtwarzania = %d min, %d sek\n"
-
-# src/demuxers/demux_wav.c:317
-#~ msgid ""
-#~ "demux_voc: VOC format 0x%X audio, %d Hz, running time: %d min, %d sec\n"
-#~ msgstr ""
-#~ "demux_voc: format VOC 0x%X d¼wiêk, %d Hz, czas odtwarzania %d min, %d "
-#~ "sec\n"
-
-# src/libsputext/xine_decoder.c:1099
-#~ msgid "subtitle time offset in 1/100 sec"
-#~ msgstr "wyrównanie czasu napisów w 1/100 sek."
