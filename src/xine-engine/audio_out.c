@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.118 2003/04/13 22:19:08 miguelfreitas Exp $
+ * $Id: audio_out.c,v 1.119 2003/04/15 17:52:36 guenter Exp $
  * 
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -183,6 +183,7 @@ typedef struct {
   int             do_compress;
   double          compression_factor;   /* current compression */
   double          compression_factor_max; /* user limit on compression */
+  int             do_amp;
   double          amp_factor;
 
 } aos_t;
@@ -402,7 +403,7 @@ static int mode_channels( int mode ) {
   return 0;
 } 
 
-static void audio_filter_amp_compress (aos_t *this, int16_t *mem, int num_frames) {
+static void audio_filter_compress (aos_t *this, int16_t *mem, int num_frames) {
 
   int    i, maxs;
   double f_max;
@@ -450,6 +451,21 @@ static void audio_filter_amp_compress (aos_t *this, int16_t *mem, int num_frames
   }
 }
 
+static void audio_filter_amp (aos_t *this, int16_t *mem, int num_frames) {
+
+  int    i;
+  int    num_channels;
+
+  num_channels = mode_channels (this->input.mode);
+  if (!num_channels)
+    return;
+
+  for (i=0; i<num_frames*num_channels; i++) {
+
+    mem[i] = mem[i] * this->amp_factor;
+  }
+}
+
 static audio_buffer_t* prepare_samples( aos_t *this, audio_buffer_t *buf) {
   double          acc_output_frames;
   int             num_output_frames ;
@@ -459,7 +475,9 @@ static audio_buffer_t* prepare_samples( aos_t *this, audio_buffer_t *buf) {
    */
 
   if ( this->do_compress && (this->input.bits == 16))
-    audio_filter_amp_compress (this, buf->mem, buf->num_frames);
+    audio_filter_compress (this, buf->mem, buf->num_frames);
+  if ( this->do_amp && (this->input.bits == 16))
+    audio_filter_amp (this, buf->mem, buf->num_frames);
 
   /*
    * resample and output audio data
@@ -1390,8 +1408,7 @@ static int ao_set_property (xine_audio_port_t *this_gen, int property, int value
 
     this->compression_factor_max = (double) value / 100.0;
 
-    this->do_compress = (this->compression_factor_max >1.0)
-      || (this->amp_factor != 1.0);
+    this->do_compress = (this->compression_factor_max >1.0);
 
     ret = this->compression_factor_max*100;
     break;
@@ -1400,8 +1417,7 @@ static int ao_set_property (xine_audio_port_t *this_gen, int property, int value
 
     this->amp_factor = (double) value / 100.0;
 
-    this->do_compress = (this->compression_factor_max >1.0)
-      || (this->amp_factor != 1.0);
+    this->do_amp = (this->amp_factor != 1.0);
 
     ret = this->amp_factor*100;
     break;
@@ -1602,10 +1618,11 @@ xine_audio_port_t *ao_new_port (xine_t *xine, ao_driver_t *driver,
 						   _("adjust if audio is offsync"),
 						   NULL, 10, NULL, NULL);
 
-  this->compression_factor     = 1.0;
+  this->compression_factor     = 2.0;
   this->compression_factor_max = 0.0;
-  this->amp_factor             = 1.0;
   this->do_compress            = 0;
+  this->amp_factor             = 1.0;
+  this->do_amp                 = 0;
 
   /*
    * pre-allocate memory for samples
