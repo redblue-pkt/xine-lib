@@ -1,5 +1,6 @@
 xine (0.9.5) unstable; urgency=low
 
+  * improved responsiveness (pause, stop, resume, seek)
   * catch segfaults when loading plugins
   * test OS support for SSE instructions
   * new win32 codecs supported (including Windows Media Video 7/8)
