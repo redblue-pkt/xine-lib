@@ -43,7 +43,7 @@ endif
 #                  $(sdl_module) $(opengl_module) 
 
 lib_LTLIBRARIES = $(xshm_module) $(xv_module) $(directfb_module) $(aa_module) \
-                  $(syncfb_module) $(fb_module)
+                  $(syncfb_module) $(fb_module) $(opengl_module)
 
 xineplug_vo_out_xv_la_SOURCES = deinterlace.c alphablend.c video_out_xv.c
 xineplug_vo_out_xv_la_LIBADD =  $(XV_LIB) $(X_LIBS) -lXext
@@ -54,10 +54,10 @@ xineplug_vo_out_xshm_la_SOURCES = yuv2rgb.c yuv2rgb_mmx.c yuv2rgb_mlib.c \
 xineplug_vo_out_xshm_la_LIBADD =  $(X_LIBS) -lXext
 xineplug_vo_out_xshm_la_LDFLAGS = -avoid-version -module
 
-#xineplug_vo_out_opengl_la_SOURCES = yuv2rgb.c yuv2rgb_mmx.c yuv2rgb_mlib.c \
-#	alphablend.c video_out_opengl.c
-#xineplug_vo_out_opengl_la_LIBADD =  $(OPENGL_LIBS) $(GLUT_LIBS) $(GLU_LIBS) $(X_LIBS)
-#xineplug_vo_out_opengl_la_LDFLAGS = -avoid-version -module
+xineplug_vo_out_opengl_la_SOURCES = yuv2rgb.c yuv2rgb_mmx.c yuv2rgb_mlib.c \
+	alphablend.c video_out_opengl.c
+xineplug_vo_out_opengl_la_LIBADD =  $(OPENGL_LIBS) $(GLUT_LIBS) $(GLU_LIBS) $(X_LIBS)
+xineplug_vo_out_opengl_la_LDFLAGS = -avoid-version -module
 
 xineplug_vo_out_syncfb_la_SOURCES = alphablend.c video_out_syncfb.c 
 xineplug_vo_out_syncfb_la_LDFLAGS = -avoid-version -module
