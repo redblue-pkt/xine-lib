@@ -5,7 +5,8 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <sys/mman.h>
- 
+#include <stdlib.h>
+
 #include "dhahelper.h"
 
 int main(int argc, char *argv[])
@@ -14,6 +15,10 @@ int main(int argc, char *argv[])
     int ret;
 
     fd = open("/dev/dhahelper", O_RDWR);
+    if(fd < 0){
+	perror("dev/dhahelper");
+	exit(1);
+    }
 
     ioctl(fd, DHAHELPER_GET_VERSION, &ret);
 

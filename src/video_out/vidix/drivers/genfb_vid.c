@@ -17,12 +17,14 @@
 
 #define GENFB_MSG "[genfb-demo-driver] "
 
+#if 0 /* these are unused. remove? */
 static int fd;
 
 static void *mmio_base = 0;
 static void *mem_base = 0;
 static int32_t overlay_offset = 0;
 static uint32_t ram_size = 0;
+#endif
 
 static int probed = 0;
 
@@ -150,7 +152,7 @@ int VIDIX_NAME(vixConfigPlayback)(vidix_playback_t *info)
     info->offset.v = ((info->src.w+31) & ~31) * info->src.h;
     info->offset.u = info->offset.v+((info->src.w+31) & ~31) * info->src.h/4;    
     info->dga_addr = malloc(info->num_frames*info->frame_size);   
-    printf(GENFB_MSG"frame_size: %d, dga_addr: %x\n",
+    printf(GENFB_MSG"frame_size: %d, dga_addr: %p\n",
 	info->frame_size, info->dga_addr);
 
     return(0);

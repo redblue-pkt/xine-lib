@@ -535,7 +535,6 @@ VIDIX_NAME(vixPlaybackCopyFrame)(vidix_dma_t *dma)
 {
     u_int frame = dma->idx;
     struct pm3_bydma_frame *bdf;
-    static int s = 0;
 
     bdf = dma->internal[frame];
     if(!bdf || !(dma->flags & BM_DMA_FIXED_BUFFS))

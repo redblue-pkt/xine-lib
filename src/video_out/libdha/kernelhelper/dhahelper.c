@@ -3,10 +3,11 @@
     
     (C) 2002 Alex Beregszaszi <alex@naxine.org>
     (C) 2002-2003 Nick Kurshev <nickols_k@mail.ru>
+    (C) 2002-2004 Måns Rullgård <mru@users.sourceforge.net>
 
     Accessing hardware from userspace as USER (no root needed!)
 
-    Tested on 2.2.x (2.2.19) and 2.4.x (2.4.3,2.4.17).
+    Tested on 2.2.x (2.2.19), 2.4.x (2.4.3,2.4.17) and 2.6.1.
     
     License: GPL
     
@@ -22,10 +23,10 @@
 	device using ioctl.
 
     Usage:
-	mknod -m 666 /dev/dhahelper c 180 0
+	mknod -m 600 /dev/dhahelper c 252 0
 	
 	Also you can change the major number, setting the "dhahelper_major"
-	module parameter, the default is 180, specified in dhahelper.h.
+	module parameter, the default is 252, specified in dhahelper.h.
 	
 	Note: do not use other than minor==0, the module forbids it.
 
@@ -62,7 +63,6 @@
 #include <linux/init.h>
 #include <linux/pci.h>
 #include <linux/interrupt.h>
-#include <linux/wrapper.h>
 #include <linux/vmalloc.h>
 #include <linux/string.h>
 #include <linux/errno.h>
@@ -99,13 +99,14 @@
 
 #include "dhahelper.h"
 
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,5,0)
-#define DEV_MINOR(d) minor(d)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,0)
 #define pte_offset(p,a) pte_offset_kernel(p,a)
 #define LockPage(p) SetPageLocked(p)
 #define UnlockPage(p) ClearPageLocked(p)
+#define irqreturn(n) return(n)
 #else
-#define DEV_MINOR(d) MINOR(d)
+#define irqreturn_t void
+#define irqreturn(n) return
 #endif
 
 MODULE_AUTHOR("Alex Beregszaszi <alex@naxine.org>, Nick Kurshev <nickols_k@mail.ru>, Måns Rullgård <mru@users.sf.net>");
@@ -130,7 +131,7 @@ static int dhahelper_open(struct inode *inode, struct file *file)
     if (dhahelper_verbosity > 1)
 	printk(KERN_DEBUG "dhahelper: device opened\n");
 
-    if (DEV_MINOR(inode->i_rdev) != 0)
+    if (MINOR(inode->i_rdev) != 0)
 	return -ENXIO;
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2,4,0)
@@ -145,7 +146,7 @@ static int dhahelper_release(struct inode *inode, struct file *file)
     if (dhahelper_verbosity > 1)
 	printk(KERN_DEBUG "dhahelper: device released\n");
 
-    if (DEV_MINOR(inode->i_rdev) != 0)
+    if (MINOR(inode->i_rdev) != 0)
 	return -ENXIO;
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2,4,0)
@@ -302,11 +303,10 @@ static inline unsigned long uvirt_to_pa(unsigned long adr)
         return ret;
 }
 
-static inline unsigned long kvirt_to_bus(unsigned long adr) 
+static inline unsigned long kvirt_to_bus(unsigned long va) 
 {
-        unsigned long va, kva, ret;
+        unsigned long kva, ret;
 
-        va = VMALLOC_VMADDR(adr);
         kva = uvirt_to_kva(pgd_offset_k(va), va);
 	ret = virt_to_bus((void *)kva);
         MDEBUG(printk("kv2b(%lx-->%lx)", adr, ret));
@@ -317,11 +317,10 @@ static inline unsigned long kvirt_to_bus(unsigned long adr)
  * This is used when initializing the contents of the
  * area and marking the pages as reserved.
  */
-static inline unsigned long kvirt_to_pa(unsigned long adr) 
+static inline unsigned long kvirt_to_pa(unsigned long va) 
 {
-        unsigned long va, kva, ret;
+        unsigned long kva, ret;
 
-        va = VMALLOC_VMADDR(adr);
         kva = uvirt_to_kva(pgd_offset_k(va), va);
 	ret = __pa(kva);
         MDEBUG(printk("kv2pa(%lx-->%lx)", adr, ret));
@@ -341,7 +340,7 @@ static void * rvmalloc(signed long size)
 		while (size > 0) 
                 {
 	                page = kvirt_to_pa(adr);
-			mem_map_reserve(virt_to_page(__va(page)));
+			SetPageReserved(virt_to_page(__va(page)));
 			adr+=PAGE_SIZE;
 			size-=PAGE_SIZE;
 		}
@@ -399,7 +398,7 @@ static void rvfree(void * mem, signed long size)
 		while (size > 0) 
                 {
 	                page = kvirt_to_pa(adr);
-			mem_map_unreserve(virt_to_page(__va(page)));
+			ClearPageReserved(virt_to_page(__va(page)));
 			adr+=PAGE_SIZE;
 			size-=PAGE_SIZE;
 		}
@@ -557,7 +556,7 @@ static int dhahelper_unlock_mem(dhahelper_mem_t *arg)
 
 static struct dha_irq {
     spinlock_t lock;
-    long flags;
+    unsigned long flags;
     int handled;
     int rcvd;
     volatile u32 *ack_addr;
@@ -567,7 +566,8 @@ static struct dha_irq {
     unsigned long count;
 } dha_irqs[256];
 
-static void dhahelper_irq_handler(int irq, void *dev_id, struct pt_regs *regs)
+static irqreturn_t dhahelper_irq_handler(int irq, void *dev_id,
+					 struct pt_regs *regs)
 {
     spin_lock_irqsave(&dha_irqs[irq].lock, dha_irqs[irq].flags);
     if(dha_irqs[irq].handled){
@@ -580,6 +580,7 @@ static void dhahelper_irq_handler(int irq, void *dev_id, struct pt_regs *regs)
 	wake_up_interruptible(&dha_irqs[irq].wait);
     }
     spin_unlock_irqrestore(&dha_irqs[irq].lock, dha_irqs[irq].flags);
+    irqreturn(0);
 }
 
 static int dhahelper_install_irq(dhahelper_irq_t *arg)
@@ -892,7 +893,7 @@ static int dhahelper_ioctl(struct inode *inode, struct file *file,
 	printk(KERN_DEBUG "dhahelper: ioctl(cmd=%x, arg=%lx)\n",
 	    cmd, arg);
 
-    if (DEV_MINOR(inode->i_rdev) != 0)
+    if (MINOR(inode->i_rdev) != 0)
 	return -ENXIO;
 
     switch(cmd)
@@ -1067,10 +1068,10 @@ static inline int noncached_address(unsigned long addr)
 	 * caching for the high addresses through the KEN pin, but
 	 * we maintain the tradition of paranoia in this code.
 	 */
- 	return !( test_bit(X86_FEATURE_MTRR, &boot_cpu_data.x86_capability) ||
-		  test_bit(X86_FEATURE_K6_MTRR, &boot_cpu_data.x86_capability) ||
-		  test_bit(X86_FEATURE_CYRIX_ARR, &boot_cpu_data.x86_capability) ||
-		  test_bit(X86_FEATURE_CENTAUR_MCR, &boot_cpu_data.x86_capability) )
+ 	return !( test_bit(X86_FEATURE_MTRR, boot_cpu_data.x86_capability) ||
+		  test_bit(X86_FEATURE_K6_MTRR, boot_cpu_data.x86_capability) ||
+		  test_bit(X86_FEATURE_CYRIX_ARR, boot_cpu_data.x86_capability) ||
+		  test_bit(X86_FEATURE_CENTAUR_MCR, boot_cpu_data.x86_capability) )
 	  && addr >= __pa(high_memory);
 #else
 	return addr >= __pa(high_memory);
@@ -1141,8 +1142,58 @@ static struct file_operations dhahelper_fops =
 #endif
 
 #ifdef CONFIG_DEVFS_FS
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,0)
 devfs_handle_t dha_devfsh;
-#endif
+
+static int
+register_dev(void)
+{
+    dha_devfsh = devfs_register(NULL, "dhahelper", DEVFS_FL_NONE,
+				dhahelper_major, 0,
+				S_IFCHR | S_IRUSR | S_IWUSR,
+				&dhahelper_fops, NULL);
+    if(!dha_devfsh)
+	return -EIO;
+    return 0;
+}
+
+static void
+unregister_dev(void)
+{
+    devfs_unregister(dha_devfsh);
+}
+#else /* VERSION < 2.6.0 */
+static int
+register_dev(void)
+{
+    devfs_mk_cdev(MKDEV(dhahelper_major, 0), S_IFCHR | S_IRUSR | S_IWUSR,
+		  "dhahelper");
+    if(register_chrdev(dhahelper_major, "dhahelper", &dhahelper_fops))
+	return -EIO;
+    return 0;
+}
+
+static void
+unregister_dev(void)
+{
+    devfs_remove("dhahelper");
+    unregister_chrdev(dhahelper_major, "dhahelper");
+}
+#endif /* VERSION < 2.6.0 */
+#else
+static int
+register_dev(void)
+{
+    return register_chrdev(dhahelper_major, "dhahelper", &dhahelper_fops);
+}
+
+static void
+unregister_dev(void)
+{
+    unregister_chrdev(dhahelper_major, "dhahelper");
+}
+#endif /* defined CONFIG_DEVFS_FS */
+
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2,4,0)
 int init_module(void)
@@ -1153,20 +1204,7 @@ static int __init init_dhahelper(void)
     int err = 0;
     printk(KERN_INFO "Direct Hardware Access kernel helper (C) Alex Beregszaszi\n");
 
-#ifdef CONFIG_DEVFS_FS
-    dha_devfsh = devfs_register(NULL, "dhahelper", DEVFS_FL_NONE,
-				dhahelper_major, 0,
-				S_IFCHR | S_IRUSR | S_IWUSR,
-				&dhahelper_fops, NULL);
-    if(!dha_devfsh){
-	err = -EIO;
-    }
-#else
-    if(register_chrdev(dhahelper_major, "dhahelper", &dhahelper_fops))
-    {
-	err = -EIO;
-    }
-#endif
+    err = register_dev();
     if(err){
     	if (dhahelper_verbosity > 0)
 	    printk(KERN_ERR "dhahelper: unable to register character device (major: %d)\n",
@@ -1188,11 +1226,7 @@ static void __exit exit_dhahelper(void)
 	if(dha_irqs[i].handled)
 	    free_irq(i, dha_irqs[i].dev);
 
-#ifdef CONFIG_DEVFS_FS
-    devfs_unregister(dha_devfsh);
-#else
-    unregister_chrdev(dhahelper_major, "dhahelper");
-#endif
+    unregister_dev();
 }
 
 #ifdef EXPORT_NO_SYMBOLS

@@ -17,7 +17,7 @@
 
 static void *ctrl_base = 0;
 static void *fb_base = 0;
-static int32_t overlay_offset = 0;
+//static int32_t overlay_offset = 0;
 static uint32_t ram_size = 0;
 
 static unsigned int *PFB;
@@ -54,7 +54,7 @@ struct nv_card_id_s
     const int flags;
 };
 
-static const struct nv_card_id_s nv_card_id;
+static struct nv_card_id_s nv_card_id;
 
 static const struct nv_card_id_s nv_card_ids[]=
 {
@@ -147,7 +147,7 @@ int VIDIX_NAME(vixProbe)(int verbose,int force)
 		    pci_info.bus, pci_info.card, pci_info.func);
 		printf(NVIDIA_MSG"vendor:device = %x:%x\n",
 		    pci_info.vendor, pci_info.device);
-		printf(NVIDIA_MSG"base0:base1:base2:baserom = %x:%x:%x:%x\n",
+		printf(NVIDIA_MSG"base0:base1:base2:baserom = %lx:%lx:%lx:%lx\n",
 		    pci_info.base0, pci_info.base1, pci_info.base2,
 		    pci_info.baserom);
 		break;
@@ -162,13 +162,13 @@ int VIDIX_NAME(vixProbe)(int verbose,int force)
 
 int VIDIX_NAME(vixInit)(const char *args)
 {
-    int card_option;
+    unsigned long card_option;
     
     printf(NVIDIA_MSG"init\n");
     
     pci_config_read(pci_info.bus, pci_info.card, pci_info.func, 0x40,
 	4, &card_option);
-    printf(NVIDIA_MSG"card_option: %x\n", card_option);
+    printf(NVIDIA_MSG"card_option: %lx\n", card_option);
     
     if (!probed)
     {
