@@ -2,9 +2,9 @@
 #define GUIDS_H
 
 #include "com.h"
-#include "wine/module.h"
-#include "wine/windef.h"
-#include "wine/vfw.h"
+#include "../wine/module.h"
+#include "../wine/windef.h"
+#include "../wine/vfw.h"
 
 extern int DSHOW_DEBUG;
 #define Debug if(DSHOW_DEBUG)

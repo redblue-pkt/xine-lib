@@ -1,6 +1,6 @@
 #include "allocator.h"
 #include "com.h"
-#include "wine/winerror.h"
+#include "../wine/winerror.h"
 #include <stdio.h>
 
 static int AllocatorKeeper = 0;

@@ -1,6 +1,6 @@
 
-#include "wine/winerror.h"
-#include "wine/windef.h"
+#include "../wine/winerror.h"
+#include "../wine/windef.h"
 #include "outputpin.h"
 #include <stdio.h>
 #include <string.h>

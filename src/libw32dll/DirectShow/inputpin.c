@@ -1,5 +1,5 @@
 #include "inputpin.h"
-#include "wine/winerror.h"
+#include "../wine/winerror.h"
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
