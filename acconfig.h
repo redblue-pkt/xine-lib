@@ -104,6 +104,9 @@
 /* Define this if you have ip_mreqn in netinet/in.h */
 #undef HAVE_IP_MREQN
 
+/* Define this if you have a dxr3 mpeg encoder card */
+#undef HAVE_DXR3
+
 /* Define this if you have libfame mpeg encoder installed (fame.sf.net) */
 #undef HAVE_LIBFAME
 

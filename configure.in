@@ -441,7 +441,9 @@ AC_SUBST([LINUX_INCLUDE])
 AC_CHECK_DXR3()
 AM_CONDITIONAL(HAVE_DXR3, test x"$have_dxr3" = "xyes")
 AM_CONDITIONAL(HAVE_LIBFAME, test x"$have_libfame" = "xyes")
-AM_PATH_LIBFAME(0.8.10, [AC_DEFINE([HAVE_NEW_LIBFAME])])
+if test x"$have_libfame" = "xyes" ; then
+  AM_PATH_LIBFAME(0.8.10, AC_DEFINE(HAVE_NEW_LIBFAME))
+fi
 AM_CONDITIONAL(HAVE_LIBRTE, test x"$have_librte" = "xyes")
 AM_CONDITIONAL(HAVE_ENCODER, test x"$have_encoder" = "xyes")
 
