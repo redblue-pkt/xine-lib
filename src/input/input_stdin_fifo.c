@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_stdin_fifo.c,v 1.35 2002/11/07 23:05:07 guenter Exp $
+ * $Id: input_stdin_fifo.c,v 1.36 2002/11/17 17:48:47 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -368,10 +368,6 @@ static void stdin_class_dispose (input_class_t *this_gen) {
   free (this);
 }
 
-static int stdin_class_eject_media (input_class_t *this_gen) {
-  return 1;
-}
-
 static void *init_class (xine_t *xine, void *data) {
 
   stdin_input_class_t  *this;
@@ -386,7 +382,7 @@ static void *init_class (xine_t *xine, void *data) {
   this->input_class.get_dir            = NULL;
   this->input_class.get_autoplay_list  = NULL;
   this->input_class.dispose            = stdin_class_dispose;
-  this->input_class.eject_media        = stdin_class_eject_media;
+  this->input_class.eject_media        = NULL;
 
   return this;
 }

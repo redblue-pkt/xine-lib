@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_plugin.h,v 1.36 2002/10/25 15:36:22 mroi Exp $
+ * $Id: input_plugin.h,v 1.37 2002/11/17 17:48:47 mroi Exp $
  */
 
 #ifndef HAVE_INPUT_PLUGIN_H
@@ -70,7 +70,7 @@ struct input_class_s {
   void (*dispose) (input_class_t *this);
 
   /*
-   * eject/load the media (if possible)
+   * eject/load the media (if possible), optional: may be NULL
    *
    * returns 0 for temporary failures
    */

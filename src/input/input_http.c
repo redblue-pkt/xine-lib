@@ -929,10 +929,6 @@ static void http_class_dispose (input_class_t *this_gen) {
   free (this);
 }
 
-static int http_plugin_eject_media (input_class_t *this_gen) {
-  return 1; /* doesn't make sense */
-}
-
 static void *init_class (xine_t *xine, void *data) {
 
   http_input_class_t  *this;
@@ -950,7 +946,7 @@ static void *init_class (xine_t *xine, void *data) {
   this->input_class.get_dir            = NULL;
   this->input_class.get_autoplay_list  = NULL;
   this->input_class.dispose            = http_class_dispose;
-  this->input_class.eject_media        = http_plugin_eject_media;
+  this->input_class.eject_media        = NULL;
 
   return this;
 }

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_file.c,v 1.67 2002/11/08 23:28:00 f1rmb Exp $
+ * $Id: input_file.c,v 1.68 2002/11/17 17:48:47 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -172,10 +172,6 @@ static int is_a_dir(char *filepathname) {
   stat(filepathname, &pstat);
 
   return (S_ISDIR(pstat.st_mode));
-}
-
-static int file_plugin_eject_media (input_class_t *this_gen) {
-  return 1; /* doesn't make sense */
 }
 
 static char* file_plugin_get_mrl (input_plugin_t *this_gen) {
@@ -847,7 +843,7 @@ static void *init_plugin (xine_t *xine, void *data) {
   this->input_class.get_dir            = file_class_get_dir;
   this->input_class.get_autoplay_list  = NULL;
   this->input_class.dispose            = file_class_dispose;
-  this->input_class.eject_media        = file_plugin_eject_media;
+  this->input_class.eject_media        = NULL;
 
   this->mrls = (xine_mrl_t **) xine_xmalloc(sizeof(xine_mrl_t*));
   this->mrls_allocated_entries = 0;

@@ -438,14 +438,6 @@ static void rtp_plugin_stop (input_plugin_t *this_gen) {
 /*
  *
  */
-static int rtp_plugin_eject_media (input_plugin_t *this_gen) {
-
-  return 1;
-}
-
-/*
- *
- */
 static char *rtp_plugin_get_description (input_plugin_t *this_gen) {
 
   return _("rtp input plugin as shipped with xine");
@@ -536,7 +528,7 @@ static void *init_input_plugin (xine_t *xine, void *data) {
   this->input_plugin.get_current_pos   = rtp_plugin_get_current_pos;
   this->input_plugin.get_length        = rtp_plugin_get_length;
   this->input_plugin.get_blocksize     = rtp_plugin_get_blocksize;
-  this->input_plugin.eject_media       = rtp_plugin_eject_media;
+  this->input_plugin.eject_media       = NULL;
   this->input_plugin.close             = rtp_plugin_close;
   this->input_plugin.stop              = rtp_plugin_stop;
   this->input_plugin.get_identifier    = rtp_plugin_get_identifier;

@@ -267,13 +267,6 @@ static off_t net_plugin_get_current_pos (input_plugin_t *this_gen){
 /*
  *
  */
-static int net_plugin_eject_media (input_plugin_t *this_gen) {
-  return 1;
-}
-
-/*
- *
- */
 static void net_plugin_close (input_plugin_t *this_gen) {
   net_input_plugin_t *this = (net_input_plugin_t *) this_gen;
 
@@ -350,7 +343,7 @@ static void *init_input_plugin (xine_t *xine, void *data) {
   this->input_plugin.get_length        = net_plugin_get_length;
   this->input_plugin.get_blocksize     = net_plugin_get_blocksize;
   this->input_plugin.get_dir           = NULL;
-  this->input_plugin.eject_media       = net_plugin_eject_media;
+  this->input_plugin.eject_media       = NULL;
   this->input_plugin.get_mrl           = net_plugin_get_mrl;
   this->input_plugin.close             = net_plugin_close;
   this->input_plugin.stop              = net_plugin_stop;

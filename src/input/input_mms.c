@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_mms.c,v 1.24 2002/11/03 20:43:57 guenter Exp $
+ * $Id: input_mms.c,v 1.25 2002/11/17 17:48:47 mroi Exp $
  *
  * mms input plugin based on work from major mms
  */
@@ -313,10 +313,6 @@ static void mms_class_dispose (input_class_t *this_gen) {
   free (this);
 }
 
-static int mms_class_eject_media (input_class_t *this_gen) {
-  return 1;
-}
-
 static void *init_class (xine_t *xine, void *data) {
 
   mms_input_class_t  *this;
@@ -331,7 +327,7 @@ static void *init_class (xine_t *xine, void *data) {
   this->input_class.get_dir            = NULL;
   this->input_class.get_autoplay_list  = NULL;
   this->input_class.dispose            = mms_class_dispose;
-  this->input_class.eject_media        = mms_class_eject_media;
+  this->input_class.eject_media        = NULL;
 
   return this;
 }
