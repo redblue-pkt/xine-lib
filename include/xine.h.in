@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.91 2003/08/04 02:07:26 miguelfreitas Exp $
+ * $Id: xine.h.in,v 1.92 2003/08/05 15:05:51 mroi Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -51,6 +51,20 @@ extern "C" {
 #include <sys/time.h>
 #include <time.h>
 
+/* This enables some experimental features. These are not part of the
+ * official libxine API, so use them only, if you absolutely need them.
+ * Although we make efforts to keep even this part of the API as stable
+ * as possible, this is not guaranteed. Incompatible changes can occur.
+ */
+/* #define XINE_ENABLE_EXPERIMENTAL_FEATURES */
+
+/* This disables some deprecated features. These are still part of the
+ * official libxine API and you may still use them. During the current
+ * major release series, these will always be available and will stay
+ * compatible. However, removal is likely to occur as soon as possible.
+ */
+/* #define XINE_DISABLE_DEPRECATED_FEATURES */
+
 
 /*********************************************************************
  * xine opaque data types                                            *
@@ -61,9 +75,11 @@ typedef struct xine_stream_s xine_stream_t;
 typedef struct xine_audio_port_s xine_audio_port_t;
 typedef struct xine_video_port_s xine_video_port_t;
 
+#ifndef XINE_DISABLE_DEPRECATED_FEATURES
 /* convenience types: simple player UIs might want to call ports drivers */
 typedef xine_audio_port_t xine_ao_driver_t;
 typedef xine_video_port_t xine_vo_driver_t;
+#endif
 
 
 /*********************************************************************
@@ -330,13 +346,15 @@ int  xine_get_param (xine_stream_t *stream, int param);
 
 /* possible ratios for XINE_PARAM_VO_ASPECT_RATIO */
 #define XINE_VO_ASPECT_AUTO                0
-#define XINE_VO_ASPECT_SQUARE              1 /* 1:1  */
-#define XINE_VO_ASPECT_4_3                 2 /* 4:3  */
-#define XINE_VO_ASPECT_ANAMORPHIC          3 /* 16:9 */
-#define XINE_VO_ASPECT_DVB                 4 /* 1:2  */
+#define XINE_VO_ASPECT_SQUARE              1 /* 1:1    */
+#define XINE_VO_ASPECT_4_3                 2 /* 4:3    */
+#define XINE_VO_ASPECT_ANAMORPHIC          3 /* 16:9   */
+#define XINE_VO_ASPECT_DVB                 4 /* 2.11:1 */
 #define XINE_VO_ASPECT_NUM_RATIOS          5
+#ifndef XINE_DISABLE_DEPRECATED_FEATURES
 #define XINE_VO_ASPECT_PAN_SCAN            41
 #define XINE_VO_ASPECT_DONT_TOUCH          42
+#endif
 
 /* stream format detection strategies */
 
@@ -929,9 +947,11 @@ const char *const *xine_list_video_output_plugins (xine_t *self) ;
  * visual specific gui <-> xine engine communication                 *
  *********************************************************************/
 
+#ifndef XINE_DISABLE_DEPRECATED_FEATURES
 /* talk to video output driver - old method */
 int    xine_gui_send_vo_data (xine_stream_t *self,
 			      int type, void *data);
+#endif
 
 /* new (preferred) method to talk to video driver. */
 int    xine_port_send_gui_data (xine_video_port_t *vo,
@@ -1041,11 +1061,13 @@ typedef struct {
 } fb_visual_t;
 
 /*
- * "type" constants for xine_gui_send_vo_data (...)
+ * "type" constants for xine_port_send_gui_data(...)
  */
 
+#ifndef XINE_DISABLE_DEPRECATED_FEATURES
 /* xevent *data */
 #define XINE_GUI_SEND_COMPLETION_EVENT       1 /* DEPRECATED */
+#endif
 
 /* Drawable data */
 #define XINE_GUI_SEND_DRAWABLE_CHANGED       2
@@ -1376,7 +1398,10 @@ typedef struct {
 typedef struct {
   int                 width;
   int                 height;
+  /* these are aspect codes as defined in MPEG2, because this
+   * is only used for DVD playback, pan_scan is a boolean flag */
   int                 aspect;
+  int                 pan_scan;
 } xine_format_change_data_t;
 
 /*
@@ -1677,6 +1702,8 @@ void        xine_osd_get_palette   (xine_osd_t *self, uint32_t *color,
 				    uint8_t *trans);
 
 
+#ifndef XINE_DISABLE_DEPRECATED_FEATURES
+
 /*********************************************************************
  * TV-mode API, to make it possible to use nvtvd to view movies      *
  *********************************************************************/
@@ -1712,8 +1739,9 @@ void xine_tvmode_size (xine_t *self, int *width, int *height,
 
 /* restore old TV and X settings and close nvtvd connection */
 void xine_tvmode_exit (xine_t *self);
-       
-        
+
+#endif
+
 #ifdef __cplusplus
 }
 #endif
