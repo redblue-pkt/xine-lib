@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.h,v 1.5 2001/06/18 10:49:31 guenter Exp $
+ * $Id: audio_out.h,v 1.6 2001/06/23 19:45:47 guenter Exp $
  */
 #ifndef HAVE_AUDIO_OUT_H
 #define HAVE_AUDIO_OUT_H
@@ -65,13 +65,17 @@ struct ao_functions_s {
   int (*open)(ao_functions_t *this, uint32_t bits, uint32_t rate, int mode);
 
   /*
-   * write audio data to output buffer - may block
+   * write audio data to output buffer 
    * audio driver must sync sample playback with metronom
+   * return value: 
+   *   1 => audio samples were processed ok
+   *   0 => audio samples were not yet processed, 
+   *        call write_audio_data with the _same_ samples again
    */
 
-  void (*write_audio_data)(ao_functions_t *this,
-			   int16_t* audio_data, uint32_t num_samples, 
-			   uint32_t pts);
+  int (*write_audio_data)(ao_functions_t *this,
+			  int16_t* audio_data, uint32_t num_samples, 
+			  uint32_t pts);
 
   /*
    * this is called when the decoder no longer uses the audio

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.h,v 1.3 2001/05/01 21:55:23 guenter Exp $
+ * $Id: metronom.h,v 1.4 2001/06/23 19:45:47 guenter Exp $
  *
  * metronom: general pts => virtual calculation/assoc
  *                   
@@ -41,11 +41,18 @@ typedef struct metronom_s metronom_t ;
 struct metronom_s {
 
   /*
-   * clear all cached data, reset current vpts ... called if new input
-   * file is reached
+   * this is called to tell metronom to prepare for a new video stream
    */
-  
-  void (*reset) (metronom_t *this);
+
+  void (*video_stream_start) (metronom_t *this);
+  void (*video_stream_end) (metronom_t *this);
+
+  /*
+   * this is called to tell metronom to prepare for a new audio stream
+   */
+
+  void (*audio_stream_start) (metronom_t *this);
+  void (*audio_stream_end) (metronom_t *this);
 
   /*
    * called by video output driver to inform metronom about current framerate
@@ -118,7 +125,7 @@ struct metronom_s {
   /*
    * start metronom clock (no clock reset)
    */
-  void (*start_clock) (metronom_t *this, uint32_t pts);
+  void (*start_clock) (metronom_t *this, int32_t pts);
 
 
   /*
@@ -156,15 +163,11 @@ struct metronom_s {
   uint32_t        video_vpts;
   uint32_t        audio_vpts;
 
-  uint32_t        sync_pts;
-  uint32_t        sync_vpts;
+  int32_t         video_wrap_offset;
+  int32_t         audio_wrap_offset;
+  int             wrap_diff_counter;
 
-  uint32_t        video_wrap_offset;
-  uint32_t        audio_wrap_offset;
-
-  /* video delta for wrong framerates */
   uint32_t        last_video_pts;
-  uint32_t        last_video_vpts;
   int             num_video_vpts_guessed;
   int32_t         video_pts_delta;
 
@@ -178,8 +181,17 @@ struct metronom_s {
   int             stopped ;
 
   pthread_mutex_t lock;
+
+  int             have_audio;
+  int             video_stream_starting;
+  int             video_stream_running;
+  int             audio_stream_starting;
+  int             audio_stream_running;
+  pthread_cond_t  video_started;
+  pthread_cond_t  audio_started;
+
 };
 
-metronom_t *metronom_init ();
+metronom_t *metronom_init (int have_audio);
 
 #endif

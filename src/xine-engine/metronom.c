@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.c,v 1.8 2001/06/04 17:13:36 guenter Exp $
+ * $Id: metronom.c,v 1.9 2001/06/23 19:45:47 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -38,35 +38,79 @@
 
 #define MAX_PTS_TOLERANCE  5000
 #define MAX_VIDEO_DELTA    1600
+#define MAX_AUDIO_DELTA    1600
 #define AUDIO_SAMPLE_NUM   32768
-#define MAX_WRAP_TOLERANCE 90000
+#define WRAP_START_TIME    100000
+#define WRAP_TRESHOLD      30000 
+#define MAX_NUM_WRAP_DIFF  100
 
-static void metronom_reset (metronom_t *this) {
+static void metronom_video_stream_start (metronom_t *this) {
 
   pthread_mutex_lock (&this->lock);
+
+  printf ("video stream start...\n");
 
   this->pts_per_frame             = 3000;
 
   this->video_vpts                = 0;
-  this->audio_vpts                = 0;
 
   this->video_pts_delta           = 0;
-  this->audio_pts_delta           = 0;
 
   this->last_video_pts            = 0;
   this->num_video_vpts_guessed    = 1;
+
+  this->video_wrap_offset         = 0;
+  this->wrap_diff_counter         = 0;
+
+  this->video_stream_running      = 1;
+  this->video_stream_starting     = 1;
+
+  if (this->have_audio) {
+    while (!this->audio_stream_running) {
+      printf ("waiting for audio to start...\n");
+      pthread_cond_wait (&this->audio_started, &this->lock);
+    }
+  }
+  pthread_cond_signal (&this->video_started);
+
+  pthread_mutex_unlock (&this->lock);
+
+  printf ("video stream start...done\n");
+
+  metronom_start_clock (this, 0);
+}
+
+static void metronom_audio_stream_start (metronom_t *this) {
+
+  pthread_mutex_lock (&this->lock);
+
+  printf ("audio stream start...\n");
+
+  this->audio_vpts                = 0;
+
+  this->audio_pts_delta           = 0;
+
   this->num_audio_samples_guessed = 1;
   this->last_audio_pts            = 0;
 
-  this->sync_pts                  = 0;
-  this->sync_vpts                 = 0;
-
-  this->video_wrap_offset         = 0;
   this->audio_wrap_offset         = 0;
+  this->wrap_diff_counter         = 0;
 
-  this->av_offset                 = 0;
+  this->audio_stream_running      = 1;
+  this->audio_stream_starting     = 1;
+
+  while (!this->video_stream_running) {
+    printf ("waiting for video to start...\n");
+    pthread_cond_wait (&this->video_started, &this->lock);
+  }
+
+  pthread_cond_signal (&this->audio_started);
 
   pthread_mutex_unlock (&this->lock);
+
+  printf ("audio stream start...done\n");
+
+  metronom_start_clock (this, 0);
 }
 
 static void metronom_set_video_rate (metronom_t *this, uint32_t pts_per_frame) {
@@ -93,9 +137,9 @@ static void metronom_set_audio_rate (metronom_t *this, uint32_t pts_per_smpls) {
 }
 
 static uint32_t metronom_got_spu_packet (metronom_t *this, uint32_t pts) {
-  /* FIXME: Nasty hack */
+  /* FIXME: not tested */
 
-  return this->sync_pts;
+  return pts + this->video_wrap_offset;
 }
 
 static uint32_t metronom_got_video_frame (metronom_t *this, uint32_t pts) {
@@ -104,81 +148,82 @@ static uint32_t metronom_got_video_frame (metronom_t *this, uint32_t pts) {
 
   pthread_mutex_lock (&this->lock);
 
-  /* pts = 0; */
-
   if (pts) {
+
+    /*
+     * first video pts ?
+     */
+    if (this->video_stream_starting) {
+      this->video_stream_starting = 0;
+      
+      this->video_wrap_offset = -1 * pts;
+
+      printf ("metronom: first video pts => offset = %d\n", this->video_wrap_offset); 
+
+    }
 
     /*
      * did a wrap-around occur?
      */
-    if ( (pts+this->video_wrap_offset+MAX_WRAP_TOLERANCE)<this->last_video_pts) {
 
-      this->video_wrap_offset = this->last_video_pts - pts 
+    if ( ( (pts + WRAP_TRESHOLD) <this->last_video_pts) 
+	 && (pts<WRAP_START_TIME) ) {
+      
+      this->video_wrap_offset += this->last_video_pts - pts 
 	+ this->num_video_vpts_guessed *(this->pts_per_frame + this->video_pts_delta);
-
+      
       printf ("metronom: video pts wraparound detected, wrap_offset = %d\n",
 	      this->video_wrap_offset);
-
     }
 
-    pts += this->video_wrap_offset;
+    /*
+     * audio and video wrap are not allowed to differ
+     * for too long
+     */
+
+    if ( !this->audio_stream_starting 
+	 && (this->video_wrap_offset != this->audio_wrap_offset)) {
+      this->wrap_diff_counter++;
+
+      if (this->wrap_diff_counter > MAX_NUM_WRAP_DIFF) {
+
+	printf ("metronom: forcing video_wrap (%d) and audio wrap (%d)",
+		this->video_wrap_offset, this->audio_wrap_offset);
+
+	if (this->video_wrap_offset > this->audio_wrap_offset)
+	  this->audio_wrap_offset = this->video_wrap_offset;
+	else
+	  this->video_wrap_offset = this->audio_wrap_offset;
+
+	printf ("to %d\n", this->video_wrap_offset);
+
+	this->wrap_diff_counter = 0;
+      }
+    }
+
+    vpts = pts + this->video_wrap_offset;
 
     /*
      * calc delta to compensate wrong framerates 
      */
       
-    if (this->last_video_vpts && (pts>this->last_video_pts)) {
+    if (this->last_video_pts && (pts>this->last_video_pts)) {
       int32_t  vpts_diff;
-      uint32_t synced_vpts ;
-      int32_t  diff;
 
-      diff        = pts - this->last_video_pts;
-      synced_vpts = this->last_video_vpts + diff;
-      vpts_diff   = synced_vpts - this->video_vpts;
+      vpts_diff   = vpts - this->video_vpts;
 
       this->video_pts_delta += vpts_diff / (this->num_video_vpts_guessed);
       
       if (abs(this->video_pts_delta) >= MAX_VIDEO_DELTA) 
 	this->video_pts_delta = 0;
-
-      this->num_video_vpts_guessed = 0;
     }
 
-    /* 
-     * sync if necessary and possible
-     */
-
-    if (this->sync_vpts && (pts>this->sync_pts)) {
-
-      int32_t  vpts_diff;
-      uint32_t synced_vpts ;
-      int32_t  diff;
-
-      diff        = pts - this->sync_pts;
-      synced_vpts = this->sync_vpts + diff;
-      vpts_diff   = synced_vpts - this->video_vpts;
-
-      xprintf (METRONOM | VERBOSE, "metronom: video calced vpts : %d <=> synced vpts : %d (diff: %d, delta: %d)\n",
-	      this->video_vpts, synced_vpts, vpts_diff, this->video_pts_delta);
-      
-      if (abs(vpts_diff)>MAX_PTS_TOLERANCE) {
-	if ( synced_vpts>this->video_vpts ) {
-	  this->video_vpts = synced_vpts;
-	}
-      } else {
-	xprintf (METRONOM | VERBOSE, "metronom: video tolerating diff\n");
-      }
-
-    } else
-      xprintf (METRONOM | VERBOSE, "metronom: video not synced on this one\n");
-
-    this->sync_pts        = pts;
-    this->sync_vpts       = this->video_vpts;
-    this->last_video_vpts = this->video_vpts;
+    this->num_video_vpts_guessed = 0;
     this->last_video_pts  = pts;
-  }
-  
-  vpts = this->video_vpts;
+    this->video_vpts      = vpts;
+  } else
+    vpts = this->video_vpts;
+
   this->video_vpts += this->pts_per_frame + this->video_pts_delta;
   this->num_video_vpts_guessed++ ;
 
@@ -203,57 +248,77 @@ static uint32_t metronom_got_audio_samples (metronom_t *this, uint32_t pts, uint
     int32_t diff;
 
     /*
-     * did a wrap-around occur?
+     * first audio pts ?
      */
+    if (this->audio_stream_starting) {
+      this->audio_stream_starting = 0;
+      
+      this->audio_wrap_offset = -1 * pts;
 
-    if ((pts+this->audio_wrap_offset+MAX_WRAP_TOLERANCE)<this->last_audio_pts) {
-
-      this->audio_wrap_offset = this->last_audio_pts - pts
-	+ this->num_audio_samples_guessed *(this->audio_pts_delta + this->pts_per_smpls) / AUDIO_SAMPLE_NUM ;
-
-      printf ("metronom: audio pts wraparound detected, wrap_offset = %d\n",
-	      this->audio_wrap_offset);
-
+      printf ("metronom: first audio pts => offset = %d\n", this->audio_wrap_offset); 
     }
 
-    pts += this->audio_wrap_offset;
+    /*
+     * did a wrap-around occur?
+     */
+    if ( ( (pts + WRAP_TRESHOLD) < this->last_audio_pts )
+	 && (pts<WRAP_START_TIME) ) {
+      
+      this->audio_wrap_offset += this->last_audio_pts - pts
+	+ this->num_audio_samples_guessed *(this->audio_pts_delta + this->pts_per_smpls) / AUDIO_SAMPLE_NUM ;
+      
+      printf ("metronom: audio pts wraparound detected, wrap_offset = %d\n",
+	      this->audio_wrap_offset);
+    }
 
-    diff = pts - this->sync_pts;
+    /*
+     * audio and video wrap are not allowed to differ
+     * for too long
+     */
 
-    if (this->sync_vpts && (pts>this->sync_pts)) {
+    if ( !this->video_stream_starting
+	 && this->video_wrap_offset != this->audio_wrap_offset) {
+      this->wrap_diff_counter++;
 
-      int32_t vpts_diff;
-      uint32_t synced_vpts = this->sync_vpts + diff;
+      if (this->wrap_diff_counter > MAX_NUM_WRAP_DIFF) {
 
-      vpts_diff = synced_vpts - this->audio_vpts;
+	printf ("metronom: forcing video_wrap (%d) and audio wrap (%d)",
+		this->video_wrap_offset, this->audio_wrap_offset);
 
-      xprintf (METRONOM | VERBOSE, "metronom: audio calced vpts : %d <=> synced vpts : %d (diff: %d, delta: %d)\n",
-	      this->audio_vpts, synced_vpts, vpts_diff, this->audio_pts_delta);
-      if (abs(vpts_diff)>5000) {
+	if (this->video_wrap_offset > this->audio_wrap_offset)
+	  this->audio_wrap_offset = this->video_wrap_offset;
+	else
+	  this->video_wrap_offset = this->audio_wrap_offset;
 
-	/* calc delta for wrong samplerates */
+	printf ("to %d\n", this->video_wrap_offset);
 
-	this->audio_pts_delta += vpts_diff*AUDIO_SAMPLE_NUM / (this->num_audio_samples_guessed);
+	this->wrap_diff_counter = 0;
+      }
+    }
+
+    vpts = pts + this->audio_wrap_offset;
+
+    /*
+     * calc delta to compensate wrong samplerates 
+     */
+
+    if (this->last_audio_pts && (pts>this->last_audio_pts)) {
+      int32_t  vpts_diff;
+
+      vpts_diff   = vpts - this->audio_vpts;
+
+      this->audio_pts_delta += vpts_diff*AUDIO_SAMPLE_NUM / (this->num_audio_samples_guessed);
 	
-	if (abs(this->audio_pts_delta) >= 10000) 
-	  this->audio_pts_delta = 0;
-      
-	if (synced_vpts>this->audio_vpts)
-	  this->audio_vpts = synced_vpts;
-      
-      } else
-	xprintf (METRONOM | VERBOSE, "metronom: audio tolerating diff\n");
+      if (abs(this->audio_pts_delta) >= MAX_AUDIO_DELTA) 
+	this->audio_pts_delta = 0;
+    }      
 
-    } else
-      xprintf (METRONOM | VERBOSE, "metronom: audio not synced on this one\n");
-
-    this->sync_pts = pts;
-    this->sync_vpts = this->audio_vpts;
     this->num_audio_samples_guessed = 0;
     this->last_audio_pts = pts;
-  }
-  
-  vpts = this->audio_vpts;
+    this->audio_vpts     = vpts;
+  } else
+    vpts = this->audio_vpts;
+
   this->audio_vpts += nsamples * (this->audio_pts_delta + this->pts_per_smpls) / AUDIO_SAMPLE_NUM;
   this->num_audio_samples_guessed += nsamples;
 
@@ -360,11 +425,12 @@ static void metronom_adjust_clock(metronom_t *this, uint32_t desired_pts)
   pthread_mutex_unlock (&this->lock);
 }
 
-metronom_t * metronom_init () {
+metronom_t * metronom_init (int have_audio) {
 
   metronom_t *this = xmalloc (sizeof (metronom_t));
 
-  this->reset             = metronom_reset;
+  this->audio_stream_start= metronom_audio_stream_start;
+  this->video_stream_start= metronom_video_stream_start;
   this->set_video_rate    = metronom_set_video_rate;
   this->get_video_rate    = metronom_get_video_rate;
   this->set_audio_rate    = metronom_set_audio_rate;
@@ -380,8 +446,11 @@ metronom_t * metronom_init () {
   this->adjust_clock      = metronom_adjust_clock;
 
   pthread_mutex_init (&this->lock, NULL);
+  pthread_cond_init (&this->video_started, NULL);
+  pthread_cond_init (&this->audio_started, NULL);
     
-  this->reset (this);
+  this->av_offset   = 0;
+  this->have_audio  = have_audio;
 
   return this;
 }

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_oss_out.c,v 1.14 2001/06/16 19:58:31 guenter Exp $
+ * $Id: audio_oss_out.c,v 1.15 2001/06/23 19:45:47 guenter Exp $
  */
 
 /* required for swab() */
@@ -75,6 +75,7 @@
 #define AUDIO_FRAGMENT_SIZE   8192
 
 #define GAP_TOLERANCE         5000
+#define MAX_GAP              90000
 
 #ifdef CONFIG_DEVFS_FS
 #define DSP_TEMPLATE "/dev/sound/dsp%d"
@@ -105,7 +106,7 @@ typedef struct oss_functions_s {
   int16_t       *zero_space;
   
   int            audio_started;
-
+  uint32_t       last_audio_vpts;
 } oss_functions_t;
 
 /*
@@ -136,6 +137,7 @@ static int ao_open(ao_functions_t *this_gen,
   this->input_sample_rate      = rate;
   this->bytes_in_buffer        = 0;
   this->audio_started          = 0;
+  this->last_audio_vpts        = 0;
 
   /*
    * open audio device
@@ -239,9 +241,15 @@ static int ao_open(ao_functions_t *this_gen,
 
 static void ao_fill_gap (oss_functions_t *this, uint32_t pts_len) {
 
-  int num_bytes = pts_len * this->bytes_per_kpts / 1024;
+  int num_bytes ;
+
+  if (pts_len > MAX_GAP)
+    pts_len = MAX_GAP;
+  num_bytes = pts_len * this->bytes_per_kpts / 1024;
   num_bytes = (num_bytes / (2*this->num_channels)) * (2*this->num_channels);
-  if(this->mode == AO_CAP_MODE_AC3) return;
+
+  if(this->mode == AO_CAP_MODE_AC3) return; /* FIXME */
+
   printf ("audio_oss_out: inserting %d 0-bytes to fill a gap of %d pts\n",num_bytes, pts_len);
   
   this->bytes_in_buffer += num_bytes;
@@ -257,9 +265,9 @@ static void ao_fill_gap (oss_functions_t *this, uint32_t pts_len) {
   }
 }
 
-static void ao_write_audio_data(ao_functions_t *this_gen,
-				int16_t* output_samples, uint32_t num_samples, 
-				uint32_t pts_)
+static int ao_write_audio_data(ao_functions_t *this_gen,
+			       int16_t* output_samples, uint32_t num_samples, 
+			       uint32_t pts_)
 {
 
   oss_functions_t *this = (oss_functions_t *) this_gen;
@@ -277,6 +285,14 @@ static void ao_write_audio_data(ao_functions_t *this_gen,
 
   xprintf (VERBOSE|AUDIO, "audio_oss_out: got %d samples, vpts=%d\n",
 	   num_samples, vpts);
+
+  if (vpts<this->last_audio_vpts) {
+    /* reject this */
+
+    return 1;
+  }
+
+  this->last_audio_vpts = vpts;
 
   /*
    * where, in the timeline is the "end" of the audio buffer at the moment?
@@ -310,6 +326,12 @@ static void ao_write_audio_data(ao_functions_t *this_gen,
   
   if (gap>GAP_TOLERANCE) {
     ao_fill_gap (this, gap);
+
+    /* keep xine responsive */
+
+    if (gap>MAX_GAP)
+      return 0;
+
   } else if (gap<-GAP_TOLERANCE) {
     bDropPackage = 1;
   }
@@ -370,6 +392,9 @@ static void ao_write_audio_data(ao_functions_t *this_gen,
   } else {
     printf ("audio_oss_out: audio package (vpts = %d) dropped\n", vpts);
   }
+
+  return 1;
+
 }
 
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.21 2001/06/17 19:14:26 guenter Exp $
+ * $Id: audio_decoder.c,v 1.22 2001/06/23 19:45:47 guenter Exp $
  *
  *
  * functions that implement audio decoding
@@ -72,10 +72,15 @@ void *audio_decoder_loop (void *this_gen) {
 	this->audio_track_map[0] = 0;
       
       this->audio_track_map_entries = 0;
+
+      this->metronom->audio_stream_start (this->metronom);
       
       break;
       
     case BUF_CONTROL_END:
+
+      this->metronom->audio_stream_end (this->metronom);
+      
       if (this->cur_audio_decoder_plugin) {
 	this->cur_audio_decoder_plugin->close (this->cur_audio_decoder_plugin);
 	this->cur_audio_decoder_plugin = NULL;

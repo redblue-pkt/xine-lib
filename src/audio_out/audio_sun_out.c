@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_sun_out.c,v 1.2 2001/06/22 10:45:03 jkeil Exp $
+ * $Id: audio_sun_out.c,v 1.3 2001/06/23 19:45:47 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -53,6 +53,7 @@
 #endif
 
 #define GAP_TOLERANCE         5000
+#define MAX_GAP              90000
 
 
 typedef struct sun_functions_s {
@@ -163,7 +164,12 @@ static int ao_open(ao_functions_t *this_gen,
 
 static void ao_fill_gap (sun_functions_t *this, uint32_t pts_len) {
 
-  int num_bytes = pts_len * this->bytes_per_kpts / 1024;
+  int num_bytes;
+
+  if (pts_len > MAX_GAP)
+    pts_len = MAX_GAP;
+
+  num_bytes = pts_len * this->bytes_per_kpts / 1024;
   num_bytes = (num_bytes / (2*this->num_channels)) * (2*this->num_channels);
   if(this->mode == AO_CAP_MODE_AC3) return;
   printf ("audio_sun_out: inserting %d 0-bytes to fill a gap of %d pts\n",num_bytes, pts_len);
@@ -181,9 +187,9 @@ static void ao_fill_gap (sun_functions_t *this, uint32_t pts_len) {
   }
 }
 
-static void ao_write_audio_data(ao_functions_t *this_gen,
-				int16_t* output_samples, uint32_t num_samples, 
-				uint32_t pts_)
+static int ao_write_audio_data(ao_functions_t *this_gen,
+			       int16_t* output_samples, uint32_t num_samples, 
+			       uint32_t pts_)
 {
 
   sun_functions_t *this = (sun_functions_t *) this_gen;
@@ -198,6 +204,12 @@ static void ao_write_audio_data(ao_functions_t *this_gen,
     return;
 
   vpts = this->metronom->got_audio_samples (this->metronom, pts_, num_samples);
+
+  if (vpts<this->last_audio_vpts) {
+    /* reject this */
+
+    return 1;
+  }
 
   xprintf (VERBOSE|AUDIO, "audio_sun_out: got %d samples, vpts=%d\n",
 	   num_samples, vpts);
@@ -234,6 +246,12 @@ static void ao_write_audio_data(ao_functions_t *this_gen,
   
   if (gap>GAP_TOLERANCE) {
     ao_fill_gap (this, gap);
+
+    /* keep xine responsive */
+
+    if (gap>MAX_GAP)
+      return 0;
+
   } else if (gap<-GAP_TOLERANCE) {
     bDropPackage = 1;
   }
@@ -302,6 +320,8 @@ static void ao_write_audio_data(ao_functions_t *this_gen,
   } else {
     printf ("audio_sun_out: audio package (vpts = %d) dropped\n", vpts);
   }
+
+  return 1;
 }
 
 

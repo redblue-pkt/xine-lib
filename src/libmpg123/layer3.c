@@ -1600,18 +1600,20 @@ void do_layer3(mpgaudio_t *mp)
     }
   }
 
-  if ((!mp->is_output_initialized) || (mp->sample_rate_device != fr->sample_rate)) {
+  if (fr->sample_rate)  {
+    if ((!mp->is_output_initialized) || (mp->sample_rate_device != fr->sample_rate)) {
+      
+      if (mp->is_output_initialized) 
+	mp->ao_output->close(mp->ao_output);
+      
+      mp->ao_output->open (mp->ao_output, 16, fr->sample_rate, 
+			   stereo-1 ? AO_CAP_MODE_STEREO: AO_CAP_MODE_MONO);
+      mp->is_output_initialized = 1;
+      mp->sample_rate_device = fr->sample_rate;
+    }
 
-    if (mp->is_output_initialized) 
-      mp->ao_output->close(mp->ao_output);
-
-    mp->ao_output->open (mp->ao_output, 16, fr->sample_rate, 
-			 stereo-1 ? AO_CAP_MODE_STEREO: AO_CAP_MODE_MONO);
-    mp->is_output_initialized = 1;
-    mp->sample_rate_device = fr->sample_rate;
+    mp->ao_output->write_audio_data (mp->ao_output, (int16_t*)mp->osspace, num_bytes/(stereo-1 ? 4:2), 
+				     mp->pts);
   }
-
-  mp->ao_output->write_audio_data (mp->ao_output, (int16_t*)mp->osspace, num_bytes/(stereo-1 ? 4:2), 
-				   mp->pts);
   mp->pts = 0;
 }

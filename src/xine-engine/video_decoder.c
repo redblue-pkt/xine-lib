@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.25 2001/06/17 19:14:26 guenter Exp $
+ * $Id: video_decoder.c,v 1.26 2001/06/23 19:45:47 guenter Exp $
  *
  */
 
@@ -37,26 +37,14 @@ void *video_decoder_loop (void *this_gen) {
 
   while (running) {
 
-    /* printf ("video_decoder: getting buffer...\n"); */
+    /* printf ("video_decoder: getting buffer...\n");  */
 
     buf = this->video_fifo->get (this->video_fifo);
     if (buf->input_pos)
       this->cur_input_pos = buf->input_pos;
 
-    /* printf ("video_decoder: got buffer %d\n", buf->type); */
+    /* printf ("video_decoder: got buffer %d\n", buf->type);  */
 
-    /* 
-     * Call update status callback function if
-     * there is a video decoder initialized, like
-     *  in mpeg1/2 playback.
-     */
-    /*
-      if(this->cur_video_decoder_plugin != NULL) {
-      if(this->status == XINE_PLAY)
-      this->status_callback (this->status);
-      }
-    */
-    
     switch (buf->type) {
     case BUF_CONTROL_START:
 
@@ -68,6 +56,8 @@ void *video_decoder_loop (void *this_gen) {
       pthread_mutex_lock (&this->xine_lock);
       this->video_finished = 0;
       pthread_mutex_unlock (&this->xine_lock);
+
+      this->metronom->video_stream_start (this->metronom);
 
       break;
 
@@ -101,6 +91,8 @@ void *video_decoder_loop (void *this_gen) {
       break;
 
     case BUF_CONTROL_END:
+
+      this->metronom->video_stream_end (this->metronom);
 
       if (this->cur_video_decoder_plugin) {
 	this->cur_video_decoder_plugin->close (this->cur_video_decoder_plugin);

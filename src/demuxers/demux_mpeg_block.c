@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.20 2001/06/17 23:17:40 f1rmb Exp $
+ * $Id: demux_mpeg_block.c,v 1.21 2001/06/23 19:45:47 guenter Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -61,6 +61,9 @@ typedef struct demux_mpeg_block_s {
 
   gui_get_next_mrl_cb_t next_mrl_cb;
   gui_branched_cb_t     branched_cb;
+
+  uint8_t              *scratch;
+
 } demux_mpeg_block_t ;
 
 
@@ -339,18 +342,20 @@ static void *demux_mpeg_block_loop (void *this_gen) {
   buf_element_t *buf = NULL;
   demux_mpeg_block_t *this = (demux_mpeg_block_t *) this_gen;
 
-  printf ("demux_mpeg_block: demux loop starting...\n");
+  /* printf ("demux_mpeg_block: demux loop starting...\n"); */
 
   this->send_end_buffers = 1;
 
   do {
 
     demux_mpeg_block_parse_pack(this, 0);
-    
+
   } while (this->status == DEMUX_OK) ;
 
+  /*
   printf ("demux_mpeg_block: demux loop finished (status: %d)\n",
 	  this->status);
+  */
 
   this->status = DEMUX_FINISHED;
 
@@ -480,7 +485,6 @@ static int demux_mpeg_block_open(demux_plugin_t *this_gen,
   switch(stage) {
 
   case STAGE_BY_CONTENT: {
-    uint8_t buf[4096];
     
     if((input->get_capabilities(input) & INPUT_CAP_SEEKABLE) != 0) {
       
@@ -490,15 +494,17 @@ static int demux_mpeg_block_open(demux_plugin_t *this_gen,
 
 	/* detect blocksize */
 	input->seek(input, 2048, SEEK_SET);
-	if (!input->read(input, buf, 4)) 
+	if (!input->read(input, this->scratch, 4)) 
 	  return DEMUX_CANNOT_HANDLE;
 
-	if(buf[0] || buf[1] || (buf[2] != 0x01) || (buf[3] != 0xba)) {
+	if (this->scratch[0] || this->scratch[1] 
+	    || (this->scratch[2] != 0x01) || (this->scratch[3] != 0xba)) {
 
 	  input->seek(input, 2324, SEEK_SET);
-	  if (!input->read(input, buf, 4)) 
+	  if (!input->read(input, this->scratch, 4)) 
 	    return DEMUX_CANNOT_HANDLE;
-	  if(buf[0] || buf[1] || (buf[2] != 0x01) || (buf[3] != 0xba)) 
+	  if (this->scratch[0] || this->scratch[1] 
+	      || (this->scratch[2] != 0x01) || (this->scratch[3] != 0xba)) 
 	    return DEMUX_CANNOT_HANDLE;
 	  this->blocksize = 2324;
 	  
@@ -506,15 +512,16 @@ static int demux_mpeg_block_open(demux_plugin_t *this_gen,
 	  this->blocksize = 2048;
       }
 
-      /* make sure it's mpeg-2 */
-
       input->seek(input, 0, SEEK_SET);
-      if (input->read(input, buf, this->blocksize)) {
+      if (input->read(input, this->scratch, this->blocksize)) {
 
-	if(buf[0] || buf[1] || (buf[2] != 0x01) || (buf[3] != 0xba))
+	if (this->scratch[0] || this->scratch[1] 
+	    || (this->scratch[2] != 0x01) || (this->scratch[3] != 0xba))
 	  return DEMUX_CANNOT_HANDLE;
 
-	if ((buf[4]>>4) != 4)
+	/* if it's a file then make sure it's mpeg-2 */
+	if ( !input->get_blocksize(input) 
+	     && ((this->scratch[4]>>4) != 4) )
 	  return DEMUX_CANNOT_HANDLE;
 	  
 	this->input = input;
@@ -602,6 +609,8 @@ demux_plugin_t *init_demuxer_plugin(int iface, config_values_t *config) {
     this->demux_plugin.close             = demux_mpeg_block_close;
     this->demux_plugin.get_status        = demux_mpeg_block_get_status;
     this->demux_plugin.get_identifier    = demux_mpeg_block_get_id;
+
+    this->scratch = xmalloc_aligned (512, 4096);
     
     return (demux_plugin_t *) this;
     break;

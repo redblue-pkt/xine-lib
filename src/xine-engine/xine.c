@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.29 2001/06/21 17:34:24 guenter Exp $
+ * $Id: xine.c,v 1.30 2001/06/23 19:45:47 guenter Exp $
  *
  * top-level xine functions
  *
@@ -92,9 +92,6 @@ void xine_stop (xine_t *this) {
   }
 
   this->spu_fifo->clear(this->spu_fifo);
-
-  this->metronom->stop_clock (this->metronom);
-  this->metronom->reset(this->metronom);
 
   pthread_mutex_unlock (&this->xine_lock);
 }
@@ -219,12 +216,6 @@ static void xine_play_internal (xine_t *this, char *mrl,
 	  this->cur_demuxer_plugin->get_identifier());
   
   /*
-   * metronom
-   */
-
-  this->metronom->reset(this->metronom);
-
-  /*
    * start demuxer
    */
 
@@ -244,11 +235,6 @@ static void xine_play_internal (xine_t *this, char *mrl,
   this->status = XINE_PLAY;
   strncpy (this->cur_mrl, mrl, 1024);
 
-  /*
-   * start clock
-   */
-
-  this->metronom->start_clock (this->metronom, 0);
 }
 
 void xine_play (xine_t *this, char *MRL, int spos) {
@@ -389,7 +375,7 @@ xine_t *xine_init (vo_driver_t *vo,
    * create a metronom
    */
 
-  this->metronom = metronom_init ();
+  this->metronom = metronom_init (ao != NULL);
 
   /*
    * load input and demuxer plugins
@@ -439,8 +425,6 @@ void xine_select_audio_channel (xine_t *this, int channel) {
   pthread_mutex_lock (&this->xine_lock);
 
   this->audio_channel = channel;
-
-  /* this->metronom->reset(this->metronom); */
 
   pthread_mutex_unlock (&this->xine_lock);
 }

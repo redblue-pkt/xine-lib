@@ -24,7 +24,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.9 2001/06/11 19:37:53 joachim_koenig Exp $
+ * $Id: audio_alsa_out.c,v 1.10 2001/06/23 19:45:47 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -79,6 +79,7 @@
 
 #define GAP_TOLERANCE        15000
 #define MAX_MASTER_CLOCK_DIV  5000
+#define MAX_GAP              90000
 
 typedef struct alsa_functions_s {
 
@@ -357,7 +358,12 @@ static uint32_t ao_get_current_vpts (alsa_functions_t *this)
 static void ao_fill_gap (alsa_functions_t *this, uint32_t pts_len)
 {
   snd_pcm_sframes_t res; 
-  int num_frames = (double)pts_len * (double)this->input_sample_rate / (double)this->pts_per_second;
+  int num_frames;
+
+  if (pts_len > MAX_GAP)
+    pts_len = MAX_GAP;
+
+  num_frames = (double)pts_len * (double)this->input_sample_rate / (double)this->pts_per_second;
   num_frames = (num_frames / 4) * 4;
   this->frames_in_buffer += num_frames;
   while (num_frames>0) {
@@ -445,9 +451,9 @@ void write_pause_burst(alsa_functions_t *this,int error)
 
 
 
-static void ao_write_audio_data(ao_functions_t *this_gen,
-				int16_t* output_samples, uint32_t num_samples, 
-				uint32_t pts_)
+static int ao_write_audio_data(ao_functions_t *this_gen,
+			       int16_t* output_samples, uint32_t num_samples, 
+			       uint32_t pts_)
 {
 
   alsa_functions_t *this = (alsa_functions_t *) this_gen;
@@ -466,6 +472,13 @@ static void ao_write_audio_data(ao_functions_t *this_gen,
   }
 
   vpts        = this->metronom->got_audio_samples (this->metronom, pts_, num_samples);
+
+  if (vpts<this->last_audio_vpts) {
+    /* reject this */
+
+    return 1;
+  }
+
   /*
    * check if these samples "fit" in the audio output buffer
    * or do we have an audio "gap" here?
@@ -475,6 +488,12 @@ static void ao_write_audio_data(ao_functions_t *this_gen,
 #if 0  
   if (gap>GAP_TOLERANCE) {
     ao_fill_gap (this, gap);
+
+    /* keep xine responsive */
+
+    if (gap>MAX_GAP)
+      return 0;
+
   } else if (gap<-GAP_TOLERANCE) {
     bDropPackage = 1;
   }
@@ -567,6 +586,8 @@ static void ao_write_audio_data(ao_functions_t *this_gen,
   }
   
   this->last_vpts        = vpts + num_samples * this->pts_per_second / this->input_sample_rate ; 
+
+  return 1;
 }
 
 
