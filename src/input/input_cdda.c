@@ -20,7 +20,7 @@
  * Compact Disc Digital Audio (CDDA) Input Plugin 
  *   by Mike Melanson (melanson@pcisys.net)
  *
- * $Id: input_cdda.c,v 1.21 2003/05/16 15:07:35 tchamp Exp $
+ * $Id: input_cdda.c,v 1.22 2003/05/16 19:08:59 tchamp Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -40,6 +40,8 @@
 #ifndef _MSC_VER 
 #include <sys/ioctl.h>
 #include <netdb.h>
+#else
+#include <timer.h> /* alarm() */
 #endif /* _MSC_VER */
 
 #include <signal.h>

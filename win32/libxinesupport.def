@@ -217,6 +217,7 @@ setitimer
 pause
 sleep
 nanosleep
+alarm
 
 ;------------------------------------------------------------
 ; other exports

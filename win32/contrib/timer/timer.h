@@ -35,5 +35,8 @@ int pause( void );
 
 unsigned int sleep( unsigned int seconds );
 int nanosleep( const struct timespec *rqtp, struct timespec *rmtp );
+int alarm( int sec );
+
+
 
 #endif

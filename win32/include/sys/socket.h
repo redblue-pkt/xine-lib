@@ -25,8 +25,11 @@
 #include <io.h> /* open, close, ... */
 #include <winsock.h>
 
-#define SIGPIPE  3
-#define SIGALRM 13
+#define SIGPIPE  13
+
+#ifndef SIGALRM
+#define SIGALRM 14
+#endif
 
 /* Some real good hacks! */
 #undef errno

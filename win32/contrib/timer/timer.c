@@ -27,7 +27,13 @@
 #include "stdio.h"
 #include "timer.h"
 
-/*
+#include <signal.h>
+
+#ifndef SIGALRM
+#define SIGALRM 14
+#endif
+
+ /*
 	this function returns somewhat
 	accurate unix time with the data
 	accurate to the first call to get
@@ -98,5 +104,38 @@ int nanosleep( const struct timespec * rqtp, struct timespec * rmtp )
 unsigned int sleep( unsigned int seconds )
 {
 	Sleep( seconds * 1000 );
+	return 0;
+}
+
+static UINT alarmid = 0;
+void CALLBACK AlarmCallback(UINT wTimerID, 
+							UINT msg, 
+							DWORD dwUser, 
+							DWORD dw1, 
+							DWORD dw2)
+{
+	if (alarmid) {
+		alarmid = 0;
+		raise(SIGALRM);
+	}
+} 
+
+int alarm( int sec )
+{
+	long int miliseconds;
+
+	if (sec) {
+	  if (!alarmid) {
+	    miliseconds = sec * 1000;
+		timeSetEvent( miliseconds, 0, ( LPTIMECALLBACK ) AlarmCallback, 0, TIME_ONESHOT | TIME_CALLBACK_FUNCTION );
+	  }
+	}
+	else {
+	  if (alarmid) {
+	    timeKillEvent(alarmid);
+		alarmid = 0;
+	  }
+	}
+
 	return 0;
 }
