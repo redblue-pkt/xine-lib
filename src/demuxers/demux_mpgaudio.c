@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpgaudio.c,v 1.113 2003/10/05 15:03:30 tmattern Exp $
+ * $Id: demux_mpgaudio.c,v 1.114 2003/10/05 16:15:49 komadori Exp $
  *
  * demultiplexer for mpeg audio (i.e. mp3) streams
  *
@@ -480,7 +480,7 @@ static int sniff_buffer_looks_like_mp3 (input_plugin_t *input)
   if (buf == NULL)
     return 0;
 
-  for (offset = 0; offset < SNIFF_BUFFER_LENGTH; offset++) {
+  for (offset = 0; offset + 4 < SNIFF_BUFFER_LENGTH; offset++) {
     size_t length;
 
     if (mpg123_parse_frame_header(&frame, buf + offset)) {
