@@ -156,6 +156,7 @@ AC_C_ALWAYS_INLINE
 AC_TYPE_OFF_T
 AC_TYPE_SIZE_T
 dnl AC_CHECK_TYPES([ptrdiff_t])
+AC_CHECK_GENERATE_INTTYPES([include])
 
 dnl ---------------------------------------------
 dnl debug cflags
