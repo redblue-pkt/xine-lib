@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.h,v 1.23 2001/10/09 22:20:11 miguelfreitas Exp $
+ * $Id: video_out.h,v 1.24 2001/10/20 13:40:20 miguelfreitas Exp $
  *
  *
  * xine version of video_out.h 
@@ -171,8 +171,7 @@ struct vo_instance_s {
 #define VO_PROP_CONTRAST          4
 #define VO_PROP_BRIGHTNESS        5
 #define VO_PROP_COLORKEY          6
-#define VO_PROP_SOFT_DEINTERLACE  7
-#define VO_NUM_PROPERTIES         8
+#define VO_NUM_PROPERTIES         7
 
 /* number of recent frames to keep in memory
    these frames are needed by some deinterlace algorithms

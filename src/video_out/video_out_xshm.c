@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xshm.c,v 1.46 2001/10/14 23:19:59 f1rmb Exp $
+ * $Id: video_out_xshm.c,v 1.47 2001/10/20 13:40:20 miguelfreitas Exp $
  * 
  * video_out_xshm.c, X11 shared memory extension interface for xine
  *
@@ -873,9 +873,6 @@ static int xshm_set_property (vo_driver_t *this_gen,
     this->gui_changed |= GUI_ASPECT_CHANGED;
     printf("video_out_xshm: aspect ratio changed to %s\n",
 	   aspect_ratio_name(value));
-  } else if ( property == VO_PROP_SOFT_DEINTERLACE) {
-    if( value )
-      printf("video_out_xshm: software deinterlace not supported.\n");
   } else {
     printf ("video_out_xshm: tried to set unsupported property %d\n", property);
   }
