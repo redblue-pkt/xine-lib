@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.101 2003/10/28 16:59:03 mroi Exp $
+ * $Id: xine.h.in,v 1.102 2003/11/01 18:32:48 miguelfreitas Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -710,6 +710,11 @@ typedef struct {
    * method to get params struct definition
    */
   xine_post_api_descr_t * (*get_param_descr) (void);
+
+  /*
+   * method to get plugin and parameters help
+   */
+  char * (*get_help) (void);
 } xine_post_api_t;
 
 /* post parameter types */
