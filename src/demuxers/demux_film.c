@@ -21,7 +21,7 @@
  * For more information on the FILM file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_film.c,v 1.5 2002/05/27 18:53:54 tmmm Exp $
+ * $Id: demux_film.c,v 1.6 2002/05/28 17:50:15 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -301,6 +301,9 @@ printf ("************ sending new pts\n");
           buf->disc_off = this->sample_table[i].pts;
           this->audio_fifo->put (this->audio_fifo, buf);
         }
+        
+        /* set last_frame_pts to some sane value on seek */
+        last_frame_pts = this->sample_table[i].pts - 3000;
       }
 
       /* check if all the samples have been sent */
@@ -458,7 +461,17 @@ printf ("************ sending new pts\n");
       /* someone may want to interrupt us */
       pthread_mutex_unlock( &this->mutex );
       pthread_mutex_lock( &this->mutex );
+     
     }
+  
+    /* wait before sending end buffers: user might want to do a new seek */
+    while(this->send_end_buffers && this->video_fifo->size(this->video_fifo) &&
+          this->status != DEMUX_OK){
+      pthread_mutex_unlock( &this->mutex );
+      xine_usec_sleep(100000);
+      pthread_mutex_lock( &this->mutex );
+    }
+
   } while (this->status == DEMUX_OK);
 
   printf ("demux_film: demux loop finished (status: %d)\n",
@@ -690,6 +703,7 @@ printf ("best index guess = %d\n", best_index);
   }
 
 printf ("actual new index = %d\n", this->current_sample);
+  this->status = DEMUX_OK;
   pthread_mutex_unlock( &this->mutex );
 
   return this->status;
