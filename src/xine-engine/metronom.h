@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.h,v 1.30 2002/04/24 20:26:07 jcdutton Exp $
+ * $Id: metronom.h,v 1.31 2002/06/19 23:37:46 tmattern Exp $
  *
  * metronom: general pts => virtual calculation/assoc
  *                   
@@ -59,6 +59,7 @@ typedef struct scr_plugin_s scr_plugin_t;
 #define DISC_STREAMSTART 0 
 #define DISC_RELATIVE    1     
 #define DISC_ABSOLUTE    2
+#define DISC_STREAMSEEK  3
 
 struct metronom_s {
 
@@ -237,6 +238,7 @@ struct metronom_s {
   pthread_cond_t  audio_discontinuity_reached;
   pthread_cond_t  cancel;
 
+  int             allow_full_ao_fill_gap;
 };
 
 metronom_t *metronom_init (int have_audio, void *xine);
