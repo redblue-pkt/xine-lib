@@ -251,6 +251,8 @@ rm -rf $RPM_BUILD_ROOT
 #%{prefix}/lib/xine/plugins/xineplug_decode_mpg123.so
 %{prefix}/lib/xine/plugins/xineplug_decode_spu.la
 %{prefix}/lib/xine/plugins/xineplug_decode_spu.so
+%{prefix}/lib/xine/plugins/xineplug_decode_sputext.la
+%{prefix}/lib/xine/plugins/xineplug_decode_sputext.so
 %{prefix}/lib/xine/plugins/xineplug_decode_dts.la
 %{prefix}/lib/xine/plugins/xineplug_decode_dts.so
 %{prefix}/lib/xine/plugins/xineplug_decode_vfill.la
@@ -265,10 +267,11 @@ rm -rf $RPM_BUILD_ROOT
 %{prefix}/lib/xine/plugins/xineplug_vo_out_syncfb.so
 %{prefix}/lib/xine/plugins/xineplug_vo_out_xshm.la
 %{prefix}/lib/xine/plugins/xineplug_vo_out_xshm.so
-# lib and logo.
+# lib, logo and fonts.
 %{prefix}/lib/libxine*.la
 %{prefix}/lib/libxine*.so*
 %{prefix}/share/xine/skins/xine_logo.png
+%{prefix}/share/xine/fonts/*
 
 @HAVE_OSS_TRUE@%files oss
 @HAVE_OSS_TRUE@%defattr(-,root,root)
@@ -331,6 +334,8 @@ rm -rf $RPM_BUILD_ROOT
 %{prefix}/share/doc/xine/xine-lib-API/*
 
 %changelog
+* Sat Dec 26 2001 Matthias Dahl <matthew2k@web.de>
+- added sputext decode plugin and fonts.
 * Sat Dec 8 2001 Daniel Caujolle-Bert <f1rmb@users.sourceforge.net>
 - ASF plugin is optional.
 * Thu Dec 6 2001 Daniel Caujolle-Bert <f1rmb@users.sourceforge.net>
