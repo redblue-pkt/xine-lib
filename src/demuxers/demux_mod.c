@@ -328,7 +328,7 @@ static char *get_identifier (demux_class_t *this_gen) {
 }
 
 static char *get_extensions (demux_class_t *this_gen) {
-  return "mod it stm s3m 669 amf med mdl";
+  return "mod it stm s3m 669 amf med mdl xm";
 }
 
 static char *get_mimetypes (demux_class_t *this_gen) {
