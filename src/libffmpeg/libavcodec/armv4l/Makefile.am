@@ -5,7 +5,7 @@ ASFLAGS =
 
 noinst_LTLIBRARIES = libavcodec_armv4l.la
 
-libavcodec_armv4l_src = dsputil_arm.c jrevdct_arm.S 
+libavcodec_armv4l_src = dsputil_arm.c jrevdct_arm.S mpegvideo_arm.c
 libavcodec_armv4l_dummy =  libavcodec_armv4l_dummy.c
 EXTRA_DIST =  $(libavcodec_armv4l_src) $(libavcodec_armv4l_dummy)
 

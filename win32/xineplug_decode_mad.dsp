@@ -138,7 +138,7 @@ SOURCE=..\src\libmad\xine_decoder.c
 # PROP Default_Filter ""
 # Begin Source File
 
-SOURCE=".\xineplug_decode_ ao.def"
+SOURCE=".\xineplug_decode_ao.def"
 # End Source File
 # End Group
 # End Target

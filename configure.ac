@@ -1760,6 +1760,14 @@ AC_SUBST(DEPCOMP)
 
 
 dnl ---------------------------------------------
+dnl Check for documentation formatting tool
+dnl ---------------------------------------------
+
+AC_CHECK_PROG(SGMLTOOLS, sgmltools, sgmltools, no)
+AC_CHECK_PROG(FIG2DEV, fig2dev, fig2dev, no)
+
+
+dnl ---------------------------------------------
 dnl Output configuration files
 dnl ---------------------------------------------
 
@@ -1846,7 +1854,8 @@ src/video_out/vidix/Makefile
 src/video_out/vidix/drivers/Makefile
 src/xine-utils/Makefile
 src/xine-engine/Makefile
-src/xine-engine/xineintl.h])
+src/xine-engine/xineintl.h
+win32/Makefile])
 AC_CONFIG_COMMANDS([default],[[chmod +x ./misc/SlackBuild ./misc/build_rpms.sh ./misc/relchk.sh]],[[]])
 AC_OUTPUT
 

@@ -2,7 +2,7 @@ include $(top_srcdir)/misc/Makefile.common
 
 AM_CFLAGS = -DXINE_COMPILE $(ALSA_CFLAGS) $(ESD_CFLAGS) $(IRIXAL_CFLAGS) $(ARTS_CFLAGS)
 
-EXTRA_DIST = audio_irixal_out.c
+EXTRA_DIST = audio_irixal_out.c audio_directx_out.c
 
 libdir = $(XINE_PLUGINDIR)
 

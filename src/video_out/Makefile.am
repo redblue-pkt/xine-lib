@@ -2,7 +2,7 @@ include $(top_srcdir)/misc/Makefile.common
 
 SUBDIRS = libdha vidix
 
-EXTRA_DIST = video_out_directfb.c video_out_opengl.c
+EXTRA_DIST = video_out_directfb.c video_out_opengl.c video_out_directx.c
 
 VIDIX_CFLAGS = -I$(top_builddir)/src/video_out/vidix \
 	-I$(top_srcdir)/src/video_out/vidix
@@ -132,4 +132,5 @@ xineplug_vo_out_stk_la_SOURCES = alphablend.c video_out_stk.c
 xineplug_vo_out_stk_la_LIBADD = $(LIBSTK_LIBS) 
 xineplug_vo_out_stk_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
-noinst_HEADERS = alphablend.h deinterlace.h video_out_syncfb.h yuv2rgb.h 
+noinst_HEADERS = alphablend.h deinterlace.h video_out_syncfb.h \
+	yuv2rgb.h video_out_win32.h

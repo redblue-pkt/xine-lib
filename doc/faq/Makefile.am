@@ -29,7 +29,11 @@ uninstall-local:
 docs: $(docs_DOCS)
 
 faq.html: faq.sgml
-	sgmltools -b onehtml faq.sgml
+	@if test "$(SGMLTOOLS)" != "no"; then \
+	  $(SGMLTOOLS) -b onehtml faq.sgml; \
+	fi
 
 faq.txt: faq.sgml
-	sgmltools -b txt faq.sgml
+	@if test "$(SGMLTOOLS)" != "no"; then \
+	  $(SGMLTOOLS) -b txt faq.sgml; \
+	fi

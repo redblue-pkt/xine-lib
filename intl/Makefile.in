@@ -35,6 +35,7 @@ localedir = $(datadir)/locale
 gettextsrcdir = $(datadir)/gettext/intl
 aliaspath = $(localedir)
 subdir = intl
+EXTRA_DIST = ChangeLog.inst libintl.glibc
 
 INSTALL = @INSTALL@
 INSTALL_DATA = @INSTALL_DATA@
@@ -72,7 +73,7 @@ explodename.$lo dcigettext.$lo dcngettext.$lo dngettext.$lo ngettext.$lo \
 plural.$lo localcharset.$lo
 GETTOBJS = intl-compat.$lo
 DISTFILES.common = Makefile.in \
-config.charset locale.alias ref-add.sin ref-del.sin $(HEADERS) $(SOURCES)
+config.charset locale.alias ref-add.sin ref-del.sin $(HEADERS) $(SOURCES) $(EXTRA_DIST)
 DISTFILES.generated = plural.c
 DISTFILES.normal = VERSION
 DISTFILES.gettext = libintl.glibc
@@ -307,10 +308,9 @@ Makefile: Makefile.in ../config.status
 	cd .. \
 	  && CONFIG_FILES=$(subdir)/$@ CONFIG_HEADERS= $(SHELL) ./config.status
 
-	 
 debug:	 
-	@$(MAKE) CFLAGS="$(DEBUG_CFLAGS)"	 
- 	 
+	@$(MAKE) CFLAGS="$(DEBUG_CFLAGS)"
+
 install-debug: debug	 
 	@$(MAKE) $(AM_MAKEFLAGS) install-exec install-data
 

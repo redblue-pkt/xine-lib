@@ -26,7 +26,7 @@ endif
 
 libavcodec_ppc_la_SOURCES = $(ppc_modules) $(libavcodec_ppc_dummy)
 
-noinst_HEADERS = dsputil_altivec.h dsputil_ppc.h
+noinst_HEADERS = dsputil_altivec.h dsputil_ppc.h gcc_fixes.h
 
 .s.lo:
 	$(ASCOMPILE) -o $@ `test -f $< || echo '$(srcdir)/'`$<

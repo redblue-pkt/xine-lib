@@ -8,8 +8,10 @@ hackersguide_sgml = hackersguide.sgml \
 		    stream.sgml \
 		    output.sgml
 
-EXTRA_DIST = README $(hackersguide_sgml) architecture.fig library.fig overlays.fig 
 docs_DOCS = hackersguide.html architecture.png library.png overlays.png
+
+EXTRA_DIST = README $(hackersguide_sgml) $(docs_DOCS) \
+	architecture.fig library.fig overlays.fig 
 
 docdir = $(prefix)/share/doc/xine/hackersguide
 
@@ -37,7 +39,11 @@ uninstall-local:
 docs: $(docs_DOCS)
 
 hackersguide.html: $(hackersguide_sgml)
-	sgmltools -b onehtml hackersguide.sgml
+	@if test "$(SGMLTOOLS)" != "no"; then \
+	  $(SGMLTOOLS) -b onehtml hackersguide.sgml; \
+	fi
 
 %.png: %.fig
-	fig2dev -L png -S 4 $< $@
+	@if test "$(FIG2DEV)" != "no"; then \
+	  $(FIG2DEV) -L png -S 4 $< $@; \
+	fi
