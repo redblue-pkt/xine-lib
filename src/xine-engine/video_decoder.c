@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.59 2001/10/21 12:09:06 jcdutton Exp $
+ * $Id: video_decoder.c,v 1.60 2001/10/24 22:23:10 guenter Exp $
  *
  */
 
@@ -76,7 +76,7 @@ void *video_decoder_loop (void *this_gen) {
     if (buf->input_time)
       this->cur_input_time = buf->input_time;
 
-    /* printf ("video_decoder: got buffer %d\n", buf->type);    */
+    /* printf ("video_decoder: got buffer 0x%08x\n", buf->type);      */
 
     switch (buf->type & 0xffff0000) {
     case BUF_CONTROL_START:
@@ -209,8 +209,10 @@ void *video_decoder_loop (void *this_gen) {
 	  
 	  if (this->cur_video_decoder_plugin != decoder) {
 	    
-	    if (this->cur_video_decoder_plugin) 
+	    if (this->cur_video_decoder_plugin) {
 	      this->cur_video_decoder_plugin->close (this->cur_video_decoder_plugin);
+	      printf ("video_decoder: closing old decoder >%s<\n",this->cur_video_decoder_plugin->get_identifier());
+	    }
 	    
 	    this->cur_video_decoder_plugin = decoder;
 	    this->cur_video_decoder_plugin->init (this->cur_video_decoder_plugin, this->video_out);

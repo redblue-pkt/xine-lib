@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.c,v 1.31 2001/10/23 21:58:11 jcdutton Exp $
+ * $Id: metronom.c,v 1.32 2001/10/24 22:23:10 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -49,6 +49,10 @@
 #define MAX_SCR_PROVIDERS  10
 #define REALTIME_PTS       90000.0
 #define PREBUFFER_PTS_OFFSET 30000
+
+/*
+#define METRONOM_LOG
+*/
 
 /*
  * ****************************************
@@ -537,10 +541,7 @@ static uint32_t metronom_got_video_frame (metronom_t *this, uint32_t pts) {
 }
 
 static void metronom_got_audio_still (metronom_t *this) {
-  /* This code does not seem to work. */
-  /* A simple return works ok for now. */
-  return;
-  
+
   pthread_mutex_lock (&this->lock);
 
   this->audio_vpts            += this->pts_per_frame + this->video_pts_delta;
