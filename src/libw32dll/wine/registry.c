@@ -302,6 +302,10 @@ static void init_registry(void)
 	regpathname = get_path("registry");
 	localregpathname = regpathname;
 #else
+#ifdef XINE_MAJOR
+	localregpathname = (char *)malloc(strlen(xine_get_homedir()) + 20);
+	sprintf(localregpathname, "%s/.xine/win32registry", xine_get_homedir());
+#else
 	// regpathname is an external pointer
         //
 	// registry.c is holding it's own internal pointer
@@ -322,6 +326,7 @@ static void init_registry(void)
 	    strcpy(localregpathname, pthn);
 	    strcat(localregpathname, "/.registry");
 	}
+#endif
 #endif
 
 	open_registry();
