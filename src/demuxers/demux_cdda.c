@@ -22,7 +22,7 @@
  * linear PCM "decoder" (which in turn sends them directly to the audio
  * output target; this is a really fancy CD-playing architecture).
  *
- * $Id: demux_cdda.c,v 1.3 2003/01/10 21:10:58 miguelfreitas Exp $
+ * $Id: demux_cdda.c,v 1.4 2003/02/18 00:10:10 tmmm Exp $
  *
  */
 
@@ -147,7 +147,10 @@ static int demux_cdda_seek (demux_plugin_t *this_gen,
 
   demux_cdda_t *this = (demux_cdda_t *) this_gen;
 
-  this->input->seek(this->input, start_pos, SEEK_SET);
+  if (start_pos)
+    this->input->seek(this->input, start_pos, SEEK_SET);
+  else
+    this->input->seek(this->input, start_time * CD_BYTES_PER_SECOND, SEEK_SET);
   this->seek_flag = 1;
   this->status = DEMUX_OK;
   xine_demux_flush_engine (this->stream);
