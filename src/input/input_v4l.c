@@ -1350,10 +1350,11 @@ static buf_element_t *v4l_plugin_read_block (input_plugin_t *this_gen,
       ptr = this->video_buf + this->gb_buffers.offsets[this->gb_frame];
       buf->pts = get_time(); /* this->stream->xine->clock->get_current_time(this->stream->xine->clock); */
       xine_fast_memcpy (buf->content, ptr, this->frame_size); 
-   } else if (this->audio_capture) {
-
+   }
 #ifdef HAVE_ALSA
-      /* Record audio */
+     else if (this->audio_capture) {
+	
+	 /* Record audio */
       
       int pcmreturn;
       if ((pcmreturn = snd_pcm_mmap_readi(this->pcm_handle, this->pcm_data, (periodsize)>> 2)) < 0) { 
@@ -1414,8 +1415,8 @@ static buf_element_t *v4l_plugin_read_block (input_plugin_t *this_gen,
 
 	 xine_fast_memcpy(buf->content, this->pcm_data, periodsize);
       }
-#endif
    }
+#endif
 
    DBGPRINT("read block done\n");
 
