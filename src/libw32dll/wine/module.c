@@ -448,6 +448,11 @@ HMODULE WINAPI LoadLibraryExA(LPCSTR libname, HANDLE hfile, DWORD flags)
             for (i=0;i<6;i++) ((char*)0x10007688)[i]=0x90;
             for (i=0;i<6;i++) ((char*)0x100082c3)[i]=0x90;
             for (i=0;i<6;i++) ((char*)0x100084aa)[i]=0x90;
+          } else if (PE_FindExportedFunction(wm, "DriverProc", TRUE)==(void*)0x10003e70) {
+            // looks like VP 6.0.7.3
+            for (i=0;i<6;i++) ((char*)0x10007559)[i]=0x90;
+            for (i=0;i<6;i++) ((char*)0x100081c3)[i]=0x90;
+            for (i=0;i<6;i++) ((char*)0x1000839e)[i]=0x90;
           } else {
             printf("wine/module: Unsupported VP6 version\n");
             return 0;
@@ -499,6 +504,15 @@ HMODULE WINAPI LoadLibraryExA(LPCSTR libname, HANDLE hfile, DWORD flags)
 		for (i=0;i<5;i++)  ((char *)0x66a73122)[i]=0x90; // jmp_to_call_loadbitmap
 		for (i=0;i<9;i++)  ((char *)0x66a73131)[i]=0x90; // call__calls_OLE_shit
 		for (i=0;i<96;i++) ((char *)0x66aac852)[i]=0x90; // disable threads
+	    } else if (dispatch_addr == (void *)0x6693c3e0)
+	    {
+    		printf ("wine/module: QuickTime6.3 DLLs found\n");
+		ptr = (void **)0x66bca01c; // dispatcher_ptr
+		for (i=0;i<5;i++)  ((char *)0x66a68f6c)[i]=0x90; // make_new_region
+		for (i=0;i<28;i++) ((char *)0x66a68f97)[i]=0x90; // call__call_CreateCompatibleDC
+		for (i=0;i<5;i++)  ((char *)0x66a68fc2)[i]=0x90; // jmp_to_call_loadbitmap
+		for (i=0;i<9;i++)  ((char *)0x66a68fd1)[i]=0x90; // call__calls_OLE_shit
+		for (i=0;i<96;i++) ((char *)0x66ab4722)[i]=0x90; // disable threads
 	    } else
 	    {
 	        printf ("wine/module: Unsupported QuickTime version (%p)\n",

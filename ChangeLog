@@ -20,7 +20,8 @@ xine-lib (1-rc6)
   * another win32 dll crash fix (after playing several files)
   * configure option for building xine with external ffmpeg library
   * added api for finer playback speed control (requires frontend support)
-                
+  * support QuickTime 6.3 DLLs                
+
 xine-lib (1-rc5)  
   * add support for ejecting removable media on Solaris
   * fix stuttering playback of some realmedia streams
