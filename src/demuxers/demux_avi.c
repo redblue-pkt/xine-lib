@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_avi.c,v 1.114 2002/10/14 15:47:13 guenter Exp $
+ * $Id: demux_avi.c,v 1.115 2002/10/16 14:09:12 guenter Exp $
  *
  * demultiplexer for avi streams
  *
@@ -1643,6 +1643,6 @@ static void *init_plugin (xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_DEMUX, 12, "avi", XINE_VERSION_CODE, NULL, init_plugin, open_plugin },
+  { PLUGIN_DEMUX, 14, "avi", XINE_VERSION_CODE, NULL, init_plugin, open_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL, NULL }
 };
