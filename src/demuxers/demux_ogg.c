@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_ogg.c,v 1.142 2004/02/19 18:04:27 mroi Exp $
+ * $Id: demux_ogg.c,v 1.143 2004/02/22 23:46:32 heinchen Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -271,59 +271,37 @@ static void get_stream_length (demux_ogg_t *this) {
 }
 
 #ifdef HAVE_THEORA
-/* TODO: clean up this mess! */
 static void send_ogg_packet (demux_ogg_t *this,
                                fifo_buffer_t *fifo,
                                ogg_packet *op,
                                int64_t pts,
                                uint32_t decoder_flags,
                                int stream_num) {
-  /*this little function is used to send an entire ogg-packet through
-    xine buffers to the appropiate decoder, where recieve_ogg_packet should be called to collect the
-  buffers and reassemble them to an ogg packet*/
 
   buf_element_t *buf;
 
   int done=0,todo=op->bytes;
   int op_size = sizeof(ogg_packet);
 
-  /* nasty hack to pack op as well as (vorbis/theora) content
-     in one xine buffer */
-
-  buf = fifo->buffer_pool_alloc (fifo);
-  memcpy (buf->content, op, op_size);
-
-  if ( buf->max_size > op_size + todo ) {
-    memcpy (buf->content + op_size , op->packet, todo);
-    done=todo;
-    buf->decoder_flags = BUF_FLAG_FRAME_START | BUF_FLAG_FRAME_END | decoder_flags;
-    buf->size = op_size + done;
-  } else {
-    memcpy (buf->content + op_size , op->packet, buf->max_size - op_size );
-    done=done+ buf->max_size - op_size;
-    buf->decoder_flags = BUF_FLAG_FRAME_START | decoder_flags;
-    buf->size = buf->max_size;
-  }
-
-  buf->pts  = pts;
-  buf->extra_info->input_pos  = this->input->get_current_pos (this->input);
-  buf->extra_info->input_time = buf->pts / 90 ;
-  buf->type       = this->si[stream_num]->buf_types;
-
-  this->video_fifo->put (this->video_fifo, buf);
-
   while (done<todo) {
+    int offset=0;
     buf = fifo->buffer_pool_alloc (fifo);
-    if (done+buf->max_size < todo) {
-      memcpy (buf->content, op->packet+done, buf->max_size);
+    buf->decoder_flags = decoder_flags;
+    if (done==0) {
+      memcpy (buf->content, op, op_size);
+      offset=op_size;
+      buf->decoder_flags = buf->decoder_flags | BUF_FLAG_FRAME_START;
+    }
+
+    if (done+buf->max_size-offset < todo) {
+      memcpy (buf->content+offset, op->packet+done, buf->max_size-offset);
       buf->size = buf->max_size;
-      done=done+buf->max_size;
-      buf->decoder_flags = decoder_flags;
+      done=done+buf->max_size-offset;
     } else {
-      memcpy (buf->content, op->packet+done, todo-done);
-      buf->size = todo-done;
+      memcpy (buf->content+offset , op->packet+done, todo-done);
+      buf->size = todo-done+offset;
       done=todo;
-      buf->decoder_flags = BUF_FLAG_FRAME_END | decoder_flags;
+      buf->decoder_flags = buf->decoder_flags | BUF_FLAG_FRAME_END;
     }
 
     buf->pts = pts;
