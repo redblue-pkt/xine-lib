@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_qt.c,v 1.12 2001/11/17 14:26:37 f1rmb Exp $
+ * $Id: demux_qt.c,v 1.13 2001/11/17 19:40:27 miguelfreitas Exp $
  *
  * demultiplexer for quicktime streams, based on:
  *
@@ -4181,7 +4181,7 @@ static int demux_qt_detect_compressors (demux_qt_t *this) {
   } else {
     printf ("demux_qt: unknown audio codec >%s<\n",
 	    audio);
-    return 0;
+    this->audio_type = BUF_CONTROL_NOP;
   }
 
   return 1;
