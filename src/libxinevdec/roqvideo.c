@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: roqvideo.c,v 1.9 2002/09/05 22:19:03 mroi Exp $
+ * $Id: roqvideo.c,v 1.10 2002/10/04 03:10:43 tmmm Exp $
  */
 
 /* And this is the header that came with the RoQ video decoder: */
@@ -100,19 +100,33 @@ typedef struct roq_decoder_s {
   long             *frame_offset;
   unsigned long     num_frames, num_audio_bytes;
   unsigned char    *y[2], *u[2], *v[2];
+  int               y_size;
+  int               c_size;
+
+  unsigned char    *cur_y, *cur_u, *cur_v;
+  unsigned char    *prev_y, *prev_u, *prev_v;
+
+  /* this is either 0 or 1 indicating the cur_y points to y[0] or y[1],
+   * same for u and v */
+  int               current_planes;
+
 } roq_decoder_t;
+
+/**************************************************************************
+ * RoQ video specific decode functions
+ *************************************************************************/
 
 static void apply_vector_2x2(roq_decoder_t *ri, int x, int y, roq_cell *cell) {
   unsigned char *yptr;
 
-  yptr = ri->y[0] + (y * ri->width) + x;
+  yptr = ri->cur_y + (y * ri->width) + x;
   *yptr++ = cell->y0;
   *yptr++ = cell->y1;
   yptr += (ri->width - 2);
   *yptr++ = cell->y2;
   *yptr++ = cell->y3;
-  ri->u[0][(y/2) * (ri->width/2) + x/2] = cell->u;
-  ri->v[0][(y/2) * (ri->width/2) + x/2] = cell->v;
+  ri->cur_u[(y/2) * (ri->width/2) + x/2] = cell->u;
+  ri->cur_v[(y/2) * (ri->width/2) + x/2] = cell->v;
 }
 
 static void apply_vector_4x4(roq_decoder_t *ri, int x, int y, roq_cell *cell) {
@@ -120,9 +134,9 @@ static void apply_vector_4x4(roq_decoder_t *ri, int x, int y, roq_cell *cell) {
   register unsigned char y0, y1, u, v;
   unsigned char *yptr, *uptr, *vptr;
 
-  yptr = ri->y[0] + (y * ri->width) + x;
-  uptr = ri->u[0] + (y/2) * (ri->width/2) + x/2;
-  vptr = ri->v[0] + (y/2) * (ri->width/2) + x/2;
+  yptr = ri->cur_y + (y * ri->width) + x;
+  uptr = ri->cur_u + (y/2) * (ri->width/2) + x/2;
+  vptr = ri->cur_v + (y/2) * (ri->width/2) + x/2;
 
   row_inc = ri->width - 4;
   c_row_inc = (ri->width/2) - 2;
@@ -162,8 +176,8 @@ static void apply_motion_4x4(roq_decoder_t *ri, int x, int y, unsigned char mv,
   mx = x + 8 - (mv >> 4) - mean_x;
   my = y + 8 - (mv & 0xf) - mean_y;
 
-  pa = ri->y[0] + (y * ri->width) + x;
-  pb = ri->y[1] + (my * ri->width) + mx;
+  pa = ri->cur_y + (y * ri->width) + x;
+  pb = ri->prev_y + (my * ri->width) + mx;
   for(i = 0; i < 4; i++) {
     pa[0] = pb[0];
     pa[1] = pb[1];
@@ -173,8 +187,8 @@ static void apply_motion_4x4(roq_decoder_t *ri, int x, int y, unsigned char mv,
     pb += ri->width;
   }
 
-  pa = ri->u[0] + (y/2) * (ri->width/2) + x/2;
-  pb = ri->u[1] + (my/2) * (ri->width/2) + (mx + 1)/2;
+  pa = ri->cur_u + (y/2) * (ri->width/2) + x/2;
+  pb = ri->prev_u + (my/2) * (ri->width/2) + (mx + 1)/2;
   for(i = 0; i < 2; i++) {
     pa[0] = pb[0];
     pa[1] = pb[1];
@@ -182,8 +196,8 @@ static void apply_motion_4x4(roq_decoder_t *ri, int x, int y, unsigned char mv,
     pb += ri->width/2;
   }
 
-  pa = ri->v[0] + (y/2) * (ri->width/2) + x/2;
-  pb = ri->v[1] + (my/2) * (ri->width/2) + (mx + 1)/2;
+  pa = ri->cur_v + (y/2) * (ri->width/2) + x/2;
+  pb = ri->prev_v + (my/2) * (ri->width/2) + (mx + 1)/2;
   for(i = 0; i < 2; i++) {
     pa[0] = pb[0];
     pa[1] = pb[1];
@@ -201,8 +215,8 @@ static void apply_motion_8x8(roq_decoder_t *ri, int x, int y,
   mx = x + 8 - (mv >> 4) - mean_x;
   my = y + 8 - (mv & 0xf) - mean_y;
 
-  pa = ri->y[0] + (y * ri->width) + x;
-  pb = ri->y[1] + (my * ri->width) + mx;
+  pa = ri->cur_y + (y * ri->width) + x;
+  pb = ri->prev_y + (my * ri->width) + mx;
   for(i = 0; i < 8; i++) {
     pa[0] = pb[0];
     pa[1] = pb[1];
@@ -216,8 +230,8 @@ static void apply_motion_8x8(roq_decoder_t *ri, int x, int y,
     pb += ri->width;
   }
 
-  pa = ri->u[0] + (y/2) * (ri->width/2) + x/2;
-  pb = ri->u[1] + (my/2) * (ri->width/2) + (mx + 1)/2;
+  pa = ri->cur_u + (y/2) * (ri->width/2) + x/2;
+  pb = ri->prev_u + (my/2) * (ri->width/2) + (mx + 1)/2;
   for(i = 0; i < 4; i++) {
     pa[0] = pb[0];
     pa[1] = pb[1];
@@ -227,8 +241,8 @@ static void apply_motion_8x8(roq_decoder_t *ri, int x, int y,
     pb += ri->width/2;
   }
 
-  pa = ri->v[0] + (y/2) * (ri->width/2) + x/2;
-  pb = ri->v[1] + (my/2) * (ri->width/2) + (mx + 1)/2;
+  pa = ri->cur_v + (y/2) * (ri->width/2) + x/2;
+  pb = ri->prev_v + (my/2) * (ri->width/2) + (mx + 1)/2;
   for(i = 0; i < 4; i++) {
     pa[0] = pb[0];
     pa[1] = pb[1];
@@ -239,7 +253,7 @@ static void apply_motion_8x8(roq_decoder_t *ri, int x, int y,
   }
 }
 
-static void roq_decode_frame(roq_decoder_t *ri, vo_frame_t *img) {
+static void roq_decode_frame(roq_decoder_t *ri) {
   unsigned int chunk_id = 0, chunk_arg = 0;
   unsigned long chunk_size = 0;
   int i, j, k, nv1, nv2, vqflg = 0, vqflg_pos = -1;
@@ -253,7 +267,7 @@ static void roq_decode_frame(roq_decoder_t *ri, vo_frame_t *img) {
     chunk_id = get_word(buf);
     chunk_size = get_long(buf);
     chunk_arg = get_word(buf);
-//printf ("  type %X, %lX bytes\n", chunk_id, chunk_size);
+
     if(chunk_id == RoQ_QUAD_VQ) 
       break;
     if(chunk_id == RoQ_QUAD_CODEBOOK) {
@@ -352,25 +366,15 @@ static void roq_decode_frame(roq_decoder_t *ri, vo_frame_t *img) {
       if(ypos >= ri->height)
         break;
   }
-
-  /* there has to be a more efficient way to do the next 2 copy blocks */
-
-  /* preserve the planes for motion compensation in the next frame decode */
-  memcpy(ri->y[1], ri->y[0], ri->width * ri->height);
-  memcpy(ri->u[1], ri->u[0], (ri->width * ri->height)/4);
-  memcpy(ri->v[1], ri->v[0], (ri->width * ri->height)/4);
-
-  /* copy the planes to the output planes */
-  /* FIXME: use img->pitches[3] */
-  memcpy(img->base[0], ri->y[0], ri->width * ri->height);
-  memcpy(img->base[1], ri->u[0], (ri->width * ri->height)/4);
-  memcpy(img->base[2], ri->v[0], (ri->width * ri->height)/4);
 }
+
+/**************************************************************************
+ * xine video plugin functions
+ *************************************************************************/
 
 static void roq_init (video_decoder_t *this_gen, vo_instance_t *video_out) {
   roq_decoder_t *this = (roq_decoder_t *) this_gen;
 
-printf("roq_init\n");
   this->video_out = video_out;
   this->buf = NULL;
 }
@@ -381,7 +385,6 @@ static void roq_decode_data (video_decoder_t *this_gen,
   roq_decoder_t *this = (roq_decoder_t *) this_gen;
   vo_frame_t *img; /* video out frame */
 
-//printf("roq_decode_data\n");
   if (buf->decoder_flags & BUF_FLAG_PREVIEW)
     return;
 
@@ -398,13 +401,25 @@ static void roq_decode_data (video_decoder_t *this_gen,
     this->height = (buf->content[2] << 8) | buf->content[3];
     this->skipframes = 0;
     this->video_step = buf->decoder_info[1];
+    this->current_planes = 0;
 
-    this->y[0] = xine_xmalloc(this->width * this->height);
-    this->y[1] = xine_xmalloc(this->width * this->height);
-    this->u[0] = xine_xmalloc((this->width * this->height) / 4);
-    this->u[1] = xine_xmalloc((this->width * this->height) / 4);
-    this->v[0] = xine_xmalloc((this->width * this->height) / 4);
-    this->v[1] = xine_xmalloc((this->width * this->height) / 4);
+    this->y_size = this->width * this->height;
+    this->c_size = (this->width * this->height) / 4;
+
+    this->y[0] = xine_xmalloc(this->y_size);
+    this->y[1] = xine_xmalloc(this->y_size);
+    memset(this->y[0], 0x00, this->y_size);
+    memset(this->y[1], 0x00, this->y_size);
+
+    this->u[0] = xine_xmalloc(this->c_size);
+    this->u[1] = xine_xmalloc(this->c_size);
+    memset(this->u[0], 0x80, this->c_size);
+    memset(this->u[1], 0x80, this->c_size);
+
+    this->v[0] = xine_xmalloc(this->c_size);
+    this->v[1] = xine_xmalloc(this->c_size);
+    memset(this->v[0], 0x80, this->c_size);
+    memset(this->v[1], 0x80, this->c_size);
 
     return;
   }
@@ -430,7 +445,27 @@ static void roq_decode_data (video_decoder_t *this_gen,
     img->pts = buf->pts;
     img->duration = this->video_step;
 
-    roq_decode_frame(this, img);
+    if (this->current_planes == 0) {
+      this->cur_y = this->y[0];
+      this->cur_u = this->u[0];
+      this->cur_v = this->v[0];
+      this->prev_y = this->y[1];
+      this->prev_u = this->u[1];
+      this->prev_v = this->v[1];
+      this->current_planes = 1;
+    } else {
+      this->cur_y = this->y[1];
+      this->cur_u = this->u[1];
+      this->cur_v = this->v[1];
+      this->prev_y = this->y[0];
+      this->prev_u = this->u[0];
+      this->prev_v = this->v[0];
+      this->current_planes = 0;
+    }
+    roq_decode_frame(this);
+    xine_fast_memcpy(img->base[0], this->cur_y, this->y_size);
+    xine_fast_memcpy(img->base[1], this->cur_u, this->c_size);
+    xine_fast_memcpy(img->base[2], this->cur_v, this->c_size);
 
     if (img->copy) {
       int height = img->height;
