@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.122 2003/12/14 22:13:22 siggi Exp $
+ * $Id: audio_alsa_out.c,v 1.123 2004/01/29 22:01:07 jstembridge Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -1456,10 +1456,10 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
                                this) ) {
     this->capabilities |= AO_CAP_MODE_A52;
     this->capabilities |= AO_CAP_MODE_AC5;
-    xprintf(class->xine, XINE_VERBOSITY_LOG, _("a/52 and DTS pass-through "));
+    xprintf(class->xine, XINE_VERBOSITY_LOG, _("a/52 and DTS pass-through\n"));
   } 
   else
-    xprintf(class->xine, XINE_VERBOSITY_LOG, _("(a/52 and DTS pass-through not enabled in xine config)"));
+    xprintf(class->xine, XINE_VERBOSITY_LOG, _("(a/52 and DTS pass-through not enabled in xine config)\n"));
 
   /* printf("audio_alsa_out: capabilities 0x%X\n",this->capabilities); */
 
