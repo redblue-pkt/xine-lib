@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.127 2004/03/05 23:01:26 f1rmb Exp $
+ * $Id: audio_alsa_out.c,v 1.128 2004/03/05 23:44:39 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -829,14 +829,14 @@ static void ao_alsa_exit(ao_driver_t *this_gen) {
    * between closing the handle and spawning the child process
    * (i.e. xscreensaver).
    */
-/*
+
   if(this->mixer.handle) {
     pthread_cancel(this->mixer.thread);
     pthread_join(this->mixer.thread, NULL);
     snd_mixer_close(this->mixer.handle);
     this->mixer.handle=0;
   }
-*/
+
   if (this->audio_fd) snd_pcm_close(this->audio_fd);
   this->audio_fd=NULL;
   free (this);
