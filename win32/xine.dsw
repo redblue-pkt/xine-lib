@@ -87,6 +87,24 @@ Package=<4>
 
 ###############################################################################
 
+Project: "xineplug_ao_out_directx2"=".\xineplug_ao_out_directx2.dsp" - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+    Begin Project Dependency
+    Project_Dep_Name libxine
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libxinesuppt
+    End Project Dependency
+}}}
+
+###############################################################################
+  
 Project: "xineplug_decode_dts"=".\xineplug_decode_dts.dsp" - Package Owner=<4>
 
 Package=<5>

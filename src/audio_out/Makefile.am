@@ -35,6 +35,7 @@ endif
 
 if HAVE_DIRECTX
 directx_module = xineplug_ao_out_directx.la
+directx2_module = xineplug_ao_out_directx2.la
 endif
 
 if HAVE_COREAUDIO
@@ -59,7 +60,8 @@ lib_LTLIBRARIES = xineplug_ao_out_none.la xineplug_ao_out_file.la \
 	$(esd_module) \
 	$(directx_module) \
 	$(coreaudio_module) \
-	$(polypaudio_module)
+	$(polypaudio_module) \
+	$(directx2_module)
 
 #lib_LTLIBRARIES = \
 #	$(alsa_module) \
@@ -118,3 +120,8 @@ xineplug_ao_out_coreaudio_la_CFLAGS = -framework CoreAudio -framework AudioUnit
 xineplug_ao_out_polypaudio_la_SOURCES = audio_polyp_out.c
 xineplug_ao_out_polypaudio_la_LIBADD = $(POLYPAUDIO_LIBS) $(XINE_LIB)
 xineplug_ao_out_polypaudio_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
+
+xineplug_ao_out_directx2_la_SOURCES = audio_directx2_out.c
+xineplug_ao_out_directx2_la_CPPFLAGS = $(DIRECTX_CPPFLAGS)
+xineplug_ao_out_directx2_la_LIBADD = $(XINE_LIB) $(DIRECTX_AUDIO_LIBS)
+xineplug_ao_out_directx2_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
