@@ -50,6 +50,8 @@ extern int errno;
 #define	FNDELAY	O_NDELAY
 #endif
 
+#define DEFAULT_LOW_WATER_MARK  1
+#define DEFAULT_HIGH_WATER_MARK 5
 
 typedef struct {
   input_plugin_t   input_plugin;
@@ -64,6 +66,8 @@ typedef struct {
   off_t            curpos;
 
   int              buffering;
+  int              low_water_mark;
+  int              high_water_mark;
 
   strictscr_t     *scr; 
 
@@ -108,18 +112,16 @@ static int mms_plugin_open (input_plugin_t *this_gen, char *mrl) {
     return 0;
   }
  
-  this->curpos    = 0;
-  this->buffering = 0;
- 
+  this->curpos          = 0;
+  this->buffering       = 0;
+  this->low_water_mark  = DEFAULT_LOW_WATER_MARK;
+  this->high_water_mark = DEFAULT_HIGH_WATER_MARK;
 
   /* register our scr plugin */
   this->scr->scr.start (&this->scr->scr, this->xine->metronom->get_current_time (this->xine->metronom));
   this->xine->metronom->register_scr (this->xine->metronom, &this->scr->scr); 
   return 1;
 }
-
-#define LOW_WATER_MARK  25
-#define HIGH_WATER_MARK 50
 
 static off_t mms_plugin_read (input_plugin_t *this_gen, 
 			      char *buf, off_t len) {
@@ -139,18 +141,27 @@ static off_t mms_plugin_read (input_plugin_t *this_gen,
 
   if (this->buffering) {
     xine_log (this->xine, XINE_LOG_MSG, 
-	      "input_mms: buffering (%d/%d)...\n", fifo_fill, HIGH_WATER_MARK);
+	      "input_mms: buffering (%d/%d)...\n", fifo_fill, this->high_water_mark);
   }
 
-  if (fifo_fill<LOW_WATER_MARK) {
+  if (fifo_fill<this->low_water_mark) {
     
     if (!this->buffering) {
+
       this->xine->osd_renderer->filled_rect (this->xine->osd, 0, 0, 299, 99, 0);
       this->xine->osd_renderer->render_text (this->xine->osd, 5, 30, "mms: buffering...", OSD_TEXT1);
       this->xine->osd_renderer->show (this->xine->osd, 0);
 
       /* give video_out time to display osd before pause */
       sleep (1);
+
+      if (this->high_water_mark<150) {
+
+	/* increase marks to adapt to stream/network needs */
+
+	this->high_water_mark += 10;
+	this->low_water_mark = this->high_water_mark/4;
+      }
     }
 
     this->xine->metronom->set_speed (this->xine->metronom, SPEED_PAUSE);
@@ -158,7 +169,7 @@ static off_t mms_plugin_read (input_plugin_t *this_gen,
     this->buffering = 1;
     this->scr->adjustable = 0;
 
-  } else if ( (fifo_fill>HIGH_WATER_MARK) && (this->buffering)) {
+  } else if ( (fifo_fill>this->high_water_mark) && (this->buffering)) {
     this->xine->metronom->set_speed (this->xine->metronom, SPEED_NORMAL);
     this->xine->audio_out->audio_paused = 0;
     this->buffering = 0;
@@ -378,10 +389,12 @@ input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
   this->input_plugin.get_optional_data = mms_plugin_get_optional_data;
   this->input_plugin.is_branch_possible= NULL;
 
-  this->mrl       = NULL;
-  this->config    = config;
-  this->curpos    = 0;
-  this->buffering = 0;
+  this->mrl             = NULL;
+  this->config          = config;
+  this->curpos          = 0;
+  this->buffering       = 0;
+  this->low_water_mark  = DEFAULT_LOW_WATER_MARK;
+  this->high_water_mark = DEFAULT_HIGH_WATER_MARK;
   
   this->scr       = strictscr_init (); 
   

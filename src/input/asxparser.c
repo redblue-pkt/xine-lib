@@ -20,11 +20,11 @@ void first_request(char *buff, char *host, char *file, int *len) {
   ptr=buff;
   ptr+=sprintf(ptr,"GET %s HTTP/1.0\r\n",file);
   ptr+=sprintf(ptr,"Accept: */*\r\n");
-  ptr+=sprintf(ptr,"User-Agent: xine/0.9.8\r\n");
+  ptr+=sprintf(ptr,"User-Agent: NSPlayer/7.0.0.1956\r\n");
   ptr+=sprintf(ptr,"Host: %s\r\n", host);
   ptr+=sprintf(ptr,"Pragma: no-cache,rate=1.000000,stream-time=0,stream-offset=0:0,request-context=1,max-duration=0\r\n");
   ptr+=sprintf(ptr,"Pragma: xClientGUID=%s\r\n", "{33715801-BAB3-9D85-24E9-03B90328270A}");
-  ptr+=sprintf(ptr,"Connection: Close\r\n\r\n");
+  ptr+=sprintf(ptr,"Connection: Keep-Alive\r\n\r\n");
   *len =(int)ptr-(int)buff;
 }
 
