@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpgaudio.c,v 1.134 2004/03/03 00:39:15 tmattern Exp $
+ * $Id: demux_mpgaudio.c,v 1.135 2004/04/22 00:37:52 miguelfreitas Exp $
  *
  * demultiplexer for mpeg audio (i.e. mp3) streams
  *
@@ -238,10 +238,18 @@ static int mpg123_parse_frame_header(mpg_audio_frame_t *frame, uint8_t *buf) {
   frame->copyright      = (head >>  3) & 0x1;
   frame->original       = (head >>  2) & 0x1;
   frame->emphasis       =  head        & 0x3;
+
+#if defined(OPT_STRICT)
+  /*
+   * ISO/IEC 11172-3 says this is a reserved emphasis value, but
+   * streams exist which use it anyway. Since the value is not important
+   * to the decoder proper, we allow it unless OPT_STRICT is defined.
+   */
   if (frame->emphasis == 2) {
     lprintf("reserved emphasis\n");
     return 0;
   }
+#endif
   
   frame->bitrate = tabsel_123[!frame->lsf_bit][frame->layer - 1][frame->bitrate_idx] * 1000;
   frame->samplerate = frequencies[frame->version_idx][frame->freq_idx];
