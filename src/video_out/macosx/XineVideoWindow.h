@@ -17,17 +17,42 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * Written by Daniel Mack <xine@zonque.org>
- * 
- * Most parts of this code were taken from VLC, http://www.videolan.org
- * Thanks for the good research!
  */
 
+#ifndef __HAVE_XINE_VIDEO_WINDOW_H__
+#define __HAVE_XINE_VIDEO_WINDOW_H__
 
-#ifndef HAVE_VIDEO_WINDOW_H
-#define HAVE_VIDEO_WINDOW_H
 
-#include "XineOpenGLView.h"
-#include "XineVideoWindow.h"
+#import <Cocoa/Cocoa.h>
 
-#endif
+
+typedef enum
+{
+    XINE_FULLSCREEN_OVERSCAN,
+    XINE_FULLSCREEN_CROP
+} XineVideoWindowFullScreenMode;
+
+
+@interface XineVideoWindow : NSWindow
+{
+    int                        width, height;
+    id /* XineOpenGLView * */  xineView;
+}
+
+- (id) initWithContentSize:(NSSize)size;
+- (id /* XineOpenGLView * */) xineView;
+
+@end
+
+
+/* NSWindow aspect ratio convenience methods */
+
+@interface NSWindow (AspectRatioAdditions)
+
+- (void) setKeepsAspectRatio:(BOOL)flag;
+- (BOOL) keepsAspectRatio;
+
+@end
+
+
+#endif /* __HAVE_XINE_VIDEO_WINDOW_H__ */
