@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_oss_out.c,v 1.64 2002/05/21 20:36:06 miguelfreitas Exp $
+ * $Id: audio_oss_out.c,v 1.65 2002/05/28 10:40:16 heikos Exp $
  *
  * 20-8-2001 First implementation of Audio sync and Audio driver separation.
  * Copyright (C) 2001 James Courtier-Dutton James@superbug.demon.co.uk
@@ -51,6 +51,8 @@
 #elif defined (__FreeBSD__)
 #  if __FreeBSD__ < 4
 #   include <machine/soundcard.h>
+#  else
+#   include <sys/soundcard.h>
 #  endif
 #else
 # if defined(__linux__)
