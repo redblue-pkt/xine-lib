@@ -432,7 +432,7 @@ diff -u --new-file libdvdcss-1.2.6/src/network.c libdvdcss-1.2.6-network/src/net
 +    
 +    /* Each line sent is '\n' terminated */
 +    if((buf[strlen(buf)] == '\0') && (buf[strlen(buf) - 1] != '\n'))
-+        sprintf(buf, "%s%c", buf, '\n');
++        strcat(buf, "\n");
 +    
 +    if( sock_data_write(socket, buf, strlen(buf)) < (int)strlen(buf) )
 +    {

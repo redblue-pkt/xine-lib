@@ -317,7 +317,7 @@ int sock_string_write(int socket, char *msg, ...) {
   
   /* Each line sent is '\n' terminated */
   if((buf[strlen(buf)] == '\0') && (buf[strlen(buf) - 1] != '\n'))
-      sprintf(buf, "%s%c", buf, '\n');
+      strcat(buf, "\n");
  
   return sock_data_write(socket, buf, strlen(buf));
 }

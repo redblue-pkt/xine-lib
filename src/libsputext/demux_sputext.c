@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_sputext.c,v 1.37 2004/07/22 14:19:12 mroi Exp $
+ * $Id: demux_sputext.c,v 1.38 2004/07/27 18:06:46 mroi Exp $
  *
  * code based on old libsputext/xine_decoder.c
  *
@@ -1159,9 +1159,9 @@ static subtitle_t *sub_read_file (demux_sputext_t *this) {
     sprintf(buffer, "Read %i subtitles", this->num);
 
     if(this->errs) 
-      sprintf(buffer, "%s, %i bad line(s).\n", buffer, this->errs);
+      sprintf(buffer + strlen(buffer), ", %i bad line(s).\n", this->errs);
     else
-      sprintf(buffer, "%s%c", buffer, '\n');
+      strcat(buffer, "\n");
     
     xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, buffer);
   }

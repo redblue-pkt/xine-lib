@@ -20,7 +20,7 @@
  * Compact Disc Digital Audio (CDDA) Input Plugin 
  *   by Mike Melanson (melanson@pcisys.net)
  *
- * $Id: input_cdda.c,v 1.62 2004/07/25 17:11:59 mroi Exp $
+ * $Id: input_cdda.c,v 1.63 2004/07/27 18:06:45 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -1219,7 +1219,8 @@ static void _cdda_mkdir_recursive_safe(xine_t *xine, char *path) {
 		if (*buf2 != '\0') {
 #endif
 
-      snprintf(buf2, sizeof(buf2), "%s/%s", buf2, p);
+      int size = strlen(buf2);
+      snprintf(buf2 + size, sizeof(buf2) - size, "/%s", p);
 
 #ifdef WIN32
 		}
@@ -1358,8 +1359,9 @@ static int _cdda_load_cached_cddb_infos(cdda_input_plugin_t *this) {
      
       if(!strcasecmp(pdir->d_name, discid)) {
 	FILE *fd;
+	int size = strlen(cdir);
 	
-	snprintf(cdir, sizeof(cdir), "%s/%s", cdir, discid);
+	snprintf(cdir + size, sizeof(cdir) - size, "/%s", discid);
 	if((fd = fopen(cdir, "r")) == NULL) {
 	  xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
 		  "input_cdda: fopen(%s) failed: %s.\n", cdir, strerror(errno));
@@ -1572,9 +1574,10 @@ static int _cdda_cddb_retrieve(cdda_input_plugin_t *this) {
     memset(&buffer, 0, sizeof(buffer));
     sprintf(buffer, "cddb query %08lx %d ", this->cddb.disc_id, this->cddb.num_tracks);
     for (i = 0; i < this->cddb.num_tracks; i++) {
-      snprintf(buffer, sizeof(buffer), "%s%d ", buffer, this->cddb.track[i].start);
+      int size = strlen(buffer);
+      snprintf(buffer + size, sizeof(buffer) - size, "%d ", this->cddb.track[i].start);
     }
-    snprintf(buffer, sizeof(buffer), "%s%d\n", buffer, this->cddb.disc_length);
+    snprintf(buffer + strlen(buffer), sizeof(buffer) - strlen(buffer), "%d\n", this->cddb.disc_length);
     if ((err = _cdda_cddb_send_command(this, buffer)) <= 0) {
       xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
 	      "input_cdda: error while sending cddb query command.\n");
@@ -1628,10 +1631,11 @@ static int _cdda_cddb_retrieve(cdda_input_plugin_t *this) {
     while (strcmp(buffer, ".")) {
       char buf[2048];
       int tnum;
+      int bufsize = strlen(buffercache);
 
       memset(&buffer, 0, sizeof(buffer));
       _cdda_cddb_socket_read(this, buffer, sizeof(buffer) - 1);
-      snprintf(buffercache, sizeof(buffercache), "%s%s\n", buffercache, buffer);
+      snprintf(buffercache + bufsize, sizeof(buffercache) - bufsize, "%s\n", buffer);
 
       if (sscanf(buffer, "DTITLE=%s", &buf[0]) == 1) {
         char *pt, *artist, *title;
