@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.h,v 1.56 2002/07/07 00:43:49 tmmm Exp $
+ * $Id: buffer.h,v 1.57 2002/07/10 14:01:26 mroi Exp $
  *
  *
  * contents:
@@ -224,6 +224,19 @@ struct buf_element_s {
  * private structures.
  */
 #define BUF_SPECIAL_IDCIN_HUFFMAN_TABLE  2
+
+/*
+ * In a BUF_SPECIAL_ASPECT buffer:
+ * decoder_info[1] = BUF_SPECIAL_ASPECT
+ * decoder_info[2] = aspect ratio code
+ * decoder_info[3] = stream scale prohibitions
+ * This buffer is used to force mpeg decoders to use a certain aspect.
+ * Currently xine-dvdnav uses this, because it has more accurate information
+ * about the aspect from the dvd ifo-data.
+ * The stream scale prohibitions are also delivered, with bit 0 meaning
+ * "deny letterboxing" and bit 1 meaning "deny pan&scan"
+ */
+#define BUF_SPECIAL_ASPECT  3
 
 typedef struct palette_entry_s palette_entry_t;
 struct palette_entry_s
