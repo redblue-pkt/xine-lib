@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.109 2002/03/27 15:31:36 miguelfreitas Exp $
+ * $Id: video_out_xv.c,v 1.110 2002/04/01 22:19:27 esnel Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -744,7 +744,6 @@ static void xv_add_recent_frame (xv_driver_t *this, xv_frame_t *frame) {
 }
 
 /* currently not used - we could have a method to call this from video loop */
-#if 0
 static void xv_flush_recent_frames (xv_driver_t *this) {
 
   int i;
@@ -757,7 +756,6 @@ static void xv_flush_recent_frames (xv_driver_t *this) {
     this->recent_frames[i] = NULL;
   }
 }
-#endif
 
 static int xv_redraw_needed (vo_driver_t *this_gen) {
   xv_driver_t  *this = (xv_driver_t *) this_gen;
@@ -1087,6 +1085,10 @@ static void xv_exit (vo_driver_t *this_gen) {
     printf ("video_out_xv: xv_exit: XvUngrabPort() failed.\n");
   }
   XUnlockDisplay (this->display);
+
+  xv_flush_recent_frames (this);
+
+  free (this);
 }
 
 static int xv_check_yv12 (Display *display, XvPortID port) {
