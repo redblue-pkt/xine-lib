@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_cda.c,v 1.1 2001/12/06 23:53:20 f1rmb Exp $
+ * $Id: demux_cda.c,v 1.2 2001/12/09 13:21:19 jkeil Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -73,7 +73,7 @@ static int demux_cda_next (demux_cda_t *this) {
   
   buf->PTS             = 0;
   buf->SCR             = 0;
-  buf->input_pos       = this->input->get_current_pos(this->input);
+  buf->input_pos       = pos;
   buf->input_time      = buf->input_pos / this->blocksize;
   buf->type            = BUF_AUDIO_MPEG; /* Fake */
   
@@ -95,6 +95,8 @@ static void *demux_cda_loop (void *this_gen) {
   this->input->seek(this->input, this->start, SEEK_SET);
 
   do {
+
+    xine_usec_sleep(100000);
 
     if (!demux_cda_next(this))
       this->status = DEMUX_FINISHED;
