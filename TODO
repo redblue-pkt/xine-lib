@@ -31,7 +31,8 @@ frontends
          1-alpha/beta/rc series to demonstarte this to end users)
 
 1-rc6   Most compile warnings are fixed. Hopefully the translators have
-        finished their job as well.
+        finished their job as well. xine engine structures have been
+        looked over and some resorting/reorganizing has been done.
 
 1-rc7   All known bugs should be fixed now. There is a big call for
         testers. If they don't find any new bugs for at least a week,
@@ -70,6 +71,7 @@ optional
 - rename config entries to a more consistent scheme
   (providing automatic config file conversion, of course)
 - sort out which messages should go to console and which to xine_log
+- look over global structures and do some cleanup
 - id3v2.3,v2.4 support
 - "metainfo change" event
 - new demuxers/decoders (eg. matroska)

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.143 2003/10/20 08:36:57 valtri Exp $
+ * $Id: xine_internal.h,v 1.144 2003/10/21 16:08:04 mroi Exp $
  *
  */
 
@@ -104,7 +104,6 @@ struct xine_s {
   plugin_catalog_t          *plugin_catalog;
   
   int                        demux_strategy;
-  char                      *save_path;
 
   /* log output that may be presented to the user */
   scratch_buffer_t          *log_buffers[XINE_LOG_NUM];
@@ -115,6 +114,9 @@ struct xine_s {
   pthread_mutex_t            streams_lock;
   
   metronom_clock_t          *clock;
+  
+  /* FIXME: move this member beneath demux_strategy on the next structure cleanup */
+  char                      *save_path;
 };
 
 /*
