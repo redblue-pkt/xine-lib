@@ -51,7 +51,8 @@ lib_LTLIBRARIES = \
 	xineplug_inp_pnm.la \
 	xineplug_inp_rtsp.la \
 	xineplug_inp_net.la \
-	xineplug_inp_dvb.la 
+	xineplug_inp_dvb.la \
+	xineplug_inp_cdda.la 
 
 #lib_LTLIBRARIES = \
 #	$(in_cda) \
@@ -112,6 +113,10 @@ xineplug_inp_dvb_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 xineplug_inp_rtsp_la_SOURCES = input_rtsp.c net_buf_ctrl.c
 xineplug_inp_rtsp_la_LIBADD = $(XINE_LIB) libreal/libreal.la librtsp/librtsp.la
 xineplug_inp_rtsp_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
+
+xineplug_inp_cdda_la_SOURCES = input_cdda.c
+xineplug_inp_cdda_la_LIBADD = $(XINE_LIB)
+xineplug_inp_cdda_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 include_HEADERS = input_plugin.h
 noinst_HEADERS = net_buf_ctrl.h mms.h pnm.h
