@@ -22,10 +22,11 @@
  * - frame size calculation added (16-08-2001)
  * (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
  * for initial ALSA 0.9.x support.
+ *     adding MONO support.
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.19 2001/08/25 15:52:09 jcdutton Exp $
+ * $Id: audio_alsa_out.c,v 1.20 2001/08/25 23:55:50 jcdutton Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -122,15 +123,28 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
   int                 open_mode=0; //BLOCK
   snd_pcm_hw_params_alloca(&params);
   snd_pcm_sw_params_alloca(&swparams);
-  
   err = snd_output_stdio_attach(&jcd_out, stderr, 0);
-  if (((mode & AO_CAP_MODE_STEREO) == 0) && ((mode & AO_CAP_MODE_AC3) == 0)) {
-    error ("ALSA Driver only supports AC3/stereo output modes at the moment");
-    return 0;
-  } else {
+  switch (mode) {
+  case AO_CAP_MODE_MONO:
+    this->num_channels = 1;
+    break;
+  case AO_CAP_MODE_STEREO:
     this->num_channels = 2;
-  }
-  if (this->audio_fd != NULL) {
+    break;
+  case AO_CAP_MODE_AC3:
+    this->num_channels = 2;
+    break;
+  case AO_CAP_MODE_4CHANNEL:
+  case AO_CAP_MODE_5CHANNEL:
+  case AO_CAP_MODE_5_1CHANNEL:
+    error ("ALSA Driver only supports AC3/stereo/mono output modes at the moment. Requested mode=%d",mode);
+    return 0;
+  default:
+    error ("ALSA Driver only supports AC3/stereo/mono output modes at the moment. Requested mode=%d",mode);
+    return 0;
+  } 
+
+if (this->audio_fd != NULL) {
     error ("Already open...WHY!");
     snd_pcm_close (this->audio_fd);
   }
@@ -353,24 +367,24 @@ void xrun(alsa_driver_t *this)
 
 static int ao_alsa_write(ao_driver_t *this_gen,int16_t *data, uint32_t count)
 {
-    ssize_t r;
+  ssize_t r;
   alsa_driver_t *this = (alsa_driver_t *) this_gen;
-	
-   while( count > 0) {
+  	
+  while( count > 0) {
       r = snd_pcm_writei(this->audio_fd, data, count);
-      if (r == -EAGAIN || (r >=0 && r < count)) {
-        snd_pcm_wait(this->audio_fd, 1000);
-      } else if (r == -EPIPE) {
-        xrun(this);
-      }
-      if (r > 0) {
-        count -= r;
-	/* FIXME: maybe not *2 as int16 */
-        data += r * 2 * this->num_channels;
-      }
-   }
+    if (r == -EAGAIN || (r >=0 && r < count)) {
+      snd_pcm_wait(this->audio_fd, 1000);
+    } else if (r == -EPIPE) {
+      xrun(this);
+    }
+    if (r > 0) {
+      count -= r;
+      /* FIXME: maybe not *2 as int16 */
+      data += r * 2 * this->num_channels;
+    }
+  }
    /* FIXME: What should this really be? */
-return 1;
+  return 1;
 }
 
 static void ao_alsa_close(ao_driver_t *this_gen)
@@ -460,7 +474,7 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
   snd_pcm_close (this->audio_fd);
   this->audio_fd=NULL;
   this->output_sample_rate = 0;
-  this->capabilities       = AO_CAP_MODE_STEREO;
+  this->capabilities       = AO_CAP_MODE_STEREO | AO_CAP_MODE_MONO;
   if (config->lookup_int (config, "ac3_pass_through", 0)) {
     this->capabilities |= AO_CAP_MODE_AC3;
     strcpy(this->audio_dev,ac3_device);
