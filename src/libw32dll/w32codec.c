@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.61 2002/01/22 01:43:13 miguelfreitas Exp $
+ * $Id: w32codec.c,v 1.62 2002/01/22 01:55:12 miguelfreitas Exp $
  *
  * routines for using w32 codecs
  * DirectShow support by Miguel Freitas (Nov/2001)
@@ -632,7 +632,7 @@ static void w32v_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 					this->bih.biWidth, 
 					this->bih.biHeight, 
 					42, 
-					this->outfmt,
+					IMGFMT_YUY2,
 					this->video_step,
 					VO_BOTH_FIELDS);
 
