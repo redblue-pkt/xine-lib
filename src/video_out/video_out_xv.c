@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.111 2002/04/02 19:29:09 esnel Exp $
+ * $Id: video_out_xv.c,v 1.112 2002/04/18 11:42:38 miguelfreitas Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -695,11 +695,11 @@ static void xv_compute_output_size (xv_driver_t *this) {
   y_factor = (double) this->gui_height / (double) this->ideal_height;
   
   if ( x_factor < y_factor ) {
-    this->output_width   = (double) this->ideal_width  * x_factor ;
+    this->output_width   = (double) this->gui_width;
     this->output_height  = (double) this->ideal_height * x_factor ;
   } else {
     this->output_width   = (double) this->ideal_width  * y_factor ;
-    this->output_height  = (double) this->ideal_height * y_factor ;
+    this->output_height  = (double) this->gui_height;
   }
 
   this->output_xoffset = (this->gui_width - this->output_width) / 2 + this->gui_x;

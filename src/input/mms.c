@@ -513,21 +513,19 @@ static void interp_header (mms_t *this) {
 
 int mms_url_is(char* url, char** mms_url) {
   int i=0;
-  char* uptr;
+  int len;
     
-  printf("mms_url_is l=%d \n",strlen(mms_url[0]));
+  printf("libmms: mms_url_is l=%d \n",strlen(mms_url[0]));
   if(!url )
     return 0;
-  uptr=strdup(url);
-  uptr=strupr(uptr);
+
   while(mms_url[i]){
-    if(!strncasecmp(uptr,mms_url[i],strlen(mms_url[i]) )){
-      free(uptr);
-      return strlen(mms_url[i]);
+    len = strlen(mms_url[i]);
+    if(!strncasecmp(url, mms_url[i], len)){
+      return len;
     }
     i++;
   }
-  free(uptr);
   return 0;
 } 
 
@@ -606,13 +604,14 @@ char* mms_connect_common(int *s, int port, char *url, char **host, char** hosten
    * try to connect 
    */
 
-  printf("here port=%d \n",port);
+  printf("libmms: try to connect to %s on port %d \n", *host, port);
   *s = host_connect (*host, port);
   if (*s == -1) {
     printf ("libmms: failed to connect\n");
     free (*host);
     return NULL;
   }
+  printf ("libmms: connected\n");
   
   return url;
 }
@@ -652,7 +651,8 @@ mms_t *mms_connect (char *url_) {
   this->buf_size        = 0;
   this->buf_read        = 0;
 
-  printf ("%s %s %s %s ",url,host,path,file);
+  printf ("libmms: url=%s\nlibmms:   host=%s\nlibmms:   "
+          "path=%s\nlibmms:   file=%s\n", url, host, path, file);
   /*
    * let the negotiations begin...
    */
@@ -665,7 +665,7 @@ mms_t *mms_connect (char *url_) {
 
   send_command (this, 1, 0, 0x0004000b, strlen(this->str) * 2+8);
 
-  printf("before read \n");
+  printf("libmms: before read \n");
   len = read (this->s, this->buf, BUF_SIZE) ;
   if (len>0)
     print_answer (this->buf, len);
