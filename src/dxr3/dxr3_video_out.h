@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_video_out.h,v 1.10 2001/12/15 20:56:21 hrm Exp $
+ * $Id: dxr3_video_out.h,v 1.11 2001/12/16 19:05:44 hrm Exp $
  *
  */
 
@@ -90,6 +90,7 @@ typedef struct dxr3_driver_s {
         int 		fd_video;
 	int 		aspectratio;
 	int 		tv_mode;
+	int		mpeg_source; /* receiving mpeg data or raw YUV? */
 	int		enhanced_mode; /* enhanced play mode */
 	em8300_bcs_t 	bcs;
 	const char	*devname;

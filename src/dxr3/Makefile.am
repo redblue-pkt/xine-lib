@@ -1,15 +1,12 @@
 CFLAGS = @GLOBAL_CFLAGS@ @X_CFLAGS@ $(LINUX_INCLUDE)
 
-EXTRA_DIST = dxr3_decoder.c dxr3_vo_core.c dxr3_vo_encoder.c dxr3_vo_standard.c 
+EXTRA_DIST = dxr3_decoder.c dxr3_vo_core.c dxr3_video_out.c 
 
 LIBTOOL = $(SHELL) $(top_builddir)/libtool-nofpic
 
 libdir = $(XINE_PLUGINDIR)
 
 if HAVE_DXR3
-if HAVE_ENCODER
-dxr3enc_module = xineplug_vo_out_dxr3enc.la 
-endif
 dxr3_modules = xineplug_decode_dxr3.la xineplug_vo_out_dxr3.la 
 endif
 if HAVE_LIBFAME
@@ -19,17 +16,15 @@ if HAVE_LIBRTE
 link_rte=-lrte
 endif
 
-lib_LTLIBRARIES = $(dxr3_modules) $(dxr3enc_module)
+lib_LTLIBRARIES = $(dxr3_modules) 
 
 xineplug_decode_dxr3_la_SOURCES = dxr3_decoder.c
 xineplug_decode_dxr3_la_LDFLAGS = -avoid-version -module
 
-xineplug_vo_out_dxr3_la_SOURCES = dxr3_vo_standard.c dxr3_vo_core.c 
-xineplug_vo_out_dxr3_la_LDFLAGS = -avoid-version -module $(X_LIBS)
-
-xineplug_vo_out_dxr3enc_la_SOURCES = dxr3_vo_encoder.c dxr3_vo_core.c 
-xineplug_vo_out_dxr3enc_la_LDFLAGS = \
-		-avoid-version -module $(link_fame) $(link_rte) $(X_LIBS)
+xineplug_vo_out_dxr3_la_SOURCES = dxr3_video_out.c \
+		dxr3_vo_core.c mpeg_encoders.c
+xineplug_vo_out_dxr3_la_LDFLAGS = -avoid-version \
+		-module $(link_fame) $(link_rte) $(X_LIBS)
 
 include_HEADERS = dxr3_video_out.h 
 

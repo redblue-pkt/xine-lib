@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decoder.c,v 1.43 2001/12/15 20:56:21 hrm Exp $
+ * $Id: dxr3_decoder.c,v 1.44 2001/12/16 19:05:44 hrm Exp $
  *
  * dxr3 video and spu decoder plugin. Accepts the video and spu data
  * from XINE and sends it directly to the corresponding dxr3 devices.
@@ -318,9 +318,10 @@ static void dxr3_init (video_decoder_t *this_gen, vo_instance_t *video_out)
 	/* open video device */
 	snprintf (tmpstr, sizeof(tmpstr), "%s_mv", devname);
 	if ((this->fd_video = open (tmpstr, O_WRONLY)) < 0) {
-		printf("dxr3: Failed to open video device %s (%s)\n",
-		 tmpstr, strerror(errno));
-		return;
+		/* printf("dxr3: Failed to open video device %s (%s)\n",
+		 tmpstr, strerror(errno)); */
+		/* it's possible that the dxr3 video out plugin still
+		 * has it. We try again before writing */
 	}
 
 	if ((this->fd_control = open (devname, O_WRONLY)) < 0) {
@@ -490,7 +491,7 @@ static void dxr3_decode_data (video_decoder_t *this_gen, buf_element_t *buf)
                              this->aspect,
                              IMGFMT_YV12,
                              this->duration,
-                             VO_BOTH_FIELDS);
+                             DXR3_VO_UPDATE_FLAG);
 		/* copy PTS from buffer to img, img->draw uses it. 
 		   leaving img->SCR alone seems to work best */
 		if (buf->type != BUF_VIDEO_FILL) {
@@ -529,7 +530,8 @@ static void dxr3_decode_data (video_decoder_t *this_gen, buf_element_t *buf)
 	{
 		this->last_pts = vpts;
 		/* update the dxr3's current pts value */	
-		if (ioctl(this->fd_video, EM8300_IOCTL_VIDEO_SETPTS, &vpts)) {
+		if (this->fd_video >= 0 && 
+		    ioctl(this->fd_video, EM8300_IOCTL_VIDEO_SETPTS, &vpts)) {
 				printf("dxr3: set video pts failed (%s)\n",
 				 strerror(errno));
 		}
@@ -544,7 +546,17 @@ static void dxr3_decode_data (video_decoder_t *this_gen, buf_element_t *buf)
 	/* if the dxr3_alt_play option is used, change the dxr3 playmode */
 	if(this->enhanced_mode && !scanning_mode)
 		dxr3_mvcommand(this->fd_control, 6);
-	
+
+	/* ensure video device is open */
+	if (this->fd_video < 0) {	
+		char tmpstr[128];
+		snprintf (tmpstr, sizeof(tmpstr), "%s_mv", devname);
+		if ((this->fd_video = open (tmpstr, O_WRONLY)) < 0) {
+			printf("dxr3: Failed to open video device %s (%s)\n",
+				tmpstr, strerror(errno)); 
+			return;
+		}
+	}
 	/* now write the content to the dxr3 mpeg device and, in a dramatic
 	   break with open source tradition, check the return value */
 	written = write(this->fd_video, buf->content, buf->size);
@@ -566,8 +578,9 @@ static void dxr3_close (video_decoder_t *this_gen)
 	this->video_decoder.metronom->unregister_scr(
 	 this->video_decoder.metronom, this->scr);
 
-	close(this->fd_video);
-	this->fd_video = 0;
+	if (this->fd_video >= 0)
+		close(this->fd_video);
+	this->fd_video = -1;
 
 	this->video_out->close(this->video_out);
 }

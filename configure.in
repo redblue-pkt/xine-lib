@@ -865,9 +865,10 @@ if test x$no_aalib != "xyes"; then
 fi
 if test x"$have_dxr3" = "xyes"; then
   if test x"$have_encoder" = "xyes"; then
-    echo "   - dxr3enc"
+    echo "   - dxr3 (Hollywood+ and Creative dxr3, both mpeg and non-mpeg video)"
+  else
+    echo "   - dxr3 (Hollywood+ and Creative dxr3, mpeg video only)"
   fi
-  echo "   - dxr3"
 fi
 echo ""
 

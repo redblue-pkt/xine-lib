@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.59 2001/11/30 00:53:51 f1rmb Exp $
+ * $Id: load_plugins.c,v 1.60 2001/12/16 19:05:44 hrm Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -50,6 +50,15 @@
 /*
 #define LOAD_LOG
 */
+
+/* transition code; between xine 0.9.7 and 0.9.8, the dxr3enc driver
+ * was integrated in the dxr3 driver and no longer exists as a seperate
+ * plugin. upgraded installs may have an old dxr3enc driver left in the 
+ * plugins dir, which we do not want to load. this define activates 
+ * some code to check for this and print warnings. 
+ * should probably be removed for version 1.0 
+ * --- Harm van der Heijden */
+#define IGNORE_DXR3ENC 1
 
 extern int errno;
 
@@ -605,6 +614,16 @@ char **xine_list_video_output_plugins (int visual_type) {
 	/*printf ("load_plugins: found a video output plugin: %s\n",
 	  dir_entry->d_name); */
 
+#if IGNORE_DXR3ENC
+	if (! strncasecmp(dir_entry->d_name, 
+		XINE_VIDEO_OUT_PLUGIN_PREFIXNAME "dxr3enc", 
+		XINE_VIDEO_OUT_PLUGIN_PREFIXNAME_LENGTH + 7))
+	{
+		printf("(ignoring obsolete dxr3enc driver)");
+		continue;
+	}
+#endif
+
 	sprintf (str, "%s/%s", XINE_PLUGINDIR, dir_entry->d_name);
 	plugin_name = str;
 	
@@ -683,7 +702,20 @@ vo_driver_t *xine_load_video_output_plugin(config_values_t *config,
 					   int visual_type, void *visual) {
   DIR *dir;
   vo_driver_t *vod;
-    
+
+#if IGNORE_DXR3ENC
+  if (! strcasecmp(id, "dxr3enc")) {
+    printf( /* big poo poo */
+"load_plugins: *************************************************************\n"
+"load_plugins: WARNING: video out driver \"dxr3enc\" no longer exists.\n"
+"load_plugins: the mpeg encoding output is now integrated in the \"dxr3\"\n"
+"load_plugins: driver.\n"
+"load_plugins: *************************************************************\n"
+	);
+    return 0; 
+  }
+#endif 
+
   dir = opendir (XINE_PLUGINDIR);
   
   if (dir) {
@@ -701,6 +733,16 @@ vo_driver_t *xine_load_video_output_plugin(config_values_t *config,
 	  ((dir_entry->d_name[nLen-3]=='.') 
 	   && (dir_entry->d_name[nLen-2]=='s')
 	   && (dir_entry->d_name[nLen-1]=='o'))) {
+
+#if IGNORE_DXR3ENC
+	if (! strncasecmp(dir_entry->d_name, 
+		XINE_VIDEO_OUT_PLUGIN_PREFIXNAME "dxr3enc", 
+		XINE_VIDEO_OUT_PLUGIN_PREFIXNAME_LENGTH + 7))
+	{
+		printf("load_plugins: ignoring obsolete dxr3enc driver.\n");
+		continue;
+	}
+#endif
 
 	sprintf (str, "%s/%s", XINE_PLUGINDIR, dir_entry->d_name);
 		

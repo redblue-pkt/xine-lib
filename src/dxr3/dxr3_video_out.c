@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_vo_encoder.c,v 1.15 2001/12/13 03:41:31 hrm Exp $
+ * $Id: dxr3_video_out.c,v 1.1 2001/12/16 19:05:44 hrm Exp $
  *
  * mpeg1 encoding video out plugin for the dxr3.  
  *
@@ -139,58 +139,50 @@
  * librte stuff in separate sections, defined general encoder API
  * in encoder_data_t.
  *
+ ****** Update 16/12/2001 by Harm
+ *
+ * Merged dxr3 and dxr3enc video out drivers. Now there's only one!
+ * dxr3_vo_standard.c and dxr3_vo_encoder.c are no more, everything
+ * is in dxr3_video_out.c.
+ *
+ * renamed most config variables dxr3enc.XXX to dxr3.XXX
  */
-
 #ifdef HAVE_CONFIG_H
-#  include "config.h"
-#endif
-
-#ifdef HAVE_LIBRTE
-#  define _GNU_SOURCE
-#  include <unistd.h>
-#  include <rte.h>
-#endif
-#ifdef HAVE_LIBFAME
-#  include <fame.h>
+#include "config.h"
 #endif
 
 #include "dxr3_video_out.h"
 
-/* buffer size for encoded mpeg1 stream; will hold one intra frame 
- * at 640x480 typical sizes are <50 kB. 512 kB should be plenty */
-#define DEFAULT_BUFFER_SIZE 512*1024
-
-#ifdef HAVE_LIBFAME
-typedef struct {
-	encoder_data_t encoder_data;
-	fame_context_t *fc; /* needed for fame calls */
-	fame_parameters_t fp;
-	fame_yuv_t yuv;
-	/* temporary buffer for mpeg data */
-	char		*buffer;
-	/* temporary buffer for YUY2->YV12 conversion */
-        uint8_t 	*out[3]; /* aligned buffer for YV12 data */
-        uint8_t 	*buf; /* unaligned YV12 buffer */
-} fame_data_t;
-
-int dxr3enc_fame_init(dxr3_driver_t *);
-#endif
-
 #ifdef HAVE_LIBRTE
-typedef struct {
-	encoder_data_t encoder_data;
-	rte_context* context; /* handle for encoding */
-	void* rte_ptr; /* buffer maintened by librte */
-	double rte_time; /* frame time (s) */
-	double rte_time_step; /* time per frame (s) */
-	double rte_bitrate; /* mpeg out bitrate, default 2.3e6 bits/s */
-} rte_data_t;
-
-int dxr3enc_rte_init(dxr3_driver_t *);
+int dxr3_rte_init(dxr3_driver_t *);
 #endif
-
+#ifdef HAVE_LIBFAME
+int dxr3_fame_init(dxr3_driver_t *);
+#endif
 
 #define MV_COMMAND 0
+
+/* some helper stuff so that the decoder plugin can test for the
+ * presence of the dxr3 vo driver */
+/* to be called by dxr3 video out init and exit handlers */
+static void dxr3_set_vo(dxr3_driver_t* this, int active)
+{
+	cfg_entry_t *entry;
+	config_values_t *config = this->config;
+
+	entry = config->lookup_entry(config, "dxr3.active");
+	if (! entry) {
+		/* register first */
+		config->register_num(config, "dxr3.active", active, 
+			"state of dxr3 video out", 
+			"(internal variable; do not edit)",
+			NULL, NULL);
+	}
+	else {
+		entry->num_value = active;
+	}
+	printf("dxr3: %s dxr3 video out.\n", (active ? "enabled" : "disabled"));
+}
 
 static uint32_t dxr3_get_capabilities (vo_driver_t *this_gen)
 {
@@ -218,15 +210,19 @@ static void dxr3_frame_copy(vo_frame_t *frame_gen, uint8_t **src);
 static vo_frame_t *dxr3_alloc_frame (vo_driver_t *this_gen)
 {
   dxr3_frame_t   *frame;
-
+  dxr3_driver_t *this = (dxr3_driver_t *)this_gen;
+  
   frame = (dxr3_frame_t *) malloc (sizeof (dxr3_frame_t));
   memset (frame, 0, sizeof(dxr3_frame_t));
 
-  frame->vo_frame.copy    = dxr3_frame_copy; 
+  if (this->enc && this->enc->on_frame_copy)
+    frame->vo_frame.copy = dxr3_frame_copy;
+  else
+    frame->vo_frame.copy = 0;
   frame->vo_frame.field   = dummy_frame_field; 
   frame->vo_frame.dispose = dxr3_frame_dispose;
 
-  frame->mpeg = (unsigned char *) malloc (DEFAULT_BUFFER_SIZE);
+  frame->mpeg = 0;
 
   return (vo_frame_t*) frame;
 }
@@ -249,6 +245,50 @@ static void dxr3_update_frame_format (vo_driver_t *this_gen,
   oheight = this->oheight;
 
   frame->mpeg_size = 0;
+
+  if (flags == DXR3_VO_UPDATE_FLAG) { /* talking to dxr3 decoder */
+	this->mpeg_source = 1;
+	/* a bit of a hack. we must release the em8300_mv fd for
+	 * the dxr3 decoder plugin */
+	if (this->fd_video >= 0) {
+		close(this->fd_video);
+		this->fd_video = -1;
+	}
+  }
+  else {
+	this->mpeg_source = 0;
+  }
+
+  /* for mpeg source, we don't have to do much. */
+  if (this->mpeg_source) {
+	int aspect;
+	this->video_width  = width;
+	this->video_height = height;
+	this->video_aspect = ratio_code;
+	/* remember, there are no buffers malloc'ed for this frame!
+ 	 * the dxr3 decoder plugin is cool about this */
+	frame->width  = width;
+	frame->height = height;
+	frame->oheight = oheight;
+	frame->format = format;
+	if (frame->mem) {
+		free (frame->mem);
+		frame->mem = NULL;
+		frame->real_base[0] = frame->real_base[1] 
+			= frame->real_base[2] = NULL;
+		frame_gen->base[0] = frame_gen->base[1] 
+			= frame_gen->base[2] = NULL;
+	}
+	if (ratio_code < 3 || ratio_code>4)
+	  aspect = ASPECT_FULL;
+	else
+	  aspect = ASPECT_ANAMORPHIC;
+	if(this->aspectratio!=aspect)
+	  dxr3_set_property ((vo_driver_t*)this, VO_PROP_ASPECT_RATIO, aspect);
+	return;
+  }
+
+  /* the following is for the mpeg encoding part only */
 
   /* check aspect ratio, see if we need to add black borders */
   if ((this->video_width != width) || (this->video_iheight != height) ||
@@ -279,7 +319,7 @@ static void dxr3_update_frame_format (vo_driver_t *this_gen,
 
     /* Tell the viewers about the aspect ratio stuff. */
     if (oheight - height > 0) 
-      printf("dxr3enc: adding %d black lines to get %s a.r.\n", 
+      printf("dxr3: adding %d black lines to get %s a.r.\n", 
               oheight-height, aspect == ASPECT_FULL ? "4:3" : "16:9");
     this->video_width  = width;
     this->video_iheight = height;
@@ -288,7 +328,22 @@ static void dxr3_update_frame_format (vo_driver_t *this_gen,
     this->fps = 90000.0/frame->vo_frame.duration;
     this->format = format;
 
-    if (this->enc && this->enc->on_update_format)
+    if (! this->enc) {
+      /* no encoder plugin! Let's bug the user! */
+      printf(
+	"dxr3: ********************************************************\n"
+	"dxr3: *                                                      *\n"
+	"dxr3: * need an mpeg encoder to play non-mpeg videos on dxr3 *\n"
+	"dxr3: * read the README.dxr3 for details.                    *\n"
+	"dxr3: * (if you get this message while trying to play an     *\n"
+	"dxr3: * mpeg video, there is something wrong with the dxr3   *\n"
+	"dxr3: * decoder plugin. check if it is set up correctly)     *\n"
+	"dxr3: *                                                      *\n"
+	"dxr3: ********************************************************\n"
+	);
+    }
+
+    if (this->mpeg_source == 0 && this->enc && this->enc->on_update_format)
       this->enc->on_update_format(this);
   }
 
@@ -350,7 +405,7 @@ static void dxr3_frame_copy(vo_frame_t *frame_gen, uint8_t **src)
 {
 	dxr3_frame_t *frame = (dxr3_frame_t *) frame_gen;
 	dxr3_driver_t *this = frame->vo_instance;
-	if (this->enc && this->enc->on_frame_copy)
+	if (this->mpeg_source == 0 && this->enc && this->enc->on_frame_copy)
 		this->enc->on_frame_copy(this, frame, src);
 }
 
@@ -359,16 +414,28 @@ static void dxr3_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen)
   dxr3_driver_t *this = (dxr3_driver_t*)this_gen;
   dxr3_frame_t *frame = (dxr3_frame_t*)frame_gen;
 
-  if (this->enc)
+  if (this->mpeg_source == 0 && this->enc && this->enc->on_display_frame)
 	this->enc->on_display_frame(this, frame);
-
-  /* plugin is responsible for calling vo_frame->displayed(frame) ! */
+  if (this->mpeg_source)
+	frame_gen->displayed(frame_gen);
+  /* for non-mpeg, the encoder plugin is responsible for calling 
+   * frame_gen->displayed(frame_gen) ! */
 }
 
 static void dxr3_overlay_blend (vo_driver_t *this_gen, vo_frame_t *frame_gen,
  vo_overlay_t *overlay)
 {
-	/* dummy function */
+	dxr3_driver_t *this = (dxr3_driver_t*)this_gen;
+	if ( this->mpeg_source == 0 )
+	{
+		/* we have regular YUV frames, so in principle we can blend
+		 * it just like the Xv driver does. Problem is that the
+		 * alphablend.c code file is not nearby */
+	}
+	else {
+		/* we're using hardware mpeg decoding and have no YUV frames
+		 * we need something else to blend... */
+	}
 }
 
 void dxr3_exit (vo_driver_t *this_gen)
@@ -380,6 +447,7 @@ void dxr3_exit (vo_driver_t *this_gen)
 
 	if(this->overlay_enabled)
 		dxr3_overlay_set_mode(&this->overlay, EM8300_OVERLAY_MODE_OFF);
+	dxr3_set_vo(this, 0);
 }
 
 vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen)
@@ -413,24 +481,25 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen)
 	this->vo_driver.gui_data_exchange    = dxr3_gui_data_exchange;
 	this->vo_driver.exit                 = dxr3_exit;
 	this->config=config;
+	this->mpeg_source = 0; /* set by update_frame, by checking the flag */
 	
-	this->enhanced_mode = config->register_bool(config,"dxr3enc.alt_play_mode", 1, "Dxr3enc: use alternate Play mode","Enabling this option will utilise a slightly different play mode",NULL,NULL);
+	this->enhanced_mode = config->register_bool(config,"dxr3.enc_alt_play_mode", 1, "dxr3: use alternate play mode for mpeg encoder playback","Enabling this option will utilise a slightly different play mode",NULL,NULL);
 	/* open control device */
 	this->devname = config->register_string (config, LOOKUP_DEV, DEFAULT_DEV,NULL,NULL,NULL,NULL);
 
-	printf("dxr3enc: Entering video init, devname=%s.\n",this->devname);
+	printf("dxr3: Entering video init, devname=%s.\n",this->devname);
 	if ((this->fd_control = open(this->devname, O_WRONLY)) < 0) {
-		printf("dxr3enc: Failed to open control device %s (%s)\n",
+		printf("dxr3: Failed to open control device %s (%s)\n",
 			this->devname, strerror(errno));
 		return 0;
 	}
         /* output mpeg to file instead of dxr3? */
-        this->file_out = config->register_string(config, "dxr3enc.outputfile", "<none>", "Dxr3enc: output file for debugging",NULL,NULL,NULL);
+        this->file_out = config->register_string(config, "dxr3.outputfile", "<none>", "dxr3: output file of encoded mpeg video for debugging",NULL,NULL,NULL);
 
         if (this->file_out && strcmp(this->file_out, "<none>")) {
 		this->fd_video = open(this->file_out, O_WRONLY | O_CREAT);
 		if (this->fd_video < 0) {
-			perror("dxr3enc: failed to open output file");
+			perror("dxr3: failed to open output file");
 			return 0;
 		}
 	}
@@ -438,7 +507,7 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen)
 	 	/* open video device */
 		snprintf (tmpstr, sizeof(tmpstr), "%s_mv", this->devname);
 		if ((this->fd_video = open (tmpstr, O_WRONLY | O_SYNC )) < 0) {
-			printf("dxr3enc: failed to open video device %s (%s)\n",
+			printf("dxr3: failed to open video device %s (%s)\n",
 				tmpstr, strerror(errno));
 			return 0;
 		}
@@ -460,27 +529,35 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen)
 	default_encoder = "rte"; 
 	strcat(available_encoders, "\"rte\" (fast, high quality) ");
 #endif
-	printf("dxr3enc: %s\n", available_encoders);
-	if (! default_encoder) { /* silly person; no encoder compiled in! */
-		printf("dxr3enc: no mpeg1 encoder compiled in.\n");
-		return 0;
-	}
-	encoder = config->register_string(config, "dxr3enc.encoder", 
-		default_encoder, available_encoders, NULL, NULL, NULL);
+	printf("dxr3: %s\n", available_encoders);
 	this->enc = 0;
+	if (default_encoder) { 
+		encoder = config->register_string(config, "dxr3.encoder", 
+			default_encoder, available_encoders, NULL, NULL, NULL);
 #ifdef HAVE_LIBRTE
-	if (! strcmp(encoder, "rte"))
-		if ( dxr3enc_rte_init(this) )
-			return 0;
+		if (! strcmp(encoder, "rte"))
+			if ( dxr3_rte_init(this) )
+				return 0;
 #endif
 #ifdef HAVE_LIBFAME
-	if (! strcmp(encoder, "fame"))
-		if ( dxr3enc_fame_init(this) )
-			return 0;
+		if (! strcmp(encoder, "fame"))
+			if ( dxr3_fame_init(this) )
+				return 0;
 #endif
-	if (! this->enc) {
-		printf("dxr3enc: encoder \"%s\" not supported.\n", encoder);
-		return 0;
+		if (this->enc == 0) {
+			printf(
+"dxr3: mpeg encoder \"%s\" not compiled in or not supported.\n"
+"dxr3: valid options are %s\n", encoder, available_encoders);
+			return 0;
+		}
+	}
+	else {
+		printf(
+"dxr3: no mpeg encoder compiled in.\n"
+"dxr3: that's ok, you don't need if for mpeg video like DVDs, but\n"
+"dxr3: you will not be able to play non-mpeg content using this video out\n"
+"dxr3: driver. See the README.dxr3 for details on configuring an encoder.\n" 
+		);
 	}
 
 	gather_screen_vars(this, visual_gen);
@@ -496,13 +573,14 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen)
 		dxr3_overlay_buggy_preinit(&this->overlay, this->fd_control);
 	}
 
+	dxr3_set_vo(this, 1);
 	return &this->vo_driver;
 }
 
 static vo_info_t vo_info_dxr3 = {
   2, /* api version */
-  "dxr3enc",
-  "xine mpeg1 encoding video output plugin for dxr3 cards",
+  "dxr3",
+  "xine video output plugin for dxr3 cards",
   VISUAL_TYPE_X11,
   10  /* priority */
 };
@@ -512,383 +590,4 @@ vo_info_t *get_video_out_plugin_info()
 	return &vo_info_dxr3;
 }
 
-#ifdef HAVE_LIBRTE
-
-static void mp1e_callback(rte_context *context, void *data, ssize_t size, 
-	void* user_data)
-{
-  dxr3_driver_t *this = (dxr3_driver_t*)user_data;
-  em8300_register_t regs; 
-  char tmpstr[128];
-
-  if (this->enhanced_mode)
-  {
-    regs.microcode_register=1; 	/* Yes, this is a MC Reg */
-    regs.reg = MV_COMMAND;
-    regs.val=6; /* Mike's mystery number :-) */
-    ioctl(this->fd_control, EM8300_IOCTL_WRITEREG, &regs);
-  }
-  if (this->fd_video < 0) {
-    snprintf (tmpstr, sizeof(tmpstr), "%s_mv", this->devname);
-    this->fd_video = open(tmpstr, O_WRONLY);
-  }
-  if (write(this->fd_video, data, size) < 0)
-    perror("dxr3enc: writing to video device");
-}
-
-static int rte_on_update_format(dxr3_driver_t *drv) 
-{
-	rte_data_t *this = (rte_data_t*)drv->enc;
-	rte_context* context; 
-	rte_codec *codec;
-	int width, height;
-	char tmpstr[128];
-
-	width = drv->video_width;
-	height = drv->video_height;
-
-	if (this->context != 0) /* already done */
-		return 0;
-
-	this->context = rte_context_new (width, height, "mp1e", drv);
-	if (! this->context) {
-		printf("failed to get rte context.\n");
-		return 1;
-	}
-	context = this->context; /* shortcut */
-	rte_set_verbosity(context, 2);
-	/* get mpeg codec handle */
-	codec = rte_codec_set(context, RTE_STREAM_VIDEO, 0, "mpeg1_video");
-	if (! codec) {
-		printf("dxr3enc: could not create codec.\n");
-		rte_context_destroy(context);
-		context = 0;
-		return 1;
-	}
-	this->rte_bitrate=drv->config->register_range(drv->config,"dxr3enc.rte_bitrate",10000, 1000,20000, "Dxr3enc: rte mpeg output bitrate (kbit/s)",NULL,NULL,NULL);
-	this->rte_bitrate *= 1000; /* config in kbit/s, rte wants bit/s */
-	/* FIXME: this needs to be replaced with a codec option call. 
-	 * However, there seems to be none for the colour format!
-	 * So we'll use the deprecated set_video_parameters instead. 
-	 * Alternative is to manually set context->video_format (RTE_YU... )
-	 * and context->video_bytes (= width * height * bytes/pixel) */
-	rte_set_video_parameters(context, 
-		(drv->format == IMGFMT_YV12 ? RTE_YUV420 : RTE_YUYV),
-		context->width, context->height, 
-		context->video_rate, context->output_video_bits, 
-		context->gop_sequence);
-	/* Now set a whole bunch of codec options */
-	/* If I understand correctly, virtual_frame_rate is the frame rate
-	 * of the source (can be anything), while coded_frame_rate must be
-	 * one of the mpeg1 alloweds */
-	if (!rte_option_set(codec, "virtual_frame_rate", drv->fps))
-		printf("dxr3enc: WARNING: rte_option_set failed; virtual_frame_rate=%g.\n",drv->fps);
-	if (!rte_option_set(codec, "coded_frame_rate", drv->fps))
-		printf("dxr3enc: WARNING: rte_option_set failed; coded_frame_rate=%g.\n",drv->fps);
-	if (!rte_option_set(codec, "bit_rate", (int)this->rte_bitrate))
-		printf("dxr3enc: WARNING: rte_option_set failed; bit_rate = %d.\n", 
-			(int)this->rte_bitrate);
-	if (!rte_option_set(codec, "gop_sequence", "I"))
-		printf("dxr3enc: WARNING: rte_option_set failed; gop_sequence = \"I\".\n");
-	/* just to be sure, disable motion comp (not needed in I frames) */
-	if (!rte_option_set(codec, "motion_compensation", 0))
-		printf("dxr3enc: WARNING: rte_option_set failed; motion_compensation = 0.\n");
-	rte_set_input(context, RTE_VIDEO, RTE_PUSH, FALSE, NULL, NULL, NULL);
-	snprintf (tmpstr, sizeof(tmpstr), "%s_mv", drv->devname);
-	rte_set_output(context, mp1e_callback, NULL, NULL);
-	if (!rte_init_context(context)) {
-		printf("dxr3enc: cannot init the context: %s\n",
-			context->error);
-		rte_context_delete(context);
-		context = 0;
-		return 1;
-	}
-	/* do the sync'ing and start encoding */
-	if (!rte_start_encoding(context)) {
-		printf("dxr3enc: cannot start encoding: %s\n",
-			context->error);
-		rte_context_delete(context);
-		context = 0;
-		return 1;
-	}
-	this->rte_ptr = rte_push_video_data(context, NULL, 0); 
-	if (! this->rte_ptr) {
-		printf("dxr3enc: failed to get encoder buffer pointer.\n");
-		return 1;
-	}
-	this->rte_time = 0.0;
-	this->rte_time_step = 1.0/drv->fps;
-	
-	return 0;
-}
-
-static int rte_on_display_frame( dxr3_driver_t* drv, dxr3_frame_t* frame )
-{
-	int size;
-	rte_data_t* this = (rte_data_t*)drv->enc;
-	size = frame->width * frame->oheight;
-	if (frame->format == IMGFMT_YV12)
-		xine_fast_memcpy(this->rte_ptr, frame->real_base[0], size*3/2);
-	else
-		xine_fast_memcpy(this->rte_ptr, frame->real_base[0], size*2);
-	this->rte_time += this->rte_time_step;
-	this->rte_ptr = rte_push_video_data(this->context, this->rte_ptr, 
-					this->rte_time);
-  	frame->vo_frame.displayed(&frame->vo_frame); 
-	return 0;
-}
-
-static int rte_on_close( dxr3_driver_t *drv )
-{
-	rte_data_t *this = (rte_data_t*)drv->enc;
-	if (this->context) {
-		rte_stop(this->context);
-		rte_context_delete(this->context);
-		this->context = 0;
-	}
-	free(this);
-	drv->enc = 0;
-	return 0;
-}
-
-int dxr3enc_rte_init( dxr3_driver_t *drv )
-{
-	rte_data_t* this;
-	if (! rte_init() ) {
-		printf("dxr3enc: failed to init librte\n");
-		return 1;
-	} 
-	this = malloc(sizeof(rte_data_t));
-	if (!this)
-		return 1;
-	memset(this, 0, sizeof(rte_data_t));
-	this->encoder_data.type = ENC_RTE;
-	this->context = 0;
-	this->encoder_data.on_update_format = rte_on_update_format;
-	this->encoder_data.on_frame_copy = 0;
-	this->encoder_data.on_display_frame = rte_on_display_frame;
-	this->encoder_data.on_close = rte_on_close;
-	drv->enc = (encoder_data_t*)this;
-	return 0;
-}
-
-#endif
-
-#ifdef HAVE_LIBFAME
-
-static fame_parameters_t dummy_init_fp = FAME_PARAMETERS_INITIALIZER;
-
-static int fame_on_update_format(dxr3_driver_t *drv) 
-{
-	fame_data_t *this = (fame_data_t*)drv->enc;
- 	double fps;
- 
-	/* if YUY2 and dimensions changed, we need to re-allocate the
-	 * internal YV12 buffer */
-	if (this->buf) free(this->buf);  
-	this->buf = 0;
-	this->out[0] = this->out[1] = this->out[2] = 0;
-	if (drv->format == IMGFMT_YUY2) {
-		int image_size = drv->video_width * drv->video_height;
-
-		this->out[0] = malloc_aligned(16, image_size * 3/2, 
-			(void*)&this->buf);
-		this->out[1] = this->out[0] + image_size; 
-		this->out[2] = this->out[1] + image_size/4; 
-
-		/* fill with black (yuv 16,128,128) */
-		memset(this->out[0], 16, image_size);
-		memset(this->out[1], 128, image_size/4);
-		memset(this->out[2], 128, image_size/4);
-
-		printf("dxr3enc: Using YUY2->YV12 conversion\n");  
-	}
-
-	if (!this->fc)
-		this->fc = fame_open();
-	if (!this->fc) {
-	      	printf("Couldn't start the FAME library\n");
-		return 1;
-	}
-	
-	if (!this->buffer)
-		this->buffer = (unsigned char *) malloc (DEFAULT_BUFFER_SIZE);
-	if (!this->buffer) {
-		printf("Couldn't allocate temp buffer for mpeg data\n");
-		return 1;
-	}
-
-	this->fp = dummy_init_fp; 
-	this->fp.quality=drv->config->register_range(drv->config,"dxr3enc.fame_quality",90, 10,100, "Dxr3enc: fame mpeg encoding quality",NULL,NULL,NULL);
-	/* the really interesting bit is the quantizer scale. The formula
-	 * below is copied from libfame's sources (could be changed in the
-	 * future) */
-	printf("dxr3enc: quality %d -> quant scale = %d\n", this->fp.quality,
-        	1 + (30*(100-this->fp.quality)+50)/100);
-	this->fp.width = drv->video_width;
-	this->fp.height = drv->video_height;
-	this->fp.profile = "mpeg1";
-	this->fp.coding = "I";
-	this->fp.verbose = 1;   /* we don't need any more info.. thanks :) */ 
-
-	/* start guessing the framerate */
-	fps = drv->fps;
-	if (fabs(fps - 25) < 0.01) { /* PAL */
-		printf("dxr3enc: setting mpeg output framerate to PAL (25 Hz)\n");
-		this->fp.frame_rate_num = 25; this->fp.frame_rate_den = 1; 
-	}  
-	else if (fabs(fps - 24) < 0.01) { /* FILM */
-      		printf("dxr3enc: setting mpeg output framerate to FILM (24 Hz))\n");
-		this->fp.frame_rate_num = 24; this->fp.frame_rate_den = 1; 
-	}
-	else if (fabs(fps - 23.976) < 0.01) { /* NTSC-FILM */
-		printf("dxr3enc: setting mpeg output framerate to NTSC-FILM (23.976 Hz))\n");
-		this->fp.frame_rate_num = 24000; this->fp.frame_rate_den = 1001; 
-	}
-	else if (fabs(fps - 29.97) < 0.01) { /* NTSC */
-		printf("dxr3enc: setting mpeg output framerate to NTSC (29.97 Hz)\n");
-		this->fp.frame_rate_num = 30000; this->fp.frame_rate_den = 1001;
-	}
-	else { /* try 1/fps, if not legal, libfame will go to PAL */
-		this->fp.frame_rate_num = (int)(fps + 0.5); this->fp.frame_rate_den = 1;
-		printf("dxr3enc: trying to set mpeg output framerate to %d Hz\n",
-			this->fp.frame_rate_num);
-	}
-	fame_init (this->fc, &this->fp, this->buffer, DEFAULT_BUFFER_SIZE);
-	
-	return 0;
-}
-
-static int fame_on_frame_copy(dxr3_driver_t *drv, dxr3_frame_t *frame, 
-				uint8_t **src)
-{
-	int size, i, j, hoffset, w2;
-	uint8_t *y, *u, *v, *yuy2;
-	fame_data_t *this = (fame_data_t*)drv->enc;
-
-	if (frame->vo_frame.bad_frame)
-		return 0;
-
-	if (frame->copy_calls == frame->height/16) {
-		/* shouldn't happen */
-		printf("dxr3enc: Internal error. Too many calls to dxr3_frame_copy (%d)\n", 
-		frame->copy_calls);
-		return 1; 
-	}
-
-	if (frame->vo_frame.format == IMGFMT_YUY2) {
-		/* need YUY2->YV12 conversion */
-		if (! (this->out[0] && this->out[1] && this->out[2]) ) {
-			printf("dxr3enc: Internal error. Internal YV12 buffer not created.\n");
-			return 1;
-		}
-		/* need conversion */
-		hoffset = ((frame->oheight - frame->height)/32)*16; 
-		y = this->out[0] + frame->width*(hoffset + frame->copy_calls*16);
-		u = this->out[1] + frame->width/2*(hoffset/2 + frame->copy_calls*8);
-		v = this->out[2] + frame->width/2*(hoffset/2 + frame->copy_calls*8);
-		yuy2 = src[0];
-		w2 = frame->width/2;
-		/* we get 16 lines each time */
-		for (i=0; i<16; i+=2) {
-			for (j=0; j<w2; j++) {
-				/* packed YUV 422 is: Y[i] U[i] Y[i+1] V[i] */
-				*(y++) = *(yuy2++);
-				*(u++) = *(yuy2++);
-				*(y++) = *(yuy2++);
-				*(v++) = *(yuy2++);
-			}
-			/* down sampling */
-			for (j=0; j<w2; j++) {
-				/* skip every second line for U and V */
-				*(y++) = *(yuy2++);
-				yuy2++;
-				*(y++) = *(yuy2++);
-				yuy2++;
-			}
-		}
-		/* reset for encoder */
-		y = this->out[0];
-		u = this->out[1];
-		v = this->out[2];
-	}
-	else { /* YV12 */
-		y = frame->real_base[0];
-		u = frame->real_base[1];
-		v = frame->real_base[2];
-	}
-
-	frame->copy_calls++;
-
-	/* frame complete yet? */
-	if (frame->copy_calls != frame->height/16)
-		return 0;
-	/* frame is complete: encode */
-	this->yuv.y=y;
-	this->yuv.u=u;
-	this->yuv.v=v;
-	size = fame_encode_frame(this->fc, &this->yuv, NULL);
-    	if (size >= DEFAULT_BUFFER_SIZE) {
-		printf("dxr3enc: warning, mpeg buffer too small!\n");
-		size = DEFAULT_BUFFER_SIZE;
-	}
-	/* copy mpeg data to frame */
-	xine_fast_memcpy(frame->mpeg, this->buffer, size);
-	frame->mpeg_size = size;
-	return 0;
-}
-
-
-static int fame_on_display_frame( dxr3_driver_t* drv, dxr3_frame_t* frame)
-{
-	char tmpstr[128];
-	em8300_register_t regs; 
-	if (drv->enhanced_mode)
-	{
-		regs.microcode_register=1; /* Yes, this is a MC Reg */
-		regs.reg = MV_COMMAND;
-		regs.val=6; /* Mike's mystery number :-) */
-		ioctl(drv->fd_control, EM8300_IOCTL_WRITEREG, &regs);
-	}
-
-	if (drv->fd_video < 0) {
-		snprintf (tmpstr, sizeof(tmpstr), "%s_mv", drv->devname);
-		drv->fd_video = open(tmpstr, O_WRONLY);
-	}
-	if (write(drv->fd_video, frame->mpeg, frame->mpeg_size) < 0) 
-		perror("dxr3enc: writing to video device");
-  	frame->vo_frame.displayed(&frame->vo_frame); 
-	return 0;
-}
-
-static int fame_on_close( dxr3_driver_t *drv )
-{
-	fame_data_t *this = (fame_data_t*)drv->enc;
-	if (this->fc) {
-		fame_close(this->fc);
-	}
-	free(this);
-	drv->enc = 0;
-	return 0;
-}
-
-int dxr3enc_fame_init( dxr3_driver_t *drv )
-{
-	fame_data_t* this;
-	this = malloc(sizeof(fame_data_t));
-	if (! this)
-		return 1;
-	memset(this, 0, sizeof(fame_data_t));
-	this->encoder_data.type = ENC_FAME;
-	/* fame context */
-	this->fc = 0;
-	this->encoder_data.on_update_format = fame_on_update_format;
-	this->encoder_data.on_frame_copy = fame_on_frame_copy;
-	this->encoder_data.on_display_frame = fame_on_display_frame;
-	this->encoder_data.on_close = fame_on_close;
-	drv->enc = (encoder_data_t*)this;
-	return 0;
-}
-
-#endif
 

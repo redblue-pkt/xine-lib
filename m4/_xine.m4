@@ -113,9 +113,9 @@ AC_DEFUN([AC_CHECK_DXR3],
         have_encoder=yes
       fi
       if test "$have_encoder" = "yes"; then
-        AC_MSG_RESULT([*** found one or more mpeg encoders, will compile dxr3enc video out driver]);
+        AC_MSG_RESULT([*** found one or more mpeg encoders, will compile in on-the-fly encoding]);
       else
-        AC_MSG_RESULT([*** no mpeg encoder found, will skip dxr3enc video out driver]);
+        AC_MSG_RESULT([*** no mpeg encoder found, will support mpeg playing only]);
       fi
     fi
   else
