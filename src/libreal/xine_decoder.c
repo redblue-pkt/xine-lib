@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.12 2002/12/07 00:27:18 guenter Exp $
+ * $Id: xine_decoder.c,v 1.13 2002/12/07 01:55:36 guenter Exp $
  *
  * thin layer to use real binary-only codecs in xine
  *
@@ -310,9 +310,6 @@ static void realdec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) 
 	img->duration  = this->duration; 
 	img->bad_frame = 0;
 	
-	printf ("libreal: img->pts=%lld img->duration=%d\n", 
-		img->pts, img->duration);
-
 #ifdef LOG
 	printf ("libreal: pts %lld %lld diff %lld # %d est. duration %lld\n", 
 		this->pts*90, 
@@ -452,7 +449,7 @@ static video_decoder_t *open_plugin (video_decoder_class_t *class_gen,
   this->pts        = 0;
   this->last_pts   = 0;
   this->num_frames = 0;
-  this->duration   = 3000;
+  this->duration   = 6000;
 
   return &this->video_decoder;
 }
