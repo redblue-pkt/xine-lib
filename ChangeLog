@@ -1,5 +1,6 @@
 xine-lib (1.1)
   * updated vidix to 0.9.9
+  * plugin description accessor functions (may load plugins)
 
 xine-lib (1.0.1)
   * fixed builds with Xv or the entire X11 unavailble

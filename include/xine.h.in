@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.137 2005/01/22 23:29:06 holstsn Exp $
+ * $Id: xine.h.in,v 1.138 2005/02/02 23:11:40 dsalt Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -992,8 +992,22 @@ char *xine_get_mime_types (xine_t *self);
  * returns NULL if no demuxer is available to handle this. */
 char *xine_get_demux_for_mime_type (xine_t *self, const char *mime_type);
 
-/* get a description string for an input plugin */
+/* get a description string for a plugin */
 const char *xine_get_input_plugin_description (xine_t *self,
+					       const char *plugin_id);
+const char *xine_get_demux_plugin_description (xine_t *self,
+					       const char *plugin_id);
+const char *xine_get_spu_plugin_description   (xine_t *self,
+					       const char *plugin_id);
+const char *xine_get_audio_plugin_description (xine_t *self,
+					       const char *plugin_id);
+const char *xine_get_video_plugin_description (xine_t *self,
+					       const char *plugin_id);
+const char *xine_get_audio_driver_plugin_description (xine_t *self,
+					       const char *plugin_id);
+const char *xine_get_video_driver_plugin_description (xine_t *self,
+					       const char *plugin_id);
+const char *xine_get_post_plugin_description  (xine_t *self,
 					       const char *plugin_id);
 
 /* get lists of available audio and video output plugins */

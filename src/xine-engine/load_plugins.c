@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.193 2004/12/22 22:05:22 mroi Exp $
+ * $Id: load_plugins.c,v 1.194 2005/02/02 23:11:40 dsalt Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -1319,27 +1319,6 @@ const char *const *xine_get_browsable_input_plugin_ids(xine_t *this) {
   return catalog->ids;
 }
 
-const char *xine_get_input_plugin_description (xine_t *this, const char *plugin_id) {
-
-  plugin_catalog_t   *catalog;
-  plugin_node_t      *node;
-
-  catalog = this->plugin_catalog;
-
-  node = xine_list_first_content (catalog->input);
-  while (node) {
-
-    if (!strcasecmp (node->info->id, plugin_id)) {
-
-      input_class_t *ic = (input_class_t *) node->plugin_class;
-
-      return ic->get_description(ic);
-    }
-    node = xine_list_next_content (catalog->input);
-  }
-  return NULL;
-}
-
 /*
  *  video out plugins section
  */
@@ -1955,6 +1934,32 @@ const char *const *xine_list_post_plugins_typed(xine_t *xine, int type) {
   pthread_mutex_unlock (&catalog->lock);
   return catalog->ids;
 }
+
+#define GET_PLUGIN_DESC(NAME,TYPE,CATITEM) \
+  const char *xine_get_##NAME##_plugin_description (xine_t *this, const char *plugin_id) { \
+    plugin_catalog_t *catalog = this->plugin_catalog; \
+    plugin_node_t    *node = xine_list_first_content (catalog->CATITEM); \
+    while (node) { \
+      if (!strcasecmp (node->info->id, plugin_id)) { \
+	TYPE##_class_t *ic = (TYPE##_class_t *) node->plugin_class; \
+	if (!ic) \
+	  ic = node->plugin_class = \
+	    _load_plugin_class (this, node->filename, node->info, NULL); \
+	return ic->get_description(ic); \
+      } \
+      node = xine_list_next_content (catalog->CATITEM); \
+    } \
+    return NULL; \
+  }
+
+GET_PLUGIN_DESC (input,		input,		input)
+GET_PLUGIN_DESC (demux,		demux,		demux)
+GET_PLUGIN_DESC (spu,		spu_decoder,	spu)
+GET_PLUGIN_DESC (audio,		audio_decoder,	audio)
+GET_PLUGIN_DESC (video,		video_decoder,	video)
+GET_PLUGIN_DESC (audio_driver,	audio_driver,	aout)
+GET_PLUGIN_DESC (video_driver,	video_driver,	vout)
+GET_PLUGIN_DESC (post,		post,		post)
 
 xine_post_t *xine_post_init(xine_t *xine, const char *name, int inputs,
 			    xine_audio_port_t **audio_target,
