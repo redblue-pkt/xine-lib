@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.h,v 1.79 2002/11/18 03:03:09 guenter Exp $
+ * $Id: buffer.h,v 1.80 2002/11/28 10:21:08 petli Exp $
  *
  *
  * contents:
@@ -182,6 +182,7 @@ extern "C" {
 #define BUF_SPU_DVD		0x04000000
 #define BUF_SPU_TEXT            0x04010000
 #define BUF_SPU_CC              0x04020000
+#define BUF_SPU_DVB             0x04030000
 
 /* demuxer block types: */
 
@@ -324,6 +325,24 @@ struct buf_element_s {
 #define SPU_DVD_SUBTYPE_NAV		4
 
 
+/* In a BUF_SPECIAL_SPU_DVB_DESCRIPTOR
+ * decoder_info[1] = BUF_SPECIAL_SPU_DVB_DESCRIPTOR
+ * decoder_info[2] = pointer to spu_dvb_descriptor_t, or NULL
+ * decoder_info[3] = 
+ *
+ * This buffer is used to tell a DVBSUB decoder when the stream
+ * changes.  For more information on how to write a DVBSUB decoder,
+ * see the comment at the top of src/demuxers/demux_ts.c
+ **/
+#define BUF_SPECIAL_SPU_DVB_DESCRIPTOR 9
+typedef struct spu_dvb_descriptor_s spu_dvb_descriptor_t;
+struct spu_dvb_descriptor_s
+{
+  char lang[4];
+  long comp_page_id;
+  long aux_page_id;
+} ;
+  
 typedef struct palette_entry_s palette_entry_t;
 struct palette_entry_s
 {

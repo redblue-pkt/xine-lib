@@ -21,7 +21,7 @@
  * For more information regarding the Real file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_real.c,v 1.17 2002/11/26 00:37:28 guenter Exp $
+ * $Id: demux_real.c,v 1.18 2002/11/28 10:21:07 petli Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -1023,6 +1023,15 @@ static int demux_real_get_stream_length (demux_plugin_t *this_gen) {
   return this->duration / 1000;
 }
 
+static uint32_t demux_real_get_capabilities(demux_plugin_t *this_gen) {
+  return DEMUX_CAP_NOCAP;
+}
+
+static int demux_real_get_optional_data(demux_plugin_t *this_gen,
+					void *data, int data_type) {
+  return DEMUX_OPTIONAL_UNSUPPORTED;
+}
+
 static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *stream,
                                     input_plugin_t *input_gen) {
 
@@ -1126,6 +1135,8 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   this->demux_plugin.get_stream_length = demux_real_get_stream_length;
   this->demux_plugin.get_video_frame   = NULL;
   this->demux_plugin.got_video_frame_cb= NULL;
+  this->demux_plugin.get_capabilities  = demux_real_get_capabilities;
+  this->demux_plugin.get_optional_data = demux_real_get_optional_data;
   this->demux_plugin.demux_class       = class_gen;
 
   strncpy (this->last_mrl, input->get_mrl (input), 1024);
@@ -1183,6 +1194,6 @@ static void *init_class (xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */
-  { PLUGIN_DEMUX, 17, "real", XINE_VERSION_CODE, NULL, init_class },
+  { PLUGIN_DEMUX, 18, "real", XINE_VERSION_CODE, NULL, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

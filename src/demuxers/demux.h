@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux.h,v 1.25 2002/11/20 11:57:40 mroi Exp $
+ * $Id: demux.h,v 1.26 2002/11/28 10:21:05 petli Exp $
  */
 
 #ifndef HAVE_DEMUX_H
@@ -32,7 +32,7 @@
 #include "input_plugin.h"
 #endif
 
-#define DEMUXER_PLUGIN_IFACE_VERSION    17
+#define DEMUXER_PLUGIN_IFACE_VERSION    18
 
 #define DEMUX_OK                   0
 #define DEMUX_FINISHED             1
@@ -168,10 +168,45 @@ struct demux_plugin_s {
 			      vo_frame_t *frame);
 
   /*
+   * return capabilities of demuxed stream
+   */
+
+  uint32_t (*get_capabilities) (demux_plugin_t *this);
+  
+  /*
+   * request optional data from input plugin.
+   */
+  int (*get_optional_data) (demux_plugin_t *this, void *data, int data_type);
+  
+  /*
    * "backwards" link to plugin class
    */
 
   demux_class_t *demux_class;
 } ;
+
+/*
+ * possible capabilites a demux plugin can have:
+ */
+#define DEMUX_CAP_NOCAP                0x00000000
+
+/*
+ * DEMUX_CAP_AUDIOLANG:
+ * DEMUX_CAP_SPULANG:
+ *   demux plugin knows something about audio/spu languages, 
+ *   e.g. knows that audio stream #0 is english, 
+ *   audio stream #1 is german, ...  Same bits as INPUT
+ *   capabilities .
+ */
+
+#define DEMUX_CAP_AUDIOLANG            0x00000008
+#define DEMUX_CAP_SPULANG              0x00000010
+
+
+#define DEMUX_OPTIONAL_UNSUPPORTED    0
+#define DEMUX_OPTIONAL_SUCCESS        1
+
+#define DEMUX_OPTIONAL_DATA_AUDIOLANG 2
+#define DEMUX_OPTIONAL_DATA_SPULANG   3
 
 #endif

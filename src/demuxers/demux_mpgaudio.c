@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpgaudio.c,v 1.81 2002/11/20 11:57:40 mroi Exp $
+ * $Id: demux_mpgaudio.c,v 1.82 2002/11/28 10:21:06 petli Exp $
  *
  * demultiplexer for mpeg audio (i.e. mp3) streams
  *
@@ -457,6 +457,15 @@ static int demux_mpgaudio_get_stream_length (demux_plugin_t *this_gen) {
     return 0;
 }
 
+static uint32_t demux_mpgaudio_get_capabilities(demux_plugin_t *this_gen) {
+  return DEMUX_CAP_NOCAP;
+}
+
+static int demux_mpgaudio_get_optional_data(demux_plugin_t *this_gen,
+					void *data, int data_type) {
+  return DEMUX_OPTIONAL_UNSUPPORTED;
+}
+
 static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *stream, 
 				    input_plugin_t *input_gen) {
   
@@ -571,6 +580,8 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   this->demux_plugin.get_status        = demux_mpgaudio_get_status;
   this->demux_plugin.get_stream_length = demux_mpgaudio_get_stream_length;
   this->demux_plugin.get_video_frame   = NULL;
+  this->demux_plugin.get_capabilities  = demux_mpgaudio_get_capabilities;
+  this->demux_plugin.get_optional_data = demux_mpgaudio_get_optional_data;
   this->demux_plugin.demux_class       = class_gen;
   
   this->input      = input;
@@ -642,6 +653,6 @@ static void *init_class (xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_DEMUX, 17, "mp3", XINE_VERSION_CODE, NULL, init_class },
+  { PLUGIN_DEMUX, 18, "mp3", XINE_VERSION_CODE, NULL, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

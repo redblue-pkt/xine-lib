@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ts.c,v 1.66 2002/11/20 11:57:41 mroi Exp $
+ * $Id: demux_ts.c,v 1.67 2002/11/28 10:21:07 petli Exp $
  *
  * Demultiplexer for MPEG2 Transport Streams.
  *
@@ -34,6 +34,9 @@
  *
  * Date        Author
  * ----        ------
+ *
+ * 25-Nov-2002 Peter Liljenberg
+ *                  - Added DVBSUB support
  *
  * 07-Nov-2992 Howdy Pierce
  *                  - various bugfixes
@@ -74,6 +77,52 @@
  *
  * TODO: do without memcpys, preview buffers
  */
+
+
+/** HOW TO IMPLEMENT A DVBSUB DECODER.
+ *
+ * The DVBSUB protocol is specified in ETSI EN 300 743.  It can be
+ * downloaded for free (registration required, though) from
+ * www.etsi.org.
+ *
+ * The spu_decoder should handle the packet type BUF_SPU_DVB.
+ *
+ * BUF_SPU_DVBSUB packets without the flag BUF_FLAG_SPECIAL contain
+ * the payload of the PES packets carrying DVBSUB data.  Since the
+ * payload can be broken up over several buf_element_t and the DVBSUB
+ * is PES oriented, the CCCC field (low 16 bits) is used to convey the
+ * packet boundaries to the decoder:
+ *
+ * + For the first buffer of a packet, buf->content points to the
+ *   first byte of the PES payload.  CCCC is set to the length of the
+ *   payload.  The decoder can use this value to determine when a
+ *   complete PES packet has been collected.
+ *
+ * + For the following buffers of the PES packet, CCCC is 0.
+ *
+ * The decoder can either use this information to reconstruct the PES
+ * payload, or ignore it and implement a parser that handles the
+ * irregularites at the start and end of PES packets.
+ *
+ * In any case buf->pts is always set to the PTS of the PES packet.
+ *
+ *
+ * BUF_SPU_DVB with BUF_FLAG_SPECIAL set contains no payload, and is
+ * used to pass control information to the decoder.
+ *
+ * If decoder_info[1] == BUF_SPECIAL_SPU_DVB_DESCRIPTOR then
+ * decoder_info[2] either points to a spu_dvb_descriptor_t or is 0.
+ *
+ * If it is 0, the user has disabled the subtitling, or has selected a
+ * channel that is not present in the stream.  The decoder should
+ * remove any visible subtitling.
+ *
+ * If it is a pointer, the decoder should reset itself and start
+ * extracting the subtitle service identified by comp_page_id and
+ * aux_page_id in the spu_dvb_descriptor_t, (the composition and
+ * auxilliary page ids, respectively).
+ **/
+
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -149,6 +198,15 @@ typedef struct {
 
 } demux_ts_media;
 
+/* DVBSUB */
+#define MAX_NO_SPU_LANGS 16
+typedef struct {
+  spu_dvb_descriptor_t desc;
+  int pid;
+  int media_index;
+} demux_ts_spu_lang;
+  
+
 typedef struct {
   /*
    * The first field must be the "base class" for the plugin!
@@ -189,7 +247,8 @@ typedef struct {
   unsigned int     audioPid;
   unsigned int     videoMedia;
   unsigned int     audioMedia;
-
+  char             audioLang[4];
+  
   int              send_end_buffers;
   int              ignore_scr_discont;
   int              send_newpts;
@@ -202,6 +261,12 @@ typedef struct {
   uint32_t         rstat[NPKT_PER_READ + 1];
 #endif
 
+  /* DVBSUB */
+  unsigned int spu_pid;
+  unsigned int spu_media;
+  demux_ts_spu_lang spu_langs[MAX_NO_SPU_LANGS];
+  int no_spu_langs;
+  int current_spu_channel;
 } demux_ts_t;
 
 typedef struct {
@@ -239,9 +304,11 @@ static uint32_t demux_ts_compute_crc32(demux_ts_t*this, uint8_t *data,
 
 static void check_newpts( demux_ts_t*this, int64_t pts ) {
 
+#ifdef TS_LOG
   printf ("demux_ts: check_newpts %lld, send_newpts %d, buf_flag_seek %d\n",
 	  pts, this->send_newpts, this->buf_flag_seek);
-
+#endif
+  
   if (this->send_newpts && pts) {
 
     if (this->buf_flag_seek) {
@@ -255,6 +322,61 @@ static void check_newpts( demux_ts_t*this, int64_t pts ) {
   }
 }
 
+
+/*
+ * demux_ts_update_spu_channel
+ *
+ * Send a BUF_SPU_DVB with BUF_SPECIAL_SPU_DVB_DESCRIPTOR to tell
+ * the decoder to reset itself on the new channel.
+ */
+static void demux_ts_update_spu_channel(demux_ts_t *this)
+{
+  xine_event_t ui_event;
+  buf_element_t *buf;
+  
+  this->current_spu_channel = this->stream->spu_channel;
+
+  buf = this->video_fifo->buffer_pool_alloc(this->video_fifo);
+
+  buf->type = BUF_SPU_DVB;
+  buf->content = buf->mem;
+  buf->decoder_flags = BUF_FLAG_SPECIAL;
+  buf->decoder_info[1] = BUF_SPECIAL_SPU_DVB_DESCRIPTOR;
+  buf->size = 0;
+    
+  if (this->current_spu_channel >= 0
+      && this->current_spu_channel < this->no_spu_langs)
+    {
+      demux_ts_spu_lang *lang = &this->spu_langs[this->current_spu_channel];
+
+      buf->decoder_info[2] = (uint32_t) &(lang->desc);
+
+      this->spu_pid = lang->pid;
+      this->spu_media = lang->media_index;
+
+#ifdef TS_LOG
+      printf("demux_ts: DVBSUB: selecting lang: %s  page %ld %ld\n",
+	     lang->desc.lang, lang->desc.comp_page_id, lang->desc.aux_page_id);
+#endif
+    }
+  else
+    {
+      buf->decoder_info[2] = 0;
+
+      this->spu_pid = INVALID_PID;
+
+#ifdef TS_LOG
+      printf("demux_ts: DVBSUB: deselecting lang\n");
+#endif
+    }
+
+  this->video_fifo->put(this->video_fifo, buf);
+
+  /* Inform UI of SPU channel changes */
+  ui_event.type = XINE_EVENT_UI_CHANNELS_CHANGED;
+  ui_event.data_length = 0;
+  xine_event_send(this->stream, &ui_event);
+}
 
 /*
  * demux_ts_parse_pat
@@ -385,6 +507,7 @@ static void demux_ts_parse_pat (demux_ts_t*this, unsigned char *original_pkt,
       this->pmt_pid[program_count] = pmt_pid;
       this->audioPid = INVALID_PID;
       this->videoPid = INVALID_PID;
+      this->spu_pid = INVALID_PID;
     }
 
     this->pmt_pid[program_count] = pmt_pid;
@@ -496,6 +619,16 @@ static int demux_ts_parse_pes_header (demux_ts_media *m,
       m->type = BUF_AUDIO_A52;
       return 1;
 
+    } else if (m->descriptor_tag == 0x06
+	     && p[0] == 0x20 && p[1] == 0x00) {
+      /* DVBSUB */
+      long payload_len = ((buf[4] << 8) | buf[5]) - header_len - 3;
+
+      m->content = p;
+      m->size = packet_len;
+      m->type = BUF_SPU_DVB + payload_len;
+      
+      return 1;
     } else if ((p[0] & 0xE0) == 0x20) {
       spu_id = (p[0] & 0x1f);
 
@@ -636,6 +769,13 @@ static void demux_ts_buffer_pes(demux_ts_t*this, unsigned char *ts,
       printf ("demux_ts: produced buffer, pts=%lld\n", m->pts);
 #endif
 
+      /* DVBSUB: reset PES packet length field in buffer type, to
+       * indicate that the next buffer is in the middle of a PES
+       * packet.
+       **/
+      if ((m->type & 0xffff0000) == BUF_SPU_DVB) {
+	m->type = BUF_SPU_DVB;
+      }
     }
     memcpy(m->buf->mem + m->buffered_bytes, ts, len);
     m->buffered_bytes += len;
@@ -662,6 +802,28 @@ static void demux_ts_pes_new(demux_ts_t*this,
   m->descriptor_tag = descriptor;
   m->corrupted_pes = 1;
   m->buffered_bytes = 0;
+}
+
+
+/* Find the first ISO 639 language descriptor (tag 10) and
+ * store the 3-char code in dest, nullterminated.  If no
+ * code is found, zero out dest.
+ **/
+static void demux_ts_get_lang_desc(demux_ts_t *this, char *dest,
+				   const unsigned char *data, int length)
+{
+  while (length >= 2 && length >= 2 + data[1])
+    {
+      if (data[0] == 10 && data[1] >= 4)
+	{
+	  memcpy(dest, data + 2, 3);
+	  dest[3] = 0;
+	  printf("demux_ts: found ISO 639 lang: %s\n", dest);
+	  return;
+	}
+    }
+  printf("demux_ts: found no ISO 639 lang\n");
+  memset(dest, 0, 4);
 }
 
 /*
@@ -846,6 +1008,7 @@ static void demux_ts_parse_pmt (demux_ts_t     *this,
    * Extract the elementary streams.
    */
   mediaIndex = 0;
+  this->no_spu_langs = 0;
   while (section_length > 0) {
     unsigned int streamInfoLength;
 
@@ -884,6 +1047,8 @@ static void demux_ts_parse_pmt (demux_ts_t     *this,
         demux_ts_pes_new(this, mediaIndex, pid, this->audio_fifo,stream[0]);
         this->audioPid = pid;
         this->audioMedia = mediaIndex;
+	demux_ts_get_lang_desc(this, this->audioLang,
+			       stream + 5, streamInfoLength);
       }
       break;
     case ISO_13818_PRIVATE:
@@ -904,8 +1069,47 @@ static void demux_ts_parse_pmt (demux_ts_t     *this,
           demux_ts_pes_new(this, mediaIndex, pid, this->audio_fifo,stream[0]);
           this->audioPid = pid;
           this->audioMedia = mediaIndex;
+	  demux_ts_get_lang_desc(this, this->audioLang,
+				 stream + 5, streamInfoLength);
           break;
         }
+
+	/* DVBSUB */
+	else if (stream[i] == 0x59)
+	  {
+	    int pos;
+
+	    for (pos = i + 2;
+		 pos + 8 <= i + 2 + stream[i + 1]
+		   && this->no_spu_langs < MAX_NO_SPU_LANGS;
+		 pos += 8)
+	      {
+		int no = this->no_spu_langs;
+		demux_ts_spu_lang *lang = &this->spu_langs[no];
+		
+		this->no_spu_langs++;
+		
+		memcpy(lang->desc.lang, &stream[pos], 3);
+		lang->desc.lang[3] = 0;
+		lang->desc.comp_page_id =
+		  (stream[pos + 4] << 8) | stream[pos + 5];
+		lang->desc.aux_page_id =
+		  (stream[pos + 6] << 8) | stream[pos + 7];
+		lang->pid = pid;
+		lang->media_index = mediaIndex;
+		
+		demux_ts_pes_new(this, mediaIndex,
+				 pid, this->video_fifo,
+				 stream[0]);
+
+#ifdef TS_LOG
+		printf("demux_ts: DVBSUB: pid %u: %s  page %ld %ld\n",
+		       pid, lang->desc.lang,
+		       lang->desc.comp_page_id,
+		       lang->desc.aux_page_id);
+#endif
+	      }
+	  }
       }
       break;
     case PRIVATE_A52:
@@ -920,6 +1124,8 @@ static void demux_ts_parse_pmt (demux_ts_t     *this,
 	demux_ts_pes_new(this, mediaIndex, pid, this->audio_fifo, stream[0]);
         this->audioPid = pid;
         this->audioMedia = mediaIndex;
+	demux_ts_get_lang_desc(this, this->audioLang,
+			       stream + 5, streamInfoLength);
       }
       break;
     default:
@@ -953,6 +1159,9 @@ static void demux_ts_parse_pmt (demux_ts_t     *this,
 #endif
     this->pcrPid = pid;
   }
+
+  /* DVBSUB: update spu decoder */
+  demux_ts_update_spu_channel(this);
 }
 
 static int sync_correct(demux_ts_t*this, uint8_t *buf, int32_t npkt_read) {
@@ -1309,7 +1518,17 @@ static void demux_ts_parse_packet (demux_ts_t*this) {
 #endif
       return;
     }
-    if ((this->audioPid == INVALID_PID) && (this->videoPid == INVALID_PID)) {
+    /* DVBSUB */
+    else if (pid == this->spu_pid) {
+#ifdef TS_LOG
+      printf ("demux_ts: SPU pid: %.4x\n", pid);
+#endif
+      demux_ts_buffer_pes (this, originalPkt+data_offset, this->spu_media,
+			   payload_unit_start_indicator, continuity_counter,
+			   data_len);
+      return;
+    }
+  if ((this->audioPid == INVALID_PID) && (this->videoPid == INVALID_PID)) {
       program_count = 0;
       while ((this->program_number[program_count] != INVALID_PROGRAM) ) {
 	if (pid == this->pmt_pid[program_count]) {
@@ -1339,6 +1558,13 @@ static int demux_ts_send_chunk (demux_plugin_t *this_gen) {
   demux_ts_t*this = (demux_ts_t*)this_gen;
 
   demux_ts_parse_packet(this);
+
+  /* DVBSUB: check if channel has changed.  Dunno if I should, or
+   * even could, lock the xine object. */
+  if (this->stream->spu_channel != this->current_spu_channel)
+    {
+      demux_ts_update_spu_channel(this);
+    }
 
   return this->status;
 }
@@ -1394,6 +1620,11 @@ static void demux_ts_send_headers (demux_plugin_t *this_gen) {
   this->send_end_buffers  = 1;
   this->last_PCR          = 0;
   this->scrambled_npids   = 0;
+  
+  /* DVBSUB */
+  this->spu_pid = INVALID_PID;
+  this->no_spu_langs = 0;
+  this->current_spu_channel = this->stream->spu_channel;
   
   /* FIXME ? */
   this->stream->stream_info[XINE_STREAM_INFO_HAS_VIDEO] = 1;
@@ -1467,6 +1698,57 @@ static int demux_ts_get_video_frame (demux_plugin_t *this_gen,
   /* demux_ts_t *this = (demux_ts_t*)this_gen; */
 
   return 0;
+}
+
+
+static uint32_t demux_ts_get_capabilities(demux_plugin_t *this_gen)
+{
+  return DEMUX_CAP_AUDIOLANG | DEMUX_CAP_SPULANG;
+}
+
+static int demux_ts_get_optional_data(demux_plugin_t *this_gen,
+				      void *data, int data_type)
+{
+  demux_ts_t *this = (demux_ts_t *) this_gen;
+  char *str = data;
+
+  /* be a bit paranoid */
+  if (this == NULL || this->stream == NULL)
+    return DEMUX_OPTIONAL_UNSUPPORTED;
+  
+  switch (data_type)
+    {
+    case DEMUX_OPTIONAL_DATA_AUDIOLANG:
+      if (this->audioLang[0])
+	{
+	  strcpy(str, this->audioLang);
+	}
+      else
+	{
+	  sprintf(str, "%3i", xine_get_audio_channel(this->stream));
+	}
+      return DEMUX_OPTIONAL_SUCCESS;
+
+    case DEMUX_OPTIONAL_DATA_SPULANG:
+      if (this->current_spu_channel >= 0
+	  && this->current_spu_channel < this->no_spu_langs)
+	{
+	  memcpy(str, this->spu_langs[this->current_spu_channel].desc.lang, 3);
+	  str[4] = 0;
+	}
+      else if (this->current_spu_channel == -1)
+	{
+	  strcpy(str, "none");
+	}
+      else
+	{
+	  sprintf(str, "%3i", this->current_spu_channel);
+	}
+      return DEMUX_OPTIONAL_SUCCESS;
+
+    default:
+      return DEMUX_OPTIONAL_UNSUPPORTED;
+    }
 }
 
 
@@ -1583,6 +1865,8 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen,
   this->demux_plugin.get_stream_length = demux_ts_get_stream_length;
   this->demux_plugin.get_video_frame   = demux_ts_get_video_frame;
   this->demux_plugin.got_video_frame_cb= NULL;
+  this->demux_plugin.get_capabilities  = demux_ts_get_capabilities;
+  this->demux_plugin.get_optional_data = demux_ts_get_optional_data;
   this->demux_plugin.demux_class       = class_gen;
   
   /*
@@ -1617,6 +1901,11 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen,
   }
 #endif
 
+  /* DVBSUB */
+  this->spu_pid = INVALID_PID;
+  this->no_spu_langs = 0;
+  this->current_spu_channel = this->stream->spu_channel;
+  
   return &this->demux_plugin;
 }
 
@@ -1672,6 +1961,6 @@ static void *init_class (xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_DEMUX, 17, "mpeg-ts", XINE_VERSION_CODE, NULL, init_class },
+  { PLUGIN_DEMUX, 18, "mpeg-ts", XINE_VERSION_CODE, NULL, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

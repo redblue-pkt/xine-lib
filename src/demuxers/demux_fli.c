@@ -22,7 +22,7 @@
  * avoid while programming a FLI decoder, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_fli.c,v 1.27 2002/11/20 11:57:40 mroi Exp $
+ * $Id: demux_fli.c,v 1.28 2002/11/28 10:21:06 petli Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -269,6 +269,15 @@ static int demux_fli_get_stream_length (demux_plugin_t *this_gen) {
   return 0;
 }
 
+static uint32_t demux_fli_get_capabilities(demux_plugin_t *this_gen) {
+  return DEMUX_CAP_NOCAP;
+}
+
+static int demux_fli_get_optional_data(demux_plugin_t *this_gen,
+					void *data, int data_type) {
+  return DEMUX_OPTIONAL_UNSUPPORTED;
+}
+
 static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *stream,
                                     input_plugin_t *input_gen) {
 
@@ -292,6 +301,8 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   this->demux_plugin.get_stream_length = demux_fli_get_stream_length;
   this->demux_plugin.get_video_frame   = NULL;
   this->demux_plugin.got_video_frame_cb= NULL;
+  this->demux_plugin.get_capabilities  = demux_fli_get_capabilities;
+  this->demux_plugin.get_optional_data = demux_fli_get_optional_data;
   this->demux_plugin.demux_class       = class_gen;
 
   this->status = DEMUX_FINISHED;
@@ -405,6 +416,6 @@ static void *init_plugin (xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_DEMUX, 17, "fli", XINE_VERSION_CODE, NULL, init_plugin },
+  { PLUGIN_DEMUX, 18, "fli", XINE_VERSION_CODE, NULL, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

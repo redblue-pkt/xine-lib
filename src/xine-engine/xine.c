@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.196 2002/11/25 12:36:05 mroi Exp $
+ * $Id: xine.c,v 1.197 2002/11/28 10:21:08 petli Exp $
  *
  * top-level xine functions
  *
@@ -1085,6 +1085,20 @@ int xine_get_video_frame (xine_stream_t *stream,
 
 int xine_get_spu_lang (xine_stream_t *stream, int channel, char *lang) {
 
+  /* Ask the demuxer first (e.g. TS extracts this information from
+   * the stream)
+   **/
+  if (stream->demux_plugin) {
+    if (stream->demux_plugin->get_capabilities (stream->demux_plugin) & DEMUX_CAP_SPULANG) {
+      stream->demux_plugin->get_optional_data (stream->demux_plugin, lang,
+					       DEMUX_OPTIONAL_DATA_SPULANG);
+      return 1;
+    }
+  } 
+
+  /* No match, check with input plugin instead (e.g. DVD gets this
+   * info from the IFO).
+   **/
   if (stream->input_plugin) {
     if (stream->input_plugin->get_capabilities (stream->input_plugin) & INPUT_CAP_SPULANG) {
       stream->input_plugin->get_optional_data (stream->input_plugin, lang,
@@ -1098,6 +1112,14 @@ int xine_get_spu_lang (xine_stream_t *stream, int channel, char *lang) {
 
 int xine_get_audio_lang (xine_stream_t *stream, int channel, char *lang) {
 
+  if (stream->demux_plugin) {
+    if (stream->demux_plugin->get_capabilities (stream->demux_plugin) & DEMUX_CAP_AUDIOLANG) {
+      stream->demux_plugin->get_optional_data (stream->demux_plugin, lang,
+					       DEMUX_OPTIONAL_DATA_AUDIOLANG);
+      return 1;
+    }
+  }
+  
   if (stream->input_plugin) {
     if (stream->input_plugin->get_capabilities (stream->input_plugin) & INPUT_CAP_AUDIOLANG) {
       stream->input_plugin->get_optional_data (stream->input_plugin, lang,
