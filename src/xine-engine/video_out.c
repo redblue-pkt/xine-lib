@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.116 2002/12/06 17:16:40 miguelfreitas Exp $
+ * $Id: video_out.c,v 1.117 2002/12/06 18:38:40 miguelfreitas Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -594,16 +594,25 @@ static vo_frame_t *get_next_frame (vos_t *this, int64_t cur_vpts) {
      * last frame? make backup for possible still image 
      */
     pthread_mutex_lock( &this->free_img_buf_queue->mutex );
-    if (img && !img->next /* FIXME: is this test needed? &&
-	(this->stream->video_fifo->size(this->stream->video_fifo) < 10 
-	 || this->stream->video_in_discontinuity)*/ ) {
-	
-      /*printf ("video_out: possible still frame (fifosize = %d)\n",
-	      this->stream->video_fifo->size(this->stream->video_fifo));*/
+    if (img && !img->next) {
+      xine_stream_t *stream;
+      int backup_needed = 0;
+
+      pthread_mutex_lock(&this->streams_lock);
+      for (stream = xine_list_first_content(this->streams); stream;
+           stream = xine_list_next_content(this->streams)) {
+        if (stream->stream_info[XINE_STREAM_INFO_VIDEO_HAS_STILL] ||
+            stream->video_fifo->size(stream->video_fifo) < 10)
+        backup_needed = 1;
+      }
+      pthread_mutex_unlock(&this->streams_lock);
+
+      if( backup_needed ) {
 /*#ifdef LOG*/
-      printf ("video_out: possible still frame\n");
+        printf ("video_out: possible still frame\n");
 /*#endif*/
-      this->img_backup = duplicate_frame (this, img);
+        this->img_backup = duplicate_frame (this, img);
+      }
     }
     pthread_mutex_unlock( &this->free_img_buf_queue->mutex );
 

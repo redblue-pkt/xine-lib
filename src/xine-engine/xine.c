@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.197 2002/11/28 10:21:08 petli Exp $
+ * $Id: xine.c,v 1.198 2002/12/06 18:38:46 miguelfreitas Exp $
  *
  * top-level xine functions
  *
@@ -295,7 +295,6 @@ xine_stream_t *xine_stream_new (xine_t *this,
   stream->spu_channel            = -1;
   stream->video_out              = vo;
   stream->video_driver           = vo->driver;
-  stream->video_in_discontinuity = 0;
   stream->video_channel          = 0;
   stream->video_decoder_plugin   = NULL;
   stream->video_decoder_streamtype = -1;

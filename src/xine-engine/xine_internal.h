@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.113 2002/11/20 11:57:50 mroi Exp $
+ * $Id: xine_internal.h,v 1.114 2002/12/06 18:38:49 miguelfreitas Exp $
  *
  */
 
@@ -152,7 +152,6 @@ struct xine_stream_s {
   pthread_t                  video_thread;
   video_decoder_t           *video_decoder_plugin;
   int                        video_decoder_streamtype;
-  int                        video_in_discontinuity;
   int                        video_channel;
   
   xine_audio_port_t         *audio_out;
