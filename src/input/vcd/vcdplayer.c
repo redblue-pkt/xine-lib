@@ -1,5 +1,5 @@
 /* 
-  $Id: vcdplayer.c,v 1.14 2005/01/08 11:59:27 rockyb Exp $
+  $Id: vcdplayer.c,v 1.15 2005/01/08 15:12:42 rockyb Exp $
  
   Copyright (C) 2002, 2003, 2004, 2005 Rocky Bernstein <rocky@panix.com>
   
@@ -538,6 +538,9 @@ vcdplayer_play_single_item(vcdplayer_t *p_vcdplayer, vcdinfo_itemid_t itemid)
         case VCDINFO_FILES_VIDEO_NTSC_STILL2:
         case VCDINFO_FILES_VIDEO_PAL_STILL:
         case VCDINFO_FILES_VIDEO_PAL_STILL2:
+          /* Note that we are reading a still frame but haven't
+             got to the end.
+           */
           p_vcdplayer->i_still = STILL_READING;
           break;
         default:
@@ -653,10 +656,10 @@ vcdplayer_play(vcdplayer_t *p_vcdplayer, vcdinfo_itemid_t itemid)
       uint16_t trans_itemid_num;
 
       if (p_vcdplayer->pxd.psd == NULL) return;
-      trans_itemid_num        = vcdinf_psd_get_itemid(p_vcdplayer->pxd.psd);
+      trans_itemid_num  = vcdinf_psd_get_itemid(p_vcdplayer->pxd.psd);
       vcdinfo_classify_itemid(trans_itemid_num, &trans_itemid);
-      p_vcdplayer->i_loop     = 1;
-      p_vcdplayer->loop_item  = trans_itemid;
+      p_vcdplayer->i_loop    = 1;
+      p_vcdplayer->loop_item = trans_itemid;
       vcdplayer_play_single_item(p_vcdplayer, trans_itemid);
       break;
     }
@@ -718,7 +721,7 @@ vcdplayer_pbc_nav (vcdplayer_t *p_vcdplayer, uint8_t *p_buf)
                "continuing into next entry: %u\n", p_vcdplayer->play_item.num);
     vcdplayer_play_single_item(p_vcdplayer, p_vcdplayer->play_item);
     p_vcdplayer->update_title();
-    goto skip_next_play;
+    return READ_BLOCK;
   }
   
   switch (p_vcdplayer->pxd.descriptor_type) {
@@ -731,7 +734,7 @@ vcdplayer_pbc_nav (vcdplayer_t *p_vcdplayer, uint8_t *p_buf)
     dbg_print(INPUT_DBG_PBC, "playlist wait_time: %d\n", wait_time);
     
     if (_vcdplayer_inc_play_item(p_vcdplayer))
-      goto skip_next_play;
+      return READ_BLOCK;
 
     /* This needs to be improved in libvcdinfo when I get around to it.
      */
@@ -768,7 +771,7 @@ vcdplayer_pbc_nav (vcdplayer_t *p_vcdplayer, uint8_t *p_buf)
         if (p_vcdplayer->i_loop == 0x7f) p_vcdplayer->i_loop = 0;
         vcdplayer_play_single_item(p_vcdplayer, p_vcdplayer->loop_item);
         if (p_vcdplayer->i_still) p_vcdplayer->force_redisplay();
-        goto skip_next_play;
+        return READ_BLOCK;
       }
       
       /* Looping finished and wait finished. Move to timeout
@@ -780,7 +783,7 @@ vcdplayer_pbc_nav (vcdplayer_t *p_vcdplayer, uint8_t *p_buf)
         itemid.type = VCDINFO_ITEM_TYPE_LID;
         dbg_print(INPUT_DBG_PBC, "timeout to: %d\n", itemid.num);
         vcdplayer_play(p_vcdplayer, itemid);
-        goto skip_next_play;
+        return READ_BLOCK;
       } else {
         int i_selections = vcdinf_get_num_selections(p_vcdplayer->pxd.psd);
         if (i_selections > 0) {
@@ -788,18 +791,16 @@ vcdplayer_pbc_nav (vcdplayer_t *p_vcdplayer, uint8_t *p_buf)
           unsigned int bsn=vcdinf_get_bsn(p_vcdplayer->pxd.psd);
           int rand_selection=bsn +
             (int) ((i_selections+0.0)*rand()/(RAND_MAX+1.0));
-
-          /* version 0.7.21 or greater */
           lid_t rand_lid=vcdinfo_selection_get_lid(p_vcdplayer->vcd, 
-                                                   p_vcdplayer->i_lid, 
+                                                   p_vcdplayer->i_lid,
                                                    rand_selection);
           itemid.num = rand_lid;
           itemid.type = VCDINFO_ITEM_TYPE_LID;
           dbg_print(INPUT_DBG_PBC, "random selection %d, lid: %d\n", 
                     rand_selection - bsn, rand_lid);
           vcdplayer_play(p_vcdplayer, itemid);
-          goto skip_next_play;
-        } else if (p_vcdplayer->i_still) {
+          return READ_BLOCK;
+        } else if (p_vcdplayer->i_still > 0) {
           /* Hack: Just go back and do still again */
           RETURN_NULL_STILL ;
         }
@@ -824,7 +825,6 @@ vcdplayer_pbc_nav (vcdplayer_t *p_vcdplayer, uint8_t *p_buf)
   itemid.num  = p_vcdplayer->next_entry;
   itemid.type = VCDINFO_ITEM_TYPE_LID;
   vcdplayer_play(p_vcdplayer, itemid);
- skip_next_play: ;
   return READ_BLOCK;
 }
 

@@ -1,7 +1,7 @@
 /*
-  $Id: vcdio.c,v 1.5 2005/01/02 02:51:38 rockyb Exp $
+  $Id: vcdio.c,v 1.6 2005/01/08 15:12:42 rockyb Exp $
  
-  Copyright (C) 2002, 2003, 2004 Rocky Bernstein <rocky@panix.com>
+  Copyright (C) 2002, 2003, 2004, 2005 Rocky Bernstein <rocky@panix.com>
   
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -103,8 +103,8 @@ vcdio_open(vcdplayer_t *p_vcdplayer, char *intended_vcd_device)
     }
   }
 
-  if ( vcdinfo_open(&p_vcdplayer->vcd, &intended_vcd_device, DRIVER_UNKNOWN, NULL) != 
-       VCDINFO_OPEN_VCD) {
+  if ( vcdinfo_open(&p_vcdplayer->vcd, &intended_vcd_device, DRIVER_UNKNOWN, 
+                    NULL) != VCDINFO_OPEN_VCD) {
     return false;
   }
 

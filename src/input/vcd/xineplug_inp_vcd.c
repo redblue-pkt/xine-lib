@@ -1,5 +1,5 @@
 /*
-  $Id: xineplug_inp_vcd.c,v 1.32 2005/01/08 11:59:27 rockyb Exp $
+  $Id: xineplug_inp_vcd.c,v 1.33 2005/01/08 15:12:43 rockyb Exp $
  
   Copyright (C) 2002, 2003, 2004, 2005 Rocky Bernstein <rocky@panix.com>
   
@@ -623,10 +623,10 @@ vcd_plugin_read (input_plugin_t *this_gen, char *buf, const off_t nlen)
    to do nothing, but in contrast to returning NULL, it doesn't 
    mean the stream has ended. We use this say for still frames.
  */
-#define RETURN_NOOP_BUF                                  \
-  buf = fifo->buffer_pool_alloc (fifo);                  \
-  buf->type = BUF_CONTROL_NOP;                           \
-  return buf
+#define RETURN_NOOP_BUF                                    \
+  p_buf = fifo->buffer_pool_alloc (fifo);                  \
+  p_buf->type = BUF_CONTROL_NOP;                           \
+  return p_buf
 
 /* Handle keyboard events and if there were non which might affect
    playback, then sleep a little bit and return;
@@ -646,12 +646,12 @@ vcd_plugin_read (input_plugin_t *this_gen, char *buf, const off_t nlen)
 */
 static buf_element_t *
 vcd_plugin_read_block (input_plugin_t *this_gen, fifo_buffer_t *fifo, 
-			  const off_t nlen) 
+                       const off_t nlen) 
 {
   vcd_input_plugin_t *vcd_input_plugin= (vcd_input_plugin_t *) this_gen;
-  vcdplayer_t        *p_vcdplayer = &my_vcd.player;
-  buf_element_t      *buf;
-  uint8_t            data[M2F2_SECTOR_SIZE];
+  vcdplayer_t   *p_vcdplayer = &my_vcd.player;
+  buf_element_t *p_buf;
+  uint8_t        data[M2F2_SECTOR_SIZE] = {0};
 
   if (fifo == NULL) {
     dbg_print(INPUT_DBG_CALL, "NULL fifo");
@@ -689,9 +689,6 @@ vcd_plugin_read_block (input_plugin_t *this_gen, fifo_buffer_t *fifo,
   case READ_ERROR:
     /* Some sort of error. */
     return NULL;
-#if INACCURATE_STILL_TIME
-  read_still:
-#endif /* INACCURATE_STILL_TIME */
   case READ_STILL_FRAME: 
     {
       dbg_print(INPUT_DBG_STILL, "Handled still event wait time %u\n",
@@ -703,11 +700,11 @@ vcd_plugin_read_block (input_plugin_t *this_gen, fifo_buffer_t *fifo,
   default:
   case READ_BLOCK:
     /* Read buffer */
-    buf = fifo->buffer_pool_alloc (fifo);
-    buf->type = BUF_DEMUX_BLOCK;
+    p_buf = fifo->buffer_pool_alloc (fifo);
+    p_buf->type = BUF_DEMUX_BLOCK;
   }
   
-  buf->content = buf->mem;
+  p_buf->content = p_buf->mem;
 
   if (STILL_READING == p_vcdplayer->i_still && 0 == my_vcd.i_old_still) {
     my_vcd.i_old_deinterlace = xine_get_param(my_vcd.stream, 
@@ -724,9 +721,9 @@ vcd_plugin_read_block (input_plugin_t *this_gen, fifo_buffer_t *fifo,
   my_vcd.i_old_still = p_vcdplayer->i_still;
   
   /* Ideally this should probably be nlen.  */
-  memcpy (buf->mem, data, M2F2_SECTOR_SIZE);
+  memcpy (p_buf->mem, data, M2F2_SECTOR_SIZE);
 
-  return buf;
+  return p_buf;
 }
 
 /*!
@@ -1102,8 +1099,7 @@ vcd_handle_events (void)
             } else {
               /* PBC is not on. "default" selection beginning of current 
                  selection . Alternative: */
-              LOG_MSG("%s\n", _("DEFAULT selected but PBC is not on."));
-              ;
+              LOG_MSG("%s\n", _("DEFAULT selected, but PBC is not on."));
             }
             break;
           case XINE_EVENT_INPUT_NEXT: 
@@ -1141,7 +1137,6 @@ vcd_handle_events (void)
         number_addend = 0;
         
         if (vcdplayer_pbc_is_on(this)) {
-          /* version 0.7.21 or greater */
           lid_t next_num=vcdinfo_selection_get_lid(this->vcd, this->i_lid, 
                                                    itemid.num);
           if (VCDINFO_INVALID_LID != next_num) {

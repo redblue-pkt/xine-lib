@@ -1,7 +1,7 @@
 /* 
-  $Id: vcdio.h,v 1.2 2004/12/29 09:23:56 rockyb Exp $
+  $Id: vcdio.h,v 1.3 2005/01/08 15:12:42 rockyb Exp $
 
-  Copyright (C) 2002, 2004 Rocky Bernstein <rocky@panix.com>
+  Copyright (C) 2002, 2004, 2005 Rocky Bernstein <rocky@panix.com>
   
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
