@@ -1,7 +1,7 @@
 /*
- * Copyright (C) 2000, 2001 the xine project
+ * Copyright (C) 2000-2002 the xine project
  *
- * This file is part of xine, a unix video player.
+ * This file is part of xine, a free video player.
  *
  * xine is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.91 2002/02/09 07:13:24 guenter Exp $
+ * $Id: video_out_xv.c,v 1.92 2002/02/16 22:43:24 guenter Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *

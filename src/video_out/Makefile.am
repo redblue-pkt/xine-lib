@@ -33,14 +33,17 @@ sdl_module = xineplug_vo_out_sdl.la
 endif
 
 
-##
-# IMPORTANT:
-# ---------
-# All of xine video out plugins should be named like the 
-# scheme "xineplug_vo_out_"
-#
-lib_LTLIBRARIES = $(xv_module) $(syncfb_module) $(xshm_module) $(aa_module) \
-                  $(fb_module) $(sdl_module) $(opengl_module) $(directfb_module)
+
+# important:
+# 
+# all xine video out plugins should be named  
+# "xineplug_vo_out_*"
+
+# FIXME: temporarily disabled until they're adapted to new interface
+# lib_LTLIBRARIES = $(xv_module) $(syncfb_module) $(xshm_module) $(aa_module) \
+#                  $(fb_module) $(sdl_module) $(opengl_module) $(directfb_module)
+
+lib_LTLIBRARIES = $(xshm_module) 
 
 xineplug_vo_out_xv_la_SOURCES = deinterlace.c alphablend.c video_out_xv.c
 xineplug_vo_out_xv_la_LIBADD =  $(XV_LIB) $(X_LIBS) -lXext

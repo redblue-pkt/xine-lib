@@ -1,7 +1,7 @@
 /* 
- * Copyright (C) 2000-2001 the xine project
+ * Copyright (C) 2000-2002 the xine project
  * 
- * This file is part of xine, a unix video player.
+ * This file is part of xine, a free video player.
  * 
  * xine is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_x11.h,v 1.13 2002/01/24 23:09:54 guenter Exp $
+ * $Id: video_out_x11.h,v 1.14 2002/02/16 22:43:24 guenter Exp $
  *
  * structs and defines specific to all x11 related output plugins
  * (any x11 base xine ui should include this)
@@ -56,23 +56,25 @@ typedef struct {
   void    *user_data;
   
   /*
-   * calc dest size
+   * dest size callback
    *
    * this will be called by the video driver to find out
    * how big the video output area size will be for a
    * given video size. The ui should _not_ adjust it's
    * video out area, just do some calculations and return 
-   * the size
+   * the size. This will be called for every frame, ui 
+   * implementation should be fast.
    */
-  void (*calc_dest_size) (void *user_data,
-			  int video_width, int video_height, 
-			  int *dest_width, int *dest_height);
+  void (*dest_size_cb) (void *user_data,
+			int video_width, int video_height, 
+			int *dest_width, int *dest_height);
 
   /*
-   * request dest size
+   * frame output callback
    *
-   * this will be called by the video driver to request
-   * the video output area to be resized to fit the video.
+   * this will be called by the video driver for every frame 
+   * it's about to draw. ui can adapt it's size if necessary 
+   * here.
    * note: the ui doesn't have to adjust itself to this
    * size, this is just to be taken as a hint.
    * ui must return the actual size of the video output
@@ -81,10 +83,10 @@ typedef struct {
    * preserving aspect ration and stuff). 
    */
 
-  void (*request_dest_size) (void *user_data,
-			     int video_width, int video_height,
-			     int *dest_x, int *dest_y, 
-			     int *dest_width, int *dest_height);
+  void (*frame_output_cb) (void *user_data,
+			   int video_width, int video_height,
+			   int *dest_x, int *dest_y, 
+			   int *dest_width, int *dest_height);
 
 } x11_visual_t;
 
@@ -92,8 +94,6 @@ typedef struct {
  * constants for gui_data_exchange's data_type parameter
  */
 
-/* x11_rectangle_t *data */
-#define GUI_DATA_EX_DEST_POS_SIZE_CHANGED  0
 /* xevent *data */
 #define GUI_DATA_EX_COMPLETION_EVENT       1
 /* Drawable has changed */
@@ -104,8 +104,6 @@ typedef struct {
 #define GUI_DATA_EX_TRANSLATE_GUI_TO_VIDEO 4
 /* int *data */
 #define GUI_DATA_EX_VIDEOWIN_VISIBLE	   5
-/* int *data */
-#define GUI_DATA_EX_FULLSCREEN        	   7
 
 /* *data contains chosen visual, select a new one or change it to NULL
  * to indicate the visual to use or that no visual will work */

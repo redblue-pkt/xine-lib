@@ -293,11 +293,11 @@ static void mlib_yuv420_abgr32 (yuv2rgb_t *this,
 }
 
 
-void yuv2rgb_init_mlib (yuv2rgb_t *this, int mode, int swapped)
-{
-  if (swapped) return; /*no swapped pixel output upto now*/
+void yuv2rgb_init_mlib (yuv2rgb_factory_t *this) {
 
-  switch (mode) {
+  if (this->swapped) return; /*no swapped pixel output upto now*/
+
+  switch (this->mode) {
   case MODE_24_RGB:
     this->yuv2rgb_fun = mlib_yuv420_rgb24;
     break;

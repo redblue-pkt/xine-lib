@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.h,v 1.40 2002/02/09 07:13:24 guenter Exp $
+ * $Id: video_out.h,v 1.41 2002/02/16 22:43:24 guenter Exp $
  *
  *
  * xine version of video_out.h 
@@ -57,8 +57,6 @@ extern "C" {
 #include "xine/buffer.h"
 #endif
 #endif
-
-#define VIDEO_OUT_PLUGIN_IFACE_VERSION 1
 
 typedef struct vo_frame_s vo_frame_t; 
 typedef struct vo_driver_s vo_driver_t ;
@@ -233,9 +231,8 @@ struct vo_instance_s {
    rgb buffers in the private fields of image buffer) */
 #define VO_CAP_COPIES_IMAGE 0x00000001
 
-#define VO_CAP_RGB          0x00000002 /* driver can handle 24bit rgb pictures */
-#define VO_CAP_YV12         0x00000004 /* driver can handle YUV 4:2:0 pictures */
-#define VO_CAP_YUY2         0x00000008 /* driver can handle YUY2      pictures */
+#define VO_CAP_YV12         0x00000002 /* driver can handle YUV 4:2:0 pictures */
+#define VO_CAP_YUY2         0x00000004 /* driver can handle YUY2      pictures */
 
 #define VO_CAP_HUE                    0x00000010 /* driver can set HUE value                */
 #define VO_CAP_SATURATION             0x00000020 /* driver can set SATURATION value         */
@@ -253,7 +250,7 @@ struct vo_instance_s {
  * from generic vo functions.
  */
 
-#define VIDEO_OUT_IFACE_VERSION 3
+#define VIDEO_OUT_DRIVER_IFACE_VERSION 4
 
 struct vo_driver_s {
 

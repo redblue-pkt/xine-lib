@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.68 2002/02/02 17:05:43 richwareham Exp $
+ * $Id: load_plugins.c,v 1.69 2002/02/16 22:43:24 guenter Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -47,9 +47,7 @@
 #include "xineutils.h"
 #include "compat.h"
 
-/*
-#define LOAD_LOG
-*/
+#define LOG
 
 #ifdef __GNUC__
 #define LOG_MSG_STDERR(xine, message, args...) {                     \
@@ -662,15 +660,16 @@ char **xine_list_video_output_plugins (int visual_type) {
 	   && (dir_entry->d_name[nLen-2]=='s')
 	   && (dir_entry->d_name[nLen-1]=='o'))) {
 
-	/*printf ("load_plugins: found a video output plugin: %s\n",
-	  dir_entry->d_name); */
+#ifdef LOG
+	printf ("load_plugins: found a video output plugin: %s\n",
+		dir_entry->d_name); 
+#endif
 
 #if IGNORE_DXR3ENC
-	if (! strncasecmp(dir_entry->d_name, 
-		XINE_VIDEO_OUT_PLUGIN_PREFIXNAME "dxr3enc", 
-		XINE_VIDEO_OUT_PLUGIN_PREFIXNAME_LENGTH + 7))
-	{
-		printf("(ignoring obsolete dxr3enc driver)");
+	if (!strncasecmp(dir_entry->d_name, 
+			 XINE_VIDEO_OUT_PLUGIN_PREFIXNAME "dxr3enc", 
+			 XINE_VIDEO_OUT_PLUGIN_PREFIXNAME_LENGTH + 7)) {
+		printf ("load_plugins: (ignoring obsolete dxr3enc driver)");
 		continue;
 	}
 #endif
@@ -698,9 +697,11 @@ char **xine_list_video_output_plugins (int visual_type) {
 	    vo_info = getinfo();
 
 	    if ( (vo_info->visual_type == visual_type)
-		 && (vo_info->interface_version == VIDEO_OUT_IFACE_VERSION) ) {
-	      /* printf("video output plugin found : %s (%s)\n",
-		     vo_info->id, vo_info->description); */
+		 && (vo_info->interface_version == VIDEO_OUT_DRIVER_IFACE_VERSION) ) {
+#ifdef LOG
+	       printf("video output plugin found : %s (%s)\n",
+		      vo_info->id, vo_info->description); 
+#endif
 
 	      /* sort the list by vo_info->priority */
 
@@ -721,6 +722,9 @@ char **xine_list_video_output_plugins (int visual_type) {
 
 	      num_plugins++;
 	      plugin_ids[num_plugins] = NULL;
+	    } else {
+	      printf ("load_plugins: %s has wrong visual type (%d) or interface version (%d)\n",
+		      str, vo_info->visual_type, vo_info->interface_version);
 	    }
 	  } else {
 
@@ -740,8 +744,7 @@ char **xine_list_video_output_plugins (int visual_type) {
   
   remove_segv_handler();
 
-  if( !num_plugins )
-  {
+  if (!num_plugins) {
     fprintf(stderr, "load_plugins: no video plugins found, make sure you have them "
             "installed at %s\n", XINE_PLUGINDIR );
   }
@@ -812,7 +815,7 @@ vo_driver_t *xine_load_video_output_plugin(config_values_t *config,
 
 	    if (!strcasecmp(id, vo_info->id) ) {
 
-	      if (vo_info->interface_version == VIDEO_OUT_IFACE_VERSION) {
+	      if (vo_info->interface_version == VIDEO_OUT_DRIVER_IFACE_VERSION) {
 
 		void *(*initplug) (config_values_t *, void *);
 	    
@@ -904,14 +907,14 @@ char **xine_list_audio_output_plugins(void) {
 	  ao_info_t* (*getinfo) ();
 	  ao_info_t   *ao_info;
 
-#ifdef LOAD_LOG
+#ifdef LOG
 	  printf ("load_plugins: plugin %s successfully loaded.\n", str);  
 #endif
 
 	  if ((getinfo = dlsym(plugin, "get_audio_out_plugin_info")) != NULL) {
 	    ao_info = getinfo();
 
-#ifdef LOAD_LOG
+#ifdef LOG
 	    printf("load_plugins: id=%s, priority=%d, interface_version=%d\n", 
 		   ao_info->id, ao_info->priority, ao_info->interface_version); 
 #endif
@@ -955,8 +958,8 @@ char **xine_list_audio_output_plugins(void) {
     }
     closedir(dir);
   } else {
-    fprintf (stderr, "load_plugins: %s - cannot access plugin dir: %s",
-	     __XINE_FUNCTION__, strerror(errno));
+    printf ("load_plugins: %s - cannot access plugin dir: %s",
+	    __XINE_FUNCTION__, strerror(errno));
   }
   
   remove_segv_handler();

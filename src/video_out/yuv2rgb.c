@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * $Id: yuv2rgb.c,v 1.27 2001/11/17 14:26:39 f1rmb Exp $
+ * $Id: yuv2rgb.c,v 1.28 2002/02/16 22:43:24 guenter Exp $
  */
 
 #include "config.h"
@@ -68,11 +68,11 @@ static void *my_malloc_aligned (size_t alignment, size_t size, void **chunk) {
 }
 
 
-int yuv2rgb_setup (yuv2rgb_t *this, 
-		   int source_width, int source_height,
-		   int y_stride, int uv_stride,
-		   int dest_width, int dest_height,
-		   int rgb_stride) {
+static int yuv2rgb_configure (yuv2rgb_t *this, 
+			      int source_width, int source_height,
+			      int y_stride, int uv_stride,
+			      int dest_width, int dest_height,
+			      int rgb_stride) {
   /*
   printf ("yuv2rgb setup (%d x %d => %d x %d)\n", source_width, source_height,
 	  dest_width, dest_height);
@@ -1265,15 +1265,15 @@ static void scale_line_4 (uint8_t *source, uint8_t *dest,
 
 #define DST1CMAP(i)							\
 	Y = py_1[2*i];                          			\
-	dst_1[2*i] = this->fast_rgb[r[Y] + g[Y] + b[Y]];		\
+	dst_1[2*i] = this->cmap[r[Y] + g[Y] + b[Y]];		\
 	Y = py_1[2*i+1];						\
-	dst_1[2*i+1] = this->fast_rgb[r[Y] + g[Y] + b[Y]];
+	dst_1[2*i+1] = this->cmap[r[Y] + g[Y] + b[Y]];
 
 #define DST2CMAP(i)							\
 	Y = py_2[2*i];							\
-	dst_2[2*i] = this->fast_rgb[r[Y] + g[Y] + b[Y]];		\
+	dst_2[2*i] = this->cmap[r[Y] + g[Y] + b[Y]];		\
 	Y = py_2[2*i+1];						\
-	dst_2[2*i+1] = this->fast_rgb[r[Y] + g[Y] + b[Y]];
+	dst_2[2*i+1] = this->cmap[r[Y] + g[Y] + b[Y]];
 
 static void yuv2rgb_c_32 (yuv2rgb_t *this, uint8_t * _dst,
 			  uint8_t * _py, uint8_t * _pu, uint8_t * _pv)
@@ -2088,7 +2088,7 @@ static int div_round (int dividend, int divisor)
     return -((-dividend + (divisor>>1)) / divisor);
 }
 
-static void yuv2rgb_setup_tables (yuv2rgb_t *this, int mode, int swapped) 
+static void yuv2rgb_setup_tables (yuv2rgb_factory_t *this, int mode, int swapped) 
 {
   int i;
   uint8_t table_Y[1024];
@@ -2334,13 +2334,13 @@ static uint32_t yuv2rgb_single_pixel_palette (yuv2rgb_t *this, uint8_t y, uint8_
   g = (void *) (((uint8_t *)this->table_gU[u]) + this->table_gV[v]);
   b = this->table_bU[u];
 
-  return this->fast_rgb[r[y] + g[y] + b[y]];
+  return this->cmap[r[y] + g[y] + b[y]];
 }
 
 
-static void yuv2rgb_c_init (yuv2rgb_t *this, int mode, int swapped)
+static void yuv2rgb_c_init (yuv2rgb_factory_t *this)
 {
-  switch (mode) {
+  switch (this->mode) {
   case MODE_32_RGB:
   case MODE_32_BGR:
     this->yuv2rgb_fun = yuv2rgb_c_32;
@@ -2349,7 +2349,7 @@ static void yuv2rgb_c_init (yuv2rgb_t *this, int mode, int swapped)
   case MODE_24_RGB:
   case MODE_24_BGR:
     this->yuv2rgb_fun =
-	(mode==MODE_24_RGB && !swapped) || (mode==MODE_24_BGR && swapped)
+	(this->mode==MODE_24_RGB && !this->swapped) || (this->mode==MODE_24_BGR && this->swapped)
 	    ? yuv2rgb_c_24_rgb
 	    : yuv2rgb_c_24_bgr;
     break;
@@ -2375,15 +2375,15 @@ static void yuv2rgb_c_init (yuv2rgb_t *this, int mode, int swapped)
     break;
 
   default:
-    fprintf (stderr, "mode %d not supported by yuv2rgb\n", mode);
+    printf ("yuv2rgb: mode %d not supported by yuv2rgb\n", this->mode);
     exit (1);
   }
 
 }
 
-static void yuv2rgb_single_pixel_init (yuv2rgb_t *this, int mode, int swapped)
-{
-  switch (mode) {
+static void yuv2rgb_single_pixel_init (yuv2rgb_factory_t *this) {
+
+  switch (this->mode) {
   case MODE_32_RGB:
   case MODE_32_BGR:
     this->yuv2rgb_single_pixel_fun = yuv2rgb_single_pixel_32;
@@ -2392,7 +2392,7 @@ static void yuv2rgb_single_pixel_init (yuv2rgb_t *this, int mode, int swapped)
   case MODE_24_RGB:
   case MODE_24_BGR:
     this->yuv2rgb_single_pixel_fun =
-	(mode==MODE_24_RGB && !swapped) || (mode==MODE_24_BGR && swapped)
+	(this->mode==MODE_24_RGB && !this->swapped) || (this->mode==MODE_24_BGR && this->swapped)
 	    ? yuv2rgb_single_pixel_24_rgb
 	    : yuv2rgb_single_pixel_24_bgr;
     break;
@@ -2418,7 +2418,7 @@ static void yuv2rgb_single_pixel_init (yuv2rgb_t *this, int mode, int swapped)
     break;
 
   default:
-    fprintf (stderr, "mode %d not supported by yuv2rgb\n", mode);
+    printf ("yuv2rgb: mode %d not supported by yuv2rgb\n", this->mode);
     exit (1);
   }
 }
@@ -2916,9 +2916,9 @@ static void yuy22rgb_c_palette (yuv2rgb_t *this, uint8_t * _dst, uint8_t * _p)
   }
 }
 
-static void yuy22rgb_c_init (yuv2rgb_t *this, int mode, int swapped)
+static void yuy22rgb_c_init (yuv2rgb_factory_t *this)
 {
-  switch (mode) {
+  switch (this->mode) {
   case MODE_32_RGB:
   case MODE_32_BGR:
     this->yuy22rgb_fun = yuy22rgb_c_32;
@@ -2927,7 +2927,7 @@ static void yuy22rgb_c_init (yuv2rgb_t *this, int mode, int swapped)
   case MODE_24_RGB:
   case MODE_24_BGR:
     this->yuy22rgb_fun =
-	(mode==MODE_24_RGB && !swapped) || (mode==MODE_24_BGR && swapped)
+	(this->mode==MODE_24_RGB && !this->swapped) || (this->mode==MODE_24_BGR && this->swapped)
 	    ? yuy22rgb_c_24_rgb
 	    : yuy22rgb_c_24_bgr;
     break;
@@ -2952,70 +2952,39 @@ static void yuy22rgb_c_init (yuv2rgb_t *this, int mode, int swapped)
     break;
 
   default:
-    printf ("yuv2rgb: mode %d not supported for yuy2\n", mode);
+    printf ("yuv2rgb: mode %d not supported for yuy2\n", this->mode);
   }
 }
 
-yuv2rgb_t *yuv2rgb_init (int mode, int swapped, uint8_t *colormap) {
+yuv2rgb_t *yuv2rgb_create_converter (yuv2rgb_factory_t *factory) {
 
-#ifdef ARCH_X86
-  uint32_t mm = xine_mm_accel();
-#endif
   yuv2rgb_t *this = xine_xmalloc (sizeof (yuv2rgb_t));
-
-
-  this->matrix_coefficients = 6;
-  this->fast_rgb = colormap;
+  
+  this->cmap                     = factory->cmap;
 
   this->y_chunk = this->y_buffer = NULL;
   this->u_chunk = this->u_buffer = NULL;
   this->v_chunk = this->v_buffer = NULL;
 
-  yuv2rgb_setup_tables(this, mode, swapped);
+  this->table_rV                 = factory->table_rV;
+  this->table_gU                 = factory->table_gU;
+  this->table_gV                 = factory->table_gV;
+  this->table_bU                 = factory->table_bU;
 
-  /*
-   * auto-probe for the best yuv2rgb function
-   */
+  this->yuv2rgb_fun              = factory->yuv2rgb_fun;
+  this->yuy22rgb_fun             = factory->yuy22rgb_fun;
+  this->yuv2rgb_single_pixel_fun = factory->yuv2rgb_single_pixel_fun;
 
-  this->yuv2rgb_fun = NULL;
-#ifdef ARCH_X86
-  if ((this->yuv2rgb_fun == NULL) && (mm & MM_ACCEL_X86_MMXEXT)) {
-    yuv2rgb_init_mmxext (this, mode, swapped);
-    if (this->yuv2rgb_fun != NULL)
-      printf ("yuv2rgb: using MMXEXT for colorspace transform\n");
-  }
-  if ((this->yuv2rgb_fun == NULL) && (mm & MM_ACCEL_X86_MMX)) {
-    yuv2rgb_init_mmx (this, mode, swapped);
-    if (this->yuv2rgb_fun != NULL)
-      printf ("yuv2rgb: using MMX for colorspace transform\n");
-  }
-#endif
-#if HAVE_MLIB
-  if (this->yuv2rgb_fun == NULL) {
-    yuv2rgb_init_mlib (this, mode, swapped);
-    if (this->yuv2rgb_fun != NULL)
-      printf ("yuv2rgb: using medialib for colorspace transform\n");
-  }
-#endif
-  if (this->yuv2rgb_fun == NULL) {
-    printf ("yuv2rgb: no accelerated colorspace conversion found\n");
-    yuv2rgb_c_init (this, mode, swapped);
-  }
-
-  yuv2rgb_single_pixel_init (this, mode, swapped);
-
-  /*
-   * auto-probe for the best yuy22rgb function
-   */
-
-  /* FIXME: implement mmx/mlib functions */
-  yuy22rgb_c_init (this, mode, swapped);
-
+  this->configure                = yuv2rgb_configure;
   return this;
 }
 
-void yuv2rgb_set_gamma (yuv2rgb_t *this, int gamma)
-{
+/*
+ * factory functions 
+ */
+
+void yuv2rgb_set_gamma (yuv2rgb_factory_t *this, int gamma) {
+
   int i;
   
   for (i = 0; i < 256; i++) {
@@ -3029,7 +2998,82 @@ void yuv2rgb_set_gamma (yuv2rgb_t *this, int gamma)
   this->gamma = gamma;
 }
 
-int yuv2rgb_get_gamma (yuv2rgb_t *this)
-{
+int yuv2rgb_get_gamma (yuv2rgb_factory_t *this) {
+
   return this->gamma;
 }
+
+yuv2rgb_factory_t* yuv2rgb_factory_init (int mode, int swapped, 
+					 uint8_t *cmap) {
+
+  yuv2rgb_factory_t *this;
+
+#ifdef ARCH_X86
+  uint32_t mm = xine_mm_accel();
+#endif
+
+  this = malloc (sizeof (yuv2rgb_factory_t));
+
+  this->mode                = mode;
+  this->swapped             = swapped;
+  this->cmap                = cmap;
+  this->create_converter    = yuv2rgb_create_converter;
+  this->set_gamma           = yuv2rgb_set_gamma;
+  this->get_gamma           = yuv2rgb_get_gamma;
+  this->matrix_coefficients = 6;
+
+
+  yuv2rgb_setup_tables (this, mode, swapped);
+
+  /*
+   * auto-probe for the best yuv2rgb function
+   */
+
+  this->yuv2rgb_fun = NULL;
+#ifdef ARCH_X86
+  if ((this->yuv2rgb_fun == NULL) && (mm & MM_ACCEL_X86_MMXEXT)) {
+
+    yuv2rgb_init_mmxext (this);
+
+    if (this->yuv2rgb_fun != NULL)
+      printf ("yuv2rgb: using MMXEXT for colorspace transform\n");
+  }
+
+  if ((this->yuv2rgb_fun == NULL) && (mm & MM_ACCEL_X86_MMX)) {
+
+    yuv2rgb_init_mmx (this);
+
+    if (this->yuv2rgb_fun != NULL)
+      printf ("yuv2rgb: using MMX for colorspace transform\n");
+  }
+#endif
+#if HAVE_MLIB
+  if (this->yuv2rgb_fun == NULL) {
+
+    yuv2rgb_init_mlib (this);
+
+    if (this->yuv2rgb_fun != NULL)
+      printf ("yuv2rgb: using medialib for colorspace transform\n");
+  }
+#endif
+  if (this->yuv2rgb_fun == NULL) {
+    printf ("yuv2rgb: no accelerated colorspace conversion found\n");
+    yuv2rgb_c_init (this);
+  }
+
+  /*
+   * auto-probe for the best yuy22rgb function
+   */
+
+  /* FIXME: implement mmx/mlib functions */
+  yuy22rgb_c_init (this);
+
+  /*
+   * set up single pixel function
+   */
+
+  yuv2rgb_single_pixel_init (this);
+
+  return this;
+}
+

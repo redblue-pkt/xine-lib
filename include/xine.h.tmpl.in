@@ -28,7 +28,7 @@
  \endverbatim
  */
 /*
- * $Id: xine.h.tmpl.in,v 1.80 2002/02/12 23:31:32 f1rmb Exp $
+ * $Id: xine.h.tmpl.in,v 1.81 2002/02/16 22:43:24 guenter Exp $
  *
  */
 
@@ -198,20 +198,15 @@ int xine_check_version(int major, int minor, int sub);
  */
 #define VO_CAP_COPIES_IMAGE 0x00000001
 /** 
- * \def VO_CAP_RGB
- * driver can handle 24bit rgb pictures 
- */
-#define VO_CAP_RGB          0x00000002
-/** 
  * \def VO_CAP_YV12
  * driver can handle YUV 4:2:0 pictures
  */
-#define VO_CAP_YV12         0x00000004
+#define VO_CAP_YV12         0x00000002
 /** 
  * \def VO_CAP_YUY2
  * driver can handle YUY2 pictures
  */
-#define VO_CAP_YUY2         0x00000008
+#define VO_CAP_YUY2         0x00000004
 /** 
  * \def VO_CAP_HUE
  * Driver can set HUE value.
