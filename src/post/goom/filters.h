@@ -8,23 +8,24 @@
 
 typedef struct
 {
-  int vitesse ; /* 128 = vitesse nule...
-				 * 256 = en arriere hyper vite..
-				 * 0 = en avant hype vite. */
-  unsigned char pertedec ;
-  unsigned char sqrtperte ;
-  int middleX,middleY ; /* milieu de l'effet */
-  char reverse ; /* inverse la vitesse */
-  char mode ; /* type d'effet à appliquer (cf les #define) */
-  /** @since June 2001 */
-  int hPlaneEffect ; /* deviation horitontale */
-  int vPlaneEffect ; /* deviation verticale */
-  /** @since April 2002 */
-  int waveEffect; /* applique une "surcouche" de wave effect */
-  int hypercosEffect; /* applique une "surcouche de hypercos effect */
+	int     vitesse;							/* 128 = vitesse nule... * * 256 = en arriere 
+																 * hyper vite.. * * 0 = en avant hype vite. */
+	unsigned char pertedec;
+	unsigned char sqrtperte;
+	int     middleX, middleY;			/* milieu de l'effet */
+	char    reverse;							/* inverse la vitesse */
+	char    mode;									/* type d'effet à appliquer (cf les #define) 
+																 * * * * * */ /** @since June 2001 */
+	int     hPlaneEffect;					/* deviation horitontale */
+	int     vPlaneEffect;					/* deviation verticale */
+	/** @since April 2002 */
+	int     waveEffect;						/* applique une "surcouche" de wave effect */
+	int     hypercosEffect;				/* applique une "surcouche de hypercos effect 
+																 */
 
-  char noisify ; /* ajoute un bruit a la transformation */
-} ZoomFilterData ;
+	char    noisify;							/* ajoute un bruit a la transformation */
+}
+ZoomFilterData;
 
 
 #define NORMAL_MODE 0
@@ -36,9 +37,8 @@ typedef struct
 #define HYPERCOS1_MODE 6
 #define HYPERCOS2_MODE 7
 
-void pointFilter(guint32 *pix1, Color c,
-				 float t1, float t2, float t3, float t4,
-				 guint32 cycle);
+void    pointFilter (guint32 * pix1, Color c,
+										 float t1, float t2, float t3, float t4, guint32 cycle);
 
 /* filtre de zoom :
  * le contenu de pix1 est copie dans pix2.
@@ -46,11 +46,12 @@ void pointFilter(guint32 *pix1, Color c,
  * resx,resy : taille des buffers.
  */
 
-void zoomFilterFastRGB (guint32 *pix1,
-						guint32 *pix2,
-						ZoomFilterData *zf,
-						guint32 resx, guint32 resy,
-						int switchIncr, float switchMult);
+void    zoomFilterFastRGB (guint32 * pix1,
+													 guint32 * pix2,
+													 ZoomFilterData * zf,
+													 guint32 resx, guint32 resy,
+
+													 int switchIncr, float switchMult);
 
 
 /* filtre sin :
@@ -73,8 +74,5 @@ void sinFilter(Uint *pix1,Uint *pix2,
 #define SIN_MUL 1
 #define SIN_ADD 2
 
-/* #ifdef USE_ASM */
-/* void setAsmUse (int useIt); */
-/* #endif */
 
 #endif

@@ -1,3 +1,7 @@
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include <inttypes.h>
 
 /* #define VERSION "1.9dev5" */
@@ -25,8 +29,14 @@
 /* #define STANDALONE */
 
 /*  for pc users with mmx processors. */
-/* #define MMX */
-/* #define POWERPC */
+#ifdef ARCH_X86
+#define MMX
+#endif
+
+#ifdef ARCH_PPC
+#define POWERPC
+#endif
+
 /* #define VERBOSE */
 
 #ifndef guint32

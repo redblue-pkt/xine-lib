@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_goom.c,v 1.14 2003/01/03 02:38:09 tmmm Exp $
+ * $Id: xine_goom.c,v 1.15 2003/01/03 21:29:20 tmattern Exp $
  *
  * GOOM post plugin.
  *
@@ -28,19 +28,38 @@
 
 #include <stdio.h>
 
+#include "config.h"
 #include "xine_internal.h"
 #include "xineutils.h"
 #include "post.h"
 
+#include "goom_config.h"
 #include "goom_core.h"
 
-#define FPS 20
-#define DURATION 90000/FPS
+#define FPS 10
 
 #define GOOM_WIDTH  320
 #define GOOM_HEIGHT 240
 
+/* colorspace conversion methods */
+const char * goom_csc_methods[]={
+  "Fast but not photorealistic",
+  "Slow but looks better (mmx)",
+  NULL
+};
+
 typedef struct post_plugin_goom_s post_plugin_goom_t;
+
+typedef struct post_class_goom_s post_class_goom_t;
+
+struct post_class_goom_s {
+  post_class_t class;
+
+  int width, height;
+  int fps;
+  int use_asm;
+  int csc_method;
+};
 
 struct post_plugin_goom_s {
   post_plugin_t post;
@@ -48,6 +67,8 @@ struct post_plugin_goom_s {
   /* private data */
   xine_video_port_t *vo_port;
   xine_stream_t     *stream;
+  
+  post_class_goom_t *class;  
   
   gint16 data [2][512];
   
@@ -105,17 +126,53 @@ static void goom_port_put_buffer (xine_audio_port_t *this, audio_buffer_t *buf, 
 
 static void *goom_init_plugin(xine_t *xine, void *data)
 {
-  post_class_t *class = (post_class_t *)malloc(sizeof(post_class_t));
-  
-  if (!class)
+  post_class_goom_t *this = (post_class_goom_t *)malloc(sizeof(post_class_goom_t));
+  config_values_t *cfg;
+
+  if (!this)
     return NULL;
   
-  class->open_plugin     = goom_open_plugin;
-  class->get_identifier  = goom_get_identifier;
-  class->get_description = goom_get_description;
-  class->dispose         = goom_class_dispose;
+  this->class.open_plugin     = goom_open_plugin;
+  this->class.get_identifier  = goom_get_identifier;
+  this->class.get_description = goom_get_description;
+  this->class.dispose         = goom_class_dispose;
   
-  return class;
+  cfg = xine->config;
+
+  this->fps = cfg->register_num (cfg, "post.goom_fps", FPS,
+                                 _("Frames per second to generate with Goom"),
+                                 NULL, 10, NULL, NULL);
+
+  this->width = cfg->register_num (cfg, "post.goom_width", GOOM_WIDTH,
+                                   _("Goom image width in pixels"),
+                                   NULL, 20, NULL, NULL);
+  
+  this->height = cfg->register_num (cfg, "post.goom_height", GOOM_HEIGHT,
+                                    _("Goom image height in pixels"),
+                                    NULL, 20, NULL, NULL);
+  
+#ifdef ARCH_X86
+  if (xine_mm_accel() & MM_ACCEL_X86_MMX) {
+    this->use_asm = cfg->register_bool (cfg, "post.goom_use_asm", 1,
+                                        _("Use Goom asm optimizations"),
+                                        NULL, 10, NULL, NULL);
+  } else {
+    this->use_asm = 0;
+  }
+#endif
+  
+#ifdef ARCH_PPC
+  this->use_asm = cfg->register_bool (cfg, "post.goom_use_asm", 1,
+                                      _("Use Goom asm optimizations"),
+                                      NULL, 10, NULL, NULL);
+#endif
+  
+  this->csc_method = cfg->register_enum (cfg, "post.goom_csc_method", 0,
+                                         (char **)goom_csc_methods,
+                                         _("Colorspace conversion method used by Goom"),
+                                         NULL, 20, NULL, NULL);
+
+  return &this->class;
 }
 
 
@@ -128,7 +185,7 @@ static post_plugin_t *goom_open_plugin(post_class_t *class_gen, int inputs,
   post_goom_out_t    *output = (post_goom_out_t *)malloc(sizeof(post_goom_out_t));
   post_goom_out_t    *outputv = (post_goom_out_t *)malloc(sizeof(post_goom_out_t));
   post_audio_port_t  *port;
-  
+
   if (!this || !input || !output || !outputv || !video_target || !video_target[0] ||
       !audio_target || !audio_target[0] ) {
     free(this);
@@ -138,7 +195,10 @@ static post_plugin_t *goom_open_plugin(post_class_t *class_gen, int inputs,
     return NULL;
   }
   
-  goom_init (GOOM_WIDTH, GOOM_HEIGHT, 0);
+  this->class = (post_class_goom_t *) class_gen;
+
+  goom_init (this->class->width, this->class->height, 0);
+  goom_setAsmUse(this->class->use_asm);
   this->sample_counter = 0;
   this->stream  = NULL;
   this->vo_port = video_target[0];
@@ -282,7 +342,7 @@ static int goom_port_open(xine_audio_port_t *port_gen, xine_stream_t *stream,
   this->bits = bits;
   this->mode = mode;
   this->channels = mode_channels(mode);
-  this->samples_per_frame = rate / FPS;
+  this->samples_per_frame = rate / this->class->fps;
   this->sample_rate = rate; 
   this->stream = stream;
   init_yuv_planes(&this->yuv, GOOM_WIDTH, GOOM_HEIGHT);
@@ -336,9 +396,9 @@ static void goom_port_put_buffer (xine_audio_port_t *port_gen,
       }
     }
         
-    goom_frame = (uint8_t *)goom_update (this->data, 0);
+    goom_frame = (uint8_t *)goom_update (this->data, 0, 0, NULL, NULL);
 
-    frame = this->vo_port->get_frame (this->vo_port, GOOM_WIDTH, GOOM_HEIGHT,
+    frame = this->vo_port->get_frame (this->vo_port, this->class->width, this->class->height,
                                       XINE_VO_ASPECT_SQUARE, XINE_IMGFMT_YUY2,
                                       VO_BOTH_FIELDS);
     frame->pts = buf->vpts;
@@ -346,9 +406,10 @@ static void goom_port_put_buffer (xine_audio_port_t *port_gen,
   
     /* Try to be fast */
     dest_ptr = frame -> base[0];
-    goom_frame_end = goom_frame + 4 * (GOOM_WIDTH * GOOM_HEIGHT);
+    goom_frame_end = goom_frame + 4 * (this->class->width * this->class->height);
 
-    if (xine_mm_accel() & MM_ACCEL_X86_MMX) {
+    if ((this->class->csc_method == 1) && 
+        (xine_mm_accel() & MM_ACCEL_X86_MMX)) {
       int plane_ptr = 0;
 
       while (goom_frame < goom_frame_end) {
