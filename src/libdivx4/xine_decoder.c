@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.14 2001/12/13 23:10:53 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.15 2001/12/29 04:32:36 miguelfreitas Exp $
  *
  * xine decoder plugin using divx4
  *
@@ -100,8 +100,10 @@ typedef struct divx4_decoder_s {
   BITMAPINFOHEADER  bih;
   long		    biWidth;
   long		    biHeight;
-  unsigned char     buf[128*1024];
+  unsigned char     *buf;
   int               size;
+  int               bufsize;
+  
   decoreFunc        decore; /* ptr to decore function in libdivxdecore */
   /* version as reported by decore with GET_OPT_VERSION command */
   int		    version;
@@ -118,6 +120,8 @@ typedef struct divx4_decoder_s {
      only returns MPEG4, yielding 311 to ffmpeg */
   int		    can_handle_311;
 } divx4_decoder_t;
+
+#define VIDEOBUFSIZE 128*1024
 
 static unsigned long str2ulong(void *data) {
 
@@ -339,6 +343,7 @@ static void divx4_init (video_decoder_t *this_gen, vo_instance_t *video_out) {
 
   this->video_out  = video_out;
   this->decoder_ok = 0;
+  this->buf = NULL;
 }
 
 
@@ -356,8 +361,15 @@ static void divx4_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
     divx4_get_version(this);	
     this->decoder_ok = ( divx4_check_version(this) &&
                          divx4_init_decoder(this, buf) );
-    if (this->decoder_ok)
+    if (this->decoder_ok) {
       this->video_out->open (this->video_out);
+    
+      if( this->buf )
+        free( this->buf );
+    
+      this->buf = malloc( VIDEOBUFSIZE );
+      this->bufsize = VIDEOBUFSIZE;
+    }
     return;
   }
 
@@ -367,6 +379,13 @@ static void divx4_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
     if (divx4_check_version(this) != 0) /* version is good */
       printf("divx4: internal error; decoder not initialized.\n");
     return;
+  }
+    
+  if( this->size + buf->size > this->bufsize ) {
+    this->bufsize = this->size + 2 * buf->size;
+    printf("divx4: increasing source buffer to %d to avoid overflow.\n", 
+      this->bufsize);
+    this->buf = realloc( this->buf, this->bufsize );
   }
 
   xine_fast_memcpy (&this->buf[this->size], buf->content, buf->size);
@@ -424,6 +443,10 @@ static void divx4_close (video_decoder_t *this_gen)  {
     this->decoder_ok = 0;
     this->video_out->close(this->video_out);
   }
+  
+  if (this->buf)
+    free(this->buf);
+  this->buf = NULL;
 }
 
 static void divx4_update_postproc(void *this_gen, cfg_entry_t *entry)
