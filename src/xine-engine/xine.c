@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.77 2001/11/20 12:41:58 miguelfreitas Exp $
+ * $Id: xine.c,v 1.78 2001/11/20 14:03:15 miguelfreitas Exp $
  *
  * top-level xine functions
  *
@@ -61,7 +61,7 @@ void * xine_notify_stream_finished_thread (void * this_gen) {
   xine_t *this = this_gen;
   xine_event_t event;
 
-  xine_stop (this);
+  xine_stop_internal (this);
 
   event.type = XINE_EVENT_PLAYBACK_FINISHED;
 
@@ -91,7 +91,7 @@ void xine_notify_stream_finished (xine_t *this) {
   }
 }
 
-void xine_stop (xine_t *this) {
+void xine_stop_internal (xine_t *this) {
 
   pthread_mutex_lock (&this->xine_lock);
 
@@ -131,6 +131,18 @@ void xine_stop (xine_t *this) {
 
   pthread_mutex_unlock (&this->xine_lock);
 }
+
+void xine_stop (xine_t *this) {
+  xine_stop_internal(this);
+  
+  /*
+     this will make output threads discard about everything
+     am i abusing of xine architeture? :)
+  */
+  this->metronom->adjust_clock(this->metronom,
+    this->metronom->get_current_time(this->metronom) + 30 * 90000 );
+}
+
 
 /*
  * *****
@@ -334,35 +346,8 @@ int xine_eject (xine_t *this) {
 
 void xine_exit (xine_t *this) {
 
-  printf ("xine_exit: try to get lock...\n");
-
-  pthread_mutex_lock (&this->xine_lock);
-
-  this->metronom->set_speed (this->metronom, SPEED_NORMAL);
-  this->speed  = SPEED_NORMAL;
-  this->status = XINE_STOP;
-  
-  /*
-   * stop decoder threads
-   */
-
-  if(this->cur_demuxer_plugin) {
-    printf ("xine_exit: closing demuxer\n");
-
-    this->cur_demuxer_plugin->stop (this->cur_demuxer_plugin);
-    this->cur_demuxer_plugin = NULL;
-  }
-
-  if(this->cur_input_plugin) {
-    printf ("xine_exit: closing input plugin\n");
-
-    this->cur_input_plugin->stop (this->cur_input_plugin);
-    this->cur_input_plugin->close(this->cur_input_plugin);
-    this->cur_input_plugin = NULL;
-  }
-
-  pthread_mutex_unlock (&this->xine_lock);
-
+  xine_stop(this);
+    
   printf ("xine_exit: shutdown audio\n");
 
   audio_decoder_shutdown (this);

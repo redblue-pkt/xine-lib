@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.56 2001/11/20 12:41:58 miguelfreitas Exp $
+ * $Id: xine_internal.h,v 1.57 2001/11/20 14:03:15 miguelfreitas Exp $
  *
  */
 
@@ -263,6 +263,7 @@ int xine_get_av_offset (xine_t *this);
 /*
  * stop playing
  */
+void xine_stop_internal (xine_t *this);
 void xine_stop (xine_t *this);
 
 /*
