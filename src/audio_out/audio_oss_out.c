@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_oss_out.c,v 1.47 2001/10/21 23:14:08 miguelfreitas Exp $
+ * $Id: audio_oss_out.c,v 1.48 2001/11/04 22:49:38 guenter Exp $
  *
  * 20-8-2001 First implementation of Audio sync and Audio driver separation.
  * Copyright (C) 2001 James Courtier-Dutton James@superbug.demon.co.uk
@@ -189,10 +189,6 @@ static int ao_oss_open(ao_driver_t *this_gen,
     ioctl(this->audio_fd,SNDCTL_DSP_SAMPLESIZE,&tmp);
 
     tmp = this->input_sample_rate;
-#ifdef FORCE_44K_MAX
-    if(tmp > 44100)
-       tmp = 44100;
-#endif
     if (ioctl(this->audio_fd,SNDCTL_DSP_SPEED, &tmp) == -1) {
 
       printf ("audio_oss_out: warning: sampling rate %d Hz not supported, trying 44100 Hz\n", this->input_sample_rate);

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.h,v 1.18 2001/10/01 23:04:57 f1rmb Exp $
+ * $Id: audio_out.h,v 1.19 2001/11/04 22:49:38 guenter Exp $
  */
 #ifndef HAVE_AUDIO_OUT_H
 #define HAVE_AUDIO_OUT_H
@@ -175,6 +175,7 @@ struct ao_instance_s {
   int             audio_started;
   uint32_t        last_audio_vpts;
   int             resample_conf;
+  int             force_rate;           /* force audio output rate to this value if non-zero */
   int             do_resample;
   int	 	  mode;
   int             bits;

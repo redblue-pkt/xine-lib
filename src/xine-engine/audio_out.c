@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.22 2001/10/16 17:57:31 joachim_koenig Exp $
+ * $Id: audio_out.c,v 1.23 2001/11/04 22:49:38 guenter Exp $
  * 
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -126,7 +126,7 @@ static int ao_open(ao_instance_t *this,
 		   uint32_t bits, uint32_t rate, int mode)
 { 
   int output_sample_rate;
-  if ((output_sample_rate=this->driver->open(this->driver,bits,rate,mode)) == 0) {
+  if ((output_sample_rate=this->driver->open(this->driver,bits,(this->force_rate ? this->force_rate : rate),mode)) == 0) {
     printf("audio_out: open failed!\n");
     return 0;
   }; 
@@ -460,6 +460,7 @@ ao_instance_t *ao_new_instance (ao_driver_t *driver, metronom_t *metronom,
   this->gap_tolerance         = driver->get_gap_tolerance (this->driver);
 
   this->resample_conf = config->lookup_int (config, "audio_resample_mode", 0);
+  this->force_rate    = config->lookup_int (config, "audio_force_rate", 0);
 
   return this;
 }

@@ -25,10 +25,10 @@ dnl set XINE_BIN_AGE _and_ XINE_IFACE_AGE to 0.
 dnl
 XINE_MAJOR=0
 XINE_MINOR=9
-XINE_SUB=3
+XINE_SUB=4
 XINE_PRE=""
-XINE_IFACE_AGE=3
-XINE_BIN_AGE=3
+XINE_IFACE_AGE=4
+XINE_BIN_AGE=4
 
 AC_SUBST(XINE_MAJOR)
 AC_SUBST(XINE_MINOR)
@@ -537,7 +537,6 @@ case "$host_or_hostalias" in
   ppc-*-linux* | powerpc-*) 
     GLOBAL_CFLAGS="$GLOBAL_CFLAGS -O3 -pipe -fomit-frame-pointer $m_wm $m_psb -fexpensive-optimizations $f_si $f_nsa -ffast-math -funroll-loops -funroll-all-loops -finline-functions"
     DEBUG_CFLAGS="$DEBUG_CFLAGS -O3"
-    FORCE_44K_MAX=yes
     AC_DEFINE(FPM_PPC)
     ;;
 
@@ -690,18 +689,6 @@ dnl
 AC_ARG_WITH(w32-path,[  --with-w32-path=path    Location of WIN32 libraries],
             w32_path="$withval", w32_path="/usr/lib/win32")
 AC_SUBST(w32_path)
-
-
-dnl
-dnl Force 44.1K maximum audio sample rate for drivers/devices that don't
-dnl correctly handle 48K rates, e.g. PowerMac dmasound through at least
-dnl early 2.4.*. Will need dynamic test once fix makes it into source
-dnl trees.
-dnl
-if test x$FORCE_44K_MAX = xyes; then
-  echo "including FORCE_44K_MAX capping"
-  AC_DEFINE(FORCE_44K_MAX,1,[Cap audio sample rate at 44.1K, some drivers (dmasound) don't handle 48K request correctly])
-fi
 
 
 dnl

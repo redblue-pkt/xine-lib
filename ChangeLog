@@ -1,6 +1,11 @@
+xine (0.9.4) unstable; urgency=low
+
   * new SyncFB video out plugin (see README.syncfb)
   * catch SIGSEGV during libdivxdecore version probing. see README.divx4.
-  
+  * audio_force_rate .xinerc option
+	
+ -- Guenter Bartsch <guenter@users.sourceforge.net> Sun Nov  4 23:43:55 CET 2001
+	
 xine (0.9.3) unstable; urgency=low
 
   * XShm gamma adjusting (brightness)
