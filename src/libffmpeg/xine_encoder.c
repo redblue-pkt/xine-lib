@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_encoder.c,v 1.7 2003/11/01 18:12:53 mroi Exp $
+ * $Id: xine_encoder.c,v 1.8 2003/11/04 20:49:45 mroi Exp $
  */
  
 /* mpeg encoders for the dxr3 video out plugin. */
@@ -90,7 +90,6 @@ static int lavc_on_update_format(dxr3_driver_t *drv, dxr3_frame_t *frame)
 {
   lavc_data_t *this = (lavc_data_t *)drv->enc;
   AVCodec *codec;
-  double fps;
   unsigned char use_quantizer;
   
   if (this->context) {
@@ -182,47 +181,8 @@ static int lavc_on_update_format(dxr3_driver_t *drv, dxr3_frame_t *frame)
   this->context->gop_size = 0; /*intra frames only */
   this->context->me_method = ME_ZERO; /*motion estimation type*/
   
-  /* start guessing the framerate */
-  fps = 90000.0 / frame->vo_frame.duration;
-#if LOG_ENC
-   printf("dxr3_mpeg_encoder: fps = %f\n", fps);
-#endif
-  
-  
-  if (fabs(fps - 25) < 0.01) { /* PAL */
-#if LOG_ENC
-    printf("dxr3_mpeg_encoder: setting mpeg output framerate to PAL (25 Hz)\n");
-#endif
-    this->context->frame_rate = 25;  
-    this->context->frame_rate_base= 1;
-  }  
-  else if (fabs(fps - 24) < 0.01) { /* FILM */
-#if LOG_ENC
-    printf("dxr3_mpeg_encoder: setting mpeg output framerate to FILM (24 Hz)\n");
-#endif
-    this->context->frame_rate = 24;  
-    this->context->frame_rate_base= 1;
-  }
-  else if (fabs(fps - 23.976) < 0.01) { /* NTSC-FILM */
-#if LOG_ENC
-    printf("dxr3_mpeg_encoder: setting mpeg output framerate to NTSC-FILM (23.976 Hz)\n");
-#endif
-    this->context->frame_rate = 24000;  
-    this->context->frame_rate_base= 1001;
-  }
-  else if (fabs(fps - 29.97) < 0.01) { /* NTSC */
-#if LOG_ENC
-    printf("dxr3_mpeg_encoder: setting mpeg output framerate to NTSC (29.97 Hz)\n");
-#endif
-    this->context->frame_rate = 30000;  
-    this->context->frame_rate_base= 1001;
-  } else { /* will go to PAL */
-    this->context->frame_rate = 25;
-    this->context->frame_rate_base= 1;
-#if LOG_ENC
-    printf("dxr3_mpeg_encoder: trying to set mpeg output framerate to 25 Hz\n");
-#endif
-  }
+  this->context->frame_rate = 90000;
+  this->context->frame_rate_base = frame->vo_frame.duration;
   
   /* open avcodec */
   if (avcodec_open(this->context, codec) < 0) {
