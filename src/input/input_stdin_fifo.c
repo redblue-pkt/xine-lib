@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_stdin_fifo.c,v 1.48 2003/04/13 17:31:40 miguelfreitas Exp $
+ * $Id: input_stdin_fifo.c,v 1.49 2003/04/13 18:49:12 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -366,7 +366,6 @@ static void *init_class (xine_t *xine, void *data) {
 
   stdin_input_class_t  *this;
 
-  printf ("input_stdin_fifo: init_class\n");
   this = (stdin_input_class_t *) xine_xmalloc (sizeof (stdin_input_class_t));
 
   this->xine   = xine;

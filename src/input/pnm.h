@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: pnm.h,v 1.3 2003/01/31 14:06:17 miguelfreitas Exp $
+ * $Id: pnm.h,v 1.4 2003/04/13 18:49:13 miguelfreitas Exp $
  *
  * pnm util functions header by joschka
  */
@@ -28,11 +28,11 @@
 #ifndef __CYGWIN__
 #include <inttypes.h>
 #endif
-/*#include "xine_internal.h" */
+#include "xine_internal.h"
 
 typedef struct pnm_s pnm_t;
 
-pnm_t*   pnm_connect (const char *url);
+pnm_t*   pnm_connect (xine_stream_t *stream, const char *url);
 
 int      pnm_read (pnm_t *this, char *data, int len);
 void     pnm_close (pnm_t *this);

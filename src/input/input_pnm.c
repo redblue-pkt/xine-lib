@@ -218,7 +218,7 @@ static int pnm_plugin_open (input_plugin_t *this_gen) {
   printf ("input_pnm: trying to open '%s'\n", this->mrl);
 #endif
 
-  pnm = pnm_connect (this->mrl);
+  pnm = pnm_connect (this->stream, this->mrl);
 
   if (!pnm) {
     return 0;

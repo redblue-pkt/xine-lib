@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: pnm.c,v 1.13 2003/02/28 02:51:48 storri Exp $
+ * $Id: pnm.c,v 1.14 2003/04/13 18:49:12 miguelfreitas Exp $
  *
  * pnm protocol implementation 
  * based upon code from joschka
@@ -40,6 +40,7 @@
 #include "libreal/rmff.h"
 #include "bswap.h"
 #include "xineutils.h"
+#include "xine_internal.h"
 
 /*
 #define LOG
@@ -49,6 +50,8 @@
 #define HEADER_SIZE 4096
 
 struct pnm_s {
+
+  xine_stream_t *stream;
 
   int           s;
 
@@ -256,15 +259,16 @@ static int rm_write(int s, const char *buf, int len) {
   return total;
 }
 
-static ssize_t rm_read(int fd, void *buf, size_t count) {
+static ssize_t rm_read(pnm_t *p, void *buf, size_t count) {
   
+#if 0
   ssize_t ret, total;
 
   total = 0;
 
   while (total < count) {
   
-    ret=read (fd, ((uint8_t*)buf)+total, count-total);
+    ret=read (p->s, ((uint8_t*)buf)+total, count-total);
 
     if (ret<0) {
       if(errno == EAGAIN) {
@@ -272,12 +276,12 @@ static ssize_t rm_read(int fd, void *buf, size_t count) {
         struct timeval timeout;
     
         FD_ZERO (&rset);
-        FD_SET  (fd, &rset);
+        FD_SET  (p->s, &rset);
         
         timeout.tv_sec  = 30;
         timeout.tv_usec = 0;
         
-        if (select (fd+1, &rset, NULL, NULL, &timeout) <= 0) {
+        if (select (p->s+1, &rset, NULL, NULL, &timeout) <= 0) {
           return -1;
         }
         continue;
@@ -293,6 +297,11 @@ static ssize_t rm_read(int fd, void *buf, size_t count) {
   }
 
   return total;
+#else
+
+  return xine_read_abort(p->stream, p->s, buf, count );
+
+#endif
 }
 
 /*
@@ -355,11 +364,11 @@ static unsigned int pnm_get_chunk(pnm_t *p,
   char *ptr;
  
   /* get first PREAMBLE_SIZE bytes and ignore checksum */
-  rm_read (p->s, data, CHECKSUM_SIZE);
+  rm_read (p, data, CHECKSUM_SIZE);
   if (data[0] == 0x72)
-    rm_read (p->s, data, PREAMBLE_SIZE);
+    rm_read (p, data, PREAMBLE_SIZE);
   else
-    rm_read (p->s, data+CHECKSUM_SIZE, PREAMBLE_SIZE-CHECKSUM_SIZE);
+    rm_read (p, data+CHECKSUM_SIZE, PREAMBLE_SIZE-CHECKSUM_SIZE);
   
   *chunk_type = be2me_32(*((uint32_t *)data));
   chunk_size = be2me_32(*((uint32_t *)(data+4)));
@@ -368,7 +377,7 @@ static unsigned int pnm_get_chunk(pnm_t *p,
     case PNA_TAG:
       *need_response=0;
       ptr=data+PREAMBLE_SIZE;
-      rm_read (p->s, ptr++, 1);
+      rm_read (p, ptr++, 1);
 
       while(1) {
 	/* The pna chunk is devided into subchunks.
@@ -381,17 +390,17 @@ static unsigned int pnm_get_chunk(pnm_t *p,
 	 * if first byte is 'F', we got an error
 	 */
 
-        rm_read (p->s, ptr, 2);
+        rm_read (p, ptr, 2);
 	if (*ptr == 'X') /* checking for server message */
 	{
 	  printf("input_pnm: got a message from server:\n");
-	  rm_read (p->s, ptr+2, 1);
+	  rm_read (p, ptr+2, 1);
 
 	  /* two bytes of message length*/
 	  n=be2me_16(*(uint16_t*)(ptr+1));
 
 	  /* message itself */
-	  rm_read (p->s, ptr+3, n);
+	  rm_read (p, ptr+3, n);
 	  ptr[3+n]=0;
 	  printf("%s\n",ptr+3);
 	  return -1;
@@ -411,11 +420,11 @@ static unsigned int pnm_get_chunk(pnm_t *p,
 	}
 	if (*ptr != 0x4f) break;
 	n=ptr[1];
-	rm_read (p->s, ptr+2, n);
+	rm_read (p, ptr+2, n);
 	ptr+=(n+2);
       }
       /* the checksum of the next chunk is ignored here */
-      rm_read (p->s, ptr+2, 1);
+      rm_read (p, ptr+2, 1);
       ptr+=3;
       chunk_size=ptr-data;
       break;
@@ -427,11 +436,11 @@ static unsigned int pnm_get_chunk(pnm_t *p,
       if (chunk_size > max) {
         printf("error: max chunk size exeeded (max was 0x%04x)\n", max);
 	/* reading some bytes for debugging */
-        n=rm_read (p->s, &data[PREAMBLE_SIZE], 0x100 - PREAMBLE_SIZE);
+        n=rm_read (p, &data[PREAMBLE_SIZE], 0x100 - PREAMBLE_SIZE);
         hexdump(data,n+PREAMBLE_SIZE);
         return -1;
       }
-      rm_read (p->s, &data[PREAMBLE_SIZE], chunk_size-PREAMBLE_SIZE);
+      rm_read (p, &data[PREAMBLE_SIZE], chunk_size-PREAMBLE_SIZE);
       break;
     default:
       *chunk_type = 0;
@@ -603,7 +612,7 @@ static int pnm_get_headers(pnm_t *p, int *need_response) {
   
   /* read challenge */
   memcpy (p->buffer, ptr, PREAMBLE_SIZE);
-  rm_read (p->s, &p->buffer[PREAMBLE_SIZE], 64);
+  rm_read (p, &p->buffer[PREAMBLE_SIZE], 64);
 
   /* now write a data header */
   memcpy(ptr, pnm_data_header, PNM_DATA_HEADER_SIZE);
@@ -713,13 +722,13 @@ static int pnm_get_stream_chunk(pnm_t *p) {
    * <i2> is a 8 bit index which counts from 0x10 to somewhere
    */
   
-  n = rm_read (p->s, p->buffer, 8);
+  n = rm_read (p, p->buffer, 8);
   if (n<8) return 0;
   
   /* skip 8 bytes if 0x62 is read */
   if (p->buffer[0] == 0x62)
   {
-    n = rm_read (p->s, p->buffer, 8);
+    n = rm_read (p, p->buffer, 8);
     if (n<8) return 0;
 #ifdef LOG
     printf("input_pnm: had to seek 8 bytes on 0x62\n");
@@ -731,7 +740,7 @@ static int pnm_get_stream_chunk(pnm_t *p) {
   {
     int size=be2me_16(*(uint16_t*)(&p->buffer[1]));
 
-    rm_read (p->s, &p->buffer[8], size-5);
+    rm_read (p, &p->buffer[8], size-5);
     p->buffer[size+3]=0;
     printf("input_pnm: got message from server while reading stream:\n%s\n", &p->buffer[3]);
     return 0;
@@ -752,7 +761,7 @@ static int pnm_get_stream_chunk(pnm_t *p) {
     for (i=1; i<8; i++) {
       p->buffer[i-1]=p->buffer[i];
     }
-    rm_read (p->s, &p->buffer[7], 1);
+    rm_read (p, &p->buffer[7], 1);
     n++;
   }
 
@@ -781,7 +790,7 @@ static int pnm_get_stream_chunk(pnm_t *p) {
   p->seq_current[0]=be2me_16(*(uint16_t*)(&p->buffer[5]));
   
   /* now read the rest of stream chunk */
-  n = rm_read (p->s, &p->recv[5], fof1-5);
+  n = rm_read (p, &p->recv[5], fof1-5);
   if (n<(fof1-5)) return 0;
 
   /* get second index */
@@ -818,12 +827,12 @@ static int pnm_get_stream_chunk(pnm_t *p) {
   return fof1;
 }
 
-pnm_t *pnm_connect(const char *mrl) {
+pnm_t *pnm_connect(xine_stream_t *stream, const char *mrl) {
   
   char *mrl_ptr=strdup(mrl);
   char *slash, *colon;
   int pathbegin, hostend;
-  pnm_t *p=xine_xmalloc(sizeof(pnm_t));
+  pnm_t *p;
   int fd;
   int need_response=0;
   
@@ -834,6 +843,8 @@ pnm_t *pnm_connect(const char *mrl) {
   
   mrl_ptr+=6;
 
+  p=xine_xmalloc(sizeof(pnm_t));
+  p->stream = stream;
   p->port=7070;
   p->url=strdup(mrl);
   p->packet=0;
