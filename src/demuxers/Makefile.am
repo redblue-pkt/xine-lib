@@ -39,7 +39,8 @@ lib_LTLIBRARIES = $(ogg_module) $(asf_module) $(qt_modules) xineplug_dmx_avi.la\
 	xineplug_dmx_mpeg_elem.la xineplug_dmx_mpeg_audio.la \
 	xineplug_dmx_film.la xineplug_dmx_wav.la \
 	xineplug_dmx_aiff.la xineplug_dmx_voc.la \
-	xineplug_dmx_snd.la
+	xineplug_dmx_snd.la xineplug_dmx_idcin.la \
+	xineplug_dmx_wc3movie.la
 
 xineplug_dmx_ogg_la_SOURCES = demux_ogg.c
 xineplug_dmx_ogg_la_LIBADD = $(OGG_LIBS) $(VORBIS_LIBS)\
@@ -106,13 +107,13 @@ xineplug_dmx_wav_la_SOURCES = demux_wav.c
 xineplug_dmx_wav_la_LIBADD = $(top_builddir)/src/xine-engine/libxine.la
 xineplug_dmx_wav_la_LDFLAGS = -avoid-version -module
 
-#xineplug_dmx_idcin_la_SOURCES = demux_idcin.c
-#xineplug_dmx_idcin_la_LIBADD = $(top_builddir)/src/xine-engine/libxine.la
-#xineplug_dmx_idcin_la_LDFLAGS = -avoid-version -module
+xineplug_dmx_idcin_la_SOURCES = demux_idcin.c
+xineplug_dmx_idcin_la_LIBADD = $(top_builddir)/src/xine-engine/libxine.la
+xineplug_dmx_idcin_la_LDFLAGS = -avoid-version -module
 
-#xineplug_dmx_wc3movie_la_SOURCES = demux_wc3movie.c
-#xineplug_dmx_wc3movie_la_LIBADD = $(top_builddir)/src/xine-engine/libxine.la
-#xineplug_dmx_wc3movie_la_LDFLAGS = -avoid-version -module
+xineplug_dmx_wc3movie_la_SOURCES = demux_wc3movie.c
+xineplug_dmx_wc3movie_la_LIBADD = $(top_builddir)/src/xine-engine/libxine.la
+xineplug_dmx_wc3movie_la_LDFLAGS = -avoid-version -module
 
 #xineplug_dmx_vqa_la_SOURCES = demux_vqa.c
 #xineplug_dmx_vqa_la_LIBADD = $(top_builddir)/src/xine-engine/libxine.la

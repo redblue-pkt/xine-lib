@@ -63,7 +63,7 @@
  *     - if any bytes exceed 63, do not shift the bytes at all before
  *       transmitting them to the video decoder
  *
- * $Id: demux_idcin.c,v 1.10 2002/09/10 15:07:14 mroi Exp $
+ * $Id: demux_idcin.c,v 1.11 2002/09/21 19:18:37 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -311,6 +311,59 @@ static void *demux_idcin_loop (void *this_gen) {
   return NULL;
 }
 
+static int load_idcin_and_send_headers(demux_idcin_t *this) {
+
+  unsigned char header[IDCIN_HEADER_SIZE];
+
+  pthread_mutex_lock(&this->mutex);
+
+  this->video_fifo  = this->xine->video_fifo;
+  this->audio_fifo  = this->xine->audio_fifo;
+
+  this->status = DEMUX_OK;
+
+  this->input->seek(this->input, 0, SEEK_SET);
+  if (this->input->read(this->input, header, IDCIN_HEADER_SIZE) !=
+    IDCIN_HEADER_SIZE) {
+    this->status = DEMUX_FINISHED;
+    pthread_mutex_unlock(&this->mutex);
+    return DEMUX_CANNOT_HANDLE;
+  }
+
+  this->video_width = LE_32(&header[0]);
+  this->video_height = LE_32(&header[4]);
+  this->audio_sample_rate = LE_32(&header[8]);
+  this->audio_bytes_per_sample = LE_32(&header[12]);
+  this->audio_channels = LE_32(&header[16]);
+  this->filesize = this->input->get_length(this->input);
+
+  /* read the Huffman table */
+  if (this->input->read(this->input, this->huffman_table,
+    HUFFMAN_TABLE_SIZE) != HUFFMAN_TABLE_SIZE) {
+    this->status = DEMUX_FINISHED;
+    pthread_mutex_unlock(&this->mutex);
+    return DEMUX_CANNOT_HANDLE;
+  }
+
+  /* load stream information */
+  this->xine->stream_info[XINE_STREAM_INFO_VIDEO_WIDTH] =
+    this->video_width;
+  this->xine->stream_info[XINE_STREAM_INFO_VIDEO_HEIGHT] = 
+    this->video_height;
+  this->xine->stream_info[XINE_STREAM_INFO_AUDIO_CHANNELS] =
+    this->audio_channels;
+  this->xine->stream_info[XINE_STREAM_INFO_AUDIO_SAMPLERATE] =
+    this->audio_sample_rate;
+  this->xine->stream_info[XINE_STREAM_INFO_AUDIO_BITS] =
+    this->audio_bytes_per_sample * 8;
+
+  xine_demux_control_headers_done (this->xine);
+
+  pthread_mutex_unlock (&this->mutex);
+
+  return DEMUX_CAN_HANDLE;
+}
+
 static int demux_idcin_open(demux_plugin_t *this_gen,
                          input_plugin_t *input, int stage) {
 
@@ -365,8 +418,9 @@ static int demux_idcin_open(demux_plugin_t *this_gen,
     if (current_value > 2)
       return DEMUX_CANNOT_HANDLE;
 
-    /* if execution got this far, qualify it as a valid Id CIN file */
-    return DEMUX_CAN_HANDLE;
+    /* if execution got this far, qualify it as a valid Id CIN file 
+     * and load it */
+    return load_idcin_and_send_headers(this);
   }
   break;
 
@@ -389,10 +443,8 @@ static int demux_idcin_open(demux_plugin_t *this_gen,
 
       while(*m == ' ' || *m == '\t') m++;
 
-      if(!strcasecmp((suffix + 1), m)) {
-        this->input = input;
-        return DEMUX_CAN_HANDLE;
-      }
+      if(!strcasecmp((suffix + 1), m))
+        return load_idcin_and_send_headers(this);
     }
     return DEMUX_CANNOT_HANDLE;
   }
@@ -407,52 +459,24 @@ static int demux_idcin_open(demux_plugin_t *this_gen,
 }
 
 static int demux_idcin_start (demux_plugin_t *this_gen,
-                              fifo_buffer_t *video_fifo,
-                              fifo_buffer_t *audio_fifo,
                               off_t start_pos, int start_time) {
 
   demux_idcin_t *this = (demux_idcin_t *) this_gen;
   buf_element_t *buf;
   int err;
-  char header[IDCIN_HEADER_SIZE];
 
   pthread_mutex_lock(&this->mutex);
 
   /* if thread is not running, initialize demuxer */
   if (!this->thread_running) {
-    this->video_fifo = video_fifo;
-    this->audio_fifo = audio_fifo;
-
-    this->input->seek(this->input, 0, SEEK_SET);
-    if (this->input->read(this->input, header, IDCIN_HEADER_SIZE) !=
-      IDCIN_HEADER_SIZE) {
-      this->status = DEMUX_FINISHED;
-      pthread_mutex_unlock(&this->mutex);
-      return DEMUX_FINISHED;
-    }
-
-    this->video_width = LE_32(&header[0]);
-    this->video_height = LE_32(&header[4]);
-    this->audio_sample_rate = LE_32(&header[8]);
-    this->audio_bytes_per_sample = LE_32(&header[12]);
-    this->audio_channels = LE_32(&header[16]);
-    this->filesize = this->input->get_length(this->input);
-
-    /* read the Huffman table */
-    if (this->input->read(this->input, this->huffman_table,
-      HUFFMAN_TABLE_SIZE) != HUFFMAN_TABLE_SIZE) {
-      this->status = DEMUX_FINISHED;
-      pthread_mutex_unlock(&this->mutex);
-      return DEMUX_FINISHED;
-    }
 
     /* print vital stats */
-    xine_log (this->xine, XINE_LOG_FORMAT,
+    xine_log (this->xine, XINE_LOG_MSG,
       _("demux_idcin: Id CIN file, video is %dx%d, 14 frames/sec\n"),
       this->video_width,
       this->video_height);
     if (this->audio_channels)
-      xine_log (this->xine, XINE_LOG_FORMAT,
+      xine_log (this->xine, XINE_LOG_MSG,
         _("demux_idcin: %d-bit, %d Hz %s PCM audio\n"),
         this->audio_bytes_per_sample * 8,
         this->audio_sample_rate,
@@ -564,7 +588,7 @@ static void demux_idcin_stop (demux_plugin_t *this_gen) {
   xine_demux_control_end(this->xine, BUF_FLAG_END_USER);
 }
 
-static void demux_idcin_close (demux_plugin_t *this) {
+static void demux_idcin_dispose (demux_plugin_t *this) {
   free(this);
 }
 
@@ -603,7 +627,7 @@ static void *init_demuxer_plugin(xine_t *xine, void *data) {
   this->demux_plugin.start             = demux_idcin_start;
   this->demux_plugin.seek              = demux_idcin_seek;
   this->demux_plugin.stop              = demux_idcin_stop;
-  this->demux_plugin.close             = demux_idcin_close;
+  this->demux_plugin.dispose           = demux_idcin_dispose;
   this->demux_plugin.get_status        = demux_idcin_get_status;
   this->demux_plugin.get_identifier    = demux_idcin_get_id;
   this->demux_plugin.get_stream_length = demux_idcin_get_stream_length;
@@ -621,6 +645,6 @@ static void *init_demuxer_plugin(xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_DEMUX, 10, "idcin", XINE_VERSION_CODE, NULL, init_demuxer_plugin },
+  { PLUGIN_DEMUX, 11, "idcin", XINE_VERSION_CODE, NULL, init_demuxer_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
