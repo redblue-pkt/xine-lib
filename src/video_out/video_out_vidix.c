@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_vidix.c,v 1.24 2003/01/31 19:20:25 jstembridge Exp $
+ * $Id: video_out_vidix.c,v 1.25 2003/01/31 19:38:28 jstembridge Exp $
  * 
  * video_out_vidix.c
  *
@@ -215,10 +215,10 @@ static void write_frame_YUV420P3(vidix_driver_t* this, vidix_frame_t* frame)
    uint8_t* dst8 = (this->vidix_mem + 
                     this->vidix_play.offsets[this->next_frame] +
                     this->vidix_play.offset.y);
-   int h;
+   int h, half_width = frame->width / 2;
    
    for(h = 0; h < frame->height; h++) {
-      xine_fast_memcpy(dst8, y, frame->vo_frame.pitches[0]);
+      xine_fast_memcpy(dst8, y, frame->width);
       y    += frame->vo_frame.pitches[0];
       dst8 += this->dstrides.y;
    }
@@ -227,10 +227,8 @@ static void write_frame_YUV420P3(vidix_driver_t* this, vidix_frame_t* frame)
            this->vidix_play.offsets[this->next_frame]);
 
    for(h = 0; h < (frame->height / 2); h++) {
-      xine_fast_memcpy(dst8 + this->vidix_play.offset.v, cb,
-                       frame->vo_frame.pitches[2]);
-      xine_fast_memcpy(dst8 + this->vidix_play.offset.u, cr, 
-                       frame->vo_frame.pitches[1]);
+      xine_fast_memcpy(dst8 + this->vidix_play.offset.v, cb, half_width);
+      xine_fast_memcpy(dst8 + this->vidix_play.offset.u, cr, half_width);
       
       cb   += frame->vo_frame.pitches[2];
       cr   += frame->vo_frame.pitches[1];
@@ -245,10 +243,10 @@ static void write_frame_YUY2(vidix_driver_t* this, vidix_frame_t* frame)
    uint8_t* dst8 = (uint8_t *)(this->vidix_mem + 
                      this->vidix_play.offsets[this->next_frame] +
                      this->vidix_play.offset.y);
-   int h;
+   int h, double_width = frame->width * 2;
                      
    for(h = 0; h < frame->height; h++) {
-      xine_fast_memcpy(dst8, src8, frame->vo_frame.pitches[0]);
+      xine_fast_memcpy(dst8, src8, double_width);
 
       dst8 += (this->dstrides.y * 2);
       src8 += frame->vo_frame.pitches[0];
