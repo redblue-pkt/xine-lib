@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.32 2001/11/18 22:59:29 miguelfreitas Exp $
+ * $Id: audio_out.c,v 1.33 2001/11/19 18:58:04 miguelfreitas Exp $
  * 
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -293,7 +293,6 @@ static void *ao_loop (void *this_gen) {
   uint32_t        ac5_type;
   uint32_t        ac5_length;
   uint32_t        ac5_pcm_length;
-  uint32_t        i;
 
   this->audio_loop_running = 1;
   
@@ -306,9 +305,6 @@ static void *ao_loop (void *this_gen) {
 #endif
 
     buf = fifo_remove (this->out_fifo);
-
-    if (!buf->num_frames)
-      break;
 
     delay = this->driver->delay(this->driver);
 
@@ -346,7 +342,8 @@ static void *ao_loop (void *this_gen) {
      * output audio data synced to master clock
      */
   
-    if (gap < (-1 * this->gap_tolerance) || !this->audio_loop_running) {
+    if (gap < (-1 * this->gap_tolerance) || !this->audio_loop_running
+        || !buf->num_frames) {
 
       /* drop package */
 
@@ -639,7 +636,7 @@ static void ao_close(ao_instance_t *this) {
     fifo_append (this->out_fifo, audio_buffer);
 
     pthread_join (this->audio_thread, &p);
-    this->audio_thread = NULL;
+    this->audio_thread = 0;
   }
 
   printf ("audio_out: thread stopped, closing driver\n");
