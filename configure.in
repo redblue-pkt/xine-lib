@@ -255,8 +255,8 @@ AM_CONDITIONAL(HAVE_AA, test x$no_aalib != "xyes")
 dnl
 dnl Check for divx4
 dnl
-AC_CHECK_DIVX4(, AC_MSG_RESULT(*** All of DIVX4 dependent parts will be disabled ***))
-AM_CONDITIONAL(HAVE_DIVX4, test x"$no_divx4" != "xyes")
+dnl AC_CHECK_DIVX4(, AC_MSG_RESULT(*** All of DIVX4 dependent parts will be disabled ***))
+dnl AM_CONDITIONAL(HAVE_DIVX4, test x"$no_divx4" != "xyes")
 
 
 dnl

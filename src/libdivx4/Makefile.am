@@ -8,15 +8,7 @@ LIBTOOL = $(SHELL) $(top_builddir)/libtool-nofpic
 
 libdir = $(XINE_PLUGINDIR)
 
-#
-# use HAVE_DIVX4 to make compilation optional; 
-# not really needed because the divx4 plugin sources are self-contained.
-#
-#if HAVE_DIVX4
-divx4_module = xineplug_decode_divx4.la
-#endif
-
-lib_LTLIBRARIES = $(divx4_module)
+lib_LTLIBRARIES = xineplug_decode_divx4.la
 
 xineplug_decode_divx4_la_SOURCES = xine_decoder.c
 xineplug_decode_divx4_la_LDFLAGS = -avoid-version -module

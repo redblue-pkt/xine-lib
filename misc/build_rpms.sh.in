@@ -54,6 +54,7 @@ mv -f '/usr/src/redhat/RPMS/i386/@PACKAGE@-docs-@SPEC_VERSION@-0.i386.rpm' './rp
 @HAVE_XV_TRUE@mv '/usr/src/redhat/RPMS/i386/@PACKAGE@-xv-@SPEC_VERSION@-0.i386.rpm' './rpms/@PACKAGE@-xv-@SPEC_VERSION@-0.i686.rpm'
 @HAVE_AA_TRUE@mv '/usr/src/redhat/RPMS/i386/@PACKAGE@-aa-@SPEC_VERSION@-0.i386.rpm' './rpms/@PACKAGE@-aa-@SPEC_VERSION@-0.i686.rpm'
 @W32DLL_DEP@mv '/usr/src/redhat/RPMS/i386/@PACKAGE@-w32dll-@SPEC_VERSION@-0.i386.rpm' './rpms/@PACKAGE@-w32dll-@SPEC_VERSION@-0.i686.rpm'
+@HAVE_VORBIS_TRUE@mv '/usr/src/redhat/RPMS/i386/@PACKAGE@-oggvorbis-@SPEC_VERSION@-0.i386.rpm' './rpms/@PACKAGE@-oggvorbis-@SPEC_VERSION@-0.i686.rpm'
 
 echo "*****************************************************"
 echo
@@ -79,6 +80,7 @@ mv -f '/usr/src/redhat/RPMS/i386/@PACKAGE@-docs-@SPEC_VERSION@-0.i386.rpm' './rp
 @HAVE_XV_TRUE@mv '/usr/src/redhat/RPMS/i386/@PACKAGE@-xv-@SPEC_VERSION@-0.i386.rpm' './rpms/@PACKAGE@-xv-@SPEC_VERSION@-0.k6.rpm'
 @HAVE_AA_TRUE@mv '/usr/src/redhat/RPMS/i386/@PACKAGE@-aa-@SPEC_VERSION@-0.i386.rpm' './rpms/@PACKAGE@-aa-@SPEC_VERSION@-0.k6.rpm'
 @W32DLL_DEP@mv '/usr/src/redhat/RPMS/i386/@PACKAGE@-w32dll-@SPEC_VERSION@-0.i386.rpm' './rpms/@PACKAGE@-w32dll-@SPEC_VERSION@-0.k6.rpm'
+@HAVE_VORBIS_TRUE@mv '/usr/src/redhat/RPMS/i386/@PACKAGE@-oggvorbis-@SPEC_VERSION@-0.i386.rpm' './rpms/@PACKAGE@-oggvorbis-@SPEC_VERSION@-0.k6.rpm'
 
 echo "*****************************************************"
 echo
@@ -104,6 +106,7 @@ mv -f '/usr/src/redhat/RPMS/i386/@PACKAGE@-docs-@SPEC_VERSION@-0.i386.rpm' './rp
 @HAVE_XV_TRUE@mv '/usr/src/redhat/RPMS/i386/@PACKAGE@-xv-@SPEC_VERSION@-0.i386.rpm' './rpms/@PACKAGE@-xv-@SPEC_VERSION@-0.i586.rpm'
 @HAVE_AA_TRUE@mv '/usr/src/redhat/RPMS/i386/@PACKAGE@-aa-@SPEC_VERSION@-0.i386.rpm' './rpms/@PACKAGE@-aa-@SPEC_VERSION@-0.i586.rpm'
 @W32DLL_DEP@mv '/usr/src/redhat/RPMS/i386/@PACKAGE@-w32dll-@SPEC_VERSION@-0.i386.rpm' './rpms/@PACKAGE@-w32dll-@SPEC_VERSION@-0.i586.rpm'
+@HAVE_VORBIS_TRUE@mv '/usr/src/redhat/RPMS/i386/@PACKAGE@-oggvorbis-@SPEC_VERSION@-0.i386.rpm' './rpms/@PACKAGE@-oggvorbis-@SPEC_VERSION@-0.i586.rpm'
 
 echo "*****************************************************"
 echo
@@ -129,5 +132,6 @@ mv -f '/usr/src/redhat/RPMS/i386/@PACKAGE@-docs-@SPEC_VERSION@-0.i386.rpm' './rp
 @HAVE_XV_TRUE@mv '/usr/src/redhat/RPMS/i386/@PACKAGE@-xv-@SPEC_VERSION@-0.i386.rpm' './rpms/@PACKAGE@-xv-@SPEC_VERSION@-0.k7.rpm'
 @HAVE_AA_TRUE@mv '/usr/src/redhat/RPMS/i386/@PACKAGE@-aa-@SPEC_VERSION@-0.i386.rpm' './rpms/@PACKAGE@-aa-@SPEC_VERSION@-0.k7.rpm'
 @W32DLL_DEP@mv '/usr/src/redhat/RPMS/i386/@PACKAGE@-w32dll-@SPEC_VERSION@-0.i386.rpm' './rpms/@PACKAGE@-w32dll-@SPEC_VERSION@-0.k7.rpm'
+@HAVE_VORBIS_TRUE@mv '/usr/src/redhat/RPMS/i386/@PACKAGE@-oggvorbis-@SPEC_VERSION@-0.i386.rpm' './rpms/@PACKAGE@-oggvorbis-@SPEC_VERSION@-0.k7.rpm'
 
 echo "Done."

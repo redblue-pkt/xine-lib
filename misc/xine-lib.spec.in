@@ -54,12 +54,17 @@ BuildRoot:   /tmp/%{name}-root
 @HAVE_AA_TRUE@%package aa
 @HAVE_AA_TRUE@Summary:     XINE - Ascii Art support.
 @HAVE_AA_TRUE@Group:       Development/Libraries
-@HAVE_AA_TRUE@Requires:    xine-lib >= %{ver}, aalib
+@HAVE_AA_TRUE@Requires:    xine-lib >= %{ver}, libaa
 
 @W32DLL_DEP@%package w32dll
 @W32DLL_DEP@Summary:     XINE - win32dll decoder support.
 @W32DLL_DEP@Group:       Development/Libraries
 @W32DLL_DEP@Requires:    xine-lib >= %{ver}
+
+@HAVE_VORBIS_TRUE@%package oggvorbis
+@HAVE_VORBIS_TRUE@Summary:     XINE - ogg/vorbis decoder/demuxer support.
+@HAVE_VORBIS_TRUE@Group:       Development/Libraries
+@HAVE_VORBIS_TRUE@Requires:    xine-lib >= %{ver}, libogg, libvorbis
 
 %package docs
 Summary:     XINE - html API documentation.
@@ -127,6 +132,9 @@ ler qualquer vídeo com máximo desempenho.
 
 @W32DLL_DEP@%description w32dll
 @W32DLL_DEP@win32dll decoder support.
+
+@HAVE_VORBIS_TRUE@%description oggvorbis
+@HAVE_VORBIS_TRUE@ogg/vorbis decoder/demuxer support.
 
 %description docs
 HTML documentation of XINE API.
@@ -220,8 +228,6 @@ rm -rf $RPM_BUILD_ROOT
 %{prefix}/lib/xine/plugins/xineplug_dmx_mpeg_ts.so
 %{prefix}/lib/xine/plugins/xineplug_dmx_qt.la
 %{prefix}/lib/xine/plugins/xineplug_dmx_qt.so
-@HAVE_VORBIS_TRUE@%{prefix}/lib/xine/plugins/xineplug_dmx_ogg.la
-@HAVE_VORBIS_TRUE@%{prefix}/lib/xine/plugins/xineplug_dmx_ogg.so
 # decoder plugins
 %{prefix}/lib/xine/plugins/xineplug_decode_a52.la
 %{prefix}/lib/xine/plugins/xineplug_decode_a52.so
@@ -241,8 +247,8 @@ rm -rf $RPM_BUILD_ROOT
 %{prefix}/lib/xine/plugins/xineplug_decode_dts.so
 %{prefix}/lib/xine/plugins/xineplug_decode_vfill.la
 %{prefix}/lib/xine/plugins/xineplug_decode_vfill.so
-@HAVE_VORBIS_TRUE@%{prefix}/lib/xine/plugins/xineplug_decode_vorbis.la
-@HAVE_VORBIS_TRUE@%{prefix}/lib/xine/plugins/xineplug_decode_vorbis.so
+%{prefix}/lib/xine/plugins/xineplug_decode_divx4.la
+%{prefix}/lib/xine/plugins/xineplug_decode_divx4.so
 # audio driver plugins
 # see other packages.
 #
@@ -304,11 +310,20 @@ rm -rf $RPM_BUILD_ROOT
 @W32DLL_DEP@%{prefix}/lib/xine/plugins/xineplug_decode_w32dll.la
 @W32DLL_DEP@%{prefix}/lib/xine/plugins/xineplug_decode_w32dll.so
 
+@HAVE_VORBIS_TRUE@%files oggvorbis
+@HAVE_VORBIS_TRUE@%{prefix}/lib/xine/plugins/xineplug_dmx_ogg.la
+@HAVE_VORBIS_TRUE@%{prefix}/lib/xine/plugins/xineplug_dmx_ogg.so
+@HAVE_VORBIS_TRUE@%{prefix}/lib/xine/plugins/xineplug_decode_vorbis.la
+@HAVE_VORBIS_TRUE@%{prefix}/lib/xine/plugins/xineplug_decode_vorbis.so
+
+
 %files docs
 %defattr(-,root,root)
 %{prefix}/share/doc/xine/xine-lib-API/*
 
 %changelog
+* Sun Oct 14 2001 Daniel Caujolle-Bert <f1rmb@users.sourceforge.net>
+- move vorbis in separate package. Add DivX4 decoder plugin.
 * Wed Oct 10 2001 Matthias Dahl <matthew2k@web.de>
 - added vorbis files and missing man pages to filelist.
 * Thu Sep 27 2001 Daniel Caujolle-Bert <f1rmb@users.sourceforge.net>

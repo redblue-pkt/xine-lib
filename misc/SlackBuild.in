@@ -7,9 +7,16 @@
 #
 CWD=`pwd`
 PACKAGE=@PACKAGE@.tgz
+@HAVE_OSS_TRUE@ossPACKAGE=@PACKAGE@-oss.tgz
 @HAVE_ALSA05_TRUE@alsa05PACKAGE=@PACKAGE@-alsa05.tgz
 @HAVE_ALSA09_TRUE@alsa09PACKAGE=@PACKAGE@-alsa09.tgz
 @HAVE_DXR3_TRUE@dxr3PACKAGE=@PACKAGE@-dxr3.tgz
+@HAVE_ARTS_TRUE@artsPACKAGE=@PACKAGE@-arts.tgz
+@HAVE_ESD_TRUE@esdPACKAGE=@PACKAGE@-esd.tgz
+@HAVE_XV_TRUE@xvPACKAGE=@PACKAGE@-xv.tgz
+@HAVE_AA_TRUE@aaPACKAGE=@PACKAGE@-aa.tgz
+@W32DLL_DEP@w32PACKAGE=@PACKAGE@-w32.tgz
+@HAVE_VORBIS_TRUE@oggvorbisPACKAGE=@PACKAGE@-oggvorbis.tgz
 SLCK=$CWD/slack
 PREFIX=@prefix@
 PKG=$CWD/slktmp
@@ -42,6 +49,12 @@ cat > package_descriptions << EOF
 @PACKAGE@: has been seen on a 400 MHz P II system.
 EOF
 
+@HAVE_OSS_TRUE@cat > package_descriptions_oss << EOF
+@HAVE_OSS_TRUE@@PACKAGE@-oss: @PACKAGE@-oss @SPEC_VERSION@.
+@HAVE_OSS_TRUE@@PACKAGE@-oss:
+@HAVE_OSS_TRUE@@PACKAGE@-oss: audio plugin with oss support.
+@HAVE_OSS_TRUE@EOF
+
 @HAVE_ALSA05_TRUE@cat > package_descriptions_alsa05 << EOF
 @HAVE_ALSA05_TRUE@@PACKAGE@-alsa05: @PACKAGE@-alsa05 @SPEC_VERSION@.
 @HAVE_ALSA05_TRUE@@PACKAGE@-alsa05:
@@ -54,12 +67,47 @@ EOF
 @HAVE_ALSA09_TRUE@@PACKAGE@-alsa09: audio plugin with alsa >= 0.9.x support.
 @HAVE_ALSA09_TRUE@EOF
 
+@HAVE_ARTS_TRUE@cat > package_descriptions_arts << EOF
+@HAVE_ARTS_TRUE@@PACKAGE@-arts: @PACKAGE@-arts @SPEC_VERSION@.
+@HAVE_ARTS_TRUE@@PACKAGE@-arts:
+@HAVE_ARTS_TRUE@@PACKAGE@-arts: audio plugin with ARTS support.
+@HAVE_ARTS_TRUE@EOF
+
+@HAVE_ESD_TRUE@cat > package_descriptions_esd << EOF
+@HAVE_ESD_TRUE@@PACKAGE@-esd: @PACKAGE@-esd @SPEC_VERSION@.
+@HAVE_ESD_TRUE@@PACKAGE@-esd:
+@HAVE_ESD_TRUE@@PACKAGE@-esd: audio plugin with ESD support.
+@HAVE_ESD_TRUE@EOF
+
 @HAVE_DXR3_TRUE@cat > package_descriptions_drx3 << EOF
 @HAVE_DXR3_TRUE@@PACKAGE@-dxr3: @PACKAGE@-dxr3 @SPEC_VERSION@.
 @HAVE_DXR3_TRUE@@PACKAGE@-dxr3:
 @HAVE_DXR3_TRUE@@PACKAGE@-dxr3: video/decoder plugins for DXR3 card support.
 @HAVE_DXR3_TRUE@EOF
 
+@HAVE_XV_TRUE@cat > package_descriptions_xv << EOF
+@HAVE_XV_TRUE@@PACKAGE@-dxr3: @PACKAGE@-xv @SPEC_VERSION@.
+@HAVE_XV_TRUE@@PACKAGE@-dxr3:
+@HAVE_XV_TRUE@@PACKAGE@-dxr3: video plugin with XVideo support.
+@HAVE_XV_TRUE@EOF
+
+@HAVE_AA_TRUE@cat > package_descriptions_aa << EOF
+@HAVE_AA_TRUE@@PACKAGE@-aa: @PACKAGE@-aa @SPEC_VERSION@.
+@HAVE_AA_TRUE@@PACKAGE@-aa:
+@HAVE_AA_TRUE@@PACKAGE@-aa: video plugin with Ascii Art library support.
+@HAVE_AA_TRUE@EOF
+
+@W32DLL_DEP@cat > package_descriptions_w32 << EOF
+@W32DLL_DEP@@PACKAGE@-aa: @PACKAGE@-w32 @SPEC_VERSION@.
+@W32DLL_DEP@@PACKAGE@-aa:
+@W32DLL_DEP@@PACKAGE@-aa: video decoder with win32dll support.
+@W32DLL_DEP@EOF
+
+@HAVE_VORBIS_TRUE@cat > package_descriptions_oggvorbis << EOF
+@HAVE_VORBIS_TRUE@@PACKAGE@-oggvorbis: @PACKAGE@-oggvorbis @SPEC_VERSION@.
+@HAVE_VORBIS_TRUE@@PACKAGE@-oggvorbis:
+@HAVE_VORBIS_TRUE@@PACKAGE@-oggvorbis: demuxer/decoder plugins with Ogg/Vorbis support.
+@HAVE_VORBIS_TRUE@EOF
 }
 
 #
@@ -67,6 +115,15 @@ EOF
 #
 do_extra_packages() {
     cwd=`pwd`
+
+## OSS plugin
+@HAVE_OSS_TRUE@    mkdir -p oss$PREFIX/lib/xine/plugins && \
+@HAVE_OSS_TRUE@    cp $PKG/$PREFIX/lib/xine/plugins/xineplug_ao_out_oss.la $PKG/$PREFIX/lib/xine/plugins/xineplug_ao_out_oss.so alsa05$PREFIX/lib/xine/plugins && \
+@HAVE_OSS_TRUE@    (cd oss && \
+@HAVE_OSS_TRUE@    echo "n" | makepkg $ossPACKAGE && \
+@HAVE_OSS_TRUE@    echo "move $ossPACKAGE to $SLCK" && mv $ossPACKAGE $SLCK) && \
+@HAVE_OSS_TRUE@    rm -rf oss && \
+@HAVE_OSS_TRUE@    rm -f $PKG/$PREFIX/lib/xine/plugins/xineplug_ao_out_oss.la $PKG/$PREFIX/lib/xine/plugins/xineplug_ao_out_oss.so
 
 ## Alsa 0.5 plugin
 @HAVE_ALSA05_TRUE@    mkdir -p alsa05$PREFIX/lib/xine/plugins && \
@@ -86,6 +143,24 @@ do_extra_packages() {
 @HAVE_ALSA09_TRUE@    rm -rf alsa09 && \
 @HAVE_ALSA09_TRUE@    rm -f $PKG/$PREFIX/lib/xine/plugins/xineplug_ao_out_alsa.la $PKG/$PREFIX/lib/xine/plugins/xineplug_ao_out_alsa.so
 
+## Arts plugin
+@HAVE_ARTS_TRUE@    mkdir -p arts$PREFIX/lib/xine/plugins && \
+@HAVE_ARTS_TRUE@    cp $PKG/$PREFIX/lib/xine/plugins/xineplug_ao_out_arts.la $PKG/$PREFIX/lib/xine/plugins/xineplug_ao_out_arts.so alsa09$PREFIX/lib/xine/plugins && \
+@HAVE_ARTS_TRUE@    (cd arts && \
+@HAVE_ARTS_TRUE@    echo "n" | makepkg $artsPACKAGE && \
+@HAVE_ARTS_TRUE@    echo "move $artsPACKAGE to $SLCK" && mv $artsPACKAGE $SLCK) && \
+@HAVE_ARTS_TRUE@    rm -rf arts && \
+@HAVE_ARTS_TRUE@    rm -f $PKG/$PREFIX/lib/xine/plugins/xineplug_ao_out_arts.la $PKG/$PREFIX/lib/xine/plugins/xineplug_ao_out_arts.so
+
+## Esd plugin
+@HAVE_ESD_TRUE@    mkdir -p esd$PREFIX/lib/xine/plugins && \
+@HAVE_ESD_TRUE@    cp $PKG/$PREFIX/lib/xine/plugins/xineplug_ao_out_esd.la $PKG/$PREFIX/lib/xine/plugins/xineplug_ao_out_esd.so alsa09$PREFIX/lib/xine/plugins && \
+@HAVE_ESD_TRUE@    (cd esd && \
+@HAVE_ESD_TRUE@    echo "n" | makepkg $esdPACKAGE && \
+@HAVE_ESD_TRUE@    echo "move $esdPACKAGE to $SLCK" && mv $esdPACKAGE $SLCK) && \
+@HAVE_ESD_TRUE@    rm -rf esd && \
+@HAVE_ESD_TRUE@    rm -f $PKG/$PREFIX/lib/xine/plugins/xineplug_ao_out_esd.la $PKG/$PREFIX/lib/xine/plugins/xineplug_ao_out_esd.so
+
 ## DXR3 plugins
 @HAVE_DXR3_TRUE@    mkdir -p dxr3$PREFIX/lib/xine/plugins && \
 @HAVE_DXR3_TRUE@    cp $PKG/$PREFIX/lib/xine/plugins/xineplug_decode_dxr3.la $PKG/$PREFIX/lib/xine/plugins/xineplug_decode_dxr3.so $PKG/$PREFIX/lib/xine/plugins/xineplug_vo_out_dxr3.la $PKG/$PREFIX/lib/xine/plugins/xineplug_vo_out_dxr3.so dxr3$PREFIX/lib/xine/plugins && \
@@ -94,6 +169,42 @@ do_extra_packages() {
 @HAVE_DXR3_TRUE@    echo "move $dxr3PACKAGE to $SLCK" && mv $dxr3PACKAGE $SLCK) && \
 @HAVE_DXR3_TRUE@    rm -rf dxr3 && \
 @HAVE_DXR3_TRUE@    rm -f $PKG/$PREFIX/lib/xine/plugins/xineplug_decode_dxr3.la $PKG/$PREFIX/lib/xine/plugins/xineplug_decode_dxr3.so $PKG/$PREFIX/lib/xine/plugins/xineplug_vo_out_dxr3.la $PKG/$PREFIX/lib/xine/plugins/xineplug_vo_out_dxr3.so
+
+## XV plugin
+@HAVE_XV_TRUE@    mkdir -p xv$PREFIX/lib/xine/plugins && \
+@HAVE_XV_TRUE@    cp $PKG/$PREFIX/lib/xine/plugins/xineplug_vo_out_xv.la $PKG/$PREFIX/lib/xine/plugins/xineplug_vo_out_xv.so xv$PREFIX/lib/xine/plugins && \
+@HAVE_XV_TRUE@    (cd xv && \
+@HAVE_XV_TRUE@    echo "n" | makepkg $xvPACKAGE && \
+@HAVE_XV_TRUE@    echo "move $xvPACKAGE to $SLCK" && mv $xvPACKAGE $SLCK) && \
+@HAVE_XV_TRUE@    rm -rf xv && \
+@HAVE_XV_TRUE@    rm -f $PKG/$PREFIX/lib/xine/plugins/xineplug_vo_out_xv.la $PKG/$PREFIX/lib/xine/plugins/xineplug_vo_out_xv.so
+
+## AA plugin
+@HAVE_AA_TRUE@    mkdir -p aa$PREFIX/lib/xine/plugins && \
+@HAVE_AA_TRUE@    cp $PKG/$PREFIX/lib/xine/plugins/xineplug_vo_out_aa.la $PKG/$PREFIX/lib/xine/plugins/xineplug_vo_out_aa.so aa$PREFIX/lib/xine/plugins && \
+@HAVE_AA_TRUE@    (cd aa && \
+@HAVE_AA_TRUE@    echo "n" | makepkg $aaPACKAGE && \
+@HAVE_AA_TRUE@    echo "move $aaPACKAGE to $SLCK" && mv $aaPACKAGE $SLCK) && \
+@HAVE_AA_TRUE@    rm -rf aa && \
+@HAVE_AA_TRUE@    rm -f $PKG/$PREFIX/lib/xine/plugins/xineplug_vo_out_aa.la $PKG/$PREFIX/lib/xine/plugins/xineplug_vo_out_aa.so
+
+## W32DLL plugin
+@W32DLL_DEP@    mkdir -p w32$PREFIX/lib/xine/plugins && \
+@W32DLL_DEP@    cp $PKG/$PREFIX/lib/xine/plugins/xineplug_decode_w32dll.la $PKG/$PREFIX/lib/xine/plugins/xineplug_decode_w32dll.so w32$PREFIX/lib/xine/plugins && \
+@W32DLL_DEP@    (cd w32 && \
+@W32DLL_DEP@    echo "n" | makepkg $w32PACKAGE && \
+@W32DLL_DEP@    echo "move $w32PACKAGE to $SLCK" && mv $w32PACKAGE $SLCK) && \
+@W32DLL_DEP@    rm -rf w32 && \
+@W32DLL_DEP@    rm -f $PKG/$PREFIX/lib/xine/plugins/xineplug_decode_w32dll.la $PKG/$PREFIX/lib/xine/plugins/xineplug_decode_w32dll.so
+
+## Ogg/Vorbis plugins
+@HAVE_VORBIS_TRUE@    mkdir -p oggvorbis$PREFIX/lib/xine/plugins && \
+@HAVE_VORBIS_TRUE@    cp $PKG/$PREFIX/lib/xine/plugins/xineplug_dmx_ogg.la $PKG/$PREFIX/lib/xine/plugins/xineplug_dmx_ogg.so $PKG/$PREFIX/lib/xine/plugins/xineplug_decode_vorbis.la $PKG/$PREFIX/lib/xine/plugins/xineplug_decode_vorbis.so oggvorbis$PREFIX/lib/xine/plugins && \
+@HAVE_VORBIS_TRUE@    (cd oggvorbis && \
+@HAVE_VORBIS_TRUE@    echo "n" | makepkg $oggvorbisPACKAGE && \
+@HAVE_VORBIS_TRUE@    echo "move $oggvorbisPACKAGE to $SLCK" && mv $oggvorbisPACKAGE $SLCK) && \
+@HAVE_VORBIS_TRUE@    rm -rf oggvorbis && \
+@HAVE_VORBIS_TRUE@    rm -f $PKG/$PREFIX/lib/xine/plugins/xineplug_dmx_ogg.la $PKG/$PREFIX/lib/xine/plugins/xineplug_dmx_ogg.so $PKG/$PREFIX/lib/xine/plugins/xineplug_decode_vorbis.la $PKG/$PREFIX/lib/xine/plugins/xineplug_decode_vorbis.so
 
     cd $cwd
 }
@@ -125,9 +236,16 @@ do_build() {
 do_clean() {
   rm -rf $TMPBUILD
   rm -f $PACKAGE package_descriptions
+@HAVE_OSS_TRUE@   rm -f $ossPACKAGE
 @HAVE_ALSA05_TRUE@   rm -f $alsa05PACKAGE
 @HAVE_ALSA09_TRUE@   rm -f $alsa09PACKAGE
 @HAVE_DXR3_TRUE@   rm -f $dxr3PACKAGE
+@HAVE_ARTS_TRUE@   rm -f $artsPACKAGE
+@HAVE_ESD_TRUE@   rm -f $esdPACKAGE
+@HAVE_XV_TRUE@   rm -f $xvPACKAGE
+@HAVE_AA_TRUE@   rm -f $aaPACKAGE
+@W32DLL_DEP@   rm -f $w32PACKAGE
+@HAVE_VORBIS_TRUE@   rm -f $oggvorbisPACKAGE
   rm -rf $PKG
   cd $CWD
 }
@@ -149,6 +267,11 @@ build_pentiumpro() {
   do_build
   if test "$DIE" -eq 0; then 
     tar -czvf @PACKAGE@-@VERSION@-i686.tar.gz $PACKAGE package_descriptions
+
+
+@HAVE_OSS_TRUE@    rm -f package_descriptions
+@HAVE_OSS_TRUE@    mv package_descriptions_oss package_descriptions && \
+@HAVE_OSS_TRUE@    tar -czvf @PACKAGE@-@VERSION@-oss-i686.tar.gz $ossPACKAGE package_descriptions
 @HAVE_ALSA05_TRUE@    rm -f package_descriptions
 @HAVE_ALSA05_TRUE@    mv package_descriptions_alsa05 package_descriptions && \
 @HAVE_ALSA05_TRUE@    tar -czvf @PACKAGE@-@VERSION@-alsa05-i686.tar.gz $alsa05PACKAGE package_descriptions
@@ -158,6 +281,25 @@ build_pentiumpro() {
 @HAVE_DXR3_TRUE@    rm -f package_descriptions
 @HAVE_DXR3_TRUE@    mv package_descriptions_dxr3 package_descriptions && \
 @HAVE_DXR3_TRUE@    tar -czvf @PACKAGE@-@VERSION@-dxr3-i686.tar.gz $dxr3PACKAGE package_descriptions
+@HAVE_ARTS_TRUE@    rm -f package_descriptions
+@HAVE_ARTS_TRUE@    mv package_descriptions_arts package_descriptions && \
+@HAVE_ARTS_TRUE@    tar -czvf @PACKAGE@-@VERSION@-arts-i686.tar.gz $artsPACKAGE package_descriptions
+@HAVE_ESD_TRUE@    rm -f package_descriptions
+@HAVE_ESD_TRUE@    mv package_descriptions_esd package_descriptions && \
+@HAVE_ESD_TRUE@    tar -czvf @PACKAGE@-@VERSION@-esd-i686.tar.gz $esdPACKAGE package_descriptions
+@HAVE_XV_TRUE@    rm -f package_descriptions
+@HAVE_XV_TRUE@    mv package_descriptions_xv package_descriptions && \
+@HAVE_XV_TRUE@    tar -czvf @PACKAGE@-@VERSION@-xv-i686.tar.gz $xvPACKAGE package_descriptions
+@HAVE_AA_TRUE@    rm -f package_descriptions
+@HAVE_AA_TRUE@    mv package_descriptions_aa package_descriptions && \
+@HAVE_AA_TRUE@    tar -czvf @PACKAGE@-@VERSION@-aa-i686.tar.gz $aaPACKAGE package_descriptions
+@W32DLL_DEP@    rm -f package_descriptions
+@W32DLL_DEP@    mv package_descriptions_w32 package_descriptions && \
+@W32DLL_DEP@    tar -czvf @PACKAGE@-@VERSION@-w32-i686.tar.gz $w32PACKAGE package_descriptions
+@HAVE_VORBIS_TRUE@    rm -f package_descriptions
+@HAVE_VORBIS_TRUE@    mv package_descriptions_oggvorbis package_descriptions && \
+@HAVE_VORBIS_TRUE@    tar -czvf @PACKAGE@-@VERSION@-oggvorbis-i686.tar.gz $oggvorbisPACKAGE package_descriptions
+
   fi
   do_clean
 }
@@ -179,6 +321,9 @@ build_pentium() {
   do_build
   if test "$DIE" -eq 0; then 
     tar -czvf @PACKAGE@-@VERSION@-i586.tar.gz $PACKAGE package_descriptions
+@HAVE_OSS_TRUE@    rm -f package_descriptions
+@HAVE_OSS_TRUE@    mv package_descriptions_oss package_descriptions && \
+@HAVE_OSS_TRUE@    tar -czvf @PACKAGE@-@VERSION@-oss-i586.tar.gz $ossPACKAGE package_descriptions
 @HAVE_ALSA05_TRUE@    rm -f package_descriptions
 @HAVE_ALSA05_TRUE@    mv package_descriptions_alsa05 package_descriptions && \
 @HAVE_ALSA05_TRUE@    tar -czvf @PACKAGE@-@VERSION@-alsa05-i586.tar.gz $alsa05PACKAGE package_descriptions
@@ -188,6 +333,24 @@ build_pentium() {
 @HAVE_DXR3_TRUE@    rm -f package_descriptions
 @HAVE_DXR3_TRUE@    mv package_descriptions_dxr3 package_descriptions && \
 @HAVE_DXR3_TRUE@    tar -czvf @PACKAGE@-@VERSION@-dxr3-i586.tar.gz $dxr3PACKAGE package_descriptions
+@HAVE_ARTS_TRUE@    rm -f package_descriptions
+@HAVE_ARTS_TRUE@    mv package_descriptions_arts package_descriptions && \
+@HAVE_ARTS_TRUE@    tar -czvf @PACKAGE@-@VERSION@-arts-i586.tar.gz $artsPACKAGE package_descriptions
+@HAVE_ESD_TRUE@    rm -f package_descriptions
+@HAVE_ESD_TRUE@    mv package_descriptions_esd package_descriptions && \
+@HAVE_ESD_TRUE@    tar -czvf @PACKAGE@-@VERSION@-esd-i586.tar.gz $esdPACKAGE package_descriptions
+@HAVE_XV_TRUE@    rm -f package_descriptions
+@HAVE_XV_TRUE@    mv package_descriptions_xv package_descriptions && \
+@HAVE_XV_TRUE@    tar -czvf @PACKAGE@-@VERSION@-xv-i586.tar.gz $xvPACKAGE package_descriptions
+@HAVE_AA_TRUE@    rm -f package_descriptions
+@HAVE_AA_TRUE@    mv package_descriptions_aa package_descriptions && \
+@HAVE_AA_TRUE@    tar -czvf @PACKAGE@-@VERSION@-aa-i586.tar.gz $aaPACKAGE package_descriptions
+@W32DLL_DEP@    rm -f package_descriptions
+@W32DLL_DEP@    mv package_descriptions_w32 package_descriptions && \
+@W32DLL_DEP@    tar -czvf @PACKAGE@-@VERSION@-w32-i586.tar.gz $w32PACKAGE package_descriptions
+@HAVE_VORBIS_TRUE@    rm -f package_descriptions
+@HAVE_VORBIS_TRUE@    mv package_descriptions_oggvorbis package_descriptions && \
+@HAVE_VORBIS_TRUE@    tar -czvf @PACKAGE@-@VERSION@-oggvorbis-i586.tar.gz $oggvorbisPACKAGE package_descriptions
   fi
   do_clean
 }
@@ -209,6 +372,9 @@ build_k6() {
   do_build
   if test "$DIE" -eq 0; then 
     tar -czvf @PACKAGE@-@VERSION@-k6.tar.gz $PACKAGE package_descriptions
+@HAVE_OSS_TRUE@    rm -f package_descriptions
+@HAVE_OSS_TRUE@    mv package_descriptions_oss package_descriptions && \
+@HAVE_OSS_TRUE@    tar -czvf @PACKAGE@-@VERSION@-oss-k6.tar.gz $ossPACKAGE package_descriptions
 @HAVE_ALSA05_TRUE@    rm -f package_descriptions
 @HAVE_ALSA05_TRUE@    mv package_descriptions_alsa05 package_descriptions && \
 @HAVE_ALSA05_TRUE@    tar -czvf @PACKAGE@-@VERSION@-alsa05-k6.tar.gz $alsa05PACKAGE package_descriptions
@@ -218,6 +384,24 @@ build_k6() {
 @HAVE_DXR3_TRUE@    rm -f package_descriptions
 @HAVE_DXR3_TRUE@    mv package_descriptions_dxr3 package_descriptions && \
 @HAVE_DXR3_TRUE@    tar -czvf @PACKAGE@-@VERSION@-dxr3-k6.tar.gz $dxr3PACKAGE package_descriptions
+@HAVE_ARTS_TRUE@    rm -f package_descriptions
+@HAVE_ARTS_TRUE@    mv package_descriptions_arts package_descriptions && \
+@HAVE_ARTS_TRUE@    tar -czvf @PACKAGE@-@VERSION@-arts-k6.tar.gz $artsPACKAGE package_descriptions
+@HAVE_ESD_TRUE@    rm -f package_descriptions
+@HAVE_ESD_TRUE@    mv package_descriptions_esd package_descriptions && \
+@HAVE_ESD_TRUE@    tar -czvf @PACKAGE@-@VERSION@-esd-k6.tar.gz $esdPACKAGE package_descriptions
+@HAVE_XV_TRUE@    rm -f package_descriptions
+@HAVE_XV_TRUE@    mv package_descriptions_xv package_descriptions && \
+@HAVE_XV_TRUE@    tar -czvf @PACKAGE@-@VERSION@-xv-k6.tar.gz $xvPACKAGE package_descriptions
+@HAVE_AA_TRUE@    rm -f package_descriptions
+@HAVE_AA_TRUE@    mv package_descriptions_aa package_descriptions && \
+@HAVE_AA_TRUE@    tar -czvf @PACKAGE@-@VERSION@-aa-k6.tar.gz $aaPACKAGE package_descriptions
+@W32DLL_DEP@    rm -f package_descriptions
+@W32DLL_DEP@    mv package_descriptions_w32 package_descriptions && \
+@W32DLL_DEP@    tar -czvf @PACKAGE@-@VERSION@-w32-k6.tar.gz $w32PACKAGE package_descriptions
+@HAVE_VORBIS_TRUE@    rm -f package_descriptions
+@HAVE_VORBIS_TRUE@    mv package_descriptions_oggvorbis package_descriptions && \
+@HAVE_VORBIS_TRUE@    tar -czvf @PACKAGE@-@VERSION@-oggvorbis-k6.tar.gz $oggvorbisPACKAGE package_descriptions
   fi
   do_clean
 }
@@ -239,6 +423,9 @@ build_k7() {
   do_build
   if test "$DIE" -eq 0; then 
     tar -czvf @PACKAGE@-@VERSION@-k7.tar.gz $PACKAGE package_descriptions
+@HAVE_OSS_TRUE@    rm -f package_descriptions
+@HAVE_OSS_TRUE@    mv package_descriptions_oss package_descriptions && \
+@HAVE_OSS_TRUE@    tar -czvf @PACKAGE@-@VERSION@-oss-k7.tar.gz $ossPACKAGE package_descriptions
 @HAVE_ALSA05_TRUE@    rm -f package_descriptions
 @HAVE_ALSA05_TRUE@    mv package_descriptions_alsa05 package_descriptions && \
 @HAVE_ALSA05_TRUE@    tar -czvf @PACKAGE@-@VERSION@-alsa05-k7.tar.gz $alsa05PACKAGE package_descriptions
@@ -248,6 +435,24 @@ build_k7() {
 @HAVE_DXR3_TRUE@    rm -f package_descriptions
 @HAVE_DXR3_TRUE@    mv package_descriptions_dxr3 package_descriptions && \
 @HAVE_DXR3_TRUE@    tar -czvf @PACKAGE@-@VERSION@-dxr3-ik7.tar.gz $dxr3PACKAGE package_descriptions
+@HAVE_ARTS_TRUE@    rm -f package_descriptions
+@HAVE_ARTS_TRUE@    mv package_descriptions_arts package_descriptions && \
+@HAVE_ARTS_TRUE@    tar -czvf @PACKAGE@-@VERSION@-arts-k7.tar.gz $artsPACKAGE package_descriptions
+@HAVE_ESD_TRUE@    rm -f package_descriptions
+@HAVE_ESD_TRUE@    mv package_descriptions_esd package_descriptions && \
+@HAVE_ESD_TRUE@    tar -czvf @PACKAGE@-@VERSION@-esd-k7.tar.gz $esdPACKAGE package_descriptions
+@HAVE_XV_TRUE@    rm -f package_descriptions
+@HAVE_XV_TRUE@    mv package_descriptions_xv package_descriptions && \
+@HAVE_XV_TRUE@    tar -czvf @PACKAGE@-@VERSION@-xv-k7.tar.gz $xvPACKAGE package_descriptions
+@HAVE_AA_TRUE@    rm -f package_descriptions
+@HAVE_AA_TRUE@    mv package_descriptions_aa package_descriptions && \
+@HAVE_AA_TRUE@    tar -czvf @PACKAGE@-@VERSION@-aa-k7.tar.gz $aaPACKAGE package_descriptions
+@W32DLL_DEP@    rm -f package_descriptions
+@W32DLL_DEP@    mv package_descriptions_w32 package_descriptions && \
+@W32DLL_DEP@    tar -czvf @PACKAGE@-@VERSION@-w32-k7.tar.gz $w32PACKAGE package_descriptions
+@HAVE_VORBIS_TRUE@    rm -f package_descriptions
+@HAVE_VORBIS_TRUE@    mv package_descriptions_oggvorbis package_descriptions && \
+@HAVE_VORBIS_TRUE@    tar -czvf @PACKAGE@-@VERSION@-oggvorbis-k7.tar.gz $oggvorbisPACKAGE package_descriptions
   fi
   do_clean
 }
