@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.182 2004/06/14 13:45:46 mroi Exp $
+ * $Id: input_dvd.c,v 1.183 2004/06/20 16:59:13 mroi Exp $
  *
  */
 
@@ -199,7 +199,6 @@ typedef struct {
   /* xine specific variables */
   char             *current_dvd_device; /* DVD device currently open */
   char             *mrl;          /* Current MRL                     */
-  int               mode;
   dvdnav_t         *dvdnav;       /* Handle for libdvdnav            */
   const char       *dvd_name;
 /*
@@ -1310,17 +1309,16 @@ static int dvd_plugin_open (input_plugin_t *this_gen) {
   dvd_input_class_t     *class = (dvd_input_class_t*)this_gen->input_class;
   
   char                  *locator;
-  int                    last_slash = 0;
+  int                    last_slash = 0, mode;
   dvdnav_status_t        ret;
   char                  *intended_dvd_device;
   xine_event_t           event;
-  static char           *handled_mrl = "dvd:/";
   xine_cfg_entry_t       region_entry, lang_entry, cache_entry;
   
   trace_print("Called\n");
 
-  /* we already checked the "dvd:/" MRL above */
-  locator = &this->mrl[strlen(handled_mrl)];
+  /* we already checked the "dvd:/" MRL before */
+  locator = &this->mrl[strlen("dvd:/")];
   while (*locator == '/') locator++;
 
 #ifndef _MSC_VER
@@ -1330,9 +1328,8 @@ static int dvd_plugin_open (input_plugin_t *this_gen) {
 
   /* Attempt to parse MRL */
   last_slash = strlen(locator);
-  while(last_slash && 
-	  ((locator[last_slash] != '/') && (locator[last_slash] != '\\')))
-	  last_slash--;
+  while (last_slash && locator[last_slash] != '/' && locator[last_slash] != '\\')
+    last_slash--;
 
   if(last_slash) {
     /* we have an alternative dvd_path */
@@ -1360,9 +1357,9 @@ static int dvd_plugin_open (input_plugin_t *this_gen) {
 #endif
 
   if(locator[0]) {
-    this->mode = MODE_TITLE; 
+    mode = MODE_TITLE; 
   } else {
-    this->mode = MODE_NAVIGATE;
+    mode = MODE_NAVIGATE;
   }
 
   if(this->opened) {
@@ -1418,22 +1415,18 @@ static int dvd_plugin_open (input_plugin_t *this_gen) {
 			       &cache_entry))
     seek_mode_cb(class, &cache_entry);  
 
-  if(this->mode == MODE_TITLE) {
-    int tt, i, pr, found;
+  if(mode == MODE_TITLE) {
+    char *delimiter;
+    int tt, pr;
     int titles, parts;
     
     /* A program and/or VTS was specified */
 
     /* See if there is a period. */
-    found = -1;
-    for(i=0; i<strlen(locator); i++) {
-      if(locator[i] == '.') {
-	found = i;
-	locator[i] = '\0';
-      }
-    }
+    delimiter = strchr(locator, '.');
+    if (delimiter) *delimiter = '\0';
 
-    tt = strtol(locator, NULL,10);
+    tt = strtol(locator, NULL, 10);
     dvdnav_get_number_of_titles(this->dvdnav, &titles);
     if((tt <= 0) || (tt > titles)) {
       xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
@@ -1445,17 +1438,18 @@ static int dvd_plugin_open (input_plugin_t *this_gen) {
 
     /* If there was a part specified, get that too. */
     pr = -1;
-    if(found != -1) {
-      pr = strtol(locator+found+1, NULL,10);
+    if(delimiter) {
+      pr = strtol(delimiter+1, NULL, 10);
+      dvdnav_get_number_of_parts(this->dvdnav, tt, &parts);
+      if ((pr <= 0) || (pr > parts)) {
+	xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
+		"input_dvd: Part %i is out of range (1 to %i).\n", pr, parts);
+	dvdnav_close(this->dvdnav);
+	this->dvdnav = NULL;
+	return 0;
+      }
     }
-    dvdnav_get_number_of_parts(this->dvdnav, tt, &parts);
-    if ((pr == 0) || (pr > parts)) {
-      xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
-	      "input_dvd: Part %i is out of range (1 to %i).\n", pr, parts);
-      dvdnav_close(this->dvdnav);
-      this->dvdnav = NULL;
-      return 0;
-    }
+
 #ifdef INPUT_DEBUG
     printf("input_dvd: Jumping to TT >%i<, PTT >%i<\n", tt, pr);
 #endif
@@ -1766,538 +1760,6 @@ static void *init_class (xine_t *xine, void *data) {
   return this;
 }
 
-
-/*
- * $Log: input_dvd.c,v $
- * Revision 1.182  2004/06/14 13:45:46  mroi
- * since we do not store that in extra_info any more, this call is obsolete
- *
- * Revision 1.181  2004/06/13 21:28:56  miguelfreitas
- * implement steps 1, 2, 3 and 4 of the seeking proposal:
- * http://article.gmane.org/gmane.comp.video.xine.devel/9532
- *
- * it is now up to demuxers to decide what the 0..65535 position means.
- * demuxers tested: ogg, voc, flac, rm, asf, vqa, vob, avi, y4m, au, mov, ts, mp3, mpg, wav, ra, mve
- *
- * Revision 1.180  2004/04/10 15:45:10  mroi
- * improving config help strings
- *
- * Revision 1.179  2003/12/26 16:13:21  mroi
- * * cure the ABI breakage: XINE_LANG_MAX cannot be increased
- * * add TODO items to provide a better solution
- *
- * Revision 1.178  2003/12/14 22:13:23  siggi
- * API version bounce
- *
- * Revision 1.177  2003/12/13 01:53:48  f1rmb
- * set dvdcss verbosity according to xine's one
- *
- * Revision 1.176  2003/12/07 15:34:30  f1rmb
- * get rid of XINE_{ASSERT,ABORT} and useless xine_print_trace (useless). Replace XINE_ASSERT by _x_assert, which works exaclty as assert, except that it still warns with NDEBUG defined (but don't abort). Fix missuning of assert(0), which isn't safe, abort is abort, assert is for debugging purpose only, so all assert(0) has been converted to abort() alls. In osd_preload_fonts(): alloc needed memory chunk. Define NDEBUG in CFLAGS, for non DEBUG build only.
- *
- * Revision 1.175  2003/12/05 15:54:58  f1rmb
- * cleanup phase II. use xprintf when it's relevant, use xine_xmalloc when it's relevant too. Small other little fix (can't remember). Change few internal function prototype because it xine_t pointer need to be used if some xine's internal sections. NOTE: libdvd{nav,read} is still too noisy, i will take a look to made it quit, without invasive changes. To be continued...
- *
- * Revision 1.174  2003/11/26 23:44:09  f1rmb
- * xprintf clean pass. xprintf now log into new XINE_LOG_TRACE log buffer. scratch buffer enhancement (thanks Thibaut for the malloc tips), enlarge log buffer from 25 lines (very useless), to 150 (better).
- *
- * Revision 1.173  2003/11/16 23:33:44  f1rmb
- * New stream/meta info (safe) stuff.
- * BIG NOTE: use helpers to access to these informations (get/set/reset):
- *     _x_{stream,meta}_info_{get,set,reset}()
- *   are for internal use, don't use *_public() ones from inside the beast ;-)
- * Some wrongly names "xine_" fonction renaming.
- *
- * Revision 1.172  2003/11/15 13:01:07  miguelfreitas
- * more helper functions cleanup (stream info, meta info)
- *
- * Revision 1.171  2003/11/11 18:44:53  f1rmb
- * rename internal API function (_x_<function>).
- *
- * Revision 1.170  2003/11/08 22:39:32  tmattern
- * Use info helper functions.
- *
- * Revision 1.169  2003/10/26 10:48:24  mroi
- * fix some prominent compiler warnings
- *
- * Revision 1.168  2003/08/25 21:51:39  f1rmb
- * Reduce GCC verbosity (various prototype declaration fixes). ffmpeg, wine and fft*post are untouched (fft: for now).
- *
- * Revision 1.167  2003/08/21 00:37:26  miguelfreitas
- * RIP Input Plugin
- *
- * Revision 1.166  2003/06/29 10:57:08  mroi
- * on some DVDs, the first highlight information (which button to highlight) will
- * arrive before the first SPU packet, therefore the SPU decoder has not yet been
- * initialized;
- * we cannot just drop the highlight information when this happens, but we should
- * trigger decoder initialization by sending a dummy SPU packet
- * (this fixes wrong initial button highlight on "Star Trek DS9 Season 1")
- *
- * Revision 1.165  2003/06/02 06:36:32  f1rmb
- * new event which inform UI when the mouse pointer enter and leave a spu button (DVD navigation)
- *
- * Revision 1.164  2003/05/23 10:34:13  mroi
- * make alternative devices (dvd:<path> and dvd:<device> style MRLs) work with
- * raw devices configured
- *
- * problem is: The raw device setting is passed to libdvdcss through an environment
- * variable. Libdvdcss then replaces ANY read from anywhere with a read from the
- * raw device. This fails, when you want to play a disc image with dvd:<path>, but
- * there is actually a DVD in the drive associated with the raw device which has
- * nothing to do with what you want to play.
- *
- * Revision 1.163  2003/05/16 15:07:36  tchamp
- * Fix win32 build and start adding additional plugin support
- *
- * Revision 1.162  2003/05/14 16:47:20  mroi
- * just to play it safe
- *
- * Revision 1.161  2003/05/07 17:54:18  tchamp
- * DVD play sort of works on Win32. Also added a couple more plugings to the Win32 build.
- *
- * Revision 1.160  2003/05/06 14:02:25  tchamp
- * This is some general Win32 cleanup and getting ready for DVD support.
- *
- * Revision 1.159  2003/05/03 14:24:08  mroi
- * as announced on xine-devel:
- * * I change the SPU decoder API to make it look less DVD specific
- * * adapt all related files
- * * increase SPU decoder API version
- * * include DVDNAV_CFLAGS locally where needed
- *
- * Revision 1.158  2003/04/30 16:41:15  mroi
- * the standalone libdvdnav can do raw device reads now, so this limitation
- * here is no longer necessary
- *
- * Revision 1.157  2003/04/29 15:58:28  jcdutton
- * Update from the libdvdnav project.
- *
- * Revision 1.156  2003/04/26 22:34:32  guenter
- * bump up input plugin interface version number
- *
- * Revision 1.155  2003/04/26 00:19:21  hadess
- * - shush
- *
- * Revision 1.154  2003/04/23 15:51:02  mroi
- * silence, please
- *
- * Revision 1.153  2003/04/22 23:30:29  tchamp
- * Additional changes for win32/msvc port; This is my first real commit so please be gentle with me; Everything builds except for the win32 ui
- *
- * Revision 1.152  2003/04/13 16:02:53  tmattern
- * Input plugin api change:
- * old open() function replaced by :
- *   *_class_get_instance() : return an instance if the plugin handles the mrl
- *   *_plugin_open() : open the stream
- *
- * Revision 1.151  2003/04/08 17:51:58  guenter
- * beta10
- *
- * Revision 1.150  2003/04/08 13:58:11  mroi
- * fix compilation problems
- *
- * Revision 1.149  2003/04/07 18:13:19  mroi
- * support the new menu resume feature
- *
- * Revision 1.148  2003/04/07 16:51:29  mroi
- * output beautification
- *
- * Revision 1.147  2003/04/06 23:44:59  guenter
- * some more dvd error reporting
- *
- * Revision 1.146  2003/04/06 13:19:59  mroi
- * * fix input_time reporting for PG based seeking
- *   (with more than one cell per PG, only the first cell starts at 0; for the others,
- *   we need pg_start)
- * * check for title sanity
- * * fix tsble -> table typo
- *
- * Revision 1.145  2003/04/06 13:06:03  jcdutton
- * Enable display of DVD Menu types.
- * Currently needs libdvdnav cvs, but does not break xine's own libdvdnav version.
- *
- * Revision 1.144  2003/04/06 12:11:10  mroi
- * reset the VM when it is already open
- *
- * Revision 1.143  2003/04/06 00:51:29  hadess
- * - shared eject implementation taken from the DVD input, eject doesn't work if the CD/DVD isn't mounted, which definitely breaks the CDDA plugin... better than nothing
- *
- * Revision 1.142  2003/04/05 12:28:16  miguelfreitas
- * "perfect" time display for dvds
- * (see thread on xine-devel for details)
- *
- * Revision 1.141  2003/04/04 19:20:48  miguelfreitas
- * add initial async error/general message reporting to frontend
- * obs: more messages should be added
- *
- * Revision 1.140  2003/04/03 13:04:52  mroi
- * not so much noise in cvs
- *
- * Revision 1.139  2003/04/01 11:45:32  jcdutton
- * Fix race condition, where spudec_reset is called and then a button update arrives from input_dvd.c before we have our this->menu_handle back.
- *
- * Revision 1.138  2003/03/30 10:57:48  mroi
- * additional sanity check on the part number
- *
- * Revision 1.137  2003/03/29 13:19:08  mroi
- * sync to libdvdnav cvs once again
- *  * some changes to mutual header inclusion to make it compile warning-less
- *    when tracing is enabled
- *  * title/part jumping should work much more reliable now
- *
- * Revision 1.136  2003/03/27 13:48:03  mroi
- * use timing information provided by libdvdnav to get more accurate position
- *
- * Revision 1.135  2003/03/25 13:20:31  mroi
- * new config option to switch between PG ("per chapter") and PGC ("per movie")
- * based seeking,
- * although this differs from the behaviour up to now, PGC based seeking is now the
- * default, since this is what people usually expect, what hardware players do and it
- * is needed for separate subtitles to work with DVDs.
- *
- * Revision 1.134  2003/03/13 22:09:51  mroi
- * turn these around so that dvd_get_current_position is defined before used
- *
- * Revision 1.133  2003/03/12 13:28:12  mroi
- * fix wrong return value of seek function, kindly reported by Nick Kurshev
- *
- * Revision 1.132  2003/03/04 10:30:28  mroi
- * fix compiler warnings at least in xine's native code
- *
- * Revision 1.131  2003/02/28 02:51:48  storri
- * Xine assert() replacement:
- *
- * All assert() function calls, with exceptions of libdvdread and libdvdnav, have been
- * replaced with XINE_ASSERT. Functionally XINE_ASSERT behaves just likes its predecesor but its
- * adding the ability to print out a stack trace at the point where the assertion fails.
- * So here are a few examples.
- *
- * assert (0);
- *
- * This use of assert was found in a couple locations most favorably being the default case of a switch
- * statement. This was the only thing there. So if the switch statement was unable to find a match
- * it would have defaulted to this and the user and the developers would be stuck wonder who died and where.
- *
- * So it has been replaced with
- *
- * XINE_ASSERT(0, "We have reach this point and don't have a default case");
- *
- * It may seem a bit none descriptive but there is more going on behind the scene.
- *
- * In addition to checking a condition is true/false, in this case '0', the XINE_ASSERT
- * prints out:
- *
- * <filename>:<function name>:<line number> - assertion '<assertion expression>' failed. <description>
- *
- * An example of this might be:
- *
- * input_dvd.c:open_plugin:1178 - assertion '0' failed. xine_malloc failed!!! You have run out of memory
- *
- * XINE_ASSERT and its helper function, print_trace, are found in src/xine-utils/xineutils.h
- *
- * Revision 1.130  2003/02/26 20:45:18  mroi
- * adjust input_dvd to handle DVDNAV_WAIT events properly
- * (that is: wait for the fifos to become empty)
- *
- * Revision 1.129  2003/02/20 16:01:57  mroi
- * syncing to libdvdnav 0.1.5 and modifying input plugin accordingly
- * quoting the ChangeLog:
- *   * some bugfixes
- *   * code cleanup
- *   * build process polishing
- *   * more sensible event order in get_next_block to ensure useful event delivery
- *   * VOBU level resume
- *   * fixed: seeking in a multiangle feature briefly showed the wrong angle
- *
- * Revision 1.128  2003/02/14 18:00:38  heikos
- * FreeBSD compile fixes
- *
- * Revision 1.127  2003/02/13 16:24:27  mroi
- * use the requested channel number when querying for the language
- * (the _cool_ menu in xine-ui displays the correct languages now)
- *
- * Revision 1.126  2003/02/11 15:17:10  mroi
- * enable libdvdcss title key cache
- *
- * Revision 1.125  2002/12/27 16:47:10  miguelfreitas
- * man errno: "must not be  explicitly  declared; errno  may  be a macro"
- * (thanks Chris Rankin for noticing)
- *
- * Revision 1.124  2002/12/22 23:35:42  miguelfreitas
- * it doesn't make sense to reimplement flush here.
- * (this is why _x_demux_flush_engine was created, to avoid redundant code)
- *
- * Revision 1.123  2002/12/21 12:56:47  miguelfreitas
- * - add buf->decoder_info_ptr: portability for systems where pointer has
- *   different sizeof than integer.
- * - add extra_info structure to pass informations from input/demuxers down
- *   to the output frame. this can be used, for example, to pass the frame
- *   number of a frame (when known by decoder). also, immediate benefict is
- *   that we now have a slider which really shows the current position of
- *   the playing stream. new fields can be added to extra_info keeping
- *   binary compatibility
- * - bumpy everybody's api versions
- *
- * Revision 1.122  2002/12/06 18:44:40  miguelfreitas
- * - add still frame hint (untested - i don't have dvd here)
- * - check mrl before allocating plugin context, so it doesn't get initialized for
- * non-dvd streams
- *
- * Revision 1.121  2002/11/23 12:41:04  mroi
- * DVD input fixes and cleanup:
- * * revert my removing of the clock adjustment; although this is bad, it seems
- *   to be the best solution for now (menu transitions have choppy audio without)
- * * add patch from Marco Zühlke enabling dvd device specification by MRL
- * * update GUI title and language display once immediately after plugin open
- *
- * Revision 1.120  2002/11/23 11:09:29  f1rmb
- * registering config entries at init_class time
- *
- * Revision 1.119  2002/11/22 16:23:58  mroi
- * do not play with the clock any more, we have dedicated flush functions for that now
- * (This should fix Daniels MP3 problems, since the end of one stream would
- * have adjusted the global clock thus affecting all other streams.)
- *
- * Revision 1.118  2002/11/20 11:57:42  mroi
- * engine modifications to allow post plugin layer:
- * * new public output interface xine_{audio,video}_port_t instead of
- *   xine_{ao,vo}_driver_t, old names kept as aliases for compatibility
- * * modified the engine to allow multiple streams per output
- * * renaming of some internal structures according to public changes
- * * moving SCR out of per-stream-metronom into a global metronom_clock_t
- *   residing in xine_t and therefore easily available to the output layer
- * * adapting all available plugins
- *   (note to external projects: the compiler will help you a lot, if a plugin
- *   compiles, it is adapted, because all changes add new parameters to some
- *   functions)
- * * bump up all interface versions because of xine_t and xine_stream_t changes
- *
- * Revision 1.117  2002/11/18 11:48:35  mroi
- * DVD input should now be initially unseekable
- *
- * Revision 1.116  2002/11/18 11:33:59  mroi
- * getting rid of obviously unused INPUT_CAP_VARIABLE_BITRATE
- * fix ejecting (works now)
- *
- * Revision 1.115  2002/11/17 16:23:38  mroi
- * cleanup: bring config entries back to life
- * introduce a seekable flag
- *
- * Revision 1.114  2002/11/15 00:20:32  miguelfreitas
- * cleaning up spu types. now avi subtitles may be enabled again.
- * (+ missed ffmpeg/dv patch)
- *
- * Revision 1.113  2002/11/03 23:03:31  siggi
- * some more release-related fixes...
- *
- * Revision 1.112  2002/11/02 15:13:01  mroi
- * don't display crap in UI panel, xine-ui expects a xine_ui_data_t and
- * I think this is right, so we provide one
- *
- * Revision 1.111  2002/11/02 03:13:44  f1rmb
- * Less verbosity.
- *
- * Revision 1.110  2002/11/01 17:51:57  mroi
- * be less strict with MRL syntax, people are used to ://
- *
- * Revision 1.109  2002/11/01 11:48:59  tmattern
- * Time for fast navigation now !
- *
- * Revision 1.108  2002/10/31 17:00:45  mroi
- * adapt input plugins to new MRL syntax
- * (mostly turning :// into :/)
- *
- * Revision 1.107  2002/10/27 20:07:39  mroi
- * less noise and register skip_behaviour (chapter skip keys work again)
- *
- * Revision 1.106  2002/10/26 22:50:52  guenter
- * timeouts for mms, send progress report events, introduce verbosity engine parameter (not implemented yet), document new plugin loader in changelog
- *
- * Revision 1.105  2002/10/26 20:15:21  mroi
- * first step in getting dvd events back
- *
- * Revision 1.104  2002/10/26 02:12:27  jcdutton
- * Remove assert(0), left over from testing.
- * dispose of event queue.
- *
- * Revision 1.103  2002/10/25 15:36:19  mroi
- * remove obviously obsolete INPUT_CAP_CLUT and INPUT_OPTIONAL_DATA_CLUT
- *
- * Revision 1.102  2002/10/24 15:06:55  jkeil
- * C99 version of macro definition with variable number of arguments added
- *
- * Revision 1.101  2002/10/24 13:52:57  jcdutton
- * Fix some log messages in audio_alsa_out.c
- * Fix input_dvd.c for new config file loading before init_class().
- *
- * Revision 1.100  2002/10/24 11:30:38  jcdutton
- * Further changes to DVD code.
- *
- * Revision 1.99  2002/10/23 20:26:34  guenter
- * final c++ -> c coding style fixes, libxine compiles now
- *
- * Revision 1.98  2002/10/23 11:59:52  jcdutton
- * Oops...will compile now.
- *
- * Revision 1.97  2002/10/23 11:44:31  jcdutton
- * input_dvd.c now listens for keyboard events from xine-ui.
- *
- * Revision 1.96  2002/10/23 10:14:08  jkeil
- * "dvd_device" device name moved from dvd_input_plugin_t -> dvd_input_class_t,
- * adapt the check_solaris_vold_device() function.
- *
- * Revision 1.95  2002/10/22 17:16:57  jkeil
- * Fix bad comment, and disable some piece of code to enable compilation on solaris
- *
- * Revision 1.94  2002/10/22 07:36:05  jcdutton
- * Update input_dvd.c to new api.
- * Plays DVDs now, but not menu buttons work yet.
- *
- * Revision 1.93  2002/10/14 15:47:16  guenter
- * introduction of xine_stream_t and async xine events - all still in developement
- *
- * Revision 1.92  2002/10/06 15:48:02  jkeil
- * Proper alignment is needed for the array of "xine_mrl_t" structures on SPARC.
- *
- * Revision 1.91  2002/10/02 15:56:51  mroi
- * - kill global variables
- * - remove some code that could never be reached (after return)
- *
- * Revision 1.90  2002/09/28 11:10:04  mroi
- * configurable skipping behaviour
- *
- * Revision 1.89  2002/09/22 14:29:40  mroi
- * API review part I
- * - bring our beloved xine_t * back (no more const there)
- * - remove const on some input plugin functions
- *   where the data changes with media (dvd, ...) changes
- *   and is therefore not const
- *
- * Revision 1.86  2002/09/18 10:03:07  jcdutton
- * Fix a seg fault.
- *
- * Revision 1.85  2002/09/18 06:42:23  jcdutton
- * Try to get xine-lib to compile.
- *
- * Revision 1.84  2002/09/18 04:20:09  jcdutton
- * Updating the DVD menu code to use better nav_pci information.
- * libspudec parses nav_pci info correctly.
- * libdvdnav does not parse nav_pci info at all.
- *
- * Revision 1.83  2002/09/17 07:53:59  jcdutton
- * Make input_dvd.c mrl playlist work again.
- *
- * Revision 1.82  2002/09/16 16:55:35  jcdutton
- * Start to get mrl working for DVD button.
- *
- * Revision 1.81  2002/09/16 16:13:56  jcdutton
- * Prevent a segfault when accessing the config.
- *
- * Revision 1.80  2002/09/15 14:05:37  mroi
- * be more distinct with UI info texts for
- * "no subtitles because user switched it off"
- * and
- * "no subtitles because none are available"
- *
- * Revision 1.79  2002/09/14 19:04:07  guenter
- * latest xine_config api changes as proposed by james
- *
- * Revision 1.78  2002/09/13 17:18:42  mroi
- * dvd playback should work again
- *
- * Revision 1.77  2002/09/06 18:13:10  mroi
- * introduce "const"
- * fix some input plugins that would not copy the mrl on open
- *
- * Revision 1.76  2002/09/05 22:18:54  mroi
- * remove plugin's private priority and interface members
- * adapt some more decoders
- *
- * Revision 1.75  2002/09/05 20:44:39  mroi
- * make all the plugin init functions static
- * (geez this was a job)
- *
- * Revision 1.74  2002/09/05 20:19:48  guenter
- * use xine_mrl_t instead of mrl_t in input plugins, implement more configfile functions
- *
- * Revision 1.73  2002/09/05 05:51:14  jcdutton
- * XV Video out at least loads now and we see the xine logo again.
- * The DVD plugin now loads, but audio and spu info is lost.
- * What happened to _x_get_spu_channel and _x_get_audio_channel?
- *
- * Revision 1.72  2002/09/04 23:31:08  guenter
- * merging in the new_api branch ... unfortunately video_out / vo_scale is broken now ... matthias/miguel: please fix it :-)
- *
- * Revision 1.71  2002/09/04 10:48:36  mroi
- * - handle numeric events for button selection (maybe this makes some
- *   dvd's easter eggs accesible)
- * - workaround current breakage in libdvdnav concerning mrl list building
- *
- * Revision 1.70  2002/09/03 07:51:34  jcdutton
- * Improve chapter selection functions.
- *
- * Revision 1.69  2002/09/02 12:25:49  jcdutton
- * This might slow things down a bit, but I need to do it to test a problem with DVD menus
- * not appearing.
- * I think the reason they are not appearing is that they are getting flushed too early.
- *
- * Revision 1.68  2002/09/02 03:21:38  jcdutton
- * Implement proper prev/next chapter.
- *
- * Revision 1.67  2002/08/31 02:48:13  jcdutton
- * Add a printf so we can tell if a user is using xine's libdvdnav or the one from
- * dvd.sf.net.
- * Add some "this->dvdnav = NULL;" after dvd_close()
- *
- * Revision 1.66  2002/08/30 11:14:44  mroi
- * make menu key output conform xine guidelines, improve compatibility with
- * older xine-ui versions by handling XINE_EVENT_INPUT_MENU1
- *
- * Revision 1.65  2002/08/29 04:32:12  jcdutton
- * Use more Fkeys to jump to different DVD menus.
- * We can now jump directly to Title, Root, Sub-Picture, Audio, Angle, PTT (Chapter) menus.
- *
- * Revision 1.64  2002/08/26 11:50:47  mroi
- * adapt to xine coding guidelines
- *
- * Revision 1.63  2002/08/21 23:38:48  komadori
- * fix portability problems
- *
- * Revision 1.62  2002/08/21 15:10:09  mroi
- * use raw devices only with our patched local copy of libdvdread
- *
- * Revision 1.61  2002/08/19 17:27:11  mroi
- * add config entries for raw device and css decryption method
- *
- * Revision 1.60  2002/08/13 16:04:27  jkeil
- * Solaris uses <sys/cdio.h> for CDROM/DVD-ROM ioctl, too.  Try to use autoconf
- * HAVE_headerfile macros...  (The xxxBSD part nees a bit work)
- *
- * Revision 1.59  2002/08/13 15:55:23  mroi
- * change error to warning
- *
- * Revision 1.58  2002/08/09 22:33:10  mroi
- * sorry, my raw device patch was not meant to be committed
- * It only works with a patched version of libdvdcss
- *
- * Revision 1.57  2002/08/09 22:13:08  mroi
- * make developers life easier: add possibility to use an existing  shared
- * version of libdvdnav
- *
- * Revision 1.56  2002/08/09 15:38:13  mroi
- * fix mrl parsing
- *
- * Revision 1.55  2002/08/09 13:50:17  heikos
- * seems to compile better this way :)
- *
- * Revision 1.54  2002/08/09 07:34:47  richwareham
- * More include fixes
- *
- * Revision 1.53  2002/08/08 17:49:21  richwareham
- * First stage of DVD plugin -> dvdnav conversion
- *
- */
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  

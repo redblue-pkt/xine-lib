@@ -28,6 +28,8 @@
   * DXR3: fix slight shaking in lower third of the image on TV out
     with some MPEG material
   * fix falling back from multi-buffering in video_out_pgx64
+  * fix DVD playback from a specified title/part with
+    dvd:/<title>.<part> MRLs
 
 xine-lib (1-rc4a)
   * audio out now uses a more user friendly "Speaker arrangement" config item;
