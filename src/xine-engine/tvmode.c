@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: tvmode.c,v 1.1 2002/06/10 21:42:45 mshopf Exp $
+ * $Id: tvmode.c,v 1.2 2002/06/16 22:16:55 f1rmb Exp $
  *
  * tvmode - TV output selection
  *
@@ -80,6 +80,8 @@ static char *scan_overscan[] = {
 static int    opt_flicker = -1;
 static double opt_aspect  = 4.0 / 3.0;
 
+/* Just turn off warnings */
+void xine_tvmode_exit (void);
 
 /* Try to connect to nvtvd server */
 static void tvmode_connect () {

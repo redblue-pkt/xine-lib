@@ -2,15 +2,19 @@
 ## Process this file with automake to produce Makefile.in
 ##
 
-CFLAGS = @CFLAGS@ $(THREAD_CFLAGS) -DXINE_LOGO_FILE=\"file://@XINE_SKINPATH@/xine_logo.mpg\"
+CFLAGS = @CFLAGS@ $(THREAD_CFLAGS) $(X_CFLAGS) -DXINE_LOGO_FILE=\"file://@XINE_SKINPATH@/xine_logo.mpg\"
 
 
 lib_LTLIBRARIES = libxine.la
 
-libxine_la_SOURCES = xine.c metronom.c configfile.c buffer.c \
+if HAVE_X11
+nvtv = nvtvd.c tvmode.c
+endif
+
+libxine_la_SOURCES = $(nvtv) xine.c metronom.c configfile.c buffer.c \
 	load_plugins.c video_decoder.c buffer_types.c \
 	audio_decoder.c video_out.c audio_out.c resample.c events.c lrb.c \
-	video_overlay.c osd.c scratch.c locale.c demux.c nvtvd.c tvmode.c
+	video_overlay.c osd.c scratch.c locale.c demux.c
 libxine_la_DEPENDENCIES = @INTLLIBS@
 libxine_la_LIBADD = $(THREAD_LIBS) $(DYNAMIC_LD_LIBS) @INTLLIBS@ $(ZLIB_LIBS) -lm
 
@@ -27,7 +31,7 @@ noinst_HEADERS = bswap.h nvtvd.h
 @INCLUDED_INTL_TRUE@	@cd $(top_builddir)/intl && $(MAKE) libintl.la
 
 debug:
-	@$(MAKE) CFLAGS="$(DEBUG_CFLAGS) -DXINE_LOGO_FILE=\\\"file://@XINE_SKINPATH@/xine_logo.mpg\\\""
+	@$(MAKE) CFLAGS="$(DEBUG_CFLAGS) $(X_CFLAGS) -DXINE_LOGO_FILE=\\\"file://@XINE_SKINPATH@/xine_logo.mpg\\\""
 
 install-debug: debug
 	@$(MAKE) $(AM_MAKEFLAGS) install-exec-am install-data-am
