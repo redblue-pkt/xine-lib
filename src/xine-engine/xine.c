@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.251 2003/07/25 21:02:04 miguelfreitas Exp $
+ * $Id: xine.c,v 1.252 2003/07/27 12:25:04 hadess Exp $
  */
 
 /*
@@ -47,7 +47,7 @@
 #define LOG_VERBOSE
 
 /* #define LOG */
-
+#define XINE_ENABLE_EXPERIMENTAL_FEATURES 1
 #include "xine_internal.h"
 #include "plugin_catalog.h"
 #include "audio_out.h"
@@ -1298,10 +1298,6 @@ void xine_set_speed (xine_stream_t *stream, int speed) {
 }
 
 
-int xine_get_speed (xine_stream_t *stream) {
-  return stream->xine->clock->speed;
-}
-
 /*
  * time measurement / seek
  */
@@ -1470,11 +1466,6 @@ int xine_get_audio_lang (xine_stream_t *stream, int channel, char *lang) {
 
 int xine_get_spu_channel (xine_stream_t *stream) {
   return stream->spu_channel_user;
-}
-
-osd_renderer_t *xine_get_osd_renderer (xine_stream_t *stream) {
-
-  return stream->osd_renderer;
 }
 
 /*
