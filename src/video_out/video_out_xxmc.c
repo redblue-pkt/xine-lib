@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xxmc.c,v 1.6 2004/10/14 23:03:18 miguelfreitas Exp $
+ * $Id: video_out_xxmc.c,v 1.7 2004/10/30 15:12:49 totte67 Exp $
  *
  * video_out_xxmc.c, X11 decoding accelerated video extension interface for xine
  *
@@ -396,7 +396,7 @@ static void xxmc_duplicate_frame_data(vo_frame_t *this_gen,
   int need_dummy;
 
   xxmc = &orig->xxmc_data;
-  xvmc_context_writer_lock( &driver->xvmc_lock);
+  xvmc_context_reader_lock( &driver->xvmc_lock);
   if (!xxmc_xvmc_surface_valid(driver,orig->xvmc_surf)) {
     xvmc_context_reader_unlock( &driver->xvmc_lock );
     return;

@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xxmc.h,v 1.3 2004/10/12 07:40:23 totte67 Exp $
+ * $Id: xxmc.h,v 1.4 2004/10/30 15:12:49 totte67 Exp $
  *
  * video_out_xxmc.c, X11 decoding accelerated video extension interface for xine
  *
@@ -37,7 +37,7 @@
 #ifndef _XXMC_H
 #define _XXMC_H
 
-#undef XVMC_THREAD_SAFE
+#define XVMC_THREAD_SAFE
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
