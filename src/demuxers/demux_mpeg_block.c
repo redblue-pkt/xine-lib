@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.194 2003/08/01 17:06:32 miguelfreitas Exp $
+ * $Id: demux_mpeg_block.c,v 1.195 2003/09/02 18:59:06 miguelfreitas Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  * used with fixed blocksize devices (like dvd/vcd)
@@ -921,6 +921,8 @@ static int32_t parse_audio_stream(demux_mpeg_block_t *this, uint8_t *p, buf_elem
 #ifdef LOG
     printf ("demux_mpeg_block: MPEG Audio PACK put on fifo\n");
 #endif
+  } else {
+    buf->free_buffer(buf);
   }
 
   return -1;
@@ -1019,6 +1021,7 @@ static int demux_mpeg_block_estimate_rate (demux_mpeg_block_t *this) {
     if ((stream_id < 0xbc) || ((stream_id & 0xf0) != 0xe0)) {
       pos += (off_t) blocksize;
       buf->free_buffer (buf);
+      buf = NULL;
       continue; /* only use video packets */
     }
 
@@ -1084,11 +1087,15 @@ static int demux_mpeg_block_estimate_rate (demux_mpeg_block_t *this) {
       pos += blocksize;
 
     buf->free_buffer (buf);
+    buf = NULL;
 
     if (pos > mpeg_length || this->input->seek (this->input, pos, SEEK_SET) == (off_t)-1)
       break;
 
   }
+
+  if( buf )
+    buf->free_buffer (buf);
 }
 
 #ifdef LOG
