@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.91 2003/02/04 09:50:22 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.92 2003/02/04 22:01:34 hadess Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -48,7 +48,7 @@
 */
 
 #define SLICE_BUFFER_SIZE (1194 * 1024)
-#define abs(x) ( ((x)<0) ? -(x) : (x) )
+#define abs_float(x) ( ((x)<0) ? -(x) : (x) )
 
 typedef struct {
   video_decoder_class_t   decoder_class;
@@ -486,26 +486,26 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 	  float diff;
    
 	  this->xine_aspect_ratio = XINE_VO_ASPECT_DONT_TOUCH;
-	  diff = abs( this->context->aspect_ratio - 0.0 );
+	  diff = abs_float( this->context->aspect_ratio - 0.0 );
 
-	  if( diff > abs( this->context->aspect_ratio - 1.0 ) ) {
+	  if( diff > abs_float( this->context->aspect_ratio - 1.0 ) ) {
 	    this->xine_aspect_ratio = XINE_VO_ASPECT_SQUARE;
-	    diff = abs( this->context->aspect_ratio - 1.0 );
+	    diff = abs_float( this->context->aspect_ratio - 1.0 );
 	  }
 	  
-	  if( diff > abs( this->context->aspect_ratio - 4.0/3.0 ) ) {
+	  if( diff > abs_float( this->context->aspect_ratio - 4.0/3.0 ) ) {
 	    this->xine_aspect_ratio = XINE_VO_ASPECT_4_3;
-	    diff = abs( this->context->aspect_ratio - 4.0/3.0 );
+	    diff = abs_float( this->context->aspect_ratio - 4.0/3.0 );
 	  }
    
-	  if( diff > abs( this->context->aspect_ratio - 16.0/9.0 ) ) {
+	  if( diff > abs_float( this->context->aspect_ratio - 16.0/9.0 ) ) {
 	    this->xine_aspect_ratio = XINE_VO_ASPECT_ANAMORPHIC;
-	    diff = abs( this->context->aspect_ratio - 16.0/9.0 );
+	    diff = abs_float( this->context->aspect_ratio - 16.0/9.0 );
 	  }
 	  
-	  if( diff > abs( this->context->aspect_ratio - 1.0/2.0 ) ) {
+	  if( diff > abs_float( this->context->aspect_ratio - 1.0/2.0 ) ) {
 	    this->xine_aspect_ratio = XINE_VO_ASPECT_DVB;
-	    diff = abs( this->context->aspect_ratio - 1.0/2.0 );
+	    diff = abs_float( this->context->aspect_ratio - 1.0/2.0 );
 	  }
 	  
 	  this->aspect_ratio = this->context->aspect_ratio;
