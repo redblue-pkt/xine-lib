@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: configfile.c,v 1.9 2001/11/19 02:57:10 guenter Exp $
+ * $Id: configfile.c,v 1.10 2001/11/20 17:22:14 miguelfreitas Exp $
  *
  * config file management - implementation
  *
@@ -64,6 +64,7 @@ static cfg_entry_t *config_file_add (config_values_t *this, char *key) {
   cfg_entry_t *entry;
 
   entry = (cfg_entry_t *) xine_xmalloc (sizeof (cfg_entry_t));
+  entry->config        = this;
   entry->key           = copy_string (key);
   entry->type          = CONFIG_TYPE_UNKNOWN;
 
@@ -560,6 +561,9 @@ config_values_t *config_file_init (char *filename) {
 
 /*
  * $Log: configfile.c,v $
+ * Revision 1.10  2001/11/20 17:22:14  miguelfreitas
+ * testing some configfile stuff...
+ *
  * Revision 1.9  2001/11/19 02:57:10  guenter
  * make description strings optional - config options without description string will not appear in setup dialog
  *

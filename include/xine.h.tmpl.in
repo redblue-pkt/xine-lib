@@ -28,7 +28,7 @@
  \endverbatim
  */
 /*
- * $Id: xine.h.tmpl.in,v 1.55 2001/11/18 03:53:23 guenter Exp $
+ * $Id: xine.h.tmpl.in,v 1.56 2001/11/20 17:22:13 miguelfreitas Exp $
  *
  */
 
@@ -485,11 +485,13 @@ typedef void xine_t;
 typedef void ao_driver_t;
 
 typedef struct cfg_entry_s cfg_entry_t;
+typedef struct config_values_s config_values_t;
 typedef void (*config_cb_t) (void *, cfg_entry_t *);
 
 struct cfg_entry_s {
   cfg_entry_t     *next;
-
+  config_values_t *config;
+  
   char            *key;
   int              type;
 
@@ -532,7 +534,6 @@ struct cfg_entry_s {
 #define CONFIG_TYPE_NUM     4
 #define CONFIG_TYPE_BOOL    5
 
-typedef struct config_values_s config_values_t;
 struct config_values_s {
 
   /*

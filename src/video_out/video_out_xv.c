@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.77 2001/11/20 01:43:54 guenter Exp $
+ * $Id: video_out_xv.c,v 1.78 2001/11/20 17:22:14 miguelfreitas Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -1161,6 +1161,13 @@ static void xv_check_capability (xv_driver_t *this,
   xv_set_property (&this->vo_driver, property, entry->num_value);
 }
 
+static void xv_update_deinterlace(void *this_gen, cfg_entry_t *entry)
+{
+  xv_driver_t *this = (xv_driver_t *) this_gen;
+  
+  this->deinterlace_method = entry->num_value;
+}
+
 vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
 
   xv_driver_t          *this;
@@ -1177,7 +1184,7 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
   XvImage              *myimage;
   XShmSegmentInfo       myshminfo;
   static char          *deinterlace_methods[] = {"none", "bob", "weave", "greedy", "onefield",
-						 "onefieldxy", NULL};
+						 "onefield_xv", NULL};
 
   display = visual->display;
 
@@ -1402,7 +1409,7 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
   this->deinterlace_method = config->register_enum (config, "video.deinterlace_method", 4,
 						    deinterlace_methods, 
 						    "Software deinterlace method (Key I toggles deinterlacer on/off)",
-						    NULL, NULL, NULL);
+						    NULL, xv_update_deinterlace, this);
   this->deinterlace_enabled = 0;
 
   return &this->vo_driver;

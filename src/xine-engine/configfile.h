@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: configfile.h,v 1.4 2001/11/18 03:53:25 guenter Exp $
+ * $Id: configfile.h,v 1.5 2001/11/20 17:22:14 miguelfreitas Exp $
  *
  * config file management
  *
@@ -33,10 +33,13 @@ extern "C" {
 #include <inttypes.h>
 
 typedef struct cfg_entry_s cfg_entry_t;
+typedef struct config_values_s config_values_t;
+
 typedef void (*config_cb_t) (void *, cfg_entry_t *);
 
 struct cfg_entry_s {
   cfg_entry_t     *next;
+  config_values_t *config;
 
   char            *key;
   int              type;
@@ -80,7 +83,6 @@ struct cfg_entry_s {
 #define CONFIG_TYPE_NUM     4
 #define CONFIG_TYPE_BOOL    5
 
-typedef struct config_values_s config_values_t;
 struct config_values_s {
 
   /*
@@ -185,6 +187,9 @@ config_values_t *config_file_init (char *filename);
 
 /*
  * $Log: configfile.h,v $
+ * Revision 1.5  2001/11/20 17:22:14  miguelfreitas
+ * testing some configfile stuff...
+ *
  * Revision 1.4  2001/11/18 03:53:25  guenter
  * new configfile interface, code cleanup, xprintf is gone
  *

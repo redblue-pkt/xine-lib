@@ -392,7 +392,7 @@ static void update_fast_memcpy(void *this_gen, cfg_entry_t *entry)
   static int config_flags = -1;
     
   config_flags = xine_mm_accel();
-  
+
   if( entry->num_value != 0 && 
      (config_flags & memcpy_method[entry->num_value].cpu_require) == 
       memcpy_method[entry->num_value].cpu_require ) {
