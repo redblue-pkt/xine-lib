@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_vidix.c,v 1.63 2004/05/09 21:05:34 miguelfreitas Exp $
+ * $Id: video_out_vidix.c,v 1.64 2004/09/12 19:23:37 mroi Exp $
  * 
  * video_out_vidix.c
  *
@@ -37,6 +37,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <inttypes.h>
+#include <unistd.h>
 
 #ifdef HAVE_X11
 #include <X11/Xlib.h>

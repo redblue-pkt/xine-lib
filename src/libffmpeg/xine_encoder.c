@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_encoder.c,v 1.18 2004/08/16 15:31:23 mroi Exp $
+ * $Id: xine_encoder.c,v 1.19 2004/09/12 19:23:37 mroi Exp $
  */
  
 /* mpeg encoders for the dxr3 video out plugin. */
@@ -30,6 +30,7 @@
 #include <stdlib.h>
 #include <sys/ioctl.h>
 #include <fcntl.h>
+#include <unistd.h>
 #include <errno.h>
 #include <math.h>
 

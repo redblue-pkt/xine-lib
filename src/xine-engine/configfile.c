@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: configfile.c,v 1.67 2004/07/22 14:26:24 mroi Exp $
+ * $Id: configfile.c,v 1.68 2004/09/12 19:23:36 mroi Exp $
  *
  * config object (was: file) management - implementation
  *
@@ -33,6 +33,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 #include "configfile.h"
 
 #define LOG_MODULE "configfile"
