@@ -30,8 +30,8 @@ extern int dct_quantize_altivec(MpegEncContext *s,
 extern void dct_unquantize_h263_altivec(MpegEncContext *s,
                                         DCTELEM *block, int n, int qscale);
 
-extern void idct_put_altivec(UINT8 *dest, int line_size, INT16 *block);
-extern void idct_add_altivec(UINT8 *dest, int line_size, INT16 *block);
+extern void idct_put_altivec(uint8_t *dest, int line_size, int16_t *block);
+extern void idct_add_altivec(uint8_t *dest, int line_size, int16_t *block);
 
 
 void MPV_common_init_ppc(MpegEncContext *s)
@@ -42,12 +42,12 @@ void MPV_common_init_ppc(MpegEncContext *s)
         if ((s->avctx->idct_algo == FF_IDCT_AUTO) ||
                 (s->avctx->idct_algo == FF_IDCT_ALTIVEC))
         {
-            s->idct_put = idct_put_altivec;
-            s->idct_add = idct_add_altivec;
+            s->dsp.idct_put = idct_put_altivec;
+            s->dsp.idct_add = idct_add_altivec;
 #ifndef ALTIVEC_USE_REFERENCE_C_CODE
-            s->idct_permutation_type = FF_TRANSPOSE_IDCT_PERM;
+            s->dsp.idct_permutation_type = FF_TRANSPOSE_IDCT_PERM;
 #else /* ALTIVEC_USE_REFERENCE_C_CODE */
-            s->idct_permutation_type = FF_NO_IDCT_PERM;
+            s->dsp.idct_permutation_type = FF_NO_IDCT_PERM;
 #endif /* ALTIVEC_USE_REFERENCE_C_CODE */
         }
 

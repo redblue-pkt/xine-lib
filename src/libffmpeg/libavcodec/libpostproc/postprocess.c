@@ -16,6 +16,11 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
+/**
+ * @file postprocess.c
+ * postprocessing.
+ */
+ 
 /*
 			C	MMX	MMX2	3DNow
 isVertDC		Ec	Ec
@@ -62,10 +67,8 @@ try to unroll inner for(x=0 ... loop to avoid these damn if(x ... checks
 
 //Changelog: use the CVS log
 
-#ifdef HAVE_CONFIG_H
 #include "config.h"
-#endif
-
+#include <inttypes.h>
 #include <stdio.h>
 
 #include "xineutils.h"
@@ -151,7 +154,6 @@ static inline void unusedVariableWarningFixer()
 	if(w05 + w20 + b00 + b01 + b02 + b08 + b80 == 0) b00=0;
 }
 #endif
-
 
 // The horizontal Functions exist only in C cuz the MMX code is faster with vertical filters and transposing
 

@@ -40,6 +40,7 @@ libavcodec_la_SOURCES = \
 	mpegaudiodec.c \
 	mpegvideo.c \
 	msmpeg4.c \
+	opts.c \
 	ratecontrol.c \
 	rv10.c \
 	simple_idct.c \
@@ -69,6 +70,7 @@ noinst_HEADERS = \
 	mpegaudiotab.h \
 	mpegvideo.h \
 	msmpeg4data.h \
+	os_support.h \
 	simple_idct.h \
 	svq1_cb.h \
 	wmadata.h

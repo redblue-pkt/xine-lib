@@ -20,11 +20,20 @@
  *
  * new Motion Estimation (X1/EPZS) by Michael Niedermayer <michaelni@gmx.at>
  */
+ 
+/**
+ * @file motion_est.c
+ * Motion estimation.
+ */
+ 
 #include <stdlib.h>
 #include <stdio.h>
 #include "avcodec.h"
 #include "dsputil.h"
 #include "mpegvideo.h"
+
+//#undef NDEBUG
+//#include <assert.h>
 
 #define SQ(a) ((a)*(a))
 
@@ -58,8 +67,8 @@ typedef struct Minima{
 }Minima;
 
 static int minima_cmp(const void *a, const void *b){
-    Minima *da = (Minima *) a;
-    Minima *db = (Minima *) b;
+    const Minima *da = (const Minima *) a;
+    const Minima *db = (const Minima *) b;
     
     return da->height - db->height;
 }
@@ -173,10 +182,19 @@ if((x) >= xmin && 2*(x) + (dx) <= 2*xmax && (y) >= ymin && 2*(y) + (dy) <= 2*yma
     }else{\
         int fx = s->me.direct_basis_mv[0][0] + hx;\
         int fy = s->me.direct_basis_mv[0][1] + hy;\
-        int bx = hx ? fx - s->me.co_located_mv[0][0] : s->me.co_located_mv[0][0]*(time_pb - time_pp)/time_pp;\
-        int by = hy ? fy - s->me.co_located_mv[0][1] : s->me.co_located_mv[0][1]*(time_pb - time_pp)/time_pp;\
+        int bx = hx ? fx - s->me.co_located_mv[0][0] : (s->me.co_located_mv[0][0]*(time_pb - time_pp)/time_pp);\
+        int by = hy ? fy - s->me.co_located_mv[0][1] : (s->me.co_located_mv[0][1]*(time_pb - time_pp)/time_pp);\
         int fxy= (fx&1) + 2*(fy&1);\
         int bxy= (bx&1) + 2*(by&1);\
+        \
+        assert((fx>>1) + 16*s->mb_x >= -16);\
+        assert((fy>>1) + 16*s->mb_y >= -16);\
+        assert((fx>>1) + 16*s->mb_x <= s->width);\
+        assert((fy>>1) + 16*s->mb_y <= s->height);\
+        assert((bx>>1) + 16*s->mb_x >= -16);\
+        assert((by>>1) + 16*s->mb_y >= -16);\
+        assert((bx>>1) + 16*s->mb_x <= s->width);\
+        assert((by>>1) + 16*s->mb_y <= s->height);\
 \
         hpel_put[0][fxy](s->me.scratchpad, (ref_y ) + (fx>>1) + (fy>>1)*(stride), stride, 16);\
         hpel_avg[0][bxy](s->me.scratchpad, (ref2_y) + (bx>>1) + (by>>1)*(stride), stride, 16);\
@@ -229,8 +247,14 @@ if((x) >= xmin && 4*(x) + (dx) <= 4*xmax && (y) >= ymin && 4*(y) + (dy) <= 4*yma
         int fxy= (fx&3) + 4*(fy&3);\
         int bxy= (bx&3) + 4*(by&3);\
 \
-        qpel_put[0][fxy](s->me.scratchpad, (ref_y ) + (fx>>2) + (fy>>2)*(stride), stride);\
-        qpel_avg[0][bxy](s->me.scratchpad, (ref2_y) + (bx>>2) + (by>>2)*(stride), stride);\
+        qpel_put[1][fxy](s->me.scratchpad               , (ref_y ) + (fx>>2) + (fy>>2)*(stride)               , stride);\
+        qpel_put[1][fxy](s->me.scratchpad + 8           , (ref_y ) + (fx>>2) + (fy>>2)*(stride) + 8           , stride);\
+        qpel_put[1][fxy](s->me.scratchpad     + 8*stride, (ref_y ) + (fx>>2) + (fy>>2)*(stride)     + 8*stride, stride);\
+        qpel_put[1][fxy](s->me.scratchpad + 8 + 8*stride, (ref_y ) + (fx>>2) + (fy>>2)*(stride) + 8 + 8*stride, stride);\
+        qpel_avg[1][bxy](s->me.scratchpad               , (ref2_y) + (bx>>2) + (by>>2)*(stride)               , stride);\
+        qpel_avg[1][bxy](s->me.scratchpad + 8           , (ref2_y) + (bx>>2) + (by>>2)*(stride) + 8           , stride);\
+        qpel_avg[1][bxy](s->me.scratchpad     + 8*stride, (ref2_y) + (bx>>2) + (by>>2)*(stride)     + 8*stride, stride);\
+        qpel_avg[1][bxy](s->me.scratchpad + 8 + 8*stride, (ref2_y) + (bx>>2) + (by>>2)*(stride) + 8 + 8*stride, stride);\
     }\
     d = cmp_func(s, s->me.scratchpad, src_y, stride);\
 }else\
@@ -369,7 +393,7 @@ void ff_init_me(MpegEncContext *s){
     }
 }
       
-static int pix_dev(UINT8 * pix, int line_size, int mean)
+static int pix_dev(uint8_t * pix, int line_size, int mean)
 {
     int s, i, j;
 
@@ -404,7 +428,7 @@ static int full_motion_search(MpegEncContext * s,
 {
     int x1, y1, x2, y2, xx, yy, x, y;
     int mx, my, dmin, d;
-    UINT8 *pix;
+    uint8_t *pix;
 
     xx = 16 * s->mb_x;
     yy = 16 * s->mb_y;
@@ -458,7 +482,7 @@ static int log_motion_search(MpegEncContext * s,
 {
     int x1, y1, x2, y2, xx, yy, x, y;
     int mx, my, dmin, d;
-    UINT8 *pix;
+    uint8_t *pix;
 
     xx = s->mb_x << 4;
     yy = s->mb_y << 4;
@@ -534,7 +558,7 @@ static int phods_motion_search(MpegEncContext * s,
 {
     int x1, y1, x2, y2, xx, yy, x, y, lastx, d;
     int mx, my, dminx, dminy;
-    UINT8 *pix;
+    uint8_t *pix;
 
     xx = s->mb_x << 4;
     yy = s->mb_y << 4;
@@ -639,7 +663,7 @@ static inline int sad_hpel_motion_search(MpegEncContext * s,
     uint32_t *score_map= s->me.score_map;
     const int penalty_factor= s->me.sub_penalty_factor;
     int mx, my, xx, yy, dminh;
-    UINT8 *pix, *ptr;
+    uint8_t *pix, *ptr;
     op_pixels_abs_func pix_abs_x2;
     op_pixels_abs_func pix_abs_y2;
     op_pixels_abs_func pix_abs_xy2;
@@ -773,18 +797,18 @@ static inline void set_p_mv_tables(MpegEncContext * s, int mx, int my, int mv4)
     }
 }
 
-static inline void get_limits(MpegEncContext *s, int *range, int *xmin, int *ymin, int *xmax, int *ymax, int f_code)
+/**
+ * get fullpel ME search limits.
+ * @param range the approximate search range for the old ME code, unused for EPZS and newer
+ */
+static inline void get_limits(MpegEncContext *s, int *range, int *xmin, int *ymin, int *xmax, int *ymax)
 {
-    *range = 8 * (1 << (f_code - 1));
-    /* XXX: temporary kludge to avoid overflow for msmpeg4 */
-    if (s->out_format == FMT_H263 && !s->h263_msmpeg4)
-	*range *= 2;
+    if(s->avctx->me_range) *range= s->avctx->me_range >> 1;
+    else                   *range= 16;
 
     if (s->unrestricted_mv) {
         *xmin = -16;
         *ymin = -16;
-        if (s->h263_plus)
-            *range *= 2;
         if(s->avctx->codec->id!=CODEC_ID_MPEG4){
             *xmax = s->mb_width*16;
             *ymax = s->mb_height*16;
@@ -798,6 +822,8 @@ static inline void get_limits(MpegEncContext *s, int *range, int *xmin, int *ymi
         *xmax = s->mb_width*16 - 16;
         *ymax = s->mb_height*16 - 16;
     }
+    
+    //FIXME try to limit x/y min/max if me_range is set
 }
 
 static inline int h263_mv4_search(MpegEncContext *s, int xmin, int ymin, int xmax, int ymax, int mx, int my, int shift)
@@ -946,7 +972,7 @@ static inline int h263_mv4_search(MpegEncContext *s, int xmin, int ymin, int xma
 void ff_estimate_p_frame_motion(MpegEncContext * s,
                                 int mb_x, int mb_y)
 {
-    UINT8 *pix, *ppix;
+    uint8_t *pix, *ppix;
     int sum, varc, vard, mx, my, range, dmin, xx, yy;
     int xmin, ymin, xmax, ymax;
     int rel_xmin, rel_ymin, rel_xmax, rel_ymax;
@@ -958,13 +984,13 @@ void ff_estimate_p_frame_motion(MpegEncContext * s,
     Picture * const pic= &s->current_picture;
     uint16_t * const mv_penalty= s->me.mv_penalty[s->f_code] + MAX_MV;
     
-    XINE_ASSERT(s->quarter_sample==0 || s->quarter_sample==1, "value out of range: %d", s->quarter_sample);
+    assert(s->quarter_sample==0 || s->quarter_sample==1);
 
     s->me.penalty_factor    = get_penalty_factor(s, s->avctx->me_cmp);
     s->me.sub_penalty_factor= get_penalty_factor(s, s->avctx->me_sub_cmp);
     s->me.mb_penalty_factor = get_penalty_factor(s, s->avctx->mb_cmp);
 
-    get_limits(s, &range, &xmin, &ymin, &xmax, &ymax, s->f_code);
+    get_limits(s, &range, &xmin, &ymin, &xmax, &ymax);
     rel_xmin= xmin - mb_x*16;
     rel_xmax= xmax - mb_x*16;
     rel_ymin= ymin - mb_y*16;
@@ -1129,12 +1155,11 @@ int ff_pre_estimate_p_frame_motion(MpegEncContext * s,
     const int mv_stride= s->mb_width + 2;
     const int xy= mb_x + 1 + (mb_y + 1)*mv_stride;
     
-    XINE_ASSERT((s->quarter_sample==0 || s->quarter_sample==1),
-		"value out of range: %d", s->quarter_sample);
+    assert(s->quarter_sample==0 || s->quarter_sample==1);
 
     s->me.pre_penalty_factor    = get_penalty_factor(s, s->avctx->me_pre_cmp);
 
-    get_limits(s, &range, &xmin, &ymin, &xmax, &ymax, s->f_code);
+    get_limits(s, &range, &xmin, &ymin, &xmax, &ymax);
     rel_xmin= xmin - mb_x*16;
     rel_xmax= xmax - mb_x*16;
     rel_ymin= ymin - mb_y*16;
@@ -1176,7 +1201,7 @@ int ff_pre_estimate_p_frame_motion(MpegEncContext * s,
     return dmin;
 }
 
-int ff_estimate_motion_b(MpegEncContext * s,
+static int ff_estimate_motion_b(MpegEncContext * s,
                        int mb_x, int mb_y, int16_t (*mv_table)[2], Picture *picture, int f_code)
 {
     int mx, my, range, dmin;
@@ -1195,7 +1220,7 @@ int ff_estimate_motion_b(MpegEncContext * s,
     s->me.sub_penalty_factor= get_penalty_factor(s, s->avctx->me_sub_cmp);
     s->me.mb_penalty_factor = get_penalty_factor(s, s->avctx->mb_cmp);
 
-    get_limits(s, &range, &xmin, &ymin, &xmax, &ymax, f_code);
+    get_limits(s, &range, &xmin, &ymin, &xmax, &ymax);
     rel_xmin= xmin - mb_x*16;
     rel_xmax= xmax - mb_x*16;
     rel_ymin= ymin - mb_y*16;
@@ -1285,7 +1310,7 @@ static inline int check_bidir_mv(MpegEncContext * s,
     //FIXME optimize?
     //FIXME move into template?
     //FIXME better f_code prediction (max mv & distance)
-    UINT16 *mv_penalty= s->me.mv_penalty[s->f_code] + MAX_MV; // f_code of the prev frame
+    uint16_t *mv_penalty= s->me.mv_penalty[s->f_code] + MAX_MV; // f_code of the prev frame
     uint8_t *dest_y = s->me.scratchpad;
     uint8_t *ptr;
     int dxy;
@@ -1296,8 +1321,8 @@ static inline int check_bidir_mv(MpegEncContext * s,
         dxy = ((motion_fy & 3) << 2) | (motion_fx & 3);
         src_x = mb_x * 16 + (motion_fx >> 2);
         src_y = mb_y * 16 + (motion_fy >> 2);
-        XINE_ASSERT(src_x >=-16 && src_x<=s->width, "value (%d) is not within range %d to %d", src_x, -16, s->width);
-        XINE_ASSERT(src_y >=-16 && src_y<=s->height, "value (%d) is not within range %d to %d", src_y, -16, s->height);
+        assert(src_x >=-16 && src_x<=s->width);
+        assert(src_y >=-16 && src_y<=s->height);
 
         ptr = s->last_picture.data[0] + (src_y * s->linesize) + src_x;
         s->dsp.put_qpel_pixels_tab[0][dxy](dest_y    , ptr    , s->linesize);
@@ -1305,8 +1330,8 @@ static inline int check_bidir_mv(MpegEncContext * s,
         dxy = ((motion_by & 3) << 2) | (motion_bx & 3);
         src_x = mb_x * 16 + (motion_bx >> 2);
         src_y = mb_y * 16 + (motion_by >> 2);
-        XINE_ASSERT(src_x >=-16 && src_x<=s->width, "value (%d) is not within range %d to %d", src_x, -16, s->width);
-        XINE_ASSERT(src_y >=-16 && src_y<=s->height, "value (%d) is not within range %d to %d", src_y, -16, s->height);
+        assert(src_x >=-16 && src_x<=s->width);
+        assert(src_y >=-16 && src_y<=s->height);
     
         ptr = s->next_picture.data[0] + (src_y * s->linesize) + src_x;
         s->dsp.avg_qpel_pixels_tab[0][dxy](dest_y    , ptr    , s->linesize);
@@ -1314,8 +1339,8 @@ static inline int check_bidir_mv(MpegEncContext * s,
         dxy = ((motion_fy & 1) << 1) | (motion_fx & 1);
         src_x = mb_x * 16 + (motion_fx >> 1);
         src_y = mb_y * 16 + (motion_fy >> 1);
-        XINE_ASSERT(src_x >=-16 && src_x<=s->width, "value (%d) is not within range %d to %d", src_x, -16, s->width);
-        XINE_ASSERT(src_y >=-16 && src_y<=s->height, "value (%d) is not within range %d to %d", src_y, -16, s->height);
+        assert(src_x >=-16 && src_x<=s->width);
+        assert(src_y >=-16 && src_y<=s->height);
 
         ptr = s->last_picture.data[0] + (src_y * s->linesize) + src_x;
         s->dsp.put_pixels_tab[0][dxy](dest_y    , ptr    , s->linesize, 16);
@@ -1323,8 +1348,8 @@ static inline int check_bidir_mv(MpegEncContext * s,
         dxy = ((motion_by & 1) << 1) | (motion_bx & 1);
         src_x = mb_x * 16 + (motion_bx >> 1);
         src_y = mb_y * 16 + (motion_by >> 1);
-        XINE_ASSERT(src_x >=-16 && src_x<=s->width, "value (%d) is not within range %d to %d", src_x, -16, s->width);
-        XINE_ASSERT(src_y >=-16 && src_y<=s->height, "value (%d) is not within range %d to %d", src_y, -16, s->height);
+        assert(src_x >=-16 && src_x<=s->width);
+        assert(src_y >=-16 && src_y<=s->height);
     
         ptr = s->next_picture.data[0] + (src_y * s->linesize) + src_x;
         s->dsp.avg_pixels_tab[0][dxy](dest_y    , ptr    , s->linesize, 16);
@@ -1404,24 +1429,22 @@ static inline int direct_search(MpegEncContext * s,
 
         max= FFMAX(s->me.direct_basis_mv[i][0], s->me.direct_basis_mv[i][0] - s->me.co_located_mv[i][0])>>shift;
         min= FFMIN(s->me.direct_basis_mv[i][0], s->me.direct_basis_mv[i][0] - s->me.co_located_mv[i][0])>>shift;
-        max+= (2*mb_x + (i& 1))*8 - 1; // +-1 is for the simpler rounding
-        min+= (2*mb_x + (i& 1))*8 + 1;
+        max+= (2*mb_x + (i& 1))*8 + 1; // +-1 is for the simpler rounding
+        min+= (2*mb_x + (i& 1))*8 - 1;
         xmax= FFMIN(xmax, s->width - max);
         xmin= FFMAX(xmin, - 16     - min);
 
         max= FFMAX(s->me.direct_basis_mv[i][1], s->me.direct_basis_mv[i][1] - s->me.co_located_mv[i][1])>>shift;
         min= FFMIN(s->me.direct_basis_mv[i][1], s->me.direct_basis_mv[i][1] - s->me.co_located_mv[i][1])>>shift;
-        max+= (2*mb_y + (i>>1))*8 - 1; // +-1 is for the simpler rounding
-        min+= (2*mb_y + (i>>1))*8 + 1;
+        max+= (2*mb_y + (i>>1))*8 + 1; // +-1 is for the simpler rounding
+        min+= (2*mb_y + (i>>1))*8 - 1;
         ymax= FFMIN(ymax, s->height - max);
         ymin= FFMAX(ymin, - 16      - min);
         
         if(s->mv_type == MV_TYPE_16X16) break;
     }
     
-    XINE_ASSERT(xmax <= 15 && ymax <= 15 && xmin >= -16 && ymin >= -16, 
-		"xmax (%d) > 15\nymax (%d) >15\nxmin (%d) < -16\nymin (%d) < -16",
-		xmax, ymax, xmin, ymin);
+    assert(xmax <= 15 && ymax <= 15 && xmin >= -16 && ymin >= -16);
     
     if(xmax < 0 || xmin >0 || ymax < 0 || ymin > 0){
         s->b_direct_mv_table[mot_xy][0]= 0;
@@ -1484,12 +1507,13 @@ void ff_estimate_b_frame_motion(MpegEncContext * s,
     fbmin= bidir_refine(s, mb_x, mb_y) + penalty_factor;
 //printf("%d %d %d %d\n", dmin, fmin, bmin, fbmin);
     {
-        int score= dmin;
-        type=MB_TYPE_DIRECT;
+        int score= fmin;
+        type = MB_TYPE_FORWARD;
         
-        if(fmin<score){
-            score=fmin;
-            type= MB_TYPE_FORWARD; 
+        // RAL: No MB_TYPE_DIRECT in MPEG-1 video (only MPEG-4)
+        if (s->codec_id != CODEC_ID_MPEG1VIDEO && dmin <= score){
+            score = dmin;
+            type = MB_TYPE_DIRECT;
         }
         if(bmin<score){
             score=bmin;
@@ -1519,7 +1543,7 @@ int ff_get_best_fcode(MpegEncContext * s, int16_t (*mv_table)[2], int type)
     if(s->me_method>=ME_EPZS){
         int score[8];
         int i, y;
-        UINT8 * fcode_tab= s->fcode_tab;
+        uint8_t * fcode_tab= s->fcode_tab;
         int best_fcode=-1;
         int best_score=-10000000;
 
@@ -1567,10 +1591,14 @@ int ff_get_best_fcode(MpegEncContext * s, int16_t (*mv_table)[2], int type)
 void ff_fix_long_p_mvs(MpegEncContext * s)
 {
     const int f_code= s->f_code;
-    int y;
-    UINT8 * fcode_tab= s->fcode_tab;
-//int clip=0;
-//int noclip=0;
+    int y, range;
+
+    range = (((s->codec_id == CODEC_ID_MPEG1VIDEO) ? 8 : 16) << f_code);
+    
+    if(s->msmpeg4_version) range= 16;
+    
+    if(s->avctx->me_range && range > s->avctx->me_range) range= s->avctx->me_range;
+    
     /* clip / convert to intra 16x16 type MVs */
     for(y=0; y<s->mb_height; y++){
         int x;
@@ -1578,10 +1606,8 @@ void ff_fix_long_p_mvs(MpegEncContext * s)
         int i= y*s->mb_width;
         for(x=0; x<s->mb_width; x++){
             if(s->mb_type[i]&MB_TYPE_INTER){
-                if(   fcode_tab[s->p_mv_table[xy][0] + MAX_MV] > f_code
-                   || fcode_tab[s->p_mv_table[xy][0] + MAX_MV] == 0
-                   || fcode_tab[s->p_mv_table[xy][1] + MAX_MV] > f_code
-                   || fcode_tab[s->p_mv_table[xy][1] + MAX_MV] == 0 ){
+                if(   s->p_mv_table[xy][0] >=range || s->p_mv_table[xy][0] <-range
+                   || s->p_mv_table[xy][1] >=range || s->p_mv_table[xy][1] <-range){
                     s->mb_type[i] &= ~MB_TYPE_INTER;
                     s->mb_type[i] |= MB_TYPE_INTRA;
                     s->p_mv_table[xy][0] = 0;
@@ -1613,10 +1639,8 @@ void ff_fix_long_p_mvs(MpegEncContext * s)
                         int mx= s->motion_val[ xy + off ][0];
                         int my= s->motion_val[ xy + off ][1];
 
-                        if(   fcode_tab[mx + MAX_MV] > f_code
-                           || fcode_tab[mx + MAX_MV] == 0
-                           || fcode_tab[my + MAX_MV] > f_code
-                           || fcode_tab[my + MAX_MV] == 0 ){
+                        if(   mx >=range || mx <-range
+                           || my >=range || my <-range){
                             s->mb_type[i] &= ~MB_TYPE_INTER4V;
                             s->mb_type[i] |= MB_TYPE_INTRA;
                         }
@@ -1632,7 +1656,11 @@ void ff_fix_long_p_mvs(MpegEncContext * s)
 void ff_fix_long_b_mvs(MpegEncContext * s, int16_t (*mv_table)[2], int f_code, int type)
 {
     int y;
-    UINT8 * fcode_tab= s->fcode_tab;
+
+    // RAL: 8 in MPEG-1, 16 in MPEG-4
+    int range = (((s->codec_id == CODEC_ID_MPEG1VIDEO) ? 8 : 16) << f_code);
+    
+    if(s->avctx->me_range && range > s->avctx->me_range) range= s->avctx->me_range;
 
     /* clip / convert to intra 16x16 type MVs */
     for(y=0; y<s->mb_height; y++){
@@ -1640,15 +1668,18 @@ void ff_fix_long_b_mvs(MpegEncContext * s, int16_t (*mv_table)[2], int f_code, i
         int xy= (y+1)* (s->mb_width+2)+1;
         int i= y*s->mb_width;
         for(x=0; x<s->mb_width; x++){
-            if(   fcode_tab[mv_table[xy][0] + MAX_MV] > f_code
-               || fcode_tab[mv_table[xy][0] + MAX_MV] == 0){
-                if(mv_table[xy][0]>0) mv_table[xy][0]=  (16<<f_code)-1;
-                else                  mv_table[xy][0]= -(16<<f_code);
-            }
-            if(   fcode_tab[mv_table[xy][1] + MAX_MV] > f_code
-               || fcode_tab[mv_table[xy][1] + MAX_MV] == 0){
-                if(mv_table[xy][1]>0) mv_table[xy][1]=  (16<<f_code)-1;
-                else                  mv_table[xy][1]= -(16<<f_code);
+            if (s->mb_type[i] & type){    // RAL: "type" test added...
+                if(   mv_table[xy][0] >=range || mv_table[xy][0] <-range
+                   || mv_table[xy][1] >=range || mv_table[xy][1] <-range){
+
+                    if(s->codec_id == CODEC_ID_MPEG1VIDEO && 0){
+                    }else{
+                        if     (mv_table[xy][0] > range-1) mv_table[xy][0]=  range-1;
+                        else if(mv_table[xy][0] < -range ) mv_table[xy][0]= -range;
+                        if     (mv_table[xy][1] > range-1) mv_table[xy][1]=  range-1;
+                        else if(mv_table[xy][1] < -range ) mv_table[xy][1]= -range;
+                    }
+                }
             }
             xy++;
             i++;

@@ -16,10 +16,15 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
+ 
+/**
+ * @file utils.c
+ * utils.
+ */
+ 
 #include "avcodec.h"
 #include "dsputil.h"
 #include "mpegvideo.h"
-#include "xineutils.h"
 
 void *av_mallocz(unsigned int size)
 {
@@ -47,7 +52,7 @@ char *av_strdup(const char *s)
 /**
  * realloc which does nothing if the block is large enough
  */
-void *av_fast_realloc(void *ptr, int *size, int min_size)
+void *av_fast_realloc(void *ptr, unsigned int *size, unsigned int min_size)
 {
     if(min_size < *size) 
         return ptr;
@@ -64,7 +69,7 @@ static char*** array_static = NULL;
 static const unsigned int grow_static = 64; // ^2
 void *__av_mallocz_static(void** location, unsigned int size)
 {
-    int l = (last_static + grow_static) & ~(grow_static - 1);
+    unsigned int l = (last_static + grow_static) & ~(grow_static - 1);
     void *ptr = av_mallocz(size);
     if (!ptr)
 	return NULL;
@@ -124,10 +129,10 @@ int avcodec_default_get_buffer(AVCodecContext *s, AVFrame *pic){
     const int width = s->width;
     const int height= s->height;
     DefaultPicOpaque *opaque;
-/*    
-    XINE_ASSERT(pic->data[0]==NULL, "pic->data[0] != NULL");
-    XINE_ASSERT((pic->type==0) || (pic->type==FF_TYPE_INTERNAL), "pic->type incorrect: %d", pic->type);
-*/
+    
+    assert(pic->data[0]==NULL);
+    assert(pic->type==0 || pic->type==FF_TYPE_INTERNAL);
+
     if(pic->opaque){
         opaque= (DefaultPicOpaque *)pic->opaque;
         for(i=0; i<3; i++)
@@ -187,9 +192,9 @@ int avcodec_default_get_buffer(AVCodecContext *s, AVFrame *pic){
             memset(pic->base[i], 128, pic->linesize[i]*h>>v_shift);
         
             if(s->flags&CODEC_FLAG_EMU_EDGE)
-                pic->data[i] = pic->base[i] + 16; //FIXME 16
+                pic->data[i] = pic->base[i];
             else
-                pic->data[i] = pic->base[i] + (pic->linesize[i]*EDGE_WIDTH>>v_shift) + (EDGE_WIDTH>>h_shift) + 16; //FIXME 16
+                pic->data[i] = pic->base[i] + (pic->linesize[i]*EDGE_WIDTH>>v_shift) + (EDGE_WIDTH>>h_shift);
             
             opaque->data[i]= pic->data[i];
         }
@@ -203,7 +208,7 @@ int avcodec_default_get_buffer(AVCodecContext *s, AVFrame *pic){
 void avcodec_default_release_buffer(AVCodecContext *s, AVFrame *pic){
     int i;
     
-    XINE_ASSERT(pic->type==FF_BUFFER_TYPE_INTERNAL, "pic->type does not equal FF_BUFFER_TYPE_INTERNAL: %d", pic->type);
+    assert(pic->type==FF_BUFFER_TYPE_INTERNAL);
     
     for(i=0; i<3; i++)
         pic->data[i]=NULL;
@@ -231,13 +236,17 @@ void avcodec_get_context_defaults(AVCodecContext *s){
     s->error_concealment= 3;
     s->error_resilience= 1;
     s->workaround_bugs= FF_BUG_AUTODETECT;
-    s->frame_rate = 25 * FRAME_RATE_BASE;
+    s->frame_rate_base= 1;
+    s->frame_rate = 25;
     s->gop_size= 50;
     s->me_method= ME_EPZS;
     s->get_buffer= avcodec_default_get_buffer;
     s->release_buffer= avcodec_default_release_buffer;
     s->get_format= avcodec_default_get_format;
     s->me_subpel_quality=8;
+    
+    s->intra_quant_bias= FF_DEFAULT_QUANT_BIAS;
+    s->inter_quant_bias= FF_DEFAULT_QUANT_BIAS;
 }
 
 /**
@@ -286,7 +295,7 @@ int avcodec_open(AVCodecContext *avctx, AVCodec *codec)
     return 0;
 }
 
-int avcodec_encode_audio(AVCodecContext *avctx, UINT8 *buf, int buf_size, 
+int avcodec_encode_audio(AVCodecContext *avctx, uint8_t *buf, int buf_size, 
                          const short *samples)
 {
     int ret;
@@ -296,7 +305,7 @@ int avcodec_encode_audio(AVCodecContext *avctx, UINT8 *buf, int buf_size,
     return ret;
 }
 
-int avcodec_encode_video(AVCodecContext *avctx, UINT8 *buf, int buf_size, 
+int avcodec_encode_video(AVCodecContext *avctx, uint8_t *buf, int buf_size, 
                          const AVFrame *pict)
 {
     int ret;
@@ -314,7 +323,7 @@ int avcodec_encode_video(AVCodecContext *avctx, UINT8 *buf, int buf_size,
    zero. Otherwise, it is non zero */
 int avcodec_decode_video(AVCodecContext *avctx, AVFrame *picture, 
                          int *got_picture_ptr,
-                         UINT8 *buf, int buf_size)
+                         uint8_t *buf, int buf_size)
 {
     int ret;
     
@@ -332,9 +341,9 @@ int avcodec_decode_video(AVCodecContext *avctx, AVFrame *picture,
    *number of bytes used. If no frame could be decompressed,
    *frame_size_ptr is zero. Otherwise, it is the decompressed frame
    *size in BYTES. */
-int avcodec_decode_audio(AVCodecContext *avctx, INT16 *samples, 
+int avcodec_decode_audio(AVCodecContext *avctx, int16_t *samples, 
                          int *frame_size_ptr,
-                         UINT8 *buf, int buf_size)
+                         uint8_t *buf, int buf_size)
 {
     int ret;
 
@@ -458,7 +467,7 @@ void avcodec_string(char *buf, int buf_size, AVCodecContext *enc, int encode)
             snprintf(buf + strlen(buf), buf_size - strlen(buf),
                      ", %dx%d, %0.2f fps",
                      enc->width, enc->height, 
-                     (float)enc->frame_rate / FRAME_RATE_BASE);
+                     (float)enc->frame_rate / enc->frame_rate_base);
         }
         if (encode) {
             snprintf(buf + strlen(buf), buf_size - strlen(buf),
@@ -575,7 +584,7 @@ void avcodec_flush_buffers(AVCodecContext *avctx)
                                         || s->picture[i].type == FF_BUFFER_TYPE_USER))
             avctx->release_buffer(avctx, (AVFrame*)&s->picture[i]);
 	}
-	s->last_picture.data[0] = s->next_picture.data[0] = NULL;
+	s->last_picture_ptr = s->next_picture_ptr = NULL;
         break;
     default:
         //FIXME
@@ -583,31 +592,61 @@ void avcodec_flush_buffers(AVCodecContext *avctx)
     }
 }
 
-static int raw_encode_init(AVCodecContext *s)
-{
-    return 0;
+int av_reduce(int *dst_nom, int *dst_den, int64_t nom, int64_t den, int64_t max){
+    int exact=1, sign=0;
+    int64_t gcd, larger;
+
+    assert(den != 0);
+
+    if(den < 0){
+        den= -den;
+        nom= -nom;
+    }
+    
+    if(nom < 0){
+        nom= -nom;
+        sign= 1;
+    }
+    
+    for(;;){ //note is executed 1 or 2 times 
+        gcd = ff_gcd(nom, den);
+        nom /= gcd;
+        den /= gcd;
+    
+        larger= FFMAX(nom, den);
+    
+        if(larger > max){
+            int64_t div= (larger + max - 1) / max;
+            nom =  (nom + div/2)/div;
+            den =  (den + div/2)/div;
+            exact=0;
+        }else 
+            break;
+    }
+    
+    if(sign) nom= -nom;
+    
+    *dst_nom = nom;
+    *dst_den = den;
+    
+    return exact;
 }
 
-static int raw_decode_frame(AVCodecContext *avctx,
-			    void *data, int *data_size,
-			    UINT8 *buf, int buf_size)
-{
-    return -1;
-}
+int64_t av_rescale(int64_t a, int b, int c){
+    uint64_t h, l;
+    assert(c > 0);
+    assert(b >=0);
+    
+    if(a<0) return -av_rescale(-a, b, c);
+    
+    h= a>>32;
+    if(h==0) return a*b/c;
+    
+    l= a&0xFFFFFFFF;
+    l *= b;
+    h *= b;
 
-static int raw_encode_frame(AVCodecContext *avctx,
-			    unsigned char *frame, int buf_size, void *data)
-{
-    return -1;
-}
+    l += (h%c)<<32;
 
-AVCodec rawvideo_codec = {
-    "rawvideo",
-    CODEC_TYPE_VIDEO,
-    CODEC_ID_RAWVIDEO,
-    0,
-    raw_encode_init,
-    raw_encode_frame,
-    NULL,
-    raw_decode_frame,
-};
+    return ((h/c)<<32) + l/c;
+}

@@ -16,6 +16,7 @@ libavcodec_ppc_src =  dsputil_altivec.c \
 		      dsputil_ppc.c \
 		      fft_altivec.c \
 		      idct_altivec.c \
+		      gmc_altivec.c \
 		      mpegvideo_altivec.c \
 		      mpegvideo_ppc.c
 libavcodec_ppc_dummy = libavcodec_ppc_dummy.c
@@ -29,7 +30,7 @@ endif
 
 libavcodec_ppc_la_SOURCES = $(ppc_modules) $(libavcodec_ppc_dummy)
 
-noinst_HEADERS = dsputil_altivec.h
+noinst_HEADERS = dsputil_altivec.h dsputil_ppc.h
 
 .s.lo:
 	$(ASCOMPILE) -o $@ `test -f $< || echo '$(srcdir)/'`$<

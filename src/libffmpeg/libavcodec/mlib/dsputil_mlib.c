@@ -19,7 +19,6 @@
 
 #include "../dsputil.h"
 #include "../mpegvideo.h"
-#include "xineutils.h"
 
 #include <mlib_types.h>
 #include <mlib_status.h>
@@ -32,7 +31,7 @@
 static void put_pixels16_mlib (uint8_t * dest, const uint8_t * ref,
 			       int stride, int height)
 {
-    XINE_ASSERT((height == 16 || height == 8),"value 'height' is not equal to 8 or 16: %d", height);
+    assert(height == 16 || height == 8);
     if (height == 16)
 	mlib_VideoCopyRef_U8_U8_16x16(dest, (uint8_t *)ref, stride);
     else
@@ -42,7 +41,7 @@ static void put_pixels16_mlib (uint8_t * dest, const uint8_t * ref,
 static void put_pixels16_x2_mlib (uint8_t * dest, const uint8_t * ref,
 				  int stride, int height)
 {
-    XINE_ASSERT((height == 16 || height == 8),"value 'height' is not equal to 8 or 16: %d", height);
+    assert(height == 16 || height == 8);
     if (height == 16)
 	mlib_VideoInterpX_U8_U8_16x16(dest, (uint8_t *)ref, stride, stride);
     else
@@ -52,7 +51,7 @@ static void put_pixels16_x2_mlib (uint8_t * dest, const uint8_t * ref,
 static void put_pixels16_y2_mlib (uint8_t * dest, const uint8_t * ref,
 				  int stride, int height)
 {
-    XINE_ASSERT((height == 16 || height == 8),"value 'height' is not equal to 8 or 16: %d", height);
+    assert(height == 16 || height == 8);
     if (height == 16)
 	mlib_VideoInterpY_U8_U8_16x16(dest, (uint8_t *)ref, stride, stride);
     else
@@ -62,7 +61,7 @@ static void put_pixels16_y2_mlib (uint8_t * dest, const uint8_t * ref,
 static void put_pixels16_xy2_mlib(uint8_t * dest, const uint8_t * ref,
 				  int stride, int height)
 {
-    XINE_ASSERT((height == 16 || height == 8),"value 'height' is not equal to 8 or 16: %d", height);
+    assert(height == 16 || height == 8);
     if (height == 16) 
 	mlib_VideoInterpXY_U8_U8_16x16(dest, (uint8_t *)ref, stride, stride);
     else
@@ -75,7 +74,7 @@ static void put_pixels16_xy2_mlib(uint8_t * dest, const uint8_t * ref,
 static void put_pixels8_mlib (uint8_t * dest, const uint8_t * ref,
 			      int stride, int height)
 {
-    XINE_ASSERT((height == 16 || height == 8),"value 'height' is not equal to 8 or 16: %d", height);
+    assert(height == 16 || height == 8);
     if (height == 16)
 	mlib_VideoCopyRef_U8_U8_8x16(dest, (uint8_t *)ref, stride);
     else
@@ -85,7 +84,7 @@ static void put_pixels8_mlib (uint8_t * dest, const uint8_t * ref,
 static void put_pixels8_x2_mlib (uint8_t * dest, const uint8_t * ref,
 				 int stride, int height)
 {
-    XINE_ASSERT((height == 16 || height == 8),"value 'height' is not equal to 8 or 16: %d", height);
+    assert(height == 16 || height == 8);
     if (height == 16)
 	mlib_VideoInterpX_U8_U8_8x16(dest, (uint8_t *)ref, stride, stride);
     else
@@ -95,7 +94,7 @@ static void put_pixels8_x2_mlib (uint8_t * dest, const uint8_t * ref,
 static void put_pixels8_y2_mlib (uint8_t * dest, const uint8_t * ref,
 				 int stride, int height)
 {
-    XINE_ASSERT((height == 16 || height == 8),"value 'height' is not equal to 8 or 16: %d", height);
+    assert(height == 16 || height == 8);
     if (height == 16)
 	mlib_VideoInterpY_U8_U8_8x16(dest, (uint8_t *)ref, stride, stride);
     else
@@ -105,7 +104,7 @@ static void put_pixels8_y2_mlib (uint8_t * dest, const uint8_t * ref,
 static void put_pixels8_xy2_mlib(uint8_t * dest, const uint8_t * ref,
 				 int stride, int height)
 {
-    XINE_ASSERT((height == 16 || height == 8),"value 'height' is not equal to 8 or 16: %d", height);
+    assert(height == 16 || height == 8);
     if (height == 16) 
 	mlib_VideoInterpXY_U8_U8_8x16(dest, (uint8_t *)ref, stride, stride);
     else
@@ -118,7 +117,7 @@ static void put_pixels8_xy2_mlib(uint8_t * dest, const uint8_t * ref,
 static void avg_pixels16_mlib (uint8_t * dest, const uint8_t * ref,
 			       int stride, int height)
 {
-    XINE_ASSERT((height == 16 || height == 8),"value 'height' is not equal to 8 or 16: %d", height);
+    assert(height == 16 || height == 8);
     if (height == 16)
 	mlib_VideoCopyRefAve_U8_U8_16x16(dest, (uint8_t *)ref, stride);
     else
@@ -128,7 +127,7 @@ static void avg_pixels16_mlib (uint8_t * dest, const uint8_t * ref,
 static void avg_pixels16_x2_mlib (uint8_t * dest, const uint8_t * ref,
 				  int stride, int height)
 {
-    XINE_ASSERT((height == 16 || height == 8),"value 'height' is not equal to 8 or 16: %d", height);
+    assert(height == 16 || height == 8);
     if (height == 16)
 	mlib_VideoInterpAveX_U8_U8_16x16(dest, (uint8_t *)ref, stride, stride);
     else
@@ -138,7 +137,7 @@ static void avg_pixels16_x2_mlib (uint8_t * dest, const uint8_t * ref,
 static void avg_pixels16_y2_mlib (uint8_t * dest, const uint8_t * ref,
 				  int stride, int height)
 {
-    XINE_ASSERT((height == 16 || height == 8),"value 'height' is not equal to 8 or 16: %d", height);
+    assert(height == 16 || height == 8);
     if (height == 16)
 	mlib_VideoInterpAveY_U8_U8_16x16(dest, (uint8_t *)ref, stride, stride);
     else
@@ -148,7 +147,7 @@ static void avg_pixels16_y2_mlib (uint8_t * dest, const uint8_t * ref,
 static void avg_pixels16_xy2_mlib (uint8_t * dest, const uint8_t * ref,
 				   int stride, int height)
 {
-    XINE_ASSERT((height == 16 || height == 8),"value 'height' is not equal to 8 or 16: %d", height);
+    assert(height == 16 || height == 8);
     if (height == 16)
 	mlib_VideoInterpAveXY_U8_U8_16x16(dest, (uint8_t *)ref, stride, stride);
     else
@@ -161,7 +160,7 @@ static void avg_pixels16_xy2_mlib (uint8_t * dest, const uint8_t * ref,
 static void avg_pixels8_mlib (uint8_t * dest, const uint8_t * ref,
 			      int stride, int height)
 {
-    XINE_ASSERT((height == 16 || height == 8),"value 'height' is not equal to 8 or 16: %d", height);
+    assert(height == 16 || height == 8);
     if (height == 16)
 	mlib_VideoCopyRefAve_U8_U8_8x16(dest, (uint8_t *)ref, stride);
     else
@@ -171,7 +170,7 @@ static void avg_pixels8_mlib (uint8_t * dest, const uint8_t * ref,
 static void avg_pixels8_x2_mlib (uint8_t * dest, const uint8_t * ref,
 				 int stride, int height)
 {
-    XINE_ASSERT((height == 16 || height == 8),"value 'height' is not equal to 8 or 16: %d", height);
+    assert(height == 16 || height == 8);
     if (height == 16)
 	mlib_VideoInterpAveX_U8_U8_8x16(dest, (uint8_t *)ref, stride, stride);
     else
@@ -181,7 +180,7 @@ static void avg_pixels8_x2_mlib (uint8_t * dest, const uint8_t * ref,
 static void avg_pixels8_y2_mlib (uint8_t * dest, const uint8_t * ref,
 				 int stride, int height)
 {
-    XINE_ASSERT((height == 16 || height == 8),"value 'height' is not equal to 8 or 16: %d", height);
+    assert(height == 16 || height == 8);
     if (height == 16)
 	mlib_VideoInterpAveY_U8_U8_8x16(dest, (uint8_t *)ref, stride, stride);
     else
@@ -191,7 +190,7 @@ static void avg_pixels8_y2_mlib (uint8_t * dest, const uint8_t * ref,
 static void avg_pixels8_xy2_mlib (uint8_t * dest, const uint8_t * ref,
 				  int stride, int height)
 {
-    XINE_ASSERT((height == 16 || height == 8),"value 'height' is not equal to 8 or 16: %d", height);
+    assert(height == 16 || height == 8);
     if (height == 16)
 	mlib_VideoInterpAveXY_U8_U8_8x16(dest, (uint8_t *)ref, stride, stride);
     else
@@ -199,10 +198,10 @@ static void avg_pixels8_xy2_mlib (uint8_t * dest, const uint8_t * ref,
 }
 
 
-static void (*put_pixels_clamped)(const DCTELEM *block, UINT8 *pixels, int line_size);
+static void (*put_pixels_clamped)(const DCTELEM *block, uint8_t *pixels, int line_size);
 
 
-static void add_pixels_clamped_mlib(const DCTELEM *block, UINT8 *pixels, int line_size)
+static void add_pixels_clamped_mlib(const DCTELEM *block, uint8_t *pixels, int line_size)
 {
     mlib_VideoAddBlock_U8_S16(pixels, (mlib_s16 *)block, line_size);
 }
@@ -210,13 +209,13 @@ static void add_pixels_clamped_mlib(const DCTELEM *block, UINT8 *pixels, int lin
 
 /* XXX: those functions should be suppressed ASAP when all IDCTs are
    converted */
-static void ff_idct_put_mlib(UINT8 *dest, int line_size, DCTELEM *data)
+static void ff_idct_put_mlib(uint8_t *dest, int line_size, DCTELEM *data)
 {
     mlib_VideoIDCT8x8_S16_S16 (data, data);
     put_pixels_clamped(data, dest, line_size);
 }
 
-static void ff_idct_add_mlib(UINT8 *dest, int line_size, DCTELEM *data)
+static void ff_idct_add_mlib(uint8_t *dest, int line_size, DCTELEM *data)
 {
     mlib_VideoIDCT8x8_S16_S16 (data, data);
     mlib_VideoAddBlock_U8_S16(dest, (mlib_s16 *)data, line_size);

@@ -67,19 +67,19 @@ typedef struct HYuvContext{
     DSPContext dsp; 
 }HYuvContext;
 
-static unsigned char classic_shift_luma[] = {
+static const unsigned char classic_shift_luma[] = {
   34,36,35,69,135,232,9,16,10,24,11,23,12,16,13,10,14,8,15,8,
   16,8,17,20,16,10,207,206,205,236,11,8,10,21,9,23,8,8,199,70,
   69,68, 0
 };
 
-static unsigned char classic_shift_chroma[] = {
+static const unsigned char classic_shift_chroma[] = {
   66,36,37,38,39,40,41,75,76,77,110,239,144,81,82,83,84,85,118,183,
   56,57,88,89,56,89,154,57,58,57,26,141,57,56,58,57,58,57,184,119,
   214,245,116,83,82,49,80,79,78,77,44,75,41,40,39,38,37,36,34, 0
 };
 
-static unsigned char classic_add_luma[256] = {
+static const unsigned char classic_add_luma[256] = {
     3,  9,  5, 12, 10, 35, 32, 29, 27, 50, 48, 45, 44, 41, 39, 37,
    73, 70, 68, 65, 64, 61, 58, 56, 53, 50, 49, 46, 44, 41, 38, 36,
    68, 65, 63, 61, 58, 55, 53, 51, 48, 46, 45, 43, 41, 39, 38, 36,
@@ -98,7 +98,7 @@ static unsigned char classic_add_luma[256] = {
    46, 47, 49, 51, 26, 28, 30, 31, 33, 34, 18, 19, 11, 13,  7,  8,
 };
 
-static unsigned char classic_add_chroma[256] = {
+static const unsigned char classic_add_chroma[256] = {
     3,  1,  2,  2,  2,  2,  3,  3,  7,  5,  7,  5,  8,  6, 11,  9,
     7, 13, 11, 10,  9,  8,  7,  5,  9,  7,  6,  4,  7,  5,  8,  7,
    11,  8, 13, 11, 19, 15, 22, 23, 20, 33, 32, 28, 27, 29, 51, 77,
@@ -383,19 +383,16 @@ static int decode_init(AVCodecContext *avctx)
     s->avctx= avctx;
     s->flags= avctx->flags;
         
-    dsputil_init(&s->dsp, avctx->dsp_mask);
+    dsputil_init(&s->dsp, avctx);
     
     width= s->width= avctx->width;
     height= s->height= avctx->height;
     avctx->coded_frame= &s->picture;
 
-    s->bgr32=1;
-    XINE_ASSERT(width,"value 'width' is not defined");
-    XINE_ASSERT(height, "value 'height' is not defined");
-
-    //if(avctx->extradata)
-    //  printf("extradata:%X, extradata_size:%d\n", *(uint32_t*)avctx->extradata, avctx->extradata_size);
-
+s->bgr32=1;
+    assert(width && height);
+//if(avctx->extradata)
+//  printf("extradata:%X, extradata_size:%d\n", *(uint32_t*)avctx->extradata, avctx->extradata_size);
     if(avctx->extradata_size){
         if((avctx->bits_per_sample&7) && avctx->bits_per_sample != 12)
             s->version=1; // do such files exist at all?
@@ -467,7 +464,7 @@ static int decode_init(AVCodecContext *avctx)
         }
         break;
     default:
-        XINE_ASSERT(0,"We do not have a default action.");
+        assert(0);
     }
     
 //    printf("pred:%d bpp:%d hbpp:%d il:%d\n", s->predictor, s->bitstream_bpp, avctx->bits_per_sample, s->interlaced);
@@ -507,13 +504,12 @@ static int encode_init(AVCodecContext *avctx)
     s->avctx= avctx;
     s->flags= avctx->flags;
         
-    dsputil_init(&s->dsp, avctx->dsp_mask);
+    dsputil_init(&s->dsp, avctx);
     
     width= s->width= avctx->width;
     height= s->height= avctx->height;
     
-    XINE_ASSERT(width, "value 'width' is not defined");
-    XINE_ASSERT(height, "value 'height' is not defined");
+    assert(width && height);
     
     avctx->extradata= av_mallocz(1024*10);
     avctx->stats_out= av_mallocz(1024*10);
@@ -697,7 +693,7 @@ static void decode_bgr_bitstream(HYuvContext *s, int count){
 
 static void draw_slice(HYuvContext *s, int y){
     int h, cy;
-    UINT8 *src_ptr[3];
+    uint8_t *src_ptr[3];
     
     if(s->avctx->draw_horiz_band==NULL) 
         return;
@@ -952,7 +948,7 @@ static int decode_frame(AVCodecContext *avctx, void *data, int *data_size, uint8
 
     *data_size = sizeof(AVFrame);
     
-    return (((get_bits_count(&s->gb)+7)>>3) + 3) & ~3;
+    return (get_bits_count(&s->gb)+31)/32*4;
 }
 
 static int decode_end(AVCodecContext *avctx)
@@ -1136,6 +1132,12 @@ static int encode_end(AVCodecContext *avctx)
     return 0;
 }
 
+static const AVOption huffyuv_options[] =
+{
+    AVOPTION_CODEC_INT("prediction_method", "prediction_method", prediction_method, 0, 2, 0),
+    AVOPTION_END()
+};
+
 AVCodec huffyuv_decoder = {
     "huffyuv",
     CODEC_TYPE_VIDEO,
@@ -1157,4 +1159,5 @@ AVCodec huffyuv_encoder = {
     encode_init,
     encode_frame,
     encode_end,
+    .options = huffyuv_options,
 };
