@@ -171,9 +171,8 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
     case 0xb3:	/* sequence_header_code */
 	if (header_process_sequence_header (picture, buffer)) {
 	    fprintf (stderr, "bad sequence header\n");
-	    exit (1);
-	}
-	if (mpeg2dec->is_sequence_needed 
+	    /* exit (1); */
+	} else if (mpeg2dec->is_sequence_needed 
 	    || (picture->frame_width != picture->coded_picture_width)
 	    || (picture->frame_height != picture->coded_picture_height)) {
 

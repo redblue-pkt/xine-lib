@@ -17,13 +17,17 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.10 2001/07/11 22:42:47 guenter Exp $
+ * $Id: xine_decoder.c,v 1.11 2001/07/17 01:59:48 guenter Exp $
  *
  * stuff needed to turn libmpeg2 into a xine decoder plugin
  */
 
 
 #include <stdlib.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <unistd.h>
 
 #include "video_out.h"
 #include "mpeg2.h"
@@ -36,6 +40,7 @@ typedef struct mpeg2dec_decoder_s {
   video_decoder_t  video_decoder;
   mpeg2dec_t       mpeg2;
   vo_instance_t   *video_out;
+  /*int              mpeg_file;*/ /* debugging purposes only */
 } mpeg2dec_decoder_t;
 
 static int mpeg2dec_can_handle (video_decoder_t *this_gen, int buf_type) {
@@ -50,6 +55,9 @@ static void mpeg2dec_init (video_decoder_t *this_gen, vo_instance_t *video_out) 
   mpeg2_init (&this->mpeg2, video_out);
   video_out->open(video_out);
   this->video_out = video_out;
+
+  /* debugging purposes */
+  /*this->mpeg_file = open ("/tmp/video.mpv",O_CREAT | O_WRONLY | O_TRUNC, 0644);*/
 }
 
 static void mpeg2dec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
@@ -59,9 +67,12 @@ static void mpeg2dec_decode_data (video_decoder_t *this_gen, buf_element_t *buf)
     mpeg2_find_sequence_header (&this->mpeg2, buf->content, buf->content + buf->size);
   } else {
     
+    /* debugging purposes */
+    /* write (this->mpeg_file, buf->content, buf->size); */
+
     mpeg2_decode_data (&this->mpeg2, buf->content, buf->content + buf->size,
 		       buf->PTS);
-		       
+
   }
 
 }
@@ -73,6 +84,12 @@ static void mpeg2dec_close (video_decoder_t *this_gen) {
   mpeg2_close (&this->mpeg2);
 
   this->video_out->close(this->video_out);
+
+  /* debugging purposes */
+  /*
+  close (this->mpeg_file);
+  this->mpeg_file = -1;
+  */
 }
 
 static char *mpeg2dec_get_id(void) {
