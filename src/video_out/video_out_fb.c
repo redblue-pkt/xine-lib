@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_fb.c,v 1.24 2003/03/19 01:11:13 holstsn Exp $
+ * $Id: video_out_fb.c,v 1.25 2003/03/19 15:29:27 holstsn Exp $
  * 
  * video_out_fb.c, frame buffer xine driver by Miguel Freitas
  *
@@ -570,8 +570,7 @@ static void fb_display_frame(vo_driver_t *this_gen, vo_frame_t *frame_gen)
             this->sc.gui_width, this->sc.gui_height,
             frame->sc.output_width, frame->sc.output_height);
     
-    memset(frame->video_mem, 0,
-	   this->fb_bytes_per_line * this->sc.gui_height);
+    memset(this->video_mem_base, 0, this->mem_size);
   }
 
   if (this->sc.frame_output_cb) {
