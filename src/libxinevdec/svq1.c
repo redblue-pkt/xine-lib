@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: svq1.c,v 1.20 2002/12/31 20:15:51 esnel Exp $
+ * $Id: svq1.c,v 1.21 2003/01/01 15:20:14 esnel Exp $
  */
 
 #include <stdio.h>
@@ -825,6 +825,19 @@ static int decode_motion_vector (bit_buffer_t *bitbuf, svq1_pmv_t *mv, svq1_pmv_
   return 0;
 }
 
+static void clip_motion_vector (int x, int y, int width, int height, svq1_pmv_t *mv) {
+
+  if (mv->x < -2*x)
+    mv->x = -2*x;
+  else if (mv->x > 2*(width - x))
+    mv->x = 2*(width - x);
+
+  if (mv->y < -2*y)
+    mv->y = -2*y;
+  else if (mv->y > 2*(height - y))
+    mv->y = 2*(height - y);
+}
+
 static void skip_block (uint8_t *current, uint8_t *previous, int pitch, int x, int y) {
   uint8_t *src;
   uint8_t *dst;
@@ -842,7 +855,9 @@ static void skip_block (uint8_t *current, uint8_t *previous, int pitch, int x, i
 
 static int motion_inter_block (bit_buffer_t *bitbuf,
 			       uint8_t *current, uint8_t *previous, int pitch,
-			       svq1_pmv_t *motion, int x, int y) {
+			       svq1_pmv_t *motion,
+			       unsigned int x, unsigned int y,
+			       unsigned int width, unsigned int height) {
   uint8_t    *src;
   uint8_t    *dst;
   svq1_pmv_t  mv;
@@ -871,6 +886,9 @@ static int motion_inter_block (bit_buffer_t *bitbuf,
   motion[(x / 8) + 2].y	= mv.y;
   motion[(x / 8) + 3].x	= mv.x;
   motion[(x / 8) + 3].y	= mv.y;
+
+  /* clip motion vector to frame border */
+  clip_motion_vector (x, y, (width - 16), (height - 16), &mv);
 
   src = &previous[(x + (mv.x >> 1)) + (y + (mv.y >> 1))*pitch];
   dst = current;
@@ -917,7 +935,9 @@ static int motion_inter_block (bit_buffer_t *bitbuf,
 
 static int motion_inter_4v_block (bit_buffer_t *bitbuf,
 				  uint8_t *current, uint8_t *previous, int pitch,
-				  svq1_pmv_t *motion,int x, int y) {
+				  svq1_pmv_t *motion,
+				  unsigned int x, unsigned int y,
+				  unsigned int width, unsigned int height) {
   uint8_t    *src;
   uint8_t    *dst;
   svq1_pmv_t  mv;
@@ -971,6 +991,12 @@ static int motion_inter_4v_block (bit_buffer_t *bitbuf,
 
   if (result != 0)
     return result;
+
+  /* clip motion vectors to frame border */
+  clip_motion_vector (x, y, (width - 8), (height - 8), pmv[0]);
+  clip_motion_vector ((x + 8), y, (width - 8), (height - 8), pmv[1]);
+  clip_motion_vector (x, (y + 8), (width - 8), (height - 8), pmv[2]);
+  clip_motion_vector ((x + 8), (y + 8), (width - 8), (height - 8), pmv[3]);
 
   /* form predictions */
   for (i=0; i < 4; i++) {
@@ -1028,7 +1054,9 @@ static int motion_inter_4v_block (bit_buffer_t *bitbuf,
 
 static int decode_delta_block (bit_buffer_t *bitbuf,
 			uint8_t *current, uint8_t *previous, int pitch,
-			svq1_pmv_t *motion, int x, int y) {
+			svq1_pmv_t *motion,
+			unsigned int x, unsigned int y,
+			unsigned int width, unsigned int height) {
   uint32_t bit_cache;
   uint32_t block_type;
   int	   result = 0;
@@ -1056,7 +1084,7 @@ static int decode_delta_block (bit_buffer_t *bitbuf,
     break;
 
   case SVQ1_BLOCK_INTER:
-    result = motion_inter_block (bitbuf, current, previous, pitch, motion, x, y);
+    result = motion_inter_block (bitbuf, current, previous, pitch, motion, x, y, width, height);
 
     if (result != 0)
       break;
@@ -1065,7 +1093,7 @@ static int decode_delta_block (bit_buffer_t *bitbuf,
     break;
 
   case SVQ1_BLOCK_INTER_4V:
-    result = motion_inter_4v_block (bitbuf, current, previous, pitch, motion, x, y);
+    result = motion_inter_4v_block (bitbuf, current, previous, pitch, motion, x, y, width, height);
 
     if (result != 0)
       break;
@@ -1249,7 +1277,7 @@ static int svq1_decode_frame (svq1_t *svq1, uint8_t *buffer, int length) {
       for (y=0; y < height; y+=16) {
 	for (x=0; x < width; x+=16) {
 	  result = decode_delta_block (&bitbuf, &current[x], previous,
-				       width, svq1->motion, x, y);
+				       width, svq1->motion, x, y, width, height);
 
 	  if (result != 0 || bitbuf.bitpos > bitbuf.length)
 	    return result;
