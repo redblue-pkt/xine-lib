@@ -21,7 +21,7 @@
  * For more information on the SMJPEG file format, visit:
  *   http://www.lokigames.com/development/smjpeg.php3
  *
- * $Id: demux_smjpeg.c,v 1.6 2002/08/01 03:56:31 tmmm Exp $
+ * $Id: demux_smjpeg.c,v 1.7 2002/08/05 00:18:47 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -54,6 +54,7 @@
 #define HEND_TAG FOURCC_TAG('H', 'E', 'N', 'D')
 #define sndD_TAG FOURCC_TAG('s', 'n', 'd', 'D')
 #define vidD_TAG FOURCC_TAG('v', 'i', 'd', 'D')
+#define APCM_TAG FOURCC_TAG('A', 'P', 'C', 'M')
 
 #define VALID_ENDS   "mjpg"
 
@@ -148,7 +149,8 @@ static void *demux_smjpeg_loop (void *this_gen) {
       pts = BE_32(&preamble[4]);
       pts *= 90;
 
-//printf ("sending %s frame with pts %lld (timestamp = %d ms)\n", 
+//printf ("sending %d-byte %s frame with pts %lld (timestamp = %d ms)\n", 
+//  remaining_sample_bytes,
 //  (chunk_tag == sndD_TAG) ? "audio" : "video", pts, BE_32(&preamble[4]));
       /* break up the data into packets and dispatch them */
       if (((chunk_tag == sndD_TAG) && this->audio_fifo && this->audio_type) ||
@@ -318,7 +320,8 @@ static int demux_smjpeg_start (demux_plugin_t *this_gen,
     this->input->seek(this->input, 12, SEEK_SET);
     if (this->input->read(this->input, header_chunk, 4) != 4) {
       this->status = DEMUX_FINISHED;
-      return this->status;
+      pthread_mutex_unlock(&this->mutex);
+      return DEMUX_FINISHED;
     }
     this->duration = BE_32(&header_chunk[0]);
 
@@ -328,7 +331,8 @@ static int demux_smjpeg_start (demux_plugin_t *this_gen,
 
       if (this->input->read(this->input, header_chunk, 4) != 4) {
         this->status = DEMUX_FINISHED;
-        return this->status;
+        pthread_mutex_unlock(&this->mutex);
+        return DEMUX_FINISHED;
       }
       chunk_tag = BE_32(&header_chunk[0]);
 
@@ -343,7 +347,8 @@ static int demux_smjpeg_start (demux_plugin_t *this_gen,
         if (this->input->read(this->input, header_chunk, 
           SMJPEG_VIDEO_HEADER_SIZE) != SMJPEG_VIDEO_HEADER_SIZE) {
           this->status = DEMUX_FINISHED;
-          return this->status;
+          pthread_mutex_unlock(&this->mutex);
+          return DEMUX_FINISHED;
         }
 
         this->bih.biWidth = BE_16(&header_chunk[8]);
@@ -356,7 +361,8 @@ static int demux_smjpeg_start (demux_plugin_t *this_gen,
         if (this->input->read(this->input, header_chunk, 
           SMJPEG_AUDIO_HEADER_SIZE) != SMJPEG_AUDIO_HEADER_SIZE) {
           this->status = DEMUX_FINISHED;
-          return this->status;
+          pthread_mutex_unlock(&this->mutex);
+          return DEMUX_FINISHED;
         }
 
         this->audio_sample_rate = BE_16(&header_chunk[4]);
@@ -371,7 +377,8 @@ static int demux_smjpeg_start (demux_plugin_t *this_gen,
          * of the chunk */
         if (this->input->read(this->input, header_chunk, 4) != 4) {
           this->status = DEMUX_FINISHED;
-          return this->status;
+          pthread_mutex_unlock(&this->mutex);
+          return DEMUX_FINISHED;
         }
         this->input->seek(this->input, BE_32(&header_chunk[0]), SEEK_CUR);
         break;
@@ -380,6 +387,8 @@ static int demux_smjpeg_start (demux_plugin_t *this_gen,
     }
 
 this->video_type = BUF_VIDEO_JPEG;
+this->audio_type = BUF_AUDIO_SMJPEG_IMA;
+
     if(!this->video_type)
       xine_report_codec(this->xine, XINE_CODEC_VIDEO,
         this->bih.biCompression, 0, 0);
@@ -395,7 +404,7 @@ this->video_type = BUF_VIDEO_JPEG;
       this->duration / 1000 % 60);
     if (this->video_type)
       xine_log (this->xine, XINE_LOG_FORMAT,
-        _("demux_smjpeg: %c%c%c%c video @ %dx%d\n"),
+        _("demux_smjpeg: '%c%c%c%c' video @ %dx%d\n"),
         *((char *)&this->bih.biCompression + 0),
         *((char *)&this->bih.biCompression + 1),
         *((char *)&this->bih.biCompression + 2),
@@ -446,8 +455,6 @@ this->video_type = BUF_VIDEO_JPEG;
       printf ("demux_qt: can't create new thread (%s)\n", strerror(err));
       abort();
     }
-
-
   }
 
   pthread_mutex_unlock(&this->mutex);
