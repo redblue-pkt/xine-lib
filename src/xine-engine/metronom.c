@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.c,v 1.40 2001/12/09 17:08:06 miguelfreitas Exp $
+ * $Id: metronom.c,v 1.41 2001/12/16 21:52:04 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -43,7 +43,7 @@
 #define MAX_AUDIO_DELTA        1600
 #define AUDIO_SAMPLE_NUM      32768
 #define WRAP_START_TIME      100000
-#define WRAP_TRESHOLD         30000 
+#define WRAP_THRESHOLD       120000 
 #define SCR_DISCONTINUITY     60000 
 #define MAX_NUM_WRAP_DIFF       100
 #define MAX_SCR_PROVIDERS        10
@@ -473,16 +473,17 @@ static uint32_t metronom_got_video_frame (metronom_t *this, uint32_t pts, uint32
   if( pts && this->last_video_pts ) {
     vpts = this->last_video_pts + 
           (this->num_video_vpts_guessed+1) * this->avg_frame_duration;
-    if( ( pts > vpts && (pts - vpts) > 60000 ) ||
-        ( pts < vpts && (vpts - pts) > 60000 ) ) {
+    if( ( pts > vpts && (pts - vpts) > WRAP_THRESHOLD ) ||
+        ( pts < vpts && (vpts - pts) > WRAP_THRESHOLD ) ) {
       pts_discontinuity = 1;
       
       /* 
          ignore discontinuities created by frame reordering around
          the REAL discontinuity. :)
       */
-      if( !this->video_discontinuity && !this->video_stream_starting )
+      if( !this->video_discontinuity && !this->video_stream_starting ) {
         pts = 0;
+      }
     }
   }
   
