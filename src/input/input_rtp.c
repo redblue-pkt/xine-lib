@@ -70,6 +70,7 @@
 #include <fcntl.h>
 #include <string.h>
 #include <sys/socket.h>
+#include <sys/ioctl.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <netdb.h>
@@ -77,6 +78,7 @@
 #include <pthread.h>
 #include <sys/time.h>
 #include <stdlib.h>
+#include <net/if.h>
 
 #define LOG_MODULE "input_rtp"
 #define LOG_VERBOSE
@@ -113,6 +115,7 @@ typedef struct {
 
   char             *filename;
   int               port;
+  char             *interface;    /* For multicast,  eth0, eth1 etc */
   int               is_rtp;
   
   int               fh;
@@ -163,7 +166,9 @@ typedef struct {
 /*
  *
  */
-static int host_connect_attempt(struct in_addr ia, int port, xine_t *xine) {
+static int host_connect_attempt(struct in_addr ia, int port,
+				const char *interface,
+				xine_t *xine) {
   int s=socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP);
   struct sockaddr_in sin;
   int optval;
@@ -211,19 +216,37 @@ static int host_connect_attempt(struct in_addr ia, int port, xine_t *xine) {
   /* multicast ? */
   if (multicast) {
 
-#ifdef HAVE_IP_MREQN
-    struct ip_mreqn mreqn;
+    struct ip_mreq mreq;
+    struct ifreq ifreq;
 
-    mreqn.imr_multiaddr.s_addr = sin.sin_addr.s_addr;
-    mreqn.imr_address.s_addr = INADDR_ANY;
-    mreqn.imr_ifindex = 0;
-#else
-    struct ip_mreq mreqn;
+    /* If the user specified an adapter we have to
+     * look up the interface address to use it.
+     * Ref: UNIX Network Programming 2nd edition
+     * Section 19.6
+     * W. Richard Stevens
+     */
+
+    if (interface != NULL) {
+      strncpy(ifreq.ifr_name, interface, IFNAMSIZ);
+      if (ioctl(s, SIOCGIFADDR, &ifreq) < 0) {
+	LOG_MSG(xine, _("Can't find address for iface %s:%s\n"),
+		interface, strerror(errno));
+	interface = NULL;
+      }
+    }
+
+    /* struct ip_mreq mreq; */
+    mreq.imr_multiaddr.s_addr = sin.sin_addr.s_addr;
+    if (interface == NULL) {
+      mreq.imr_interface.s_addr = htonl(INADDR_ANY);
+    }
+    else {
+      memcpy(&mreq.imr_interface,
+	     &((struct sockaddr_in *) &ifreq.ifr_addr)->sin_addr,
+	     sizeof(struct in_addr));
+    }
     
-    mreqn.imr_multiaddr.s_addr = sin.sin_addr.s_addr;
-    mreqn.imr_interface.s_addr = INADDR_ANY;
-#endif
-    if (setsockopt(s, IPPROTO_IP, IP_ADD_MEMBERSHIP,&mreqn,sizeof(mreqn))) {
+    if (setsockopt(s, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq, sizeof(mreq))) {
       LOG_MSG(xine, _("setsockopt(IP_ADD_MEMBERSHIP) failed (multicast kernel?): %s.\n"),
 	      strerror(errno));
       return -1;
@@ -236,7 +259,9 @@ static int host_connect_attempt(struct in_addr ia, int port, xine_t *xine) {
 /*
  *
  */
-static int host_connect(const char *host, int port, xine_t *xine)
+static int host_connect(const char *host, int port,
+			const char *interface,
+			xine_t *xine)
 {
   struct hostent *h;
   int i;
@@ -251,7 +276,7 @@ static int host_connect(const char *host, int port, xine_t *xine)
   for(i=0; h->h_addr_list[i]; i++) {
     struct in_addr ia;
     memcpy(&ia, h->h_addr_list[i],4);
-    s = host_connect_attempt(ia, port, xine);
+    s = host_connect_attempt(ia, port, interface, xine);
     if (s != -1) return s;
   }
   LOG_MSG(xine, _("unable to bind to '%s'.\n"), host);
@@ -587,9 +612,14 @@ static int rtp_plugin_open (input_plugin_t *this_gen ) {
   rtp_input_plugin_t *this = (rtp_input_plugin_t *) this_gen;
   int                 err;
 
-  LOG_MSG(this->stream->xine, _("Opening >%s<\n"), this->filename);
+  LOG_MSG(this->stream->xine,
+	  _("Opening >filename:%s port:%d interface:%s<\n"),
+	  this->filename,
+	  this->port,
+	  this->interface);
   
-  this->fh = host_connect(this->filename, this->port, this->stream->xine);
+  this->fh = host_connect(this->filename, this->port,
+			  this->interface, this->stream->xine);
 
   if (this->fh == -1) return 0;
 
@@ -613,6 +643,7 @@ static input_plugin_t *rtp_class_get_instance (input_class_t *cls_gen,
   rtp_input_plugin_t *this;
   char               *filename = NULL;
   char               *pptr;
+  char               *iptr;
   char               *mrl;
   int                 is_rtp = 0;
   int                 port = 7658;
@@ -633,10 +664,25 @@ static input_plugin_t *rtp_class_get_instance (input_class_t *cls_gen,
     return NULL;
   }
   
-  pptr=strrchr(filename, ':');
+  /* Locate the port number */
+  pptr=strchr(filename, ':');
+  iptr = NULL;
   if (pptr) {
-    *pptr++ = 0;
-    sscanf(pptr,"%d", &port);
+    *pptr++ = '\0';
+    sscanf(pptr, "%d", &port);
+
+    /* Locate the interface name for multicast IP, eth0, eth1 etc
+     * The mrl will be udp://<address>:<port>?iface=eth0
+     */
+
+    if (*pptr != '\0') {
+      if ( (pptr=strstr(pptr, "?iface=")) != NULL) {
+	pptr += 7;
+	if (*pptr != '\0') {
+	  iptr = pptr;  // Ok ... user defined an interface
+	}
+      }
+    }
   }
   
   this = (rtp_input_plugin_t *) malloc(sizeof(rtp_input_plugin_t));
@@ -648,6 +694,8 @@ static input_plugin_t *rtp_class_get_instance (input_class_t *cls_gen,
   this->fh           = -1;
   this->rtp_running  = 0;
   this->preview_size = 0;
+
+  if (iptr) this->interface = iptr;
 
   pthread_mutex_init(&this->buffer_mutex, NULL);
   pthread_mutex_init(&this->reader_mut, NULL);
@@ -716,7 +764,7 @@ static void *init_class (xine_t *xine, void *data) {
   this->input_class.get_autoplay_list = NULL;
   this->input_class.dispose           = rtp_class_dispose;
   this->input_class.eject_media       = NULL;
-  
+
   return this;
 }
 
