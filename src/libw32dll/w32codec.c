@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.36 2001/11/07 21:35:01 miguelfreitas Exp $
+ * $Id: w32codec.c,v 1.37 2001/11/07 21:38:03 miguelfreitas Exp $
  *
  * routines for using w32 codecs
  *
@@ -243,6 +243,7 @@ static char* get_vids_codec_name(w32v_decoder_t *this,
 
   case BUF_VIDEO_MSVC:
     /* Video in Windows Video 1 */
+    this->flipped=1;
     this->yuv_supported=0;
     return "msvidc32.dll";    
     
