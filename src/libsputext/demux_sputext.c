@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_sputext.c,v 1.17 2003/04/26 20:16:31 guenter Exp $
+ * $Id: demux_sputext.c,v 1.18 2003/06/22 16:53:04 mroi Exp $
  *
  * code based on old libsputext/xine_decoder.c
  *
@@ -64,8 +64,8 @@ typedef struct {
 
   int lines;
 
-  unsigned long start; /* csecs */
-  unsigned long end;   /* csecs */
+  long start; /* csecs */
+  long end;   /* csecs */
     
   char *text[SUB_MAX_TEXT];
 
@@ -99,12 +99,8 @@ typedef struct {
 typedef struct demux_sputext_class_s {
 
   demux_class_t      demux_class;
-
-  xine_t            *xine;
-  config_values_t   *config;
-
-  char              *src_encoding;
-  char              *dst_encoding;
+  
+  /* nothing needed here so far */
 
 } demux_sputext_class_t;
 
@@ -1001,7 +997,6 @@ static void *init_sputext_demux_class (xine_t *xine, void *data) {
 #endif
   
   this = xine_xmalloc (sizeof (demux_sputext_class_t));
-  this->config = xine->config;
 
   this->demux_class.open_plugin     = open_demux_plugin;
   this->demux_class.get_description = get_demux_description;
