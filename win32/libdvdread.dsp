@@ -42,6 +42,7 @@ RSC=rc.exe
 # PROP Intermediate_Dir "Release/libdvdread"
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
+LIB32=link.exe
 # ADD BASE CPP /nologo /MT /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "LIBDVDREAD_EXPORTS" /YX /FD /c
 # ADD CPP /nologo /MD /W3 /GX /O2 /I "include" /I "../src" /I "../src/xine-engine" /I "../src/xine-utils" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "LIBDVDREAD_EXPORTS" /D "XINE_COMPILE" /D "HAVE_CONFIG_H" /D "__WINE_WINDEF_H" /D "__WINE_WINGDI_H" /D "__WINE_VFW_H" /YX /FD /c
 # ADD BASE MTL /nologo /D "NDEBUG" /mktyplib203 /win32
@@ -73,6 +74,7 @@ PostBuild_Cmds=scripts\move_xine_deps.bat Release
 # PROP Intermediate_Dir "Debug/libdvdread"
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
+LIB32=link.exe
 # ADD BASE CPP /nologo /MTd /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "LIBDVDREAD_EXPORTS" /YX /FD /GZ /c
 # ADD CPP /nologo /MDd /W3 /Gm /GX /ZI /Od /I ".." /I "include" /I "../include" /I "../intl" /I "../src" /I "../src/xine-engine" /I "../src/xine-utils" /I "../src/input/libdvdcss/src" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "LIBDVDREAD_EXPORTS" /D "XINE_COMPILE" /D "HAVE_CONFIG_H" /D "__WINE_WINDEF_H" /D "__WINE_WINGDI_H" /D "__WINE_VFW_H" /FR /YX /FD /GZ /c
 # ADD BASE MTL /nologo /D "_DEBUG" /mktyplib203 /win32
@@ -95,38 +97,6 @@ LINK32=link.exe
 # Begin Group "Source Files"
 
 # PROP Default_Filter "cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
-# Begin Source File
-
-SOURCE=..\src\input\libdvdread\dvd_input.c
-# End Source File
-# Begin Source File
-
-SOURCE=..\src\input\libdvdread\dvd_reader.c
-# End Source File
-# Begin Source File
-
-SOURCE=..\src\input\libdvdread\dvd_udf.c
-# End Source File
-# Begin Source File
-
-SOURCE=..\src\input\libdvdread\ifo_print.c
-# End Source File
-# Begin Source File
-
-SOURCE=..\src\input\libdvdread\ifo_read.c
-# End Source File
-# Begin Source File
-
-SOURCE=..\src\input\libdvdread\md5.c
-# End Source File
-# Begin Source File
-
-SOURCE=..\src\input\libdvdread\nav_print.c
-# End Source File
-# Begin Source File
-
-SOURCE=..\src\input\libdvdread\nav_read.c
-# End Source File
 # End Group
 # Begin Group "DLL Defs"
 

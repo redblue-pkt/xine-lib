@@ -2,7 +2,7 @@
 # Microsoft Developer Studio Generated Build File, Format Version 6.00
 # ** DO NOT EDIT **
 
-# TARGTYPE "Win32 (x86) Dynamic-Link Library" 0x0102
+# TARGTYPE "Win32 (x86) Static Library" 0x0104
 
 CFG=libdvdnav - Win32 Debug
 !MESSAGE This is not a valid makefile. To build this project using NMAKE,
@@ -17,8 +17,8 @@ CFG=libdvdnav - Win32 Debug
 !MESSAGE 
 !MESSAGE Possible choices for configuration are:
 !MESSAGE 
-!MESSAGE "libdvdnav - Win32 Release" (based on "Win32 (x86) Dynamic-Link Library")
-!MESSAGE "libdvdnav - Win32 Debug" (based on "Win32 (x86) Dynamic-Link Library")
+!MESSAGE "libdvdnav - Win32 Release" (based on "Win32 (x86) Static Library")
+!MESSAGE "libdvdnav - Win32 Debug" (based on "Win32 (x86) Static Library")
 !MESSAGE 
 
 # Begin Project
@@ -26,7 +26,6 @@ CFG=libdvdnav - Win32 Debug
 # PROP Scc_ProjName ""
 # PROP Scc_LocalPath ""
 CPP=cl.exe
-MTL=midl.exe
 RSC=rc.exe
 
 !IF  "$(CFG)" == "libdvdnav - Win32 Release"
@@ -38,23 +37,28 @@ RSC=rc.exe
 # PROP BASE Target_Dir ""
 # PROP Use_MFC 0
 # PROP Use_Debug_Libraries 0
-# PROP Output_Dir "Release/libdvdnav"
-# PROP Intermediate_Dir "Release/libdvdnav"
-# PROP Ignore_Export_Lib 0
+# PROP Output_Dir "Release"
+# PROP Intermediate_Dir "Release"
 # PROP Target_Dir ""
-LIB32=link.exe
-# ADD BASE CPP /nologo /MT /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "LIBDVDNAV_EXPORTS" /YX /FD /c
-# ADD CPP /nologo /MD /W3 /GX /O2 /I "include" /I "../src" /I "../src/xine-engine" /I "../src/xine-utils" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "LIBDVDNAV_EXPORTS" /D "XINE_COMPILE" /D "HAVE_CONFIG_H" /D "__WINE_WINDEF_H" /D "__WINE_WINGDI_H" /D "__WINE_VFW_H" /YX /FD /c
-# ADD BASE MTL /nologo /D "NDEBUG" /mktyplib203 /win32
-# ADD MTL /nologo /D "NDEBUG" /mktyplib203 /win32
+MTL=midl.exe
+LINK32=link.exe
+# ADD BASE LINK32 /machine:IX86
+# ADD LINK32 /machine:IX86
+# ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_MBCS" /D "_LIB" /YX /FD /c
+# ADD CPP /nologo /W3 /GX /O2 /I "." /I ".." /I "..\..\libdvdcss\src" /D "WIN32" /D "NDEBUG" /D "_MBCS" /D "_LIB" /YX /FD /c
 # ADD BASE RSC /l 0x409 /d "NDEBUG"
 # ADD RSC /l 0x409 /d "NDEBUG"
 BSC32=bscmake.exe
 # ADD BASE BSC32 /nologo
 # ADD BSC32 /nologo
-LINK32=link.exe
-# ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /dll /machine:I386
-# ADD LINK32 /nologo /dll /machine:I386 /out:"Release/bin/libdvdnav.dll"
+LIB32=link.exe -lib
+# ADD BASE LIB32 /nologo
+# ADD LIB32 /nologo
+# Begin Special Build Tool
+SOURCE="$(InputPath)"
+PostBuild_Desc=Create libdvdnav Install Files
+PostBuild_Cmds=scripts\libdvdnav_install.bat Release
+# End Special Build Tool
 
 !ELSEIF  "$(CFG)" == "libdvdnav - Win32 Debug"
 
@@ -65,23 +69,25 @@ LINK32=link.exe
 # PROP BASE Target_Dir ""
 # PROP Use_MFC 0
 # PROP Use_Debug_Libraries 1
-# PROP Output_Dir "Debug/libdvdnav"
-# PROP Intermediate_Dir "Debug/libdvdnav"
+# PROP Output_Dir "Debug"
+# PROP Intermediate_Dir "Debug"
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
-LIB32=link.exe
-# ADD BASE CPP /nologo /MTd /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "LIBDVDNAV_EXPORTS" /YX /FD /GZ /c
-# ADD CPP /nologo /MDd /W3 /Gm /GX /ZI /Od /I ".." /I "include" /I "../include" /I "../intl" /I "../src" /I "../src/xine-engine" /I "../src/xine-utils" /I "../src/input/libdvdread" /I "../src/input/libdvdnav" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "LIBDVDNAV_EXPORTS" /D "XINE_COMPILE" /D "HAVE_CONFIG_H" /D "__WINE_WINDEF_H" /D "__WINE_WINGDI_H" /D "__WINE_VFW_H" /FR /YX /FD /I /GZ /c
-# ADD BASE MTL /nologo /D "_DEBUG" /mktyplib203 /win32
-# ADD MTL /nologo /D "_DEBUG" /mktyplib203 /win32
+MTL=midl.exe
+LINK32=link.exe
+# ADD BASE LINK32 /machine:IX86
+# ADD LINK32 /debug /machine:IX86 /out:"Debug/libdvdnav.lib" /implib:"Debug/libdvdnav.lib"
+# SUBTRACT LINK32 /pdb:none /nodefaultlib
+# ADD BASE CPP /nologo /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_MBCS" /D "_LIB" /YX /FD /GZ /c
+# ADD CPP /nologo /MDd /W3 /Gm /GX /ZI /Od /I "." /I "include" /I "../src/xine-utils" /I "contrib/dirent" /I "contrib/pthreads" /I "contrib/timer" /I "../src/input/libdvdcss/src" /I ".." /I "../src" /D "WIN32" /D "_DEBUG" /D "_LIB" /D "DVDNAV_COMPILE" /D "HAVE_CONFIG_H" /FR"Debug/libdvdnav/" /Fp"Debug/libdvdnav/libdvdnav.pch" /YX /Fo"Debug/libdvdnav/" /Fd"Debug/libdvdnav/" /FD /GZ /c
 # ADD BASE RSC /l 0x409 /d "_DEBUG"
 # ADD RSC /l 0x409 /d "_DEBUG"
 BSC32=bscmake.exe
 # ADD BASE BSC32 /nologo
 # ADD BSC32 /nologo
-LINK32=link.exe
-# ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /dll /debug /machine:I386 /pdbtype:sept
-# ADD LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib uuid.lib comctl32.lib /nologo /dll /debug /machine:I386 /out:"Debug/bin/libdvdnav.dll" /pdbtype:sept
+LIB32=link.exe -lib
+# ADD BASE LIB32 /nologo
+# ADD LIB32 /nologo /out:"Debug\libdvdnav\libdvdnav.lib"
 
 !ENDIF 
 
@@ -98,11 +104,39 @@ SOURCE=..\src\input\libdvdnav\decoder.c
 # End Source File
 # Begin Source File
 
+SOURCE=..\src\input\libdvdnav\dvd_input.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\src\input\libdvdnav\dvd_reader.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\src\input\libdvdnav\dvd_udf.c
+# End Source File
+# Begin Source File
+
 SOURCE=..\src\input\libdvdnav\dvdnav.c
 # End Source File
 # Begin Source File
 
 SOURCE=..\src\input\libdvdnav\highlight.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\src\input\libdvdnav\ifo_read.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\src\input\libdvdnav\md5.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\src\input\libdvdnav\nav_print.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\src\input\libdvdnav\nav_read.c
 # End Source File
 # Begin Source File
 
@@ -131,6 +165,54 @@ SOURCE=..\src\input\libdvdnav\vm.c
 # Begin Source File
 
 SOURCE=..\src\input\libdvdnav\vmcmd.c
+# End Source File
+# End Group
+# Begin Group "Header Files"
+
+# PROP Default_Filter "h;hpp;hxx;hm;inl"
+# Begin Source File
+
+SOURCE=..\dvdread\bswap.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\dvdread\dvd_input.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\dvdread\dvd_reader.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\dvdread\dvd_udf.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\dvdread\ifo_print.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\dvdread\ifo_read.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\dvdread\ifo_types.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\dvdread\nav_print.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\dvdread\nav_read.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\dvdread\nav_types.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\dvdread\types.h
 # End Source File
 # End Group
 # Begin Group "DLL Defs"

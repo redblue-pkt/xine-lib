@@ -24,40 +24,10 @@ Package=<5>
 Package=<4>
 {{{
     Begin Project Dependency
-    Project_Dep_Name libxine
-    End Project Dependency
-    Begin Project Dependency
     Project_Dep_Name libxinesuppt
     End Project Dependency
     Begin Project Dependency
     Project_Dep_Name libxineutils
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name libdvdread
-    End Project Dependency
-}}}
-
-###############################################################################
-
-Project: "libdvdread"=".\libdvdread.dsp" - Package Owner=<4>
-
-Package=<5>
-{{{
-}}}
-
-Package=<4>
-{{{
-    Begin Project Dependency
-    Project_Dep_Name libxine
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name libxinesuppt
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name libxineutils
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name libdvdcss
     End Project Dependency
 }}}
 
@@ -465,9 +435,6 @@ Package=<5>
 Package=<4>
 {{{
     Begin Project Dependency
-    Project_Dep_Name libdvdcss
-    End Project Dependency
-    Begin Project Dependency
     Project_Dep_Name libxine
     End Project Dependency
     Begin Project Dependency
@@ -475,6 +442,9 @@ Package=<4>
     End Project Dependency
     Begin Project Dependency
     Project_Dep_Name libxineutils
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libdvdnav
     End Project Dependency
 }}}
 

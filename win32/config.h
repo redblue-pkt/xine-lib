@@ -354,7 +354,7 @@
 #define STDC_HEADERS 1
 
 /* Version number of package */
-#define VERSION "1-beta6"
+#define VERSION "1-beta12"
 
 /* xine major version number */
 #define XINE_MAJOR 1
@@ -376,7 +376,7 @@
 /* Define this if you want nvtvd tvmode support */
 /* #undef XINE_HAVE_NVTV */
 
-#define HAVE_DVDCSS_DVDCSS_H 1
+/*#undef HAVE_DVDCSS_DVDCSS_H */
 
 #if defined(WIN32)
 
@@ -470,6 +470,11 @@ static char * exec_path_append_subdir( char * string )
 #define XINE_FONTDIR	exec_path_append_subdir( "fonts" )
 #define XINE_LOCALEDIR	exec_path_append_subdir( "locale" )
 
+#define S_ISDIR(m) ((m) & _S_IFDIR)
+#define S_ISREG(m) ((m) & _S_IFREG)
+#define S_ISBLK(m) 0
+#define S_ISCHR(m) 0
+
 #else
 
 /* Path where catalog files will be. */
@@ -498,5 +503,6 @@ static char * exec_path_append_subdir( char * string )
 
 /* Define to `unsigned' if <sys/types.h> does not define. */
 /* #undef size_t */
+
 
 #endif /* defined CONFIG_H */
