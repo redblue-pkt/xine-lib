@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.113 2003/03/10 23:31:17 miguelfreitas Exp $
+ * $Id: audio_out.c,v 1.114 2003/03/25 12:48:04 mroi Exp $
  * 
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -1112,8 +1112,9 @@ static int ao_open(xine_audio_port_t *this_gen, xine_stream_t *stream,
  
   aos_t *this = (aos_t *) this_gen;
 
-  if( !ao_change_settings(this, bits, rate, mode) )
-    return 0;
+  if( !this->driver_open || bits != this->input.bits || rate != this->input.rate || mode != this->input.mode )
+    if( !ao_change_settings(this, bits, rate, mode) )
+      return 0;
   
   pthread_mutex_lock(&this->streams_lock);
   xine_list_append_content(this->streams, stream);
@@ -1220,12 +1221,6 @@ static void ao_close(xine_audio_port_t *this_gen, xine_stream_t *stream) {
   if (this->xine->verbosity >= XINE_VERBOSITY_DEBUG)
     printf ("audio_out: ao_close \n");
 
-  if (this->audio_loop_running) {
-    /* make sure there are no more buffers on queue */
-    while(fifo_num_buffers(this->out_fifo))
-      xine_usec_sleep (20000);
-  }
-  
   /* unregister stream */
   pthread_mutex_lock(&this->streams_lock);
   for (cur = xine_list_first_content(this->streams); cur;
@@ -1241,6 +1236,13 @@ static void ao_close(xine_audio_port_t *this_gen, xine_stream_t *stream) {
   if (!cur && !this->grab_only) {
     if (this->xine->verbosity >= XINE_VERBOSITY_DEBUG)
       printf("audio_out: no streams left, closing driver\n");
+
+    if (this->audio_loop_running) {
+      /* make sure there are no more buffers on queue */
+      while(fifo_num_buffers(this->out_fifo))
+        xine_usec_sleep (20000);
+    }
+
     pthread_mutex_lock( &this->driver_lock );
     if(this->driver_open)
       this->driver->close(this->driver);  
