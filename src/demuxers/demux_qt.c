@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.190 2004/08/18 21:41:58 jstembridge Exp $
+ * $Id: demux_qt.c,v 1.191 2004/08/18 22:12:31 jstembridge Exp $
  *
  */
 
@@ -2684,7 +2684,7 @@ static int binary_seek(qt_trak *trak, off_t start_pos, int start_time) {
     if (start_pos <= trak->frames[0].offset)
       best_index = 0;
     else if (start_pos >= trak->frames[trak->frame_count - 1].offset)
-      return DEMUX_FINISHED;
+      best_index = trak->frame_count - 1;
     else {
       left = 0;
       right = trak->frame_count - 1;
@@ -2710,7 +2710,7 @@ static int binary_seek(qt_trak *trak, off_t start_pos, int start_time) {
     if (pts <= trak->frames[0].pts)
       best_index = 0;
     else if (pts >= trak->frames[trak->frame_count - 1].pts)
-      return DEMUX_FINISHED;
+      best_index = trak->frame_count - 1;
     else {
       left = 0;
       right = trak->frame_count - 1;
