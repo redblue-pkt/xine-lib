@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_syncfb.c,v 1.2 2001/05/07 02:25:00 f1rmb Exp $
+ * $Id: video_out_syncfb.c,v 1.3 2001/05/28 19:00:12 joachim_koenig Exp $
  * 
  * video_out_syncfb.c, Matrox G400 video extension interface for xine
  *
@@ -47,6 +47,7 @@
 #include <sys/shm.h>
 #include <sys/time.h>
 
+#include <X11/Xlib.h>
 #include <X11/Xutil.h>
 
 #if defined(__linux__)
@@ -55,6 +56,7 @@
 
 #include "video_out.h"
 #include "video_out_syncfb.h"
+#include "xine_internal.h"
 
 #include "monitor.h"
 #include "configfile.h"
@@ -69,14 +71,20 @@ typedef struct _mwmhints {
   uint32_t status;
 } MWMHints;
 
-Display *lDisplay;
-extern Display *gDisplay;
-extern Window   gVideoWin;
-extern Pixmap   gXineLogo;
-extern int      gXineLogoWidth, gXineLogoHeight;
+// extern Window   gVideoWin;
+// extern Pixmap   gXineLogo;
+// extern int      gXineLogoWidth, gXineLogoHeight;
 
-extern uint32_t xine_debug;
+uint32_t xine_debug;
 
+typedef struct mga_frame_s {
+  vo_frame_t         vo_frame;
+
+  int                width, height, ratio_code, format;
+
+//  XShmSegmentInfo    shminfo;
+
+} mga_frame_t;
 
 
 typedef struct _display {
@@ -94,10 +102,13 @@ typedef struct _window {
 } window;
 
 typedef struct _mga_globals {
+
   syncfb_config_t          mga_vid_config;
   syncfb_capability_t      caps;
   syncfb_buffer_info_t     bufinfo;
   syncfb_param_t           param;
+  Display 	  *lDisplay;
+  Display 	  *gDisplay;
   uint8_t         *vid_data, *frame0, *frame1;
   int             next_frame;
   int             fd;
@@ -187,13 +198,6 @@ static int _mga_write_frame_g400 (uint8_t *src[])
 
 
 
-
-
-static int get_capabilities_mga () {
-  return VO_CAP_YV12 | VO_CAP_YUY2 | VO_CAP_CONTRAST | VO_CAP_BRIGHTNESS;
-}
-
-
 static void setup_window_mga () {
   int                   ww=0, wh=0;
   float                 aspect;
@@ -203,7 +207,7 @@ static void setup_window_mga () {
   Atom                  prop;
   MWMHints              mwmhints;
    
-  XGetWindowAttributes(lDisplay, DefaultRootWindow(lDisplay), &wattr);
+  XGetWindowAttributes(_mga_priv.lDisplay, DefaultRootWindow(_mga_priv.lDisplay), &wattr);
    
   _display.width  = wattr.width;
   _display.height = wattr.height;
@@ -333,51 +337,51 @@ printf("setup_window_mga: unscaled size should be %d x %d \n",_mga_priv.orig_wid
 
 //   if (ioctl(_mga_priv.fd,SYNCFB_ON))
 //      xprintf(VERBOSE|VIDEO,"Error in ON ioctl\n");
-
+#if 0
    // create a simple window without anything. Just make overlay clickable. :)
    if (!_window.clasped_window) {
-     _window.clasped_window = XCreateSimpleWindow(lDisplay, RootWindow(lDisplay, _display.default_screen), 0, 0, _mga_priv.dest_width, _mga_priv.dest_height, 0, 0, 0);
-     gVideoWin = _window.clasped_window;
+     _window.clasped_window = XCreateSimpleWindow(_mga_priv.lDisplay, RootWindow(_mga_priv.lDisplay, _display.default_screen), 0, 0, _mga_priv.dest_width, _mga_priv.dest_height, 0, 0, 0);
+//     gVideoWin = _window.clasped_window;
 
      // turn off all borders etc. (taken from the Xv plugin)
-     prop = XInternAtom(lDisplay, "_MOTIF_WM_HINTS", False);
+     prop = XInternAtom(_mga_priv.lDisplay, "_MOTIF_WM_HINTS", False);
      mwmhints.flags = MWM_HINTS_DECORATIONS;
      mwmhints.decorations = 0;
-     XChangeProperty(lDisplay, gVideoWin, prop, prop, 32,
-		     PropModeReplace, (unsigned char *) &mwmhints,
-		     PROP_MWM_HINTS_ELEMENTS);
-     XSetTransientForHint(lDisplay, gVideoWin, None);
+//     XChangeProperty(_mga_priv.lDisplay, gVideoWin, prop, prop, 32,
+//		     PropModeReplace, (unsigned char *) &mwmhints,
+//		     PROP_MWM_HINTS_ELEMENTS);
+//     XSetTransientForHint(_mga_priv.lDisplay, gVideoWin, None);
       
-     XSelectInput(gDisplay, _window.clasped_window, VisibilityChangeMask | KeyPressMask | ButtonPressMask | SubstructureNotifyMask | StructureNotifyMask);
-     XMapRaised(lDisplay, _window.clasped_window);
-     XSync(lDisplay,0);
+     XSelectInput(_mga_priv.gDisplay, _window.clasped_window, VisibilityChangeMask | KeyPressMask | ButtonPressMask | SubstructureNotifyMask | StructureNotifyMask);
+     XMapRaised(_mga_priv.lDisplay, _window.clasped_window);
+     XSync(_mga_priv.lDisplay,0);
    }   
 
-   XSetStandardProperties(lDisplay, _window.clasped_window, _window.title, _window.title, None, NULL, 0, NULL);
-   XMoveResizeWindow(lDisplay, _window.clasped_window, (_mga_priv.bIsFullscreen) ? 0 : _mga_priv.image_xoff, (_mga_priv.bIsFullscreen) ? 0 : _mga_priv.image_yoff, (_mga_priv.bIsFullscreen) ? _display.width : _mga_priv.dest_width, (_mga_priv.bIsFullscreen) ? _display.height : _mga_priv.dest_height);
-   XMapRaised(lDisplay, _window.clasped_window);
-   XSync(lDisplay,0);
+   XSetStandardProperties(_mga_priv.lDisplay, _window.clasped_window, _window.title, _window.title, None, NULL, 0, NULL);
+   XMoveResizeWindow(_mga_priv.lDisplay, _window.clasped_window, (_mga_priv.bIsFullscreen) ? 0 : _mga_priv.image_xoff, (_mga_priv.bIsFullscreen) ? 0 : _mga_priv.image_yoff, (_mga_priv.bIsFullscreen) ? _display.width : _mga_priv.dest_width, (_mga_priv.bIsFullscreen) ? _display.height : _mga_priv.dest_height);
+   XMapRaised(_mga_priv.lDisplay, _window.clasped_window);
+   XSync(_mga_priv.lDisplay,0);
+#endif
 }
 
 
 
 /* setup internal variables and (re-)init window if necessary */
-static int set_image_format_mga (uint32_t width, uint32_t height, uint32_t ratio, int format) {
+static void mga_set_image_format (vo_driver_t *this, vo_frame_t *frame, uint32_t width, uint32_t height, int ratio, int format) {
 
 
   double res_h, res_v, display_ratio, aspect_ratio;
-
   if ( (_mga_priv.image_width == width) 
        && (_mga_priv.image_height == height)
        && (_mga_priv.ratio == ratio) 
-       && (_mga_priv.bFullscreen == _mga_priv.bIsFullscreen)
        && (_mga_priv.fourcc_format == format)
        && !_mga_priv.user_ratio_changed ) {
 
 
-    return 0;
+    return ;
   }
 
+printf("new frame format width %d height %d ratio %d format %x\n",width,height,ratio,format);
   _mga_priv.image_width        = width;
   _mga_priv.image_height       = height;
   _mga_priv.ratio              = ratio;
@@ -437,61 +441,68 @@ static int set_image_format_mga (uint32_t width, uint32_t height, uint32_t ratio
 	   width, height, ratio);
 
   setup_window_mga () ;
-
-  return 1;
+printf("behind setup window mga\n");
+  return ;
 }
 
-static void dispose_image_buffer_mga (vo_image_buffer_t *image) {
 
-  free (image->mem[0]);
-  free (image);
+static vo_frame_t *mga_alloc_frame (vo_driver_t *this) {
 
-}
+  vo_frame_t *image;
+  int id;
 
-static vo_image_buffer_t *alloc_image_buffer_mga () {
-
-  vo_image_buffer_t *image;
-
-  if (!(image = malloc (sizeof (vo_image_buffer_t))))
+  if (!(image = malloc (sizeof (vo_frame_t))))
        return NULL;
 
  // we only know how to do 4:2:0 planar yuv right now.
  // we prepare for YUY2 sizes
-  if (!(image->mem[0] = malloc (_mga_priv.image_width * _mga_priv.image_height * 2))) {
+  id = shmget(IPC_PRIVATE,
+               _mga_priv.image_width * _mga_priv.image_height * 2,
+               IPC_CREAT | 0777);
+
+  if (id < 0 ) {
+      perror("syncfb: shared memory error in shmget: ");
+      exit (1);
+  }
+
+  image->base[0] = (char *) shmat(id, 0, 0);
+
+  if (image->base[0] == NULL) {
+      fprintf(stderr, "syncfb: shared memory error (address error NULL)\n");
+      exit (1);
+  }
+
+  if (image->base[0] == ((char *) -1)) {
+      fprintf(stderr, "syncfb: shared memory error (address error)\n");
+      exit (1);
+  }
+  shmctl(id, IPC_RMID, 0);
+
+#if 0
+  if (!(image->base[0] = malloc (_mga_priv.image_width * _mga_priv.image_height * 2))) {
          free(image);
          return NULL;
   }
+#endif
 
-  image->mem[2] = image->mem[0] + _mga_priv.image_width * _mga_priv.image_height;
-  image->mem[1] = image->mem[0] + _mga_priv.image_width * _mga_priv.image_height * 5 / 4;
+  image->base[2] = image->base[0] + _mga_priv.image_width * _mga_priv.image_height;
+  image->base[1] = image->base[0] + _mga_priv.image_width * _mga_priv.image_height * 5 / 4;
 
   pthread_mutex_init (&image->mutex, NULL);
 
   return image;
 }
 
-static void process_macroblock_mga (vo_image_buffer_t *img, 
-				   uint8_t *py, uint8_t *pu, uint8_t *pv,
-				   int slice_offset,
-				   int offset){
-}
 
-int is_fullscreen_mga () {
-  return _mga_priv.bFullscreen;
-}
+static void mga_display_frame(vo_driver_t *this, vo_frame_t *frame) {
+#if 0   
+  if (frame->width != _mga_priv.image_width ||
+      frame->height != _mga_priv.image_height ||
+      frame->ratio_code != _mga_priv.ratio) {
+      mga_set_image_format(this,frame,frame->width,frame->height,frame->ratio_code,_mga_priv.fourcc_format);
+  }
+#endif
 
-void set_fullscreen_mga (int bFullscreen) {
-  _mga_priv.bFullscreen = bFullscreen;
-
-  
-  set_image_format_mga (_mga_priv.image_width, _mga_priv.image_height, _mga_priv.ratio,
-			_mga_priv.fourcc_format);
-  
-}
-
-
-static void display_frame_mga(vo_image_buffer_t *vo_img) {
-   
   // only write frame if overlay is active (otherwise syncfb hangs)
   if (_mga_priv.overlay_state == 1) {
     ioctl(_mga_priv.fd,SYNCFB_REQUEST_BUFFER,&_mga_priv.bufinfo);
@@ -503,12 +514,12 @@ static void display_frame_mga(vo_image_buffer_t *vo_img) {
 
     _mga_priv.vid_data = (uint_8 *)(_mga_priv.frame0 + _mga_priv.bufinfo.offset);
 
-    _mga_write_frame_g400(vo_img->mem);
+    _mga_write_frame_g400(frame->base);
 
     ioctl(_mga_priv.fd,SYNCFB_COMMIT_BUFFER,&_mga_priv.bufinfo);
   }
   /* Image is copied so release buffer */
-  vo_image_drawn (  (vo_image_buffer_t *) vo_img);
+  frame->displayed (frame);
 }
 
 #if 0
@@ -611,29 +622,8 @@ void set_logo_mode_mga (int bLogoMode) {
 #endif
 }
 
-void reset_mga () {
-}
 
-void display_cursor_mga () {
-}
-
-void set_aspect_mga (int ratio) {
-
-  ratio %= 4;
-
-  if (ratio != _mga_priv.user_ratio) {
-    _mga_priv.user_ratio         = ratio;
-    _mga_priv.user_ratio_changed = 1;
-
-    set_image_format_mga (_mga_priv.image_width, _mga_priv.image_height, _mga_priv.ratio, _mga_priv.fourcc_format);
-  }
-}
-
-int get_aspect_mga () {
-  return _mga_priv.user_ratio;
-}
-
-void exit_mga () {
+void mga_exit (vo_driver_t *this) {
 printf("exit mga\n");
    if (ioctl(_mga_priv.fd,SYNCFB_ON)) {
       xprintf(VERBOSE|VIDEO,"Error in ON ioctl\n");
@@ -645,121 +635,102 @@ printf("exit mga\n");
    _mga_priv.fd = -1;
 }
 
-static int get_noop(void) {
+
+static uint32_t mga_get_capabilities (vo_driver_t *this) {
+  return VO_CAP_YV12 | VO_CAP_YUY2 | VO_CAP_CONTRAST | VO_CAP_BRIGHTNESS;
+}
+
+/*
+ * Properties
+ */
+static int mga_set_property(vo_driver_t *this, int property, int value) {
+printf("set property %d value %d\n",property,value);
+  switch (property) {
+  case VO_PROP_CONTRAST:
+        _mga_priv.cont_current=value;
+	break;
+  case VO_PROP_BRIGHTNESS:
+        _mga_priv.bright_current=value;
+	break;
+  default:
+        return value;
+  }
+
+  _mga_priv.param.contrast = _mga_priv.cont_current;
+  _mga_priv.param.brightness = _mga_priv.bright_current;
+
+  if (ioctl(_mga_priv.fd,SYNCFB_SET_PARAMS,&_mga_priv.param) == 0) {
+    return value;
+  }
   return 0;
 }
 
-static int set_noop(int v) {
-  return v;
-}
 
-/*
- * Contrast settings
- */
-static int get_contrast_min(void) {
-  return _mga_priv.cont_min;
-}
-static int get_current_contrast(void) {
-  return _mga_priv.cont_current;
-}
-static int set_contrast(int value) {
+static void mga_get_property_min_max (vo_driver_t *this, int property, int *min, int *max) {
 
-  _mga_priv.param.contrast = value;
-  _mga_priv.param.brightness = _mga_priv.bright_current;
-  
-  if (ioctl(_mga_priv.fd,SYNCFB_SET_PARAMS,&_mga_priv.param) == 0) {
-    _mga_priv.cont_current = _mga_priv.param.contrast;
-    return _mga_priv.cont_current;
+  switch (property) {
+  case VO_PROP_CONTRAST:
+	*min = _mga_priv.cont_min;
+        *max = _mga_priv.cont_max;
+	break;
+  case VO_PROP_BRIGHTNESS:
+	*min = _mga_priv.bright_min;
+        *max = _mga_priv.bright_max;
+	break;
+  default:
+	break;
   }
-  return value;
-}
+}  
 
-static int get_contrast_max(void) {
-  return _mga_priv.cont_max;
-}
+static int mga_get_property (vo_driver_t *this, int property) {
 
-/*
- * Brightness settings
- */
-static int get_brightness_min(void) {
-  return _mga_priv.bright_min;
-}
-static int get_current_brightness(void) {
-  return _mga_priv.bright_current;
-}
-static int set_brightness(int value) {
-
-  _mga_priv.param.brightness = value;
-  _mga_priv.param.contrast = _mga_priv.cont_current;
-
-  if (ioctl(_mga_priv.fd,SYNCFB_SET_PARAMS,&_mga_priv.param) == 0) {
-    _mga_priv.bright_current = _mga_priv.param.brightness;
-    return _mga_priv.bright_current;
+  switch (property) {
+  case VO_PROP_CONTRAST:
+        return _mga_priv.cont_current;
+  case VO_PROP_BRIGHTNESS:
+        return _mga_priv.bright_current;
+  default:
+        return 0;
   }
-  return value;
 }
 
-static int get_brightness_max(void) {
-  return _mga_priv.bright_max;
-}
 
-static void reset_settings(void) {
-    set_contrast(config_file_lookup_int ("contrast", _mga_priv.cont_current));
-    set_brightness(config_file_lookup_int ("brightness", _mga_priv.bright_current));
-}
 
-static void save_settings(void) {
-    config_file_set_int ("brightness", _mga_priv.bright_current);
-    config_file_set_int ("contrast", _mga_priv.cont_current);
+static int mga_gui_data_exchange (vo_driver_t *this, int data_type, void *data) {
+printf("gui_data \n");
+#if 0
+  xv_driver_t *this = (xv_driver_t *) this_gen;
+  x11_rectangle_t *area;
+
+  switch (data_type) {
+  case GUI_DATA_EX_DEST_POS_SIZE_CHANGED:
+
+    area = (x11_rectangle_t *) data;
+
+    xv_adapt_to_output_area (this, area->x, area->y, area->w, area->h);
+
+    break;
+  case GUI_DATA_EX_COMPLETION_EVENT:
+
+    /* FIXME : implement */
+
+    break;
+  }
+#endif
+  return 0;
 }
 
 
 static vo_driver_t vo_mga = {
-  get_capabilities_mga,
-  set_image_format_mga,
-  alloc_image_buffer_mga,
-  dispose_image_buffer_mga,
-  process_macroblock_mga,
-  display_frame_mga,
-  set_fullscreen_mga,
-  is_fullscreen_mga,
-  handle_event_mga,
-  set_logo_mode_mga,
-  reset_mga,
-  display_cursor_mga,
-  set_aspect_mga,
-  get_aspect_mga,
-  exit_mga,
-  /* HUE min, current, set , max */
-  get_noop,
-  get_noop,
-  set_noop,
-  get_noop,
-
-  /* SATURATION min, current, set , max */
-  get_noop,
-  get_noop,
-  set_noop,
-  get_noop,
-
-  /* Brightness min, current, set , max */
-  get_brightness_min,
-  get_current_brightness,
-  set_brightness,
-  get_brightness_max,
-
-  /* Contrast min, current, set , max */
-  get_contrast_min,
-  get_current_contrast,
-  set_contrast,
-  get_contrast_max,
-  
-  /* Colorkey min , current set */
-  get_noop,
-  get_noop,
-  set_noop,
-  reset_settings,
-  save_settings
+  mga_get_capabilities,
+  mga_alloc_frame,
+  mga_set_image_format,
+  mga_display_frame,
+  mga_get_property,
+  mga_set_property,
+  mga_get_property_min_max,
+  mga_gui_data_exchange,
+  mga_exit,
 };
 
 
@@ -768,7 +739,7 @@ static vo_driver_t vo_mga = {
  * allocate colors and (shared) memory
  */
 
-vo_driver_t *init_video_out_mga () {
+vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual) {
 
 #ifdef CONFIG_DEVFS_FS
   char name[]= "/dev/fb/syncfb";
@@ -776,19 +747,16 @@ vo_driver_t *init_video_out_mga () {
   char name[]= "/dev/syncfb";
 #endif
 
-  _mga_priv.image_width=720;
-  _mga_priv.image_height=576;
-
 
   if ((_mga_priv.fd = open ((char *) name, O_RDWR)) < 0) {
        xprintf(VERBOSE|VIDEO, "Can't open %s\n", (char *) name);
-       return 0;
+       return NULL;
   }
 
   if (ioctl(_mga_priv.fd,SYNCFB_GET_CAPS,&_mga_priv.caps)) {
      xprintf(VERBOSE|VIDEO,"Error in config ioctl");
      close(_mga_priv.fd);
-     return 0;
+     return NULL;
   }
 
   _mga_priv.vid_data = (char*)mmap(0,_mga_priv.caps.memory_size,PROT_WRITE,MAP_SHARED,_mga_priv.fd,0);
@@ -808,12 +776,16 @@ vo_driver_t *init_video_out_mga () {
   strcpy(_window.title, "Xine syncfb overlay\0");
   _window.visibility              = 1;
    
-  lDisplay = XOpenDisplay(":0.0");  /* Xine may run on another Display but syncfb always goes to :0.0 */
-//   lDisplay = gDisplay;
+  _mga_priv.lDisplay = XOpenDisplay(":0.0");  /* Xine may run on another Display but syncfb always goes to :0.0 */
+//  lDisplay = gDisplay;
+
+  xine_debug  = config->lookup_int (config, "xine_debug", 0);
+
+  _mga_priv.gDisplay              = (Display *) visual;
   _mga_priv.bFullscreen           = 0;
   _mga_priv.bIsFullscreen         = 0;
-  _mga_priv.image_width           = 0;
-  _mga_priv.image_height          = 0;
+  _mga_priv.image_width           = 720;
+  _mga_priv.image_height          = 576;
   _mga_priv.ratio                 = 0;
   _mga_priv.bLogoMode             = 0;
 //  _mga_priv.cur_image             = NULL;
@@ -822,13 +794,13 @@ vo_driver_t *init_video_out_mga () {
   _mga_priv.fourcc_format         = 0;
 
   _window.clasped_window          = 0;
-  _display.default_screen         = DefaultScreen(lDisplay);
+  _display.default_screen         = DefaultScreen(_mga_priv.lDisplay);
   _mga_priv.cont_min              = 0;
   _mga_priv.cont_max              = 255;
   _mga_priv.bright_max            = 127;
   _mga_priv.bright_min            = -128;
 
-  _mga_priv.overlay_state         = 0;             // 0 = off, 1 = on
+  _mga_priv.overlay_state         = 1;             // 0 = off, 1 = on
 
   if (ioctl(_mga_priv.fd,SYNCFB_GET_PARAMS,&_mga_priv.param) == 0) {
      _mga_priv.cont_current   = _mga_priv.param.contrast;
@@ -842,10 +814,26 @@ vo_driver_t *init_video_out_mga () {
 
   }
 
-  set_logo_mode_mga(1);
+  set_logo_mode_mga(0);
 
   return &vo_mga;
 }
+
+
+static vo_info_t vo_info_mga = {
+  VIDEO_OUT_IFACE_VERSION,
+  "Syncfb",
+  "xine video output plugin using MGA Teletux (syncfb) video extension",
+  VISUAL_TYPE_X11,
+  10
+};
+
+vo_info_t *get_video_out_plugin_info() {
+  return &vo_info_mga;
+}
+
+
+
 
 /*  #else  *//* no MGA */
 
