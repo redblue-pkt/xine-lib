@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.h,v 1.67 2002/10/17 17:43:44 mroi Exp $
+ * $Id: video_out.h,v 1.68 2002/10/26 14:45:28 mroi Exp $
  *
  *
  * xine version of video_out.h 
@@ -168,14 +168,8 @@ struct vo_instance_s {
 #define VO_PROP_PAN_SCAN              9 
 #define VO_PROP_TVMODE		      10 
 #define VO_PROP_MAX_NUM_FRAMES        11
-#define VO_PROP_VO_TYPE               12
 #define VO_PROP_ZOOM_Y                13
 #define VO_NUM_PROPERTIES             14
-
-/* Video out types */
-#define VO_TYPE_UNKNOWN               0
-#define VO_TYPE_DXR3_LETTERBOXED      1
-#define VO_TYPE_DXR3_WIDE             2
 
 /* zoom specific constants FIXME: generate this from xine.tmpl.in */
 #define VO_ZOOM_STEP        100
