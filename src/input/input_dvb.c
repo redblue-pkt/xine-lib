@@ -925,7 +925,7 @@ static channel_t *load_channels (xine_t *xine, int *num_ch, fe_type_t fe_type) {
 
 /* allow center cutout zoom for dvb content */
 static void
-dvb_zoom_cb (input_plugin_t * this_gen, xine_cfg_entry_t * cfg)
+dvb_zoom_cb (void *this_gen, xine_cfg_entry_t *cfg)
 {
   dvb_input_plugin_t *this = (dvb_input_plugin_t *) this_gen;
 
@@ -934,16 +934,13 @@ dvb_zoom_cb (input_plugin_t * this_gen, xine_cfg_entry_t * cfg)
   if (!this)
     return;
 
-  if (this->zoom_ok)
-    {
-      this->stream->video_out->set_property (this->stream->video_out, VO_PROP_ZOOM_X, 133);
-      this->stream->video_out->set_property (this->stream->video_out, VO_PROP_ZOOM_Y, 133);
-    }
-  else
-    {
-      this->stream->video_out->set_property (this->stream->video_out, VO_PROP_ZOOM_X, 100);
-      this->stream->video_out->set_property (this->stream->video_out, VO_PROP_ZOOM_Y, 100);
-    }
+  if (this->zoom_ok) {
+    this->stream->video_out->set_property (this->stream->video_out, VO_PROP_ZOOM_X, 133);
+    this->stream->video_out->set_property (this->stream->video_out, VO_PROP_ZOOM_Y, 133);
+  } else {
+    this->stream->video_out->set_property (this->stream->video_out, VO_PROP_ZOOM_X, 100);
+    this->stream->video_out->set_property (this->stream->video_out, VO_PROP_ZOOM_Y, 100);
+  }
 }
 
 
@@ -1200,11 +1197,10 @@ static int dvb_plugin_open (input_plugin_t *this_gen) {
 /* zoom for 4:3 in a 16:9 window */
   config->register_bool (config, "input.dvbzoom",
 			 0,
-			 "Enable DVB 'center cutout' (zoom)?",
-			 "This "
-			 "will allow fullscreen "
-			 "playback of 4:3 content "
-			 "transmitted in a 16:9 frame",
+			 _("use DVB 'center cutout' (zoom)"),
+			 _("This will allow fullscreen "
+			   "playback of 4:3 content "
+			   "transmitted in a 16:9 frame."),
 			 10, &dvb_zoom_cb, (void *) this);
 
   if (xine_config_lookup_entry (this->stream->xine,
@@ -1214,11 +1210,10 @@ static int dvb_plugin_open (input_plugin_t *this_gen) {
 /* dislay channel name in top left of display */ 
   config->register_bool (config, "input.dvbdisplaychan",
 			 0,
-			 "Enable DVB channel name by default?",
-			 "This "
-			 "will display current "
-			 "channel name on OSD "
-			 "MENU7 button will disable",
+			 _("display DVB channel name"),
+			 _("This will display the current "
+			   "channel name in xine's on-screen-display. "
+			   "Menu button 7 will disable this temporarily."),
 			 10, NULL, NULL);
 
   if (xine_config_lookup_entry (this->stream->xine,
