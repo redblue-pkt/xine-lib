@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (C) 2000, 2001 the xine project
  * 
  * This file is part of xine, a unix video player.
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.52 2001/10/07 15:13:09 guenter Exp $
+ * $Id: demux_mpeg_block.c,v 1.53 2001/10/08 01:40:51 miguelfreitas Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -149,7 +149,7 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
     buf->decoder_info[0] = 1;
 
   buf->input_pos = this->input->get_current_pos (this->input);
-  
+
   if (this->rate)
     buf->input_time = buf->input_pos / (this->rate * 50);
 
@@ -207,7 +207,7 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
 
 
   if (p[3] == 0xbb) { /* program stream system header */
-    
+
     int header_len;
 
     xprintf (VERBOSE|DEMUX, "program stream system header\n");
@@ -297,7 +297,7 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
     }
 
     if (p[7] & 0x80) { /* PTS avail */
-      
+
       PTS  = (p[ 9] & 0x0E) << 29 ;
       PTS |=  p[10]         << 22 ;
       PTS |= (p[11] & 0xFE) << 14 ;
@@ -434,7 +434,7 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
     buf->PTS       = PTS;
 
     buf->input_pos = this->input->get_current_pos(this->input);
-      
+
     if(this->audio_fifo)
       this->audio_fifo->put (this->audio_fifo, buf);
     else
@@ -552,9 +552,9 @@ static int demux_mpeg_block_estimate_rate (demux_mpeg_block_t *this) {
 
     if ((stream_id < 0xbc) || ((stream_id & 0xf0) != 0xe0)) {
       pos += (off_t) this->blocksize;
+      buf->free_buffer (buf);
       continue; /* only use video packets */
     }
-
 
     if (is_mpeg1) {
 
@@ -677,7 +677,7 @@ static int demux_mpeg_block_get_status (demux_plugin_t *this_gen) {
 }
 
 static void demux_mpeg_block_start (demux_plugin_t *this_gen,
-				    fifo_buffer_t *video_fifo, 
+				    fifo_buffer_t *video_fifo,
 				    fifo_buffer_t *audio_fifo,
 				    off_t start_pos, int start_time,
 				    gui_get_next_mrl_cb_t next_mrl_cb,
@@ -735,7 +735,7 @@ static void demux_mpeg_block_start (demux_plugin_t *this_gen,
       start_pos *= (off_t) this->blocksize;
 
       this->input->seek (this->input, start_pos, SEEK_SET);
-    } else 
+    } else
       this->input->seek (this->input, 0, SEEK_SET);
   }
 
@@ -783,7 +783,7 @@ static void demux_mpeg_block_accept_input (demux_mpeg_block_t *this,
     printf ("demux_mpeg_block: mrl %s is new, will estimated bitrate\n",
 	    this->cur_mrl);
 
-  } else 
+  } else
     printf ("demux_mpeg_block: mrl %s is known, estimated bitrate: %d\n",
 	    this->cur_mrl, this->rate * 50 * 8);
 }
@@ -796,23 +796,23 @@ static int demux_mpeg_block_open(demux_plugin_t *this_gen,
   switch(stage) {
 
   case STAGE_BY_CONTENT: {
-    
+
     if((input->get_capabilities(input) & INPUT_CAP_SEEKABLE) != 0) {
-      
+
       this->blocksize = input->get_blocksize(input);
-      
+
       if (!this->blocksize) {
 
 	/* detect blocksize */
 	input->seek(input, 2048, SEEK_SET);
-	if (!input->read(input, this->scratch, 4)) 
+	if (!input->read(input, this->scratch, 4))
 	  return DEMUX_CANNOT_HANDLE;
 
-	if (this->scratch[0] || this->scratch[1] 
+	if (this->scratch[0] || this->scratch[1]
 	    || (this->scratch[2] != 0x01) || (this->scratch[3] != 0xba)) {
 
 	  input->seek(input, 2324, SEEK_SET);
-	  if (!input->read(input, this->scratch, 4)) 
+	  if (!input->read(input, this->scratch, 4))
 	    return DEMUX_CANNOT_HANDLE;
 	  if (this->scratch[0] || this->scratch[1] 
 	      || (this->scratch[2] != 0x01) || (this->scratch[3] != 0xba)) 
