@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_vcd.c,v 1.31 2001/11/18 03:53:23 guenter Exp $
+ * $Id: input_vcd.c,v 1.32 2001/12/09 18:11:34 f1rmb Exp $
  *
  */
 
@@ -1057,10 +1057,15 @@ static char **vcd_plugin_get_autoplay_list (input_plugin_t *this_gen,
   /* printf ("%d tracks\n", this->total_tracks); */
 
   for (i = 1; i < this->total_tracks; i++) { /* FIXME: check if track 0 contains valid data */
+
+    if(this->filelist[i - 1] == NULL)
+      this->filelist[i - 1] = (char *) realloc(this->filelist[i - 1], sizeof(char *) * 256);
+
     sprintf (this->filelist[i - 1], "vcd://%d",i);
     /* printf ("list[%d] : %d %s\n", i, this->filelist[i-1], this->filelist[i-1]);   */
   }
 
+  this->filelist[i - 1] = (char *) realloc(this->filelist[i-1], sizeof(char *));
   this->filelist[i - 1] = NULL;
 
   return this->filelist;
@@ -1106,7 +1111,7 @@ input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
   config     = xine->config;
   
   for (i = 0; i < 100; i++) {
-    this->filelist[i]       = (char *) xine_xmalloc (256);
+    this->filelist[i]       = (char *) xine_xmalloc(sizeof(char *) * 256);
   }
   
   this->input_plugin.interface_version = INPUT_PLUGIN_IFACE_VERSION;

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.37 2001/11/29 12:05:06 miguelfreitas Exp $
+ * $Id: input_dvd.c,v 1.38 2001/12/09 18:11:34 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -674,7 +674,7 @@ static char **dvd_plugin_get_autoplay_list (input_plugin_t *this_gen,
   
   if((fd = open(this->device, O_RDONLY /* | O_NONBLOCK */ )) > -1) {
     int    nFiles3, nFiles2;
-
+    
     UDFListDir (fd, "/VIDEO_TS", MAX_DIR_ENTRIES, this->filelist, &nFiles3);
     
     nFiles2 = 0;
@@ -687,9 +687,13 @@ static char **dvd_plugin_get_autoplay_list (input_plugin_t *this_gen,
 	continue;
 
       if (!strcasecmp (&this->filelist[i][nLen-4], ".VOB")) {
-
+	
+	if(this->filelist2[nFiles2] == NULL)
+	  this->filelist2[nFiles2] = (char *) realloc(this->filelist2[nFiles2], 
+						      sizeof(char *) * 256);
+	
 	sprintf (this->filelist2[nFiles2], "dvd://%s", this->filelist[i]);
-
+	
 	nFiles2++;
       }
 
@@ -697,9 +701,10 @@ static char **dvd_plugin_get_autoplay_list (input_plugin_t *this_gen,
 
     *nFiles = nFiles2;
 
+    this->filelist2[*nFiles] = (char *) realloc(this->filelist2[*nFiles], sizeof(char *));
     this->filelist2[*nFiles] = NULL;
     close (fd);
-
+    
   } else {
     printf ("input_dvd: unable to open dvd drive (%s): %s\n",
             this->device, strerror(errno));
@@ -758,8 +763,8 @@ input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
   config     = xine->config;
   
   for (i = 0; i < MAX_DIR_ENTRIES; i++) {
-    this->filelist[i]       = (char *) xine_xmalloc (256);
-    this->filelist2[i]      = (char *) xine_xmalloc (256);
+    this->filelist[i]       = (char *) xine_xmalloc(sizeof(char *) * 256);
+    this->filelist2[i]       = (char *) xine_xmalloc(sizeof(char *) * 256);
   }
   
   this->input_plugin.interface_version = INPUT_PLUGIN_IFACE_VERSION;

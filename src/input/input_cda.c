@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_cda.c,v 1.3 2001/12/09 13:18:37 jkeil Exp $
+ * $Id: input_cda.c,v 1.4 2001/12/09 18:11:34 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -35,6 +35,7 @@
 #include <pwd.h>
 #include <sys/types.h>
 
+#include <dirent.h>
 #include <sys/stat.h>
 #include <unistd.h>
 #include <errno.h>
@@ -104,6 +105,7 @@ typedef struct {
   int           first_track;
   int           length;
   unsigned long disc_id;
+  int           have_cddb_info;
   char         *title;
   char         *category;
   char         *cdiscid;
@@ -142,6 +144,30 @@ static void _cda_stop_cd(cdainfo_t *);
 /*
  * ******************************** PRIVATES ***************************************
  */
+
+/*
+ *
+ */
+static void _cda_mkdir_safe(char *path) {
+  struct stat  pstat;
+  
+  if(path == NULL)
+    return;
+
+  if((lstat(path, &pstat)) < 0) {
+    /* file or directory no exist, create it */
+    if(mkdir(path, 0755) < 0) {
+      fprintf(stderr, "input_cda: mkdir(%s) failed: %s\n", path, strerror(errno));
+      return;
+    }
+  }
+  else {
+    /* Check of found file is a directory file */
+    if(!S_ISDIR(pstat.st_mode)) {
+      fprintf(stderr, "input_cda: %s is not a directory.\n", path);
+    }
+  }
+}
 
 /*
  * Return user name.
@@ -299,98 +325,100 @@ static int _cda_cddb_handle_code(char *buf) {
 }
 
 /*
- * Try to talk with CDDB server (to retrieve disc/tracks titles).
+ * Try to load cached cddb infos
  */
-static void _cda_cddb_retrieve(cda_input_plugin_t *this) {
-  char  buffer[2048];
-  char *username, *hostname;
-  int   err, i;
+static int _cda_load_cached_cddb_infos(cda_input_plugin_t *this) {
+  char *cachedir = ".xine/cddbcache";
+  char  cdir[PATH_MAX + NAME_MAX + 1];
+  DIR  *dir;
 
-  if((this == NULL) || (this->cddb.fd < 0))
-    return;
-
-  username = _cda_get_username_safe();
-  hostname = _cda_get_hostname_safe();
+  if(this == NULL)
+    return 0;
   
-  memset(&buffer, 0, sizeof(buffer));
-
-  /* Get welcome message */
-  if(_cda_cddb_socket_read(&buffer[0], 2047, this->cddb.fd)) {
-    if((err = _cda_cddb_handle_code(buffer)) >= 0) {
-      /* send hello */
-      memset(&buffer, 0, sizeof(buffer));
-      sprintf(buffer, "cddb hello %s %s xine %s\n", username, hostname, VERSION);
-      if((err = _cda_cddb_send_command(this, buffer)) > 0) {
-	/* Get answer from hello */
-	memset(&buffer, 0, sizeof(buffer));
-	if(_cda_cddb_socket_read(&buffer[0], 2047, this->cddb.fd)) {
-	  /* Parse returned code */
-	  if((err = _cda_cddb_handle_code(buffer)) >= 0) {
-	    /* We are logged, query disc */
-	    memset(&buffer, 0, sizeof(buffer));
-	    sprintf(buffer, "cddb query %08lx %d ", this->cda->disc_id, this->cda->num_tracks);
-	    for(i = 0; i < this->cda->num_tracks; i++) {
-	      sprintf(buffer, "%s%d ", buffer, this->cda->track[i].start);
-	    }
-	    sprintf(buffer, "%s%d\n", buffer, this->cda->track[i].length);
-	    if((err = _cda_cddb_send_command(this, buffer)) > 0) {
-	      memset(&buffer, 0, sizeof(buffer));
-	      if(_cda_cddb_socket_read(&buffer[0], 2047, this->cddb.fd)) {
-		/* Parse returned code */
-		if((err = _cda_cddb_handle_code(buffer)) == 200) {
-		  /* Disc entry exist */
-		  char *m = NULL, *p = buffer;
-		  int   f = 0;
-
-		  while((f <= 2) && ((m = xine_strsep(&p, " ")) != NULL)) {
-		    if(f == 1)
-		      this->cda->category = strdup(m);
-		    else if(f == 2)
-		      this->cda->cdiscid = strdup(m);
-		    f++;
-		  }
-		}
-		
-		/* Now, grab track titles */
-		memset(&buffer, 0, sizeof(buffer));
-		sprintf(buffer, "cddb read %s %s\n", this->cda->category, this->cda->cdiscid);
-		if((err = _cda_cddb_send_command(this, buffer)) > 0) {
-		  /* Get answer from read */
-		  memset(&buffer, 0, sizeof(buffer));
-		  if(_cda_cddb_socket_read(&buffer[0], 2047, this->cddb.fd)) {
-		    /* Great, now we will have track titles */
-		    if((err = _cda_cddb_handle_code(buffer)) == 210) {
-		      char           buf[2048];
-		      unsigned char *pt;
-		      int            tnum;
-		      
-		      while(strcmp(buffer, ".")) {
-			memset(&buffer, 0, sizeof(buffer));
-			_cda_cddb_socket_read(&buffer[0], 2047, this->cddb.fd);
-			if(sscanf(buffer, "DTITLE=%s", &buf[0]) == 1) {
-			  pt = strrchr(buffer, '=');
-			  if(pt) pt++;
-			  this->cda->title = strdup(pt);
-			}
-			else if(sscanf(buffer, "TTITLE%d=%s", &tnum, &buf[0]) == 2) {
-			  pt = strrchr(buffer, '=');
-			  if(pt) pt++;
-			  this->cda->track[tnum].title = strdup(pt);
-			}
-		      }
-		    }
-		  }
-		}
-	      }
-	    }
-	  }	  
+  memset(&cdir, 0, sizeof(cdir));
+  sprintf(cdir, "%s/%s", (xine_get_homedir()), cachedir);
+  
+  if((dir = opendir(cdir)) != NULL) {
+    struct dirent *pdir;
+    
+    while((pdir = readdir(dir)) != NULL) {
+      char discid[9];
+      
+      memset(&discid, 0, sizeof(discid));
+      sprintf(discid, "%08lx", this->cda->disc_id);
+     
+      if(!strcasecmp(pdir->d_name, discid)) {
+	FILE *fd;
+	
+	sprintf(cdir, "%s/%s", cdir, discid);
+	if((fd = fopen(cdir, "r")) == NULL) {
+	  fprintf(stderr, "input_cda: fopen(%s) failed: %s\n", cdir, strerror(errno));
+	  closedir(dir);
+	  return 0;
 	}
+	else {
+	  char buffer[256], *ln, *pt;
+	  char buf[256];
+	  int  tnum;
+	  
+	  while((ln = fgets(buffer, 255, fd)) != NULL) {
+
+	    buffer[strlen(buffer) - 1] = '\0';
+	    
+	    if(sscanf(buffer, "DTITLE=%s", &buf[0]) == 1) {
+	      pt = strrchr(buffer, '=');
+	      if(pt) pt++;
+	      this->cda->title = strdup(pt);
+	    }
+	    else if(sscanf(buffer, "TTITLE%d=%s", &tnum, &buf[0]) == 2) {
+	      pt = strrchr(buffer, '=');
+	      if(pt) pt++;
+	      this->cda->track[tnum].title = strdup(pt);
+	    }
+
+	  }
+	  fclose(fd);
+	}
+	
+	closedir(dir);
+	return 1;
       }
     }
+    closedir(dir);
   }
   
-  free(username);
-  free(hostname);
+  return 0;
+}
+
+/*
+ * Save cddb grabbed infos.
+ */
+static void _cda_save_cached_cddb_infos(cda_input_plugin_t *this, char *filecontent) {
+  char  *cachedir = ".xine/cddbcache";
+  char   cfile[PATH_MAX + NAME_MAX + 1];
+  FILE  *fd;
+  
+  if((this == NULL) || (filecontent == NULL))
+    return;
+  
+  memset(&cfile, 0, sizeof(cfile));
+
+  /* Ensure "~/.xine/cddbcache" exist */
+  sprintf(cfile, "%s/%s", (xine_get_homedir()), cachedir);
+
+  _cda_mkdir_safe(cfile);
+  
+  sprintf(cfile, "%s/%s/%08lx", (xine_get_homedir()), cachedir, this->cda->disc_id);
+  
+  if((fd = fopen(cfile, "w")) == NULL) {
+    fprintf(stderr, "input_cda: fopen(%s) failed: %s\n", cfile, strerror(errno));
+    return;
+  }
+  else {
+    fprintf(fd, filecontent);
+    fclose(fd);
+  }
+  
 }
 
 /*
@@ -456,6 +484,138 @@ static void _cda_cddb_socket_close(cda_input_plugin_t *this) {
 }
 
 /*
+ * Try to talk with CDDB server (to retrieve disc/tracks titles).
+ */
+static void _cda_cddb_retrieve(cda_input_plugin_t *this) {
+  char  buffer[2048];
+  char *username, *hostname;
+  int   err, i;
+
+  if(this == NULL)
+    return;
+  
+  if(_cda_load_cached_cddb_infos(this)) {
+#ifdef DEBUG
+    int j;
+    
+    printf("We already have infos\n");
+    printf("Title: '%s'\n", this->cda->title);
+    for(j=0;j<this->cda->num_tracks;j++)
+      printf("Track %2d: '%s'\n", j, this->cda->track[j].title);
+#endif
+    return;
+  }
+  else {
+    
+    this->cddb.fd = _cda_cddb_socket_open(this);
+    if(this->cddb.fd >= 0) {
+      printf("input_cda: server '%s:%d' successfuly connected.\n", 
+	     this->cddb.server, this->cddb.port);
+      
+    }
+    else {
+      printf("input_cda: opening server '%s:%d' failed: %s\n", 
+	     this->cddb.server, this->cddb.port, strerror(errno));
+      this->cda->have_cddb_info = 0;
+      return;
+    }
+    
+    username = _cda_get_username_safe();
+    hostname = _cda_get_hostname_safe();
+    
+    memset(&buffer, 0, sizeof(buffer));
+    
+    /* Get welcome message */
+    if(_cda_cddb_socket_read(&buffer[0], 2047, this->cddb.fd)) {
+      if((err = _cda_cddb_handle_code(buffer)) >= 0) {
+	/* send hello */
+	memset(&buffer, 0, sizeof(buffer));
+	sprintf(buffer, "cddb hello %s %s xine %s\n", username, hostname, VERSION);
+	if((err = _cda_cddb_send_command(this, buffer)) > 0) {
+	  /* Get answer from hello */
+	  memset(&buffer, 0, sizeof(buffer));
+	  if(_cda_cddb_socket_read(&buffer[0], 2047, this->cddb.fd)) {
+	    /* Parse returned code */
+	    if((err = _cda_cddb_handle_code(buffer)) >= 0) {
+	      /* We are logged, query disc */
+	      memset(&buffer, 0, sizeof(buffer));
+	      sprintf(buffer, "cddb query %08lx %d ", this->cda->disc_id, this->cda->num_tracks);
+	      for(i = 0; i < this->cda->num_tracks; i++) {
+		sprintf(buffer, "%s%d ", buffer, this->cda->track[i].start);
+	      }
+	      sprintf(buffer, "%s%d\n", buffer, this->cda->track[i].length);
+	      if((err = _cda_cddb_send_command(this, buffer)) > 0) {
+		memset(&buffer, 0, sizeof(buffer));
+		if(_cda_cddb_socket_read(&buffer[0], 2047, this->cddb.fd)) {
+		  /* Parse returned code */
+		  if((err = _cda_cddb_handle_code(buffer)) == 200) {
+		    /* Disc entry exist */
+		    char *m = NULL, *p = buffer;
+		    int   f = 0;
+		    
+		    while((f <= 2) && ((m = xine_strsep(&p, " ")) != NULL)) {
+		      if(f == 1)
+			this->cda->category = strdup(m);
+		      else if(f == 2)
+			this->cda->cdiscid = strdup(m);
+		      f++;
+		    }
+		  }
+		  
+		  /* Now, grab track titles */
+		  memset(&buffer, 0, sizeof(buffer));
+		  sprintf(buffer, "cddb read %s %s\n", this->cda->category, this->cda->cdiscid);
+		  if((err = _cda_cddb_send_command(this, buffer)) > 0) {
+		    /* Get answer from read */
+		    memset(&buffer, 0, sizeof(buffer));
+		    if(_cda_cddb_socket_read(&buffer[0], 2047, this->cddb.fd)) {
+		      /* Great, now we will have track titles */
+		      if((err = _cda_cddb_handle_code(buffer)) == 210) {
+			char           buf[2048];
+			unsigned char *pt;
+			int            tnum;
+			char           buffercache[32768];
+			
+			this->cda->have_cddb_info = 1;
+			memset(&buffercache, 0, sizeof(buffercache));
+						
+			while(strcmp(buffer, ".")) {
+			  memset(&buffer, 0, sizeof(buffer));
+			  _cda_cddb_socket_read(&buffer[0], 2047, this->cddb.fd);
+
+			  sprintf(buffercache, "%s%s\n", buffercache, buffer);
+			  
+			  if(sscanf(buffer, "DTITLE=%s", &buf[0]) == 1) {
+			    pt = strrchr(buffer, '=');
+			    if(pt) pt++;
+			    this->cda->title = strdup(pt);
+			  }
+			  else if(sscanf(buffer, "TTITLE%d=%s", &tnum, &buf[0]) == 2) {
+			    pt = strrchr(buffer, '=');
+			    if(pt) pt++;
+			    this->cda->track[tnum].title = strdup(pt);
+			  }
+			}
+			/* Save grabbed info */
+			_cda_save_cached_cddb_infos(this, buffercache);
+		      }
+		    }
+		  }
+		}
+	      }
+	    }	  
+	  }
+	}
+      }
+    }
+    _cda_cddb_socket_close(this);
+    free(username);
+    free(hostname);
+  }
+ 
+}
+
+/*
  * 
  */
 static unsigned int _cda_cddb_sum(int n) {
@@ -480,7 +640,7 @@ static unsigned long _cda_calc_cddb_id(cdainfo_t *cda) {
   for(i = 0; i < cda->num_tracks; i++)
     tsum += _cda_cddb_sum((cda->track[i].start / 75));
   
-  return ((tsum % 0xff) << 24 
+  return ((tsum % 0xff) << 24
 	  | (cda->track[cda->num_tracks].length - (cda->track[0].start / 75)) << 8 
 	  | cda->num_tracks);
 }
@@ -504,23 +664,40 @@ static void _cda_cbbd_grab_infos(cda_input_plugin_t *this) {
   if(this == NULL)
     return;
 
-  this->cddb.fd = _cda_cddb_socket_open(this);
-  if(this->cddb.fd >= 0) {
-    printf("input_cda: server '%s:%d' successfuly connected.\n", 
-	   this->cddb.server, this->cddb.port);
+  _cda_cddb_retrieve(this);
 
-    _cda_cddb_retrieve(this);
-  }
-  else
-    printf("input_cda: opening server '%s:%d' failed: %s\n", 
-	   this->cddb.server, this->cddb.port, strerror(errno));
-  
-  _cda_cddb_socket_close(this);
 }
 
 /*
  * **************** CDDB END *********************
  */
+
+/*
+ * Return 1 if CD has been changed, 0 of not, -1 on error.
+ */
+static int _cda_is_cd_changed(cdainfo_t *cda) {
+  int err, cd_changed=0;
+
+  if(cda == NULL || cda->fd < 0)
+    return -1;
+  
+  if((err = ioctl(cda->fd, CDROM_MEDIA_CHANGED, cd_changed)) < 0) {
+    fprintf(stderr, "input_cda: ioctl(CDROM_MEDIA_CHANGED) failed: %s.\n", strerror(errno));
+    return -1;
+  }
+  
+  switch(err) {
+  case 1:
+    return 1;
+    break;
+    
+  default:
+    return 0;
+    break;
+  }
+
+  return -1;
+}
 
 /*
  * Get CDA status (pos, cur track, status)
@@ -550,8 +727,8 @@ static int _cda_get_status_cd(cdainfo_t *cda) {
     fprintf(stderr, "input_cda: ioctl(CDROMSUBCHNL) failed: %s.\n", strerror(errno));
     return 0;
   }
-  
-  switch (sc.cdsc_audiostatus) {
+
+  switch(sc.cdsc_audiostatus) {
   case CDROM_AUDIO_PLAY:
     cda->status = CDA_PLAY;
     
@@ -818,35 +995,38 @@ static int _cda_read_toc_cd(cdainfo_t *cda) {
   struct cdrom_tocentry	entry;
   int			i, pos;
   
+
   if(ioctl(cda->fd, CDROMREADTOCHDR, &hdr)) {
     fprintf(stderr, "input_cda: ioctl(CDROMREADTOCHDR) failed: %s.\n", strerror(errno));
     return 0;
   }
-
+  
   cda->first_track = hdr.cdth_trk0;
   cda->num_tracks  = hdr.cdth_trk1;
-
+  
   if(cda->track) {
     /* Freeing old track/disc titles */
     for(i = 0; i < cda->num_tracks; i++) {
       if(cda->track[i].title)
 	free(cda->track[i].title);
     }
-
+    
     if(cda->title)
       free(cda->title);
-
+    
     if(cda->category)
       free(cda->category);
-
+    
     if(cda->cdiscid)
       free(cda->cdiscid);
-
+    
+    cda->have_cddb_info = 0;
+    
     cda->track = (trackinfo_t *) realloc(cda->track, (cda->num_tracks + 1) * sizeof(trackinfo_t));
   }
   else
     cda->track = (trackinfo_t *) malloc((cda->num_tracks + 1) * sizeof(trackinfo_t));
-
+  
   for(i = 0; i <= cda->num_tracks; i++) {
     if(i == cda->num_tracks)
       entry.cdte_track = CDROM_LEADOUT;
@@ -885,7 +1065,7 @@ static int _cda_read_toc_cd(cdainfo_t *cda) {
   printf("Disc have %d track(s), first track is %d, length %d (%02d:%02d:%02d)\n", 
 	 cda->num_tracks, cda->first_track, 
 	 cda->length, (cda->length / (60 * 60)), ((cda->length / 60) % 60), (cda->length %60));
-
+  
   { /* CDDB infos */
     int t;
     printf("CDDB disc ID is %08lx\n", cda->disc_id);
@@ -895,7 +1075,7 @@ static int _cda_read_toc_cd(cdainfo_t *cda) {
     }
     printf("%d\n", cda->track[t].length);
   }
-
+  
   for(i = 0; i < cda->num_tracks; i++) {
     printf("Track %2d, %s type, length %3d seconds(%02d:%02d:%02d), start at %3d secs\n", 
 	   i, 
@@ -1024,13 +1204,14 @@ static int cda_plugin_open (input_plugin_t *this_gen, char *mrl) {
     return 0;
   }
 
-  if(!_cda_read_toc_cd(this->cda)) {
-    _cda_free_cda(this->cda);
-    return 0;
+  if((_cda_is_cd_changed(this->cda) == 1) && (this->cda->num_tracks)) {
+    if(!_cda_read_toc_cd(this->cda)) {
+      _cda_free_cda(this->cda);
+      return 0;
+    }
+    _cda_cbbd_grab_infos(this);
   }
 
-  _cda_cbbd_grab_infos(this);
-  
   filename = (char *) &mrl[6];
   
   if(sscanf(filename, "%d", &this->cda->cur_track) != 1) {
@@ -1234,7 +1415,9 @@ static mrl_t **cda_plugin_get_dir (input_plugin_t *this_gen,
   if(!this->cda->num_tracks)
     return NULL;
   
-  _cda_cbbd_grab_infos(this);
+  if((this->cda->have_cddb_info == 0) || (_cda_is_cd_changed(this->cda) == 1)) {
+    _cda_cbbd_grab_infos(this);
+  }
 
   *nEntries = this->cda->num_tracks;
   
@@ -1307,14 +1490,22 @@ static char **cda_plugin_get_autoplay_list (input_plugin_t *this_gen, int *nFile
   if(!this->cda->num_tracks)
     return NULL;
   
-  _cda_cbbd_grab_infos(this);
+  if((this->cda->have_cddb_info == 0) || (_cda_is_cd_changed(this->cda) == 1)) {
+    _cda_cbbd_grab_infos(this);
+  }
 
   *nFiles = this->cda->num_tracks;
   
-  for(i = 1; i <= this->cda->num_tracks; i++)
-    sprintf (this->filelist[i-1], "cda://%d",i);
+  for(i = 1; i <= this->cda->num_tracks; i++) {
+    
+    if(this->filelist[i - 1] == NULL)
+      this->filelist[i - 1] = (char *) realloc(this->filelist[i - 1], sizeof(char *) * 256);
+    
+    sprintf (this->filelist[i - 1], "cda://%d",i);
+  }
   
-  this->filelist[i-1] = NULL;
+  this->filelist[i - 1] = (char *) realloc(this->filelist[i - 1], sizeof(char *));
+  this->filelist[i - 1] = NULL;
   
   return this->filelist;
 }
@@ -1357,7 +1548,7 @@ input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
   config     = xine->config;
 
   for (i = 0; i < 100; i++) {
-    this->filelist[i]       = (char *) xine_xmalloc (256);
+    this->filelist[i]       = (char *) xine_xmalloc(sizeof(char *) * 256);
   }
   
   this->input_plugin.interface_version  = INPUT_PLUGIN_IFACE_VERSION;
