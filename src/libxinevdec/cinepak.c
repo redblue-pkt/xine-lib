@@ -22,7 +22,7 @@
  * based on overview of Cinepak algorithm and example decoder
  * by Tim Ferguson: http://www.csse.monash.edu.au/~timf/
  *
- * $Id: cinepak.c,v 1.17 2002/10/23 19:25:44 jkeil Exp $
+ * $Id: cinepak.c,v 1.18 2002/11/04 00:33:32 tmmm Exp $
  */
 
 #include <stdlib.h>
@@ -58,7 +58,7 @@ typedef struct {
 typedef struct cvid_decoder_s {
   video_decoder_t   video_decoder;
 
-  cvid_class_t       *class;
+  cvid_class_t     *class;
 
   xine_stream_t    *stream;
   int64_t           video_step;
@@ -76,6 +76,7 @@ typedef struct cvid_decoder_s {
 } cvid_decoder_t;
 
 static unsigned char     yuv_palette[256 * 4];
+static int color_depth;
 
 static void cinepak_decode_codebook (cvid_codebook_t *codebook,
 				     int chunk_id, int size, uint8_t *data)
@@ -109,7 +110,8 @@ static void cinepak_decode_codebook (cvid_codebook_t *codebook,
         codebook[i].y3 = *data++;
         codebook[i].u  = 128 + *data++;
         codebook[i].v  = 128 + *data++;
-      } else {
+      } else if (color_depth == 8) {
+        /* if color depth is 8, this codebook type indicates palette lookup */
         codebook[i].y0 = yuv_palette[*(data + 0) * 4];
         codebook[i].y1 = yuv_palette[*(data + 1) * 4];
         codebook[i].y2 = yuv_palette[*(data + 2) * 4];
@@ -125,6 +127,14 @@ static void cinepak_decode_codebook (cvid_codebook_t *codebook,
            yuv_palette[*(data + 2) * 4 + 2] +
            yuv_palette[*(data + 3) * 4 + 2]) / 4;
         data += 4;
+      } else {
+        /* if color depth is 40, this codebook type indicates greyscale */
+        codebook[i].y0 = *data++;
+        codebook[i].y1 = *data++;
+        codebook[i].y2 = *data++;
+        codebook[i].y3 = *data++;
+        codebook[i].u  = 128;
+        codebook[i].v  = 128;
       }
     }
   }
@@ -356,6 +366,8 @@ static void cvid_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
     this->bufsize = VIDEOBUFSIZE;
     this->buf = malloc(this->bufsize);
     this->size = 0;
+
+    color_depth = bih->biBitCount;
 
     this->stream->video_out->open (this->stream->video_out);
     this->decoder_ok = 1;
