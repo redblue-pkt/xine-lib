@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.37 2001/08/14 11:57:40 guenter Exp $
+ * $Id: video_decoder.c,v 1.38 2001/08/15 11:35:47 f1rmb Exp $
  *
  */
 
@@ -26,6 +26,7 @@
 #endif
 
 #include "xine_internal.h"
+#include "monitor.h"
 #include <sched.h>
 
 static spu_decoder_t* update_spu_decoder(xine_t *this, int type) {

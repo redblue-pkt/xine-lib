@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.27 2001/08/14 11:57:40 guenter Exp $
+ * $Id: audio_decoder.c,v 1.28 2001/08/15 11:35:47 f1rmb Exp $
  *
  *
  * functions that implement audio decoding
@@ -28,6 +28,7 @@
 #endif
 
 #include "xine_internal.h"
+#include "monitor.h"
 #include <sched.h>
 
 void *audio_decoder_loop (void *this_gen) {
