@@ -21,7 +21,7 @@
  * This demuxer detects raw AC3 data in a file and shovels AC3 data
  * directly to the AC3 decoder.
  *
- * $Id: demux_ac3.c,v 1.2 2003/01/23 15:10:55 tmmm Exp $
+ * $Id: demux_ac3.c,v 1.3 2003/01/29 03:36:04 tmmm Exp $
  *
  */
 
@@ -42,6 +42,8 @@
 #include "buffer.h"
 #include "bswap.h"
 
+#define AC3_PREAMBLE_BYTES 5
+
 typedef struct {
 
   demux_plugin_t       demux_plugin;
@@ -56,6 +58,11 @@ typedef struct {
   input_plugin_t      *input;
 
   int                  status;
+  int                  seek_flag;
+
+  int                  sample_rate;  /* 0 = 48KHz, 1 = 44.1KHz, 2 = 32KHz */
+  int                  frame_size;
+  int                  running_time;
 
   char                 last_mrl[1024];
 } demux_ac3_t;
@@ -70,21 +77,91 @@ typedef struct {
   config_values_t  *config;
 } demux_ac3_class_t;
 
+/* borrow some knowledge from the AC3 decoder */
+struct frmsize_s
+{
+  uint16_t bit_rate;
+  uint16_t frm_size[3];
+};
+
+static const struct frmsize_s frmsizecod_tbl[64] =
+{
+  { 32  ,{64   ,69   ,96   } },
+  { 32  ,{64   ,70   ,96   } },
+  { 40  ,{80   ,87   ,120  } },
+  { 40  ,{80   ,88   ,120  } },
+  { 48  ,{96   ,104  ,144  } },
+  { 48  ,{96   ,105  ,144  } },
+  { 56  ,{112  ,121  ,168  } },
+  { 56  ,{112  ,122  ,168  } },
+  { 64  ,{128  ,139  ,192  } },
+  { 64  ,{128  ,140  ,192  } },
+  { 80  ,{160  ,174  ,240  } },
+  { 80  ,{160  ,175  ,240  } },
+  { 96  ,{192  ,208  ,288  } },
+  { 96  ,{192  ,209  ,288  } },
+  { 112 ,{224  ,243  ,336  } },
+  { 112 ,{224  ,244  ,336  } },
+  { 128 ,{256  ,278  ,384  } },
+  { 128 ,{256  ,279  ,384  } },
+  { 160 ,{320  ,348  ,480  } },
+  { 160 ,{320  ,349  ,480  } },
+  { 192 ,{384  ,417  ,576  } },
+  { 192 ,{384  ,418  ,576  } },
+  { 224 ,{448  ,487  ,672  } },
+  { 224 ,{448  ,488  ,672  } },
+  { 256 ,{512  ,557  ,768  } },
+  { 256 ,{512  ,558  ,768  } },
+  { 320 ,{640  ,696  ,960  } },
+  { 320 ,{640  ,697  ,960  } },
+  { 384 ,{768  ,835  ,1152 } },
+  { 384 ,{768  ,836  ,1152 } },
+  { 448 ,{896  ,975  ,1344 } },
+  { 448 ,{896  ,976  ,1344 } },
+  { 512 ,{1024 ,1114 ,1536 } },
+  { 512 ,{1024 ,1115 ,1536 } },
+  { 576 ,{1152 ,1253 ,1728 } },
+  { 576 ,{1152 ,1254 ,1728 } },
+  { 640 ,{1280 ,1393 ,1920 } },
+  { 640 ,{1280 ,1394 ,1920 } }
+};
+
 /* returns 1 if the AC3 file was opened successfully, 0 otherwise */
 static int open_ac3_file(demux_ac3_t *this) {
 
-  unsigned char sync_mark[2];
+  unsigned char preamble[AC3_PREAMBLE_BYTES];
 
   /* check if the sync mark matches up */
   this->input->seek(this->input, 0, SEEK_SET);
-  if (this->input->read(this->input, sync_mark, 2) != 2)
+  if (this->input->read(this->input, preamble, AC3_PREAMBLE_BYTES) != 
+    AC3_PREAMBLE_BYTES)
     return 0;
 
-  if ((sync_mark[0] == 0x0B) &&
-      (sync_mark[1] == 0x77))
-    return 1;
-  else
+  if ((preamble[0] != 0x0B) ||
+      (preamble[1] != 0x77))
     return 0;
+
+  this->sample_rate = preamble[4] >> 6;
+  if (this->sample_rate > 2)
+    return 0;
+
+  this->frame_size = 
+    frmsizecod_tbl[preamble[4] & 0x3F].frm_size[this->sample_rate];
+
+  /* convert the sample rate to a more useful number */
+  if (this->sample_rate == 0)
+    this->sample_rate = 48000;
+  else if (this->sample_rate == 1)
+    this->sample_rate = 44100;
+  else
+    this->sample_rate = 32000;
+
+  this->running_time = this->input->get_length(this->input);
+  this->running_time /= this->frame_size;
+  this->running_time *= (90000 / 1000) * (256 * 3);
+  this->running_time /= this->sample_rate;
+
+  return 1;
 }
 
 static int demux_ac3_send_chunk (demux_plugin_t *this_gen) {
@@ -94,26 +171,41 @@ static int demux_ac3_send_chunk (demux_plugin_t *this_gen) {
   off_t current_file_pos;
   int64_t audio_pts;
   int bytes_read;
+  int frame_number;
 
   current_file_pos = this->input->get_current_pos(this->input);
+  frame_number = current_file_pos / this->frame_size;
 
-  /* let the decoder sort out the pts for now */
-  audio_pts = 0;
+  /* 
+   * Each frame represents 256 new audio samples according to the a52 spec.
+   * Thus, the pts computation should work something like:
+   *
+   *   pts = frame #  *  256 samples        1 sec        90000 pts
+   *                     -----------  *  -----------  *  ---------
+   *                       1 frame       sample rate       1 sec
+   *
+   * For some reason, the computation only works out correctly
+   * assuming 256 * 3 = 768 samples/frame.
+   */
+  audio_pts = frame_number;
+  audio_pts *= 90000;
+  audio_pts *= 256 * 3;
+  audio_pts /= this->sample_rate;
 
-  /* read a buffer-sized block from the stream; if there is less than a
-   * buffer of data, send whatever there is; if there are no bytes returned,
-   * demux is finished */
+  if (this->seek_flag) {
+    xine_demux_control_newpts(this->stream, audio_pts, 0);
+    this->seek_flag = 0;
+  }
+
   buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
   buf->type = BUF_AUDIO_A52;
-  bytes_read = this->input->read(this->input, buf->content, buf->max_size);
+  bytes_read = this->input->read(this->input, buf->content, this->frame_size);
   if (bytes_read == 0) {
     buf->free_buffer(buf);
     this->status = DEMUX_FINISHED;
     return this->status;
-  } else if (bytes_read < buf->max_size)
-    buf->size = bytes_read;
-  else
-    buf->size = buf->max_size;
+  }
+  buf->size = bytes_read;
 
   buf->extra_info->input_pos = current_file_pos;
   buf->extra_info->input_length = this->input->get_length(this->input);
@@ -158,17 +250,15 @@ static int demux_ac3_seek (demux_plugin_t *this_gen,
 
   demux_ac3_t *this = (demux_ac3_t *) this_gen;
 
-  /* if thread is not running, initialize demuxer */
-  if( !this->stream->demux_thread_running ) {
+  /* divide the requested offset integer-wise by the frame alignment and
+   * multiply by the frame alignment to determine the new starting block */
+  start_pos /= this->frame_size;
+  start_pos *= this->frame_size;
+  this->input->seek(this->input, start_pos, SEEK_SET);
 
-    /* send new pts */
-    xine_demux_control_newpts(this->stream, 0, 0);
-
-    this->status = DEMUX_OK;
-
-    /* start at the beginning of the file */
-    this->input->seek(this->input, 0, SEEK_SET);
-  }
+  this->seek_flag = 1;
+  this->status = DEMUX_OK;
+  xine_demux_flush_engine (this->stream);
 
   return this->status;
 }
@@ -185,12 +275,12 @@ static int demux_ac3_get_status (demux_plugin_t *this_gen) {
   return this->status;
 }
 
-/* return the approximate length in miliseconds */
+/* return the approximate length in milliseconds */
 static int demux_ac3_get_stream_length (demux_plugin_t *this_gen) {
 
   demux_ac3_t *this = (demux_ac3_t *) this_gen;
 
-  return 0;
+  return this->running_time;
 }
 
 static uint32_t demux_ac3_get_capabilities(demux_plugin_t *this_gen) {
