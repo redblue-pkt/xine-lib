@@ -67,6 +67,16 @@ check that <prefix>/bin is in your path and your linker will find
 libs installed in </prefix>/lib.
 
 
+xine-lib installed nicely but xine-ui complains about not finding xine-lib
+--------------------------------------------------------------------------
+
+make sure <prefix>/bin is in your path and the linker is able to find
+libraries installed in <prefix>/lib, where <prefix> is where you installed
+xine-lib (yes, you have to "make install" xine-lib first before you
+can compile xine-ui). See previous question for details about how to
+properly compile and install xine-lib and xine-ui.
+
+
 how can I supply additional CFLAGS for the compilation ?
 --------------------------------------------------------
 
