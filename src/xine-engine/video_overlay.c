@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_overlay.c,v 1.10 2002/01/05 19:09:55 jcdutton Exp $
+ * $Id: video_overlay.c,v 1.11 2002/01/06 19:18:27 jcdutton Exp $
  *
  */
 
@@ -275,6 +275,7 @@ static int32_t video_overlay_add_event(video_overlay_instance_t *this_gen,  void
     this->video_overlay_events[new_event].event->event_type=event->event_type;
     this->video_overlay_events[new_event].event->vpts=event->vpts;
     this->video_overlay_events[new_event].event->object.handle=event->object.handle;
+    this->video_overlay_events[new_event].event->object.pts=event->object.pts;
 
     if ( this->video_overlay_events[new_event].event->object.overlay ) {
       fprintf(stderr,"video_overlay: error: event->object.overlay was not freed!\n");
@@ -351,6 +352,8 @@ static void video_overlay_event( video_overlay_t *this, int vpts ) {
           }
           this->video_overlay_objects[handle].overlay = 
              this->video_overlay_events[this_event].event->object.overlay;
+          this->video_overlay_objects[handle].pts = 
+             this->video_overlay_events[this_event].event->object.pts;
           this->video_overlay_events[this_event].event->object.overlay = NULL;
         
           add_showing_handle( this, handle );
@@ -488,23 +491,12 @@ static void video_overlay_event( video_overlay_t *this, int vpts ) {
 #ifdef LOG_DEBUG
         printf ("MENU BUTTON NOW\n");
 #endif
-        if (this->video_overlay_events[this_event].event->object.overlay != NULL) {
+        if ( (this->video_overlay_events[this_event].event->object.overlay != NULL) &&
+             (this->video_overlay_objects[handle].overlay) &&
+             (this->video_overlay_events[this_event].event->object.pts == 
+                this->video_overlay_objects[handle].pts) ) {
           vo_overlay_t *overlay = this->video_overlay_objects[handle].overlay;
           vo_overlay_t *event_overlay = this->video_overlay_events[this_event].event->object.overlay;
-          
-          if( !this->video_overlay_objects[handle].overlay ) {
-            fprintf(stderr,"video_overlay: error: button event received and no overlay allocated.\n");
-            if( this->video_overlay_events[this_event].event->object.overlay->rle ) {
-              printf ("video_overlay: warning EVENT_MENU_BUTTON with rle data\n");
-              free( this->video_overlay_events[this_event].event->object.overlay->rle );
-            }
-            
-            /* The null test was done at the start of this case statement */
-            free (this->video_overlay_events[this_event].event->object.overlay);
-            this->video_overlay_events[this_event].event->object.overlay = NULL;
-            break;
-          }
-               
           this->video_overlay_objects[handle].handle = handle;
           overlay->clip_top = event_overlay->clip_top;
           overlay->clip_bottom = event_overlay->clip_bottom;
@@ -530,13 +522,21 @@ static void video_overlay_event( video_overlay_t *this, int vpts ) {
             overlay->trans[3] = event_overlay->trans[3];
           }
           add_showing_handle( this, handle );
+        }
+        if ( (this->video_overlay_events[this_event].event->object.pts != 
+                this->video_overlay_objects[handle].pts) ) {
+          printf ("MENU BUTTON DROPPED menu pts=%u spu pts=%u\n",      
+            this->video_overlay_events[this_event].event->object.pts,
+            this->video_overlay_objects[handle].pts);
+        }
 
-          if( this->video_overlay_events[this_event].event->object.overlay->rle ) {
-            printf ("video_overlay: warning EVENT_MENU_BUTTON with rle data\n");
-            free( this->video_overlay_events[this_event].event->object.overlay->rle );
-          }
+        if( this->video_overlay_events[this_event].event->object.overlay->rle ) {
+          printf ("video_overlay: warning EVENT_MENU_BUTTON with rle data\n");
+          free( this->video_overlay_events[this_event].event->object.overlay->rle );
+          this->video_overlay_events[this_event].event->object.overlay->rle = NULL;
+        }
             
-          /* The null test was done at the start of this case statement */
+        if (this->video_overlay_events[this_event].event->object.overlay != NULL) {
           free (this->video_overlay_events[this_event].event->object.overlay);
           this->video_overlay_events[this_event].event->object.overlay = NULL;
         }

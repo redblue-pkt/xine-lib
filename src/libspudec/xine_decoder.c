@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.52 2002/01/06 18:27:47 jcdutton Exp $
+ * $Id: xine_decoder.c,v 1.53 2002/01/06 19:18:27 jcdutton Exp $
  *
  * stuff needed to turn libspu into a xine decoder plugin
  */
@@ -250,6 +250,7 @@ static void spu_process (spudec_decoder_t *this, uint32_t stream_id) {
           return;
         }
         this->event.object.handle = this->menu_handle;
+        this->event.object.pts = this->spu_stream_state[stream_id].pts;
 
 /******************************* 
         if( this->spu_stream_state[stream_id].overlay_handle < 0 ) {
@@ -275,12 +276,12 @@ static void spu_process (spudec_decoder_t *this, uint32_t stream_id) {
         }
         
         this->event.event_type = this->state.visible;
-        
         /* event hide event must free the handle after use */
+/******************************        
         if( this->event.event_type == EVENT_HIDE_SPU ) {
           this->spu_stream_state[stream_id].overlay_handle = -1;
         }
-                  
+*******************************/
         /*
         printf("spu event %d handle: %d vpts: %d\n", this->event.event_type,
            this->event.object.handle, this->event.vpts ); 
@@ -295,6 +296,7 @@ static void spu_process (spudec_decoder_t *this, uint32_t stream_id) {
           return;
         }
         this->event.object.handle = this->menu_handle;
+        this->event.object.pts = this->menu_handle;
         
         xine_fast_memcpy(this->event.object.overlay, 
                &this->overlay,
@@ -590,6 +592,7 @@ static void spudec_event_listener(void *this_gen, xine_event_t *event_gen) {
       
       if (but->show) {
         overlay_event->object.handle = this->menu_handle;
+        overlay_event->object.pts = but->pts;
         overlay_event->object.overlay=overlay;
         overlay_event->event_type = EVENT_MENU_BUTTON;
         printf ("libspudec:xine_decoder.c:spudec_event_listener:buttonN = %u\n",
