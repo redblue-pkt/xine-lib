@@ -4,9 +4,9 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: xine-lib 1.0.0\n"
+"Project-Id-Version: xine-lib 1.0.0rc2\n"
 "POT-Creation-Date: 2003-10-25 01:29+0000\n"
-"PO-Revision-Date: 2003-10-10 22:36+0100\n"
+"PO-Revision-Date: 2003-11-04 22:36+0100\n"
 "Last-Translator: Philipp Hahn <pmhahn@users.sf.net>\n"
 "Language-Team: German <de@li.org>\n"
 "MIME-Version: 1.0\n"
@@ -1047,7 +1047,7 @@ msgstr ""
 #: src/xine-engine/configfile.c:969
 #, c-format
 msgid "configfile: entry '%s' mustn't be modified from MRL\n"
-msgstr ""
+msgstr "configfile: Eintrag '%s' darf nicht per MRL geändert werden\n"
 
 #: src/xine-engine/input_rip.c:125 src/xine-engine/input_rip.c:250
 #, c-format
@@ -1091,12 +1091,16 @@ msgid ""
 "input_rip: target directory wasn't specified, please fill out the option "
 "'misc.save_dir'\n"
 msgstr ""
+"input_rip: Zielverzeichnis nicht angegeben, bitte die Option 'misc.save_dir' "
+"angeben\n"
 
 #: src/xine-engine/input_rip.c:544
 msgid ""
 "The stream save feature is disabled until you set misc.save_dir in the "
 "configuration."
 msgstr ""
+"Das Abspeichern von Datenströmen ist solange deaktiviert, bis misc.save_dir "
+"in der Konfiguration gesetzt ist."
 
 #: src/xine-engine/input_rip.c:550
 msgid "input_rip: ripping/caching is not permitted!\n"
@@ -1243,12 +1247,12 @@ msgstr "xine: Letztes Demultiplexer-Plugins %s startete nicht\n"
 
 #: src/xine-engine/xine.c:801
 msgid "xine: error while parsing MRL\n"
-msgstr ""
+msgstr "xine: Fehler beim parsen der MRL\n"
 
 #: src/xine-engine/xine.c:805
 #, c-format
 msgid "xine: changing option '%s' from MRL isn't permitted\n"
-msgstr ""
+msgstr "xine: Das Ändern der Option '%s' per MRL ist verboten\n"
 
 #: src/xine-engine/xine.c:826
 #, c-format
@@ -1270,23 +1274,23 @@ msgstr "xine_play: Demultiplexer startete nicht\n"
 #: src/xine-engine/xine.c:1234
 #, c-format
 msgid "xine: The specified save_dir \"%s\" might be a security risk.\n"
-msgstr ""
+msgstr "xine: Das angegebene save_dir '%s' kann ein Sicherheitsproblem sein.\n"
 
 #: src/xine-engine/xine.c:1238
 msgid "The specified save_dir might be a security risk."
-msgstr ""
+msgstr "Das angegebene save_dir kann ein Sicherheitsproblem sein."
 
 #: src/xine-engine/xine.c:1273
 msgid "Media format detection strategy"
-msgstr ""
+msgstr "Medienformaterkennungsstrategie"
 
 #: src/xine-engine/xine.c:1283
 msgid "Path for saving streams"
-msgstr ""
+msgstr "Pfad zum Sichen von Datenströmen"
 
 #: src/xine-engine/xine.c:1284
 msgid "Streams will be saved only into this directory"
-msgstr ""
+msgstr "Datenströme werden nur in dieses Verzeichnis gesichert"
 
 #: src/xine-engine/xine.c:1577
 msgid "messages"
