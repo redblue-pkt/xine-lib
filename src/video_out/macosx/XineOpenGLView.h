@@ -46,6 +46,9 @@ extern NSString *XineViewDidResizeNotification;
     BOOL                           resizeViewOnVideoSizeChange;
     NSCursor                      *currentCursor;
     id <NSObject, XineOpenGLViewDelegate>  _xineController;
+    NSColor                       *initialColor;
+    unsigned int                   initialColorYUV;
+    BOOL                           initialColorYUVIsSet;
 }
 
 - (void) displayTexture;
@@ -58,22 +61,26 @@ extern NSString *XineViewDidResizeNotification;
 - (void) initTextures;
 - (void) reloadTexture;
 - (char *) getTextureBuffer;
-- (void) setVideoSize:(NSSize)size;
 - (void) setViewSizeInMainThread:(NSSize)size;
 // TODO: replace set...Size below with setSize:(double)videoSizeMultiplier
 - (void) setNormalSize;
 - (void) setHalfSize;
 - (void) setDoubleSize;
+- (void) setResizeViewOnVideoSizeChange:(BOOL)flag;
+- (BOOL) resizeViewOnVideoSizeChange;
+- (void) resetCursorRectsInMainThread;
+
+// Accessors
+- (void) setVideoSize:(NSSize)size;
 - (NSSize) videoSize;
 - (void) setKeepsVideoAspectRatio:(BOOL)flag;
 - (BOOL) keepsVideoAspectRatio;
-- (void) setResizeViewOnVideoSizeChange:(BOOL)flag;
-- (BOOL) resizeViewOnVideoSizeChange;
 - (void) setCurrentCursor:(NSCursor *)cursor;
 - (NSCursor *) currentCursor;
-- (void) resetCursorRectsInMainThread;
 - (void) setXineController:(id)controller;
 - (id) xineController;
+- (void) setInitialColor:(NSColor *)color;
+- (NSColor *) initialColor;
 
 // Delegate Methods
 - (id) delegate;
@@ -90,10 +97,11 @@ extern NSString *XineViewDidResizeNotification;
 - (void) mouseDown:(NSEvent *)theEvent inXineView:(XineOpenGLView *)theView;
 - (void) mouseMoved:(NSEvent *)theEvent inXineView:(XineOpenGLView *)theView;
 - (void) otherMouseDown:(NSEvent *)theEvent
-			 inXineView:(XineOpenGLView *)theView;
+             inXineView:(XineOpenGLView *)theView;
 - (void) rightMouseDown:(NSEvent *)theEvent
-			 inXineView:(XineOpenGLView *)theView;
+             inXineView:(XineOpenGLView *)theView;
 
 @end
 
 #endif /* __HAVE_XINE_OPENGL_VIEW_H__ */
+
