@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: vo_scale.c,v 1.3 2002/08/16 22:51:40 miguelfreitas Exp $
+ * $Id: vo_scale.c,v 1.4 2002/08/28 14:20:09 miguelfreitas Exp $
  * 
  * Contains common code to calculate video scaling parameters.
  * In short, it will map frame dimensions to screen/window size.
@@ -126,55 +126,64 @@ void vo_scale_compute_output_size (vo_scale_t *this) {
     
   x_factor = (double) this->gui_width  / (double) this->ideal_width;
   y_factor = (double) this->gui_height / (double) this->ideal_height;
-  
-  if ( this->support_zoom ) {
-  
-    /* zoom behaviour: 
-     * - window size never changes due zooming
-     * - output image shall be increased whenever there are
-     *   black borders to use.
-     * - exceding zoom shall be accounted by reducing displayed image.
-     */
-    if ( x_factor <= y_factor ) {
-      this->output_width = this->gui_width;
-      this->displayed_width = this->delivered_width / this->zoom_factor_x;
-      
-      this->output_height = this->ideal_height * x_factor;
-      if( this->output_height * this->zoom_factor_y <= this->gui_height ) {
-        this->displayed_height = this->delivered_height;
-        this->output_height = this->output_height * this->zoom_factor_y;
-      } else {
-        this->displayed_height = (double) this->delivered_height *
-          this->gui_height / this->output_height / this->zoom_factor_y;
-        this->output_height = this->gui_height;
-      }
-    } else {
-      this->output_height = this->gui_height;
-      this->displayed_height = this->delivered_height / this->zoom_factor_y;
-      
-      this->output_width = this->ideal_width * y_factor;
-      if( this->output_width * this->zoom_factor_x <= this->gui_width ) {
-        this->displayed_width = this->delivered_width;
-        this->output_width = this->output_width * this->zoom_factor_x;
-      } else {
-        this->displayed_width = (double) this->delivered_width *
-          this->gui_width / this->output_width / this->zoom_factor_x;
-        this->output_width = this->gui_width;
-      }
-    }
-  
-  } else {
-    if(x_factor < y_factor) {
-      this->output_width   = (double) this->gui_width;
-      this->output_height  = (double) this->ideal_height * x_factor;
-    } else {
-      this->output_width   = (double) this->ideal_width  * y_factor;
-      this->output_height  = (double) this->gui_height;
-    }
+
+  if (this->scaling_disabled) {
+
+    this->output_width   = this->delivered_width;
+    this->output_height  = this->delivered_height;
     this->displayed_width = this->delivered_width;
     this->displayed_height = this->delivered_height;
-  }
-  
+
+  } else {
+
+    if ( this->support_zoom ) {
+    
+      /* zoom behaviour: 
+       * - window size never changes due zooming
+       * - output image shall be increased whenever there are
+       *   black borders to use.
+       * - exceding zoom shall be accounted by reducing displayed image.
+       */
+      if ( x_factor <= y_factor ) {
+        this->output_width = this->gui_width;
+        this->displayed_width = this->delivered_width / this->zoom_factor_x;
+        
+        this->output_height = this->ideal_height * x_factor;
+        if( this->output_height * this->zoom_factor_y <= this->gui_height ) {
+          this->displayed_height = this->delivered_height;
+          this->output_height = this->output_height * this->zoom_factor_y;
+        } else {
+          this->displayed_height = (double) this->delivered_height *
+            this->gui_height / this->output_height / this->zoom_factor_y;
+          this->output_height = this->gui_height;
+        }
+      } else {
+        this->output_height = this->gui_height;
+        this->displayed_height = this->delivered_height / this->zoom_factor_y;
+        
+        this->output_width = this->ideal_width * y_factor;
+        if( this->output_width * this->zoom_factor_x <= this->gui_width ) {
+          this->displayed_width = this->delivered_width;
+          this->output_width = this->output_width * this->zoom_factor_x;
+        } else {
+          this->displayed_width = (double) this->delivered_width *
+            this->gui_width / this->output_width / this->zoom_factor_x;
+          this->output_width = this->gui_width;
+        }
+      }
+    
+    } else {
+      if(x_factor < y_factor) {
+        this->output_width   = (double) this->gui_width;
+        this->output_height  = (double) this->ideal_height * x_factor;
+      } else {
+        this->output_width   = (double) this->ideal_width  * y_factor;
+        this->output_height  = (double) this->gui_height;
+      }
+      this->displayed_width = this->delivered_width;
+      this->displayed_height = this->delivered_height;
+    }
+  }  
   this->output_xoffset = (this->gui_width - this->output_width) / 2 + this->gui_x;
   this->output_yoffset = (this->gui_height - this->output_height) / 2 + this->gui_y;
   
@@ -190,7 +199,7 @@ void vo_scale_compute_output_size (vo_scale_t *this) {
 
 
   /* calculate borders */
-  if (this->output_height != this->gui_height) {
+  if (this->output_height < this->gui_height) {
     /* top */
     this->border[0].x = 0;
     this->border[0].y = 0;
@@ -207,7 +216,7 @@ void vo_scale_compute_output_size (vo_scale_t *this) {
     this->border[1].w = this->border[1].h = 0;
   }  
     
-  if (this->output_width != this->gui_width) {
+  if (this->output_width < this->gui_width) {
     /* left */
     this->border[2].x = 0;
     this->border[2].y = 0;

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xshm.c,v 1.85 2002/08/15 18:24:14 miguelfreitas Exp $
+ * $Id: video_out_xshm.c,v 1.86 2002/08/28 14:20:10 miguelfreitas Exp $
  * 
  * video_out_xshm.c, X11 shared memory extension interface for xine
  *
@@ -707,7 +707,9 @@ static void xshm_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
     if (this->cur_frame) {
 
       if ( (this->cur_frame->sc.output_width != frame->sc.output_width) 
-	   || (this->cur_frame->sc.output_height != frame->sc.output_height) )
+	   || (this->cur_frame->sc.output_height != frame->sc.output_height)
+	   || (this->cur_frame->sc.output_xoffset != frame->sc.output_xoffset)
+	   || (this->cur_frame->sc.output_yoffset != frame->sc.output_yoffset) )
 	clean_output_area (this, frame);
 
       this->cur_frame->vo_frame.displayed (&this->cur_frame->vo_frame);
