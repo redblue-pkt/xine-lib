@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.193 2004/10/16 10:38:14 tmattern Exp $
+ * $Id: demux_qt.c,v 1.194 2004/11/12 11:25:02 athp Exp $
  *
  */
 
@@ -2990,6 +2990,7 @@ static char *get_extensions (demux_class_t *this_gen) {
 static char *get_mimetypes (demux_class_t *this_gen) {
   return "video/quicktime: mov,qt: Quicktime animation;"
          "video/x-quicktime: mov,qt: Quicktime animation;"
+         "audio/x-m4a: m4a: MPEG-4 Advanced Audio Coding;"
          "application/x-quicktimeplayer: qtl: Quicktime list;";
 }
 
