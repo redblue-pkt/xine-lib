@@ -47,6 +47,7 @@ struct nbc_s {
   int              low_water_mark;
   int              high_water_mark;
   int              fifo_full;
+  int              progress;
 
 };
 
@@ -73,6 +74,8 @@ void nbc_check_buffers (nbc_t *this) {
   int data_length, video_data_length, audio_data_length;  /* fifo length in second */
   uint32_t video_data_size, audio_data_size;              /* fifo size in bytes */
   int video_bitrate, audio_bitrate;
+  int progress;
+  int video_fifo_progress, audio_fifo_progress;
 
   video_fifo_fill = this->stream->video_fifo->size(this->stream->video_fifo);
   if (this->stream->audio_fifo)
@@ -84,7 +87,7 @@ void nbc_check_buffers (nbc_t *this) {
 
   /* start buffering if fifos are empty */
   if (fifo_fill == 0) {
-     if (!this->buffering) {
+    if (!this->buffering) {
 
       /* increase/decrease marks to adapt to stream/network needs */
       if (!this->fifo_full) {
@@ -94,6 +97,7 @@ void nbc_check_buffers (nbc_t *this) {
         this->high_water_mark -= this->high_water_mark / 8;
        }
       this->buffering = 1;
+      this->progress  = 0;
       report_progress (this->stream, 0);
 
     }
@@ -151,7 +155,20 @@ void nbc_check_buffers (nbc_t *this) {
         this->buffering = 0;
         this->fifo_full = (data_length < this->high_water_mark);
       } else {
-        report_progress (this->stream, (data_length * 100) / this->high_water_mark);
+        progress = (data_length * 100) / this->high_water_mark;
+
+        if (!progress) {
+          /* bitrate is not known */
+          video_fifo_progress = (100 * video_fifo_fill) / VIDEO_FIFO_BUFS;
+          audio_fifo_progress = (100 * audio_fifo_fill) / AUDIO_FIFO_BUFS;
+          progress = (video_fifo_progress > audio_fifo_progress)?
+            video_fifo_progress : audio_fifo_progress;
+        }
+
+        if (progress != this->progress) {
+          report_progress (this->stream, progress);
+          this->progress = progress;
+        }
       }
 
     } else {
@@ -174,6 +191,7 @@ nbc_t *nbc_init (xine_stream_t *stream) {
   this->buffering       = 0;
   this->low_water_mark  = DEFAULT_LOW_WATER_MARK;
   this->high_water_mark = DEFAULT_HIGH_WATER_MARK;
+  this->progress        = 0;
 
   return this;
 }
