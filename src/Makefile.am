@@ -1,7 +1,6 @@
 # Order is important be careful changing SUBDIRS
 #SUBDIRS = \
 #	libdivx4 \
-#	libsputext \
 #	libxvid
 
 SUBDIRS = \
@@ -17,6 +16,7 @@ SUBDIRS = \
 	liba52 \
 	libspudec \
 	libspucc \
+	libsputext \
 	libdts \
 	libmad \
 	libw32dll \

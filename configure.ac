@@ -1194,6 +1194,7 @@ src/libmad/Makefile
 src/libmpeg2/Makefile
 src/libspudec/Makefile
 src/libspucc/Makefile
+src/libsputext/Makefile
 src/libvorbis/Makefile
 src/libw32dll/Makefile
 src/libw32dll/wine/Makefile
