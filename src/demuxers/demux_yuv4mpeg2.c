@@ -24,7 +24,7 @@
  * tools, visit:
  *   http://mjpeg.sourceforge.net/
  *
- * $Id: demux_yuv4mpeg2.c,v 1.32 2003/11/16 23:33:44 f1rmb Exp $
+ * $Id: demux_yuv4mpeg2.c,v 1.33 2003/11/29 15:15:35 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -317,7 +317,10 @@ static void demux_yuv4mpeg2_send_headers(demux_plugin_t *this_gen) {
   buf->decoder_info[0] = this->progressive;
   buf->decoder_info[1] = this->frame_pts_inc;  /* initial video step */
   buf->decoder_info[2] = this->top_field_first;
-  buf->decoder_info[3] = this->bih.biWidth*this->aspect_n/this->aspect_d;
+  if(this->aspect_n && this->aspect_d)
+    buf->decoder_info[3] = this->bih.biWidth*this->aspect_n/this->aspect_d;
+  else
+    buf->decoder_info[3] = this->bih.biWidth;
   buf->decoder_info[4] = this->bih.biHeight;
   memcpy(buf->content, &this->bih, sizeof(this->bih));
   buf->size = sizeof(this->bih);
