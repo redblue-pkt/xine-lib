@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.43 2001/12/16 00:56:25 f1rmb Exp $
+ * $Id: audio_alsa_out.c,v 1.44 2001/12/24 13:00:35 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -107,8 +107,6 @@ static snd_output_t *jcd_out;
 static void *ao_alsa_handle_event_thread(void *data) {
   alsa_driver_t  *this = (alsa_driver_t *) data;
 
-  pthread_detach(pthread_self());
-
   do {
     snd_mixer_wait(this->mixer.handle, -1);
     snd_mixer_handle_events(this->mixer.handle);
@@ -155,6 +153,7 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
   snd_pcm_sw_params_t  *swparams;
   snd_pcm_sframes_t     buffer_size;
   snd_pcm_sframes_t     period_size,tmp;
+  /*
   snd_aes_iec958_t      spdif;
   snd_ctl_elem_value_t *ctl;
   snd_ctl_t            *ctl_handle;
@@ -162,6 +161,7 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
   char                  ctl_name[12];
   int                   ctl_card;
   int                   err, step;
+  */
  // int                 open_mode=1; //NONBLOCK
   int                   open_mode=0; //BLOCK
 
@@ -488,6 +488,7 @@ static uint32_t ao_alsa_get_capabilities (ao_driver_t *this_gen) {
 static void ao_alsa_exit(ao_driver_t *this_gen)
 {
   alsa_driver_t *this = (alsa_driver_t *) this_gen;
+  void          *p;
 
   config_values_t *config = this->config;
 
@@ -498,7 +499,19 @@ static void ao_alsa_exit(ao_driver_t *this_gen)
 						      this->mixer.min, this->mixer.max))) /2));
   config->save(config);
 
-  pthread_cancel(this->mixer.thread);
+  /*
+   * Destroy the mixer thread and cleanup the mixer, so that
+   * any child processes (such as xscreensaver) cannot inherit
+   * the mixer's handle and keep it open.
+   * By rejoining the mixer thread, we remove a race condition
+   * between closing the handle and spawning the child process
+   * (i.e. xscreensaver).
+   */
+  if(this->mixer.handle) {
+    pthread_cancel(this->mixer.thread);
+    pthread_join(this->mixer.thread, &p);
+    snd_mixer_close(this->mixer.handle);
+  }
 
   if (this->audio_fd) snd_pcm_close(this->audio_fd);
   free (this);
