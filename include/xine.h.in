@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.74 2003/04/06 23:58:18 miguelfreitas Exp $
+ * $Id: xine.h.in,v 1.75 2003/04/08 14:24:26 hadess Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -1413,6 +1413,7 @@ typedef struct {
 #define XINE_MSG_FILE_NOT_FOUND		6  /* (file name or mrl) */
 #define XINE_MSG_READ_ERROR		7  /* (device/file/mrl)  */
 #define XINE_MSG_LIBRARY_LOAD_ERROR	8  /* (library/decoder)  */
+#define XINE_MSG_ENCRYPTED_SOURCE	9  /* none */
 
 /* opaque xine_event_queue_t */
 typedef struct xine_event_queue_s xine_event_queue_t;
