@@ -28,7 +28,7 @@
  \endverbatim
  */
 /*
- * $Id: xine.h.tmpl.in,v 1.45 2001/10/07 16:57:02 guenter Exp $
+ * $Id: xine.h.tmpl.in,v 1.46 2001/10/07 17:08:23 guenter Exp $
  *
  */
 
@@ -1374,17 +1374,18 @@ void xine_send_event(xine_t *self, event_t *event, void *data);
 /**
  * snapshot function
  *
- * returns:
  * width, height : size of image (be aware that u,v may be subsampled)
  * ratio_code    : aspect ratio of the frame
  * format        : subsampling format YUV 4:2:0 or 4:2:2
  * y             : lumiance information
  * u,v           : subsample color information
+ *
+ * return value: 1 => succ, 0=> fail
  */
-void xine_get_current_frame (xine_t *self, int *width, int *height,
-			     int *ratio_code, int *format,
-			     uint8_t **y, uint8_t **u,
-			     uint8_t **v);
+int xine_get_current_frame (xine_t *self, int *width, int *height,
+			    int *ratio_code, int *format,
+			    uint8_t **y, uint8_t **u,
+			    uint8_t **v);
 
 
 #define XINE_IMGFMT_YV12 0x32315659

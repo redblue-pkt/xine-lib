@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.47 2001/10/07 16:57:02 guenter Exp $
+ * $Id: xine_internal.h,v 1.48 2001/10/07 17:08:23 guenter Exp $
  *
  */
 
@@ -518,10 +518,10 @@ void xine_send_event(xine_t *this, event_t *event, void *data);
  * y             : lumiance information
  * u,v           : subsample color information
  */
-void xine_get_current_frame (xine_t *this, int *width, int *height,
-			     int *ratio_code, int *format,
-			     uint8_t **y, uint8_t **u,
-			     uint8_t **v);
+int xine_get_current_frame (xine_t *this, int *width, int *height,
+			    int *ratio_code, int *format,
+			    uint8_t **y, uint8_t **u,
+			    uint8_t **v);
 
 #ifdef __cplusplus
 }

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.65 2001/10/07 16:57:02 guenter Exp $
+ * $Id: xine.c,v 1.66 2001/10/07 17:08:23 guenter Exp $
  *
  * top-level xine functions
  *
@@ -648,13 +648,16 @@ int xine_set_audio_property(xine_t *this, int property, int value) {
   return ~value;
 }
 
-void xine_get_current_frame (xine_t *this, int *width, int *height,
-			     int *ratio_code, int *format,
-			     uint8_t **y, uint8_t **u, uint8_t **v) {
+int xine_get_current_frame (xine_t *this, int *width, int *height,
+			    int *ratio_code, int *format,
+			    uint8_t **y, uint8_t **u, uint8_t **v) {
 
   vo_frame_t *frame;
 
   frame = this->video_out->get_last_frame (this->video_out);
+
+  if (!frame)
+    return 0;
 
   *width = frame->width;
   *height = frame->height;
@@ -666,5 +669,6 @@ void xine_get_current_frame (xine_t *this, int *width, int *height,
   *u = frame->base[1];
   *v = frame->base[2];
 
+  return 1;
 }
 
