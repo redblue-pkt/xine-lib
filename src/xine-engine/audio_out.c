@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.58 2002/06/19 23:45:50 tmattern Exp $
+ * $Id: audio_out.c,v 1.59 2002/06/22 13:40:38 mroi Exp $
  * 
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -361,7 +361,6 @@ static void *ao_loop (void *this_gen) {
       
       /* for big gaps output silence */
       if ( gap > AO_MAX_GAP ) {
-        printf ("audio_out: ao_fill_gap\n");
         if (this->metronom->allow_full_ao_fill_gap) {
           ao_fill_gap (this, gap);
           this->metronom->allow_full_ao_fill_gap = 0;
