@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_plugin.h,v 1.39 2002/11/20 11:57:43 mroi Exp $
+ * $Id: input_plugin.h,v 1.40 2002/12/15 22:18:09 rockyb Exp $
  */
 
 #ifndef HAVE_INPUT_PLUGIN_H
@@ -80,7 +80,13 @@ struct input_class_s {
 struct input_plugin_s {
 
   /*
-   * return capabilities of input source
+   * return capabilities of the current playable entity. See
+   * get_current_pos below for a description of a "playable entity"
+   * Capabilities a created by "OR"ing a mask of constants listed
+   * below which start "INPUT_CAP".  Depending on the mask value
+   * returned, some of the routines below may or may not get
+   * called. For example, if INPUT_CAP_SEEKABLE is not set, the seek
+   * routine will not get called.
    */
 
   uint32_t (*get_capabilities) (input_plugin_t *this);
@@ -115,13 +121,32 @@ struct input_plugin_s {
 
 
   /*
-   * return length of input (-1 => unlimited, e.g. stream)
+   * return number of bytes in the next playable entity or -1 if the
+   * input is unlimited, as would be the case in a stream.
+   * 
+   * A "playable entity" tends to be the entities listed in a playback
+   * list or the units on which playback control generally works on.
+   * It might be the number of bytes in a VCD "segment" or "track" (if
+   * the track has no "entry" subdivisions), or the number of bytes in
+   * a PS (Program Segment or "Chapter") of a DVD. If there are no
+   * subdivisions of the input medium and it is considered one
+   * indivisible entity, it would be the byte count of that entity;
+   * for example, the length in bytes of an MPEG file.
+
+   * This length information is used, for example when in setting the
+   * absolute or relative play position or possibly calculating the
+   * bit rate.
    */
   off_t (*get_length) (input_plugin_t *this);
 
 
   /*
-   * return block size of input source (if supported, 0 otherwise)
+   * return block size in bytes of next complete playable entity (if
+   * supported, 0 otherwise). See the description above under
+   * get_length for a description of a "complete playable entity".
+   * 
+   * The block size is used in allocation buffers; when block reads
+   * are performed, this is the requested number of bytes to read.
    */
 
   uint32_t (*get_blocksize) (input_plugin_t *this);
