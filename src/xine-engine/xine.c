@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.21 2001/06/03 18:08:56 guenter Exp $
+ * $Id: xine.c,v 1.22 2001/06/04 17:13:36 guenter Exp $
  *
  * top-level xine functions
  *
@@ -465,6 +465,8 @@ void xine_select_audio_channel (xine_t *this, int channel) {
   pthread_mutex_lock (&this->xine_lock);
 
   this->audio_channel = channel;
+
+  /* this->metronom->reset(this->metronom); */
 
   pthread_mutex_unlock (&this->xine_lock);
 }

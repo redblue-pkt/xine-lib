@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.34 2001/06/04 15:04:13 guenter Exp $
+ * $Id: video_out_xv.c,v 1.35 2001/06/04 17:13:36 guenter Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -235,7 +235,7 @@ static void xv_update_frame_format (vo_driver_t *this_gen,
 
     frame->image = XvShmCreateImage(this->display, this->xv_port, xv_format, 0,
 				    width, height, &frame->shminfo);
-  
+
     if (frame->image == NULL )  {
       fprintf(stderr, "xv_image_format: XvShmCreateImage failed.\n");
       exit (1);

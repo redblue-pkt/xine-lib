@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.c,v 1.7 2001/06/03 18:08:56 guenter Exp $
+ * $Id: metronom.c,v 1.8 2001/06/04 17:13:36 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -39,7 +39,7 @@
 #define MAX_PTS_TOLERANCE  5000
 #define MAX_VIDEO_DELTA    1600
 #define AUDIO_SAMPLE_NUM   32768
-#define MAX_WRAP_TOLERANCE 180000
+#define MAX_WRAP_TOLERANCE 90000
 
 static void metronom_reset (metronom_t *this) {
 
@@ -65,11 +65,6 @@ static void metronom_reset (metronom_t *this) {
   this->audio_wrap_offset         = 0;
 
   this->av_offset                 = 0;
-
-  this->stopped                   = 1;
-
-  this->last_pts                  = 0;
-  this->start_pts                 = 0;
 
   pthread_mutex_unlock (&this->lock);
 }

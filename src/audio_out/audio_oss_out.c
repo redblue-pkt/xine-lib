@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_oss_out.c,v 1.7 2001/05/27 23:48:12 guenter Exp $
+ * $Id: audio_oss_out.c,v 1.8 2001/06/04 17:13:36 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -69,8 +69,7 @@
 #define AUDIO_NUM_FRAGMENTS     15
 #define AUDIO_FRAGMENT_SIZE   8192
 
-#define GAP_TOLERANCE        15000
-#define MAX_MASTER_CLOCK_DIV  5000
+#define GAP_TOLERANCE         5000
 
 #ifdef CONFIG_DEVFS_FS
 #define DSP_TEMPLATE "/dev/sound/dsp%d"
@@ -90,15 +89,10 @@ typedef struct oss_functions_s {
   int            mode;
 
   int32_t        output_sample_rate, input_sample_rate;
-  int32_t        output_rate_correction;
   double         sample_rate_factor;
   uint32_t       num_channels;
 
   uint32_t       bytes_in_buffer;      /* number of bytes writen to audio hardware   */
-  uint32_t       last_vpts;            /* vpts at which last written package ends    */
-
-  uint32_t       sync_vpts;            /* this syncpoint is used as a starting point */
-  uint32_t       sync_bytes_in_buffer; /* for vpts <-> samplecount assoc             */
 
   int            audio_step;           /* pts per 32 768 samples (sample = #bytes/2) */
   int32_t        bytes_per_kpts;       /* bytes per 1024/90000 sec                   */
@@ -136,10 +130,6 @@ static int ao_open(ao_functions_t *this_gen,
   this->mode                   = mode;
   this->input_sample_rate      = rate;
   this->bytes_in_buffer        = 0;
-  this->last_vpts              = 0;
-  this->output_rate_correction = 0;
-  this->sync_vpts              = 0;
-  this->sync_bytes_in_buffer   = 0;
   this->audio_started          = 0;
 
   /*
@@ -241,32 +231,6 @@ static int ao_open(ao_functions_t *this_gen,
   return 1;
 }
 
-static uint32_t ao_get_current_vpts (oss_functions_t *this) {
-
-  int      pos ;
-  int32_t  diff ;
-  uint32_t vpts ;
-  
-  count_info info;
-  
-  if (this->audio_started) {
-    ioctl (this->audio_fd, SNDCTL_DSP_GETOPTR, &info);
-  
-    pos = info.bytes;
-
-  } else
-    pos = 0;
-
-  diff = this->sync_bytes_in_buffer - pos;
-  
-  vpts = this->sync_vpts - diff * 1024 / this->bytes_per_kpts;
-
-  xprintf (AUDIO|VERBOSE,"audio_oss_out: get_current_vpts pos=%d diff=%d vpts=%d sync_vpts=%d\n",
-	   pos, diff, vpts, this->sync_vpts);
-
-  return vpts;
-}
-
 static void ao_fill_gap (oss_functions_t *this, uint32_t pts_len) {
 
   int num_bytes = pts_len * this->bytes_per_kpts / 1024;
@@ -286,8 +250,6 @@ static void ao_fill_gap (oss_functions_t *this, uint32_t pts_len) {
       num_bytes = 0;
     }
   }
-  
-  this->last_vpts += pts_len;
 }
 
 static void ao_write_audio_data(ao_functions_t *this_gen,
@@ -296,33 +258,43 @@ static void ao_write_audio_data(ao_functions_t *this_gen,
 {
 
   oss_functions_t *this = (oss_functions_t *) this_gen;
-  uint32_t vpts,
-           audio_vpts,
-           master_vpts;
-  int32_t  diff, gap;
-  int      bDropPackage;
-  uint16_t sample_buffer[8192];
-
+  uint32_t         vpts, buffer_vpts;
+  int32_t          gap;
+  int              bDropPackage;
+  uint16_t         sample_buffer[10000];
+  count_info       info;
+  int              pos;
 
   if (this->audio_fd<0)
     return;
 
   vpts = this->metronom->got_audio_samples (this->metronom, pts_, num_samples);
 
-  xprintf (VERBOSE|AUDIO, "audio_oss_out: got %d samples, vpts=%d, last_vpts=%d\n",
-	   num_samples, vpts, this->last_vpts);
+  xprintf (VERBOSE|AUDIO, "audio_oss_out: got %d samples, vpts=%d\n",
+	   num_samples, vpts);
 
   /*
-   * check if these samples "fit" in the audio output buffer
-   * or do we have an audio "gap" here?
+   * where, in the timeline is the "end" of the audio buffer at the moment?
    */
-  
-  gap = vpts - this->last_vpts ;
-  
+
+  buffer_vpts = this->metronom->get_current_time (this->metronom);
+
+  if (this->audio_started) {
+    ioctl (this->audio_fd, SNDCTL_DSP_GETOPTR, &info);
+    pos = info.bytes;
+  } else
+    pos = 0;
+
+  buffer_vpts += (this->bytes_in_buffer - pos) * 1024 / this->bytes_per_kpts;
+
+  printf ("audio_oss_out: got audio package vpts = %d, buffer_vpts = %d\n",
+	  vpts, buffer_vpts);
+
   /*
-    printf ("audio_oss_out: gap = %d - %d + %d = %d\n",
-    vpts, this->last_vpts, diff, gap);
-  */
+   * calculate gap:
+   */
+
+  gap = vpts - buffer_vpts;
 
   bDropPackage = 0;
   
@@ -333,62 +305,11 @@ static void ao_write_audio_data(ao_functions_t *this_gen,
   }
 
   /*
-   * sync on master clock
-   */
-
-  audio_vpts  = ao_get_current_vpts (this) ;
-  master_vpts = this->metronom->get_current_time (this->metronom);
-  diff        = audio_vpts - master_vpts;
-
-  xprintf (AUDIO|VERBOSE, "audio_oss_out: syncing on master clock: audio_vpts=%d master_vpts=%d\n",
-	   audio_vpts, master_vpts);
-  /*
-  printf ("audio_oss_out: audio_vpts=%d <=> master_vpts=%d (diff=%d)\n",
-	  audio_vpts, master_vpts, diff);
-  */
-
-  /*
-   * method 1 : resampling
-   */
-
-  /*
-  if (abs(diff)>5000) {
-
-    if (diff>5000) {
-      ao_fill_gap (diff);
-    } else if (diff<-5000) {
-      bDropPackage = 1;
-    }
-
-  } else if (abs(diff)>1000) {
-    this->output_rate_correction = diff/10 ; 
-    
-    printf ("audio_oss_out: diff = %d => rate correction : %d\n", diff, this->output_rate_correction);  
-    
-    if ( this->output_rate_correction < -500)
-      this->output_rate_correction = -500;
-    else if ( this->output_rate_correction > 500)
-      this->output_rate_correction = 500;
-  }
-  */
-
-  /*
-   * method 2: adjust master clock
-   */
-  
-  
-  if (abs(diff)>MAX_MASTER_CLOCK_DIV) {
-    printf ("master clock adjust time %d -> %d (diff: %d)\n", master_vpts, audio_vpts, diff); 
-    this->metronom->adjust_clock (this->metronom, audio_vpts); 
-  }
-  
-
-  /*
    * resample and output samples
    */
 
   if (!bDropPackage) {
-    int num_output_samples = num_samples * (this->output_sample_rate + this->output_rate_correction) / this->input_sample_rate;
+    int num_output_samples = num_samples * (this->output_sample_rate) / this->input_sample_rate;
 
     switch (this->mode) {
     case AO_CAP_MODE_MONO:
@@ -422,13 +343,6 @@ static void ao_write_audio_data(ao_functions_t *this_gen,
     xprintf (AUDIO|VERBOSE, "audio_oss_out :audio package written\n");
     
     /*
-     * remember vpts
-     */
-    
-    this->sync_vpts            = vpts;
-    this->sync_bytes_in_buffer = this->bytes_in_buffer;
-
-    /*
      * step values
      */
     
@@ -436,10 +350,7 @@ static void ao_write_audio_data(ao_functions_t *this_gen,
     this->audio_started    = 1;
   } else {
     printf ("audio_oss_out: audio package (vpts = %d) dropped\n", vpts);
-    this->sync_vpts            = vpts;
   }
-  
-  this->last_vpts        = vpts + num_samples * 90000 / this->input_sample_rate ; 
 }
 
 

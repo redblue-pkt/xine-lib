@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.18 2001/06/04 17:01:47 f1rmb Exp $
+ * $Id: video_decoder.c,v 1.19 2001/06/04 17:13:36 guenter Exp $
  *
  */
 
@@ -69,7 +69,7 @@ void *video_decoder_loop (void *this_gen) {
     case BUF_VIDEO_AVI:
 
       streamtype = (buf->type>>16) & 0xFF;
-      
+
       decoder = this->video_decoder_plugins [streamtype];
 
       if (decoder) {
