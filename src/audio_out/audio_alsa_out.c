@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.111 2003/10/04 22:27:58 jcdutton Exp $
+ * $Id: audio_alsa_out.c,v 1.112 2003/10/04 22:49:58 jcdutton Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -387,7 +387,7 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
    */
   err = snd_pcm_hw_params_any(this->audio_fd, params);
   if (err < 0) {
-    printf ("audio_alsa_out: broken configuration for this PCM: no configurations available\n");
+    printf ("audio_alsa_out: broken configuration for this PCM: no configurations available: %s\n", snd_strerror(err));
     goto __close;
   }
   /* set interleaved access */
@@ -410,7 +410,7 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
   }
       
   if (err < 0) {
-    printf ("audio_alsa_out: access type not available\n");
+    printf ("audio_alsa_out: access type not available: %s\n", snd_strerror(err));
     goto __close;
   }
   /* set the sample format ([SU]{8,16{LE,BE}})*/
@@ -422,20 +422,20 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
 #endif
 		  : SND_PCM_FORMAT_U8);
   if (err < 0) {
-    printf ("audio_alsa_out: sample format non available\n");
+    printf ("audio_alsa_out: sample format non available: %s\n", snd_strerror(err));
     goto __close;
   }
   /* set the number of channels */
   err = snd_pcm_hw_params_set_channels(this->audio_fd, params, this->num_channels);
   if (err < 0) {
-    printf ("audio_alsa_out: Cannot set number of channels to %d (err=%d)\n", this->num_channels, err);
+    printf ("audio_alsa_out: Cannot set number of channels to %d (err=%d:%s)\n", this->num_channels, err, snd_strerror(err));
     goto __close;
   }
   /* set the stream rate [Hz] */
   dir=0;
   err = snd_pcm_hw_params_set_rate_near(this->audio_fd, params, &rate, &dir);
   if (err < 0) {
-    printf ("audio_alsa_out: rate not available\n");
+    printf ("audio_alsa_out: rate not available: %s\n", snd_strerror(err));
     goto __close;
   }
   this->output_sample_rate = (uint32_t)rate;
@@ -471,21 +471,21 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
   periods=8;
   err = snd_pcm_hw_params_set_periods_near(this->audio_fd, params, &periods ,&dir);
   if (err < 0) {
-    printf ("audio_alsa_out: unable to set any periods\n");
+    printf ("audio_alsa_out: unable to set any periods: %s\n", snd_strerror(err));
     goto __close;
   }
   /* set the ring-buffer time [us] (large enough for x us|y samples ...) */
   dir=0;
   err = snd_pcm_hw_params_set_buffer_time_near(this->audio_fd, params, &buffer_time, &dir);
   if (err < 0) {
-    printf ("audio_alsa_out: buffer time not available\n");
+    printf ("audio_alsa_out: buffer time not available: %s\n", snd_strerror(err));
     goto __close;
   }
 #endif
   dir=0;
   err = snd_pcm_hw_params_set_buffer_size_near(this->audio_fd, params, &this->buffer_size);
   if (err < 0) {
-    printf ("audio_alsa_out: buffer time not available\n");
+    printf ("audio_alsa_out: buffer time not available: %s\n", snd_strerror(err));
     goto __close;
   }
   err = snd_pcm_hw_params_get_buffer_size(params, &(this->buffer_size));
@@ -494,7 +494,7 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
   dir=0;
   err = snd_pcm_hw_params_set_period_size_near(this->audio_fd, params, &period_size, &dir);
   if (err < 0) {
-    printf ("audio_alsa_out: period time not available");
+    printf ("audio_alsa_out: period time not available: %s\n", snd_strerror(err));
     goto __close;
   }
 #endif
@@ -920,7 +920,7 @@ static int ao_alsa_set_property (ao_driver_t *this_gen, int property, int value)
  */
 static int ao_alsa_ctrl(ao_driver_t *this_gen, int cmd, ...) {
   alsa_driver_t *this = (alsa_driver_t *) this_gen;
-  int result;
+  int err;
 
   /* Alsa 0.9.x pause and resume is not stable enough at the moment.
    * Use snd_pcm_drop and restart instead.
@@ -930,20 +930,20 @@ static int ao_alsa_ctrl(ao_driver_t *this_gen, int cmd, ...) {
   case AO_CTRL_PLAY_PAUSE:
     if (this->audio_fd > 0) {
       if (this->has_pause_resume) {
-        if ((result=snd_pcm_pause(this->audio_fd, 1)) < 0) {
-          printf("audio_alsa_out: Pause call failed err=%d\n", result);
+        if ((err=snd_pcm_pause(this->audio_fd, 1)) < 0) {
+          printf("audio_alsa_out: Pause call failed. (err=%d:%s)\n",err, snd_strerror(err));
           this->has_pause_resume = 0;
           ao_alsa_ctrl(this_gen, AO_CTRL_PLAY_PAUSE);
         }
       } else {
-        if ((result=snd_pcm_reset(this->audio_fd)) < 0) {
-          printf("audio_alsa_out: Reset call failed err=%d\n",result);
+        if ((err=snd_pcm_reset(this->audio_fd)) < 0) {
+          printf("audio_alsa_out: Reset call failed. (err=%d:%s)\n",err, snd_strerror(err));
         }
-        if ((result=snd_pcm_drain(this->audio_fd)) < 0) {
-          printf("audio_alsa_out: Drain call failed err=%d\n",result);
+        if ((err=snd_pcm_drain(this->audio_fd)) < 0) {
+          printf("audio_alsa_out: Drain call failed. (err=%d:%s)\n",err, snd_strerror(err));
         }
-        if ((result=snd_pcm_prepare(this->audio_fd)) < 0) {
-          printf("audio_alsa_out: Prepare call failed err=%d\n",result);
+        if ((err=snd_pcm_prepare(this->audio_fd)) < 0) {
+          printf("audio_alsa_out: Prepare call failed. (err=%d:%s)\n",err, snd_strerror(err));
         }
       }
     }
@@ -952,8 +952,8 @@ static int ao_alsa_ctrl(ao_driver_t *this_gen, int cmd, ...) {
   case AO_CTRL_PLAY_RESUME:
     if (this->audio_fd > 0) {
       if (this->has_pause_resume) {
-        if ((result=snd_pcm_pause(this->audio_fd, 0)) < 0) {
-          printf("audio_alsa_out: Resume call failed err=%d\n",result);
+        if ((err=snd_pcm_pause(this->audio_fd, 0)) < 0) {
+          printf("audio_alsa_out: Resume call failed. (err=%d:%s)\n",err, snd_strerror(err));
           this->has_pause_resume = 0;
           ao_alsa_ctrl(this_gen, AO_CTRL_PLAY_RESUME);
         }
@@ -963,11 +963,11 @@ static int ao_alsa_ctrl(ao_driver_t *this_gen, int cmd, ...) {
 
   case AO_CTRL_FLUSH_BUFFERS:
     if (this->audio_fd > 0) {
-      if ((result=snd_pcm_drop(this->audio_fd)) < 0) {
-        printf("audio_alsa_out: Drop call failed err=%d\n",result);
+      if ((err=snd_pcm_drop(this->audio_fd)) < 0) {
+        printf("audio_alsa_out: Drop call failed. (err=%d:%s)\n",err, snd_strerror(err));
       }
-      if ((result=snd_pcm_prepare(this->audio_fd)) < 0) {
-        printf("audio_alsa_out: Prepare call failed err=%d\n",result);
+      if ((err=snd_pcm_prepare(this->audio_fd)) < 0) {
+        printf("audio_alsa_out: Prepare call failed. (err=%d:%s)\n",err, snd_strerror(err));
       }
     }
     break;
