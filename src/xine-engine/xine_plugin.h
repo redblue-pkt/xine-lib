@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_plugin.h,v 1.9 2003/01/03 22:38:29 miguelfreitas Exp $
+ * $Id: xine_plugin.h,v 1.10 2003/11/19 20:35:07 f1rmb Exp $
  *
  * generic plugin definitions
  *
@@ -44,35 +44,36 @@
 #define PLUGIN_TYPE_MASK      127
 
 typedef struct {
-  uint8_t     type;               /* one of the PLUGIN_* constants above     */
-  uint8_t     API;                /* API version supported by this plugin    */
-  char       *id;                 /* a name that identifies this plugin      */
-  uint32_t    version;            /* version number, increased every release */
-  void       *special_info;       /* plugin-type specific, see structs below */
-  void       *(*init)(xine_t *, void *); /* init the plugin class            */
+  uint8_t                  type;                    /* one of the PLUGIN_* constants above     */
+  uint8_t                  API;                     /* API version supported by this plugin    */
+  char                    *id;                      /* a name that identifies this plugin      */
+  uint32_t                 version;                 /* version number, increased every release */
+  void                    *special_info;            /* plugin-type specific, see structs below */
+  void                  *(*init)(xine_t *, void *); /* init the plugin class            */
 } plugin_info_t;
 
 
 /* special_info for a video output plugin */
 typedef struct {
-  int    priority;          /* priority of this plugin for auto-probing  */
-  int    visual_type;       /* visual type supported by this plugin      */
+  int                      priority;                /* priority of this plugin for auto-probing  */
+  int                      visual_type;             /* visual type supported by this plugin      */
 } vo_info_t;
 
 /* special info for a audio output plugin */
 typedef struct {
-  int     priority;
-} ao_info_t ;
+  int                      priority;
+} ao_info_t;
 
 /* special_info for a decoder plugin */
 typedef struct {
-  uint32_t  *supported_types;/* streamtypes this decoder can handle       */
-  int        priority;
+  uint32_t                *supported_types;         /* streamtypes this decoder can handle       */
+  int                      priority;
+  xine_t                  *xine;
 } decoder_info_t;
 
 /* special info for a post plugin */
 typedef struct {
-  uint32_t  type;           /* type of the post plugin, use one of XINE_POST_TYPE_* */
+  uint32_t                 type;                    /* type of the post plugin, use one of XINE_POST_TYPE_* */
 } post_info_t;
 
 #endif
