@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.41 2002/12/01 15:07:01 mroi Exp $
+ * $Id: xine.h.in,v 1.42 2002/12/01 15:18:13 mroi Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -294,7 +294,7 @@ int xine_get_video_frame (xine_stream_t *stream,
  *
  * after the data leaves the decoder it can pass an arbitrary tree
  * of post plugins allowing for effects to be applied to the video
- * frames/audio buffers before the reach the output stage
+ * frames/audio buffers before they reach the output stage
  */
 
 typedef struct xine_post_s xine_post_t;
