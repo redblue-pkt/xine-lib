@@ -17,12 +17,11 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_matroska.c,v 1.23 2004/03/05 17:50:30 mroi Exp $
+ * $Id: demux_matroska.c,v 1.24 2004/04/26 23:33:35 tmattern Exp $
  *
  * demultiplexer for matroska streams
  *
  * TODO:
- *   seeking
  *   more codecs
  *   metadata
  *
@@ -58,6 +57,13 @@
 
 #define WRAP_THRESHOLD        90000
 
+typedef struct {
+  int                  track_num;
+  off_t               *pos;
+  uint64_t            *timecode;
+  int                  num_entries;
+  
+} matroska_index_t;
 
 typedef struct {
 
@@ -88,6 +94,13 @@ typedef struct {
   off_t                tags_pos;
   int                  has_seekhead;
   int                  seekhead_handled;
+
+  /* seek info */
+  matroska_index_t    *indexes;
+  int                  num_indexes;
+  int                  first_cluster_found;
+  int                  skip_to_timecode;
+  int                  skip_for_track;
 
   /* tracks */
   int                  num_tracks;
@@ -916,6 +929,115 @@ static int parse_chapters(demux_matroska_t *this) {
 }
 
 
+static int parse_cue_trackposition(demux_matroska_t *this, int *track_num,
+                                   int64_t *pos) {
+  ebml_parser_t *ebml = this->ebml;
+  int next_level = 4;
+  
+  while (next_level == 4) {
+    ebml_elem_t elem;
+    
+    if (!ebml_read_elem_head(ebml, &elem))
+      return 0;
+
+    switch (elem.id) {
+      case MATROSKA_ID_CU_TRACK: {
+        uint64_t num;
+        lprintf("CueTrackpositionTrack\n");
+        if (!ebml_read_uint(ebml, &elem, &num))
+          return 0;
+        *track_num = num;
+        break;
+      }
+      case MATROSKA_ID_CU_CLUSTERPOSITION: {
+        uint64_t num;
+        lprintf("CueTrackpositionClusterposition\n");
+        if (!ebml_read_uint(ebml, &elem, &num))
+          return 0;
+        *pos = this->segment.start + num;
+        break;
+      }
+      default:
+        lprintf("Unhandled ID: 0x%x\n", elem.id);
+        if (!ebml_skip(ebml, &elem))
+          return 0;
+    }
+    next_level = ebml_get_next_level(ebml, &elem);
+  }
+  return 1;
+}
+
+
+static int parse_cue_point(demux_matroska_t *this) {
+  ebml_parser_t *ebml = this->ebml;
+  int next_level = 3;
+  int64_t timecode = -1, pos = -1;
+  int track_num = -1;
+  
+  while (next_level == 3) {
+    ebml_elem_t elem;
+    
+    if (!ebml_read_elem_head(ebml, &elem))
+      return 0;
+
+    switch (elem.id) {
+      case MATROSKA_ID_CU_TIME: {
+        uint64_t num;
+        lprintf("CueTime\n");
+        if (!ebml_read_uint(ebml, &elem, &num))
+          return 0;
+        timecode = num;
+        break;
+      }
+      case MATROSKA_ID_CU_TRACKPOSITION:
+        lprintf("CueTrackPosition\n");
+        if (!ebml_read_master (ebml, &elem))
+          return 0;
+        if (!parse_cue_trackposition(this, &track_num, &pos))
+          return 0;
+        break;
+      default:
+        lprintf("Unhandled ID: 0x%x\n", elem.id);
+        if (!ebml_skip(ebml, &elem))
+          return 0;
+    }
+    next_level = ebml_get_next_level(ebml, &elem);
+  }
+
+  if ((timecode != -1) && (track_num != -1) && (pos != -1)) {
+    matroska_index_t *index;
+    int i;
+
+    index = NULL;
+    for (i = 0; i < this->num_indexes; i++)
+      if (this->indexes[i].track_num == track_num) {
+        index = &this->indexes[i];
+        break;
+      }
+    if (index == NULL) {
+      this->indexes = (matroska_index_t *)realloc(this->indexes,
+                                                  (this->num_indexes + 1) *
+                                                  sizeof(matroska_index_t));
+      memset(&this->indexes[this->num_indexes], 0, sizeof(matroska_index_t));
+      index = &this->indexes[this->num_indexes];
+      index->track_num = track_num;
+      this->num_indexes++;
+    }
+    if ((index->num_entries % 1024) == 0) {
+      index->pos = (off_t *)realloc(index->pos, sizeof(off_t) *
+                                    (index->num_entries + 1024));
+      index->timecode = (off_t *)realloc(index->timecode, sizeof(uint64_t) *
+                                         (index->num_entries + 1024));
+    }
+    index->pos[index->num_entries] = pos;
+    index->timecode[index->num_entries] = timecode;
+    index->num_entries++;
+  }
+
+  return 1;
+}
+
+
 static int parse_cues(demux_matroska_t *this) {
   ebml_parser_t *ebml = this->ebml;
   int next_level = 2;
@@ -927,6 +1049,13 @@ static int parse_cues(demux_matroska_t *this) {
       return 0;
 
     switch (elem.id) {
+      case MATROSKA_ID_CU_POINT:
+        lprintf("CuePoint\n");
+        if (!ebml_read_master (ebml, &elem))
+          return 0;
+        if (!parse_cue_point(this))
+          return 0;
+        break;
       default:
         lprintf("Unhandled ID: 0x%x\n", elem.id);
         if (!ebml_skip(ebml, &elem))
@@ -1067,7 +1196,7 @@ static int read_block_data (demux_matroska_t *this, int len) {
 
 static int parse_block (demux_matroska_t *this, uint64_t block_size,
                         uint64_t cluster_timecode, uint64_t block_duration,
-                        off_t block_pos, off_t file_len) {
+                        off_t block_pos, off_t file_len, int is_key) {
   matroska_track_t *track;
   int64_t           track_num;
   uint8_t          *data;
@@ -1102,7 +1231,15 @@ static int parse_block (demux_matroska_t *this, uint64_t block_size,
   pts = ((int64_t)cluster_timecode + timecode_diff) *
         (int64_t)this->timecode_scale * (int64_t)90 /
         (int64_t)1000000;
-        
+
+  /* After seeking we have to skip to the next key frame. */
+  if (this->skip_to_timecode > 0) {
+    if ((this->skip_for_track != track->track_num) || !is_key ||
+        (pts < this->skip_to_timecode))
+      return 1;
+    this->skip_to_timecode = 0;
+  }
+
   if (block_duration) {
     xduration = (int64_t)block_duration *
                 (int64_t)this->timecode_scale * (int64_t)90 /
@@ -1251,6 +1388,7 @@ static int parse_block_group(demux_matroska_t *this,
   off_t block_pos         = 0;
   off_t file_len          = 0;
   int block_len           = 0;
+  int is_key              = 1;
 
   while (next_level == 3) {
     ebml_elem_t elem;
@@ -1276,6 +1414,11 @@ static int parse_block_group(demux_matroska_t *this,
           return 0;
         lprintf("duration: %lld\n", block_duration);
         break;
+      case MATROSKA_ID_CL_REFERENCEBLOCK:
+        is_key = 0;
+        if (!ebml_skip(ebml, &elem))
+          return 0;
+        break;
       default:
         lprintf("Unhandled ID: 0x%x\n", elem.id);
         if (!ebml_skip(ebml, &elem))
@@ -1289,7 +1432,7 @@ static int parse_block_group(demux_matroska_t *this,
 
   /* we have the duration, we can parse the block now */
   if (!parse_block(this, block_len, cluster_timecode, block_duration,
-                   block_pos, file_len))
+                   block_pos, file_len, is_key))
     return 0;
   return 1;
 }
@@ -1299,6 +1442,19 @@ static int parse_cluster(demux_matroska_t *this) {
   int next_level = 2;
   uint64_t timecode = 0;
   uint64_t duration = 0;
+
+  if (!this->first_cluster_found) {
+    int idx, entry;
+
+    /* Scale the cues to ms precision. */
+    for (idx = 0; idx < this->num_indexes; idx++) {
+      matroska_index_t *index = &this->indexes[idx];
+      for (entry = 0; entry < index->num_entries; entry++)
+        index->timecode[entry] = index->timecode[entry] *
+          this->timecode_scale / 1000000;
+    }
+    this->first_cluster_found = 1;
+  }
 
   while (next_level == 2) {
     ebml_elem_t elem;
@@ -1441,6 +1597,29 @@ static int parse_seekhead(demux_matroska_t *this) {
     }
     next_level = ebml_get_next_level(ebml, &elem);
   }
+
+  if ((this->cues_pos > 0) &&
+      (this->cues_pos < this->input->get_length(this->input))) {
+    off_t current_pos;
+    int current_level;
+
+    current_pos = this->input->get_current_pos(this->input);
+    current_level = next_level;
+    if (this->input->seek(this->input, this->cues_pos, SEEK_SET) != this->cues_pos) {
+      xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
+              "demux_matroska: failed to seek to cues_pos: %lld\n", this->cues_pos);
+      return 0;
+    }
+    this->ebml->level = 2;
+    parse_cues(this);
+    if (this->input->seek(this->input, current_pos, SEEK_SET) != current_pos) {
+      xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
+              "demux_matroska: failed to seek to pos: %lld\n", current_pos);
+      return 0;
+    }
+    this->ebml->level = current_level;
+  }
+
   return 1;
 }
 
@@ -1728,12 +1907,135 @@ static void demux_matroska_send_headers (demux_plugin_t *this_gen) {
 }
 
 
+/* support function that performs a binary seek on a track; returns the
+ * best index entry or -1 if the seek was beyond the end of the file */
+static int binary_seek(matroska_index_t *index, off_t start_pos,
+                       int start_time) {
+  int best_index;
+  int left, middle, right;
+  int found;
+
+  /* perform a binary search on the trak, testing the offset
+   * boundaries first; offset request has precedent over time request */
+  if (start_pos) {
+    if (start_pos <= index->pos[0])
+      best_index = 0;
+    else if (start_pos >= index->pos[index->num_entries - 1])
+      best_index = index->num_entries - 1;
+    else {
+      left = 0;
+      right = index->num_entries - 1;
+      found = 0;
+
+      while (!found) {
+        middle = (left + right + 1) / 2;
+        if ((start_pos >= index->pos[middle]) &&
+            (start_pos < index->pos[middle + 1]))
+          found = 1;
+        else if (start_pos < index->pos[middle])
+          right = middle - 1;
+        else
+          left = middle;
+      }
+
+      best_index = middle;
+    }
+  } else {
+    if (start_time <= index->timecode[0])
+      best_index = 0;
+    else if (start_time >= index->timecode[index->num_entries - 1])
+      best_index = index->num_entries - 1;
+    else {
+      left = 0;
+      right = index->num_entries - 1;
+      do {
+        middle = (left + right + 1) / 2;
+        if (start_time < index->timecode[middle])
+          right = (middle - 1);
+        else
+          left = middle;
+      } while (left < right);
+
+      best_index = left;
+    }
+  }
+
+  return best_index;
+}
+
+
 static int demux_matroska_seek (demux_plugin_t *this_gen,
                                 off_t start_pos, int start_time, int playing) {
 
   demux_matroska_t *this = (demux_matroska_t *) this_gen;
+  matroska_index_t *index;
+  matroska_track_t *track;
+  int i, entry;
 
   this->status = DEMUX_OK;
+
+  /* engine sync stuff */
+  for (i = 0; i < this->num_tracks; i++) {
+    this->tracks[i]->last_pts = 0;
+  }
+  this->send_newpts   = 1;
+  this->buf_flag_seek = 1;
+
+  /* Seeking without an index is not supported yet. */
+  if (!this->num_indexes)
+    return this->status;
+
+  /* Find an index for a video track and use the first available index
+     otherwise. */
+  index = NULL;
+  for (i = 0; i < this->num_indexes; i++) {
+    if (this->indexes[i].num_entries == 0)
+      continue;
+    if ((find_track_by_id(this, this->indexes[i].track_num, &track)) &&
+        (track->track_type == MATROSKA_TRACK_VIDEO)) {
+      lprintf("video track found\n");
+      index = &this->indexes[i];
+      break;
+    }
+  }
+  if (index == NULL)
+    for (i = 0; i < this->num_indexes; i++) {
+      if (this->indexes[i].num_entries == 0)
+        continue;
+      if (find_track_by_id(this, this->indexes[i].track_num, &track)) {
+        index = &this->indexes[i];
+        break;
+      }
+    }
+
+  /* No suitable index found. */
+  if (index == NULL)
+    return this->status;
+
+  entry = binary_seek(index, start_pos, start_time);
+  if (entry == -1) {
+    lprintf("seeking for track %d to %s %lld - no entry found/EOS.\n",
+            index->track_num, start_pos ? "pos" : "time",
+            start_pos ? (int64_t)start_pos : (int64_t)start_time);
+    this->status = DEMUX_FINISHED;
+
+  } else {
+    lprintf("seeking for track %d to %s %lld. decision is #%d at %lld/%lld\n",
+            index->track_num, start_pos ? "pos" : "time",
+            start_pos ? (int64_t)start_pos : (int64_t)start_time,
+            index->track_num, index->timecode[entry], index->pos[entry]);
+    
+    if (this->input->seek(this->input, index->pos[entry], SEEK_SET) == -1)
+      this->status = DEMUX_FINISHED;
+    
+    /* we always seek to the ebml level 1
+     * this allows seeking even if the end of file has been reached */
+    this->ebml->level = 1;
+
+    this->skip_to_timecode = index->timecode[entry];
+    this->skip_for_track = track->track_num;
+    _x_demux_flush_engine(this->stream);
+  }
 
   return this->status;
 }
@@ -1762,6 +2064,15 @@ static void demux_matroska_dispose (demux_plugin_t *this_gen) {
     
     free (track);
   }
+  /* Free the cues. */
+  for (i = 0; i < this->num_indexes; i++) {
+    if (this->indexes[i].pos)
+      free(this->indexes[i].pos);
+    if (this->indexes[i].timecode)
+      free(this->indexes[i].timecode);
+  }
+  if (this->indexes)
+    free(this->indexes);
   dispose_ebml_parser(this->ebml);
   free (this);
 }
