@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.81 2002/09/04 23:31:13 guenter Exp $
+ * $Id: load_plugins.c,v 1.82 2002/09/05 16:24:14 guenter Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -222,12 +222,14 @@ static void collect_plugins(xine_t *this, char *path){
 	  plugin_name = str;
 		  
 	  if(!(lib = dlopen (str, RTLD_LAZY))) {
-	    char *dl_error_msg = dlerror();
 			
 #ifdef LOG
-	    /* too noisy */
-	    printf ("load_plugins: cannot open plugin lib %s:\n%s\n",
-		    str, dl_error_msg); 
+	    {
+	      char *dl_error_msg = dlerror();
+	      /* too noisy */
+	      printf ("load_plugins: cannot open plugin lib %s:\n%s\n",
+		      str, dl_error_msg); 
+	    }
 #endif
 	  }
 	  else {
@@ -554,44 +556,32 @@ void scan_plugins (xine_t *this) {
   map_decoders (this);
 }
 
-
-
 static char **_xine_get_featured_input_plugin_ids(xine_t *this, int feature) {
 
-  /* FIXME */
+  plugin_catalog_t   *catalog;
+  int                 i;
+  plugin_node_t      *node;
 
-#if 0
+  catalog = this->plugin_catalog;
 
-  input_plugin_t  *ip;
-  char           **plugin_ids;
-  int              i;
-  int              n = 0;
+  i = 0;
+  node = xine_list_first_content (catalog->input);
+  while (node) {
+    input_plugin_t *ip;
 
-  if(!this->num_input_plugins)
-    return NULL;
+    ip = (input_plugin_t *) node->plugin;
+    if (ip->get_capabilities(ip) & feature) {
 
-  plugin_ids = (char **) xine_xmalloc (this->num_input_plugins * sizeof (char *));
+      catalog->ids[i] = node->info->id;
 
-  for(i = 0; i < this->num_input_plugins; i++) {
-
-    ip = this->input_plugins[i];
-
-    if(ip->get_capabilities(ip) & feature) {
-      plugin_ids[n] = (char *) malloc (strlen(ip->get_identifier(ip)) + 1 );
-      strcpy (plugin_ids[n], ip->get_identifier(ip));
-      /* printf("%s(%d): %s is featured\n",  */
-      /*        __XINE_FUNCTION__, feature, ip->get_identifier(ip)); */
-      n++;
+      i++;
     }
-
+    node = xine_list_next_content (this->plugin_catalog->input);
   }
 
-  plugin_ids[n] = NULL;
+  catalog->ids[i] = NULL;
 
-  return plugin_ids;
-
-#endif
-  return NULL;
+  return catalog->ids;
 }
 
 char **xine_get_autoplay_input_plugin_ids(xine_t *this) {

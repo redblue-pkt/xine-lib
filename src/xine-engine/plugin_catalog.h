@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: plugin_catalog.h,v 1.2 2002/09/04 23:31:13 guenter Exp $
+ * $Id: plugin_catalog.h,v 1.3 2002/09/05 16:24:14 guenter Exp $
  *
  * xine-internal header: Definitions for plugin lists
  *
@@ -30,6 +30,7 @@
 #include "xineutils.h"
 
 #define DECODER_MAX 256
+#define PLUGIN_MAX  256
 
 typedef struct {
   char          *filename;
@@ -49,6 +50,9 @@ struct plugin_catalog_s {
   plugin_node_t *audio_decoder_map[DECODER_MAX];
   plugin_node_t *video_decoder_map[DECODER_MAX];
   plugin_node_t *spu_decoder_map[DECODER_MAX];
+
+  char *ids[PLUGIN_MAX];
+
 };
 typedef struct plugin_catalog_s plugin_catalog_t;
 
