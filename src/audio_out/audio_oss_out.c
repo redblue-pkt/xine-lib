@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_oss_out.c,v 1.41 2001/10/01 23:04:57 f1rmb Exp $
+ * $Id: audio_oss_out.c,v 1.42 2001/10/07 22:44:57 guenter Exp $
  *
  * 20-8-2001 First implementation of Audio sync and Audio driver separation.
  * Copyright (C) 2001 James Courtier-Dutton James@superbug.demon.co.uk
@@ -88,6 +88,7 @@
 #define GAP_TOLERANCE         5000
 #define GAP_NONRT_TOLERANCE  15000
 #define MAX_GAP              90000
+#define NOT_REAL_TIME           -1
 
 #ifdef CONFIG_DEVFS_FS
 #define DSP_TEMPLATE "/dev/sound/dsp%d"
@@ -116,7 +117,7 @@ typedef struct oss_driver_s {
   
   int              audio_started;
   int              audio_has_realtime;   /* OSS driver supports real-time              */
-  int              static_delay;         /* estimated delay for non-realtime drivers   */
+
 
   struct {
     char          *name;
@@ -341,7 +342,7 @@ static int ao_oss_delay(ao_driver_t *this_gen)
     }
 
   } else {
-    bytes_left = this->static_delay;
+    return NOT_REAL_TIME;
   }
 
 
@@ -734,8 +735,6 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
 
   this->output_sample_rate = 0;
   this->audio_fd = -1;
-
-  this->static_delay = config->lookup_int (config, "oss_static_delay", 1000);
 
   this->config                        = config;
   this->ao_driver.get_capabilities    = ao_oss_get_capabilities;
