@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_avi.c,v 1.210 2004/10/13 20:14:25 tmattern Exp $
+ * $Id: demux_avi.c,v 1.211 2004/10/15 21:08:44 tmattern Exp $
  *
  * demultiplexer for avi streams
  *
@@ -1222,16 +1222,6 @@ static avi_t *AVI_init(demux_avi_t *this) {
         }
       }
     }
-    /* check index validity, there must be an index for each video/audio stream */
-    if (AVI->video_idx.video_frames == 0) {
-      reset_idx(this, AVI);
-    }
-    for(n = 0; n < AVI->n_audio; n++) {
-      if (AVI->audio[n]->audio_idx.audio_chunks == 0) {
-        reset_idx(this, AVI);
-      }
-    }
-    
   } else if (AVI->is_opendml && !this->streaming) {
       uint64_t offset = 0;
       int hdrl_len = 4+4+2+1+1+4+4+8+4;
@@ -1308,7 +1298,7 @@ static avi_t *AVI_init(demux_avi_t *this) {
       } else {
         xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
 	               "demux_avi: Warning: the video super index is NULL\n");
-	    }
+      }
 
  
       /* ************************ */
@@ -1376,13 +1366,25 @@ static avi_t *AVI_init(demux_avi_t *this) {
           free(chunk_start);
         }
       }
+  }
+
+  if (this->has_index) {
+    /* check index validity, there must be an index for each video/audio stream */
+    if (AVI->video_idx.video_frames == 0) {
+      reset_idx(this, AVI);
+    }
+    for(n = 0; n < AVI->n_audio; n++) {
+      if (AVI->audio[n]->audio_idx.audio_chunks == 0) {
+	reset_idx(this, AVI);
+      }
+    }
   } else {
     /* We'll just dynamically grow the index as needed. */
     lprintf("no index\n");
     this->idx_grow.nexttagoffset = AVI->movi_start;
     this->has_index = 0;
   }
-
+    
   /* Reposition the file */
   if (!this->streaming)
     this->input->seek(this->input, AVI->movi_start, SEEK_SET);
