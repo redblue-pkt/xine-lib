@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  *
- * $Id: video_out_pgx64.c,v 1.35 2003/09/21 02:53:19 komadori Exp $
+ * $Id: video_out_pgx64.c,v 1.36 2003/10/03 23:19:21 komadori Exp $
  *
  * video_out_pgx64.c, Sun PGX64/PGX24 output plugin for xine
  *
@@ -218,7 +218,7 @@ static void clear_key(pgx64_driver_t *this)
   int i;
 
   for (i=0; i<(this->key_width*this->key_height); i++) {
-    ((uint32_t*)this->key->data)[i] = this->colour_key;
+    ((uint32_t*)(void*)this->key->data)[i] = this->colour_key;
   }
 }
 
@@ -276,14 +276,15 @@ static void switch_buffers(pgx64_driver_t* this)
 static void pgx64_frame_copy(pgx64_frame_t *frame, uint8_t **src)
 {
   pgx64_driver_t *this = (pgx64_driver_t*)frame->this;
-  int i;
+  int i, len;
 
   frame->vo_frame.copy_called = 1;
 
   if ((this->buf_mode == BUF_MODE_MULTI) && (frame->buffer >= 0)) {
     for (i=0; i<frame->planes; i++) {
-      memcpy(this->buffer_ptrs[frame->buffer][i]+frame->stripe_offsets[i], src[i], frame->stripe_lengths[i]);
-      frame->stripe_offsets[i] += frame->stripe_lengths[i];
+      len = (frame->lengths[i] - frame->stripe_offsets[i] < frame->stripe_lengths[i]) ? frame->lengths[i] - frame->stripe_offsets[i] : frame->stripe_lengths[i];
+      memcpy(this->buffer_ptrs[frame->buffer][i]+frame->stripe_offsets[i], src[i], len);
+      frame->stripe_offsets[i] += len;
     }
   }
 }
@@ -451,7 +452,7 @@ static void pgx64_display_frame(pgx64_driver_t *this, pgx64_frame_t *frame)
     this->vregs[VIDEO_FORMAT] = le2me_32(frame->native_format);
     this->vregs[SCALER_BUF_PITCH] = le2me_32(this->deinterlace_en ? frame->pitch*2 : frame->pitch);
     this->vregs[OVERLAY_X_Y_START] = le2me_32(((this->vo_scale.gui_win_x + this->vo_scale.output_xoffset) << 16) | (this->vo_scale.gui_win_y + this->vo_scale.output_yoffset) | OVERLAY_X_Y_LOCK);
-    this->vregs[OVERLAY_X_Y_END] = le2me_32(((this->vo_scale.gui_win_x + this->vo_scale.output_xoffset + this->vo_scale.output_width) << 16) | (this->vo_scale.gui_win_y + this->vo_scale.output_yoffset + this->vo_scale.output_height - 1));
+    this->vregs[OVERLAY_X_Y_END] = le2me_32(((this->vo_scale.gui_win_x + this->vo_scale.output_xoffset + this->vo_scale.output_width - 1) << 16) | (this->vo_scale.gui_win_y + this->vo_scale.output_yoffset + this->vo_scale.output_height - 1));
     this->vregs[OVERLAY_SCALE_INC] = le2me_32((((frame->width << 12) / this->vo_scale.output_width) << 16) | (((this->deinterlace_en ? frame->height/2 : frame->height) << 12) / this->vo_scale.output_height));
     this->vregs[SCALER_HEIGHT_WIDTH] = le2me_32((frame->width << 16) | (this->deinterlace_en ? frame->height/2 : frame->height));
 
@@ -459,7 +460,7 @@ static void pgx64_display_frame(pgx64_driver_t *this, pgx64_frame_t *frame)
       int horz_start = (this->vo_scale.gui_win_x + this->vo_scale.output_xoffset + 7) / 8;
       int horz_end = (this->vo_scale.gui_win_x + this->vo_scale.output_xoffset + this->vo_scale.output_width) / 8;
 
-      this->vregs[OVERLAY_EXCLUSIVE_VERT] = le2me_32((this->vo_scale.gui_win_y + this->vo_scale.output_yoffset) | ((this->vo_scale.gui_win_y + this->vo_scale.output_yoffset + this->vo_scale.output_height - 1) << 16));
+      this->vregs[OVERLAY_EXCLUSIVE_VERT] = le2me_32((this->vo_scale.gui_win_y + this->vo_scale.output_yoffset - 1) | ((this->vo_scale.gui_win_y + this->vo_scale.output_yoffset + this->vo_scale.output_height - 1) << 16));
       this->vregs[OVERLAY_EXCLUSIVE_HORZ] = le2me_32(horz_start | (horz_end << 8) | ((this->fb_width/8 - horz_end) << 16) | OVERLAY_EXCLUSIVE_EN);
     }
     else {
