@@ -1136,6 +1136,8 @@ src/input/libdvdnav/Makefile
 src/input/libdvdread/Makefile
 src/liba52/Makefile
 src/libdts/Makefile
+src/libfaad/Makefile
+src/libfaad/codebook/Makefile
 src/libffmpeg/Makefile
 src/libffmpeg/libavcodec/Makefile
 src/libffmpeg/libavcodec/armv4l/Makefile
