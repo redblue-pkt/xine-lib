@@ -1,4 +1,7 @@
-xine programming
+active developers
+=================
+
+main xine programming
 
   Guenter Bartsch <guenter@users.sourceforge.net>
 
@@ -6,7 +9,15 @@ various suggestions, bug and build fixes, alsa plugin, gui
 
   Daniel Caujolle-Bert <f1rmb@users.sourceforge.net>
 
-Debian package, audio programming
+teletux/syncfb video output module, various bugfixes/reviews, alsa
+
+  Joachim Koenig <Joachim.Koenig@gmx.net>
+
+libac3/libmpeg2 developement
+
+  Michael Lespinasse <walken@zoy.org>
+
+Debian package, user support
 
   Siegfried Langauf <siggi@users.sourceforge.net>
 
@@ -24,9 +35,6 @@ Contributions
   many thanks to the Linux Video and DVD Project "LiViD"
   (http://www.linuxvideo.org/), where the original ideas for the xine
   video player came from.
-
-  Michael Lespinasse
-    great libmpeg2 hacks
 
   Alan Cox
     bug fixes, net-input-plugin

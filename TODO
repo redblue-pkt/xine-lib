@@ -1,19 +1,64 @@
-- skip packages if CPU very slow
 
-- MPEG-4 support in source
+Assigned tasks
+==============
 
-- 4-channel surround sound
+- fix X11 remote / XShm output
+  fix field picture support  
+  guenter
 
-- sp/div direct ac3 output
+- FreeBSD port
 
-- use docbook for FAQ/manpage/README...
+  D. J. HAWKEY JR.
 
-- ability to play back video over remote X11 connection
+- xitk-ui: filebrowser, toolkit, ...
 
-- BUG: avi demuxer segfaults if frames are big
+  Daniel
 
-- check XLock/Thread support
+- Alsa
 
-- check GOP timestamp decoding for mpeg-2
+  Joachim and others
 
-- BUG: xshm video output crashes if aspect ratio is changed while playing
+- libac3 reentrant, downmixing, standards compliance
+
+  Michel
+
+- esd audio output driver
+
+  Christian Bauer
+
+- a gtk/gnome gui, perhaps by building a bonobo component?
+  this should be possible now, xine is a library and can be embedded
+  in other applications
+
+  Sean Middleditch
+
+- navigation support
+
+  James Courtier-Dutton, 
+  Rich Wareham
+
+Open Tasks
+==========
+
+- make win32 codecs work again
+- fix the subtitle decoder
+- a qt/kde gui
+- an OpenDivX decoder plugin (should be very easy)
+- port over from OMS / implement a Mpeg Transport Stream demultiplexer
+- an aalib video output plugin (coolness factor: +10! ;))
+- SDL based video and audio output plugins
+  I've seen patches about this before but with the monolitic xine
+  this would have ment xine to become SDL-dependant. But now,
+  with our flexible dynamic audio/video plugin architecture
+  this is no longer a problem
+- fbdev based video output plugin
+- a win32 port, based on the SDL output plugins
+- a quicktime demuxer
+- a decoder plugin that uses xanim's quicktime codec plugins
+  (pretty much like the libwin32) this could enable 3ivx support btw
+- port to other platforms (ppc, sparc...) - the architecture isn't
+  final yet, but I really hope that there are only minor changes
+  (mainly additions) to come
+- port to other OS (Free/Net/OpenBSD, IRIX, Solaris, Win32 ...?)
+- deinterlace filters
+
