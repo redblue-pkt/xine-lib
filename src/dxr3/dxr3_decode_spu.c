@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decode_spu.c,v 1.10 2002/07/08 19:52:01 mroi Exp $
+ * $Id: dxr3_decode_spu.c,v 1.11 2002/07/10 14:09:55 mroi Exp $
  */
  
 /* dxr3 spu decoder plugin.
@@ -90,7 +90,6 @@ typedef struct dxr3_spudec_s {
   
   int                      aspect;       /* this is needed for correct highlight placement */
   int                      height;       /* in anamorphic menus */
-  int                      pan_scan;
 } dxr3_spudec_t;
 
 /* helper functions */
@@ -151,7 +150,6 @@ spu_decoder_t *init_spu_decoder_plugin(int iface_version, xine_t *xine)
   this->buttonN                       = 1;
   
   this->aspect                        = XINE_ASPECT_RATIO_4_3;
-  this->pan_scan                      = 0;
   
   xine_register_event_listener(xine, dxr3_spudec_event_listener, this);
     
@@ -318,8 +316,8 @@ static void dxr3_spudec_decode_data(spu_decoder_t *this_gen, buf_element_t *buf)
 #endif
     return;
   }
-  if (this->aspect == XINE_ASPECT_RATIO_ANAMORPHIC && this->xine->spu_channel_user == -1 &&
-      !this->pan_scan && this->xine->spu_channel_letterbox >= 0 &&
+  if (this->aspect == XINE_ASPECT_RATIO_ANAMORPHIC &&
+      this->xine->spu_channel_user == -1 && this->xine->spu_channel_letterbox >= 0 &&
       this->xine->video_driver->get_property(this->xine->video_driver, VO_PROP_VO_TYPE) ==
       VO_TYPE_DXR3_LETTERBOXED) {
     /* Use the letterbox version of the subpicture for tv out. */
@@ -463,6 +461,7 @@ static void dxr3_spudec_event_listener(void *this_gen, xine_event_t *event_gen)
     printf("dxr3_decode_spu: aspect changed to %d\n", this->aspect);
 #endif
     break;
+#if 0
   case XINE_EVENT_ASPECT_CHANGE:
     switch (((xine_aspect_ratio_event_t *)event)->ratio_code) {
     case ASPECT_FULL:
@@ -484,6 +483,7 @@ static void dxr3_spudec_event_listener(void *this_gen, xine_event_t *event_gen)
         VO_PROP_ZOOM_FACTOR, this->pan_scan ? 1 : -1);
     }
     break;
+#endif
 #if 0
   /* FIXME: I think this event is not necessary any more
    * We know from nav packet decoding, if we are in a menu. */
@@ -528,7 +528,7 @@ static int dxr3_spudec_copy_nav_to_btn(dxr3_spudec_t *this, int32_t mode, em8300
     btn->top  = button_ptr->y_start;
     btn->right = button_ptr->x_end;
     btn->bottom = button_ptr->y_end;
-    if (this->aspect == XINE_ASPECT_RATIO_ANAMORPHIC && !this->pan_scan &&
+    if (this->aspect == XINE_ASPECT_RATIO_ANAMORPHIC &&
         this->xine->video_driver->get_property(this->xine->video_driver, VO_PROP_VO_TYPE) ==
         VO_TYPE_DXR3_LETTERBOXED) {
       /* modify button areas for anamorphic menus on tv out */

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3.c,v 1.38 2002/07/08 19:52:02 mroi Exp $
+ * $Id: video_out_dxr3.c,v 1.39 2002/07/10 14:09:56 mroi Exp $
  */
  
 /* mpeg1 encoding video out plugin for the dxr3.  
@@ -455,8 +455,15 @@ static void dxr3_update_frame_format(vo_driver_t *this_gen, vo_frame_t *frame_ge
       aspect = ASPECT_FULL;
     if (ratio_code == XINE_ASPECT_RATIO_ANAMORPHIC || ratio_code == XINE_ASPECT_RATIO_211_1)
       aspect = ASPECT_ANAMORPHIC;
-    
-    if(this->aspect != aspect)
+    if (ratio_code == XINE_ASPECT_RATIO_PAN_SCAN && !this->pan_scan) {
+      dxr3_set_property(this_gen, VO_PROP_ZOOM_FACTOR, 1);
+      this->pan_scan = 1;
+    }
+    if (ratio_code != XINE_ASPECT_RATIO_PAN_SCAN && this->pan_scan) {
+      this->pan_scan = 0;
+      dxr3_set_property(this_gen, VO_PROP_ZOOM_FACTOR, -1);
+    }
+    if (this->aspect != aspect)
       dxr3_set_property(this_gen, VO_PROP_ASPECT_RATIO, aspect);
       
     return;
@@ -486,6 +493,7 @@ static void dxr3_update_frame_format(vo_driver_t *this_gen, vo_frame_t *frame_ge
       oheight = height;
       break;
     case XINE_ASPECT_RATIO_ANAMORPHIC:
+    case XINE_ASPECT_RATIO_PAN_SCAN:
       aspect = ASPECT_ANAMORPHIC;
       oheight = height;
       break;
@@ -745,12 +753,10 @@ static int dxr3_set_property(vo_driver_t *this_gen, int property, int value)
           /* FIXME: We should send an anamorphic hint to widescreen tvs, so they
            * can switch to 16:9 mode. I don't know if the dxr3 can do this. */
         }
-        this->pan_scan = 1;
       } else if (value == -1) {
 #if LOG_VID
         printf("video_out_dxr3: disabling 16:9 zoom\n");
 #endif
-        this->pan_scan = 0;
         dxr3_set_property(this_gen, VO_PROP_ASPECT_RATIO, this->aspect);
       }
     }

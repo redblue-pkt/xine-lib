@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decode_video.c,v 1.11 2002/07/08 19:52:01 mroi Exp $
+ * $Id: dxr3_decode_video.c,v 1.12 2002/07/10 14:09:56 mroi Exp $
  */
  
 /* dxr3 video decoder plugin.
@@ -89,6 +89,8 @@ typedef struct dxr3_decoder_s {
   int              frame_rate_code;
   int              repeat_first_field;   /* mpeg stream header data */
   
+  int              force_aspect;         /* when input plugin has better info, we are forced
+                                          * to use a certain aspect */
   int              last_width;
   int              last_height;
   int              last_aspect;          /* used to detect changes for event sending */
@@ -229,6 +231,8 @@ static void dxr3_init(video_decoder_t *this_gen, vo_instance_t *video_out)
   this->have_header_info      = 0;
   this->repeat_first_field    = 0;
   
+  this->force_aspect          = 0;
+  
   this->last_width            = 0;
   this->last_height           = 0;
   this->last_aspect           = 0;
@@ -254,6 +258,27 @@ static void dxr3_decode_data(video_decoder_t *this_gen, buf_element_t *buf)
   uint32_t shift;
   
   vpts = 0;
+  
+  /* handle aspect hints from xine-dvdnav */
+  if (buf->decoder_flags & BUF_FLAG_SPECIAL) {
+    if (buf->decoder_info[1] == BUF_SPECIAL_ASPECT) {
+      this->aspect = this->force_aspect = buf->decoder_info[2];
+      if (buf->decoder_info[3] == 0x1 && this->force_aspect == XINE_ASPECT_RATIO_ANAMORPHIC)
+        /* letterboxing is denied, we have to do pan&scan */
+        this->aspect = this->force_aspect = XINE_ASPECT_RATIO_PAN_SCAN;
+      /* when aspect changed, we have to send an event for dxr3 spu decoder */
+      if (!this->last_aspect || this->last_aspect != this->aspect) {
+        xine_frame_change_event_t event;
+        event.event.type = XINE_EVENT_FRAME_CHANGE;
+        event.width = this->last_width;
+        event.height = this->last_height;
+        event.aspect = this->aspect;
+        xine_send_event(this->xine, &event.event);
+        this->last_aspect = this->aspect;
+      }
+    }
+    return;
+  }
   
   /* parse frames in the buffer handed in, evaluate headers,
    * send frames to video_out and handle some syncing
@@ -547,6 +572,8 @@ static void parse_mpeg_header(dxr3_decoder_t *this, uint8_t * buffer)
   this->aspect          = buffer[HEADER_OFFSET+3] >> 4;
   
   this->have_header_info = 1;
+  
+  if (this->force_aspect) this->aspect = this->force_aspect;
   
   /* when width, height or aspect changes,
    * we have to send an event for dxr3 spu decoder */
