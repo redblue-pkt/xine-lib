@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.19 2004/06/28 22:44:57 tmattern Exp $
+ * $Id: video_decoder.c,v 1.20 2004/07/01 20:16:24 jstembridge Exp $
  *
  * xine video decoder plugin using ffmpeg
  *
@@ -72,6 +72,7 @@ struct ff_video_decoder_s {
   ff_video_class_t *class;
 
   xine_stream_t    *stream;
+  int64_t           pts;
   int               video_step;
   int               decoder_ok;
 
@@ -915,13 +916,6 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
         this->bih.biWidth  = BE_16(&buf->content[12]);
         this->bih.biHeight = BE_16(&buf->content[14]);
         
-        this->video_step =  
-          90000.0 / ((double) BE_16(&buf->content[22]) + 
-                     ((double) BE_16(&buf->content[24]) / 65536.0));
-                     
-        _x_stream_info_set(this->stream, XINE_STREAM_INFO_FRAME_DURATION, 
-                           this->video_step);
-
         this->context->sub_id = BE_32(&buf->content[30]);
 
         this->context->slice_offset = xine_xmalloc(sizeof(int)*SLICE_OFFSET_SIZE);
@@ -1009,6 +1003,9 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
     _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_RATIO, 
                        this->aspect_ratio*10000);
   }
+  
+  if (buf->decoder_flags & BUF_FLAG_FRAME_START)
+    this->pts = buf->pts;
   
   if (this->decoder_ok && this->size) {
   
@@ -1162,8 +1159,8 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
           }
         }
       
-        img->pts      = buf->pts;
-        buf->pts      = 0;
+        img->pts      = this->pts;
+        this->pts     = 0;
         img->duration = this->video_step;
 
         this->skipframes = img->draw(img, this->stream);
