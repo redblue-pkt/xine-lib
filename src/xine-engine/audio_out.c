@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.25 2001/11/10 19:34:25 jkeil Exp $
+ * $Id: audio_out.c,v 1.26 2001/11/15 00:32:36 miguelfreitas Exp $
  * 
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -611,7 +611,8 @@ ao_instance_t *ao_new_instance (ao_driver_t *driver, metronom_t *metronom,
   this->get_property          = ao_get_property;
   this->set_property          = ao_set_property;
   this->audio_loop_running    = 0;
-  this->frame_buffer          = xmalloc (40000);
+  /* FIXME: is 4* good enough for all resample cases?? */
+  this->frame_buffer          = xmalloc (4 * AUDIO_BUF_SIZE);
   this->zero_space            = xmalloc (ZERO_BUF_SIZE * 2 * 6);
   this->gap_tolerance         = driver->get_gap_tolerance (this->driver);
 
