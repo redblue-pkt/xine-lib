@@ -67,6 +67,14 @@ check that <prefix>/bin is in your path and your linker will find
 libs installed in </prefix>/lib.
 
 
+xine-lib doesn't compile
+------------------------
+
+in order to be able to compile xine-lib, you need (amongst other things)
+the zlib compression library plus the appropriate headers, which are
+often found in a package called zlib-devel or similar.
+
+
 xine-lib installed nicely but xine-ui complains about not finding xine-lib
 --------------------------------------------------------------------------
 
