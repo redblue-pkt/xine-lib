@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.4 2004/02/01 22:45:17 jstembridge Exp $
+ * $Id: video_decoder.c,v 1.5 2004/02/03 19:42:02 jstembridge Exp $
  *
  * xine video decoder plugin using ffmpeg
  *
@@ -806,7 +806,8 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
     return;
   }
 
-  if (buf->decoder_flags & BUF_FLAG_HEADER) {
+  if ( (buf->decoder_flags & BUF_FLAG_HEADER) && 
+      !(buf->decoder_flags & BUF_FLAG_SPECIAL) ) {
 
     lprintf ("header\n");
 
