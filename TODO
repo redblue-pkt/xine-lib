@@ -11,8 +11,6 @@ required for 1.0
   obs: partialy implemented. all modules must be checked
   for error reporting.
 - update xine hacker's guide
-- have all network input plugins to use the same code with select().
-  must be able to stop engine while waiting for data.
 
 optional
 --------

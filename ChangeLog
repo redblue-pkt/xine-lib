@@ -1,5 +1,7 @@
 xine-lib (1-beta11)
   * fix fastforward bug (slow playback with unused cpu cicles)
+  * fix input_net (tcp) seeking
+  * network input plugins do not freeze when no data is available
 
 xine-lib (1-beta10)
   * loading and displaying png images (e.g. for logos)
