@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_mpeg_encoders.c,v 1.8 2002/07/17 14:58:12 mroi Exp $
+ * $Id: dxr3_mpeg_encoders.c,v 1.9 2002/09/05 12:52:24 mroi Exp $
  */
  
 /* mpeg encoders for the dxr3 video out plugin.
@@ -177,10 +177,10 @@ static int rte_on_update_format(dxr3_driver_t *drv, dxr3_frame_t *frame)
     return 0;
   }
   
-  this->rte_bitrate = drv->config->register_range(drv->config,
+  this->rte_bitrate = drv->xine->config->register_range(drv->xine->config,
     "dxr3.rte_bitrate", 10000, 1000, 20000,
     _("Dxr3enc: rte mpeg output bitrate (kbit/s)"), 
-    _("The bitrate the mpeg encoder library librte should use for dxr3's encoding mode"),
+    _("The bitrate the mpeg encoder library librte should use for dxr3's encoding mode"), 10,
     NULL, NULL);
   this->rte_bitrate *= 1000; /* config in kbit/s, rte wants bit/s */
   
@@ -191,7 +191,7 @@ static int rte_on_update_format(dxr3_driver_t *drv, dxr3_frame_t *frame)
    * and context->video_bytes (= width * height * bytes/pixel)
    */
   rte_set_video_parameters(context, 
-    (frame->vo_frame.format == IMGFMT_YV12 ? RTE_YUV420 : RTE_YUYV),
+    (frame->vo_frame.format == XINE_IMGFMT_YV12 ? RTE_YUV420 : RTE_YUYV),
     context->width, context->height, 
     context->video_rate, context->output_video_bits,
     context->gop_sequence);
@@ -256,7 +256,7 @@ static int rte_on_display_frame(dxr3_driver_t *drv, dxr3_frame_t *frame)
   if ((this->width == frame->vo_frame.pitches[0]) && (this->height == frame->oheight)) {
     /* This frame belongs to current context. */
     size = frame->vo_frame.pitches[0] * frame->oheight;
-    if (frame->vo_frame.format == IMGFMT_YV12)
+    if (frame->vo_frame.format == XINE_IMGFMT_YV12)
       xine_fast_memcpy(this->rte_ptr, frame->real_base[0], size * 3/2);
     else
       xine_fast_memcpy(this->rte_ptr, frame->real_base[0], size * 2);
@@ -345,7 +345,7 @@ static int fame_on_update_format(dxr3_driver_t *drv, dxr3_frame_t *frame)
   
   /* if YUY2 and dimensions changed, we need to re-allocate the
    * internal YV12 buffer */
-  if (frame->vo_frame.format == IMGFMT_YUY2) {
+  if (frame->vo_frame.format == XINE_IMGFMT_YUY2) {
     int image_size = drv->video_width * drv->video_oheight;
 
     this->out[0] = xine_xmalloc_aligned(16, image_size * 3/2, 
@@ -384,10 +384,10 @@ static int fame_on_update_format(dxr3_driver_t *drv, dxr3_frame_t *frame)
   }
 
   this->fp = init_fp;
-  this->fp.quality = drv->config->register_range(drv->config,
+  this->fp.quality = drv->xine->config->register_range(drv->xine->config,
     "dxr3.fame_quality", 90, 10, 100,
     _("Dxr3enc: fame mpeg encoding quality"),
-    _("The encoding quality of the libfame mpeg encoder library."),
+    _("The encoding quality of the libfame mpeg encoder library."), 10,
     NULL,NULL);
 #if LOG_ENC
   /* the really interesting bit is the quantizer scale. The formula
@@ -527,7 +527,7 @@ static int fame_prepare_frame(fame_data_t *this, dxr3_driver_t *drv, dxr3_frame_
 
   if (frame->vo_frame.bad_frame) return 1;
 
-  if (frame->vo_frame.format == IMGFMT_YUY2) {
+  if (frame->vo_frame.format == XINE_IMGFMT_YUY2) {
     /* need YUY2->YV12 conversion */
     if (!(this->out[0] && this->out[1] && this->out[2]) ) {
       printf("dxr3_mpeg_encoder: Internal YV12 buffer not created.\n");

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3.h,v 1.9 2002/08/17 14:30:10 mroi Exp $
+ * $Id: video_out_dxr3.h,v 1.10 2002/09/05 12:52:24 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -69,8 +69,8 @@ typedef struct dxr3_overlay_s {
 } dxr3_overlay_t;
 
 typedef struct dxr3_driver_s {
-  vo_driver_t      vo_driver;
-  config_values_t *config;
+  xine_vo_driver_t vo_driver;
+  xine_t          *xine;
 
   char             devname[128];
   char             devnum[3];

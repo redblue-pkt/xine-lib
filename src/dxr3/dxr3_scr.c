@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_scr.c,v 1.4 2002/06/12 15:09:08 mroi Exp $
+ * $Id: dxr3_scr.c,v 1.5 2002/09/05 12:52:24 mroi Exp $
  */
 
 /* dxr3 scr plugin.
@@ -50,7 +50,7 @@ static void    dxr3_scr_exit(scr_plugin_t *scr);
 static int     dxr3_mvcommand(int fd_control, int command);
 
 /* config callback */
-static void    dxr3_scr_update_priority(void *this_gen, cfg_entry_t *entry);
+static void    dxr3_scr_update_priority(void *this_gen, xine_cfg_entry_t *entry);
 
 
 dxr3_scr_t *dxr3_scr_init(xine_t *xine)
@@ -61,7 +61,7 @@ dxr3_scr_t *dxr3_scr_init(xine_t *xine)
   this = (dxr3_scr_t *)malloc(sizeof(dxr3_scr_t));
   
   confstr = xine->config->register_string(xine->config,
-    CONF_LOOKUP, CONF_DEFAULT, CONF_NAME, CONF_HELP, NULL, NULL);
+    CONF_LOOKUP, CONF_DEFAULT, CONF_NAME, CONF_HELP, 0, NULL, NULL);
   if ((this->fd_control = open(confstr, O_WRONLY)) < 0) {
     printf("dxr3_scr: Failed to open control device %s (%s)\n",
       confstr, strerror(errno));
@@ -79,7 +79,7 @@ dxr3_scr_t *dxr3_scr_init(xine_t *xine)
   
   this->priority                     = xine->config->register_num(
     xine->config, "dxr3.scr_priority", 10, _("Dxr3: SCR plugin priority"),
-    _("Scr priorities greater 5 make the dxr3 xine's master clock."),
+    _("Scr priorities greater 5 make the dxr3 xine's master clock."), 20,
     dxr3_scr_update_priority, this);
   this->offset                       = 0;
   this->last_pts                     = 0;
@@ -172,27 +172,27 @@ static int dxr3_scr_set_speed(scr_plugin_t *scr, int speed)
   int playmode;
   
   switch (speed) {
-  case SPEED_PAUSE:
+  case XINE_SPEED_PAUSE:
     em_speed = 0;
     playmode = MVCOMMAND_PAUSE;
     break;
-  case SPEED_SLOW_4:
+  case XINE_SPEED_SLOW_4:
     em_speed = 0x900 / 4;
     playmode = MVCOMMAND_START;
     break;
-  case SPEED_SLOW_2:
+  case XINE_SPEED_SLOW_2:
     em_speed = 0x900 / 2;
     playmode = MVCOMMAND_START;
     break;
-  case SPEED_NORMAL:
+  case XINE_SPEED_NORMAL:
     em_speed = 0x900;
     playmode = MVCOMMAND_SYNC;
     break;
-  case SPEED_FAST_2:
+  case XINE_SPEED_FAST_2:
     em_speed = 0x900 * 2;
     playmode = MVCOMMAND_START;
     break;
-  case SPEED_FAST_4:
+  case XINE_SPEED_FAST_4:
     em_speed = 0x900 * 4;
     playmode = MVCOMMAND_START;
     break;
@@ -238,7 +238,7 @@ static int dxr3_mvcommand(int fd_control, int command)
   return ioctl(fd_control, EM8300_IOCTL_WRITEREG, &regs);
 }
 
-static void dxr3_scr_update_priority(void *this_gen, cfg_entry_t *entry)
+static void dxr3_scr_update_priority(void *this_gen, xine_cfg_entry_t *entry)
 {
   ((dxr3_scr_t *)this_gen)->priority = entry->num_value;
   printf("dxr3_scr: setting scr priority to %d\n", 

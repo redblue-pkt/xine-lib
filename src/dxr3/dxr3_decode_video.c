@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decode_video.c,v 1.12 2002/07/10 14:09:56 mroi Exp $
+ * $Id: dxr3_decode_video.c,v 1.13 2002/09/05 12:52:24 mroi Exp $
  */
  
 /* dxr3 video decoder plugin.
@@ -58,11 +58,26 @@
 
 
 /* plugin initialization function */
-video_decoder_t *init_video_decoder_plugin(int iface_version, xine_t *xine);
+static void     *dxr3_init_plugin(xine_t *xine, void *);
+
+
+/* plugin catalog information */
+static uint32_t supported_types[] = { BUF_VIDEO_MPEG, 0 };
+
+static decoder_info_t dxr3_video_decoder_info = {
+  supported_types,     /* supported types */
+  10                   /* priority        */
+};
+
+plugin_info_t xine_plugin_info[] = {
+  /* type, API, "name", version, special_info, init_function */  
+  { PLUGIN_VIDEO_DECODER, 10, "dxr3-mpeg2", XINE_VERSION_CODE, &dxr3_video_decoder_info, &dxr3_init_plugin },
+  { PLUGIN_NONE, 0, "", 0, NULL, NULL }
+};
+
 
 /* functions required by xine api */
 static char     *dxr3_get_id(void);
-static int       dxr3_can_handle(video_decoder_t *this_gen, int buf_type);
 static void      dxr3_init(video_decoder_t *this_gen, vo_instance_t *video_out);
 static void      dxr3_decode_data(video_decoder_t *this_gen, buf_element_t *buf);
 static void      dxr3_flush(video_decoder_t *this_gen);
@@ -115,13 +130,13 @@ static void      parse_mpeg_header(dxr3_decoder_t *this, uint8_t *buffer);
 static int       get_duration(dxr3_decoder_t *this);
 
 /* config callbacks */
-static void      dxr3_update_priority(void *this_gen, cfg_entry_t *entry);
-static void      dxr3_update_sync_mode(void *this_gen, cfg_entry_t *entry);
-static void      dxr3_update_enhanced_mode(void *this_gen, cfg_entry_t *entry);
-static void      dxr3_update_correct_durations(void *this_gen, cfg_entry_t *entry);
+static void      dxr3_update_priority(void *this_gen, xine_cfg_entry_t *entry);
+static void      dxr3_update_sync_mode(void *this_gen, xine_cfg_entry_t *entry);
+static void      dxr3_update_enhanced_mode(void *this_gen, xine_cfg_entry_t *entry);
+static void      dxr3_update_correct_durations(void *this_gen, xine_cfg_entry_t *entry);
 
 
-video_decoder_t *init_video_decoder_plugin(int iface_version, xine_t *xine)
+static void *dxr3_init_plugin(xine_t *xine, void *data)
 {
   dxr3_decoder_t *this;
   config_values_t *cfg;
@@ -129,21 +144,13 @@ video_decoder_t *init_video_decoder_plugin(int iface_version, xine_t *xine)
   int dashpos;
   int64_t cur_offset;
   
-  if (iface_version != 10) {
-    printf(_("dxr3_decode_video: plugin doesn't support plugin API version %d.\n"
-      "dxr3_decode_video: this means there's a version mismatch between xine and this\n"
-      "dxr3_decode_video: decoder plugin. Installing current plugins should help.\n"),
-      iface_version);
-    return NULL;
-  }
-  
   if (!dxr3_present(xine)) return NULL;
   
   this = (dxr3_decoder_t *)malloc(sizeof (dxr3_decoder_t));
   if (!this) return NULL;
   
   cfg = xine->config;
-  confstr = cfg->register_string(cfg, CONF_LOOKUP, CONF_DEFAULT, CONF_NAME, CONF_HELP, NULL, NULL);
+  confstr = cfg->register_string(cfg, CONF_LOOKUP, CONF_DEFAULT, CONF_NAME, CONF_HELP, 0, NULL, NULL);
   strncpy(this->devname, confstr, 128);
   this->devname[127] = '\0';
   dashpos = strlen(this->devname) - 2; /* the dash in the new device naming scheme would be here */
@@ -157,9 +164,7 @@ video_decoder_t *init_video_decoder_plugin(int iface_version, xine_t *xine)
     this->devnum[0] = '\0';
   }
   
-  this->video_decoder.interface_version = iface_version;
   this->video_decoder.get_identifier    = dxr3_get_id;
-  this->video_decoder.can_handle        = dxr3_can_handle;
   this->video_decoder.init              = dxr3_init;
   this->video_decoder.decode_data       = dxr3_decode_data;
   this->video_decoder.flush             = dxr3_flush;
@@ -168,7 +173,7 @@ video_decoder_t *init_video_decoder_plugin(int iface_version, xine_t *xine)
   this->video_decoder.dispose           = dxr3_dispose;
   this->video_decoder.priority          = cfg->register_num(cfg,
     "dxr3.decoder_priority", 10, _("Dxr3: video decoder priority"),
-    _("Decoder priorities greater 5 enable hardware decoding, 0 disables it."),
+    _("Decoder priorities greater 5 enable hardware decoding, 0 disables it."), 20,
     dxr3_update_priority, this);
 
   this->scr                             = NULL;
@@ -176,15 +181,15 @@ video_decoder_t *init_video_decoder_plugin(int iface_version, xine_t *xine)
   
   this->sync_every_frame                = cfg->register_bool(cfg,
     "dxr3.sync_every_frame", 0, _("Try to sync video every frame"),
-    _("This is relevant for progressive video only (most PAL films)."),
+    _("This is relevant for progressive video only (most PAL films)."), 20,
     dxr3_update_sync_mode, this);
   this->enhanced_mode                   = cfg->register_bool(cfg,
     "dxr3.alt_play_mode", 1, _("Use alternate Play mode"),
-    _("Enabling this option will utilise a smoother play mode."),
+    _("Enabling this option will utilise a smoother play mode."), 10,
     dxr3_update_enhanced_mode, this);
   this->correct_durations               = cfg->register_bool(cfg,
     "dxr3.correct_durations", 0, _("Correct frame durations in broken streams"),
-    _("Enable this for streams with wrong frame durations."),
+    _("Enable this for streams with wrong frame durations."), 10,
     dxr3_update_correct_durations, this);
   
   /* set a/v offset to compensate dxr3 internal delay */
@@ -198,12 +203,6 @@ video_decoder_t *init_video_decoder_plugin(int iface_version, xine_t *xine)
 static char *dxr3_get_id(void)
 {
   return "dxr3-mpeg2";
-}
-
-static int dxr3_can_handle(video_decoder_t *this_gen, int buf_type)
-{
-  buf_type &= 0xFFFF0000;
-  return (buf_type == BUF_VIDEO_MPEG);
 }
 
 static void dxr3_init(video_decoder_t *this_gen, vo_instance_t *video_out)
@@ -263,9 +262,9 @@ static void dxr3_decode_data(video_decoder_t *this_gen, buf_element_t *buf)
   if (buf->decoder_flags & BUF_FLAG_SPECIAL) {
     if (buf->decoder_info[1] == BUF_SPECIAL_ASPECT) {
       this->aspect = this->force_aspect = buf->decoder_info[2];
-      if (buf->decoder_info[3] == 0x1 && this->force_aspect == XINE_ASPECT_RATIO_ANAMORPHIC)
+      if (buf->decoder_info[3] == 0x1 && this->force_aspect == XINE_VO_ASPECT_ANAMORPHIC)
         /* letterboxing is denied, we have to do pan&scan */
-        this->aspect = this->force_aspect = XINE_ASPECT_RATIO_PAN_SCAN;
+        this->aspect = this->force_aspect = XINE_VO_ASPECT_PAN_SCAN;
       /* when aspect changed, we have to send an event for dxr3 spu decoder */
       if (!this->last_aspect || this->last_aspect != this->aspect) {
         xine_frame_change_event_t event;
@@ -673,28 +672,28 @@ static int get_duration(dxr3_decoder_t *this)
   return duration;
 }
 
-static void dxr3_update_priority(void *this_gen, cfg_entry_t *entry)
+static void dxr3_update_priority(void *this_gen, xine_cfg_entry_t *entry)
 {
   ((dxr3_decoder_t *)this_gen)->video_decoder.priority = entry->num_value;
   printf("dxr3_decode_video: setting decoder priority to %d\n", 
     entry->num_value);
 }
 
-static void dxr3_update_sync_mode(void *this_gen, cfg_entry_t *entry)
+static void dxr3_update_sync_mode(void *this_gen, xine_cfg_entry_t *entry)
 {
   ((dxr3_decoder_t *)this_gen)->sync_every_frame = entry->num_value;
   printf("dxr3_decode_video: setting sync_every_frame to %s\n", 
     (entry->num_value ? "on" : "off"));
 }
 
-static void dxr3_update_enhanced_mode(void *this_gen, cfg_entry_t *entry)
+static void dxr3_update_enhanced_mode(void *this_gen, xine_cfg_entry_t *entry)
 {
   ((dxr3_decoder_t *)this_gen)->enhanced_mode = entry->num_value;
   printf("dxr3_decode_video: setting enhanced mode to %s\n", 
     (entry->num_value ? "on" : "off"));
 }
 
-static void dxr3_update_correct_durations(void *this_gen, cfg_entry_t *entry)
+static void dxr3_update_correct_durations(void *this_gen, xine_cfg_entry_t *entry)
 {
   ((dxr3_decoder_t *)this_gen)->correct_durations = entry->num_value;
   printf("dxr3_decode_video: setting correct_durations mode to %s\n", 

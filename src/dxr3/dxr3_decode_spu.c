@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decode_spu.c,v 1.16 2002/08/28 15:46:55 mroi Exp $
+ * $Id: dxr3_decode_spu.c,v 1.17 2002/09/05 12:52:24 mroi Exp $
  */
  
 /* dxr3 spu decoder plugin.
@@ -53,7 +53,23 @@
 
 
 /* plugin initialization function */
-spu_decoder_t *init_spu_decoder_plugin(int iface_version, xine_t *xine);
+static void   *dxr3_spudec_init_plugin(xine_t *xine, void *);
+
+
+/* plugin catalog information */
+static uint32_t supported_types[] = { BUF_SPU_PACKAGE, BUF_SPU_CLUT, BUF_SPU_NAV, BUF_SPU_SUBP_CONTROL, 0 };
+
+static decoder_info_t dxr3_spudec_info = {
+  supported_types,     /* supported types */
+  10                   /* priority        */
+};
+
+plugin_info_t xine_plugin_info[] = {
+  /* type, API, "name", version, special_info, init_function */  
+  { PLUGIN_SPU_DECODER, 10, "dxr3-spudec", XINE_VERSION_CODE, &dxr3_spudec_info, &dxr3_spudec_init_plugin },
+  { PLUGIN_NONE, 0, "", 0, NULL, NULL }
+};
+
 
 /* functions required by xine api */
 static char   *dxr3_spudec_get_id(void);
@@ -102,19 +118,11 @@ static int     dxr3_spudec_copy_nav_to_btn(dxr3_spudec_t *this, int32_t mode, em
 static void    dxr3_swab_clut(int* clut);
 
 
-spu_decoder_t *init_spu_decoder_plugin(int iface_version, xine_t *xine)
+static void *dxr3_spudec_init_plugin(xine_t *xine, void* data)
 {
   dxr3_spudec_t *this;
   const char *confstr;
   int dashpos;
-  
-  if (iface_version != 9) {
-    printf(_("dxr3_decode_spu: plugin doesn't support plugin API version %d.\n"
-      "dxr3_decode_spu: this means there's a version mismatch between xine and this "
-      "dxr3_decode_spu: decoder plugin. Installing current plugins should help.\n"),
-      iface_version);
-    return NULL;
-  }
   
   if (!dxr3_present(xine)) return NULL;
   
@@ -122,7 +130,7 @@ spu_decoder_t *init_spu_decoder_plugin(int iface_version, xine_t *xine)
   if (!this) return NULL;
   
   confstr = xine->config->register_string(xine->config,
-    CONF_LOOKUP, CONF_DEFAULT, CONF_NAME, CONF_HELP, NULL, NULL);
+    CONF_LOOKUP, CONF_DEFAULT, CONF_NAME, CONF_HELP, 0, NULL, NULL);
   strncpy(this->devname, confstr, 128);
   this->devname[127] = '\0';
   dashpos = strlen(this->devname) - 2; /* the dash in the new device naming scheme would be here */
@@ -136,7 +144,6 @@ spu_decoder_t *init_spu_decoder_plugin(int iface_version, xine_t *xine)
     this->devnum[0] = '\0';
   }
   
-  this->spu_decoder.interface_version = iface_version;
   this->spu_decoder.get_identifier    = dxr3_spudec_get_id;
   this->spu_decoder.can_handle        = dxr3_spudec_can_handle;
   this->spu_decoder.init              = dxr3_spudec_init;
@@ -156,7 +163,7 @@ spu_decoder_t *init_spu_decoder_plugin(int iface_version, xine_t *xine)
   this->pci.hli.hl_gi.hli_ss          = 0;
   this->buttonN                       = 1;
   
-  this->aspect                        = XINE_ASPECT_RATIO_4_3;
+  this->aspect                        = XINE_VO_ASPECT_4_3;
   
   xine_register_event_listener(xine, dxr3_spudec_event_listener, this);
     
@@ -349,7 +356,7 @@ static void dxr3_spudec_decode_data(spu_decoder_t *this_gen, buf_element_t *buf)
 #endif
     return;
   }
-  if (this->aspect == XINE_ASPECT_RATIO_ANAMORPHIC &&
+  if (this->aspect == XINE_VO_ASPECT_ANAMORPHIC &&
       this->xine->spu_channel_user == -1 && this->xine->spu_channel_letterbox >= 0 &&
       this->xine->video_driver->get_property(this->xine->video_driver, VO_PROP_VO_TYPE) ==
       VO_TYPE_DXR3_LETTERBOXED) {
@@ -551,7 +558,7 @@ static int dxr3_spudec_copy_nav_to_btn(dxr3_spudec_t *this, int32_t mode, em8300
     btn->top  = button_ptr->y_start;
     btn->right = button_ptr->x_end;
     btn->bottom = button_ptr->y_end;
-    if (this->aspect == XINE_ASPECT_RATIO_ANAMORPHIC &&
+    if (this->aspect == XINE_VO_ASPECT_ANAMORPHIC &&
         this->xine->video_driver->get_property(this->xine->video_driver, VO_PROP_VO_TYPE) ==
         VO_TYPE_DXR3_LETTERBOXED && this->xine->spu_channel_user == -1 &&
 	this->xine->spu_channel_letterbox != this->xine->spu_channel &&
