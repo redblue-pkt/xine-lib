@@ -13,6 +13,7 @@ xine-lib (0.9.13) unstable; urgency=low
   * Raw YUV video support
   * Microsoft RLE decoder
   * AAC decoder (FAAD2 library)
+  * Reworked ALSA audio support
 
 xine-lib (0.9.12) unstable; urgency=low
 
@@ -23,7 +24,7 @@ xine-lib (0.9.12) unstable; urgency=low
   * use directshow filter to decode msmpeg4 v1/v2
   * fixed logo file name extension
   * fixed german i18n files
-	
+
  -- Guenter Bartsch <guenter@users.sourceforge.net>
 
 xine-lib (0.9.11) unstable; urgency=low
@@ -66,7 +67,7 @@ xine (0.9.10) unstable; urgency=low
   * new spec files for rpm package generation (xine-ui and xine-lib)
   * SDL video out driver (experimental)
   * XVidMode support fixed
-	
+
  -- Guenter Bartsch <guenter@users.sourceforge.net> 
 
 xine (0.9.9) unstable; urgency=low
@@ -92,7 +93,7 @@ xine (0.9.9) unstable; urgency=low
   * using "%" instead of ":" as subtitle file seperator
   * xvid (http://www.xvid.org) codec support
   * use of $CFLAGS instead of $GLOBAL_CFLAGS 
-	
+
  -- Guenter Bartsch <guenter@users.sourceforge.net> Sat Apr 20 20:32:33 CEST 2002
 
 xine (0.9.8) unstable; urgency=low
@@ -109,9 +110,9 @@ xine (0.9.8) unstable; urgency=low
   * dxr3 encoding support for librte-0.4 besides the traditional libfame.
   * support for (live) mpg streams via tcp
   * two new skins
-	
+
  -- Guenter Bartsch <guenter@users.sourceforge.net> Sun Jan 13 16:15:07 CET 2002
-	
+
 xine (0.9.7) unstable; urgency=low
 
   * fix some win32 dll segfaults
@@ -121,9 +122,9 @@ xine (0.9.7) unstable; urgency=low
   * reworked spu and overlay manager (multiple overlays supported)
   * support for avi text subtitles (use something like xine stream.avi:foo.sub)
   * altivec support
-	
+
  -- Guenter Bartsch <guenter@users.sourceforge.net> Tue Nov 27 01:20:06 CET 2001
-	
+
 xine (0.9.6) unstable; urgency=low
 
   * demux_asf big fragments handling
@@ -135,7 +136,7 @@ xine (0.9.6) unstable; urgency=low
   * audio plugin interface fix
 
  -- Guenter Bartsch <guenter@users.sourceforge.net> Tue Nov 27 01:20:06 CET 2001
-	
+
 xine (0.9.5) unstable; urgency=low
 
   * improved responsiveness (pause, stop, resume, seek)
@@ -152,7 +153,7 @@ xine (0.9.5) unstable; urgency=low
   * setup dialog preview
   * new metronom code for smoother playback of streams containing broken pts
   * xinerama patch by George Staikos <staikos@0wned.org>
-	
+
  -- Guenter Bartsch <guenter@users.sourceforge.net> Fri Nov 23 14:10:26 CET 2001
 
 xine (0.9.4) unstable; urgency=low
@@ -160,9 +161,9 @@ xine (0.9.4) unstable; urgency=low
   * new SyncFB video out plugin (see README.syncfb)
   * catch SIGSEGV during libdivxdecore version probing. see README.divx4.
   * audio_force_rate .xinerc option
-	
+
  -- Guenter Bartsch <guenter@users.sourceforge.net> Sun Nov  4 23:43:55 CET 2001
-	
+
 xine (0.9.3) unstable; urgency=low
 
   * XShm gamma adjusting (brightness)
@@ -212,13 +213,13 @@ xine (0.9.0) unstable; urgency=low
   * many bugfixes
   * quicktime demuxer
   * dts via s/pdif output
-		
+
  -- Guenter Bartsch <guenter@users.sourceforge.net>  Fri Sep 14 01:37:31 CEST 2001
 
 xine (0.5.3) unstable; urgency=low
 
   * small bugfix release
-		
+
  -- Guenter Bartsch <guenter@users.sourceforge.net>  Wed Sep  5 02:41:11 CEST 2001
 
 xine (0.5.2) unstable; urgency=low
@@ -230,14 +231,14 @@ xine (0.5.2) unstable; urgency=low
   * transport stream support should work now 
   * trick-plays (fast forward, slow motion, true pause function)
   * audio output architecture change
-		
+
  -- Guenter Bartsch <guenter@users.sourceforge.net>  Sun Sep  2 23:47:00 CEST 2001
 
 xine (0.5.1) unstable; urgency=low
 
   * ffmpeg plugin (OpenDivX, MS mpeg 4, motion-jpeg support)
   * various bugfixes
-		
+
  -- Guenter Bartsch <guenter@users.sourceforge.net>  Sat,  11 Aug 2001 01:39:12 +0200
 
 xine (0.5.0) unstable; urgency=low
@@ -254,7 +255,7 @@ xine (0.5.0) unstable; urgency=low
   * dxr3/h+ support now finally in the official tree
   * 4/5/5.1 audio channel output (OSS/ ALSA?)
   * a new default skin by Jérôme Villette
-		
+
  -- Guenter Bartsch <guenter@users.sourceforge.net>  Sun,  22 Jul 2001 13:10:52 +0200
 
 xine (0.4.3) unstable; urgency=low
@@ -267,7 +268,7 @@ xine (0.4.3) unstable; urgency=low
   * improved demuxer file type detection
   * making metronom a bit more tolerant for small wraps
   * improved mp3 sample rate handling 
-		
+
  -- Guenter Bartsch <guenter@users.sourceforge.net>  Sun,  16 May 2001 22:59:00 +0200
 
 xine (0.4.2) unstable; urgency=low
@@ -294,7 +295,7 @@ xine (0.4.0) unstable; urgency=low
   * notable performance improvements
   * lots of portability patches (alpha, powerpc...)
   * dynamic loading of demuxers
-	
+
   * added support for ESD audio output
   * new CORBA interface (optional)
 
@@ -321,7 +322,7 @@ xine (0.3.6) unstable; urgency=low
   * mpeg audio (mp3) demuxer
   * video window resizing for Xv available
   * updated Debian control and copyright (closes:Bug#82817,Bug#83044,Bug#83047)
-	
+
  -- Siggi Langauf <siggi@debian.org>  Mon, 22 Jan 2001 02:06:08 +0100
 
 xine (0.3.5) unstable; urgency=low
