@@ -28,7 +28,7 @@
  \endverbatim
  */
 /*
- * $Id: xine.h.tmpl.in,v 1.104 2002/08/03 17:33:06 siggi Exp $
+ * $Id: xine.h.tmpl.in,v 1.105 2002/08/10 21:25:20 miguelfreitas Exp $
  *
  */
 
@@ -481,7 +481,9 @@ struct vo_driver_s {
   /**
    * Overlay functions
    */
-  void (*overlay_blend) (vo_driver_t *self, vo_frame_t *vo_img, vo_overlay_t *overlay);
+  void (*overlay_begin) (vo_driver_t *this, vo_frame_t *vo_img, int changed);
+  void (*overlay_blend) (vo_driver_t *this, vo_frame_t *vo_img, vo_overlay_t *overlay);
+  void (*overlay_end) (vo_driver_t *this, vo_frame_t *vo_img);
   /**
    * These can be used by the gui directly:
    */

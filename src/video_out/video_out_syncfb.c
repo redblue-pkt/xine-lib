@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_syncfb.c,v 1.73 2002/07/15 21:42:34 esnel Exp $
+ * $Id: video_out_syncfb.c,v 1.74 2002/08/10 21:25:20 miguelfreitas Exp $
  * 
  * video_out_syncfb.c, SyncFB (for Matrox G200/G400 cards) interface for xine
  * 
@@ -1151,7 +1151,9 @@ vo_driver_t *init_video_out_plugin(config_values_t *config, void *visual_gen)
   this->vo_driver.get_capabilities     = syncfb_get_capabilities;
   this->vo_driver.alloc_frame          = syncfb_alloc_frame;
   this->vo_driver.update_frame_format  = syncfb_update_frame_format;
+  this->vo_driver.overlay_begin        = NULL; /* not used */
   this->vo_driver.overlay_blend        = syncfb_overlay_blend;
+  this->vo_driver.overlay_end          = NULL; /* not used */
   this->vo_driver.display_frame        = syncfb_display_frame;
   this->vo_driver.get_property         = syncfb_get_property;
   this->vo_driver.set_property         = syncfb_set_property;
@@ -1164,7 +1166,7 @@ vo_driver_t *init_video_out_plugin(config_values_t *config, void *visual_gen)
 }
 
 static vo_info_t vo_info_syncfb = {
-  5,
+  6,
   "SyncFB",
   NULL,
   VISUAL_TYPE_X11,

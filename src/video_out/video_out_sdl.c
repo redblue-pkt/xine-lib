@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_sdl.c,v 1.10 2002/07/15 21:42:34 esnel Exp $
+ * $Id: video_out_sdl.c,v 1.11 2002/08/10 21:25:20 miguelfreitas Exp $
  * 
  * video_out_sdl.c, Simple DirectMedia Layer
  *
@@ -674,7 +674,9 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
   this->vo_driver.get_capabilities     = sdl_get_capabilities;
   this->vo_driver.alloc_frame          = sdl_alloc_frame;
   this->vo_driver.update_frame_format  = sdl_update_frame_format;
+  this->vo_driver.overlay_begin        = NULL; /* not used */
   this->vo_driver.overlay_blend        = sdl_overlay_blend;
+  this->vo_driver.overlay_end          = NULL; /* not used */
   this->vo_driver.display_frame        = sdl_display_frame;
   this->vo_driver.get_property         = sdl_get_property;
   this->vo_driver.set_property         = sdl_set_property;
@@ -689,7 +691,7 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
 }
 
 static vo_info_t vo_info_sdl = {
-  5,
+  6,
   "sdl",
   NULL,
   VISUAL_TYPE_X11,

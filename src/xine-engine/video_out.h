@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.h,v 1.56 2002/07/30 00:26:45 miguelfreitas Exp $
+ * $Id: video_out.h,v 1.57 2002/08/10 21:25:20 miguelfreitas Exp $
  *
  *
  * xine version of video_out.h 
@@ -261,7 +261,7 @@ struct vo_instance_s {
  * from generic vo functions.
  */
 
-#define VIDEO_OUT_DRIVER_IFACE_VERSION 5
+#define VIDEO_OUT_DRIVER_IFACE_VERSION  6
 
 struct vo_driver_s {
 
@@ -285,8 +285,21 @@ struct vo_driver_s {
   /* display a given frame */
   void (*display_frame) (vo_driver_t *this, vo_frame_t *vo_img);
 
-  /* overlay functions */
+  /* overlay_begin and overlay_end are used by drivers suporting
+   * persistent overlays. they can be optimized to update only when
+   * overlay image has changed.
+   *
+   * sequence of operation (pseudo-code):
+   *   overlay_begin(this,img,true_if_something_changed_since_last_blend );
+   *   while(visible_overlays)
+   *     overlay_blend(this,img,overlay[i]);
+   *   overlay_end(this,img);
+   *
+   * any function pointer from this group may be set to NULL.
+   */
+  void (*overlay_begin) (vo_driver_t *this, vo_frame_t *vo_img, int changed);
   void (*overlay_blend) (vo_driver_t *this, vo_frame_t *vo_img, vo_overlay_t *overlay);
+  void (*overlay_end) (vo_driver_t *this, vo_frame_t *vo_img);
 
   /*
    * these can be used by the gui directly:

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_aa.c,v 1.24 2002/07/20 21:07:01 f1rmb Exp $
+ * $Id: video_out_aa.c,v 1.25 2002/08/10 21:25:20 miguelfreitas Exp $
  *
  * video_out_aa.c, ascii-art output plugin for xine
  *
@@ -275,7 +275,9 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
   this->vo_driver.alloc_frame          = aa_alloc_frame ;
   this->vo_driver.update_frame_format  = aa_update_frame_format;
   this->vo_driver.display_frame        = aa_display_frame;
+  this->vo_driver.overlay_begin        = NULL;
   this->vo_driver.overlay_blend        = NULL;
+  this->vo_driver.overlay_end          = NULL;
   this->vo_driver.get_property         = aa_get_property;
   this->vo_driver.set_property         = aa_set_property;
   this->vo_driver.get_property_min_max = aa_get_property_min_max;
@@ -287,7 +289,7 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
 }    
 
 static vo_info_t vo_info_aa = {
-  5,
+  6,
   "aa",
   NULL,
   VISUAL_TYPE_AA,

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_overlay.c,v 1.21 2002/06/26 12:33:31 mroi Exp $
+ * $Id: video_overlay.c,v 1.22 2002/08/10 21:25:20 miguelfreitas Exp $
  *
  */
 
@@ -53,13 +53,13 @@ typedef struct video_overlay_showing_s {
 typedef struct video_overlay_s {
   video_overlay_instance_t  video_overlay;
   
-  pthread_mutex_t           video_overlay_events_mutex;  
-  video_overlay_events_t    video_overlay_events[MAX_EVENTS];
-  pthread_mutex_t           video_overlay_objects_mutex;  
-  video_overlay_object_t    video_overlay_objects[MAX_OBJECTS];
-  pthread_mutex_t           video_overlay_showing_mutex;
-  video_overlay_showing_t   video_overlay_showing[MAX_SHOWING];  
-
+  pthread_mutex_t           events_mutex;  
+  video_overlay_events_t    events[MAX_EVENTS];
+  pthread_mutex_t           objects_mutex;  
+  video_overlay_object_t    objects[MAX_OBJECTS];
+  pthread_mutex_t           showing_mutex;
+  video_overlay_showing_t   showing[MAX_SHOWING];  
+  int                       showing_changed;
 } video_overlay_t;
 
 
@@ -67,38 +67,40 @@ static void add_showing_handle( video_overlay_t *this, int32_t handle )
 {
   int i;
   
-  pthread_mutex_lock( &this->video_overlay_showing_mutex );
-
+  pthread_mutex_lock( &this->showing_mutex );
+  this->showing_changed++;
+  
   for( i = 0; i < MAX_SHOWING; i++ )
-    if( this->video_overlay_showing[i].handle == handle )
+    if( this->showing[i].handle == handle )
       break; /* already showing */
    
   if( i == MAX_SHOWING ) {
-    for( i = 0; i < MAX_SHOWING && this->video_overlay_showing[i].handle >= 0; i++ )
+    for( i = 0; i < MAX_SHOWING && this->showing[i].handle >= 0; i++ )
       ;
         
     if( i != MAX_SHOWING )
-      this->video_overlay_showing[i].handle = handle;
+      this->showing[i].handle = handle;
     else
       printf("video_overlay: error: no showing slots available\n");
   }
   
-  pthread_mutex_unlock( &this->video_overlay_showing_mutex );
+  pthread_mutex_unlock( &this->showing_mutex );
 }
 
 static void remove_showing_handle( video_overlay_t *this, int32_t handle )
 {
   int i;
 
-  pthread_mutex_lock( &this->video_overlay_showing_mutex );
+  pthread_mutex_lock( &this->showing_mutex );
+  this->showing_changed++;
   
   for( i = 0; i < MAX_SHOWING; i++ ) {
-    if( this->video_overlay_showing[i].handle == handle ) {
-      this->video_overlay_showing[i].handle = -1;
+    if( this->showing[i].handle == handle ) {
+      this->showing[i].handle = -1;
     }
   }
   
-  pthread_mutex_unlock( &this->video_overlay_showing_mutex );
+  pthread_mutex_unlock( &this->showing_mutex );
 }
 
 static void remove_events_handle( video_overlay_t *this, int32_t handle, int lock )
@@ -106,37 +108,37 @@ static void remove_events_handle( video_overlay_t *this, int32_t handle, int loc
   uint32_t   last_event,this_event;
 
   if( lock )
-    pthread_mutex_lock( &this->video_overlay_events_mutex );
+    pthread_mutex_lock( &this->events_mutex );
   
   this_event=0;
   do {
     last_event=this_event;
-    this_event=this->video_overlay_events[last_event].next_event;
+    this_event=this->events[last_event].next_event;
   
     while( this_event && 
-        this->video_overlay_events[this_event].event->object.handle == handle ) {
+        this->events[this_event].event->object.handle == handle ) {
       /* remove event from pts list */
-      this->video_overlay_events[last_event].next_event=
-        this->video_overlay_events[this_event].next_event;
+      this->events[last_event].next_event=
+        this->events[this_event].next_event;
 
       /* free its overlay */ 
-      if( this->video_overlay_events[this_event].event->object.overlay ) {   
-        if( this->video_overlay_events[this_event].event->object.overlay->rle )
-          free( this->video_overlay_events[this_event].event->object.overlay->rle );
-        free(this->video_overlay_events[this_event].event->object.overlay);
-        this->video_overlay_events[this_event].event->object.overlay = NULL;
+      if( this->events[this_event].event->object.overlay ) {   
+        if( this->events[this_event].event->object.overlay->rle )
+          free( this->events[this_event].event->object.overlay->rle );
+        free(this->events[this_event].event->object.overlay);
+        this->events[this_event].event->object.overlay = NULL;
       }
       
       /* mark as free */
-      this->video_overlay_events[this_event].next_event = 0;
-      this->video_overlay_events[this_event].event->event_type = EVENT_NULL;
+      this->events[this_event].next_event = 0;
+      this->events[this_event].event->event_type = EVENT_NULL;
       
-      this_event=this->video_overlay_events[last_event].next_event;
+      this_event=this->events[last_event].next_event;
     }
   } while ( this_event );
  
   if( lock )
-    pthread_mutex_unlock( &this->video_overlay_events_mutex );
+    pthread_mutex_unlock( &this->events_mutex );
 }
 
 
@@ -147,19 +149,19 @@ static int32_t video_overlay_get_handle(video_overlay_instance_t *this_gen, int 
   video_overlay_t *this = (video_overlay_t *) this_gen;
   int n;
   
-  pthread_mutex_lock( &this->video_overlay_objects_mutex );
+  pthread_mutex_lock( &this->objects_mutex );
   
-  for( n=0; n < MAX_OBJECTS && this->video_overlay_objects[n].handle > -1; n++ )
+  for( n=0; n < MAX_OBJECTS && this->objects[n].handle > -1; n++ )
     ;
   
   if (n == MAX_OBJECTS) {
     n = -1;
   } else {
-    this->video_overlay_objects[n].handle = n;
-    this->video_overlay_objects[n].object_type = object_type;
+    this->objects[n].handle = n;
+    this->objects[n].object_type = object_type;
   }
   
-  pthread_mutex_unlock( &this->video_overlay_objects_mutex );
+  pthread_mutex_unlock( &this->objects_mutex );
   return n;
 }
 
@@ -168,17 +170,17 @@ static int32_t video_overlay_get_handle(video_overlay_instance_t *this_gen, int 
  */
 static void internal_video_overlay_free_handle(video_overlay_t *this, int32_t handle) {
     
-  pthread_mutex_lock( &this->video_overlay_objects_mutex );
+  pthread_mutex_lock( &this->objects_mutex );
 
-  if( this->video_overlay_objects[handle].overlay ) {
-    if( this->video_overlay_objects[handle].overlay->rle )
-      free( this->video_overlay_objects[handle].overlay->rle );
-    free( this->video_overlay_objects[handle].overlay );
-    this->video_overlay_objects[handle].overlay = NULL; 
+  if( this->objects[handle].overlay ) {
+    if( this->objects[handle].overlay->rle )
+      free( this->objects[handle].overlay->rle );
+    free( this->objects[handle].overlay );
+    this->objects[handle].overlay = NULL; 
   }
-  this->video_overlay_objects[handle].handle = -1;
+  this->objects[handle].handle = -1;
 
-  pthread_mutex_unlock( &this->video_overlay_objects_mutex );
+  pthread_mutex_unlock( &this->objects_mutex );
 }
 
 /*
@@ -194,32 +196,33 @@ static void video_overlay_free_handle(video_overlay_instance_t *this_gen, int32_
 }
 
 
-
 static void video_overlay_reset (video_overlay_t *this) {
   int i;
   
-  pthread_mutex_lock (&this->video_overlay_events_mutex);
+  pthread_mutex_lock (&this->events_mutex);
   for (i=0; i < MAX_EVENTS; i++) {
-    if (this->video_overlay_events[i].event == NULL) {
-      this->video_overlay_events[i].event = xine_xmalloc (sizeof(video_overlay_event_t));
+    if (this->events[i].event == NULL) {
+      this->events[i].event = xine_xmalloc (sizeof(video_overlay_event_t));
 #ifdef LOG_DEBUG
-      printf ("video_overlay: MALLOC2: this->video_overlay_events[%d].event %p, len=%d\n",
+      printf ("video_overlay: MALLOC2: this->events[%d].event %p, len=%d\n",
 	      i,
-	      this->video_overlay_events[i].event,
+	      this->events[i].event,
 	      sizeof(video_overlay_event_t));
 #endif
     }
-    this->video_overlay_events[i].event->event_type = 0;  /* Empty slot */
-    this->video_overlay_events[i].next_event = 0;    
+    this->events[i].event->event_type = 0;  /* Empty slot */
+    this->events[i].next_event = 0;    
   }
-  pthread_mutex_unlock (&this->video_overlay_events_mutex);
+  pthread_mutex_unlock (&this->events_mutex);
   
   for (i=0; i < MAX_OBJECTS; i++) {
     internal_video_overlay_free_handle(this, i);
   }
    
   for( i = 0; i < MAX_SHOWING; i++ )
-    this->video_overlay_showing[i].handle = -1;
+    this->showing[i].handle = -1;
+    
+  this->showing_changed = 0;
 }
 
 
@@ -227,9 +230,9 @@ static void video_overlay_init (video_overlay_instance_t *this_gen) {
 
   video_overlay_t *this = (video_overlay_t *) this_gen;
 
-  pthread_mutex_init (&this->video_overlay_events_mutex,NULL);
-  pthread_mutex_init (&this->video_overlay_objects_mutex,NULL);
-  pthread_mutex_init (&this->video_overlay_showing_mutex,NULL);
+  pthread_mutex_init (&this->events_mutex,NULL);
+  pthread_mutex_init (&this->objects_mutex,NULL);
+  pthread_mutex_init (&this->showing_mutex,NULL);
   
   video_overlay_reset(this);
 }
@@ -251,12 +254,12 @@ static int32_t video_overlay_add_event(video_overlay_instance_t *this_gen,  void
   video_overlay_t *this = (video_overlay_t *) this_gen;
   uint32_t   last_event,this_event,new_event;
 
-  pthread_mutex_lock (&this->video_overlay_events_mutex);
+  pthread_mutex_lock (&this->events_mutex);
   
   /* We skip the 0 entry because that is used as a pointer to the first event.*/
   /* Find a free event slot */
   for( new_event = 1; new_event<MAX_EVENTS && 
-       this->video_overlay_events[new_event].event->event_type > 0; new_event++ )
+       this->events[new_event].event->event_type > 0; new_event++ )
     ;
   
   if (new_event < MAX_EVENTS) {
@@ -265,42 +268,42 @@ static int32_t video_overlay_add_event(video_overlay_instance_t *this_gen,  void
     /* Find where in the current queue to insert the event. I.E. Sort it. */
     do {
       last_event=this_event;
-      this_event=this->video_overlay_events[last_event].next_event;
-    } while ( this_event && this->video_overlay_events[this_event].event->vpts <= event->vpts );
+      this_event=this->events[last_event].next_event;
+    } while ( this_event && this->events[this_event].event->vpts <= event->vpts );
 
-    this->video_overlay_events[last_event].next_event=new_event;
-    this->video_overlay_events[new_event].next_event=this_event;
+    this->events[last_event].next_event=new_event;
+    this->events[new_event].next_event=this_event;
     
     /* memcpy everything except the actual image */
-    if ( this->video_overlay_events[new_event].event == NULL ) {
+    if ( this->events[new_event].event == NULL ) {
       printf("video_overlay: error: event slot is NULL!\n");
     }
-    this->video_overlay_events[new_event].event->event_type=event->event_type;
-    this->video_overlay_events[new_event].event->vpts=event->vpts;
-    this->video_overlay_events[new_event].event->object.handle=event->object.handle;
-    this->video_overlay_events[new_event].event->object.pts=event->object.pts;
+    this->events[new_event].event->event_type=event->event_type;
+    this->events[new_event].event->vpts=event->vpts;
+    this->events[new_event].event->object.handle=event->object.handle;
+    this->events[new_event].event->object.pts=event->object.pts;
 
-    if ( this->video_overlay_events[new_event].event->object.overlay ) {
+    if ( this->events[new_event].event->object.overlay ) {
       printf("video_overlay: add_event: event->object.overlay was not freed!\n");
     }
     
     if( event->object.overlay ) {
-      this->video_overlay_events[new_event].event->object.overlay = xine_xmalloc (sizeof(vo_overlay_t));
-      xine_fast_memcpy(this->video_overlay_events[new_event].event->object.overlay, 
+      this->events[new_event].event->object.overlay = xine_xmalloc (sizeof(vo_overlay_t));
+      xine_fast_memcpy(this->events[new_event].event->object.overlay, 
            event->object.overlay, sizeof(vo_overlay_t));
     
       /* We took the callers rle and data, therefore it will be our job to free it */
       /* clear callers overlay so it will not be freed twice */
       memset(event->object.overlay,0,sizeof(vo_overlay_t));
     } else {
-      this->video_overlay_events[new_event].event->object.overlay = NULL;
+      this->events[new_event].event->object.overlay = NULL;
     }
   } else {
     printf("No spare subtitle event slots\n");
     new_event = -1;
   }
   
-  pthread_mutex_unlock (&this->video_overlay_events_mutex);
+  pthread_mutex_unlock (&this->events_mutex);
    
   return new_event;
 }
@@ -336,41 +339,41 @@ static int video_overlay_event( video_overlay_t *this, int64_t vpts ) {
   uint32_t     this_event;
   int          processed = 0;
   
-  pthread_mutex_lock (&this->video_overlay_events_mutex);
+  pthread_mutex_lock (&this->events_mutex);
   
-  this_event=this->video_overlay_events[0].next_event;
-  while ( this_event && (vpts > this->video_overlay_events[this_event].event->vpts ||
+  this_event=this->events[0].next_event;
+  while ( this_event && (vpts > this->events[this_event].event->vpts ||
           vpts == 0) ) {
     processed++;
-    handle=this->video_overlay_events[this_event].event->object.handle;
-    switch( this->video_overlay_events[this_event].event->event_type ) {
+    handle=this->events[this_event].event->object.handle;
+    switch( this->events[this_event].event->event_type ) {
       case EVENT_SHOW_SPU:
 #ifdef LOG_DEBUG
         printf ("video_overlay: SHOW SPU NOW\n");
 #endif
-        if (this->video_overlay_events[this_event].event->object.overlay != NULL) {
+        if (this->events[this_event].event->object.overlay != NULL) {
 #ifdef LOG_DEBUG
-          video_overlay_print_overlay( this->video_overlay_events[this_event].event->object.overlay ) ;
+          video_overlay_print_overlay( this->events[this_event].event->object.overlay ) ;
 #endif
-          /* this->video_overlay_objects[handle].overlay is about to be
+          /* this->objects[handle].overlay is about to be
            * overwritten by this event data. make sure we free it if needed.
            */
-          if( this->video_overlay_objects[handle].overlay ) {
-            if( this->video_overlay_objects[handle].overlay->rle )
-              free( this->video_overlay_objects[handle].overlay->rle );
-            free( this->video_overlay_objects[handle].overlay );
-            this->video_overlay_objects[handle].overlay = NULL; 
+          if( this->objects[handle].overlay ) {
+            if( this->objects[handle].overlay->rle )
+              free( this->objects[handle].overlay->rle );
+            free( this->objects[handle].overlay );
+            this->objects[handle].overlay = NULL; 
           }
           
-          this->video_overlay_objects[handle].handle = handle;
-          if( this->video_overlay_objects[handle].overlay ) {
+          this->objects[handle].handle = handle;
+          if( this->objects[handle].overlay ) {
             printf("video_overlay: error: object->overlay was not freed!\n");
           }
-          this->video_overlay_objects[handle].overlay = 
-             this->video_overlay_events[this_event].event->object.overlay;
-          this->video_overlay_objects[handle].pts = 
-             this->video_overlay_events[this_event].event->object.pts;
-          this->video_overlay_events[this_event].event->object.overlay = NULL;
+          this->objects[handle].overlay = 
+             this->events[this_event].event->object.overlay;
+          this->objects[handle].pts = 
+             this->events[this_event].event->object.pts;
+          this->events[this_event].event->object.overlay = NULL;
         
           add_showing_handle( this, handle );
         }
@@ -381,13 +384,13 @@ static int video_overlay_event( video_overlay_t *this, int64_t vpts ) {
         printf ("video_overlay: FREE SPU NOW\n");
 #endif
         /* free any overlay associated with this event */
-        if (this->video_overlay_events[this_event].event->object.overlay != NULL) {
-          free(this->video_overlay_events[this_event].event->object.overlay);
-          this->video_overlay_events[this_event].event->object.overlay = NULL; 
+        if (this->events[this_event].event->object.overlay != NULL) {
+          free(this->events[this_event].event->object.overlay);
+          this->events[this_event].event->object.overlay = NULL; 
         }
         /* this avoid removing this_event from the queue
          * (it will be removed at the end of this loop) */
-        this->video_overlay_events[this_event].event->object.handle = -1;
+        this->events[this_event].event->object.handle = -1;
         remove_showing_handle(this,handle);
         remove_events_handle(this,handle,0);
         internal_video_overlay_free_handle( this, handle );
@@ -401,9 +404,9 @@ static int video_overlay_event( video_overlay_t *this, int64_t vpts ) {
         printf ("video_overlay: HIDE SPU NOW\n");
 #endif
         /* free any overlay associated with this event */
-        if (this->video_overlay_events[this_event].event->object.overlay != NULL) {
-          free(this->video_overlay_events[this_event].event->object.overlay);
-          this->video_overlay_events[this_event].event->object.overlay = NULL; 
+        if (this->events[this_event].event->object.overlay != NULL) {
+          free(this->events[this_event].event->object.overlay);
+          this->events[this_event].event->object.overlay = NULL; 
         }
         remove_showing_handle( this, handle );
         break;
@@ -412,9 +415,9 @@ static int video_overlay_event( video_overlay_t *this, int64_t vpts ) {
 #ifdef LOG_DEBUG
         printf ("video_overlay: HIDE MENU NOW %d\n",handle);
 #endif
-        if (this->video_overlay_events[this_event].event->object.overlay != NULL) {
-          free(this->video_overlay_events[this_event].event->object.overlay);
-          this->video_overlay_events[this_event].event->object.overlay = NULL; 
+        if (this->events[this_event].event->object.overlay != NULL) {
+          free(this->events[this_event].event->object.overlay);
+          this->events[this_event].event->object.overlay = NULL; 
         }
         remove_showing_handle( this, handle );
         break;
@@ -423,47 +426,47 @@ static int video_overlay_event( video_overlay_t *this, int64_t vpts ) {
 #ifdef LOG_DEBUG
         printf ("video_overlay: SHOW MENU NOW\n");
 #endif
-        if (this->video_overlay_events[this_event].event->object.overlay != NULL) {
+        if (this->events[this_event].event->object.overlay != NULL) {
 #ifdef LOG_DEBUG
-          video_overlay_print_overlay( this->video_overlay_events[this_event].event->object.overlay ) ;
+          video_overlay_print_overlay( this->events[this_event].event->object.overlay ) ;
 #endif
-          /* this->video_overlay_objects[handle].overlay is about to be
+          /* this->objects[handle].overlay is about to be
            * overwritten by this event data. make sure we free it if needed.
            */
-          if( this->video_overlay_objects[handle].overlay ) {
-            if( this->video_overlay_objects[handle].overlay->rle )
-              free( this->video_overlay_objects[handle].overlay->rle );
-            free( this->video_overlay_objects[handle].overlay );
-            this->video_overlay_objects[handle].overlay = NULL; 
+          if( this->objects[handle].overlay ) {
+            if( this->objects[handle].overlay->rle )
+              free( this->objects[handle].overlay->rle );
+            free( this->objects[handle].overlay );
+            this->objects[handle].overlay = NULL; 
           }
           
-          this->video_overlay_objects[handle].handle = handle;
-          if( this->video_overlay_objects[handle].overlay ) {
+          this->objects[handle].handle = handle;
+          if( this->objects[handle].overlay ) {
             printf("video_overlay: error: object->overlay was not freed!\n");
           }
-          this->video_overlay_objects[handle].overlay = 
-             this->video_overlay_events[this_event].event->object.overlay;
-          this->video_overlay_objects[handle].pts = 
-             this->video_overlay_events[this_event].event->object.pts;
-          this->video_overlay_events[this_event].event->object.overlay = NULL;
+          this->objects[handle].overlay = 
+             this->events[this_event].event->object.overlay;
+          this->objects[handle].pts = 
+             this->events[this_event].event->object.pts;
+          this->events[this_event].event->object.overlay = NULL;
         
           add_showing_handle( this, handle );
         }
-break;
+        break;
   
       case EVENT_MENU_BUTTON:
         /* mixes palette and copy clip coords */
 #ifdef LOG_DEBUG
         printf ("video_overlay:MENU BUTTON NOW\n");
 #endif
-        if ( (this->video_overlay_events[this_event].event->object.overlay != NULL) &&
-             (this->video_overlay_objects[handle].overlay) &&
-             (this->video_overlay_events[this_event].event->object.pts == 
-                this->video_overlay_objects[handle].pts) ) {
-          vo_overlay_t *overlay = this->video_overlay_objects[handle].overlay;
-          vo_overlay_t *event_overlay = this->video_overlay_events[this_event].event->object.overlay;
+        if ( (this->events[this_event].event->object.overlay != NULL) &&
+             (this->objects[handle].overlay) &&
+             (this->events[this_event].event->object.pts == 
+                this->objects[handle].pts) ) {
+          vo_overlay_t *overlay = this->objects[handle].overlay;
+          vo_overlay_t *event_overlay = this->events[this_event].event->object.overlay;
           printf ("video_overlay:overlay present\n");
-          this->video_overlay_objects[handle].handle = handle;
+          this->objects[handle].handle = handle;
           overlay->clip_top = event_overlay->clip_top;
           overlay->clip_bottom = event_overlay->clip_bottom;
           overlay->clip_left = event_overlay->clip_left;
@@ -500,28 +503,28 @@ break;
           }
 ***********************************/
 #ifdef LOG_DEBUG
-          video_overlay_print_overlay( this->video_overlay_events[this_event].event->object.overlay ) ;
+          video_overlay_print_overlay( this->events[this_event].event->object.overlay ) ;
 #endif
           add_showing_handle( this, handle );
         } else {
           printf ("video_overlay:overlay not present\n");
         }
-        if ( (this->video_overlay_events[this_event].event->object.pts != 
-                this->video_overlay_objects[handle].pts) ) {
+        if ( (this->events[this_event].event->object.pts != 
+                this->objects[handle].pts) ) {
           printf ("MENU BUTTON DROPPED menu pts=%lld spu pts=%lld\n",      
-            this->video_overlay_events[this_event].event->object.pts,
-            this->video_overlay_objects[handle].pts);
+            this->events[this_event].event->object.pts,
+            this->objects[handle].pts);
         }
 
-        if( this->video_overlay_events[this_event].event->object.overlay->rle ) {
+        if( this->events[this_event].event->object.overlay->rle ) {
           printf ("video_overlay: warning EVENT_MENU_BUTTON with rle data\n");
-          free( this->video_overlay_events[this_event].event->object.overlay->rle );
-          this->video_overlay_events[this_event].event->object.overlay->rle = NULL;
+          free( this->events[this_event].event->object.overlay->rle );
+          this->events[this_event].event->object.overlay->rle = NULL;
         }
             
-        if (this->video_overlay_events[this_event].event->object.overlay != NULL) {
-          free (this->video_overlay_events[this_event].event->object.overlay);
-          this->video_overlay_events[this_event].event->object.overlay = NULL;
+        if (this->events[this_event].event->object.overlay != NULL) {
+          free (this->events[this_event].event->object.overlay);
+          this->events[this_event].event->object.overlay = NULL;
         }
         break;
   
@@ -530,14 +533,14 @@ break;
         break;
     }
     
-    this->video_overlay_events[0].next_event = this->video_overlay_events[this_event].next_event;    
-    this->video_overlay_events[this_event].next_event = 0;
-    this->video_overlay_events[this_event].event->event_type = 0;
+    this->events[0].next_event = this->events[this_event].next_event;    
+    this->events[this_event].next_event = 0;
+    this->events[this_event].event->event_type = 0;
   
-    this_event=this->video_overlay_events[0].next_event;
+    this_event=this->events[0].next_event;
   }
   
-  pthread_mutex_unlock (&this->video_overlay_events_mutex);
+  pthread_mutex_unlock (&this->events_mutex);
 
   return processed;
 }
@@ -558,14 +561,24 @@ static void video_overlay_multiple_overlay_blend(video_overlay_instance_t *this_
   
   /* Scan through 5 entries and display any present. 
    */
-  pthread_mutex_lock( &this->video_overlay_showing_mutex );
+  pthread_mutex_lock( &this->showing_mutex );
+
+  if( output->overlay_begin )
+    output->overlay_begin(output, vo_img, this->showing_changed);
+  
   for( i = 0; enabled && output->overlay_blend && i < MAX_SHOWING; i++ ) {
-    handle=this->video_overlay_showing[i].handle; 
+    handle=this->showing[i].handle; 
     if (handle >= 0 ) {
-      output->overlay_blend(output, vo_img, this->video_overlay_objects[handle].overlay);
+      output->overlay_blend(output, vo_img, this->objects[handle].overlay);
     }
   }
-  pthread_mutex_unlock( &this->video_overlay_showing_mutex );
+  
+  if( output->overlay_end )
+    output->overlay_end(output, vo_img);
+  
+  this->showing_changed = 0;
+  
+  pthread_mutex_unlock( &this->showing_mutex );
 }
 
 
@@ -586,7 +599,8 @@ static int video_overlay_redraw_needed(video_overlay_instance_t *this_gen, int64
 {
   video_overlay_t *this = (video_overlay_t *) this_gen;
   
-  return video_overlay_event( this, vpts );
+  video_overlay_event( this, vpts );
+  return this->showing_changed;
 }
 
 
@@ -596,21 +610,21 @@ static void video_overlay_dispose(video_overlay_instance_t *this_gen) {
   int i;
 
   for (i=0; i < MAX_EVENTS; i++) {
-    if (this->video_overlay_events[i].event != NULL) {
-      if (this->video_overlay_events[i].event->object.overlay != NULL) {
-        if (this->video_overlay_events[i].event->object.overlay->rle)
-	  free (this->video_overlay_events[i].event->object.overlay->rle);
-        free (this->video_overlay_events[i].event->object.overlay);
+    if (this->events[i].event != NULL) {
+      if (this->events[i].event->object.overlay != NULL) {
+        if (this->events[i].event->object.overlay->rle)
+          free (this->events[i].event->object.overlay->rle);
+        free (this->events[i].event->object.overlay);
       }
-      free (this->video_overlay_events[i].event);
+      free (this->events[i].event);
     }
   }
 
   for (i=0; i < MAX_OBJECTS; i++) {
-    if (this->video_overlay_objects[i].overlay != NULL) {
-      if (this->video_overlay_objects[i].overlay->rle)
-	free (this->video_overlay_objects[i].overlay->rle);
-      free (this->video_overlay_objects[i].overlay);
+    if (this->objects[i].overlay != NULL) {
+      if (this->objects[i].overlay->rle)
+        free (this->objects[i].overlay->rle);
+      free (this->objects[i].overlay);
     }
   }
 
@@ -635,4 +649,3 @@ video_overlay_instance_t *video_overlay_new_instance () {
 
   return (video_overlay_instance_t *) &this->video_overlay;
 }
-

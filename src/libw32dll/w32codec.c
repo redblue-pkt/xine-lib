@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.88 2002/07/15 21:42:33 esnel Exp $
+ * $Id: w32codec.c,v 1.89 2002/08/10 21:25:20 miguelfreitas Exp $
  *
  * routines for using w32 codecs
  * DirectShow support by Miguel Freitas (Nov/2001)
@@ -170,23 +170,6 @@ typedef struct w32a_decoder_s {
   
   ldt_fs_t *ldt_fs;
 } w32a_decoder_t;
-
-
-/* This is a ugly hack (as all this win32 code!):
- * unloading one of the codecs (w32a or w32v) while the other is 
- * still playing causes segfaults. using this define will make
- * the last of them to close both.
- * hopefuly some day we will fix the wine loader to remove that.
- */   
-//#define SYNC_SHUTDOWN
-
-#ifdef SYNC_SHUTDOWN
-w32v_decoder_t *w32v_instance;
-w32a_decoder_t *w32a_instance;
-
-static void w32v_close (video_decoder_t *this_gen);
-static void w32a_close (audio_decoder_t *this_gen);
-#endif
 
 
 /*
@@ -671,11 +654,6 @@ static void w32v_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
       xine_report_codec( this->xine, XINE_CODEC_VIDEO, 0, buf->type, 0);
     }
                                          
-#ifdef SYNC_SHUTDOWN
-    if( this->decoder_ok )
-      w32v_instance = this;
-#endif
-    
     pthread_mutex_unlock(&win32_codec_mutex);
       
     this->stream_id = -1;
@@ -896,30 +874,17 @@ static void w32v_close (video_decoder_t *this_gen) {
   w32v_decoder_t *this = (w32v_decoder_t *) this_gen;
 
   pthread_mutex_lock(&win32_codec_mutex);
-#ifdef SYNC_SHUTDOWN
-  if( !w32a_instance || (w32a_instance && !w32a_instance->decoder_ok) )
-#endif
-  {
-    if ( !this->ds_driver ) {
-      if( this->hic ) {
-        ICDecompressEnd(this->hic);
-        ICClose(this->hic);
-      }
-    } else {
-      if( this->ds_dec )
-        DS_VideoDecoder_Destroy(this->ds_dec);
+  if ( !this->ds_driver ) {
+    if( this->hic ) {
+      ICDecompressEnd(this->hic);
+      ICClose(this->hic);
     }
-#ifdef SYNC_SHUTDOWN
-    w32v_instance = NULL;
-#endif
-    Restore_LDT_Keeper( this->ldt_fs );
+  } else {
+    if( this->ds_dec )
+      DS_VideoDecoder_Destroy(this->ds_dec);
   }
+  Restore_LDT_Keeper( this->ldt_fs );
   pthread_mutex_unlock(&win32_codec_mutex);
-
-#ifdef SYNC_SHUTDOWN
-  if( w32a_instance && !w32a_instance->decoder_ok )
-    w32a_close ((audio_decoder_t *)w32a_instance);
-#endif
 
   if ( this->img_buffer ) {
     free (this->img_buffer);
@@ -1307,10 +1272,6 @@ static void w32a_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
     }
     pthread_mutex_unlock(&win32_codec_mutex);
  
-#ifdef SYNC_SHUTDOWN
-    if( this->decoder_ok )
-      w32a_instance = this;
-#endif
   } else if (this->decoder_ok) {
 #ifdef LOG
     printf ("w32codec: decoding %d data bytes...\n", buf->size);
@@ -1331,33 +1292,20 @@ static void w32a_close (audio_decoder_t *this_gen) {
   w32a_decoder_t *this = (w32a_decoder_t *) this_gen;
   
   pthread_mutex_lock(&win32_codec_mutex);
-#ifdef SYNC_SHUTDOWN
-  if( !w32v_instance || (w32v_instance && !w32v_instance->decoder_ok) )
-#endif
-  {
-    if( !this->ds_driver ) {
-      if( this->srcstream ) {
-        acmStreamClose(this->srcstream, 0);
-        this->srcstream = 0;
-      }
-    } else {
-      if( this->ds_dec )
-        DS_AudioDecoder_Destroy(this->ds_dec);
-      this->ds_dec = NULL;
+  if( !this->ds_driver ) {
+    if( this->srcstream ) {
+      acmStreamClose(this->srcstream, 0);
+      this->srcstream = 0;
     }
-
-#ifdef SYNC_SHUTDOWN
-    w32a_instance = NULL;
-#endif
-    Restore_LDT_Keeper(this->ldt_fs);
+  } else {
+    if( this->ds_dec )
+      DS_AudioDecoder_Destroy(this->ds_dec);
+    this->ds_dec = NULL;
   }
+
+  Restore_LDT_Keeper(this->ldt_fs);
   pthread_mutex_unlock(&win32_codec_mutex);
 
-#ifdef SYNC_SHUTDOWN
-  if( w32v_instance && !w32v_instance->decoder_ok )
-    w32v_close ((video_decoder_t *)w32v_instance);
-#endif
-    
   if( this->buf ) {
     free(this->buf);
     this->buf = NULL;
@@ -1422,10 +1370,6 @@ video_decoder_t *init_video_decoder_plugin (int iface_version, xine_t *xine) {
   
   this->prof_rgb2yuv = xine_profiler_allocate_slot ("w32codec rgb2yuv convert");
 
-#ifdef SYNC_SHUTDOWN
-  w32v_instance = NULL;
-#endif
-
   return (video_decoder_t *) this;
 }
 
@@ -1468,10 +1412,6 @@ audio_decoder_t *init_audio_decoder_plugin (int iface_version, xine_t *xine) {
   
   pthread_once (&once_control, init_routine);
 
-#ifdef SYNC_SHUTDOWN
-  w32a_instance = NULL;
-#endif
-  
   return (audio_decoder_t *) this;
 }
 

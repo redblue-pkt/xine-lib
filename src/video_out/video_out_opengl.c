@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_opengl.c,v 1.15 2002/07/16 19:33:37 esnel Exp $
+ * $Id: video_out_opengl.c,v 1.16 2002/08/10 21:25:20 miguelfreitas Exp $
  * 
  * video_out_glut.c, glut based OpenGL rendering interface for xine
  * Matthias Hopf <mat@mshopf.de>
@@ -1077,7 +1077,9 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
     this->vo_driver.get_capabilities     = opengl_get_capabilities;
     this->vo_driver.alloc_frame          = opengl_alloc_frame;
     this->vo_driver.update_frame_format  = opengl_update_frame_format;
+    this->vo_driver.overlay_begin        = NULL; /* not used */
     this->vo_driver.overlay_blend        = opengl_overlay_blend;
+    this->vo_driver.overlay_end          = NULL; /* not used */
     this->vo_driver.display_frame        = opengl_display_frame;
     this->vo_driver.get_property         = opengl_get_property;
     this->vo_driver.set_property         = opengl_set_property;
@@ -1099,7 +1101,7 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
 }
 
 static vo_info_t vo_info_shm = {
-    5,
+    6,
     "OpenGL",
     NULL,
     VISUAL_TYPE_X11,

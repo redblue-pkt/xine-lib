@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_directfb.c,v 1.12 2002/07/22 18:56:57 richwareham Exp $
+ * $Id: video_out_directfb.c,v 1.13 2002/08/10 21:25:20 miguelfreitas Exp $
  *
  * DirectFB based output plugin.
  * Rich Wareham <richwareham@users.sourceforge.net>
@@ -533,7 +533,9 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
   this->vo_driver.get_capabilities     = directfb_get_capabilities;
   this->vo_driver.alloc_frame          = directfb_alloc_frame;
   this->vo_driver.update_frame_format  = directfb_update_frame_format;
+  this->vo_driver.overlay_begin        = NULL; /* not used */
   this->vo_driver.overlay_blend        = directfb_overlay_blend;
+  this->vo_driver.overlay_end          = NULL; /* not used */
   this->vo_driver.display_frame        = directfb_display_frame;
   this->vo_driver.get_property         = directfb_get_property;
   this->vo_driver.set_property         = directfb_set_property;
@@ -551,7 +553,7 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
 }
 
 static vo_info_t vo_info_directfb = {
-  5,
+  6,
   "DirectFB",
   NULL,
   VISUAL_TYPE_DFB,

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.124 2002/07/20 21:46:06 esnel Exp $
+ * $Id: video_out_xv.c,v 1.125 2002/08/10 21:25:20 miguelfreitas Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -1360,7 +1360,9 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
   this->vo_driver.get_capabilities     = xv_get_capabilities;
   this->vo_driver.alloc_frame          = xv_alloc_frame;
   this->vo_driver.update_frame_format  = xv_update_frame_format;
+  this->vo_driver.overlay_begin        = NULL; /* not used */
   this->vo_driver.overlay_blend        = xv_overlay_blend;
+  this->vo_driver.overlay_end          = NULL; /* not used */
   this->vo_driver.display_frame        = xv_display_frame;
   this->vo_driver.get_property         = xv_get_property;
   this->vo_driver.set_property         = xv_set_property;
@@ -1494,7 +1496,7 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
 }
 
 static vo_info_t vo_info_xv = {
-  5,
+  6,
   "Xv",
   NULL,
   VISUAL_TYPE_X11,

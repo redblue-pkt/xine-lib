@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xshm.c,v 1.82 2002/07/30 00:26:45 miguelfreitas Exp $
+ * $Id: video_out_xshm.c,v 1.83 2002/08/10 21:25:20 miguelfreitas Exp $
  * 
  * video_out_xshm.c, X11 shared memory extension interface for xine
  *
@@ -1308,7 +1308,9 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
   this->vo_driver.get_capabilities     = xshm_get_capabilities;
   this->vo_driver.alloc_frame          = xshm_alloc_frame;
   this->vo_driver.update_frame_format  = xshm_update_frame_format;
+  this->vo_driver.overlay_begin        = NULL; /* not used */
   this->vo_driver.overlay_blend        = xshm_overlay_blend;
+  this->vo_driver.overlay_end          = NULL; /* not used */
   this->vo_driver.display_frame        = xshm_display_frame;
   this->vo_driver.get_property         = xshm_get_property;
   this->vo_driver.set_property         = xshm_set_property;
@@ -1451,7 +1453,7 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
 }
 
 static vo_info_t vo_info_shm = {
-  5,                /* interface version */
+  6,                /* interface version */
   "XShm",           /* id                */
   NULL,
   VISUAL_TYPE_X11,  /* visual_type       */
