@@ -29,7 +29,7 @@
  * - it's possible speeder saving streams in the xine without playing:
  *     xine stream_mrl#rip:file.raw;noaudio;novideo
  *
- * $Id: input_rip.c,v 1.4 2003/09/17 17:14:12 valtri Exp $
+ * $Id: input_rip.c,v 1.5 2003/09/17 17:15:50 valtri Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -281,6 +281,28 @@ static buf_element_t *rip_plugin_read_block(input_plugin_t *this_gen, fifo_buffe
   return buf;
 }
 
+static off_t rip_seek_original(rip_input_plugin_t *this, off_t reqpos) {
+  off_t pos;
+
+  lprintf(" => seeking original input plugin to %lld\n", reqpos);
+
+  pos = this->main_input_plugin->seek(this->main_input_plugin, reqpos, SEEK_SET);
+  if (pos == -1) {
+    xine_log(this->stream->xine, XINE_LOG_MSG, 
+      _("input_rip: seeking failed\n"));
+    return -1;
+  }
+#ifdef LOG
+  if (pos != reqpos) {
+    lprintf(CLR_FAIL " => reqested position %lld differs from result position %lld" CLR_RST "\n", reqpos, pos);
+  }
+#endif
+
+  this->curpos = pos;
+
+  return pos;
+}
+ 
 /*
  * seek in RIP
  * 
@@ -291,7 +313,7 @@ static off_t rip_plugin_seek(input_plugin_t *this_gen, off_t offset, int origin)
   char buffer[SCRATCH_SIZE];
   rip_input_plugin_t *this = (rip_input_plugin_t *)this_gen;
   uint32_t blocksize;
-  off_t newpos, toread, pos;
+  off_t newpos, toread, reqpos, pos;
 
   lprintf("seek, offset %lld, origin %d (curpos %lld, savepos %lld)\n", offset, origin, this->curpos, this->savepos);
   
@@ -313,15 +335,15 @@ static off_t rip_plugin_seek(input_plugin_t *this_gen, off_t offset, int origin)
 
     /* don't seek into preview area */
     if (this->preview && newpos < this->preview_size) {
-      pos = this->preview_size;
+      reqpos = this->preview_size;
     } else  {
-      pos = newpos;
+      reqpos = newpos;
     }
 
     if (this->regular) {
-      if (pos != this->savepos) {
-        lprintf(" => seeking file to %lld\n", pos);
-        if (fseek(this->file, pos, SEEK_SET) != 0) {
+      if (reqpos != this->savepos) {
+        lprintf(" => seeking file to %lld\n", reqpos);
+        if (fseek(this->file, reqpos, SEEK_SET) != 0) {
           xine_log(this->stream->xine, XINE_LOG_MSG, 
             _("input_rip: seeking failed: %s\n"), strerror(errno));
           return -1;
@@ -329,24 +351,30 @@ static off_t rip_plugin_seek(input_plugin_t *this_gen, off_t offset, int origin)
       }
       this->curpos = newpos;
     } else {
-      lprintf(" => seeking original input plugin to %lld\n", pos);
-      this->curpos = this->main_input_plugin->seek(this->main_input_plugin, pos, SEEK_SET);
-#ifdef LOG
-      if (this->curpos != pos) lprintf(CLR_FAIL " => requested position %lld differs from result position %lld" CLR_RST "\n", pos, this->curpos);
-#endif
+      if ((pos = rip_seek_original(this, reqpos)) == -1) return -1;
+      if (pos == reqpos) this->curpos = newpos;
     }
     
     return this->curpos;
   }
 
-  if (this->curpos != this->savepos) {
-    lprintf(" => seeking file to end: %lld\n", this->savepos);
-    if (fseek(this->file, this->savepos, SEEK_SET) != 0) {
-      xine_log(this->stream->xine, XINE_LOG_MSG, 
-        _("input_rip: seeking failed: %s\n"), strerror(errno));
-      return -1;
+  if (this->curpos < this->savepos) {
+    lprintf(" => seeking to end: %lld\n", this->savepos);
+    if (this->regular) {
+      lprintf(" => seeking file to end: %lld\n", this->savepos);
+      if (fseek(this->file, this->savepos, SEEK_SET) != 0) {
+        xine_log(this->stream->xine, XINE_LOG_MSG, 
+          _("input_rip: seeking failed: %s\n"), strerror(errno));
+        return -1;
+      }
+      this->curpos = this->savepos;
+    } else {
+      if ((pos = rip_seek_original(this, this->savepos)) == -1) return -1;
+      if (pos > this->savepos)
+        xine_log(this->stream->xine, XINE_LOG_MSG,
+          _("input_rip: %lld bytes dropped\n"), 
+	  pos - this->savepos);
     }
-    this->curpos = this->savepos;
   }
 
   /* read and catch remaining data after this->savepos */
