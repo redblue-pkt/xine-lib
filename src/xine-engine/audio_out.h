@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.h,v 1.26 2002/03/11 19:58:01 jkeil Exp $
+ * $Id: audio_out.h,v 1.27 2002/03/19 02:12:50 guenter Exp $
  */
 #ifndef HAVE_AUDIO_OUT_H
 #define HAVE_AUDIO_OUT_H
@@ -191,7 +191,7 @@ struct ao_instance_s {
    *
    * See AO_CTRL_* below.
    */
-  int (*control) (ao_driver_t *this, int cmd, /* arg */ ...);
+  int (*control) (ao_instance_t *this, int cmd, /* arg */ ...);
 
 
   /* private stuff */

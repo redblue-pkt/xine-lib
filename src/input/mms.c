@@ -511,57 +511,54 @@ static void interp_header (mms_t *this) {
 }
 
 
-int mms_url_is(char* url, char** mms_url)
-  {
-    int i=0;
-    char* uptr;
+int mms_url_is(char* url, char** mms_url) {
+  int i=0;
+  char* uptr;
     
-    printf("mms_url_is l=%d \n",strlen(mms_url[0]));
-    if(!url )
-      return 0;
-     uptr=strdup(url);
-     uptr=strupr(uptr);
-    while(mms_url[i]){
-      if(!strncasecmp(uptr,mms_url[i],strlen(mms_url[i]) )){
-	free(uptr);
-	return strlen(mms_url[i]);
-      }
-      i++;
-    }
-    free(uptr);
+  printf("mms_url_is l=%d \n",strlen(mms_url[0]));
+  if(!url )
     return 0;
-  } 
-int mms_start_where(char* url)
-  {
-    int i=0;
-    int delta;
-    char *p;
-    char* uptr;
-    
-    if(!url )
-      return -1;
-     uptr=strdup(url);
-     uptr=strupr(uptr);
-    while(mms_url_s[i]){
-      if((p=strstr(uptr,mms_url_s[i]))){
-	delta=p-uptr;
-	free(uptr);
-	return delta;
-      }
-      i++;
+  uptr=strdup(url);
+  uptr=strupr(uptr);
+  while(mms_url[i]){
+    if(!strncasecmp(uptr,mms_url[i],strlen(mms_url[i]) )){
+      free(uptr);
+      return strlen(mms_url[i]);
     }
-    free(uptr);
+    i++;
+  }
+  free(uptr);
+  return 0;
+} 
+
+int mms_start_where(char* url) {
+  int i=0;
+  int delta;
+  char *p;
+  char* uptr;
+    
+  if (!url)
     return -1;
-  } 
-char* mms_connect_common(int *s ,int port,char *url, char **host , char** hostend,
-			 char  **path,char **file)
-{
+  uptr=strdup(url);
+  uptr=strupr(uptr);
+  while(mms_url_s[i]){
+    if((p=strstr(uptr,mms_url_s[i]))){
+      delta=p-uptr;
+      free(uptr);
+      return delta;
+    }
+    i++;
+  }
+  free(uptr);
+  return -1;
+} 
+
+char* mms_connect_common(int *s, int port, char *url, char **host, char** hostend,
+			 char  **path, char **file) {
  
   int    hostlen;
   int    proto_len;
   char   *forport;
-
-
     
   if(!(proto_len=mms_url_is(url,mms_url_s))){
 
@@ -832,6 +829,12 @@ static int get_media_packet (mms_t *this) {
 #endif
 
   return 1;
+}
+
+int mms_peek_header (mms_t *this, char *data) {
+
+  memcpy (data, this->asf_header, this->asf_header_len);
+  return this->asf_header_len;
 }
 
 int mms_read (mms_t *this, char *data, int len) {

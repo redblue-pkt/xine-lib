@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.47 2002/03/18 22:45:53 guenter Exp $
+ * $Id: audio_out.c,v 1.48 2002/03/19 02:12:49 guenter Exp $
  * 
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -260,7 +260,7 @@ static void *ao_loop (void *this_gen) {
   
 #ifdef LOG
       printf ("audio_out: current delay is %d, current time is %lld\n",
-	    delay, cur_time);
+	      delay, cur_time);
 #endif
 
       /* External A52 decoder delay correction */

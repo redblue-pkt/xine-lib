@@ -39,5 +39,7 @@ int mms_read (mms_t *this, char *data, int len);
 uint32_t mms_get_length (mms_t *this);
 void mms_close (mms_t *this);
 
+int mms_peek_header (mms_t *this, char *data);
+
 #endif
 

@@ -78,16 +78,11 @@ static int mms_plugin_open (input_plugin_t *this_gen, char *mrl) {
 
   char* nmrl=NULL;
   char* uptr;
-  int error_id;
+
   mms_input_plugin_t *this = (mms_input_plugin_t *) this_gen;
   
-  error_id=asx_parse(mrl,&nmrl);
-  
-  if(error_id)
-    return 0;
-  
-  if(!nmrl)
-    nmrl=mrl;
+  if (!asx_parse (mrl,&nmrl))
+    nmrl = mrl;
   
   printf("mms_plugin_open: using mrl <%s> \n", nmrl);
   
@@ -95,12 +90,18 @@ static int mms_plugin_open (input_plugin_t *this_gen, char *mrl) {
   if (!mms_url_is(nmrl,mms_url_s)){
     
     return 0;
- }
+  }
   
  
   this->mrl = strdup(nmrl); /* FIXME: small memory leak */
 
+  this->xine->osd_renderer->filled_rect (this->xine->osd, 0, 0, 299, 99, 0);
+  this->xine->osd_renderer->render_text (this->xine->osd, 5, 30, "mms: contacting...", OSD_TEXT1);
+  this->xine->osd_renderer->show (this->xine->osd, 0);
+
   this->mms = mms_connect (nmrl);
+
+  this->xine->osd_renderer->hide (this->xine->osd, 0);
 
   if (!this->mms){
    
@@ -112,13 +113,13 @@ static int mms_plugin_open (input_plugin_t *this_gen, char *mrl) {
  
 
   /* register our scr plugin */
-   this->scr->scr.start (&this->scr->scr, this->xine->metronom->get_current_time (this->xine->metronom));
-   this->xine->metronom->register_scr (this->xine->metronom, &this->scr->scr); 
+  this->scr->scr.start (&this->scr->scr, this->xine->metronom->get_current_time (this->xine->metronom));
+  this->xine->metronom->register_scr (this->xine->metronom, &this->scr->scr); 
   return 1;
 }
 
-#define LOW_WATER_MARK  50
-#define HIGH_WATER_MARK 100
+#define LOW_WATER_MARK  25
+#define HIGH_WATER_MARK 50
 
 static off_t mms_plugin_read (input_plugin_t *this_gen, 
 			      char *buf, off_t len) {
@@ -132,20 +133,38 @@ static off_t mms_plugin_read (input_plugin_t *this_gen,
 #endif
 
   fifo_fill = this->xine->video_fifo->size(this->xine->video_fifo);
+  if (this->xine->audio_fifo) {
+    fifo_fill += 8*this->xine->audio_fifo->size(this->xine->audio_fifo);
+  }
 
+  if (this->buffering) {
+    xine_log (this->xine, XINE_LOG_MSG, 
+	      "input_mms: buffering (%d/%d)...\n", fifo_fill, HIGH_WATER_MARK);
+  }
 
   if (fifo_fill<LOW_WATER_MARK) {
     
+    if (!this->buffering) {
+      this->xine->osd_renderer->filled_rect (this->xine->osd, 0, 0, 299, 99, 0);
+      this->xine->osd_renderer->render_text (this->xine->osd, 5, 30, "mms: buffering...", OSD_TEXT1);
+      this->xine->osd_renderer->show (this->xine->osd, 0);
+
+      /* give video_out time to display osd before pause */
+      sleep (1);
+    }
+
     this->xine->metronom->set_speed (this->xine->metronom, SPEED_PAUSE);
+    this->xine->audio_out->audio_paused = 2;
     this->buffering = 1;
     this->scr->adjustable = 0;
-    printf ("input_mms: buffering (%d/%d)...\n", fifo_fill, LOW_WATER_MARK);
 
   } else if ( (fifo_fill>HIGH_WATER_MARK) && (this->buffering)) {
     this->xine->metronom->set_speed (this->xine->metronom, SPEED_NORMAL);
+    this->xine->audio_out->audio_paused = 0;
     this->buffering = 0;
     this->scr->adjustable = 1;
-    printf ("input_mms: buffering...done\n");
+
+    this->xine->osd_renderer->hide (this->xine->osd, 0);
   }
 
   n = mms_read (this->mms, buf, len);
@@ -306,6 +325,16 @@ static char* mms_plugin_get_mrl (input_plugin_t *this_gen) {
 
 static int mms_plugin_get_optional_data (input_plugin_t *this_gen, 
 					 void *data, int data_type) {
+
+  mms_input_plugin_t *this = (mms_input_plugin_t *) this_gen;
+
+  switch (data_type) {
+  case INPUT_OPTIONAL_DATA_PREVIEW:
+
+    return mms_peek_header (this->mms, data);
+
+    break;
+  }
 
   return INPUT_OPTIONAL_UNSUPPORTED;
 }

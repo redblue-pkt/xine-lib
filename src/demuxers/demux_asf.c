@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.30 2002/03/18 22:45:53 guenter Exp $
+ * $Id: demux_asf.c,v 1.31 2002/03/19 02:12:49 guenter Exp $
  *
  * demultiplexer for asf streams
  *
@@ -1275,12 +1275,26 @@ static int demux_asf_open(demux_plugin_t *this_gen,
 			  input_plugin_t *input, int stage) {
 
   demux_asf_t *this = (demux_asf_t *) this_gen;
+  uint8_t      buf[8192];
+  int          len;
 
   switch(stage) {
-
   case STAGE_BY_CONTENT:
+
+    /* 
+     * try to get a preview of the data
+     */
+    len = input->get_optional_data (input, buf, INPUT_OPTIONAL_DATA_PREVIEW);
+    if (len == INPUT_OPTIONAL_UNSUPPORTED)
+      return DEMUX_CANNOT_HANDLE;
+
+    if (!memcmp(buf, &asf_header, sizeof(GUID))) {
+      printf ("demux_asf: file starts with an asf header\n");
+      this->input = input;
+      return DEMUX_CAN_HANDLE;
+    }
+
     return DEMUX_CANNOT_HANDLE;
-    break;
 
   case STAGE_BY_EXTENSION: {
     char *ending;
