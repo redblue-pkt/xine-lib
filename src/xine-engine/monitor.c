@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: monitor.c,v 1.3 2001/09/01 17:10:01 jkeil Exp $
+ * $Id: monitor.c,v 1.4 2001/09/06 13:39:36 jkeil Exp $
  *
  * debug print and profiling functions - implementation
  *
@@ -27,12 +27,10 @@
 #include "config.h"
 #endif
 
-#include "monitor.h"
 #include <stdio.h>
 #include <sys/time.h>
-#include <sys/resource.h>
-#include <unistd.h>
-
+#include "utils.h"
+#include "monitor.h"
 
 #define MAX_ID 5
 
@@ -40,6 +38,7 @@
 
 long long int profiler_times[MAX_ID] ;
 long long int profiler_start[MAX_ID] ;
+long profiler_calls[MAX_ID] ;
 char * profiler_label[MAX_ID] ;
 
 void profiler_init () {
@@ -47,6 +46,7 @@ void profiler_init () {
   for (i=0; i<MAX_ID; i++) {
     profiler_times[i] = 0;
     profiler_start[i] = 0;
+    profiler_calls[i] = 0;
     profiler_label[i] = NULL;
   }
 }
@@ -55,33 +55,68 @@ void profiler_set_label (int id, char *label) {
   profiler_label[id] = label;
 }
 
+#ifdef ARCH_X86
+__inline__ unsigned long long int rdtsc()
+{
+  unsigned long long int x;
+  __asm__ volatile (".byte 0x0f, 0x31" : "=A" (x));     
+  return x;
+}
+#endif
+
 void profiler_start_count (int id) {
-
-  struct rusage usage ;
-
-  getrusage (RUSAGE_SELF, &usage);
-
-  profiler_start[id] = (long long int) usage.ru_utime.tv_sec * 1e6 + usage.ru_utime.tv_usec + (long long int) usage.ru_stime.tv_sec * 1e6 + usage.ru_stime.tv_usec;
+#ifdef ARCH_X86
+  profiler_start[id] = rdtsc();
+#endif
 }
 
 void profiler_stop_count (int id) {
-
-  struct rusage usage ;
-
-  getrusage (RUSAGE_SELF, &usage);
-
-  profiler_times[id] +=  (long long int) usage.ru_utime.tv_sec * 1e6 + usage.ru_utime.tv_usec + (long long int) usage.ru_stime.tv_sec * 1e6 + usage.ru_stime.tv_usec - profiler_start[id];
+#ifdef ARCH_X86
+  profiler_times[id] += rdtsc() - profiler_start[id];
+#endif
+  profiler_calls[id]++;
 }
 
 void profiler_print_results () {
   int i;
 
-  printf ("\n\nPerformance analysis (usec):\n\n");
+#ifdef ARCH_X86
+  static long long int cpu_speed;	/* cpu cyles/usec */
+  if (!cpu_speed) {
+    long long int tsc_start, tsc_end;
+    struct timeval tv_start, tv_end;
+
+    tsc_start = rdtsc();
+    gettimeofday(&tv_start, NULL);
+
+    xine_usec_sleep(100000);
+
+    tsc_end = rdtsc();
+    gettimeofday(&tv_end, NULL);
+
+    cpu_speed = (tsc_end - tsc_start) /
+	((tv_end.tv_sec - tv_start.tv_sec) * 1e6 +
+	 tv_end.tv_usec - tv_start.tv_usec);
+  }
+#endif
+
+  printf ("\n\nPerformance analysis:\n\n"
+	  "%-3s %-24.24s %12s %9s %12s %9s\n"
+	  "----------------------------------------------------------------------------\n",
+	  "ID", "name", "cpu cycles", "calls", "cycles/call", "usec/call");
   for (i=0; i<MAX_ID; i++) {
-    if (profiler_label[i])
-      printf ("%d:\t%s\t%12lld\n", i, profiler_label[i], profiler_times[i]);
+    if (profiler_label[i]) {
+      printf ("%2d: %-24.24s %12lld %9ld",
+	      i, profiler_label[i], profiler_times[i], profiler_calls[i]);
+      if (profiler_calls[i]) {
+	  printf(" %12lld", profiler_times[i] / profiler_calls[i]);
+#ifdef ARCH_X86
+	  printf(" %9lld", profiler_times[i] / (cpu_speed * profiler_calls[i]));
+#endif
+      }
+      printf ("\n");
+    }
   }
 }
 
 #endif
-
