@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.188 2004/03/16 12:25:05 mroi Exp $
+ * $Id: video_out.c,v 1.189 2004/03/23 15:38:04 mroi Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -1009,10 +1009,7 @@ static void *video_out_loop (void *this_gen) {
       }
       pthread_mutex_unlock(&this->streams_lock);
 
-      /* set one minute into the future to avoid flushing over and over again;
-       * if the decoder actually reacts to the flush by sending a frame,
-       * vo_frame_draw() will set last_delivery_pts anyway */
-      this->last_delivery_pts = vpts + 90000 * 60;
+      this->last_delivery_pts = vpts;
     }
 
     /*
