@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.37 2003/05/23 18:21:59 jcdutton Exp $
+ * $Id: xine_decoder.c,v 1.38 2003/05/23 21:52:00 jcdutton Exp $
  *
  * 04-09-2001 DTS passtrough  (C) Joachim Koenig 
  * 09-12-2001 DTS passthrough inprovements (C) James Courtier-Dutton
@@ -42,13 +42,13 @@
 #include "audio_out.h"
 #include "buffer.h"
 
-/*
-#define LOG_DEBUG
-*/
 
-/*
+#define LOG_DEBUG
+
+
+
 #define ENABLE_DTS_PARSE
-*/
+
 
 typedef struct {
   audio_decoder_class_t   decoder_class;
@@ -247,6 +247,7 @@ static void dts_parse_data (dts_decoder_t *this, buf_element_t *buf) {
   uint8_t        revision_number;
 
   int32_t        n, ch, i;
+  printf("libdts: buf->size = %d\n", buf->size);
   printf("libdts: parse1: ");
   for(i=0;i<16;i++) {
     printf("%02x ",data_in[i]);
@@ -414,6 +415,8 @@ static void dts_parse_data (dts_decoder_t *this, buf_element_t *buf) {
   }
   printf("\n");
 #endif
+
+#if 0
   if ((extension_audio_descriptor_flag == 0)
      || (extension_audio_descriptor_flag == 3)) {
     printf("libdts:trying extension...\n");
@@ -421,7 +424,7 @@ static void dts_parse_data (dts_decoder_t *this, buf_element_t *buf) {
     extension_primary_frame_byte_size = getbits(&state, 10); 
     extension_channel_arrangement = getbits(&state, 4);
   }
-
+#endif
 
 #if 0
     extension_sync_word_SYNC96 = getbits(&state, 32);
@@ -489,6 +492,11 @@ static void dts_parse_data (dts_decoder_t *this, buf_element_t *buf) {
   printf("dialog_normalisation_gain = %d\n",
           dialog_normalisation_gain);
 
+  printf("number_of_subframes = %d\n",number_of_subframes);
+  printf("number_of_primary_audio_channels = %d\n", number_of_primary_audio_channels);
+
+
+#if 0
   printf("channel_extension_sync_word = 0x%08X\n",
           channel_extension_sync_word);
   printf("extension_primary_frame_byte_sizes = %d\n", 
@@ -502,7 +510,7 @@ static void dts_parse_data (dts_decoder_t *this, buf_element_t *buf) {
           extension_frame_byte_data_size_FSIZE96);
   printf("revision_number = %d\n",
           revision_number);
-
+#endif
 
 
 assert(0);
