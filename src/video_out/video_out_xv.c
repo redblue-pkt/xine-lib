@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.102 2002/02/28 18:32:57 guenter Exp $
+ * $Id: video_out_xv.c,v 1.103 2002/03/01 09:23:21 guenter Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -615,7 +615,7 @@ static void xv_compute_ideal_size (xv_driver_t *this) {
    * aspect ratio
    */
 
-  image_ratio = (double) this->displayed_width / (double) this->displayed_height;
+  image_ratio = (double) this->delivered_width / (double) this->delivered_height;
   
   switch (this->props[VO_PROP_ASPECT_RATIO].value) {
   case ASPECT_AUTO:
