@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: nvtvd.h,v 1.2 2002/06/26 15:57:47 jkeil Exp $
+ * $Id: nvtvd.h,v 1.3 2002/08/02 14:09:05 mshopf Exp $
  *
  * nvtvd - Routines for communication with nvtvd.
  *
@@ -231,10 +231,14 @@ typedef union _DevUnion {
 #include <X11/Xmd.h>
 
 #ifdef __GNUC__
-#define DEBUG(x) /*x*/
+#ifndef DEBUG
+#  define DEBUG(x) /*x*/
+#endif
 #define ErrorF(x...) fprintf(stderr,x)
 #else
-#define DEBUG(x) /*x*/
+#ifndef DEBUG
+#  define DEBUG(x) /*x*/
+#endif
 #define ErrorF(...) fprintf(stderr, __VA_ARGS__)
 #endif
 
@@ -578,7 +582,7 @@ typedef struct _riva_hw_inst
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: nvtvd.h,v 1.2 2002/06/26 15:57:47 jkeil Exp $
+ * $Id: nvtvd.h,v 1.3 2002/08/02 14:09:05 mshopf Exp $
  *
  * Contents:
  *
@@ -1095,7 +1099,7 @@ typedef struct {
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: nvtvd.h,v 1.2 2002/06/26 15:57:47 jkeil Exp $
+ * $Id: nvtvd.h,v 1.3 2002/08/02 14:09:05 mshopf Exp $
  *
  * Contents:
  *
@@ -1211,7 +1215,7 @@ extern BackCardPtr back_card;
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: nvtvd.h,v 1.2 2002/06/26 15:57:47 jkeil Exp $
+ * $Id: nvtvd.h,v 1.3 2002/08/02 14:09:05 mshopf Exp $
  *
  * Contents:
  *
