@@ -1316,7 +1316,7 @@ final_bindir="`eval eval eval eval echo $bindir`"
 
 if test -r /etc/ld.so.conf && ! grep -x "$final_libdir" /etc/ld.so.conf >/dev/null ; then
   if test "$final_libdir" != "/lib" -a "$final_libdir" != "/usr/lib" ; then
-    if ! echo $LD_LIBRARY_PATH | grep -E "(:|^)$final_libdir(/?:|/?$)" >/dev/null ; then
+    if ! echo $LD_LIBRARY_PATH | egrep "(:|^)$final_libdir(/?:|/?$)" >/dev/null ; then
       echo
       echo "****************************************************************"
       echo "xine-lib will be installed to $final_libdir"
@@ -1337,7 +1337,7 @@ if test -r /etc/ld.so.conf && ! grep -x "$final_libdir" /etc/ld.so.conf >/dev/nu
   fi
 fi
 
-if ! echo $PATH | grep -E "(:|^)$final_bindir(/?:|/?$)" >/dev/null ; then
+if ! echo $PATH | egrep "(:|^)$final_bindir(/?:|/?$)" >/dev/null ; then
   echo
   echo "****************************************************************"
   echo "xine-config will be installed to $final_bindir"
