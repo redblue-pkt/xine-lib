@@ -42,6 +42,8 @@ xine-lib (1-rc1)
   * new fftgraph viz plugin
   * updated goom support
   * fix crasher in CDDA plugin
+  * nvtv tvmode support removed from xine-lib. it is better suited in the
+    frontends where it should be replaced with the new libnvtvsimple.
 
 xine-lib (1-rc0a)
   * includes ffmpeg's MPEG encode in dist tarball (fixes DXR3 support)

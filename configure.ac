@@ -280,24 +280,6 @@ fi
 AM_CONDITIONAL(HAVE_X11, [test x"$no_x" != "xyes"])
 
 dnl ---------------------------------------------
-dnl tvmode support using nvtv
-dnl ---------------------------------------------
-
-AC_ARG_ENABLE(nvtv, [  --enable-nvtv           use nvtv for output fullscreen to TV], enable_nvtv="$enableval", enable_nvtv=no)
-
-AC_MSG_CHECKING(for nvtv support)
-
-if test x"$enable_nvtv" = "xyes" -a x"$no_x" != "xyes"; then
-	AC_MSG_RESULT(enabled)
-    AC_DEFINE(XINE_HAVE_NVTV,1,[Define this if you want nvtvd tvmode support])
-else
-	AC_MSG_RESULT(disabled)
-fi
-
-AM_CONDITIONAL(HAVE_NVTV, [test x"$enable_nvtv" = "xyes" -a x"$no_x" != "xyes"])
-
-
-dnl ---------------------------------------------
 dnl socket library
 dnl ---------------------------------------------
 dnl Test for socket and network support library
@@ -1490,7 +1472,6 @@ src/video_out/vidix/Makefile
 src/video_out/vidix/drivers/Makefile
 src/xine-utils/Makefile
 src/xine-engine/Makefile
-src/xine-engine/nvtv/Makefile
 src/xine-engine/xineintl.h])
 AC_CONFIG_COMMANDS([default],[[chmod +x ./misc/SlackBuild ./misc/build_rpms.sh ./misc/relchk.sh]],[[]])
 AC_OUTPUT
