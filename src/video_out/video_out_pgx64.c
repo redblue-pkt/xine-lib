@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  *
- * $Id: video_out_pgx64.c,v 1.17 2002/12/07 23:00:07 f1rmb Exp $
+ * $Id: video_out_pgx64.c,v 1.18 2002/12/13 23:41:52 komadori Exp $
  *
  * video_out_pgx64.c, Sun PGX64/PGX24 output plugin for xine
  *
@@ -308,8 +308,8 @@ static void pgx64_update_frame_format(pgx64_driver_t *this, pgx64_frame_t *frame
         frame->vo_frame.pitches[1] = frame->pitch / 2;
         frame->vo_frame.pitches[2] = frame->pitch / 2;
         frame->lengths[0] = frame->vo_frame.pitches[0] * height;
-        frame->lengths[1] = frame->vo_frame.pitches[1] * height;
-        frame->lengths[2] = frame->vo_frame.pitches[2] * height;
+        frame->lengths[1] = frame->vo_frame.pitches[1] * (height / 2);
+        frame->lengths[2] = frame->vo_frame.pitches[2] * (height / 2);
         frame->vo_frame.base[0] = (void*)memalign(8, frame->lengths[0]);
         frame->vo_frame.base[1] = (void*)memalign(8, frame->lengths[1]);
         frame->vo_frame.base[2] = (void*)memalign(8, frame->lengths[2]);
