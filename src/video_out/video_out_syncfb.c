@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_syncfb.c,v 1.40 2001/11/07 13:34:14 matt2000 Exp $
+ * $Id: video_out_syncfb.c,v 1.41 2001/11/07 21:02:31 matt2000 Exp $
  * 
  * video_out_syncfb.c, SyncFB (for Matrox G200/G400 cards) interface for xine
  * 
@@ -90,6 +90,8 @@ typedef struct {
   int                virtual_screen_height;
   int                screen_depth;
 
+  int                video_win_visibility;
+   
   syncfb_property_t props[VO_NUM_PROPERTIES];
 
   vo_overlay_t      *overlay;
@@ -145,6 +147,31 @@ int gX11Fail;
 //
 // internal video_out_syncfb functions
 // 
+
+// returns boolean value (1 success, 0 failure)
+int syncfb_overlay_on(syncfb_driver_t* this)
+{  
+   if(ioctl(this->fd, SYNCFB_ON)) {	
+      printf("video_out_syncfb: error. (on ioctl failed)\n");
+      return 0;
+   } else {
+      this->overlay_state = 1;
+      return 1;
+   }
+}
+
+// returns boolean value (1 success, 0 failure)
+int syncfb_overlay_off(syncfb_driver_t* this)
+{  
+   if(ioctl(this->fd, SYNCFB_OFF)) {
+      printf("video_out_syncfb: error. (off ioctl failed)\n");
+      return 0;
+   } else {
+      this->overlay_state = 0;
+      return 1;
+   }
+}
+
 static void write_frame_YUV422(syncfb_driver_t* this, syncfb_frame_t* frame)
 {
    uint_8*  y  = (uint_8 *)frame->vo_frame.base[0];
@@ -314,12 +341,13 @@ static void syncfb_adapt_to_output_area(syncfb_driver_t* this,
    static int prev_deinterlacing  = 0;
    static int prev_posx           = 0;
    static int prev_posy           = 0;
+   static int prev_v_w_visibility = 0;
 
    XLockDisplay(this->display);
 
    XGetWindowAttributes(this->display, this->drawable, &window_attributes);
 
-   if(window_attributes.map_state == IsUnmapped || window_attributes.map_state == IsUnviewable)
+   if(!this->video_win_visibility || window_attributes.map_state == IsUnmapped || window_attributes.map_state == IsUnviewable)
      posx = posy = -1;
    else
      XTranslateCoordinates(this->display, this->drawable, window_attributes.root, 0, 0, &posx, &posy, &temp_window);
@@ -345,7 +373,8 @@ static void syncfb_adapt_to_output_area(syncfb_driver_t* this,
       prev_output_yoffset != this->output_yoffset      ||
       prev_deinterlacing  != this->deinterlace_enabled ||
       prev_posx           != posx                      ||
-      prev_posy           != posy) {
+      prev_posy           != posy                      ||
+      prev_v_w_visibility != this->video_win_visibility) {	
       
       prev_output_width   = this->output_width;
       prev_output_height  = this->output_height;
@@ -354,15 +383,12 @@ static void syncfb_adapt_to_output_area(syncfb_driver_t* this,
       prev_deinterlacing  = this->deinterlace_enabled;
       prev_posx           = posx;
       prev_posy           = posy;
-   
+      prev_v_w_visibility = this->video_win_visibility;
+	
       //
       // configuring SyncFB module from this point on.
       //
-
-      if(ioctl(this->fd, SYNCFB_OFF))
-	printf("video_out_syncfb: error. (off ioctl failed)\n");
-      else
-	this->overlay_state = 0;
+      syncfb_overlay_off(this);
 
       // sanity checking - certain situations *may* crash the SyncFB module, so
       // take care that we always have valid numbers.
@@ -412,10 +438,8 @@ static void syncfb_adapt_to_output_area(syncfb_driver_t* this,
 	 if(this->capabilities.palettes & (1<<this->syncfb_config.src_palette)) {
 	    if(ioctl(this->fd,SYNCFB_SET_CONFIG,&this->syncfb_config))
 	      printf("video_out_syncfb: error. (set_config ioctl failed)\n");
-	    if(ioctl(this->fd, SYNCFB_ON))
-	      printf("video_out_syncfb: error. (on ioctl failed)\n");
-	    else
-	      this->overlay_state = 1;
+	    
+	    syncfb_overlay_on(this);
 	 }
       }
    }
@@ -836,6 +860,13 @@ static int syncfb_gui_data_exchange (vo_driver_t* this_gen, int data_type, void 
   }
     break;
 
+  case GUI_DATA_EX_VIDEOWIN_VISIBLE: {
+     this->video_win_visibility = (int)(int *)data;
+     
+     syncfb_adapt_to_output_area(this, this->output_xoffset, this->output_yoffset, this->output_width, this->output_height);
+  }
+    break;
+	  
   default:
     return -1;
   }
@@ -848,8 +879,7 @@ static void syncfb_exit (vo_driver_t* this_gen)
    syncfb_driver_t *this = (syncfb_driver_t *) this_gen;
 
    // get it off the screen - I wanna see my desktop again :-)
-   if (ioctl(this->fd, SYNCFB_OFF))
-     printf("video_out_syncfb: error. (syncfb on ioctl failed)\n");
+   syncfb_overlay_off(this);
    
    // don't know if it is necessary are even right, but anyway...?!
    munmap(0, this->capabilities.memory_size);   
@@ -958,6 +988,7 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen)
   this->screen                = visual->screen;
   this->screen_depth          = attr.depth;
   this->user_data             = visual->user_data;
+  this->video_win_visibility  = 1;
   this->virtual_screen_height = attr.height;
   this->virtual_screen_width  = attr.width;
 
