@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.27 2002/10/26 03:52:07 storri Exp $
+ * $Id: xine.h.in,v 1.28 2002/10/26 14:31:36 mroi Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -837,6 +837,7 @@ typedef struct {
   void                            *data;   /* contents depending on type */
   int                              data_length;
 
+  /* you do not have to provide this, it will be filled in by xine_event_send() */
   struct timeval                   tv;     /* timestamp of event creation */
 } xine_event_t;
 
