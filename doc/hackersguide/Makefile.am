@@ -16,37 +16,45 @@ EXTRA_DIST = README $(hackersguide_sgml) \
 
 docsdir = $(prefix)/share/doc/xine/hackersguide
 
-docs: docs-prepare $(docs_DATA)
+docs: $(docs_DATA)
 
-docs-prepare: $(addprefix $(srcdir)/, $(hackersguide_sgml))
-	for file in $(hackersguide_sgml); do \
-	  test -f $$file || cp $(srcdir)/$$file .; \
-	done
+distclean-generic: clean-docs
+
+clean-docs:
+	rm -f $(docs_DATA)
+	test "x$(srcdir)" = x. || rm -f $(hackersguide_sgml)
 
 dist-hook:
-	@touch $(addprefix $(srcdir)/, $(EXTRA_DIST))
 	@make fail_if_missing=yes docs
 	cp $(docs_DATA) $(distdir)
 
-$(hackersguide_sgml): $(addprefix $(srcdir)/,$(hackersguide_sgml))
+$(hackersguide_sgml): %.sgml: $(srcdir)/%.sgml
 	cp $^ .
 
 hackersguide.html: $(hackersguide_sgml)
 	@if test "$(SGMLTOOLS)" != "no"; then \
 	  $(SGMLTOOLS) -b onehtml hackersguide.sgml; \
-	else if test "$(fail_if_missing)" = "yes"; then \
+	else \
+	  if test "$(fail_if_missing)" = "yes"; then \
 	    echo "Please install sgmltools-lite."; \
 	    exit 1; \
-	  else touch $@; \
+	  else \
+	    touch $@; \
+	    sleep 1; \
+	    touch $^; \
 	  fi; \
 	fi
 
 %.png: $(srcdir)/%.fig
 	@if test "$(FIG2DEV)" != "no"; then \
 	  $(FIG2DEV) -L png -S 4 $< $@; \
-	else if test "$(fail_if_missing)" = "yes"; then \
+	else \
+	  if test "$(fail_if_missing)" = "yes"; then \
 	    echo "Please install fig2dev."; \
 	    exit 1; \
-	  else touch $@; \
+	  else \
+	    touch $@; \
+	    sleep 1; \
+	    touch $^; \
 	  fi; \
 	fi
