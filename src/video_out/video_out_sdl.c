@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_sdl.c,v 1.2 2002/01/21 09:54:03 jkeil Exp $
+ * $Id: video_out_sdl.c,v 1.3 2002/01/22 01:43:13 miguelfreitas Exp $
  * 
  * video_out_sdl.c, Simple DirectMedia Layer
  *
@@ -26,6 +26,15 @@
  *   Dominik Schnitzer <aeneas@linuxvideo.org>
  *
  * xine version by Miguel Freitas (Jan/2002)
+ *   Missing features:
+ *    - mouse position translation
+ *    - logo state aware
+ *    - fullscreen
+ *    - stability, testing, etc?? ;) 
+ *
+ *  BIG WARNING HERE: if you use RedHat SDL packages you will probably
+ *  get segfault when no hwaccel is available. more info at:
+ *    https://bugzilla.redhat.com/bugzilla/show_bug.cgi?id=58408
  */
 
 #ifdef HAVE_CONFIG_H
@@ -327,10 +336,16 @@ static void sdl_update_frame_format (vo_driver_t *this_gen,
     }
       
     if( format == IMGFMT_YV12 ) {
+#ifdef SDL_LOG
+      printf ("video_out_sdl: format YV12 ");
+#endif
       frame->overlay = SDL_CreateYUVOverlay (width, height, SDL_YV12_OVERLAY,
 					     this->surface);
       
     } else if( format == IMGFMT_YUY2 ) {
+#ifdef SDL_LOG
+      printf ("video_out_sdl: format YUY2 ");
+#endif
       frame->overlay = SDL_CreateYUVOverlay (width, height, SDL_YUY2_OVERLAY,
 					     this->surface);
     }
@@ -338,6 +353,10 @@ static void sdl_update_frame_format (vo_driver_t *this_gen,
     if (frame->overlay == NULL)
       return;
  
+#ifdef SDL_LOG
+      printf ("[%p %p %p]\n", frame->overlay->pixels[0], frame->overlay->pixels[1],
+                              frame->overlay->pixels[2] );
+#endif
     frame->vo_frame.base[0] = frame->overlay->pixels[0];
     frame->vo_frame.base[1] = frame->overlay->pixels[2];
     frame->vo_frame.base[2] = frame->overlay->pixels[1];
@@ -361,7 +380,7 @@ static void sdl_overlay_blend (vo_driver_t *this_gen, vo_frame_t *frame_gen, vo_
   
   if (overlay->rle) {
     if( frame->format == IMGFMT_YV12 )
-      blend_yuv( frame->vo_frame.base[0], overlay, frame->width, frame->height);
+      blend_yuv( frame->vo_frame.base, overlay, frame->width, frame->height);
     else
       blend_yuy2( frame->vo_frame.base[0], overlay, frame->width, frame->height);
   }
@@ -396,7 +415,7 @@ static void sdl_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
 	 printf("video_out_sdl: change frame format\n");
       sdl_calc_format (this, frame->width, frame->height, frame->ratio_code);
   }
-
+    
   SDL_UnlockYUVOverlay (frame->overlay);
   /*
   SDL_DisplayYUVOverlay (frame->overlay, &(this->surface->clip_rect));
@@ -486,22 +505,35 @@ static int sdl_gui_data_exchange (vo_driver_t *this_gen,
     
   switch (data_type) {
   case GUI_DATA_EX_DEST_POS_SIZE_CHANGED:
+#ifdef SDL_LOG
+      printf ("video_out_sdl: GUI_DATA_EX_DEST_POS_SIZE_CHANGED\n");
+#endif
 
     area = (x11_rectangle_t *) data;
     sdl_adapt_to_output_area (this, area->x, area->y, area->w, area->h);
     break;
 
   case GUI_DATA_EX_LOGO_VISIBILITY:
+#ifdef SDL_LOG
+      printf ("video_out_sdl: GUI_DATA_EX_LOGO_VISIBILITY\n");
+#endif
     /* FIXME: implement */
     break;
 
   case GUI_DATA_EX_DRAWABLE_CHANGED:
+#ifdef SDL_LOG
+      printf ("video_out_sdl: GUI_DATA_EX_DRAWABLE_CHANGED\n");
+#endif
+    
     this->drawable = (Drawable) data;
     /* OOPS! Is it possible to change SDL window id? */
     /* probably we need to close and reinitialize SDL */
     break;
   
   case GUI_DATA_EX_EXPOSE_EVENT:
+#ifdef SDL_LOG
+      printf ("video_out_sdl: GUI_DATA_EX_EXPOSE_EVENT\n");
+#endif
     break;
       
   default:
@@ -529,7 +561,7 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
   sdl_driver_t          *this;
   const SDL_VideoInfo * vidInfo;
 #ifdef HAVE_X11
-  char SDL_windowhack[32];
+  static char SDL_windowhack[32];
   x11_visual_t         *visual = (x11_visual_t *) visual_gen;
   XWindowAttributes window_attributes;
 #endif
@@ -590,7 +622,7 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
   this->output_yoffset    = 0;
   this->output_width      = 0;
   this->output_height     = 0;
-  this->capabilities      = 0;
+  this->capabilities      = VO_CAP_YUY2 | VO_CAP_YV12;
 
 #ifdef HAVE_X11  
   XGetWindowAttributes(this->display, this->drawable, &window_attributes);
@@ -616,6 +648,8 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
   this->vo_driver.exit                 = sdl_exit;
   this->vo_driver.get_info             = get_video_out_plugin_info;
 
+  printf ("video_out_sdl: warning, xine's SDL driver is EXPERIMENTAL\n");
+  printf ("video_out_sdl: fullscreen mode is NOT supported\n");
   return &this->vo_driver;
 }
 

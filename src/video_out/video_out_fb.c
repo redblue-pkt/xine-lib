@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_fb.c,v 1.3 2002/01/15 20:39:39 jcdutton Exp $
+ * $Id: video_out_fb.c,v 1.4 2002/01/22 01:43:13 miguelfreitas Exp $
  * 
  * video_out_fb.c, frame buffer xine driver by Miguel Freitas
  *
@@ -916,6 +916,7 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
 							   -100, 100, "gamma correction for FB driver",
 							   NULL, NULL, NULL));
 
+  printf ("video_out_fb: warning, xine's framebuffer driver is EXPERIMENTAL\n");
   return &this->vo_driver;
 }
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.60 2002/01/18 01:02:32 miguelfreitas Exp $
+ * $Id: w32codec.c,v 1.61 2002/01/22 01:43:13 miguelfreitas Exp $
  *
  * routines for using w32 codecs
  * DirectShow support by Miguel Freitas (Nov/2001)
@@ -496,6 +496,8 @@ static void w32v_init_codec (w32v_decoder_t *this, int buf_type) {
 static void w32v_init_ds_codec (w32v_decoder_t *this, int buf_type) {
   uint32_t vo_cap;
   int outfmt;
+  
+  w32v_init_rgb_ycc();
 
   printf ("w32codec: init Direct Show video codec...\n");
   
@@ -620,6 +622,7 @@ static void w32v_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 
       HRESULT     ret;
       vo_frame_t *img;
+      uint8_t    *img_buffer = this->img_buffer;
 
       /* decoder video frame */
 
@@ -629,30 +632,35 @@ static void w32v_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 					this->bih.biWidth, 
 					this->bih.biHeight, 
 					42, 
-					IMGFMT_YUY2,
+					this->outfmt,
 					this->video_step,
 					VO_BOTH_FIELDS);
 
+      if (this->outfmt==IMGFMT_YUY2)
+         img_buffer = img->base[0];
+      
       if( !this->ds_driver )
         ret = (!this->ex_functions)
               ?ICDecompress(this->hic, ICDECOMPRESS_NOTKEYFRAME | 
                             ((this->skipframes)?ICDECOMPRESS_HURRYUP|ICDECOMPRESS_PREROL:0), 
 			    &this->bih, this->buf, &this->o_bih, 
-			    (this->skipframes)?NULL:this->img_buffer)
+			    (this->skipframes)?NULL:img_buffer)
               :ICDecompressEx(this->hic, ICDECOMPRESS_NOTKEYFRAME | 
                             ((this->skipframes)?ICDECOMPRESS_HURRYUP|ICDECOMPRESS_PREROL:0), 
 			    &this->bih, this->buf, &this->o_bih,
-			    (this->skipframes)?NULL:this->img_buffer); 
+			    (this->skipframes)?NULL:img_buffer); 
       else {
         ret = DS_VideoDecoder_DecodeInternal(this->ds_dec, this->buf, this->size, 0,
-                            (this->skipframes)?NULL:this->img_buffer);
+                            (this->skipframes)?NULL:img_buffer);
       }
                          
       if(!this->skipframes) {
         if (this->outfmt==IMGFMT_YUY2) {
 	  /* already decoded into YUY2 format by DLL */
+	  /*
 	  xine_fast_memcpy(img->base[0], this->img_buffer,
 	                   this->bih.biHeight*this->bih.biWidth*2);
+	  */
         } else {
 	  /* now, convert rgb to yuv */
 	  int row, col;
