@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.223 2003/01/27 00:02:57 tmattern Exp $
+ * $Id: xine.c,v 1.224 2003/01/27 18:45:58 mroi Exp $
  *
  * top-level xine functions
  *
@@ -443,6 +443,23 @@ xine_stream_t *xine_stream_new (xine_t *this,
   return stream;
 }
 
+static void mrl_unescape(char *mrl) {
+  int i, len = strlen(mrl);
+
+  for (i = 0; i < len; i++) {
+    if ((mrl[i]=='%') && (i<(len-2))) {
+      int c;
+      
+      if (sscanf(&mrl[i + 1], "%02x", &c) == 1) {
+	mrl[i]= (char)c;
+	memmove(mrl + i + 1, mrl + i + 3, len - i - 3);
+	len -= 2;
+      }
+    }
+  }
+  mrl[len] = 0;
+}
+
 static int xine_open_internal (xine_stream_t *stream, const char *mrl) {
 
   char *stream_setup;
@@ -509,6 +526,7 @@ static int xine_open_internal (xine_stream_t *stream, const char *mrl) {
 	    memcpy(demux_name, tmp, strlen(tmp));
 	    demux_name[strlen(tmp)] = '\0';
 	  }
+	  mrl_unescape(demux_name);
 	  if (!(stream->demux_plugin = find_demux_plugin_by_name(stream, demux_name, stream->input_plugin))) {
 	    xine_log(stream->xine, XINE_LOG_MSG,
 	      _("xine: specified demuxer %s failed to start\n"), demux_name);
@@ -585,6 +603,7 @@ static int xine_open_internal (xine_stream_t *stream, const char *mrl) {
 	    memcpy(volume, tmp, strlen(tmp));
 	    volume[strlen(tmp)] = '\0';
 	  }
+	  mrl_unescape(volume);
 	  xine_set_param(stream, XINE_PARAM_AUDIO_VOLUME, atoi(volume));
 	  free(volume);
 	} else {
@@ -609,6 +628,7 @@ static int xine_open_internal (xine_stream_t *stream, const char *mrl) {
 	    memcpy(compression, tmp, strlen(tmp));
 	    compression[strlen(tmp)] = '\0';
 	  }
+	  mrl_unescape(compression);
 	  xine_set_param(stream, XINE_PARAM_AUDIO_COMPR_LEVEL, atoi(compression));
 	  free(compression);
 	} else {
@@ -633,6 +653,7 @@ static int xine_open_internal (xine_stream_t *stream, const char *mrl) {
 	    memcpy(subtitle_mrl, tmp, strlen(tmp));
 	    subtitle_mrl[strlen(tmp)] = '\0';
 	  }
+	  mrl_unescape(subtitle_mrl);
 	  stream->slave = xine_stream_new (stream->xine, NULL, stream->video_out );
 	  stream->slave_affection = XINE_MASTER_SLAVE_PLAY | XINE_MASTER_SLAVE_STOP;
 	  if( xine_open( stream->slave, subtitle_mrl ) ) {
@@ -656,15 +677,19 @@ static int xine_open_internal (xine_stream_t *stream, const char *mrl) {
       {
         /* when we got here, the stream setup parameter must be a config entry */
 	char *tmp = stream_setup;
+	char *config_entry;
 	if ((stream_setup = strchr(stream_setup, ';'))) {
-	  char *config_entry = (char *)malloc(stream_setup - tmp + 1);
+	  config_entry = (char *)malloc(stream_setup - tmp + 1);
 	  memcpy(config_entry, tmp, stream_setup - tmp);
 	  config_entry[stream_setup - tmp] = '\0';
-	  xine_config_change_opt(stream->xine->config, config_entry);
-	  free(config_entry);
 	} else {
-	  xine_config_change_opt(stream->xine->config, tmp);
+	  config_entry = (char *)malloc(strlen(tmp));
+	  memcpy(config_entry, tmp, strlen(tmp));
+	  config_entry[strlen(tmp)] = '\0';
 	}
+	mrl_unescape(config_entry);
+	xine_config_change_opt(stream->xine->config, config_entry);
+	free(config_entry);
       }
     }
     
