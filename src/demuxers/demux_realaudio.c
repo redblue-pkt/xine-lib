@@ -20,8 +20,9 @@
 
 /*
  * RealAudio File Demuxer by Mike Melanson (melanson@pcisys.net)
+ *     improved by James Stembridge (jstembridge@users.sourceforge.net)
  *
- * $Id: demux_realaudio.c,v 1.22 2003/08/25 21:51:38 f1rmb Exp $
+ * $Id: demux_realaudio.c,v 1.23 2003/10/28 20:12:54 jstembridge Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -42,8 +43,7 @@
 #include "bswap.h"
 #include "group_audio.h"
 
-#define RA_FILE_HEADER_SIZE 16
-#define RA_AUDIO_HEADER_SIZE 0x39
+#define RA_FILE_HEADER_PREV_SIZE 22
 
 typedef struct {
   demux_plugin_t       demux_plugin;
@@ -60,6 +60,14 @@ typedef struct {
   off_t                data_start;
   off_t                data_size;
 
+#if 0
+  /* Needed by ffmpeg 28.8 decoder */
+  unsigned short       sub_packet_size;
+  unsigned short       sub_packet_height;
+  unsigned short       sub_packet_flavour;
+  unsigned int         coded_frame_size;
+#endif
+  
   int                  seek_flag;  /* this is set when a seek just occurred */
 } demux_ra_t;
 
@@ -69,13 +77,16 @@ typedef struct {
 
 /* returns 1 if the RealAudio file was opened successfully, 0 otherwise */
 static int open_ra_file(demux_ra_t *this) {
-  unsigned char file_header[RA_FILE_HEADER_SIZE];
-  unsigned char audio_header[RA_AUDIO_HEADER_SIZE];
-  unsigned int  audio_fourcc;
+  unsigned char   file_header[RA_FILE_HEADER_PREV_SIZE], len;
+  unsigned char  *audio_header;
+  unsigned int    audio_fourcc = 0, hdr_size;
+  unsigned short  version;
+  off_t           offset;
+  
 
   /* check the signature */
-  if (xine_demux_read_header(this->input, file_header, RA_FILE_HEADER_SIZE) !=
-      RA_FILE_HEADER_SIZE)
+  if (xine_demux_read_header(this->input, file_header, RA_FILE_HEADER_PREV_SIZE) !=
+      RA_FILE_HEADER_PREV_SIZE)
     return 0;
 
   if ((file_header[0] != '.') ||
@@ -83,28 +94,116 @@ static int open_ra_file(demux_ra_t *this) {
       (file_header[2] != 'a'))
     return 0;
 
-  /* file is qualified; skip over the header bytes in the stream */
-  this->input->seek(this->input, RA_FILE_HEADER_SIZE, SEEK_SET);
-
-  /* load the audio header */
-  if (this->input->read(this->input, audio_header, RA_AUDIO_HEADER_SIZE) !=
-      RA_AUDIO_HEADER_SIZE)
+  /* read version */
+  version = BE_16(&file_header[0x04]);
+  
+  /* read header size according to version */
+  if (version == 3)
+    hdr_size = BE_16(&file_header[0x06]) + 8;
+  else if (version == 4)
+    hdr_size = BE_32(&file_header[0x12]) + 16;
+  else {
+    printf("demux_realaudio: unknown version number %d\n", version);
     return 0;
+  }
+    
+  /* allocate for and read header data */
+  audio_header = xine_xmalloc(hdr_size);
+  
+  if (xine_demux_read_header(this->input, audio_header, hdr_size) != hdr_size) {
+    printf("demux_realaudio: unable to read header\n");
+    free(audio_header);
+    return 0;
+  }
+    
+  /* read header data according to version */
+  if((version == 3) && (hdr_size >= 32)) {
+    this->data_size = BE_32(&audio_header[0x12]);
+    
+    this->wave.nChannels = 1;
+    this->wave.nSamplesPerSec = 8000;
+    this->wave.nBlockAlign = 240;
+    this->wave.wBitsPerSample = 16;
 
-  /* find the important information */
-  this->data_start = RA_FILE_HEADER_SIZE + BE_32(&audio_header[0x02]);
-  this->data_size = BE_32(&audio_header[0x0C]);
-  this->wave.nChannels = audio_header[0x27];
-  this->wave.nSamplesPerSec = BE_16(&audio_header[0x20]);
-  this->wave.nBlockAlign = BE_16(&audio_header[0x1A]);
-  this->wave.wBitsPerSample = audio_header[0x25];
-  audio_fourcc = *(unsigned int *)&audio_header[0x2E];
+    offset = 0x16;
+  } else if(hdr_size >= 72) {
+    this->data_size = BE_32(&audio_header[0x1C]);    
+    
+    this->wave.nBlockAlign = BE_16(&audio_header[0x2A]);
+    this->wave.nSamplesPerSec = BE_16(&audio_header[0x30]);
+    this->wave.wBitsPerSample = audio_header[0x35];
+    this->wave.nChannels = audio_header[0x37];
+
+#if 0
+    this->sub_packet_size = BE_16(&audio_header[0x2C]);
+    this->sub_packet_height = BE_16(&audio_header[0x28]);    
+    this->sub_packet_flavour = BE_16(&audio_header[0x16]);
+    this->coded_frame_size = BE_32(&audio_header[0x18]); 
+#endif
+
+    if(audio_header[0x3D] == 4)
+      audio_fourcc = ME_32(&audio_header[0x3E]);
+    else {
+      printf("demux_realaudio: invalid fourcc size %d\n", audio_header[0x3D]);
+      free(audio_header);
+      return 0;
+    }
+    
+    offset = 0x45;
+  } else {
+    printf("demux_realaudio: header too small\n");
+    free(audio_header);
+    return 0;
+  }
+  
+  /* Read title */
+  len = audio_header[offset];
+  if(len && ((offset+len+2) < hdr_size)) {
+    xine_set_metan_info(this->stream, XINE_META_INFO_TITLE,
+                        &audio_header[offset+1], len);
+    offset += len+1;
+  } else
+    offset++;
+  
+  /* Author */
+  len = audio_header[offset];
+  if(len && ((offset+len+1) < hdr_size)) {
+    xine_set_metan_info(this->stream, XINE_META_INFO_ARTIST,
+                        &audio_header[offset+1], len);
+    offset += len+1;
+  } else
+    offset++;
+  
+  /* Copyright/Date */
+  len = audio_header[offset];
+  if(len && ((offset+len) <= hdr_size)) {
+    xine_set_metan_info(this->stream, XINE_META_INFO_YEAR,
+                        &audio_header[offset+1], len);
+    offset += len+1;
+  } else
+    offset++;
+  
+  /* Fourcc for version 3 comes after meta info */
+  if((version == 3) && ((offset+7) <= hdr_size)) {
+    if(audio_header[offset+2] == 4)
+      audio_fourcc = ME_32(&audio_header[offset+3]);
+    else {
+      printf("demux_realaudio: invalid fourcc size %d\n", audio_header[offset+2]);
+      free(audio_header);
+      return 0;
+    }
+  }
+  
+  xine_set_stream_info(this->stream, XINE_STREAM_INFO_AUDIO_FOURCC, audio_fourcc);
   this->audio_type = formattag_to_buf_audio(audio_fourcc);
 
-  /* skip extra header data (such as song title etc.) */
+  /* seek to start of data */
+  this->data_start = hdr_size;
   if (this->input->seek(this->input, this->data_start, SEEK_SET) !=
-      this->data_start)
+      this->data_start) {
+    printf("demux_realaudio: unable to seek to data start\n");
     return 0;
+  }
 
   if( !this->audio_type )
     this->audio_type = BUF_AUDIO_UNKNOWN;
