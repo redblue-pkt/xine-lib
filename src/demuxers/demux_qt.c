@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.152 2003/02/22 10:55:46 esnel Exp $
+ * $Id: demux_qt.c,v 1.153 2003/02/22 14:42:58 esnel Exp $
  *
  */
 
@@ -1899,8 +1899,10 @@ static qt_error open_qt_file(qt_info *info, input_plugin_t *input,
 
   /* take apart the moov atom */
   parse_moov_atom(info, moov_atom, bandwidth);
-  if (info->last_error != QT_OK)
+  if (info->last_error != QT_OK) {
+    free(moov_atom);
     return info->last_error;
+  }
 
   free(moov_atom);
 
