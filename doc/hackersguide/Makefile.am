@@ -32,11 +32,11 @@ clean-docs:
 	test "x$(srcdir)" = x. || rm -f $(hackersguide_sgml)
 
 dist-hook:
-ifndef distcheck_lax
-	@$(MAKE) fail_if_missing=yes docs
-else
-	@$(MAKE) docs
-endif
+	@if test x"$(distcheck_lax)" = x ; then \
+	  $(MAKE) fail_if_missing=yes docs ; \
+	else \
+	  $(MAKE) docs ; \
+	fi
 
 if HAVE_SGMLTOOLS
 hackersguide.html: $(hackersguide_sgml)
