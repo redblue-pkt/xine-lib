@@ -23,7 +23,7 @@
  * For more information on the FLAC file format, visit:
  *   http://flac.sourceforge.net/
  *
- * $Id: demux_flac.c,v 1.3 2004/06/14 13:40:57 mroi Exp $
+ * $Id: demux_flac.c,v 1.4 2004/06/15 21:22:34 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -294,10 +294,11 @@ static void demux_flac_send_headers(demux_plugin_t *this_gen) {
 static int demux_flac_seek (demux_plugin_t *this_gen,
                             off_t start_pos, int start_time, int playing) {
   demux_flac_t *this = (demux_flac_t *) this_gen;
-  start_pos = (off_t) ( (double) start_pos / 65535 *
-              this->data_size );
   int seekpoint_index = 0;
   int64_t start_pts;
+  
+  start_pos = (off_t) ( (double) start_pos / 65535 *
+              this->data_size );
 
   /* if thread is not running, initialize demuxer */
   if( !playing ) {

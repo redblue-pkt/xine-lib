@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.187 2004/06/13 21:28:54 miguelfreitas Exp $
+ * $Id: demux_qt.c,v 1.188 2004/06/15 21:22:34 miguelfreitas Exp $
  *
  */
 
@@ -2717,11 +2717,10 @@ static int demux_qt_seek (demux_plugin_t *this_gen,
   demux_qt_t *this = (demux_qt_t *) this_gen;
   qt_trak *video_trak = NULL;
   qt_trak *audio_trak = NULL;
-
+  int64_t keyframe_pts;
+  
   start_pos = (off_t) ( (double) start_pos / 65535 *
               this->data_size );
-
-  int64_t keyframe_pts;
 
   /* short-circuit any attempts to seek in a non-seekable stream, including
    * seeking in the forward direction; this may change later */
