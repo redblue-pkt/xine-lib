@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: configfile.c,v 1.65 2004/05/07 14:38:14 mroi Exp $
+ * $Id: configfile.c,v 1.66 2004/06/19 19:54:59 mroi Exp $
  *
  * config object (was: file) management - implementation
  *
@@ -65,43 +65,43 @@ static int config_section_enum(const char *sect) {
   return i + 1;
 }
 
-static void config_key_split(const char *key, char **base, char **section, char **plugin, char **name) {
+static void config_key_split(const char *key, char **base, char **section, char **subsect, char **name) {
   char *parse;
   
   *base = strdup(key);
   if ((parse = strchr(*base, '.'))) {
     *section = *base;
-    *parse     = '\0';
+    *parse   = '\0';
     parse++;
     if ((*name = strchr(parse, '.'))) {
-      *plugin = parse;
-      **name  = '\0';
+      *subsect = parse;
+      **name   = '\0';
       (*name)++;
     } else {
-      *plugin = NULL;
-      *name   = parse;
+      *subsect = NULL;
+      *name    = parse;
     }
   } else {
     *section = NULL;
-    *plugin  = NULL;
+    *subsect = NULL;
     *name    = parse;
   }
 }
 
 static void config_insert(config_values_t *this, cfg_entry_t *new_entry) {
   cfg_entry_t *cur, *prev;
-  char *new_base, *new_section, *new_plugin, *new_name;
-  char *cur_base, *cur_section, *cur_plugin, *cur_name;
+  char *new_base, *new_section, *new_subsect, *new_name;
+  char *cur_base, *cur_section, *cur_subsect, *cur_name;
   
   /* extract parts of the new key */
-  config_key_split(new_entry->key, &new_base, &new_section, &new_plugin, &new_name);
+  config_key_split(new_entry->key, &new_base, &new_section, &new_subsect, &new_name);
   
   /* search right position */
   cur_base = NULL;
   for (cur = this->first, prev = NULL; cur; prev = cur, cur = cur->next) {
     /* extract parts of the cur key */
     free(cur_base);
-    config_key_split(cur->key, &cur_base, &cur_section, &cur_plugin, &cur_name);
+    config_key_split(cur->key, &cur_base, &cur_section, &cur_subsect, &cur_name);
     
     /* sort by section name */
     if (!new_section &&  cur_section) break;
@@ -115,11 +115,11 @@ static void config_insert(config_values_t *this, cfg_entry_t *new_entry) {
       if (cmp < 0) break;
       if (cmp > 0) continue;
     }
-    /* sort by plugin name */
-    if (!new_plugin &&  cur_plugin) break;
-    if ( new_plugin && !cur_plugin) continue;
-    if ( new_plugin &&  cur_plugin) {
-      int cmp = strcmp(new_plugin, cur_plugin);
+    /* sort by subsection name */
+    if (!new_subsect &&  cur_subsect) break;
+    if ( new_subsect && !cur_subsect) continue;
+    if ( new_subsect &&  cur_subsect) {
+      int cmp = strcmp(new_subsect, cur_subsect);
       if (cmp < 0) break;
       if (cmp > 0) continue;
     }
