@@ -48,8 +48,7 @@ lib_LTLIBRARIES = $(ogg_module) $(asf_module) $(mng_module) \
 	xineplug_dmx_real.la \
 	xineplug_dmx_realaudio.la \
 	xineplug_dmx_eawve.la \
-	xineplug_dmx_mpeg_ts.la \
-	xineplug_dmx_mng.la
+	xineplug_dmx_mpeg_ts.la 
 
 xineplug_dmx_ogg_la_SOURCES = demux_ogg.c
 xineplug_dmx_ogg_la_LIBADD = $(OGG_LIBS) $(VORBIS_LIBS) $(XINELIB)
