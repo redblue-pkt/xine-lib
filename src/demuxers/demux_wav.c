@@ -22,7 +22,7 @@
  * MS WAV File Demuxer by Mike Melanson (melanson@pcisys.net)
  * based on WAV specs that are available far and wide
  *
- * $Id: demux_wav.c,v 1.47 2003/09/01 13:19:28 jcdutton Exp $
+ * $Id: demux_wav.c,v 1.48 2003/09/17 23:57:15 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -414,10 +414,6 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
     align = PCM_BLOCK_ALIGN / this->wave->nBlockAlign;
     align = align * this->wave->nBlockAlign;
     this->wave->nBlockAlign = align;
-  } else {
-     printf("demux_wav: WAV header inconsistent, cannot play WAV file.\n");
-     free (this);
-     return NULL;
   }
 
   return &this->demux_plugin;
