@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.149 2003/04/21 06:12:23 f1rmb Exp $
+ * $Id: load_plugins.c,v 1.150 2003/05/13 18:31:16 f1rmb Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -279,7 +279,11 @@ static void collect_plugins(xine_t *this, char *path){
            * a) don't install .la files on user's system
            * b) also cache negative hits, ie. files that failed to dlopen()
 	   */
-	  if(!strstr(str, ".so") )
+#if defined(__hpux)
+	  if(!strstr(str, ".sl"))
+#else
+	  if(!strstr(str, ".so")) 
+#endif
 	    break;
 	  
 	  plugin_name = str;

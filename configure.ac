@@ -183,7 +183,7 @@ case "$host" in
   *-*-hpux11*)
     THREAD_LIBS=" -lpthread"
     THREAD_CFLAGS="-D_REENTRANT"
-    CFLAGS="$CFLAGS $THREAD_CFLAGS -DHPUX"
+    CFLAGS="$CFLAGS $THREAD_CFLAGS"
 
     ;;
 
