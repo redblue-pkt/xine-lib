@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.125 2003/06/12 18:46:24 jstembridge Exp $
+ * $Id: xine_decoder.c,v 1.126 2003/06/12 21:33:33 jstembridge Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -85,10 +85,10 @@ struct ff_video_decoder_s {
   
   int                pp_available;
   int                pp_quality;
+  int                pp_quality_changed;
   int                pp_flags;
   pp_context_t      *pp_context;
   pp_mode_t         *pp_mode;
-  pthread_mutex_t    pp_lock;
 
   /* mpeg sequence header parsing, stolen from libmpeg2 */
 
@@ -301,36 +301,47 @@ static void pp_quality_cb(void *user_data, xine_cfg_entry_t *entry) {
     ff_video_decoder_t *this  = class->ip;
     
     if(this->pp_available) {
-      pthread_mutex_lock(&this->pp_lock);
-      if(entry->num_value) {
-        if(this->pp_quality)
-          pp_free_mode(this->pp_mode);
-        else
-          this->pp_context = pp_get_context(this->context->width, 
-                                            this->context->height,
-                                            this->pp_flags);
-          
-        this->pp_mode = pp_get_mode_by_name_and_quality("hb:a,vb:a,dr:a", 
-                                                        entry->num_value);
-      } else if(this->pp_quality) {
-        pp_free_mode(this->pp_mode);
-        pp_free_context(this->pp_context);
-        
-        this->pp_mode = NULL;
-        this->pp_context = NULL;
-      }        
-      
       this->pp_quality = entry->num_value;
-      pthread_mutex_unlock(&this->pp_lock);
+      this->pp_quality_changed = 1;
     }
   }
+}
+
+static void pp_change_quality (ff_video_decoder_t *this) {
+  if(this->pp_available && this->pp_quality) {
+    if(!this->pp_context)
+      this->pp_context = pp_get_context(this->context->width, this->context->height,
+                                        this->pp_flags);
+    if(this->pp_mode)
+      pp_free_mode(this->pp_mode);
+      
+    this->pp_mode = pp_get_mode_by_name_and_quality("hb:a,vb:a,dr:a", 
+                                                    this->pp_quality);
+  } else {
+    if(this->pp_mode) {
+      pp_free_mode(this->pp_mode);
+      this->pp_mode = NULL;
+    }
+    
+    if(this->pp_context) {
+      pp_free_context(this->pp_context);
+      this->pp_context = NULL;
+    }
+  }
+  
+  this->pp_quality_changed = 0;
 }
 
 static void init_postprocess (ff_video_decoder_t *this) {
   uint32_t cpu_caps;
   xine_cfg_entry_t quality_entry;
 
-  pthread_mutex_init(&this->pp_lock, NULL);
+  /* Read quality from config */
+  if(xine_config_lookup_entry(this->class->xine, "codec.ffmpeg_pp_quality",
+                              &quality_entry))
+    this->pp_quality = quality_entry.num_value;
+  else
+    this->pp_quality = 0;
   
   /* Allow post processing on mpeg-4 (based) codecs */
   switch(this->codec->id) {
@@ -360,9 +371,8 @@ static void init_postprocess (ff_video_decoder_t *this) {
   if(cpu_caps & MM_ACCEL_X86_3DNOW)  
     this->pp_flags |= PP_CPU_CAPS_3DNOW;
    
-  if(xine_config_lookup_entry(this->class->xine, "codec.ffmpeg_pp_quality",
-     &quality_entry))
-    pp_quality_cb(this->class, &quality_entry);
+  /* Set level */
+  pp_change_quality(this);    
 }
 
 static void find_sequence_header (ff_video_decoder_t *this,
@@ -921,7 +931,9 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 	} else {
 	  img->bad_frame = 0;
 
-	  pthread_mutex_lock(&this->pp_lock);
+	  if(this->pp_quality_changed)
+	    pp_change_quality(this);
+
 	  if(this->pp_available && this->pp_quality) {
 
 	    if(this->av_frame->type == FF_BUFFER_TYPE_USER) {
@@ -953,7 +965,6 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 	  } else if(this->av_frame->type != FF_BUFFER_TYPE_USER) {
 	    ff_convert_frame(this, img);
 	  }
-	  pthread_mutex_unlock(&this->pp_lock);
 	}
       
 	img->pts      = buf->pts;
