@@ -22,7 +22,7 @@
  *
  * FFT code by Steve Haehnichen, originally licensed under GPL v1
  *
- * $Id: fftscope.c,v 1.22 2003/12/03 10:52:41 andruil Exp $
+ * $Id: fftscope.c,v 1.23 2003/12/13 23:01:45 tmmm Exp $
  *
  */
 
@@ -96,24 +96,6 @@ struct post_plugin_fftscope_s {
  *  Fade out a YUV pixel
  */
 static void fade_out_yuv(uint8_t *y, uint8_t *u, uint8_t *v, float factor) {
-#if 0
-  float r, g, b;
-
-  /* YUV -> RGB */
-  r = 1.164 * (*y - 16) + 1.596 * (*v - 128);
-  g = 1.164 * (*y - 16) - 0.813 * (*v - 128) - 0.391 * (*u - 128);
-  b = 1.164 * (*y - 16) + 2.018 * (*u - 128);
-
-  /* fade out by a 0.9 factor */
-  r *= factor;
-  g *= factor;
-  b *= factor;
-
-  /* RGB -> YUV */
-  *y = (uint8_t)((0.257 * r) + (0.504 * g) + (0.098 * b) + 16);
-  *u = (uint8_t)(-(0.148 * r) - (0.291 * g) + (0.439 * b) + 128);
-  *v = (uint8_t)((0.439 * r) - (0.368 * g) - (0.071 * b) + 128);
-#endif
 
   *y = (uint8_t)(factor * (*y - 16)) + 16;
   *u = (uint8_t)(factor * (*u - 128)) + 128;
