@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_cda.c,v 1.8 2001/12/10 10:51:53 f1rmb Exp $
+ * $Id: input_cda.c,v 1.9 2001/12/10 11:46:38 jkeil Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -39,6 +39,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <errno.h>
+#include <limits.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>
 #include <string.h>
@@ -63,6 +64,13 @@
 #define DEBUG_DISC
 #define DEBUG_POS
 */
+
+#ifndef NAME_MAX
+#define NAME_MAX 256
+#endif
+#ifndef PATH_MAX
+#define PATH_MAX 768
+#endif
 
 #if defined(__sun)
 #define CDROM	       "/vol/dev/aliases/cdrom0"
@@ -732,6 +740,7 @@ static void _cda_cbbd_grab_infos(cda_input_plugin_t *this) {
  * Return 1 if CD has been changed, 0 of not, -1 on error.
  */
 static int _cda_is_cd_changed(cdainfo_t *cda) {
+#ifdef	CDROM_MEDIA_CHANGED
   int err, cd_changed=0;
 
   if(cda == NULL || cda->fd < 0)
@@ -753,6 +762,13 @@ static int _cda_is_cd_changed(cdainfo_t *cda) {
   }
 
   return -1;
+#else
+  /*
+   * At least on solaris, CDROM_MEDIA_CHANGED does not exist. Just return an
+   * error for now 
+   */
+  return -1;
+#endif
 }
 
 /*
