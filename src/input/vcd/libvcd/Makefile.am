@@ -31,7 +31,7 @@ libvcdinfo_SRCS = \
 
 EXTRA_DIST = $(libvcd_SRCS) $(libvcdinfo_SRCS)
 
-if ENABLE_VCDX
+if ENABLE_VCD
 if HAVE_VCDNAV
 else
 noinst_LTLIBRARIES = libvcd.la libvcdinfo.la

@@ -992,18 +992,21 @@ AM_CONDITIONAL(HAVE_DVDNAV, [test x"$no_dvdnav" != "xyes"])
 
 
 dnl ---------------------------------------------
-dnl VCDx
+dnl Video CD
 dnl ---------------------------------------------
 dnl
-dnl AC_ARG_ENABLE(vcdx,[  --disable-vcdx          Do not compile VCDX plugin. Compile old VCD instead], enable_vcdx=no, enable_vcdx=yes)
+AC_ARG_ENABLE(vcd,[  --disable-vcd           Do not compile VCD plugin], [enable_vcd=no], [enable_vcd=yes])
 dnl
+
 dnl Force build of both vcd plugins, for now.
-enable_vcdx="yes"
+dnl AC_ARG_ENABLE(vcdo,[  --disable-vcdo         Do not compile old VCD plugin], enable_vcd=no)
+dnl
+enable_vcdo="yes"
 
-AC_ARG_WITH(external-vcdnav,[  --with-external-vcdnav  Use external libcdio/libvcd libraries [[not recommended]]],
-            [external_vcdnav="yes"], [no_vcdnav="yes"; external_vcdnav="no"])
+AC_ARG_WITH(internal-vcdnav,[  --with-internal-vcdnav  Use internal libcdio/libvcd libraries ],
+            [external_vcdnav="no"], [external_vcdnav="yes"])
 
-if test x"$enable_vcdx" = "xyes"; then
+if test x"$enable_vcd" = "xyes"; then
   dnl empty_array_size
   AC_MSG_CHECKING([how to create empty arrays])
 
@@ -1027,31 +1030,30 @@ if test x"$enable_vcdx" = "xyes"; then
   fi
   dnl empty_array_size
 
-  if test x"$external_vcdnav" = "xyes"; then
   external_vcdnav="no"
+  no_vcdnav="no"
 
-    if test x"$PKG_CONFIG" != "xno" ; then
-      AC_MSG_CHECKING(for libcdio)
-      if $PKG_CONFIG --atleast-version 0.61 libcdio; then
+  if test x"$PKG_CONFIG" != "xno" ; then
+    AC_MSG_CHECKING(for libcdio)
+    if $PKG_CONFIG --atleast-version 0.64 libcdio; then
+      AC_MSG_RESULT(found)
+      LIBCDIO_CFLAGS=`$PKG_CONFIG --cflags libcdio`
+      LIBCDIO_LIBS=`$PKG_CONFIG --libs libcdio`
+
+      AC_MSG_CHECKING(for libvcdinfo)
+      if $PKG_CONFIG --atleast-version 0.7.19-cdio libvcdinfo; then
         AC_MSG_RESULT(found)
-        LIBCDIO_CFLAGS=`$PKG_CONFIG --cflags libcdio`
-        LIBCDIO_LIBS=`$PKG_CONFIG --libs libcdio`
-
-        AC_MSG_CHECKING(for libvcdinfo)
-        if $PKG_CONFIG --atleast-version 0.7.17-cdio libvcdinfo; then
-          AC_MSG_RESULT(found)
-          LIBVCDINFO_CFLAGS=`$PKG_CONFIG --cflags libvcdinfo`
-          LIBVCDINFO_LIBS=`$PKG_CONFIG --libs libvcdinfo`
+        LIBVCDINFO_CFLAGS=`$PKG_CONFIG --cflags libvcdinfo`
+        LIBVCDINFO_LIBS=`$PKG_CONFIG --libs libvcdinfo`
 	  AC_DEFINE(HAVE_VCDNAV,1,[Define this if you have a suitable version of libcdio/libvcd])
-          external_vcdnav="yes"
-          no_vcdnav="no"
-        else
-          AC_MSG_RESULT([Use included VCDNAV support])
-        fi
-
+        external_vcdnav="yes"
+        no_vcdnav="no"
       else
-        AC_MSG_RESULT([Use included VCDNAV support])
+        AC_MSG_RESULT([Use included libcdio/libvcdinfo support])
       fi
+
+    else
+      AC_MSG_RESULT([Use included libcdio/libvcdinfo support])
     fi
   fi
 
@@ -1205,7 +1207,7 @@ AC_SUBST(LIBVCD_CFLAGS)
 AC_SUBST(LIBVCD_LIBS)
 AC_SUBST(LIBVCDINFO_LIBS)
 AM_CONDITIONAL(HAVE_VCDNAV, [test x"$no_vcdnav" != "xyes"])
-AM_CONDITIONAL(ENABLE_VCDX, [test x"$enable_vcdx" = "xyes"])
+AM_CONDITIONAL(ENABLE_VCD, [test x"$enable_vcd" = "xyes"])
 
 
 dnl ---------------------------------------------
@@ -1914,7 +1916,7 @@ if test x"$have_cdrom_ioctls" = "xyes"; then
   else
     echo "   - dvd (internal libs)"
   fi
-  if test x"$enable_vcdx" = "xyes"; then
+  if test x"$enable_vcd" = "xyes"; then
     if test x"$external_vcdnav" = "xyes"; then
       echo "   - vcd (external libs)"
     else

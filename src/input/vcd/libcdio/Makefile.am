@@ -29,7 +29,7 @@ libiso9660_SRCS = \
 
 EXTRA_DIST = $(libcdio_SRCS) $(libiso9660_SRCS)
 
-if ENABLE_VCDX
+if ENABLE_VCD
 if HAVE_VCDNAV
 else
 noinst_LTLIBRARIES = libcdio.la libiso9660.la
