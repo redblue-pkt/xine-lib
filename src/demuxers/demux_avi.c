@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_avi.c,v 1.119 2002/10/19 18:37:03 guenter Exp $
+ * $Id: demux_avi.c,v 1.120 2002/10/19 19:47:27 guenter Exp $
  *
  * demultiplexer for avi streams
  *
@@ -1262,21 +1262,14 @@ static void demux_avi_send_headers (demux_plugin_t *this_gen) {
   this->stream->stream_info[XINE_STREAM_INFO_HAS_AUDIO] = !this->no_audio;
 
   /*
-   * send start buffers
-   */
-  if (!this->thread_running) {
-    xine_demux_control_start (this->stream);
-  } else {
-    xine_demux_flush_engine (this->stream);
-  }
-
-  /*
-   * send header buffers 
+   * send start/header buffers 
    */
 
   if (!this->thread_running)  {
 
     buf_element_t  *buf;
+
+    xine_demux_control_start (this->stream);
 
     buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
     buf->decoder_flags = BUF_FLAG_HEADER;
@@ -1482,6 +1475,9 @@ static int demux_avi_start (demux_plugin_t *this_gen,
       }
     }
   }
+
+  if (this->thread_running) 
+    xine_demux_flush_engine (this->stream);
 
   if (this->status == DEMUX_OK)
     xine_demux_control_newpts (this->stream, video_pts, BUF_FLAG_SEEK);
