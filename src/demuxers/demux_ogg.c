@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ogg.c,v 1.71 2003/04/12 04:30:45 heinchen Exp $
+ * $Id: demux_ogg.c,v 1.72 2003/04/12 12:02:56 jstembridge Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -379,6 +379,8 @@ static void demux_ogg_send_header (demux_ogg_t *this) {
 
   int        done = 0;
 
+  int        filelength,position,i;
+ 
   ogg_packet op;
   
 #ifdef LOG
@@ -814,7 +816,6 @@ static void demux_ogg_send_header (demux_ogg_t *this) {
     }
   }
 
-  int filelength,position,i;
   this->time_length=-1;
 
   if (this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) {
