@@ -48,7 +48,7 @@ void xine_set_stream_info(xine_stream_t *stream, int info, int value);
  *  *str           null-terminated string
  *
  */
-void xine_set_meta_info(xine_stream_t *stream, int info, char *str);
+void xine_set_meta_info(xine_stream_t *stream, int info, const char *str);
 
 /*
  * set a stream meta info
@@ -60,6 +60,6 @@ void xine_set_meta_info(xine_stream_t *stream, int info, char *str);
  *   len           length of the metainfo
  *
  */
-void xine_set_meta_info2(xine_stream_t *stream, int info, char *buf, int len);
+void xine_set_metan_info(xine_stream_t *stream, int info, const char *buf, int len);
 
 #endif /* INFO_HELPER_H */

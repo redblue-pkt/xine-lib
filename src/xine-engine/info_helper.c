@@ -45,27 +45,53 @@ static void chomp (char *str) {
   }
 }
 
+static int info_valid(int info) {
+  if ((info >= 0) && (info < XINE_STREAM_INFO_MAX)) {
+    return 1;
+  } else {
+    fprintf(stderr, "Error: invalid STREAM_INFO %d. Ignored.\n", info);
+    return 0;
+  }
+}
+
+static int meta_valid(int info) {
+  if ((info >= 0) && (info < XINE_STREAM_INFO_MAX)) {
+    return 1;
+  } else {
+    fprintf(stderr, "Error: invalid META_INFO %d. Ignored.\n", info);
+    return 0;
+  }
+}
+
 void xine_set_stream_info(xine_stream_t *stream, int info, int value) {
-  stream->stream_info [info] = value;
+  if(info_valid(info))
+    stream->stream_info [info] = value;
 }
 
-void xine_set_meta_info(xine_stream_t *stream, int info, char *str) {
-  if (stream->meta_info [info])
-    free(stream->meta_info [info]);
-  stream->meta_info [info] = strdup(str);
-  chomp(stream->meta_info [info]);
+void xine_set_meta_info(xine_stream_t *stream, int info, const char *str) {
+  if(meta_valid(info)) {
+    if (stream->meta_info [info])
+      free(stream->meta_info [info]);
+    stream->meta_info [info] = strdup(str);
+    chomp(stream->meta_info [info]);
+  }
 }
 
-void xine_set_meta_info2(xine_stream_t *stream, int info, char *buf, int len) {
-  char *tmp;
-
-  if (stream->meta_info [info])
-    free(stream->meta_info [info]);
-
-  tmp = malloc(len + 1);
-  xine_fast_memcpy(tmp, buf, len);
-  tmp[len] = '\0';
-
-  stream->meta_info [info] = tmp;
-  chomp(stream->meta_info [info]);
+void xine_set_metan_info(xine_stream_t *stream, int info, const char *buf,
+                         int len) {
+  if(meta_valid(info)) {
+    char *tmp;
+    
+    if (stream->meta_info [info])
+      free(stream->meta_info [info]);
+    
+    if(len) {
+      tmp = malloc(len + 1);
+      xine_fast_memcpy(tmp, buf, len);
+      tmp[len] = '\0';
+      
+      stream->meta_info [info] = tmp;
+      chomp(stream->meta_info [info]);
+    }
+  }
 }
