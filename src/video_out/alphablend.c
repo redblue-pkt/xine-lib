@@ -141,7 +141,6 @@ void blend_rgb16 (uint8_t * img, vo_overlay_t * img_overl,
   rle_elem_t *rle_limit = rle + img_overl->num_rle;
   int x, y, x1_scaled, x2_scaled;
   int dy, dy_step, x_scale;     /* scaled 2**SCALE_SHIFT */
-  int dst_y;
   int clip_right;
   uint16_t *img_pix;
   int rlelen;
@@ -187,7 +186,10 @@ void blend_rgb16 (uint8_t * img, vo_overlay_t * img_overl,
   img_offset = ( ( (img_overl->y * img_height) / dst_height) * img_width) 
              + ( (img_overl->x * img_width) / dst_width);
 #ifdef LOG_BLEND_RGB16
-  printf("blend_rgb16: x=%i, y=%i, img_offset=%lf\n", img_overl->x, img_overl->y, img_offset);
+  printf("blend_rgb16: x=%i, y=%i, w=%i, h=%i, img_offset=%lf\n", img_overl->x, img_overl->y,
+    img_overl->width,
+    img_overl->height,
+    img_offset);
 #endif
   img_pix = (uint16_t *) img + (int)img_offset;
 /* 
@@ -210,7 +212,6 @@ void blend_rgb16 (uint8_t * img, vo_overlay_t * img_overl,
   clr_next = rle->color;
   rle++;
   y = dy = 0;
-  dst_y = 0;
   x = x1_scaled = x2_scaled = 0;
 
 #ifdef LOG_BLEND_RGB16
@@ -231,7 +232,11 @@ void blend_rgb16 (uint8_t * img, vo_overlay_t * img_overl,
         break;
       }
 #ifdef LOG_BLEND_RGB16
-      printf("blend_rgb16: Button clip area found\n");
+      printf("blend_rgb16: Button clip area found. (%d,%d) .. (%d,%d)\n",
+        img_overl->clip_left,
+        img_overl->clip_top,
+        img_overl->clip_right,
+        img_overl->clip_bottom);
 #endif
       if (y < img_overl->clip_top) {
         zone_state = 1;
@@ -290,6 +295,10 @@ void blend_rgb16 (uint8_t * img, vo_overlay_t * img_overl,
       }
       if (y >= img_overl->clip_top) {
         zone_state = 2;
+#ifdef LOG_BLEND_RGB16
+        printf("blend_rgb16: Button clip top reached. y=%i, top=%i\n",
+                y, img_overl->clip_top);
+#endif
         if (x >= img_overl->clip_left) {
           zone_state = 3;
           if (x >= img_overl->clip_right) {
@@ -489,7 +498,6 @@ void blend_rgb16 (uint8_t * img, vo_overlay_t * img_overl,
       if (x >= src_width ) { 
         x -= src_width;
         img_pix += img_width;
-        dst_y++;
         dy += dy_step;
         if (dy >= INT_TO_SCALED(1)) {
           dy -= INT_TO_SCALED(1);
