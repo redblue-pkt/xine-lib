@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.h,v 1.2 2001/04/18 23:48:29 guenter Exp $
+ * $Id: video_out.h,v 1.3 2001/04/19 09:46:57 f1rmb Exp $
  *
  *
  * xine version of video_out.h 
@@ -25,7 +25,6 @@
  */
 
 #ifndef HAVE_VIDEO_OUT_H
-
 #define HAVE_VIDEO_OUT_H
 
 #ifdef HAVE_CONFIG_H

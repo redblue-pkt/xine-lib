@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_vcd.c,v 1.1 2001/04/18 22:34:05 f1rmb Exp $
+ * $Id: input_vcd.c,v 1.2 2001/04/19 09:46:57 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -41,7 +41,7 @@
 #error "you need to add cdrom / VCD support for your platform to input_vcd"
 #endif
 
-#include "xine.h"
+#include "xine_internal.h"
 #include "monitor.h"
 #include "input_plugin.h"
 

@@ -17,14 +17,14 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux.h,v 1.1 2001/04/18 22:33:54 f1rmb Exp $
+ * $Id: demux.h,v 1.2 2001/04/19 09:46:57 f1rmb Exp $
  */
 
 #ifndef HAVE_DEMUX_H
 #define HAVE_DEMUX_H
 
 #include "buffer.h"
-#include "xine.h"
+#include "xine_internal.h"
 #if defined(XINE_COMPILE)
 #include "input/input_plugin.h"
 #else

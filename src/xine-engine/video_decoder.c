@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.1 2001/04/18 22:36:04 f1rmb Exp $
+ * $Id: video_decoder.c,v 1.2 2001/04/19 09:46:57 f1rmb Exp $
  *
  */
 
@@ -25,7 +25,6 @@
 #include "config.h"
 #endif
 
-#include "xine.h"
 #include "xine_internal.h"
 #include "video_out/video_out.h"
 #include "video_decoder.h"

@@ -36,7 +36,7 @@
 #include <errno.h>
 #include <sys/time.h>
 
-#include "xine.h"
+#include "xine_internal.h"
 #include "monitor.h"
 #include "input_plugin.h"
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.1 2001/04/18 22:36:09 f1rmb Exp $
+ * $Id: xine_internal.h,v 1.2 2001/04/19 09:46:57 f1rmb Exp $
  *
  */
 
@@ -25,7 +25,6 @@
 #define HAVE_XINE_INTERNAL_H
 
 #include <inttypes.h>
-#include "xine.h"
 #include "input/input_plugin.h"
 #include "demuxers/demux.h"
 #include "video_out.h"
@@ -34,6 +33,18 @@
 
 #define INPUT_PLUGIN_MAX   50
 #define DEMUXER_PLUGIN_MAX 50
+
+/* nStatus : current xine status */
+typedef void (*gui_status_callback_func_t)(int nStatus);
+
+/*
+ * player status constants:
+ */
+
+#define XINE_STOP      0 
+#define XINE_PLAY      1 
+#define XINE_PAUSE     2 
+#define XINE_QUIT      3
 
 typedef struct xine_s {
   

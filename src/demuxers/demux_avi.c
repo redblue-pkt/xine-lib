@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_avi.c,v 1.1 2001/04/18 22:33:55 f1rmb Exp $
+ * $Id: demux_avi.c,v 1.2 2001/04/19 09:46:57 f1rmb Exp $
  *
  * demultiplexer for avi streams
  *
@@ -37,7 +37,7 @@
 #include <string.h>
 #include <stdlib.h>
 
-#include "xine.h"
+#include "xine_internal.h"
 #include "monitor.h"
 #include "demux.h"
 #include "utils.h"

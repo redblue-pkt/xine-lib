@@ -83,7 +83,7 @@ dnl
       AC_LANG_C()
       rm -f conf.xinetest
       AC_TRY_RUN([
-#include <xine/xine.h>
+#include <xine.h>
 #include <stdio.h>
 #include <stdlib.h>
 

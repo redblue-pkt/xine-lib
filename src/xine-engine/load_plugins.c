@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.1 2001/04/18 22:36:09 f1rmb Exp $
+ * $Id: load_plugins.c,v 1.2 2001/04/19 09:46:57 f1rmb Exp $
  *
  *
  * Load input/demux/audio_out/video_out plugins
@@ -34,7 +34,6 @@
 #include <dirent.h>
 #include <dlfcn.h>
 
-#include "xine.h"
 #include "xine_internal.h"
 #include "demuxers/demux.h"
 #include "input/input_plugin.h"

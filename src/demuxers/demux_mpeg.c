@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg.c,v 1.1 2001/04/18 22:33:58 f1rmb Exp $
+ * $Id: demux_mpeg.c,v 1.2 2001/04/19 09:46:57 f1rmb Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  * reads streams of variable blocksizes
@@ -37,7 +37,7 @@
 #include <string.h>
 
 #include "monitor.h"
-#include "xine.h"
+#include "xine_internal.h"
 #include "demux.h"
 #include "utils.h"
 

@@ -23,7 +23,7 @@
 
 #include "spudec.h"
 
-#include "xine.h"
+#include "xine_internal.h"
 #include "utils.h"
 #include "metronom.h"
 
