@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2000-2002 the xine project
+ * Copyright (C) 2000-2003 the xine project
  * 
  * This file is part of xine, a free video player.
  * 
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ogg.c,v 1.64 2003/01/31 14:06:09 miguelfreitas Exp $
+ * $Id: demux_ogg.c,v 1.65 2003/02/01 18:57:33 guenter Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -166,7 +166,8 @@ static void check_newpts (demux_ogg_t *this, int64_t pts, int video, int preview
   if (!preview && pts &&
       (this->send_newpts || (this->last_pts[video] && abs(diff)>WRAP_THRESHOLD) ) ) {
 
-    printf ("demux_ogg: diff=%lld\n", diff);
+    printf ("demux_ogg: diff=%lld (pts=%lld, last_pts=%lld)\n", 
+	    diff, pts, this->last_pts[video]);
 
     if (this->buf_flag_seek) {
       xine_demux_control_newpts(this->stream, pts, BUF_FLAG_SEEK);
@@ -291,7 +292,7 @@ static void send_ogg_buf (demux_ogg_t *this,
       if (op->granulepos>0) {
 	buf->pts  = op->granulepos * this->frame_duration;  
 
-	check_newpts( this, buf->pts, PTS_AUDIO, decoder_flags );
+	check_newpts( this, buf->pts, PTS_VIDEO, decoder_flags );
 
       } else
 	buf->pts  = 0;
@@ -878,7 +879,7 @@ static void demux_ogg_send_headers (demux_plugin_t *this_gen) {
 }
 
 static int demux_ogg_seek (demux_plugin_t *this_gen,
-			    off_t start_pos, int start_time) {
+			   off_t start_pos, int start_time) {
 
   demux_ogg_t *this = (demux_ogg_t *) this_gen;
   
@@ -892,7 +893,7 @@ static int demux_ogg_seek (demux_plugin_t *this_gen,
     if ( (!start_pos) && (start_time)) {
       start_pos = start_time * this->avg_bitrate/8;
 #ifdef LOG
-      printf ("demux_ogg: seeking to %lld seconds => %d bytes\n",
+      printf ("demux_ogg: seeking to %d seconds => %lld bytes\n",
 	      start_time, start_pos);
 #endif
     }
