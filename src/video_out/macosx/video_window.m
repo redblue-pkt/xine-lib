@@ -23,11 +23,12 @@
  * Thanks for the good research!
  */
 
+#include <Cocoa/Cocoa.h>
 #include <OpenGL/OpenGL.h>
 #include <OpenGL/gl.h>
 #include <OpenGL/glext.h>
 
-#import "video_window.h"
+#include "video_window.h"
 
 NSString *XineViewDidResizeNotification = @"XineViewDidResizeNotification";
 
@@ -173,9 +174,9 @@ NSString *XineViewDidResizeNotification = @"XineViewDidResizeNotification";
 
 - (void) displayTexture {
     if ([self lockFocusIfCanDraw]) {
-    [self drawRect: [self bounds]];
-    [self reloadTexture];
-    [self unlockFocus];
+        [self drawRect: [self bounds]];
+        [self reloadTexture];
+        [self unlockFocus];
     }
 }
 
@@ -215,6 +216,7 @@ NSString *XineViewDidResizeNotification = @"XineViewDidResizeNotification";
     video_width    = frame.size.width;
     video_height   = frame.size.height;
     texture_buffer = nil;
+    mutex          = [[NSLock alloc] init];
 
     [self initTextures];
 
@@ -254,6 +256,8 @@ NSString *XineViewDidResizeNotification = @"XineViewDidResizeNotification";
         currentContext = nil;
     }
 
+    [mutex dealloc];
+
     // Enabling the [super dealloc] below (which should be correct behaviour)
     // crashes -- not sure why ...
     //
@@ -263,13 +267,19 @@ NSString *XineViewDidResizeNotification = @"XineViewDidResizeNotification";
 }
 
 - (void) reshape {
-    if (!initDone)
+    [mutex lock];
+
+    if (!initDone) {
+        [mutex unlock];
         return;
+    }
    
     [currentContext makeCurrentContext];
 
     NSRect bounds = [self bounds];
     glViewport (0, 0, bounds.size.width, bounds.size.height);
+
+    [mutex unlock];
 }
 
 - (void) setNormalSize {
@@ -310,6 +320,8 @@ NSString *XineViewDidResizeNotification = @"XineViewDidResizeNotification";
 
 
 - (void) initTextures {
+    [mutex lock];
+
     [currentContext makeCurrentContext];
 
     /* Free previous texture if any */
@@ -355,18 +367,23 @@ NSString *XineViewDidResizeNotification = @"XineViewDidResizeNotification";
             GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri (GL_TEXTURE_RECTANGLE_EXT,
             GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-			
+            
     glTexImage2D (GL_TEXTURE_RECTANGLE_EXT, 0, GL_RGBA,
             video_width, video_height, 0,
             GL_YCBCR_422_APPLE, GL_UNSIGNED_SHORT_8_8_APPLE,
             texture_buffer);
 
     initDone = YES;
+    [mutex unlock];
 }
 
 - (void) reloadTexture {
-    if (!initDone)
+    [mutex lock];
+
+    if (!initDone) {
+        [mutex unlock];
         return;
+    }
     
     [currentContext makeCurrentContext];
 
@@ -380,6 +397,8 @@ NSString *XineViewDidResizeNotification = @"XineViewDidResizeNotification";
             video_width, video_height,
             GL_YCBCR_422_APPLE, GL_UNSIGNED_SHORT_8_8_APPLE,
             texture_buffer);
+
+    [mutex unlock];
 }
 
 - (void) calcFullScreenAspect {
@@ -425,7 +444,8 @@ NSString *XineViewDidResizeNotification = @"XineViewDidResizeNotification";
 }
 
 - (void) goFullScreen: (XineVideoWindowFullScreenMode) mode {
-
+    [mutex lock];
+    
     /* Create the new pixel format */
     NSOpenGLPixelFormatAttribute attribs[] = {
         NSOpenGLPFAAccelerated,
@@ -463,6 +483,7 @@ NSString *XineViewDidResizeNotification = @"XineViewDidResizeNotification";
     }
     [fullScreenContext setFullScreen];
     [fullScreenContext makeCurrentContext];
+    [mutex unlock];
 
     fullscreen_mode = mode;
 
@@ -477,6 +498,7 @@ NSString *XineViewDidResizeNotification = @"XineViewDidResizeNotification";
 
 - (void) exitFullScreen {
     initDone = NO;
+    
     currentContext = [self openGLContext];
     
     /* Free current OpenGL context */
@@ -518,7 +540,7 @@ NSString *XineViewDidResizeNotification = @"XineViewDidResizeNotification";
 - (void) drawRect: (NSRect) rect {
     [currentContext makeCurrentContext];
     
-	if (!initDone) {
+    if (!initDone || ![mutex tryLock]) {
         [currentContext flushBuffer];
         return;
     }
@@ -538,6 +560,8 @@ NSString *XineViewDidResizeNotification = @"XineViewDidResizeNotification";
 
     /* Wait for the job to be done */
     [currentContext flushBuffer];
+
+    [mutex unlock];
 }
 
 - (char *) getTextureBuffer {
@@ -560,10 +584,12 @@ NSString *XineViewDidResizeNotification = @"XineViewDidResizeNotification";
 
     NSValue *sizeWrapper = [NSValue valueWithBytes:&size
                                           objCType:@encode(NSSize)];
-                                  
+    
+    [mutex lock];
     [self performSelectorOnMainThread:@selector(setViewSize:)
                            withObject:sizeWrapper
-		        waitUntilDone:NO];
+                           waitUntilDone:NO];
+    [mutex unlock];
 
     [pool release];
 }

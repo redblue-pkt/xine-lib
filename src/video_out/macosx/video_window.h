@@ -22,8 +22,6 @@
 #ifndef HAVE_VIDEO_WINDOW_H
 #define HAVE_VIDEO_WINDOW_H
 
-#import <Cocoa/Cocoa.h>
-
 typedef enum {
     XINE_FULLSCREEN_OVERSCAN,
     XINE_FULLSCREEN_CROP
@@ -33,13 +31,14 @@ typedef enum {
 @interface XineOpenGLView : NSOpenGLView {
     IBOutlet id                    delegate;
     int                            video_width, video_height;
-    char *                         texture_buffer;
+    char                          *texture_buffer;
     unsigned long                  i_texture;
     BOOL                           initDone;
     BOOL                           isFullScreen;
     XineVideoWindowFullScreenMode  fullscreen_mode;
-    NSOpenGLContext *              fullScreenContext;
-    NSOpenGLContext *              currentContext;
+    NSOpenGLContext               *fullScreenContext;
+    NSOpenGLContext               *currentContext;
+	NSLock                        *mutex;
 }
 
 - (void) displayTexture;
