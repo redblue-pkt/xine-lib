@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_pes.c,v 1.21 2004/04/22 21:30:10 miguelfreitas Exp $
+ * $Id: demux_mpeg_pes.c,v 1.22 2004/05/14 02:12:48 jcdutton Exp $
  *
  * demultiplexer for mpeg 2 PES (Packetized Elementary Streams)
  * reads streams of variable blocksizes
@@ -881,6 +881,8 @@ static int32_t parse_private_stream_1(demux_mpeg_pes_t *this, uint8_t *p, buf_el
       return this->packet_len + result;
 
     } else if((p[0]==0x0b) && (p[1]==0x77)) {
+      int offset;
+      int size;
 
       /*
        * A52/AC3 streams in some DVB-S recordings made with VDR. 
@@ -895,20 +897,54 @@ static int32_t parse_private_stream_1(demux_mpeg_pes_t *this, uint8_t *p, buf_el
       buf->decoder_info[2] = 0; /* First access unit pointer */
 
       buf->content   = p;
-      buf->size      = this->packet_len;
+      size = this->packet_len - result;
+      if ((size+result) > (buf->max_size) ) {
+        size = buf->max_size - result;
+      }
+      buf->size      = size;
       buf->type      = BUF_AUDIO_A52;
       buf->pts       = this->pts;
       if( !this->preview_mode )
         check_newpts( this, this->pts, PTS_AUDIO );
 
       if(this->audio_fifo) {
-	this->audio_fifo->put (this->audio_fifo, buf);
+        this->audio_fifo->put (this->audio_fifo, buf);
         lprintf ("A52 PACK put on fifo\n");
       } else {
-	buf->free_buffer(buf);
+        buf->free_buffer(buf);
       }
+      if (this->packet_len <= (buf->max_size - 6)) {
+        return this->packet_len + result;
+      }	
+      /* Handle Jumbo A52 frames from VDR. */
+      offset = size;
+      while (offset < this->packet_len) {
+        int i;
+        buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
+        size = this->packet_len - offset;
+        if (size > (buf->max_size)) size = buf->max_size;
+        offset+=size;
+        i = this->input->read (this->input, buf->mem, (off_t) (size));
+        if (i != size) {
+          buf->free_buffer(buf);
+          return this->packet_len + result;
+        }
+        buf->content   = buf->mem;
+        buf->size      = size;
+        buf->type      = BUF_AUDIO_A52;
+        buf->pts       = 0;
+
+        if(this->audio_fifo) {
+	  this->audio_fifo->put (this->audio_fifo, buf);
+          lprintf ("A52 PACK put on fifo\n");
+        } else {
+	  buf->free_buffer(buf);
+        } 
+      }
+
       return this->packet_len + result;
     }
+
       
 
 
