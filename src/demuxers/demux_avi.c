@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_avi.c,v 1.162 2003/07/12 18:42:44 tmattern Exp $
+ * $Id: demux_avi.c,v 1.163 2003/07/14 18:49:13 tmattern Exp $
  *
  * demultiplexer for avi streams
  *
@@ -324,26 +324,31 @@ static void long2str(unsigned char *dst, int n)
 static int64_t get_audio_pts (demux_avi_t *this, int track, long posc,
 			      off_t postot, long posb) {
 
-  if (this->avi->audio[track]->dwSampleSize==0) {
+  avi_audio_t *at = this->avi->audio[track];
+                                
+#ifdef LOG
+  printf("demux_avi: get_audio_pts: track=%d, posc=%ld, postot=%lld, posb=%ld\n", 
+         track, posc, postot, posb);
+#endif
+  if (at->dwSampleSize==0) {
     /* variable bitrate */
-    return (int64_t) posc * (double) this->avi->audio[track]->dwScale_audio /
-      this->avi->audio[track]->dwRate_audio * 90000.0;
+    return (int64_t)(90000.0 * (double)posc * 
+      (double)at->dwScale_audio / (double)at->dwRate_audio);
   } else {
     /* constant bitrate */
-    if( this->avi->audio[track]->wavex && this->avi->audio[track]->wavex->nBlockAlign )
-      return (postot+posb)/
-        this->avi->audio[track]->wavex->nBlockAlign * (double) this->avi->audio[track]->dwScale_audio /
-        this->avi->audio[track]->dwRate_audio * 90000.0;
-    else
-      return (postot+posb)/
-        this->avi->audio[track]->dwSampleSize * (double) this->avi->audio[track]->dwScale_audio /
-        this->avi->audio[track]->dwRate_audio * 90000.0;
+    if( at->wavex && at->wavex->nBlockAlign ) {
+      return (int64_t)((double)(postot + posb) / (double)at->wavex->nBlockAlign *
+       (double)at->dwScale_audio / (double)at->dwRate_audio * 90000.0);
+    } else {
+      return (int64_t)((double)(postot + posb) / (double)at->dwSampleSize *
+       (double)at->dwScale_audio / (double)at->dwRate_audio * 90000.0);
+    }
   }
 }
 
 static int64_t get_video_pts (demux_avi_t *this, long pos) {
-  return (int64_t) pos * (double) this->avi->dwScale /
-      this->avi->dwRate * 90000.0;
+  return (int64_t)(90000.0 * (double)pos *
+    (double)this->avi->dwScale / (double)this->avi->dwRate);
 }
 
 /* Some handy stopper tests for idx_grow, below. */
