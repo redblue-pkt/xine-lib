@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.c,v 1.87 2002/06/29 14:32:36 tmattern Exp $
+ * $Id: metronom.c,v 1.88 2002/08/27 07:10:13 jcdutton Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -259,21 +259,26 @@ static void metronom_set_audio_rate (metronom_t *this, int64_t pts_per_smpls) {
 }
 
 static int64_t metronom_got_spu_packet (metronom_t *this, int64_t pts) {
-  int64_t vpts;
-  
+  int64_t vpts, video_vpts, vpts_old, vpts_new;
+
   pthread_mutex_lock (&this->lock);
-  
+  vpts_old = pts + this->vpts_offset;
+  vpts_new = pts + this->next_vpts_offset;
+  video_vpts = this->video_vpts;
+
   if (pts >= 0 ) {
-    if ( !this->in_discontinuity ) {
-      vpts = pts + this->vpts_offset;
-    } else {
-      vpts = 0;
-    }
+      if ( abs(vpts_old - video_vpts) > abs(vpts_new - video_vpts) ) {
+        vpts = vpts_new;
+      } else {
+        vpts=vpts_old;
+      }
+      /* printf ("metronom: WARNING:got_spu_packet: vpts=%lld, old offset=%lld, new offset=%lld, video_vpts=%lld\n", vpts, vpts_old, vpts_new, video_vpts); */
   } else {
     /* pts < 0 */
     vpts = this->vpts_offset;
+    /* printf ("metronom: WARNING:got_spu_packet: vpts_offset=%lld\n", vpts); */
   }
-  
+
   pthread_mutex_unlock (&this->lock);
   return vpts;
 }
