@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_oss_out.c,v 1.85 2003/02/01 14:33:06 guenter Exp $
+ * $Id: audio_oss_out.c,v 1.86 2003/02/08 15:14:45 miguelfreitas Exp $
  *
  * 20-8-2001 First implementation of Audio sync and Audio driver separation.
  * Copyright (C) 2001 James Courtier-Dutton James@superbug.demon.co.uk
@@ -126,7 +126,8 @@ typedef struct oss_driver_s {
   uint32_t	   bits_per_sample;
   uint32_t	   bytes_per_frame;
   uint32_t         bytes_in_buffer;      /* number of bytes writen to audio hardware   */
-  
+  uint32_t         last_getoptr;
+    
   int              audio_started;
   int              sync_method;
   int              latency;
@@ -179,6 +180,7 @@ static int ao_oss_open(ao_driver_t *this_gen,
   this->input_sample_rate      = rate;
   this->bits_per_sample        = bits;
   this->bytes_in_buffer        = 0;
+  this->last_getoptr           = 0;
   this->audio_started          = 0;
 
   /*
@@ -397,10 +399,17 @@ static int ao_oss_delay(ao_driver_t *this_gen) {
     printf ("audio_oss_out: %d bytes output\n", info.bytes);
 #endif
 
+    if (this->bytes_in_buffer < info.bytes) {
+      this->bytes_in_buffer -= this->last_getoptr; /* GETOPTR wrapped */
+    }    
+    
     bytes_left = this->bytes_in_buffer - info.bytes; /* calc delay */
-      
-    if (bytes_left<=0) /* buffer ran dry */
+            
+    if (bytes_left<=0) { /* buffer ran dry */
       bytes_left = 0;
+      this->bytes_in_buffer = info.bytes;
+    }
+    this->last_getoptr = info.bytes;
     break;
   case OSS_SYNC_GETODELAY:
     if (ioctl (this->audio_fd, SNDCTL_DSP_GETODELAY, &bytes_left)) {
@@ -628,10 +637,12 @@ static int ao_oss_ctrl(ao_driver_t *this_gen, int cmd, ...) {
 #endif
     if (this->sync_method != OSS_SYNC_SOFTSYNC)
       ioctl(this->audio_fd, SNDCTL_DSP_RESET, NULL);
-    /*  Uncomment the following lines if RESET causes problems
-     *  ao_oss_close(this_gen);
-     *  ao_oss_open(this_gen, this->bits_per_sample, this->input_sample_rate, this->mode);
-     */
+    
+    /* close/reopen if RESET causes problems */
+    if (this->sync_method == OSS_SYNC_GETOPTR) {
+      ao_oss_close(this_gen);
+      ao_oss_open(this_gen, this->bits_per_sample, this->input_sample_rate, this->mode);
+    }
     break;
 
   case AO_CTRL_PLAY_RESUME:
@@ -646,6 +657,11 @@ static int ao_oss_ctrl(ao_driver_t *this_gen, int cmd, ...) {
 #endif
     if (this->sync_method != OSS_SYNC_SOFTSYNC)
       ioctl(this->audio_fd, SNDCTL_DSP_RESET, NULL);
+    
+    if (this->sync_method == OSS_SYNC_GETOPTR) {
+      ao_oss_close(this_gen);
+      ao_oss_open(this_gen, this->bits_per_sample, this->input_sample_rate, this->mode);
+    }
 #ifdef LOG
     printf ("audio_oss_out: AO_CTRL_FLUSH_BUFFERS done\n");
 #endif
