@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xshm.c,v 1.98 2002/12/07 23:00:09 f1rmb Exp $
+ * $Id: video_out_xshm.c,v 1.99 2002/12/20 14:25:13 jkeil Exp $
  * 
  * video_out_xshm.c, X11 shared memory extension interface for xine
  *
@@ -465,7 +465,8 @@ static void xshm_update_frame_format (vo_driver_t *this_gen,
       || (ratio_code != frame->sc.delivered_ratio_code)
       || (flags != frame->flags)
       || (format != frame->format)
-      || (this->sc.user_ratio != frame->sc.user_ratio)) {
+      || (this->sc.user_ratio != frame->sc.user_ratio)
+      || (this->sc.gui_pixel_aspect != frame->sc.gui_pixel_aspect)) {
 
     do_adapt = 1;
 
@@ -479,6 +480,7 @@ static void xshm_update_frame_format (vo_driver_t *this_gen,
     frame->flags                   = flags;
     frame->format                  = format;
     frame->sc.user_ratio           = this->sc.user_ratio;
+    frame->sc.gui_pixel_aspect     = this->sc.gui_pixel_aspect;
 
     xshm_compute_ideal_size (this, frame);
   }
