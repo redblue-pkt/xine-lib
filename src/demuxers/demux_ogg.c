@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ogg.c,v 1.94 2003/05/04 18:01:22 heinchen Exp $
+ * $Id: demux_ogg.c,v 1.95 2003/05/04 21:45:45 heinchen Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -97,6 +97,7 @@ typedef struct demux_ogg_s {
   int64_t               factor[MAX_STREAMS];
   int64_t               quotient[MAX_STREAMS];
   int                   resync[MAX_STREAMS];
+  char                  *language[MAX_STREAMS];
 
   int64_t               start_pts;
 
@@ -474,9 +475,30 @@ static void send_ogg_buf (demux_ogg_t *this,
       printf ("demux_ogg: Textstream-header-packet\n");
 #endif
     } else if (op->packet[0] == PACKET_TYPE_COMMENT ) {
+
+      char *comment;
+
 #ifdef LOG
       printf ("demux_ogg: Textstream-comment-packet\n");
 #endif
+
+      vorbis_comment vc;
+      vorbis_comment_init(&vc);
+      vorbis_info       vi;
+      vorbis_info_init(&vi);
+
+      /*make libvorbis think, this vi is initialized*/
+      vi.rate=1;
+
+      if ( vorbis_synthesis_headerin(&vi, &vc, op) >= 0) {
+	comment=*vc.user_comments;
+	if ( !strncasecmp ("LANGUAGE=", comment,8) ) {
+	  this->language[stream_num]=strdup (comment + strlen ("LANGUAGE=") );
+	}
+      }
+      vorbis_comment_clear(&vc);
+      vorbis_info_clear(&vi);
+
     } else {
       subtitle = (char *)&op->packet[hdrlen + 1];
 
@@ -1178,6 +1200,11 @@ static void demux_ogg_dispose (demux_plugin_t *this_gen) {
 
   for (i=0; i<this->num_streams; i++) {
     ogg_stream_clear(&this->oss[i]);
+
+    if (this->language) {
+      free (this->language);
+      this->language[i]=0;
+    }
   }
 
   ogg_sync_clear(&this->oy);
@@ -1320,12 +1347,41 @@ static int demux_ogg_get_stream_length (demux_plugin_t *this_gen) {
 }
 
 static uint32_t demux_ogg_get_capabilities(demux_plugin_t *this_gen) {
-  return DEMUX_CAP_NOCAP;
+  return DEMUX_CAP_SPULANG;
 }
 
 static int demux_ogg_get_optional_data(demux_plugin_t *this_gen,
 					void *data, int data_type) {
-  return DEMUX_OPTIONAL_UNSUPPORTED;
+  
+  demux_ogg_t *this = (demux_ogg_t *) this_gen; 
+
+  char *str=(char *) data;
+  int channel = *((int *)data);
+  int stream_num;
+
+  switch (data_type) {
+  case DEMUX_OPTIONAL_DATA_SPULANG:
+    if (channel==-1) {
+      strcpy( str, "none");
+      return DEMUX_OPTIONAL_SUCCESS;
+    } else if ((channel>=0) && (channel<this->num_streams)) {
+      for (stream_num=0; stream_num<this->num_streams; stream_num++) {
+	if (this->buf_types[stream_num]==BUF_SPU_OGM+channel) {
+
+	  if (this->language[stream_num]) {
+	    sprintf(str, "%s", this->language[stream_num]);
+	    return DEMUX_OPTIONAL_SUCCESS;
+	  } else {
+	    sprintf(str, "channel %d",channel);
+	    return DEMUX_OPTIONAL_SUCCESS;
+	  }
+	}
+      }
+      return DEMUX_OPTIONAL_UNSUPPORTED;
+    }
+  default:
+    return DEMUX_OPTIONAL_UNSUPPORTED;
+  }
 }
 
 static demux_plugin_t *open_plugin (demux_class_t *class_gen, 
