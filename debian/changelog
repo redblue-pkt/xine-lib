@@ -2,8 +2,9 @@ xine-lib (1-beta10-1) unstable; urgency=low
 
   * new upstream release
   * updated debhelper dependancy, avoid using --list-missing (closes: #187433)
+  * changed libxine-dev section to new "libdevel"
 
- -- Siggi Langauf <siggi@debian.org>  Mon,  7 Apr 2003 18:59:34 +0200
+ -- Siggi Langauf <siggi@debian.org>  Mon,  7 Apr 2003 19:31:03 +0200
 
 xine-lib (1-beta9-1) unstable; urgency=low
 

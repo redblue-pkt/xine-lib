@@ -9,7 +9,7 @@ Standards-Version: 3.5.9
 
 Package: libxine-dev
 Architecture: any
-Section: devel
+Section: libdevel
 Depends: libxine1 (= ${Source-Version}), libc6-dev, xlibs-dev, zlib1g-dev | libz-dev, slang1-dev
 Conflicts: xine-ui (<< 0.9.10)
 Description: the xine video player library, development packages
