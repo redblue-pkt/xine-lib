@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_file.c,v 1.13 2001/06/23 14:05:47 f1rmb Exp $
+ * $Id: input_file.c,v 1.14 2001/06/23 20:47:29 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -73,7 +73,7 @@ typedef struct {
   config_values_t  *config;
 
   int               mrls_allocated_entries;
-  mrl_t            *mrls[1];
+  mrl_t           **mrls;
   
 } file_input_plugin_t;
 
@@ -264,6 +264,7 @@ static mrl_t **file_plugin_get_dir (input_plugin_t *this_gen,
 
     }
     else {
+      printf("realloc\n");
       this->mrls[num_files]->mrl = (char *) 
 	realloc(this->mrls[num_files]->mrl, strlen(fullpathname) + 1);
     }
@@ -420,9 +421,8 @@ input_plugin_t *init_input_plugin (int iface, config_values_t *config) {
     this->mrl                    = NULL;
     this->config                 = config;
 
-    this->mrls[0] = (mrl_t *) malloc(sizeof(mrl_t));
-    this->mrls[0]->mrl = (char *) malloc(sizeof(char *));
-    this->mrls_allocated_entries = 1;
+    this->mrls = (mrl_t **) malloc(sizeof(mrl_t));
+    this->mrls_allocated_entries = 0;
 
     return (input_plugin_t *) this;
     break;
