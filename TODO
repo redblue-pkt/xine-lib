@@ -17,7 +17,6 @@ required for 1.0
 - implement timeout in input_http, implement it correctly using select()
   (guenter)
 - sputext decoder plugin (zoltan & michael)
-- spucc decoder plugin
 - xvid decoder plugin (guenter)
 - opengl video output plugin (matthias)
 - irix audio output plugin (matthias)
@@ -39,7 +38,6 @@ optional
 - id3v2 (guenter)
 - syncfb video output plugin
 - vidix video output plugin
-- fb video output plugin
 - sdl video output plugin
 - directfb video output plugin
 - reduce memory footprint (e.g. variable fifo buffer sizes...)
