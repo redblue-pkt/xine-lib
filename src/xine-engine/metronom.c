@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.c,v 1.67 2002/03/12 11:04:07 guenter Exp $
+ * $Id: metronom.c,v 1.68 2002/03/12 19:51:29 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -368,6 +368,9 @@ static void metronom_got_video_frame (metronom_t *this, vo_frame_t *img) {
     } else {
 
       this->video_drift = diff;
+      this->video_drift_step = diff / 30;
+      /* this will fix video drift with a constant compensation each
+	 frame for about 1 second of video.  */
 
 #ifdef LOG
       if (diff)
@@ -384,11 +387,9 @@ static void metronom_got_video_frame (metronom_t *this, vo_frame_t *img) {
 	  (this->video_drift<0)?'+':'-', abs(this->video_drift) );
 #endif
   
-  /* this will fix video drift with a constant compensation each
-     frame for about 1 second of video.  */
-  img->duration -= this->video_drift/30;
-  if (this->video_drift) 
-    this->video_drift -= this->video_drift / 30;
+  img->duration -= this->video_drift_step;
+
+  this->video_drift -= this->video_drift_step;
   if (this->video_drift<0) 
     this->video_drift = 0;
 
@@ -620,6 +621,7 @@ metronom_t * metronom_init (int have_audio, void *xine) {
 
   this->video_vpts                = PREBUFFER_PTS_OFFSET;
   this->video_drift               = 0;
+  this->video_drift_step          = 0;
   this->video_discontinuity_count = 0;
   pthread_cond_init (&this->video_discontinuity_reached, NULL);
 

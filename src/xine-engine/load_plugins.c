@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.69 2002/02/16 22:43:24 guenter Exp $
+ * $Id: load_plugins.c,v 1.70 2002/03/12 19:51:29 guenter Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -47,27 +47,9 @@
 #include "xineutils.h"
 #include "compat.h"
 
+/*
 #define LOG
-
-#ifdef __GNUC__
-#define LOG_MSG_STDERR(xine, message, args...) {                     \
-    xine_log(xine, XINE_LOG_PLUGIN, message, ##args);                \
-    fprintf(stderr, message, ##args);                                \
-  }
-#define LOG_MSG(xine, message, args...) {                            \
-    xine_log(xine, XINE_LOG_PLUGIN, message, ##args);                \
-    printf(message, ##args);                                         \
-  }
-#else
-#define LOG_MSG_STDERR(xine, ...) {                                  \
-    xine_log(xine, XINE_LOG_PLUGIN, __VA_ARGS__);                    \
-    fprintf(stderr, __VA_ARGS__);                                    \
-  }
-#define LOG_MSG(xine, ...) {                                         \
-    xine_log(xine, XINE_LOG_PLUGIN, __VA_ARGS__);                    \
-    printf(__VA_ARGS__);                                             \
-  }
-#endif
+*/
 
 /* transition code; between xine 0.9.7 and 0.9.8, the dxr3enc driver
  * was integrated in the dxr3 driver and no longer exists as a seperate
@@ -115,8 +97,8 @@ void load_demux_plugins (xine_t *this,
 			 config_values_t *config, int iface_version) {
   DIR *dir;
 
-  if(this == NULL || config == NULL) {
-    LOG_MSG(this, _("%s(%s@%d): parameter should be non null, exiting\n"),
+  if (this == NULL || config == NULL) {
+    printf (_("%s(%s@%d): parameter should be non null, exiting\n"),
 	    __FILE__, __XINE_FUNCTION__, __LINE__);
     exit(1);
   }
@@ -153,8 +135,9 @@ void load_demux_plugins (xine_t *this,
 	if(!(plugin = dlopen (str, RTLD_LAZY))) {
 	  char *dl_error_msg = dlerror();
 
-	  LOG_MSG(this, _("load_plugins: cannot open demux plugin %s:\n%s\n"),
-		  str, dl_error_msg);
+	  xine_log (this, XINE_LOG_PLUGIN,
+		    _("load_plugins: cannot open demux plugin %s:\n%s\n"),
+		    str, dl_error_msg);
 
 	} else {
 
@@ -167,15 +150,16 @@ void load_demux_plugins (xine_t *this,
 	    if (dxp) {
 	      this->demuxer_plugins[this->num_demuxer_plugins] = dxp; 
 	    
-	      LOG_MSG(this, _("load_plugins: demux plugin found : %s\n"), 
-		      this->demuxer_plugins[this->num_demuxer_plugins]->get_identifier());
+	      xine_log (this, XINE_LOG_PLUGIN,
+			_("load_plugins: demux plugin found : %s\n"), 
+			this->demuxer_plugins[this->num_demuxer_plugins]->get_identifier());
 
 	      this->num_demuxer_plugins++;
 	    }
 	  }
 	  
 	  if(this->num_demuxer_plugins > DEMUXER_PLUGIN_MAX) {
-	    LOG_MSG(this, _("load_plugins: too many demux plugins installed, exiting.\n"));
+	    printf ( _("load_plugins: too many demux plugins installed, exiting.\n"));
 	    exit(1);
 	  }
 	}
@@ -313,8 +297,9 @@ void load_input_plugins (xine_t *this,
 	if(!(plugin = dlopen (str, RTLD_LAZY))) {
 	  char *dl_error_msg = dlerror();
 
-	  LOG_MSG(this, _("load_plugins: cannot open input plugin %s:\n%s\n"), 
-		  str, dl_error_msg);
+	  xine_log (this, XINE_LOG_PLUGIN,
+		    _("load_plugins: cannot open input plugin %s:\n%s\n"), 
+		    str, dl_error_msg);
 	} else {
 	  void *(*initplug) (int, xine_t *);
 	  
@@ -325,19 +310,21 @@ void load_input_plugins (xine_t *this,
 	    if (ip) {
 	      this->input_plugins[this->num_input_plugins] = ip; 
 	    
-	      LOG_MSG(this, _("load_plugins: input plugin found : %s\n"), 
-		      this->input_plugins[this->num_input_plugins]->get_identifier(this->input_plugins[this->num_input_plugins]));
+	      xine_log (this, XINE_LOG_PLUGIN,
+			_("load_plugins: input plugin found : %s\n"), 
+			this->input_plugins[this->num_input_plugins]->get_identifier(this->input_plugins[this->num_input_plugins]));
 
 	      this->num_input_plugins++;
 	    }
 
 	  } else {
-	    LOG_MSG(this, _("load_plugins: %s is no valid input plugin (lacks init_input_plugin() function)\n"), str);
+	    xine_log (this, XINE_LOG_PLUGIN,
+		      _("load_plugins: %s is no valid input plugin (lacks init_input_plugin() function)\n"), str);
 	  }
 	  
 	  if(this->num_input_plugins > INPUT_PLUGIN_MAX) {
-	    LOG_MSG_STDERR(this, _("%s(%d): too many input plugins installed, "
-				   "exiting.\n"), __FILE__, __LINE__);
+	    printf (_("%s(%d): too many input plugins installed, "
+		      "exiting.\n"), __FILE__, __LINE__);
 	    exit(1);
 	  }
 	}
@@ -349,8 +336,8 @@ void load_input_plugins (xine_t *this,
   remove_segv_handler();
   
   if (this->num_input_plugins == 0) {
-    LOG_MSG_STDERR(this, _("load_plugins: no input plugins found in %s! - "
-			   "Did you install xine correctly??\n"), XINE_PLUGINDIR);
+    printf (_("load_plugins: no input plugins found in %s! - "
+	      "Did you install xine correctly??\n"), XINE_PLUGINDIR);
     exit (1);
   }
   
@@ -468,8 +455,8 @@ void load_decoder_plugins (xine_t *this,
    
 
   if(this == NULL || config == NULL) {
-    LOG_MSG(this, _("%s(%s@%d): parameter should be non null, exiting\n"),
-	    __FILE__, __XINE_FUNCTION__, __LINE__);
+    printf ( _("%s(%s@%d): parameter should be non null, exiting\n"),
+	     __FILE__, __XINE_FUNCTION__, __LINE__);
     exit(1);
   }
 
@@ -529,8 +516,9 @@ void load_decoder_plugins (xine_t *this,
 	if(!(plugin = dlopen (str, RTLD_LAZY))) {
 	  char *dl_error_msg = dlerror();
 
-	  LOG_MSG(this, _("load_plugins: failed to load plugin %s:\n%s\n"),
-		  str, dl_error_msg);
+	  xine_log (this, XINE_LOG_PLUGIN,
+		    _("load_plugins: failed to load plugin %s:\n%s\n"),
+		    str, dl_error_msg);
 
 	} else {
 	  int plugin_prio;
@@ -557,8 +545,9 @@ void load_decoder_plugins (xine_t *this,
 		    spu_prio[streamtype] = plugin_prio;
 		  }
 		
-		LOG_MSG(this, _("spu decoder plugin found : %s\n"),
-			sdp->get_identifier());
+		xine_log (this, XINE_LOG_PLUGIN,
+			  _("spu decoder plugin found : %s\n"),
+			  sdp->get_identifier());
 	      }
 	    }
 	  }
@@ -585,8 +574,9 @@ void load_decoder_plugins (xine_t *this,
 		    video_prio[streamtype] = plugin_prio;
 		  }
 		
-		LOG_MSG(this, _("video decoder plugin found : %s\n"), 
-			vdp->get_identifier());
+		xine_log (this, XINE_LOG_PLUGIN,
+			  _("video decoder plugin found : %s\n"), 
+			  vdp->get_identifier());
 	      }
 	    }
 	    
@@ -609,8 +599,9 @@ void load_decoder_plugins (xine_t *this,
 		    audio_prio[streamtype] = plugin_prio;
 		  }
 		
-		LOG_MSG(this, _("audio decoder plugin found : %s\n"), 
-			adp->get_identifier());
+		xine_log (this, XINE_LOG_PLUGIN,
+			  _("audio decoder plugin found : %s\n"), 
+			  adp->get_identifier());
 	      }
 	    }
 	    

@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 2000-2002 the xine project
  * 
- * This file is part of xine, a unix video player.
+ * This file is part of xine, a free video player.
  * 
  * xine is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.78 2002/03/01 09:29:50 guenter Exp $
+ * $Id: video_out.c,v 1.79 2002/03/12 19:51:29 guenter Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -39,26 +39,6 @@
 #include "metronom.h"
 #include "xine_internal.h"
 #include "xineutils.h"
-
-#ifdef __GNUC__
-#define LOG_MSG_STDERR(xine, message, args...) {                     \
-    xine_log(xine, XINE_LOG_MSG, message, ##args);                 \
-    fprintf(stderr, message, ##args);                                \
-  }
-#define LOG_MSG(xine, message, args...) {                            \
-    xine_log(xine, XINE_LOG_MSG, message, ##args);                 \
-    printf(message, ##args);                                         \
-  }
-#else
-#define LOG_MSG_STDERR(xine, ...) {                                  \
-    xine_log(xine, XINE_LOG_MSG, __VA_ARGS__);                     \
-    fprintf(stderr, __VA_ARGS__);                                    \
-  }
-#define LOG_MSG(xine, ...) {                                         \
-    xine_log(xine, XINE_LOG_MSG, __VA_ARGS__);                     \
-    printf(__VA_ARGS__);                                             \
-  }
-#endif
 
 /*
 #define LOG
@@ -320,10 +300,10 @@ static int vo_frame_draw (vo_frame_t *img) {
    */
 
   if (this->num_frames_delivered>199) {
-    LOG_MSG_STDERR(this->xine,
-		   _("%d frames delivered, %d frames skipped, %d frames discarded\n"), 
-		   this->num_frames_delivered, 
-		   this->num_frames_skipped, this->num_frames_discarded);
+    xine_log(this->xine, XINE_LOG_MSG,
+	     _("%d frames delivered, %d frames skipped, %d frames discarded\n"), 
+	     this->num_frames_delivered, 
+	     this->num_frames_skipped, this->num_frames_discarded);
 
     this->num_frames_delivered = 0;
     this->num_frames_discarded = 0;
@@ -373,9 +353,9 @@ static void expire_frames (vos_t *this, int64_t cur_vpts) {
     diff = cur_vpts - pts;
       
     if (diff > img->duration) {
-      LOG_MSG(this->xine,
-	      _("video_out: throwing away image with pts %lld because "
-		"it's too old (diff : %lld).\n"), pts, diff);
+      xine_log(this->xine, XINE_LOG_MSG,
+	       _("video_out: throwing away image with pts %lld because "
+		 "it's too old (diff : %lld).\n"), pts, diff);
 
       this->num_frames_discarded++;
 
@@ -1004,7 +984,7 @@ vo_instance_t *vo_new_instance (vo_driver_t *driver, xine_t *xine) {
     printf (_("video_out: sorry, this should not happen. please restart xine.\n"));
     exit(1);
   } else
-    LOG_MSG(this->xine, _("video_out: thread created\n"));
+    printf ("video_out: thread created\n");
 
   return &this->vo;
 }

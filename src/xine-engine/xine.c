@@ -1,7 +1,7 @@
 /*
- * Copyright (C) 2000-2001 the xine project
+ * Copyright (C) 2000-2002 the xine project
  * 
- * This file is part of xine, a unix video player.
+ * This file is part of xine, a free video player.
  * 
  * xine is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.107 2002/03/11 19:58:01 jkeil Exp $
+ * $Id: xine.c,v 1.108 2002/03/12 19:51:29 guenter Exp $
  *
  * top-level xine functions
  *
@@ -56,26 +56,6 @@
 #include "xineutils.h"
 #include "compat.h"
 
-#ifdef __GNUC__
-#define LOG_MSG_STDERR(xine, message, args...) {                     \
-    xine_log(xine, XINE_LOG_MSG, message, ##args);                   \
-    fprintf(stderr, message, ##args);                                \
-  }
-#define LOG_MSG(xine, message, args...) {                            \
-    xine_log(xine, XINE_LOG_MSG, message, ##args);                   \
-    printf(message, ##args);                                         \
-  }
-#else
-#define LOG_MSG_STDERR(xine, ...) {                                  \
-    xine_log(xine, XINE_LOG_MSG, __VA_ARGS__);                       \
-    fprintf(stderr, __VA_ARGS__);                                    \
-  }
-#define LOG_MSG(xine, ...) {                                         \
-    xine_log(xine, XINE_LOG_MSG, __VA_ARGS__);                       \
-    printf(__VA_ARGS__);                                             \
-  }
-#endif
-
 void * xine_notify_stream_finished_thread (void * this_gen) {
   xine_t *this = this_gen;
   xine_event_t event;
@@ -106,8 +86,8 @@ void xine_notify_stream_finished (xine_t *this) {
   */
   if ((err = pthread_create (&finished_thread,
 			     NULL, xine_notify_stream_finished_thread, this)) != 0) {
-    LOG_MSG_STDERR(this, _("xine_notify_stream_finished: can't create new thread (%s)\n"),
-		   strerror(err));
+    printf (_("xine_notify_stream_finished: can't create new thread (%s)\n"),
+	    strerror(err));
     exit (1);
   }
 }
@@ -169,12 +149,12 @@ void xine_stop_internal (xine_t *this) {
 
   pthread_mutex_lock (&this->xine_lock);
 
-  LOG_MSG(this, _("xine_stop\n"));
+  printf ("xine_stop\n");
 
   /* xine_internal_osd (this, "}", this->metronom->get_current_time (this->metronom), 30000); never works */
 
   if (this->status == XINE_STOP) {
-    LOG_MSG(this, _("xine_stop ignored\n"));
+    printf ("xine_stop ignored\n");
     pthread_mutex_unlock (&this->xine_lock);
     return;
   }
@@ -185,7 +165,7 @@ void xine_stop_internal (xine_t *this) {
   xine_set_speed_internal(this, SPEED_NORMAL);
 
   this->status = XINE_STOP;
-  LOG_MSG(this, _("xine_stop: stopping demuxer\n"));
+  printf ("xine_stop: stopping demuxer\n");
 
   if(this->cur_demuxer_plugin) {
     this->cur_demuxer_plugin->stop (this->cur_demuxer_plugin);
@@ -202,7 +182,7 @@ void xine_stop_internal (xine_t *this) {
      */
   }
 
-  LOG_MSG(this, _("xine_stop: done\n"));
+  printf ("xine_stop: done\n");
 
   pthread_mutex_unlock (&this->xine_lock);
 }
@@ -233,8 +213,8 @@ static int try_demux_with_stages(xine_t *this, const char *MRL,
   stages[2] = -1;
 
   if(stages[0] == -1) {
-    LOG_MSG_STDERR(this, _("%s(%d) wrong first stage = %d !!\n"), 
-		   __XINE_FUNCTION__, __LINE__, stage1);
+    printf (_("%s(%d) wrong first stage = %d !!\n"), 
+	    __XINE_FUNCTION__, __LINE__, stage1);
     return 0;
   }
 
@@ -339,7 +319,8 @@ int xine_play (xine_t *this, char *mrl,
   }
 
   if (!this->cur_input_plugin) {
-    LOG_MSG(this, _("xine: cannot find input plugin for this MRL\n"));
+    xine_log (this, XINE_LOG_FORMAT,
+	      _("xine: cannot find input plugin for this MRL\n"));
     this->cur_demuxer_plugin = NULL;
     this->err = XINE_ERROR_NO_INPUT_PLUGIN;
     pthread_mutex_unlock (&this->xine_lock);
@@ -360,15 +341,13 @@ int xine_play (xine_t *this, char *mrl,
    */
 
   if (!find_demuxer(this, mrl)) {
-    LOG_MSG(this, _("xine: couldn't find demuxer for >%s<\n"), mrl);
+    xine_log (this, XINE_LOG_FORMAT, 
+	      _("xine: couldn't find demuxer for >%s<\n"), mrl);
     this->err = XINE_ERROR_NO_DEMUXER_PLUGIN;
     pthread_mutex_unlock (&this->xine_lock);
     return 0;
   }
 
-  printf ("xine: using demuxer plugin >%s< for this MRL.\n",
-	  this->cur_demuxer_plugin->get_identifier());
-  
   xine_log (this, XINE_LOG_FORMAT,
 	    _("system layer format '%s' detected.\n"),
 	    this->cur_demuxer_plugin->get_identifier());
@@ -390,7 +369,8 @@ int xine_play (xine_t *this, char *mrl,
 				   pos, start_time);
   
   if (this->cur_demuxer_plugin->get_status(this->cur_demuxer_plugin) != DEMUX_OK) {
-    LOG_MSG(this, _("xine_play: demuxer failed to start\n"));
+    xine_log (this, XINE_LOG_MSG, 
+	      _("xine_play: demuxer failed to start\n"));
     
     this->cur_input_plugin->close(this->cur_input_plugin);
 
@@ -437,11 +417,11 @@ void xine_exit (xine_t *this) {
 
   xine_stop(this);
     
-  LOG_MSG(this, _("xine_exit: shutdown audio\n"));
+  printf ("xine_exit: shutdown audio\n");
 
   audio_decoder_shutdown (this);
 
-  LOG_MSG(this, _("xine_exit: shutdown video\n"));
+  printf ("xine_exit: shutdown video\n");
 
   video_decoder_shutdown (this);
 
@@ -449,7 +429,7 @@ void xine_exit (xine_t *this) {
 
   this->status = XINE_QUIT;
 
-  LOG_MSG(this, _("xine_exit: bye!\n"));
+  printf ("xine_exit: bye!\n");
 
   for (i = 0; i < XINE_LOG_NUM; i++)
     this->log_buffers[i]->dispose (this->log_buffers[i]);
@@ -614,7 +594,7 @@ int xine_get_current_position (xine_t *this) {
   pthread_mutex_lock (&this->xine_lock);
 
   if (!this->cur_input_plugin) {
-    LOG_MSG(this, _("xine: xine_get_current_position: no input source\n"));
+    printf ("xine: xine_get_current_position: no input source\n");
     pthread_mutex_unlock (&this->xine_lock);
     return 0;
   }
@@ -730,7 +710,7 @@ void xine_set_speed (xine_t *this, int speed) {
   /* make sure osd can be displayed */
   xine_usec_sleep(100000);
 
-  LOG_MSG(this, _("xine: set_speed %d\n"), speed);
+  printf ("xine: set_speed %d\n", speed);
   xine_set_speed_internal (this, speed);
 
   pthread_mutex_unlock (&this->xine_lock);
