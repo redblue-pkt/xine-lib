@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_stk.c,v 1.4 2003/10/06 21:52:44 miguelfreitas Exp $
+ * $Id: video_out_stk.c,v 1.5 2003/10/07 17:35:51 miguelfreitas Exp $
  *
  * video_out_stk.c, Libstk Surface Video Driver
  * more info on Libstk at http://www.libstk.org
@@ -340,16 +340,32 @@ static void stk_get_property_min_max (vo_driver_t *this_gen, int property, int *
     //printf("video_out_stk: get_property_min_max()\n");
 }
 
-static int stk_gui_data_exchange (vo_driver_t *this_gen, int data_type, void *data) {
-    int ret = 0;
+static int stk_gui_data_exchange (vo_driver_t *this_gen, int data_type, void *data) { 
+    stk_driver_t *this = (stk_driver_t*)this_gen;
 
-    //printf("video_out_stk: gui_data_exchange()\n");
-    
-    /* FIXME: handle various XINE events, if in X11 ? */
-    
-    ret = -1;
+    switch (data_type)
+    {
+        case XINE_GUI_SEND_COMPLETION_EVENT:
+            break;
 
-    return ret;
+        case XINE_GUI_SEND_EXPOSE_EVENT: 
+            break;
+            
+        case XINE_GUI_SEND_DRAWABLE_CHANGED:
+            this->xine_panel = (xine_panel_t*)data;
+            this->surface = stk_xine_panel_surface(this->xine_panel);
+            this->sc.gui_x      = stk_xine_panel_x(this->xine_panel);
+            this->sc.gui_y      = stk_xine_panel_y(this->xine_panel);
+            this->sc.gui_width  = stk_xine_panel_width(this->xine_panel);
+            this->sc.gui_height = stk_xine_panel_height(this->xine_panel);
+            this->sc.force_redraw = 1;
+            break;
+
+        case XINE_GUI_SEND_TRANSLATE_GUI_TO_VIDEO:
+            break;
+    }
+    
+    return 0;
 }
 
 static void stk_dispose (vo_driver_t * this_gen) {
