@@ -1,20 +1,19 @@
-docs_DOCS =  group__video__ratio.html group__visual__types.html \
-	annotated.html group__xine__api.html doxygen.css \
-	group__xine__init.html doxygen.gif group__xine__management.html \
-	files.html group__xine__version.html functions.html index.html \
-	globals.html modules.html group__autoplay__group.html \
-	structao__functions__t.html group__browse__group.html \
-	structcfg__data__t.html group__build__info.html \
-	structconfig__values__s.html group__config__group.html \
-	structconfig__values__t.html group__demux__strategy.html \
-	structmrl__t.html group__event__group.html structvo__driver__s.html \
-	group__loadplugins__group.html structvo__driver__t.html \
-	group__mrl__types.html structvo__frame__t.html \
-	group__status__group.html structvo__overlay__t.html \
-	group__ui__callbacks.html structxine__t.html \
-	group__version__group.html xine_8h-source.html group__video__cap.html \
-	xine_8h.html group__video__group.html xine_logo.png \
-	group__video__prop.html
+docs_DOCS = \
+	group__mrl__types.html	       structao__driver__t.html \
+	group__status__group.html      structao__functions__t.html                               \
+	annotated.html		       group__ui__callbacks.html    structcfg__data__t.html      \
+	doxygen.css		       group__version__group.html   structconfig__values__s.html \
+	doxygen.gif		       group__video__cap.html	    structconfig__values__t.html \
+	files.html		       group__video__group.html     structmrl__t.html            \
+	functions.html		       group__video__prop.html      structvo__driver__s.html     \
+	globals.html		       group__video__ratio.html     structvo__driver__t.html     \
+	group__autoplay__group.html    group__visual__types.html    structvo__frame__t.html      \
+	group__browse__group.html      group__xine__api.html	    structvo__overlay__t.html    \
+	group__build__info.html	       group__xine__init.html	    structxine__t.html           \
+	group__config__group.html      group__xine__management.html xine_8h-source.html          \
+	group__demux__strategy.html    group__xine__version.html    xine_8h.html                 \
+	group__event__group.html       index.html		    xine_logo.png                \
+	group__loadplugins__group.html modules.html
 
 EXTRA_DIST = $(docs_DOCS)
 
