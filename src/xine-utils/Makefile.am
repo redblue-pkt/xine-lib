@@ -4,14 +4,17 @@
 
 lib_LTLIBRARIES = libxineutils.la
 
-libxineutils_la_SOURCES = utils.c ppcasm_string.S memcpy.c monitor.c cpu_accel.c xine_mutex.c xmllexer.c xmlparser.c
+if PPC_ARCH
+pppc_files = ppcasm_string.S 
+endif
+
+libxineutils_la_SOURCES = $(pppc_files) utils.c memcpy.c monitor.c cpu_accel.c xine_mutex.c xmllexer.c xmlparser.c
 
 libxineutils_la_LDFLAGS =  \
 	-version-info $(LT_CURRENT):$(LT_REVISION):$(LT_AGE)
 
 
-include_HEADERS = xineutils.h attributes.h compat.h xmllexer.h xmlparser.h
-
+include_HEADERS = xineutils.h attributes.h compat.h xmllexer.h xmlparser.h ppcasm_string.h
 
 debug:
 	@$(MAKE) CFLAGS="$(DEBUG_CFLAGS)"

@@ -312,6 +312,7 @@ case "$host_or_hostalias" in
 	  xv_lib="libXv.so"
 	fi
 	;;
+
  i386-*-freebsd*)
 	AC_CHECK_FILE(/usr/local/include/iconv.h,
 	              GICONV_BSD_LIBS="-lgiconv"
@@ -327,12 +328,18 @@ case "$host_or_hostalias" in
 	                echo 
                       ],)
         ;;
+
+  ppc-*-linux* | powerpc-*)
+        ppc_arch="yes"
+        ;;
+
   *)
         no_BSDiconv="no"
         ;;
 esac
 AC_SUBST(GICONV_BSD_LIBS)
 AM_CONDITIONAL(HAVE_GICONV, test x$no_BSDiconv != "xyes")
+AM_CONDITIONAL(PPC_ARCH, test x$ppc_arch = "xyes")
 
 
 AC_ARG_WITH(xv-path,[  --with-xv-path=path    Where $xv_lib is installed],
