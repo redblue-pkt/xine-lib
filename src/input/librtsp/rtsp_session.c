@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: rtsp_session.c,v 1.10 2003/04/13 19:02:08 miguelfreitas Exp $
+ * $Id: rtsp_session.c,v 1.11 2003/06/02 21:22:00 jstembridge Exp $
  *
  * high level interface to rtsp servers.
  */
@@ -90,7 +90,7 @@ connect:
       server=strdup("unknown");
   }
 
-  if (strstr(server,"Real"))
+  if (strstr(server,"Real") || strstr(server,"Helix"))
   {
     /* we are talking to a real server ... */
 
