@@ -305,8 +305,6 @@ static unsigned int getbits(unsigned char *buffer, unsigned int bitpos, unsigned
     unsigned int i;
     unsigned int val = 0;
 
-    if (bitcount > 32)
-      printf("sorry bitcount too big\n");
     for (i = bitpos; i < bitcount + bitpos; i++) {
       val = val << 1;
       val = val + ((buffer[i >> 3] & (0x80 >> (i & 7))) ? 1 : 0);
@@ -324,7 +322,6 @@ static int find_descriptor(uint8_t tag, const unsigned char *buf, int descriptor
     unsigned char descriptor_len = buf[1] + 2;
 
     if (!descriptor_len) {
-      printf("descriptor_tag == 0x%02x, len is 0\n", descriptor_tag);
       break;
     }
 
@@ -763,7 +760,8 @@ static int tuner_tune_it (tuner_t *this, struct dvb_frontend_parameters
   event.status=0;
 
   while (((event.status & FE_TIMEDOUT)==0) && ((event.status & FE_HAS_LOCK)==0)) {
-    printf("input_dvb: Trying for lock...\n");
+    xprintf(this->xine, XINE_VERBOSITY_LOG, "input_dvb: Trying for lock...\n");
+
     if (poll(pfd,1,2000) > 0){
       if (pfd[0].revents & POLLPRI){
         if ((status = ioctl(this->fd_frontend, FE_GET_EVENT, &event)) < 0){
@@ -782,33 +780,34 @@ static int tuner_tune_it (tuner_t *this, struct dvb_frontend_parameters
   
   /* inform the user of frontend status */ 
   festatus=0;
-  printf("input_dvb: Tuner status:  ");
+  xprintf(this->xine,XINE_VERBOSITY_LOG,"input_dvb: Tuner status:  ");
   if(ioctl(this->fd_frontend,FE_READ_STATUS,&festatus) >= 0){
-    if (festatus & FE_HAS_SIGNAL) printf(" FE_HAS_SIGNAL");
-    if (festatus & FE_TIMEDOUT) printf(" FE_TIMEDOUT");
-    if (festatus & FE_HAS_LOCK) printf(" FE_HAS_LOCK");
-    if (festatus & FE_HAS_CARRIER) printf(" FE_HAS_CARRIER");
-    if (festatus & FE_HAS_VITERBI) printf(" FE_HAS_VITERBI");
-    if (festatus & FE_HAS_SYNC) printf(" FE_HAS_SYNC");
+    if (festatus & FE_HAS_SIGNAL) xprintf(this->xine,XINE_VERBOSITY_LOG," FE_HAS_SIGNAL");
+    if (festatus & FE_TIMEDOUT) xprintf(this->xine,XINE_VERBOSITY_LOG," FE_TIMEDOUT");
+    if (festatus & FE_HAS_LOCK) xprintf(this->xine,XINE_VERBOSITY_LOG," FE_HAS_LOCK");
+    if (festatus & FE_HAS_CARRIER) xprintf(this->xine,XINE_VERBOSITY_LOG," FE_HAS_CARRIER");
+    if (festatus & FE_HAS_VITERBI) xprintf(this->xine,XINE_VERBOSITY_LOG," FE_HAS_VITERBI");
+    if (festatus & FE_HAS_SYNC) xprintf(this->xine,XINE_VERBOSITY_LOG," FE_HAS_SYNC");
   }
-  printf("\n");
+  xprintf(this->xine,XINE_VERBOSITY_LOG,"\n");
   
   strength=0;
   if(ioctl(this->fd_frontend,FE_READ_BER,&strength) >= 0)
-    printf("input_dvb: Bit error rate: %i\n",strength);
+    xprintf(this->xine,XINE_VERBOSITY_LOG,"input_dvb: Bit error rate: %i\n",strength);
 
   strength=0;
   if(ioctl(this->fd_frontend,FE_READ_SIGNAL_STRENGTH,&strength) >= 0)
-    printf("input_dvb: Signal strength: %i\n",strength);
+    xprintf(this->xine,XINE_VERBOSITY_LOG,"input_dvb: Signal strength: %i\n",strength);
 
   strength=0;
   if(ioctl(this->fd_frontend,FE_READ_SNR,&strength) >= 0)
-    printf("input_dvb: Signal/Noise Ratio: %i\n",strength);
+    xprintf(this->xine,XINE_VERBOSITY_LOG,"input_dvb: Signal/Noise Ratio: %i\n",strength);
  
   if (event.status & FE_HAS_LOCK) {
+    xprintf(this->xine,XINE_VERBOSITY_LOG,"input_dvb: Lock achieved at %.lu Hz\n",(unsigned long)front_param->frequency);   
     return 1;
   } else {
-    printf("input_dvb: Unable to achieve lock at %.lu Hz\n",(unsigned long)front_param->frequency);
+    xprintf(this->xine,XINE_VERBOSITY_LOG,"input_dvb: Unable to achieve lock at %.lu Hz\n",(unsigned long)front_param->frequency);
     return 0;
   }
 }
@@ -847,7 +846,7 @@ static void parse_pmt(dvb_input_plugin_t *this, const unsigned char *buf, int se
       case 0x01:
       case 0x02:
         if(!has_video) {
-          printf("input_dvb: Adding VIDEO     : PID 0x%04x\n", elementary_pid);
+          xprintf(this->stream->xine,XINE_VERBOSITY_LOG,"input_dvb: Adding VIDEO     : PID 0x%04x\n", elementary_pid);
 	  dvb_set_pidfilter(this, VIDFILTER, elementary_pid, DMX_PES_VIDEO, DMX_OUT_TS_TAP);
 	  has_video=1;
 	} 
@@ -856,7 +855,7 @@ static void parse_pmt(dvb_input_plugin_t *this, const unsigned char *buf, int se
       case 0x03:
       case 0x04:
         if(!has_audio) {
-	  printf("input_dvb: Adding AUDIO     : PID 0x%04x\n", elementary_pid);
+	  xprintf(this->stream->xine,XINE_VERBOSITY_LOG,"input_dvb: Adding AUDIO     : PID 0x%04x\n", elementary_pid);
 	  dvb_set_pidfilter(this, AUDFILTER, elementary_pid, DMX_PES_AUDIO, DMX_OUT_TS_TAP);
 	  has_audio=1;
 	}
@@ -865,7 +864,7 @@ static void parse_pmt(dvb_input_plugin_t *this, const unsigned char *buf, int se
       case 0x06:
         if (find_descriptor(0x56, buf + 5, descriptor_len, NULL, NULL)) {
 	  if(!has_text) {
-	     printf("input_dvb: Adding TELETEXT  : PID 0x%04x\n", elementary_pid);
+	     xprintf(this->stream->xine,XINE_VERBOSITY_LOG,"input_dvb: Adding TELETEXT  : PID 0x%04x\n", elementary_pid);
 	     dvb_set_pidfilter(this,TXTFILTER, elementary_pid, DMX_PES_OTHER,DMX_OUT_TS_TAP);
              has_text=1;
           } 
@@ -877,7 +876,7 @@ static void parse_pmt(dvb_input_plugin_t *this, const unsigned char *buf, int se
 	    * that we catch DVB subtitling streams only here, w/o
 	    * parsing the descriptor. */
 	    if(!has_subs) {
-              printf("input_dvb: Adding SUBTITLES: PID 0x%04x\n", elementary_pid);
+              xprintf(this->stream->xine,XINE_VERBOSITY_LOG,"input_dvb: Adding SUBTITLES: PID 0x%04x\n", elementary_pid);
 	      dvb_set_pidfilter(this, SUBFILTER, elementary_pid, DMX_PES_OTHER,DMX_OUT_TS_TAP);
               has_subs=1;
             }
@@ -885,7 +884,7 @@ static void parse_pmt(dvb_input_plugin_t *this, const unsigned char *buf, int se
         } else if (find_descriptor (0x6a, buf + 5, descriptor_len, NULL, NULL)) {
             if(!has_ac3) {
  	      dvb_set_pidfilter(this, AC3FILTER, elementary_pid, DMX_PES_OTHER,DMX_OUT_TS_TAP);
-              printf("input_dvb: Adding AC3       : PID 0x%04x\n", elementary_pid);
+              xprintf(this->stream->xine,XINE_VERBOSITY_LOG,"input_dvb: Adding AC3       : PID 0x%04x\n", elementary_pid);
               has_ac3=1;
         }
 	break;
@@ -915,23 +914,25 @@ static void dvb_parse_si(dvb_input_plugin_t *this) {
   pfd.fd=tuner->fd_pidfilter[INTERNAL_FILTER];
   pfd.events = POLLPRI | POLLIN;
 
+  xprintf(this->stream->xine,XINE_VERBOSITY_DEBUG,"input_dvb: Setting up Internal PAT filter\n");
 
   /* first - the PAT */  
   dvb_set_pidfilter (this, INTERNAL_FILTER, 0, DMX_PES_OTHER, DMX_OUT_TAP);
-  /* wait for up to 1.5 seconds */
+  /* wait for up to 15 seconds */
   if(poll(&pfd,1,15000)<1) /* PAT timed out - weird, but we'll default to using channels.conf info */
   {
+    xprintf(this->stream->xine,XINE_VERBOSITY_LOG,"input_dvb: Error up Internal PAT filter - reverting to rc6 hehaviour\n");
     dvb_set_pidfilter (this,VIDFILTER,this->channels[this->channel].pid[VIDFILTER], DMX_PES_OTHER, DMX_OUT_TS_TAP);
     dvb_set_pidfilter (this,AUDFILTER,this->channels[this->channel].pid[AUDFILTER], DMX_PES_OTHER, DMX_OUT_TS_TAP);
     return;
   }
   result = read (tuner->fd_pidfilter[INTERNAL_FILTER], tmpbuffer, 4);
   if(result!=4)
-    printf("error\n");
+    xprintf(this->stream->xine,XINE_VERBOSITY_DEBUG,"input_dvb: error reading PAT table - no data!\n");
   section_len = getbits(tmpbuffer,20,12);
   result = read (tuner->fd_pidfilter[INTERNAL_FILTER], tmpbuffer+4,section_len);
   if(result!=section_len)
-    printf("input_dvb: error reading in the PAT table\n");
+    xprintf(this->stream->xine,XINE_VERBOSITY_DEBUG,"input_dvb: error reading in the PAT table\n");
 
   ioctl(tuner->fd_pidfilter[INTERNAL_FILTER], DMX_STOP);
 
@@ -954,9 +955,12 @@ static void dvb_parse_si(dvb_input_plugin_t *this) {
 
   bufptr = tmpbuffer;
     /* next - the PMT */
+  xprintf(this->stream->xine,XINE_VERBOSITY_DEBUG,"input_dvb: Setting up Internal PMT filter\n");
+
   dvb_set_pidfilter(this, INTERNAL_FILTER, this->channels[this->channel].pmtpid , DMX_PES_OTHER, DMX_OUT_TAP);
   if(poll(&pfd,1,15000)<1) /* PMT timed out - weird, but we'll default to using channels.conf info */
   {
+    xprintf(this->stream->xine,XINE_VERBOSITY_LOG,"input_dvb: Error up Internal PMT filter - reverting to rc6 hehaviour\n");
     dvb_set_pidfilter (this,VIDFILTER,this->channels[this->channel].pid[VIDFILTER], DMX_PES_OTHER, DMX_OUT_TS_TAP);
     dvb_set_pidfilter (this,AUDFILTER,this->channels[this->channel].pid[AUDFILTER], DMX_PES_OTHER, DMX_OUT_TS_TAP);
     return;
@@ -983,8 +987,10 @@ static void dvb_parse_si(dvb_input_plugin_t *this) {
 
   /* we use the section filter for EIT because we are guarenteed a complete section */
   if(ioctl(tuner->fd_pidfilter[EITFILTER],DMX_SET_BUFFER_SIZE,8192*this->num_streams_in_this_ts)<0)
-    printf("input_dvb: couldn't increase buffer size for EIT: %s \n",strerror(errno)); 
+    xprintf(this->stream->xine,XINE_VERBOSITY_DEBUG,"input_dvb: couldn't increase buffer size for EIT: %s \n",strerror(errno)); 
   dvb_set_sectfilter(this, EITFILTER, 0x12,DMX_PES_OTHER,0x4e, 0xff); 
+
+  xprintf(this->stream->xine,XINE_VERBOSITY_DEBUG,"input_dvb: Setup of PID filters complete\n");
 
   free(tmpbuffer);
 }
@@ -1037,7 +1043,7 @@ static void do_eit(dvb_input_plugin_t *this)
   for(loops=0;loops<=this->num_streams_in_this_ts*2;loops++){
     eit=foo;
     if (poll(&fd,1,2000)<1) {
-     printf("(TImeout in EPG loop!! Quitting\n");
+       xprintf(this->stream->xine,XINE_VERBOSITY_LOG,"(TImeout in EPG loop!! Quitting\n");
        return;  
     }
     current_channel=-1;
@@ -1414,7 +1420,7 @@ static void switch_channel (dvb_input_plugin_t *this) {
   event.data_length = sizeof(ui_data);
   xine_event_send(this->stream, &event);
 
-  lprintf ("ui title event sent\n");
+  xprintf(this->class->xine,XINE_VERBOSITY_DEBUG,"ui title event sent\n");
   
   this->fd = open (this->tuner->dvr_device, O_RDONLY | O_NONBLOCK);
 
@@ -1457,14 +1463,14 @@ static void do_record (dvb_input_plugin_t *this) {
       if(strlen(savedir.str_value)>1){
         if(opendir(savedir.str_value)==NULL){
           snprintf (filename, 256, "%s/%s_%s.ts",xine_get_homedir(),this->channels[this->channel].name, dates);
-          printf("savedir is wrong... saving to home directory\n");
+          xprintf(this->class->xine,XINE_VERBOSITY_LOG,"savedir is wrong... saving to home directory\n");
         } else {
           snprintf (filename, 256, "%s/%s_%s.ts",savedir.str_value,this->channels[this->channel].name, dates);
-          printf("saving to savedir\n");
+          xprintf(this->class->xine,XINE_VERBOSITY_LOG,"saving to savedir\n");
         }
       } else {
         snprintf (filename, 256, "%s/%s_%s.ts",xine_get_homedir(),this->channels[this->channel].name, dates);
-        printf("Saving to HomeDir\n");
+        xprintf(this->class->xine,XINE_VERBOSITY_LOG,"Saving to HomeDir\n");
       }
     }
     /* remove spaces from name */
@@ -1495,7 +1501,7 @@ static void dvb_event_handler (dvb_input_plugin_t *this) {
 
   while ((event = xine_event_get (this->event_queue))) {
 
-    lprintf ("got event %08x\n", event->type);
+    xprintf(this->class->xine,XINE_VERBOSITY_DEBUG,"got event %08x\n", event->type);
 
     if (this->fd<0) {
       xine_event_free (event);
@@ -1639,7 +1645,7 @@ static off_t dvb_plugin_read (input_plugin_t *this_gen,
   struct pollfd pfd;
   dvb_event_handler (this);
 
-  lprintf ("reading %lld bytes...\n", len);
+  xprintf(this->class->xine,XINE_VERBOSITY_DEBUG,"input_dvb: reading %lld bytes...\n", len);
 
   nbc_check_buffers (this->nbc);
 
@@ -1651,7 +1657,7 @@ static off_t dvb_plugin_read (input_plugin_t *this_gen,
   while (total<len){ 
 
     if(poll(&pfd,1,10000)<1){
-      printf("input_dvb:  No data available.  Signal Lost??  \n");
+      xprintf(this->class->xine,XINE_VERBOSITY_LOG,"input_dvb:  No data available.  Signal Lost??  \n");
       _x_demux_control_end(this->stream, BUF_FLAG_END_USER); 
       this->read_failcount++;
       break;
@@ -1659,14 +1665,14 @@ static off_t dvb_plugin_read (input_plugin_t *this_gen,
      
     if(this->read_failcount){ /* signal/stream regained after loss - kick the net_buf_control layer. */
       this->read_failcount=0;
-      printf("input_dvb: Data resumed...\n");
+      xprintf(this->class->xine,XINE_VERBOSITY_LOG,"input_dvb: Data resumed...\n");
       _x_demux_control_start(this->stream);
     }
 
     if(pfd.revents & POLLIN)
       n = read (this->fd, &buf[total], len-total);
 
-    lprintf ("got %lld bytes (%lld/%lld bytes read)\n", n,total,len);
+    xprintf(this->class->xine,XINE_VERBOSITY_DEBUG,"input_dvb: got %lld bytes (%lld/%lld bytes read)\n", n,total,len);
     
     if (n > 0){  
       this->curpos += n;
@@ -1717,7 +1723,7 @@ static off_t dvb_plugin_seek (input_plugin_t *this_gen, off_t offset,
 
   dvb_input_plugin_t *this = (dvb_input_plugin_t *) this_gen;
 
-  lprintf ("seek %lld bytes, origin %d\n", offset, origin);
+  xprintf(this->class->xine,XINE_VERBOSITY_DEBUG,"seek %lld bytes, origin %d\n", offset, origin);
 
   /* only relative forward-seeking is implemented */
 
@@ -1932,7 +1938,7 @@ static int dvb_plugin_open(input_plugin_t * this_gen)
 		idx++;
               }
 	      offset++;
-	      printf("%d,%d,%d\n", offset, idx, num_channels);
+	      xprintf(this->class->xine,XINE_VERBOSITY_LOG,"%d,%d,%d\n", offset, idx, num_channels);
             }
             while ((offset < 6) && (idx == num_channels));
               if (idx < num_channels) {
@@ -2029,7 +2035,7 @@ static int dvb_plugin_open(input_plugin_t * this_gen)
       return 0;
     }
     if(ioctl(this->fd,DMX_SET_BUFFER_SIZE,262144)<0)
-      printf("input_dvb: couldn't increase buffer size for DVR: %s \n",strerror(errno)); 
+      xprintf(this->class->xine,XINE_VERBOSITY_DEBUG,"input_dvb: couldn't increase buffer size for DVR: %s \n",strerror(errno)); 
 
     this->curpos = 0;
     this->osd = NULL;
@@ -2312,7 +2318,7 @@ static void *init_class (xine_t *xine, void *data) {
   this->mrls[3] = "dvbt://";
   this->mrls[4] = 0;
 
-  lprintf ("init class succeeded\n");
+  xprintf(this->xine,XINE_VERBOSITY_DEBUG,"init class succeeded\n");
 
 
     /* dislay channel name in top left of display */
