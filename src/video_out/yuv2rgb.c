@@ -465,16 +465,16 @@ yuv2rgb_t *yuv2rgb_init (int mode) {
   if ((this->yuv2rgb_fun == NULL) && (mm & MM_ACCEL_X86_MMXEXT)) {
     yuv2rgb_init_mmxext (this, mode);
     if (this->yuv2rgb_fun != NULL)
-      fprintf (stderr, "Using MMXEXT for colorspace transform\n");
+      printf ("yuv2rgb: using MMXEXT for colorspace transform\n");
   }
   if ((this->yuv2rgb_fun == NULL) && (mm & MM_ACCEL_X86_MMX)) {
     yuv2rgb_init_mmx (this, mode);
     if (this->yuv2rgb_fun != NULL)
-      fprintf (stderr, "Using MMX for colorspace transform\n"); 
+      printf ("yuv2rgb: using MMX for colorspace transform\n"); 
   }
 #endif
   if (this->yuv2rgb_fun == NULL) {
-    fprintf (stderr, "No accelerated colorspace conversion found\n");
+    printf ("yuv2rgb: no accelerated colorspace conversion found\n");
     yuv2rgb_c_init (this, mode);
   }
   return this;

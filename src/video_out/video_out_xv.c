@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.37 2001/06/09 22:08:29 guenter Exp $
+ * $Id: video_out_xv.c,v 1.38 2001/06/10 02:07:28 guenter Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -548,7 +548,6 @@ static int xv_gui_data_exchange (vo_driver_t *this_gen,
 
   xv_driver_t     *this = (xv_driver_t *) this_gen;
   x11_rectangle_t *area;
-  xv_frame_t      *frame;
 
   switch (data_type) {
   case GUI_DATA_EX_DEST_POS_SIZE_CHANGED:
@@ -579,10 +578,10 @@ static int xv_gui_data_exchange (vo_driver_t *this_gen,
     
     /* FIXME : take care of completion events */
 
-    if((frame = this->cur_frame) != NULL)
+    if (this->cur_frame)
       XvShmPutImage(this->display, this->xv_port, 
-		    this->drawable, this->gc, frame->image,
-		    0, 0,  frame->width, frame->height-5,
+		    this->drawable, this->gc, this->cur_frame->image,
+		    0, 0,  this->cur_frame->width, this->cur_frame->height-5,
 		    this->output_xoffset, this->output_yoffset,
 		    this->output_width, this->output_height, False);
     break;
@@ -712,15 +711,15 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
   }
 
   if (!xv_port) {
-    fprintf (stderr, "video_out_xv: Xv extension is present but "
-	     "I couldn't find a usable yuv12 port.\n");
-    fprintf (stderr, "              Looks like your graphics hardware "
-	     "driver doesn't support Xv?!\n");
+    printf ("video_out_xv: Xv extension is present but "
+	    "I couldn't find a usable yuv12 port.\n");
+    printf ("              Looks like your graphics hardware "
+	    "driver doesn't support Xv?!\n");
     XvFreeAdaptorInfo (adaptor_info);
     return NULL;
   } else
-    fprintf (stderr, "video_out_xv: using Xv port %ld for hardware "
-	     "colorspace conversion and scaling.\n", xv_port);
+    printf ("video_out_xv: using Xv port %ld for hardware "
+	    "colorspace conversion and scaling.\n", xv_port);
 
   /*
    * from this point on, nothing should go wrong anymore; so let's start initializing this driver
@@ -825,7 +824,7 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
     printf("\n");
     XFree(attr);
   } else {
-    fprintf(stderr, "video_out_xv: no port attributes defined.\n");
+    printf("video_out_xv: no port attributes defined.\n");
   }
 
   XvFreeAdaptorInfo (adaptor_info);
@@ -847,15 +846,15 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
     if (fo[i].id == IMGFMT_YV12)  {
       this->xv_format_yv12 = fo[i].id;
       this->capabilities |= VO_CAP_YV12;
-      fprintf(stderr, "video_out_xv: this adaptor supports the yv12 format.\n");
+      printf("video_out_xv: this adaptor supports the yv12 format.\n");
     } else if (fo[i].id == IMGFMT_YUY2) {
       this->xv_format_yuy2 = fo[i].id;
       this->capabilities |= VO_CAP_YUY2;
-      fprintf(stderr, "video_out_xv: this adaptor supports the yuy2 format.\n");
+      printf("video_out_xv: this adaptor supports the yuy2 format.\n");
     } else if (fo[i].id == IMGFMT_RGB) {
       this->xv_format_rgb = fo[i].id;
       this->capabilities |= VO_CAP_RGB;
-      fprintf(stderr, "video_out_xv: this adaptor supports the rgb format.\n");
+      printf("video_out_xv: this adaptor supports the rgb format.\n");
     }
   }
 
