@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xshm.c,v 1.20 2001/07/17 19:40:27 guenter Exp $
+ * $Id: video_out_xshm.c,v 1.21 2001/07/17 20:47:35 guenter Exp $
  * 
  * video_out_xshm.c, X11 shared memory extension interface for xine
  *
@@ -90,6 +90,7 @@ typedef struct xshm_driver_s {
   GC               gc;
   XColor           black;
   int              use_shm;
+  int              zoom_mpeg1;
   int              depth, bpp, bytes_per_pixel;
   int              expecting_event;
 
@@ -113,6 +114,8 @@ typedef struct xshm_driver_s {
 
   int              dest_width;           /* size of image gui has most recently adopted to     */
   int              dest_height;
+  int              gui_width;           /* size of gui window */
+  int              gui_height;
   int              dest_x;
   int              dest_y;
 
@@ -508,7 +511,7 @@ static void xshm_calc_output_size (xshm_driver_t *this) {
   }
 
   /* little hack to zoom mpeg1 / other small streams  by default*/
-  if ( this->use_shm && (ideal_width<400)) {
+  if ( this->use_shm && this->zoom_mpeg1 && (ideal_width<400)) {
     ideal_width  *=2;
     ideal_height *=2;
   }
@@ -554,15 +557,21 @@ static void xshm_update_frame_format (vo_driver_t *this_gen,
       || (frame->width != width)
       || (frame->height != height)
       || (frame->ratio_code != ratio_code)
-      || (frame->format != format)) {
+      || (frame->format != format)
+      || (frame->width != this->delivered_width)
+      || (frame->height != this->delivered_height)) {
 
     int image_size;
 
-    this->delivered_width      = width;
-    this->delivered_height     = height;
-    this->delivered_ratio_code = ratio_code;
+    if ((frame->width != this->delivered_width)
+	|| (frame->height != this->delivered_height)
+	|| (frame->ratio_code != ratio_code)) {
+      this->delivered_width      = width;
+      this->delivered_height     = height;
+      this->delivered_ratio_code = ratio_code;
 
-    xshm_calc_output_size (this);
+      xshm_calc_output_size (this);
+    }
 
     this->stripe_height = 16 * this->output_height / this->delivered_height;
 
@@ -669,14 +678,15 @@ static void xshm_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
     if ( (frame->rgb_width != this->dest_width)
 	 || (frame->rgb_height != this->dest_height) ) {
       
-      int width, height; /* too late for these -> ignored */
-      
       this->request_dest_size (frame->rgb_width, frame->rgb_height, 
-			       &this->dest_x, &this->dest_y, &width, &height);
+			       &this->dest_x, &this->dest_y, 
+			       &this->gui_width, &this->gui_height);
       
       this->dest_width = frame->rgb_width;
       this->dest_height = frame->rgb_height;
 
+      this->output_xoffset  = (frame->rgb_width - this->gui_width) / 2;
+      this->output_yoffset  = (frame->rgb_height - this->gui_height) / 2;
     }
     
     XLockDisplay (this->display);
@@ -755,15 +765,46 @@ static void xshm_get_property_min_max (vo_driver_t *this_gen,
 static int xshm_gui_data_exchange (vo_driver_t *this_gen, 
 				 int data_type, void *data) {
 
-  xshm_driver_t     *this = (xshm_driver_t *) this_gen;
-  /* x11_rectangle_t *area; */
+  xshm_driver_t   *this = (xshm_driver_t *) this_gen;
+  x11_rectangle_t *area; 
+  int              dest_width, dest_height;
 
   switch (data_type) {
   case GUI_DATA_EX_DEST_POS_SIZE_CHANGED:
 
-    /* area = (x11_rectangle_t *) data; */
+    area = (x11_rectangle_t *) data;
 
-    xshm_calc_output_size (this);
+    dest_width = area->w;
+    dest_height = area->h;
+
+    if ( (dest_width != this->gui_width) || (dest_height != this->gui_height) ) {
+
+      /*xshm_calc_output_size (this); */
+
+      /*
+       * make the frames fit into the given destination area
+       */
+
+#if 0 
+      /*FIXME: not stable yet */
+      if ( ((double) dest_width / this->ratio_factor) < dest_height ) {
+	
+	this->output_width   = dest_width ;
+	this->output_height  = (double) dest_width / this->ratio_factor ;
+      } else {
+	
+	this->output_width    = (double) dest_height * this->ratio_factor ;
+	this->output_height   = dest_height;
+      } 
+      
+      this->gui_width = dest_width;
+      this->gui_height = dest_height;
+
+      printf ("video_out_xshm: new output size: %d x %d (%d x %d)\n",
+	      dest_width, dest_height, this->output_width, this->output_height);
+#endif
+    }
+
     break;
   case GUI_DATA_EX_COMPLETION_EVENT: {
    
@@ -870,6 +911,9 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
   this->output_yoffset    = 0;
   this->output_width      = 0;
   this->output_height     = 0;
+  this->gui_width         = 0;
+  this->gui_height        = 0;
+  this->zoom_mpeg1        = config->lookup_int (config, "zoom_mpeg1", 1);
   this->drawable          = visual->d;
   this->expecting_event   = 0;
   this->gc                = XCreateGC (this->display, this->drawable, 0, NULL);
