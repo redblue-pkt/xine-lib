@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.77 2002/12/16 00:32:12 tmattern Exp $
+ * $Id: xine_decoder.c,v 1.78 2002/12/16 23:47:57 miguelfreitas Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -70,6 +70,7 @@ typedef struct ff_decoder_s {
 
   AVVideoFrame      *av_picture;
   AVCodecContext    *context;
+  AVCodec           *codec;
 
   /* mpeg sequence header parsing, stolen from libmpeg2 */
 
@@ -101,6 +102,8 @@ typedef struct ff_audio_decoder_s {
   int               size;
 
   AVCodecContext    *context;
+  AVCodec           *codec;
+  
   char              *decode_buffer;
   int               decoder_ok;
 
@@ -114,7 +117,7 @@ static pthread_once_t once_control = PTHREAD_ONCE_INIT;
 #define AUDIOBUFSIZE VIDEOBUFSIZE
 
 
-static void init_video_codec (ff_video_decoder_t *this, AVCodec *codec, xine_bmiheader *bih) {
+static void init_video_codec (ff_video_decoder_t *this, xine_bmiheader *bih) {
 
   /* force (width % 8 == 0), otherwise there will be 
    * display problems with Xv. 
@@ -135,7 +138,7 @@ static void init_video_codec (ff_video_decoder_t *this, AVCodec *codec, xine_bmi
             this->context->extradata_size ); 
   }
 
-  if (avcodec_open (this->context, codec) < 0) {
+  if (avcodec_open (this->context, this->codec) < 0) {
     printf ("ffmpeg: couldn't open decoder\n");
     free(this->context);
     return;
@@ -215,7 +218,6 @@ static void find_sequence_header (ff_video_decoder_t *this,
     
     if (code == 0xb3) {	/* sequence_header_code */
 
-      AVCodec *codec = NULL;
       int width, height, frame_rate_code;
 
 #ifdef LOG  
@@ -275,14 +277,14 @@ static void find_sequence_header (ff_video_decoder_t *this,
        * init codec
        */
 
-      codec = avcodec_find_decoder (CODEC_ID_MPEG1VIDEO); 
-      if (!codec) {
+      this->codec = avcodec_find_decoder (CODEC_ID_MPEG1VIDEO); 
+      if (!this->codec) {
 	printf ("avcodec_find_decoder (CODEC_ID_MPEG1VIDEO) failed.\n");
 	abort();
       }
 
       this->is_continous = 1;
-      init_video_codec (this, codec, NULL);
+      init_video_codec (this, NULL);
     }
   }
 }
@@ -310,7 +312,6 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 
   if (buf->decoder_flags & BUF_FLAG_HEADER) {
 
-    AVCodec *codec = NULL;
     int codec_type;
 
 #ifdef LOG
@@ -329,68 +330,69 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
     /* init codec */
 
     codec_type = buf->type & 0xFFFF0000;
+    this->codec = NULL;
 
     switch (codec_type) {
     case BUF_VIDEO_MSMPEG4_V1:
-      codec = avcodec_find_decoder (CODEC_ID_MSMPEG4V1);
+      this->codec = avcodec_find_decoder (CODEC_ID_MSMPEG4V1);
       this->stream->meta_info[XINE_META_INFO_VIDEOCODEC] 
 	= strdup ("ms mpeg-4 v1 (ffmpeg)");
       break;
     case BUF_VIDEO_MSMPEG4_V2:
-      codec = avcodec_find_decoder (CODEC_ID_MSMPEG4V2);
+      this->codec = avcodec_find_decoder (CODEC_ID_MSMPEG4V2);
       this->stream->meta_info[XINE_META_INFO_VIDEOCODEC] 
 	= strdup ("ms mpeg-4 v2 (ffmpeg)");
       break;
     case BUF_VIDEO_MSMPEG4_V3:
-      codec = avcodec_find_decoder (CODEC_ID_MSMPEG4V3);
+      this->codec = avcodec_find_decoder (CODEC_ID_MSMPEG4V3);
       this->stream->meta_info[XINE_META_INFO_VIDEOCODEC] 
 	= strdup ("ms mpeg-4 v3 (ffmpeg)");
       break;
     case BUF_VIDEO_WMV7:
-      codec = avcodec_find_decoder (CODEC_ID_WMV1);
+      this->codec = avcodec_find_decoder (CODEC_ID_WMV1);
       this->stream->meta_info[XINE_META_INFO_VIDEOCODEC] 
 	= strdup ("ms wmv 7 (ffmpeg)");
       break;
     case BUF_VIDEO_WMV8:
-      codec = avcodec_find_decoder (CODEC_ID_WMV2);
+      this->codec = avcodec_find_decoder (CODEC_ID_WMV2);
       this->stream->meta_info[XINE_META_INFO_VIDEOCODEC] 
 	= strdup ("ms wmv 8 (ffmpeg)");
       break;
     case BUF_VIDEO_MPEG4 :
     case BUF_VIDEO_XVID :
     case BUF_VIDEO_DIVX5 :
-      codec = avcodec_find_decoder (CODEC_ID_MPEG4);
+      this->codec = avcodec_find_decoder (CODEC_ID_MPEG4);
       this->stream->meta_info[XINE_META_INFO_VIDEOCODEC] 
 	= strdup ("mpeg-4 (ffmpeg)");
       break;
     case BUF_VIDEO_JPEG:
     case BUF_VIDEO_MJPEG:
-      codec = avcodec_find_decoder (CODEC_ID_MJPEG);
+      this->codec = avcodec_find_decoder (CODEC_ID_MJPEG);
       this->stream->meta_info[XINE_META_INFO_VIDEOCODEC] 
 	= strdup ("mjpeg (ffmpeg)");
       break;
     case BUF_VIDEO_I263:
-      codec = avcodec_find_decoder (CODEC_ID_H263I);
+      this->codec = avcodec_find_decoder (CODEC_ID_H263I);
       this->stream->meta_info[XINE_META_INFO_VIDEOCODEC] 
 	= strdup ("i263 (ffmpeg)");
       break;
     case BUF_VIDEO_H263:
-      codec = avcodec_find_decoder (CODEC_ID_H263);
+      this->codec = avcodec_find_decoder (CODEC_ID_H263);
       this->stream->meta_info[XINE_META_INFO_VIDEOCODEC] 
 	= strdup ("h263 (ffmpeg)");
       break;
     case BUF_VIDEO_RV10:
-      codec = avcodec_find_decoder (CODEC_ID_RV10);
+      this->codec = avcodec_find_decoder (CODEC_ID_RV10);
       this->stream->meta_info[XINE_META_INFO_VIDEOCODEC] 
 	= strdup ("real video 1.0 (ffmpeg)");
       break;
     case BUF_VIDEO_SORENSON_V1:
-      codec = avcodec_find_decoder (CODEC_ID_SVQ1);
+      this->codec = avcodec_find_decoder (CODEC_ID_SVQ1);
       this->stream->meta_info[XINE_META_INFO_VIDEOCODEC] 
 	= strdup ("sorenson svq 1 (ffmpeg)");
       break;
     case BUF_VIDEO_DV:
-      codec = avcodec_find_decoder (CODEC_ID_DVVIDEO);
+      this->codec = avcodec_find_decoder (CODEC_ID_DVVIDEO);
       this->stream->meta_info[XINE_META_INFO_VIDEOCODEC] 
 	= strdup ("DV (ffmpeg)");
       break;
@@ -401,12 +403,12 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 	= strdup ("unknown (ffmpeg)");
     }
 
-    if (!codec) {
+    if (!this->codec) {
       printf ("ffmpeg: couldn't find decoder\n");
       return;
     }
 
-    init_video_codec (this, codec, (xine_bmiheader *)buf->content );
+    init_video_codec (this, (xine_bmiheader *)buf->content );
 
   } else if (this->decoder_ok) {
 
@@ -771,26 +773,26 @@ static void ff_audio_decode_data (audio_decoder_t *this_gen, buf_element_t *buf)
 
   if (buf->decoder_flags & BUF_FLAG_HEADER) {
 
-    AVCodec *codec = NULL;
     int codec_type;
     xine_waveformatex *audio_header = (xine_waveformatex *)buf->content;
 
     codec_type = buf->type & 0xFFFF0000;
+    this->codec = NULL;
 
     switch (codec_type) {
     case BUF_AUDIO_WMAV1:
-      codec = avcodec_find_decoder (CODEC_ID_WMAV1);
+      this->codec = avcodec_find_decoder (CODEC_ID_WMAV1);
       this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] 
 	= strdup ("Windows Media Audio v1 (ffmpeg)");
       break;
     case BUF_AUDIO_WMAV2:
-      codec = avcodec_find_decoder (CODEC_ID_WMAV2);
+      this->codec = avcodec_find_decoder (CODEC_ID_WMAV2);
       this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] 
 	= strdup ("Windows Media Audio v2 (ffmpeg)");
       break;
     }
 
-    if (!codec) {
+    if (!this->codec) {
       printf (" could not open ffmpeg decoder for buf type 0x%X\n",
         codec_type);
       return;
@@ -803,7 +805,7 @@ static void ff_audio_decode_data (audio_decoder_t *this_gen, buf_element_t *buf)
     this->context->channels = this->audio_channels = buf->decoder_info[3];
     this->context->block_align = audio_header->nBlockAlign;
     this->context->bit_rate = audio_header->nAvgBytesPerSec * 8;
-    this->context->codec_id = codec->id;
+    this->context->codec_id = this->codec->id;
     this->context->fourcc = this->stream->stream_info[XINE_STREAM_INFO_AUDIO_FOURCC];
     if( audio_header->cbSize > 0 ) {
       this->context->extradata = malloc(audio_header->cbSize);
@@ -819,7 +821,7 @@ static void ff_audio_decode_data (audio_decoder_t *this_gen, buf_element_t *buf)
 
     this->decode_buffer = xine_xmalloc(100000);
 
-    if (avcodec_open (this->context, codec) < 0) {
+    if (avcodec_open (this->context, this->codec) < 0) {
       printf ("ffmpeg: couldn't open decoder\n");
       return;
     }
@@ -922,6 +924,10 @@ static void ff_audio_reset (audio_decoder_t *this_gen) {
   ff_audio_decoder_t *this = (ff_audio_decoder_t *) this_gen;
   
   this->size = 0;
+
+  /* try to reset the wma decoder */  
+  avcodec_close (this->context);
+  avcodec_open (this->context, this->codec);
 }
 
 static void ff_audio_discontinuity (audio_decoder_t *this_gen) {
@@ -930,6 +936,8 @@ static void ff_audio_discontinuity (audio_decoder_t *this_gen) {
 static void ff_audio_dispose (audio_decoder_t *this_gen) {
 
   ff_audio_decoder_t *this = (ff_audio_decoder_t *) this_gen;
+  
+  avcodec_close (this->context);
 
   if (this->output_open)
     this->stream->audio_out->close (this->stream->audio_out, this->stream);
