@@ -4,6 +4,8 @@ xine-lib (1-rc4)
   * Win32 Cygwin updates, using DirectX
   * new demuxer for Interchange File Format (iff) for IFF-8SVX and IFF-16SV
   * fixed problem with jumpy visualization especially on ogg files
+  * dxr3: fix situation, where the initial menu on some DVDs would have
+    the wrong aspect
 
 xine-lib (1-rc3a)
   * new subtitle formats: jacobsub, subviewer 2.0, subrip 0.9

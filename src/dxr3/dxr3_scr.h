@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_scr.h,v 1.6 2003/12/09 00:02:29 f1rmb Exp $
+ * $Id: dxr3_scr.h,v 1.7 2004/01/04 22:26:29 mroi Exp $
  */
 
 #include "xine_internal.h"
@@ -28,13 +28,15 @@ typedef struct dxr3_scr_s {
   scr_plugin_t    scr_plugin;
   pthread_mutex_t mutex;
   
+  xine_t         *xine;
+  
   int             fd_control; /* to access the dxr3 control device */
   
   int             priority;
   int64_t         offset;     /* difference between real scr and internal dxr3 clock */
   uint32_t        last_pts;   /* last known value of internal dxr3 clock to detect wrap around */
   int             scanning;   /* are we in a scanning mode */
-  xine_t         *xine;
+  int             sync;       /* are we in sync mode */
 } dxr3_scr_t;
 
 /* plugin initialization function */

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_mpeg_encoders.c,v 1.16 2003/12/06 13:26:36 f1rmb Exp $
+ * $Id: dxr3_mpeg_encoders.c,v 1.17 2004/01/04 22:26:29 mroi Exp $
  */
  
 /* mpeg encoders for the dxr3 video out plugin.
@@ -251,15 +251,6 @@ static int rte_on_update_format(dxr3_driver_t *drv, dxr3_frame_t *frame)
     return 0;
   }
   
-  /* set the dxr3 playmode */
-  if (drv->enhanced_mode) {
-    em8300_register_t regs; 
-    regs.microcode_register = 1;
-    regs.reg = 0;
-    regs.val = MVCOMMAND_SYNC;
-    ioctl(drv->fd_control, EM8300_IOCTL_WRITEREG, &regs);
-  }
-  
   return 1;
 }
 
@@ -446,15 +437,6 @@ static int fame_on_update_format(dxr3_driver_t *drv, dxr3_frame_t *frame)
   }
   
   fame_init (this->context, &this->fp, this->buffer, DEFAULT_BUFFER_SIZE);
-  
-  /* set the dxr3 playmode */
-  if (drv->enhanced_mode) {
-    em8300_register_t regs; 
-    regs.microcode_register = 1;
-    regs.reg = 0;
-    regs.val = MVCOMMAND_SYNC;
-    ioctl(drv->fd_control, EM8300_IOCTL_WRITEREG, &regs);
-  }
   
   return 1;
 }

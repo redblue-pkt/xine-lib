@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3.h,v 1.20 2003/12/05 15:54:58 f1rmb Exp $
+ * $Id: video_out_dxr3.h,v 1.21 2004/01/04 22:26:29 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -49,6 +49,8 @@ struct coeff {
 };
 
 typedef struct dxr3_overlay_s {
+  xine_t          *xine;
+  
   int              fd_control;
 
   int              xoffset;
@@ -65,7 +67,6 @@ typedef struct dxr3_overlay_s {
 
   struct coeff     colcal_upper[3];
   struct coeff     colcal_lower[3];
-  xine_t          *xine;
 } dxr3_overlay_t;
 
 typedef struct dxr3_driver_class_s {

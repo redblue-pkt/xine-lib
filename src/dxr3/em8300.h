@@ -79,6 +79,7 @@ typedef struct {
 #define EM8300_IOCTL_SCR_GETSPEED _IOR('C',17,unsigned)
 #define EM8300_IOCTL_SCR_SETSPEED _IOW('C',17,unsigned)
 #define EM8300_IOCTL_FLUSH _IOW('C',18,int)
+#define EM8300_IOCTL_VBI _IOW('C',19,struct timeval)
 
 #define EM8300_OVERLAY_SIGNAL_ONLY 1
 #define EM8300_OVERLAY_SIGNAL_WITH_VGA 2
@@ -323,8 +324,10 @@ struct em8300_s
 	int video_ptsfifo_ptr;
 #if LINUX_VERSION_CODE < 0x020314    
 	struct wait_queue *video_ptsfifo_wait;
+	struct wait_queue *vbi_wait;
 #else
 	wait_queue_head_t video_ptsfifo_wait;
+	wait_queue_head_t vbi_wait;
 #endif
 	int video_ptsfifo_waiting;
 	int video_first;
@@ -358,6 +361,14 @@ struct em8300_s
 	int overlay_xcorr_default;
 	int overlay_70;
 	int overlay_dword_24bb8;
+
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2,4,0)
+	/* Memory exported via mmap() */
+	struct list_head  memory;
+#endif	
+
+	/* To support different options for different cards */
+	unsigned int card_nr;
 };
 
 #define TIMEDIFF(a,b) a.tv_usec - b.tv_usec + \
@@ -384,7 +395,7 @@ int em8300_audio_flush(struct em8300_s *em);
 int em8300_audio_open(struct em8300_s *em);
 int em8300_audio_release(struct em8300_s *em);
 int em8300_audio_setup(struct em8300_s *em);
-int em8300_audio_write(struct em8300_s *em, const char * buf,
+ssize_t em8300_audio_write(struct em8300_s *em, const char * buf,
 		       size_t count, loff_t *ppos);
 int mpegaudio_command(struct em8300_s *em, int cmd);
 
@@ -415,13 +426,13 @@ int em8300_video_flush(struct em8300_s *em);
 int em8300_video_setup(struct em8300_s *em);
 int em8300_video_release(struct em8300_s *em);
 void em8300_video_setspeed(struct em8300_s *em, int speed);
-int em8300_video_write(struct em8300_s *em, const char * buf,
+ssize_t em8300_video_write(struct em8300_s *em, const char * buf,
 		       size_t count, loff_t *ppos);
 int em8300_video_ioctl(struct em8300_s *em, unsigned int cmd, unsigned long arg);
 void em8300_video_check_ptsfifo(struct em8300_s *em);
 
 /* em8300_spu.c */
-int em8300_spu_write(struct em8300_s *em, const char * buf,
+ssize_t em8300_spu_write(struct em8300_s *em, const char * buf,
 		       size_t count, loff_t *ppos);
 int em8300_spu_open(struct em8300_s *em);
 int em8300_spu_ioctl(struct em8300_s *em, unsigned int cmd, unsigned long arg);
@@ -439,7 +450,7 @@ int em8300_ioctl_init(struct em8300_s *em, em8300_microcode_t *useruc);
 void em8300_ioctl_enable_videoout(struct em8300_s *em, int mode);
 int em8300_ioctl_setplaymode(struct em8300_s *em, int mode);
 int em8300_ioctl_setaudiomode(struct em8300_s *em, int mode);
-int em8300_ioctl_getaudiomode(struct em8300_s *em, int mode);
+int em8300_ioctl_getaudiomode(struct em8300_s *em, long int mode);
 int em8300_ioctl_overlay_calibrate(struct em8300_s *em, em8300_overlay_calibrate_t *c);
 int em8300_ioctl_overlay_setwindow(struct em8300_s *em,em8300_overlay_window_t *w);
 int em8300_ioctl_overlay_setscreen(struct em8300_s *em,em8300_overlay_screen_t *s);

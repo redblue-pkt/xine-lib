@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3.c,v 1.96 2003/12/14 22:13:22 siggi Exp $
+ * $Id: video_out_dxr3.c,v 1.97 2004/01/04 22:26:29 mroi Exp $
  */
  
 /* mpeg1 encoding video out plugin for the dxr3.  
@@ -896,6 +896,9 @@ static void dxr3_display_frame(vo_driver_t *this_gen, vo_frame_t *frame_gen)
     this->aspect = dxr3_set_property(this_gen, VO_PROP_ASPECT_RATIO,
       (this->widescreen_enabled ? XINE_VO_ASPECT_4_3 : frame->aspect));
   if (frame->pan_scan && !this->pan_scan) {
+    /* the card needs a break before enabling zoom mode, otherwise it fails
+     * sometimes (like in the initial menu of "Breakfast at Tiffany's" RC2) */
+    xine_usec_sleep(50000);
     dxr3_set_property(this_gen, VO_PROP_ZOOM_X, 1);
     this->pan_scan = 1;
   }
@@ -937,8 +940,19 @@ static void dxr3_display_frame(vo_driver_t *this_gen, vo_frame_t *frame_gen)
       
       if (this->need_update) {
 	/* we cannot do this earlier, because vo_frame.duration is only valid here */
-	if (this->enc && this->enc->on_update_format)
-	  this->enc->on_update_format(this, frame);
+	if (this->enc && this->enc->on_update_format) {
+	  /* set the dxr3 playmode */
+	  if (this->enc->on_update_format(this, frame) && this->enhanced_mode) {
+	    em8300_register_t reg; 
+	    reg.microcode_register = 1;
+	    reg.reg = 0;
+	    reg.val = MVCOMMAND_SYNC;
+	    ioctl(this->fd_control, EM8300_IOCTL_WRITEREG, &reg);
+	    pthread_mutex_lock(&this->class->scr->mutex);
+	    this->class->scr->sync = 1;
+	    pthread_mutex_unlock(&this->class->scr->mutex);
+	  }
+	}
 	this->need_update = 0;
       }
       

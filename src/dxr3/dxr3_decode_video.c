@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decode_video.c,v 1.49 2003/12/14 22:13:22 siggi Exp $
+ * $Id: dxr3_decode_video.c,v 1.50 2004/01/04 22:26:28 mroi Exp $
  */
  
 /* dxr3 video decoder plugin.
@@ -136,10 +136,10 @@ typedef struct dxr3_decoder_s {
 } dxr3_decoder_t;
 
 /* helper functions */
-static int       dxr3_present(xine_stream_t *stream);
-static int       dxr3_mvcommand(int fd_control, int command);
-static void      parse_mpeg_header(dxr3_decoder_t *this, uint8_t *buffer);
-static int       get_duration(dxr3_decoder_t *this);
+static inline int  dxr3_present(xine_stream_t *stream);
+static inline int  dxr3_mvcommand(int fd_control, int command);
+static inline void parse_mpeg_header(dxr3_decoder_t *this, uint8_t *buffer);
+static inline int  get_duration(dxr3_decoder_t *this);
 
 /* config callbacks */
 static void      dxr3_update_sync_mode(void *this_gen, xine_cfg_entry_t *entry);
@@ -428,6 +428,9 @@ static void dxr3_decode_data(video_decoder_t *this_gen, buf_element_t *buf)
 #endif
         dxr3_mvcommand(this->fd_control, MVCOMMAND_SYNC);
         this->resync_window = -RESYNC_WINDOW_SIZE;
+	pthread_mutex_lock(&this->scr->mutex);
+	this->scr->sync = 1;
+	pthread_mutex_unlock(&this->scr->mutex);
       }
       if (this->resync_window != 0 && this->resync_window > -RESYNC_WINDOW_SIZE)
         this->resync_window--;
@@ -459,6 +462,9 @@ static void dxr3_decode_data(video_decoder_t *this_gen, buf_element_t *buf)
 #endif
         dxr3_mvcommand(this->fd_control, MVCOMMAND_START);
         this->resync_window = RESYNC_WINDOW_SIZE;
+	pthread_mutex_lock(&this->scr->mutex);
+	this->scr->sync = 0;
+	pthread_mutex_unlock(&this->scr->mutex);
       }
       if (this->resync_window != 0 && this->resync_window < RESYNC_WINDOW_SIZE)
         this->resync_window++;
@@ -638,7 +644,7 @@ static void dxr3_dispose(video_decoder_t *this_gen)
 }
 
 
-static int dxr3_present(xine_stream_t *stream)
+static inline int dxr3_present(xine_stream_t *stream)
 {
   plugin_node_t *node;
   video_driver_class_t *vo_class;
@@ -658,18 +664,18 @@ static int dxr3_present(xine_stream_t *stream)
   return present;
 }
 
-static int dxr3_mvcommand(int fd_control, int command)
+static inline int dxr3_mvcommand(int fd_control, int command)
 {
-  em8300_register_t regs;
+  em8300_register_t reg;
   
-  regs.microcode_register = 1;
-  regs.reg = 0;
-  regs.val = command;
+  reg.microcode_register = 1;
+  reg.reg = 0;
+  reg.val = command;
   
-  return ioctl(fd_control, EM8300_IOCTL_WRITEREG, &regs);
+  return ioctl(fd_control, EM8300_IOCTL_WRITEREG, &reg);
 }
 
-static void parse_mpeg_header(dxr3_decoder_t *this, uint8_t * buffer)
+static inline void parse_mpeg_header(dxr3_decoder_t *this, uint8_t * buffer)
 {
   this->frame_rate_code = buffer[3] & 15;
   this->height          = (buffer[0] << 16) |
@@ -727,7 +733,7 @@ static void parse_mpeg_header(dxr3_decoder_t *this, uint8_t * buffer)
   }
 }
 
-static int get_duration(dxr3_decoder_t *this)
+static inline int get_duration(dxr3_decoder_t *this)
 {
   int duration;
   
