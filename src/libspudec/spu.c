@@ -36,7 +36,7 @@
  * along with this program; see the file COPYING.  If not, write to
  * the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: spu.c,v 1.75 2004/04/10 17:17:06 mroi Exp $
+ * $Id: spu.c,v 1.76 2004/06/26 13:49:54 mroi Exp $
  *
  */
 
@@ -702,13 +702,11 @@ static void spudec_do_commands(xine_t *xine, spudec_state_t *state, spudec_seq_t
       break;
     }
   }
+  
   if (next_seq >= seq->buf + seq->seq_len)
     seq->finished = 1;       /* last sub-sequence */
-  
-  state->cmd_ptr = next_seq;
-
-
 }
+
 /* FIXME: Get rid of all these static values */
 static uint8_t *bit_ptr[2];
 static int field;		// which field we are currently decoding
