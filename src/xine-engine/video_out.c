@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.208 2004/10/08 21:08:26 mroi Exp $
+ * $Id: video_out.c,v 1.209 2004/10/09 06:44:21 mroi Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -432,7 +432,7 @@ static int vo_frame_draw (vo_frame_t *img, xine_stream_t *stream) {
 
   if (!img->bad_frame) {
   
-    int img_already_locked = 1;
+    int img_already_locked = 0;
     
     /* perform cropping when vo driver does not support it */
     if( (img->crop_left || img->crop_top || 
@@ -441,7 +441,7 @@ static int vo_frame_draw (vo_frame_t *img, xine_stream_t *stream) {
          !(this->driver->get_capabilities (this->driver) & VO_CAP_CROP)) ) {
       if (img->format == XINE_IMGFMT_YV12 || img->format == XINE_IMGFMT_YUY2) {
         img = crop_frame( img->port, img );
-        img_already_locked = 0;
+        img_already_locked = 1;
       } else {
 	/* noone knows how to crop this, so we can only ignore the cropping */
 	img->crop_left   = 0;
