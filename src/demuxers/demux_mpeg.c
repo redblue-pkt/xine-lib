@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_mpeg.c,v 1.122 2003/07/25 21:02:05 miguelfreitas Exp $
+ * $Id: demux_mpeg.c,v 1.123 2003/08/19 12:43:46 miguelfreitas Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  * reads streams of variable blocksizes
@@ -667,7 +667,7 @@ static uint32_t parse_pack(demux_mpeg_t *this) {
 
   buf = read_bytes (this, 1);
 
-  if ((buf>>4) == 4) {
+  if ((buf>>6) == 0x01) {
 
     int stuffing, i;
 
@@ -675,8 +675,8 @@ static uint32_t parse_pack(demux_mpeg_t *this) {
 
     /* system_clock_reference */
 
-    scr  = (buf & 0x08) << 27;
-    scr  = (buf & 0x03) << 28;
+    scr  = (buf & 0x38) << 27;
+    scr |= (buf & 0x03) << 28;
     buf  = read_bytes (this, 1);
     scr |= buf << 20;
     buf  = read_bytes (this, 1);
@@ -777,7 +777,7 @@ static uint32_t parse_pack_preview (demux_mpeg_t *this, int *num_buffers) {
   /* system_clock_reference */
   buf = read_bytes (this, 1);
 
-  if ((buf>>4) == 4) {
+  if ((buf>>6) == 0x01) {
      buf = read_bytes(this, 1);
      mpeg_version = 2;
   } else {
@@ -808,6 +808,18 @@ static uint32_t parse_pack_preview (demux_mpeg_t *this, int *num_buffers) {
 
   } else
     buf = read_bytes (this, 3) ;
+
+  if( mpeg_version == 2 )
+  {
+    int i, stuffing;
+
+    buf = read_bytes(this,1);
+
+    /* stuffing bytes */
+    stuffing = buf &0x03;
+    for (i=0; i<stuffing; i++)
+      read_bytes (this, 1);
+  }
 
   /* system header */
 
