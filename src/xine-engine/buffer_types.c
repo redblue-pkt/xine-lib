@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer_types.c,v 1.39 2002/08/29 06:06:03 tmmm Exp $
+ * $Id: buffer_types.c,v 1.40 2002/09/01 04:24:35 tmmm Exp $
  *
  *
  * contents:
@@ -651,6 +651,24 @@ static audio_db_t audio_db[] = {
   },
   BUF_AUDIO_QCLP,
   "Qualcomm PureVoice"
+},
+{
+  {
+    0x7,
+    meFOURCC('u', 'l', 'a', 'w'),
+    0
+  },
+  BUF_AUDIO_MULAW,
+  "mu-law logarithmic PCM"
+},
+{
+  {
+    0x6,
+    meFOURCC('a', 'l', 'a', 'w'),
+    0
+  },
+  BUF_AUDIO_ALAW,
+  "A-law logarithmic PCM"
 },
 { { 0 }, 0, "last entry" }
 };

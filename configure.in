@@ -1184,7 +1184,8 @@ dnl audio decoders
 echo " * audio decoder plugins:"
 echo "   - a52             - dts"
 echo "   - mad             - adpcm"
-echo "   - lpcm            - roqaudio"
+echo "   - linear pcm      - roqaudio"
+echo "   - log pcm"
 if test x"$no_oggvorbis" = "xno"; then
   echo "   - vorbis"
 fi
