@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.26 2001/06/23 19:45:47 guenter Exp $
+ * $Id: video_decoder.c,v 1.27 2001/06/24 04:32:36 guenter Exp $
  *
  */
 
@@ -143,7 +143,7 @@ void video_decoder_shutdown (xine_t *this) {
   buf_element_t *buf;
   void          *p;
 
-  this->video_fifo->clear(this->video_fifo);
+  /* this->video_fifo->clear(this->video_fifo); */
 
   buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
   buf->type = BUF_CONTROL_QUIT;
