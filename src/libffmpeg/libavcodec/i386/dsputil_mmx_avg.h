@@ -21,7 +21,7 @@
  * mostly rewritten by Michael Niedermayer <michaelni@gmx.at>
  * and improved by Zdenek Kabelac <kabi@users.sf.net>
  */
- 
+
 /* XXX: we use explicit registers to avoid a gcc 2.95.2 register asm
    clobber bug - now it will work with 2.95.2 and also with -fPIC
  */
@@ -92,7 +92,7 @@ static void DEF(put_pixels16_x2)(UINT8 *block, const UINT8 *pixels, int line_siz
 	:"r" (line_size)
 	:"%eax", "memory");
 }
- 
+
 /* GL: this function does incorrect rounding if overflow */
 static void DEF(put_no_rnd_pixels8_x2)(UINT8 *block, const UINT8 *pixels, int line_size, int h)
 {
@@ -293,7 +293,7 @@ static void DEF(avg_pixels8_y2)(UINT8 *block, const UINT8 *pixels, int line_size
 	:"%eax", "memory");
 }
 
-// Note this is not correctly rounded, but this function is only used for b frames so it doesnt matter 
+/* Note this is not correctly rounded, but this function is only used for b frames so it doesnt matter */
 static void DEF(avg_pixels8_xy2)(UINT8 *block, const UINT8 *pixels, int line_size, int h)
 {
     MOVQ_BONE(mm6);
@@ -335,7 +335,7 @@ static void DEF(avg_pixels8_xy2)(UINT8 *block, const UINT8 *pixels, int line_siz
 	:"%eax",  "memory");
 }
 
-//FIXME the following could be optimized too ...
+/* FIXME the following could be optimized too ... */
 static void DEF(put_no_rnd_pixels16_x2)(UINT8 *block, const UINT8 *pixels, int line_size, int h){
     DEF(put_no_rnd_pixels8_x2)(block  , pixels  , line_size, h);
     DEF(put_no_rnd_pixels8_x2)(block+8, pixels+8, line_size, h);

@@ -21,7 +21,7 @@
  * and improved by Zdenek Kabelac <kabi@users.sf.net>
  */
 
-// put_pixels
+/* put_pixels */
 static void DEF(put, pixels8_x2)(UINT8 *block, const UINT8 *pixels, int line_size, int h)
 {
     MOVQ_BFE(mm6);
@@ -132,7 +132,7 @@ static void DEF(put, pixels8_y2)(UINT8 *block, const UINT8 *pixels, int line_siz
 static void DEF(put, pixels8_xy2)(UINT8 *block, const UINT8 *pixels, int line_size, int h)
 {
     MOVQ_ZERO(mm7);
-    SET_RND(mm6); // =2 for rnd  and  =1 for no_rnd version
+    SET_RND(mm6); /* =2 for rnd  and  =1 for no_rnd version */
     __asm __volatile(
 	"movq	(%1), %%mm0		\n\t"
 	"movq	1(%1), %%mm4		\n\t"
@@ -168,7 +168,7 @@ static void DEF(put, pixels8_xy2)(UINT8 *block, const UINT8 *pixels, int line_si
 	"movq	%%mm4, (%2, %%eax)	\n\t"
 	"addl	%3, %%eax		\n\t"
 
-	"movq	(%1, %%eax), %%mm2	\n\t" // 0 <-> 2   1 <-> 3
+	"movq	(%1, %%eax), %%mm2	\n\t" /* 0 <-> 2   1 <-> 3 */
 	"movq	1(%1, %%eax), %%mm4	\n\t"
 	"movq	%%mm2, %%mm3		\n\t"
 	"movq	%%mm4, %%mm5		\n\t"
@@ -195,8 +195,8 @@ static void DEF(put, pixels8_xy2)(UINT8 *block, const UINT8 *pixels, int line_si
 	:"eax", "memory");
 }
 
-// avg_pixels
-// in case more speed is needed - unroling would certainly help
+/*  avg_pixels */
+/*  in case more speed is needed - unroling would certainly help */
 static void DEF(avg, pixels8)(UINT8 *block, const UINT8 *pixels, int line_size, int h)
 {
     MOVQ_BFE(mm6);
@@ -324,11 +324,11 @@ static void DEF(avg, pixels8_y2)(UINT8 *block, const UINT8 *pixels, int line_siz
 	:"eax", "memory");
 }
 
-// this routine is 'slightly' suboptimal but mostly unused
+/* this routine is 'slightly' suboptimal but mostly unused */
 static void DEF(avg, pixels8_xy2)(UINT8 *block, const UINT8 *pixels, int line_size, int h)
 {
     MOVQ_ZERO(mm7);
-    SET_RND(mm6); // =2 for rnd  and  =1 for no_rnd version
+    SET_RND(mm6); /* =2 for rnd  and  =1 for no_rnd version */
     __asm __volatile(
 	"movq	(%1), %%mm0		\n\t"
 	"movq	1(%1), %%mm4		\n\t"
@@ -368,7 +368,7 @@ static void DEF(avg, pixels8_xy2)(UINT8 *block, const UINT8 *pixels, int line_si
 		"movq	%%mm5, (%2, %%eax)	\n\t"
 	"addl	%3, %%eax		\n\t"
 
-	"movq	(%1, %%eax), %%mm2	\n\t" // 0 <-> 2   1 <-> 3
+	"movq	(%1, %%eax), %%mm2	\n\t" /* 0 <-> 2   1 <-> 3 */
 	"movq	1(%1, %%eax), %%mm4	\n\t"
 	"movq	%%mm2, %%mm3		\n\t"
 	"movq	%%mm4, %%mm5		\n\t"
@@ -399,7 +399,7 @@ static void DEF(avg, pixels8_xy2)(UINT8 *block, const UINT8 *pixels, int line_si
 	:"eax", "memory");
 }
 
-//FIXME optimize
+/* FIXME optimize */
 static void DEF(put, pixels16_y2)(UINT8 *block, const UINT8 *pixels, int line_size, int h){
     DEF(put, pixels8_y2)(block  , pixels  , line_size, h);
     DEF(put, pixels8_y2)(block+8, pixels+8, line_size, h);
