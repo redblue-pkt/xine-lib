@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.11 2001/05/28 01:28:11 f1rmb Exp $
+ * $Id: video_out.c,v 1.12 2001/06/03 18:08:56 guenter Exp $
  *
  */
 
@@ -239,6 +239,26 @@ static void *video_out_loop (void *this_gen) {
     xprintf (VERBOSE|VIDEO, "video_out : passing to video driver, image with pts = %d\n", pts);
     this->driver->display_frame (this->driver, img); 
   }
+
+  /*
+   * throw away undisplayed frames
+   */
+  
+  img = this->display_img_buf_queue->first;
+  while (img) {
+    
+    img = vo_remove_from_img_buf_queue (this->display_img_buf_queue);
+    pthread_mutex_lock (&img->mutex);
+
+    if (!img->bDecoderLock) 
+      vo_append_to_img_buf_queue (this->free_img_buf_queue, img);
+
+    img->bDisplayLock = 0;
+    pthread_mutex_unlock (&img->mutex);
+
+    img = this->display_img_buf_queue->first;
+  }
+
   pthread_exit(NULL);
 }
 
@@ -260,8 +280,6 @@ static vo_frame_t *vo_get_frame (vo_instance_t *this,
 
   vo_frame_t *img;
 
-  /* printf ("video_out: vo_get_frame\n");  */
-
   if (this->pts_per_frame != duration) {
     this->pts_per_frame = duration;
     this->pts_per_half_frame = duration / 2;
@@ -281,8 +299,6 @@ static vo_frame_t *vo_get_frame (vo_instance_t *this,
 
   pthread_mutex_unlock (&img->mutex);
   
-  /* printf ("video_out: vo_get_frame done\n");  */
-
   return img;
 }
 
@@ -357,7 +373,6 @@ static int vo_frame_draw (vo_frame_t *img) {
   this->num_frames_delivered++;
 
   xprintf (VERBOSE|VIDEO,"video_out: got image. vpts for picture is %d\n", pic_vpts);
-
 
   cur_vpts = this->metronom->get_current_time(this->metronom);
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.30 2001/06/02 14:41:18 f1rmb Exp $
+ * $Id: video_out_xv.c,v 1.31 2001/06/03 18:08:56 guenter Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -142,7 +142,7 @@ static void xv_frame_field (vo_frame_t *vo_img, int which_field) {
 
 static void xv_frame_dispose (vo_frame_t *vo_img) {
 
-  xv_frame_t     *frame = (xv_frame_t *) vo_img ;
+  /* xv_frame_t     *frame = (xv_frame_t *) vo_img ;*/
 
   /* FIXME: implement */  
 
@@ -792,7 +792,7 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
 	  xv_check_capability (this, VO_CAP_COLORKEY, 
 			       VO_PROP_COLORKEY, attr[k],
 			       adaptor_info[i].base_id, "XV_COLORKEY");
-	  printf("XV_COLORKEY ");
+	  printf("video_out_xv: colorkey is %08x ", this->props[VO_PROP_COLORKEY].value);
 	}
       }
     }

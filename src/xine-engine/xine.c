@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.20 2001/05/28 21:47:43 f1rmb Exp $
+ * $Id: xine.c,v 1.21 2001/06/03 18:08:56 guenter Exp $
  *
  * top-level xine functions
  *
@@ -89,15 +89,13 @@ void xine_stop (xine_t *this) {
     this->cur_input_plugin = NULL;
   }
 
-  this->video_fifo->clear(this->video_fifo);
-  this->audio_fifo->clear(this->audio_fifo);
+  video_decoder_stop (this);
+  audio_decoder_stop (this);
+
   this->spu_fifo->clear(this->spu_fifo);
 
-  if (this->audio_out)
-    this->audio_out->close (this->audio_out);
-
-  this->metronom->reset(this->metronom);
   this->metronom->stop_clock (this->metronom);
+  this->metronom->reset(this->metronom);
 
   pthread_mutex_unlock (&this->xine_lock);
 }
@@ -316,28 +314,25 @@ int xine_eject (xine_t *this) {
 void xine_exit (xine_t *this) {
 
   /*
-  void *p;
-  buf_element_t *buf;
-  */
-  /*
    * stop decoder threads
    */
 
-  printf ("xine.c : xine_exit FIXME - not implemented\n");
+  if(this->cur_demuxer_plugin) {
+    this->cur_demuxer_plugin->stop (this->cur_demuxer_plugin);
+    this->cur_demuxer_plugin = NULL;
+  }
 
-  /*
-  if (this->cur_input_plugin)
-    this->cur_input_plugin->demux_stop ();
+  if(this->cur_input_plugin) {
+    this->cur_input_plugin->close(this->cur_input_plugin);
+    this->cur_input_plugin = NULL;
+  }
 
-  this->fifo_funcs->fifo_buffer_clear(this->spu_fifo);
-
-  audio_decoder_shutdown ();
-  video_decoder_shutdown ();
+  audio_decoder_shutdown (this);
+  video_decoder_shutdown (this);
 
   this->status = XINE_QUIT;
 
-  config_file_save ();
-  */
+  this->config->save (this->config);
 }
 
 /*

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.11 2001/05/30 02:09:24 f1rmb Exp $
+ * $Id: audio_decoder.c,v 1.12 2001/06/03 18:08:56 guenter Exp $
  *
  *
  * functions that implement audio decoding
@@ -181,6 +181,15 @@ void audio_decoder_init (xine_t *this) {
   this->audio_fifo = fifo_buffer_new (1500, 4096);
 
   pthread_create (&this->audio_thread, NULL, audio_decoder_loop, this) ;
+}
+
+void audio_decoder_stop (xine_t *this) {
+  this->audio_fifo->clear(this->audio_fifo);
+
+  if (this->cur_audio_decoder_plugin) {
+    this->cur_audio_decoder_plugin->close (this->cur_audio_decoder_plugin);
+    this->cur_audio_decoder_plugin = NULL;
+  }
 }
 
 void audio_decoder_shutdown (xine_t *this) {

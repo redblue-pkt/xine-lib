@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.c,v 1.6 2001/05/27 23:48:12 guenter Exp $
+ * $Id: metronom.c,v 1.7 2001/06/03 18:08:56 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -67,6 +67,9 @@ static void metronom_reset (metronom_t *this) {
   this->av_offset                 = 0;
 
   this->stopped                   = 1;
+
+  this->last_pts                  = 0;
+  this->start_pts                 = 0;
 
   pthread_mutex_unlock (&this->lock);
 }
