@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpgaudio.c,v 1.132 2003/12/07 23:05:41 tmattern Exp $
+ * $Id: demux_mpgaudio.c,v 1.133 2004/03/01 21:03:19 tmattern Exp $
  *
  * demultiplexer for mpeg audio (i.e. mp3) streams
  *
@@ -68,6 +68,7 @@
 #define XING_BYTES_FLAG      0x0002
 #define XING_TOC_FLAG        0x0004
 #define XING_VBR_SCALE_FLAG  0x0008
+#define XING_TOC_LENGTH      100
 
 typedef struct {
   /* header */
@@ -280,42 +281,44 @@ static int mpg123_parse_xing_header(demux_mpgaudio_t *this, uint8_t *buf, int bu
     else
       ptr += (9 + 4);
   }
-
-  if (ptr >= (buf + bufsize)) return 0;
+  
+  if (ptr >= (buf + bufsize - 4)) return 0;
   lprintf("checking %08X\n", *ptr);
   if (mpg123_xhead_check(ptr)) {
     lprintf("Xing header found\n");
-
-    ptr += 4; if (ptr >= (buf + bufsize)) return 0;
-
-    this->xflags = BE_32(ptr);
-    ptr += 4; if (ptr >= (buf + bufsize)) return 0;
+    ptr += 4;
+    
+    if (ptr >= (buf + bufsize - 4)) return 0;
+    this->xflags = BE_32(ptr); ptr += 4;
 
     if (this->xflags & XING_FRAMES_FLAG) {
-      this->xframes = BE_32(ptr);
+	    if (ptr >= (buf + bufsize - 4)) return 0;
+      this->xframes = BE_32(ptr); ptr += 4;
       lprintf("xframes: %d\n", this->xframes);
-      ptr += 4; if (ptr >= (buf + bufsize)) return 0;
     }
     if (this->xflags & XING_BYTES_FLAG) {
-      this->xbytes = BE_32(ptr);
+      if (ptr >= (buf + bufsize - 4)) return 0;
+      this->xbytes = BE_32(ptr); ptr += 4;
       lprintf("xbytes: %d\n", this->xbytes);
-      ptr += 4; if (ptr >= (buf + bufsize)) return 0;
     }
     if (this->xflags & XING_TOC_FLAG) {
       lprintf("toc found\n");
-      for (i = 0; i < 100; i++) {
+      if (ptr >= (buf + bufsize - XING_TOC_LENGTH)) return 0;
+
+      for (i = 0; i < XING_TOC_LENGTH; i++) {
         this->xtoc[i] = *(ptr + i);
 #ifdef LOG
         printf("%d ", this->xtoc[i]);
 #endif
       }
 #ifdef LOG
-        printf("\n");
+      printf("\n");
 #endif
+	    ptr += XING_TOC_LENGTH;
     }
-    ptr += 100; if (ptr >= (buf + bufsize)) return 0;
     this->xvbr_scale = -1;
     if (this->xflags & XING_VBR_SCALE_FLAG) {
+      if (ptr >= (buf + bufsize - 4)) return 0;
       this->xvbr_scale = BE_32(ptr);
       lprintf("xvbr_scale: %d\n", this->xvbr_scale);
     }
