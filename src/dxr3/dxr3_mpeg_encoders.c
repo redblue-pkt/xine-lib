@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_mpeg_encoders.c,v 1.7 2002/07/16 16:21:14 mroi Exp $
+ * $Id: dxr3_mpeg_encoders.c,v 1.8 2002/07/17 14:58:12 mroi Exp $
  */
  
 /* mpeg encoders for the dxr3 video out plugin.
@@ -191,7 +191,7 @@ static int rte_on_update_format(dxr3_driver_t *drv, dxr3_frame_t *frame)
    * and context->video_bytes (= width * height * bytes/pixel)
    */
   rte_set_video_parameters(context, 
-    (drv->format == IMGFMT_YV12 ? RTE_YUV420 : RTE_YUYV),
+    (frame->vo_frame.format == IMGFMT_YV12 ? RTE_YUV420 : RTE_YUYV),
     context->width, context->height, 
     context->video_rate, context->output_video_bits,
     context->gop_sequence);
@@ -345,7 +345,7 @@ static int fame_on_update_format(dxr3_driver_t *drv, dxr3_frame_t *frame)
   
   /* if YUY2 and dimensions changed, we need to re-allocate the
    * internal YV12 buffer */
-  if (drv->format == IMGFMT_YUY2) {
+  if (frame->vo_frame.format == IMGFMT_YUY2) {
     int image_size = drv->video_width * drv->video_oheight;
 
     this->out[0] = xine_xmalloc_aligned(16, image_size * 3/2, 
@@ -466,7 +466,7 @@ static int fame_on_display_frame(dxr3_driver_t *drv, dxr3_frame_t *frame)
   ssize_t written;
   int size;
 
-  if ((frame->width != this->fp.width) || (frame->oheight != this->fp.height)) {
+  if ((frame->vo_frame.width != this->fp.width) || (frame->oheight != this->fp.height)) {
     /* probably an old frame for a previous context. ignore it */
     frame->vo_frame.displayed(&frame->vo_frame);
     return 1;
@@ -533,12 +533,12 @@ static int fame_prepare_frame(fame_data_t *this, dxr3_driver_t *drv, dxr3_frame_
       printf("dxr3_mpeg_encoder: Internal YV12 buffer not created.\n");
       return 0;
     }
-    y = this->out[0] + frame->width * drv->top_bar;
-    u = this->out[1] + frame->width/2 * (drv->top_bar / 2);
-    v = this->out[2] + frame->width/2 * (drv->top_bar / 2);
+    y = this->out[0] +  frame->vo_frame.width      *  drv->top_bar;
+    u = this->out[1] + (frame->vo_frame.width / 2) * (drv->top_bar / 2);
+    v = this->out[2] + (frame->vo_frame.width / 2) * (drv->top_bar / 2);
     yuy2 = frame->vo_frame.base[0];
-    w2 = frame->width / 2;
-    for (i = 0; i < frame->iheight; i += 2) {
+    w2 = frame->vo_frame.width / 2;
+    for (i = 0; i < frame->vo_frame.height; i += 2) {
       for (j = 0; j < w2; j++) {
         /* packed YUV 422 is: Y[i] U[i] Y[i+1] V[i] */
         *(y++) = *(yuy2++);

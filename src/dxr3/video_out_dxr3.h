@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3.h,v 1.6 2002/07/17 11:00:09 mroi Exp $
+ * $Id: video_out_dxr3.h,v 1.7 2002/07/17 14:58:12 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -87,11 +87,10 @@ typedef struct dxr3_driver_s {
   em8300_bcs_t     bcs;
 
   encoder_data_t  *enc;           /* encoder data */
-  int              format;        /* color format */
   int              video_iheight; /* input height (before adding black bars) */
   int              video_oheight; /* output height (after adding bars) */
   int              video_width;
-  int              video_aspect;
+  int              video_ratio;
   int              top_bar;       /* the height of the upper black bar */
   int              need_redraw;   /* the image on screen needs redrawing */
   int              need_update;   /* the mpeg encoder needs to be updated */
@@ -114,8 +113,8 @@ typedef struct dxr3_driver_s {
 
 typedef struct dxr3_frame_s {
   vo_frame_t       vo_frame;
-  int              width, iheight, oheight;
-  int              pan_scan;
+  int              oheight;
+  int              aspect, pan_scan;
   uint8_t         *mem;           /* allocated for YV12 or YUY2 buffers */
   uint8_t         *real_base[3];  /* yuv/yuy2 buffers in mem aligned on 16 */
   int              swap_fields;   /* shifts Y buffer one line to exchange odd/even lines */

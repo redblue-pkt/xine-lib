@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3.c,v 1.41 2002/07/17 11:00:09 mroi Exp $
+ * $Id: video_out_dxr3.c,v 1.42 2002/07/17 14:58:11 mroi Exp $
  */
  
 /* mpeg1 encoding video out plugin for the dxr3.  
@@ -415,7 +415,6 @@ static void dxr3_update_frame_format(vo_driver_t *this_gen, vo_frame_t *frame_ge
 {
   dxr3_driver_t *this = (dxr3_driver_t *)this_gen; 
   dxr3_frame_t *frame = (dxr3_frame_t *)frame_gen; 
-  int i;
   int oheight;
 
   /* update the overlay window co-ords if required */
@@ -437,11 +436,14 @@ static void dxr3_update_frame_format(vo_driver_t *this_gen, vo_frame_t *frame_ge
     this->video_iheight = height;
     this->video_oheight = height;
     this->top_bar       = 0;
-    this->video_aspect  = ratio_code;
+    this->video_ratio   = ratio_code;
     
-    frame->width   = width;
-    frame->iheight = height;
-    frame->oheight = height;
+    frame->vo_frame.width   = width;
+    frame->vo_frame.height  = height;
+    frame->vo_frame.ratio   = ratio_code;
+    frame->oheight          = height;
+    frame->pan_scan         = (ratio_code == XINE_ASPECT_RATIO_PAN_SCAN);
+    frame->aspect           = 0;
     
     if (frame->mem) {
       free(frame->mem);
@@ -450,23 +452,15 @@ static void dxr3_update_frame_format(vo_driver_t *this_gen, vo_frame_t *frame_ge
       frame_gen->base[0] = frame_gen->base[1] = frame_gen->base[2] = NULL;
     }
     
-    frame->vo_frame.ratio = this->aspect;
-    frame->pan_scan = 0;
-    if (ratio_code == XINE_ASPECT_RATIO_SQUARE || ratio_code == XINE_ASPECT_RATIO_4_3)
-      frame->vo_frame.ratio = ASPECT_FULL;
-    if (ratio_code == XINE_ASPECT_RATIO_ANAMORPHIC || ratio_code == XINE_ASPECT_RATIO_211_1)
-      frame->vo_frame.ratio = ASPECT_ANAMORPHIC;
-    if (ratio_code == XINE_ASPECT_RATIO_PAN_SCAN)
-      frame->pan_scan = 1;
-      
     return;
   }
 
   /* the following is for the mpeg encoding part only */
   
-  frame->vo_frame.ratio = this->aspect;
-  frame->pan_scan = 0;
-  oheight = this->video_oheight;
+  frame->vo_frame.ratio = ratio_code;
+  frame->pan_scan       = 0;
+  frame->aspect         = this->aspect;
+  oheight               = this->video_oheight;
 
   if (this->fd_video == CLOSED_FOR_DECODER) { /* decoder should have released it */
     this->fd_video = CLOSED_FOR_ENCODER; /* allow encoder to reopen it */
@@ -479,23 +473,23 @@ static void dxr3_update_frame_format(vo_driver_t *this_gen, vo_frame_t *frame_ge
   }
 
   if ((this->video_width != width) || (this->video_iheight != height) ||
-      (this->video_aspect != ratio_code)) {
+      (this->video_ratio != ratio_code)) {
     /* check aspect ratio, see if we need to add black borders */
     switch (ratio_code) {
     case XINE_ASPECT_RATIO_4_3:
-      frame->vo_frame.ratio = ASPECT_FULL;
+      frame->aspect = ASPECT_FULL;
       oheight = height;
       break;
     case XINE_ASPECT_RATIO_ANAMORPHIC:
     case XINE_ASPECT_RATIO_PAN_SCAN:
-      frame->vo_frame.ratio = ASPECT_ANAMORPHIC;
+      frame->aspect = ASPECT_ANAMORPHIC;
       oheight = height;
       break;
     default: /* assume square pixel */
-      frame->vo_frame.ratio = ASPECT_ANAMORPHIC;
+      frame->aspect = ASPECT_ANAMORPHIC;
       oheight = (int)(width * 9./16.);
       if (oheight < height) { /* frame too high, try 4:3 */
-        frame->vo_frame.ratio = ASPECT_FULL;
+        frame->aspect = ASPECT_FULL;
         oheight = (int)(width * 3./4.);
       }
     }
@@ -507,13 +501,12 @@ static void dxr3_update_frame_format(vo_driver_t *this_gen, vo_frame_t *frame_ge
     /* Tell the viewers about the aspect ratio stuff. */
     if (oheight - height > 0)
       printf("video_out_dxr3: adding %d black lines to get %s aspect ratio.\n",
-        oheight - height, frame->vo_frame.ratio == ASPECT_FULL ? "4:3" : "16:9");
+        oheight - height, frame->aspect == ASPECT_FULL ? "4:3" : "16:9");
 
     this->video_width   = width;
     this->video_iheight = height;
     this->video_oheight = oheight;
-    this->video_aspect  = ratio_code;
-    this->format        = format;
+    this->video_ratio   = ratio_code;
     this->need_redraw   = 1;
     this->need_update   = 1;
 
@@ -525,8 +518,8 @@ static void dxr3_update_frame_format(vo_driver_t *this_gen, vo_frame_t *frame_ge
   }
 
   /* if dimensions changed, we need to re-allocate frame memory */
-  if ((frame->width != width) || (frame->iheight != height) || 
-      (frame->oheight != oheight)) {
+  if ((frame->vo_frame.width != width) || (frame->vo_frame.height != height) || 
+      (frame->oheight != oheight) || (frame->vo_frame.format != format)) {
     if (frame->mem) {
       free (frame->mem);
       frame->mem = NULL;
@@ -536,7 +529,7 @@ static void dxr3_update_frame_format(vo_driver_t *this_gen, vo_frame_t *frame_ge
      * so old and new macroblocks overlap */ 
     this->top_bar = ((oheight - height) / 32) * 16;
     if (format == IMGFMT_YUY2) {
-      int image_size;
+      int i, image_size;
       
       /* calculate pitch and size including black bars */
       frame->vo_frame.pitches[0] = 32*((width + 15) / 16);
@@ -599,10 +592,10 @@ static void dxr3_update_frame_format(vo_driver_t *this_gen, vo_frame_t *frame_ge
       frame->vo_frame.base[0] += frame->vo_frame.pitches[0];
   }
  
-  frame->width       = width;
-  frame->iheight     = height;
-  frame->oheight     = oheight;
-  frame->swap_fields = this->swap_fields;
+  frame->vo_frame.width  = width;
+  frame->vo_frame.height = height;
+  frame->oheight         = oheight;
+  frame->swap_fields     = this->swap_fields;
 }
 
 static void dxr3_overlay_blend(vo_driver_t *this_gen, vo_frame_t *frame_gen,
@@ -615,9 +608,9 @@ static void dxr3_overlay_blend(vo_driver_t *this_gen, vo_frame_t *frame_gen,
     
     if (overlay->rle) {
       if (frame_gen->format == IMGFMT_YV12)
-        blend_yuv(frame->vo_frame.base, overlay, frame->width, frame->iheight);
+        blend_yuv(frame->vo_frame.base, overlay, frame->vo_frame.width, frame->vo_frame.height);
       else
-        blend_yuy2(frame->vo_frame.base[0], overlay, frame->width, frame->iheight);
+        blend_yuy2(frame->vo_frame.base[0], overlay, frame->vo_frame.width, frame->vo_frame.height);
     }
   }
 }
@@ -628,7 +621,15 @@ static void dxr3_display_frame(vo_driver_t *this_gen, vo_frame_t *frame_gen)
   dxr3_frame_t *frame = (dxr3_frame_t *)frame_gen;
 
   /* use correct aspect and pan&scan setting */
-  if (frame->vo_frame.ratio != this->aspect)
+  if (!frame->aspect) {
+    /* aspect not determined yet, set it now */
+    frame->aspect = this->aspect;
+    if (frame_gen->ratio == XINE_ASPECT_RATIO_SQUARE || frame_gen->ratio == XINE_ASPECT_RATIO_4_3)
+      frame->aspect = ASPECT_FULL;
+    if (frame_gen->ratio == XINE_ASPECT_RATIO_ANAMORPHIC || frame_gen->ratio == XINE_ASPECT_RATIO_211_1)
+      frame->aspect = ASPECT_ANAMORPHIC;
+  }
+  if (frame->aspect != this->aspect)
     dxr3_set_property(this_gen, VO_PROP_ASPECT_RATIO, frame->vo_frame.ratio);
   if (frame->pan_scan && !this->pan_scan) {
     dxr3_set_property(this_gen, VO_PROP_ZOOM_FACTOR, 1);
