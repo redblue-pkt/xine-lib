@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.c,v 1.49 2002/01/14 00:34:22 guenter Exp $
+ * $Id: metronom.c,v 1.50 2002/01/15 13:51:10 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -69,9 +69,9 @@
   }
 #endif
 
-/*
+
 #define METRONOM_LOG
-*/
+
 
 /*
  * ****************************************
@@ -261,8 +261,8 @@ static void metronom_video_stream_start (metronom_t *this) {
     return;
   }
 
-  this->pts_per_frame             = 3000;
-  this->avg_frame_duration        = 3000;
+  /*this->pts_per_frame             = 3000; */
+  this->avg_frame_duration        = this->pts_per_frame;
 
   this->video_vpts                = PREBUFFER_PTS_OFFSET;
 
@@ -392,6 +392,8 @@ static void metronom_audio_stream_end (metronom_t *this) {
 
 static void metronom_set_video_rate (metronom_t *this, uint32_t pts_per_frame) {
   pthread_mutex_lock (&this->lock);
+
+  printf ("metronom: set_video_rate %d\n", pts_per_frame);
 
   this->pts_per_frame = pts_per_frame;
 
@@ -953,8 +955,9 @@ metronom_t * metronom_init (int have_audio, void *xine) {
   pthread_cond_init (&this->video_discontinuity_reached, NULL);
   pthread_cond_init (&this->audio_discontinuity_reached, NULL);
     
-  this->av_offset   = 0;
-  this->have_audio  = have_audio;
+  this->av_offset      = 0;
+  this->have_audio     = have_audio;
+  this->pts_per_frame  = 3600;
 
   return this;
 }

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.97 2002/01/09 22:33:04 jcdutton Exp $
+ * $Id: xine.c,v 1.98 2002/01/15 13:51:10 guenter Exp $
  *
  * top-level xine functions
  *
@@ -148,7 +148,7 @@ void xine_stop_internal (xine_t *this) {
 
   LOG_MSG(this, _("xine_stop\n"));
 
-  xine_internal_osd (this, "}", this->metronom->get_current_time (this->metronom), 30000);
+  /* xine_internal_osd (this, "}", this->metronom->get_current_time (this->metronom), 30000); never works */
 
   if (this->status == XINE_STOP) {
     LOG_MSG(this, _("xine_stop ignored\n"));

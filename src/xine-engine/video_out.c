@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.65 2002/01/14 00:34:22 guenter Exp $
+ * $Id: video_out.c,v 1.66 2002/01/15 13:51:10 guenter Exp $
  *
  */
 
@@ -526,6 +526,7 @@ static void vo_open (vo_instance_t *this) {
   if (!this->video_loop_running) {
     this->video_loop_running = 1;
     this->decoder_started_flag = 0;
+    this->pts_per_frame        = 0;
 
     pthread_attr_init(&pth_attrs);
     pthread_attr_setscope(&pth_attrs, PTHREAD_SCOPE_SYSTEM);

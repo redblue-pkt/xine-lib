@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.72 2002/01/05 18:14:27 jcdutton Exp $
+ * $Id: demux_mpeg_block.c,v 1.73 2002/01/15 13:51:10 guenter Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -65,7 +65,8 @@
   }
 #endif
 
-#define NUM_PREVIEW_BUFFERS 250
+#define NUM_PREVIEW_BUFFERS   250
+#define DISC_TRESHOLD       90000
 
 typedef struct demux_mpeg_block_s {
   demux_plugin_t        demux_plugin;
@@ -283,9 +284,8 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
     printf ("demux_mpeg_block: scr %d last_scr %d diff %d\n",
 	    scr, this->last_scr, scr_diff);
 #endif
-    
 
-    if (abs(scr_diff) > 60000) {
+    if (abs(scr_diff) > DISC_TRESHOLD) {
       
       buf_element_t *buf;
 
