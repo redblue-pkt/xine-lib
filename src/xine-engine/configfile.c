@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: configfile.c,v 1.1 2001/04/18 22:36:01 f1rmb Exp $
+ * $Id: configfile.c,v 1.2 2001/06/15 10:17:53 f1rmb Exp $
  *
  * config file management - implementation
  *
@@ -103,7 +103,8 @@ static char *config_file_lookup_str (config_values_t *this,
   if (entry)
     return entry->value;
 
-  config_file_add (this, key, str_default);
+  if(str_default)
+    config_file_add (this, key, str_default);
 
   return str_default;
 }
@@ -277,8 +278,11 @@ config_values_t *config_file_init (char *filename) {
 
 /*
  * $Log: configfile.c,v $
- * Revision 1.1  2001/04/18 22:36:01  f1rmb
- * Initial revision
+ * Revision 1.2  2001/06/15 10:17:53  f1rmb
+ * Passing NULL to config_file_lookup_str() is valid.
+ *
+ * Revision 1.1.1.1  2001/04/18 22:36:01  f1rmb
+ * Initial import into CVS
  *
  * Revision 1.8  2001/03/31 03:42:25  guenter
  * more cleanups, started xv driver
