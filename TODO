@@ -16,7 +16,7 @@ required for 1.0
 - fix streaming if small files (e.g. http) (guenter)
 - implement timeout in input_http, implement it correctly using select()
   (guenter)
-- sputext decoder plugin
+- sputext decoder plugin (zoltan & michael)
 - spucc decoder plugin
 - xvid decoder plugin (guenter)
 - opengl video output plugin (matthias)
