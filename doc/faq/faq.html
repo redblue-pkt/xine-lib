@@ -315,6 +315,11 @@ HREF="#AEN334"
 HREF="#AEN340"
 >Changing the volume with the GUI control has no effect! What's up!?</A
 ></DT
+><DT
+><A
+HREF="#AEN343"
+>Audio is stuttering and i see a lot of "metronom: fixing sound card drift by -2115 pts" on the console output</A
+></DT
 ></DL
 ></DD
 ><DT
@@ -326,32 +331,32 @@ HREF="#VIDEO"
 ><DL
 ><DT
 ><A
-HREF="#AEN345"
+HREF="#AEN349"
 >I can hear the audio - but I don't see a picture!</A
 ></DT
 ><DT
 ><A
-HREF="#AEN348"
+HREF="#AEN352"
 >How can I make xine use the Xv extension and what drivers do I need?</A
 ></DT
 ><DT
 ><A
-HREF="#AEN383"
+HREF="#AEN387"
 >Some parts of my X Desktop get transparent when xine plays the video!</A
 ></DT
 ><DT
 ><A
-HREF="#AEN388"
+HREF="#AEN392"
 >The aspect ratio of the video is wrong!</A
 ></DT
 ><DT
 ><A
-HREF="#AEN391"
+HREF="#AEN395"
 >What is the difference between discarded and skipped frames?</A
 ></DT
 ><DT
 ><A
-HREF="#AEN399"
+HREF="#AEN403"
 >My xine is runing in black and white! / I only get a gray video output!</A
 ></DT
 ></DL
@@ -365,47 +370,47 @@ HREF="#ERRORS"
 ><DL
 ><DT
 ><A
-HREF="#AEN406"
+HREF="#AEN410"
 >Starting xine fails with complains about audio drivers/devices!</A
 ></DT
 ><DT
 ><A
-HREF="#AEN413"
+HREF="#AEN417"
 >"no video port found"</A
 ></DT
 ><DT
 ><A
-HREF="#AEN418"
+HREF="#AEN422"
 >"Unable to open dvd drive (/dev/dvd)"</A
 ></DT
 ><DT
 ><A
-HREF="#AEN422"
+HREF="#AEN426"
 >"demux error! 00 00 00 (should be 0x000001)"</A
 ></DT
 ><DT
 ><A
-HREF="#AEN427"
+HREF="#AEN431"
 >"audio driver 'oss' failed, using null driver instead"</A
 ></DT
 ><DT
 ><A
-HREF="#AEN438"
+HREF="#AEN442"
 >"video_out: throwing away image with pts xxx because it's too old"</A
 ></DT
 ><DT
 ><A
-HREF="#AEN441"
+HREF="#AEN445"
 >"No video plugin available to decode 'xxxxxx'."</A
 ></DT
 ><DT
 ><A
-HREF="#AEN445"
+HREF="#AEN449"
 >"w32codec: decoder failed to start. Is 'xxxxxx' installed?"</A
 ></DT
 ><DT
 ><A
-HREF="#AEN448"
+HREF="#AEN452"
 >xine just crashed on me - i didn't get any error message</A
 ></DT
 ></DL
@@ -2158,6 +2163,28 @@ NAME="AEN340"
       Similarly, with ac3 pass through it is not possible to set the volume.
     </P
 ></DIV
+><DIV
+CLASS="SECT1"
+><HR><H2
+CLASS="SECT1"
+><A
+NAME="AEN343"
+></A
+>Audio is stuttering and i see a lot of "metronom: fixing sound card drift by -2115 pts" on the console output</H2
+><P
+>      Might be a soundcard problem, if it only comes in longer intervals.
+      Your soundcard does not keep it's sampling frequency accurately 
+      enough, which results in audio and video
+      getting out of sync and xine has to compensate. 
+      Maybe switching to different drivers (alsa to oss or vise-versa)
+      can help here.
+    </P
+><P
+>      Another, whole different possibility is that you have some background
+      process running which is messing with the clock (like some ntp client -
+      chronny, ntpd, ...).
+    </P
+></DIV
 ></DIV
 ><DIV
 CLASS="CHAPTER"
@@ -2171,7 +2198,7 @@ CLASS="SECT1"
 ><H2
 CLASS="SECT1"
 ><A
-NAME="AEN345"
+NAME="AEN349"
 ></A
 >I can hear the audio - but I don't see a picture!</H2
 ><P
@@ -2184,7 +2211,7 @@ CLASS="SECT1"
 ><HR><H2
 CLASS="SECT1"
 ><A
-NAME="AEN348"
+NAME="AEN352"
 ></A
 >How can I make xine use the Xv extension and what drivers do I need?</H2
 ><P
@@ -2327,7 +2354,7 @@ CLASS="SECT1"
 ><HR><H2
 CLASS="SECT1"
 ><A
-NAME="AEN383"
+NAME="AEN387"
 ></A
 >Some parts of my X Desktop get transparent when xine plays the video!</H2
 ><P
@@ -2359,7 +2386,7 @@ CLASS="SECT1"
 ><HR><H2
 CLASS="SECT1"
 ><A
-NAME="AEN388"
+NAME="AEN392"
 ></A
 >The aspect ratio of the video is wrong!</H2
 ><P
@@ -2371,7 +2398,7 @@ CLASS="SECT1"
 ><HR><H2
 CLASS="SECT1"
 ><A
-NAME="AEN391"
+NAME="AEN395"
 ></A
 >What is the difference between discarded and skipped frames?</H2
 ><P
@@ -2422,7 +2449,7 @@ CLASS="SECT1"
 ><HR><H2
 CLASS="SECT1"
 ><A
-NAME="AEN399"
+NAME="AEN403"
 ></A
 >My xine is runing in black and white! / I only get a gray video output!</H2
 ><P
@@ -2453,7 +2480,7 @@ CLASS="SECT1"
 ><H2
 CLASS="SECT1"
 ><A
-NAME="AEN406"
+NAME="AEN410"
 ></A
 >Starting xine fails with complains about audio drivers/devices!</H2
 ><P
@@ -2524,7 +2551,7 @@ CLASS="SECT1"
 ><HR><H2
 CLASS="SECT1"
 ><A
-NAME="AEN413"
+NAME="AEN417"
 ></A
 >"no video port found"</H2
 ><P
@@ -2557,7 +2584,7 @@ CLASS="SECT1"
 ><HR><H2
 CLASS="SECT1"
 ><A
-NAME="AEN418"
+NAME="AEN422"
 ></A
 >"Unable to open dvd drive (/dev/dvd)"</H2
 ><P
@@ -2587,7 +2614,7 @@ CLASS="SECT1"
 ><HR><H2
 CLASS="SECT1"
 ><A
-NAME="AEN422"
+NAME="AEN426"
 ></A
 >"demux error! 00 00 00 (should be 0x000001)"</H2
 ><P
@@ -2610,7 +2637,7 @@ CLASS="SECT1"
 ><HR><H2
 CLASS="SECT1"
 ><A
-NAME="AEN427"
+NAME="AEN431"
 ></A
 >"audio driver 'oss' failed, using null driver instead"</H2
 ><P
@@ -2687,7 +2714,7 @@ CLASS="SECT1"
 ><HR><H2
 CLASS="SECT1"
 ><A
-NAME="AEN438"
+NAME="AEN442"
 ></A
 >"video_out: throwing away image with pts xxx because it's too old"</H2
 ><P
@@ -2703,7 +2730,7 @@ CLASS="SECT1"
 ><HR><H2
 CLASS="SECT1"
 ><A
-NAME="AEN441"
+NAME="AEN445"
 ></A
 >"No video plugin available to decode 'xxxxxx'."</H2
 ><P
@@ -2722,7 +2749,7 @@ CLASS="SECT1"
 ><HR><H2
 CLASS="SECT1"
 ><A
-NAME="AEN445"
+NAME="AEN449"
 ></A
 >"w32codec: decoder failed to start. Is 'xxxxxx' installed?"</H2
 ><P
@@ -2734,7 +2761,7 @@ CLASS="SECT1"
 ><HR><H2
 CLASS="SECT1"
 ><A
-NAME="AEN448"
+NAME="AEN452"
 ></A
 >xine just crashed on me - i didn't get any error message</H2
 ><P

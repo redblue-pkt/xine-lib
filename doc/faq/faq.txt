@@ -75,6 +75,8 @@ Table of Contents
     Can xine produce 4-/5-channel surround audio output?
     What about ac3 output via spdif to an external ac3 decoder?
     Changing the volume with the GUI control has no effect! What's up!?
+    Audio is stuttering and i see a lot of "metronom: fixing sound card drift
+        by -2115 pts" on the console output
    
 6. Video related questions
    
@@ -835,6 +837,20 @@ Some xine drivers do not support volume changing although the GUI will show the
 volume bar. Usually this is not xines fault: aRts C API, for example, doesn't
 offer any volume property to applications. Similarly, with ac3 pass through it
 is not possible to set the volume.
+
+-------------------------------------------------------------------------------
+
+Audio is stuttering and i see a lot of "metronom: fixing sound card drift by
+-2115 pts" on the console output
+
+Might be a soundcard problem, if it only comes in longer intervals. Your
+soundcard does not keep it's sampling frequency accurately enough, which
+results in audio and video getting out of sync and xine has to compensate.
+Maybe switching to different drivers (alsa to oss or vise-versa) can help here.
+
+Another, whole different possibility is that you have some background process
+running which is messing with the clock (like some ntp client - chronny, ntpd,
+...).
 
 -------------------------------------------------------------------------------
 

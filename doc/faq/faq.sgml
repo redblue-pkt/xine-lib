@@ -1139,6 +1139,23 @@
     </para>
   </sect1>
 
+  <sect1>
+    <title> Audio is stuttering and i see a lot of "metronom: fixing sound card drift by -2115 pts" on the console output </title>
+
+    <para>
+      Might be a soundcard problem, if it only comes in longer intervals.
+      Your soundcard does not keep it's sampling frequency accurately 
+      enough, which results in audio and video
+      getting out of sync and xine has to compensate. 
+      Maybe switching to different drivers (alsa to oss or vise-versa)
+      can help here.
+    </para>
+    <para>
+      Another, whole different possibility is that you have some background
+      process running which is messing with the clock (like some ntp client -
+      chronny, ntpd, ...).
+    </para>
+  </sect1>
 </chapter>
 
 <chapter id="video">
