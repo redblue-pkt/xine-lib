@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.c,v 1.110 2003/01/13 02:15:07 miguelfreitas Exp $
+ * $Id: metronom.c,v 1.111 2003/01/28 17:07:53 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -571,7 +571,7 @@ static void metronom_set_option (metronom_t *this, int option, int64_t value) {
     break;
   case METRONOM_SPU_OFFSET:
     this->spu_offset = value;
-    printf ("metronom: av_offset=%lld pts\n", this->spu_offset);
+    printf ("metronom: spu_offset=%lld pts\n", this->spu_offset);
     break;
   case METRONOM_ADJ_VPTS_OFFSET:
     this->audio_vpts += value;
