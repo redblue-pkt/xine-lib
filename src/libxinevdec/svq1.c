@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: svq1.c,v 1.2 2002/07/05 17:32:04 mroi Exp $
+ * $Id: svq1.c,v 1.3 2002/07/15 19:44:53 miguelfreitas Exp $
  */
 
 #include <stdio.h>
@@ -1524,7 +1524,7 @@ video_decoder_t *init_video_decoder_plugin (int iface_version, xine_t *xine) {
   this->video_decoder.close               = svq1dec_close;
   this->video_decoder.get_identifier      = svq1dec_get_id;
   this->video_decoder.dispose             = svq1dec_dispose;
-  this->video_decoder.priority            = 5;
+  this->video_decoder.priority            = 4;
 
   return (video_decoder_t *) this;
 }
