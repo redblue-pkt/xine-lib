@@ -20,7 +20,7 @@
  * Demuxer helper functions
  * hide some xine engine details from demuxers and reduce code duplication
  *
- * $Id: demux.c,v 1.43 2003/12/05 15:55:04 f1rmb Exp $ 
+ * $Id: demux.c,v 1.44 2003/12/23 21:22:40 miguelfreitas Exp $ 
  */
 
 
@@ -455,4 +455,55 @@ off_t _x_read_abort (xine_stream_t *stream, int fd, char *buf, off_t todo) {
 
 int _x_action_pending (xine_stream_t *stream) {
   return stream->demux_action_pending;
+}
+
+/*
+ * demuxer helper function to send data to fifo, breaking into smaller
+ * pieces (bufs) as needed.
+ *
+ * it has quite some parameters, but only the first 6 are needed.
+ *
+ * the other ones help enforcing that demuxers provide the information
+ * they have about the stream, so things like the GUI slider bar can
+ * work as expected. 
+ */
+void _x_demux_send_data(fifo_buffer_t *fifo, uint8_t *data, int size,
+                        int64_t pts, uint32_t type, uint32_t decoder_flags,
+                        off_t input_pos, off_t input_length,
+                        int input_time, int total_time,
+                        uint32_t frame_number) {
+  buf_element_t *buf;
+
+  decoder_flags |= BUF_FLAG_FRAME_START;
+
+  while (fifo && size) {
+
+    buf = fifo->buffer_pool_alloc (fifo);
+
+    if ( size > buf->max_size ) {
+      buf->size          = buf->max_size;
+      buf->decoder_flags = decoder_flags;
+    } else {
+      buf->size          = size;
+      buf->decoder_flags = BUF_FLAG_FRAME_END | decoder_flags;
+    }
+    decoder_flags &= ~BUF_FLAG_FRAME_START;
+
+    xine_fast_memcpy (buf->content, data, buf->size);
+    data += buf->size;
+    size -= buf->size;
+
+    buf->pts = pts;
+    pts = 0;
+
+    buf->extra_info->input_pos     = input_pos;
+    buf->extra_info->input_length  = input_length;
+    buf->extra_info->input_time    = input_time;
+    buf->extra_info->total_time    = total_time;
+    buf->extra_info->frame_number  = frame_number;
+
+    buf->type                      = type;
+
+    fifo->put (fifo, buf);
+  }
 }

@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_ogg.c,v 1.127 2003/12/21 00:22:10 manfredtremmel Exp $
+ * $Id: demux_ogg.c,v 1.128 2003/12/23 21:22:38 miguelfreitas Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -252,44 +252,6 @@ static void get_stream_length (demux_ogg_t *this) {
 }
 
 
-/* helper function to send data to fifo, breaking into smaller
- * pieces (bufs) as needed.
- */
-static void send_fifo_data(fifo_buffer_t *fifo, uint8_t *data, int size,
-                           off_t input_pos, int64_t pts, 
-                           uint32_t type, uint32_t decoder_flags) {
-  buf_element_t *buf;
-
-  decoder_flags |= BUF_FLAG_FRAME_START;
-
-  while (fifo && size) {
-
-    buf = fifo->buffer_pool_alloc (fifo);
-
-    if ( size > buf->max_size ) {
-      buf->size          = buf->max_size;
-      buf->decoder_flags = decoder_flags;
-    } else {
-      buf->size          = size;
-      buf->decoder_flags = BUF_FLAG_FRAME_END | decoder_flags;
-    }
-    decoder_flags &= ~BUF_FLAG_FRAME_START;
-
-    memcpy (buf->content, data, buf->size);
-    data += buf->size;
-    size -= buf->size;
-
-    buf->pts = pts;
-    pts = 0;
-
-    buf->extra_info->input_pos  = input_pos;
-    buf->extra_info->input_time = buf->pts / 90 ;
-    buf->type                   = type;
-
-    fifo->put (fifo, buf);
-  }
-}
-
 #ifdef HAVE_THEORA
 /* TODO: clean up this mess! */
 static void send_ogg_packet (demux_ogg_t *this,
@@ -476,9 +438,12 @@ static void send_ogg_buf (demux_ogg_t *this,
              this->header_granulepos[stream_num],
              pts);
 
-    send_fifo_data(this->audio_fifo, data, size,
-                   this->input->get_current_pos(this->input),
-                   pts, this->buf_types[stream_num], decoder_flags);
+    _x_demux_send_data(this->audio_fifo, data, size,
+                       pts, this->buf_types[stream_num], decoder_flags,
+                       this->input->get_current_pos(this->input),
+                       this->input->get_length(this->input),
+                       pts / 90, this->time_length, 0);
+
 
 #ifdef HAVE_THEORA
   } else if ((this->buf_types[stream_num] & 0xFFFF0000) == BUF_VIDEO_THEORA) {
@@ -606,9 +571,11 @@ static void send_ogg_buf (demux_ogg_t *this,
              this->header_granulepos[stream_num],
              pts);
 
-    send_fifo_data(this->video_fifo, data, size,
-                   this->input->get_current_pos(this->input),
-                   pts, this->buf_types[stream_num], decoder_flags);
+    _x_demux_send_data(this->video_fifo, data, size,
+                       pts, this->buf_types[stream_num], decoder_flags,
+                       this->input->get_current_pos(this->input),
+                       this->input->get_length(this->input),
+                       pts / 90, this->time_length, 0);
 
     if (this->chapter_info && op->granulepos != -1) {
       int chapter = 0;
@@ -839,7 +806,10 @@ static void demux_ogg_send_header (demux_ogg_t *this) {
 	  int32_t          locsize, locdefault_len, locbuffersize, locwidth, locheight;
 	  int64_t          loctime_unit, locsamples_per_unit;
 
-	  memcpy(&locsubtype, &op.packet[9], 4);
+	  /* read fourcc with machine endianness */
+	  locsubtype = *((uint32_t *)&op.packet[9]);
+
+	  /* everything else little endian */
 	  locsize = LE_32(&op.packet[13]);
 	  loctime_unit = LE_64(&op.packet[17]);
 	  locsamples_per_unit = LE_64(&op.packet[25]);
@@ -920,27 +890,25 @@ static void demux_ogg_send_header (demux_ogg_t *this) {
 	    int               channel;
 
 	    int16_t          locbits_per_sample, locchannels, locblockalign;
-	    uint32_t         locsubtype;
 	    int32_t          locsize, locdefault_len, locbuffersize, locavgbytespersec;
 	    int64_t          loctime_unit, locsamples_per_unit;
 
-	    memcpy(&locsubtype, &op.packet[9], 4);
-	    memcpy(&locsize, &op.packet[13], 4);
-	    memcpy(&loctime_unit, &op.packet[17], 8);
-	    memcpy(&locsamples_per_unit, &op.packet[25], 8);
-	    memcpy(&locdefault_len, &op.packet[33], 4);
-	    memcpy(&locbuffersize, &op.packet[37], 4);
-	    memcpy(&locbits_per_sample, &op.packet[41], 2);
-	    memcpy(&locchannels, &op.packet[45], 2);
-	    memcpy(&locblockalign, &op.packet[47], 2);
-	    memcpy(&locavgbytespersec, &op.packet[49], 4);
+	    locsize = LE_32(&op.packet[13]);
+	    loctime_unit = LE_64(&op.packet[17]);
+	    locsamples_per_unit = LE_64(&op.packet[25]);
+	    locdefault_len = LE_32(&op.packet[33]);
+	    locbuffersize = LE_32(&op.packet[37]);
+	    locbits_per_sample = LE_16(&op.packet[41]);
+	    locchannels = LE_16(&op.packet[45]);
+	    locblockalign = LE_16(&op.packet[47]);
+	    locavgbytespersec= LE_32(&op.packet[49]);
 
             lprintf ("direct show filter created audio stream detected, hexdump:\n");
 #ifdef LOG
             xine_hexdump (op.packet, op.bytes);
 #endif
 
-	    memcpy(str, &locsubtype, 4);
+	    memcpy(str, &op.packet[9], 4);
 	    str[4] = 0;
 	    codec = strtoul(str, NULL, 16);
 	      
@@ -1011,7 +979,7 @@ static void demux_ogg_send_header (demux_ogg_t *this) {
 #endif
 	  this->preview_buffers[stream_num] = 5; /* FIXME: don't know */
 
-	  if ( (*(int32_t*)(op.packet+96)==0x05589f80) && (op.bytes>=184)) {
+	  if ( (LE_32(&op.packet[96])==0x05589f80) && (op.bytes>=184)) {
 
 	    buf_element_t    *buf;
 	    xine_bmiheader    bih;
@@ -1030,11 +998,11 @@ static void demux_ogg_send_header (demux_ogg_t *this) {
 	    this->buf_types[stream_num] |= channel;
 
 	    bih.biSize          = sizeof(xine_bmiheader);
-	    bih.biWidth         = *(int32_t*)(op.packet+176);
-	    bih.biHeight        = *(int32_t*)(op.packet+180);
+	    bih.biWidth         = LE_32(&op.packet[176]);
+	    bih.biHeight        = LE_32(&op.packet[180]);
 	    bih.biPlanes        = 0;
 	    memcpy (&bih.biCompression, op.packet+68, 4);
-	    bih.biBitCount      = *(int16_t*)(op.packet+182);
+	    bih.biBitCount      = LE_16(&op.packet[182]);
 	    if (!bih.biBitCount)
 	      bih.biBitCount = 24; /* FIXME ? */
 	    bih.biSizeImage     = (bih.biBitCount>>3)*bih.biWidth*bih.biHeight;
@@ -1075,7 +1043,7 @@ static void demux_ogg_send_header (demux_ogg_t *this) {
 
 	    this->ignore_keyframes = 1;
 
-	  } else if (*(int32_t*)op.packet+96 == 0x05589F81) {
+	  } else if (LE_32(&op.packet[96]) == 0x05589F81) {
 
 #if 0
 	    /* FIXME: no test streams */
