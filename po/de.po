@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: xine-lib 0.9.13\n"
 "POT-Creation-Date: 2002-08-30 16:24+0200\n"
-"PO-Revision-Date: 2002-08-05 07:59+0200\n"
+"PO-Revision-Date: 2002-08-30 20:03+0200\n"
 "Last-Translator: Philipp Hahn <pmhahn@users.sf.net>\n"
 "Language-Team: German <de@li.org>\n"
 "MIME-Version: 1.0\n"
@@ -326,17 +326,17 @@ msgstr ""
 #: src/demuxers/demux_mpgaudio.c:181
 #, c-format
 msgid "mp3: song title '%s'\n"
-msgstr ""
+msgstr "mp3: Titel     '%s'\n"
 
 #: src/demuxers/demux_mpgaudio.c:183
 #, c-format
 msgid "mp3: artist     '%s'\n"
-msgstr ""
+msgstr "mp3: Künstler   '%s'\n"
 
 #: src/demuxers/demux_mpgaudio.c:185
 #, c-format
 msgid "mp3: album      '%s'\n"
-msgstr ""
+msgstr "mp3: Album      '%s'\n"
 
 #: src/demuxers/demux_mpgaudio.c:233
 #, c-format
@@ -416,29 +416,31 @@ msgid "ogg: vorbis audio stream detected\n"
 msgstr "ogg: Ende des Vorbis-Audiodatenstroms\n"
 
 #: src/demuxers/demux_ogg.c:404
-#, fuzzy, c-format
+#, c-format
 msgid "ogg: vorbis avg. bitrate %d, samplerate %d\n"
-msgstr "ogg: Ende des Vorbis-Audiodatenstroms\n"
+msgstr "ogg: vorbis durchschnittliche Bitrate %d, Sampelrate %d\n"
 
 #: src/demuxers/demux_ogg.c:417
 msgid "ogg: vorbis audio track indicated but no vorbis stream header found.\n"
-msgstr ""
+msgstr "ogg: vorbis Tonspur erkannt, aber kein Heder im Datenstrom gefunden.\n"
 
 #: src/demuxers/demux_ogg.c:471 src/demuxers/demux_ogg.c:604
-#, fuzzy, c-format
+#, c-format
 msgid "ogg: video format %.4s, frame size %d x %d, %d fps\n"
-msgstr "demux_avi: Video-Bildgröße %ld x %ld\n"
+msgstr "ogg: Videoformat %.4s, Video-Bildgröße %d x %d, %d BpS\n"
 
 #: src/demuxers/demux_ogg.c:641
 msgid "ogg: old header detected but stream type is unknown\n"
-msgstr ""
+msgstr "ogg: Alten Header erkannt, aber Datenstromtyp unbekannt\n"
 
 #: src/demuxers/demux_ogg.c:647
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "ogg: unknown stream type (signature >%.8s<). hex dump of bos packet "
 "follows:\n"
-msgstr "ogg: Unbekannter Datenstromtyp (Signatur >%.8s<)\n"
+msgstr ""
+"ogg: Unbekannter Datenstromtyp (Signatur >%.8s<). Hex-Dump dieser Pakete "
+"folgt:\n"
 
 #: src/demuxers/demux_ogg.c:1002 src/demuxers/demux_ogg.c:1056
 msgid "valid mrls ending for ogg demuxer"
@@ -693,7 +695,7 @@ msgid "demux_smjpeg: SMJPEG file, running time: %d min, %d sec\n"
 msgstr "demux_smjpeg: SMJPEG Datei, Laufzeit: %d min, %d sek\n"
 
 #: src/demuxers/demux_smjpeg.c:418
-#, fuzzy, c-format
+#, c-format
 msgid "demux_smjpeg: '%c%c%c%c' video @ %dx%d\n"
 msgstr "demux_smjpeg: '%c%c%c%c' Video @ %dx%d\n"
 
@@ -748,148 +750,146 @@ msgstr ""
 "Das Installieren aktueller Demultiplexer-Plugins sollte helfen.\n"
 
 #: src/demuxers/demux_aiff.c:233 src/demuxers/demux_aiff.c:496
-#, fuzzy
 msgid "valid mrls ending for aiff demuxer"
-msgstr "Gültige MRL-Endungen für ASF-Demultiplexer"
+msgstr "Gültige MRL-Endungen für AIFF-Demultiplexer"
 
 #: src/demuxers/demux_aiff.c:342
-#, fuzzy, c-format
+#, c-format
 msgid "demux_aiff: %d Hz, %d channels, %d bits, %d frames\n"
-msgstr "demux_qt: '%c%c%c%c' Audio @ %d Hz, %d Bits, %d %s\n"
+msgstr "demux_aiff: '%d Hz, %d Kanäle, %d Bits, %d Bilder\n"
 
 #: src/demuxers/demux_aiff.c:348
-#, fuzzy, c-format
+#, c-format
 msgid "demux_aiff: running time: %d min, %d sec\n"
-msgstr "demux_fli: Laufzeit: %d min, %d sek\n"
+msgstr "demux_aiff: Laufzeit: %d min, %d sek\n"
 
 #: src/demuxers/demux_aiff.c:483
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "demux_aiff: plugin doesn't support plugin API version %d.\n"
 "            this means there's a version mismatch between xine and "
 "this             demuxer plugin.\n"
 "Installing current demux plugins should help.\n"
 msgstr ""
-"demux_asf: Das Plugin unterstützt die API-Version %d nicht.\n"
-"           Das bedeutet das ein Versionsunterschied zwischen xine und\n"
-"           diesem Demultiplexer-Plugin existiert.\n"
+"demux_aiff: Das Plugin unterstützt die API-Version %d nicht.\n"
+"            Das bedeutet das ein Versionsunterschied zwischen xine und\n"
+"            diesem Demultiplexer-Plugin existiert.\n"
 "Das Installieren aktueller Demultiplexer-Plugins sollte helfen.\n"
 
 #: src/demuxers/demux_snd.c:221 src/demuxers/demux_snd.c:462
-#, fuzzy
 msgid "valid mrls ending for snd demuxer"
-msgstr "Gültige MRL-Endungen für TS-Demultiplexer"
+msgstr "Gültige MRL-Endungen für SND-Demultiplexer"
 
 #: src/demuxers/demux_snd.c:278
 msgid "demux_snd: bad header parameters\n"
-msgstr ""
+msgstr "demux_snd: Ungültige Header-Parameter\n"
 
 #: src/demuxers/demux_snd.c:295
-#, fuzzy, c-format
+#, c-format
 msgid "demux_snd: unsupported audio type: %d\n"
-msgstr "demux_asf: Unbekannter Audiotyp 0x%x\n"
+msgstr "demux_snd: Unbekannter Audiotyp: %d\n"
 
 #: src/demuxers/demux_snd.c:308
-#, fuzzy, c-format
+#, c-format
 msgid "demux_snd: %d Hz, %d channels, %d bits, %d frames\n"
-msgstr "demux_qt: '%c%c%c%c' Audio @ %d Hz, %d Bits, %d %s\n"
+msgstr "demux_snd: %d Hz, %d Kanäle, %d Bits, %d Bilder\n"
 
 #: src/demuxers/demux_snd.c:314
-#, fuzzy, c-format
+#, c-format
 msgid "demux_snd: running time: %d min, %d sec\n"
-msgstr "demux_fli: Laufzeit: %d min, %d sek\n"
+msgstr "demux_snd: Laufzeit: %d min, %d sek\n"
 
 #: src/demuxers/demux_snd.c:449
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "demux_snd: plugin doesn't support plugin API version %d.\n"
 "           this means there's a version mismatch between xine and "
 "this            demuxer plugin.\n"
 "Installing current demux plugins should help.\n"
 msgstr ""
-"demux_pes: Das Plugin unterstützt die API-Version %d nicht.\n"
+"demux_snd: Das Plugin unterstützt die API-Version %d nicht.\n"
 "           Das bedeutet das ein Versionsunterschied zwischen xine und\n"
 "           diesem Demultiplexer-Plugin existiert.\n"
 "Das installieren aktueller Demultiplexer-Plugins sollte helfen.\n"
 
 #: src/demuxers/demux_voc.c:220 src/demuxers/demux_voc.c:472
-#, fuzzy
 msgid "valid mrls ending for voc demuxer"
-msgstr "Gültige MRL-Endungen für AVI-Demultiplexer"
+msgstr "Gültige MRL-Endungen für VOC-Demultiplexer"
 
 #: src/demuxers/demux_voc.c:285
 #, c-format
 msgid "unknown VOC block type (0x%02X); please report to xine developers\n"
 msgstr ""
+"Unbekannter VOC-Blocktyp (0x%02X); bitte bei den xine-Entwicklern melden\n"
 
 #: src/demuxers/demux_voc.c:305
 #, c-format
 msgid ""
 "unknown VOC compression type (0x%02X); please report to xine developers\n"
 msgstr ""
+"Unbekannter VOC-Kompressionstyp (0x%02X); bitte bei den xine-Entwicklern "
+"melden\n"
 
 #: src/demuxers/demux_voc.c:323
-#, fuzzy, c-format
+#, c-format
 msgid "demux_voc: VOC format 0x%X audio, %d Hz, running time: %d min, %d sec\n"
-msgstr "demux_wav: Format 0x%X Audio, %d Hz, %d Bits/Sample, %d %s\n"
+msgstr "demux_voc: VOC Format 0x%X Audio, %d Hz, Laufzeit: %d min, %d sek\n"
 
 #: src/demuxers/demux_voc.c:459
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "demux_voc: plugin doesn't support plugin API version %d.\n"
 "           this means there's a version mismatch between xine and "
 "this            demuxer plugin.\n"
 "Installing current demux plugins should help.\n"
 msgstr ""
-"demux_ogg: Das Plugin unterstüzt die API-Version %d nicht.\n"
+"demux_voc: Das Plugin unterstüzt die API-Version %d nicht.\n"
 "           Das bedeutet das ein Versionsunterschied zwischen xine und\n"
 "           diesem Demultiplexer-Plugin existiert.\n"
 "Das Installieren aktueller Demultiplexer-Plugins sollte helfen.\n"
 
 #: src/demuxers/demux_vqa.c:212 src/demuxers/demux_vqa.c:473
-#, fuzzy
 msgid "valid mrls ending for vqa demuxer"
-msgstr "Gültige MRL-Endungen für QT-Demultiplexer"
+msgstr "Gültige MRL-Endungen für VQA-Demultiplexer"
 
 #: src/demuxers/demux_vqa.c:335
-#, fuzzy, c-format
+#, c-format
 msgid "demux_vqa: running time: %d min, %d sec\n"
-msgstr "demux_fli: Laufzeit: %d min, %d sek\n"
+msgstr "demux_vga: Laufzeit: %d min, %d sek\n"
 
 #: src/demuxers/demux_vqa.c:339
-#, fuzzy, c-format
+#, c-format
 msgid "demux_vqa: %dx%d VQA video, %d Hz IMA ADPCM audio\n"
-msgstr "demux_idcin: %d Bits, %d Hz %s PCM Audio\n"
+msgstr "demux_vqa: %dx%d VQA-Video, %d Hz IMA ADPCM Audio\n"
 
 #: src/demuxers/demux_vqa.c:460
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "demux_vqa: plugin doesn't support plugin API version %d.\n"
 "           this means there's a version mismatch between xine and "
 "this            demuxer plugin.\n"
 "Installing current demux plugins should help.\n"
 msgstr ""
-"demux_asf: Das Plugin unterstützt die API-Version %d nicht.\n"
+"demux_vqa: Das Plugin unterstützt die API-Version %d nicht.\n"
 "           Das bedeutet das ein Versionsunterschied zwischen xine und\n"
 "           diesem Demultiplexer-Plugin existiert.\n"
 "Das Installieren aktueller Demultiplexer-Plugins sollte helfen.\n"
 
 #: src/demuxers/demux_wc3movie.c:254 src/demuxers/demux_wc3movie.c:405
-#, fuzzy
 msgid "valid mrls ending for mve demuxer"
-msgstr "Gültige MRL-Endungen für MPEG-Demultiplexer"
+msgstr "Gültige MRL-Endungen für MVE-Demultiplexer"
 
 #: src/demuxers/demux_wc3movie.c:392
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "demux_wc3movie: plugin doesn't support plugin API version %d.\n"
 "                this means there's a version mismatch between xine and "
 "this                 demuxer plugin.\n"
 "Installing current demux plugins should help.\n"
 msgstr ""
-"demux_idcin: Das Plugin unterstützt die API-Version %d nicht.\n"
-"             Das bedeutet das ein Versionsunterschied zwischen xine und\n"
-"             diesem Demultiplexer-Plugin existiert.\n"
+"demux_wc3movie: Das Plugin unterstützt die API-Version %d nicht.\n"
+"                Das bedeutet das ein Versionsunterschied zwischen xine und\n"
+"                diesem Demultiplexer-Plugin existiert.\n"
 "Das Installieren aktueller Demultiplexer-Plugins sollte helfen.\n"
 
 #: src/input/input_net.c:102
@@ -2158,11 +2158,13 @@ msgid ""
 "FLI: in chunk FLI_COPY : source data (%d bytes) bigger than image, skipping "
 "chunk\n"
 msgstr ""
+"FLI: In Paket FLI_COPY : Quelldaten (%d Bytes) größer als Bild, überspringe "
+"Paket\n"
 
 #: src/libxinevdec/fli.c:369
-#, fuzzy, c-format
+#, c-format
 msgid "FLI: Unrecognized chunk type: %d\n"
-msgstr "Nicht erkanntes FILM-Paket\n"
+msgstr "FLI: Nicht erkanntes PaketTyp: %d\n"
 
 #: src/libxinevdec/fli.c:397
 #, c-format
@@ -2170,30 +2172,32 @@ msgid ""
 "  warning: processed FLI chunk where chunk size = %d\n"
 "  and final chunk ptr = %d\n"
 msgstr ""
+"  Warnung: Bearbeite FLI-Paket mit Paketgröße = %d,\n"
+"  aber endgültiger Paketzeiger = %d\n"
 
 #. *************************************************************************
 #. * MS RLE specific decode functions
 #. ************************************************************************
 #: src/libxinevdec/msrle.c:69
 msgid "MS RLE: stream ptr just went out of bounds (1)\n"
-msgstr ""
+msgstr "MS RLE: Datenstromzeiger außerhalb des gültigen Bereichs (1)\n"
 
 #: src/libxinevdec/msrle.c:109
 msgid "MS RLE: frame ptr just went out of bounds (1)\n"
-msgstr ""
+msgstr "MS RLE: Bildzeiger außerhalb des gültigen Bereichs (1)\n"
 
 #: src/libxinevdec/msrle.c:116
 msgid "MS RLE: stream ptr just went out of bounds (2)\n"
-msgstr ""
+msgstr "MS RLE: Datenstromzeiger außerhalb des gültigen Bereichs (2)\n"
 
 #: src/libxinevdec/msrle.c:139
 msgid "MS RLE: frame ptr just went out of bounds (2)\n"
-msgstr ""
+msgstr "MS RLE: Bildzeiger außerhalb des gültigen Bereichs (2)\n"
 
 #: src/libxinevdec/msrle.c:160
 #, c-format
 msgid "MS RLE: ended frame decode with bytes left over (%d < %d)\n"
-msgstr ""
+msgstr "MS RLE: Dekodierung beende mit überschüssigen Bytes (%d < %d)\n"
 
 #: src/libxineadec/roqaudio.c:194
 #, c-format
@@ -2209,16 +2213,16 @@ msgstr ""
 "Das Installieren aktueller Plugins sollte helfen.\n"
 
 #: src/libfaad/xine_decoder.c:362
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "libfaad: plugin doesn't support plugin API version %d.\n"
 "libfaad: this means there's a version mismatch between xine and this "
 "libfaad: decoder plugin.\n"
 "Installing current plugins should help.\n"
 msgstr ""
-"libmad: Plugin unterstützt die API-Version %d nicht.\n"
-"        Das bedeutet das ein Versionsunterschied zwischen xine und\n"
-"        diesem Dekodierungs-Plugin existiert.\n"
+"libfaad: Plugin unterstützt die API-Version %d nicht.\n"
+"         Das bedeutet das ein Versionsunterschied zwischen xine und\n"
+"         diesem Dekodierungs-Plugin existiert.\n"
 "Das Installieren aktueller Plugins sollte helfen.\n"
 
 #~ msgid "input_dvd: unable to open dvd drive (%s): %s\n"
