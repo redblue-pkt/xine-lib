@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.58 2004/08/06 21:51:44 jcdutton Exp $
+ * $Id: xine_decoder.c,v 1.59 2004/11/03 19:30:05 mroi Exp $
  *
  * 04-09-2001 DTS passtrough  (C) Joachim Koenig 
  * 09-12-2001 DTS passthrough inprovements (C) James Courtier-Dutton
@@ -28,6 +28,8 @@
 /* required for swab() */
 #define _XOPEN_SOURCE 500
 #endif
+/* avoid compiler warnings */
+#define _BSD_SOURCE 1
 
 #include <stdlib.h>
 #include <unistd.h>

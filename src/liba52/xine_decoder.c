@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.70 2004/04/26 17:50:07 mroi Exp $
+ * $Id: xine_decoder.c,v 1.71 2004/11/03 19:30:04 mroi Exp $
  *
  * stuff needed to turn liba52 into a xine decoder plugin
  */
@@ -26,7 +26,8 @@
 /* required for swab() */
 #define _XOPEN_SOURCE 500
 #endif
-
+/* avoid compiler warnings */
+#define _BSD_SOURCE 1
 
 #include <stdlib.h>
 #include <unistd.h>

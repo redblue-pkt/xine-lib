@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.53 2004/07/17 21:00:30 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.54 2004/11/03 19:30:05 mroi Exp $
  * 
  * 31-8-2001 Added LPCM rate sensing.
  *   (c) 2001 James Courtier-Dutton James@superbug.demon.co.uk
@@ -26,6 +26,8 @@
 #ifndef __sun
 #define _XOPEN_SOURCE 500
 #endif
+/* avoid compiler warnings */
+#define _BSD_SOURCE 1
 
 #include <stdlib.h>
 #include <unistd.h>
