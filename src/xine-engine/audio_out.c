@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.145 2003/09/13 16:15:38 miguelfreitas Exp $
+ * $Id: audio_out.c,v 1.146 2003/10/03 17:39:43 jcdutton Exp $
  *
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -1635,9 +1635,8 @@ static int ao_set_property (xine_audio_port_t *this_gen, int property, int value
 
   default:
     if (!this->grab_only) {
-      pthread_mutex_lock( &this->driver_lock );
+      /* Let the sound driver lock it's own mixer */
       ret =  this->driver->set_property(this->driver, property, value);
-      pthread_mutex_unlock( &this->driver_lock );
     } else
       ret = 0;
   }
