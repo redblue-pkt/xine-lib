@@ -17,10 +17,16 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mms.c,v 1.24 2003/04/25 21:46:49 tmattern Exp $
+ * $Id: mms.c,v 1.25 2003/04/26 13:26:28 tmattern Exp $
  *
- * based on work from major mms
- * utility functions to handle communication with an mms server
+ * MMS over TCP protocol
+ *   based on work from major mms
+ *   utility functions to handle communication with an mms server
+ *
+ * TODO:
+ *   general cleanup, error messages
+ *   allways check packet size
+ *   enable seeking !
  */
 
 #ifdef HAVE_CONFIG_H
@@ -376,6 +382,9 @@ static void print_answer (char *data, int len) {
 
 }  
 
+/*
+ * TODO: error messages (READ ERROR)
+ */
 static int get_answer (mms_t *this) {
  
   int   command = 0x1b;
@@ -386,7 +395,7 @@ static int get_answer (mms_t *this) {
 
     len = xine_read_abort (this->stream, this->s, this->buf, 12);
     if (len != 12) {
-      printf ("\nlibmms: alert! eof\n");
+      printf ("\nlibmms: get_answer: alert! eof\n");
       return 0;
     }
 
@@ -396,13 +405,13 @@ static int get_answer (mms_t *this) {
     printf ("\n\npacket length: %d\n", length);
 #endif
     if (length > (BUF_SIZE - 12)) {
-      printf ("libmms: invalid packet length: %d\n", length);
+      printf ("libmms: get_answer: invalid packet length: %d\n", length);
       return 0;
     }
     
     len = xine_read_abort (this->stream, this->s, this->buf+12, length+4) ;
     if (len<=0) {
-      printf ("libmms: alert! eof\n");
+      printf ("libmms: get_answer: alert! eof\n");
       return 0;
     }
     
@@ -416,9 +425,12 @@ static int get_answer (mms_t *this) {
       send_command (this, 0x1b, 0, 0, 0);
   }
 
-  return 1;
+  return command;
 }
 
+/*
+ * TODO: suppress this function
+ */
 static int receive (xine_stream_t *stream, int s, char *buf, size_t count) {
 
   ssize_t  len;
@@ -432,6 +444,9 @@ static int receive (xine_stream_t *stream, int s, char *buf, size_t count) {
   return len;
 }
 
+/*
+ * TODO: check packet length !
+ */
 static int get_header (mms_t *this) {
 
   unsigned char  pre_header[8];
@@ -533,7 +548,6 @@ static void interp_header (mms_t *this) {
   /*
    * parse header
    */
-
   i = 30;
   while (i < this->asf_header_len) {
     
@@ -657,6 +671,9 @@ static int mms_valid_url (char* url, const char *const * mms_url) {
   return 0;
 } 
 
+/*
+ * TODO: error messages
+ */
 char* mms_connect_common(int *s, int *port, char *url, char **host, char **path, char **file) {
   int     proto_len;
   char   *hostend;
@@ -665,10 +682,6 @@ char* mms_connect_common(int *s, int *port, char *url, char **host, char **path,
   char   *_host;
     
   if ((proto_len = mms_valid_url(url, mms_url_s)) <= 0) {
-    /* 
-     * DCB: Why warning if it isn't a mms*:// mrl like ?
-     */
-    /*  printf ("libmms: invalid url >%s< (should be mms:// - style)\n", url); */
     return NULL;
   }
   
@@ -760,6 +773,10 @@ static void report_progress (xine_stream_t *stream, int p) {
   xine_event_send (stream, &event);
 }
 
+/*
+ * TODO: error messages
+ *       check mms response code !
+ */
 mms_t *mms_connect (xine_stream_t *stream, const char *url_, int bandwidth) {
   mms_t *this;
   char  *url     = NULL;
@@ -822,7 +839,6 @@ mms_t *mms_connect (xine_stream_t *stream, const char *url_, int bandwidth) {
    */
 
   /* cmd1 */
-  
   mms_gen_guid(this->guid);
   sprintf (this->str, "\x1c\x03NSPlayer/7.0.0.1956; {%s}; Host: %s",
     this->guid, this->host);
@@ -841,7 +857,6 @@ mms_t *mms_connect (xine_stream_t *stream, const char *url_, int bandwidth) {
   report_progress (stream, 20);
 
   /* cmd2 */
-
   string_utf16 (&this->scmd_body[8], "\002\000\\\\192.168.0.129\\TCP\\1037\0000", 28);
   memset (this->scmd_body, 0, 8);
   send_command (this, 2, 0, 0, 28 * 2 + 8);
@@ -852,7 +867,6 @@ mms_t *mms_connect (xine_stream_t *stream, const char *url_, int bandwidth) {
   report_progress (stream, 30);
 
   /* 0x5 */
-
   string_utf16 (&this->scmd_body[8], path, strlen(path));
   memset (this->scmd_body, 0, 8);
   if (!send_command (this, 5, 0, 0, strlen(path) * 2 + 12))
@@ -864,7 +878,6 @@ mms_t *mms_connect (xine_stream_t *stream, const char *url_, int bandwidth) {
   report_progress (stream, 40);
 
   /* 0x15 */
-
   memset (this->scmd_body, 0, 40);
   this->scmd_body[32] = 2;
 
@@ -979,8 +992,6 @@ mms_t *mms_connect (xine_stream_t *stream, const char *url_, int bandwidth) {
   report_progress (stream, 75);
 
   /* 0x07 */
-
-  
   memset (this->scmd_body, 0, 40);
 
   for (i = 8; i < 16; i++)
@@ -1001,15 +1012,15 @@ mms_t *mms_connect (xine_stream_t *stream, const char *url_, int bandwidth) {
   return this;
 
  fail:
-
   close (this->s);
   free (url);
   free (this);
   return NULL;
-
 }
 
-
+/*
+ * TODO: replace receive call
+ */
 static int get_media_packet (mms_t *this) {
   unsigned char  pre_header[8];
 

@@ -17,10 +17,17 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mmsh.c,v 1.15 2003/04/25 20:37:21 tmattern Exp $
+ * $Id: mmsh.c,v 1.16 2003/04/26 13:26:28 tmattern Exp $
  *
- * based on mms.c and specs from avifile
- * (http://avifile.sourceforge.net/asf-1.0.htm)
+ * MMS over HTTP protocol
+ *   written by Thibaut Mattern
+ *   based on mms.c and specs from avifile
+ *   (http://avifile.sourceforge.net/asf-1.0.htm)
+ *
+ * TODO:
+ *   error messages
+ *   http support cleanup, find a way to share code with input_http.c (http.h|c)
+ *   http proxy support
  */
 
 #ifdef HAVE_CONFIG_H
