@@ -1,13 +1,10 @@
 include $(top_srcdir)/misc/Makefile.common
 
-SUBDIRS = nvtv
-
 AM_CFLAGS = $(THREAD_CFLAGS) $(X_CFLAGS) $(FT2_CFLAGS)
 
 lib_LTLIBRARIES = libxine.la
 
 XINEUTILS_LIB  = $(top_builddir)/src/xine-utils/libxineutils.la
-NVTVCLIENT_LIB = $(top_builddir)/src/xine-engine/nvtv/libnvclient.la
 
 libxine_la_SOURCES = xine.c metronom.c configfile.c buffer.c \
 	load_plugins.c video_decoder.c buffer_types.c \
@@ -19,15 +16,9 @@ libxine_la_SOURCES = xine.c metronom.c configfile.c buffer.c \
 # FIXME: these are currently unused:
 EXTRA_DIST = lrb.c lrb.h
 
-if HAVE_NVTV
-libxine_la_DEPENDENCIES = @INTLLIBS@ $(XINEUTILS_LIB) $(NVTVCLIENT_LIB)
-libxine_la_LIBADD = $(THREAD_LIBS) $(DYNAMIC_LD_LIBS) @INTLLIBS@ $(ZLIB_LIBS) \
-		-lm $(XINEUTILS_LIB) $(NVTVCLIENT_LIB) $(GICONV_BSD_LIBS) $(FT2_LIBS)
-else
 libxine_la_DEPENDENCIES = @INTLLIBS@ $(XINEUTILS_LIB)
 libxine_la_LIBADD = $(THREAD_LIBS) $(DYNAMIC_LD_LIBS) @INTLLIBS@ $(ZLIB_LIBS) \
 		-lm $(XINEUTILS_LIB) $(GICONV_BSD_LIBS) $(FT2_LIBS)
-endif
 
 libxine_la_LDFLAGS =  \
 	-version-info $(LT_CURRENT):$(LT_REVISION):$(LT_AGE)
@@ -46,6 +37,3 @@ noinst_HEADERS = bswap.h
 
 $(XINEUTILS_LIB):
 	cd $(top_srcdir)/src/xine-utils && $(MAKE) libxineutils.la
-
-$(NVTVCLIENT_LIB):
-	cd $(top_builddir)/src/xine-engine/nvtv && $(MAKE) libnvclient.la

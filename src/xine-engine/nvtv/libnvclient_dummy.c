@@ -1,1 +1,0 @@
-char libnvclient_dummy;
