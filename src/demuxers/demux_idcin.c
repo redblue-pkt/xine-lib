@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2002 the xine project
+ * Copyright (C) 2000-2003 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -63,7 +63,7 @@
  *     - if any bytes exceed 63, do not shift the bytes at all before
  *       transmitting them to the video decoder
  *
- * $Id: demux_idcin.c,v 1.38 2003/02/22 01:11:54 tmmm Exp $
+ * $Id: demux_idcin.c,v 1.39 2003/04/26 20:16:08 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -624,7 +624,7 @@ void *demux_idcin_init_plugin (xine_t *xine, void *data) {
 #if 0
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_DEMUX, 20, "idcin", XINE_VERSION_CODE, NULL, demux_idcin_init_plugin },
+  { PLUGIN_DEMUX, 21, "idcin", XINE_VERSION_CODE, NULL, demux_idcin_init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
 #endif

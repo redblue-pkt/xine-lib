@@ -27,7 +27,7 @@
  * block needs information from the previous audio block in order to be
  * decoded, thus making random seeking difficult.
  *
- * $Id: demux_vqa.c,v 1.28 2003/04/17 19:01:32 miguelfreitas Exp $
+ * $Id: demux_vqa.c,v 1.29 2003/04/26 20:16:26 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -455,7 +455,7 @@ void *demux_vqa_init_plugin (xine_t *xine, void *data) {
 #if 0
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_DEMUX, 20, "vqa", XINE_VERSION_CODE, NULL, demux_vqa_init_plugin },
+  { PLUGIN_DEMUX, 21, "vqa", XINE_VERSION_CODE, NULL, demux_vqa_init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
 #endif

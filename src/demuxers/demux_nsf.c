@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2002 the xine project
+ * Copyright (C) 2000-2003 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -28,7 +28,7 @@
  * For more information regarding the NSF format, visit:
  *   http://www.tripoint.org/kevtris/nes/nsfspec.txt
  *
- * $Id: demux_nsf.c,v 1.12 2003/04/02 03:20:41 tmmm Exp $
+ * $Id: demux_nsf.c,v 1.13 2003/04/26 20:16:17 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2002 the xine project
+ * Copyright (C) 2000-2003 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.114 2003/04/26 20:09:16 tmattern Exp $
+ * $Id: demux_asf.c,v 1.115 2003/04/26 20:15:54 guenter Exp $
  *
  * demultiplexer for asf streams
  *
@@ -1927,6 +1927,6 @@ static void *init_class (xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */
-  { PLUGIN_DEMUX, 20, "asf", XINE_VERSION_CODE, NULL, init_class },
+  { PLUGIN_DEMUX, 21, "asf", XINE_VERSION_CODE, NULL, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

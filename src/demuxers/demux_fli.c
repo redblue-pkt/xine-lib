@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2002 the xine project
+ * Copyright (C) 2000-2003 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -22,7 +22,7 @@
  * avoid while programming a FLI decoder, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_fli.c,v 1.39 2003/03/07 12:51:47 guenter Exp $
+ * $Id: demux_fli.c,v 1.40 2003/04/26 20:16:02 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -421,6 +421,6 @@ static void *init_plugin (xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_DEMUX, 20, "fli", XINE_VERSION_CODE, NULL, init_plugin },
+  { PLUGIN_DEMUX, 21, "fli", XINE_VERSION_CODE, NULL, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

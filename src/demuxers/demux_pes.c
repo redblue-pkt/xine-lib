@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2000-2002 the xine project
+ * Copyright (C) 2000-2003 the xine project
  * 
  * This file is part of xine, a free video player.
  * 
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_pes.c,v 1.44 2003/03/07 12:51:48 guenter Exp $
+ * $Id: demux_pes.c,v 1.45 2003/04/26 20:16:20 guenter Exp $
  *
  * demultiplexer for mpeg 2 PES (Packetized Elementary Streams)
  * reads streams of variable blocksizes
@@ -644,6 +644,6 @@ static void *init_demuxer_plugin(xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_DEMUX, 10, "mpeg-pes", XINE_VERSION_CODE, NULL, init_demuxer_plugin },
+  { PLUGIN_DEMUX, 21, "mpeg-pes", XINE_VERSION_CODE, NULL, init_demuxer_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

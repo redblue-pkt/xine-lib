@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2002 the xine project
+ * Copyright (C) 2000-2003 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -21,7 +21,7 @@
  * For more information regarding the Interplay MVE file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_ipmovie.c,v 1.8 2003/04/02 03:20:41 tmmm Exp $
+ * $Id: demux_ipmovie.c,v 1.9 2003/04/26 20:16:09 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -800,7 +800,7 @@ void *demux_ipmovie_init_plugin (xine_t *xine, void *data) {
 #if 0
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */
-  { PLUGIN_DEMUX, 20, "ipmovie", XINE_VERSION_CODE, NULL, demux_ipmovie_init_plugin },
+  { PLUGIN_DEMUX, 21, "ipmovie", XINE_VERSION_CODE, NULL, demux_ipmovie_init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
 #endif

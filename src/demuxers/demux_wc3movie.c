@@ -22,7 +22,7 @@
  * For more information on the MVE file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_wc3movie.c,v 1.36 2003/04/17 19:01:33 miguelfreitas Exp $
+ * $Id: demux_wc3movie.c,v 1.37 2003/04/26 20:16:28 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -790,7 +790,7 @@ void *demux_wc3movie_init_plugin (xine_t *xine, void *data) {
 #if 0
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_DEMUX, 20, "wc3movie", XINE_VERSION_CODE, NULL, demux_wc3movie_init_plugin },
+  { PLUGIN_DEMUX, 21, "wc3movie", XINE_VERSION_CODE, NULL, demux_wc3movie_init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
 #endif

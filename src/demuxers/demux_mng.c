@@ -1,7 +1,7 @@
 /*
- * Copyright (C) 2000-2002 the xine project
+ * Copyright (C) 2000-2003 the xine project
  *
- * This file is part of xine, a unix video player.
+ * This file is part of xine, a free video player.
  *
  * xine is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mng.c,v 1.7 2003/03/19 20:01:04 komadori Exp $
+ * $Id: demux_mng.c,v 1.8 2003/04/26 20:16:09 guenter Exp $
  *
  * demux_mng.c, Demuxer plugin for Multiple-image Network Graphics format
  *
@@ -398,6 +398,6 @@ static void *init_plugin(xine_t *xine, void *data)
 }
 
 plugin_info_t xine_plugin_info[] = {
-  { PLUGIN_DEMUX, 20, "mng", XINE_VERSION_CODE, NULL, (void*)init_plugin},
+  { PLUGIN_DEMUX, 21, "mng", XINE_VERSION_CODE, NULL, (void*)init_plugin},
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

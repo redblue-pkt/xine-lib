@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2002 the xine project
+ * Copyright (C) 2000-2003 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -21,7 +21,7 @@
  * For more information on the FILM file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_film.c,v 1.59 2003/02/22 15:00:43 esnel Exp $
+ * $Id: demux_film.c,v 1.60 2003/04/26 20:16:01 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
