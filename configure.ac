@@ -264,7 +264,10 @@ AC_SUBST(LIBFFMPEG_CFLAGS)
 LIBMPEG2_CFLAGS=""
 LIBFFMPEG_CFLAGS="-DSIMPLE_IDCT -DHAVE_AV_CONFIG_H -DRUNTIME_CPUDETECT -DUSE_FASTMEMCPY -DCONFIG_RISKY -DCONFIG_DECODERS -DXINE_MPEG_ENCODER -DCONFIG_ZLIB"
 
-AC_CHECK_DECL(lrintf,[AC_DEFINE(HAVE_LRINTF,1,[Define this if the 'lrintf' function is declared in math.h])],,[
+AC_CHECK_DECL(lrintf,[
+	AC_DEFINE(HAVE_LRINTF,1,[Define this if the 'lrintf' function is declared in math.h])
+	AC_DEFINE(_ISOC9X_SOURCE,1,[Define this if you are ISO C9X compliant])
+      ],,[
 #define _ISOC9X_SOURCE
 #include "math.h"
 ])
