@@ -711,7 +711,9 @@
    <programlisting>
 &nbsp;&nbsp;&nbsp;&lt;mrl&gt;           ::= &lt;input_source&gt;[#&lt;stream_setup&gt;]
 &nbsp;&nbsp;&nbsp;&lt;input_source&gt;  ::= (&lt;absolute_mrl&gt;|&lt;relative_mrl&gt;)
-&nbsp;&nbsp;&nbsp;&lt;absolute_mrl&gt;  ::= &lt;input&gt;:(&lt;net_path&gt;|&lt;abs_path&gt;)[?&lt;query&gt;]
+&nbsp;&nbsp;&nbsp;&lt;absolute_mrl&gt;  ::= &lt;input&gt;:(&lt;hierarch_part&gt;|&lt;opaque_part&gt;)
+&nbsp;&nbsp;&nbsp;&lt;hierarch_part&gt; ::= (&lt;net_path&gt;|&lt;abs_path&gt;)[?&lt;query&gt;]
+&nbsp;&nbsp;&nbsp;&lt;opaque_part&gt;   ::= (&lt;unreserved&gt;|&lt;escaped&gt;|;|?|:|@|&amp;|=|+|$|,){&lt;mrl_char&gt;}
 &nbsp;&nbsp;&nbsp;&lt;relative_mrl&gt;  ::= (&lt;abs_path&gt;|&lt;rel_path&gt;)
 &nbsp;&nbsp;&nbsp;&lt;net_path&gt;      ::= //&lt;authority&gt;[&lt;abs_path&gt;]
 &nbsp;&nbsp;&nbsp;&lt;abs_path&gt;      ::= /&lt;path_segments&gt;
@@ -722,7 +724,7 @@
 &nbsp;&nbsp;&nbsp;&lt;authority&gt;     ::= (&lt;server&gt;|&lt;reg_name&gt;)
 &nbsp;&nbsp;&nbsp;&lt;server&gt;        ::= [[&lt;userinfo&gt;@]&lt;host&gt;[:&lt;port&gt;]]
 &nbsp;&nbsp;&nbsp;&lt;userinfo&gt;      ::= {(&lt;unreserved&gt;|&lt;escaped&gt;|;|:|&amp;|=|+|$|,)}
-&nbsp;&nbsp;&nbsp;&lt;host&gt;          ::= (&lt;hostname&gt;|&lt;ipv4_address&gt;)
+&nbsp;&nbsp;&nbsp;&lt;host&gt;          ::= (&lt;hostname&gt;|&lt;ipv4_address&gt;|&lt;ipv6_reference&gt;)
 &nbsp;&nbsp;&nbsp;&lt;hostname&gt;      ::= {&lt;domainlabel&gt;.}&lt;toplabel&gt;[.]
 &nbsp;&nbsp;&nbsp;&lt;domainlabel&gt;   ::= (&lt;alphanum&gt;|&lt;alphanum&gt;{(&lt;alphanum&gt;|-)}&lt;alphanum&gt;)
 &nbsp;&nbsp;&nbsp;&lt;toplabel&gt;      ::= (&lt;alpha&gt;|&lt;alpha&gt;{(&lt;alphanum&gt;|-)}&lt;alphanum&gt;)
@@ -743,7 +745,7 @@
 &nbsp;&nbsp;&nbsp;&lt;engine_option&gt; ::= &lt;unreserved&gt;{&lt;unreserved&gt;}:&lt;stream_char&gt;{&lt;stream_char&gt;}
 &nbsp;&nbsp;&nbsp;&lt;stream_char&gt;   ::= (&lt;unreserved&gt;|&lt;escaped&gt;|:|@|&amp;|=|+|$|,)
 &nbsp;&nbsp;&nbsp;&lt;mrl_char&gt;      ::= (&lt;reserved&gt;|&lt;unreserved&gt;|&lt;escaped&gt;)
-&nbsp;&nbsp;&nbsp;&lt;reserved&gt;      ::= (;|/|?|:|@|&amp;|=|+|$|,)
+&nbsp;&nbsp;&nbsp;&lt;reserved&gt;      ::= (;|/|?|:|@|&amp;|=|+|$|,|[|])
 &nbsp;&nbsp;&nbsp;&lt;unreserved&gt;    ::= (&lt;alphanum&gt;|&lt;mark&gt;)
 &nbsp;&nbsp;&nbsp;&lt;mark&gt;          ::= (-|_|.|!|~|*|'|(|))
 &nbsp;&nbsp;&nbsp;&lt;escaped&gt;       ::= %&lt;hex&gt;&lt;hex&gt;
@@ -753,6 +755,7 @@
 &nbsp;&nbsp;&nbsp;&lt;lowalpha&gt;      ::= (a|b|c|d|e|f|g|h|i|j|k|l|m|n|o|p|q|r|s|t|u|v|w|x|y|z)
 &nbsp;&nbsp;&nbsp;&lt;upalpha&gt;       ::= (A|B|C|D|E|F|G|H|I|J|K|L|M|N|O|P|Q|R|S|T|U|V|W|X|Y|Z)
 &nbsp;&nbsp;&nbsp;&lt;digit&gt;         ::= (0|1|2|3|4|5|6|7|8|9)</programlisting>
+   With &lt;ipv6_reference&gt; being an IPv6 address enclosed in [ and ] as defined in RFC2732.
   </para>
  </sect1>
 
