@@ -23,7 +23,7 @@
  * For more information regarding the Interplay MVE file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_ipmovie.c,v 1.21 2004/01/09 01:26:33 miguelfreitas Exp $
+ * $Id: demux_ipmovie.c,v 1.22 2004/02/09 22:24:36 jstembridge Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -580,11 +580,11 @@ static void demux_ipmovie_send_headers(demux_plugin_t *this_gen) {
   /* send init info to video decoder */
   this->bih.biSize = sizeof(xine_bmiheader);
   buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-  buf->decoder_flags = BUF_FLAG_HEADER|BUF_FLAG_STDHEADER|BUF_FLAG_FRAME_END;
-  buf->decoder_info[0] = 0;
+  buf->decoder_flags = BUF_FLAG_HEADER|BUF_FLAG_STDHEADER|BUF_FLAG_FRAMERATE|
+                       BUF_FLAG_FRAME_END;
   /* bogus initial video_step, but we won't know for sure until we see
    * the first video frame; however, fps for these files is usually 15 */
-  buf->decoder_info[1] = 6000;
+  buf->decoder_info[0] = 6000;
   buf->size = sizeof(xine_bmiheader);
   memcpy(buf->content, &this->bih, buf->size);
   buf->type = BUF_VIDEO_INTERPLAY;

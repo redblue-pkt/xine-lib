@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.176 2004/01/12 17:35:15 miguelfreitas Exp $
+ * $Id: demux_qt.c,v 1.177 2004/02/09 22:24:36 jstembridge Exp $
  *
  */
 
@@ -2425,10 +2425,7 @@ static void demux_qt_send_headers(demux_plugin_t *this_gen) {
       (video_trak->properties->video.codec_buftype)) {
     buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
     buf->decoder_flags = BUF_FLAG_HEADER|BUF_FLAG_STDHEADER|BUF_FLAG_FRAME_END;
-    buf->decoder_info[0] = 0;
-    /* initial video step; not necessary since each QT frame has its own
-     * duration, but set it non-zero as a matter of custom */
-    buf->decoder_info[1] = 3000;
+    
     memcpy(buf->content, &this->bih, sizeof(this->bih));
     buf->size = sizeof(this->bih);
     buf->type = video_trak->properties->video.codec_buftype;

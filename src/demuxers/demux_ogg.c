@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_ogg.c,v 1.139 2004/02/03 10:36:11 andruil Exp $
+ * $Id: demux_ogg.c,v 1.140 2004/02/09 22:24:36 jstembridge Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -862,11 +862,12 @@ static void decode_video_header (demux_ogg_t *this, const int stream_num, ogg_pa
   bih.biClrImportant=0;
 
   buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-  buf->decoder_flags = BUF_FLAG_HEADER|BUF_FLAG_STDHEADER|BUF_FLAG_FRAME_END;
+  buf->decoder_flags = BUF_FLAG_HEADER|BUF_FLAG_STDHEADER|BUF_FLAG_FRAMERATE|
+                       BUF_FLAG_FRAME_END;
   this->frame_duration = loctime_unit * 9 / 1000;
   this->si[stream_num]->factor = loctime_unit * 9;
   this->si[stream_num]->quotient = 1000;
-  buf->decoder_info[1] = this->frame_duration;
+  buf->decoder_info[0] = this->frame_duration;
   memcpy (buf->content, &bih, sizeof (xine_bmiheader));
   buf->size = sizeof (xine_bmiheader);
   buf->type = this->si[stream_num]->buf_types;
@@ -1004,12 +1005,13 @@ static void decode_dshow_header (demux_ogg_t *this, const int stream_num, ogg_pa
     bih.biClrImportant  = 0;
 
     buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-    buf->decoder_flags = BUF_FLAG_HEADER|BUF_FLAG_STDHEADER|BUF_FLAG_FRAME_END;
+    buf->decoder_flags = BUF_FLAG_HEADER|BUF_FLAG_STDHEADER|BUF_FLAG_FRAMERATE|
+                         BUF_FLAG_FRAME_END;
     this->frame_duration = (*(int64_t*)(op->packet+164)) * 9 / 1000;
     this->si[stream_num]->factor = (*(int64_t*)(op->packet+164)) * 9;
     this->si[stream_num]->quotient = 1000;
 
-    buf->decoder_info[1] = this->frame_duration;
+    buf->decoder_info[0] = this->frame_duration;
     memcpy (buf->content, &bih, sizeof (xine_bmiheader));
     buf->size = sizeof (xine_bmiheader);
     buf->type = this->si[stream_num]->buf_types;

@@ -65,7 +65,7 @@
  *     - if any bytes exceed 63, do not shift the bytes at all before
  *       transmitting them to the video decoder
  *
- * $Id: demux_idcin.c,v 1.50 2004/01/09 01:26:33 miguelfreitas Exp $
+ * $Id: demux_idcin.c,v 1.51 2004/02/09 22:24:36 jstembridge Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -369,9 +369,9 @@ static void demux_idcin_send_headers(demux_plugin_t *this_gen) {
   /* send init info to decoders */
   bih->biSize = sizeof(xine_bmiheader) + HUFFMAN_TABLE_SIZE;
   buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-  buf->decoder_flags = BUF_FLAG_HEADER|BUF_FLAG_STDHEADER|BUF_FLAG_FRAME_END;
-  buf->decoder_info[0] = 0;
-  buf->decoder_info[1] = IDCIN_FRAME_PTS_INC;  /* initial video_step */
+  buf->decoder_flags = BUF_FLAG_HEADER|BUF_FLAG_STDHEADER|BUF_FLAG_FRAMERATE|
+                       BUF_FLAG_FRAME_END;
+  buf->decoder_info[0] = IDCIN_FRAME_PTS_INC;  /* initial video_step */
   buf->size = bih->biSize;
   memcpy(buf->content, this->bih, buf->size);
   buf->type = BUF_VIDEO_IDCIN;

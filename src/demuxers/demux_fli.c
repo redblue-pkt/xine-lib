@@ -24,7 +24,7 @@
  * avoid while programming a FLI decoder, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_fli.c,v 1.52 2004/02/02 00:42:49 tmmm Exp $
+ * $Id: demux_fli.c,v 1.53 2004/02/09 22:24:36 jstembridge Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -242,9 +242,9 @@ static void demux_fli_send_headers(demux_plugin_t *this_gen) {
 
   /* send init info to FLI decoder */
   buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-  buf->decoder_flags = BUF_FLAG_HEADER|BUF_FLAG_FRAME_END|BUF_FLAG_STDHEADER;
-  buf->decoder_info[0] = 0;
-  buf->decoder_info[1] = this->frame_pts_inc;  /* initial video_step */
+  buf->decoder_flags = BUF_FLAG_HEADER|BUF_FLAG_STDHEADER|BUF_FLAG_FRAMERATE|
+                       BUF_FLAG_FRAME_END;
+  buf->decoder_info[0] = this->frame_pts_inc;  /* initial video_step */
   buf->size = this->bih.biSize;
   memcpy(buf->content, &this->bih, sizeof(xine_bmiheader) + this->bih.biSize);
   buf->type = BUF_VIDEO_FLI;

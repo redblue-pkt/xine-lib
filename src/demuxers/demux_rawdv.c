@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_rawdv.c,v 1.18 2004/01/12 17:35:15 miguelfreitas Exp $
+ * $Id: demux_rawdv.c,v 1.19 2004/02/09 22:24:37 jstembridge Exp $
  *
  * demultiplexer for raw dv streams
  */
@@ -178,14 +178,15 @@ static void demux_raw_dv_send_headers (demux_plugin_t *this_gen) {
   buf = this->video_fifo->buffer_pool_alloc(this->video_fifo);
   buf->content = buf->mem;
   buf->type = BUF_VIDEO_DV;
-  buf->decoder_flags |= BUF_FLAG_HEADER|BUF_FLAG_STDHEADER|BUF_FLAG_FRAME_END;
+  buf->decoder_flags |= BUF_FLAG_HEADER|BUF_FLAG_STDHEADER|BUF_FLAG_FRAMERATE|
+                        BUF_FLAG_FRAME_END;
 
   bih = (xine_bmiheader *)buf->content;
 
   if( !(scratch[3] & 0x80) ) {
     /* NTSC */
     this->frame_size = NTSC_FRAME_SIZE;
-    this->duration = buf->decoder_info[1] = 3003;
+    this->duration = buf->decoder_info[0] = 3003;
     bih->biWidth = 720;
     bih->biHeight = 480;
     _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_BITRATE,
@@ -193,7 +194,7 @@ static void demux_raw_dv_send_headers (demux_plugin_t *this_gen) {
   } else {
     /* PAL */
     this->frame_size = PAL_FRAME_SIZE;
-    this->duration = buf->decoder_info[1] = 3600;
+    this->duration = buf->decoder_info[0] = 3600;
     bih->biWidth = 720;
     bih->biHeight = 576;
     _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_BITRATE,

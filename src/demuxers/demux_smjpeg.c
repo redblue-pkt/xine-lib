@@ -23,7 +23,7 @@
  * For more information on the SMJPEG file format, visit:
  *   http://www.lokigames.com/development/smjpeg.php3
  *
- * $Id: demux_smjpeg.c,v 1.48 2004/01/09 01:26:33 miguelfreitas Exp $
+ * $Id: demux_smjpeg.c,v 1.49 2004/02/09 22:24:37 jstembridge Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -331,9 +331,9 @@ static void demux_smjpeg_send_headers(demux_plugin_t *this_gen) {
 
   /* send init info to decoders */
   buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-  buf->decoder_flags = BUF_FLAG_HEADER|BUF_FLAG_STDHEADER|BUF_FLAG_FRAME_END;
-  buf->decoder_info[0] = 0;
-  buf->decoder_info[1] = 3000;  /* initial video_step */
+  buf->decoder_flags = BUF_FLAG_HEADER|BUF_FLAG_STDHEADER|BUF_FLAG_FRAMERATE|
+                       BUF_FLAG_FRAME_END;
+  buf->decoder_info[0] = 3000;  /* initial video_step */
   memcpy(buf->content, &this->bih, sizeof(this->bih));
   buf->size = sizeof(this->bih);
   buf->type = this->video_type;

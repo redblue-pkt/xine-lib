@@ -28,7 +28,7 @@
  * checking the first 2 bytes, which are 0x2E 0x03 in a Sierra VMD file.
  * There is a 1/65536 chance of a false positive using this method.
  *
- * $Id: demux_vmd.c,v 1.1 2004/02/05 02:51:14 tmmm Exp $
+ * $Id: demux_vmd.c,v 1.2 2004/02/09 22:24:37 jstembridge Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -348,9 +348,9 @@ static void demux_vmd_send_headers(demux_plugin_t *this_gen) {
 
   /* send init info to decoders */
   buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-  buf->decoder_flags = BUF_FLAG_HEADER|BUF_FLAG_STDHEADER|BUF_FLAG_FRAME_END;
-  buf->decoder_info[0] = 0;
-  buf->decoder_info[1] = this->video_pts_inc;  /* initial duration */
+  buf->decoder_flags = BUF_FLAG_HEADER|BUF_FLAG_STDHEADER|BUF_FLAG_FRAMERATE|
+                       BUF_FLAG_FRAME_END;
+  buf->decoder_info[0] = this->video_pts_inc;  /* initial duration */
   memcpy(buf->content, this->bih, sizeof(xine_bmiheader) + VMD_HEADER_SIZE);
   buf->size = sizeof(xine_bmiheader) + VMD_HEADER_SIZE;
   buf->type = BUF_VIDEO_VMD;

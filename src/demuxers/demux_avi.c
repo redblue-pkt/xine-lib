@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_avi.c,v 1.193 2004/02/02 21:32:40 tmattern Exp $
+ * $Id: demux_avi.c,v 1.194 2004/02/09 22:24:36 jstembridge Exp $
  *
  * demultiplexer for avi streams
  *
@@ -1874,8 +1874,9 @@ static void demux_avi_send_headers (demux_plugin_t *this_gen) {
     _x_demux_control_start (this->stream);
 
     buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-    buf->decoder_flags = BUF_FLAG_HEADER|BUF_FLAG_STDHEADER|BUF_FLAG_FRAME_END;
-    buf->decoder_info[1] = this->video_step;
+    buf->decoder_flags = BUF_FLAG_HEADER|BUF_FLAG_STDHEADER|BUF_FLAG_FRAMERATE|
+                         BUF_FLAG_FRAME_END;
+    buf->decoder_info[0] = this->video_step;
     memcpy (buf->content, this->avi->bih, this->avi->bih->biSize);
     buf->size = this->avi->bih->biSize;
     
