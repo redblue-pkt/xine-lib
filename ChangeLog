@@ -1,3 +1,50 @@
+xine (0.5.0) unstable; urgency=low
+
+  This is the big, long-awaited architecture change
+
+  * new, plugin-based architecture
+  * major GUI enhancements (MRL browser, usability...)
+  * ports to Solaris (sparc/intel), IRIX (mips)
+  * fullscreen and yuy2 support for XShm
+  * support for remote X11 displays
+  * aalib video output
+  * artsd support
+  * dxr3/h+ support now finally in the official tree
+  * 4/5/5.1 audio channel output (OSS/ ALSA?)
+		
+ -- Guenter Bartsch <guenter@users.sourceforge.net>  Sun,  22 Jul 2001 13:10:52 +0200
+
+xine (0.4.3) unstable; urgency=low
+
+  This is a minor bugfix release
+
+  * GUI bugfixes and minor improvements
+  * build fixes for FreeBSD
+  * tarball should be complete now
+  * improved demuxer file type detection
+  * making metronom a bit more tolerant for small wraps
+  * improved mp3 sample rate handling 
+		
+ -- Guenter Bartsch <guenter@users.sourceforge.net>  Sun,  16 May 2001 22:59:00 +0200
+
+xine (0.4.2) unstable; urgency=low
+
+  This is mainly a bugfix release for those who want a stable xine _now_,
+  before the new, better, universal 0.5 architecture has stabilized.
+  
+  * RPM package fixes (version 0.4.01)
+  * Stability/portability patches by Henry Worth
+    (fixes lots of hangs and the like, should build on ppc now)
+  * tests for ALSA version <0.9 in configure
+  * improved synchronization, especially for AVIs
+  * added file browser dialog (bad hack, but mostly working)
+  * fixed "squeeking mpeg sound" bug
+  * fixed segfault bug with non-seekable input plugins
+  * fifo plugin now refuses to handle plain file name MRLs
+    (fixes broken seek for files on some installations)
+  
+ -- Siggi Langauf <siggi@debian.org>  Sun,  6 May 2001 14:24:01 +0200
+
 xine (0.4.0) unstable; urgency=low
 
   * new multithreaded architecture - xine becomes idle
