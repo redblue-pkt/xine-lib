@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_elem.c,v 1.4 2001/04/29 22:42:46 f1rmb Exp $
+ * $Id: demux_elem.c,v 1.5 2001/04/29 23:22:32 f1rmb Exp $
  *
  * demultiplexer for elementary mpeg streams
  * 
@@ -178,8 +178,6 @@ static int demux_mpeg_elem_open(demux_plugin_t *this_gen,
 
   demux_mpeg_elem_t *this = (demux_mpeg_elem_t *) this_gen;
 
-  this->input = input;
-
   switch(stage) {
     
   case STAGE_BY_CONTENT: {
@@ -204,6 +202,7 @@ static int demux_mpeg_elem_open(demux_plugin_t *this_gen,
 	
 	switch(buf[3]) {
 	case 0xb3:
+	  this->input = input;
 	  return DEMUX_CAN_HANDLE;
 	  break;
 	}
@@ -223,8 +222,10 @@ static int demux_mpeg_elem_open(demux_plugin_t *this_gen,
     xprintf(VERBOSE|DEMUX, "%s: suffix %s of %s\n", __FUNCTION__, suffix, MRL);
     
     if(suffix) {
-      if(!strcasecmp(suffix, ".mpv"))
+      if(!strcasecmp(suffix, ".mpv")) {
+	this->input = input;
 	return DEMUX_CAN_HANDLE;
+      }
     }
 
     return DEMUX_CANNOT_HANDLE;

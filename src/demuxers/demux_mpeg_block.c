@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.5 2001/04/28 21:23:04 guenter Exp $
+ * $Id: demux_mpeg_block.c,v 1.6 2001/04/29 23:22:32 f1rmb Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -387,7 +387,7 @@ static void demux_mpeg_block_start (demux_plugin_t *this_gen,
   buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
   buf->type    = BUF_CONTROL_START;
   this->video_fifo->put (this->video_fifo, buf);
-  buf = this->audio_fifo->buffer_pool_alloc (this->video_fifo);
+  buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
   buf->type    = BUF_CONTROL_START;
   this->audio_fifo->put (this->audio_fifo, buf);
 
@@ -402,8 +402,6 @@ static int demux_mpeg_block_open(demux_plugin_t *this_gen,
 				 input_plugin_t *input, int stage) {
 
   demux_mpeg_block_t *this = (demux_mpeg_block_t *) this_gen;
-
-  this->input = input;
 
   switch(stage) {
 
@@ -427,12 +425,14 @@ static int demux_mpeg_block_open(demux_plugin_t *this_gen,
 
 	case 0xba:
 	  if((buf[4] & 0xc0) == 0x40) 
+	    this->input = input;
 	    return DEMUX_CAN_HANDLE;
 
 	  break;
 	  
 	case 0xe0:
 	  if((buf[6] & 0xc0) == 0x80) 
+	    this->input = input;
 	    return DEMUX_CAN_HANDLE;
 
 	  break;
@@ -459,10 +459,12 @@ static int demux_mpeg_block_open(demux_plugin_t *this_gen,
 	      && (!strncmp((media+3), "mpeg2", 5) ))) 
 	 ) {
 	this->blocksize = 2048;
+	this->input = input;
 	return DEMUX_CAN_HANDLE;
       }
       if(!strncmp(MRL, "vcd", 3)) {
 	this->blocksize = 2324;
+	this->input = input;
 	return DEMUX_CAN_HANDLE;
       }
     } 
@@ -481,6 +483,7 @@ static int demux_mpeg_block_open(demux_plugin_t *this_gen,
     
     if(!strcasecmp(ending, ".vob")) {
       this->blocksize = 2048;
+      this->input = input;
       return DEMUX_CAN_HANDLE;
     }
   }

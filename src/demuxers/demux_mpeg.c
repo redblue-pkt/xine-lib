@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg.c,v 1.5 2001/04/28 21:23:04 guenter Exp $
+ * $Id: demux_mpeg.c,v 1.6 2001/04/29 23:22:32 f1rmb Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  * reads streams of variable blocksizes
@@ -510,24 +510,23 @@ static void demux_mpeg_start (demux_plugin_t *this_gen,
   pthread_create (&this->thread, NULL, demux_mpeg_loop, this) ;
 }
 
-static int demux_mpeg_open(demux_plugin_t *this_gen, input_plugin_t *ip, int stage) {
+static int demux_mpeg_open(demux_plugin_t *this_gen, 
+			   input_plugin_t *input, int stage) {
 
   demux_mpeg_t *this = (demux_mpeg_t *) this_gen;
 
-  this->input = ip;
-  
   switch(stage) {
     
   case STAGE_BY_CONTENT: {
     uint8_t buf[4096];
     
-    if((ip->get_capabilities(ip) & INPUT_CAP_SEEKABLE) != 0) {
-      ip->seek(ip, 0, SEEK_SET);
+    if((input->get_capabilities(input) & INPUT_CAP_SEEKABLE) != 0) {
+      input->seek(input, 0, SEEK_SET);
       
-      if(ip->get_blocksize(ip))
+      if(input->get_blocksize(input))
 	return DEMUX_CANNOT_HANDLE;
       
-      if(ip->read(ip, buf, 6)) {
+      if(input->read(input, buf, 6)) {
 	
 	if(buf[0] || buf[1] || (buf[2] != 0x01))
 	  return DEMUX_CANNOT_HANDLE;
@@ -536,11 +535,13 @@ static int demux_mpeg_open(demux_plugin_t *this_gen, input_plugin_t *ip, int sta
 	  
 	case 0xba:
 	  if((buf[4] & 0xf0) == 0x20)
+	    this->input = input;
 	    return DEMUX_CAN_HANDLE;
 	  break;
 	  
 	case 0xe0:
 	  if((buf[6] & 0xc0) != 0x80)
+	    this->input = input;
 	    return DEMUX_CAN_HANDLE;
 	  break;
 	  
@@ -554,7 +555,7 @@ static int demux_mpeg_open(demux_plugin_t *this_gen, input_plugin_t *ip, int sta
   case STAGE_BY_EXTENSION: {
     char *media;
     char *ending;
-    char *MRL = ip->get_mrl(ip);
+    char *MRL = input->get_mrl(input);
     
     media = strstr(MRL, "://");
     if(media) {
@@ -562,6 +563,7 @@ static int demux_mpeg_open(demux_plugin_t *this_gen, input_plugin_t *ip, int sta
 	 || (!(strncasecmp(MRL, "fifo", 4)))) {
 	if(!(strncasecmp((media+3), "mpeg1", 5))) {
 	  perr("%s(%d)mpeg\n", __FUNCTION__, stage);
+	  this->input = input;
 	  return DEMUX_CAN_HANDLE;
 	}
 	else if(!(strncasecmp((media+3), "mpeg2", 5))) {
@@ -584,6 +586,7 @@ static int demux_mpeg_open(demux_plugin_t *this_gen, input_plugin_t *ip, int sta
     
     if(!strcasecmp(ending, ".mpg") 
        || (!strcasecmp(ending, ".mpeg"))) {
+      this->input = input;
       return DEMUX_CAN_HANDLE;
     }
   }
@@ -639,4 +642,3 @@ demux_plugin_t *init_demuxer_plugin(int iface, config_values_t *config) {
     return NULL;
   }
 }
-

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpgaudio.c,v 1.3 2001/04/29 22:42:46 f1rmb Exp $
+ * $Id: demux_mpgaudio.c,v 1.4 2001/04/29 23:22:32 f1rmb Exp $
  *
  * demultiplexer for mpeg audio (i.e. mp3) streams
  *
@@ -311,7 +311,7 @@ static void demux_mpgaudio_start (demux_plugin_t *this_gen,
   buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
   buf->type    = BUF_CONTROL_START;
   this->video_fifo->put (this->video_fifo, buf);
-  buf = this->audio_fifo->buffer_pool_alloc (this->video_fifo);
+  buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
   buf->type    = BUF_CONTROL_START;
   this->audio_fifo->put (this->audio_fifo, buf);
 
@@ -325,8 +325,6 @@ static void demux_mpgaudio_start (demux_plugin_t *this_gen,
 static int demux_mpgaudio_open(demux_plugin_t *this_gen,
 			       input_plugin_t *input, int stage) {
   demux_mpgaudio_t *this = (demux_mpgaudio_t *) this_gen;
-
-  this->input = input;
 
   switch(stage) {
     
@@ -394,8 +392,10 @@ static int demux_mpgaudio_open(demux_plugin_t *this_gen,
 	  head = (buf[0] << 24) + (buf[1] << 16) + (buf[2] << 8) + buf[3];
 	  
 	  if(mpg123_head_check(head) && 
-	     (((head >> 8) & 0x1) == 0x0) && (((head >> 6) & 0x3) == 0x1))
+	     (((head >> 8) & 0x1) == 0x0) && (((head >> 6) & 0x3) == 0x1)) {
+	    this->input = input;
 	    return DEMUX_CAN_HANDLE;
+	  }
 	}
       }
     }
@@ -408,15 +408,16 @@ static int demux_mpgaudio_open(demux_plugin_t *this_gen,
     char *MRL;
     
     MRL = input->get_mrl (input);
-
+    
     suffix = strrchr(MRL, '.');
-    xprintf(VERBOSE|DEMUX, "%s: suffix %s of %s\n", __FUNCTION, suffix, MRL);
+    xprintf(VERBOSE|DEMUX, "%s: suffix %s of %s\n", __FUNCTION__, suffix, MRL);
     
     if(!suffix)
       return DEMUX_CANNOT_HANDLE;
     
     if(!strcasecmp(suffix, ".mp3") 
        || (!strcasecmp(suffix, ".mp2"))) {
+      this->input = input;
       return DEMUX_CAN_HANDLE;
     }
   }
@@ -471,4 +472,3 @@ demux_plugin_t *init_demuxer_plugin(int iface, config_values_t *config) {
     return NULL;
   }
 }
-

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_avi.c,v 1.6 2001/04/28 21:23:04 guenter Exp $
+ * $Id: demux_avi.c,v 1.7 2001/04/29 23:22:32 f1rmb Exp $
  *
  * demultiplexer for avi streams
  *
@@ -888,7 +888,8 @@ static void demux_avi_start (demux_plugin_t *this_gen,
   pthread_create (&this->thread, NULL, demux_avi_loop, this) ;
 }
 
-static int demux_avi_open(demux_plugin_t *this_gen, input_plugin_t *input, int stage) {
+static int demux_avi_open(demux_plugin_t *this_gen, 
+			  input_plugin_t *input, int stage) {
 
   demux_avi_t *this = (demux_avi_t *) this_gen;
 
@@ -929,7 +930,7 @@ static int demux_avi_open(demux_plugin_t *this_gen, input_plugin_t *input, int s
   case STAGE_BY_EXTENSION: {
     char *ending, *mrl;
 
-    mrl = this->input->get_mrl (this->input);
+    mrl = input->get_mrl (input);
     
     ending = strrchr(mrl, '.');
     xprintf(VERBOSE|DEMUX, "demux_avi_can_handle: ending %s of %s\n", 
