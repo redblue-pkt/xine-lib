@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.132 2003/03/25 12:52:35 mroi Exp $
+ * $Id: video_decoder.c,v 1.133 2003/04/02 12:28:09 hadess Exp $
  *
  */
 
@@ -387,7 +387,7 @@ void *video_decoder_loop (void *stream_gen) {
     buf->free_buffer (buf);
   }
 
-  pthread_exit(NULL);
+  return NULL;
 }
 
 void video_decoder_init (xine_stream_t *stream) {

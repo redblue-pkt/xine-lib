@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.151 2003/03/26 01:37:55 miguelfreitas Exp $
+ * $Id: video_out.c,v 1.152 2003/04/02 12:28:09 hadess Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -939,7 +939,7 @@ static void *video_out_loop (void *this_gen) {
     this->last_frame = NULL;
   }
 
-  pthread_exit(NULL);
+  return NULL;
 }
 
 /*

@@ -256,7 +256,6 @@ static void *demux_loop (void *stream_gen) {
 
   pthread_mutex_unlock( &stream->demux_lock );
 
-  pthread_exit(NULL);
   return NULL;
 }
 

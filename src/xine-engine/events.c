@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: events.c,v 1.18 2002/11/27 16:19:53 mroi Exp $
+ * $Id: events.c,v 1.19 2003/04/02 12:28:09 hadess Exp $
  *
  * Event handling functions
  *
@@ -201,7 +201,7 @@ static void *listener_loop (void *queue_gen) {
     xine_event_free (event);
   }
 
-  pthread_exit(NULL);
+  return NULL;
 }
 
 
