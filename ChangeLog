@@ -12,7 +12,10 @@
     non-mpeg streams. supports overlays and OSD.
   * suggested using the libXvMCW so xine won't depend on any vendor
     specific library. you can get the old behaviour (not recommended)
-    using ./configure --with-xvmc-lib=XvMCNVIDIA
+    using ./configure --with-xvmc-lib=XvMCNVIDIA. 
+    The wrapper library libXvMCW is present in Xorg CVS or downloadable 
+    standalone from http://sourceforge.net/projects/unichrome. 
+    It will dlopen a hardware-specific XvMC library at runtime. 
     
 xine-lib (1-rc6)
   * Moved win32 frontend into separate module.
