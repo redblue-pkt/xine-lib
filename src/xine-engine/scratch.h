@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: scratch.h,v 1.5 2002/10/23 17:12:34 guenter Exp $
+ * $Id: scratch.h,v 1.6 2003/11/11 18:45:01 f1rmb Exp $
  *
  * scratch buffer for log output
  *
@@ -46,6 +46,6 @@ struct scratch_buffer_s {
 
 };
 
-scratch_buffer_t *new_scratch_buffer (int num_lines);
+scratch_buffer_t *_x_new_scratch_buffer (int num_lines);
 
 #endif

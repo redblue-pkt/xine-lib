@@ -25,7 +25,7 @@
  * It will only play that block if it is PCM data. More variations will be
  * supported as they are encountered.
  *
- * $Id: demux_voc.c,v 1.33 2003/10/31 22:56:21 tmattern Exp $
+ * $Id: demux_voc.c,v 1.34 2003/11/11 18:44:53 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -83,7 +83,7 @@ static int open_voc_file(demux_voc_t *this) {
   off_t first_block_offset;
   signed char sample_rate_divisor;
 
-  if (xine_demux_read_header(this->input, header, VOC_HEADER_SIZE) != VOC_HEADER_SIZE)
+  if (_x_demux_read_header(this->input, header, VOC_HEADER_SIZE) != VOC_HEADER_SIZE)
     return 0;
 
   /* check the signature */
@@ -152,7 +152,7 @@ static int demux_voc_send_chunk(demux_plugin_t *this_gen) {
   current_pts /= this->audio_sample_rate;
 
   if (this->seek_flag) {
-    xine_demux_control_newpts(this->stream, current_pts, 0);
+    _x_demux_control_newpts(this->stream, current_pts, 0);
     this->seek_flag = 0;
   }
 
@@ -212,7 +212,7 @@ static void demux_voc_send_headers(demux_plugin_t *this_gen) {
                        this->audio_bits);
 
   /* send start buffers */
-  xine_demux_control_start(this->stream);
+  _x_demux_control_start(this->stream);
 
   /* send init info to decoders */
   if (this->audio_fifo && this->audio_type) {
@@ -233,7 +233,7 @@ static int demux_voc_seek (demux_plugin_t *this_gen, off_t start_pos, int start_
 
   this->seek_flag = 1;
   this->status = DEMUX_OK;
-  xine_demux_flush_engine (this->stream);
+  _x_demux_flush_engine (this->stream);
 
   /* if input is non-seekable, do not proceed with the rest of this
    * seek function */
@@ -321,7 +321,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
     mrl = input->get_mrl (input);
     extensions = class_gen->get_extensions (class_gen);
 
-    if (!xine_demux_check_extension (mrl, extensions)) {
+    if (!_x_demux_check_extension (mrl, extensions)) {
       free (this);
       return NULL;
     }

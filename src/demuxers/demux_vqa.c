@@ -29,7 +29,7 @@
  * block needs information from the previous audio block in order to be
  * decoded, thus making random seeking difficult.
  *
- * $Id: demux_vqa.c,v 1.34 2003/10/31 22:56:21 tmattern Exp $
+ * $Id: demux_vqa.c,v 1.35 2003/11/11 18:44:53 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -99,7 +99,7 @@ static int open_vqa_file(demux_vqa_t *this) {
   xine_bmiheader *bih = (xine_bmiheader *)this->bih;
   unsigned char *vqa_header = this->bih + sizeof(xine_bmiheader);
 
-  if (xine_demux_read_header(this->input, scratch, 12) != 12)
+  if (_x_demux_read_header(this->input, scratch, 12) != 12)
     return 0;
 
   /* check for the VQA signatures */
@@ -270,7 +270,7 @@ static void demux_vqa_send_headers(demux_plugin_t *this_gen) {
                        this->wave.wBitsPerSample);
 
   /* send start buffers */
-  xine_demux_control_start(this->stream);
+  _x_demux_control_start(this->stream);
 
   /* send init info to decoders */
   buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
@@ -367,7 +367,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
     mrl = input->get_mrl (input);
     extensions = class_gen->get_extensions (class_gen);
 
-    if (!xine_demux_check_extension (mrl, extensions)) {
+    if (!_x_demux_check_extension (mrl, extensions)) {
       free (this);
       return NULL;
     }

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.c,v 1.31 2003/10/14 22:16:32 tmattern Exp $
+ * $Id: buffer.c,v 1.32 2003/11/11 18:45:00 f1rmb Exp $
  *
  *
  * contents:
@@ -98,7 +98,7 @@ static buf_element_t *buffer_pool_alloc (fifo_buffer_t *this) {
   buf->decoder_flags = 0;
   memset(buf->decoder_info, 0, sizeof(buf->decoder_info));
   memset(buf->decoder_info_ptr, 0, sizeof(buf->decoder_info_ptr));
-  extra_info_reset( buf->extra_info );
+  _x_extra_info_reset( buf->extra_info );
   
   return buf;
 }
@@ -135,7 +135,7 @@ static buf_element_t *buffer_pool_try_alloc (fifo_buffer_t *this) {
     buf->decoder_flags = 0;
     memset(buf->decoder_info, 0, sizeof(buf->decoder_info));
     memset(buf->decoder_info_ptr, 0, sizeof(buf->decoder_info_ptr));
-    extra_info_reset( buf->extra_info );
+    _x_extra_info_reset( buf->extra_info );
   }
   return buf;
 }
@@ -460,7 +460,7 @@ static void fifo_unregister_get_cb (fifo_buffer_t *this,
 /*
  * allocate and initialize new (empty) fifo buffer
  */
-fifo_buffer_t *fifo_buffer_new (int num_buffers, uint32_t buf_size) {
+fifo_buffer_t *_x_fifo_buffer_new (int num_buffers, uint32_t buf_size) {
 
   fifo_buffer_t *this;
   int            i;

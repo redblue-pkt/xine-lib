@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.149 2003/10/30 22:40:53 mroi Exp $
+ * $Id: audio_out.c,v 1.150 2003/11/11 18:45:00 f1rmb Exp $
  *
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -648,7 +648,7 @@ static audio_buffer_t* prepare_samples( aos_t *this, audio_buffer_t *buf) {
         this->output.bits != 8 || this->input.mode != this->output.mode) ) {
     ensure_buffer_size(this->frame_buf[1], 2*mode_channels(this->input.mode),
 		       buf->num_frames );
-    audio_out_resample_8to16((int8_t *)buf->mem, this->frame_buf[1]->mem,
+    _x_audio_out_resample_8to16((int8_t *)buf->mem, this->frame_buf[1]->mem,
 			     mode_channels(this->input.mode) * buf->num_frames );
     buf = swap_frame_buffers(this);
   }
@@ -659,19 +659,19 @@ static audio_buffer_t* prepare_samples( aos_t *this, audio_buffer_t *buf) {
     switch (this->input.mode) {
     case AO_CAP_MODE_MONO:
       ensure_buffer_size(this->frame_buf[1], 2, num_output_frames);
-      audio_out_resample_mono (buf->mem, buf->num_frames,
+      _x_audio_out_resample_mono (buf->mem, buf->num_frames,
 			       this->frame_buf[1]->mem, num_output_frames);
       buf = swap_frame_buffers(this);
       break;
     case AO_CAP_MODE_STEREO:
       ensure_buffer_size(this->frame_buf[1], 4, num_output_frames);
-      audio_out_resample_stereo (buf->mem, buf->num_frames,
+      _x_audio_out_resample_stereo (buf->mem, buf->num_frames,
 				 this->frame_buf[1]->mem, num_output_frames);
       buf = swap_frame_buffers(this);
       break;
     case AO_CAP_MODE_4CHANNEL:
       ensure_buffer_size(this->frame_buf[1], 8, num_output_frames);
-      audio_out_resample_4channel (buf->mem, buf->num_frames,
+      _x_audio_out_resample_4channel (buf->mem, buf->num_frames,
 				   this->frame_buf[1]->mem, num_output_frames);
       buf = swap_frame_buffers(this);
       break;
@@ -679,7 +679,7 @@ static audio_buffer_t* prepare_samples( aos_t *this, audio_buffer_t *buf) {
     case AO_CAP_MODE_5CHANNEL:
     case AO_CAP_MODE_5_1CHANNEL:
       ensure_buffer_size(this->frame_buf[1], 12, num_output_frames);
-      audio_out_resample_6channel (buf->mem, buf->num_frames,
+      _x_audio_out_resample_6channel (buf->mem, buf->num_frames,
 				   this->frame_buf[1]->mem, num_output_frames);
       buf = swap_frame_buffers(this);
       break;
@@ -696,16 +696,16 @@ static audio_buffer_t* prepare_samples( aos_t *this, audio_buffer_t *buf) {
     case AO_CAP_MODE_MONO:
       if( this->output.mode == AO_CAP_MODE_STEREO ) {
 	ensure_buffer_size(this->frame_buf[1], 4, buf->num_frames );
-	audio_out_resample_monotostereo(buf->mem, this->frame_buf[1]->mem,
-					buf->num_frames );
+	_x_audio_out_resample_monotostereo(buf->mem, this->frame_buf[1]->mem,
+					   buf->num_frames );
 	buf = swap_frame_buffers(this);
       }
       break;
     case AO_CAP_MODE_STEREO:
       if( this->output.mode == AO_CAP_MODE_MONO ) {
 	ensure_buffer_size(this->frame_buf[1], 2, buf->num_frames );
-	audio_out_resample_stereotomono(buf->mem, this->frame_buf[1]->mem,
-					buf->num_frames );
+	_x_audio_out_resample_stereotomono(buf->mem, this->frame_buf[1]->mem,
+					   buf->num_frames );
 	buf = swap_frame_buffers(this);
       }
       break;
@@ -726,7 +726,7 @@ static audio_buffer_t* prepare_samples( aos_t *this, audio_buffer_t *buf) {
 				 this->input.mode != this->output.mode) ) {
     ensure_buffer_size(this->frame_buf[1], 1*mode_channels(this->output.mode),
 		       buf->num_frames );
-    audio_out_resample_16to8(buf->mem, (int8_t *)this->frame_buf[1]->mem,
+    _x_audio_out_resample_16to8(buf->mem, (int8_t *)this->frame_buf[1]->mem,
 			     mode_channels(this->output.mode) * buf->num_frames );
     buf = swap_frame_buffers(this);
   }
@@ -968,7 +968,7 @@ static void *ao_loop (void *this_gen) {
         (cur_time - in_buf->stream->current_extra_info->vpts) > 30000 )) {
 
       pthread_mutex_lock( &in_buf->stream->current_extra_info_lock );
-      extra_info_merge( in_buf->stream->current_extra_info, in_buf->extra_info );
+      _x_extra_info_merge( in_buf->stream->current_extra_info, in_buf->extra_info );
       pthread_mutex_unlock( &in_buf->stream->current_extra_info_lock );
     }
     
@@ -1311,7 +1311,7 @@ static audio_buffer_t *ao_get_buffer (xine_audio_port_t *this_gen) {
   audio_buffer_t *buf;
    
   buf = fifo_remove (this->free_fifo);
-  extra_info_reset( buf->extra_info );
+  _x_extra_info_reset( buf->extra_info );
   
   return buf;
 }
@@ -1335,7 +1335,7 @@ static void ao_put_buffer (xine_audio_port_t *this_gen,
     buf->format.bits = stream->stream_info[XINE_STREAM_INFO_AUDIO_BITS];
     buf->format.rate = stream->stream_info[XINE_STREAM_INFO_AUDIO_SAMPLERATE];
     buf->format.mode = stream->stream_info[XINE_STREAM_INFO_AUDIO_MODE];
-    extra_info_merge( buf->extra_info, stream->audio_decoder_extra_info );
+    _x_extra_info_merge( buf->extra_info, stream->audio_decoder_extra_info );
     buf->vpts = stream->metronom->got_audio_samples(stream->metronom, pts, buf->num_frames);
   }
 
@@ -1751,7 +1751,7 @@ static void ao_update_av_sync_method(void *this_gen, xine_cfg_entry_t *entry) {
   this->resample_sync_info.valid = 0;
 }
 
-xine_audio_port_t *ao_new_port (xine_t *xine, ao_driver_t *driver,
+xine_audio_port_t *_x_ao_new_port (xine_t *xine, ao_driver_t *driver,
 				int grab_only) {
  
   config_values_t *config = xine->config;

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  *
- * $Id: video_out_pgx64.c,v 1.44 2003/11/01 15:47:34 komadori Exp $
+ * $Id: video_out_pgx64.c,v 1.45 2003/11/11 18:45:00 f1rmb Exp $
  *
  * video_out_pgx64.c, Sun PGX64/PGX24 output plugin for xine
  *
@@ -414,7 +414,7 @@ static void pgx64_display_frame(vo_driver_t *this_gen, vo_frame_t *frame_gen)
     this->delivered_format          = frame->format;
 
     this->vo_scale.force_redraw = 1;
-    vo_scale_compute_ideal_size(&this->vo_scale);
+    _x_vo_scale_compute_ideal_size(&this->vo_scale);
 
     vram_reset(this);
     if (this->multibuf_en) {
@@ -425,8 +425,8 @@ static void pgx64_display_frame(vo_driver_t *this_gen, vo_frame_t *frame_gen)
     }
   }
 
-  if (vo_scale_redraw_needed(&this->vo_scale)) {  
-    vo_scale_compute_output_size(&this->vo_scale);
+  if (_x_vo_scale_redraw_needed(&this->vo_scale)) {  
+    _x_vo_scale_compute_output_size(&this->vo_scale);
     repaint_output_area(this);
     this->ovl_regen_needed = 1;
 
@@ -805,7 +805,7 @@ static int pgx64_set_property(vo_driver_t *this_gen, int property, int value)
       }
       this->vo_scale.user_ratio = value;
       this->vo_scale.force_redraw = 1;
-      vo_scale_compute_ideal_size(&this->vo_scale);     
+      _x_vo_scale_compute_ideal_size(&this->vo_scale);     
     }
     break;
 
@@ -882,8 +882,8 @@ static int pgx64_gui_data_exchange(vo_driver_t *this_gen, int data_type, void *d
       x11_rectangle_t *rect = data;
       int x1, y1, x2, y2;
 
-      vo_scale_translate_gui2video(&this->vo_scale, rect->x, rect->y, &x1, &y1);
-      vo_scale_translate_gui2video(&this->vo_scale, rect->x + rect->w, rect->y + rect->h, &x2, &y2);
+      _x_vo_scale_translate_gui2video(&this->vo_scale, rect->x, rect->y, &x1, &y1);
+      _x_vo_scale_translate_gui2video(&this->vo_scale, rect->x + rect->w, rect->y + rect->h, &x2, &y2);
 
       rect->x = x1;
       rect->y = y1;
@@ -900,7 +900,7 @@ static int pgx64_redraw_needed(vo_driver_t *this_gen)
 {
   pgx64_driver_t *this = (pgx64_driver_t *)(void *)this_gen;
 
-  if (vo_scale_redraw_needed(&this->vo_scale)) {  
+  if (_x_vo_scale_redraw_needed(&this->vo_scale)) {  
     this->vo_scale.force_redraw = 1;
     this->ovl_regen_needed = 1;
     return 1;
@@ -1063,7 +1063,7 @@ static vo_driver_t* pgx64_init_driver(video_driver_class_t *class_gen, const voi
   this->vo_driver.redraw_needed        = pgx64_redraw_needed;
   this->vo_driver.dispose              = pgx64_dispose;
 
-  vo_scale_init(&this->vo_scale, 0, 0, class->config);
+  _x_vo_scale_init(&this->vo_scale, 0, 0, class->config);
   this->vo_scale.user_ratio = XINE_VO_ASPECT_AUTO;
   this->vo_scale.user_data       = ((x11_visual_t*)visual_gen)->user_data;
   this->vo_scale.frame_output_cb = ((x11_visual_t*)visual_gen)->frame_output_cb;

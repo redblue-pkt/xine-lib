@@ -14,28 +14,27 @@
  * cdrom_dev = Name of the device link for the cdrom drive (e.g. /dev/cdrom)
  * dvd_dev = Name of the device link for the dvd drive (e.g. /dev/dvd)
  */
-xine_health_check_t* xine_health_check(xine_health_check_t*, int check_num);
+//xine_health_check_t* xine_health_check(xine_health_check_t*, int check_num);
 
 /* Get Kernel information */
-xine_health_check_t* xine_health_check_kernel(xine_health_check_t*);
+xine_health_check_t* _x_health_check_kernel(xine_health_check_t*);
 
 /* health_check MTRR */
-xine_health_check_t* xine_health_check_mtrr(xine_health_check_t*);
+xine_health_check_t* _x_health_check_mtrr(xine_health_check_t*);
 
 /* health_check CDROM */
-xine_health_check_t* xine_health_check_cdrom(xine_health_check_t*);
+xine_health_check_t* _x_health_check_cdrom(xine_health_check_t*);
 
 /* health_check DVDROM */
-xine_health_check_t* xine_health_check_dvdrom(xine_health_check_t*);
+xine_health_check_t* _x_health_check_dvdrom(xine_health_check_t*);
 
 /* health_check DMA settings of DVD drive*/
-xine_health_check_t* xine_health_check_dma(xine_health_check_t*);
+xine_health_check_t* _x_health_check_dma(xine_health_check_t*);
 
 /* health_check X */
-xine_health_check_t* xine_health_check_x(xine_health_check_t*);
+xine_health_check_t* _x_health_check_x(xine_health_check_t*);
 
 /* health_check Xv extension */
-xine_health_check_t* xine_health_check_xv(xine_health_check_t*);
+xine_health_check_t* _x_health_check_xv(xine_health_check_t*);
 
 #endif
-

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xvmc.c,v 1.6 2003/10/31 17:25:21 mroi Exp $
+ * $Id: video_out_xvmc.c,v 1.7 2003/11/11 18:45:00 f1rmb Exp $
  * 
  * video_out_xvmc.c, X11 video motion compensation extension interface for xine
  *
@@ -851,7 +851,7 @@ static void xvmc_clean_output_area (xvmc_driver_t *this) {
  */
 
 static void xvmc_compute_ideal_size (xvmc_driver_t *this) {
-  vo_scale_compute_ideal_size( &this->sc );
+  _x_vo_scale_compute_ideal_size( &this->sc );
 }
 
 /*
@@ -859,7 +859,7 @@ static void xvmc_compute_ideal_size (xvmc_driver_t *this) {
  */
 
 static void xvmc_compute_output_size (xvmc_driver_t *this) {
- vo_scale_compute_output_size( &this->sc );
+ _x_vo_scale_compute_output_size( &this->sc );
 }
 
 static void xvmc_overlay_blend (vo_driver_t *this_gen, 
@@ -926,7 +926,7 @@ static int xvmc_redraw_needed (vo_driver_t *this_gen) {
     
     xvmc_compute_ideal_size(this);
 
-    if(vo_scale_redraw_needed(&this->sc)) {
+    if(_x_vo_scale_redraw_needed(&this->sc)) {
       xvmc_compute_output_size (this);
       xvmc_clean_output_area (this);
       ret = 1;
@@ -1202,9 +1202,9 @@ static int xvmc_gui_data_exchange (vo_driver_t *this_gen,
 	 			 &x2, &y2);
       */
       
-      vo_scale_translate_gui2video(&this->sc, rect->x, rect->y,
+      _x_vo_scale_translate_gui2video(&this->sc, rect->x, rect->y,
 				   &x1, &y1);
-      vo_scale_translate_gui2video(&this->sc, rect->x + rect->w, rect->y + rect->h,
+      _x_vo_scale_translate_gui2video(&this->sc, rect->x + rect->w, rect->y + rect->h,
 				   &x2, &y2);
       
       rect->x = x1;
@@ -1377,7 +1377,7 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *vi
   this->xv_port            = class->xv_port;
   this->config             = config;
 
-  vo_scale_init (&this->sc, 1, 0, config );
+  _x_vo_scale_init (&this->sc, 1, 0, config );
 
   this->sc.frame_output_cb   = visual->frame_output_cb;
   this->sc.user_data         = visual->user_data;

@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.169 2003/11/09 04:46:30 tmmm Exp $
+ * $Id: demux_qt.c,v 1.170 2003/11/11 18:44:52 f1rmb Exp $
  *
  */
 
@@ -1055,7 +1055,7 @@ static qt_error parse_trak_atom (qt_trak *trak,
             memcpy(&trak->stsd_atoms[k].audio.wave, 
               &trak_atom[atom_pos + 0x4C],
               sizeof(trak->stsd_atoms[k].audio.wave));
-            xine_waveformatex_le2me(&trak->stsd_atoms[k].audio.wave);
+            _x_waveformatex_le2me(&trak->stsd_atoms[k].audio.wave);
           } else {
             trak->stsd_atoms[k].audio.wave_present = 0;
           }
@@ -2059,11 +2059,11 @@ static int demux_qt_send_chunk(demux_plugin_t *this_gen) {
     /* if audio is present, send pts of current audio frame, otherwise
      * send current video frame pts */
     if (audio_trak)
-      xine_demux_control_newpts(this->stream, 
+      _x_demux_control_newpts(this->stream, 
         audio_trak->frames[audio_trak->current_frame].pts, 
         BUF_FLAG_SEEK);
     else
-      xine_demux_control_newpts(this->stream, 
+      _x_demux_control_newpts(this->stream, 
         video_trak->frames[video_trak->current_frame].pts, 
         BUF_FLAG_SEEK);
   }
@@ -2344,7 +2344,7 @@ static void demux_qt_send_headers(demux_plugin_t *this_gen) {
 
     this->bih.biCompression = video_trak->properties->video.codec_fourcc;
     video_trak->properties->video.codec_buftype = 
-      fourcc_to_buf_video(this->bih.biCompression);
+      _x_fourcc_to_buf_video(this->bih.biCompression);
 
     /* hack: workaround a fourcc clash! 'mpg4' is used by MS and Sorenson
      * mpeg4 codecs (they are not compatible).
@@ -2378,7 +2378,7 @@ static void demux_qt_send_headers(demux_plugin_t *this_gen) {
   if (this->qt->audio_trak != -1) {
 
     audio_trak->properties->audio.codec_buftype = 
-      formattag_to_buf_audio(audio_trak->properties->audio.codec_fourcc);
+      _x_formattag_to_buf_audio(audio_trak->properties->audio.codec_fourcc);
 
     if( !audio_trak->properties->audio.codec_buftype &&
          audio_trak->properties->audio.codec_fourcc )
@@ -2415,7 +2415,7 @@ static void demux_qt_send_headers(demux_plugin_t *this_gen) {
     xine_set_meta_info(this->stream, XINE_META_INFO_COMMENT, this->qt->comment);
 
   /* send start buffers */
-  xine_demux_control_start(this->stream);
+  _x_demux_control_start(this->stream);
 
   /* send init info to decoders */
   if (video_trak &&
@@ -2627,7 +2627,7 @@ static int demux_qt_seek (demux_plugin_t *this_gen,
    * otherwise decoder_config is flushed too.
    */
   if(this->stream->demux_thread_running)
-    xine_demux_flush_engine(this->stream);
+    _x_demux_flush_engine(this->stream);
 
   return this->status;
 }
@@ -2719,7 +2719,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
 
       /* special consideration for DRM-protected files */
       if (this->qt->last_error == QT_DRM_NOT_SUPPORTED)
-        xine_message (this->stream, XINE_MSG_ENCRYPTED_SOURCE,
+        _x_message (this->stream, XINE_MSG_ENCRYPTED_SOURCE,
           "DRM-protected Quicktime file", NULL);
 
     } else if (last_error != QT_OK) {

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.180 2003/10/31 17:25:20 mroi Exp $
+ * $Id: video_out_xv.c,v 1.181 2003/11/11 18:45:00 f1rmb Exp $
  *
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -586,7 +586,7 @@ static void xv_clean_output_area (xv_driver_t *this) {
  */
 
 static void xv_compute_ideal_size (xv_driver_t *this) {
-  vo_scale_compute_ideal_size( &this->sc );
+  _x_vo_scale_compute_ideal_size( &this->sc );
 }
 
 
@@ -596,7 +596,7 @@ static void xv_compute_ideal_size (xv_driver_t *this) {
 
 static void xv_compute_output_size (xv_driver_t *this) {
 
-  vo_scale_compute_output_size( &this->sc );
+  _x_vo_scale_compute_output_size( &this->sc );
 
   /* onefield_xv divide by 2 the number of lines */
   if (this->deinterlace_enabled
@@ -665,7 +665,7 @@ static int xv_redraw_needed (vo_driver_t *this_gen) {
 
     xv_compute_ideal_size(this);
 
-    if( vo_scale_redraw_needed( &this->sc ) ) {
+    if( _x_vo_scale_redraw_needed( &this->sc ) ) {
 
       xv_compute_output_size (this);
 
@@ -936,9 +936,9 @@ static int xv_gui_data_exchange (vo_driver_t *this_gen,
       int x1, y1, x2, y2;
       x11_rectangle_t *rect = data;
 
-      vo_scale_translate_gui2video(&this->sc, rect->x, rect->y,
+      _x_vo_scale_translate_gui2video(&this->sc, rect->x, rect->y,
 				   &x1, &y1);
-      vo_scale_translate_gui2video(&this->sc, rect->x + rect->w, rect->y + rect->h,
+      _x_vo_scale_translate_gui2video(&this->sc, rect->x + rect->w, rect->y + rect->h,
 				   &x2, &y2);
       rect->x = x1;
       rect->y = y1;
@@ -1148,7 +1148,7 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *vi
   this->xv_port           = class->xv_port;
   this->config            = config;
 
-  vo_scale_init (&this->sc, 1, 0, config );
+  _x_vo_scale_init (&this->sc, 1, 0, config );
   this->sc.frame_output_cb   = visual->frame_output_cb;
   this->sc.user_data         = visual->user_data;
 

@@ -1522,7 +1522,7 @@ static void v4l_event_handler (v4l_input_plugin_t *this) {
 		     (float)v4l2_data->frequency);
 	       set_frequency(this, this->frequency);
 	       
-	       xine_demux_flush_engine(this->stream); 
+	       _x_demux_flush_engine(this->stream); 
 	    }
 	    break;
 /*	 default:

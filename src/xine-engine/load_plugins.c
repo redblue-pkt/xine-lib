@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.161 2003/11/02 23:05:55 f1rmb Exp $
+ * $Id: load_plugins.c,v 1.162 2003/11/11 18:45:00 f1rmb Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -962,7 +962,7 @@ static void map_decoders (xine_t *this) {
 /*
  *  initialize catalog, load all plugins into new catalog
  */
-void scan_plugins (xine_t *this) {
+void _x_scan_plugins (xine_t *this) {
   
   const char *homedir;
   char *plugindir;
@@ -971,7 +971,7 @@ void scan_plugins (xine_t *this) {
   int lenpluginpath;
   
 #ifdef LOG
-  printf("load_plugins: scan_plugins()\n");
+  printf("load_plugins: _x_scan_plugins()\n");
 #endif
 
 /* TODO - This needs to be fixed for WIN32 */
@@ -1028,7 +1028,7 @@ void scan_plugins (xine_t *this) {
  * input / demuxer plugin loading
  */
 
-input_plugin_t *find_input_plugin (xine_stream_t *stream, const char *mrl) {
+input_plugin_t *_x_find_input_plugin (xine_stream_t *stream, const char *mrl) {
 
   xine_t           *xine = stream->xine;
   plugin_catalog_t *catalog = xine->plugin_catalog;
@@ -1103,7 +1103,7 @@ static demux_plugin_t *probe_demux (xine_stream_t *stream, int method1, int meth
   return NULL;
 }
 
-demux_plugin_t *find_demux_plugin (xine_stream_t *stream, input_plugin_t *input) {
+demux_plugin_t *_x_find_demux_plugin (xine_stream_t *stream, input_plugin_t *input) {
 
   switch (stream->xine->demux_strategy) {
 
@@ -1128,7 +1128,7 @@ demux_plugin_t *find_demux_plugin (xine_stream_t *stream, input_plugin_t *input)
   return NULL;
 }
 
-demux_plugin_t *find_demux_plugin_by_name(xine_stream_t *stream, const char *name, input_plugin_t *input) {
+demux_plugin_t *_x_find_demux_plugin_by_name(xine_stream_t *stream, const char *name, input_plugin_t *input) {
 
   plugin_catalog_t  *catalog = stream->xine->plugin_catalog;
   plugin_node_t     *node;
@@ -1161,7 +1161,7 @@ demux_plugin_t *find_demux_plugin_by_name(xine_stream_t *stream, const char *nam
  * known stream.
  */
 
-demux_plugin_t *find_demux_plugin_last_probe(xine_stream_t *stream, const char *last_demux_name, input_plugin_t *input) {
+demux_plugin_t *_x_find_demux_plugin_last_probe(xine_stream_t *stream, const char *last_demux_name, input_plugin_t *input) {
 
   int               i;
   int               methods[3];
@@ -1391,7 +1391,7 @@ xine_video_port_t *xine_open_video_driver (xine_t *this,
     return NULL;
   }
 
-  port = vo_new_port(this, driver, 0);
+  port = _x_vo_new_port(this, driver, 0);
   
   return port;
 }
@@ -1428,7 +1428,7 @@ xine_video_port_t *xine_new_framegrab_video_port (xine_t *this) {
     return NULL;
   }
 
-  port = vo_new_port(this, driver, 1);
+  port = _x_vo_new_port(this, driver, 1);
   
   return port;
 }
@@ -1533,7 +1533,7 @@ xine_audio_port_t *xine_open_audio_driver (xine_t *this, const char *id,
     return NULL;
   }
 
-  port = ao_new_port(this, driver, 0);
+  port = _x_ao_new_port(this, driver, 0);
 
   return port;
 }
@@ -1542,7 +1542,7 @@ xine_audio_port_t *xine_new_framegrab_audio_port (xine_t *this) {
 
   xine_audio_port_t  *port;
 
-  port = ao_new_port (this, NULL, 1);
+  port = _x_ao_new_port (this, NULL, 1);
 
   return port;
 }
@@ -1616,7 +1616,7 @@ xine_mrl_t **xine_get_browse_mrls (xine_t *this, const char *plugin_id,
   return NULL;
 }
 
-video_decoder_t *get_video_decoder (xine_stream_t *stream, uint8_t stream_type) {
+video_decoder_t *_x_get_video_decoder (xine_stream_t *stream, uint8_t stream_type) {
 
   plugin_node_t    *node;
   int               i, j;
@@ -1680,7 +1680,7 @@ video_decoder_t *get_video_decoder (xine_stream_t *stream, uint8_t stream_type) 
   return NULL;
 }
 
-void free_video_decoder (xine_stream_t *stream, video_decoder_t *vd) {
+void _x_free_video_decoder (xine_stream_t *stream, video_decoder_t *vd) {
   plugin_catalog_t *catalog = stream->xine->plugin_catalog;
   plugin_node_t    *node = vd->node;
 
@@ -1695,7 +1695,7 @@ void free_video_decoder (xine_stream_t *stream, video_decoder_t *vd) {
 }
 
 
-audio_decoder_t *get_audio_decoder (xine_stream_t *stream, uint8_t stream_type) {
+audio_decoder_t *_x_get_audio_decoder (xine_stream_t *stream, uint8_t stream_type) {
 
   plugin_node_t    *node;
   int               i, j;
@@ -1756,7 +1756,7 @@ audio_decoder_t *get_audio_decoder (xine_stream_t *stream, uint8_t stream_type) 
   return NULL;
 }
 
-void free_audio_decoder (xine_stream_t *stream, audio_decoder_t *ad) {
+void _x_free_audio_decoder (xine_stream_t *stream, audio_decoder_t *ad) {
   plugin_catalog_t *catalog = stream->xine->plugin_catalog;
   plugin_node_t    *node = ad->node;
 
@@ -1771,7 +1771,7 @@ void free_audio_decoder (xine_stream_t *stream, audio_decoder_t *ad) {
 }
 
 
-spu_decoder_t *get_spu_decoder (xine_stream_t *stream, uint8_t stream_type) {
+spu_decoder_t *_x_get_spu_decoder (xine_stream_t *stream, uint8_t stream_type) {
 
   plugin_node_t    *node;
   int               i, j;
@@ -1831,7 +1831,7 @@ spu_decoder_t *get_spu_decoder (xine_stream_t *stream, uint8_t stream_type) {
   return NULL;
 }
 
-void free_spu_decoder (xine_stream_t *stream, spu_decoder_t *sd) {
+void _x_free_spu_decoder (xine_stream_t *stream, spu_decoder_t *sd) {
   plugin_catalog_t *catalog = stream->xine->plugin_catalog;
   plugin_node_t    *node = sd->node;
 
@@ -2259,7 +2259,7 @@ static void dispose_plugin_list (xine_list_t *list) {
  * dispose all currently loaded plugins (shutdown)
  */
 
-void dispose_plugins (xine_t *this) {
+void _x_dispose_plugins (xine_t *this) {
 
   if(this->plugin_catalog) {
     dispose_plugin_list (this->plugin_catalog->input);

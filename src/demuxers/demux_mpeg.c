@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_mpeg.c,v 1.125 2003/10/30 00:49:07 tmattern Exp $
+ * $Id: demux_mpeg.c,v 1.126 2003/11/11 18:44:52 f1rmb Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  * reads streams of variable blocksizes
@@ -227,10 +227,10 @@ static void check_newpts( demux_mpeg_t *this, int64_t pts, int video ) {
       (this->send_newpts || (this->last_pts[video] && abs(diff)>WRAP_THRESHOLD) ) ) {
 
     if (this->buf_flag_seek) {
-      xine_demux_control_newpts(this->stream, pts, BUF_FLAG_SEEK);
+      _x_demux_control_newpts(this->stream, pts, BUF_FLAG_SEEK);
       this->buf_flag_seek = 0;
     } else {
-      xine_demux_control_newpts(this->stream, pts, 0);
+      _x_demux_control_newpts(this->stream, pts, 0);
     }
     this->send_newpts = 0;
     this->last_pts[1-video] = 0;
@@ -888,7 +888,7 @@ static void demux_mpeg_send_headers (demux_plugin_t *this_gen) {
   this->last_pts[0]   = 0;
   this->last_pts[1]   = 0;
   
-  xine_demux_control_start(this->stream);
+  _x_demux_control_start(this->stream);
 
   /*
    * send preview buffers for stream/meta_info
@@ -949,7 +949,7 @@ static int demux_mpeg_seek (demux_plugin_t *this_gen,
     this->buf_flag_seek = 0;
   } else {
     this->buf_flag_seek = 1;
-    xine_demux_flush_engine(this->stream);
+    _x_demux_flush_engine(this->stream);
   }
 
   return this->status;
@@ -1020,7 +1020,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
     }
 
     /* look for mpeg header */
-    if (xine_demux_read_header(input, buf, 4) == 4) {
+    if (_x_demux_read_header(input, buf, 4) == 4) {
       lprintf ("%02x %02x %02x %02x\n", buf[0], buf[1], buf[2], buf[3]);
       if (!buf[0] && !buf[1] && (buf[2] == 0x01)
           && (buf[3] == 0xba)) /* if so, take it */
@@ -1112,7 +1112,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
     mrl = input->get_mrl (input);
     extensions = class_gen->get_extensions (class_gen);
 
-    if (!xine_demux_check_extension (mrl, extensions)) {
+    if (!_x_demux_check_extension (mrl, extensions)) {
       free (this);
       return NULL;
     }

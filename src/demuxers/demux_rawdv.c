@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_rawdv.c,v 1.12 2003/10/30 00:49:07 tmattern Exp $
+ * $Id: demux_rawdv.c,v 1.13 2003/11/11 18:44:53 f1rmb Exp $
  *
  * demultiplexer for raw dv streams
  */
@@ -147,7 +147,7 @@ static void demux_raw_dv_send_headers (demux_plugin_t *this_gen) {
   this->video_fifo  = this->stream->video_fifo;
   this->audio_fifo  = this->stream->audio_fifo;
 
-  xine_demux_control_start(this->stream);
+  _x_demux_control_start(this->stream);
 
   scratch = (unsigned char *) malloc(NTSC_FRAME_SIZE);
   if (scratch == NULL )
@@ -304,9 +304,9 @@ static int demux_raw_dv_seek (demux_plugin_t *this_gen,
   this->pts = this->cur_frame * this->duration;
   this->bytes_left = this->frame_size;
   
-  xine_demux_flush_engine (this->stream);
+  _x_demux_flush_engine (this->stream);
 
-  xine_demux_control_newpts (this->stream, this->pts, BUF_FLAG_SEEK);
+  _x_demux_control_newpts (this->stream, this->pts, BUF_FLAG_SEEK);
   
   return this->status;
 }
@@ -361,7 +361,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
     mrl = input->get_mrl (input);
     extensions = class_gen->get_extensions (class_gen);
 
-    if (!xine_demux_check_extension (mrl, extensions)) {
+    if (!_x_demux_check_extension (mrl, extensions)) {
       free (this);
       return NULL;
     }

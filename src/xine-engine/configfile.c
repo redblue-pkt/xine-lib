@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: configfile.c,v 1.54 2003/11/02 16:59:18 mroi Exp $
+ * $Id: configfile.c,v 1.55 2003/11/11 18:45:00 f1rmb Exp $
  *
  * config object (was: file) management - implementation
  *
@@ -955,7 +955,7 @@ static void xine_config_unregister_cb (config_values_t *this,
 }
 
 
-config_values_t *xine_config_init () {
+config_values_t *_x_config_init (void) {
 
 #ifdef HAVE_IRIXAL
   volatile /* is this a (old, 2.91.66) irix gcc bug?!? */
@@ -989,7 +989,7 @@ config_values_t *xine_config_init () {
   return this;
 }
 
-int xine_config_change_opt(config_values_t *config, const char *opt) {
+int _x_config_change_opt(config_values_t *config, const char *opt) {
   cfg_entry_t *entry;
   int          handled = 0;
 

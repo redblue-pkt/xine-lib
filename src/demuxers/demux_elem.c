@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_elem.c,v 1.76 2003/10/30 00:49:07 tmattern Exp $
+ * $Id: demux_elem.c,v 1.77 2003/11/11 18:44:51 f1rmb Exp $
  *
  * demultiplexer for elementary mpeg streams
  */
@@ -116,7 +116,7 @@ static void demux_mpeg_elem_send_headers (demux_plugin_t *this_gen) {
 
   this->blocksize = this->input->get_blocksize(this->input);
 
-  xine_demux_control_start(this->stream);
+  _x_demux_control_start(this->stream);
 
   if (INPUT_IS_SEEKABLE(this->input)) {
     int num_buffers = NUM_PREVIEW_BUFFERS;
@@ -144,7 +144,7 @@ static int demux_mpeg_elem_seek (demux_plugin_t *this_gen,
   this->status = DEMUX_OK;
 
   if (this->stream->demux_thread_running)
-    xine_demux_flush_engine(this->stream);
+    _x_demux_flush_engine(this->stream);
 
   if (INPUT_IS_SEEKABLE(this->input)) {
 
@@ -193,7 +193,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   case METHOD_BY_CONTENT: {
     uint8_t scratch[4];
 
-    if (xine_demux_read_header(input, scratch, 4) != 4)
+    if (_x_demux_read_header(input, scratch, 4) != 4)
       return NULL;
 
     lprintf ("%02x %02x %02x %02x\n", scratch[0], scratch[1], scratch[2], scratch[3]);
@@ -210,7 +210,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
     mrl = input->get_mrl (input);
     extensions = class_gen->get_extensions (class_gen);
 
-    if (!xine_demux_check_extension (mrl, extensions))
+    if (!_x_demux_check_extension (mrl, extensions))
       return NULL;
   }
   break;

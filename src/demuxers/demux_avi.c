@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_avi.c,v 1.174 2003/11/11 18:10:42 tmattern Exp $
+ * $Id: demux_avi.c,v 1.175 2003/11/11 18:44:51 f1rmb Exp $
  *
  * demultiplexer for avi streams
  *
@@ -273,10 +273,10 @@ static void check_newpts (demux_avi_t *this, int64_t pts, int video) {
     lprintf ("sending newpts %lld (video = %d diff = %lld)\n", pts, video, diff);
 
     if (this->buf_flag_seek) {
-      xine_demux_control_newpts(this->stream, pts, BUF_FLAG_SEEK);
+      _x_demux_control_newpts(this->stream, pts, BUF_FLAG_SEEK);
       this->buf_flag_seek = 0;
     } else {
-      xine_demux_control_newpts(this->stream, pts, 0);
+      _x_demux_control_newpts(this->stream, pts, 0);
     }
 
     this->send_newpts = 0;
@@ -818,7 +818,7 @@ static avi_t *AVI_init(demux_avi_t *this) {
           return 0;
         }
         memcpy (AVI->bih, hdrl_data+i, n);
-        xine_bmiheader_le2me( AVI->bih );
+        _x_bmiheader_le2me( AVI->bih );
 
 
         /* stream_read(demuxer->stream,(char*) &avi_header.bih,MIN(size2,sizeof(avi_header.bih))); */
@@ -852,7 +852,7 @@ static avi_t *AVI_init(demux_avi_t *this) {
         AVI->audio[AVI->n_audio-1]->wavex_len=n;
 
         memcpy((void *)AVI->audio[AVI->n_audio-1]->wavex, hdrl_data+i, n);
-        xine_waveformatex_le2me( AVI->audio[AVI->n_audio-1]->wavex );
+        _x_waveformatex_le2me( AVI->audio[AVI->n_audio-1]->wavex );
         lprintf("audio stream format\n");
         auds_strf_seen = 1;
       }
@@ -1486,7 +1486,7 @@ static void demux_avi_send_headers (demux_plugin_t *this_gen) {
   this->no_audio = 0;
 
   for(i=0; i < this->avi->n_audio; i++) {
-    this->avi->audio[i]->audio_type = formattag_to_buf_audio (this->avi->audio[i]->wavex->wFormatTag);
+    this->avi->audio[i]->audio_type = _x_formattag_to_buf_audio (this->avi->audio[i]->wavex->wFormatTag);
 
     if( !this->avi->audio[i]->audio_type ) {
       xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
@@ -1497,7 +1497,7 @@ static void demux_avi_send_headers (demux_plugin_t *this_gen) {
     } else
       xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
                "demux_avi: audio type %s (wFormatTag 0x%x)\n",
-               buf_audio_name(this->avi->audio[i]->audio_type),
+               _x_buf_audio_name(this->avi->audio[i]->audio_type),
                (int)this->avi->audio[i]->wavex->wFormatTag);
   }
 
@@ -1511,7 +1511,7 @@ static void demux_avi_send_headers (demux_plugin_t *this_gen) {
     buf_element_t  *buf;
     int             i;
 
-    xine_demux_control_start (this->stream);
+    _x_demux_control_start (this->stream);
 
     buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
     buf->decoder_flags = BUF_FLAG_HEADER;
@@ -1519,12 +1519,12 @@ static void demux_avi_send_headers (demux_plugin_t *this_gen) {
     memcpy (buf->content, this->avi->bih, this->avi->bih->biSize);
     buf->size = this->avi->bih->biSize;
 
-    this->avi->video_type = fourcc_to_buf_video(this->avi->bih->biCompression);
+    this->avi->video_type = _x_fourcc_to_buf_video(this->avi->bih->biCompression);
     
     if (this->avi->video_type) {
       this->avi->compressor = this->avi->bih->biCompression;
     } else
-      this->avi->video_type = fourcc_to_buf_video(this->avi->compressor);
+      this->avi->video_type = _x_fourcc_to_buf_video(this->avi->compressor);
 
     xine_set_stream_info(this->stream, XINE_STREAM_INFO_VIDEO_FOURCC,
                          this->avi->compressor);
@@ -1539,7 +1539,7 @@ static void demux_avi_send_headers (demux_plugin_t *this_gen) {
 
     xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
              "demux_avi: video codec is '%s'\n",
-             buf_video_name(buf->type));
+             _x_buf_video_name(buf->type));
 
     this->video_fifo->put (this->video_fifo, buf);
 
@@ -1604,7 +1604,7 @@ static int demux_avi_seek (demux_plugin_t *this_gen,
   demux_avi_t *this = (demux_avi_t *) this_gen;
                              
   if (!this->streaming) {
-    xine_demux_flush_engine (this->stream);
+    _x_demux_flush_engine (this->stream);
     this->seek_request    = 1;
     this->seek_start_pos  = start_pos;
     this->seek_start_time = start_time;
@@ -1757,7 +1757,7 @@ static int demux_avi_seek_internal (demux_avi_t *this) {
 
   this->send_newpts = 1;
   this->buf_flag_seek = 1;
-  xine_demux_control_newpts (this->stream, video_pts, BUF_FLAG_SEEK);
+  _x_demux_control_newpts (this->stream, video_pts, BUF_FLAG_SEEK);
 
   return this->status;
 }
@@ -1798,7 +1798,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
     if (input->get_capabilities(input) & INPUT_CAP_BLOCK)
       return NULL;
 
-    if (xine_demux_read_header(input, buf, 12) != 12)
+    if (_x_demux_read_header(input, buf, 12) != 12)
       return NULL;
 
     if( strncasecmp(buf  ,"RIFF",4) !=0 ||
@@ -1813,7 +1813,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
     mrl = input->get_mrl (input);
     extensions = class_gen->get_extensions (class_gen);
 
-    if (!xine_demux_check_extension (mrl, extensions))
+    if (!_x_demux_check_extension (mrl, extensions))
       return NULL;
   }
   /* we want to fall through here */

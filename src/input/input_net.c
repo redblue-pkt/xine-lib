@@ -20,7 +20,7 @@
  * Read from a tcp network stream over a lan (put a tweaked mp1e encoder the
  * other end and you can watch tv anywhere in the house ..)
  *
- * $Id: input_net.c,v 1.53 2003/10/26 10:48:24 mroi Exp $
+ * $Id: input_net.c,v 1.54 2003/11/11 18:44:54 f1rmb Exp $
  *
  * how to set up mp1e for use with this plugin:
  * 
@@ -274,7 +274,7 @@ static off_t net_plugin_read (input_plugin_t *this_gen,
   }
 
   if( (len-total) > 0 ) {
-    n = xine_read_abort (this->stream, this->fh, &buf[total], len-total);
+    n = _x_read_abort (this->stream, this->fh, &buf[total], len-total);
 
 #ifdef LOG
     printf ("input_net: got %lld bytes (%lld/%lld bytes read)\n",
@@ -282,7 +282,7 @@ static off_t net_plugin_read (input_plugin_t *this_gen,
 #endif
   
     if (n < 0) {
-      xine_message(this->stream, XINE_MSG_READ_ERROR, this->host_port, NULL);
+      _x_message(this->stream, XINE_MSG_READ_ERROR, this->host_port, NULL);
       return 0;
     }
 

@@ -46,26 +46,26 @@
 
 
 #ifndef ENABLE_IPV6
-static int xio_tcp_connect_ipv4(xine_stream_t *stream, const char *host, int port) {
+static int _x_io_tcp_connect_ipv4(xine_stream_t *stream, const char *host, int port) {
 
   struct hostent *h;
   int             i, s;
   
   h = gethostbyname(host);
   if (h == NULL) {
-    xine_message(stream, XINE_MSG_UNKNOWN_HOST, "unable to resolve", host, NULL);
+    _x_message(stream, XINE_MSG_UNKNOWN_HOST, "unable to resolve", host, NULL);
     return -1;
   }
 
   s = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);  
   if (s == -1) {
-    xine_message(stream, XINE_MSG_CONNECTION_REFUSED, "failed to create socket", strerror(errno), NULL);
+    _x_message(stream, XINE_MSG_CONNECTION_REFUSED, "failed to create socket", strerror(errno), NULL);
     return -1;
   }
 
 #ifndef _MSC_VER
   if (fcntl (s, F_SETFL, fcntl (s, F_GETFL) | O_NONBLOCK) == -1) {
-    xine_message(stream, XINE_MSG_CONNECTION_REFUSED, "can't put socket in non-blocking mode", strerror(errno), NULL);
+    _x_message(stream, XINE_MSG_CONNECTION_REFUSED, "can't put socket in non-blocking mode", strerror(errno), NULL);
     return -1;
   }
 #else
@@ -76,7 +76,7 @@ static int xio_tcp_connect_ipv4(xine_stream_t *stream, const char *host, int por
     rc = ioctlsocket(s, FIONBIO, &non_block);
 
     if (rc == SOCKET_ERROR) {
-      xine_message(stream, XINE_MSG_CONNECTION_REFUSED, "can't put socket in non-blocking mode", strerror(errno), NULL);
+      _x_message(stream, XINE_MSG_CONNECTION_REFUSED, "can't put socket in non-blocking mode", strerror(errno), NULL);
 	  return -1;
     }
   }
@@ -98,7 +98,7 @@ static int xio_tcp_connect_ipv4(xine_stream_t *stream, const char *host, int por
       printf("io_helper: WSAGetLastError() = %d\n", WSAGetLastError());
 #endif /* WIN32 */
 
-      xine_message(stream, XINE_MSG_CONNECTION_REFUSED, strerror(errno), NULL);
+      _x_message(stream, XINE_MSG_CONNECTION_REFUSED, strerror(errno), NULL);
       close(s);
       continue;
     }
@@ -109,10 +109,10 @@ static int xio_tcp_connect_ipv4(xine_stream_t *stream, const char *host, int por
 }
 #endif
 
-int xio_tcp_connect(xine_stream_t *stream, const char *host, int port) {
+int _x_io_tcp_connect(xine_stream_t *stream, const char *host, int port) {
 
 #ifndef ENABLE_IPV6
-    return xio_tcp_connect_ipv4(stream, host, port);
+    return _x_io_tcp_connect_ipv4(stream, host, port);
 #else
   int             s;
   struct addrinfo hints, *res, *tmpaddr;
@@ -130,7 +130,7 @@ int xio_tcp_connect(xine_stream_t *stream, const char *host, int port) {
   error = getaddrinfo(host, strport, &hints, &res);
 
   if (error) {
-    xine_message(stream, XINE_MSG_UNKNOWN_HOST, 
+    _x_message(stream, XINE_MSG_UNKNOWN_HOST, 
 		 "unable to resolve", host, NULL);
     return -1;
   }
@@ -141,7 +141,7 @@ int xio_tcp_connect(xine_stream_t *stream, const char *host, int port) {
       
       s = socket(tmpaddr->ai_family, SOCK_STREAM, IPPROTO_TCP);  
       if (s == -1) {
-	  xine_message(stream, XINE_MSG_CONNECTION_REFUSED, 
+	  _x_message(stream, XINE_MSG_CONNECTION_REFUSED, 
 		       "failed to create socket", strerror(errno), NULL);
 	  tmpaddr = tmpaddr->ai_next;
 	  continue;
@@ -179,14 +179,14 @@ int xio_tcp_connect(xine_stream_t *stream, const char *host, int port) {
     tmpaddr = tmpaddr->ai_next;
   }
 
-  xine_message(stream, XINE_MSG_CONNECTION_REFUSED, strerror(error), NULL);
+  _x_message(stream, XINE_MSG_CONNECTION_REFUSED, strerror(error), NULL);
   
   return -1;
 #endif
 }
 
 
-int xio_select (xine_stream_t *stream, int fd, int state, int timeout_msec) {
+int _x_io_select (xine_stream_t *stream, int fd, int state, int timeout_msec) {
 
   fd_set fdset;
   fd_set *rset, *wset;
@@ -245,7 +245,7 @@ static off_t xio_rw_abort(xine_stream_t *stream, int fd, int cmd, char *buf, off
   while (total < todo) {
 
     do {
-      sret = xio_select(stream, fd, state, 500); /* 500 ms */
+      sret = _x_io_select(stream, fd, state, 500); /* 500 ms */
     } while (sret == XIO_TIMEOUT);
     
     if (sret != XIO_READY)
@@ -292,18 +292,18 @@ static off_t xio_rw_abort(xine_stream_t *stream, int fd, int cmd, char *buf, off
   return total;
 }
 
-off_t xio_tcp_read (xine_stream_t *stream, int s, char *buf, off_t todo) {
+off_t _x_io_tcp_read (xine_stream_t *stream, int s, char *buf, off_t todo) {
   return xio_rw_abort (stream, s, XIO_TCP_READ, buf, todo);
 }
 
-off_t xio_tcp_write (xine_stream_t *stream, int s, char *buf, off_t todo) {
+off_t _x_io_tcp_write (xine_stream_t *stream, int s, char *buf, off_t todo) {
   return xio_rw_abort (stream, s, XIO_TCP_WRITE, buf, todo);
 }
 
-off_t xio_file_read (xine_stream_t *stream, int s, char *buf, off_t todo) {
+off_t _x_io_file_read (xine_stream_t *stream, int s, char *buf, off_t todo) {
   return xio_rw_abort (stream, s, XIO_FILE_READ, buf, todo);
 }
 
-off_t xio_file_write (xine_stream_t *stream, int s, char *buf, off_t todo) {
+off_t _x_io_file_write (xine_stream_t *stream, int s, char *buf, off_t todo) {
   return xio_rw_abort (stream, s, XIO_FILE_WRITE, buf, todo);
 }

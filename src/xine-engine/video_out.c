@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.176 2003/10/30 22:40:53 mroi Exp $
+ * $Id: video_out.c,v 1.177 2003/11/11 18:45:01 f1rmb Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -303,7 +303,7 @@ static vo_frame_t *vo_get_frame (xine_video_port_t *this_gen,
   img->repeat_first_field = 0;
   img->top_field_first    = 1;
   img->macroblocks        = NULL;
-  extra_info_reset ( img->extra_info );
+  _x_extra_info_reset ( img->extra_info );
 
   /* let driver ensure this image has the right format */
 
@@ -332,7 +332,7 @@ static int vo_frame_draw (vo_frame_t *img, xine_stream_t *stream) {
   this->current_height = img->height;
   
   if (stream) {
-    extra_info_merge( img->extra_info, stream->video_decoder_extra_info );
+    _x_extra_info_merge( img->extra_info, stream->video_decoder_extra_info );
     stream->metronom->got_video_frame (stream->metronom, img);
   }
   this->current_duration = img->duration;
@@ -436,7 +436,7 @@ static int vo_frame_draw (vo_frame_t *img, xine_stream_t *stream) {
 #endif
     if (stream) {
       pthread_mutex_lock( &stream->current_extra_info_lock );
-      extra_info_merge( stream->current_extra_info, img->extra_info );
+      _x_extra_info_merge( stream->current_extra_info, img->extra_info );
       pthread_mutex_unlock( &stream->current_extra_info_lock );
     }
 
@@ -637,7 +637,7 @@ static void expire_frames (vos_t *this, int64_t cur_vpts) {
   
       if (img->stream) {
 	pthread_mutex_lock( &img->stream->current_extra_info_lock );
-	extra_info_merge( img->stream->current_extra_info, img->extra_info );
+	_x_extra_info_merge( img->stream->current_extra_info, img->extra_info );
 	pthread_mutex_unlock( &img->stream->current_extra_info_lock );
       }
 
@@ -719,7 +719,7 @@ static vo_frame_t *get_next_frame (vos_t *this, int64_t cur_vpts) {
       if( img ) {
         img->vpts = cur_vpts;
         /* extra info of the backup is thrown away, because it is not up to date */
-        extra_info_reset(img->extra_info);
+        _x_extra_info_reset(img->extra_info);
       }
         
       return img;
@@ -810,7 +810,7 @@ static void overlay_and_display_frame (vos_t *this,
     pthread_mutex_lock( &img->stream->current_extra_info_lock );
     diff = img->extra_info->vpts - img->stream->current_extra_info->vpts;
     if ((diff > 3000) || (diff<-300000)) 
-      extra_info_merge( img->stream->current_extra_info, img->extra_info );
+      _x_extra_info_merge( img->stream->current_extra_info, img->extra_info );
     pthread_mutex_unlock( &img->stream->current_extra_info_lock );
   }
 
@@ -898,7 +898,7 @@ static void paused_loop( vos_t *this, int64_t vpts )
       img = duplicate_frame (this, this->img_backup );
       if( img ) {
         /* extra info of the backup is thrown away, because it is not up to date */
-        extra_info_reset(img->extra_info);
+        _x_extra_info_reset(img->extra_info);
         pthread_mutex_unlock( &this->free_img_buf_queue->mutex );
         overlay_and_display_frame (this, img, vpts);
         pthread_mutex_lock( &this->free_img_buf_queue->mutex );
@@ -1460,7 +1460,7 @@ static void vo_flush (xine_video_port_t *this_gen) {
   }
 }
 
-xine_video_port_t *vo_new_port (xine_t *xine, vo_driver_t *driver,
+xine_video_port_t *_x_vo_new_port (xine_t *xine, vo_driver_t *driver,
 				int grabonly) {
 
   vos_t            *this;
@@ -1504,7 +1504,7 @@ xine_video_port_t *vo_new_port (xine_t *xine, vo_driver_t *driver,
   this->last_frame            = NULL;
   this->img_backup            = NULL;
   
-  this->overlay_source        = video_overlay_new_manager();
+  this->overlay_source        = _x_video_overlay_new_manager();
   this->overlay_source->init (this->overlay_source);
   this->overlay_enabled       = 1;
 

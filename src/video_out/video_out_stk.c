@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_stk.c,v 1.8 2003/10/31 17:25:20 mroi Exp $
+ * $Id: video_out_stk.c,v 1.9 2003/11/11 18:45:00 f1rmb Exp $
  *
  * video_out_stk.c, Libstk Surface Video Driver
  * more info on Libstk at http://www.libstk.org
@@ -149,12 +149,12 @@ static vo_frame_t *stk_alloc_frame(vo_driver_t *this_gen) {
 
 static void stk_compute_ideal_size (stk_driver_t* this) {
     //printf("video_out_stk: compute_ideal_size()\n");
-    vo_scale_compute_ideal_size(&this->sc);
+    _x_vo_scale_compute_ideal_size(&this->sc);
 }
 
 static void stk_compute_output_size (stk_driver_t *this) {
     //printf("video_out_stk: compute_output_size()\n");
-    vo_scale_compute_output_size( &this->sc );
+    _x_vo_scale_compute_output_size( &this->sc );
 
 #ifdef LOG
     printf ("video_out_stk: frame source %d x %d => screen output %d x %d\n",
@@ -328,7 +328,7 @@ static int stk_set_property (vo_driver_t* this_gen, int property, int value) {
         if (value>=XINE_VO_ASPECT_NUM_RATIOS)
             value = XINE_VO_ASPECT_AUTO;
         this->sc.user_ratio = value;
-        printf("video_out_stk: aspect ratio changed to %s\n", vo_scale_aspect_ratio_name(value));
+        printf("video_out_stk: aspect ratio changed to %s\n", _x_vo_scale_aspect_ratio_name(value));
 
         stk_compute_ideal_size (this);
         this->sc.force_redraw = 1;
@@ -405,7 +405,7 @@ static vo_driver_t *open_plugin(video_driver_class_t *class_gen, const void *vis
     /* this->capabilities = stk_surface_formats(this->surface); */
     this->capabilities = VO_CAP_YUY2 | VO_CAP_YV12;
     /* FIXME: what does this do ? */
-    vo_scale_init( &this->sc, 0, 0, this->config );
+    _x_vo_scale_init( &this->sc, 0, 0, this->config );
     this->sc.gui_x      = stk_xine_panel_x(this->xine_panel);
     this->sc.gui_y      = stk_xine_panel_y(this->xine_panel);
     this->sc.gui_width  = stk_xine_panel_width(this->xine_panel);

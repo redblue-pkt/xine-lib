@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_image.c,v 1.8 2003/10/30 00:49:07 tmattern Exp $
+ * $Id: demux_image.c,v 1.9 2003/11/11 18:44:52 f1rmb Exp $
  *
  * image dummy demultiplexer
  */
@@ -144,7 +144,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen,
     mrl = input->get_mrl (input);
     extensions = class_gen->get_extensions (class_gen);
 
-    if (!xine_demux_check_extension (mrl, extensions)) {
+    if (!_x_demux_check_extension (mrl, extensions)) {
       return NULL;
     }
   }

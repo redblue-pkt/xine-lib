@@ -34,7 +34,7 @@
  * data. This makes seeking conceptually impossible. Upshot: Random
  * seeking is not supported.
  *
- * $Id: demux_aud.c,v 1.12 2003/10/31 23:58:32 tmattern Exp $
+ * $Id: demux_aud.c,v 1.13 2003/11/11 18:44:51 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -85,7 +85,7 @@ typedef struct {
 static int open_aud_file(demux_aud_t *this) {
   unsigned char header[AUD_HEADER_SIZE];
 
-  if (xine_demux_read_header(this->input, header, AUD_HEADER_SIZE) != AUD_HEADER_SIZE)
+  if (_x_demux_read_header(this->input, header, AUD_HEADER_SIZE) != AUD_HEADER_SIZE)
     return 0;
 
   /* Probabilistic content detection strategy: There is no file signature
@@ -205,7 +205,7 @@ static void demux_aud_send_headers(demux_plugin_t *this_gen) {
                        this->audio_bits);
 
   /* send start buffers */
-  xine_demux_control_start(this->stream);
+  _x_demux_control_start(this->stream);
 
   /* send init info to the audio decoder */
   if (this->audio_fifo) {
@@ -226,7 +226,7 @@ static int demux_aud_seek (demux_plugin_t *this_gen,
   demux_aud_t *this = (demux_aud_t *) this_gen;
 
   this->status = DEMUX_OK;
-  xine_demux_flush_engine (this->stream);
+  _x_demux_flush_engine (this->stream);
 
   /* if input is non-seekable, do not proceed with the rest of this
    * seek function */
@@ -292,7 +292,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
     mrl = input->get_mrl (input);
     extensions = class_gen->get_extensions (class_gen);
 
-    if (!xine_demux_check_extension (mrl, extensions)) {
+    if (!_x_demux_check_extension (mrl, extensions)) {
       free (this);
       return NULL;
     }

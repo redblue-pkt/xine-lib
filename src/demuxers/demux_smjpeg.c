@@ -23,7 +23,7 @@
  * For more information on the SMJPEG file format, visit:
  *   http://www.lokigames.com/development/smjpeg.php3
  *
- * $Id: demux_smjpeg.c,v 1.42 2003/10/31 23:58:32 tmattern Exp $
+ * $Id: demux_smjpeg.c,v 1.43 2003/11/11 18:44:53 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -103,7 +103,7 @@ static int open_smjpeg_file(demux_smjpeg_t *this) {
   unsigned char header_chunk[SMJPEG_HEADER_CHUNK_MAX_SIZE];
   unsigned int  audio_codec = 0;
 
-  if (xine_demux_read_header(this->input, signature, SMJPEG_SIGNATURE_SIZE) !=
+  if (_x_demux_read_header(this->input, signature, SMJPEG_SIGNATURE_SIZE) !=
       SMJPEG_SIGNATURE_SIZE)
     return 0;
 
@@ -151,7 +151,7 @@ static int open_smjpeg_file(demux_smjpeg_t *this) {
       this->bih.biWidth = BE_16(&header_chunk[8]);
       this->bih.biHeight = BE_16(&header_chunk[10]);
       this->bih.biCompression = *(uint32_t *)&header_chunk[12];
-      this->video_type = fourcc_to_buf_video(this->bih.biCompression);
+      this->video_type = _x_fourcc_to_buf_video(this->bih.biCompression);
       break;
 
     case _SND_TAG:
@@ -170,7 +170,7 @@ static int open_smjpeg_file(demux_smjpeg_t *this) {
         this->audio_type = BUF_AUDIO_SMJPEG_IMA;
       } else {
         audio_codec = *(uint32_t *)&header_chunk[8];
-        this->audio_type = formattag_to_buf_audio(audio_codec);
+        this->audio_type = _x_formattag_to_buf_audio(audio_codec);
       }
       break;
 
@@ -330,7 +330,7 @@ static void demux_smjpeg_send_headers(demux_plugin_t *this_gen) {
                        this->audio_bits);
 
   /* send start buffers */
-  xine_demux_control_start(this->stream);
+  _x_demux_control_start(this->stream);
 
   /* send init info to decoders */
   buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
@@ -432,7 +432,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
     mrl = input->get_mrl (input);
     extensions = class_gen->get_extensions (class_gen);
 
-    if (!xine_demux_check_extension (mrl, extensions)) {
+    if (!_x_demux_check_extension (mrl, extensions)) {
       free (this);
       return NULL;
     }

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: rtsp.c,v 1.10 2003/04/13 19:02:07 miguelfreitas Exp $
+ * $Id: rtsp.c,v 1.11 2003/11/11 18:44:54 f1rmb Exp $
  *
  * a minimalistic implementation of rtsp protocol,
  * *not* RFC 2326 compilant yet.
@@ -211,7 +211,7 @@ static ssize_t read_stream(rtsp_t *s, void *buf, size_t count) {
   return total;
 #else
 
-  return xine_read_abort(s->stream, s->s, buf, count );
+  return _x_read_abort(s->stream, s->s, buf, count );
 
 #endif
 }

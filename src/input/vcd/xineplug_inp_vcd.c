@@ -1,5 +1,5 @@
 /*
-  $Id: xineplug_inp_vcd.c,v 1.6 2003/10/21 16:10:31 mroi Exp $
+  $Id: xineplug_inp_vcd.c,v 1.7 2003/11/11 18:44:54 f1rmb Exp $
  
   Copyright (C) 2002,2003 Rocky Bernstein <rocky@panix.com>
   
@@ -586,7 +586,7 @@ vcd_read_ahead_cb(void *this_gen, xine_cfg_entry_t *entry)
 static void 
 vcd_flush_buffers(void)
 {
-  xine_demux_flush_engine(my_vcd.stream);
+  _x_demux_flush_engine(my_vcd.stream);
 }
 
 /*!
@@ -1047,7 +1047,7 @@ vcd_handle_events (void)
           default: 
             LOG_MSG("%s %d\n", _("Unknown event type: "), event->type);
           }
-          xine_demux_flush_engine(my_vcd.stream);
+          _x_demux_flush_engine(my_vcd.stream);
           vcdplayer_play(this, itemid);
           return true;
         }
@@ -1066,7 +1066,7 @@ vcd_handle_events (void)
           lid_t next_num=vcdplayer_selection2lid(this, itemid.num);
           if (VCDINFO_INVALID_LID != next_num) {
             itemid.num = next_num;
-            xine_demux_flush_engine(my_vcd.stream);
+            _x_demux_flush_engine(my_vcd.stream);
             vcdplayer_play(this, itemid);
             return true;
           }
@@ -1126,7 +1126,7 @@ vcd_get_optional_data (input_plugin_t *this_gen,
   case INPUT_OPTIONAL_DATA_AUDIOLANG: 
     {
       int8_t   channel;
-      channel = (int8_t) xine_get_audio_channel(my_vcd.stream);
+      channel = (int8_t) _x_get_audio_channel(my_vcd.stream);
 
       dbg_print(INPUT_DBG_EXT, "AUDIO CHANNEL = %d\n", channel);
       if (-1 == channel) {
@@ -1152,7 +1152,7 @@ vcd_get_optional_data (input_plugin_t *this_gen,
     {
       /*uint16_t lang;*/
       int8_t   channel;
-      channel = (int8_t) xine_get_spu_channel(my_vcd.stream);
+      channel = (int8_t) _x_get_spu_channel(my_vcd.stream);
       dbg_print(INPUT_DBG_EXT, "SPU CHANNEL = %d\n", channel);
       if (-1 == channel) {
         sprintf(data, " %s", "auto");

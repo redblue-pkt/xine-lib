@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: pnm.c,v 1.15 2003/06/20 16:17:28 hadess Exp $
+ * $Id: pnm.c,v 1.16 2003/11/11 18:44:54 f1rmb Exp $
  *
  * pnm protocol implementation 
  * based upon code from joschka
@@ -299,7 +299,7 @@ static ssize_t rm_read(pnm_t *p, void *buf, size_t count) {
   return total;
 #else
 
-  return xine_read_abort(p->stream, p->s, buf, count );
+  return _x_read_abort(p->stream, p->s, buf, count );
 
 #endif
 }

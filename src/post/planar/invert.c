@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: invert.c,v 1.14 2003/10/22 20:38:10 komadori Exp $
+ * $Id: invert.c,v 1.15 2003/11/11 18:44:59 f1rmb Exp $
  */
  
 /*
@@ -96,7 +96,7 @@ static post_plugin_t *invert_open_plugin(post_class_t *class_gen, int inputs,
     return NULL;
   }
   
-  port = post_intercept_video_port(this, video_target[0]);
+  port = _x_post_intercept_video_port(this, video_target[0]);
   /* replace with our own get_frame function */
   port->port.open      = invert_open;
   port->port.get_frame = invert_get_frame;
@@ -199,7 +199,7 @@ static vo_frame_t *invert_get_frame(xine_video_port_t *port_gen, uint32_t width,
 
   frame = port->original_port->get_frame(port->original_port,
     width, height, ratio, format, flags);
-  post_intercept_video_frame(frame, port);
+  _x_post_intercept_video_frame(frame, port);
   /* replace with our own draw function */
   frame->draw = invert_draw;
   /* decoders should not copy the frames, since they won't be displayed */
@@ -228,7 +228,7 @@ static int invert_draw(vo_frame_t *frame, xine_stream_t *stream)
   inverted_frame->pts = frame->pts;
   inverted_frame->duration = frame->duration;
   inverted_frame->bad_frame = frame->bad_frame;
-  extra_info_merge(inverted_frame->extra_info, frame->extra_info);
+  _x_extra_info_merge(inverted_frame->extra_info, frame->extra_info);
     
   switch (inverted_frame->format) {
   case XINE_IMGFMT_YUY2:
@@ -253,13 +253,13 @@ static int invert_draw(vo_frame_t *frame, xine_stream_t *stream)
   default:
     printf("invert: cannot handle image format %d\n", frame->format);
     inverted_frame->free(inverted_frame);
-    post_restore_video_frame(frame, port);
+    _x_post_restore_video_frame(frame, port);
     return frame->draw(frame, stream);
   } 
   skip = inverted_frame->draw(inverted_frame, stream);
   inverted_frame->free(inverted_frame);
   frame->vpts = inverted_frame->vpts;
-  post_restore_video_frame(frame, port);
+  _x_post_restore_video_frame(frame, port);
   
   return skip;
 }

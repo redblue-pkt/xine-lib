@@ -20,7 +20,7 @@
  * video_out_directx.c, direct draw video output plugin for xine
  * by Matthew Grooms <elon@altavista.com>
  *
- * $Id: video_out_directx.c,v 1.9 2003/10/31 17:25:20 mroi Exp $
+ * $Id: video_out_directx.c,v 1.10 2003/11/11 18:45:00 f1rmb Exp $
  */
 
 typedef unsigned char boolean;
@@ -1144,7 +1144,7 @@ static int win32_redraw_needed(vo_driver_t* this_gen)
 
   /* TC - May need to revisit this! */
 #ifdef TC  
-  if( vo_scale_redraw_needed( &win32_driver->sc ) ) {
+  if( _x_vo_scale_redraw_needed( &win32_driver->sc ) ) {
     win32_gui_data_exchange(this_gen, GUI_WIN32_MOVED_OR_RESIZED, 0);    
     ret = 1;
   }

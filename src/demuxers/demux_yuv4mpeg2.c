@@ -24,7 +24,7 @@
  * tools, visit:
  *   http://mjpeg.sourceforge.net/
  *
- * $Id: demux_yuv4mpeg2.c,v 1.29 2003/10/31 22:56:21 tmattern Exp $
+ * $Id: demux_yuv4mpeg2.c,v 1.30 2003/11/11 18:44:53 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -91,7 +91,7 @@ static int open_yuv4mpeg2_file(demux_yuv4mpeg2_t *this) {
     this->aspect_n = this->aspect_d = this->progressive = 
     this->top_field_first = this->data_start = 0;
 
-  if (xine_demux_read_header(this->input, header, Y4M_HEADER_BYTES) != Y4M_HEADER_BYTES)
+  if (_x_demux_read_header(this->input, header, Y4M_HEADER_BYTES) != Y4M_HEADER_BYTES)
     return 0;
 
   /* check for the Y4M signature */
@@ -258,7 +258,7 @@ static int demux_yuv4mpeg2_send_chunk(demux_plugin_t *this_gen) {
 
   /* reset the pts after a seek */
   if (this->seek_flag) {
-    xine_demux_control_newpts(this->stream, pts, BUF_FLAG_SEEK);
+    _x_demux_control_newpts(this->stream, pts, BUF_FLAG_SEEK);
     this->seek_flag = 0;
   }
 
@@ -309,7 +309,7 @@ static void demux_yuv4mpeg2_send_headers(demux_plugin_t *this_gen) {
                        this->bih.biHeight);
 
   /* send start buffers */
-  xine_demux_control_start(this->stream);
+  _x_demux_control_start(this->stream);
 
   /* send init info to decoders */
   buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
@@ -349,13 +349,13 @@ static int demux_yuv4mpeg2_seek (demux_plugin_t *this_gen,
 
   this->seek_flag = 1;
   this->status = DEMUX_OK;
-  xine_demux_flush_engine (this->stream);
+  _x_demux_flush_engine (this->stream);
 
   /* if thread is not running, initialize demuxer */
   if( !this->stream->demux_thread_running ) {
 
     /* send new pts */
-    xine_demux_control_newpts(this->stream, 0, 0);
+    _x_demux_control_newpts(this->stream, 0, 0);
 
     this->status = DEMUX_OK;
   }
@@ -422,7 +422,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
     mrl = input->get_mrl (input);
     extensions = class_gen->get_extensions (class_gen);
 
-    if (!xine_demux_check_extension (mrl, extensions)) {
+    if (!_x_demux_check_extension (mrl, extensions)) {
       free (this);
       return NULL;
     }

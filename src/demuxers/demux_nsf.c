@@ -30,7 +30,7 @@
  * For more information regarding the NSF format, visit:
  *   http://www.tripoint.org/kevtris/nes/nsfspec.txt
  *
- * $Id: demux_nsf.c,v 1.16 2003/10/30 00:49:07 tmattern Exp $
+ * $Id: demux_nsf.c,v 1.17 2003/11/11 18:44:52 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -165,7 +165,7 @@ static int demux_nsf_send_chunk(demux_plugin_t *this_gen) {
 
       xine_set_meta_info(this->stream, XINE_META_INFO_TITLE, title);
 
-      xine_demux_control_newpts(this->stream, this->current_pts, 0);
+      _x_demux_control_newpts(this->stream, this->current_pts, 0);
 
     } else
       buf->decoder_info[1] = 0;
@@ -210,7 +210,7 @@ static void demux_nsf_send_headers(demux_plugin_t *this_gen) {
   xine_set_meta_info(this->stream, XINE_META_INFO_COMMENT, copyright);
 
   /* send start buffers */
-  xine_demux_control_start(this->stream);
+  _x_demux_control_start(this->stream);
 
   /* send init info to the audio decoder */
   if (this->audio_fifo) {
@@ -243,7 +243,7 @@ static int demux_nsf_seek (demux_plugin_t *this_gen,
   if( !this->stream->demux_thread_running ) {
 
     /* send new pts */
-    xine_demux_control_newpts(this->stream, 0, 0);
+    _x_demux_control_newpts(this->stream, 0, 0);
 
     this->status = DEMUX_OK;
 
@@ -257,7 +257,7 @@ static int demux_nsf_seek (demux_plugin_t *this_gen,
     this->current_song = start_pos + 1;
     this->new_song = 1;
     this->current_pts = 0;
-    xine_demux_flush_engine(this->stream);
+    _x_demux_flush_engine(this->stream);
   }
 
   return this->status;
@@ -329,7 +329,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
     mrl = input->get_mrl (input);
     extensions = class_gen->get_extensions (class_gen);
 
-    if (!xine_demux_check_extension (mrl, extensions)) {
+    if (!_x_demux_check_extension (mrl, extensions)) {
       free (this);
       return NULL;
     }

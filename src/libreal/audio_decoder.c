@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.27 2003/10/28 20:18:06 jstembridge Exp $
+ * $Id: audio_decoder.c,v 1.28 2003/11/11 18:44:54 f1rmb Exp $
  *
  * thin layer to use real binary-only codecs in xine
  *
@@ -133,7 +133,7 @@ static int load_syms_linux (realdec_decoder_t *this, char *codec_name) {
 
   if (!this->ra_handle) {
     printf ("libareal: error: %s\n", dlerror());
-    xine_message(this->stream, XINE_MSG_LIBRARY_LOAD_ERROR,
+    _x_message(this->stream, XINE_MSG_LIBRARY_LOAD_ERROR,
                  codec_name, NULL);
     return 0;
   }

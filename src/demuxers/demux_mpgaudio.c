@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpgaudio.c,v 1.121 2003/11/01 01:44:54 tmattern Exp $
+ * $Id: demux_mpgaudio.c,v 1.122 2003/11/11 18:44:52 f1rmb Exp $
  *
  * demultiplexer for mpeg audio (i.e. mp3) streams
  *
@@ -217,10 +217,10 @@ static void check_newpts (demux_mpgaudio_t *this, int64_t pts) {
   if( pts &&
       (this->send_newpts || (this->last_pts && abs(diff)>WRAP_THRESHOLD) ) ) {
     if (this->buf_flag_seek) {
-      xine_demux_control_newpts(this->stream, pts, BUF_FLAG_SEEK);
+      _x_demux_control_newpts(this->stream, pts, BUF_FLAG_SEEK);
       this->buf_flag_seek = 0;
     } else {
-      xine_demux_control_newpts(this->stream, pts, 0);
+      _x_demux_control_newpts(this->stream, pts, 0);
     }
     this->send_newpts = 0;
   }
@@ -826,7 +826,7 @@ static void demux_mpgaudio_send_headers (demux_plugin_t *this_gen) {
   /*
    * send preview buffers
    */
-  xine_demux_control_start (this->stream);
+  _x_demux_control_start (this->stream);
 
   if ((this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) != 0)
     this->input->seek (this->input, 0, SEEK_SET);
@@ -956,7 +956,7 @@ static int demux_mpgaudio_seek (demux_plugin_t *this_gen,
     this->buf_flag_seek = 0;
   } else {
     this->buf_flag_seek = 1;
-    xine_demux_flush_engine(this->stream);
+    _x_demux_flush_engine(this->stream);
   }
 
   return this->status;
@@ -1096,7 +1096,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
     if (strncmp (mrl, "ice :/", 6)) {
       char *extensions = class_gen->get_extensions (class_gen);
       
-      if (!xine_demux_check_extension (mrl, extensions))
+      if (!_x_demux_check_extension (mrl, extensions))
   	return NULL;
       
     }

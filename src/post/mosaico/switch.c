@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: switch.c,v 1.8 2003/10/23 20:12:34 mroi Exp $
+ * $Id: switch.c,v 1.9 2003/11/11 18:44:59 f1rmb Exp $
  */
  
 /*
@@ -168,7 +168,7 @@ static post_plugin_t *switch_open_plugin(post_class_t *class_gen, int inputs,
   /* first input */
   input2 = (xine_post_in_t *)malloc(sizeof(xine_post_in_t));
 
-  port = post_intercept_video_port(this, video_target[0]);
+  port = _x_post_intercept_video_port(this, video_target[0]);
   /* replace with our own get_frame function */
   port->port.open = switch_open;
   port->port.get_frame = switch_get_frame;
@@ -185,7 +185,7 @@ static post_plugin_t *switch_open_plugin(post_class_t *class_gen, int inputs,
   /* second input */
   input2 = (xine_post_in_t *)malloc(sizeof(xine_post_in_t));
 
-  port = post_intercept_video_port(this, video_target[1]);
+  port = _x_post_intercept_video_port(this, video_target[1]);
   /* replace with our own get_frame function */
   port->port.open = switch_open;
   port->port.get_frame = switch_get_frame_2;
@@ -293,7 +293,7 @@ static vo_frame_t *switch_get_frame(xine_video_port_t *port_gen, uint32_t width,
   frame = port->original_port->get_frame(port->original_port,
 					 width, height , ratio, format, flags);
 
-  post_intercept_video_frame(frame, port);
+  _x_post_intercept_video_frame(frame, port);
   /* replace with our own draw function */
   frame->draw = switch_draw;
   /* decoders should not copy the frames, since they won't be displayed */
@@ -317,7 +317,7 @@ static vo_frame_t *switch_get_frame_2(xine_video_port_t *port_gen, uint32_t widt
   frame = port->original_port->get_frame(port->original_port,
 					 width, height , ratio, format, flags);
 
-  post_intercept_video_frame(frame, port);
+  _x_post_intercept_video_frame(frame, port);
   /* replace with our own draw function */
   frame->draw = switch_draw_2;
   /* decoders should not copy the frames, since they won't be displayed */
@@ -386,7 +386,7 @@ static int switch_draw_2(vo_frame_t *frame, xine_stream_t *stream)
 
   if(!output->selected_source) {
     /* printf("draw_2 quitting\n"); */
-    post_restore_video_frame(frame, port); 
+    _x_post_restore_video_frame(frame, port); 
     pthread_mutex_unlock(&output->mut1); 
     return 0;
   }
@@ -397,7 +397,7 @@ static int switch_draw_2(vo_frame_t *frame, xine_stream_t *stream)
   res_frame->pts = frame->pts;
   res_frame->duration = frame->duration;
   res_frame->bad_frame = frame->bad_frame;
-  extra_info_merge(res_frame->extra_info, frame->extra_info);
+  _x_extra_info_merge(res_frame->extra_info, frame->extra_info);
  
 
   frame_copy_content(res_frame, frame);
@@ -407,7 +407,7 @@ static int switch_draw_2(vo_frame_t *frame, xine_stream_t *stream)
   res_frame->free(res_frame);
   frame->vpts = res_frame->vpts;
 
-  post_restore_video_frame(frame, port);
+  _x_post_restore_video_frame(frame, port);
 
   pthread_mutex_unlock(&output->mut1); 
 
@@ -425,7 +425,7 @@ static int switch_draw(vo_frame_t *frame, xine_stream_t *stream)
 
   if(output->selected_source) {
     /* printf("draw_1 quitting\n"); */
-    post_restore_video_frame(frame, port); 
+    _x_post_restore_video_frame(frame, port); 
     pthread_mutex_unlock(&output->mut1); 
     return 0;
   }
@@ -436,7 +436,7 @@ static int switch_draw(vo_frame_t *frame, xine_stream_t *stream)
   res_frame->pts = frame->pts;
   res_frame->duration = frame->duration;
   res_frame->bad_frame = frame->bad_frame;
-  extra_info_merge(res_frame->extra_info, frame->extra_info);
+  _x_extra_info_merge(res_frame->extra_info, frame->extra_info);
  
 
   frame_copy_content(res_frame, frame);
@@ -446,7 +446,7 @@ static int switch_draw(vo_frame_t *frame, xine_stream_t *stream)
   res_frame->free(res_frame);
   frame->vpts = res_frame->vpts;
 
-  post_restore_video_frame(frame, port);
+  _x_post_restore_video_frame(frame, port);
 
   pthread_mutex_unlock(&output->mut1); 
 

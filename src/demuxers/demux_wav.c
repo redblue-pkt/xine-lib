@@ -22,7 +22,7 @@
  * MS WAV File Demuxer by Mike Melanson (melanson@pcisys.net)
  * based on WAV specs that are available far and wide
  *
- * $Id: demux_wav.c,v 1.50 2003/10/31 22:56:21 tmattern Exp $
+ * $Id: demux_wav.c,v 1.51 2003/11/11 18:44:53 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -81,7 +81,7 @@ static int open_wav_file(demux_wav_t *this) {
   uint8_t chunk_preamble[8];
 
   /* check the signature */
-  if (xine_demux_read_header(this->input, signature, WAV_SIGNATURE_SIZE) != WAV_SIGNATURE_SIZE)
+  if (_x_demux_read_header(this->input, signature, WAV_SIGNATURE_SIZE) != WAV_SIGNATURE_SIZE)
     return 0;
 
   if ((signature[0] != 'R') ||
@@ -113,8 +113,8 @@ static int open_wav_file(demux_wav_t *this) {
     free (this->wave);
     return 0;
   }
-  xine_waveformatex_le2me(this->wave);
-  this->audio_type = formattag_to_buf_audio(this->wave->wFormatTag);
+  _x_waveformatex_le2me(this->wave);
+  this->audio_type = _x_formattag_to_buf_audio(this->wave->wFormatTag);
   if(!this->audio_type) {
     this->audio_type = BUF_AUDIO_UNKNOWN;
   }
@@ -195,7 +195,7 @@ static int demux_wav_send_chunk(demux_plugin_t *this_gen) {
   current_pts /= this->wave->nAvgBytesPerSec;
 
   if (this->seek_flag) {
-    xine_demux_control_newpts(this->stream, current_pts, 0);
+    _x_demux_control_newpts(this->stream, current_pts, 0);
     this->seek_flag = 0;
   }
 
@@ -278,7 +278,7 @@ static void demux_wav_send_headers(demux_plugin_t *this_gen) {
                        this->wave->wBitsPerSample);
 
   /* send start buffers */
-  xine_demux_control_start(this->stream);
+  _x_demux_control_start(this->stream);
 
   /* send init info to decoders */
   if (this->audio_fifo && this->audio_type) {
@@ -302,7 +302,7 @@ static int demux_wav_seek (demux_plugin_t *this_gen,
 
   this->seek_flag = 1;
   this->status = DEMUX_OK;
-  xine_demux_flush_engine (this->stream);
+  _x_demux_flush_engine (this->stream);
 
   /* if input is non-seekable, do not proceed with the rest of this
    * seek function */
@@ -392,7 +392,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
     mrl = input->get_mrl (input);
     extensions = class_gen->get_extensions (class_gen);
 
-    if (!xine_demux_check_extension (mrl, extensions)) {
+    if (!_x_demux_check_extension (mrl, extensions)) {
       free (this);
       return NULL;
     }

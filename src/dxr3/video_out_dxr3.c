@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3.c,v 1.90 2003/10/23 21:01:44 mroi Exp $
+ * $Id: video_out_dxr3.c,v 1.91 2003/11/11 18:44:53 f1rmb Exp $
  */
  
 /* mpeg1 encoding video out plugin for the dxr3.  
@@ -263,7 +263,7 @@ static vo_driver_t *dxr3_vo_open_plugin(video_driver_class_t *class_gen, const v
   pthread_mutex_init(&this->video_device_lock, NULL);
   pthread_mutex_init(&this->spu_device_lock, NULL);
   
-  vo_scale_init(&this->scale, 0, 0, config);
+  _x_vo_scale_init(&this->scale, 0, 0, config);
   
   this->class                          = class;
   this->swap_fields                    = config->register_bool(config,
@@ -905,7 +905,7 @@ static void dxr3_display_frame(vo_driver_t *this_gen, vo_frame_t *frame_gen)
       this->scale.user_ratio       = (this->widescreen_enabled ? frame->aspect : XINE_VO_ASPECT_4_3);
       this->scale.force_redraw     = 1;
 
-      vo_scale_compute_ideal_size(&this->scale);
+      _x_vo_scale_compute_ideal_size(&this->scale);
 
       /* prepare the overlay window */
       dxr3_overlay_update(this);
@@ -1123,8 +1123,8 @@ static int dxr3_gui_data_exchange(vo_driver_t *this_gen, int data_type, void *da
     {
       int x1, y1, x2, y2;
       x11_rectangle_t *rect = data;
-      vo_scale_translate_gui2video(&this->scale, rect->x, rect->y, &x1, &y1);
-      vo_scale_translate_gui2video(&this->scale, rect->x + rect->w, rect->y + rect->h, &x2, &y2);
+      _x_vo_scale_translate_gui2video(&this->scale, rect->x, rect->y, &x1, &y1);
+      _x_vo_scale_translate_gui2video(&this->scale, rect->x + rect->w, rect->y + rect->h, &x2, &y2);
       rect->x = x1;
       rect->y = y1 - this->top_bar;
       rect->w = x2 - x1;
@@ -1437,10 +1437,10 @@ static int dxr3_overlay_set_attributes(dxr3_overlay_t *this)
 
 static void dxr3_overlay_update(dxr3_driver_t *this)
 {
-  if (vo_scale_redraw_needed(&this->scale)) {
+  if (_x_vo_scale_redraw_needed(&this->scale)) {
     em8300_overlay_window_t win;
     
-    vo_scale_compute_output_size(&this->scale);
+    _x_vo_scale_compute_output_size(&this->scale);
     
     /* fill video window with keycolor */
     XLockDisplay(this->display);

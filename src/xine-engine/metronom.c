@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.c,v 1.124 2003/10/31 17:41:07 mroi Exp $
+ * $Id: metronom.c,v 1.125 2003/11/11 18:45:00 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -796,7 +796,7 @@ static void metronom_clock_exit (metronom_clock_t *this) {
 }
 
 
-metronom_t * metronom_init (int have_audio, xine_stream_t *stream) {
+metronom_t * _x_metronom_init (int have_audio, xine_stream_t *stream) {
 
   metronom_t *this = xine_xmalloc (sizeof (metronom_t));
 
@@ -844,7 +844,7 @@ metronom_t * metronom_init (int have_audio, xine_stream_t *stream) {
 }
 
 
-metronom_clock_t *metronom_clock_init(void)
+metronom_clock_t *_x_metronom_clock_init(void)
 {
   metronom_clock_t *this = (metronom_clock_t *)malloc(sizeof(metronom_clock_t));
   int err;

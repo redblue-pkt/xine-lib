@@ -23,7 +23,7 @@
  * For more information regarding the PVA file format, refer to this PDF:
  *   http://www.technotrend.de/download/av_format_v1.pdf
  *
- * $Id: demux_pva.c,v 1.12 2003/10/30 00:49:07 tmattern Exp $
+ * $Id: demux_pva.c,v 1.13 2003/11/11 18:44:52 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -86,7 +86,7 @@ static void check_newpts( demux_pva_t *this, int64_t pts, int video ){
   if( pts &&
       (this->send_newpts || (this->last_pts[video] && abs(diff)>WRAP_THRESHOLD) ) ) {
 
-    xine_demux_control_newpts(this->stream, pts, 0);
+    _x_demux_control_newpts(this->stream, pts, 0);
 
     this->send_newpts = 0;
     this->last_pts[1-video] = 0;
@@ -283,7 +283,7 @@ static void demux_pva_send_headers(demux_plugin_t *this_gen) {
   xine_set_stream_info(this->stream, XINE_STREAM_INFO_HAS_AUDIO, 1);
 
   /* send start buffers */
-  xine_demux_control_start(this->stream);
+  _x_demux_control_start(this->stream);
 
   /* send init info to video decoder (cribbed from demux_elem.c) */
   buf = this->video_fifo->buffer_pool_alloc(this->video_fifo);
@@ -384,7 +384,7 @@ static int demux_pva_seek (demux_plugin_t *this_gen,
     this->status = DEMUX_OK;
 
   } else
-    xine_demux_flush_engine(this->stream);
+    _x_demux_flush_engine(this->stream);
 
   return this->status;
 }
@@ -450,7 +450,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
     mrl = input->get_mrl (input);
     extensions = class_gen->get_extensions (class_gen);
 
-    if (!xine_demux_check_extension (mrl, extensions)) {
+    if (!_x_demux_check_extension (mrl, extensions)) {
       free (this);
       return NULL;
     }

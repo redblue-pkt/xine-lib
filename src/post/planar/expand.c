@@ -183,7 +183,7 @@ static post_plugin_t *expand_open_plugin(post_class_t *class_gen, int inputs,
   this->frames_prealloc        = NULL;
   this->num_frames             = 0;
   
-  port = post_intercept_video_port(&this->post, video_target[0]);
+  port = _x_post_intercept_video_port(&this->post, video_target[0]);
   /* replace with our own get_frame function */
   port->port.open                = expand_open;
   port->port.get_frame           = expand_get_frame;
@@ -437,7 +437,7 @@ static video_overlay_manager_t *expand_get_overlay_manager(xine_video_port_t *po
   
   if (!this->overlay_manager) {
     /* create a new overlay manager to intercept */
-    this->overlay_manager = post_intercept_overlay_manager(&this->post,
+    this->overlay_manager = _x_post_intercept_overlay_manager(&this->post,
       port->original_port->get_overlay_manager(port->original_port));
     /* replace with our own add_event function */
     this->overlay_manager->manager.add_event = expand_overlay_add_event;
@@ -467,7 +467,7 @@ static int expand_draw(vo_frame_t *frame, xine_stream_t *stream)
   original_frame->pts       = frame->pts;
   original_frame->duration  = frame->duration;
   original_frame->bad_frame = frame->bad_frame;
-  extra_info_merge(original_frame->extra_info, frame->extra_info);
+  _x_extra_info_merge(original_frame->extra_info, frame->extra_info);
   skip = original_frame->draw(original_frame, stream);
   frame->vpts = original_frame->vpts;
   return skip;

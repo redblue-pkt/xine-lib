@@ -21,7 +21,7 @@
  */
 
 /*
- * $Id: demux_slave.c,v 1.6 2003/10/31 22:56:21 tmattern Exp $
+ * $Id: demux_slave.c,v 1.7 2003/11/11 18:44:53 f1rmb Exp $
  *
  * demuxer for slave "protocol"
  * master xine must be started with XINE_PARAM_BROADCASTER_PORT set, that is,
@@ -138,7 +138,7 @@ static int demux_slave_next (demux_slave_t *this) {
      * of the initial pts.
      */
     if( pts && this->send_newpts ) {
-      xine_demux_control_newpts( this->stream, pts, 0 );
+      _x_demux_control_newpts( this->stream, pts, 0 );
       this->send_newpts = 0;
     }
 
@@ -153,7 +153,7 @@ static int demux_slave_next (demux_slave_t *this) {
           this->stream->metronom->get_option(this->stream->metronom, METRONOM_VPTS_OFFSET) <
           curvpts ) {
         xprintf(this->stream->xine, XINE_VERBOSITY_LOG, "we are running late, forcing newpts.\n");
-        xine_demux_control_newpts( this->stream, pts - NETWORK_PREBUFFER, 0 );
+        _x_demux_control_newpts( this->stream, pts - NETWORK_PREBUFFER, 0 );
       }
       this->last_vpts = curvpts;
     }
@@ -241,7 +241,7 @@ static int demux_slave_next (demux_slave_t *this) {
 
   } else if( !strcmp(this->scratch,"flush_engine") ) {
 
-    xine_demux_flush_engine( this->stream );
+    _x_demux_flush_engine( this->stream );
     n = this->scratch_used - (p-this->scratch);
     if( n )
       memmove(this->scratch, p, n);
@@ -279,7 +279,7 @@ static void demux_slave_send_headers (demux_plugin_t *this_gen) {
   this->video_fifo  = this->stream->video_fifo;
   this->audio_fifo  = this->stream->audio_fifo;
 
-  xine_demux_control_start(this->stream);
+  _x_demux_control_start(this->stream);
 
   this->status = DEMUX_OK;
 
@@ -353,7 +353,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
 
   case METHOD_BY_CONTENT: {
 
-    if (xine_demux_read_header(input, this->scratch, SCRATCH_SIZE) > 0) {
+    if (_x_demux_read_header(input, this->scratch, SCRATCH_SIZE) > 0) {
       if (!strncmp(this->scratch,slave_id_str,strlen(slave_id_str)))
         break;
     }

@@ -1882,9 +1882,15 @@ if test x"$enable_fpic" != x; then
    esac
 fi
 
-dnl made libtool-nofpic silent and not installing plugins's .la files
-cat libtool | sed -e 's/^show=\".*/show=\":\"/g' -e 's/# Install the pseudo\-library.*/continue/g' > libtool.tmp
+dnl made libtool define BUILD_BASENAME
+dnl cat libtool | sed -e 's/s/command\=\"\$base_compile\ \$srcfile/command\=\"\$base_compile\ \$srcfile\ \-DBUILD_BASENAME\=\`echo\ \$srcfile\ \|\ sed\ \-e\ '\''s\/\\.\[csS\]\/\/g'\''\`/g' > libtool.tmp
+dnl cat libtool.tmp > libtool
+dnl chmod +x libtool
 
+dnl made libtool-nofpic silent and not installing plugins's .la files
+cat libtool | sed -e 's/^show=\".*/show=\":\"/g;s/# Install the pseudo\-library.*/continue/g' > libtool.tmp
+
+dnl Remove fPIC flag, if necessary
 if test x$no_fpic = "xyes"; then
   cat libtool.tmp | sed -e 's/^pic_flag=/#pic_flag=/' > libtool-nofpic
 else

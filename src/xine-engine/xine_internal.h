@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.144 2003/10/21 16:08:04 mroi Exp $
+ * $Id: xine_internal.h,v 1.145 2003/11/11 18:45:02 f1rmb Exp $
  *
  */
 
@@ -284,34 +284,34 @@ struct xine_stream_s {
  * private function prototypes:
  */
 
-void xine_handle_stream_end      (xine_stream_t *stream, int non_user);
+void _x_handle_stream_end      (xine_stream_t *stream, int non_user);
 
 /* report message to UI. usually these are async errors */
 
-int xine_message(xine_stream_t *stream, int type, ...);
+int _x_message(xine_stream_t *stream, int type, ...);
 
 /* find and instantiate input and demux plugins */
 
-input_plugin_t *find_input_plugin (xine_stream_t *stream, const char *mrl);
-demux_plugin_t *find_demux_plugin (xine_stream_t *stream, input_plugin_t *input);
-demux_plugin_t *find_demux_plugin_by_name (xine_stream_t *stream, const char *name, input_plugin_t *input);
-demux_plugin_t *find_demux_plugin_last_probe(xine_stream_t *stream, const char *last_demux_name, input_plugin_t *input);
-input_plugin_t *rip_plugin_get_instance (xine_stream_t *stream, const char *filename);
+input_plugin_t *_x_find_input_plugin (xine_stream_t *stream, const char *mrl);
+demux_plugin_t *_x_find_demux_plugin (xine_stream_t *stream, input_plugin_t *input);
+demux_plugin_t *_x_find_demux_plugin_by_name (xine_stream_t *stream, const char *name, input_plugin_t *input);
+demux_plugin_t *_x_find_demux_plugin_last_probe(xine_stream_t *stream, const char *last_demux_name, input_plugin_t *input);
+input_plugin_t *_x_rip_plugin_get_instance (xine_stream_t *stream, const char *filename);
 
 /* create decoder fifos and threads */
 
-void video_decoder_init          (xine_stream_t *stream);
-void video_decoder_shutdown      (xine_stream_t *stream);
+void _x_video_decoder_init          (xine_stream_t *stream);
+void _x_video_decoder_shutdown      (xine_stream_t *stream);
 
-void audio_decoder_init          (xine_stream_t *stream);
-void audio_decoder_shutdown      (xine_stream_t *stream);
+void _x_audio_decoder_init          (xine_stream_t *stream);
+void _x_audio_decoder_shutdown      (xine_stream_t *stream);
 
 /* extra_info operations */
-void extra_info_reset( extra_info_t *extra_info );
+void _x_extra_info_reset( extra_info_t *extra_info );
 
-void extra_info_merge( extra_info_t *dst, extra_info_t *src );
+void _x_extra_info_merge( extra_info_t *dst, extra_info_t *src );
 
-void xine_get_current_info (xine_stream_t *stream, extra_info_t *extra_info, int size);
+void _x_get_current_info (xine_stream_t *stream, extra_info_t *extra_info, int size);
                         
                         
 /* demuxer helper functions from demux.c */
@@ -325,19 +325,19 @@ void xine_get_current_info (xine_stream_t *stream, extra_info_t *extra_info, int
  *          indication must be sent. relative discontinuities are likely
  *          to cause "jumps" on metronom.
  */
-void xine_demux_flush_engine         (xine_stream_t *stream);
+void _x_demux_flush_engine         (xine_stream_t *stream);
 
-void xine_demux_control_nop          (xine_stream_t *stream, uint32_t flags);
-void xine_demux_control_newpts       (xine_stream_t *stream, int64_t pts, uint32_t flags);
-void xine_demux_control_headers_done (xine_stream_t *stream);
-void xine_demux_control_start        (xine_stream_t *stream);
-void xine_demux_control_end          (xine_stream_t *stream, uint32_t flags);
-int xine_demux_start_thread          (xine_stream_t *stream);
-int xine_demux_stop_thread           (xine_stream_t *stream);
-int xine_demux_read_header           (input_plugin_t *input, unsigned char *buffer, off_t size);
-int xine_demux_check_extension       (char *mrl, char *extensions);
+void _x_demux_control_nop          (xine_stream_t *stream, uint32_t flags);
+void _x_demux_control_newpts       (xine_stream_t *stream, int64_t pts, uint32_t flags);
+void _x_demux_control_headers_done (xine_stream_t *stream);
+void _x_demux_control_start        (xine_stream_t *stream);
+void _x_demux_control_end          (xine_stream_t *stream, uint32_t flags);
+int _x_demux_start_thread          (xine_stream_t *stream);
+int _x_demux_stop_thread           (xine_stream_t *stream);
+int _x_demux_read_header           (input_plugin_t *input, unsigned char *buffer, off_t size);
+int _x_demux_check_extension       (char *mrl, char *extensions);
 
-off_t xine_read_abort (xine_stream_t *stream, int fd, char *buf, off_t todo);
+off_t _x_read_abort (xine_stream_t *stream, int fd, char *buf, off_t todo);
 
 /* 
  * plugin_loader functions
@@ -346,12 +346,12 @@ off_t xine_read_abort (xine_stream_t *stream, int fd, char *buf, off_t todo);
 
 /* on-demand loading of audio/video/spu decoder plugins */
 
-video_decoder_t *get_video_decoder  (xine_stream_t *stream, uint8_t stream_type); 
-void             free_video_decoder (xine_stream_t *stream, video_decoder_t *decoder);
-audio_decoder_t *get_audio_decoder  (xine_stream_t *stream, uint8_t stream_type); 
-void             free_audio_decoder (xine_stream_t *stream, audio_decoder_t *decoder);
-spu_decoder_t   *get_spu_decoder    (xine_stream_t *stream, uint8_t stream_type); 
-void             free_spu_decoder   (xine_stream_t *stream, spu_decoder_t *decoder);
+video_decoder_t *_x_get_video_decoder  (xine_stream_t *stream, uint8_t stream_type); 
+void             _x_free_video_decoder (xine_stream_t *stream, video_decoder_t *decoder);
+audio_decoder_t *_x_get_audio_decoder  (xine_stream_t *stream, uint8_t stream_type); 
+void             _x_free_audio_decoder (xine_stream_t *stream, audio_decoder_t *decoder);
+spu_decoder_t   *_x_get_spu_decoder    (xine_stream_t *stream, uint8_t stream_type); 
+void             _x_free_spu_decoder   (xine_stream_t *stream, spu_decoder_t *decoder);
 
 /*
  * load_video_output_plugin
@@ -359,8 +359,8 @@ void             free_spu_decoder   (xine_stream_t *stream, spu_decoder_t *decod
  * load a specific video output plugin
  */
 
-vo_driver_t *xine_load_video_output_plugin(xine_t *this,
-					   char *id, int visual_type, void *visual);
+vo_driver_t *_x_load_video_output_plugin(xine_t *this,
+					 char *id, int visual_type, void *visual);
 
 /*
  * audio output plugin dynamic loading stuff
@@ -372,16 +372,16 @@ vo_driver_t *xine_load_video_output_plugin(xine_t *this,
  * load a specific audio output plugin
  */
 
-ao_driver_t *xine_load_audio_output_plugin (xine_t *self, char *id);
+ao_driver_t *_x_load_audio_output_plugin (xine_t *self, char *id);
 
 
-void xine_set_speed (xine_stream_t *stream, int speed) ;
+void _x_set_speed (xine_stream_t *stream, int speed) ;
 
-void xine_select_spu_channel (xine_stream_t *stream, int channel) ;
+void _x_select_spu_channel (xine_stream_t *stream, int channel) ;
 
-int xine_get_audio_channel (xine_stream_t *stream) ;
+int _x_get_audio_channel (xine_stream_t *stream) ;
 
-int xine_get_spu_channel (xine_stream_t *stream) ;
+int _x_get_spu_channel (xine_stream_t *stream) ;
 
 /*
  * internal events

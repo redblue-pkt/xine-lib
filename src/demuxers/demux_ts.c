@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ts.c,v 1.92 2003/10/31 22:56:21 tmattern Exp $
+ * $Id: demux_ts.c,v 1.93 2003/11/11 18:44:53 f1rmb Exp $
  *
  * Demultiplexer for MPEG2 Transport Streams.
  *
@@ -343,10 +343,10 @@ static void check_newpts( demux_ts_t *this, int64_t pts, int video )
       (this->send_newpts || (this->last_pts[video] && abs(diff)>WRAP_THRESHOLD) ) ) {
 
     if (this->buf_flag_seek) {
-      xine_demux_control_newpts(this->stream, pts, BUF_FLAG_SEEK);
+      _x_demux_control_newpts(this->stream, pts, BUF_FLAG_SEEK);
       this->buf_flag_seek = 0;
     } else {
-      xine_demux_control_newpts(this->stream, pts, 0);
+      _x_demux_control_newpts(this->stream, pts, 0);
     }
     this->send_newpts = 0;
     this->last_pts[1-video] = 0;
@@ -1755,7 +1755,7 @@ static void demux_ts_send_headers (demux_plugin_t *this_gen) {
   this->audioPid = INVALID_PID;
   this->media_num= 0;
 
-  xine_demux_control_start (this->stream);
+  _x_demux_control_start (this->stream);
   
   this->input->seek (this->input, 0, SEEK_SET);
 
@@ -1817,7 +1817,7 @@ static int demux_ts_seek (demux_plugin_t *this_gen,
   } else {
 
     this->buf_flag_seek = 1;
-    xine_demux_flush_engine(this->stream);
+    _x_demux_flush_engine(this->stream);
 
   }
   
@@ -1873,7 +1873,7 @@ static int demux_ts_get_optional_data(demux_plugin_t *this_gen,
 	}
       else
 	{
-	  sprintf(str, "%3i", xine_get_audio_channel(this->stream));
+	  sprintf(str, "%3i", _x_get_audio_channel(this->stream));
 	}
       return DEMUX_OPTIONAL_SUCCESS;
 
@@ -1914,7 +1914,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen,
     int     i, j;
     int     try_again, ts_detected;
 
-    if (!xine_demux_read_header(input, buf, 2069))
+    if (!_x_demux_read_header(input, buf, 2069))
       return NULL;
 
     ts_detected = 0;
@@ -1950,7 +1950,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen,
     /* check extension */
     extensions = class_gen->get_extensions (class_gen);
 
-    if (xine_demux_check_extension (mrl, extensions))
+    if (_x_demux_check_extension (mrl, extensions))
       break;
 
     /* accept dvb streams */

@@ -21,7 +21,7 @@
  * For more information on the FILM file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_film.c,v 1.66 2003/10/30 00:49:07 tmattern Exp $
+ * $Id: demux_film.c,v 1.67 2003/11/11 18:44:51 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -139,7 +139,7 @@ static int open_film_file(demux_film_t *film) {
   film->audio_channels = 0;
 
   /* get the signature, header length and file version */
-  if (xine_demux_read_header(film->input, scratch, 16) != 16)
+  if (_x_demux_read_header(film->input, scratch, 16) != 16)
     return 0;
 
   /* FILM signature correct? */
@@ -201,7 +201,7 @@ static int open_film_file(demux_film_t *film) {
       film->bih.biWidth = BE_32(&film_header[i + 16]);
       film->bih.biHeight = BE_32(&film_header[i + 12]);
       film->video_codec = *(uint32_t *)&film_header[i + 8];
-      film->video_type = fourcc_to_buf_video(*(uint32_t *)&film_header[i + 8]);
+      film->video_type = _x_fourcc_to_buf_video(*(uint32_t *)&film_header[i + 8]);
 
       if( !film->video_type )
         film->video_type = BUF_VIDEO_UNKNOWN;
@@ -375,7 +375,7 @@ static int demux_film_send_chunk(demux_plugin_t *this_gen) {
    * must be time to send a new pts */
   if (this->last_sample + 1 != this->current_sample) {
     /* send new pts */
-    xine_demux_control_newpts(this->stream, this->sample_table[i].pts,
+    _x_demux_control_newpts(this->stream, this->sample_table[i].pts,
       (this->sample_table[i].pts) ? BUF_FLAG_SEEK : 0);
   }
 
@@ -680,7 +680,7 @@ static void demux_film_send_headers(demux_plugin_t *this_gen) {
     this->audio_bits);
 
   /* send start buffers */
-  xine_demux_control_start(this->stream);
+  _x_demux_control_start(this->stream);
 
   /* send init info to decoders */
   if (this->video_type) {
@@ -716,7 +716,7 @@ static int demux_film_seek (demux_plugin_t *this_gen, off_t start_pos, int start
 
   this->waiting_for_keyframe = 1;
   this->status = DEMUX_OK;
-  xine_demux_flush_engine(this->stream);
+  _x_demux_flush_engine(this->stream);
 
   if( !this->stream->demux_thread_running ) {
     this->waiting_for_keyframe = 0;
@@ -867,7 +867,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
     mrl = input->get_mrl (input);
     extensions = class_gen->get_extensions (class_gen);
 
-    if (!xine_demux_check_extension (mrl, extensions)) {
+    if (!_x_demux_check_extension (mrl, extensions)) {
       free (this);
       return NULL;
     }

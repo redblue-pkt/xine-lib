@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.139 2003/11/09 14:32:04 tmattern Exp $
+ * $Id: demux_asf.c,v 1.140 2003/11/11 18:44:51 f1rmb Exp $
  *
  * demultiplexer for asf streams
  *
@@ -439,8 +439,8 @@ static int asf_read_header (demux_asf_t *this) {
             xine_log(this->stream->xine, XINE_LOG_MSG,
                          _("demux_asf: warning: The stream id=%d is encrypted\n."),
                          stream_id);
-            xine_message(this->stream, XINE_MSG_ENCRYPTED_SOURCE,
-                         _("Media stream scrambled/encrypted"), NULL);
+            _x_message(this->stream, XINE_MSG_ENCRYPTED_SOURCE,
+		       _("Media stream scrambled/encrypted"), NULL);
             this->mode = ASF_MODE_ENCRYPTED_CONTENT;
           }
 
@@ -450,7 +450,7 @@ static int asf_read_header (demux_asf_t *this) {
             uint8_t buffer[6];
 
             this->input->read (this->input, (uint8_t *) this->wavex, total_size);
-            xine_waveformatex_le2me( (xine_waveformatex *) this->wavex );
+            _x_waveformatex_le2me( (xine_waveformatex *) this->wavex );
 
             /*
             printf ("total size: %d bytes\n", total_size);
@@ -475,7 +475,7 @@ static int asf_read_header (demux_asf_t *this) {
             this->wavex_size = total_size; /* 18 + this->wavex[8]; */
 
             this->streams[this->num_streams].buf_type =
-              formattag_to_buf_audio ( wavex->wFormatTag );
+              _x_formattag_to_buf_audio ( wavex->wFormatTag );
             if ( !this->streams[this->num_streams].buf_type ) {
 	      printf ("demux_asf: unknown audio type 0x%x\n", wavex->wFormatTag);
               this->streams[this->num_streams].buf_type = BUF_AUDIO_UNKNOWN;
@@ -509,10 +509,10 @@ static int asf_read_header (demux_asf_t *this) {
             if( i > 0 && i < sizeof(this->bih) ) {
               this->bih_size = i;
               this->input->read (this->input, (uint8_t *) this->bih, this->bih_size);
-              xine_bmiheader_le2me( (xine_bmiheader *) this->bih );
+              _x_bmiheader_le2me( (xine_bmiheader *) this->bih );
 
               this->streams[this->num_streams].buf_type =
-                fourcc_to_buf_video(bih->biCompression);
+                _x_fourcc_to_buf_video(bih->biCompression);
               if( !this->streams[this->num_streams].buf_type ) {
                 printf ("demux_asf: unknown video format %.4s\n",
                         (char*)&bih->biCompression);
@@ -648,7 +648,7 @@ static int demux_asf_send_headers_common (demux_asf_t *this, int send_ctrl_start
      * send start buffer
      */
     if (send_ctrl_start) {
-      xine_demux_control_start(this->stream);
+      _x_demux_control_start(this->stream);
     }
 
     xine_set_meta_info(this->stream, XINE_META_INFO_TITLE, this->title);
@@ -749,10 +749,10 @@ static void check_newpts (demux_asf_t *this, int64_t pts, int video, int frame_e
 #endif
 
     if (this->buf_flag_seek) {
-      xine_demux_control_newpts(this->stream, pts, BUF_FLAG_SEEK);
+      _x_demux_control_newpts(this->stream, pts, BUF_FLAG_SEEK);
       this->buf_flag_seek = 0;
     } else {
-      xine_demux_control_newpts(this->stream, pts, 0);
+      _x_demux_control_newpts(this->stream, pts, 0);
     }
 
     this->send_newpts = 0;
@@ -1866,7 +1866,7 @@ static void demux_asf_send_headers (demux_plugin_t *this_gen) {
   if ((this->mode == ASF_MODE_ASX_REF) ||
       (this->mode == ASF_MODE_HTTP_REF) ||
       (this->mode == ASF_MODE_ASF_REF)) {
-    xine_demux_control_start(this->stream);
+    _x_demux_control_start(this->stream);
     return;
   }
 
@@ -1926,7 +1926,7 @@ static int demux_asf_seek (demux_plugin_t *this_gen,
   if (this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) {
 
     this->buf_flag_seek = 1;
-    xine_demux_flush_engine(this->stream);
+    _x_demux_flush_engine(this->stream);
     
     if ( (!start_pos) && (start_time))
       start_pos = start_time * this->rate;

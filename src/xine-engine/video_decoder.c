@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.136 2003/07/27 12:47:23 hadess Exp $
+ * $Id: video_decoder.c,v 1.137 2003/11/11 18:45:01 f1rmb Exp $
  *
  */
 
@@ -45,10 +45,10 @@ static void update_spu_decoder (xine_stream_t *stream, int type) {
       !stream->spu_decoder_plugin ) {
     
     if (stream->spu_decoder_plugin)
-      free_spu_decoder (stream, stream->spu_decoder_plugin);
+      _x_free_spu_decoder (stream, stream->spu_decoder_plugin);
           
     stream->spu_decoder_streamtype = streamtype;
-    stream->spu_decoder_plugin = get_spu_decoder (stream, streamtype);
+    stream->spu_decoder_plugin = _x_get_spu_decoder (stream, streamtype);
 
   }
   return ;
@@ -76,7 +76,7 @@ static void *video_decoder_loop (void *stream_gen) {
 #endif
 
     buf = stream->video_fifo->get (stream->video_fifo);
-    extra_info_merge( stream->video_decoder_extra_info, buf->extra_info );
+    _x_extra_info_merge( stream->video_decoder_extra_info, buf->extra_info );
     stream->video_decoder_extra_info->seek_count = stream->video_seek_count;
     
 #ifdef LOG
@@ -112,12 +112,12 @@ static void *video_decoder_loop (void *stream_gen) {
     case BUF_CONTROL_START:
       
       if (stream->video_decoder_plugin) {
-	free_video_decoder (stream, stream->video_decoder_plugin);
+	_x_free_video_decoder (stream, stream->video_decoder_plugin);
 	stream->video_decoder_plugin = NULL;
       }
       
       if (stream->spu_decoder_plugin) {
-        free_spu_decoder (stream, stream->spu_decoder_plugin);
+        _x_free_spu_decoder (stream, stream->spu_decoder_plugin);
         stream->spu_decoder_plugin = NULL;
         stream->spu_track_map_entries = 0;
       }
@@ -180,7 +180,7 @@ static void *video_decoder_loop (void *stream_gen) {
       pthread_mutex_unlock (&stream->counter_lock);
 
       /* set engine status, send frontend notification event */
-      xine_handle_stream_end (stream, buf->decoder_flags & BUF_FLAG_END_STREAM);
+      _x_handle_stream_end (stream, buf->decoder_flags & BUF_FLAG_END_STREAM);
 
       /* Wake up xine_play if it's waiting for a frame */
       pthread_mutex_lock (&stream->first_frame_lock);
@@ -194,11 +194,11 @@ static void *video_decoder_loop (void *stream_gen) {
 
     case BUF_CONTROL_QUIT:
       if (stream->video_decoder_plugin) {
-	free_video_decoder (stream, stream->video_decoder_plugin);
+	_x_free_video_decoder (stream, stream->video_decoder_plugin);
 	stream->video_decoder_plugin = NULL;
       }
       if (stream->spu_decoder_plugin) {
-        free_spu_decoder (stream, stream->spu_decoder_plugin);
+        _x_free_spu_decoder (stream, stream->spu_decoder_plugin);
         stream->spu_decoder_plugin = NULL;
         stream->spu_track_map_entries = 0;
       }
@@ -207,7 +207,7 @@ static void *video_decoder_loop (void *stream_gen) {
       break;
 
     case BUF_CONTROL_RESET_DECODER:
-      extra_info_reset( stream->video_decoder_extra_info );
+      _x_extra_info_reset( stream->video_decoder_extra_info );
       stream->video_seek_count++;
 
       if (stream->video_decoder_plugin) {
@@ -292,11 +292,11 @@ static void *video_decoder_loop (void *stream_gen) {
             !stream->video_decoder_plugin) ) {
           
           if (stream->video_decoder_plugin) {
-            free_video_decoder (stream, stream->video_decoder_plugin);
+            _x_free_video_decoder (stream, stream->video_decoder_plugin);
           }
           
           stream->video_decoder_streamtype = streamtype;
-          stream->video_decoder_plugin = get_video_decoder (stream, streamtype);
+          stream->video_decoder_plugin = _x_get_video_decoder (stream, streamtype);
     
           stream->stream_info[XINE_STREAM_INFO_VIDEO_HANDLED] = 
             (stream->video_decoder_plugin != NULL);
@@ -309,17 +309,17 @@ static void *video_decoder_loop (void *stream_gen) {
             !stream->stream_info[XINE_STREAM_INFO_VIDEO_HANDLED]) {
           xine_log (stream->xine, XINE_LOG_MSG, 
                     "video_decoder: no plugin available to handle '%s'\n",
-                    buf_video_name( buf->type ) );
+                    _x_buf_video_name( buf->type ) );
           
           if( !stream->meta_info[XINE_META_INFO_VIDEOCODEC] )
             stream->meta_info[XINE_META_INFO_VIDEOCODEC] 
-              = strdup (buf_video_name( buf->type ));
+              = strdup (_x_buf_video_name( buf->type ));
           
           buftype_unknown = buf->type;
           
           /* fatal error - dispose plugin */
           if (stream->video_decoder_plugin) {
-            free_video_decoder (stream, stream->video_decoder_plugin);
+            _x_free_video_decoder (stream, stream->video_decoder_plugin);
             stream->video_decoder_plugin = NULL;
           }
         }
@@ -390,7 +390,7 @@ static void *video_decoder_loop (void *stream_gen) {
   return NULL;
 }
 
-void video_decoder_init (xine_stream_t *stream) {
+void _x_video_decoder_init (xine_stream_t *stream) {
   
   pthread_attr_t       pth_attrs;
   struct sched_param   pth_params;
@@ -412,7 +412,7 @@ void video_decoder_init (xine_stream_t *stream) {
 						    NULL, NULL);
 
 
-  stream->video_fifo = fifo_buffer_new (num_buffers, 8192);
+  stream->video_fifo = _x_fifo_buffer_new (num_buffers, 8192);
   stream->spu_track_map_entries = 0;
 
   pthread_attr_init(&pth_attrs);
@@ -431,7 +431,7 @@ void video_decoder_init (xine_stream_t *stream) {
   pthread_attr_destroy(&pth_attrs);
 }
 
-void video_decoder_shutdown (xine_stream_t *stream) {
+void _x_video_decoder_shutdown (xine_stream_t *stream) {
 
   buf_element_t *buf;
   void          *p;

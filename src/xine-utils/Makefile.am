@@ -26,12 +26,12 @@ libxineutils_la_SOURCES = $(pppc_files) \
 
 libxineutils_la_LIBADD = $(THREAD_LIBS)
 
-include_HEADERS = attributes.h \
+include_HEADERS = \
+	attributes.h \
 	compat.h \
+	xine_buffer.h \
 	xineutils.h \
-	xine_check.h \
 	xmllexer.h \
-	xmlparser.h \
-	xine_buffer.h
+	xmlparser.h
 
-noinst_HEADERS = ppcasm_string.h
+noinst_HEADERS = ppcasm_string.h xine_check.h

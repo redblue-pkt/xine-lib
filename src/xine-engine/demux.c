@@ -58,7 +58,7 @@
  *          indication must be sent. relative discontinuities are likely
  *          to cause "jumps" on metronom.
  */
-void xine_demux_flush_engine (xine_stream_t *stream) {
+void _x_demux_flush_engine (xine_stream_t *stream) {
 
   buf_element_t *buf;
 
@@ -87,7 +87,7 @@ void xine_demux_flush_engine (xine_stream_t *stream) {
   /* on seeking we must wait decoder fifos to process before doing flush. 
    * otherwise we flush too early (before the old data has left decoders)
    */
-  xine_demux_control_headers_done (stream);
+  _x_demux_control_headers_done (stream);
 
   if (stream->video_out) {
     stream->video_out->flush(stream->video_out);
@@ -101,7 +101,7 @@ void xine_demux_flush_engine (xine_stream_t *stream) {
 }
 
 
-void xine_demux_control_newpts( xine_stream_t *stream, int64_t pts, uint32_t flags ) {
+void _x_demux_control_newpts( xine_stream_t *stream, int64_t pts, uint32_t flags ) {
 
   buf_element_t *buf;
       
@@ -121,7 +121,7 @@ void xine_demux_control_newpts( xine_stream_t *stream, int64_t pts, uint32_t fla
 }
 
 /* sync with decoder fifos, making sure everything gets processed */
-void xine_demux_control_headers_done (xine_stream_t *stream) {
+void _x_demux_control_headers_done (xine_stream_t *stream) {
 
   int header_count_audio;
   int header_count_video;
@@ -164,7 +164,7 @@ void xine_demux_control_headers_done (xine_stream_t *stream) {
   pthread_mutex_unlock (&stream->counter_lock);
 }
 
-void xine_demux_control_start( xine_stream_t *stream ) {
+void _x_demux_control_start( xine_stream_t *stream ) {
 
   buf_element_t *buf;
 
@@ -179,7 +179,7 @@ void xine_demux_control_start( xine_stream_t *stream ) {
   }
 }
 
-void xine_demux_control_end( xine_stream_t *stream, uint32_t flags ) {
+void _x_demux_control_end( xine_stream_t *stream, uint32_t flags ) {
 
   buf_element_t *buf;
 
@@ -196,7 +196,7 @@ void xine_demux_control_end( xine_stream_t *stream, uint32_t flags ) {
   }
 }
 
-void xine_demux_control_nop( xine_stream_t *stream, uint32_t flags ) {
+void _x_demux_control_nop( xine_stream_t *stream, uint32_t flags ) {
 
   buf_element_t *buf;
 
@@ -251,7 +251,7 @@ static void *demux_loop (void *stream_gen) {
     /* tell to the net_buf_ctrl that we are at the end of the stream
      * then the net_buf_ctrl will not pause
      */
-    xine_demux_control_nop(stream, BUF_FLAG_END_STREAM);
+    _x_demux_control_nop(stream, BUF_FLAG_END_STREAM);
 
     /* wait before sending end buffers: user might want to do a new seek */
     while(stream->demux_thread_running &&
@@ -273,9 +273,9 @@ static void *demux_loop (void *stream_gen) {
 
   /* demux_thread_running is zero if demux loop has being stopped by user */
   if (stream->demux_thread_running) {
-    xine_demux_control_end(stream, BUF_FLAG_END_STREAM);
+    _x_demux_control_end(stream, BUF_FLAG_END_STREAM);
   } else {
-    xine_demux_control_end(stream, BUF_FLAG_END_USER);
+    _x_demux_control_end(stream, BUF_FLAG_END_USER);
   }
 
   stream->demux_thread_running = 0;
@@ -285,7 +285,7 @@ static void *demux_loop (void *stream_gen) {
   return NULL;
 }
 
-int xine_demux_start_thread (xine_stream_t *stream) {
+int _x_demux_start_thread (xine_stream_t *stream) {
 
   int err;
   
@@ -312,7 +312,7 @@ int xine_demux_start_thread (xine_stream_t *stream) {
   return 0;
 }
 
-int xine_demux_stop_thread (xine_stream_t *stream) {
+int _x_demux_stop_thread (xine_stream_t *stream) {
   
   void *p;
   
@@ -354,7 +354,7 @@ int xine_demux_stop_thread (xine_stream_t *stream) {
   return 0;
 }
 
-int xine_demux_read_header( input_plugin_t *input, unsigned char *buffer, off_t size){
+int _x_demux_read_header( input_plugin_t *input, unsigned char *buffer, off_t size){
   int read_size;
   unsigned char *buf;
 
@@ -377,7 +377,7 @@ int xine_demux_read_header( input_plugin_t *input, unsigned char *buffer, off_t 
   return read_size;
 }
 
-int xine_demux_check_extension (char *mrl, char *extensions){
+int _x_demux_check_extension (char *mrl, char *extensions){
   char *last_dot, *e, *ext_copy, *ext_work;
 
   ext_copy = strdup(extensions);
@@ -406,7 +406,7 @@ int xine_demux_check_extension (char *mrl, char *extensions){
  *
  * aborts with zero if no data is available and demux_action_pending is set
  */
-off_t xine_read_abort (xine_stream_t *stream, int fd, char *buf, off_t todo) {
+off_t _x_read_abort (xine_stream_t *stream, int fd, char *buf, off_t todo) {
 
   off_t ret, total;
 
@@ -448,14 +448,14 @@ off_t xine_read_abort (xine_stream_t *stream, int fd, char *buf, off_t todo) {
       if(errno == EAGAIN)
         continue;
 
-      perror("xine_read_abort");
+      perror("_x_read_abort");
       return ret;
     }
 #else
     ret = recv (fd, &buf[total], todo - total, 0);
     if (ret <= 0)
 	{
-      perror("xine_read_abort");
+      perror("_x_read_abort");
 	  return ret;
 	}
 #endif

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xineutils.h,v 1.63 2003/11/04 14:38:26 valtri Exp $
+ * $Id: xineutils.h,v 1.64 2003/11/11 18:45:02 f1rmb Exp $
  *
  */
 #ifndef XINEUTILS_H
@@ -104,7 +104,6 @@ extern "C" {
 #define MM_SSE2                 MM_ACCEL_X86_SSE2
 
 uint32_t xine_mm_accel (void);
-/* uint32_t xine_mm_support (void) ; */
 
 #if defined(ARCH_X86) || defined(ARCH_X86_64)
 
@@ -661,7 +660,7 @@ void xine_strdupa(char *dest, char *src);
 #ifdef HAVE_STRPBRK
 #define xine_strpbrk strpbrk
 #else
-static inline char *_x_strpbrk(const char *s, const char *accept) {
+static inline char *_private_strpbrk(const char *s, const char *accept) {
 
   while(*s != '\0') {
     const char *a = accept;
@@ -673,13 +672,13 @@ static inline char *_x_strpbrk(const char *s, const char *accept) {
 
   return NULL;
 }
-#define xine_strpbrk _x_strpbrk
+#define xine_strpbrk _private_strpbrk
 #endif
 
 #if defined HAVE_STRSEP && !defined(_MSC_VER)
 #define xine_strsep strsep
 #else
-static inline char *_x_strsep(char **stringp, const char *delim) {
+static inline char *_private_strsep(char **stringp, const char *delim) {
   char *begin, *end;
   
   begin = *stringp;
@@ -712,14 +711,14 @@ static inline char *_x_strsep(char **stringp, const char *delim) {
   
   return begin;
 }
-#define xine_strsep _x_strsep
+#define xine_strsep _private_strsep
 #endif
 
 
 #ifdef HAVE_SETENV
 #define	xine_setenv	setenv
 #else
-static inline void _x_setenv(const char *name, const char *val, int _xx)
+static inline void _private_setenv(const char *name, const char *val, int _xx)
 {
   int len  = strlen(name) + strlen(val) + 2;
   char *env;
@@ -733,7 +732,7 @@ static inline void _x_setenv(const char *name, const char *val, int _xx)
     putenv(env);
   }
 }
-#define	xine_setenv	_x_setenv
+#define	xine_setenv	_private_setenv
 #endif
 
 /*

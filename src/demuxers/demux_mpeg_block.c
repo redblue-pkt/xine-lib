@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.196 2003/10/30 00:49:07 tmattern Exp $
+ * $Id: demux_mpeg_block.c,v 1.197 2003/11/11 18:44:52 f1rmb Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  * used with fixed blocksize devices (like dvd/vcd)
@@ -164,10 +164,10 @@ static void check_newpts( demux_mpeg_block_t *this, int64_t pts, int video )
       printf("demux_mpeg_block: discontinuity detected by pts wrap\n");
 #endif
       if (this->buf_flag_seek) {
-        xine_demux_control_newpts(this->stream, pts, BUF_FLAG_SEEK);
+        _x_demux_control_newpts(this->stream, pts, BUF_FLAG_SEEK);
         this->buf_flag_seek = 0;
       } else {
-        xine_demux_control_newpts(this->stream, pts, 0);
+        _x_demux_control_newpts(this->stream, pts, 0);
       }
       this->send_newpts = 0;
     } else {
@@ -540,10 +540,10 @@ static int32_t parse_private_stream_2(demux_mpeg_block_t *this, uint8_t *p, buf_
     printf("demux_mpeg_block: discontinuity detected by nav packet\n" );
 #endif
     if (this->buf_flag_seek) {
-      xine_demux_control_newpts(this->stream, start_pts, BUF_FLAG_SEEK);
+      _x_demux_control_newpts(this->stream, start_pts, BUF_FLAG_SEEK);
       this->buf_flag_seek = 0;
     } else {
-      xine_demux_control_newpts(this->stream, start_pts, 0);
+      _x_demux_control_newpts(this->stream, start_pts, 0);
     }
   }
   this->nav_last_end_pts = end_pts;
@@ -656,7 +656,7 @@ static int32_t parse_pes_for_pts(demux_mpeg_block_t *this, uint8_t *p, buf_eleme
       printf("demux_mpeg_block: warning: PES header indicates that this stream may be encrypted (encryption mode %d)\n", (p[6] & 0x30) >> 4);
       xine_log (this->stream->xine, XINE_LOG_MSG,
 		_("demux_mpeg_block: warning: PES header indicates that this stream may be encrypted (encryption mode %d)\n"), (p[6] & 0x30) >> 4);
-      xine_message (this->stream, XINE_MSG_ENCRYPTED_SOURCE,
+      _x_message (this->stream, XINE_MSG_ENCRYPTED_SOURCE,
                       "Media stream scrambled/encrypted", NULL);
       this->status = DEMUX_FINISHED;
       buf->free_buffer(buf);
@@ -1161,7 +1161,7 @@ static void demux_mpeg_block_send_headers (demux_plugin_t *this_gen) {
    * send start buffer
    */
   
-  xine_demux_control_start(this->stream);
+  _x_demux_control_start(this->stream);
   
 #ifdef USE_ILL_ADVISED_ESTIMATE_RATE_INITIALLY
   if (!this->rate) 
@@ -1242,7 +1242,7 @@ static int demux_mpeg_block_seek (demux_plugin_t *this_gen,
   } else {
     this->buf_flag_seek = 1;
     this->nav_last_end_pts = this->nav_last_start_pts = 0;
-    xine_demux_flush_engine(this->stream);
+    _x_demux_flush_engine(this->stream);
   }
   
   return this->status;

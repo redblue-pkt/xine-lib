@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: broadcaster.h,v 1.1 2003/05/15 20:23:18 miguelfreitas Exp $
+ * $Id: broadcaster.h,v 1.2 2003/11/11 18:45:00 f1rmb Exp $
  * 
  * broadcaster.h
  *
@@ -36,9 +36,9 @@ extern "C" {
 
 typedef struct broadcaster_s broadcaster_t;
 
-broadcaster_t *init_broadcaster(xine_stream_t *stream, int port);
-void close_broadcaster(broadcaster_t *this);
-int get_broadcaster_port(broadcaster_t *this);
+broadcaster_t *_x_init_broadcaster(xine_stream_t *stream, int port);
+void _x_close_broadcaster(broadcaster_t *this);
+int _x_get_broadcaster_port(broadcaster_t *this);
 
 
 #ifdef __cplusplus

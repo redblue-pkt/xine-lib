@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mmsh.c,v 1.19 2003/10/31 01:55:03 tmattern Exp $
+ * $Id: mmsh.c,v 1.20 2003/11/11 18:44:54 f1rmb Exp $
  *
  * MMS over HTTP protocol
  *   written by Thibaut Mattern
@@ -255,7 +255,7 @@ static int send_command (mmsh_t *this, char *cmd)  {
   printf ("libmmsh: send_command:\n%s\n", cmd);
 #endif
   length = strlen(cmd);
-  if (xio_tcp_write(this->stream, this->s, cmd, length) != length) {
+  if (_x_io_tcp_write(this->stream, this->s, cmd, length) != length) {
     printf ("libmmsh: send error\n");
     return 0;
   }
@@ -275,7 +275,7 @@ static int get_answer (mmsh_t *this) {
 
   while (!done) {
 
-    if (xio_tcp_read(this->stream, this->s, &(this->buf[len]), 1) != 1) {
+    if (_x_io_tcp_read(this->stream, this->s, &(this->buf[len]), 1) != 1) {
       printf ("libmmsh: alert: end of stream\n");
       return 0;
     }
@@ -368,7 +368,7 @@ static int get_chunk_header (mmsh_t *this) {
   printf ("libmmsh: get_chunk\n");
 #endif
   /* chunk header */
-  len = xio_tcp_read(this->stream, this->s, chunk_header, CHUNK_HEADER_LENGTH);
+  len = _x_io_tcp_read(this->stream, this->s, chunk_header, CHUNK_HEADER_LENGTH);
   if (len != CHUNK_HEADER_LENGTH) {
 #ifdef LOG
     printf ("libmmsh: chunk header read failed, %d != %d\n", len, CHUNK_HEADER_LENGTH);
@@ -415,7 +415,7 @@ static int get_header (mmsh_t *this) {
           printf ("libmmsh: the asf header exceed %d bytes\n", ASF_HEADER_SIZE);
           return 0;
         } else {
-          len = xio_tcp_read(this->stream, this->s, this->asf_header + this->asf_header_len,
+          len = _x_io_tcp_read(this->stream, this->s, this->asf_header + this->asf_header_len,
                              this->chunk_length);
           this->asf_header_len += len;
           if (len != this->chunk_length) {
@@ -431,7 +431,7 @@ static int get_header (mmsh_t *this) {
   }
 
   /* read the first data chunk */
-  len = xio_tcp_read(this->stream, this->s, this->buf, this->chunk_length);
+  len = _x_io_tcp_read(this->stream, this->s, this->buf, this->chunk_length);
   if (len != this->chunk_length) {
     return 0;
   } else {
@@ -663,7 +663,7 @@ static int mmsh_tcp_connect(mmsh_t *this) {
 #ifdef LOG
   printf("libmmsh: try to connect to %s on port %d \n", this->host, this->port);
 #endif
-  this->s = xio_tcp_connect (this->stream, this->host, this->port);
+  this->s = _x_io_tcp_connect (this->stream, this->host, this->port);
 
   if (this->s == -1) {
     printf ("libmmsh: failed to connect '%s'\n", this->host);
@@ -674,7 +674,7 @@ static int mmsh_tcp_connect(mmsh_t *this) {
   progress = 0;
   do {
     report_progress(this->stream, progress);
-    res = xio_select (this->stream, this->s, XIO_WRITE_READY, 500);
+    res = _x_io_select (this->stream, this->s, XIO_WRITE_READY, 500);
     progress += 1;
   } while ((res == XIO_TIMEOUT) && (progress < 30));
   if (res != XIO_READY) {
@@ -938,7 +938,7 @@ static int get_media_packet (mmsh_t *this) {
         return 0;
     }
 
-    len = xine_read_abort (this->stream, this->s, this->buf, this->chunk_length);
+    len = _x_read_abort (this->stream, this->s, this->buf, this->chunk_length);
       
     if (len == this->chunk_length) {
       /* explicit padding with 0 */

@@ -23,7 +23,7 @@
  * process. It simply paints the screen a solid color and rotates through
  * colors on each iteration.
  *
- * $Id: fooviz.c,v 1.12 2003/10/30 22:40:53 mroi Exp $
+ * $Id: fooviz.c,v 1.13 2003/11/11 18:45:00 f1rmb Exp $
  *
  */
 
@@ -300,7 +300,7 @@ static post_plugin_t *fooviz_open_plugin(post_class_t *class_gen, int inputs,
   this->buf.mem = NULL;
   this->buf.mem_size = 0;  
 
-  port = post_intercept_audio_port(&this->post, audio_target[0]);
+  port = _x_post_intercept_audio_port(&this->post, audio_target[0]);
   port->port.open = fooviz_port_open;
   port->port.close = fooviz_port_close;
   port->port.put_buffer = fooviz_port_put_buffer;

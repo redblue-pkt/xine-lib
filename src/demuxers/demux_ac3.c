@@ -23,7 +23,7 @@
  * This demuxer detects raw AC3 data in a file and shovels AC3 data
  * directly to the AC3 decoder.
  *
- * $Id: demux_ac3.c,v 1.11 2003/10/28 00:10:18 tmattern Exp $
+ * $Id: demux_ac3.c,v 1.12 2003/11/11 18:44:51 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -122,7 +122,7 @@ static int open_ac3_file(demux_ac3_t *this) {
   unsigned char preamble[AC3_PREAMBLE_BYTES];
 
   /* check if the sync mark matches up */
-  if (xine_demux_read_header(this->input, preamble, AC3_PREAMBLE_BYTES) !=
+  if (_x_demux_read_header(this->input, preamble, AC3_PREAMBLE_BYTES) !=
       AC3_PREAMBLE_BYTES)
     return 0;
 
@@ -187,7 +187,7 @@ static int demux_ac3_send_chunk (demux_plugin_t *this_gen) {
   audio_pts /= this->sample_rate;
 
   if (this->seek_flag) {
-    xine_demux_control_newpts(this->stream, audio_pts, 0);
+    _x_demux_control_newpts(this->stream, audio_pts, 0);
     this->seek_flag = 0;
   }
 
@@ -234,7 +234,7 @@ static void demux_ac3_send_headers(demux_plugin_t *this_gen) {
   xine_set_stream_info(this->stream, XINE_STREAM_INFO_HAS_AUDIO, 1);
 
   /* send start buffers */
-  xine_demux_control_start(this->stream);
+  _x_demux_control_start(this->stream);
 
   /* send init info to decoders */
   if (this->audio_fifo) {
@@ -253,7 +253,7 @@ static int demux_ac3_seek (demux_plugin_t *this_gen,
 
   this->seek_flag = 1;
   this->status = DEMUX_OK;
-  xine_demux_flush_engine (this->stream);
+  _x_demux_flush_engine (this->stream);
 
   /* if input is non-seekable, do not proceed with the rest of this
    * seek function */
@@ -328,7 +328,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
     mrl = input->get_mrl (input);
     extensions = class_gen->get_extensions (class_gen);
 
-    if (!xine_demux_check_extension (mrl, extensions)) {
+    if (!_x_demux_check_extension (mrl, extensions)) {
       free (this);
       return NULL;
     }

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer_types.c,v 1.69 2003/10/25 04:03:33 tmmm Exp $
+ * $Id: buffer_types.c,v 1.70 2003/11/11 18:45:00 f1rmb Exp $
  *
  *
  * contents:
@@ -916,7 +916,7 @@ static audio_db_t audio_db[] = {
 };
 
 
-uint32_t fourcc_to_buf_video( uint32_t fourcc_int ) {
+uint32_t _x_fourcc_to_buf_video( uint32_t fourcc_int ) {
 int i, j;
 static uint32_t cached_fourcc=0;
 static uint32_t cached_buf_type=0;
@@ -936,7 +936,7 @@ static uint32_t cached_buf_type=0;
   return 0;
 }
 
-char * buf_video_name( uint32_t buf_type ) {
+char * _x_buf_video_name( uint32_t buf_type ) {
 int i;
   
   buf_type &= 0xffff0000;
@@ -950,7 +950,7 @@ int i;
   return "";
 }
 
-uint32_t formattag_to_buf_audio( uint32_t formattag ) {
+uint32_t _x_formattag_to_buf_audio( uint32_t formattag ) {
 int i, j;
 static uint16_t cached_formattag=0;
 static uint32_t cached_buf_type=0;
@@ -970,7 +970,7 @@ static uint32_t cached_buf_type=0;
   return 0;
 }
 
-char * buf_audio_name( uint32_t buf_type ) {
+char * _x_buf_audio_name( uint32_t buf_type ) {
 int i;
   
   buf_type &= 0xffff0000;
@@ -984,7 +984,7 @@ int i;
   return "";
 }
 
-void xine_bmiheader_le2me( xine_bmiheader *bih ) {
+void _x_bmiheader_le2me( xine_bmiheader *bih ) {
   /* OBS: fourcc must be read using machine endianness
    *      so don't play with biCompression here!
    */
@@ -1001,7 +1001,7 @@ void xine_bmiheader_le2me( xine_bmiheader *bih ) {
   bih->biClrImportant = le2me_32(bih->biClrImportant);
 }
 
-void xine_waveformatex_le2me( xine_waveformatex *wavex ) {
+void _x_waveformatex_le2me( xine_waveformatex *wavex ) {
   
   wavex->wFormatTag = le2me_16(wavex->wFormatTag);
   wavex->nChannels = le2me_16(wavex->nChannels);

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: pp.c,v 1.1 2003/11/07 18:37:34 miguelfreitas Exp $
+ * $Id: pp.c,v 1.2 2003/11/11 18:44:59 f1rmb Exp $
  *
  * plugin for ffmpeg libpostprocess
  */
@@ -228,7 +228,7 @@ static post_plugin_t *pp_open_plugin(post_class_t *class_gen, int inputs,
 
   pthread_mutex_init (&this->lock, NULL);
   
-  port = post_intercept_video_port(&this->post, video_target[0]);
+  port = _x_post_intercept_video_port(&this->post, video_target[0]);
   /* replace with our own get_frame function */
   port->port.open         = pp_open;
   port->port.get_frame    = pp_get_frame;
@@ -351,7 +351,7 @@ static vo_frame_t *pp_get_frame(xine_video_port_t *port_gen, uint32_t width,
     width, height, ratio, format, flags);
 
   if( format == XINE_IMGFMT_YV12 || format == XINE_IMGFMT_YUY2 ) {
-    post_intercept_video_frame(frame, port);
+    _x_post_intercept_video_frame(frame, port);
     /* replace with our own draw function */
     frame->draw = pp_draw;
     /* decoders should not copy the frames, since they won't be displayed */
@@ -381,14 +381,14 @@ static int pp_draw(vo_frame_t *frame, xine_stream_t *stream)
   int skip;
   int pp_flags;
 
-  post_restore_video_frame(frame, port);
+  _x_post_restore_video_frame(frame, port);
 
   if( !frame->bad_frame ) {
 
     out_frame = port->original_port->get_frame(port->original_port,
       frame->width, frame->height, frame->ratio, frame->format, frame->flags | VO_BOTH_FIELDS);
   
-    extra_info_merge(out_frame->extra_info, frame->extra_info);
+    _x_extra_info_merge(out_frame->extra_info, frame->extra_info);
   
     out_frame->pts = frame->pts;
     out_frame->duration = frame->duration;

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: plugin_catalog.h,v 1.12 2003/05/20 13:50:56 mroi Exp $
+ * $Id: plugin_catalog.h,v 1.13 2003/11/11 18:45:01 f1rmb Exp $
  *
  * xine-internal header: Definitions for plugin lists
  *
@@ -82,13 +82,13 @@ typedef struct plugin_catalog_s plugin_catalog_t;
  * decoder plugins are loaded on demand
  * video/audio output plugins have special load/probe functions
  */
-void scan_plugins (xine_t *this);
+void _x_scan_plugins (xine_t *this);
 
 
 /*
  * dispose all currently loaded plugins (shutdown)
  */
 
-void dispose_plugins (xine_t *this);
+void _x_dispose_plugins (xine_t *this);
 
 #endif

@@ -301,7 +301,7 @@ demux_flac_send_chunk (demux_plugin_t *this_gen) {
     }
 
     if (this->seek_flag) {
-        xine_demux_control_newpts (this->stream, current_pts, 0);
+        _x_demux_control_newpts (this->stream, current_pts, 0);
         this->seek_flag = 0;
     }
 
@@ -368,7 +368,7 @@ demux_flac_send_headers (demux_plugin_t *this_gen) {
     this->stream->stream_info[XINE_STREAM_INFO_AUDIO_SAMPLERATE] = this->sample_rate;
     this->stream->stream_info[XINE_STREAM_INFO_AUDIO_BITS] = this->bits_per_sample;
 
-    xine_demux_control_start (this->stream);
+    _x_demux_control_start (this->stream);
 
     if (this->audio_fifo) {
         buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
@@ -446,7 +446,7 @@ demux_flac_seek (demux_plugin_t *this_gen, off_t start_pos, int start_time) {
             this->status = DEMUX_FINISHED;
     }
 
-    xine_demux_flush_engine (this->stream);
+    _x_demux_flush_engine (this->stream);
 
     return this->status;
 }

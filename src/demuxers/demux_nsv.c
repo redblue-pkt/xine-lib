@@ -23,7 +23,7 @@
  * For more information regarding the NSV file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_nsv.c,v 1.6 2003/10/30 00:49:07 tmattern Exp $
+ * $Id: demux_nsv.c,v 1.7 2003/11/11 18:44:52 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -91,7 +91,7 @@ static int open_nsv_file(demux_nsv_t *this) {
   unsigned int  video_fourcc;
   unsigned int  audio_fourcc;
 
-  if (xine_demux_read_header(this->input, preview, 4) != 4)
+  if (_x_demux_read_header(this->input, preview, 4) != 4)
     return 0;
 
   /* check for a 'NSV' signature */
@@ -138,13 +138,13 @@ static int open_nsv_file(demux_nsv_t *this) {
   if (BE_32(&preview[4]) == NONE_TAG)
     this->video_type = 0;
   else
-    this->video_type = fourcc_to_buf_video(video_fourcc);
+    this->video_type = _x_fourcc_to_buf_video(video_fourcc);
 
   audio_fourcc = ME_32(&preview[8]);
   if (BE_32(&preview[8]) == NONE_TAG)
     this->audio_type = 0;
   else
-    this->audio_type = formattag_to_buf_audio(audio_fourcc);
+    this->audio_type = _x_formattag_to_buf_audio(audio_fourcc);
 
   this->bih.biSize = sizeof(this->bih);
   this->bih.biWidth = LE_16(&preview[12]);
@@ -347,7 +347,7 @@ static void demux_nsv_send_headers(demux_plugin_t *this_gen) {
     this->bih.biHeight);
 
   /* send start buffers */
-  xine_demux_control_start(this->stream);
+  _x_demux_control_start(this->stream);
 
   /* send init info to the video decoder */
   if (this->video_fifo && this->video_type) {
@@ -372,7 +372,7 @@ static int demux_nsv_seek (demux_plugin_t *this_gen,
   if( !this->stream->demux_thread_running ) {
 
     /* send new pts */
-    xine_demux_control_newpts(this->stream, 0, 0);
+    _x_demux_control_newpts(this->stream, 0, 0);
 
     this->status = DEMUX_OK;
   }
@@ -435,7 +435,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
     mrl = input->get_mrl (input);
     extensions = class_gen->get_extensions (class_gen);
 
-    if (!xine_demux_check_extension (mrl, extensions)) {
+    if (!_x_demux_check_extension (mrl, extensions)) {
       free (this);
       return NULL;
     }

@@ -23,7 +23,7 @@
  * For more information on the 4xm file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_4xm.c,v 1.6 2003/10/28 00:10:18 tmattern Exp $
+ * $Id: demux_4xm.c,v 1.7 2003/11/11 18:44:51 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -119,7 +119,7 @@ static int open_fourxm_file(demux_fourxm_t *fourxm) {
   unsigned int current_track;
 
   /* the file signature will be in the first 12 bytes */
-  if (xine_demux_read_header(fourxm->input, preview, 12) != 12)
+  if (_x_demux_read_header(fourxm->input, preview, 12) != 12)
     return 0;
 
   /* check for the signature tags */
@@ -370,7 +370,7 @@ static void demux_fourxm_send_headers(demux_plugin_t *this_gen) {
   }
 
   /* send start buffers */
-  xine_demux_control_start(this->stream);
+  _x_demux_control_start(this->stream);
 
   /* send init info to decoders */
   buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
@@ -402,7 +402,7 @@ static int demux_fourxm_seek (demux_plugin_t *this_gen,
   if( !this->stream->demux_thread_running ) {
 
     /* send new pts */
-    xine_demux_control_newpts(this->stream, 0, 0);
+    _x_demux_control_newpts(this->stream, 0, 0);
 
     this->status = DEMUX_OK;
   }
@@ -468,7 +468,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
     mrl = input->get_mrl (input);
     extensions = class_gen->get_extensions (class_gen);
 
-    if (!xine_demux_check_extension (mrl, extensions)) {
+    if (!_x_demux_check_extension (mrl, extensions)) {
       free (this);
       return NULL;
     }

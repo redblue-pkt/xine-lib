@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_syncfb.c,v 1.91 2003/10/23 15:17:07 mroi Exp $
+ * $Id: video_out_syncfb.c,v 1.92 2003/11/11 18:45:00 f1rmb Exp $
  * 
  * video_out_syncfb.c, SyncFB (for Matrox G200/G400 cards) interface for xine
  * 
@@ -350,13 +350,13 @@ static void syncfb_clean_output_area(syncfb_driver_t* this)
 
 static void syncfb_compute_ideal_size (syncfb_driver_t *this)
 {
-  vo_scale_compute_ideal_size( &this->sc );
+  _x_vo_scale_compute_ideal_size( &this->sc );
 }
 
 /* make ideal width/height "fit" into the gui */
 static void syncfb_compute_output_size(syncfb_driver_t *this)
 {
-  vo_scale_compute_output_size( &this->sc );
+  _x_vo_scale_compute_output_size( &this->sc );
 
 #ifdef DEBUG_OUTPUT
   printf("video_out_syncfb: debug. (frame source %d x %d, screen output %d x %d)\n",
@@ -434,7 +434,7 @@ static int syncfb_redraw_needed(vo_driver_t* this_gen)
 
   int ret = 0;
   
-  if( vo_scale_redraw_needed( &this->sc ) ) {
+  if( _x_vo_scale_redraw_needed( &this->sc ) ) {
 
     syncfb_compute_output_size (this);
 
@@ -782,9 +782,9 @@ static int syncfb_gui_data_exchange(vo_driver_t* this_gen, int data_type,
       int x1, y1, x2, y2;
       x11_rectangle_t *rect = data;
 
-      vo_scale_translate_gui2video(&this->sc, rect->x, rect->y,
+      _x_vo_scale_translate_gui2video(&this->sc, rect->x, rect->y,
 			     &x1, &y1);
-      vo_scale_translate_gui2video(&this->sc, rect->x + rect->w, rect->y + rect->h,
+      _x_vo_scale_translate_gui2video(&this->sc, rect->x + rect->w, rect->y + rect->h,
 			     &x2, &y2);
       rect->x = x1;
       rect->y = y1;
@@ -963,7 +963,7 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *vi
   this->drawable             = visual->d;
   this->gc                   = XCreateGC (this->display, this->drawable, 0, NULL);
 
-  vo_scale_init (&this->sc, 1, 0, config );
+  _x_vo_scale_init (&this->sc, 1, 0, config );
   this->sc.frame_output_cb   = visual->frame_output_cb;
   this->sc.user_data         = visual->user_data;
 

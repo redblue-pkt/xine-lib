@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: vo_scale.c,v 1.25 2003/10/07 14:56:51 mroi Exp $
+ * $Id: vo_scale.c,v 1.26 2003/11/11 18:45:01 f1rmb Exp $
  * 
  * Contains common code to calculate video scaling parameters.
  * In short, it will map frame dimensions to screen/window size.
@@ -41,7 +41,7 @@
  * taking into account aspect ratio and zoom factor
  */
 
-void vo_scale_compute_ideal_size (vo_scale_t *this) {
+void _x_vo_scale_compute_ideal_size (vo_scale_t *this) {
 
   double image_ratio, desired_ratio;
 
@@ -102,7 +102,7 @@ void vo_scale_compute_ideal_size (vo_scale_t *this) {
  * make ideal width/height "fit" into the gui
  */
 
-void vo_scale_compute_output_size (vo_scale_t *this) {
+void _x_vo_scale_compute_output_size (vo_scale_t *this) {
   
   double x_factor, y_factor, aspect;
     
@@ -224,7 +224,7 @@ void vo_scale_compute_output_size (vo_scale_t *this) {
  * aspect ratio changing, etc.
  */
 
-int vo_scale_redraw_needed (vo_scale_t *this) {
+int _x_vo_scale_redraw_needed (vo_scale_t *this) {
   int gui_x, gui_y, gui_width, gui_height, gui_win_x, gui_win_y;
   double gui_pixel_aspect;
   int ret = 0;
@@ -265,7 +265,7 @@ int vo_scale_redraw_needed (vo_scale_t *this) {
  *
  */
 
-void vo_scale_translate_gui2video(vo_scale_t *this,
+void _x_vo_scale_translate_gui2video(vo_scale_t *this,
 				 int x, int y,
 				 int *vid_x, int *vid_y) {
 
@@ -298,7 +298,7 @@ void vo_scale_translate_gui2video(vo_scale_t *this,
  * Returns description of a given ratio code
  */
 
-char *vo_scale_aspect_ratio_name(int a) {
+char *_x_vo_scale_aspect_ratio_name(int a) {
 
   switch (a) {
   case XINE_VO_ASPECT_AUTO:
@@ -339,7 +339,7 @@ static void vo_scale_vertical_pos_changed(void *data, xine_cfg_entry_t *entry) {
  * initialize rescaling struct
  */
  
-void vo_scale_init(vo_scale_t *this, int support_zoom, int scaling_disabled,
+void _x_vo_scale_init(vo_scale_t *this, int support_zoom, int scaling_disabled,
                    config_values_t *config ) {
   
   memset( this, 0, sizeof(vo_scale_t) );

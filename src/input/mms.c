@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mms.c,v 1.34 2003/10/16 21:47:32 tmattern Exp $
+ * $Id: mms.c,v 1.35 2003/11/11 18:44:54 f1rmb Exp $
  *
  * MMS over TCP protocol
  *   based on work from major mms
@@ -353,7 +353,7 @@ static int get_answer (mms_t *this) {
     off_t len;
     uint32_t length;
 
-    len = xio_tcp_read (this->stream, this->s, this->buf, 12);
+    len = _x_io_tcp_read (this->stream, this->s, this->buf, 12);
     if (len < 0) {
       lprintf ("get_answer: read error\n");
       return 0;
@@ -370,7 +370,7 @@ static int get_answer (mms_t *this) {
       return 0;
     }
     
-    len = xio_tcp_read (this->stream, this->s, this->buf + 12, length + 4) ;
+    len = _x_io_tcp_read (this->stream, this->s, this->buf + 12, length + 4) ;
     if (len < 0) {
       lprintf ("get_answer: read error\n");
       return 0;
@@ -406,7 +406,7 @@ static int get_header (mms_t *this) {
 
   while (1) {
 
-    len = xio_tcp_read (this->stream, this->s, pre_header, 8) ;
+    len = _x_io_tcp_read (this->stream, this->s, pre_header, 8) ;
     if (len < 0) {
       lprintf ("get_header: read error\n");
       return 0;
@@ -438,7 +438,7 @@ static int get_header (mms_t *this) {
         return 0;
       }
       
-      len = xio_tcp_read (this->stream, this->s, &this->asf_header[this->asf_header_len], packet_len);
+      len = _x_io_tcp_read (this->stream, this->s, &this->asf_header[this->asf_header_len], packet_len);
       if (len < 0) {
         lprintf ("get_header: read error\n");
         return 0;
@@ -461,7 +461,7 @@ static int get_header (mms_t *this) {
       uint32_t packet_len;
       int command;
 
-      len = xio_tcp_read (this->stream, this->s, (uint8_t *) &packet_len, 4);
+      len = _x_io_tcp_read (this->stream, this->s, (uint8_t *) &packet_len, 4);
       if (len < 0) {
         lprintf ("get_header: read error\n");
         return 0;
@@ -479,7 +479,7 @@ static int get_header (mms_t *this) {
         return 0;
       }
       
-      len = xio_tcp_read (this->stream, this->s, this->buf, packet_len);
+      len = _x_io_tcp_read (this->stream, this->s, this->buf, packet_len);
       if (len < 0) {
         lprintf ("get_header: read error\n");
         return 0;
@@ -697,7 +697,7 @@ static int mms_tcp_connect(mms_t *this) {
    * try to connect 
    */
   lprintf("try to connect to %s on port %d \n", this->host, this->port);
-  this->s = xio_tcp_connect (this->stream, this->host, this->port);
+  this->s = _x_io_tcp_connect (this->stream, this->host, this->port);
 
   
   if (this->s == -1) {
@@ -709,7 +709,7 @@ static int mms_tcp_connect(mms_t *this) {
   progress = 0;
   do {
     report_progress(this->stream, progress);
-    res = xio_select (this->stream, this->s, XIO_WRITE_READY, 500);
+    res = _x_io_select (this->stream, this->s, XIO_WRITE_READY, 500);
     progress += 1;
   } while ((res == XIO_TIMEOUT) && (progress < 30));
   if (res != XIO_READY) {
@@ -1033,7 +1033,7 @@ static int get_media_packet (mms_t *this) {
   unsigned char  pre_header[8];
   off_t len;
   
-  len = xio_tcp_read (this->stream, this->s, pre_header, 8) ;
+  len = _x_io_tcp_read (this->stream, this->s, pre_header, 8) ;
   if (len < 0) {
     lprintf ("get_media_packet: read error\n");
     return 0;
@@ -1063,7 +1063,7 @@ static int get_media_packet (mms_t *this) {
       return 0;
     }
 
-    len = xio_tcp_read (this->stream, this->s, this->buf, packet_len);
+    len = _x_io_tcp_read (this->stream, this->s, this->buf, packet_len);
     if (len < 0) {
       lprintf ("get_media_packet: read error\n");
       return 0;
@@ -1082,7 +1082,7 @@ static int get_media_packet (mms_t *this) {
     int command;
 
     this->buf_size = 0;
-    len = xio_tcp_read (this->stream, this->s, (uint8_t *)&packet_len, 4);
+    len = _x_io_tcp_read (this->stream, this->s, (uint8_t *)&packet_len, 4);
     if (len < 0) {
       lprintf ("get_media_packet: read error\n");
       return 0;
@@ -1099,7 +1099,7 @@ static int get_media_packet (mms_t *this) {
       return 0;
     }
 
-    len = xio_tcp_read (this->stream, this->s, this->buf, packet_len);
+    len = _x_io_tcp_read (this->stream, this->s, this->buf, packet_len);
     if (len < 0) {
       lprintf ("\nlibmms: get_media_packet: read error\n");
       return 0;

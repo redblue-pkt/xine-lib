@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_overlay.h,v 1.15 2003/08/25 21:51:52 f1rmb Exp $
+ * $Id: video_overlay.h,v 1.16 2003/11/11 18:45:01 f1rmb Exp $
  *
  */
 
@@ -101,6 +101,6 @@ typedef struct video_overlay_event_s {
   video_overlay_object_t   object; /* The image data. */
 } video_overlay_event_t;
 
-video_overlay_manager_t *video_overlay_new_manager(void);
+video_overlay_manager_t *_x_video_overlay_new_manager(void);
 
 #endif

@@ -38,7 +38,7 @@
  * usage: 
  *   xine pvr:/<prefix_to_tmp_files>\!<prefix_to_saved_files>\!<max_page_age>
  *
- * $Id: input_pvr.c,v 1.33 2003/09/02 14:29:29 miguelfreitas Exp $
+ * $Id: input_pvr.c,v 1.34 2003/11/11 18:44:54 f1rmb Exp $
  */
 
 /**************************************************************************
@@ -798,7 +798,7 @@ static int pvr_play_file(pvr_input_plugin_t *this, fifo_buffer_t *fifo, uint8_t 
 
   /* now we are done on input/demuxer thread, engine may be paused safely */
   if( this->pvr_play_paused ) {
-    xine_set_speed (this->stream, XINE_SPEED_PAUSE);
+    _x_set_speed (this->stream, XINE_SPEED_PAUSE);
     this->pvr_play_paused = 0;
   }
 
@@ -1020,7 +1020,7 @@ static void pvr_event_handler (pvr_input_plugin_t *this) {
         pvrscr_speed_tunning(this->scr, 1.0 );
         pvr_break_rec_page(this);
         pthread_mutex_unlock(&this->lock);
-        xine_demux_flush_engine (this->stream);
+        _x_demux_flush_engine (this->stream);
       } else {
         /* no session change, break the page and store a new show_time */
         pthread_mutex_lock(&this->lock);
@@ -1079,7 +1079,7 @@ static void pvr_event_handler (pvr_input_plugin_t *this) {
         pthread_mutex_unlock(&this->dev_lock);
         
         /* FIXME: also flush the device */
-        /* xine_demux_flush_engine(this->stream); */
+        /* _x_demux_flush_engine(this->stream); */
       }
       break;
     

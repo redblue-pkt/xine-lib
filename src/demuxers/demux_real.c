@@ -30,7 +30,7 @@
  *   
  *   Based on FFmpeg's libav/rm.c.
  *
- * $Id: demux_real.c,v 1.68 2003/10/31 22:56:21 tmattern Exp $
+ * $Id: demux_real.c,v 1.69 2003/11/11 18:44:53 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -435,7 +435,7 @@ static void real_parse_headers (demux_real_t *this) {
           lprintf("fourcc = %.4s\n", (char *) &fourcc);
 
           this->audio_streams[this->num_audio_streams].fourcc = fourcc;
-          this->audio_streams[this->num_audio_streams].buf_type = formattag_to_buf_audio(fourcc);
+          this->audio_streams[this->num_audio_streams].buf_type = _x_formattag_to_buf_audio(fourcc);
           this->audio_streams[this->num_audio_streams].index = NULL;
           this->audio_streams[this->num_audio_streams].mdpr = mdpr;
 
@@ -454,7 +454,7 @@ static void real_parse_headers (demux_real_t *this) {
           lprintf("fourcc = %.4s\n", (char *) &fourcc);
 
           this->video_streams[this->num_video_streams].fourcc = fourcc;
-          this->video_streams[this->num_video_streams].buf_type = fourcc_to_buf_video(fourcc);
+          this->video_streams[this->num_video_streams].buf_type = _x_fourcc_to_buf_video(fourcc);
           this->video_streams[this->num_video_streams].index = NULL;
           this->video_streams[this->num_video_streams].mdpr = mdpr;
 
@@ -794,10 +794,10 @@ static void check_newpts (demux_real_t *this, int64_t pts, int video, int previe
     lprintf ("diff=%lld\n", diff);
 
     if (this->buf_flag_seek) {
-      xine_demux_control_newpts(this->stream, pts, BUF_FLAG_SEEK);
+      _x_demux_control_newpts(this->stream, pts, BUF_FLAG_SEEK);
       this->buf_flag_seek = 0;
     } else {
-      xine_demux_control_newpts(this->stream, pts, 0);
+      _x_demux_control_newpts(this->stream, pts, 0);
     }
     this->send_newpts = 0;
     this->last_pts[1-video] = 0;
@@ -1144,7 +1144,7 @@ static void demux_real_send_headers(demux_plugin_t *this_gen) {
 
 
   /* send start buffers */
-  xine_demux_control_start(this->stream);
+  _x_demux_control_start(this->stream);
 
   /* send init info to decoders */
 
@@ -1205,7 +1205,7 @@ static int demux_real_seek (demux_plugin_t *this_gen,
 
     if(this->stream->demux_thread_running) {
       this->buf_flag_seek = 1;
-      xine_demux_flush_engine(this->stream);
+      _x_demux_flush_engine(this->stream);
     }
   }
 
@@ -1289,7 +1289,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
 
   case METHOD_BY_CONTENT:{
 
-    if (! (len = xine_demux_read_header(input, buf, 1024)) )
+    if (! (len = _x_demux_read_header(input, buf, 1024)) )
       return NULL;
 
     lprintf ("read 4 bytes: %02x %02x %02x %02x\n",
@@ -1310,7 +1310,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
 
     lprintf ("by extension '%s'\n", mrl);
 
-    if (!xine_demux_check_extension (mrl, extensions)) {
+    if (!_x_demux_check_extension (mrl, extensions)) {
       return NULL;
     }
     lprintf ("by extension accepted.\n");
@@ -1333,7 +1333,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
 
   /* discover stream type */
   if(!stream_type)
-    if ( (len = xine_demux_read_header(this->input, buf, 1024)) )
+    if ( (len = _x_demux_read_header(this->input, buf, 1024)) )
       stream_type = real_check_stream_type(buf,len);
 
   if(stream_type == 2){

@@ -19,7 +19,7 @@
  *
  * input plugin for http network streams
  *
- * $Id: input_http.c,v 1.66 2003/11/08 22:20:36 tmattern Exp $
+ * $Id: input_http.c,v 1.67 2003/11/11 18:44:54 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -431,10 +431,10 @@ static off_t http_plugin_read (input_plugin_t *this_gen,
   if( n && this->shoutcast_mode) {
     if ((this->shoutcast_pos + n) >= this->shoutcast_metaint) {
       int i = this->shoutcast_metaint - this->shoutcast_pos;
-      i = xio_tcp_read (this->stream, this->fh, &buf[num_bytes], i);
+      i = _x_io_tcp_read (this->stream, this->fh, &buf[num_bytes], i);
       if (i < 0) {
         if (!this->stream->demux_action_pending) 
-	  xine_message (this->stream, XINE_MSG_READ_ERROR, this->host, NULL);
+	  _x_message (this->stream, XINE_MSG_READ_ERROR, this->host, NULL);
         xine_log (this->stream->xine, XINE_LOG_MSG, _("input_http: read error %d\n"), errno);
         return 0;
       }
@@ -450,12 +450,12 @@ static off_t http_plugin_read (input_plugin_t *this_gen,
   }
 
   if( n ) {
-    n = xio_tcp_read (this->stream, this->fh, &buf[num_bytes], n);
+    n = _x_io_tcp_read (this->stream, this->fh, &buf[num_bytes], n);
 
     /* read errors */
     if (n < 0) {
       if (!this->stream->demux_action_pending) 
-	xine_message(this->stream, XINE_MSG_READ_ERROR, this->host, NULL);
+	_x_message(this->stream, XINE_MSG_READ_ERROR, this->host, NULL);
       xine_log (this->stream->xine, XINE_LOG_MSG, _("input_http: read error %d\n"), errno);
       return 0;
     }
@@ -695,7 +695,7 @@ static int http_plugin_open (input_plugin_t *this_gen ) {
       if (http_plugin_basicauth (this_klass->proxyuser,
 			         this_klass->proxypassword,
 				 this->proxyauth, BUFSIZE)) {
-	xine_message(this->stream, XINE_MSG_CONNECTION_REFUSED, "proxy error", NULL);
+	_x_message(this->stream, XINE_MSG_CONNECTION_REFUSED, "proxy error", NULL);
 	return 0;
       }
   }
@@ -710,7 +710,7 @@ static int http_plugin_open (input_plugin_t *this_gen ) {
 
   if ( (this->user != NULL) && strcmp (this_klass->proxyhost, ""))
     if (http_plugin_basicauth (this->user, this->password, this->auth, BUFSIZE)) {
-      xine_message(this->stream, XINE_MSG_CONNECTION_REFUSED, "basic auth error", NULL);
+      _x_message(this->stream, XINE_MSG_CONNECTION_REFUSED, "basic auth error", NULL);
       return 0;
     }
 
@@ -727,9 +727,9 @@ static int http_plugin_open (input_plugin_t *this_gen ) {
 #endif
   
   if ( (this_klass->proxyhost != NULL) && strcmp (this_klass->proxyhost, "") )
-    this->fh = xio_tcp_connect (this->stream, this_klass->proxyhost, this_klass->proxyport);
+    this->fh = _x_io_tcp_connect (this->stream, this_klass->proxyhost, this_klass->proxyport);
   else
-    this->fh = xio_tcp_connect (this->stream, this->host, this->port);
+    this->fh = _x_io_tcp_connect (this->stream, this->host, this->port);
 
   this->curpos = 0;
 
@@ -741,7 +741,7 @@ static int http_plugin_open (input_plugin_t *this_gen ) {
   progress = 0;
   do {
     report_progress(this->stream, progress);
-    res = xio_select (this->stream, this->fh, XIO_WRITE_READY, 500);
+    res = _x_io_select (this->stream, this->fh, XIO_WRITE_READY, 500);
     progress += 2;
   } while ((res == XIO_TIMEOUT) && (progress < 100));
   if (res != XIO_READY)
@@ -782,8 +782,8 @@ static int http_plugin_open (input_plugin_t *this_gen ) {
   strcat (this->buf, "\015\012");
 
   length = strlen(this->buf);
-  if (xio_tcp_write (this->stream, this->fh, this->buf, length) != length) {
-    xine_message(this->stream, XINE_MSG_CONNECTION_REFUSED, "couldn't send request", NULL);
+  if (_x_io_tcp_write (this->stream, this->fh, this->buf, length) != length) {
+    _x_message(this->stream, XINE_MSG_CONNECTION_REFUSED, "couldn't send request", NULL);
     printf ("input_http: couldn't send request\n");
     return 0;
   }
@@ -802,7 +802,7 @@ static int http_plugin_open (input_plugin_t *this_gen ) {
        printf ("input_http: read...\n");
     */
 
-    if (xio_tcp_read (this->stream, this->fh, &this->buf[len], 1) <= 0) {
+    if (_x_io_tcp_read (this->stream, this->fh, &this->buf[len], 1) <= 0) {
       return 0;
     }
 
@@ -831,7 +831,7 @@ static int http_plugin_open (input_plugin_t *this_gen ) {
 	  
 	  /* icecast ? */
 	  if (sscanf(this->buf, "ICY %d OK", &httpcode) != 1)	{
-	    xine_message(this->stream, XINE_MSG_CONNECTION_REFUSED, "invalid http answer", NULL);
+	    _x_message(this->stream, XINE_MSG_CONNECTION_REFUSED, "invalid http answer", NULL);
 	    xine_log (this->stream->xine, XINE_LOG_MSG, 
 		      _("input_http: invalid http answer\n"));
 	    return 0;
@@ -846,7 +846,7 @@ static int http_plugin_open (input_plugin_t *this_gen ) {
 		    _("input_http: 3xx redirection: >%d %s<\n"),
 		    httpcode, httpstatus);
 	} else if (httpcode < 200 || httpcode >= 300) {
-	  xine_message(this->stream, XINE_MSG_CONNECTION_REFUSED, "http status not 2xx: ",
+	  _x_message(this->stream, XINE_MSG_CONNECTION_REFUSED, "http status not 2xx: ",
 	               httpstatus, NULL);
       	  xine_log (this->stream->xine, XINE_LOG_MSG,
 		    _("input_http: http status not 2xx: >%d %s<\n"),
@@ -909,7 +909,7 @@ static int http_plugin_open (input_plugin_t *this_gen ) {
     this->mrlbuf2[3] = ' ';
     if (read_shoutcast_header(this)) {
       /* problem when reading shoutcast header */
-      xine_message(this->stream, XINE_MSG_CONNECTION_REFUSED, "can't read shoutcast header", NULL);
+      _x_message(this->stream, XINE_MSG_CONNECTION_REFUSED, "can't read shoutcast header", NULL);
       printf ("can't read shoutcast header\n");
       return 0;
     }

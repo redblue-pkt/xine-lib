@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.h,v 1.122 2003/10/24 02:59:03 tmmm Exp $
+ * $Id: buffer.h,v 1.123 2003/11/11 18:45:00 f1rmb Exp $
  *
  *
  * contents:
@@ -490,23 +490,23 @@ struct fifo_buffer_s
  * allocate num_buffers of buf_size bytes each
  */
 
-fifo_buffer_t *fifo_buffer_new (int num_buffers, uint32_t buf_size);
+fifo_buffer_t *_x_fifo_buffer_new (int num_buffers, uint32_t buf_size);
 
 
 /* return BUF_VIDEO_xxx given the fourcc
  * fourcc_int must be read in machine endianness
  * example: fourcc_int = *(uint32_t *)fourcc_char;
  */
-uint32_t fourcc_to_buf_video( uint32_t fourcc_int );
+uint32_t _x_fourcc_to_buf_video( uint32_t fourcc_int );
 
 /* return codec name given BUF_VIDEO_xxx */
-char * buf_video_name( uint32_t buf_type );
+char * _x_buf_video_name( uint32_t buf_type );
 
 /* return BUF_VIDEO_xxx given the formattag */
-uint32_t formattag_to_buf_audio( uint32_t formattag );
+uint32_t _x_formattag_to_buf_audio( uint32_t formattag );
 
 /* return codec name given BUF_VIDEO_xxx */
-char * buf_audio_name( uint32_t buf_type );
+char * _x_buf_audio_name( uint32_t buf_type );
 
 
 #ifndef ATTRIBUTE_PACKED
@@ -549,10 +549,10 @@ typedef struct __attribute__((__packed__)) {
 #endif
 
 /* convert xine_bmiheader struct from little endian */
-void xine_bmiheader_le2me( xine_bmiheader *bih );
+void _x_bmiheader_le2me( xine_bmiheader *bih );
 
 /* convert xine_waveformatex struct from little endian */
-void xine_waveformatex_le2me( xine_waveformatex *wavex );
+void _x_waveformatex_le2me( xine_waveformatex *wavex );
 
 #ifdef __cplusplus
 }

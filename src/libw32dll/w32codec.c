@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.127 2003/10/23 20:12:34 mroi Exp $
+ * $Id: w32codec.c,v 1.128 2003/11/11 18:44:55 f1rmb Exp $
  *
  * routines for using w32 codecs
  * DirectShow support by Miguel Freitas (Nov/2001)
@@ -740,7 +740,7 @@ static void w32v_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
               "w32codec: decoder failed to start. Is '%s' installed?\n", 
               win32_codec_name );
       this->stream->stream_info[XINE_STREAM_INFO_VIDEO_HANDLED] = 0;
-      xine_message(this->stream, XINE_MSG_LIBRARY_LOAD_ERROR,
+      _x_message(this->stream, XINE_MSG_LIBRARY_LOAD_ERROR,
                    win32_codec_name, NULL);
     }
                                          

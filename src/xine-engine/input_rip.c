@@ -29,7 +29,7 @@
  * - it's possible speeder saving streams in the xine without playing:
  *     xine stream_mrl#save:file.raw\;noaudio\;novideo
  *
- * $Id: input_rip.c,v 1.13 2003/11/08 22:12:13 miguelfreitas Exp $
+ * $Id: input_rip.c,v 1.14 2003/11/11 18:45:00 f1rmb Exp $
  */
 
 /* TODO:
@@ -519,7 +519,7 @@ static int dir_file_concat(char *target, size_t maxlen, const char *dir, const c
  * create self instance, 
  * target file for writing stream is specified in 'data'
  */
-input_plugin_t *rip_plugin_get_instance (xine_stream_t *stream, const char *filename) {
+input_plugin_t *_x_rip_plugin_get_instance (xine_stream_t *stream, const char *filename) {
   rip_input_plugin_t *this;
   input_plugin_t *main_plugin = stream->input_plugin;
   struct stat pstat;
@@ -527,7 +527,7 @@ input_plugin_t *rip_plugin_get_instance (xine_stream_t *stream, const char *file
   char target[MAX_TARGET_LEN];
   char *fnc;
 
-  lprintf("rip_plugin_get_instance(catch file = %s), path = %s\n", filename ? filename : "(null)", stream->xine->save_path);
+  lprintf("_x_rip_plugin_get_instance(catch file = %s), path = %s\n", filename ? filename : "(null)", stream->xine->save_path);
 
   /* check given input plugin */
   if (!stream->input_plugin) {
@@ -539,7 +539,7 @@ input_plugin_t *rip_plugin_get_instance (xine_stream_t *stream, const char *file
   if (!stream->xine->save_path[0]) {
     xine_log(stream->xine, XINE_LOG_MSG,
       _("input_rip: target directory wasn't specified, please fill out the option 'misc.save_dir'\n"));
-    xine_message(stream, XINE_MSG_SECURITY,
+    _x_message(stream, XINE_MSG_SECURITY,
       _("The stream save feature is disabled until you set misc.save_dir in the configuration."));
     return NULL;
   }
@@ -548,7 +548,7 @@ input_plugin_t *rip_plugin_get_instance (xine_stream_t *stream, const char *file
   if ( main_plugin->get_capabilities(main_plugin) & INPUT_CAP_RIP_FORBIDDEN ) {
     xine_log(stream->xine, XINE_LOG_MSG, 
       _("input_rip: ripping/caching of this source is not permitted!\n"));
-    xine_message(stream, XINE_MSG_SECURITY,
+    _x_message(stream, XINE_MSG_SECURITY,
       _("xine is not allowed to save from this source. (possibly copyrighted material?)"));
     return NULL;
   }

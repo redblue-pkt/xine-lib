@@ -2,6 +2,8 @@ include $(top_srcdir)/misc/Makefile.common
 
 libdir = $(XINE_PLUGINDIR)
 
+AM_CFLAGS = -DTOTO=`echo $* | sed -e 's/\.[csS]//g'`
+
 if HAVE_GICONV
 sputext_decoder = xineplug_decode_sputext.la xineplug_decode_spuogm.la xineplug_dmx_sputext.la
 endif

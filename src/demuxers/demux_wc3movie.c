@@ -24,7 +24,7 @@
  * For more information on the MVE file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_wc3movie.c,v 1.43 2003/10/31 22:56:21 tmattern Exp $
+ * $Id: demux_wc3movie.c,v 1.44 2003/11/11 18:44:53 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -172,7 +172,7 @@ static int demux_mve_send_chunk(demux_plugin_t *this_gen) {
       if (this->seek_flag) {
         /* reset pts */
         this->video_pts = 0;
-        xine_demux_control_newpts(this->stream, 0, BUF_FLAG_SEEK);
+        _x_demux_control_newpts(this->stream, 0, BUF_FLAG_SEEK);
         this->seek_flag = 0;
       } else {
         /* record the offset of the SHOT chunk */
@@ -311,7 +311,7 @@ static void demux_mve_send_headers(demux_plugin_t *this_gen) {
                        this->wave.wBitsPerSample);
 
   /* send start buffers */
-  xine_demux_control_start(this->stream);
+  _x_demux_control_start(this->stream);
 
   /* send init info to decoders */
   buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
@@ -357,7 +357,7 @@ static int open_mve_file(demux_mve_t *this) {
   unsigned char header[WC3_HEADER_SIZE];
   void *title;
 
-  if (xine_demux_read_header(this->input, header, WC3_HEADER_SIZE) != WC3_HEADER_SIZE)
+  if (_x_demux_read_header(this->input, header, WC3_HEADER_SIZE) != WC3_HEADER_SIZE)
     return 0;
 
   if ((BE_32(&header[0]) != FORM_TAG) ||
@@ -537,7 +537,7 @@ static int demux_mve_seek (demux_plugin_t *this_gen,
 
   start_time /= 1000;
   this->status = DEMUX_OK;
-  xine_demux_flush_engine(this->stream);
+  _x_demux_flush_engine(this->stream);
   this->seek_flag = 1;
 
   /* if input is non-seekable, do not proceed with the rest of this
@@ -684,7 +684,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
     mrl = input->get_mrl (input);
     extensions = class_gen->get_extensions (class_gen);
 
-    if (!xine_demux_check_extension (mrl, extensions)) {
+    if (!_x_demux_check_extension (mrl, extensions)) {
       free (this);
       return NULL;
     }

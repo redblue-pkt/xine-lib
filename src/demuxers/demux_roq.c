@@ -23,7 +23,7 @@
  * For more information regarding the RoQ file format, visit:
  *   http://www.csse.monash.edu.au/~timf/
  *
- * $Id: demux_roq.c,v 1.44 2003/10/31 22:56:21 tmattern Exp $
+ * $Id: demux_roq.c,v 1.45 2003/11/11 18:44:53 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -320,7 +320,7 @@ static void demux_roq_send_headers(demux_plugin_t *this_gen) {
   xine_set_stream_info(this->stream, XINE_STREAM_INFO_AUDIO_BITS, 16);
 
   /* send start buffers */
-  xine_demux_control_start(this->stream);
+  _x_demux_control_start(this->stream);
 
   /* send init info to decoders */
   buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
@@ -360,7 +360,7 @@ static int demux_roq_seek (demux_plugin_t *this_gen,
   if( !this->stream->demux_thread_running ) {
 
     /* send new pts */
-    xine_demux_control_newpts(this->stream, 0, 0);
+    _x_demux_control_newpts(this->stream, 0, 0);
 
     this->status = DEMUX_OK;
 
@@ -434,7 +434,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
     mrl = input->get_mrl (input);
     extensions = class_gen->get_extensions (class_gen);
 
-    if (!xine_demux_check_extension (mrl, extensions)) {
+    if (!_x_demux_check_extension (mrl, extensions)) {
       free (this);
       return NULL;
     }

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_sputext.c,v 1.25 2003/11/04 00:24:52 f1rmb Exp $
+ * $Id: demux_sputext.c,v 1.26 2003/11/11 18:44:54 f1rmb Exp $
  *
  * code based on old libsputext/xine_decoder.c
  *
@@ -879,8 +879,8 @@ static int demux_sputext_seek (demux_plugin_t *this_gen,
   this->cur = 0;
   this->status = DEMUX_OK;
   
-  xine_demux_flush_engine (this->stream);
-  xine_demux_control_newpts(this->stream, 0, 0);
+  _x_demux_flush_engine (this->stream);
+  _x_demux_control_newpts(this->stream, 0, 0);
   
   return this->status;
 }
@@ -892,7 +892,7 @@ static void demux_sputext_send_headers(demux_plugin_t *this_gen) {
 
   lprintf("demux_sputext: send_headers() called\n");
   
-  xine_demux_control_start(this->stream);
+  _x_demux_control_start(this->stream);
   this->stream->stream_info[XINE_STREAM_INFO_HAS_VIDEO] = 0;
   this->stream->stream_info[XINE_STREAM_INFO_HAS_AUDIO] = 0;
 
@@ -1031,7 +1031,7 @@ static void *init_sputext_demux_class (xine_t *xine, void *data) {
   demux_sputext_class_t *this ;
 
   lprintf("demux_sputext: initializing\n");
-  
+
   this = xine_xmalloc (sizeof (demux_sputext_class_t));
 
   this->demux_class.open_plugin     = open_demux_plugin;

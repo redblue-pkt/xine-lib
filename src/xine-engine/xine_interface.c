@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_interface.c,v 1.63 2003/10/28 16:59:03 mroi Exp $
+ * $Id: xine_interface.c,v 1.64 2003/11/11 18:45:02 f1rmb Exp $
  *
  * convenience/abstraction layer, functions to implement
  * libxine's public interface
@@ -322,7 +322,7 @@ void xine_set_param (xine_stream_t *stream, int param, int value) {
 
   switch (param) {
   case XINE_PARAM_SPEED:
-    xine_set_speed (stream, value);
+    _x_set_speed (stream, value);
     break;
 
   case XINE_PARAM_AV_OFFSET:
@@ -342,7 +342,7 @@ void xine_set_param (xine_stream_t *stream, int param, int value) {
     break;
 
   case XINE_PARAM_SPU_CHANNEL:
-    xine_select_spu_channel (stream, value);
+    _x_select_spu_channel (stream, value);
     break;
 
   case XINE_PARAM_VIDEO_CHANNEL:
@@ -428,9 +428,9 @@ void xine_set_param (xine_stream_t *stream, int param, int value) {
 
   case XINE_PARAM_BROADCASTER_PORT:
     if( !stream->broadcaster && value ) {
-      stream->broadcaster = init_broadcaster(stream, value);
+      stream->broadcaster = _x_init_broadcaster(stream, value);
     } else if ( stream->broadcaster && !value ) {
-      close_broadcaster(stream->broadcaster);
+      _x_close_broadcaster(stream->broadcaster);
       stream->broadcaster = NULL;
     }
     break;
@@ -527,7 +527,7 @@ int  xine_get_param (xine_stream_t *stream, int param) {
   
   case XINE_PARAM_BROADCASTER_PORT:
     if( stream->broadcaster )
-      return get_broadcaster_port(stream->broadcaster);
+      return _x_get_broadcaster_port(stream->broadcaster);
     else
       return 0;
     break;
@@ -761,7 +761,7 @@ xine_post_out_t * xine_get_audio_source(xine_stream_t *stream) {
 /* report error/message to UI. may be provided with several
  * string parameters. last parameter must be NULL.
  */
-int xine_message(xine_stream_t *stream, int type, ...) {
+int _x_message(xine_stream_t *stream, int type, ...) {
   xine_ui_message_data_t *data;
   xine_event_t            event;
   char                   *explanation;

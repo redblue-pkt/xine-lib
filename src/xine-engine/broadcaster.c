@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: broadcaster.c,v 1.2 2003/05/16 15:07:37 tchamp Exp $
+ * $Id: broadcaster.c,v 1.3 2003/11/11 18:45:00 f1rmb Exp $
  * 
  * broadcaster.c - xine network broadcaster
  *
@@ -292,7 +292,7 @@ static void audio_put_cb (fifo_buffer_t *fifo, buf_element_t *buf, void *this_ge
   pthread_mutex_unlock( &this->lock );
 }
 
-broadcaster_t *init_broadcaster(xine_stream_t *stream, int port)
+broadcaster_t *_x_init_broadcaster(xine_stream_t *stream, int port)
 {
   broadcaster_t *this;
   struct sockaddr_in servAddr;
@@ -342,7 +342,7 @@ broadcaster_t *init_broadcaster(xine_stream_t *stream, int port)
   return this;  
 }
 
-void close_broadcaster(broadcaster_t *this)
+void _x_close_broadcaster(broadcaster_t *this)
 {
   int *psock;
   
@@ -374,7 +374,7 @@ void close_broadcaster(broadcaster_t *this)
   free(this);
 }
 
-int get_broadcaster_port(broadcaster_t *this)
+int _x_get_broadcaster_port(broadcaster_t *this)
 {
   return this->port;  
 }

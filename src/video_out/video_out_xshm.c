@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xshm.c,v 1.118 2003/10/24 22:34:50 f1rmb Exp $
+ * $Id: video_out_xshm.c,v 1.119 2003/11/11 18:45:00 f1rmb Exp $
  * 
  * video_out_xshm.c, X11 shared memory extension interface for xine
  *
@@ -401,11 +401,11 @@ static vo_frame_t *xshm_alloc_frame (vo_driver_t *this_gen) {
 }
 
 static void xshm_compute_ideal_size (xshm_driver_t *this, xshm_frame_t *frame) {
-  vo_scale_compute_ideal_size( &frame->sc );
+  _x_vo_scale_compute_ideal_size( &frame->sc );
 }
 
 static void xshm_compute_rgb_size (xshm_driver_t *this, xshm_frame_t *frame) {
-  vo_scale_compute_output_size( &frame->sc );
+  _x_vo_scale_compute_output_size( &frame->sc );
 
   /* avoid problems in yuv2rgb */
   if (frame->sc.output_height < 1)
@@ -656,7 +656,7 @@ static int xshm_redraw_needed (vo_driver_t *this_gen) {
     this->sc.delivered_height   = this->cur_frame->sc.delivered_height;
     this->sc.delivered_width    = this->cur_frame->sc.delivered_width;
     this->sc.video_pixel_aspect = this->cur_frame->sc.video_pixel_aspect;
-    if( vo_scale_redraw_needed( &this->sc ) ) {  
+    if( _x_vo_scale_redraw_needed( &this->sc ) ) {  
 
       clean_output_area (this, this->cur_frame);
       ret = 1;
@@ -684,7 +684,7 @@ static void xshm_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
   this->sc.delivered_height   = frame->sc.delivered_height;
   this->sc.delivered_width    = frame->sc.delivered_width;
   this->sc.video_pixel_aspect = frame->sc.video_pixel_aspect;
-  if( vo_scale_redraw_needed( &this->sc ) ) {  
+  if( _x_vo_scale_redraw_needed( &this->sc ) ) {  
 
     clean_output_area (this, frame);
   }
@@ -763,7 +763,7 @@ static int xshm_set_property (vo_driver_t *this_gen,
     this->sc.user_ratio = value;
     if (this->xine->verbosity >= XINE_VERBOSITY_LOG) {
       printf ("video_out_xshm: aspect ratio changed to %s\n",
-	      vo_scale_aspect_ratio_name(value));
+	      _x_vo_scale_aspect_ratio_name(value));
     }
 
   } else if (property == VO_PROP_BRIGHTNESS) {
@@ -887,10 +887,10 @@ static int xshm_gui_data_exchange (vo_driver_t *this_gen,
       x11_rectangle_t *rect = data;
       int              x1, y1, x2, y2;
       
-      vo_scale_translate_gui2video(&this->cur_frame->sc,
+      _x_vo_scale_translate_gui2video(&this->cur_frame->sc,
 			       rect->x, rect->y,
 			       &x1, &y1);
-      vo_scale_translate_gui2video(&this->cur_frame->sc,
+      _x_vo_scale_translate_gui2video(&this->cur_frame->sc,
 			       rect->x + rect->w, rect->y + rect->h,
 			       &x2, &y2);
       rect->x = x1;
@@ -1003,7 +1003,7 @@ static vo_driver_t *xshm_open_plugin (video_driver_class_t *class_gen, const voi
   this->display		    = visual->display;
   this->screen		    = visual->screen;
 
-  vo_scale_init( &this->sc, 0, 0, config );
+  _x_vo_scale_init( &this->sc, 0, 0, config );
   this->sc.frame_output_cb  = visual->frame_output_cb;
   this->sc.dest_size_cb     = visual->dest_size_cb;
   this->sc.user_data        = visual->user_data;

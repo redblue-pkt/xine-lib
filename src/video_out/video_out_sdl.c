@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_sdl.c,v 1.30 2003/10/31 17:25:20 mroi Exp $
+ * $Id: video_out_sdl.c,v 1.31 2003/11/11 18:45:00 f1rmb Exp $
  *
  * video_out_sdl.c, Simple DirectMedia Layer
  *
@@ -157,12 +157,12 @@ static vo_frame_t *sdl_alloc_frame (vo_driver_t *this_gen) {
 
 static void sdl_compute_ideal_size (sdl_driver_t *this) {
 
-  vo_scale_compute_ideal_size( &this->sc );
+  _x_vo_scale_compute_ideal_size( &this->sc );
 }
 
 static void sdl_compute_output_size (sdl_driver_t *this) {
 
-  vo_scale_compute_output_size( &this->sc );
+  _x_vo_scale_compute_output_size( &this->sc );
 
 #ifdef LOG
   printf ("video_out_sdl: frame source %d x %d => screen output %d x %d\n",
@@ -278,7 +278,7 @@ static int sdl_redraw_needed (vo_driver_t *this_gen) {
 
 #ifdef HAVE_X11
 
-  if( vo_scale_redraw_needed( &this->sc ) ) {
+  if( _x_vo_scale_redraw_needed( &this->sc ) ) {
 
     sdl_compute_output_size (this);
 
@@ -372,7 +372,7 @@ static int sdl_set_property (vo_driver_t *this_gen,
       value = XINE_VO_ASPECT_AUTO;
     this->sc.user_ratio = value;
     printf("video_out_sdl: aspect ratio changed to %s\n",
-	   vo_scale_aspect_ratio_name(value));
+	   _x_vo_scale_aspect_ratio_name(value));
 
     sdl_compute_ideal_size (this);
     this->sc.force_redraw = 1;
@@ -419,9 +419,9 @@ static int sdl_gui_data_exchange (vo_driver_t *this_gen,
       int x1, y1, x2, y2;
       x11_rectangle_t *rect = data;
 
-      vo_scale_translate_gui2video(&this->sc, rect->x, rect->y,
+      _x_vo_scale_translate_gui2video(&this->sc, rect->x, rect->y,
 			     &x1, &y1);
-      vo_scale_translate_gui2video(&this->sc, rect->x + rect->w, rect->y + rect->h,
+      _x_vo_scale_translate_gui2video(&this->sc, rect->x + rect->w, rect->y + rect->h,
 			     &x2, &y2);
       rect->x = x1;
       rect->y = y1;
@@ -484,7 +484,7 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *vi
   this->screen            = visual->screen;
   this->drawable          = visual->d;
 
-  vo_scale_init( &this->sc, 0, 0, config);
+  _x_vo_scale_init( &this->sc, 0, 0, config);
   this->sc.frame_output_cb   = visual->frame_output_cb;
   this->sc.user_data         = visual->user_data;
 
@@ -492,7 +492,7 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *vi
   sprintf(SDL_windowhack,"SDL_WINDOWID=0x%x", (uint32_t) this->drawable );
   putenv(SDL_windowhack);
 #else
-  vo_scale_init( &this->sc, 0, 0, config );
+  _x_vo_scale_init( &this->sc, 0, 0, config );
 #endif
 
 

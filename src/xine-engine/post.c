@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: post.c,v 1.17 2003/10/23 15:17:07 mroi Exp $
+ * $Id: post.c,v 1.18 2003/11/11 18:45:01 f1rmb Exp $
  */
  
 /*
@@ -91,7 +91,7 @@ static int post_video_set_property(xine_video_port_t *port_gen, int property, in
   return port->original_port->set_property(port->original_port, property, value);
 }
 
-post_video_port_t *post_intercept_video_port(post_plugin_t *post, xine_video_port_t *original) {
+post_video_port_t *_x_post_intercept_video_port(post_plugin_t *post, xine_video_port_t *original) {
   post_video_port_t *post_port = (post_video_port_t *)malloc(sizeof(post_video_port_t));
   
   if (!post_port)
@@ -121,7 +121,7 @@ post_video_port_t *post_intercept_video_port(post_plugin_t *post, xine_video_por
 /* dummy intercept functions for frames */
 static void post_frame_free(vo_frame_t *vo_img) {
   post_video_port_t *port = (post_video_port_t *)vo_img->port;
-  post_restore_video_frame(vo_img, port);
+  _x_post_restore_video_frame(vo_img, port);
   vo_img->free(vo_img);
 }
   
@@ -148,19 +148,19 @@ static void post_frame_field(vo_frame_t *vo_img, int which_field) {
 
 static int post_frame_draw(vo_frame_t *vo_img, xine_stream_t *stream) {
   post_video_port_t *port = (post_video_port_t *)vo_img->port;
-  post_restore_video_frame(vo_img, port);
+  _x_post_restore_video_frame(vo_img, port);
   return vo_img->draw(vo_img, stream);
 }
 
 static void post_frame_lock(vo_frame_t *vo_img) {
   post_video_port_t *port = (post_video_port_t *)vo_img->port;
-  post_restore_video_frame(vo_img, port);
+  _x_post_restore_video_frame(vo_img, port);
   vo_img->lock(vo_img);
 }
 
 static void post_frame_dispose(vo_frame_t *vo_img) {
   post_video_port_t *port = (post_video_port_t *)vo_img->port;
-  post_restore_video_frame(vo_img, port);
+  _x_post_restore_video_frame(vo_img, port);
   vo_img->dispose(vo_img);
 }
 
@@ -180,9 +180,9 @@ static void post_frame_proc_macro_block(int x,
 			   int (*f_mot_pmv)[2],
 			   int (*b_mot_pmv)[2]) {
   post_video_port_t *port = (post_video_port_t *)current_frame->port;
-  post_restore_video_frame(current_frame, port);
-  post_restore_video_frame(forward_ref_frame, port);
-  post_restore_video_frame(backward_ref_frame, port);
+  _x_post_restore_video_frame(current_frame, port);
+  _x_post_restore_video_frame(forward_ref_frame, port);
+  _x_post_restore_video_frame(backward_ref_frame, port);
   current_frame->proc_macro_block(x, y, mb_type, motion_type, mv_field_sel,
                                   dmvector, cbp, dct_type, current_frame,
                                   forward_ref_frame, backward_ref_frame,
@@ -192,7 +192,7 @@ static void post_frame_proc_macro_block(int x,
 
 
 
-void post_intercept_video_frame(vo_frame_t *frame, post_video_port_t *port) {
+void _x_post_intercept_video_frame(vo_frame_t *frame, post_video_port_t *port) {
   port->original_frame.port             = frame->port;
   port->original_frame.free             = frame->free;
   port->original_frame.proc_slice       = frame->proc_slice;
@@ -214,7 +214,7 @@ void post_intercept_video_frame(vo_frame_t *frame, post_video_port_t *port) {
   frame->dispose                  = post_frame_dispose;
 }
 
-void post_restore_video_frame(vo_frame_t *frame, post_video_port_t *port) {
+void _x_post_restore_video_frame(vo_frame_t *frame, post_video_port_t *port) {
   frame->port                     = port->original_port;
   frame->free                     = port->original_frame.free;
   frame->proc_slice               = port->original_frame.proc_slice;
@@ -270,7 +270,7 @@ static void post_overlay_multiple_overlay_blend(video_overlay_manager_t *ovl_gen
 }
 
 
-post_overlay_manager_t *post_intercept_overlay_manager(post_plugin_t *post,
+post_overlay_manager_t *_x_post_intercept_overlay_manager(post_plugin_t *post,
 			  video_overlay_manager_t *original) {
   post_overlay_manager_t *post_ovl = (post_overlay_manager_t *)malloc(sizeof(post_overlay_manager_t));
   
@@ -362,7 +362,7 @@ static int post_audio_status(xine_audio_port_t *port_gen, xine_stream_t *stream,
 }
 
 
-post_audio_port_t *post_intercept_audio_port(post_plugin_t *post, xine_audio_port_t *original) {
+post_audio_port_t *_x_post_intercept_audio_port(post_plugin_t *post, xine_audio_port_t *original) {
   post_audio_port_t *post_port = (post_audio_port_t *)malloc(sizeof(post_audio_port_t));
   
   if (!post_port)

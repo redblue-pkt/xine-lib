@@ -55,7 +55,7 @@
  *   XIO_ABORTED   command aborted by an other thread
  *   XIO_TIMEOUT   the file descriptor is not ready after timeout_msec milliseconds
  */
-int xio_select (xine_stream_t *stream, int fd, int state, int timeout_msec);
+int _x_io_select (xine_stream_t *stream, int fd, int state, int timeout_msec);
 
 
 /*
@@ -63,7 +63,7 @@ int xio_select (xine_stream_t *stream, int fd, int state, int timeout_msec);
  *
  * returns a socket descriptor or -1 if an error occured
  */
-int xio_tcp_connect(xine_stream_t *stream, const char *host, int port);
+int _x_io_tcp_connect(xine_stream_t *stream, const char *host, int port);
 
 /*
  * read from tcp socket checking demux_action_pending
@@ -73,7 +73,7 @@ int xio_tcp_connect(xine_stream_t *stream, const char *host, int port);
  *
  * aborts with zero if no data is available and *abort is set
  */
-off_t xio_tcp_read (xine_stream_t *stream, int s, char *buf, off_t todo);
+off_t _x_io_tcp_read (xine_stream_t *stream, int s, char *buf, off_t todo);
 
 
 /*
@@ -84,7 +84,7 @@ off_t xio_tcp_read (xine_stream_t *stream, int s, char *buf, off_t todo);
  *
  * aborts with zero if no data is available and *abort is set
  */
-off_t xio_tcp_write (xine_stream_t *stream, int s, char *buf, off_t todo);
+off_t _x_io_tcp_write (xine_stream_t *stream, int s, char *buf, off_t todo);
 
 /*
  * read from a file descriptor checking demux_action_pending
@@ -94,7 +94,7 @@ off_t xio_tcp_write (xine_stream_t *stream, int s, char *buf, off_t todo);
  *
  * aborts with zero if no data is available and *abort is set
  */
-off_t xio_file_read (xine_stream_t *stream, int fd, char *buf, off_t todo);
+off_t _x_io_file_read (xine_stream_t *stream, int fd, char *buf, off_t todo);
 
 
 /*
@@ -105,6 +105,6 @@ off_t xio_file_read (xine_stream_t *stream, int fd, char *buf, off_t todo);
  *
  * aborts with zero if *abort is set
  */
-off_t xio_file_write (xine_stream_t *stream, int fd, char *buf, off_t todo);
+off_t _x_io_file_write (xine_stream_t *stream, int fd, char *buf, off_t todo);
 
 #endif

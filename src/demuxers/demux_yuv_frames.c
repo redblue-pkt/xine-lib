@@ -20,7 +20,7 @@
  */
 
 /*
- * $Id: demux_yuv_frames.c,v 1.9 2003/10/31 22:56:21 tmattern Exp $
+ * $Id: demux_yuv_frames.c,v 1.10 2003/11/11 18:44:53 f1rmb Exp $
  *
  * dummy demultiplexer for raw yuv frames (delivered by v4l)
  */
@@ -78,9 +78,9 @@ static int switch_buf(demux_yuv_frames_t *this , buf_element_t *buf){
 
   if (this->seek_flag) {
     this->seek_flag = 0;
-    xine_demux_control_newpts(this->stream, buf->pts, BUF_FLAG_SEEK);
+    _x_demux_control_newpts(this->stream, buf->pts, BUF_FLAG_SEEK);
   } else if (abs(this->last_pts - buf->pts) > WRAP_THRESHOLD) {
-    xine_demux_control_newpts(this->stream, buf->pts, 0);
+    _x_demux_control_newpts(this->stream, buf->pts, 0);
   }
 
   this->last_pts = buf->pts;
@@ -92,7 +92,7 @@ static int switch_buf(demux_yuv_frames_t *this , buf_element_t *buf){
       break;
     case BUF_AUDIO_RAWPCM:
       if (!xine_get_stream_info(this->stream, XINE_STREAM_INFO_HAS_VIDEO))
-        xine_demux_control_newpts(this->stream, buf->pts, 0);
+        _x_demux_control_newpts(this->stream, buf->pts, 0);
       this->audio_fifo->put(this->audio_fifo, buf);
       break;
     default:

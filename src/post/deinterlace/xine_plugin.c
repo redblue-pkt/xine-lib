@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_plugin.c,v 1.21 2003/11/01 18:34:22 miguelfreitas Exp $
+ * $Id: xine_plugin.c,v 1.22 2003/11/11 18:44:56 f1rmb Exp $
  *
  * advanced video deinterlacer plugin
  * Jun/2003 by Miguel Freitas
@@ -420,7 +420,7 @@ static post_plugin_t *deinterlace_open_plugin(post_class_t *class_gen, int input
 
   set_parameters ((xine_post_t *)&this->post, &class->init_param);
   
-  port = post_intercept_video_port(&this->post, video_target[0]);
+  port = _x_post_intercept_video_port(&this->post, video_target[0]);
   /* replace with our own get_frame function */
   port->port.open         = deinterlace_open;
   port->port.get_frame    = deinterlace_get_frame;
@@ -583,7 +583,7 @@ static vo_frame_t *deinterlace_get_frame(xine_video_port_t *port_gen, uint32_t w
   if( this->enabled && this->cur_method &&
       (flags & VO_INTERLACED_FLAG) && 
       (format == XINE_IMGFMT_YV12 || format == XINE_IMGFMT_YUY2) ) {
-    post_intercept_video_frame(frame, port);
+    _x_post_intercept_video_frame(frame, port);
     /* replace with our own draw function */
     frame->draw = deinterlace_draw;
     /* decoders should not copy the frames, since they won't be displayed */
@@ -639,7 +639,7 @@ static int deinterlace_draw(vo_frame_t *frame, xine_stream_t *stream)
   vo_frame_t *yuy2_frame;
   int i, skip, progressive = 0;
 
-  post_restore_video_frame(frame, port);
+  _x_post_restore_video_frame(frame, port);
   frame->flags &= ~VO_INTERLACED_FLAG;
 
   /* this should be used to detect any special rff pattern */
@@ -663,7 +663,7 @@ static int deinterlace_draw(vo_frame_t *frame, xine_stream_t *stream)
   
       yuy2_frame->pts = frame->pts;
       yuy2_frame->duration = frame->duration;
-      extra_info_merge(yuy2_frame->extra_info, frame->extra_info);
+      _x_extra_info_merge(yuy2_frame->extra_info, frame->extra_info);
   
       /* the logic for deciding upsampling to use comes from:
        * http://www.hometheaterhifi.com/volume_8_2/dvd-benchmark-special-report-chroma-bug-4-2001.html
@@ -753,7 +753,7 @@ static int deinterlace_draw(vo_frame_t *frame, xine_stream_t *stream)
         frame->flags | VO_BOTH_FIELDS);
       pthread_mutex_lock (&this->lock);
   
-      extra_info_merge(deinterlaced_frame->extra_info, frame->extra_info);
+      _x_extra_info_merge(deinterlaced_frame->extra_info, frame->extra_info);
   
       if( this->tvtime->curmethod->doscalerbob ) {
         if( yuy2_frame->format == XINE_IMGFMT_YUY2 ) {
@@ -857,7 +857,7 @@ static int deinterlace_draw(vo_frame_t *frame, xine_stream_t *stream)
           frame->flags | VO_BOTH_FIELDS);
         pthread_mutex_lock (&this->lock);
   
-        extra_info_merge(deinterlaced_frame->extra_info, frame->extra_info);
+        _x_extra_info_merge(deinterlaced_frame->extra_info, frame->extra_info);
   
         if( skip > 0 && !this->pulldown ) {
           deinterlaced_frame->bad_frame = 1;

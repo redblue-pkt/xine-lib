@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.108 2003/07/27 12:47:23 hadess Exp $
+ * $Id: audio_decoder.c,v 1.109 2003/11/11 18:45:00 f1rmb Exp $
  *
  *
  * functions that implement audio decoding
@@ -65,7 +65,7 @@ static void *audio_decoder_loop (void *stream_gen) {
 	    buf->pts, buf->type); 
 #endif    
 
-    extra_info_merge( stream->audio_decoder_extra_info, buf->extra_info );
+    _x_extra_info_merge( stream->audio_decoder_extra_info, buf->extra_info );
     stream->audio_decoder_extra_info->seek_count = stream->video_seek_count;
       
     /* check for a new port to use */
@@ -107,7 +107,7 @@ static void *audio_decoder_loop (void *stream_gen) {
 	printf ("audio_decoder: close old decoder\n");
 #endif	
 
-	free_audio_decoder (stream, stream->audio_decoder_plugin);
+	_x_free_audio_decoder (stream, stream->audio_decoder_plugin);
 	stream->audio_decoder_plugin = NULL;
 	stream->audio_track_map_entries = 0;
 	stream->audio_type = 0;
@@ -151,7 +151,7 @@ static void *audio_decoder_loop (void *stream_gen) {
       
     case BUF_CONTROL_QUIT:
       if (stream->audio_decoder_plugin) {
-	free_audio_decoder (stream, stream->audio_decoder_plugin);
+	_x_free_audio_decoder (stream, stream->audio_decoder_plugin);
 	stream->audio_decoder_plugin = NULL;
 	stream->audio_track_map_entries = 0;
 	stream->audio_type = 0;
@@ -166,7 +166,7 @@ static void *audio_decoder_loop (void *stream_gen) {
 #ifdef LOG
       printf ("audio_decoder: reset\n");
 #endif
-      extra_info_reset( stream->audio_decoder_extra_info );
+      _x_extra_info_reset( stream->audio_decoder_extra_info );
       if (stream->audio_decoder_plugin)
         stream->audio_decoder_plugin->reset (stream->audio_decoder_plugin);
       break;
@@ -286,11 +286,11 @@ static void *audio_decoder_loop (void *stream_gen) {
                 !stream->audio_decoder_plugin) ) {
               
               if (stream->audio_decoder_plugin) {
-                free_audio_decoder (stream, stream->audio_decoder_plugin);
+                _x_free_audio_decoder (stream, stream->audio_decoder_plugin);
               }
               
               stream->audio_decoder_streamtype = streamtype;
-              stream->audio_decoder_plugin = get_audio_decoder (stream, streamtype);
+              stream->audio_decoder_plugin = _x_get_audio_decoder (stream, streamtype);
               
               stream->stream_info[XINE_STREAM_INFO_AUDIO_HANDLED] = 
                 (stream->audio_decoder_plugin != NULL);
@@ -318,17 +318,17 @@ static void *audio_decoder_loop (void *stream_gen) {
 	        !stream->stream_info[XINE_STREAM_INFO_AUDIO_HANDLED]) {
 	      xine_log (stream->xine, XINE_LOG_MSG, 
 			"audio_decoder: no plugin available to handle '%s'\n",
-		        buf_audio_name( buf->type ) );
+		        _x_buf_audio_name( buf->type ) );
               
               if( !stream->meta_info[XINE_META_INFO_AUDIOCODEC] )
                 stream->meta_info[XINE_META_INFO_AUDIOCODEC] 
-                  = strdup (buf_audio_name( buf->type ));
+                  = strdup (_x_buf_audio_name( buf->type ));
                 
 	      buftype_unknown = buf->type;
 
 	      /* fatal error - dispose plugin */       
 	      if (stream->audio_decoder_plugin) {
-	        free_audio_decoder (stream, stream->audio_decoder_plugin);
+	        _x_free_audio_decoder (stream, stream->audio_decoder_plugin);
 	        stream->audio_decoder_plugin = NULL;
 	      }
 	    }
@@ -350,7 +350,7 @@ static void *audio_decoder_loop (void *stream_gen) {
   return NULL;
 }
 
-void audio_decoder_init (xine_stream_t *stream) {
+void _x_audio_decoder_init (xine_stream_t *stream) {
 
   pthread_attr_t       pth_attrs;
   struct sched_param   pth_params;
@@ -368,7 +368,7 @@ void audio_decoder_init (xine_stream_t *stream) {
    * We provide buffers of 8k size instead of 2k for demuxers sending
    * larger chunks.
    */
-  stream->audio_fifo = fifo_buffer_new (230, 8192);
+  stream->audio_fifo = _x_fifo_buffer_new (230, 8192);
   stream->audio_channel_user = -1;
   stream->audio_channel_auto = -1;
   stream->audio_track_map_entries = 0;
@@ -394,7 +394,7 @@ void audio_decoder_init (xine_stream_t *stream) {
   pthread_attr_destroy(&pth_attrs);
 }
 
-void audio_decoder_shutdown (xine_stream_t *stream) {
+void _x_audio_decoder_shutdown (xine_stream_t *stream) {
 
   buf_element_t *buf;
   void          *p;
@@ -416,7 +416,7 @@ void audio_decoder_shutdown (xine_stream_t *stream) {
   pthread_cond_broadcast(&stream->next_audio_port_wired);
 }
 
-int xine_get_audio_channel (xine_stream_t *stream) {
+int _x_get_audio_channel (xine_stream_t *stream) {
 
   return stream->audio_type & 0xFFFF; 
 }

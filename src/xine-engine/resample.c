@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: resample.c,v 1.6 2003/07/27 12:47:23 hadess Exp $
+ * $Id: resample.c,v 1.7 2003/11/11 18:45:01 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -29,8 +29,8 @@
 
 /* contributed by paul flinders */
 
-void audio_out_resample_mono(int16_t* input_samples, uint32_t in_samples, 
-			     int16_t* output_samples, uint32_t out_samples)
+void _x_audio_out_resample_mono(int16_t* input_samples, uint32_t in_samples, 
+				int16_t* output_samples, uint32_t out_samples)
 {
   int osample;
   /* 16+16 fixed point math */
@@ -60,8 +60,8 @@ void audio_out_resample_mono(int16_t* input_samples, uint32_t in_samples,
   output_samples[out_samples-1] = input_samples[in_samples-1];
 }
 
-void audio_out_resample_stereo(int16_t* input_samples, uint32_t in_samples, 
-			       int16_t* output_samples, uint32_t out_samples)
+void _x_audio_out_resample_stereo(int16_t* input_samples, uint32_t in_samples, 
+				  int16_t* output_samples, uint32_t out_samples)
 {
   int osample;
   /* 16+16 fixed point math */
@@ -98,8 +98,8 @@ void audio_out_resample_stereo(int16_t* input_samples, uint32_t in_samples,
 }
 
 
-void audio_out_resample_4channel(int16_t* input_samples, uint32_t in_samples, 
-				 int16_t* output_samples, uint32_t out_samples)
+void _x_audio_out_resample_4channel(int16_t* input_samples, uint32_t in_samples, 
+				    int16_t* output_samples, uint32_t out_samples)
 {
   int osample;
   /* 16+16 fixed point math */
@@ -152,8 +152,8 @@ void audio_out_resample_4channel(int16_t* input_samples, uint32_t in_samples,
 }
 
 
-void audio_out_resample_5channel(int16_t* input_samples, uint32_t in_samples, 
-				 int16_t* output_samples, uint32_t out_samples)
+void _x_audio_out_resample_5channel(int16_t* input_samples, uint32_t in_samples, 
+				    int16_t* output_samples, uint32_t out_samples)
 {
   int osample;
   /* 16+16 fixed point math */
@@ -213,8 +213,8 @@ void audio_out_resample_5channel(int16_t* input_samples, uint32_t in_samples,
 }
 
 
-void audio_out_resample_6channel(int16_t* input_samples, uint32_t in_samples, 
-				 int16_t* output_samples, uint32_t out_samples)
+void _x_audio_out_resample_6channel(int16_t* input_samples, uint32_t in_samples, 
+				    int16_t* output_samples, uint32_t out_samples)
 {
   int osample;
   /* 16+16 fixed point math */
@@ -280,8 +280,8 @@ void audio_out_resample_6channel(int16_t* input_samples, uint32_t in_samples,
   output_samples[out_samples*6-1] = input_samples[in_samples*6-1];
 }
 
-void audio_out_resample_8to16(int8_t* input_samples, 
-                              int16_t* output_samples, uint32_t samples)
+void _x_audio_out_resample_8to16(int8_t* input_samples, 
+				 int16_t* output_samples, uint32_t samples)
 {
   while( samples-- ) {
     int16_t os;
@@ -292,8 +292,8 @@ void audio_out_resample_8to16(int8_t* input_samples,
   }
 }
 
-void audio_out_resample_16to8(int16_t* input_samples, 
-                              int8_t* output_samples, uint32_t samples)
+void _x_audio_out_resample_16to8(int16_t* input_samples, 
+				 int8_t* output_samples, uint32_t samples)
 {
   while( samples-- ) {
     int16_t os;
@@ -304,8 +304,8 @@ void audio_out_resample_16to8(int16_t* input_samples,
   }
 }
 
-void audio_out_resample_monotostereo(int16_t* input_samples, 
-                                     int16_t* output_samples, uint32_t frames)
+void _x_audio_out_resample_monotostereo(int16_t* input_samples, 
+					int16_t* output_samples, uint32_t frames)
 {
   while( frames-- ) {
     int16_t os;
@@ -316,8 +316,8 @@ void audio_out_resample_monotostereo(int16_t* input_samples,
   }
 }
 
-void audio_out_resample_stereotomono(int16_t* input_samples, 
-                                     int16_t* output_samples, uint32_t frames)
+void _x_audio_out_resample_stereotomono(int16_t* input_samples, 
+					int16_t* output_samples, uint32_t frames)
 {
   while( frames-- ) {
     int16_t os;

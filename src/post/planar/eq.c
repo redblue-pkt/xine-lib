@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: eq.c,v 1.8 2003/11/01 18:34:22 miguelfreitas Exp $
+ * $Id: eq.c,v 1.9 2003/11/11 18:44:59 f1rmb Exp $
  *
  * mplayer's eq (soft video equalizer)
  * Copyright (C) Richard Felker
@@ -288,7 +288,7 @@ static post_plugin_t *eq_open_plugin(post_class_t *class_gen, int inputs,
 
   pthread_mutex_init (&this->lock, NULL);
   
-  port = post_intercept_video_port(&this->post, video_target[0]);
+  port = _x_post_intercept_video_port(&this->post, video_target[0]);
   /* replace with our own get_frame function */
   port->port.open         = eq_open;
   port->port.get_frame    = eq_get_frame;
@@ -430,7 +430,7 @@ static vo_frame_t *eq_get_frame(xine_video_port_t *port_gen, uint32_t width,
   frame = port->original_port->get_frame(port->original_port,
     width, height, ratio, format, flags);
 
-  post_intercept_video_frame(frame, port);
+  _x_post_intercept_video_frame(frame, port);
   /* replace with our own draw function */
   frame->draw = eq_draw;
   /* decoders should not copy the frames, since they won't be displayed */
@@ -461,7 +461,7 @@ static int eq_draw(vo_frame_t *frame, xine_stream_t *stream)
   vo_frame_t *yv12_frame;
   int skip;
 
-  post_restore_video_frame(frame, port);
+  _x_post_restore_video_frame(frame, port);
 
   if( !frame->bad_frame &&
       ((this->params.brightness != 0) || (this->params.contrast != 0)) ) {
@@ -474,7 +474,7 @@ static int eq_draw(vo_frame_t *frame, xine_stream_t *stream)
   
       yv12_frame->pts = frame->pts;
       yv12_frame->duration = frame->duration;
-      extra_info_merge(yv12_frame->extra_info, frame->extra_info);
+      _x_extra_info_merge(yv12_frame->extra_info, frame->extra_info);
   
       yuy2_to_yv12(frame->base[0], frame->pitches[0],
                    yv12_frame->base[0], yv12_frame->pitches[0],
@@ -492,7 +492,7 @@ static int eq_draw(vo_frame_t *frame, xine_stream_t *stream)
       frame->width, frame->height, frame->ratio, XINE_IMGFMT_YV12, frame->flags | VO_BOTH_FIELDS);
 
   
-    extra_info_merge(out_frame->extra_info, frame->extra_info);
+    _x_extra_info_merge(out_frame->extra_info, frame->extra_info);
   
     out_frame->pts = frame->pts;
     out_frame->duration = frame->duration;

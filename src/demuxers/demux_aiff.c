@@ -21,7 +21,7 @@
 /*
  * AIFF File Demuxer by Mike Melanson (melanson@pcisys.net)
  *
- * $Id: demux_aiff.c,v 1.33 2003/10/28 00:10:18 tmattern Exp $
+ * $Id: demux_aiff.c,v 1.34 2003/11/11 18:44:51 f1rmb Exp $
  *
  */
 
@@ -97,7 +97,7 @@ static int open_aiff_file(demux_aiff_t *this) {
   unsigned int chunk_size;
   unsigned char buffer[100];
 
-  if (xine_demux_read_header(this->input, signature, AIFF_SIGNATURE_SIZE) != AIFF_SIGNATURE_SIZE)
+  if (_x_demux_read_header(this->input, signature, AIFF_SIGNATURE_SIZE) != AIFF_SIGNATURE_SIZE)
     return 0;
 
   /* check the signature */
@@ -188,7 +188,7 @@ static int demux_aiff_send_chunk (demux_plugin_t *this_gen) {
   current_pts /= this->audio_bytes_per_second;
 
   if (this->seek_flag) {
-    xine_demux_control_newpts(this->stream, current_pts, 0);
+    _x_demux_control_newpts(this->stream, current_pts, 0);
     this->seek_flag = 0;
   }
 
@@ -252,7 +252,7 @@ static void demux_aiff_send_headers(demux_plugin_t *this_gen) {
                        this->audio_bits);
 
   /* send start buffers */
-  xine_demux_control_start(this->stream);
+  _x_demux_control_start(this->stream);
 
   /* send init info to decoders */
   if (this->audio_fifo && this->audio_type) {
@@ -275,7 +275,7 @@ static int demux_aiff_seek (demux_plugin_t *this_gen,
 
   this->seek_flag = 1;
   this->status = DEMUX_OK;
-  xine_demux_flush_engine (this->stream);
+  _x_demux_flush_engine (this->stream);
 
   /* if input is non-seekable, do not proceed with the rest of this
    * seek function */
@@ -363,7 +363,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
     mrl = input->get_mrl (input);
     extensions = class_gen->get_extensions (class_gen);
 
-    if (!xine_demux_check_extension (mrl, extensions)) {
+    if (!_x_demux_check_extension (mrl, extensions)) {
       free (this);
       return NULL;
     }

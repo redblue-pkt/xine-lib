@@ -22,7 +22,7 @@
  * VOX Demuxer by Mike Melanson (melanson@pcisys.net)
  * This a demuxer for .vox files containing raw Dialogic ADPCM data.
  *
- * $Id: demux_vox.c,v 1.8 2003/10/31 22:56:21 tmattern Exp $
+ * $Id: demux_vox.c,v 1.9 2003/11/11 18:44:53 f1rmb Exp $
  *
  */
 
@@ -118,7 +118,7 @@ static void demux_vox_send_headers(demux_plugin_t *this_gen) {
   xine_set_stream_info(this->stream, XINE_STREAM_INFO_AUDIO_BITS, 16);
 
   /* send start buffers */
-  xine_demux_control_start(this->stream);
+  _x_demux_control_start(this->stream);
 
   /* send init info to decoders */
   if (this->audio_fifo) {
@@ -141,7 +141,7 @@ static int demux_vox_seek (demux_plugin_t *this_gen, off_t start_pos, int start_
   if( !this->stream->demux_thread_running ) {
 
     /* send new pts */
-    xine_demux_control_newpts(this->stream, 0, 0);
+    _x_demux_control_newpts(this->stream, 0, 0);
 
     this->status = DEMUX_OK;
 
@@ -196,7 +196,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
     mrl = input->get_mrl (input);
     extensions = class_gen->get_extensions (class_gen);
 
-    if (!xine_demux_check_extension (mrl, extensions))
+    if (!_x_demux_check_extension (mrl, extensions))
       return NULL;
   }
   break;

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_vidix.c,v 1.50 2003/10/31 17:25:20 mroi Exp $
+ * $Id: video_out_vidix.c,v 1.51 2003/11/11 18:45:00 f1rmb Exp $
  * 
  * video_out_vidix.c
  *
@@ -414,7 +414,7 @@ static vo_frame_t *vidix_alloc_frame (vo_driver_t *this_gen) {
 
 static void vidix_compute_ideal_size (vidix_driver_t *this) {
 
-  vo_scale_compute_ideal_size( &this->sc );
+  _x_vo_scale_compute_ideal_size( &this->sc );
 
 }
 
@@ -427,7 +427,7 @@ static void vidix_config_playback (vidix_driver_t *this) {
   uint32_t apitch;
   int err,i;
   
-  vo_scale_compute_output_size( &this->sc );
+  _x_vo_scale_compute_output_size( &this->sc );
   
   if( this->vidix_started > 0 ) {
 #ifdef LOG
@@ -595,7 +595,7 @@ static int vidix_redraw_needed (vo_driver_t *this_gen) {
   vidix_driver_t  *this = (vidix_driver_t *) this_gen;
   int ret = 0;
 
-  if(vo_scale_redraw_needed(&this->sc)) {
+  if(_x_vo_scale_redraw_needed(&this->sc)) {
     if(this->got_frame_data) {
       vidix_config_playback(this);
       vidix_clean_output_area(this);
@@ -681,7 +681,7 @@ static int vidix_set_property (vo_driver_t *this_gen,
   if ( property == VO_PROP_ASPECT_RATIO) {
 #ifdef LOG
     printf("video_out_vidix: aspect ratio changed to %s\n",
-	   vo_scale_aspect_ratio_name(value));
+	   _x_vo_scale_aspect_ratio_name(value));
 #endif
     
     if(value == XINE_VO_ASPECT_NUM_RATIOS)
@@ -844,9 +844,9 @@ static int vidix_gui_data_exchange (vo_driver_t *this_gen,
       int x1, y1, x2, y2;
       x11_rectangle_t *rect = data;
 
-      vo_scale_translate_gui2video(&this->sc, rect->x, rect->y,
+      _x_vo_scale_translate_gui2video(&this->sc, rect->x, rect->y,
 			     &x1, &y1);
-      vo_scale_translate_gui2video(&this->sc, rect->x + rect->w, rect->y + rect->h,
+      _x_vo_scale_translate_gui2video(&this->sc, rect->x + rect->w, rect->y + rect->h,
 			     &x2, &y2);
       rect->x = x1;
       rect->y = y1;
@@ -892,7 +892,7 @@ static vidix_driver_t *open_plugin (video_driver_class_t *class_gen) {
   this->vidix_handler = class->vidix_handler;
   this->vidix_cap = class->vidix_cap;
 
-  vo_scale_init( &this->sc, 1, /*this->vidix_cap.flags & FLAG_UPSCALER,*/ 0, config );
+  _x_vo_scale_init( &this->sc, 1, /*this->vidix_cap.flags & FLAG_UPSCALER,*/ 0, config );
   
   this->xine              = class->xine;
   this->config            = config;

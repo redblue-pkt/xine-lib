@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.64 2003/10/23 20:12:34 mroi Exp $
+ * $Id: xine_decoder.c,v 1.65 2003/11/11 18:44:54 f1rmb Exp $
  *
  */
 
@@ -238,7 +238,7 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
   start += (spu_offset / 90);
   end += (spu_offset / 90);
    
-  xine_get_current_info (this->stream->master, &extra_info, sizeof(extra_info) );
+  _x_get_current_info (this->stream->master, &extra_info, sizeof(extra_info) );
   
   if( !this->seek_count ) {
     this->seek_count = extra_info.seek_count;
@@ -345,7 +345,7 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
 
     xine_usec_sleep (50000);
             
-    xine_get_current_info (this->stream->master, &extra_info, sizeof(extra_info) );
+    _x_get_current_info (this->stream->master, &extra_info, sizeof(extra_info) );
   }
 #ifdef LOG
   printf("libsputext: seek_count mismatch\n");

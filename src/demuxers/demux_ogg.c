@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_ogg.c,v 1.112 2003/10/31 23:58:32 tmattern Exp $
+ * $Id: demux_ogg.c,v 1.113 2003/11/11 18:44:52 f1rmb Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -332,10 +332,10 @@ static void check_newpts (demux_ogg_t *this, int64_t pts, int video, int preview
              "diff=%lld (pts=%lld, last_pts=%lld)\n", diff, pts, this->last_pts[video]);
 
     if (this->buf_flag_seek) {
-      xine_demux_control_newpts(this->stream, pts, BUF_FLAG_SEEK);
+      _x_demux_control_newpts(this->stream, pts, BUF_FLAG_SEEK);
       this->buf_flag_seek = 0;
     } else {
-      xine_demux_control_newpts(this->stream, pts, 0);
+      _x_demux_control_newpts(this->stream, pts, 0);
     }
     this->send_newpts = 0;
     this->last_pts[1-video] = 0;
@@ -850,7 +850,7 @@ static void demux_ogg_send_header (demux_ogg_t *this) {
 
 	  channel = this->num_video_streams++;
 
-	  this->buf_types[stream_num] = fourcc_to_buf_video (locsubtype);
+	  this->buf_types[stream_num] = _x_fourcc_to_buf_video (locsubtype);
 	  if( !this->buf_types[stream_num] )
 	    this->buf_types[stream_num] = BUF_VIDEO_UNKNOWN;
 	  this->buf_types[stream_num] |= channel;
@@ -1022,7 +1022,7 @@ static void demux_ogg_send_header (demux_ogg_t *this) {
 	    fcc = *(uint32_t*)(op.packet+68);
 	    lprintf ("fourcc %08x\n", fcc);
 
-	    this->buf_types[stream_num] = fourcc_to_buf_video (fcc);
+	    this->buf_types[stream_num] = _x_fourcc_to_buf_video (fcc);
 	    if( !this->buf_types[stream_num] )
 	      this->buf_types[stream_num] = BUF_VIDEO_UNKNOWN;
 	    this->buf_types[stream_num] |= channel;
@@ -1426,7 +1426,7 @@ static void demux_ogg_send_headers (demux_plugin_t *this_gen) {
   this->input->seek (this->input, 0, SEEK_SET);
 
   if (this->status == DEMUX_OK) {
-    xine_demux_control_start(this->stream);
+    _x_demux_control_start(this->stream);
     /* send header */
     demux_ogg_send_header (this);
 
@@ -1553,7 +1553,7 @@ static int demux_ogg_seek (demux_plugin_t *this_gen,
       this->start_pts=-1;
     }
 
-    xine_demux_flush_engine(this->stream);
+    _x_demux_flush_engine(this->stream);
   }
   
   return this->status;
@@ -1643,7 +1643,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen,
   case METHOD_BY_CONTENT: {
     uint8_t buf[4];
 
-    if (xine_demux_read_header(input, buf, 4) != 4)
+    if (_x_demux_read_header(input, buf, 4) != 4)
       return NULL;
 
     if ((buf[0] != 'O')
@@ -1660,7 +1660,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen,
     mrl = input->get_mrl (input);
     extensions = class_gen->get_extensions (class_gen);
 
-    if (!xine_demux_check_extension (mrl, extensions)) {
+    if (!_x_demux_check_extension (mrl, extensions)) {
       return NULL;
     }
   }

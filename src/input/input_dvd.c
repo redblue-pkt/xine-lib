@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.170 2003/11/08 22:39:32 tmattern Exp $
+ * $Id: input_dvd.c,v 1.171 2003/11/11 18:44:53 f1rmb Exp $
  *
  */
 
@@ -558,7 +558,7 @@ static buf_element_t *dvd_plugin_read_block (input_plugin_t *this_gen,
     if(result == DVDNAV_STATUS_ERR) {
       printf("input_dvd: Error getting next block from DVD (%s)\n",
 	      dvdnav_err_to_string(this->dvdnav));
-      xine_message(this->stream, XINE_MSG_READ_ERROR,
+      _x_message(this->stream, XINE_MSG_READ_ERROR,
                    dvdnav_err_to_string(this->dvdnav), NULL);
       if (block != buf->mem) dvdnav_free_cache_block(this->dvdnav, block);
       buf->free_buffer(buf);
@@ -701,7 +701,7 @@ static buf_element_t *dvd_plugin_read_block (input_plugin_t *this_gen,
       }
       break;
     case DVDNAV_HOP_CHANNEL:
-      xine_demux_flush_engine(this->stream);
+      _x_demux_flush_engine(this->stream);
       break;
     case DVDNAV_NAV_PACKET:
       {
@@ -1378,7 +1378,7 @@ static int dvd_plugin_open (input_plugin_t *this_gen) {
       if(ret == DVDNAV_STATUS_ERR) {
 	if (this->stream->xine->verbosity >= XINE_VERBOSITY_LOG) 
 	  printf("input_dvd: Error opening DVD device\n");
-	xine_message (this->stream, XINE_MSG_READ_ERROR,
+	_x_message (this->stream, XINE_MSG_READ_ERROR,
 		      intended_dvd_device, NULL);
         return 0;
       }
@@ -1390,7 +1390,7 @@ static int dvd_plugin_open (input_plugin_t *this_gen) {
     if(ret == DVDNAV_STATUS_ERR) {
       if (this->stream->xine->verbosity >= XINE_VERBOSITY_LOG) 
 	printf("input_dvd: Error opening DVD device\n");
-      xine_message (this->stream, XINE_MSG_READ_ERROR,
+      _x_message (this->stream, XINE_MSG_READ_ERROR,
 		    intended_dvd_device, NULL);
       return 0;
     }
@@ -1727,6 +1727,9 @@ static void *init_class (xine_t *xine, void *data) {
 
 /*
  * $Log: input_dvd.c,v $
+ * Revision 1.171  2003/11/11 18:44:53  f1rmb
+ * rename internal API function (_x_<function>).
+ *
  * Revision 1.170  2003/11/08 22:39:32  tmattern
  * Use info helper functions.
  *
@@ -1939,7 +1942,7 @@ static void *init_class (xine_t *xine, void *data) {
  *
  * Revision 1.124  2002/12/22 23:35:42  miguelfreitas
  * it doesn't make sense to reimplement flush here.
- * (this is why xine_demux_flush_engine was created, to avoid redundant code)
+ * (this is why _x_demux_flush_engine was created, to avoid redundant code)
  *
  * Revision 1.123  2002/12/21 12:56:47  miguelfreitas
  * - add buf->decoder_info_ptr: portability for systems where pointer has
@@ -2137,7 +2140,7 @@ static void *init_class (xine_t *xine, void *data) {
  * Revision 1.73  2002/09/05 05:51:14  jcdutton
  * XV Video out at least loads now and we see the xine logo again.
  * The DVD plugin now loads, but audio and spu info is lost.
- * What happened to xine_get_spu_channel and xine_get_audio_channel?
+ * What happened to _x_get_spu_channel and _x_get_audio_channel?
  *
  * Revision 1.72  2002/09/04 23:31:08  guenter
  * merging in the new_api branch ... unfortunately video_out / vo_scale is broken now ... matthias/miguel: please fix it :-)

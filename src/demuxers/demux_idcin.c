@@ -65,7 +65,7 @@
  *     - if any bytes exceed 63, do not shift the bytes at all before
  *       transmitting them to the video decoder
  *
- * $Id: demux_idcin.c,v 1.45 2003/10/30 00:49:07 tmattern Exp $
+ * $Id: demux_idcin.c,v 1.46 2003/11/11 18:44:52 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -277,7 +277,7 @@ static int open_idcin_file(demux_idcin_t *this) {
   xine_bmiheader *bih = (xine_bmiheader *)this->bih;
   unsigned char *huffman_table = this->bih + sizeof(xine_bmiheader);
 
-  if (xine_demux_read_header(this->input, header, IDCIN_HEADER_SIZE) != IDCIN_HEADER_SIZE)
+  if (_x_demux_read_header(this->input, header, IDCIN_HEADER_SIZE) != IDCIN_HEADER_SIZE)
     return 0;
 
   /*
@@ -365,7 +365,7 @@ static void demux_idcin_send_headers(demux_plugin_t *this_gen) {
   this->status = DEMUX_OK;
 
   /* send start buffers */
-  xine_demux_control_start(this->stream);
+  _x_demux_control_start(this->stream);
 
   /* send init info to decoders */
   bih->biSize = sizeof(xine_bmiheader) + HUFFMAN_TABLE_SIZE;
@@ -414,7 +414,7 @@ static int demux_idcin_seek (demux_plugin_t *this_gen, off_t start_pos, int star
   if( !this->stream->demux_thread_running ) {
 
     /* send new pts */
-    xine_demux_control_newpts(this->stream, 0, 0);
+    _x_demux_control_newpts(this->stream, 0, 0);
 
     this->status = DEMUX_OK;
 
@@ -484,7 +484,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
     mrl = input->get_mrl (input);
     extensions = class_gen->get_extensions (class_gen);
 
-    if (!xine_demux_check_extension (mrl, extensions)) {
+    if (!_x_demux_check_extension (mrl, extensions)) {
       free (this);
       return NULL;
     }

@@ -15,6 +15,10 @@
 #include "ext.h"
 #include "registry.h"
 
+#ifdef XINE_MAJOR
+#include "xineutils.h"
+#endif
+
 //#undef TRACE
 //#define TRACE printf
 

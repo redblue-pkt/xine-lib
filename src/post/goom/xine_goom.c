@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_goom.c,v 1.39 2003/11/10 21:58:31 f1rmb Exp $
+ * $Id: xine_goom.c,v 1.40 2003/11/11 18:44:58 f1rmb Exp $
  *
  * GOOM post plugin.
  *
@@ -295,7 +295,7 @@ static post_plugin_t *goom_open_plugin(post_class_t *class_gen, int inputs,
   this->buf.mem = NULL;
   this->buf.mem_size = 0;  
 
-  port = post_intercept_audio_port(&this->post, audio_target[0]);
+  port = _x_post_intercept_audio_port(&this->post, audio_target[0]);
   port->port.open = goom_port_open;
   port->port.close = goom_port_close;
   port->port.put_buffer = goom_port_put_buffer;

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: vo_scale.h,v 1.9 2003/08/04 03:47:11 miguelfreitas Exp $
+ * $Id: vo_scale.h,v 1.10 2003/11/11 18:45:01 f1rmb Exp $
  * 
  * vo_scale.h
  *
@@ -153,45 +153,45 @@ typedef struct vo_scale_s vo_scale_t;
  * taking into account aspect ratio and zoom factor
  */
 
-void vo_scale_compute_ideal_size (vo_scale_t *self);
+void _x_vo_scale_compute_ideal_size (vo_scale_t *self);
 
 
 /*
  * make ideal width/height "fit" into the gui
  */
 
-void vo_scale_compute_output_size (vo_scale_t *self);
+void _x_vo_scale_compute_output_size (vo_scale_t *self);
 
 /*
  * return true if a redraw is needed due resizing, zooming,
  * aspect ratio changing, etc.
  */
 
-int vo_scale_redraw_needed (vo_scale_t *self);
+int _x_vo_scale_redraw_needed (vo_scale_t *self);
 
 /*
  *
  */
  
-void vo_scale_translate_gui2video(vo_scale_t *self,
-				 int x, int y,
-				 int *vid_x, int *vid_y);
+void _x_vo_scale_translate_gui2video(vo_scale_t *self,
+				     int x, int y,
+				     int *vid_x, int *vid_y);
 
 /*
  * Returns description of a given ratio code
  */
 
-char *vo_scale_aspect_ratio_name(int a);
+char *_x_vo_scale_aspect_ratio_name(int a);
 
 /* 
  * initialize rescaling struct
  */
  
-void vo_scale_init(vo_scale_t *self, int support_zoom, int scaling_disabled, config_values_t *config );
+void _x_vo_scale_init(vo_scale_t *self, int support_zoom, 
+		      int scaling_disabled, config_values_t *config );
 
 #ifdef __cplusplus
 }
 #endif
 
 #endif
-

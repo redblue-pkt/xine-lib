@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: resample.h,v 1.3 2002/10/23 17:12:34 guenter Exp $
+ * $Id: resample.h,v 1.4 2003/11/11 18:45:01 f1rmb Exp $
  *
  * utilitiy functions for audio drivers
  *
@@ -27,31 +27,31 @@
 #ifndef HAVE_RESAMPLE_H
 #define HAVE_RESAMPLE_H
 
-void audio_out_resample_stereo(int16_t* input_samples, uint32_t in_samples, 
-			       int16_t* output_samples, uint32_t out_samples);
+void _x_audio_out_resample_stereo(int16_t* input_samples, uint32_t in_samples, 
+				  int16_t* output_samples, uint32_t out_samples);
 
-void audio_out_resample_mono(int16_t* input_samples, uint32_t in_samples, 
-			     int16_t* output_samples, uint32_t out_samples);
+void _x_audio_out_resample_mono(int16_t* input_samples, uint32_t in_samples, 
+				int16_t* output_samples, uint32_t out_samples);
 
-void audio_out_resample_4channel(int16_t* input_samples, uint32_t in_samples, 
-				 int16_t* output_samples, uint32_t out_samples);
+void _x_audio_out_resample_4channel(int16_t* input_samples, uint32_t in_samples, 
+				    int16_t* output_samples, uint32_t out_samples);
 
-void audio_out_resample_5channel(int16_t* input_samples, uint32_t in_samples, 
-				 int16_t* output_samples, uint32_t out_samples);
+void _x_audio_out_resample_5channel(int16_t* input_samples, uint32_t in_samples, 
+				    int16_t* output_samples, uint32_t out_samples);
 
-void audio_out_resample_6channel(int16_t* input_samples, uint32_t in_samples, 
-				 int16_t* output_samples, uint32_t out_samples);
+void _x_audio_out_resample_6channel(int16_t* input_samples, uint32_t in_samples, 
+				    int16_t* output_samples, uint32_t out_samples);
 
-void audio_out_resample_8to16(int8_t* input_samples, 
-                              int16_t* output_samples, uint32_t samples);
+void _x_audio_out_resample_8to16(int8_t* input_samples, 
+				 int16_t* output_samples, uint32_t samples);
 
-void audio_out_resample_16to8(int16_t* input_samples, 
-                              int8_t*  output_samples, uint32_t samples);
+void _x_audio_out_resample_16to8(int16_t* input_samples, 
+				 int8_t*  output_samples, uint32_t samples);
 
-void audio_out_resample_monotostereo(int16_t* input_samples, 
-                                     int16_t* output_samples, uint32_t frames);
+void _x_audio_out_resample_monotostereo(int16_t* input_samples, 
+					int16_t* output_samples, uint32_t frames);
 
-void audio_out_resample_stereotomono(int16_t* input_samples, 
-                                     int16_t* output_samples, uint32_t frames);
+void _x_audio_out_resample_stereotomono(int16_t* input_samples, 
+					int16_t* output_samples, uint32_t frames);
                             
 #endif

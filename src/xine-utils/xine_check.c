@@ -119,25 +119,25 @@ xine_health_check_t* xine_health_check (xine_health_check_t* hc, int check_num) 
 
   switch(check_num) {
     case CHECK_KERNEL:
-      hc = xine_health_check_kernel (hc);
+      hc = _x_health_check_kernel (hc);
       break;
     case CHECK_MTRR:
-      hc = xine_health_check_mtrr (hc);
+      hc = _x_health_check_mtrr (hc);
       break;
     case CHECK_CDROM:
-      hc = xine_health_check_cdrom (hc);
+      hc = _x_health_check_cdrom (hc);
       break;
     case CHECK_DVDROM:
-      hc = xine_health_check_dvdrom (hc);
+      hc = _x_health_check_dvdrom (hc);
       break;
     case CHECK_DMA:
-      hc = xine_health_check_dma (hc);
+      hc = _x_health_check_dma (hc);
       break;
     case CHECK_X:
-      hc = xine_health_check_x (hc);
+      hc = _x_health_check_x (hc);
       break;
     case CHECK_XV:
-      hc = xine_health_check_xv (hc);
+      hc = _x_health_check_xv (hc);
       break;
     default:
       hc->status = XINE_HEALTH_CHECK_NO_SUCH_CHECK;
@@ -146,7 +146,7 @@ xine_health_check_t* xine_health_check (xine_health_check_t* hc, int check_num) 
   return hc;
 }
 
-xine_health_check_t* xine_health_check_kernel (xine_health_check_t* hc) {
+xine_health_check_t* _x_health_check_kernel (xine_health_check_t* hc) {
   struct utsname kernel;
 
   hc->title       = "Check for kernel version";
@@ -166,7 +166,7 @@ xine_health_check_t* xine_health_check_kernel (xine_health_check_t* hc) {
 }
 
 #if defined(ARCH_X86) || defined(ARCH_X86_64)
-xine_health_check_t* xine_health_check_mtrr (xine_health_check_t* hc) {
+xine_health_check_t* _x_health_check_mtrr (xine_health_check_t* hc) {
   char *file = "/proc/mtrr";
   FILE *fd;
 
@@ -184,7 +184,7 @@ xine_health_check_t* xine_health_check_mtrr (xine_health_check_t* hc) {
   return hc;
 }
 #else
-xine_health_check_t* xine_health_check_mtrr (xine_health_check_t* hc) {
+xine_health_check_t* _x_health_check_mtrr (xine_health_check_t* hc) {
 
   hc->title       = "Check for MTRR support";
   hc->explanation = "Don't worry about this one";
@@ -195,7 +195,7 @@ xine_health_check_t* xine_health_check_mtrr (xine_health_check_t* hc) {
 }
 #endif
 
-xine_health_check_t* xine_health_check_cdrom (xine_health_check_t* hc) {
+xine_health_check_t* _x_health_check_cdrom (xine_health_check_t* hc) {
   struct stat cdrom_st;
 
   hc->title       = "Check for CDROM drive";
@@ -226,7 +226,7 @@ xine_health_check_t* xine_health_check_cdrom (xine_health_check_t* hc) {
   return hc;
 }
 
-xine_health_check_t* xine_health_check_dvdrom(xine_health_check_t* hc) {
+xine_health_check_t* _x_health_check_dvdrom(xine_health_check_t* hc) {
 
   struct stat dvdrom_st;
 
@@ -258,7 +258,7 @@ xine_health_check_t* xine_health_check_dvdrom(xine_health_check_t* hc) {
   return hc;
 }
 
-xine_health_check_t* xine_health_check_dma (xine_health_check_t* hc) {
+xine_health_check_t* _x_health_check_dma (xine_health_check_t* hc) {
 
   int         is_scsi_dev = 0;
   int         fd = 0;
@@ -312,7 +312,7 @@ xine_health_check_t* xine_health_check_dma (xine_health_check_t* hc) {
 }
 
 
-xine_health_check_t* xine_health_check_x (xine_health_check_t* hc) {
+xine_health_check_t* _x_health_check_x (xine_health_check_t* hc) {
   char* env_display = getenv("DISPLAY");
 
   hc->title       = "Check for X11 environment";
@@ -328,7 +328,7 @@ xine_health_check_t* xine_health_check_x (xine_health_check_t* hc) {
   return hc;
 }
 
-xine_health_check_t* xine_health_check_xv (xine_health_check_t* hc) {
+xine_health_check_t* _x_health_check_xv (xine_health_check_t* hc) {
 
 #ifdef HAVE_X11
 #ifdef HAVE_XV

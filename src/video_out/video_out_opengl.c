@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_opengl.c,v 1.30 2003/10/23 15:17:07 mroi Exp $
+ * $Id: video_out_opengl.c,v 1.31 2003/11/11 18:45:00 f1rmb Exp $
  * 
  * video_out_glut.c, glut based OpenGL rendering interface for xine
  * Matthias Hopf <mat@mshopf.de>
@@ -302,7 +302,7 @@ static vo_frame_t *opengl_alloc_frame (vo_driver_t *this_gen) {
 
 static void opengl_compute_ideal_size (opengl_driver_t *this) {
 
-    vo_scale_compute_ideal_size (&this->sc);
+    _x_vo_scale_compute_ideal_size (&this->sc);
 }
 
 
@@ -395,7 +395,7 @@ static void opengl_compute_output_size (opengl_driver_t *this) {
     int old_x      = this->sc.output_xoffset;
     int old_y      = this->sc.output_yoffset;
 
-    vo_scale_compute_output_size (&this->sc);
+    _x_vo_scale_compute_output_size (&this->sc);
 
     /* avoid problems in yuv2rgb */
     if (this->sc.output_height < ((this->sc.delivered_height + 15) >> 4))
@@ -476,7 +476,7 @@ static int opengl_redraw_needed (vo_driver_t *this_gen) {
 
     DEBUGF ((stderr, "*** redraw_needed %dx%d\n", this->sc.delivered_width, this->sc.delivered_height));
 
-    if (vo_scale_redraw_needed (&this->sc)) {
+    if (_x_vo_scale_redraw_needed (&this->sc)) {
 	opengl_compute_output_size (this);
 	/* Actually, the output area is cleared in render_image */
         return 1;
@@ -770,7 +770,7 @@ static int opengl_set_property (vo_driver_t *this_gen,
 	    value  = XINE_VO_ASPECT_AUTO;
 	this->sc.user_ratio = value;
 	fprintf (stderr, "video_out_opengl: aspect ratio changed to %s\n",
-	         vo_scale_aspect_ratio_name (value));
+	         _x_vo_scale_aspect_ratio_name (value));
 	opengl_compute_ideal_size (this);
 //	opengl_redraw_needed      ((vo_driver_t *) this);
 	break;
@@ -865,9 +865,9 @@ static int opengl_gui_data_exchange (vo_driver_t *this_gen,
             int x1, y1, x2, y2;
 /*  	    DEBUGF ((stderr, "*** gui_translate_gui_to_video ***\n")); */
       
-            vo_scale_translate_gui2video(&this->sc, rect->x, rect->y,
+            _x_vo_scale_translate_gui2video(&this->sc, rect->x, rect->y,
                                      &x1, &y1);
-            vo_scale_translate_gui2video(&this->sc,
+            _x_vo_scale_translate_gui2video(&this->sc,
                                      rect->x + rect->w, rect->y + rect->h,
                                      &x2, &y2);
             rect->x = x1;
@@ -921,7 +921,7 @@ static vo_driver_t *opengl_open_plugin (video_driver_class_t *class_gen,
     this->display		    = visual->display;
     this->screen		    = visual->screen;
 
-    vo_scale_init (&this->sc, 0, 0, class->config);
+    _x_vo_scale_init (&this->sc, 0, 0, class->config);
 
     this->sc.frame_output_cb        = visual->frame_output_cb;
     this->sc.dest_size_cb           = visual->dest_size_cb;

@@ -22,7 +22,7 @@
  *
  * FFT code by Steve Haehnichen, originally licensed under GPL v1
  *
- * $Id: fftscope.c,v 1.17 2003/10/30 22:40:53 mroi Exp $
+ * $Id: fftscope.c,v 1.18 2003/11/11 18:44:59 f1rmb Exp $
  *
  */
 
@@ -503,7 +503,7 @@ static post_plugin_t *fftscope_open_plugin(post_class_t *class_gen, int inputs,
   this->buf.mem = NULL;
   this->buf.mem_size = 0;
 
-  port = post_intercept_audio_port(&this->post, audio_target[0]);
+  port = _x_post_intercept_audio_port(&this->post, audio_target[0]);
   port->port.open = fftscope_port_open;
   port->port.close = fftscope_port_close;
   port->port.put_buffer = fftscope_port_put_buffer;

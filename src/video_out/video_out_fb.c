@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_fb.c,v 1.30 2003/10/23 15:17:07 mroi Exp $
+ * $Id: video_out_fb.c,v 1.31 2003/11/11 18:45:00 f1rmb Exp $
  * 
  * video_out_fb.c, frame buffer xine driver by Miguel Freitas
  *
@@ -254,12 +254,12 @@ static vo_frame_t *fb_alloc_frame(vo_driver_t *this_gen)
 
 static void fb_compute_ideal_size(fb_driver_t *this, fb_frame_t *frame)
 {
-  vo_scale_compute_ideal_size(&frame->sc);
+  _x_vo_scale_compute_ideal_size(&frame->sc);
 }
 
 static void fb_compute_rgb_size(fb_driver_t *this, fb_frame_t *frame)
 {
-  vo_scale_compute_output_size(&frame->sc);
+  _x_vo_scale_compute_output_size(&frame->sc);
   
   /* avoid problems in yuv2rgb */
   if(frame->sc.output_height < (frame->sc.delivered_height+15) >> 4)
@@ -574,7 +574,7 @@ static void fb_display_frame(vo_driver_t *this_gen, vo_frame_t *frame_gen)
   if (this->sc.frame_output_cb) {
     this->sc.delivered_height   = frame->sc.delivered_height;
     this->sc.delivered_width    = frame->sc.delivered_width;
-    vo_scale_redraw_needed( &this->sc );
+    _x_vo_scale_redraw_needed( &this->sc );
   }
 
   if(this->use_zero_copy)
@@ -638,7 +638,7 @@ static int fb_set_property(vo_driver_t *this_gen, int property, int value)
       value = XINE_VO_ASPECT_AUTO;
     this->sc.user_ratio = value;
     printf("video_out_fb: aspect ratio changed to %s\n",
-           vo_scale_aspect_ratio_name(value));
+           _x_vo_scale_aspect_ratio_name(value));
       break;
 
     case VO_PROP_BRIGHTNESS:
@@ -963,7 +963,7 @@ static vo_driver_t *fb_open_plugin(video_driver_class_t *class_gen,
       (this->fb_var.xres_virtual *
        this->fb_var.bits_per_pixel)/8;
     
-  vo_scale_init(&this->sc, 0, 0, config);
+  _x_vo_scale_init(&this->sc, 0, 0, config);
   this->sc.gui_width  = this->fb_var.xres;
   this->sc.gui_height = this->fb_var.yres;
   this->sc.user_ratio = XINE_VO_ASPECT_AUTO;

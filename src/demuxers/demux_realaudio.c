@@ -22,7 +22,7 @@
  * RealAudio File Demuxer by Mike Melanson (melanson@pcisys.net)
  *     improved by James Stembridge (jstembridge@users.sourceforge.net)
  *
- * $Id: demux_realaudio.c,v 1.24 2003/10/31 22:56:21 tmattern Exp $
+ * $Id: demux_realaudio.c,v 1.25 2003/11/11 18:44:53 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -85,7 +85,7 @@ static int open_ra_file(demux_ra_t *this) {
   
 
   /* check the signature */
-  if (xine_demux_read_header(this->input, file_header, RA_FILE_HEADER_PREV_SIZE) !=
+  if (_x_demux_read_header(this->input, file_header, RA_FILE_HEADER_PREV_SIZE) !=
       RA_FILE_HEADER_PREV_SIZE)
     return 0;
 
@@ -110,7 +110,7 @@ static int open_ra_file(demux_ra_t *this) {
   /* allocate for and read header data */
   audio_header = xine_xmalloc(hdr_size);
   
-  if (xine_demux_read_header(this->input, audio_header, hdr_size) != hdr_size) {
+  if (_x_demux_read_header(this->input, audio_header, hdr_size) != hdr_size) {
     printf("demux_realaudio: unable to read header\n");
     free(audio_header);
     return 0;
@@ -195,7 +195,7 @@ static int open_ra_file(demux_ra_t *this) {
   }
   
   xine_set_stream_info(this->stream, XINE_STREAM_INFO_AUDIO_FOURCC, audio_fourcc);
-  this->audio_type = formattag_to_buf_audio(audio_fourcc);
+  this->audio_type = _x_formattag_to_buf_audio(audio_fourcc);
 
   /* seek to start of data */
   this->data_start = hdr_size;
@@ -228,7 +228,7 @@ static int demux_ra_send_chunk(demux_plugin_t *this_gen) {
   current_pts = 0;  /* let the engine sort out the pts for now */
 
   if (this->seek_flag) {
-    xine_demux_control_newpts(this->stream, current_pts, 0);
+    _x_demux_control_newpts(this->stream, current_pts, 0);
     this->seek_flag = 0;
   }
 
@@ -285,7 +285,7 @@ static void demux_ra_send_headers(demux_plugin_t *this_gen) {
                        this->wave.wBitsPerSample);
 
   /* send start buffers */
-  xine_demux_control_start(this->stream);
+  _x_demux_control_start(this->stream);
 
   /* send init info to decoders */
   if (this->audio_fifo && this->audio_type) {
@@ -309,7 +309,7 @@ static int demux_ra_seek (demux_plugin_t *this_gen,
 
   this->seek_flag = 1;
   this->status = DEMUX_OK;
-  xine_demux_flush_engine (this->stream);
+  _x_demux_flush_engine (this->stream);
 
   /* if input is non-seekable, do not proceed with the rest of this
    * seek function */
@@ -401,7 +401,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
     mrl = input->get_mrl (input);
     extensions = class_gen->get_extensions (class_gen);
 
-    if (!xine_demux_check_extension (mrl, extensions)) {
+    if (!_x_demux_check_extension (mrl, extensions)) {
       free (this);
       return NULL;
     }

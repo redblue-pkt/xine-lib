@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mosaico.c,v 1.16 2003/10/23 20:12:34 mroi Exp $
+ * $Id: mosaico.c,v 1.17 2003/11/11 18:44:59 f1rmb Exp $
  */
  
 /*
@@ -213,7 +213,7 @@ static post_plugin_t *mosaico_open_plugin(post_class_t *class_gen, int inputs,
   output->vo_port = video_target[0];
 
 /* background */
-  port = post_intercept_video_port(this, video_target[0]);
+  port = _x_post_intercept_video_port(this, video_target[0]);
   port->port.open      = mosaico_open;
   port->port.get_frame = mosaico_get_frame;
   port->port.close     = mosaico_close;
@@ -258,7 +258,7 @@ static post_plugin_t *mosaico_open_plugin(post_class_t *class_gen, int inputs,
     if(xine_config_lookup_entry(class->xine, string, &h_entry)) 
       h_changed_cb(class, &h_entry);
 
-    port2 = post_intercept_video_port(this, video_target[i]);
+    port2 = _x_post_intercept_video_port(this, video_target[i]);
 
     /* replace with our own get_frame function */
     port2->port.open = mosaico_open;
@@ -352,7 +352,7 @@ static vo_frame_t *mosaico_get_frame(xine_video_port_t *port_gen, uint32_t width
 
   frame = port->original_port->get_frame(port->original_port,
     width, height, ratio, format, flags);
-  post_intercept_video_frame(frame, port);
+  _x_post_intercept_video_frame(frame, port);
   /* replace with our own draw function */
   frame->draw = mosaico_draw;
   /* decoders should not copy the frames, since they won't be displayed */
@@ -371,7 +371,7 @@ static vo_frame_t *mosaico_get_frame_2(xine_video_port_t *port_gen, uint32_t wid
 
   frame = port->original_port->get_frame(port->original_port,
     width, height, ratio, format, flags);
-  post_intercept_video_frame(frame, port);
+  _x_post_intercept_video_frame(frame, port);
   /* replace with our own draw function */
   frame->draw = mosaico_draw_2;
   /* decoders should not copy the frames, since they won't be displayed */
@@ -554,7 +554,7 @@ static int _mosaico_draw_2(vo_frame_t *frame, post_mosaico_out_t *output, int co
     default:    
       printf("Mosaico: cannot handle image format %d\n", frame->format);
       /*new_frame->free(new_frame);
-	post_restore_video_frame(frame, port);
+	_x_post_restore_video_frame(frame, port);
 	return frame->draw(frame, stream);*/
     }
   }
@@ -580,7 +580,7 @@ static int mosaico_draw(vo_frame_t *frame, xine_stream_t *stream)
     /*    new_frame->free(new_frame);*/
     frame->vpts = output->saved_frame->vpts;
     pthread_mutex_unlock(&output->mut1);
-    post_restore_video_frame(frame, port);
+    _x_post_restore_video_frame(frame, port);
   
     return skip;
   }
@@ -617,7 +617,7 @@ static int mosaico_draw_2(vo_frame_t *frame, xine_stream_t *stream)
   _mosaico_draw_2(frame, output, i-1);  
  
 
-  post_restore_video_frame(frame, port);
+  _x_post_restore_video_frame(frame, port);
 
   return 0;
 }

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: post.h,v 1.13 2003/10/23 20:12:33 mroi Exp $
+ * $Id: post.h,v 1.14 2003/11/11 18:45:01 f1rmb Exp $
  *
  * post plugin definitions
  *
@@ -132,12 +132,12 @@ struct post_video_port_s {
 
 /* use this to create a new, trivially decorated video port in which
  * port functions can be replaced with own implementations */
-post_video_port_t *post_intercept_video_port(post_plugin_t *post, xine_video_port_t *port);
+post_video_port_t *_x_post_intercept_video_port(post_plugin_t *post, xine_video_port_t *port);
 
 /* use this to decorate and to undecorate a frame so that its functions
  * can be replaced with own implementations */
-void post_intercept_video_frame(vo_frame_t *frame, post_video_port_t *port);
-void post_restore_video_frame(vo_frame_t *frame, post_video_port_t *port);
+void _x_post_intercept_video_frame(vo_frame_t *frame, post_video_port_t *port);
+void _x_post_restore_video_frame(vo_frame_t *frame, post_video_port_t *port);
 
 
 /* helper structure for intercepting overlay manager calls */
@@ -157,8 +157,8 @@ struct post_overlay_manager_s {
 
 /* use this to create a new, trivially decorated overlay manager in which
  * port functions can be replaced with own implementations */
-post_overlay_manager_t *post_intercept_overlay_manager(post_plugin_t *post,
-			  video_overlay_manager_t *original);
+post_overlay_manager_t *_x_post_intercept_overlay_manager(post_plugin_t *post,
+							  video_overlay_manager_t *original);
 
 
 /* helper structure for intercepting audio port calls */
@@ -178,7 +178,7 @@ struct post_audio_port_s {
 
 /* use this to create a new, trivially decorated audio port in which
  * port functions can be replaced with own implementations */
-post_audio_port_t *post_intercept_audio_port(post_plugin_t *post, xine_audio_port_t *port);
+post_audio_port_t *_x_post_intercept_audio_port(post_plugin_t *post, xine_audio_port_t *port);
 
 
 /* macros to create parameter descriptors */ 

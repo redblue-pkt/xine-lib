@@ -897,7 +897,7 @@ static void process_userdata(mpeg2dec_t *mpeg2dec, uint8_t *buffer)
       xine_format_change_data_t data;
       
       /* open the closed caption decoder first */
-      mpeg2dec->cc_dec = get_spu_decoder(mpeg2dec->stream, (BUF_SPU_CC >> 16) & 0xff);
+      mpeg2dec->cc_dec = _x_get_spu_decoder(mpeg2dec->stream, (BUF_SPU_CC >> 16) & 0xff);
       
       /* send a frame format event so that the CC decoder knows the initial image size */
       event.type = XINE_EVENT_FRAME_FORMAT_CHANGE;
