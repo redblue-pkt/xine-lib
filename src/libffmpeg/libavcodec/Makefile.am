@@ -10,7 +10,7 @@ EXTRA_DIST = fdctref.c imgresample.c motion_est_template.c svq3.c wmv2.c \
 	ppc/dsputil_altivec.c  ppc/fft_altivec.c   ppc/Makefile.am ppc/mpegvideo_ppc.c \
 	ppc/dsputil_altivec.h  ppc/idct_altivec.c
 
-AM_CFLAGS = $(LIBFFMPEG_CFLAGS)
+AM_CFLAGS = $(LIBFFMPEG_CFLAGS) -DCONFIG_RISKY
 ASFLAGS =
 
 LIBTOOL = $(SHELL) $(top_builddir)/libtool-nofpic
