@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_vo_core.c,v 1.12 2001/12/23 02:36:55 hrm Exp $
+ * $Id: dxr3_vo_core.c,v 1.13 2001/12/24 18:40:13 hrm Exp $
  *
  *************************************************************************
  * core functions common to both Standard and RT-Encoding vo plugins     *
@@ -40,6 +40,7 @@
  *************************************************************************/
  
 #include "dxr3_video_out.h"
+#include <locale.h>
 
 #define OVERLAY_LOG 0
 
@@ -562,6 +563,13 @@ int dxr3_overlay_read_state(dxr3_overlay_t *this)
 	void *ptr;
 	int type;
 	int j;
+	char *loc;
+
+	/* store previous locale */
+	loc = setlocale(LC_NUMERIC, NULL);
+	/* set american locale for floating point values
+ 	 * (used by .overlay/res file) */
+	setlocale(LC_NUMERIC, "en_US");
 
 	strcpy(fname,getenv("HOME"));
 	strcat(fname,"/.overlay");	    
@@ -623,6 +631,8 @@ int dxr3_overlay_read_state(dxr3_overlay_t *this)
 	}
 	free(lut);
 	fclose(fp);
+	/* restore original locale */
+	setlocale(LC_NUMERIC, loc);
 	return 0;
 }
 
