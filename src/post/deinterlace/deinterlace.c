@@ -47,7 +47,7 @@ void register_deinterlace_method( deinterlace_method_t *method )
         (*dest)->method = method;
         (*dest)->next = 0;
     } else {
-        fprintf( stderr, "deinterlace: Can't allocate memory.\n" );
+        printf( "deinterlace: Can't allocate memory.\n" );
     }
 }
 
@@ -80,7 +80,7 @@ void register_deinterlace_plugin( const char *filename )
     void *handle = dlopen( filename, RTLD_NOW );
 
     if( !handle ) {
-        fprintf( stderr, "deinterlace: Can't load plugin '%s': %s\n",
+        printf( "deinterlace: Can't load plugin '%s': %s\n",
                  filename, dlerror() );
     } else {
         deinterlace_plugin_init_t plugin_init;
@@ -102,17 +102,17 @@ void filter_deinterlace_methods( int accel, int fields_available )
 
         if( (cur->method->accelrequired & accel) != cur->method->accelrequired ) {
             /* This method is no good, drop it from the list. */
-            fprintf( stderr, "deinterlace: %s disabled: required "
-                     "CPU accelleration features unavailable.\n",
-                     cur->method->short_name );
+            printf( "deinterlace: %s disabled: required "
+                    "CPU accelleration features unavailable.\n",
+                    cur->method->short_name );
             drop = 1;
         }
         if( cur->method->fields_required > fields_available ) {
             /* This method is no good, drop it from the list. */
-            fprintf( stderr, "deinterlace: %s disabled: requires "
-                     "%d field buffers, only %d available.\n",
-                     cur->method->short_name, cur->method->fields_required,
-                     fields_available );
+            printf( "deinterlace: %s disabled: requires "
+                    "%d field buffers, only %d available.\n",
+                    cur->method->short_name, cur->method->fields_required,
+                    fields_available );
             drop = 1;
         }
 

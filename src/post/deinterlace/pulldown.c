@@ -272,7 +272,7 @@ int determine_pulldown_offset_history_new( int top_repeat, int bot_repeat, int t
     for( i = 0; i < 5; i++ ) { if( (1<<i) == predicted ) { predicted_pos = i; break; } }
 
     /*
-    fprintf( stderr, "top: %8d bot: %8d\ttop-avg: %8d bot-avg: %8d (%d)\n", top_repeat, bot_repeat, top_repeat - avgtop, bot_repeat - avgbot, (5 + predicted_pos - reference) % 5 );
+    printf(top: %8d bot: %8d\ttop-avg: %8d bot-avg: %8d (%d)\n", top_repeat, bot_repeat, top_repeat - avgtop, bot_repeat - avgbot, (5 + predicted_pos - reference) % 5 );
     */
 
     for( j = 0; j < HISTORY_SIZE; j++ ) {
@@ -323,12 +323,12 @@ int determine_pulldown_offset_history_new( int top_repeat, int bot_repeat, int t
     }
 
     /*
-    fprintf( stderr, "ret: %d %d %d %d %d\n",
-             PULLDOWN_OFFSET_1 & ret,
-             PULLDOWN_OFFSET_2 & ret,
-             PULLDOWN_OFFSET_3 & ret,
-             PULLDOWN_OFFSET_4 & ret,
-             PULLDOWN_OFFSET_5 & ret );
+    printf( "ret: %d %d %d %d %d\n",
+            PULLDOWN_OFFSET_1 & ret,
+            PULLDOWN_OFFSET_2 & ret,
+            PULLDOWN_OFFSET_3 & ret,
+            PULLDOWN_OFFSET_4 & ret,
+            PULLDOWN_OFFSET_5 & ret );
     */
 
     histpos = (histpos + 1) % HISTORY_SIZE;
@@ -380,9 +380,9 @@ int determine_pulldown_offset_short_history_new( int top_repeat, int bot_repeat,
     for( i = 0; i < 5; i++ ) { if( (1<<i) == predicted ) { predicted_pos = i; break; } }
 
     /*
-    fprintf( stderr, "top: %8d bot: %8d\ttop-avg: %8d bot-avg: %8d (%d)\n",
-             top_repeat, bot_repeat, top_repeat - avgtop, bot_repeat - avgbot,
-             (5 + predicted_pos - reference) % 5 );
+    printf( "top: %8d bot: %8d\ttop-avg: %8d bot-avg: %8d (%d)\n",
+            top_repeat, bot_repeat, top_repeat - avgtop, bot_repeat - avgbot,
+            (5 + predicted_pos - reference) % 5 );
     */
 
     for( j = 0; j < 3; j++ ) {
@@ -437,12 +437,12 @@ int determine_pulldown_offset_short_history_new( int top_repeat, int bot_repeat,
     }
 
     /*
-    fprintf( stderr, "ret: %d %d %d %d %d\n",
-             PULLDOWN_OFFSET_1 & ret,
-             PULLDOWN_OFFSET_2 & ret,
-             PULLDOWN_OFFSET_3 & ret,
-             PULLDOWN_OFFSET_4 & ret,
-             PULLDOWN_OFFSET_5 & ret );
+    printf( "ret: %d %d %d %d %d\n",
+            PULLDOWN_OFFSET_1 & ret,
+            PULLDOWN_OFFSET_2 & ret,
+            PULLDOWN_OFFSET_3 & ret,
+            PULLDOWN_OFFSET_4 & ret,
+            PULLDOWN_OFFSET_5 & ret );
     */
 
     histpos = (histpos + 1) % HISTORY_SIZE;

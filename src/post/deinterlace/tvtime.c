@@ -234,7 +234,7 @@ int tvtime_build_deinterlaced_frame( tvtime_t *this, uint8_t *output,
             if( !pderror ) {
                 // We're in pulldown, reverse it.
                 if( !filmmode ) {
-                    fprintf( stderr, "Film mode enabled.\n" );
+                    printf( "Film mode enabled.\n" );
                     filmmode = 1;
                 }
 
@@ -252,7 +252,7 @@ int tvtime_build_deinterlaced_frame( tvtime_t *this, uint8_t *output,
                 return 1;
             } else {
                 if( filmmode ) {
-                    fprintf( stderr, "Film mode disabled.\n" );
+                    printf( "Film mode disabled.\n" );
                     filmmode = 0;
                 }
             }

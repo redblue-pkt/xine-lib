@@ -2176,7 +2176,7 @@ void setup_speedy_calls( uint32_t accel, int verbose )
 #ifdef ARCH_X86
     if( speedy_accel & MM_ACCEL_X86_MMXEXT ) {
         if( verbose ) {
-            fprintf( stderr, "speedycode: Using MMXEXT optimized functions.\n" );
+            printf( "speedycode: Using MMXEXT optimized functions.\n" );
         }
         interpolate_packed422_scanline = interpolate_packed422_scanline_mmxext;
         blit_colour_packed422_scanline = blit_colour_packed422_scanline_mmxext;
@@ -2197,7 +2197,7 @@ void setup_speedy_calls( uint32_t accel, int verbose )
         speedy_memcpy = speedy_memcpy_mmxext;
     } else if( speedy_accel & MM_ACCEL_X86_MMX ) {
         if( verbose ) {
-            fprintf( stderr, "speedycode: Using MMX optimized functions.\n" );
+            printf( "speedycode: Using MMX optimized functions.\n" );
         }
         interpolate_packed422_scanline = interpolate_packed422_scanline_mmx;
         blit_colour_packed422_scanline = blit_colour_packed422_scanline_mmx;
@@ -2212,7 +2212,7 @@ void setup_speedy_calls( uint32_t accel, int verbose )
         speedy_memcpy = speedy_memcpy_mmx;
     } else {
         if( verbose ) {
-            fprintf( stderr, "speedycode: No MMX or MMXEXT support detected, using C fallbacks.\n" );
+            printf( "speedycode: No MMX or MMXEXT support detected, using C fallbacks.\n" );
         }
     }
 #endif
