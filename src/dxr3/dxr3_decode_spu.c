@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decode_spu.c,v 1.23 2002/10/26 20:12:59 mroi Exp $
+ * $Id: dxr3_decode_spu.c,v 1.24 2002/10/26 20:52:08 mroi Exp $
  */
  
 /* dxr3 spu decoder plugin.
@@ -316,6 +316,7 @@ static void dxr3_spudec_decode_data(spu_decoder_t *this_gen, buf_element_t *buf)
 	  event.data         = &spu_button;
 	  event.data_length  = sizeof(spu_button);
           spu_button.buttonN = this->buttonN;
+	  memcpy(&spu_button.nav_pci, &this->pci, sizeof(pci_t));
           xine_event_send(this->stream, &event);
         }
 	if ((dxr3_spudec_copy_nav_to_btn(this, 0, &btn ) > 0)) {
@@ -587,6 +588,7 @@ static int dxr3_spudec_copy_nav_to_btn(dxr3_spudec_t *this, int32_t mode, em8300
     event.data         = &spu_button;
     event.data_length  = sizeof(spu_button);
     spu_button.buttonN = this->buttonN;
+    memcpy(&spu_button.nav_pci, &this->pci, sizeof(pci_t));
     xine_event_send(this->stream, &event);
   }
   
