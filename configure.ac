@@ -1975,8 +1975,11 @@ fi
 AC_SUBST(MKINSTALLDIRS)
 
 
+
 dnl Make Objective-C work with automake 1.7.x
-AM_CONDITIONAL([am__fastdepOBJC], false)
+if test x"am__api_version" = "x1.7"; then
+  AM_CONDITIONAL([am__fastdepOBJC], false)
+fi
 
 
 dnl ---------------------------------------------
