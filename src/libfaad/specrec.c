@@ -22,7 +22,7 @@
 ** Commercial non-GPL licensing of this software is possible.
 ** For more info contact Ahead Software through Mpeg4AAClicense@nero.com.
 **
-** $Id: specrec.c,v 1.6 2004/01/26 22:34:11 jstembridge Exp $
+** $Id: specrec.c,v 1.7 2004/02/12 18:30:43 mroi Exp $
 **/
 
 /*
@@ -892,7 +892,7 @@ uint8_t reconstruct_single_channel(faacDecHandle hDecoder, ic_stream *ics,
 uint8_t reconstruct_channel_pair(faacDecHandle hDecoder, ic_stream *ics1, ic_stream *ics2,
                                  element *cpe, int16_t *spec_data1, int16_t *spec_data2)
 {
-    uint8_t retval, mul;
+    uint8_t retval, mul = 1;
     ALIGN real_t spec_coef1[1024];
     ALIGN real_t spec_coef2[1024];
 
