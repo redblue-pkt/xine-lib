@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.112 2002/04/18 11:42:38 miguelfreitas Exp $
+ * $Id: video_out_xv.c,v 1.113 2002/04/19 22:58:46 miguelfreitas Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -631,9 +631,9 @@ static void xv_compute_ideal_size (xv_driver_t *this) {
       desired_ratio = image_ratio;
       break;
     case 0:                             /* forbidden -> 4:3 */
-      printf ("video_out_xshm: invalid ratio, using 4:3\n");
+      printf ("video_out_xv: invalid ratio, using 4:3\n");
     default:
-      printf ("video_out_xshm: unknown aspect ratio (%d) in stream => using 4:3\n",
+      printf ("video_out_xv: unknown aspect ratio (%d) in stream => using 4:3\n",
 	      this->delivered_ratio_code);
     case XINE_ASPECT_RATIO_4_3:         /* 4:3             */
       desired_ratio = 4.0 / 3.0;
