@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_mpeg_encoders.c,v 1.13 2003/09/11 10:01:03 mroi Exp $
+ * $Id: dxr3_mpeg_encoders.c,v 1.14 2003/11/05 21:58:22 mroi Exp $
  */
  
 /* mpeg encoders for the dxr3 video out plugin.
@@ -410,41 +410,30 @@ static int fame_on_update_format(dxr3_driver_t *drv, dxr3_frame_t *frame)
 
   /* start guessing the framerate */
   fps = 90000.0 / frame->vo_frame.duration;
-  if (fabs(fps - 25) < 0.01) { /* PAL */
-#if LOG_ENC
-    printf("dxr3_mpeg_encoder: setting mpeg output framerate to PAL (25 Hz)\n");
-#endif
-    this->fp.frame_rate_num = 25;
-    this->fp.frame_rate_den = 1; 
-  }  
-  else if (fabs(fps - 24) < 0.01) { /* FILM */
-#if LOG_ENC
-    printf("dxr3_mpeg_encoder: setting mpeg output framerate to FILM (24 Hz)\n");
-#endif
-    this->fp.frame_rate_num = 24;
-    this->fp.frame_rate_den = 1; 
-  }
-  else if (fabs(fps - 23.976) < 0.01) { /* NTSC-FILM */
+  if (fps < 23.988) { /* NTSC-FILM */
 #if LOG_ENC
     printf("dxr3_mpeg_encoder: setting mpeg output framerate to NTSC-FILM (23.976 Hz)\n");
 #endif
     this->fp.frame_rate_num = 24000;
     this->fp.frame_rate_den = 1001; 
-  }
-  else if (fabs(fps - 29.97) < 0.01) { /* NTSC */
+  } else if (fps < 24.5) { /* FILM */
+#if LOG_ENC
+    printf("dxr3_mpeg_encoder: setting mpeg output framerate to FILM (24 Hz)\n");
+#endif
+    this->fp.frame_rate_num = 24;
+    this->fp.frame_rate_den = 1; 
+  } else if (fps < 27.485) { /* PAL */
+#if LOG_ENC
+    printf("dxr3_mpeg_encoder: setting mpeg output framerate to PAL (25 Hz)\n");
+#endif
+    this->fp.frame_rate_num = 25;
+    this->fp.frame_rate_den = 1; 
+  } else { /* NTSC */
 #if LOG_ENC
     printf("dxr3_mpeg_encoder: setting mpeg output framerate to NTSC (29.97 Hz)\n");
 #endif
     this->fp.frame_rate_num = 30000;
     this->fp.frame_rate_den = 1001;
-  }
-  else { /* try 1/fps, if not legal, libfame will go to PAL */
-    this->fp.frame_rate_num = (int)(fps + 0.5);
-    this->fp.frame_rate_den = 1;
-#if LOG_ENC
-    printf("dxr3_mpeg_encoder: trying to set mpeg output framerate to %d Hz\n",
-      this->fp.frame_rate_num);
-#endif
   }
   
   fame_init (this->context, &this->fp, this->buffer, DEFAULT_BUFFER_SIZE);
