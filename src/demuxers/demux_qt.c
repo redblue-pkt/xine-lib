@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.162 2003/06/29 01:38:57 hadess Exp $
+ * $Id: demux_qt.c,v 1.163 2003/07/21 19:28:05 hadess Exp $
  *
  */
 
@@ -1404,11 +1404,17 @@ static qt_error parse_reference_atom (reference_t *ref,
 
       } else {
 
-        int string_size = strlen(base_mrl) + BE_32(&ref_atom[i + 12]) + 1;
+        int string_size;
+
+	if (base_mrl)
+          string_size = strlen(base_mrl) + BE_32(&ref_atom[i + 12]) + 1;
+	else
+          string_size = BE_32(&ref_atom[i + 12]) + 1;
 
         /* otherwise, append relative URL to base MRL */
         ref->url = xine_xmalloc(string_size);
-        strcpy(ref->url, base_mrl);
+	if (base_mrl)
+          strcpy(ref->url, base_mrl);
         strncat(ref->url, &ref_atom[i + 16], BE_32(&ref_atom[i + 12]));
         ref->url[string_size - 1] = '\0';
       }
