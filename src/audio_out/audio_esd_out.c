@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_esd_out.c,v 1.24 2002/12/21 12:56:46 miguelfreitas Exp $
+ * $Id: audio_esd_out.c,v 1.25 2002/12/27 17:49:17 jkeil Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -32,6 +32,7 @@
 #include <esd.h>
 #include <signal.h>
 #include <sys/time.h>
+#include <sys/uio.h>
 #include <inttypes.h>
 
 #include "xine_internal.h"
@@ -41,6 +42,7 @@
 
 #define AO_OUT_ESD_IFACE_VERSION 7
 
+#define	REBLOCK		      1	    /* reblock output to ESD_BUF_SIZE blks */
 #define GAP_TOLERANCE         5000
 
 typedef struct esd_driver_s {
@@ -61,6 +63,7 @@ typedef struct esd_driver_s {
   uint32_t         bytes_in_buffer;      /* number of bytes writen to esd */
 
   int              gap_tolerance, latency;
+  int		   server_sample_rate;
 
   struct timeval   start_time;
 
@@ -69,6 +72,23 @@ typedef struct esd_driver_s {
     int            volume;
     int            mute;
   } mixer;
+
+#if	REBLOCK
+  /*
+   * Temporary sample buffer used to reblock the sample output stream
+   * to writes using buffer sizes of n*ESD_BUF_SIZE bytes.
+   * 
+   * The reblocking avoids a bug with esd 0.2.18 servers and reduces
+   * cpu load with newer versions of the esd server.
+   *
+   * The esd 0.2.18 version zero fills "partial"/"incomplete" blocks.
+   * esd 0.2.28+ has fixed this problem, by performing a busy polling
+   * loop reading from a nonblocking socket to get the remainder of
+   * the partial block.  This is wasting a lot of cpu cycles.
+   */
+  char		   reblock_buf[ESD_BUF_SIZE];
+  int		   reblock_rem;
+#endif
 
 } esd_driver_t;
 
@@ -98,16 +118,17 @@ static int ao_esd_open(ao_driver_t *this_gen,
 
   if (this->audio_fd>=0) {
 
-    if ( (mode == this->mode) && (rate == this->input_sample_rate) )
+    if ( (mode == this->mode) && (rate == this->input_sample_rate) ) 
       return this->output_sample_rate;
 
-    close (this->audio_fd);
+    esd_close (this->audio_fd);
   }
   
   this->mode                   = mode;
   this->input_sample_rate      = rate;
   this->output_sample_rate     = rate;
   this->bytes_in_buffer        = 0;
+  this->start_time.tv_sec      = 0;
 
   /*
    * open stream to ESD server
@@ -128,19 +149,23 @@ static int ao_esd_open(ao_driver_t *this_gen,
 
   this->bytes_per_frame=(bits*this->num_channels)/8;
 
-  if (this->output_sample_rate > 44100)
-    this->output_sample_rate = 44100;
-
-  this->output_sample_k_rate   = this->output_sample_rate / 1000;
+#if ESD_RESAMPLE
+  /* esd resamples (only for sample rates < the esd server's sample rate) */
+  if (this->output_sample_rate > this->server_sample_rate)
+    this->output_sample_rate = this->server_sample_rate;
+#else
+  /* use xine's resample code */
+  this->output_sample_rate = this->server_sample_rate;
+#endif
+  this->output_sample_k_rate = this->output_sample_rate / 1000;
 
   this->audio_fd = esd_play_stream(format, this->output_sample_rate, NULL, this->pname);
   if (this->audio_fd < 0) {
+    char *server = getenv("ESPEAKER");
     printf("audio_esd_out: connecting to ESD server %s: %s\n",
-	   getenv("ESPEAKER"), strerror(errno));
+	   server ? server : "<default>", strerror(errno));
     return 0;
   }
-
-  gettimeofday(&this->start_time, NULL);
 
   return this->output_sample_rate;
 }
@@ -165,14 +190,19 @@ static int ao_esd_delay(ao_driver_t *this_gen)
   int           frames;
   struct        timeval tv;
 
+  if (this->start_time.tv_sec == 0)
+    return 0;
+
   gettimeofday(&tv, NULL);
 
-  frames  = (tv.tv_usec + 1000000 - this->start_time.tv_usec)
+  frames  = (tv.tv_usec - this->start_time.tv_usec)
     * this->output_sample_k_rate / 1000;
   frames += (tv.tv_sec - this->start_time.tv_sec)
     * this->output_sample_rate;
 
   frames -= this->latency; 
+  if (frames < 0)
+      frames = 0;
   
   /* calc delay */
   
@@ -180,7 +210,6 @@ static int ao_esd_delay(ao_driver_t *this_gen)
   
   if (bytes_left<=0) /* buffer ran dry */
     bytes_left = 0;
-
   return bytes_left / this->bytes_per_frame;
 }
 
@@ -195,28 +224,96 @@ static int ao_esd_write(ao_driver_t *this_gen,
   if (this->audio_fd<0)
     return 1;
 
+  if (this->start_time.tv_sec == 0)
+    gettimeofday(&this->start_time, NULL);
+
   /* check if simulated buffer ran dry */
 
   gettimeofday(&tv, NULL);
   
-  frames  = (tv.tv_usec + 1000000 - this->start_time.tv_usec)
+  frames  = (tv.tv_usec - this->start_time.tv_usec)
     * this->output_sample_k_rate / 1000;
   frames += (tv.tv_sec - this->start_time.tv_sec)
     * this->output_sample_rate;
   
   frames -= this->latency; 
+  if (frames < 0)
+      frames = 0;
 
   /* calc delay */
   
   simulated_bytes_in_buffer = frames * this->bytes_per_frame;
-  
+
   if (this->bytes_in_buffer < simulated_bytes_in_buffer)
     this->bytes_in_buffer = simulated_bytes_in_buffer;
 
+#if REBLOCK
+  {
+    struct iovec iov[2];
+    int iovcnt;
+    int num_bytes;
+    int nwritten;
+    int rem;
+
+    if (this->reblock_rem + num_frames*this->bytes_per_frame < ESD_BUF_SIZE) {
+	/*
+	 * the stuff in the temporary reblocking buffer plus the new
+	 * samples still do not give a complete ESD_BUF_SIZE block.
+	 * just save the new samples in the reblocking buffer for later.
+	 */
+	memcpy(this->reblock_buf + this->reblock_rem,
+	       frame_buffer,
+	       num_frames * this->bytes_per_frame);
+	this->reblock_rem += num_frames * this->bytes_per_frame;
+	return 1;
+    }
+
+    /* OK, we have at least one complete ESD_BUF_SIZE block */
+
+    iovcnt = 0;
+    num_bytes = 0;
+    if (this->reblock_rem > 0) {
+	/* send any saved samples from the reblocking buffer first */
+	iov[iovcnt].iov_base = this->reblock_buf;
+	iov[iovcnt].iov_len = this->reblock_rem;
+	iovcnt++;
+	num_bytes += this->reblock_rem;
+	this->reblock_rem = 0;
+    }
+    rem = (num_bytes + num_frames * this->bytes_per_frame) % ESD_BUF_SIZE;
+    if (num_frames * this->bytes_per_frame > rem) {
+	/*
+	 * add samples from caller, so that the total number of bytes is
+	 * a multiple of ESD_BUF_SIZE
+	 */
+	iov[iovcnt].iov_base = frame_buffer;
+	iov[iovcnt].iov_len = num_frames * this->bytes_per_frame - rem;
+	num_bytes += num_frames * this->bytes_per_frame - rem;
+	iovcnt++;
+    }
+
+    nwritten = writev(this->audio_fd, iov, iovcnt);
+    if (nwritten != num_bytes) {
+	if (nwritten < 0)
+	    printf("audio_esd_out: writev failed: %s\n", strerror(errno));
+	else 
+	    printf("audio_esd_out: warning, incomplete write: %d\n", nwritten);
+    }
+    if (nwritten > 0)
+	this->bytes_in_buffer += nwritten;
+
+    if (rem > 0) {
+	/* save the remaining bytes for the next ao_esd_write() */
+	memcpy(this->reblock_buf,
+	       (char*)frame_buffer + iov[iovcnt-1].iov_len, rem);
+	this->reblock_rem = rem;
+    }
+  }
+#else
   this->bytes_in_buffer += num_frames * this->bytes_per_frame;
 
   write(this->audio_fd, frame_buffer, num_frames * this->bytes_per_frame);
-
+#endif
   return 1;
 }
 
@@ -371,11 +468,14 @@ static int ao_esd_ctrl(ao_driver_t *this_gen, int cmd, ...) {
 static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, 
 				 const void *data) {
 
-  esd_class_t     *class = (esd_class_t *) class_gen;
-  config_values_t *config = class->config;
-  esd_driver_t    *this;
-  int              audio_fd;
-  sigset_t         vo_mask, vo_mask_orig;
+  esd_class_t       *class = (esd_class_t *) class_gen;
+  config_values_t   *config = class->config;
+  esd_driver_t      *this;
+  int                audio_fd;
+  int		     err;
+  esd_server_info_t *esd_svinfo;
+  int		     server_sample_rate;
+  sigset_t           vo_mask, vo_mask_orig;
 
   /*
    * open stream to ESD server
@@ -383,7 +483,7 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen,
    * esd_open_sound needs a working SIGALRM for detecting a failed
    * attempt to autostart the esd daemon;  esd notifies the process that
    * attempts the esd daemon autostart with a SIGALRM (SIGUSR1) signal
-   * about a failure to open the audio device (successful daemin startup).
+   * about a failure to open the audio device (successful daemon startup).
    *
    * Temporarily release the blocked SIGALRM, while esd_open_sound is active.
    * (Otherwise xine hangs in esd_open_sound on a machine without sound)
@@ -396,7 +496,8 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen,
 
   printf("audio_esd_out: connecting to esd server...\n");
   audio_fd = esd_open_sound(NULL);
-  
+  err = errno;
+
   if (sigprocmask(SIG_SETMASK, &vo_mask_orig, NULL))
     printf("audio_esd_out: cannot block SIGALRM: %s\n", strerror(errno));
 
@@ -405,20 +506,28 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen,
 
     /* print a message so the user knows why ESD failed */
     printf("audio_esd_out: can't connect to %s ESD server: %s\n",
-	   server ? server : "local", strerror(errno));
+	   server ? server : "<default>", strerror(err));
 
     return NULL;
   }
   
+  esd_svinfo = esd_get_server_info(audio_fd);
+  if (esd_svinfo) {
+      server_sample_rate = esd_svinfo->rate;
+      esd_free_server_info(esd_svinfo);
+  } else
+      server_sample_rate = 44100;
+
   esd_close(audio_fd);
 
 
   this                     = (esd_driver_t *) xine_xmalloc (sizeof (esd_driver_t));
   this->pname              = strdup("xine esd audio output plugin");
   this->output_sample_rate = 0;
+  this->server_sample_rate = server_sample_rate;
   this->audio_fd           = -1;
   this->capabilities       = AO_CAP_MODE_MONO | AO_CAP_MODE_STEREO | AO_CAP_MIXER_VOL | AO_CAP_MUTE_VOL;
-  this->latency            = config->register_range (config, "audio.esd_latency", 30000,
+  this->latency            = config->register_range (config, "audio.esd_latency", 0,
 						     -30000, 90000,
 						     _("esd audio output latency (adjust a/v sync)"),
 						     NULL, 0, NULL, NULL);
