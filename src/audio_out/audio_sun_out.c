@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_sun_out.c,v 1.1 2001/06/21 17:34:23 guenter Exp $
+ * $Id: audio_sun_out.c,v 1.2 2001/06/22 10:45:03 jkeil Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -42,6 +42,15 @@
 #include "metronom.h"
 #include "utils.h"
 
+
+#ifndef	AUDIO_CHANNELS_MONO
+#define	AUDIO_CHANNELS_MONO	1
+#define	AUDIO_CHANNELS_STEREO	2
+#endif
+#ifndef	AUDIO_PRECISION_8
+#define	AUDIO_PRECISION_8	8
+#define	AUDIO_PRECISION_16	16
+#endif
 
 #define GAP_TOLERANCE         5000
 
@@ -340,10 +349,12 @@ static int ao_get_property (ao_functions_t *this_gen, int property) {
     if (ioctl(this->audio_fd, AUDIO_GETINFO, &info) < 0)
       return 0;
     return info.play.gain;
+#if !defined(__NetBSD__)    /* audio_info.output_muted is missing on NetBSD */
   case AO_PROP_MUTE_VOL:
     if (ioctl(this->audio_fd, AUDIO_GETINFO, &info) < 0)
       return 0;
     return info.output_muted;
+#endif
   }
 
   return 0;
@@ -367,11 +378,13 @@ static int ao_set_property (ao_functions_t *this_gen, int property, int value) {
     if (ioctl(this->audio_fd, AUDIO_SETINFO, &info) < 0)
       return ~value;
     return value;
+#if !defined(__NetBSD__)    /* audio_info.output_muted is missing on NetBSD */
   case AO_PROP_MUTE_VOL:
     info.output_muted = value != 0;
     if (ioctl(this->audio_fd, AUDIO_SETINFO, &info) < 0)
       return ~value;
     return value;
+#endif
   }
 
   return ~value;
