@@ -1215,6 +1215,7 @@ src/libreal/Makefile
 src/post/Makefile
 src/post/planar/Makefile
 src/post/goom/Makefile
+src/post/visualizations/Makefile
 src/video_out/Makefile
 src/video_out/libdha/Makefile
 src/video_out/libdha/bin/Makefile
@@ -1352,7 +1353,7 @@ echo " * post effect plugins:"
 echo "  * planar video effects:"
 echo "   - invert"
 echo "  * SFX:"
-echo "   - goom"
+echo "   - goom            - oscope"
 echo ""
 
 dnl Video plugins

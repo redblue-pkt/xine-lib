@@ -1,5 +1,5 @@
 SUBDIRS = \
-	planar goom
+	planar goom visualizations
 
 debug:
 	@list='$(SUBDIRS)'; for subdir in $$list; do \
