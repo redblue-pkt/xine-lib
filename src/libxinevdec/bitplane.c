@@ -22,7 +22,7 @@
  * suitable for display under xine. It's based on the rgb-decoder
  * and the development documentation from the Amiga Developer CD
  *
- * $Id: bitplane.c,v 1.3 2004/02/22 12:36:37 manfredtremmel Exp $
+ * $Id: bitplane.c,v 1.4 2004/02/22 16:47:30 manfredtremmel Exp $
  */
 
 #include <stdio.h>
@@ -589,14 +589,14 @@ static void bitplane_decode_data (video_decoder_t *this_gen,
           default:
             break;
         }
-        if( this->bytes_per_pixel > 1 )
+        if( this->bytes_per_pixel > 1 ) {
           bitplane_decode_bitplane(   this->buf_uk,              /* bitplane buffer         */
                                       this->rgb_buf,             /* rgb buffer, direct 24Bit*/
                                       this->width_decode,        /* width                   */
                                       this->height,              /* hight                   */
                                       this->num_bitplanes,       /* number bitplanes        */
                                       this->bytes_per_pixel);    /* used Bytes per pixel    */
-        else
+        } else {
           bitplane_decode_bitplane(   this->buf_uk,              /* bitplane buffer         */
                                       this->index_buf,           /* index buffer            */
                                       this->width_decode,        /* width                   */
@@ -604,11 +604,12 @@ static void bitplane_decode_data (video_decoder_t *this_gen,
                                       this->num_bitplanes,       /* number bitplanes        */
                                       this->bytes_per_pixel);    /* used Bytes per pixel    */
 
-        if( this->buf_uk_hist == NULL ) {
-          this->buf_uk_hist             = xine_xmalloc( (this->size_uk) );
-          xine_fast_memcpy (this->buf_uk_hist, this->buf_uk, this->size_uk);
-          xine_fast_memcpy (this->index_buf_hist, this->index_buf,
-                            (this->width_decode * this->height * this->bytes_per_pixel));
+          if( this->buf_uk_hist == NULL ) {
+            this->buf_uk_hist             = xine_xmalloc( (this->size_uk) );
+            xine_fast_memcpy (this->buf_uk_hist, this->buf_uk, this->size_uk);
+            xine_fast_memcpy (this->index_buf_hist, this->index_buf,
+                              (this->width_decode * this->height * this->bytes_per_pixel));
+          }
         }
       } else {
         switch( anhd->operation ) {
