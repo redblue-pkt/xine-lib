@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.32 2001/10/20 02:01:51 guenter Exp $
+ * $Id: audio_alsa_out.c,v 1.33 2001/11/13 14:37:48 jcdutton Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -226,7 +226,10 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
     printf ("audio_alsa_out: >>> check if another program don't already use PCM <<<\n");     
     return 0;
   }
-
+/*
+ * This is all not needed in the new ALSA API
+ * Beginning of old alsa section.
+ * 
   if ((mode & AO_CAP_MODE_A52) || (mode & AO_CAP_MODE_AC5)) {
     snd_pcm_info_alloca(&info);
 
@@ -270,7 +273,9 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
     }
     snd_ctl_close(ctl_handle);
   }
-
+ *
+ * End of old alsa section.
+ */
   /* We wanted non blocking open but now put it back to normal */
   snd_pcm_nonblock(this->audio_fd, 0);
   /*
