@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3.c,v 1.44 2002/07/18 09:30:34 mroi Exp $
+ * $Id: video_out_dxr3.c,v 1.45 2002/07/18 15:17:03 mroi Exp $
  */
  
 /* mpeg1 encoding video out plugin for the dxr3.  
@@ -622,18 +622,26 @@ static void dxr3_display_frame(vo_driver_t *this_gen, vo_frame_t *frame_gen)
   if (!frame->aspect) {
     /* aspect not determined yet, set it now */
     frame->aspect = this->aspect;
-    if (frame_gen->ratio == XINE_ASPECT_RATIO_SQUARE || frame_gen->ratio == XINE_ASPECT_RATIO_4_3)
+    frame->pan_scan = 0;
+    switch (frame->vo_frame.ratio) {
+    case XINE_ASPECT_RATIO_SQUARE:
+    case XINE_ASPECT_RATIO_4_3:
       frame->aspect = ASPECT_FULL;
-    if (frame_gen->ratio == XINE_ASPECT_RATIO_ANAMORPHIC || frame_gen->ratio == XINE_ASPECT_RATIO_211_1)
+      break;
+    case XINE_ASPECT_RATIO_PAN_SCAN:
+      if (!this->overlay_enabled) frame->pan_scan = 1;
+    case XINE_ASPECT_RATIO_ANAMORPHIC:
+    case XINE_ASPECT_RATIO_211_1:
       frame->aspect = ASPECT_ANAMORPHIC;
+    }
   }
   if (frame->aspect != this->aspect)
     dxr3_set_property(this_gen, VO_PROP_ASPECT_RATIO, frame->vo_frame.ratio);
-  if (frame->pan_scan && !this->pan_scan && !this->overlay_enabled) {
+  if (frame->pan_scan && !this->pan_scan) {
     dxr3_set_property(this_gen, VO_PROP_ZOOM_FACTOR, 1);
     this->pan_scan = 1;
   }
-  if (!frame->pan_scan && this->pan_scan && !this->overlay_enabled) {
+  if (!frame->pan_scan && this->pan_scan) {
     this->pan_scan = 0;
     dxr3_set_property(this_gen, VO_PROP_ZOOM_FACTOR, -1);
   }
