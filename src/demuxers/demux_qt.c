@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.52 2002/06/12 12:22:33 f1rmb Exp $
+ * $Id: demux_qt.c,v 1.53 2002/06/16 16:48:03 tmmm Exp $
  *
  */
 
@@ -79,7 +79,9 @@ typedef unsigned int qt_atom;
 #define SMHD_ATOM QT_ATOM('s', 'm', 'h', 'd')
 
 #define TRAK_ATOM QT_ATOM('t', 'r', 'a', 'k')
+#define TKHD_ATOM QT_ATOM('t', 'k', 'h', 'd')
 #define MDHD_ATOM QT_ATOM('m', 'd', 'h', 'd')
+#define ELST_ATOM QT_ATOM('e', 'l', 's', 't')
 
 /* atoms in a sample table */
 #define STSD_ATOM QT_ATOM('s', 't', 's', 'd')
@@ -128,6 +130,11 @@ typedef struct {
 } qt_frame;
 
 typedef struct {
+  unsigned int track_duration;
+  unsigned int media_time;
+} edit_list_table_t;
+
+typedef struct {
   unsigned int first_chunk;
   unsigned int samples_per_chunk;
 } sample_to_chunk_table_t;
@@ -158,6 +165,10 @@ typedef struct {
 
   } media_description;
 
+  /* edit list table */
+  unsigned int edit_list_count;
+  edit_list_table_t *edit_list_table;
+
   /* chunk offsets */
   unsigned int chunk_offset_count;
   int64_t *chunk_offset_table;
@@ -185,6 +196,9 @@ typedef struct {
 
   /* trak timescale */
   unsigned int timescale;
+
+  /* flags that indicate how a trak is supposed to be used */
+  unsigned int flags;
 
 } qt_sample_table;
 
@@ -363,7 +377,34 @@ static qt_error parse_trak_atom(qt_sample_table *sample_table,
       sample_table->type = MEDIA_VIDEO;
     else if (current_atom == SMHD_ATOM)
       sample_table->type = MEDIA_AUDIO;
-    else if (current_atom == MDHD_ATOM)
+    else if (current_atom == TKHD_ATOM)
+      sample_table->flags = BE_16(&trak_atom[i + 6]);
+    else if (current_atom == ELST_ATOM) {
+
+      /* there should only be one edit list table */
+      if (sample_table->edit_list_table) {
+        last_error = QT_HEADER_TROUBLE;
+        goto free_sample_table;
+      }
+
+      sample_table->edit_list_count = BE_32(&trak_atom[i + 8]);
+
+      sample_table->edit_list_table = (edit_list_table_t *)malloc(
+        sample_table->edit_list_count * sizeof(edit_list_table_t));
+      if (!sample_table->edit_list_table) {
+        last_error = QT_NO_MEMORY;
+        goto free_sample_table;
+      }
+
+      /* load the edit list table */
+      for (j = 0; j < sample_table->edit_list_count; j++) {
+        sample_table->edit_list_table[j].track_duration =
+          BE_32(&trak_atom[i + 12 + j * 12 + 0]);
+        sample_table->edit_list_table[j].media_time =
+          BE_32(&trak_atom[i + 12 + j * 12 + 4]);
+      }
+
+    } else if (current_atom == MDHD_ATOM)
       sample_table->timescale = BE_32(&trak_atom[i + 0x10]);
     else if (current_atom == STSD_ATOM) {
 
@@ -544,6 +585,7 @@ static qt_error parse_trak_atom(qt_sample_table *sample_table,
 
   /* jump here to make sure everything is free'd and avoid leaking memory */
 free_sample_table:
+  free(sample_table->edit_list_table);
   free(sample_table->chunk_offset_table);
   free(sample_table->sample_size_table);
   free(sample_table->sync_sample_table);
