@@ -278,7 +278,7 @@ xine_health_check_t* xine_health_check_dma (xine_health_check_t* hc) {
     return hc;
   }
 
-  if (major (st.st_rdev) == LVM_BLK_MAJOR) {
+  if (SCSI_BLK_MAJOR(major(st.st_rdev))) {
     is_scsi_dev = 1;
     set_hc_result(hc, XINE_HEALTH_CHECK_OK, "SKIPPED - Operation not supported on SCSI drives or drives that use the ide-scsi module.");
     return hc;
