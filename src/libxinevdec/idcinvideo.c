@@ -1,0 +1,424 @@
+/*
+ * Copyright (C) 2000-2002 the xine project
+ *
+ * This file is part of xine, a free video player.
+ *
+ * xine is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * xine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
+ *
+ * Id CIN Video Decoder by Dr. Tim Ferguson. For more information about
+ * the Id CIN format, visit:
+ *   http://www.csse.monash.edu.au/~timf/
+ * 
+ * $Id: idcinvideo.c,v 1.1 2002/08/12 00:16:54 tmmm Exp $
+ */
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/types.h>
+#include <unistd.h>
+
+#include "video_out.h"
+#include "buffer.h"
+#include "xine_internal.h"
+#include "xineutils.h"
+#include "bswap.h"
+
+#define VIDEOBUFSIZE 128*1024
+
+typedef struct idcinvideo_decoder_s {
+  video_decoder_t   video_decoder;  /* parent video decoder structure */
+
+  /* these are traditional variables in a video decoder object */
+  vo_instance_t    *video_out;   /* object that will receive frames */
+  uint64_t          video_step;  /* frame duration in pts units */
+  int               decoder_ok;  /* current decoder status */
+  int               skipframes;
+
+  unsigned char    *buf;         /* the accumulated buffer data */
+  int               bufsize;     /* the maximum size of buf */
+  int               size;        /* the current size of buf */
+
+  int               width;       /* the width of a video frame */
+  int               height;      /* the height of a video frame */
+
+  unsigned char     yuv_palette[256 * 4];
+  yuv_planes_t      yuv_planes;
+  
+} idcinvideo_decoder_t;
+
+/**************************************************************************
+ * idcinvideo specific decode functions
+ *************************************************************************/
+
+#define HUF_TOKENS 256
+
+typedef struct
+{
+  long rate;
+  long width;
+  long channels;
+} wavinfo_t;
+
+typedef struct
+{
+  int count;
+  unsigned char used;
+  int children[2];
+} hnode_t;
+
+static hnode_t huff_nodes[256][HUF_TOKENS*2];
+static int num_huff_nodes[256];
+
+/*
+ *  Decodes input Huffman data using the Huffman table.
+ */
+void huff_decode(idcinvideo_decoder_t *this) {
+  hnode_t *hnodes;
+  long i;
+  int prev;
+  unsigned char v = 0;
+  int bit_pos, node_num, dat_pos;
+  int width_countdown = this->width;
+  int plane_ptr = 0;
+
+  prev = bit_pos = dat_pos = 0;
+  for(i = 0; i < (this->width * this->height); i++) {
+    node_num = num_huff_nodes[prev];
+    hnodes = huff_nodes[prev];
+
+    while(node_num >= HUF_TOKENS) {
+      if(!bit_pos) {
+        if(dat_pos > this->size) {
+          printf("Huffman decode error.\n");
+          return;
+        }
+        bit_pos = 8;
+        v = this->buf[dat_pos++];
+      }
+
+      node_num = hnodes[node_num].children[v & 0x01];
+      v = v >> 1;
+      bit_pos--;
+    }
+
+    this->yuv_planes.y[plane_ptr] = this->yuv_palette[node_num * 4 + 0];
+    this->yuv_planes.u[plane_ptr] = this->yuv_palette[node_num * 4 + 1];
+    this->yuv_planes.v[plane_ptr] = this->yuv_palette[node_num * 4 + 2];
+    plane_ptr++;
+    width_countdown--;
+    if (!width_countdown) {
+      FINISH_LINE(this->yuv_planes, plane_ptr - this->width);
+      width_countdown = this->width;
+      plane_ptr += 2;
+    }
+
+    prev = node_num;
+  }
+}
+
+/*
+ *  Find the lowest probability node in a Huffman table, and mark it as
+ *  being assigned to a higher probability.
+ *  Returns the node index of the lowest unused node, or -1 if all nodes
+ *  are used.
+ */
+int huff_smallest_node(hnode_t *hnodes, int num_hnodes) {
+  int i;
+  int best, best_node;
+
+  best = 99999999;
+  best_node = -1;
+  for(i = 0; i < num_hnodes; i++) {
+    if(hnodes[i].used)
+      continue;
+    if(!hnodes[i].count)
+      continue;
+    if(hnodes[i].count < best) {
+      best = hnodes[i].count;
+      best_node = i;
+    }
+  }
+
+  if(best_node == -1) 
+    return -1;
+  hnodes[best_node].used = 1;
+  return best_node;
+}
+
+/*
+ *  Build the Huffman tree using the generated/loaded probabilities histogram.
+ *
+ *  On completion:
+ *   huff_nodes[prev][i < HUF_TOKENS] - are the nodes at the base of the tree.
+ *   huff_nodes[prev][i >= HUF_TOKENS] - are used to construct the tree.
+ *   num_huff_nodes[prev] - contains the index to the root node of the tree.
+ *     That is: huff_nodes[prev][num_huff_nodes[prev]] is the root node.
+ */
+void huff_build_tree(int prev) {
+  hnode_t *node, *hnodes;
+  int num_hnodes, i;
+
+  num_hnodes = HUF_TOKENS;
+  hnodes = huff_nodes[prev];
+  for(i = 0; i < HUF_TOKENS * 2; i++) 
+    hnodes[i].used = 0;
+
+  while (1) {
+    node = &hnodes[num_hnodes];             /* next free node */
+
+    /* pick two lowest counts */
+    node->children[0] = huff_smallest_node(hnodes, num_hnodes);
+    if(node->children[0] == -1) 
+      break;      /* reached the root node */
+
+    node->children[1] = huff_smallest_node(hnodes, num_hnodes);
+    if(node->children[1] == -1) 
+      break;      /* reached the root node */
+
+    /* combine nodes probability for new node */
+    node->count = hnodes[node->children[0]].count +
+      hnodes[node->children[1]].count;
+    num_hnodes++;
+  }
+
+  num_huff_nodes[prev] = num_hnodes - 1;
+}
+
+
+/**************************************************************************
+ * xine video plugin functions
+ *************************************************************************/
+
+static int idcinvideo_can_handle (video_decoder_t *this_gen, int buf_type) {
+
+  return (buf_type == BUF_VIDEO_IDCIN);
+}
+
+/*
+ * This function is responsible is called to initialize the video decoder
+ * for use. Initialization usually involves setting up the fields in your
+ * private video decoder object.
+ */
+static void idcinvideo_init (video_decoder_t *this_gen, 
+  vo_instance_t *video_out) {
+  idcinvideo_decoder_t *this = (idcinvideo_decoder_t *) this_gen;
+
+  /* set our own video_out object to the one that xine gives us */
+  this->video_out  = video_out;
+
+  /* indicate that the decoder is not quite ready yet */
+  this->decoder_ok = 0;
+}
+
+/*
+ * This function receives a buffer of data from the demuxer layer and
+ * figures out how to handle it based on its header flags.
+ */
+static void idcinvideo_decode_data (video_decoder_t *this_gen,
+  buf_element_t *buf) {
+
+  idcinvideo_decoder_t *this = (idcinvideo_decoder_t *) this_gen;
+  palette_entry_t *palette;
+  unsigned char *histograms;
+  int i, j, histogram_index = 0;
+
+  vo_frame_t *img; /* video out frame */
+
+  /* a video decoder does not care about this flag (?) */
+  if (buf->decoder_flags & BUF_FLAG_PREVIEW)
+    return;
+
+  /* load the palette */
+  if ((buf->decoder_flags & BUF_FLAG_SPECIAL) &&
+      (buf->decoder_info[1] == BUF_SPECIAL_PALETTE)) {
+    palette = (palette_entry_t *)buf->decoder_info[3];
+    for (i = 0; i < buf->decoder_info[2]; i++) {
+      this->yuv_palette[i * 4 + 0] =
+        COMPUTE_Y(palette[i].r, palette[i].g, palette[i].b);
+      this->yuv_palette[i * 4 + 1] =
+        COMPUTE_U(palette[i].r, palette[i].g, palette[i].b);
+      this->yuv_palette[i * 4 + 2] =
+        COMPUTE_V(palette[i].r, palette[i].g, palette[i].b);
+    }
+  }
+
+  /* initialize the Huffman tables */
+  if ((buf->decoder_flags & BUF_FLAG_SPECIAL) &&
+      (buf->decoder_info[1] == BUF_SPECIAL_IDCIN_HUFFMAN_TABLE)) {
+    histograms = (unsigned char *)buf->decoder_info[2];
+    for (i = 0; i < 256; i++) {
+      for(j = 0; j < HUF_TOKENS; j++)
+        huff_nodes[i][j].count = histograms[histogram_index++];
+      huff_build_tree(i);
+    }
+
+  }
+
+  if (buf->decoder_flags & BUF_FLAG_HEADER) { /* need to initialize */
+    this->video_out->open (this->video_out);
+
+    if(this->buf)
+      free(this->buf);
+
+    this->width = (buf->content[0] << 8) | buf->content[1];
+    this->height = (buf->content[2] << 8) | buf->content[3];
+    this->video_step = buf->decoder_info[1];
+
+    if (this->buf)
+      free (this->buf);
+    this->bufsize = VIDEOBUFSIZE;
+    this->buf = malloc(this->bufsize);
+    this->size = 0;
+
+    this->video_out->open (this->video_out);
+    this->decoder_ok = 1;
+
+    init_yuv_planes(&this->yuv_planes, this->width, this->height);
+
+    return;
+  } else if (this->decoder_ok) {
+
+    if (this->size + buf->size > this->bufsize) {
+      this->bufsize = this->size + 2 * buf->size;
+      this->buf = realloc (this->buf, this->bufsize);
+    }
+
+    xine_fast_memcpy (&this->buf[this->size], buf->content, buf->size);
+
+    this->size += buf->size;
+
+    if (buf->decoder_flags & BUF_FLAG_FRAMERATE)
+      this->video_step = buf->decoder_info[0];
+
+    if (buf->decoder_flags & BUF_FLAG_FRAME_END) {
+
+      img = this->video_out->get_frame (this->video_out,
+                                        this->width, this->height,
+                                        42, IMGFMT_YUY2, VO_BOTH_FIELDS);
+
+      img->duration  = this->video_step;
+      img->pts       = buf->pts;
+      img->bad_frame = 0;
+
+      huff_decode(this);
+      yuv444_to_yuy2(&this->yuv_planes, img->base[0], img->pitches[0]);
+
+      if (img->copy) {
+        int height = img->height;
+        uint8_t *src[3];
+
+        src[0] = img->base[0];
+
+        while ((height -= 16) >= 0) {
+          img->copy(img, src);
+          src[0] += 16 * img->pitches[0];
+        }
+      }
+
+      img->draw(img);
+      img->free(img);
+
+      this->size = 0;
+    }
+  }
+}
+
+/*
+ * This function is called when xine needs to flush the system. Not
+ * sure when or if this is used or even if it needs to do anything.
+ */
+static void idcinvideo_flush (video_decoder_t *this_gen) {
+}
+
+/*
+ * This function resets the video decoder.
+ */
+static void idcinvideo_reset (video_decoder_t *this_gen) {
+  idcinvideo_decoder_t *this = (idcinvideo_decoder_t *) this_gen;
+
+  this->size = 0;
+}
+
+/*
+ * This function is called when xine shuts down the decoder. It should
+ * free any memory and release any other resources allocated during the
+ * execution of the decoder.
+ */
+static void idcinvideo_close (video_decoder_t *this_gen) {
+  idcinvideo_decoder_t *this = (idcinvideo_decoder_t *) this_gen;
+
+  if (this->buf) {
+    free (this->buf);
+    this->buf = NULL;
+  }
+
+  if (this->decoder_ok) {
+    this->decoder_ok = 0;
+    this->video_out->close(this->video_out);
+  }
+}
+
+/*
+ * This function returns the human-readable ID string to identify 
+ * this decoder.
+ */
+static char *idcinvideo_get_id(void) {
+  return "Id CIN Video";
+}
+
+/*
+ * This function frees the video decoder instance allocated to the decoder.
+ */
+static void idcinvideo_dispose (video_decoder_t *this_gen) {
+  free (this_gen);
+}
+
+/*
+ * This function should be the plugin's only advertised function to the
+ * outside world. It allows xine to query the plugin module for the addresses
+ * to the necessary functions in the video decoder object. The video
+ * decoder object also has a priority field which allows different decoder
+ * plugins for the same buffer types to coexist peacefully. The higher the
+ * priority number, the more precedence a decoder has. E.g., 9 beats 1.
+ */
+video_decoder_t *init_video_decoder_plugin (int iface_version, xine_t *xine) {
+
+  idcinvideo_decoder_t *this ;
+
+  if (iface_version != 10) {
+    printf( "idcinvideo: plugin doesn't support plugin API version %d.\n"
+            "idcinvideo: this means there's a version mismatch between xine and this "
+            "idcinvideo: decoder plugin.\nInstalling current plugins should help.\n",
+            iface_version);
+    return NULL;
+  }
+
+  this = (idcinvideo_decoder_t *) malloc (sizeof (idcinvideo_decoder_t));
+  memset(this, 0, sizeof (idcinvideo_decoder_t));
+
+  this->video_decoder.interface_version   = iface_version;
+  this->video_decoder.can_handle          = idcinvideo_can_handle;
+  this->video_decoder.init                = idcinvideo_init;
+  this->video_decoder.decode_data         = idcinvideo_decode_data;
+  this->video_decoder.flush               = idcinvideo_flush;
+  this->video_decoder.reset               = idcinvideo_reset;
+  this->video_decoder.close               = idcinvideo_close;
+  this->video_decoder.get_identifier      = idcinvideo_get_id;
+  this->video_decoder.dispose             = idcinvideo_dispose;
+  this->video_decoder.priority            = 1;
+
+  return (video_decoder_t *) this;
+}
