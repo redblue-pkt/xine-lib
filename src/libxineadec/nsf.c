@@ -20,7 +20,7 @@
  * NSF Audio "Decoder" using the Nosefart NSF engine by Matt Conte
  *   http://www.baisoku.org/
  *
- * $Id: nsf.c,v 1.1 2003/01/08 07:11:06 tmmm Exp $
+ * $Id: nsf.c,v 1.2 2003/01/08 07:36:21 tmmm Exp $
  */
 
 #include <stdio.h>
@@ -86,7 +86,7 @@ static void nsf_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
     this->channels = buf->decoder_info[3];
 
     /* take this opportunity to initialize stream/meta information */
-    this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] = strdup("NES Music");
+    this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] = strdup("NES Music (Nosefart)");
 
     this->song_number = buf->content[4];
     /* allocate a buffer for the file */
