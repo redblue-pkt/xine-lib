@@ -90,7 +90,7 @@ static inline void get_frame_duration (mpeg2dec_t * mpeg2dec, vo_frame_t *frame)
 {
   switch (mpeg2dec->picture->frame_rate_code) {
   case 1: /* 23.976 fps */
-    frame->duration      = 3913;
+    frame->duration      = 3754;  /* actually it's 3753.75 */
     break;
   case 2: /* 24 fps */
     frame->duration      = 3750;
@@ -108,10 +108,10 @@ static inline void get_frame_duration (mpeg2dec_t * mpeg2dec, vo_frame_t *frame)
     frame->duration      = 1800;
     break;
   case 7: /* 59.94 fps */
-    frame->duration      = 1525;
+    frame->duration      = 1502;  /* actually it's 1501.5 */
     break;
   case 8: /* 60 fps */
-    frame->duration      = 1509;
+    frame->duration      = 1500;
     break;
   default:
        /* printf ("invalid/unknown frame rate code : %d \n",

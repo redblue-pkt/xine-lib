@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decode_video.c,v 1.33 2003/05/23 10:36:29 mroi Exp $
+ * $Id: dxr3_decode_video.c,v 1.34 2003/05/23 10:52:40 mroi Exp $
  */
  
 /* dxr3 video decoder plugin.
@@ -691,7 +691,7 @@ static int get_duration(dxr3_decoder_t *this)
   
   switch (this->frame_rate_code) {
   case 1: /* 23.976 */
-    duration = 3913;
+    duration = 3754;  /* actually it's 3753.75 */
     break;
   case 2: /* 24.000 */
     duration = 3750;
@@ -709,10 +709,10 @@ static int get_duration(dxr3_decoder_t *this)
     duration = 1800;
     break;
   case 7: /* 59.940 */
-    duration = 1525;
+    duration = 1502;  /* actually it's 1501.5 */
     break;
   case 8: /* 60.000 */
-    duration = 1509;
+    duration = 1500;
     break;
   default:
     printf("dxr3_decode_video: WARNING: unknown frame rate code %d\n",

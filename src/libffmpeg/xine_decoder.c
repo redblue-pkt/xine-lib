@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.118 2003/05/09 23:54:05 tmmm Exp $
+ * $Id: xine_decoder.c,v 1.119 2003/05/23 10:52:40 mroi Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -434,7 +434,7 @@ static void find_sequence_header (ff_video_decoder_t *this,
 
       switch (frame_rate_code) {
       case 1: /* 23.976 fps */
-	this->video_step      = 3913;
+	this->video_step      = 3754;  /* actually it's 3753.75 */
 	break;
       case 2: /* 24 fps */
 	this->video_step      = 3750;
@@ -452,10 +452,10 @@ static void find_sequence_header (ff_video_decoder_t *this,
 	this->video_step      = 1800;
 	break;
       case 7: /* 59.94 fps */
-	this->video_step      = 1525;
+	this->video_step      = 1502;  /* actually it's 1501.5 */
 	break;
       case 8: /* 60 fps */
-	this->video_step      = 1509;
+	this->video_step      = 1500;
 	break;
       default:
 	printf ("ffmpeg: invalid/unknown frame rate code : %d \n",
