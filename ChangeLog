@@ -23,6 +23,7 @@ xine-lib (1-xxx)
   * support realplayer codecs on AMD64
   * fixed restoring xv settings on exit for some frontends
   * UTF-8 support for cddb (freedb) client
+  * identify AAC, MPEG4 and H264 on transport streams
 
 xine-lib (1-rc7)
   * Build system improvements: replacement functions, better work with headers
