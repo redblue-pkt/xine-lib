@@ -36,6 +36,8 @@ required for 1.0
 - arts audio output plugin
 - irix audio output plugin
 - input_dvd: detect errors, display useful error messages
+- define a grammar for MRLs (michael)
+- prepare architecture for post effect plugins (michael)
 
 opional
 -------
@@ -56,6 +58,7 @@ opional
 - sdl video output plugin
 - directfb video output plugin
 - reduce memory footprint (e.g. variable fifo buffer sizes...)
+- bring dxr3 video out to work with aaxine (michael)
 
 
 Assigned tasks
