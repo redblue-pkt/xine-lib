@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.133 2003/07/02 23:10:21 jcdutton Exp $
+ * $Id: audio_out.c,v 1.134 2003/07/20 10:34:30 jcdutton Exp $
  *
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -1197,6 +1197,7 @@ static int ao_change_settings(aos_t *this, uint32_t bits, uint32_t rate, int mod
     output_sample_rate = this->input.rate;
 
   if ( output_sample_rate == 0) {
+    this->driver_open = 0;
     xprintf (this->xine, XINE_VERBOSITY_LOG, "open failed!\n");
     return 0;
   }; 

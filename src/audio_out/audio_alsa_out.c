@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.98 2003/07/19 11:58:32 mroi Exp $
+ * $Id: audio_alsa_out.c,v 1.99 2003/07/20 10:34:29 jcdutton Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -667,6 +667,7 @@ static int ao_alsa_write(ao_driver_t *this_gen, int16_t *data, uint32_t count) {
 #ifdef LOG_DEBUG
       printf("audio_alsa_out:write:loop:wait_result=%d\n",wait_result);
 #endif
+      if (wait_result < 0) return 0;
     }
     if (this->mmap != 0) {
       result = snd_pcm_mmap_writei(this->audio_fd, buffer, number_of_frames);
@@ -701,6 +702,7 @@ static int ao_alsa_write(ao_driver_t *this_gen, int16_t *data, uint32_t count) {
 #ifdef LOG_DEBUG
     printf("audio_alsa_out:write:loop:wait_result=%d\n",wait_result);
 #endif
+    if (wait_result < 0) return 0;
   }
 #ifdef LOG_DEBUG
   gettimeofday(&now, 0);
