@@ -19,7 +19,7 @@
  *
  * input plugin for http network streams
  *
- * $Id: input_http.c,v 1.91 2004/06/13 21:28:56 miguelfreitas Exp $
+ * $Id: input_http.c,v 1.92 2004/06/19 19:28:30 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -126,11 +126,6 @@ static void proxy_host_change_cb (void *this_gen, xine_cfg_entry_t *cfg) {
   http_input_class_t *this = (http_input_class_t *)this_gen;
 
   this->proxyhost = cfg->str_value;
-
-  if(this->proxyhost && (!strlen(this->proxyhost)) && this->proxyhost_env) {
-    this->proxyhost = this->proxyhost_env;
-    this->proxyport = this->proxyport_env;
-  }
 }
 
 static void proxy_port_change_cb(void *this_gen, xine_cfg_entry_t *cfg) {
@@ -997,6 +992,7 @@ static void http_class_dispose (input_class_t *this_gen) {
 static void *init_class (xine_t *xine, void *data) {
   http_input_class_t  *this;
   config_values_t     *config;
+  char                *proxy_env;
 
   this = (http_input_class_t *) xine_xmalloc (sizeof (http_input_class_t));
 
@@ -1012,17 +1008,40 @@ static void *init_class (xine_t *xine, void *data) {
   this->input_class.dispose            = http_class_dispose;
   this->input_class.eject_media        = NULL;
 
+  /* 
+   * honour http_proxy envvar 
+   */
+  if((proxy_env = getenv("http_proxy")) && (strlen(proxy_env))) {
+    int    proxy_port = DEFAULT_HTTP_PORT;
+    char  *http_proxy = xine_xmalloc(strlen(proxy_env) + 1);
+    char  *p;
+    
+    if(!strncmp(proxy_env, "http://", 7))
+      proxy_env += 7;
+    
+    sprintf(http_proxy, "%s", proxy_env);
+    
+    if((p = strrchr(&http_proxy[0], ':')) && (strlen(p) > 1)) {
+      *p++ = '\0';
+      proxy_port = (int) strtol(p, &p, 10);
+    }
+    
+    this->proxyhost_env = strdup(http_proxy);
+    this->proxyport_env = proxy_port;
+    
+    free(http_proxy);
+  }
+
   /*
    * proxy settings
    */
-  this->proxyhost_env = NULL;
   this->proxyhost = config->register_string(config, 
-      "input.http_proxy_host", "", _("HTTP proxy host"),
-      _("The hostname of the HTTP proxy."), 10,
+      "input.http_proxy_host", proxy_env ? this->proxyhost_env : "",
+      _("HTTP proxy host"), _("The hostname of the HTTP proxy."), 10,
       proxy_host_change_cb, (void *) this);
   this->proxyport = config->register_num(config,
-      "input.http_proxy_port", DEFAULT_HTTP_PORT, _("HTTP proxy port"),
-      _("The port number of the HTTP proxy."), 10,
+      "input.http_proxy_port", proxy_env ? this->proxyport_env : DEFAULT_HTTP_PORT,
+      _("HTTP proxy port"), _("The port number of the HTTP proxy."), 10,
       proxy_port_change_cb, (void *) this);
   this->proxyuser = config->register_string(config,
       "input.http_proxy_user", "", _("HTTP proxy username"),
@@ -1036,35 +1055,6 @@ static void *init_class (xine_t *xine, void *data) {
       "input.http_no_proxy", "", _("Domains, where to ignore the HTTP proxy"),
       _("A Comma separated list of domain names, where the proxy is to be ignored."), 10,
       no_proxy_list_change_cb, (void *) this);
-
-  /* 
-   * honour http_proxy envvar 
-   */
-  if((!this->proxyhost) || (!strlen(this->proxyhost))) {
-    char *proxy_env;
-
-    if((proxy_env = getenv("http_proxy")) && (strlen(proxy_env))) {
-      int    proxy_port = DEFAULT_HTTP_PORT;
-      char  *http_proxy = xine_xmalloc(strlen(proxy_env) + 1);
-      char  *p;
-      
-      if(!strncmp(proxy_env, "http://", 7))
-	proxy_env += 7;
-      
-      sprintf(http_proxy, "%s", proxy_env);
-      
-      if((p = strrchr(&http_proxy[0], ':')) && (strlen(p) > 1)) {
-	*p++ = '\0';
-	proxy_port = (int) strtol(p, &p, 10);
-      }
-      
-      this->proxyhost_env                   = strdup(http_proxy);
-      this->proxyhost                       = this->proxyhost_env;
-      this->proxyport = this->proxyport_env = proxy_port;
-
-      free(http_proxy);
-    }
-  }
 
   return this;
 }
