@@ -151,7 +151,7 @@ AC_C_CONST
 AC_C_ALWAYS_INLINE
 AC_TYPE_OFF_T
 AC_TYPE_SIZE_T
-AM_TYPE_PTRDIFF_T
+dnl AM_TYPE_PTRDIFF_T
 
 dnl
 dnl debug cflags
@@ -647,6 +647,15 @@ if test "$GCC" = yes; then
     AC_TRY_CFLAGS("-fno-strict-aliasing", f_nsa="-fno-strict-aliasing", f_nsa="")
     AC_TRY_CFLAGS("-fschedule-insns2", f_si="-fschedule-insns2", f_si="")
     AC_TRY_CFLAGS("-mwide-multiply", m_wm="-mwide-multiply", m_wm="")
+    dnl
+    dnl gcc 3.1 uses the -f version
+    dnl
+    AC_TRY_CFLAGS("-falign-functions=4", f_af="-falign-functions=4",
+        f_af="-malign-functions=4")
+    AC_TRY_CFLAGS("-falign-loops=4", f_al="-falign-loops=4",
+        f_al="-malign-loops=4")
+    AC_TRY_CFLAGS("-falign-jumps=4", f_aj="-falign-jumps=4",
+        f_aj="-malign-jumps=4")
 fi
 
 dnl Flags not supported by all *cc* variants
@@ -662,7 +671,7 @@ enable_ffmmx="no"
 
 case "$host_or_hostalias" in
   i386-*-freebsd*)
-    CFLAGS="$CFLAGS -pipe -fomit-frame-pointer -malign-functions=4 -malign-loops=4 -malign-jumps=4 -malign-functions=4 $m_wm $m_psb -fexpensive-optimizations $f_si $f_nsa -ffast-math -funroll-loops -finline-functions"
+    CFLAGS="$CFLAGS -pipe -fomit-frame-pointer $f_af $f_al $f_aj $m_wm $m_psb -fexpensive-optimizations $f_si $f_nsa -ffast-math -funroll-loops -finline-functions"
     DEBUG_CFLAGS="$X_CFLAGS $DEBUG_CFLAGS"
     AC_DEFINE(__i386__)
     AC_DEFINE([ARCH_X86],,[x86 architecture])
@@ -688,7 +697,7 @@ case "$host_or_hostalias" in
         AC_TRY_CFLAGS("$sarchopt=athlon", k7cpu="athlon", k7cpu="i686")
 
 	dnl add x86 specific gcc CFLAGS
-	CFLAGS="$CFLAGS -O3 -pipe -fomit-frame-pointer -malign-functions=4 -malign-loops=4 -malign-jumps=4 -malign-functions=4 $m_wm $m_psb -fexpensive-optimizations $f_si $f_nsa -ffast-math -funroll-loops -funroll-all-loops -finline-functions"
+	CFLAGS="$CFLAGS -O3 -pipe -fomit-frame-pointer $f_af $f_al $f_aj $m_wm $m_psb -fexpensive-optimizations $f_si $f_nsa -ffast-math -funroll-loops -funroll-all-loops -finline-functions"
 
 	DEBUG_CFLAGS="$DEBUG_CFLAGS -O3"
 
