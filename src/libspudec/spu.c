@@ -35,7 +35,7 @@
  * along with this program; see the file COPYING.  If not, write to
  * the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: spu.c,v 1.29 2002/01/05 21:29:37 jcdutton Exp $
+ * $Id: spu.c,v 1.30 2002/02/25 23:44:06 jcdutton Exp $
  *
  */
 
@@ -270,6 +270,12 @@ void spu_do_commands(spu_state_t *state, spu_seq_t* seq, vo_overlay_t *ovl)
       buf += 5;
       break;
       
+    case CMD_SPU_WIPE:
+#ifdef LOG_DEBUG
+      printf ("spu: \tSPU_WIPE not implemented yet\n");
+#endif
+      break;
+
     case CMD_SPU_FORCE_DISPLAY:
 #ifdef LOG_DEBUG
       printf ("spu: \tForce Display/Menu\n");

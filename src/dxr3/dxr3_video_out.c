@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_video_out.c,v 1.5 2002/01/09 22:33:04 jcdutton Exp $
+ * $Id: dxr3_video_out.c,v 1.6 2002/02/25 23:44:05 jcdutton Exp $
  *
  * mpeg1 encoding video out plugin for the dxr3.  
  *
@@ -636,7 +636,7 @@ printf("dxr3_video_out:init_plugin\n");
 }
 
 static vo_info_t vo_info_dxr3 = {
-  3, /* api version */
+  4, /* api version */
   "dxr3",
   "xine video output plugin for dxr3 cards",
   VISUAL_TYPE_X11,

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_vo_core.c,v 1.14 2002/01/10 21:30:10 jcdutton Exp $
+ * $Id: dxr3_vo_core.c,v 1.15 2002/02/25 23:44:05 jcdutton Exp $
  *
  *************************************************************************
  * core functions common to both Standard and RT-Encoding vo plugins     *
@@ -245,8 +245,7 @@ int dxr3_get_property (vo_driver_t *this_gen, int property)
 	case VO_PROP_COLORKEY:
 		val = this->overlay.colorkey;
 		break;
-	case VO_PROP_ZOOM_X:
-	case VO_PROP_ZOOM_Y:
+	case VO_PROP_ZOOM_FACTOR:
 	case VO_PROP_TVMODE:
 		break;
 
@@ -306,7 +305,7 @@ int dxr3_set_property (vo_driver_t *this_gen,
 		
 		if (this->overlay_enabled && !fullscreen){
 			int foo;
-			this->request_dest_size(this->user_data, this->width,
+			this->frame_output_cb(this->user_data, this->width,
 			 this->width/this->desired_ratio, &foo, &foo, &foo, &foo);
 		}
 		break;
@@ -314,7 +313,7 @@ int dxr3_set_property (vo_driver_t *this_gen,
 		fprintf(stderr, "dxr3_vo: VO_PROP_COLORKEY not implemented!");
 		this->overlay.colorkey = val;
 		break;
-	case VO_PROP_ZOOM_X: 
+	case VO_PROP_ZOOM_FACTOR:   /* FIXME: Was ZOOM_X */
 		if(!this->overlay_enabled){  /* TV-out only */
 		  if(value==1){
 			fprintf(stderr, "dxr3_vo: enabling 16:9 zoom\n");
@@ -403,6 +402,8 @@ int dxr3_gui_data_exchange (vo_driver_t *this_gen,
 	if (!this->overlay_enabled && !this->tv_switchable) return 0;
 
 	switch (data_type) {
+/*************************************************************************
+ *  FIXME: Removed due to changes in XV by Guenter, but don't know what to replace it with
 	case GUI_DATA_EX_DEST_POS_SIZE_CHANGED:{
 			x11_rectangle_t *area = (x11_rectangle_t*) data;
 			dxr3_overlay_adapt_area(this, area->x, area->y, area->w, area->h);
@@ -413,6 +414,7 @@ int dxr3_gui_data_exchange (vo_driver_t *this_gen,
 				dxr3_overlay_set_mode(&this->overlay,EM8300_OVERLAY_MODE_OVERLAY);
 		}
 		break;
+*************************************************************************/
 	case GUI_DATA_EX_EXPOSE_EVENT:{
 			XLockDisplay(this->display);
 			XFillRectangle(this->display, this->win,
@@ -498,7 +500,8 @@ void gather_screen_vars(dxr3_driver_t *this, x11_visual_t *vis)
 	}
 
 	this->overlay.screen_depth = DisplayPlanes(this->display, scrn);
-	this->request_dest_size = (void *)vis->request_dest_size;
+	this->frame_output_cb = (void *)vis->frame_output_cb;
+/* request_dest_size; */
 	printf("xres %d yres %d depth %d\n", this->overlay.screen_xres, this->overlay.screen_yres, this->overlay.screen_depth);
 }
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_video_out.h,v 1.12 2001/12/23 02:36:55 hrm Exp $
+ * $Id: dxr3_video_out.h,v 1.13 2002/02/25 23:44:05 jcdutton Exp $
  *
  */
 
@@ -130,7 +130,7 @@ typedef struct dxr3_driver_s {
 	
 	char 		*user_data;
 
-	void 		(*request_dest_size) (char *userdata, int video_width, 
+	void 		(*frame_output_cb) (char *userdata, int video_width, 
 				int video_height, int *dest_x,
 		        	int *dest_y, int *dest_height, int *dest_width);
 } dxr3_driver_t;

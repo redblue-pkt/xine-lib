@@ -90,7 +90,7 @@ AC_DEFUN([AC_CHECK_DXR3],
     [  --disable-dxr3          Do not build the DXR3/HW+ plugins],,
     enable_dxr3=yes)
   if test x"$enable_dxr3" = xyes; then
-    AC_CHECK_HEADER($linux_path/include/linux/em8300.h, 
+    AC_CHECK_HEADER(/usr/include/linux/em8300.h, 
          have_dxr3=yes,
          [have_dxr3=no
          AC_MSG_RESULT([*** DXR3 support disabled due to missing em8300.h ***])])
