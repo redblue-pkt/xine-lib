@@ -1402,6 +1402,10 @@ static int mpeg1_decode_picture(AVCodecContext *avctx,
     ref = get_bits(&s->gb, 10); /* temporal ref */
     s->pict_type = get_bits(&s->gb, 3);
     dprintf("pict_type=%d number=%d\n", s->pict_type, s->picture_number);
+
+    avctx->pict_type= s->pict_type;
+    avctx->key_frame= s->pict_type == I_TYPE;
+
     skip_bits(&s->gb, 16);
     if (s->pict_type == P_TYPE || s->pict_type == B_TYPE) {
         s->full_pel[0] = get_bits1(&s->gb);
@@ -1911,7 +1915,7 @@ static int mpeg_decode_frame(AVCodecContext *avctx,
                     break;
                 default:
                     if (start_code >= SLICE_MIN_START_CODE &&
-                        start_code <= SLICE_MAX_START_CODE) {
+                        start_code <= SLICE_MAX_START_CODE && avctx->hurry_up<5) {
                         ret = mpeg_decode_slice(avctx, picture,
                                                 start_code, s->buffer, input_size);
                         if (ret == DECODE_SLICE_EOP) {
@@ -1941,7 +1945,7 @@ static int mpeg_decode_frame(AVCodecContext *avctx,
                             *data_size = sizeof(AVPicture);
                             goto the_end;
                         }else if(ret<0){
-                            printf("Error while decoding slice\n");
+                            fprintf(stderr,"Error while decoding slice\n");
 			    if(ret==DECODE_SLICE_FATAL_ERROR) return -1;
                         }
                     }

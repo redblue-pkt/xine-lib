@@ -120,6 +120,27 @@ int h263_get_picture_format(int width, int height)
     return format;
 }
 
+static void float_aspect_to_info(MpegEncContext * s, float aspect){
+    int i;
+
+    aspect*= s->height/(double)s->width;
+//printf("%f\n", aspect);
+    
+    if(aspect==0) aspect= 1.0;
+
+    ff_float2fraction(&s->aspected_width, &s->aspected_height, aspect, 255);
+
+//printf("%d %d\n", s->aspected_width, s->aspected_height);
+    for(i=1; i<6; i++){
+        if(s->aspected_width == pixel_aspect[i][0] && s->aspected_height== pixel_aspect[i][1]){
+            s->aspect_ratio_info=i;
+            return;
+        }
+    }
+    
+    s->aspect_ratio_info= FF_ASPECT_EXTENDED;
+}
+
 void h263_encode_picture_header(MpegEncContext * s, int picture_number)
 {
     int format;
@@ -196,11 +217,9 @@ void h263_encode_picture_header(MpegEncContext * s, int picture_number)
 		
 		if (format == 7) {
             /* Custom Picture Format (CPFMT) */
-		
-	    if (s->aspect_ratio_info)
-        	put_bits(&s->pb,4,s->aspect_ratio_info);
-	    else
-        	put_bits(&s->pb,4,2); /* Aspect ratio: CIF 12:11 (4:3) picture */
+            float_aspect_to_info(s, s->avctx->aspect_ratio);
+
+            put_bits(&s->pb,4,s->aspect_ratio_info);
             put_bits(&s->pb,9,(s->width >> 2) - 1);
             put_bits(&s->pb,1,1); /* "1" to prevent start code emulation */
             put_bits(&s->pb,9,(s->height >> 2));
@@ -1508,10 +1527,10 @@ static void mpeg4_encode_vol_header(MpegEncContext * s)
     put_bits(&s->pb, 1, 1);		/* is obj layer id= yes */
       put_bits(&s->pb, 4, vo_ver_id);	/* is obj layer ver id */
       put_bits(&s->pb, 3, 1);		/* is obj layer priority */
-    if(s->aspect_ratio_info) 
-        put_bits(&s->pb, 4, s->aspect_ratio_info);/* aspect ratio info */
-    else
-        put_bits(&s->pb, 4, 1);		/* aspect ratio info= sqare pixel */
+    
+    float_aspect_to_info(s, s->avctx->aspect_ratio);
+
+    put_bits(&s->pb, 4, s->aspect_ratio_info);/* aspect ratio info */
     if (s->aspect_ratio_info == FF_ASPECT_EXTENDED)
     {
 	put_bits(&s->pb, 8, s->aspected_width);
@@ -3273,14 +3292,14 @@ end:
             return SLICE_END;
         }
     }else{
-        if(get_bits_count(&s->gb) + 7 >= s->gb.size*8){
-            int v= show_bits(&s->gb, 8) >> (((get_bits_count(&s->gb)-1)&7)+1);
-            if(v==0)
-                return SLICE_END;
-        }else{
-            if(show_bits(&s->gb, 16)==0)
-                return SLICE_END; 
+        int v= show_bits(&s->gb, 16);
+    
+        if(get_bits_count(&s->gb) + 16 > s->gb.size*8){
+            v>>= get_bits_count(&s->gb) + 16 - s->gb.size*8;
         }
+
+        if(v==0)
+            return SLICE_END;
     }
 
     return SLICE_OK;     
@@ -3815,6 +3834,9 @@ int h263_decode_picture_header(MpegEncContext *s)
                     /* aspected dimensions */
 		    s->aspected_width = get_bits(&s->gb, 8);
 		    s->aspected_height = get_bits(&s->gb, 8);
+                }else{
+                    s->aspected_width = pixel_aspect[s->aspect_ratio_info][0];
+                    s->aspected_height= pixel_aspect[s->aspect_ratio_info][1];
                 }
             } else {
                 width = h263_format[format][0];
@@ -4080,6 +4102,9 @@ static int decode_vol_header(MpegEncContext *s, GetBitContext *gb){
     if(s->aspect_ratio_info == FF_ASPECT_EXTENDED){	    
         s->aspected_width = get_bits(gb, 8); // par_width
         s->aspected_height = get_bits(gb, 8); // par_height
+    }else{
+        s->aspected_width = pixel_aspect[s->aspect_ratio_info][0];
+        s->aspected_height= pixel_aspect[s->aspect_ratio_info][1];
     }
 
     if ((s->vol_control_parameters=get_bits1(gb))) { /* vol control parameter */

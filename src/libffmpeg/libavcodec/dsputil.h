@@ -103,6 +103,7 @@ typedef struct DSPContext {
     void (*clear_blocks)(DCTELEM *blocks/*align 16*/);
     int (*pix_sum)(UINT8 * pix, int line_size);
     int (*pix_norm1)(UINT8 * pix, int line_size);
+    int (*pix_norm)(UINT8 * pix1, UINT8 * pix2, int line_size);
 
     /* maybe create an array for 16/8 functions */
     op_pixels_func put_pixels_tab[2][4];
@@ -197,6 +198,10 @@ void dsputil_init_mlib(DSPContext* c, unsigned mask);
 void dsputil_init_alpha(DSPContext* c, unsigned mask);
 
 #elif defined(ARCH_POWERPC)
+
+#define MM_ALTIVEC    0x0001 /* standard AltiVec */
+
+extern int mm_flags;
 
 #define __align8 __attribute__ ((aligned (16)))
 

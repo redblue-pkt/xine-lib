@@ -25,6 +25,7 @@
 #include <mlib_sys.h>
 #include <mlib_video.h>
 
+
 /* copy block, width 16 pixel, height 8/16 */
 
 static void put_pixels16_mlib (uint8_t * dest, const uint8_t * ref,
@@ -196,53 +197,25 @@ static void avg_pixels8_xy2_mlib (uint8_t * dest, const uint8_t * ref,
 	mlib_VideoInterpAveXY_U8_U8_8x8 (dest, (uint8_t *)ref, stride, stride);
 }
 
-static void put_pixels_clamped_mlib(const DCTELEM *block, UINT8 *pixels, int line_size)
-{
-    int i;
-    uint8_t *p = pixels;
-
-    for (i=0; i<8; i++) {
-      memset(p, 0, 8);
-      p += line_size;
-    }
-
-    mlib_VideoAddBlock_U8_S16(pixels, (mlib_s16 *)block, line_size);
-
-    /*int i;
-    UINT8 *cm = cropTbl + MAX_NEG_CROP;
-
-    for(i=0;i<8;i++) {
-        pixels[0] = cm[block[0]];
-        pixels[1] = cm[block[1]];
-        pixels[2] = cm[block[2]];
-        pixels[3] = cm[block[3]];
-        pixels[4] = cm[block[4]];
-        pixels[5] = cm[block[5]];
-        pixels[6] = cm[block[6]];
-        pixels[7] = cm[block[7]];
-
-        pixels += line_size;
-        block += 8;
-    }*/
-}
 
 static void add_pixels_clamped_mlib(const DCTELEM *block, UINT8 *pixels, int line_size)
 {
     mlib_VideoAddBlock_U8_S16(pixels, (mlib_s16 *)block, line_size);
 }
 
+
 /* XXX: those functions should be suppressed ASAP when all IDCTs are
    converted */
 static void ff_idct_put_mlib(UINT8 *dest, int line_size, DCTELEM *data)
 {
     mlib_VideoIDCT8x8_S16_S16 (data, data);
-    put_pixels_clamped_mlib(data, dest, line_size);
+    put_pixels_clamped(data, dest, line_size);
 }
 
 static void ff_idct_add_mlib(UINT8 *dest, int line_size, DCTELEM *data)
 {
     mlib_VideoIDCT8x8_S16_S16 (data, data);
-    add_pixels_clamped_mlib(data, dest, line_size);
+    add_pixels_clamped(data, dest, line_size);
 }
 
 static void ff_fdct_mlib(DCTELEM *data)
