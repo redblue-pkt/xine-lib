@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.155 2003/04/07 21:28:33 guenter Exp $
+ * $Id: demux_qt.c,v 1.156 2003/04/17 06:18:09 tmmm Exp $
  *
  */
 
@@ -101,6 +101,7 @@ typedef unsigned int qt_atom;
 #define MP4A_FOURCC QT_ATOM('m', 'p', '4', 'a')
 #define TWOS_FOURCC QT_ATOM('t', 'w', 'o', 's')
 #define SOWT_FOURCC QT_ATOM('s', 'o', 'w', 't')
+#define RAW_FOURCC  QT_ATOM('r', 'a', 'w', ' ')
 
 #define UDTA_ATOM QT_ATOM('u', 'd', 't', 'a')
 #define CPY_ATOM QT_ATOM(0xA9, 'c', 'p', 'y')
@@ -151,6 +152,7 @@ typedef struct {
   unsigned int size;
   int64_t pts;
   int keyframe;
+  unsigned int media_id;
 } qt_frame;
 
 typedef struct {
@@ -161,6 +163,7 @@ typedef struct {
 typedef struct {
   unsigned int first_chunk;
   unsigned int samples_per_chunk;
+  unsigned int media_id;
 } sample_to_chunk_table_t;
 
 typedef struct {
@@ -174,42 +177,62 @@ typedef struct {
   int qtim_version;
 } reference_t;
 
+typedef union {
+
+  struct {
+    /* the media id that corresponds to this trak */
+    unsigned int media_id;
+
+    /* offset into the stsd atom of the properties atom */
+    unsigned int properties_offset;
+
+    unsigned int codec_fourcc;
+    unsigned int codec_buftype;
+    unsigned int width;
+    unsigned int height;
+    int palette_count;
+    palette_entry_t palette[PALETTE_COUNT];
+    int depth;
+    int edit_list_compensation;  /* special trick for edit lists */
+  } video;
+
+  struct {
+    /* the media id that corresponds to this trak */
+    unsigned int media_id;
+
+    /* offset into the stsd atom of the properties atom */
+    unsigned int properties_offset;
+
+    unsigned int codec_fourcc;
+    unsigned int codec_buftype;
+    unsigned int sample_rate;
+    unsigned int channels;
+    unsigned int bits;
+    unsigned int vbr;
+    unsigned int wave_present;
+    xine_waveformatex wave;
+
+    /* special audio parameters */
+    unsigned int samples_per_packet;
+    unsigned int bytes_per_packet;
+    unsigned int bytes_per_frame;
+    unsigned int bytes_per_sample;
+    unsigned int samples_per_frame;
+  } audio;
+
+} properties_t;
+
 typedef struct {
 
   /* trak description */
   media_type type;
-  union {
 
-    struct {
-      unsigned int codec_fourcc;
-      unsigned int codec_buftype;
-      unsigned int width;
-      unsigned int height;
-      int palette_count;
-      palette_entry_t palette[PALETTE_COUNT];
-      int depth;
-      int edit_list_compensation;  /* special trick for edit lists */
-    } video;
+  /* one or more properties atoms for this trak */
+  properties_t *stsd_atoms;
+  int stsd_atoms_count;
 
-    struct {
-      unsigned int codec_fourcc;
-      unsigned int codec_buftype;
-      unsigned int sample_rate;
-      unsigned int channels;
-      unsigned int bits;
-      unsigned int vbr;
-      unsigned int wave_present;
-      xine_waveformatex wave;
-
-      /* special audio parameters */
-      unsigned int samples_per_packet;
-      unsigned int bytes_per_packet;
-      unsigned int bytes_per_frame;
-      unsigned int bytes_per_sample;
-      unsigned int samples_per_frame;
-    } audio;
-
-  } properties;
+  /* this is the current properties atom in use */
+  properties_t *properties;
 
   /* internal frame table corresponding to this trak */
   qt_frame *frames;
@@ -227,8 +250,8 @@ typedef struct {
   int decoder_config_len;
 
   /* verbatim copy of the stsd atom */
-  int          stsd_size;
-  void        *stsd;
+  int             stsd_size;
+  unsigned char  *stsd;
 
   /****************************************/
   /* temporary tables for loading a chunk */
@@ -543,7 +566,7 @@ static void find_moov_atom(input_plugin_t *input, off_t *moov_offset,
 qt_info *create_qt_info(void) {
   qt_info *info;
 
-  info = (qt_info *)malloc(sizeof(qt_info));
+  info = (qt_info *)xine_xmalloc(sizeof(qt_info));
 
   if (!info)
     return NULL;
@@ -684,10 +707,13 @@ static int mp4_read_descr_len(unsigned char *s, uint32_t *length) {
 static qt_error parse_trak_atom (qt_trak *trak,
 				 unsigned char *trak_atom) {
 
-  int i, j;
+  int i, j, k;
   unsigned int trak_atom_size = BE_32(&trak_atom[0]);
   qt_atom current_atom;
   unsigned int current_atom_size;
+  unsigned int atom_pos;
+  unsigned int properties_offset;
+  unsigned int current_stsd_atom_size;
   qt_error last_error = QT_OK;
 
   /* for palette traversal */
@@ -724,7 +750,8 @@ static qt_error parse_trak_atom (qt_trak *trak,
   trak->decoder_config_len = 0;
   trak->stsd = NULL;
   trak->stsd_size = 0;
-  memset(&trak->properties, 0, sizeof(trak->properties));
+  trak->stsd_atoms_count = 0;
+  trak->stsd_atoms = NULL;
 
   /* default type */
   trak->type = MEDIA_OTHER;
@@ -753,18 +780,19 @@ static qt_error parse_trak_atom (qt_trak *trak,
 
     if (current_atom == TKHD_ATOM) {
       trak->flags = BE_16(&trak_atom[i + 6]);
-
+#if 0
       if (trak->type == MEDIA_VIDEO) {
         /* fetch display parameters */
-        if( !trak->properties.video.width ||
-            !trak->properties.video.height ) {
+        if( !trak->stsd_atoms[j].video.width ||
+            !trak->stsd_atoms[j].video.height ) {
 
-          trak->properties.video.width =
+          trak->stsd_atoms[j].video.width =
             BE_16(&trak_atom[i + 0x50]);
-          trak->properties.video.height =
+          trak->stsd_atoms[j].video.height =
             BE_16(&trak_atom[i + 0x54]); 
         }
       }
+#endif
     } else if (current_atom == ELST_ATOM) {
 
       /* there should only be one edit list table */
@@ -778,7 +806,7 @@ static qt_error parse_trak_atom (qt_trak *trak,
       debug_atom_load("    qt elst atom (edit list atom): %d entries\n",
         trak->edit_list_count);
 
-      trak->edit_list_table = (edit_list_table_t *)malloc(
+      trak->edit_list_table = (edit_list_table_t *)xine_xmalloc(
         trak->edit_list_count * sizeof(edit_list_table_t));
       if (!trak->edit_list_table) {
         last_error = QT_NO_MEMORY;
@@ -801,280 +829,284 @@ static qt_error parse_trak_atom (qt_trak *trak,
       trak->timescale = BE_32(&trak_atom[i + 0x10]);
     else if (current_atom == STSD_ATOM) {
 
-      int hack_adjust;
-
       debug_atom_load ("demux_qt: stsd atom\n");
 #if DEBUG_ATOM_LOAD
       hexdump (&trak_atom[i], current_atom_size);
 #endif
 
       /* copy whole stsd atom so it can later be sent to the decoder */
-
       trak->stsd_size = current_atom_size;
-      trak->stsd = realloc (trak->stsd, current_atom_size);
-      memset (trak->stsd, 0, trak->stsd_size);
+      trak->stsd = xine_xmalloc(current_atom_size);
+      memset (trak->stsd, 0, current_atom_size);
+      memcpy (trak->stsd, &trak_atom[i], current_atom_size);
 
-      /* awful, awful hack to support a certain type of stsd atom that
-       * contains more than 1 video description atom */
-      if (BE_32(&trak_atom[i + 8]) == 1) {
-        /* normal case */
-        memcpy (trak->stsd, &trak_atom[i], current_atom_size);
-        hack_adjust = 0;
-      } else {
-        /* pathological case; take this route until a more definite
-         * solution is found: jump over the first atom video
-         * description atom */
-
-        /* copy the first 12 bytes since those remain the same */
-        memcpy (trak->stsd, &trak_atom[i], 12);
-
-        /* skip to the second atom and copy it */
-        hack_adjust = BE_32(&trak_atom[i + 0x0C]);
-        memcpy(trak->stsd + 12, &trak_atom[i + 0x0C + hack_adjust],
-          BE_32(&trak_atom[i + 0x0C + hack_adjust]));
-
-        /* use this variable to reference into the second atom, and
-         * fix at the end of the stsd parser */
-        i += hack_adjust;
+      /* allocate space for each of the properties unions */
+      trak->stsd_atoms_count = BE_32(&trak_atom[i + 8]);
+      trak->stsd_atoms = xine_xmalloc(trak->stsd_atoms_count * sizeof(properties_t));
+      if (!trak->stsd_atoms) {
+        last_error = QT_NO_MEMORY;
+        goto free_trak;
       }
-      
-      if (trak->type == MEDIA_VIDEO) {
+      memset(trak->stsd_atoms, 0, trak->stsd_atoms_count * sizeof(properties_t));
 
-        /* initialize to sane values */
-        trak->properties.video.width = 0;
-        trak->properties.video.height = 0;
-        trak->properties.video.depth = 0;
+      atom_pos = i + 0x10;
+      properties_offset = 0x0C;
+      for (k = 0; k < trak->stsd_atoms_count; k++) {
 
-        /* assume no palette at first */
-        trak->properties.video.palette_count = 0;
+        current_stsd_atom_size = BE_32(&trak_atom[atom_pos - 4]);      
+        if (trak->type == MEDIA_VIDEO) {
 
-        /* fetch video parameters */
-        if( BE_16(&trak_atom[i + 0x2C]) && 
-            BE_16(&trak_atom[i + 0x2E]) ) {
-          trak->properties.video.width =
-            BE_16(&trak_atom[i + 0x2C]);
-          trak->properties.video.height =
-            BE_16(&trak_atom[i + 0x2E]);
-        }
-        trak->properties.video.codec_fourcc =
-          ME_32(&trak_atom[i + 0x10]);
+          trak->stsd_atoms[k].video.media_id = k + 1;
+          trak->stsd_atoms[k].video.properties_offset = properties_offset;
 
-        /* figure out the palette situation */
-        color_depth = trak_atom[i + 0x5F];
-        trak->properties.video.depth = color_depth;
-        color_greyscale = color_depth & 0x20;
-        color_depth &= 0x1F;
+          /* initialize to sane values */
+          trak->stsd_atoms[k].video.width = 0;
+          trak->stsd_atoms[k].video.height = 0;
+          trak->stsd_atoms[k].video.depth = 0;
 
-        /* if the depth is 2, 4, or 8 bpp, file is palettized */
-        if ((color_depth == 2) || (color_depth == 4) || (color_depth == 8)) {
+          /* assume no palette at first */
+          trak->stsd_atoms[k].video.palette_count = 0;
 
-          color_flag = BE_16(&trak_atom[i + 0x60]);
+          /* fetch video parameters */
+          if( BE_16(&trak_atom[atom_pos + 0x1C]) && 
+              BE_16(&trak_atom[atom_pos + 0x1E]) ) {
+            trak->stsd_atoms[k].video.width =
+              BE_16(&trak_atom[atom_pos + 0x1C]);
+            trak->stsd_atoms[k].video.height =
+              BE_16(&trak_atom[atom_pos + 0x1E]);
+          }
+          trak->stsd_atoms[k].video.codec_fourcc =
+            ME_32(&trak_atom[atom_pos + 0x00]);
 
-          if (color_greyscale) {
+          /* figure out the palette situation */
+          color_depth = trak_atom[atom_pos + 0x4F];
+          trak->stsd_atoms[k].video.depth = color_depth;
+          color_greyscale = color_depth & 0x20;
+          color_depth &= 0x1F;
 
-            trak->properties.video.palette_count =
-              1 << color_depth;
+          /* if the depth is 2, 4, or 8 bpp, file is palettized */
+          if ((color_depth == 2) || (color_depth == 4) || (color_depth == 8)) {
 
-            /* compute the greyscale palette */
-            color_index = 255;
-            color_dec = 256 / 
-              (trak->properties.video.palette_count - 1);
-            for (j = 0; 
-                 j < trak->properties.video.palette_count;
-                 j++) {
+            color_flag = BE_16(&trak_atom[atom_pos + 0x50]);
 
-              trak->properties.video.palette[j].r = color_index;
-              trak->properties.video.palette[j].g = color_index;
-              trak->properties.video.palette[j].b = color_index;
-              color_index -= color_dec;
-              if (color_index < 0)
-                color_index = 0;
-            }
+            if (color_greyscale) {
 
-          } else if (color_flag & 0x08) {
+              trak->stsd_atoms[k].video.palette_count =
+                1 << color_depth;
 
-            /* if flag bit 3 is set, load the default palette */
-            trak->properties.video.palette_count =
-              1 << color_depth;
+              /* compute the greyscale palette */
+              color_index = 255;
+              color_dec = 256 / 
+                (trak->stsd_atoms[k].video.palette_count - 1);
+              for (j = 0; 
+                   j < trak->stsd_atoms[k].video.palette_count;
+                   j++) {
 
-            if (color_depth == 2)
-              color_table = qt_default_palette_4;
-            else if (color_depth == 4)
-              color_table = qt_default_palette_16;
-            else
-              color_table = qt_default_palette_256;
+                trak->stsd_atoms[k].video.palette[j].r = color_index;
+                trak->stsd_atoms[k].video.palette[j].g = color_index;
+                trak->stsd_atoms[k].video.palette[j].b = color_index;
+                color_index -= color_dec;
+                if (color_index < 0)
+                  color_index = 0;
+              }
 
-            for (j = 0; 
-              j < trak->properties.video.palette_count;
-              j++) {
+            } else if (color_flag & 0x08) {
 
-              trak->properties.video.palette[j].r =
-                color_table[j * 4 + 0];
-              trak->properties.video.palette[j].g =
-                color_table[j * 4 + 1];
-              trak->properties.video.palette[j].b =
-                color_table[j * 4 + 2];
+              /* if flag bit 3 is set, load the default palette */
+              trak->stsd_atoms[k].video.palette_count =
+                1 << color_depth;
 
-            }
+              if (color_depth == 2)
+                color_table = qt_default_palette_4;
+              else if (color_depth == 4)
+                color_table = qt_default_palette_16;
+              else
+                color_table = qt_default_palette_256;
 
-          } else {
+              for (j = 0; 
+                j < trak->stsd_atoms[k].video.palette_count;
+                j++) {
 
-            /* load the palette from the file */
-            color_start = BE_32(&trak_atom[i + 0x62]);
-            color_count = BE_16(&trak_atom[i + 0x66]);
-            color_end = BE_16(&trak_atom[i + 0x68]);
-            trak->properties.video.palette_count =
-              color_end + 1;
+                trak->stsd_atoms[k].video.palette[j].r =
+                  color_table[j * 4 + 0];
+                trak->stsd_atoms[k].video.palette[j].g =
+                  color_table[j * 4 + 1];
+                trak->stsd_atoms[k].video.palette[j].b =
+                  color_table[j * 4 + 2];
 
-            for (j = color_start; j <= color_end; j++) {
+              }
 
-              color_index = BE_16(&trak_atom[i + 0x6A + j * 8]);
-              if (color_count & 0x8000)
-                color_index = j;
-              if (color_index < 
-                trak->properties.video.palette_count) {
-                trak->properties.video.palette[color_index].r =
-                  trak_atom[i + 0x6A + j * 8 + 2];
-                trak->properties.video.palette[color_index].g =
-                  trak_atom[i + 0x6A + j * 8 + 4];
-                trak->properties.video.palette[color_index].b =
-                  trak_atom[i + 0x6A + j * 8 + 6];
+            } else {
+
+              /* load the palette from the file */
+              color_start = BE_32(&trak_atom[atom_pos + 0x52]);
+              color_count = BE_16(&trak_atom[atom_pos + 0x56]);
+              color_end = BE_16(&trak_atom[atom_pos + 0x58]);
+              trak->stsd_atoms[k].video.palette_count =
+                color_end + 1;
+
+              for (j = color_start; j <= color_end; j++) {
+
+                color_index = BE_16(&trak_atom[atom_pos + 0x5A + j * 8]);
+                if (color_count & 0x8000)
+                  color_index = j;
+                if (color_index < 
+                  trak->stsd_atoms[k].video.palette_count) {
+                  trak->stsd_atoms[k].video.palette[color_index].r =
+                    trak_atom[atom_pos + 0x5A + j * 8 + 2];
+                  trak->stsd_atoms[k].video.palette[color_index].g =
+                    trak_atom[atom_pos + 0x5A + j * 8 + 4];
+                  trak->stsd_atoms[k].video.palette[color_index].b =
+                    trak_atom[atom_pos + 0x5A + j * 8 + 6];
+                }
               }
             }
+          } else
+            trak->stsd_atoms[k].video.palette_count = 0;
+
+          debug_atom_load("    video properties atom #%d\n", k + 1);
+          debug_atom_load("      %dx%d, video fourcc = '%c%c%c%c' (%02X%02X%02X%02X)\n",
+            trak->stsd_atoms[k].video.width,
+            trak->stsd_atoms[k].video.height,
+            trak_atom[atom_pos + 0x0],
+            trak_atom[atom_pos + 0x1],
+            trak_atom[atom_pos + 0x2],
+            trak_atom[atom_pos + 0x3],
+            trak_atom[atom_pos + 0x0],
+            trak_atom[atom_pos + 0x1],
+            trak_atom[atom_pos + 0x2],
+            trak_atom[atom_pos + 0x3]);
+          debug_atom_load("      %d RGB colors\n",
+            trak->stsd_atoms[k].video.palette_count);
+          for (j = 0; j < trak->stsd_atoms[k].video.palette_count;
+               j++)
+            debug_atom_load("        %d: %3d %3d %3d\n",
+              j,
+              trak->stsd_atoms[k].video.palette[j].r,
+              trak->stsd_atoms[k].video.palette[j].g,
+              trak->stsd_atoms[k].video.palette[j].b);
+
+        } else if (trak->type == MEDIA_AUDIO) {
+
+          trak->stsd_atoms[k].audio.media_id = k + 1;
+          trak->stsd_atoms[k].audio.properties_offset = properties_offset;
+
+          /* fetch audio parameters */
+          trak->stsd_atoms[k].audio.codec_fourcc =
+            ME_32(&trak_atom[atom_pos + 0x0]);
+          trak->stsd_atoms[k].audio.sample_rate =
+            BE_16(&trak_atom[atom_pos + 0x1C]);
+          trak->stsd_atoms[k].audio.channels = trak_atom[atom_pos + 0x15];
+          trak->stsd_atoms[k].audio.bits = trak_atom[atom_pos + 0x17];
+
+          /* assume uncompressed audio parameters */
+          trak->stsd_atoms[k].audio.bytes_per_sample =
+            trak->stsd_atoms[k].audio.bits / 8;
+          trak->stsd_atoms[k].audio.samples_per_frame =
+            trak->stsd_atoms[k].audio.channels;
+          trak->stsd_atoms[k].audio.bytes_per_frame = 
+            trak->stsd_atoms[k].audio.bytes_per_sample * 
+            trak->stsd_atoms[k].audio.samples_per_frame;
+          trak->stsd_atoms[k].audio.samples_per_packet = 
+            trak->stsd_atoms[k].audio.samples_per_frame;
+          trak->stsd_atoms[k].audio.bytes_per_packet = 
+            trak->stsd_atoms[k].audio.bytes_per_sample;
+
+          /* special case time: some ima4-encoded files don't have the
+           * extra header; compensate */
+          if (BE_32(&trak_atom[atom_pos + 0x0]) == IMA4_FOURCC) {
+            trak->stsd_atoms[k].audio.samples_per_packet = 64;
+            trak->stsd_atoms[k].audio.bytes_per_packet = 34;
+            trak->stsd_atoms[k].audio.bytes_per_frame = 34 * 
+              trak->stsd_atoms[k].audio.channels;
+            trak->stsd_atoms[k].audio.bytes_per_sample = 2;
+            trak->stsd_atoms[k].audio.samples_per_frame = 64 *
+              trak->stsd_atoms[k].audio.channels;
           }
-        } else
-          trak->properties.video.palette_count = 0;
 
-        debug_atom_load("    video description\n");
-        debug_atom_load("      %dx%d, video fourcc = '%c%c%c%c' (%02X%02X%02X%02X)\n",
-          trak->properties.video.width,
-          trak->properties.video.height,
-          trak_atom[i + 0x10],
-          trak_atom[i + 0x11],
-          trak_atom[i + 0x12],
-          trak_atom[i + 0x13],
-          trak_atom[i + 0x10],
-          trak_atom[i + 0x11],
-          trak_atom[i + 0x12],
-          trak_atom[i + 0x13]);
-        debug_atom_load("      %d RGB colors\n",
-          trak->properties.video.palette_count);
-        for (j = 0; j < trak->properties.video.palette_count;
-             j++)
-          debug_atom_load("        %d: %3d %3d %3d\n",
-            j,
-            trak->properties.video.palette[j].r,
-            trak->properties.video.palette[j].g,
-            trak->properties.video.palette[j].b);
+          /* it's time to dig a little deeper to determine the real audio
+           * properties; if a the stsd compressor atom has 0x24 bytes, it
+           * appears to be a handler for uncompressed data; if there are an
+           * extra 0x10 bytes, there are some more useful decoding params;
+           * further, do not do load these parameters if the audio is just
+           * PCM ('raw ', 'twos', or 'sowt') */
+          if ((current_stsd_atom_size > 0x24) &&
+              (trak->stsd_atoms[k].audio.codec_fourcc != TWOS_FOURCC) &&
+              (trak->stsd_atoms[k].audio.codec_fourcc != SOWT_FOURCC) &&
+              (trak->stsd_atoms[k].audio.codec_fourcc != RAW_FOURCC)) {
 
-      } else if (trak->type == MEDIA_AUDIO) {
+            if (BE_32(&trak_atom[atom_pos + 0x20]))
+              trak->stsd_atoms[k].audio.samples_per_packet = 
+                BE_32(&trak_atom[atom_pos + 0x20]);
+            if (BE_32(&trak_atom[atom_pos + 0x24]))
+              trak->stsd_atoms[k].audio.bytes_per_packet = 
+                BE_32(&trak_atom[atom_pos + 0x24]);
+            if (BE_32(&trak_atom[atom_pos + 0x28]))
+              trak->stsd_atoms[k].audio.bytes_per_frame = 
+                BE_32(&trak_atom[atom_pos + 0x28]);
+            if (BE_32(&trak_atom[atom_pos + 0x2C]))
+              trak->stsd_atoms[k].audio.bytes_per_sample = 
+                BE_32(&trak_atom[atom_pos + 0x2C]);
+            trak->stsd_atoms[k].audio.samples_per_frame =
+              (trak->stsd_atoms[k].audio.bytes_per_frame / 
+               trak->stsd_atoms[k].audio.bytes_per_packet) *
+               trak->stsd_atoms[k].audio.samples_per_packet;
+          }
 
-        /* fetch audio parameters */
-        trak->properties.audio.codec_fourcc =
-	  ME_32(&trak_atom[i + 0x10]);
-        trak->properties.audio.sample_rate =
-          BE_16(&trak_atom[i + 0x2C]);
-        trak->properties.audio.channels = trak_atom[i + 0x25];
-        trak->properties.audio.bits = trak_atom[i + 0x27];
+          /* see if the trak deserves a promotion to VBR */
+          if (BE_16(&trak_atom[atom_pos + 0x18]) == 0xFFFE)
+            trak->stsd_atoms[k].audio.vbr = 1;
+          else
+            trak->stsd_atoms[k].audio.vbr = 0;
 
-        /* assume uncompressed audio parameters */
-        trak->properties.audio.bytes_per_sample =
-          trak->properties.audio.bits / 8;
-        trak->properties.audio.samples_per_frame =
-          trak->properties.audio.channels;
-        trak->properties.audio.bytes_per_frame = 
-          trak->properties.audio.bytes_per_sample * 
-          trak->properties.audio.samples_per_frame;
-        trak->properties.audio.samples_per_packet = 
-          trak->properties.audio.samples_per_frame;
-        trak->properties.audio.bytes_per_packet = 
-          trak->properties.audio.bytes_per_sample;
+          /* if this is MP4 audio, mark the trak as VBR */
+          if (BE_32(&trak_atom[atom_pos + 0x0]) == MP4A_FOURCC)
+            trak->stsd_atoms[k].audio.vbr = 1;
 
-        /* special case time: some ima4-encoded files don't have the
-         * extra header; compensate */
-        if (BE_32(&trak_atom[i + 0x10]) == IMA4_FOURCC) {
-          trak->properties.audio.samples_per_packet = 64;
-          trak->properties.audio.bytes_per_packet = 34;
-          trak->properties.audio.bytes_per_frame = 34 * 
-            trak->properties.audio.channels;
-          trak->properties.audio.bytes_per_sample = 2;
-          trak->properties.audio.samples_per_frame = 64 *
-            trak->properties.audio.channels;
+          /* check for a MS-style WAVE format header */
+          if ((current_atom_size >= 0x48) && 
+              (BE_32(&trak_atom[atom_pos + 0x34]) == WAVE_ATOM)) {
+            trak->stsd_atoms[k].audio.wave_present = 1;
+            memcpy(&trak->stsd_atoms[k].audio.wave, 
+              &trak_atom[atom_pos + 0x4C],
+              sizeof(trak->stsd_atoms[k].audio.wave));
+            xine_waveformatex_le2me(&trak->stsd_atoms[k].audio.wave);
+          } else {
+            trak->stsd_atoms[k].audio.wave_present = 0;
+          }
+
+          debug_atom_load("    audio properties atom #%d\n", k + 1);
+          debug_atom_load("      %d Hz, %d bits, %d channels, %saudio fourcc = '%c%c%c%c' (%02X%02X%02X%02X)\n",
+            trak->stsd_atoms[k].audio.sample_rate,
+            trak->stsd_atoms[k].audio.bits,
+            trak->stsd_atoms[k].audio.channels,
+            (trak->stsd_atoms[k].audio.vbr) ? "vbr, " : "",
+            trak_atom[atom_pos + 0x0],
+            trak_atom[atom_pos + 0x1],
+            trak_atom[atom_pos + 0x2],
+            trak_atom[atom_pos + 0x3],
+            trak_atom[atom_pos + 0x0],
+            trak_atom[atom_pos + 0x1],
+            trak_atom[atom_pos + 0x2],
+            trak_atom[atom_pos + 0x3]);
+          if (current_stsd_atom_size > 0x24) {
+            debug_atom_load("      %d samples/packet, %d bytes/packet, %d bytes/frame\n",
+              trak->stsd_atoms[k].audio.samples_per_packet,
+              trak->stsd_atoms[k].audio.bytes_per_packet,
+              trak->stsd_atoms[k].audio.bytes_per_frame);
+            debug_atom_load("      %d bytes/sample (%d samples/frame)\n",
+              trak->stsd_atoms[k].audio.bytes_per_sample,
+              trak->stsd_atoms[k].audio.samples_per_frame);
+          }
         }
 
-        /* it's time to dig a little deeper to determine the real audio
-         * properties; if a the stsd compressor atom has 0x24 bytes, it
-         * appears to be a handler for uncompressed data; if there are an
-         * extra 0x10 bytes, there are some more useful decoding params */
-        if (BE_32(&trak_atom[i + 0x0C]) > 0x24) {
+        /* use first audio properties atom for now */
+        trak->properties = &trak->stsd_atoms[0];
 
-          if (BE_32(&trak_atom[i + 0x30]))
-            trak->properties.audio.samples_per_packet = 
-              BE_32(&trak_atom[i + 0x30]);
-          if (BE_32(&trak_atom[i + 0x34]))
-            trak->properties.audio.bytes_per_packet = 
-              BE_32(&trak_atom[i + 0x34]);
-          if (BE_32(&trak_atom[i + 0x38]))
-            trak->properties.audio.bytes_per_frame = 
-              BE_32(&trak_atom[i + 0x38]);
-          if (BE_32(&trak_atom[i + 0x3C]))
-            trak->properties.audio.bytes_per_sample = 
-              BE_32(&trak_atom[i + 0x3C]);
-          trak->properties.audio.samples_per_frame =
-            (trak->properties.audio.bytes_per_frame / 
-             trak->properties.audio.bytes_per_packet) *
-             trak->properties.audio.samples_per_packet;
-
-        }
-
-        /* see if the trak deserves a promotion to VBR */
-        if (BE_16(&trak_atom[i + 0x28]) == 0xFFFE)
-          trak->properties.audio.vbr = 1;
-        else
-          trak->properties.audio.vbr = 0;
-
-        /* if this is MP4 audio, mark the trak as VBR */
-        if (BE_32(&trak_atom[i + 0x10]) == MP4A_FOURCC)
-          trak->properties.audio.vbr = 1;
-
-        /* check for a MS-style WAVE format header */
-        if ((current_atom_size >= 0x48) && 
-            (BE_32(&trak_atom[i + 0x44]) == WAVE_ATOM)) {
-          trak->properties.audio.wave_present = 1;
-          memcpy(&trak->properties.audio.wave, 
-            &trak_atom[i + 0x5C],
-            sizeof(trak->properties.audio.wave));
-          xine_waveformatex_le2me(&trak->properties.audio.wave);
-        } else {
-          trak->properties.audio.wave_present = 0;
-        }
-
-        debug_atom_load("    audio description\n");
-        debug_atom_load("      %d Hz, %d bits, %d channels, %saudio fourcc = '%c%c%c%c' (%02X%02X%02X%02X)\n",
-          trak->properties.audio.sample_rate,
-          trak->properties.audio.bits,
-          trak->properties.audio.channels,
-          (trak->properties.audio.vbr) ? "vbr, " : "",
-          trak_atom[i + 0x10],
-          trak_atom[i + 0x11],
-          trak_atom[i + 0x12],
-          trak_atom[i + 0x13],
-          trak_atom[i + 0x10],
-          trak_atom[i + 0x11],
-          trak_atom[i + 0x12],
-          trak_atom[i + 0x13]);
-        if (BE_32(&trak_atom[i + 0x0C]) > 0x24) {
-          debug_atom_load("      %d samples/packet, %d bytes/packet, %d bytes/frame\n",
-            trak->properties.audio.samples_per_packet,
-            trak->properties.audio.bytes_per_packet,
-            trak->properties.audio.bytes_per_frame);
-          debug_atom_load("      %d bytes/sample (%d samples/frame)\n",
-            trak->properties.audio.bytes_per_sample,
-            trak->properties.audio.samples_per_frame);
-        }
+        /* forward to the next atom */
+        atom_pos += current_stsd_atom_size;
+        properties_offset += current_stsd_atom_size;
       }
-
-      i -= hack_adjust;
 
     } else if (current_atom == ESDS_ATOM) {
 
@@ -1253,10 +1285,13 @@ static qt_error parse_trak_atom (qt_trak *trak,
           BE_32(&trak_atom[i + 12 + j * 12 + 0]);
         trak->sample_to_chunk_table[j].samples_per_chunk =
           BE_32(&trak_atom[i + 12 + j * 12 + 4]);
-        debug_atom_load("      %d: %d samples/chunk starting at chunk %d (%d)\n",
+        trak->sample_to_chunk_table[j].media_id =
+          BE_32(&trak_atom[i + 12 + j * 12 + 8]);
+        debug_atom_load("      %d: %d samples/chunk starting at chunk %d (%d) for media id %d\n",
           j, trak->sample_to_chunk_table[j].samples_per_chunk,
           trak->sample_to_chunk_table[j].first_chunk,
-          trak->sample_to_chunk_table[j].first_chunk - 1);
+          trak->sample_to_chunk_table[j].first_chunk - 1,
+          trak->sample_to_chunk_table[j].media_id);
       }
 
     } else if (current_atom == STTS_ATOM) {
@@ -1307,6 +1342,7 @@ free_trak:
   free(trak->time_to_sample_table);
   free(trak->decoder_config);
   free(trak->stsd);
+  free(trak->stsd_atoms);
 
   return last_error;
 }
@@ -1446,11 +1482,19 @@ static qt_error build_frame_table(qt_trak *trak,
   int64_t frame_duration = 0;
   unsigned int edit_list_index;
   unsigned int edit_list_pts_counter;
+  int atom_to_use;
+
+  /* maintain counters for each of the subtracks within the trak */
+  int *media_id_counts = NULL;
+
+  if ((trak->type != MEDIA_VIDEO) &&
+      (trak->type != MEDIA_AUDIO))
+    return QT_OK;
 
   /* AUDIO and OTHER frame types follow the same rules; VIDEO and vbr audio
    * frame types follow a different set */
   if ((trak->type == MEDIA_VIDEO) || 
-      (trak->properties.audio.vbr)) {
+      (trak->properties->audio.vbr)) {
 
     /* in this case, the total number of frames is equal to the number of
      * entries in the sample size table */
@@ -1467,6 +1511,11 @@ static qt_error build_frame_table(qt_trak *trak,
     pts_index = 0;
     pts_index_countdown =
       trak->time_to_sample_table[pts_index].count;
+
+    media_id_counts = xine_xmalloc(trak->stsd_atoms_count * sizeof(int));
+    if (!media_id_counts)
+      return QT_NO_MEMORY;
+    memset(media_id_counts, 0, trak->stsd_atoms_count * sizeof(int));
 
     /* iterate through each start chunk in the stsc table */
     for (i = 0; i < trak->sample_to_chunk_count; i++) {
@@ -1488,6 +1537,18 @@ static qt_error build_frame_table(qt_trak *trak,
           trak->sample_to_chunk_table[i].samples_per_chunk;
         current_offset = trak->chunk_offset_table[j];
         while (samples_per_chunk > 0) {
+
+          /* media id accounting */
+          if (trak->sample_to_chunk_table[i].media_id > trak->stsd_atoms_count) {
+            printf ("QT: help! media ID out of range! (%d > %d)\n",
+              trak->sample_to_chunk_table[i].media_id,
+              trak->stsd_atoms_count);
+            trak->frames[frame_counter].media_id = 0;
+          } else {
+            trak->frames[frame_counter].media_id = 
+              trak->sample_to_chunk_table[i].media_id;
+            media_id_counts[trak->sample_to_chunk_table[i].media_id - 1]++;
+          }
 
           /* figure out the offset and size */
           trak->frames[frame_counter].offset = current_offset;
@@ -1575,6 +1636,20 @@ static qt_error build_frame_table(qt_trak *trak,
       debug_edit_list("  final pts for sample %d = %lld\n", i, trak->frames[i].pts);
     }
 
+    /* decide which video properties atom to use */
+    atom_to_use = 0;
+    for (i = 1; i < trak->stsd_atoms_count; i++)
+      if (media_id_counts[i] > media_id_counts[i - 1])
+        atom_to_use = i;
+    trak->properties = &trak->stsd_atoms[atom_to_use];
+
+    /* adjust the stsd atom as needed */
+    memcpy(trak->stsd + 12,
+      &trak->stsd[trak->properties->video.properties_offset],
+      BE_32(&trak->stsd[trak->properties->video.properties_offset]));
+
+    free(media_id_counts);
+
   } else {
 
     /* in this case, the total number of frames is equal to the number of
@@ -1612,15 +1687,26 @@ static qt_error build_frame_table(qt_trak *trak,
           trak->frames[j].size =
             trak->sample_to_chunk_table[i].samples_per_chunk;
 
+          /* media id accounting */
+          if (trak->sample_to_chunk_table[i].media_id > trak->stsd_atoms_count) {
+            printf ("QT: help! media ID out of range! (%d > %d)\n",
+              trak->sample_to_chunk_table[i].media_id,
+              trak->stsd_atoms_count);
+            trak->frames[j].media_id = 0;
+          } else {
+            trak->frames[j].media_id = 
+              trak->sample_to_chunk_table[i].media_id;
+          }
+
           /* the chunk size is actually the audio frame count */
           audio_frame_counter += trak->frames[j].size;
 
           /* compute the actual chunk size */
           trak->frames[j].size =
-            (trak->frames[j].size * 
-             trak->properties.audio.channels) /
-             trak->properties.audio.samples_per_frame *
-             trak->properties.audio.bytes_per_frame;
+            (trak->frames[j].size *
+             trak->properties->audio.channels) /
+             trak->properties->audio.samples_per_frame *
+             trak->properties->audio.bytes_per_frame;
         }
       }
     }
@@ -1727,11 +1813,12 @@ static void parse_moov_atom(qt_info *info, unsigned char *moov_atom,
 
     /* dump the frame table in debug mode */
     for (j = 0; j < info->traks[i].frame_count; j++)
-      debug_frame_table("      %d: %8X bytes @ %llX, %lld pts%s\n",
+      debug_frame_table("      %d: %8X bytes @ %llX, %lld pts, media id %d%s\n",
         j,
         info->traks[i].frames[j].size,
         info->traks[i].frames[j].offset,
         info->traks[i].frames[j].pts,
+        info->traks[i].frames[j].media_id,
         (info->traks[i].frames[j].keyframe) ? " (keyframe)" : "");
 
     /* decide which audio trak and which video trak has the most frames */
@@ -2043,6 +2130,12 @@ static int demux_qt_send_chunk(demux_plugin_t *this_gen) {
 
   if (!dispatch_audio) {
     i = video_trak->current_frame++;
+
+    if (video_trak->frames[i].media_id != video_trak->properties->video.media_id) {
+      this->status = DEMUX_OK;
+      return this->status;
+    }
+
     remaining_sample_bytes = video_trak->frames[i].size;
     this->input->seek(this->input, video_trak->frames[i].offset,
       SEEK_SET);
@@ -2063,24 +2156,25 @@ static int demux_qt_send_chunk(demux_plugin_t *this_gen) {
      * to compensate. */
     if (!frame_duration) {
       frame_duration = 1;
-      video_trak->properties.video.edit_list_compensation++;
+      video_trak->properties->video.edit_list_compensation++;
     } else {
-      frame_duration -= video_trak->properties.video.edit_list_compensation;
-      video_trak->properties.video.edit_list_compensation = 0;
+      frame_duration -= video_trak->properties->video.edit_list_compensation;
+      video_trak->properties->video.edit_list_compensation = 0;
     }
 
     this->stream->stream_info[XINE_STREAM_INFO_FRAME_DURATION] =
       frame_duration;
 
-    debug_video_demux("  qt: sending off video frame %d from offset 0x%llX, %d bytes, %lld pts\n",
+    debug_video_demux("  qt: sending off video frame %d from offset 0x%llX, %d bytes, media id %d, %lld pts\n",
       i, 
       video_trak->frames[i].offset,
       video_trak->frames[i].size,
+      video_trak->frames[i].media_id,
       video_trak->frames[i].pts);
 
     while (remaining_sample_bytes) {
       buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-      buf->type = video_trak->properties.video.codec_buftype;
+      buf->type = video_trak->properties->video.codec_buftype;
       buf->extra_info->input_pos = video_trak->frames[i].offset - this->data_start;
       buf->extra_info->input_length = this->data_size;
       buf->extra_info->input_time = video_trak->frames[i].pts / 90;
@@ -2114,6 +2208,11 @@ static int demux_qt_send_chunk(demux_plugin_t *this_gen) {
     /* load an audio sample and packetize it */
     i = audio_trak->current_frame++;
 
+    if (audio_trak->frames[i].media_id != audio_trak->properties->audio.media_id) {
+      this->status = DEMUX_OK;
+      return this->status;
+    }
+
     /* only go through with this procedure if audio_fifo exists */
     if (!this->audio_fifo)
       return this->status;
@@ -2122,16 +2221,17 @@ static int demux_qt_send_chunk(demux_plugin_t *this_gen) {
     this->input->seek(this->input, audio_trak->frames[i].offset,
       SEEK_SET);
 
-    debug_audio_demux("  qt: sending off audio frame %d from offset 0x%llX, %d bytes, %lld pts\n",
+    debug_audio_demux("  qt: sending off audio frame %d from offset 0x%llX, %d bytes, media id %d, %lld pts\n",
       i, 
       audio_trak->frames[i].offset,
       audio_trak->frames[i].size,
+      audio_trak->frames[i].media_id,
       audio_trak->frames[i].pts);
 
     first_buf = 1;
     while (remaining_sample_bytes) {
       buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
-      buf->type = audio_trak->properties.audio.codec_buftype;
+      buf->type = audio_trak->properties->audio.codec_buftype;
       buf->extra_info->input_pos = audio_trak->frames[i].offset - this->data_start;
       buf->extra_info->input_length = this->data_size;
       /* The audio chunk is often broken up into multiple 8K buffers when
@@ -2170,9 +2270,9 @@ static int demux_qt_send_chunk(demux_plugin_t *this_gen) {
 
       /* Special case alert: If this is signed, 8-bit data, transform
        * the data to unsigned. */
-      if ((audio_trak->properties.audio.bits == 8) && 
-          ((audio_trak->properties.audio.codec_fourcc == TWOS_FOURCC) ||
-           (audio_trak->properties.audio.codec_fourcc == SOWT_FOURCC)))
+      if ((audio_trak->properties->audio.bits == 8) && 
+          ((audio_trak->properties->audio.codec_fourcc == TWOS_FOURCC) ||
+           (audio_trak->properties->audio.codec_fourcc == SOWT_FOURCC)))
         for (j = 0; j < buf->size; j++)
           buf->content[j] += 0x80;
 
@@ -2233,23 +2333,23 @@ static void demux_qt_send_headers(demux_plugin_t *this_gen) {
   if (this->qt->video_trak != -1) {
 
     this->bih.biSize = sizeof(this->bih);
-    this->bih.biWidth = video_trak->properties.video.width;
-    this->bih.biHeight = video_trak->properties.video.height;
-    this->bih.biBitCount = video_trak->properties.video.depth;
+    this->bih.biWidth = video_trak->properties->video.width;
+    this->bih.biHeight = video_trak->properties->video.height;
+    this->bih.biBitCount = video_trak->properties->video.depth;
 
-    this->bih.biCompression = video_trak->properties.video.codec_fourcc;
-    video_trak->properties.video.codec_buftype = 
+    this->bih.biCompression = video_trak->properties->video.codec_fourcc;
+    video_trak->properties->video.codec_buftype = 
       fourcc_to_buf_video(this->bih.biCompression);
 
     /* hack: workaround a fourcc clash! 'mpg4' is used by MS and Sorenson
      * mpeg4 codecs (they are not compatible).
      */
-    if( video_trak->properties.video.codec_buftype == BUF_VIDEO_MSMPEG4_V1 )
-      video_trak->properties.video.codec_buftype = BUF_VIDEO_MPEG4;
+    if( video_trak->properties->video.codec_buftype == BUF_VIDEO_MSMPEG4_V1 )
+      video_trak->properties->video.codec_buftype = BUF_VIDEO_MPEG4;
   
-    if( !video_trak->properties.video.codec_buftype && 
-         video_trak->properties.video.codec_fourcc )
-      video_trak->properties.video.codec_buftype = BUF_VIDEO_UNKNOWN;
+    if( !video_trak->properties->video.codec_buftype && 
+         video_trak->properties->video.codec_fourcc )
+      video_trak->properties->video.codec_buftype = BUF_VIDEO_UNKNOWN;
 
     this->stream->stream_info[XINE_STREAM_INFO_HAS_VIDEO] = 1;
     this->stream->stream_info[XINE_STREAM_INFO_VIDEO_WIDTH] =
@@ -2257,7 +2357,7 @@ static void demux_qt_send_headers(demux_plugin_t *this_gen) {
     this->stream->stream_info[XINE_STREAM_INFO_VIDEO_HEIGHT] = 
       this->bih.biHeight;
     this->stream->stream_info[XINE_STREAM_INFO_VIDEO_FOURCC] = 
-      video_trak->properties.video.codec_fourcc;
+      video_trak->properties->video.codec_fourcc;
 
   } else {
 
@@ -2272,22 +2372,22 @@ static void demux_qt_send_headers(demux_plugin_t *this_gen) {
 
   if (this->qt->audio_trak != -1) {
 
-    audio_trak->properties.audio.codec_buftype = 
-      formattag_to_buf_audio(audio_trak->properties.audio.codec_fourcc);
+    audio_trak->properties->audio.codec_buftype = 
+      formattag_to_buf_audio(audio_trak->properties->audio.codec_fourcc);
 
-    if( !audio_trak->properties.audio.codec_buftype &&
-         audio_trak->properties.audio.codec_fourcc )
-      audio_trak->properties.audio.codec_buftype = BUF_AUDIO_UNKNOWN;
+    if( !audio_trak->properties->audio.codec_buftype &&
+         audio_trak->properties->audio.codec_fourcc )
+      audio_trak->properties->audio.codec_buftype = BUF_AUDIO_UNKNOWN;
 
     this->stream->stream_info[XINE_STREAM_INFO_HAS_AUDIO] = 1;
     this->stream->stream_info[XINE_STREAM_INFO_AUDIO_CHANNELS] =
-      audio_trak->properties.audio.channels;
+      audio_trak->properties->audio.channels;
     this->stream->stream_info[XINE_STREAM_INFO_AUDIO_SAMPLERATE] =
-      audio_trak->properties.audio.sample_rate;
+      audio_trak->properties->audio.sample_rate;
     this->stream->stream_info[XINE_STREAM_INFO_AUDIO_BITS] =
-      audio_trak->properties.audio.bits;
+      audio_trak->properties->audio.bits;
     this->stream->stream_info[XINE_STREAM_INFO_AUDIO_FOURCC] = 
-      audio_trak->properties.audio.codec_fourcc;
+      audio_trak->properties->audio.codec_fourcc;
 
   } else {
 
@@ -2315,7 +2415,7 @@ static void demux_qt_send_headers(demux_plugin_t *this_gen) {
 
   /* send init info to decoders */
   if (video_trak &&
-      (video_trak->properties.video.codec_buftype)) {
+      (video_trak->properties->video.codec_buftype)) {
     buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
     buf->decoder_flags = BUF_FLAG_HEADER;
     buf->decoder_info[0] = 0;
@@ -2324,27 +2424,27 @@ static void demux_qt_send_headers(demux_plugin_t *this_gen) {
     buf->decoder_info[1] = 3000;
     memcpy(buf->content, &this->bih, sizeof(this->bih));
     buf->size = sizeof(this->bih);
-    buf->type = video_trak->properties.video.codec_buftype;
+    buf->type = video_trak->properties->video.codec_buftype;
     this->video_fifo->put (this->video_fifo, buf);
       
     /* send header info to decoder. some mpeg4 streams need this */
     if( video_trak->decoder_config ) {
       buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-      buf->type = video_trak->properties.video.codec_buftype;
+      buf->type = video_trak->properties->video.codec_buftype;
       buf->size = video_trak->decoder_config_len;
       buf->content = video_trak->decoder_config;      
       this->video_fifo->put (this->video_fifo, buf);
     }
 
     /* send off the palette, if there is one */
-    if (video_trak->properties.video.palette_count) {
+    if (video_trak->properties->video.palette_count) {
       buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
       buf->decoder_flags = BUF_FLAG_SPECIAL;
       buf->decoder_info[1] = BUF_SPECIAL_PALETTE;
-      buf->decoder_info[2] = video_trak->properties.video.palette_count;
-      buf->decoder_info_ptr[2] = &video_trak->properties.video.palette;
+      buf->decoder_info[2] = video_trak->properties->video.palette_count;
+      buf->decoder_info_ptr[2] = &video_trak->properties->video.palette;
       buf->size = 0;
-      buf->type = video_trak->properties.video.codec_buftype;
+      buf->type = video_trak->properties->video.codec_buftype;
       this->video_fifo->put (this->video_fifo, buf);
     }
 
@@ -2355,28 +2455,28 @@ static void demux_qt_send_headers(demux_plugin_t *this_gen) {
     buf->decoder_info[2] = video_trak->stsd_size;
     buf->decoder_info_ptr[2] = video_trak->stsd;
     buf->size = 0;
-    buf->type = video_trak->properties.video.codec_buftype;
+    buf->type = video_trak->properties->video.codec_buftype;
     this->video_fifo->put (this->video_fifo, buf);
   }
 
   if ((this->qt->audio_trak != -1) &&
-      (audio_trak->properties.audio.codec_buftype) &&
+      (audio_trak->properties->audio.codec_buftype) &&
       this->audio_fifo) {
 
     buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
-    buf->type = audio_trak->properties.audio.codec_buftype;
+    buf->type = audio_trak->properties->audio.codec_buftype;
     buf->decoder_flags = BUF_FLAG_HEADER;
     buf->decoder_info[0] = 0;
-    buf->decoder_info[1] = audio_trak->properties.audio.sample_rate;
-    buf->decoder_info[2] = audio_trak->properties.audio.bits;
-    buf->decoder_info[3] = audio_trak->properties.audio.channels;
-    buf->content = (void *)&audio_trak->properties.audio.wave;
-    buf->size = sizeof(audio_trak->properties.audio.wave);
+    buf->decoder_info[1] = audio_trak->properties->audio.sample_rate;
+    buf->decoder_info[2] = audio_trak->properties->audio.bits;
+    buf->decoder_info[3] = audio_trak->properties->audio.channels;
+    buf->content = (void *)&audio_trak->properties->audio.wave;
+    buf->size = sizeof(audio_trak->properties->audio.wave);
     this->audio_fifo->put (this->audio_fifo, buf);
     
     if( audio_trak->decoder_config ) {
       buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
-      buf->type = audio_trak->properties.audio.codec_buftype;
+      buf->type = audio_trak->properties->audio.codec_buftype;
       buf->size = 0;
       buf->decoder_flags = BUF_FLAG_SPECIAL;
       buf->decoder_info[1] = BUF_SPECIAL_DECODER_CONFIG;
@@ -2392,7 +2492,7 @@ static void demux_qt_send_headers(demux_plugin_t *this_gen) {
     buf->decoder_info[2] = audio_trak->stsd_size;
     buf->decoder_info_ptr[2] = audio_trak->stsd;
     buf->size = 0;
-    buf->type = audio_trak->properties.audio.codec_buftype;
+    buf->type = audio_trak->properties->audio.codec_buftype;
     this->audio_fifo->put (this->audio_fifo, buf);
 
   }
