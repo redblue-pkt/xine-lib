@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: vm.c,v 1.6 2002/09/20 12:53:53 mroi Exp $
+ * $Id: vm.c,v 1.7 2002/10/22 04:39:30 storri Exp $
  *
  */
 
@@ -1741,7 +1741,7 @@ static int set_VTS_PTT(vm_t *vm, int vtsN, int /* is this really */ vts_ttn, int
   (vm->state).vtsN = vtsN;  /* Not sure about this one. We can get to it easily from TTN_REG */
   /* Any other registers? */
   
-  res = set_PGC(vm, pgcN);   // This clobber's state.pgN (sets it to 1), but we don't want clobbering here.
+  res = set_PGC(vm, pgcN);   /* This clobber's state.pgN (sets it to 1), but we don't want clobbering here. */
   (vm->state).pgN = pgN; /*  Part?? */
   return res;
 }
@@ -1988,6 +1988,9 @@ static pgcit_t* get_PGCIT(vm_t *vm) {
 
 /*
  * $Log: vm.c,v $
+ * Revision 1.7  2002/10/22 04:39:30  storri
+ * Changed comments to standard /* ... */
+ *
  * Revision 1.6  2002/09/20 12:53:53  mroi
  * sync to latest libdvdnav cvs version
  *

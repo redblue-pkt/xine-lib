@@ -27,7 +27,7 @@
 #include <inttypes.h>
 #include <assert.h>
 
-#include "config.h" // Needed for WORDS_BIGENDIAN
+#include "config.h" /* Needed for WORDS_BIGENDIAN */
 #include "nav_types.h"
 #include "nav_print.h"
 
@@ -167,7 +167,7 @@ static void navPrint_BTNIT(btni_t *btni_table, int btngr_ns, int btn_ns) {
 	printf("left %d, ", btni->left);
 	printf("right %d\n", btni->right);
 	
-	// ifoPrint_COMMAND(&btni->cmd);
+	/* ifoPrint_COMMAND(&btni->cmd); */
 	printf("\n");
       }
     }

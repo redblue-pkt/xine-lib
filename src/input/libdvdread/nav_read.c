@@ -21,7 +21,7 @@
 #include <inttypes.h>
 #include <assert.h>
 
-#include "config.h" // Needed for WORDS_BIGENDIAN
+#include "config.h" /* Needed for WORDS_BIGENDIAN */
 #include "bswap.h"
 #include "nav_types.h"
 #include "nav_read.h"
@@ -33,7 +33,7 @@
 void navRead_PCI(pci_t *pci, unsigned char *buffer) {
   int i, j;
 
-  assert(sizeof(pci_t) == PCI_BYTES - 1); // -1 for substream id
+  assert(sizeof(pci_t) == PCI_BYTES - 1); /* -1 for substream id */
   
   memcpy(pci, buffer, sizeof(pci_t));
 
@@ -116,7 +116,7 @@ void navRead_PCI(pci_t *pci, unsigned char *buffer) {
 	assert(pci->hli.btnit[n].down <= pci->hli.hl_gi.btn_ns);
 	assert(pci->hli.btnit[n].left <= pci->hli.hl_gi.btn_ns);
 	assert(pci->hli.btnit[n].right <= pci->hli.hl_gi.btn_ns);
-	//vmcmd_verify(pci->hli.btnit[n].cmd);
+	/* vmcmd_verify(pci->hli.btnit[n].cmd); */
       } else {
 	assert(pci->hli.btnit[n].btn_coln == 0);
 	assert(pci->hli.btnit[n].auto_action_mode == 0);
@@ -129,7 +129,7 @@ void navRead_PCI(pci_t *pci, unsigned char *buffer) {
 	assert(pci->hli.btnit[n].left == 0);
 	assert(pci->hli.btnit[n].right == 0);
 	for (k = 0; k < 8; k++)
-	  assert(pci->hli.btnit[n].cmd.bytes[k] == 0); //CHECK_ZERO?
+	  assert(pci->hli.btnit[n].cmd.bytes[k] == 0); /* CHECK_ZERO? */
       }
     }
   }
@@ -139,7 +139,7 @@ void navRead_PCI(pci_t *pci, unsigned char *buffer) {
 void navRead_DSI(dsi_t *dsi, unsigned char *buffer) {
   int i;
 
-  assert(sizeof(dsi_t) == DSI_BYTES - 1); // -1 for substream id
+  assert(sizeof(dsi_t) == DSI_BYTES - 1); /* -1 for substream id */
   
   memcpy(dsi, buffer, sizeof(dsi_t));
 
