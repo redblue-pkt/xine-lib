@@ -28,7 +28,7 @@
  \endverbatim
  */
 /*
- * $Id: xine.h.tmpl.in,v 1.96 2002/06/07 04:15:45 miguelfreitas Exp $
+ * $Id: xine.h.tmpl.in,v 1.97 2002/06/07 12:42:01 miguelfreitas Exp $
  *
  */
 
@@ -1620,7 +1620,7 @@ void xine_send_event(xine_t *self, xine_event_t *event);
  * codec reporting callback.
  * \param user_data
  * \param codec_type type of codec being reported (XINE_CODEC_AUDIO/XINE_CODEC_VIDEO)
- * \param fourcc codec identifier (fourcc) in machine endianness
+ * \param fourcc codec identifier (fourcc) in machine endianness (only valid if description is empty)
  * \param description description or human readable codec name ("" if unkown)
  * \param handled if true, the plugin exist and will be used. otherwise it's an error condition (plugin not found or codec unknown)
  * \sa xine_register_report_codec_cb
