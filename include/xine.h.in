@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.3 2002/09/05 16:50:55 guenter Exp $
+ * $Id: xine.h.in,v 1.4 2002/09/05 20:59:14 guenter Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -750,6 +750,8 @@ void              xine_reset_config        (xine_t *self);
 #define XINE_EVENT_OUTPUT_VIDEO         42
 #define XINE_EVENT_OUTPUT_NO_VIDEO      43
 
+#define XINE_EVENT_UI_MESSAGE           44 /* message (dialog) for the ui to display */
+
 /*
  * generic event type.
  */
@@ -796,6 +798,24 @@ typedef struct {
   uint32_t         data_len;
   int              handled;
 } xine_ui_event_t;
+
+/*
+ * ui message - ask ui to display a message dialog
+ * dialog can have up to three buttons, labels for 
+ * the buttons are provided.
+ * the response (which button was pressed) should be
+ * returned in "response" with 0=>button0, 1=>button1, 
+ * 2=>button3, -1 => window closed / error / dialog could 
+ * not be displayed.
+ */
+
+typedef struct {
+  xine_event_t     event;
+  char            *message;
+  char            *button0, *button1, *button2;
+  int              num_buttons;
+  int              resposne;
+} xine_ui_message_event_t;
 
 /*
  * next_mrl
