@@ -93,7 +93,6 @@ binary-indep: build install
 
 
 binary-arch: build install
-	dh_testversion 2
 	dh_testdir
 	dh_testroot
 	#
