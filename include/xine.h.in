@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.86 2003/05/26 01:45:04 miguelfreitas Exp $
+ * $Id: xine.h.in,v 1.87 2003/05/28 04:26:02 miguelfreitas Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -643,6 +643,57 @@ void xine_post_dispose(xine_t *xine, xine_post_t *self);
  * output->data usually is a double*
  */
 #define XINE_POST_DATA_DOUBLE         4
+
+/* parameters api (used by frontends)
+ * input->data is xine_post_api_t*  (see below)
+ */
+#define XINE_POST_DATA_PARAMETERS     5
+
+/* defines a single parameter entry. */
+typedef struct {
+  int              type;             /* POST_PARAM_TYPE_xxx             */
+  char            *name;             /* name of this parameter          */
+  int              size;             /* sizeof(parameter)               */
+  int              offset;           /* offset in bytes from struct ptr */
+  char           **enum_values;      /* enumeration (first=0) or NULL   */
+  double           range_min;        /* minimum value                   */
+  double           range_max;        /* maximum value                   */
+  int              readonly;         /* 0 = read/write, 1=read-only     */
+  char            *description;      /* user-friendly description       */
+} xine_post_api_parameter_t;
+
+/* description of parameters struct (params). */
+typedef struct {
+  int struct_size;                       /* sizeof(params)     */
+  xine_post_api_parameter_t *parameter;  /* list of parameters */
+} xine_post_api_descr_t;
+
+typedef struct {
+  /*
+   * method to set all the read/write parameters.
+   * params is a struct * defined by xine_post_api_descr_t
+   */
+  int (*set_parameters) (xine_post_t *self, void *params);
+
+  /*
+   * method to get all parameters.
+   */
+  int (*get_parameters) (xine_post_t *self, void *params);
+
+  /*
+   * method to get params struct definition
+   */
+  xine_post_api_descr_t * (*get_param_descr) (void);
+} xine_post_api_t;
+
+/* post parameter types */
+#define POST_PARAM_TYPE_LAST       0  /* terminator of parameter list       */
+#define POST_PARAM_TYPE_INT        1  /* integer (or vector of integers)    */
+#define POST_PARAM_TYPE_DOUBLE     2  /* double (or vector of doubles)      */
+#define POST_PARAM_TYPE_CHAR       3  /* char (or vector of chars = string) */
+#define POST_PARAM_TYPE_STRING     4  /* (char *), ASCIIZ                   */
+#define POST_PARAM_TYPE_STRINGLIST 5  /* (char **) list, NULL terminated    */
+#define POST_PARAM_TYPE_BOOL       6  /* integer (0 or 1)                   */
 
 
 /*********************************************************************

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: post.h,v 1.6 2003/05/20 13:50:57 mroi Exp $
+ * $Id: post.h,v 1.7 2003/05/28 04:26:36 miguelfreitas Exp $
  *
  * post plugin definitions
  *
@@ -156,5 +156,24 @@ struct post_audio_port_s {
 /* use this to create a new, trivially decorated audio port in which
  * port functions can be replaced with own implementations */
 post_audio_port_t *post_intercept_audio_port(post_plugin_t *post, xine_audio_port_t *port);
+
+
+/* macros to create parameter descriptors */ 
+
+#define START_PARAM_DESCR( param_t ) \
+static param_t __temp_s; \
+static xine_post_api_parameter_t __temp_p[] = {
+
+#define PARAM_ITEM( param_type, var, enumv, min, max, readonly, descr ) \
+{ param_type, "##var", sizeof(__temp_s.var), \
+  (char *)&__temp_s.var-(char *)&__temp_s, enumv, min, max, readonly, descr },
+
+#define END_PARAM_DESCR( name ) \
+  { POST_PARAM_TYPE_LAST, NULL, 0, 0, NULL, 0, 0, 1, NULL } \
+}; \
+static xine_post_api_descr_t name = { \
+  sizeof( __temp_s ), \
+  __temp_p \
+};
 
 #endif
