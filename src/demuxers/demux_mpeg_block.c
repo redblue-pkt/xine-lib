@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.193 2003/07/25 21:02:05 miguelfreitas Exp $
+ * $Id: demux_mpeg_block.c,v 1.194 2003/08/01 17:06:32 miguelfreitas Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  * used with fixed blocksize devices (like dvd/vcd)
@@ -33,8 +33,6 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <string.h>
-
-#include <assert.h>
 
 #include "xine_internal.h"
 #include "xineutils.h"
@@ -647,7 +645,6 @@ static int32_t parse_pes_for_pts(demux_mpeg_block_t *this, uint8_t *p, buf_eleme
     if ((p[6] & 0xC0) != 0x80) {
       xine_log (this->stream->xine, XINE_LOG_MSG,
 		_("demux_mpeg_block: warning: PES header reserved 10 bits not found\n"));
-      assert(0);
       buf->free_buffer(buf);
       return -1;
     }
@@ -662,7 +659,6 @@ static int32_t parse_pes_for_pts(demux_mpeg_block_t *this, uint8_t *p, buf_eleme
       xine_message (this->stream, XINE_MSG_ENCRYPTED_SOURCE,
                       "Media stream scrambled/encrypted", NULL);
       this->status = DEMUX_FINISHED;
-      assert(0);
       buf->free_buffer(buf);
       return -1;
     }
@@ -1013,7 +1009,6 @@ static int demux_mpeg_block_estimate_rate (demux_mpeg_block_t *this) {
     if (p[0] || p[1] || (p[2] != 1)) {
       printf ("demux_mpeg_block: error %02x %02x %02x (should be 0x000001) \n",
 	      p[0], p[1], p[2]);
-      assert(0);
       buf->free_buffer (buf);
       return rate;
     }
@@ -1023,7 +1018,6 @@ static int demux_mpeg_block_estimate_rate (demux_mpeg_block_t *this) {
 
     if ((stream_id < 0xbc) || ((stream_id & 0xf0) != 0xe0)) {
       pos += (off_t) blocksize;
-      assert(0);
       buf->free_buffer (buf);
       continue; /* only use video packets */
     }
@@ -1089,7 +1083,6 @@ static int demux_mpeg_block_estimate_rate (demux_mpeg_block_t *this) {
     } else
       pos += blocksize;
 
-    assert(0);
     buf->free_buffer (buf);
 
     if (pos > mpeg_length || this->input->seek (this->input, pos, SEEK_SET) == (off_t)-1)
