@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ts.c,v 1.25 2001/11/11 19:14:06 jcdutton Exp $
+ * $Id: demux_ts.c,v 1.26 2001/11/12 03:00:12 jcdutton Exp $
  *
  * Demultiplexer for MPEG2 Transport Streams.
  *
@@ -556,7 +556,8 @@ static void demux_ts_parse_pmt(demux_ts *this,
       ISO_13818_TYPE_C = 11, // b
       ISO_13818_TYPE_D = 12, // c
       ISO_13818_TYPE_E = 13, // d
-      ISO_13818_AUX = 14
+      ISO_13818_AUX = 14,
+      PRIVATE_A52 = 0x81
     } streamType;
   uint32_t	 table_id;
   uint32_t	 section_syntax_indicator;
@@ -568,7 +569,7 @@ static void demux_ts_parse_pmt(demux_ts *this,
   uint32_t	 last_section_number;
   uint32_t	 crc32;
   uint32_t	 calc_crc32;
-
+  uint32_t       i;
   unsigned int programInfoLength;
   unsigned int codedLength;
   unsigned int mediaIndex;
@@ -699,8 +700,30 @@ static void demux_ts_parse_pmt(demux_ts *this,
       this->audioPid = pid;
       this->audioMedia = mediaIndex;
       break;
+    case ISO_13818_PRIVATE:
+      for(i=0;i<20;i++) {
+	xprintf(VERBOSE|DEMUX, "%02x ", stream[i]);
+      }
+      xprintf(VERBOSE|DEMUX, "\n");
+      break;
+    case PRIVATE_A52:
+      for(i=0;i<20;i++) {
+	xprintf(VERBOSE|DEMUX, "%02x ", stream[i]);
+      }
+      xprintf(VERBOSE|DEMUX, "\n");
+      if (this->audioPid == INVALID_PID) {
+	xprintf(VERBOSE|DEMUX, "PMT audio pid 0x%04x\n", pid);
+	demux_ts_pes_new(this, mediaIndex, pid, this->fifoAudio);
+      }
+      this->audioPid = pid;
+      this->audioMedia = mediaIndex;
+      break;
     default:
-      xprintf(VERBOSE|DEMUX, "PMT stream_type unknown %d pid 0x%04x\n", stream[0], pid);
+      xprintf(VERBOSE|DEMUX, "PMT stream_type unknown 0x%02x pid 0x%04x\n", stream[0], pid);
+      for(i=0;i<20;i++) {
+	xprintf(VERBOSE|DEMUX, "%02x ", stream[i]);
+      }
+      xprintf(VERBOSE|DEMUX, "\n");
       break;
     }
     mediaIndex++;
