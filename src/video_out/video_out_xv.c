@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.92 2002/02/16 22:43:24 guenter Exp $
+ * $Id: video_out_xv.c,v 1.93 2002/02/18 02:05:06 miguelfreitas Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -839,9 +839,9 @@ static void xv_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
 
   xv_driver_t  *this = (xv_driver_t *) this_gen;
   xv_frame_t   *frame = (xv_frame_t *) frame_gen;
-
+  /*
   printf ("video_out_xv: xv_display_frame...\n");
-
+  */
   if (this->expecting_event) {
 
     frame->vo_frame.displayed (&frame->vo_frame);
@@ -861,15 +861,17 @@ static void xv_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
       xv_calc_format (this, frame->width, frame->height, frame->ratio_code);
     }
 
-    if (this->deinterlace_enabled && this->deinterlace_method)
+    /* currently only working for YUV images */
+    if (this->deinterlace_enabled && this->deinterlace_method && 
+        frame->format == IMGFMT_YV12 )
       xv_deinterlace_frame (this);
-
+    /*
     printf ("video_out_xv: xv_display_frame... lock display...\n");
-
+    */
     XLockDisplay (this->display);
-    
+    /*
     printf ("video_out_xv: xv_display_frame... lock display...locked\n");
-
+    */
     if (this->use_shm) {
       XvShmPutImage(this->display, this->xv_port,
 		    this->drawable, this->gc, this->cur_frame->image,
@@ -893,8 +895,9 @@ static void xv_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
     XUnlockDisplay (this->display);
     
   }
-
+  /*
   printf ("video_out_xv: xv_display_frame... done\n");
+  */
 }
 
 static int xv_get_property (vo_driver_t *this_gen, int property) {
@@ -1255,8 +1258,6 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
   XColor                dummy;
   XvImage              *myimage;
   XShmSegmentInfo       myshminfo;
-  static char          *deinterlace_methods[] = {"none", "bob", "weave", "greedy", "onefield",
-						 "onefield_xv", NULL};
 
   display = visual->display;
 

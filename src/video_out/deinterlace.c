@@ -22,6 +22,12 @@
  *
  * Currently only available for Xv driver and MMX extensions
  *
+ * small todo list:
+ * - implement non-MMX versions for all methods
+ * - support MMX2 instructions
+ * - move some generic code from xv driver to this file
+ * - make it also work for yuy2 frames
+ *
  */
 
 #include <stdio.h>
@@ -541,7 +547,7 @@ static int deinterlace_greedy_yuv_mmx( uint8_t *pdst, uint8_t *psrc[],
 
 /* Use one field to interpolate the other (low cpu utilization)
    Will lose resolution but does not produce weaving effect
-   (good for fast moving scenes)
+   (good for fast moving scenes) also know as "linear interpolation"
 */
 static void deinterlace_onefield_yuv_mmx( uint8_t *pdst, uint8_t *psrc[],
     int width, int height )
@@ -621,6 +627,59 @@ static void deinterlace_onefield_yuv_mmx( uint8_t *pdst, uint8_t *psrc[],
 #endif
 }
 
+/* Linear Blend filter - does a kind of vertical blurring on the image.
+   (idea borrowed from mplayer's sources)
+*/
+static void deinterlace_linearblend_yuv_mmx( uint8_t *pdst, uint8_t *psrc[],
+    int width, int height )
+{
+#ifdef ARCH_X86
+  int Line;
+  uint64_t *YVal1;
+  uint64_t *YVal2;
+  uint64_t *YVal3;
+  uint64_t *Dest;
+  int LineLength = width;
+  
+  int n;
+
+  static mmx_t Mask1 = {ub:{0xfe,0xfe,0xfe,0xfe,0xfe,0xfe,0xfe,0xfe}};
+  static mmx_t Mask2 = {ub:{0xfc,0xfc,0xfc,0xfc,0xfc,0xfc,0xfc,0xfc}};
+
+  for (Line = 0; Line < height - 2; ++Line)
+  {
+    YVal1 = (uint64_t *)(psrc[0] + Line * LineLength);
+    YVal2 = (uint64_t *)(psrc[0] + (Line + 1) * LineLength);
+    YVal3 = (uint64_t *)(psrc[0] + (Line + 2) * LineLength);
+    Dest = (uint64_t *)(pdst + Line * LineLength);
+
+    n = LineLength >> 3;
+    while( n-- )
+    {
+      movq_m2r (*YVal1++, mm0);
+      movq_m2r (*YVal2++, mm1);
+      movq_m2r (*YVal3++, mm2);
+
+      // get (mm0/4 + mm1/2 + mm2/4) average in mm0
+      pand_m2r ( Mask2, mm0 );
+      pand_m2r ( Mask1, mm1 );
+      pand_m2r ( Mask2, mm2 );
+      psrlw_i2r ( 02, mm0 );
+      psrlw_i2r ( 01, mm1 );
+      psrlw_i2r ( 02, mm2 );
+      paddw_r2r ( mm1, mm0 );
+      paddw_r2r ( mm2, mm0 );
+
+      movq_r2m ( mm0, *Dest++ );
+    }
+  }
+
+  /* clear out the MMX registers ready for doing floating point
+   * again
+   */
+  emms();
+#endif
+}
 
 static int check_for_mmx(void)
 {
@@ -691,11 +750,27 @@ void deinterlace_yuv( uint8_t *pdst, uint8_t *psrc[],
     case DEINTERLACE_ONEFIELDXV:
       printf("deinterlace: ONEFIELDXV must be handled by the video driver.\n");
       break;
+    case DEINTERLACE_LINEARBLEND:
+      if( check_for_mmx() )
+        deinterlace_linearblend_yuv_mmx(pdst,psrc,width,height);
+      else /* FIXME: provide an alternative? */
+        abort_mmx_missing();
+      break;
     default:
       printf("deinterlace: unknow method %d.\n",method);
       break;
   }
 }
 
+char *deinterlace_methods[] = {
+  "none", 
+  "bob",
+  "weave",
+  "greedy",
+  "onefield",
+  "onefield_xv",
+  "linearblend",
+  NULL
+};
 
 
