@@ -101,6 +101,9 @@
 /* Define this if you have CDROM ioctls */
 #undef HAVE_CDROM_IOCTLS
 
+/* Define this if you have a suitable version of libdvdnav */
+#undef HAVE_DVDNAV
+
 /* Define this if you have ip_mreqn in netinet/in.h */
 #undef HAVE_IP_MREQN
 
