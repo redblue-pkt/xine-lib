@@ -156,21 +156,26 @@ uint32_t xine_mm_accel (void)
 {
 #if defined (ARCH_X86) || (defined (ARCH_PPC) && defined (ENABLE_ALTIVEC))
   static uint32_t accel;
+  static int initialized;
 
-  accel = arch_accel ();
+  if (!initialized) {
+    accel = arch_accel ();
 
 #ifdef ARCH_X86
-  /* test OS support for SSE */
-  if( accel & MM_ACCEL_X86_SSE ) {
-    if (setjmp(sigill_return)) {
-      accel &= ~(MM_ACCEL_X86_SSE|MM_ACCEL_X86_SSE2);
-    } else {
-      signal (SIGILL, sigill_handler); 
-      __asm __volatile ("xorps %xmm0, %xmm0");
-      signal (SIGILL, SIG_DFL);
+    /* test OS support for SSE */
+    if( accel & MM_ACCEL_X86_SSE ) {
+      if (setjmp(sigill_return)) {
+	accel &= ~(MM_ACCEL_X86_SSE|MM_ACCEL_X86_SSE2);
+      } else {
+	signal (SIGILL, sigill_handler); 
+	__asm __volatile ("xorps %xmm0, %xmm0");
+	signal (SIGILL, SIG_DFL);
+      }
     }
-  }
 #endif /* ARCH_X86 */
+    
+    initialized++;
+  }
 
   return accel;
 
