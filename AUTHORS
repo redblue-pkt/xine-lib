@@ -265,4 +265,7 @@ Contributions
   Dan Lindstrom <lindstromd@gmx.net>
     64-bit Quicktime fixes
 
+  Andres Salomon <dilinger@voxel.net>
+    memory leakage fixes
+
     (let us know if we've forgotten anyone)
