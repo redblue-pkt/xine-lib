@@ -51,8 +51,8 @@ install-includeHEADERS: $(include_HEADERS)
 	$(mkinstalldirs) $(DESTDIR)$(includedir)/xine
 	@list='$(include_HEADERS)'; for p in $$list; do \
 	  if test -f "$$p"; then d= ; else d="$(srcdir)/"; fi; \
-	  echo " $(INSTALL_DATA) $$d$$p $(DESTDIR)$(includedir)/xine/$$p"; \
-	  $(INSTALL_DATA) $$d$$p $(DESTDIR)$(includedir)/xine/$$p; \
+	  echo " $(INSTALL_DATA) $$d$$p $(DESTDIR)$(includedir)/xine/"; \
+	  $(INSTALL_DATA) $$d$$p $(DESTDIR)$(includedir)/xine/; \
 	done
 
 
