@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.23 2002/04/01 17:59:40 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.24 2002/04/06 21:08:29 guenter Exp $
  *
  * xine decoder plugin using divx4
  *
@@ -209,6 +209,13 @@ static void divx4_set_pp(divx4_decoder_t *this) {
          "divx4: Valid range 0-6, reduce if you get frame drop\n", 
          this->postproc); 
   setpp.postproc_level=this->postproc*10;
+  setpp.deblock_hor_luma = 0;
+  setpp.deblock_ver_luma = 0;
+  setpp.deblock_hor_chr = 0;
+  setpp.deblock_ver_chr = 0;
+  setpp.dering_luma = 0;
+  setpp.dering_chr = 0;
+  setpp.pp_semaphore = 0;
 
   ret = this->decore((unsigned long)this, DEC_OPT_SETPP, &setpp, 0);
   if (ret != DEC_OK)
@@ -236,10 +243,17 @@ static int divx4_init_decoder(divx4_decoder_t *this, buf_element_t *buf)
   switch (buf->type & 0xFFFF0000) {
   case BUF_VIDEO_MSMPEG4_V12:
   case BUF_VIDEO_MSMPEG4_V3:
-    this->use_311_compat = 1;
+    if (this->version >= 20020303) { 
+      param.codec_version=311;
+      this->use_311_compat = 0;
+    } else {
+      this->use_311_compat = 1;
+    }
     break;
   case BUF_VIDEO_MPEG4:
     this->use_311_compat = 0;
+    if (this->version >= 20020303)
+      param.codec_version=500;
     break;
   default:
     printf ("divx4: unknown video format (buftype: 0x%08X)\n",
@@ -251,6 +265,7 @@ static int divx4_init_decoder(divx4_decoder_t *this, buf_element_t *buf)
   param.y_dim=this->biHeight;
   param.time_incr = 15; /* no idea what this does */
   param.output_format=DEC_USER;
+  param.build_number=0;
   memset(&param.buffers, 0, sizeof(param.buffers));
 
   ret = this->decore((unsigned long)this, DEC_OPT_INIT, &param, &this->bih);

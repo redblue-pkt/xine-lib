@@ -1,7 +1,7 @@
 /* 
- * Copyright (C) 2001 the xine project
+ * Copyright (C) 2001-2002 the xine project
  * 
- * This file is part of xine, a unix video player.
+ * This file is part of xine, a free video player.
  * 
  * xine is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: decore-if.h,v 1.2 2001/10/27 04:30:39 hrm Exp $ 
+ * $Id: decore-if.h,v 1.3 2002/04/06 21:08:29 guenter Exp $ 
  *
  * This file documents the interface for the decore() function
  * in libdivxdecore. In case of problems, it is recommended you compare
@@ -57,6 +57,12 @@ extern "C" {
 #define DEC_OPT_FRAME_311	6
 #define DEC_OPT_SETPP2		7
 #define DEC_OPT_VERSION		8
+#define DEC_OPT_SETPP_ADV       10 /* advanced (personalized) postprocessing settings */
+#define DEC_OPT_SETDEBUG        11
+#define DEC_OPT_INIT_VOL        12
+#define DEC_OPT_CONVERTYUV      13
+#define DEC_OPT_CONVERTYV12     14
+#define DEC_OPT_GETVOLINFO      15
 
 /* decore() return values. */
 #define DEC_OK			0
@@ -70,6 +76,7 @@ extern "C" {
 #define DEC_UYVY		2
 #define DEC_420			3
 #define DEC_YV12		13 /* looks like an afterthought, eh? */
+#define DEC_ARGB                14
 
 /* colour formats -- rgb 
    not yet used by xine, but perhaps in the future.
@@ -123,6 +130,8 @@ typedef struct
 	int y_dim; /* frame height */
 	int output_format; /* refers to colour formats defined above */	
 	int time_incr; /* mystery parameter, use 15 */
+        int codec_version;
+        int build_number;
 	DEC_BUFFERS buffers; /* memcpy 0's in this struct before init */
 } DEC_PARAM;
 
@@ -148,6 +157,16 @@ typedef struct
 typedef struct
 {
 	int postproc_level; /* between 0-100, actually used 0-60 */ 
+
+        int deblock_hor_luma;
+        int deblock_ver_luma;
+        int deblock_hor_chr;
+        int deblock_ver_chr;
+        int dering_luma;
+        int dering_chr;
+
+        int pp_semaphore;
+
 } DEC_SET;
 
 /* structure for DEC_USER output format, should be used instead of bmp ptr */
