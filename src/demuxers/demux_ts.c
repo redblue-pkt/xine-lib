@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ts.c,v 1.88 2003/08/09 19:27:35 jcdutton Exp $
+ * $Id: demux_ts.c,v 1.89 2003/08/09 23:01:58 jcdutton Exp $
  *
  * Demultiplexer for MPEG2 Transport Streams.
  *
@@ -147,7 +147,7 @@
   #define TS_PAT_LOG
   #define TS_READ_STATS // activates read statistics generation
   #define TS_HEADER_LOG // prints out the Transport packet header.
- */
+*/
 
 /*
  *  The maximum number of PIDs we are prepared to handle in a single program
@@ -870,6 +870,31 @@ static void demux_ts_get_lang_desc(demux_ts_t *this, char *dest,
   memset(dest, 0, 4);
 }
 
+/* Find the registration code (tag=5) and return it as a uint32_t
+ * This should return "AC-3" or 0x41432d33 for AC3/A52 audio tracks.
+ */
+static void demux_ts_get_reg_desc(demux_ts_t *this, uint32_t *dest,
+				   const unsigned char *data, int length)
+{
+  const unsigned char *d = data;
+
+  while (d < (data + length))
+
+    {
+      if (d[0] == 5 && d[1] >= 4)
+
+	{
+          *dest = (d[2] << 24) | (d[3] << 16) | (d[4] << 8) | d[5];
+	  printf("demux_ts: found registration format identifier: 0x%.4x\n", *dest);
+	  return;
+	}
+      d += 2 + d[1];
+    }
+  printf("demux_ts: found no format id\n");
+  *dest = 0;
+}
+
+
 /*
  * NAME demux_ts_parse_pmt
  *
@@ -900,7 +925,6 @@ static void demux_ts_parse_pmt (demux_ts_t     *this,
       ISO_13818_TYPE_D = 12, /* c */
       ISO_13818_TYPE_E = 13, /* d */
       ISO_13818_AUX = 14,
-      PRIVATE_A52 = 0x91
     } streamType;
 
   uint32_t       table_id;
@@ -911,10 +935,11 @@ static void demux_ts_parse_pmt (demux_ts_t     *this,
   uint32_t       current_next_indicator;
   uint32_t       section_number;
   uint32_t       last_section_number;
+  uint32_t       PCR_PID;
+  uint32_t       program_info_length;
   uint32_t       crc32;
   uint32_t       calc_crc32;
-  unsigned int programInfoLength;
-  unsigned int codedLength;
+  uint32_t       coded_length;
   unsigned int pid;
   unsigned char *stream;
   unsigned int i;
@@ -992,11 +1017,11 @@ static void demux_ts_parse_pmt (demux_ts_t     *this,
     section_length = (this->pmt[program_count][1] << 8
 		      | this->pmt[program_count][2]) & 0x03ff;
 
-  codedLength = MIN (BODY_SIZE - (pkt - originalPkt) - 1,
+  coded_length = MIN (BODY_SIZE - (pkt - originalPkt) - 1,
                      (section_length+3) - (this->pmt_write_ptr[program_count]
                                            - this->pmt[program_count]));
-  memcpy (this->pmt_write_ptr[program_count], &pkt[5], codedLength);
-  this->pmt_write_ptr[program_count] += codedLength;
+  memcpy (this->pmt_write_ptr[program_count], &pkt[5], coded_length);
+  this->pmt_write_ptr[program_count] += coded_length;
 
 #ifdef TS_PMT_LOG
   printf ("ts_demux: wr_ptr: %p, will be %p when finished\n",
@@ -1041,28 +1066,35 @@ static void demux_ts_parse_pmt (demux_ts_t     *this,
    * ES definitions start here...we are going to learn upto one video
    * PID and one audio PID.
    */
-  programInfoLength = ((this->pmt[program_count][10] << 8)
+  program_info_length = ((this->pmt[program_count][10] << 8)
                        | this->pmt[program_count][11]) & 0x0fff;
-  stream = &this->pmt[program_count][12] + programInfoLength;
-  codedLength = 13 + programInfoLength;
-  if (codedLength > section_length) {
+
+/* Program info descriptor is currently just ignored.
+ * printf ("demux_ts: program_info_desc: ");
+ * for (i = 0; i < program_info_length; i++)
+ *       printf ("%.2x ", this->pmt[program_count][12+i]);
+ * printf ("\n");
+ */
+  stream = &this->pmt[program_count][12] + program_info_length;
+  coded_length = 13 + program_info_length;
+  if (coded_length > section_length) {
     printf ("demux error! PMT with inconsistent "
 	    "progInfo length\n");
     return;
   }
-  section_length -= codedLength;
+  section_length -= coded_length;
 
   /*
    * Extract the elementary streams.
    */
   this->no_spu_langs = 0;
   while (section_length > 0) {
-    unsigned int streamInfoLength;
+    unsigned int stream_info_length;
 
     pid = ((stream[1] << 8) | stream[2]) & 0x1fff;
-    streamInfoLength = ((stream[3] << 8) | stream[4]) & 0x0fff;
-    codedLength = 5 + streamInfoLength;
-    if (codedLength > section_length) {
+    stream_info_length = ((stream[3] << 8) | stream[4]) & 0x0fff;
+    coded_length = 5 + stream_info_length;
+    if (coded_length > section_length) {
       printf ("demux error! PMT with inconsistent "
 	      "streamInfo length\n");
       return;
@@ -1077,7 +1109,7 @@ static void demux_ts_parse_pmt (demux_ts_t     *this,
     case ISO_13818_VIDEO:
       if (this->videoPid == INVALID_PID) {
 #ifdef TS_PMT_LOG
-        printf ("demux_ts: PMT video pid %.4x\n", pid);
+        printf ("demux_ts: PMT video pid 0x%.4x\n", pid);
 #endif
         demux_ts_pes_new(this, this->media_num, pid, this->video_fifo,stream[0]);
 	this->videoMedia = this->media_num;
@@ -1095,20 +1127,20 @@ static void demux_ts_parse_pmt (demux_ts_t     *this,
         this->audioPid = pid;
         this->audioMedia = this->media_num;
 	demux_ts_get_lang_desc(this, this->audioLang,
-			       stream + 5, streamInfoLength);
+			       stream + 5, stream_info_length);
       }
       break;
     case ISO_13818_PRIVATE:
 #ifdef TS_PMT_LOG
-      printf ("demux_ts: PMT streamtype 13818_PRIVATE, pid: %.4x\n", pid);
+      printf ("demux_ts: PMT streamtype 13818_PRIVATE, pid: 0x%.4x\n", pid);
 
-      for (i = 5; i < codedLength; i++)
+      for (i = 5; i < coded_length; i++)
         printf ("%.2x ", stream[i]);
       printf ("\n");
 #endif
       break;
     case ISO_13818_PES_PRIVATE:
-      for (i = 5; i < codedLength; i += stream[i+1] + 2) {
+      for (i = 5; i < coded_length; i += stream[i+1] + 2) {
         if ((stream[i] == 0x6a) && (this->audioPid == INVALID_PID)) {
 #ifdef TS_PMT_LOG
           printf ("demux_ts: PMT AC3 audio pid 0x%.4x\n", pid);
@@ -1117,7 +1149,7 @@ static void demux_ts_parse_pmt (demux_ts_t     *this,
           this->audioPid = pid;
           this->audioMedia = this->media_num;
 	  demux_ts_get_lang_desc(this, this->audioLang,
-				 stream + 5, streamInfoLength);
+				 stream + 5, stream_info_length);
           break;
         }
 
@@ -1159,36 +1191,42 @@ static void demux_ts_parse_pmt (demux_ts_t     *this,
 	  }
       }
       break;
-    case PRIVATE_A52:
-#ifdef TS_PMT_LOG
-      printf ("demux_ts: PMT streamtype PRIVATE_A52, pid: 0x%.4x\n", pid);
 
-      for (i = 5; i < codedLength; i++)
-        printf ("%.2x ", stream[i]);
-      printf ("\n");
-#endif
-      if (this->audioPid == INVALID_PID) {
-	demux_ts_pes_new(this, this->media_num, pid, this->audio_fifo, stream[0]);
-        this->audioPid = pid;
-        this->audioMedia = this->media_num;
-	demux_ts_get_lang_desc(this, this->audioLang,
-			       stream + 5, streamInfoLength);
-      }
-      break;
     default:
-#ifdef TS_PMT_LOG
-      printf ("demux_ts: PMT unknown stream_type: 0x%.2x pid: 0x%.4x\n",
-              stream[0], pid);
 
-      for (i = 5; i < codedLength; i++)
-        printf ("%.2x ", stream[i]);
-      printf ("\n");
+/* This following section handles all the cases where the audio track info is stored in PMT user info with stream id >= 0x80
+ * We first check that the stream id >= 0x80, because all values below that are invalid if not handled above,
+ * then we check the registration format identifier to see if it holds "AC-3" (0x41432d33) and
+ * if is does, we tag this as an audio stream.
+ * FIXME: This will need expanding if we ever see a DTS or other media format here.
+ */ 
+      if (this->audioPid == INVALID_PID && (stream[0] >= 0x80) ) {
+        uint32_t format_identifier=0;
+        demux_ts_get_reg_desc(this, &format_identifier,
+			       stream + 5, stream_info_length);
+        if (format_identifier == 0x41432d33) {
+	  demux_ts_pes_new(this, this->media_num, pid, this->audio_fifo, stream[0]);
+          this->audioPid = pid;
+          this->audioMedia = this->media_num;
+	  demux_ts_get_lang_desc(this, this->audioLang,
+		  	       stream + 5, stream_info_length);
+          break;
+        }
+      } else {
+#ifdef TS_PMT_LOG
+        printf ("demux_ts: PMT unknown stream_type: 0x%.2x pid: 0x%.4x\n",
+                stream[0], pid);
+
+        for (i = 5; i < coded_length; i++)
+          printf ("%.2x ", stream[i]);
+        printf ("\n");
 #endif
+      }
       break;
     }
     this->media_num++;
-    stream += codedLength;
-    section_length -= codedLength;
+    stream += coded_length;
+    section_length -= coded_length;
   }
 
   /*
@@ -1476,6 +1514,11 @@ static void demux_ts_parse_packet (demux_ts_t*this) {
     printf ("demux error! transport error\n");
     return;
   }
+  if (pid == 0x1ffb) {
+      /* printf ("demux_ts: PSIP table. Program Guide etc....not supported yet. PID = 0x1ffb\n"); */
+      return;
+  }
+
   if (transport_scrambling_control) {
     if (this->videoPid == pid) {
       printf ("demux_ts: selected videoPid is scrambled; skipping...\n");
