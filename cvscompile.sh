@@ -10,9 +10,11 @@ fi
 if [ `expr $AM` -ge 160 ]; then
     automake_1_6x=yes
 fi
-if test x"$automake_1_6x" = x"no"; then
-	echo "To compile xine-lib from CVS requires automake >= 1.6"
-	exit
+if [ -z "$NO_AUTOCONF_CHECK" ]; then
+  if test x"$automake_1_6x" = x"no"; then
+	  echo "To compile xine-lib from CVS requires automake >= 1.6"
+	  exit
+  fi
 fi
 
 ## extract autoconf version
