@@ -1159,5 +1159,7 @@ AVCodec huffyuv_encoder = {
     encode_init,
     encode_frame,
     encode_end,
-    .options = huffyuv_options,
+    NULL,
+    0,
+    huffyuv_options,
 };

@@ -53,10 +53,10 @@
 #define AVOPTION_CODEC_INT(name, help, field, minv, maxv, defval) \
     { name, help, offsetof(AVCodecContext, field), FF_OPT_TYPE_INT, minv, maxv, defval }
 #define AVOPTION_CODEC_STRING(name, help, field, str, val) \
-    { name, help, offsetof(AVCodecContext, field), FF_OPT_TYPE_STRING, .defval = val, .defstr = str }
+    { name, help, offsetof(AVCodecContext, field), FF_OPT_TYPE_STRING, 0, 0, val, str }
 #define AVOPTION_CODEC_RCOVERRIDE(name, help, field) \
-    { name, help, offsetof(AVCodecContext, field), FF_OPT_TYPE_RCOVERRIDE, .defval = 0, .defstr = NULL }
-#define AVOPTION_SUB(ptr) { .name = NULL, .help = (const char*)ptr }
+    { name, help, offsetof(AVCodecContext, field), FF_OPT_TYPE_RCOVERRIDE, 0, 0, 0, NULL }
+#define AVOPTION_SUB(ptr) { NULL, (const char*)ptr }
 #define AVOPTION_END() AVOPTION_SUB(NULL)
 
 struct AVOption;
