@@ -36,7 +36,7 @@
  * * ANIM (Animations)
  *   - Animation works fine, without seeking.
  *
- * $Id: demux_iff.c,v 1.11 2004/06/13 21:28:53 miguelfreitas Exp $
+ * $Id: demux_iff.c,v 1.12 2004/08/21 21:21:12 manfredtremmel Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -959,7 +959,7 @@ static int demux_iff_send_chunk(demux_plugin_t *this_gen) {
           buf->decoder_info[0]          = this->video_pts_inc;
         buf->decoder_info_ptr[0]        = this->anhd;
         if( this->input->get_length (this->input) )
-          buf->extra_info->input_normpos = (int)( (double) this->input->get_current_pos (this->input) * 
+          buf->extra_info->input_normpos = (int)( (double) this->input->get_current_pos (this->input) *
                                            65535 / this->input->get_length (this->input) );
         buf->pts                        = this->video_pts;
         buf->extra_info->input_time     = buf->pts / 90;
@@ -1292,7 +1292,7 @@ static char *get_identifier (demux_class_t *this_gen) {
 }
 
 static char *get_extensions (demux_class_t *this_gen) {
-  return "iff svx 8svx 16sv ilbm pic anim";
+  return "iff svx 8svx 16sv ilbm ham ham6 ham8 anim anim3 anim5 anim7 anim8";
 }
 
 static char *get_mimetypes (demux_class_t *this_gen) {

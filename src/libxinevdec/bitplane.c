@@ -28,7 +28,7 @@
  *   8 (long and short)
  * - untested (found no testfiles) IFF-ANIM OPT 3, 4 and 6
  *
- * $Id: bitplane.c,v 1.9 2004/03/07 12:48:15 manfredtremmel Exp $
+ * $Id: bitplane.c,v 1.10 2004/08/21 21:21:13 manfredtremmel Exp $
  */
 
 #include <stdio.h>
@@ -1031,19 +1031,17 @@ static void bitplane_dlta_8_long (bitplane_decoder_t *this) {
             /* Uniq ops */
             count                       = op & 0x7fffffff; /* get count */
             while(count--) {
-              if (data > data_end || rowworkptr > picture_end) {
-                  printf("Fehler decoding (1)\n");
-                 return;
-              }
-              yuv_index                 = ((row_ptr * this->width) + pixel_ptr_bit);
-              if( this->is_ham ) {
-                IFF_REPLACE_LONG_SIMPLE(&this->index_buf[yuv_index],
-                                   rowworkptr, data, bitplainoffeset[palette_index] );
-              } else {
-                IFF_REPLACE_LONG( &this->index_buf[((row_ptr * this->width) + pixel_ptr_bit)],
-                                  &this->yuv_planes.y[yuv_index], &this->yuv_planes.u[yuv_index],
-                                  &this->yuv_planes.v[yuv_index], this->yuv_palette,
-                                  rowworkptr, data, bitplainoffeset[palette_index] );
+              if (data <= data_end || rowworkptr <= picture_end) {
+                yuv_index               = ((row_ptr * this->width) + pixel_ptr_bit);
+                if( this->is_ham ) {
+                  IFF_REPLACE_LONG_SIMPLE(&this->index_buf[yuv_index],
+                                     rowworkptr, data, bitplainoffeset[palette_index] );
+                } else {
+                  IFF_REPLACE_LONG( &this->index_buf[((row_ptr * this->width) + pixel_ptr_bit)],
+                                    &this->yuv_planes.y[yuv_index], &this->yuv_planes.u[yuv_index],
+                                    &this->yuv_planes.v[yuv_index], this->yuv_palette,
+                                    rowworkptr, data, bitplainoffeset[palette_index] );
+                }
               }
               data++;
               rowworkptr               += rowsize_all_planes;
@@ -1055,19 +1053,17 @@ static void bitplane_dlta_8_long (bitplane_decoder_t *this) {
               count                     = BE_32(data);
               data++;
               while(count--) {
-                if (data > data_end || rowworkptr > picture_end) {
-                  printf("Fehler decoding (2)\n");
-                  return;
-                }
-                yuv_index               = ((row_ptr * this->width) + pixel_ptr_bit);
-                if( this->is_ham ) {
-                  IFF_REPLACE_LONG_SIMPLE(&this->index_buf[yuv_index],
-                                     rowworkptr, data, bitplainoffeset[palette_index] );
-                } else {
-                  IFF_REPLACE_LONG( &this->index_buf[yuv_index],
-                                    &this->yuv_planes.y[yuv_index], &this->yuv_planes.u[yuv_index],
-                                    &this->yuv_planes.v[yuv_index], this->yuv_palette,
-                                    rowworkptr, data, bitplainoffeset[palette_index] );
+                if (data <= data_end && rowworkptr <= picture_end) {
+                  yuv_index             = ((row_ptr * this->width) + pixel_ptr_bit);
+                  if( this->is_ham ) {
+                    IFF_REPLACE_LONG_SIMPLE(&this->index_buf[yuv_index],
+                                       rowworkptr, data, bitplainoffeset[palette_index] );
+                  } else {
+                    IFF_REPLACE_LONG( &this->index_buf[yuv_index],
+                                      &this->yuv_planes.y[yuv_index], &this->yuv_planes.u[yuv_index],
+                                      &this->yuv_planes.v[yuv_index], this->yuv_palette,
+                                      rowworkptr, data, bitplainoffeset[palette_index] );
+                  }
                 }
                 rowworkptr             += rowsize_all_planes;
                 row_ptr++;
