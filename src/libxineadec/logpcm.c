@@ -30,7 +30,7 @@
  *   http://sox.sourceforge.net/
  * which listed the code as being lifted from Sun Microsystems.
  *
- * $Id: logpcm.c,v 1.9 2002/11/12 18:40:53 miguelfreitas Exp $
+ * $Id: logpcm.c,v 1.10 2002/11/20 11:57:46 mroi Exp $
  *
  */
 
@@ -178,7 +178,7 @@ static void logpcm_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 
   if (!this->output_open) {
     this->output_open = this->stream->audio_out->open(this->stream->audio_out,
-      LOGPCM_BITS_PER_SAMPLE, this->samplerate,
+      this->stream, LOGPCM_BITS_PER_SAMPLE, this->samplerate,
       (this->output_channels == 2) ? AO_CAP_MODE_STEREO : AO_CAP_MODE_MONO);
   }
 
@@ -221,7 +221,7 @@ static void logpcm_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
       audio_buffer->num_frames = bytes_to_send / this->output_channels;
       audio_buffer->vpts = buf->pts;
       buf->pts = 0;  /* only first buffer gets the real pts */
-      this->stream->audio_out->put_buffer (this->stream->audio_out, audio_buffer);
+      this->stream->audio_out->put_buffer (this->stream->audio_out, audio_buffer, this->stream);
     }
 
     /* reset internal accumulation buffer */
@@ -243,7 +243,7 @@ static void logpcm_dispose (audio_decoder_t *this_gen) {
   logpcm_decoder_t *this = (logpcm_decoder_t *) this_gen;
 
   if (this->output_open)
-    this->stream->audio_out->close (this->stream->audio_out);
+    this->stream->audio_out->close (this->stream->audio_out, this->stream);
   this->output_open = 0;
 
   if (this->buf)
@@ -307,6 +307,6 @@ static decoder_info_t dec_info_audio = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_AUDIO_DECODER, 11, "logpcm", XINE_VERSION_CODE, &dec_info_audio, &init_plugin },
+  { PLUGIN_AUDIO_DECODER, 12, "logpcm", XINE_VERSION_CODE, &dec_info_audio, &init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

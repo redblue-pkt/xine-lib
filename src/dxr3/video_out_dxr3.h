@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3.h,v 1.12 2002/10/26 14:35:05 mroi Exp $
+ * $Id: video_out_dxr3.h,v 1.13 2002/11/20 11:57:42 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -80,7 +80,7 @@ typedef struct dxr3_driver_class_s {
 } dxr3_driver_class_t;
 
 typedef struct dxr3_driver_s {
-  xine_vo_driver_t     vo_driver;
+  vo_driver_t          vo_driver;
   dxr3_driver_class_t *class;
 
   int                  fd_control;

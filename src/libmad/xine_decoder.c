@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.34 2002/11/12 18:40:51 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.35 2002/11/20 11:57:43 mroi Exp $
  *
  * stuff needed to turn libmad into a xine decoder plugin
  */
@@ -199,11 +199,12 @@ static void mad_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 	  }
 
 	  if (this->output_open) {
-	    this->xstream->audio_out->close (this->xstream->audio_out);
+	    this->xstream->audio_out->close (this->xstream->audio_out, this->xstream);
 	    this->output_open = 0;
           }
           if (!this->output_open) {
-	    this->output_open = this->xstream->audio_out->open(this->xstream->audio_out, 16,
+	    this->output_open = this->xstream->audio_out->open(this->xstream->audio_out,
+				   this->xstream, 16,
 				   this->frame.header.samplerate, 
 			           mode) ;
           }
@@ -245,7 +246,7 @@ static void mad_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 	  audio_buffer->num_frames = pcm->length;
 	  audio_buffer->vpts       = buf->pts;
 
-	  this->xstream->audio_out->put_buffer (this->xstream->audio_out, audio_buffer);
+	  this->xstream->audio_out->put_buffer (this->xstream->audio_out, audio_buffer, this->xstream);
 
 	  buf->pts = 0;
 
@@ -268,7 +269,7 @@ static void mad_dispose (audio_decoder_t *this_gen) {
   mad_stream_finish(&this->stream);
 
   if (this->output_open) { 
-    this->xstream->audio_out->close (this->xstream->audio_out);
+    this->xstream->audio_out->close (this->xstream->audio_out, this->xstream);
     this->output_open = 0;
   }
 
@@ -343,6 +344,6 @@ static decoder_info_t dec_info_audio = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_AUDIO_DECODER, 11, "mad", XINE_VERSION_CODE, &dec_info_audio, init_plugin },
+  { PLUGIN_AUDIO_DECODER, 12, "mad", XINE_VERSION_CODE, &dec_info_audio, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.1 2002/11/18 03:03:09 guenter Exp $
+ * $Id: xine_decoder.c,v 1.2 2002/11/20 11:57:44 mroi Exp $
  *
  * thin layer to use real binary-only codecs in xine
  *
@@ -177,7 +177,7 @@ static void realdec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) 
       real_init (&this->real, stream->video_out);
     */
 
-    this->stream->video_out->open(this->stream->video_out);
+    this->stream->video_out->open(this->stream->video_out, this->stream);
     
 
   } else if (this->context) {
@@ -221,7 +221,7 @@ static void realdec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) 
 
     /* xine_fast_memcpy (dy, sy, this->bih.biWidth); */
 
-    img->draw(img);
+    img->draw(img, this->stream);
     img->free(img);
 
   } else {
@@ -381,6 +381,6 @@ static decoder_info_t dec_info_real = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_VIDEO_DECODER, 12, "real", XINE_VERSION_CODE, &dec_info_real, init_class },
+  { PLUGIN_VIDEO_DECODER, 13, "real", XINE_VERSION_CODE, &dec_info_real, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decode_video.c,v 1.21 2002/11/17 17:55:21 mroi Exp $
+ * $Id: dxr3_decode_video.c,v 1.22 2002/11/20 11:57:42 mroi Exp $
  */
  
 /* dxr3 video decoder plugin.
@@ -72,7 +72,7 @@ static decoder_info_t dxr3_video_decoder_info = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_VIDEO_DECODER, 12, "dxr3-mpeg2", XINE_VERSION_CODE, &dxr3_video_decoder_info, &dxr3_init_plugin },
+  { PLUGIN_VIDEO_DECODER, 13, "dxr3-mpeg2", XINE_VERSION_CODE, &dxr3_video_decoder_info, &dxr3_init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
 
@@ -98,6 +98,8 @@ typedef struct dxr3_decoder_class_s {
   
   char                   devname[128];
   char                   devnum[3];
+  
+  metronom_clock_t      *clock;                /* used for syncing */
 } dxr3_decoder_class_t;
 
 typedef struct dxr3_decoder_s {
@@ -179,6 +181,8 @@ static void *dxr3_init_plugin(xine_t *xine, void *data)
   
   this->instance                            = 0;
   
+  this->clock                               = xine->clock;
+  
   return &this->video_decoder_class;
 }
 
@@ -238,7 +242,7 @@ static video_decoder_t *dxr3_open_plugin(video_decoder_class_t *class_gen, xine_
   this->skip_count            = 0;
   
   this->force_duration_window = -FORCE_DURATION_WINDOW_SIZE;
-  this->last_vpts             = this->stream->metronom->get_current_time(this->stream->metronom);
+  this->last_vpts             = this->class->clock->get_current_time(this->class->clock);
   this->avg_duration          = 0;
   
   this->sync_every_frame      = cfg->register_bool(cfg,
@@ -258,7 +262,7 @@ static video_decoder_t *dxr3_open_plugin(video_decoder_class_t *class_gen, xine_
     /* set a/v offset to compensate dxr3 internal delay */
     this->stream->metronom->set_option(this->stream->metronom, METRONOM_AV_OFFSET, -21600);
   
-  stream->video_out->open(stream->video_out);
+  stream->video_out->open(stream->video_out, stream);
   
   class->instance = 1;
   
@@ -369,7 +373,7 @@ static void dxr3_decode_data(video_decoder_t *this_gen, buf_element_t *buf)
     img->bad_frame = 0;
     img->duration  = get_duration(this);
     
-    skip = img->draw(img);
+    skip = img->draw(img, this->stream);
     
     if (skip <= 0) { /* don't skip */
       vpts = img->vpts; /* copy so we can free img */
@@ -470,13 +474,13 @@ static void dxr3_decode_data(video_decoder_t *this_gen, buf_element_t *buf)
   if (!this->scr) {
     int64_t time;
     
-    time = this->stream->metronom->get_current_time(this->stream->metronom);
+    time = this->class->clock->get_current_time(this->class->clock);
     
     this->scr = dxr3_scr_init(this->stream);
     this->scr->scr_plugin.start(&this->scr->scr_plugin, time);
-    this->stream->metronom->register_scr(
-      this->stream->metronom, &this->scr->scr_plugin);
-    if (this->stream->metronom->scr_master == &this->scr->scr_plugin)
+    this->class->clock->register_scr(
+      this->class->clock, &this->scr->scr_plugin);
+    if (this->class->clock->scr_master == &this->scr->scr_plugin)
 #if LOG_VID
       printf("dxr3_decode_video: dxr3_scr plugin is master\n");
 #endif
@@ -490,8 +494,8 @@ static void dxr3_decode_data(video_decoder_t *this_gen, buf_element_t *buf)
   if (vpts) {
     int64_t delay;
     
-    delay = vpts - this->stream->metronom->get_current_time(
-      this->stream->metronom);
+    delay = vpts - this->class->clock->get_current_time(
+      this->class->clock);
 #if LOG_PTS
     printf("dxr3_decode_video: SETPTS got %lld\n", vpts);
 #endif
@@ -554,10 +558,10 @@ static void dxr3_flush(video_decoder_t *this_gen)
 static void dxr3_dispose(video_decoder_t *this_gen)
 {
   dxr3_decoder_t *this = (dxr3_decoder_t *)this_gen;
-  metronom_t *metronom = this->stream->metronom;
+  metronom_clock_t *clock = this->class->clock;
   
   if (this->scr) {
-    metronom->unregister_scr(metronom, &this->scr->scr_plugin);
+    clock->unregister_scr(clock, &this->scr->scr_plugin);
     this->scr->scr_plugin.exit(&this->scr->scr_plugin);
   }
   
@@ -566,7 +570,7 @@ static void dxr3_dispose(video_decoder_t *this_gen)
   if (this->fd_video >= 0) close(this->fd_video);
   close(this->fd_control);
   
-  this->stream->video_out->close(this->stream->video_out);
+  this->stream->video_out->close(this->stream->video_out, this->stream);
   this->class->instance  = 0;
   
   free(this);

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.39 2002/11/12 18:40:50 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.40 2002/11/20 11:57:43 mroi Exp $
  *
  * stuff needed to turn liba52 into a xine decoder plugin
  */
@@ -75,7 +75,7 @@ typedef struct a52dec_decoder_s {
   int              a52_flags_map[11];
   int              ao_flags_map[11];
 
-  ao_instance_t	  *audio_out;
+  xine_audio_port_t *audio_out;
   int              audio_caps;
   int              bypass_mode;
   int              output_sampling_rate;
@@ -219,10 +219,11 @@ static void a52dec_decode_frame (a52dec_decoder_t *this, int64_t pts) {
 	|| (output_mode != this->output_mode)) {
 
       if (this->output_open)
-	this->audio_out->close (this->audio_out);
+	this->audio_out->close (this->audio_out, this->stream);
 
 
-      this->output_open = this->audio_out->open (this->audio_out, 16,
+      this->output_open = this->audio_out->open (this->audio_out, 
+						 this->stream, 16,
 						 this->a52_sample_rate,
 						 output_mode) ;
       this->output_sampling_rate = this->a52_sample_rate;
@@ -286,7 +287,7 @@ static void a52dec_decode_frame (a52dec_decoder_t *this, int64_t pts) {
     /*  output decoded samples */
 
     buf->vpts       = pts;
-    this->audio_out->put_buffer (this->audio_out, buf);
+    this->audio_out->put_buffer (this->audio_out, buf, this->stream);
 
   } else {
 
@@ -300,7 +301,8 @@ static void a52dec_decode_frame (a52dec_decoder_t *this, int64_t pts) {
 
       a52_syncinfo (this->frame_buffer, &flags, &sample_rate, &bit_rate);
 
-      this->output_open = this->audio_out->open (this->audio_out, 16,
+      this->output_open = this->audio_out->open (this->audio_out,
+						 this->stream, 16,
 						 sample_rate,
 						 AO_CAP_MODE_A52) ;
       this->output_mode = AO_CAP_MODE_A52;
@@ -334,7 +336,7 @@ static void a52dec_decode_frame (a52dec_decoder_t *this, int64_t pts) {
       buf->num_frames = 1536;
       buf->vpts       = pts;
 
-      this->audio_out->put_buffer (this->audio_out, buf);
+      this->audio_out->put_buffer (this->audio_out, buf, this->stream);
 
     }
   }
@@ -457,7 +459,7 @@ static void a52dec_dispose (audio_decoder_t *this_gen) {
   a52dec_decoder_t *this = (a52dec_decoder_t *) this_gen;
 
   if (this->output_open)
-    this->audio_out->close (this->audio_out);
+    this->audio_out->close (this->audio_out, this->stream);
 
   this->output_open = 0;
 
@@ -642,6 +644,6 @@ static decoder_info_t dec_info_audio = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */
-  { PLUGIN_AUDIO_DECODER, 11, "a/52", XINE_VERSION_CODE, &dec_info_audio, init_plugin },
+  { PLUGIN_AUDIO_DECODER, 12, "a/52", XINE_VERSION_CODE, &dec_info_audio, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_elem.c,v 1.61 2002/11/11 22:33:00 tmattern Exp $
+ * $Id: demux_elem.c,v 1.62 2002/11/20 11:57:40 mroi Exp $
  *
  * demultiplexer for elementary mpeg streams
  * 
@@ -340,6 +340,6 @@ static void *init_plugin (xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_DEMUX, 16, "elem", XINE_VERSION_CODE, NULL, init_plugin },
+  { PLUGIN_DEMUX, 17, "elem", XINE_VERSION_CODE, NULL, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

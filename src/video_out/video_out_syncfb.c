@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_syncfb.c,v 1.78 2002/09/05 20:44:42 mroi Exp $
+ * $Id: video_out_syncfb.c,v 1.79 2002/11/20 11:57:48 mroi Exp $
  * 
  * video_out_syncfb.c, SyncFB (for Matrox G200/G400 cards) interface for xine
  * 
@@ -78,7 +78,7 @@ typedef struct {
 
 struct syncfb_driver_s {
 
-  xine_vo_driver_t        vo_driver;
+  vo_driver_t        vo_driver;
 
   config_values_t   *config;
 
@@ -420,7 +420,7 @@ static void syncfb_compute_output_size(syncfb_driver_t *this)
  * public functions defined and used by the xine interface
  */
 
-static int syncfb_redraw_needed(xine_vo_driver_t* this_gen)
+static int syncfb_redraw_needed(vo_driver_t* this_gen)
 {
   syncfb_driver_t* this = (syncfb_driver_t *) this_gen;
 
@@ -438,7 +438,7 @@ static int syncfb_redraw_needed(xine_vo_driver_t* this_gen)
   return ret;
 }
 
-static uint32_t syncfb_get_capabilities (xine_vo_driver_t *this_gen)
+static uint32_t syncfb_get_capabilities (vo_driver_t *this_gen)
 {
   syncfb_driver_t *this = (syncfb_driver_t *) this_gen;
 
@@ -460,7 +460,7 @@ static void syncfb_frame_dispose(vo_frame_t* vo_img)
   }
 }
 
-static vo_frame_t* syncfb_alloc_frame(xine_vo_driver_t* this_gen)
+static vo_frame_t* syncfb_alloc_frame(vo_driver_t* this_gen)
 {
   syncfb_frame_t* frame;
   
@@ -488,7 +488,7 @@ static vo_frame_t* syncfb_alloc_frame(xine_vo_driver_t* this_gen)
   return (vo_frame_t *) frame;
 }
 
-static void syncfb_update_frame_format(xine_vo_driver_t* this_gen,
+static void syncfb_update_frame_format(vo_driver_t* this_gen,
 				       vo_frame_t* frame_gen,
 				       uint32_t width, uint32_t height,
 				       int ratio_code, int format, int flags)
@@ -545,7 +545,7 @@ static void syncfb_update_frame_format(xine_vo_driver_t* this_gen,
   frame->ratio_code = ratio_code;
 }
 
-static void syncfb_overlay_blend(xine_vo_driver_t* this_gen, vo_frame_t* frame_gen, vo_overlay_t* overlay)
+static void syncfb_overlay_blend(vo_driver_t* this_gen, vo_frame_t* frame_gen, vo_overlay_t* overlay)
 {
    syncfb_frame_t* frame = (syncfb_frame_t *) frame_gen;
    
@@ -558,7 +558,7 @@ static void syncfb_overlay_blend(xine_vo_driver_t* this_gen, vo_frame_t* frame_g
    }
 }
 
-static void syncfb_display_frame(xine_vo_driver_t* this_gen, vo_frame_t* frame_gen)
+static void syncfb_display_frame(vo_driver_t* this_gen, vo_frame_t* frame_gen)
 {
   syncfb_driver_t* this  = (syncfb_driver_t *) this_gen;
   syncfb_frame_t*  frame = (syncfb_frame_t *) frame_gen;
@@ -631,14 +631,14 @@ static void syncfb_display_frame(xine_vo_driver_t* this_gen, vo_frame_t* frame_g
    this->bufinfo.id = -1;   
 }
 
-static int syncfb_get_property(xine_vo_driver_t* this_gen, int property)
+static int syncfb_get_property(vo_driver_t* this_gen, int property)
 {
   syncfb_driver_t* this = (syncfb_driver_t *) this_gen;
   
   return this->props[property].value;
 }
 
-static int syncfb_set_property(xine_vo_driver_t* this_gen, int property, int value)
+static int syncfb_set_property(vo_driver_t* this_gen, int property, int value)
 {
   syncfb_driver_t* this = (syncfb_driver_t *) this_gen;
   
@@ -745,7 +745,7 @@ static int syncfb_set_property(xine_vo_driver_t* this_gen, int property, int val
   return value;
 }
 
-static void syncfb_get_property_min_max(xine_vo_driver_t *this_gen, 
+static void syncfb_get_property_min_max(vo_driver_t *this_gen, 
 					int property, int *min, int *max)
 {
   syncfb_driver_t* this = (syncfb_driver_t *) this_gen;
@@ -790,7 +790,7 @@ static int syncfb_gui_data_exchange(vo_driver_t* this_gen, int data_type,
   return 0;
 }
 
-static void syncfb_exit(xine_vo_driver_t *this_gen)
+static void syncfb_exit(vo_driver_t *this_gen)
 {
   syncfb_driver_t *this = (syncfb_driver_t *) this_gen;
 

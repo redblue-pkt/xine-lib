@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ts.c,v 1.65 2002/11/15 00:20:31 miguelfreitas Exp $
+ * $Id: demux_ts.c,v 1.66 2002/11/20 11:57:41 mroi Exp $
  *
  * Demultiplexer for MPEG2 Transport Streams.
  *
@@ -1672,6 +1672,6 @@ static void *init_class (xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_DEMUX, 16, "mpeg-ts", XINE_VERSION_CODE, NULL, init_class },
+  { PLUGIN_DEMUX, 17, "mpeg-ts", XINE_VERSION_CODE, NULL, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.h,v 1.40 2002/11/12 18:40:55 miguelfreitas Exp $
+ * $Id: metronom.h,v 1.41 2002/11/20 11:57:49 mroi Exp $
  *
  * metronom: general pts => virtual calculation/assoc
  *                   
@@ -54,6 +54,7 @@ extern "C" {
 #include "xine.h"
 
 typedef struct metronom_s metronom_t ;
+typedef struct metronom_clock_s metronom_clock_t;
 typedef struct scr_plugin_s scr_plugin_t;
 
   /* see below */
@@ -150,61 +151,15 @@ struct metronom_s {
    */
   void (*set_option) (metronom_t *this, int option, int64_t value);
   int64_t (*get_option) (metronom_t *this, int option);
-
-  /*
-   * system clock reference (SCR) functions
-   */
-
-  /*
-   * start metronom clock (no clock reset)
-   * at given pts
-   */
-  void (*start_clock) (metronom_t *this, int64_t pts);
-
-
-  /*
-   * stop metronom clock
-   */
-  void (*stop_clock) (metronom_t *this);
-
-
-  /*
-   * resume clock from where it was stopped
-   */
-  void (*resume_clock) (metronom_t *this);
-
-
-  /*
-   * get current clock value in vpts
-   */
-  int64_t (*get_current_time) (metronom_t *this);
-
-
-  /*
-   * adjust master clock to external timer (e.g. audio hardware)
-   */
-  void (*adjust_clock) (metronom_t *this, int64_t desired_pts);
-
-
-  /*
-   * set clock speed
-   * for constants see xine_internal.h
-   */
-
-  int (*set_speed) (metronom_t *this, int speed);
-
-  /*
-   * (un)register a System Clock Reference provider at the metronom
-   */
-  int    (*register_scr) (metronom_t *this, scr_plugin_t *scr);
-  void (*unregister_scr) (metronom_t *this, scr_plugin_t *scr);
-
+  
   void (*exit) (metronom_t *this);
 
   /*
    * pointer to current xine stream object. 
    */
   xine_stream_t *stream;
+  
+  metronom_clock_t *clock;
 
   /*
    * metronom internal stuff
@@ -226,11 +181,6 @@ struct metronom_s {
 
   int64_t         av_offset;
 
-  scr_plugin_t*   scr_master;
-  scr_plugin_t**  scr_list;
-  pthread_t       sync_thread;
-  int             scr_adjustable;
-
   pthread_mutex_t lock;
 
   int             have_audio;
@@ -250,15 +200,93 @@ struct metronom_s {
   
 };
 
-metronom_t *metronom_init (int have_audio, xine_stream_t *stream);
-
 /*
  * metronom options
  */
 
-#define METRONOM_SCR_ADJUSTABLE   1
 #define METRONOM_AV_OFFSET        2
 #define METRONOM_ADJ_VPTS_OFFSET  3
+
+metronom_t *metronom_init (int have_audio, xine_stream_t *stream);
+
+struct metronom_clock_s {
+
+  /*
+   * set/get options for clock, constants see below
+   */
+  void (*set_option) (metronom_clock_t *this, int option, int64_t value);
+  int64_t (*get_option) (metronom_clock_t *this, int option);
+
+  /*
+   * system clock reference (SCR) functions
+   */
+
+  /*
+   * start clock (no clock reset)
+   * at given pts
+   */
+  void (*start_clock) (metronom_clock_t *this, int64_t pts);
+
+
+  /*
+   * stop metronom clock
+   */
+  void (*stop_clock) (metronom_clock_t *this);
+
+
+  /*
+   * resume clock from where it was stopped
+   */
+  void (*resume_clock) (metronom_clock_t *this);
+
+
+  /*
+   * get current clock value in vpts
+   */
+  int64_t (*get_current_time) (metronom_clock_t *this);
+
+
+  /*
+   * adjust master clock to external timer (e.g. audio hardware)
+   */
+  void (*adjust_clock) (metronom_clock_t *this, int64_t desired_pts);
+
+
+  /*
+   * set clock speed
+   * for constants see xine_internal.h
+   */
+
+  int (*set_speed) (metronom_clock_t *this, int speed);
+
+  /*
+   * (un)register a System Clock Reference provider at the metronom
+   */
+  int    (*register_scr) (metronom_clock_t *this, scr_plugin_t *scr);
+  void (*unregister_scr) (metronom_clock_t *this, scr_plugin_t *scr);
+
+  void (*exit) (metronom_clock_t *this);
+  
+  scr_plugin_t*   scr_master;
+  scr_plugin_t**  scr_list;
+  pthread_t       sync_thread;
+  int             thread_running;
+  int             scr_adjustable;
+  
+  int speed;
+  
+  pthread_mutex_t lock;
+  pthread_cond_t  cancel;
+
+};
+
+metronom_clock_t *metronom_clock_init(void);
+
+/*
+ * clock options
+ */
+
+#define CLOCK_SCR_ADJUSTABLE   1
 
 /*
  * SCR (system clock reference) plugins
@@ -287,7 +315,7 @@ struct scr_plugin_s
 
   void (*exit) (scr_plugin_t *this);
 
-  metronom_t *metronom;
+  metronom_clock_t *clock;
 };
 
 #ifdef __cplusplus

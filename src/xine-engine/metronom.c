@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.c,v 1.101 2002/11/19 00:45:42 miguelfreitas Exp $
+ * $Id: metronom.c,v 1.102 2002/11/20 11:57:49 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -198,28 +198,30 @@ static scr_plugin_t* unixscr_init () {
  */
 
 
-static void metronom_start_clock (metronom_t *this, int64_t pts) {
+static void metronom_start_clock (metronom_clock_t *this, int64_t pts) {
   scr_plugin_t** scr;
 
   printf ("metronom: start_clock (at %lld)\n", pts);
 
   for (scr = this->scr_list; scr < this->scr_list+MAX_SCR_PROVIDERS; scr++)
     if (*scr) (*scr)->start(*scr, pts);
+  
+  this->speed = XINE_SPEED_NORMAL;
 }
 
 
-static int64_t metronom_get_current_time (metronom_t *this) {
+static int64_t metronom_get_current_time (metronom_clock_t *this) {
   return this->scr_master->get_current(this->scr_master);
 }
 
 
-static void metronom_stop_clock(metronom_t *this) {
+static void metronom_stop_clock(metronom_clock_t *this) {
   scr_plugin_t** scr;
   for (scr = this->scr_list; scr < this->scr_list+MAX_SCR_PROVIDERS; scr++)
     if (*scr) (*scr)->set_speed(*scr, XINE_SPEED_PAUSE);
 }
 
-static void metronom_resume_clock(metronom_t *this) {
+static void metronom_resume_clock(metronom_clock_t *this) {
   scr_plugin_t** scr;
   for (scr = this->scr_list; scr < this->scr_list+MAX_SCR_PROVIDERS; scr++)
     if (*scr) (*scr)->set_speed(*scr, XINE_SPEED_NORMAL);
@@ -227,17 +229,19 @@ static void metronom_resume_clock(metronom_t *this) {
 
 
 
-static void metronom_adjust_clock(metronom_t *this, int64_t desired_pts) {
+static void metronom_adjust_clock(metronom_clock_t *this, int64_t desired_pts) {
   if (this->scr_adjustable)
     this->scr_master->adjust(this->scr_master, desired_pts);
 }
 
-static int metronom_set_speed (metronom_t *this, int speed) {
+static int metronom_set_speed (metronom_clock_t *this, int speed) {
 
   scr_plugin_t **scr;
   int            true_speed;
 
   true_speed = this->scr_master->set_speed (this->scr_master, speed);
+  
+  this->speed = true_speed;
 
   for (scr = this->scr_list; scr < this->scr_list+MAX_SCR_PROVIDERS; scr++)
     if (*scr) (*scr)->set_speed(*scr, true_speed);
@@ -554,9 +558,6 @@ static void metronom_set_option (metronom_t *this, int option, int64_t value) {
     this->av_offset = value;
     printf ("metronom: av_offset=%lld pts\n", this->av_offset);
     break;
-  case METRONOM_SCR_ADJUSTABLE:
-    this->scr_adjustable = value;
-    break;
   case METRONOM_ADJ_VPTS_OFFSET:
     this->vpts_offset += value;
 #ifdef LOG
@@ -571,11 +572,36 @@ static void metronom_set_option (metronom_t *this, int option, int64_t value) {
   pthread_mutex_unlock (&this->lock);
 }
 
+static void metronom_clock_set_option (metronom_clock_t *this,
+					int option, int64_t value) {
+
+  pthread_mutex_lock (&this->lock);
+
+  switch (option) {
+  case CLOCK_SCR_ADJUSTABLE:
+    this->scr_adjustable = value;
+    break;
+  default:
+    printf ("metronom: unknown option in set_option: %d\n",
+	    option);
+  }
+
+  pthread_mutex_unlock (&this->lock);
+}
+
 static int64_t metronom_get_option (metronom_t *this, int option) {
   switch (option) {
   case METRONOM_AV_OFFSET:
     return this->av_offset;
-  case METRONOM_SCR_ADJUSTABLE:
+  }
+  printf ("metronom: unknown option in get_option: %d\n",
+	  option);
+  return 0;
+}
+
+static int64_t metronom_clock_get_option (metronom_clock_t *this, int option) {
+  switch (option) {
+  case CLOCK_SCR_ADJUSTABLE:
     return this->scr_adjustable;
   }
   printf ("metronom: unknown option in get_option: %d\n",
@@ -583,7 +609,7 @@ static int64_t metronom_get_option (metronom_t *this, int option) {
   return 0;
 }
 
-static scr_plugin_t* get_master_scr(metronom_t *this) {
+static scr_plugin_t* get_master_scr(metronom_clock_t *this) {
   int select = -1, maxprio = 0, i;
 
   /* find the SCR provider with the highest priority */
@@ -602,7 +628,7 @@ static scr_plugin_t* get_master_scr(metronom_t *this) {
   return this->scr_list[select];
 }
 
-static int metronom_register_scr (metronom_t *this, scr_plugin_t *scr) {
+static int metronom_register_scr (metronom_clock_t *this, scr_plugin_t *scr) {
   int i;
 
   if (scr->interface_version != 2) return -1;
@@ -612,13 +638,13 @@ static int metronom_register_scr (metronom_t *this, scr_plugin_t *scr) {
   if (i >= MAX_SCR_PROVIDERS)
     return -1; /* No free slot available */
 
-  scr->metronom = this;
+  scr->clock = this;
   this->scr_list[i] = scr;
   this->scr_master = get_master_scr(this);
   return 0;
 }
 
-static void metronom_unregister_scr (metronom_t *this, scr_plugin_t *scr) {
+static void metronom_unregister_scr (metronom_clock_t *this, scr_plugin_t *scr) {
   int i;
   int64_t time;
 
@@ -640,21 +666,21 @@ static void metronom_unregister_scr (metronom_t *this, scr_plugin_t *scr) {
   this->scr_master = get_master_scr(this);
 }
 
-static int metronom_sync_loop (metronom_t *this) {
+static int metronom_sync_loop (metronom_clock_t *this) {
 
   struct timeval tv;
   struct timespec ts;
   scr_plugin_t** scr;
   int64_t        pts;
   
-  while (this->stream->status != XINE_STATUS_QUIT) {
+  while (this->thread_running) {
+    /* synchronise every 5 seconds */
+    pthread_mutex_lock (&this->lock);
+
     pts = this->scr_master->get_current(this->scr_master);
     
     for (scr = this->scr_list; scr < this->scr_list+MAX_SCR_PROVIDERS; scr++)
       if (*scr && *scr != this->scr_master) (*scr)->adjust(*scr, pts);
-
-    /* synchronise every 5 seconds */
-    pthread_mutex_lock (&this->lock);
 
     gettimeofday(&tv, NULL);
     ts.tv_sec  = tv.tv_sec + 5;
@@ -668,8 +694,19 @@ static int metronom_sync_loop (metronom_t *this) {
 
 static void metronom_exit (metronom_t *this) {
 
+  pthread_mutex_destroy (&this->lock);
+  pthread_cond_destroy (&this->video_discontinuity_reached);
+  pthread_cond_destroy (&this->audio_discontinuity_reached);
+
+  free (this);
+}
+
+static void metronom_clock_exit (metronom_clock_t *this) {
+
   scr_plugin_t** scr;
 
+  this->thread_running = 0;
+  
   pthread_mutex_lock (&this->lock);
   pthread_cond_signal (&this->cancel);
   pthread_mutex_unlock (&this->lock);
@@ -677,8 +714,6 @@ static void metronom_exit (metronom_t *this) {
   pthread_join (this->sync_thread, NULL);
 
   pthread_mutex_destroy (&this->lock);
-  pthread_cond_destroy (&this->video_discontinuity_reached);
-  pthread_cond_destroy (&this->audio_discontinuity_reached);
   pthread_cond_destroy (&this->cancel);
 
   for (scr = this->scr_list; scr < this->scr_list+MAX_SCR_PROVIDERS; scr++)
@@ -692,9 +727,9 @@ static void metronom_exit (metronom_t *this) {
 metronom_t * metronom_init (int have_audio, xine_stream_t *stream) {
 
   metronom_t *this = xine_xmalloc (sizeof (metronom_t));
-  int         err;
 
   this->stream               = stream;
+  this->clock                = stream->xine->clock;
   this->set_audio_rate       = metronom_set_audio_rate;
   this->got_video_frame      = metronom_got_video_frame;
   this->got_audio_samples    = metronom_got_audio_samples;
@@ -703,27 +738,9 @@ metronom_t * metronom_init (int have_audio, xine_stream_t *stream) {
   this->handle_video_discontinuity = metronom_handle_video_discontinuity;
   this->set_option           = metronom_set_option;
   this->get_option           = metronom_get_option;
-  this->start_clock          = metronom_start_clock;
-  this->stop_clock           = metronom_stop_clock;
-  this->resume_clock         = metronom_resume_clock;
-  this->get_current_time     = metronom_get_current_time;
-  this->adjust_clock         = metronom_adjust_clock;
-  this->register_scr         = metronom_register_scr;
-  this->unregister_scr       = metronom_unregister_scr;
-  this->set_speed            = metronom_set_speed;
   this->exit                 = metronom_exit;
 
-  this->scr_adjustable = 1;
-  this->scr_list = calloc(MAX_SCR_PROVIDERS, sizeof(void*));
-  this->register_scr(this, unixscr_init());
-
   pthread_mutex_init (&this->lock, NULL);
-  pthread_cond_init (&this->cancel, NULL);
-
-  if ((err = pthread_create(&this->sync_thread, NULL,
-      			    (void*(*)(void*)) metronom_sync_loop, this)) != 0)
-    printf ("metronom: cannot create sync thread (%s)\n",
-	    strerror(err));
 
   this->av_offset                   = 0;
   this->vpts_offset                 = 0;
@@ -752,3 +769,37 @@ metronom_t * metronom_init (int have_audio, xine_stream_t *stream) {
   return this;
 }
 
+
+metronom_clock_t *metronom_clock_init(void)
+{
+  metronom_clock_t *this = (metronom_clock_t *)malloc(sizeof(metronom_clock_t));
+  int err;
+  
+  this->set_option           = metronom_clock_set_option;
+  this->get_option           = metronom_clock_get_option;
+  this->start_clock          = metronom_start_clock;
+  this->stop_clock           = metronom_stop_clock;
+  this->resume_clock         = metronom_resume_clock;
+  this->get_current_time     = metronom_get_current_time;
+  this->adjust_clock         = metronom_adjust_clock;
+  this->set_speed            = metronom_set_speed;
+  this->register_scr         = metronom_register_scr;
+  this->unregister_scr       = metronom_unregister_scr;
+  this->exit                 = metronom_clock_exit;
+  
+  this->scr_adjustable = 1;
+  this->scr_list = calloc(MAX_SCR_PROVIDERS, sizeof(void*));
+  this->register_scr(this, unixscr_init());
+  
+  pthread_mutex_init (&this->lock, NULL);
+  pthread_cond_init (&this->cancel, NULL);
+  
+  this->thread_running       = 1;
+
+  if ((err = pthread_create(&this->sync_thread, NULL,
+      			    (void*(*)(void*)) metronom_sync_loop, this)) != 0)
+    printf ("metronom: cannot create sync thread (%s)\n",
+	    strerror(err));
+
+  return this;
+}

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ogg.c,v 1.52 2002/11/10 13:33:15 mroi Exp $
+ * $Id: demux_ogg.c,v 1.53 2002/11/20 11:57:40 mroi Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -1062,6 +1062,6 @@ static void *init_class (xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_DEMUX, 16, "ogg", XINE_VERSION_CODE, NULL, init_class },
+  { PLUGIN_DEMUX, 17, "ogg", XINE_VERSION_CODE, NULL, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

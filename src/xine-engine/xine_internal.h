@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.112 2002/11/17 17:41:45 mroi Exp $
+ * $Id: xine_internal.h,v 1.113 2002/11/20 11:57:50 mroi Exp $
  *
  */
 
@@ -108,6 +108,8 @@ struct xine_s {
 
   xine_list_t               *streams;
   pthread_mutex_t            streams_lock;
+  
+  metronom_clock_t          *clock;
 };
 
 /*
@@ -140,13 +142,12 @@ struct xine_stream_s {
   demux_plugin_t            *demux_plugin;
 
   metronom_t                *metronom;
-  int                        speed;
   off_t                      input_pos;
   off_t                      input_length;
   int                        input_time;
 
-  xine_vo_driver_t          *video_driver;
-  vo_instance_t             *video_out;
+  xine_video_port_t         *video_out;
+  vo_driver_t               *video_driver;
   fifo_buffer_t             *video_fifo;
   pthread_t                  video_thread;
   video_decoder_t           *video_decoder_plugin;
@@ -154,7 +155,7 @@ struct xine_stream_s {
   int                        video_in_discontinuity;
   int                        video_channel;
   
-  ao_instance_t             *audio_out;
+  xine_audio_port_t         *audio_out;
   fifo_buffer_t             *audio_fifo;
   lrb_t                     *audio_temp;
   pthread_t                  audio_thread;
@@ -273,8 +274,8 @@ void             free_spu_decoder   (xine_stream_t *stream, spu_decoder_t *decod
  * load a specific video output plugin
  */
 
-xine_vo_driver_t *xine_load_video_output_plugin(xine_t *this,
-						char *id, int visual_type, void *visual);
+vo_driver_t *xine_load_video_output_plugin(xine_t *this,
+					   char *id, int visual_type, void *visual);
 
 /*
  * audio output plugin dynamic loading stuff
@@ -286,7 +287,7 @@ xine_vo_driver_t *xine_load_video_output_plugin(xine_t *this,
  * load a specific audio output plugin
  */
 
-xine_ao_driver_t *xine_load_audio_output_plugin (xine_t *self, char *id);
+ao_driver_t *xine_load_audio_output_plugin (xine_t *self, char *id);
 
 
 void xine_set_speed (xine_stream_t *stream, int speed) ;

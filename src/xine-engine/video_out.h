@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.h,v 1.69 2002/10/29 16:02:50 mroi Exp $
+ * $Id: video_out.h,v 1.70 2002/11/20 11:57:49 mroi Exp $
  *
  *
  * xine version of video_out.h 
@@ -27,7 +27,7 @@
  *
  * vo_driver   : lowlevel, platform-specific video output code
  *
- * vo_instance : generic frame_handling code, uses
+ * vo_port     : generic frame_handling code, uses
  *               a vo_driver for output
  *
  */
@@ -47,11 +47,10 @@ extern "C" {
 #include <pthread.h>
 
 typedef struct vo_frame_s vo_frame_t; 
-typedef struct vo_instance_s vo_instance_t;
 typedef struct img_buf_fifo_s img_buf_fifo_t;
 typedef struct vo_overlay_s vo_overlay_t;
 typedef struct video_overlay_instance_s video_overlay_instance_t;
-typedef struct vo_private_s vo_private_t;
+typedef struct vo_driver_s vo_driver_t;
 
 
 /* public part, video drivers may add private fields */
@@ -87,8 +86,8 @@ struct vo_frame_s {
   pthread_mutex_t            mutex; /* protect access to lock_count */
 
   /* "backward" references to where this frame originates from */
-  vo_instance_t             *instance;  
-  xine_vo_driver_t          *driver;
+  xine_video_port_t         *port;
+  vo_driver_t               *driver;
 
   int                        id; /* debugging - track this frame */
 
@@ -107,7 +106,7 @@ struct vo_frame_s {
 
   /* append this frame to the display queue, 
      returns number of frames to skip if decoder is late */
-  int (*draw) (vo_frame_t *vo_img);
+  int (*draw) (vo_frame_t *vo_img, xine_stream_t *stream);
 
   /* this frame is no longer used by the video driver */
   void (*displayed) (vo_frame_t *vo_img);
@@ -116,12 +115,12 @@ struct vo_frame_s {
   void (*dispose) (vo_frame_t *vo_img);
 };
 
-struct vo_instance_s {
+struct xine_video_port_s {
 
-  uint32_t (*get_capabilities) (vo_instance_t *this); /* for constants see below */
+  uint32_t (*get_capabilities) (xine_video_port_t *this); /* for constants see below */
 
   /* open display driver for video output */
-  void (*open) (vo_instance_t *this);
+  void (*open) (xine_video_port_t *this, xine_stream_t *stream);
 
   /* 
    * get_frame - allocate an image buffer from display driver 
@@ -132,29 +131,32 @@ struct vo_instance_s {
    *          format     == FOURCC descriptor of image format
    *          flags      == field/prediction flags
    */
-  vo_frame_t* (*get_frame) (vo_instance_t *this, uint32_t width, 
+  vo_frame_t* (*get_frame) (xine_video_port_t *this, uint32_t width, 
 			    uint32_t height, int ratio_code, 
 			    int format, int flags);
 
-  vo_frame_t* (*get_last_frame) (vo_instance_t *this);
+  vo_frame_t* (*get_last_frame) (xine_video_port_t *this);
   
   /* overlay stuff */
-  void (*enable_ovl) (vo_instance_t *this, int ovl_enable);
+  void (*enable_ovl) (xine_video_port_t *this, int ovl_enable);
   
   /* video driver is no longer used by decoder => close */
-  void (*close) (vo_instance_t *this);
+  void (*close) (xine_video_port_t *this, xine_stream_t *stream);
 
   /* called on xine exit */
-  void (*exit) (vo_instance_t *this);
+  void (*exit) (xine_video_port_t *this);
 
   /* get overlay instance (overlay source) */
-  video_overlay_instance_t* (*get_overlay_instance) (vo_instance_t *this);
+  video_overlay_instance_t* (*get_overlay_instance) (xine_video_port_t *this);
 
   /* flush video_out fifo */
-  void (*flush) (vo_instance_t *this);
+  void (*flush) (xine_video_port_t *this);
+
+  /* the driver in use */
+  vo_driver_t *driver;
 
   /* private stuff can be added here */
-
+  
 };
 
 /* constants for the get/set property functions */
@@ -224,37 +226,37 @@ struct vo_instance_s {
 #define VO_CAP_AUTOPAINT_COLORKEY     0x00000200 /* driver can set AUTOPAINT_COLORKEY value */
 
 /*
- * xine_vo_driver_s contains the functions every display driver
- * has to implement. The vo_new_instance function (see below)
- * should then be used to construct a vo_instance using this
+ * vo_driver_s contains the functions every display driver
+ * has to implement. The vo_new_port function (see below)
+ * should then be used to construct a vo_port using this
  * driver. Some of the function pointers will be copied
- * directly into vo_instance_s, others will be called
+ * directly into xine_video_port_s, others will be called
  * from generic vo functions.
  */
 
-#define VIDEO_OUT_DRIVER_IFACE_VERSION  10
+#define VIDEO_OUT_DRIVER_IFACE_VERSION  11
 
-struct xine_vo_driver_s {
+struct vo_driver_s {
 
-  uint32_t (*get_capabilities) (xine_vo_driver_t *this); /* for constants see above */
+  uint32_t (*get_capabilities) (vo_driver_t *this); /* for constants see above */
 
   /*
    * allocate an vo_frame_t struct,
    * the driver must supply the copy, field and dispose functions
    */
-  vo_frame_t* (*alloc_frame) (xine_vo_driver_t *this);
+  vo_frame_t* (*alloc_frame) (vo_driver_t *this);
 
 
   /* 
    * check if the given image fullfills the format specified
    * (re-)allocate memory if necessary
    */
-  void (*update_frame_format) (xine_vo_driver_t *this, vo_frame_t *img,
+  void (*update_frame_format) (vo_driver_t *this, vo_frame_t *img,
 			       uint32_t width, uint32_t height,
 			       int ratio_code, int format, int flags);
 
   /* display a given frame */
-  void (*display_frame) (xine_vo_driver_t *this, vo_frame_t *vo_img);
+  void (*display_frame) (vo_driver_t *this, vo_frame_t *vo_img);
 
   /* overlay_begin and overlay_end are used by drivers suporting
    * persistent overlays. they can be optimized to update only when
@@ -268,18 +270,18 @@ struct xine_vo_driver_s {
    *
    * any function pointer from this group may be set to NULL.
    */
-  void (*overlay_begin) (xine_vo_driver_t *this, vo_frame_t *vo_img, int changed);
-  void (*overlay_blend) (xine_vo_driver_t *this, vo_frame_t *vo_img, vo_overlay_t *overlay);
-  void (*overlay_end)   (xine_vo_driver_t *this, vo_frame_t *vo_img);
+  void (*overlay_begin) (vo_driver_t *this, vo_frame_t *vo_img, int changed);
+  void (*overlay_blend) (vo_driver_t *this, vo_frame_t *vo_img, vo_overlay_t *overlay);
+  void (*overlay_end)   (vo_driver_t *this, vo_frame_t *vo_img);
 
   /*
    * these can be used by the gui directly:
    */
 
-  int (*get_property) (xine_vo_driver_t *this, int property);
-  int (*set_property) (xine_vo_driver_t *this, 
+  int (*get_property) (vo_driver_t *this, int property);
+  int (*set_property) (vo_driver_t *this, 
 		       int property, int value);
-  void (*get_property_min_max) (xine_vo_driver_t *this,
+  void (*get_property_min_max) (vo_driver_t *this,
 				int property, int *min, int *max);
 
   /*
@@ -289,20 +291,20 @@ struct xine_vo_driver_s {
    * etc. to the driver
    */
 
-  int (*gui_data_exchange) (xine_vo_driver_t *this, int data_type,
+  int (*gui_data_exchange) (vo_driver_t *this, int data_type,
 			    void *data);
 
   /* check if a redraw is needed (due to resize)
    * this is only used for still frames, normal video playback 
    * must call that inside display_frame() function.
    */
-  int (*redraw_needed) (xine_vo_driver_t *this);
+  int (*redraw_needed) (vo_driver_t *this);
 
   /*
    * free all resources, close driver
    */
 
-  void (*dispose) (xine_vo_driver_t *this);
+  void (*dispose) (vo_driver_t *this);
   
   void *node; /* needed by plugin_loader */
 };
@@ -314,7 +316,7 @@ struct video_driver_class_s {
   /*
    * open a new instance of this plugin class
    */
-  xine_vo_driver_t* (*open_plugin) (video_driver_class_t *this, const void *visual);
+  vo_driver_t* (*open_plugin) (video_driver_class_t *this, const void *visual);
   
   /*
    * return short, human readable identifier for this plugin class
@@ -382,19 +384,18 @@ struct video_overlay_instance_s {
   int (*redraw_needed) (video_overlay_instance_t *this_gen, int64_t vpts );
   
   void (*multiple_overlay_blend) (video_overlay_instance_t *this_gen, int64_t vpts, 
-                                  xine_vo_driver_t *output, vo_frame_t *vo_img, int enabled);
+                                  vo_driver_t *output, vo_frame_t *vo_img, int enabled);
 };
 
 video_overlay_instance_t *video_overlay_new_instance ();
 
 
 /*
- * build a video_out_instance from
+ * build a video_out_port from
  * a given video driver
  */
 
-vo_instance_t *vo_new_instance (xine_vo_driver_t *driver, 
-				xine_stream_t *stream) ;
+xine_video_port_t *vo_new_port (xine_t *xine, vo_driver_t *driver) ;
 
 #ifdef __cplusplus
 }

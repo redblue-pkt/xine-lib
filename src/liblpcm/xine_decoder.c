@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.37 2002/11/12 18:40:51 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.38 2002/11/20 11:57:43 mroi Exp $
  * 
  * 31-8-2001 Added LPCM rate sensing.
  *   (c) 2001 James Courtier-Dutton James@superbug.demon.co.uk
@@ -120,11 +120,11 @@ void lpcm_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
    */
   if ( format_changed ) {
     if (this->output_open)
-        this->stream->audio_out->close (this->stream->audio_out);
+        this->stream->audio_out->close (this->stream->audio_out, this->stream);
 
     this->ao_cap_mode=(this->number_of_channels == 2) ? AO_CAP_MODE_STEREO : AO_CAP_MODE_MONO; 
    
-    this->output_open = this->stream->audio_out->open (this->stream->audio_out,
+    this->output_open = this->stream->audio_out->open (this->stream->audio_out, this->stream,
                                                (this->bits_per_sample>16)?16:this->bits_per_sample,
                                                this->rate,
                                                this->ao_cap_mode) ;
@@ -173,7 +173,7 @@ void lpcm_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
   audio_buffer->vpts       = buf->pts;
   audio_buffer->num_frames = (((buf->size*8)/this->number_of_channels)/this->bits_per_sample);
 
-  this->stream->audio_out->put_buffer (this->stream->audio_out, audio_buffer);
+  this->stream->audio_out->put_buffer (this->stream->audio_out, audio_buffer, this->stream);
 
 }
 
@@ -181,7 +181,7 @@ static void lpcm_dispose (audio_decoder_t *this_gen) {
   lpcm_decoder_t *this = (lpcm_decoder_t *) this_gen; 
 
   if (this->output_open) 
-    this->stream->audio_out->close (this->stream->audio_out);
+    this->stream->audio_out->close (this->stream->audio_out, this->stream);
   this->output_open = 0;
 
   free (this_gen);
@@ -247,6 +247,6 @@ static decoder_info_t dec_info_audio = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_AUDIO_DECODER, 11, "pcm", XINE_VERSION_CODE, &dec_info_audio, init_plugin },
+  { PLUGIN_AUDIO_DECODER, 12, "pcm", XINE_VERSION_CODE, &dec_info_audio, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

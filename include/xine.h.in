@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.37 2002/11/17 12:14:14 siggi Exp $
+ * $Id: xine.h.in,v 1.38 2002/11/20 11:57:38 mroi Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -57,8 +57,12 @@ extern "C" {
 
 typedef struct xine_s xine_t;
 typedef struct xine_stream_s xine_stream_t;
-typedef struct xine_ao_driver_s xine_ao_driver_t;
-typedef struct xine_vo_driver_s xine_vo_driver_t;
+typedef struct xine_audio_port_s xine_audio_port_t;
+typedef struct xine_video_port_s xine_video_port_t;
+
+/* convenience types: simple player UIs might want to call ports drivers */
+typedef xine_audio_port_t xine_ao_driver_t;
+typedef xine_video_port_t xine_vo_driver_t;
 
 /*
  * pre-init the xine engine
@@ -101,15 +105,15 @@ void xine_init (xine_t *self);
  * and free resources allocated by them
  */
 
-xine_ao_driver_t *xine_open_audio_driver (xine_t *self, const char *id,
-					  void *data);
+xine_audio_port_t *xine_open_audio_driver (xine_t *self, const char *id,
+					   void *data);
 
-xine_vo_driver_t *xine_open_video_driver (xine_t *self, const char *id,
-					  int visual, void *data);
+xine_video_port_t *xine_open_video_driver (xine_t *self, const char *id,
+					   int visual, void *data);
 
-void xine_close_audio_driver (xine_t *self, xine_ao_driver_t  *driver);
+void xine_close_audio_driver (xine_t *self, xine_audio_port_t  *driver);
 
-void xine_close_video_driver (xine_t *self, xine_vo_driver_t  *driver);
+void xine_close_video_driver (xine_t *self, xine_video_port_t  *driver);
 
 /*
  * create a new stream for media playback/access
@@ -124,7 +128,7 @@ void xine_close_video_driver (xine_t *self, xine_vo_driver_t  *driver);
  */
 
 xine_stream_t *xine_stream_new (xine_t *self,
-				xine_ao_driver_t *ao, xine_vo_driver_t *vo);
+				xine_audio_port_t *ao, xine_video_port_t *vo);
 
 /*
  * open a stream

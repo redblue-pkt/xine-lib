@@ -21,7 +21,7 @@
  * player. It really works too! It will output a continuous sine wave in
  * place of the data it should actually send.
  *
- * $Id: fooaudio.c,v 1.3 2002/11/12 18:40:53 miguelfreitas Exp $
+ * $Id: fooaudio.c,v 1.4 2002/11/20 11:57:46 mroi Exp $
  */
 
 #include <stdio.h>
@@ -113,6 +113,7 @@ static void fooaudio_decode_data (audio_decoder_t *this_gen, buf_element_t *buf)
   if (!this->output_open) {
     this->output_open = this->stream->audio_out->open(
       this->stream->audio_out,
+      this->stream,
 /*      this->bits_per_sample, */
       16,
       this->sample_rate,
@@ -200,7 +201,7 @@ static void fooaudio_decode_data (audio_decoder_t *this_gen, buf_element_t *buf)
         audio_buffer->num_frames = samples_to_send;
         audio_buffer->vpts = buf->pts;
         buf->pts = 0;  /* only first buffer gets the real pts */
-        this->stream->audio_out->put_buffer (this->stream->audio_out, audio_buffer);
+        this->stream->audio_out->put_buffer (this->stream->audio_out, audio_buffer, this->stream);
 
       }
     } else {
@@ -242,7 +243,7 @@ static void fooaudio_dispose (audio_decoder_t *this_gen) {
 
   /* close the audio output */
   if (this->output_open)
-    this->stream->audio_out->close (this->stream->audio_out);
+    this->stream->audio_out->close (this->stream->audio_out, this->stream);
   this->output_open = 0;
 
   /* free anything that was allocated during operation */
@@ -343,7 +344,7 @@ static decoder_info_t dec_info_audio = {
  * will export to the public. */
 plugin_info_t xine_plugin_info[] = {
   /* { type, API version, "name", version, special_info, init_function }, */
-  { PLUGIN_AUDIO_DECODER, 11, "fooaudio", XINE_VERSION_CODE, &dec_info_audio, &init_plugin },
+  { PLUGIN_AUDIO_DECODER, 12, "fooaudio", XINE_VERSION_CODE, &dec_info_audio, &init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_oss_out.c,v 1.81 2002/11/16 11:39:10 mroi Exp $
+ * $Id: audio_oss_out.c,v 1.82 2002/11/20 11:57:40 mroi Exp $
  *
  * 20-8-2001 First implementation of Audio sync and Audio driver separation.
  * Copyright (C) 2001 James Courtier-Dutton James@superbug.demon.co.uk
@@ -87,7 +87,7 @@
 #       define AFMT_AC3         0x00000400  
 #endif
 
-#define AO_OUT_OSS_IFACE_VERSION 5
+#define AO_OUT_OSS_IFACE_VERSION 6
 
 #define AUDIO_NUM_FRAGMENTS     15
 #define AUDIO_FRAGMENT_SIZE   8192
@@ -112,7 +112,7 @@
 
 typedef struct oss_driver_s {
 
-  xine_ao_driver_t ao_driver;
+  ao_driver_t      ao_driver;
   char             audio_dev[20];
   int              audio_fd;
   int              capabilities;
@@ -152,7 +152,7 @@ typedef struct {
 /*
  * open the audio device for writing to
  */
-static int ao_oss_open(xine_ao_driver_t *this_gen,
+static int ao_oss_open(ao_driver_t *this_gen,
 		       uint32_t bits, uint32_t rate, int mode) {
 
   oss_driver_t *this = (oss_driver_t *) this_gen;
@@ -333,27 +333,27 @@ static int ao_oss_open(xine_ao_driver_t *this_gen,
   return this->output_sample_rate;
 }
 
-static int ao_oss_num_channels(xine_ao_driver_t *this_gen) {
+static int ao_oss_num_channels(ao_driver_t *this_gen) {
 
   oss_driver_t *this = (oss_driver_t *) this_gen;
   return this->num_channels;
 }
 
-static int ao_oss_bytes_per_frame(xine_ao_driver_t *this_gen) {
+static int ao_oss_bytes_per_frame(ao_driver_t *this_gen) {
 
   oss_driver_t *this = (oss_driver_t *) this_gen;
 
   return this->bytes_per_frame;
 }
 
-static int ao_oss_get_gap_tolerance (xine_ao_driver_t *this_gen){
+static int ao_oss_get_gap_tolerance (ao_driver_t *this_gen){
 
   /* oss_driver_t *this = (oss_driver_t *) this_gen; */
 
   return GAP_TOLERANCE;
 }
 
-static int ao_oss_delay(xine_ao_driver_t *this_gen) {
+static int ao_oss_delay(ao_driver_t *this_gen) {
 
   count_info    info;
   oss_driver_t *this = (oss_driver_t *) this_gen;
@@ -409,7 +409,7 @@ static int ao_oss_delay(xine_ao_driver_t *this_gen) {
   * audio frames are equivalent one sample on each channel.
   * I.E. Stereo 16 bits audio frames are 4 bytes.
   */
-static int ao_oss_write(xine_ao_driver_t *this_gen,
+static int ao_oss_write(ao_driver_t *this_gen,
 			int16_t* frame_buffer, uint32_t num_frames) {
 
   oss_driver_t *this = (oss_driver_t *) this_gen;
@@ -450,7 +450,7 @@ static int ao_oss_write(xine_ao_driver_t *this_gen,
   return n;
 }
 
-static void ao_oss_close(xine_ao_driver_t *this_gen) {
+static void ao_oss_close(ao_driver_t *this_gen) {
 
   oss_driver_t *this = (oss_driver_t *) this_gen;
 
@@ -458,14 +458,14 @@ static void ao_oss_close(xine_ao_driver_t *this_gen) {
   this->audio_fd = -1;
 }
 
-static uint32_t ao_oss_get_capabilities (xine_ao_driver_t *this_gen) {
+static uint32_t ao_oss_get_capabilities (ao_driver_t *this_gen) {
 
   oss_driver_t *this = (oss_driver_t *) this_gen;
 
   return this->capabilities;
 }
 
-static void ao_oss_exit(xine_ao_driver_t *this_gen) {
+static void ao_oss_exit(ao_driver_t *this_gen) {
 
   oss_driver_t    *this   = (oss_driver_t *) this_gen;
 
@@ -475,7 +475,7 @@ static void ao_oss_exit(xine_ao_driver_t *this_gen) {
   free (this);
 }
 
-static int ao_oss_get_property (xine_ao_driver_t *this_gen, int property) {
+static int ao_oss_get_property (ao_driver_t *this_gen, int property) {
 
   oss_driver_t *this = (oss_driver_t *) this_gen;
   int           mixer_fd;
@@ -520,7 +520,7 @@ static int ao_oss_get_property (xine_ao_driver_t *this_gen, int property) {
   return 0;
 }
 
-static int ao_oss_set_property (xine_ao_driver_t *this_gen, int property, int value) {
+static int ao_oss_set_property (ao_driver_t *this_gen, int property, int value) {
 
   oss_driver_t *this = (oss_driver_t *) this_gen;
   int           mixer_fd;
@@ -604,7 +604,7 @@ static int ao_oss_set_property (xine_ao_driver_t *this_gen, int property, int va
   return ~value;
 }
 
-static int ao_oss_ctrl(xine_ao_driver_t *this_gen, int cmd, ...) {
+static int ao_oss_ctrl(ao_driver_t *this_gen, int cmd, ...) {
   oss_driver_t *this = (oss_driver_t *) this_gen;
 
   switch (cmd) {
@@ -642,7 +642,7 @@ static int ao_oss_ctrl(xine_ao_driver_t *this_gen, int cmd, ...) {
   return 0;
 }
 
-static xine_ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *data) {
+static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *data) {
 
   oss_class_t     *class = (oss_class_t *) class_gen;
   config_values_t *config = class->config;

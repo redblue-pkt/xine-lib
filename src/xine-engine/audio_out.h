@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.h,v 1.40 2002/10/29 16:02:47 mroi Exp $
+ * $Id: audio_out.h,v 1.41 2002/11/20 11:57:49 mroi Exp $
  */
 #ifndef HAVE_AUDIO_OUT_H
 #define HAVE_AUDIO_OUT_H
@@ -31,20 +31,24 @@ extern "C" {
 #if defined(XINE_COMPILE)
 #include "metronom.h"
 #include "configfile.h"
+#include "xineutils.h"
 #else
 #include <xine/metronom.h>
 #include <xine/configfile.h>
+#inlcude <xine/xineutils.h>
 #endif
 
 
-#define AUDIO_OUT_IFACE_VERSION  5
+#define AUDIO_OUT_IFACE_VERSION  6
 
 /*
  * ao_driver_s contains the driver every audio output
  * driver plugin has to implement.
  */
 
-struct xine_ao_driver_s {
+typedef struct ao_driver_s ao_driver_t;
+
+struct ao_driver_s {
 
   /* 
    *
@@ -53,7 +57,7 @@ struct xine_ao_driver_s {
    *
    * See AO_CAP_* bellow.
    */
-  uint32_t (*get_capabilities) (xine_ao_driver_t *this);
+  uint32_t (*get_capabilities) (ao_driver_t *this);
 
   /*
    * open the driver and make it ready to receive audio data 
@@ -61,26 +65,26 @@ struct xine_ao_driver_s {
    *
    * return value: 0 : failure, >0 : output sample rate
    */
-  int (*open)(xine_ao_driver_t *this, uint32_t bits, uint32_t rate, int mode);
+  int (*open)(ao_driver_t *this, uint32_t bits, uint32_t rate, int mode);
 
   /* return the number of audio channels
    */
-  int (*num_channels)(xine_ao_driver_t *self_gen);
+  int (*num_channels)(ao_driver_t *self_gen);
 
   /* return the number of bytes per frame.
    * A frame is equivalent to one sample being output on every audio channel.
    */
-  int (*bytes_per_frame)(xine_ao_driver_t *self_gen);
+  int (*bytes_per_frame)(ao_driver_t *self_gen);
 
   /* return the delay is frames measured by 
    * looking at pending samples in the audio output device
    */
-  int (*delay)(xine_ao_driver_t *self_gen);
+  int (*delay)(ao_driver_t *self_gen);
 
   /* 
    * return gap tolerance (in pts) needed for this driver
    */
-  int (*get_gap_tolerance) (xine_ao_driver_t *self_gen);
+  int (*get_gap_tolerance) (ao_driver_t *self_gen);
 
   /*
    * write audio data to output buffer 
@@ -90,20 +94,20 @@ struct xine_ao_driver_s {
    *   0 => audio samples were not yet processed, 
    *        call write_audio_data with the _same_ samples again
    */
-  int (*write)(xine_ao_driver_t *this,
+  int (*write)(ao_driver_t *this,
 	       int16_t* audio_data, uint32_t num_samples);
 
   /*
    * this is called when the decoder no longer uses the audio
    * output driver - the driver should get ready to get opened() again
    */
-  void (*close)(xine_ao_driver_t *this);
+  void (*close)(ao_driver_t *this);
 
   /*
    * shut down this audio output driver plugin and
    * free all resources allocated
    */
-  void (*exit) (xine_ao_driver_t *this);
+  void (*exit) (ao_driver_t *this);
 
   /*
    * Get, Set a property of audio driver.
@@ -113,9 +117,9 @@ struct xine_ao_driver_s {
    *
    * See AO_PROP_* below for available properties.
    */
-  int (*get_property) (xine_ao_driver_t *this, int property);
+  int (*get_property) (ao_driver_t *this, int property);
 
-  int (*set_property) (xine_ao_driver_t *this, int property, int value);
+  int (*set_property) (ao_driver_t *this, int property, int value);
 
 
   /*
@@ -123,13 +127,13 @@ struct xine_ao_driver_s {
    *
    * See AO_CTRL_* below.
    */
-  int (*control) (xine_ao_driver_t *this, int cmd, /* arg */ ...);
+  int (*control) (ao_driver_t *this, int cmd, /* arg */ ...);
 
   void *node;
 };
 
 /*
- * ao_instance_s contains the instance every audio decoder talks to
+ * ao_port_s contains the port every audio decoder talks to
  */
 typedef struct audio_fifo_s audio_fifo_t;
 
@@ -156,63 +160,63 @@ struct ao_format_s {
   int mode;
 };
 
-typedef struct ao_instance_s ao_instance_t;
-
-struct ao_instance_s {
-  uint32_t (*get_capabilities) (ao_instance_t *this); /* for constants see below */
+struct xine_audio_port_s {
+  uint32_t (*get_capabilities) (xine_audio_port_t *this); /* for constants see below */
 
   /*
    * Get/Set audio property
    *
    * See AO_PROP_* bellow
    */
-  int (*get_property) (ao_instance_t *this, int property);
-  int (*set_property) (ao_instance_t *this, int property, int value);
+  int (*get_property) (xine_audio_port_t *this, int property);
+  int (*set_property) (xine_audio_port_t *this, int property, int value);
 
   /* open audio driver for audio output 
    * return value: 0:failure, >0:output sample rate
    */
-  int (*open) (ao_instance_t *this,
+  int (*open) (xine_audio_port_t *this, xine_stream_t *stream,
 	       uint32_t bits, uint32_t rate, int mode);
 
   /*
    * get a piece of memory for audio data 
    */
 
-  audio_buffer_t * (*get_buffer) (ao_instance_t *this);
+  audio_buffer_t * (*get_buffer) (xine_audio_port_t *this);
 
   /*
    * append a buffer filled with audio data to the audio fifo
    * for output
    */
 
-  void (*put_buffer) (ao_instance_t *this, audio_buffer_t *buf);
+  void (*put_buffer) (xine_audio_port_t *this, audio_buffer_t *buf, xine_stream_t *stream);
 
   /* audio driver is no longer used by decoder => close */
-  void (*close) (ao_instance_t *self);
+  void (*close) (xine_audio_port_t *self, xine_stream_t *stream);
 
   /* called on xine exit */
-  void (*exit) (ao_instance_t *this);
+  void (*exit) (xine_audio_port_t *this);
 
   /*
    * misc control operations on the audio device.
    *
    * See AO_CTRL_* below.
    */
-  int (*control) (ao_instance_t *this, int cmd, /* arg */ ...);
+  int (*control) (xine_audio_port_t *this, int cmd, /* arg */ ...);
 
   /*
    * Flush audio_out fifo.
    */
-  void (*flush) (ao_instance_t *this);
+  void (*flush) (xine_audio_port_t *this);
 
+  /* the driver in use */
+  ao_driver_t    *driver;
+  
   /* private stuff */
-
-  xine_ao_driver_t    *driver;
   pthread_mutex_t      driver_lock;
-  metronom_t          *metronom;
-  xine_stream_t       *stream;
+  metronom_clock_t    *clock;
   xine_t              *xine;
+  xine_list_t         *streams;
+  pthread_mutex_t      streams_lock;
 
   int             audio_loop_running;
   int             audio_paused;
@@ -242,6 +246,7 @@ struct ao_instance_s {
   int             do_compress;
   double          compression_factor;   /* current compression */
   double          compression_factor_max; /* user limit on compression */
+
 };
 
 typedef struct audio_driver_class_s audio_driver_class_t;
@@ -251,7 +256,7 @@ struct audio_driver_class_s {
   /*
    * open a new instance of this plugin class
    */
-  xine_ao_driver_t* (*open_plugin) (audio_driver_class_t *this, const void *data);
+  ao_driver_t* (*open_plugin) (audio_driver_class_t *this, const void *data);
   
   /*
    * return short, human readable identifier for this plugin class
@@ -275,8 +280,7 @@ struct audio_driver_class_s {
  * this initiates the audio_out sync routines
  * found in ./src/xine-engine/audio_out.c
  */
-ao_instance_t *ao_new_instance (xine_ao_driver_t *driver, 
-				xine_stream_t *stream) ;
+xine_audio_port_t *ao_new_port (xine_t *xine, ao_driver_t *driver) ;
 
 /*
  * audio output modes + capabilities

@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.117 2002/11/18 11:48:35 mroi Exp $
+ * $Id: input_dvd.c,v 1.118 2002/11/20 11:57:42 mroi Exp $
  *
  */
 
@@ -790,9 +790,9 @@ static void flush_buffers(dvd_input_plugin_t *this) {
   if (stream->audio_out) {
     stream->audio_out->flush(stream->audio_out);
   }
-  
-  stream->metronom->adjust_clock(stream->metronom,
-    stream->metronom->get_current_time(stream->metronom) + 30 * 90000 );
+
+  this->stream->xine->clock->adjust_clock(this->stream->xine->clock,
+    this->stream->xine->clock->get_current_time(this->stream->xine->clock) + 30 * 90000 );
 }
 
 static void xine_dvd_send_button_update(dvd_input_plugin_t *this, int mode) {
@@ -1664,6 +1664,20 @@ static void *init_class (xine_t *xine, void *data) {
 
 /*
  * $Log: input_dvd.c,v $
+ * Revision 1.118  2002/11/20 11:57:42  mroi
+ * engine modifications to allow post plugin layer:
+ * * new public output interface xine_{audio,video}_port_t instead of
+ *   xine_{ao,vo}_driver_t, old names kept as aliases for compatibility
+ * * modified the engine to allow multiple streams per output
+ * * renaming of some internal structures according to public changes
+ * * moving SCR out of per-stream-metronom into a global metronom_clock_t
+ *   residing in xine_t and therefore easily available to the output layer
+ * * adapting all available plugins
+ *   (note to external projects: the compiler will help you a lot, if a plugin
+ *   compiles, it is adapted, because all changes add new parameters to some
+ *   functions)
+ * * bump up all interface versions because of xine_t and xine_stream_t changes
+ *
  * Revision 1.117  2002/11/18 11:48:35  mroi
  * DVD input should now be initially unseekable
  *
@@ -1892,6 +1906,6 @@ static void *init_class (xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_INPUT, 9, "DVD", XINE_VERSION_CODE, NULL, init_class },
+  { PLUGIN_INPUT, 10, "DVD", XINE_VERSION_CODE, NULL, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

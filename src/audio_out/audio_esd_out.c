@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_esd_out.c,v 1.21 2002/09/05 20:44:38 mroi Exp $
+ * $Id: audio_esd_out.c,v 1.22 2002/11/20 11:57:39 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -45,7 +45,7 @@
 
 typedef struct esd_driver_s {
 
-  xine_ao_driver_t      ao_driver;
+  ao_driver_t      ao_driver;
 
   int              audio_fd;
   int              capabilities;
@@ -76,7 +76,7 @@ typedef struct esd_driver_s {
 /*
  * connect to esd 
  */
-static int ao_esd_open(xine_ao_driver_t *this_gen,
+static int ao_esd_open(ao_driver_t *this_gen,
 		       uint32_t bits, uint32_t rate, int mode)
 {
   esd_driver_t *this = (esd_driver_t *) this_gen;
@@ -139,20 +139,20 @@ static int ao_esd_open(xine_ao_driver_t *this_gen,
   return this->output_sample_rate;
 }
 
-static int ao_esd_num_channels(xine_ao_driver_t *this_gen) 
+static int ao_esd_num_channels(ao_driver_t *this_gen) 
 {
   esd_driver_t *this = (esd_driver_t *) this_gen;
   return this->num_channels;
 }
 
-static int ao_esd_bytes_per_frame(xine_ao_driver_t *this_gen)
+static int ao_esd_bytes_per_frame(ao_driver_t *this_gen)
 {
   esd_driver_t *this = (esd_driver_t *) this_gen;
   return this->bytes_per_frame;
 }
 
 
-static int ao_esd_delay(xine_ao_driver_t *this_gen)
+static int ao_esd_delay(ao_driver_t *this_gen)
 {
   esd_driver_t *this = (esd_driver_t *) this_gen;
   int           bytes_left;
@@ -178,7 +178,7 @@ static int ao_esd_delay(xine_ao_driver_t *this_gen)
   return bytes_left / this->bytes_per_frame;
 }
 
-static int ao_esd_write(xine_ao_driver_t *this_gen,
+static int ao_esd_write(ao_driver_t *this_gen,
 			int16_t* frame_buffer, uint32_t num_frames)
 {
 
@@ -214,24 +214,24 @@ static int ao_esd_write(xine_ao_driver_t *this_gen,
   return 1;
 }
 
-static void ao_esd_close(xine_ao_driver_t *this_gen)
+static void ao_esd_close(ao_driver_t *this_gen)
 {
   esd_driver_t *this = (esd_driver_t *) this_gen;
   esd_close(this->audio_fd);
   this->audio_fd = -1;
 }
 
-static uint32_t ao_esd_get_capabilities (xine_ao_driver_t *this_gen) {
+static uint32_t ao_esd_get_capabilities (ao_driver_t *this_gen) {
   esd_driver_t *this = (esd_driver_t *) this_gen;
   return this->capabilities;
 }
 
-static int ao_esd_get_gap_tolerance (xine_ao_driver_t *this_gen) {
+static int ao_esd_get_gap_tolerance (ao_driver_t *this_gen) {
   /* esd_driver_t *this = (esd_driver_t *) this_gen; */
   return GAP_TOLERANCE;
 }
 
-static void ao_esd_exit(xine_ao_driver_t *this_gen)
+static void ao_esd_exit(ao_driver_t *this_gen)
 {
   esd_driver_t *this = (esd_driver_t *) this_gen;
   
@@ -243,7 +243,7 @@ static void ao_esd_exit(xine_ao_driver_t *this_gen)
   free (this);
 }
 
-static int ao_esd_get_property (xine_ao_driver_t *this_gen, int property) {
+static int ao_esd_get_property (ao_driver_t *this_gen, int property) {
   esd_driver_t      *this = (esd_driver_t *) this_gen;
   int                mixer_fd;
   esd_player_info_t *esd_pi;
@@ -281,7 +281,7 @@ static int ao_esd_get_property (xine_ao_driver_t *this_gen, int property) {
   return 0;
 }
 
-static int ao_esd_set_property (xine_ao_driver_t *this_gen, int property, int value) {
+static int ao_esd_set_property (ao_driver_t *this_gen, int property, int value) {
   esd_driver_t *this = (esd_driver_t *) this_gen;
   int           mixer_fd;
 
@@ -343,7 +343,7 @@ static int ao_esd_set_property (xine_ao_driver_t *this_gen, int property, int va
   return ~value;
 }
 
-static int ao_esd_ctrl(xine_ao_driver_t *this_gen, int cmd, ...) {
+static int ao_esd_ctrl(ao_driver_t *this_gen, int cmd, ...) {
   /* esd_driver_t *this = (esd_driver_t *) this_gen; */
 
 

@@ -66,8 +66,8 @@ void xine_demux_flush_engine (xine_stream_t *stream) {
     stream->audio_out->flush(stream->audio_out);
   }
   
-  stream->metronom->adjust_clock(stream->metronom,
-                               stream->metronom->get_current_time(stream->metronom) + 30 * 90000 );
+  stream->xine->clock->adjust_clock(stream->xine->clock,
+    stream->xine->clock->get_current_time(stream->xine->clock) + 30 * 90000 );
 }
 
 

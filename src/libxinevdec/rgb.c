@@ -21,7 +21,7 @@
  * Actually, this decoder just converts a raw RGB image to a YUY2 map
  * suitable for display under xine.
  * 
- * $Id: rgb.c,v 1.11 2002/11/12 18:40:54 miguelfreitas Exp $
+ * $Id: rgb.c,v 1.12 2002/11/20 11:57:47 mroi Exp $
  */
 
 #include <stdio.h>
@@ -99,7 +99,7 @@ static void rgb_decode_data (video_decoder_t *this_gen,
   }
 
   if (buf->decoder_flags & BUF_FLAG_HEADER) { /* need to initialize */
-    this->stream->video_out->open (this->stream->video_out);
+    this->stream->video_out->open (this->stream->video_out, this->stream);
 
     if(this->buf)
       free(this->buf);
@@ -119,7 +119,7 @@ static void rgb_decode_data (video_decoder_t *this_gen,
 
     init_yuv_planes(&this->yuv_planes, this->width, this->height);
 
-    this->stream->video_out->open (this->stream->video_out);
+    this->stream->video_out->open (this->stream->video_out, this->stream);
     this->decoder_ok = 1;
 
     /* load the stream/meta info */
@@ -213,7 +213,7 @@ static void rgb_decode_data (video_decoder_t *this_gen,
 	}
       }
 
-      img->draw(img);
+      img->draw(img, this->stream);
       img->free(img);
 
       this->size = 0;
@@ -253,7 +253,7 @@ static void rgb_dispose (video_decoder_t *this_gen) {
 
   if (this->decoder_ok) {
     this->decoder_ok = 0;
-    this->stream->video_out->close(this->stream->video_out);
+    this->stream->video_out->close(this->stream->video_out, this->stream);
   }
 
   free (this_gen);
@@ -323,6 +323,6 @@ static decoder_info_t dec_info_video = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_VIDEO_DECODER, 12, "rgb", XINE_VERSION_CODE, &dec_info_video, init_plugin },
+  { PLUGIN_VIDEO_DECODER, 13, "rgb", XINE_VERSION_CODE, &dec_info_video, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

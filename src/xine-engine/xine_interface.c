@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_interface.c,v 1.29 2002/11/11 04:57:18 tmmm Exp $
+ * $Id: xine_interface.c,v 1.30 2002/11/20 11:57:50 mroi Exp $
  *
  * convenience/abstraction layer, functions to implement
  * libxine's public interface
@@ -397,7 +397,7 @@ int  xine_get_param (xine_stream_t *stream, int param) {
 
   switch (param) {
   case XINE_PARAM_SPEED:
-    return stream->speed;
+    return stream->xine->clock->speed;
 
   case XINE_PARAM_AV_OFFSET:
     return stream->metronom->get_option (stream->metronom, METRONOM_AV_OFFSET);

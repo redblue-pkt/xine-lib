@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.83 2002/10/24 13:52:56 jcdutton Exp $
+ * $Id: audio_alsa_out.c,v 1.84 2002/11/20 11:57:38 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -65,7 +65,7 @@
 #define LOG_DEBUG
 */
 
-#define AO_OUT_ALSA_IFACE_VERSION 5
+#define AO_OUT_ALSA_IFACE_VERSION 6
 
 #define BUFFER_TIME               1000*1000
 #define PERIOD_TIME               100*1000
@@ -83,7 +83,7 @@ typedef struct {
 
 typedef struct alsa_driver_s {
 
-  xine_ao_driver_t   ao_driver;
+  ao_driver_t   ao_driver;
 
   alsa_class_t *class;
 
@@ -166,7 +166,7 @@ static long ao_alsa_get_volume_from_percent(int val, long min, long max)
 /*
  * open the audio device for writing to
  */
-static int ao_alsa_open(xine_ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int mode)
+static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int mode)
 {
   alsa_driver_t        *this = (alsa_driver_t *) this_gen;
   config_values_t *config = this->class->xine->config;
@@ -412,7 +412,7 @@ __close:
 /*
  * Return the number of audio channels
  */
-static int ao_alsa_num_channels(xine_ao_driver_t *this_gen)
+static int ao_alsa_num_channels(ao_driver_t *this_gen)
 {
   alsa_driver_t *this = (alsa_driver_t *) this_gen;
   return this->num_channels;
@@ -421,7 +421,7 @@ static int ao_alsa_num_channels(xine_ao_driver_t *this_gen)
 /*
  * Return the number of bytes per frame
  */
-static int ao_alsa_bytes_per_frame(xine_ao_driver_t *this_gen)
+static int ao_alsa_bytes_per_frame(ao_driver_t *this_gen)
 {
   alsa_driver_t *this = (alsa_driver_t *) this_gen;
   return this->bytes_per_frame;
@@ -430,7 +430,7 @@ static int ao_alsa_bytes_per_frame(xine_ao_driver_t *this_gen)
 /*
  * Return gap tolerance (in pts)
  */
-static int ao_alsa_get_gap_tolerance (xine_ao_driver_t *this_gen)
+static int ao_alsa_get_gap_tolerance (ao_driver_t *this_gen)
 {
   return GAP_TOLERANCE;
 }
@@ -441,7 +441,7 @@ static int ao_alsa_get_gap_tolerance (xine_ao_driver_t *this_gen)
 /* FIXME: delay returns invalid data if status is not RUNNING. 
  * e.g When there is an XRUN or we are in PREPARED mode.
  */
-static int ao_alsa_delay (xine_ao_driver_t *this_gen) 
+static int ao_alsa_delay (ao_driver_t *this_gen) 
 {
   snd_pcm_state_t    state;
   snd_pcm_sframes_t delay = 0;
@@ -494,7 +494,7 @@ static void xrun(alsa_driver_t *this)
 /*
  * Write audio data to output buffer (blocking using snd_pcm_wait)
  */
-static int ao_alsa_write(xine_ao_driver_t *this_gen,int16_t *data, uint32_t count)
+static int ao_alsa_write(ao_driver_t *this_gen,int16_t *data, uint32_t count)
 {
   snd_pcm_sframes_t result;
   snd_pcm_status_t *pcm_stat;
@@ -586,7 +586,7 @@ static int ao_alsa_write(xine_ao_driver_t *this_gen,int16_t *data, uint32_t coun
 /*
  * This is called when the decoder no longer uses the audio
  */
-static void ao_alsa_close(xine_ao_driver_t *this_gen)
+static void ao_alsa_close(ao_driver_t *this_gen)
 {
   alsa_driver_t *this = (alsa_driver_t *) this_gen;
   if(this->audio_fd) snd_pcm_close(this->audio_fd);
@@ -597,7 +597,7 @@ static void ao_alsa_close(xine_ao_driver_t *this_gen)
 /*
  * Find out what output modes + capatilities are supported
  */
-static uint32_t ao_alsa_get_capabilities (xine_ao_driver_t *this_gen) {
+static uint32_t ao_alsa_get_capabilities (ao_driver_t *this_gen) {
   alsa_driver_t *this = (alsa_driver_t *) this_gen;
   return this->capabilities;
 }
@@ -605,7 +605,7 @@ static uint32_t ao_alsa_get_capabilities (xine_ao_driver_t *this_gen) {
 /*
  * Shut down audio output driver plugin and free all resources allocated
  */
-static void ao_alsa_exit(xine_ao_driver_t *this_gen)
+static void ao_alsa_exit(ao_driver_t *this_gen)
 {
   alsa_driver_t *this = (alsa_driver_t *) this_gen;
   void          *p;
@@ -632,7 +632,7 @@ static void ao_alsa_exit(xine_ao_driver_t *this_gen)
 /*
  * Get a property of audio driver
  */
-static int ao_alsa_get_property (xine_ao_driver_t *this_gen, int property) {
+static int ao_alsa_get_property (ao_driver_t *this_gen, int property) {
   alsa_driver_t *this = (alsa_driver_t *) this_gen;
   int err;
 
@@ -676,7 +676,7 @@ static int ao_alsa_get_property (xine_ao_driver_t *this_gen, int property) {
 /*
  * Set a property of audio driver
  */
-static int ao_alsa_set_property (xine_ao_driver_t *this_gen, int property, int value) {
+static int ao_alsa_set_property (ao_driver_t *this_gen, int property, int value) {
   alsa_driver_t *this = (alsa_driver_t *) this_gen;
   int err;
 
@@ -747,7 +747,7 @@ static int ao_alsa_set_property (xine_ao_driver_t *this_gen, int property, int v
 /*
  * Misc control operations
  */
-static int ao_alsa_ctrl(xine_ao_driver_t *this_gen, int cmd, ...) {
+static int ao_alsa_ctrl(ao_driver_t *this_gen, int cmd, ...) {
   alsa_driver_t *this = (alsa_driver_t *) this_gen;
   int result;
 
@@ -805,7 +805,7 @@ static int ao_alsa_ctrl(xine_ao_driver_t *this_gen, int cmd, ...) {
 /*
  * Initialize mixer
  */
-static void ao_alsa_mixer_init(xine_ao_driver_t *this_gen) {
+static void ao_alsa_mixer_init(ao_driver_t *this_gen) {
   alsa_driver_t        *this = (alsa_driver_t *) this_gen;
   config_values_t      *config = this->class->xine->config;
   char                 *pcm_device;
@@ -994,7 +994,7 @@ static void ao_alsa_mixer_init(xine_ao_driver_t *this_gen) {
 /*
  * Initialize plugin
  */
-static xine_ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *data) {
+static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *data) {
 
   alsa_class_t        *class = (alsa_class_t *) class_gen;
   config_values_t     *config = class->xine->config;

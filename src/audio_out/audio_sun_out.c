@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_sun_out.c,v 1.26 2002/11/02 14:39:51 jkeil Exp $
+ * $Id: audio_sun_out.c,v 1.27 2002/11/20 11:57:40 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -59,7 +59,7 @@
 #define	AUDIO_PRECISION_16	16
 #endif
 
-#define AO_SUN_IFACE_VERSION 5
+#define AO_SUN_IFACE_VERSION 6
 
 #define GAP_TOLERANCE         5000
 #define GAP_NONRT_TOLERANCE   AO_MAX_GAP
@@ -75,7 +75,7 @@ typedef struct {
 
 typedef struct sun_driver_s {
 
-  xine_ao_driver_t ao_driver;
+  ao_driver_t    ao_driver;
 
   char		*audio_dev;
   int            audio_fd;
@@ -399,7 +399,7 @@ find_highest_samplerate(int dev)
  *	other 8-bit formats (uLaw, aLaw, etc) are currently not supported
  *	by xine
  */
-static int ao_sun_open(xine_ao_driver_t *this_gen,
+static int ao_sun_open(ao_driver_t *this_gen,
 		       uint32_t bits, uint32_t rate, int mode)
 {
   sun_driver_t *this = (sun_driver_t *) this_gen;
@@ -541,19 +541,19 @@ static int ao_sun_open(xine_ao_driver_t *this_gen,
   return this->output_sample_rate;
 }
 
-static int ao_sun_num_channels(xine_ao_driver_t *this_gen) 
+static int ao_sun_num_channels(ao_driver_t *this_gen) 
 {
   sun_driver_t *this = (sun_driver_t *) this_gen;
   return this->num_channels;
 }
 
-static int ao_sun_bytes_per_frame(xine_ao_driver_t *this_gen)
+static int ao_sun_bytes_per_frame(ao_driver_t *this_gen)
 {
   sun_driver_t *this = (sun_driver_t *) this_gen;
   return this->bytes_per_frame;
 }
 
-static int ao_sun_delay(xine_ao_driver_t *this_gen)
+static int ao_sun_delay(ao_driver_t *this_gen)
 {
   sun_driver_t *this = (sun_driver_t *) this_gen;
   audio_info_t info;
@@ -606,7 +606,7 @@ static int ao_sun_delay(xine_ao_driver_t *this_gen)
   return NOT_REAL_TIME;
 }
 
-static int ao_sun_get_gap_tolerance (xine_ao_driver_t *this_gen)
+static int ao_sun_get_gap_tolerance (ao_driver_t *this_gen)
 {
   sun_driver_t *this = (sun_driver_t *) this_gen;
 
@@ -688,7 +688,7 @@ static void sun_audio_flush(sun_driver_t *this)
   * audio frames are equivalent one sample on each channel.
   * I.E. Stereo 16 bits audio frames are 4 bytes.
   */
-static int ao_sun_write(xine_ao_driver_t *this_gen,
+static int ao_sun_write(ao_driver_t *this_gen,
 			int16_t* data, uint32_t num_frames)
 {
   uint8_t *frame_buffer=(uint8_t *)data;
@@ -733,7 +733,7 @@ static int ao_sun_write(xine_ao_driver_t *this_gen,
   return num_written;
 }
 
-static void ao_sun_close(xine_ao_driver_t *this_gen)
+static void ao_sun_close(ao_driver_t *this_gen)
 {
   sun_driver_t *this = (sun_driver_t *) this_gen;
   sun_audio_flush(this);
@@ -741,12 +741,12 @@ static void ao_sun_close(xine_ao_driver_t *this_gen)
   this->audio_fd = -1;
 }
 
-static uint32_t ao_sun_get_capabilities (xine_ao_driver_t *this_gen) {
+static uint32_t ao_sun_get_capabilities (ao_driver_t *this_gen) {
   sun_driver_t *this = (sun_driver_t *) this_gen;
   return this->capabilities;
 }
 
-static void ao_sun_exit(xine_ao_driver_t *this_gen)
+static void ao_sun_exit(ao_driver_t *this_gen)
 {
   sun_driver_t *this = (sun_driver_t *) this_gen;
   
@@ -760,7 +760,7 @@ static void ao_sun_exit(xine_ao_driver_t *this_gen)
  * Get a property of audio driver.
  * return 1 in success, 0 on failure. (and the property value?)
  */
-static int ao_sun_get_property (xine_ao_driver_t *this_gen, int property) {
+static int ao_sun_get_property (ao_driver_t *this_gen, int property) {
   sun_driver_t *this = (sun_driver_t *) this_gen;
   audio_info_t	info;
 
@@ -785,7 +785,7 @@ static int ao_sun_get_property (xine_ao_driver_t *this_gen, int property) {
  * Set a property of audio driver.
  * return value on success, ~value on failure
  */
-static int ao_sun_set_property (xine_ao_driver_t *this_gen, int property, int value) {
+static int ao_sun_set_property (ao_driver_t *this_gen, int property, int value) {
   sun_driver_t *this = (sun_driver_t *) this_gen;
   audio_info_t	info;
 
@@ -810,7 +810,7 @@ static int ao_sun_set_property (xine_ao_driver_t *this_gen, int property, int va
   return ~value;
 }
 
-static int ao_sun_ctrl(xine_ao_driver_t *this_gen, int cmd, ...) {
+static int ao_sun_ctrl(ao_driver_t *this_gen, int cmd, ...) {
   sun_driver_t *this = (sun_driver_t *) this_gen;
   audio_info_t	info;
 
@@ -859,7 +859,7 @@ static int ao_sun_ctrl(xine_ao_driver_t *this_gen, int cmd, ...) {
   return 0;
 }
 
-static xine_ao_driver_t *ao_sun_open_plugin (audio_driver_class_t *class_gen, const void *data) {
+static ao_driver_t *ao_sun_open_plugin (audio_driver_class_t *class_gen, const void *data) {
 
   sun_class_t         *class = (sun_class_t *) class_gen;
   config_values_t     *config = class->config;

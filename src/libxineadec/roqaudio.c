@@ -21,7 +21,7 @@
  * For more information regarding the RoQ file format, visit:
  *   http://www.csse.monash.edu.au/~timf/
  *
- * $Id: roqaudio.c,v 1.12 2002/11/12 18:40:53 miguelfreitas Exp $
+ * $Id: roqaudio.c,v 1.13 2002/11/20 11:57:46 mroi Exp $
  *
  */
 
@@ -92,7 +92,7 @@ static void roqaudio_decode_data (audio_decoder_t *this_gen, buf_element_t *buf)
 
   if (!this->output_open) {
     this->output_open = this->stream->audio_out->open(this->stream->audio_out,
-      RoQ_AUDIO_BITS_PER_SAMPLE, RoQ_AUDIO_SAMPLE_RATE, 
+      this->stream, RoQ_AUDIO_BITS_PER_SAMPLE, RoQ_AUDIO_SAMPLE_RATE, 
       (this->output_channels == 2) ? AO_CAP_MODE_STEREO : AO_CAP_MODE_MONO);
   }
 
@@ -141,7 +141,7 @@ static void roqaudio_decode_data (audio_decoder_t *this_gen, buf_element_t *buf)
     audio_buffer->num_frames = 
       (buf->size - 8) / this->output_channels;
 
-    this->stream->audio_out->put_buffer (this->stream->audio_out, audio_buffer);
+    this->stream->audio_out->put_buffer (this->stream->audio_out, audio_buffer, this->stream);
 
     this->size = 0;
   }
@@ -162,7 +162,7 @@ static void roqaudio_dispose (audio_decoder_t *this_gen) {
   roqaudio_decoder_t *this = (roqaudio_decoder_t *) this_gen;
 
   if (this->output_open)
-    this->stream->audio_out->close (this->stream->audio_out);
+    this->stream->audio_out->close (this->stream->audio_out, this->stream);
   this->output_open = 0;
 
   if (this->buf)
@@ -238,6 +238,6 @@ static decoder_info_t dec_info_audio = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_AUDIO_DECODER, 11, "roqaudio", XINE_VERSION_CODE, &dec_info_audio, init_plugin },
+  { PLUGIN_AUDIO_DECODER, 12, "roqaudio", XINE_VERSION_CODE, &dec_info_audio, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3.c,v 1.60 2002/10/29 15:19:44 mroi Exp $
+ * $Id: video_out_dxr3.c,v 1.61 2002/11/20 11:57:42 mroi Exp $
  */
  
 /* mpeg1 encoding video out plugin for the dxr3.  
@@ -75,39 +75,39 @@ static vo_info_t   vo_info_dxr3 = {
 
 plugin_info_t      xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_VIDEO_OUT, 10, "dxr3", XINE_VERSION_CODE, &vo_info_dxr3, &dxr3_vo_init_plugin },
+  { PLUGIN_VIDEO_OUT, 11, "dxr3", XINE_VERSION_CODE, &vo_info_dxr3, &dxr3_vo_init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
 
 
 /* plugin class functions */
-static xine_vo_driver_t *dxr3_vo_open_plugin(video_driver_class_t *class_gen, const void *visual);
-static char             *dxr3_vo_get_identifier(video_driver_class_t *class_gen);
-static char             *dxr3_vo_get_description(video_driver_class_t *class_gen);
-static void              dxr3_vo_class_dispose(video_driver_class_t *class_gen);
+static vo_driver_t *dxr3_vo_open_plugin(video_driver_class_t *class_gen, const void *visual);
+static char        *dxr3_vo_get_identifier(video_driver_class_t *class_gen);
+static char        *dxr3_vo_get_description(video_driver_class_t *class_gen);
+static void         dxr3_vo_class_dispose(video_driver_class_t *class_gen);
 
 /* plugin instance functions */
-static uint32_t    dxr3_get_capabilities(xine_vo_driver_t *this_gen);
-static vo_frame_t *dxr3_alloc_frame(xine_vo_driver_t *this_gen);
+static uint32_t    dxr3_get_capabilities(vo_driver_t *this_gen);
+static vo_frame_t *dxr3_alloc_frame(vo_driver_t *this_gen);
 static void        dxr3_frame_copy(vo_frame_t *frame_gen, uint8_t **src);
 static void        dxr3_frame_field(vo_frame_t *vo_img, int which_field);
 static void        dxr3_frame_dispose(vo_frame_t *frame_gen);
-static void        dxr3_update_frame_format(xine_vo_driver_t *this_gen, vo_frame_t *frame_gen,
+static void        dxr3_update_frame_format(vo_driver_t *this_gen, vo_frame_t *frame_gen,
                                             uint32_t width, uint32_t height,
                                             int ratio_code, int format, int flags);
-static void        dxr3_overlay_begin(xine_vo_driver_t *this_gen, vo_frame_t *frame_gen, int changed);
-static void        dxr3_overlay_blend(xine_vo_driver_t *this_gen, vo_frame_t *frame_gen,
+static void        dxr3_overlay_begin(vo_driver_t *this_gen, vo_frame_t *frame_gen, int changed);
+static void        dxr3_overlay_blend(vo_driver_t *this_gen, vo_frame_t *frame_gen,
                                       vo_overlay_t *overlay);
-static void        dxr3_overlay_end(xine_vo_driver_t *this_gen, vo_frame_t *frame_gen);
-static void        dxr3_display_frame(xine_vo_driver_t *this_gen, vo_frame_t *frame_gen);
-static int         dxr3_redraw_needed(xine_vo_driver_t *this_gen);
-static int         dxr3_get_property(xine_vo_driver_t *this_gen, int property);
-static int         dxr3_set_property(xine_vo_driver_t *this_gen, int property, int value);
-static void        dxr3_get_property_min_max(xine_vo_driver_t *this_gen, int property,
+static void        dxr3_overlay_end(vo_driver_t *this_gen, vo_frame_t *frame_gen);
+static void        dxr3_display_frame(vo_driver_t *this_gen, vo_frame_t *frame_gen);
+static int         dxr3_redraw_needed(vo_driver_t *this_gen);
+static int         dxr3_get_property(vo_driver_t *this_gen, int property);
+static int         dxr3_set_property(vo_driver_t *this_gen, int property, int value);
+static void        dxr3_get_property_min_max(vo_driver_t *this_gen, int property,
                                              int *min, int *max);
-static int         dxr3_gui_data_exchange(xine_vo_driver_t *this_gen,
+static int         dxr3_gui_data_exchange(vo_driver_t *this_gen,
                                           int data_type, void *data);
-static void        dxr3_dispose(xine_vo_driver_t *this_gen);
+static void        dxr3_dispose(vo_driver_t *this_gen);
 
 /* overlay helper functions only called once during plugin init */
 static void        gather_screen_vars(dxr3_driver_t *this, const x11_visual_t *vis);
@@ -177,7 +177,7 @@ static void dxr3_vo_class_dispose(video_driver_class_t *class_gen)
 }
 
 
-static xine_vo_driver_t *dxr3_vo_open_plugin(video_driver_class_t *class_gen, const void *visual_gen)
+static vo_driver_t *dxr3_vo_open_plugin(video_driver_class_t *class_gen, const void *visual_gen)
 {
   dxr3_driver_t *this;
   dxr3_driver_class_t *class = (dxr3_driver_class_t *)class_gen;
@@ -431,13 +431,13 @@ static xine_vo_driver_t *dxr3_vo_open_plugin(video_driver_class_t *class_gen, co
 }
 
 
-static uint32_t dxr3_get_capabilities(xine_vo_driver_t *this_gen)
+static uint32_t dxr3_get_capabilities(vo_driver_t *this_gen)
 {
   return VO_CAP_YV12 | VO_CAP_YUY2 |
     VO_CAP_SATURATION | VO_CAP_BRIGHTNESS | VO_CAP_CONTRAST;
 }
 
-static vo_frame_t *dxr3_alloc_frame(xine_vo_driver_t *this_gen)
+static vo_frame_t *dxr3_alloc_frame(vo_driver_t *this_gen)
 {
   dxr3_frame_t *frame;
   dxr3_driver_t *this = (dxr3_driver_t *)this_gen;
@@ -481,7 +481,7 @@ static void dxr3_frame_dispose(vo_frame_t *frame_gen)
   free(frame);
 }
 
-static void dxr3_update_frame_format(xine_vo_driver_t *this_gen, vo_frame_t *frame_gen,
+static void dxr3_update_frame_format(vo_driver_t *this_gen, vo_frame_t *frame_gen,
   uint32_t width, uint32_t height, int ratio_code, int format, int flags)
 {
   dxr3_driver_t *this = (dxr3_driver_t *)this_gen; 
@@ -669,7 +669,7 @@ static void dxr3_update_frame_format(xine_vo_driver_t *this_gen, vo_frame_t *fra
   frame->swap_fields     = this->swap_fields;
 }
 
-static void dxr3_overlay_begin(xine_vo_driver_t *this_gen, vo_frame_t *frame_gen, int changed)
+static void dxr3_overlay_begin(vo_driver_t *this_gen, vo_frame_t *frame_gen, int changed)
 {
   dxr3_driver_t *this = (dxr3_driver_t *)this_gen;
   
@@ -687,7 +687,7 @@ static void dxr3_overlay_begin(xine_vo_driver_t *this_gen, vo_frame_t *frame_gen
   this->spu_enc->overlay = NULL;
 }
 
-static void dxr3_overlay_blend(xine_vo_driver_t *this_gen, vo_frame_t *frame_gen,
+static void dxr3_overlay_blend(vo_driver_t *this_gen, vo_frame_t *frame_gen,
   vo_overlay_t *overlay)
 {
   if (frame_gen->format != XINE_IMGFMT_DXR3) {
@@ -709,7 +709,7 @@ static void dxr3_overlay_blend(xine_vo_driver_t *this_gen, vo_frame_t *frame_gen
   }
 }
 
-static void dxr3_overlay_end(xine_vo_driver_t *this_gen, vo_frame_t *frame_gen)
+static void dxr3_overlay_end(vo_driver_t *this_gen, vo_frame_t *frame_gen)
 {
   dxr3_driver_t *this = (dxr3_driver_t *)this_gen;
   em8300_button_t btn;
@@ -784,7 +784,7 @@ static void dxr3_overlay_end(xine_vo_driver_t *this_gen, vo_frame_t *frame_gen)
   pthread_mutex_unlock(&this->spu_device_lock);
 }
 
-static void dxr3_display_frame(xine_vo_driver_t *this_gen, vo_frame_t *frame_gen)
+static void dxr3_display_frame(vo_driver_t *this_gen, vo_frame_t *frame_gen)
 {
   dxr3_driver_t *this = (dxr3_driver_t *)this_gen;
   dxr3_frame_t *frame = (dxr3_frame_t *)frame_gen;
@@ -853,7 +853,7 @@ static void dxr3_display_frame(xine_vo_driver_t *this_gen, vo_frame_t *frame_gen
   }
 }
 
-static int dxr3_redraw_needed(xine_vo_driver_t *this_gen)
+static int dxr3_redraw_needed(vo_driver_t *this_gen)
 {
   dxr3_driver_t *this = (dxr3_driver_t *)this_gen;
   
@@ -863,7 +863,7 @@ static int dxr3_redraw_needed(xine_vo_driver_t *this_gen)
   return 0;
 }
 
-static int dxr3_get_property(xine_vo_driver_t *this_gen, int property)
+static int dxr3_get_property(vo_driver_t *this_gen, int property)
 {
   dxr3_driver_t *this = (dxr3_driver_t *)this_gen;
 
@@ -887,7 +887,7 @@ static int dxr3_get_property(xine_vo_driver_t *this_gen, int property)
   return 0;
 }
 
-static int dxr3_set_property(xine_vo_driver_t *this_gen, int property, int value)
+static int dxr3_set_property(vo_driver_t *this_gen, int property, int value)
 {
   dxr3_driver_t *this = (dxr3_driver_t *)this_gen;
   int val, bcs_changed = 0;
@@ -985,7 +985,7 @@ static int dxr3_set_property(xine_vo_driver_t *this_gen, int property, int value
   return value;
 }
 
-static void dxr3_get_property_min_max(xine_vo_driver_t *this_gen, int property,
+static void dxr3_get_property_min_max(vo_driver_t *this_gen, int property,
   int *min, int *max)
 {
   switch (property) {
@@ -1001,7 +1001,7 @@ static void dxr3_get_property_min_max(xine_vo_driver_t *this_gen, int property,
   }
 }
 
-static int dxr3_gui_data_exchange(xine_vo_driver_t *this_gen, int data_type, void *data)
+static int dxr3_gui_data_exchange(vo_driver_t *this_gen, int data_type, void *data)
 {
 #ifdef HAVE_X11
   dxr3_driver_t *this = (dxr3_driver_t *)this_gen;
@@ -1059,7 +1059,7 @@ static int dxr3_gui_data_exchange(xine_vo_driver_t *this_gen, int data_type, voi
   return 0;
 }
 
-static void dxr3_dispose(xine_vo_driver_t *this_gen)
+static void dxr3_dispose(vo_driver_t *this_gen)
 {
   dxr3_driver_t *this = (dxr3_driver_t *)this_gen;
   int val = EM8300_OVERLAY_MODE_OFF;

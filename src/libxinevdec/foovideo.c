@@ -23,7 +23,7 @@
  * value from the last frame. This creates a slowly rotating solid color
  * frame when the frames are played in succession.
  *
- * $Id: foovideo.c,v 1.10 2002/11/12 18:40:54 miguelfreitas Exp $
+ * $Id: foovideo.c,v 1.11 2002/11/20 11:57:46 mroi Exp $
  */
 
 #include <stdio.h>
@@ -92,7 +92,7 @@ static void foovideo_decode_data (video_decoder_t *this_gen,
     return;
 
   if (buf->decoder_flags & BUF_FLAG_HEADER) { /* need to initialize */
-    this->stream->video_out->open (this->stream->video_out);
+    this->stream->video_out->open (this->stream->video_out, this->stream);
 
     if(this->buf)
       free(this->buf);
@@ -115,7 +115,6 @@ static void foovideo_decode_data (video_decoder_t *this_gen,
     /* do anything else relating to initializing this decoder */
     this->current_yuv_byte = 0;
 
-    this->stream->video_out->open (this->stream->video_out);
     this->decoder_ok = 1;
 
     return;
@@ -160,7 +159,7 @@ static void foovideo_decode_data (video_decoder_t *this_gen,
         }
       }
 
-      img->draw(img);
+      img->draw(img, this->stream);
       img->free(img);
 
       this->size = 0;
@@ -183,6 +182,9 @@ static void foovideo_reset (video_decoder_t *this_gen) {
   this->size = 0;
 }
 
+/*
+ * The decoder should forget any stored pts values here.
+ */
 static void foovideo_discontinuity (video_decoder_t *this_gen) {
   foovideo_decoder_t *this = (foovideo_decoder_t *) this_gen;
 
@@ -202,7 +204,7 @@ static void foovideo_dispose (video_decoder_t *this_gen) {
 
   if (this->decoder_ok) {
     this->decoder_ok = 0;
-    this->stream->video_out->close(this->stream->video_out);
+    this->stream->video_out->close(this->stream->video_out, this->stream);
   }
 
   free (this_gen);
@@ -306,6 +308,6 @@ static decoder_info_t dec_info_video = {
  */
 plugin_info_t xine_plugin_info[] = {
   /* { type, API, "name", version, special_info, init_function } */
-  { PLUGIN_VIDEO_DECODER, 12, "foovideo", XINE_VERSION_CODE, &dec_info_video, init_plugin },
+  { PLUGIN_VIDEO_DECODER, 13, "foovideo", XINE_VERSION_CODE, &dec_info_video, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_fb.c,v 1.17 2002/09/05 20:44:42 mroi Exp $
+ * $Id: video_out_fb.c,v 1.18 2002/11/20 11:57:48 mroi Exp $
  * 
  * video_out_fb.c, frame buffer xine driver by Miguel Freitas
  *
@@ -91,7 +91,7 @@ typedef struct fb_frame_s {
 
 typedef struct fb_driver_s {
 
-  xine_vo_driver_t      vo_driver;
+  vo_driver_t       vo_driver;
 
   config_values_t   *config;
 
@@ -121,7 +121,7 @@ typedef struct fb_driver_s {
  * and now, the driver functions
  */
 
-static uint32_t fb_get_capabilities (xine_vo_driver_t *this_gen) {
+static uint32_t fb_get_capabilities (vo_driver_t *this_gen) {
   return VO_CAP_COPIES_IMAGE | VO_CAP_YV12 | VO_CAP_YUY2 | VO_CAP_BRIGHTNESS;
 }
 
@@ -172,7 +172,7 @@ static void fb_frame_dispose (vo_frame_t *vo_img) {
 }
 
 
-static vo_frame_t *fb_alloc_frame (xine_vo_driver_t *this_gen) {
+static vo_frame_t *fb_alloc_frame (vo_driver_t *this_gen) {
   fb_driver_t  *this = (fb_driver_t *) this_gen;
   fb_frame_t   *frame ;
 
@@ -227,7 +227,7 @@ static void fb_compute_rgb_size (fb_driver_t *this, fb_frame_t *frame) {
 #endif
 }
 
-static void fb_update_frame_format (xine_vo_driver_t *this_gen,
+static void fb_update_frame_format (vo_driver_t *this_gen,
 				      vo_frame_t *frame_gen,
 				      uint32_t width, uint32_t height,
 				      int ratio_code, int format, int flags) {
@@ -388,7 +388,7 @@ static void fb_overlay_clut_yuv2rgb(fb_driver_t  *this, vo_overlay_t *overlay,
   }
 }
 
-static void fb_overlay_blend (xine_vo_driver_t *this_gen, vo_frame_t *frame_gen, vo_overlay_t *overlay) {
+static void fb_overlay_blend (vo_driver_t *this_gen, vo_frame_t *frame_gen, vo_overlay_t *overlay) {
   fb_driver_t  *this = (fb_driver_t *) this_gen;
   fb_frame_t   *frame = (fb_frame_t *) frame_gen;
 
@@ -420,11 +420,11 @@ static void fb_overlay_blend (xine_vo_driver_t *this_gen, vo_frame_t *frame_gen,
    }
 }
 
-static int fb_redraw_needed (xine_vo_driver_t *this_gen) {
+static int fb_redraw_needed (vo_driver_t *this_gen) {
   return 0;
 }
 
-static void fb_display_frame (xine_vo_driver_t *this_gen, vo_frame_t *frame_gen) {
+static void fb_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
 
   fb_driver_t  *this = (fb_driver_t *) this_gen;
   fb_frame_t   *frame = (fb_frame_t *) frame_gen;
@@ -458,7 +458,7 @@ static void fb_display_frame (xine_vo_driver_t *this_gen, vo_frame_t *frame_gen)
   frame->vo_frame.displayed (&frame->vo_frame);
 }
 
-static int fb_get_property (xine_vo_driver_t *this_gen, int property) {
+static int fb_get_property (vo_driver_t *this_gen, int property) {
 
   fb_driver_t *this = (fb_driver_t *) this_gen;
 
@@ -497,7 +497,7 @@ static int fb_set_property (vo_driver_t *this_gen,
   return value;
 }
 
-static void fb_get_property_min_max (xine_vo_driver_t *this_gen,
+static void fb_get_property_min_max (vo_driver_t *this_gen,
 				     int property, int *min, int *max) {
 
   /* fb_driver_t *this = (fb_driver_t *) this_gen;  */
@@ -518,14 +518,14 @@ static int is_fullscreen_size (fb_driver_t *this, int w, int h)
     return 0;
 }
 
-static int fb_gui_data_exchange (xine_vo_driver_t *this_gen, 
+static int fb_gui_data_exchange (vo_driver_t *this_gen, 
 				 int data_type, void *data) {
 
   return 0;
 }
 
 
-static void fb_exit (xine_vo_driver_t *this_gen) {
+static void fb_exit (vo_driver_t *this_gen) {
 
   fb_driver_t *this = (fb_driver_t *) this_gen;
   

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_overlay.c,v 1.26 2002/11/19 00:45:42 miguelfreitas Exp $
+ * $Id: video_overlay.c,v 1.27 2002/11/20 11:57:49 mroi Exp $
  *
  */
 
@@ -484,7 +484,7 @@ static int video_overlay_event( video_overlay_t *this, int64_t vpts ) {
  * must call output->overlay_blend for each active overlay.
  */
 static void video_overlay_multiple_overlay_blend (video_overlay_instance_t *this_gen, int64_t vpts, 
-						  xine_vo_driver_t *output, vo_frame_t *vo_img, int enabled) {
+						  vo_driver_t *output, vo_frame_t *vo_img, int enabled) {
   video_overlay_t *this = (video_overlay_t *) this_gen;
   int i;
   int32_t  handle;

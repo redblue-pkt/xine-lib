@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: svq1.c,v 1.13 2002/11/12 18:40:54 miguelfreitas Exp $
+ * $Id: svq1.c,v 1.14 2002/11/20 11:57:47 mroi Exp $
  */
 
 #include <stdio.h>
@@ -1387,7 +1387,7 @@ static void svq1dec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) 
     this->buf = malloc(this->bufsize);
     this->size = 0;
 
-    this->stream->video_out->open (this->stream->video_out);
+    this->stream->video_out->open (this->stream->video_out, this->stream);
     this->decoder_ok = 1;
 
     /* load the stream/meta info */
@@ -1446,7 +1446,7 @@ static void svq1dec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) 
 	  }
 	}
 
-	img->draw(img);
+	img->draw(img, this->stream);
 	img->free(img);
       }
 
@@ -1490,7 +1490,7 @@ static void svq1dec_dispose (video_decoder_t *this_gen) {
 
   if (this->decoder_ok) {  
     this->decoder_ok = 0;
-    this->stream->video_out->close(this->stream->video_out);
+    this->stream->video_out->close(this->stream->video_out, this->stream);
   }
 
   free (this_gen);
@@ -1562,6 +1562,6 @@ static decoder_info_t dec_info_video = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_VIDEO_DECODER, 12, "svq1", XINE_VERSION_CODE, &dec_info_video, init_plugin },
+  { PLUGIN_VIDEO_DECODER, 13, "svq1", XINE_VERSION_CODE, &dec_info_video, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

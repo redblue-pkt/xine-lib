@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.113 2002/11/14 19:45:01 esnel Exp $
+ * $Id: load_plugins.c,v 1.114 2002/11/20 11:57:49 mroi Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -816,10 +816,10 @@ const char *xine_get_input_plugin_description (xine_t *this, const char *plugin_
  *  video out plugins section
  */
 
-static xine_vo_driver_t *_load_video_driver (xine_t *this, plugin_node_t *node,
-					     void *data) {
+static vo_driver_t *_load_video_driver (xine_t *this, plugin_node_t *node,
+					void *data) {
 
-  xine_vo_driver_t *driver;
+  vo_driver_t *driver;
 
   if (!node->plugin_class)
     node->plugin_class = _load_plugin_class (this, node->filename, node->info, data);
@@ -843,12 +843,13 @@ static xine_vo_driver_t *_load_video_driver (xine_t *this, plugin_node_t *node,
   return driver;
 }
 
-xine_vo_driver_t *xine_open_video_driver (xine_t *this,
-					  const char *id,
-					  int visual_type, void *visual) {
+xine_video_port_t *xine_open_video_driver (xine_t *this,
+					   const char *id,
+					   int visual_type, void *visual) {
 
   plugin_node_t      *node;
-  xine_vo_driver_t   *driver;
+  vo_driver_t   *driver;
+  xine_video_port_t  *port;
   vo_info_t          *vo_info;
   plugin_catalog_t   *catalog = this->plugin_catalog;
 
@@ -895,7 +896,9 @@ xine_vo_driver_t *xine_open_video_driver (xine_t *this,
 
   pthread_mutex_unlock (&catalog->lock);
 
-  return driver;
+  port = vo_new_port(this, driver);
+  
+  return port;
 }
 
 /*
@@ -958,10 +961,10 @@ const char *const *xine_list_video_output_plugins (xine_t *this) {
   return catalog->ids;
 }
 
-static xine_ao_driver_t *_load_audio_driver (xine_t *this, plugin_node_t *node,
-					     void *data) {
+static ao_driver_t *_load_audio_driver (xine_t *this, plugin_node_t *node,
+					void *data) {
 
-  xine_ao_driver_t *driver;
+  ao_driver_t *driver;
 
   if (!node->plugin_class)
     node->plugin_class = _load_plugin_class (this, node->filename, node->info, data);
@@ -985,11 +988,12 @@ static xine_ao_driver_t *_load_audio_driver (xine_t *this, plugin_node_t *node,
   return driver;
 }
 
-xine_ao_driver_t *xine_open_audio_driver (xine_t *this, const char *id,
-					  void *data) {
+xine_audio_port_t *xine_open_audio_driver (xine_t *this, const char *id,
+					   void *data) {
 
   plugin_node_t      *node;
-  xine_ao_driver_t   *driver;
+  ao_driver_t   *driver;
+  xine_audio_port_t  *port;
   ao_info_t          *ao_info;
   plugin_catalog_t   *catalog = this->plugin_catalog;
 
@@ -1035,16 +1039,18 @@ xine_ao_driver_t *xine_open_audio_driver (xine_t *this, const char *id,
   }
 
   pthread_mutex_unlock (&catalog->lock);
+  
+  port = ao_new_port(this, driver);
 
-  return driver;
+  return port;
 }
 
-void xine_close_audio_driver (xine_t *this, xine_ao_driver_t  *driver) {
+void xine_close_audio_driver (xine_t *this, xine_audio_port_t  *driver) {
 
   /* FIXME : implement */
 
 }
-void xine_close_video_driver (xine_t *this, xine_vo_driver_t  *driver) {
+void xine_close_video_driver (xine_t *this, xine_video_port_t  *driver) {
 
   /* FIXME : implement */
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.149 2002/11/10 20:35:50 storri Exp $
+ * $Id: video_out_xv.c,v 1.150 2002/11/20 11:57:49 mroi Exp $
  *
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -98,7 +98,7 @@ typedef struct {
 
 struct xv_driver_s {
 
-  xine_vo_driver_t   vo_driver;
+  vo_driver_t        vo_driver;
 
   config_values_t   *config;
 
@@ -145,7 +145,7 @@ typedef struct {
 
 int gX11Fail;
 
-static uint32_t xv_get_capabilities (xine_vo_driver_t *this_gen) {
+static uint32_t xv_get_capabilities (vo_driver_t *this_gen) {
 
   xv_driver_t *this = (xv_driver_t *) this_gen;
 
@@ -182,7 +182,7 @@ static void xv_frame_dispose (vo_frame_t *vo_img) {
   free (frame);
 }
 
-static vo_frame_t *xv_alloc_frame (xine_vo_driver_t *this_gen) {
+static vo_frame_t *xv_alloc_frame (vo_driver_t *this_gen) {
 
   xv_frame_t     *frame ;
 
@@ -382,7 +382,7 @@ static void dispose_ximage (xv_driver_t *this,
   }
 }
 
-static void xv_update_frame_format (xine_vo_driver_t *this_gen,
+static void xv_update_frame_format (vo_driver_t *this_gen,
 				    vo_frame_t *frame_gen,
 				    uint32_t width, uint32_t height,
 				    int ratio_code, int format, int flags) {
@@ -577,7 +577,7 @@ static void xv_compute_output_size (xv_driver_t *this) {
   }
 }
 
-static void xv_overlay_blend (xine_vo_driver_t *this_gen, vo_frame_t *frame_gen, vo_overlay_t *overlay) {
+static void xv_overlay_blend (vo_driver_t *this_gen, vo_frame_t *frame_gen, vo_overlay_t *overlay) {
 
   xv_frame_t   *frame = (xv_frame_t *) frame_gen;
 
@@ -623,7 +623,7 @@ static void xv_flush_recent_frames (xv_driver_t *this) {
 }
 #endif
 
-static int xv_redraw_needed (xine_vo_driver_t *this_gen) {
+static int xv_redraw_needed (vo_driver_t *this_gen) {
   xv_driver_t  *this = (xv_driver_t *) this_gen;
   int ret = 0;
 
@@ -650,7 +650,7 @@ static int xv_redraw_needed (xine_vo_driver_t *this_gen) {
   return ret;
 }
 
-static void xv_display_frame (xine_vo_driver_t *this_gen, vo_frame_t *frame_gen) {
+static void xv_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
 
   xv_driver_t  *this = (xv_driver_t *) this_gen;
   xv_frame_t   *frame = (xv_frame_t *) frame_gen;
@@ -735,7 +735,7 @@ static void xv_display_frame (xine_vo_driver_t *this_gen, vo_frame_t *frame_gen)
   */
 }
 
-static int xv_get_property (xine_vo_driver_t *this_gen, int property) {
+static int xv_get_property (vo_driver_t *this_gen, int property) {
 
   xv_driver_t *this = (xv_driver_t *) this_gen;
 
@@ -756,7 +756,7 @@ static void xv_property_callback (void *property_gen, xine_cfg_entry_t *entry) {
 
 }
 
-static int xv_set_property (xine_vo_driver_t *this_gen,
+static int xv_set_property (vo_driver_t *this_gen,
 			    int property, int value) {
 
   xv_driver_t *this = (xv_driver_t *) this_gen;
@@ -833,7 +833,7 @@ static int xv_set_property (xine_vo_driver_t *this_gen,
   return value;
 }
 
-static void xv_get_property_min_max (xine_vo_driver_t *this_gen,
+static void xv_get_property_min_max (vo_driver_t *this_gen,
 				     int property, int *min, int *max) {
 
   xv_driver_t *this = (xv_driver_t *) this_gen;
@@ -842,7 +842,7 @@ static void xv_get_property_min_max (xine_vo_driver_t *this_gen,
   *max = this->props[property].max;
 }
 
-static int xv_gui_data_exchange (xine_vo_driver_t *this_gen,
+static int xv_gui_data_exchange (vo_driver_t *this_gen,
 				 int data_type, void *data) {
 
   xv_driver_t     *this = (xv_driver_t *) this_gen;
@@ -940,7 +940,7 @@ static int xv_gui_data_exchange (xine_vo_driver_t *this_gen,
   return 0;
 }
 
-static void xv_dispose (xine_vo_driver_t *this_gen) {
+static void xv_dispose (vo_driver_t *this_gen) {
 
   xv_driver_t *this = (xv_driver_t *) this_gen;
   int i;
@@ -1074,7 +1074,7 @@ static void xv_update_XV_DOUBLE_BUFFER(void *this_gen, xine_cfg_entry_t *entry) 
 }
 
 
-static xine_vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *visual_gen) {
+static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *visual_gen) {
 
   xv_class_t           *class = (xv_class_t *) class_gen;
   config_values_t      *config = class->config;
@@ -1388,7 +1388,7 @@ static vo_info_t vo_info_xv = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */
-  { PLUGIN_VIDEO_OUT, 10, "xv", XINE_VERSION_CODE, &vo_info_xv, init_class },
+  { PLUGIN_VIDEO_OUT, 11, "xv", XINE_VERSION_CODE, &vo_info_xv, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
 

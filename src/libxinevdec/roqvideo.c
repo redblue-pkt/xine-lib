@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: roqvideo.c,v 1.14 2002/11/12 18:40:54 miguelfreitas Exp $
+ * $Id: roqvideo.c,v 1.15 2002/11/20 11:57:47 mroi Exp $
  */
 
 /* And this is the header that came with the RoQ video decoder: */
@@ -391,7 +391,7 @@ static void roqvideo_decode_data (video_decoder_t *this_gen,
     return;
 
   if (buf->decoder_flags & BUF_FLAG_HEADER) { /* need to initialize */
-    this->stream->video_out->open (this->stream->video_out);
+    this->stream->video_out->open (this->stream->video_out, this->stream);
 
     if(this->buf)
       free(this->buf);
@@ -489,7 +489,7 @@ static void roqvideo_decode_data (video_decoder_t *this_gen,
       }
     }
 
-    this->skipframes = img->draw(img);
+    this->skipframes = img->draw(img, this->stream);
     if( this->skipframes < 0 )
       this->skipframes = 0;
     img->free(img);
@@ -511,7 +511,7 @@ static void roqvideo_dispose (video_decoder_t *this_gen) {
 
   roqvideo_decoder_t *this = (roqvideo_decoder_t *) this_gen;
 
-  this->stream->video_out->close(this->stream->video_out);
+  this->stream->video_out->close(this->stream->video_out, this->stream);
 
   free(this->y[0]);
   free(this->y[1]);
@@ -586,6 +586,6 @@ static decoder_info_t dec_info_video = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_VIDEO_DECODER, 12, "roq", XINE_VERSION_CODE, &dec_info_video, init_plugin },
+  { PLUGIN_VIDEO_DECODER, 13, "roq", XINE_VERSION_CODE, &dec_info_video, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

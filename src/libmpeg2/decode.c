@@ -51,7 +51,7 @@
 static void process_userdata(mpeg2dec_t *mpeg2dec, uint8_t *buffer);
 
 void mpeg2_init (mpeg2dec_t * mpeg2dec, 
-		 vo_instance_t * output)
+		 xine_video_port_t * output)
 {
   static int do_init = 1;
   uint32_t mm_accel;
@@ -258,12 +258,13 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 	        picture->current_frame->pts = 0;
 
 	      get_frame_duration(mpeg2dec, picture->current_frame);
-	      mpeg2dec->frames_to_drop = picture->current_frame->draw (picture->current_frame);
+	      mpeg2dec->frames_to_drop = picture->current_frame->draw (picture->current_frame, mpeg2dec->stream);
 	      picture->current_frame->drawn = 1;
 	    }
 	  } else if (picture->forward_reference_frame && !picture->forward_reference_frame->drawn) {
 	    get_frame_duration(mpeg2dec, picture->forward_reference_frame);
-	    mpeg2dec->frames_to_drop = picture->forward_reference_frame->draw (picture->forward_reference_frame);
+	    mpeg2dec->frames_to_drop = picture->forward_reference_frame->draw (picture->forward_reference_frame,
+									       mpeg2dec->stream);
 	    picture->forward_reference_frame->drawn = 1;
 	  }
 	}
@@ -631,7 +632,7 @@ void mpeg2_flush (mpeg2dec_t * mpeg2dec) {
     get_frame_duration(mpeg2dec, picture->current_frame);
     
     picture->current_frame->pts = 0;
-    picture->current_frame->draw(picture->current_frame);
+    picture->current_frame->draw(picture->current_frame, mpeg2dec->stream);
   }
 
 }
@@ -657,7 +658,7 @@ void mpeg2_close (mpeg2dec_t * mpeg2dec)
         printf ("libmpeg2: blasting out current frame on close\n");
         picture->current_frame->pts = 0;
         get_frame_duration(mpeg2dec, picture->current_frame);
-        picture->current_frame->draw (picture->current_frame);
+        picture->current_frame->draw (picture->current_frame, mpeg2dec->stream);
         picture->current_frame->drawn = 1;
       }
          
@@ -679,7 +680,7 @@ void mpeg2_close (mpeg2dec_t * mpeg2dec)
         printf ("libmpeg2: blasting out backward reference frame on close\n");
         picture->backward_reference_frame->pts = 0;
         get_frame_duration(mpeg2dec, picture->backward_reference_frame);
-        picture->backward_reference_frame->draw (picture->backward_reference_frame);
+        picture->backward_reference_frame->draw (picture->backward_reference_frame, mpeg2dec->stream);
         picture->backward_reference_frame->drawn = 1;      
       }
       picture->backward_reference_frame->free (picture->backward_reference_frame);

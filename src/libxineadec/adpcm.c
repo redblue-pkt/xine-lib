@@ -24,7 +24,7 @@
  * formats can be found here:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: adpcm.c,v 1.23 2002/11/12 18:40:53 miguelfreitas Exp $
+ * $Id: adpcm.c,v 1.24 2002/11/20 11:57:45 mroi Exp $
  */
 
 #include <stdio.h>
@@ -374,7 +374,7 @@ static void dk3_adpcm_decode_block(adpcm_decoder_t *this, buf_element_t *buf) {
 
       audio_buffer->vpts = buf->pts;
       buf->pts = 0;  /* only first buffer gets the real pts */
-      this->stream->audio_out->put_buffer (this->stream->audio_out, audio_buffer);
+      this->stream->audio_out->put_buffer (this->stream->audio_out, audio_buffer, this->stream);
 
       j += bytes_to_send / 2;  /* 2 bytes per sample */
     }
@@ -455,7 +455,7 @@ static void dk4_adpcm_decode_block(adpcm_decoder_t *this, buf_element_t *buf) {
 
       audio_buffer->vpts = buf->pts;
       buf->pts = 0;  /* only first buffer gets the real pts */
-      this->stream->audio_out->put_buffer (this->stream->audio_out, audio_buffer);
+      this->stream->audio_out->put_buffer (this->stream->audio_out, audio_buffer, this->stream);
 
       j += bytes_to_send / 2;  /* 2 bytes per sample */
     }
@@ -565,7 +565,7 @@ static void ms_ima_adpcm_decode_block(adpcm_decoder_t *this,
 
       audio_buffer->vpts = buf->pts;
       buf->pts = 0;  /* only first buffer gets the real pts */
-      this->stream->audio_out->put_buffer (this->stream->audio_out, audio_buffer);
+      this->stream->audio_out->put_buffer (this->stream->audio_out, audio_buffer, this->stream);
 
       j += bytes_to_send / 2;  /* 2 bytes per sample */
     }
@@ -611,7 +611,7 @@ static void qt_ima_adpcm_decode_block(adpcm_decoder_t *this,
       audio_buffer->vpts = buf->pts;
       buf->pts = 0;
       audio_buffer->num_frames = out_ptr / this->channels;
-      this->stream->audio_out->put_buffer (this->stream->audio_out, audio_buffer);
+      this->stream->audio_out->put_buffer (this->stream->audio_out, audio_buffer, this->stream);
 
       /* get a new audio buffer */
       audio_buffer = this->stream->audio_out->get_buffer (this->stream->audio_out);
@@ -676,7 +676,7 @@ static void qt_ima_adpcm_decode_block(adpcm_decoder_t *this,
   audio_buffer->vpts = buf->pts;
   audio_buffer->num_frames = out_ptr / this->channels;
 
-  this->stream->audio_out->put_buffer (this->stream->audio_out, audio_buffer);
+  this->stream->audio_out->put_buffer (this->stream->audio_out, audio_buffer, this->stream);
   this->size = 0;
 }
 
@@ -818,7 +818,7 @@ static void ms_adpcm_decode_block(adpcm_decoder_t *this, buf_element_t *buf) {
 
       audio_buffer->vpts = buf->pts;
       buf->pts = 0;  /* only first buffer gets the real pts */
-      this->stream->audio_out->put_buffer (this->stream->audio_out, audio_buffer);
+      this->stream->audio_out->put_buffer (this->stream->audio_out, audio_buffer, this->stream);
 
       j += bytes_to_send / 2;  /* 2 bytes per sample */
     }
@@ -890,7 +890,7 @@ static void smjpeg_adpcm_decode_block(adpcm_decoder_t *this, buf_element_t *buf)
 
     audio_buffer->vpts = buf->pts;
     buf->pts = 0;  /* only first buffer gets the real pts */
-    this->stream->audio_out->put_buffer (this->stream->audio_out, audio_buffer);
+    this->stream->audio_out->put_buffer (this->stream->audio_out, audio_buffer, this->stream);
 
     i += bytes_to_send / 2;  /* 2 bytes per sample */
   }
@@ -963,7 +963,7 @@ static void vqa_adpcm_decode_block(adpcm_decoder_t *this, buf_element_t *buf) {
 
     audio_buffer->vpts = buf->pts;
     buf->pts = 0;  /* only first buffer gets the real pts */
-    this->stream->audio_out->put_buffer (this->stream->audio_out, audio_buffer);
+    this->stream->audio_out->put_buffer (this->stream->audio_out, audio_buffer, this->stream);
 
     i += bytes_to_send / 2;  /* 2 bytes per sample */
   }
@@ -1056,7 +1056,7 @@ static void ea_adpcm_decode_block(adpcm_decoder_t *this, buf_element_t *buf) {
     audio_buffer->num_frames = (bytes_to_send / 4);
     audio_buffer->vpts = buf->pts;
     buf->pts = 0;
-    this->stream->audio_out->put_buffer(this->stream->audio_out, audio_buffer);
+    this->stream->audio_out->put_buffer(this->stream->audio_out, audio_buffer, this->stream);
 
     i += bytes_to_send / 2;
   }
@@ -1189,7 +1189,7 @@ static void adpcm_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
     printf ("adpcm: opening audio output (%d Hz sampling rate, mode=%d)\n",
             this->rate, this->ao_cap_mode);
     this->output_open = this->stream->audio_out->open (this->stream->audio_out,
-      this->bits_per_sample, this->rate, this->ao_cap_mode);
+      this->stream, this->bits_per_sample, this->rate, this->ao_cap_mode);
   }
 
   /* if the audio still isn't open, bail */
@@ -1264,7 +1264,7 @@ static void adpcm_dispose (audio_decoder_t *this_gen) {
   adpcm_decoder_t *this = (adpcm_decoder_t *) this_gen;
 
   if (this->output_open)
-    this->stream->audio_out->close (this->stream->audio_out);
+    this->stream->audio_out->close (this->stream->audio_out, this->stream);
   this->output_open = 0;
 
   if (this->decode_buffer)
@@ -1342,6 +1342,6 @@ static decoder_info_t dec_info_audio = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_AUDIO_DECODER, 11, "adpcm", XINE_VERSION_CODE, &dec_info_audio, init_plugin },
+  { PLUGIN_AUDIO_DECODER, 12, "adpcm", XINE_VERSION_CODE, &dec_info_audio, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.193 2002/11/17 17:41:45 mroi Exp $
+ * $Id: xine.c,v 1.194 2002/11/20 11:57:49 mroi Exp $
  *
  * top-level xine functions
  *
@@ -101,7 +101,7 @@ void xine_report_codec (xine_stream_t *stream, int codec_type,
 
 static void xine_set_speed_internal (xine_stream_t *stream, int speed) {
 
-  stream->metronom->set_speed (stream->metronom, speed);
+  stream->xine->clock->set_speed (stream->xine->clock, speed);
 
   /* see coment on audio_out loop about audio_paused */
   if( stream->audio_out ) {
@@ -118,8 +118,6 @@ static void xine_set_speed_internal (xine_stream_t *stream, int speed) {
     stream->audio_out->control(stream->audio_out,
 			       speed == XINE_SPEED_PAUSE ? AO_CTRL_PLAY_PAUSE : AO_CTRL_PLAY_RESUME);
   }
-  
-  stream->speed = speed;
 }
 
 
@@ -202,8 +200,8 @@ void xine_stop (xine_stream_t *stream) {
    * stream will make output threads discard about everything
    * am i abusing of xine architeture? :)
    */
-  stream->metronom->adjust_clock (stream->metronom,
-				  stream->metronom->get_current_time(stream->metronom) + 30 * 90000 );
+  stream->xine->clock->adjust_clock (stream->xine->clock,
+    stream->xine->clock->get_current_time(stream->xine->clock) + 30 * 90000 );
   
   pthread_mutex_unlock (&stream->frontend_lock);
 }
@@ -256,7 +254,7 @@ void xine_close (xine_stream_t *stream) {
 
 
 xine_stream_t *xine_stream_new (xine_t *this, 
-				xine_ao_driver_t *ao, xine_vo_driver_t *vo) {
+				xine_audio_port_t *ao, xine_video_port_t *vo) {
 
   xine_stream_t *stream;
   int            i;
@@ -277,13 +275,13 @@ xine_stream_t *xine_stream_new (xine_t *this,
     stream->stream_info[i]       = 0;
     stream->meta_info[i]         = NULL;
   }
-  stream->speed                  = XINE_SPEED_NORMAL;
   stream->input_pos              = 0;
   stream->input_length           = 0;
   stream->input_time             = 0;
   stream->spu_out                = NULL;
   stream->spu_decoder_plugin     = NULL;
   stream->spu_decoder_streamtype = -1;
+  stream->audio_out              = ao;
   stream->audio_channel_user     = -1;
   stream->audio_channel_auto     = 0;
   stream->audio_decoder_plugin   = NULL;
@@ -293,7 +291,8 @@ xine_stream_t *xine_stream_new (xine_t *this,
   stream->spu_channel_pan_scan   = -1;
   stream->spu_channel_user       = -1;
   stream->spu_channel            = -1;
-  stream->video_driver           = vo;
+  stream->video_out              = vo;
+  stream->video_driver           = vo->driver;
   stream->video_in_discontinuity = 0;
   stream->video_channel          = 0;
   stream->video_decoder_plugin   = NULL;
@@ -333,11 +332,8 @@ xine_stream_t *xine_stream_new (xine_t *this,
    * alloc fifos, init and start decoder threads
    */
 
-  stream->video_out = vo_new_instance (vo, stream);
   video_decoder_init (stream);
 
-  if (ao) 
-    stream->audio_out = ao_new_instance (ao, stream);
   audio_decoder_init (stream);
 
   /*
@@ -346,12 +342,6 @@ xine_stream_t *xine_stream_new (xine_t *this,
 
   stream->osd_renderer = osd_renderer_init (stream->video_out->get_overlay_instance (stream->video_out), stream->xine->config );
   
-  /*
-   * start metronom clock
-   */
-
-  stream->metronom->start_clock (stream->metronom, 0);
-
   /*
    * register stream
    */
@@ -685,7 +675,7 @@ static int xine_play_internal (xine_stream_t *stream, int start_pos, int start_t
 
   printf ("xine: xine_play\n");
 
-  if (stream->speed != XINE_SPEED_NORMAL) 
+  if (stream->xine->clock->speed != XINE_SPEED_NORMAL) 
     xine_set_speed_internal (stream, XINE_SPEED_NORMAL);
 
   /* Wait until the first frame produced by the previous
@@ -821,6 +811,7 @@ void xine_exit (xine_t *this) {
     this->log_buffers[i]->dispose (this->log_buffers[i]);
 
   dispose_plugins (this);
+  this->clock->exit (this->clock);
   this->config->dispose(this->config);
 
   free (this);
@@ -902,6 +893,14 @@ void xine_init (xine_t *this) {
 
   this->streams = xine_list_new();
   pthread_mutex_init (&this->streams_lock, NULL);
+  
+  /*
+   * start metronom clock
+   */
+
+  this->clock = metronom_clock_init();
+
+  this->clock->start_clock (this->clock, 0);
 
 }
 
@@ -976,7 +975,7 @@ void xine_set_speed (xine_stream_t *stream, int speed) {
 
 
 int xine_get_speed (xine_stream_t *stream) {
-  return stream->speed;
+  return stream->xine->clock->speed;
 }
 
 /*

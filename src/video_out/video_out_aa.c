@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_aa.c,v 1.29 2002/10/18 20:04:24 f1rmb Exp $
+ * $Id: video_out_aa.c,v 1.30 2002/11/20 11:57:48 mroi Exp $
  *
  * video_out_aa.c, ascii-art output plugin for xine
  *
@@ -63,7 +63,7 @@ typedef struct aa_frame_s {
 } aa_frame_t;
 
 typedef struct {
-  xine_vo_driver_t   vo_driver;
+  vo_driver_t        vo_driver;
 
   config_values_t   *config;
   int                user_ratio;
@@ -81,7 +81,7 @@ typedef struct {
 /*
  * our video driver
  */
-static uint32_t aa_get_capabilities (xine_vo_driver_t *this) {
+static uint32_t aa_get_capabilities (vo_driver_t *this) {
   return VO_CAP_YV12 | VO_CAP_YUY2;
 }
 
@@ -103,7 +103,7 @@ static void aa_frame_field (vo_frame_t *vo_img, int which_field) {
 }
 
 
-static vo_frame_t *aa_alloc_frame(xine_vo_driver_t *this) {
+static vo_frame_t *aa_alloc_frame(vo_driver_t *this) {
   aa_frame_t *frame;
 
   frame = (aa_frame_t *) malloc (sizeof (aa_frame_t));
@@ -117,7 +117,7 @@ static vo_frame_t *aa_alloc_frame(xine_vo_driver_t *this) {
   return (vo_frame_t*) frame;
 }
 
-static void aa_update_frame_format (xine_vo_driver_t *this, vo_frame_t *img,
+static void aa_update_frame_format (vo_driver_t *this, vo_frame_t *img,
 				    uint32_t width, uint32_t height, 
 				    int ratio_code, int format, int flags) {
 
@@ -172,7 +172,7 @@ static void aa_update_frame_format (xine_vo_driver_t *this, vo_frame_t *img,
   /* printf ("aa_update_format done\n"); */
 }
 
-static void aa_display_frame (xine_vo_driver_t *this_gen, vo_frame_t *frame_gen) {
+static void aa_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
   int x,y;
   double x_fact, y_fact; /* ratio between aa's and frame's width/height */
 
@@ -225,7 +225,7 @@ static void aa_display_frame (xine_vo_driver_t *this_gen, vo_frame_t *frame_gen)
 
 }
 
-static int aa_get_property (xine_vo_driver_t *this_gen, int property) {
+static int aa_get_property (vo_driver_t *this_gen, int property) {
   aa_driver_t *this = (aa_driver_t*) this_gen;
   
   if ( property == VO_PROP_ASPECT_RATIO) {
@@ -237,7 +237,7 @@ static int aa_get_property (xine_vo_driver_t *this_gen, int property) {
   return 0;
 }
 
-static int aa_set_property (xine_vo_driver_t *this_gen, 
+static int aa_set_property (vo_driver_t *this_gen, 
 			    int property, int value) {
   aa_driver_t *this = (aa_driver_t*) this_gen;
 
@@ -253,20 +253,20 @@ static int aa_set_property (xine_vo_driver_t *this_gen,
   return value;
 }
 
-static void aa_get_property_min_max (xine_vo_driver_t *this_gen, 
+static void aa_get_property_min_max (vo_driver_t *this_gen, 
 				     int property, int *min, int *max) {
   *min = 0;
   *max = 0;
 }
 
-static void aa_dispose (xine_vo_driver_t *this_gen) {
+static void aa_dispose (vo_driver_t *this_gen) {
 }
 
-static int aa_redraw_needed (xine_vo_driver_t *this_gen) {
+static int aa_redraw_needed (vo_driver_t *this_gen) {
   return 0;
 }
 
-static xine_vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *visual_gen) {
+static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *visual_gen) {
   aa_class_t           *class = (aa_class_t *) class_gen;
   aa_driver_t          *this;
 
@@ -328,6 +328,6 @@ static vo_info_t vo_info_aa = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_VIDEO_OUT, 10, "aa", XINE_VERSION_CODE, &vo_info_aa, init_class },
+  { PLUGIN_VIDEO_OUT, 11, "aa", XINE_VERSION_CODE, &vo_info_aa, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_none.c,v 1.2 2002/11/11 20:02:39 f1rmb Exp $
+ * $Id: video_out_none.c,v 1.3 2002/11/20 11:57:48 mroi Exp $
  *
  * Was originally part of toxine frontend.
  */
@@ -48,7 +48,7 @@ typedef struct {
 } none_frame_t;
 
 typedef struct {
-  xine_vo_driver_t     vo_driver;
+  vo_driver_t          vo_driver;
   config_values_t     *config;
   int                   ratio;
 } none_driver_t;
@@ -86,11 +86,11 @@ static void none_frame_field(vo_frame_t *vo_frame, int which_field) {
   /* do nothing */
 }
 
-static uint32_t none_get_capabilities(xine_vo_driver_t *vo_driver) {
+static uint32_t none_get_capabilities(vo_driver_t *vo_driver) {
   return VO_CAP_YV12 | VO_CAP_YUY2;
 }
 
-static vo_frame_t *none_alloc_frame(xine_vo_driver_t *vo_driver) {
+static vo_frame_t *none_alloc_frame(vo_driver_t *vo_driver) {
   none_frame_t  *frame;
   
   frame = (none_frame_t *) malloc(sizeof(none_frame_t));
@@ -113,7 +113,7 @@ static vo_frame_t *none_alloc_frame(xine_vo_driver_t *vo_driver) {
   return (vo_frame_t *)frame;
 }
 
-static void none_update_frame_format(xine_vo_driver_t *vo_driver, vo_frame_t *vo_frame,
+static void none_update_frame_format(vo_driver_t *vo_driver, vo_frame_t *vo_frame,
 				     uint32_t width, uint32_t height, 
 				     int ratio_code, int format, int flags) {
   none_frame_t  *frame = (none_frame_t *)vo_frame;
@@ -160,14 +160,14 @@ static void none_update_frame_format(xine_vo_driver_t *vo_driver, vo_frame_t *vo
   frame->ratio_code = ratio_code;
 }
 
-static void none_display_frame(xine_vo_driver_t *vo_driver, vo_frame_t *vo_frame) {
+static void none_display_frame(vo_driver_t *vo_driver, vo_frame_t *vo_frame) {
   /* none_driver_t  *driver = (none_driver_t *)vo_driver; */
   none_frame_t   *frame = (none_frame_t *)vo_frame;
   
   frame->vo_frame.displayed(&frame->vo_frame);
 }
 
-static int none_get_property(xine_vo_driver_t *vo_driver, int property) {
+static int none_get_property(vo_driver_t *vo_driver, int property) {
   none_driver_t  *driver = (none_driver_t *)vo_driver;
   
   switch(property) {
@@ -183,7 +183,7 @@ static int none_get_property(xine_vo_driver_t *vo_driver, int property) {
   return 0;
 }
 
-static int none_set_property(xine_vo_driver_t *vo_driver, int property, int value) {
+static int none_set_property(vo_driver_t *vo_driver, int property, int value) {
   none_driver_t  *driver = (none_driver_t *)vo_driver;
   
   switch(property) {
@@ -201,13 +201,13 @@ static int none_set_property(xine_vo_driver_t *vo_driver, int property, int valu
   return value;
 }
 
-static void none_get_property_min_max(xine_vo_driver_t *vo_driver, 
+static void none_get_property_min_max(vo_driver_t *vo_driver, 
 				      int property, int *min, int *max) {
   *min = 0;
   *max = 0;
 }
 
-static int none_gui_data_exchange(xine_vo_driver_t *vo_driver, int data_type, void *data) {
+static int none_gui_data_exchange(vo_driver_t *vo_driver, int data_type, void *data) {
 /*   none_driver_t     *this = (none_driver_t *) vo_driver; */
 
   switch (data_type) {
@@ -222,17 +222,17 @@ static int none_gui_data_exchange(xine_vo_driver_t *vo_driver, int data_type, vo
 
   return 0;
 }
-static void none_dispose(xine_vo_driver_t *vo_driver) {
+static void none_dispose(vo_driver_t *vo_driver) {
   none_driver_t *this = (none_driver_t *) vo_driver;
 
   free(this);
 }
 
-static int none_redraw_needed(xine_vo_driver_t *vo_driver) {
+static int none_redraw_needed(vo_driver_t *vo_driver) {
   return 0;
 }
 
-static xine_vo_driver_t *open_plugin(video_driver_class_t *driver_class, const void *visual) {
+static vo_driver_t *open_plugin(video_driver_class_t *driver_class, const void *visual) {
   none_class_t    *class = (none_class_t *) driver_class;
   none_driver_t   *driver;
   
@@ -297,6 +297,6 @@ static vo_info_t vo_info_none = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_VIDEO_OUT, 10, "none", XINE_VERSION_CODE, &vo_info_none, init_class },
+  { PLUGIN_VIDEO_OUT, 11, "none", XINE_VERSION_CODE, &vo_info_none, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

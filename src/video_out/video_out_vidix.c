@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_vidix.c,v 1.13 2002/11/04 22:48:14 f1rmb Exp $
+ * $Id: video_out_vidix.c,v 1.14 2002/11/20 11:57:48 mroi Exp $
  * 
  * video_out_vidix.c
  *
@@ -65,7 +65,7 @@ typedef struct vidix_frame_s {
 
 struct vidix_driver_s {
 
-  xine_vo_driver_t    vo_driver;
+  vo_driver_t         vo_driver;
 
   config_values_t    *config;
 
@@ -287,7 +287,7 @@ static void write_frame_sfb(vidix_driver_t* this, vidix_frame_t* frame)
 }
 
 
-static uint32_t vidix_get_capabilities (xine_vo_driver_t *this_gen) {
+static uint32_t vidix_get_capabilities (vo_driver_t *this_gen) {
 
   vidix_driver_t *this = (vidix_driver_t *) this_gen;
 
@@ -306,7 +306,7 @@ static void vidix_frame_dispose (vo_frame_t *vo_img) {
   free (frame);
 }
 
-static vo_frame_t *vidix_alloc_frame (xine_vo_driver_t *this_gen) {
+static vo_frame_t *vidix_alloc_frame (vo_driver_t *this_gen) {
 
   vidix_frame_t     *frame ;
 
@@ -424,7 +424,7 @@ static void vidix_compute_output_size (vidix_driver_t *this) {
   this->vidix_started = 1;
 }
 
-static void vidix_update_frame_format (xine_vo_driver_t *this_gen,
+static void vidix_update_frame_format (vo_driver_t *this_gen,
 				    vo_frame_t *frame_gen,
 				    uint32_t width, uint32_t height,
 				    int ratio_code, int format, int flags) {
@@ -479,7 +479,7 @@ static void vidix_update_frame_format (xine_vo_driver_t *this_gen,
 /*
  *
  */
-static void vidix_overlay_blend (xine_vo_driver_t *this_gen, vo_frame_t *frame_gen, vo_overlay_t *overlay) {
+static void vidix_overlay_blend (vo_driver_t *this_gen, vo_frame_t *frame_gen, vo_overlay_t *overlay) {
 
   vidix_frame_t   *frame = (vidix_frame_t *) frame_gen;
   
@@ -491,7 +491,7 @@ static void vidix_overlay_blend (xine_vo_driver_t *this_gen, vo_frame_t *frame_g
   }
 }
 
-static int vidix_redraw_needed (xine_vo_driver_t *this_gen) {
+static int vidix_redraw_needed (vo_driver_t *this_gen) {
   vidix_driver_t  *this = (vidix_driver_t *) this_gen;
   int ret = 0;
 
@@ -507,7 +507,7 @@ static int vidix_redraw_needed (xine_vo_driver_t *this_gen) {
 }
 
 
-static void vidix_display_frame (xine_vo_driver_t *this_gen, vo_frame_t *frame_gen) {
+static void vidix_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
 
   vidix_driver_t  *this = (vidix_driver_t *) this_gen;
   vidix_frame_t   *frame = (vidix_frame_t *) frame_gen;
@@ -544,7 +544,7 @@ static void vidix_display_frame (xine_vo_driver_t *this_gen, vo_frame_t *frame_g
   pthread_mutex_unlock(&this->mutex);
 }
 
-static int vidix_get_property (xine_vo_driver_t *this_gen, int property) {
+static int vidix_get_property (vo_driver_t *this_gen, int property) {
 
   vidix_driver_t *this = (vidix_driver_t *) this_gen;
   
@@ -561,7 +561,7 @@ static int vidix_get_property (xine_vo_driver_t *this_gen, int property) {
 }
 
 
-static int vidix_set_property (xine_vo_driver_t *this_gen,
+static int vidix_set_property (vo_driver_t *this_gen,
 			    int property, int value) {
 
   vidix_driver_t *this = (vidix_driver_t *) this_gen;
@@ -600,7 +600,7 @@ static int vidix_set_property (xine_vo_driver_t *this_gen,
   return value;
 }
 
-static void vidix_get_property_min_max (xine_vo_driver_t *this_gen,
+static void vidix_get_property_min_max (vo_driver_t *this_gen,
 				     int property, int *min, int *max) {
 
 /*  vidix_driver_t *this = (vidix_driver_t *) this_gen; */
@@ -611,7 +611,7 @@ static void vidix_get_property_min_max (xine_vo_driver_t *this_gen,
   }
 }
 
-static int vidix_gui_data_exchange (xine_vo_driver_t *this_gen,
+static int vidix_gui_data_exchange (vo_driver_t *this_gen,
 				 int data_type, void *data) {
 
   int ret = 0;
@@ -659,7 +659,7 @@ static int vidix_gui_data_exchange (xine_vo_driver_t *this_gen,
   return ret;
 }
                             
-static void vidix_exit (xine_vo_driver_t *this_gen) {
+static void vidix_exit (vo_driver_t *this_gen) {
 
   vidix_driver_t *this = (vidix_driver_t *) this_gen;
 
@@ -669,7 +669,7 @@ static void vidix_exit (xine_vo_driver_t *this_gen) {
   vdlClose(this->vidix_handler);
 }
 
-static xine_vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *visual_gen) {
+static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *visual_gen) {
   vidix_class_t        *class = (vidix_class_t *) class_gen;
   config_values_t      *config = class->config;
   vidix_driver_t       *this;
@@ -796,6 +796,6 @@ static vo_info_t vo_info_vidix = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_VIDEO_OUT, 10, "vidix", XINE_VERSION_CODE, &vo_info_vidix, init_class },
+  { PLUGIN_VIDEO_OUT, 11, "vidix", XINE_VERSION_CODE, &vo_info_vidix, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.21 2002/11/12 18:40:52 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.22 2002/11/20 11:57:45 mroi Exp $
  *
  * (ogg/)vorbis audio decoder plugin (libvorbis wrapper) for xine
  */
@@ -186,6 +186,7 @@ static void vorbis_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 
 	if (!this->output_open) {
 	  this->output_open = this->stream->audio_out->open(this->stream->audio_out, 
+						    this->stream,
 						    16,
 						    this->vi.rate,
 						    mode) ;
@@ -240,7 +241,7 @@ static void vorbis_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
       audio_buffer->vpts       = buf->pts;
       audio_buffer->num_frames = bout;
 
-      this->stream->audio_out->put_buffer (this->stream->audio_out, audio_buffer);
+      this->stream->audio_out->put_buffer (this->stream->audio_out, audio_buffer, this->stream);
 
       buf->pts=0;
       vorbis_synthesis_read(&this->vd,bout);
@@ -263,7 +264,7 @@ static void vorbis_dispose (audio_decoder_t *this_gen) {
   vorbis_info_clear(&this->vi);  /* must be called last */
 
   if (this->output_open) 
-    this->stream->audio_out->close (this->stream->audio_out);
+    this->stream->audio_out->close (this->stream->audio_out, this->stream);
 
   free (this_gen);
 }
@@ -332,6 +333,6 @@ static decoder_info_t dec_info_audio = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_AUDIO_DECODER, 11, "vorbis", XINE_VERSION_CODE, &dec_info_audio, init_plugin },
+  { PLUGIN_AUDIO_DECODER, 12, "vorbis", XINE_VERSION_CODE, &dec_info_audio, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

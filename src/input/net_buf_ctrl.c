@@ -99,15 +99,15 @@ void nbc_check_buffers (nbc_t *this) {
       }
     }
 
-    this->stream->metronom->set_speed (this->stream->metronom, XINE_SPEED_PAUSE);
-    this->stream->metronom->set_option (this->stream->metronom, METRONOM_SCR_ADJUSTABLE, 0);
+    this->stream->xine->clock->set_speed (this->stream->xine->clock, XINE_SPEED_PAUSE);
+    this->stream->xine->clock->set_option (this->stream->xine->clock, CLOCK_SCR_ADJUSTABLE, 0);
     if (this->stream->audio_out)
       this->stream->audio_out->audio_paused = 2;
     this->buffering = 1;
 
   } else if ( (fifo_fill>this->high_water_mark) && (this->buffering)) {
-    this->stream->metronom->set_speed (this->stream->metronom, XINE_SPEED_NORMAL);
-    this->stream->metronom->set_option (this->stream->metronom, METRONOM_SCR_ADJUSTABLE, 1);
+    this->stream->xine->clock->set_speed (this->stream->xine->clock, XINE_SPEED_NORMAL);
+    this->stream->xine->clock->set_option (this->stream->xine->clock, CLOCK_SCR_ADJUSTABLE, 1);
     if (this->stream->audio_out)
       this->stream->audio_out->audio_paused = 0;
     this->buffering = 0;
@@ -116,7 +116,7 @@ void nbc_check_buffers (nbc_t *this) {
 }
 
 void nbc_close (nbc_t *this) {
-  this->stream->metronom->set_option (this->stream->metronom, METRONOM_SCR_ADJUSTABLE, 1);
+  this->stream->xine->clock->set_option (this->stream->xine->clock, CLOCK_SCR_ADJUSTABLE, 1);
   free (this);
 }
 

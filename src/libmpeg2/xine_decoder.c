@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.43 2002/11/12 18:40:52 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.44 2002/11/20 11:57:44 mroi Exp $
  *
  * stuff needed to turn libmpeg2 into a xine decoder plugin
  */
@@ -50,7 +50,7 @@ typedef struct mpeg2dec_decoder_s {
   mpeg2dec_t       mpeg2;
   mpeg2_class_t   *class;
   xine_stream_t   *stream;
-  vo_instance_t   *video_out;
+  xine_video_port_t *video_out;
   pthread_mutex_t  lock; /* mutex for async flush */
 } mpeg2dec_decoder_t;
 
@@ -135,7 +135,7 @@ static void mpeg2dec_dispose (video_decoder_t *this_gen) {
 
   mpeg2_close (&this->mpeg2);
 
-  this->video_out->close(this->video_out);
+  this->video_out->close(this->video_out, this->stream);
 
   pthread_mutex_unlock (&this->lock);
 
@@ -162,7 +162,7 @@ static video_decoder_t *open_plugin (video_decoder_class_t *class_gen, xine_stre
   pthread_mutex_lock (&this->lock);
 
   mpeg2_init (&this->mpeg2, stream->video_out);
-  stream->video_out->open(stream->video_out);
+  stream->video_out->open(stream->video_out, stream);
   this->video_out = stream->video_out;
   this->mpeg2.force_aspect = 0;
 
@@ -213,6 +213,6 @@ static decoder_info_t dec_info_mpeg2 = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_VIDEO_DECODER, 12, "mpeg2", XINE_VERSION_CODE, &dec_info_mpeg2, init_plugin },
+  { PLUGIN_VIDEO_DECODER, 13, "mpeg2", XINE_VERSION_CODE, &dec_info_mpeg2, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

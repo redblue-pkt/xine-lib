@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.111 2002/11/10 13:18:01 mroi Exp $
+ * $Id: video_out.c,v 1.112 2002/11/20 11:57:49 mroi Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -49,12 +49,13 @@
 
 typedef struct {
   
-  vo_instance_t             vo; /* public part */
+  xine_video_port_t         vo; /* public part */
 
-  xine_vo_driver_t         *driver;
-  metronom_t               *metronom;
+  vo_driver_t              *driver;
   xine_t                   *xine;
-  xine_stream_t            *stream;
+  metronom_clock_t         *clock;
+  xine_list_t              *streams;
+  pthread_mutex_t           streams_lock;
   
   img_buf_fifo_t           *free_img_buf_queue;
   img_buf_fifo_t           *display_img_buf_queue;
@@ -191,7 +192,7 @@ static void vo_frame_dec_lock (vo_frame_t *img) {
 
   img->lock_counter--;
   if (!img->lock_counter) {    
-    vos_t *this = (vos_t *) img->instance;
+    vos_t *this = (vos_t *) img->port;
     vo_append_to_img_buf_queue (this->free_img_buf_queue, img);
   }
 
@@ -211,7 +212,7 @@ static void vo_frame_dec_lock (vo_frame_t *img) {
  *
  */
 
-static vo_frame_t *vo_get_frame (vo_instance_t *this_gen,
+static vo_frame_t *vo_get_frame (xine_video_port_t *this_gen,
 				 uint32_t width, uint32_t height,
 				 int ratio, int format,
 				 int flags) {
@@ -250,19 +251,19 @@ static vo_frame_t *vo_get_frame (vo_instance_t *this_gen,
   return img;
 }
 
-static int vo_frame_draw (vo_frame_t *img) {
+static int vo_frame_draw (vo_frame_t *img, xine_stream_t *stream) {
 
-  vos_t         *this = (vos_t *) img->instance;
+  vos_t         *this = (vos_t *) img->port;
   int64_t        diff;
   int64_t        cur_vpts;
   int64_t        pic_vpts ;
   int            frames_to_skip;
 
-  this->metronom->got_video_frame (this->metronom, img);
+  stream->metronom->got_video_frame (stream->metronom, img);
 
   pic_vpts = img->vpts;
 
-  cur_vpts = this->metronom->get_current_time(this->metronom);
+  cur_vpts = this->clock->get_current_time(this->clock);
   this->last_delivery_pts = cur_vpts;
 
 #ifdef LOG
@@ -293,12 +294,12 @@ static int vo_frame_draw (vo_frame_t *img) {
     /*
      * Wake up xine_play if it's waiting for a frame
      */
-    pthread_mutex_lock (&this->stream->first_frame_lock);
-    if (this->stream->first_frame_flag) {
-      this->stream->first_frame_flag = 0;
-      pthread_cond_broadcast(&this->stream->first_frame_reached);
+    pthread_mutex_lock (&stream->first_frame_lock);
+    if (stream->first_frame_flag) {
+      stream->first_frame_flag = 0;
+      pthread_cond_broadcast(&stream->first_frame_reached);
     }
-    pthread_mutex_unlock (&this->stream->first_frame_lock);
+    pthread_mutex_unlock (&stream->first_frame_lock);
 
     /*
      * put frame into FIFO-Buffer
@@ -578,12 +579,13 @@ static vo_frame_t *get_next_frame (vos_t *this, int64_t cur_vpts) {
      * last frame? make backup for possible still image 
      */
     pthread_mutex_lock( &this->free_img_buf_queue->mutex );
-    if (img && !img->next &&
+    if (img && !img->next /* FIXME: is this test needed? &&
 	(this->stream->video_fifo->size(this->stream->video_fifo) < 10 
-	 || this->stream->video_in_discontinuity) ) {
+	 || this->stream->video_in_discontinuity)*/ ) {
 	
-      printf ("video_out: possible still frame (fifosize = %d)\n",
-	      this->stream->video_fifo->size(this->stream->video_fifo));
+      /*printf ("video_out: possible still frame (fifosize = %d)\n",
+	      this->stream->video_fifo->size(this->stream->video_fifo));*/
+      printf ("video_out: possible still frame\n");
         
       this->img_backup = duplicate_frame (this, img);
     }
@@ -607,7 +609,7 @@ static void overlay_and_display_frame (vos_t *this,
   printf ("video_out: displaying image with vpts = %lld\n", 
 	  img->vpts);
 #endif
-  
+
   if (this->overlay_source) {
     this->overlay_source->multiple_overlay_blend (this->overlay_source, 
 						  vpts, 
@@ -650,7 +652,7 @@ static void paused_loop( vos_t *this, int64_t vpts )
   /* prevent decoder thread from allocating new frames */
   this->free_img_buf_queue->locked_for_read = 1;
   
-  while (this->stream->speed == XINE_SPEED_PAUSE) {
+  while (this->clock->speed == XINE_SPEED_PAUSE) {
   
     /* we need at least one free frame to keep going */
     if( this->display_img_buf_queue->first &&
@@ -704,7 +706,7 @@ static void *video_out_loop (void *this_gen) {
    */
 
   frame_duration = 1500; /* default */
-  next_frame_vpts = this->metronom->get_current_time (this->metronom);
+  next_frame_vpts = this->clock->get_current_time (this->clock);
 
 #ifdef LOG
     printf ("video_out: loop starting...\n");
@@ -716,7 +718,7 @@ static void *video_out_loop (void *this_gen) {
      * get current time and find frame to display
      */
 
-    vpts = this->metronom->get_current_time (this->metronom);
+    vpts = this->clock->get_current_time (this->clock);
 #ifdef LOG
     printf ("video_out: loop iteration at %lld\n", vpts);
 #endif
@@ -746,16 +748,23 @@ static void *video_out_loop (void *this_gen) {
 
     diff = vpts - this->last_delivery_pts;
     if (diff > 30000 && !this->display_img_buf_queue->first) {
-      if (this->stream->video_decoder_plugin) {
+      xine_stream_t *stream;
+      
+      pthread_mutex_lock(&this->streams_lock);
+      for (stream = xine_list_first_content(this->streams); stream;
+           stream = xine_list_next_content(this->streams)) {
+        if (stream->video_decoder_plugin) {
 
 #ifdef LOG
-	printf ("video_out: flushing current video decoder plugin (%d %d)\n", 
-		this->display_img_buf_queue->num_buffers,
-		this->free_img_buf_queue->num_buffers);
+	  printf ("video_out: flushing current video decoder plugin (%d %d)\n", 
+		  this->display_img_buf_queue->num_buffers,
+		  this->free_img_buf_queue->num_buffers);
 #endif
 	
-	this->stream->video_decoder_plugin->flush(this->stream->video_decoder_plugin);
+	  stream->video_decoder_plugin->flush(stream->video_decoder_plugin);
+        }
       }
+      pthread_mutex_unlock(&this->streams_lock);
       this->last_delivery_pts = vpts;
     }
 
@@ -775,9 +784,9 @@ static void *video_out_loop (void *this_gen) {
 #endif
  
     do {
-      vpts = this->metronom->get_current_time (this->metronom);
+      vpts = this->clock->get_current_time (this->clock);
   
-      if (this->stream->speed == XINE_SPEED_PAUSE)
+      if (this->clock->speed == XINE_SPEED_PAUSE)
         paused_loop (this, vpts);
 
       usec_to_sleep = (next_frame_vpts - vpts) * 100 / 9;
@@ -825,31 +834,48 @@ static void *video_out_loop (void *this_gen) {
   pthread_exit(NULL);
 }
 
-static uint32_t vo_get_capabilities (vo_instance_t *this_gen) {
+static uint32_t vo_get_capabilities (xine_video_port_t *this_gen) {
   vos_t      *this = (vos_t *) this_gen;
   return this->driver->get_capabilities (this->driver);
 }
 
-static void vo_open (vo_instance_t *this_gen) {
+static void vo_open (xine_video_port_t *this_gen, xine_stream_t *stream) {
 
   vos_t      *this = (vos_t *) this_gen;
 
   this->video_opened = 1;
   this->last_delivery_pts = 0;
+  if (!this->overlay_enabled && stream->spu_channel_user > -2)
+    /* enable overlays if our new stream might want to show some */
+    this->overlay_enabled = 1;
+  pthread_mutex_lock(&this->streams_lock);
+  xine_list_append_content(this->streams, stream);
+  pthread_mutex_unlock(&this->streams_lock);
 }
 
-static void vo_close (vo_instance_t *this_gen) {
+static void vo_close (xine_video_port_t *this_gen, xine_stream_t *stream) {
 
-  vos_t      *this = (vos_t *) this_gen;    
+  vos_t      *this = (vos_t *) this_gen;
+  xine_stream_t *cur;
 
   /* this will make sure all hide events were processed */
   if (this->overlay_source)
     this->overlay_source->flush_events (this->overlay_source);
 
   this->video_opened = 0;
+  
+  /* unregister stream */
+  pthread_mutex_lock(&this->streams_lock);
+  for (cur = xine_list_first_content(this->streams); cur;
+       cur = xine_list_next_content(this->streams))
+    if (cur == stream) {
+      xine_list_delete_current(this->streams);
+      break;
+    }
+  pthread_mutex_unlock(&this->streams_lock);
 }
 
-static void vo_free_img_buffers (vo_instance_t *this_gen) {
+static void vo_free_img_buffers (xine_video_port_t *this_gen) {
   vos_t      *this = (vos_t *) this_gen;
   vo_frame_t *img;
 
@@ -864,7 +890,7 @@ static void vo_free_img_buffers (vo_instance_t *this_gen) {
   }
 }
 
-static void vo_exit (vo_instance_t *this_gen) {
+static void vo_exit (xine_video_port_t *this_gen) {
 
   vos_t      *this = (vos_t *) this_gen;
 
@@ -891,6 +917,9 @@ static void vo_exit (vo_instance_t *this_gen) {
   if (this->overlay_source) {
     this->overlay_source->dispose (this->overlay_source);
   }
+  
+  xine_list_free(this->streams);
+  pthread_mutex_destroy(&this->streams_lock);
 
   free (this->free_img_buf_queue);
   free (this->display_img_buf_queue);
@@ -898,7 +927,7 @@ static void vo_exit (vo_instance_t *this_gen) {
   free (this);
 }
 
-static vo_frame_t *vo_get_last_frame (vo_instance_t *this_gen) {
+static vo_frame_t *vo_get_last_frame (xine_video_port_t *this_gen) {
   vos_t      *this = (vos_t *) this_gen;
   return this->last_frame;
 }
@@ -907,20 +936,37 @@ static vo_frame_t *vo_get_last_frame (vo_instance_t *this_gen) {
  * overlay stuff 
  */
 
-static video_overlay_instance_t *vo_get_overlay_instance (vo_instance_t *this_gen) {
+static video_overlay_instance_t *vo_get_overlay_instance (xine_video_port_t *this_gen) {
   vos_t      *this = (vos_t *) this_gen;
   return this->overlay_source;
 }
 
-static void vo_enable_overlay (vo_instance_t *this_gen, int overlay_enabled) {
+static void vo_enable_overlay (xine_video_port_t *this_gen, int overlay_enabled) {
   vos_t      *this = (vos_t *) this_gen;
-  this->overlay_enabled = overlay_enabled;
+  
+  if (overlay_enabled) {
+    /* we always ENable ... */
+    this->overlay_enabled = 1;
+  } else {
+    /* ... but we only actually DISable, if all associated streams have SPU off */
+    xine_stream_t *stream;
+    pthread_mutex_lock(&this->streams_lock);
+    for (stream = xine_list_first_content(this->streams) ; stream ;
+         stream = xine_list_next_content(this->streams)) {
+      if (stream->spu_channel_user > -2) {
+	pthread_mutex_unlock(&this->streams_lock);
+	return;
+      }
+    }
+    pthread_mutex_unlock(&this->streams_lock);
+    this->overlay_enabled = 0;
+  }
 }
 
 /*
  * Flush video_out fifo
  */
-static void vo_flush (vo_instance_t *this_gen) {
+static void vo_flush (xine_video_port_t *this_gen) {
   vos_t      *this = (vos_t *) this_gen;
   vo_frame_t *img;
   int        i, num_buffers;
@@ -938,8 +984,7 @@ static void vo_flush (vo_instance_t *this_gen) {
 }
 
 
-vo_instance_t *vo_new_instance (xine_vo_driver_t *driver, 
-				xine_stream_t *stream) {
+xine_video_port_t *vo_new_port (xine_t *xine, vo_driver_t *driver) {
 
   vos_t            *this;
   int               i;
@@ -950,10 +995,12 @@ vo_instance_t *vo_new_instance (xine_vo_driver_t *driver,
 
   this = xine_xmalloc (sizeof (vos_t)) ;
 
+  this->xine                  = xine;
+  this->clock                 = xine->clock;
   this->driver                = driver;
-  this->xine                  = stream->xine;
-  this->metronom              = stream->metronom;
-  this->stream                = stream;
+  this->streams               = xine_list_new();
+  
+  pthread_mutex_init(&this->streams_lock, NULL);
 
   this->vo.open                  = vo_open;
   this->vo.get_frame             = vo_get_frame;
@@ -964,6 +1011,7 @@ vo_instance_t *vo_new_instance (xine_vo_driver_t *driver,
   this->vo.enable_ovl            = vo_enable_overlay;
   this->vo.get_overlay_instance  = vo_get_overlay_instance;
   this->vo.flush                 = vo_flush;
+  this->vo.driver                = driver;
 
   this->num_frames_delivered  = 0;
   this->num_frames_skipped    = 0;
@@ -993,7 +1041,7 @@ vo_instance_t *vo_new_instance (xine_vo_driver_t *driver,
 
     img->id        = i;
     
-    img->instance  = &this->vo;
+    img->port      = &this->vo;
     img->free      = vo_frame_dec_lock;
     img->displayed = vo_frame_dec_lock;
     img->draw      = vo_frame_draw;
@@ -1013,7 +1061,7 @@ vo_instance_t *vo_new_instance (xine_vo_driver_t *driver,
 
   this->video_loop_running   = 1;
   this->video_opened         = 0;
-
+  
   pthread_attr_init(&pth_attrs);
   pthread_attr_setscope(&pth_attrs, PTHREAD_SCOPE_SYSTEM);
 

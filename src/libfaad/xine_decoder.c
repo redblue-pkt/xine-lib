@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.9 2002/11/19 02:31:03 tmmm Exp $
+ * $Id: xine_decoder.c,v 1.10 2002/11/20 11:57:43 mroi Exp $
  *
  */
 
@@ -148,7 +148,7 @@ static void faad_decode_audio ( faad_decoder_t *this, int end_frame ) {
         audio_buffer->num_frames = outsize / (this->num_channels*2);
         audio_buffer->vpts = this->pts;
 
-        this->stream->audio_out->put_buffer (this->stream->audio_out, audio_buffer);
+        this->stream->audio_out->put_buffer (this->stream->audio_out, audio_buffer, this->stream);
         
         this->pts = 0;
         decoded -= outsize;
@@ -230,7 +230,7 @@ static void faad_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
     this->num_channels=buf->decoder_info[3] ; 
   
     if (this->output_open) {
-        this->stream->audio_out->close (this->stream->audio_out);
+        this->stream->audio_out->close (this->stream->audio_out, this->stream);
         this->output_open = 0;
     }
 
@@ -300,6 +300,7 @@ static void faad_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
         }
 
         this->output_open = this->stream->audio_out->open (this->stream->audio_out,
+                                                   this->stream,
                                                    this->bits_per_sample,
                                                    this->rate,
                                                    this->ao_cap_mode) ;
@@ -320,7 +321,7 @@ static void faad_dispose (audio_decoder_t *this_gen) {
   faad_decoder_t *this = (faad_decoder_t *) this_gen; 
 
   if (this->output_open) 
-    this->stream->audio_out->close (this->stream->audio_out);
+    this->stream->audio_out->close (this->stream->audio_out, this->stream);
   this->output_open = 0;
     
   if( this->buf )
@@ -398,6 +399,6 @@ static decoder_info_t dec_info_audio = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_AUDIO_DECODER, 11, "faad", XINE_VERSION_CODE, &dec_info_audio, init_plugin },
+  { PLUGIN_AUDIO_DECODER, 12, "faad", XINE_VERSION_CODE, &dec_info_audio, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

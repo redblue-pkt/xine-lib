@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.87 2002/11/19 00:45:41 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.88 2002/11/20 11:57:45 mroi Exp $
  *
  * stuff needed to turn libspu into a xine decoder plugin
  */
@@ -249,7 +249,7 @@ static void spudec_set_button (spu_decoder_t *this_gen, int32_t button, int32_t 
 #ifdef LOG_BUTTON
     fprintf(stderr, "libspudec: add_event type=%d : current time=%lld, spu vpts=%lli\n",
             overlay_event->event_type,
-            this->stream->metronom->get_current_time(this->stream->metronom),
+            this->stream->xine->clock->get_current_time(this->stream->xine->clock),
             overlay_event->vpts);
 #endif
     ovl_instance->add_event (ovl_instance, (void *)overlay_event);
@@ -348,6 +348,6 @@ static decoder_info_t dec_info_data = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_SPU_DECODER, 11, "spudec", XINE_VERSION_CODE, &dec_info_data, &init_plugin },
+  { PLUGIN_SPU_DECODER, 12, "spudec", XINE_VERSION_CODE, &dec_info_data, &init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  *
- * $Id: video_out_pgx64.c,v 1.13 2002/11/02 22:30:21 komadori Exp $
+ * $Id: video_out_pgx64.c,v 1.14 2002/11/20 11:57:48 mroi Exp $
  *
  * video_out_pgx64.c, Sun PGX64/PGX24 output plugin for xine
  *
@@ -116,7 +116,7 @@ typedef struct {
 } pgx64_frame_t;
 
 typedef struct {   
-  xine_vo_driver_t vo_driver;
+  vo_driver_t vo_driver;
   vo_scale_t vo_scale;
   pgx64_driver_class_t *class;
   pgx64_frame_t *current;
@@ -833,8 +833,8 @@ static pgx64_driver_class_t* pgx64fb_init_class(xine_t *xine, void *visual_gen)
 
 plugin_info_t xine_plugin_info[] = {
 #ifdef HAVE_X11
-  {PLUGIN_VIDEO_OUT, 10, "pgx64", XINE_VERSION_CODE, &vo_info_pgx64, (void*)pgx64_init_class},
+  {PLUGIN_VIDEO_OUT, 11, "pgx64", XINE_VERSION_CODE, &vo_info_pgx64, (void*)pgx64_init_class},
 #endif
-  {PLUGIN_VIDEO_OUT, 10, "pgx64fb", XINE_VERSION_CODE, &vo_info_pgx64fb, (void*)pgx64fb_init_class},
+  {PLUGIN_VIDEO_OUT, 11, "pgx64fb", XINE_VERSION_CODE, &vo_info_pgx64fb, (void*)pgx64fb_init_class},
   {PLUGIN_NONE, 0, "", 0, NULL, NULL}
 };

@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.82 2002/11/18 15:53:31 heikos Exp $
+ * $Id: audio_out.c,v 1.83 2002/11/20 11:57:49 mroi Exp $
  * 
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -207,7 +207,7 @@ static audio_buffer_t *fifo_remove (audio_fifo_t *fifo) {
 }
 
 
-void write_pause_burst(ao_instance_t *this, uint32_t num_frames) {
+void write_pause_burst(xine_audio_port_t *this, uint32_t num_frames) { 
  
   int error = 0;
   unsigned char buf[8192];
@@ -245,7 +245,7 @@ void write_pause_burst(ao_instance_t *this, uint32_t num_frames) {
 }
 
 
-static void ao_fill_gap (ao_instance_t *this, int64_t pts_len) {
+static void ao_fill_gap (xine_audio_port_t *this, int64_t pts_len) {
 
   int num_frames ;
 
@@ -286,7 +286,7 @@ static void ensure_buffer_size (audio_buffer_t *buf, int bytes_per_frame,
   buf->num_frames = frames;
 }
 
-static audio_buffer_t * swap_frame_buffers ( ao_instance_t *this ) {
+static audio_buffer_t * swap_frame_buffers ( xine_audio_port_t *this ) {
   audio_buffer_t *tmp;
 
   tmp = this->frame_buf[1];
@@ -311,7 +311,7 @@ static int mode_channels( int mode ) {
   return 0;
 } 
 
-static void audio_filter_compress (ao_instance_t *this, int16_t *mem, int num_frames) {
+static void audio_filter_compress (xine_audio_port_t *this, int16_t *mem, int num_frames) {
 
   int    i, maxs;
   double f_max;
@@ -354,7 +354,7 @@ static void audio_filter_compress (ao_instance_t *this, int16_t *mem, int num_fr
     mem [i] = mem[i] * this->compression_factor;
 }
 
-static audio_buffer_t* prepare_samples( ao_instance_t  *this, audio_buffer_t *buf) {
+static audio_buffer_t* prepare_samples( xine_audio_port_t  *this, audio_buffer_t *buf) {
   double          acc_output_frames, output_frame_excess = 0;
   int             num_output_frames ;
 
@@ -488,7 +488,7 @@ static audio_buffer_t* prepare_samples( ao_instance_t  *this, audio_buffer_t *bu
  */
 static void *ao_loop (void *this_gen) {
 
-  ao_instance_t  *this = (ao_instance_t *) this_gen;
+  xine_audio_port_t *this = (xine_audio_port_t *) this_gen;
   int64_t         hw_vpts;
   audio_buffer_t *in_buf, *out_buf;
   int64_t         gap;
@@ -537,7 +537,7 @@ static void *ao_loop (void *this_gen) {
 
       if (this->audio_paused == 1) {
 
-	cur_time = this->metronom->get_current_time (this->metronom);
+	cur_time = this->clock->get_current_time (this->clock);
 	if (in_buf->vpts < cur_time ) {
 #ifdef LOG
 	  printf ("audio_out:loop: next fifo\n");
@@ -573,7 +573,7 @@ static void *ao_loop (void *this_gen) {
      * hardware audio buffer at the moment?
      */
 
-    cur_time = this->metronom->get_current_time (this->metronom);
+    cur_time = this->clock->get_current_time (this->clock);
     hw_vpts = cur_time;
   
 #ifdef LOG
@@ -621,13 +621,19 @@ static void *ao_loop (void *this_gen) {
     } else if ( abs(gap) < AO_MAX_GAP && abs(gap) > this->gap_tolerance &&
            cur_time > (last_sync_time + SYNC_TIME_INVERVAL) && 
            bufs_since_sync >= SYNC_BUF_INTERVAL ) {
+	xine_stream_t *stream;
 #ifdef LOG
         printf ("audio_out: audio_loop: ADJ_VPTS\n"); 
 #endif
-        this->metronom->set_option(this->metronom, METRONOM_ADJ_VPTS_OFFSET,
-                                   -gap/SYNC_GAP_RATE );
-        last_sync_time = cur_time;
-        bufs_since_sync = 0;
+	pthread_mutex_lock(&this->streams_lock);
+	for (stream = xine_list_first_content(this->streams); stream;
+	     stream = xine_list_next_content(this->streams)) {
+	  stream->metronom->set_option(stream->metronom, METRONOM_ADJ_VPTS_OFFSET,
+                                       -gap/SYNC_GAP_RATE );
+          last_sync_time = cur_time;
+          bufs_since_sync = 0;
+	}
+	pthread_mutex_unlock(&this->streams_lock);
 
     } else if ( gap > AO_MAX_GAP ) {
       /* for big gaps output silence */
@@ -684,7 +690,7 @@ static void *ao_loop (void *this_gen) {
  * open the audio device for writing to, start audio output thread
  */
 
-static int ao_open(ao_instance_t *this,
+static int ao_open(xine_audio_port_t *this, xine_stream_t *stream,
 		   uint32_t bits, uint32_t rate, int mode) {
  
   int output_sample_rate, err;
@@ -693,31 +699,36 @@ static int ao_open(ao_instance_t *this,
   /* 
    * set metainfo
    */
-
-  switch (mode) {
-  case AO_CAP_MODE_MONO:
-    this->stream->stream_info[XINE_STREAM_INFO_AUDIO_CHANNELS] = 1;
-    break;
-  case AO_CAP_MODE_STEREO:
-    this->stream->stream_info[XINE_STREAM_INFO_AUDIO_CHANNELS] = 2;
-    break;
-  case AO_CAP_MODE_4CHANNEL:
-    this->stream->stream_info[XINE_STREAM_INFO_AUDIO_CHANNELS] = 4;
-    break;
-  case AO_CAP_MODE_5CHANNEL:
-    this->stream->stream_info[XINE_STREAM_INFO_AUDIO_CHANNELS] = 5;
-    break;
-  case AO_CAP_MODE_5_1CHANNEL:
-    this->stream->stream_info[XINE_STREAM_INFO_AUDIO_CHANNELS] = 6;
-    break;
-  case AO_CAP_MODE_A52:
-  case AO_CAP_MODE_AC5:
-  default:
-    this->stream->stream_info[XINE_STREAM_INFO_AUDIO_CHANNELS] = 255; /* unknown */
-  }
+  pthread_mutex_lock(&this->streams_lock);
+  xine_list_append_content(this->streams, stream);
+  for (stream = xine_list_first_content(this->streams); stream;
+       stream = xine_list_next_content(this->streams)) {
+    switch (mode) {
+    case AO_CAP_MODE_MONO:
+      stream->stream_info[XINE_STREAM_INFO_AUDIO_CHANNELS] = 1;
+      break;
+    case AO_CAP_MODE_STEREO:
+      stream->stream_info[XINE_STREAM_INFO_AUDIO_CHANNELS] = 2;
+      break;
+    case AO_CAP_MODE_4CHANNEL:
+      stream->stream_info[XINE_STREAM_INFO_AUDIO_CHANNELS] = 4;
+      break;
+    case AO_CAP_MODE_5CHANNEL:
+      stream->stream_info[XINE_STREAM_INFO_AUDIO_CHANNELS] = 5;
+      break;
+    case AO_CAP_MODE_5_1CHANNEL:
+      stream->stream_info[XINE_STREAM_INFO_AUDIO_CHANNELS] = 6;
+      break;
+    case AO_CAP_MODE_A52:
+    case AO_CAP_MODE_AC5:
+    default:
+      stream->stream_info[XINE_STREAM_INFO_AUDIO_CHANNELS] = 255; /* unknown */
+    }
   
-  this->stream->stream_info[XINE_STREAM_INFO_AUDIO_BITS]       = bits;
-  this->stream->stream_info[XINE_STREAM_INFO_AUDIO_SAMPLERATE] = rate;
+    stream->stream_info[XINE_STREAM_INFO_AUDIO_BITS]       = bits;
+    stream->stream_info[XINE_STREAM_INFO_AUDIO_SAMPLERATE] = rate;
+  }
+  pthread_mutex_unlock(&this->streams_lock);
 
   this->input.mode            = mode;
   this->input.rate            = rate;
@@ -781,7 +792,11 @@ static int ao_open(ao_instance_t *this,
   printf ("audio_out : audio_step %d pts per 32768 frames\n", this->audio_step);
 #endif
 
-  this->metronom->set_audio_rate(this->metronom, this->audio_step);
+  pthread_mutex_lock(&this->streams_lock);
+  for (stream = xine_list_first_content(this->streams); stream;
+       stream = xine_list_next_content(this->streams))
+    stream->metronom->set_audio_rate(stream->metronom, this->audio_step);
+  pthread_mutex_unlock(&this->streams_lock);
 
   /*
    * start output thread
@@ -811,11 +826,11 @@ static int ao_open(ao_instance_t *this,
   return this->output.rate;
 }
 
-static audio_buffer_t *ao_get_buffer (ao_instance_t *this) {
+static audio_buffer_t *ao_get_buffer (xine_audio_port_t *this) {
   return fifo_remove (this->free_fifo);
 }
 
-static void ao_put_buffer (ao_instance_t *this, audio_buffer_t *buf) {
+static void ao_put_buffer (xine_audio_port_t *this, audio_buffer_t *buf, xine_stream_t *stream) {
 
   int64_t pts;
 
@@ -826,8 +841,8 @@ static void ao_put_buffer (ao_instance_t *this, audio_buffer_t *buf) {
 
   pts = buf->vpts;
 
-  buf->vpts = this->metronom->got_audio_samples (this->metronom, pts, 
-						 buf->num_frames);
+  buf->vpts = stream->metronom->got_audio_samples (stream->metronom, pts, 
+						   buf->num_frames);
 
 #ifdef LOG
   printf ("audio_out: ao_put_buffer, pts=%lld, vpts=%lld\n",
@@ -854,9 +869,10 @@ static void ao_put_buffer (ao_instance_t *this, audio_buffer_t *buf) {
 #endif
 }
 
-static void ao_close(ao_instance_t *this) {
+static void ao_close(xine_audio_port_t *this, xine_stream_t *stream) {
 
   audio_buffer_t *audio_buffer;
+  xine_stream_t *cur;
 
   if (this->audio_loop_running) {
     void *p;
@@ -871,13 +887,23 @@ static void ao_close(ao_instance_t *this) {
     pthread_join (this->audio_thread, &p);
     this->audio_thread = 0;
   }
+  
+  /* unregister stream */
+  pthread_mutex_lock(&this->streams_lock);
+  for (cur = xine_list_first_content(this->streams); cur;
+       cur = xine_list_next_content(this->streams))
+    if (cur == stream) {
+      xine_list_delete_current(this->streams);
+      break;
+    }
+  pthread_mutex_unlock(&this->streams_lock);
 
   pthread_mutex_lock( &this->driver_lock );
   this->driver->close(this->driver);  
   pthread_mutex_unlock( &this->driver_lock );
 }
 
-static void ao_exit(ao_instance_t *this) {
+static void ao_exit(xine_audio_port_t *this) {
   int vol;
   int prop = 0;
   
@@ -894,6 +920,10 @@ static void ao_exit(ao_instance_t *this) {
   this->xine->config->update_num(this->xine->config, "audio.mixer_volume", vol);
   this->driver->exit(this->driver);
   pthread_mutex_unlock( &this->driver_lock );
+  
+  pthread_mutex_destroy(&this->driver_lock);
+  pthread_mutex_destroy(&this->streams_lock);
+  xine_list_free(this->streams);
 
   free (this->frame_buf[0]->mem);
   free (this->frame_buf[0]);
@@ -930,7 +960,7 @@ static void ao_exit(ao_instance_t *this) {
   free (this);
 }
 
-static uint32_t ao_get_capabilities (ao_instance_t *this) {
+static uint32_t ao_get_capabilities (xine_audio_port_t *this) {
   uint32_t result;
   
   pthread_mutex_lock( &this->driver_lock );
@@ -940,7 +970,7 @@ static uint32_t ao_get_capabilities (ao_instance_t *this) {
   return result;
 }
 
-static int ao_get_property (ao_instance_t *this, int property) {
+static int ao_get_property (xine_audio_port_t *this, int property) {
   int ret;
 
   switch (property) {
@@ -956,7 +986,7 @@ static int ao_get_property (ao_instance_t *this, int property) {
   return ret;
 }
 
-static int ao_set_property (ao_instance_t *this, int property, int value) {
+static int ao_set_property (xine_audio_port_t *this, int property, int value) {
   int ret;
 
   switch (property) {
@@ -977,7 +1007,7 @@ static int ao_set_property (ao_instance_t *this, int property, int value) {
   return ret;
 }
 
-static int ao_control (ao_instance_t *this, int cmd, ...) {
+static int ao_control (xine_audio_port_t *this, int cmd, ...) {
 
   va_list args;
   void *arg;
@@ -993,7 +1023,7 @@ static int ao_control (ao_instance_t *this, int cmd, ...) {
   return rval;
 }
 
-static void ao_flush (ao_instance_t *this) {
+static void ao_flush (xine_audio_port_t *this) {
   audio_buffer_t *buf;
   int            i, num_buffers;
 
@@ -1023,20 +1053,21 @@ static void ao_flush (ao_instance_t *this) {
   pthread_mutex_unlock (&this->out_fifo->mutex);
 }
 
-ao_instance_t *ao_new_instance (xine_ao_driver_t *driver, 
-				xine_stream_t *stream) {
+xine_audio_port_t *ao_new_port (xine_t *xine, ao_driver_t *driver) {
  
-  config_values_t *config = stream->xine->config;
-  ao_instance_t   *this;
+  config_values_t *config = xine->config;
+  xine_audio_port_t *this;
   int              i;
   static     char *resample_modes[] = {"auto", "off", "on", NULL};
 
-  this = xine_xmalloc (sizeof (ao_instance_t)) ;
+  this = xine_xmalloc (sizeof (xine_audio_port_t)) ;
 
   this->driver                = driver;
-  this->metronom              = stream->metronom;
-  this->xine                  = stream->xine;
-  this->stream                = stream;
+  this->xine                  = xine;
+  this->clock                 = xine->clock;
+  this->streams               = xine_list_new();
+    
+  pthread_mutex_init( &this->streams_lock, NULL );
   pthread_mutex_init( &this->driver_lock, NULL );
 
   this->open                   = ao_open;

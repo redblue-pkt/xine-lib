@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.h,v 1.6 2002/11/12 18:40:54 miguelfreitas Exp $
+ * $Id: audio_decoder.h,v 1.7 2002/11/20 11:57:49 mroi Exp $
  *
  * xine audio decoder plugin interface
  *
@@ -29,7 +29,7 @@
 #include <inttypes.h>
 #include "buffer.h"
 
-#define AUDIO_DECODER_IFACE_VERSION 11
+#define AUDIO_DECODER_IFACE_VERSION 12
 
 /*
  * generic xine audio decoder plugin interface

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.102 2002/11/15 18:01:59 esnel Exp $
+ * $Id: w32codec.c,v 1.103 2002/11/20 11:57:45 mroi Exp $
  *
  * routines for using w32 codecs
  * DirectShow support by Miguel Freitas (Nov/2001)
@@ -536,7 +536,7 @@ static void w32v_init_codec (w32v_decoder_t *this, int buf_type) {
   this->bufsize = VIDEOBUFSIZE;
   this->buf = malloc(this->bufsize);
 
-  this->stream->video_out->open (this->stream->video_out);
+  this->stream->video_out->open (this->stream->video_out, this->stream);
 
   this->outfmt = outfmt;
   this->decoder_ok = 1;
@@ -612,7 +612,7 @@ static void w32v_init_ds_codec (w32v_decoder_t *this, int buf_type) {
   this->bufsize = VIDEOBUFSIZE;
   this->buf = malloc(this->bufsize);
   
-  this->stream->video_out->open (this->stream->video_out);
+  this->stream->video_out->open (this->stream->video_out, this->stream);
 
   this->outfmt = outfmt;
   this->decoder_ok = 1;
@@ -831,7 +831,7 @@ static void w32v_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 	}
       }
 
-      this->skipframes = img->draw(img);
+      this->skipframes = img->draw(img, this->stream);
 
 #ifdef LOG
       printf ("w32codec: skipframes is %d\n", this->skipframes);
@@ -911,7 +911,7 @@ static void w32v_dispose (video_decoder_t *this_gen) {
 
   if( this->decoder_ok )  {  
     this->decoder_ok = 0;
-    this->stream->video_out->close(this->stream->video_out);
+    this->stream->video_out->close(this->stream->video_out, this->stream);
   }
 
   free (this);
@@ -1011,9 +1011,9 @@ static int w32a_init_audio (w32a_decoder_t *this, buf_element_t *buf ) {
   this->rate = in_fmt->nSamplesPerSec;
   
   if (this->output_open)
-    this->stream->audio_out->close (this->stream->audio_out);
+    this->stream->audio_out->close (this->stream->audio_out, this->stream);
 
-  this->output_open = this->stream->audio_out->open( this->stream->audio_out, 
+  this->output_open = this->stream->audio_out->open( this->stream->audio_out, this->stream,
 					      16, in_fmt->nSamplesPerSec, 
 					      (in_fmt->nChannels == 2) ? AO_CAP_MODE_STEREO : AO_CAP_MODE_MONO);
   if (!this->output_open) {
@@ -1026,7 +1026,7 @@ static int w32a_init_audio (w32a_decoder_t *this, buf_element_t *buf ) {
   audio_buffer_mem_size = audio_buffer->mem_size;
   audio_buffer->num_frames = 0;
   audio_buffer->vpts       = 0;
-  this->stream->audio_out->put_buffer (this->stream->audio_out, audio_buffer);
+  this->stream->audio_out->put_buffer (this->stream->audio_out, audio_buffer, this->stream);
 
   wf.nChannels       = in_fmt->nChannels;
   wf.nSamplesPerSec  = in_fmt->nSamplesPerSec;
@@ -1230,7 +1230,7 @@ static void w32a_decode_audio (w32a_decoder_t *this,
 	audio_buffer->num_frames = bufsize / (this->num_channels*2);
 	audio_buffer->vpts       = this->pts;
 
-	this->stream->audio_out->put_buffer (this->stream->audio_out, audio_buffer);
+	this->stream->audio_out->put_buffer (this->stream->audio_out, audio_buffer, this->stream);
         
 	this->pts = 0;
         DstLengthUsed -= bufsize;
@@ -1329,7 +1329,7 @@ static void w32a_dispose (audio_decoder_t *this_gen) {
   this->decoder_ok = 0;
 
   if (this->output_open) {
-    this->stream->audio_out->close (this->stream->audio_out);
+    this->stream->audio_out->close (this->stream->audio_out, this->stream);
     this->output_open = 0;
   }
 
@@ -1505,7 +1505,7 @@ static decoder_info_t dec_info_audio = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_VIDEO_DECODER, 12, "win32v", XINE_VERSION_CODE, &dec_info_video, init_video_decoder_class },
-  { PLUGIN_AUDIO_DECODER, 11, "win32a", XINE_VERSION_CODE, &dec_info_audio, init_audio_decoder_class },
+  { PLUGIN_VIDEO_DECODER, 13, "win32v", XINE_VERSION_CODE, &dec_info_video, init_video_decoder_class },
+  { PLUGIN_AUDIO_DECODER, 12, "win32a", XINE_VERSION_CODE, &dec_info_audio, init_audio_decoder_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

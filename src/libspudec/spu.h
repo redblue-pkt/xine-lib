@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: spu.h,v 1.16 2002/10/21 12:11:01 jcdutton Exp $
+ * $Id: spu.h,v 1.17 2002/11/20 11:57:44 mroi Exp $
  *
  * This file was originally part of the OMS program.
  *
@@ -110,7 +110,7 @@ typedef struct spudec_decoder_s {
   
   spudec_state_t      state;
 
-  vo_instance_t   *vo_out;
+  xine_video_port_t *vo_out;
   vo_overlay_t     overlay;
   int              ovl_caps;
   int              output_open;
