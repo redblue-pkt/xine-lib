@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_interface.c,v 1.60 2003/10/21 22:10:34 f1rmb Exp $
+ * $Id: xine_interface.c,v 1.61 2003/10/24 09:34:01 mroi Exp $
  *
  * convenience/abstraction layer, functions to implement
  * libxine's public interface
@@ -772,7 +772,7 @@ int xine_message(xine_stream_t *stream, int type, ...) {
 
   static char *std_explanation[] = {
     "",
-    "Warning",
+    "Warning:",
     "Unknown host:",
     "Unknown device:",
     "Network unreachable",
@@ -781,6 +781,7 @@ int xine_message(xine_stream_t *stream, int type, ...) {
     "Read error from:",
     "Error loading library:",
     "Encrypted media stream detected",
+    "Security message:"
   };
 
   if( type >= 0 && type < sizeof(std_explanation)/

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.259 2003/10/20 08:36:57 valtri Exp $
+ * $Id: xine.c,v 1.260 2003/10/24 09:34:01 mroi Exp $
  */
 
 /*
@@ -1222,7 +1222,24 @@ static void config_demux_strategy_cb (void *this_gen, xine_cfg_entry_t *entry) {
 
 static void config_save_cb (void *this_gen, xine_cfg_entry_t *entry) {
   xine_t *this = (xine_t *)this_gen;
+  char *homedir_trail_slash = strcat(strdup(xine_get_homedir()), "/");
 
+  if (entry->str_value[0] &&
+      (entry->str_value[0] != '/' || strstr(entry->str_value, "/.") ||
+       strcmp(entry->str_value, xine_get_homedir()) == 0 ||
+       strcmp(entry->str_value, homedir_trail_slash) == 0)) {
+    xine_stream_t *stream;
+    
+    xine_log(this, XINE_LOG_MSG,
+      _("xine: The specified save_dir \"%s\" might be a security risk.\n"), entry->str_value);
+    
+    pthread_mutex_lock(&this->streams_lock);
+    if ((stream = (xine_stream_t *)xine_list_first_content(this->streams)))
+      xine_message(stream, XINE_MSG_SECURITY, _("The specified save_dir might be a security risk."), NULL);
+    pthread_mutex_unlock(&this->streams_lock);
+  }
+  
+  free(homedir_trail_slash);
   this->save_path = entry->str_value;
 }
 
