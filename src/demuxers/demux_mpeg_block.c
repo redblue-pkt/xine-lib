@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.143 2002/11/18 11:44:55 mroi Exp $
+ * $Id: demux_mpeg_block.c,v 1.144 2002/11/18 13:07:29 mroi Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -1063,28 +1063,30 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
 
     mrl = input->get_mrl (input);
 
-    ending = strrchr(mrl, '.');
-
-    if (!ending) {
-      free (this->scratch_base);
-      free (this);
-      return NULL;
-    }
-    if ( (!strncasecmp (ending, ".vob", 4)) ||
-	 (!strncmp((ending + 3), "mpeg2", 5)) ||
-	 (!strncmp((ending + 3), "mpeg1", 5)) ) {
-      this->blocksize = 2048;
-      demux_mpeg_block_accept_input(this, input);
-    } else if(!strncmp(mrl, "vcd", 3)) {
+    if(!strncmp(mrl, "vcd", 3)) {
       this->blocksize = 2324;
       demux_mpeg_block_accept_input (this, input);
     } else if(!strncmp(mrl, "dvd", 3)) {
       this->blocksize = 2048;
       demux_mpeg_block_accept_input (this, input);
     } else {
-      free (this->scratch_base);
-      free (this);
-      return NULL;
+      ending = strrchr(mrl, '.');
+
+      if (!ending) {
+        free (this->scratch_base);
+        free (this);
+        return NULL;
+      }
+      if ( (!strncasecmp (ending, ".vob", 4)) ||
+	   (!strncmp((ending + 3), "mpeg2", 5)) ||
+	   (!strncmp((ending + 3), "mpeg1", 5)) ) {
+        this->blocksize = 2048;
+        demux_mpeg_block_accept_input(this, input);
+      } else {
+        free (this->scratch_base);
+        free (this);
+        return NULL;
+      }
     }
   }
   break;
