@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.35 2003/05/26 22:33:39 jstembridge Exp $
+ * $Id: xine_decoder.c,v 1.36 2003/05/26 22:44:44 jstembridge Exp $
  *
  * thin layer to use real binary-only codecs in xine
  *
@@ -191,19 +191,19 @@ static int init_codec (realdec_decoder_t *this, buf_element_t *buf) {
     if (!load_syms_linux (this, "drv2.so.6.0"))
       return 0;
     this->stream->meta_info[XINE_META_INFO_VIDEOCODEC] 
-      = strdup ("RV 20");
+      = strdup ("Real Video 2.0");
     break;
   case BUF_VIDEO_RV30:
     if (!load_syms_linux (this, "drv3.so.6.0"))
       return 0;
     this->stream->meta_info[XINE_META_INFO_VIDEOCODEC] 
-      = strdup ("RV 30");
+      = strdup ("Real Video 3.0");
     break;
   case BUF_VIDEO_RV40:
     if (!load_syms_linux(this, "drv4.so.6.0"))
       return 0;
     this->stream->meta_info[XINE_META_INFO_VIDEOCODEC]
-      = strdup("RV 40");
+      = strdup ("Real Video 4.0");
     break;
   default:
     printf ("libreal: error, i don't handle buf type 0x%08x\n",
