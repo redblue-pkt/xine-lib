@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2003 the xine project
+ * Copyright (C) 2000-2004 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -20,7 +20,7 @@
  * Compact Disc Digital Audio (CDDA) Input Plugin 
  *   by Mike Melanson (melanson@pcisys.net)
  *
- * $Id: input_cdda.c,v 1.43 2004/01/09 01:26:33 miguelfreitas Exp $
+ * $Id: input_cdda.c,v 1.44 2004/03/03 20:18:36 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -1313,7 +1313,7 @@ static void _cdda_mkdir_safe(xine_t *xine, char *path) {
   {
     struct stat  pstat;
     
-    if((lstat(path, &pstat)) < 0) {
+    if((stat(path, &pstat)) < 0) {
       /* file or directory no exist, create it */
       if(mkdir(path, 0755) < 0) {
 	xprintf(xine, XINE_VERBOSITY_DEBUG, 
@@ -1406,7 +1406,7 @@ static char *_cdda_cddb_get_default_location(void) {
  * Small sighandler ;-)
  */
 static void die(int signal) {
-  //abort();
+  //_x_abort();
 }
 
 /*
