@@ -29,13 +29,12 @@
  * - it's possible speeder saving streams in the xine without playing:
  *     xine stream_mrl#save:file.raw\;noaudio\;novideo
  *
- * $Id: input_rip.c,v 1.16 2003/11/23 23:43:35 valtri Exp $
+ * $Id: input_rip.c,v 1.17 2003/11/24 22:52:15 valtri Exp $
  */
 
 /* TODO:
  *   - resume feature (via #append)
  *   - gui activation (after restarting playback)
- *   - long files support
  */
 
 #ifdef HAVE_CONFIG_H
@@ -57,6 +56,10 @@
 #define CLR_RST "\e[0;39m"
 
 #include "xine_internal.h"
+
+#ifndef HAVE_FSEEKO
+#  define fseeko fseek
+#endif
 
 #define SCRATCH_SIZE 1024
 #define MAX_TARGET_LEN 256
@@ -354,7 +357,7 @@ static off_t rip_plugin_seek(input_plugin_t *this_gen, off_t offset, int origin)
     if (this->regular) {
       if (reqpos != this->savepos) {
         lprintf(" => seeking file to %lld\n", reqpos);
-        if (fseek(this->file, reqpos, SEEK_SET) != 0) {
+        if (fseeko(this->file, reqpos, SEEK_SET) != 0) {
           xine_log(this->stream->xine, XINE_LOG_MSG, 
             _("input_rip: seeking failed: %s\n"), strerror(errno));
           return -1;
@@ -373,7 +376,7 @@ static off_t rip_plugin_seek(input_plugin_t *this_gen, off_t offset, int origin)
     lprintf(" => seeking to end: %lld\n", this->savepos);
     if (this->regular) {
       lprintf(" => seeking file to end: %lld\n", this->savepos);
-      if (fseek(this->file, this->savepos, SEEK_SET) != 0) {
+      if (fseeko(this->file, this->savepos, SEEK_SET) != 0) {
         xine_log(this->stream->xine, XINE_LOG_MSG, 
           _("input_rip: seeking failed: %s\n"), strerror(errno));
         return -1;

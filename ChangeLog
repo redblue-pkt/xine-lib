@@ -21,6 +21,7 @@ xine-lib (1-rc3)
     (goom video does not jump any more)
   * problem with long frame durations fixed
   * seek timeout in RIP input plugin
+  * support for saved files bigger than 2 GB
 
 xine-lib (1-rc2)
   * XvMC support for hardware accelerated mpeg2 playback (-V xvmc)

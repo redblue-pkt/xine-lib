@@ -165,6 +165,7 @@ dnl AC_CHECK_TYPES([ptrdiff_t])
 AC_CHECK_GENERATE_INTTYPES([include])
 AC_CHECK_HEADERS(libgen.h)
 AC_CHECK_FUNCS(basename)
+AC_FUNC_FSEEKO
 
 
 dnl ---------------------------------------------
