@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2003 the xine project
+ * Copyright (C) 2000-2004 the xine project
  * 
  * This file is part of xine, a free video player.
  * 
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xineutils.h,v 1.78 2003/12/29 16:24:33 mroi Exp $
+ * $Id: xineutils.h,v 1.79 2004/01/07 22:20:59 jstembridge Exp $
  *
  */
 #ifndef XINEUTILS_H
@@ -819,6 +819,17 @@ extern int v_r_table[256];
 extern int v_g_table[256];
 extern int v_b_table[256];
 
+/* frame copying functions */
+extern void yv12_to_yv12
+  (unsigned char *y_src, int y_src_pitch, unsigned char *y_dst, int y_dst_pitch,
+   unsigned char *u_src, int u_src_pitch, unsigned char *u_dst, int u_dst_pitch,
+   unsigned char *v_src, int v_src_pitch, unsigned char *v_dst, int v_dst_pitch,
+   int width, int height);
+extern void yuy2_to_yuy2
+  (unsigned char *src, int src_pitch,
+   unsigned char *dst, int dst_pitch,
+   int width, int height);
+ 
 /* print a hexdump of the given data */
 void xine_hexdump (const char *buf, int length);
 

@@ -14,6 +14,7 @@ AM_CFLAGS = $(THREAD_CFLAGS) $(X_CFLAGS)
 libxineutils_la_SOURCES = $(pppc_files) \
 	cpu_accel.c \
 	color.c \
+	copy.c \
 	list.c \
 	memcpy.c \
 	monitor.c \
