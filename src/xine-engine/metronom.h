@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.h,v 1.32 2002/06/20 14:51:26 mroi Exp $
+ * $Id: metronom.h,v 1.33 2002/06/20 19:48:23 mroi Exp $
  *
  * metronom: general pts => virtual calculation/assoc
  *                   
@@ -134,8 +134,9 @@ struct metronom_s {
    *                    pts will start from given value soon
    * DISC_STREAMSEEK  : used by video and audio decoder loop,
    *                    when a buffer with BUF_FLAG_SEEK set is encountered;
-   *                    immediately corrects metronom's idea about vpts
-   *                    for fast response during seek
+   *                    applies the necessary vpts offset for the seek in
+   *                    metronom, but keeps the vpts difference between
+   *                    audio and video, so that metronom doesn't cough
    *
    * for DISC_RELATIVE and DISC_ABSOLUTE metronom will enter a
    * special discontinuity mode which means that it will ignore
