@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.10 2004/12/07 12:21:34 mlampard Exp $
+ * $Id: xine_decoder.c,v 1.11 2004/12/09 07:11:10 mlampard Exp $
  *
  * DVB Subtitle decoder (ETS 300 743)
  * (c) 2004 Mike Lampard <mlampard@users.sourceforge.net>
@@ -600,10 +600,10 @@ static void spudec_decode_data (spu_decoder_t * this_gen, buf_element_t * buf)
     return;
   }
   else {
-    if (buf->type & 0x0000ffff) {
-      memset (this->pes_pkt, 0xff, 1024*64);
+    if (buf->decoder_info[2]) {
+      memset (this->pes_pkt, 0xff, 64*1024);
       this->pes_pkt_wrptr = this->pes_pkt;
-      this->pes_pkt_size = (buf->type & 0x0000ffff);
+      this->pes_pkt_size = buf->decoder_info[2];
       this->pts = buf->pts;
 
       xine_fast_memcpy (this->pes_pkt, buf->content, buf->size);
