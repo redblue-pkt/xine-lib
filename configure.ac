@@ -494,15 +494,25 @@ AM_CONDITIONAL(HAVE_SDL, [test x"$no_sdl" != x"yes"])
 dnl ---------------------------------------------
 dnl dxr3 / hollywood plus card
 dnl ---------------------------------------------
-AC_CHECK_DXR3()
-if test x"$have_libfame" = "xyes" ; then
-  AC_DEFINE_UNQUOTED(HAVE_LIBFAME,1,[Define this if you have libfame mpeg encoder installed (fame.sf.net)])
-  AM_PATH_LIBFAME(0.8.10, 
-    AC_DEFINE(HAVE_NEW_LIBFAME,1,[Define this if you have libfame 0.8.10 or above]))
-fi
-if test x"$have_librte" = "xyes" ; then
-  AC_DEFINE_UNQUOTED(HAVE_LIBRTE,1,[Define this if you have librte mpeg encoder installed (zapping.sf.net)])
-fi
+case "$host_or_hostalias" in
+  i?86-*-linux* | k?-*-linux* | athlon*-*-linux* | pentium*-*-linux* )
+    AC_CHECK_DXR3()
+    if test x"$have_libfame" = "xyes" ; then
+      AC_DEFINE_UNQUOTED(HAVE_LIBFAME,1,[Define this if you have libfame mpeg encoder installed (fame.sf.net)])
+      AM_PATH_LIBFAME(0.8.10, 
+        AC_DEFINE(HAVE_NEW_LIBFAME,1,[Define this if you have libfame 0.8.10 or above]))
+    fi
+    if test x"$have_librte" = "xyes" ; then
+      AC_DEFINE_UNQUOTED(HAVE_LIBRTE,1,[Define this if you have librte mpeg encoder installed (zapping.sf.net)])
+    fi
+    ;;
+  *)
+    have_dxr3="no"
+    have_libfame="no"
+    have_librte="no"
+    have_encoder="no"
+    ;;
+esac
 AM_CONDITIONAL(HAVE_DXR3, test x"$have_dxr3" = "xyes")
 AM_CONDITIONAL(HAVE_LIBFAME, test x"$have_libfame" = "xyes")
 AM_CONDITIONAL(HAVE_LIBRTE, test x"$have_librte" = "xyes")
