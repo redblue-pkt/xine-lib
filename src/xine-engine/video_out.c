@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.143 2003/02/20 11:40:13 jstembridge Exp $
+ * $Id: video_out.c,v 1.144 2003/02/20 11:59:32 jstembridge Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -222,7 +222,7 @@ static void vo_frame_driver_copy(vo_frame_t *img)
       src[0] = img->base[0];
       src[1] = img->base[1];
       src[2] = img->base[2];
-      while ((height -= 16) >= 0) {
+      while ((height -= 16) > -16) {
         img->copy(img, src);
         src[0] += 16 * img->pitches[0];
         src[1] +=  8 * img->pitches[1];
