@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_scr.h,v 1.2 2002/05/24 22:09:44 miguelfreitas Exp $
+ * $Id: dxr3_scr.h,v 1.3 2002/10/26 14:35:05 mroi Exp $
  */
 
 #include "xine_internal.h"
@@ -37,4 +37,4 @@ typedef struct dxr3_scr_s {
 } dxr3_scr_t;
 
 /* plugin initialization function */
-dxr3_scr_t *dxr3_scr_init(xine_t *xine);
+dxr3_scr_t *dxr3_scr_init(xine_stream_t *stream);

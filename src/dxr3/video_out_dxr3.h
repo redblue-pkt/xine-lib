@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3.h,v 1.11 2002/10/11 10:55:28 mroi Exp $
+ * $Id: video_out_dxr3.h,v 1.12 2002/10/26 14:35:05 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -29,6 +29,7 @@
 #endif
 
 #include "xine_internal.h"
+#include "vo_scale.h"
 #include "dxr3.h"
 
 /* values for fd_video indicating why it is closed */
@@ -68,58 +69,59 @@ typedef struct dxr3_overlay_s {
   struct coeff     colcal_lower[3];
 } dxr3_overlay_t;
 
+typedef struct dxr3_driver_class_s {
+  video_driver_class_t  video_driver_class;
+  xine_t               *xine;
+  
+  int                   instance;           /* we allow only one instance of this plugin */
+  
+  char                  devname[128];
+  char                  devnum[3];
+} dxr3_driver_class_t;
+
 typedef struct dxr3_driver_s {
-  xine_vo_driver_t vo_driver;
-  xine_t          *xine;
+  xine_vo_driver_t     vo_driver;
+  dxr3_driver_class_t *class;
 
-  char             devname[128];
-  char             devnum[3];
-  int              fd_control;
-  int              fd_video;
-  pthread_mutex_t  spu_device_lock;
-  int              fd_spu;        /* to access the relevant dxr3 devices */
-  int              clut_cluttered;/* to tell spu decoder that it has to restore the palette */
+  int                  fd_control;
+  int                  fd_video;
+  pthread_mutex_t      spu_device_lock;
+  int                  fd_spu;              /* to access the relevant dxr3 devices */
+  int                  clut_cluttered;      /* to tell spu decoder that it has to restore the palette */
   
-  int              enhanced_mode;
-  int              swap_fields;   /* swap fields */
-  int              add_bars;      /* add black bars to correct a.r. */
+  int                  enhanced_mode;
+  int                  swap_fields;         /* swap fields */
+  int                  add_bars;            /* add black bars to correct a.r. */
   
-  int              aspect;
-  int              tv_mode;
-  int              pan_scan;
-  int              overlay_enabled;
-  int              tv_switchable; /* can switch from overlay<->tvout */
-  int              widescreen_enabled;
-  em8300_bcs_t     bcs;
+  int                  aspect;
+  int                  tv_mode;
+  int                  pan_scan;
+  int                  overlay_enabled;
+  int                  tv_switchable;       /* can switch from overlay<->tvout */
+  int                  widescreen_enabled;
+  em8300_bcs_t         bcs;
 
-  encoder_data_t  *enc;           /* mpeg encoder data */
-  spu_encoder_t   *spu_enc;       /* spu encoder */
-  int              video_iheight; /* input height (before adding black bars) */
-  int              video_oheight; /* output height (after adding bars) */
-  int              video_width;
-  int              video_ratio;
-  int              top_bar;       /* the height of the upper black bar */
-  int              need_redraw;   /* the image on screen needs redrawing */
-  int              need_update;   /* the mpeg encoder needs to be updated */
+  encoder_data_t      *enc;                 /* mpeg encoder data */
+  spu_encoder_t       *spu_enc;             /* spu encoder */
+  int                  need_update;         /* the mpeg encoder needs to be updated */
+  
+  int                  video_iheight;       /* input height (before adding black bars) */
+  int                  video_oheight;       /* output height (after adding black bars) */
+  int                  video_width;
+  int                  video_ratio;
+  int                  top_bar;             /* the height of the upper black bar */
+  
+  vo_scale_t           scale;
 
-  dxr3_overlay_t   overlay;
+  dxr3_overlay_t       overlay;
 #ifdef HAVE_X11
-  Display         *display;
-  Drawable         win;
-  GC               gc;
-  XColor           color;
-  int              xpos, ypos;
-  int              width, height; 
+  Display             *display;
+  Drawable             win;
+  GC                   gc;
+  XColor               black;
+  XColor               key;
 #endif
 
-  char            *user_data;
-  void           (*frame_output_cb)(void *user_data,
-                     int video_width, int video_height,
-		     double video_pixel_aspect,
-                     int *dest_x, int *dest_y,
-                     int *dest_height, int *dest_width,
-		     double *dest_pixel_aspect,
-                     int *win_x, int *win_y);
 } dxr3_driver_t;
 
 typedef struct dxr3_frame_s {

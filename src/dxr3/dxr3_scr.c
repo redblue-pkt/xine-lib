@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_scr.c,v 1.5 2002/09/05 12:52:24 mroi Exp $
+ * $Id: dxr3_scr.c,v 1.6 2002/10/26 14:35:04 mroi Exp $
  */
 
 /* dxr3 scr plugin.
@@ -31,7 +31,6 @@
 #include <unistd.h>
 #include <errno.h>
 
-#include "xineutils.h"
 #include "dxr3.h"
 #include "dxr3_scr.h"
 
@@ -53,14 +52,14 @@ static int     dxr3_mvcommand(int fd_control, int command);
 static void    dxr3_scr_update_priority(void *this_gen, xine_cfg_entry_t *entry);
 
 
-dxr3_scr_t *dxr3_scr_init(xine_t *xine)
+dxr3_scr_t *dxr3_scr_init(xine_stream_t *stream)
 {
   dxr3_scr_t *this;
   const char *confstr;
   
   this = (dxr3_scr_t *)malloc(sizeof(dxr3_scr_t));
   
-  confstr = xine->config->register_string(xine->config,
+  confstr = stream->xine->config->register_string(stream->xine->config,
     CONF_LOOKUP, CONF_DEFAULT, CONF_NAME, CONF_HELP, 0, NULL, NULL);
   if ((this->fd_control = open(confstr, O_WRONLY)) < 0) {
     printf("dxr3_scr: Failed to open control device %s (%s)\n",
@@ -77,8 +76,8 @@ dxr3_scr_t *dxr3_scr_init(xine_t *xine)
   this->scr_plugin.set_speed         = dxr3_scr_set_speed;
   this->scr_plugin.exit              = dxr3_scr_exit;
   
-  this->priority                     = xine->config->register_num(
-    xine->config, "dxr3.scr_priority", 10, _("Dxr3: SCR plugin priority"),
+  this->priority                     = stream->xine->config->register_num(
+    stream->xine->config, "dxr3.scr_priority", 10, _("Dxr3: SCR plugin priority"),
     _("Scr priorities greater 5 make the dxr3 xine's master clock."), 20,
     dxr3_scr_update_priority, this);
   this->offset                       = 0;
@@ -132,6 +131,8 @@ static int64_t dxr3_scr_get_current(scr_plugin_t *scr)
   if (this->last_pts > 0xF0000000 && pts < 0x10000000)
     /* wrap around detected, compensate with offset */
     this->offset += (int64_t)1 << 33;
+  if (pts == 0)
+    printf("dxr3_scr: WARNING: pts dropped to zero.\n");
   this->last_pts = pts;
   current = ((int64_t)pts << 1) + this->offset;
   pthread_mutex_unlock(&this->mutex);

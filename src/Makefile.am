@@ -29,6 +29,7 @@ SUBDIRS = \
 	xine-engine \
 	audio_out \
 	video_out \
+	dxr3 \
 	input \
 	demuxers \
 	libffmpeg \

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_mpeg_encoders.c,v 1.9 2002/09/05 12:52:24 mroi Exp $
+ * $Id: dxr3_mpeg_encoders.c,v 1.10 2002/10/26 14:35:04 mroi Exp $
  */
  
 /* mpeg encoders for the dxr3 video out plugin.
@@ -177,7 +177,7 @@ static int rte_on_update_format(dxr3_driver_t *drv, dxr3_frame_t *frame)
     return 0;
   }
   
-  this->rte_bitrate = drv->xine->config->register_range(drv->xine->config,
+  this->rte_bitrate = drv->class->xine->config->register_range(drv->class->xine->config,
     "dxr3.rte_bitrate", 10000, 1000, 20000,
     _("Dxr3enc: rte mpeg output bitrate (kbit/s)"), 
     _("The bitrate the mpeg encoder library librte should use for dxr3's encoding mode"), 10,
@@ -295,7 +295,7 @@ static void mp1e_callback(rte_context *context, void *data, ssize_t size, void *
   ssize_t written;
   
   if (drv->fd_video == CLOSED_FOR_ENCODER) {
-    snprintf(tmpstr, sizeof(tmpstr), "%s_mv%s", drv->devname, drv->devnum);
+    snprintf(tmpstr, sizeof(tmpstr), "%s_mv%s", drv->class->devname, drv->class->devnum);
     drv->fd_video = open(tmpstr, O_WRONLY | O_NONBLOCK);
   }
   if (drv->fd_video < 0) return;
@@ -346,7 +346,7 @@ static int fame_on_update_format(dxr3_driver_t *drv, dxr3_frame_t *frame)
   /* if YUY2 and dimensions changed, we need to re-allocate the
    * internal YV12 buffer */
   if (frame->vo_frame.format == XINE_IMGFMT_YUY2) {
-    int image_size = drv->video_width * drv->video_oheight;
+    int image_size = frame->vo_frame.width * frame->oheight;
 
     this->out[0] = xine_xmalloc_aligned(16, image_size * 3/2, 
       (void *)&this->buf);
@@ -384,7 +384,7 @@ static int fame_on_update_format(dxr3_driver_t *drv, dxr3_frame_t *frame)
   }
 
   this->fp = init_fp;
-  this->fp.quality = drv->xine->config->register_range(drv->xine->config,
+  this->fp.quality = drv->class->xine->config->register_range(drv->class->xine->config,
     "dxr3.fame_quality", 90, 10, 100,
     _("Dxr3enc: fame mpeg encoding quality"),
     _("The encoding quality of the libfame mpeg encoder library."), 10,
@@ -396,8 +396,8 @@ static int fame_on_update_format(dxr3_driver_t *drv, dxr3_frame_t *frame)
   printf("dxr3_mpeg_encoder: quality %d -> quant scale = %d\n", this->fp.quality,
     1 + (30 * (100 - this->fp.quality) + 50) / 100);
 #endif
-  this->fp.width   = drv->video_width;
-  this->fp.height  = drv->video_oheight;
+  this->fp.width   = frame->vo_frame.width;
+  this->fp.height  = frame->oheight;
   this->fp.profile = "mpeg1";
   this->fp.coding  = "I";
 #if LOG_ENC
@@ -484,7 +484,7 @@ static int fame_on_display_frame(dxr3_driver_t *drv, dxr3_frame_t *frame)
   frame->vo_frame.displayed(&frame->vo_frame); 
   
   if (drv->fd_video == CLOSED_FOR_ENCODER) {
-    snprintf (tmpstr, sizeof(tmpstr), "%s_mv%s", drv->devname, drv->devnum);
+    snprintf (tmpstr, sizeof(tmpstr), "%s_mv%s", drv->class->devname, drv->class->devnum);
     drv->fd_video = open(tmpstr, O_WRONLY | O_NONBLOCK);
   }
   if (drv->fd_video < 0) return 0;

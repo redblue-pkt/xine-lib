@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3.h,v 1.4 2002/09/05 20:44:39 mroi Exp $
+ * $Id: dxr3.h,v 1.5 2002/10/26 14:35:04 mroi Exp $
  */
 
 #ifndef HAVE_DXR3_H
@@ -35,6 +35,10 @@
 
 /* image format used by dxr3_decoder to tag undecoded mpeg data */
 #define XINE_IMGFMT_DXR3 (('3'<<24)|('R'<<16)|('X'<<8)|'D')
+
+/* name of the dxr3 video out plugin
+ * (used by decoders to check for dxr3 presence) */
+#define DXR3_VO_ID "dxr3"
 
 #endif
 

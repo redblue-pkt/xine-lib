@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decode_video.c,v 1.16 2002/09/18 15:43:34 mroi Exp $
+ * $Id: dxr3_decode_video.c,v 1.17 2002/10/26 14:35:04 mroi Exp $
  */
  
 /* dxr3 video decoder plugin.
@@ -38,6 +38,7 @@
 #include "xine_internal.h"
 #include "buffer.h"
 #include "dxr3_scr.h"
+#include "video_out_dxr3.h"
 #include "dxr3.h"
 
 #define LOG_VID 1
@@ -57,7 +58,7 @@
 #define HEADER_OFFSET 0
 
 
-/* plugin initialization function */
+/* plugin class initialization function */
 static void     *dxr3_init_plugin(xine_t *xine, void *);
 
 
@@ -76,55 +77,65 @@ plugin_info_t xine_plugin_info[] = {
 };
 
 
-/* functions required by xine api */
-static char     *dxr3_get_id(void);
-static void      dxr3_init(video_decoder_t *this_gen, vo_instance_t *video_out);
-static void      dxr3_decode_data(video_decoder_t *this_gen, buf_element_t *buf);
-static void      dxr3_flush(video_decoder_t *this_gen);
-static void      dxr3_reset(video_decoder_t *this_gen);
-static void      dxr3_close(video_decoder_t *this_gen);
-static void      dxr3_dispose(video_decoder_t *this_gen);
+/* plugin class functions */
+static video_decoder_t *dxr3_open_plugin(video_decoder_class_t *class_gen, xine_stream_t *stream);
+static char            *dxr3_get_identifier(video_decoder_class_t *class_gen);
+static char            *dxr3_get_description(video_decoder_class_t *class_gen);
+static void             dxr3_class_dispose(video_decoder_class_t *class_gen);
 
-/* plugin structure */
+/* plugin instance functions */
+static void dxr3_decode_data(video_decoder_t *this_gen, buf_element_t *buf);
+static void dxr3_reset(video_decoder_t *this_gen);
+static void dxr3_flush(video_decoder_t *this_gen);
+static void dxr3_dispose(video_decoder_t *this_gen);
+
+/* plugin structures */
+typedef struct dxr3_decoder_class_s {
+  video_decoder_class_t  video_decoder_class;
+  
+  int                    instance;             /* we allow only one instance of this plugin */
+  
+  char                   devname[128];
+  char                   devnum[3];
+} dxr3_decoder_class_t;
+
 typedef struct dxr3_decoder_s {
-  video_decoder_t  video_decoder;
-  vo_instance_t   *video_out;
-  dxr3_scr_t      *scr;
-  xine_t          *xine;
+  video_decoder_t        video_decoder;
+  dxr3_decoder_class_t  *class;
+  xine_stream_t         *stream;
+  dxr3_scr_t            *scr;
+  dxr3_driver_t         *dxr3_vo;              /* we need to talk to the dxr3 video out */
   
-  char             devname[128];
-  char             devnum[3];
-  int              fd_control;
-  int              fd_video;             /* to access the dxr3 devices */
+  int                    fd_control;
+  int                    fd_video;             /* to access the dxr3 devices */
   
-  int              have_header_info;
-  int              width;
-  int              height;
-  int              aspect;
-  int              frame_rate_code;
-  int              repeat_first_field;   /* mpeg stream header data */
+  int                    have_header_info;
+  int                    width;
+  int                    height;
+  int                    aspect;
+  int                    frame_rate_code;
+  int                    repeat_first_field;   /* mpeg stream header data */
   
-  int              force_aspect;         /* when input plugin has better info, we are forced
-                                          * to use a certain aspect */
-  int              last_width;
-  int              last_height;
-  int              last_aspect;          /* used to detect changes for event sending */
+  int                    force_aspect;         /* when input plugin has better info, we are forced
+                                                * to use a certain aspect */
+  int                    last_width;
+  int                    last_height;
+  int                    last_aspect;          /* used to detect changes for event sending */
   
-  int              sync_every_frame;
-  int              sync_retry;
-  int              enhanced_mode;
-  int              resync_window;
-  int              skip_count;           /* syncing parameters */
+  int                    sync_every_frame;
+  int                    sync_retry;
+  int                    enhanced_mode;
+  int                    resync_window;
+  int                    skip_count;           /* syncing parameters */
   
-  int              correct_durations;
-  int64_t          last_vpts;
-  int              force_duration_window;
-  int              avg_duration;         /* logic to correct broken frame rates */
-  
+  int                    correct_durations;
+  int64_t                last_vpts;
+  int                    force_duration_window;
+  int                    avg_duration;         /* logic to correct broken frame rates */
 } dxr3_decoder_t;
 
 /* helper functions */
-static int       dxr3_present(xine_t *xine);
+static int       dxr3_present(xine_stream_t *stream);
 static int       dxr3_mvcommand(int fd_control, int command);
 static void      parse_mpeg_header(dxr3_decoder_t *this, uint8_t *buffer);
 static int       get_duration(dxr3_decoder_t *this);
@@ -137,15 +148,12 @@ static void      dxr3_update_correct_durations(void *this_gen, xine_cfg_entry_t 
 
 static void *dxr3_init_plugin(xine_t *xine, void *data)
 {
-  dxr3_decoder_t *this;
+  dxr3_decoder_class_t *this;
   config_values_t *cfg;
   const char *confstr;
   int dashpos;
-  int64_t cur_offset;
   
-  if (!dxr3_present(xine)) return NULL;
-  
-  this = (dxr3_decoder_t *)malloc(sizeof (dxr3_decoder_t));
+  this = (dxr3_decoder_class_t *)malloc(sizeof (dxr3_decoder_class_t));
   if (!this) return NULL;
   
   cfg = xine->config;
@@ -163,49 +171,44 @@ static void *dxr3_init_plugin(xine_t *xine, void *data)
     this->devnum[0] = '\0';
   }
   
-  this->video_decoder.get_identifier    = dxr3_get_id;
-  this->video_decoder.init              = dxr3_init;
-  this->video_decoder.decode_data       = dxr3_decode_data;
-  this->video_decoder.flush             = dxr3_flush;
-  this->video_decoder.reset             = dxr3_reset;
-  this->video_decoder.close             = dxr3_close;
-  this->video_decoder.dispose           = dxr3_dispose;
+  this->video_decoder_class.open_plugin     = dxr3_open_plugin;
+  this->video_decoder_class.get_identifier  = dxr3_get_identifier;
+  this->video_decoder_class.get_description = dxr3_get_description;
+  this->video_decoder_class.dispose         = dxr3_class_dispose;
   
-  this->scr                             = NULL;
-  this->xine                            = xine;
+  this->instance                            = 0;
   
-  this->sync_every_frame                = cfg->register_bool(cfg,
-    "dxr3.sync_every_frame", 0, _("Try to sync video every frame"),
-    _("This is relevant for progressive video only (most PAL films)."), 20,
-    dxr3_update_sync_mode, this);
-  this->enhanced_mode                   = cfg->register_bool(cfg,
-    "dxr3.alt_play_mode", 1, _("Use alternate Play mode"),
-    _("Enabling this option will utilise a smoother play mode."), 10,
-    dxr3_update_enhanced_mode, this);
-  this->correct_durations               = cfg->register_bool(cfg,
-    "dxr3.correct_durations", 0, _("Correct frame durations in broken streams"),
-    _("Enable this for streams with wrong frame durations."), 10,
-    dxr3_update_correct_durations, this);
-  
-  /* set a/v offset to compensate dxr3 internal delay */
-  cur_offset = this->xine->metronom->get_option(this->xine->metronom, METRONOM_AV_OFFSET);
-  this->xine->metronom->set_option(this->xine->metronom, METRONOM_AV_OFFSET, cur_offset - 21600);
-  
-  return &this->video_decoder;
+  return &this->video_decoder_class;
 }
 
 
-static char *dxr3_get_id(void)
+static video_decoder_t *dxr3_open_plugin(video_decoder_class_t *class_gen, xine_stream_t *stream)
 {
-  return "dxr3-mpeg2";
-}
-
-static void dxr3_init(video_decoder_t *this_gen, vo_instance_t *video_out)
-{
-  dxr3_decoder_t *this = (dxr3_decoder_t *)this_gen;
+  dxr3_decoder_t *this;
+  dxr3_decoder_class_t *class = (dxr3_decoder_class_t *)class_gen;
+  config_values_t *cfg;
   char tmpstr[128];
+  int64_t cur_offset;
   
-  snprintf(tmpstr, sizeof(tmpstr), "%s%s", this->devname, this->devnum);
+  if (class->instance) return NULL;
+  if (!dxr3_present(stream)) return NULL;
+  
+  this = (dxr3_decoder_t *)malloc(sizeof (dxr3_decoder_t));
+  if (!this) return NULL;
+  
+  cfg = stream->xine->config;
+  
+  this->video_decoder.decode_data = dxr3_decode_data;
+  this->video_decoder.reset       = dxr3_reset;
+  this->video_decoder.flush       = dxr3_flush;
+  this->video_decoder.dispose     = dxr3_dispose;
+  
+  this->class                     = class;
+  this->stream                    = stream;
+  this->scr                       = NULL;
+  this->dxr3_vo                   = (dxr3_driver_t *)stream->video_driver;
+  
+  snprintf(tmpstr, sizeof(tmpstr), "%s%s", class->devname, class->devnum);
 #if LOG_VID
   printf("dxr3_decode_video: Entering video init, devname=%s.\n",tmpstr);
 #endif
@@ -216,11 +219,9 @@ static void dxr3_init(video_decoder_t *this_gen, vo_instance_t *video_out)
   if ((this->fd_control = open(tmpstr, O_WRONLY)) < 0) {
     printf("dxr3_decode_video: Failed to open control device %s (%s)\n",
       tmpstr, strerror(errno));
-    return;
+    free(this);
+    return NULL;
   }
-  
-  video_out->open(video_out);
-  this->video_out = video_out;
   
   this->have_header_info      = 0;
   this->repeat_first_field    = 0;
@@ -236,10 +237,50 @@ static void dxr3_init(video_decoder_t *this_gen, vo_instance_t *video_out)
   this->skip_count            = 0;
   
   this->force_duration_window = -FORCE_DURATION_WINDOW_SIZE;
-  this->last_vpts             = 
-    this->xine->metronom->get_current_time(this->xine->metronom);
+  this->last_vpts             = this->stream->metronom->get_current_time(this->stream->metronom);
   this->avg_duration          = 0;
+  
+  this->sync_every_frame      = cfg->register_bool(cfg,
+    "dxr3.sync_every_frame", 0, _("Try to sync video every frame"),
+    _("This is relevant for progressive video only (most PAL films)."), 20,
+    dxr3_update_sync_mode, this);
+  this->enhanced_mode         = cfg->register_bool(cfg,
+    "dxr3.alt_play_mode", 1, _("Use alternate Play mode"),
+    _("Enabling this option will utilise a smoother play mode."), 10,
+    dxr3_update_enhanced_mode, this);
+  this->correct_durations     = cfg->register_bool(cfg,
+    "dxr3.correct_durations", 0, _("Correct frame durations in broken streams"),
+    _("Enable this for streams with wrong frame durations."), 10,
+    dxr3_update_correct_durations, this);
+  
+  if (!this->dxr3_vo->overlay_enabled) {
+    /* set a/v offset to compensate dxr3 internal delay */
+    cur_offset = this->stream->metronom->get_option(this->stream->metronom, METRONOM_AV_OFFSET);
+    this->stream->metronom->set_option(this->stream->metronom, METRONOM_AV_OFFSET, cur_offset - 21600);
+  }
+  
+  stream->video_out->open(stream->video_out);
+  
+  class->instance = 1;
+  
+  return &this->video_decoder;
 }
+
+static char *dxr3_get_identifier(video_decoder_class_t *class_gen)
+{
+  return "dxr3-mpeg2";
+}
+
+static char *dxr3_get_description(video_decoder_class_t *class_gen)
+{
+  return "MPEGI/II decoder plugin using the hardware decoding capabilities of a DXR3 decoder card.";
+}
+
+static void dxr3_class_dispose(video_decoder_class_t *class_gen)
+{
+  free(class_gen);
+}
+ 
 
 static void dxr3_decode_data(video_decoder_t *this_gen, buf_element_t *buf)
 {
@@ -262,12 +303,16 @@ static void dxr3_decode_data(video_decoder_t *this_gen, buf_element_t *buf)
         this->aspect = this->force_aspect = XINE_VO_ASPECT_PAN_SCAN;
       /* when aspect changed, we have to send an event for dxr3 spu decoder */
       if (!this->last_aspect || this->last_aspect != this->aspect) {
-        xine_frame_change_event_t event;
-        event.event.type = XINE_EVENT_FRAME_CHANGE;
-        event.width = this->last_width;
-        event.height = this->last_height;
-        event.aspect = this->aspect;
-        xine_send_event(this->xine, &event.event);
+        xine_event_t event;
+	xine_format_change_data_t data;
+        event.type        = XINE_EVENT_FRAME_FORMAT_CHANGE;
+	event.stream      = this->stream;
+	event.data        = &data;
+	event.data_length = sizeof(data);
+        data.width        = this->last_width;
+        data.height       = this->last_height;
+        data.aspect       = this->aspect;
+        xine_event_send(this->stream, &event);
         this->last_aspect = this->aspect;
       }
     }
@@ -318,7 +363,7 @@ static void dxr3_decode_data(video_decoder_t *this_gen, buf_element_t *buf)
       continue;
     
     /* pretend like we have decoded a frame */
-    img = this->video_out->get_frame (this->video_out,
+    img = this->stream->video_out->get_frame(this->stream->video_out,
       this->width, this->height, this->aspect,
       XINE_IMGFMT_DXR3, VO_BOTH_FIELDS);
     img->pts       = buf->pts;
@@ -364,7 +409,7 @@ static void dxr3_decode_data(video_decoder_t *this_gen, buf_element_t *buf)
         /* we have had enough skipping messages now, let's react */
         int64_t vpts_adjust = skip * (int64_t)img->duration / 2;
         if (vpts_adjust > 90000) vpts_adjust = 90000;
-        this->xine->metronom->set_option(this->xine->metronom,
+        this->stream->metronom->set_option(this->stream->metronom,
           METRONOM_ADJ_VPTS_OFFSET, vpts_adjust);
         this->skip_count = 0;
         this->resync_window = 0;
@@ -408,7 +453,7 @@ static void dxr3_decode_data(video_decoder_t *this_gen, buf_element_t *buf)
    */
   if (this->fd_video < 0) {
     char tmpstr[128];
-    snprintf (tmpstr, sizeof(tmpstr), "%s_mv%s", this->devname, this->devnum);
+    snprintf (tmpstr, sizeof(tmpstr), "%s_mv%s", this->class->devname, this->class->devnum);
     if ((this->fd_video = open(tmpstr, O_WRONLY | O_NONBLOCK)) < 0) {
       printf("dxr3_decode_video: Failed to open video device %s (%s)\n",
         tmpstr, strerror(errno)); 
@@ -426,14 +471,13 @@ static void dxr3_decode_data(video_decoder_t *this_gen, buf_element_t *buf)
   if (!this->scr) {
     int64_t time;
     
-    time = this->xine->metronom->get_current_time(
-      this->xine->metronom);
+    time = this->stream->metronom->get_current_time(this->stream->metronom);
     
-    this->scr = dxr3_scr_init(this->xine);
+    this->scr = dxr3_scr_init(this->stream);
     this->scr->scr_plugin.start(&this->scr->scr_plugin, time);
-    this->xine->metronom->register_scr(
-      this->xine->metronom, &this->scr->scr_plugin);
-    if (this->xine->metronom->scr_master == &this->scr->scr_plugin)
+    this->stream->metronom->register_scr(
+      this->stream->metronom, &this->scr->scr_plugin);
+    if (this->stream->metronom->scr_master == &this->scr->scr_plugin)
 #if LOG_VID
       printf("dxr3_decode_video: dxr3_scr plugin is master\n");
 #endif
@@ -447,8 +491,8 @@ static void dxr3_decode_data(video_decoder_t *this_gen, buf_element_t *buf)
   if (vpts) {
     int64_t delay;
     
-    delay = vpts - this->xine->metronom->get_current_time(
-      this->xine->metronom);
+    delay = vpts - this->stream->metronom->get_current_time(
+      this->stream->metronom);
 #if LOG_PTS
     printf("dxr3_decode_video: SETPTS got %lld\n", vpts);
 #endif
@@ -493,6 +537,10 @@ static void dxr3_decode_data(video_decoder_t *this_gen, buf_element_t *buf)
       written, buf->size);
 }
 
+static void dxr3_reset(video_decoder_t *this_gen)
+{
+}
+
 static void dxr3_flush(video_decoder_t *this_gen) 
 {
   dxr3_decoder_t *this = (dxr3_decoder_t *)this_gen;
@@ -500,14 +548,10 @@ static void dxr3_flush(video_decoder_t *this_gen)
   if (this->fd_video >= 0) fsync(this->fd_video);
 }
 
-static void dxr3_reset(video_decoder_t *this_gen)
-{
-}
-
-static void dxr3_close(video_decoder_t *this_gen)
+static void dxr3_dispose(video_decoder_t *this_gen)
 {
   dxr3_decoder_t *this = (dxr3_decoder_t *)this_gen;
-  metronom_t *metronom = this->xine->metronom;
+  metronom_t *metronom = this->stream->metronom;
   
   if (this->scr) {
     metronom->unregister_scr(metronom, &this->scr->scr_plugin);
@@ -518,30 +562,33 @@ static void dxr3_close(video_decoder_t *this_gen)
   if (this->fd_video >= 0) close(this->fd_video);
   this->fd_video = -1;
   
-  this->video_out->close(this->video_out);
+  this->stream->video_out->close(this->stream->video_out);
   
   this->have_header_info = 0;
-}
-
-static void dxr3_dispose(video_decoder_t *this_gen)
-{
-  free(this_gen);
-}
-
-
-static int dxr3_present(xine_t *xine)
-{
-  int info;
+  this->class->instance  = 0;
   
-  if (xine && xine->video_driver) {
-    info = xine->video_driver->get_property(xine->video_driver, VO_PROP_VO_TYPE);
-#ifdef LOG_VID
-    printf("dxr3_decode_video: dxr3 presence test: info = %d\n", info);
-#endif
-    if ((info != VO_TYPE_DXR3_LETTERBOXED) && (info != VO_TYPE_DXR3_WIDE))
-      return 0;
+  free(this);
+}
+
+
+static int dxr3_present(xine_stream_t *stream)
+{
+  plugin_node_t *node;
+  video_driver_class_t *vo_class;
+  int present = 0;
+  
+  if (stream->video_driver && stream->video_driver->node) {
+    node = (plugin_node_t *)stream->video_driver->node;
+    if (node->plugin_class) {
+      vo_class = (video_driver_class_t *)node->plugin_class;
+      if (vo_class->get_identifier)
+        present = (strcmp(vo_class->get_identifier(vo_class), DXR3_VO_ID) == 0);
+    }
   }
-  return 1;
+#ifdef LOG_VID
+  printf("dxr3_decode_video: dxr3 %s\n", present ? "present" : "not present");
+#endif
+  return present;
 }
 
 static int dxr3_mvcommand(int fd_control, int command)
@@ -575,32 +622,36 @@ static void parse_mpeg_header(dxr3_decoder_t *this, uint8_t * buffer)
       (this->last_width != this->width) ||
       (this->last_height != this->height) ||
       (this->last_aspect != this->aspect)) {
-    xine_frame_change_event_t event;
-    event.event.type = XINE_EVENT_FRAME_CHANGE;
-    event.width = this->width;
-    event.height = this->height;
-    event.aspect = this->aspect;
-    xine_send_event(this->xine, &event.event);
+    xine_event_t event;
+    xine_format_change_data_t data;
+    event.type        = XINE_EVENT_FRAME_FORMAT_CHANGE;
+    event.stream      = this->stream;
+    event.data        = &data;
+    event.data_length = sizeof(data);
+    data.width        = this->width;
+    data.height       = this->height;
+    data.aspect       = this->aspect;
+    xine_event_send(this->stream, &event);
     this->last_width = this->width;
     this->last_height = this->height;
     this->last_aspect = this->aspect;
     
     /* update stream metadata */
-    this->xine->stream_info[XINE_STREAM_INFO_VIDEO_WIDTH]  = this->width;
-    this->xine->stream_info[XINE_STREAM_INFO_VIDEO_HEIGHT] = this->height;
+    this->stream->stream_info[XINE_STREAM_INFO_VIDEO_WIDTH]  = this->width;
+    this->stream->stream_info[XINE_STREAM_INFO_VIDEO_HEIGHT] = this->height;
     switch (this->aspect) {
     case XINE_VO_ASPECT_SQUARE:
-      this->xine->stream_info[XINE_STREAM_INFO_VIDEO_RATIO] = 10000;
+      this->stream->stream_info[XINE_STREAM_INFO_VIDEO_RATIO] = 10000;
       break;
     case XINE_VO_ASPECT_4_3:
-      this->xine->stream_info[XINE_STREAM_INFO_VIDEO_RATIO] = 10000 * 4.0 / 3.0;
+      this->stream->stream_info[XINE_STREAM_INFO_VIDEO_RATIO] = 10000 * 4.0 / 3.0;
       break;
     case XINE_VO_ASPECT_PAN_SCAN:
     case XINE_VO_ASPECT_ANAMORPHIC:
-      this->xine->stream_info[XINE_STREAM_INFO_VIDEO_RATIO] = 10000 * 16.0 / 9.0;
+      this->stream->stream_info[XINE_STREAM_INFO_VIDEO_RATIO] = 10000 * 16.0 / 9.0;
       break;
     case XINE_VO_ASPECT_DVB:
-      this->xine->stream_info[XINE_STREAM_INFO_VIDEO_RATIO] = 10000 * 2.11;
+      this->stream->stream_info[XINE_STREAM_INFO_VIDEO_RATIO] = 10000 * 2.11;
       break;
     }
   }
@@ -643,7 +694,7 @@ static int get_duration(dxr3_decoder_t *this)
   }
   
   /* update stream metadata */
-  this->xine->stream_info[XINE_STREAM_INFO_FRAME_DURATION] = duration;
+  this->stream->stream_info[XINE_STREAM_INFO_FRAME_DURATION] = duration;
   
   if (this->correct_durations) {
     /* we set an initial average frame duration here */
@@ -656,13 +707,13 @@ static int get_duration(dxr3_decoder_t *this)
      */
     if (this->avg_duration && this->avg_duration < 3300 && duration == 3600) {
       if (this->force_duration_window > 0) {
-        // we are already in a force_duration window, so we force duration
+        /* we are already in a force_duration window, so we force duration */
         this->force_duration_window = FORCE_DURATION_WINDOW_SIZE;
         return 3000;
       }
       if (this->force_duration_window <= 0 && (this->force_duration_window += 10) > 0) {
-        // we just entered a force_duration window, so we start the correction
-        metronom_t *metronom = this->xine->metronom;
+        /* we just entered a force_duration window, so we start the correction */
+        metronom_t *metronom = this->stream->metronom;
         int64_t cur_offset;
         printf("dxr3_decode_video: WARNING: correcting frame rate code from PAL to NTSC\n");
         /* those weird streams need an offset, too */
@@ -674,11 +725,11 @@ static int get_duration(dxr3_decoder_t *this)
     }
     
     if (this->force_duration_window == -FORCE_DURATION_WINDOW_SIZE)
-      // we are far from a force_duration window
+      /* we are far from a force_duration window */
       return duration;
     if (--this->force_duration_window == 0) {
-      // we have just left a force_duration window
-      metronom_t *metronom = this->xine->metronom;
+      /* we have just left a force_duration window */
+      metronom_t *metronom = this->stream->metronom;
       int64_t cur_offset;
       cur_offset = metronom->get_option(metronom, METRONOM_AV_OFFSET);
       metronom->set_option(metronom, METRONOM_AV_OFFSET, cur_offset + 28800);
