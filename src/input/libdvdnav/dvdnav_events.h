@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dvdnav_events.h,v 1.4 2003/02/20 16:01:59 mroi Exp $
+ * $Id: dvdnav_events.h,v 1.5 2003/02/26 20:44:13 mroi Exp $
  *
  */
 
@@ -47,6 +47,7 @@
 #define DVDNAV_HIGHLIGHT		 9 /*!< Change highlight region */
 #define DVDNAV_SPU_CLUT_CHANGE		10 /*!< SPU CLUT changed */
 #define DVDNAV_HOP_CHANNEL		12 /*!< Sent when non-seemless stream change has happed */
+#define DVDNAV_WAIT			13 /*!< The application should wait for its fifos to run dry */
 
 
 /*** EVENT TYPES ***/

@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dvdnav_internal.h,v 1.6 2003/02/20 16:01:59 mroi Exp $
+ * $Id: dvdnav_internal.h,v 1.7 2003/02/26 20:44:14 mroi Exp $
  *
  */
 
@@ -142,6 +142,8 @@ struct dvdnav_s {
   
   /* Flags */
   int skip_still;                 /* Set when skipping a still */
+  int sync_wait;                  /* applications should wait till they are in sync with us */
+  int sync_wait_skip;             /* Set when skipping wait state */
   int spu_clut_changed;           /* The SPU CLUT changed */ 
   int started;                    /* vm_start has been called? */
   int use_read_ahead;             /* 1 - use read-ahead cache, 0 - don't */

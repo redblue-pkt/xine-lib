@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dvdnav.h,v 1.5 2003/02/20 16:01:59 mroi Exp $
+ * $Id: dvdnav.h,v 1.6 2003/02/26 20:44:13 mroi Exp $
  *
  */
 
@@ -295,6 +295,15 @@ dvdnav_status_t dvdnav_get_number_of_parts(dvdnav_t *self, int title, int *parts
  * \param self Pointer to dvdnav_t associated with this operation.
  */
 dvdnav_status_t dvdnav_still_skip(dvdnav_t *self);
+
+/**
+ * If we are currently in WAIT state, that is: the application is required to
+ * wait for its fifos to become empty, calling this signals libdvdnav that this
+ * is achieved and that it can continue.
+ *
+ * \param self Pointer to dvdnav_t associated with this operation.
+ */
+dvdnav_status_t dvdnav_wait_skip(dvdnav_t *self);
 
 /**
  * Returns the still time status from the next cell

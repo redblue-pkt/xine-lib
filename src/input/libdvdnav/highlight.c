@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: highlight.c,v 1.7 2003/02/20 16:01:59 mroi Exp $
+ * $Id: highlight.c,v 1.8 2003/02/26 20:44:15 mroi Exp $
  *
  */
 
@@ -372,6 +372,7 @@ dvdnav_status_t dvdnav_button_activate(dvdnav_t *this, pci_t *pci) {
       /* In still, but no buttons. */
       vm_get_next_cell(this->vm);
       this->position_current.still = 0;
+      this->sync_wait = 0;
       pthread_mutex_unlock(&this->vm_lock);
       /* clear error message */
       printerr("");
@@ -419,6 +420,7 @@ dvdnav_status_t dvdnav_button_activate_cmd(dvdnav_t *this, int32_t button, vm_cm
   }
   /* Always remove still, because some still menus have no buttons. */
   this->position_current.still = 0;
+  this->sync_wait = 0;
   pthread_mutex_unlock(&this->vm_lock);
   return S_OK;
 }  

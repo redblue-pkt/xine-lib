@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dvdnav.c,v 1.16 2003/02/24 20:44:26 siggi Exp $
+ * $Id: dvdnav.c,v 1.17 2003/02/26 20:44:12 mroi Exp $
  *
  */
 
@@ -33,7 +33,7 @@
 #include "dvdnav_internal.h"
 #include "read_cache.h"
 
-#include "../libdvdread/nav_read.h"
+#include "nav_read.h"
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -55,6 +55,8 @@ static dvdnav_status_t dvdnav_clear(dvdnav_t * this) {
   /* Set initial values of flags */
   this->position_current.still = 0;
   this->skip_still = 0;
+  this->sync_wait = 0;
+  this->sync_wait_skip = 0;
   this->spu_clut_changed = 0;
   this->started = 0;
 
@@ -68,7 +70,7 @@ dvdnav_status_t dvdnav_open(dvdnav_t** dest, const char *path) {
   struct timeval time;
   
   /* Create a new structure */
-  fprintf(MSG_OUT, "libdvdnav: Using dvdnav version %s from http://dvd.sf.net\n", VERSION);
+  fprintf(MSG_OUT, "libdvdnav: Using dvdnav version %s from http://xine.sf.net\n", VERSION);
 
   (*dest) = NULL;
   this = (dvdnav_t*)malloc(sizeof(dvdnav_t));
@@ -402,7 +404,7 @@ dvdnav_status_t dvdnav_get_next_cache_block(dvdnav_t *this, unsigned char **buf,
 #ifdef TRACE
   fprintf(MSG_OUT, "libdvdnav: POS-NEXT ");
   vm_position_print(this->vm, &this->position_next);
-  fprintf(MSG_OUT, "libdvdnav: POS-CUR ");
+  fprintf(MSG_OUT, "libdvdnav: POS-CUR  ");
   vm_position_print(this->vm, &this->position_current);
 #endif
 
@@ -448,7 +450,36 @@ dvdnav_status_t dvdnav_get_next_cache_block(dvdnav_t *this, unsigned char **buf,
     /* Make blockN > vobu_length to do expected_nav */
     this->vobu.vobu_length = 0;
     this->vobu.blockN      = 1;
+    this->sync_wait        = 0;
     pthread_mutex_unlock(&this->vm_lock); 
+    return S_OK;
+  }
+
+  /* Check the HIGHLIGHT flag */
+  if(this->position_current.button != this->position_next.button) {
+    dvdnav_highlight_event_t hevent;
+
+    (*event) = DVDNAV_HIGHLIGHT;
+#ifdef LOG_DEBUG
+    fprintf(MSG_OUT, "libdvdnav: HIGHLIGHT\n");
+#endif
+    (*len) = sizeof(hevent);
+    hevent.display = 1;
+    hevent.buttonN = this->position_next.button;
+    memcpy(*buf, &(hevent), sizeof(hevent));
+    this->position_current.button = this->position_next.button;
+    pthread_mutex_unlock(&this->vm_lock); 
+    return S_OK;
+  }
+  
+  /* Check the WAIT flag */
+  if(this->sync_wait) {
+    (*event) = DVDNAV_WAIT;
+#ifdef LOG_DEBUG
+    fprintf(MSG_OUT, "libdvdnav: WAIT\n");
+#endif
+    (*len) = 0;
+    pthread_mutex_unlock(&this->vm_lock);
     return S_OK;
   }
 
@@ -613,23 +644,6 @@ dvdnav_status_t dvdnav_get_next_cache_block(dvdnav_t *this, unsigned char **buf,
     return S_OK;
   }
      
-  /* Check the HIGHLIGHT flag */
-  if(this->position_current.button != this->position_next.button) {
-    dvdnav_highlight_event_t hevent;
-
-    (*event) = DVDNAV_HIGHLIGHT;
-#ifdef LOG_DEBUG
-    fprintf(MSG_OUT, "libdvdnav: HIGHLIGHT\n");
-#endif
-    (*len) = sizeof(hevent);
-    hevent.display = 1;
-    hevent.buttonN = this->position_next.button;
-    memcpy(*buf, &(hevent), sizeof(hevent));
-    this->position_current.button = this->position_next.button;
-    pthread_mutex_unlock(&this->vm_lock); 
-    return S_OK;
-  }
-
   /* Check the STILLFRAME flag */
   if(this->position_current.still != 0) {
     dvdnav_still_event_t still_event;
@@ -656,11 +670,19 @@ dvdnav_status_t dvdnav_get_next_cache_block(dvdnav_t *this, unsigned char **buf,
 #endif
       this->position_current.still = this->position_next.still;
 
-      if( this->position_current.still == 0 || this->skip_still ) {
-        /* no active cell still -> get us to the next cell */
-	vm_get_next_cell(this->vm);
-	this->position_current.still = 0; /* still gets activated at end of cell */
-	this->skip_still = 0;
+      /* we are about to leave a cell, so a lot of state changes could occur;
+       * under certain conditions, the application should get in sync with us before this,
+       * otherwise it might show stills or menus too shortly */
+      if ((this->position_current.still || this->pci.hli.hl_gi.hli_ss) && !this->sync_wait_skip) {
+        this->sync_wait = 1;
+      } else {
+	if( this->position_current.still == 0 || this->skip_still ) {
+	  /* no active cell still -> get us to the next cell */
+	  vm_get_next_cell(this->vm);
+	  this->position_current.still = 0; /* still gets activated at end of cell */
+	  this->skip_still = 0;
+	  this->sync_wait_skip = 0;
+	}
       }
       /* handle related state changes in next iteration */
       (*event) = DVDNAV_NOP;
@@ -957,18 +979,20 @@ uint32_t dvdnav_get_next_still_flag(dvdnav_t *this) {
 
 /*
  * $Log: dvdnav.c,v $
- * Revision 1.16  2003/02/24 20:44:26  siggi
- * make it compile again without external libdvdread.
- * (I guess this is supposed to work somehow differently. Feel free to fix!)
+ * Revision 1.17  2003/02/26 20:44:12  mroi
+ * sync to current libdvdnav cvs, important change is the new DVDNAV_WAIT event,
+ * which allows us to keep libdvdnav and what is seen on screen in sync in certain
+ * critical situations (otherwise libdvdnav is always ahead by the fifo length)
  *
  * Revision 1.15  2003/02/24 18:31:15  mroi
  * sorry, wrong commit, this time it is: fix seek detection
  *
- * Revision 1.41  2003/02/24 18:19:27  mroi
+ * Revision 1.14  2003/02/24 18:19:27  mroi
  * fix seek detection
  *
- * Revision 1.40  2003/02/20 15:32:15  mroi
- * big libdvdnav cleanup, quoting the ChangeLog:
+ * Revision 1.13  2003/02/20 16:01:58  mroi
+ * syncing to libdvdnav 0.1.5 and modifying input plugin accordingly
+ * quoting the ChangeLog:
  *   * some bugfixes
  *   * code cleanup
  *   * build process polishing
@@ -976,39 +1000,48 @@ uint32_t dvdnav_get_next_still_flag(dvdnav_t *this) {
  *   * VOBU level resume
  *   * fixed: seeking in a multiangle feature briefly showed the wrong angle
  *
- * Revision 1.39  2002/10/23 11:38:09  mroi
- * port Stephen's comment fixing to avoid problems when syncing xine-lib's copy of
- * libdvdnav
+ * Revision 1.12  2003/01/29 02:02:03  miguelfreitas
+ * avoid segfault
  *
- * Revision 1.38  2002/09/19 04:48:28  jcdutton
- * Update version info.
- * The "note2" bit if to help developers know which version of libdvdnav the user is using.
+ * Revision 1.11  2003/01/27 21:02:42  mroi
+ * temporary fix for segfaulting DVDs
+ * libdvdnav cleanup needed (will start tomorrow)
  *
- * Revision 1.37  2002/09/18 14:26:42  mroi
- * fix possible unlock on not locked mutex
+ * Revision 1.10  2002/10/22 17:18:23  jkeil
+ * Recursive comments, picked up via CVS $Log keyword.  Trying to fix...
  *
- * Revision 1.36  2002/09/17 11:00:21  jcdutton
- * First patch for personalized dvd viewing. I have not tested it yet.
+ * Revision 1.9  2002/10/22 04:39:01  storri
+ * Changed comments to standard / * ... * /
  *
- * Revision 1.35  2002/09/05 12:55:05  mroi
- * fix memleaks in dvdnav_open
+ * Revision 1.8  2002/09/20 12:53:53  mroi
+ * sync to latest libdvdnav cvs version
  *
- * Revision 1.34  2002/09/03 00:41:48  jcdutton
- * Add a comment so I can tell which version of the CVS a user is using.
- * Also add a FIXME to remind me to fix the Chapter number display.
+ * Revision 1.7  2002/09/04 11:07:47  mroi
+ * sync to libdvdnav cvs
  *
- * Revision 1.33  2002/08/31 11:05:27  jcdutton
- * Properly seed the DVD VM Instruction rand().
+ * Revision 1.6  2002/08/31 02:48:13  jcdutton
+ * Add a printf so we can tell if a user is using xine's libdvdnav or the one from
+ * dvd.sf.net.
+ * Add some "this->dvdnav = NULL;" after dvdnav_close()
  *
- * Revision 1.32  2002/08/31 02:50:27  jcdutton
- * Improve some debug messages.
- * Add some comments about dvdnav_open memory leaks.
+ * Revision 1.5  2002/08/27 19:24:33  mroi
+ * sync to libdvdnav cvs, this should now conform to the way xine outputs
+ * its console messages (write to stdout, "libdvdnav: " in front each line)
  *
- * Revision 1.31  2002/08/27 19:15:08  mroi
- * more consistent console output
+ * Revision 1.4  2002/08/19 17:17:00  mroi
+ * sync to libdvdnav cvs
+ *  - update clut and spu/audio channel more often
+ *  - align read cache in memory to allow use of raw devices
  *
- * Revision 1.30  2002/08/09 21:34:27  mroi
- * update spu clut, spu channel and audio channel more often
+ * Revision 1.3  2002/08/09 22:52:14  mroi
+ * change includes from system include to local include where the file is in
+ * our tree now to avoid version clashes
+ *
+ * Revision 1.2  2002/08/08 21:55:54  richwareham
+ * Changed loads of #include <dvdread/...> to #include <...>
+ *
+ * Revision 1.1  2002/08/08 17:49:21  richwareham
+ * First stage of DVD plugin -> dvdnav conversion
  *
  * Revision 1.29  2002/07/25 14:51:40  richwareham
  * Moved get_current_nav_pci into dvdnac.c, changed example to use it instead of 'home-rolled'
