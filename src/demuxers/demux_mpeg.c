@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg.c,v 1.67 2002/07/14 22:27:25 miguelfreitas Exp $
+ * $Id: demux_mpeg.c,v 1.68 2002/07/20 08:04:55 tmattern Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  * reads streams of variable blocksizes
@@ -80,6 +80,7 @@ typedef struct demux_mpeg_s {
 
   int64_t              last_pts[2];
   int                  send_newpts;
+  int                  buf_flag_seek;
 
 } demux_mpeg_t;
 
@@ -132,7 +133,12 @@ static void check_newpts( demux_mpeg_t *this, int64_t pts, int video )
   if( !this->preview_mode && pts &&
       (this->send_newpts || (this->last_pts[video] && abs(diff)>WRAP_THRESHOLD) ) ) {
 
-    xine_demux_control_newpts(this->xine, pts, 0);
+    if (this->buf_flag_seek) {
+      xine_demux_control_newpts(this->xine, pts, BUF_FLAG_SEEK);
+      this->buf_flag_seek = 0;
+    } else {
+      xine_demux_control_newpts(this->xine, pts, 0);
+    }
     this->send_newpts = 0;
     this->last_pts[1-video] = 0;
   }
@@ -791,6 +797,7 @@ static int demux_mpeg_start (demux_plugin_t *this_gen,
     this->preview_mode = 0;
     this->send_end_buffers = 1;
     this->thread_running = 1;
+    this->buf_flag_seek = 0;
 
     if ((err = pthread_create (&this->thread,
                                NULL, demux_mpeg_loop, this)) != 0) {
@@ -800,6 +807,7 @@ static int demux_mpeg_start (demux_plugin_t *this_gen,
     }
   }
   else {
+    this->buf_flag_seek = 1;
     xine_demux_flush_engine(this->xine);
   }
 
