@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.15 2001/06/16 14:34:48 guenter Exp $
+ * $Id: demux_mpeg_block.c,v 1.16 2001/06/16 18:03:22 guenter Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -43,19 +43,24 @@
 static uint32_t xine_debug;
 
 typedef struct demux_mpeg_block_s {
-  demux_plugin_t       demux_plugin;
+  demux_plugin_t        demux_plugin;
 
-  fifo_buffer_t       *audio_fifo;
-  fifo_buffer_t       *video_fifo;
-  fifo_buffer_t       *spu_fifo;
+  fifo_buffer_t        *audio_fifo;
+  fifo_buffer_t        *video_fifo;
+  fifo_buffer_t        *spu_fifo;
 
-  input_plugin_t      *input;
+  input_plugin_t       *input;
 
-  pthread_t            thread;
+  pthread_t             thread;
 
-  int                  status;
+  int                   status;
   
-  int                  blocksize;
+  int                   blocksize;
+
+  int                   send_end_buffers;
+
+  gui_get_next_mrl_cb_t next_mrl_cb;
+  gui_branched_cb_t     branched_cb;
 } demux_mpeg_block_t ;
 
 
@@ -74,6 +79,7 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
   buf = this->input->read_block (this->input, this->video_fifo, this->blocksize);
 
   if (buf==NULL) {
+    printf ("demux_mpeg_block: read_block failed\n");
     this->status = DEMUX_FINISHED;
     return ;
   }
@@ -333,25 +339,33 @@ static void *demux_mpeg_block_loop (void *this_gen) {
   buf_element_t *buf = NULL;
   demux_mpeg_block_t *this = (demux_mpeg_block_t *) this_gen;
 
+  printf ("demux_mpeg_block: demux loop starting...\n");
+
+  this->send_end_buffers = 1;
+
   do {
 
     demux_mpeg_block_parse_pack(this, 0);
     
   } while (this->status == DEMUX_OK) ;
 
-  xprintf (VERBOSE|DEMUX, "demux loop finished (status: %d)\n",
-	   this->status);
+  printf ("demux_mpeg_block: demux loop finished (status: %d)\n",
+	  this->status);
 
   this->status = DEMUX_FINISHED;
 
-  buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-  buf->type    = BUF_CONTROL_END;
-  this->video_fifo->put (this->video_fifo, buf);
-
-  if(this->audio_fifo) {
-    buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
-    buf->type    = BUF_CONTROL_END;
-    this->audio_fifo->put (this->audio_fifo, buf);
+  if (this->send_end_buffers) {
+    buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
+    buf->type            = BUF_CONTROL_END;
+    buf->decoder_info[0] = 0; /* stream finished */
+    this->video_fifo->put (this->video_fifo, buf);
+    
+    if(this->audio_fifo) {
+      buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
+      buf->type            = BUF_CONTROL_END;
+      buf->decoder_info[0] = 0; /* stream finished */
+      this->audio_fifo->put (this->audio_fifo, buf);
+    }
   }
 
   pthread_exit(NULL);
@@ -365,6 +379,9 @@ static void demux_mpeg_block_stop (demux_plugin_t *this_gen) {
   void *p;
   buf_element_t *buf;
 
+  printf ("demux_mpeg_block: stop(...)\n");
+  
+  this->send_end_buffers = 0;
   this->status = DEMUX_FINISHED;
 
   pthread_join (this->thread, &p);
@@ -373,12 +390,15 @@ static void demux_mpeg_block_stop (demux_plugin_t *this_gen) {
   this->audio_fifo->clear(this->audio_fifo);
 
   buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-  buf->type    = BUF_CONTROL_END;
+  buf->type            = BUF_CONTROL_END;
+  buf->decoder_info[0] = 1; /* forced */
+
   this->video_fifo->put (this->video_fifo, buf);
 
   if(this->audio_fifo) {
     buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
-    buf->type    = BUF_CONTROL_END;
+    buf->type            = BUF_CONTROL_END;
+    buf->decoder_info[0] = 1; /* forced */
     this->audio_fifo->put (this->audio_fifo, buf);
   }
   
@@ -394,7 +414,9 @@ static void demux_mpeg_block_start (demux_plugin_t *this_gen,
 				    fifo_buffer_t *video_fifo, 
 				    fifo_buffer_t *audio_fifo,
 				    fifo_buffer_t *spu_fifo,
-				    off_t pos) 
+				    off_t pos,
+				    gui_get_next_mrl_cb_t next_mrl_cb,
+				    gui_branched_cb_t branched_cb) 
 {
 
   demux_mpeg_block_t *this = (demux_mpeg_block_t *) this_gen;
@@ -403,8 +425,8 @@ static void demux_mpeg_block_start (demux_plugin_t *this_gen,
   this->video_fifo  = video_fifo;
   this->audio_fifo  = audio_fifo;
   this->spu_fifo    = spu_fifo;
-
-  this->status      = DEMUX_OK;
+  this->next_mrl_cb = next_mrl_cb;
+  this->branched_cb = branched_cb;
 
   pos /= (off_t) this->blocksize;
   pos *= (off_t) this->blocksize;
@@ -443,6 +465,8 @@ static void demux_mpeg_block_start (demux_plugin_t *this_gen,
   /*
    * now start demuxing
    */
+
+  this->status = DEMUX_OK ;
 
   pthread_create (&this->thread, NULL, demux_mpeg_block_loop, this) ;
 }

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.22 2001/06/16 14:34:49 guenter Exp $
+ * $Id: xine_internal.h,v 1.23 2001/06/16 18:03:22 guenter Exp $
  *
  */
 
@@ -91,11 +91,12 @@ struct audio_decoder_s {
 };
 
 /*
- * gui callback function - called by xine engine on stream end
+ * gui callback functions
  *
- * nStatus : current xine status 
  */
-typedef void (*gui_status_callback_func_t)(int nStatus);
+
+/* called when xine has finished a stream (_not_ if xine was stopped/paused) */
+typedef void (*gui_stream_end_cb_t)(int nStatus);
 
 /*
  * player status constants:
@@ -149,7 +150,9 @@ typedef struct xine_s {
   int                        audio_track_map_entries;
   int                        audio_finished;
 
-  gui_status_callback_func_t status_callback;
+  gui_stream_end_cb_t        stream_end_cb;
+  gui_get_next_mrl_cb_t      get_next_mrl_cb;
+  gui_branched_cb_t          branched_cb;
 
   /* Lock for xine player functions */
   pthread_mutex_t            xine_lock;
@@ -169,8 +172,10 @@ config_values_t *config_file_init (char *filename);
 
 xine_t *xine_init (vo_driver_t *vo, 
 		   ao_functions_t *ao,
-		   gui_status_callback_func_t gui_status_callback,
-		   config_values_t *config);
+		   config_values_t *config,
+		   gui_stream_end_cb_t stream_end_cb,
+		   gui_get_next_mrl_cb_t get_next_mrl_cb,
+		   gui_branched_cb_t branched_cb);
 
 /*
  * open a stream and play it

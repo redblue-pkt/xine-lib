@@ -29,7 +29,7 @@
    \endverbatim
  */
 /*
- * $Id: xine.h.tmpl.in,v 1.20 2001/06/10 23:10:52 heikos Exp $
+ * $Id: xine.h.tmpl.in,v 1.21 2001/06/16 18:03:21 guenter Exp $
  *
  */
 
@@ -173,14 +173,13 @@ struct vo_driver_s {
 };
 
 /** 
- * \brief Current xine status function type
- * \param nStatus Current status
+ * \brief xine ui callback function pointer types
  * @see xine_init()
  *
- * This type define the callback function that
- * UI should implement.
  */
-typedef void (*gui_status_callback_func_t)(int nStatus);
+typedef void (*gui_stream_end_cb_t)(int nStatus);
+typedef char* (*gui_get_next_mrl_cb_t) (void);
+typedef void (*gui_branched_cb_t) (void);
 
 /**
  * \defgroup statgroup Player status constants
@@ -287,20 +286,26 @@ config_values_t *config_file_init (char *filename);
 /**
  * \fn xine_t *xine_init (vo_driver_t *vo, ao_functions_t *ao, gui_status_callback_func_t gui_status_callback, config_values_t *config)
  * \brief Initialisation of xine.
- * \param vo Video driver ( should be previously initialized by vo_init() )
- * \param ao Audio driver ( should be previously initializef by ao_init() )
- * \param gui_status_callback Pointer to UI function ( #see gui_status_callback_func_t() function type )
- * \param config Current configuration ( #see config_file_init() )
+ * \param vo video driver ( should be previously initialized by vo_init() )
+ * \param ao audio driver ( should be previously initializef by ao_init() )
+ * \param config current configuration ( #see config_file_init() )
+ * \param stream_end cb called on stream end 
+ * \param get_next_mrl_cb called to find out next mrl for seamless branching
+ * \param branched_cb called if seamless branch was taken
  * \return Current xine engine configuration
- * \warning This function should be called before any of xine_*() functions.
+ * \warning This function should be called before any other xine_*() function.
  *
  * Init of xine. It should called once at startup.
+ * all callbacks may be NULL if ui is not interested in them for whatever reason
+ * ao may be NULL for no audio playback
  *
  */
 xine_t *xine_init (vo_driver_t *vo, 
 		   ao_functions_t *ao,
-		   gui_status_callback_func_t gui_status_callback,
-		   config_values_t *config) ;
+		   config_values_t *config,
+		   gui_stream_end_cb_t stream_end_cb,
+		   gui_get_next_mrl_cb_t get_next_mrl_cb,
+		   gui_branched_cb_t branched_cb);
 
 /**
  * \fn void xine_exit (xine_t *this)

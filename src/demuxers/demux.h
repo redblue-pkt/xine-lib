@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux.h,v 1.4 2001/04/27 10:47:41 f1rmb Exp $
+ * $Id: demux.h,v 1.5 2001/06/16 18:03:22 guenter Exp $
  */
 
 #ifndef HAVE_DEMUX_H
@@ -46,6 +46,12 @@
 
 #define STAGE_BY_CONTENT          1
 #define STAGE_BY_EXTENSION        2
+
+/* called when xine tries to branch seamlessly to the next mrl */
+typedef char* (*gui_get_next_mrl_cb_t) (void);
+
+/* called when xine branched successfully to the next mrl */
+typedef void (*gui_branched_cb_t) (void);
 
 /*
  * a demux plugin (no matter if it's staically built into xine
@@ -80,7 +86,8 @@ struct demux_plugin_s
 
   void (*start) (demux_plugin_t *this, fifo_buffer_t *video_fifo, 
 		 fifo_buffer_t *audio_fifo, fifo_buffer_t *spu_fifo,
-		 off_t pos) ;
+		 off_t pos, gui_get_next_mrl_cb_t next_mrl_cb,
+		 gui_branched_cb_t branched_cb) ;
   
   /*
    * stop & kill demux thread, free resources associated with current

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_avi.c,v 1.18 2001/06/16 14:34:48 guenter Exp $
+ * $Id: demux_avi.c,v 1.19 2001/06/16 18:03:22 guenter Exp $
  *
  * demultiplexer for avi streams
  *
@@ -117,6 +117,8 @@ typedef struct demux_avi_s {
 
   uint32_t             video_step;
   uint32_t             AVI_errno; 
+
+  int                  send_end_buffers;
 } demux_avi_t ;
 
 #define AVI_ERR_SIZELIM      1     /* The write of the data would exceed
@@ -821,20 +823,26 @@ static void *demux_avi_loop (void *this_gen) {
   buf_element_t *buf = NULL;
   demux_avi_t *this = (demux_avi_t *) this_gen;
 
+  this->send_end_buffers = 1;
+
   do {
     if (!demux_avi_next(this))
       this->status = DEMUX_FINISHED;
 
   } while (this->status == DEMUX_OK) ;
 
-  buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-  buf->type    = BUF_CONTROL_END;
-  this->video_fifo->put (this->video_fifo, buf);
-
-  if(this->audio_fifo) {
-    buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
-    buf->type    = BUF_CONTROL_END;
-    this->audio_fifo->put (this->audio_fifo, buf);
+  if (this->send_end_buffers) {
+    buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
+    buf->type            = BUF_CONTROL_END;
+    buf->decoder_info[0] = 0; /* stream finished */
+    this->video_fifo->put (this->video_fifo, buf);
+    
+    if(this->audio_fifo) {
+      buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
+      buf->type            = BUF_CONTROL_END;
+      buf->decoder_info[0] = 0; /* stream finished */
+      this->audio_fifo->put (this->audio_fifo, buf);
+    }
   }
 
   xprintf (VERBOSE|DEMUX, "demux_avi: demux loop finished.\n");
@@ -849,6 +857,7 @@ static void demux_avi_stop (demux_plugin_t *this_gen) {
   demux_avi_t   *this = (demux_avi_t *) this_gen;
   buf_element_t *buf;
 
+  this->send_end_buffers = 0;
   this->status = DEMUX_FINISHED;
   
   pthread_join (this->thread, &p);
@@ -856,17 +865,18 @@ static void demux_avi_stop (demux_plugin_t *this_gen) {
   AVI_close (this->avi);
   this->avi = NULL;
 
-
   this->video_fifo->clear(this->video_fifo);
   this->audio_fifo->clear(this->audio_fifo);
 
   buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-  buf->type    = BUF_CONTROL_END;
+  buf->type            = BUF_CONTROL_END;
+  buf->decoder_info[0] = 1; /* forced */
   this->video_fifo->put (this->video_fifo, buf);
 
   if(this->audio_fifo) {
     buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
-    buf->type    = BUF_CONTROL_END;
+    buf->type            = BUF_CONTROL_END;
+    buf->decoder_info[0] = 1; /* forced */
     this->audio_fifo->put (this->audio_fifo, buf);
   }
   
@@ -886,7 +896,9 @@ static void demux_avi_start (demux_plugin_t *this_gen,
 			     fifo_buffer_t *video_fifo, 
 			     fifo_buffer_t *audio_fifo,
 			     fifo_buffer_t *spu_fifo,
-			     off_t pos) 
+			     off_t pos,
+			     gui_get_next_mrl_cb_t next_mrl_cb,
+			     gui_branched_cb_t branched_cb) 
 {
   buf_element_t *buf;
   demux_avi_t *this = (demux_avi_t *) this_gen;

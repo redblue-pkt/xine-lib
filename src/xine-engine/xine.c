@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.24 2001/06/16 14:34:49 guenter Exp $
+ * $Id: xine.c,v 1.25 2001/06/16 18:03:22 guenter Exp $
  *
  * top-level xine functions
  *
@@ -63,17 +63,20 @@ void xine_notify_stream_finished (xine_t *this) {
   
   xine_stop (this);
 
-  this->status_callback (this->status);
+  if (this->stream_end_cb)
+    this->stream_end_cb (this->status);
   
 }
 
 void xine_stop (xine_t *this) {
 
-  if (!this->cur_input_plugin) 
-    return;
-
   pthread_mutex_lock (&this->xine_lock);
-  
+
+  if (this->status == XINE_STOP) {
+    pthread_mutex_unlock (&this->xine_lock);
+    return;
+  }
+
   this->status = XINE_STOP;
   
   if(this->cur_demuxer_plugin) {
@@ -183,8 +186,6 @@ static void xine_play_internal (xine_t *this, char *MRL,
    * find input plugin
    */
 
-  printf ("xine: looking for an input plugin...\n");
-   
   this->cur_input_plugin = NULL;
 
   for (i = 0; i < this->num_input_plugins; i++) {
@@ -207,10 +208,8 @@ static void xine_play_internal (xine_t *this, char *MRL,
    * find demuxer plugin
    */
 
-  printf ("xine: looking for a demuxer plugin...\n");
-
   if(!find_demuxer(this, MRL)) {
-    printf ("error: couldn't find demuxer for >%s<\n", MRL);
+    printf ("xine: couldn't find demuxer for >%s<\n", MRL);
     return;
   }
 
@@ -238,8 +237,6 @@ static void xine_play_internal (xine_t *this, char *MRL,
    * start demuxer
    */
 
-  printf ("xine: starting demuxer ...\n");
-  
   if (spos) {
     len = this->cur_input_plugin->get_length (this->cur_input_plugin);
     share = (double) spos / 65535;
@@ -249,7 +246,9 @@ static void xine_play_internal (xine_t *this, char *MRL,
   this->cur_demuxer_plugin->start (this->cur_demuxer_plugin,
 				   this->video_fifo,
 				   this->audio_fifo, 
-				   this->spu_fifo, pos);
+				   this->spu_fifo, pos,
+				   this->get_next_mrl_cb,
+				   this->branched_cb);
   
   this->status = XINE_PLAY;
   this->cur_input_pos = pos;
@@ -258,10 +257,7 @@ static void xine_play_internal (xine_t *this, char *MRL,
    * start clock
    */
 
-  printf ("xine: starting clock ...\n");
   this->metronom->start_clock (this->metronom, 0);
-
-  printf ("xine: play_internal done.\n");
 }
 
 void xine_play (xine_t *this, char *MRL, int spos) {
@@ -299,16 +295,16 @@ void xine_exit (xine_t *this) {
    * stop decoder threads
    */
 
-  printf ("xine_exit: stopping demuxer\n");
-
   if(this->cur_demuxer_plugin) {
+    printf ("xine_exit: stopping demuxer\n");
+
     this->cur_demuxer_plugin->stop (this->cur_demuxer_plugin);
     this->cur_demuxer_plugin = NULL;
   }
 
-  printf ("xine_exit: closing input plugin\n");
-
   if(this->cur_input_plugin) {
+    printf ("xine_exit: closing input plugin\n");
+
     this->cur_input_plugin->close(this->cur_input_plugin);
     this->cur_input_plugin = NULL;
   }
@@ -367,12 +363,16 @@ void xine_pause (xine_t *this) {
 
 xine_t *xine_init (vo_driver_t *vo, 
 		   ao_functions_t *ao,
-		   gui_status_callback_func_t gui_status_callback,
-		   config_values_t *config) {
+		   config_values_t *config,
+		   gui_stream_end_cb_t stream_end_cb,
+		   gui_get_next_mrl_cb_t get_next_mrl_cb,
+		   gui_branched_cb_t branched_cb) {
 
   xine_t *this = xmalloc (sizeof (xine_t));
 
-  this->status_callback = gui_status_callback;
+  this->stream_end_cb   = stream_end_cb;
+  this->get_next_mrl_cb = get_next_mrl_cb;
+  this->branched_cb     = branched_cb;  
   this->config          = config;
   xine_debug            = config->lookup_int (config, "xine_debug", 0);
 
@@ -381,14 +381,12 @@ xine_t *xine_init (vo_driver_t *vo,
    */
 
   pthread_mutex_init (&this->xine_lock, NULL);
-  printf ("xine_init: lock created\n");
 
   /*
    * create a metronom
    */
 
   this->metronom = metronom_init ();
-  printf ("xine_init: metronom created\n");
 
   /*
    * load input and demuxer plugins
@@ -396,8 +394,6 @@ xine_t *xine_init (vo_driver_t *vo,
   
   load_input_plugins (this, config, INPUT_PLUGIN_IFACE_VERSION);
   
-  printf ("xine_init: input plugins loaded\n");
-
   this->demux_strategy  = config->lookup_int (config, "demux_strategy", 0);
 
   load_demux_plugins(this, config, DEMUXER_PLUGIN_IFACE_VERSION);
@@ -405,8 +401,6 @@ xine_t *xine_init (vo_driver_t *vo,
   this->audio_channel = 0;
   this->spu_channel   = -1;
   this->cur_input_pos = 0;
-
-  printf ("xine_init: demuxer plugins loaded\n");
 
   /*
    * init and start decoder threads

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_elem.c,v 1.9 2001/05/30 02:09:24 f1rmb Exp $
+ * $Id: demux_elem.c,v 1.10 2001/06/16 18:03:22 guenter Exp $
  *
  * demultiplexer for elementary mpeg streams
  * 
@@ -52,6 +52,8 @@ typedef struct {
 
   int              blocksize;
   int              status;
+  
+  int              send_end_buffers;
 
 } demux_mpeg_elem_t ;
 
@@ -88,6 +90,8 @@ static void *demux_mpeg_elem_loop (void *this_gen) {
   buf_element_t *buf = NULL;
   demux_mpeg_elem_t *this = (demux_mpeg_elem_t *) this_gen;
 
+  this->send_end_buffers = 1;
+
   do {
 
     if (!demux_mpeg_elem_next(this))
@@ -99,14 +103,18 @@ static void *demux_mpeg_elem_loop (void *this_gen) {
 
   this->status = DEMUX_FINISHED;
 
-  buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-  buf->type    = BUF_CONTROL_END;
-  this->video_fifo->put (this->video_fifo, buf);
-
-  if(this->audio_fifo) {
-    buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
-    buf->type    = BUF_CONTROL_END;
-    this->audio_fifo->put (this->audio_fifo, buf);
+  if (this->send_end_buffers) {
+    buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
+    buf->type            = BUF_CONTROL_END;
+    buf->decoder_info[0] = 0; /* stream finished */
+    this->video_fifo->put (this->video_fifo, buf);
+    
+    if(this->audio_fifo) {
+      buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
+      buf->type            = BUF_CONTROL_END;
+      buf->decoder_info[0] = 0; /* stream finished */
+      this->audio_fifo->put (this->audio_fifo, buf);
+    }
   }
 
   pthread_exit(NULL);
@@ -116,12 +124,32 @@ static void *demux_mpeg_elem_loop (void *this_gen) {
  *
  */
 static void demux_mpeg_elem_stop (demux_plugin_t *this_gen) {
-  demux_mpeg_elem_t *this = (demux_mpeg_elem_t *) this_gen;
-  void *p;
 
+  demux_mpeg_elem_t *this = (demux_mpeg_elem_t *) this_gen;
+  void              *p;
+  buf_element_t     *buf = NULL;
+
+
+  this->send_end_buffers = 0;
   this->status = DEMUX_FINISHED;
 
   pthread_join (this->thread, &p);
+
+  this->video_fifo->clear(this->video_fifo);
+  this->audio_fifo->clear(this->audio_fifo);
+
+  buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
+  buf->type            = BUF_CONTROL_END;
+  buf->decoder_info[0] = 1; /* forced */
+
+  this->video_fifo->put (this->video_fifo, buf);
+
+  if(this->audio_fifo) {
+    buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
+    buf->type            = BUF_CONTROL_END;
+    buf->decoder_info[0] = 1; /* forced */
+    this->audio_fifo->put (this->audio_fifo, buf);
+  }
 }
 
 /*
@@ -140,7 +168,9 @@ static void demux_mpeg_elem_start (demux_plugin_t *this_gen,
 				    fifo_buffer_t *video_fifo, 
 				    fifo_buffer_t *audio_fifo,
 				    fifo_buffer_t *spu_fifo,
-				    off_t pos) {
+				    off_t pos,
+				    gui_get_next_mrl_cb_t next_mrl_cb,
+				    gui_branched_cb_t branched_cb) {
   demux_mpeg_elem_t *this = (demux_mpeg_elem_t *) this_gen;
   buf_element_t *buf;
   
