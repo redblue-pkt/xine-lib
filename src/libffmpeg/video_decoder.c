@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.7 2004/02/14 19:52:41 jstembridge Exp $
+ * $Id: video_decoder.c,v 1.8 2004/02/14 20:32:12 jstembridge Exp $
  *
  * xine video decoder plugin using ffmpeg
  *
@@ -221,9 +221,12 @@ static void init_video_codec (ff_video_decoder_t *this, xine_bmiheader *bih) {
   }
 
   this->decoder_ok = 1;
+  
+  this->aspect_ratio = (double)this->bih.biWidth / (double)this->bih.biHeight;
 
-  _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_WIDTH,    this->context->width);
-  _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_HEIGHT,   this->context->height);
+  _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_WIDTH,  this->context->width);
+  _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_HEIGHT, this->context->height);
+  _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_RATIO,  this->aspect_ratio*10000);
 
   this->stream->video_out->open (this->stream->video_out, this->stream);
 
@@ -931,6 +934,12 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
   if (buf->decoder_flags & BUF_FLAG_FRAMERATE) {
     this->video_step = buf->decoder_info[0];
     _x_stream_info_set(this->stream, XINE_STREAM_INFO_FRAME_DURATION, this->video_step);
+  }
+  
+  if (buf->decoder_flags & BUF_FLAG_ASPECT) {
+    this->aspect_ratio = (double)buf->decoder_info[1] / (double)buf->decoder_info[2];
+    _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_RATIO, 
+                       this->aspect_ratio*10000);
   }
   
   if (this->decoder_ok && this->size) {
