@@ -249,13 +249,8 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 	if (((picture->picture_structure == FRAME_PICTURE) ||
 	     (picture->second_field)) ) {
 	  
-	  if (mpeg2dec->drop_frame ||
-	      (picture->picture_coding_type == B_TYPE && mpeg2dec->is_wait_for_ip_frames > 0) ||
-	      (picture->picture_coding_type == P_TYPE && mpeg2dec->is_wait_for_ip_frames > 1)) {
+	  if (mpeg2dec->drop_frame)
 	    picture->current_frame->bad_frame = 1;
-	  } else if (picture->picture_coding_type != D_TYPE && mpeg2dec->is_wait_for_ip_frames > 0) {
-	    mpeg2dec->is_wait_for_ip_frames--;
-	  }
    
 	  if (picture->picture_coding_type == B_TYPE) {
 	    if( picture->current_frame && !picture->current_frame->drawn ) {
@@ -321,6 +316,11 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 		printf ("fw ref frame not there)\n");
 #endif
 	      mpeg2dec->drop_frame = 1;
+	    } else if (mpeg2dec->is_wait_for_ip_frames > 0) {
+#ifdef LOG
+	      printf("libmpeg2: dropping b-frame because refs are invalid\n");
+#endif
+	      mpeg2dec->drop_frame = 1;
 	    }
 	    break;
 	    
@@ -344,7 +344,14 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 	      else
 		printf ("libmpeg2: dropping p-frame because ref %d is bad\n", picture->backward_reference_frame->id);
 #endif
-	    }
+	    } else if (mpeg2dec->is_wait_for_ip_frames > 1) {
+#ifdef LOG
+	      printf("libmpeg2: dropping p-frame because ref is invalid\n");
+#endif
+	      mpeg2dec->drop_frame = 1;
+	    } else if (mpeg2dec->is_wait_for_ip_frames)
+	      mpeg2dec->is_wait_for_ip_frames--;
+	    
 	    break;
 	    
 	  case I_TYPE:
@@ -356,6 +363,10 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 	      mpeg2dec->drop_frame = 1;
 	    }
 	    */
+	    
+	    if (mpeg2dec->is_wait_for_ip_frames)
+	      mpeg2dec->is_wait_for_ip_frames--;
+	    
 	    break;
 	  }
 	}
@@ -620,6 +631,7 @@ void mpeg2_reset (mpeg2dec_t * mpeg2dec) {
   }
   
   mpeg2dec->in_slice = 0;
+  mpeg2dec->seek_mode = 1;
 
 }
 
