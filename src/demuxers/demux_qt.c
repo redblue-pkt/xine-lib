@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.179 2004/02/29 18:42:39 tmmm Exp $
+ * $Id: demux_qt.c,v 1.180 2004/03/02 02:53:59 tmmm Exp $
  *
  */
 
@@ -109,6 +109,8 @@ typedef unsigned int qt_atom;
 #define GEN_ATOM QT_ATOM(0xA9, 'g', 'e', 'n')
 #define ART_ATOM QT_ATOM(0xA9, 'A', 'R', 'T')
 #define TOO_ATOM QT_ATOM(0xA9, 't', 'o', 'o')
+#define WRT_ATOM QT_ATOM(0xA9, 'w', 'r', 't')
+#define DAY_ATOM QT_ATOM(0xA9, 'd', 'a', 'y')
 
 #define RMDA_ATOM QT_ATOM('r', 'm', 'd', 'a')
 #define RDRF_ATOM QT_ATOM('r', 'd', 'r', 'f')
@@ -313,6 +315,8 @@ typedef struct {
   char              *copyright;
   char              *description;
   char              *comment;
+  char              *composer;
+  char              *year;
 
   /* a QT movie may contain a number of references pointing to URLs */
   reference_t       *references;
@@ -581,6 +585,8 @@ static qt_info *create_qt_info(void) {
   info->copyright = NULL;
   info->description = NULL;
   info->comment = NULL;
+  info->composer = NULL;
+  info->year = NULL;
 
   info->references = NULL;
   info->reference_count = 0;
@@ -630,6 +636,8 @@ static void free_qt_info(qt_info *info) {
     free(info->copyright);
     free(info->description);
     free(info->comment);
+    free(info->composer);
+    free(info->year);
     free(info);
     info = NULL;
   }
@@ -709,6 +717,16 @@ static void parse_meta_atom(qt_info *info, unsigned char *meta_atom) {
       info->comment = xine_xmalloc(string_size);
       strncpy(info->comment, &meta_atom[i + 20], string_size - 1);
       info->comment[string_size - 1] = 0;
+    } else if (current_atom == WRT_ATOM) {
+      string_size = BE_32(&meta_atom[i + 4]) - 16 + 1;
+      info->composer = xine_xmalloc(string_size);
+      strncpy(info->composer, &meta_atom[i + 20], string_size - 1);
+      info->composer[string_size - 1] = 0;
+    } else if (current_atom == DAY_ATOM) {
+      string_size = BE_32(&meta_atom[i + 4]) - 16 + 1;
+      info->year = xine_xmalloc(string_size);
+      strncpy(info->year, &meta_atom[i + 20], string_size - 1);
+      info->year[string_size - 1] = 0;
     }
   }
 
@@ -2482,12 +2500,16 @@ static void demux_qt_send_headers(demux_plugin_t *this_gen) {
     _x_meta_info_set(this->stream, XINE_META_INFO_TITLE, this->qt->name);
   else if (this->qt->description)
     _x_meta_info_set(this->stream, XINE_META_INFO_TITLE, this->qt->description);
-  if (this->qt->comment)
+  if (this->qt->composer)
+    _x_meta_info_set(this->stream, XINE_META_INFO_COMMENT, this->qt->composer);
+  else if (this->qt->comment)
     _x_meta_info_set(this->stream, XINE_META_INFO_COMMENT, this->qt->comment);
   if (this->qt->album)
     _x_meta_info_set(this->stream, XINE_META_INFO_ALBUM, this->qt->album);
   if (this->qt->genre)
     _x_meta_info_set(this->stream, XINE_META_INFO_GENRE, this->qt->genre);
+  if (this->qt->year)
+    _x_meta_info_set(this->stream, XINE_META_INFO_YEAR, this->qt->year);
 
   /* send start buffers */
   _x_demux_control_start(this->stream);
