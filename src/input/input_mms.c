@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_mms.c,v 1.22 2002/10/26 22:50:52 guenter Exp $
+ * $Id: input_mms.c,v 1.23 2002/10/29 01:17:46 guenter Exp $
  *
  * mms input plugin based on work from major mms
  */
@@ -257,6 +257,11 @@ static input_plugin_t *open_plugin (input_class_t *cls_gen, xine_stream_t *strea
 #ifdef LOG
   printf ("input_mms: trying to open '%s'\n", mrl);
 #endif
+
+  if (strncasecmp (mrl, "mms://", 6)) {
+    free (mrl);
+    return NULL;
+  }
 
   mms = mms_connect (stream, mrl);
 
