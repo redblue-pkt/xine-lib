@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.c,v 1.15 2001/07/08 18:15:54 guenter Exp $
+ * $Id: metronom.c,v 1.16 2001/07/10 22:16:58 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -306,6 +306,13 @@ static uint32_t metronom_got_video_frame (metronom_t *this, uint32_t pts) {
       this->video_stream_starting = 0;
       
       this->video_wrap_offset = -1 * pts;
+  
+      if (this->audio_wrap_offset) {
+	if (this->audio_wrap_offset>this->video_wrap_offset) 
+	  this->video_wrap_offset = this->audio_wrap_offset;
+	else
+	  this->audio_wrap_offset = this->video_wrap_offset;
+      }
 
       printf ("metronom: first video pts => offset = %d\n", this->video_wrap_offset); 
 
@@ -402,6 +409,13 @@ static uint32_t metronom_got_audio_samples (metronom_t *this, uint32_t pts, uint
       this->audio_stream_starting = 0;
       
       this->audio_wrap_offset = -1 * pts;
+
+      if (this->video_wrap_offset) {
+	if (this->audio_wrap_offset>this->video_wrap_offset) 
+	  this->video_wrap_offset = this->audio_wrap_offset;
+	else
+	  this->audio_wrap_offset = this->video_wrap_offset;
+      }
 
       printf ("metronom: first audio pts => offset = %d\n", this->audio_wrap_offset); 
     }
