@@ -21,7 +21,6 @@ frontends
         The majority of config entries should have a proper help string.
         Decision should be made, what messages to report on console and
         what to put in the log. The config option naming is cleaned up.
-	+ clean fix for the subtitle switching deadlock fixed in 1-rc3b
 
 1-rc5   There is a well-defined bug handling mechanism, even if it is a
         paper based checklist on someones desk. 1.0-critical bugs are

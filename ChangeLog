@@ -10,7 +10,13 @@ xine-lib (1-rc3c)
   * preparing for future MinGW port
   * improved network buffer management policy.
   * asf/mmst/mmsh proper support for "media changing" command.
-  * improve playback with subtitles, fix the seeking
+  * improve playback with separate subtitles, fix the seeking and a deadlock
+  * DVD still menus fixed that were broken in rc3b
+  * deadlocks with network buffer control fixed
+  * DXR3's letterboxed overlay mode works with pan&scan material
+  * DXR3: timestamp handling for NAV packets fixes the menu on the first
+    DVD of "24" season 1
+  * fixed audio sync method "resampling"
 
 xine-lib (1-rc3b)
   * fix SDL plugin that was broken in rc3
