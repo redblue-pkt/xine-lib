@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_goom.c,v 1.7 2002/12/29 17:36:34 tmattern Exp $
+ * $Id: xine_goom.c,v 1.8 2002/12/29 17:53:09 f1rmb Exp $
  *
  * GOOM post plugin.
  *
@@ -368,19 +368,19 @@ static void goom_port_put_buffer (xine_audio_port_t *port_gen,
     
 #ifdef __BIG_ENDIAN__
       goom_frame ++;
-      uint8_t r1 = *goom_frame; goom_frame ++;
-      uint8_t g1 = *goom_frame; goom_frame ++;
-      uint8_t b1 = *goom_frame; goom_frame += 2;
-      uint8_t r2 = *goom_frame; goom_frame ++;
-      uint8_t g2 = *goom_frame; goom_frame ++;
-      uint8_t b2 = *goom_frame; goom_frame ++;
+      uint8_t r1 = *goom_frame++;
+      uint8_t g1 = *goom_frame++;
+      uint8_t b1 = (*goom_frame += 2);
+      uint8_t r2 = *goom_frame++;
+      uint8_t g2 = *goom_frame++;
+      uint8_t b2 = *goom_frame++;
 #else
-      uint8_t b1 = *goom_frame; goom_frame ++;
-      uint8_t g1 = *goom_frame; goom_frame ++;
-      uint8_t r1 = *goom_frame; goom_frame += 2;
-      uint8_t b2 = *goom_frame; goom_frame ++;
-      uint8_t g2 = *goom_frame; goom_frame ++;
-      uint8_t r2 = *goom_frame; goom_frame += 2;
+      uint8_t b1 = *goom_frame++;
+      uint8_t g1 = *goom_frame++;
+      uint8_t r1 = (*goom_frame += 2);
+      uint8_t b2 = *goom_frame++;
+      uint8_t g2 = *goom_frame++;
+      uint8_t r2 = (*goom_frame += 2);
 #endif
   
       *dest_ptr = (y_r_table[r1] + y_g_table[g1] + y_b_table[b1]) >> 16;
