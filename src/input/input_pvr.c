@@ -39,7 +39,7 @@
  * usage: 
  *   xine pvr:<prefix_to_tmp_files>\!<prefix_to_saved_files>\!<max_page_age>
  *
- * $Id: input_pvr.c,v 1.16 2003/04/26 22:34:32 guenter Exp $
+ * $Id: input_pvr.c,v 1.17 2003/05/02 15:02:11 miguelfreitas Exp $
  */
 
 /**************************************************************************
@@ -1297,9 +1297,9 @@ static input_plugin_t *pvr_class_get_instance (input_class_t *cls_gen, xine_stre
   char                *mrl = strdup(data);
   char                *aux;
   
-  if (strncasecmp (mrl, "pvr:", 4)) 
+  if (strncasecmp (mrl, "pvr:/", 5)) 
     return NULL;
-  aux = &mrl[4];
+  aux = &mrl[5];
 
   this = (pvr_input_plugin_t *) xine_xmalloc (sizeof (pvr_input_plugin_t));
   this->class        = cls;

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_stdin_fifo.c,v 1.50 2003/04/26 22:34:32 guenter Exp $
+ * $Id: input_stdin_fifo.c,v 1.51 2003/05/02 15:02:11 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -296,7 +296,7 @@ static input_plugin_t *stdin_class_get_instance (input_class_t *cls_gen, xine_st
 
     fh = STDIN_FILENO;
 
-  } else if (!strncasecmp (mrl, "fifo:", 5)) {
+  } else if (!strncasecmp (mrl, "fifo:/", 6)) {
     char *filename;
 
     filename = (char *) &mrl[5];

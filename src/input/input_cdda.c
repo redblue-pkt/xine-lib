@@ -20,7 +20,7 @@
  * Compact Disc Digital Audio (CDDA) Input Plugin 
  *   by Mike Melanson (melanson@pcisys.net)
  *
- * $Id: input_cdda.c,v 1.16 2003/05/02 13:57:22 miguelfreitas Exp $
+ * $Id: input_cdda.c,v 1.17 2003/05/02 15:02:11 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -1355,7 +1355,7 @@ static char ** cdda_class_get_autoplay_list (input_class_t *this_gen,
   close(fd);
   
   for( i = 0; i <= toc.last_track - toc.first_track; i++ ) {
-    sprintf(trackmrl,"cdda:%d",i+toc.first_track);
+    sprintf(trackmrl,"cdda:/%d",i+toc.first_track);
     this->autoplaylist[i] = strdup(trackmrl);    
   }
 
@@ -1377,11 +1377,8 @@ static input_plugin_t *cdda_class_get_instance (input_class_t *cls_gen, xine_str
   printf("cdda_class_get_instance\n");
 #endif
   /* fetch the CD track to play */
-  if (!strncasecmp (mrl, "cdda:", 5)) {
-    if (mrl[5] != '/')
-      track = atoi(&mrl[5]);
-    else
-      track = atoi(&mrl[6]);
+  if (!strncasecmp (mrl, "cdda:/", 6)) {
+    track = atoi(&mrl[6]);
     /* CD tracks start at 1, reject illegal tracks */
     if (track <= 0)
       return NULL;

@@ -486,7 +486,7 @@ static input_plugin_t *v4l_class_get_instance (input_class_t *cls_gen,
   v4l_input_plugin_t *this;
   char               *mrl = strdup(data);
 
-  if (strncasecmp (mrl, "v4l:", 4)) {
+  if (strncasecmp (mrl, "v4l:/", 5)) {
     free (mrl);
     return NULL;
   }
