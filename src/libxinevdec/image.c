@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: image.c,v 1.1 2003/03/23 17:12:30 holstsn Exp $
+ * $Id: image.c,v 1.2 2003/03/26 23:45:58 holstsn Exp $
  *
  * a image video decoder
  */
@@ -154,6 +154,8 @@ void info_callback(png_structp png_ptr, png_infop info_ptr) {
   if (this->color_type == PNG_COLOR_TYPE_GRAY ||
       this->color_type == PNG_COLOR_TYPE_GRAY_ALPHA)
       png_set_gray_to_rgb(png_ptr);
+  if (this->color_type & PNG_COLOR_MASK_ALPHA)
+      png_set_strip_alpha(png_ptr);
 
 
   /* we'll let libpng expand interlaced images, too */
