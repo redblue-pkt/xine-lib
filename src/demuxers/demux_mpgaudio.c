@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpgaudio.c,v 1.51 2002/07/05 17:32:00 mroi Exp $
+ * $Id: demux_mpgaudio.c,v 1.52 2002/08/06 03:21:59 tmmm Exp $
  *
  * demultiplexer for mpeg audio (i.e. mp3) streams
  *
@@ -38,12 +38,19 @@
 #include "xineutils.h"
 #include "compat.h"
 #include "demux.h"
+#include "bswap.h"
 
 #define DEMUX_MPGAUDIO_IFACE_VERSION 3
 
 #define VALID_ENDS                   "mp3,mp2,mpa,mpega"
 #define WRAP_THRESHOLD       120000
 
+#define FOURCC_TAG( ch0, ch1, ch2, ch3 )                                \
+        ( (long)(unsigned char)(ch3) | ( (long)(unsigned char)(ch2) << 8 ) | \
+        ( (long)(unsigned char)(ch1) << 16 ) | ( (long)(unsigned char)(ch0) << 24 ) )
+
+#define RIFF_TAG FOURCC_TAG('R', 'I', 'F', 'F')
+#define RIFF_CHECK_BYTES 1024
 
 typedef struct {
 
@@ -433,6 +440,8 @@ static int demux_mpgaudio_seek (demux_plugin_t *this_gen,
 static int demux_mpgaudio_open(demux_plugin_t *this_gen,
 			       input_plugin_t *input, int stage) {
   demux_mpgaudio_t *this = (demux_mpgaudio_t *) this_gen;
+  unsigned char riff_check[RIFF_CHECK_BYTES];
+  int i;
 
   switch(stage) {
     
@@ -444,10 +453,39 @@ static int demux_mpgaudio_open(demux_plugin_t *this_gen,
 
     head = demux_mpgaudio_read_head(input);
 
-	if (mpg123_head_check(head)) {
-	  this->input = input;
-	  return DEMUX_CAN_HANDLE;
-	}
+    if (head == RIFF_TAG) {
+//printf (" **** found RIFF tag\n");
+      /* skip the remaining 12 bytes of the RIFF tag */
+      input->seek(input, 12, SEEK_CUR);
+
+      /* get the length of the next chunk */
+      if (input->read(input, riff_check, 4) != 4)
+        return DEMUX_CANNOT_HANDLE;
+      /* head gets to be a generic variable in this case */
+      head = le2me_32(*(unsigned int *)&riff_check[0]);
+      /* skip over the chunk and the 'data' tag and length */
+      input->seek(input, head + 8, SEEK_CUR);
+
+      /* load the next, I don't know...n bytes, and check for a valid
+       * MPEG audio header */
+      if (input->read(input, riff_check, RIFF_CHECK_BYTES) !=
+        RIFF_CHECK_BYTES)
+        return DEMUX_CANNOT_HANDLE;
+
+      for (i = 0; i < RIFF_CHECK_BYTES - 4; i++) {
+        head = be2me_32(*(unsigned int *)&riff_check[i]);
+//printf (" **** mpg123: checking %08X\n", head);
+        if (mpg123_head_check(head)) {
+          this->input = input;
+          return DEMUX_CAN_HANDLE;
+        }
+      }
+    } else {
+      if (mpg123_head_check(head)) {
+        this->input = input;
+        return DEMUX_CAN_HANDLE;
+      }
+    }
     return DEMUX_CANNOT_HANDLE;
   }
   break;
