@@ -63,7 +63,7 @@
  *     - if any bytes exceed 63, do not shift the bytes at all before
  *       transmitting them to the video decoder
  *
- * $Id: demux_idcin.c,v 1.18 2002/10/23 02:01:10 tmmm Exp $
+ * $Id: demux_idcin.c,v 1.19 2002/10/23 02:29:02 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -322,7 +322,7 @@ static void *demux_idcin_loop (void *this_gen) {
   return NULL;
 }
 
-/* returns 1 if the MVE file was opened successfully, 0 otherwise */
+/* returns 1 if the CIN file was opened successfully, 0 otherwise */
 static int open_idcin_file(demux_idcin_t *this) {
 
   unsigned char header[IDCIN_HEADER_SIZE];
