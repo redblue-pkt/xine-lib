@@ -23,6 +23,7 @@
  */ 
 
 //#define DEBUG
+#include <math.h>
 #include "avcodec.h"
 #include "mpegaudio.h"
 #include "dsputil.h"
