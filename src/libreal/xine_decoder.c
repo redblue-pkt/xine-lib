@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.38 2003/05/29 00:23:53 jstembridge Exp $
+ * $Id: xine_decoder.c,v 1.39 2003/06/03 15:44:31 jstembridge Exp $
  *
  * thin layer to use real binary-only codecs in xine
  *
@@ -397,8 +397,6 @@ static void realdec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) 
 	  this->height = transform_out[4];
 
 	  this->frame_size = this->width * this->height;
-	  this->frame_buffer = realloc(this->frame_buffer, 
-				       this->width * this->height * 3/2);
           
 	  this->stream->stream_info[XINE_STREAM_INFO_VIDEO_WIDTH]  = this->width;
 	  this->stream->stream_info[XINE_STREAM_INFO_VIDEO_HEIGHT] = this->height;
