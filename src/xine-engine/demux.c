@@ -49,7 +49,11 @@
 #define LOG
 */
 
-/* internal use only - called from demuxers on seek/stop
+/* 
+ *  Flush audio and video buffers. It is called from demuxers on
+ *  seek/stop, and may be useful when user input changes a stream and
+ *  xine-lib has cached buffers that have yet to be played.
+ *
  * warning: after clearing decoders fifos an absolute discontinuity
  *          indication must be sent. relative discontinuities are likely
  *          to cause "jumps" on metronom.

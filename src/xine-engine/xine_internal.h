@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.139 2003/08/21 00:37:29 miguelfreitas Exp $
+ * $Id: xine_internal.h,v 1.140 2003/09/25 02:57:51 rockyb Exp $
  *
  */
 
@@ -309,7 +309,17 @@ void xine_get_current_info (xine_stream_t *stream, extra_info_t *extra_info, int
                         
 /* demuxer helper functions from demux.c */
 
+/* 
+ *  Flush audio and video buffers. It is called from demuxers on
+ *  seek/stop, and may be useful when user input changes a stream and
+ *  xine-lib has cached buffers that have yet to be played.
+ *
+ * warning: after clearing decoders fifos an absolute discontinuity
+ *          indication must be sent. relative discontinuities are likely
+ *          to cause "jumps" on metronom.
+ */
 void xine_demux_flush_engine         (xine_stream_t *stream);
+
 void xine_demux_control_nop          (xine_stream_t *stream, uint32_t flags);
 void xine_demux_control_newpts       (xine_stream_t *stream, int64_t pts, uint32_t flags);
 void xine_demux_control_headers_done (xine_stream_t *stream);
