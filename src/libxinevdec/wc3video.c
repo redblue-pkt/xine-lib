@@ -22,7 +22,7 @@
  * For more information on the WC3 Movie format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: wc3video.c,v 1.4 2002/09/05 22:19:03 mroi Exp $
+ * $Id: wc3video.c,v 1.5 2002/09/13 03:02:18 tmmm Exp $
  */
 
 #include <stdio.h>
@@ -159,18 +159,19 @@ static void wc3_build_frame (wc3video_decoder_t *this) {
         break;
     }
 
+    /* run is unchanged from last frame */
     if (func < 12) {
       flag = flag ^ 1;
       if ( flag ) {
-        bytecopy(
+        xine_fast_memcpy(
           &this->current_frame->y[index], 
           &this->last_frame->y[index],
           size);
-        bytecopy(
+        xine_fast_memcpy(
           &this->current_frame->u[index], 
           &this->last_frame->u[index],
           size);
-        bytecopy(
+        xine_fast_memcpy(
           &this->current_frame->v[index], 
           &this->last_frame->v[index],
           size);
@@ -189,6 +190,7 @@ static void wc3_build_frame (wc3video_decoder_t *this) {
         }
       }
     } else {
+      /* run displacement from last frame */
       int x = (*part3 >> 4) & 0xf;
       int y = *part3 & 0xf;
       part3++;
@@ -198,15 +200,15 @@ static void wc3_build_frame (wc3video_decoder_t *this) {
       if (y & 8)  y |= 0xfffffff0;
 
       /* copy a run of pixels from the previous frame */
-      bytecopy(
+      xine_fast_memcpy(
         &this->current_frame->y[index], 
         &this->last_frame->y[index + x + y * WC3_WIDTH],
         size);
-      bytecopy(
+      xine_fast_memcpy(
         &this->current_frame->u[index], 
         &this->last_frame->u[index + x + y * WC3_WIDTH],
         size);
-      bytecopy(
+      xine_fast_memcpy(
         &this->current_frame->v[index], 
         &this->last_frame->v[index + x + y * WC3_WIDTH],
         size);
