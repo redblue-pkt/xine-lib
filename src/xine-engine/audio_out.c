@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.31 2001/11/18 03:53:25 guenter Exp $
+ * $Id: audio_out.c,v 1.32 2001/11/18 22:59:29 miguelfreitas Exp $
  * 
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -346,7 +346,7 @@ static void *ao_loop (void *this_gen) {
      * output audio data synced to master clock
      */
   
-    if (gap < (-1 * this->gap_tolerance)) {
+    if (gap < (-1 * this->gap_tolerance) || !this->audio_loop_running) {
 
       /* drop package */
 
@@ -572,6 +572,10 @@ static int ao_open(ao_instance_t *this,
    * start output thread
    */
 
+  if( this->audio_thread ) {
+    printf("audio_out: pthread already running!\n");
+  }
+  
   if ((err = pthread_create (&this->audio_thread,
 			     NULL, ao_loop, this)) != 0) {
 
@@ -635,6 +639,7 @@ static void ao_close(ao_instance_t *this) {
     fifo_append (this->out_fifo, audio_buffer);
 
     pthread_join (this->audio_thread, &p);
+    this->audio_thread = NULL;
   }
 
   printf ("audio_out: thread stopped, closing driver\n");
