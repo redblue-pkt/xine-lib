@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_oss_out.c,v 1.38 2001/09/08 16:29:30 guenter Exp $
+ * $Id: audio_oss_out.c,v 1.39 2001/09/28 10:19:08 jkeil Exp $
  *
  * 20-8-2001 First implementation of Audio sync and Audio driver separation.
  * Copyright (C) 2001 James Courtier-Dutton James@superbug.demon.co.uk
@@ -34,11 +34,6 @@
  * The number of samples passed to/from the audio driver is also sent in units of audio_frames.
  *              
  */
-
-/* required for swab() */
-#define _XOPEN_SOURCE 500
-/* required for FNDELAY decl */
-#define _BSD_SOURCE 1
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -156,7 +151,7 @@ static int ao_oss_open(ao_driver_t *this_gen,
    * open audio device
    */
 
-  this->audio_fd=open(this->audio_dev,O_WRONLY|O_NDELAY);
+  this->audio_fd=open(this->audio_dev,O_WRONLY|O_NONBLOCK);
   if(this->audio_fd < 0) {
     printf("audio_oss_out: Opening audio device %s: %s\n",
 	   this->audio_dev, strerror(errno));
@@ -164,7 +159,7 @@ static int ao_oss_open(ao_driver_t *this_gen,
   }
   
   /* We wanted non blocking open but now put it back to normal */
-  fcntl(this->audio_fd, F_SETFL, fcntl(this->audio_fd, F_GETFL)&~FNDELAY);
+  fcntl(this->audio_fd, F_SETFL, fcntl(this->audio_fd, F_GETFL)&~O_NONBLOCK);
 
   /*
    * configure audio device
@@ -439,7 +434,7 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
 
   while (devnum<16) {
 
-    audio_fd=open(devname,O_WRONLY|O_NDELAY);
+    audio_fd=open(devname,O_WRONLY|O_NONBLOCK);
 
     if (audio_fd>0) {
 
@@ -466,7 +461,7 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
    * open that device
    */
 
-  audio_fd=open(this->audio_dev, O_WRONLY|O_NDELAY);
+  audio_fd=open(this->audio_dev, O_WRONLY|O_NONBLOCK);
 
   if(audio_fd < 0) 
   {

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_sun_out.c,v 1.11 2001/09/23 15:24:53 jkeil Exp $
+ * $Id: audio_sun_out.c,v 1.12 2001/09/28 10:19:08 jkeil Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -251,7 +251,7 @@ static int ao_sun_open(ao_driver_t *this_gen,
    * open audio device
    */
 
-  this->audio_fd=open(this->audio_dev,O_WRONLY|O_NDELAY);
+  this->audio_fd=open(this->audio_dev,O_WRONLY|O_NONBLOCK);
   if(this->audio_fd < 0) {
     printf("audio_sun_out: Opening audio device %s: %s\n",
 	   this->audio_dev, strerror(errno));
@@ -259,7 +259,7 @@ static int ao_sun_open(ao_driver_t *this_gen,
   }
   
   /* We wanted non blocking open but now put it back to normal */
-  fcntl(this->audio_fd, F_SETFL, fcntl(this->audio_fd, F_GETFL)&~O_NDELAY);
+  fcntl(this->audio_fd, F_SETFL, fcntl(this->audio_fd, F_GETFL)&~O_NONBLOCK);
 
   /*
    * configure audio device
@@ -484,7 +484,7 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
    * open the device
    */
 
-  audio_fd=open(this->audio_dev = devname, O_WRONLY|O_NDELAY);
+  audio_fd=open(this->audio_dev = devname, O_WRONLY|O_NONBLOCK);
 
   if(audio_fd < 0) 
   {
