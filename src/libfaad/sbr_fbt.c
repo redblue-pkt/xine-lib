@@ -1,6 +1,6 @@
 /*
 ** FAAD2 - Freeware Advanced Audio (AAC) Decoder including SBR decoding
-** Copyright (C) 2003 M. Bakker, Ahead Software AG, http://www.nero.com
+** Copyright (C) 2003-2004 M. Bakker, Ahead Software AG, http://www.nero.com
 **  
 ** This program is free software; you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -22,7 +22,7 @@
 ** Commercial non-GPL licensing of this software is possible.
 ** For more info contact Ahead Software through Mpeg4AAClicense@nero.com.
 **
-** $Id: sbr_fbt.c,v 1.1 2003/12/30 02:00:10 miguelfreitas Exp $
+** $Id: sbr_fbt.c,v 1.2 2004/01/11 15:44:05 mroi Exp $
 **/
 
 /* Calculate frequency band tables */
@@ -36,6 +36,10 @@
 
 #include "sbr_syntax.h"
 #include "sbr_fbt.h"
+
+/* static function declarations */
+static int32_t find_bands(uint8_t warp, uint8_t bands, uint8_t a0, uint8_t a1);
+
 
 /* calculate the start QMF channel for the master frequency band table */
 /* parameter is also called k0 */

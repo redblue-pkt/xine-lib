@@ -1,6 +1,6 @@
 /*
 ** FAAD2 - Freeware Advanced Audio (AAC) Decoder including SBR decoding
-** Copyright (C) 2003 M. Bakker, Ahead Software AG, http://www.nero.com
+** Copyright (C) 2003-2004 M. Bakker, Ahead Software AG, http://www.nero.com
 **  
 ** This program is free software; you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -22,13 +22,18 @@
 ** Commercial non-GPL licensing of this software is possible.
 ** For more info contact Ahead Software through Mpeg4AAClicense@nero.com.
 **
-** $Id: pns.c,v 1.4 2003/12/30 02:00:10 miguelfreitas Exp $
+** $Id: pns.c,v 1.5 2004/01/11 15:44:05 mroi Exp $
 **/
 
 #include "common.h"
 #include "structs.h"
 
 #include "pns.h"
+
+
+/* static function declarations */
+static void gen_rand_vector(real_t *spec, int16_t scale_factor, uint16_t size,
+                            uint8_t sub);
 
 
 #ifdef FIXED_POINT

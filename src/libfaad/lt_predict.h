@@ -1,6 +1,6 @@
 /*
 ** FAAD2 - Freeware Advanced Audio (AAC) Decoder including SBR decoding
-** Copyright (C) 2003 M. Bakker, Ahead Software AG, http://www.nero.com
+** Copyright (C) 2003-2004 M. Bakker, Ahead Software AG, http://www.nero.com
 **  
 ** This program is free software; you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -22,7 +22,7 @@
 ** Commercial non-GPL licensing of this software is possible.
 ** For more info contact Ahead Software through Mpeg4AAClicense@nero.com.
 **
-** $Id: lt_predict.h,v 1.3 2003/12/30 02:00:10 miguelfreitas Exp $
+** $Id: lt_predict.h,v 1.4 2004/01/11 15:44:05 mroi Exp $
 **/
 
 #ifdef LTP_DEC
@@ -54,9 +54,6 @@ void lt_update_state(int16_t *lt_pred_stat,
                      real_t *overlap,
                      uint16_t frame_len,
                      uint8_t object_type);
-
-
-static int16_t real_to_int16(real_t sig_in);
 
 #ifdef __cplusplus
 }

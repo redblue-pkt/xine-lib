@@ -1,6 +1,6 @@
 /*
 ** FAAD2 - Freeware Advanced Audio (AAC) Decoder including SBR decoding
-** Copyright (C) 2003 M. Bakker, Ahead Software AG, http://www.nero.com
+** Copyright (C) 2003-2004 M. Bakker, Ahead Software AG, http://www.nero.com
 **
 ** This program is free software; you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -22,7 +22,7 @@
 ** Commercial non-GPL licensing of this software is possible.
 ** For more info contact Ahead Software through Mpeg4AAClicense@nero.com.
 **
-** $Id: decoder.c,v 1.6 2003/12/30 02:00:10 miguelfreitas Exp $
+** $Id: decoder.c,v 1.7 2004/01/11 15:44:04 mroi Exp $
 **/
 
 #include "common.h"
@@ -54,7 +54,7 @@ int8_t* FAADAPI faacDecGetErrorMessage(uint8_t errcode)
     return err_msg[errcode];
 }
 
-uint32_t FAADAPI faacDecGetCapabilities()
+uint32_t FAADAPI faacDecGetCapabilities(void)
 {
     uint32_t cap = 0;
 
@@ -80,7 +80,7 @@ uint32_t FAADAPI faacDecGetCapabilities()
     return cap;
 }
 
-faacDecHandle FAADAPI faacDecOpen()
+faacDecHandle FAADAPI faacDecOpen(void)
 {
     uint8_t i;
     faacDecHandle hDecoder = NULL;
@@ -256,7 +256,7 @@ int32_t FAADAPI faacDecInit(faacDecHandle hDecoder, uint8_t *buffer,
 
 #ifdef SBR_DEC
     /* implicit signalling */
-    if (*samplerate <= 24000)
+    if (*samplerate <= 24000 && !(hDecoder->config.dontUpSampleImplicitSBR))
     {
         *samplerate *= 2;
         hDecoder->forceUpSampling = 1;
@@ -324,7 +324,10 @@ int8_t FAADAPI faacDecInit2(faacDecHandle hDecoder, uint8_t *pBuffer,
 #endif
 #ifdef SBR_DEC
     hDecoder->sbr_present_flag = mp4ASC.sbr_present_flag;
-    hDecoder->forceUpSampling = mp4ASC.forceUpSampling;
+    if (hDecoder->config.dontUpSampleImplicitSBR == 0)
+        hDecoder->forceUpSampling = mp4ASC.forceUpSampling;
+    else
+        hDecoder->forceUpSampling = 0;
 
     /* AAC core decoder samplerate is 2 times as low */
     if (hDecoder->sbr_present_flag == 1 || hDecoder->forceUpSampling == 1)
