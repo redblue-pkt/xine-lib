@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.199 2003/11/16 15:31:51 mroi Exp $
+ * $Id: demux_mpeg_block.c,v 1.200 2003/11/16 22:20:08 jcdutton Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  * used with fixed blocksize devices (like dvd/vcd)
@@ -769,8 +769,98 @@ static int32_t parse_private_stream_1(demux_mpeg_block_t *this, uint8_t *p, buf_
     if ((p[0]&0xF0) == 0x80) {
     
       track = p[0] & 0x0F; /* hack : ac3 track */
-      buf->decoder_info[1] = p[1]; /* Number of frame headers */
-      buf->decoder_info[2] = p[2] << 8 | p[3]; /* First access unit pointer */
+
+      /* Number of frame headers 
+       *
+       * Describes the number of a52 frame headers that start in this pack (One pack per DVD sector).
+       *
+       * Likely values: 1 or 2.
+       */
+      buf->decoder_info[1] = p[1];
+      /* First access unit pointer. 
+       *
+       * Describes the byte offset within this pack to the beginning of the first A52 frame header.
+       * The PTS from this pack applies to the beginning of the first A52 frame that starts in this pack.
+       * Any bytes before this offset should be considered to belong to the previous A52 frame. 
+       * and therefore be tagged with a PTS value derived from the previous pack.
+       *
+       * Likely values: Anything from 1 to the size of an A52 frame.
+       */
+      buf->decoder_info[2] = p[2] << 8 | p[3];
+      /* Summary: If the first pack contains the beginning of 2 A52 frames( decoder_info[1]=2),
+       *            the PTS value applies to the first A52 frame.
+       *          The second A52 frame will have no PTS value.
+       *          The start of the next pack will contain the rest of the second A52 frame and thus, no PTS value.
+       *          The third A52 frame will have the PTS value from the second pack.
+       *
+       *          If the first pack contains the beginning of 1 frame( decoder_info[1]=1 ),
+       *            this first pack must then contain a certain amount of the previous A52 frame.
+       *            the PTS value will not apply to this previous A52 frame,
+       *            the PTS value will apply to the beginning of the frame that begins in this pack.
+       *
+       * LPCM note: The first_access_unit_pointer will point to
+       *            the PCM sample within the pack at which the PTS values applies.
+       *
+       * Example to values in a real stream, each line is a pack (dvd sector): -
+       * decoder_info[1], decoder_info[2],  PTS
+       * 2                   5             125640
+       * 1                1061             131400
+       * 1                 581             134280
+       * 2                 101             137160
+       * 1                1157             142920
+       * 1                 677             145800
+       * 2                 197             148680
+       * 1                1253             154440
+       * 1                 773             157320
+       * 2                 293             160200
+       * 1                1349             165960
+       * 1                 869             168840
+       * 2                 389             171720
+       * 1                1445             177480
+       * 1                 965             180360
+       * 1                 485             183240
+       * 2                   5             186120
+       * 1                1061             191880
+       * 1                 581             194760
+       * 2                 101             197640
+       * 1                1157             203400
+       * 1                 677             206280
+       * 2                 197             209160
+       * Notice the repeating pattern of both decoder_info[1] and decoder_info[2].
+       * The resulting A52 frames will have these PTS values: -
+       *  PTS
+       * 125640
+       *      0
+       * 131400
+       * 134280
+       * 137160
+       *      0
+       * 142920
+       * 145800
+       * 148680
+       *      0
+       * 154440
+       * 157320
+       * 160200
+       *      0
+       * 165960
+       * 168840
+       * 171720
+       *      0
+       * 177480
+       * 180360
+       * 183240
+       * 186120
+       *      0
+       * 191880
+       * 194760
+       * 197640
+       *      0
+       * 203400
+       * 206280
+       * 209160
+       *      0 (Partial A52 frame.)
+       */
 
       buf->content   = p+4;
       buf->size      = this->packet_len-4;
