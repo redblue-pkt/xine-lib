@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.63 2002/10/31 17:02:42 mroi Exp $
+ * $Id: xine_decoder.c,v 1.64 2002/11/11 13:45:34 miguelfreitas Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -105,6 +105,9 @@ typedef struct ff_audio_decoder_s {
   int               decoder_ok;
 
 } ff_audio_decoder_t;
+
+
+static pthread_once_t once_control = PTHREAD_ONCE_INIT;
 
 
 #define VIDEOBUFSIZE 128*1024
@@ -336,7 +339,7 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 	= strdup ("ms mpeg-4 v2 (ffmpeg)");
       break;
     case BUF_VIDEO_MSMPEG4_V3:
-      codec = avcodec_find_decoder (CODEC_ID_MSMPEG4);
+      codec = avcodec_find_decoder (CODEC_ID_MSMPEG4V3);
       this->stream->meta_info[XINE_META_INFO_VIDEOCODEC] 
 	= strdup ("ms mpeg-4 v3 (ffmpeg)");
       break;
@@ -731,7 +734,6 @@ static void init_once_routine(void) {
 static void *init_video_plugin (xine_t *xine, void *data) {
 
   ff_video_class_t *this;
-  static pthread_once_t once_control = PTHREAD_ONCE_INIT;
   
   this = (ff_video_class_t *) malloc (sizeof (ff_video_class_t));
 
@@ -749,6 +751,7 @@ static void *init_video_plugin (xine_t *xine, void *data) {
   return this;
 }
 
+void avcodec_get_context_defaults(AVCodecContext *s);
 
 static void ff_audio_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 
@@ -788,17 +791,29 @@ static void ff_audio_decode_data (audio_decoder_t *this_gen, buf_element_t *buf)
     }
 
     memset(&this->context, 0, sizeof(this->context));
+    avcodec_get_context_defaults(&this->context);
 
     this->context.sample_rate = this->audio_sample_rate = buf->decoder_info[1];
     this->audio_bits = buf->decoder_info[2];
     this->context.channels = this->audio_channels = buf->decoder_info[3];
     this->context.block_align = audio_header->nBlockAlign;
+    this->context.bit_rate = audio_header->nAvgBytesPerSec * 8;
+    this->context.codec_id = codec->id;
+    if( audio_header->cbSize > 0 ) {
+printf ("extra data size = %d\n", audio_header->cbSize);
+      this->context.extradata = malloc(audio_header->cbSize);
+      this->context.extradata_size = audio_header->cbSize;
+      memcpy( this->context.extradata, 
+              (uint8_t *)audio_header + sizeof(xine_waveformatex),
+              audio_header->cbSize ); 
+    }
+
     this->buf = xine_xmalloc(AUDIOBUFSIZE);
     this->bufsize = AUDIOBUFSIZE;
     this->size = 0;
 
 printf ("decode buffer (before) = %p\n", this->decode_buffer);
-    this->decode_buffer = xine_xmalloc(50000);
+    this->decode_buffer = xine_xmalloc(100000);
 printf ("decode buffer  (after) = %p\n", this->decode_buffer);
 
     if (avcodec_open (&this->context, codec) < 0) {
@@ -810,6 +825,9 @@ printf ("decode buffer  (after) = %p\n", this->decode_buffer);
 
     return;
   } else if (this->decoder_ok) {
+
+printf("buf->content = [%x %x %x %x]\n",
+*((char *)buf->content+0),*((char *)buf->content+1),*((char *)buf->content+2),*((char *)buf->content+3));
 
     if (!this->output_open) {
       this->output_open = this->stream->audio_out->open(this->stream->audio_out,
@@ -924,6 +942,9 @@ static void ff_audio_dispose (audio_decoder_t *this_gen) {
   free(this->buf);
   free(this->decode_buffer);
 
+  if(this->context.extradata)
+    free(this->context.extradata);
+
   free (this_gen);
 }
 
@@ -970,6 +991,8 @@ static void *init_audio_plugin (xine_t *xine, void *data) {
   this->decoder_class.get_description = ff_audio_get_description;
   this->decoder_class.dispose         = ff_audio_dispose_class;
 
+  pthread_once( &once_control, init_once_routine );
+
   return this;
 }
 
@@ -1015,6 +1038,6 @@ static decoder_info_t dec_info_ffmpeg_audio = {
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
   { PLUGIN_VIDEO_DECODER, 11, "ffmpegvideo", XINE_VERSION_CODE, &dec_info_ffmpeg_video, init_video_plugin },
-/*  { PLUGIN_AUDIO_DECODER, 10, "ffmpegaudio", XINE_VERSION_CODE, &dec_info_ffmpeg_audio, init_audio_plugin },*/
+  { PLUGIN_AUDIO_DECODER, 10, "ffmpegaudio", XINE_VERSION_CODE, &dec_info_ffmpeg_audio, init_audio_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

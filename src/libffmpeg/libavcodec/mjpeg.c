@@ -470,9 +470,73 @@ void mjpeg_picture_header(MpegEncContext *s)
     put_bits(&s->pb, 8, 0); /* Ah/Al (not used) */
 }
 
+static void escape_FF(MpegEncContext *s, int start)
+{
+    int size= get_bit_count(&s->pb) - start*8;
+    int i, ff_count;
+    uint8_t *buf= s->pb.buf + start;
+    int align= (-(int)(buf))&3;
+    
+    assert((size&7) == 0);
+    size >>= 3;
+    
+    ff_count=0;
+    for(i=0; i<size && i<align; i++){
+        if(buf[i]==0xFF) ff_count++;
+    }
+    for(; i<size-15; i+=16){
+        int acc, v;
+
+        v= *(uint32_t*)(&buf[i]);
+        acc= (((v & (v>>4))&0x0F0F0F0F)+0x01010101)&0x10101010;
+        v= *(uint32_t*)(&buf[i+4]);
+        acc+=(((v & (v>>4))&0x0F0F0F0F)+0x01010101)&0x10101010;
+        v= *(uint32_t*)(&buf[i+8]);
+        acc+=(((v & (v>>4))&0x0F0F0F0F)+0x01010101)&0x10101010;
+        v= *(uint32_t*)(&buf[i+12]);
+        acc+=(((v & (v>>4))&0x0F0F0F0F)+0x01010101)&0x10101010;
+
+        acc>>=4;
+        acc+= (acc>>16);
+        acc+= (acc>>8);
+        ff_count+= acc&0xFF;
+    }
+    for(; i<size; i++){
+        if(buf[i]==0xFF) ff_count++;
+    }
+
+    if(ff_count==0) return;
+    
+    /* skip put bits */
+    for(i=0; i<ff_count-3; i+=4)
+        put_bits(&s->pb, 32, 0);
+    put_bits(&s->pb, (ff_count-i)*8, 0);
+    flush_put_bits(&s->pb); 
+
+    for(i=size-1; ff_count; i--){
+        int v= buf[i];
+
+        if(v==0xFF){
+//printf("%d %d\n", i, ff_count);
+            buf[i+ff_count]= 0;
+            ff_count--;
+        }
+
+        buf[i+ff_count]= v;
+    }
+}
+
 void mjpeg_picture_trailer(MpegEncContext *s)
 {
-    jflush_put_bits(&s->pb);
+    int pad= (-get_bit_count(&s->pb))&7;
+    
+    put_bits(&s->pb, pad,0xFF>>(8-pad));
+    flush_put_bits(&s->pb);
+
+    assert((s->header_bits&7)==0);
+    
+    escape_FF(s, s->header_bits>>3);
+
     put_marker(&s->pb, EOI);
 }
 
@@ -482,7 +546,7 @@ static inline void mjpeg_encode_dc(MpegEncContext *s, int val,
     int mant, nbits;
 
     if (val == 0) {
-        jput_bits(&s->pb, huff_size[0], huff_code[0]);
+        put_bits(&s->pb, huff_size[0], huff_code[0]);
     } else {
         mant = val;
         if (val < 0) {
@@ -497,9 +561,9 @@ static inline void mjpeg_encode_dc(MpegEncContext *s, int val,
             nbits++;
         }
             
-        jput_bits(&s->pb, huff_size[nbits], huff_code[nbits]);
+        put_bits(&s->pb, huff_size[nbits], huff_code[nbits]);
         
-        jput_bits(&s->pb, nbits, mant & ((1 << nbits) - 1));
+        put_bits(&s->pb, nbits, mant & ((1 << nbits) - 1));
     }
 }
 
@@ -537,7 +601,7 @@ static void encode_block(MpegEncContext *s, DCTELEM *block, int n)
             run++;
         } else {
             while (run >= 16) {
-                jput_bits(&s->pb, huff_size_ac[0xf0], huff_code_ac[0xf0]);
+                put_bits(&s->pb, huff_size_ac[0xf0], huff_code_ac[0xf0]);
                 run -= 16;
             }
             mant = val;
@@ -554,16 +618,16 @@ static void encode_block(MpegEncContext *s, DCTELEM *block, int n)
             }
             code = (run << 4) | nbits;
 
-            jput_bits(&s->pb, huff_size_ac[code], huff_code_ac[code]);
+            put_bits(&s->pb, huff_size_ac[code], huff_code_ac[code]);
         
-            jput_bits(&s->pb, nbits, mant & ((1 << nbits) - 1));
+            put_bits(&s->pb, nbits, mant & ((1 << nbits) - 1));
             run = 0;
         }
     }
 
     /* output EOB only if not already 64 values */
     if (last_index < 63 || run != 0)
-        jput_bits(&s->pb, huff_size_ac[0], huff_code_ac[0]);
+        put_bits(&s->pb, huff_size_ac[0], huff_code_ac[0]);
 }
 
 void mjpeg_encode_mb(MpegEncContext *s, 
@@ -608,13 +672,14 @@ typedef struct MJpegDecodeContext {
     UINT8 *current_picture[MAX_COMPONENTS]; /* picture structure */
     int linesize[MAX_COMPONENTS];
     DCTELEM block[64] __align8;
-
-    int buggy_avid;
-    int restart_interval;
-    int restart_count;
-    int interlace_polarity;
     ScanTable scantable;
     void (*idct_put)(UINT8 *dest/*align 8*/, int line_size, DCTELEM *block/*align 16*/);
+
+    int restart_interval;
+    int restart_count;
+
+    int buggy_avid;
+    int interlace_polarity;
 } MJpegDecodeContext;
 
 static int mjpeg_decode_dht(MJpegDecodeContext *s);
@@ -1032,7 +1097,9 @@ static int mjpeg_decode_sos(MJpegDecodeContext *s)
                     }
                 }
             }
-            if ((s->restart_interval <= 8) && !--s->restart_count) {
+	    /* (< 1350) buggy workaround for Spectralfan.mov, should be fixed */
+	    
+            if ((s->restart_interval < 1350) && !--s->restart_count) {
                 align_get_bits(&s->gb);
                 skip_bits(&s->gb, 16); /* skip RSTn */
                 for (j=0; j<nb_components; j++) /* reset dc */
@@ -1068,12 +1135,13 @@ static int mjpeg_decode_app(MJpegDecodeContext *s)
     if (len < 5)
 	return -1;
 
-    id = be2me_32((get_bits(&s->gb, 16) << 16) | get_bits(&s->gb, 16));
+    id = (get_bits(&s->gb, 16) << 16) | get_bits(&s->gb, 16);
+    id = be2me_32(id);
     len -= 6;
 
     /* buggy AVID, it puts EOI only at every 10th frame */
-    /* also this fourcc is used by non-avid files too, it means
-       interleaving, but it's always present in AVID files */
+    /* also this fourcc is used by non-avid files too, it holds some
+       informations, but it's always present in AVID creates files */
     if (id == ff_get_fourcc("AVI1"))
     {
 	/* structure:
@@ -1098,10 +1166,11 @@ static int mjpeg_decode_app(MJpegDecodeContext *s)
 	goto out;
     }
     
-    len -= 2;
+//    len -= 2;
     
     if (id == ff_get_fourcc("JFIF"))
     {
+	int t_w, t_h;
 	skip_bits(&s->gb, 8); /* the trailing zero-byte */
 	printf("mjpeg: JFIF header found (version: %x.%x)\n",
 	    get_bits(&s->gb, 8), get_bits(&s->gb, 8));
@@ -1116,15 +1185,34 @@ static int mjpeg_decode_app(MJpegDecodeContext *s)
 	    skip_bits(&s->gb, 16);
 	    skip_bits(&s->gb, 16);
 	}
-	skip_bits(&s->gb, 8);
-	skip_bits(&s->gb, 8);
+	t_w = get_bits(&s->gb, 8);
+	t_h = get_bits(&s->gb, 8);
+	if (t_w && t_h)
+	{
+	    /* skip thumbnail */
+	    if (len-10-(t_w*t_h*3) > 0)
+		len -= t_w*t_h*3;
+	}
+	len -= 10;
+	goto out;
+    }
+    
+    if (id == ff_get_fourcc("Adob") && (get_bits(&s->gb, 8) == 'e'))
+    {
+	printf("mjpeg: Adobe header found\n");
+	skip_bits(&s->gb, 16); /* version */
+	skip_bits(&s->gb, 16); /* flags0 */
+	skip_bits(&s->gb, 16); /* flags1 */
+	skip_bits(&s->gb, 8); /* transform */
+	len -= 7;
 	goto out;
     }
     
     /* Apple MJPEG-A */
     if ((s->start_code == APP1) && (len > (0x28 - 8)))
     {
-	id = be2me_32((get_bits(&s->gb, 16) << 16) | get_bits(&s->gb, 16));
+	id = (get_bits(&s->gb, 16) << 16) | get_bits(&s->gb, 16);
+	id = be2me_32(id);
 	len -= 4;
 	if (id == ff_get_fourcc("mjpg")) /* Apple MJPEG-A */
 	{
@@ -1144,6 +1232,12 @@ static int mjpeg_decode_app(MJpegDecodeContext *s)
     }
 
 out:
+    /* slow but needed for extreme adobe jpegs */
+    if (len < 0)
+	printf("mjpeg: error, decode_app parser read over the end\n");
+    while(--len > 0)
+	skip_bits(&s->gb, 8);
+
     return 0;
 }
 
@@ -1278,10 +1372,16 @@ static int mjpeg_decode_frame(AVCodecContext *avctx,
 		    while (src<buf_end)
 		    {
 			UINT8 x = *(src++);
-			
+
+#if 0
+			if (x == 0xff && *src == 0xff)
+			    break;
+#endif
 			*(dst++) = x;
 			if (x == 0xff)
 			{
+			    while(*src == 0xff) src++;
+
 			    x = *(src++);
 			    if (x >= 0xd0 && x <= 0xd7)
 				*(dst++) = x;
@@ -1290,6 +1390,9 @@ static int mjpeg_decode_frame(AVCodecContext *avctx,
 			}
 		    }
 		    init_get_bits(&s->gb, s->buffer, dst - s->buffer);
+		    
+		    dprintf("escaping removed %d bytes\n",
+			(buf_end - buf_ptr) - (dst - s->buffer));
 		}
 		else
 		    init_get_bits(&s->gb, buf_ptr, buf_end - buf_ptr);

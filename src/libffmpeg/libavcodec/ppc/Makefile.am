@@ -12,7 +12,11 @@ LIBTOOL = $(SHELL) $(top_builddir)/libtool-nofpic
 
 noinst_LTLIBRARIES = libavcodec_ppc.la
 
-libavcodec_ppc_src =  dsputil_altivec.c dsputil_ppc.c
+libavcodec_ppc_src =  dsputil_altivec.c \
+		      dsputil_ppc.c \
+		      idct_altivec.c \
+		      mpegvideo_altivec.c \
+		      mpegvideo_ppc.c
 libavcodec_ppc_dummy = libavcodec_ppc_dummy.c
 
 EXTRA_DIST =  $(libavcodec_ppc_src) $(libavcodec_ppc_dummy)

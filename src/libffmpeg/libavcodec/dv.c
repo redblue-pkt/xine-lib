@@ -114,6 +114,7 @@ static int dvvideo_decode_init(AVCodecContext *avctx)
     /* XXX: fix it */
     memset(&s2, 0, sizeof(MpegEncContext));
     s2.avctx = avctx;
+    dsputil_init(&s2.dsp, avctx->dsp_mask);
     if (DCT_common_init(&s2) < 0)
        return -1;
 
@@ -531,10 +532,12 @@ static int dvvideo_decode_frame(AVCodecContext *avctx,
     /* init size */
     width = 720;
     if (dsf) {
+        avctx->frame_rate = 25 * FRAME_RATE_BASE;
         packet_size = PAL_FRAME_SIZE;
         height = 576;
         nb_dif_segs = 12;
     } else {
+        avctx->frame_rate = 30 * FRAME_RATE_BASE;
         packet_size = NTSC_FRAME_SIZE;
         height = 480;
         nb_dif_segs = 10;
@@ -546,23 +549,49 @@ static int dvvideo_decode_frame(AVCodecContext *avctx,
     /* XXX: is it correct to assume that 420 is always used in PAL
        mode ? */
     s->sampling_411 = !dsf;
-    if (s->sampling_411)
+    if (s->sampling_411) {
         mb_pos_ptr = dv_place_411;
-    else
+        avctx->pix_fmt = PIX_FMT_YUV411P;
+    } else {
         mb_pos_ptr = dv_place_420;
+        avctx->pix_fmt = PIX_FMT_YUV420P;
+    }
+
+    avctx->width = width;
+    avctx->height = height;
+
+    if (avctx->flags & CODEC_FLAG_DR1 && avctx->get_buffer_callback)
+    {
+	s->width = -1;
+	avctx->dr_buffer[0] = avctx->dr_buffer[1] = avctx->dr_buffer[2] = 0;
+	if(avctx->get_buffer_callback(avctx, width, height, I_TYPE) < 0){
+	    fprintf(stderr, "get_buffer() failed\n");
+	    return -1;
+	}
+    }
 
     /* (re)alloc picture if needed */
     if (s->width != width || s->height != height) {
-        for(i=0;i<3;i++)
-            av_freep(&s->current_picture[i]);
+	if (!(avctx->flags & CODEC_FLAG_DR1))
+	    for(i=0;i<3;i++) {
+		if (avctx->dr_buffer[i] != s->current_picture[i])
+		    av_freep(&s->current_picture[i]);
+		avctx->dr_buffer[i] = 0;
+	    }
+
         for(i=0;i<3;i++) {
-            size = width * height;
-            s->linesize[i] = width;
-            if (i >= 1) {
-                size >>= 2;
-                s->linesize[i] >>= s->sampling_411 ? 2 : 1;
-            }
-            s->current_picture[i] = av_malloc(size);
+	    if (avctx->dr_buffer[i]) {
+		s->current_picture[i] = avctx->dr_buffer[i];
+		s->linesize[i] = (i == 0) ? avctx->dr_stride : avctx->dr_uvstride;
+	    } else {
+		size = width * height;
+		s->linesize[i] = width;
+		if (i >= 1) {
+		    size >>= 2;
+		    s->linesize[i] >>= s->sampling_411 ? 2 : 1;
+		}
+		s->current_picture[i] = av_malloc(size);
+	    }
             if (!s->current_picture[i])
                 return -1;
         }
@@ -589,16 +618,6 @@ static int dvvideo_decode_frame(AVCodecContext *avctx,
     emms_c();
 
     /* return image */
-    avctx->width = width;
-    avctx->height = height;
-    if (s->sampling_411)
-        avctx->pix_fmt = PIX_FMT_YUV411P;
-    else
-        avctx->pix_fmt = PIX_FMT_YUV420P;
-    if (dsf)
-        avctx->frame_rate = 25 * FRAME_RATE_BASE;
-    else
-        avctx->frame_rate = 30 * FRAME_RATE_BASE;
     *data_size = sizeof(AVPicture);
     picture = data;
     for(i=0;i<3;i++) {
@@ -614,6 +633,7 @@ static int dvvideo_decode_end(AVCodecContext *avctx)
     int i;
 
     for(i=0;i<3;i++)
+	if (avctx->dr_buffer[i] != s->current_picture[i])
         av_freep(&s->current_picture[i]);
     return 0;
 }
@@ -627,7 +647,7 @@ AVCodec dvvideo_decoder = {
     NULL,
     dvvideo_decode_end,
     dvvideo_decode_frame,
-    0,
+    CODEC_CAP_DR1,
     NULL
 };
 

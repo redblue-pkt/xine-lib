@@ -1559,7 +1559,18 @@ static void mpeg_decode_extension(AVCodecContext *avctx,
     }
 }
 
-/* return 1 if end of frame */
+#define DECODE_SLICE_FATAL_ERROR -2
+#define DECODE_SLICE_ERROR -1
+#define DECODE_SLICE_OK 0
+#define DECODE_SLICE_EOP 1
+
+/**
+ * decodes a slice.
+ * @return DECODE_SLICE_FATAL_ERROR if a non recoverable error occured<br>
+ *         DECODE_SLICE_ERROR if the slice is damaged<br>
+ *         DECODE_SLICE_OK if this slice is ok<br>
+ *         DECODE_SLICE_EOP if the end of the picture is reached
+ */
 static int mpeg_decode_slice(AVCodecContext *avctx, 
                               AVPicture *pict,
                               int start_code,
@@ -1572,7 +1583,7 @@ static int mpeg_decode_slice(AVCodecContext *avctx,
     start_code = (start_code - 1) & 0xff;
     if (start_code >= s->mb_height){
         fprintf(stderr, "slice below image (%d >= %d)\n", start_code, s->mb_height);
-        return -1;
+        return DECODE_SLICE_ERROR;
     }
     s->last_dc[0] = 1 << (7 + s->intra_dc_precision);
     s->last_dc[1] = s->last_dc[0];
@@ -1582,7 +1593,7 @@ static int mpeg_decode_slice(AVCodecContext *avctx,
     if (s->first_slice) {
         s->first_slice = 0;
         if(MPV_frame_start(s, avctx) < 0)
-            return -1;
+            return DECODE_SLICE_FATAL_ERROR;
     }
 
     init_get_bits(&s->gb, buf, buf_size);
@@ -1612,8 +1623,7 @@ static int mpeg_decode_slice(AVCodecContext *avctx,
     s->mb_incr= 1;
 
     for(;;) {
-        clear_blocks(s->block[0]);
-        emms_c();
+	s->dsp.clear_blocks(s->block[0]);
         
         ret = mpeg_decode_mb(s, s->block);
         dprintf("ret=%d\n", ret);
@@ -1623,30 +1633,7 @@ static int mpeg_decode_slice(AVCodecContext *avctx,
         MPV_decode_mb(s, s->block);
 
         if (++s->mb_x >= s->mb_width) {
-            if (    avctx->draw_horiz_band 
-                && (s->num_available_buffers>=1 || (!s->has_b_frames)) ) {
-                UINT8 *src_ptr[3];
-                int y, h, offset;
-                y = s->mb_y * 16;
-                h = s->height - y;
-                if (h > 16)
-                    h = 16;
-                if(s->pict_type==B_TYPE)
-                    offset = 0;
-                else
-                    offset = y * s->linesize;
-                if(s->pict_type==B_TYPE || (!s->has_b_frames)){
-                    src_ptr[0] = s->current_picture[0] + offset;
-                    src_ptr[1] = s->current_picture[1] + (offset >> 2);
-                    src_ptr[2] = s->current_picture[2] + (offset >> 2);
-                } else {
-                    src_ptr[0] = s->last_picture[0] + offset;
-                    src_ptr[1] = s->last_picture[1] + (offset >> 2);
-                    src_ptr[2] = s->last_picture[2] + (offset >> 2);
-                }
-                avctx->draw_horiz_band(avctx, src_ptr, s->linesize,
-                                   y, s->width, h);
-            }
+            ff_draw_horiz_band(s);
 
             s->mb_x = 0;
             s->mb_y++;
@@ -1675,7 +1662,7 @@ static int mpeg_decode_slice(AVCodecContext *avctx,
         }
         if(s->mb_y >= s->mb_height){
             fprintf(stderr, "slice too long\n");
-            return -1;
+            return DECODE_SLICE_ERROR;
         }
     }
 eos: //end of slice
@@ -1690,7 +1677,6 @@ eos: //end of slice
 
         MPV_frame_end(s);
 
-        /* XXX: incorrect reported qscale for mpeg2 */
         if (s->pict_type == B_TYPE) {
             picture = s->current_picture;
             avctx->quality = s->qscale;
@@ -1706,6 +1692,8 @@ eos: //end of slice
             s->last_qscale = s->qscale;
             s->picture_number++;
         }
+        if(s->mpeg2)
+            avctx->quality>>=1;
         if (picture) {
             pict->data[0] = picture[0];
             pict->data[1] = picture[1];
@@ -1713,12 +1701,12 @@ eos: //end of slice
             pict->linesize[0] = s->linesize;
             pict->linesize[1] = s->uvlinesize;
             pict->linesize[2] = s->uvlinesize;
-            return 1;
+            return DECODE_SLICE_EOP;
         } else {
-            return 0;
+            return DECODE_SLICE_OK;
         }
     } else {
-        return 0;
+        return DECODE_SLICE_OK;
     }
 }
 
@@ -1889,7 +1877,7 @@ static int mpeg_decode_frame(AVCodecContext *avctx,
         } else {
             memcpy(s->buf_ptr, buf_start, len);
             s->buf_ptr += len;
-            if(   (s2->flags&CODEC_FLAG_NOT_TRUNCATED) && (!start_code_found) 
+            if(   (!(s2->flags&CODEC_FLAG_TRUNCATED)) && (!start_code_found) 
                && s->buf_ptr+4<s->buffer+s->buffer_size){
                 start_code_found= 1;
                 code= 0x1FF;
@@ -1926,7 +1914,7 @@ static int mpeg_decode_frame(AVCodecContext *avctx,
                         start_code <= SLICE_MAX_START_CODE) {
                         ret = mpeg_decode_slice(avctx, picture,
                                                 start_code, s->buffer, input_size);
-                        if (ret == 1) {
+                        if (ret == DECODE_SLICE_EOP) {
                             /* got a picture: exit */
                             /* first check if we must repeat the frame */
                             avctx->repeat_pict = 0;
@@ -1952,8 +1940,9 @@ static int mpeg_decode_frame(AVCodecContext *avctx,
                             }         
                             *data_size = sizeof(AVPicture);
                             goto the_end;
-                        }else if(ret==-1){
+                        }else if(ret<0){
                             printf("Error while decoding slice\n");
+			    if(ret==DECODE_SLICE_FATAL_ERROR) return -1;
                         }
                     }
                     break;
@@ -1983,5 +1972,5 @@ AVCodec mpeg_decoder = {
     NULL,
     mpeg_decode_end,
     mpeg_decode_frame,
-    CODEC_CAP_DRAW_HORIZ_BAND | CODEC_CAP_DR1,
+    CODEC_CAP_DRAW_HORIZ_BAND | CODEC_CAP_DR1 | CODEC_CAP_TRUNCATED,
 };

@@ -13,6 +13,7 @@ LIBTOOL = $(SHELL) $(top_builddir)/libtool-nofpic
 noinst_LTLIBRARIES = libavcodec_mmx.la
 
 libavcodec_mmx_src = \
+	cputest.c \
 	dsputil_mmx.c \
 	fdct_mmx.c \
 	idct_mmx.c \

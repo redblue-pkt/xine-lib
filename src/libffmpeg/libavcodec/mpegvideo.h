@@ -103,7 +103,20 @@ typedef struct ScanTable{
     const UINT8 *scantable;
     UINT8 permutated[64];
     UINT8 raster_end[64];
+#ifdef ARCH_POWERPC
+		/* Used by dct_quantise_alitvec to find last-non-zero */
+    UINT8 __align8 inverse[64];
+#endif
 } ScanTable;
+
+typedef struct ParseContext{
+    UINT8 *buffer;
+    int index;
+    int last_index;
+    int buffer_size;
+    int state;
+    int frame_start_found;
+} ParseContext;
 
 typedef struct MpegEncContext {
     struct AVCodecContext *avctx;
@@ -187,7 +200,10 @@ typedef struct MpegEncContext {
     UINT8 *mbintra_table;       /* used to avoid setting {ac, dc, cbp}-pred stuff to zero on inter MB decoding */
     UINT8 *cbp_table;           /* used to store cbp, ac_pred for partitioned decoding */
     UINT8 *pred_dir_table;      /* used to store pred_dir for partitioned decoding */
-    INT8 *qscale_table;         /* used to store qscale for partitioned decoding (& postprocessing FIXME export) */
+    INT8 *qscale_table;         /* used to store qscale */
+    INT8 *aux_qscale_table;
+    INT8 *next_qscale_table;
+    INT8 *last_qscale_table;     //FIXME move these into some picture struct (MpegEncContext.aux.qscale_table[])
     UINT8 *edge_emu_buffer;
 
     int input_qscale;           /* qscale prior to reordering of frames */
@@ -205,6 +221,7 @@ typedef struct MpegEncContext {
     int unrestricted_mv;
     int h263_long_vectors; /* use horrible h263v1 long vector mode */
 
+    DSPContext dsp;             /* pointers for accelerated dsp fucntions */
     int f_code; /* forward MV resolution */
     int b_code; /* backward MV resolution for B Frames (mpeg4) */
     INT16 (*motion_val)[2];            /* used for MV prediction (4MV per MB) */
@@ -284,8 +301,8 @@ typedef struct MpegEncContext {
     int min_qcoeff;          /* minimum encodable coefficient */
     int max_qcoeff;          /* maximum encodable coefficient */
     /* precomputed matrix (combine qscale and DCT renorm) */
-    int q_intra_matrix[32][64];
-    int q_inter_matrix[32][64];
+    int __align8 q_intra_matrix[32][64];
+    int __align8 q_inter_matrix[32][64];
     /* identical to the above but for MMX & these are not permutated */
     UINT16 __align8 q_intra_matrix16[32][64];
     UINT16 __align8 q_inter_matrix16[32][64];
@@ -293,7 +310,7 @@ typedef struct MpegEncContext {
     UINT16 __align8 q_inter_matrix16_bias[32][64];
     int block_last_index[6];  /* last non zero coefficient in block */
     /* scantables */
-    ScanTable intra_scantable;
+    ScanTable __align8 intra_scantable;
     ScanTable intra_h_scantable;
     ScanTable intra_v_scantable;
     ScanTable inter_scantable; // if inter == intra then intra should be used to reduce tha cache usage
@@ -344,6 +361,8 @@ typedef struct MpegEncContext {
     int mb_num_left;                 /* number of MBs left in this video packet (for partitioned Slices only)*/
     int next_p_frame_damaged;        /* set if the next p frame is damaged, to avoid showing trashed b frames */
     int error_resilience;
+    
+    ParseContext parse_context;
 
     /* H.263 specific */
     int gob_number;
@@ -531,6 +550,9 @@ void MPV_common_init_mlib(MpegEncContext *s);
 #endif
 #ifdef HAVE_MMI
 void MPV_common_init_mmi(MpegEncContext *s);
+#endif
+#ifdef ARCH_POWERPC
+void MPV_common_init_ppc(MpegEncContext *s);
 #endif
 extern void (*draw_edges)(UINT8 *buf, int wrap, int width, int height, int w);
 void ff_conceal_past_errors(MpegEncContext *s, int conceal_all);
