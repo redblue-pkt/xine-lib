@@ -342,6 +342,7 @@ dnl Common cflags for all platforms
 COMMON_CFLAGS="$wall -D_REENTRANT -D_FILE_OFFSET_BITS=64 -DXINE_COMPILE"
 
 enable_w32dll="no"
+enable_ffmmx="no"
 
 case $host in
   i386-*-freebsd*)
@@ -352,6 +353,7 @@ case $host in
     AC_DEFINE([ARCH_X86],,[x86 architecture])
 
     enable_w32dll="yes"
+    enable_ffmmx="yes"
     ;;
   *)
     dnl Set the appropriate architecture define
@@ -378,6 +380,7 @@ case $host in
 	
         dnl enable x86 specific parts of the code
         enable_w32dll="yes"
+        enable_ffmmx="yes"
 
 	if test x"$sarchopt" != "xno"; then
 	    [case "$host_alias" in
@@ -462,6 +465,8 @@ else
    W32DLL_DEP="#"
 fi
 AC_SUBST(W32DLL_DEP)
+
+AM_CONDITIONAL(HAVE_FFMMX, test x"$enable_ffmmx" = "xyes")
 
 
 dnl
@@ -571,6 +576,8 @@ src/demuxers/Makefile
 src/dxr3/Makefile
 src/libmpeg2/Makefile
 src/libac3/Makefile
+src/libffmpeg/Makefile
+src/libffmpeg/libavcodec/Makefile
 src/liblpcm/Makefile
 src/libmpg123/Makefile
 src/libw32dll/Makefile

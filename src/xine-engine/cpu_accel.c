@@ -111,3 +111,8 @@ uint32_t mm_accel (void)
 #endif
 #endif
 }
+
+uint32_t mm_support (void)
+{
+  return mm_accel();
+}
