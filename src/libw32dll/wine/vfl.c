@@ -1,31 +1,46 @@
 /*
  * Copyright 1998 Marcus Meissner
  */
-#include "config.h"
+#include <config.h>
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
-#include "winbase.h"
-#include "windef.h"
-#include "winuser.h"
-#include "vfw.h"
-#include "winestring.h"
-#include "driver.h"
 #include "win32.h"
 #include "loader.h"
-#include "avifmt.h"
+
+#include "wine/winbase.h"
+#include "wine/windef.h"
+#include "wine/winuser.h"
+#include "wine/vfw.h"
+#include "wine/winestring.h"
+#include "wine/driver.h"
+#include "wine/avifmt.h"
+#include "driver.h"
+
 
 #define FIXME_(X) printf
 #define FIXME printf
 
+#define OpenDriverA DrvOpen
+#define CloseDriver DrvClose
+
 long VFWAPI VideoForWindowsVersion(void);
 
-#define OpenDriverA DrvOpen
 
 #if 1
-#define STORE_ALL	/**/
-#define REST_ALL	/**/
+/*
+ * STORE_ALL/REST_ALL seems like an attempt to workaround problems due to
+ * WINAPI/no-WINAPI bustage.
+ *
+ * There should be no need for the STORE_ALL/REST_ALL hack once all 
+ * function definitions agree with their prototypes (WINAPI-wise) and
+ * we make sure, that we do not call these functions without a proper
+ * prototype in scope.
+ */
+#define	STORE_ALL	/**/
+#define	REST_ALL	/**/
 #else
 #define STORE_ALL \
     __asm__ ( \
@@ -43,7 +58,6 @@ long VFWAPI VideoForWindowsVersion(void);
     "pop %%ecx\n\t" \
     "pop %%ebx\n\t"::)
 #endif
-
 
 
 /***********************************************************************
@@ -107,7 +121,7 @@ ICOpen(long fccType,long fccHandler,unsigned int wMode) {
 	memcpy(type,&fccType,4);type[4]=0;
 	memcpy(handler,&fccHandler,4);handler[4]=0;
 	
-	sprintf(codecname,"%s.%s",type,handler);
+	snprintf(codecname,20,"%s.%s",type,handler);
 
 	/* Well, lParam2 is in fact a LPVIDEO_OPEN_PARMS, but it has the 
 	 * same layout as ICOPEN
@@ -122,7 +136,7 @@ ICOpen(long fccType,long fccHandler,unsigned int wMode) {
 /*
 	if (!hdrv) {
 	    if (!strcasecmp(type,"vids")) {
-		sprintf(codecname,"vidc.%s",handler);
+		snprintf(codecname,20,"vidc.%s",handler);
 		fccType = mmioFOURCC('v','i','d','c');
 	    }
 //	    hdrv=OpenDriverA(codecname,"drivers32",(long)&icopen);
@@ -269,15 +283,77 @@ ICDecompress(HIC hic,long dwFlags,LPBITMAPINFOHEADER lpbiFormat,void* lpData,LPB
 }
 
 /***********************************************************************
+ *		ICDecompressEx			[MSVFW.26]
+ */
+long VFWAPIV 
+ICDecompressEx(HIC hic,long dwFlags,LPBITMAPINFOHEADER lpbiFormat,void* lpData,LPBITMAPINFOHEADER  lpbi,void* lpBits) {
+	ICDECOMPRESSEX	icd;
+	int result;
+	
+	icd.dwFlags	= dwFlags;
+
+	icd.lpbiSrc	= lpbiFormat;
+	icd.lpSrc	= lpData;
+
+	icd.lpbiDst	= lpbi;
+	icd.lpDst	= lpBits;
+	
+	icd.xSrc=icd.ySrc=0;
+	icd.dxSrc=lpbiFormat->biWidth;
+	icd.dySrc=abs(lpbiFormat->biHeight);
+
+	icd.xDst=icd.yDst=0;
+	icd.dxDst=lpbi->biWidth;
+	icd.dyDst=abs(lpbi->biHeight);
+	
+	//icd.ckid	= 0;
+	STORE_ALL;
+	result=ICSendMessage(hic,ICM_DECOMPRESSEX,(long)&icd,sizeof(icd));
+	REST_ALL;
+	return result;
+}
+
+long VFWAPIV 
+ICUniversalEx(HIC hic,int command,LPBITMAPINFOHEADER lpbiFormat,LPBITMAPINFOHEADER lpbi) {
+	ICDECOMPRESSEX	icd;
+	int result;
+	
+	icd.dwFlags	= 0;
+
+	icd.lpbiSrc	= lpbiFormat;
+	icd.lpSrc	= 0;
+
+	icd.lpbiDst	= lpbi;
+	icd.lpDst	= 0;
+	
+	icd.xSrc=icd.ySrc=0;
+	icd.dxSrc=lpbiFormat->biWidth;
+	icd.dySrc=abs(lpbiFormat->biHeight);
+
+	icd.xDst=icd.yDst=0;
+	icd.dxDst=lpbi->biWidth;
+	icd.dyDst=abs(lpbi->biHeight);
+	
+	//icd.ckid	= 0;
+	STORE_ALL;
+	result=ICSendMessage(hic,command,(long)&icd,sizeof(icd));
+	REST_ALL;
+	return result;
+}
+
+
+/***********************************************************************
  *		ICSendMessage			[MSVFW.40]
  */
 LRESULT VFWAPI
 ICSendMessage(HIC hic,unsigned int msg,long lParam1,long lParam2) {
 	LRESULT		ret;
 	WINE_HIC	*whic = (WINE_HIC*)hic;
+	char qw[200];
+
+//    printf("ICSendMessage.whic=%p\n",whic);
 
 #if 0
-	char qw[200];
     __asm__ __volatile__ ("fsave (%0)\n\t": :"r"(&qw));    
 #endif
     STORE_ALL;	
@@ -313,7 +389,7 @@ LRESULT VFWAPI ICClose(HIC hic) {
 	my_release(whic);
 	return 0;
 }
-int VFWAPI ICDoSomething(void)
+int VFWAPI ICDoSomething()
 {
   return 0;
 }

@@ -17,10 +17,11 @@
 #include <fcntl.h>
 #include <string.h>
 #include <stdarg.h>
-#include "windef.h"
-#include "winbase.h"
-#include "debugtools.h"
-#include "heap.h"
+#include <ctype.h>
+#include <wine/windef.h>
+#include <wine/winbase.h>
+#include <wine/debugtools.h>
+#include <wine/heap.h>
 #include "ext.h"
 
 #if 0
@@ -73,7 +74,7 @@ HANDLE WINAPI GetProcessHeap(void)
 
 LPVOID WINAPI HeapAlloc(HANDLE heap, DWORD flags, DWORD size)
 {
-    //static int i = 5;
+    static int i = 5;
     void* m = (flags & 0x8) ? calloc(size, 1) : malloc(size);
     //printf("HeapAlloc %p  %d  (%d)\n", m, size, flags);
     //if (--i == 0)
@@ -146,6 +147,7 @@ LPSTR WINAPI lstrcpynWtoA(LPSTR dest, LPCWSTR src, INT count)
     }
     return result;
 }
+/* i stands here for ignore case! */
 int wcsnicmp(const unsigned short* s1, const unsigned short* s2, int n)
 {
     /*
@@ -156,17 +158,21 @@ int wcsnicmp(const unsigned short* s1, const unsigned short* s2, int n)
     */
     while(n>0)
     {
-	if(*s1<*s2)
-	    return -1;
-	else
-    	    if(*s1>*s2)
-		return 1;
+	if (((*s1 | *s2) & 0xff00) || toupper((char)*s1) != toupper((char)*s2))
+	{
+
+	    if(*s1<*s2)
+		return -1;
 	    else
-		if(*s1==0)
-		    return 0;
-    s1++;
-    s2++;
-    n--;
+		if(*s1>*s2)
+		    return 1;
+		else
+		    if(*s1==0)
+			return 0;
+	}
+	s1++;
+	s2++;
+	n--;
     }
     return 0;
 }
@@ -244,7 +250,7 @@ LPVOID FILE_dommap( int unix_handle, LPVOID start,
         {
             if ((fdzero = open( "/dev/zero", O_RDONLY )) == -1)
             {
-                perror( "/dev/zero: open" );
+    		perror( "Cannot open /dev/zero for READ. Check permissions! error: " );
                 exit(1);
             }
         }
@@ -360,8 +366,10 @@ HANDLE WINAPI CreateFileMappingA(HANDLE handle, LPSECURITY_ATTRIBUTES lpAttr,
     {
 	anon=1;
 	hFile=open("/dev/zero", O_RDWR);
-	if(hFile<0)
+	if(hFile<0){
+    	    perror( "Cannot open /dev/zero for READ+WRITE. Check permissions! error: " );
 	    return 0;
+	}
     }
     if(!anon)
     {
@@ -449,8 +457,12 @@ LPVOID WINAPI VirtualAlloc(LPVOID address, DWORD size, DWORD type,  DWORD protec
 {
     void* answer;
     int fd=open("/dev/zero", O_RDWR);
+    if(fd<0){
+        perror( "Cannot open /dev/zero for READ+WRITE. Check permissions! error: " );
+	return NULL;
+    }
     size=(size+0xffff)&(~0xffff);
-//    printf("VirtualAlloc(0x%08X, %d)\n", address
+    //printf("VirtualAlloc(0x%08X, %d)\n", address, size);
     if(address!=0)
     {
     //check whether we can allow to allocate this
@@ -481,14 +493,14 @@ LPVOID WINAPI VirtualAlloc(LPVOID address, DWORD size, DWORD type,  DWORD protec
 	    return NULL;
 	}
 	answer=mmap(address, size, PROT_READ | PROT_WRITE | PROT_EXEC,
-	    MAP_FIXED | MAP_PRIVATE, fd, 0);
+		    MAP_FIXED | MAP_PRIVATE, fd, 0);
     }
     else
-    answer=mmap(address, size, PROT_READ | PROT_WRITE | PROT_EXEC,
-	 MAP_PRIVATE, fd, 0);
+	answer=mmap(address, size, PROT_READ | PROT_WRITE | PROT_EXEC,
+		    MAP_PRIVATE, fd, 0);
 //    answer=FILE_dommap(-1, address, 0, size, 0, 0,
 //	PROT_READ | PROT_WRITE | PROT_EXEC, MAP_PRIVATE);
-     close(fd);
+    close(fd);
     if(answer==(void*)-1)
     {
 	printf("Error no %d\n", errno);
@@ -509,13 +521,13 @@ LPVOID WINAPI VirtualAlloc(LPVOID address, DWORD size, DWORD type,  DWORD protec
 	    vm->next=new_vm;
     	vm=new_vm;
 	vm->next=0;
-//	if(va_size!=0)
-//	    printf("Multiple VirtualAlloc!\n");
-//	printf("answer=0x%08x\n", answer);
+	//if(va_size!=0)
+	//    printf("Multiple VirtualAlloc!\n");
+	//printf("answer=0x%08x\n", answer);
         return answer;
     }
 }
-WIN_BOOL WINAPI VirtualFree(LPVOID  address, DWORD t1, DWORD t2)//not sure
+WIN_BOOL WINAPI VirtualFree(LPVOID  address, SIZE_T dwSize, DWORD dwFreeType)//not sure
 {
     virt_alloc* str=vm;
     int answer;
@@ -526,10 +538,11 @@ WIN_BOOL WINAPI VirtualFree(LPVOID  address, DWORD t1, DWORD t2)//not sure
 	    str=str->prev;
 	    continue;
 	}
+	//printf("VirtualFree(0x%08X, %d - %d)\n", str->address, dwSize, str->mapping_size);
 	answer=munmap(str->address, str->mapping_size);
 	if(str->next)str->next->prev=str->prev;
 	if(str->prev)str->prev->next=str->next;
-	if(vm==str)vm=0;
+	if(vm==str)vm=str->prev;
 	free(str);
 	return 0;
     }

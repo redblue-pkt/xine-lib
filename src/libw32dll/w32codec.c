@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.54 2002/01/06 18:56:19 miguelfreitas Exp $
+ * $Id: w32codec.c,v 1.55 2002/01/07 02:17:10 miguelfreitas Exp $
  *
  * routines for using w32 codecs
  * DirectShow support by Miguel Freitas (Nov/2001)
@@ -771,7 +771,6 @@ static char* get_auds_codec_name(w32a_decoder_t *this, int buf_type) {
     this->guid=&CLSID_Voxware;
     return "voxmsdec.ax";
   case BUF_AUDIO_ACELPNET:
-    /* acelpnet is not working yet */
     this->ds_driver=1;
     this->guid=&CLSID_Acelp;
     return "acelpdec.ax";

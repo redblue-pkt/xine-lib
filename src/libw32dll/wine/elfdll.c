@@ -3,16 +3,16 @@
  *
  * Copyright 1999 Bertho A. Stultiens
  */
-#include "config.h"
+#include <config.h>
 
 #ifdef HAVE_LIBDL
 
-#include "windef.h"
-#include "module.h"
-#include "heap.h"
-#include "elfdll.h"
-#include "debugtools.h"
-#include "winerror.h"
+#include <wine/windef.h>
+#include <wine/module.h>
+#include <wine/heap.h>
+#include <wine/elfdll.h>
+#include <wine/debugtools.h>
+#include <wine/winerror.h>
 
 //DEFAULT_DEBUG_CHANNEL(elfdll)
 
@@ -43,7 +43,7 @@ extern void dump_exports(HMODULE hModule);
 /*---------------- END HACKS ---------------*/
 
 //char *extra_ld_library_path = "/usr/lib/win32";
-extern char* def_path;
+extern char* win32_def_path;
 
 struct elfdll_image
 {
@@ -73,7 +73,7 @@ void *ELFDLL_dlopen(const char *libname, int flags)
 
 	/* Now try to construct searches through our extra search-path */
 	namelen = strlen(libname);
-	ldpath = def_path;
+	ldpath = win32_def_path;
 	while(ldpath && *ldpath)
 	{
 		int len;

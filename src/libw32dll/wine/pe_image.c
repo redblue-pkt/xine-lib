@@ -34,6 +34,7 @@
  *   to 4096 byte boundaries on disk.
  */
 #include "config.h"
+//#include <wine/config.h>
 
 #include <errno.h>
 #include <assert.h>
@@ -47,13 +48,13 @@
 #ifdef HAVE_SYS_MMAN_H
 #include <sys/mman.h>
 #endif
-#include "windef.h"
-#include "winbase.h"
-#include "winerror.h"
-#include "heap.h"
-#include "pe_image.h"
-#include "module.h"
-#include "debugtools.h"
+#include <wine/windef.h>
+#include <wine/winbase.h>
+#include <wine/winerror.h>
+#include <wine/heap.h>
+#include <wine/pe_image.h>
+#include <wine/module.h>
+#include <wine/debugtools.h>
 #include "ext.h"
 #include "win32.h"
 

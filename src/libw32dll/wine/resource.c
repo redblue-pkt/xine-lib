@@ -4,7 +4,7 @@
  * Copyright 1993 Robert J. Amstadt
  * Copyright 1995 Alexandre Julliard
  */
-#include "config.h"
+#include <config.h>
 
 #include <assert.h>
 #include <stdio.h>
@@ -14,14 +14,14 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
-#include "winbase.h"
-#include "windef.h"
-#include "winuser.h"
-#include "heap.h"
-#include "module.h"
-#include "debugtools.h"
-#include "winerror.h"
-#include "loader.h"
+#include <wine/winbase.h>
+#include <wine/windef.h>
+#include <wine/winuser.h>
+#include <wine/heap.h>
+#include <wine/module.h>
+#include <wine/debugtools.h>
+#include <wine/winerror.h>
+#include <loader.h>
 
 #define CP_ACP					0
 

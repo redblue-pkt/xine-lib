@@ -3,10 +3,12 @@
  *  AVIFMT - AVI file format definitions
  *
  ****************************************************************************/
-#ifndef AVIFMT 
+#ifndef AVIFMT
+ 
 #define AVIFMT
 
-#ifndef NOAVIFMT 
+#ifndef NOAVIFMT
+ 
 
 #ifndef  __WINE_WINDEF_H
 #include "windef.h"
