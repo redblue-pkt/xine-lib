@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.45 2001/12/12 15:05:37 jcdutton Exp $
+ * $Id: xine_decoder.c,v 1.46 2002/01/03 23:56:44 jcdutton Exp $
  *
  * stuff needed to turn libspu into a xine decoder plugin
  */
@@ -141,9 +141,8 @@ static void spu_process (spudec_decoder_t *this, uint32_t stream_id) {
        *        For subtitles, open event.
        *        For menus, store it for later.
        */
-
-      if ((this->xine->spu_channel != stream_id) &&
-           (this->state.menu == 0) ) {
+/* spu_channel is now set based on whether we are in the menu or not. */
+      if (this->xine->spu_channel != stream_id) { 
 #ifdef LOG_DEBUG
         printf ("spu: Dropping SPU channel %d\n", stream_id);
 #endif

@@ -6,10 +6,10 @@ libdir = $(XINE_PLUGINDIR)
 
 lib_LTLIBRARIES = xineplug_decode_spu.la
 
-xineplug_decode_spu_la_SOURCES =  spu.c xine_decoder.c 
+xineplug_decode_spu_la_SOURCES =  spu.c xine_decoder.c nav_read.c 
 xineplug_decode_spu_la_LDFLAGS = -avoid-version -module
 
-noinst_HEADERS = spu.h
+noinst_HEADERS = spu.h nav_read.h bswap.h
 include_HEADERS = spu_decoder_api.h
 
 ##
