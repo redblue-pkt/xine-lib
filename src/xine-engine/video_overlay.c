@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_overlay.c,v 1.34 2003/12/09 00:02:37 f1rmb Exp $
+ * $Id: video_overlay.c,v 1.35 2004/03/29 19:50:58 mroi Exp $
  *
  */
 
@@ -572,6 +572,10 @@ static void video_overlay_dispose(video_overlay_manager_t *this_gen) {
       free (this->objects[i].overlay);
     }
   }
+
+  pthread_mutex_destroy (&this->events_mutex);
+  pthread_mutex_destroy (&this->objects_mutex);
+  pthread_mutex_destroy (&this->showing_mutex);
 
   free (this);
 }
