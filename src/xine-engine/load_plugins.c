@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.135 2003/01/17 16:10:32 miguelfreitas Exp $
+ * $Id: load_plugins.c,v 1.136 2003/01/17 18:43:38 siggi Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -54,11 +54,8 @@
 /*
 #define LOG
 */
-
+#define LOG
 static char *plugin_name;
-
-/* new code, comment this in case of trouble */
-#define USE_CACHED_CATALOG
 
 #if DONT_CATCH_SIGSEGV
 
@@ -114,10 +111,10 @@ static int _get_decoder_priority (xine_t *this, int default_priority,
 				     default_priority,
 				     "decoder's priority compared to others",
 				     NULL, 20,
-				     NULL, NULL /* FIXME: implement callback */);
+				     NULL, NULL /*FIXME: implement callback*/);
 }
 
-#ifdef USE_CACHED_CATALOG  
+
 static plugin_info_t *_get_cached_plugin ( xine_list_t *list,
 			    char *filename, struct stat *statbuffer, 
 			    plugin_info_t *previous_info){
@@ -142,7 +139,7 @@ static plugin_info_t *_get_cached_plugin ( xine_list_t *list,
   }
   return NULL;
 }
-#endif
+
 
 static void _insert_plugin (xine_t *this,
 			    xine_list_t *list,
@@ -285,13 +282,16 @@ static void collect_plugins(xine_t *this, char *path){
 	case S_IFREG:
 	  /* regular file, ie. plugin library, found => load it */
 
+	  /* this will fail whereever shared libs are called *.dll or such
+	   * better solutions:
+           * a) don't install .la files on user's system
+           * b) also cache negative hits, ie. files that failed to dlopen()
+	   */
 	  if(!strstr(str, ".so") )
 	    break;
 	  
 	  plugin_name = str;
 	  lib = NULL;
-	  info = NULL;
-#ifdef USE_CACHED_CATALOG  
 	  info = _get_cached_plugin ( this->plugin_catalog->cache,
 			              str, &statbuffer, NULL);
 #ifdef LOG
@@ -299,7 +299,6 @@ static void collect_plugins(xine_t *this, char *path){
 	    printf("load_plugins: using cached %s\n", str);
 	  else
 	    printf("load_plugins: %s not cached\n", str);
-#endif
 #endif
 
 	  if(!info && !(lib = dlopen (str, RTLD_LAZY | RTLD_GLOBAL))) {
@@ -310,13 +309,7 @@ static void collect_plugins(xine_t *this, char *path){
 	      printf ("load_plugins: cannot open plugin lib %s:\n%s\n",
 		      str, dl_error_msg);
 	    }
-#ifdef LOG
-	    {
-	      char *dl_error_msg = dlerror();
-	      printf ("load_plugins: cannot open plugin lib %s:\n%s\n",
-		      str, dl_error_msg);
-	    }
-#endif
+
 	  } else {
 
 	    if (info || (info = dlsym(lib, "xine_plugin_info"))) {
@@ -374,16 +367,14 @@ static void collect_plugins(xine_t *this, char *path){
 		}
 
 		/* get next info either from lib or cache */
-		if( lib )
+		if( lib ) {
 		  info++;
-#ifdef USE_CACHED_CATALOG  
-		else
+		}
+		else {
 		  info = _get_cached_plugin ( this->plugin_catalog->cache,
 			                      str, &statbuffer, info);
-#endif
-
+		}
 	      }
-
 	    }
 	    else {
 	      char *dl_error_msg = dlerror();
@@ -398,7 +389,7 @@ static void collect_plugins(xine_t *this, char *path){
 	  break;
 	case S_IFDIR:
 
-	  if (*pEntry->d_name != '.'){ /* catches ".", ".." or ".hidden" dirs */
+	  if (*pEntry->d_name != '.'){ /* unless ".", ".." or ".hidden" dirs */
 	    collect_plugins(this, str);
 	  }
 	} /* switch */
@@ -407,6 +398,11 @@ static void collect_plugins(xine_t *this, char *path){
     } /* while */
     closedir (dir);
   } /* if (dir) */
+  else {
+    xine_log (this, XINE_LOG_PLUGIN,
+	      _("load_plugins: skipping unreadable plugin directory %s.\n"),
+	      path);
+  }
 } /* collect_plugins */
 
 /*
@@ -503,7 +499,7 @@ static void load_required_plugins(xine_t *this) {
 }
 
 
-#ifdef USE_CACHED_CATALOG  
+
 /*
  *  save plugin list information to file (cached catalog)
  */
@@ -566,7 +562,7 @@ static void save_plugin_list(FILE *fp, xine_list_t *plugins) {
 }
 
 /*
- *  save plugin list information to file (cached catalog)
+ *  load plugin list information from file (cached catalog)
  */
 static void load_plugin_list(FILE *fp, xine_list_t *plugins) {
 
@@ -758,7 +754,7 @@ static void load_cached_catalog (xine_t *this) {
   }
   free(cachefile);
 }
-#endif
+
 
 static void map_decoders (xine_t *this) {
 
@@ -923,10 +919,16 @@ static void map_decoders (xine_t *this) {
   }
 }
 
+
 /*
  *  initialize catalog, load all plugins into new catalog
  */
 void scan_plugins (xine_t *this) {
+
+    char *homedir;
+    char *plugindir;
+    char *pluginpath;
+    int i,j;
 
 #ifdef LOG
   printf("load_plugins: scan_plugins()\n");
@@ -937,18 +939,36 @@ void scan_plugins (xine_t *this) {
     abort();
   }
 
+  homedir = xine_get_homedir();
   this->plugin_catalog = _new_catalog();
-
-#ifdef USE_CACHED_CATALOG  
   load_cached_catalog (this);
-#endif
-    
-  /* TODO: add more plugin dir(s), maybe ~/.xine/plugins or /usr/local/... */
-  collect_plugins(this, XINE_PLUGINDIR);
 
-#ifdef USE_CACHED_CATALOG  
+  if ( !(pluginpath = getenv("XINE_PLUGIN_PATH")) ){
+    pluginpath = "~/.xine/plugins:" XINE_PLUGINDIR;
+  }
+  plugindir = xine_xmalloc(strlen(pluginpath)+strlen(homedir)+2);
+  j=0;
+  for (i=0; i <= strlen(pluginpath); ++i){
+    switch (pluginpath[i]){
+    case ':':
+    case '\0':
+      plugindir[j] = '\0';
+      collect_plugins(this, plugindir);
+      j = 0;
+      break;
+    case '~':
+      if (j == 0){
+	strcpy(plugindir, homedir);
+	j = strlen(plugindir);
+	break;
+      }
+    default:
+      plugindir[j++] = pluginpath[i];
+    }
+  }
+  free(plugindir);
+
   save_catalog (this);
-#endif
     
   load_required_plugins (this);
 
