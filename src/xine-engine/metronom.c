@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.c,v 1.33 2001/11/10 13:48:03 guenter Exp $
+ * $Id: metronom.c,v 1.34 2001/11/10 14:57:20 heikos Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -450,18 +450,11 @@ static uint32_t metronom_got_video_frame (metronom_t *this, uint32_t pts, uint32
   if (pts) {
 
     /*
-     * first video pts  ?
-     */
-    if (this->video_stream_starting) 
-      this->video_stream_starting = 0;
-      
-    /*
      * discontinuity ?
      */
-
-    if ( this->video_discontinuity ) {
-
+    if ( this->video_discontinuity || this->video_stream_starting ) {
       this->video_discontinuity = 0;
+      this->video_stream_starting = 0;
 
       this->video_wrap_offset += this->last_video_pts - pts 
 	+ this->num_video_vpts_guessed
@@ -578,19 +571,12 @@ static uint32_t metronom_got_audio_samples (metronom_t *this, uint32_t pts,
   if (pts) {
 
     /*
-     * first audio pts ?
-     */
-    if (this->audio_stream_starting) 
-      this->audio_stream_starting = 0;
-      
-    /*
      * discontinuity ?
      */
-
-    if ( this->audio_discontinuity ) {
-
+    if ( this->audio_discontinuity || this->audio_stream_starting ) {
       this->audio_discontinuity = 0;
-      
+      this->audio_stream_starting = 0;
+
       this->audio_wrap_offset += this->last_audio_pts - pts
 	+ this->num_audio_samples_guessed
 	* (this->audio_pts_delta + this->pts_per_smpls) / AUDIO_SAMPLE_NUM ;
