@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  *
- * $Id: video_out_pgx64.c,v 1.60 2004/04/28 21:01:28 komadori Exp $
+ * $Id: video_out_pgx64.c,v 1.61 2004/04/29 15:38:12 komadori Exp $
  *
  * video_out_pgx64.c, Sun PGX64/PGX24 output plugin for xine
  *
@@ -438,9 +438,11 @@ static void pgx64_display_frame(vo_driver_t *this_gen, vo_frame_t *frame_gen)
     }
   }
 
+  XLockDisplay(this->display);
   DGA_DRAW_LOCK(this->dgadraw, -1);
   this->vo_scale.force_redraw = this->vo_scale.force_redraw || DGA_DRAW_MODIF(this->dgadraw);
   DGA_DRAW_UNLOCK(this->dgadraw);
+  XUnlockDisplay(this->display);
 
   if (_x_vo_scale_redraw_needed(&this->vo_scale)) {  
     short int *cliprects, wx0, wy0, wx1, wy1, cx0, cy0, cx1, cy1;
@@ -450,6 +452,7 @@ static void pgx64_display_frame(vo_driver_t *this_gen, vo_frame_t *frame_gen)
     repaint_output_area(this);
     this->chromakey_regen_needed = 1;
 
+    XLockDisplay(this->display);
     DGA_DRAW_LOCK(this->dgadraw, -1);
     dgavis = DGA_VIS_FULLY_OBSCURED;
     cliprects = dga_draw_clipinfo(this->dgadraw);
@@ -473,6 +476,7 @@ static void pgx64_display_frame(vo_driver_t *this_gen, vo_frame_t *frame_gen)
       }
     }
     DGA_DRAW_UNLOCK(this->dgadraw);
+    XUnlockDisplay(this->display);
 
     vregs[BUS_CNTL] |= le2me_32(BUS_EXT_REG_EN);
     vregs[SCALER_H_COEFF0] = le2me_32(SCALER_H_COEFF0_DEFAULT);
@@ -968,9 +972,11 @@ static int pgx64_redraw_needed(vo_driver_t *this_gen)
   pgx64_driver_t *this = (pgx64_driver_t *)(void *)this_gen;
   int modif = 0;
 
+  XLockDisplay(this->display);
   DGA_DRAW_LOCK(this->dgadraw, -1);
   modif = DGA_DRAW_MODIF(this->dgadraw);
   DGA_DRAW_UNLOCK(this->dgadraw);
+  XUnlockDisplay(this->display);
 
   if (modif || _x_vo_scale_redraw_needed(&this->vo_scale)) {  
     this->vo_scale.force_redraw = 1;
