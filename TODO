@@ -73,7 +73,6 @@ optional
 - look over global structures and do some cleanup
 - id3v2.3,v2.4 support
 - "metainfo change" event
-- new demuxers/decoders (eg. matroska)
 - double-check rate estimation in demux_mgeg/mpeg_block
 - fix cook audio streaming
 - better dvd error messages
@@ -95,6 +94,15 @@ optional
 - opengl video output plugin (matthias, sopra at stuttgart university)
 - irix audio output plugin (matthias)
 
+beyond 1.0
+----------
+
+- use the safe string functions from xine_buffer.h in xine's own code
+- rework the clock system, introducing clock and metronom speed settings
+- allow more frame formats, automatic post plugin insertion for conversion
+- frame-level seeking
+- experiment with splint for code verification
+
 Open Tasks
 ==========
 
@@ -114,8 +122,6 @@ Open Tasks
 - detect raw ac3/a52 in MPEG Program streams.
 - detect raw ac3/a52 in MPEG Transport streams that lack PAT/PMT tables.
 - handle MPEG PES/PS streams with PES_packet_length = 0
-- implement native FLAC demuxer and include ffmpeg FLAC decoder to remove
-  dependency on libflac
 
 xine's future
 =============
