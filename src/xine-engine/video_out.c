@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.153 2003/04/23 14:33:02 miguelfreitas Exp $
+ * $Id: video_out.c,v 1.154 2003/04/28 23:52:27 miguelfreitas Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -558,8 +558,6 @@ static void expire_frames (vos_t *this, int64_t cur_vpts) {
         
         if (!this->img_backup) {
 	  this->img_backup = img;
-	
-	  this->redraw_needed = 1;
         } else {
 	  vo_frame_dec_lock( img );
         }     
