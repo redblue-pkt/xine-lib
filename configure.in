@@ -370,7 +370,7 @@ case $host in
 	      [ AC_MSG_RESULT(** no cpu optimization supports **)
 	        sarchopt=no ]))
 	dnl special check for k7 cpu CC support
-        AC_TRY_CFLAGS("$sarchopt=k7", k7cpu="k7", k7cpu="i686")
+        AC_TRY_CFLAGS("$sarchopt=athlon", k7cpu="athlon", k7cpu="i686")
 	
         AC_DEFINE(__i386__)
 	AC_DEFINE([ARCH_X86],,[x86 architecture])
@@ -423,9 +423,13 @@ case $host in
                       GLOBAL_CFLAGS="$GLOBAL_CFLAGS $sarchopt=k6"
                       DEBUG_CFLAGS="$DEBUG_CFLAGS $sarchopt=k6"		
                       ;;
-		    k7-* | athlon-*)
+		    k7-*)
                       GLOBAL_CFLAGS="$GLOBAL_CFLAGS $sarchopt=k7"
                       DEBUG_CFLAGS="$DEBUG_CFLAGS $sarchopt=k7"
+		      ;;
+		    athlon-*)
+                      GLOBAL_CFLAGS="$GLOBAL_CFLAGS $sarchopt=athlon"
+                      DEBUG_CFLAGS="$DEBUG_CFLAGS $sarchopt=athlon"
 	    esac]
 	fi
         ;;
