@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2003 the xine project
+ * Copyright (C) 2000-2004 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_vidix.c,v 1.58 2003/12/14 22:13:25 siggi Exp $
+ * $Id: video_out_vidix.c,v 1.59 2004/01/07 22:25:22 jstembridge Exp $
  * 
  * video_out_vidix.c
  *
@@ -175,38 +175,6 @@ static void free_framedata(vidix_frame_t* frame)
    }
 }
 
-static void write_frame_YUV422(vidix_driver_t* this, vidix_frame_t* frame)
-{
-   uint8_t*  y  = (uint8_t *)frame->vo_frame.base[0];
-   uint8_t*  cb = (uint8_t *)frame->vo_frame.base[1];
-   uint8_t*  cr = (uint8_t *)frame->vo_frame.base[2];
-   uint8_t*  crp;
-   uint8_t*  cbp;
-   uint32_t* dst32 = (uint32_t *)(this->vidix_mem + 
-                     this->vidix_play.offsets[this->next_frame] +
-                     this->vidix_play.offset.y);
-   int h, w, half_width = frame->width / 2;
-
-   for(h = 0; h < (frame->height / 2); h++) {
-      cbp = cb;
-      crp = cr;
-      
-      for(w = 0; w < half_width; w++) {
-	 *dst32++ = (*y) + ((*cb)<<8) + ((*(y+1))<<16) + ((*cr)<<24);
-	 y++; y++; cb++; cr++;
-      }
-
-      dst32 += (this->dstrides.y / 4) - half_width;
-
-      for(w=0; w < half_width; w++) {
-	 *dst32++ = (*y) + ((*cbp)<<8) + ((*(y+1))<<16) + ((*crp)<<24);
-	 y++; y++; cbp++; crp++;
-      }
-      
-      dst32 += (this->dstrides.y / 4) - half_width;
-   }
-}
-
 static void write_frame_YUV420P2(vidix_driver_t* this, vidix_frame_t* frame)
 {   
    uint8_t* y    = (uint8_t *)frame->vo_frame.base[0];
@@ -237,57 +205,19 @@ static void write_frame_YUV420P2(vidix_driver_t* this, vidix_frame_t* frame)
    }
 }
 
-static void write_frame_YUV420P3(vidix_driver_t* this, vidix_frame_t* frame)
-{   
-   uint8_t* y    = (uint8_t *)frame->vo_frame.base[0];
-   uint8_t* cb   = (uint8_t *)frame->vo_frame.base[1];
-   uint8_t* cr   = (uint8_t *)frame->vo_frame.base[2];
-   uint8_t* dst8 = (this->vidix_mem + 
-                    this->vidix_play.offsets[this->next_frame] +
-                    this->vidix_play.offset.y);
-   int h, half_width = frame->width / 2;
-   
-   for(h = 0; h < frame->height; h++) {
-      xine_fast_memcpy(dst8, y, frame->width);
-      y    += frame->vo_frame.pitches[0];
-      dst8 += this->dstrides.y;
-   }
-
-   dst8 = (this->vidix_mem + 
-           this->vidix_play.offsets[this->next_frame]);
-
-   for(h = 0; h < (frame->height / 2); h++) {
-      xine_fast_memcpy(dst8 + this->vidix_play.offset.v, cb, half_width);
-      xine_fast_memcpy(dst8 + this->vidix_play.offset.u, cr, half_width);
-      
-      cb   += frame->vo_frame.pitches[2];
-      cr   += frame->vo_frame.pitches[1];
-   
-      dst8 += (this->dstrides.v / 2);
-   }
-}
-
-static void write_frame_YUY2(vidix_driver_t* this, vidix_frame_t* frame)
-{   
-   uint8_t* src8 = (uint8_t *)frame->vo_frame.base[0];
-   uint8_t* dst8 = (uint8_t *)(this->vidix_mem + 
-                     this->vidix_play.offsets[this->next_frame] +
-                     this->vidix_play.offset.y);
-   int h, double_width = frame->width * 2;
-                     
-   for(h = 0; h < frame->height; h++) {
-      xine_fast_memcpy(dst8, src8, double_width);
-
-      dst8 += this->dstrides.y;
-      src8 += frame->vo_frame.pitches[0];
-   }
-}
-
 static void write_frame_sfb(vidix_driver_t* this, vidix_frame_t* frame)
 {
+  uint8_t *base = this->vidix_mem+this->vidix_play.offsets[this->next_frame];
+
   switch(frame->format) {   
     case XINE_IMGFMT_YUY2:
-      write_frame_YUY2(this, frame);
+      yuy2_to_yuy2(
+       /* src */
+        frame->vo_frame.base[0], frame->vo_frame.pitches[0],
+       /* dst */
+        base+this->vidix_play.offset.y, this->dstrides.y,
+       /* width x height */
+        frame->width, frame->height);
       break;
       
     case XINE_IMGFMT_YV12:
@@ -295,9 +225,30 @@ static void write_frame_sfb(vidix_driver_t* this, vidix_frame_t* frame)
         if(this->vidix_play.flags & VID_PLAY_INTERLEAVED_UV)
           write_frame_YUV420P2(this, frame);
         else
-          write_frame_YUV420P3(this, frame);
+          yv12_to_yv12(
+           /* Y */
+            frame->vo_frame.base[0], frame->vo_frame.pitches[0],
+            base+this->vidix_play.offset.y, this->dstrides.y,
+           /* U */
+            frame->vo_frame.base[2], frame->vo_frame.pitches[2],
+            base+this->vidix_play.offset.u, this->dstrides.u/2,
+           /* V */
+            frame->vo_frame.base[1], frame->vo_frame.pitches[1],
+            base+this->vidix_play.offset.v, this->dstrides.v/2,
+           /* width x height */
+            frame->width, frame->height);
       } else
-          write_frame_YUV422(this,frame);
+          yv12_to_yuy2(
+           /* src */
+            frame->vo_frame.base[0], frame->vo_frame.pitches[0],
+            frame->vo_frame.base[1], frame->vo_frame.pitches[1],
+            frame->vo_frame.base[2], frame->vo_frame.pitches[2],
+           /* dst */
+            base+this->vidix_play.offset.y, this->dstrides.y,
+           /* width x height */
+            frame->width, frame->height,
+           /* progressive */
+            frame->vo_frame.progressive_frame);
       break;
       
     default:
