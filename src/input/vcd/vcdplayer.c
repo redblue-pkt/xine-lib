@@ -1,5 +1,5 @@
 /* 
-  $Id: vcdplayer.c,v 1.3 2004/02/19 02:31:22 rockyb Exp $
+  $Id: vcdplayer.c,v 1.4 2004/03/11 08:08:48 rockyb Exp $
  
   Copyright (C) 2002,2003 Rocky Bernstein <rocky@panix.com>
   
@@ -150,7 +150,7 @@ vcdplayer_format_str(vcdplayer_input_t *this, const char format_str[])
   size_t format_len = strlen(format_str);
   vcdinfo_obj_t *obj = this->vcd;
 
-  bzero(temp_str, TEMP_STR_SIZE);
+  memset(temp_str, 0, TEMP_STR_SIZE);
 
   for (i=0; i<format_len; i++) {
 
@@ -277,10 +277,10 @@ _vcdplayer_update_entry(vcdinfo_obj_t *obj, uint16_t ofs, uint16_t *entry,
   if ( ofs == VCDINFO_INVALID_OFFSET ) {
     *entry = VCDINFO_INVALID_ENTRY;
   } else {
-    vcdinfo_offset_t *off_t = vcdinfo_get_offset_t(obj, ofs);
-    if (off_t != NULL) {
-      *entry = off_t->lid;
-      dbg_print(INPUT_DBG_PBC, "%s: %d\n", label, off_t->lid);
+    vcdinfo_offset_t *off = vcdinfo_get_offset_t(obj, ofs);
+    if (off != NULL) {
+      *entry = off->lid;
+      dbg_print(INPUT_DBG_PBC, "%s: %d\n", label, off->lid);
     } else
       *entry = VCDINFO_INVALID_ENTRY;
   }
