@@ -11,6 +11,7 @@ xine-lib (1.0.1)
   * fixed MMS/ASF chained stream bug
   * Shoutcast: fixed meta info handling
   * MMST: fixed incorrect command length
+  * fixed end of stream detection with AVI files
   * support for WMA Voice codec
   * add limited support for character entities to the XML parser
 
