@@ -1447,7 +1447,7 @@ do {									\
 		picture->current_frame->copy (picture->current_frame,	\
 					      picture->dest);		\
 		if (picture->picture_coding_type == B_TYPE)		\
-		    break;						\
+		    /*break*/;						\
 	    }								\
 	    picture->dest[0] += 16 * picture->pitches[0];		\
 	    picture->dest[1] += 8 * picture->pitches[1];		\
@@ -1542,9 +1542,9 @@ static inline int slice_init (picture_t * picture, int code)
 
     picture->v_offset = (code - 1) * 16;
     offset = (code - 1);
-    if (picture->current_frame->copy && picture->picture_coding_type == B_TYPE)
+/*    if (picture->current_frame->copy && picture->picture_coding_type == B_TYPE)
 	offset = 0;
-    else if (picture->picture_structure != FRAME_PICTURE)
+    else */if (picture->picture_structure != FRAME_PICTURE)
 	offset = 2 * offset;
 
     picture->dest[0] = picture->current_frame->base[0] + picture->pitches[0] * offset * 16;
