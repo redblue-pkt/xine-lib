@@ -3217,8 +3217,8 @@ static void set_gr_key( void )
 			  ((radeon_grkey.ckey.blue &0xF8)>>3)
 			| ((radeon_grkey.ckey.green&0xF8)<<2)
 			| ((radeon_grkey.ckey.red  &0xF8)<<7);
-		break;
 #endif
+		break;
 	case 16:
 #ifndef RAGE128
 		besr.graphics_key_clr=
@@ -3230,8 +3230,8 @@ static void set_gr_key( void )
 			  ((radeon_grkey.ckey.blue &0xF8)>>3)
 			| ((radeon_grkey.ckey.green&0xFC)<<3)
 			| ((radeon_grkey.ckey.red  &0xF8)<<8);
-		break;
 #endif
+		break;
 	case 24:
 		besr.graphics_key_clr=
 			  ((radeon_grkey.ckey.blue &0xFF))
