@@ -510,7 +510,7 @@ AC_CHECK_LIB(XvMC, XvMCQueryExtension,
 		 echo "* ld --whole-archive -shared -o libXvMC.so.1 libXvMC.a         *"
 		 echo "* then: ln -s libXvMC.so.1 libXvMC.so                          *"
 	         echo "* to create it or try to use --with-xvmc-path to set the       *"
-                 echo "* location of libXvMC.so                                         *"
+                 echo "* location of libXvMC.so                                       *"
                  echo "****************************************************************"
 	         echo
 		 fi
