@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.32 2002/09/05 22:18:55 mroi Exp $
+ * $Id: xine_decoder.c,v 1.33 2002/10/18 12:28:11 jcdutton Exp $
  *
  * stuff needed to turn liba52 into a xine decoder plugin
  */
@@ -47,9 +47,15 @@
 int a52file; 
 #endif
 
+typedef struct {
+  audio_decoder_class_t   decoder_class;
+} a52dec_class_t;
+
 typedef struct a52dec_decoder_s {
   audio_decoder_t  audio_decoder;
 
+  a52dec_class_t  *class;
+  xine_stream_t   *stream; 
   int64_t          pts;
 
   uint8_t          frame_buffer[3840];
@@ -134,106 +140,6 @@ void a52dec_reset (audio_decoder_t *this_gen) {
   this->syncword      = 0;
   this->sync_todo     = 7;
   this->pts           = 0;
-}
-
-void a52dec_init (audio_decoder_t *this_gen, ao_instance_t *audio_out) {
-
-  a52dec_decoder_t *this = (a52dec_decoder_t *) this_gen;
-  /* int i; */
-
-  this->audio_out     = audio_out;
-  this->audio_caps    = audio_out->get_capabilities(audio_out);
-  this->syncword      = 0;
-  this->sync_todo     = 7;
-  this->output_open   = 0;
-  this->pts           = 0;
-
-  if( !this->a52_state )
-    this->a52_state = a52_init (xine_mm_accel());
-
-  /*
-   * find out if this driver supports a52 output
-   * or, if not, how many channels we've got
-   */
-
-  if (this->audio_caps & AO_CAP_MODE_A52)
-    this->bypass_mode = 1;
-  else {
-    this->bypass_mode = 0;
-     
-    this->a52_flags_map[A52_MONO]   = A52_MONO;
-    this->a52_flags_map[A52_STEREO] = ((this->enable_surround_downmix ? A52_DOLBY : A52_STEREO));
-    this->a52_flags_map[A52_3F]     = ((this->enable_surround_downmix ? A52_DOLBY : A52_STEREO));
-    this->a52_flags_map[A52_2F1R]   = ((this->enable_surround_downmix ? A52_DOLBY : A52_STEREO)); 
-    this->a52_flags_map[A52_3F1R]   = ((this->enable_surround_downmix ? A52_DOLBY : A52_STEREO)); 
-    this->a52_flags_map[A52_2F2R]   = ((this->enable_surround_downmix ? A52_DOLBY : A52_STEREO));
-    this->a52_flags_map[A52_3F2R]   = ((this->enable_surround_downmix ? A52_DOLBY : A52_STEREO));
-    this->a52_flags_map[A52_DOLBY]  = ((this->enable_surround_downmix ? A52_DOLBY : A52_STEREO));
-    
-    this->ao_flags_map[A52_MONO]    = AO_CAP_MODE_MONO;
-    this->ao_flags_map[A52_STEREO]  = AO_CAP_MODE_STEREO;
-    this->ao_flags_map[A52_3F]      = AO_CAP_MODE_STEREO;
-    this->ao_flags_map[A52_2F1R]    = AO_CAP_MODE_STEREO;
-    this->ao_flags_map[A52_3F1R]    = AO_CAP_MODE_STEREO;
-    this->ao_flags_map[A52_2F2R]    = AO_CAP_MODE_STEREO;
-    this->ao_flags_map[A52_3F2R]    = AO_CAP_MODE_STEREO;
-    this->ao_flags_map[A52_DOLBY]   = AO_CAP_MODE_STEREO;
-
-    /* find best mode */
-    if (this->audio_caps & AO_CAP_MODE_5_1CHANNEL) {
-
-      this->a52_flags_map[A52_2F2R]   = A52_2F2R;
-      this->a52_flags_map[A52_3F2R]   = A52_3F2R | A52_LFE;
-      this->ao_flags_map[A52_2F2R]    = AO_CAP_MODE_4CHANNEL;
-      this->ao_flags_map[A52_3F2R]    = AO_CAP_MODE_5CHANNEL;
-
-    } else if (this->audio_caps & AO_CAP_MODE_5CHANNEL) {
-
-      this->a52_flags_map[A52_2F2R]   = A52_2F2R;
-      this->a52_flags_map[A52_3F2R]   = A52_3F2R;
-      this->ao_flags_map[A52_2F2R]    = AO_CAP_MODE_4CHANNEL;
-      this->ao_flags_map[A52_3F2R]    = AO_CAP_MODE_5CHANNEL;
-
-    } else if (this->audio_caps & AO_CAP_MODE_4CHANNEL) {
-
-      this->a52_flags_map[A52_2F2R]   = A52_2F2R;
-      this->a52_flags_map[A52_3F2R]   = A52_2F2R;
-
-      this->ao_flags_map[A52_2F2R]    = AO_CAP_MODE_4CHANNEL;
-      this->ao_flags_map[A52_3F2R]    = AO_CAP_MODE_4CHANNEL;
-
-      /* else if (this->audio_caps & AO_CAP_MODE_STEREO)
-	 defaults are ok */
-    } else if (!(this->audio_caps & AO_CAP_MODE_STEREO)) {
-      printf ("HELP! a mono-only audio driver?!\n");
-
-      this->a52_flags_map[A52_MONO]   = A52_MONO;
-      this->a52_flags_map[A52_STEREO] = A52_MONO;
-      this->a52_flags_map[A52_3F]     = A52_MONO; 
-      this->a52_flags_map[A52_2F1R]   = A52_MONO; 
-      this->a52_flags_map[A52_3F1R]   = A52_MONO; 
-      this->a52_flags_map[A52_2F2R]   = A52_MONO;
-      this->a52_flags_map[A52_3F2R]   = A52_MONO;
-      this->a52_flags_map[A52_DOLBY]  = A52_MONO;
-      
-      this->ao_flags_map[A52_MONO]    = AO_CAP_MODE_MONO;
-      this->ao_flags_map[A52_STEREO]  = AO_CAP_MODE_MONO;
-      this->ao_flags_map[A52_3F]      = AO_CAP_MODE_MONO;
-      this->ao_flags_map[A52_2F1R]    = AO_CAP_MODE_MONO;
-      this->ao_flags_map[A52_3F1R]    = AO_CAP_MODE_MONO;
-      this->ao_flags_map[A52_2F2R]    = AO_CAP_MODE_MONO;
-      this->ao_flags_map[A52_3F2R]    = AO_CAP_MODE_MONO;
-      this->ao_flags_map[A52_DOLBY]   = AO_CAP_MODE_MONO;
-    }
-  }
-
-  /*
-    for (i = 0; i<8; i++)
-    this->a52_flags_map[i] |= A52_ADJUST_LEVEL;
-  */
-#ifdef DEBUG_A52
-  a52file = open ("test.a52", O_CREAT | O_WRONLY | O_TRUNC, 0644); 
-#endif
 }
 
 static inline int16_t blah (int32_t i) {
@@ -420,7 +326,7 @@ static void a52dec_decode_frame (a52dec_decoder_t *this, int64_t pts) {
 
       buf->num_frames = 1536;
       buf->vpts       = pts;
-      
+       
       this->audio_out->put_buffer (this->audio_out, buf);
       
     }
@@ -509,7 +415,7 @@ void a52dec_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
   }
 }
 
-void a52dec_close (audio_decoder_t *this_gen) {
+static void a52dec_dispose (audio_decoder_t *this_gen) {
 
   a52dec_decoder_t *this = (a52dec_decoder_t *) this_gen; 
 
@@ -524,33 +430,26 @@ void a52dec_close (audio_decoder_t *this_gen) {
 #ifdef DEBUG_A52
   close (a52file); 
 #endif
-}
-
-static char *a52dec_get_id(void) {
-  return "a/52dec";
-}
-
-static void a52dec_dispose (audio_decoder_t *this_gen) {
   free (this_gen);
 }
 
-static void *init_audio_decoder_plugin (xine_t *xine, void *data) {
+static audio_decoder_t *open_plugin (audio_decoder_class_t *class_gen, xine_stream_t *stream) {
 
   a52dec_decoder_t *this ;
-  config_values_t *cfg;
+  printf ("liba52:open_plugin called\n");
+//  config_values_t *cfg;
 
-  cfg = xine->config;
+//  cfg = xine->config;
   this = (a52dec_decoder_t *) malloc (sizeof (a52dec_decoder_t));
   memset(this, 0, sizeof (a52dec_decoder_t));
 
-  this->audio_decoder.init                = a52dec_init;
   this->audio_decoder.decode_data         = a52dec_decode_data;
   this->audio_decoder.reset               = a52dec_reset;
-  this->audio_decoder.close               = a52dec_close;
-  this->audio_decoder.get_identifier      = a52dec_get_id;
   this->audio_decoder.dispose             = a52dec_dispose;
+  this->stream                            = stream;
+  this->class                             = (a52dec_class_t *) class_gen;
   
-
+#if 0
   this->a52_level = (float) cfg->register_range (cfg, "codec.a52_level", 100,
 						 0, 200,
 						 _("a/52 volume control"),
@@ -561,9 +460,136 @@ static void *init_audio_decoder_plugin (xine_t *xine, void *data) {
   this->enable_surround_downmix = cfg->register_bool (cfg, "codec.a52_surround_downmix", 0,
 						      _("enable audio downmixing to 2.0 surround stereo"),
 						      NULL, 0, NULL, NULL);
+#endif
 
+  /* int i; */
+
+  this->audio_out     = stream->audio_out;
+  this->audio_caps    = stream->audio_out->get_capabilities(stream->audio_out);
+  this->syncword      = 0;
+  this->sync_todo     = 7;
+  this->output_open   = 0;
+  this->pts           = 0;
+
+  if( !this->a52_state )
+    this->a52_state = a52_init (xine_mm_accel());
+
+  /*
+   * find out if this driver supports a52 output
+   * or, if not, how many channels we've got
+   */
+
+  if (this->audio_caps & AO_CAP_MODE_A52)
+    this->bypass_mode = 1;
+  else {
+    this->bypass_mode = 0;
+     
+    this->a52_flags_map[A52_MONO]   = A52_MONO;
+    this->a52_flags_map[A52_STEREO] = ((this->enable_surround_downmix ? A52_DOLBY : A52_STEREO));
+    this->a52_flags_map[A52_3F]     = ((this->enable_surround_downmix ? A52_DOLBY : A52_STEREO));
+    this->a52_flags_map[A52_2F1R]   = ((this->enable_surround_downmix ? A52_DOLBY : A52_STEREO)); 
+    this->a52_flags_map[A52_3F1R]   = ((this->enable_surround_downmix ? A52_DOLBY : A52_STEREO)); 
+    this->a52_flags_map[A52_2F2R]   = ((this->enable_surround_downmix ? A52_DOLBY : A52_STEREO));
+    this->a52_flags_map[A52_3F2R]   = ((this->enable_surround_downmix ? A52_DOLBY : A52_STEREO));
+    this->a52_flags_map[A52_DOLBY]  = ((this->enable_surround_downmix ? A52_DOLBY : A52_STEREO));
+    
+    this->ao_flags_map[A52_MONO]    = AO_CAP_MODE_MONO;
+    this->ao_flags_map[A52_STEREO]  = AO_CAP_MODE_STEREO;
+    this->ao_flags_map[A52_3F]      = AO_CAP_MODE_STEREO;
+    this->ao_flags_map[A52_2F1R]    = AO_CAP_MODE_STEREO;
+    this->ao_flags_map[A52_3F1R]    = AO_CAP_MODE_STEREO;
+    this->ao_flags_map[A52_2F2R]    = AO_CAP_MODE_STEREO;
+    this->ao_flags_map[A52_3F2R]    = AO_CAP_MODE_STEREO;
+    this->ao_flags_map[A52_DOLBY]   = AO_CAP_MODE_STEREO;
+
+    /* find best mode */
+    if (this->audio_caps & AO_CAP_MODE_5_1CHANNEL) {
+
+      this->a52_flags_map[A52_2F2R]   = A52_2F2R;
+      this->a52_flags_map[A52_3F2R]   = A52_3F2R | A52_LFE;
+      this->ao_flags_map[A52_2F2R]    = AO_CAP_MODE_4CHANNEL;
+      this->ao_flags_map[A52_3F2R]    = AO_CAP_MODE_5CHANNEL;
+
+    } else if (this->audio_caps & AO_CAP_MODE_5CHANNEL) {
+
+      this->a52_flags_map[A52_2F2R]   = A52_2F2R;
+      this->a52_flags_map[A52_3F2R]   = A52_3F2R;
+      this->ao_flags_map[A52_2F2R]    = AO_CAP_MODE_4CHANNEL;
+      this->ao_flags_map[A52_3F2R]    = AO_CAP_MODE_5CHANNEL;
+
+    } else if (this->audio_caps & AO_CAP_MODE_4CHANNEL) {
+
+      this->a52_flags_map[A52_2F2R]   = A52_2F2R;
+      this->a52_flags_map[A52_3F2R]   = A52_2F2R;
+
+      this->ao_flags_map[A52_2F2R]    = AO_CAP_MODE_4CHANNEL;
+      this->ao_flags_map[A52_3F2R]    = AO_CAP_MODE_4CHANNEL;
+
+      /* else if (this->audio_caps & AO_CAP_MODE_STEREO)
+	 defaults are ok */
+    } else if (!(this->audio_caps & AO_CAP_MODE_STEREO)) {
+      printf ("HELP! a mono-only audio driver?!\n");
+
+      this->a52_flags_map[A52_MONO]   = A52_MONO;
+      this->a52_flags_map[A52_STEREO] = A52_MONO;
+      this->a52_flags_map[A52_3F]     = A52_MONO; 
+      this->a52_flags_map[A52_2F1R]   = A52_MONO; 
+      this->a52_flags_map[A52_3F1R]   = A52_MONO; 
+      this->a52_flags_map[A52_2F2R]   = A52_MONO;
+      this->a52_flags_map[A52_3F2R]   = A52_MONO;
+      this->a52_flags_map[A52_DOLBY]  = A52_MONO;
+      
+      this->ao_flags_map[A52_MONO]    = AO_CAP_MODE_MONO;
+      this->ao_flags_map[A52_STEREO]  = AO_CAP_MODE_MONO;
+      this->ao_flags_map[A52_3F]      = AO_CAP_MODE_MONO;
+      this->ao_flags_map[A52_2F1R]    = AO_CAP_MODE_MONO;
+      this->ao_flags_map[A52_3F1R]    = AO_CAP_MODE_MONO;
+      this->ao_flags_map[A52_2F2R]    = AO_CAP_MODE_MONO;
+      this->ao_flags_map[A52_3F2R]    = AO_CAP_MODE_MONO;
+      this->ao_flags_map[A52_DOLBY]   = AO_CAP_MODE_MONO;
+    }
+  }
+
+  /*
+    for (i = 0; i<8; i++)
+    this->a52_flags_map[i] |= A52_ADJUST_LEVEL;
+  */
+#ifdef DEBUG_A52
+  a52file = open ("test.a52", O_CREAT | O_WRONLY | O_TRUNC, 0644); 
+#endif
+  return &this->audio_decoder;
+}
+
+static char *get_identifier (audio_decoder_class_t *this) {
+  printf ("liba52:get_identifier called\n");
+  return "a/52dec";
+}
+
+static char *get_description (audio_decoder_class_t *this) {
+  printf ("liba52:get_description called\n");
+  return "liba52 based a52 audio decoder plugin";
+}
+
+static void dispose_class (audio_decoder_class_t *this) {
+  printf ("liba52:dispose_class called\n");
+  free (this);
+}
+
+static void *init_plugin (xine_t *xine, void *data) {
+
+  a52dec_class_t *this;
+  
+  this = (a52dec_class_t *) malloc (sizeof (a52dec_class_t));
+
+  this->decoder_class.open_plugin     = open_plugin;
+  this->decoder_class.get_identifier  = get_identifier;
+  this->decoder_class.get_description = get_description;
+  this->decoder_class.dispose         = dispose_class;
+
+  printf ("liba52:init_plugin called\n");
   return this;
 }
+
 
 static uint32_t audio_types[] = { 
   BUF_AUDIO_A52, 0
@@ -576,6 +602,6 @@ static decoder_info_t dec_info_audio = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_AUDIO_DECODER, 9, "a/52", XINE_VERSION_CODE, &dec_info_audio, init_audio_decoder_plugin },
+  { PLUGIN_AUDIO_DECODER, 10, "a/52", XINE_VERSION_CODE, &dec_info_audio, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

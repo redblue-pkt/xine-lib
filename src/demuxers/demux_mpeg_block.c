@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.120 2002/10/18 07:13:10 jcdutton Exp $
+ * $Id: demux_mpeg_block.c,v 1.121 2002/10/18 12:28:10 jcdutton Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -532,6 +532,9 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
       buf->input_length = this->input->get_length (this->input);
       
       this->video_fifo->put (this->video_fifo, buf);    
+#ifdef LOG
+      printf ("demux_mpeg_block: SPU PACK put on fifo\n");
+#endif
       
       return;
     }
@@ -556,9 +559,12 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
       buf->input_pos = this->input->get_current_pos(this->input);
       buf->input_length = this->input->get_length (this->input);
 
-      if(this->audio_fifo)
+      if(this->audio_fifo) {
 	this->audio_fifo->put (this->audio_fifo, buf);
-      else
+#ifdef LOG
+        printf ("demux_mpeg_block: A52 PACK put on fifo\n");
+#endif
+      } else
 	buf->free_buffer(buf);
       
       return ;
@@ -620,9 +626,12 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
       buf->input_pos = this->input->get_current_pos(this->input);
       buf->input_length = this->input->get_length (this->input);
 
-      if(this->audio_fifo)
+      if(this->audio_fifo) {
 	this->audio_fifo->put (this->audio_fifo, buf);
-      else
+#ifdef LOG
+        printf ("demux_mpeg_block: LPCM PACK put on fifo\n");
+#endif
+      } else
 	buf->free_buffer(buf);
       
       return ;
@@ -641,6 +650,9 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
     buf->input_length = this->input->get_length (this->input);
 
     this->video_fifo->put (this->video_fifo, buf);
+#ifdef LOG
+        printf ("demux_mpeg_block: MPEG Video PACK put on fifo\n");
+#endif
 
     return ;
 
@@ -659,9 +671,12 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
     buf->input_pos = this->input->get_current_pos(this->input);
     buf->input_length = this->input->get_length (this->input);
 
-    if(this->audio_fifo)
+    if(this->audio_fifo) {
       this->audio_fifo->put (this->audio_fifo, buf);
-    else
+#ifdef LOG
+        printf ("demux_mpeg_block: MPEG Audio PACK put on fifo\n");
+#endif
+    } else
       buf->free_buffer(buf);
 
     return ;
@@ -856,6 +871,9 @@ static int demux_mpeg_block_estimate_rate (demux_mpeg_block_t *this) {
 
   }
 
+#ifdef LOG
+  printf("demux_mpeg_block:est_rate=%d\n",rate);
+#endif
   return rate;
   
 }
@@ -1128,6 +1146,10 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   this->status = DEMUX_FINISHED;
   pthread_mutex_init( &this->mutex, NULL );
 
+#ifdef LOG
+  printf("demux_mpeg_block:open_plugin:detection_method=%d\n",stream->content_detection_method);
+#endif
+ 
   switch (stream->content_detection_method) {
 
   case XINE_DEMUX_CONTENT_STRATEGY: {
@@ -1162,6 +1184,9 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
         }
 
         demux_mpeg_block_accept_input (this, input);
+#ifdef LOG
+        printf("demux_mpeg_block:open_plugin:Accepting detection_method XINE_DEMUX_CONTENT_STRATEGY blocksize=%d\n",this->blocksize);
+#endif
         break;
       }
     }
