@@ -119,6 +119,7 @@ Open Tasks
 - handle MPEG PES/PS streams with PES_packet_length = 0
 - implement native FLAC demuxer and include ffmpeg FLAC decoder to remove
   dependency on libflac
+- add native DTS decoding using libdts
 
 xine's future
 =============
