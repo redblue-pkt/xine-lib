@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.30 2001/07/15 10:43:35 guenter Exp $
+ * $Id: load_plugins.c,v 1.31 2001/07/18 12:45:31 ehasenle Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -326,6 +326,8 @@ void load_decoder_plugins (xine_t *this,
             int              streamtype;
 
             sdp = (spu_decoder_t *) initplug(iface_version, config);
+            sdp->metronom = this->metronom;
+
                printf("SPU Can Handle ?\n");
             for (streamtype = 0; streamtype<256; streamtype++) {
               if (sdp->can_handle (sdp, (streamtype<<16) | BUF_SPU_BASE))

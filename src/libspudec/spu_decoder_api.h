@@ -48,6 +48,8 @@ struct spu_decoder_s {
 
   char* (*get_identifier) (void);
 
+  metronom_t *metronom;
+
 };
 
 
