@@ -29,6 +29,7 @@ xine-lib (1-rc4)
   * disable AUD content detection because of false positives
   * fix Real pnm/rtsp streaming on big endian platforms
   * big endian fix, and delay fixes for the file (wave) audio output plugin
+  * RTSP security fixes
 
 xine-lib (1-rc3c)
   * fix the deadlock with non-seekable input plugins

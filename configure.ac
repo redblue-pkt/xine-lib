@@ -41,7 +41,7 @@ dnl for a release tarball do "rm .cvsversion" before "make dist"
 if test -f .cvsversion; then
   XINE_PRE="cvs"
 else
-  XINE_PRE="rc3c"
+  XINE_PRE="rc4"
 fi
 
 AC_SUBST(XINE_MAJOR)
