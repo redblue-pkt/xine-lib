@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_pes.c,v 1.26 2002/04/29 23:31:59 jcdutton Exp $
+ * $Id: demux_pes.c,v 1.27 2002/05/17 22:05:49 miguelfreitas Exp $
  *
  * demultiplexer for mpeg 2 PES (Packetized Elementary Streams)
  * reads streams of variable blocksizes
@@ -60,6 +60,7 @@ typedef struct demux_pes_s {
   input_plugin_t      *input;
 
   pthread_t            thread;
+  int                  thread_running;
   pthread_mutex_t      mutex;
 
   unsigned char        dummy_space[100000];
@@ -333,21 +334,30 @@ static void *demux_pes_loop (void *this_gen) {
   buf_element_t *buf;
   uint32_t w=0;
 
-  while(1) {
-    
-    pthread_mutex_lock( &this->mutex );
-    
-    if( this->status != DEMUX_OK)
-      break;
-    
-    w = parse_pack (this);
+  /* do-while needed to seek after demux finished */
+  do {
 
-    if (w != 0x000001)
-      demux_pes_resync (this, w);
-    
-    pthread_mutex_unlock( &this->mutex );
-  
-  }
+    /* main demuxer loop */
+    while(this->status == DEMUX_OK) {
+      w = parse_pack (this);
+
+      if (w != 0x000001)
+        demux_pes_resync (this, w);
+
+      /* someone may want to interrupt us */
+      pthread_mutex_unlock( &this->mutex );
+      pthread_mutex_lock( &this->mutex );
+    }
+
+    /* wait before sending end buffers: user might want to do a new seek */
+    while(this->send_end_buffers && this->video_fifo->size(this->video_fifo) &&
+          this->status != DEMUX_OK){
+      pthread_mutex_unlock( &this->mutex );
+      xine_usec_sleep(100000);
+      pthread_mutex_lock( &this->mutex );
+    }
+
+  } while( this->status == DEMUX_OK );
   
   if (this->send_end_buffers) {
     buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
@@ -366,6 +376,7 @@ static void *demux_pes_loop (void *this_gen) {
   printf ("demux_pes: demux loop finished (status: %d, buf:%x)\n",
 	  this->status, w);
 
+  this->thread_running = 0;
   pthread_mutex_unlock( &this->mutex );
   pthread_exit(NULL);
 
@@ -380,7 +391,7 @@ static void demux_pes_stop (demux_plugin_t *this_gen) {
 
   pthread_mutex_lock( &this->mutex );
   
-  if (this->status != DEMUX_OK) {
+  if (!this->thread_running) {
     printf ("demux_pes: stop...ignored\n");
     pthread_mutex_unlock( &this->mutex );
     return;
@@ -410,7 +421,8 @@ static void demux_pes_stop (demux_plugin_t *this_gen) {
 
 static int demux_pes_get_status (demux_plugin_t *this_gen) {
   demux_pes_t *this = (demux_pes_t *) this_gen;
-  return this->status;
+
+  return (this->thread_running?DEMUX_OK:DEMUX_FINISHED);
 }
 
 static void demux_pes_start (demux_plugin_t *this_gen,
@@ -424,7 +436,7 @@ static void demux_pes_start (demux_plugin_t *this_gen,
 
   pthread_mutex_lock( &this->mutex );
 
-  if( this->status != DEMUX_OK ) {
+  if( !this->thread_running ) {
     this->video_fifo  = video_fifo;
     this->audio_fifo  = audio_fifo;
 
@@ -479,10 +491,11 @@ static void demux_pes_start (demux_plugin_t *this_gen,
 
   this->send_newpts = 1;
     
-  if( this->status != DEMUX_OK ) {
+  if( !this->thread_running ) {
     this->preview_mode = 0;
     this->send_end_buffers = 1;
     this->status = DEMUX_OK ;
+    this->thread_running = 1;
 
     if ((err = pthread_create (&this->thread,
 			     NULL, demux_pes_loop, this)) != 0) {
