@@ -9,10 +9,15 @@ libdir = $(XINE_PLUGINDIR)
 # ---------
 # All of xine demuxer plugins should be named like the scheme "xineplug_dmx_"
 #
-lib_LTLIBRARIES = xineplug_dmx_avi.la xineplug_dmx_mpeg_block.la \
-	xineplug_dmx_mpeg.la xineplug_dmx_mpeg_elem.la \
-	xineplug_dmx_mpeg_audio.la xineplug_dmx_mpeg_pes.la \
-	xineplug_dmx_mpeg_ts.la xineplug_dmx_qt.la 
+lib_LTLIBRARIES = xineplug_dmx_ogg.la xineplug_dmx_avi.la \
+	xineplug_dmx_mpeg_block.la xineplug_dmx_mpeg.la \
+	xineplug_dmx_mpeg_elem.la xineplug_dmx_mpeg_audio.la \
+	xineplug_dmx_mpeg_pes.la xineplug_dmx_mpeg_ts.la \
+	xineplug_dmx_qt.la 
+
+xineplug_dmx_ogg_la_SOURCES = demux_ogg.c
+xineplug_dmx_ogg_la_LIBADD = -logg
+xineplug_dmx_ogg_la_LDFLAGS = -avoid-version -module
 
 xineplug_dmx_avi_la_SOURCES = demux_avi.c
 xineplug_dmx_avi_la_LDFLAGS = -avoid-version -module
