@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dvdnav_internal.h,v 1.10 2003/04/29 15:58:30 jcdutton Exp $
+ * $Id: dvdnav_internal.h,v 1.11 2003/05/11 13:44:05 jcdutton Exp $
  *
  */
 
@@ -140,6 +140,7 @@ struct dvdnav_s {
   /* NAV data */
   pci_t pci;
   dsi_t dsi;
+  uint32_t last_cmd_nav_lbn;      /* detects when a command is issued on an already left NAV */
   
   /* Flags */
   int skip_still;                 /* Set when skipping a still */
@@ -173,12 +174,5 @@ struct dvdnav_s {
 #endif /* WIN32 */
 #endif
 #define printerr(str) strncpy(this->err_str, str, MAX_ERR_LEN);
-
-/* Save my typing */
-#define S_ERR DVDNAV_STATUS_ERR
-
-#ifndef _MSC_VER
-#define S_OK  DVDNAV_STATUS_OK
-#endif /* MSC_VER */
 
 #endif /* DVDNAV_INTERNAL_H_INCLUDED */

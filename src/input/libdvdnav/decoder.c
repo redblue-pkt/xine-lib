@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: decoder.c,v 1.9 2003/04/29 21:55:47 jcdutton Exp $
+ * $Id: decoder.c,v 1.10 2003/05/11 13:44:04 jcdutton Exp $
  *
  */
 
@@ -35,7 +35,7 @@
 
 #include "dvdnav_internal.h"
 
-uint32_t vm_getbits(command_t *command, int start, int count) {
+uint32_t vm_getbits(command_t *command, int32_t start, int32_t count) {
   uint64_t result = 0;
   uint64_t bit_mask = 0;
   uint64_t examining = 0;

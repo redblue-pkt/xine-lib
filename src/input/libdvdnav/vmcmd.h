@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: vmcmd.h,v 1.6 2003/04/07 18:10:53 mroi Exp $
+ * $Id: vmcmd.h,v 1.7 2003/05/11 13:44:05 jcdutton Exp $
  *
  */
 
@@ -26,12 +26,8 @@
 #define VMCMD_H_INCLUDED
 
 #include <inttypes.h>
-#include "ifo_types.h" /*  Only for vm_cmd_t  */
-#include "dvdnav_internal.h"
 
-#ifdef TRACE
 void vm_print_mnemonic(vm_cmd_t *command);
 void vm_print_cmd(int row, vm_cmd_t *command);
-#endif
 
 #endif /* VMCMD_H_INCLUDED */
