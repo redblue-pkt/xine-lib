@@ -35,6 +35,9 @@ xine-lib (1-rc3)
   * fix performance problems of RTP/UDP plugin
   * fix crash with really long subtitle/language names in ogm/off files
   * lots of internal cleanup
+  * fix crash when using the save plugin with mmst
+  * id3v2.3 parser
+
  
 xine-lib (1-rc2)
   * XvMC support for hardware accelerated mpeg2 playback (-V xvmc)
