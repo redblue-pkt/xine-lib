@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: rtsp_session.c,v 1.14 2003/12/09 00:02:31 f1rmb Exp $
+ * $Id: rtsp_session.c,v 1.15 2004/04/23 21:59:04 miguelfreitas Exp $
  *
  * high level interface to rtsp servers.
  */
@@ -53,7 +53,7 @@ struct rtsp_session_s {
   rtsp_t       *s;
 
   /* receive buffer */
-  uint8_t       recv[BUF_SIZE];
+  uint8_t       *recv;
   int           recv_size;
   int           recv_read;
 
@@ -72,6 +72,8 @@ rtsp_session_t *rtsp_session_start(xine_stream_t *stream, char *mrl) {
   rmff_header_t *h;
   uint32_t bandwidth=10485800;
 
+  rtsp_session->recv = xine_buffer_init(BUF_SIZE);
+      
 connect:
 
   /* connect to server */
@@ -80,6 +82,7 @@ connect:
   {
     xprintf(stream->xine, XINE_VERBOSITY_LOG,
 	    _("rtsp_session: failed to connect to server %s\n"), mrl_line);
+    xine_buffer_free(rtsp_session->recv);
     free(rtsp_session);
     return NULL;
   }
@@ -114,6 +117,7 @@ connect:
         xprintf(stream->xine, XINE_VERBOSITY_LOG,
 		_("rtsp_session: session can not be established.\n"));
         rtsp_close(rtsp_session->s);
+        xine_buffer_free(rtsp_session->recv);
         free(rtsp_session);
         return NULL;
       }
@@ -121,7 +125,7 @@ connect:
 	
     rtsp_session->header_len=rmff_dump_header(h,rtsp_session->header,1024);
 
-    memcpy(rtsp_session->recv, rtsp_session->header, rtsp_session->header_len);
+    xine_buffer_copyin(rtsp_session->recv, 0, rtsp_session->header, rtsp_session->header_len);
     rtsp_session->recv_size = rtsp_session->header_len;
     rtsp_session->recv_read = 0;
     
@@ -131,6 +135,7 @@ connect:
 	    _("rtsp_session: rtsp server type '%s' not supported yet. sorry.\n"), server);
     rtsp_close(rtsp_session->s);
     free(server);
+    xine_buffer_free(rtsp_session->recv);
     free(rtsp_session);
     return NULL;
   }
@@ -153,8 +158,8 @@ int rtsp_session_read (rtsp_session_t *this, char *data, int len) {
     to_copy -= fill;
     dest += fill;
     this->recv_read = 0;
+    this->recv_size = real_get_rdt_chunk (this->s, &this->recv);
     source = this->recv;
-    this->recv_size = real_get_rdt_chunk (this->s, source);
     fill = this->recv_size;
 
     if (this->recv_size == 0) {
@@ -185,5 +190,6 @@ int rtsp_session_peek_header(rtsp_session_t *this, char *buf, int maxsize) {
 void rtsp_session_end(rtsp_session_t *session) {
 
   rtsp_close(session->s);
+  xine_buffer_free(session->recv);
   free(session);
 }
