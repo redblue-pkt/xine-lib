@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.103 2002/10/25 15:36:19 mroi Exp $
+ * $Id: input_dvd.c,v 1.104 2002/10/26 02:12:27 jcdutton Exp $
  *
  */
 
@@ -313,6 +313,7 @@ static void dvd_plugin_dispose (input_plugin_t *this_gen) {
   
   trace_print("Called\n");
   
+  xine_event_dispose_queue (this->event_queue);
   if(this->opened || this->dvdnav) 
     dvdnav_close(this->dvdnav);
   this->dvdnav = NULL;
@@ -794,7 +795,7 @@ static void dvd_event_listener(void *this_gen, const xine_event_t *event) {
   dvd_input_plugin_t *this = (dvd_input_plugin_t *) this_gen; 
   dvd_input_class_t  *class = (dvd_input_class_t*)this->input_plugin.input_class;
   config_values_t  *config = class->config;       /* Pointer to XineRC config file   */  
-  printf("input_dvd:dvd_event_listener: EVENT=%d\n", event->type);
+  /* printf("input_dvd:dvd_event_listener: EVENT=%d\n", event->type); */
 
   if(!this->dvdnav) {
     return;
@@ -1369,6 +1370,7 @@ static input_plugin_t *open_plugin (input_class_t *class_gen, xine_stream_t *str
     read_ahead_cb(this, &cache_entry);
 #endif
    
+  dvdnav_set_readahead_flag(this->dvdnav, 1);
   if(this->mode == MODE_TITLE) {
     int tt, i, pr, found;
     int titles;
@@ -1662,6 +1664,10 @@ static void *init_class (xine_t *xine, void *data) {
 
 /*
  * $Log: input_dvd.c,v $
+ * Revision 1.104  2002/10/26 02:12:27  jcdutton
+ * Remove assert(0), left over from testing.
+ * dispose of event queue.
+ *
  * Revision 1.103  2002/10/25 15:36:19  mroi
  * remove obviously obsolete INPUT_CAP_CLUT and INPUT_OPTIONAL_DATA_CLUT
  *

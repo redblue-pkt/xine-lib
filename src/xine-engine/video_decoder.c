@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.103 2002/10/21 12:11:02 jcdutton Exp $
+ * $Id: video_decoder.c,v 1.104 2002/10/26 02:12:27 jcdutton Exp $
  *
  */
 
@@ -37,7 +37,7 @@
 #define LOG
 */
 
-static spu_decoder_t* update_spu_decoder (xine_stream_t *stream, int type) {
+static void update_spu_decoder (xine_stream_t *stream, int type) {
 
   int streamtype = (type>>16) & 0xFF;
   
@@ -56,7 +56,7 @@ static spu_decoder_t* update_spu_decoder (xine_stream_t *stream, int type) {
                                         this->video_out);
     */                                       
   }
-  return stream->spu_decoder_plugin;
+  return ;
 }
 
 void *video_decoder_loop (void *stream_gen) {
@@ -65,7 +65,6 @@ void *video_decoder_loop (void *stream_gen) {
   xine_stream_t   *stream = (xine_stream_t *) stream_gen;
   int              running = 1;
   int              streamtype;
-  spu_decoder_t   *spu_decoder;
   static int	   prof_video_decode = -1;
   static int	   prof_spu_decode = -1;
   static uint32_t  buftype_unknown = 0;
@@ -119,17 +118,28 @@ void *video_decoder_loop (void *stream_gen) {
 						    DISC_STREAMSTART, 0);
       break;
 
+/* case BUF_SPU_TEXT is not handled yet.
+ * There is a need to multiply plugins to be loaded at once.
+ * E.g. The DVD SPU decoder and the DVD NAV decoder need
+ *      to be open at the same time for the entire DVD.
+ * BUF_SPU_TEXT can also happen at the same time as playing a DVD,
+ * so two or more subtitle plugins need to be able to co-exist at the same time.
+ * Currently, if we see a BUF_SPU_NAV and then a BUF_SPU_PACKAGE,
+ * we call dispose for changing to NAV to PACKAGE. This causes
+ * libspudec to looses NAV state, and thus no menus appear.
+ * As a work around, once libspudec is opened, we will never close it.
+ * 
+ */
     case BUF_SPU_SUBP_CONTROL:
     case BUF_SPU_CLUT:
     case BUF_SPU_PACKAGE:
-    case BUF_SPU_TEXT:
     case BUF_SPU_NAV:
       xine_profiler_start_count (prof_spu_decode);
-
-      spu_decoder = update_spu_decoder(stream, buf->type);
-
-      if (spu_decoder) {
-        spu_decoder->decode_data (spu_decoder, buf);
+      if (!stream->spu_decoder_plugin) {
+        update_spu_decoder(stream, buf->type);
+      }
+      if (stream->spu_decoder_plugin) {
+        stream->spu_decoder_plugin->decode_data (stream->spu_decoder_plugin, buf);
       }
 
       xine_profiler_stop_count (prof_spu_decode);

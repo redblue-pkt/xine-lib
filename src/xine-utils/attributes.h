@@ -29,7 +29,9 @@
 
 /* disable GNU __attribute__ extension, when not compiling with GNU C */
 #if defined(__GNUC__)
+#ifndef ATTRIBUTE_PACKED
 #define	ATTRIBUTE_PACKED 1
+#endif 
 #else
 #undef	ATTRIBUTE_PACKED
 #define	__attribute__(x)	/**/

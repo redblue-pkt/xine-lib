@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.125 2002/10/25 15:36:16 mroi Exp $
+ * $Id: demux_mpeg_block.c,v 1.126 2002/10/26 02:12:27 jcdutton Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -1091,9 +1091,11 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
                                    input_plugin_t *input_gen) {
 
   input_plugin_t *input = (input_plugin_t *) input_gen;
-
+  static int count = 0;
   demux_mpeg_block_t *this;
-  printf ("demux_mpeg_block:open_plugin:input ID=%s\n",input->input_class->get_identifier(input->input_class) );
+  count++;
+  printf ("demux_mpeg_block:open_plugin:input ID=%s count = %d\n",input->input_class->get_identifier(input->input_class), count );
+/*  if (count > 1) assert (0); */
   if (! (input->get_capabilities(input) & INPUT_CAP_SEEKABLE)) {
     printf("demux_mpeg_block.c: not seekable, can't handle!\n");
     return NULL;
