@@ -9,6 +9,9 @@
     away from v4l:/ MRLs)
   * removed -funroll-all-loops from SPARC and PPC targets as it negatively
     affected performance
+  * priority support for demuxer and input plugins
+  * smoother seeking
+  * fix seeking with the qt dll decoder
 
 xine-lib (1-rc4a)
   * audio out now uses a more user friendly "Speaker arrangement" config item;
