@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3.c,v 1.42 2002/07/17 14:58:11 mroi Exp $
+ * $Id: video_out_dxr3.c,v 1.43 2002/07/17 16:56:36 mroi Exp $
  */
  
 /* mpeg1 encoding video out plugin for the dxr3.  
@@ -147,8 +147,6 @@ vo_driver_t *init_video_out_plugin(config_values_t *config, void *visual_gen)
   this->vo_driver.exit                 = dxr3_exit;
   
   this->config                         = config;
-  this->aspect                         = ASPECT_FULL;
-  this->overlay_enabled                = 0;
   this->swap_fields                    = config->register_bool(config,
     "dxr3.enc_swap_fields", 0, _("swap odd and even lines"), 
     NULL, dxr3_update_swap_fields, this);
