@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_stk.c,v 1.1 2003/08/04 02:31:07 miguelfreitas Exp $
+ * $Id: video_out_stk.c,v 1.2 2003/08/13 13:42:20 miguelfreitas Exp $
  *
  * video_out_stk.c, Libstk Surface Video Driver
  * more info on Libstk at http://www.libstk.org
@@ -71,7 +71,8 @@ typedef struct stk_frame_s {
     vo_frame_t vo_frame;
 
     /* stk private data */
-    int width, height, ratio_code, format; /* which of these do we need ? */
+    int width, height, format;
+    double ratio;
     overlay_t* overlay;
 } stk_frame_t;
 
@@ -162,7 +163,7 @@ static void stk_compute_output_size (stk_driver_t *this) {
 
 
 static void stk_update_frame_format (vo_driver_t *this_gen, vo_frame_t *frame_gen,
-        uint32_t width, uint32_t height, int ratio_code, int format, int flags) {
+        uint32_t width, uint32_t height, double ratio, int format, int flags) {
     stk_driver_t* this = (stk_driver_t*)this_gen;
     stk_frame_t* frame = (stk_frame_t*)frame_gen;
     //printf("video_out_stk: update_frame_format()\n");
@@ -219,7 +220,7 @@ static void stk_update_frame_format (vo_driver_t *this_gen, vo_frame_t *frame_ge
         stk_overlay_lock(frame->overlay);
     }
 
-    frame->ratio_code = ratio_code;
+    frame->ratio = ratio;
 }
 
 
@@ -277,12 +278,12 @@ static void stk_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
 
     if ( (frame->width != this->sc.delivered_width)
             || (frame->height != this->sc.delivered_height)
-            || (frame->ratio_code != this->sc.delivered_ratio_code) ) {
+            || (frame->ratio != this->sc.delivered_ratio) ) {
         printf("video_out_stk: change frame format\n");
 
         this->sc.delivered_width      = frame->width;
         this->sc.delivered_height     = frame->height;
-        this->sc.delivered_ratio_code = frame->ratio_code;
+        this->sc.delivered_ratio      = frame->ratio;
 
         stk_compute_ideal_size(this);
 
@@ -321,9 +322,9 @@ static int stk_set_property (vo_driver_t* this_gen, int property, int value) {
 
     //printf("video_out_stk: set_property()\n");
     
-    if (property == VO_PROP_ASPECT_RATIO) {
-        if (value >= NUM_ASPECT_RATIOS)
-            value = ASPECT_AUTO;
+    if ( property == VO_PROP_ASPECT_RATIO) {
+        if (value>=XINE_VO_ASPECT_NUM_RATIOS)
+            value = XINE_VO_ASPECT_AUTO;
         this->sc.user_ratio = value;
         printf("video_out_stk: aspect ratio changed to %s\n", vo_scale_aspect_ratio_name(value));
 
@@ -460,7 +461,7 @@ static vo_info_t vo_info_stk = {
 
 plugin_info_t xine_plugin_info[] = {
     /* type, API, "name", version, special_info, init_function */
-    { PLUGIN_VIDEO_OUT, 15, "stk", XINE_VERSION_CODE, &vo_info_stk, init_class },
+    { PLUGIN_VIDEO_OUT, 16, "stk", XINE_VERSION_CODE, &vo_info_stk, init_class },
     { PLUGIN_NONE, 0, "" , 0 , NULL, NULL}
 };
 
