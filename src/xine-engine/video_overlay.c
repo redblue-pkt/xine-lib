@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_overlay.c,v 1.18 2002/03/25 13:57:25 jcdutton Exp $
+ * $Id: video_overlay.c,v 1.19 2002/04/09 13:20:43 jcdutton Exp $
  *
  */
 
@@ -243,7 +243,8 @@ static void video_overlay_init (video_overlay_instance_t *this_gen) {
  *
  * note: on success event->object.overlay is "taken" (caller will not have access
  *       to overlay data including rle).
- * note2: handle will be freed on HIDE events
+ * note2: handle will not be freed on HIDE events
+ *        the handle is removed from the currently showing list.
  */
 static int32_t video_overlay_add_event(video_overlay_instance_t *this_gen,  void *event_gen ) {
   video_overlay_event_t *event = (video_overlay_event_t *) event_gen;
@@ -418,101 +419,37 @@ static int video_overlay_event( video_overlay_t *this, int64_t vpts ) {
         remove_showing_handle( this, handle );
         break;
   
-      case EVENT_MENU_SPU:
-        /* mixes palette and copy rle */
+      case EVENT_SHOW_MENU:
 #ifdef LOG_DEBUG
-        printf ("video_overlay:MENU SPU NOW\n");
+        printf ("video_overlay: SHOW MENU NOW\n");
 #endif
         if (this->video_overlay_events[this_event].event->object.overlay != NULL) {
-          vo_overlay_t *event_overlay = this->video_overlay_events[this_event].event->object.overlay;
-          vo_overlay_t *overlay;
-          int menu_changed = 0;
-          printf ("video_overlay:overlay present\n");
 #ifdef LOG_DEBUG
           video_overlay_print_overlay( this->video_overlay_events[this_event].event->object.overlay ) ;
 #endif
-
-          /* we need to allocate overlay on first EVENT_MENU_SPU */          
-          if( !this->video_overlay_objects[handle].overlay ) {
-            this->video_overlay_objects[handle].overlay
-               = xine_xmalloc( sizeof(vo_overlay_t) );
-            menu_changed = 1;
+          /* this->video_overlay_objects[handle].overlay is about to be
+           * overwritten by this event data. make sure we free it if needed.
+           */
+          if( this->video_overlay_objects[handle].overlay ) {
+            if( this->video_overlay_objects[handle].overlay->rle )
+              free( this->video_overlay_objects[handle].overlay->rle );
+            free( this->video_overlay_objects[handle].overlay );
+            this->video_overlay_objects[handle].overlay = NULL; 
           }
-          overlay = this->video_overlay_objects[handle].overlay;
           
           this->video_overlay_objects[handle].handle = handle;
-          
-          /* If rle is not empty, free it first */
-          if(overlay->rle) {
-            free (overlay->rle);
-            overlay->rle=NULL;
+          if( this->video_overlay_objects[handle].overlay ) {
+            fprintf(stderr,"video_overlay: error: object->overlay was not freed!\n");
           }
-#ifdef LOG_DEBUG
-	  printf("video_overlay.c:Menu SPU area is (%u,%u)-(%u,%u), display = 1\n",
-	       event_overlay->x, event_overlay->y,
-	       event_overlay->x + event_overlay->width,
-	       event_overlay->y + event_overlay->height);
-#endif
-          if( overlay->num_rle != event_overlay->num_rle ||
-              overlay->width != event_overlay->width || 
-              overlay->height != event_overlay->height ||
-              overlay->x != event_overlay->x ||
-              overlay->y != event_overlay->y ) {
-            menu_changed = 1;
-          }
-
-          overlay->rle = event_overlay->rle;
-          
-          overlay->data_size = event_overlay->data_size;
-          overlay->num_rle = event_overlay->num_rle;
-          overlay->x = event_overlay->x;
-          overlay->y = event_overlay->y;
-          overlay->width = event_overlay->width;
-          overlay->height = event_overlay->height;
-          
-          if( menu_changed ) {
-            if((event_overlay->color[0] +
-                event_overlay->color[1] +
-                event_overlay->color[2] +
-                event_overlay->color[3]) > 0 ) {
-              overlay->color[0] = event_overlay->color[0];
-              overlay->color[1] = event_overlay->color[1];
-              overlay->color[2] = event_overlay->color[2];
-              overlay->color[3] = event_overlay->color[3];
-              
-              overlay->rgb_clut = event_overlay->rgb_clut;
-            }
-            if((event_overlay->trans[0] +
-                event_overlay->trans[1] +
-                event_overlay->trans[2] +
-                event_overlay->trans[3]) > 0 ) {
-              overlay->trans[0] = event_overlay->trans[0];
-              overlay->trans[1] = event_overlay->trans[1];
-              overlay->trans[2] = event_overlay->trans[2];
-              overlay->trans[3] = event_overlay->trans[3];
-            }
-          }
-#ifdef LOG_DEBUG
-          video_overlay_print_overlay( this->video_overlay_events[this_event].event->object.overlay ) ;
-#endif
-                    
-          /* let EVENT_MENU_BUTTON set the correct clipping box */
-          if( menu_changed ) {
-            overlay->clip_top = overlay->height;
-            overlay->clip_bottom = 0;
-            overlay->clip_left = overlay->width;
-            overlay->clip_right = 0;
-          }
-          
-          add_showing_handle( this, handle );
-          
-          /* The null test was done at the start of this case statement */
-          free (this->video_overlay_events[this_event].event->object.overlay);
+          this->video_overlay_objects[handle].overlay = 
+             this->video_overlay_events[this_event].event->object.overlay;
+          this->video_overlay_objects[handle].pts = 
+             this->video_overlay_events[this_event].event->object.pts;
           this->video_overlay_events[this_event].event->object.overlay = NULL;
-        } else {
-          printf ("video_overlay:overlay present\n");
+        
+          add_showing_handle( this, handle );
         }
-        break;
+break;
   
       case EVENT_MENU_BUTTON:
         /* mixes palette and copy clip coords */

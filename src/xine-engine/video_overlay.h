@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_overlay.h,v 1.7 2002/03/14 13:57:15 miguelfreitas Exp $
+ * $Id: video_overlay.h,v 1.8 2002/04/09 13:20:44 jcdutton Exp $
  *
  */
 
@@ -39,8 +39,8 @@
 #define EVENT_NULL             0
 #define EVENT_SHOW_SPU         1
 #define EVENT_HIDE_SPU         2
-#define EVENT_HIDE_MENU        3
-#define EVENT_MENU_SPU         4
+#define EVENT_SHOW_MENU        3
+#define EVENT_HIDE_MENU        4
 #define EVENT_MENU_BUTTON      5
 #define EVENT_DELETE_RESOURCE  6 /* Maybe release handle will do this */
 #define EVENT_SHOW_OSD         7 /* Not yet implemented */
@@ -53,9 +53,9 @@
 #define OVL_PALETTE_SIZE 256
 
 typedef struct vo_buttons_s {
-  int32_t           auto_action; /* -1:Button not valid, 
-                                     0:Button Valid, no auto_action,
-                                     1:Button Valid, auto_action.
+  int32_t           type;        /*  0:Button not valid, 
+                                     1:Button Valid, no auto_action,
+                                     2:Button Valid, auto_action.
                                   */
   int32_t           clip_top;
   int32_t           clip_bottom;
@@ -82,7 +82,8 @@ typedef struct video_overlay_object_s {
   vo_overlay_t  *overlay;      /* The image data. */
   uint32_t       palette_type; /* 1 Y'CrCB, 2 R'G'B' */
   uint32_t	*palette;      /* If NULL, no palette contained in this event. */
-  int32_t        buttonN;      /* Current highlighed button. -1 means no buttons present */
+  int32_t        buttonN;      /* Current highlighed button.  0 means no info on which button to higlight */
+                               /*                            -1 means don't use this button info. */
   vo_buttons_t   button[32];   /* Info regarding each button on the overlay */
 } video_overlay_object_t;
 

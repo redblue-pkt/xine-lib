@@ -35,7 +35,7 @@
  * along with this program; see the file COPYING.  If not, write to
  * the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: spu.c,v 1.32 2002/04/06 15:40:19 jcdutton Exp $
+ * $Id: spu.c,v 1.33 2002/04/09 13:20:43 jcdutton Exp $
  *
  */
 
@@ -158,7 +158,7 @@ void spudec_decode_nav(spudec_decoder_t *this, buf_element_t *buf) {
     if( this->menu_handle >= 0 ) {
       metronom_t *metronom = this->xine->metronom;
       this->event.object.handle = this->menu_handle;
-      this->event.event_type = EVENT_HIDE_SPU;
+      this->event.event_type = EVENT_HIDE_MENU;
       /* if !vpts then we are near a discontinuity but video_out havent detected
          it yet and we cannot provide correct vpts values. use current_time 
          instead as an aproximation.
@@ -308,7 +308,7 @@ void spudec_process (spudec_decoder_t *this, uint32_t stream_id) {
       this->overlay.rle=NULL;
       /* For force display menus */
       if ( !(this->state.visible) ) {
-        this->state.visible = EVENT_SHOW_SPU;
+        this->state.visible = EVENT_SHOW_MENU;
       }
      
       this->event.event_type = this->state.visible;
