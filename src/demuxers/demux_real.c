@@ -31,7 +31,7 @@
  *   
  *   Based on FFmpeg's libav/rm.c.
  *
- * $Id: demux_real.c,v 1.87 2004/01/26 19:40:12 jstembridge Exp $
+ * $Id: demux_real.c,v 1.88 2004/01/29 22:33:00 jstembridge Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -618,24 +618,19 @@ unknown:
          (id == INDX_TAG))
         break;
       
-      /* Check that this is a "keyframe" data chunk - in some files
-       * there are multiple streams but only one set of keyframe data - 
-       * trying to play one without makes horrible noises */
-      if(search_buffer[offset + 11] & PN_KEYFRAME_FLAG) {
-        stream = BE_16(&search_buffer[offset + 4]);
+      stream = BE_16(&search_buffer[offset + 4]);
 
-        for(i = 0; !this->video_stream && (i < this->num_video_streams); i++) {
-          if(stream == this->video_streams[i].mdpr->stream_number) {
-            this->video_stream = &this->video_streams[i];
-            lprintf("selecting video stream: %d\n", stream);
-          }
+      for(i = 0; !this->video_stream && (i < this->num_video_streams); i++) {
+        if(stream == this->video_streams[i].mdpr->stream_number) {
+          this->video_stream = &this->video_streams[i];
+          lprintf("selecting video stream: %d\n", stream);
         }
+      }
       
-        for(i = 0; !this->audio_stream && (i < this->num_audio_streams); i++) {
-          if(stream == this->audio_streams[i].mdpr->stream_number) {
-            this->audio_stream = &this->audio_streams[i];
-            lprintf("selecting audio stream: %d\n", stream);
-          }
+      for(i = 0; !this->audio_stream && (i < this->num_audio_streams); i++) {
+        if(stream == this->audio_streams[i].mdpr->stream_number) {
+          this->audio_stream = &this->audio_streams[i];
+          lprintf("selecting audio stream: %d\n", stream);
         }
       }
 
@@ -935,7 +930,7 @@ static int demux_real_send_chunk(demux_plugin_t *this_gen) {
 
   /* check version */
   version = BE_16(&header[0]);
-  if(version != 0) {
+  if(version > 1) {
     xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
             "unknown object version in data packet: 0x%04x\n", version);
     this->status = DEMUX_FINISHED;
@@ -948,7 +943,14 @@ static int demux_real_send_chunk(demux_plugin_t *this_gen) {
   size     = BE_16(&header[2]) - DATA_PACKET_HEADER_SIZE;
   timestamp= BE_32(&header[6]);
   pts      = (int64_t) timestamp * 90;
-  keyframe = header[11] & PN_KEYFRAME_FLAG;
+  
+  /* Data packet header with version 1 contains 1 extra byte */
+  if(version == 0)
+    keyframe = header[11] & PN_KEYFRAME_FLAG;
+  else {
+    keyframe = stream_read_char(this) & PN_KEYFRAME_FLAG;
+    size--;
+  }
 
   lprintf ("packet of stream %d, 0x%X bytes @ %llX, pts = %lld%s\n",
            stream, size, offset, pts, keyframe ? ", keyframe" : "");
