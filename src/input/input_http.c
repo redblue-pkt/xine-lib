@@ -115,7 +115,7 @@ static int http_plugin_host_connect_attempt (struct in_addr ia, int port,
 
   int                s;
   struct sockaddr_in sin;
-	
+
   s=socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
 
   if (s==-1) {
@@ -131,7 +131,7 @@ static int http_plugin_host_connect_attempt (struct in_addr ia, int port,
 #ifndef WIN32  
   if (connect(s, (struct sockaddr *)&sin, sizeof(sin))==-1 && errno != EINPROGRESS) 
 #else
-  if (connect(s, (struct sockaddr *)&sin, sizeof(sin))==-1 && WSAGetLastError != WSAEINPROGRESS) 
+  if (connect(s, (struct sockaddr *)&sin, sizeof(sin))==-1 && WSAGetLastError() != WSAEINPROGRESS) 
 #endif /* WIN32 */
   {
     xine_message(this->stream, XINE_MSG_CONNECTION_REFUSED, "cannot connect to host", NULL);
@@ -666,6 +666,7 @@ static int http_plugin_open (input_plugin_t *this_gen ) {
   char                *proxy;
   int                  done,len,linenum;
   int                  shoutcast = 0, httpcode;
+  int                  length;
   
   this->shoutcast_pos = 0;
   this->proxybuf[0] = '\0';
@@ -764,8 +765,14 @@ static int http_plugin_open (input_plugin_t *this_gen ) {
   strcat (this->buf, "Icy-MetaData: 1\015\012");
   
   strcat (this->buf, "\015\012");
-  
-  if (write (this->fh, this->buf, strlen(this->buf)) != strlen(this->buf)) {
+
+  length = strlen(this->buf);
+#ifndef WIN32
+  if (write (this->fh, this->buf, length) != length) {
+#else
+  if (send(this->fh, this->buf, length, 0) != length) {
+    printf("input_http: WSAGetLastError() = %d\n", WSAGetLastError());
+#endif
     xine_message(this->stream, XINE_MSG_CONNECTION_REFUSED, "couldn't send request", NULL);
     printf ("input_http: couldn't send request\n");
     return 0;
@@ -786,8 +793,8 @@ static int http_plugin_open (input_plugin_t *this_gen ) {
     printf ("input_http: read...\n");
     */
 
+#ifndef WIN32
     if (read (this->fh, &this->buf[len], 1) <=0) {
-      
       switch (errno) {
       case EAGAIN:
 	xine_log (this->stream->xine, XINE_LOG_MSG, _("input_http: EAGAIN\n"));
@@ -797,7 +804,14 @@ static int http_plugin_open (input_plugin_t *this_gen ) {
 	xine_log (this->stream->xine, XINE_LOG_MSG, _("input_http: read error\n"));
 	return 0;
       }
-    }
+	}
+#else
+    if ((length=recv (this->fh, &this->buf[len], 1, 0)) <= 0) {
+	  xine_message(this->stream, XINE_MSG_READ_ERROR, NULL);
+	  xine_log (this->stream->xine, XINE_LOG_MSG, _("input_http: read error\n"));
+	  return 0;
+	}
+#endif
 
     if (this->buf[len] == '\012') {
 

@@ -20,7 +20,7 @@
  * Compact Disc Digital Audio (CDDA) Input Plugin 
  *   by Mike Melanson (melanson@pcisys.net)
  *
- * $Id: input_cdda.c,v 1.25 2003/05/20 16:23:44 tchamp Exp $
+ * $Id: input_cdda.c,v 1.26 2003/05/20 20:40:29 tchamp Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -840,7 +840,7 @@ static int host_connect_attempt (struct in_addr ia, int port)
 #ifndef WIN32  
   if (connect(s, (struct sockaddr *)&sin, sizeof(sin))==-1 && errno != EINPROGRESS) 
 #else
-  if (connect(s, (struct sockaddr *)&sin, sizeof(sin))==-1 && WSAGetLastError != WSAEINPROGRESS) 
+  if (connect(s, (struct sockaddr *)&sin, sizeof(sin))==-1 && WSAGetLastError() != WSAEINPROGRESS) 
 #endif /* WIN32 */
   {
     printf("input_cdda: cannot connect to host\n");

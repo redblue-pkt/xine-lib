@@ -425,6 +425,7 @@ off_t xine_read_abort (xine_stream_t *stream, int fd, char *buf, off_t todo) {
       }
     }
 
+#ifndef WIN32
     ret = read (fd, &buf[total], todo - total);
 
     /* check EOF */
@@ -439,6 +440,14 @@ off_t xine_read_abort (xine_stream_t *stream, int fd, char *buf, off_t todo) {
       perror("xine_read_abort");
       return ret;
     }
+#else
+    ret = recv (fd, &buf[total], todo - total, 0);
+    if (ret <= 0)
+	{
+      perror("xine_read_abort");
+	  return ret;
+	}
+#endif
 
     total += ret;
   }

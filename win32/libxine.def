@@ -32,6 +32,8 @@ xine_list_audio_output_plugins
 xine_get_current_frame
 xine_get_osd_renderer
 
+xine_get_meta_info
+
 xine_open_video_driver
 xine_open_audio_driver
 
