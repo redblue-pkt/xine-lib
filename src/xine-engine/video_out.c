@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.45 2001/09/12 19:50:41 guenter Exp $
+ * $Id: video_out.c,v 1.46 2001/09/14 21:25:55 richwareham Exp $
  *
  */
 
@@ -183,8 +183,9 @@ static void *video_out_loop (void *this_gen) {
   vo_set_timer (video_step); 
 
 
-  while (this->video_loop_running) {
-
+  while ((this->video_loop_running) ||
+	 (!this->video_loop_running && this->display_img_buf_queue->first)) {
+ 
     /* sigwait(&vo_mask, &dummysignum); */ /* wait for next timer tick */
     pause (); 
 

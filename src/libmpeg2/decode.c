@@ -371,6 +371,20 @@ void mpeg2_close (mpeg2dec_t * mpeg2dec)
     }
     */
 
+    /* Ensure that the last decoded frame is drawn */
+    picture->current_frame->bFrameBad |= mpeg2dec->drop_frame;
+
+    if (picture->picture_coding_type == B_TYPE) {
+      if (picture->mpeg1)
+	picture->current_frame->PTS = 0;
+      mpeg2dec->frames_to_drop = picture->current_frame->draw (picture->current_frame);
+      picture->current_frame->free (picture->current_frame);
+      picture->current_frame = NULL;
+      picture->throwaway_frame = NULL;
+    } else {
+      mpeg2dec->frames_to_drop = picture->current_frame->draw (picture->current_frame);
+    }
+
     if (picture->throwaway_frame) 
     {
       picture->throwaway_frame->displayed (picture->throwaway_frame);

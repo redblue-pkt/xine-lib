@@ -73,6 +73,32 @@ typedef struct spu_event_s {
   void *data;
 } spu_event_t;
 
+/**
+ * UI event - send information to/from UI.
+ */
+#define XINE_UI_EVENT 0x0004
+typedef struct ui_event_s {
+  event_t event;
+  int sub_type;
+  void *data;
+  uint32_t data_len;
+  int handled;
+} ui_event_t;
+
+/* UI sub-types */
+
+/* Warn Xine UI that spu/audio stream has changed and to 
+ * update accordingly, data is unused. */
+#define XINE_UI_UPDATE_CHANNEL  0x0001
+/* UI asks for conversion of spu stream number into language.
+ * if the listener can do it, it sets handled to 1 and writes
+ * the string into data. data_len is how big this buffer is*/
+#define XINE_UI_GET_SPU_LANG 0x0002
+/* As above but for audio streams */
+#define XINE_UI_GET_AUDIO_LANG 0x0003
+
+/* EOF UI sub-types */
+
 #ifdef __cplusplus
 }
 #endif

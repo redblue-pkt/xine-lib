@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.43 2001/09/01 14:33:00 guenter Exp $
+ * $Id: xine_internal.h,v 1.44 2001/09/14 21:25:55 richwareham Exp $
  *
  */
 
@@ -30,14 +30,23 @@ extern "C" {
 
 #include <inttypes.h>
 
+#ifdef XINE_COMPILE
 #include "input/input_plugin.h"
 #include "demuxers/demux.h"
+#else
+#include "input_plugin.h"
+#include "demux.h"
+#endif
 #include "video_out.h"
 #include "audio_out.h"
 #include "metronom.h"
 #include "spu_decoder.h"
 #include "events.h"
+#ifdef XINE_COMPILE
 #include "libspudec/spu_decoder_api.h"
+#else
+#include "spu_decoder_api.h"
+#endif
 
 #define INPUT_PLUGIN_MAX       50
 #define DEMUXER_PLUGIN_MAX     50

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.39 2001/09/12 22:18:47 guenter Exp $
+ * $Id: audio_decoder.c,v 1.40 2001/09/14 21:25:55 richwareham Exp $
  *
  *
  * functions that implement audio decoding
@@ -192,8 +192,15 @@ void *audio_decoder_loop (void *this_gen) {
 	  if (decoder) {
 	    if (this->cur_audio_decoder_plugin != decoder) {
 		
-	      if (this->cur_audio_decoder_plugin) 
+	      if (this->cur_audio_decoder_plugin) {
 		this->cur_audio_decoder_plugin->close (this->cur_audio_decoder_plugin);
+
+		/* Since we are changing decoders, warn metronom of a possible
+		 * PTS discontinuity */
+
+		this->metronom->expect_audio_discontinuity (this->metronom);
+		this->metronom->expect_video_discontinuity (this->metronom);
+	      }
 		
 	      this->cur_audio_decoder_plugin = decoder;
 	      this->cur_audio_decoder_plugin->init (this->cur_audio_decoder_plugin, this->audio_out);
