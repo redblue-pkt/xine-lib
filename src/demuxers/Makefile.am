@@ -56,7 +56,8 @@ lib_LTLIBRARIES = $(ogg_module) $(asf_module) xineplug_dmx_avi.la\
 	xineplug_dmx_yuv4mpeg2.la \
 	xineplug_dmx_real.la \
 	xineplug_dmx_realaudio.la \
-	xineplug_dmx_eawve.la
+	xineplug_dmx_eawve.la \
+	xineplug_dmx_mpeg_ts.la
 
 xineplug_dmx_ogg_la_SOURCES = demux_ogg.c
 xineplug_dmx_ogg_la_LIBADD = $(OGG_LIBS) $(VORBIS_LIBS)\
@@ -87,9 +88,9 @@ xineplug_dmx_mpeg_elem_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS
 #xineplug_dmx_mpeg_pes_la_LIBADD = $(top_builddir)/src/xine-engine/libxine.la
 #xineplug_dmx_mpeg_pes_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
-#xineplug_dmx_mpeg_ts_la_SOURCES = demux_ts.c
-#xineplug_dmx_mpeg_ts_la_LIBADD = $(top_builddir)/src/xine-engine/libxine.la
-#xineplug_dmx_mpeg_ts_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
+xineplug_dmx_mpeg_ts_la_SOURCES = demux_ts.c
+xineplug_dmx_mpeg_ts_la_LIBADD = $(top_builddir)/src/xine-engine/libxine.la
+xineplug_dmx_mpeg_ts_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 xineplug_dmx_qt_la_SOURCES = demux_qt.c qtpalette.h
 xineplug_dmx_qt_la_LIBADD = $(top_builddir)/src/xine-engine/libxine.la
