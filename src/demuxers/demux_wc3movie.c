@@ -24,7 +24,7 @@
  * For more information on the MVE file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_wc3movie.c,v 1.40 2003/08/25 21:51:39 f1rmb Exp $
+ * $Id: demux_wc3movie.c,v 1.41 2003/10/23 05:18:59 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -87,9 +87,7 @@ typedef struct {
   input_plugin_t      *input;
   int                  status;
 
-  unsigned int         video_width;
-  unsigned int         video_height;
-
+  xine_bmiheader       bih;
   xine_waveformatex    wave;
 
   palette_entry_t     *palettes;
@@ -301,8 +299,8 @@ static void demux_mve_send_headers(demux_plugin_t *this_gen) {
   /* this is not strictly correct-- some WC3 MVE files do not contain 
    * audio, but I'm too lazy to check if that is the case */
   this->stream->stream_info[XINE_STREAM_INFO_HAS_AUDIO] = 1;
-  this->stream->stream_info[XINE_STREAM_INFO_VIDEO_WIDTH] = this->video_width;
-  this->stream->stream_info[XINE_STREAM_INFO_VIDEO_HEIGHT] = this->video_height;
+  this->stream->stream_info[XINE_STREAM_INFO_VIDEO_WIDTH] = this->bih.biWidth;
+  this->stream->stream_info[XINE_STREAM_INFO_VIDEO_HEIGHT] = this->bih.biHeight;
   this->stream->stream_info[XINE_STREAM_INFO_AUDIO_CHANNELS] =
     this->wave.nChannels;
   this->stream->stream_info[XINE_STREAM_INFO_AUDIO_SAMPLERATE] =
@@ -318,13 +316,8 @@ static void demux_mve_send_headers(demux_plugin_t *this_gen) {
   buf->decoder_flags = BUF_FLAG_HEADER;
   buf->decoder_info[0] = 0;
   buf->decoder_info[1] = WC3_PTS_INC;  /* initial video_step */
-  /* really be a rebel: No structure at all, just put the video width
-   * and height straight into the buffer, BE_16 format */
-  buf->content[0] = (this->video_width >> 8) & 0xFF;
-  buf->content[1] = (this->video_width >> 0) & 0xFF;
-  buf->content[2] = (this->video_height >> 8) & 0xFF;
-  buf->content[3] = (this->video_height >> 0) & 0xFF;
-  buf->size = 4;
+  buf->content = (void *)&this->bih;
+  buf->size = sizeof(this->bih);
   buf->type = BUF_VIDEO_WC3;
   this->video_fifo->put (this->video_fifo, buf);
 
@@ -372,9 +365,10 @@ static int open_mve_file(demux_mve_t *this) {
 
   /* file is qualified */
 
+  this->bih.biSize = sizeof(xine_bmiheader);
   /* these are the frame dimensions unless others are found */
-  this->video_width = WC3_USUAL_WIDTH;
-  this->video_height = WC3_USUAL_HEIGHT;
+  this->bih.biWidth = WC3_USUAL_WIDTH;
+  this->bih.biHeight = WC3_USUAL_HEIGHT;
 
   /* load the number of palettes, the only interesting piece of information
    * in the _PC_ chunk; take it for granted that it will always appear at
@@ -486,8 +480,8 @@ static int open_mve_file(demux_mve_t *this) {
           free (this->shot_offsets);
           return 0;
         }
-        this->video_width = BE_32(&preamble[0]);
-        this->video_height = BE_32(&preamble[4]);
+        this->bih.biWidth = BE_32(&preamble[0]);
+        this->bih.biHeight = BE_32(&preamble[4]);
         break;
 
       case INDX_TAG:
