@@ -49,7 +49,8 @@ lib_LTLIBRARIES = $(ogg_module) $(asf_module) $(mng_module) \
 	xineplug_dmx_real.la \
 	xineplug_dmx_realaudio.la \
 	xineplug_dmx_eawve.la \
-	xineplug_dmx_rawdv.la
+	xineplug_dmx_rawdv.la \
+	xineplug_dmx_ipmovie.la
 
 xineplug_dmx_ogg_la_SOURCES = demux_ogg.c
 xineplug_dmx_ogg_la_LIBADD = $(OGG_LIBS) $(VORBIS_LIBS) $(XINELIB)
@@ -162,6 +163,10 @@ xineplug_dmx_rawdv_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 xineplug_dmx_mng_la_SOURCES = demux_mng.c
 xineplug_dmx_mng_la_LIBADD = $(XINELIB) $(ZLIB_LIBS) $(MNG_LIBS)
 xineplug_dmx_mng_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
+
+xineplug_dmx_ipmovie_la_SOURCES = demux_ipmovie.c
+xineplug_dmx_ipmovie_la_LIBADD = $(XINELIB) $(ZLIB_LIBS) $(MNG_LIBS)
+xineplug_dmx_ipmovie_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 include_HEADERS = demux.h
 noinst_HEADERS = asfheader.h qtpalette.h
