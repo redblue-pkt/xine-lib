@@ -449,7 +449,8 @@ libxine-Purkulisdke, joka mahdollistaa Win32 DLL:n kdytvn.
 %setup -q -n @TAR_NAME@
 
 %build
-export CFLAGS="-O3 -march=pentium3 -mfpmath=sse,387 -mmmx -msse -mno-3dnow -mno-sse2 -funroll-loops -fomit-frame-pointer -foptimize-sibling-calls -minline-all-stringops -malign-double -m128bit-long-double"
+# following line doesn't work with all systems/gcc versions
+# export CFLAGS="-O3 -march=pentium3 -mfpmath=sse,387 -mmmx -msse -mno-3dnow -mno-sse2 -funroll-loops -fomit-frame-pointer -foptimize-sibling-calls -minline-all-stringops -malign-double -m128bit-long-double"
 
 if [ ! -f configure ]; then
    NO_CONFIGURE=1 ./autogen.sh
