@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_avi.c,v 1.170 2003/10/30 00:49:07 tmattern Exp $
+ * $Id: demux_avi.c,v 1.171 2003/10/31 23:58:32 tmattern Exp $
  *
  * demultiplexer for avi streams
  *
@@ -1576,8 +1576,8 @@ static void demux_avi_send_headers (demux_plugin_t *this_gen) {
       }
 
       if(this->avi->n_audio == 1)
-        this->stream->stream_info[XINE_STREAM_INFO_AUDIO_FOURCC] = 
-          this->avi->audio[0]->wavex->wFormatTag;
+        xine_set_stream_info(this->stream, XINE_STREAM_INFO_AUDIO_FOURCC, 
+                             this->avi->audio[0]->wavex->wFormatTag);
     }
 
     /*

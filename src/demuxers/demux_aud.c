@@ -34,7 +34,7 @@
  * data. This makes seeking conceptually impossible. Upshot: Random
  * seeking is not supported.
  *
- * $Id: demux_aud.c,v 1.11 2003/08/25 21:51:38 f1rmb Exp $
+ * $Id: demux_aud.c,v 1.12 2003/10/31 23:58:32 tmattern Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -195,14 +195,14 @@ static void demux_aud_send_headers(demux_plugin_t *this_gen) {
   this->status = DEMUX_OK;
 
   /* load stream information */
-  this->stream->stream_info[XINE_STREAM_INFO_HAS_VIDEO] = 0;
-  this->stream->stream_info[XINE_STREAM_INFO_HAS_AUDIO] = 1;
-  this->stream->stream_info[XINE_STREAM_INFO_AUDIO_CHANNELS] =
-    this->audio_channels;
-  this->stream->stream_info[XINE_STREAM_INFO_AUDIO_SAMPLERATE] =
-    this->audio_samplerate;
-  this->stream->stream_info[XINE_STREAM_INFO_AUDIO_BITS] =
-    this->audio_bits;
+  xine_set_stream_info(this->stream, XINE_STREAM_INFO_HAS_VIDEO, 0);
+  xine_set_stream_info(this->stream, XINE_STREAM_INFO_HAS_AUDIO, 1);
+  xine_set_stream_info(this->stream, XINE_STREAM_INFO_AUDIO_CHANNELS,
+                       this->audio_channels);
+  xine_set_stream_info(this->stream, XINE_STREAM_INFO_AUDIO_SAMPLERATE,
+                       this->audio_samplerate);
+  xine_set_stream_info(this->stream, XINE_STREAM_INFO_AUDIO_BITS,
+                       this->audio_bits);
 
   /* send start buffers */
   xine_demux_control_start(this->stream);
