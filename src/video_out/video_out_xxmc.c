@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xxmc.c,v 1.2 2004/10/03 12:36:14 totte67 Exp $
+ * $Id: video_out_xxmc.c,v 1.3 2004/10/04 08:57:55 totte67 Exp $
  *
  * video_out_xxmc.c, X11 decoding accelerated video extension interface for xine
  *
@@ -2297,6 +2297,7 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *vi
   unsigned int          adaptor_num;
   cfg_entry_t          *entry;     
   int                   use_more_frames;
+  int                   use_unscaled;
 
   this = (xxmc_driver_t *) xine_xmalloc (sizeof (xxmc_driver_t));
   if (!this)
@@ -2612,9 +2613,10 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *vi
    * FIXME: YV12 deinterlace method.
    */
 
-
+  use_unscaled = 1;
   entry = this->config->lookup_entry (this->config, "gui.osd_use_unscaled");
-  if (entry->num_value == 1) {
+  if (entry) use_unscaled = entry->num_value;
+  if (use_unscaled) {
     XLockDisplay (this->display);
     if( this->use_colorkey ) {
       this->xoverlay = x11osd_create (this->xine, this->display, this->screen,
