@@ -5,8 +5,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: xine-lib 0.9.9\n"
-"POT-Creation-Date: 2002-04-06 11:00+0200\n"
-"PO-Revision-Date: 2002-02-21 11:38+0100\n"
+"POT-Creation-Date: 2002-04-07 17:18+0200\n"
+"PO-Revision-Date: 2002-04-07 17:18+0200\n"
 "Last-Translator: Philipp Hahn <pmhahn@users.sf.net>\n"
 "Language-Team: German <de@li.org>\n"
 "MIME-Version: 1.0\n"
@@ -127,9 +127,9 @@ msgid "demux_avi: avi index is broken\n"
 msgstr "demux_avi: AVI-Index ist fehlerhaft\n"
 
 #: src/demuxers/demux_avi.c:960
-#, fuzzy, c-format
+#, c-format
 msgid "demux_avi: video format = %s\n"
-msgstr "demux_asf: Videoformat: %s\n"
+msgstr "demux_avi: Videoformat = %s\n"
 
 #: src/demuxers/demux_avi.c:962
 #, c-format
@@ -137,9 +137,9 @@ msgid "demux_avi: video frame size %ld x %ld\n"
 msgstr "demux_avi: Video-Bildgröße %ld x %ld\n"
 
 #: src/demuxers/demux_avi.c:965
-#, fuzzy, c-format
+#, c-format
 msgid "demux_avi: audio format[%d] = 0x%lx\n"
-msgstr "demux_avi: Videoformat = %s, Audioformat = 0x%lx\n"
+msgstr "demux_avi: Audioformat[%d] = 0x%lx\n"
 
 #: src/demuxers/demux_avi.c:973
 #, c-format
@@ -152,14 +152,14 @@ msgid "demux_avi: audio type %s (wFormatTag 0x%x)\n"
 msgstr "demux_avi: Audiotyp %s (wFormatTag 0x%x)\n"
 
 #: src/demuxers/demux_avi.c:1080
-#, fuzzy, c-format
+#, c-format
 msgid "demux_avi: unknown video codec '%.4s'\n"
-msgstr "demux_qt: Unbekannter Video-Codec '%s'\n"
+msgstr "demux_avi: Unbekannter Video-Codec '%.4s'\n"
 
 #: src/demuxers/demux_avi.c:1087
-#, fuzzy, c-format
+#, c-format
 msgid "demux_avi: video codec is '%s'\n"
-msgstr "demux_avi: Video Codec >%s<\n"
+msgstr "demux_avi: Video Codec ist '%s'\n"
 
 #: src/demuxers/demux_avi.c:1255
 #, c-format
