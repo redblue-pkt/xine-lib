@@ -127,7 +127,7 @@ fft_t *fft_new (int bits)
   const double   TWOPIoN   = (atan(1.0) * 8.0) / (double)SAMPLES;
   const double   TWOPIoNm1 = (atan(1.0) * 8.0) / (double)(SAMPLES - 1);
 
-  printf("fft_new: bits=%d\n", bits);
+  /* printf("fft_new: bits=%d\n", bits); */
 
   fft = (fft_t*)malloc(sizeof(fft_t));
   if (!fft)
