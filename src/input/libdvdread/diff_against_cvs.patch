@@ -1,15 +1,15 @@
---- src/input/libdvdread/dvd_input.c	2002-10-23 13:39:33.000000000 +0200
-+++ src/input/libdvdread/dvd_input.c	2002-09-05 12:41:52.000000000 +0200
-@@ -55,7 +55,7 @@
+--- src/input/libdvdread/dvd_input.c	2002-11-27 21:56:47.000000000 +0100
++++ src/input/libdvdread/dvd_input.c	2002-11-27 21:50:03.000000000 +0100
+@@ -63,7 +63,7 @@
    dvd_input_t dev;
-   
+     
    /* Allocate the handle structure */
 -  dev = (dvd_input_t) malloc(sizeof(dvd_input_t));
 +  dev = (dvd_input_t) malloc(sizeof(*dev));
    if(dev == NULL) {
      fprintf(stderr, "libdvdread: Could not allocate memory.\n");
      return NULL;
-@@ -134,7 +134,7 @@
+@@ -143,7 +143,7 @@
    dvd_input_t dev;
    
    /* Allocate the library structure */
@@ -18,8 +18,8 @@
    if(dev == NULL) {
      fprintf(stderr, "libdvdread: Could not allocate memory.\n");
      return NULL;
---- src/input/libdvdread/dvd_reader.c	2002-10-23 13:39:33.000000000 +0200
-+++ src/input/libdvdread/dvd_reader.c	2002-10-23 13:30:07.000000000 +0200
+--- src/input/libdvdread/dvd_reader.c	2002-11-27 21:56:47.000000000 +0100
++++ src/input/libdvdread/dvd_reader.c	2002-11-27 21:51:31.000000000 +0100
 @@ -28,7 +28,6 @@
  #include <unistd.h>
  #include <limits.h>
@@ -36,7 +36,7 @@
  #include "dvd_udf.h"
  #include "dvd_input.h"
  #include "dvd_reader.h"
-@@ -288,7 +288,7 @@
+@@ -289,7 +289,7 @@
  	    
  	    if( cdir >= 0 ) {
  		chdir( path_copy );
@@ -63,7 +63,7 @@
      dvd_file_t *dvd_file;
      struct stat fileinfo;
      dvd_input_t dev;
-@@ -571,7 +571,7 @@
+@@ -570,7 +570,7 @@
  static dvd_file_t *DVDOpenVOBPath( dvd_reader_t *dvd, int title, int menu )
  {
      char filename[ MAX_UDF_FILE_NAME_LEN ];
@@ -72,7 +72,7 @@
      struct stat fileinfo;
      dvd_file_t *dvd_file;
      int i;
-@@ -857,7 +857,7 @@
+@@ -867,7 +867,7 @@
  
  ssize_t DVDReadBytes( dvd_file_t *dvd_file, void *data, size_t byte_size )
  {
@@ -81,17 +81,17 @@
      unsigned int numsec, seek_sector, seek_byte;
      int ret;
      
-@@ -865,7 +865,8 @@
-     seek_byte   = dvd_file->seek_pos % DVD_VIDEO_LB_LEN;
- 
-     numsec = ( ( seek_byte + byte_size ) / DVD_VIDEO_LB_LEN ) + 1;
+@@ -881,7 +881,8 @@
+     numsec = ( ( seek_byte + byte_size ) / DVD_VIDEO_LB_LEN ) +
+       ( ( ( seek_byte + byte_size ) % DVD_VIDEO_LB_LEN ) ? 1 : 0 );
+     
 -    secbuf = (unsigned char *) malloc( numsec * DVD_VIDEO_LB_LEN );
 +    secbuf_base = (unsigned char *) malloc( numsec * DVD_VIDEO_LB_LEN + 2048 );
 +    secbuf = (unsigned char *)(((int)secbuf_base & ~2047) + 2048);
      if( !secbuf ) {
  	fprintf( stderr, "libdvdread: Can't allocate memory " 
  		 "for file read!\n" );
-@@ -881,12 +882,12 @@
+@@ -897,12 +898,12 @@
      }
  
      if( ret != (int) numsec ) {
@@ -106,8 +106,8 @@
  
      dvd_file->seek_pos += byte_size;
      return byte_size;
---- src/input/libdvdread/dvd_udf.c	2002-10-23 13:39:33.000000000 +0200
-+++ src/input/libdvdread/dvd_udf.c	2002-10-23 13:30:07.000000000 +0200
+--- src/input/libdvdread/dvd_udf.c	2002-11-27 21:56:47.000000000 +0100
++++ src/input/libdvdread/dvd_udf.c	2002-11-27 21:50:03.000000000 +0100
 @@ -123,7 +123,7 @@
  static int UDFDescriptor( uint8_t *data, uint16_t *TagID ) 
  {
@@ -222,8 +222,8 @@
              UDFLongAD( &LogBlock[ 400 ], &RootICB );
          }
      } while( ( lbnum < partition.Start + partition.Length )
---- src/input/libdvdread/ifo_print.c	2002-08-19 18:18:03.000000000 +0200
-+++ src/input/libdvdread/ifo_print.c	2002-10-23 13:30:07.000000000 +0200
+--- src/input/libdvdread/ifo_print.c	2002-11-27 21:56:47.000000000 +0100
++++ src/input/libdvdread/ifo_print.c	2002-11-27 21:50:03.000000000 +0100
 @@ -25,7 +25,7 @@
  #include <ctype.h>
  #include <assert.h>
@@ -238,7 +238,7 @@
    printf("| ");
  
 -  //vmcmd(command);
-+  /* )vmcmd(command); */
++  /* vmcmd(command); */
    printf("\n");
  }
  
@@ -326,7 +326,7 @@
    
    for(i = 0; i < ptl_mait->nr_of_countries; i++) {
      printf("Country code: %c%c\n", 
-@@ -825,7 +825,7 @@
+@@ -846,7 +846,7 @@
    int i, entries;
    
    printf("Number of VOBs in this VOBS: %i\n", c_adt->nr_of_vobs);
@@ -335,7 +335,7 @@
    entries = (c_adt->last_byte + 1 - C_ADT_SIZE)/sizeof(c_adt_t);
    
    for(i = 0; i < entries; i++) {
-@@ -975,7 +975,7 @@
+@@ -996,7 +996,7 @@
      printf("\nText Data Manager Information\n");
      printf(  "-----------------------------\n");
      if(ifohandle->txtdt_mgi) {
@@ -344,8 +344,8 @@
      } else {
        printf("No Text Data Manager Information present\n");
      }
---- src/input/libdvdread/ifo_print.h	2002-10-23 13:39:33.000000000 +0200
-+++ src/input/libdvdread/ifo_print.h	2002-08-19 18:18:09.000000000 +0200
+--- src/input/libdvdread/ifo_print.h	2002-11-27 21:56:47.000000000 +0100
++++ src/input/libdvdread/ifo_print.h	2002-11-27 21:50:03.000000000 +0100
 @@ -20,8 +20,8 @@
   * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
   */
@@ -357,8 +357,8 @@
  
  #ifdef __cplusplus
  extern "C" {
---- src/input/libdvdread/ifo_read.c	2002-08-19 18:18:03.000000000 +0200
-+++ src/input/libdvdread/ifo_read.c	2002-10-23 13:30:07.000000000 +0200
+--- src/input/libdvdread/ifo_read.c	2002-11-27 21:56:47.000000000 +0100
++++ src/input/libdvdread/ifo_read.c	2002-11-27 21:50:03.000000000 +0100
 @@ -26,7 +26,7 @@
  
  #include "dvd_reader.h"
@@ -368,7 +368,7 @@
  #include "bswap.h"
  #include "ifo_types.h"
  #include "ifo_read.h"
-@@ -636,7 +636,7 @@
+@@ -643,7 +643,7 @@
    /* Check that time is 0:0:0:0 also if nr_of_programs == 0 */
    if(pgc->nr_of_programs == 0) {
      CHECK_ZERO(pgc->still_time);
@@ -377,7 +377,7 @@
      assert(pgc->program_map_offset == 0);
      assert(pgc->cell_playback_offset == 0);
      assert(pgc->cell_position_offset == 0);
-@@ -822,24 +822,24 @@
+@@ -829,24 +829,24 @@
  
    CHECK_ZERO(tt_srpt->zero_1);
    assert(tt_srpt->nr_of_srpts != 0);
@@ -410,7 +410,7 @@
  #if 0
    if(memcmp((uint8_t *)tt_srpt->title + 
              tt_srpt->nr_of_srpts * sizeof(title_info_t), 
-@@ -903,7 +903,7 @@
+@@ -910,7 +910,7 @@
  
    CHECK_ZERO(vts_ptt_srpt->zero_1);
    assert(vts_ptt_srpt->nr_of_srpts != 0);
@@ -419,7 +419,7 @@
    
    info_length = vts_ptt_srpt->last_byte + 1 - VTS_PTT_SRPT_SIZE;
    
-@@ -978,12 +978,12 @@
+@@ -985,12 +985,12 @@
    }
    
    for(i = 0; i < vts_ptt_srpt->nr_of_srpts; i++) {
@@ -435,7 +435,7 @@
      }
    }
  
-@@ -1043,9 +1043,9 @@
+@@ -1049,9 +1049,9 @@
    info_length = ptl_mait->last_byte + 1 - PTL_MAIT_SIZE;
    
    assert(ptl_mait->nr_of_countries != 0);
@@ -447,7 +447,7 @@
    assert(ptl_mait->nr_of_countries * PTL_MAIT_COUNTRY_SIZE <= info_length);
    
    /* Change this to read and 'translate' the tables too. 
-@@ -1383,7 +1383,7 @@
+@@ -1519,7 +1519,7 @@
    /* assert(pgcit->nr_of_pgci_srp != 0);
       Magic Knight Rayearth Daybreak is mastered very strange and has 
       Titles with 0 PTTs. */
@@ -456,7 +456,7 @@
    
    info_length = pgcit->nr_of_pgci_srp * PGCI_SRP_SIZE;
    data = malloc(info_length);
-@@ -1504,7 +1504,7 @@
+@@ -1640,7 +1640,7 @@
    
    CHECK_ZERO(pgci_ut->zero_1);
    assert(pgci_ut->nr_of_lus != 0);
@@ -465,7 +465,7 @@
    assert((uint32_t)pgci_ut->nr_of_lus * PGCI_LU_SIZE < pgci_ut->last_byte);
  
    info_length = pgci_ut->nr_of_lus * PGCI_LU_SIZE;
-@@ -1539,8 +1539,9 @@
+@@ -1675,8 +1675,9 @@
    
    for(i = 0; i < pgci_ut->nr_of_lus; i++) {
      CHECK_ZERO(pgci_ut->lu[i].zero_1);
@@ -477,7 +477,7 @@
              VTS_x_yy.IFO        VIDEO_TS.IFO
         a == 0x83 "Root"         0x82 "Title"
         b == 0x84 "Subpicture"
-@@ -1578,8 +1579,10 @@
+@@ -1714,8 +1715,10 @@
        ifofile->pgci_ut = 0;
        return 0;
      }
@@ -490,7 +490,7 @@
    }
  
    return 1;
-@@ -1640,8 +1643,8 @@
+@@ -1776,8 +1779,8 @@
      unsigned int nr_coded;
      assert(vts_attributes->last_byte + 1 >= VTS_ATTRIBUTES_MIN_SIZE);  
      nr_coded = (vts_attributes->last_byte + 1 - VTS_ATTRIBUTES_MIN_SIZE)/6;
@@ -501,7 +501,7 @@
        nr_coded = 32;
      }
      assert(vts_attributes->nr_of_vtstt_subp_streams <= nr_coded);
-@@ -1689,7 +1692,7 @@
+@@ -1825,7 +1828,7 @@
  
    CHECK_ZERO(vts_atrt->zero_1);
    assert(vts_atrt->nr_of_vtss != 0);
@@ -510,7 +510,7 @@
    assert((uint32_t)vts_atrt->nr_of_vtss * (4 + VTS_ATTRIBUTES_MIN_SIZE) + 
           VTS_ATRT_SIZE < vts_atrt->last_byte + 1);
  
-@@ -1730,9 +1733,9 @@
+@@ -1866,9 +1869,9 @@
        return 0;
      }
  
@@ -522,7 +522,7 @@
    }
    free(data);
  
-@@ -1782,7 +1785,7 @@
+@@ -1918,7 +1921,7 @@
      return 0;
    }
  
@@ -531,8 +531,8 @@
    return 1;
  }
  
---- src/input/libdvdread/ifo_read.h	2002-10-23 13:39:33.000000000 +0200
-+++ src/input/libdvdread/ifo_read.h	2002-08-19 18:18:09.000000000 +0200
+--- src/input/libdvdread/ifo_read.h	2002-11-27 21:56:47.000000000 +0100
++++ src/input/libdvdread/ifo_read.h	2002-11-27 21:50:03.000000000 +0100
 @@ -20,8 +20,8 @@
   * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
   */
@@ -544,8 +544,9 @@
  
  #ifdef __cplusplus
  extern "C" {
---- src/input/libdvdread/ifo_types.h	2002-10-23 13:39:33.000000000 +0200
-+++ src/input/libdvdread/ifo_types.h	2002-10-23 13:30:07.000000000 +0200
+diff -urN libdvdread.cvs/ifo_types.h libdvdread.new/ifo_types.h
+--- src/input/libdvdread/ifo_types.h	2002-11-27 21:56:47.000000000 +0100
++++ src/input/libdvdread/ifo_types.h	2002-11-27 21:50:03.000000000 +0100
 @@ -21,7 +21,7 @@
   */
  
@@ -801,17 +802,8 @@
    subp_attr_t vtsm_subp_attr;
    subp_attr_t zero_17[27];
    uint8_t  zero_18[2];
-@@ -739,7 +739,7 @@
-   vtsi_mat_t     *vtsi_mat;
-   vts_ptt_srpt_t *vts_ptt_srpt;
-   pgcit_t        *vts_pgcit;
--  int            *vts_tmapt; // FIXME add/correct the type
-+  int            *vts_tmapt; /* FIXME add/correct the type */
-   c_adt_t        *vts_c_adt;
-   vobu_admap_t   *vts_vobu_admap;
- } ifo_handle_t;
---- src/input/libdvdread/nav_print.c	2002-08-19 18:18:03.000000000 +0200
-+++ src/input/libdvdread/nav_print.c	2002-10-23 13:30:07.000000000 +0200
+--- src/input/libdvdread/nav_print.c	2002-11-27 21:56:47.000000000 +0100
++++ src/input/libdvdread/nav_print.c	2002-11-27 21:50:03.000000000 +0100
 @@ -27,7 +27,7 @@
  #include <inttypes.h>
  #include <assert.h>
@@ -830,8 +822,8 @@
  	printf("\n");
        }
      }
---- src/input/libdvdread/nav_print.h	2002-10-23 13:39:33.000000000 +0200
-+++ src/input/libdvdread/nav_print.h	2002-08-19 18:18:09.000000000 +0200
+--- src/input/libdvdread/nav_print.h	2002-11-27 21:56:47.000000000 +0100
++++ src/input/libdvdread/nav_print.h	2002-11-27 21:50:03.000000000 +0100
 @@ -20,7 +20,7 @@
   * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
   */
@@ -839,10 +831,10 @@
 -#include <dvdread/nav_types.h>
 +#include "nav_types.h"
  
- #ifdef __cplusplus
- extern "C" {
---- src/input/libdvdread/nav_read.c	2002-10-23 13:39:33.000000000 +0200
-+++ src/input/libdvdread/nav_read.c	2002-10-23 13:30:08.000000000 +0200
+ /**
+  * Pretty printing of the NAV packets, PCI and DSI structs.
+--- src/input/libdvdread/nav_read.c	2002-11-27 21:56:47.000000000 +0100
++++ src/input/libdvdread/nav_read.c	2002-11-27 21:50:03.000000000 +0100
 @@ -21,15 +21,19 @@
  #include <inttypes.h>
  #include <assert.h>
@@ -923,8 +915,8 @@
 +#endif
  }
  
---- src/input/libdvdread/nav_read.h	2002-10-23 13:39:33.000000000 +0200
-+++ src/input/libdvdread/nav_read.h	2002-08-19 18:18:09.000000000 +0200
+--- src/input/libdvdread/nav_read.h	2002-11-27 21:56:47.000000000 +0100
++++ src/input/libdvdread/nav_read.h	2002-11-27 21:50:03.000000000 +0100
 @@ -19,7 +19,7 @@
   * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
   */
@@ -932,97 +924,16 @@
 -#include <dvdread/nav_types.h>
 +#include "nav_types.h"
  
- #ifdef __cplusplus
- extern "C" {
---- src/input/libdvdread/nav_types.h	2002-10-23 13:39:33.000000000 +0200
-+++ src/input/libdvdread/nav_types.h	2002-10-23 13:30:08.000000000 +0200
+ /**
+  * Parsing of NAV data, PCI and DSI parts.
+--- src/input/libdvdread/nav_types.h	2002-11-27 21:56:47.000000000 +0100
++++ src/input/libdvdread/nav_types.h	2002-11-27 21:55:06.000000000 +0100
 @@ -30,7 +30,7 @@
   */
  
  #include <inttypes.h>
--#include <dvdread/ifo_types.h> // only dvd_time_t, vm_cmd_t and user_ops_t
+-#include <dvdread/ifo_types.h> /* only dvd_time_t, vm_cmd_t and user_ops_t */
 +#include "ifo_types.h" /* only dvd_time_t, vm_cmd_t and user_ops_t */
  
  
  #undef ATTRIBUTE_PACKED
-@@ -92,7 +92,7 @@
-  * Highlight General Information 
-  */
- typedef struct {
--  uint16_t hli_ss; ///< only low 2 bits
-+  uint16_t hli_ss; /* < only low 2 bits */
-   uint32_t hli_s_ptm;
-   uint32_t hli_e_ptm;
-   uint32_t btn_se_e_ptm;
-@@ -116,11 +116,11 @@
-   unsigned int zero3 : 1;
- #endif
-   uint8_t btn_ofn;
--  uint8_t btn_ns;     ///< only low 6 bits
--  uint8_t nsl_btn_ns; ///< only low 6 bits
-+  uint8_t btn_ns;     /* < only low 6 bits */
-+  uint8_t nsl_btn_ns; /* < only low 6 bits */
-   uint8_t zero5;
--  uint8_t fosl_btnn;  ///< only low 6 bits
--  uint8_t foac_btnn;  ///< only low 6 bits
-+  uint8_t fosl_btnn;  /* < only low 6 bits */
-+  uint8_t foac_btnn;  /* < only low 6 bits */
- } ATTRIBUTE_PACKED hl_gi_t;
- 
- 
-@@ -217,12 +217,12 @@
-  * Seamless Playback Information
-  */
- typedef struct {
--  uint16_t category; ///< category of seamless VOBU
--  uint32_t ilvu_ea;  ///< end address of interleaved Unit (sectors)
--  uint32_t ilvu_sa;  ///< start address of next interleaved unit (sectors)
--  uint16_t size;     ///< size of next interleaved unit (sectors)
--  uint32_t vob_v_s_s_ptm; ///< video start ptm in vob
--  uint32_t vob_v_e_e_ptm; ///< video end ptm in vob
-+  uint16_t category; /* category of seamless VOBU */
-+  uint32_t ilvu_ea;  /* end address of interleaved Unit (sectors) */
-+  uint32_t ilvu_sa;  /* start address of next interleaved unit (sectors) */
-+  uint16_t size;     /* size of next interleaved unit (sectors) */
-+  uint32_t vob_v_s_s_ptm; /* video start ptm in vob */
-+  uint32_t vob_v_e_e_ptm; /* video end ptm in vob */
-   struct {
-     uint32_t stp_ptm1;
-     uint32_t stp_ptm2;
-@@ -235,8 +235,8 @@
-  * Seamless Angle Infromation for one angle
-  */
- typedef struct {
--    uint32_t address; ///< Sector offset to next ILVU, high bit is before/after
--    uint16_t size;    ///< Byte size of the ILVU poited to by address.
-+    uint32_t address; /* Sector offset to next ILVU, high bit is before/after */
-+    uint16_t size;    /* Byte size of the ILVU poited to by address. */
- } ATTRIBUTE_PACKED sml_agl_data_t;
- 
- /**
-@@ -250,11 +250,11 @@
-  * VOBU Search Information 
-  */
- typedef struct {
--  uint32_t next_video; ///< Next vobu that contains video
--  uint32_t fwda[19];   ///< Forwards, time
-+  uint32_t next_video; /* Next vobu that contains video */
-+  uint32_t fwda[19];   /* Forwards, time */
-   uint32_t next_vobu;
-   uint32_t prev_vobu;
--  uint32_t bwda[19];   ///< Backwards, time
-+  uint32_t bwda[19];   /* Backwards, time */
-   uint32_t prev_video;
- } ATTRIBUTE_PACKED vobu_sri_t;
- 
-@@ -264,8 +264,8 @@
-  * Synchronous Information
-  */ 
- typedef struct {
--  uint16_t a_synca[8];   ///< Sector offset to first audio packet for this VOBU
--  uint32_t sp_synca[32]; ///< Sector offset to first subpicture packet
-+  uint16_t a_synca[8];   /* Sector offset to first audio packet for this VOBU */
-+  uint32_t sp_synca[32]; /* Sector offset to first subpicture packet */
- } ATTRIBUTE_PACKED synci_t;
- 
- /**

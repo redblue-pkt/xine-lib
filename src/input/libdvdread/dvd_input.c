@@ -26,6 +26,14 @@
 #include "dvd_reader.h"
 #include "dvd_input.h"
 
+/* The function pointers that is the exported interface of this file. */
+dvd_input_t (*DVDinput_open)  (const char *);
+int         (*DVDinput_close) (dvd_input_t);
+int         (*DVDinput_seek)  (dvd_input_t, int);
+int         (*DVDinput_title) (dvd_input_t, int); 
+int         (*DVDinput_read)  (dvd_input_t, void *, int, int);
+char *      (*DVDinput_error) (dvd_input_t);
+
 /* For libdvdcss */
 typedef struct dvdcss_s *dvdcss_handle;
 
@@ -53,7 +61,7 @@ struct dvd_input_s {
 static dvd_input_t css_open(const char *target)
 {
   dvd_input_t dev;
-  
+    
   /* Allocate the handle structure */
   dev = (dvd_input_t) malloc(sizeof(*dev));
   if(dev == NULL) {
@@ -83,9 +91,10 @@ static char *css_error(dvd_input_t dev)
 /**
  * seek into the device.
  */
-static int css_seek(dvd_input_t dev, int blocks, int flags)
+static int css_seek(dvd_input_t dev, int blocks)
 {
-  return DVDcss_seek(dev->dvdcss, blocks, flags);
+  /* DVDINPUT_NOFLAGS should match the DVDCSS_NOFLAGS value. */
+  return DVDcss_seek(dev->dvdcss, blocks, DVDINPUT_NOFLAGS);
 }
 
 /**
@@ -157,13 +166,13 @@ static dvd_input_t file_open(const char *target)
 static char *file_error(dvd_input_t dev)
 {
   /* use strerror(errno)? */
-  return "unknown error";
+  return (char *)"unknown error";
 }
 
 /**
  * seek into the device.
  */
-static int file_seek(dvd_input_t dev, int blocks, int flags)
+static int file_seek(dvd_input_t dev, int blocks)
 {
   off_t pos;
 

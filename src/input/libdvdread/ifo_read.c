@@ -19,7 +19,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
+
 #include <inttypes.h>
 #include <string.h>
 #include <assert.h>
@@ -83,7 +83,7 @@ static void ifoFree_PGC_COMMAND_TBL(pgc_command_tbl_t *cmd_tbl);
 static void ifoFree_PGCIT_internal(pgcit_t *pgcit);
 
 
-static int DVDFileSeek_( dvd_file_t *dvd_file, uint32_t offset ) {
+static inline int DVDFileSeek_( dvd_file_t *dvd_file, uint32_t offset ) {
   return (DVDFileSeek(dvd_file, (int)offset) == (int)offset);
 }
 
@@ -98,6 +98,8 @@ ifo_handle_t *ifoOpen(dvd_reader_t *dvd, int title) {
   memset(ifofile, 0, sizeof(ifo_handle_t));
 
   ifofile->file = DVDOpenFile(dvd, title, DVD_READ_INFO_FILE);
+  if(!ifofile->file) /* Should really catch any error and try to fallback */
+    ifofile->file = DVDOpenFile(dvd, title, DVD_READ_INFO_BACKUP_FILE);
   if(!ifofile->file) {
     if(title) {
       fprintf(stderr, "libdvdread: Can't open file VTS_%02d_0.IFO.\n", title);
@@ -146,6 +148,7 @@ ifo_handle_t *ifoOpen(dvd_reader_t *dvd, int title) {
 
 
     ifoRead_PGCI_UT(ifofile);
+    ifoRead_VTS_TMAPT(ifofile);
     ifoRead_C_ADT(ifofile);
     ifoRead_VOBU_ADMAP(ifofile);
 
@@ -180,6 +183,8 @@ ifo_handle_t *ifoOpenVMGI(dvd_reader_t *dvd) {
   memset(ifofile, 0, sizeof(ifo_handle_t));
 
   ifofile->file = DVDOpenFile(dvd, 0, DVD_READ_INFO_FILE);
+  if(!ifofile->file) /* Should really catch any error and try to fallback */
+    ifofile->file = DVDOpenFile(dvd, 0, DVD_READ_INFO_BACKUP_FILE);
   if(!ifofile->file) {
     fprintf(stderr, "libdvdread: Can't open file VIDEO_TS.IFO.\n");
     free(ifofile);
@@ -211,6 +216,8 @@ ifo_handle_t *ifoOpenVTSI(dvd_reader_t *dvd, int title) {
   }
     
   ifofile->file = DVDOpenFile(dvd, title, DVD_READ_INFO_FILE);
+  if(!ifofile->file) /* Should really catch any error and try to fallback */
+    ifofile->file = DVDOpenFile(dvd, title, DVD_READ_INFO_BACKUP_FILE);
   if(!ifofile->file) {
     fprintf(stderr, "libdvdread: Can't open file VTS_%02d_0.IFO.\n", title);
     free(ifofile);
@@ -1020,8 +1027,7 @@ int ifoRead_PTL_MAIT(ifo_handle_t *ifofile) {
   if(ifofile->vmgi_mat->ptl_mait == 0)
     return 1;
 
-  if(!DVDFileSeek_(ifofile->file, 
-		  ifofile->vmgi_mat->ptl_mait * DVD_BLOCK_LEN))
+  if(!DVDFileSeek_(ifofile->file, ifofile->vmgi_mat->ptl_mait * DVD_BLOCK_LEN))
     return 0;
 
   ptl_mait = (ptl_mait_t *)malloc(sizeof(ptl_mait_t));
@@ -1077,7 +1083,6 @@ int ifoRead_PTL_MAIT(ifo_handle_t *ifofile) {
   return 1;
 }
 
-
 void ifoFree_PTL_MAIT(ifo_handle_t *ifofile) {
   if(!ifofile)
     return;
@@ -1088,6 +1093,137 @@ void ifoFree_PTL_MAIT(ifo_handle_t *ifofile) {
     ifofile->ptl_mait = 0;
   }
 }
+
+int ifoRead_VTS_TMAPT(ifo_handle_t *ifofile) {
+  vts_tmapt_t *vts_tmapt;
+  uint32_t *vts_tmap_srp;
+  unsigned int offset;
+  int info_length;
+  unsigned int i, j;
+  
+  if(!ifofile)
+    return 0;
+
+  if(!ifofile->vtsi_mat)
+    return 0;
+
+  if(ifofile->vtsi_mat->vts_tmapt == 0) { /* optional(?) */
+    ifofile->vts_tmapt = NULL;
+    return 1;
+  }
+  
+  offset = ifofile->vtsi_mat->vts_tmapt * DVD_BLOCK_LEN;
+  
+  if(!DVDFileSeek_(ifofile->file, offset))
+    return 0;
+  
+  vts_tmapt = (vts_tmapt_t *)malloc(sizeof(vts_tmapt_t));
+  if(!vts_tmapt)
+    return 0;
+  
+  ifofile->vts_tmapt = vts_tmapt;
+  
+  if(!(DVDReadBytes(ifofile->file, vts_tmapt, VTS_TMAPT_SIZE))) {
+    fprintf(stderr, "libdvdread: Unable to read VTS_TMAPT.\n");
+    free(vts_tmapt);
+    ifofile->vts_tmapt = NULL;
+    return 0;
+  }
+
+  B2N_16(vts_tmapt->nr_of_tmaps);
+  B2N_32(vts_tmapt->last_byte);
+  
+  CHECK_ZERO(vts_tmapt->zero_1);
+  
+  info_length = vts_tmapt->nr_of_tmaps * 4;
+  
+  vts_tmap_srp = (uint32_t *)malloc(info_length);
+  if(!vts_tmap_srp) {
+    free(vts_tmapt);
+    ifofile->vts_tmapt = NULL;
+    return 0;
+  }
+  
+  if(!(DVDReadBytes(ifofile->file, vts_tmap_srp, info_length))) {
+    fprintf(stderr, "libdvdread: Unable to read VTS_TMAPT.\n");
+    free(vts_tmap_srp);
+    free(vts_tmapt);
+    ifofile->vts_tmapt = NULL;
+    return 0;
+  }
+  
+  info_length = vts_tmapt->nr_of_tmaps * sizeof(vts_tmap_t);
+  
+  vts_tmapt->tmap = (vts_tmap_t *)malloc(info_length);
+  if(!vts_tmapt->tmap) {
+    free(vts_tmap_srp);
+    free(vts_tmapt);
+    ifofile->vts_tmapt = NULL;
+    return 0;
+  }
+  memset(vts_tmapt->tmap, 0, info_length); /* So ifoFree_VTS_TMAPT works. */
+  
+  for(i = 0; i < vts_tmapt->nr_of_tmaps; i++) {
+    if(!DVDFileSeek_(ifofile->file, offset + vts_tmap_srp[i])) {
+      free(vts_tmap_srp);
+      ifoFree_VTS_TMAPT(ifofile);
+      return 0;
+    }
+    if(!(DVDReadBytes(ifofile->file, &vts_tmapt->tmap[i], VTS_TMAP_SIZE))) {
+      fprintf(stderr, "libdvdread: Unable to read VTS_TMAP.\n");
+      free(vts_tmap_srp);
+      ifoFree_VTS_TMAPT(ifofile);
+      return 0;
+    }
+    
+    B2N_16(vts_tmapt->tmap[i].nr_of_entries);
+    CHECK_ZERO(vts_tmapt->tmap[i].zero_1);
+    
+    if(vts_tmapt->tmap[i].nr_of_entries == 0) { /* Early out if zero entries */
+      vts_tmapt->tmap[i].map_ent = NULL;
+      continue;
+    }
+    
+    info_length = vts_tmapt->tmap[i].nr_of_entries * sizeof(map_ent_t);
+    
+    vts_tmapt->tmap[i].map_ent = (map_ent_t *)malloc(info_length);
+    if(!vts_tmapt->tmap[i].map_ent) {
+      free(vts_tmap_srp);
+      ifoFree_VTS_TMAPT(ifofile);
+      return 0;
+    }
+
+    if(!(DVDReadBytes(ifofile->file, vts_tmapt->tmap[i].map_ent, info_length))) {
+      fprintf(stderr, "libdvdread: Unable to read VTS_TMAP_ENT.\n");
+      free(vts_tmap_srp);
+      ifoFree_VTS_TMAPT(ifofile);
+      return 0;
+    }
+    
+    for(j = 0; j < vts_tmapt->tmap[i].nr_of_entries; j++)
+      B2N_32(vts_tmapt->tmap[i].map_ent[j]);
+  }    
+  free(vts_tmap_srp);
+  
+  return 1;
+}
+
+void ifoFree_VTS_TMAPT(ifo_handle_t *ifofile) {
+  unsigned int i;
+  
+  if(!ifofile)
+    return;
+  
+  if(ifofile->vts_tmapt) {  
+    for(i = 0; i < ifofile->vts_tmapt->nr_of_tmaps; i++)
+      if(ifofile->vts_tmapt->tmap[i].map_ent)
+	free(ifofile->vts_tmapt->tmap[i].map_ent);
+    free(ifofile->vts_tmapt->tmap);
+    free(ifofile->vts_tmapt);
+    ifofile->vts_tmapt = NULL;
+  }
+}
+
 
 int ifoRead_TITLE_C_ADT(ifo_handle_t *ifofile) {
 
@@ -1655,17 +1791,6 @@ static int ifoRead_VTS_ATTRIBUTES(ifo_handle_t *ifofile,
   return 1;
 }
 
-void hexdump (uint8_t *buf, int size) {
-  int i;
-
-  for (i=0; i<size; i++) {
-    printf ("%02x ", buf[i]);
-    if ( (i%8)==7)
-      printf ("\n");
-  }
-  printf ("\n");
-
-}
 
 
 int ifoRead_VTS_ATRT(ifo_handle_t *ifofile) {
@@ -1697,8 +1822,6 @@ int ifoRead_VTS_ATRT(ifo_handle_t *ifofile) {
     ifofile->vts_atrt = 0;
     return 0;
   }
-
-  /* hexdump (vts_atrt, VTS_ATRT_SIZE); */
 
   B2N_16(vts_atrt->nr_of_vtss);
   B2N_32(vts_atrt->last_byte);

@@ -71,7 +71,7 @@ static void ifoPrint_CMD(int row, vm_cmd_t *command) {
     printf("%02x ", command->bytes[i]);
   printf("| ");
 
-  /* )vmcmd(command); */
+  /* vmcmd(command); */
   printf("\n");
 }
 
@@ -820,6 +820,27 @@ void ifoPrint_PTL_MAIT(ptl_mait_t *ptl_mait) {
   }
 }
 
+void ifoPrint_VTS_TMAPT(vts_tmapt_t *vts_tmapt) {
+  unsigned int timeunit;
+  int i, j;
+  
+  printf("Number of VTS_TMAPS: %i\n", vts_tmapt->nr_of_tmaps);
+  //printf("Last byte: %i\n", vts_tmapt->last_byte);
+  
+  for(i = 0; i < vts_tmapt->nr_of_tmaps; i++) {
+    printf("TMAP %i\n", i);
+    printf("  Time unit (seconds): %i\n", vts_tmapt->tmap[i].tmu);
+    printf("  Number of entries: %i\n", vts_tmapt->tmap[i].nr_of_entries);
+    timeunit = vts_tmapt->tmap[i].tmu;
+    for(j = 0; j < vts_tmapt->tmap[i].nr_of_entries; j++) {
+      unsigned int ac_time = timeunit * (j + 1);
+      printf("Time: %2i:%02i:%02i  VOBU Sector: 0x%08x %s\n", 
+	     ac_time / (60 * 60), (ac_time / 60) % 60, ac_time % 60,
+	     vts_tmapt->tmap[i].map_ent[j] & 0x7fffffff,
+	     (vts_tmapt->tmap[i].map_ent[j] >> 31) ? "discontinuity" : "");
+    }
+  }
+}
 
 void ifoPrint_C_ADT(c_adt_t *c_adt) {
   int i, entries;
@@ -1017,6 +1038,14 @@ void ifoPrint(dvd_reader_t *dvd, int title) {
       ifoPrint_PGCI_UT(ifohandle->pgci_ut);
     } else {
       printf("No Menu PGCI Unit table present\n");
+    }
+    
+    printf("\nTime Search table\n");
+    printf(  "-----------------\n");
+    if(ifohandle->vts_tmapt) {
+      ifoPrint_VTS_TMAPT(ifohandle->vts_tmapt);
+    } else {
+      printf("No Time Search table present\n");
     }
 
     printf("\nMenu Cell Adress table\n");

@@ -2,8 +2,8 @@
 #define NAV_PRINT_H_INCLUDED
 
 /*
- * Copyright (C) 2001 Billy Biggs <vektor@dumbterm.net>,
- *                    Håkan Hjort <d95hjort@dtek.chalmers.se>
+ * Copyright (C) 2001, 2002 Billy Biggs <vektor@dumbterm.net>,
+ *                          Håkan Hjort <d95hjort@dtek.chalmers.se>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,17 +22,25 @@
 
 #include "nav_types.h"
 
+/**
+ * Pretty printing of the NAV packets, PCI and DSI structs.
+ */
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 /**
  * Prints information contained in the PCI to stdout.
+ *
+ * @param pci Pointer to the PCI data structure to be printed.
  */
 void navPrint_PCI(pci_t *);
   
 /**
  * Prints information contained in the DSI to stdout.
+ *
+ * @param dsi Pointer to the DSI data structure to be printed.
  */
 void navPrint_DSI(dsi_t *);
 

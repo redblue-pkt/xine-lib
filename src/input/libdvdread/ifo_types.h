@@ -189,8 +189,8 @@ typedef struct {
   unsigned int stc_discontinuity: 1;
   unsigned int seamless_angle   : 1;
   
-  unsigned int unknown1         : 1;
-  unsigned int restricted       : 1;
+  unsigned int playback_mode    : 1;  /**< When set, enter StillMode after each VOBU */
+  unsigned int restricted       : 1;  /**< ?? drop out of fastforward? */
   unsigned int unknown2         : 6;
 #else
   unsigned int seamless_angle   : 1;
@@ -202,7 +202,7 @@ typedef struct {
   
   unsigned int unknown2         : 6;
   unsigned int restricted       : 1;
-  unsigned int unknown1         : 1;
+  unsigned int playback_mode    : 1;
 #endif
   uint8_t still_time;
   uint8_t cell_cmd_nr;
@@ -397,7 +397,7 @@ typedef struct {
   uint16_t nr_of_vobs; /* VOBs */
   uint16_t zero_1;
   uint32_t last_byte;
-  cell_adr_t *cell_adr_table;
+  cell_adr_t *cell_adr_table;  /* No explicit size given. */
 } ATTRIBUTE_PACKED c_adt_t;
 #define C_ADT_SIZE 8
 
@@ -708,6 +708,35 @@ typedef struct {
 #define VTS_PTT_SRPT_SIZE 8
 
 
+/**
+ * Time Map Entry.
+ */
+/* Should this be bit field at all or just the uint32_t? */
+typedef uint32_t map_ent_t;
+
+/**
+ * Time Map.
+ */
+typedef struct {
+  uint8_t  tmu;   /* Time unit, in seconds */
+  uint8_t  zero_1;
+  uint16_t nr_of_entries;
+  map_ent_t *map_ent;
+} ATTRIBUTE_PACKED vts_tmap_t;
+#define VTS_TMAP_SIZE 4
+
+/**
+ * Time Map Table.
+ */
+typedef struct {
+  uint16_t nr_of_tmaps;
+  uint16_t zero_1;
+  uint32_t last_byte;
+  vts_tmap_t *tmap;
+} ATTRIBUTE_PACKED vts_tmapt_t;
+#define VTS_TMAPT_SIZE 8
+
+
 #if PRAGMA_PACK
 #pragma pack()
 #endif
@@ -739,7 +768,7 @@ typedef struct {
   vtsi_mat_t     *vtsi_mat;
   vts_ptt_srpt_t *vts_ptt_srpt;
   pgcit_t        *vts_pgcit;
-  int            *vts_tmapt; /* FIXME add/correct the type */
+  vts_tmapt_t    *vts_tmapt;
   c_adt_t        *vts_c_adt;
   vobu_admap_t   *vts_vobu_admap;
 } ifo_handle_t;
