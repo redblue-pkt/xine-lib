@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_gnome_vfs.c,v 1.19 2004/03/01 00:22:31 hadess Exp $
+ * $Id: input_gnome_vfs.c,v 1.20 2004/05/02 16:33:23 hadess Exp $
  */
 
 
@@ -71,6 +71,8 @@ gnomevfs_plugin_get_capabilities (input_plugin_t *this_gen)
 	return INPUT_CAP_SEEKABLE | INPUT_CAP_SPULANG;
 }
 
+#define SSH_BUFFER_SIZE 256 * 1024
+
 static off_t
 gnomevfs_plugin_read (input_plugin_t *this_gen, char *buf, off_t len)
 {
@@ -86,7 +88,7 @@ gnomevfs_plugin_read (input_plugin_t *this_gen, char *buf, off_t len)
 		GnomeVFSResult res;
 
 		res = gnome_vfs_read (this->fh, &buf[num_bytes],
-				(GnomeVFSFileSize) (len - num_bytes),
+				(GnomeVFSFileSize) MIN (len - num_bytes, SSH_BUFFER_SIZE),
 				(GnomeVFSFileSize *)&n);
 
 		D("gnomevfs_plugin_read: read %ld from gnome-vfs",
