@@ -23,7 +23,7 @@
  * For more information regarding the Interplay MVE file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_ipmovie.c,v 1.22 2004/02/09 22:24:36 jstembridge Exp $
+ * $Id: demux_ipmovie.c,v 1.23 2004/04/10 09:45:44 valtri Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -271,6 +271,7 @@ static int process_ipmovie_chunk(demux_ipmovie_t *this) {
 
       case OPCODE_INIT_VIDEO_BUFFERS:
         lprintf("initialize video buffers\n");
+        if (this->decode_map) free(this->decode_map);
         if ((opcode_version > 2) || (opcode_size > 8)) {
           lprintf("bad init_video_buffers opcode\n");
           chunk_type = CHUNK_BAD;
@@ -683,6 +684,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   this->demux_plugin.demux_class       = class_gen;
 
   this->status = DEMUX_FINISHED;
+  this->decode_map = NULL;
 
   switch (stream->content_detection_method) {
 
