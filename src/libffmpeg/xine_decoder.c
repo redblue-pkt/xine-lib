@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.75 2002/12/06 01:55:32 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.76 2002/12/08 22:24:28 miguelfreitas Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -839,6 +839,9 @@ static void ff_audio_decode_data (audio_decoder_t *this_gen, buf_element_t *buf)
 
     /* if the audio still isn't open, bail */
     if (!this->output_open)
+      return;
+
+    if( buf->decoder_flags & BUF_FLAG_PREVIEW )
       return;
 
     if( this->size + buf->size > this->bufsize ) {
