@@ -351,7 +351,7 @@ fi
 dnl
 dnl Check for DirectFB
 dnl
-DIRECTFB_REQUIRED_VERSION=0.9.7
+DIRECTFB_REQUIRED_VERSION=0.9.9
 
 AC_MSG_CHECKING(for DirectFB)
 if $PKG_CONFIG --atleast-version $DIRECTFB_REQUIRED_VERSION directfb ; then

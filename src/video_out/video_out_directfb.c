@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_directfb.c,v 1.2 2002/02/02 23:37:18 richwareham Exp $
+ * $Id: video_out_directfb.c,v 1.3 2002/02/04 17:25:56 richwareham Exp $
  *
  * DirectFB based output plugin.
  * Rich Wareham <richwareham@users.sourceforge.net>
@@ -70,14 +70,13 @@
 
 typedef struct directfb_frame_s {
   vo_frame_t         vo_frame;
-  uint8_t	    *chunk[3];
 
   int                width, height;
   int                ratio_code;
   int                format;
+  int                locked;
 
   IDirectFBSurface  *surface;
-  int                line;
 } directfb_frame_t;
 
 typedef struct directfb_driver_s {
@@ -91,11 +90,9 @@ typedef struct directfb_driver_s {
 
   /* DirectFB related stuff */
   IDirectFB        *dfb;
-  IDirectFBSurface *primary;
+  IDirectFBDisplayLayer *layer;
 
   /* output area */
-  int              screen_width;
-  int              screen_height;
   int              frame_width;
   int              frame_height;
   
@@ -155,42 +152,7 @@ static void *my_malloc_aligned (size_t alignment, size_t size, uint8_t **chunk) 
  */
 
 static uint32_t directfb_get_capabilities (vo_driver_t *this_gen) {
-  return VO_CAP_COPIES_IMAGE | VO_CAP_YV12 | VO_CAP_YUY2;
-}
-
-
-static void directfb_frame_copy (vo_frame_t *vo_img, uint8_t **src) {
-  directfb_frame_t  *frame = (directfb_frame_t *) vo_img ; 
-  /* directfb_driver_t *this = (directfb_driver_t *) vo_img->instance->driver; */
-  uint32_t *data;
-  uint8_t *py, *pu, *pv;
-  uint32_t pitch, x,y,frame_offset, src_offset,i,a;
-
-  DFBCHECK(frame->surface->Lock(frame->surface, DSLF_WRITE, 
-				(void**)&data, &pitch));
-  
-  if(frame->format == IMGFMT_YV12) {
-    i=0; py = src[0]; pu = src[1]; pv=src[2]; a=0;
-    for(y=frame->line; (y<frame->line+16) && (y<frame->height); y++, i++) {
-      frame_offset = (y * pitch)>>2; src_offset = i * frame->width;
-      a = (i>>1) * ((frame->width)>>1);
-      for(x=0; x<frame->width; x+=2) {
-	data[frame_offset+(x>>1)] = py[(src_offset+x)] +
-	 ((pu[a])<<8) + ((py[(src_offset+x+1)])<<16) +
-	 ((pv[a])<<24);
-	/* data[frame_offset+(x<<1)+2] = py[(src_offset+x+1)];
-	   data[frame_offset+(x<<1)+1] = pu[a]; 
-	   data[frame_offset+(x<<1)+3] = pv[a]; */
-	a++;
-      }
-    }
-    frame->line=y;
-  } else if(frame->format == IMGFMT_YUY2) {
-    xine_fast_memcpy(&(data[frame->line*pitch]), src[0], frame->width*32);
-    frame->line += 4;
-  }
-  
-  DFBCHECK(frame->surface->Unlock(frame->surface));
+  return VO_CAP_YV12 | VO_CAP_YUY2;
 }
 
 static void directfb_frame_field (vo_frame_t *vo_img, int which_field) {
@@ -226,6 +188,8 @@ static void directfb_frame_dispose (vo_frame_t *vo_img) {
   directfb_frame_t  *frame = (directfb_frame_t *) vo_img ;
 
   if (frame) {
+    if(frame->locked) 
+     DFBCHECK(frame->surface->Unlock(frame->surface));
     DFBCHECK(frame->surface->Release(frame->surface));
     frame->surface = NULL;
   }
@@ -250,12 +214,12 @@ static vo_frame_t *directfb_alloc_frame (vo_driver_t *this_gen) {
    * supply required functions
    */
   
-  frame->vo_frame.copy    = directfb_frame_copy;
+  frame->vo_frame.copy    = NULL; 
   frame->vo_frame.field   = directfb_frame_field; 
   frame->vo_frame.dispose = directfb_frame_dispose;
 
   frame->surface = NULL;
-  frame->line = 0;
+  frame->locked = 0;
   
   return (vo_frame_t *) frame;
 }
@@ -276,75 +240,99 @@ static void directfb_update_frame_format (vo_driver_t *this_gen,
 
   directfb_driver_t  *this = (directfb_driver_t *) this_gen;
   directfb_frame_t   *frame = (directfb_frame_t *) frame_gen;
-  DFBSurfaceDescription dsc;
-  int image_size;
+  DFBSurfaceDescription s_dsc;
+  DFBDisplayLayerConfig l_dsc;
+  DFBResult ret;
+  DFBDisplayLayerConfigFlags   failed;
+  int pitch;
+  uint8_t *data;
 
   flags &= VO_BOTH_FIELDS;
 
-  /*this->frame_width      = width;
-  this->frame_height     = height; */
-  /* this->delivered_ratio_code = ratio_code;
-  this->delivered_flags      = flags; */
-
-  if ((frame->width != width) || (frame->height != height)
+  if ((frame->width != width) 
+      || (frame->height != height)
       || (frame->format != format)) {
+    if(frame->locked && frame->surface) {
+      DFBCHECK(frame->surface->Unlock(frame->surface));
+    }
+
     if(frame->surface) {
       DFBCHECK(frame->surface->Release(frame->surface));
-      
-      if (frame->chunk[0]){
-	free (frame->chunk[0]);
-	frame->chunk[0] = NULL;
-      }
-      if (frame->chunk[1]) {
-	free (frame->chunk[1]);
-	frame->chunk[1] = NULL;
-      }
-      if (frame->chunk[2]) {
-	free (frame->chunk[2]);
-	frame->chunk[2] = NULL;
-      }
     }
+
     frame->surface = NULL;
     
     frame->format = format;
     frame->width  = width;
     frame->height = height;
-    
-    if (format == IMGFMT_YV12) {
-      image_size = width * height;
-      frame->vo_frame.base[0] = my_malloc_aligned(16,image_size, &frame->chunk[0]);
-      frame->vo_frame.base[1] = my_malloc_aligned(16,image_size/4, &frame->chunk[1]);
-      frame->vo_frame.base[2] = my_malloc_aligned(16,image_size/4, &frame->chunk[2]);
-    } else {
-      image_size = width * height;
-      frame->vo_frame.base[0] = my_malloc_aligned(16,image_size*2, &frame->chunk[0]);
-    }
-    
+       
     switch(frame->format) {
      case IMGFMT_RGB:
-      dsc.pixelformat = DSPF_RGB16;
+      s_dsc.pixelformat = DSPF_RGB16;
+      l_dsc.pixelformat = DSPF_RGB16;
       break;
      case IMGFMT_YV12:
-      dsc.pixelformat = DSPF_YUY2;
+      s_dsc.pixelformat = DSPF_YV12;
+      l_dsc.pixelformat = DSPF_YV12;
       break;
      case IMGFMT_YUY2:
-      dsc.pixelformat = DSPF_YUY2;
+      s_dsc.pixelformat = DSPF_YUY2;
+      l_dsc.pixelformat = DSPF_YUY2;
       break;
      default:
-      fprintf(stderr,"Error unknown image format (%i), assuming YUY2\n", frame->format);
-      dsc.pixelformat = DSPF_YUY2;
+      fprintf(stderr,"Error unknown image format (%i), assuming YV12\n", frame->format);
+      s_dsc.pixelformat = DSPF_YV12;
+      l_dsc.pixelformat = DSPF_YV12;
     }
     
-    dsc.flags = DSDESC_CAPS | DSDESC_PIXELFORMAT | DSDESC_WIDTH | DSDESC_HEIGHT;
-    dsc.caps = 0;
-    dsc.width = frame->width;
-    dsc.height = frame->height;
-   
-    DFBCHECK(this->dfb->CreateSurface(this->dfb, &dsc, &(frame->surface)));
+    s_dsc.flags = DSDESC_CAPS | DSDESC_PIXELFORMAT
+     | DSDESC_WIDTH | DSDESC_HEIGHT;
+    s_dsc.caps = 0;
+    s_dsc.width = frame->width;
+    s_dsc.height = frame->height;
+    DFBCHECK(this->dfb->CreateSurface(this->dfb, &s_dsc, &(frame->surface)));
+
+    l_dsc.flags = DLCONF_WIDTH | DLCONF_HEIGHT
+     | DLCONF_PIXELFORMAT | DLCONF_OPTIONS;
+    l_dsc.width = frame->width;
+    l_dsc.height = frame->height;
+    l_dsc.options = 0;
+    ret = this->layer->TestConfiguration(this->layer, &l_dsc, &failed );
+    if (ret == DFB_UNSUPPORTED) {
+      fprintf(stderr, "Error: Unsupported operation\n");
+      return;
+    }
+    DFBCHECK(this->layer->SetConfiguration(this->layer, &l_dsc));
+
+    /* Set correct locations for planes in surface */
+    DFBCHECK(frame->surface->Lock(frame->surface, DSLF_WRITE,
+				  (void**)(&data), &pitch));
+    memset(data, 128, 6 * width*height / 4);
+
+    frame->locked = 1;
+    switch(frame->format) {
+     case IMGFMT_RGB:
+      frame->vo_frame.base[0] = data;
+      frame->vo_frame.base[1] = data;
+      frame->vo_frame.base[2] = data;
+      break;
+     case IMGFMT_YV12:
+      frame->vo_frame.base[0] = data;
+      frame->vo_frame.base[1] = data + pitch*height;
+      frame->vo_frame.base[2] = data + pitch*height + pitch*height/4;
+      break;
+     case IMGFMT_YUY2:
+      frame->vo_frame.base[0] = data;
+      frame->vo_frame.base[1] = data;
+      frame->vo_frame.base[2] = data;
+      break;
+     default:
+      break;
+    }
+
     frame->ratio_code = ratio_code;
 
     directfb_frame_field ((vo_frame_t *)frame, flags);
-
   }
 }
 
@@ -404,10 +392,17 @@ static void directfb_overlay_blend (vo_driver_t *this_gen, vo_frame_t *frame_gen
 static void directfb_render_image (directfb_driver_t *this, directfb_frame_t *frame)
 {
   if(frame && frame->surface) {
-    frame->line = 0;
-    DFBCHECK(this->primary->StretchBlit(this->primary,
-			       frame->surface, NULL,NULL));
-    DFBCHECK(this->primary->Flip(this->primary, NULL, 0));
+    IDirectFBSurface *surface;
+
+    if(frame->locked) {
+      frame->surface->Unlock(frame->surface);
+      frame->locked = 0;
+    }
+
+    DFBCHECK(this->layer->GetSurface(this->layer, &surface));
+    DFBCHECK(surface->Blit(surface,
+		     	   frame->surface, NULL,0,0));
+    /* DFBCHECK(surface->Flip(surface, NULL, 0)); */
   }
 }
 
@@ -428,8 +423,7 @@ static void directfb_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen
     this->last_frame_height     = frame->height;
     this->last_frame_ratio_code = frame->ratio_code;
 
-    fprintf (stderr, "video_out_directfb: window size %d x %d, frame size %d x %d\n",
-            this->screen_width, this->screen_height,
+    fprintf (stderr, "video_out_directfb: frame size %d x %d\n",
             this->frame_width, this->frame_height);
   }
 
@@ -475,7 +469,7 @@ static char *aspect_ratio_name(int a)
 static int directfb_set_property (vo_driver_t *this_gen, 
 			      int property, int value) {
 
-  directfb_driver_t *this = (directfb_driver_t *) this_gen;
+  /* directfb_driver_t *this = (directfb_driver_t *) this_gen; */
 
   if ( property == VO_PROP_ASPECT_RATIO) {
     if (value>=NUM_ASPECT_RATIOS)
@@ -532,14 +526,13 @@ static void directfb_exit (vo_driver_t *this_gen) {
 
 typedef struct {
   IDirectFB *dfb;
-  IDirectFBSurface *primary;
+  IDirectFBDisplayLayer *video_layer;
 } dfb_visual_info_t;
 
 vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
 
   directfb_driver_t      *this;
   dfb_visual_info_t      *visual_info = (dfb_visual_info_t*)visual_gen;
-  DFBSurfaceDescription dsc;
 
   fprintf (stderr, "EXPERIMENTAL directfb output plugin\n");
   /*
@@ -556,8 +549,6 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
   memset (this, 0, sizeof(directfb_driver_t));
 
   this->config		    = config;
-  this->screen_width	    = 0;
-  this->screen_height	    = 0;
   this->frame_width	    = 0;
   this->frame_height	    = 0;
   this->zoom_mpeg1	    = config->register_bool (config, "video.zoom_mpeg1", 1,
@@ -577,9 +568,9 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
   this->vo_driver.get_info             = get_video_out_plugin_info;
 
   this->dfb = visual_info->dfb;
-  this->primary = visual_info->primary;
-  DFBCHECK(this->primary->GetSize(this->primary, &(this->screen_width), 
-				  &(this->screen_height)));
+  this->layer = visual_info->video_layer;
+  DFBCHECK(this->layer->SetCooperativeLevel(this->layer,
+					    DLSCL_ADMINISTRATIVE));
 
   return &this->vo_driver;
 }
