@@ -17,10 +17,11 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_none.c,v 1.7 2003/01/11 05:28:28 guenter Exp $
+ * $Id: video_out_none.c,v 1.8 2003/01/11 10:49:47 f1rmb Exp $
  *
  * Was originally part of toxine frontend.
  * ...but has now been adapted to xine coding style standards ;)
+ * ......what changes, impressing!
  */
 
 #ifdef HAVE_CONFIG_H
