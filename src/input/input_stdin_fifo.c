@@ -1,7 +1,7 @@
 /* 
- * Copyright (C) 2000-2001 the xine project
+ * Copyright (C) 2000-2002 the xine project
  * 
- * This file is part of xine, a unix video player.
+ * This file is part of xine, a free video player.
  * 
  * xine is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_stdin_fifo.c,v 1.20 2002/02/17 17:32:50 guenter Exp $
+ * $Id: input_stdin_fifo.c,v 1.21 2002/03/19 20:06:57 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -39,28 +39,18 @@
 #include "xine_internal.h"
 #include "xineutils.h"
 #include "input_plugin.h"
+#include "strict_scr.h"
+
+/*
+#define LOG
+*/
+
+#define PREVIEW_SIZE            2200
+
+#define DEFAULT_LOW_WATER_MARK     1
+#define DEFAULT_HIGH_WATER_MARK    5
 
 extern int errno;
-
-#ifdef __GNUC__
-#define LOG_MSG_STDERR(xine, message, args...) {                     \
-    xine_log(xine, XINE_LOG_MSG, message, ##args);                 \
-    fprintf(stderr, message, ##args);                                \
-  }
-#define LOG_MSG(xine, message, args...) {                            \
-    xine_log(xine, XINE_LOG_MSG, message, ##args);                 \
-    printf(message, ##args);                                         \
-  }
-#else
-#define LOG_MSG_STDERR(xine, ...) {                                  \
-    xine_log(xine, XINE_LOG_MSG, __VA_ARGS__);                     \
-    fprintf(stderr, __VA_ARGS__);                                    \
-  }
-#define LOG_MSG(xine, ...) {                                         \
-    xine_log(xine, XINE_LOG_MSG, __VA_ARGS__);                     \
-    printf(__VA_ARGS__);                                             \
-  }
-#endif
 
 typedef struct {
   input_plugin_t   input_plugin;
@@ -72,74 +62,194 @@ typedef struct {
   config_values_t *config;
   off_t            curpos;
 
+  char             preview[PREVIEW_SIZE];
+  off_t            preview_size;
+  off_t            preview_pos;
+
+  strictscr_t     *scr; 
+
+  int              buffering;
+  int              low_water_mark;
+  int              high_water_mark;
+
+  char             scratch[1025];
+
 } stdin_input_plugin_t;
 
-/*
- *
- */
+static off_t stdin_plugin_read (input_plugin_t *this_gen, 
+				char *buf, off_t todo) ;
+
 static int stdin_plugin_open(input_plugin_t *this_gen, char *mrl) {
   stdin_input_plugin_t *this = (stdin_input_plugin_t *) this_gen;
   char *filename;
   char *pfn;
 
+#ifdef LOG
+  printf ("input_stdin_fifo: trying to open '%s'...\n",
+	  mrl);
+#endif
+
   this->mrl = mrl;
 
-  if(!strncasecmp(mrl, "stdin:", 6) 
+  if (!strncasecmp(mrl, "stdin:", 6) 
       || !strncmp(mrl, "-", 1)) {
 #if defined(CONFIG_DEVFS_FS)
     filename = "/dev/vc/stdin";
 #else
     filename = "/dev/stdin";
 #endif
-  } 
-  else if(!strncasecmp(mrl, "fifo:", 5)) {
-    if((pfn = strrchr((mrl+5), ':')) != NULL) {
+
+  } else if(!strncasecmp(mrl, "fifo:", 5)) {
+
+    if ((pfn = strrchr((mrl+5), ':')) != NULL) {
+
       filename = ++pfn;
-    }
-    else {
-      if(!(strncasecmp(mrl+5, "//mpeg1", 7))
-	 || (!(strncasecmp(mrl+5, "//mpeg2", 7)))) {
+
+    } else {
+
+      if (!(strncasecmp(mrl+5, "//mpeg1", 7))
+	  || (!(strncasecmp(mrl+5, "//mpeg2", 7)))) {
 	filename = (char *) &mrl[12];
-      }
-      else {
+
+      } else {
 	filename = (char *) &mrl[5];
       }
     }
-  } 
-  else {
-    /* filename = (char *) mrl; */
+  } else {
     return 0;
   }
   
   this->fh = open (filename, O_RDONLY);
-  this->curpos = 0;
   
   if(this->fh == -1) {
+    printf ("stdin: failed to open '%s'\n",
+	    filename);
+
     return 0;
   }
+
+  /*
+   * fill preview buffer
+   */
+
+  this->preview_size = stdin_plugin_read (&this->input_plugin, this->preview,
+					  PREVIEW_SIZE);
+  this->preview_pos  = 0;
+
+  /*
+   * buffering control
+   */
+
+  this->curpos          = 0;
+  this->buffering       = 0;
+  this->low_water_mark  = DEFAULT_LOW_WATER_MARK;
+  this->high_water_mark = DEFAULT_HIGH_WATER_MARK;
+
+  /* register our scr plugin */
+  this->scr->scr.start (&this->scr->scr, this->xine->metronom->get_current_time (this->xine->metronom));
+  this->xine->metronom->register_scr (this->xine->metronom, &this->scr->scr); 
 
   return 1;
 }
 
-/*
- *
- */
+static void check_fifo_buffers (stdin_input_plugin_t *this) {
+
+  int  fifo_fill;
+
+  fifo_fill = this->xine->video_fifo->size(this->xine->video_fifo);
+  if (this->xine->audio_fifo) {
+    fifo_fill += 8*this->xine->audio_fifo->size(this->xine->audio_fifo);
+  }
+
+  if (this->buffering) {
+    xine_log (this->xine, XINE_LOG_MSG, 
+	      "stdin: buffering (%d/%d)...\n", 
+	      fifo_fill, this->high_water_mark);
+  }
+
+  if (fifo_fill<this->low_water_mark) {
+    
+    if (!this->buffering) {
+
+      this->xine->osd_renderer->filled_rect (this->xine->osd, 0, 0, 299, 99, 0);
+      this->xine->osd_renderer->render_text (this->xine->osd, 5, 30, "stdin: buffering...", OSD_TEXT1);
+      this->xine->osd_renderer->show (this->xine->osd, 0);
+
+      /* give video_out time to display osd before pause */
+      sleep (1);
+
+      if (this->high_water_mark<150) {
+
+	/* increase marks to adapt to stream/network needs */
+
+	this->high_water_mark += 10;
+	this->low_water_mark = this->high_water_mark/4;
+      }
+    }
+
+    this->xine->metronom->set_speed (this->xine->metronom, SPEED_PAUSE);
+    this->xine->audio_out->audio_paused = 2;
+    this->buffering = 1;
+    this->scr->adjustable = 0;
+
+  } else if ( (fifo_fill>this->high_water_mark) && (this->buffering)) {
+    this->xine->metronom->set_speed (this->xine->metronom, SPEED_NORMAL);
+    this->xine->audio_out->audio_paused = 0;
+    this->buffering = 0;
+    this->scr->adjustable = 1;
+
+    this->xine->osd_renderer->hide (this->xine->osd, 0);
+  }
+
+}
+
 static off_t stdin_plugin_read (input_plugin_t *this_gen, 
 				char *buf, off_t todo) {
 
   stdin_input_plugin_t  *this = (stdin_input_plugin_t *) this_gen;
   off_t                  num_bytes, total_bytes;
 
+  check_fifo_buffers (this);
+
   total_bytes = 0;
 
+#ifdef LOG
+  printf ("stdin: read %lld bytes...\n", todo);
+#endif
+
   while (total_bytes < todo) {
-    num_bytes = read (this->fh, &buf[total_bytes], todo - total_bytes);
+
+    if (this->preview_pos < this->preview_size) {
+
+      num_bytes = this->preview_size - this->preview_pos;
+      if (num_bytes > (todo - total_bytes)) 
+	num_bytes = todo - total_bytes;
+
+#ifdef LOG
+      printf ("stdin: %lld bytes from preview (which has %lld bytes)\n",
+	      num_bytes, this->preview_size);
+#endif
+
+      memcpy (&buf[total_bytes], &this->preview[this->preview_pos], num_bytes);
+
+      this->preview_pos += num_bytes;
+
+    } else {
+      num_bytes = read (this->fh, &buf[total_bytes], todo - total_bytes);
+#ifdef LOG
+      printf ("stdin: %lld bytes from file\n",
+	      num_bytes);
+#endif
+    }
+
 
     if(num_bytes < 0) {
+
       this->curpos += total_bytes;
       return num_bytes;
-    }
-    else if (!num_bytes) {
+
+    } else if (!num_bytes) {
+
       this->curpos += total_bytes;
       return total_bytes;
     }
@@ -151,27 +261,21 @@ static off_t stdin_plugin_read (input_plugin_t *this_gen,
   return total_bytes;
 }
 
-/*
- *
- */
-static buf_element_t *stdin_plugin_read_block (input_plugin_t *this_gen, fifo_buffer_t *fifo, off_t todo) {
+static buf_element_t *stdin_plugin_read_block (input_plugin_t *this_gen, fifo_buffer_t *fifo, 
+					       off_t todo) {
 
-  off_t                 num_bytes, total_bytes;
-  stdin_input_plugin_t  *this = (stdin_input_plugin_t *) this_gen;
-  buf_element_t        *buf = fifo->buffer_pool_alloc (fifo);
+  off_t                 total_bytes;
+  /* stdin_input_plugin_t  *this = (stdin_input_plugin_t *) this_gen; */
+  buf_element_t         *buf = fifo->buffer_pool_alloc (fifo);
 
   buf->content = buf->mem;
   buf->type = BUF_DEMUX_BLOCK;
-  total_bytes = 0;
 
-  while (total_bytes < todo) {
-    num_bytes = read (this->fh, buf->mem + total_bytes, todo-total_bytes);
-    total_bytes += num_bytes;
-    this->curpos += num_bytes;
-    if (!num_bytes) {
-      buf->free_buffer (buf);
-      return NULL;
-    }
+  total_bytes = stdin_plugin_read (this_gen, buf->content, todo);
+
+  if (total_bytes != todo) {
+    buf->free_buffer (buf);
+    return NULL;
   }
 
   buf->size = total_bytes;
@@ -179,58 +283,86 @@ static buf_element_t *stdin_plugin_read_block (input_plugin_t *this_gen, fifo_bu
   return buf;
 }
 
-/*
- *
- */
+static off_t stdin_plugin_seek (input_plugin_t *this_gen, off_t offset, int origin) {
+
+  stdin_input_plugin_t  *this = (stdin_input_plugin_t *) this_gen;
+  off_t dest = this->curpos;
+
+#ifdef LOG
+  printf ("stdin: seek %lld offset, %d origin...\n",
+	  offset, origin);
+#endif
+
+  switch (origin) {
+  case SEEK_SET:
+    dest = offset;
+    break;
+  case SEEK_CUR:
+    dest = this->curpos + offset;
+    break;
+  case SEEK_END:
+    printf ("stdin: SEEK_END not implemented!\n");
+    return this->curpos;
+  default:
+    printf ("stdin: unknown origin in seek!\n");
+    return this->curpos;
+  }
+
+  if (this->curpos > dest) {
+    printf ("stdin: cannot seek back!\n");
+    return this->curpos;
+  }
+
+  while (this->curpos<dest) {
+
+    off_t n, diff;
+
+    diff = dest - this->curpos;
+
+    if (diff>1024)
+      diff = 1024;
+
+    n = stdin_plugin_read (this_gen, this->scratch, diff);
+
+    this->curpos += n;
+    if (n<diff)
+      return this->curpos;
+  }
+
+  return this->curpos;
+}
+
 static off_t stdin_plugin_get_length(input_plugin_t *this_gen) {
 
   return 0;
 }
 
-/*
- *
- */
 static uint32_t stdin_plugin_get_capabilities(input_plugin_t *this_gen) {
   
   return INPUT_CAP_NOCAP;
 }
 
-/*
- *
- */
 static uint32_t stdin_plugin_get_blocksize(input_plugin_t *this_gen) {
 
   return 0;
 }
 
-/*
- *
- */
 static off_t stdin_plugin_get_current_pos (input_plugin_t *this_gen){
   stdin_input_plugin_t *this = (stdin_input_plugin_t *) this_gen;
 
   return this->curpos;
 }
 
-/*
- *
- */
 static int stdin_plugin_eject_media(input_plugin_t *this_gen) {
   return 1;
 }
 
-/*
- *
- */
 static char* stdin_plugin_get_mrl (input_plugin_t *this_gen) {
   stdin_input_plugin_t *this = (stdin_input_plugin_t *) this_gen;
 
   return this->mrl;
 }
 
-/*
- *
- */
 static void stdin_plugin_close(input_plugin_t *this_gen) {
   stdin_input_plugin_t *this = (stdin_input_plugin_t *) this_gen;
 
@@ -238,51 +370,47 @@ static void stdin_plugin_close(input_plugin_t *this_gen) {
   this->fh = -1;
 }
 
-/*
- *
- */
 static void stdin_plugin_stop(input_plugin_t *this_gen) {
   stdin_plugin_close(this_gen);
 }
 
-/*
- *
- */
 static char *stdin_plugin_get_description (input_plugin_t *this_gen) {
   return _("stdin/fifo input plugin as shipped with xine");
 }
 
-/*
- *
- */
 static char *stdin_plugin_get_identifier(input_plugin_t *this_gen) {
   return "stdin_fifo";
 }
 
-/*
- *
- */
 static int stdin_plugin_get_optional_data (input_plugin_t *this_gen, 
 					   void *data, int data_type) {
+  stdin_input_plugin_t *this = (stdin_input_plugin_t *) this_gen;
+
+  switch (data_type) {
+  case INPUT_OPTIONAL_DATA_PREVIEW:
+
+    memcpy (data, this->preview, this->preview_size);
+    return this->preview_size;
+
+    break;
+  }
 
   return INPUT_OPTIONAL_UNSUPPORTED;
 }
 
-/*
- *
- */
+
 input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
 
   stdin_input_plugin_t *this;
   config_values_t      *config;
 
   if (iface != 5) {
-    LOG_MSG(xine,
-	    _("stdin/fifo input plugin doesn't support plugin API version %d.\n"
-	      "PLUGIN DISABLED.\n"
-	      "This means there's a version mismatch between xine and this input"
-	      "plugin.\nInstalling current input plugins should help.\n"),
-	    iface);
+    xine_log (xine, XINE_LOG_PLUGIN,
+	      _("stdin/fifo input plugin doesn't support plugin API version %d.\n"
+		"PLUGIN DISABLED.\n"
+		"This means there's a version mismatch between xine and this input"
+		"plugin.\nInstalling current input plugins should help.\n"),
+	      iface);
     return NULL;
   }
 
@@ -295,7 +423,7 @@ input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
   this->input_plugin.open              = stdin_plugin_open;
   this->input_plugin.read              = stdin_plugin_read;
   this->input_plugin.read_block        = stdin_plugin_read_block;
-  this->input_plugin.seek              = NULL;
+  this->input_plugin.seek              = stdin_plugin_seek;
   this->input_plugin.get_current_pos   = stdin_plugin_get_current_pos;
   this->input_plugin.get_length        = stdin_plugin_get_length;
   this->input_plugin.get_blocksize     = stdin_plugin_get_blocksize;
@@ -310,10 +438,15 @@ input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
   this->input_plugin.get_optional_data = stdin_plugin_get_optional_data;
   this->input_plugin.is_branch_possible= NULL;
 
-  this->fh      = -1;
-  this->mrl     = NULL;
-  this->config  = config;
-  this->curpos  = 0;
+  this->fh              = -1;
+  this->mrl             = NULL;
+  this->config          = config;
+  this->curpos          = 0;
+  this->buffering       = 0;
+  this->low_water_mark  = DEFAULT_LOW_WATER_MARK;
+  this->high_water_mark = DEFAULT_HIGH_WATER_MARK;
+  
+  this->scr = strictscr_init (); 
   
   return (input_plugin_t *) this;
 }
