@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.h,v 1.130 2004/01/13 20:44:23 jstembridge Exp $
+ * $Id: buffer.h,v 1.131 2004/02/01 05:56:26 tmmm Exp $
  *
  *
  * contents:
@@ -157,6 +157,12 @@ extern "C" {
 #define BUF_VIDEO_VP4           0x02410000
 #define BUF_VIDEO_VP5           0x02420000
 #define BUF_VIDEO_VP6           0x02430000
+#define BUF_VIDEO_VMD		0x02440000
+#define BUF_VIDEO_MSZH		0x02450000
+#define BUF_VIDEO_ZLIB		0x02460000
+#define BUF_VIDEO_8BPS		0x02470000
+#define BUF_VIDEO_ASV1		0x02480000
+#define BUF_VIDEO_ASV2		0x02490000
 
 /* audio buffer types:  (please keep in sync with buffer_types.c) */
 
@@ -212,6 +218,8 @@ extern "C" {
 #define BUF_AUDIO_SPEEX		0x032F0000
 #define BUF_AUDIO_RAWPCM	0x03300000
 #define BUF_AUDIO_4X_ADPCM	0x03310000
+#define BUF_AUDIO_VMD		0x03320000
+#define BUF_AUDIO_XAN_DPCM	0x03330000
 
 /* spu buffer types:    */
 

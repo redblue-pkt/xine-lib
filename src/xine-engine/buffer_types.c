@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer_types.c,v 1.74 2004/01/25 18:02:23 jstembridge Exp $
+ * $Id: buffer_types.c,v 1.75 2004/02/01 05:56:26 tmmm Exp $
  *
  *
  * contents:
@@ -586,6 +586,46 @@ static video_db_t video_db[] = {
   BUF_VIDEO_VP6,
   "On2 VP6 Codec"
 },
+{
+  {
+    meFOURCC('8','B', 'P','S'),
+    0
+  },
+  BUF_VIDEO_8BPS,
+  "Planar RGB"
+},
+{
+  {
+    meFOURCC('Z','L','I','B'),
+    0
+  },
+  BUF_VIDEO_ZLIB,
+  "ZLIB Video"
+},
+{
+  {
+    meFOURCC('M','S','Z','H'),
+    0
+  },
+  BUF_VIDEO_MSZH,
+  "MSZH Video"
+},
+{
+  {
+    meFOURCC('A','S','V','1'),
+    0
+  },
+  BUF_VIDEO_ASV1,
+  "ASV v1 Video"
+},
+{
+  {
+    meFOURCC('A','S','V','2'),
+    0
+  },
+  BUF_VIDEO_ASV2,
+  "ASV v2 Video"
+},
 { { 0 }, 0, "last entry" }
 };
 
@@ -614,6 +654,7 @@ static audio_db_t audio_db[] = {
 {
   {
     meFOURCC('t','w','o','s'),
+    meFOURCC('i','n','2','4'),
     0
   },
   BUF_AUDIO_LPCM_BE,
