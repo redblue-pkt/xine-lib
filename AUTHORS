@@ -144,7 +144,7 @@ Dave Gilbert <gilbertd@treblig.org>
   alpha support
 
 Bastien Nocera <hadess@hadess.net>
-  powerpc patch
+  gnome-vfs input plugin, powerpc patch, bug fixes
 
 Philip Stadermann <pstadermann@gmx.de>
   arts audio server support, kde frontend
