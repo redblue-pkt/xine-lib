@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ts.c,v 1.108 2004/10/21 14:50:29 mlampard Exp $
+ * $Id: demux_ts.c,v 1.109 2004/10/25 22:42:59 mlampard Exp $
  *
  * Demultiplexer for MPEG2 Transport Streams.
  *
@@ -1715,7 +1715,7 @@ static void demux_ts_event_handler (demux_ts_t *this) {
       this->audioPid    = INVALID_PID;
       this->media_num   = 0;
       this->send_newpts = 1;
-
+      _x_demux_control_start (this->stream);
       break;
       
     }
