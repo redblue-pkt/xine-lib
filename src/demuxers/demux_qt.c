@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.96 2002/10/12 17:11:58 jkeil Exp $
+ * $Id: demux_qt.c,v 1.97 2002/10/22 05:03:01 tmmm Exp $
  *
  */
 
@@ -267,7 +267,7 @@ typedef struct {
 
   demux_plugin_t       demux_plugin;
 
-  xine_t              *xine;
+  xine_stream_t       *stream;
 
   config_values_t     *config;
 
@@ -295,7 +295,18 @@ typedef struct {
   off_t                data_start;
   off_t                data_size;
 
+  char                 last_mrl[1024];
 } demux_qt_t;
+
+typedef struct {
+
+  demux_class_t     demux_class;
+
+  /* class-wide, global variables here */
+
+  xine_t           *xine;
+  config_values_t  *config;
+} demux_qt_class_t;
 
 /**********************************************************************
  * lazyqt functions
@@ -1028,18 +1039,18 @@ static qt_error build_frame_table(qt_sample_table *sample_table,
        * expire (so set it to an absurdly large value) */
       if (edit_list_index == sample_table->edit_list_count)
         edit_list_duration = 0xFFFFFFFFFFFF;
-//printf ("edit list table exists, initial = %d, %lld\n", edit_list_media_time, edit_list_duration);
+/*printf ("edit list table exists, initial = %d, %lld\n", edit_list_media_time, edit_list_duration);*/
     } else {
       edit_list_media_time = 0;
       edit_list_duration = 0xFFFFFFFFFFFF;
-//printf ("no edit list table, initial = %d, %lld\n", edit_list_media_time, edit_list_duration);
+/*printf ("no edit list table, initial = %d, %lld\n", edit_list_media_time, edit_list_duration);*/
     }
 
     /* fix up pts information w.r.t. the edit list table */
     edit_list_pts_counter = 0;
     for (i = 0; i < sample_table->frame_count; i++) {
 
-//printf ("%d: (before) pts = %lld...", i, sample_table->frames[i].pts);
+/*printf ("%d: (before) pts = %lld...", i, sample_table->frames[i].pts);*/
 
       if (sample_table->frames[i].pts < edit_list_media_time) 
         sample_table->frames[i].pts = edit_list_pts_counter;
@@ -1048,19 +1059,19 @@ static qt_error build_frame_table(qt_sample_table *sample_table,
           frame_duration = 
             (sample_table->frames[i + 1].pts - sample_table->frames[i].pts);
 
-//printf ("frame duration = %lld...", frame_duration);
+/*printf ("frame duration = %lld...", frame_duration);*/
         sample_table->frames[i].pts = edit_list_pts_counter;
         edit_list_pts_counter += frame_duration;
         edit_list_duration -= frame_duration;
       }
 
-//printf ("(fixup) pts = %lld...", sample_table->frames[i].pts);
+/*printf ("(fixup) pts = %lld...", sample_table->frames[i].pts);*/
 
       /* reload media time and duration */
       if (edit_list_duration <= 0) {
         if ((sample_table->edit_list_table) &&
             (edit_list_index < sample_table->edit_list_count)) {
-//printf ("edit list index = %d\n", edit_list_index);
+/*printf ("edit list index = %d\n", edit_list_index);*/
           edit_list_media_time = 
             sample_table->edit_list_table[edit_list_index].media_time;
           edit_list_duration = 
@@ -1075,22 +1086,22 @@ static qt_error build_frame_table(qt_sample_table *sample_table,
            * expire (so set it to an absurdly large value) */
           if (edit_list_index == sample_table->edit_list_count)
             edit_list_duration = 0xFFFFFFFFFFFF;
-//printf ("edit list table exists: %d, %lld\n", edit_list_media_time, edit_list_duration);
+/*printf ("edit list table exists: %d, %lld\n", edit_list_media_time, edit_list_duration);*/
         } else {
           edit_list_media_time = 0;
           edit_list_duration = 0xFFFFFFFFFFFF;
-//printf ("no edit list table (or expired): %d, %lld\n", edit_list_media_time, edit_list_duration);
+/*printf ("no edit list table (or expired): %d, %lld\n", edit_list_media_time, edit_list_duration);*/
         }
       }
 
-//printf ("(after) pts = %lld...\n", sample_table->frames[i].pts);
+/*printf ("(after) pts = %lld...\n", sample_table->frames[i].pts);*/
     }
 
     /* compute final pts values */
     for (i = 0; i < sample_table->frame_count; i++) {
       sample_table->frames[i].pts *= 90000;
       sample_table->frames[i].pts /= sample_table->timescale;
-//printf (" final pts for sample %d = %lld\n", i, sample_table->frames[i].pts);
+/*printf (" final pts for sample %d = %lld\n", i, sample_table->frames[i].pts);*/
     }
 
   } else {
@@ -1448,7 +1459,8 @@ static void *demux_qt_loop (void *this_gen) {
        * must be time to send a new pts */
       if (this->last_frame + 1 != this->current_frame) {
         /* send new pts */
-        xine_demux_control_newpts(this->xine, this->qt->frames[i].pts, BUF_FLAG_SEEK);
+        xine_demux_control_newpts(this->stream, this->qt->frames[i].pts, 
+          this->qt->frames[i].pts ? BUF_FLAG_SEEK : 0);
       }
 
       this->last_frame = this->current_frame;
@@ -1501,7 +1513,7 @@ static void *demux_qt_loop (void *this_gen) {
         }
 
 /*
-printf ("hey %d) video frame, size %d, pts %lld, duration %d\n",
+printf ("%d) video frame, size %d, pts %lld, duration %d\n",
   i, 
   this->qt->frames[i].size,
   this->qt->frames[i].pts,
@@ -1548,7 +1560,7 @@ printf ("hey %d) video frame, size %d, pts %lld, duration %d\n",
           SEEK_SET);
 
 /*
-printf ("you %d) audio frame, size %d, pts %lld\n",
+printf ("%d) audio frame, size %d, pts %lld\n",
   i, 
   this->qt->frames[i].size,
   this->qt->frames[i].pts);
@@ -1607,7 +1619,7 @@ printf ("you %d) audio frame, size %d, pts %lld\n",
   this->status = DEMUX_FINISHED;
 
   if (this->send_end_buffers) {
-    xine_demux_control_end(this->xine, BUF_FLAG_END_STREAM);
+    xine_demux_control_end(this->stream, BUF_FLAG_END_STREAM);
   }
 
   this->thread_running = 0;
@@ -1615,28 +1627,18 @@ printf ("you %d) audio frame, size %d, pts %lld\n",
   return NULL;
 }
 
-static int demux_qt_send_headers (demux_qt_t *this) {
+static void demux_qt_send_headers(demux_plugin_t *this_gen) {
 
-  pthread_mutex_lock (&this->mutex);
+  demux_qt_t *this = (demux_qt_t *) this_gen;
+  buf_element_t *buf;
 
-  this->video_fifo  = this->xine->video_fifo;
-  this->audio_fifo  = this->xine->audio_fifo;
+printf ("sending qt headers\n");
+  pthread_mutex_lock(&this->mutex);
+
+  this->video_fifo  = this->stream->video_fifo;
+  this->audio_fifo  = this->stream->audio_fifo;
 
   this->status = DEMUX_OK;
-
-  /* create the QT structure */
-  if ((this->qt = create_qt_info()) == NULL) {
-    pthread_mutex_unlock(&this->mutex);
-    this->status = DEMUX_FINISHED;
-    return DEMUX_CANNOT_HANDLE;
-  }
-
-  /* open the QT file */
-  if (open_qt_file(this->qt, this->input) != QT_OK) {
-    pthread_mutex_unlock(&this->mutex);
-    this->status = DEMUX_FINISHED;
-    return DEMUX_CANNOT_HANDLE;
-  }
 
   this->data_start = this->qt->frames[0].offset;
   this->data_size =
@@ -1656,87 +1658,87 @@ static int demux_qt_send_headers (demux_qt_t *this) {
    */
   if( this->qt->video_type == BUF_VIDEO_MSMPEG4_V1 )
     this->qt->video_type = BUF_VIDEO_MPEG4;
-    
   if( !this->qt->video_type && this->qt->video_codec )
-    xine_report_codec( this->xine, XINE_CODEC_VIDEO, this->bih.biCompression, 0, 0);
+    xine_report_codec( this->stream, XINE_CODEC_VIDEO, this->bih.biCompression, 0, 0);
 
   this->qt->audio_type = formattag_to_buf_audio(this->qt->audio_codec);
-    
-  if( !this->qt->audio_type && this->qt->audio_codec )
-    xine_report_codec( this->xine, XINE_CODEC_AUDIO, this->qt->audio_codec, 0, 0);
 
-  /* load the stream information */
-  this->xine->stream_info[XINE_STREAM_INFO_VIDEO_WIDTH]  = this->bih.biWidth;
-  this->xine->stream_info[XINE_STREAM_INFO_VIDEO_HEIGHT] = this->bih.biHeight;
-  this->xine->stream_info[XINE_STREAM_INFO_AUDIO_CHANNELS] =
+  if( !this->qt->audio_type && this->qt->audio_codec )
+    xine_report_codec( this->stream, XINE_CODEC_AUDIO, this->qt->audio_codec, 0, 0);
+
+  /* load stream information */
+  this->stream->stream_info[XINE_STREAM_INFO_HAS_VIDEO] =
+    (this->qt->video_type) ? 1 : 0;
+  this->stream->stream_info[XINE_STREAM_INFO_HAS_AUDIO] =
+    (this->qt->audio_type) ? 1 : 0;
+  this->stream->stream_info[XINE_STREAM_INFO_VIDEO_WIDTH]  = this->bih.biWidth;
+  this->stream->stream_info[XINE_STREAM_INFO_VIDEO_HEIGHT] = this->bih.biHeight;
+  this->stream->stream_info[XINE_STREAM_INFO_AUDIO_CHANNELS] =
     this->qt->audio_channels;
-  this->xine->stream_info[XINE_STREAM_INFO_AUDIO_SAMPLERATE] =
+  this->stream->stream_info[XINE_STREAM_INFO_AUDIO_SAMPLERATE] =
     this->qt->audio_sample_rate;
-  this->xine->stream_info[XINE_STREAM_INFO_AUDIO_BITS] =
+  this->stream->stream_info[XINE_STREAM_INFO_AUDIO_BITS] =
     this->qt->audio_bits;
 
-  xine_demux_control_headers_done (this->xine);
+  /* send start buffers */
+  xine_demux_control_start(this->stream);
+
+  /* send init info to decoders */
+  buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
+  buf->decoder_flags = BUF_FLAG_HEADER;
+  buf->decoder_info[0] = 0;
+  buf->decoder_info[1] = 3000;  /* initial video_step */
+  memcpy(buf->content, &this->bih, sizeof(this->bih));
+  buf->size = sizeof(this->bih);
+  buf->type = this->qt->video_type;
+  this->video_fifo->put (this->video_fifo, buf);
+      
+  /* send header info to decoder. some mpeg4 streams need this */
+  if( this->qt->video_decoder_config ) {
+    buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
+    buf->type = this->qt->video_type;
+    buf->size = this->qt->video_decoder_config_len;
+    buf->content = this->qt->video_decoder_config;      
+    this->video_fifo->put (this->video_fifo, buf);
+  }
+
+  /* send off the palette, if there is one */
+  if (this->qt->palette_count) {
+    buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
+    buf->decoder_flags = BUF_FLAG_SPECIAL;
+    buf->decoder_info[1] = BUF_SPECIAL_PALETTE;
+    buf->decoder_info[2] = this->qt->palette_count;
+    buf->decoder_info[3] = (unsigned int)&this->qt->palette;
+    buf->size = 0;
+    buf->type = this->qt->video_type;
+    this->video_fifo->put (this->video_fifo, buf);
+  }
+
+  if (this->audio_fifo && this->qt->audio_type) {
+    buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
+    buf->type = this->qt->audio_type;
+    buf->decoder_flags = BUF_FLAG_HEADER;
+    buf->decoder_info[0] = 0;
+    buf->decoder_info[1] = this->qt->audio_sample_rate;
+    buf->decoder_info[2] = this->qt->audio_bits;
+    buf->decoder_info[3] = this->qt->audio_channels;
+    this->audio_fifo->put (this->audio_fifo, buf);
+    
+    if( this->qt->audio_decoder_config ) {
+      buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
+      buf->type = this->qt->audio_type;
+      buf->size = 0;
+      buf->decoder_flags = BUF_FLAG_SPECIAL;
+      buf->decoder_info[1] = BUF_SPECIAL_DECODER_CONFIG;
+      buf->decoder_info[2] = this->qt->audio_decoder_config_len;
+      buf->decoder_info[3] = (uint32_t)this->qt->audio_decoder_config;
+      this->audio_fifo->put (this->audio_fifo, buf);
+    }
+  }
+
+  xine_demux_control_headers_done (this->stream);
 
   pthread_mutex_unlock (&this->mutex);
-
-  return DEMUX_CAN_HANDLE;
-}
-
-static int demux_qt_open(demux_plugin_t *this_gen,
-                         input_plugin_t *input, int stage) {
-
-  demux_qt_t *this = (demux_qt_t *) this_gen;
-
-  this->input = input;
-
-  switch(stage) {
-  case STAGE_BY_CONTENT: {
-    if ((input->get_capabilities(input) & INPUT_CAP_SEEKABLE) == 0)
-      return DEMUX_CANNOT_HANDLE;
-
-    if (is_qt_file(input))
-      return demux_qt_send_headers(this);
-
-    return DEMUX_CANNOT_HANDLE;
-  }
-  break;
-
-  case STAGE_BY_EXTENSION: {
-    char *suffix;
-    char *MRL;
-    char *m, *valid_ends;
-
-    MRL = input->get_mrl (input);
-
-    suffix = strrchr(MRL, '.');
-
-    if(!suffix)
-      return DEMUX_CANNOT_HANDLE;
-
-    xine_strdupa(valid_ends, (this->config->register_string(this->config,
-							    "mrl.ends_qt", VALID_ENDS,
-							    _("valid mrls ending for qt demuxer"),
-							    NULL, 20, NULL, NULL)));
-    while((m = xine_strsep(&valid_ends, ",")) != NULL) {
-
-      while(*m == ' ' || *m == '\t') m++;
-
-      if(!strcasecmp((suffix + 1), m)) {
-        if (is_qt_file(input))
-          return demux_qt_send_headers(this);
-      }
-    }
-    return DEMUX_CANNOT_HANDLE;
-  }
-  break;
-
-  default:
-    return DEMUX_CANNOT_HANDLE;
-    break;
-
-  }
-
-  return DEMUX_CANNOT_HANDLE;
 }
 
 static int demux_qt_seek (demux_plugin_t *this_gen,
@@ -1745,7 +1747,6 @@ static int demux_qt_seek (demux_plugin_t *this_gen,
 static int demux_qt_start (demux_plugin_t *this_gen,
                            off_t start_pos, int start_time) {
   demux_qt_t *this = (demux_qt_t *) this_gen;
-  buf_element_t *buf;
   int err;
 
   /* perform a seek with the start_pos before starting the demuxer */
@@ -1755,89 +1756,6 @@ static int demux_qt_start (demux_plugin_t *this_gen,
 
   /* if thread is not running, initialize demuxer */
   if (!this->thread_running) {
-
-    /* print vital stats */
-    xine_log (this->xine, XINE_LOG_MSG,
-      _("demux_qt: Apple Quicktime file, %srunning time: %d min, %d sec\n"),
-      (this->qt->compressed_header) ? "compressed header, " : "",
-      this->qt->duration / this->qt->timescale / 60,
-      this->qt->duration / this->qt->timescale % 60);
-    if (this->qt->video_codec)
-      xine_log (this->xine, XINE_LOG_MSG,
-        _("demux_qt: '%c%c%c%c' video @ %dx%d\n"),
-        *((char *)&this->qt->video_codec + 0),
-        *((char *)&this->qt->video_codec + 1),
-        *((char *)&this->qt->video_codec + 2),
-        *((char *)&this->qt->video_codec + 3),
-        this->bih.biWidth,
-        this->bih.biHeight);
-    if (this->qt->audio_codec)
-      xine_log (this->xine, XINE_LOG_MSG,
-        _("demux_qt: '%c%c%c%c' audio @ %d Hz, %d bits, %d %s\n"),
-        *((char *)&this->qt->audio_codec + 0),
-        *((char *)&this->qt->audio_codec + 1),
-        *((char *)&this->qt->audio_codec + 2),
-        *((char *)&this->qt->audio_codec + 3),
-        this->qt->audio_sample_rate,
-        this->qt->audio_bits,
-        this->qt->audio_channels,
-        ngettext("channel", "channels", this->qt->audio_channels));
-
-    /* send start buffers */
-    xine_demux_control_start(this->xine);
-
-    /* send init info to decoders */
-    buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-    buf->decoder_flags = BUF_FLAG_HEADER;
-    buf->decoder_info[0] = 0;
-    buf->decoder_info[1] = 3000;  /* initial video_step */
-    memcpy(buf->content, &this->bih, sizeof(this->bih));
-    buf->size = sizeof(this->bih);
-    buf->type = this->qt->video_type;
-    this->video_fifo->put (this->video_fifo, buf);
-      
-    /* send header info to decoder. some mpeg4 streams need this */
-    if( this->qt->video_decoder_config ) {
-      buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-      buf->type = this->qt->video_type;
-      buf->size = this->qt->video_decoder_config_len;
-      buf->content = this->qt->video_decoder_config;      
-      this->video_fifo->put (this->video_fifo, buf);
-    }
-
-    /* send off the palette, if there is one */
-    if (this->qt->palette_count) {
-      buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-      buf->decoder_flags = BUF_FLAG_SPECIAL;
-      buf->decoder_info[1] = BUF_SPECIAL_PALETTE;
-      buf->decoder_info[2] = this->qt->palette_count;
-      buf->decoder_info[3] = (unsigned int)&this->qt->palette;
-      buf->size = 0;
-      buf->type = this->qt->video_type;
-      this->video_fifo->put (this->video_fifo, buf);
-    }
-
-    if (this->audio_fifo && this->qt->audio_type) {
-      buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
-      buf->type = this->qt->audio_type;
-      buf->decoder_flags = BUF_FLAG_HEADER;
-      buf->decoder_info[0] = 0;
-      buf->decoder_info[1] = this->qt->audio_sample_rate;
-      buf->decoder_info[2] = this->qt->audio_bits;
-      buf->decoder_info[3] = this->qt->audio_channels;
-      this->audio_fifo->put (this->audio_fifo, buf);
-    
-      if( this->qt->audio_decoder_config ) {
-        buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
-        buf->type = this->qt->audio_type;
-        buf->size = 0;
-        buf->decoder_flags = BUF_FLAG_SPECIAL;
-        buf->decoder_info[1] = BUF_SPECIAL_DECODER_CONFIG;
-        buf->decoder_info[2] = this->qt->audio_decoder_config_len;
-        buf->decoder_info[3] = (uint32_t)this->qt->audio_decoder_config;
-        this->audio_fifo->put (this->audio_fifo, buf);
-      }
-    }
 
     this->status = DEMUX_OK;
     this->send_end_buffers = 1;
@@ -1923,7 +1841,7 @@ static int demux_qt_seek (demux_plugin_t *this_gen,
   this->current_frame = best_index;
   this->status = DEMUX_OK;
 
-  xine_demux_flush_engine(this->xine);
+  xine_demux_flush_engine(this->stream);
 
   pthread_mutex_unlock( &this->mutex );
 
@@ -1950,9 +1868,9 @@ static void demux_qt_stop (demux_plugin_t *this_gen) {
   pthread_mutex_unlock( &this->mutex );
   pthread_join (this->thread, &p);
 
-  xine_demux_flush_engine(this->xine);
+  xine_demux_flush_engine(this->stream);
 
-  xine_demux_control_end(this->xine, BUF_FLAG_END_USER);
+  xine_demux_control_end(this->stream, BUF_FLAG_END_USER);
 }
 
 static void demux_qt_dispose (demux_plugin_t *this_gen) {
@@ -1966,51 +1884,165 @@ static void demux_qt_dispose (demux_plugin_t *this_gen) {
 static int demux_qt_get_status (demux_plugin_t *this_gen) {
   demux_qt_t *this = (demux_qt_t *) this_gen;
 
-  return this->status;
+  return (this->thread_running?DEMUX_OK:DEMUX_FINISHED);
 }
 
-static char *demux_qt_get_id(void) {
-  return "QUICKTIME";
-}
-
-static char *demux_qt_get_mimetypes(void) {
-  return "video/quicktime: mov,qt: Quicktime animation;"
-         "video/x-quicktime: mov,qt: Quicktime animation;";
-}
-
-/* return the approximate length in seconds */
 static int demux_qt_get_stream_length (demux_plugin_t *this_gen) {
 
   demux_qt_t *this = (demux_qt_t *) this_gen;
 
-  return this->qt->duration / this->qt->timescale;
+  return (this->qt->duration / this->qt->timescale);
 }
 
-static void *init_demuxer_plugin (xine_t *xine, void *data) {
+static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *stream,
+                                    input_plugin_t *input_gen) {
 
-  demux_qt_t      *this;
+  input_plugin_t *input = (input_plugin_t *) input_gen;
+  demux_qt_t     *this;
+
+  if (! (input->get_capabilities(input) & INPUT_CAP_SEEKABLE)) {
+    printf(_("demux_qt.c: input not seekable, can not handle!\n"));
+    return NULL;
+  }
 
   this         = xine_xmalloc (sizeof (demux_qt_t));
-  this->config = xine->config;
-  this->xine   = xine;
+  this->stream = stream;
+  this->input  = input;
 
-  (void*) this->config->register_string(this->config,
-                                        "mrl.ends_qt", VALID_ENDS,
-                                        _("valid mrls ending for qt demuxer"),
-                                        NULL, 20, NULL, NULL);
-
-  this->demux_plugin.open              = demux_qt_open;
+  this->demux_plugin.send_headers      = demux_qt_send_headers;
   this->demux_plugin.start             = demux_qt_start;
   this->demux_plugin.seek              = demux_qt_seek;
   this->demux_plugin.stop              = demux_qt_stop;
   this->demux_plugin.dispose           = demux_qt_dispose;
   this->demux_plugin.get_status        = demux_qt_get_status;
-  this->demux_plugin.get_identifier    = demux_qt_get_id;
   this->demux_plugin.get_stream_length = demux_qt_get_stream_length;
-  this->demux_plugin.get_mimetypes     = demux_qt_get_mimetypes;
+  this->demux_plugin.demux_class       = class_gen;
 
   this->status = DEMUX_FINISHED;
-  pthread_mutex_init( &this->mutex, NULL );
+  pthread_mutex_init (&this->mutex, NULL);
+
+  switch (stream->content_detection_method) {
+
+  case METHOD_BY_CONTENT:
+
+    if ((this->qt = create_qt_info()) == NULL) {
+      free (this);
+      return NULL;
+    }
+    if (open_qt_file(this->qt, this->input) != QT_OK) {
+      free (this);
+      return NULL;
+    }
+
+  break;
+
+  case METHOD_BY_EXTENSION: {
+    char *ending, *mrl;
+
+    mrl = input->get_mrl (input);
+
+    ending = strrchr(mrl, '.');
+
+    if (!ending) {
+      free (this);
+      return NULL;
+    }
+
+    if (strncasecmp (ending, ".mov", 4) &&
+        strncasecmp (ending, ".qt", 3) &&
+        strncasecmp (ending, ".mp4", 4)) {
+      free (this);
+      return NULL;
+    }
+
+    if ((this->qt = create_qt_info()) == NULL) {
+      free (this);
+      return NULL;
+    }
+    if (open_qt_file(this->qt, this->input) != QT_OK) {
+      free (this);
+      return NULL;
+    }
+
+  }
+
+  break;
+
+  default:
+    free (this);
+    return NULL;
+  }
+
+  strncpy (this->last_mrl, input->get_mrl (input), 1024);
+
+  /* print vital stats */
+  xine_log (this->stream->xine, XINE_LOG_MSG,
+    _("demux_qt: Apple Quicktime file, %srunning time: %d min, %d sec\n"),
+    (this->qt->compressed_header) ? "compressed header, " : "",
+    this->qt->duration / this->qt->timescale / 60,
+    this->qt->duration / this->qt->timescale % 60);
+  if (this->qt->video_codec)
+    xine_log (this->stream->xine, XINE_LOG_MSG,
+      _("demux_qt: '%c%c%c%c' video @ %dx%d\n"),
+      *((char *)&this->qt->video_codec + 0),
+      *((char *)&this->qt->video_codec + 1),
+      *((char *)&this->qt->video_codec + 2),
+      *((char *)&this->qt->video_codec + 3),
+      this->qt->video_width,
+      this->qt->video_height);
+  if (this->qt->audio_codec)
+    xine_log (this->stream->xine, XINE_LOG_MSG,
+      _("demux_qt: '%c%c%c%c' audio @ %d Hz, %d bits, %d %s\n"),
+      *((char *)&this->qt->audio_codec + 0),
+      *((char *)&this->qt->audio_codec + 1),
+      *((char *)&this->qt->audio_codec + 2),
+      *((char *)&this->qt->audio_codec + 3),
+      this->qt->audio_sample_rate,
+      this->qt->audio_bits,
+      this->qt->audio_channels,
+      ngettext("channel", "channels", this->qt->audio_channels));
+
+  return &this->demux_plugin;
+}
+
+static char *get_description (demux_class_t *this_gen) {
+  return "Apple Quicktime (MOV) and MPEG-4 demux plugin";
+}
+
+static char *get_identifier (demux_class_t *this_gen) {
+  return "MOV/MPEG-4";
+}
+
+static char *get_extensions (demux_class_t *this_gen) {
+  return "mov,qt,mp4";
+}
+
+static char *get_mimetypes (demux_class_t *this_gen) {
+  return "video/quicktime: mov,qt: Quicktime animation;"
+         "video/x-quicktime: mov,qt: Quicktime animation;";
+}
+
+static void class_dispose (demux_class_t *this_gen) {
+
+  demux_qt_class_t *this = (demux_qt_class_t *) this_gen;
+
+  free (this);
+}
+
+static void *init_plugin (xine_t *xine, void *data) {
+
+  demux_qt_class_t     *this;
+
+  this         = xine_xmalloc (sizeof (demux_qt_class_t));
+  this->config = xine->config;
+  this->xine   = xine;
+
+  this->demux_class.open_plugin     = open_plugin;
+  this->demux_class.get_description = get_description;
+  this->demux_class.get_identifier  = get_identifier;
+  this->demux_class.get_mimetypes   = get_mimetypes;
+  this->demux_class.get_extensions  = get_extensions;
+  this->demux_class.dispose         = class_dispose;
 
   return this;
 }
@@ -2021,6 +2053,6 @@ static void *init_demuxer_plugin (xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_DEMUX, 11, "mov", XINE_VERSION_CODE, NULL, init_demuxer_plugin },
+  { PLUGIN_DEMUX, 14, "quicktime", XINE_VERSION_CODE, NULL, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
