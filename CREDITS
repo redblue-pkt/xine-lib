@@ -1,0 +1,22 @@
+external projects used in libxine and its plugins
+=================================================
+
+This list is provided to give credit to the external project maintainers
+that their work is used in xine.
+
+It is also useful to track the versioning and see, which copy of an
+external lib needs updating and who (if anyone) is usually doing these
+updates (the word 'maintainer' is intentionally avoided here).
+
+
+project				version			mediator
+-----------------------------------------------------------------------
+
+ffmpeg							Miguel Freitas
+liba52				0.7.4
+libdvdnav			0.1.4 cvs		Michael Roitzsch
+libdvdread			0.9.3 cvs		Michael Roitzsch
+libfaad							Miguel Freitas
+libmad
+libmpeg2
+libmpg123
