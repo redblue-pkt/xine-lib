@@ -811,7 +811,7 @@ static void WINAPI expGetSystemInfo(SYSTEM_INFO* si)
     /* FIXME: better values for the two entries below... */
     static int cache = 0;
     static SYSTEM_INFO cachedsi;
-    unsigned int regs[4];
+    /* unsigned int regs[4]; -- Unused*/
     dbgprintf("GetSystemInfo(%p) =>\n", si);
 
     if (cache) {
@@ -1535,7 +1535,7 @@ static int WINAPI expLoadStringA(long instance, long  id, void* buf, long size)
 
 static long WINAPI expMultiByteToWideChar(long v1, long v2, char* s1, long siz1, short* s2, int siz2)
 {
-#warning FIXME
+// #warning FIXME
     int i;
     int result;
     if(s2==0)
@@ -1604,7 +1604,7 @@ static HANDLE WINAPI expCreateSemaphoreA(char* v1, long init_count,
 {
     pthread_mutex_t *pm;
     pthread_cond_t  *pc;
-    mutex_list* pp;
+    /* mutex_list* pp; -- unused */
     /*
      printf("CreateSemaphoreA(%p = %s)\n", name, (name ? name : "<null>"));
      pp=mlist;
@@ -2015,7 +2015,7 @@ static LPCSTR WINAPI expGetEnvironmentStrings()
 
 static int WINAPI expGetStartupInfoA(STARTUPINFOA *s)
 {
-    int i;
+    /* int i; -- unused */
     dbgprintf("GetStartupInfoA(0x%x) => 1\n");
     memset(s, 0, sizeof(*s));
     s->cb=sizeof(*s);
@@ -2104,7 +2104,7 @@ static int WINAPI expLoadLibraryA(char* name)
 {
     int result = 0;
     char* lastbc;
-    int i;
+    /* int i; */
     if (!name)
 	return -1;
     // we skip to the last backslash
@@ -2360,7 +2360,7 @@ static int WINAPI expWritePrivateProfileStringA(const char* appname,
 						const char* string,
 						const char* filename)
 {
-    int size=256;
+    /* int size=256; */
     char* fullname;
     dbgprintf("WritePrivateProfileStringA('%s', '%s', '%s', '%s')", appname, keyname, string, filename );
     if(!(appname && keyname && filename) )
@@ -2536,7 +2536,7 @@ static int WINAPI expGetProcessVersion(int pid)
 }
 static int WINAPI expGetCurrentThread(void)
 {
-#warning FIXME!
+/* #warning FIXME! -- Worry about it later :) */
     dbgprintf("GetCurrentThread() => %x\n", 0xcfcf9898);
     return 0xcfcf9898;
 }
@@ -2664,7 +2664,7 @@ static int WINAPI expGetSystemTime(SYSTEMTIME* systime)
 
 static int WINAPI expGetEnvironmentVariableA(const char* name, char* field, int size)
 {
-    char *p;
+    /* char *p; */
     //    printf("%s %x %x\n", name, field, size);
     if(field)field[0]=0;
     /*
@@ -3759,7 +3759,7 @@ struct libs libraries[]={
     LL(msdmo)
 };
 
-static char* called_unk = "Called unk_%s\n";
+/* static char* called_unk = "Called unk_%s\n"; -- unused */
 static void ext_stubs(void)
 {
     // expects:
@@ -3834,7 +3834,7 @@ void* LookupExternal(const char* library, int ordinal)
 
 void* LookupExternalByName(const char* library, const char* name)
 {
-    char* answ;
+    /* char* answ; -- unused */
     int i,j;
     //   return (void*)ext_unknown;
     if(library==0)

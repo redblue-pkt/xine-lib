@@ -83,7 +83,7 @@ DS_Filter* DS_FilterCreate(const char* dllname, const GUID* id,
 			   AM_MEDIA_TYPE* out_fmt)
 {
     int init = 0;
-    char eb[250];
+    /* char eb[250]; -- unused */
     const char* em = NULL;
     DS_Filter* This = (DS_Filter*) malloc(sizeof(DS_Filter));
     if (!This)

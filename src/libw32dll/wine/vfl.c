@@ -349,7 +349,7 @@ LRESULT VFWAPI
 ICSendMessage(HIC hic,unsigned int msg,long lParam1,long lParam2) {
 	LRESULT		ret;
 	WINE_HIC	*whic = (WINE_HIC*)hic;
-	char qw[200];
+	/* char qw[200]; -- unused*/
 
 //    printf("ICSendMessage.whic=%p\n",whic);
 

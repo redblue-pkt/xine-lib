@@ -255,7 +255,7 @@ static char* build_keyname(long key, const char* subkey)
 }
 static struct reg_value* insert_reg_value(int handle, const char* name, int type, const void* value, int len)
 {
-	reg_handle_t* t;
+	/* reg_handle_t* t; -- unused */
 	struct reg_value* v;
 	char* fullname;
 	if((fullname=build_keyname(handle, name))==NULL)
@@ -328,6 +328,8 @@ static void init_registry(void)
 	insert_handle(HKEY_CURRENT_USER, "HKCU");
 }
 
+#if 0
+/* UNUSED function */
 static reg_handle_t* find_handle_2(long key, const char* subkey)
 {
 	char* full_name;
@@ -347,6 +349,7 @@ static reg_handle_t* find_handle_2(long key, const char* subkey)
 	free(full_name);
 	return t;
 }
+#endif
 
 long RegOpenKeyExA(long key, const char* subkey, long reserved, long access, int* newkey)
 {
@@ -502,7 +505,7 @@ long RegEnumValueA(HKEY hkey, DWORD index, LPSTR value, LPDWORD val_count,
 
 long RegSetValueExA(long key, const char* name, long v1, long v2, const void* data, long size)
 {
-    struct reg_value* t;
+    /* struct reg_value* t; -- unused */
     char* c;
     TRACE("Request to set value %s\n", name);
     if(!regs)
