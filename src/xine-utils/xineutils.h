@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xineutils.h,v 1.79 2004/01/07 22:20:59 jstembridge Exp $
+ * $Id: xineutils.h,v 1.80 2004/03/03 19:59:43 mroi Exp $
  *
  */
 #ifndef XINEUTILS_H
@@ -719,10 +719,11 @@ static inline char *_private_strsep(char **stringp, const char *delim) {
 #else
 static inline void _private_setenv(const char *name, const char *val, int _xx) {
   int  len  = strlen(name) + strlen(val) + 2;
-  char env[len];
+  char *env = (char *)malloc(len);
   
   sprintf(env, "%s%c%s", name, '=', val);
   putenv(env);
+  free(env);
 }
 #define	xine_setenv	_private_setenv
 #endif
