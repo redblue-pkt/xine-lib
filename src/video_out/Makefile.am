@@ -1,12 +1,14 @@
 include $(top_srcdir)/misc/Makefile.common
 
-if HAVE_MACOSX_VIDEO
-macosx_subdirs = macosx
-endif
+# if HAVE_MACOSX_VIDEO
+# macosx_subdirs = macosx
+# endif
 
-SUBDIRS = libdha vidix $(macosx_subdirs)
+# SUBDIRS = libdha vidix $(macosx_subdirs)
+SUBDIRS = libdha vidix
 
-EXTRA_DIST = video_out_directfb.c video_out_opengl.c video_out_directx.c video_out_macosx.c
+# EXTRA_DIST = video_out_directfb.c video_out_opengl.c video_out_directx.c video_out_macosx.c
+EXTRA_DIST = video_out_directfb.c video_out_opengl.c video_out_directx.c
 
 VIDIX_CFLAGS = -I$(top_builddir)/src/video_out/vidix \
 	-I$(top_srcdir)/src/video_out/vidix
@@ -74,9 +76,9 @@ if HAVE_DIRECTX
 directx_module = xineplug_vo_out_directx.la
 endif
 
-if HAVE_MACOSX_VIDEO
-macosx_module = xineplug_vo_out_macosx.la
-endif
+# if HAVE_MACOSX_VIDEO
+# macosx_module = xineplug_vo_out_macosx.la
+# endif
 
 
 # important:
@@ -95,8 +97,8 @@ lib_LTLIBRARIES = $(xshm_module) $(xv_module) $(xvmc_module) \
                   $(stk_module) \
                   $(directx_module) \
                   $(caca_module) \
-		  $(macosx_module) \
                   xineplug_vo_out_none.la
+#		  $(macosx_module) 
 
 xineplug_vo_out_xshm_la_SOURCES = yuv2rgb.c yuv2rgb_mmx.c yuv2rgb_mlib.c \
 	alphablend.c video_out_xshm.c $(X11OSD)
@@ -169,13 +171,13 @@ xineplug_vo_out_none_la_SOURCES =  video_out_none.c
 xineplug_vo_out_none_la_LIBADD = $(XINE_LIB)
 xineplug_vo_out_none_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
-if HAVE_MACOSX_VIDEO
-xineplug_vo_out_macosx_la_SOURCES =  alphablend.c video_out_macosx.m
-xineplug_vo_out_macosx_la_LIBADD = $(MLIB_LIBS) $(OPENGL_LIBS) $(GLUT_LIBS) \
-        $(GLU_LIBS) $(X_LIBS) $(XINE_LIB) macosx/libxine_macosx_video.la
-xineplug_vo_out_macosx_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@ -framework Cocoa -framework OpenGL -lobjc -umbrella AppKit
-xineplug_vo_out_macosx_la_OBJCFLAGS = $(OBJCFLAGS) $(AM_CFLAGS)
-endif
+#if HAVE_MACOSX_VIDEO
+#xineplug_vo_out_macosx_la_SOURCES =  alphablend.c video_out_macosx.m
+#xineplug_vo_out_macosx_la_LIBADD = $(MLIB_LIBS) $(OPENGL_LIBS) $(GLUT_LIBS) \
+#        $(GLU_LIBS) $(X_LIBS) $(XINE_LIB) macosx/libxine_macosx_video.la
+#xineplug_vo_out_macosx_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@ -framework Cocoa -framework OpenGL -lobjc -umbrella AppKit
+#xineplug_vo_out_macosx_la_OBJCFLAGS = $(OBJCFLAGS) $(AM_CFLAGS)
+#endif
 
 noinst_HEADERS = alphablend.h deinterlace.h video_out_syncfb.h \
 	yuv2rgb.h x11osd.h

@@ -1613,17 +1613,17 @@ case "$host_or_hostalias" in
     CFLAGS="-O3 -pipe -fomit-frame-pointer $m_wm $m_psb -fexpensive-optimizations $f_si $f_nsa -ffast-math -funroll-loops -finline-functions -no-cpp-precomp -D_INTL_REDIRECT_MACROS $CFLAGS"
     CXXFLAGS="${CXXFLAGS} -no-cpp-precomp -D_INTL_REDIRECT_MACROS"
     #EBUG_CFLAGS="-O3 $DEBUG_CFLAGS"
-    OBJCFLAGS="${CXXFLAGS} -fconstant-string-class=NSConstantString"
+    dnl OBJCFLAGS="${CXXFLAGS} -fconstant-string-class=NSConstantString"
     AC_SUBST(OBJCFLAGS)
     dnl avoid ppc compilation crash
     AS="$CC"
     AC_DEFINE_UNQUOTED(FPM_PPC,,[Define to select libmad fixed point arithmetic implementation])
     AC_DEFINE_UNQUOTED(ARCH_PPC,,[Define this if you're running PowerPC architecture])
 	    
-    OBJC='gcc'
-    AC_SUBST(OBJC)
-    OBJCDEPMODE="depmode=gcc3"
-    AC_SUBST(OBJCDEPMODE)
+    dnl OBJC='gcc'
+    dnl AC_SUBST(OBJC)
+    dnl OBJCDEPMODE="depmode=gcc3"
+    dnl AC_SUBST(OBJCDEPMODE)
 
     host_os_darwin="yes"
     ;;
@@ -2072,7 +2072,6 @@ src/video_out/libdha/oth/Makefile
 src/video_out/libdha/sysdep/Makefile
 src/video_out/vidix/Makefile
 src/video_out/vidix/drivers/Makefile
-src/video_out/macosx/Makefile
 src/xine-utils/Makefile
 src/xine-engine/Makefile
 src/xine-engine/xineintl.h])
