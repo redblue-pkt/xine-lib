@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: deinterlace.c,v 1.1 2003/05/28 04:28:43 miguelfreitas Exp $
+ * $Id: deinterlace.c,v 1.2 2003/05/28 12:21:53 miguelfreitas Exp $
  */
  
 /*
@@ -60,11 +60,12 @@ static struct {
 } deinterlace_method[] =
 {
   { "by driver", NULL, 0 },
-  { "bob MMX", deinterlace_bob_mmx, MM_MMX },
-  { "weave MMX", deinterlace_weave_mmx, MM_MMX },
-  { "greedy MMX", deinterlace_greedy_mmx, MM_MMX },
-  { "linearblend MMX", deinterlace_linearblend_mmx, MM_MMX },
-  { "linearblend", deinterlace_linearblend, 0 },
+  { "bob MMX", NULL /*deinterlace_bob_mmx*/, MM_MMX },
+  { "weave MMX", NULL /*deinterlace_weave_mmx*/, MM_MMX },
+  { "greedy MMX", NULL /*deinterlace_greedy_mmx*/, MM_MMX },
+  { "non supported", NULL, 9999999 },
+  { "linearblend MMX", NULL /*deinterlace_linearblend_mmx*/, MM_MMX },
+  { "linearblend", NULL /*deinterlace_linearblend*/, 0 },
   { NULL, NULL, 0 }
 };
 
@@ -293,7 +294,6 @@ static void deinterlace_dispose(post_plugin_t *this_gen)
 
   free(this->post.xine_post.audio_input);
   free(this->post.xine_post.video_input);
-  free(xine_list_first_content(this->post.input));
   free(xine_list_first_content(this->post.input));
   free(xine_list_first_content(this->post.output));
   xine_list_free(this->post.input);
