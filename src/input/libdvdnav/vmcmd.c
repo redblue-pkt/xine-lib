@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: vmcmd.c,v 1.2 2002/08/27 19:24:33 mroi Exp $
+ * $Id: vmcmd.c,v 1.3 2003/02/20 16:02:01 mroi Exp $
  *
  */
 
@@ -34,6 +34,8 @@
 #include "vmcmd.h"
 #include "dvdnav_internal.h"
 
+
+#ifdef TRACE
 
 /*  freebsd compatibility */
 #ifndef PRIu8
@@ -486,4 +488,4 @@ void vmPrint_CMD(int row, vm_cmd_t *vm_command) {
   fprintf(MSG_OUT, "\n");
 }
 
-
+#endif

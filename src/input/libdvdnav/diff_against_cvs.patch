@@ -18,16 +18,11 @@
 -#include <dvdread/ifo_types.h> /*  vm_cmd_t */
 +#include "ifo_types.h" /*  vm_cmd_t */
  
- /* Uncomment for tracing */
- /* #define TRACE */
+ /* link command types */
+ typedef enum {
 --- src/input/libdvdnav/dvdnav.c	Wed Sep  4 12:50:34 2002
 +++ src/input/libdvdnav/dvdnav.c	Wed Sep  4 12:50:42 2002
-@@ -30,11 +30,11 @@
- */
- 
- #include <pthread.h>
--#include <dvdnav.h>
-+#include "dvdnav.h"
+@@ -33,7 +33,7 @@
  #include "dvdnav_internal.h"
  #include "read_cache.h"
  
@@ -36,7 +31,7 @@
  
  #include <stdlib.h>
  #include <stdio.h>
-@@ -183,7 +183,7 @@
+@@ -68,7 +68,7 @@
    struct timeval time;
    
    /* Create a new structure */
@@ -92,17 +87,22 @@
 +#include "ifo_types.h"
  
  
- /* Maximum length of an error string */
+ /* Uncomment for VM command tracing */
 --- src/input/libdvdnav/highlight.c	Wed Sep  4 12:50:34 2002
 +++ src/input/libdvdnav/highlight.c	Wed Sep  4 12:55:44 2002
-@@ -34,10 +34,10 @@
+@@ -30,7 +30,7 @@
  #include "dvdnav_internal.h"
  
  #include "vm.h"
 -#include <dvdread/nav_types.h>
 +#include "nav_types.h"
  
+ /*
+ #define BUTTON_TESTING
+@@ -38,7 +38,7 @@
+ 
  #ifdef BUTTON_TESTING
+ 
 -#include <dvdread/nav_print.h>
 +#include "nav_print.h"
  #include "vmcmd.h"
@@ -110,20 +110,15 @@
  static void print_time(dvd_time_t *dtime) {
 --- src/input/libdvdnav/searching.c	Fri Jul 26 12:58:10 2002
 +++ src/input/libdvdnav/searching.c	Fri Aug  9 22:03:20 2002
-@@ -25,11 +25,11 @@
- #include "config.h"
- #endif
- 
--#include <dvdnav.h>
-+#include "dvdnav.h"
+@@ -30,7 +30,7 @@
  #include "dvdnav_internal.h"
  
  #include "vm.h"
 -#include <dvdread/nav_types.h>
 +#include "nav_types.h"
  
- /* Searching API calls */
- 
+ /*
+ #define LOG_DEBUG
 --- src/input/libdvdnav/vm.c	Sat Jul  6 18:12:09 2002
 +++ src/input/libdvdnav/vm.c	Fri Aug  9 22:03:48 2002
 @@ -37,8 +37,8 @@
@@ -147,4 +142,4 @@
 +#include "ifo_types.h" /*  Only for vm_cmd_t  */
  #include "decoder.h"
  
- void vmPrint_mnemonic(vm_cmd_t *command);
+ #ifdef TRACE

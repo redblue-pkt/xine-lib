@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.128 2003/02/14 18:00:38 heikos Exp $
+ * $Id: input_dvd.c,v 1.129 2003/02/20 16:01:57 mroi Exp $
  *
  */
 
@@ -110,10 +110,6 @@
 
 /* Some misc. defines */
 #define DVD_BLOCK_SIZE 2048
-#ifndef BUF_DEMUX_BLOCK
-#define BUF_DEMUX_BLOCK 0x05000000
-#endif
-#define VIDEO_FILL_THROTTLE 5
 
 /* Debugging macros */
 #ifdef __GNUC__
@@ -159,8 +155,7 @@ typedef struct {
   char             *mrl;          /* Current MRL                     */
   int               mode;
   dvdnav_t         *dvdnav;       /* Handle for libdvdnav            */
-  char              dvd_name[128];
-  size_t            dvd_name_length;                   
+  const char       *dvd_name;
 /*
   xine_mrl_t           **mrls;
   int               num_mrls;
@@ -174,6 +169,7 @@ typedef struct {
   void            (*free_buffer)(buf_element_t *);
   int               mem_stack;
   unsigned char    *mem[1024];
+  int               freeing;
 } dvd_input_plugin_t;
 
 typedef struct {
@@ -198,7 +194,6 @@ typedef struct {
 } dvd_input_class_t;
 
 static void dvd_handle_events(dvd_input_plugin_t *this);
-static void flush_buffers(dvd_input_plugin_t *this);
 static void xine_dvd_send_button_update(dvd_input_plugin_t *this, int mode);
 
 /* Callback on device name change */
@@ -300,10 +295,10 @@ void update_title_display(dvd_input_plugin_t *this) {
   }
   ui_str_length = strlen(this->ui_title);
   
-  if (this->dvd_name[0] != 0 && (ui_str_length + this->dvd_name_length < MAX_STR_LEN)) {
-      snprintf(this->ui_title+ui_str_length, MAX_STR_LEN - ui_str_length, 
-	       ", %s",
-	       &this->dvd_name[0]);
+  if (this->dvd_name && this->dvd_name[0] &&
+      (ui_str_length + strlen(this->dvd_name) < MAX_STR_LEN)) {
+    snprintf(this->ui_title+ui_str_length, MAX_STR_LEN - ui_str_length, 
+	     ", %s", this->dvd_name);
   }
 #ifdef INPUT_DEBUG
   printf("input_dvd: Changing title to read '%s'\n", this->ui_title);
@@ -330,12 +325,10 @@ static void dvd_plugin_dispose (input_plugin_t *this_gen) {
   trace_print("Called\n");
   
   xine_event_dispose_queue (this->event_queue);
-  if(this->opened || this->dvdnav) 
-    dvdnav_close(this->dvdnav);
-  this->dvdnav = NULL;
-  this->opened = 0;
-  this->dvd_name[0]            = 0;
-  this->dvd_name_length        = 0;
+  dvdnav_close(this->dvdnav);
+  /* raise the freeing flag, so that the plugin will be freed as soon
+   * as all buffers have returned to the libdvdnav read ahead cache */
+  this->freeing = 1;
 }
 
 
@@ -438,6 +431,11 @@ static void dvd_plugin_free_buffer(buf_element_t *buf) {
   pthread_mutex_unlock(&this->buf_mutex);
   /* give this buffer back to xine's pool */
   buf->free_buffer(buf);
+  if (this->freeing && !this->mem_stack) {
+    /* all buffers returned, we can free the plugin now */
+    pthread_mutex_destroy(&this->buf_mutex);
+    free(this);
+  }
 }
 
 static buf_element_t *dvd_plugin_read_block (input_plugin_t *this_gen, 
@@ -476,8 +474,8 @@ static buf_element_t *dvd_plugin_read_block (input_plugin_t *this_gen,
     }
 
     switch(event) {
-     case DVDNAV_BLOCK_OK: 
-       {
+    case DVDNAV_BLOCK_OK: 
+      {
 	buf->content = block;
 	buf->type = BUF_DEMUX_BLOCK;
 
@@ -488,64 +486,57 @@ static buf_element_t *dvd_plugin_read_block (input_plugin_t *this_gen,
 	this->seekable = 1;
 	
 	finished = 1;
-       }
+      }
       break;
-     case DVDNAV_NOP:
-       {
-	/* Nothing */
-       }
+    case DVDNAV_NOP:
       break;
-     case DVDNAV_STILL_FRAME:
-     {
-
-       /* OK, So xine no-longer accepts BUF_VIDEO_FILLs, find out
-        * how else we provide the hint
-        */
-       dvdnav_still_event_t *still_event =
-         (dvdnav_still_event_t*)(block);
-       buf->type = BUF_CONTROL_NOP;
-       finished = 1;
+    case DVDNAV_STILL_FRAME:
+      {
+        dvdnav_still_event_t *still_event =
+          (dvdnav_still_event_t*)block;
+        buf->type = BUF_CONTROL_NOP;
+        finished = 1;
        
-       /* stills are not seekable */
-       this->seekable = 0;
-	
-       /* Xine's method of doing still-frames */
-       if (this->pause_timer == 0) {
+        /* stills are not seekable */
+        this->seekable = 0;
+
+        /* Xine's method of doing still-frames */
+        if (this->pause_timer == 0) {
 #ifdef INPUT_DEBUG
-         printf("input_dvd: Stillframe! (pause time = 0x%02x)\n",
+          printf("input_dvd: Stillframe! (pause time = 0x%02x)\n",
                  still_event->length);
 #endif
-         this->pause_timer = still_event->length;
-         this->pause_end_time = time(NULL) + this->pause_timer;
-         this->pause_counter = 0;
-         break;
-       }
+          this->pause_timer = still_event->length;
+          this->pause_end_time = time(NULL) + this->pause_timer;
+          this->pause_counter = 0;
+          break;
+        }
 
-       if(this->pause_timer == 0xff) {
-         this->pause_counter++;
-         xine_usec_sleep(100000);
-         break;
-       }
-       if ( (this->pause_timer != 0xFF) && 
-           (time(NULL) >= this->pause_end_time) ){
-         this->pause_timer = 0;
-         this->pause_end_time = 0;
-         dvdnav_still_skip(this->dvdnav);
-         break;
-       }
-       if(this->pause_timer) {
-         this->pause_counter++;
+        if(this->pause_timer == 0xff) {
+          this->pause_counter++;
+          xine_usec_sleep(50000);
+          break;
+        }
+        if ((this->pause_timer != 0xff) && 
+            (time(NULL) >= this->pause_end_time)) {
+          this->pause_timer = 0;
+          this->pause_end_time = 0;
+          dvdnav_still_skip(this->dvdnav);
+          break;
+        }
+        if(this->pause_timer) {
+          this->pause_counter++;
 #ifdef INPUT_DEBUG
-         printf("input_dvd: Stillframe! (pause_timer = 0x%02x) counter=%d\n",
+          printf("input_dvd: Stillframe! (pause_timer = 0x%02x) counter=%d\n",
                  still_event->length, this->pause_counter);
 #endif
-         xine_usec_sleep(100000);
-         break;
-       }
-     }
-     break;
-     case DVDNAV_SPU_STREAM_CHANGE:
-       {
+          xine_usec_sleep(50000);
+          break;
+        }
+      }
+      break;
+    case DVDNAV_SPU_STREAM_CHANGE:
+      {
 	dvdnav_spu_stream_change_event_t *stream_event = 
 	  (dvdnav_spu_stream_change_event_t*) (block);
         buf->content = block;
@@ -560,10 +551,10 @@ static buf_element_t *dvd_plugin_read_block (input_plugin_t *this_gen,
 	  stream_event->physical_pan_scan);
 #endif
 	finished = 1;
-       }
+      }
       break;
-     case DVDNAV_AUDIO_STREAM_CHANGE:
-       {
+    case DVDNAV_AUDIO_STREAM_CHANGE:
+      {
 	dvdnav_audio_stream_change_event_t *stream_event = 
 	 (dvdnav_audio_stream_change_event_t*) (block);
         buf->content = block;
@@ -573,15 +564,13 @@ static buf_element_t *dvd_plugin_read_block (input_plugin_t *this_gen,
 	printf("input_dvd: AUDIO stream %d\n", stream_event->physical);
 #endif
 	finished = 1;
-       }
+      }
       break;
-     case DVDNAV_HIGHLIGHT:
-       {
-        xine_dvd_send_button_update(this, 0);
-       }
+    case DVDNAV_HIGHLIGHT:
+      xine_dvd_send_button_update(this, 0);
       break;
-     case DVDNAV_VTS_CHANGE:
-       {
+    case DVDNAV_VTS_CHANGE:
+      {
 	int aspect, permission;
 #ifdef INPUT_DEBUG
 	printf("input_dvd: VTS change\n");
@@ -596,60 +585,50 @@ static buf_element_t *dvd_plugin_read_block (input_plugin_t *this_gen,
 	buf->decoder_info[2] = aspect;
 	buf->decoder_info[3] = permission;
 	finished = 1;
-       }
+      }
       break;
-     case DVDNAV_CELL_CHANGE:
-       {
-         xine_event_t event;
+    case DVDNAV_CELL_CHANGE:
+      {
+        xine_event_t event;
 
-	 /* Tell Xine to update the UI */
-	 event.type = XINE_EVENT_UI_CHANNELS_CHANGED;
-	 event.stream = this->stream;
-	 event.data = NULL;
-	 event.data_length = 0;
-	 xine_event_send(this->stream, &event);
-	 
-	 update_title_display(this);
-       }
+	/* Tell Xine to update the UI */
+	event.type = XINE_EVENT_UI_CHANNELS_CHANGED;
+	event.stream = this->stream;
+	event.data = NULL;
+	event.data_length = 0;
+	xine_event_send(this->stream, &event);
+	
+	update_title_display(this);
+      }
       break;
-     case DVDNAV_SEEK_DONE:
-       {
-#ifdef INPUT_DEBUG
-	printf("input_dvd: Seek done\n");
-#endif
-        /* FIXME: This should send a message to clear all currently displaying subtitle. */
-       }
+    case DVDNAV_HOP_CHANNEL:
+      xine_demux_flush_engine(this->stream);
       break;
-     case DVDNAV_HOP_CHANNEL:
-       {
-       flush_buffers(this);
-       break;
-       }
-     case DVDNAV_NAV_PACKET:
-       {
+    case DVDNAV_NAV_PACKET:
+      {
 	buf->content = block;
 	buf->type = BUF_DEMUX_BLOCK;
 	finished = 1;
-       }
+      }
       break;
-     case DVDNAV_SPU_CLUT_CHANGE:
-       {
+    case DVDNAV_SPU_CLUT_CHANGE:
+      {
 	buf->content = block;
 	buf->type = BUF_SPU_DVD;
 	buf->decoder_flags |= BUF_FLAG_SPECIAL;
 	buf->decoder_info[1] = BUF_SPECIAL_SPU_DVD_SUBTYPE;
 	buf->decoder_info[2] = SPU_DVD_SUBTYPE_CLUT;
 	finished = 1;
-       }
+      }
       break;
-     case DVDNAV_STOP:
-       {
+    case DVDNAV_STOP:
+      {
 	if (buf->mem != block) dvdnav_free_cache_block(this->dvdnav, block);
 	buf->free_buffer(buf);
 	/* return NULL to indicate end of stream */
 	return NULL;
-       }
-     default:
+      }
+    default:
       printf("input_dvd: FIXME: Unknown event (%i)\n", event);
       break;
     }
@@ -702,8 +681,6 @@ static off_t dvd_plugin_seek (input_plugin_t *this_gen, off_t offset, int origin
   }
  
   return dvdnav_sector_search(this->dvdnav, offset / DVD_BLOCK_SIZE , origin) * DVD_BLOCK_SIZE;
-
-  return -1;
 }
 
 static off_t dvd_plugin_get_current_pos (input_plugin_t *this_gen){
@@ -731,7 +708,6 @@ static off_t dvd_plugin_get_length (input_plugin_t *this_gen) {
   if(!this || !this->dvdnav) {
     return 0;
   }
-
   result = dvdnav_get_position(this->dvdnav, &pos, &length);
   return (off_t)length * (off_t)2048;
 }
@@ -776,11 +752,6 @@ static char* dvd_plugin_get_mrl (input_plugin_t *this_gen) {
   trace_print("Called\n");
 
   return this->mrl;
-}
-
-static void flush_buffers(dvd_input_plugin_t *this) {
-
-  xine_demux_flush_engine(this->stream);
 }
 
 static void xine_dvd_send_button_update(dvd_input_plugin_t *this, int mode) {
@@ -920,8 +891,8 @@ static void dvd_handle_events(dvd_input_plugin_t *this) {
           return;
         }
         if (this->stream->spu_decoder_plugin->get_nav_pci(this->stream->spu_decoder_plugin, &nav_pci) ) {
-          xine_dvd_send_button_update(this, 1);
-          dvdnav_button_activate(this->dvdnav, &nav_pci);
+          if (dvdnav_button_activate(this->dvdnav, &nav_pci) == DVDNAV_STATUS_OK)
+            xine_dvd_send_button_update(this, 1);
         }
       }
       break;
@@ -933,8 +904,8 @@ static void dvd_handle_events(dvd_input_plugin_t *this) {
         }
         if (this->stream->spu_decoder_plugin->get_nav_pci(this->stream->spu_decoder_plugin, &nav_pci) ) {
 	  xine_input_data_t *input = event->data;
-          xine_dvd_send_button_update(this, 1);
-          dvdnav_mouse_activate(this->dvdnav, &nav_pci, input->x, input->y);
+          if (dvdnav_mouse_activate(this->dvdnav, &nav_pci, input->x, input->y) == DVDNAV_STATUS_OK)
+            xine_dvd_send_button_update(this, 1);
         }
       }
       break;
@@ -950,63 +921,49 @@ static void dvd_handle_events(dvd_input_plugin_t *this) {
     case XINE_EVENT_INPUT_MOUSE_MOVE: 
       {
         pci_t nav_pci;
-        if(!this->stream || !this->stream->spu_decoder_plugin) {
+        if(!this->stream || !this->stream->spu_decoder_plugin)
           return;
-        }
         if (this->stream->spu_decoder_plugin->get_nav_pci(this->stream->spu_decoder_plugin, &nav_pci) ) {
 	  xine_input_data_t *input = event->data;
 	  /* printf("input_dvd: Mouse move (x,y) = (%i,%i)\n", input->x, input->y); */
 	  dvdnav_mouse_select(this->dvdnav, &nav_pci, input->x, input->y);
-          xine_dvd_send_button_update(this, 0);
         }
       }
       break;
     case XINE_EVENT_INPUT_UP:
       {
         pci_t nav_pci;
-        if(!this->stream || !this->stream->spu_decoder_plugin) {
+        if(!this->stream || !this->stream->spu_decoder_plugin)
           return;
-        }
-        if (this->stream->spu_decoder_plugin->get_nav_pci(this->stream->spu_decoder_plugin, &nav_pci) ) {
+        if (this->stream->spu_decoder_plugin->get_nav_pci(this->stream->spu_decoder_plugin, &nav_pci) )
           dvdnav_upper_button_select(this->dvdnav, &nav_pci);
-          xine_dvd_send_button_update(this, 0);
-        }
         break;
       }
     case XINE_EVENT_INPUT_DOWN:
       {
         pci_t nav_pci;
-        if(!this->stream || !this->stream->spu_decoder_plugin) {
+        if(!this->stream || !this->stream->spu_decoder_plugin)
           return;
-        }
-        if (this->stream->spu_decoder_plugin->get_nav_pci(this->stream->spu_decoder_plugin, &nav_pci) ) {
+        if (this->stream->spu_decoder_plugin->get_nav_pci(this->stream->spu_decoder_plugin, &nav_pci) )
           dvdnav_lower_button_select(this->dvdnav, &nav_pci);
-          xine_dvd_send_button_update(this, 0);
-        }
         break;
       }
     case XINE_EVENT_INPUT_LEFT:
       {
         pci_t nav_pci;
-        if(!this->stream || !this->stream->spu_decoder_plugin) {
+        if(!this->stream || !this->stream->spu_decoder_plugin)
           return;
-        }
-        if (this->stream->spu_decoder_plugin->get_nav_pci(this->stream->spu_decoder_plugin, &nav_pci) ) {
+        if (this->stream->spu_decoder_plugin->get_nav_pci(this->stream->spu_decoder_plugin, &nav_pci) )
           dvdnav_left_button_select(this->dvdnav, &nav_pci);
-          xine_dvd_send_button_update(this, 0);
-        }
         break;
       }
     case XINE_EVENT_INPUT_RIGHT:
       {
         pci_t nav_pci;
-        if(!this->stream || !this->stream->spu_decoder_plugin) {
+        if(!this->stream || !this->stream->spu_decoder_plugin)
           return;
-        }
-        if (this->stream->spu_decoder_plugin->get_nav_pci(this->stream->spu_decoder_plugin, &nav_pci) ) {
+        if (this->stream->spu_decoder_plugin->get_nav_pci(this->stream->spu_decoder_plugin, &nav_pci) )
           dvdnav_right_button_select(this->dvdnav, &nav_pci);
-          xine_dvd_send_button_update(this, 0);
-        }
         break;
       }
     case XINE_EVENT_INPUT_NUMBER_9:
@@ -1030,13 +987,11 @@ static void dvd_handle_events(dvd_input_plugin_t *this) {
     case XINE_EVENT_INPUT_NUMBER_0:
       { 
         pci_t nav_pci;
-        if(!this->stream || !this->stream->spu_decoder_plugin) {
+        if(!this->stream || !this->stream->spu_decoder_plugin)
           return;
-        }
         if (this->stream->spu_decoder_plugin->get_nav_pci(this->stream->spu_decoder_plugin, &nav_pci) ) {
-          dvdnav_button_select(this->dvdnav, &nav_pci, this->typed_buttonN);
-          xine_dvd_send_button_update(this, 1);
-          dvdnav_button_activate(this->dvdnav, &nav_pci);
+	  if (dvdnav_button_select_and_activate(this->dvdnav, &nav_pci, this->typed_buttonN) == DVDNAV_STATUS_OK)
+            xine_dvd_send_button_update(this, 1);
           this->typed_buttonN = 0;
         }
         break;
@@ -1199,12 +1154,12 @@ static input_plugin_t *open_plugin (input_class_t *class_gen, xine_stream_t *str
   xine_event_t           event;
   static char *handled_mrl = "dvd:/";
 
+  trace_print("Called\n");
+
   /* Check we can handle this MRL */
   if (strncasecmp (data, handled_mrl, strlen(handled_mrl) ) != 0)
     return NULL;
 
-  printf("input_dvd.c: open_plugin called.\n");
-  
   this = (dvd_input_plugin_t *) xine_xmalloc (sizeof (dvd_input_plugin_t));
   if (this == NULL) {
     printf("input_dvd.c: xine_xmalloc failed!!!! You have run out of memory\n");
@@ -1231,8 +1186,7 @@ static input_plugin_t *open_plugin (input_class_t *class_gen, xine_stream_t *str
   this->seekable               = 0;
   this->buttonN                = 0;
   this->typed_buttonN          = 0;
-  this->dvd_name[0]            = 0;
-  this->dvd_name_length        = 0;
+  this->dvd_name               = NULL;
   this->mrl                    = NULL;
 /*
   this->mrls                   = NULL;
@@ -1241,15 +1195,14 @@ static input_plugin_t *open_plugin (input_class_t *class_gen, xine_stream_t *str
 
   pthread_mutex_init(&this->buf_mutex, NULL);
   this->mem_stack              = 0;
-  trace_print("Called\n");
+  this->freeing                = 0;
+  
   this->event_queue = xine_event_new_queue (this->stream);
   /* printf("input_dvd: open1: dvdnav=%p opened=%d\n",this->dvdnav, this->opened); */
   /* printf("data=%p\n",data);
   if (data) printf("data=%s\n",data); */
-  this->mrl = strdup(data);
+  this->mrl                    = strdup(data);
   this->pause_timer            = 0;
-  this->dvd_name[0]            = 0;
-  this->dvd_name_length        = 0;
 
   /* we already checked the "dvd:/" MRL above */
   locator = &this->mrl[strlen(handled_mrl)];
@@ -1277,8 +1230,6 @@ static input_plugin_t *open_plugin (input_class_t *class_gen, xine_stream_t *str
     this->mode = MODE_NAVIGATE;
   }
 
-  printf("input_dvd.c:open_plugin:dvd_device=%s\n",class->dvd_device); 
-  
   if(this->opened) {
     if ( intended_dvd_device==this->current_dvd_device ) {
       /* Already open, so skip opening */
@@ -1304,61 +1255,8 @@ static input_plugin_t *open_plugin (input_class_t *class_gen, xine_stream_t *str
     this->opened=1;
     this->current_dvd_device=intended_dvd_device;
   }
-  if (1) {
-    int fd, i;
-    off64_t off;
-    uint8_t data[DVD_VIDEO_LB_LEN];
-
-    /* Read DVD name */
-    fd=open(intended_dvd_device, O_RDONLY);
-    if (fd > 0) { 
-      off = lseek64( fd, 32 * (int64_t) DVD_VIDEO_LB_LEN, SEEK_SET );
-      if( off == ( 32 * (int64_t) DVD_VIDEO_LB_LEN ) ) {
-        off = read( fd, data, DVD_VIDEO_LB_LEN ); 
-        close(fd);
-        if (off == ( (int64_t) DVD_VIDEO_LB_LEN )) {
-          printf("input_dvd: DVD Title: ");
-          for(i=25; i < 73; i++ ) {
-            if((data[i] == 0)) break;
-            if((data[i] > 32) && (data[i] < 127)) {
-              printf("%c", data[i]);
-            } else {
-              printf(" ");
-            }
-          }
-          strncpy(&this->dvd_name[0], &data[25], 48);
-          /* printf("input_dvd: TITLE:%s\n",&this->dvd_name[0]); */
-          this->dvd_name[48]=0;
-          this->dvd_name_length=strlen(&this->dvd_name[0]);
-          printf("\ninput_dvd: DVD Serial Number: ");
-          for(i=73; i < 89; i++ ) {
-            if((data[i] == 0)) break;
-            if((data[i] > 32) && (data[i] < 127)) {
-              printf("%c", data[i]);
-            } else {
-              printf(" ");
-            } 
-          }
-          printf("\ninput_dvd: DVD Title (Alternative): ");
-          for(i=89; i < 128; i++ ) {
-            if((data[i] == 0)) break;
-            if((data[i] > 32) && (data[i] < 127)) {
-              printf("%c", data[i]);
-            } else {
-              printf(" ");
-            }
-          }
-          printf("\n");
-        } else {
-          printf("input_dvd: Can't read name block. Probably not a DVD-ROM device.\n");
-        }
-      } else {
-        printf("input_dvd: Can't seek to block %u\n", 32 );
-      }
-    } else {
-      printf("input_dvd: NAME OPEN FAILED\n");
-    }
-  }
+  
+  dvdnav_get_title_string(this->dvdnav, &this->dvd_name);
 
   /* config callbacks may react now */
   class->ip = this;
@@ -1464,7 +1362,7 @@ static xine_mrl_t **dvd_class_get_dir (input_class_t *this_gen,
 }
 #endif
 
-static char ** dvd_class_get_autoplay_list (input_class_t *this_gen, 
+static char **dvd_class_get_autoplay_list (input_class_t *this_gen, 
 					    int *num_files) {
 
   dvd_input_class_t *this = (dvd_input_class_t *) this_gen;
@@ -1658,6 +1556,16 @@ static void *init_class (xine_t *xine, void *data) {
 
 /*
  * $Log: input_dvd.c,v $
+ * Revision 1.129  2003/02/20 16:01:57  mroi
+ * syncing to libdvdnav 0.1.5 and modifying input plugin accordingly
+ * quoting the ChangeLog:
+ *   * some bugfixes
+ *   * code cleanup
+ *   * build process polishing
+ *   * more sensible event order in get_next_block to ensure useful event delivery
+ *   * VOBU level resume
+ *   * fixed: seeking in a multiangle feature briefly showed the wrong angle
+ *
  * Revision 1.128  2003/02/14 18:00:38  heikos
  * FreeBSD compile fixes
  *

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: read_cache.c,v 1.6 2003/02/11 15:12:42 mroi Exp $
+ * $Id: read_cache.c,v 1.7 2003/02/20 16:02:00 mroi Exp $
  *
  */
 
@@ -284,7 +284,7 @@ void dvdnav_pre_cache_blocks(read_cache_t *self, int sector, size_t block_count)
   pthread_mutex_unlock(&self->cache_lock);
 }
 
-/* This function will do the cache read once implemented */
+/* This function will do the cache read */
 int dvdnav_read_cache_block( read_cache_t *self, int sector, size_t block_count, uint8_t **buf) {
   int result, diff;
 

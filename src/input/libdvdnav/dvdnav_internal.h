@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dvdnav_internal.h,v 1.5 2002/10/24 15:04:41 jkeil Exp $
+ * $Id: dvdnav_internal.h,v 1.6 2003/02/20 16:01:59 mroi Exp $
  *
  */
 
@@ -46,6 +46,12 @@
 #include "ifo_types.h"
 
 
+/* Uncomment for VM command tracing */
+/* #define TRACE */
+
+/* where should libdvdnav write its messages (stdout/stderr) */
+#define MSG_OUT stdout
+
 /* Maximum length of an error string */
 #define MAX_ERR_LEN 255
 
@@ -53,15 +59,12 @@
 #ifdef PATH_MAX
 #define MAX_PATH_LEN PATH_MAX
 #else
-#define MAX_PATH_LEN 255 /* Arbitary */
+#define MAX_PATH_LEN 255 /* Arbitrary */
 #endif
 
 #ifndef DVD_VIDEO_LB_LEN
 #define DVD_VIDEO_LB_LEN 2048
 #endif
-
-/* where should libdvdnav write its messages (stdout/stderr) */
-#define MSG_OUT stdout
 
 typedef struct read_cache_s read_cache_t;
 
@@ -113,20 +116,20 @@ typedef struct {
 #endif
 
 typedef struct dvdnav_vobu_s {
-  int32_t vobu_start; /* Logical Absolute. MAX needed is 0x300000 */
-  int32_t vobu_length; /* Relative offset */
-  int32_t blockN; /* Relative offset */
-  int32_t vobu_next; /* Relative offset */
+  int32_t vobu_start;  /* Logical Absolute. MAX needed is 0x300000 */
+  int32_t vobu_length;
+  int32_t blockN;      /* Relative offset */
+  int32_t vobu_next;   /* Relative offset */
 } dvdnav_vobu_t;  
    
-/* The main DVDNAV type */
+/** The main DVDNAV type **/
 
 struct dvdnav_s {
   /* General data */
-  char path[MAX_PATH_LEN];        /* Path to DVD device/dir */
+  char        path[MAX_PATH_LEN]; /* Path to DVD device/dir */
   dvd_file_t *file;               /* Currently opened file */
-  int open_vtsN;                  /* The domain and number of the... */
-  int open_domain;                /* ..currently opened VOB */
+  int         open_vtsN;          /* The domain and number of the... */
+  int         open_domain;        /* ..currently opened VOB */
  
   /* Position data */
   vm_position_t position_next;
@@ -138,19 +141,14 @@ struct dvdnav_s {
   dsi_t dsi;
   
   /* Flags */
-  int skip_still;  /* Set when skipping a still */
-  int stop;        /* Are we stopped? (note not paused, actually stopped) */
-  int spu_clut_changed; /* The SPU CLUT changed */ 
-  int started; /* vm_start has been called? */
-  int use_read_ahead; /* 1 - use read-ahead cache, 0 - don't */
+  int skip_still;                 /* Set when skipping a still */
+  int spu_clut_changed;           /* The SPU CLUT changed */ 
+  int started;                    /* vm_start has been called? */
+  int use_read_ahead;             /* 1 - use read-ahead cache, 0 - don't */
+  
   /* VM */
-  vm_t* vm;
+  vm_t *vm;
   pthread_mutex_t vm_lock;
-
-  /* Highlight */
-  int hli_state;  /* State of highlight: 0 - disabled,
-		                         1 - selected,
-                         		 2 - activated */
 
   /* Read-ahead cache */
   read_cache_t *cache;
@@ -167,8 +165,8 @@ struct dvdnav_s {
 #define printerrf(...) snprintf(this->err_str, MAX_ERR_LEN, __VA_ARGS__);
 #endif
 #define printerr(str) strncpy(this->err_str, str, MAX_ERR_LEN);
-/* Save my typing */
 
+/* Save my typing */
 #define S_ERR DVDNAV_STATUS_ERR
 #define S_OK  DVDNAV_STATUS_OK
 
