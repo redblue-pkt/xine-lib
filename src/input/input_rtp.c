@@ -167,15 +167,23 @@ static int host_connect_attempt(struct in_addr ia, int port, xine_t *xine) {
   int s=socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP);
   struct sockaddr_in sin;
   int optval;
-  
+  int multicast = 0;  /* boolean, assume unicast */
+
   if(s == -1) {
     LOG_MSG(xine, _("socket(): %s.\n"), strerror(errno));
     return -1;
   }
-  
+
   sin.sin_family = AF_INET;	
   sin.sin_addr   = ia;
   sin.sin_port   = htons(port);
+
+  /* Is it a multicast address? */
+  if ((ntohl(sin.sin_addr.s_addr) >> 28) == 0xe) {
+    LOG_MSG(xine, _("IP address specified is multicast\n"));
+    multicast = 1;  /* boolean true */
+  }
+  
   
   /* Try to increase receive buffer to 1MB to avoid dropping packets */
   optval = 1024 * 1024;
@@ -184,7 +192,16 @@ static int host_connect_attempt(struct in_addr ia, int port, xine_t *xine) {
     LOG_MSG(xine, _("setsockopt(SO_RCVBUF): %s.\n"), strerror(errno));
     return -1;
   }
-  
+
+  /* If multicast we allow multiple readers to open the same address */
+  if (multicast) {
+    if ((setsockopt(s, SOL_SOCKET, SO_REUSEADDR,
+		    &sin, sizeof(sin))) < 0) {
+      LOG_MSG(xine, _("setsockopt(SO_REUSEADDR): %s.\n"), strerror(errno));
+      return -1;
+    }
+  }
+
   /* datagram socket */
   if (bind(s, (struct sockaddr *)&sin, sizeof(sin))) {
     LOG_MSG(xine, _("bind(): %s.\n"), strerror(errno));
@@ -192,10 +209,11 @@ static int host_connect_attempt(struct in_addr ia, int port, xine_t *xine) {
   }
   
   /* multicast ? */
-  if ((ntohl(sin.sin_addr.s_addr) >> 28) == 0xe) {
+  if (multicast) {
+
 #ifdef HAVE_IP_MREQN
     struct ip_mreqn mreqn;
-    
+
     mreqn.imr_multiaddr.s_addr = sin.sin_addr.s_addr;
     mreqn.imr_address.s_addr = INADDR_ANY;
     mreqn.imr_ifindex = 0;
