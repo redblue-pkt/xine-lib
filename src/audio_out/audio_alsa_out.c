@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.151 2004/12/22 17:51:38 f1rmb Exp $
+ * $Id: audio_alsa_out.c,v 1.152 2004/12/27 16:49:28 hadess Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -97,6 +97,7 @@ typedef struct alsa_driver_s {
   int                capabilities;
   int                open_mode;
   int		     has_pause_resume;
+  int		     is_paused;
 
   int32_t            output_sample_rate, input_sample_rate;
   double             sample_rate_factor;
@@ -1023,7 +1024,9 @@ static int ao_alsa_ctrl(ao_driver_t *this_gen, int cmd, ...) {
 		  "audio_alsa_out: Pause call failed. (err=%d:%s)\n",err, snd_strerror(err));
           this->has_pause_resume = 0;
           ao_alsa_ctrl(this_gen, AO_CTRL_PLAY_PAUSE, NULL);
-        }
+        } else {
+          this->is_paused = 1;
+	}
       } else {
         if ((err=snd_pcm_reset(this->audio_fd)) < 0) {
           xprintf(this->class->xine, XINE_VERBOSITY_DEBUG, 
@@ -1043,7 +1046,7 @@ static int ao_alsa_ctrl(ao_driver_t *this_gen, int cmd, ...) {
 
   case AO_CTRL_PLAY_RESUME:
     if (this->audio_fd) {
-      if (this->has_pause_resume) {
+      if (this->has_pause_resume && this->is_paused) {
         if ((err=snd_pcm_pause(this->audio_fd, 0)) < 0) {
           if (err == -77) {
             xprintf(this->class->xine, XINE_VERBOSITY_DEBUG, 
@@ -1512,6 +1515,7 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
     xprintf(class->xine, XINE_VERBOSITY_LOG, _("(5.1-channel not enabled in xine config) "));
 
   this->has_pause_resume = 0; /* This is checked at open time instead */
+  this->is_paused = 0;
 
   snd_pcm_close (this->audio_fd);
   this->audio_fd=NULL;
