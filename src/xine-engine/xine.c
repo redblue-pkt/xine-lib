@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.285 2004/03/16 20:50:09 mroi Exp $
+ * $Id: xine.c,v 1.286 2004/03/23 22:54:31 valtri Exp $
  */
 
 /*
@@ -255,6 +255,7 @@ static void __set_speed_internal (xine_stream_t *stream, int speed) {
 }
 
 
+/* stream->ignore_speed_change must be set, when entering this function */
 static void __stop_internal (xine_stream_t *stream) {
 
   int finished_count_audio = 0;
@@ -297,12 +298,6 @@ static void __stop_internal (xine_stream_t *stream) {
     _x_demux_stop_thread( stream );
     lprintf ("stop thread done\n");
   
-    /* set normal speed again (now that demuxer/input pair is suspended) 
-     * some input plugin may have changed speed by itself, we must ensure
-     * the engine is not paused.
-     */
-    __set_speed_internal (stream, XINE_SPEED_NORMAL);
-
     _x_demux_flush_engine( stream );
     lprintf ("flush engine done\n");
 
@@ -329,6 +324,7 @@ void xine_stop (xine_stream_t *stream) {
 
   pthread_mutex_lock (&stream->frontend_lock);
 
+  stream->ignore_speed_change = 1;
   stream->xine->port_ticket->acquire(stream->xine->port_ticket, 1);
   
   if (stream->audio_out)
@@ -347,6 +343,7 @@ void xine_stop (xine_stream_t *stream) {
     stream->audio_out->set_property(stream->audio_out, AO_PROP_DISCARD_BUFFERS, 0);
   
   stream->xine->port_ticket->release(stream->xine->port_ticket, 1);
+  stream->ignore_speed_change = 0;
   
   pthread_mutex_unlock (&stream->frontend_lock);
 }
@@ -365,7 +362,9 @@ static void __close_internal (xine_stream_t *stream) {
     }
   }
 
+  stream->ignore_speed_change = 1;
   __stop_internal( stream );
+  stream->ignore_speed_change = 0;
   
   lprintf ("disposing demux\n");
   if (stream->demux_plugin) {
@@ -1555,6 +1554,8 @@ int xine_get_status (xine_stream_t *stream) {
 
 void _x_set_speed (xine_stream_t *stream, int speed) {
 
+  if (stream->ignore_speed_change) return;
+  
   if (speed <= XINE_SPEED_PAUSE)
     speed = XINE_SPEED_PAUSE;
   else if (speed > XINE_SPEED_FAST_4)

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.154 2004/02/12 18:19:00 mroi Exp $
+ * $Id: xine_internal.h,v 1.155 2004/03/23 22:54:32 valtri Exp $
  *
  */
 
@@ -239,6 +239,7 @@ struct xine_stream_s {
   /* these are private variables, plugins must not access them */
   
   int                        status;
+  int                        ignore_speed_change;  /* speed changes during stop can be disastrous */
 
   input_class_t             *eject_class;
   demux_plugin_t            *demux_plugin;
