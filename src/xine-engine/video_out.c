@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.86 2002/03/22 17:38:21 miguelfreitas Exp $
+ * $Id: video_out.c,v 1.87 2002/03/25 01:02:51 miguelfreitas Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -167,22 +167,30 @@ static vo_frame_t *vo_remove_from_img_buf_queue (img_buf_fifo_t *queue) {
 }
 
 /*
- * function called by video output driver
+ * functions to maintain lock_counter
  */
-
-static void vo_frame_displayed (vo_frame_t *img) {
-
+static void vo_frame_inc_lock (vo_frame_t *img) {
+  
   pthread_mutex_lock (&img->mutex);
 
-  img->driver_locked = 0;
+  img->lock_counter++;
 
-  if (!img->decoder_locked) {    
+  pthread_mutex_unlock (&img->mutex);
+}
+
+static void vo_frame_dec_lock (vo_frame_t *img) {
+  
+  pthread_mutex_lock (&img->mutex);
+
+  img->lock_counter--;
+  if (!img->lock_counter) {    
     vos_t *this = (vos_t *) img->instance;
     vo_append_to_img_buf_queue (this->free_img_buf_queue, img);
   }
 
   pthread_mutex_unlock (&img->mutex);
 }
+
 
 /*
  * 
@@ -215,9 +223,7 @@ static vo_frame_t *vo_get_frame (vo_instance_t *this_gen,
 #endif
 
   pthread_mutex_lock (&img->mutex);
-  img->display_locked = 0;
-  img->decoder_locked = 1;
-  img->driver_locked  = 0;
+  img->lock_counter   = 1;
   img->width          = width;
   img->height         = height;
   img->ratio          = ratio;
@@ -270,7 +276,7 @@ static int vo_frame_draw (vo_frame_t *img) {
 	  diff, cur_vpts, frames_to_skip);
 #endif
 
-  if (img->display_locked) {
+  if (img->lock_counter > 1) {
     printf ("video_out: ALERT! frame is already locked for displaying\n");
     return frames_to_skip;
   }
@@ -286,10 +292,7 @@ static int vo_frame_draw (vo_frame_t *img) {
 
     this->last_frame = img;
 
-    pthread_mutex_lock (&img->mutex);
-    img->display_locked = 1;
-    pthread_mutex_unlock (&img->mutex);
-
+    vo_frame_inc_lock( img );
     vo_append_to_img_buf_queue (this->display_img_buf_queue, img);
 
   } else {
@@ -298,12 +301,6 @@ static int vo_frame_draw (vo_frame_t *img) {
 #endif
 
     this->num_frames_skipped++;
-
-    pthread_mutex_lock (&img->mutex);
-    img->display_locked = 0;
-    pthread_mutex_unlock (&img->mutex);
-
-    vo_frame_displayed (img);
   }
 
   /*
@@ -323,21 +320,6 @@ static int vo_frame_draw (vo_frame_t *img) {
   
   return frames_to_skip;
 }
-
-static void vo_frame_free (vo_frame_t *img) {
-
-  pthread_mutex_lock (&img->mutex);
-  img->decoder_locked = 0;
-
-  if (!img->display_locked && !img->driver_locked ) {
-    vos_t *this = (vos_t *) img->instance;
-    vo_append_to_img_buf_queue (this->free_img_buf_queue, img);
-  }
-
-  pthread_mutex_unlock (&img->mutex);
-}
-
-
 
 /*
  *
@@ -380,21 +362,13 @@ static void expire_frames (vos_t *this, int64_t cur_vpts) {
       if (!this->display_img_buf_queue->first) {
 	  
 	if (this->img_backup) {
-	  pthread_mutex_lock (&this->img_backup->mutex);
 #ifdef LOG
 	  printf("video_out: overwriting frame backup\n");
 #endif
-	  this->img_backup->display_locked = 0;
-	  if (!img->decoder_locked) 
-	    vo_append_to_img_buf_queue (this->free_img_buf_queue,
-					this->img_backup);
-
-	  pthread_mutex_unlock (&this->img_backup->mutex);
+	  vo_frame_dec_lock( this->img_backup );
 	}
 	printf("video_out: possible still frame (old)\n");
 
-	/* we must not clear display_locked from img_backup.
-	   without it decoder may try to free our backup.  */
 	this->img_backup = img;
 	this->backup_is_logo = 0;
 	
@@ -402,13 +376,7 @@ static void expire_frames (vos_t *this, int64_t cur_vpts) {
 	   this allow slower systems to recover. */
 	this->redraw_needed = 4; 
       } else {
-	pthread_mutex_lock (&img->mutex);
-	  
-	img->display_locked = 0;
-	if (!img->decoder_locked) 
-	  vo_append_to_img_buf_queue (this->free_img_buf_queue, img);
-	  
-	pthread_mutex_unlock (&img->mutex);
+	vo_frame_dec_lock( img );
       }
 	
       img = this->display_img_buf_queue->first;
@@ -441,16 +409,10 @@ static vo_frame_t *get_next_frame (vos_t *this, int64_t cur_vpts) {
     if (!this->video_opened && (!this->img_backup || !this->backup_is_logo)) {
 
       if (this->img_backup) {
-	pthread_mutex_lock (&this->img_backup->mutex);
 #ifdef LOG
 	printf("video_out: overwriting frame backup\n");
 #endif
-	this->img_backup->display_locked = 0;
-	if (!this->img_backup->decoder_locked) 
-	  vo_append_to_img_buf_queue (this->free_img_buf_queue,
-				      this->img_backup);
-
-	pthread_mutex_unlock (&this->img_backup->mutex);
+	vo_frame_dec_lock( this->img_backup );
       }
 
       printf("video_out: copying logo image\n");
@@ -458,9 +420,6 @@ static vo_frame_t *get_next_frame (vos_t *this, int64_t cur_vpts) {
       this->img_backup = vo_get_frame (&this->vo, this->logo_w, this->logo_h,
 				       42, IMGFMT_YUY2, VO_BOTH_FIELDS);
 
-      this->img_backup->decoder_locked = 0;
-      this->img_backup->display_locked = 1;
-      this->img_backup->driver_locked  = 0;
       this->img_backup->duration       = 3000;
 
       xine_fast_memcpy(this->img_backup->base[0], this->logo_yuy2,
@@ -479,7 +438,6 @@ static vo_frame_t *get_next_frame (vos_t *this, int64_t cur_vpts) {
 	
       /* keep playing still frames */
       img = this->vo.duplicate_frame (&this->vo, this->img_backup );
-      img->display_locked = 1;
   
       do {
 	/* always restore duration so drift correction shouldn't cause any trouble */
@@ -518,14 +476,8 @@ static vo_frame_t *get_next_frame (vos_t *this, int64_t cur_vpts) {
     }
 
     if (this->img_backup) {
-      pthread_mutex_lock (&this->img_backup->mutex);
       printf("video_out: freeing frame backup\n");
-	
-      this->img_backup->display_locked = 0;
-      if( !this->img_backup->decoder_locked )
-	vo_append_to_img_buf_queue (this->free_img_buf_queue,
-				    this->img_backup);
-      pthread_mutex_unlock (&this->img_backup->mutex);
+      vo_frame_dec_lock( this->img_backup );
       this->img_backup = NULL;
     }
       
@@ -561,22 +513,6 @@ static void overlay_and_display_frame (vos_t *this,
 	  img->vpts);
 #endif
   
-  pthread_mutex_lock (&img->mutex);
-  img->driver_locked = 1;
-  
-#ifdef LOG
-  if (!img->display_locked)
-    printf ("video_out: ALERT! frame was not locked for display queue\n");
-#endif
-  
-  img->display_locked = 0;
-  pthread_mutex_unlock (&img->mutex);
-  
-#ifdef LOG
-  printf ("video_out: passing to video driver image with pts = %lld\n", 
-	  img->vpts);
-#endif
-
   if (this->overlay_source) {
     /* This is the only way for the overlay manager to get pts values
      * for flushing its buffers. So don't remove it! */
@@ -713,25 +649,14 @@ static void *video_out_loop (void *this_gen) {
   while (img) {
 
     img = vo_remove_from_img_buf_queue (this->display_img_buf_queue);
-    pthread_mutex_lock (&img->mutex);
-
-    img->display_locked = 0;
-    if (!img->decoder_locked) 
-      vo_append_to_img_buf_queue (this->free_img_buf_queue, img);
-
-    pthread_mutex_unlock (&img->mutex);
+    vo_frame_dec_lock( img );
 
     img = this->display_img_buf_queue->first;
   }
 
   if (this->img_backup) {
-    pthread_mutex_lock (&this->img_backup->mutex);
-    
-    this->img_backup->display_locked = 0;
-    if (!this->img_backup->decoder_locked)
-      vo_append_to_img_buf_queue (this->free_img_buf_queue, this->img_backup);
-    
-    pthread_mutex_unlock (&this->img_backup->mutex);
+    vo_frame_dec_lock( this->img_backup );
+    this->img_backup = NULL;
   }
  
   pthread_exit(NULL);
@@ -750,12 +675,6 @@ static vo_frame_t * vo_duplicate_frame( vo_instance_t *this_gen, vo_frame_t *img
     
   dupl = vo_get_frame (this_gen, img->width, img->height, img->ratio,
 		       img->format, VO_BOTH_FIELDS );
- 
-  pthread_mutex_lock (&dupl->mutex);
-  
-  dupl->display_locked = 0;
-  dupl->decoder_locked = 0;
-  dupl->driver_locked  = 0;
   
   image_size = img->width * img->height;
 
@@ -776,7 +695,6 @@ static vo_frame_t * vo_duplicate_frame( vo_instance_t *this_gen, vo_frame_t *img
   dupl->bad_frame = 0;
   dupl->pts       = 0;
   dupl->vpts      = 0;
-  dupl->scr       = 0;
   dupl->duration  = img->duration;
 
   /* Support copy; Dangerous, since some decoders may use a source that's
@@ -811,8 +729,6 @@ static vo_frame_t * vo_duplicate_frame( vo_instance_t *this_gen, vo_frame_t *img
       }
     }
   }
-  
-  pthread_mutex_unlock (&dupl->mutex);
   
   return dupl;
 }
@@ -968,8 +884,8 @@ vo_instance_t *vo_new_instance (vo_driver_t *driver, xine_t *xine) {
     img->id        = i;
     
     img->instance  = &this->vo;
-    img->free      = vo_frame_free ;
-    img->displayed = vo_frame_displayed;
+    img->free      = vo_frame_dec_lock;
+    img->displayed = vo_frame_dec_lock;
     img->draw      = vo_frame_draw;
 
     vo_append_to_img_buf_queue (this->free_img_buf_queue,

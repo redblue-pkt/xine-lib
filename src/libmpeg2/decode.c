@@ -510,7 +510,6 @@ void mpeg2_flush (mpeg2dec_t * mpeg2dec) {
     img = picture->backward_reference_frame->instance->duplicate_frame(picture->backward_reference_frame->instance, 
 								       picture->backward_reference_frame);
     img->pts = 0;
-    img->scr = 0;
     img->bad_frame = 0;
     img->drawn = 1; 
     
@@ -537,21 +536,12 @@ void mpeg2_close (mpeg2dec_t * mpeg2dec)
       leak, and we only have about 15 of them.
     */ 
     if (picture->forward_reference_frame) {
-      /*
-      printf ("libmpeg2: blasting out forward reference frame on close\n");
-//      picture->forward_reference_frame->PTS = 0;
-      picture->forward_reference_frame->bad_frame = 0;
-      get_frame_duration(mpeg2dec, picture->forward_reference_frame);
-      picture->forward_reference_frame->draw (picture->forward_reference_frame); 
-      */
-      picture->forward_reference_frame->displayed (picture->forward_reference_frame);
       picture->forward_reference_frame->free (picture->forward_reference_frame);
     }
     
     if (picture->throwaway_frame) {
       printf ("libmpeg2: blasting out throwaway frame on close\n");
       picture->throwaway_frame->pts = 0;
-      picture->throwaway_frame->scr = 0;
       get_frame_duration(mpeg2dec, picture->throwaway_frame);
       picture->throwaway_frame->draw (picture->throwaway_frame);
       picture->throwaway_frame->free (picture->throwaway_frame);
