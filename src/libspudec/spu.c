@@ -35,7 +35,7 @@
  * along with this program; see the file COPYING.  If not, write to
  * the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: spu.c,v 1.51 2002/11/01 11:02:52 jcdutton Exp $
+ * $Id: spu.c,v 1.52 2002/11/18 13:42:50 mroi Exp $
  *
  */
 
@@ -162,32 +162,10 @@ void spudec_decode_nav(spudec_decoder_t *this, buf_element_t *buf) {
           this->menu_handle = ovl_instance->get_handle(ovl_instance,1);
         }
         if( this->menu_handle >= 0 ) {
-          int64_t vpts_offset; 
-          metronom_t *metronom = this->stream->metronom;
           this->event.object.handle = this->menu_handle;
           this->event.event_type = EVENT_HIDE_MENU;
-          /* if !vpts then we are near a discontinuity but video_out havent detected
-             it yet and we cannot provide correct vpts values. use current_time 
-             instead as an aproximation.
-           */
-          vpts_offset = metronom->got_spu_packet(metronom, -1);
-          this->event.vpts = metronom->got_spu_packet(metronom, this->pci.pci_gi.vobu_e_ptm);
-          /* Keep all the events in the correct order. */
-          /* This corrects for errors during estimation around discontinuity */
-          if( this->event.vpts < this->last_event_vpts ) {
-#ifdef LOG_BUTTON
-            fprintf(stdout, "libspudec: add_event estimation correction. vpts was %lli\n", this->event.vpts);
-#endif
-            this->event.vpts = this->last_event_vpts + 1;
-          }
-          this->last_event_vpts = this->event.vpts;
-#ifdef LOG_BUTTON
-          fprintf(stdout, "libspudec: add_event HIDE_MENU type=%d : current time=%lld, spu vpts=%lli, vpts_offset=%lli\n",
-                  this->event.event_type,
-                  this->stream->metronom->get_current_time(this->stream->metronom),
-                  this->event.vpts,
-                  vpts_offset);
-#endif
+	  /* hide menu right now */
+	  this->event.vpts = 0;
           ovl_instance->add_event(ovl_instance, (void *)&this->event);
         } else {
           printf("libspudec: No video_overlay handles left for menu\n");
@@ -417,19 +395,8 @@ void spudec_process (spudec_decoder_t *this, uint32_t stream_id) {
          this->event.object.handle, this->event.vpts ); 
       */
       
-      /* if !vpts then we are near a discontinuity but video_out havent detected
-         it yet and we cannot provide correct vpts values. use current_time 
-         instead as an aproximation.
-      */
-      if( this->spudec_stream_state[stream_id].vpts ) {
-        this->event.vpts = this->spudec_stream_state[stream_id].vpts+(this->state.delay*1000); 
-      } else {
-        this->event.vpts = this->stream->metronom->get_current_time(this->stream->metronom)
-                           + (this->state.delay*1000); 
-#ifdef LOG_BUTTON
-        printf("libspudec: vpts current time estimation around discontinuity\n");
-#endif
-      }
+      this->event.vpts = this->spudec_stream_state[stream_id].vpts+(this->state.delay*1000); 
+      
       /* Keep all the events in the correct order. */
       /* This corrects for errors during estimation around discontinuity */
       if( this->event.vpts < this->last_event_vpts ) {
