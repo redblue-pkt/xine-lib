@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.107 2002/10/31 16:58:23 mroi Exp $
+ * $Id: video_decoder.c,v 1.108 2002/11/02 15:18:40 mroi Exp $
  *
  */
 
@@ -212,7 +212,7 @@ void *video_decoder_loop (void *stream_gen) {
       pthread_mutex_lock (&stream->first_frame_lock);
       if (stream->first_frame_flag) {
         stream->first_frame_flag = 0;
-        pthread_cond_signal(&stream->first_frame_reached);
+        pthread_cond_broadcast(&stream->first_frame_reached);
       }
       pthread_mutex_unlock (&stream->first_frame_lock);
 

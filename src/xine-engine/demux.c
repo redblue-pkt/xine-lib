@@ -266,7 +266,7 @@ int xine_demux_stop_thread (xine_stream_t *stream) {
   pthread_mutex_lock (&stream->first_frame_lock);
   if (stream->first_frame_flag) {
     stream->first_frame_flag = 0;
-    pthread_cond_signal(&stream->first_frame_reached);
+    pthread_cond_broadcast(&stream->first_frame_reached);
   }
   pthread_mutex_unlock (&stream->first_frame_lock);
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.107 2002/10/29 16:02:50 mroi Exp $
+ * $Id: video_out.c,v 1.108 2002/11/02 15:18:40 mroi Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -296,7 +296,7 @@ static int vo_frame_draw (vo_frame_t *img) {
     pthread_mutex_lock (&this->stream->first_frame_lock);
     if (this->stream->first_frame_flag) {
       this->stream->first_frame_flag = 0;
-      pthread_cond_signal(&this->stream->first_frame_reached);
+      pthread_cond_broadcast(&this->stream->first_frame_reached);
     }
     pthread_mutex_unlock (&this->stream->first_frame_lock);
 
