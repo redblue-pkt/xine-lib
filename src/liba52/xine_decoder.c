@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.58 2003/10/06 17:03:25 jcdutton Exp $
+ * $Id: xine_decoder.c,v 1.59 2003/11/02 13:50:09 miguelfreitas Exp $
  *
  * stuff needed to turn liba52 into a xine decoder plugin
  */
@@ -150,6 +150,7 @@ static void a52dec_reset (audio_decoder_t *this_gen) {
   this->syncword      = 0;
   this->sync_state    = 0;
   this->pts           = 0;
+  this->pts_list[0] = this->pts_list[1] = this->pts_list[2] = 0;
   this->pts_list_position = 0;
 }
 
@@ -158,6 +159,8 @@ static void a52dec_discontinuity (audio_decoder_t *this_gen) {
   a52dec_decoder_t *this = (a52dec_decoder_t *) this_gen;
 
   this->pts           = 0;
+  this->pts_list[0] = this->pts_list[1] = this->pts_list[2] = 0;
+  this->pts_list_position = 0;
 }
 
 static inline int16_t blah (int32_t i) {
