@@ -95,7 +95,10 @@ AM_CONFIG_HEADER(config.h)
 dnl
 dnl Check for programs.
 dnl
+dnl Save CFLAGS, AC_ISC_POSIX set some unwanted default CFLAGS
+saved_CFLAGS="$CFLAGS"
 AC_ISC_POSIX
+CFLAGS="$saved_CFLAGS"
 AC_PROG_CC
 AC_STDC_HEADERS
 AC_PROG_MAKE_SET
