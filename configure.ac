@@ -237,12 +237,12 @@ AC_CHECK_DECL(lrintf,[AC_DEFINE(HAVE_LRINTF,1,[Define this if the 'lrintf' funct
 ])
 
 AC_ARG_ENABLE(altivec,
-	[  --disable-altivec       Use assembly codes for Motorola 74xx CPUs],
+	[  --disable-altivec       Do not use assembly codes for Motorola 74xx CPUs],
 		enable_altivec=no, 
 		enable_altivec=yes)
 
 AC_ARG_ENABLE(vis, 
-	[  --disable-vis           Use assembly codes for Sun UltraSPARC CPUs],
+	[  --disable-vis           Do not use assembly codes for Sun UltraSPARC CPUs],
          	enable_vis=no,
 		enable_vis=yes)
 
