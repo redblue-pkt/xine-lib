@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.54 2001/09/01 15:52:17 guenter Exp $
+ * $Id: xine.c,v 1.55 2001/09/01 17:10:01 jkeil Exp $
  *
  * top-level xine functions
  *
@@ -399,6 +399,7 @@ xine_t *xine_init (vo_driver_t *vo,
   /*
    * set up profiler
    */
+  profiler_init();
   profiler_set_label (0, "video decoder         ");
   profiler_set_label (1, "audio decoder/output  ");
   profiler_set_label (2, "video output          ");

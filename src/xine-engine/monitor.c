@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: monitor.c,v 1.2 2001/08/14 11:57:40 guenter Exp $
+ * $Id: monitor.c,v 1.3 2001/09/01 17:10:01 jkeil Exp $
  *
  * debug print and profiling functions - implementation
  *
@@ -38,16 +38,16 @@
 
 #ifdef DEBUG
 
-long long int profiler_times[MAX_ID+1] ;
-long long int profiler_start[MAX_ID+1] ;
-char * profiler_label[MAX_ID+1] ;
+long long int profiler_times[MAX_ID] ;
+long long int profiler_start[MAX_ID] ;
+char * profiler_label[MAX_ID] ;
 
 void profiler_init () {
   int i;
   for (i=0; i<MAX_ID; i++) {
     profiler_times[i] = 0;
     profiler_start[i] = 0;
-    profiler_label[i] = "??";
+    profiler_label[i] = NULL;
   }
 }
 
@@ -78,7 +78,8 @@ void profiler_print_results () {
 
   printf ("\n\nPerformance analysis (usec):\n\n");
   for (i=0; i<MAX_ID; i++) {
-    printf ("%d:\t%s\t%12lld\n", i, profiler_label[i], profiler_times[i]);
+    if (profiler_label[i])
+      printf ("%d:\t%s\t%12lld\n", i, profiler_label[i], profiler_times[i]);
   }
 }
 
