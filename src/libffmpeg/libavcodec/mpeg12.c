@@ -36,7 +36,7 @@
 
 /* if xine's MPEG encoder is enabled, enable the encoding features in
  * this particular module */
-#ifdef XINE_MPEG_ENCODER
+#if defined(XINE_MPEG_ENCODER) && !defined(CONFIG_ENCODERS)
 #define CONFIG_ENCODERS
 #endif
 
@@ -2567,12 +2567,10 @@ static int mpeg1_decode_sequence(AVCodecContext *avctx,
             s->chroma_intra_matrix[j] = v;
         }
 #ifdef DEBUG
-/*
         dprintf("intra matrix present\n");
         for(i=0;i<64;i++)
             dprintf(" %d", s->intra_matrix[s->dsp.idct_permutation[i]);
         printf("\n");
-*/
 #endif
     } else {
         for(i=0;i<64;i++) {
@@ -2594,12 +2592,10 @@ static int mpeg1_decode_sequence(AVCodecContext *avctx,
             s->chroma_inter_matrix[j] = v;
         }
 #ifdef DEBUG
-/*
         dprintf("non intra matrix present\n");
         for(i=0;i<64;i++)
             dprintf(" %d", s->inter_matrix[s->dsp.idct_permutation[i]);
         printf("\n");
-*/
 #endif
     } else {
         for(i=0;i<64;i++) {
@@ -2801,8 +2797,6 @@ static int mpeg_decode_frame(AVCodecContext *avctx,
     AVFrame *picture = data;
     MpegEncContext *s2 = &s->mpeg_enc_ctx;
     dprintf("fill_buffer\n");
-
-    *data_size = 0;
 
     /* special case for last picture */
     if (buf_size == 0 && s2->low_delay==0 && s2->next_picture_ptr) {

@@ -24,7 +24,7 @@ extern "C" {
 
 #define FFMPEG_VERSION_INT     0x000408
 #define FFMPEG_VERSION         "0.4.8"
-#define LIBAVCODEC_BUILD       4713
+#define LIBAVCODEC_BUILD       4715
 
 #define LIBAVCODEC_VERSION_INT FFMPEG_VERSION_INT
 #define LIBAVCODEC_VERSION     FFMPEG_VERSION
@@ -799,7 +799,7 @@ typedef struct AVCodecContext {
     /* every time the encoder as a packet to send */
     /* Depends on the encoder if the data starts  */
     /* with a Start Code (it should) H.263 does   */
-    void (*rtp_callback)(void *data, int size, int packet_number); 
+    void (*rtp_callback)(struct AVCodecContext *avctx, void *data, int size, int packet_number); 
 
     /* statistics, used for 2-pass encoding */
     int mv_bits;
@@ -904,7 +904,8 @@ typedef struct AVCodecContext {
     /**
      * called at the beginning of each frame to get a buffer for it.
      * if pic.reference is set then the frame will be read later by lavc
-     * width and height should be rounded up to the next multiple of 16
+     * avcodec_align_dimensions() should be used to find the required width and
+     * height, as they normally need to be rounded up to the next multiple of 16
      * - encoding: unused
      * - decoding: set by lavc, user can override
      */
@@ -1665,6 +1666,7 @@ typedef struct AVCodec {
     struct AVCodec *next;
     void (*flush)(AVCodecContext *);
     const AVRational *supported_framerates; ///array of supported framerates, or NULL if any, array is terminated by {0,0}
+    const enum PixelFormat *pix_fmts;       ///array of supported pixel formats, or NULL if unknown, array is terminanted by -1
 } AVCodec;
 
 /**
@@ -1944,10 +1946,14 @@ AVFrame *avcodec_alloc_frame(void);
 
 int avcodec_default_get_buffer(AVCodecContext *s, AVFrame *pic);
 void avcodec_default_release_buffer(AVCodecContext *s, AVFrame *pic);
+int avcodec_default_reget_buffer(AVCodecContext *s, AVFrame *pic);
+void avcodec_align_dimensions(AVCodecContext *s, int *width, int *height);
+enum PixelFormat avcodec_default_get_format(struct AVCodecContext *s, const enum PixelFormat * fmt);
 
 int avcodec_thread_init(AVCodecContext *s, int thread_count);
 void avcodec_thread_free(AVCodecContext *s);
 int avcodec_thread_execute(AVCodecContext *s, int (*func)(AVCodecContext *c2, void *arg2),void **arg, int *ret, int count);
+int avcodec_default_execute(AVCodecContext *c, int (*func)(AVCodecContext *c2, void *arg2),void **arg, int *ret, int count);
 //FIXME func typedef
 
 /**
@@ -2091,6 +2097,7 @@ typedef struct AVCodecParserContext {
     /* private data */
     int64_t last_pts;
     int64_t last_dts;
+    int fetch_timestamp;
 
 #define AV_PARSER_PTS_NB 4
     int cur_frame_start_index;
@@ -2164,6 +2171,7 @@ extern void av_log_set_level(int);
 extern void av_log_set_callback(void (*)(void*, int, const char*, va_list));
 
 /* endian macros */
+#if !defined(BE_16) || !defined(BE_32) || !defined(LE_16) || !defined(LE_32)
 #define BE_16(x)  ((((uint8_t*)(x))[0] << 8) | ((uint8_t*)(x))[1])
 #define BE_32(x)  ((((uint8_t*)(x))[0] << 24) | \
                    (((uint8_t*)(x))[1] << 16) | \
@@ -2174,6 +2182,14 @@ extern void av_log_set_callback(void (*)(void*, int, const char*, va_list));
                    (((uint8_t*)(x))[2] << 16) | \
                    (((uint8_t*)(x))[1] << 8) | \
                     ((uint8_t*)(x))[0])
+#endif
+
+/* unused static macro */
+#if defined(__GNUC__) && !defined(DEBUG)
+/* since we do not compile the encoder part of ffmpeg, some static
+ * functions will be unused; this is ok, the compiler will take care */
+#  define static static __attribute__((__unused__))
+#endif
 
 #ifdef __cplusplus
 }

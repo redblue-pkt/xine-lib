@@ -6,7 +6,7 @@
 #ifndef COMMON_H
 #define COMMON_H
 
-// xine: disable DEBUG for ffmpeg (too noisy)
+/* xine: disable DEBUG for ffmpeg (too noisy) */
 #ifdef DEBUG
 #undef DEBUG
 #endif
@@ -120,6 +120,10 @@ extern const struct AVOption avoptions_workaround_bug[11];
 #define INT64_MAX int64_t_C(9223372036854775807)
 #endif
 
+#ifndef UINT64_MAX
+#define UINT64_MAX uint64_t_C(0xFFFFFFFFFFFFFFFF)
+#endif
+
 #ifdef EMULATE_FAST_INT
 /* note that we don't emulate 64bit ints */
 typedef signed char int_fast8_t;
@@ -213,8 +217,10 @@ static inline float floorf(float f) {
 
 /* debug stuff */
 
-#    if !defined(DEBUG) && !defined(NDEBUG)
+#    ifndef DEBUG
+#      ifndef NDEBUG
 #        define NDEBUG
+#      endif
 #    endif
 #    include <assert.h>
 
@@ -1282,7 +1288,6 @@ tend= rdtsc();\
 #define CLAMP_TO_8BIT(d) ((d > 0xff) ? 0xff : (d < 0) ? 0 : d)
 
 /* avoid usage of various functions */
-#if 0
 #define malloc please_use_av_malloc
 #define free please_use_av_free
 #define realloc please_use_av_realloc
@@ -1292,7 +1297,6 @@ tend= rdtsc();\
 #if !(defined(LIBAVFORMAT_BUILD) || defined(_FRAMEHOOK_H))
 #define printf please_use_av_log
 #define fprintf please_use_av_log
-#endif
 #endif
 
 #define CHECKED_ALLOCZ(p, size)\

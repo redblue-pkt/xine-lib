@@ -5,7 +5,7 @@ ASFLAGS =
 
 noinst_LTLIBRARIES = libpostprocess.la
 
-EXTRA_DIST = postprocess_template.c
+EXTRA_DIST = postprocess_template.c postprocess_altivec_template.c
 
 libpostprocess_la_SOURCES = postprocess.c
 

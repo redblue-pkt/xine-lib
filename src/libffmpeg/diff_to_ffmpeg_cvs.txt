@@ -1,5 +1,5 @@
---- avcodec.h	2004-05-12 18:40:32.000000000 +0200
-+++ avcodec.h	2004-05-10 01:31:59.000000000 +0200
+--- avcodec.h	2004-05-28 18:20:57.000000000 +0200
++++ avcodec.h	2004-05-28 18:25:10.000000000 +0200
 @@ -15,6 +15,13 @@
  #include "rational.h"
  #include <sys/types.h> /* size_t */
@@ -13,9 +13,23 @@
 +
  #define FFMPEG_VERSION_INT     0x000408
  #define FFMPEG_VERSION         "0.4.8"
- #define LIBAVCODEC_BUILD       4713
---- common.h	2004-05-12 18:37:00.000000000 +0200
-+++ common.h	2004-05-10 01:31:59.000000000 +0200
+ #define LIBAVCODEC_BUILD       4715
+@@ -2177,6 +2184,13 @@
+                     ((uint8_t*)(x))[0])
+ #endif
+ 
++/* unused static macro */
++#if defined(__GNUC__) && !defined(DEBUG)
++/* since we do not compile the encoder part of ffmpeg, some static
++ * functions will be unused; this is ok, the compiler will take care */
++#  define static static __attribute__((__unused__))
++#endif
++
+ #ifdef __cplusplus
+ }
+ #endif
+--- common.h	2004-05-28 18:20:57.000000000 +0200
++++ common.h	2004-05-28 18:22:54.000000000 +0200
 @@ -6,6 +6,11 @@
  #ifndef COMMON_H
  #define COMMON_H
@@ -28,8 +42,18 @@
  #if defined(WIN32) && !defined(__MINGW32__) && !defined(__CYGWIN__)
  #    define CONFIG_WIN32
  #endif
---- dsputil.h	2004-04-27 05:58:06.000000000 +0200
-+++ dsputil.h	2004-05-10 01:32:00.000000000 +0200
+@@ -213,7 +218,9 @@
+ /* debug stuff */
+ 
+ #    ifndef DEBUG
++#      ifndef NDEBUG
+ #        define NDEBUG
++#      endif
+ #    endif
+ #    include <assert.h>
+ 
+--- dsputil.h	2004-05-28 18:20:57.000000000 +0200
++++ dsputil.h	2004-05-28 18:22:54.000000000 +0200
 @@ -31,6 +31,9 @@
  #include "common.h"
  #include "avcodec.h"
@@ -40,8 +64,8 @@
  
  //#define DEBUG
  /* dct code */
---- mlib/dsputil_mlib.c	2004-03-15 02:21:01.000000000 +0100
-+++ mlib/dsputil_mlib.c	2004-03-15 02:22:22.000000000 +0100
+--- mlib/dsputil_mlib.c	2004-05-28 18:20:57.000000000 +0200
++++ mlib/dsputil_mlib.c	2004-05-28 18:22:54.000000000 +0200
 @@ -20,6 +20,8 @@
  #include "../dsputil.h"
  #include "../mpegvideo.h"
@@ -78,15 +102,33 @@
      }
 +  }
  }
---- mpeg12.c	2004-04-30 15:44:29.000000000 +0200
-+++ mpeg12.c	2004-05-10 01:32:01.000000000 +0200
+--- motion_est.c	2004-05-30 20:16:44.000000000 +0200
++++ motion_est.c	2004-05-10 23:21:24.000000000 +0200
+@@ -20,6 +20,9 @@
+  *
+  * new Motion Estimation (X1/EPZS) by Michael Niedermayer <michaelni@gmx.at>
+  */
++
++/* motion estimation only needed for encoders */
++#ifdef CONFIG_ENCODERS
+  
+ /**
+  * @file motion_est.c
+@@ -1998,3 +2001,5 @@
+         }
+     }
+ }
++
++#endif /* CONFIG_ENCODERS */
+--- mpeg12.c	2004-05-28 18:20:57.000000000 +0200
++++ mpeg12.c	2004-05-28 18:22:54.000000000 +0200
 @@ -34,6 +34,13 @@
  //#include <assert.h>
  
  
 +/* if xine's MPEG encoder is enabled, enable the encoding features in
 + * this particular module */
-+#ifdef XINE_MPEG_ENCODER
++#if defined(XINE_MPEG_ENCODER) && !defined(CONFIG_ENCODERS)
 +#define CONFIG_ENCODERS
 +#endif
 +
@@ -94,16 +136,16 @@
  /* Start codes. */
  #define SEQ_END_CODE		0x000001b7
  #define SEQ_START_CODE		0x000001b3
---- mpegvideo.c	2004-05-12 18:37:00.000000000 +0200
-+++ mpegvideo.c	2004-05-10 01:32:01.000000000 +0200
-@@ -39,6 +39,14 @@
+--- mpegvideo.c	2004-05-28 18:20:57.000000000 +0200
++++ mpegvideo.c	2004-05-28 18:22:54.000000000 +0200
+@@ -38,6 +38,14 @@
  //#undef NDEBUG
  //#include <assert.h>
  
 +
 +/* if xine's MPEG encoder is enabled, enable the encoding features in
 + * this particular module */
-+#ifdef XINE_MPEG_ENCODER
++#if defined(XINE_MPEG_ENCODER) && !defined(CONFIG_ENCODERS)
 +#define CONFIG_ENCODERS
 +#endif
 +
@@ -111,7 +153,7 @@
  #ifdef CONFIG_ENCODERS
  static void encode_picture(MpegEncContext *s, int picture_number);
  #endif //CONFIG_ENCODERS
-@@ -1033,6 +1041,8 @@
+@@ -1032,6 +1040,8 @@
          s->low_delay= 0; //s->max_b_frames ? 0 : 1;
          avctx->delay= s->low_delay ? 0 : (s->max_b_frames + 1);
          break;
@@ -120,7 +162,7 @@
      case CODEC_ID_MPEG2VIDEO:
          s->out_format = FMT_MPEG1;
          s->low_delay= 0; //s->max_b_frames ? 0 : 1;
-@@ -1154,6 +1164,7 @@
+@@ -1153,6 +1163,7 @@
          s->low_delay=1;
          break;
  #endif
@@ -128,7 +170,7 @@
      default:
          return -1;
      }
-@@ -1172,13 +1183,22 @@
+@@ -1171,13 +1182,22 @@
      
      ff_set_cmp(&s->dsp, s->dsp.ildct_cmp, s->avctx->ildct_cmp);
      
@@ -151,7 +193,7 @@
      if (s->out_format == FMT_MPEG1)
          ff_mpeg1_encode_init(s);
  #endif
-@@ -1230,9 +1250,12 @@
+@@ -1229,9 +1249,12 @@
  
      ff_rate_control_uninit(s);
  
@@ -164,7 +206,7 @@
  
      av_freep(&avctx->extradata);
        
-@@ -2136,8 +2159,11 @@
+@@ -2135,8 +2158,11 @@
  
          MPV_frame_end(s);
  
@@ -176,7 +218,7 @@
          
          if(s->flags&CODEC_FLAG_PASS1)
              ff_write_pass1_stats(s);
-@@ -3674,6 +3700,8 @@
+@@ -3673,6 +3699,8 @@
      case CODEC_ID_MPEG1VIDEO:
      case CODEC_ID_MPEG2VIDEO:
          mpeg1_encode_mb(s, s->block, motion_x, motion_y); break;
@@ -185,7 +227,7 @@
  #ifdef CONFIG_RISKY
      case CODEC_ID_MPEG4:
          mpeg4_encode_mb(s, s->block, motion_x, motion_y); break;
-@@ -3691,6 +3719,7 @@
+@@ -3690,6 +3718,7 @@
  #endif
      case CODEC_ID_MJPEG:
          mjpeg_encode_mb(s, s->block); break;
@@ -193,7 +235,7 @@
      default:
          assert(0);
      }
-@@ -3965,6 +3994,8 @@
+@@ -3964,6 +3993,8 @@
  }
  
  static void write_slice_end(MpegEncContext *s){
@@ -202,7 +244,7 @@
      if(s->codec_id==CODEC_ID_MPEG4){
          if(s->partitioned_frame){
              ff_mpeg4_merge_partitions(s);
-@@ -3974,6 +4005,7 @@
+@@ -3973,6 +4004,7 @@
      }else if(s->out_format == FMT_MJPEG){
          ff_mjpeg_stuffing(&s->pb);
      }
@@ -210,7 +252,7 @@
  
      align_put_bits(&s->pb);
      flush_put_bits(&s->pb);
-@@ -4025,10 +4057,13 @@
+@@ -4024,10 +4056,13 @@
      case CODEC_ID_FLV1:
          s->gob_index = ff_h263_get_gob_height(s);
          break;
@@ -224,7 +266,7 @@
      }
  #endif
  
-@@ -4082,9 +4117,12 @@
+@@ -4081,9 +4116,12 @@
                      if(s->start_mb_y != mb_y || mb_x!=0){
                          write_slice_end(s);
  
@@ -237,8 +279,8 @@
                      }
                  
                      assert((put_bits_count(&s->pb)&7) == 0);
-@@ -4106,19 +4144,25 @@
-                         s->avctx->rtp_callback(s->ptr_lastgob, current_packet_size, 0);
+@@ -4105,19 +4143,25 @@
+                         s->avctx->rtp_callback(s->avctx, s->ptr_lastgob, current_packet_size, 0);
                      
                      switch(s->codec_id){
 +/* xine: do not need this for decode or MPEG-1 encoding modes */
@@ -263,7 +305,7 @@
                      }
  
                      if(s->flags&CODEC_FLAG_PASS1){
-@@ -4232,9 +4276,12 @@
+@@ -4231,9 +4275,12 @@
                      
                      s->mv_dir = MV_DIR_FORWARD | MV_DIR_BACKWARD | MV_DIRECT;
                      s->mb_intra= 0;
@@ -276,7 +318,7 @@
                      encode_mb_hq(s, &backup_s, &best_s, CANDIDATE_MB_TYPE_DIRECT, pb, pb2, tex_pb, 
                                   &dmin, &next_block, mx, my);
                  }
-@@ -4422,9 +4469,12 @@
+@@ -4421,9 +4468,12 @@
                      s->mb_intra= 0;
                      motion_x=s->b_direct_mv_table[xy][0];
                      motion_y=s->b_direct_mv_table[xy][1];
@@ -289,7 +331,7 @@
                      break;
                  case CANDIDATE_MB_TYPE_BIDIR:
                      s->mv_dir = MV_DIR_FORWARD | MV_DIR_BACKWARD;
-@@ -4531,11 +4581,14 @@
+@@ -4530,11 +4580,14 @@
          }
      }
  
@@ -304,9 +346,9 @@
  
      write_slice_end(s);
  
-@@ -4598,12 +4651,15 @@
-     s->mb_var_sum_temp    =
-     s->mc_mb_var_sum_temp = 0;
+@@ -4597,12 +4650,15 @@
+     s->me.mb_var_sum_temp    =
+     s->me.mc_mb_var_sum_temp = 0;
  
 +/* xine: do not need this for decode or MPEG-1 encoding modes */
 +#if 0
@@ -318,9 +360,27 @@
  #endif
 +#endif /* #if 0 */
          
-     s->scene_change_score=0;
+     s->me.scene_change_score=0;
      
-@@ -4657,6 +4713,8 @@
+@@ -4621,6 +4677,8 @@
+         ff_update_duplicate_context(s->thread_context[i], s);
+     }
+
++/* xine: do not need this for decode or MPEG-1 encoding modes */
++#if 0
+     ff_init_me(s);
+
+     /* Estimate motion for every MB */
+@@ -4633,6 +4691,8 @@
+
+         s->avctx->execute(s->avctx, estimate_motion_thread, (void**)&(s->thread_context[0]), NULL, s->avctx->thread_count);
+     }else /* if(s->pict_type == I_TYPE) */{
++#endif /* #if 0 */
++    {
+         /* I-Frame */
+         for(i=0; i<s->mb_stride*s->mb_height; i++)
+             s->mb_type[i]= CANDIDATE_MB_TYPE_INTRA;
+@@ -4656,6 +4716,8 @@
  //printf("Scene change detected, encoding as I Frame %d %d\n", s->current_picture.mb_var_sum, s->current_picture.mc_mb_var_sum);
      }
  
@@ -329,7 +389,7 @@
      if(!s->umvplus){
          if(s->pict_type==P_TYPE || s->pict_type==S_TYPE) {
              s->f_code= ff_get_best_fcode(s, s->p_mv_table, CANDIDATE_MB_TYPE_INTER);
-@@ -4709,11 +4767,14 @@
+@@ -4709,11 +4771,14 @@
              }
          }
      }
@@ -344,7 +404,7 @@
  #ifdef CONFIG_RISKY
          switch(s->codec_id){
          case CODEC_ID_MPEG4:
-@@ -4726,6 +4787,7 @@
+@@ -4726,6 +4791,7 @@
              break;
          }
  #endif
@@ -352,7 +412,7 @@
  
          s->lambda= s->lambda_table[0];
          //FIXME broken
-@@ -4759,6 +4821,8 @@
+@@ -4759,6 +4825,8 @@
  
      s->last_bits= put_bits_count(&s->pb);
      switch(s->out_format) {
@@ -361,7 +421,7 @@
      case FMT_MJPEG:
          mjpeg_picture_header(s);
          break;
-@@ -4778,11 +4842,15 @@
+@@ -4778,11 +4846,15 @@
              h263_encode_picture_header(s, picture_number);
          break;
  #endif

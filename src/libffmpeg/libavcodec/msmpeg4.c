@@ -425,9 +425,7 @@ void msmpeg4_encode_picture_header(MpegEncContext * s, int picture_number)
 
 #ifdef DEBUG
     intra_count = 0;
-/*
     printf("*****frame %d:\n", frame_count++);
-*/
 #endif
 }
 
@@ -657,21 +655,6 @@ void msmpeg4_encode_mb(MpegEncContext * s,
 }
 
 #endif //CONFIG_ENCODERS
-
-/* old ffmpeg msmpeg4v3 mode */
-static void ff_old_msmpeg4_dc_scale(MpegEncContext * s)
-{
-    if (s->qscale < 5){
-        s->y_dc_scale = 8;
-        s->c_dc_scale = 8;
-    }else if (s->qscale < 9){
-        s->y_dc_scale = 2 * s->qscale;
-        s->c_dc_scale = (s->qscale + 13)>>1;
-    }else{
-        s->y_dc_scale = s->qscale + 8;
-        s->c_dc_scale = (s->qscale + 13)>>1;
-    }
-}
 
 static inline int msmpeg4v1_pred_dc(MpegEncContext * s, int n, 
                                     int32_t **dc_val_ptr)

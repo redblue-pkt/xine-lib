@@ -488,6 +488,7 @@ int avcodec_decode_video(AVCodecContext *avctx, AVFrame *picture,
 {
     int ret;
     
+    *got_picture_ptr= 0;
     ret = avctx->codec->decode(avctx, picture, got_picture_ptr, 
                                buf, buf_size);
 
@@ -508,6 +509,7 @@ int avcodec_decode_audio(AVCodecContext *avctx, int16_t *samples,
 {
     int ret;
 
+    *frame_size_ptr= 0;
     ret = avctx->codec->decode(avctx, samples, frame_size_ptr, 
                                buf, buf_size);
     avctx->frame_number++;
@@ -572,7 +574,7 @@ AVCodec *avcodec_find_decoder_by_name(const char *name)
     return NULL;
 }
 
-AVCodec *avcodec_find(enum CodecID id)
+static AVCodec *avcodec_find(enum CodecID id)
 {
     AVCodec *p;
     p = first_avcodec;
@@ -849,11 +851,11 @@ static void av_log_default_callback(void* ptr, int level, const char* fmt, va_li
     AVClass* avc= ptr ? *(AVClass**)ptr : NULL;
     if(level>av_log_level)
 	return;
-/* #undef fprintf */
+#undef fprintf
     if(print_prefix && avc) {
 	    fprintf(stderr, "[%s @ %p]", avc->item_name(ptr), avc);
     }
-/* #define fprintf please_use_av_log */
+#define fprintf please_use_av_log
         
     print_prefix= strstr(fmt, "\n") != NULL;
         
@@ -890,3 +892,8 @@ void av_log_set_callback(void (*callback)(void*, int, const char*, va_list))
     av_log_callback = callback;
 }
 
+#if !defined(HAVE_PTHREADS) && !defined(HAVE_W32THREADS)
+int avcodec_thread_init(AVCodecContext *s, int thread_count){
+    return -1;
+}
+#endif

@@ -25,12 +25,11 @@
  * The simplest mpeg encoder (well, it was the simplest!).
  */ 
  
-#include <limits.h>
-#include <math.h> //for PI
 #include "avcodec.h"
 #include "dsputil.h"
 #include "mpegvideo.h"
 #include "faandct.h"
+#include <limits.h>
 
 #ifdef USE_FASTMEMCPY
 #include "fastmemcpy.h"
@@ -42,7 +41,7 @@
 
 /* if xine's MPEG encoder is enabled, enable the encoding features in
  * this particular module */
-#ifdef XINE_MPEG_ENCODER
+#if defined(XINE_MPEG_ENCODER) && !defined(CONFIG_ENCODERS)
 #define CONFIG_ENCODERS
 #endif
 
@@ -575,7 +574,7 @@ void MPV_decode_defaults(MpegEncContext *s){
  */
 
 #ifdef CONFIG_ENCODERS
-void MPV_encode_defaults(MpegEncContext *s){
+static void MPV_encode_defaults(MpegEncContext *s){
     static int done=0;
     
     MPV_common_defaults(s);
@@ -1731,7 +1730,7 @@ void ff_print_debug_info(MpegEncContext *s, AVFrame *pict){
                 if((s->avctx->debug_mv) && pict->motion_val){
                   int type;
                   for(type=0; type<3; type++){
-                    int direction;
+                    int direction = 0;
                     switch (type) {
                       case 0: if ((!(s->avctx->debug_mv&FF_DEBUG_VIS_MV_P_FOR)) || (pict->pict_type!=FF_P_TYPE))
                                 continue;
@@ -3987,7 +3986,7 @@ static int mb_var_thread(AVCodecContext *c, void *arg){
 
             s->current_picture.mb_var [s->mb_stride * mb_y + mb_x] = varc;
             s->current_picture.mb_mean[s->mb_stride * mb_y + mb_x] = (sum+128)>>8;
-            s->mb_var_sum_temp    += varc;
+            s->me.mb_var_sum_temp    += varc;
         }
     }
     return 0;
@@ -4141,7 +4140,7 @@ static int encode_thread(AVCodecContext *c, void *arg){
                     }
         
                     if (s->avctx->rtp_callback)
-                        s->avctx->rtp_callback(s->ptr_lastgob, current_packet_size, 0);
+                        s->avctx->rtp_callback(s->avctx, s->ptr_lastgob, current_packet_size, 0);
                     
                     switch(s->codec_id){
 /* xine: do not need this for decode or MPEG-1 encoding modes */
@@ -4597,7 +4596,7 @@ static int encode_thread(AVCodecContext *c, void *arg){
         pdif = pbBufPtr(&s->pb) - s->ptr_lastgob;
         /* Call the RTP callback to send the last GOB */
         emms_c();
-        s->avctx->rtp_callback(s->ptr_lastgob, pdif, 0);
+        s->avctx->rtp_callback(s->avctx, s->ptr_lastgob, pdif, 0);
     }
 
     return 0;
@@ -4605,9 +4604,9 @@ static int encode_thread(AVCodecContext *c, void *arg){
 
 #define MERGE(field) dst->field += src->field; src->field=0
 static void merge_context_after_me(MpegEncContext *dst, MpegEncContext *src){
-    MERGE(scene_change_score);
-    MERGE(mc_mb_var_sum_temp);
-    MERGE(mb_var_sum_temp);
+    MERGE(me.scene_change_score);
+    MERGE(me.mc_mb_var_sum_temp);
+    MERGE(me.mb_var_sum_temp);
 }
 
 static void merge_context_after_encode(MpegEncContext *dst, MpegEncContext *src){
@@ -4642,14 +4641,14 @@ static void merge_context_after_encode(MpegEncContext *dst, MpegEncContext *src)
 
 static void encode_picture(MpegEncContext *s, int picture_number)
 {
-    int i, j;
+    int i;
     int bits;
 
     s->picture_number = picture_number;
     
     /* Reset the average MB variance */
-    s->mb_var_sum_temp    =
-    s->mc_mb_var_sum_temp = 0;
+    s->me.mb_var_sum_temp    =
+    s->me.mc_mb_var_sum_temp = 0;
 
 /* xine: do not need this for decode or MPEG-1 encoding modes */
 #if 0
@@ -4661,7 +4660,7 @@ static void encode_picture(MpegEncContext *s, int picture_number)
 #endif
 #endif /* #if 0 */
         
-    s->scene_change_score=0;
+    s->me.scene_change_score=0;
     
     s->lambda= s->current_picture_ptr->quality; //FIXME qscale / ... stuff for ME ratedistoration
     
@@ -4678,6 +4677,8 @@ static void encode_picture(MpegEncContext *s, int picture_number)
         ff_update_duplicate_context(s->thread_context[i], s);
     }
 
+/* xine: do not need this for decode or MPEG-1 encoding modes */
+#if 0
     ff_init_me(s);
 
     /* Estimate motion for every MB */
@@ -4690,6 +4691,8 @@ static void encode_picture(MpegEncContext *s, int picture_number)
 
         s->avctx->execute(s->avctx, estimate_motion_thread, (void**)&(s->thread_context[0]), NULL, s->avctx->thread_count);
     }else /* if(s->pict_type == I_TYPE) */{
+#endif /* #if 0 */
+    {
         /* I-Frame */
         for(i=0; i<s->mb_stride*s->mb_height; i++)
             s->mb_type[i]= CANDIDATE_MB_TYPE_INTRA;
@@ -4702,11 +4705,11 @@ static void encode_picture(MpegEncContext *s, int picture_number)
     for(i=1; i<s->avctx->thread_count; i++){
         merge_context_after_me(s, s->thread_context[i]);
     }
-    s->current_picture.mc_mb_var_sum= s->current_picture_ptr->mc_mb_var_sum= s->mc_mb_var_sum_temp;
-    s->current_picture.   mb_var_sum= s->current_picture_ptr->   mb_var_sum= s->   mb_var_sum_temp;
+    s->current_picture.mc_mb_var_sum= s->current_picture_ptr->mc_mb_var_sum= s->me.mc_mb_var_sum_temp;
+    s->current_picture.   mb_var_sum= s->current_picture_ptr->   mb_var_sum= s->me.   mb_var_sum_temp;
     emms_c();
 
-    if(s->scene_change_score > s->avctx->scenechange_threshold && s->pict_type == P_TYPE){
+    if(s->me.scene_change_score > s->avctx->scenechange_threshold && s->pict_type == P_TYPE){
         s->pict_type= I_TYPE;
         for(i=0; i<s->mb_stride*s->mb_height; i++)
             s->mb_type[i]= CANDIDATE_MB_TYPE_INTRA;
@@ -4729,6 +4732,7 @@ static void encode_picture(MpegEncContext *s, int picture_number)
             ff_fix_long_p_mvs(s);
             ff_fix_long_mvs(s, NULL, 0, s->p_mv_table, s->f_code, CANDIDATE_MB_TYPE_INTER, 0);
             if(s->flags & CODEC_FLAG_INTERLACED_ME){
+                int j;
                 for(i=0; i<2; i++){
                     for(j=0; j<2; j++)
                         ff_fix_long_mvs(s, s->p_field_select_table[i], j, 
@@ -4753,7 +4757,7 @@ static void encode_picture(MpegEncContext *s, int picture_number)
             ff_fix_long_mvs(s, NULL, 0, s->b_bidir_forw_mv_table, s->f_code, CANDIDATE_MB_TYPE_BIDIR, 1);
             ff_fix_long_mvs(s, NULL, 0, s->b_bidir_back_mv_table, s->b_code, CANDIDATE_MB_TYPE_BIDIR, 1);
             if(s->flags & CODEC_FLAG_INTERLACED_ME){
-                int dir;
+                int dir, j;
                 for(dir=0; dir<2; dir++){
                     for(i=0; i<2; i++){
                         for(j=0; j<2; j++){
@@ -5328,7 +5332,7 @@ STOP_TIMER("init rem[]")
         int best_score=s->dsp.try_8x8basis(rem, weight, basis[0], 0);
         int best_coeff=0;
         int best_change=0;
-        int run2, best_unquant_change, analyze_gradient;
+        int run2, best_unquant_change=0, analyze_gradient;
 #ifdef REFINE_STATS
 {START_TIMER
 #endif

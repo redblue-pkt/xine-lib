@@ -2,11 +2,14 @@ include $(top_srcdir)/misc/Makefile.common
 
 SUBDIRS = armv4l i386 mlib alpha ppc sparc libpostproc
 
-## some files here are #included by others... go figure.
-EXTRA_DIST = fdctref.c motion_est_template.c svq3.c wmv2.c \
-	imgresample.c mdec.c
+# some of ffmpeg's decoders are not used by xine yet
+EXTRA_DIST = motion_est_template.c imgresample.c \
+	cljr.c fdctref.c ffv1.c flac.c g726.c mdec.c raw.c svq3.c wmv2.c
 
-AM_CFLAGS = $(LIBFFMPEG_CFLAGS)
+# we need to compile everything in debug mode, including the encoders,
+# otherwise we get unresolved symbols, because some unsatisfied function calls
+# are not optimized away with debug optimization
+AM_CFLAGS = $(LIBFFMPEG_CFLAGS) `test "$(CFLAGS)" = "$(DEBUG_CFLAGS)" && echo -DCONFIG_ENCODERS`
 ASFLAGS =
 
 noinst_LTLIBRARIES = libavcodec.la
@@ -101,7 +104,6 @@ noinst_HEADERS = \
 	integer.h \
 	h263data.h \
 	h264data.h \
-	mangle.h \
 	mpeg4data.h \
 	mpeg12data.h \
 	mpegaudio.h \
@@ -109,7 +111,6 @@ noinst_HEADERS = \
 	mpegaudiotab.h \
 	mpegvideo.h \
 	msmpeg4data.h \
-	os_support.h \
 	ra144.h \
 	ra288.h \
 	rational.h \

@@ -48,6 +48,8 @@
 #undef NDEBUG
 #include <assert.h>
 
+extern const uint8_t mvtab[33][2];
+
 static VLC svq1_block_type;
 static VLC svq1_motion_component;
 static VLC svq1_intra_multistage[6];
@@ -55,15 +57,13 @@ static VLC svq1_inter_multistage[6];
 static VLC svq1_intra_mean;
 static VLC svq1_inter_mean;
 
-#define MEDIAN(a,b,c)	(((a < b) != (b >= c)) ? b : (((a < c) != (c > b)) ? c : a))
-
 #define SVQ1_BLOCK_SKIP		0
 #define SVQ1_BLOCK_INTER	1
 #define SVQ1_BLOCK_INTER_4V	2
 #define SVQ1_BLOCK_INTRA	3
 
 typedef struct SVQ1Context {
-
+    MpegEncContext m; // needed for motion estimation, should not be used for anything else, the idea is to make the motion estimation eventually independant of MpegEncContext, so this will be removed then (FIXME/XXX)
     AVCodecContext *avctx;
     DSPContext dsp;
     AVFrame picture;
@@ -84,8 +84,11 @@ typedef struct SVQ1Context {
     /* U & V plane (C planes) block dimensions */
     int c_block_width;
     int c_block_height;
-
-    unsigned char *c_plane;
+    
+    uint16_t *mb_type;
+    uint32_t *dummy;
+    int16_t (*motion_val8[3])[2];
+    int16_t (*motion_val16[3])[2];
 
     int64_t rd_total;
 } SVQ1Context;
@@ -349,13 +352,18 @@ static int svq1_decode_motion_vector (GetBitContext *bitbuf, svq1_pmv_t *mv, svq
   for (i=0; i < 2; i++) {
 
     /* get motion code */
-    diff = get_vlc2(bitbuf, svq1_motion_component.table, 7, 2) - 32;
+    diff = get_vlc2(bitbuf, svq1_motion_component.table, 7, 2);
+    if(diff<0) 
+        return -1;
+    else if(diff){
+        if(get_bits1(bitbuf)) diff= -diff;
+    }
 
     /* add median of motion vector predictors and clip result */
     if (i == 1)
-      mv->y = ((diff + MEDIAN(pmv[0]->y, pmv[1]->y, pmv[2]->y)) << 26) >> 26;
+      mv->y = ((diff + mid_pred(pmv[0]->y, pmv[1]->y, pmv[2]->y)) << 26) >> 26;
     else
-      mv->x = ((diff + MEDIAN(pmv[0]->x, pmv[1]->x, pmv[2]->x)) << 26) >> 26;
+      mv->x = ((diff + mid_pred(pmv[0]->x, pmv[1]->x, pmv[2]->x)) << 26) >> 26;
   }
 
   return 0;
@@ -705,6 +713,10 @@ static int svq1_decode_frame(AVCodecContext *avctx,
   int		result, i, x, y, width, height;
   AVFrame *pict = data; 
 
+  if(buf==NULL && buf_size==0){
+      return 0;
+  }
+  
   /* initialize bit buffer */
   init_get_bits(&s->gb,buf,buf_size*8);
 
@@ -834,9 +846,9 @@ static int svq1_decode_init(AVCodecContext *avctx)
         &svq1_block_type_vlc[0][1], 2, 1,
         &svq1_block_type_vlc[0][0], 2, 1);
 
-    init_vlc(&svq1_motion_component, 7, 65,
-        &svq1_motion_component_vlc[0][1], 2, 1,
-        &svq1_motion_component_vlc[0][0], 2, 1);
+    init_vlc(&svq1_motion_component, 7, 33,
+        &mvtab[0][1], 2, 1,
+        &mvtab[0][0], 2, 1);
 
     for (i = 0; i < 6; i++) {
         init_vlc(&svq1_intra_multistage[i], 3, 8,
@@ -898,419 +910,10 @@ static void svq1_write_header(SVQ1Context *s, int frame_type)
     put_bits(&s->pb, 2, 0);
 }
 
-int level_sizes[6] =      { 8, 16, 32, 64, 128, 256 };
-int level_log2_sizes[6] = { 3,  4,  5,  6,   7,   8 };
-
-#define IABS(x) ((x < 0) ? (-(x)) : x)
-
-
-
-//#define USE_MAD_ALGORITHM
-
-#ifdef USE_MAD_ALGORITHM
 
 #define QUALITY_THRESHOLD 100
 #define THRESHOLD_MULTIPLIER 0.6
 
-/* This function calculates vector differences using mean absolute 
- * difference (MAD). */
-
-static int encode_vector(SVQ1Context *s, unsigned char *vector, 
-    unsigned int level, int threshold)
-{
-    int i, j, k;
-    int mean;
-    signed short work_vector[256];
-    int best_codebook;
-    int best_score;
-    int multistage_codebooks[6];
-    int number_of_stages = 0;
-    int8_t *current_codebook;
-    int total_deviation;
-    int ret;
-
-#ifdef DEBUG_SVQ1
-av_log(s->avctx, AV_LOG_INFO, "  ** recursive entry point: encoding level %d vector at threshold %d\n",
-  level, threshold);
-#endif
-    if (level > 5) {
-        av_log(s->avctx, AV_LOG_INFO, " help! level %d > 5\n", level);
-        return 0;
-    }
-
-#ifdef DEBUG_SVQ1
-for (i = 0; i < level_sizes[level]; i++)
-  av_log(s->avctx, AV_LOG_INFO, " %02X", vector[i]);
-av_log(s->avctx, AV_LOG_INFO, "\n");
-#endif
-
-    /* calculate the mean */
-    mean = 0;
-    for (i = 0; i < level_sizes[level]; i++)
-        mean += vector[i];
-    mean >>= level_log2_sizes[level];
-
-#ifdef DEBUG_SVQ1
-av_log(s->avctx, AV_LOG_INFO, " vector mean = 0x%02X\n", mean);
-#endif
-
-    /* remove the mean from the vector */
-    total_deviation = 0;
-    for (i = 0; i < level_sizes[level]; i++) {
-        work_vector[i] = (signed short)vector[i] - mean;
-        total_deviation += IABS(work_vector[i]);
-#ifdef DEBUG_SVQ1
-av_log(s->avctx, AV_LOG_INFO, " %d", work_vector[i]);
-#endif
-    }
-
-#ifdef DEBUG_SVQ1
-av_log(s->avctx, AV_LOG_INFO, "\n  total deviation = %d\n", total_deviation);
-#endif
-
-    if (total_deviation < threshold) {
-
-#ifdef DEBUG_SVQ1
-    av_log(s->avctx, AV_LOG_INFO, " mean-only encoding found for level %d vector, mean = %d\n",
-      level, mean);
-#endif
-
-        /* indicate that this is the end of the subdivisions */
-        if (level > 0)
-            put_bits(&s->pb, 1, 0);
-
-        /* index 1 in the table indicates mean-only encoding */
-        put_bits(&s->pb, svq1_intra_multistage_vlc[level][1][1],
-            svq1_intra_multistage_vlc[level][1][0]);
-        put_bits(&s->pb, svq1_intra_mean_vlc[mean][1],
-            svq1_intra_mean_vlc[mean][0]);
-
-#ifdef DEBUG_SVQ1
-av_log(s->avctx, AV_LOG_INFO, "  mean-only L%d, VLC = (0x%X, %d), mean = %d (0x%X, %d)\n", 
-  level,
-  svq1_intra_multistage_vlc[level][1 + number_of_stages][0],
-  svq1_intra_multistage_vlc[level][1 + number_of_stages][1],
-  mean,
-  svq1_intra_mean_vlc[mean][0],
-  svq1_intra_mean_vlc[mean][1]);
-#endif
-
-        ret = 0;
-
-    } else {
-
-        if (level <= 3) {
-
-#ifdef DEBUG_SVQ1
-av_log(s->avctx, AV_LOG_INFO, " multistage VQ search...\n");
-#endif
-            /* conduct multistage VQ search, for each stage... */
-            for (i = 0; i < 6; i++) {
-
-                best_codebook = 0;
-                best_score = 0x7FFFFFFF;
-                /* for each codebook in stage */
-                for (j = 0; j < 16; j++) {
-
-                    total_deviation = 0;
-                    current_codebook =
-                        &svq1_intra_codebooks[level]
-                        [i * level_sizes[level] * 16 + j * level_sizes[level]];
-                    /* calculate the total deviation for the vector */
-                    for (k = 0; k < level_sizes[level]; k++) {
-                        total_deviation += 
-                            IABS(work_vector[k] - current_codebook[k]);
-                    }
-
-                    /* lowest score so far? */
-                    if (total_deviation < best_score) {
-                        best_score = total_deviation;
-                        best_codebook = j;
-                    }
-#ifdef DEBUG_SVQ1
-av_log(s->avctx, AV_LOG_INFO, "  after %d, %d, best codebook is %d with a score of %d (score was %d)\n",
-  i, j, best_codebook, best_score, total_deviation);
-#endif
-                }
-
-                /* apply the winning codebook to the work vector and check if
-                 * the vector meets the quality threshold */
-                total_deviation = 0;
-                current_codebook =
-                    &svq1_intra_codebooks[level]
-                    [i * level_sizes[level] * 16 + j * level_sizes[level]];
-                multistage_codebooks[number_of_stages++] = best_codebook;
-                for (j = 0; j < level_sizes[level]; j++) {
-                    work_vector[j] = work_vector[j] - current_codebook[j];
-                    total_deviation += IABS(work_vector[j]);
-                }
-
-                /* do not go forward with the rest of the search if an acceptable
-                 * codebook combination has been found */
-                if (total_deviation < threshold)
-                    break;
-            }
-        }
-
-        if ((total_deviation < threshold) || (level == 0)) {
-#ifdef DEBUG_SVQ1
-      av_log(s->avctx, AV_LOG_INFO, " level %d VQ encoding found using mean %d and codebooks", level, mean);
-      for (i = 0; i < number_of_stages; i++)
-        av_log(s->avctx, AV_LOG_INFO, " %d", multistage_codebooks[i]);
-      av_log(s->avctx, AV_LOG_INFO, "\n");
-#endif
-
-            /* indicate that this is the end of the subdivisions */
-            if (level > 0)
-                put_bits(&s->pb, 1, 0);
-
-            /* output the encoding */
-            put_bits(&s->pb, 
-                svq1_intra_multistage_vlc[level][1 + number_of_stages][1],
-                svq1_intra_multistage_vlc[level][1 + number_of_stages][0]);
-            put_bits(&s->pb, svq1_intra_mean_vlc[mean][1],
-                svq1_intra_mean_vlc[mean][0]);
-#ifdef DEBUG_SVQ1
-av_log(s->avctx, AV_LOG_INFO, "  L%d: multistage = %d (0x%X, %d), mean = %d (0x%X, %d), codebooks = ", 
-  level,
-  number_of_stages,
-  svq1_intra_multistage_vlc[level][1 + number_of_stages][0],
-  svq1_intra_multistage_vlc[level][1 + number_of_stages][1],
-  mean,
-  svq1_intra_mean_vlc[mean][0],
-  svq1_intra_mean_vlc[mean][1]);
-#endif
-
-            for (i = 0; i < number_of_stages; i++)
-{
-#ifdef DEBUG_SVQ1
-av_log(s->avctx, AV_LOG_INFO, "%d ", multistage_codebooks[i]);
-#endif
-                put_bits(&s->pb, 4, multistage_codebooks[i]);
-}
-#ifdef DEBUG_SVQ1
-av_log(s->avctx, AV_LOG_INFO, "\n");
-#endif
-
-            ret = 0;
-
-        } else {
-
-            /* output a subdivision bit to the encoded stream and signal to 
-             * the calling function that this vector could not be
-             * coded at the requested threshold and needs to be subdivided */
-            put_bits(&s->pb, 1, 1);
-            ret = 1;
-        }
-    }
-
-    return ret;
-}
-
-#else
-
-#define QUALITY_THRESHOLD 100
-#define THRESHOLD_MULTIPLIER 0.6
-
-/* This function calculates vector differences using mean square 
- * error (MSE). */
-
-static int encode_vector(SVQ1Context *s, unsigned char *vector, 
-    unsigned int level, int threshold)
-{
-    int i, j, k;
-    int mean;
-    signed short work_vector[256];
-    int best_codebook;
-    int best_score;
-    int multistage_codebooks[6];
-    int number_of_stages = 0;
-    int8_t *current_codebook;
-    int mse;
-    int diff;
-    int ret;
-
-#ifdef DEBUG_SVQ1
-av_log(s->avctx, AV_LOG_INFO, "  ** recursive entry point: encoding level %d vector at threshold %d\n",
-  level, threshold);
-#endif
-    if (level > 5) {
-        av_log(s->avctx, AV_LOG_INFO, " help! level %d > 5\n", level);
-        return 0;
-    }
-
-#ifdef DEBUG_SVQ1
-for (i = 0; i < level_sizes[level]; i++)
-  av_log(s->avctx, AV_LOG_INFO, " %02X", vector[i]);
-av_log(s->avctx, AV_LOG_INFO, "\n");
-#endif
-
-    /* calculate the mean */
-    mean = 0;
-    for (i = 0; i < level_sizes[level]; i++)
-        mean += vector[i];
-    mean >>= level_log2_sizes[level];
-
-#ifdef DEBUG_SVQ1
-av_log(s->avctx, AV_LOG_INFO, " vector mean = 0x%02X\n", mean);
-#endif
-
-    /* remove the mean from the vector and compute the resulting MSE */
-    mse = 0;
-    for (i = 0; i < level_sizes[level]; i++) {
-        work_vector[i] = (signed short)vector[i] - mean;
-        mse += (work_vector[i] * work_vector[i]);
-#ifdef DEBUG_SVQ1
-av_log(s->avctx, AV_LOG_INFO, " %d", work_vector[i]);
-#endif
-    }
-    mse >>= level_log2_sizes[level];
-
-#ifdef DEBUG_SVQ1
-av_log(s->avctx, AV_LOG_INFO, "\n  MSE = %d\n", mse);
-#endif
-
-    if (mse < threshold) {
-
-#ifdef DEBUG_SVQ1
-    av_log(s->avctx, AV_LOG_INFO, " mean-only encoding found for level %d vector, mean = %d\n",
-      level, mean);
-#endif
-
-        /* indicate that this is the end of the subdivisions */
-        if (level > 0)
-            put_bits(&s->pb, 1, 0);
-
-        /* index 1 in the table indicates mean-only encoding */
-        put_bits(&s->pb, svq1_intra_multistage_vlc[level][1][1],
-            svq1_intra_multistage_vlc[level][1][0]);
-        put_bits(&s->pb, svq1_intra_mean_vlc[mean][1],
-            svq1_intra_mean_vlc[mean][0]);
-
-#ifdef DEBUG_SVQ1
-av_log(s->avctx, AV_LOG_INFO, "  mean-only L%d, VLC = (0x%X, %d), mean = %d (0x%X, %d)\n", 
-  level,
-  svq1_intra_multistage_vlc[level][1 + number_of_stages][0],
-  svq1_intra_multistage_vlc[level][1 + number_of_stages][1],
-  mean,
-  svq1_intra_mean_vlc[mean][0],
-  svq1_intra_mean_vlc[mean][1]);
-#endif
-
-        ret = 0;
-
-    } else {
-
-        if (level <= 3) {
-
-#ifdef DEBUG_SVQ1
-av_log(s->avctx, AV_LOG_INFO, " multistage VQ search...\n");
-#endif
-            /* conduct multistage VQ search, for each stage... */
-            for (i = 0; i < 6; i++) {
-
-                best_codebook = 0;
-                best_score = 0x7FFFFFFF;
-                /* for each codebook in stage */
-                for (j = 0; j < 16; j++) {
-
-                    mse = 0;
-                    current_codebook =
-                        &svq1_intra_codebooks[level]
-                        [i * level_sizes[level] * 16 + j * level_sizes[level]];
-                    /* calculate the MSE for this vector */
-                    for (k = 0; k < level_sizes[level]; k++) {
-                        diff = work_vector[k] - current_codebook[k];
-                        mse += (diff * diff);
-                    }
-                    mse >>= level_log2_sizes[level];
-
-                    /* lowest score so far? */
-                    if (mse < best_score) {
-                        best_score = mse;
-                        best_codebook = j;
-                    }
-#ifdef DEBUG_SVQ1
-av_log(s->avctx, AV_LOG_INFO, "  after %d, %d, best codebook is %d with a score of %d (score was %d)\n",
-  i, j, best_codebook, best_score, mse);
-#endif
-                }
-
-                /* apply the winning codebook to the work vector and check if
-                 * the vector meets the quality threshold */
-                mse = 0;
-                current_codebook =
-                    &svq1_intra_codebooks[level]
-                    [i * level_sizes[level] * 16 + j * level_sizes[level]];
-                multistage_codebooks[number_of_stages++] = best_codebook;
-                for (j = 0; j < level_sizes[level]; j++) {
-                    work_vector[j] = work_vector[j] - current_codebook[j];
-                    mse += (work_vector[j] * work_vector[j]);
-                }
-                mse >>= level_log2_sizes[level];
-
-                /* do not go forward with the rest of the search if an acceptable
-                 * codebook combination has been found */
-                if (mse < threshold)
-                    break;
-            }
-        }
-
-        if ((mse < threshold) || (level == 0)) {
-#ifdef DEBUG_SVQ1
-      av_log(s->avctx, AV_LOG_INFO, " level %d VQ encoding found using mean %d and codebooks", level, mean);
-      for (i = 0; i < number_of_stages; i++)
-        av_log(s->avctx, AV_LOG_INFO, " %d", multistage_codebooks[i]);
-      av_log(s->avctx, AV_LOG_INFO, "\n");
-#endif
-
-            /* indicate that this is the end of the subdivisions */
-            if (level > 0)
-                put_bits(&s->pb, 1, 0);
-
-            /* output the encoding */
-            put_bits(&s->pb, 
-                svq1_intra_multistage_vlc[level][1 + number_of_stages][1],
-                svq1_intra_multistage_vlc[level][1 + number_of_stages][0]);
-            put_bits(&s->pb, svq1_intra_mean_vlc[mean][1],
-                svq1_intra_mean_vlc[mean][0]);
-#ifdef DEBUG_SVQ1
-av_log(s->avctx, AV_LOG_INFO, "  L%d: multistage = %d (0x%X, %d), mean = %d (0x%X, %d), codebooks = ", 
-  level,
-  number_of_stages,
-  svq1_intra_multistage_vlc[level][1 + number_of_stages][0],
-  svq1_intra_multistage_vlc[level][1 + number_of_stages][1],
-  mean,
-  svq1_intra_mean_vlc[mean][0],
-  svq1_intra_mean_vlc[mean][1]);
-#endif
-
-            for (i = 0; i < number_of_stages; i++)
-{
-#ifdef DEBUG_SVQ1
-av_log(s->avctx, AV_LOG_INFO, "%d ", multistage_codebooks[i]);
-#endif
-                put_bits(&s->pb, 4, multistage_codebooks[i]);
-}
-#ifdef DEBUG_SVQ1
-av_log(s->avctx, AV_LOG_INFO, "\n");
-#endif
-
-            ret = 0;
-
-        } else {
-
-            /* output a subdivision bit to the encoded stream and signal to 
-             * the calling function that this vector could not be
-             * coded at the requested threshold and needs to be subdivided */
-            put_bits(&s->pb, 1, 1);
-            ret = 1;
-        }
-    }
-
-    return ret;
-}
-#endif
 
 static int encode_block(SVQ1Context *s, uint8_t *src, uint8_t *ref, uint8_t *decoded, int stride, int level, int threshold, int lambda, int intra){
     int count, y, x, i, j, split, best_mean, best_score, best_count;
@@ -1461,29 +1064,15 @@ static int encode_block(SVQ1Context *s, uint8_t *src, uint8_t *ref, uint8_t *dec
     return best_score;
 }
 
-static void svq1_encode_plane(SVQ1Context *s, unsigned char *src_plane, unsigned char *ref_plane, unsigned char *decoded_plane,
+static void svq1_encode_plane(SVQ1Context *s, int plane, unsigned char *src_plane, unsigned char *ref_plane, unsigned char *decoded_plane,
     int width, int height, int src_stride, int stride)
 {
-    unsigned char buffer0[256];
-    unsigned char buffer1[256];
-    int current_buffer;
-    unsigned char *vector;
-    unsigned char *subvectors;
-    int vector_count;
-    int subvector_count;
     int x, y;
-    int i, j;
+    int i;
     int block_width, block_height;
-    int left_edge;
     int level;
     int threshold[6];
     const int lambda= (s->picture.quality*s->picture.quality) >> (2*FF_LAMBDA_SHIFT);
-
-static int frame = 0;
-
-#ifdef DEBUG_SVQ1
-av_log(s->avctx, AV_LOG_INFO, "********* frame #%d\n", frame++);
-#endif
 
     /* figure out the acceptable level thresholds in advance */
     threshold[5] = QUALITY_THRESHOLD;
@@ -1493,6 +1082,75 @@ av_log(s->avctx, AV_LOG_INFO, "********* frame #%d\n", frame++);
     block_width = (width + 15) / 16;
     block_height = (height + 15) / 16;
 
+    if(s->picture.pict_type == P_TYPE){
+        s->m.avctx= s->avctx;
+        s->m.current_picture_ptr= &s->m.current_picture;
+        s->m.last_picture_ptr   = &s->m.last_picture;
+        s->m.last_picture.data[0]= ref_plane;
+        s->m.linesize=
+        s->m.last_picture.linesize[0]= 
+        s->m.new_picture.linesize[0]= 
+        s->m.current_picture.linesize[0]= stride;
+        s->m.width= width;
+        s->m.height= height;
+        s->m.mb_width= block_width;
+        s->m.mb_height= block_height;
+        s->m.mb_stride= s->m.mb_width+1;
+        s->m.b8_stride= 2*s->m.mb_width+1;
+        s->m.f_code=1;
+        s->m.pict_type= s->picture.pict_type;
+        s->m.qscale= s->picture.quality/FF_QP2LAMBDA;
+        s->m.me_method= s->avctx->me_method;
+        
+        if(!s->motion_val8[plane]){
+            s->motion_val8 [plane]= av_mallocz(s->m.b8_stride*block_height*2*2*sizeof(int16_t));
+            s->motion_val16[plane]= av_mallocz(s->m.mb_stride*block_height*2*sizeof(int16_t));
+        }
+        
+        s->m.mb_type= s->mb_type;
+        
+        //dummies, to avoid segfaults
+        s->m.current_picture.mb_mean=   (uint8_t *)s->dummy;
+        s->m.current_picture.mb_var=    (uint16_t*)s->dummy;
+        s->m.current_picture.mc_mb_var= (uint16_t*)s->dummy;
+        s->m.current_picture.mb_type= s->dummy;
+        
+        s->m.current_picture.motion_val[0]= s->motion_val8[plane];
+        s->m.p_mv_table= s->motion_val16[plane];
+        s->m.dsp= s->dsp; //move
+        ff_init_me(&s->m);
+    
+        s->m.me.dia_size= s->avctx->dia_size;
+        s->m.first_slice_line=1;
+        for (y = 0; y < block_height; y++) {
+            uint8_t src[stride*16];
+            
+            s->m.new_picture.data[0]= src - y*16*stride; //ugly
+            s->m.mb_y= y;
+    
+            for(i=0; i<16 && i + 16*y<height; i++){
+                memcpy(&src[i*stride], &src_plane[(i+16*y)*src_stride], width);
+                for(x=width; x<16*block_width; x++)
+                    src[i*stride+x]= src[i*stride+x-1];
+            }
+            for(; i<16 && i + 16*y<16*block_height; i++)
+                memcpy(&src[i*stride], &src[(i-1)*stride], 16*block_width);
+    
+            for (x = 0; x < block_width; x++) {
+                s->m.mb_x= x;
+                ff_init_block_index(&s->m);
+                ff_update_block_index(&s->m);
+                
+                ff_estimate_p_frame_motion(&s->m, x, y);
+            }
+            s->m.first_slice_line=0;
+        }
+    
+        ff_fix_long_p_mvs(&s->m);
+        ff_fix_long_mvs(&s->m, NULL, 0, s->m.p_mv_table, s->m.f_code, CANDIDATE_MB_TYPE_INTER, 0);
+    }
+        
+    s->m.first_slice_line=1;
     for (y = 0; y < block_height; y++) {
         uint8_t src[stride*16];
         
@@ -1504,53 +1162,95 @@ av_log(s->avctx, AV_LOG_INFO, "********* frame #%d\n", frame++);
         for(; i<16 && i + 16*y<16*block_height; i++)
             memcpy(&src[i*stride], &src[(i-1)*stride], 16*block_width);
 
+        s->m.mb_y= y;
         for (x = 0; x < block_width; x++) {
-            uint8_t reorder_buffer[2][6][7*32];
-            int count[2][6];
+            uint8_t reorder_buffer[3][6][7*32];
+            int count[3][6];
             int offset = y * 16 * stride + x * 16;
             uint8_t *decoded= decoded_plane + offset;
             uint8_t *ref= ref_plane + offset;
-            int score[2]={0,0}, best;
+            int score[4]={0,0,0,0}, best;
             uint8_t temp[16*stride];
 
-#ifdef DEBUG_SVQ1
-av_log(s->avctx, AV_LOG_INFO, "* level 5 vector @ %d, %d:\n", x * 16, y * 16);
-#endif
+            s->m.mb_x= x;
+            ff_init_block_index(&s->m);
+            ff_update_block_index(&s->m);
             
-            for(i=0; i<6; i++){
-                init_put_bits(&s->reorder_pb[i], reorder_buffer[0][i], 7*32);
-            }
-            if(s->picture.pict_type == P_TYPE){
-                const uint8_t *vlc= svq1_block_type_vlc[SVQ1_BLOCK_INTRA];
-                put_bits(&s->reorder_pb[5], vlc[1], vlc[0]);
-                score[0]= vlc[1]*lambda;
-            }
-            score[0]+= encode_block(s, src+16*x, ref, temp, stride, 5, 64, lambda, 1);
-            for(i=0; i<6; i++){
-                count[0][i]= put_bits_count(&s->reorder_pb[i]);
-                flush_put_bits(&s->reorder_pb[i]);
-                init_put_bits(&s->reorder_pb[i], reorder_buffer[1][i], 7*32);
-            }
+            if(s->picture.pict_type == I_TYPE || (s->m.mb_type[x + y*s->m.mb_stride]&CANDIDATE_MB_TYPE_INTRA)){
+                for(i=0; i<6; i++){
+                    init_put_bits(&s->reorder_pb[i], reorder_buffer[0][i], 7*32);
+                }
+                if(s->picture.pict_type == P_TYPE){
+                    const uint8_t *vlc= svq1_block_type_vlc[SVQ1_BLOCK_INTRA];
+                    put_bits(&s->reorder_pb[5], vlc[1], vlc[0]);
+                    score[0]= vlc[1]*lambda;
+                }
+                score[0]+= encode_block(s, src+16*x, NULL, temp, stride, 5, 64, lambda, 1);
+                for(i=0; i<6; i++){
+                    count[0][i]= put_bits_count(&s->reorder_pb[i]);
+                    flush_put_bits(&s->reorder_pb[i]);
+                }
+            }else
+                score[0]= INT_MAX;
+            
+            best=0;
+            
             if(s->picture.pict_type == P_TYPE){
                 const uint8_t *vlc= svq1_block_type_vlc[SVQ1_BLOCK_INTER];
-                put_bits(&s->reorder_pb[5], vlc[1], vlc[0]);
-                score[1] = vlc[1]*lambda;
-                for(i=0; i<2; i++){
-                    vlc= svq1_motion_component_vlc[32];
+                int mx, my, pred_x, pred_y, dxy;
+                int16_t *motion_ptr;
+
+                motion_ptr= h263_pred_motion(&s->m, 0, 0, &pred_x, &pred_y);
+                if(s->m.mb_type[x + y*s->m.mb_stride]&CANDIDATE_MB_TYPE_INTER){
+                    for(i=0; i<6; i++)
+                        init_put_bits(&s->reorder_pb[i], reorder_buffer[1][i], 7*32);
+
                     put_bits(&s->reorder_pb[5], vlc[1], vlc[0]);
-                    score[1] += vlc[1]*lambda;
+    
+                    s->m.pb= s->reorder_pb[5];                
+                    mx= motion_ptr[0];
+                    my= motion_ptr[1];
+                    assert(mx>=-32 && mx<=31);
+                    assert(my>=-32 && my<=31);
+                    assert(pred_x>=-32 && pred_x<=31);
+                    assert(pred_y>=-32 && pred_y<=31);
+                    ff_h263_encode_motion(&s->m, mx - pred_x, 1);
+                    ff_h263_encode_motion(&s->m, my - pred_y, 1);
+                    s->reorder_pb[5]= s->m.pb;
+                    score[1] += lambda*put_bits_count(&s->reorder_pb[5]);
+    
+                    dxy= (mx&1) + 2*(my&1);
+                    
+                    s->dsp.put_pixels_tab[0][dxy](temp+16, ref + (mx>>1) + stride*(my>>1), stride, 16);
+                    
+                    score[1]+= encode_block(s, src+16*x, temp+16, decoded, stride, 5, 64, lambda, 0);
+                    best= score[1] <= score[0];
+
+                    vlc= svq1_block_type_vlc[SVQ1_BLOCK_SKIP];
+                    score[2]= s->dsp.sse[0](NULL, src+16*x, ref, stride, 16);
+                    score[2]+= vlc[1]*lambda;
+                    if(score[2] < score[best] && mx==0 && my==0){
+                        best=2;
+                        s->dsp.put_pixels_tab[0][0](decoded, ref, stride, 16);
+                        for(i=0; i<6; i++){
+                            count[2][i]=0;
+                        }
+                        put_bits(&s->pb, vlc[1], vlc[0]);
+                    }
                 }
 
-                score[1]+= encode_block(s, src+16*x, ref, decoded, stride, 5, 64, lambda, 0);
-                best= score[1] <= score[0];
                 if(best==1){
                     for(i=0; i<6; i++){
                         count[1][i]= put_bits_count(&s->reorder_pb[i]);
                         flush_put_bits(&s->reorder_pb[i]);
                     }
+                }else{
+                    motion_ptr[0                 ] = motion_ptr[1                 ]=
+                    motion_ptr[2                 ] = motion_ptr[3                 ]=
+                    motion_ptr[0+2*s->m.b8_stride] = motion_ptr[1+2*s->m.b8_stride]=
+                    motion_ptr[2+2*s->m.b8_stride] = motion_ptr[3+2*s->m.b8_stride]=0;
                 }
-            }else
-                best= 0;
+            }
                 
             s->rd_total += score[best];
 
@@ -1560,124 +1260,14 @@ av_log(s->avctx, AV_LOG_INFO, "* level 5 vector @ %d, %d:\n", x * 16, y * 16);
             if(best==0){
                 s->dsp.put_pixels_tab[0][0](decoded, temp, stride, 16);
             }
-            
-#if 0
-            for (i = 0; i < 256; i += 16) {
-                memcpy(&buffer0[i], &plane[left_edge], 16);
-                left_edge += stride;
-            }
-            current_buffer = 1;  /* this will toggle to 0 immediately */
-
-            /* perform a breadth-first tree encoding for each vector level */
-            subvector_count = 1;  /* one subvector at level 5 */
-            for (level = 5; level >= 0; level--) {
-
-                vector_count = subvector_count;
-                subvector_count = 0;
-
-                if (current_buffer == 0) {
-                    current_buffer = 1;
-                    vector = buffer1;
-                    subvectors = buffer0;
-                } else {
-                    current_buffer = 0;
-                    vector = buffer0;
-                    subvectors = buffer1;
-                }
-
-                /* iterate through each vector in the list */
-                for (i = 0; i < vector_count; i++) {
-
-                    if (encode_vector(s, vector, level, threshold[level])) {
-
-#ifdef DEBUG_SVQ1
-av_log(s->avctx, AV_LOG_INFO, "  split to level %d\n", level - 1);
-#endif
-                        /* subdivide into 2 subvectors for later processing */
-                        subvector_count += 2;
-
-                        if (level - 1 == 3) {
-                            /* subdivide 16x8 -> 2 8x8 */
-                            for (j = 0; j < 8; j++) {
-                                /* left half */
-                                memcpy(subvectors + j * 8, vector + j * 16, 8);
-                                /* right half */
-                                memcpy(subvectors + 64 + j * 8,
-                                    vector + 8 + j * 16, 8);
-                            }
-                            subvectors += 128;
-                        } else if (level - 1 == 1) {
-                            /* subdivide 8x4 -> 2 4x4 */
-                            for (j = 0; j < 4; j++) {
-                                /* left half */
-                                memcpy(subvectors + j * 4, vector + j * 8, 4);
-                                /* right half */
-                                memcpy(subvectors + 16 + j * 4,
-                                    vector + 4 + j * 8, 4);
-                            }
-                            subvectors += 32;
-                        } else {
-                            /* first half */
-                            memcpy(subvectors, vector, level_sizes[level - 1]);
-                            subvectors += level_sizes[level - 1];
-                            /* second half */
-                            memcpy(subvectors, vector + level_sizes[level - 1], 
-                                level_sizes[level - 1]);
-                            subvectors += level_sizes[level - 1];
-                        }
-                    }
- 
-                    vector += level_sizes[level];
-                }
-
-                /* if there are no more subvectors, break early */
-                if (!subvector_count)
-                    break;
-            }
-#endif
         }
-    }
-}
-
-/* output a plane with a constant mean value; good for debugging and for
- * greyscale encoding but only valid for intra frames */
-static void svq1_output_intra_constant_mean(SVQ1Context *s, int block_width, 
-    int block_height, unsigned char mean)
-{
-    int i;
-
-    /* for each level 5 vector, output the specified mean value */
-    for (i = 0; i < block_width * block_height; i++) {
-
-        /* output a 0 before each vector indicating no subdivision */
-        put_bits(&s->pb, 1, 0);
-
-        /* output a 0 indicating mean-only encoding; use index 1 as that
-         * maps to code 0 */
-        put_bits(&s->pb, svq1_intra_multistage_vlc[5][1][1],
-            svq1_intra_multistage_vlc[5][1][0]);
-
-        /* output a constant mean */
-        put_bits(&s->pb, svq1_intra_mean_vlc[mean][1],
-            svq1_intra_mean_vlc[mean][0]);
-#ifdef DEBUG_SVQ1
-av_log(s->avctx, AV_LOG_INFO, "  const L5 %d/%d: multistage = 0 (0x%X, %d), mean = %d (0x%X, %d)\n", 
-  i, block_width * block_height,
-  svq1_intra_multistage_vlc[5][1][0],
-  svq1_intra_multistage_vlc[5][1][1],
-  mean,
-  svq1_intra_mean_vlc[mean][0],
-  svq1_intra_mean_vlc[mean][1]);
-#endif
+        s->m.first_slice_line=0;
     }
 }
 
 static int svq1_encode_init(AVCodecContext *avctx)
 {
     SVQ1Context * const s = avctx->priv_data;
-    int i;
-    unsigned char least_bits_value = 0;
-    int least_bits;
 
     dsputil_init(&s->dsp, avctx);
     avctx->coded_frame= (AVFrame*)&s->picture;
@@ -1691,26 +1281,18 @@ static int svq1_encode_init(AVCodecContext *avctx)
     s->c_block_width = (s->frame_width / 4 + 15) / 16;
     s->c_block_height = (s->frame_height / 4 + 15) / 16;
 
+    s->avctx= avctx;
+    s->m.me.scratchpad= av_mallocz((avctx->width+64)*2*16*2*sizeof(uint8_t)); 
+    s->m.me.map       = av_mallocz(ME_MAP_SIZE*sizeof(uint32_t));
+    s->m.me.score_map = av_mallocz(ME_MAP_SIZE*sizeof(uint32_t));
+    s->mb_type        = av_mallocz((s->y_block_width+1)*s->y_block_height*sizeof(int16_t));
+    s->dummy          = av_mallocz((s->y_block_width+1)*s->y_block_height*sizeof(int32_t));
+    h263_encode_init(&s->m); //mv_penalty
+    
 av_log(s->avctx, AV_LOG_INFO, " Hey: %d x %d, %d x %d, %d x %d\n",
   s->frame_width, s->frame_height,
   s->y_block_width, s->y_block_height,
   s->c_block_width, s->c_block_height);
-
-    /* allocate a plane for the U & V planes (color, or C, planes) and
-     * initialize them to the value that is represented by the fewest bits
-     * in the mean table; the reasoning behind this is that when the border
-     * vectors are operated upon and possibly subdivided, the mean will be
-     * removed resulting in a perfect deviation score of 0 and encoded with
-     * the minimal possible bits */
-    s->c_plane = av_malloc(s->c_block_width * s->c_block_height * 16 * 16);
-    least_bits = 10000;
-    for (i = 0; i < 256; i++)
-        if (svq1_intra_mean_vlc[i][1] < least_bits) {
-            least_bits = svq1_intra_mean_vlc[i][1];
-            least_bits_value = i;
-        }
-    memset(s->c_plane, least_bits_value, 
-        s->c_block_width * s->c_block_height * 16 * 16);
 
     return 0;
 }
@@ -1746,7 +1328,7 @@ static int svq1_encode_frame(AVCodecContext *avctx, unsigned char *buf,
 
     svq1_write_header(s, p->pict_type);
     for(i=0; i<3; i++){
-        svq1_encode_plane(s, 
+        svq1_encode_plane(s, i,
             s->picture.data[i], s->last_picture.data[i], s->current_picture.data[i],
             s->frame_width / (i?4:1), s->frame_height / (i?4:1), 
             s->picture.linesize[i], s->current_picture.linesize[i]);
@@ -1764,10 +1346,20 @@ static int svq1_encode_frame(AVCodecContext *avctx, unsigned char *buf,
 static int svq1_encode_end(AVCodecContext *avctx)
 {
     SVQ1Context * const s = avctx->priv_data;
+    int i;
 
     av_log(avctx, AV_LOG_DEBUG, "RD: %f\n", s->rd_total/(double)(avctx->width*avctx->height*avctx->frame_number));
     
-    av_free(s->c_plane);
+    av_freep(&s->m.me.scratchpad);     
+    av_freep(&s->m.me.map);
+    av_freep(&s->m.me.score_map);
+    av_freep(&s->mb_type);
+    av_freep(&s->dummy);
+
+    for(i=0; i<3; i++){
+        av_freep(&s->motion_val8[i]);
+        av_freep(&s->motion_val16[i]);
+    }
 
     return 0;
 }
@@ -1783,6 +1375,7 @@ AVCodec svq1_decoder = {
     svq1_decode_frame,
     CODEC_CAP_DR1,
     .flush= ff_mpeg_flush,
+    .pix_fmts= (enum PixelFormat[]){PIX_FMT_YUV410P, -1},
 };
 
 #ifdef CONFIG_ENCODERS
@@ -1795,6 +1388,7 @@ AVCodec svq1_encoder = {
     svq1_encode_init,
     svq1_encode_frame,
     svq1_encode_end,
+    .pix_fmts= (enum PixelFormat[]){PIX_FMT_YUV410P, -1},
 };
 
 #endif //CONFIG_ENCODERS
