@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.89 2002/09/22 14:29:40 mroi Exp $
+ * $Id: input_dvd.c,v 1.90 2002/09/28 11:10:04 mroi Exp $
  *
  */
 
@@ -1069,22 +1069,40 @@ static void dvdnav_event_listener (void *this_gen, xine_event_t *event) {
       break;
     case XINE_EVENT_INPUT_NEXT:
       {
-        int title=0;
-        int part=0;
-        if (dvdnav_current_title_info(this->dvdnav, &title, &part)) {
-          part++;
-          dvdnav_part_play(this->dvdnav, title, part);
-        }
+        cfg_entry_t *entry = this->config->lookup_entry(this->config, "input.dvdnav_skip_behaviour");
+	int title = 0, part = 0;
+	switch (entry->num_value) {
+	case 0: /* skip by program */
+	  dvdnav_next_pg_search(this->dvdnav);
+	  break;
+	case 1: /* skip by part */
+	  if (dvdnav_current_title_info(this->dvdnav, &title, &part))
+	    dvdnav_part_play(this->dvdnav, title, ++part);
+	  break;
+	case 2: /* skip by title */
+	  if (dvdnav_current_title_info(this->dvdnav, &title, &part))
+	    dvdnav_part_play(this->dvdnav, ++title, 1);
+	  break;
+	}
       }
       break;
     case XINE_EVENT_INPUT_PREVIOUS:
       {
-        int title=0;
-        int part=0;
-        if (dvdnav_current_title_info(this->dvdnav, &title, &part)) {
-          part--;
-          dvdnav_part_play(this->dvdnav, title, part);
-        }
+        cfg_entry_t *entry = this->config->lookup_entry(this->config, "input.dvdnav_skip_behaviour");
+	int title = 0, part = 0;
+	switch (entry->num_value) {
+	case 0: /* skip by program */
+	  dvdnav_prev_pg_search(this->dvdnav);
+	  break;
+	case 1: /* skip by part */
+	  if (dvdnav_current_title_info(this->dvdnav, &title, &part))
+	    dvdnav_part_play(this->dvdnav, title, --part);
+	  break;
+	case 2: /* skip by title */
+	  if (dvdnav_current_title_info(this->dvdnav, &title, &part))
+	    dvdnav_part_play(this->dvdnav, --title, 1);
+	  break;
+	}
       }
       break;
     case XINE_EVENT_INPUT_ANGLE_NEXT: 
@@ -1437,6 +1455,7 @@ check_solaris_vold_device(dvdnav_input_plugin_t *this)
 static void *init_input_plugin (xine_t *xine, void *data) {
   dvdnav_input_plugin_t *this;
   config_values_t *config = xine->config;
+  static char *skip_modes[] = {"skip program", "skip part", "skip title", NULL};
   void *dvdcss;
 
   trace_print("Called\n");
@@ -1536,6 +1555,10 @@ static void *init_input_plugin (xine_t *xine, void *data) {
 			"may lead to jerky playback on low-end "
 			"machines.",
 			10, read_ahead_cb, this);
+  config->register_enum(config, "input.dvdnav_skip_behaviour", 0,
+			skip_modes,
+			"Skipping will work on this basis.",
+			NULL, 10, NULL, NULL);
   
 #ifdef __sun
   check_solaris_vold_device(this);
@@ -1547,6 +1570,9 @@ static void *init_input_plugin (xine_t *xine, void *data) {
 
 /*
  * $Log: input_dvd.c,v $
+ * Revision 1.90  2002/09/28 11:10:04  mroi
+ * configurable skipping behaviour
+ *
  * Revision 1.89  2002/09/22 14:29:40  mroi
  * API review part I
  * - bring our beloved xine_t * back (no more const there)
