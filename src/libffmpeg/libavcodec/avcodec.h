@@ -329,6 +329,8 @@ extern AVCodec mpeg4_encoder;
 extern AVCodec msmpeg4v1_encoder;
 extern AVCodec msmpeg4v2_encoder;
 extern AVCodec msmpeg4v3_encoder;
+extern AVCodec wmv1_encoder;
+extern AVCodec wmv2_encoder;
 
 extern AVCodec h263_decoder;
 extern AVCodec mpeg4_decoder;
@@ -336,6 +338,7 @@ extern AVCodec msmpeg4v1_decoder;
 extern AVCodec msmpeg4v2_decoder;
 extern AVCodec msmpeg4v3_decoder;
 extern AVCodec wmv1_decoder;
+extern AVCodec wmv2_decoder;
 extern AVCodec mpeg_decoder;
 extern AVCodec h263i_decoder;
 extern AVCodec rv10_decoder;
@@ -519,5 +522,12 @@ typedef enum {
  * integer resulting value
  */
 int avcodec(void* handle, avc_cmd_t cmd, void* pin, void* pout);
+
+/* memory */
+void *av_malloc(int size);
+void *av_mallocz(int size);
+void av_free(void *ptr);
+void __av_freep(void **ptr);
+#define av_freep(p) __av_freep((void **)(p))
 
 #endif /* AVCODEC_H */
