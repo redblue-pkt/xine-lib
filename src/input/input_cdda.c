@@ -20,7 +20,7 @@
  * Compact Disc Digital Audio (CDDA) Input Plugin 
  *   by Mike Melanson (melanson@pcisys.net)
  *
- * $Id: input_cdda.c,v 1.50 2004/04/10 17:41:44 valtri Exp $
+ * $Id: input_cdda.c,v 1.51 2004/04/21 16:43:18 komadori Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -545,6 +545,13 @@ static int read_cdrom_toc(int fd, cdrom_toc *toc) {
       (tocentry.cdte_addr.msf.minute * CD_SECONDS_PER_MINUTE * CD_FRAMES_PER_SECOND) +
       (tocentry.cdte_addr.msf.second * CD_FRAMES_PER_SECOND) +
        tocentry.cdte_addr.msf.frame;
+  }
+
+  if (tocentry.cdte_ctrl | CDROM_DATA_TRACK) {
+    toc->ignore_last_track = 1;
+  }
+  else {
+    toc->ignore_last_track = 0;
   }
 
   /* fetch the leadout as well */
@@ -1746,7 +1753,7 @@ static int cdda_open(cdda_input_plugin_t *this_gen,
   if (this_gen)
     this_gen->fd = -1;
 
-  fd = open (cdda_device, O_RDONLY|O_EXCL);
+  fd = open (cdda_device, O_RDONLY);
   if (fd == -1) {
     return -1;
   }
