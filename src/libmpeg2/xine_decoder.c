@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.21 2002/02/09 07:13:23 guenter Exp $
+ * $Id: xine_decoder.c,v 1.22 2002/02/11 01:55:20 guenter Exp $
  *
  * stuff needed to turn libmpeg2 into a xine decoder plugin
  */
@@ -54,11 +54,17 @@ static void mpeg2dec_init (video_decoder_t *this_gen, vo_instance_t *video_out) 
 
   mpeg2dec_decoder_t *this = (mpeg2dec_decoder_t *) this_gen;
 
-  printf ("libmpeg2: init \n");
+  printf ("libmpeg2: init... \n");
+
+  pthread_mutex_lock (&this->lock);
+
   mpeg2_init (&this->mpeg2, video_out);
   video_out->open(video_out);
   this->video_out = video_out;
-  pthread_mutex_init (&this->lock, NULL);
+
+  pthread_mutex_unlock (&this->lock);
+
+  printf ("libmpeg2: init...done\n");
 }
 
 static void mpeg2dec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
@@ -98,12 +104,13 @@ static void mpeg2dec_close (video_decoder_t *this_gen) {
 
   printf ("libmpeg2: close\n");
 
+  pthread_mutex_lock (&this->lock);
+
   mpeg2_close (&this->mpeg2);
 
   this->video_out->close(this->video_out);
 
-  pthread_mutex_destroy (&this->lock);
-
+  pthread_mutex_unlock (&this->lock);
 }
 
 static char *mpeg2dec_get_id(void) {
@@ -135,6 +142,7 @@ video_decoder_t *init_video_decoder_plugin (int iface_version, xine_t *xine) {
   this->video_decoder.priority            = 1;
 
   this->mpeg2.xine = xine;
+  pthread_mutex_init (&this->lock, NULL);
 
   return (video_decoder_t *) this;
 }
