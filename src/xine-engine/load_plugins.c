@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.102 2002/10/17 17:43:44 mroi Exp $
+ * $Id: load_plugins.c,v 1.103 2002/10/18 20:17:07 f1rmb Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -1011,6 +1011,11 @@ xine_ao_driver_t *xine_open_audio_driver (xine_t *this, const char *id,
 } 
 
 void xine_close_audio_driver (xine_t *this, xine_ao_driver_t  *driver) {
+
+  /* FIXME : implement */
+
+}
+void xine_close_video_driver (xine_t *this, xine_vo_driver_t  *driver) {
 
   /* FIXME : implement */
 
