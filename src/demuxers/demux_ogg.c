@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_ogg.c,v 1.159 2004/12/17 20:48:39 tmattern Exp $
+ * $Id: demux_ogg.c,v 1.160 2004/12/21 05:30:40 conrad Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -1247,6 +1247,12 @@ static void decode_anxdata_header (demux_ogg_t *this, const int stream_num, ogg_
   
 }
 
+static void decode_cmml_header (demux_ogg_t *this, const int stream_num, ogg_packet *op) {
+    unsigned int channel = this->num_spu_streams++;
+    this->si[stream_num]->headers = 0;
+    this->si[stream_num]->buf_types = BUF_SPU_CMML | channel;
+}
+
 /*
  * interpret stream start packages, send headers
  */
@@ -1317,6 +1323,8 @@ static void send_header (demux_ogg_t *this) {
           decode_annodex_header(this, stream_num, &op);
         } else if (!strncmp (&op.packet[0], "AnxData", 7)) {
           decode_anxdata_header(this, stream_num, &op);
+	} else if (!strncmp (&op.packet[0], "CMML", 4)) {
+	  decode_cmml_header(this, stream_num, &op);
         } else {
           xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
                   "demux_ogg: unknown stream type (signature >%.8s<). hex dump of bos packet follows:\n",
