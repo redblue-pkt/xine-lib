@@ -25,6 +25,9 @@ xine-lib (1-xxx)
   * UTF-8 support for cddb (freedb) client
   * identify AAC, MPEG4 and H264 on transport streams
   * build fixes and improvements (not using mkinstalldirs, mingw32)
+  * fixed mmst and mmsh issues with the cache plugin
+  * fixed mmsh "RESET" chunk handling
+  * implemented winamp.com "streaming" protocol
 
 xine-lib (1-rc7)
   * Build system improvements: replacement functions, better work with headers
