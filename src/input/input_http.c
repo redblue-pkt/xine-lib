@@ -393,7 +393,7 @@ static off_t http_plugin_get_length (input_plugin_t *this_gen) {
 
 static uint32_t http_plugin_get_capabilities (input_plugin_t *this_gen) {
 
-  return INPUT_CAP_NOCAP;
+  return INPUT_CAP_PREVIEW;
 }
 
 static uint32_t http_plugin_get_blocksize (input_plugin_t *this_gen) {

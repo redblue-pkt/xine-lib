@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_stdin_fifo.c,v 1.32 2002/09/06 18:13:11 mroi Exp $
+ * $Id: input_stdin_fifo.c,v 1.33 2002/10/23 21:19:42 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -279,7 +279,7 @@ static off_t stdin_plugin_get_length(input_plugin_t *this_gen) {
 
 static uint32_t stdin_plugin_get_capabilities(input_plugin_t *this_gen) {
   
-  return INPUT_CAP_NOCAP;
+  return INPUT_CAP_PREVIEW;
 }
 
 static uint32_t stdin_plugin_get_blocksize(input_plugin_t *this_gen) {
