@@ -23,6 +23,6 @@ xineplug_decode_ff_la_SOURCES = xine_decoder.c
 xineplug_decode_ff_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 endif
 
-xineplug_decode_ff_la_LIBADD = $(MLIB_LIBS) $(XINE_LIB) \
+xineplug_decode_ff_la_LIBADD = $(MLIB_LIBS) $(XINE_LIB) -lm \
 	$(top_builddir)/src/libffmpeg/libavcodec/libavcodec.la \
 	$(top_builddir)/src/libffmpeg/libavcodec/libpostproc/libpostprocess.la
