@@ -1167,7 +1167,7 @@ echo "   - cinepak         - msvc"
 echo "   - fli             - msrle"
 echo "   - rgb             - yuv"
 echo "   - roqvideo        - svq1"
-echo "   - idcin"
+echo "   - idcin           - smc"
 if test x"$no_xvid" = "xno"; then
   echo "   - xvid"
 fi
