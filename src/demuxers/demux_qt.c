@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.46 2002/06/07 02:40:47 miguelfreitas Exp $
+ * $Id: demux_qt.c,v 1.47 2002/06/07 02:48:31 tmmm Exp $
  *
  */
 
@@ -124,6 +124,7 @@ typedef struct {
   unsigned int size;
   int64_t pts;
   int keyframe;
+  unsigned int official_byte_count;
 } qt_frame;
 
 typedef struct {
@@ -562,6 +563,7 @@ static qt_error build_frame_table(qt_sample_table *sample_table) {
   int64_t current_pts;
   unsigned int pts_index;
   unsigned int pts_index_countdown;
+  unsigned int official_audio_byte_counter = 0;
 
   /* AUDIO and OTHER frame types follow the same rules; VIDEO follows a
    * different set */
@@ -670,6 +672,30 @@ static qt_error build_frame_table(qt_sample_table *sample_table) {
       sample_table->frame_count * sizeof(qt_frame));
     if (!sample_table->frames)
       return QT_NO_MEMORY;
+
+    if (sample_table->type == MEDIA_AUDIO) {
+      /* iterate through each start chunk in the stsc table */
+      for (i = 0; i < sample_table->sample_to_chunk_count; i++) {
+        /* iterate from the first chunk of the current table entry to
+         * the first chunk of the next table entry */
+        chunk_start = sample_table->sample_to_chunk_table[i].first_chunk;
+        if (i < sample_table->sample_to_chunk_count - 1)
+          chunk_end =
+            sample_table->sample_to_chunk_table[i + 1].first_chunk;
+        else
+          /* if the first chunk is in the last table entry, iterate to the
+             final chunk number (the number of offsets in stco table) */
+          chunk_end = sample_table->chunk_offset_count + 1;
+
+          /* iterate through each sample in a chunk */
+          for (j = chunk_start - 1; j < chunk_end - 1; j++) {
+            sample_table->frames[j].official_byte_count =
+              official_audio_byte_counter;
+            official_audio_byte_counter +=
+              sample_table->sample_to_chunk_table[i].samples_per_chunk;
+          }
+      }
+    }
 
     for (i = 0; i < sample_table->frame_count; i++) {
       sample_table->frames[i].type = sample_table->type;
@@ -825,7 +851,7 @@ static void parse_moov_atom(qt_info *info, unsigned char *moov_atom) {
       /* .pts currently holds the total nubmer of bytes for the stream */
       total_audio_bytes = info->frames[i].pts;
       info->frames[i].pts = audio_pts_multiplier;
-      info->frames[i].pts *= audio_byte_counter;
+      info->frames[i].pts *= info->frames[i].official_byte_count;
       info->frames[i].pts /= total_audio_bytes;
 
       /* figure out the audio frame size */
