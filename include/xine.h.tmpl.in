@@ -29,7 +29,7 @@
    \endverbatim
  */
 /*
- * $Id: xine.h.tmpl.in,v 1.22 2001/06/23 14:05:46 f1rmb Exp $
+ * $Id: xine.h.tmpl.in,v 1.23 2001/06/24 01:09:31 guenter Exp $
  *
  */
 
@@ -37,6 +37,7 @@
 #define HAVE_XINE_H
 
 #include <inttypes.h>
+#include <unistd.h>
 
 /** 
  * \defgroup versgroup Version constants 
