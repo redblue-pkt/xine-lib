@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * $Id: yuv2rgb.c,v 1.36 2003/01/25 12:46:10 esnel Exp $
+ * $Id: yuv2rgb.c,v 1.37 2003/02/02 11:21:35 esnel Exp $
  */
 
 #include "config.h"
@@ -92,6 +92,14 @@ static int yuv2rgb_next_slice (yuv2rgb_t *this, uint8_t **dest) {
     this->slice_offset += this->slice_height;
     return (y1 - y0);
   }
+}
+
+static void yuv2rgb_dispose (yuv2rgb_t *this) {
+
+  free (this->y_chunk);
+  free (this->u_chunk);
+  free (this->v_chunk);
+  free (this);
 }
 
 static int yuv2rgb_configure (yuv2rgb_t *this, 
@@ -2235,6 +2243,7 @@ static void yuv2rgb_setup_tables (yuv2rgb_factory_t *this, int mode, int swapped
   case MODE_32_RGB:
   case MODE_32_BGR:
     table_32 = malloc ((197 + 2*682 + 256 + 132) * sizeof (uint32_t));
+    this->table_base = table_32;
 
     entry_size = sizeof (uint32_t);
     table_r = table_32 + 197;
@@ -2264,6 +2273,7 @@ static void yuv2rgb_setup_tables (yuv2rgb_factory_t *this, int mode, int swapped
   case MODE_24_RGB:
   case MODE_24_BGR:
     table_8 = malloc ((256 + 2*232) * sizeof (uint8_t));
+    this->table_base = table_8;
 
     entry_size = sizeof (uint8_t);
     table_r = table_g = table_b = table_8 + 232;
@@ -2277,6 +2287,7 @@ static void yuv2rgb_setup_tables (yuv2rgb_factory_t *this, int mode, int swapped
   case MODE_15_RGB:
   case MODE_16_RGB:
     table_16 = malloc ((197 + 2*682 + 256 + 132) * sizeof (uint16_t));
+    this->table_base = table_16;
 
     entry_size = sizeof (uint16_t);
     table_r = table_16 + 197;
@@ -2317,6 +2328,7 @@ static void yuv2rgb_setup_tables (yuv2rgb_factory_t *this, int mode, int swapped
   case MODE_8_RGB:
   case MODE_8_BGR:
     table_8 = malloc ((197 + 2*682 + 256 + 132) * sizeof (uint8_t));
+    this->table_base = table_8;
 
     entry_size = sizeof (uint8_t);
     table_r = table_8 + 197;
@@ -2341,6 +2353,7 @@ static void yuv2rgb_setup_tables (yuv2rgb_factory_t *this, int mode, int swapped
 
   case MODE_PALETTE:
     table_16 = malloc ((197 + 2*682 + 256 + 132) * sizeof (uint16_t));
+    this->table_base = table_16;
 
     entry_size = sizeof (uint16_t);
     table_r = table_16 + 197;
@@ -3104,6 +3117,7 @@ yuv2rgb_t *yuv2rgb_create_converter (yuv2rgb_factory_t *factory) {
 
   this->configure                = yuv2rgb_configure;
   this->next_slice               = yuv2rgb_next_slice;
+  this->dispose                  = yuv2rgb_dispose;
   return this;
 }
 
@@ -3131,6 +3145,12 @@ int yuv2rgb_get_gamma (yuv2rgb_factory_t *this) {
   return this->gamma;
 }
 
+static void yuv2rgb_factory_dispose (yuv2rgb_factory_t *this) {
+
+  free (this->table_base);
+  free (this);
+}
+
 yuv2rgb_factory_t* yuv2rgb_factory_init (int mode, int swapped, 
 					 uint8_t *cmap) {
 
@@ -3148,7 +3168,9 @@ yuv2rgb_factory_t* yuv2rgb_factory_init (int mode, int swapped,
   this->create_converter    = yuv2rgb_create_converter;
   this->set_gamma           = yuv2rgb_set_gamma;
   this->get_gamma           = yuv2rgb_get_gamma;
+  this->dispose             = yuv2rgb_factory_dispose;
   this->matrix_coefficients = 6;
+  this->table_base          = NULL;
 
 
   yuv2rgb_setup_tables (this, mode, swapped);

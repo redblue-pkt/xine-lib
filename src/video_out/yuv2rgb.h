@@ -57,6 +57,11 @@ struct yuv2rgb_s {
   int (*next_slice) (yuv2rgb_t *this, uint8_t **dest);
 
   /*
+   * free resources
+   */
+  void (*dispose) (yuv2rgb_t *this);
+
+  /*
    * this is the function to call for the yuv2rgb and scaling process
    */
   yuv2rgb_fun_t     yuv2rgb_fun;
@@ -118,7 +123,12 @@ struct yuv2rgb_factory_s {
    * get gamma value 
    */
   int (*get_gamma) (yuv2rgb_factory_t *this);
-                   
+
+  /*
+   * free resources
+   */
+  void (*dispose) (yuv2rgb_factory_t *this);
+
   /* private data */
 
   int      mode;
@@ -130,6 +140,7 @@ struct yuv2rgb_factory_s {
 
   uint32_t matrix_coefficients;
 
+  void    *table_base;
   void    *table_rV[256];
   void    *table_gU[256];
   int      table_gV[256];
