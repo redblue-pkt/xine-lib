@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.181 2002/10/29 01:55:44 guenter Exp $
+ * $Id: xine.c,v 1.182 2002/10/29 03:31:38 guenter Exp $
  *
  * top-level xine functions
  *
@@ -215,6 +215,8 @@ void xine_stop (xine_stream_t *stream) {
 
 static void xine_close_internal (xine_stream_t *stream) {
 
+  int i ;
+
   xine_stop_internal( stream );
   
 #ifdef LOG
@@ -233,6 +235,17 @@ static void xine_close_internal (xine_stream_t *stream) {
   if (stream->input_plugin) {
     stream->input_plugin->dispose(stream->input_plugin);
     stream->input_plugin = NULL;
+  }
+
+  /*
+   * reset / free meta info
+   */
+
+  for (i=0; i<XINE_STREAM_INFO_MAX; i++) {
+    stream->stream_info[i]       = 0;
+    if (stream->meta_info[i])
+      free (stream->meta_info[i]);
+    stream->meta_info[i]         = NULL;
   }
 }
 
