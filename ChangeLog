@@ -3,6 +3,7 @@ xine-lib (1-xxx)
     files with IDCT / mocomp XvMC acceleration. 
   * polypaudio sound server support
   * fix playback of MMS streams with the new input cache layer [bug #1066926]
+  * fixed builds without X11 [bug #1067705]
         
 xine-lib (1-rc7)
   * Build system improvements: replacement functions, better work with headers
