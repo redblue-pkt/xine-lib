@@ -17,10 +17,14 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: utils.c,v 1.35 2004/09/26 22:54:53 valtri Exp $
+ * $Id: utils.c,v 1.36 2004/10/29 23:11:38 miguelfreitas Exp $
  *
  */
 #define	_POSIX_PTHREAD_SEMANTICS 1	/* for 5-arg getpwuid_r on solaris */
+
+/*
+#define LOG
+*/
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -34,6 +38,7 @@
 
 #include <errno.h>
 #include <pwd.h>
+#include <sys/time.h>
 #include <time.h>
 #include <unistd.h>
 
@@ -576,3 +581,52 @@ void xine_xprintf(xine_t *xine, int verbose, const char *fmt, ...) {
   }
 }
 #endif
+
+int xine_monotonic_clock(struct timeval *tv, struct timezone *tz)
+{
+#if _POSIX_TIMERS > 0 && defined(_POSIX_MONOTONIC_CLOCK)
+  static int initialized = 0;
+  static int use_clock_monotonic = 0;
+     
+  struct timespec tp;
+  
+  if( !initialized ) { 
+    struct timespec res;
+    int ret;
+  
+    ret = clock_getres(CLOCK_MONOTONIC, &res);
+    
+    if( ret != 0 ) {
+      lprintf("get resolution of monotonic clock failed\n");
+    } else {
+      /* require at least milisecond resolution */
+      if( res.tv_sec > 0 ||
+          res.tv_nsec > 1000000 ) {
+        lprintf("monotonic clock resolution (%d:%d) too bad\n",
+                 (int)res.tv_sec, (int)res.tv_nsec);
+      } else {
+        if( clock_gettime(CLOCK_MONOTONIC, &tp) != 0 ) {
+          lprintf("get monotonic clock failed\n");
+        } else {
+          lprintf("using monotonic clock\n");
+          use_clock_monotonic = 1;
+        }
+      }
+    }
+    initialized = 1;
+  }  
+  
+  if(use_clock_monotonic && !clock_gettime(CLOCK_MONOTONIC, &tp)) {
+    tv->tv_sec = tp.tv_sec;
+    tv->tv_usec = tp.tv_nsec / 1000;
+    return 0;
+  } else {
+    return gettimeofday(tv, tz);
+  }
+
+#else
+  
+  return gettimeofday(tv, tz);
+
+#endif
+}

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_file_out.c,v 1.2 2004/04/23 12:41:30 hadess Exp $
+ * $Id: audio_file_out.c,v 1.3 2004/10/29 23:11:37 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -159,7 +159,7 @@ static int ao_file_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
 		this->fd = -1;
 		return 0;
 	}
-	gettimeofday(&this->endtime, NULL);
+	xine_monotonic_clock(&this->endtime, NULL);
 	return this->sample_rate;
 }
 
@@ -234,7 +234,7 @@ static int ao_file_delay (ao_driver_t *this_gen)
 
 	/* Work out how long we need to sleep for, and how much
 	   time we've already taken */
-	gettimeofday(&now, NULL);
+	xine_monotonic_clock(&now, NULL);
 
 	if (now.tv_sec > this->endtime.tv_sec) {
 		/* We slipped. Compensate */

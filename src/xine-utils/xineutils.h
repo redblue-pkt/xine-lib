@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xineutils.h,v 1.94 2004/09/26 22:54:53 valtri Exp $
+ * $Id: xineutils.h,v 1.95 2004/10/29 23:11:38 miguelfreitas Exp $
  *
  */
 #ifndef XINEUTILS_H
@@ -1030,6 +1030,11 @@ const char *xine_guess_spu_encoding(void);
 char *exec_path_append_subdir(char * string);
 #endif
 
+/*
+ * use the best clock reference (API compatible with gettimeofday)
+ * note: it will be a monotonic clock, if available.
+ */
+int xine_monotonic_clock(struct timeval *tv, struct timezone *tz);      
 
 #ifdef __cplusplus
 }

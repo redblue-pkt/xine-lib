@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_oss_out.c,v 1.110 2004/10/08 20:32:03 mroi Exp $
+ * $Id: audio_oss_out.c,v 1.111 2004/10/29 23:11:38 miguelfreitas Exp $
  *
  * 20-8-2001 First implementation of Audio sync and Audio driver separation.
  * Copyright (C) 2001 James Courtier-Dutton James@superbug.demon.co.uk
@@ -384,7 +384,7 @@ static int ao_oss_delay(ao_driver_t *this_gen) {
   case OSS_SYNC_SOFTSYNC:
     /* use system real-time clock to get pseudo audio frame position */
 
-    gettimeofday(&tv, NULL);
+    xine_monotonic_clock(&tv, NULL);
 
     frames  = (tv.tv_usec - this->start_time.tv_usec)
                   * this->output_sample_k_rate / 1000;
@@ -452,7 +452,7 @@ static int ao_oss_write(ao_driver_t *this_gen,
     struct timeval tv;
     /* check if simulated buffer ran dry */
 
-    gettimeofday(&tv, NULL);
+    xine_monotonic_clock(&tv, NULL);
 
     frames  = (tv.tv_usec - this->start_time.tv_usec)
                   * this->output_sample_k_rate / 1000;
@@ -851,7 +851,7 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
 	    _("audio_oss_out: Audio driver realtime sync disabled...\n"
 	      "audio_oss_out: ...will use system real-time clock for soft-sync instead\n"
 	      "audio_oss_out: ...there may be audio/video synchronization issues\n"));
-    gettimeofday(&this->start_time, NULL);
+    xine_monotonic_clock(&this->start_time, NULL);
     
     this->latency = config->register_range (config, "audio.oss_latency", 0,
 					    -3000, 3000, 

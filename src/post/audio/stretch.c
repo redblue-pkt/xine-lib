@@ -19,7 +19,7 @@
  *
  * Time stretch by a given factor, optionally preserving pitch
  *
- * $Id: stretch.c,v 1.4 2004/08/02 12:51:11 miguelfreitas Exp $
+ * $Id: stretch.c,v 1.5 2004/10/29 23:11:38 miguelfreitas Exp $
  *
  */
 
@@ -71,7 +71,7 @@ static void stretchscr_set_pivot (stretchscr_t *this) {
   int64_t  pts;
   double   pts_calc; 
 
-  gettimeofday(&tv, NULL);
+  xine_monotonic_clock(&tv, NULL);
   pts_calc = (tv.tv_sec  - this->cur_time.tv_sec) * this->speed_factor;
   pts_calc += (tv.tv_usec - this->cur_time.tv_usec) * this->speed_factor / 1e6;
   pts = this->cur_pts + pts_calc;
@@ -107,7 +107,7 @@ static void stretchscr_adjust (scr_plugin_t *scr, int64_t vpts) {
 
   pthread_mutex_lock (&this->lock);
 
-  gettimeofday(&tv, NULL);
+  xine_monotonic_clock(&tv, NULL);
   this->cur_time.tv_sec=tv.tv_sec;
   this->cur_time.tv_usec=tv.tv_usec;
   this->cur_pts = vpts;
@@ -120,7 +120,7 @@ static void stretchscr_start (scr_plugin_t *scr, int64_t start_vpts) {
 
   pthread_mutex_lock (&this->lock);
 
-  gettimeofday(&this->cur_time, NULL);
+  xine_monotonic_clock(&this->cur_time, NULL);
   this->cur_pts = start_vpts;
 
   pthread_mutex_unlock (&this->lock);
@@ -136,7 +136,7 @@ static int64_t stretchscr_get_current (scr_plugin_t *scr) {
   double   pts_calc; 
   pthread_mutex_lock (&this->lock);
 
-  gettimeofday(&tv, NULL);
+  xine_monotonic_clock(&tv, NULL);
   
   pts_calc = (tv.tv_sec  - this->cur_time.tv_sec) * this->speed_factor;
   pts_calc += (tv.tv_usec - this->cur_time.tv_usec) * this->speed_factor / 1e6;

@@ -37,6 +37,8 @@
   * new request optimizer (cache) layer for input plugins to avoid the
     overhead of expensive system calls for reading just a couple of
     bytes. may be disabled with MRL parameter "#nocache".
+  * use monotonic clock where available (eg. linux 2.6) so system clock
+    updates won't disturb xine playback. [bug #781532]
         
 xine-lib (1-rc6)
   * Moved win32 frontend into separate module.

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.c,v 1.140 2004/08/02 12:51:21 miguelfreitas Exp $
+ * $Id: metronom.c,v 1.141 2004/10/29 23:11:38 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -92,7 +92,7 @@ static void unixscr_set_pivot (unixscr_t *this) {
   int64_t pts;
   double   pts_calc; 
 
-  gettimeofday(&tv, NULL);
+  xine_monotonic_clock(&tv, NULL);
   pts_calc = (tv.tv_sec  - this->cur_time.tv_sec) * this->speed_factor;
   pts_calc += (tv.tv_usec - this->cur_time.tv_usec) * this->speed_factor / 1e6;
   pts = this->cur_pts + pts_calc;
@@ -126,7 +126,7 @@ static void unixscr_adjust (scr_plugin_t *scr, int64_t vpts) {
 
   pthread_mutex_lock (&this->lock);
 
-  gettimeofday(&tv, NULL);
+  xine_monotonic_clock(&tv, NULL);
   this->cur_time.tv_sec=tv.tv_sec;
   this->cur_time.tv_usec=tv.tv_usec;
   this->cur_pts = vpts;
@@ -139,7 +139,7 @@ static void unixscr_start (scr_plugin_t *scr, int64_t start_vpts) {
 
   pthread_mutex_lock (&this->lock);
 
-  gettimeofday(&this->cur_time, NULL);
+  xine_monotonic_clock(&this->cur_time, NULL);
   this->cur_pts = start_vpts;
 
   pthread_mutex_unlock (&this->lock);
@@ -155,7 +155,7 @@ static int64_t unixscr_get_current (scr_plugin_t *scr) {
   double   pts_calc; 
   pthread_mutex_lock (&this->lock);
 
-  gettimeofday(&tv, NULL);
+  xine_monotonic_clock(&tv, NULL);
   
   pts_calc = (tv.tv_sec  - this->cur_time.tv_sec) * this->speed_factor;
   pts_calc += (tv.tv_usec - this->cur_time.tv_usec) * this->speed_factor / 1e6;

@@ -29,7 +29,7 @@
  * - it's possible speeder saving streams in the xine without playing:
  *     xine stream_mrl#save:file.raw\;noaudio\;novideo
  *
- * $Id: input_rip.c,v 1.25 2004/09/26 22:54:52 valtri Exp $
+ * $Id: input_rip.c,v 1.26 2004/10/29 23:11:38 miguelfreitas Exp $
  */
 
 /* TODO:
@@ -398,7 +398,7 @@ static off_t rip_plugin_seek(input_plugin_t *this_gen, off_t offset, int origin)
   }
 
   /* read and catch remaining data after this->savepos */
-  gettimeofday(&time1, NULL);
+  xine_monotonic_clock(&time1, NULL);
   while (this->curpos < newpos && interval < SEEK_TIMEOUT) {
     if( blocksize ) {
       buf_element_t *buf;
@@ -418,7 +418,7 @@ static off_t rip_plugin_seek(input_plugin_t *this_gen, off_t offset, int origin)
         break;
       }
     }
-    gettimeofday(&time2, NULL);
+    xine_monotonic_clock(&time2, NULL);
     interval = (double)(time2.tv_sec - time1.tv_sec)
                + (double)(time2.tv_usec - time1.tv_usec) / 1000000;
   }

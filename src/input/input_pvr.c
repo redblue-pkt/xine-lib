@@ -38,7 +38,7 @@
  * usage: 
  *   xine pvr:/<prefix_to_tmp_files>\!<prefix_to_saved_files>\!<max_page_age>
  *
- * $Id: input_pvr.c,v 1.50 2004/08/27 17:53:32 miguelfreitas Exp $
+ * $Id: input_pvr.c,v 1.51 2004/10/29 23:11:37 miguelfreitas Exp $
  */
 
 /**************************************************************************
@@ -284,7 +284,7 @@ static void pvrscr_set_pivot (pvrscr_t *this) {
   int64_t pts;
   double   pts_calc; 
 
-  gettimeofday(&tv, NULL);
+  xine_monotonic_clock(&tv, NULL);
   pts_calc = (tv.tv_sec  - this->cur_time.tv_sec) * this->speed_factor;
   pts_calc += (tv.tv_usec - this->cur_time.tv_usec) * this->speed_factor / 1e6;
   pts = this->cur_pts + pts_calc;
@@ -331,7 +331,7 @@ static void pvrscr_adjust (scr_plugin_t *scr, int64_t vpts) {
 
   pthread_mutex_lock (&this->lock);
 
-  gettimeofday(&tv, NULL);
+  xine_monotonic_clock(&tv, NULL);
   this->cur_time.tv_sec=tv.tv_sec;
   this->cur_time.tv_usec=tv.tv_usec;
   this->cur_pts = vpts;
@@ -344,7 +344,7 @@ static void pvrscr_start (scr_plugin_t *scr, int64_t start_vpts) {
 
   pthread_mutex_lock (&this->lock);
 
-  gettimeofday(&this->cur_time, NULL);
+  xine_monotonic_clock(&this->cur_time, NULL);
   this->cur_pts = start_vpts;
 
   pthread_mutex_unlock (&this->lock);
@@ -360,7 +360,7 @@ static int64_t pvrscr_get_current (scr_plugin_t *scr) {
   double   pts_calc; 
   pthread_mutex_lock (&this->lock);
 
-  gettimeofday(&tv, NULL);
+  xine_monotonic_clock(&tv, NULL);
   
   pts_calc = (tv.tv_sec  - this->cur_time.tv_sec) * this->speed_factor;
   pts_calc += (tv.tv_usec - this->cur_time.tv_usec) * this->speed_factor / 1e6;

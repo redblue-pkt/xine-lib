@@ -241,7 +241,7 @@ static void pvrscr_set_pivot(pvrscr_t *this)
   int64_t pts;
   double   pts_calc;
   
-  gettimeofday(&tv, NULL);
+  xine_monotonic_clock(&tv, NULL);
   pts_calc = (tv.tv_sec  - this->cur_time.tv_sec) * this->speed_factor;
   pts_calc += (tv.tv_usec - this->cur_time.tv_usec) * this->speed_factor / 1e6;
   pts      = this->cur_pts + pts_calc;
@@ -291,7 +291,7 @@ static void pvrscr_adjust (scr_plugin_t *scr, int64_t vpts)
   
   pthread_mutex_lock (&this->lock);
   
-  gettimeofday(&tv, NULL);
+  xine_monotonic_clock(&tv, NULL);
   this->cur_time.tv_sec  = tv.tv_sec;
   this->cur_time.tv_usec = tv.tv_usec;
   this->cur_pts          = vpts;
@@ -305,7 +305,7 @@ static void pvrscr_start (scr_plugin_t *scr, int64_t start_vpts)
   
   pthread_mutex_lock (&this->lock);
   
-  gettimeofday(&this->cur_time, NULL);
+  xine_monotonic_clock(&this->cur_time, NULL);
   this->cur_pts = start_vpts;
   
   pthread_mutex_unlock (&this->lock);
@@ -322,7 +322,7 @@ static int64_t pvrscr_get_current (scr_plugin_t *scr)
   
   pthread_mutex_lock (&this->lock);
   
-  gettimeofday(&tv, NULL);
+  xine_monotonic_clock(&tv, NULL);
   
   pts_calc = (tv.tv_sec  - this->cur_time.tv_sec) * this->speed_factor;
   pts_calc += (tv.tv_usec - this->cur_time.tv_usec) * this->speed_factor / 1e6;
@@ -1208,7 +1208,7 @@ static off_t v4l_plugin_read (input_plugin_t *this_gen, char *buf, off_t len) {
 inline static int64_t get_time(void) {
   struct timeval tv;
 
-  gettimeofday(&tv,NULL);
+  xine_monotonic_clock(&tv,NULL);
 
   return (int64_t) tv.tv_sec * 90000 + (int64_t) tv.tv_usec * 9 / 100;
 }
