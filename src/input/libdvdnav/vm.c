@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: vm.c,v 1.11 2003/01/13 13:53:33 mroi Exp $
+ * $Id: vm.c,v 1.12 2003/02/11 16:28:47 heikos Exp $
  *
  */
 
@@ -178,7 +178,11 @@ dvd_reader_t *vm_get_dvd_reader(vm_t *vm) {
 
 void dvd_read_name( vm_t *this, char *devname) {
     int fd, i;
+#ifndef __FreeBSD__
     off64_t off;
+#else
+    off_t off;
+#endif
     uint8_t data[DVD_VIDEO_LB_LEN];
 
     /* Read DVD name */
@@ -2045,6 +2049,9 @@ static pgcit_t* get_PGCIT(vm_t *vm) {
 
 /*
  * $Log: vm.c,v $
+ * Revision 1.12  2003/02/11 16:28:47  heikos
+ * freebsd compile fix
+ *
  * Revision 1.11  2003/01/13 13:53:33  mroi
  * sync to latest cvs of libdvdnav
  * * small fix for "Spy Game" RC2
