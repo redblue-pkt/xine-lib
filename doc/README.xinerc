@@ -33,4 +33,13 @@ win32_path              path to where you have installed win32
 zoom_mpeg1              1/0 : enable automatic zoom of small
                         (e.g. mpeg1) videos to double size
 
+oss_resample            XINE can play different sample rates than your
+			soundcard supports.
+			0 = AUTO: Only do resampling with different
+                                  input and output sampling rate
+                        1 = OFF:  Never resample for saving processor time.
+			          Dont use, needs missing timer plugin!
+			2 = ON:   Always resample, mainly for debugging.
+
+dxr3_XXX		see README.dxr3
 

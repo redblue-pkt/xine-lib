@@ -1,0 +1,90 @@
+Introduction
+============
+
+This documentation is intended for users of a dxr3 decoder card
+from creative labs or a hollywood plus decoder card from sigma
+designs.
+
+This version of xine contains a plugin for the mentioned hardware
+decoders "out of the box". The missing part is the linux kernel
+driver. The driver can be obtained from the main dxr3/hw+ linux
+development site at
+
+	http://dxr3.sourceforge.net/
+
+The driver can be downloaded from
+
+	http://dxr3.sourceforge.net/download.html
+
+As setting up the dxr3/hw+ driver is a little bit tricky, please
+consult also the HOWTO:
+
+	http://dxr3.sourceforge.net/howto.html
+
+This driver requires the (not yet released) version
+
+	em8300-0.8 of the linux drivers. (CVS only for now)
+	
+This is still a work in progress.  Audio output currently does
+not use the dxr3 device, although the oss ioctl's will likely be
+implemented soon.
+
+Compilation
+===========
+
+It is important to compile and install the dxr3/hw+ driver
+*before* compiling xine-lib. No doing so will cause the
+configure script to stop with an error.
+
+In order to activate the dxr3/hw+ plugin, xine-lib must be
+configured with --enable-dxr3. If you have your linux sources
+in a different location than /usr/src/linux, please specify
+--with-linux-path=/your/path additionally.
+
+Example:
+
+	cd xine-lib
+	./configure --enable-dxr3
+
+XINE run-time configuration
+===========================
+
+XINE has several configuration options in $HOME/.xinerc
+(see also doc/README.xinerc)
+
+Some of them are important for dxr3 playback:
+*) dxr3_tvmode:
+	default Keep the current driver setting
+	ntsc    NTSC 60Hz
+	pal     PAL 50Hz
+	pal60   PAL 60Hz
+	
+*) video_driver_name:
+	dxr3    Needed for setting the tv_mode, brightness, contrast,
+		saturation and the aspect ratio. If not, these features
+		will be missing but playback will still work.
+
+		This is only a "dummy" driver which cannot output
+		frames. The frames are done by the hardware decoder.
+		When *not* playing MPEG1/2 content, it must be set
+		to a "real" video driver like "Xv" or "Xshm".
+
+It is recommented to run XINE one time before editing the config,
+since all options get written in .xinerc and have their default
+values. The dxr3 video driver can be forced using the "-V dxr3"
+command line option. Only the tvmode value has to be edited
+if the default driver setting is not correct.
+
+Running XINE with dxr3/hw+
+==========================
+
+The hardware decoder is activated automatically if the driver
+can be opened correctly. Mpeg1/2 videos (e.g. DVDs) are played
+on the hardware decoder, whereas other content is played on the
+screen. Remember to activate a different video out than "dxr3"
+in that case!
+
+
+________________________
+docu version information
+$Id: README.dxr3,v 1.1 2001/07/22 14:23:30 ehasenle Exp $
