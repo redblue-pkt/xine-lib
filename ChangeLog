@@ -7,6 +7,11 @@ xine-lib (1-beta13)
   * libdvdnav: fix some situations where an unlucky user could trigger assertions
   * decoder priority handling: configuring a priority of 0 means "use default"
     users are advised to set all decoder priorities to 0 in their config files
+  * dvd:<path> and dvd:<device> MRLs now work when a DVD is in the drive to
+    which the raw device setting points to (libdvdcss tried to access the raw device)
+  * fix dxr3 sync problems after seeking
+  * fix potential playback problems for MPEG files with rare framerates
+    (23.976, 59.94 and 60 fps)
   
 xine-lib (1-beta12)
   * enabled SVQ3 video decoding via ffmpeg
