@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.73 2002/04/16 22:22:48 f1rmb Exp $
+ * $Id: load_plugins.c,v 1.74 2002/04/23 13:52:22 esnel Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -452,6 +452,8 @@ void load_decoder_plugins (xine_t *this,
   int  i;
   int spu_prio[DECODER_PLUGIN_MAX], video_prio[DECODER_PLUGIN_MAX],
    audio_prio[DECODER_PLUGIN_MAX];
+  int *spu_used[DECODER_PLUGIN_MAX], *video_used[DECODER_PLUGIN_MAX],
+   *audio_used[DECODER_PLUGIN_MAX];
    
 
   if(this == NULL || config == NULL) {
@@ -467,18 +469,21 @@ void load_decoder_plugins (xine_t *this,
   for (i=0; i<DECODER_PLUGIN_MAX; i++) {
     this->spu_decoder_plugins[i] = NULL;
     spu_prio[i] = 0;
+    spu_used[i] = NULL;
   }
 
   this->cur_video_decoder_plugin = NULL;
   for (i=0; i<DECODER_PLUGIN_MAX; i++) {
     this->video_decoder_plugins[i] = NULL;
     video_prio[i] = 0;
+    video_used[i] = NULL;
   }
 
   this->cur_audio_decoder_plugin = NULL;
   for (i=0; i<DECODER_PLUGIN_MAX; i++) {
     this->audio_decoder_plugins[i] = NULL;
     audio_prio[i] = 0;
+    audio_used[i] = NULL;
   }
 
   /*
@@ -536,18 +541,33 @@ void load_decoder_plugins (xine_t *this,
 	      
 	      sdp = (spu_decoder_t *) initplug(5, this);
 	      if (sdp) {
+		int *used = (int *)xine_xmalloc (sizeof (int));
+
 		sdp->metronom = this->metronom;
 		
 		for (streamtype = 0; streamtype<DECODER_PLUGIN_MAX; streamtype++)
 		  if ((plugin_prio =
 		       decide_spu_insert(sdp, streamtype, spu_prio[streamtype]))) {
+
+		    if (spu_used[streamtype] && --(*spu_used[streamtype]) == 0) {
+		      this->spu_decoder_plugins[streamtype]->dispose (this->spu_decoder_plugins[streamtype]);
+		      free (spu_used[streamtype]);
+		    }
+
 		    this->spu_decoder_plugins[streamtype] = sdp;
 		    spu_prio[streamtype] = plugin_prio;
+		    spu_used[streamtype] = used;
+		    (*used)++;
 		  }
 		
 		xine_log (this, XINE_LOG_PLUGIN,
 			  _("spu decoder plugin found : %s\n"),
 			  sdp->get_identifier());
+
+		if (*used == 0) {
+		  sdp->dispose (sdp);
+		  free (used);
+		}
 	      }
 	    }
 	  }
@@ -565,18 +585,33 @@ void load_decoder_plugins (xine_t *this,
 	      
 	      vdp = (video_decoder_t *) initplug(iface_version, this);
 	      if (vdp) {
+		int *used = (int *)xine_xmalloc (sizeof (int));
+
 		vdp->metronom = this->metronom;
 		
 		for (streamtype = 0; streamtype<DECODER_PLUGIN_MAX; streamtype++)
 		  if ((plugin_prio =
 		       decide_video_insert(vdp, streamtype, video_prio[streamtype]))) {
+
+		    if (video_used[streamtype] && --(*video_used[streamtype]) == 0) {
+		      this->video_decoder_plugins[streamtype]->dispose (this->video_decoder_plugins[streamtype]);
+		      free (video_used[streamtype]);
+		    }
+
 		    this->video_decoder_plugins[streamtype] = vdp;
 		    video_prio[streamtype] = plugin_prio;
+		    video_used[streamtype] = used;
+		    (*used)++;
 		  }
 		
 		xine_log (this, XINE_LOG_PLUGIN,
 			  _("video decoder plugin found : %s\n"), 
 			  vdp->get_identifier());
+
+		if (*used == 0) {
+		  vdp->dispose (vdp);
+		  free (used);
+		}
 	      }
 	    }
 	    
@@ -591,17 +626,31 @@ void load_decoder_plugins (xine_t *this,
 	      
 	      adp = (audio_decoder_t *) initplug(iface_version, this);
 	      if (adp) {
+		int *used = (int *)xine_xmalloc (sizeof (int));
 		
 		for (streamtype = 0; streamtype<DECODER_PLUGIN_MAX; streamtype++)
 		  if ((plugin_prio =
 		       decide_audio_insert(adp, streamtype, audio_prio[streamtype]))) {
+
+		    if (audio_used[streamtype] && --(*audio_used[streamtype]) == 0) {
+		      this->audio_decoder_plugins[streamtype]->dispose (this->audio_decoder_plugins[streamtype]);
+		      free (audio_used[streamtype]);
+		    }
+
 		    this->audio_decoder_plugins[streamtype] = adp; 
 		    audio_prio[streamtype] = plugin_prio;
+		    audio_used[streamtype] = used;
+		    (*used)++;
 		  }
 		
 		xine_log (this, XINE_LOG_PLUGIN,
 			  _("audio decoder plugin found : %s\n"), 
 			  adp->get_identifier());
+
+		if (*used == 0) {
+		  adp->dispose (adp);
+		  free (used);
+		}
 	      }
 	    }
 	    
@@ -612,6 +661,17 @@ void load_decoder_plugins (xine_t *this,
     closedir(dir);
   }
   remove_segv_handler();
+
+  for (i=0; i<DECODER_PLUGIN_MAX; i++) {
+    if (spu_used[i] && --(*spu_used[i]) == 0)
+      free (spu_used[i]);
+
+    if (video_used[i] && --(*video_used[i]) == 0)
+      free (video_used[i]);
+
+    if (audio_used[i] && --(*audio_used[i]) == 0)
+      free (audio_used[i]);
+  }
 
   this->cur_spu_decoder_plugin = NULL;
   this->cur_video_decoder_plugin = NULL;
