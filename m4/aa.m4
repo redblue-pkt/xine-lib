@@ -65,7 +65,7 @@ AC_ARG_ENABLE(aalibtest,
   if test x"$enable_aalibtest" != "xyes"; then
     AC_MSG_CHECKING(for AALIB version >= $min_aalib_version)
   else
-    if ! test -x AALIB_CONFIG; then
+    if test ! -x "$AALIB_CONFIG"; then
       AALIB_CONFIG=""
     fi
     AC_PATH_PROG(AALIB_CONFIG, aalib-config, no)
