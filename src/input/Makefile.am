@@ -30,7 +30,7 @@ xineplug_inp_file_la_LDFLAGS = -avoid-version -module
 xineplug_inp_dvd_la_SOURCES = input_dvd.c dvd_udf.c read_cache.c
 xineplug_inp_dvd_la_LDFLAGS = -avoid-version -module
 
-xineplug_inp_net_la_SOURCES = input_net.c
+xineplug_inp_net_la_SOURCES = input_net.c strict_scr.c
 xineplug_inp_net_la_LDFLAGS = -avoid-version -module
 
 xineplug_inp_vcd_la_SOURCES = input_vcd.c
@@ -49,7 +49,7 @@ xineplug_inp_cda_la_SOURCES = input_cda.c
 xineplug_inp_cda_la_LDFLAGS = -avoid-version -module
 
 include_HEADERS = input_plugin.h
-noinst_HEADERS = dvd_udf.h read_cache.h
+noinst_HEADERS = dvd_udf.h read_cache.h strict_scr.h
 
 EXTRA_DIST = input_dvd.c dvd_udf.c input_vcd.c read_cache.c
 

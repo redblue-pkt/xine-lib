@@ -40,6 +40,7 @@
 #include "xine_internal.h"
 #include "xineutils.h"
 #include "input_plugin.h"
+#include "strict_scr.h"
 
 extern int errno;
 
@@ -82,6 +83,8 @@ typedef struct {
   off_t            curpos;
 
   int              buffering;
+
+  strictscr_t     *scr;
 
 } net_input_plugin_t;
 
@@ -207,16 +210,43 @@ static int net_plugin_open (input_plugin_t *this_gen, char *mrl) {
 
   this->mrl = strdup(mrl); /* FIXME: small memory leak */
 
+  /* register our scr plugin */
+
+  this->xine->metronom->register_scr (this->xine->metronom, &this->scr->scr);
+
   return 1;
 }
 
-/*
- *
- */
+#define LOW_WATER_MARK  50
+#define HIGH_WATER_MARK 100
+
 static off_t net_plugin_read (input_plugin_t *this_gen, 
 			      char *buf, off_t len) {
   net_input_plugin_t *this = (net_input_plugin_t *) this_gen;
   off_t n, total;
+  int fifo_fill;
+
+  fifo_fill = this->xine->video_fifo->size(this->xine->video_fifo);
+
+  if (fifo_fill<LOW_WATER_MARK) {
+    
+    this->xine->metronom->set_speed (this->xine->metronom, SPEED_PAUSE);
+    this->buffering = 1;
+    this->scr->adjustable = 0;
+    printf ("input_net: buffering...\n");
+
+  } else if ( (fifo_fill>HIGH_WATER_MARK) && (this->buffering)) {
+    this->xine->metronom->set_speed (this->xine->metronom, SPEED_NORMAL);
+    this->buffering = 0;
+    this->scr->adjustable = 1;
+    printf ("input_net: buffering...done\n");
+  }
+
+  /*
+  printf ("input_net: read at pts %d\n",
+	  this->xine->metronom->get_current_time (this->xine->metronom));
+  */
+  /*
 
   if (this->curpos==0) {
     this->xine->metronom->set_speed (this->xine->metronom, SPEED_PAUSE);
@@ -227,6 +257,7 @@ static off_t net_plugin_read (input_plugin_t *this_gen,
     this->buffering = 0;
     printf ("input_net: buffering...finished\n");
   }
+*/
 
   total=0;
   while (total<len){ 
@@ -315,6 +346,8 @@ static void net_plugin_close (input_plugin_t *this_gen) {
 
   close(this->fh);
   this->fh = -1;
+
+  this->xine->metronom->unregister_scr (this->xine->metronom, &this->scr->scr);
 }
 
 /*
@@ -404,6 +437,8 @@ input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
   this->config    = config;
   this->curpos    = 0;
   this->buffering = 0;
+
+  this->scr       = strictscr_init ();
   
   return (input_plugin_t *) this;
 }
