@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.113 2002/11/18 08:20:36 esnel Exp $
+ * $Id: demux_qt.c,v 1.114 2002/11/18 19:29:46 tmmm Exp $
  *
  */
 
@@ -342,31 +342,31 @@ typedef struct {
 #if DEBUG_ATOM_LOAD
 #define debug_atom_load printf
 #else
-void debug_atom_load(const char *format, ...) { }
+static inline void debug_atom_load(const char *format, ...) { }
 #endif
 
 #if DEBUG_EDIT_LIST
 #define debug_edit_list printf
 #else
-void debug_edit_list(const char *format, ...) { }
+static inline void debug_edit_list(const char *format, ...) { }
 #endif
 
 #if DEBUG_FRAME_TABLE
 #define debug_frame_table printf
 #else
-void debug_frame_table(const char *format, ...) { }
+static inline void debug_frame_table(const char *format, ...) { }
 #endif
 
 #if DEBUG_VIDEO_DEMUX
 #define debug_video_demux printf
 #else
-void debug_video_demux(const char *format, ...) { }
+static inline void debug_video_demux(const char *format, ...) { }
 #endif
 
 #if DEBUG_AUDIO_DEMUX
 #define debug_audio_demux printf
 #else
-void debug_audio_demux(const char *format, ...) { }
+static inline void debug_audio_demux(const char *format, ...) { }
 #endif
 
 void dump_moov_atom(unsigned char *moov_atom, int moov_atom_size) {
@@ -477,13 +477,26 @@ qt_info *create_qt_info(void) {
   info->duration = 0;
 
   info->audio_codec = 0;
+  info->audio_type = 0;
   info->audio_sample_rate = 0;
   info->audio_channels = 0;
   info->audio_bits = 0;
+  info->audio_vbr = 0;
   info->audio_decoder_config = NULL;
+  info->audio_decoder_config_len = 0;
 
   info->video_codec = 0;
+  info->video_type = 0;
+  info->video_width = 0;
+  info->video_height = 0;
+  info->video_depth = 0;
   info->video_decoder_config = NULL;
+  info->video_decoder_config_len = 0;
+
+  info->frames = NULL;
+  info->frame_count = 0;
+
+  info->palette_count = 0;
 
   info->copyright = NULL;
   info->description = NULL;
@@ -590,14 +603,28 @@ static qt_error parse_trak_atom(qt_sample_table *sample_table,
   unsigned char *color_table;
 
   /* initialize sample table structure */
+  sample_table->edit_list_count = 0;
   sample_table->edit_list_table = NULL;
+  sample_table->chunk_offset_count = 0;
   sample_table->chunk_offset_table = NULL;
+  sample_table->sample_size = 0;
+  sample_table->sample_size_count = 0;
   sample_table->sample_size_table = NULL;
+  sample_table->sync_sample_table = 0;
   sample_table->sync_sample_table = NULL;
+  sample_table->sample_to_chunk_count = 0;
   sample_table->sample_to_chunk_table = NULL;
+  sample_table->time_to_sample_count = 0;
   sample_table->time_to_sample_table = NULL;
   sample_table->decoder_config = NULL;
-  sample_table->frames = NULL;
+  sample_table->decoder_config_len = 0;
+
+  /* special audio parameters */
+  sample_table->samples_per_packet = 0;
+  sample_table->bytes_per_packet = 0;
+  sample_table->bytes_per_frame = 0;
+  sample_table->bytes_per_sample = 0;
+  sample_table->samples_per_frame = 0;
 
   /* default type */
   sample_table->type = MEDIA_OTHER;
@@ -1442,11 +1469,15 @@ static void parse_moov_atom(qt_info *info, unsigned char *moov_atom) {
       info->comment[string_size - 1] = 0;
     }
   }
+  debug_atom_load("  qt: finished parsing moov atom\n");
 
   /* build frame tables corresponding to each sample table */
   info->frame_count = 0;
+  debug_frame_table("  qt: preparing to build %d frame tables\n",
+    sample_table_count);
   for (i = 0; i < sample_table_count; i++) {
 
+    debug_frame_table("    qt: building frame table #%d\n", i);
     build_frame_table(&sample_tables[i], info->timescale);
     info->frame_count += sample_tables[i].frame_count;
 
@@ -1494,6 +1525,7 @@ static void parse_moov_atom(qt_info *info, unsigned char *moov_atom) {
       info->audio_sample_size_table = sample_tables[i].sample_size_table;
     }
   }
+  debug_frame_table("  qt: finished building frame tables, merging into one...\n");
 
   /* allocate the master frame index */
   info->frames = (qt_frame *)malloc(info->frame_count * sizeof(qt_frame));
@@ -1563,10 +1595,8 @@ static void parse_moov_atom(qt_info *info, unsigned char *moov_atom) {
     free(sample_tables[i].time_to_sample_table);
     free(sample_tables[i].sample_to_chunk_table);
     free(sample_tables[i].sync_sample_table);
-    free(sample_tables[i].frames);
   }
   free(sample_tables);
-  free(sample_table_indices);
 }
 
 static qt_error open_qt_file(qt_info *info, input_plugin_t *input) {
@@ -1596,7 +1626,6 @@ static qt_error open_qt_file(qt_info *info, input_plugin_t *input) {
   /* seek to the start of moov atom */
   if (input->seek(input, info->moov_first_offset, SEEK_SET) !=
     info->moov_first_offset) {
-    free(moov_atom);
     info->last_error = QT_FILE_READ_ERROR;
     return info->last_error;
   }
@@ -1617,7 +1646,6 @@ static qt_error open_qt_file(qt_info *info, input_plugin_t *input) {
     z_state.avail_out = BE_32(&moov_atom[0x24]);
     unzip_buffer = (unsigned char *)malloc(BE_32(&moov_atom[0x24]));
     if (!unzip_buffer) {
-      free(moov_atom);
       info->last_error = QT_NO_MEMORY;
       return info->last_error;
     }
@@ -1629,24 +1657,18 @@ static qt_error open_qt_file(qt_info *info, input_plugin_t *input) {
 
     z_ret_code = inflateInit (&z_state);
     if (Z_OK != z_ret_code) {
-      free(unzip_buffer);
-      free(moov_atom);
       info->last_error = QT_ZLIB_ERROR;
       return info->last_error;
     }
 
     z_ret_code = inflate(&z_state, Z_NO_FLUSH);
     if ((z_ret_code != Z_OK) && (z_ret_code != Z_STREAM_END)) {
-      free(unzip_buffer);
-      free(moov_atom);
       info->last_error = QT_ZLIB_ERROR;
       return info->last_error;
     }
 
     z_ret_code = inflateEnd(&z_state);
     if (Z_OK != z_ret_code) {
-      free(unzip_buffer);
-      free(moov_atom);
       info->last_error = QT_ZLIB_ERROR;
       return info->last_error;
     }
@@ -1668,8 +1690,6 @@ static qt_error open_qt_file(qt_info *info, input_plugin_t *input) {
   /* take apart the moov atom */
   parse_moov_atom(info, moov_atom);
 
-  free(moov_atom);
-
   return QT_OK;
 }
 
@@ -1685,6 +1705,7 @@ static int demux_qt_send_chunk(demux_plugin_t *this_gen) {
   unsigned int remaining_sample_bytes;
   int edit_list_compensation = 0;
   int frame_duration;
+  int first_buf;
 
   i = this->current_frame;
 
@@ -1745,6 +1766,9 @@ static int demux_qt_send_chunk(demux_plugin_t *this_gen) {
       edit_list_compensation = 0;
     }
 
+    this->stream->stream_info[XINE_STREAM_INFO_FRAME_DURATION] =
+      frame_duration;
+
     debug_video_demux("  qt: sending off frame %d (video) %d bytes, %lld pts, duration %d\n",
       i, 
       this->qt->frames[i].size,
@@ -1795,13 +1819,32 @@ static int demux_qt_send_chunk(demux_plugin_t *this_gen) {
       this->qt->frames[i].size,
       this->qt->frames[i].pts);
 
+    first_buf = 1;
     while (remaining_sample_bytes) {
       buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
       buf->type = this->qt->audio_type;
       buf->input_pos = this->qt->frames[i].offset - this->data_start;
       buf->input_length = this->data_size;
-      buf->input_time = this->qt->frames[i].pts / 90000;
-      buf->pts = this->qt->frames[i].pts;
+      /* The audio chunk is often broken up into multiple 8K buffers when
+       * it is sent to the audio decoder. Only attach the proper timestamp
+       * to the first buffer. This is for the linear PCM decoder which
+       * turns around and sends out audio buffers as soon as they are
+       * received. If 2 or more consecutive audio buffers are dispatched to
+       * the audio out unit, the engine will compensate with pops. */
+      if ((buf->type == BUF_AUDIO_LPCM_BE) || 
+          (buf->type == BUF_AUDIO_LPCM_LE)) { 
+        if (first_buf) {
+          buf->input_time = this->qt->frames[i].pts / 90000;
+          buf->pts = this->qt->frames[i].pts;
+          first_buf = 0;
+        } else {
+          buf->input_time = 0;
+          buf->pts = 0;
+        }
+      } else {
+        buf->input_time = this->qt->frames[i].pts / 90000;
+        buf->pts = this->qt->frames[i].pts;
+      }
 
       if (remaining_sample_bytes > buf->max_size)
         buf->size = buf->max_size;
