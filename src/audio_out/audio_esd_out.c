@@ -305,7 +305,7 @@ static ao_functions_t audio_esdout = {
 };
 
 
-ao_functions_t *audio_esdout_init (int iface, config_values_t *config)
+ao_functions_t *init_audio_out_plugin (int iface, config_values_t *config)
 {
   int audio_fd;
 

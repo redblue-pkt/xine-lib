@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.9 2001/04/27 10:42:38 f1rmb Exp $
+ * $Id: load_plugins.c,v 1.10 2001/04/27 11:32:39 f1rmb Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -349,7 +349,7 @@ vo_driver_t *xine_load_video_output_plugin(config_values_t *config,
 				      char *filename, char *id, 
 				      int visual_type, void *visual) {
   DIR *dir;
-  vo_driver_t *vod;
+  vo_driver_t *vod = NULL;
   
   if((filename == NULL && id == NULL) || visual == NULL || config == NULL) {
     printf("%s(%s@%d): parameter(s) should be non null.\n",
@@ -365,9 +365,11 @@ vo_driver_t *xine_load_video_output_plugin(config_values_t *config,
     while ((pEntry = readdir (dir)) != NULL) {
       char str[1024];
       void *plugin;
-      
       int nLen = strlen (pEntry->d_name);
       
+      vod = NULL;
+      memset(&str, 0, 1024);
+
       if ((strncasecmp(pEntry->d_name,
  		       XINE_VIDEO_OUT_PLUGIN_PREFIXNAME, 
 		       XINE_VIDEO_OUT_PLUGIN_PREFIXNAME_LENGTH) == 0) &&
@@ -377,8 +379,8 @@ vo_driver_t *xine_load_video_output_plugin(config_values_t *config,
 	   && (pEntry->d_name[nLen-1]=='o'))) {
 	
 	sprintf (str, "%s/%s", XINE_PLUGINDIR, pEntry->d_name);
-	
-	if(filename) { /* load by name */
+
+       	if(filename) { /* load by name */
 	  if(!strncasecmp(filename, pEntry->d_name, strlen(pEntry->d_name))) {
 	    
 	    if(!(plugin = dlopen (str, RTLD_LAZY))) {
@@ -439,7 +441,7 @@ char **enum_video_output_plugins(int visual_type) {
 ao_functions_t *xine_load_audio_output_plugin(config_values_t *config,
 					      char *filename, char *id) {
   DIR *dir;
-  ao_functions_t *aod;
+  ao_functions_t *aod = NULL;
   
   if(filename == NULL && id == NULL) {
     printf("%s(%s@%d): parameter(s) should be non null.\n",
@@ -455,8 +457,10 @@ ao_functions_t *xine_load_audio_output_plugin(config_values_t *config,
     while ((pEntry = readdir (dir)) != NULL) {
       char str[1024];
       void *plugin;
-      
       int nLen = strlen (pEntry->d_name);
+
+      aod = NULL;
+      memset(&str, 0, 1024);
       
       if ((strncasecmp(pEntry->d_name,
  		       XINE_AUDIO_OUT_PLUGIN_PREFIXNAME, 

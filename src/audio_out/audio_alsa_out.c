@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_alsa_out.c,v 1.2 2001/04/27 10:42:38 f1rmb Exp $
+ * $Id: audio_alsa_out.c,v 1.3 2001/04/27 11:32:39 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -624,7 +624,7 @@ static void sighandler(int signum) {
 /*
  *
  */
-ao_functions_t *audio_alsaout_init(int iface, config_values_t *config) {
+ao_functions_t *init_audio_out_plugin (int iface, config_values_t *config) {
   int                      best_rate;
   int                      devnum;
   int                      err;
