@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.63 2002/07/01 11:35:46 pmhahn Exp $
+ * $Id: audio_alsa_out.c,v 1.64 2002/07/01 11:38:59 pmhahn Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -155,7 +155,7 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
   snd_pcm_sw_params_t  *swparams;
   snd_pcm_sframes_t     buffer_size;
   snd_pcm_sframes_t     period_size,tmp;
-  int                   err;
+  int                   err, dir;
  // int                 open_mode=1; //NONBLOCK
   int                   open_mode=0; //BLOCK
 
@@ -283,11 +283,16 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
     goto __close;
   }
   /* set the stream rate [Hz] */
-  err = snd_pcm_hw_params_set_rate_near(this->audio_fd, params, rate, 0);
+  err = snd_pcm_hw_params_set_rate_near(this->audio_fd, params, rate, &dir);
     if (err < 0) {
       printf ("audio_alsa_out: rate not available\n");
       goto __close;
     }
+  this->output_sample_rate = (uint32_t)err;
+  if (this->input_sample_rate != this->output_sample_rate) {
+    printf ("audio_alsa_out: audio rate : %d requested, %d provided by device/sec\n",
+	    this->input_sample_rate, this->output_sample_rate);
+  }
   /* ERROR: Set buffer size [samples] */
   buffer_size = snd_pcm_hw_params_set_buffer_size_near(this->audio_fd, params,
                                                        500000);
@@ -321,7 +326,6 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
     printf ("audio_alsa_out: pcm hw_params failed: %s\n", snd_strerror(err));
     goto __close;
   }
-  this->output_sample_rate = this->input_sample_rate;
   this->sample_rate_factor = (double) this->output_sample_rate / (double) this->input_sample_rate;
   /*
    * audio buffer size handling
