@@ -251,6 +251,7 @@ Sergiy Kudryk <linux_ua@yahoo.com>
 Frantisek Dvorak <valtri@atlas.cz>
   czech internationalization files (xine lib/ui).
   unicode support for xinefonts.
+  sputext decoder improvements
   
 Ian Goldberg <ian@cypherpunks.ca>
   streaming AVI support (plays growing files), >2GB AVI files
