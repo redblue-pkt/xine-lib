@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_goom.c,v 1.2 2002/12/25 15:05:06 mroi Exp $
+ * $Id: xine_goom.c,v 1.3 2002/12/25 15:12:02 mroi Exp $
  *
  * GOOM post plugin.
  *
@@ -151,11 +151,13 @@ static post_plugin_t *goom_open_plugin(post_class_t *class_gen, int inputs,
   output->out.type   = XINE_POST_DATA_AUDIO;
   output->out.data   = (xine_audio_port_t **)&port->original_port;
   output->out.rewire = goom_rewire_audio;
+  output->post       = this;
   
   outputv->out.name   = "generated video";
   outputv->out.type   = XINE_POST_DATA_VIDEO;
   outputv->out.data   = (xine_video_port_t **)&this->vo_port;
   outputv->out.rewire = goom_rewire_video;
+  outputv->post       = this;
   
   this->post.xine_post.audio_input    = (xine_audio_port_t **)malloc(sizeof(xine_audio_port_t *) * 2);
   this->post.xine_post.audio_input[0] = &port->port;
