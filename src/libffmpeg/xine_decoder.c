@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.123 2003/06/06 19:42:04 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.124 2003/06/11 23:08:56 miguelfreitas Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -101,6 +101,7 @@ struct ff_video_decoder_s {
 
   float             aspect_ratio;
   int               xine_aspect_ratio;
+  int               frame_flags;
   
   int               output_format;
   yuv_planes_t      yuv;
@@ -166,7 +167,7 @@ static int get_buffer(AVCodecContext *context, AVFrame *av_frame){
 					    height,
 					    this->xine_aspect_ratio, 
 					    this->output_format,
-					    VO_BOTH_FIELDS);
+					    VO_BOTH_FIELDS|this->frame_flags);
 
   /* use drawn as a decoder flag.
    * if true: free this frame on release_buffer.
@@ -804,6 +805,26 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 
       /* decode video frame(s) */
 
+
+      /* flag for interlaced streams */
+      this->frame_flags = 0;
+      /* FIXME: which codecs can be interlaced?
+         FIXME: check interlaced DCT and other codec specific info. */
+      switch( codec_type ) {
+        case BUF_VIDEO_DV:
+          this->frame_flags |= VO_INTERLACED_FLAG;
+          break;
+        case BUF_VIDEO_MPEG:
+          this->frame_flags |= VO_INTERLACED_FLAG;
+          break;
+        case BUF_VIDEO_MJPEG:
+          this->frame_flags |= VO_INTERLACED_FLAG;
+          break;
+        case BUF_VIDEO_HUFFYUV:
+          this->frame_flags |= VO_INTERLACED_FLAG;
+          break;
+      }
+
       /* skip decoding b frames if too late */
       this->context->hurry_up = (this->skipframes > 2) ? 1:0;
 
@@ -888,7 +909,7 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 						    this->context->height,
 						    this->xine_aspect_ratio, 
 						    this->output_format,
-						    VO_BOTH_FIELDS);
+						    VO_BOTH_FIELDS|this->frame_flags);
 	  free_img = 1;
 	}
 
@@ -911,7 +932,7 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 						        img->height,
 						        this->xine_aspect_ratio, 
 						        this->output_format,
-						        VO_BOTH_FIELDS);
+						        VO_BOTH_FIELDS|this->frame_flags);
 	      free_img = 1;
 	      img->bad_frame = 0;
 	    }
@@ -937,14 +958,6 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 	img->pts      = buf->pts;
 	buf->pts      = 0;
 	img->duration = this->video_step;
-
-        /* FIXME: which codecs can be interlaced?
-           FIXME: check interlaced DCT and other codec specific info. */
-        if( codec_type == BUF_VIDEO_DV ||
-            codec_type == BUF_VIDEO_MPEG ||
-            codec_type == BUF_VIDEO_MJPEG ||
-            codec_type == BUF_VIDEO_HUFFYUV )
-          img->progressive_frame = 0;
 
 	this->skipframes = img->draw(img, this->stream);
 	if( this->skipframes < 0 )

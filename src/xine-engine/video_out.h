@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.h,v 1.90 2003/06/06 19:42:05 miguelfreitas Exp $
+ * $Id: video_out.h,v 1.91 2003/06/11 23:08:55 miguelfreitas Exp $
  *
  *
  * xine version of video_out.h 
@@ -116,8 +116,7 @@ struct vo_frame_s {
   int                        top_field_first;
   int                        repeat_first_field;
   /* note: progressive_frame is set wrong on many mpeg2 streams. for
-   * that reason, values 0 and 1 should be interpreted as "hints"
-   * while 2 means "progressive for sure", -1 = "interlaced for sure".
+   * that reason, this flag should be interpreted as a "hint".
    */
   int                        progressive_frame;
 
@@ -262,6 +261,7 @@ struct xine_video_port_s {
 #define VO_BOTTOM_FIELD    2
 #define VO_BOTH_FIELDS     (VO_TOP_FIELD | VO_BOTTOM_FIELD)
 #define VO_PREDICTION_FLAG 4
+#define VO_INTERLACED_FLAG 8
 
 /* video driver capabilities */
 

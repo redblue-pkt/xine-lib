@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: yuv_frames.c,v 1.3 2003/06/06 19:42:04 miguelfreitas Exp $
+ * $Id: yuv_frames.c,v 1.4 2003/06/11 23:08:55 miguelfreitas Exp $
  *
  * dummy video decoder for uncompressed video frames as delivered by v4l
  */
@@ -63,7 +63,7 @@ static void yuv_frames_decode_data (video_decoder_t *this_gen, buf_element_t *bu
 					    buf->decoder_info[1],
 					    ASPECT_FULL, 
 					    XINE_IMGFMT_YV12,
-					    VO_BOTH_FIELDS);
+					    VO_BOTH_FIELDS | VO_INTERLACED_FLAG);
 
   img->duration = 3600;
   img->pts      = buf->pts;
@@ -74,8 +74,6 @@ static void yuv_frames_decode_data (video_decoder_t *this_gen, buf_element_t *bu
   xine_fast_memcpy (img->base[1], buf->content+frame_size, frame_size/4);
   xine_fast_memcpy (img->base[2], buf->content+frame_size*5/4, frame_size/4);
 
-  img->progressive_frame = 0;
-    
   img->draw (img, this->stream);
   img->free (img);
 

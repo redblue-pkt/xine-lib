@@ -129,8 +129,7 @@ static inline void get_frame_duration (mpeg2dec_t * mpeg2dec, vo_frame_t *frame)
 
   if( ((mpeg2dec->rff_pattern & 0xff) == 0xaa ||
       (mpeg2dec->rff_pattern & 0xff) == 0x55) &&
-      !mpeg2dec->picture->progressive_sequence &&
-       mpeg2dec->picture->progressive_frame ) {
+      !mpeg2dec->picture->progressive_sequence ) {
     /* special case for ntsc 3:2 pulldown */
     frame->duration += frame->duration/4;
   }
@@ -465,7 +464,7 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 						     picture->coded_picture_height,
 						     picture->aspect_ratio_information,
 						     XINE_IMGFMT_YV12,
-						     picture->picture_structure);
+						     VO_INTERLACED_FLAG | picture->picture_structure);
 		else {
 		    picture->current_frame =
 		        mpeg2dec->stream->video_out->get_frame (mpeg2dec->stream->video_out,
@@ -473,7 +472,7 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 						     picture->coded_picture_height,
 						     picture->aspect_ratio_information,
 						     XINE_IMGFMT_YV12,
-						     (VO_PREDICTION_FLAG | picture->picture_structure));
+						     (VO_INTERLACED_FLAG | VO_PREDICTION_FLAG | picture->picture_structure));
 		    if (picture->forward_reference_frame &&
 		        picture->forward_reference_frame != picture->backward_reference_frame)
 		      picture->forward_reference_frame->free (picture->forward_reference_frame);
