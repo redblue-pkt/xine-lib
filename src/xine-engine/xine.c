@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.254 2003/08/21 00:37:29 miguelfreitas Exp $
+ * $Id: xine.c,v 1.255 2003/09/15 19:02:23 f1rmb Exp $
  */
 
 /*
@@ -551,7 +551,7 @@ static int xine_open_internal (xine_stream_t *stream, const char *mrl) {
 	    memcpy(demux_name, tmp, stream_setup - tmp);
 	    demux_name[stream_setup - tmp] = '\0';
 	  } else {
-	    demux_name = (char *)malloc(strlen(tmp));
+	    demux_name = (char *)malloc(strlen(tmp) + 1);
 	    memcpy(demux_name, tmp, strlen(tmp));
 	    demux_name[strlen(tmp)] = '\0';
 	  }
@@ -579,8 +579,8 @@ static int xine_open_internal (xine_stream_t *stream, const char *mrl) {
       if (strncasecmp(stream_setup, "rip", 3) == 0) {
         if (*(stream_setup += 3) == ':') {
 	  /* filename to rip */
-	  const char *tmp = ++stream_setup;
-	  char *filename;
+	  const char     *tmp = ++stream_setup;
+	  char           *filename;
 	  input_plugin_t *input_rip;
 
 	  stream_setup = strchr(stream_setup, ';');
@@ -589,13 +589,12 @@ static int xine_open_internal (xine_stream_t *stream, const char *mrl) {
 	    memcpy(filename, tmp, stream_setup - tmp);
 	    filename[stream_setup - tmp] = '\0';
 	  } else {
-	    filename = (char *)malloc(strlen(tmp));
+	    filename = (char *)malloc(strlen(tmp) + 1);
 	    memcpy(filename, tmp, strlen(tmp));
 	    filename[strlen(tmp)] = '\0';
 	  }
 
-	  xine_log(stream->xine, XINE_LOG_MSG,
-	    _("xine: join rip input plugin\n"));
+	  xine_log(stream->xine, XINE_LOG_MSG, _("xine: join rip input plugin\n"));
 	  input_rip = rip_plugin_get_instance (stream, filename);
 	  if( input_rip ) {
 	    stream->input_plugin = input_rip;
@@ -625,7 +624,7 @@ static int xine_open_internal (xine_stream_t *stream, const char *mrl) {
 	    memcpy(demux_name, tmp, stream_setup - tmp);
 	    demux_name[stream_setup - tmp] = '\0';
 	  } else {
-	    demux_name = (char *)malloc(strlen(tmp));
+	    demux_name = (char *)malloc(strlen(tmp) + 1);
 	    memcpy(demux_name, tmp, strlen(tmp));
 	    demux_name[strlen(tmp)] = '\0';
 	  }
@@ -700,7 +699,7 @@ static int xine_open_internal (xine_stream_t *stream, const char *mrl) {
 	    memcpy(volume, tmp, stream_setup - tmp);
 	    volume[stream_setup - tmp] = '\0';
 	  } else {
-	    volume = (char *)malloc(strlen(tmp));
+	    volume = (char *)malloc(strlen(tmp) + 1);
 	    memcpy(volume, tmp, strlen(tmp));
 	    volume[strlen(tmp)] = '\0';
 	  }
@@ -725,7 +724,7 @@ static int xine_open_internal (xine_stream_t *stream, const char *mrl) {
 	    memcpy(compression, tmp, stream_setup - tmp);
 	    compression[stream_setup - tmp] = '\0';
 	  } else {
-	    compression = (char *)malloc(strlen(tmp));
+	    compression = (char *)malloc(strlen(tmp) + 1);
 	    memcpy(compression, tmp, strlen(tmp));
 	    compression[strlen(tmp)] = '\0';
 	  }
@@ -784,7 +783,7 @@ static int xine_open_internal (xine_stream_t *stream, const char *mrl) {
 	  memcpy(config_entry, tmp, stream_setup - tmp);
 	  config_entry[stream_setup - tmp] = '\0';
 	} else {
-	  config_entry = (char *)malloc(strlen(tmp));
+	  config_entry = (char *)malloc(strlen(tmp) + 1);
 	  memcpy(config_entry, tmp, strlen(tmp));
 	  config_entry[strlen(tmp)] = '\0';
 	}
