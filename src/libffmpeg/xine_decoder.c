@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.94 2003/02/19 22:15:43 jstembridge Exp $
+ * $Id: xine_decoder.c,v 1.95 2003/02/20 02:13:19 jstembridge Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -85,6 +85,9 @@ typedef struct ff_decoder_s {
   float             aspect_ratio;
   int               xine_aspect_ratio;
   
+  int               output_format;
+  yuv_planes_t      yuv;
+   
 } ff_video_decoder_t;
 
 typedef struct {
@@ -162,6 +165,12 @@ static void init_video_codec (ff_video_decoder_t *this, xine_bmiheader *bih) {
   this->bufsize = VIDEOBUFSIZE;
   
   this->skipframes = 0;
+  
+  if(this->context->pix_fmt == PIX_FMT_RGBA32) {
+    this->output_format = XINE_IMGFMT_YUY2;
+    init_yuv_planes(&this->yuv, this->bih.biWidth, this->bih.biHeight);
+  } else
+    this->output_format = XINE_IMGFMT_YV12;
 }
 
 static void find_sequence_header (ff_video_decoder_t *this,
@@ -526,7 +535,7 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 						  this->bih.biWidth,
 						  this->bih.biHeight,
 						  this->xine_aspect_ratio, 
-						  XINE_IMGFMT_YV12,
+						  this->output_format,
 						  VO_BOTH_FIELDS);
 	
 	img->pts      = buf->pts;
@@ -590,7 +599,33 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
               this->bih.biWidth,
               this->bih.biHeight);
 
-          } else
+          } else if (this->context->pix_fmt == PIX_FMT_RGBA32) {
+          
+            int x, plane_ptr = 0;
+            uint8_t *src;
+            
+            for(y = 0; y < this->bih.biHeight; y++) {
+              src = sy;
+              for(x = 0; x < this->bih.biWidth; x++) {
+                uint8_t r, g, b;
+              
+                /* These probably need to be switched for big endian */
+                b = *src; src++;
+                g = *src; src++;
+                r = *src; src += 2;
+
+                this->yuv.y[plane_ptr] = COMPUTE_Y(r, g, b);
+                this->yuv.u[plane_ptr] = COMPUTE_U(r, g, b);
+                this->yuv.v[plane_ptr] = COMPUTE_V(r, g, b);
+                plane_ptr++;
+	      }
+              sy += this->av_frame->linesize[0];
+            }
+            
+            yuv444_to_yuy2(&this->yuv, img->base[0], img->pitches[0]);
+          
+          } else {
+          
 	  for (y=0; y<this->bih.biHeight; y++) {
 	    
 	    xine_fast_memcpy (dy, sy, this->bih.biWidth);
@@ -600,8 +635,6 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 	    sy += this->av_frame->linesize[0];
 	  }
 	
-          if ((this->context->pix_fmt != PIX_FMT_YUV410P) &&
-              (this->context->pix_fmt != PIX_FMT_YUV411P))
           for (y=0; y<(this->bih.biHeight/2); y++) {
 	    
 	    if (this->context->pix_fmt != PIX_FMT_YUV444P) {
@@ -642,6 +675,8 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 	      su += this->av_frame->linesize[1];
 	      sv += this->av_frame->linesize[2];
 	    }
+	  }
+
 	  }
 	}
       
@@ -739,6 +774,9 @@ static void ff_dispose (video_decoder_t *this_gen) {
   if(this->context && this->context->extradata)
     free(this->context->extradata);
 
+  if(this->context && this->context->pix_fmt == PIX_FMT_RGBA32)
+    free_yuv_planes(&this->yuv);
+  
   if( this->context )
     free( this->context );
 
