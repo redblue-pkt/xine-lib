@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_mms.c,v 1.27 2002/12/12 23:48:02 tmattern Exp $
+ * $Id: input_mms.c,v 1.28 2002/12/13 08:56:53 f1rmb Exp $
  *
  * mms input plugin based on work from major mms
  */
@@ -368,9 +368,9 @@ static void *init_class (xine_t *xine, void *data) {
   this->input_class.eject_media        = NULL;
 
   xine->config->register_enum(xine->config, "input.mms_network_bandwidth", 10,
-                        mms_bandwidth_strs,
-                        "Network bandwidth",
-                        NULL, 0, bandwidth_changed_cb, (void*) this);
+			      (char **)mms_bandwidth_strs,
+			      "Network bandwidth",
+			      NULL, 0, bandwidth_changed_cb, (void*) this);
   
   return this;
 }
@@ -384,4 +384,3 @@ plugin_info_t xine_plugin_info[] = {
   { PLUGIN_INPUT, 10, "mms", XINE_VERSION_CODE, NULL, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
-
