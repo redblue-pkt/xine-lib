@@ -110,7 +110,7 @@ static void save_image (char *oldname, ImlibImage *img) {
       cv = v + 128.0;
 
       gzwrite (fp, &cy, 1);
-      if (px % 2)
+      if ((px-1) % 2)
 	gzwrite (fp, &cv, 1);
       else
 	gzwrite (fp, &cu, 1);

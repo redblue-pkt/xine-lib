@@ -910,6 +910,7 @@ doc/man/en/Makefile
 doc/man/en/man3/Makefile
 doc/xine-lib-API/Makefile
 doc/xine-lib-API/html/Makefile
+doc/hackersguide/Makefile
 misc/xine-lib.spec
 misc/guenter.spec
 misc/SlackBuild

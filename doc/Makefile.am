@@ -1,5 +1,5 @@
 
-SUBDIRS = man xine-lib-API
+SUBDIRS = man xine-lib-API hackersguide
 
 EXTRA_DIST = $(docs_DOCS) README dataflow.dia xine-lib-API.cfg
 
