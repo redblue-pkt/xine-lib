@@ -368,7 +368,16 @@ static void nbc_put_cb (fifo_buffer_t *fifo,
         }
         break;
     }
+
+    if (fifo == this->video_fifo) {
+      this->video_fifo_free = fifo->buffer_pool_num_free;
+      this->video_fifo_size = fifo->fifo_data_size;
+    } else {
+      this->audio_fifo_free = fifo->buffer_pool_num_free;
+      this->audio_fifo_size = fifo->fifo_data_size;
+    }
   }
+
 
   display_stats(this);
   pthread_mutex_unlock(&this->mutex);
@@ -430,6 +439,14 @@ static void nbc_get_cb (fifo_buffer_t *fifo,
         this->audio_in_disc--;
         lprintf("\nnet_buf_ctrl: nbc_get_cb audio disc %d\n", this->audio_in_disc);
       }
+    }
+
+    if (fifo == this->video_fifo) {
+      this->video_fifo_free = fifo->buffer_pool_num_free;
+      this->video_fifo_size = fifo->fifo_data_size;
+    } else {
+      this->audio_fifo_free = fifo->buffer_pool_num_free;
+      this->audio_fifo_size = fifo->fifo_data_size;
     }
   }
   display_stats(this);
