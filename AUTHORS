@@ -8,76 +8,55 @@ Daniel Caujolle-Bert <f1rmb@users.sourceforge.net>
   various suggestions, bug and build fixes, alsa plugin, gui
 
 Siegfried Langauf <siggi@users.sourceforge.net>
-  Debian package, user support
+  Debian package, user support, project administration
 
 Miguel Freitas <miguel@cetuc.puc-rio.br>
   many bug and deadlock fixes, bitrate detection, soft deinterlacer,
-massive libwin32 updates
-
-Michel Lespinasse <walken@zoy.org>
-  liba52/libmpeg2 developement
-
-Steffen Lorscheider <loli@users.sourceforge.net>
-  gui programming
+  massive libwin32 updates
 
 Heiko Schaefer <heikos@users.sourceforge.net>
-  FreeBSD support, project administration, testing, ideas
-
-Paul Flinders <paul@dawa.demon.co.uk>
-  stdin/net plugin testing/bugfixes, audio downsampling
-
-Joachim Koenig <Joachim.Koenig@gmx.net>
-  teletux/syncfb video output module, various bugfixes/reviews, alsa
-
-Christian Bauer <cbauer@student.physik.uni-mainz.de>
-  gui bugfixes (wm support, clean exit)
+  FreeBSD support, testing, ideas
 
 Rich Wareham <richwareham@users.sourceforge.net>
   subtitle support, navigation
 
 James Courtier-Dutton <James@superbug.demon.co.uk>
   AC3 direct out via spdif on oss, subtitle interface, audio_output
-interface
+  interface
 
 Juergen Keil <jk@tools.de>
   solaris port and other bugfixes
 
-Eduard Hasenleithner <eduardh@aon.at>
-  dxr3 support
-
 Matthias Hopf <Matthias.Hopf@informatik.uni-stuttgart.de>
-  IRIX port
+  IRIX port, video out interface, opengl video output
 
 Thibaut Mattern <tmattern@noos.fr>
   zooming feature for Xv video-out plugin, demuxer cleanups and fixes
 
-Christian Vogler <cvogler@gradient.cis.upenn.edu>
-  closed caption decoding, osd fixes
-
 Michael Roitzsch <mroi@users.sourceforge.net>
-  several dxr3 fixes
+  several dxr3 fixes, massive engine contributions
 
 Mike Melanson <melanson@pcisys.net>
   QT, FILM, RoQ, WAV, FLI, SMJPEG, Id CIN, WC3 movie, VOC, VQA, AIFF,
-SND/AU, YUV4MPEG2, and Real file demuxers; RoQ audio decoder; various
-ADPCM audio decoders; raw RGB & YUV support; FLI, MS & QT RLE, and QT 
-SMC video decoders
-
-Dennis Bjorklund <db@zigo.dhs.org>
-  configurable size of avi subtitles, patch to fix flashing subtitles in
-libsputext
+  SND/AU, YUV4MPEG2, and Real file demuxers; RoQ audio decoder; various
+  ADPCM audio decoders; raw RGB & YUV support; FLI, MS & QT RLE, and QT 
+  SMC video decoders
 
 Robin KAY <komadori@myrealbox.com>
   pgx64[fb] video output plugin, WVE demuxer, EA ADPCM decoder, various
-bugfixes
+  bugfixes
 
 Stephen Torri <storri@users.sourceforge.net>
-  Automake, autoconf, libtool development, and build fixes
+  Automake, autoconf, libtool development, and build fixes,
+  health check
 
 xine is using
+=============
+
   mpeg2dec - a free MPEG-2 video stream decoder
   liba52   - a free A/52 audio stream decoder
     Written by Aaron Holtzman <aholtzma@ess.engr.uvic.ca>
+    maintained and massively enhanced by Michel Lespinasse <walken@zoy.org>
 
   libmpg123 - a free MPEG audio decoder
     Written by Michael Hipp <http://www.mpg123.de>
@@ -103,7 +82,10 @@ xine is using
     MPlayer http://www.mplayerhq.hu/
     wine    http://www.winehq.com
 
+
 Contributions
+=============
+
   many thanks to the Linux Video and DVD Project "LiViD"
   (http://www.linuxvideo.org/), where the original ideas for the xine
   video player came from.
@@ -292,5 +274,28 @@ Howdy Pierce <howdy@cardinalpeak.com>
 
 James Slorach  <jrs47@janx.org>
   fix for wrong abs() macro, deinterlacing fix
+
+Steffen Lorscheider <loli@users.sourceforge.net>
+  gui programming
+
+Paul Flinders <paul@dawa.demon.co.uk>
+  stdin/net plugin testing/bugfixes, audio downsampling
+
+Joachim Koenig <Joachim.Koenig@gmx.net>
+  teletux/syncfb video output module, various bugfixes/reviews, alsa
+
+Christian Bauer <cbauer@student.physik.uni-mainz.de>
+  gui bugfixes (wm support, clean exit)
+
+Eduard Hasenleithner <eduardh@aon.at>
+  dxr3 support
+
+Christian Vogler <cvogler@gradient.cis.upenn.edu>
+  closed caption decoding, osd fixes
+
+Dennis Bjorklund <db@zigo.dhs.org>
+  configurable size of avi subtitles, patch to fix flashing subtitles in
+libsputext
+
 
 (let us know if we've forgotten anyone)
