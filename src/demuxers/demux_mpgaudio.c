@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpgaudio.c,v 1.89 2003/01/10 21:11:04 miguelfreitas Exp $
+ * $Id: demux_mpgaudio.c,v 1.90 2003/01/26 15:58:36 tmmm Exp $
  *
  * demultiplexer for mpeg audio (i.e. mp3) streams
  *
@@ -30,7 +30,6 @@
 #include <stdio.h>
 #include <fcntl.h>
 #include <unistd.h>
-#include <sched.h>
 #include <string.h>
 #include <stdlib.h>
 
@@ -52,8 +51,10 @@
         ( (long)(unsigned char)(ch3) | ( (long)(unsigned char)(ch2) << 8 ) | \
         ( (long)(unsigned char)(ch1) << 16 ) | ( (long)(unsigned char)(ch0) << 24 ) )
 
-#define RIFF_TAG FOURCC_TAG('R', 'I', 'F', 'F')
 #define RIFF_CHECK_BYTES 1024
+#define RIFF_TAG FOURCC_TAG('R', 'I', 'F', 'F')
+#define AVI_TAG FOURCC_TAG('A', 'V', 'I', ' ')
+#define CDXA_TAG FOURCC_TAG('C', 'D', 'X', 'A')
 
 typedef struct {
 
@@ -509,13 +510,13 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
       /* skip the length */
       input->seek(input, 4, SEEK_CUR);
 
-      /* disqualify the file if it is, in fact, an AVI file */
       if (input->read(input, riff_check, 4) != 4)
         return NULL;
-      if ((riff_check[0] == 'A') &&
-          (riff_check[1] == 'V') &&
-          (riff_check[2] == 'I') &&
-          (riff_check[3] == ' '))
+
+      /* disqualify the file if it is, in fact, an AVI file or has a CDXA
+       * marker */
+      if ((BE_32(&riff_check[0]) == AVI_TAG) ||
+          (BE_32(&riff_check[0]) == CDXA_TAG))
         return NULL;
 
       /* skip 4 more bytes */
