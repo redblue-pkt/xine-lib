@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.138 2002/11/15 00:20:31 miguelfreitas Exp $
+ * $Id: demux_mpeg_block.c,v 1.139 2002/11/15 17:59:47 esnel Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -1020,6 +1020,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
         this->blocksize = demux_mpeg_detect_blocksize( this, input );
 
       if (!this->blocksize) {
+        free (this->scratch_base);
         free (this);
         return NULL;
       }
@@ -1035,6 +1036,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
 #ifdef LOG
 	  printf("demux_mpeg_block:open_plugin:scratch failed\n");
 #endif
+          free (this->scratch_base);
           free (this);
           return NULL;
         }
@@ -1042,6 +1044,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
         /* if it's a file then make sure it's mpeg-2 */
         if ( !input->get_blocksize(input)
              && ((this->scratch[4]>>4) != 4) ) {
+          free (this->scratch_base);
           free (this);
           return NULL;
         }
@@ -1053,6 +1056,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
         break;
       }
     }
+    free (this->scratch_base);
     free (this);
     return NULL;
   }
@@ -1066,6 +1070,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
     ending = strrchr(mrl, '.');
 
     if (!ending) {
+      free (this->scratch_base);
       free (this);
       return NULL;
     }
@@ -1078,6 +1083,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
       this->blocksize = 2324;
       demux_mpeg_block_accept_input (this, input);
     } else {
+      free (this->scratch_base);
       free (this);
       return NULL;
     }
@@ -1096,6 +1102,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
       this->blocksize = demux_mpeg_detect_blocksize( this, input );
 
     if (!this->blocksize) {
+      free (this->scratch_base);
       free (this);
       return NULL;
     }
@@ -1105,6 +1112,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   break;
 
   default:
+    free (this->scratch_base);
     free (this);
     return NULL;
   }
