@@ -136,7 +136,7 @@ static inline void get_frame_duration (mpeg2dec_t * mpeg2dec, vo_frame_t *frame)
     }
   }
   
-  /* printf("mpeg2dec: rff=%u\n",frame->repeat_first_field); */
+  printf("mpeg2dec: rff=%u\n",frame->repeat_first_field);
 } 
 
 static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
@@ -167,12 +167,13 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 	mpeg2dec->in_slice = 0;
 
 	if (((picture->picture_structure == FRAME_PICTURE) ||
-	     (picture->second_field)) &&
-	    (!(mpeg2dec->drop_frame))) {
-	    
+	     (picture->second_field)) ) {
+	  
+	  if (!mpeg2dec->drop_frame)
+	    picture->current_frame->bad_frame = 0;
+   
 	  if (picture->picture_coding_type == B_TYPE) {
 	    if( picture->current_frame && !picture->current_frame->drawn ) {
-	      picture->current_frame->bad_frame = 0;
 
 	      /* hack against wrong mpeg1 pts */
 	      if (picture->mpeg1) 
