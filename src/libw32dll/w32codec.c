@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.66 2002/03/18 22:45:53 guenter Exp $
+ * $Id: w32codec.c,v 1.67 2002/03/22 20:46:18 miguelfreitas Exp $
  *
  * routines for using w32 codecs
  * DirectShow support by Miguel Freitas (Nov/2001)
@@ -82,9 +82,11 @@ static GUID dvsd_clsid =
 };
 
 
-pthread_mutex_t win32_codec_name_mutex;
+/* some data is shared inside wine loader.
+ * this mutex seems to avoid some segfaults
+ */
+pthread_mutex_t win32_codec_mutex;
 extern char*   win32_codec_name; 
-
 extern char*   win32_def_path;
 
 #define VIDEOBUFSIZE 128*1024
@@ -151,6 +153,23 @@ typedef struct w32a_decoder_s {
   
   LDT_FS *ldt_fs;
 } w32a_decoder_t;
+
+
+/* This is a ugly hack (as all this win32 code!):
+ * unloading one of the codecs (w32a or w32v) while the other is 
+ * still playing causes segfaults. using this define will make
+ * the last of them to close both.
+ * hopefuly some day we will fix the wine loader to remove that.
+ */   
+#define SYNC_SHUTDOWN
+
+#ifdef SYNC_SHUTDOWN
+w32v_decoder_t *w32v_instance;
+w32a_decoder_t *w32a_instance;
+
+static void w32v_close (video_decoder_t *this_gen);
+static void w32a_close (audio_decoder_t *this_gen);
+#endif
 
 
 /*
@@ -596,14 +615,20 @@ static void w32v_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
     printf ("w32codec: video_step is %lld\n", this->video_step);
 #endif
 
-    pthread_mutex_lock(&win32_codec_name_mutex);
+    pthread_mutex_lock(&win32_codec_mutex);
     win32_codec_name = get_vids_codec_name (this, buf->type);
 
     if( !this->ds_driver )
       w32v_init_codec (this, buf->type);
     else
       w32v_init_ds_codec (this, buf->type);
-    pthread_mutex_unlock(&win32_codec_name_mutex);
+      
+#ifdef SYNC_SHUTDOWN
+    if( this->decoder_ok )
+      w32v_instance = this;
+#endif
+    
+    pthread_mutex_unlock(&win32_codec_mutex);
       
     this->stream_id = -1;
     this->skipframes = 0;
@@ -662,6 +687,7 @@ static void w32v_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
       if (this->outfmt==IMGFMT_YUY2)
          img_buffer = img->base[0];
       
+      pthread_mutex_lock(&win32_codec_mutex);
       if( !this->ds_driver )
         ret = (!this->ex_functions)
               ?ICDecompress(this->hic, ICDECOMPRESS_NOTKEYFRAME | 
@@ -676,6 +702,7 @@ static void w32v_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
         ret = DS_VideoDecoder_DecodeInternal(this->ds_dec, this->buf, this->size, 0,
                             (this->skipframes)?NULL:img_buffer);
       }
+      pthread_mutex_unlock(&win32_codec_mutex);
                          
       if (!this->skipframes) {
         if (this->outfmt==IMGFMT_YUY2) {
@@ -792,12 +819,28 @@ static void w32v_close (video_decoder_t *this_gen) {
 
   w32v_decoder_t *this = (w32v_decoder_t *) this_gen;
 
-  if ( !this->ds_driver ) {
-  } else {
-    if( this->ds_dec )
-      DS_VideoDecoder_Destroy(this->ds_dec);
+  printf("w32v_close: enter\n");
+  pthread_mutex_lock(&win32_codec_mutex);
+#ifdef SYNC_SHUTDOWN
+  if( !w32a_instance || (w32a_instance && !w32a_instance->decoder_ok) )
+#endif
+  {
+    printf("w32v_close: deinitializing dlls\n");
+    if ( !this->ds_driver ) {
+    } else {
+      if( this->ds_dec )
+        DS_VideoDecoder_Destroy(this->ds_dec);
+    }
+    w32v_instance = NULL;
+    Restore_LDT_Keeper( this->ldt_fs );
   }
-  
+  pthread_mutex_unlock(&win32_codec_mutex);
+
+#ifdef SYNC_SHUTDOWN
+  if( w32a_instance && !w32a_instance->decoder_ok )
+    w32a_close ((audio_decoder_t *)w32a_instance);
+#endif
+
   if ( this->img_buffer ) {
     free (this->img_buffer);
     this->img_buffer = NULL;
@@ -807,10 +850,12 @@ static void w32v_close (video_decoder_t *this_gen) {
     free (this->buf);
     this->buf = NULL;
   }
-  
-  this->video_out->close(this->video_out);
-  
-  Restore_LDT_Keeper( this->ldt_fs );
+
+  if( this->decoder_ok )
+  {  
+    this->decoder_ok = 0;
+    this->video_out->close(this->video_out);
+  }
 }
 
 static char *w32v_get_id(void) {
@@ -922,8 +967,6 @@ static int w32a_init_audio (w32a_decoder_t *this,
   }
   audio_buffer = this->audio_out->get_buffer (this->audio_out);
 
-  this->ldt_fs = Setup_LDT_Keeper();
-  
   wf.nChannels       = in_fmt->nChannels;
   wf.nSamplesPerSec  = in_fmt->nSamplesPerSec;
   wf.nAvgBytesPerSec = 2*wf.nSamplesPerSec*wf.nChannels;
@@ -932,7 +975,8 @@ static int w32a_init_audio (w32a_decoder_t *this,
   wf.wBitsPerSample  = 16;
   wf.cbSize          = 0;
   
-  pthread_mutex_lock(&win32_codec_name_mutex);
+  pthread_mutex_lock(&win32_codec_mutex);
+  this->ldt_fs = Setup_LDT_Keeper();
   win32_codec_name = get_auds_codec_name (this, buf_type);
   
   if( !this->ds_driver ) {
@@ -940,14 +984,13 @@ static int w32a_init_audio (w32a_decoder_t *this,
                       in_fmt,
                       &wf,
                       NULL,0,0,0);
-    pthread_mutex_unlock(&win32_codec_name_mutex);
-
     if(ret){
       if(ret==ACMERR_NOTPOSSIBLE)
         printf("w32codec: (ACM_Decoder) Unappropriate audio format\n");
       else
         printf("w32codec: (ACM_Decoder) acmStreamOpen error %d", (int) ret);
       this->srcstream = 0;
+      pthread_mutex_unlock(&win32_codec_mutex);
       return 0;
     }
 
@@ -961,11 +1004,11 @@ static int w32a_init_audio (w32a_decoder_t *this,
       ACM_STREAMSIZEF_DESTINATION);
   } else {
     ret2 = this->ds_dec=DS_AudioDecoder_Open(win32_codec_name,this->guid, in_fmt);
-    pthread_mutex_unlock(&win32_codec_name_mutex);
     
     if( ret2 == NULL ) {
       printf("w32codec: Error initializing DirectShow Audio\n");
       this->srcstream = 0;
+      pthread_mutex_unlock(&win32_codec_mutex);
       return 0;
     }
     
@@ -978,6 +1021,7 @@ static int w32a_init_audio (w32a_decoder_t *this,
        impossible */
     this->rec_audio_src_size*=2; 
   }
+  pthread_mutex_unlock(&win32_codec_mutex);
   printf("w32codec: Recommended source buffer size: %d\n", this->rec_audio_src_size); 
 
   if( this->buf )
@@ -1073,11 +1117,12 @@ static void w32a_decode_audio (w32a_decoder_t *this,
 	    this->buf[this->rec_audio_src_size-2], this->buf[this->rec_audio_src_size-1]); 
 #endif
     
+    pthread_mutex_lock(&win32_codec_mutex);
     if( !this->ds_driver ) {
       hr=acmStreamPrepareHeader(this->srcstream,&ash,0);
       if(hr){
         printf("w32codec: (ACM_Decoder) acmStreamPrepareHeader error %d\n",(int)hr);
-
+        pthread_mutex_unlock(&win32_codec_mutex);
         return;
       }
       
@@ -1089,6 +1134,7 @@ static void w32a_decode_audio (w32a_decoder_t *this,
        ash.cbSrcLengthUsed = size_read;
        ash.cbDstLengthUsed = size_written;
     }
+    pthread_mutex_unlock(&win32_codec_mutex);
    
     if(hr){
       printf ("w32codec: stream convert error %d, used %d bytes\n",
@@ -1135,12 +1181,14 @@ static void w32a_decode_audio (w32a_decoder_t *this,
       xine_fast_memcpy( this->buf, &this->buf [ash.cbSrcLengthUsed], this->size);
     }
 
+    pthread_mutex_lock(&win32_codec_mutex);
     if( !this->ds_driver ) {
       hr=acmStreamUnprepareHeader(this->srcstream,&ash,0);
       if(hr){
         printf("w32codec: (ACM_Decoder) acmStreamUnprepareHeader error %d\n",(int)hr);
       }
     }
+    pthread_mutex_unlock(&win32_codec_mutex);
   }
 }
 
@@ -1156,6 +1204,11 @@ static void w32a_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 #endif
 
     this->decoder_ok = w32a_init_audio (this, (WAVEFORMATEX *)buf->content, buf->type);
+
+#ifdef SYNC_SHUTDOWN
+    if( this->decoder_ok )
+      w32a_instance = this;
+#endif
   } else if (this->decoder_ok) {
 #ifdef LOG
     printf ("w32codec: decoding %d data bytes...\n", buf->size);
@@ -1174,29 +1227,47 @@ static void w32a_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 static void w32a_close (audio_decoder_t *this_gen) {
 
   w32a_decoder_t *this = (w32a_decoder_t *) this_gen;
-
-  if( !this->ds_driver ) {
-    if( this->srcstream )
-      acmStreamClose(this->srcstream, 0);
-  } else {
-    if( this->ds_dec )
-      DS_AudioDecoder_Destroy(this->ds_dec);
-  }
-
-  Restore_LDT_Keeper(this->ldt_fs);
   
-  if (this->output_open) {
-    this->audio_out->close (this->audio_out);
-    this->output_open = 0;
+  printf("w32a_close: enter\n");
+  pthread_mutex_lock(&win32_codec_mutex);
+#ifdef SYNC_SHUTDOWN
+  if( !w32v_instance || (w32v_instance && !w32v_instance->decoder_ok) )
+#endif
+  {
+    printf("w32a_close: deinitializing dlls\n");
+    if( !this->ds_driver ) {
+      if( this->srcstream )
+        acmStreamClose(this->srcstream, 0);
+    } else {
+      if( this->ds_dec )
+        DS_AudioDecoder_Destroy(this->ds_dec);
+    }
+
+    w32a_instance = NULL;
+    Restore_LDT_Keeper(this->ldt_fs);
   }
-  
+  pthread_mutex_unlock(&win32_codec_mutex);
+
+#ifdef SYNC_SHUTDOWN
+  if( w32v_instance && !w32v_instance->decoder_ok )
+    w32v_close ((video_decoder_t *)w32v_instance);
+#endif
+    
   if( this->buf ) {
     free(this->buf);
     this->buf = NULL;
   }
+  
   if( this->outbuf ) {
     free(this->outbuf);
     this->outbuf = NULL;
+  }
+  
+  this->decoder_ok = 0;
+  
+  if (this->output_open) {
+    this->audio_out->close (this->audio_out);
+    this->output_open = 0;
   }
 }
 
@@ -1233,9 +1304,13 @@ video_decoder_t *init_video_decoder_plugin (int iface_version, xine_t *xine) {
   this->video_decoder.get_identifier      = w32v_get_id;
   this->video_decoder.priority            = 1;
 
-  pthread_mutex_init (&win32_codec_name_mutex, NULL);
+  pthread_mutex_init (&win32_codec_mutex, NULL);
   
   this->prof_rgb2yuv = xine_profiler_allocate_slot ("w32codec rgb2yuv convert");
+
+#ifdef SYNC_SHUTDOWN
+  w32v_instance = NULL;
+#endif
 
   return (video_decoder_t *) this;
 }
@@ -1270,7 +1345,11 @@ audio_decoder_t *init_audio_decoder_plugin (int iface_version, xine_t *xine) {
   this->audio_decoder.get_identifier      = w32a_get_id;
   this->audio_decoder.priority            = 1;
   
-  pthread_mutex_init (&win32_codec_name_mutex, NULL);
+  pthread_mutex_init (&win32_codec_mutex, NULL);
+
+#ifdef SYNC_SHUTDOWN
+  w32a_instance = NULL;
+#endif
   
   return (audio_decoder_t *) this;
 }
