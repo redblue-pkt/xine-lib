@@ -171,8 +171,8 @@ case "$host" in
     ;;
   *)
     AC_CHECK_LIB(pthread, pthread_create,
-  	     THREAD_LIBS="-lpthread",
- 	     AC_MSG_ERROR(pthread needed))
+  	     [THREAD_LIBS="-lpthread"],
+ 	     [AC_MSG_ERROR(pthread needed)])
     ;;
 esac
 AC_SUBST(THREAD_LIBS)
@@ -379,7 +379,6 @@ AC_CHECK_LIB(Xv, XvShmCreateImage,
                fi ],, [$X_LIBS $X_PRE_LIBS -lXext $X_EXTRA_LIBS])
 AM_CONDITIONAL(HAVE_XV, test x$ac_have_xv = "xyes")
 AC_SUBST(XV_LIB)
-
 
 dnl ---------------------------------------------
 dnl Checks for Xinerama extension
@@ -762,24 +761,24 @@ case "$host_or_hostalias" in
 	dnl add x86 specific gcc CFLAGS
 	CFLAGS="$CFLAGS -O3 -pipe -fomit-frame-pointer $f_af $f_al $f_aj $m_wm $m_psb -fexpensive-optimizations $f_si $f_nsa -ffast-math -funroll-loops -finline-functions"
 
-	DEBUG_CFLAGS="$DEBUG_CFLAGS"
+	DEBUG_CFLAGS="$DEBUG_CFLAGS -O"
 
 	if test x"$sarchopt" != "xno"; then
 	    [
 	    archopt_val=
 
-	    case "$host_alias" in
+	    case "$host_or_hostalias" in
 	    i386-*) # *BSD return this even on a P III #-))
-		archopt_val=i386 ;;
+		archopt_val="i386" ;;
 	    i486-*) # oh dear!
-		archopt_val=i486 ;;
+		archopt_val="i486" ;;
 	    i586-*)
-		archopt_val=pentium ;;
+		archopt_val="pentium" ;;
 	    i686-*)
-		archopt_val=pentiumpro
+		archopt_val="pentiumpro"
 		if test x"$check_athlon" = "xyes"; then
 		    if test -f /proc/cpuinfo; then
-			modelname=`cat /proc/cpuinfo | grep "model\ name\	:" | sed -e 's/ //g' | cut -d':' -f2`
+			modelname=`cat /proc/cpuinfo | grep "model name" -m 1 | sed -e 's/ //g' | cut -d':' -f2`
 			case "$modelname" in
 			*Athlon* | *Duron* | *K7*)
 			    archopt_val="$k7cpu" ;;
@@ -788,11 +787,11 @@ case "$host_or_hostalias" in
 		fi
 		;;
 	    k6-*)
-		archopt_val=k6 ;;
+		archopt_val="k6" ;;
 	    k7-*)
-		archopt_val=k7 ;;
+		archopt_val="k7" ;;
 	    athlon-*)
-		archopt_val=athlon ;;
+		archopt_val="athlon" ;;
 	    esac
 
 	    if test x"$archopt_val" != x; then
