@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.c,v 1.131 2003/11/26 23:44:10 f1rmb Exp $
+ * $Id: metronom.c,v 1.132 2003/12/05 15:55:04 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -174,7 +174,7 @@ static void unixscr_exit (scr_plugin_t *scr) {
 static scr_plugin_t* unixscr_init () {
   unixscr_t *this;
 
-  this = malloc(sizeof(*this));
+  this = (unixscr_t *) xine_xmalloc(sizeof(unixscr_t));
   memset(this, 0, sizeof(*this));
   
   this->scr.interface_version = 2;
@@ -907,7 +907,7 @@ metronom_t * _x_metronom_init (int have_video, int have_audio, xine_t *xine) {
 
 metronom_clock_t *_x_metronom_clock_init(xine_t *xine)
 {
-  metronom_clock_t *this = (metronom_clock_t *)malloc(sizeof(metronom_clock_t));
+  metronom_clock_t *this = (metronom_clock_t *) xine_xmalloc(sizeof(metronom_clock_t));
   int err;
   
   this->set_option           = metronom_clock_set_option;

@@ -21,7 +21,7 @@
  * For more information on the FILM file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_film.c,v 1.72 2003/11/26 19:43:30 f1rmb Exp $
+ * $Id: demux_film.c,v 1.73 2003/12/05 15:54:57 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -185,8 +185,7 @@ static int open_film_file(demux_film_t *film) {
 
     /* sanity check the chunk size */
     if (i + chunk_size > film_header_size) {
-      xine_log(film->stream->xine, XINE_LOG_MSG,
-        _("invalid FILM chunk size\n"));
+      xine_log(film->stream->xine, XINE_LOG_MSG, _("invalid FILM chunk size\n"));
       free (film->interleave_buffer);
       free (film->sample_table);
       free (film_header);
@@ -340,8 +339,7 @@ static int open_film_file(demux_film_t *film) {
       break;
 
     default:
-      xine_log(film->stream->xine, XINE_LOG_MSG,
-        _("unrecognized FILM chunk\n"));
+      xine_log(film->stream->xine, XINE_LOG_MSG, _("unrecognized FILM chunk\n"));
       free (film->interleave_buffer);
       free (film->sample_table);
       free (film_header);

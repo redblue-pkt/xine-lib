@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_ogg.c,v 1.121 2003/12/03 03:07:07 miguelfreitas Exp $
+ * $Id: demux_ogg.c,v 1.122 2003/12/05 15:54:57 f1rmb Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -1118,7 +1118,8 @@ static void demux_ogg_send_header (demux_ogg_t *this) {
 	} else if (!strncmp (&op.packet[1], "theora", 4)) {
 
 #ifdef HAVE_THEORA
-	  printf ("demux_ogg: Theorastreamsupport is highly alpha at the moment\n");
+	  xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
+		   "demux_ogg: Theorastreamsupport is highly alpha at the moment\n");
 
 	  if (theora_decode_header(&this->t_info, &this->t_comment, &op)>=0) {
 

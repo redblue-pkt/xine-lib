@@ -98,9 +98,7 @@ static void report_progress (xine_stream_t *stream, int p) {
 }
 
 static void nbc_set_speed_pause (xine_stream_t *stream) {
-#ifdef LOG
-  printf("\nnet_buf_ctrl: nbc_put_cb: set_speed_pause\n");
-#endif
+  xprintf(stream->xine, XINE_VERBOSITY_DEBUG, "\nnet_buf_ctrl: nbc_put_cb: set_speed_pause\n");
   stream->xine->clock->set_speed (stream->xine->clock, XINE_SPEED_PAUSE);
   stream->xine->clock->set_option (stream->xine->clock, CLOCK_SCR_ADJUSTABLE, 0);
   if (stream->audio_out)
@@ -108,9 +106,7 @@ static void nbc_set_speed_pause (xine_stream_t *stream) {
 }
 
 static void nbc_set_speed_normal (xine_stream_t *stream) {
-#ifdef LOG
-  printf("\nnet_buf_ctrl: nbc_put_cb: set_speed_normal\n");
-#endif
+  xprintf(stream->xine, XINE_VERBOSITY_DEBUG, "\nnet_buf_ctrl: nbc_put_cb: set_speed_normal\n");
   stream->xine->clock->set_speed (stream->xine->clock, XINE_SPEED_NORMAL);
   stream->xine->clock->set_option (stream->xine->clock, CLOCK_SCR_ADJUSTABLE, 1);
   if (stream->audio_out)
@@ -125,22 +121,19 @@ static void display_stats (nbc_t *this) {
   char *buffering[2] = {"   ", "buf"};
   char *enabled[2]   = {"off", "on "};
 
-  if (this->stream->xine->verbosity >= 2) {
-    printf("net_buf_ctrl: vid %3d%% %4.1fs %4lldkbps %1d, "\
-           "aud %3d%% %4.1fs %4lldkbps %1d, %s %s\r",
-           this->video_fifo_fill,
-           (float)(this->video_fifo_length / 1000),
-           this->video_br / 1000,
-           this->video_in_disc,
-           this->audio_fifo_fill,
-           (float)(this->audio_fifo_length / 1000),
-           this->audio_br / 1000,
-           this->audio_in_disc,
-           buffering[this->buffering],
-           enabled[this->enabled]
-          );
-    fflush(stdout);
-  }
+  printf("net_buf_ctrl: vid %3d%% %4.1fs %4lldkbps %1d, "\
+	 "aud %3d%% %4.1fs %4lldkbps %1d, %s %s\r",
+	 this->video_fifo_fill,
+	 (float)(this->video_fifo_length / 1000),
+	 this->video_br / 1000,
+	 this->video_in_disc,
+	 this->audio_fifo_fill,
+	 (float)(this->audio_fifo_length / 1000),
+	 this->audio_br / 1000,
+	 this->audio_in_disc,
+	 buffering[this->buffering],
+	 enabled[this->enabled]);
+  fflush(stdout);
 }
 
 /*  Try to compute the length of the fifo in 1/1000 s
@@ -361,14 +354,12 @@ static void nbc_put_cb (fifo_buffer_t *fifo,
         /* discontinuity management */
         if (fifo == this->video_fifo) {
           this->video_in_disc++;
-#ifdef LOG
-          printf("\nnet_buf_ctrl: nbc_put_cb video disc %d\n", this->video_in_disc);
-#endif
+          xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
+		  "\nnet_buf_ctrl: nbc_put_cb video disc %d\n", this->video_in_disc);
         } else {
           this->audio_in_disc++;
-#ifdef LOG
-          printf("\nnet_buf_ctrl: nbc_put_cb audio disc %d\n", this->audio_in_disc);
-#endif
+          xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
+		  "\nnet_buf_ctrl: nbc_put_cb audio disc %d\n", this->audio_in_disc);
         }
         break;
     }
@@ -383,7 +374,9 @@ static void nbc_put_cb (fifo_buffer_t *fifo,
   }
 
 
-  display_stats(this);
+  if(this->stream->xine->verbosity >= XINE_VERBOSITY_DEBUG)
+    display_stats(this);
+
   pthread_mutex_unlock(&this->mutex);
 }
 
@@ -438,14 +431,12 @@ static void nbc_get_cb (fifo_buffer_t *fifo,
     if (buf->type == BUF_CONTROL_NEWPTS) {
       if (fifo == this->video_fifo) {
         this->video_in_disc--;
-#ifdef LOG
-        printf("\nnet_buf_ctrl: nbc_get_cb video disc %d\n", this->video_in_disc);
-#endif
+        xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
+		"\nnet_buf_ctrl: nbc_get_cb video disc %d\n", this->video_in_disc);
       } else {
         this->audio_in_disc--;
-#ifdef LOG
-        printf("\nnet_buf_ctrl: nbc_get_cb audio disc %d\n", this->audio_in_disc);
-#endif
+        xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
+		"\nnet_buf_ctrl: nbc_get_cb audio disc %d\n", this->audio_in_disc);
       }
     }
 
@@ -457,12 +448,15 @@ static void nbc_get_cb (fifo_buffer_t *fifo,
       this->audio_fifo_size = fifo->fifo_data_size;
     }
   }
-  display_stats(this);
+
+  if(this->stream->xine->verbosity >= XINE_VERBOSITY_DEBUG)
+    display_stats(this);
+
   pthread_mutex_unlock(&this->mutex);
 }
 
 nbc_t *nbc_init (xine_stream_t *stream) {
-
+  
   nbc_t *this = (nbc_t *) malloc (sizeof (nbc_t));
   fifo_buffer_t *video_fifo = stream->video_fifo;
   fifo_buffer_t *audio_fifo = stream->audio_fifo;
@@ -511,10 +505,9 @@ nbc_t *nbc_init (xine_stream_t *stream) {
 void nbc_close (nbc_t *this) {
   fifo_buffer_t *video_fifo = this->stream->video_fifo;
   fifo_buffer_t *audio_fifo = this->stream->audio_fifo;
+  xine_t        *xine       = this->stream->xine;
 
-#ifdef LOG
-  printf("\nnet_buf_ctrl: nbc_close\n");
-#endif
+  xprintf(xine, XINE_VERBOSITY_DEBUG, "\nnet_buf_ctrl: nbc_close\n");
 
   video_fifo->unregister_alloc_cb(video_fifo, nbc_alloc_cb);
   video_fifo->unregister_put_cb(video_fifo, nbc_put_cb);
@@ -535,11 +528,9 @@ void nbc_close (nbc_t *this) {
   }
 
   pthread_mutex_unlock(&this->mutex);
-
+  
   free (this);
-#ifdef LOG
-  printf("\nnet_buf_ctrl: nbc_close: done\n");
-#endif
+  xprintf(xine, XINE_VERBOSITY_DEBUG, "\nnet_buf_ctrl: nbc_close: done\n");
 }
 
 
@@ -548,7 +539,8 @@ void nbc_set_high_water_mark(nbc_t *this, int value) {
   Deprecated
   this->high_water_mark = value;
 */
-  printf("\nnet_buf_ctrl: this method is deprecated, please fix the input plugin\n");
+  xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
+	  "\nnet_buf_ctrl: this method is deprecated, please fix the input plugin\n");
 }
 
 void nbc_set_low_water_mark(nbc_t *this, int value) {
@@ -556,5 +548,6 @@ void nbc_set_low_water_mark(nbc_t *this, int value) {
   Deprecated
   this->low_water_mark = value;
 */
-  printf("\nnet_buf_ctrl: this method is deprecated, please fix the input plugin\n");
+  xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
+	  "\nnet_buf_ctrl: this method is deprecated, please fix the input plugin\n");
 }

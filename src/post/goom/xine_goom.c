@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_goom.c,v 1.45 2003/12/03 10:52:41 andruil Exp $
+ * $Id: xine_goom.c,v 1.46 2003/12/05 15:55:02 f1rmb Exp $
  *
  * GOOM post plugin.
  *
@@ -191,7 +191,7 @@ static void csc_method_changed_cb(void *data, xine_cfg_entry_t *cfg) {
 
 static void *goom_init_plugin(xine_t *xine, void *data)
 {
-  post_class_goom_t *this = (post_class_goom_t *)malloc(sizeof(post_class_goom_t));
+  post_class_goom_t *this = (post_class_goom_t *)xine_xmalloc(sizeof(post_class_goom_t));
   config_values_t   *cfg;
 
   if (!this)
@@ -232,7 +232,7 @@ static post_plugin_t *goom_open_plugin(post_class_t *class_gen, int inputs,
 					 xine_audio_port_t **audio_target,
 					 xine_video_port_t **video_target)
 {
-  post_plugin_goom_t *this   = (post_plugin_goom_t *)malloc(sizeof(post_plugin_goom_t));
+  post_plugin_goom_t *this   = (post_plugin_goom_t *)xine_xmalloc(sizeof(post_plugin_goom_t));
   post_class_goom_t  *class  = (post_class_goom_t*) class_gen;
   xine_post_in_t     *input  = (xine_post_in_t *)malloc(sizeof(xine_post_in_t));
   post_goom_out_t    *output = (post_goom_out_t *)malloc(sizeof(post_goom_out_t));

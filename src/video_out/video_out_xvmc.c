@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xvmc.c,v 1.9 2003/11/26 19:43:38 f1rmb Exp $
+ * $Id: video_out_xvmc.c,v 1.10 2003/12/05 15:55:04 f1rmb Exp $
  * 
  * video_out_xvmc.c, X11 video motion compensation extension interface for xine
  *
@@ -217,6 +217,7 @@ struct xvmc_driver_s {
   uint32_t             colorkey;
 
   void                *user_data;
+  xine_t              *xine;
 };
 
 
@@ -233,6 +234,7 @@ typedef struct {
   unsigned int         max_surface_width;
   unsigned int         max_surface_height;
   short                acceleration;
+  xine_t              *xine;
 } xvmc_class_t;
 
 static void xvmc_render_macro_blocks(vo_frame_t *current_image,
@@ -570,13 +572,10 @@ static vo_frame_t *xvmc_alloc_frame (vo_driver_t *this_gen) {
 
   lprintf ("xvmc_alloc_frame\n");
 
-  frame = (xvmc_frame_t *) malloc (sizeof (xvmc_frame_t));
+  frame = (xvmc_frame_t *) xine_xmalloc (sizeof (xvmc_frame_t));
 
-  if (frame == NULL) {
-    printf ("xvmc_alloc_frame: out of memory\n");
+  if (!frame)
     return NULL;
-  }
-  memset (frame, 0, sizeof(xvmc_frame_t));
 
   /* keep track of frames and how many frames alocated. */
   this->frames[this->num_frame_buffers++] = frame;
@@ -610,10 +609,8 @@ static cxid_t *xvmc_set_context (xvmc_driver_t *this,
   
   /* initialize block & macro block pointers first time */
   if(macroblocks->blocks == NULL ||  macroblocks->macro_blocks == NULL) {
-    macroblocks->blocks       = malloc(sizeof(XvMCBlockArray));
-    macroblocks->macro_blocks = malloc(sizeof(XvMCMacroBlockArray));
-    memset (macroblocks->blocks, 0, sizeof(XvMCBlockArray));
-    memset (macroblocks->macro_blocks, 0, sizeof(XvMCMacroBlockArray));
+    macroblocks->blocks       = xine_xmalloc(sizeof(XvMCBlockArray));
+    macroblocks->macro_blocks = xine_xmalloc(sizeof(XvMCMacroBlockArray));
     
     lprintf("macroblocks->blocks %lx ->macro_blocks %lx\n",
 	    macroblocks->blocks,macroblocks->macro_blocks);
@@ -662,7 +659,7 @@ static cxid_t *xvmc_set_context (xvmc_driver_t *this,
 			       width, height, XVMC_DIRECT, &this->context);
 
     if(result != Success) {
-      fprintf(stderr, "set_context: couldn't create XvMCContext\n");
+      xprintf(this->xine, XINE_VERBOSITY_DEBUG, "set_context: couldn't create XvMCContext\n");
       macroblocks->xine_mc.xvmc_accel = 0;
       abort();
     }
@@ -674,7 +671,7 @@ static cxid_t *xvmc_set_context (xvmc_driver_t *this,
 				 &this->frames[i]->surface);
       if(result != Success) {
 	XvMCDestroyContext(this->display, &this->context);
-	printf("set_context: couldn't create XvMCSurfaces\n");
+	xprintf(this->xine, XINE_VERBOSITY_DEBUG, "set_context: couldn't create XvMCSurfaces\n");
 	this->context_id.xid            = NULL;
 	macroblocks->xine_mc.xvmc_accel = 0;
 	abort();
@@ -690,14 +687,14 @@ static cxid_t *xvmc_set_context (xvmc_driver_t *this,
     result = XvMCCreateBlocks(this->display, &this->context, slices * 6,
 			      macroblocks->blocks);
     if(result != Success) {
-      fprintf(stderr, "set_context: ERROR XvMCCreateBlocks failed\n");
+      xprintf(this->xine, XINE_VERBOSITY_DEBUG, "set_context: ERROR XvMCCreateBlocks failed\n");
       macroblocks->xine_mc.xvmc_accel = 0;
       abort();
     }
     result =XvMCCreateMacroBlocks(this->display, &this->context, slices,
 				  macroblocks->macro_blocks);
     if(result != Success) {
-      fprintf(stderr, "set_context: ERROR XvMCCreateMacroBlocks failed\n");
+      printf(this->xine, XINE_VERBOSITY_DEBUG, "set_context: ERROR XvMCCreateMacroBlocks failed\n");
       macroblocks->xine_mc.xvmc_accel = 0;
       abort();
     }
@@ -734,7 +731,7 @@ static XvImage *create_ximage (xvmc_driver_t *this, XShmSegmentInfo *shminfo,
     xvmc_format = this->xvmc_format_yuy2;
     break;
   default:
-    fprintf (stderr, "create_ximage: unknown format %08x\n",format);
+    xprintf (this->xine, XINE_VERBOSITY_DEBUG, "create_ximage: unknown format %08x\n",format);
     abort();
   }
 
@@ -754,7 +751,7 @@ static XvImage *create_ximage (xvmc_driver_t *this, XShmSegmentInfo *shminfo,
       data = malloc (width * height * 2);
       break;
     default:
-      fprintf (stderr, "create_ximage: unknown format %08x\n",format);
+      xprintf (this->xine, XINE_VERBOSITY_DEBUG, "create_ximage: unknown format %08x\n",format);
       abort();
     }
 
@@ -1101,8 +1098,8 @@ static int xvmc_set_property (vo_driver_t *this_gen,
     case VO_PROP_ZOOM_X:
       if ((value >= XINE_VO_ZOOM_MIN) && (value <= XINE_VO_ZOOM_MAX)) {
         this->props[property].value = value;
-        printf ("video_out_xv: VO_PROP_ZOOM_X = %d\n",
-		this->props[property].value);
+        xprintf (this->xine, XINE_VERBOSITY_DEBUG, 
+		 "video_out_xv: VO_PROP_ZOOM_X = %d\n", this->props[property].value);
 
 	this->sc.zoom_factor_x = (double)value / (double)XINE_VO_ZOOM_STEP;
 	xvmc_compute_ideal_size (this);
@@ -1113,8 +1110,8 @@ static int xvmc_set_property (vo_driver_t *this_gen,
     case VO_PROP_ZOOM_Y:
       if ((value >= XINE_VO_ZOOM_MIN) && (value <= XINE_VO_ZOOM_MAX)) {
         this->props[property].value = value;
-        printf ("video_out_xv: VO_PROP_ZOOM_Y = %d\n",
-		this->props[property].value);
+        xprintf (this->xine, XINE_VERBOSITY_DEBUG, 
+		 "video_out_xv: VO_PROP_ZOOM_Y = %d\n", this->props[property].value);
 
 	this->sc.zoom_factor_y = (double)value / (double)XINE_VO_ZOOM_STEP;
 	xvmc_compute_ideal_size (this);
@@ -1298,8 +1295,8 @@ static void xvmc_check_capability (xvmc_driver_t *this,
   XvGetPortAttribute (this->display, this->xv_port,
 		      this->props[property].atom, &int_default);
 
-  printf ("video_out_xvmc: port attribute %s (%d) value is %d\n",
-	  str_prop, property, int_default);
+  xprintf (this->xine, XINE_VERBOSITY_DEBUG, 
+	   "video_out_xvmc: port attribute %s (%d) value is %d\n", str_prop, property, int_default);
   
   if (config_name) {
     /* is this a boolean property ? */
@@ -1373,20 +1370,17 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *vi
   display = visual->display;
   
   /* TODO ???  */
-  this = malloc (sizeof (xvmc_driver_t));
+  this = (xvmc_driver_t *) xine_xmalloc (sizeof (xvmc_driver_t));
   
-  if (!this) {
-    printf ("video_out_xvmc: malloc failed\n");
+  if (!this)
     return NULL;
-  }
- 
-  memset (this, 0, sizeof(xvmc_driver_t));
 
   this->display            = visual->display;
   this->overlay            = NULL;
   this->screen             = visual->screen;
   this->xv_port            = class->xv_port;
   this->config             = config;
+  this->xine               = class->xine;
 
   _x_vo_scale_init (&this->sc, 1, 0, config );
 
@@ -1506,7 +1500,7 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *vi
     XFree(attr);
   } 
   else {
-    printf("video_out_xvmc: no port attributes defined.\n");
+    xprintf(this->xine, XINE_VERBOSITY_DEBUG, "video_out_xvmc: no port attributes defined.\n");
   }
 
 
@@ -1558,25 +1552,25 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *vi
 
   switch(this->deinterlace_method) {
   case DEINTERLACE_NONE: 
-    printf("NONE\n"); 
+    lprintf("NONE\n"); 
     break;
   case DEINTERLACE_BOB: 
-    printf("BOB\n"); 
+    lprintf("BOB\n"); 
     break;
   case DEINTERLACE_WEAVE: 
-    printf("WEAVE\n");
+    lprintf("WEAVE\n");
     break;
   case DEINTERLACE_GREEDY: 
-    printf("GREEDY\n");
+    lprintf("GREEDY\n");
     break;
   case DEINTERLACE_ONEFIELD: 
-    printf("ONEFIELD\n");
+    lprintf("ONEFIELD\n");
     break;
   case DEINTERLACE_ONEFIELDXV: 
-    printf("ONEFIELDXV\n");
+    lprintf("ONEFIELDXV\n");
     break;
   case DEINTERLACE_LINEARBLEND: 
-    printf("LINEARBLEND\n"); 
+    lprintf("LINEARBLEND\n"); 
     break;
   }
 
@@ -1633,13 +1627,13 @@ static void *init_class (xine_t *xine, void *visual_gen) {
 
   XLockDisplay(display);
   if (Success != XvQueryExtension(display, &ver, &rel, &req, &ev, &err)) {
-    printf ("video_out_xvmc: Xv extension not present.\n");
+    xprintf (xine, XINE_VERBOSITY_DEBUG, "video_out_xvmc: Xv extension not present.\n");
     XUnlockDisplay(display);
     return NULL;
   }
 
   if(!XvMCQueryExtension(display, &ev, &err)) {
-    printf ("video_out_xvmc: XvMC extension not present.\n");
+    xprintf (xine, XINE_VERBOSITY_LOG, _("video_out_xvmc: XvMC extension not present.\n"));
     XUnlockDisplay(display);
     return 0;
   }
@@ -1650,7 +1644,7 @@ static void *init_class (xine_t *xine, void *visual_gen) {
 
   if(Success != XvQueryAdaptors(display, DefaultRootWindow(display),
 				&adaptors, &adaptor_info))  {
-    printf ("video_out_xvmc: XvQueryAdaptors failed.\n");
+    xprintf (xine, XINE_VERBOSITY_DEBUG, "video_out_xvmc: XvQueryAdaptors failed.\n");
     XUnlockDisplay(display);
     return 0;
   }
@@ -1658,7 +1652,7 @@ static void *init_class (xine_t *xine, void *visual_gen) {
   xv_port = 0;
 
   for ( adaptor_num = 0; (adaptor_num < adaptors) && !xv_port; adaptor_num++ ) {
-    printf ("video_out_xvmc: checking adaptor %d\n",adaptor_num);
+    xprintf (xine, XINE_VERBOSITY_DEBUG, "video_out_xvmc: checking adaptor %d\n",adaptor_num);
     if (adaptor_info[adaptor_num].type & XvImageMask) {
       surfaceInfo = XvMCListSurfaceTypes(display, adaptor_info[adaptor_num].base_id,
 					 &types);
@@ -1686,13 +1680,13 @@ static void *init_class (xine_t *xine, void *visual_gen) {
 	}
 
 	if(!xv_port) { /* try for just XVMC_MOCOMP  */
-	  lprintf ("didn't find XVMC_IDCT acceleration trying for MC\n");
+	  xprintf (xine, XINE_VERBOSITY_DEBUG, "didn't find XVMC_IDCT acceleration trying for MC\n");
 
 	  for(surface_num  = 0; surface_num < types; surface_num++) {
 	    if((surfaceInfo[surface_num].chroma_format == XVMC_CHROMA_FORMAT_420) &&
 	       ((surfaceInfo[surface_num].mc_type == (XVMC_MOCOMP | XVMC_MPEG_2)))) {
 	      
-	      lprintf ("Found XVMC_MOCOMP\n");
+	      xprintf (xine, XINE_VERBOSITY_DEBUG, "Found XVMC_MOCOMP\n");
 	      max_width = surfaceInfo[surface_num].max_width;
 	      max_height = surfaceInfo[surface_num].max_height;
 
@@ -1727,7 +1721,7 @@ static void *init_class (xine_t *xine, void *visual_gen) {
 	  }
 	  else 
 	    IDCTaccel = 0;
-	  printf ("video_out_xvmc: IDCTaccel %02x\n",IDCTaccel);
+	  xprintf (xine, XINE_VERBOSITY_DEBUG, "video_out_xvmc: IDCTaccel %02x\n",IDCTaccel);
 	  break;
 	}
 	XFree(surfaceInfo);
@@ -1737,37 +1731,36 @@ static void *init_class (xine_t *xine, void *visual_gen) {
   
 
   if (!xv_port) {
-    printf ("video_out_xvmc: Xv extension is present but "
-	    "I couldn't find a usable yuv12 port.\n");
-    printf ("              Looks like your graphics hardware "
-	    "driver doesn't support Xv?!\n");
+    xprintf (xine, XINE_VERBOSITY_LOG,
+	     _("video_out_xvmc: Xv extension is present but I couldn't find a usable yuv12 port.\n"));
+    xprintf (xine, XINE_VERBOSITY_LOG, "              Looks like your graphics hardware "
+	     "driver doesn't support Xv?!\n");
     /* XvFreeAdaptorInfo (adaptor_info); this crashed on me (gb)*/
     XUnlockDisplay(display);
     return NULL;
   } 
   else {
-    printf ("video_out_xvmc: using Xv port %ld from adaptor %s\n"
-	    "                for hardware colorspace conversion and scaling\n", xv_port,
-            adaptor_info[adaptor_num].name);
+    xprintf (xine, XINE_VERBOSITY_LOG, 
+	     _("video_out_xvmc: using Xv port %ld from adaptor %s\n"
+	       "                for hardware colorspace conversion and scaling\n"),
+	     xv_port, adaptor_info[adaptor_num].name);
     
     if(IDCTaccel&XINE_VO_IDCT_ACCEL)
-      printf ("                idct and motion compensation acceleration \n");
+      xprintf (xine, XINE_VERBOSITY_LOG, _("                idct and motion compensation acceleration \n"));
     else if (IDCTaccel&XINE_VO_MOTION_ACCEL)
-      printf ("                motion compensation acceleration only\n");
+      xprintf (xine, XINE_VERBOSITY_LOG, _("                motion compensation acceleration only\n"));
     else
-      printf ("                no XvMC support \n");
-    printf ("                With Overlay = %d; UnsignedIntra = %d.\n", useOverlay,
-	    unsignedIntra);
+      xprintf (xine, XINE_VERBOSITY_LOG, _("                no XvMC support \n"));
+    xprintf (xine, XINE_VERBOSITY_LOG, _("                With Overlay = %d; UnsignedIntra = %d.\n"),
+	     useOverlay, unsignedIntra);
   }
 
   XUnlockDisplay(display);
   
   this = (xvmc_class_t *) malloc (sizeof (xvmc_class_t));
 
-  if (!this) {
-    printf ("video_out_xvmc: malloc failed\n");
+  if (!this)
     return NULL;
-  }
 
   this->driver_class.open_plugin     = open_plugin;
   this->driver_class.get_identifier  = get_identifier;
@@ -1783,6 +1776,8 @@ static void *init_class (xine_t *xine, void *visual_gen) {
   this->max_surface_width            = max_width;
   this->max_surface_height           = max_height;
   this->acceleration                 = IDCTaccel;
+
+  this->xine                         = xine;
 
   lprintf("init_class done\n");
 

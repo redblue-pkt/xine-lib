@@ -21,7 +21,7 @@
  * For more information regarding the Interplay MVE file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: interplayaudio.c,v 1.4 2003/11/16 23:33:47 f1rmb Exp $
+ * $Id: interplayaudio.c,v 1.5 2003/12/05 15:55:00 f1rmb Exp $
  */
 
 #include <stdio.h>
@@ -161,8 +161,8 @@ static void interplay_decode_data (audio_decoder_t *this_gen, buf_element_t *buf
    * the accumulator buffer size as necessary */
   if( this->size + buf->size > this->bufsize ) {
     this->bufsize = this->size + 2 * buf->size;
-    printf("interplayaudio: increasing source buffer to %d to avoid overflow.\n",
-      this->bufsize);
+    xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
+	    "interplayaudio: increasing source buffer to %d to avoid overflow.\n", this->bufsize);
     this->buf = realloc( this->buf, this->bufsize );
   }
   xine_fast_memcpy (&this->buf[this->size], buf->content, buf->size);
@@ -193,7 +193,8 @@ static void interplay_decode_data (audio_decoder_t *this_gen, buf_element_t *buf
 
       audio_buffer = this->stream->audio_out->get_buffer (this->stream->audio_out);
       if (audio_buffer->mem_size == 0) {
-        printf ("interplayaudio: Help! Allocated audio buffer with nothing in it!\n");
+        xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, 
+		 "interplayaudio: Help! Allocated audio buffer with nothing in it!\n");
         return;
       }
 
@@ -263,7 +264,7 @@ static audio_decoder_t *open_plugin (audio_decoder_class_t *class_gen, xine_stre
 
   interplay_decoder_t *this ;
 
-  this = (interplay_decoder_t *) malloc (sizeof (interplay_decoder_t));
+  this = (interplay_decoder_t *) xine_xmalloc (sizeof (interplay_decoder_t));
 
   /* connect the member functions */
   this->audio_decoder.decode_data         = interplay_decode_data;
@@ -318,7 +319,7 @@ static void *init_plugin (xine_t *xine, void *data) {
 
   interplay_class_t *this ;
 
-  this = (interplay_class_t *) malloc (sizeof (interplay_class_t));
+  this = (interplay_class_t *) xine_xmalloc (sizeof (interplay_class_t));
 
   this->decoder_class.open_plugin     = open_plugin;
   this->decoder_class.get_identifier  = get_identifier;

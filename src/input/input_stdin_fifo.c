@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_stdin_fifo.c,v 1.54 2003/11/26 19:43:31 f1rmb Exp $
+ * $Id: input_stdin_fifo.c,v 1.55 2003/12/05 15:54:58 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -61,6 +61,7 @@ typedef struct {
 
   char             seek_buf[BUFSIZE];
 
+  xine_t          *xine;
 } stdin_input_plugin_t;
 
 typedef struct {
@@ -69,6 +70,8 @@ typedef struct {
 
   xine_t           *xine;
 } stdin_input_class_t;
+
+static off_t stdin_plugin_get_current_pos (input_plugin_t *this_gen);
 
 
 
@@ -131,8 +134,6 @@ static buf_element_t *stdin_plugin_read_block (input_plugin_t *this_gen, fifo_bu
 }
 
 /* forward reference */
-static off_t stdin_plugin_get_current_pos (input_plugin_t *this_gen);
-
 static off_t stdin_plugin_seek (input_plugin_t *this_gen, off_t offset, int origin) {
 
   stdin_input_plugin_t  *this = (stdin_input_plugin_t *) this_gen;
@@ -156,7 +157,8 @@ static off_t stdin_plugin_seek (input_plugin_t *this_gen, off_t offset, int orig
       if( this->curpos <= this->preview_size ) 
         this->curpos = offset;
       else
-        printf ("stdin: cannot seek back! (%lld > %lld)\n", this->curpos, offset);
+        xprintf (this->xine, XINE_VERBOSITY_LOG, 
+		 _("stdin: cannot seek back! (%lld > %lld)\n"), this->curpos, offset);
 
     } else {
       offset -= this->curpos;
@@ -243,8 +245,7 @@ static int stdin_plugin_open (input_plugin_t *this_gen ) {
     lprintf("filename '%s'\n", filename);
 
     if (this->fh == -1) {
-      printf ("stdin: failed to open '%s'\n",
-	      filename);
+      xprintf (this->xine, XINE_VERBOSITY_LOG, _("stdin: failed to open '%s'\n"), filename);
       return 0;
     }
   }
@@ -268,10 +269,10 @@ static int stdin_plugin_open (input_plugin_t *this_gen ) {
 }
 
 
-static input_plugin_t *stdin_class_get_instance (input_class_t *cls_gen, xine_stream_t *stream,
-				    const char *data) {
+static input_plugin_t *stdin_class_get_instance (input_class_t *class_gen, 
+						 xine_stream_t *stream, const char *data) {
 
-  /* stdin_input_class_t  *cls = (stdin_input_class_t *) cls_gen; */
+  stdin_input_class_t  *class = (stdin_input_class_t *) class_gen;
   stdin_input_plugin_t *this;
   char                 *mrl = strdup(data);
   int                   fh;
@@ -308,6 +309,7 @@ static input_plugin_t *stdin_class_get_instance (input_class_t *cls_gen, xine_st
   this->curpos = 0;
   this->mrl    = mrl;
   this->fh     = fh;
+  this->xine   = class->xine;
 
   this->input_plugin.open              = stdin_plugin_open;
   this->input_plugin.get_capabilities  = stdin_plugin_get_capabilities;
@@ -320,7 +322,7 @@ static input_plugin_t *stdin_class_get_instance (input_class_t *cls_gen, xine_st
   this->input_plugin.get_mrl           = stdin_plugin_get_mrl;
   this->input_plugin.dispose           = stdin_plugin_dispose;
   this->input_plugin.get_optional_data = stdin_plugin_get_optional_data;
-  this->input_plugin.input_class       = cls_gen;
+  this->input_plugin.input_class       = class_gen;
 
   /*
    * buffering control

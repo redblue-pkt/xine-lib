@@ -767,7 +767,9 @@ void blend_yuv (uint8_t *dst_base[3], vo_overlay_t * img_overl,
 #endif
 
       if ((rlelen < 0) || (rle_remainder < 0)) {
+#ifdef LOG_BLEND_YUV
         printf("alphablend: major bug in blend_yuv < 0\n");
+#endif
       } 
       if (rlelen == 0) {
         rle_remainder = rlelen = rle->len;
@@ -971,7 +973,9 @@ void blend_yuy2 (uint8_t * dst_img, vo_overlay_t * img_overl,
       uint16_t o;
 
       if ((rlelen < 0) || (rle_remainder < 0)) {
+#ifdef LOG_BLEND_YUV
         printf("alphablend: major bug in blend_yuv < 0\n");
+#endif
       } 
       if (rlelen == 0) {
         rle_remainder = rlelen = rle->len;

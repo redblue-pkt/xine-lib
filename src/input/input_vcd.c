@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_vcd.c,v 1.69 2003/10/19 23:48:47 rockyb Exp $
+ * $Id: input_vcd.c,v 1.70 2003/12/05 15:54:58 f1rmb Exp $
  *
  */
 
@@ -78,9 +78,9 @@ typedef struct {
 
 typedef struct {
 
-  input_class_t     input_class;
+  input_class_t          input_class;
 
-  xine_t           *xine;
+  xine_t                *xine;
 
   /* FIXME: add thread/mutex stuff to protect against multiple instantiation */
 
@@ -148,7 +148,8 @@ static int input_vcd_read_toc (vcd_input_class_t *this, int fd) {
 
   /* read TOC header */
   if ( ioctl(fd, CDROMREADTOCHDR, &this->tochdr) == -1 ) {
-    printf ("input_vcd : error in ioctl CDROMREADTOCHDR\n");
+    xprintf (this->xine, XINE_VERBOSITY_DEBUG, 
+	     "input_vcd : error in ioctl CDROMREADTOCHDR\n");
     return -1;
   }
 
@@ -157,7 +158,8 @@ static int input_vcd_read_toc (vcd_input_class_t *this, int fd) {
     this->tocent[i-1].cdte_track = i;
     this->tocent[i-1].cdte_format = CDROM_MSF;
     if ( ioctl(fd, CDROMREADTOCENTRY, &this->tocent[i-1]) == -1 ) {
-      printf ("input_vcd: error in ioctl CDROMREADTOCENTRY for track %d\n", i);
+      xprintf (this->xine, XINE_VERBOSITY_DEBUG, 
+	       "input_vcd: error in ioctl CDROMREADTOCENTRY for track %d\n", i);
       return -1;
     }
   }
@@ -168,7 +170,8 @@ static int input_vcd_read_toc (vcd_input_class_t *this, int fd) {
 
   if (ioctl(fd, CDROMREADTOCENTRY, 
 	    &this->tocent[this->tochdr.cdth_trk1]) == -1 ) {
-    printf ("input_vcd: error in ioctl CDROMREADTOCENTRY for lead-out\n");
+    xprintf (this->xine, XINE_VERBOSITY_DEBUG, 
+	     "input_vcd: error in ioctl CDROMREADTOCENTRY for lead-out\n");
     return -1;
   }
 
@@ -184,7 +187,8 @@ static int input_vcd_read_toc (vcd_input_class_t *this, int fd) {
 
   /* read TOC header */
   if ( ioctl(fd, CDIOREADTOCHEADER, &this->tochdr) == -1 ) {
-    printf ("input_vcd : error in ioctl CDROMREADTOCHDR\n");
+    xprintf (this->xine, XINE_VERBOSITY_DEBUG, 
+	     "input_vcd : error in ioctl CDROMREADTOCHDR\n");
     return -1;
   }
 
@@ -199,7 +203,8 @@ static int input_vcd_read_toc (vcd_input_class_t *this, int fd) {
   te.data = this->tocent;
   
   if ( ioctl(fd, CDIOREADTOCENTRYS, &te) == -1 ){
-    printf ("input_vcd: error in ioctl CDROMREADTOCENTRY\n");
+    xprintf (this->xine, XINE_VERBOSITY_DEBUG, 
+	     "input_vcd: error in ioctl CDROMREADTOCENTRY\n");
     return -1;
   }
 
@@ -246,8 +251,8 @@ static int sun_vcd_read(vcd_input_plugin_t *this, long lba, cdsector_t *data)
       cdxa.cdxa_format = CDROM_XA_SECTOR_DATA;
   
       if(ioctl(this->fd,CDROMCDXA,&cdxa)==-1) {
-	  perror("CDROMCDXA");
-	  return -1;
+	xprintf(this->cls->xine, XINE_VERBOSITY_DEBUG, "CDROMCDXA: %s\n", strerror(errno));
+	return -1;
       }
     }
 #else
@@ -258,8 +263,8 @@ static int sun_vcd_read(vcd_input_plugin_t *this, long lba, cdsector_t *data)
       cdread.cdread_buflen = 2336;
 
       if(ioctl(this->fd,CDROMREADMODE2,&cdread)==-1) {
-	  perror("CDROMREADMODE2");
-	  return -1;
+	xprintf(this->cls->xine, XINE_VERBOSITY_DEBUG, "CDROMREADMODE2: %s\n", strerror(errno));
+	return -1;
       }
     }
 #endif
@@ -314,11 +319,12 @@ static int sun_vcd_read(vcd_input_plugin_t *this, long lba, cdsector_t *data)
       sc.uscsi_flags = USCSI_ISOLATE | USCSI_READ;
       sc.uscsi_timeout = 20;
       if (ioctl(this->fd, USCSICMD, &sc)) {
-	perror("USCSICMD: READ CD");
+	xprintf(this->cls->xine, XINE_VERBOSITY_DEBUG, "USCSICMD: READ CD: %s\n", strerror(errno));
 	return -1;
       }
       if (sc.uscsi_status) {
-	printf ("scsi command failed with status %d\n", sc.uscsi_status);
+	xprintf (this->cls->xine, XINE_VERBOSITY_DEBUG, 
+		 "scsi command failed with status %d\n", sc.uscsi_status);
 	return -1;
       }
     }
@@ -365,7 +371,8 @@ static off_t vcd_plugin_read (input_plugin_t *this_gen,
     memcpy (&data, &msf, sizeof (msf));
 
     if (ioctl (this->fd, CDROMREADRAW, &data) == -1) {
-      printf ("input_vcd: error in CDROMREADRAW\n");
+      xprintf (this->cls->xine, XINE_VERBOSITY_DEBUG, 
+	       "input_vcd: error in CDROMREADRAW\n");
       return 0;
     }
 
@@ -400,11 +407,11 @@ static off_t vcd_plugin_read (input_plugin_t *this_gen,
 
   do {
     if (lseek (this->fd, this->cur_sec * bsize, SEEK_SET) == -1) {
-      printf ("input_vcd: seek error %d\n", errno);
+      xprintf (this->cls->xine, XINE_VERBOSITY_DEBUG, "input_vcd: seek error %d\n", errno);
       return 0;
     }
     if (read (this->fd, &data, bsize) == -1) {
-      printf ("input_vcd: read error %d\n", errno);
+      xprintf (this->cls->xine, XINE_VERBOSITY_DEBUG, "input_vcd: read error %d\n", errno);
       return 0;
     }
     this->cur_sec++;
@@ -442,7 +449,7 @@ static off_t vcd_plugin_read (input_plugin_t *this_gen,
     lba = (this->cur_min * 60 + this->cur_sec) * 75L + this->cur_frame;
 
     if (sun_vcd_read(this, lba, &data) < 0) {
-      printf ("input_vcd: read data failed\n");
+      xprintf (this->cls->xine, XINE_VERBOSITY_DEBUG, "input_vcd: read data failed\n");
       return 0;
     }
 
@@ -500,7 +507,7 @@ static buf_element_t *vcd_plugin_read_block (input_plugin_t *this_gen,
     memcpy (&data, &msf, sizeof (msf));
 
     if (ioctl (this->fd, CDROMREADRAW, &data) == -1) {
-      printf ("input_vcd: error in CDROMREADRAW\n");
+      xprintf (this->cls->xine, XINE_VERBOSITY_DEBUG, "input_vcd: error in CDROMREADRAW\n");
       return NULL;
     }
 
@@ -540,11 +547,11 @@ static buf_element_t *vcd_plugin_read_block (input_plugin_t *this_gen,
 
   do {
     if (lseek (this->fd, this->cur_sec * bsize, SEEK_SET) == -1) {
-      printf ("input_vcd: seek error %d\n", errno);
+      xprintf (this->cls->xine, XINE_VERBOSITY_DEBUG, "input_vcd: seek error %d\n", errno);
       return NULL;
     }
     if (read (this->fd, &data, bsize) == -1) {
-      printf ("input_vcd: read error %d\n", errno);
+      xprintf (this->cls->xine, XINE_VERBOSITY_DEBUG, "input_vcd: read error %d\n", errno);
       return NULL;
     }
     this->cur_sec++;
@@ -587,7 +594,7 @@ static buf_element_t *vcd_plugin_read_block (input_plugin_t *this_gen,
     lba = (this->cur_min * 60 + this->cur_sec) * 75L + this->cur_frame;
 
     if (sun_vcd_read (this, lba, &data) < 0) {
-      printf ("input_vcd: read data failed\n");
+      xprintf (this->cls->xine, XINE_VERBOSITY_DEBUG, "input_vcd: read data failed\n");
       return NULL;
     }
 
@@ -659,7 +666,8 @@ static off_t vcd_plugin_seek (input_plugin_t *this_gen,
     break;
   case SEEK_CUR:
     if (offset) 
-      printf ("input_vcd: SEEK_CUR not implemented for offset != 0\n");
+      xprintf (this->cls->xine, XINE_VERBOSITY_DEBUG, 
+	       "input_vcd: SEEK_CUR not implemented for offset != 0\n");
 
     /*
     printf ("input_vcd: current pos: %02d:%02d:%02d\n",
@@ -677,8 +685,8 @@ static off_t vcd_plugin_seek (input_plugin_t *this_gen,
 
     break;
   default:
-    printf ("input_vcd: error seek to origin %d not implemented!\n",
-	    origin);
+    xprintf (this->cls->xine, XINE_VERBOSITY_DEBUG, 
+	     "input_vcd: error seek to origin %d not implemented!\n", origin);
     return 0;
   }
 
@@ -710,7 +718,7 @@ static off_t vcd_plugin_seek (input_plugin_t *this_gen,
   case SEEK_CUR:
 
     if (offset) 
-      printf ("input_vcd: SEEK_CUR not implemented for offset != 0\n");
+      xprintf (this->cls->xine, XINE_VERBOSITY_DEBUG, "input_vcd: SEEK_CUR not implemented for offset != 0\n");
 
     sector_pos = this->cur_sec;
 
@@ -718,8 +726,8 @@ static off_t vcd_plugin_seek (input_plugin_t *this_gen,
 
     break;
   default:
-    printf ("input_vcd: error seek to origin %d not implemented!\n",
-	    origin);
+    xprintf (this->cls->xine, XINE_VERBOSITY_DEBUG, 
+	     "input_vcd: error seek to origin %d not implemented!\n", origin);
     return 0;
   }
 
@@ -837,13 +845,15 @@ static int vcd_plugin_open (input_plugin_t *this_gen) {
   while (*filename == '/') filename++;
 
   if (sscanf (filename, "%d", &this->cur_track) != 1) {
-    printf ("input_vcd: malformed MRL. Use vcdo:/<track #>\n");
+    xprintf (cls->xine, XINE_VERBOSITY_LOG, 
+	     _("input_vcd: malformed MRL. Use vcdo:/<track #>\n"));
     return 0;
   }
 
   if (this->cur_track>=this->cls->total_tracks) {
-    printf ("input_vcd: invalid track %d (valid range: 0 .. %d)\n",
-	    this->cur_track, this->cls->total_tracks-1);
+    xprintf (cls->xine, XINE_VERBOSITY_LOG, 
+	     _("input_vcd: invalid track %d (valid range: 0 .. %d)\n"),
+	     this->cur_track, this->cls->total_tracks-1);
     return 0;
   }
 
@@ -855,7 +865,7 @@ static int vcd_plugin_open (input_plugin_t *this_gen) {
   {
     int bsize = 2352;
     if (ioctl (this->fd, CDRIOCSETBLOCKSIZE, &bsize) == -1) {
-      printf ("input_vcd: error in CDRIOCSETBLOCKSIZE %d\n", errno);
+      xprintf (cls->xine, XINE_VERBOSITY_DEBUG, "input_vcd: error in CDRIOCSETBLOCKSIZE %d\n", errno);
       return 0;
     }
   
@@ -932,7 +942,7 @@ static int vcd_class_eject_media (input_class_t *this_gen) {
 
   vcd_input_class_t  *this = (vcd_input_class_t *) this_gen;
 
-  return media_eject_media (this->device);
+  return media_eject_media (this->xine, this->device);
 }
 
 static xine_mrl_t **vcd_class_get_dir (input_class_t *this_gen, const char *filename, 
@@ -950,7 +960,8 @@ static xine_mrl_t **vcd_class_get_dir (input_class_t *this_gen, const char *file
   fd = open (this->device, O_RDONLY);
 
   if (fd == -1) {
-    printf ("unable to open %s: %s.\n", this->device, strerror(errno));
+    xprintf (this->xine, XINE_VERBOSITY_LOG,
+	     _("unable to open %s: %s.\n"), this->device, strerror(errno));
     return NULL;
   }
 
@@ -958,7 +969,7 @@ static xine_mrl_t **vcd_class_get_dir (input_class_t *this_gen, const char *file
     close (fd);
     fd = -1;
 
-    printf ("vcd_read_toc failed\n");
+    xprintf (this->xine, XINE_VERBOSITY_DEBUG, "vcd_read_toc failed\n");
 
     return NULL;
   }
@@ -1025,7 +1036,8 @@ static char ** vcd_class_get_autoplay_list (input_class_t *this_gen, int *num_fi
   fd = open (this->device, O_RDONLY);
 
   if (fd == -1) {
-    printf ("input_vcd: unable to open %s: %s.\n", this->device, strerror(errno));
+    xprintf (this->xine, XINE_VERBOSITY_LOG,
+	     _("input_vcd: unable to open %s: %s.\n"), this->device, strerror(errno));
     return NULL;
   }
 
@@ -1033,7 +1045,7 @@ static char ** vcd_class_get_autoplay_list (input_class_t *this_gen, int *num_fi
     close (fd);
     fd = -1;
 
-    printf ("input_vcd: vcd_read_toc failed\n");
+    xprintf (this->xine, XINE_VERBOSITY_DEBUG, "input_vcd: vcd_read_toc failed\n");
 
     return NULL;
   }

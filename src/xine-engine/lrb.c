@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: lrb.c,v 1.4 2003/02/28 02:51:51 storri Exp $
+ * $Id: lrb.c,v 1.5 2003/12/05 15:55:04 f1rmb Exp $
  *
  */
 
@@ -79,7 +79,7 @@ void lrb_add (lrb_t *this, buf_element_t *buf) {
     this->cur_num_entries++;
   }
 
-  printf ("lrb: %d elements in buffer\n", this->cur_num_entries);
+  lprintf ("lrb: %d elements in buffer\n", this->cur_num_entries);
 
 }
 
@@ -106,7 +106,7 @@ void lrb_feedback (lrb_t *this, fifo_buffer_t *fifo) {
 
     this->cur_num_entries--;
 
-    printf ("lrb: feedback\n");
+    lprintf ("lrb: feedback\n");
 
   }
 

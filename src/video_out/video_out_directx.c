@@ -20,7 +20,7 @@
  * video_out_directx.c, direct draw video output plugin for xine
  * by Matthew Grooms <elon@altavista.com>
  *
- * $Id: video_out_directx.c,v 1.11 2003/11/26 19:43:37 f1rmb Exp $
+ * $Id: video_out_directx.c,v 1.12 2003/12/05 15:55:03 f1rmb Exp $
  */
 
 typedef unsigned char boolean;
@@ -76,6 +76,8 @@ typedef struct {
   vo_driver_t		   vo_driver;
   win32_visual_t          *win32_visual;
 
+  xine_t                  *xine;
+
   LPDIRECTDRAW7		   ddobj;	    /* direct draw object */
   LPDIRECTDRAWSURFACE	   primary;	    /* primary dd surface */
   LPDIRECTDRAWSURFACE 	   secondary;	    /* secondary dd surface  */
@@ -99,6 +101,7 @@ typedef struct {
   video_driver_class_t     driver_class;
   config_values_t         *config;
   char                    *device_name;
+  xine_t                  *xine;
 } directx_class_t;
 
 /* -----------------------------------------
@@ -158,7 +161,7 @@ boolean CreatePrimary( win32_driver_t * win32_driver )
   if( result != DD_OK )
     {
       Error( 0, "DirectDrawCreate : error %i", result );
-      printf( "vo_out_directx : DirectDrawCreate : error %i\n", result );
+      xprintf(win32_driver->xine, XINE_VERBOSITY_DEBUG, "vo_out_directx : DirectDrawCreate : error %i\n", result );
       return 0;
     }
 
@@ -247,14 +250,14 @@ boolean CreateSecondary( win32_driver_t * win32_driver, int width, int height, i
   DDSURFACEDESC2			ddsd;
 
   if( format == XINE_IMGFMT_YV12 )
-    printf( "vo_out_directx : switching to YV12 overlay type\n" );
+    xprintf(win32_driver->xine, XINE_VERBOSITY_DEBUG, "vo_out_directx : switching to YV12 overlay type\n" );
 
   if( format == XINE_IMGFMT_YUY2 )
-    printf( "vo_out_directx : switching to YUY2 overlay type\n" );
+    xprintf(win32_driver->xine, XINE_VERBOSITY_DEBUG, "vo_out_directx : switching to YUY2 overlay type\n" );
 
 #if RGB_SUPPORT
   if( format == IMGFMT_RGB )
-    printf( "vo_out_directx : switching to RGB overlay type\n" );
+    xprintf(win32_driver->xine, XINE_VERBOSITY_DEBUG, "vo_out_directx : switching to RGB overlay type\n" );
 #endif
 
   if( !win32_driver->ddobj )
@@ -833,14 +836,12 @@ static void win32_frame_dispose( vo_frame_t * vo_frame )
 
 static vo_frame_t * win32_alloc_frame( vo_driver_t * vo_driver )
 {
-  win32_frame_t * win32_frame;
+  win32_driver_t *win32_driver = (win32_driver_t *)vo_driver;
+  win32_frame_t  *win32_frame;
 
-  win32_frame = ( win32_frame_t * ) malloc( sizeof( win32_frame_t ) );
-  if (win32_frame == NULL) {
-    printf("win32_alloc_frame: out of memory\n");
+  win32_frame = ( win32_frame_t * ) xine_malloc( sizeof( win32_frame_t ) );
+  if (!win32_frame)
     return NULL;
-  }
-  memset( win32_frame, 0, sizeof( win32_frame_t ) );
 
   win32_frame->vo_frame.proc_slice = NULL;
   win32_frame->vo_frame.proc_frame = NULL;
@@ -901,7 +902,8 @@ static void win32_update_frame_format( vo_driver_t * vo_driver, vo_frame_t * vo_
 #endif
       else
 	{
-	  printf ( "vo_out_directx : !!! unsupported image format %04x !!!\n", format );
+	  xprintf (win32_driver->xine, XINE_VERBOSITY_DEBUG, 
+		   "vo_out_directx : !!! unsupported image format %04x !!!\n", format );
 	  exit (1);
 	}
 
@@ -1146,9 +1148,10 @@ static void win32_exit( vo_driver_t * vo_driver )
 static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *win32_visual)
      /*vo_driver_t *init_video_out_plugin( config_values_t * config, void * win32_visual )*/
 {
-  win32_driver_t   *win32_driver = ( win32_driver_t * ) malloc ( sizeof( win32_driver_t ) );
+  directx_class_t *class = (directx_class_t *)class_gen;
+  win32_driver_t  *win32_driver = ( win32_driver_t * ) xine_xmalloc ( sizeof( win32_driver_t ) );
 
-  memset( win32_driver, 0, sizeof( win32_driver_t ) );
+  win32_driver->xine = class->xine;
 
   /* Make sure that the DirectX drivers are available and present! */
   /* Not complete yet */
@@ -1215,7 +1218,8 @@ static void *init_class (xine_t *xine, void *visual_gen) {
 #ifdef TC
   /* check for directx device */
   if((fd = open(device_name, O_RDWR)) < 0) {
-    printf("video_out_directx: aborting. (unable to open directx device \"%s\")\n", device_name);
+    xprintf(xine, XINE_VERBOSITY_DEBUG, 
+	    "video_out_directx: aborting. (unable to open directx device \"%s\")\n", device_name);
     return NULL;
   }
   close(fd);
@@ -1224,14 +1228,14 @@ static void *init_class (xine_t *xine, void *visual_gen) {
   /*
    * from this point on, nothing should go wrong anymore
    */
-  directx = (directx_class_t *) malloc (sizeof (directx_class_t));
-  memset( directx, 0, sizeof( directx_class_t ) );
+  directx = (directx_class_t *) xine_xmalloc (sizeof (directx_class_t));
 
   directx->driver_class.open_plugin     = open_plugin;
   directx->driver_class.get_identifier  = get_identifier;
   directx->driver_class.get_description = get_description;
   directx->driver_class.dispose         = dispose_class;
 
+  directx->xine                         = xine;
   directx->config                       = xine->config;
   directx->device_name                  = device_name;
   

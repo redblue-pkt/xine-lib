@@ -22,7 +22,7 @@
  * Based on public domain source code from:
  *   http://www.honeypot.net/audio/
  *
- * $Id: 28k8.c,v 1.4 2003/11/16 23:33:47 f1rmb Exp $
+ * $Id: 28k8.c,v 1.5 2003/12/05 15:55:00 f1rmb Exp $
  */
 
 #include <stdio.h>
@@ -529,7 +529,7 @@ static void *init_plugin (xine_t *xine, void *data) {
 
   ra28k8_class_t *this ;
 
-  this = (ra28k8_class_t *) malloc (sizeof (ra28k8_class_t));
+  this = (ra28k8_class_t *) xine_xmalloc (sizeof (ra28k8_class_t));
 
   this->decoder_class.open_plugin     = open_plugin;
   this->decoder_class.get_identifier  = get_identifier;

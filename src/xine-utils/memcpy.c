@@ -435,10 +435,10 @@ static uint64_t rdtsc(int config_flags)
 }
 #endif
 
-static void update_fast_memcpy(void *this_gen, xine_cfg_entry_t *entry) {
-  static int config_flags = -1;
-
-  int method;
+static void update_fast_memcpy(void *user_data, xine_cfg_entry_t *entry) {
+  static int   config_flags = -1;
+  xine_t      *xine = (xine_t *) user_data;
+  int          method;
 
   config_flags = xine_mm_accel();
 
@@ -451,19 +451,18 @@ static void update_fast_memcpy(void *this_gen, xine_cfg_entry_t *entry) {
     xine_fast_memcpy = memcpy_method[method].function;
     return;
   } else {
-    printf("xine: will probe memcpy on startup\n" );
+    xprintf(xine, XINE_VERBOSITY_DEBUG, "xine: will probe memcpy on startup\n" );
   }
 }
 
 #define BUFSIZE 1024*1024
-void xine_probe_fast_memcpy(config_values_t *config)
+void xine_probe_fast_memcpy(xine_t *xine)
 {
-  uint64_t t;
-
-  char *buf1, *buf2;
-  int i, j, best;
-  int config_flags = -1;
-  static char *memcpy_methods[] = {
+  uint64_t          t;
+  char             *buf1, *buf2;
+  int               i, j, best;
+  int               config_flags = -1;
+  static char      *memcpy_methods[] = {
     "probe", "glibc",
 #if defined(ARCH_X86) && !defined(_MSC_VER)
     "kernel", "mmx", "mmxext", "sse",
@@ -473,13 +472,13 @@ void xine_probe_fast_memcpy(config_values_t *config)
 #endif
     NULL
   };
-
+  
   config_flags = xine_mm_accel();
 
-  best = config->register_enum (config, "misc.memcpy_method", 0,
-				memcpy_methods,
-				_("Memcopy method to use in xine for large data chunks."),
-				NULL, 20, update_fast_memcpy, NULL);
+  best = xine->config->register_enum (xine->config, "misc.memcpy_method", 0,
+				      memcpy_methods,
+				      _("Memcopy method to use in xine for large data chunks."),
+				      NULL, 20, update_fast_memcpy, (void *) xine);
 
   /* check if function is configured and valid for this machine */
   if( best != 0 &&
@@ -502,7 +501,7 @@ void xine_probe_fast_memcpy(config_values_t *config)
     return;
   }
 
-  printf("Benchmarking memcpy methods (smaller is better):\n");
+  xprintf(xine, XINE_VERBOSITY_LOG, _("Benchmarking memcpy methods (smaller is better):\n"));
   /* make sure buffers are present on physical memory */
   memset(buf1,0,BUFSIZE);
   memset(buf2,0,BUFSIZE);
@@ -522,13 +521,13 @@ void xine_probe_fast_memcpy(config_values_t *config)
     t = rdtsc(config_flags) - t;
     memcpy_method[i].time = t;
 
-    printf("\t%s : %lld\n",memcpy_method[i].name, t);
+    xprintf(xine, XINE_VERBOSITY_LOG, "\t%s : %lld\n", memcpy_method[i].name, t);
 
     if( best == 0 || t < memcpy_method[best].time )
       best = i;
   }
 
-  config->update_num (config, "misc.memcpy_method", best);
+  xine->config->update_num (xine->config, "misc.memcpy_method", best);
 
   free(buf1);
   free(buf2);

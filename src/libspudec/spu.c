@@ -35,7 +35,7 @@
  * along with this program; see the file COPYING.  If not, write to
  * the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: spu.c,v 1.72 2003/11/26 01:03:31 miguelfreitas Exp $
+ * $Id: spu.c,v 1.73 2003/12/05 15:55:00 f1rmb Exp $
  *
  */
 
@@ -70,9 +70,9 @@
 #define LOG_NAV 1
 */
 
-static void spudec_do_commands (spudec_state_t *state, spudec_seq_t* seq, vo_overlay_t *ovl);
-static void spudec_draw_picture (spudec_state_t *state, spudec_seq_t* seq, vo_overlay_t *ovl);
-static void spudec_discover_clut (spudec_state_t *state, vo_overlay_t *ovl);
+static void spudec_do_commands (xine_t *xine, spudec_state_t *state, spudec_seq_t* seq, vo_overlay_t *ovl);
+static void spudec_draw_picture (xine_t *xine, spudec_state_t *state, spudec_seq_t* seq, vo_overlay_t *ovl);
+static void spudec_discover_clut (xine_t *xine, spudec_state_t *state, vo_overlay_t *ovl);
 #ifdef LOG_DEBUG
 static void spudec_print_overlay( vo_overlay_t *overlay );
 #endif
@@ -88,7 +88,8 @@ void spudec_decode_nav(spudec_decoder_t *this, buf_element_t *buf) {
 
   p = buf->content;
   if (p[0] || p[1] || (p[2] != 1)) {
-    printf("libspudec:spudec_decode_nav:nav demux error! %02x %02x %02x (should be 0x000001) \n",p[0],p[1],p[2]);
+    xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
+	    "libspudec:spudec_decode_nav:nav demux error! %02x %02x %02x (should be 0x000001) \n",p[0],p[1],p[2]);
     return;
   }
 
@@ -168,7 +169,7 @@ void spudec_decode_nav(spudec_decoder_t *this, buf_element_t *buf) {
 	  this->event.vpts = 0;
           ovl_manager->add_event(ovl_manager, (void *)&this->event);
         } else {
-          printf("libspudec: No video_overlay handles left for menu\n");
+          xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "libspudec: No video_overlay handles left for menu\n");
         }
       }
       xine_fast_memcpy(&this->pci, &pci, sizeof(pci_t));
@@ -229,14 +230,15 @@ void spudec_decode_nav(spudec_decoder_t *this, buf_element_t *buf) {
       /* FIXME: Add command copying here */
       break;
    default:
-      printf("libspudec: unknown pci.hli.hl_gi.hli_ss = %d\n", pci.hli.hl_gi.hli_ss );
+      xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
+	      "libspudec: unknown pci.hli.hl_gi.hli_ss = %d\n", pci.hli.hl_gi.hli_ss );
       break;
   }
   pthread_mutex_unlock(&this->nav_pci_lock);
   return;
 }
 
-void spudec_reassembly (spudec_seq_t *seq, uint8_t *pkt_data, u_int pkt_len)
+void spudec_reassembly (xine_t *xine, spudec_seq_t *seq, uint8_t *pkt_data, u_int pkt_len)
 {
 #ifdef LOG_DEBUG
   printf ("libspudec: seq->complete = %d\n", seq->complete);
@@ -250,7 +252,7 @@ void spudec_reassembly (spudec_seq_t *seq, uint8_t *pkt_data, u_int pkt_len)
     seq->seq_len = (((uint32_t)pkt_data[0])<<8) | pkt_data[1];
     seq->cmd_offs = (((uint32_t)pkt_data[2])<<8) | pkt_data[3];
     if (seq->cmd_offs >= seq->seq_len) { 
-      printf("libspudec:faulty stream\n");
+      xprintf(xine, XINE_VERBOSITY_DEBUG, "libspudec:faulty stream\n");
       seq->broken = 1;
     }
     if (seq->buf_len < seq->seq_len) {
@@ -289,7 +291,7 @@ void spudec_reassembly (spudec_seq_t *seq, uint8_t *pkt_data, u_int pkt_len)
     memcpy (seq->buf + seq->ra_offs, pkt_data, pkt_len);
     seq->ra_offs += pkt_len;
   } else {
-    printf("libspudec:faulty stream\n");
+    xprintf(xine, XINE_VERBOSITY_DEBUG, "libspudec:faulty stream\n");
     seq->broken = 1;
   } 
 
@@ -333,13 +335,13 @@ void spudec_process (spudec_decoder_t *this, int stream_id) {
       }
       /* parse SPU command sequence, this will update forced_display, so it must come
        * before the check for it */
-      spudec_do_commands(&this->state, cur_seq, &this->overlay);
+      spudec_do_commands(this->stream->xine, &this->state, cur_seq, &this->overlay);
       /* FIXME: Check for Forced-display or subtitle stream
        *        For subtitles, open event.
        *        For menus, store it for later.
        */
       if (cur_seq->broken) {
-        printf("libspudec: dropping broken SPU\n");
+        xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "libspudec: dropping broken SPU\n");
 	cur_seq->broken = 0;
 	return;
       }
@@ -377,8 +379,9 @@ void spudec_process (spudec_decoder_t *this, int stream_id) {
 #ifdef LOG_BUTTON
         fprintf(stderr, "libspudec:Full Overlay\n");
 #endif
-        if (!spudec_copy_nav_to_overlay(&this->pci, this->state.clut, this->buttonN, 0,
-					&this->overlay, &this->overlay)) {
+        if (!spudec_copy_nav_to_overlay(this->stream->xine, 
+					&this->pci, this->state.clut, 
+					this->buttonN, 0, &this->overlay, &this->overlay)) {
           /* current button does not exist -> use another one */
 	  xine_event_t event;
 	  
@@ -391,8 +394,9 @@ void spudec_process (spudec_decoder_t *this, int stream_id) {
 	  event.data        = &this->buttonN;
 	  event.data_length = sizeof(this->buttonN);
           xine_event_send(this->stream, &event);
-	  spudec_copy_nav_to_overlay(&this->pci, this->state.clut, this->buttonN, 0,
-				     &this->overlay, &this->overlay);
+	  spudec_copy_nav_to_overlay(this->stream->xine, 
+				     &this->pci, this->state.clut, 
+				     this->buttonN, 0, &this->overlay, &this->overlay);
         }
       } else {
       /* Subtitle and not a menu button */
@@ -405,11 +409,11 @@ void spudec_process (spudec_decoder_t *this, int stream_id) {
       pthread_mutex_unlock(&this->nav_pci_lock);
 
       if ((this->state.modified) ) { 
-        spudec_draw_picture(&this->state, cur_seq, &this->overlay);
+        spudec_draw_picture(this->stream->xine, &this->state, cur_seq, &this->overlay);
       }
       
       if (this->state.need_clut) {
-        spudec_discover_clut(&this->state, &this->overlay);
+        spudec_discover_clut(this->stream->xine, &this->state, &this->overlay);
       }
       
       /* Subtitle */
@@ -418,7 +422,8 @@ void spudec_process (spudec_decoder_t *this, int stream_id) {
       }
  
       if( this->menu_handle < 0 ) {
-        printf("libspudec: No video_overlay handles left for menu\n");
+        xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
+		"libspudec: No video_overlay handles left for menu\n");
         return;
       }
       this->event.object.handle = this->menu_handle;
@@ -472,7 +477,7 @@ void spudec_process (spudec_decoder_t *this, int stream_id) {
 #define CMD_SPU_WIPE		0x07  /* Not currently implemented */
 #define CMD_SPU_EOF		0xff
 
-static void spudec_do_commands(spudec_state_t *state, spudec_seq_t* seq, vo_overlay_t *ovl)
+static void spudec_do_commands(xine_t *xine, spudec_state_t *state, spudec_seq_t* seq, vo_overlay_t *ovl)
 {
   uint8_t *buf = state->cmd_ptr;
   uint8_t *next_seq;
@@ -594,7 +599,7 @@ static void spudec_do_commands(spudec_state_t *state, spudec_seq_t* seq, vo_over
 
       if ((state->field_offs[0] >= seq->seq_len) ||
           (state->field_offs[1] >= seq->seq_len)) {
-        printf("libspudec:faulty stream\n");
+        xprintf(xine, XINE_VERBOSITY_DEBUG, "libspudec:faulty stream\n");
         seq->broken = 1;
       }
       state->modified = 1;
@@ -618,7 +623,7 @@ static void spudec_do_commands(spudec_state_t *state, spudec_seq_t* seq, vo_over
       break;
 
     default:
-      printf("libspudec: unknown seqence command (%02x)\n", buf[0]);
+      xprintf(xine, XINE_VERBOSITY_DEBUG, "libspudec: unknown seqence command (%02x)\n", buf[0]);
       /* FIXME: SPU should be dropped, and buffers resynced */
       buf = next_seq;
       seq->broken = 1;
@@ -682,7 +687,7 @@ static int spudec_next_line (vo_overlay_t *spu)
   return 0;
 }
 
-static void spudec_draw_picture (spudec_state_t *state, spudec_seq_t* seq, vo_overlay_t *ovl)
+static void spudec_draw_picture (xine_t *xine, spudec_state_t *state, spudec_seq_t* seq, vo_overlay_t *ovl)
 {
   rle_elem_t *rle;
   field = 0;
@@ -706,7 +711,9 @@ static void spudec_draw_picture (spudec_state_t *state, spudec_seq_t* seq, vo_ov
   ovl->data_size = seq->cmd_offs * 2 * sizeof(rle_elem_t);
 
   if (ovl->rle) {
-    printf ("libspudec: spudec_draw_picture: ovl->rle is not empty!!!! It should be!!! You should never see this message.\n");
+    xprintf (xine, XINE_VERBOSITY_DEBUG, 
+	     "libspudec: spudec_draw_picture: ovl->rle is not empty!!!! It should be!!! "
+	     "You should never see this message.\n");
     free(ovl->rle);
     ovl->rle=NULL;
   }
@@ -767,7 +774,7 @@ static void spudec_draw_picture (spudec_state_t *state, spudec_seq_t* seq, vo_ov
    MINFOUND is the number of ocurrences threshold.
 */
 #define MINFOUND 20
-static void spudec_discover_clut(spudec_state_t *state, vo_overlay_t *ovl)
+static void spudec_discover_clut(xine_t *xine, spudec_state_t *state, vo_overlay_t *ovl)
 {
   int bg,c;
   int seqcolor[10];
@@ -867,8 +874,8 @@ static void spudec_print_overlay( vo_overlay_t *ovl ) {
 }
 #endif
 
-int spudec_copy_nav_to_overlay(pci_t* nav_pci, uint32_t* clut, int32_t button, int32_t mode,
-                               vo_overlay_t * overlay, vo_overlay_t * base ) {
+int spudec_copy_nav_to_overlay(xine_t *xine, pci_t* nav_pci, uint32_t* clut,
+			       int32_t button, int32_t mode, vo_overlay_t * overlay, vo_overlay_t * base ) {
   btni_t *button_ptr = NULL;
   unsigned int btns_per_group;
   int i;
@@ -887,7 +894,8 @@ int spudec_copy_nav_to_overlay(pci_t* nav_pci, uint32_t* clut, int32_t button, i
   if (!button_ptr && nav_pci->hli.hl_gi.btngr_ns >= 3 && !(nav_pci->hli.hl_gi.btngr3_dsp_ty & 6))
     button_ptr = &nav_pci->hli.btnit[2 * btns_per_group + button - 1];
   if (!button_ptr) {
-    printf("libspudec: No suitable menu button group found, using group 1.\n");
+    xprintf(xine, XINE_VERBOSITY_DEBUG, 
+	    "libspudec: No suitable menu button group found, using group 1.\n");
     button_ptr = &nav_pci->hli.btnit[button - 1];
   }
   

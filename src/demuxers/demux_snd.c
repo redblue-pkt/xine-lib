@@ -21,7 +21,7 @@
 /*
  * SND/AU File Demuxer by Mike Melanson (melanson@pcisys.net)
  *
- * $Id: demux_snd.c,v 1.36 2003/11/16 23:33:43 f1rmb Exp $
+ * $Id: demux_snd.c,v 1.37 2003/12/05 15:54:57 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -101,7 +101,7 @@ static int open_snd_file(demux_snd_t *this) {
   if ((!this->audio_sample_rate) ||
       (!this->audio_channels)) {
     xine_log(this->stream->xine, XINE_LOG_MSG,
-      _("demux_snd: bad header parameters\n"));
+	     _("demux_snd: bad header parameters\n"));
     return 0;
   }
 
@@ -136,7 +136,7 @@ static int open_snd_file(demux_snd_t *this) {
 
     default:
       xine_log(this->stream->xine, XINE_LOG_MSG,
-        _("demux_snd: unsupported audio type: %d\n"), encoding);
+	       _("demux_snd: unsupported audio type: %d\n"), encoding);
       return 0;
       break;
   }

@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * $Id: yuv2rgb.c,v 1.46 2003/11/26 19:43:38 f1rmb Exp $
+ * $Id: yuv2rgb.c,v 1.47 2003/12/05 15:55:04 f1rmb Exp $
  */
 
 #include "config.h"
@@ -2397,7 +2397,7 @@ static void yuv2rgb_set_csc_levels (yuv2rgb_factory_t *this,
 
 
   default:
-    printf ("yuv2rgb: mode %d not supported by yuv2rgb\n", mode);
+    lprintf ("yuv2rgb: mode %d not supported by yuv2rgb\n", mode);
     abort();
   }
   
@@ -2529,7 +2529,7 @@ static void yuv2rgb_c_init (yuv2rgb_factory_t *this)
     break;
 
   default:
-    printf ("yuv2rgb: mode %d not supported by yuv2rgb\n", this->mode);
+    lprintf ("yuv2rgb: mode %d not supported by yuv2rgb\n", this->mode);
     abort();
   }
 
@@ -2572,7 +2572,7 @@ static void yuv2rgb_single_pixel_init (yuv2rgb_factory_t *this) {
     break;
 
   default:
-    printf ("yuv2rgb: mode %d not supported by yuv2rgb\n", this->mode);
+    lprintf ("yuv2rgb: mode %d not supported by yuv2rgb\n", this->mode);
     abort();
   }
 }
@@ -3114,7 +3114,7 @@ static void yuy22rgb_c_init (yuv2rgb_factory_t *this)
     break;
 
   default:
-    printf ("yuv2rgb: mode %d not supported for yuy2\n", this->mode);
+    lprintf ("yuv2rgb: mode %d not supported for yuy2\n", this->mode);
   }
 }
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_aa.c,v 1.40 2003/10/31 17:25:20 mroi Exp $
+ * $Id: video_out_aa.c,v 1.41 2003/12/05 15:55:03 f1rmb Exp $
  *
  * video_out_aa.c, ascii-art output plugin for xine
  *
@@ -66,6 +66,7 @@ typedef struct {
   vo_driver_t        vo_driver;
 
   config_values_t   *config;
+  xine_t            *xine;
   int                user_ratio;
   aa_context        *context;
 
@@ -75,6 +76,7 @@ typedef struct {
 
   video_driver_class_t driver_class;
   config_values_t     *config;
+  xine_t              *xine;
 
 } aa_class_t;
 
@@ -103,30 +105,28 @@ static void aa_frame_field (vo_frame_t *vo_img, int which_field) {
 }
 
 
-static vo_frame_t *aa_alloc_frame(vo_driver_t *this) {
-  aa_frame_t *frame;
+static vo_frame_t *aa_alloc_frame(vo_driver_t *this_gen) {
+  /* aa_driver_t *this = (aa_driver_t*) this_gen; */
+  aa_frame_t  *frame;
 
-  frame = (aa_frame_t *) malloc (sizeof (aa_frame_t));
-  if (frame == NULL) {
-    printf("aa_alloc_frame: out of memory\n");
+  frame = (aa_frame_t *) xine_xmalloc (sizeof (aa_frame_t));
+  if (!frame)
     return NULL;
-  }
-  memset (frame, 0, sizeof (aa_frame_t));
 
   frame->vo_frame.proc_slice = NULL;
   frame->vo_frame.proc_frame = NULL;
   frame->vo_frame.field = aa_frame_field;
   frame->vo_frame.dispose = aa_dispose_frame;
-  frame->vo_frame.driver = this;
+  frame->vo_frame.driver = this_gen;
   
   return (vo_frame_t*) frame;
 }
 
-static void aa_update_frame_format (vo_driver_t *this, vo_frame_t *img,
+static void aa_update_frame_format (vo_driver_t *this_gen, vo_frame_t *img,
 				    uint32_t width, uint32_t height, 
 				    double ratio, int format, int flags) {
-
-  aa_frame_t *frame = (aa_frame_t *) img;
+  aa_driver_t *this = (aa_driver_t*) this_gen;
+  aa_frame_t  *frame = (aa_frame_t *) img;
 
   /* printf ("aa_update_format...\n"); */
 
@@ -166,7 +166,7 @@ static void aa_update_frame_format (vo_driver_t *this, vo_frame_t *img,
       frame->vo_frame.pitches[0] = 8*((width + 3) / 4);
       frame->vo_frame.base[0] = xine_xmalloc_aligned(16, frame->vo_frame.pitches[0] * height, (void**) &frame->mem[0]);
     } else {
-      printf ("alert! unsupported image format %04x\n", format);
+      xprintf (this->xine, XINE_VERBOSITY_DEBUG, "alert! unsupported image format %04x\n", format);
       abort();
     }
 
@@ -236,7 +236,8 @@ static int aa_get_property (vo_driver_t *this_gen, int property) {
   if ( property == VO_PROP_ASPECT_RATIO) {
     return this->user_ratio ;
   } else {
-    printf ("video_out_aa: tried to get unsupported property %d\n", property);
+    xprintf (this->xine, XINE_VERBOSITY_DEBUG,
+	     "video_out_aa: tried to get unsupported property %d\n", property);
   }
 
   return 0;
@@ -252,7 +253,8 @@ static int aa_set_property (vo_driver_t *this_gen,
     this->user_ratio = value;
 
   } else {
-    printf ("video_out_aa: tried to set unsupported property %d\n", property);
+    xprintf (this->xine, XINE_VERBOSITY_DEBUG,
+	     "video_out_aa: tried to set unsupported property %d\n", property);
   }
 
   return value;
@@ -275,11 +277,12 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *vi
   aa_class_t           *class = (aa_class_t *) class_gen;
   aa_driver_t          *this;
 
-  this = (aa_driver_t*) malloc (sizeof (aa_driver_t));
+  this = (aa_driver_t*) xine_xmalloc (sizeof (aa_driver_t));
   
   this->context = (aa_context*) visual_gen;
   
   this->config = class->config;
+  this->xine   = class->xine;
 
   this->vo_driver.get_capabilities     = aa_get_capabilities;
   this->vo_driver.alloc_frame          = aa_alloc_frame ;
@@ -314,7 +317,7 @@ static void *init_class (xine_t *xine, void *visual_gen) {
   /* aa_context    *context = (aa_context*) visual_gen; */
   aa_class_t    *this;
   
-  this = (aa_class_t *) malloc(sizeof(aa_class_t));
+  this = (aa_class_t *) xine_xmalloc(sizeof(aa_class_t));
   
   this->driver_class.open_plugin     = open_plugin;
   this->driver_class.get_identifier  = get_identifier;
@@ -322,6 +325,7 @@ static void *init_class (xine_t *xine, void *visual_gen) {
   this->driver_class.dispose         = dispose_class;
   
   this->config            = xine->config;
+  this->xine              = xine;
 
   return this;
 }

@@ -21,7 +21,7 @@
  * the Id CIN format, visit:
  *   http://www.csse.monash.edu.au/~timf/
  * 
- * $Id: idcinvideo.c,v 1.18 2003/11/16 23:33:48 f1rmb Exp $
+ * $Id: idcinvideo.c,v 1.19 2003/12/05 15:55:01 f1rmb Exp $
  */
 
 #include <stdio.h>
@@ -108,7 +108,7 @@ static void huff_decode(idcinvideo_decoder_t *this) {
     while(node_num >= HUF_TOKENS) {
       if(!bit_pos) {
         if(dat_pos > this->size) {
-          printf("Huffman decode error.\n");
+          xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "Huffman decode error.\n");
           return;
         }
         bit_pos = 8;

@@ -103,7 +103,7 @@ static void pcm_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {\
       aud = this->stream->audio_out->get_buffer(this->stream->audio_out);
       
       if (aud->mem_size == 0) {
-         printf(__FILE__ ": :( Got an audio buffer with size 0!\r\n");
+         xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "Got an audio buffer with size 0!\n");
          return;
       }
       
@@ -159,8 +159,7 @@ static audio_decoder_t *open_plugin (audio_decoder_class_t *class_gen, xine_stre
 
    pcm_decoder_t *this;
    
-   this = (pcm_decoder_t *) malloc (sizeof (pcm_decoder_t));
-   memset(this, 0, sizeof (pcm_decoder_t));
+   this = (pcm_decoder_t *) xine_xmalloc (sizeof (pcm_decoder_t));
     
    this->audio_decoder.decode_data         = pcm_decode_data;
    this->audio_decoder.reset               = pcm_reset;
@@ -193,7 +192,7 @@ static void *init_plugin (xine_t *xine, void *data) {
 
   pcm_class_t *this ;
 
-  this = (pcm_class_t *) malloc (sizeof (pcm_class_t));
+  this = (pcm_class_t *) xine_xmalloc (sizeof (pcm_class_t));
 
   this->decoder_class.open_plugin     = open_plugin;
   this->decoder_class.get_identifier  = get_identifier;

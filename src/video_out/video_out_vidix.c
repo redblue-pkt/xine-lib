@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_vidix.c,v 1.55 2003/11/26 23:44:10 f1rmb Exp $
+ * $Id: video_out_vidix.c,v 1.56 2003/12/05 15:55:03 f1rmb Exp $
  * 
  * video_out_vidix.c
  *
@@ -301,7 +301,8 @@ static void write_frame_sfb(vidix_driver_t* this, vidix_frame_t* frame)
       break;
       
     default:
-      printf("video_out_vidix: error. (unknown frame format %04x)\n", frame->format);
+      xprintf(this->xine, XINE_VERBOSITY_DEBUG, 
+	      "video_out_vidix: error. (unknown frame format %04x)\n", frame->format);
       break;
    }
 }
@@ -390,16 +391,12 @@ static void vidix_frame_dispose (vo_frame_t *vo_img) {
 }
 
 static vo_frame_t *vidix_alloc_frame (vo_driver_t *this_gen) {
+  /* vidix_driver_t  *this = (vidix_driver_t *) this_gen; */
+  vidix_frame_t   *frame ;
 
-  vidix_frame_t     *frame ;
-
-  frame = (vidix_frame_t *) malloc (sizeof (vidix_frame_t));
-
-  if (frame==NULL) {
-    printf ("vidix_alloc_frame: out of memory\n");
+  frame = (vidix_frame_t *) xine_xmalloc (sizeof (vidix_frame_t));
+  if (!frame)
     return NULL;
-  }
-  memset (frame, 0, sizeof(vidix_frame_t));
 
   pthread_mutex_init (&frame->vo_frame.mutex, NULL);
     
@@ -464,7 +461,8 @@ static void vidix_config_playback (vidix_driver_t *this) {
 
   if((err=vdlConfigPlayback(this->vidix_handler,&this->vidix_play))!=0)
   {
-     printf("video_out_vidix: Can't configure playback: %s\n",strerror(err));
+     xprintf(this->xine, XINE_VERBOSITY_DEBUG, 
+	     "video_out_vidix: Can't configure playback: %s\n",strerror(err));
      this->vidix_started = -1;
      return;
   }
@@ -516,8 +514,8 @@ static void vidix_config_playback (vidix_driver_t *this) {
       this->dstrides.y = (this->sc.delivered_width*2 + apitch) & ~apitch;
       break;
     default:
-      printf("video_out_vidix: error. (unknown frame format: %04x)\n",
-             this->delivered_format);
+      xprintf(this->xine, XINE_VERBOSITY_DEBUG, 
+	      "video_out_vidix: error. (unknown frame format: %04x)\n", this->delivered_format);
  }
 
   lprintf("video_out_vidix: overlay on\n");
@@ -529,7 +527,7 @@ static void vidix_update_frame_format (vo_driver_t *this_gen,
 				    vo_frame_t *frame_gen,
 				    uint32_t width, uint32_t height,
 				    double ratio, int format, int flags) {
-
+  vidix_driver_t  *this = (vidix_driver_t *) this_gen;
   vidix_frame_t   *frame = (vidix_frame_t *) frame_gen;
   
   if ((frame->width != width)
@@ -562,12 +560,14 @@ static void vidix_update_frame_format (vo_driver_t *this_gen,
 	 frame->vo_frame.base[2] = NULL;
 	 break;
        default:
-	 printf("video_out_vidix: error. (unknown frame format: %04x)\n", format);
+	 xprintf(this->xine, XINE_VERBOSITY_DEBUG, 
+		 "video_out_vidix: error. (unknown frame format: %04x)\n", format);
       }
       
       if((format == XINE_IMGFMT_YV12 && (frame->vo_frame.base[0] == NULL || frame->vo_frame.base[1] == NULL || frame->vo_frame.base[2] == NULL))
 	 || (format == XINE_IMGFMT_YUY2 && frame->vo_frame.base[0] == NULL)) {
-	 printf("video_out_vidix: error. (framedata allocation failed: out of memory)\n");
+	 xprintf(this->xine, XINE_VERBOSITY_DEBUG, 
+		 "video_out_vidix: error. (framedata allocation failed: out of memory)\n");
 	 
 	 free_framedata(frame);
       }
@@ -755,7 +755,7 @@ static int vidix_set_property (vo_driver_t *this_gen,
     this->vidix_eq.hue = value;
       
     if((err = vdlPlaybackSetEq(this->vidix_handler, &this->vidix_eq)) != 0)
-      xprintf(this->xine, XINE_VERBOSITY_LOG, "video_out_vidix: can't set hue: %s\n", strerror(err));
+      xprintf(this->xine, XINE_VERBOSITY_DEBUG, "video_out_vidix: can't set hue: %s\n", strerror(err));
   }
       
   if ( property == VO_PROP_SATURATION ) {
@@ -763,7 +763,7 @@ static int vidix_set_property (vo_driver_t *this_gen,
     this->vidix_eq.saturation = value;
       
     if((err = vdlPlaybackSetEq(this->vidix_handler, &this->vidix_eq)) != 0)
-      xprintf(this->xine, XINE_VERBOSITY_LOG, "video_out_vidix: can't set saturation: %s\n", strerror(err));
+      xprintf(this->xine, XINE_VERBOSITY_DEBUG, "video_out_vidix: can't set saturation: %s\n", strerror(err));
   }
     
   if ( property == VO_PROP_BRIGHTNESS ) {
@@ -771,7 +771,7 @@ static int vidix_set_property (vo_driver_t *this_gen,
     this->vidix_eq.brightness = value;
       
     if((err = vdlPlaybackSetEq(this->vidix_handler, &this->vidix_eq)) != 0)
-      xprintf(this->xine, XINE_VERBOSITY_LOG, "video_out_vidix: can't set brightness: %s\n", strerror(err));
+      xprintf(this->xine, XINE_VERBOSITY_DEBUG, "video_out_vidix: can't set brightness: %s\n", strerror(err));
   }
       
   if ( property == VO_PROP_CONTRAST ) {
@@ -779,7 +779,7 @@ static int vidix_set_property (vo_driver_t *this_gen,
     this->vidix_eq.contrast = value;
       
     if((err = vdlPlaybackSetEq(this->vidix_handler, &this->vidix_eq)) != 0)
-      xprintf(this->xine, XINE_VERBOSITY_LOG, "video_out_vidix: can't set contrast: %s\n", strerror(err));
+      xprintf(this->xine, XINE_VERBOSITY_DEBUG, "video_out_vidix: can't set contrast: %s\n", strerror(err));
   }
   }
     
@@ -832,7 +832,7 @@ static void vidix_rgb_callback(vo_driver_t *this_gen, xine_cfg_entry_t *entry) {
   }  
 
   if((err = vdlPlaybackSetEq(this->vidix_handler, &this->vidix_eq)))
-    xprintf(this->xine, XINE_VERBOSITY_LOG, "video_out_vidix: can't set rgb intensity: %s\n", strerror(err));
+    xprintf(this->xine, XINE_VERBOSITY_DEBUG, "video_out_vidix: can't set rgb intensity: %s\n", strerror(err));
 }
 
 
@@ -935,13 +935,9 @@ static vidix_driver_t *open_plugin (video_driver_class_t *class_gen) {
   vidix_driver_t       *this;
   int                   err;
     
-  this = malloc (sizeof (vidix_driver_t));
-
-  if (!this) {
-    printf ("video_out_vidix: malloc failed\n");
+  this = (vidix_driver_t *) xine_xmalloc (sizeof (vidix_driver_t));
+  if (!this)
     return NULL;
-  }
-  memset (this, 0, sizeof(vidix_driver_t));
   
   pthread_mutex_init (&this->mutex, NULL);
 
@@ -959,7 +955,7 @@ static vidix_driver_t *open_plugin (video_driver_class_t *class_gen) {
   /* Find what equalizer flags are supported */
   if(this->vidix_cap.flags & FLAG_EQUALIZER) {
     if((err = vdlPlaybackGetEq(this->vidix_handler, &this->vidix_eq)) != 0) {
-      xprintf(this->xine, XINE_VERBOSITY_LOG, 
+      xprintf(this->xine, XINE_VERBOSITY_DEBUG, 
 	      "video_out_vidix: couldn't get equalizer capabilities: %s\n", strerror(err));
     } else {
       if(this->vidix_eq.cap & VEQ_CAP_BRIGHTNESS) {
@@ -1003,7 +999,7 @@ static vidix_driver_t *open_plugin (video_driver_class_t *class_gen) {
           (void*) vidix_rgb_callback, this);
   
        if((err = vdlPlaybackSetEq(this->vidix_handler, &this->vidix_eq)))
-         xprintf(this->xine, XINE_VERBOSITY_LOG, 
+         xprintf(this->xine, XINE_VERBOSITY_DEBUG, 
 		 "video_out_vidix: can't set rgb intensity: %s\n", strerror(err));
       }      
     }
@@ -1055,7 +1051,8 @@ static void query_fourccs (vidix_driver_t *this) {
   
   if((err = vdlQueryFourcc(this->vidix_handler, &vidix_fourcc)) == 0) {
     this->capabilities |= VO_CAP_YUY2;
-    xprintf(this->xine, XINE_VERBOSITY_LOG, "video_out_vidix: adaptor supports the yuy2 format\n");
+    xprintf(this->xine, XINE_VERBOSITY_LOG,
+	    _("video_out_vidix: adaptor supports the yuy2 format\n"));
   }
     
   /* Detect if YV12 is supported - we always support yv12 but we need
@@ -1065,7 +1062,8 @@ static void query_fourccs (vidix_driver_t *this) {
   
   if((err = vdlQueryFourcc(this->vidix_handler, &vidix_fourcc)) == 0) {
     this->supports_yv12 = 1;
-    xprintf(this->xine, XINE_VERBOSITY_LOG, "video_out_vidix: adaptor supports the yv12 format\n");
+    xprintf(this->xine, XINE_VERBOSITY_LOG,
+	    _("video_out_vidix: adaptor supports the yv12 format\n"));
   } else
     this->supports_yv12 = 0;
 }
@@ -1074,37 +1072,35 @@ static void *init_class (xine_t *xine, void *visual_gen) {
   vidix_class_t        *this;
   int                   err;
   
-  this = malloc (sizeof (vidix_class_t));
-  
-  if (!this) {
-    printf ("video_out_vidix: malloc failed\n");
+  this = (vidix_class_t *) xine_xmalloc (sizeof (vidix_class_t));
+  if (!this)
     return NULL;
-  }
-  memset (this, 0, sizeof(vidix_class_t));
-  
   
   if(vdlGetVersion() != VIDIX_VERSION)
   {
-    printf("video_out_vidix: You have wrong version of VIDIX library\n");
+    xprintf(xine, XINE_VERBOSITY_LOG, 
+	    _("video_out_vidix: You have wrong version of VIDIX library\n"));
     free(this);
     return NULL;
   }
   this->vidix_handler = vdlOpen((XINE_PLUGINDIR"/vidix/"), NULL, TYPE_OUTPUT, 0);
   if(this->vidix_handler == NULL)
   {
-    printf("video_out_vidix: Couldn't find working VIDIX driver\n");
+    xprintf(xine, XINE_VERBOSITY_LOG,
+	    _("video_out_vidix: Couldn't find working VIDIX driver\n"));
     free(this);
     return NULL;
   }
   if((err=vdlGetCapability(this->vidix_handler,&this->vidix_cap)) != 0)
   {
-    printf("video_out_vidix: Couldn't get capability: %s\n",strerror(err));
+    xprintf(xine, XINE_VERBOSITY_DEBUG, 
+	    "video_out_vidix: Couldn't get capability: %s\n",strerror(err));
     free(this);
     return NULL;
   }
 
   xprintf(xine, XINE_VERBOSITY_LOG, 
-	  "video_out_vidix: using driver: %s by %s\n",this->vidix_cap.name,this->vidix_cap.author);
+	  _("video_out_vidix: using driver: %s by %s\n"), this->vidix_cap.name, this->vidix_cap.author);
 
   this->xine              = xine;
   this->config            = xine->config;
@@ -1168,7 +1164,7 @@ static vo_driver_t *vidix_open_plugin (video_driver_class_t *class_gen, const vo
   query_fourccs(this);
 
   XLockDisplay (this->display);
-  this->xoverlay = x11osd_create (this->display, this->screen, this->drawable);
+  this->xoverlay = x11osd_create (this->xine, this->display, this->screen, this->drawable);
   XUnlockDisplay (this->display);
 
   if( this->xoverlay )
@@ -1221,14 +1217,15 @@ static vo_driver_t *vidixfb_open_plugin (video_driver_class_t *class_gen, const 
   
   /* Open fb device for reading */
   if((fd = open("/dev/fb0", O_RDONLY)) < 0) {
-    printf("video_out_vidix: unable to open frame buffer device \"%s\": %s\n", 
-      device, strerror(errno));
+    xprintf(this->xine, XINE_VERBOSITY_DEBUG, 
+	    "video_out_vidix: unable to open frame buffer device \"%s\": %s\n", device, strerror(errno));
     return NULL;
   }
   
   /* Read screen info */
   if(ioctl(fd, FBIOGET_VSCREENINFO, &fb_var) != 0) {
-    perror("video_out_vidix: error in ioctl FBIOGET_VSCREENINFO");
+    xprintf(this->xine, XINE_VERBOSITY_DEBUG, 
+	    "video_out_vidix: error in ioctl FBIOGET_VSCREENINFO: %s", strerror(errno));
     close(fd);
     return NULL;
   }

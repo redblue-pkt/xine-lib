@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ts.c,v 1.97 2003/11/26 19:43:31 f1rmb Exp $
+ * $Id: demux_ts.c,v 1.98 2003/12/05 15:54:57 f1rmb Exp $
  *
  * Demultiplexer for MPEG2 Transport Streams.
  *
@@ -452,8 +452,8 @@ static void demux_ts_parse_pat (demux_ts_t*this, unsigned char *original_pkt,
    * indicator set.
    */
   if (!pusi) {
-    printf ("demux_ts: demux error! PAT without payload unit "
-	    "start indicator\n");
+    xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, 
+	     "demux_ts: demux error! PAT without payload unit start indicator\n");
     return;
   }
 
@@ -462,7 +462,8 @@ static void demux_ts_parse_pat (demux_ts_t*this, unsigned char *original_pkt,
    */
   pkt += pkt[4];
   if (pkt - original_pkt > PKT_SIZE) {
-    printf ("demux_ts: demux error! PAT with invalid pointer\n");
+    xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, 
+	     "demux_ts: demux error! PAT with invalid pointer\n");
     return;
   }
   table_id = (unsigned int)pkt[5] ;
@@ -495,13 +496,14 @@ static void demux_ts_parse_pat (demux_ts_t*this, unsigned char *original_pkt,
   }
 
   if (pkt - original_pkt > BODY_SIZE - 1 - 3 - section_length) {
-    printf ("demux_ts: FIXME: (unsupported )PAT spans multiple TS packets\n");
+    xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, 
+	     "demux_ts: FIXME: (unsupported )PAT spans multiple TS packets\n");
     return;
   }
 
   if ((section_number != 0) || (last_section_number != 0)) {
-    printf ("demux_ts: FIXME: (unsupported) PAT consists of multiple (%d) sections\n",
-	    last_section_number);
+    xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, 
+	     "demux_ts: FIXME: (unsupported) PAT consists of multiple (%d) sections\n", last_section_number);
     return;
   }
 
@@ -509,8 +511,9 @@ static void demux_ts_parse_pat (demux_ts_t*this, unsigned char *original_pkt,
   calc_crc32 = demux_ts_compute_crc32 (this, pkt+5, section_length+3-4,
                                        0xffffffff);
   if (crc32 != calc_crc32) {
-    printf ("demux_ts: demux error! PAT with invalid CRC32: packet_crc32: %.8x calc_crc32: %.8x\n",
-	    crc32,calc_crc32);
+    xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, 
+	     "demux_ts: demux error! PAT with invalid CRC32: packet_crc32: %.8x calc_crc32: %.8x\n",
+	     crc32,calc_crc32);
     return;
   } 
 #ifdef TS_PAT_LOG
@@ -573,7 +576,7 @@ static void demux_ts_parse_pat (demux_ts_t*this, unsigned char *original_pkt,
   }
 }
 
-static int demux_ts_parse_pes_header (demux_ts_media *m,
+static int demux_ts_parse_pes_header (xine_t *xine, demux_ts_media *m,
 				      uint8_t *buf, int packet_len,
                                       xine_stream_t *stream) {
 
@@ -589,8 +592,8 @@ static int demux_ts_parse_pes_header (demux_ts_media *m,
   /* we should have a PES packet here */
 
   if (p[0] || p[1] || (p[2] != 1)) {
-    printf ("demux_ts: error %02x %02x %02x (should be 0x000001) \n",
-            p[0], p[1], p[2]);
+    xprintf (xine, XINE_VERBOSITY_DEBUG, 
+	     "demux_ts: error %02x %02x %02x (should be 0x000001) \n", p[0], p[1], p[2]);
     return 0 ;
   }
 
@@ -636,8 +639,8 @@ static int demux_ts_parse_pes_header (demux_ts_media *m,
 
   /* sometimes corruption on header_len causes segfault in memcpy below */
   if (header_len + 9 > pkt_len) {
-    printf ("demux_ts: illegal value for PES_header_data_length (0x%x)\n",
-	    header_len);
+    xprintf (xine, XINE_VERBOSITY_DEBUG, 
+	     "demux_ts: illegal value for PES_header_data_length (0x%x)\n", header_len);
     return 0;
   }
 
@@ -755,8 +758,8 @@ static void demux_ts_buffer_pes(demux_ts_t*this, unsigned char *ts,
      case (i.e. adaptation field only) when it does not get bumped. */
   if (m->counter != INVALID_CC) {
     if ((m->counter & 0x0f) != cc) {
-      printf("demux_ts: PID 0x%.4x: unexpected cc %d (expected %d)\n",
-	     m->pid, cc, m->counter);
+      xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
+	      "demux_ts: PID 0x%.4x: unexpected cc %d (expected %d)\n", m->pid, cc, m->counter);
     }
   }
   m->counter = cc;
@@ -787,9 +790,10 @@ static void demux_ts_buffer_pes(demux_ts_t*this, unsigned char *ts,
 #endif
     }
 
-    if (!demux_ts_parse_pes_header(m, ts, len, this->stream)) {
+    if (!demux_ts_parse_pes_header(this->stream->xine, m, ts, len, this->stream)) {
       m->corrupted_pes = 1;
-      printf("demux_ts: PID 0x%.4x: corrupted pes encountered\n", m->pid);
+      xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
+	      "demux_ts: PID 0x%.4x: corrupted pes encountered\n", m->pid);
 
     } else {
 
@@ -872,12 +876,12 @@ static void demux_ts_get_lang_desc(demux_ts_t *this, char *dest,
 	{
       memcpy(dest, d + 2, 3);
 	  dest[3] = 0;
-	  printf("demux_ts: found ISO 639 lang: %s\n", dest);
+	  xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "demux_ts: found ISO 639 lang: %s\n", dest);
 	  return;
 	}
       d += 2 + d[1];
     }
-  printf("demux_ts: found no ISO 639 lang\n");
+  xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "demux_ts: found no ISO 639 lang\n");
   memset(dest, 0, 4);
 }
 
@@ -896,12 +900,13 @@ static void demux_ts_get_reg_desc(demux_ts_t *this, uint32_t *dest,
 
 	{
           *dest = (d[2] << 24) | (d[3] << 16) | (d[4] << 8) | d[5];
-	  printf("demux_ts: found registration format identifier: 0x%.4x\n", *dest);
+	  xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
+		  "demux_ts: found registration format identifier: 0x%.4x\n", *dest);
 	  return;
 	}
       d += 2 + d[1];
     }
-  printf("demux_ts: found no format id\n");
+  xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "demux_ts: found no format id\n");
   *dest = 0;
 }
 
@@ -957,7 +962,7 @@ static void demux_ts_parse_pmt (demux_ts_t     *this,
   /* sections start with a pointer. Skip it! */
   pkt += pkt[4];
   if (pkt - originalPkt > PKT_SIZE) {
-    printf ("demux error! PMT with invalid pointer\n");
+    xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "demux error! PMT with invalid pointer\n");
     return;
   }
 
@@ -1009,8 +1014,8 @@ static void demux_ts_parse_pmt (demux_ts_t     *this,
     }
 
     if ((section_number != 0) || (last_section_number != 0)) {
-      printf ("demux_ts: FIXME (unsupported) PMT consists of multiple (%d)"
-              "sections\n", last_section_number);
+      xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, 
+	       "demux_ts: FIXME (unsupported) PMT consists of multiple (%d) sections\n", last_section_number);
       return;
     }
   }
@@ -1061,9 +1066,9 @@ static void demux_ts_parse_pmt (demux_ts_t     *this,
                                        this->pmt[program_count],
                                        section_length+3-4, 0xffffffff);
   if (crc32 != calc_crc32) {
-    printf ("demux_ts: demux error! PMT with invalid CRC32: "
-	    "packet_crc32: %#.8x calc_crc32: %#.8x\n",
-	    crc32,calc_crc32); 
+    xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, 
+	     "demux_ts: demux error! PMT with invalid CRC32: packet_crc32: %#.8x calc_crc32: %#.8x\n",
+	     crc32,calc_crc32); 
     return;
   }
 #ifdef TS_PMT_LOG
@@ -1088,8 +1093,8 @@ static void demux_ts_parse_pmt (demux_ts_t     *this,
   stream = &this->pmt[program_count][12] + program_info_length;
   coded_length = 13 + program_info_length;
   if (coded_length > section_length) {
-    printf ("demux error! PMT with inconsistent "
-	    "progInfo length\n");
+    xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, 
+	     "demux error! PMT with inconsistent progInfo length\n");
     return;
   }
   section_length -= coded_length;
@@ -1105,8 +1110,8 @@ static void demux_ts_parse_pmt (demux_ts_t     *this,
     stream_info_length = ((stream[3] << 8) | stream[4]) & 0x0fff;
     coded_length = 5 + stream_info_length;
     if (coded_length > section_length) {
-      printf ("demux error! PMT with inconsistent "
-	      "streamInfo length\n");
+      xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, 
+	       "demux error! PMT with inconsistent streamInfo length\n");
       return;
     }
 
@@ -1267,7 +1272,7 @@ static int sync_correct(demux_ts_t*this, uint8_t *buf, int32_t npkt_read) {
   int sync_ok = 0;
   int read_length;
 
-  printf ("demux_ts: about to resync!\n");
+  xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "demux_ts: about to resync!\n");
 
   for (p=0; p < npkt_read; p++) {
     for(n=0; n < PKT_SIZE; n++) {
@@ -1292,14 +1297,15 @@ static int sync_correct(demux_ts_t*this, uint8_t *buf, int32_t npkt_read) {
 				    n + p * PKT_SIZE);
     /* FIXME: when read_length is not as required... we now stop demuxing */
     if (read_length != (n + p * PKT_SIZE)) {
-      printf ("demux_ts_tsync_correct: sync found, but read failed\n");
+      xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, 
+	       "demux_ts_tsync_correct: sync found, but read failed\n");
       return 0;
     }
   } else {
-    printf ("demux_ts_tsync_correct: sync not found! Stop demuxing\n");
+    xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "demux_ts_tsync_correct: sync not found! Stop demuxing\n");
     return 0;
   }
-  printf ("demux_ts: resync successful!\n");
+  xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "demux_ts: resync successful!\n");
   return 1;
 }
 
@@ -1340,8 +1346,9 @@ static unsigned char * demux_synchronise(demux_ts_t* this) {
       read_length = this->input->read(this->input, buf,
 				      PKT_SIZE * NPKT_PER_READ);
       if (read_length % PKT_SIZE) {
-	printf ("demux_ts: read returned %d bytes (not a multiple of %d!)\n",
-		read_length, PKT_SIZE);
+	xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, 
+		 "demux_ts: read returned %d bytes (not a multiple of %d!)\n",
+		 read_length, PKT_SIZE);
 	this->status = DEMUX_FINISHED;
 	return NULL;
       }
@@ -1362,7 +1369,7 @@ static unsigned char * demux_synchronise(demux_ts_t* this) {
       } else read_zero = 0;
 
       if (read_zero > 200) {
-	printf ("demux_ts: read 0 packets too many times!\n");
+	xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "demux_ts: read 0 packets too many times!\n");
 	this->status = DEMUX_FINISHED;
 	return NULL;
       }
@@ -1372,7 +1379,7 @@ static unsigned char * demux_synchronise(demux_ts_t* this) {
     packet_number = 0;
 
     if (!sync_detect(this, &buf[0], npkt_read)) {
-      printf ("demux_ts: sync error.\n");
+      xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "demux_ts: sync error.\n");
       this->status = DEMUX_FINISHED;
       return NULL;
     }
@@ -1516,12 +1523,12 @@ static void demux_ts_parse_packet (demux_ts_t*this) {
    * Discard packets that are obviously bad.
    */
   if (sync_byte != 0x47) {
-    printf ("demux error! invalid ts sync byte %.2x\n",
-	    sync_byte);
+    xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, 
+	     "demux error! invalid ts sync byte %.2x\n", sync_byte);
     return;
   }
   if (transport_error_indicator) {
-    printf ("demux error! transport error\n");
+    xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "demux error! transport error\n");
     return;
   }
   if (pid == 0x1ffb) {
@@ -1531,7 +1538,8 @@ static void demux_ts_parse_packet (demux_ts_t*this) {
 
   if (transport_scrambling_control) {
     if (this->videoPid == pid) {
-      printf ("demux_ts: selected videoPid is scrambled; skipping...\n");
+      xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, 
+	       "demux_ts: selected videoPid is scrambled; skipping...\n");
     }
     for (i=0; i < this->scrambled_npids; i++) {
       if (this->scrambled_pids[i] == pid) return;
@@ -1539,7 +1547,7 @@ static void demux_ts_parse_packet (demux_ts_t*this) {
     this->scrambled_pids[this->scrambled_npids] = pid;
     this->scrambled_npids++;
 
-    printf ("demux_ts: PID 0x%.4x is scrambled!\n", pid);
+    xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "demux_ts: PID 0x%.4x is scrambled!\n", pid);
     return;
   }
 
@@ -1579,8 +1587,8 @@ static void demux_ts_parse_packet (demux_ts_t*this) {
     if ( (pes_stream_id >= VIDEO_STREAM_S) && (pes_stream_id <= VIDEO_STREAM_E) ) {
       if ( this->videoPid == INVALID_PID) {
 
-	printf ("demux_ts: auto-detected video pid 0x%.4x\n",
-		pid);
+	xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, 
+		 "demux_ts: auto-detected video pid 0x%.4x\n", pid);
 
 	this->videoPid = pid;
 	this->videoMedia = this->media_num;
@@ -1589,8 +1597,8 @@ static void demux_ts_parse_packet (demux_ts_t*this) {
     } else if ( (pes_stream_id >= AUDIO_STREAM_S) && (pes_stream_id <= AUDIO_STREAM_E) ) {
       if ( this->audioPid == INVALID_PID) {
 
-	printf ("demux_ts: auto-detected audio pid 0x%.4x\n",
-		pid);
+	xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, 
+		 "demux_ts: auto-detected audio pid 0x%.4x\n", pid);
 
 	this->audioPid = pid;
 	this->audioMedia = this->media_num;
@@ -1601,8 +1609,8 @@ static void demux_ts_parse_packet (demux_ts_t*this) {
   
   if (data_len > PKT_SIZE) {
 
-    printf ("demux_ts: demux error! invalid payload size %d\n",
-	    data_len);
+    xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, 
+	     "demux_ts: demux error! invalid payload size %d\n", data_len);
 
   } else {
 

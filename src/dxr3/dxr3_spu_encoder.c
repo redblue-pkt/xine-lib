@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_spu_encoder.c,v 1.2 2003/03/02 07:58:18 mroi Exp $
+ * $Id: dxr3_spu_encoder.c,v 1.3 2003/12/05 15:54:58 f1rmb Exp $
  */
 
 #include <stdio.h>
@@ -173,7 +173,7 @@ static void create_histogram(spu_encoder_t *this)
   for (i = 0; i < OVL_PALETTE_SIZE; i++)
     if (this->map[i])
       printf("dxr3_spu_encoder: histogram: color #%d 0x%.8x appears %d times\n",
-        i, this->overlay->color[i], this->map[i]);
+	     i, this->overlay->color[i], this->map[i]);
   for (i = 0; i < OVL_PALETTE_SIZE; i++)
     if (this->clip_map[i])
       printf("dxr3_spu_encoder: histogram: clip color #%d 0x%.8x appears %d times\n",

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.143 2003/11/29 13:47:26 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.144 2003/12/05 15:54:59 f1rmb Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -157,7 +157,7 @@ static int get_buffer(AVCodecContext *context, AVFrame *av_frame){
 
   if( (this->context->pix_fmt != PIX_FMT_YUV420P) ||
       (width != context->width) || (height != context->height) ) {
-    xprintf(this->stream->xine, XINE_VERBOSITY_LOG, "ffmpeg: unsupported frame format, DR1 disabled.\n");
+    xprintf(this->stream->xine, XINE_VERBOSITY_LOG, _("ffmpeg: unsupported frame format, DR1 disabled.\n"));
 
     this->context->get_buffer = avcodec_default_get_buffer;
     this->context->release_buffer = avcodec_default_release_buffer;
@@ -250,7 +250,7 @@ static void init_video_codec (ff_video_decoder_t *this, xine_bmiheader *bih) {
     this->context->flags |= CODEC_FLAG_EMU_EDGE;
 
   if (avcodec_open (this->context, this->codec) < 0) {
-    printf ("ffmpeg: couldn't open decoder\n");
+    xprintf (this->stream->xine, XINE_VERBOSITY_LOG, _("ffmpeg: couldn't open decoder\n"));
     free(this->context);
     this->context = NULL;
     _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_HANDLED, 0);
@@ -286,7 +286,7 @@ static void init_video_codec (ff_video_decoder_t *this, xine_bmiheader *bih) {
         this->codec->capabilities & CODEC_CAP_DR1 ) {
       this->context->get_buffer = get_buffer;
       this->context->release_buffer = release_buffer;
-      xprintf(this->stream->xine, XINE_VERBOSITY_LOG, "ffmpeg: direct rendering enabled\n");
+      xprintf(this->stream->xine, XINE_VERBOSITY_LOG, _("ffmpeg: direct rendering enabled\n"));
     }
 #endif
   }
@@ -474,7 +474,7 @@ static void find_sequence_header (ff_video_decoder_t *this,
 	this->video_step      = 1500;
 	break;
       default:
-	printf ("ffmpeg: invalid/unknown frame rate code : %d \n",
+	xprintf (this->stream->xine, XINE_VERBOSITY_LOG, _("ffmpeg: invalid/unknown frame rate code : %d \n"),
 		frame_rate_code); 
 	this->video_step      = 0;
       }
@@ -488,7 +488,7 @@ static void find_sequence_header (ff_video_decoder_t *this,
 
       this->codec = avcodec_find_decoder (CODEC_ID_MPEG1VIDEO); 
       if (!this->codec) {
-	printf ("avcodec_find_decoder (CODEC_ID_MPEG1VIDEO) failed.\n");
+	xprintf (this->stream->xine, XINE_VERBOSITY_LOG, _("avcodec_find_decoder (CODEC_ID_MPEG1VIDEO) failed.\n"));
 	abort();
       }
 
@@ -906,14 +906,14 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 	"Interplay MVE (ffmpeg)");
       break;
     default:
-      printf ("ffmpeg: unknown video format (buftype: 0x%08X)\n",
-	      buf->type & 0xFFFF0000);
+      xprintf (this->stream->xine, XINE_VERBOSITY_LOG, _("ffmpeg: unknown video format (buftype: 0x%08X)\n"),
+	       buf->type & 0xFFFF0000);
       _x_meta_info_set(this->stream, XINE_META_INFO_VIDEOCODEC, 
-	"unknown (ffmpeg)");
+		       "unknown (ffmpeg)");
     }
 
     if (!this->codec) {
-      printf ("ffmpeg: couldn't find decoder\n");
+      xprintf (this->stream->xine, XINE_VERBOSITY_LOG, _("ffmpeg: couldn't find decoder\n"));
       return;
     }
 
@@ -954,8 +954,7 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
     if( this->size + buf->size > this->bufsize ) {
       this->bufsize = this->size + 2 * buf->size;
       xprintf(this->stream->xine, XINE_VERBOSITY_LOG, 
-	      "ffmpeg: increasing source buffer to %d to avoid overflow.\n", 
-	      this->bufsize);
+	      _("ffmpeg: increasing source buffer to %d to avoid overflow.\n"), this->bufsize);
       this->buf = realloc( this->buf, this->bufsize );
     }
    
@@ -1018,7 +1017,7 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 				      &got_picture, &this->buf[offset],
 				      this->size);
 	if (len<0) {
-	  printf ("ffmpeg: error decompressing frame\n");
+	  xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "ffmpeg: error decompressing frame\n");
 	  this->size=0;
 	  return;
 	}
@@ -1027,7 +1026,7 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 	offset += len;
 
 	if (!got_picture || !this->av_frame->data[0]) {
-	  xprintf(this->stream->xine, XINE_VERBOSITY_LOG, 
+	  xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
 		  "ffmpeg: didn't get a picture, got %d bytes left\n", this->size);
 
 	  if (this->size>0)
@@ -1056,7 +1055,7 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 
 	if (len<0 || this->skipframes) {
 	  if( !this->skipframes )
-	    printf ("ffmpeg: error decompressing frame\n");
+	    xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "ffmpeg: error decompressing frame\n");
 	  img->bad_frame = 1;
 	} else {
 	  img->bad_frame = 0;
@@ -1308,7 +1307,7 @@ static void *init_video_plugin (xine_t *xine, void *data) {
   ff_video_class_t *this;
   config_values_t  *config;
   
-  this = (ff_video_class_t *) malloc (sizeof (ff_video_class_t));
+  this = (ff_video_class_t *) xine_xmalloc (sizeof (ff_video_class_t));
 
   this->decoder_class.open_plugin     = ff_video_open_plugin;
   this->decoder_class.get_identifier  = ff_video_get_identifier;
@@ -1443,7 +1442,7 @@ static void ff_audio_decode_data (audio_decoder_t *this_gen, buf_element_t *buf)
     }
 
     if (!this->codec) {
-      printf (" could not open ffmpeg decoder for buf type 0x%X\n",
+      xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "could not open ffmpeg decoder for buf type 0x%X\n",
         codec_type);
       return;
     }
@@ -1472,7 +1471,7 @@ static void ff_audio_decode_data (audio_decoder_t *this_gen, buf_element_t *buf)
     this->decode_buffer = xine_xmalloc(AVCODEC_MAX_AUDIO_FRAME_SIZE);
 
     if (avcodec_open (this->context, this->codec) < 0) {
-      printf ("ffmpeg: couldn't open decoder\n");
+      xprintf (this->stream->xine, XINE_VERBOSITY_LOG, _("ffmpeg: couldn't open decoder\n"));
       _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_HANDLED, 0);
       return;
     }
@@ -1507,7 +1506,7 @@ static void ff_audio_decode_data (audio_decoder_t *this_gen, buf_element_t *buf)
     if( this->size + buf->size > this->bufsize ) {
       this->bufsize = this->size + 2 * buf->size;
       xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
-	      "ffmpeg: increasing source buffer to %d to avoid overflow.\n", this->bufsize);
+	      _("ffmpeg: increasing source buffer to %d to avoid overflow.\n"), this->bufsize);
       this->buf = realloc( this->buf, this->bufsize );
     }
 
@@ -1525,7 +1524,7 @@ static void ff_audio_decode_data (audio_decoder_t *this_gen, buf_element_t *buf)
                                                this->size);
 
         if (bytes_consumed<0) {
-          printf ("ffmpeg: error decompressing audio frame\n");
+          xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "ffmpeg: error decompressing audio frame\n");
           this->size=0;
           return;
         }
@@ -1536,7 +1535,8 @@ static void ff_audio_decode_data (audio_decoder_t *this_gen, buf_element_t *buf)
           audio_buffer = 
             this->stream->audio_out->get_buffer (this->stream->audio_out);
           if (audio_buffer->mem_size == 0) {
-            printf ("ffmpeg: Help! Allocated audio buffer with nothing in it!\n");
+            xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, 
+		     "ffmpeg: Help! Allocated audio buffer with nothing in it!\n");
             return;
           }
 
@@ -1563,8 +1563,8 @@ static void ff_audio_decode_data (audio_decoder_t *this_gen, buf_element_t *buf)
         offset += bytes_consumed;
 
         if (!decode_buffer_size) {
-          printf ("ffmpeg: didn't get an audio frame, got %d bytes left\n",
-            this->size);
+          xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
+		   "ffmpeg: didn't get an audio frame, got %d bytes left\n", this->size);
 
           if (this->size>0)
             memmove (this->buf, &this->buf[offset], this->size);
@@ -1655,7 +1655,7 @@ static void *init_audio_plugin (xine_t *xine, void *data) {
 
   ff_audio_class_t *this ;
 
-  this = (ff_audio_class_t *) malloc (sizeof (ff_audio_class_t));
+  this = (ff_audio_class_t *) xine_xmalloc (sizeof (ff_audio_class_t));
 
   this->decoder_class.open_plugin     = ff_audio_open_plugin;
   this->decoder_class.get_identifier  = ff_audio_get_identifier;

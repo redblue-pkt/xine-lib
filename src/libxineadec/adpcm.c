@@ -31,7 +31,7 @@
  *   this is also useful for extracting streams from Playstation discs
  *
  *
- * $Id: adpcm.c,v 1.34 2003/11/26 19:43:37 f1rmb Exp $
+ * $Id: adpcm.c,v 1.35 2003/12/05 15:55:00 f1rmb Exp $
  */
 
 #include <stdio.h>
@@ -1622,7 +1622,7 @@ static audio_decoder_t *open_plugin (audio_decoder_class_t *class_gen, xine_stre
 
   adpcm_decoder_t *this ;
 
-  this = (adpcm_decoder_t *) malloc (sizeof (adpcm_decoder_t));
+  this = (adpcm_decoder_t *) xine_xmalloc (sizeof (adpcm_decoder_t));
 
   this->audio_decoder.decode_data         = adpcm_decode_data;
   this->audio_decoder.reset               = adpcm_reset;
@@ -1656,7 +1656,7 @@ static void *init_plugin (xine_t *xine, void *data) {
 
   adpcm_class_t *this ;
 
-  this = (adpcm_class_t *) malloc (sizeof (adpcm_class_t));
+  this = (adpcm_class_t *) xine_xmalloc (sizeof (adpcm_class_t));
 
   this->decoder_class.open_plugin     = open_plugin;
   this->decoder_class.get_identifier  = get_identifier;

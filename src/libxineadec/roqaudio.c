@@ -21,7 +21,7 @@
  * For more information regarding the RoQ file format, visit:
  *   http://www.csse.monash.edu.au/~timf/
  *
- * $Id: roqaudio.c,v 1.17 2003/11/16 23:33:47 f1rmb Exp $
+ * $Id: roqaudio.c,v 1.18 2003/12/05 15:55:01 f1rmb Exp $
  *
  */
 
@@ -101,8 +101,8 @@ static void roqaudio_decode_data (audio_decoder_t *this_gen, buf_element_t *buf)
 
   if( this->size + buf->size > this->bufsize ) {
     this->bufsize = this->size + 2 * buf->size;
-    printf("RoQ: increasing source buffer to %d to avoid overflow.\n",
-      this->bufsize);
+    xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
+	    "RoQ: increasing source buffer to %d to avoid overflow.\n", this->bufsize);
     this->buf = realloc( this->buf, this->bufsize );
   }
 

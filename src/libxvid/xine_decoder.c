@@ -226,7 +226,7 @@ static void *init_video_decoder_plugin (xine_t *xine, void *data) {
 	return NULL;
     }
 
-    this = (xvid_decoder_t *) malloc (sizeof (xvid_decoder_t));
+    this = (xvid_decoder_t *) xine_xmalloc (sizeof (xvid_decoder_t));
     
     this->video_decoder.init		  = xvid_init_plugin;
     this->video_decoder.decode_data	  = xvid_decode_data;

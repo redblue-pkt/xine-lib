@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mosaico.c,v 1.18 2003/11/26 19:43:37 f1rmb Exp $
+ * $Id: mosaico.c,v 1.19 2003/12/05 15:55:02 f1rmb Exp $
  */
  
 /*
@@ -398,7 +398,7 @@ static void frame_copy_content(vo_frame_t *to, vo_frame_t *from) {
   }
 
   if(to->format != from->format) {
-    printf("frame_copy_content : buffers have different format\n");
+    lprintf("frame_copy_content : buffers have different format\n");
     return;
   }
 
@@ -544,7 +544,8 @@ static int _mosaico_draw_2(vo_frame_t *frame, post_mosaico_out_t *output, int co
 
       break;
     default:    
-      printf("Mosaico: cannot handle image format %d\n", frame->format);
+      xprintf(output->stream->xine, XINE_VERBOSITY_DEBUG, 
+	      "Mosaico: cannot handle image format %d\n", frame->format);
       /*new_frame->free(new_frame);
 	_x_post_restore_video_frame(frame, port);
 	return frame->draw(frame, stream);*/

@@ -22,7 +22,7 @@
  * RealAudio File Demuxer by Mike Melanson (melanson@pcisys.net)
  *     improved by James Stembridge (jstembridge@users.sourceforge.net)
  *
- * $Id: demux_realaudio.c,v 1.27 2003/11/16 23:33:43 f1rmb Exp $
+ * $Id: demux_realaudio.c,v 1.28 2003/12/05 15:54:57 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -103,7 +103,7 @@ static int open_ra_file(demux_ra_t *this) {
   else if (version == 4)
     hdr_size = BE_32(&file_header[0x12]) + 16;
   else {
-    printf("demux_realaudio: unknown version number %d\n", version);
+    xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "demux_realaudio: unknown version number %d\n", version);
     return 0;
   }
     
@@ -111,7 +111,7 @@ static int open_ra_file(demux_ra_t *this) {
   audio_header = xine_xmalloc(hdr_size);
   
   if (_x_demux_read_header(this->input, audio_header, hdr_size) != hdr_size) {
-    printf("demux_realaudio: unable to read header\n");
+    xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "demux_realaudio: unable to read header\n");
     free(audio_header);
     return 0;
   }
@@ -144,14 +144,15 @@ static int open_ra_file(demux_ra_t *this) {
     if(audio_header[0x3D] == 4)
       audio_fourcc = ME_32(&audio_header[0x3E]);
     else {
-      printf("demux_realaudio: invalid fourcc size %d\n", audio_header[0x3D]);
+      xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
+	      "demux_realaudio: invalid fourcc size %d\n", audio_header[0x3D]);
       free(audio_header);
       return 0;
     }
     
     offset = 0x45;
   } else {
-    printf("demux_realaudio: header too small\n");
+    xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "demux_realaudio: header too small\n");
     free(audio_header);
     return 0;
   }
@@ -188,7 +189,8 @@ static int open_ra_file(demux_ra_t *this) {
     if(audio_header[offset+2] == 4)
       audio_fourcc = ME_32(&audio_header[offset+3]);
     else {
-      printf("demux_realaudio: invalid fourcc size %d\n", audio_header[offset+2]);
+      xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
+	      "demux_realaudio: invalid fourcc size %d\n", audio_header[offset+2]);
       free(audio_header);
       return 0;
     }
@@ -201,7 +203,7 @@ static int open_ra_file(demux_ra_t *this) {
   this->data_start = hdr_size;
   if (this->input->seek(this->input, this->data_start, SEEK_SET) !=
       this->data_start) {
-    printf("demux_realaudio: unable to seek to data start\n");
+    xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "demux_realaudio: unable to seek to data start\n");
     return 0;
   }
 

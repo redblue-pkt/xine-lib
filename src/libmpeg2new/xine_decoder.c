@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.15 2003/11/16 23:33:45 f1rmb Exp $
+ * $Id: xine_decoder.c,v 1.16 2003/12/05 15:54:59 f1rmb Exp $
  *
  * stuff needed to turn libmpeg2 into a xine decoder plugin
  */
@@ -426,8 +426,7 @@ static video_decoder_t *open_plugin (video_decoder_class_t *class_gen, xine_stre
   mpeg2_video_decoder_t *this ;
   int32_t n;
 
-  this = (mpeg2_video_decoder_t *) malloc (sizeof (mpeg2_video_decoder_t));
-  memset(this, 0, sizeof (mpeg2_video_decoder_t));
+  this = (mpeg2_video_decoder_t *) xine_xmalloc (sizeof (mpeg2_video_decoder_t));
 
   this->video_decoder.decode_data         = mpeg2_video_decode_data;
   this->video_decoder.flush               = mpeg2_video_flush;
@@ -468,7 +467,7 @@ static void *init_plugin (xine_t *xine, void *data) {
 
   mpeg2_class_t *this;
 
-  this = (mpeg2_class_t *) malloc (sizeof (mpeg2_class_t));
+  this = (mpeg2_class_t *) xine_xmalloc (sizeof (mpeg2_class_t));
 
   this->decoder_class.open_plugin     = open_plugin;
   this->decoder_class.get_identifier  = get_identifier;

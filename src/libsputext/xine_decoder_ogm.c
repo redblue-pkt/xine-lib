@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder_ogm.c,v 1.8 2003/11/26 19:43:36 f1rmb Exp $
+ * $Id: xine_decoder_ogm.c,v 1.9 2003/12/05 15:55:00 f1rmb Exp $
  *
  */
 
@@ -68,7 +68,7 @@ typedef struct spuogm_class_s {
 typedef struct spuogm_decoder_s {
   spu_decoder_t      spu_decoder;
 
-  spuogm_class_t   *class;
+  spuogm_class_t    *class;
   xine_stream_t     *stream;
 
   int                lines;
@@ -446,7 +446,7 @@ static void update_osd_font(void *this_gen, xine_cfg_entry_t *entry)
   if( this->renderer )
     this->renderer->set_font (this->osd, this->font, this->font_size);
   
-  printf("libspuogm: spu_font = %s\n", this->font );
+  xprintf(this->class->xine, XINE_VERBOSITY_DEBUG, "libspuogm: spu_font = %s\n", this->font );
 }
 
 static void update_subtitle_size(void *this_gen, xine_cfg_entry_t *entry)
@@ -514,10 +514,10 @@ static char *spuogm_class_get_description (spu_decoder_class_t *this) {
 
 static void update_src_encoding(void *this_gen, xine_cfg_entry_t *entry)
 {
-  spuogm_class_t *this = (spuogm_class_t *)this_gen;
+  spuogm_class_t *class = (spuogm_class_t *)this_gen;
 
-  this->src_encoding = entry->str_value;
-  printf("libspuogm: spu_src_encoding = %s\n", this->src_encoding );
+  class->src_encoding = entry->str_value;
+  xprintf(class->xine, XINE_VERBOSITY_DEBUG, "libspuogm: spu_src_encoding = %s\n", class->src_encoding );
 }
 
 static void *init_spu_decoder_plugin (xine_t *xine, void *data) {

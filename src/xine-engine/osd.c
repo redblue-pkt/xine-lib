@@ -596,8 +596,8 @@ static int osd_renderer_load_font(osd_renderer_t *this, char *filename) {
             known_font->loaded = 1;
             known_font->fontchar = font->fontchar;
           } else {
-            printf("font '%s-%d' already loaded, weird.\n",
-                   font->name, font->size);
+            xprintf(this->stream->xine, XINE_VERBOSITY_LOG, 
+		    _("font '%s-%d' already loaded, weird.\n"), font->name, font->size);
             while( --i >= 0 ) {
               free(font->fontchar[i].bmp);
             }
@@ -607,9 +607,9 @@ static int osd_renderer_load_font(osd_renderer_t *this, char *filename) {
           
         }
       } else {
-  
-        printf("font '%s' loading failed (%d < %d)\n",font->name,
-               i, font->num_fontchars);
+	
+        xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
+		_("font '%s' loading failed (%d < %d)\n") ,font->name, i, font->num_fontchars);
   
         while( --i >= 0 ) {
           free(font->fontchar[i].bmp);
@@ -618,8 +618,8 @@ static int osd_renderer_load_font(osd_renderer_t *this, char *filename) {
         free(font);
       }
     } else {
-      printf("wrong version for font '%s'. expected %d found %d.\n",font->name,
-               font->version, FONT_VERSION);
+      xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
+	      _("wrong version for font '%s'. expected %d found %d.\n"), font->name, font->version, FONT_VERSION);
       free(font);
     }
     gzclose(fp);
@@ -732,7 +732,8 @@ static int osd_set_font( osd_object_t *osd, const char *fontname, int size) {
     if (!osd->ft2) {
       osd->ft2 = xine_xmalloc(sizeof(osd_ft2context_t));
       if(FT_Init_FreeType( &osd->ft2->library )) {
-        printf("osd: cannot initialize ft2 library\n");
+        xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
+		_("osd: cannot initialize ft2 library\n"));
 	free(osd->ft2);
 	osd->ft2 = NULL;
       }
@@ -747,13 +748,15 @@ static int osd_set_font( osd_object_t *osd, const char *fontname, int size) {
           sprintf(pathname, "%s/%s", XINE_FONTDIR, fontname);
           if (FT_New_Face(osd->ft2->library, pathname, 0, &osd->ft2->face)) {
             error_flag = 1;
-	    printf("osd: error loading font %s with ft2\n", fontname);
+	    xprintf(this->stream->xine, XINE_VERBOSITY_LOG, 
+		    _("osd: error loading font %s with ft2\n"), fontname);
 	  }
         }
       }
       if (!error_flag) {
 	if (FT_Set_Pixel_Sizes(osd->ft2->face, 0, size)) {
-	  printf("osd: error setting font size (no scalable font?)\n");
+	  xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
+		  _("osd: error setting font size (no scalable font?)\n"));
 	} else {
 	  ret = 1;
 	  osd->ft2->useme = 1;
@@ -814,7 +817,8 @@ static int osd_search(osd_fontchar_t *array, size_t n, uint16_t code) {
 /* 
  * get next unicode value 
  */
-static uint16_t osd_iconv_getunicode(iconv_t *cd, const char *encoding, char **inbuf, size_t *inbytesleft) {
+static uint16_t osd_iconv_getunicode(xine_t *xine, 
+				     iconv_t *cd, const char *encoding, char **inbuf, size_t *inbytesleft) {
   uint16_t unicode;
   char *outbuf = (char*)&unicode;
   size_t outbytesleft = 2;
@@ -825,8 +829,9 @@ static uint16_t osd_iconv_getunicode(iconv_t *cd, const char *encoding, char **i
     count = iconv(cd, inbuf, inbytesleft, &outbuf, &outbytesleft);
     if (count == (size_t)-1 && errno != E2BIG) {
       /* unknown character or character wider than 16 bits, try skip one byte */
-      printf(_("osd: unknown sequence starting with byte 0x%02X"
-             " in encoding \"%s\", skipping\n"), (*inbuf)[0] & 0xFF, encoding);
+      xprintf(xine, XINE_VERBOSITY_LOG,
+	      _("osd: unknown sequence starting with byte 0x%02X in encoding \"%s\", skipping\n"),
+	      (*inbuf)[0] & 0xFF, encoding);
       if (*inbytesleft) {
         (*inbytesleft)--;
         (*inbuf)++;
@@ -876,7 +881,8 @@ static int osd_set_encoding (osd_object_t *osd, const char *encoding) {
   if (!encoding[0]) {
 #ifdef HAVE_LANGINFO_CODESET
     if ((encoding = nl_langinfo(CODESET)) == NULL) {
-      printf(_("osd: can't find out current locale character set\n"));
+      xprintf(osd->renderer->stream->xine, XINE_VERBOSITY_LOG,
+	      _("osd: can't find out current locale character set\n"));
       return 0;
     }
 #else
@@ -886,8 +892,8 @@ static int osd_set_encoding (osd_object_t *osd, const char *encoding) {
 
   /* prepare conversion to UCS-2 */
   if ((osd->cd = iconv_open("UCS-2", encoding)) == (iconv_t)-1) {
-    printf(_("osd: unsupported conversion %s -> UCS-2, "
-             "no conversion performed\n"), encoding);
+    xprintf(osd->renderer->stream->xine, XINE_VERBOSITY_LOG,
+	    _("osd: unsupported conversion %s -> UCS-2, no conversion performed\n"), encoding);
     return 0;
   }
 
@@ -935,7 +941,7 @@ static int osd_render_text (osd_object_t *osd, int x1, int y1,
 #endif
     
     if (proceed == 0) {
-      printf(_("osd: font isn't defined\n"));
+      xprintf(this->stream->xine, XINE_VERBOSITY_LOG, _("osd: font isn't defined\n"));
       pthread_mutex_unlock(&this->osd_mutex);
       return 0;
     }
@@ -949,7 +955,7 @@ static int osd_render_text (osd_object_t *osd, int x1, int y1,
   
   while( inbytesleft ) {
 #ifndef _MSC_VER
-    unicode = osd_iconv_getunicode(osd->cd, osd->encoding, 
+    unicode = osd_iconv_getunicode(this->stream->xine, osd->cd, osd->encoding, 
                                    (char **)&inbuf, &inbytesleft);
 #else
     unicode = inbuf[0];
@@ -979,13 +985,13 @@ static int osd_render_text (osd_object_t *osd, int x1, int y1,
       FT_GlyphSlot  slot = osd->ft2->face->glyph;
       
       if (FT_Load_Glyph(osd->ft2->face, i, FT_LOAD_DEFAULT)) {
-        printf("osd: error loading glyph\n");
+        xprintf(this->stream->xine, XINE_VERBOSITY_LOG, _("osd: error loading glyph\n"));
 	continue;
       }
 
       if (slot->format != ft_glyph_format_bitmap) {
 	if (FT_Render_Glyph(osd->ft2->face->glyph, ft_render_mode_normal))
-	  printf("osd: error in rendering glyph\n");
+	  xprintf(this->stream->xine, XINE_VERBOSITY_LOG, _("osd: error in rendering glyph\n"));
       }
 
       dst = osd->area + y1 * osd->width + x1;
@@ -1078,7 +1084,7 @@ static int osd_get_text_size(osd_object_t *osd, const char *text, int *width, in
 #endif
     
     if (proceed == 0) {
-      printf(_("osd: font isn't defined\n"));
+      xprintf(this->stream->xine, XINE_VERBOSITY_LOG, _("osd: font isn't defined\n"));
       pthread_mutex_unlock(&this->osd_mutex);
       return 0;
     }
@@ -1092,7 +1098,7 @@ static int osd_get_text_size(osd_object_t *osd, const char *text, int *width, in
   
   while( inbytesleft ) {
 #ifndef _MSC_VER
-    unicode = osd_iconv_getunicode(osd->cd, osd->encoding, 
+    unicode = osd_iconv_getunicode(this->stream->xine, osd->cd, osd->encoding, 
                                    (char **)&inbuf, &inbytesleft);
 #else
     unicode = inbuf[0];
@@ -1108,14 +1114,14 @@ static int osd_get_text_size(osd_object_t *osd, const char *text, int *width, in
       i = FT_Get_Char_Index( osd->ft2->face, unicode);
 
       if (FT_Load_Glyph(osd->ft2->face, i, FT_LOAD_DEFAULT)) {
-        printf("osd: error loading glyph %i\n", i);
+        xprintf(this->stream->xine, XINE_VERBOSITY_LOG, _("osd: error loading glyph %i\n"), i);
         text++;
         continue;
       }
 
       if (slot->format != ft_glyph_format_bitmap) {
         if (FT_Render_Glyph(osd->ft2->face->glyph, ft_render_mode_normal))
-	  printf("osd: error in rendering\n");
+	  xprintf(this->stream->xine, XINE_VERBOSITY_LOG, _("osd: error in rendering\n"));
       }
       if (first) *width += slot->bitmap_left;
       first = 0;

@@ -38,7 +38,7 @@
  * usage: 
  *   xine pvr:/<prefix_to_tmp_files>\!<prefix_to_saved_files>\!<max_page_age>
  *
- * $Id: input_pvr.c,v 1.37 2003/11/26 19:43:31 f1rmb Exp $
+ * $Id: input_pvr.c,v 1.38 2003/12/05 15:54:58 f1rmb Exp $
  */
 
 /**************************************************************************
@@ -396,9 +396,8 @@ static void pvrscr_exit (scr_plugin_t *scr) {
 static pvrscr_t* pvrscr_init (void) {
   pvrscr_t *this;
 
-  this = malloc(sizeof(*this));
-  memset(this, 0, sizeof(*this));
-  
+  this = (pvrscr_t *) xine_xmalloc(sizeof(pvrscr_t));
+
   this->scr.interface_version = 2;
   this->scr.get_priority      = pvrscr_get_priority;
   this->scr.set_speed         = pvrscr_set_speed;
@@ -614,7 +613,8 @@ static int pvr_break_rec_page (pvr_input_plugin_t *this) {
      
   this->rec_fd = open(filename, O_RDWR | O_CREAT | O_TRUNC, 0666 );
   if( this->rec_fd == -1 ) {
-    printf("input_pvr: error creating pvr file (%s)\n", filename);
+    xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
+	    _("input_pvr: error creating pvr file (%s)\n"), filename);
     free(filename);
     return 0;
   }
@@ -659,12 +659,14 @@ static int pvr_rec_file(pvr_input_plugin_t *this) {
   }
   pos = (off_t)(this->rec_blk - this->page_block[this->rec_page]) * PVR_BLOCK_SIZE;
   if( lseek (this->rec_fd, pos, SEEK_SET) != pos ) {
-    printf("input_pvr: error setting position for writing %lld\n", pos);
+    xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
+	    "input_pvr: error setting position for writing %lld\n", pos);
     return 0;
   }
   if( this->rec_fd != -1 ) {
     if( write(this->rec_fd, this->data, PVR_BLOCK_SIZE) < PVR_BLOCK_SIZE ) {
-      printf("input_pvr: short write to pvr file (out of disk space?)\n");
+      xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
+	      "input_pvr: short write to pvr file (out of disk space?)\n");
       return 0;
     }
     this->rec_blk++;
@@ -766,7 +768,8 @@ static int pvr_play_file(pvr_input_plugin_t *this, fifo_buffer_t *fifo, uint8_t 
          
          this->play_fd = open(filename, O_RDONLY );
          if( this->play_fd == -1 ) {
-           printf("input_pvr: error opening pvr file (%s)\n", filename);
+           xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
+		   _("input_pvr: error opening pvr file (%s)\n"), filename);
            free(filename);
            return 0;
          }
@@ -780,11 +783,13 @@ static int pvr_play_file(pvr_input_plugin_t *this, fifo_buffer_t *fifo, uint8_t 
 
       pos = (off_t)(this->play_blk - this->page_block[this->play_page]) * PVR_BLOCK_SIZE;
       if( lseek (this->play_fd, pos, SEEK_SET) != pos ) {
-        printf("input_pvr: error setting position for reading %lld\n", pos);
+        xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
+		"input_pvr: error setting position for reading %lld\n", pos);
         return 0;
       }
       if( read(this->play_fd, buffer, PVR_BLOCK_SIZE) < PVR_BLOCK_SIZE ) {
-        printf("input_pvr: short read from pvr file\n");
+        xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
+		"input_pvr: short read from pvr file\n");
         return 0;
       }
       this->play_blk++;
@@ -839,7 +844,8 @@ static void *pvr_loop (void *this_gen) {
         num_bytes = read (this->dev_fd, this->data + total_bytes, PVR_BLOCK_SIZE-total_bytes);
         if (num_bytes <= 0) {
           if (num_bytes < 0) 
-            printf ("input_pvr: read error (%s)\n", strerror(errno));
+            xprintf (this->stream->xine, XINE_VERBOSITY_LOG,
+		     _("input_pvr: read error (%s)\n"), strerror(errno));
           this->pvr_running = 0;  
           break;
         }
@@ -847,7 +853,7 @@ static void *pvr_loop (void *this_gen) {
       }
       
       if( this->data[0] || this->data[1] || this->data[2] != 1 || this->data[3] != 0xba ) {
-	lprintf("resyncing mpeg stream\n");
+	xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "resyncing mpeg stream\n");
 
         if( !pvr_mpeg_resync(this->dev_fd) ) {
           this->pvr_running = 0;
@@ -1040,12 +1046,14 @@ static void pvr_event_handler (pvr_input_plugin_t *this) {
         pthread_mutex_lock(&this->dev_lock);
 #ifdef USE_V4L2
         if( ioctl(this->dev_fd, VIDIOC_S_INPUT, &this->input) )
-          printf("input_pvr: error setting v4l2 input\n");
+          xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
+		  "input_pvr: error setting v4l2 input\n");
           
         vf.frequency = this->frequency;
         vf.tuner = 0;
         if( ioctl(this->dev_fd, VIDIOC_S_FREQUENCY, &vf) )
-          printf("input_pvr: error setting v4l2 frequency\n");
+          xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
+		  "input_pvr: error setting v4l2 frequency\n");
 
         /* workaround an ivtv bug where stream gets bad mpeg2 artifacts
          * after changing inputs. reopening the device fixes it.
@@ -1053,16 +1061,19 @@ static void pvr_event_handler (pvr_input_plugin_t *this) {
         close(this->dev_fd);
         this->dev_fd = open (PVR_DEVICE, O_RDWR);
         if (this->dev_fd == -1) {
-          printf("input_pvr: error opening device %s\n", PVR_DEVICE );
+          xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
+		  "input_pvr: error opening device %s\n", PVR_DEVICE );
           return;
         }
 #else
         v.norm = VIDEO_MODE_NTSC;
         v.channel = this->input;
         if( ioctl(this->dev_fd, VIDIOCSCHAN, &v) )
-          printf("input_pvr: error setting v4l input\n");
+          xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
+		  "input_pvr: error setting v4l input\n");
         if( ioctl(this->dev_fd, VIDIOCSFREQ, &this->frequency) )
-          printf("input_pvr: error setting v4l frequency\n");
+          xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
+		  "input_pvr: error setting v4l frequency\n");
 #endif
         pthread_mutex_unlock(&this->dev_lock);
         
@@ -1164,24 +1175,28 @@ static void pvr_event_handler (pvr_input_plugin_t *this) {
        close(this->dev_fd);
        this->dev_fd = open (PVR_DEVICE, O_RDWR);
        if (this->dev_fd == -1) {
-         printf("input_pvr: error opening device %s\n", PVR_DEVICE );
+         xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
+		 _("input_pvr: error opening device %s\n"), PVR_DEVICE );
          return;
        }
        
        if (ioctl(this->dev_fd, IVTV_IOC_G_CODEC, &codec) < 0) {
-         printf("input_pvr: IVTV_IOC_G_CODEC failed, maybe API changed?\n");
+         xprintf(this->stream->xine, XINE_VERBOSITY_LOG, 
+		 _("input_pvr: IVTV_IOC_G_CODEC failed, maybe API changed?\n"));
        } else {
          codec.bitrate      = mpeg_data->bitrate_mean;
          codec.bitrate_peak = mpeg_data->bitrate_peak;
          codec.stream_type  = IVTV_STREAM_DVD;
 
          if (ioctl(this->dev_fd, IVTV_IOC_S_CODEC, &codec) < 0) {
-           printf("input_pvr: IVTV_IOC_S_CODEC failed, maybe API changed?\n");
+           xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
+		   _("input_pvr: IVTV_IOC_S_CODEC failed, maybe API changed?\n"));
          }
        }
        pthread_mutex_unlock(&this->dev_lock);
 #else
-       printf("input_pvr: mpeg2 settings not supported with old api\n");
+       xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
+	       _("input_pvr: mpeg2 settings not supported with old api\n"));
 #endif
       }
       break;
@@ -1210,7 +1225,7 @@ static buf_element_t *pvr_plugin_read_block (input_plugin_t *this_gen, fifo_buff
   int                   speed = this->stream->xine->clock->speed;
 
   if( !this->pvr_running ) {
-    printf("input_pvr: thread died, aborting\n");
+    xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "input_pvr: thread died, aborting\n");
     return NULL;  
   }
 
@@ -1417,13 +1432,15 @@ static int pvr_plugin_open (input_plugin_t *this_gen ) {
 
   this->dev_fd = open (PVR_DEVICE, O_RDWR);
   if (this->dev_fd == -1) {
-    printf("input_pvr: error opening device %s\n", PVR_DEVICE );
+    xprintf(this->stream->xine, XINE_VERBOSITY_LOG, 
+	    _("input_pvr: error opening device %s\n"), PVR_DEVICE );
     return 0;
   }
 
 #ifdef USE_V4L2
   if (ioctl(this->dev_fd, IVTV_IOC_G_CODEC, &codec) < 0) {
-    printf("input_pvr: IVTV_IOC_G_CODEC failed, maybe API changed?\n");
+    xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
+	    _("input_pvr: IVTV_IOC_G_CODEC failed, maybe API changed?\n"));
   } else {
     codec.bitrate_mode  = 0;
     codec.bitrate	= 6000000;
@@ -1431,7 +1448,8 @@ static int pvr_plugin_open (input_plugin_t *this_gen ) {
     codec.stream_type	= IVTV_STREAM_DVD;
 
     if (ioctl(this->dev_fd, IVTV_IOC_S_CODEC, &codec) < 0) {
-      printf("input_pvr: IVTV_IOC_S_CODEC failed, maybe API changed?\n");
+      xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
+	      _("input_pvr: IVTV_IOC_S_CODEC failed, maybe API changed?\n"));
     }
   }
 #endif
@@ -1452,8 +1470,8 @@ static int pvr_plugin_open (input_plugin_t *this_gen ) {
   
   if ((err = pthread_create (&this->pvr_thread,
 			     NULL, pvr_loop, this)) != 0) {
-    fprintf (stderr, "input_pvr: can't create new thread (%s)\n",
-	     strerror(err));
+    xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
+	     "input_pvr: can't create new thread (%s)\n", strerror(err));
     abort();
   }
   
@@ -1557,13 +1575,11 @@ static void pvr_class_dispose (input_class_t *this_gen) {
 static void *init_plugin (xine_t *xine, void *data) {
 
   pvr_input_class_t  *this;
-  config_values_t     *config;
 
   this = (pvr_input_class_t *) xine_xmalloc (sizeof (pvr_input_class_t));
 
   this->xine   = xine;
   this->config = xine->config;
-  config       = xine->config;
   
   this->input_class.get_instance       = pvr_class_get_instance;
   this->input_class.get_identifier     = pvr_class_get_identifier;

@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.118 2003/11/26 23:44:08 f1rmb Exp $
+ * $Id: audio_alsa_out.c,v 1.119 2003/12/05 15:54:56 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -150,13 +150,15 @@ static void *ao_alsa_handle_event_thread(void *data) {
 
     if((err = snd_mixer_selem_get_playback_volume(this->mixer.elem, SND_MIXER_SCHN_FRONT_LEFT,
 						  &left_vol)) < 0) {
-      printf("audio_alsa_out: snd_mixer_selem_get_playback_volume(): %s\n",  snd_strerror(err));
+      xprintf(this->class->xine, XINE_VERBOSITY_DEBUG, 
+	      "audio_alsa_out: snd_mixer_selem_get_playback_volume(): %s\n",  snd_strerror(err));
       continue;
     }
     
     if((err = snd_mixer_selem_get_playback_volume(this->mixer.elem, SND_MIXER_SCHN_FRONT_RIGHT,
 						  &right_vol)) < 0) {
-      printf("audio_alsa_out: snd_mixer_selem_get_playback_volume(): %s\n",  snd_strerror(err));
+      xprintf(this->class->xine, XINE_VERBOSITY_DEBUG, 
+	      "audio_alsa_out: snd_mixer_selem_get_playback_volume(): %s\n",  snd_strerror(err));
       continue;
     }
 
@@ -239,7 +241,7 @@ static void error_callback(const char *file, int line,
   int       n, size = 100;
   
   printf("%s:%s:%d entered\n", __FILE__, __FUNCTION__, __LINE__ );
-  if((buf = xine_xmalloc(size)) == NULL) 
+  if(!(buf = xine_xmalloc(size))) 
     return;
   
   while(1) {
@@ -352,7 +354,8 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
                                          NULL);
     break;
   default:
-    printf ("audio_alsa_out: ALSA Driver does not support the requested mode: 0x%X\n",mode);
+    xprintf (this->class->xine, XINE_VERBOSITY_DEBUG, 
+	     "audio_alsa_out: ALSA Driver does not support the requested mode: 0x%X\n",mode);
     return 0;
   } 
 
@@ -362,8 +365,7 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
 #endif
 
   if (this->audio_fd) {
-    xine_log (this->class->xine, XINE_LOG_MSG,
-              "audio_alsa_out:Already open...WHY!");
+    xine_log (this->class->xine, XINE_LOG_MSG, _("audio_alsa_out:Already open...WHY!"));
     snd_pcm_close (this->audio_fd);
     this->audio_fd = NULL;
   }
@@ -377,8 +379,10 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
    */
   err=snd_pcm_open(&this->audio_fd, pcm_device, direction, open_mode);      
   if(err <0 ) {                                                           
-    printf ("audio_alsa_out: snd_pcm_open() of %s failed: %s\n", pcm_device, snd_strerror(err));               
-    printf ("audio_alsa_out: >>> check if another program don't already use PCM <<<\n");     
+    xprintf (this->class->xine, XINE_VERBOSITY_LOG, 
+	     _("audio_alsa_out: snd_pcm_open() of %s failed: %s\n"), pcm_device, snd_strerror(err));               
+    xprintf (this->class->xine, XINE_VERBOSITY_LOG, 
+	     _("audio_alsa_out: >>> check if another program don't already use PCM <<<\n"));
     return 0;
   }
   /* printf ("audio_alsa_out: snd_pcm_open() opened %s\n", pcm_device); */ 
@@ -390,7 +394,9 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
    */
   err = snd_pcm_hw_params_any(this->audio_fd, params);
   if (err < 0) {
-    printf ("audio_alsa_out: broken configuration for this PCM: no configurations available: %s\n", snd_strerror(err));
+    xprintf (this->class->xine, XINE_VERBOSITY_LOG, 
+	     _("audio_alsa_out: broken configuration for this PCM: no configurations available: %s\n"),
+	     snd_strerror(err));
     goto __close;
   }
   /* set interleaved access */
@@ -402,7 +408,8 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
     snd_pcm_access_mask_set(mask, SND_PCM_ACCESS_MMAP_COMPLEX);
     err = snd_pcm_hw_params_set_access_mask(this->audio_fd, params, mask);
     if (err < 0) {
-      printf ("audio_alsa_out: mmap not availiable, falling back to compatiblity mode\n");
+      xprintf (this->class->xine, XINE_VERBOSITY_DEBUG, 
+	       "audio_alsa_out: mmap not availiable, falling back to compatiblity mode\n");
       this->mmap=0;
       err = snd_pcm_hw_params_set_access(this->audio_fd, params,
                                      SND_PCM_ACCESS_RW_INTERLEAVED);
@@ -413,7 +420,8 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
   }
       
   if (err < 0) {
-    printf ("audio_alsa_out: access type not available: %s\n", snd_strerror(err));
+    xprintf (this->class->xine, XINE_VERBOSITY_DEBUG, 
+	     "audio_alsa_out: access type not available: %s\n", snd_strerror(err));
     goto __close;
   }
   /* set the sample format ([SU]{8,16{LE,BE}})*/
@@ -425,26 +433,31 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
 #endif
 		  : SND_PCM_FORMAT_U8);
   if (err < 0) {
-    printf ("audio_alsa_out: sample format non available: %s\n", snd_strerror(err));
+    xprintf (this->class->xine, XINE_VERBOSITY_DEBUG, 
+	     "audio_alsa_out: sample format non available: %s\n", snd_strerror(err));
     goto __close;
   }
   /* set the number of channels */
   err = snd_pcm_hw_params_set_channels(this->audio_fd, params, this->num_channels);
   if (err < 0) {
-    printf ("audio_alsa_out: Cannot set number of channels to %d (err=%d:%s)\n", this->num_channels, err, snd_strerror(err));
+    xprintf (this->class->xine, XINE_VERBOSITY_DEBUG, 
+	     "audio_alsa_out: Cannot set number of channels to %d (err=%d:%s)\n", 
+	     this->num_channels, err, snd_strerror(err));
     goto __close;
   }
   /* set the stream rate [Hz] */
   dir=0;
   err = snd_pcm_hw_params_set_rate_near(this->audio_fd, params, &rate, &dir);
   if (err < 0) {
-    printf ("audio_alsa_out: rate not available: %s\n", snd_strerror(err));
+    xprintf (this->class->xine, XINE_VERBOSITY_DEBUG, 
+	     "audio_alsa_out: rate not available: %s\n", snd_strerror(err));
     goto __close;
   }
   this->output_sample_rate = (uint32_t)rate;
   if (this->input_sample_rate != this->output_sample_rate) {
-    printf ("audio_alsa_out: audio rate : %d requested, %d provided by device/sec\n",
-	    this->input_sample_rate, this->output_sample_rate);
+    xprintf (this->class->xine, XINE_VERBOSITY_DEBUG, 
+	     "audio_alsa_out: audio rate : %d requested, %d provided by device/sec\n",
+	     this->input_sample_rate, this->output_sample_rate);
   }
   buffer_time_to_size = ( (uint64_t)buffer_time * rate) / 1000000;
   err = snd_pcm_hw_params_get_buffer_size_min(params, &buffer_size_min);
@@ -474,14 +487,16 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
   periods=8;
   err = snd_pcm_hw_params_set_periods_near(this->audio_fd, params, &periods ,&dir);
   if (err < 0) {
-    printf ("audio_alsa_out: unable to set any periods: %s\n", snd_strerror(err));
+    xprintf (this->class->xine, XINE_VERBOSITY_DEBUG, 
+	     "audio_alsa_out: unable to set any periods: %s\n", snd_strerror(err));
     goto __close;
   }
   /* set the ring-buffer time [us] (large enough for x us|y samples ...) */
   dir=0;
   err = snd_pcm_hw_params_set_buffer_time_near(this->audio_fd, params, &buffer_time, &dir);
   if (err < 0) {
-    printf ("audio_alsa_out: buffer time not available: %s\n", snd_strerror(err));
+    xprintf (this->class->xine, XINE_VERBOSITY_DEBUG, 
+	     "audio_alsa_out: buffer time not available: %s\n", snd_strerror(err));
     goto __close;
   }
 #endif
@@ -490,7 +505,8 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
   dir=0;
   err = snd_pcm_hw_params_set_period_size_near(this->audio_fd, params, &period_size, &dir);
   if (err < 0) {
-    printf ("audio_alsa_out: period time not available: %s\n", snd_strerror(err));
+    xprintf (this->class->xine, XINE_VERBOSITY_DEBUG, 
+	     "audio_alsa_out: period time not available: %s\n", snd_strerror(err));
     goto __close;
   }
 #endif
@@ -500,7 +516,8 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
   dir=0;
   err = snd_pcm_hw_params_set_buffer_size_near(this->audio_fd, params, &this->buffer_size);
   if (err < 0) {
-    printf ("audio_alsa_out: buffer time not available: %s\n", snd_strerror(err));
+    xprintf (this->class->xine, XINE_VERBOSITY_DEBUG, 
+	     "audio_alsa_out: buffer time not available: %s\n", snd_strerror(err));
     goto __close;
   }
   err = snd_pcm_hw_params_get_buffer_size(params, &(this->buffer_size));
@@ -509,20 +526,23 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
   printf("was set buffer_size = %ld\n",this->buffer_size);
 #endif
   if (2*period_size > this->buffer_size) {
-    printf ("audio_alsa_out: buffer to small, could not use\n");
+    xprintf (this->class->xine, XINE_VERBOSITY_DEBUG, 
+	     "audio_alsa_out: buffer to small, could not use\n");
     goto __close;
   }
   
   /* write the parameters to device */
   err = snd_pcm_hw_params(this->audio_fd, params);
   if (err < 0) {
-    printf ("audio_alsa_out: pcm hw_params failed: %s\n", snd_strerror(err));
+    xprintf (this->class->xine, XINE_VERBOSITY_DEBUG, 
+	     "audio_alsa_out: pcm hw_params failed: %s\n", snd_strerror(err));
     goto __close;
   }
   /* Check for pause/resume support */
   this->has_pause_resume = ( snd_pcm_hw_params_can_pause (params)
 			    && snd_pcm_hw_params_can_resume (params) );
-  xprintf(this->class->xine, XINE_VERBOSITY_LOG, "audio_alsa_out:open pause_resume=%d\n", this->has_pause_resume);
+  xprintf(this->class->xine, XINE_VERBOSITY_DEBUG, 
+	  "audio_alsa_out:open pause_resume=%d\n", this->has_pause_resume);
   this->sample_rate_factor = (double) this->output_sample_rate / (double) this->input_sample_rate;
   this->bytes_per_frame = snd_pcm_frames_to_bytes (this->audio_fd, 1);
   /*
@@ -531,39 +551,45 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
   /* Copy current parameters into swparams */
   err = snd_pcm_sw_params_current(this->audio_fd, swparams);
   if (err < 0) {
-    printf ("audio_alsa_out: Unable to determine current swparams: %s\n", snd_strerror(err));
+    xprintf (this->class->xine, XINE_VERBOSITY_DEBUG, 
+	     "audio_alsa_out: Unable to determine current swparams: %s\n", snd_strerror(err));
     goto __close;
   }
   /* align all transfers to 1 sample */
   err = snd_pcm_sw_params_set_xfer_align(this->audio_fd, swparams, 1);
   if (err < 0) {
-    printf ("audio_alsa_out: Unable to set transfer alignment: %s\n", snd_strerror(err));
+    xprintf (this->class->xine, XINE_VERBOSITY_DEBUG, 
+	     "audio_alsa_out: Unable to set transfer alignment: %s\n", snd_strerror(err));
     goto __close;
   }
   /* allow the transfer when at least period_size samples can be processed */
   err = snd_pcm_sw_params_set_avail_min(this->audio_fd, swparams, period_size);
   if (err < 0) {
-    printf ("audio_alsa_out: Unable to set available min: %s\n", snd_strerror(err));
+    xprintf (this->class->xine, XINE_VERBOSITY_DEBUG, 
+	     "audio_alsa_out: Unable to set available min: %s\n", snd_strerror(err));
     goto __close;
   }
   /* start the transfer when the buffer contains at least period_size samples */
   err = snd_pcm_sw_params_set_start_threshold(this->audio_fd, swparams, period_size);
   if (err < 0) {
-    printf ("audio_alsa_out: Unable to set start threshold: %s\n", snd_strerror(err));
+    xprintf (this->class->xine, XINE_VERBOSITY_DEBUG, 
+	     "audio_alsa_out: Unable to set start threshold: %s\n", snd_strerror(err));
     goto __close;
   }
 
   /* never stop the transfer, even on xruns */
   err = snd_pcm_sw_params_set_stop_threshold(this->audio_fd, swparams, this->buffer_size);
   if (err < 0) {
-    printf ("audio_alsa_out: Unable to set stop threshold: %s\n", snd_strerror(err));
+    xprintf (this->class->xine, XINE_VERBOSITY_DEBUG, 
+	     "audio_alsa_out: Unable to set stop threshold: %s\n", snd_strerror(err));
     goto __close;
   }
 
   /* Install swparams into current parameters */
   err = snd_pcm_sw_params(this->audio_fd, swparams);
   if (err < 0) {
-    printf ("audio_alsa_out: Unable to set swparams: %s\n", snd_strerror(err));
+    xprintf (this->class->xine, XINE_VERBOSITY_DEBUG, 
+	     "audio_alsa_out: Unable to set swparams: %s\n", snd_strerror(err));
     goto __close;
   }
 #ifdef ALSA_LOG
@@ -652,9 +678,9 @@ static void xrun(alsa_driver_t *this)
       timersub(&now, &tstamp, &diff);
       printf ("audio_alsa_out: xrun!!! (at least %.3f ms long)\n", diff.tv_sec * 1000 + diff.tv_usec / 1000.0);
     */
-    printf ("audio_alsa_out: XRUN!!!\n");
+    xprintf (this->class->xine, XINE_VERBOSITY_DEBUG, "audio_alsa_out: XRUN!!!\n");
     if ((res = snd_pcm_prepare(this->audio_fd))<0) {
-      printf ("audio_alsa_out: xrun: prepare error: %s", snd_strerror(res));
+      xprintf (this->class->xine, XINE_VERBOSITY_DEBUG, "audio_alsa_out: xrun: prepare error: %s", snd_strerror(res));
       return;
     }
     return;         /* ok, data should be accepted again */
@@ -704,7 +730,8 @@ static int ao_alsa_write(ao_driver_t *this_gen, int16_t *data, uint32_t count) {
   if ( (state != SND_PCM_STATE_PREPARED) &&
        (state != SND_PCM_STATE_RUNNING) &&
        (state != SND_PCM_STATE_DRAINING) ) {
-         printf("audio_alsa_out:write:BAD STATE, state = %d\n",state);
+    xprintf(this->class->xine, XINE_VERBOSITY_DEBUG, 
+	    "audio_alsa_out:write:BAD STATE, state = %d\n",state);
   }
         
   while( number_of_frames > 0) {
@@ -732,7 +759,8 @@ static int ao_alsa_write(ao_driver_t *this_gen, int16_t *data, uint32_t count) {
       if ( (state != SND_PCM_STATE_PREPARED) &&
            (state != SND_PCM_STATE_RUNNING) &&
            (state != SND_PCM_STATE_DRAINING) ) {
-        printf("audio_alsa_out:write:BAD STATE2, state = %d, going to try XRUN\n",state);
+        xprintf(this->class->xine, XINE_VERBOSITY_DEBUG, 
+		"audio_alsa_out:write:BAD STATE2, state = %d, going to try XRUN\n",state);
         if ((res = snd_pcm_prepare(this->audio_fd))<0) {
           XINE_ASSERT(0, "audio_alsa_out: xrun: prepare error: %s", snd_strerror(res));
         }
@@ -823,13 +851,15 @@ static int ao_alsa_get_property (ao_driver_t *this_gen, int property) {
 
       if((err = snd_mixer_selem_get_playback_volume(this->mixer.elem, SND_MIXER_SCHN_FRONT_LEFT,
 						    &this->mixer.left_vol)) < 0) {
-	printf("audio_alsa_out: snd_mixer_selem_get_playback_volume(): %s\n",  snd_strerror(err));
+	xprintf(this->class->xine, XINE_VERBOSITY_DEBUG, 
+		"audio_alsa_out: snd_mixer_selem_get_playback_volume(): %s\n",  snd_strerror(err));
 	goto __done;
       }
       
       if((err = snd_mixer_selem_get_playback_volume(this->mixer.elem, SND_MIXER_SCHN_FRONT_RIGHT,
 						    &this->mixer.right_vol)) < 0) {
-	printf("audio_alsa_out: snd_mixer_selem_get_playback_volume(): %s\n",  snd_strerror(err));
+	xprintf(this->class->xine, XINE_VERBOSITY_DEBUG, 
+		"audio_alsa_out: snd_mixer_selem_get_playback_volume(): %s\n",  snd_strerror(err));
 	goto __done;
       }
       
@@ -869,14 +899,16 @@ static int ao_alsa_set_property (ao_driver_t *this_gen, int property, int value)
       
       if((err = snd_mixer_selem_set_playback_volume(this->mixer.elem, SND_MIXER_SCHN_FRONT_LEFT,
 						    this->mixer.left_vol)) < 0) {
-	printf("audio_alsa_out: snd_mixer_selem_get_playback_volume(): %s\n",  snd_strerror(err));
+	xprintf(this->class->xine, XINE_VERBOSITY_DEBUG, 
+		"audio_alsa_out: snd_mixer_selem_get_playback_volume(): %s\n",  snd_strerror(err));
 	pthread_mutex_unlock(&this->mixer.mutex);
 	return ~value;
       }
       
       if((err = snd_mixer_selem_set_playback_volume(this->mixer.elem, SND_MIXER_SCHN_FRONT_RIGHT,
 						    this->mixer.right_vol)) < 0) {
-	printf("audio_alsa_out: snd_mixer_selem_get_playback_volume(): %s\n",  snd_strerror(err));
+	xprintf(this->class->xine, XINE_VERBOSITY_DEBUG, 
+		"audio_alsa_out: snd_mixer_selem_get_playback_volume(): %s\n",  snd_strerror(err));
 	pthread_mutex_unlock(&this->mixer.mutex);
 	return ~value;
       }
@@ -938,19 +970,23 @@ static int ao_alsa_ctrl(ao_driver_t *this_gen, int cmd, ...) {
     if (this->audio_fd) {
       if (this->has_pause_resume) {
         if ((err=snd_pcm_pause(this->audio_fd, 1)) < 0) {
-          printf("audio_alsa_out: Pause call failed. (err=%d:%s)\n",err, snd_strerror(err));
+          xprintf(this->class->xine, XINE_VERBOSITY_DEBUG, 
+		  "audio_alsa_out: Pause call failed. (err=%d:%s)\n",err, snd_strerror(err));
           this->has_pause_resume = 0;
           ao_alsa_ctrl(this_gen, AO_CTRL_PLAY_PAUSE);
         }
       } else {
         if ((err=snd_pcm_reset(this->audio_fd)) < 0) {
-          printf("audio_alsa_out: Reset call failed. (err=%d:%s)\n",err, snd_strerror(err));
+          xprintf(this->class->xine, XINE_VERBOSITY_DEBUG, 
+		  "audio_alsa_out: Reset call failed. (err=%d:%s)\n",err, snd_strerror(err));
         }
         if ((err=snd_pcm_drain(this->audio_fd)) < 0) {
-          printf("audio_alsa_out: Drain call failed. (err=%d:%s)\n",err, snd_strerror(err));
+          xprintf(this->class->xine, XINE_VERBOSITY_DEBUG, 
+		  "audio_alsa_out: Drain call failed. (err=%d:%s)\n",err, snd_strerror(err));
         }
         if ((err=snd_pcm_prepare(this->audio_fd)) < 0) {
-          printf("audio_alsa_out: Prepare call failed. (err=%d:%s)\n",err, snd_strerror(err));
+          xprintf(this->class->xine, XINE_VERBOSITY_DEBUG, 
+		  "audio_alsa_out: Prepare call failed. (err=%d:%s)\n",err, snd_strerror(err));
         }
       }
     }
@@ -961,10 +997,13 @@ static int ao_alsa_ctrl(ao_driver_t *this_gen, int cmd, ...) {
       if (this->has_pause_resume) {
         if ((err=snd_pcm_pause(this->audio_fd, 0)) < 0) {
           if (err == -77) {
-            printf("audio_alsa_out: Warning: How am I supposed to RESUME, if I am not PAUSED. audio_out.c, please don't call me!\n");
+            xprintf(this->class->xine, XINE_VERBOSITY_DEBUG, 
+		    "audio_alsa_out: Warning: How am I supposed to RESUME, if I am not PAUSED. "
+		    "audio_out.c, please don't call me!\n");
             break;
           }
-          printf("audio_alsa_out: Resume call failed. (err=%d:%s)\n",err, snd_strerror(err));
+          xprintf(this->class->xine, XINE_VERBOSITY_DEBUG, 
+		  "audio_alsa_out: Resume call failed. (err=%d:%s)\n",err, snd_strerror(err));
           this->has_pause_resume = 0;
         }
       }
@@ -974,10 +1013,12 @@ static int ao_alsa_ctrl(ao_driver_t *this_gen, int cmd, ...) {
   case AO_CTRL_FLUSH_BUFFERS:
     if (this->audio_fd) {
       if ((err=snd_pcm_drop(this->audio_fd)) < 0) {
-        printf("audio_alsa_out: Drop call failed. (err=%d:%s)\n",err, snd_strerror(err));
+        xprintf(this->class->xine, XINE_VERBOSITY_DEBUG, 
+		"audio_alsa_out: Drop call failed. (err=%d:%s)\n",err, snd_strerror(err));
       }
       if ((err=snd_pcm_prepare(this->audio_fd)) < 0) {
-        printf("audio_alsa_out: Prepare call failed. (err=%d:%s)\n",err, snd_strerror(err));
+        xprintf(this->class->xine, XINE_VERBOSITY_DEBUG, 
+		"audio_alsa_out: Prepare call failed. (err=%d:%s)\n",err, snd_strerror(err));
       }
     }
     break;
@@ -1015,12 +1056,13 @@ static void ao_alsa_mixer_init(ao_driver_t *this_gen) {
 				       NULL);
   
   if ((err = snd_ctl_open (&ctl_handle, pcm_device, 0)) < 0) {
-    printf ("audio_alsa_out: snd_ctl_open(): %s\n", snd_strerror(err));
+    xprintf (this->class->xine, XINE_VERBOSITY_DEBUG, "audio_alsa_out: snd_ctl_open(): %s\n", snd_strerror(err));
     return;
   }
   
   if ((err = snd_ctl_card_info (ctl_handle, hw_info)) < 0) {
-    printf ("audio_alsa_out: snd_ctl_card_info(): %s\n", snd_strerror(err));
+    xprintf (this->class->xine, XINE_VERBOSITY_DEBUG,
+	     "audio_alsa_out: snd_ctl_card_info(): %s\n", snd_strerror(err));
     snd_ctl_close(ctl_handle);
     return;
   }
@@ -1031,31 +1073,36 @@ static void ao_alsa_mixer_init(ao_driver_t *this_gen) {
    * Open mixer device
    */
   if ((err = snd_mixer_open (&this->mixer.handle, 0)) < 0) {
-    printf ("audio_alsa_out: snd_mixer_open(): %s\n", snd_strerror(err));
+    xprintf (this->class->xine, XINE_VERBOSITY_DEBUG, 
+	     "audio_alsa_out: snd_mixer_open(): %s\n", snd_strerror(err));
     return;
   }
   
   if ((err = snd_mixer_attach (this->mixer.handle, pcm_device)) < 0) {
-    printf ("audio_alsa_out: snd_mixer_attach(): %s\n", snd_strerror(err));
+    xprintf (this->class->xine, XINE_VERBOSITY_DEBUG, 
+	     "audio_alsa_out: snd_mixer_attach(): %s\n", snd_strerror(err));
     snd_mixer_close(this->mixer.handle);
     return;
   }
   
   if ((err = snd_mixer_selem_register (this->mixer.handle, NULL, NULL)) < 0) {
-    printf ("audio_alsa_out: snd_mixer_selem_register(): %s\n", snd_strerror(err));
+    xprintf (this->class->xine, XINE_VERBOSITY_DEBUG, 
+	     "audio_alsa_out: snd_mixer_selem_register(): %s\n", snd_strerror(err));
     snd_mixer_close(this->mixer.handle);
     return;
   }
 
   if ((err = snd_mixer_load (this->mixer.handle)) < 0) {
-    printf ("audio_alsa_out: snd_mixer_load(): %s\n", snd_strerror(err));
+    xprintf (this->class->xine, XINE_VERBOSITY_DEBUG, 
+	     "audio_alsa_out: snd_mixer_load(): %s\n", snd_strerror(err));
     snd_mixer_close(this->mixer.handle);
     return;
   }
   
   mixer_sid = alloca(snd_mixer_selem_id_sizeof() * snd_mixer_get_count(this->mixer.handle));
   if (mixer_sid == NULL) {
-    printf ("audio_alsa_out: alloca() failed: %s\n", strerror(errno));
+    xprintf (this->class->xine, XINE_VERBOSITY_DEBUG, 
+	     "audio_alsa_out: alloca() failed: %s\n", strerror(errno));
     snd_mixer_close(this->mixer.handle);
     return;
   }
@@ -1084,14 +1131,16 @@ static void ao_alsa_mixer_init(ao_driver_t *this_gen) {
 						&this->mixer.min, &this->mixer.max);
       if((err = snd_mixer_selem_get_playback_volume(this->mixer.elem, SND_MIXER_SCHN_FRONT_LEFT,
 						    &this->mixer.left_vol)) < 0) {
-	printf("audio_alsa_out: snd_mixer_selem_get_playback_volume(): %s\n",  snd_strerror(err));
+	xprintf(this->class->xine, XINE_VERBOSITY_DEBUG, 
+		"audio_alsa_out: snd_mixer_selem_get_playback_volume(): %s\n",  snd_strerror(err));
 	snd_mixer_close(this->mixer.handle);
 	return;
       }
       
       if((err = snd_mixer_selem_get_playback_volume(this->mixer.elem, SND_MIXER_SCHN_FRONT_RIGHT,
 						    &this->mixer.right_vol)) < 0) {
-	printf ("audio_alsa_out: snd_mixer_selem_get_playback_volume(): %s\n",  snd_strerror(err));
+	xprintf (this->class->xine, XINE_VERBOSITY_DEBUG, 
+		 "audio_alsa_out: snd_mixer_selem_get_playback_volume(): %s\n",  snd_strerror(err));
 	snd_mixer_close(this->mixer.handle);
 	return;
       }
@@ -1205,14 +1254,13 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
   char                *pcm_device;
   snd_pcm_hw_params_t *params;
 
-  this = (alsa_driver_t *) malloc (sizeof (alsa_driver_t));
-  memset( this, 0, sizeof( alsa_driver_t ) ); /* Set all those pointers to 0 (NULL) */
+  this = (alsa_driver_t *) xine_xmalloc (sizeof (alsa_driver_t));
 
   this->class = class;
 
   err = snd_lib_error_set_handler(error_callback);
   if(err < 0)
-    xine_log(this->class->xine, XINE_LOG_MSG, "snd_lib_error_set_handler() failed: %d", err); 
+    xine_log(this->class->xine, XINE_LOG_MSG, _("snd_lib_error_set_handler() failed: %d"), err); 
   
   snd_pcm_hw_params_alloca(&params);
   /* Fill the .xinerc file with options */ 
@@ -1277,9 +1325,9 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
   err=snd_pcm_open(&this->audio_fd, pcm_device, SND_PCM_STREAM_PLAYBACK, 1); /* NON-BLOCK mode */
   if(err <0 ) {
     xine_log (this->class->xine, XINE_LOG_MSG,
-          "snd_pcm_open() failed:%d:%s\n", err, snd_strerror(err)); 
+          _("snd_pcm_open() failed:%d:%s\n"), err, snd_strerror(err)); 
     xine_log (this->class->xine, XINE_LOG_MSG,
-          ">>> Check if another program don't already use PCM <<<\n"); 
+          _(">>> Check if another program don't already use PCM <<<\n")); 
     return NULL; 
   }
 
@@ -1288,30 +1336,32 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
    */
   err = snd_pcm_hw_params_any(this->audio_fd, params);
   if (err < 0) {
-    printf ("audio_alsa_out: broken configuration for this PCM: no configurations available\n");
+    xprintf (this->class->xine, XINE_VERBOSITY_DEBUG, 
+	     "audio_alsa_out: broken configuration for this PCM: no configurations available\n");
     return NULL;
   }
   err = snd_pcm_hw_params_set_access(this->audio_fd, params,
                                      SND_PCM_ACCESS_RW_INTERLEAVED);
   if (err < 0) {
-    printf ("audio_alsa_out: access type not available");
+    xprintf (this->class->xine, XINE_VERBOSITY_DEBUG, 
+	     "audio_alsa_out: access type not available");
     return NULL;
   }
 
   this->capabilities = 0;
 
-  xprintf(class->xine, XINE_VERBOSITY_LOG, "audio_alsa_out : supported modes are ");
+  xprintf(class->xine, XINE_VERBOSITY_LOG, _("audio_alsa_out : supported modes are "));
   if (!(snd_pcm_hw_params_test_format(this->audio_fd, params, SND_PCM_FORMAT_U8))) {
     this->capabilities |= AO_CAP_8BITS;
-    xprintf(class->xine, XINE_VERBOSITY_LOG, "8bit ");
+    xprintf(class->xine, XINE_VERBOSITY_LOG, _("8bit "));
   }
   if (!(snd_pcm_hw_params_test_channels(this->audio_fd, params, 1))) {
     this->capabilities |= AO_CAP_MODE_MONO;
-    xprintf(class->xine, XINE_VERBOSITY_LOG, "mono ");
+    xprintf(class->xine, XINE_VERBOSITY_LOG, _("mono "));
   }
   if (!(snd_pcm_hw_params_test_channels(this->audio_fd, params, 2))) {
     this->capabilities |= AO_CAP_MODE_STEREO;
-    xprintf(class->xine, XINE_VERBOSITY_LOG, "stereo ");
+    xprintf(class->xine, XINE_VERBOSITY_LOG, _("stereo "));
   }
   if (!(snd_pcm_hw_params_test_channels(this->audio_fd, params, 4)) &&
         config->register_bool (config,
@@ -1322,10 +1372,10 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
                                0, NULL,
                                NULL) ) {
     this->capabilities |= AO_CAP_MODE_4CHANNEL;
-    xprintf(class->xine, XINE_VERBOSITY_LOG, "4-channel ");
+    xprintf(class->xine, XINE_VERBOSITY_LOG, _("4-channel "));
   } 
   else
-    xprintf(class->xine, XINE_VERBOSITY_LOG, "(4-channel not enabled in xine config) ");
+    xprintf(class->xine, XINE_VERBOSITY_LOG, _("(4-channel not enabled in xine config) "));
   
   if (!(snd_pcm_hw_params_test_channels(this->audio_fd, params, 6)) && 
         config->register_bool (config,
@@ -1336,10 +1386,10 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
                                0, NULL,
                                NULL) ) {
     this->capabilities |= AO_CAP_MODE_4_1CHANNEL;
-    xprintf(class->xine, XINE_VERBOSITY_LOG, "4.1-channel ");
+    xprintf(class->xine, XINE_VERBOSITY_LOG, _("4.1-channel "));
   } 
   else
-    xprintf(class->xine, XINE_VERBOSITY_LOG, "(4.1-channel not enabled in xine config) ");
+    xprintf(class->xine, XINE_VERBOSITY_LOG, _("(4.1-channel not enabled in xine config) "));
 
   if (!(snd_pcm_hw_params_test_channels(this->audio_fd, params, 6)) && 
         config->register_bool (config,
@@ -1350,10 +1400,10 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
                                0, NULL,
                                NULL) ) {
     this->capabilities |= AO_CAP_MODE_5CHANNEL;
-    xprintf(class->xine, XINE_VERBOSITY_LOG, "5-channel ");
+    xprintf(class->xine, XINE_VERBOSITY_LOG, _("5-channel "));
   } 
   else
-    xprintf(class->xine, XINE_VERBOSITY_LOG, "(5-channel not enabled in xine config) ");
+    xprintf(class->xine, XINE_VERBOSITY_LOG, _("(5-channel not enabled in xine config) "));
 
   if (!(snd_pcm_hw_params_test_channels(this->audio_fd, params, 6)) && 
         config->register_bool (config,
@@ -1364,10 +1414,10 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
                                0, NULL,
                                NULL) ) {
     this->capabilities |= AO_CAP_MODE_5_1CHANNEL;
-    xprintf(class->xine, XINE_VERBOSITY_LOG, "5.1-channel ");
+    xprintf(class->xine, XINE_VERBOSITY_LOG, _("5.1-channel "));
   } 
   else
-    xprintf(class->xine, XINE_VERBOSITY_LOG, "(5.1-channel not enabled in xine config) ");
+    xprintf(class->xine, XINE_VERBOSITY_LOG, _("(5.1-channel not enabled in xine config) "));
 
  
   this->has_pause_resume = 0; /* This is checked at open time instead */
@@ -1402,10 +1452,10 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
                                this) ) {
     this->capabilities |= AO_CAP_MODE_A52;
     this->capabilities |= AO_CAP_MODE_AC5;
-    xprintf(class->xine, XINE_VERBOSITY_LOG, "a/52 and DTS pass-through ");
+    xprintf(class->xine, XINE_VERBOSITY_LOG, _("a/52 and DTS pass-through "));
   } 
   else
-    xprintf(class->xine, XINE_VERBOSITY_LOG, "(a/52 and DTS pass-through not enabled in xine config)");
+    xprintf(class->xine, XINE_VERBOSITY_LOG, _("(a/52 and DTS pass-through not enabled in xine config)"));
 
   /* printf("audio_alsa_out: capabilities 0x%X\n",this->capabilities); */
 
@@ -1459,7 +1509,7 @@ static void *init_class (xine_t *xine, void *data) {
 
   alsa_class_t        *this;
 
-  this = (alsa_class_t *) malloc (sizeof (alsa_class_t));
+  this = (alsa_class_t *) xine_xmalloc (sizeof (alsa_class_t));
 
   this->driver_class.open_plugin     = open_plugin;
   this->driver_class.get_identifier  = get_identifier;

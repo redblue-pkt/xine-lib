@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_none_out.c,v 1.4 2003/10/06 15:27:10 mroi Exp $
+ * $Id: audio_none_out.c,v 1.5 2003/12/05 15:54:56 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -48,6 +48,8 @@ typedef struct none_driver_s {
 
   ao_driver_t    ao_driver;
 
+  xine_t        *xine;
+
   int            capabilities;
   int            mode;
 
@@ -61,20 +63,21 @@ typedef struct none_driver_s {
 } none_driver_t;
 
 typedef struct {
-  audio_driver_class_t driver_class;
+  audio_driver_class_t  driver_class;
 
-  config_values_t *config;
+  config_values_t      *config;
+  xine_t               *xine;
 } none_class_t;
 
 /*
  * open the audio device for writing to
  */
-static int ao_none_open(ao_driver_t *this_gen,
-		   uint32_t bits, uint32_t rate, int mode)
+static int ao_none_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int mode)
 {
   none_driver_t *this = (none_driver_t *) this_gen;
 
-  printf ("audio_none_out: ao_open bits=%d rate=%d, mode=%d\n", bits, rate, mode);
+  xprintf (this->xine, XINE_VERBOSITY_DEBUG, 
+	   "audio_none_out: ao_open bits=%d rate=%d, mode=%d\n", bits, rate, mode);
 
   this->mode                   = mode;
   this->sample_rate            = rate;
@@ -179,14 +182,15 @@ static int ao_none_ctrl(ao_driver_t *this_gen, int cmd, ...) {
 static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, 
 				 const void *data) {
 
-  /* none_class_t     *class = (none_class_t *) class_gen; */
+  none_class_t     *class = (none_class_t *) class_gen;
   /* config_values_t *config = class->config; */
   none_driver_t    *this;
 
-  printf ("audio_none_out: open_plugin called\n");
+  lprintf ("audio_none_out: open_plugin called\n");
 
-  this = (none_driver_t *) malloc (sizeof (none_driver_t));
+  this = (none_driver_t *) xine_xmalloc (sizeof (none_driver_t));
 
+  this->xine = class->xine;
   this->capabilities = AO_CAP_MODE_MONO | AO_CAP_MODE_STEREO;
 
   this->sample_rate  = 0;
@@ -230,9 +234,9 @@ static void *init_class (xine_t *xine, void *data) {
 
   none_class_t        *this;
 
-  printf ("audio_none_out: init class\n");
+  lprintf ("audio_none_out: init class\n");
 
-  this = (none_class_t *) malloc (sizeof (none_class_t));
+  this = (none_class_t *) xine_xmalloc (sizeof (none_class_t));
 
   this->driver_class.open_plugin     = open_plugin;
   this->driver_class.get_identifier  = get_identifier;
@@ -240,6 +244,7 @@ static void *init_class (xine_t *xine, void *data) {
   this->driver_class.dispose         = dispose_class;
 
   this->config = xine->config;
+  this->xine   = xine;
 
   return this;
 }

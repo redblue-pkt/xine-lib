@@ -17,7 +17,7 @@
  *  along with this program; if not, write to the Free Software
  *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- *  $Id: xmllexer.c,v 1.4 2003/11/26 19:43:38 f1rmb Exp $
+ *  $Id: xmllexer.c,v 1.5 2003/12/05 15:55:05 f1rmb Exp $
  *
  */
 
@@ -347,7 +347,7 @@ int lexer_get_token(char * tok, int tok_size) {
 	  }
 	  break;
 	default:
-	  printf("xmllexer: expected char \'%c\'\n", tok[tok_pos - 1]); /* FIX ME */
+	  lprintf("xmllexer: expected char \'%c\'\n", tok[tok_pos - 1]); /* FIX ME */
 	  return T_ERROR;
 	}
       } else {
@@ -368,7 +368,7 @@ int lexer_get_token(char * tok, int tok_size) {
 
     /* pb */
     if (tok_pos >= tok_size) {
-      printf("xmllexer: token buffer is too little\n");
+      lprintf("xmllexer: token buffer is too little\n");
     } else {
       if (lexbuf_pos >= lexbuf_size) {
 				/* Terminate the current token */
@@ -398,15 +398,15 @@ int lexer_get_token(char * tok, int tok_size) {
 	  return T_DATA;
 	  break;
 	default:
-	  printf("xmllexer: unknown state, state=%d\n", state);
+	  lprintf("xmllexer: unknown state, state=%d\n", state);
 	}
       } else {
-	printf("xmllexer: abnormal end of buffer, state=%d\n", state);
+	lprintf("xmllexer: abnormal end of buffer, state=%d\n", state);
       }
     }
     return T_ERROR;
   }
   /* tok == null */
-  printf("xmllexer: token buffer is null\n");
+  lprintf("xmllexer: token buffer is null\n");
   return T_ERROR;
 }

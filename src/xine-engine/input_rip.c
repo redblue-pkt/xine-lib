@@ -29,7 +29,7 @@
  * - it's possible speeder saving streams in the xine without playing:
  *     xine stream_mrl#save:file.raw\;noaudio\;novideo
  *
- * $Id: input_rip.c,v 1.18 2003/11/26 19:43:38 f1rmb Exp $
+ * $Id: input_rip.c,v 1.19 2003/12/05 15:55:04 f1rmb Exp $
  */
 
 /* TODO:
@@ -127,7 +127,7 @@ static off_t rip_plugin_read(input_plugin_t *this_gen, char *buf, off_t len) {
     lprintf(" => read %lld bytes from file\n", nread_file);
     if (fread(&buf[npreview], nread_file, 1, this->file) != 1) {
       xine_log(this->stream->xine, XINE_LOG_MSG,
-        _("input_rip: reading of saved data failed: %s\n"), strerror(errno));
+	       _("input_rip: reading of saved data failed: %s\n"), strerror(errno));
       return -1;
     }
   }
@@ -142,7 +142,7 @@ static off_t rip_plugin_read(input_plugin_t *this_gen, char *buf, off_t len) {
 
     if (retlen < 0) {
       xine_log(this->stream->xine, XINE_LOG_MSG, 
-        _("input_rip: reading by input plugin failed\n"));
+	       _("input_rip: reading by input plugin failed\n"));
       return -1;
     }
 
@@ -151,7 +151,7 @@ static off_t rip_plugin_read(input_plugin_t *this_gen, char *buf, off_t len) {
       nwrite = retlen - nread_orig;
       if (fwrite(buf + this->savepos - this->curpos, nwrite, 1, this->file) != 1) {
         xine_log(this->stream->xine, XINE_LOG_MSG, 
-          _("input_rip: error writing to file %lld bytes: %s\n"), 
+		 _("input_rip: error writing to file %lld bytes: %s\n"), 
           retlen - nread_orig, strerror(errno));
         return -1;
       }
@@ -173,7 +173,7 @@ static int rip_plugin_open(input_plugin_t *this_gen) {
   rip_input_plugin_t *this = (rip_input_plugin_t *)this_gen;
 
   xine_log(this->stream->xine, XINE_LOG_MSG,
-      _("input_rip: open() function should never be called\n"));
+	   _("input_rip: open() function should never be called\n"));
   return 0;
 }
 
@@ -249,7 +249,7 @@ static buf_element_t *rip_plugin_read_block(input_plugin_t *this_gen, fifo_buffe
       lprintf(" => read %lld bytes from the file (block)\n", nread_file);
       if (fread(&buf->content[npreview], nread_file, 1, this->file) != 1) {
         xine_log(this->stream->xine, XINE_LOG_MSG,
-          _("input_rip: reading of saved data failed: %s\n"), strerror(errno));
+		 _("input_rip: reading of saved data failed: %s\n"), strerror(errno));
         return NULL;
       }
     }
@@ -280,7 +280,7 @@ static buf_element_t *rip_plugin_read_block(input_plugin_t *this_gen, fifo_buffe
       nwrite = retlen - nread_orig;
       if (fwrite(buf->content + this->savepos - this->curpos, nwrite, 1, this->file) != 1) {
         xine_log(this->stream->xine, XINE_LOG_MSG, 
-          _("input_rip: error writing to file %lld bytes: %s\n"), 
+		 _("input_rip: error writing to file %lld bytes: %s\n"), 
           retlen - nread_orig, strerror(errno));
         return NULL;
       }
@@ -303,8 +303,7 @@ static off_t rip_seek_original(rip_input_plugin_t *this, off_t reqpos) {
 
   pos = this->main_input_plugin->seek(this->main_input_plugin, reqpos, SEEK_SET);
   if (pos == -1) {
-    xine_log(this->stream->xine, XINE_LOG_MSG, 
-      _("input_rip: seeking failed\n"));
+    xine_log(this->stream->xine, XINE_LOG_MSG, _("input_rip: seeking failed\n"));
     return -1;
   }
 #ifdef LOG
@@ -361,8 +360,7 @@ static off_t rip_plugin_seek(input_plugin_t *this_gen, off_t offset, int origin)
       if (reqpos != this->savepos) {
         lprintf(" => seeking file to %lld\n", reqpos);
         if (fseeko(this->file, reqpos, SEEK_SET) != 0) {
-          xine_log(this->stream->xine, XINE_LOG_MSG, 
-            _("input_rip: seeking failed: %s\n"), strerror(errno));
+          xine_log(this->stream->xine, XINE_LOG_MSG, _("input_rip: seeking failed: %s\n"), strerror(errno));
           return -1;
         }
       }
@@ -380,17 +378,15 @@ static off_t rip_plugin_seek(input_plugin_t *this_gen, off_t offset, int origin)
     if (this->regular) {
       lprintf(" => seeking file to end: %lld\n", this->savepos);
       if (fseeko(this->file, this->savepos, SEEK_SET) != 0) {
-        xine_log(this->stream->xine, XINE_LOG_MSG, 
-          _("input_rip: seeking failed: %s\n"), strerror(errno));
+        xine_log(this->stream->xine, XINE_LOG_MSG, _("input_rip: seeking failed: %s\n"), strerror(errno));
         return -1;
       }
       this->curpos = this->savepos;
     } else {
       if ((pos = rip_seek_original(this, this->savepos)) == -1) return -1;
       if (pos > this->savepos)
-        xine_log(this->stream->xine, XINE_LOG_MSG,
-          _("input_rip: %lld bytes dropped\n"), 
-	  pos - this->savepos);
+        xine_log(this->stream->xine, XINE_LOG_MSG, _("input_rip: %lld bytes dropped\n"), 
+		 pos - this->savepos);
     }
   }
 
@@ -411,8 +407,7 @@ static off_t rip_plugin_seek(input_plugin_t *this_gen, off_t offset, int origin)
         toread = sizeof(buffer);
 
       if( rip_plugin_read(this_gen, buffer, toread) <= 0 ) {
-        xine_log(this->stream->xine, XINE_LOG_MSG, 
-                 _("input_rip: seeking failed\n"));
+        xine_log(this->stream->xine, XINE_LOG_MSG, _("input_rip: seeking failed\n"));
         break;
       }
     }
@@ -540,32 +535,30 @@ input_plugin_t *_x_rip_plugin_get_instance (xine_stream_t *stream, const char *f
 
   /* check given input plugin */
   if (!stream->input_plugin) {
-    xine_log(stream->xine, XINE_LOG_MSG, 
-      _("input_rip: input plugin not defined!\n"));
+    xine_log(stream->xine, XINE_LOG_MSG, _("input_rip: input plugin not defined!\n"));
     return NULL;
   }
 
   if (!stream->xine->save_path[0]) {
     xine_log(stream->xine, XINE_LOG_MSG,
-      _("input_rip: target directory wasn't specified, please fill out the option 'misc.save_dir'\n"));
+	     _("input_rip: target directory wasn't specified, please fill out the option 'misc.save_dir'\n"));
     _x_message(stream, XINE_MSG_SECURITY,
-      _("The stream save feature is disabled until you set misc.save_dir in the configuration."));
+	       _("The stream save feature is disabled until you set misc.save_dir in the configuration."));
     return NULL;
   }
 
 #ifndef SAVING_ALWAYS_PERMIT
   if ( main_plugin->get_capabilities(main_plugin) & INPUT_CAP_RIP_FORBIDDEN ) {
     xine_log(stream->xine, XINE_LOG_MSG, 
-      _("input_rip: ripping/caching of this source is not permitted!\n"));
+	     _("input_rip: ripping/caching of this source is not permitted!\n"));
     _x_message(stream, XINE_MSG_SECURITY,
-      _("xine is not allowed to save from this source. (possibly copyrighted material?)"));
+	       _("xine is not allowed to save from this source. (possibly copyrighted material?)"));
     return NULL;
   }
 #endif
 
   if (!filename || !filename[0]) {
-    xine_log(stream->xine, XINE_LOG_MSG, 
-      _("input_rip: file name not given!\n"));
+    xine_log(stream->xine, XINE_LOG_MSG, _("input_rip: file name not given!\n"));
     return NULL;
   }
 
@@ -584,8 +577,7 @@ input_plugin_t *_x_rip_plugin_get_instance (xine_stream_t *stream, const char *f
   /* find out type of target */
   if (stat(target, &pstat) < 0 && errno != ENOENT) {
     xine_log(this->stream->xine, XINE_LOG_MSG,
-      _("input_rip: stat on the file %s failed: %s\n"), 
-      target, strerror(errno));
+	     _("input_rip: stat on the file %s failed: %s\n"), target, strerror(errno));
     free(this);
     return NULL;
   }
@@ -605,8 +597,7 @@ input_plugin_t *_x_rip_plugin_get_instance (xine_stream_t *stream, const char *f
   
   if ((this->file = fopen(target, mode)) == NULL) {
     xine_log(this->stream->xine, XINE_LOG_MSG, 
-      _("input_rip: error opening file %s: %s\n"), 
-      target, strerror(errno));
+	     _("input_rip: error opening file %s: %s\n"), target, strerror(errno));
     free(this);
     return NULL;
   }
@@ -636,8 +627,7 @@ input_plugin_t *_x_rip_plugin_get_instance (xine_stream_t *stream, const char *f
   if (this->preview && this->preview_size) {
     if (fwrite(this->preview, this->preview_size, 1, this->file) != 1) {
       xine_log(this->stream->xine, XINE_LOG_MSG, 
-        _("input_rip: error writing to file %lld bytes: %s\n"), 
-        this->preview_size, strerror(errno));
+	       _("input_rip: error writing to file %lld bytes: %s\n"), this->preview_size, strerror(errno));
       fclose(this->file);
       free(this);
       return NULL;

@@ -77,17 +77,18 @@ typedef struct {
   struct dmx_pes_filter_params   pesFilterParamsV;
   struct dmx_pes_filter_params   pesFilterParamsA;
 
+  xine_t                        *xine;
 } tuner_t;
 
 typedef struct {
 
-  char *name;
-  struct dvb_frontend_parameters front_param;
-  int vpid;
-  int apid;
-  int sat_no;
-  int tone;
-  int pol;   
+  char                            *name;
+  struct dvb_frontend_parameters   front_param;
+  int                              vpid;
+  int                              apid;
+  int                              sat_no;
+  int                              tone;
+  int                              pol;
 } channel_t;
 
 typedef struct {
@@ -103,7 +104,7 @@ typedef struct {
 typedef struct {
   input_plugin_t      input_plugin;
 
-  dvb_input_class_t  *cls;
+  dvb_input_class_t  *class;
 
   xine_stream_t      *stream;
 
@@ -209,38 +210,39 @@ static void tuner_dispose (tuner_t *this) {
   free (this);
 }
 
-static tuner_t *tuner_init () {
+static tuner_t *tuner_init (xine_t *xine) {
 
   tuner_t *this;
 
-  this = malloc (sizeof (tuner_t));
+  this = (tuner_t *) xine_xmalloc(sizeof(tuner_t));
 
   this->fd_frontend = -1;
-  this->fd_demuxa = -1;
-  this->fd_demuxv = -1;
+  this->fd_demuxa   = -1;
+  this->fd_demuxv   = -1;
+  this->xine        = xine;
 
   if ((this->fd_frontend = open(FRONTEND_DEVICE, O_RDWR)) < 0){
-    perror("FRONTEND DEVICE");
+    xprintf(this->xine, XINE_VERBOSITY_DEBUG, "FRONTEND DEVICE: %s\n", strerror(errno));
     tuner_dispose(this);
     return NULL;
   }
 
   if ((ioctl (this->fd_frontend, FE_GET_INFO, &this->feinfo)) < 0) {
-    perror("FE_GET_INFO");
+    xprintf(this->xine, XINE_VERBOSITY_DEBUG, "FE_GET_INFO: %s\n", strerror(errno));
     tuner_dispose(this);
     return NULL;
   }
 
   this->fd_demuxa = open (DEMUX_DEVICE, O_RDWR);
   if (this->fd_demuxa < 0) {
-    perror ("DEMUX DEVICE audio");
+    xprintf(this->xine, XINE_VERBOSITY_DEBUG, "DEMUX DEVICE audio: %s\n", strerror(errno));
     tuner_dispose(this);
     return NULL;
   }
 
   this->fd_demuxv=open (DEMUX_DEVICE, O_RDWR);
   if (this->fd_demuxv < 0) {
-    perror ("DEMUX DEVICE video");
+    xprintf(this->xine, XINE_VERBOSITY_DEBUG, "DEMUX DEVICE video: %s\n", strerror(errno));
     tuner_dispose(this);
     return NULL;
   }
@@ -263,7 +265,7 @@ static void tuner_set_vpid (tuner_t *this, ushort vpid) {
   this->pesFilterParamsV.flags    = DMX_IMMEDIATE_START;
   if (ioctl(this->fd_demuxv, DMX_SET_PES_FILTER,
 	    &this->pesFilterParamsV) < 0)
-    perror("set_vpid");
+    xprintf(this->xine, XINE_VERBOSITY_DEBUG, "set_vpid: %s\n", strerror(errno));
 }
 
 static void tuner_set_apid (tuner_t *this, ushort apid) {
@@ -279,7 +281,7 @@ static void tuner_set_apid (tuner_t *this, ushort apid) {
   this->pesFilterParamsA.flags    = DMX_IMMEDIATE_START;
   if (ioctl (this->fd_demuxa, DMX_SET_PES_FILTER,
 	     &this->pesFilterParamsA) < 0)
-    perror("set_apid");
+    xprintf(this->xine, XINE_VERBOSITY_DEBUG, "set_apid: %s\n", strerror(errno));
 }
 
 static int tuner_set_diseqc(tuner_t *this, channel_t *c)
@@ -315,17 +317,19 @@ static int tuner_tune_it (tuner_t *this, struct dvb_frontend_parameters
   fe_status_t status;
 
   if (ioctl(this->fd_frontend, FE_SET_FRONTEND, front_param) <0) {
-    perror("setfront front");
+    xprintf(this->xine, XINE_VERBOSITY_DEBUG, "setfront front: %s\n", strerror(errno));
   }
   
   do {
     if (ioctl(this->fd_frontend, FE_READ_STATUS, &status) < 0) {
-      perror("fe get event");
+      xprintf(this->xine, XINE_VERBOSITY_DEBUG, "fe get event: %s\n", strerror(errno));
       return 0;
-     }
-     printf("input_dvb: status: %x\n", status);
-     if (status & FE_HAS_LOCK) {
-       return 1;
+    }
+
+    xprintf(this->xine, XINE_VERBOSITY_DEBUG, "input_dvb: status: %x\n", status);
+
+    if (status & FE_HAS_LOCK) {
+      return 1;
     }
     usleep(500000);
   }
@@ -334,19 +338,20 @@ static int tuner_tune_it (tuner_t *this, struct dvb_frontend_parameters
   return 0;
 }
 
-static void print_channel (channel_t *channel) {
-  printf ("input_dvb: channel '%s' freq %d vpid %d apid %d\n",
-	  channel->name,
-	  channel->front_param.frequency,
-	  channel->vpid,
-	  channel->apid);
+static void print_channel (xine_t *xine, channel_t *channel) {
+  xprintf (xine, XINE_VERBOSITY_DEBUG, 
+	   "input_dvb: channel '%s' freq %d vpid %d apid %d\n",
+	   channel->name,
+	   channel->front_param.frequency,
+	   channel->vpid,
+	   channel->apid);
 }
 
 
 static int tuner_set_channel (tuner_t *this,
 			      channel_t *c) {
 
-  print_channel (c);
+  print_channel (this->xine, c);
 
   tuner_set_vpid (this, 0);
   tuner_set_apid (this, 0);
@@ -402,18 +407,18 @@ static void switch_channel (dvb_input_plugin_t *this) {
   close (this->fd);
 
   if (!tuner_set_channel (this->tuner, &this->channels[this->channel])) {
-    printf ("input_dvb: tuner_set_channel failed\n");
+    xprintf (this->class->xine, XINE_VERBOSITY_LOG, _("input_dvb: tuner_set_channel failed\n"));
     pthread_mutex_unlock (&this->mutex);
     return;
   }
 
-  event.type = XINE_EVENT_PIDS_CHANGE;
+ event.type = XINE_EVENT_PIDS_CHANGE;
   data.vpid = this->channels[this->channel].vpid;
   data.apid = this->channels[this->channel].apid;
   event.data = &data;
   event.data_length = sizeof (xine_pids_data_t);
 
-  printf ("input_dvb: sending event\n");
+  xprintf (this->class->xine, XINE_VERBOSITY_DEBUG, "input_dvb: sending event\n");
 
   xine_event_send (this->stream, &event);
 
@@ -429,7 +434,7 @@ static void switch_channel (dvb_input_plugin_t *this) {
   event.data_length = sizeof(ui_data);
   xine_event_send(this->stream, &event);
 
-  printf ("input_dvb: ui title event sent\n");
+  lprintf ("input_dvb: ui title event sent\n");
   
   this->fd = open (DVR_DEVICE, O_RDONLY);
 
@@ -673,7 +678,7 @@ static int find_param(const Param *list, const char *name)
   return list->value;;
 }
 
-static channel_t *load_channels (int *num_ch, fe_type_t fe_type) {
+static channel_t *load_channels (xine_t *xine, int *num_ch, fe_type_t fe_type) {
 
   FILE      *f;
   char       str[BUFSIZE];
@@ -685,7 +690,7 @@ static channel_t *load_channels (int *num_ch, fe_type_t fe_type) {
 
   f = fopen (filename, "rb");
   if (!f) {
-    printf ("input_dvb: failed to open dvb channel file '%s'\n", filename);
+    xprintf (xine, XINE_VERBOSITY_LOG, _("input_dvb: failed to open dvb channel file '%s'\n"), filename);
     return NULL;
   }
 
@@ -697,7 +702,8 @@ static channel_t *load_channels (int *num_ch, fe_type_t fe_type) {
     num_channels++;
   }
   fclose (f);
-  printf ("input_dvb: %d channels found.\n", num_channels);
+  
+  xprintf (xine, XINE_VERBOSITY_DEBUG, "input_dvb: %d channels found.\n", num_channels);
 
   channels = malloc (sizeof (channel_t) * num_channels);
 
@@ -875,12 +881,12 @@ static int dvb_plugin_open (input_plugin_t *this_gen) {
   int                 num_channels;
   char                str[256];
   
-  if ( !(tuner = tuner_init()) ) {
-    printf ("input_dvb: cannot open dvb device\n");
+  if ( !(tuner = tuner_init(this->class->xine)) ) {
+    xprintf (this->class->xine, XINE_VERBOSITY_LOG, _("input_dvb: cannot open dvb device\n"));
     return 0;
   }
 
-  if ( !(channels = load_channels(&num_channels, tuner->feinfo.type)) ) {
+  if ( !(channels = load_channels(this->class->xine, &num_channels, tuner->feinfo.type)) ) {
     tuner_dispose (tuner);
     return 0;
   }
@@ -893,14 +899,14 @@ static int dvb_plugin_open (input_plugin_t *this_gen) {
     this->channel = 0;
 
   if (!tuner_set_channel (this->tuner, &this->channels[this->channel])) {
-    printf ("input_dvb: tuner_set_channel failed\n");
+    xprintf (this->class->xine, XINE_VERBOSITY_LOG, _("input_dvb: tuner_set_channel failed\n"));
     tuner_dispose(this->tuner);
     free(this->channels);
     return 0;
   }
 
   if ((this->fd = open (DVR_DEVICE, O_RDONLY)) < 0){
-    printf ("input_dvb: cannot open dvr device '%s'\n", DVR_DEVICE);
+    xprintf (this->class->xine, XINE_VERBOSITY_LOG, _("input_dvb: cannot open dvr device '%s'\n"), DVR_DEVICE);
     tuner_dispose(this->tuner);
     free(this->channels);
     return 0;
@@ -950,11 +956,11 @@ static int dvb_plugin_open (input_plugin_t *this_gen) {
   return 1;
 }
 
-static input_plugin_t *dvb_class_get_instance (input_class_t *cls_gen,
+static input_plugin_t *dvb_class_get_instance (input_class_t *class_gen,
 				    xine_stream_t *stream,
 				    const char *data) {
 
-  dvb_input_class_t  *cls = (dvb_input_class_t *) cls_gen;
+  dvb_input_class_t  *class = (dvb_input_class_t *) class_gen;
   dvb_input_plugin_t *this;
   char               *mrl = (char *) data;
 
@@ -965,7 +971,7 @@ static input_plugin_t *dvb_class_get_instance (input_class_t *cls_gen,
 
   this->stream       = stream;
   this->mrl          = strdup(mrl);
-  this->cls          = cls;
+  this->class        = class;
   this->tuner        = NULL;
   this->channels     = NULL;
   this->fd           = -1;
@@ -985,7 +991,7 @@ static input_plugin_t *dvb_class_get_instance (input_class_t *cls_gen,
   this->input_plugin.get_mrl           = dvb_plugin_get_mrl;
   this->input_plugin.get_optional_data = dvb_plugin_get_optional_data;
   this->input_plugin.dispose           = dvb_plugin_dispose;
-  this->input_plugin.input_class       = cls_gen;
+  this->input_plugin.input_class       = class_gen;
 
   return &this->input_plugin;
 }
@@ -1003,8 +1009,8 @@ static char *dvb_class_get_identifier (input_class_t *this_gen) {
 }
 
 static void dvb_class_dispose (input_class_t *this_gen) {
-  dvb_input_class_t *cls = (dvb_input_class_t *) this_gen;
-  free (cls);
+  dvb_input_class_t *class = (dvb_input_class_t *) this_gen;
+  free (class);
 }
 
 static int dvb_class_eject_media (input_class_t *this_gen) {
@@ -1013,10 +1019,10 @@ static int dvb_class_eject_media (input_class_t *this_gen) {
 
 static char ** dvb_class_get_autoplay_list (input_class_t *this_gen,
 					    int *num_files) {
-  dvb_input_class_t *cls = (dvb_input_class_t *) this_gen;
+  dvb_input_class_t *class = (dvb_input_class_t *) this_gen;
 
   *num_files = 1;
-  return cls->mrls;
+  return class->mrls;
 }
 
 static void *init_class (xine_t *xine, void *data) {

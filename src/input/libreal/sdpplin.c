@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: sdpplin.c,v 1.2 2003/11/26 19:43:31 f1rmb Exp $
+ * $Id: sdpplin.c,v 1.3 2003/12/05 15:54:58 f1rmb Exp $
  *
  * sdp/sdpplin parser.
  *
@@ -117,7 +117,7 @@ static int filter(const char *in, const char *filter, char **out) {
 }
 static sdpplin_stream_t *sdpplin_parse_stream(char **data) {
 
-  sdpplin_stream_t *desc=xine_xmalloc(sizeof(sdpplin_stream_t));
+  sdpplin_stream_t *desc = xine_xmalloc(sizeof(sdpplin_stream_t));
   char      *buf=xine_buffer_init(32);
   char      *decoded=xine_buffer_init(32);
   int       handled;
@@ -126,7 +126,7 @@ static sdpplin_stream_t *sdpplin_parse_stream(char **data) {
     desc->id = strdup(buf);
   } else
   {
-    printf("sdpplin: no m= found.\n");
+    lprintf("sdpplin: no m= found.\n");
     free(desc);
     xine_buffer_free(buf);
     return NULL;
@@ -193,7 +193,7 @@ static sdpplin_stream_t *sdpplin_parse_stream(char **data) {
 
     if(filter(*data,"a=OpaqueData:buffer;",&buf)) {
       decoded = b64_decode(buf, decoded, &(desc->mlti_data_size));
-      desc->mlti_data=malloc(sizeof(char)*desc->mlti_data_size);
+      desc->mlti_data = malloc(sizeof(char)*desc->mlti_data_size);
       memcpy(desc->mlti_data, decoded, desc->mlti_data_size);
       handled=1;
       *data=nl(*data);
@@ -225,7 +225,7 @@ static sdpplin_stream_t *sdpplin_parse_stream(char **data) {
 
 sdpplin_t *sdpplin_parse(char *data) {
 
-  sdpplin_t        *desc=xine_xmalloc(sizeof(sdpplin_t));
+  sdpplin_t        *desc = xine_xmalloc(sizeof(sdpplin_t));
   sdpplin_stream_t *stream;
   char             *buf=xine_buffer_init(32);
   char             *decoded=xine_buffer_init(32);
@@ -273,7 +273,7 @@ sdpplin_t *sdpplin_parse(char *data) {
     
     if(filter(data,"a=StreamCount:integer;",&buf)) {
       desc->stream_count=atoi(buf);
-      desc->stream=malloc(sizeof(sdpplin_stream_t*)*desc->stream_count);
+      desc->stream = malloc(sizeof(sdpplin_stream_t*)*desc->stream_count);
       handled=1;
       data=nl(data);
     }

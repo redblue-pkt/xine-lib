@@ -244,23 +244,27 @@ flac_error_callback (const FLAC__SeekableStreamDecoder *decoder,
                      FLAC__StreamDecoderErrorStatus status,
                      void *client_data)
 {
+    demux_flac_t *this = (demux_flac_t *)client_data;
     /* This will be called if there is an error when flac is seeking
      * in the stream.
      */
-    demux_flac_t *this = (demux_flac_t *)client_data;
 
-    printf("demux_flac: flac_error_callback\n");
+    xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "demux_flac: flac_error_callback\n");
+
     if (status == FLAC__STREAM_DECODER_ERROR_STATUS_LOST_SYNC)
-        printf("demux_flac: Decoder lost synchronization.\n");
+      xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
+	      "demux_flac: Decoder lost synchronization.\n");
     else if (status == FLAC__STREAM_DECODER_ERROR_STATUS_BAD_HEADER)
-        printf("demux_flac: Decoder encounted a corrupted frame header.\n");
+      xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
+	      "demux_flac: Decoder encounted a corrupted frame header.\n");
     else if (status == FLAC__STREAM_DECODER_ERROR_STATUS_FRAME_CRC_MISMATCH)
-        printf("demux_flac: Frame's data did not match the CRC in the footer.\n");
+      xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
+	      "demux_flac: Frame's data did not match the CRC in the footer.\n");
     else
-        printf("demux_flac: unknown error.\n");
-
+      xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "demux_flac: unknown error.\n");
+    
     this->status = DEMUX_FINISHED;
-
+    
     return;
 }
 

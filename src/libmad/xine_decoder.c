@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.44 2003/11/26 19:43:32 f1rmb Exp $
+ * $Id: xine_decoder.c,v 1.45 2003/12/05 15:54:59 f1rmb Exp $
  *
  * stuff needed to turn libmad into a xine decoder plugin
  */
@@ -130,8 +130,9 @@ static void mad_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
   lprintf ("decode data, decoder_flags: %d\n", buf->decoder_flags);
   
   if (buf->size>(INPUT_BUF_SIZE-this->bytes_in_buffer)) {
-    printf ("libmad: ALERT input buffer too small (%d bytes, %d avail)!\n",
-	    buf->size, INPUT_BUF_SIZE-this->bytes_in_buffer);
+    xprintf (this->xstream->xine, XINE_VERBOSITY_DEBUG,
+	     "libmad: ALERT input buffer too small (%d bytes, %d avail)!\n",
+	     buf->size, INPUT_BUF_SIZE-this->bytes_in_buffer);
     buf->size = INPUT_BUF_SIZE-this->bytes_in_buffer;
   }
   
@@ -290,7 +291,7 @@ static audio_decoder_t *open_plugin (audio_decoder_class_t *class_gen, xine_stre
 
   mad_decoder_t *this ;
 
-  this = (mad_decoder_t *) malloc (sizeof (mad_decoder_t));
+  this = (mad_decoder_t *) xine_xmalloc (sizeof (mad_decoder_t));
 
   this->audio_decoder.decode_data         = mad_decode_data;
   this->audio_decoder.reset               = mad_reset;
@@ -332,7 +333,7 @@ static void *init_plugin (xine_t *xine, void *data) {
 
   mad_class_t *this;
   
-  this = (mad_class_t *) malloc (sizeof (mad_class_t));
+  this = (mad_class_t *) xine_xmalloc (sizeof (mad_class_t));
 
   this->decoder_class.open_plugin     = open_plugin;
   this->decoder_class.get_identifier  = get_identifier;

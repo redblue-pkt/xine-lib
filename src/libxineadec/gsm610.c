@@ -44,7 +44,7 @@
  * Carsten Bormann
  * --------------------------------------------------------------------
  *
- * $Id: gsm610.c,v 1.10 2003/11/16 23:33:47 f1rmb Exp $
+ * $Id: gsm610.c,v 1.11 2003/12/05 15:55:00 f1rmb Exp $
  *
  */
 
@@ -129,8 +129,8 @@ static void gsm610_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 
   if( this->size + buf->size > this->bufsize ) {
     this->bufsize = this->size + 2 * buf->size;
-    printf("gsm610: increasing source buffer to %d to avoid overflow.\n",
-      this->bufsize);
+    xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
+	    "gsm610: increasing source buffer to %d to avoid overflow.\n", this->bufsize);
     this->buf = realloc( this->buf, this->bufsize );
   }
 
@@ -146,7 +146,8 @@ static void gsm610_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 
       /* the data should line up on a 65-byte boundary */
       if ((buf->size % 65) != 0) {
-        printf ("gsm610: received MS GSM block that does not line up\n");
+        xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, 
+		 "gsm610: received MS GSM block that does not line up\n");
         this->size = 0;
         return;
       }
@@ -181,7 +182,7 @@ static void gsm610_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 
       /* the data should line up on a 33-byte boundary */
       if ((buf->size % 33) != 0) {
-        printf ("gsm610: received GSM block that does not line up\n");
+        xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "gsm610: received GSM block that does not line up\n");
         this->size = 0;
         return;
       }
@@ -235,7 +236,7 @@ static audio_decoder_t *open_plugin (audio_decoder_class_t *class_gen, xine_stre
 
   gsm610_decoder_t *this ;
 
-  this = (gsm610_decoder_t *) malloc (sizeof (gsm610_decoder_t));
+  this = (gsm610_decoder_t *) xine_xmalloc (sizeof (gsm610_decoder_t));
 
   this->audio_decoder.decode_data         = gsm610_decode_data;
   this->audio_decoder.reset               = gsm610_reset;
@@ -267,7 +268,7 @@ static void *init_plugin (xine_t *xine, void *data) {
 
   gsm610_class_t *this ;
 
-  this = (gsm610_class_t *) malloc (sizeof (gsm610_class_t));
+  this = (gsm610_class_t *) xine_xmalloc (sizeof (gsm610_class_t));
 
   this->decoder_class.open_plugin     = open_plugin;
   this->decoder_class.get_identifier  = get_identifier;

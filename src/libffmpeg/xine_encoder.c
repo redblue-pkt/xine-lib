@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_encoder.c,v 1.8 2003/11/04 20:49:45 mroi Exp $
+ * $Id: xine_encoder.c,v 1.9 2003/12/05 15:54:59 f1rmb Exp $
  */
  
 /* mpeg encoders for the dxr3 video out plugin. */
@@ -68,9 +68,8 @@ int dxr3_encoder_init(dxr3_driver_t *drv)
 #if LOG_ENC
   printf("dxr3_mpeg_encoder: lavc init , version %x\n", avcodec_version());
 #endif
-  this = malloc(sizeof(lavc_data_t));
+  this = xine_xmalloc(sizeof(lavc_data_t));
   if (!this) return 0;
-  memset(this, 0, sizeof(lavc_data_t));
 
   this->encoder_data.type             = ENC_LAVC;
   this->encoder_data.on_update_format = lavc_on_update_format;

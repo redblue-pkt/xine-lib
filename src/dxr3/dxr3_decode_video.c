@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decode_video.c,v 1.47 2003/11/29 19:35:39 mroi Exp $
+ * $Id: dxr3_decode_video.c,v 1.48 2003/12/05 15:54:57 f1rmb Exp $
  */
  
 /* dxr3 video decoder plugin.
@@ -151,7 +151,7 @@ static void *dxr3_init_plugin(xine_t *xine, void *data)
 {
   dxr3_decoder_class_t *this;
   
-  this = (dxr3_decoder_class_t *)malloc(sizeof (dxr3_decoder_class_t));
+  this = (dxr3_decoder_class_t *)xine_xmalloc(sizeof (dxr3_decoder_class_t));
   if (!this) return NULL;
   
   this->video_decoder_class.open_plugin     = dxr3_open_plugin;
@@ -179,7 +179,7 @@ static video_decoder_t *dxr3_open_plugin(video_decoder_class_t *class_gen, xine_
   if (class->instance) return NULL;
   if (!dxr3_present(stream)) return NULL;
   
-  this = (dxr3_decoder_t *)malloc(sizeof (dxr3_decoder_t));
+  this = (dxr3_decoder_t *)xine_xmalloc(sizeof (dxr3_decoder_t));
   if (!this) return NULL;
   
   cfg = stream->xine->config;
@@ -217,8 +217,8 @@ static video_decoder_t *dxr3_open_plugin(video_decoder_class_t *class_gen, xine_
   this->fd_video = -1;
   
   if ((this->fd_control = open(tmpstr, O_WRONLY)) < 0) {
-    printf("dxr3_decode_video: Failed to open control device %s (%s)\n",
-      tmpstr, strerror(errno));
+    xprintf(this->stream->xine, XINE_VERBOSITY_LOG, 
+	    _("dxr3_decode_video: Failed to open control device %s (%s)\n"), tmpstr, strerror(errno));
     free(this);
     return NULL;
   }
@@ -495,8 +495,8 @@ static void dxr3_decode_data(video_decoder_t *this_gen, buf_element_t *buf)
     /* open the device for the decoder */
     snprintf (tmpstr, sizeof(tmpstr), "%s_mv%s", this->devname, this->devnum);
     if ((this->fd_video = open(tmpstr, O_WRONLY)) < 0) {
-      printf("dxr3_decode_video: Failed to open video device %s (%s)\n",
-        tmpstr, strerror(errno)); 
+      xprintf(this->stream->xine, XINE_VERBOSITY_LOG, 
+	      _("dxr3_decode_video: Failed to open video device %s (%s)\n"), tmpstr, strerror(errno)); 
       return;
     }
     
@@ -553,8 +553,8 @@ static void dxr3_decode_data(video_decoder_t *this_gen, buf_element_t *buf)
       uint32_t vpts32 = vpts;
       /* update the dxr3's current pts value */
       if (ioctl(this->fd_video, EM8300_IOCTL_VIDEO_SETPTS, &vpts32))
-        printf("dxr3_decode_video: set video pts failed (%s)\n",
-          strerror(errno));
+        xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
+		"dxr3_decode_video: set video pts failed (%s)\n", strerror(errno));
     }
     
     if (delay >= 90000)   /* frame more than 1 sec ahead */
@@ -576,17 +576,18 @@ static void dxr3_decode_data(video_decoder_t *this_gen, buf_element_t *buf)
   written = write(this->fd_video, buf->content, buf->size);
   if (written < 0) {
     if (errno == EAGAIN) {
-      printf("dxr3_decode_video: write to device would block. flushing\n");
+      xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
+	      _("dxr3_decode_video: write to device would block. flushing\n"));
       dxr3_flush(this_gen);
     } else {
-      printf("dxr3_decode_video: video device write failed (%s)\n",
-        strerror(errno));
+      xprintf(this->stream->xine, XINE_VERBOSITY_LOG, 
+	      _("dxr3_decode_video: video device write failed (%s)\n"), strerror(errno));
     }
     return;
   }
   if (written != buf->size)
-    printf("dxr3_decode_video: Could only write %d of %d video bytes.\n",
-      written, buf->size);
+    xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
+	    "dxr3_decode_video: Could only write %d of %d video bytes.\n", written, buf->size);
 }
 
 static void dxr3_reset(video_decoder_t *this_gen)
@@ -613,7 +614,7 @@ static void dxr3_flush(video_decoder_t *this_gen)
     static uint8_t end_buffer[4] = { 0x00, 0x00, 0x01, 0xb7 };
     write(this->fd_video, &end_buffer, 4);
     this->sequence_open = 0;
-    printf("dxr3_decode_video: WARNING: added missing end sequence\n");
+    xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "dxr3_decode_video: WARNING: added missing end sequence\n");
   }
 }
 
@@ -756,8 +757,8 @@ static int get_duration(dxr3_decoder_t *this)
     duration = 1500;
     break;
   default:
-    printf("dxr3_decode_video: WARNING: unknown frame rate code %d\n",
-      this->frame_rate_code);
+    xprintf(this->stream->xine, XINE_VERBOSITY_LOG, 
+	    _("dxr3_decode_video: WARNING: unknown frame rate code %d\n"), this->frame_rate_code);
     duration = 0;
     break;
   }
@@ -784,7 +785,8 @@ static int get_duration(dxr3_decoder_t *this)
         /* we just entered a force_duration window, so we start the correction */
         metronom_t *metronom = this->stream->metronom;
         int64_t cur_offset;
-        printf("dxr3_decode_video: WARNING: correcting frame rate code from PAL to NTSC\n");
+        xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
+		_("dxr3_decode_video: WARNING: correcting frame rate code from PAL to NTSC\n"));
         /* those weird streams need an offset, too */
         cur_offset = metronom->get_option(metronom, METRONOM_AV_OFFSET);
         metronom->set_option(metronom, METRONOM_AV_OFFSET, cur_offset - 28800);
@@ -811,21 +813,27 @@ static int get_duration(dxr3_decoder_t *this)
 
 static void dxr3_update_sync_mode(void *this_gen, xine_cfg_entry_t *entry)
 {
-  ((dxr3_decoder_t *)this_gen)->sync_every_frame = entry->num_value;
-  printf("dxr3_decode_video: setting sync_every_frame to %s\n", 
-    (entry->num_value ? "on" : "off"));
+  dxr3_decoder_t *this = (dxr3_decoder_t *)this_gen;
+  
+  this->sync_every_frame = entry->num_value;
+  xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
+	  "dxr3_decode_video: setting sync_every_frame to %s\n", (entry->num_value ? "on" : "off"));
 }
 
 static void dxr3_update_enhanced_mode(void *this_gen, xine_cfg_entry_t *entry)
 {
-  ((dxr3_decoder_t *)this_gen)->enhanced_mode = entry->num_value;
-  printf("dxr3_decode_video: setting enhanced mode to %s\n", 
-    (entry->num_value ? "on" : "off"));
+  dxr3_decoder_t *this = (dxr3_decoder_t *)this_gen;
+
+  this->enhanced_mode = entry->num_value;
+  xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
+	  "dxr3_decode_video: setting enhanced mode to %s\n", (entry->num_value ? "on" : "off"));
 }
 
 static void dxr3_update_correct_durations(void *this_gen, xine_cfg_entry_t *entry)
 {
-  ((dxr3_decoder_t *)this_gen)->correct_durations = entry->num_value;
-  printf("dxr3_decode_video: setting correct_durations mode to %s\n", 
-    (entry->num_value ? "on" : "off"));
+  dxr3_decoder_t *this = (dxr3_decoder_t *)this_gen;
+
+  this->correct_durations = entry->num_value;
+  xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
+	  "dxr3_decode_video: setting correct_durations mode to %s\n", (entry->num_value ? "on" : "off"));
 }

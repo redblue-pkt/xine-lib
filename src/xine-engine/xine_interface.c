@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_interface.c,v 1.70 2003/11/26 14:10:57 miguelfreitas Exp $
+ * $Id: xine_interface.c,v 1.71 2003/12/05 15:55:05 f1rmb Exp $
  *
  * convenience/abstraction layer, functions to implement
  * libxine's public interface
@@ -277,8 +277,8 @@ void xine_config_update_entry (xine_t *this, const xine_cfg_entry_t *entry) {
     break;
 
   default:
-    printf ("xine_interface: error, unknown config entry type %d\n",
-	    entry->type);
+    xprintf (this, XINE_VERBOSITY_DEBUG, 
+	     "xine_interface: error, unknown config entry type %d\n", entry->type);
     abort();
   }
 }
@@ -439,7 +439,7 @@ void xine_set_param (xine_stream_t *stream, int param, int value) {
     break;
     
   default:
-    printf ("xine_interface: unknown param %d\n", param);
+    xprintf (stream->xine, XINE_VERBOSITY_DEBUG, "xine_interface: unknown param %d\n", param);
   }
 }
 
@@ -536,7 +536,7 @@ int xine_get_param (xine_stream_t *stream, int param) {
     break;
 
   default:
-    printf ("xine_interface: unknown param %d\n", param);
+    xprintf (stream->xine, XINE_VERBOSITY_DEBUG, "xine_interface: unknown param %d\n", param);
   }
 
   return 0;
@@ -587,7 +587,8 @@ uint32_t xine_get_stream_info (xine_stream_t *stream, int info) {
     return stream->spu_track_map_entries;
   
   default:
-    fprintf (stderr, "xine_interface: error, unknown stream info (%d) requested\n", info);
+    xprintf (stream->xine, XINE_VERBOSITY_DEBUG,
+	     "xine_interface: error, unknown stream info (%d) requested\n", info);
   }
   return 0;
 }

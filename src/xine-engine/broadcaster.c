@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: broadcaster.c,v 1.4 2003/11/26 23:44:10 f1rmb Exp $
+ * $Id: broadcaster.c,v 1.5 2003/12/05 15:55:04 f1rmb Exp $
  * 
  * broadcaster.c - xine network broadcaster
  *
@@ -110,7 +110,7 @@ static int sock_check_opened(int socket) {
 /*
  * Write to socket.
  */
-static int sock_data_write(int socket, char *buf, int len) {
+static int sock_data_write(xine_t *xine, int socket, char *buf, int len) {
   ssize_t  size;
   int      wlen = 0;
   
@@ -124,7 +124,7 @@ static int sock_data_write(int socket, char *buf, int len) {
     size = write(socket, buf, len);
     
     if(size <= 0) {
-      printf("broadcaster: error writing to socket %d\n",socket);
+      xprintf(xine, XINE_VERBOSITY_DEBUG, "broadcaster: error writing to socket %d\n",socket);
       return -1;
     }
     
@@ -136,7 +136,7 @@ static int sock_data_write(int socket, char *buf, int len) {
   return wlen;
 }
 
-static int sock_string_write(int socket, char *msg, ...) {
+static int sock_string_write(xine_t *xine, int socket, char *msg, ...) {
   char     buf[_BUFSIZ];
   va_list  args;
   
@@ -148,7 +148,7 @@ static int sock_string_write(int socket, char *msg, ...) {
   if((buf[strlen(buf)] == '\0') && (buf[strlen(buf) - 1] != '\n'))
       sprintf(buf, "%s%c", buf, '\n');
  
-  return sock_data_write(socket, buf, strlen(buf));
+  return sock_data_write(xine, socket, buf, strlen(buf));
 }
 
 /*
@@ -162,9 +162,9 @@ static void broadcaster_data_write(broadcaster_t *this, char *buf, int len) {
   while (psock) {
     
     /* in case of failure remove from list */
-    if( sock_data_write(*psock, buf, len) < 0 ) {
+    if( sock_data_write(this->stream->xine, *psock, buf, len) < 0 ) {
 
-      xprintf(this->stream->xine, XINE_VERBOSITY_LOG, "broadcaster: closing socket %d\n", *psock);
+      xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "broadcaster: closing socket %d\n", *psock);
       close(*psock);
       free(psock);
       if( this->connections->cur->next )
@@ -221,11 +221,11 @@ static void *manager_loop (void *this_gen) {
         ssock = accept(this->msock, (struct sockaddr *)&fsin, &alen);
         if (ssock >= 0) {
           /* identification string, helps demuxer probing */
-          if( sock_string_write(ssock,"master xine v1") > 0 ) {
+          if( sock_string_write(this->stream->xine, ssock,"master xine v1") > 0 ) {
             int *psock = malloc(sizeof(int));
             *psock = ssock;
        
-            xprintf(this->stream->xine, XINE_VERBOSITY_LOG, 
+            xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
 		    "broadcaster: new connection socket %d\n", *psock);
             xine_list_append_content(this->connections, psock);
           }
@@ -300,7 +300,7 @@ broadcaster_t *_x_init_broadcaster(xine_stream_t *stream, int port)
   msock = socket(PF_INET, SOCK_STREAM, 0);
   if( msock < 0 )
   {
-    printf("broadcaster: error opening master socket.\n");
+    xprintf(stream->xine, XINE_VERBOSITY_DEBUG, "broadcaster: error opening master socket.\n");
     return NULL;
   }
   servAddr.sin_family = AF_INET;
@@ -309,7 +309,7 @@ broadcaster_t *_x_init_broadcaster(xine_stream_t *stream, int port)
 
   if(bind(msock, (struct sockaddr *) &servAddr, sizeof(servAddr))<0)
   {
-    printf("broadcaster: error binding to port %d\n", port);
+    xprintf(stream->xine, XINE_VERBOSITY_DEBUG, "broadcaster: error binding to port %d\n", port);
     return NULL;
   }
 
@@ -333,9 +333,9 @@ broadcaster_t *_x_init_broadcaster(xine_stream_t *stream, int port)
   this->running = 1;
   if ((err = pthread_create (&this->manager_thread,
                              NULL, manager_loop, (void *)this)) != 0) {
-      printf ("broadcaster: can't create new thread (%s)\n",
-              strerror(err));
-      abort();
+    xprintf (stream->xine, XINE_VERBOSITY_DEBUG, 
+	     "broadcaster: can't create new thread (%s)\n", strerror(err));
+    abort();
   }
   
   return this;  
@@ -347,7 +347,7 @@ void _x_close_broadcaster(broadcaster_t *this)
   
   psock = xine_list_first_content (this->connections);
   while (psock) {
-    xprintf(this->stream->xine, XINE_VERBOSITY_LOG, "broadcaster: closing socket %d\n", *psock);
+    xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "broadcaster: closing socket %d\n", *psock);
     close(*psock);
     free(psock);
     xine_list_delete_current (this->connections);

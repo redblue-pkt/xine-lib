@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mmsh.c,v 1.23 2003/12/04 22:07:05 tmattern Exp $
+ * $Id: mmsh.c,v 1.24 2003/12/05 15:54:58 f1rmb Exp $
  *
  * MMS over HTTP protocol
  *   written by Thibaut Mattern
@@ -226,8 +226,7 @@ static int send_command (mmsh_t *this, char *cmd)  {
 
   length = strlen(cmd);
   if (_x_io_tcp_write(this->stream, this->s, cmd, length) != length) {
-    xprintf (this->stream->xine, XINE_LOG_MSG,
-             "libmmsh: send error\n");
+    xprintf (this->stream->xine, XINE_LOG_MSG, _("libmmsh: send error\n"));
     return 0;
   }
   return 1;
@@ -272,28 +271,28 @@ static int get_answer (mmsh_t *this) {
         if (sscanf(this->buf, "HTTP/%d.%d %d", &httpver, &httpsub,
             &httpcode) != 3) {
           xine_log (this->stream->xine, XINE_LOG_MSG,
-                   _("libmmsh: bad response format\n"));
+		    _("libmmsh: bad response format\n"));
           return 0;
         }
 
         if (httpcode >= 300 && httpcode < 400) {
           xine_log (this->stream->xine, XINE_LOG_MSG,
-                   _("libmmsh: 3xx redirection not implemented: >%d %s<\n"),
-                   httpcode, httpstatus);
+		    _("libmmsh: 3xx redirection not implemented: >%d %s<\n"),
+		    httpcode, httpstatus);
           return 0;
         }
 
         if (httpcode < 200 || httpcode >= 300) {
           xine_log (this->stream->xine, XINE_LOG_MSG,
-                   _("libmmsh: http status not 2xx: >%d %s<\n"),
-                   httpcode, httpstatus);
+		    _("libmmsh: http status not 2xx: >%d %s<\n"),
+		    httpcode, httpstatus);
           return 0;
         }
       } else {
 
         if (!strncasecmp(this->buf, "Location: ", 10)) {
           xine_log (this->stream->xine, XINE_LOG_MSG,
-                   _("libmmsh: Location redirection not implemented\n"));
+		    _("libmmsh: Location redirection not implemented\n"));
           return 0;
         }
         
@@ -623,14 +622,12 @@ mmsh_t *mmsh_connect (xine_stream_t *stream, const char *url, int bandwidth) {
   
   if (!_x_parse_url (this->url, &this->proto, &this->host, &this->port,
                      &this->user, &this->password, &this->uri)) {
-    xine_log (this->stream->xine, XINE_LOG_MSG,
-             "invalid url\n");
+    xine_log (this->stream->xine, XINE_LOG_MSG, _("invalid url\n"));
     goto fail;
   }
   
   if (!mmsh_valid_proto(this->proto)) {
-    xine_log (this->stream->xine, XINE_LOG_MSG,
-             "unsupported protocol\n");
+    xine_log (this->stream->xine, XINE_LOG_MSG, _("unsupported protocol\n"));
     goto fail;
   }
   

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.182 2003/11/26 23:44:11 f1rmb Exp $
+ * $Id: video_out.c,v 1.183 2003/12/05 15:55:05 f1rmb Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -614,8 +614,7 @@ static void expire_frames (vos_t *this, int64_t cur_vpts) {
   
       if( !this->discard_frames ) {
         xine_log(this->xine, XINE_LOG_MSG,
-	         _("video_out: throwing away image with pts %lld because "
-		   "it's too old (diff : %lld).\n"), pts, diff);
+	         _("video_out: throwing away image with pts %lld because it's too old (diff : %lld).\n"), pts, diff);
 
         this->num_frames_discarded++;
       }
@@ -997,8 +996,8 @@ static void *video_out_loop (void *this_gen) {
       lprintf ("%lld usec to sleep at master vpts %lld\n", usec_to_sleep, vpts);
       
       if ( (next_frame_vpts - vpts) > 2*90000 )
-        printf("video_out: vpts/clock error, next_vpts=%lld cur_vpts=%lld\n",
-               next_frame_vpts,vpts);
+        xprintf(this->xine, XINE_VERBOSITY_DEBUG,
+		"video_out: vpts/clock error, next_vpts=%lld cur_vpts=%lld\n", next_frame_vpts,vpts);
                
       if (usec_to_sleep>0) 
 	xine_usec_sleep (usec_to_sleep);
@@ -1070,9 +1069,9 @@ int xine_get_next_video_frame (xine_video_port_t *this_gen,
     pthread_mutex_lock(&this->display_img_buf_queue->mutex);
 
     img = this->display_img_buf_queue->first;
-    printf ("video_out: get_next_video_frame demux status = %d, fifo_size=%d\n",
-	    stream->demux_plugin->get_status (stream->demux_plugin),
-	    stream->video_fifo->fifo_size);
+    xprintf (this->xine, XINE_VERBOSITY_DEBUG,
+	     "video_out: get_next_video_frame demux status = %d, fifo_size=%d\n",
+	     stream->demux_plugin->get_status (stream->demux_plugin), stream->video_fifo->fifo_size);
 
 
   }
@@ -1457,7 +1456,7 @@ xine_video_port_t *_x_vo_new_port (xine_t *xine, vo_driver_t *driver,
   this->last_frame            = NULL;
   this->img_backup            = NULL;
   
-  this->overlay_source        = _x_video_overlay_new_manager();
+  this->overlay_source        = _x_video_overlay_new_manager(xine);
   this->overlay_source->init (this->overlay_source);
   this->overlay_enabled       = 1;
 
@@ -1529,14 +1528,14 @@ xine_video_port_t *_x_vo_new_port (xine_t *xine, vo_driver_t *driver,
     if ((err = pthread_create (&this->video_thread,
 			       &pth_attrs, video_out_loop, this)) != 0) {
 
-      printf (_("video_out: can't create thread (%s)\n"), 
-	      strerror(err));
+      xprintf (this->xine, XINE_VERBOSITY_DEBUG, "video_out: can't create thread (%s)\n", strerror(err));
       /* FIXME: how does this happen ? */
-      printf (_("video_out: sorry, this should not happen. please restart xine.\n"));
+      xprintf (this->xine, XINE_VERBOSITY_LOG,
+	       _("video_out: sorry, this should not happen. please restart xine.\n"));
       abort();
     }
     else
-      xprintf(xine, XINE_VERBOSITY_DEBUG, "video_out: thread created\n");
+      xprintf(this->xine, XINE_VERBOSITY_DEBUG, "video_out: thread created\n");
     
     pthread_attr_destroy(&pth_attrs);
   }

@@ -79,7 +79,7 @@ static int media_umount_media(const char *device)
 #endif /* WIN32 */
 } 
 
-int media_eject_media (const char *device) {
+int media_eject_media (xine_t *xine, const char *device) {
 
 #ifndef WIN32
   int   ret, status;
@@ -127,10 +127,10 @@ int media_eject_media (const char *device) {
 #elif defined (__NetBSD__) || defined (__OpenBSD__) || defined (__FreeBSD__)
 
     if (ioctl(fd, CDIOCALLOW) == -1) {
-      perror("ioctl(cdromallow)");
+      xprintf(xine, XINE_VERBOSITY_DEBUG, "ioctl(cdromallow): %s\n", strerror(errno));
     } else {
       if (ioctl(fd, CDIOCEJECT) == -1) {
-        perror("ioctl(cdromeject)");
+        xprintf(xine, XINE_VERBOSITY_DEBUG, "ioctl(cdromeject): %s\n", strerror(errno));
       }
     }
 
@@ -138,7 +138,8 @@ int media_eject_media (const char *device) {
 
     close(fd);
   } else {
-    printf("input_dvd: Device %s failed to open during eject calls\n",device);
+    xprintf(xine, XINE_VERBOSITY_LOG,
+	    _("input_dvd: Device %s failed to open during eject calls\n"), device);
   }
   return 1;
 #else

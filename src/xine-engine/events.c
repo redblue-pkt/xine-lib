@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: events.c,v 1.20 2003/11/16 15:41:15 mroi Exp $
+ * $Id: events.c,v 1.21 2003/12/05 15:55:04 f1rmb Exp $
  *
  * Event handling functions
  *
@@ -138,7 +138,7 @@ void xine_event_dispose_queue (xine_event_queue_t *queue) {
     q = (xine_event_queue_t *) xine_list_next_content (stream->event_queues);
 
   if (!q) {
-    printf ("events: tried to dispose queue which is not in list\n");
+    xprintf (stream->xine, XINE_VERBOSITY_DEBUG, "events: tried to dispose queue which is not in list\n");
 
     pthread_mutex_unlock (&stream->event_queues_lock);
     return;
@@ -218,8 +218,8 @@ void xine_event_create_listener_thread (xine_event_queue_t *queue,
 
   if ((err = pthread_create (queue->listener_thread,
 			     NULL, listener_loop, queue)) != 0) {
-    fprintf (stderr, "events: can't create new thread (%s)\n",
-	     strerror(err));
+    xprintf (queue->stream->xine, XINE_VERBOSITY_DEBUG,
+	     "events: can't create new thread (%s)\n", strerror(err));
     abort();
   }
 }

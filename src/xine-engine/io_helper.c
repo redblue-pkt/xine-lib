@@ -98,7 +98,7 @@ static int _x_io_tcp_connect_ipv4(xine_stream_t *stream, const char *host, int p
     if (connect(s, (struct sockaddr *)&sin, sizeof(sin))==-1 && errno != EINPROGRESS) {
 #else
     if (connect(s, (struct sockaddr *)&sin, sizeof(sin))==-1 && WSAGetLastError() != WSAEWOULDBLOCK) {
-      printf("io_helper: WSAGetLastError() = %d\n", WSAGetLastError());
+      xprintf(stream->xine, XINE_VERBOSITY_DEBUG, "io_helper: WSAGetLastError() = %d\n", WSAGetLastError());
 #endif /* WIN32 */
 
       _x_message(stream, XINE_MSG_CONNECTION_REFUSED, strerror(errno), NULL);
@@ -128,7 +128,7 @@ int _x_io_tcp_connect(xine_stream_t *stream, const char *host, int port) {
 
   snprintf(strport, sizeof(strport), "%d", port);
   
-  printf("Resolving host '%s' at port '%s'\n", host, strport);
+  xprintf(stream->xine, XINE_VERBOSITY_DEBUG, "Resolving host '%s' at port '%s'\n", host, strport);
 
   error = getaddrinfo(host, strport, &hints, &res);
 
@@ -167,7 +167,7 @@ int _x_io_tcp_connect(xine_stream_t *stream, const char *host, int port) {
 		tmpaddr->ai_addrlen)==-1 && 
 	WSAGetLastError() != WSAEWOULDBLOCK) {
 	
-      printf("io_helper: WSAGetLastError() = %d\n", WSAGetLastError());
+      xprintf(stream->xine, XINE_VERBOSITY_DEBUG, "io_helper: WSAGetLastError() = %d\n", WSAGetLastError());
 #endif /* WIN32 */
 
       error = errno;
@@ -286,7 +286,7 @@ static off_t xio_rw_abort(xine_stream_t *stream, int fd, int cmd, char *buf, off
 #else
       if (WSAGetLastError() == WSAEWOULDBLOCK)
         continue;
-      printf("io_helper: WSAGetLastError() = %d\n", WSAGetLastError());
+      xprintf(stream->xine, XINE_VERBOSITY_DEBUG, "io_helper: WSAGetLastError() = %d\n", WSAGetLastError());
 #endif
       
       return ret;

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.44 2003/08/05 11:30:56 jcdutton Exp $
+ * $Id: xine_decoder.c,v 1.45 2003/12/05 15:54:59 f1rmb Exp $
  *
  * 04-09-2001 DTS passtrough  (C) Joachim Koenig 
  * 09-12-2001 DTS passthrough inprovements (C) James Courtier-Dutton
@@ -106,7 +106,7 @@ static void dts_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
   for(n=1;n<=number_of_frames;n++) {
     data_in += ac5_length;
     if(data_in >= (buf->content+buf->size)) {
-      printf("libdts: DTS length error\n");
+      xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "libdts: DTS length error\n");
       return;
     }
       
@@ -114,7 +114,7 @@ static void dts_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
         (data_in[1] != 0xfe) ||
         (data_in[2] != 0x80) ||
         (data_in[3] != 0x01)) {
-      printf("libdts: DTS Sync bad\n");
+      xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "libdts: DTS Sync bad\n");
       return;
     }
     
@@ -142,7 +142,7 @@ static void dts_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
     ac5_length++;
 
     if (ac5_length > 8191) {
-      printf("libdts: ac5_length too long\n");
+      xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "libdts: ac5_length too long\n");
       ac5_pcm_length = 0;
     } else {
       ac5_pcm_length = (ac5_pcm_samples + 1) * 32;
@@ -159,7 +159,8 @@ static void dts_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
       ac5_spdif_type = 0x0d; /* DTS-1 (2048-sample bursts) */
       break;
     default:
-      printf("libdts: DTS %i-sample bursts not supported\n", ac5_pcm_length);
+      xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
+	      "libdts: DTS %i-sample bursts not supported\n", ac5_pcm_length);
       return;
     }
 
@@ -221,7 +222,7 @@ static audio_decoder_t *open_plugin (audio_decoder_class_t *class_gen, xine_stre
   printf("libdts: DTS open_plugin called.\n");
 #endif
 
-  this = (dts_decoder_t *) malloc (sizeof (dts_decoder_t));
+  this = (dts_decoder_t *) xine_xmalloc (sizeof (dts_decoder_t));
 
   this->audio_decoder.decode_data         = dts_decode_data;
   this->audio_decoder.reset               = dts_reset;
@@ -258,7 +259,7 @@ static void *init_plugin (xine_t *xine, void *data) {
 #ifdef LOG_DEBUG
   printf("DTS class init_plugin called.\n");
 #endif
-  this = (dts_class_t *) malloc (sizeof (dts_class_t));
+  this = (dts_class_t *) xine_xmalloc (sizeof (dts_class_t));
 
   this->decoder_class.open_plugin     = open_plugin;
   this->decoder_class.get_identifier  = get_identifier;

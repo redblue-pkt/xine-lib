@@ -120,8 +120,8 @@ static buf_element_t *pnm_plugin_read_block (input_plugin_t *this_gen,
 static off_t pnm_plugin_seek (input_plugin_t *this_gen, off_t offset, int origin) {
   pnm_input_plugin_t *this = (pnm_input_plugin_t *) this_gen;
 
-  printf ("input_pnm: seek %lld bytes, origin %d\n",
-	  offset, origin);
+  xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
+	   "input_pnm: seek %lld bytes, origin %d\n", offset, origin);
 
   /* only realtive forward-seeking is implemented */
 

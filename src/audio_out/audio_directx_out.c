@@ -20,7 +20,7 @@
  * audio_directx_out.c, direct sound audio output plugin for xine
  * by Matthew Grooms <elon@altavista.com>
  *
- * $Id: audio_directx_out.c,v 1.5 2003/11/26 19:43:26 f1rmb Exp $
+ * $Id: audio_directx_out.c,v 1.6 2003/12/05 15:54:56 f1rmb Exp $
  */
 
 typedef unsigned char boolean;
@@ -57,6 +57,8 @@ typedef unsigned char boolean;
 typedef struct {
   ao_driver_t		ao_driver;
   int			capabilities;
+
+  xine_t               *xine;
   
   /* directx objects */
   LPDIRECTSOUND         dsobj;
@@ -89,6 +91,7 @@ typedef struct {
   audio_driver_class_t  driver_class;
   config_values_t      *config;
   char                 *device_name;
+  xine_t               *xine;
 } audiox_class_t;
 
 /* -------------------------------------------
@@ -523,27 +526,27 @@ static int ao_directx_open( ao_driver_t * ao_driver, uint32_t bits, uint32_t rat
     {
     case AO_CAP_MODE_MONO:
       ao_directx->chnn = 1;
-      printf( "ao_directx : opened in AO_CAP_MODE_MONO mode\n" );
+      xprintf(ao_directx->xine, XINE_VERBOSITY_DEBUG, "ao_directx : opened in AO_CAP_MODE_MONO mode\n" );
       break;
 
     case AO_CAP_MODE_STEREO:
       ao_directx->chnn = 2;
-      printf( "ao_directx : opened in AO_CAP_MODE_STEREO mode\n" );
+      xprintf(ao_directx->xine, XINE_VERBOSITY_DEBUG, "ao_directx : opened in AO_CAP_MODE_STEREO mode\n" );
       break;
 
     case AO_CAP_MODE_4CHANNEL:
       ao_directx->chnn = 4;
-      printf( "ao_directx : opened in AO_CAP_MODE_4CHANNEL mode\n" );
+      xprintf(ao_directx->xine, XINE_VERBOSITY_DEBUG, "ao_directx : opened in AO_CAP_MODE_4CHANNEL mode\n" );
       break;
 
     case AO_CAP_MODE_5CHANNEL:
       ao_directx->chnn = 5;
-      printf( "ao_directx : opened in AO_CAP_MODE_5CHANNEL mode\n" );
+      xprintf(ao_directx->xine, XINE_VERBOSITY_DEBUG, "ao_directx : opened in AO_CAP_MODE_5CHANNEL mode\n" );
       break;
 
     case AO_CAP_MODE_5_1CHANNEL:
       ao_directx->chnn = 6;
-      printf( "ao_directx : opened in AO_CAP_MODE_5_1CHANNEL mode\n" );
+      xprintf(ao_directx->xine, XINE_VERBOSITY_DEBUG, "ao_directx : opened in AO_CAP_MODE_5_1CHANNEL mode\n" );
       break;
 
     case AO_CAP_MODE_A52:
@@ -739,7 +742,8 @@ static int ao_directx_set_property( ao_driver_t * ao_driver, int property, int v
       if( !ao_directx->mute && ao_directx->dsbuffer )
 	IDirectSoundBuffer_SetVolume( ao_directx->dsbuffer, ao_directx->volume );
 
-      printf( "ao_directx : volume set to %d - directX volume = %d\n", value, ao_directx->volume);
+      xprintf(ao_directx->xine, XINE_VERBOSITY_DEBUG, 
+	      "ao_directx : volume set to %d - directX volume = %d\n", value, ao_directx->volume);
 
       return value;
 
@@ -756,7 +760,7 @@ static int ao_directx_set_property( ao_driver_t * ao_driver, int property, int v
       if( ao_directx->mute && ao_directx->dsbuffer )
 	IDirectSoundBuffer_SetVolume( ao_directx->dsbuffer, DSBVOLUME_MIN );
 
-      printf( "ao_directx : mute toggled" );
+      xprintf(ao_directx->xine, XINE_VERBOSITY_DEBUG, "ao_directx : mute toggled" );
 
       return value;
 
@@ -770,12 +774,15 @@ static int ao_directx_set_property( ao_driver_t * ao_driver, int property, int v
 
 static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *data)
 {
-  ao_directx_t  *ao_directx = ( ao_directx_t * ) malloc( sizeof( ao_directx_t ) );
-
-  memset( ao_directx, 0, sizeof( ao_directx_t ) );
-
+  audiox_class_t  *class = (audiox_class_t *) class_gen;
+  ao_directx_t    *ao_directx;
+  
+  ao_directx = ( ao_directx_t * ) xine_xmalloc( sizeof( ao_directx_t ) );
+  
   lprintf("open_plugin(%08x, %08x) Enter\n", (unsigned long)class_gen, (unsigned long)data);
   lprintf("open_plugin: ao_directx=%08x\n", (unsigned long)ao_directx);
+
+  ao_driverx->xine                              = class->xine;
 
   ao_directx->ao_driver.get_capabilities        = ao_directx_get_capabilities;
   ao_directx->ao_driver.get_property	        = ao_directx_get_property;
@@ -825,14 +832,14 @@ static void *init_class (xine_t *xine, void *data) {
   /*
    * from this point on, nothing should go wrong anymore
    */
-  audiox = (audiox_class_t *) malloc (sizeof (audiox_class_t));
-  memset( audiox, 0, sizeof( audiox_class_t ) );
-
+  audiox = (audiox_class_t *) xine_xmalloc (sizeof (audiox_class_t));
+  
   audiox->driver_class.open_plugin     = open_plugin;
   audiox->driver_class.get_identifier  = get_identifier;
   audiox->driver_class.get_description = get_description;
   audiox->driver_class.dispose         = dispose_class;
 
+  audiox->xine                         = xine;
   audiox->config                       = xine->config;
   audiox->device_name                  = device_name;
 

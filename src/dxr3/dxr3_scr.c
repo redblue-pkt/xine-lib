@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_scr.c,v 1.10 2003/09/11 10:01:03 mroi Exp $
+ * $Id: dxr3_scr.c,v 1.11 2003/12/05 15:54:58 f1rmb Exp $
  */
 
 /* dxr3 scr plugin.
@@ -60,13 +60,14 @@ dxr3_scr_t *dxr3_scr_init(xine_t *xine)
   dxr3_scr_t *this;
   const char *confstr;
   
-  this = (dxr3_scr_t *)malloc(sizeof(dxr3_scr_t));
+  this = (dxr3_scr_t *)xine_xmalloc(sizeof(dxr3_scr_t));
   
+  this->xine = xine;
   confstr = xine->config->register_string(xine->config,
     CONF_LOOKUP, CONF_DEFAULT, CONF_NAME, CONF_HELP, 0, NULL, NULL);
   if ((this->fd_control = open(confstr, O_WRONLY)) < 0) {
-    printf("dxr3_scr: Failed to open control device %s (%s)\n",
-      confstr, strerror(errno));
+    xprintf(this->xine, XINE_VERBOSITY_DEBUG, 
+	    "dxr3_scr: Failed to open control device %s (%s)\n", confstr, strerror(errno));
     free(this);
     return NULL;
   }
@@ -111,7 +112,7 @@ static void dxr3_scr_start(scr_plugin_t *scr, int64_t vpts)
   this->last_pts = vpts32;
   this->offset = vpts - ((int64_t)vpts32 << 1);
   if (ioctl(this->fd_control, EM8300_IOCTL_SCR_SET, &vpts32))
-    printf("dxr3_scr: start failed (%s)\n", strerror(errno));
+    xprintf(this->xine, XINE_VERBOSITY_DEBUG, "dxr3_scr: start failed (%s)\n", strerror(errno));
 #if LOG_SCR
   printf("dxr3_scr: started with vpts %lld\n", vpts);
 #endif
@@ -130,12 +131,12 @@ static int64_t dxr3_scr_get_current(scr_plugin_t *scr)
   
   pthread_mutex_lock(&this->mutex);
   if (ioctl(this->fd_control, EM8300_IOCTL_SCR_GET, &pts))
-    printf("dxr3_scr: get current failed (%s)\n", strerror(errno));
+    xprintf(this->xine, XINE_VERBOSITY_DEBUG, "dxr3_scr: get current failed (%s)\n", strerror(errno));
   if (this->last_pts > 0xF0000000 && pts < 0x10000000)
     /* wrap around detected, compensate with offset */
     this->offset += (int64_t)1 << 33;
   if (pts == 0)
-    printf("dxr3_scr: WARNING: pts dropped to zero.\n");
+    xprintf(this->xine, XINE_VERBOSITY_DEBUG, "dxr3_scr: WARNING: pts dropped to zero.\n");
   this->last_pts = pts;
   current = ((int64_t)pts << 1) + this->offset;
   pthread_mutex_unlock(&this->mutex);
@@ -151,7 +152,7 @@ static void dxr3_scr_adjust(scr_plugin_t *scr, int64_t vpts)
  
   pthread_mutex_lock(&this->mutex);
   if (ioctl(this->fd_control, EM8300_IOCTL_SCR_GET, &current_pts32))
-    printf("dxr3_scr: adjust get failed (%s)\n", strerror(errno));
+    xprintf(this->xine, XINE_VERBOSITY_DEBUG, "dxr3_scr: adjust get failed (%s)\n", strerror(errno));
   this->last_pts = current_pts32;
   this->offset = vpts - ((int64_t)current_pts32 << 1);
   offset32 = this->offset / 4;
@@ -159,7 +160,7 @@ static void dxr3_scr_adjust(scr_plugin_t *scr, int64_t vpts)
   if (offset32 < -7200/4 || offset32 > 7200/4) {
     uint32_t vpts32 = vpts >> 1;
     if (ioctl(this->fd_control, EM8300_IOCTL_SCR_SET, &vpts32))
-      printf("dxr3_scr: adjust set failed (%s)\n", strerror(errno));
+      xprintf(this->xine, XINE_VERBOSITY_DEBUG, "dxr3_scr: adjust set failed (%s)\n", strerror(errno));
     this->last_pts = vpts32;
     this->offset = vpts - ((int64_t)vpts32 << 1);
   }
@@ -206,7 +207,7 @@ static int dxr3_scr_set_speed(scr_plugin_t *scr, int speed)
   }
   
   if (dxr3_mvcommand(this->fd_control, playmode))
-    printf("dxr3_scr: failed to playmode (%s)\n", strerror(errno));
+    xprintf(this->xine, XINE_VERBOSITY_DEBUG, "dxr3_scr: failed to playmode (%s)\n", strerror(errno));
   
   if(em_speed > 0x900)
     this->scanning = 1;
@@ -214,7 +215,7 @@ static int dxr3_scr_set_speed(scr_plugin_t *scr, int speed)
     this->scanning = 0;
   
   if (ioctl(this->fd_control, EM8300_IOCTL_SCR_SETSPEED, &em_speed))
-    printf("dxr3_scr: failed to set speed (%s)\n", strerror(errno));
+    xprintf(this->xine, XINE_VERBOSITY_DEBUG, "dxr3_scr: failed to set speed (%s)\n", strerror(errno));
   
 #if LOG_SCR
   printf("dxr3_scr: speed set to mode %d\n", speed);
@@ -245,7 +246,9 @@ static int dxr3_mvcommand(int fd_control, int command)
 
 static void dxr3_scr_update_priority(void *this_gen, xine_cfg_entry_t *entry)
 {
-  ((dxr3_scr_t *)this_gen)->priority = entry->num_value;
-  printf("dxr3_scr: setting scr priority to %d\n", 
-    entry->num_value);
+  dxr3_scr_t *this = (dxr3_scr_t *)this_gen;
+  
+  this->priority = entry->num_value;
+  xprintf(this->xine, XINE_VERBOSITY_DEBUG, 
+	  "dxr3_scr: setting scr priority to %d\n", entry->num_value);
 }

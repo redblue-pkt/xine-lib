@@ -59,7 +59,7 @@ void register_deinterlace_method( deinterlace_method_t *method )
         (*dest)->method = method;
         (*dest)->next = 0;
     } else {
-        printf( "deinterlace: Can't allocate memory.\n" );
+      printf( "deinterlace: Can't allocate memory.\n" );
     }
 }
 
@@ -92,8 +92,7 @@ void register_deinterlace_plugin( const char *filename )
     void *handle = dlopen( filename, RTLD_NOW );
 
     if( !handle ) {
-        printf( "deinterlace: Can't load plugin '%s': %s\n",
-                 filename, dlerror() );
+        printf( "deinterlace: Can't load plugin '%s': %s\n", filename, dlerror() );
     } else {
         deinterlace_plugin_init_t plugin_init;
         plugin_init = (deinterlace_plugin_init_t) dlsym( handle, "deinterlace_plugin_init" );

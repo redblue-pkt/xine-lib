@@ -20,7 +20,7 @@
  * Compact Disc Digital Audio (CDDA) Input Plugin 
  *   by Mike Melanson (melanson@pcisys.net)
  *
- * $Id: input_cdda.c,v 1.39 2003/11/26 19:43:31 f1rmb Exp $
+ * $Id: input_cdda.c,v 1.40 2003/12/05 15:54:58 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -409,7 +409,7 @@ static int read_cdrom_toc(int fd, cdrom_toc *toc) {
     toc->ignore_last_track = 0;
   }
   toc->total_tracks = toc->last_track - toc->first_track + 1;
-
+  
   /* allocate space for the toc entries */
   toc->toc_entries =
     (cdrom_toc_entry *)malloc(toc->total_tracks * sizeof(cdrom_toc_entry));
@@ -840,7 +840,7 @@ static int read_cdrom_frames(cdda_input_plugin_t *this_gen, int frame, int num_f
 
 #define _BUFSIZ 300
 
-static int host_connect_attempt (struct in_addr ia, int port)
+static int host_connect_attempt (xine_t *xine, struct in_addr ia, int port)
 {
   int                s;
   struct sockaddr_in sin;
@@ -848,7 +848,7 @@ static int host_connect_attempt (struct in_addr ia, int port)
   s=socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
 
   if (s==-1) {
-    printf("input_cdda: failed to open socket.\n");
+    xprintf(xine, XINE_VERBOSITY_DEBUG, "input_cdda: failed to open socket.\n");
     return -1;
   }
 
@@ -862,7 +862,7 @@ static int host_connect_attempt (struct in_addr ia, int port)
   if (connect(s, (struct sockaddr *)&sin, sizeof(sin))==-1 && WSAGetLastError() != WSAEINPROGRESS) 
 #endif /* WIN32 */
   {
-    printf("input_cdda: cannot connect to host.\n");
+    xprintf(xine, XINE_VERBOSITY_LOG, _("input_cdda: cannot connect to host.\n"));
     close(s);
     return -1;
   }
@@ -870,7 +870,7 @@ static int host_connect_attempt (struct in_addr ia, int port)
   return s;
 }
 
-static int host_connect (const char *host, int port)
+static int host_connect (xine_t *xine, const char *host, int port)
 {
   struct hostent *h;
   int i;
@@ -878,21 +878,22 @@ static int host_connect (const char *host, int port)
 
   h=gethostbyname(host);
   if (h==NULL) {
-        printf("input_cdda: unable to resolve '%s'.\n", host);
+        xprintf(xine, XINE_VERBOSITY_LOG, _("input_cdda: unable to resolve '%s'.\n"), host);
         return -1;
   }
 
   for(i=0; h->h_addr_list[i]; i++) {
     struct in_addr ia;
     memcpy(&ia, h->h_addr_list[i], 4);
-    s=host_connect_attempt(ia, port);
+    s=host_connect_attempt(xine, ia, port);
     if(s != -1) {
       signal( SIGPIPE, SIG_IGN );
       return s;
     }
   }
 
-  printf("input_cdda: unable to connect to '%s'.\n", host);
+  xprintf(xine, XINE_VERBOSITY_LOG, _("input_cdda: unable to connect to '%s'.\n"), host);
+
   return -1;
 }
 
@@ -961,7 +962,7 @@ static int sock_check_opened(int socket) {
 /*
  * read binary data from socket
  */
-static int sock_data_read (int socket, char *buf, int nlen) {
+static int sock_data_read (xine_t *xine, int socket, char *buf, int nlen) {
   int n, num_bytes;
 
   if((socket < 0) || (buf == NULL))
@@ -989,12 +990,12 @@ static int sock_data_read (int socket, char *buf, int nlen) {
         timeout.tv_usec = 0;
 
         if (select (socket+1, &rset, NULL, NULL, &timeout) <= 0) {
-          printf ("input_cdda: timeout on read.\n");
+          xprintf (xine, XINE_VERBOSITY_DEBUG, "input_cdda: timeout on read.\n");
           return 0;
         }
         continue;
       }
-      printf ("input_cdda: read error %d.\n", errno);
+      xprintf (xine, XINE_VERBOSITY_DEBUG, "input_cdda: read error %d.\n", errno);
       return 0;
     }
 
@@ -1076,7 +1077,7 @@ static int sock_data_write(int socket, char *buf, int len) {
   return wlen;
 }
 
-static int network_command( int socket, char *data_buf, char *msg, ...)
+static int network_command( xine_t *xine, int socket, char *data_buf, char *msg, ...)
 {
   char     buf[_BUFSIZ];
   va_list  args;
@@ -1092,13 +1093,13 @@ static int network_command( int socket, char *data_buf, char *msg, ...)
 
   if( sock_data_write(socket, buf, strlen(buf)) < (int)strlen(buf) )
   {
-    printf("input_cdda: error writing to socket.\n");
+    xprintf(xine, XINE_VERBOSITY_DEBUG, "input_cdda: error writing to socket.\n");
     return -1;
   }
 
   if( sock_string_read(socket, buf, _BUFSIZ) <= 0 )
   {
-    printf("input_cdda: error reading from socket.\n");
+    xprintf(xine, XINE_VERBOSITY_DEBUG, "input_cdda: error reading from socket.\n");
     return -1;
   }
 
@@ -1106,10 +1107,11 @@ static int network_command( int socket, char *data_buf, char *msg, ...)
 
   if( n ) {
     if( !data_buf ) {
-      printf("input_cdda: protocol error, data returned but no buffer provided.\n");
+      xprintf(xine, XINE_VERBOSITY_DEBUG, 
+	      "input_cdda: protocol error, data returned but no buffer provided.\n");
       return -1;
     }
-    if( sock_data_read(socket, data_buf, n) < n )
+    if( sock_data_read(xine, socket, data_buf, n) < n )
       return -1;
   } else if ( data_buf ) {
 
@@ -1120,7 +1122,7 @@ static int network_command( int socket, char *data_buf, char *msg, ...)
 }
 
 
-static int network_connect( char *url )
+static int network_connect(xine_t *xine,  char *url )
 {
   char *host;
   int port;
@@ -1135,12 +1137,12 @@ static int network_connect( char *url )
     return -1;
   }
 
-  fd = host_connect( host, port );
+  fd = host_connect(xine, host, port );
   free(url);
 
   if( fd != -1 ) {
-    if( network_command(fd, NULL, "cdda_open") < 0 ) {
-      printf("input_cdda: error opening remote drive.\n");
+    if( network_command(xine, fd, NULL, "cdda_open") < 0 ) {
+      xprintf(xine, XINE_VERBOSITY_DEBUG, "input_cdda: error opening remote drive.\n");
       close(fd);
       return -1;
     }
@@ -1148,14 +1150,14 @@ static int network_connect( char *url )
   return fd;
 }
                    
-static int network_read_cdrom_toc(int fd, cdrom_toc *toc) {
+static int network_read_cdrom_toc(xine_t *xine, int fd, cdrom_toc *toc) {
 
   char buf[_BUFSIZ];
   int i;
 
   /* fetch the table of contents */
-  if( network_command( fd, buf, "cdda_tochdr" ) == -1) {
-    printf("input_cdda: network CDROMREADTOCHDR error.\n");
+  if( network_command(xine, fd, buf, "cdda_tochdr" ) == -1) {
+    xprintf(xine, XINE_VERBOSITY_DEBUG, "input_cdda: network CDROMREADTOCHDR error.\n");
     return -1;
   }
 
@@ -1174,8 +1176,8 @@ static int network_read_cdrom_toc(int fd, cdrom_toc *toc) {
   for (i = toc->first_track; i <= toc->last_track; i++) {
 
     /* fetch the table of contents */
-    if( network_command( fd, buf, "cdda_tocentry %d", i ) == -1) {
-      printf("input_cdda: network CDROMREADTOCENTRY error.\n");
+    if( network_command( xine, fd, buf, "cdda_tocentry %d", i ) == -1) {
+      xprintf(xine, XINE_VERBOSITY_DEBUG, "input_cdda: network CDROMREADTOCENTRY error.\n");
       return -1;
     }
 
@@ -1191,8 +1193,8 @@ static int network_read_cdrom_toc(int fd, cdrom_toc *toc) {
   }
 
   /* fetch the leadout as well */
-  if( network_command( fd, buf, "cdda_tocentry %d", CD_LEADOUT_TRACK ) == -1) {
-    printf("input_cdda: network CDROMREADTOCENTRY error.\n");
+  if( network_command( xine, fd, buf, "cdda_tocentry %d", CD_LEADOUT_TRACK ) == -1) {
+    xprintf(xine, XINE_VERBOSITY_DEBUG, "input_cdda: network CDROMREADTOCENTRY error.\n");
     return -1;
   }
 
@@ -1208,10 +1210,10 @@ static int network_read_cdrom_toc(int fd, cdrom_toc *toc) {
   return 0;
 }
 
-static int network_read_cdrom_frames(int fd, int first_frame, int num_frames,
+static int network_read_cdrom_frames(xine_t *xine, int fd, int first_frame, int num_frames,
   unsigned char data[CD_RAW_FRAME_SIZE]) {
 
-  return network_command( fd, data, "cdda_read %d %d", first_frame, num_frames );
+  return network_command( xine, fd, data, "cdda_read %d %d", first_frame, num_frames );
 }
 
 
@@ -1274,7 +1276,8 @@ static int _cdda_is_cd_changed(cdda_input_plugin_t *this) {
     return -1;
   
   if((err = ioctl(this->fd, CDROM_MEDIA_CHANGED, cd_changed)) < 0) {
-    printf("input_cdda: ioctl(CDROM_MEDIA_CHANGED) failed: %s.\n", strerror(errno));
+    xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
+	    "input_cdda: ioctl(CDROM_MEDIA_CHANGED) failed: %s.\n", strerror(errno));
     return -1;
   }
   
@@ -1301,49 +1304,50 @@ static int _cdda_is_cd_changed(cdda_input_plugin_t *this) {
 /*
  * create a directory, in safe mode
  */
-static void _cdda_mkdir_safe(char *path) {
+static void _cdda_mkdir_safe(xine_t *xine, char *path) {
   
   if(path == NULL)
     return;
-
+  
 #ifndef WIN32
   {
-	  struct stat  pstat;
-	  
-	  if((lstat(path, &pstat)) < 0) {
-		  /* file or directory no exist, create it */
-		  if(mkdir(path, 0755) < 0) {
-			  fprintf(stderr, "input_cdda: mkdir(%s) failed: %s.\n", path, strerror(errno));
-			  return;
-		  }
-	  }
-	  else {
-		  /* Check of found file is a directory file */
-		  if(!S_ISDIR(pstat.st_mode)) {
-			  fprintf(stderr, "input_cdda: %s is not a directory.\n", path);
-		  }
-	  }
+    struct stat  pstat;
+    
+    if((lstat(path, &pstat)) < 0) {
+      /* file or directory no exist, create it */
+      if(mkdir(path, 0755) < 0) {
+	xprintf(xine, XINE_VERBOSITY_DEBUG, 
+		"input_cdda: mkdir(%s) failed: %s.\n", path, strerror(errno));
+	return;
+      }
+    }
+    else {
+      /* Check of found file is a directory file */
+      if(!S_ISDIR(pstat.st_mode)) {
+	xprintf(xine, XINE_VERBOSITY_DEBUG, "input_cdda: %s is not a directory.\n", path);
+      }
+    }
   }
 #else
   {
-	  HANDLE          hList;
-	  TCHAR           szDir[MAX_PATH+1];
-	  WIN32_FIND_DATA FileData;
-	  
-	  // Get the proper directory path
-	  sprintf(szDir, "%s\\*", path);
-	  
-	  // Get the first file
-	  hList = FindFirstFile(szDir, &FileData);
-	  if (hList == INVALID_HANDLE_VALUE)
-	  {
-		  if(_mkdir(path) != 0) {
-			  fprintf(stderr, "input_cdda: mkdir(%s) failed.\n", path);
-			  return;
-		  }		  
-	  }
-	  
-      FindClose(hList);
+    HANDLE          hList;
+    TCHAR           szDir[MAX_PATH+1];
+    WIN32_FIND_DATA FileData;
+    
+    // Get the proper directory path
+    sprintf(szDir, "%s\\*", path);
+    
+    // Get the first file
+    hList = FindFirstFile(szDir, &FileData);
+    if (hList == INVALID_HANDLE_VALUE)
+      {
+	if(_mkdir(path) != 0) {
+	  xprintf(xine, XINE_VERBOSITY_DEBUG, "input_cdda: mkdir(%s) failed.\n", path);
+	  return;
+	}		  
+      }
+    
+    FindClose(hList);
   }
 #endif /* WIN32 */
 }
@@ -1351,7 +1355,7 @@ static void _cdda_mkdir_safe(char *path) {
 /*
  * Make recursive directory creation
  */
-static void _cdda_mkdir_recursive_safe(char *path) {
+static void _cdda_mkdir_recursive_safe(xine_t *xine, char *path) {
   char *p, *pp;
   char buf[XINE_PATH_MAX + XINE_NAME_MAX + 1];
   char buf2[XINE_PATH_MAX + XINE_NAME_MAX + 1];
@@ -1381,7 +1385,7 @@ static void _cdda_mkdir_recursive_safe(char *path) {
 
 #endif /* WIN32 */
 
-      _cdda_mkdir_safe(buf2);
+      _cdda_mkdir_safe(xine, buf2);
     }
   }
 }
@@ -1543,7 +1547,8 @@ static int _cdda_load_cached_cddb_infos(cdda_input_plugin_t *this) {
 	
 	sprintf(cdir, "%s/%s", cdir, discid);
 	if((fd = fopen(cdir, "r")) == NULL) {
-	  printf("input_cdda: fopen(%s) failed: %s.\n", cdir, strerror(errno));
+	  xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
+		  "input_cdda: fopen(%s) failed: %s.\n", cdir, strerror(errno));
 	  closedir(dir);
 	  return 0;
 	}
@@ -1629,12 +1634,13 @@ static void _cdda_save_cached_cddb_infos(cdda_input_plugin_t *this, char *fileco
   /* Ensure "~/.xine/cddbcache" exist */
   sprintf(cfile, "%s", this->cddb.cache_dir);
   
-  _cdda_mkdir_recursive_safe(cfile);
+  _cdda_mkdir_recursive_safe(this->stream->xine, cfile);
   
   sprintf(cfile, "%s/%08lx", this->cddb.cache_dir, this->cddb.disc_id);
   
   if((fd = fopen(cfile, "w")) == NULL) {
-    printf("input_cdda: fopen(%s) failed: %s.\n", cfile, strerror(errno));
+    xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
+	    "input_cdda: fopen(%s) failed: %s.\n", cfile, strerror(errno));
     return;
   }
   else {
@@ -1715,10 +1721,14 @@ static void _cdda_cddb_retrieve(cdda_input_plugin_t *this) {
   else {
     this->cddb.fd = _cdda_cddb_socket_open(this);
     if(this->cddb.fd >= 0) {
-      printf("input_cdda: successfuly connected to cddb server '%s:%d'.\n", this->cddb.server, this->cddb.port);
+      xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
+	      _("input_cdda: successfuly connected to cddb server '%s:%d'.\n"),
+	      this->cddb.server, this->cddb.port);
     }
     else {
-      printf("input_cdda: failed to connect to cddb server '%s:%d' (%s).\n", this->cddb.server, this->cddb.port, strerror(errno));
+      xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
+	      _("input_cdda: failed to connect to cddb server '%s:%d' (%s).\n"),
+	      this->cddb.server, this->cddb.port, strerror(errno));
       this->cddb.have_cddb_info = 0;
       return;
     }
@@ -1727,7 +1737,8 @@ static void _cdda_cddb_retrieve(cdda_input_plugin_t *this) {
     memset(&buffer, 0, sizeof(buffer));
     _cdda_cddb_socket_read(&buffer[0], 2047, this->cddb.fd);
     if ((err = _cdda_cddb_handle_code(buffer)) < 0) {
-      printf("input_cdda: error while reading cddb welcome message.\n");
+      xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
+	      "input_cdda: error while reading cddb welcome message.\n");
       _cdda_cddb_socket_close(this);
       return;
     }
@@ -1740,7 +1751,8 @@ static void _cdda_cddb_retrieve(cdda_input_plugin_t *this) {
     memset(&buffer, 0, sizeof(buffer));
     sprintf(buffer, "cddb hello unknown localhost xine %s\n", VERSION);
     if ((err = _cdda_cddb_send_command(this, buffer)) <= 0) {
-      printf("input_cdda: error while sending cddb hello command.\n");
+      xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
+	      "input_cdda: error while sending cddb hello command.\n");
       _cdda_cddb_socket_close(this);
       return;
     }
@@ -1748,7 +1760,8 @@ static void _cdda_cddb_retrieve(cdda_input_plugin_t *this) {
     memset(&buffer, 0, sizeof(buffer));
     _cdda_cddb_socket_read(&buffer[0], 2047, this->cddb.fd);
     if ((err = _cdda_cddb_handle_code(buffer)) < 0) {
-      printf("input_cdda: cddb hello command returned error code '%03d'.\n", err);
+      xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
+	      "input_cdda: cddb hello command returned error code '%03d'.\n", err);
       _cdda_cddb_socket_close(this);
       return;
     }
@@ -1761,7 +1774,8 @@ static void _cdda_cddb_retrieve(cdda_input_plugin_t *this) {
     }
     sprintf(buffer, "%s%d\n", buffer, this->cddb.disc_length);
     if ((err = _cdda_cddb_send_command(this, buffer)) <= 0) {
-      printf("input_cdda: error while sending cddb query command.\n");
+      xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
+	      "input_cdda: error while sending cddb query command.\n");
       _cdda_cddb_socket_close(this);
       return; 
     }
@@ -1769,7 +1783,8 @@ static void _cdda_cddb_retrieve(cdda_input_plugin_t *this) {
     memset(&buffer, 0, sizeof(buffer));
     _cdda_cddb_socket_read(&buffer[0], 2047, this->cddb.fd);
     if ((err = _cdda_cddb_handle_code(buffer)) != 200) {
-      printf("input_cdda: cddb query command returned error code '%03d'.\n", err);
+      xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
+	      "input_cdda: cddb query command returned error code '%03d'.\n", err);
       _cdda_cddb_socket_close(this);
       return;
     }
@@ -1790,7 +1805,8 @@ static void _cdda_cddb_retrieve(cdda_input_plugin_t *this) {
     memset(&buffer, 0, sizeof(buffer));
     sprintf(buffer, "cddb read %s %s\n", this->cddb.disc_category, this->cddb.cdiscid);
     if ((err = _cdda_cddb_send_command(this, buffer)) <= 0) {
-      printf("input_cdda: error while sending cddb read command.\n");
+      xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
+	      "input_cdda: error while sending cddb read command.\n");
       _cdda_cddb_socket_close(this);
       return;
     }
@@ -1798,7 +1814,8 @@ static void _cdda_cddb_retrieve(cdda_input_plugin_t *this) {
     memset(&buffer, 0, sizeof(buffer));
     _cdda_cddb_socket_read(&buffer[0], 2047, this->cddb.fd);
     if ((err = _cdda_cddb_handle_code(buffer)) != 210) {
-      printf("input_cdda: cddb read command returned error code '%03d'.\n", err);
+      xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
+	      "input_cdda: cddb read command returned error code '%03d'.\n", err);
       _cdda_cddb_socket_close(this);
       return;
     }
@@ -2195,7 +2212,7 @@ static buf_element_t *cdda_plugin_read_block (input_plugin_t *this_gen, fifo_buf
                              this->cache_last - this->cache_first + 1,
                              this->cache[0]);
     else if ( this->net_fd != -1 )
-      err = network_read_cdrom_frames(this->net_fd, this->cache_first,
+      err = network_read_cdrom_frames(this->stream->xine, this->net_fd, this->cache_first,
                                       this->cache_last - this->cache_first + 1,
                                       this->cache[0]);
   }
@@ -2302,11 +2319,11 @@ static int cdda_plugin_open (input_plugin_t *this_gen ) {
 
 #ifndef WIN32  
   if( strchr(cdda_device,':') ) {
-    fd = network_connect(cdda_device);
+    fd = network_connect(this->stream->xine, cdda_device);
     if( fd != -1 ) {
       this->net_fd = fd;
 
-      err = network_read_cdrom_toc(this->net_fd, toc);
+      err = network_read_cdrom_toc(this->stream->xine, this->net_fd, toc);
     }
   }
 #endif
@@ -2447,9 +2464,9 @@ static char ** cdda_class_get_autoplay_list (input_class_t *this_gen,
 
 #ifndef WIN32
   if( strchr(this->cdda_device,':') ) {
-    fd = network_connect(this->cdda_device);
+    fd = network_connect(ip->stream->xine, this->cdda_device);
     if( fd != -1 ) {
-      err = network_read_cdrom_toc(fd, toc);
+      err = network_read_cdrom_toc(ip->stream->xine, fd, toc);
     }
   }
 #endif
@@ -2601,7 +2618,7 @@ static void cdda_class_dispose (input_class_t *this_gen) {
 static int cdda_class_eject_media (input_class_t *this_gen) {
   cdda_input_class_t  *this = (cdda_input_class_t *) this_gen;
 
-  return media_eject_media (this->cdda_device);
+  return media_eject_media (this->xine, this->cdda_device);
 }
 
 

@@ -82,10 +82,8 @@ static void set_hc_result(xine_health_check_t* hc, int state, char *format, ...)
 
   size = strlen(format) + 1;
 
-  if ((buf = malloc(size)) == NULL) {
-    printf ("xine_check: GASP, malloc() failed\n");
+  if (!(buf = xine_xmalloc(size)))
     abort();
-  }
 
   while(1) {
     va_start(args, format);

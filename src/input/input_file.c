@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_file.c,v 1.87 2003/11/26 19:43:31 f1rmb Exp $
+ * $Id: input_file.c,v 1.88 2003/12/05 15:54:58 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -588,7 +588,8 @@ static xine_mrl_t **file_class_get_dir (input_class_t *this_gen,
 	  linksize = readlink(fullfilename, linkbuf, XINE_PATH_MAX + XINE_NAME_MAX);
 	  
 	  if(linksize < 0) 
-	    printf ("input_file: readlink() failed: %s\n", strerror(errno));
+	    xprintf (this->xine, XINE_VERBOSITY_DEBUG,
+		     "input_file: readlink() failed: %s\n", strerror(errno));
 	  else {
 	    dir_files[num_dir_files].link = (char *) xine_xmalloc(linksize + 1);
 	    strncpy(dir_files[num_dir_files].link, linkbuf, linksize);
@@ -625,7 +626,8 @@ static xine_mrl_t **file_class_get_dir (input_class_t *this_gen,
 	  linksize = readlink(fullfilename, linkbuf, XINE_PATH_MAX + XINE_NAME_MAX);
 	  
 	  if(linksize < 0) {
-	    printf ("input_file: readlink() failed: %s\n", strerror(errno));
+	    xprintf (this->xine, XINE_VERBOSITY_DEBUG,
+		     "input_file: readlink() failed: %s\n", strerror(errno));
 	  }
 	  else {
 	    hide_files[num_hide_files].link = (char *) 
@@ -660,7 +662,8 @@ static xine_mrl_t **file_class_get_dir (input_class_t *this_gen,
 	linksize = readlink(fullfilename, linkbuf, XINE_PATH_MAX + XINE_NAME_MAX);
 	
 	if(linksize < 0) {
-	  printf ("input_file: readlink() failed: %s\n", strerror(errno));
+	  xprintf (this->xine, XINE_VERBOSITY_DEBUG,
+		   "input_file: readlink() failed: %s\n", strerror(errno));
 	}
 	else {
 	  norm_files[num_norm_files].link = (char *) 

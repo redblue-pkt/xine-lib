@@ -23,7 +23,7 @@
  * For more information on the SMC format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  * 
- * $Id: qtsmc.c,v 1.19 2003/11/16 23:33:48 f1rmb Exp $
+ * $Id: qtsmc.c,v 1.20 2003/12/05 15:55:01 f1rmb Exp $
  */
 
 #include <stdio.h>
@@ -136,8 +136,9 @@ static void decode_qtsmc(qtsmc_decoder_t *this) {
   chunk_size = BE_32(&this->buf[stream_ptr]) & 0x00FFFFFF;
   stream_ptr += 4;
   if (chunk_size != this->size)
-    printf(_("warning: MOV chunk size != encoded chunk size (%d != %d); using MOV chunk size\n"),
-      chunk_size, this->size);
+    xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
+	    "warning: MOV chunk size != encoded chunk size (%d != %d); using MOV chunk size\n",
+	    chunk_size, this->size);
 
   chunk_size = this->size;
   total_blocks = (this->width * this->height) / (4 * 4);
@@ -147,16 +148,16 @@ static void decode_qtsmc(qtsmc_decoder_t *this) {
     /* sanity checks */
     /* make sure stream ptr hasn't gone out of bounds */
     if (stream_ptr > chunk_size) {
-      printf(_(
-        "SMC decoder just went out of bounds (stream ptr = %d, chunk size = %d)\n"),
-        stream_ptr, chunk_size);
+      xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
+	      "SMC decoder just went out of bounds (stream ptr = %d, chunk size = %d)\n",
+	      stream_ptr, chunk_size);
       return;
     }
     /* make sure the row pointer hasn't gone wild */
     if (row_ptr >= image_size) {
-      printf(_(
-        "SMC decoder just went out of bounds (row ptr = %d, height = %d)\n"),
-        row_ptr, image_size);
+      xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
+	      "SMC decoder just went out of bounds (row ptr = %d, height = %d)\n",
+	      row_ptr, image_size);
       return;
     }
 
@@ -177,9 +178,9 @@ static void decode_qtsmc(qtsmc_decoder_t *this) {
 
       /* sanity check */
       if ((row_ptr == 0) && (pixel_ptr == 0)) {
-        printf(_(
-          "encountered repeat block opcode (%02X) but no blocks rendered yet\n"),
-          opcode & 0xF0);
+        xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
+		"encountered repeat block opcode (%02X) but no blocks rendered yet\n",
+		opcode & 0xF0);
         break;
       }
 
@@ -215,9 +216,9 @@ static void decode_qtsmc(qtsmc_decoder_t *this) {
 
       /* sanity check */
       if ((row_ptr == 0) && (pixel_ptr < 2 * 4)) {
-        printf(_(
-          "encountered repeat block opcode (%02X) but not enough blocks rendered yet\n"),
-          opcode & 0xF0);
+        xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
+		"encountered repeat block opcode (%02X) but not enough blocks rendered yet\n",
+		opcode & 0xF0);
         break;
       }
 
@@ -487,7 +488,8 @@ static void decode_qtsmc(qtsmc_decoder_t *this) {
       break;
 
     case 0xF0:
-      printf(_("0xF0 opcode seen in SMC chunk (xine developers would like to know)\n"));
+      xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
+	      "0xF0 opcode seen in SMC chunk (xine developers would like to know)\n");
       break;
     }
   }

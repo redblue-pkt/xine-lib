@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_fb.c,v 1.33 2003/11/26 19:43:37 f1rmb Exp $
+ * $Id: video_out_fb.c,v 1.34 2003/12/05 15:55:03 f1rmb Exp $
  * 
  * video_out_fb.c, frame buffer xine driver by Miguel Freitas
  *
@@ -143,12 +143,14 @@ typedef struct fb_driver_s
   struct fb_fix_screeninfo fb_fix;
 
   int                use_zero_copy;
+  xine_t            *xine;
 } fb_driver_t;
 
 typedef struct
 {
   video_driver_class_t driver_class;
   config_values_t     *config;
+  xine_t              *xine;
 } fb_class_t;
 
 static uint32_t fb_get_capabilities(vo_driver_t *this_gen)
@@ -213,14 +215,10 @@ static vo_frame_t *fb_alloc_frame(vo_driver_t *this_gen)
      this->total_num_native_buffers <= this->used_num_buffers)
     return 0;
 
-  frame = (fb_frame_t *)malloc(sizeof(fb_frame_t));
+  frame = (fb_frame_t *)xine_xmalloc(sizeof(fb_frame_t));
   if(!frame)
-  {
-    fprintf(stderr, "fb_alloc_frame: Out of memory.\n");
-    return 0;
-  }
+    return NULL;
 
-  memset(frame, 0, sizeof(fb_frame_t));
   memcpy(&frame->sc, &this->sc, sizeof(vo_scale_t));
 
   pthread_mutex_init(&frame->vo_frame.mutex, NULL);
@@ -563,7 +561,8 @@ static void fb_display_frame(vo_driver_t *this_gen, vo_frame_t *frame_gen)
     this->sc.output_width    = frame->sc.output_width;
     this->sc.output_height   = frame->sc.output_height;
 
-    printf("video_out_fb: gui size %d x %d, frame size %d x %d\n",
+    xprintf(this->xine, XINE_VERBOSITY_DEBUG, 
+	    "video_out_fb: gui size %d x %d, frame size %d x %d\n",
             this->sc.gui_width, this->sc.gui_height,
             frame->sc.output_width, frame->sc.output_height);
     
@@ -586,7 +585,8 @@ static void fb_display_frame(vo_driver_t *this_gen, vo_frame_t *frame_gen)
 		
     this->fb_var.yoffset = frame->yoffset;
     if(ioctl(this->fd, FBIOPAN_DISPLAY, &this->fb_var) == -1)
-      perror("video_out_fb: ioctl FBIOPAN_DISPLAY failed");
+      xprintf(this->xine, XINE_VERBOSITY_DEBUG, 
+	      "video_out_fb: ioctl FBIOPAN_DISPLAY failed: %s\n", strerror(errno));
   }
   else
   {
@@ -625,8 +625,8 @@ static int fb_get_property(vo_driver_t *this_gen, int property)
       return this->sc.gui_height;
     
     default:
-      printf("video_out_fb: tried to get unsupported "
-	     "property %d\n", property);
+      xprintf(this->xine, XINE_VERBOSITY_DEBUG, 
+	      "video_out_fb: tried to get unsupported property %d\n", property);
   }
 
   return 0;
@@ -640,22 +640,22 @@ static int fb_set_property(vo_driver_t *this_gen, int property, int value)
   {
     case VO_PROP_ASPECT_RATIO:
       if(value>=XINE_VO_ASPECT_NUM_RATIOS)
-      value = XINE_VO_ASPECT_AUTO;
-    this->sc.user_ratio = value;
-    printf("video_out_fb: aspect ratio changed to %s\n",
-           _x_vo_scale_aspect_ratio_name(value));
+	value = XINE_VO_ASPECT_AUTO;
+      this->sc.user_ratio = value;
+      xprintf(this->xine, XINE_VERBOSITY_DEBUG, 
+	      "video_out_fb: aspect ratio changed to %s\n", _x_vo_scale_aspect_ratio_name(value));
       break;
 
     case VO_PROP_BRIGHTNESS:
-    this->yuv2rgb_gamma = value;
+      this->yuv2rgb_gamma = value;
       this->yuv2rgb_factory->
 	set_csc_levels(this->yuv2rgb_factory, value, 128, 128);
-    printf("video_out_fb: gamma changed to %d\n",value);
+      xprintf(this->xine, XINE_VERBOSITY_DEBUG, "video_out_fb: gamma changed to %d\n", value);
       break;
 
     default:
-      printf("video_out_fb: tried to set unsupported "
-	     "property %d\n", property);
+      xprintf(this->xine, XINE_VERBOSITY_DEBUG, 
+	      "video_out_fb: tried to set unsupported property %d\n", property);
   }
 
   return value;
@@ -692,13 +692,13 @@ static void fb_dispose(vo_driver_t *this_gen)
   close(this->fd);
 }
 
-static int get_fb_var_screeninfo(int fd, struct fb_var_screeninfo *var)
+static int get_fb_var_screeninfo(int fd, struct fb_var_screeninfo *var, xine_t *xine)
 {
   int i;
   
   if(ioctl(fd, FBIOGET_VSCREENINFO, var))
   {
-    perror("video_out_fb: ioctl FBIOGET_VSCREENINFO");
+    xprintf(xine, XINE_VERBOSITY_DEBUG, "video_out_fb: ioctl FBIOGET_VSCREENINFO: %s\n", strerror(errno));
     return 0;
   }
 
@@ -720,18 +720,18 @@ static int get_fb_var_screeninfo(int fd, struct fb_var_screeninfo *var)
   /* Get proper value for maximized var->yres_virtual. */
   if(ioctl(fd, FBIOGET_VSCREENINFO, var) == -1)
   {
-    perror("video_out_fb: ioctl FBIOGET_VSCREENINFO");
+    xprintf(xine, XINE_VERBOSITY_DEBUG, "video_out_fb: ioctl FBIOGET_VSCREENINFO: %s\n", strerror(errno));
     return 0;
   }
 
   return 1;
 }
 
-static int get_fb_fix_screeninfo(int fd, struct fb_fix_screeninfo *fix)
+static int get_fb_fix_screeninfo(int fd, struct fb_fix_screeninfo *fix, xine_t *xine)
 {
   if(ioctl(fd, FBIOGET_FSCREENINFO, fix))
   {
-    perror("video_out_fb: ioctl FBIOGET_FSCREENINFO");
+    xprintf(xine, XINE_VERBOSITY_DEBUG, "video_out_fb: ioctl FBIOGET_FSCREENINFO: %s\n", strerror(errno));
     return 0;
   }
 
@@ -739,9 +739,9 @@ static int get_fb_fix_screeninfo(int fd, struct fb_fix_screeninfo *fix)
       fix->visual != FB_VISUAL_DIRECTCOLOR) ||
      fix->type != FB_TYPE_PACKED_PIXELS)
   {
-    fprintf(stderr, "video_out_fb: only packed truecolor/directcolor is supported (%d).\n"
-	    "     Check 'fbset -i' or try 'fbset -depth 16'.\n",
-	    fix->visual);
+    xprintf(xine, XINE_VERBOSITY_LOG,
+	    _("video_out_fb: only packed truecolor/directcolor is supported (%d).\n"
+	      "     Check 'fbset -i' or try 'fbset -depth 16'.\n"), fix->visual);
     return 0;
   }
 
@@ -765,7 +765,7 @@ static void register_callbacks(fb_driver_t *this)
   this->vo_driver.redraw_needed        = fb_redraw_needed;
 }
 
-static int open_fb_device(config_values_t *config)
+static int open_fb_device(config_values_t *config, xine_t *xine)
 {
   static char devkey[] = "video.fb_device";   /* Why static? */
   char *device_name;
@@ -792,8 +792,8 @@ static int open_fb_device(config_values_t *config)
   
   if(fd < 0)
   {
-    fprintf(stderr, "video_out_fb: Unable to open device \"%s\", aborting: %s\n",
-	    device_name, strerror(errno));
+    xprintf(xine, XINE_VERBOSITY_DEBUG, 
+	    "video_out_fb: Unable to open device \"%s\", aborting: %s\n", device_name, strerror(errno));
     return -1;
   }
   
@@ -841,7 +841,7 @@ static int mode_visual(fb_driver_t *this, config_values_t *config,
       }
   }
   
-  fprintf(stderr, "video_out_fb: Your video mode was not recognized, sorry.\n");
+  xprintf(this->xine, XINE_VERBOSITY_LOG, _("video_out_fb: Your video mode was not recognized, sorry.\n"));
   return 0;
 }
     
@@ -898,31 +898,32 @@ static void setup_buffers(fb_driver_t *this,
 	
   this->cur_frame = this->old_frame = 0;
 	
-  printf("video_out_fb: %d video RAM buffers are available.\n",
-	 this->total_num_native_buffers);
+  xprintf(this->xine, XINE_VERBOSITY_LOG,
+	  _("video_out_fb: %d video RAM buffers are available.\n"), this->total_num_native_buffers);
 
   if(this->total_num_native_buffers < RECOMMENDED_NUM_BUFFERS)
   {
     this->use_zero_copy = 0;
-    printf("WARNING: video_out_fb: Zero copy buffers are DISABLED because only %d buffers\n"
-	   "     are available which is less than the recommended %d buffers. Lowering\n"
-	   "     the frame buffer resolution might help.\n",
-	   this->total_num_native_buffers,
-	   RECOMMENDED_NUM_BUFFERS);
+    xprintf(this->xine, XINE_VERBOSITY_LOG,
+	    _("WARNING: video_out_fb: Zero copy buffers are DISABLED because only %d buffers\n"
+	      "     are available which is less than the recommended %d buffers. Lowering\n"
+	      "     the frame buffer resolution might help.\n"), 
+	    this->total_num_native_buffers, RECOMMENDED_NUM_BUFFERS);
   }
   else
   {
     /* test if FBIOPAN_DISPLAY works */
     this->fb_var.yoffset = this->fb_var.yres;
     if(ioctl(this->fd, FBIOPAN_DISPLAY, &this->fb_var) == -1) {
-      printf("WARNING: video_out_fb: Zero copy buffers are DISABLED because kernel driver\n"
-	     "     do not support screen panning (used for frame flips).\n");
+      xprintf(this->xine, XINE_VERBOSITY_LOG,
+	      _("WARNING: video_out_fb: Zero copy buffers are DISABLED because kernel driver\n"
+		"     do not support screen panning (used for frame flips).\n"));
     } else {
       this->fb_var.yoffset = 0;
       ioctl(this->fd, FBIOPAN_DISPLAY, &this->fb_var);
 
       this->use_zero_copy = 1;
-      printf("video_out_fb: Using zero copy buffers.\n");
+      xprintf(this->xine, XINE_VERBOSITY_DEBUG, "video_out_fb: Using zero copy buffers.\n");
     }
   }
 }
@@ -943,24 +944,22 @@ static vo_driver_t *fb_open_plugin(video_driver_class_t *class_gen,
   config = class->config;
 
   /* allocate plugin struct */
-  this = malloc(sizeof(fb_driver_t));
+  this = (fb_driver_t *) xine_xmalloc(sizeof(fb_driver_t));
   if(!this)
-  {
-    fprintf(stderr, "video_out_fb: malloc failed\n");
-    return 0;
-  }
-  memset(this, 0, sizeof(fb_driver_t));
+    return NULL;
   
   register_callbacks(this);
 
-  this->fd = open_fb_device(config);
+  this->fd = open_fb_device(config, class->xine);
   if(this->fd == -1)
     goto error;
-  if(!get_fb_var_screeninfo(this->fd, &this->fb_var))
+  if(!get_fb_var_screeninfo(this->fd, &this->fb_var, class->xine))
     goto error;
-  if(!get_fb_fix_screeninfo(this->fd, &this->fb_fix))
+  if(!get_fb_fix_screeninfo(this->fd, &this->fb_fix, class->xine))
     goto error;
    
+  this->xine = class->xine;
+
   if(this->fb_fix.line_length)
     this->fb_bytes_per_line = this->fb_fix.line_length;
   else
@@ -986,17 +985,18 @@ static vo_driver_t *fb_open_plugin(video_driver_class_t *class_gen,
   setup_buffers(this, &this->fb_var);
 
   if(this->depth > 16)
-    printf("WARNING: video_out_fb: current display depth is %d. For better performance\n"
-	   "     a depth of 16 bpp is recommended!\n\n",
-	   this->depth);
+    xprintf(this->xine, XINE_VERBOSITY_LOG,
+	    _("WARNING: video_out_fb: current display depth is %d. For better performance\n"
+	      "     a depth of 16 bpp is recommended!\n\n"), this->depth);
 
-  printf("video_out_fb: video mode depth is %d (%d bpp),\n"
-	 "     red: %d/%d, green: %d/%d, blue: %d/%d\n",
-	 this->depth, this->bpp,
-	 this->fb_var.red.length, this->fb_var.red.offset,
-	 this->fb_var.green.length, this->fb_var.green.offset,
-	 this->fb_var.blue.length, this->fb_var.blue.offset);
-                                  
+  xprintf(class->xine, XINE_VERBOSITY_DEBUG,
+	  "video_out_fb: video mode depth is %d (%d bpp),\n"
+	  "     red: %d/%d, green: %d/%d, blue: %d/%d\n",
+	  this->depth, this->bpp,
+	  this->fb_var.red.length, this->fb_var.red.offset,
+	  this->fb_var.green.length, this->fb_var.green.offset,
+	  this->fb_var.blue.length, this->fb_var.blue.offset);
+  
   if(!setup_yuv2rgb(this, config, &this->fb_var, &this->fb_fix))
     goto error;
 	
@@ -1028,7 +1028,7 @@ static void fb_dispose_class(video_driver_class_t *this_gen)
 
 static void *fb_init_class(xine_t *xine, void *visual_gen)
 {
-  fb_class_t *this = (fb_class_t *)malloc(sizeof(fb_class_t));
+  fb_class_t *this = (fb_class_t *)xine_xmalloc(sizeof(fb_class_t));
 
   this->driver_class.open_plugin     = fb_open_plugin;
   this->driver_class.get_identifier  = fb_get_identifier;
@@ -1036,6 +1036,7 @@ static void *fb_init_class(xine_t *xine, void *visual_gen)
   this->driver_class.dispose         = fb_dispose_class;
 
   this->config          = xine->config;
+  this->xine            = xine;
 
   return this;
 }
@@ -1051,22 +1052,8 @@ static vo_info_t vo_info_fb =
 };
 
 /* exported plugin catalog entry */
-plugin_info_t xine_plugin_info[] =
-{
+plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  {
-    PLUGIN_VIDEO_OUT,
-    18,
-    "fb",
-    XINE_VERSION_CODE,
-    &vo_info_fb, fb_init_class
-  },
-  {
-    PLUGIN_NONE,
-    0,
-    "",
-    0,
-    NULL,
-    NULL
-  }
+  { PLUGIN_VIDEO_OUT, 18, "fb", XINE_VERSION_CODE, &vo_info_fb, fb_init_class },
+  { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

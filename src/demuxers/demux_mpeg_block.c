@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.202 2003/11/26 19:43:30 f1rmb Exp $
+ * $Id: demux_mpeg_block.c,v 1.203 2003/12/05 15:54:57 f1rmb Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  * used with fixed blocksize devices (like dvd/vcd)
@@ -235,9 +235,9 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
 
   while(p < (buf->content + this->blocksize)) {
     if (p[0] || p[1] || (p[2] != 1)) {
-      printf ("demux_mpeg_block: error! %02x %02x %02x (should be 0x000001)\n",
-	      p[0], p[1], p[2]);
-      printf ("demux_mpeg_block: bad block. skipping.\n");
+      xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
+	       "demux_mpeg_block: error! %02x %02x %02x (should be 0x000001)\n", p[0], p[1], p[2]);
+      xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "demux_mpeg_block: bad block. skipping.\n");
       /* FIXME: We should find some way for the input plugin to inform us of: -
        * 1) Normal sector read.
        * 2) Sector error read due to bad crc etc.
@@ -304,7 +304,9 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
     } else if (this->stream_id == 0xFF) {
       result = parse_program_stream_directory(this, p, buf);
     } else {
-      printf("xine-lib:demux_mpeg_block: Unrecognised stream_id 0x%02x. Please report this to xine developers.\n", this->stream_id);
+      xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
+	      _("xine-lib:demux_mpeg_block: "
+		"Unrecognised stream_id 0x%02x. Please report this to xine developers.\n"), this->stream_id);
       buf->free_buffer (buf);
       return;
     }
@@ -313,7 +315,8 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
     }
     p+=result;
   }
-  printf ("demux_mpeg_block: error! freeing. Please report this to xine developers.\n");
+  xprintf (this->stream->xine, XINE_VERBOSITY_LOG,
+	   _("demux_mpeg_block: error! freeing. Please report this to xine developers.\n"));
   buf->free_buffer (buf);
   return ;
 }
@@ -325,85 +328,99 @@ static int32_t parse_padding_stream(demux_mpeg_block_t *this, uint8_t *p, buf_el
 }
 static int32_t parse_program_stream_map(demux_mpeg_block_t *this, uint8_t *p, buf_element_t *buf) {
   /* FIXME: Implement */
-  printf("xine-lib:demux_mpeg_block: Unhandled stream_id 0x%02x.\n", this->stream_id);
+  xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
+	  "xine-lib:demux_mpeg_block: Unhandled stream_id 0x%02x.\n", this->stream_id);
   buf->free_buffer (buf);
   return -1;
 }
 static int32_t parse_ecm_stream(demux_mpeg_block_t *this, uint8_t *p, buf_element_t *buf) {
   /* FIXME: Implement */
-  printf("xine-lib:demux_mpeg_block: Unhandled stream_id 0x%02x\n", this->stream_id);
+  xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
+	  "xine-lib:demux_mpeg_block: Unhandled stream_id 0x%02x\n", this->stream_id);
   buf->free_buffer (buf);
   return -1;
 }
 static int32_t parse_emm_stream(demux_mpeg_block_t *this, uint8_t *p, buf_element_t *buf) {
   /* FIXME: Implement */
-  printf("xine-lib:demux_mpeg_block: Unhandled stream_id 0x%02x\n", this->stream_id);
+  xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
+	  "xine-lib:demux_mpeg_block: Unhandled stream_id 0x%02x\n", this->stream_id);
   buf->free_buffer (buf);
   return -1;
 }
 static int32_t parse_dsmcc_stream(demux_mpeg_block_t *this, uint8_t *p, buf_element_t *buf) {
   /* FIXME: Implement */
-  printf("xine-lib:demux_mpeg_block: Unhandled stream_id 0x%02x\n", this->stream_id);
+  xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
+	  "xine-lib:demux_mpeg_block: Unhandled stream_id 0x%02x\n", this->stream_id);
   buf->free_buffer (buf);
   return -1;
 }
 static int32_t parse_iec_13522_stream(demux_mpeg_block_t *this, uint8_t *p, buf_element_t *buf) {
   /* FIXME: Implement */
-  printf("xine-lib:demux_mpeg_block: Unhandled stream_id 0x%02x\n", this->stream_id);
+  xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
+	  "xine-lib:demux_mpeg_block: Unhandled stream_id 0x%02x\n", this->stream_id);
   buf->free_buffer (buf);
   return -1;
 }
 static int32_t parse_h222_typeA_stream(demux_mpeg_block_t *this, uint8_t *p, buf_element_t *buf) {
   /* FIXME: Implement */
-  printf("xine-lib:demux_mpeg_block: Unhandled stream_id 0x%02x\n", this->stream_id);
+  xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
+	  "xine-lib:demux_mpeg_block: Unhandled stream_id 0x%02x\n", this->stream_id);
   buf->free_buffer (buf);
   return -1;
 }
 static int32_t parse_h222_typeB_stream(demux_mpeg_block_t *this, uint8_t *p, buf_element_t *buf) {
   /* FIXME: Implement */
-  printf("xine-lib:demux_mpeg_block: Unhandled stream_id 0x%02x\n", this->stream_id);
+  xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
+	  "xine-lib:demux_mpeg_block: Unhandled stream_id 0x%02x\n", this->stream_id);
   buf->free_buffer (buf);
   return -1;
 }
 static int32_t parse_h222_typeC_stream(demux_mpeg_block_t *this, uint8_t *p, buf_element_t *buf) {
   /* FIXME: Implement */
-  printf("xine-lib:demux_mpeg_block: Unhandled stream_id 0x%02x\n", this->stream_id);
+  xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
+	  "xine-lib:demux_mpeg_block: Unhandled stream_id 0x%02x\n", this->stream_id);
   buf->free_buffer (buf);
   return -1;
 }
 static int32_t parse_h222_typeD_stream(demux_mpeg_block_t *this, uint8_t *p, buf_element_t *buf) {
   /* FIXME: Implement */
-  printf("xine-lib:demux_mpeg_block: Unhandled stream_id 0x%02x\n", this->stream_id);
+  xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
+	  "xine-lib:demux_mpeg_block: Unhandled stream_id 0x%02x\n", this->stream_id);
   buf->free_buffer (buf);
   return -1;
 }
 static int32_t parse_h222_typeE_stream(demux_mpeg_block_t *this, uint8_t *p, buf_element_t *buf) {
   /* FIXME: Implement */
-  printf("xine-lib:demux_mpeg_block: Unhandled stream_id 0x%02x\n", this->stream_id);
+  xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
+	  "xine-lib:demux_mpeg_block: Unhandled stream_id 0x%02x\n", this->stream_id);
   buf->free_buffer (buf);
   return -1;
 }
 static int32_t parse_IEC14496_SL_packetized_stream(demux_mpeg_block_t *this, uint8_t *p, buf_element_t *buf) {
   /* FIXME: Implement */
-  printf("xine-lib:demux_mpeg_block: Unhandled stream_id 0x%02x\n", this->stream_id);
+  xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
+	  "xine-lib:demux_mpeg_block: Unhandled stream_id 0x%02x\n", this->stream_id);
   buf->free_buffer (buf);
   return -1;
 }
 static int32_t parse_IEC14496_FlexMux_stream(demux_mpeg_block_t *this, uint8_t *p, buf_element_t *buf) {
   /* FIXME: Implement */
-  printf("xine-lib:demux_mpeg_block: Unhandled stream_id 0x%02x\n", this->stream_id);
+  xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
+	  "xine-lib:demux_mpeg_block: Unhandled stream_id 0x%02x\n", this->stream_id);
   buf->free_buffer (buf);
   return -1;
 }
 static int32_t parse_program_stream_directory(demux_mpeg_block_t *this, uint8_t *p, buf_element_t *buf) {
   /* FIXME: Implement */
-  printf("xine-lib:demux_mpeg_block: Unhandled stream_id 0x%02x\n", this->stream_id);
+  xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
+	  "xine-lib:demux_mpeg_block: Unhandled stream_id 0x%02x\n", this->stream_id);
   buf->free_buffer (buf);
   return -1;
 }
 static int32_t parse_ancillary_stream(demux_mpeg_block_t *this, uint8_t *p, buf_element_t *buf) {
   /* FIXME: Implement */
-  printf("xine-lib:demux_mpeg_block: Unhandled stream_id 0x%02x\n", this->stream_id);
+  xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
+	  "xine-lib:demux_mpeg_block: Unhandled stream_id 0x%02x\n", this->stream_id);
   buf->free_buffer (buf);
   return -1;
 }
@@ -640,11 +657,11 @@ static int32_t parse_pes_for_pts(demux_mpeg_block_t *this, uint8_t *p, buf_eleme
     /* check PES scrambling_control */
 
     if ((p[6] & 0x30) != 0) {
-      printf("demux_mpeg_block: warning: PES header indicates that this stream may be encrypted (encryption mode %d)\n", (p[6] & 0x30) >> 4);
-      xine_log (this->stream->xine, XINE_LOG_MSG,
-		_("demux_mpeg_block: warning: PES header indicates that this stream may be encrypted (encryption mode %d)\n"), (p[6] & 0x30) >> 4);
+      xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
+	      _("demux_mpeg_block: warning: PES header indicates that this stream "
+		"may be encrypted (encryption mode %d)\n"), (p[6] & 0x30) >> 4);
       _x_message (this->stream, XINE_MSG_ENCRYPTED_SOURCE,
-                      "Media stream scrambled/encrypted", NULL);
+		  "Media stream scrambled/encrypted", NULL);
       this->status = DEMUX_FINISHED;
       buf->free_buffer(buf);
       return -1;
@@ -899,8 +916,8 @@ static int32_t parse_private_stream_1(demux_mpeg_block_t *this, uint8_t *p, buf_
       switch ((p[5]>>6) & 3) {
       case 3: /* illegal, use 16-bits? */
       default:
-	printf ("illegal lpcm sample format (%d), assume 16-bit samples\n",
-		(p[5]>>6) & 3 );
+	xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
+		 "illegal lpcm sample format (%d), assume 16-bit samples\n", (p[5]>>6) & 3 );
       case 0: bits_per_sample = 16; break;
       case 1: bits_per_sample = 20; break;
       case 2: bits_per_sample = 24; break;
@@ -935,7 +952,8 @@ static int32_t parse_private_stream_1(demux_mpeg_block_t *this, uint8_t *p, buf_
     /* Some new streams have been encountered.
        1) DVD+RW disc recorded with a Philips DVD recorder: -  new unknown sub-stream id of 0xff
      */
-    printf("demux_mpeg_block:Unrecognised private stream 1 0x%02x. Please report this to xine developers.\n", p[0]);
+    xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
+	    "demux_mpeg_block:Unrecognised private stream 1 0x%02x. Please report this to xine developers.\n", p[0]);
     buf->free_buffer(buf);
     return -1;
 }
@@ -1073,8 +1091,8 @@ static int demux_mpeg_block_estimate_rate (demux_mpeg_block_t *this) {
     /* we should now have a PES packet here */
 
     if (p[0] || p[1] || (p[2] != 1)) {
-      printf ("demux_mpeg_block: error %02x %02x %02x (should be 0x000001) \n",
-	      p[0], p[1], p[2]);
+      xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
+	       "demux_mpeg_block: error %02x %02x %02x (should be 0x000001) \n", p[0], p[1], p[2]);
       buf->free_buffer (buf);
       return rate;
     }

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: rmff.c,v 1.6 2003/12/04 22:11:25 jstembridge Exp $
+ * $Id: rmff.c,v 1.7 2003/12/05 15:54:58 f1rmb Exp $
  *
  * functions for real media file format
  * adopted from joschkas real tools
@@ -37,7 +37,6 @@
                    (((uint8_t*)(x))[1] << 16) | \
                    (((uint8_t*)(x))[2] << 8) | \
                     ((uint8_t*)(x))[3])
-
 
 /*
  * writes header data to a buffer
@@ -256,15 +255,14 @@ void rmff_dump_pheader(rmff_pheader_t *h, char *data) {
 
 static rmff_fileheader_t *rmff_scan_fileheader(const char *data) {
 
-  rmff_fileheader_t *fileheader=malloc(sizeof(rmff_fileheader_t));
+  rmff_fileheader_t *fileheader = malloc(sizeof(rmff_fileheader_t));
 
   fileheader->object_id=BE_32(data);
   fileheader->size=BE_32(&data[4]);
   fileheader->object_version=BE_16(&data[8]);
   if (fileheader->object_version != 0)
   {
-    printf("warning: unknown object version in .RMF: 0x%04x\n",
-      fileheader->object_version);
+    lprintf("warning: unknown object version in .RMF: 0x%04x\n", fileheader->object_version);
   }
   fileheader->file_version=BE_32(&data[10]);
   fileheader->num_headers=BE_32(&data[14]);
@@ -274,15 +272,14 @@ static rmff_fileheader_t *rmff_scan_fileheader(const char *data) {
 
 static rmff_prop_t *rmff_scan_prop(const char *data) {
 
-  rmff_prop_t *prop=malloc(sizeof(rmff_prop_t));
+  rmff_prop_t *prop = malloc(sizeof(rmff_prop_t));
 
   prop->object_id=BE_32(data);
   prop->size=BE_32(&data[4]);
   prop->object_version=BE_16(&data[8]);
   if (prop->object_version != 0)
   {
-    printf("warning: unknown object version in PROP: 0x%04x\n",
-      prop->object_version);
+    lprintf("warning: unknown object version in PROP: 0x%04x\n", prop->object_version);
   }
   prop->max_bit_rate=BE_32(&data[10]);
   prop->avg_bit_rate=BE_32(&data[14]);
@@ -301,15 +298,14 @@ static rmff_prop_t *rmff_scan_prop(const char *data) {
 
 static rmff_mdpr_t *rmff_scan_mdpr(const char *data) {
 
-  rmff_mdpr_t *mdpr=malloc(sizeof(rmff_mdpr_t));
+  rmff_mdpr_t *mdpr = malloc(sizeof(rmff_mdpr_t));
 
   mdpr->object_id=BE_32(data);
   mdpr->size=BE_32(&data[4]);
   mdpr->object_version=BE_16(&data[8]);
   if (mdpr->object_version != 0)
   {
-    printf("warning: unknown object version in MDPR: 0x%04x\n",
-      mdpr->object_version);
+    lprintf("warning: unknown object version in MDPR: 0x%04x\n", mdpr->object_version);
   }
   mdpr->stream_number=BE_16(&data[10]);
   mdpr->max_bit_rate=BE_32(&data[12]);
@@ -321,17 +317,17 @@ static rmff_mdpr_t *rmff_scan_mdpr(const char *data) {
   mdpr->duration=BE_32(&data[36]);
   
   mdpr->stream_name_size=data[40];
-  mdpr->stream_name=malloc(sizeof(char)*(mdpr->stream_name_size+1));
+  mdpr->stream_name = malloc(sizeof(char)*(mdpr->stream_name_size+1));
   memcpy(mdpr->stream_name, &data[41], mdpr->stream_name_size);
   mdpr->stream_name[mdpr->stream_name_size]=0;
   
   mdpr->mime_type_size=data[41+mdpr->stream_name_size];
-  mdpr->mime_type=malloc(sizeof(char)*(mdpr->mime_type_size+1));
+  mdpr->mime_type = malloc(sizeof(char)*(mdpr->mime_type_size+1));
   memcpy(mdpr->mime_type, &data[42+mdpr->stream_name_size], mdpr->mime_type_size);
   mdpr->mime_type[mdpr->mime_type_size]=0;
   
   mdpr->type_specific_len=BE_32(&data[42+mdpr->stream_name_size+mdpr->mime_type_size]);
-  mdpr->type_specific_data=malloc(sizeof(char)*(mdpr->type_specific_len));
+  mdpr->type_specific_data = malloc(sizeof(char)*(mdpr->type_specific_len));
   memcpy(mdpr->type_specific_data, 
       &data[46+mdpr->stream_name_size+mdpr->mime_type_size], mdpr->type_specific_len);
   
@@ -340,7 +336,7 @@ static rmff_mdpr_t *rmff_scan_mdpr(const char *data) {
 
 static rmff_cont_t *rmff_scan_cont(const char *data) {
 
-  rmff_cont_t *cont=malloc(sizeof(rmff_cont_t));
+  rmff_cont_t *cont = malloc(sizeof(rmff_cont_t));
   int pos;
 
   cont->object_id=BE_32(data);
@@ -348,26 +344,25 @@ static rmff_cont_t *rmff_scan_cont(const char *data) {
   cont->object_version=BE_16(&data[8]);
   if (cont->object_version != 0)
   {
-    printf("warning: unknown object version in CONT: 0x%04x\n",
-      cont->object_version);
+    lprintf("warning: unknown object version in CONT: 0x%04x\n", cont->object_version);
   }
   cont->title_len=BE_16(&data[10]);
-  cont->title=malloc(sizeof(char)*(cont->title_len+1));
+  cont->title = malloc(sizeof(char)*(cont->title_len+1));
   memcpy(cont->title, &data[12], cont->title_len);
   cont->title[cont->title_len]=0;
   pos=cont->title_len+12;
   cont->author_len=BE_16(&data[pos]);
-  cont->author=malloc(sizeof(char)*(cont->author_len+1));
+  cont->author = malloc(sizeof(char)*(cont->author_len+1));
   memcpy(cont->author, &data[pos+2], cont->author_len);
   cont->author[cont->author_len]=0;
   pos=pos+2+cont->author_len;
   cont->copyright_len=BE_16(&data[pos]);
-  cont->copyright=malloc(sizeof(char)*(cont->copyright_len+1));
+  cont->copyright = malloc(sizeof(char)*(cont->copyright_len+1));
   memcpy(cont->copyright, &data[pos+2], cont->copyright_len);
   cont->copyright[cont->copyright_len]=0;
   pos=pos+2+cont->copyright_len;
   cont->comment_len=BE_16(&data[pos]);
-  cont->comment=malloc(sizeof(char)*(cont->comment_len+1));
+  cont->comment = malloc(sizeof(char)*(cont->comment_len+1));
   memcpy(cont->comment, &data[pos+2], cont->comment_len);
   cont->comment[cont->comment_len]=0;
 
@@ -376,15 +371,14 @@ static rmff_cont_t *rmff_scan_cont(const char *data) {
 
 static rmff_data_t *rmff_scan_dataheader(const char *data) {
 
-  rmff_data_t *dh=malloc(sizeof(rmff_data_t));
+  rmff_data_t *dh = malloc(sizeof(rmff_data_t));
 
   dh->object_id=BE_32(data);
   dh->size=BE_32(&data[4]);
   dh->object_version=BE_16(&data[8]);
   if (dh->object_version != 0)
   {
-    printf("warning: unknown object version in DATA: 0x%04x\n",
-      dh->object_version);
+    lprintf("warning: unknown object version in DATA: 0x%04x\n", dh->object_version);
   }
   dh->num_packets=BE_32(&data[10]);
   dh->next_data_header=BE_32(&data[14]);
@@ -394,7 +388,7 @@ static rmff_data_t *rmff_scan_dataheader(const char *data) {
  
 rmff_header_t *rmff_scan_header(const char *data) {
 
-	rmff_header_t *header=malloc(sizeof(rmff_header_t));
+	rmff_header_t *header = malloc(sizeof(rmff_header_t));
 	rmff_mdpr_t   *mdpr=NULL;
 	int           chunk_size;
 	uint32_t      chunk_type;
@@ -409,14 +403,14 @@ rmff_header_t *rmff_scan_header(const char *data) {
   chunk_type = BE_32(ptr);
   if (chunk_type != RMF_TAG)
   {
-    printf("rmff: not an real media file header (.RMF tag not found).\n");
+    lprintf("rmff: not an real media file header (.RMF tag not found).\n");
     free(header);
     return NULL;
   }
   header->fileheader=rmff_scan_fileheader(ptr);
   ptr += header->fileheader->size;
 	
-	header->streams=malloc(sizeof(rmff_mdpr_t*)*(header->fileheader->num_headers));
+  header->streams = malloc(sizeof(rmff_mdpr_t*)*(header->fileheader->num_headers));
   for (i=0; i<header->fileheader->num_headers; i++) {
     header->streams[i]=NULL;
   }
@@ -426,7 +420,7 @@ rmff_header_t *rmff_scan_header(const char *data) {
   
     if (ptr[0] == 0)
     {
-      printf("rmff: warning: only %d of %d header found.\n", i, header->fileheader->num_headers);
+      lprintf("rmff: warning: only %d of %d header found.\n", i, header->fileheader->num_headers);
       break;
     }
     
@@ -450,8 +444,10 @@ rmff_header_t *rmff_scan_header(const char *data) {
       chunk_size=34;     /* hard coded header size */
       break;
     default:
-      printf("unknown chunk\n");
+      lprintf("unknown chunk\n");
+#ifdef LOG
       xine_hexdump(ptr,10);
+#endif
       chunk_size=1;
       break;
     }
@@ -487,8 +483,10 @@ rmff_header_t *rmff_scan_header_stream(int fd) {
 	index+=(chunk_size-8);
         break;
       default:
-        printf("rmff_scan_header_stream: unknown chunk");
+        lprintf("rmff_scan_header_stream: unknown chunk");
+#ifdef LOG
         xine_hexdump(buf+index-8, 8);
+#endif
         chunk_type=DATA_TAG;
     }
   } while (chunk_type != DATA_TAG);
@@ -512,7 +510,7 @@ void rmff_scan_pheader(rmff_pheader_t *h, char *data) {
 
 rmff_fileheader_t *rmff_new_fileheader(uint32_t num_headers) {
 
-  rmff_fileheader_t *fileheader=malloc(sizeof(rmff_fileheader_t));
+  rmff_fileheader_t *fileheader = malloc(sizeof(rmff_fileheader_t));
 
   fileheader->object_id=RMF_TAG;
   fileheader->size=18;
@@ -536,7 +534,7 @@ rmff_prop_t *rmff_new_prop (
     uint16_t num_streams,
     uint16_t flags ) {
 
-  rmff_prop_t *prop=malloc(sizeof(rmff_prop_t));
+  rmff_prop_t *prop = malloc(sizeof(rmff_prop_t));
 
   prop->object_id=PROP_TAG;
   prop->size=50;
@@ -571,7 +569,7 @@ rmff_mdpr_t *rmff_new_mdpr(
       uint32_t   type_specific_len,
       const char *type_specific_data ) {
 
-  rmff_mdpr_t *mdpr=malloc(sizeof(rmff_mdpr_t));
+  rmff_mdpr_t *mdpr = malloc(sizeof(rmff_mdpr_t));
   
   mdpr->object_id=MDPR_TAG;
   mdpr->object_version=0;
@@ -595,7 +593,7 @@ rmff_mdpr_t *rmff_new_mdpr(
     mdpr->mime_type_size=strlen(mime_type);
   }
   mdpr->type_specific_len=type_specific_len;
-  mdpr->type_specific_data=malloc(sizeof(char)*type_specific_len);
+  mdpr->type_specific_data = malloc(sizeof(char)*type_specific_len);
   memcpy(mdpr->type_specific_data,type_specific_data,type_specific_len);
   mdpr->mlti_data=NULL;
   
@@ -606,7 +604,7 @@ rmff_mdpr_t *rmff_new_mdpr(
 
 rmff_cont_t *rmff_new_cont(const char *title, const char *author, const char *copyright, const char *comment) {
 
-  rmff_cont_t *cont=malloc(sizeof(rmff_cont_t));
+  rmff_cont_t *cont = malloc(sizeof(rmff_cont_t));
 
   cont->object_id=CONT_TAG;
   cont->object_version=0;
@@ -644,7 +642,7 @@ rmff_cont_t *rmff_new_cont(const char *title, const char *author, const char *co
 
 rmff_data_t *rmff_new_dataheader(uint32_t num_packets, uint32_t next_data_header) {
 
-  rmff_data_t *data=malloc(sizeof(rmff_data_t));
+  rmff_data_t *data = malloc(sizeof(rmff_data_t));
 
   data->object_id=DATA_TAG;
   data->size=18;
@@ -707,7 +705,9 @@ void rmff_print_header(rmff_header_t *h) {
       printf("pre-buffer : %i ms\n", (*stream)->preroll);
       printf("duration   : %i ms\n", (*stream)->duration);
       printf("type specific data:\n");
+#ifdef LOG
       xine_hexdump((*stream)->type_specific_data, (*stream)->type_specific_len);
+#endif
       stream++;
     }
   }
@@ -728,12 +728,12 @@ void rmff_fix_header(rmff_header_t *h) {
   int num_streams=0;
 
   if (!h) {
-    printf("rmff_fix_header: fatal: no header given.\n");
+    lprintf("rmff_fix_header: fatal: no header given.\n");
     return;
   }
 
   if (!h->streams) {
-    printf("rmff_fix_header: warning: no MDPR chunks\n");
+    lprintf("rmff_fix_header: warning: no MDPR chunks\n");
   } else
   {
     streams=h->streams;
@@ -762,18 +762,18 @@ void rmff_fix_header(rmff_header_t *h) {
     num_headers++;
     header_size+=50;
   } else
-    printf("rmff_fix_header: warning: no PROP chunk.\n");
+    lprintf("rmff_fix_header: warning: no PROP chunk.\n");
 
   if (h->cont) {
     num_headers++;
     header_size+=h->cont->size;
   } else
-    printf("rmff_fix_header: warning: no CONT chunk.\n");
+    lprintf("rmff_fix_header: warning: no CONT chunk.\n");
 
   if (!h->data) {
     lprintf("rmff_fix_header: no DATA chunk, creating one\n");
 
-    h->data=malloc(sizeof(rmff_data_t));
+    h->data = malloc(sizeof(rmff_data_t));
     h->data->object_id=DATA_TAG;
     h->data->object_version=0;
     h->data->size=34;
@@ -786,7 +786,7 @@ void rmff_fix_header(rmff_header_t *h) {
   if (!h->fileheader) {
     lprintf("rmff_fix_header: no fileheader, creating one");
 
-    h->fileheader=malloc(sizeof(rmff_fileheader_t));
+    h->fileheader = malloc(sizeof(rmff_fileheader_t));
     h->fileheader->object_id=RMF_TAG;
     h->fileheader->size=34;
     h->fileheader->object_version=0;

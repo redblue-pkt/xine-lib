@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: roqvideo.c,v 1.23 2003/11/16 23:33:48 f1rmb Exp $
+ * $Id: roqvideo.c,v 1.24 2003/12/05 15:55:01 f1rmb Exp $
  */
 
 /* And this is the header that came with the RoQ video decoder: */
@@ -363,7 +363,7 @@ static void roqvideo_decode_frame(roqvideo_decoder_t *ri) {
           }
           break;
           default:
-            printf("Unknown vq code: %d\n", vqid);
+            xprintf(ri->stream->xine, XINE_VERBOSITY_DEBUG, "Unknown vq code: %d\n", vqid);
         }
       }
 
@@ -434,8 +434,8 @@ static void roqvideo_decode_data (video_decoder_t *this_gen,
 
   if( this->size + buf->size > this->bufsize ) {
     this->bufsize = this->size + 2 * buf->size;
-    printf("RoQ: increasing source buffer to %d to avoid overflow.\n",
-      this->bufsize);
+    xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
+	    "RoQ: increasing source buffer to %d to avoid overflow.\n", this->bufsize);
     this->buf = realloc( this->buf, this->bufsize );
   }
 

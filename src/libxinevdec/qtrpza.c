@@ -21,7 +21,7 @@
  * For more information about the RPZA format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: qtrpza.c,v 1.19 2003/11/16 23:33:48 f1rmb Exp $
+ * $Id: qtrpza.c,v 1.20 2003/12/05 15:55:01 f1rmb Exp $
  */
 
 #include <stdio.h>
@@ -126,8 +126,9 @@ static void decode_qtrpza(qtrpza_decoder_t *this) {
 
   /* First byte is always 0xe1. Warn if it's different */
   if ((unsigned char)this->buf[stream_ptr] != 0xe1)
-    printf(_("First chunk byte is 0x%02x instead of 0x1e\n"),
-           (unsigned char)this->buf[stream_ptr]);
+    xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
+	    "First chunk byte is 0x%02x instead of 0x1e\n",
+	    (unsigned char)this->buf[stream_ptr]);
 
   /* Get chunk size, ingnoring first byte */
   chunk_size = BE_32(&this->buf[stream_ptr]) & 0x00FFFFFF;
@@ -135,7 +136,8 @@ static void decode_qtrpza(qtrpza_decoder_t *this) {
 
   /* If length mismatch use size from MOV file and try to decode anyway */
   if (chunk_size != this->size)
-    printf(_("MOV chunk size != encoded chunk size; using MOV chunk size\n"));
+    xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
+	    "MOV chunk size != encoded chunk size; using MOV chunk size\n");
 
   chunk_size = this->size;
 
@@ -268,9 +270,9 @@ static void decode_qtrpza(qtrpza_decoder_t *this) {
         
       /* Unknown opcode */
       default:
-        printf(_("Unknown opcode %d in rpza chunk."
-               " Skip remaining %d bytes of chunk data.\n"), opcode,
-               chunk_size - stream_ptr);
+        xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
+		"Unknown opcode %d in rpza chunk.Skip remaining %d bytes of chunk data.\n",
+		opcode, chunk_size - stream_ptr);
         return;
     } /* Opcode switch */
 

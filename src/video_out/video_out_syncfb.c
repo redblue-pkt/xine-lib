@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_syncfb.c,v 1.93 2003/11/26 01:03:32 miguelfreitas Exp $
+ * $Id: video_out_syncfb.c,v 1.94 2003/12/05 15:55:03 f1rmb Exp $
  * 
  * video_out_syncfb.c, SyncFB (for Matrox G200/G400 cards) interface for xine
  * 
@@ -90,7 +90,6 @@ struct syncfb_driver_s {
   GC                 gc;
   XColor             black;
 
-
   vo_scale_t         sc;
 
   int                virtual_screen_width;
@@ -115,16 +114,17 @@ struct syncfb_driver_s {
   syncfb_buffer_info_t bufinfo;
   syncfb_param_t       params;
 
-  int                video_win_visibility;
+  int                  video_win_visibility;
+  xine_t              *xine;
 
 };
 
 typedef struct {
-  video_driver_class_t driver_class;
+  video_driver_class_t  driver_class;
 
-  config_values_t     *config;
-
-  char *device_name;
+  config_values_t      *config;
+  char                 *device_name;
+  xine_t               *xine;
 } syncfb_class_t;
 
 /*
@@ -135,7 +135,8 @@ typedef struct {
 static int syncfb_overlay_on(syncfb_driver_t* this)
 {
    if(ioctl(this->fd, SYNCFB_ON)) {	
-      printf("video_out_syncfb: error. (on ioctl failed)\n");
+      xprintf(this->xine, XINE_VERBOSITY_DEBUG,
+	      "video_out_syncfb: error. (on ioctl failed)\n");
       return 0;
    } else {
       this->overlay_state = 1;
@@ -147,7 +148,8 @@ static int syncfb_overlay_on(syncfb_driver_t* this)
 static int syncfb_overlay_off(syncfb_driver_t* this)
 {  
    if(ioctl(this->fd, SYNCFB_OFF)) {
-      printf("video_out_syncfb: error. (off ioctl failed)\n");
+      xprintf(this->xine, XINE_VERBOSITY_DEBUG,
+	      "video_out_syncfb: error. (off ioctl failed)\n");
       return 0;
    } else {
       this->overlay_state = 0;
@@ -275,7 +277,8 @@ static void write_frame_sfb(syncfb_driver_t* this, syncfb_frame_t* frame)
       if(this->capabilities.palettes & (1<<VIDEO_PALETTE_YUV422))
 	write_frame_YUY2(this, frame);
       else
-	printf("video_out_syncfb: error. (YUY2 not supported by your graphic card)\n");	
+	xprintf(this->xine, XINE_VERBOSITY_LOG,
+		_("video_out_syncfb: error. (YUY2 not supported by your graphic card)\n"));
       break;
       
    case XINE_IMGFMT_YV12:
@@ -290,12 +293,13 @@ static void write_frame_sfb(syncfb_driver_t* this, syncfb_frame_t* frame)
 	 write_frame_YUV420P3(this, frame);
 	 break;
        default:
-	 printf("video_out_syncfb: error. (YV12 not supported by your graphic card)\n");
+	 xprintf(this->xine, XINE_VERBOSITY_LOG,
+		 _("video_out_syncfb: error. (YV12 not supported by your graphic card)\n"));
       }	   
       break;
       
     default:
-      printf("video_out_syncfb: error. (unknown frame format)\n");
+      xprintf(this->xine, XINE_VERBOSITY_DEBUG, "video_out_syncfb: error. (unknown frame format)\n");
       break;
    }
    
@@ -378,7 +382,8 @@ static void syncfb_compute_output_size(syncfb_driver_t *this)
       this->cur_frame->format > 0 && this->video_win_visibility) {
 	
       if(ioctl(this->fd, SYNCFB_GET_CONFIG, &this->syncfb_config))
-	printf("video_out_syncfb: error. (get_config ioctl failed)\n");
+	xprintf(this->xine, XINE_VERBOSITY_DEBUG, 
+		"video_out_syncfb: error. (get_config ioctl failed)\n");
 	
       this->syncfb_config.syncfb_mode = SYNCFB_FEATURE_SCALE | SYNCFB_FEATURE_CROP;
 	
@@ -393,7 +398,8 @@ static void syncfb_compute_output_size(syncfb_driver_t *this)
 	 this->syncfb_config.src_palette = VIDEO_PALETTE_YUV422;
 	 break;
       default:
-	 printf("video_out_syncfb: error. (unknown frame format)\n");
+	 xprintf(this->xine, XINE_VERBOSITY_DEBUG, 
+		 "video_out_syncfb: error. (unknown frame format)\n");
 	 this->syncfb_config.src_palette = 0;
 	 break;
       }
@@ -417,7 +423,7 @@ static void syncfb_compute_output_size(syncfb_driver_t *this)
 	
       if(this->capabilities.palettes & (1<<this->syncfb_config.src_palette)) {
 	 if(ioctl(this->fd,SYNCFB_SET_CONFIG,&this->syncfb_config))
-	   printf("video_out_syncfb: error. (set_config ioctl failed)\n");
+	   xprintf(this->xine, XINE_VERBOSITY_DEBUG, "video_out_syncfb: error. (set_config ioctl failed)\n");
 	  
 	 syncfb_overlay_on(this);
       }
@@ -470,30 +476,29 @@ static void syncfb_frame_dispose(vo_frame_t* vo_img)
 
 static vo_frame_t* syncfb_alloc_frame(vo_driver_t* this_gen)
 {
-  syncfb_frame_t* frame;
+  /* syncfb_driver_t *this = (syncfb_driver_t *) this_gen; */
+  syncfb_frame_t  *frame;
   
   frame = (syncfb_frame_t *) xine_xmalloc(sizeof(syncfb_frame_t));
-   
-  if(frame == NULL)
-    printf("video_out_syncfb: error. (frame allocation failed: out of memory)\n");
-  else {
-    pthread_mutex_init(&frame->vo_frame.mutex, NULL);
-     
-    frame->vo_frame.base[0] = NULL;
-    frame->vo_frame.base[1] = NULL;
-    frame->vo_frame.base[2] = NULL;
-
-    /*
-     * supply required functions
-     */
-    frame->vo_frame.proc_slice = NULL;
-    frame->vo_frame.proc_frame = NULL;
-    frame->vo_frame.field      = syncfb_frame_field;
-    frame->vo_frame.dispose    = syncfb_frame_dispose;
-
-    frame->vo_frame.driver  = this_gen;
-  }
-
+  if(!frame)
+    return NULL;
+  
+  pthread_mutex_init(&frame->vo_frame.mutex, NULL);
+  
+  frame->vo_frame.base[0] = NULL;
+  frame->vo_frame.base[1] = NULL;
+  frame->vo_frame.base[2] = NULL;
+  
+  /*
+   * supply required functions
+   */
+  frame->vo_frame.proc_slice = NULL;
+  frame->vo_frame.proc_frame = NULL;
+  frame->vo_frame.field      = syncfb_frame_field;
+  frame->vo_frame.dispose    = syncfb_frame_dispose;
+  
+  frame->vo_frame.driver  = this_gen;
+  
   return (vo_frame_t *) frame;
 }
 
@@ -502,7 +507,8 @@ static void syncfb_update_frame_format(vo_driver_t* this_gen,
 				       uint32_t width, uint32_t height,
 				       double ratio, int format, int flags)
 {
-   syncfb_frame_t* frame = (syncfb_frame_t *) frame_gen;
+   syncfb_driver_t *this = (syncfb_driver_t *) this_gen;
+   syncfb_frame_t  *frame = (syncfb_frame_t *) frame_gen;
    /* uint32_t frame_size   = width*height; */
    
    if((frame->width != width)
@@ -538,14 +544,17 @@ static void syncfb_update_frame_format(vo_driver_t* this_gen,
 	 frame->vo_frame.base[2] = NULL;
 	 break;
       default:
-	 printf("video_out_syncfb: error. (unable to allocate framedata because of unknown frame format: %04x)\n", format);
+	 xprintf(this->xine, XINE_VERBOSITY_DEBUG,
+		 "video_out_syncfb: error. (unable to allocate "
+		 "framedata because of unknown frame format: %04x)\n", format);
       }
       
 /*      if((format == IMGFMT_YV12 && (frame->data_mem[0] == NULL || frame->data_mem[1] == NULL || frame->data_mem[2] == NULL))
 	 || (format == IMGFMT_YUY2 && frame->data_mem[0] == NULL)) {*/
       if((format == XINE_IMGFMT_YV12 && (frame->vo_frame.base[0] == NULL || frame->vo_frame.base[1] == NULL || frame->vo_frame.base[2] == NULL))
 	 || (format == XINE_IMGFMT_YUY2 && frame->vo_frame.base[0] == NULL)) {
-	 printf("video_out_syncfb: error. (framedata allocation failed: out of memory)\n");
+	 xprintf(this->xine, XINE_VERBOSITY_DEBUG,
+		 "video_out_syncfb: error. (framedata allocation failed: out of memory)\n");
 	 
 	 free_framedata(frame);
       }
@@ -603,17 +612,19 @@ static void syncfb_display_frame(vo_driver_t* this_gen, vo_frame_t* frame_gen)
    /* the rest is only successful and safe, if the overlay is really on */
    if(this->overlay_state) {
       if(this->bufinfo.id != -1) {
-	 printf("video_out_syncfb: error. (invalid syncfb image buffer state)\n");
+	 xprintf(this->xine, XINE_VERBOSITY_DEBUG,
+		 "video_out_syncfb: error. (invalid syncfb image buffer state)\n");
 	 frame->vo_frame.free(&frame->vo_frame);
 
 	 return;
       }
       
       if(ioctl(this->fd, SYNCFB_REQUEST_BUFFER, &this->bufinfo))
-	printf("video_out_syncfb: error. (request ioctl failed)\n");
+	xprintf(this->xine, XINE_VERBOSITY_DEBUG, "video_out_syncfb: error. (request ioctl failed)\n");
    
       if(this->bufinfo.id == -1) {
-	 printf("video_out_syncfb: error. (syncfb module couldn't allocate image buffer)\n");
+	 xprintf(this->xine, XINE_VERBOSITY_DEBUG, 
+		 "video_out_syncfb: error. (syncfb module couldn't allocate image buffer)\n");
 	 frame->vo_frame.free(&frame->vo_frame);
 	 
 	 /* 
@@ -632,7 +643,7 @@ static void syncfb_display_frame(vo_driver_t* this_gen, vo_frame_t* frame_gen)
       write_frame_sfb(this, frame);
       
       if(ioctl(this->fd, SYNCFB_COMMIT_BUFFER, &this->bufinfo))
-	printf("video_out_syncfb: error. (commit ioctl failed)\n");
+	xprintf(this->xine, XINE_VERBOSITY_DEBUG, "video_out_syncfb: error. (commit ioctl failed)\n");
    }
    else
      frame->vo_frame.free(&frame->vo_frame);
@@ -735,7 +746,8 @@ static int syncfb_set_property(vo_driver_t* this_gen, int property, int value)
       this->params.image_yorg   = this->syncfb_config.image_yorg;
       
       if(ioctl(this->fd,SYNCFB_SET_PARAMS,&this->params))
-	 printf("video_out_syncfb: error. (setting of contrast value failed)\n");
+	 xprintf(this->xine, XINE_VERBOSITY_DEBUG,
+		 "video_out_syncfb: error. (setting of contrast value failed)\n");
 
       break;
 
@@ -755,7 +767,8 @@ static int syncfb_set_property(vo_driver_t* this_gen, int property, int value)
       this->params.image_yorg   = this->syncfb_config.image_yorg;
     
       if(ioctl(this->fd,SYNCFB_SET_PARAMS,&this->params))
-	 printf("video_out_syncfb: error. (setting of brightness value failed)\n");
+	 xprintf(this->xine, XINE_VERBOSITY_DEBUG,
+		 "video_out_syncfb: error. (setting of brightness value failed)\n");
      
       break;
   } 
@@ -843,21 +856,23 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *vi
 
    display     = visual->display;
    
-   if(!(this = xine_xmalloc(sizeof (syncfb_driver_t)))) {
-      printf("video_out_syncfb: aborting. (allocation of syncfb_driver_t failed: out of memory)\n");
-      return NULL;
-   }
+   if(!(this = xine_xmalloc(sizeof (syncfb_driver_t))))
+     return NULL;
  
    /* check for syncfb device */
    if((this->fd = open(class->device_name, O_RDWR)) < 0) {
-      printf("video_out_syncfb: aborting. (unable to open syncfb device \"%s\")\n", class->device_name);
+      xprintf(class->xine, XINE_VERBOSITY_DEBUG,
+	      "video_out_syncfb: aborting. (unable to open syncfb device \"%s\")\n", class->device_name);
       free(this);
       return NULL;
    }
    
+   this->xine = class->xine;
+
    /* get capabilities from the syncfb module */
    if(ioctl(this->fd, SYNCFB_GET_CAPS, &this->capabilities)) {
-      printf("video_out_syncfb: aborting. (syncfb_get_caps ioctl failed)\n");
+      xprintf(this->xine, XINE_VERBOSITY_DEBUG,
+	      "video_out_syncfb: aborting. (syncfb_get_caps ioctl failed)\n");
       
       close(this->fd);
       free(this);
@@ -869,7 +884,8 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *vi
    this->video_mem = (uint8_t *) mmap(0, this->capabilities.memory_size, PROT_WRITE, MAP_SHARED, this->fd, 0);
 
    if(this->video_mem == MAP_FAILED) {
-      printf("video_out_syncfb: aborting. (mmap of video memory failed)\n");
+      xprintf(this->xine, XINE_VERBOSITY_DEBUG,
+	      "video_out_syncfb: aborting. (mmap of video memory failed)\n");
       
       close(this->fd);
       free(this);
@@ -902,30 +918,36 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *vi
    if(this->capabilities.palettes & (1<<VIDEO_PALETTE_YUV420P3)) {
       this->supported_capabilities |= VO_CAP_YV12;
       this->yuv_format = VIDEO_PALETTE_YUV420P3;
-      printf("video_out_syncfb: info. (SyncFB module supports YUV 4:2:0 (3 plane))\n");
+      xprintf(this->xine, XINE_VERBOSITY_LOG,
+	      _("video_out_syncfb: info. (SyncFB module supports YUV 4:2:0 (3 plane))\n"));
    } else if(this->capabilities.palettes & (1<<VIDEO_PALETTE_YUV420P2)) {
       this->supported_capabilities |= VO_CAP_YV12;
       this->yuv_format = VIDEO_PALETTE_YUV420P2;
-      printf("video_out_syncfb: info. (SyncFB module supports YUV 4:2:0 (2 plane))\n");
+      xprintf(this->xine, XINE_VERBOSITY_LOG,
+	      _("video_out_syncfb: info. (SyncFB module supports YUV 4:2:0 (2 plane))\n"));
    } else if(this->capabilities.palettes & (1<<VIDEO_PALETTE_YUV422)) {	   
       this->supported_capabilities |= VO_CAP_YV12;
       this->yuv_format = VIDEO_PALETTE_YUV422;
-      printf("video_out_syncfb: info. (SyncFB module supports YUV 4:2:2)\n");   
+      xprintf(this->xine, XINE_VERBOSITY_DEBUG,
+	      _("video_out_syncfb: info. (SyncFB module supports YUV 4:2:2)\n"));
    }
    
    if(this->capabilities.palettes & (1<<VIDEO_PALETTE_YUV422)) {
       this->supported_capabilities |= VO_CAP_YUY2;
-      printf("video_out_syncfb: info. (SyncFB module supports YUY2)\n");
+      xprintf(this->xine, XINE_VERBOSITY_DEBUG,
+	      _("video_out_syncfb: info. (SyncFB module supports YUY2)\n"));
    }
    if(this->capabilities.palettes & (1<<VIDEO_PALETTE_RGB565)) {
      /* FIXME: no RGB support yet
       *      this->supported_capabilities |= VO_CAP_RGB;
       */
-      printf("video_out_syncfb: info. (SyncFB module supports RGB565)\n");
+      xprintf(this->xine, XINE_VERBOSITY_DEBUG,
+	      _("video_out_syncfb: info. (SyncFB module supports RGB565)\n"));
    }
 
    if(!this->supported_capabilities) {
-      printf("video_out_syncfb: aborting. (SyncFB module does not support YV12, YUY2 nor RGB565)\n");
+      xprintf(this->xine, XINE_VERBOSITY_DEBUG,
+	      _("video_out_syncfb: aborting. (SyncFB module does not support YV12, YUY2 nor RGB565)\n"));
       
       munmap(0, this->capabilities.memory_size);   
       close(this->fd);
@@ -943,7 +965,10 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *vi
       this->props[VO_PROP_BRIGHTNESS].min   = -128;
       this->props[VO_PROP_BRIGHTNESS].max   = 127;
    } else {
-      printf("video_out_syncfb: info. (brightness/contrast control won\'t be available because your SyncFB kernel module seems to be outdated. Please refer to README.syncfb for informations on how to update it.)\n");
+     xprintf(this->xine, XINE_VERBOSITY_LOG,
+	     _("video_out_syncfb: info. (brightness/contrast control won\'t be available because "
+	       "your SyncFB kernel module seems to be outdated. Please refer to README."
+	       "syncfb for informations on how to update it.)\n"));
    }
 
   /* check for virtual screen size and screen depth - this is rather important
@@ -1033,7 +1058,8 @@ static void *init_class (xine_t *xine, void *visual_gen) {
    
   /* check for syncfb device */
   if((fd = open(device_name, O_RDWR)) < 0) {
-     printf("video_out_syncfb: aborting. (unable to open syncfb device \"%s\")\n", device_name);
+     xprintf(xine, XINE_VERBOSITY_DEBUG,
+	     "video_out_syncfb: aborting. (unable to open syncfb device \"%s\")\n", device_name);
      return NULL;
   }
   close(fd);
@@ -1041,7 +1067,7 @@ static void *init_class (xine_t *xine, void *visual_gen) {
   /*
    * from this point on, nothing should go wrong anymore
    */
-  this = (syncfb_class_t *) malloc (sizeof (syncfb_class_t));
+  this = (syncfb_class_t *) xine_xmalloc (sizeof (syncfb_class_t));
 
   this->driver_class.open_plugin     = open_plugin;
   this->driver_class.get_identifier  = get_identifier;
@@ -1049,6 +1075,7 @@ static void *init_class (xine_t *xine, void *visual_gen) {
   this->driver_class.dispose         = dispose_class;
 
   this->config            = xine->config;
+  this->xine              = xine;
   this->device_name       = device_name;
   
   return this;

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_esd_out.c,v 1.27 2003/10/06 15:27:10 mroi Exp $
+ * $Id: audio_esd_out.c,v 1.28 2003/12/05 15:54:56 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -48,6 +48,8 @@
 typedef struct esd_driver_s {
 
   ao_driver_t      ao_driver;
+
+  xine_t          *xine;
 
   int              audio_fd;
   int              capabilities;
@@ -94,8 +96,7 @@ typedef struct esd_driver_s {
 
 typedef struct {
   audio_driver_class_t driver_class;
-
-  config_values_t *config;
+  xine_t          *xine;
 } esd_class_t;
 
 
@@ -108,11 +109,11 @@ static int ao_esd_open(ao_driver_t *this_gen,
   esd_driver_t *this = (esd_driver_t *) this_gen;
   esd_format_t     format;
 
-  printf ("audio_esd_out: ao_open bits=%d rate=%d, mode=%d\n", 
-	  bits, rate, mode);
+  xprintf (this->xine, XINE_VERBOSITY_DEBUG, 
+	   "audio_esd_out: ao_open bits=%d rate=%d, mode=%d\n", bits, rate, mode);
 
   if ( (mode & this->capabilities) == 0 ) {
-    printf ("audio_esd_out: unsupported mode %08x\n", mode);
+    xprintf (this->xine, XINE_VERBOSITY_DEBUG, "audio_esd_out: unsupported mode %08x\n", mode);
     return 0;
   }
 
@@ -145,7 +146,7 @@ static int ao_esd_open(ao_driver_t *this_gen,
     this->num_channels = 2;
     break;
   }
-  printf ("audio_esd_out: %d channels output\n",this->num_channels);
+  xprintf (this->xine, XINE_VERBOSITY_DEBUG, "audio_esd_out: %d channels output\n",this->num_channels);
 
   this->bytes_per_frame=(bits*this->num_channels)/8;
 
@@ -162,8 +163,9 @@ static int ao_esd_open(ao_driver_t *this_gen,
   this->audio_fd = esd_play_stream(format, this->output_sample_rate, NULL, this->pname);
   if (this->audio_fd < 0) {
     char *server = getenv("ESPEAKER");
-    printf("audio_esd_out: connecting to ESD server %s: %s\n",
-	   server ? server : "<default>", strerror(errno));
+    xprintf(this->xine, XINE_VERBOSITY_LOG,
+	    _("audio_esd_out: connecting to ESD server %s: %s\n"),
+	    server ? server : "<default>", strerror(errno));
     return 0;
   }
 
@@ -295,9 +297,9 @@ static int ao_esd_write(ao_driver_t *this_gen,
     nwritten = writev(this->audio_fd, iov, iovcnt);
     if (nwritten != num_bytes) {
 	if (nwritten < 0)
-	    printf("audio_esd_out: writev failed: %s\n", strerror(errno));
+	  xprintf(this->xine, XINE_VERBOSITY_DEBUG, "audio_esd_out: writev failed: %s\n", strerror(errno));
 	else 
-	    printf("audio_esd_out: warning, incomplete write: %d\n", nwritten);
+	  xprintf(this->xine, XINE_VERBOSITY_DEBUG, "audio_esd_out: warning, incomplete write: %d\n", nwritten);
     }
     if (nwritten > 0)
 	this->bytes_in_buffer += nwritten;
@@ -469,7 +471,7 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen,
 				 const void *data) {
 
   esd_class_t       *class = (esd_class_t *) class_gen;
-  config_values_t   *config = class->config;
+  config_values_t   *config = class->xine->config;
   esd_driver_t      *this;
   int                audio_fd;
   int		     err;
@@ -492,21 +494,22 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen,
   sigemptyset(&vo_mask);
   sigaddset(&vo_mask, SIGALRM);
   if (sigprocmask(SIG_UNBLOCK, &vo_mask, &vo_mask_orig)) 
-    printf("audio_esd_out: cannot unblock SIGALRM: %s\n", strerror(errno));
+    xprintf(class->xine, XINE_VERBOSITY_DEBUG, "audio_esd_out: cannot unblock SIGALRM: %s\n", strerror(errno));
 
-  printf("audio_esd_out: connecting to esd server...\n");
+  xprintf(class->xine, XINE_VERBOSITY_LOG, _("audio_esd_out: connecting to esd server...\n"));
   audio_fd = esd_open_sound(NULL);
   err = errno;
 
   if (sigprocmask(SIG_SETMASK, &vo_mask_orig, NULL))
-    printf("audio_esd_out: cannot block SIGALRM: %s\n", strerror(errno));
+    xprintf(class->xine, XINE_VERBOSITY_DEBUG, "audio_esd_out: cannot block SIGALRM: %s\n", strerror(errno));
 
   if(audio_fd < 0) {
     char *server = getenv("ESPEAKER");
 
     /* print a message so the user knows why ESD failed */
-    printf("audio_esd_out: can't connect to %s ESD server: %s\n",
-	   server ? server : "<default>", strerror(err));
+    xprintf(class->xine, XINE_VERBOSITY_LOG,
+	    _("audio_esd_out: can't connect to %s ESD server: %s\n"),
+	    server ? server : "<default>", strerror(err));
 
     return NULL;
   }
@@ -522,6 +525,7 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen,
 
 
   this                     = (esd_driver_t *) xine_xmalloc (sizeof (esd_driver_t));
+  this->xine               = class->xine;
   this->pname              = strdup("xine esd audio output plugin");
   this->output_sample_rate = 0;
   this->server_sample_rate = server_sample_rate;
@@ -571,14 +575,14 @@ static void *init_class (xine_t *xine, void *data) {
 
   esd_class_t        *this;
 
-  this = (esd_class_t *) malloc (sizeof (esd_class_t));
+  this = (esd_class_t *) xine_xmalloc (sizeof (esd_class_t));
 
   this->driver_class.open_plugin     = open_plugin;
   this->driver_class.get_identifier  = get_identifier;
   this->driver_class.get_description = get_description;
   this->driver_class.dispose         = dispose_class;
 
-  this->config = xine->config;
+  this->xine = xine;
 
   return this;
 }

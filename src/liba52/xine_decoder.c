@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.64 2003/11/26 19:43:31 f1rmb Exp $
+ * $Id: xine_decoder.c,v 1.65 2003/12/05 15:54:58 f1rmb Exp $
  *
  * stuff needed to turn liba52 into a xine decoder plugin
  */
@@ -222,7 +222,7 @@ static void a52dec_decode_frame (a52dec_decoder_t *this, int64_t pts, int previe
 		   this->frame_buffer,
 		   &a52_output_flags,
 		   &level, 384)) {
-      printf ("liba52: a52_frame error\n");
+      xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "liba52: a52_frame error\n");
       return;
     }
 
@@ -236,7 +236,7 @@ static void a52dec_decode_frame (a52dec_decoder_t *this, int64_t pts, int previe
       } else if (this->audio_caps & AO_CAP_MODE_4_1CHANNEL) {
         output_mode = AO_CAP_MODE_4_1CHANNEL;
       } else {
-        printf("liba52: WHAT DO I DO!!!\n");
+        xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "liba52: WHAT DO I DO!!!\n");
         output_mode = this->ao_flags_map[a52_output_flags];
       }
     else
@@ -276,7 +276,7 @@ static void a52dec_decode_frame (a52dec_decoder_t *this, int64_t pts, int previe
 
     for (i = 0; i < 6; i++) {
       if (a52_block (this->a52_state)) {
-	printf ("liba52: a52_block error on audio channel %d\n", i);
+	xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "liba52: a52_block error on audio channel %d\n", i);
 #if 0	
 	for(n=0;n<2000;n++) {
 	  printf("%02x ",this->frame_buffer[n]);
@@ -327,7 +327,7 @@ static void a52dec_decode_frame (a52dec_decoder_t *this, int64_t pts, int previe
 	float_to_int (&samples[5*256], int_samples+(i*256*6)+3, 6); /*  RR */
 	break;
       default:
-	printf ("liba52: help - unsupported mode %08x\n", output_mode);
+	xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "liba52: help - unsupported mode %08x\n", output_mode);
       }
     }
 
@@ -561,7 +561,7 @@ static void a52dec_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 	  crc16 = (uint16_t) ((this->frame_buffer[2] << 8) |  this->frame_buffer[3]) ;
 	  crc16_result = crc16_block(&this->frame_buffer[2], this->frame_length - 2) ; /* frame_length */
 	  if (crc16_result != 0) { /* CRC16 failed */
-	    printf("liba52:a52 frame failed crc16 checksum.\n");
+	    xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "liba52:a52 frame failed crc16 checksum.\n");
 	    current = sync_start;
             this->pts = 0;
 	    this->syncword = 0;
@@ -624,8 +624,7 @@ static audio_decoder_t *open_plugin (audio_decoder_class_t *class_gen, xine_stre
 
   lprintf ("open_plugin called\n");
 
-  this = (a52dec_decoder_t *) malloc (sizeof (a52dec_decoder_t));
-  memset(this, 0, sizeof (a52dec_decoder_t));
+  this = (a52dec_decoder_t *) xine_xmalloc (sizeof (a52dec_decoder_t));
 
   this->audio_decoder.decode_data         = a52dec_decode_data;
   this->audio_decoder.reset               = a52dec_reset;
@@ -708,7 +707,7 @@ static audio_decoder_t *open_plugin (audio_decoder_class_t *class_gen, xine_stre
       /* else if (this->audio_caps & AO_CAP_MODE_STEREO)
 	 defaults are ok */
     } else if (!(this->audio_caps & AO_CAP_MODE_STEREO)) {
-      printf ("HELP! a mono-only audio driver?!\n");
+      xprintf (this->stream->xine, XINE_VERBOSITY_LOG, _("HELP! a mono-only audio driver?!\n"));
 
       this->a52_flags_map[A52_MONO]   = A52_MONO;
       this->a52_flags_map[A52_STEREO] = A52_MONO;
@@ -760,7 +759,7 @@ static void *init_plugin (xine_t *xine, void *data) {
   a52dec_class_t *this;
   config_values_t *cfg;
 
-  this = (a52dec_class_t *) malloc (sizeof (a52dec_class_t));
+  this = (a52dec_class_t *) xine_xmalloc (sizeof (a52dec_class_t));
 
   this->decoder_class.open_plugin     = open_plugin;
   this->decoder_class.get_identifier  = get_identifier;

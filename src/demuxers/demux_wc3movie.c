@@ -24,7 +24,7 @@
  * For more information on the MVE file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_wc3movie.c,v 1.48 2003/11/26 19:43:31 f1rmb Exp $
+ * $Id: demux_wc3movie.c,v 1.49 2003/12/05 15:54:57 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -187,7 +187,7 @@ static int demux_mve_send_chunk(demux_plugin_t *this_gen) {
 
       if (palette_number >= this->number_of_shots) {
         xine_log(this->stream->xine, XINE_LOG_MSG,
-          _("demux_wc3movie: SHOT chunk referenced invalid palette (%d >= %d)\n"),
+		 _("demux_wc3movie: SHOT chunk referenced invalid palette (%d >= %d)\n"),
           palette_number, this->number_of_shots);
         this->status = DEMUX_FINISHED;
         return this->status;
@@ -401,7 +401,7 @@ static int open_mve_file(demux_mve_t *this) {
     if ((BE_32(&preamble[0]) != PALT_TAG) || 
         (BE_32(&preamble[4]) != PALETTE_CHUNK_SIZE)) {
       xine_log(this->stream->xine, XINE_LOG_MSG,
-        _("demux_wc3movie: There was a problem while loading palette chunks\n"));
+	       _("demux_wc3movie: There was a problem while loading palette chunks\n"));
       free (this->palettes);
       free (this->shot_offsets);
       return 0;

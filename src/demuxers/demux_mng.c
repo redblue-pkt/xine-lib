@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_mng.c,v 1.16 2003/11/26 19:43:30 f1rmb Exp $
+ * $Id: demux_mng.c,v 1.17 2003/12/05 15:54:57 f1rmb Exp $
  *
  * demux_mng.c, Demuxer plugin for Multiple-image Network Graphics format
  *
@@ -76,7 +76,7 @@ static void mymng_free(mng_ptr p, mng_uint32 size){
   free(p);
 }
 
-mng_bool mymng_open_stream(mng_handle mngh){
+static mng_bool mymng_open_stream(mng_handle mngh){
   demux_mng_t *this = (demux_mng_t*)mng_get_userdata(mngh);
 
   if (this->input->get_current_pos(this->input) != 0) {
@@ -89,7 +89,7 @@ mng_bool mymng_open_stream(mng_handle mngh){
   return MNG_TRUE;
 }
 
-mng_bool mymng_close_stream(mng_handle mngh){
+static mng_bool mymng_close_stream(mng_handle mngh){
   demux_mng_t *this = (demux_mng_t*)mng_get_userdata(mngh);
 
   this->status = DEMUX_FINISHED;
@@ -97,7 +97,7 @@ mng_bool mymng_close_stream(mng_handle mngh){
   return MNG_TRUE;
 }
 
-mng_bool mymng_read_stream(mng_handle mngh, mng_ptr buffer, mng_uint32 size, mng_uint32 *bytesread){
+static mng_bool mymng_read_stream(mng_handle mngh, mng_ptr buffer, mng_uint32 size, mng_uint32 *bytesread){
   demux_mng_t *this = (demux_mng_t*)mng_get_userdata(mngh);
 
   *bytesread = this->input->read(this->input, buffer, size);
@@ -105,7 +105,7 @@ mng_bool mymng_read_stream(mng_handle mngh, mng_ptr buffer, mng_uint32 size, mng
   return MNG_TRUE;
 }
 
-mng_bool mymng_process_header(mng_handle mngh, mng_uint32 width, mng_uint32 height){
+static mng_bool mymng_process_header(mng_handle mngh, mng_uint32 width, mng_uint32 height){
   demux_mng_t *this = (demux_mng_t*)mng_get_userdata(mngh);
 
   this->bih.biWidth = width;
@@ -118,13 +118,13 @@ mng_bool mymng_process_header(mng_handle mngh, mng_uint32 width, mng_uint32 heig
   return MNG_TRUE;
 }
 
-mng_uint32 mymng_get_tick_count(mng_handle mngh){
+static mng_uint32 mymng_get_tick_count(mng_handle mngh){
   demux_mng_t *this = (demux_mng_t*)mng_get_userdata(mngh);
 
   return this->tick_count;
 }
 
-mng_bool mymng_set_timer(mng_handle mngh, mng_uint32 msecs){
+static mng_bool mymng_set_timer(mng_handle mngh, mng_uint32 msecs){
   demux_mng_t *this = (demux_mng_t*)mng_get_userdata(mngh);
 
   this->timer_count = msecs;
@@ -132,13 +132,13 @@ mng_bool mymng_set_timer(mng_handle mngh, mng_uint32 msecs){
   return MNG_TRUE;
 }
 
-mng_ptr mymng_get_canvas_line(mng_handle mngh, mng_uint32 line){
+static mng_ptr mymng_get_canvas_line(mng_handle mngh, mng_uint32 line){
   demux_mng_t *this = (demux_mng_t*)mng_get_userdata(mngh);
 
   return this->image + line * this->bih.biWidth * 3;
 }
 
-mng_bool mymng_refresh(mng_handle mngh, mng_uint32 x, mng_uint32 y, mng_uint32 w, mng_uint32 h){
+static mng_bool mymng_refresh(mng_handle mngh, mng_uint32 x, mng_uint32 y, mng_uint32 w, mng_uint32 h){
   return MNG_TRUE;
 }
 

@@ -23,7 +23,7 @@
  * avoid when implementing a FLI decoder, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  * 
- * $Id: fli.c,v 1.23 2003/11/16 23:33:48 f1rmb Exp $
+ * $Id: fli.c,v 1.24 2003/12/05 15:55:01 f1rmb Exp $
  */
 
 #include <stdio.h>
@@ -338,8 +338,8 @@ static void decode_fli_frame(fli_decoder_t *this) {
               this->ghost_image[ghost_pixel_ptr++] = palette_idx1;
               pixel_countdown--;
               if (pixel_countdown < 0)
-                printf ("fli warning: pixel_countdown < 0 (%d)\n", 
-                  pixel_countdown);
+                xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, 
+			 "fli warning: pixel_countdown < 0 (%d)\n", pixel_countdown);
             }
           } else {  /* copy bytes if byte_run < 0 */
             byte_run = -byte_run;
@@ -348,8 +348,8 @@ static void decode_fli_frame(fli_decoder_t *this) {
               this->ghost_image[ghost_pixel_ptr++] = palette_idx1;
               pixel_countdown--;
               if (pixel_countdown < 0)
-                printf ("fli warning: pixel_countdown < 0 (%d)\n", 
-                  pixel_countdown);
+                xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, 
+			 "fli warning: pixel_countdown < 0 (%d)\n", pixel_countdown);
             }
           }
         }
@@ -362,11 +362,10 @@ static void decode_fli_frame(fli_decoder_t *this) {
       /* copy the chunk (uncompressed frame) to the ghost image and
        * schedule the whole frame to be updated */
       if (chunk_size - 6 > this->width * this->height) {
-        printf(
-         _("FLI: in chunk FLI_COPY : source data (%d bytes) bigger than" \
-           " image, skipping chunk\n"),
-         chunk_size - 6);
-         break;
+        xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
+		"FLI: in chunk FLI_COPY : source data (%d bytes) bigger than image, skipping chunk\n",
+		chunk_size - 6);
+	break;
       } else
         memcpy(this->ghost_image, &this->buf[stream_ptr], chunk_size - 6);
       stream_ptr += chunk_size - 6;
@@ -379,7 +378,8 @@ static void decode_fli_frame(fli_decoder_t *this) {
       break;
 
     default:
-      printf (_("FLI: Unrecognized chunk type: %d\n"), chunk_type);
+      xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, 
+	       "FLI: Unrecognized chunk type: %d\n", chunk_type);
       break;
     }
 
@@ -404,10 +404,9 @@ static void decode_fli_frame(fli_decoder_t *this) {
   /* by the end of the chunk, the stream ptr should equal the frame 
    * size (minus 1, possibly); if it doesn't, issue a warning */
   if ((stream_ptr != this->size) && (stream_ptr != this->size - 1))
-    printf (
-      _("  warning: processed FLI chunk where chunk size = %d\n" \
-        "  and final chunk ptr = %d\n"),
-      this->size, stream_ptr);
+    xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, 
+	     "warning: processed FLI chunk where chunk size = %d\nand final chunk ptr = %d\n",
+	     this->size, stream_ptr);
 }
 
 /**************************************************************************

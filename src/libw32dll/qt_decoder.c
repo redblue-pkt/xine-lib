@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: qt_decoder.c,v 1.27 2003/11/26 19:43:37 f1rmb Exp $
+ * $Id: qt_decoder.c,v 1.28 2003/12/05 15:55:00 f1rmb Exp $
  *
  * quicktime video/audio decoder plugin, using win32 dlls
  * most of this code comes directly from MPlayer
@@ -231,7 +231,7 @@ static void qta_init_driver (qta_decoder_t *this, buf_element_t *buf) {
   this->qtml_dll = LoadLibraryA("qtmlClient.dll");
   
   if (this->qtml_dll == NULL ) {
-    printf ("qt_audio: failed to load dll\n" );
+    xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "qt_audio: failed to load dll\n" );
     pthread_mutex_unlock(&win32_codec_mutex);
     _x_message(this->stream, XINE_MSG_LIBRARY_LOAD_ERROR,
                  "qtmlClient.dll", NULL);
@@ -240,55 +240,64 @@ static void qta_init_driver (qta_decoder_t *this, buf_element_t *buf) {
 
   this->InitializeQTML = (LPFUNC1)GetProcAddress (this->qtml_dll, "InitializeQTML");
   if ( this->InitializeQTML == NULL )  {
-    printf ("qt_audio: failed geting proc address InitializeQTML\n");
+    xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, 
+	     "qt_audio: failed geting proc address InitializeQTML\n");
     pthread_mutex_unlock(&win32_codec_mutex);
     return;
   }
   this->SoundConverterOpen = (LPFUNC2)GetProcAddress (this->qtml_dll, "SoundConverterOpen");
   if ( this->SoundConverterOpen == NULL ) {
-    printf ("qt_audio: failed getting proc address SoundConverterOpen\n");
+    xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, 
+	     "qt_audio: failed getting proc address SoundConverterOpen\n");
     pthread_mutex_unlock(&win32_codec_mutex);
     return;
   }
   this->SoundConverterClose = (LPFUNC3)GetProcAddress (this->qtml_dll, "SoundConverterClose");
   if ( this->SoundConverterClose == NULL ) {
-    printf ("qt_audio: failed getting proc address SoundConverterClose\n");
+    xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, 
+	     "qt_audio: failed getting proc address SoundConverterClose\n");
     pthread_mutex_unlock(&win32_codec_mutex);
     return;
   }
   this->TerminateQTML = (LPFUNC4)GetProcAddress (this->qtml_dll, "TerminateQTML");
   if ( this->TerminateQTML == NULL ) {
-    printf ("qt_audio: failed getting proc address TerminateQTML\n");
+    xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, 
+	     "qt_audio: failed getting proc address TerminateQTML\n");
     pthread_mutex_unlock(&win32_codec_mutex);
     return;
   }
   this->SoundConverterSetInfo = (LPFUNC5)GetProcAddress (this->qtml_dll, "SoundConverterSetInfo");
   if ( this->SoundConverterSetInfo == NULL ) {
-    printf ("qt_audio: failed getting proc address SoundConverterSetInfo\n");
+    xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, 
+	     "qt_audio: failed getting proc address SoundConverterSetInfo\n");
     pthread_mutex_unlock(&win32_codec_mutex);
     return;
   }
   this->SoundConverterGetBufferSizes = (LPFUNC6)GetProcAddress (this->qtml_dll, "SoundConverterGetBufferSizes");
   if ( this->SoundConverterGetBufferSizes == NULL ) {
-    printf ("qt_audio: failed getting proc address SoundConverterGetBufferSizes\n");
+    xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, 
+	     "qt_audio: failed getting proc address SoundConverterGetBufferSizes\n");
     pthread_mutex_unlock(&win32_codec_mutex);
     return;
   }
   this->SoundConverterConvertBuffer = (LPFUNC7)GetProcAddress (this->qtml_dll, "SoundConverterConvertBuffer");
   if ( this->SoundConverterConvertBuffer == NULL ) {
-    printf ("qt_audio: failed getting proc address SoundConverterConvertBuffer1\n");
+    xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, 
+	     "qt_audio: failed getting proc address SoundConverterConvertBuffer1\n");
     pthread_mutex_unlock(&win32_codec_mutex);
     return;
   }
   this->SoundConverterEndConversion = (LPFUNC8)GetProcAddress (this->qtml_dll, "SoundConverterEndConversion");
   if ( this->SoundConverterEndConversion == NULL ) {
-    printf ("qt_audio: failed getting proc address SoundConverterEndConversion\n");
+    xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, 
+	     "qt_audio: failed getting proc address SoundConverterEndConversion\n");
     pthread_mutex_unlock(&win32_codec_mutex);
     return;
   }
   this->SoundConverterBeginConversion = (LPFUNC9)GetProcAddress (this->qtml_dll, "SoundConverterBeginConversion");
   if ( this->SoundConverterBeginConversion == NULL ) {
-    printf ("qt_audio: failed getting proc address SoundConverterBeginConversion\n");
+    xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, 
+	     "qt_audio: failed getting proc address SoundConverterBeginConversion\n");
     pthread_mutex_unlock(&win32_codec_mutex);
     return;
   }
@@ -328,7 +337,7 @@ static void qta_init_driver (qta_decoder_t *this, buf_element_t *buf) {
       "Qualcomm Purevoice Codec (QT DLL)");
     break;
   default:
-    printf ("qt_audio: fourcc for buftype %08x ?\n", buf->type);
+    xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "qt_audio: fourcc for buftype %08x ?\n", buf->type);
     abort ();
   }
 
@@ -407,8 +416,8 @@ static void qta_init_driver (qta_decoder_t *this, buf_element_t *buf) {
     mode = AO_CAP_MODE_5_1CHANNEL;
     break;
   default:
-    printf ("qt_audio: help, %d channels ?!\n",
-	    this->wave.nChannels);
+    xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, 
+	     "qt_audio: help, %d channels ?!\n", this->wave.nChannels);
     abort ();
   }
 
@@ -596,7 +605,7 @@ static void *qta_init_class (xine_t *xine, void *data) {
 
   pthread_once (&once_control, init_routine);
 
-  this = (qta_class_t *) malloc (sizeof (qta_class_t));
+  this = (qta_class_t *) xine_xmalloc (sizeof (qta_class_t));
 
   this->decoder_class.open_plugin     = qta_open_plugin;
   this->decoder_class.get_identifier  = qta_get_identifier;
@@ -773,7 +782,7 @@ static void qtv_init_driver (qtv_decoder_t *this, buf_element_t *buf) {
   this->qtml_dll = LoadLibraryA("qtmlClient.dll");
   
   if (this->qtml_dll == NULL ) {
-    printf ("qt_video: failed to load dll\n" );
+    xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "qt_video: failed to load dll\n" );
     pthread_mutex_unlock(&win32_codec_mutex);
     _x_message(this->stream, XINE_MSG_LIBRARY_LOAD_ERROR,
                  "qtmlClient.dll", NULL);
@@ -797,7 +806,7 @@ static void qtv_init_driver (qtv_decoder_t *this, buf_element_t *buf) {
     
   if (!this->InitializeQTML || !this->EnterMovies || !this->FindNextComponent 
       || !this->ImageCodecBandDecompress){
-    printf ("qt_video: invalid qt DLL!\n");
+    xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "qt_video: invalid qt DLL!\n");
     pthread_mutex_unlock(&win32_codec_mutex);
     return;
   }
@@ -823,7 +832,7 @@ static void qtv_init_driver (qtv_decoder_t *this, buf_element_t *buf) {
 
   prev = this->FindNextComponent(NULL,&desc);
   if(!prev){
-    printf("Cannot find requested component\n");
+    xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "Cannot find requested component\n");
     pthread_mutex_unlock(&win32_codec_mutex);
     return;
   }
@@ -1005,8 +1014,8 @@ static void qtv_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
       pthread_mutex_unlock(&win32_codec_mutex);
 
       if (cres&0xFFFF){
-	printf("qt_video: ImageCodecBandDecompress cres=0x%X (-0x%X) %d :(\n",
-	       cres,-cres,cres);
+	xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
+		"qt_video: ImageCodecBandDecompress cres=0x%X (-0x%X) %d :(\n", cres,-cres,cres);
       }
 
       img = this->stream->video_out->get_frame (this->stream->video_out,

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: rtsp.c,v 1.14 2003/12/04 22:38:29 jstembridge Exp $
+ * $Id: rtsp.c,v 1.15 2003/12/05 15:54:58 f1rmb Exp $
  *
  * a minimalistic implementation of rtsp protocol,
  * *not* RFC 2326 compilant yet.
@@ -118,10 +118,10 @@ static char *rtsp_get(rtsp_t *s) {
   }
 
   if (n>=BUF_SIZE) {
-    printf("librtsp: buffer overflow in rtsp_get\n");
+    xprintf(s->stream->xine, XINE_VERBOSITY_DEBUG, "librtsp: buffer overflow in rtsp_get\n");
     exit(1);
   }
-  string=malloc(sizeof(char)*n);
+  string = malloc(sizeof(char)*n);
   memcpy(string,s->buffer,n-1);
   string[n-1]=0;
 
@@ -137,7 +137,7 @@ static char *rtsp_get(rtsp_t *s) {
 static void rtsp_put(rtsp_t *s, const char *string) {
 
   int len=strlen(string);
-  char *buf=malloc(sizeof(char)*len+2);
+  char *buf = malloc(sizeof(char)*len+2);
 
   lprintf(">> '%s'", string);
 
@@ -156,7 +156,7 @@ static void rtsp_put(rtsp_t *s, const char *string) {
  * extract server status code
  */
 
-static int rtsp_get_code(const char *string) {
+static int rtsp_get_code(rtsp_t *s, const char *string) {
 
   char buf[4];
   int code=0;
@@ -171,7 +171,8 @@ static int rtsp_get_code(const char *string) {
     return RTSP_STATUS_SET_PARAMETER;
   }
 
-  if(code != 200) printf("librtsp: server responds: '%s'\n",string);
+  if(code != 200) 
+    xprintf(s->stream->xine, XINE_VERBOSITY_DEBUG, "librtsp: server responds: '%s'\n", string);
 
   return code;
 }
@@ -219,7 +220,7 @@ static int rtsp_get_answers(rtsp_t *s) {
   int code;
   
   answer=rtsp_get(s);
-  code=rtsp_get_code(answer);
+  code=rtsp_get_code(s, answer);
   free(answer);
 
   rtsp_free_answers(s);
@@ -246,7 +247,8 @@ static int rtsp_get_answers(rtsp_t *s) {
       sscanf(answer,"Session: %s",s->buffer);
       if (s->session) {
         if (strcmp(s->buffer, s->session)) {
-          printf("rtsp: warning: setting NEW session: %s\n", s->buffer);
+          xprintf(s->stream->xine, XINE_VERBOSITY_DEBUG, 
+		  "rtsp: warning: setting NEW session: %s\n", s->buffer);
           free(s->session);
           s->session=strdup(s->buffer);
         }
@@ -296,7 +298,7 @@ int rtsp_request_options(rtsp_t *s, const char *what) {
     buf=strdup(what);
   } else
   {
-    buf=malloc(sizeof(char)*(strlen(s->host)+16));
+    buf = malloc(sizeof(char)*(strlen(s->host)+16));
     sprintf(buf,"rtsp://%s:%i", s->host, s->port);
   }
   rtsp_send_request(s,"OPTIONS",buf);
@@ -313,7 +315,7 @@ int rtsp_request_describe(rtsp_t *s, const char *what) {
     buf=strdup(what);
   } else
   {
-    buf=malloc(sizeof(char)*(strlen(s->host)+strlen(s->path)+16));
+    buf = malloc(sizeof(char)*(strlen(s->host)+strlen(s->path)+16));
     sprintf(buf,"rtsp://%s:%i/%s", s->host, s->port, s->path);
   }
   rtsp_send_request(s,"DESCRIBE",buf);
@@ -337,7 +339,7 @@ int rtsp_request_setparameter(rtsp_t *s, const char *what) {
     buf=strdup(what);
   } else
   {
-    buf=malloc(sizeof(char)*(strlen(s->host)+strlen(s->path)+16));
+    buf = malloc(sizeof(char)*(strlen(s->host)+strlen(s->path)+16));
     sprintf(buf,"rtsp://%s:%i/%s", s->host, s->port, s->path);
   }
   rtsp_send_request(s,"SET_PARAMETER",buf);
@@ -354,7 +356,7 @@ int rtsp_request_play(rtsp_t *s, const char *what) {
     buf=strdup(what);
   } else
   {
-    buf=malloc(sizeof(char)*(strlen(s->host)+strlen(s->path)+16));
+    buf = malloc(sizeof(char)*(strlen(s->host)+strlen(s->path)+16));
     sprintf(buf,"rtsp://%s:%i/%s", s->host, s->port, s->path);
   }
   rtsp_send_request(s,"PLAY",buf);
@@ -402,7 +404,7 @@ int rtsp_read_data(rtsp_t *s, char *buffer, unsigned int size) {
       }
       /* lets make the server happy */
       rtsp_put(s, "RTSP/1.0 451 Parameter Not Understood");
-      rest=malloc(sizeof(char)*16);
+      rest = malloc(sizeof(char)*16);
       sprintf(rest,"CSeq: %u", seq);
       rtsp_put(s, rest);
       rtsp_put(s, "");
@@ -426,14 +428,14 @@ int rtsp_read_data(rtsp_t *s, char *buffer, unsigned int size) {
 
 rtsp_t *rtsp_connect(xine_stream_t *stream, const char *mrl, const char *user_agent) {
 
-  rtsp_t *s=malloc(sizeof(rtsp_t));
+  rtsp_t *s = malloc(sizeof(rtsp_t));
   char *mrl_ptr=strdup(mrl);
   char *slash, *colon;
   int hostend, pathbegin, i;
   
   if (strncmp(mrl,"rtsp://",7))
   {
-    printf("rtsp: bad mrl: %s\n", mrl);
+    xprintf(stream->xine, XINE_VERBOSITY_LOG, _("rtsp: bad mrl: %s\n"), mrl);
     free(s);
     return NULL;
   }
@@ -474,7 +476,7 @@ rtsp_t *rtsp_connect(xine_stream_t *stream, const char *mrl, const char *user_ag
   pathbegin=slash-mrl_ptr;
   hostend=colon-mrl_ptr;
 
-  s->host=malloc(sizeof(char)*hostend+1);
+  s->host = malloc(sizeof(char)*hostend+1);
   strncpy(s->host, mrl_ptr, hostend);
   s->host[hostend]=0;
 
@@ -490,7 +492,7 @@ rtsp_t *rtsp_connect(xine_stream_t *stream, const char *mrl, const char *user_ag
   s->s = _x_io_tcp_connect (stream, s->host, s->port);
 
   if (s->s < 0) {
-    printf ("rtsp: failed to connect to '%s'\n", s->host);
+    xprintf (stream->xine, XINE_VERBOSITY_LOG, _("rtsp: failed to connect to '%s'\n"), s->host);
     rtsp_close(s);
     return NULL;
   }

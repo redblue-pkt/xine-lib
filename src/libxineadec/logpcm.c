@@ -30,7 +30,7 @@
  *   http://sox.sourceforge.net/
  * which listed the code as being lifted from Sun Microsystems.
  *
- * $Id: logpcm.c,v 1.14 2003/11/16 23:33:47 f1rmb Exp $
+ * $Id: logpcm.c,v 1.15 2003/12/05 15:55:00 f1rmb Exp $
  *
  */
 
@@ -187,8 +187,8 @@ static void logpcm_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 
   if( this->size + buf->size > this->bufsize ) {
     this->bufsize = this->size + 2 * buf->size;
-    printf("logpcm: increasing source buffer to %d to avoid overflow.\n",
-      this->bufsize);
+    xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
+	    "logpcm: increasing source buffer to %d to avoid overflow.\n", this->bufsize);
     this->buf = realloc( this->buf, this->bufsize );
   }
 
@@ -203,7 +203,8 @@ static void logpcm_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 
       audio_buffer = this->stream->audio_out->get_buffer (this->stream->audio_out);
       if (audio_buffer->mem_size == 0) {
-        printf ("logpcm: Help! Allocated audio buffer with nothing in it!\n");
+        xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, 
+		 "logpcm: Help! Allocated audio buffer with nothing in it!\n");
         return;
       }
 
@@ -255,7 +256,7 @@ static audio_decoder_t *open_plugin (audio_decoder_class_t *class_gen, xine_stre
 
   logpcm_decoder_t *this ;
 
-  this = (logpcm_decoder_t *) malloc (sizeof (logpcm_decoder_t));
+  this = (logpcm_decoder_t *) xine_xmalloc (sizeof (logpcm_decoder_t));
 
   this->audio_decoder.decode_data         = logpcm_decode_data;
   this->audio_decoder.reset               = logpcm_reset;
@@ -287,7 +288,7 @@ static void *init_plugin (xine_t *xine, void *data) {
 
   logpcm_class_t *this ;
 
-  this = (logpcm_class_t *) malloc (sizeof (logpcm_class_t));
+  this = (logpcm_class_t *) xine_xmalloc (sizeof (logpcm_class_t));
 
   this->decoder_class.open_plugin     = open_plugin;
   this->decoder_class.get_identifier  = get_identifier;

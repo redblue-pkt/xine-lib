@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.10 2002/09/05 22:18:57 mroi Exp $
+ * $Id: xine_decoder.c,v 1.11 2003/12/05 15:54:59 f1rmb Exp $
  *
  * stuff needed to turn libmpg123 into a xine decoder plugin
  */
@@ -101,7 +101,7 @@ static void *init_audio_decoder_plugin (xine_t *xine, void *data) {
 
   mpgdec_decoder_t *this ;
 
-  this = (mpgdec_decoder_t *) malloc (sizeof (mpgdec_decoder_t));
+  this = (mpgdec_decoder_t *) xine_xmalloc (sizeof (mpgdec_decoder_t));
 
   this->audio_decoder.init                = mpgdec_init;
   this->audio_decoder.reset               = mpgdec_reset;

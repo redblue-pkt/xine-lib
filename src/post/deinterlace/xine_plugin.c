@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_plugin.c,v 1.22 2003/11/11 18:44:56 f1rmb Exp $
+ * $Id: xine_plugin.c,v 1.23 2003/12/05 15:55:02 f1rmb Exp $
  *
  * advanced video deinterlacer plugin
  * Jun/2003 by Miguel Freitas
@@ -328,8 +328,8 @@ static void *deinterlace_init_plugin(xine_t *xine, void *data)
   */
   filter_deinterlace_methods( config_flags, 5 /*fieldsavailable*/ );
   if( !get_num_deinterlace_methods() ) {
-      printf( "tvtime: No deinterlacing methods "
-                      "available, exiting.\n" );
+      xprintf(xine, XINE_VERBOSITY_LOG, 
+	      _("tvtime: No deinterlacing methods available, exiting.\n"));
       return NULL;
   }
 

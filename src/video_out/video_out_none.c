@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_none.c,v 1.18 2003/10/31 17:25:20 mroi Exp $
+ * $Id: video_out_none.c,v 1.19 2003/12/05 15:55:03 f1rmb Exp $
  *
  * Was originally part of toxine frontend.
  * ...but has now been adapted to xine coding style standards ;)
@@ -47,17 +47,20 @@ typedef struct {
   int                  height;
   double               ratio;
   int                  format;
+  xine_t               *xine;
 } none_frame_t;
 
 typedef struct {
   vo_driver_t          vo_driver;
   config_values_t     *config;
-  int                   ratio;
+  int                  ratio;
+  xine_t               *xine;
 } none_driver_t;
 
 typedef struct {
   video_driver_class_t  driver_class;
   config_values_t      *config;
+  xine_t               *xine;
 } none_class_t;
 
 
@@ -85,15 +88,12 @@ static uint32_t none_get_capabilities(vo_driver_t *vo_driver) {
 }
 
 static vo_frame_t *none_alloc_frame(vo_driver_t *vo_driver) {
+  /* none_driver_t *this = (none_driver_t *) vo_driver; */
   none_frame_t  *frame;
   
-  frame = (none_frame_t *) malloc(sizeof(none_frame_t));
-  
-  if(frame == NULL) {
-    printf ("video_out_none: out of memory in none_alloc_frame\n");
-    abort();
-  }
-  memset(frame, 0, sizeof(none_frame_t));
+  frame = (none_frame_t *) xine_xmalloc(sizeof(none_frame_t));
+  if(!frame)
+    return NULL;
 
   frame->vo_frame.base[0] = NULL;
   frame->vo_frame.base[1] = NULL;
@@ -111,7 +111,8 @@ static vo_frame_t *none_alloc_frame(vo_driver_t *vo_driver) {
 static void none_update_frame_format(vo_driver_t *vo_driver, vo_frame_t *vo_frame,
 				     uint32_t width, uint32_t height, 
 				     double ratio, int format, int flags) {
-  none_frame_t  *frame = (none_frame_t *)vo_frame;
+  none_driver_t *this = (none_driver_t *) vo_driver;
+  none_frame_t  *frame = (none_frame_t *) vo_frame;
 
   if((frame->width != width) || (frame->height != height) || (frame->format != format)) {
     
@@ -148,7 +149,7 @@ static void none_update_frame_format(vo_driver_t *vo_driver, vo_frame_t *vo_fram
       break;
 
     default:
-      printf ("video_out_none: unknown frame format %04x)\n", format);
+      xprintf (this->xine, XINE_VERBOSITY_DEBUG, "video_out_none: unknown frame format %04x)\n", format);
       break;
 
     }
@@ -158,7 +159,8 @@ static void none_update_frame_format(vo_driver_t *vo_driver, vo_frame_t *vo_fram
 	    || frame->vo_frame.base[1] == NULL 
 	    || frame->vo_frame.base[2] == NULL))
        || (format == XINE_IMGFMT_YUY2 && frame->vo_frame.base[0] == NULL)) {
-      printf ("video_out_none: error. (framedata allocation failed: out of memory)\n"); 
+      xprintf (this->xine, XINE_VERBOSITY_DEBUG,
+	       "video_out_none: error. (framedata allocation failed: out of memory)\n"); 
       free_framedata(frame);
     }
   }
@@ -242,9 +244,10 @@ static vo_driver_t *open_plugin(video_driver_class_t *driver_class, const void *
   none_class_t    *class = (none_class_t *) driver_class;
   none_driver_t   *driver;
   
-  driver = (none_driver_t *) malloc(sizeof(none_driver_t));
+  driver = (none_driver_t *) xine_xmalloc(sizeof(none_driver_t));
   
   driver->config = class->config;
+  driver->xine   = class->xine;
   driver->ratio  = XINE_VO_ASPECT_AUTO;
   
   driver->vo_driver.get_capabilities     = none_get_capabilities;
@@ -284,7 +287,7 @@ static void dispose_class (video_driver_class_t *driver_class) {
 static void *init_class (xine_t *xine, void *visual) {
   none_class_t        *this;
   
-  this = (none_class_t *) malloc(sizeof(none_class_t));
+  this = (none_class_t *) xine_xmalloc(sizeof(none_class_t));
 
   this->driver_class.open_plugin     = open_plugin;
   this->driver_class.get_identifier  = get_identifier;
@@ -292,6 +295,7 @@ static void *init_class (xine_t *xine, void *visual) {
   this->driver_class.dispose         = dispose_class;
 
   this->config                       = xine->config;
+  this->xine                         = xine;
 
   return this;
 }

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  *
- * $Id: video_out_pgx64.c,v 1.45 2003/11/11 18:45:00 f1rmb Exp $
+ * $Id: video_out_pgx64.c,v 1.46 2003/12/05 15:55:03 f1rmb Exp $
  *
  * video_out_pgx64.c, Sun PGX64/PGX24 output plugin for xine
  *
@@ -316,15 +316,12 @@ static uint32_t pgx64_get_capabilities(vo_driver_t *this_gen)
 
 static vo_frame_t* pgx64_alloc_frame(vo_driver_t *this_gen)
 {
-  /*pgx64_driver_t *this = (pgx64_driver_t *)(void *)this_gen;*/
+  pgx64_driver_t *this = (pgx64_driver_t *)(void *)this_gen;
   pgx64_frame_t *frame;
 
-  frame = malloc(sizeof(pgx64_frame_t));
-  if (!frame) {
-    printf("video_out_pgx64: Error: frame malloc failed\n");
+  frame = (pgx64_frame_t *) xine_xmalloc(sizeof(pgx64_frame_t));
+  if (!frame)
     return NULL;
-  }
-  memset(frame, 0, sizeof(pgx64_frame_t));
 
   pthread_mutex_init(&frame->vo_frame.mutex, NULL);
 
@@ -338,7 +335,7 @@ static vo_frame_t* pgx64_alloc_frame(vo_driver_t *this_gen)
 
 static void pgx64_update_frame_format(vo_driver_t *this_gen, vo_frame_t *frame_gen, uint32_t width, uint32_t height, double ratio, int format, int flags)
 {
-  /*pgx64_driver_t *this = (pgx64_driver_t *)(void *)this_gen;*/
+  pgx64_driver_t *this = (pgx64_driver_t *)(void *)this_gen;
   pgx64_frame_t *frame = (pgx64_frame_t *)frame_gen;
 
   if ((width != frame->width) ||
@@ -388,7 +385,7 @@ static void pgx64_update_frame_format(vo_driver_t *this_gen, vo_frame_t *frame_g
 
     for (i=0; i<frame->planes; i++) {
       if (!frame->vo_frame.base[i]) {
-        printf("video_out_pgx64: frame plane malloc failed\n");
+        xprintf(this->class->xine, XINE_VERBOSITY_DEBUG, "video_out_pgx64: frame plane malloc failed\n");
         abort();
       }
     }
@@ -475,7 +472,8 @@ static void pgx64_display_frame(vo_driver_t *this_gen, vo_frame_t *frame_gen)
             return;
           }
           else {
-            printf("video_out_pgx64: Warning: low video memory, multi-buffering disabled\n");
+            xprintf(this->class->xine, XINE_VERBOSITY_DEBUG, 
+		    "video_out_pgx64: Warning: low video memory, multi-buffering disabled\n");
             vram_reset(this);
             this->buf_mode = BUF_MODE_NONE;
             break;
@@ -502,7 +500,7 @@ static void pgx64_display_frame(vo_driver_t *this_gen, vo_frame_t *frame_gen)
     if (this->buf_mode == BUF_MODE_NONE) {
       for (i=0; i<frame->planes; i++) {
         if ((this->buffers[0][i] = vram_alloc(this, frame->lengths[i])) < 0) {
-          printf("video_out_pgx64: Error: insuffucient video memory\n");
+          xprintf(this->class->xine, XINE_VERBOSITY_DEBUG, "video_out_pgx64: Error: insuffucient video memory\n");
           return;
         }
         else {
@@ -521,7 +519,8 @@ static void pgx64_display_frame(vo_driver_t *this_gen, vo_frame_t *frame_gen)
       }
 
       if (this->buf_mode == BUF_MODE_SINGLE) {
-        printf("video_out_pgx64: Warning: low video memory, double-buffering disabled\n");
+        xprintf(this->class->xine, XINE_VERBOSITY_LOG, 
+		_("video_out_pgx64: Warning: low video memory, double-buffering disabled\n"));
         for (i=0; i<frame->planes; i++) {
           this->buffers[1][i] = this->buffers[0][i];
           this->buffer_ptrs[1][i] = this->vram + this->buffers[1][i];
@@ -639,7 +638,7 @@ static void pgx64_overlay_key_blend(vo_driver_t *this_gen, vo_frame_t *frame_gen
 
     ovl = (pgx64_overlay_t *)malloc(sizeof(pgx64_overlay_t));
     if (!ovl) {
-      printf("video_out_pgx64: overlay malloc failed\n");
+      xprintf(this->class->xine, XINE_VERBOSITY_DEBUG, "video_out_pgx64: overlay malloc failed\n");
       return;
     }
     ovl->x = scale_down(overlay->x * x_scale);
@@ -732,7 +731,8 @@ static void pgx64_overlay_key_blend(vo_driver_t *this_gen, vo_frame_t *frame_gen
       }
     }
     if (y < overlay->height) {
-      printf("video_out_pgx64: Notice: RLE data doesn't extend to height of overlay\n");
+      xprintf(this->class->xine, XINE_VERBOSITY_DEBUG, 
+	      "video_out_pgx64: Notice: RLE data doesn't extend to height of overlay\n");
       XFillRectangle(this->display, ovl->p, this->gc, scale_down(x * x_scale), scale_down(y * y_scale), ovl->width, scale_down(overlay->height * y_scale) - scale_down(y * y_scale));
     }
     XUnlockDisplay(this->display);
@@ -937,7 +937,8 @@ static void set_overlay_mode(pgx64_driver_t* this, int ovl_mode)
     if ((XGetRGBColormaps(this->display, RootWindow(this->display, this->screen), &this->stdcolmap, &this->stdcolmap_size, XA_RGB_BEST_MAP) == 0) ||
         (this->stdcolmap->red_max == 0) ||
         (!this->stdcolmap->colormap)) {
-      printf("video_out_pgx64: Warning: RGB_BEST_MAP property not set or malformed. Run xstdcmap(1).\n");
+      xprintf(this->class->xine, XINE_VERBOSITY_LOG, 
+	      _("video_out_pgx64: Warning: RGB_BEST_MAP property not set or malformed. Run xstdcmap(1).\n"));
       if (this->stdcolmap) {
         XFree(this->stdcolmap);
         this->stdcolmap = NULL; 
@@ -1020,34 +1021,35 @@ static vo_driver_t* pgx64_init_driver(video_driver_class_t *class_gen, const voi
 
   devname = class->config->register_string(class->config, "video.pgx64_device", "/dev/fb", "name of pgx64 device", NULL, 10, NULL, NULL);
   if ((fbfd = open(devname, O_RDWR)) < 0) {
-    printf("video_out_pgx64: Error: can't open framebuffer device '%s'\n", devname);
+    xprintf(class->xine, XINE_VERBOSITY_DEBUG, 
+	    "video_out_pgx64: Error: can't open framebuffer device '%s'\n", devname);
     return NULL;
   }
 
   if (ioctl(fbfd, FBIOGATTR, &attr) < 0) {
-    printf("video_out_pgx64: Error: ioctl failed, unable to determine framebuffer characteristics\n");
+    xprintf(class->xine, XINE_VERBOSITY_DEBUG, 
+	    "video_out_pgx64: Error: ioctl failed, unable to determine framebuffer characteristics\n");
     close(fbfd);
     return NULL;
   }
 
   if (attr.real_type != 22) {
-    printf("video_out_pgx64: Error: '%s' is not a mach64 framebuffer device\n", devname);
+    xprintf(class->xine, XINE_VERBOSITY_DEBUG, 
+	    "video_out_pgx64: Error: '%s' is not a mach64 framebuffer device\n", devname);
     close(fbfd);
     return NULL;
   }
 
   if ((baseaddr = mmap(0, FB_ADDRSPACE, PROT_READ | PROT_WRITE, MAP_SHARED, fbfd, 0)) == MAP_FAILED) {
-    printf("video_out_pgx64: Error: unable to memory map framebuffer\n");
+    xprintf(class->xine, XINE_VERBOSITY_DEBUG, 
+	    "video_out_pgx64: Error: unable to memory map framebuffer\n");
     close(fbfd);
     return NULL;
   }
 
-  this = (pgx64_driver_t*)malloc(sizeof(pgx64_driver_t));
-  if (!this) {
-    printf("video_out_pgx64: Error: driver malloc failed\n");
+  this = (pgx64_driver_t*)xine_xmalloc(sizeof(pgx64_driver_t));
+  if (!this)
     return NULL;
-  }
-  memset(this, 0, sizeof(pgx64_driver_t));
 
   this->vo_driver.get_capabilities     = pgx64_get_capabilities;
   this->vo_driver.alloc_frame          = pgx64_alloc_frame;
@@ -1116,12 +1118,9 @@ static void* pgx64_init_class(xine_t *xine, void *visual_gen)
 {
   pgx64_driver_class_t *class;
 
-  class = (pgx64_driver_class_t*)malloc(sizeof(pgx64_driver_class_t));
-  if (!class) {
-    printf("video_out_pgx64: Error: driver class malloc failed\n");
+  class = (pgx64_driver_class_t*)xine_xmalloc(sizeof(pgx64_driver_class_t));
+  if (!class)
     return NULL;
-  }
-  memset(class, 0, sizeof(pgx64_driver_class_t));
 
   class->vo_driver_class.open_plugin     = pgx64_init_driver;
   class->vo_driver_class.get_identifier  = pgx64_get_identifier;

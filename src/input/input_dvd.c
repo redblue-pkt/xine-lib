@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.174 2003/11/26 23:44:09 f1rmb Exp $
+ * $Id: input_dvd.c,v 1.175 2003/12/05 15:54:58 f1rmb Exp $
  *
  */
 
@@ -538,7 +538,8 @@ static buf_element_t *dvd_plugin_read_block (input_plugin_t *this_gen,
   unsigned char      *block;
 
   if(fifo == NULL) {
-    printf("input_dvd: values of \\beta will give rise to dom!\n");
+    xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
+	    _("input_dvd: values of \\beta will give rise to dom!\n"));
     return NULL;
   }
 
@@ -556,8 +557,8 @@ static buf_element_t *dvd_plugin_read_block (input_plugin_t *this_gen,
     }
     result = dvdnav_get_next_cache_block (this->dvdnav, &block, &event, &len);
     if(result == DVDNAV_STATUS_ERR) {
-      printf("input_dvd: Error getting next block from DVD (%s)\n",
-	      dvdnav_err_to_string(this->dvdnav));
+      xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
+	      _("input_dvd: Error getting next block from DVD (%s)\n"), dvdnav_err_to_string(this->dvdnav));
       _x_message(this->stream, XINE_MSG_READ_ERROR,
                    dvdnav_err_to_string(this->dvdnav), NULL);
       if (block != buf->mem) dvdnav_free_cache_block(this->dvdnav, block);
@@ -741,7 +742,7 @@ static buf_element_t *dvd_plugin_read_block (input_plugin_t *this_gen,
       }
       break;
     default:
-      printf("input_dvd: FIXME: Unknown event (%i)\n", event);
+      xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "input_dvd: FIXME: Unknown event (%i)\n", event);
       break;
     }
   }
@@ -762,7 +763,8 @@ static buf_element_t *dvd_plugin_read_block (input_plugin_t *this_gen,
       /* the stack for storing the memory chunks from xine is full, we cannot
        * modify the buffer, because we would not be able to reconstruct it.
        * Therefore we copy the data and give the buffer back. */
-      printf("input_dvd: too many buffers issued, memory stack exceeded\n");
+      xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
+	      "input_dvd: too many buffers issued, memory stack exceeded\n");
       memcpy(buf->mem, block, DVD_BLOCK_SIZE);
       dvdnav_free_cache_block(this->dvdnav, block);
       buf->content = buf->mem;
@@ -909,31 +911,31 @@ static void dvd_handle_events(dvd_input_plugin_t *this) {
 
     switch(event->type) {
     case XINE_EVENT_INPUT_MENU1:
-      printf("input_dvd: MENU1 key hit.\n");
+      xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "input_dvd: MENU1 key hit.\n");
       dvdnav_menu_call(this->dvdnav, DVD_MENU_Escape);
       break;
     case XINE_EVENT_INPUT_MENU2:
-      printf("input_dvd: MENU2 key hit.\n");
+      xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "input_dvd: MENU2 key hit.\n");
       dvdnav_menu_call(this->dvdnav, DVD_MENU_Title);
       break;
     case XINE_EVENT_INPUT_MENU3:
-      printf("input_dvd: MENU3 key hit.\n");
+      xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "input_dvd: MENU3 key hit.\n");
       dvdnav_menu_call(this->dvdnav, DVD_MENU_Root);
       break;
     case XINE_EVENT_INPUT_MENU4:
-      printf("input_dvd: MENU4 key hit.\n");
+      xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "input_dvd: MENU4 key hit.\n");
       dvdnav_menu_call(this->dvdnav, DVD_MENU_Subpicture);
       break;
     case XINE_EVENT_INPUT_MENU5:
-      printf("input_dvd: MENU5 key hit.\n");
+      xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "input_dvd: MENU5 key hit.\n");
       dvdnav_menu_call(this->dvdnav, DVD_MENU_Audio);
       break;
     case XINE_EVENT_INPUT_MENU6:
-      printf("input_dvd: MENU6 key hit.\n");
+      xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "input_dvd: MENU6 key hit.\n");
       dvdnav_menu_call(this->dvdnav, DVD_MENU_Angle);
       break;
     case XINE_EVENT_INPUT_MENU7:
-      printf("input_dvd: MENU7 key hit.\n");
+      xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "input_dvd: MENU7 key hit.\n");
       dvdnav_menu_call(this->dvdnav, DVD_MENU_Part);
       break;
     case XINE_EVENT_INPUT_NEXT:
@@ -1376,7 +1378,7 @@ static int dvd_plugin_open (input_plugin_t *this_gen) {
       this->opened = 0; 
       ret = dvdnav_open(&this->dvdnav, intended_dvd_device);
       if(ret == DVDNAV_STATUS_ERR) {
-	xprintf(this->stream->xine, XINE_VERBOSITY_LOG, "input_dvd: Error opening DVD device\n");
+	xprintf(this->stream->xine, XINE_VERBOSITY_LOG, _("input_dvd: Error opening DVD device\n"));
 	_x_message (this->stream, XINE_MSG_READ_ERROR,
 		      intended_dvd_device, NULL);
         return 0;
@@ -1387,7 +1389,7 @@ static int dvd_plugin_open (input_plugin_t *this_gen) {
   } else {
     ret = dvdnav_open(&this->dvdnav, intended_dvd_device);
     if(ret == DVDNAV_STATUS_ERR) {
-      xprintf(this->stream->xine, XINE_VERBOSITY_LOG, "input_dvd: Error opening DVD device\n");
+      xprintf(this->stream->xine, XINE_VERBOSITY_LOG, _("input_dvd: Error opening DVD device\n"));
       _x_message (this->stream, XINE_MSG_READ_ERROR,
 		    intended_dvd_device, NULL);
       return 0;
@@ -1436,8 +1438,8 @@ static int dvd_plugin_open (input_plugin_t *this_gen) {
     tt = strtol(locator, NULL,10);
     dvdnav_get_number_of_titles(this->dvdnav, &titles);
     if((tt <= 0) || (tt > titles)) {
-      printf("input_dvd: Title %i is out of range (1 to %i).\n", tt,
-	      titles);
+      xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
+	      "input_dvd: Title %i is out of range (1 to %i).\n", tt, titles);
       dvdnav_close(this->dvdnav);
       this->dvdnav = NULL;
       return 0;
@@ -1450,8 +1452,8 @@ static int dvd_plugin_open (input_plugin_t *this_gen) {
     }
     dvdnav_get_number_of_parts(this->dvdnav, tt, &parts);
     if ((pr == 0) || (pr > parts)) {
-      printf("input_dvd: Part %i is out of range (1 to %i).\n", pr,
-	      parts);
+      xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
+	      "input_dvd: Part %i is out of range (1 to %i).\n", pr, parts);
       dvdnav_close(this->dvdnav);
       this->dvdnav = NULL;
       return 0;
@@ -1610,7 +1612,7 @@ static void dvd_class_dispose(input_class_t *this_gen) {
 static int dvd_class_eject_media (input_class_t *this_gen) {
   dvd_input_class_t *this = (dvd_input_class_t*)this_gen;
 
-  return media_eject_media (this->dvd_device);
+  return media_eject_media (this->xine, this->dvd_device);
 }
 
 static void *init_class (xine_t *xine, void *data) {
@@ -1626,7 +1628,7 @@ static void *init_class (xine_t *xine, void *data) {
   printf("input_dvd.c: config = %p\n", config);
 #endif
 
-  this = (dvd_input_class_t *) malloc (sizeof (dvd_input_class_t));
+  this = (dvd_input_class_t *) xine_xmalloc (sizeof (dvd_input_class_t));
   
   this->input_class.get_instance       = dvd_class_get_instance;
   this->input_class.get_identifier     = dvd_class_get_identifier;
@@ -1725,6 +1727,9 @@ static void *init_class (xine_t *xine, void *data) {
 
 /*
  * $Log: input_dvd.c,v $
+ * Revision 1.175  2003/12/05 15:54:58  f1rmb
+ * cleanup phase II. use xprintf when it's relevant, use xine_xmalloc when it's relevant too. Small other little fix (can't remember). Change few internal function prototype because it xine_t pointer need to be used if some xine's internal sections. NOTE: libdvd{nav,read} is still too noisy, i will take a look to made it quit, without invasive changes. To be continued...
+ *
  * Revision 1.174  2003/11/26 23:44:09  f1rmb
  * xprintf clean pass. xprintf now log into new XINE_LOG_TRACE log buffer. scratch buffer enhancement (thanks Thibaut for the malloc tips), enlarge log buffer from 25 lines (very useless), to 150 (better).
  *

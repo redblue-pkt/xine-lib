@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.154 2003/12/03 10:24:41 andruil Exp $
+ * $Id: audio_out.c,v 1.155 2003/12/05 15:55:04 f1rmb Exp $
  *
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -276,16 +276,14 @@ struct audio_fifo_s {
 };
 
 
-static audio_fifo_t *fifo_new (void) {
+static audio_fifo_t *fifo_new (xine_t *xine) {
 
   audio_fifo_t *fifo;
 
   fifo = (audio_fifo_t *) xine_xmalloc (sizeof (audio_fifo_t));
 
-  if (!fifo) {
-    printf ("audio_out: out of memory!\n");
+  if (!fifo)
     return NULL;
-  }
 
   fifo->first       = NULL;
   fifo->last        = NULL;
@@ -427,9 +425,8 @@ static void ao_fill_gap (aos_t *this, int64_t pts_len) {
 
   num_frames = pts_len * this->frames_per_kpts / 1024;
 
-  xprintf (this->xine, XINE_VERBOSITY_LOG,
-           "inserting %d 0-frames to fill a gap of %" PRId64 " pts\n",
-           num_frames, pts_len);
+  xprintf (this->xine, XINE_VERBOSITY_DEBUG,
+           "inserting %d 0-frames to fill a gap of %" PRId64 " pts\n", num_frames, pts_len);
 
   if ((this->output.mode == AO_CAP_MODE_A52) || (this->output.mode == AO_CAP_MODE_AC5)) {
     write_pause_burst(this,num_frames);
@@ -1131,7 +1128,7 @@ int xine_get_next_audio_frame (xine_audio_port_t *this_gen,
 
   if (!in_buf) {
     pthread_mutex_unlock(&this->out_fifo->mutex);
-    printf ("audio_audio: EOS\n");
+    xprintf (this->xine, XINE_VERBOSITY_DEBUG, "audio_audio: EOS\n");
     return 0;
   }
 
@@ -1187,7 +1184,7 @@ static int ao_change_settings(aos_t *this, uint32_t bits, uint32_t rate, int mod
 	!(this->driver->get_capabilities(this->driver) & AO_CAP_8BITS) ) {
       bits = 16;
       xprintf (this->xine, XINE_VERBOSITY_LOG,
-               "8 bits not supported by driver, converting to 16 bits.\n");
+               _("8 bits not supported by driver, converting to 16 bits.\n"));
     }
 
     /* provide mono->stereo and stereo->mono conversions */
@@ -1195,13 +1192,13 @@ static int ao_change_settings(aos_t *this, uint32_t bits, uint32_t rate, int mod
 	!(this->driver->get_capabilities(this->driver) & AO_CAP_MODE_MONO) ) {
       mode = AO_CAP_MODE_STEREO;
       xprintf (this->xine, XINE_VERBOSITY_LOG,
-               "mono not supported by driver, converting to stereo.\n");
+               _("mono not supported by driver, converting to stereo.\n"));
     }
     if( this->input.mode == AO_CAP_MODE_STEREO &&
 	!(this->driver->get_capabilities(this->driver) & AO_CAP_MODE_STEREO) ) {
       mode = AO_CAP_MODE_MONO;
       xprintf (this->xine, XINE_VERBOSITY_LOG,
-               "stereo not supported by driver, converting to mono.\n");
+               _("stereo not supported by driver, converting to mono.\n"));
     }
  
     output_sample_rate=this->driver->open(this->driver,bits,(this->force_rate ? this->force_rate : rate),mode);
@@ -1211,11 +1208,11 @@ static int ao_change_settings(aos_t *this, uint32_t bits, uint32_t rate, int mod
 
   if ( output_sample_rate == 0) {
     this->driver_open = 0;
-    xprintf (this->xine, XINE_VERBOSITY_LOG, "open failed!\n");
+    xprintf (this->xine, XINE_VERBOSITY_DEBUG, "open failed!\n");
     return 0;
   }; 
 
-  xprintf (this->xine, XINE_VERBOSITY_LOG, "output sample rate %d\n", output_sample_rate);
+  xprintf (this->xine, XINE_VERBOSITY_DEBUG, "output sample rate %d\n", output_sample_rate);
 
   this->last_audio_vpts       = 0;
   this->output.mode           = mode;
@@ -1835,8 +1832,8 @@ xine_audio_port_t *_x_ao_new_port (xine_t *xine, ao_driver_t *driver,
    * pre-allocate memory for samples
    */
 
-  this->free_fifo        = fifo_new ();
-  this->out_fifo         = fifo_new ();
+  this->free_fifo        = fifo_new (this->xine);
+  this->out_fifo         = fifo_new (this->xine);
 
   for (i=0; i<NUM_AUDIO_BUFFERS; i++) {
 
@@ -1901,8 +1898,10 @@ xine_audio_port_t *_x_ao_new_port (xine_t *xine, ao_driver_t *driver,
     if ((err = pthread_create (&this->audio_thread,
 			       &pth_attrs, ao_loop, this)) != 0) {
       
-      printf ("audio_out: can't create thread (%s)\n", strerror(err));
-      printf ("audio_out: sorry, this should not happen. please restart xine.\n");
+      xprintf (this->xine, XINE_VERBOSITY_DEBUG,
+	       "audio_out: can't create thread (%s)\n", strerror(err));
+      xprintf (this->xine, XINE_VERBOSITY_LOG, 
+	       _("audio_out: sorry, this should not happen. please restart xine.\n"));
       abort();
       
     } else

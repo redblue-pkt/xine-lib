@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: real.c,v 1.11 2003/12/04 22:14:53 jstembridge Exp $
+ * $Id: real.c,v 1.12 2003/12/05 15:54:58 f1rmb Exp $
  *
  * special functions for real streams.
  * adopted from joschkas real tools.
@@ -36,6 +36,7 @@
 #include "real.h"
 #include "asmrp.h"
 #include "sdpplin.h"
+#include "xine_internal.h"
 #include "xineutils.h"
 
 const unsigned char xor_table[] = {
@@ -418,7 +419,7 @@ static int select_mlti_data(const char *mlti_chunk, int mlti_size, int selection
   numrules=BE_16(mlti_chunk);
 
   if (codec >= numrules) {
-    printf("codec index >= number of codecs. %i %i\n", codec, numrules);
+    lprintf("codec index >= number of codecs. %i %i\n", codec, numrules);
     return 0;
   }
 
@@ -462,7 +463,7 @@ rmff_header_t *real_parse_sdp(char *data, char *stream_rules, uint32_t bandwidth
 
   if (!desc) return NULL;
   
-  header=xine_xmalloc(sizeof(rmff_header_t));
+  header = xine_xmalloc(sizeof(rmff_header_t));
 
   header->fileheader=rmff_new_fileheader(4+desc->stream_count);
   header->cont=rmff_new_cont(
@@ -471,7 +472,7 @@ rmff_header_t *real_parse_sdp(char *data, char *stream_rules, uint32_t bandwidth
       desc->copyright,
       desc->abstract);
   header->data=rmff_new_dataheader(0,0);
-  header->streams=xine_xmalloc(sizeof(rmff_mdpr_t*)*(desc->stream_count+1));
+  header->streams = xine_xmalloc(sizeof(rmff_mdpr_t*)*(desc->stream_count+1));
   lprintf("number of streams: %u\n", desc->stream_count);
 
   for (i=0; i<desc->stream_count; i++) {
@@ -553,7 +554,7 @@ int real_get_rdt_chunk(rtsp_t *rtsp_session, char *buffer) {
   if (n<8) return 0;
   if (header[0] != 0x24)
   {
-    printf("rdt chunk not recognized: got 0x%02x\n", header[0]);
+    lprintf("rdt chunk not recognized: got 0x%02x\n", header[0]);
     return 0;
   }
   size=(header[1]<<12)+(header[2]<<8)+(header[3]);
@@ -637,7 +638,7 @@ rmff_header_t  *real_setup_and_get_header(rtsp_t *rtsp_session, uint32_t bandwid
   {
     char *alert=rtsp_search_answers(rtsp_session,"Alert");
     if (alert) {
-      printf("real: got message from server:\n%s\n", alert);
+      lprintf("real: got message from server:\n%s\n", alert);
     }
     rtsp_send_ok(rtsp_session);
     return NULL;
@@ -646,18 +647,18 @@ rmff_header_t  *real_setup_and_get_header(rtsp_t *rtsp_session, uint32_t bandwid
   /* receive description */
   size=0;
   if (!rtsp_search_answers(rtsp_session,"Content-length"))
-    printf("real: got no Content-length!\n");
+    lprintf("real: got no Content-length!\n");
   else
     size=atoi(rtsp_search_answers(rtsp_session,"Content-length"));
 
   if (!rtsp_search_answers(rtsp_session,"ETag"))
-    printf("real: got no ETag!\n");
+    lprintf("real: got no ETag!\n");
   else
     session_id=strdup(rtsp_search_answers(rtsp_session,"ETag"));
     
   lprintf("Stream description size: %i\n", size);
 
-  description=malloc(sizeof(char)*(size+1));
+  description = malloc(sizeof(char)*(size+1));
 
   rtsp_read_data(rtsp_session, description, size);
   description[size]=0;

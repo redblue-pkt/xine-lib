@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.34 2003/12/03 03:07:08 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.35 2003/12/05 15:55:00 f1rmb Exp $
  *
  * (ogg/)vorbis audio decoder plugin (libvorbis wrapper) for xine
  */
@@ -303,7 +303,7 @@ static audio_decoder_t *open_plugin (audio_decoder_class_t *class_gen,
 
   vorbis_decoder_t *this ;
 
-  this = (vorbis_decoder_t *) malloc (sizeof (vorbis_decoder_t));
+  this = (vorbis_decoder_t *) xine_xmalloc (sizeof (vorbis_decoder_t));
 
   this->audio_decoder.decode_data         = vorbis_decode_data;
   this->audio_decoder.reset               = vorbis_reset;
@@ -343,7 +343,7 @@ static void *init_plugin (xine_t *xine, void *data) {
 
   vorbis_class_t *this;
   
-  this = (vorbis_class_t *) malloc (sizeof (vorbis_class_t));
+  this = (vorbis_class_t *) xine_xmalloc (sizeof (vorbis_class_t));
 
   this->decoder_class.open_plugin     = open_plugin;
   this->decoder_class.get_identifier  = get_identifier;

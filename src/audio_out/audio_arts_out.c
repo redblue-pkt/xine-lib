@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_arts_out.c,v 1.20 2002/12/21 12:56:46 miguelfreitas Exp $
+ * $Id: audio_arts_out.c,v 1.21 2003/12/05 15:54:56 f1rmb Exp $
  */
 
 #ifndef __sun			/* _XOPEN_SOURCE causes build prob's on sunos */
@@ -54,6 +54,8 @@ typedef struct arts_driver_s {
 
   ao_driver_t    ao_driver;
 
+  xine_t        *xine;
+
   arts_stream_t  audio_stream;
   int            capabilities;
   int            mode;
@@ -75,9 +77,9 @@ typedef struct arts_driver_s {
 } arts_driver_t;
 
 typedef struct {
-  audio_driver_class_t driver_class;
+  audio_driver_class_t  driver_class;
 
-  config_values_t *config;
+  xine_t               *xine;
 } arts_class_t;
 
 /*
@@ -103,10 +105,11 @@ static int ao_arts_open(ao_driver_t *this_gen,
 {
   arts_driver_t *this = (arts_driver_t *) this_gen;
 
-  printf ("audio_arts_out: ao_open bits=%d rate=%d, mode=%d\n", bits, rate, mode);
+  xprintf (this->xine, XINE_VERBOSITY_DEBUG,
+	   "audio_arts_out: ao_open bits=%d rate=%d, mode=%d\n", bits, rate, mode);
 
   if ( (mode & this->capabilities) == 0 ) {
-    printf ("audio_arts_out: unsupported mode %08x\n", mode);
+    xprintf (this->xine, XINE_VERBOSITY_DEBUG, "audio_arts_out: unsupported mode %08x\n", mode);
     return 0;
   }
 
@@ -134,7 +137,7 @@ static int ao_arts_open(ao_driver_t *this_gen,
 
   this->bytes_per_frame=(this->bits_per_sample*this->num_channels)/8;
 
-  printf ("audio_arts_out: %d channels output\n",this->num_channels);
+  xprintf (this->xine, XINE_VERBOSITY_DEBUG, "audio_arts_out: %d channels output\n", this->num_channels);
 
   this->audio_stream=arts_play_stream(this->sample_rate, bits, this->num_channels, "xine");
 
@@ -152,7 +155,7 @@ static int ao_arts_open(ao_driver_t *this_gen,
      this->latency = arts_stream_get (this->audio_stream, ARTS_P_TOTAL_LATENCY);
   }
 
-  printf ("audio_arts_out : latency %d ms\n", this->latency);
+  xprintf (this->xine, XINE_VERBOSITY_DEBUG, "audio_arts_out : latency %d ms\n", this->latency);
 
   return this->sample_rate;
 }
@@ -293,21 +296,18 @@ static int ao_arts_ctrl(ao_driver_t *this_gen, int cmd, ...) {
   return 0;
 }
 
-static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, 
-				 const void *data) {
+static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *data) {
+  arts_class_t   *class = (arts_class_t *) class_gen;
+  arts_driver_t  *this;
+  int		  rc;
 
-  /* arts_class_t     *class = (arts_class_t *) class_gen; */
-  /* config_values_t *config = class->config; */
-  arts_driver_t    *this;
-  int		    rc;
+  lprintf ("audio_arts_out: open_plugin called\n");
 
-  printf ("audio_arts_out: open_plugin called\n");
-
-  this = (arts_driver_t *) malloc (sizeof (arts_driver_t));
+  this = (arts_driver_t *) xine_xmalloc (sizeof (arts_driver_t));
 
   rc = arts_init();
   if (rc < 0) {
-    printf ("audio_arts_out: arts_init failed: %s\n", arts_error_text(rc));
+    xprintf (this->xine, XINE_VERBOSITY_DEBUG,"audio_arts_out: arts_init failed: %s\n", arts_error_text(rc));
     return NULL;
   }
   
@@ -317,17 +317,17 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen,
   this->mixer.mute      = 0;
   this->mixer.vol_scale = 60;
   this->mixer.v_mixer   = 0;
-  
+
+  this->xine = class->xine;
   /*
    * set capabilities
    */
   this->capabilities = 0;
-  printf ("audio_arts_out : supported modes are ");
+  xprintf (this->xine, XINE_VERBOSITY_DEBUG, "audio_arts_out : supported modes are ");
   this->capabilities |= AO_CAP_MODE_MONO | AO_CAP_MIXER_VOL | AO_CAP_PCM_VOL | AO_CAP_MUTE_VOL;
-  printf ("mono ");
+  xprintf (this->xine, XINE_VERBOSITY_DEBUG, "mono ");
   this->capabilities |= AO_CAP_MODE_STEREO | AO_CAP_MIXER_VOL | AO_CAP_PCM_VOL | AO_CAP_MUTE_VOL;
-  printf ("stereo ");
-  printf ("\n");
+  xprintf (this->xine, XINE_VERBOSITY_DEBUG, "stereo ");
 
   this->sample_rate  = 0;
   this->audio_stream = NULL;
@@ -371,16 +371,16 @@ static void *init_class (xine_t *xine, void *data) {
 
   arts_class_t        *this;
 
-  printf ("audio_arts_out: init class\n");
+  lprintf ("audio_arts_out: init class\n");
 
-  this = (arts_class_t *) malloc (sizeof (arts_class_t));
+  this = (arts_class_t *) xine_xmalloc (sizeof (arts_class_t));
 
   this->driver_class.open_plugin     = open_plugin;
   this->driver_class.get_identifier  = get_identifier;
   this->driver_class.get_description = get_description;
   this->driver_class.dispose         = dispose_class;
 
-  this->config = xine->config;
+  this->xine                         = xine;
 
   return this;
 }

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_directfb.c,v 1.23 2003/10/23 15:17:07 mroi Exp $
+ * $Id: video_out_directfb.c,v 1.24 2003/12/05 15:55:03 f1rmb Exp $
  *
  * DirectFB based output plugin.
  * Rich Wareham <richwareham@users.sourceforge.net>
@@ -70,6 +70,7 @@
 
 typedef struct directfb_frame_s {
   vo_frame_t         vo_frame;
+  xine_t            *xine;
 
   int                width, height;
   double             ratio;
@@ -80,9 +81,9 @@ typedef struct directfb_frame_s {
 } directfb_frame_t;
 
 typedef struct directfb_driver_s {
-
   vo_driver_t      vo_driver;
 
+  xine_t          *xine;
   config_values_t *config;
 
   directfb_frame_t  *cur_frame;
@@ -119,7 +120,8 @@ typedef struct directfb_driver_s {
 } directfb_driver_t;
 
 typedef struct {
-  video_driver_class_t driver_class;
+  video_driver_class_t  driver_class;
+  xine_t               *xine;
 } directfb_class_t;
 
 #define CONTEXT_BAD             0
@@ -137,14 +139,13 @@ static uint32_t directfb_get_capabilities (vo_driver_t *this_gen) {
 }
 
 static void directfb_frame_field (vo_frame_t *vo_img, int which_field) {
-
-  /* directfb_frame_t  *frame = (directfb_frame_t *) vo_img ; */
+  directfb_frame_t  *frame = (directfb_frame_t *) vo_img ;
 
   switch(which_field) {
     case VO_BOTH_FIELDS:
      break;
     default:
-     fprintf(stderr, "Interlaced images not supported\n");
+      xprintf(frame->xine, XINE_VERBOSITY_DEBUG, "Interlaced images not supported\n");
   }
 #if 0
   switch (which_field) {
@@ -179,11 +180,12 @@ static void directfb_frame_dispose (vo_frame_t *vo_img) {
 
 
 static vo_frame_t *directfb_alloc_frame (vo_driver_t *this_gen) {
+  directfb_driver_t  *this = (directfb_driver_t *) this_gen;
   directfb_frame_t   *frame ;
 
   frame = (directfb_frame_t *) calloc (1, sizeof (directfb_frame_t));
   if (frame==NULL) {
-    printf ("directfb_alloc_frame: out of memory\n");
+    xprintf (this->xine, XINE_VERBOSITY_DEBUG, "directfb_alloc_frame: out of memory\n");
     return NULL;
   }
 
@@ -201,7 +203,8 @@ static vo_frame_t *directfb_alloc_frame (vo_driver_t *this_gen) {
   frame->vo_frame.dispose    = directfb_frame_dispose;
 
   frame->surface = NULL;
-  frame->locked = 0;
+  frame->locked  = 0;
+  frame->xine    = this->xine;
   
   return (vo_frame_t *) frame;
 }
@@ -258,7 +261,8 @@ static void directfb_update_frame_format (vo_driver_t *this_gen,
       l_dsc.pixelformat = DSPF_YUY2;
       break;
      default:
-      fprintf(stderr,"Error unknown image format (%i), assuming YV12\n", frame->format);
+      xprintf(this->xine, XINE_VERBOSITY_DEBUG, 
+	      "Error unknown image format (%i), assuming YV12\n", frame->format);
       s_dsc.pixelformat = DSPF_YV12;
       l_dsc.pixelformat = DSPF_YV12;
     }
@@ -277,7 +281,7 @@ static void directfb_update_frame_format (vo_driver_t *this_gen,
     l_dsc.options = 0;
     ret = this->layer->TestConfiguration(this->layer, &l_dsc, &failed );
     if (ret == DFB_UNSUPPORTED) {
-      fprintf(stderr, "Error: Unsupported operation\n");
+      xprintf(this->xine, XINE_VERBOSITY_DEBUG, "Error: Unsupported operation\n");
       return;
     }
     DFBCHECK(this->layer->SetConfiguration(this->layer, &l_dsc));
@@ -400,8 +404,8 @@ static void directfb_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen
     this->last_frame_height = frame->height;
     this->last_frame_ratio  = frame->ratio;
 
-    fprintf (stderr, "video_out_directfb: frame size %d x %d\n",
-            this->frame_width, this->frame_height);
+    xprintf (this->xine, XINE_VERBOSITY_DEBUG,
+	     "video_out_directfb: frame size %d x %d\n", this->frame_width, this->frame_height);
   }
 
   directfb_render_image (this, frame);
@@ -413,12 +417,13 @@ static void directfb_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen
 
 static int directfb_get_property (vo_driver_t *this_gen, int property) {
 
-  /* directfb_driver_t *this = (directfb_driver_t *) this_gen; */
+  directfb_driver_t *this = (directfb_driver_t *) this_gen;
 
   if ( property == VO_PROP_ASPECT_RATIO) {
     return 1;
   } else {
-    printf ("video_out_directfb: tried to get unsupported property %d\n", property);
+    xprintf (this->xine, XINE_VERBOSITY_DEBUG, 
+	     "video_out_directfb: tried to get unsupported property %d\n", property);
   }
 
   return 0;
@@ -446,16 +451,17 @@ static char *aspect_ratio_name(int a)
 static int directfb_set_property (vo_driver_t *this_gen, 
 			      int property, int value) {
 
-  /* directfb_driver_t *this = (directfb_driver_t *) this_gen; */
+  directfb_driver_t *this = (directfb_driver_t *) this_gen;
 
   if ( property == VO_PROP_ASPECT_RATIO) {
     if (value>=XINE_VO_ASPECT_NUM_RATIOS)
       value = XINE_VO_ASPECT_AUTO;
     /* this->user_ratio = value; */
-    printf("video_out_directfb: aspect ratio changed to %s\n",
-	   aspect_ratio_name(value));
+    xprintf(this->xine, XINE_VERBOSITY_DEBUG, 
+	    "video_out_directfb: aspect ratio changed to %s\n", aspect_ratio_name(value));
   } else {
-    printf ("video_out_directfb: tried to set unsupported property %d\n", property);
+    xprintf (this->xine, XINE_VERBOSITY_DEBUG, 
+	     "video_out_directfb: tried to set unsupported property %d\n", property);
   }
 
   return value;
@@ -484,7 +490,7 @@ static void directfb_translate_gui2video(directfb_driver_t *this,
 static int directfb_gui_data_exchange (vo_driver_t *this_gen, 
 				 int data_type, void *data) {
 
-  /* directfb_driver_t   *this = (directfb_driver_t *) this_gen; */
+  directfb_driver_t   *this = (directfb_driver_t *) this_gen;
 
 
   switch (data_type) {
@@ -492,7 +498,7 @@ static int directfb_gui_data_exchange (vo_driver_t *this_gen,
     return -1;
   }
 
-fprintf (stderr, "done gui_data_exchange\n"); 
+  xprintf (this->xine, XINE_VERBOSITY_DEBUG, "done gui_data_exchange\n"); 
   return 0;
 }
 
@@ -514,24 +520,20 @@ typedef struct {
 
 static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *visual_gen) {
 
-  /* directfb_class_t   *class = (directfb_class_t *) class_gen; */
+  directfb_class_t       *class = (directfb_class_t *) class_gen;
   directfb_driver_t      *this;
   dfb_visual_info_t      *visual_info = (dfb_visual_info_t*)visual_gen;
 
-  fprintf (stderr, "EXPERIMENTAL directfb output plugin\n");
+  xprintf (class->xine, XINE_VERBOSITY_DEBUG, "EXPERIMENTAL directfb output plugin\n");
   /*
    * allocate plugin struct
    */
 
-  this = malloc (sizeof (directfb_driver_t));
-
-  if (!this) {
-    printf ("video_out_directfb: malloc failed\n");
+  this = xine_xmalloc (sizeof (directfb_driver_t));
+  if (!this)
     return NULL;
-  }
 
-  memset (this, 0, sizeof(directfb_driver_t));
-
+  this->xine                = class->xine;
   this->frame_width	    = 0;
   this->frame_height	    = 0;
 
@@ -576,11 +578,13 @@ static void *init_class (xine_t *xine, void *visual_gen) {
 
   directfb_class_t    *this;
 
-  this = (directfb_class_t *) malloc (sizeof (directfb_class_t));
+  this = (directfb_class_t *) xine_xmalloc (sizeof (directfb_class_t));
   this->driver_class.open_plugin     = open_plugin;
   this->driver_class.get_identifier  = get_identifier;
   this->driver_class.get_description = get_description;
   this->driver_class.dispose         = dispose_class;
+
+  this->xine = xine;
 
   return this;
 }

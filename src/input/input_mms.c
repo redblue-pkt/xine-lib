@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_mms.c,v 1.43 2003/11/26 23:44:09 f1rmb Exp $
+ * $Id: input_mms.c,v 1.44 2003/12/05 15:54:58 f1rmb Exp $
  *
  * mms input plugin based on work from major mms
  */
@@ -365,7 +365,7 @@ static input_plugin_t *mms_class_get_instance (input_class_t *cls_gen, xine_stre
     return NULL;
   }
 
-  this = (mms_input_plugin_t *) malloc (sizeof (mms_input_plugin_t));
+  this = (mms_input_plugin_t *) xine_xmalloc (sizeof (mms_input_plugin_t));
   cls->ip = this;
   this->stream   = stream;
   this->mms      = NULL;

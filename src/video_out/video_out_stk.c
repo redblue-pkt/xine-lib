@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_stk.c,v 1.10 2003/11/26 19:43:37 f1rmb Exp $
+ * $Id: video_out_stk.c,v 1.11 2003/12/05 15:55:03 f1rmb Exp $
  *
  * video_out_stk.c, Libstk Surface Video Driver
  * more info on Libstk at http://www.libstk.org
@@ -92,12 +92,14 @@ typedef struct stk_driver_s {
     pthread_mutex_t    mutex;
     uint32_t           capabilities;
     vo_scale_t         sc;
+    xine_t            *xine;
 } stk_driver_t;
 
 
 typedef struct {
-    video_driver_class_t driver_class;
-    config_values_t*     config;
+    video_driver_class_t  driver_class;
+    config_values_t*      config;
+    xine_t               *xine;
 } stk_class_t;
 
 static uint32_t stk_get_capabilities (vo_driver_t *this_gen) {
@@ -127,15 +129,14 @@ static void stk_frame_dispose (vo_frame_t *vo_img) {
 }
 
 static vo_frame_t *stk_alloc_frame(vo_driver_t *this_gen) {
+    stk_driver_t* this = (stk_driver_t*)this_gen;
     /* allocate the frame */
     stk_frame_t* frame;
+
     //printf("video_out_stk: alloc_frame()\n");
-    frame = (stk_frame_t *)malloc(sizeof(stk_frame_t));
-    if (frame == NULL) {
-        printf("stk_alloc_frame: out of memory\n");
-        return NULL;
-    }
-    memset(frame, 0, sizeof(stk_frame_t));
+    frame = (stk_frame_t *) xine_xmalloc(sizeof(stk_frame_t));
+    if (!frame)
+      return NULL;
 
     /* populate the frame members*/
     pthread_mutex_init (&frame->vo_frame.mutex, NULL);
@@ -275,7 +276,7 @@ static void stk_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
     if ( (frame->width != this->sc.delivered_width)
             || (frame->height != this->sc.delivered_height)
             || (frame->ratio != this->sc.delivered_ratio) ) {
-        printf("video_out_stk: change frame format\n");
+        xprintf(this->xine, XINE_VERBOSITY_DEBUG, "video_out_stk: change frame format\n");
 
         this->sc.delivered_width      = frame->width;
         this->sc.delivered_height     = frame->height;
@@ -322,7 +323,8 @@ static int stk_set_property (vo_driver_t* this_gen, int property, int value) {
         if (value>=XINE_VO_ASPECT_NUM_RATIOS)
             value = XINE_VO_ASPECT_AUTO;
         this->sc.user_ratio = value;
-        printf("video_out_stk: aspect ratio changed to %s\n", _x_vo_scale_aspect_ratio_name(value));
+        xprintf(this->xine, XINE_VERBOSITY_DEBUG,
+		"video_out_stk: aspect ratio changed to %s\n", _x_vo_scale_aspect_ratio_name(value));
 
         stk_compute_ideal_size (this);
         this->sc.force_redraw = 1;
@@ -375,25 +377,24 @@ static void stk_dispose (vo_driver_t * this_gen) {
 }
 
 static vo_driver_t *open_plugin(video_driver_class_t *class_gen, const void *visual_gen) {
+    stk_class_t * class = (stk_class_t *) class_gen;
     /* allocate the video output driver class */
     stk_driver_t*        this;
     
     //printf("video_out_stk: open_plugin()\n");
     
-    this = malloc (sizeof (stk_driver_t));
-    if (!this) {
-        printf ("video_out_stk: open_plugin - malloc failed\n");
-        return NULL;
-    }
-    memset (this, 0, sizeof(stk_driver_t));
+    this = (stk_driver_t *) xine_xmalloc (sizeof (stk_driver_t));
+    if (!this)
+      return NULL;
 
     /* populate the video output driver members */
-    this->config = ((stk_class_t*)class_gen)->config;
+    this->config     = class->config;
+    this->xine       = class->xine;
     this->xine_panel = (xine_panel_t*)visual_gen;
-    this->surface = stk_xine_panel_surface(this->xine_panel);
+    this->surface    = stk_xine_panel_surface(this->xine_panel);
     /* FIXME: provide a way to get bpp from stk surfaces */
     /* this->bpp = stk_surface_bpp(this->surface); */
-    this->bpp = 32;
+    this->bpp        = 32;
     pthread_mutex_init(&this->mutex, NULL);
     /* FIXME: provide a way to get YUV formats from stk surfaces */
     /* this->capabilities = stk_surface_formats(this->surface); */
@@ -424,7 +425,8 @@ static vo_driver_t *open_plugin(video_driver_class_t *class_gen, const void *vis
     xine_setenv("SDL_VIDEO_YUV_HWACCEL", "1", 1);
     xine_setenv("SDL_VIDEO_X11_NODIRECTCOLOR", "1", 1);
     
-    printf ("video_out_stk: warning, xine's STK driver is EXPERIMENTAL\n");
+    xprintf (this->xine, XINE_VERBOSITY_DEBUG,
+	     "video_out_stk: warning, xine's STK driver is EXPERIMENTAL\n");
     return &this->vo_driver;
 }
 
@@ -453,7 +455,7 @@ static void *init_class (xine_t *xine, void *visual_gen) {
     
     //printf("video_out_stk: init_class()\n");
 
-    this = (stk_class_t*)malloc(sizeof(stk_class_t));
+    this = (stk_class_t *) xine_xmalloc(sizeof(stk_class_t));
 
     this->driver_class.open_plugin      = open_plugin;
     this->driver_class.get_identifier   = get_identifier;
@@ -461,6 +463,7 @@ static void *init_class (xine_t *xine, void *visual_gen) {
     this->driver_class.dispose          = dispose_class;
     
     this->config                        = xine->config;
+    this->xine                          = xine;
 
     return this;
 }

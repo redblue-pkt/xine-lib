@@ -56,6 +56,8 @@
 
 
 /* Used to capture the audio data */
+#define ALSA_PCM_NEW_HW_PARAMS_API
+#define ALSA_PCM_NEW_SW_PARAMS_API
 #ifdef HAVE_ALSA
 #include <alsa/asoundlib.h>
 #endif
@@ -88,15 +90,14 @@ static struct {
 /*
 #define LOG
 */
-#define PLUGIN "input_v4l"
 
 #ifdef LOG
-#define DBGPRINT(args...) do { printf(PLUGIN ": " args); fflush(stdout); } while(0)
+#define DBGPRINT(args...) do { printf("input_v4l:  " args); fflush(stdout); } while(0)
 #else
-#define DBGPRINT(args...) {}
+#define DBGPRINT(args...) do {} while(0)
 #endif
 
-#define PRINT(args...) printf(PLUGIN ": " args)
+#define PRINT(args...) printf("input_v4l:  " args)
 
 #if !defined(NDELAY) && defined(O_NDELAY)
 #define FNDELAY O_NDELAY
@@ -341,8 +342,7 @@ static pvrscr_t* pvrscr_init (void)
 {
    pvrscr_t *this;
    
-   this = malloc(sizeof(*this));
-   memset(this, 0, sizeof(*this));
+   this = (pvrscr_t *) xine_xmalloc(sizeof(pvrscr_t));
    
    this->scr.interface_version = 2;
    this->scr.get_priority      = pvrscr_get_priority;
@@ -665,7 +665,7 @@ static int search_by_channel(v4l_input_plugin_t *this, char *input_source)
       }
       
       if (strstr(this->video_channel.name, input_source) == NULL) {
-	xprintf(this->stream->xine, XINE_VERBOSITY_LOG, "Tuner name not found\n");
+	xprintf(this->stream->xine, XINE_VERBOSITY_LOG, _("Tuner name not found\n"));
 	return -1;
       }
    
@@ -1117,7 +1117,7 @@ static int open_audio_capture_device(v4l_input_plugin_t *this)
    /* Set sample rate */
    if (this->audio_capture) {
       this->exact_rate = snd_pcm_hw_params_set_rate_near(this->pcm_handle,
-	    this->pcm_hwparams, rate, &this->dir);
+							 this->pcm_hwparams, &rate, &this->dir);
       if (this->dir != 0) {
 	 PRINT("Audio :s The rate %d Hz is not supported by your hardware.\n",
 	       rate);
@@ -1188,7 +1188,7 @@ static int v4l_adjust_realtime_speed(v4l_input_plugin_t *this, fifo_buffer_t *fi
       /* Buffer is empty, and we did not pause playback */
       report_progress(this->stream, SCR_PAUSED);
       
-      xprintf(this->stream->xine, XINE_VERBOSITY_LOG, 
+      xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
 	      "Buffer is empty, pausing playback (used: %d, num_free: %d)\r\n",
 	      num_used, num_free);
       
@@ -1210,7 +1210,7 @@ static int v4l_adjust_realtime_speed(v4l_input_plugin_t *this, fifo_buffer_t *fi
    if (scr_tunning == SCR_PAUSED) {
       if (2 * num_used > num_free) {
 	 /* Playback was paused, but we have normal buffer usage again */
-	xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
+	xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
 		"Resuming playback (used: %d, free: %d)\r\n", num_used, num_free);
 	 
 	 this->scr_tunning = 0;
@@ -1249,7 +1249,7 @@ static int v4l_adjust_realtime_speed(v4l_input_plugin_t *this, fifo_buffer_t *fi
       /* Check if speed adjustment should be changed */ 
       if (scr_tunning != this->scr_tunning) {
 	 this->scr_tunning = scr_tunning;
-	 xprintf(this->stream->xine, XINE_VERBOSITY_LOG, 
+	 xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
 		 "scr tunning = %d (used: %d, free: %d)\r\n", scr_tunning, num_used, num_free);
 	 pvrscr_speed_tunning(this->scr, 1.0 + (0.01 * scr_tunning));
       }
@@ -1261,7 +1261,7 @@ static int v4l_adjust_realtime_speed(v4l_input_plugin_t *this, fifo_buffer_t *fi
        */
       this->scr_tunning = 0;
 
-      xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
+      xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
 	      "scr tunning resetting (used: %d, free: %d\r\n", num_used, num_free);
       
       pvrscr_speed_tunning(this->scr, 1.0);
@@ -1832,7 +1832,7 @@ static input_plugin_t *v4l_class_get_video_instance (input_class_t *cls_gen,
       DBGPRINT("(%d) Cannot open v4l device: %s\n", this->video_fd, 
 	    strerror(errno));
       xine_log(this->stream->xine, XINE_LOG_MSG, 
-	    PLUGIN ": Sorry, could not open %s\n", entry->str_value);
+	       _("input_v4l:  Sorry, could not open %s\n"), entry->str_value);
 	    is_ok = 0;
    } else
       DBGPRINT("Device opened, tv %d\n", this->video_fd);
@@ -1840,8 +1840,7 @@ static input_plugin_t *v4l_class_get_video_instance (input_class_t *cls_gen,
    /* Get capabilities */
    if (is_ok && ioctl(this->video_fd,VIDIOCGCAP,&this->video_cap) < 0) {
       xine_log(this->stream->xine, XINE_LOG_MSG, 
-	    PLUGIN ": Sorry your v4l card doesn't support some features"
-	    " needed by xine\n");     
+	       _("input_v4l:  Sorry your v4l card doesn't support some features needed by xine\n"));
       DBGPRINT ("VIDIOCGCAP ioctl went wrong\n");
       is_ok = 0;;
    }
@@ -1849,8 +1848,8 @@ static input_plugin_t *v4l_class_get_video_instance (input_class_t *cls_gen,
    if (is_ok && !(this->video_cap.type & VID_TYPE_CAPTURE)) {
       /* Capture is not supported by the device. This is a must though! */
       xine_log(this->stream->xine, XINE_LOG_MSG, 
-	    PLUGIN ": Sorry, your v4l card doesn't support frame grabbing."
-	    " This is needed by xine though\n");
+	       _("input_v4l:  Sorry, your v4l card doesn't support frame grabbing."
+		 " This is needed by xine though\n"));
 
       DBGPRINT("Grab device does not handle capture\n");
       is_ok = 0;
@@ -1858,8 +1857,8 @@ static input_plugin_t *v4l_class_get_video_instance (input_class_t *cls_gen,
    
    if (is_ok && set_input_source(this, this->tuner_name) <= 0) {\
       xine_log(this->stream->xine, XINE_LOG_MSG, 
-	    PLUGIN ": Could not locate the tuner name [%s] on your v4l card\n",
-	    this->tuner_name);
+	       _("input_v4l:  Could not locate the tuner name [%s] on your v4l card\n"),
+	       this->tuner_name);
       is_ok = 0;
    }
    
@@ -1904,16 +1903,16 @@ static input_plugin_t *v4l_class_get_radio_instance (input_class_t *cls_gen,
 
    if (this->radio_fd < 0) {
       xine_log(this->stream->xine, XINE_LOG_MSG, 
-	    PLUGIN ": Allthough normally we would be able to handle this MRL,\n"
-	    PLUGIN ": I am unable to open the radio device.[%s]\n",
-	    entry->str_value);
+	       _("input_v4l:  Allthough normally we would be able to handle this MRL,\n"
+		 "input_v4l:  I am unable to open the radio device.[%s]\n"),
+	       entry->str_value);
       is_ok = 0;
    } else
       DBGPRINT("Device opened, radio %d\n", this->radio_fd);
 
    if (is_ok && set_input_source(this, this->tuner_name) <= 0) {
       xine_log(this->stream->xine, XINE_LOG_MSG, 
-	    PLUGIN ": Sorry, you Radio device doesn't support this tunername\n");
+	       _("input_v4l:  Sorry, you Radio device doesn't support this tunername\n"));
       is_ok = 0;
    }
  

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decode_spu.c,v 1.40 2003/11/26 19:43:31 f1rmb Exp $
+ * $Id: dxr3_decode_spu.c,v 1.41 2003/12/05 15:54:57 f1rmb Exp $
  */
  
 /* dxr3 spu decoder plugin.
@@ -146,7 +146,7 @@ static void *dxr3_spudec_init_plugin(xine_t *xine, void* data)
 {
   dxr3_spudec_class_t *this;
   
-  this = (dxr3_spudec_class_t *)malloc(sizeof(dxr3_spudec_class_t));
+  this = (dxr3_spudec_class_t *)xine_xmalloc(sizeof(dxr3_spudec_class_t));
   if (!this) return NULL;
   
   this->spu_decoder_class.open_plugin     = dxr3_spudec_open_plugin;
@@ -172,7 +172,7 @@ static spu_decoder_t *dxr3_spudec_open_plugin(spu_decoder_class_t *class_gen, xi
   if (class->instance) return NULL;
   if (!dxr3_present(stream)) return NULL;
   
-  this = (dxr3_spudec_t *)malloc(sizeof(dxr3_spudec_t));
+  this = (dxr3_spudec_t *)xine_xmalloc(sizeof(dxr3_spudec_t));
   if (!this) return NULL;
   
   this->spu_decoder.decode_data       = dxr3_spudec_decode_data;
@@ -210,8 +210,8 @@ static spu_decoder_t *dxr3_spudec_open_plugin(spu_decoder_class_t *class_gen, xi
     /* open dxr3 spu device */
     snprintf(tmpstr, sizeof(tmpstr), "%s_sp%s", this->devname, this->devnum);
     if ((this->fd_spu = open(tmpstr, O_WRONLY)) < 0) {
-      printf("dxr3_decode_spu: Failed to open spu device %s (%s)\n",
-        tmpstr, strerror(errno));
+      xprintf(this->stream->xine, XINE_VERBOSITY_LOG, 
+	      _("dxr3_decode_spu: Failed to open spu device %s (%s)\n"), tmpstr, strerror(errno));
       pthread_mutex_unlock(&this->dxr3_vo->spu_device_lock);
       free(this);
       return NULL;
@@ -279,7 +279,8 @@ static void dxr3_spudec_decode_data(spu_decoder_t *this_gen, buf_element_t *buf)
       dxr3_swab_clut((int *)buf->content);
     pthread_mutex_lock(&this->dxr3_vo->spu_device_lock);
     if (ioctl(this->fd_spu, EM8300_IOCTL_SPU_SETPALETTE, buf->content))
-      printf("dxr3_decode_spu: failed to set CLUT (%s)\n", strerror(errno));
+      xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
+	      "dxr3_decode_spu: failed to set CLUT (%s)\n", strerror(errno));
     /* remember clut, when video out places some overlay we may need to restore it */
     memcpy(this->clut, buf->content, 16 * sizeof(uint32_t));
     this->dxr3_vo->clut_cluttered = 0;
@@ -328,14 +329,14 @@ static void dxr3_spudec_decode_data(spu_decoder_t *this_gen, buf_element_t *buf)
 	if ((dxr3_spudec_copy_nav_to_btn(this, 0, &btn ) > 0)) {
 	  pthread_mutex_lock(&this->dxr3_vo->spu_device_lock);
           if (ioctl(this->fd_spu, EM8300_IOCTL_SPU_BUTTON, &btn))
-            printf("dxr3_decode_spu: failed to set spu button (%s)\n",
-              strerror(errno));
+            xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
+		    "dxr3_decode_spu: failed to set spu button (%s)\n", strerror(errno));
 	  pthread_mutex_unlock(&this->dxr3_vo->spu_device_lock);
 	} else {
           /* current button does not exist -> use another one */
 	  xine_event_t event;
 	  
-	  xprintf(this->stream->xine, XINE_VERBOSITY_LOG, "requested button not available\n");
+	  xprintf(this->stream->xine, XINE_VERBOSITY_LOG, _("requested button not available\n"));
 	  
 	  if (this->buttonN > this->pci.hli.hl_gi.btn_ns)
 	    this->buttonN = this->pci.hli.hl_gi.btn_ns;
@@ -350,8 +351,8 @@ static void dxr3_spudec_decode_data(spu_decoder_t *this_gen, buf_element_t *buf)
 	  if ((dxr3_spudec_copy_nav_to_btn(this, 0, &btn ) > 0)) {
 	    pthread_mutex_lock(&this->dxr3_vo->spu_device_lock);
 	    if (ioctl(this->fd_spu, EM8300_IOCTL_SPU_BUTTON, &btn))
-	      printf("dxr3_decode_spu: failed to set spu button (%s)\n",
-		strerror(errno));
+	      xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
+		      "dxr3_decode_spu: failed to set spu button (%s)\n", strerror(errno));
 	    pthread_mutex_unlock(&this->dxr3_vo->spu_device_lock);
 	  } else
 	    XINE_ASSERT(0, "no working menu button found");
@@ -454,13 +455,15 @@ static void dxr3_spudec_decode_data(spu_decoder_t *this_gen, buf_element_t *buf)
     llprintf(LOG_PTS, "pts = %lld vpts = %lld\n", buf->pts, vpts);
     vpts32 = vpts;
     if (ioctl(this->fd_spu, EM8300_IOCTL_SPU_SETPTS, &vpts32))
-      printf("dxr3_decode_spu: spu setpts failed (%s)\n", strerror(errno));
+      xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
+	      "dxr3_decode_spu: spu setpts failed (%s)\n", strerror(errno));
   }
   
   /* has video out tampered with our palette */
   if (this->dxr3_vo->clut_cluttered) {
     if (ioctl(this->fd_spu, EM8300_IOCTL_SPU_SETPALETTE, this->clut))
-      printf("dxr3_decode_spu: failed to set CLUT (%s)\n", strerror(errno));
+      xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
+	      "dxr3_decode_spu: failed to set CLUT (%s)\n", strerror(errno));
     this->dxr3_vo->clut_cluttered = 0;
   }
   
@@ -468,14 +471,14 @@ static void dxr3_spudec_decode_data(spu_decoder_t *this_gen, buf_element_t *buf)
   llprintf(LOG_SPU, "write: SPU_FD = %i\n",this->fd_spu);
   written = write(this->fd_spu, buf->content, buf->size);
   if (written < 0) {
-    printf("dxr3_decode_spu: spu device write failed (%s)\n",
-      strerror(errno));
+    xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
+	    "dxr3_decode_spu: spu device write failed (%s)\n", strerror(errno));
     pthread_mutex_unlock(&this->dxr3_vo->spu_device_lock);
     return;
   }
   if (written != buf->size)
-    printf("dxr3_decode_spu: Could only write %d of %d spu bytes.\n",
-      written, buf->size);
+    xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
+	    "dxr3_decode_spu: Could only write %d of %d spu bytes.\n", written, buf->size);
   
   pthread_mutex_unlock(&this->dxr3_vo->spu_device_lock);
 }
@@ -541,8 +544,8 @@ static void dxr3_spudec_set_button(spu_decoder_t *this_gen, int32_t button, int3
       (dxr3_spudec_copy_nav_to_btn(this, mode - 1, &btn ) > 0)) {
     pthread_mutex_lock(&this->dxr3_vo->spu_device_lock);
     if (ioctl(this->fd_spu, EM8300_IOCTL_SPU_BUTTON, &btn))
-      printf("dxr3_decode_spu: failed to set spu button (%s)\n",
-        strerror(errno));
+      xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
+	      "dxr3_decode_spu: failed to set spu button (%s)\n", strerror(errno));
     pthread_mutex_unlock(&this->dxr3_vo->spu_device_lock);
   }
   pthread_mutex_unlock(&this->pci_lock);
@@ -628,7 +631,8 @@ static int dxr3_spudec_copy_nav_to_btn(dxr3_spudec_t *this, int32_t mode, em8300
     
   }
   if (!button_ptr) {
-    printf("dxr3_decode_spu: No suitable menu button group found, using group 1.\n");
+    xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
+	    "dxr3_decode_spu: No suitable menu button group found, using group 1.\n");
     button_ptr = &this->pci.hli.btnit[this->buttonN - 1];
   }
   

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xineutils.h,v 1.67 2003/12/04 22:15:26 jstembridge Exp $
+ * $Id: xineutils.h,v 1.68 2003/12/05 15:55:05 f1rmb Exp $
  *
  */
 #ifndef XINEUTILS_H
@@ -596,7 +596,7 @@ extern void *(* xine_fast_memcpy)(void *to, const void *from, size_t len);
 
 #ifdef HAVE_XINE_INTERNAL_H
 /* Benchmark available memcpy methods */
-void xine_probe_fast_memcpy(config_values_t *config);
+void xine_probe_fast_memcpy(xine_t *xine);
 #endif
 
 
@@ -902,80 +902,98 @@ void xine_print_trace(void);
 #define LOG_MODULE_STRING printf("%s: ", LOG_MODULE );
 
 #ifdef LOG_VERBOSE
-  #define LONG_LOG_MODULE_STRING \
+  #define LONG_LOG_MODULE_STRING                                            \
     printf("%s: (%s:%d) ", LOG_MODULE, __XINE_FUNCTION__, __LINE__ );
 #else
   #define LONG_LOG_MODULE_STRING  LOG_MODULE_STRING
 #endif /* LOG_VERBOSE */
 
 #ifdef LOG
-  #define lprintf \
-    LONG_LOG_MODULE_STRING \
-    printf
-#else
   #ifdef __GNUC__
-    #define lprintf(fmt, args...)     ;
+    #define lprintf(fmt, args...)                                           \
+      do {                                                                  \
+        LONG_LOG_MODULE_STRING                                              \
+        printf(fmt, ##args);                                                \
+      } while(0)
+  #else /* __GNUC__ */
+    #ifdef _MSC_VER
+      #define lprintf(fmtargs)                                              \
+        do {                                                                \
+          LONG_LOG_MODULE_STRING                                            \
+          printf("%s", fmtargs);                                            \
+        } while(0)
+    #else /* _MSC_VER */
+      #define lprintf(fmt, ...)                                             \
+        do {                                                                \
+          LONG_LOG_MODULE_STRING                                            \
+          printf(__VA_ARGS__);                                              \
+        } while(0)
+    #endif  /* _MSC_VER */
+  #endif /* __GNUC__ */
+#else /* LOG */
+  #ifdef __GNUC__
+    #define lprintf(fmt, args...)     do {} while(0)
   #else
   #ifdef _MSC_VER
-    #define lprintf
+    #define lprintf                   do {} while(0)
   #else
-    #define lprintf(...)              ;
+    #define lprintf(...)              do {} while(0)
   #endif /* _MSC_VER */
   #endif /* __GNUC__ */
 #endif /* LOG */
 
 #ifdef __GNUC__
-  #define llprintf(cat, fmt, args...)    \
-    do{                                  \
-      if(cat){                           \
-        LONG_LOG_MODULE_STRING           \
-        printf( fmt, ##args );           \
-      }                                  \
+  #define llprintf(cat, fmt, args...)                                       \
+    do{                                                                     \
+      if(cat){                                                              \
+        LONG_LOG_MODULE_STRING                                              \
+        printf( fmt, ##args );                                              \
+      }                                                                     \
     }while(0)
 #else
 #ifdef _MSC_VER
-  #define llprintf(cat, fmtargs)         \
-    do{                                  \
-      if(cat){                           \
-        LONG_LOG_MODULE_STRING           \
-        printf( "%s", fmtargs );         \
-      }                                  \
+  #define llprintf(cat, fmtargs)                                            \
+    do{                                                                     \
+      if(cat){                                                              \
+        LONG_LOG_MODULE_STRING                                              \
+        printf( "%s", fmtargs );                                            \
+      }                                                                     \
     }while(0)
 #else 
-  #define llprintf(cat, ...)             \
-    do{                                  \
-      if(cat){                           \
-        LONG_LOG_MODULE_STRING           \
-        printf( __VA_ARGS__ );           \
-      }                                  \
+  #define llprintf(cat, ...)                                                \
+    do{                                                                     \
+      if(cat){                                                              \
+        LONG_LOG_MODULE_STRING                                              \
+        printf( __VA_ARGS__ );                                              \
+      }                                                                     \
     }while(0)
 #endif /* _MSC_VER */
 #endif /* __GNUC__ */
 
 #ifdef  __GNUC__
-  #define xprintf(xine, verbose, fmt, args...)       \
-    do {                                             \
-      if((xine)->verbosity >= verbose){              \
-        LOG_MODULE_STRING                            \
-        xine_log(xine, XINE_LOG_TRACE, fmt, ##args); \
-      }                                              \
+  #define xprintf(xine, verbose, fmt, args...)                              \
+    do {                                                                    \
+      if((xine)->verbosity >= verbose){                                     \
+        LOG_MODULE_STRING                                                   \
+        xine_log(xine, XINE_LOG_TRACE, fmt, ##args);                        \
+      }                                                                     \
     } while(0)
 #else
 #ifdef _MSC_VER
-  #define xprintf(xine, verbose, fmtargs)            \
-    do {                                             \
-      if((xine)->verbosity >= verbose){              \
-        LOG_MODULE_STRING                            \
-        xine_log(xine, XINE_LOG_TRACE, fmtargs);     \
-      }                                              \
+  #define xprintf(xine, verbose, fmtargs)                                   \
+    do {                                                                    \
+      if((xine)->verbosity >= verbose){                                     \
+        LOG_MODULE_STRING                                                   \
+        xine_log(xine, XINE_LOG_TRACE, fmtargs);                            \
+      }                                                                     \
     } while(0)
 #else 
-  #define xprintf(xine, verbose, ...)                \
-    do {                                             \
-      if((xine)->verbosity >= verbose){              \
-        LOG_MODULE_STRING                            \
-        xine_log(xine, XINE_LOG_TRACE, __VA_ARGS__); \
-      }                                              \
+  #define xprintf(xine, verbose, ...)                                       \
+    do {                                                                    \
+      if((xine)->verbosity >= verbose){                                     \
+        LOG_MODULE_STRING                                                   \
+        xine_log(xine, XINE_LOG_TRACE, __VA_ARGS__);                        \
+      }                                                                     \
     } while(0)
 #endif /* _MSC_VER */
 #endif /* __GNUC__ */

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.17 2003/11/29 11:08:31 f1rmb Exp $
+ * $Id: xine_decoder.c,v 1.18 2003/12/05 15:55:00 f1rmb Exp $
  *
  * xine decoder plugin using libtheora
  *
@@ -310,8 +310,7 @@ static video_decoder_t *theora_open_plugin (video_decoder_class_t *class_gen, xi
   printf ("This release will play back streams which have been encoded with\n");
   printf ("libtheora-alpha2.\n");
 
-  this = (theora_decoder_t *) malloc (sizeof (theora_decoder_t));
-  memset(this, 0, sizeof (theora_decoder_t));
+  this = (theora_decoder_t *) xine_xmalloc (sizeof (theora_decoder_t));
 
   this->theora_decoder.decode_data   = theora_decode_data;
   this->theora_decoder.flush         = theora_flush;
@@ -369,7 +368,7 @@ static void *init_plugin (xine_t *xine, void *data) {
   /*initialize our plugin*/
   theora_class_t *this;
   
-  this = (theora_class_t *) malloc (sizeof (theora_class_t));
+  this = (theora_class_t *) xine_xmalloc (sizeof (theora_class_t));
 
   this->decoder_class.open_plugin     = theora_open_plugin;
   this->decoder_class.get_identifier  = theora_get_identifier;

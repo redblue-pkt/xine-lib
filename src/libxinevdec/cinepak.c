@@ -22,7 +22,7 @@
  * based on overview of Cinepak algorithm and example decoder
  * by Tim Ferguson: http://www.csse.monash.edu.au/~timf/
  *
- * $Id: cinepak.c,v 1.33 2003/11/16 23:33:47 f1rmb Exp $
+ * $Id: cinepak.c,v 1.34 2003/12/05 15:55:01 f1rmb Exp $
  */
 
 #include <stdlib.h>
@@ -534,7 +534,7 @@ static void *init_plugin (xine_t *xine, void *data) {
 
   cvid_class_t *this;
 
-  this = (cvid_class_t *) malloc (sizeof (cvid_class_t));
+  this = (cvid_class_t *) xine_xmalloc (sizeof (cvid_class_t));
 
   this->decoder_class.open_plugin     = open_plugin;
   this->decoder_class.get_identifier  = get_identifier;

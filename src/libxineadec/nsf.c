@@ -20,7 +20,7 @@
  * NSF Audio "Decoder" using the Nosefart NSF engine by Matt Conte
  *   http://www.baisoku.org/
  *
- * $Id: nsf.c,v 1.4 2003/11/16 23:33:47 f1rmb Exp $
+ * $Id: nsf.c,v 1.5 2003/12/05 15:55:01 f1rmb Exp $
  */
 
 #include <stdio.h>
@@ -113,7 +113,7 @@ static void nsf_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
       nsf_init();
       this->nsf = nsf_load(NULL, this->nsf_file, this->nsf_size);
       if (!this->nsf) {
-        printf ("nsf: could not initialize NSF\n");
+        xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "nsf: could not initialize NSF\n");
         /* make the decoder return on every subsequent buffer */
         this->nsf_index = 0;
       }
@@ -154,7 +154,7 @@ static void nsf_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
     /* get an audio buffer */
     audio_buffer = this->stream->audio_out->get_buffer (this->stream->audio_out);
     if (audio_buffer->mem_size == 0) {
-       printf ("nsf: Help! Allocated audio buffer with nothing in it!\n");
+       xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "nsf: Help! Allocated audio buffer with nothing in it!\n");
        return;
     }
 
@@ -206,7 +206,7 @@ static audio_decoder_t *open_plugin (audio_decoder_class_t *class_gen, xine_stre
 
   nsf_decoder_t *this ;
 
-  this = (nsf_decoder_t *) malloc (sizeof (nsf_decoder_t));
+  this = (nsf_decoder_t *) xine_xmalloc (sizeof (nsf_decoder_t));
 
   /* connect the member functions */
   this->audio_decoder.decode_data         = nsf_decode_data;
@@ -256,7 +256,7 @@ static void *init_plugin (xine_t *xine, void *data) {
 
   nsf_class_t *this ;
 
-  this = (nsf_class_t *) malloc (sizeof (nsf_class_t));
+  this = (nsf_class_t *) xine_xmalloc (sizeof (nsf_class_t));
 
   this->decoder_class.open_plugin     = open_plugin;
   this->decoder_class.get_identifier  = get_identifier;

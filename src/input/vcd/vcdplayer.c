@@ -1,5 +1,5 @@
 /* 
-  $Id: vcdplayer.c,v 1.1 2003/10/13 11:47:11 f1rmb Exp $
+  $Id: vcdplayer.c,v 1.2 2003/12/05 15:54:58 f1rmb Exp $
  
   Copyright (C) 2002,2003 Rocky Bernstein <rocky@panix.com>
   
@@ -850,7 +850,7 @@ vcdplayer_non_pbc_nav (vcdplayer_input_t *this, uint8_t *buf)
       return READ_END;
     break;
   case VCDINFO_ITEM_TYPE_SPAREID2:  
-    printf("SPAREID2\n");
+    /* printf("SPAREID2\n"); */
     if (this->in_still) {
       RETURN_NULL_STILL ;
       /* Hack: Just go back and do still again */

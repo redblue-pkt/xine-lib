@@ -20,7 +20,7 @@
 ** vrcvisnd.c
 **
 ** VRCVI sound hardware emulation
-** $Id: vrcvisnd.c,v 1.1 2003/01/08 07:04:36 tmmm Exp $
+** $Id: vrcvisnd.c,v 1.2 2003/12/05 15:55:01 f1rmb Exp $
 */
 
 #include "types.h"
@@ -183,6 +183,9 @@ apuext_t vrcvi_ext =
 
 /*
 ** $Log: vrcvisnd.c,v $
+** Revision 1.2  2003/12/05 15:55:01  f1rmb
+** cleanup phase II. use xprintf when it's relevant, use xine_xmalloc when it's relevant too. Small other little fix (can't remember). Change few internal function prototype because it xine_t pointer need to be used if some xine's internal sections. NOTE: libdvd{nav,read} is still too noisy, i will take a look to made it quit, without invasive changes. To be continued...
+**
 ** Revision 1.1  2003/01/08 07:04:36  tmmm
 ** initial import of Nosefart sources
 **

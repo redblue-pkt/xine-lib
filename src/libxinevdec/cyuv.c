@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: cyuv.c,v 1.21 2003/11/16 23:33:48 f1rmb Exp $
+ * $Id: cyuv.c,v 1.22 2003/12/05 15:55:01 f1rmb Exp $
  */
 
 /* And this is the header that came with the CYUV decoder: */
@@ -170,8 +170,8 @@ static void cyuv_decode_data (video_decoder_t *this_gen,
 
   if( this->size + buf->size > this->bufsize ) {
     this->bufsize = this->size + 2 * buf->size;
-    printf("CYUV: increasing source buffer to %d to avoid overflow.\n",
-      this->bufsize);
+    xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
+	    "CYUV: increasing source buffer to %d to avoid overflow.\n", this->bufsize);
     this->buf = realloc( this->buf, this->bufsize );
   }
 
@@ -223,7 +223,7 @@ static video_decoder_t *open_plugin (video_decoder_class_t *class_gen, xine_stre
 
   cyuv_decoder_t  *this ;
 
-  this = (cyuv_decoder_t *) malloc (sizeof (cyuv_decoder_t));
+  this = (cyuv_decoder_t *) xine_xmalloc (sizeof (cyuv_decoder_t));
 
   this->video_decoder.decode_data         = cyuv_decode_data;
   this->video_decoder.flush               = cyuv_flush;
@@ -256,7 +256,7 @@ static void *init_plugin (xine_t *xine, void *data) {
 
   cyuv_class_t *this;
 
-  this = (cyuv_class_t *) malloc (sizeof (cyuv_class_t));
+  this = (cyuv_class_t *) xine_xmalloc (sizeof (cyuv_class_t));
 
   this->decoder_class.open_plugin     = open_plugin;
   this->decoder_class.get_identifier  = get_identifier;

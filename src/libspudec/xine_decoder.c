@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.101 2003/11/26 01:03:32 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.102 2003/12/05 15:55:00 f1rmb Exp $
  *
  * stuff needed to turn libspu into a xine decoder plugin
  */
@@ -135,12 +135,11 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
     this->spudec_stream_state[stream_id].pts = buf->pts; /* Required to match up with NAV packets */
   }
 
-  spudec_reassembly(&this->spudec_stream_state[stream_id].ra_seq,
-                     buf->content,
-                     buf->size);
+  spudec_reassembly(this->stream->xine,
+		    &this->spudec_stream_state[stream_id].ra_seq, buf->content, buf->size);
   if(this->spudec_stream_state[stream_id].ra_seq.complete == 1) { 
     if(this->spudec_stream_state[stream_id].ra_seq.broken) {
-      printf("libspudec: dropping broken SPU\n");
+      xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "libspudec: dropping broken SPU\n");
       this->spudec_stream_state[stream_id].ra_seq.broken = 0;
     } else
       spudec_process(this,stream_id);
@@ -266,14 +265,15 @@ static void spudec_set_button (spu_decoder_t *this_gen, int32_t button, int32_t 
 #ifdef LOG_BUTTON
     fprintf(stderr, "libspudec:Button Overlay\n");
 #endif
-    spudec_copy_nav_to_overlay(&this->pci, this->state.clut, this->buttonN, show-1,
-                               overlay, &this->overlay );
+    spudec_copy_nav_to_overlay(this->stream->xine, &this->pci, this->state.clut,
+			       this->buttonN, show-1, overlay, &this->overlay );
     pthread_mutex_unlock(&this->nav_pci_lock);
   } else {
-  fprintf (stderr,"libspudec:xine_decoder.c:spudec_event_listener:HIDE ????\n");
-  XINE_ASSERT(0, "We dropped out here for some reason");
-  overlay_event->object.handle = this->menu_handle;
-  overlay_event->event_type = OVERLAY_EVENT_HIDE;
+    xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
+	    "libspudec:xine_decoder.c:spudec_event_listener:HIDE ????\n");
+    XINE_ASSERT(0, "We dropped out here for some reason");
+    overlay_event->object.handle = this->menu_handle;
+    overlay_event->event_type = OVERLAY_EVENT_HIDE;
   }
   overlay_event->vpts = 0;
   if (this->stream->video_out) {
@@ -358,14 +358,14 @@ static void *init_plugin (xine_t *xine, void *data) {
 
   spudec_class_t *this;
 
-  this = (spudec_class_t *) malloc (sizeof (spudec_class_t));
+  this = (spudec_class_t *) xine_xmalloc (sizeof (spudec_class_t));
 
   this->decoder_class.open_plugin     = open_plugin;
   this->decoder_class.get_identifier  = get_identifier;
   this->decoder_class.get_description = get_description;
   this->decoder_class.dispose         = dispose_class;
 
-  printf ("libspudec:init_plugin called\n");
+  lprintf ("libspudec:init_plugin called\n");
   return this;
 }
 

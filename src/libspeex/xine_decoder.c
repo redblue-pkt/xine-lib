@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.6 2003/11/26 19:43:36 f1rmb Exp $
+ * $Id: xine_decoder.c,v 1.7 2003/12/05 15:55:00 f1rmb Exp $
  *
  * (ogg/)speex audio decoder plugin (libspeex wrapper) for xine
  */
@@ -122,7 +122,7 @@ void read_metadata (speex_decoder_t *this, char * comments, int length)
   _x_meta_info_set(this->stream, XINE_META_INFO_AUDIOCODEC, "speex");
 
   if (length < 8) {
-    printf ("libspeex: invalid/corrupted comments\n");
+    xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "libspeex: invalid/corrupted comments\n");
     return;
   }
 
@@ -131,7 +131,7 @@ void read_metadata (speex_decoder_t *this, char * comments, int length)
   c += 4;
 
   if (c+len > end) {
-    printf ("libspeex: invalid/corrupted comments\n");
+    xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "libspeex: invalid/corrupted comments\n");
     return;
   }
 
@@ -145,7 +145,7 @@ void read_metadata (speex_decoder_t *this, char * comments, int length)
   c += len;
 
   if (c+4 > end) {
-    printf ("libspeex: invalid/corrupted comments\n");
+    xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "libspeex: invalid/corrupted comments\n");
     return;
   }
 
@@ -154,14 +154,14 @@ void read_metadata (speex_decoder_t *this, char * comments, int length)
 
   for (i = 0; i < nb_fields; i++) {
     if (c+4 > end) {
-      printf ("libspeex: invalid/corrupted comments\n");
+      xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "libspeex: invalid/corrupted comments\n");
       return;
     }
 
     len = readint (c, 0);
     c += 4;
     if (c+len > end) {
-      printf ("libspeex: invalid/corrupted comments\n");
+      xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "libspeex: invalid/corrupted comments\n");
       return;
     }
 
@@ -213,7 +213,7 @@ static void speex_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 	spx_header = speex_packet_to_header (buf->content, buf->size);
 
 	if (!spx_header) {
-	  printf ("libspeex: could not read Speex header\n");
+	  xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "libspeex: could not read Speex header\n");
 	  return;
 	}
 
@@ -221,13 +221,13 @@ static void speex_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 	spx_mode = speex_mode_list[modeID];
 
 	if (spx_mode->bitstream_version != spx_header->mode_bitstream_version) {
-	  printf ("libspeex: incompatible Speex mode bitstream version\n");
+	  xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "libspeex: incompatible Speex mode bitstream version\n");
 	  return;
 	}
 
 	this->st = speex_decoder_init (spx_mode);
 	if (!this->st) {
-	  printf ("libspeex: decoder initialization failed\n");
+	  xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "libspeex: decoder initialization failed\n");
 	  return;
 	}
 
@@ -285,8 +285,8 @@ static void speex_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 	  mode = AO_CAP_MODE_5_1CHANNEL;
 	  break;
 	default:
-	  printf ("libspeex: help, %d channels ?!\n",
-		  this->channels);
+	  xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, 
+		   "libspeex: help, %d channels ?!\n", this->channels);
 	  /* FIXME: handle error */
 	}
 	
@@ -321,11 +321,11 @@ static void speex_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
       if (ret==-1)
 	break;
       if (ret==-2) {
-	printf ("libspeex: Decoding error, corrupted stream?\n");
+	xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "libspeex: Decoding error, corrupted stream?\n");
 	break;
       }
       if (speex_bits_remaining(&this->bits)<0) {
-	printf ("libspeex: Decoding overflow, corrupted stream?\n");
+	xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "libspeex: Decoding overflow, corrupted stream?\n");
 	break;
       }
 
@@ -387,7 +387,7 @@ static audio_decoder_t *open_plugin (audio_decoder_class_t *class_gen,
   speex_decoder_t *this ;
   static SpeexStereoState init_stereo = SPEEX_STEREO_STATE_INIT;
 
-  this = (speex_decoder_t *) malloc (sizeof (speex_decoder_t));
+  this = (speex_decoder_t *) xine_xmalloc (sizeof (speex_decoder_t));
 
   this->audio_decoder.decode_data         = speex_decode_data;
   this->audio_decoder.reset               = speex_reset;
@@ -428,7 +428,7 @@ static void *init_plugin (xine_t *xine, void *data) {
 
   speex_class_t *this;
   
-  this = (speex_class_t *) malloc (sizeof (speex_class_t));
+  this = (speex_class_t *) xine_xmalloc (sizeof (speex_class_t));
 
   this->decoder_class.open_plugin     = open_plugin;
   this->decoder_class.get_identifier  = get_identifier;

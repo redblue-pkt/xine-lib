@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.32 2003/11/26 19:43:35 f1rmb Exp $
+ * $Id: audio_decoder.c,v 1.33 2003/12/05 15:54:59 f1rmb Exp $
  *
  * thin layer to use real binary-only codecs in xine
  *
@@ -131,7 +131,7 @@ static int load_syms_linux (realdec_decoder_t *this, char *codec_name) {
   this->ra_handle = dlopen (path, RTLD_LAZY);
 
   if (!this->ra_handle) {
-    printf ("libareal: error: %s\n", dlerror());
+    xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "libareal: error: %s\n", dlerror());
     _x_message(this->stream, XINE_MSG_LIBRARY_LOAD_ERROR,
                  codec_name, NULL);
     return 0;
@@ -151,8 +151,8 @@ static int load_syms_linux (realdec_decoder_t *this, char *codec_name) {
   if (!this->raCloseCodec || !this->raDecode || !this->raFlush || !this->raFreeDecoder ||
       !this->raGetFlavorProperty || !this->raOpenCodec2 || !this->raSetFlavor ||
       /*!raSetDLLAccessPath ||*/ !this->raInitDecoder){
-    printf ("libareal: (audio) Cannot resolve symbols - incompatible dll: %s\n", 
-	    path);
+    xprintf (this->stream->xine, XINE_VERBOSITY_LOG, 
+	     _("libareal: (audio) Cannot resolve symbols - incompatible dll: %s\n"), path);
     return 0;
   }
 
@@ -213,7 +213,8 @@ static int init_codec (realdec_decoder_t *this, buf_element_t *buf) {
     /* FIXME: */
     if (buf->type==BUF_AUDIO_COOK) {
       
-      printf ("libareal: audio header version 4 for COOK audio not supported.\n");
+      xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, 
+	       "libareal: audio header version 4 for COOK audio not supported.\n");
       abort();
     }
     data_len        = 0; /* FIXME: COOK audio needs this */
@@ -272,8 +273,8 @@ static int init_codec (realdec_decoder_t *this, buf_element_t *buf) {
     break;
 
   default:
-    printf ("libareal: error, i don't handle buf type 0x%08x\n",
-	    buf->type);
+    xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, 
+	     "libareal: error, i don't handle buf type 0x%08x\n", buf->type);
     abort();
   }
 
@@ -283,7 +284,7 @@ static int init_codec (realdec_decoder_t *this, buf_element_t *buf) {
 
   result = this->raOpenCodec2 (&this->context);
   if (result) {
-    printf ("libareal: error in raOpenCodec2: %d\n", result);
+    xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "libareal: error in raOpenCodec2: %d\n", result);
     return 0;
   }
 
@@ -308,8 +309,8 @@ static int init_codec (realdec_decoder_t *this, buf_element_t *buf) {
      
     result = this->raInitDecoder (this->context, &init_data);
     if(result){
-      printf ("libareal: decoder init failed, error code: 0x%x\n",
-	      result);
+      xprintf (this->stream->xine, XINE_VERBOSITY_LOG, 
+	       _("libareal: decoder init failed, error code: 0x%x\n"), result);
       return 0;
     }
   }
@@ -322,8 +323,8 @@ static int init_codec (realdec_decoder_t *this, buf_element_t *buf) {
 
   result = this->raSetFlavor (this->context, flavor);
   if (result){
-    printf ("libareal: decoder flavor setup failed, error code: 0x%x\n",
-	    result);
+    xprintf (this->stream->xine, XINE_VERBOSITY_LOG,
+	     _("libareal: decoder flavor setup failed, error code: 0x%x\n"), result);
     return 0;
   }
 
@@ -359,7 +360,8 @@ static int init_codec (realdec_decoder_t *this, buf_element_t *buf) {
     mode = AO_CAP_MODE_STEREO;
     break;
   default:
-    printf ("libareal: oups, real can do more than 2 channels ?\n");
+    xprintf (this->stream->xine, XINE_VERBOSITY_LOG,
+	     _("libareal: oups, real can do more than 2 channels ?\n"));
     abort();
   }
 
@@ -591,8 +593,7 @@ static audio_decoder_t *open_plugin (audio_decoder_class_t *class_gen,
   real_class_t      *cls = (real_class_t *) class_gen;
   realdec_decoder_t *this ;
 
-  this = (realdec_decoder_t *) malloc (sizeof (realdec_decoder_t));
-  memset(this, 0, sizeof (realdec_decoder_t));
+  this = (realdec_decoder_t *) xine_xmalloc (sizeof (realdec_decoder_t));
 
   this->audio_decoder.decode_data         = realdec_decode_data;
   this->audio_decoder.reset               = realdec_reset;
@@ -632,7 +633,7 @@ void __builtin_vec_delete(void *mem) {
   free(mem);
 }
 void __pure_virtual(void) {
-  printf("libareal: FATAL: __pure_virtual() called!\n");
+  lprintf("libareal: FATAL: __pure_virtual() called!\n");
   /*      exit(1); */
 }
 

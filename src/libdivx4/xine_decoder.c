@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.46 2003/11/26 19:43:31 f1rmb Exp $
+ * $Id: xine_decoder.c,v 1.47 2003/12/05 15:54:58 f1rmb Exp $
  *
  * xine decoder plugin using divx4
  *
@@ -535,7 +535,7 @@ static void *init_video_decoder_plugin (xine_t *xine, void *data) {
     return NULL;
   }
 
-  this = (divx4_decoder_t *) malloc (sizeof (divx4_decoder_t));
+  this = (divx4_decoder_t *) xine_xmalloc (sizeof (divx4_decoder_t));
 
   this->decoder_ok = 0;
 

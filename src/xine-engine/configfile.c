@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: configfile.c,v 1.57 2003/11/26 19:43:38 f1rmb Exp $
+ * $Id: configfile.c,v 1.58 2003/12/05 15:55:04 f1rmb Exp $
  *
  * config object (was: file) management - implementation
  *
@@ -673,7 +673,7 @@ void xine_config_load (xine_t *xine, const char *filename) {
 	  sscanf(line + 9, "%d", &this->current_version);
 	  if (this->current_version > CONFIG_FILE_VERSION)
 	    xine_log(xine, XINE_LOG_MSG,
-	      _("The current config file has been modified by a newer version of xine."));
+		     _("The current config file has been modified by a newer version of xine."));
 	}
 	continue;
       }
@@ -763,8 +763,8 @@ void xine_config_save (xine_t *xine, const char *filename) {
   }
   
   if (!backup && (stat(filename, &config_stat) == 0)) {
-    printf("configfile: WARNING: backing up configfile to %s failed\n", temp);
-    printf("configfile: WARNING: your configuration will not be saved\n");
+    xprintf(xine, XINE_VERBOSITY_LOG, _("configfile: WARNING: backing up configfile to %s failed\n"), temp);
+    xprintf(xine, XINE_VERBOSITY_LOG, _("configfile: WARNING: your configuration will not be saved\n"));
     return;
   }
   
@@ -859,9 +859,9 @@ void xine_config_save (xine_t *xine, const char *filename) {
     pthread_mutex_unlock(&this->config_lock);
     
     if (fclose(f_config) != 0) {
-      printf("configfile: WARNING: writing configuration to %s failed\n", filename);
-      printf("configfile: WARNING: removing possibly broken config file %s\n", filename);
-      printf("configfile: WARNING: you should check the backup file %s\n", temp);
+      xprintf(xine, XINE_VERBOSITY_LOG, _("configfile: WARNING: writing configuration to %s failed\n"), filename);
+      xprintf(xine, XINE_VERBOSITY_LOG, _("configfile: WARNING: removing possibly broken config file %s\n"), filename);
+      xprintf(xine, XINE_VERBOSITY_LOG, _("configfile: WARNING: you should check the backup file %s\n"), temp);
       /* writing config failed -> remove file, it might be broken ... */
       unlink(filename);
       /* ... but keep the backup */

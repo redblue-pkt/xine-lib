@@ -25,7 +25,7 @@
  * It will only play that block if it is PCM data. More variations will be
  * supported as they are encountered.
  *
- * $Id: demux_voc.c,v 1.36 2003/11/16 23:33:44 f1rmb Exp $
+ * $Id: demux_voc.c,v 1.37 2003/12/05 15:54:57 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -102,7 +102,7 @@ static int open_voc_file(demux_voc_t *this) {
   /* so far, this demuxer only cares about type 1 blocks */
   if (preamble[0] != 1) {
     xine_log(this->stream->xine, XINE_LOG_MSG,
-      _("unknown VOC block type (0x%02X); please report to xine developers\n"),
+	     _("unknown VOC block type (0x%02X); please report to xine developers\n"),
       preamble[0]);
     return 0;
   }
@@ -117,7 +117,7 @@ static int open_voc_file(demux_voc_t *this) {
   /* this app only knows how to deal with format 0 data (raw PCM) */
   if (preamble[1] != 0) {
     xine_log(this->stream->xine, XINE_LOG_MSG,
-      _("unknown VOC compression type (0x%02X); please report to xine developers\n"),
+	     _("unknown VOC compression type (0x%02X); please report to xine developers\n"),
       preamble[1]);
     return 0;
   }

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.141 2003/11/26 19:43:38 f1rmb Exp $
+ * $Id: video_decoder.c,v 1.142 2003/12/05 15:55:05 f1rmb Exp $
  *
  */
 
@@ -302,8 +302,7 @@ static void *video_decoder_loop (void *stream_gen) {
         if (buf->type != buftype_unknown &&  
             !_x_stream_info_get(stream, XINE_STREAM_INFO_VIDEO_HANDLED)) {
           xine_log (stream->xine, XINE_LOG_MSG, 
-                    "video_decoder: no plugin available to handle '%s'\n",
-                    _x_buf_video_name( buf->type ) );
+                    _("video_decoder: no plugin available to handle '%s'\n"), _x_buf_video_name( buf->type ) );
           
           if( !_x_meta_info_get(stream, XINE_META_INFO_VIDEOCODEC))
 	    _x_meta_info_set(stream, XINE_META_INFO_VIDEOCODEC, _x_buf_video_name( buf->type ));
@@ -368,8 +367,7 @@ static void *video_decoder_loop (void *stream_gen) {
 
       } else if (buf->type != buftype_unknown) {
 	xine_log (stream->xine, XINE_LOG_MSG, 
-		  "video_decoder: error, unknown buffer type: %08x\n",
-		  buf->type );
+		  _("video_decoder: error, unknown buffer type: %08x\n"), buf->type );
 	buftype_unknown = buf->type;
       }
 

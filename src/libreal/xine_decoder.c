@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.55 2003/11/26 19:43:36 f1rmb Exp $
+ * $Id: xine_decoder.c,v 1.56 2003/12/05 15:55:00 f1rmb Exp $
  *
  * thin layer to use real binary-only codecs in xine
  *
@@ -130,7 +130,7 @@ static int load_syms_linux (realdec_decoder_t *this, char *codec_name) {
   this->rv_handle = dlopen (path, RTLD_LAZY);
 
   if (!this->rv_handle) {
-    printf ("libreal: error: %s\n", dlerror());
+    xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "libreal: error: %s\n", dlerror());
     _x_message(this->stream, XINE_MSG_LIBRARY_LOAD_ERROR,
                  codec_name, NULL);
     return 0;
@@ -149,7 +149,8 @@ static int load_syms_linux (realdec_decoder_t *this, char *codec_name) {
       this->rvyuv_transform) 
     return 1;
 
-  printf ("libreal: Error resolving symbols! (version incompatibility?)\n");
+  xprintf (this->stream->xine, XINE_VERBOSITY_LOG, 
+	   _("libreal: Error resolving symbols! (version incompatibility?)\n"));
   return 0;
 }
 
@@ -178,8 +179,8 @@ static int init_codec (realdec_decoder_t *this, buf_element_t *buf) {
     _x_meta_info_set(this->stream, XINE_META_INFO_VIDEOCODEC, "Real Video 4.0");
     break;
   default:
-    printf ("libreal: error, i don't handle buf type 0x%08x\n",
-	    buf->type);
+    xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, 
+	     "libreal: error, i don't handle buf type 0x%08x\n", buf->type);
     abort();
   }
 
@@ -514,7 +515,6 @@ static video_decoder_t *open_plugin (video_decoder_class_t *class_gen,
   realdec_decoder_t *this ;
 
   this = (realdec_decoder_t *) xine_xmalloc (sizeof (realdec_decoder_t));
-  memset(this, 0, sizeof (realdec_decoder_t));
 
   this->video_decoder.decode_data         = realdec_decode_data;
   this->video_decoder.flush               = realdec_flush;
@@ -560,7 +560,7 @@ void __builtin_vec_delete(void *mem) {
   free(mem);
 }
 void __pure_virtual(void) {
-  printf("libreal: FATAL: __pure_virtual() called!\n");
+  lprintf("libreal: FATAL: __pure_virtual() called!\n");
   /*      exit(1); */
 }
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.69 2003/12/04 03:23:28 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.70 2003/12/05 15:55:00 f1rmb Exp $
  *
  */
 
@@ -564,7 +564,7 @@ static void update_osd_font(void *class_gen, xine_cfg_entry_t *entry)
 
   strcpy(class->font, entry->str_value);
   
-  printf("libsputext: spu_font = %s\n", class->font );
+  xprintf(class->xine, XINE_VERBOSITY_DEBUG, "libsputext: spu_font = %s\n", class->font );
 }
 
 static void update_subtitle_size(void *class_gen, xine_cfg_entry_t *entry)
@@ -618,7 +618,7 @@ static void update_src_encoding(void *class_gen, xine_cfg_entry_t *entry)
   sputext_class_t *class = (sputext_class_t *)class_gen;
 
   class->src_encoding = entry->str_value;
-  printf("libsputext: spu_src_encoding = %s\n", class->src_encoding );
+  xprintf(class->xine, XINE_VERBOSITY_DEBUG, "libsputext: spu_src_encoding = %s\n", class->src_encoding );
 }
 
 static void *init_spu_decoder_plugin (xine_t *xine, void *data) {

@@ -21,7 +21,7 @@
  * For more information regarding the Interplay MVE format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: interplayvideo.c,v 1.7 2003/11/16 23:33:48 f1rmb Exp $
+ * $Id: interplayvideo.c,v 1.8 2003/12/05 15:55:01 f1rmb Exp $
  */
 
 #include <stdio.h>
@@ -1107,7 +1107,8 @@ static void interplay_decode_frame(interplay_decoder_t *this) {
 
   /* on the way out, make sure all the video data bytes were consumed */
   if (stream_ptr != this->size)
-    printf ("Interplay video warning: Finished decode with bytes left over (%d < %d)\n",
+    xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, 
+	     "Interplay video warning: Finished decode with bytes left over (%d < %d)\n",
       stream_ptr, this->size);
 
   debug_interplay ("code counts:\n");

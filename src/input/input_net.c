@@ -20,7 +20,7 @@
  * Read from a tcp network stream over a lan (put a tweaked mp1e encoder the
  * other end and you can watch tv anywhere in the house ..)
  *
- * $Id: input_net.c,v 1.55 2003/11/26 19:43:31 f1rmb Exp $
+ * $Id: input_net.c,v 1.56 2003/12/05 15:54:58 f1rmb Exp $
  *
  * how to set up mp1e for use with this plugin:
  * 
@@ -272,7 +272,8 @@ static off_t net_plugin_read (input_plugin_t *this_gen,
   if( (len-total) > 0 ) {
     n = _x_read_abort (this->stream, this->fh, &buf[total], len-total);
 
-    printf ("input_net: got %lld bytes (%lld/%lld bytes read)\n", n,total,len);
+    xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
+	     "input_net: got %lld bytes (%lld/%lld bytes read)\n", n,total,len);
   
     if (n < 0) {
       _x_message(this->stream, XINE_MSG_READ_ERROR, this->host_port, NULL);
@@ -348,7 +349,8 @@ static off_t net_plugin_seek (input_plugin_t *this_gen, off_t offset, int origin
       if( this->curpos <= this->preview_size )
         this->curpos = offset;
       else
-        printf ("input_net: cannot seek back! (%lld > %lld)\n", this->curpos, offset);
+        xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
+		 "input_net: cannot seek back! (%lld > %lld)\n", this->curpos, offset);
 
     } else {
       offset -= this->curpos;

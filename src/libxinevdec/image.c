@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: image.c,v 1.10 2003/11/26 19:43:37 f1rmb Exp $
+ * $Id: image.c,v 1.11 2003/12/05 15:55:01 f1rmb Exp $
  *
  * a image video decoder
  */
@@ -280,7 +280,7 @@ static void image_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 
   if (!this->png_ptr) {
     if (initialize_png_reader(this) < 0) {
-      printf("image: failed to init png reader\n");
+      xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "image: failed to init png reader\n");
     }
   }
   if (!this->video_open) {
@@ -294,7 +294,7 @@ static void image_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
   this->pts = buf->pts;
   if (process_data(this, buf->content, buf->size) < 0)
   {
-    printf("image: error processing data\n");
+    xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "image: error processing data\n");
   }
 }
 
@@ -365,7 +365,7 @@ static video_decoder_t *open_plugin (video_decoder_class_t *class_gen,
    */
 
   if (initialize_png_reader(this) < 0) {
-    printf("image: failed to init png reader\n");
+    xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "image: failed to init png reader\n");
   }
 
   return &this->video_decoder;

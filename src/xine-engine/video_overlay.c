@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_overlay.c,v 1.32 2003/11/11 18:45:01 f1rmb Exp $
+ * $Id: video_overlay.c,v 1.33 2003/12/05 15:55:05 f1rmb Exp $
  *
  */
 
@@ -59,6 +59,7 @@ typedef struct video_overlay_s {
   pthread_mutex_t           showing_mutex;
   video_overlay_showing_t   showing[MAX_SHOWING];  
   int                       showing_changed;
+  xine_t                   *xine;
 } video_overlay_t;
 
 
@@ -80,7 +81,7 @@ static void add_showing_handle( video_overlay_t *this, int32_t handle )
     if( i != MAX_SHOWING )
       this->showing[i].handle = handle;
     else
-      printf("video_overlay: error: no showing slots available\n");
+      xprintf(this->xine, XINE_VERBOSITY_DEBUG, "video_overlay: error: no showing slots available\n");
   }
   
   pthread_mutex_unlock( &this->showing_mutex );
@@ -275,7 +276,7 @@ static int32_t video_overlay_add_event(video_overlay_manager_t *this_gen,  void 
     
     /* memcpy everything except the actual image */
     if ( this->events[new_event].event == NULL ) {
-      printf("video_overlay: error: event slot is NULL!\n");
+      xprintf(this->xine, XINE_VERBOSITY_DEBUG, "video_overlay: error: event slot is NULL!\n");
     }
     this->events[new_event].event->event_type=event->event_type;
     this->events[new_event].event->vpts=event->vpts;
@@ -283,7 +284,7 @@ static int32_t video_overlay_add_event(video_overlay_manager_t *this_gen,  void 
     this->events[new_event].event->object.pts=event->object.pts;
 
     if ( this->events[new_event].event->object.overlay ) {
-      printf("video_overlay: add_event: event->object.overlay was not freed!\n");
+      xprintf(this->xine, XINE_VERBOSITY_DEBUG, "video_overlay: add_event: event->object.overlay was not freed!\n");
     }
     
     if( event->object.overlay ) {
@@ -298,7 +299,7 @@ static int32_t video_overlay_add_event(video_overlay_manager_t *this_gen,  void 
       this->events[new_event].event->object.overlay = NULL;
     }
   } else {
-    printf("video_overlay:No spare subtitle event slots\n");
+    xprintf(this->xine, XINE_VERBOSITY_DEBUG, "video_overlay:No spare subtitle event slots\n");
     new_event = -1;
   }
   
@@ -370,7 +371,7 @@ static int video_overlay_event( video_overlay_t *this, int64_t vpts ) {
           
           this->objects[handle].handle = handle;
           if( this->objects[handle].overlay ) {
-            printf("video_overlay: error: object->overlay was not freed!\n");
+            xprintf(this->xine, XINE_VERBOSITY_DEBUG, "video_overlay: error: object->overlay was not freed!\n");
           }
           this->objects[handle].overlay = 
              this->events[this_event].event->object.overlay;
@@ -423,7 +424,8 @@ static int video_overlay_event( video_overlay_t *this, int64_t vpts ) {
 	 * that this is not necessary and causes problems with some DVDs */
         if ( (this->events[this_event].event->object.pts != 
                 this->objects[handle].pts) ) {
-          printf ("video_overlay:MENU BUTTON DROPPED menu pts=%lld spu pts=%lld\n",      
+          xprintf (this->xine, XINE_VERBOSITY_DEBUG, 
+		   "video_overlay:MENU BUTTON DROPPED menu pts=%lld spu pts=%lld\n",      
             this->events[this_event].event->object.pts,
             this->objects[handle].pts);
           break;
@@ -456,11 +458,11 @@ static int video_overlay_event( video_overlay_t *this, int64_t vpts ) {
 #endif
           add_showing_handle( this, handle );
         } else {
-          printf ("video_overlay:overlay not present\n");
+          xprintf (this->xine, XINE_VERBOSITY_DEBUG, "video_overlay:overlay not present\n");
         }
 
         if( this->events[this_event].event->object.overlay->rle ) {
-          printf ("video_overlay: warning EVENT_MENU_BUTTON with rle data\n");
+          xprintf (this->xine, XINE_VERBOSITY_DEBUG, "video_overlay: warning EVENT_MENU_BUTTON with rle data\n");
           free( this->events[this_event].event->object.overlay->rle );
           this->events[this_event].event->object.overlay->rle = NULL;
         }
@@ -472,7 +474,7 @@ static int video_overlay_event( video_overlay_t *this, int64_t vpts ) {
         break;
   
       default:
-        printf ("video_overlay: unhandled event type\n");
+        xprintf (this->xine, XINE_VERBOSITY_DEBUG, "video_overlay: unhandled event type\n");
         break;
     }
     
@@ -575,12 +577,13 @@ static void video_overlay_dispose(video_overlay_manager_t *this_gen) {
 }
 
 
-video_overlay_manager_t *_x_video_overlay_new_manager (void) {
+video_overlay_manager_t *_x_video_overlay_new_manager (xine_t *xine) {
 
   video_overlay_t *this;
 
   this = (video_overlay_t *) xine_xmalloc (sizeof (video_overlay_t));
 
+  this->xine                              = xine;
   this->video_overlay.init                = video_overlay_init;
   this->video_overlay.dispose             = video_overlay_dispose;
   this->video_overlay.get_handle          = video_overlay_get_handle;

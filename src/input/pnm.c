@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: pnm.c,v 1.17 2003/11/26 19:43:31 f1rmb Exp $
+ * $Id: pnm.c,v 1.18 2003/12/05 15:54:58 f1rmb Exp $
  *
  * pnm protocol implementation 
  * based upon code from joschka
@@ -183,7 +183,9 @@ unsigned char after_chunks[]={
 
 
 
+#ifdef LOG
 static void hexdump (char *buf, int length);
+#endif
 
 /*
  * network utilities
@@ -191,14 +193,14 @@ static void hexdump (char *buf, int length);
  * to connect to a host, send and receive data over this connection
  */
  
-static int host_connect_attempt(struct in_addr ia, int port) {
+static int host_connect_attempt(xine_t *xine, struct in_addr ia, int port) {
 
   int                s;
   struct sockaddr_in sin;
 
   s = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);  
   if (s == -1) {
-    printf ("input_pnm: socket(): %s\n", strerror(errno));
+    xprintf (xine, XINE_VERBOSITY_DEBUG, "input_pnm: socket(): %s\n", strerror(errno));
     return -1;
   }
 
@@ -208,7 +210,7 @@ static int host_connect_attempt(struct in_addr ia, int port) {
   
   if (connect(s, (struct sockaddr *)&sin, sizeof(sin))==-1 
       && errno != EINPROGRESS) {
-    printf ("input_pnm: connect(): %s\n", strerror(errno));
+    xprintf (xine, XINE_VERBOSITY_DEBUG, "input_pnm: connect(): %s\n", strerror(errno));
     close(s);
     return -1;
   }
@@ -216,14 +218,14 @@ static int host_connect_attempt(struct in_addr ia, int port) {
   return s;
 }
 
-static int host_connect(const char *host, int port) {
+static int host_connect(xine_t *xine, const char *host, int port) {
 
   struct hostent *h;
   int             i, s;
   
   h = gethostbyname(host);
   if (h == NULL) {
-    printf ("input_pnm: unable to resolve '%s'.\n", host);
+    xprintf (xine, XINE_VERBOSITY_LOG, _("input_pnm: unable to resolve '%s'.\n"), host);
     return -1;
   }
 
@@ -231,11 +233,12 @@ static int host_connect(const char *host, int port) {
     struct in_addr ia;
 
     memcpy (&ia, h->h_addr_list[i], 4);
-    s = host_connect_attempt(ia, port);
+    s = host_connect_attempt(xine, ia, port);
     if(s != -1)
       return s;
   }
-  printf ("input_pnm: unable to connect to '%s'.\n", host);
+  xprintf (xine, XINE_VERBOSITY_LOG, _("input_pnm: unable to connect to '%s'.\n"), host);
+
   return -1;
 }
 
@@ -309,7 +312,7 @@ static ssize_t rm_read(pnm_t *p, void *buf, size_t count) {
 /*
  * a simple hexdump tool for debugging purposes
  */
- 
+#ifdef LOG
 static void hexdump (char *buf, int length) {
 
   int i;
@@ -340,6 +343,7 @@ static void hexdump (char *buf, int length) {
   }
   printf ("\n");
 }
+#endif
 
 /*
  * pnm_get_chunk gets a chunk from stream
@@ -395,7 +399,7 @@ static unsigned int pnm_get_chunk(pnm_t *p,
         rm_read (p, ptr, 2);
 	if (*ptr == 'X') /* checking for server message */
 	{
-	  printf("input_pnm: got a message from server:\n");
+	  xprintf(p->stream->xine, XINE_VERBOSITY_DEBUG, "input_pnm: got a message from server:\n");
 	  rm_read (p, ptr+2, 1);
 
 	  /* two bytes of message length*/
@@ -404,14 +408,14 @@ static unsigned int pnm_get_chunk(pnm_t *p,
 	  /* message itself */
 	  rm_read (p, ptr+3, n);
 	  ptr[3+n]=0;
-	  printf("%s\n",ptr+3);
+	  xprintf(p->stream->xine, XINE_VERBOSITY_DEBUG, "%s\n", ptr+3);
 	  return -1;
 	}
 	
 	if (*ptr == 'F') /* checking for server error */
 	{
 	  /* some error codes after 'F' were ignored */
-	  printf("input_pnm: server error.\n");
+	  xprintf(p->stream->xine, XINE_VERBOSITY_DEBUG, "input_pnm: server error.\n");
 	  return -1;
 	}
 	if (*ptr == 'i') /* the server want a response from us. it will be sent after these headers */
@@ -436,10 +440,12 @@ static unsigned int pnm_get_chunk(pnm_t *p,
     case MDPR_TAG:
     case CONT_TAG:
       if (chunk_size > max) {
-        printf("error: max chunk size exeeded (max was 0x%04x)\n", max);
+        xprintf(p->stream->xine, XINE_VERBOSITY_DEBUG, "error: max chunk size exeeded (max was 0x%04x)\n", max);
 	/* reading some bytes for debugging */
         n=rm_read (p, &data[PREAMBLE_SIZE], 0x100 - PREAMBLE_SIZE);
+#ifdef LOG
         hexdump(data,n+PREAMBLE_SIZE);
+#endif
         return -1;
       }
       rm_read (p, &data[PREAMBLE_SIZE], chunk_size-PREAMBLE_SIZE);
@@ -577,7 +583,7 @@ static int pnm_get_headers(pnm_t *p, int *need_response) {
   while(1) {
     if (HEADER_SIZE-size<=0)
     {
-      printf("input_pnm: header buffer overflow. exiting\n");
+      xprintf(p->stream->xine, XINE_VERBOSITY_DEBUG, "input_pnm: header buffer overflow. exiting\n");
       return 0;
     }
     chunk_size=pnm_get_chunk(p,HEADER_SIZE-size,&chunk_type,ptr,&nr);
@@ -600,7 +606,7 @@ static int pnm_get_headers(pnm_t *p, int *need_response) {
   }
 
   if (!prop_hdr) {
-    printf("input_pnm: error while parsing headers.\n");
+    xprintf(p->stream->xine, XINE_VERBOSITY_DEBUG, "input_pnm: error while parsing headers.\n");
     return 0;
   }
   
@@ -696,7 +702,8 @@ static int pnm_calc_stream(pnm_t *p) {
       return 0;
       break;
   }
-  printf("input_pnm: wow, something very nasty happened in pnm_calc_stream\n");
+  xprintf(p->stream->xine, XINE_VERBOSITY_DEBUG, 
+	  "input_pnm: wow, something very nasty happened in pnm_calc_stream\n");
   return 2;
 }
 
@@ -741,12 +748,13 @@ static int pnm_get_stream_chunk(pnm_t *p) {
 
     rm_read (p, &p->buffer[8], size-5);
     p->buffer[size+3]=0;
-    printf("input_pnm: got message from server while reading stream:\n%s\n", &p->buffer[3]);
+    xprintf(p->stream->xine, XINE_VERBOSITY_LOG, 
+	    _("input_pnm: got message from server while reading stream:\n%s\n"), &p->buffer[3]);
     return 0;
   }
   if (p->buffer[0] == 'F')
   {
-    printf("input_pnm: server error.\n");
+    xprintf(p->stream->xine, XINE_VERBOSITY_DEBUG, "input_pnm: server error.\n");
     return 0;
   }
 
@@ -771,8 +779,10 @@ static int pnm_get_stream_chunk(pnm_t *p) {
   /* check for 'Z's */
   if ((p->buffer[0] != 0x5a)||(p->buffer[7] != 0x5a))
   {
-    printf("input_pnm: bad boundaries\n");
+    xprintf(p->stream->xine, XINE_VERBOSITY_DEBUG, "input_pnm: bad boundaries\n");
+#ifdef LOG
     hexdump(p->buffer, 8);
+#endif
     return 0;
   }
 
@@ -781,7 +791,8 @@ static int pnm_get_stream_chunk(pnm_t *p) {
   fof2=be2me_16(*(uint16_t*)(&p->buffer[3]));
   if (fof1 != fof2)
   {
-    printf("input_pnm: frame offsets are different: 0x%04x 0x%04x\n",fof1,fof2);
+    xprintf(p->stream->xine, XINE_VERBOSITY_DEBUG, 
+	    "input_pnm: frame offsets are different: 0x%04x 0x%04x\n", fof1, fof2);
     return 0;
   }
 
@@ -842,7 +853,7 @@ pnm_t *pnm_connect(xine_stream_t *stream, const char *mrl) {
   
   mrl_ptr+=6;
 
-  p=xine_xmalloc(sizeof(pnm_t));
+  p = xine_xmalloc(sizeof(pnm_t));
   p->stream = stream;
   p->port=7070;
   p->url=strdup(mrl);
@@ -858,7 +869,7 @@ pnm_t *pnm_connect(xine_stream_t *stream, const char *mrl) {
   pathbegin=slash-mrl_ptr;
   hostend=colon-mrl_ptr;
 
-  p->host=malloc(sizeof(char)*hostend+1);
+  p->host = malloc(sizeof(char)*hostend+1);
   strncpy(p->host, mrl_ptr, hostend);
   p->host[hostend]=0;
 
@@ -873,10 +884,10 @@ pnm_t *pnm_connect(xine_stream_t *stream, const char *mrl) {
 
   lprintf("got mrl: %s %i %s\n",p->host,p->port,p->path);
   
-  fd = host_connect (p->host, p->port);
+  fd = host_connect (stream->xine, p->host, p->port);
 
   if (fd == -1) {
-    printf ("input_pnm: failed to connect '%s'\n", p->host);
+    xprintf (p->stream->xine, XINE_VERBOSITY_LOG, _("input_pnm: failed to connect '%s'\n"), p->host);
     free(p->path);
     free(p->host);
     free(p->url);
@@ -887,7 +898,7 @@ pnm_t *pnm_connect(xine_stream_t *stream, const char *mrl) {
 
   pnm_send_request(p,pnm_available_bandwidths[10]);
   if (!pnm_get_headers(p, &need_response)) {
-    printf ("input_pnm: failed to set up stream\n");
+    xprintf (p->stream->xine, XINE_VERBOSITY_LOG, _("input_pnm: failed to set up stream\n"));
     free(p->path);
     free(p->host);
     free(p->url);

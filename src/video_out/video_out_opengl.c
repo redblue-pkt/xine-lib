@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_opengl.c,v 1.32 2003/11/26 01:03:32 miguelfreitas Exp $
+ * $Id: video_out_opengl.c,v 1.33 2003/12/05 15:55:03 f1rmb Exp $
  * 
  * video_out_glut.c, glut based OpenGL rendering interface for xine
  * Matthias Hopf <mat@mshopf.de>
@@ -172,11 +172,13 @@ typedef struct opengl_driver_s {
     uint8_t           *yuv2rgb_cmap;
     yuv2rgb_factory_t *yuv2rgb_factory;
 
+    xine_t            *xine;
 } opengl_driver_t;
 
 typedef struct {
   video_driver_class_t driver_class;
   config_values_t     *config;
+  xine_t              *xine;
 } opengl_class_t;
 
 
@@ -271,14 +273,12 @@ static void opengl_frame_dispose (vo_frame_t *vo_img) {
 static vo_frame_t *opengl_alloc_frame (vo_driver_t *this_gen) {
 
     opengl_frame_t   *frame ;
-    opengl_driver_t *this = (opengl_driver_t *) this_gen;
+    opengl_driver_t  *this = (opengl_driver_t *) this_gen;
 
     DEBUGF ((stderr, "*** alloc_frame ***\n"));
-    frame = (opengl_frame_t *) calloc (1, sizeof (opengl_frame_t));
-    if (frame==NULL) {
-	printf ("opengl_alloc_frame: out of memory\n");
-	return NULL;
-    }
+    frame = (opengl_frame_t *) xine_xmalloc (sizeof (opengl_frame_t));
+    if (!frame)
+      return NULL;
 
     pthread_mutex_init (&frame->vo_frame.mutex, NULL);
 
@@ -355,7 +355,8 @@ static void opengl_update_frame_format (vo_driver_t *this_gen,
 	    frame->vo_frame.base[0] = xine_xmalloc_aligned(16, frame->vo_frame.pitches[0] * height,         (void **) &frame->chunk[0]);
 	    break;
 	default:
-	    fprintf (stderr, "video_out_opengl: image format %d not supported, update video driver!\n", format);
+	    xprintf (this->xine, XINE_VERBOSITY_DEBUG,
+		     "video_out_opengl: image format %d not supported, update video driver!\n", format);
 	    return;
 	}
 
@@ -503,7 +504,8 @@ static void opengl_render_image (opengl_driver_t *this, opengl_frame_t *frame,
     /* already initialized? */
     if (! this->drawable || ! this->vinfo)
       {
-	fprintf (stderr, "video_out_opengl: early exit due to missing drawable %lx vinfo %p\n", this->drawable, this->vinfo);
+	xprintf (this->xine, XINE_VERBOSITY_DEBUG,
+		 "video_out_opengl: early exit due to missing drawable %lx vinfo %p\n", this->drawable, this->vinfo);
 	return;
       }
     
@@ -586,7 +588,9 @@ static void opengl_render_image (opengl_driver_t *this, opengl_frame_t *frame,
 	 * Set and initialize context
 	 */
 	if (! glXMakeCurrent (this->display, this->drawable, ctx)) {
-	    fprintf (stderr, "video_out_opengl: no OpenGL support available (glXMakeCurrent)\n    The drawable does not seem to be updated correctly.\n");
+	    xprintf (this->xine, XINE_VERBOSITY_DEBUG,
+		     "video_out_opengl: no OpenGL support available (glXMakeCurrent)\n"
+		     "    The drawable does not seem to be updated correctly.\n");
 	    abort();
 	}
 	DEBUGF ((stderr, "set context done\n"));
@@ -754,8 +758,8 @@ static int opengl_get_property (vo_driver_t *this_gen, int property) {
     case VO_PROP_WINDOW_HEIGHT:
         return this->sc.gui_height;
     default:
-	printf ("video_out_opengl: tried to get unsupported property %d\n", 
-		property);
+	xprintf (this->xine, XINE_VERBOSITY_DEBUG,
+		 "video_out_opengl: tried to get unsupported property %d\n", property);
     }
 
     return 0;
@@ -773,7 +777,7 @@ static int opengl_set_property (vo_driver_t *this_gen,
 	if (value >= XINE_VO_ASPECT_NUM_RATIOS)
 	    value  = XINE_VO_ASPECT_AUTO;
 	this->sc.user_ratio = value;
-	fprintf (stderr, "video_out_opengl: aspect ratio changed to %s\n",
+	xprintf (this->xine, XINE_VERBOSITY_DEBUG, "video_out_opengl: aspect ratio changed to %s\n",
 	         _x_vo_scale_aspect_ratio_name (value));
 	opengl_compute_ideal_size (this);
 //	opengl_redraw_needed      ((vo_driver_t *) this);
@@ -781,10 +785,11 @@ static int opengl_set_property (vo_driver_t *this_gen,
     case VO_PROP_BRIGHTNESS:
 	this->yuv2rgb_gamma = value;
 	this->yuv2rgb_factory->set_csc_levels (this->yuv2rgb_factory, value, 128, 128);
-	printf("video_out_opengl: gamma changed to %d\n",value);
+	xrintf(this->xine, XINE_VERBOSITY_DEBUG, "video_out_opengl: gamma changed to %d\n",value);
 	break;
     default:
-	printf ("video_out_opengl: tried to set unsupported property %d\n", property);
+        xprintf (this->xine, XINE_VERBOSITY_DEBUG,
+		 "video_out_opengl: tried to set unsupported property %d\n", property);
     }
     
     return value;
@@ -823,7 +828,8 @@ static int opengl_gui_data_exchange (vo_driver_t *this_gen,
 	this->vinfo = glXChooseVisual (this->display, this->screen, glxAttrib);
 	XUnlockDisplay (this->display);
 	if (this->vinfo == NULL)
-	    fprintf (stderr, "video_out_opengl: no OpenGL support available (glXChooseVisual)\n");
+	    xprintf (this->xine, XINE_VERBOSITY_DEBUG,
+		     "video_out_opengl: no OpenGL support available (glXChooseVisual)\n");
 	*(XVisualInfo**)data = this->vinfo;
 	DEBUGF ((stderr, "*** visual %p depth %d\n", this->vinfo->visual, this->vinfo->depth));
 	break;
@@ -913,7 +919,7 @@ static vo_driver_t *opengl_open_plugin (video_driver_class_t *class_gen,
 
     opengl_driver_t    *this;
 
-    fprintf (stderr, "EXPERIMENTAL opengl output plugin TNG\n");
+    xprintf (class->xine, XINE_VERBOSITY_DEBUG, "EXPERIMENTAL opengl output plugin TNG\n");
 
     /*
      * allocate plugin struct
@@ -922,6 +928,7 @@ static vo_driver_t *opengl_open_plugin (video_driver_class_t *class_gen,
     XINE_ASSERT (this, "OpenGL driver struct is not defined");
 
     this->config		    = class->config;
+    this->xine                      = class->xine;
     this->display		    = visual->display;
     this->screen		    = visual->screen;
 
@@ -980,7 +987,7 @@ static void opengl_dispose_class (video_driver_class_t *this) {
 
 static void *opengl_init_class (xine_t *xine, void *visual_gen) {
 
-    opengl_class_t *this = (opengl_class_t *) malloc (sizeof (opengl_class_t));
+    opengl_class_t *this = (opengl_class_t *) xine_xmalloc (sizeof (opengl_class_t));
 
     this->driver_class.open_plugin     = opengl_open_plugin;
     this->driver_class.get_identifier  = opengl_get_identifier;
@@ -988,6 +995,7 @@ static void *opengl_init_class (xine_t *xine, void *visual_gen) {
     this->driver_class.dispose         = opengl_dispose_class;
 
     this->config                       = xine->config;
+    this->xine                         = xine;
 
     return this;
 }

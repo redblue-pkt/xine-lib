@@ -21,7 +21,7 @@
  * For more information on the MS RLE format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  * 
- * $Id: msrle.c,v 1.21 2003/11/16 23:33:48 f1rmb Exp $
+ * $Id: msrle.c,v 1.22 2003/12/05 15:55:01 f1rmb Exp $
  */
 
 #include <stdio.h>
@@ -113,14 +113,16 @@ static void decode_msrle8(msrle_decoder_t *this) {
         /* copy pixels from encoded stream */
         if ((row_ptr + pixel_ptr + stream_byte > frame_size) ||
             (row_ptr < 0)) {
-          printf(_("MS RLE: frame ptr just went out of bounds (1)\n"));
+          xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
+		  "MS RLE: frame ptr just went out of bounds (1)\n");
           return;
         }
 
         rle_code = stream_byte;
         extra_byte = stream_byte & 0x01;
         if (stream_ptr + rle_code + extra_byte > this->size) {
-          printf(_("MS RLE: stream ptr just went out of bounds (2)\n"));
+          xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
+		  "MS RLE: stream ptr just went out of bounds (2)\n");
           return;
         }
 
@@ -143,7 +145,8 @@ static void decode_msrle8(msrle_decoder_t *this) {
       /* decode a run of data */
       if ((row_ptr + pixel_ptr + stream_byte > frame_size) ||
           (row_ptr < 0)) {
-        printf(_("MS RLE: frame ptr just went out of bounds (2)\n"));
+        xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
+		"MS RLE: frame ptr just went out of bounds (2)\n");
         return;
       }
 
@@ -164,8 +167,9 @@ static void decode_msrle8(msrle_decoder_t *this) {
 
   /* one last sanity check on the way out */
   if (stream_ptr < this->size)
-    printf(_("MS RLE: ended frame decode with bytes left over (%d < %d)\n"),
-      stream_ptr, this->size);
+    xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
+	    "MS RLE: ended frame decode with bytes left over (%d < %d)\n",
+	    stream_ptr, this->size);
 }
 
 /**************************************************************************

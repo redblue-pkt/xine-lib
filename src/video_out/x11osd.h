@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: x11osd.h,v 1.2 2003/11/26 19:36:13 mroi Exp $
+ * $Id: x11osd.h,v 1.3 2003/12/05 15:55:04 f1rmb Exp $
  *
  * x11osd.h, use X11 Nonrectangular Window Shape Extension to draw xine OSD
  *
@@ -30,20 +30,20 @@
 #ifndef X11OSD_H
 #define X11OSD_H
 
-  typedef struct x11osd x11osd;
+typedef struct x11osd x11osd;
 
-  x11osd *x11osd_create (Display *display, int screen, Window window);
+x11osd *x11osd_create (xine_t *xine, Display *display, int screen, Window window);
 
-  void x11osd_destroy (x11osd * osd);
+void x11osd_destroy (x11osd * osd);
 
-  void x11osd_expose (x11osd * osd);
+void x11osd_expose (x11osd * osd);
 
-  void x11osd_resize (x11osd * osd, int width, int height);
+void x11osd_resize (x11osd * osd, int width, int height);
 
-  void x11osd_drawable_changed (x11osd * osd, Window window);
+void x11osd_drawable_changed (x11osd * osd, Window window);
 
-  void x11osd_clear(x11osd *osd);
+void x11osd_clear(x11osd *osd);
 
-  void x11osd_blend(x11osd *osd, vo_overlay_t *overlay);
+void x11osd_blend(x11osd *osd, vo_overlay_t *overlay);
 
 #endif

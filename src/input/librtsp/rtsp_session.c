@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: rtsp_session.c,v 1.12 2003/11/26 19:43:31 f1rmb Exp $
+ * $Id: rtsp_session.c,v 1.13 2003/12/05 15:54:58 f1rmb Exp $
  *
  * high level interface to rtsp servers.
  */
@@ -66,7 +66,7 @@ struct rtsp_session_s {
 
 rtsp_session_t *rtsp_session_start(xine_stream_t *stream, char *mrl) {
 
-  rtsp_session_t *rtsp_session=malloc(sizeof(rtsp_session_t));
+  rtsp_session_t *rtsp_session = malloc(sizeof(rtsp_session_t));
   char *server;
   char *mrl_line=strdup(mrl);
   rmff_header_t *h;
@@ -75,10 +75,11 @@ rtsp_session_t *rtsp_session_start(xine_stream_t *stream, char *mrl) {
 connect:
 
   /* connect to server */
-  rtsp_session->s=rtsp_connect(stream, mrl_line,NULL);
+  rtsp_session->s=rtsp_connect(stream, mrl_line, NULL);
   if (!rtsp_session->s)
   {
-    printf("rtsp_session: failed to connect to server %s\n", mrl_line);
+    xprintf(stream->xine, XINE_VERBOSITY_LOG,
+	    _("rtsp_session: failed to connect to server %s\n"), mrl_line);
     free(rtsp_session);
     return NULL;
   }
@@ -104,13 +105,14 @@ connect:
       {
         free(mrl_line);
 	mrl_line=strdup(rtsp_search_answers(rtsp_session->s, "Location"));
-        printf("rtsp_session: redirected to %s\n", mrl_line);
+        xprintf(stream->xine, XINE_VERBOSITY_DEBUG, "rtsp_session: redirected to %s\n", mrl_line);
 	rtsp_close(rtsp_session->s);
 	free(server);
 	goto connect; /* *shudder* i made a design mistake somewhere */
       } else
       {
-        printf("rtsp_session: session can not be established.\n");
+        xprintf(stream->xine, XINE_VERBOSITY_LOG,
+		_("rtsp_session: session can not be established.\n"));
         rtsp_close(rtsp_session->s);
         free(rtsp_session);
         return NULL;
@@ -125,7 +127,8 @@ connect:
     
   } else
   {
-    printf("rtsp_session: rtsp server type '%s' not supported yet. sorry.\n",server);
+    xprintf(stream->xine, XINE_VERBOSITY_LOG,
+	    _("rtsp_session: rtsp server type '%s' not supported yet. sorry.\n"), server);
     rtsp_close(rtsp_session->s);
     free(server);
     free(rtsp_session);

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_buffer.c,v 1.5 2003/11/26 19:43:38 f1rmb Exp $
+ * $Id: xine_buffer.c,v 1.6 2003/12/05 15:55:05 f1rmb Exp $
  *
  *
  * generic dynamic buffer functions. The goals
@@ -211,7 +211,7 @@ void xine_buffer_copyout(void *buf, int index, void *data, int len) {
 
   if (GET_HEADER(buf)->size < index+len)
   {
-    printf("xine_buffer_copyout: warning: attempt to read over boundary!\n");
+    lprintf("xine_buffer_copyout: warning: attempt to read over boundary!\n");
     if (GET_HEADER(buf)->size < index)
       return;
     len = GET_HEADER(buf)->size - index;

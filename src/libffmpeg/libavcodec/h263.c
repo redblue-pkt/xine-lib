@@ -5097,7 +5097,7 @@ static int decode_vop_header(MpegEncContext *s, GetBitContext *gb){
      /* detect buggy encoders which dont set the low_delay flag (divx4/xvid/opendivx)*/
      // note we cannot detect divx5 without b-frames easyly (allthough its buggy too)
      if(s->vo_type==0 && s->vol_control_parameters==0 && s->divx_version==0 && s->picture_number==0){
-         printf("looks like this file was encoded with (divx4/(old)xvid/opendivx) -> forcing low_delay flag\n");
+         //printf("looks like this file was encoded with (divx4/(old)xvid/opendivx) -> forcing low_delay flag\n");
          s->low_delay=1;
      }
 

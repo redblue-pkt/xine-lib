@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: invert.c,v 1.15 2003/11/11 18:44:59 f1rmb Exp $
+ * $Id: invert.c,v 1.16 2003/12/05 15:55:02 f1rmb Exp $
  */
  
 /*
@@ -251,7 +251,8 @@ static int invert_draw(vo_frame_t *frame, xine_stream_t *stream)
       inverted_frame->base[2][i] = 0xff - frame->base[2][i];
     break;
   default:
-    printf("invert: cannot handle image format %d\n", frame->format);
+    xprintf(stream->xine, XINE_VERBOSITY_DEBUG, 
+	    "invert: cannot handle image format %d\n", frame->format);
     inverted_frame->free(inverted_frame);
     _x_post_restore_video_frame(frame, port);
     return frame->draw(frame, stream);

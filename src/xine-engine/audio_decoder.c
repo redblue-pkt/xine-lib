@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.116 2003/11/26 23:44:10 f1rmb Exp $
+ * $Id: audio_decoder.c,v 1.117 2003/12/05 15:55:04 f1rmb Exp $
  *
  *
  * functions that implement audio decoding
@@ -304,9 +304,8 @@ static void *audio_decoder_loop (void *stream_gen) {
        
 	    if (buf->type != buftype_unknown && 
 	        !_x_stream_info_get(stream, XINE_STREAM_INFO_AUDIO_HANDLED)) {
-	      xine_log (stream->xine, XINE_LOG_MSG, 
-			"audio_decoder: no plugin available to handle '%s'\n",
-		        _x_buf_audio_name( buf->type ) );
+	      xine_log (stream->xine, XINE_LOG_MSG,
+			_("audio_decoder: no plugin available to handle '%s'\n"), _x_buf_audio_name( buf->type ) );
               
               if( !_x_meta_info_get(stream, XINE_META_INFO_AUDIOCODEC) )
                 _x_meta_info_set(stream, XINE_META_INFO_AUDIOCODEC, _x_buf_audio_name( buf->type ));
@@ -323,8 +322,7 @@ static void *audio_decoder_loop (void *stream_gen) {
 	} 
       } else if( buf->type != buftype_unknown ) {
 	  xine_log (stream->xine, XINE_LOG_MSG, 
-		    "audio_decoder: error, unknown buffer type: %08x\n",
-		    buf->type );
+		    _("audio_decoder: error, unknown buffer type: %08x\n"), buf->type );
 	  buftype_unknown = buf->type;
       }
 
@@ -373,8 +371,8 @@ void _x_audio_decoder_init (xine_stream_t *stream) {
   
     if ((err = pthread_create (&stream->audio_thread,
                                &pth_attrs, audio_decoder_loop, stream)) != 0) {
-      fprintf (stderr, "audio_decoder: can't create new thread (%s)\n",
-               strerror(err));
+      xprintf (stream->xine, XINE_VERBOSITY_DEBUG, 
+	       "audio_decoder: can't create new thread (%s)\n", strerror(err));
       abort();
     }
   

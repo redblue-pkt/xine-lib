@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_sdl.c,v 1.33 2003/11/26 19:43:37 f1rmb Exp $
+ * $Id: video_out_sdl.c,v 1.34 2003/12/05 15:55:03 f1rmb Exp $
  *
  * video_out_sdl.c, Simple DirectMedia Layer
  *
@@ -102,12 +102,13 @@ struct sdl_driver_s {
 #endif
 
   vo_scale_t         sc;
-
+  xine_t            *xine;
 };
 
 typedef struct {
   video_driver_class_t driver_class;
   config_values_t     *config;
+  xine_t              *xine;
 } sdl_class_t;
 
 static uint32_t sdl_get_capabilities (vo_driver_t *this_gen) {
@@ -132,17 +133,14 @@ static void sdl_frame_dispose (vo_frame_t *vo_img) {
 }
 
 static vo_frame_t *sdl_alloc_frame (vo_driver_t *this_gen) {
-
+  /* sdl_driver_t    *this = (sdl_driver_t *) this_gen; */
   sdl_frame_t     *frame ;
 
-  frame = (sdl_frame_t *) malloc (sizeof (sdl_frame_t));
+  frame = (sdl_frame_t *) xine_xmalloc (sizeof (sdl_frame_t));
 
-  if (frame==NULL) {
-    printf ("sdl_alloc_frame: out of memory\n");
+  if (!frame)
     return NULL;
-  }
-  memset (frame, 0, sizeof(sdl_frame_t));
-
+  
   pthread_mutex_init (&frame->vo_frame.mutex, NULL);
 
   /*
@@ -318,7 +316,7 @@ static void sdl_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
   if ( (frame->width != this->sc.delivered_width)
 	 || (frame->height != this->sc.delivered_height)
 	 || (frame->ratio != this->sc.delivered_ratio) ) {
-	 printf("video_out_sdl: change frame format\n");
+	 xprintf(this->xine, XINE_VERBOSITY_DEBUG, "video_out_sdl: change frame format\n");
 
       this->sc.delivered_width  = frame->width;
       this->sc.delivered_height = frame->height;
@@ -372,8 +370,8 @@ static int sdl_set_property (vo_driver_t *this_gen,
     if (value>=XINE_VO_ASPECT_NUM_RATIOS)
       value = XINE_VO_ASPECT_AUTO;
     this->sc.user_ratio = value;
-    printf("video_out_sdl: aspect ratio changed to %s\n",
-	   _x_vo_scale_aspect_ratio_name(value));
+    xprintf(this->xine, XINE_VERBOSITY_DEBUG, 
+	    "video_out_sdl: aspect ratio changed to %s\n", _x_vo_scale_aspect_ratio_name(value));
 
     sdl_compute_ideal_size (this);
     this->sc.force_redraw = 1;
@@ -462,20 +460,16 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *vi
   XWindowAttributes     window_attributes;
 #endif
 
-  this = malloc (sizeof (sdl_driver_t));
-
-  if (!this) {
-    printf ("video_out_sdl: open_plugin - malloc failed\n");
+  this = (sdl_driver_t *) xine_xmalloc (sizeof (sdl_driver_t));
+  if (this)
     return NULL;
-  }
-
-  memset (this, 0, sizeof(sdl_driver_t));
 
   this->sdlflags = SDL_HWSURFACE | SDL_RESIZABLE;
 
   xine_setenv("SDL_VIDEO_YUV_HWACCEL", "1", 1);
   xine_setenv("SDL_VIDEO_X11_NODIRECTCOLOR", "1", 1);
 
+  this->xine              = class->xine;
 #ifdef HAVE_X11
   this->display           = visual->display;
   this->screen            = visual->screen;
@@ -492,9 +486,8 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *vi
   _x_vo_scale_init( &this->sc, 0, 0, config );
 #endif
 
-
   if ((SDL_Init (SDL_INIT_VIDEO)) < 0) {
-    printf ("video_out_sdl: open_plugin - sdl video initialization failed.\n");
+    xprintf (this->xine, XINE_VERBOSITY_DEBUG, "video_out_sdl: open_plugin - sdl video initialization failed.\n");
     return NULL;
   }
 
@@ -502,15 +495,16 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *vi
   if (!SDL_ListModes (vidInfo->vfmt, SDL_HWSURFACE | SDL_RESIZABLE)) {
     this->sdlflags = SDL_RESIZABLE;
     if (!SDL_ListModes (vidInfo->vfmt, SDL_RESIZABLE)) {
-      printf ("video_out_sdl: open_plugin - sdl couldn't get any acceptable video mode\n");
+      xprintf (this->xine, XINE_VERBOSITY_DEBUG, 
+	       "video_out_sdl: open_plugin - sdl couldn't get any acceptable video mode\n");
       return NULL;
     }
   }
 
   this->bpp = vidInfo->vfmt->BitsPerPixel;
   if (this->bpp < 16) {
-    fprintf(stderr, "sdl has to emulate a 16 bit surfaces, "
-                    "that will slow things down.\n");
+    xprintf(this->xine, XINE_VERBOSITY_LOG, 
+	    _("sdl has to emulate a 16 bit surfaces, that will slow things down.\n"));
     this->bpp = 16;
   }
 
@@ -545,8 +539,8 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *vi
   this->vo_driver.dispose              = sdl_dispose;
   this->vo_driver.redraw_needed        = sdl_redraw_needed;
 
-  printf ("video_out_sdl: warning, xine's SDL driver is EXPERIMENTAL\n");
-  printf ("video_out_sdl: fullscreen mode is NOT supported\n");
+  xprintf (this->xine, XINE_VERBOSITY_DEBUG, "video_out_sdl: warning, xine's SDL driver is EXPERIMENTAL\n");
+  xprintf (this->xine, XINE_VERBOSITY_LOG, _("video_out_sdl: fullscreen mode is NOT supported\n"));
   return &this->vo_driver;
 }
 /**
@@ -571,19 +565,21 @@ static void *init_class (xine_t *xine, void *visual_gen) {
   
   /* check if we have SDL */
   if ((SDL_Init (SDL_INIT_VIDEO)) < 0) {
-    printf ("video_out_sdl: open_plugin - sdl video initialization failed.\n");
+    xprintf (xine, XINE_VERBOSITY_DEBUG, 
+	     "video_out_sdl: open_plugin - sdl video initialization failed.\n");
     return NULL;
   }
   SDL_QuitSubSystem (SDL_INIT_VIDEO);
 
-  this = (sdl_class_t*) malloc (sizeof (sdl_class_t));
+  this = (sdl_class_t*) xine_xmalloc (sizeof (sdl_class_t));
    
   this->driver_class.open_plugin      = open_plugin;
   this->driver_class.get_identifier   = get_identifier;
   this->driver_class.get_description  = get_description;
   this->driver_class.dispose          = dispose_class;
 
-  this->config        = xine->config;
+  this->config                        = xine->config;
+  this->xine                          = xine;
 
   return this;
 }

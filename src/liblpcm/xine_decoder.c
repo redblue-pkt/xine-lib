@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.46 2003/11/16 23:33:45 f1rmb Exp $
+ * $Id: xine_decoder.c,v 1.47 2003/12/05 15:54:59 f1rmb Exp $
  * 
  * 31-8-2001 Added LPCM rate sensing.
  *   (c) 2001 James Courtier-Dutton James@superbug.demon.co.uk
@@ -197,7 +197,7 @@ static audio_decoder_t *open_plugin (audio_decoder_class_t *class_gen, xine_stre
 
   lpcm_decoder_t *this ;
 
-  this = (lpcm_decoder_t *) malloc (sizeof (lpcm_decoder_t));
+  this = (lpcm_decoder_t *) xine_xmalloc (sizeof (lpcm_decoder_t));
 
   this->audio_decoder.decode_data         = lpcm_decode_data;
   this->audio_decoder.reset               = lpcm_reset;
@@ -232,7 +232,7 @@ static void *init_plugin (xine_t *xine, void *data) {
 
   lpcm_class_t *this ;
 
-  this = (lpcm_class_t *) malloc (sizeof (lpcm_class_t));
+  this = (lpcm_class_t *) xine_xmalloc (sizeof (lpcm_class_t));
 
   this->decoder_class.open_plugin     = open_plugin;
   this->decoder_class.get_identifier  = get_identifier;
