@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.112 2002/03/23 18:56:56 guenter Exp $
+ * $Id: xine.c,v 1.113 2002/03/24 14:15:37 guenter Exp $
  *
  * top-level xine functions
  *
@@ -469,9 +469,6 @@ xine_t *xine_init (vo_driver_t *vo,
   /* probe for optimized memcpy or config setting */
   xine_probe_fast_memcpy(config);
   
-  /* initialize aligned mem allocator */
-  xine_init_mem_aligned();
-
   /*
    * init locks
    */

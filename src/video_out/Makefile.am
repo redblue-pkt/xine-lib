@@ -40,11 +40,12 @@ endif
 # "xineplug_vo_out_*"
 
 # FIXME: temporarily disabled until they're adapted to new interface
-# lib_LTLIBRARIES = $(xv_module) $(syncfb_module) $(xshm_module) $(aa_module) \
-#                  $(fb_module) $(sdl_module) $(opengl_module) $(directfb_module)
+#                  $(sdl_module) $(opengl_module) $(directfb_module)
+
+# no adapted to new xmalloc_aligned: $(fb_module) 
 
 lib_LTLIBRARIES = $(xshm_module) $(xv_module) $(directfb_module) $(aa_module) \
-                  $(fb_module) $(syncfb_module)
+                  $(syncfb_module)
 
 xineplug_vo_out_xv_la_SOURCES = deinterlace.c alphablend.c video_out_xv.c
 xineplug_vo_out_xv_la_LIBADD =  $(XV_LIB) $(X_LIBS) -lXext

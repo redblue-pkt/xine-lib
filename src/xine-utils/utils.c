@@ -1,7 +1,7 @@
 /* 
- * Copyright (C) 2000-2001 the xine project
+ * Copyright (C) 2000-2002 the xine project
  * 
- * This file is part of xine, a unix video player.
+ * This file is part of xine, a free video player.
  * 
  * xine is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: utils.c,v 1.4 2001/11/30 00:53:51 f1rmb Exp $
+ * $Id: utils.c,v 1.5 2002/03/24 14:15:37 guenter Exp $
  *
  */
 #define	_POSIX_PTHREAD_SEMANTICS 1	/* for 5-arg getpwuid_r on solaris */
@@ -38,9 +38,6 @@
 
 #include "compat.h"
 
-/*
- *
- */
 void *xine_xmalloc(size_t size) {
   void *ptr;
 
@@ -55,72 +52,19 @@ void *xine_xmalloc(size_t size) {
   return ptr;
 }
 
-typedef struct mem_aligned_s {
-  struct mem_aligned_s *next;
-  void *ptr;
-  void *aligned_ptr;
-} mem_aligned_t;
+void *xine_xmalloc_aligned(size_t alignment, size_t size, void **base) {
 
-static mem_aligned_t *mem_aligned;
-static pthread_mutex_t mem_aligned_mutex;
-
-/*
- *
- */
-void *xine_xmalloc_aligned (size_t alignment, size_t size) {
-  char *pMem, *ptr;
-  mem_aligned_t *reg;
+  char *ptr;
   
-  ptr = pMem = xine_xmalloc (size+alignment);
+  *base = ptr = xine_xmalloc (size+alignment);
   
-  while ((int) pMem % alignment)
-    pMem++;
+  while ((int) ptr % alignment)
+    ptr++;
     
-  pthread_mutex_lock (&mem_aligned_mutex);
-  reg = malloc( sizeof(mem_aligned_t) );
-  reg->next = mem_aligned;
-  reg->ptr = ptr;
-  reg->aligned_ptr = pMem;
-  mem_aligned = reg;
-  pthread_mutex_unlock (&mem_aligned_mutex);  
-  
-  return pMem;
+  return ptr;
 }
 
 
-void xine_free_aligned( void *p ) {
-  mem_aligned_t *reg, *last;
-
-  pthread_mutex_lock (&mem_aligned_mutex);
-  
-  last = NULL;
-  reg = mem_aligned;
-  while( reg != NULL ) {
-    if ( reg->aligned_ptr == p ) {
-      free( reg->ptr );
-      if( last )
-        last->next = reg->next;
-      else
-        mem_aligned = reg->next;
-      free( reg );
-      pthread_mutex_unlock (&mem_aligned_mutex);
-      return;
-    }
-    last = reg;
-    reg = reg->next;
-  }
-  pthread_mutex_unlock (&mem_aligned_mutex);
-}
-
-
-void xine_init_mem_aligned(void) {
-  mem_aligned = NULL;
-  pthread_mutex_init (&mem_aligned_mutex, NULL);
-}
-
-/*
- *
- */
 const char *xine_get_homedir(void) {
   struct passwd *pw = NULL;
   char *homedir = NULL;
@@ -155,9 +99,6 @@ const char *xine_get_homedir(void) {
   return homedir;
 }
 
-/*
- *
- */
 char *xine_chomp(char *str) {
   char *pbuf;
 
@@ -177,7 +118,7 @@ char *xine_chomp(char *str) {
 
 
 /*
- * A thread-safe usecond sleep
+ * a thread-safe usecond sleep
  */
 void xine_usec_sleep(unsigned usec) {
 #if HAVE_NANOSLEEP

@@ -42,12 +42,13 @@ static uint8_t halfrate[12] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3};
 
 sample_t * a52_init (uint32_t mm_accel)
 {
-    sample_t * samples;
+    sample_t * samples, *samples_base;
     int i;
 
     imdct_init (mm_accel);
 
-    samples = xine_xmalloc_aligned (16, 256 * 12 * sizeof (sample_t));
+    samples = xine_xmalloc_aligned (16, 256 * 12 * sizeof (sample_t),
+				    &samples_base);
     if (samples == NULL)
 	return NULL;
 

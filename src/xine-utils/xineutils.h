@@ -1,7 +1,7 @@
 /* 
- * Copyright (C) 2000-2001 the xine project
+ * Copyright (C) 2000-2002 the xine project
  * 
- * This file is part of xine, a unix video player.
+ * This file is part of xine, a free video player.
  * 
  * xine is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xineutils.h,v 1.11 2002/03/23 22:39:11 guenter Exp $
+ * $Id: xineutils.h,v 1.12 2002/03/24 14:15:37 guenter Exp $
  *
  */
 #ifndef XINEUTILS_H
@@ -612,18 +612,10 @@ void *xine_xmalloc(size_t size);
 
 /*
  * Same as above, but memory is aligned to 'alignement'.
+ * **base is used to return pointer to un-aligned memory, use
+ * this to free the mem chunk
  */
-void *xine_xmalloc_aligned(size_t alignment, size_t size);
-
-/*
- * Free memory allocated with the above function
- */
-void *xine_free_aligned(void *p);
-
-/* 
- * Initialize aligned memory allocator
- */
-void xine_init_mem_aligned(void);
+void *xine_xmalloc_aligned(size_t alignment, size_t size, void **base);
 
 /* 
  * Get user home directory.

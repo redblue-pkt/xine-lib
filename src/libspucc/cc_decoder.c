@@ -4,7 +4,7 @@
  * Copyright (C) Christian Vogler 
  *               cvogler@gradient.cis.upenn.edu - December 2001
  *
- * This file is part of xine, a unix video player.
+ * This file is part of xine, a free video player.
  * 
  * xine is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,7 +20,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: cc_decoder.c,v 1.11 2002/03/20 18:50:37 cvogler Exp $
+ * $Id: cc_decoder.c,v 1.12 2002/03/24 14:15:37 guenter Exp $
  *
  * stuff needed to provide closed captioning decoding and display
  *

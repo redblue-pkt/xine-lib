@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.c,v 1.15 2002/03/12 11:04:07 guenter Exp $
+ * $Id: buffer.c,v 1.16 2002/03/24 14:15:37 guenter Exp $
  *
  *
  * contents:
@@ -225,7 +225,7 @@ static int fifo_buffer_size (fifo_buffer_t *this) {
 static void fifo_buffer_dispose (fifo_buffer_t *this) {
 
   buf_element_t *buf, *next;
-  unsigned char *mem = NULL;
+  int received = 0;
 
   this->clear( this );
   buf = this->buffer_pool_top;
@@ -234,15 +234,25 @@ static void fifo_buffer_dispose (fifo_buffer_t *this) {
 
     next = buf->next;
 
-    if (mem == NULL || buf->mem < mem)
-      mem = buf->mem;
-
     free (buf);
+    received++;
 
     buf = next;
   }
+  
+  while (received < this->buffer_pool_capacity) {
+  
+    buf = this->get(this);
+    
+    free(buf);
+    received++;
+  }
 
-  xine_free_aligned (mem);
+  free (this->buffer_pool_base);
+  pthread_mutex_destroy(&this->mutex);
+  pthread_cond_destroy(&this->not_empty);
+  pthread_mutex_destroy(&this->buffer_pool_mutex);
+  pthread_cond_destroy(&this->buffer_pool_cond_not_empty);
   free (this);
 }
 
@@ -282,7 +292,8 @@ fifo_buffer_t *fifo_buffer_new (int num_buffers, uint32_t buf_size) {
   printf ("Allocating %d buffers of %ld bytes in one chunk (alignment = %d)\n", 
 	  num_buffers, (long int) buf_size, alignment);
 	  */
-  multi_buffer = xine_xmalloc_aligned (alignment, num_buffers * buf_size);
+  multi_buffer = xine_xmalloc_aligned (alignment, num_buffers * buf_size, 
+				       &this->buffer_pool_base);
 
   this->buffer_pool_top = NULL;
 
@@ -310,6 +321,4 @@ fifo_buffer_t *fifo_buffer_new (int num_buffers, uint32_t buf_size) {
 
   return this;
 }
-
-
 

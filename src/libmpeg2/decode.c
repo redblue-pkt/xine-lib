@@ -63,9 +63,11 @@ void mpeg2_init (mpeg2dec_t * mpeg2dec,
     }
 
     if( !mpeg2dec->chunk_buffer )
-      mpeg2dec->chunk_buffer = xine_xmalloc_aligned (16, BUFFER_SIZE + 4);
+      mpeg2dec->chunk_buffer = xine_xmalloc_aligned (16, BUFFER_SIZE + 4, 
+						     (void**)&mpeg2dec->chunk_base);
     if( !mpeg2dec->picture )
-      mpeg2dec->picture = xine_xmalloc_aligned (16, sizeof (picture_t));
+      mpeg2dec->picture = xine_xmalloc_aligned (16, sizeof (picture_t),
+						(void**)&mpeg2dec->picture_base);
 
     mpeg2dec->shift = 0xffffff00;
     mpeg2dec->is_sequence_needed = 1;
@@ -511,18 +513,11 @@ void mpeg2_flush (mpeg2dec_t * mpeg2dec) {
     img->scr = 0;
     img->bad_frame = 0;
     img->drawn = 1; 
-
+    
     img->draw(img);
     img->free(img);
 
-#ifdef LOG
-  } else {
-    printf ("libmpeg2: flush called, but I have no frame to flush\n");
-
   }
-#else
-  }
-#endif
 
 }
 
@@ -572,12 +567,12 @@ void mpeg2_close (mpeg2dec_t * mpeg2dec)
     }
 
     if ( mpeg2dec->chunk_buffer ) {
-      xine_free_aligned (mpeg2dec->chunk_buffer);
+      free (mpeg2dec->chunk_base);
       mpeg2dec->chunk_buffer = NULL;
     }
     
     if ( mpeg2dec->picture ) {
-      xine_free_aligned (mpeg2dec->picture);
+      free (mpeg2dec->picture_base);
       mpeg2dec->picture = NULL;
     }
 }

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.c,v 1.74 2002/03/23 18:56:56 guenter Exp $
+ * $Id: metronom.c,v 1.75 2002/03/24 14:15:37 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -573,15 +573,23 @@ static int metronom_register_scr (metronom_t *this, scr_plugin_t *scr) {
 
 static void metronom_unregister_scr (metronom_t *this, scr_plugin_t *scr) {
   int i;
+  int64_t time;
 
-  /* Never unregister scr_list[0]! */
+  /* never unregister scr_list[0]! */
   for (i=1; i<MAX_SCR_PROVIDERS; i++)
-    if (this->scr_list[i] == scr) break;
+    if (this->scr_list[i] == scr) 
+      break;
 
   if (i >= MAX_SCR_PROVIDERS)
     return; /* Not found */
-  
+    
   this->scr_list[i] = NULL;
+  time = this->get_current_time(this);
+    
+  /* master could have been adjusted, others must follow now */
+  for (i=0; i<MAX_SCR_PROVIDERS; i++)
+    if (this->scr_list[i]) this->scr_list[i]->adjust(this->scr_list[i], time);
+  
   this->scr_master = get_master_scr(this);
 }
 

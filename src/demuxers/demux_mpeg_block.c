@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.81 2002/03/21 21:48:49 guenter Exp $
+ * $Id: demux_mpeg_block.c,v 1.82 2002/03/24 14:15:36 guenter Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -72,7 +72,7 @@ typedef struct demux_mpeg_block_s {
 
   char                  cur_mrl[256];
 
-  uint8_t              *scratch;
+  uint8_t              *scratch, *scratch_base;
 
   int64_t               last_scr;
   int64_t               nav_last_end_pts;
@@ -1133,7 +1133,7 @@ demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
   this->demux_plugin.get_stream_length = demux_mpeg_block_get_stream_length;
   this->demux_plugin.get_mimetypes     = demux_mpeg_block_get_mimetypes;
   
-  this->scratch = xine_xmalloc_aligned (512, 4096);
+  this->scratch = xine_xmalloc_aligned (512, 4096, &this->scratch_base);
     
   return (demux_plugin_t *) this;
 }

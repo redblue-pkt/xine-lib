@@ -25,7 +25,7 @@ typedef struct mpeg2dec_s {
     vo_instance_t * output;
 
     /* this is where we keep the state of the decoder */
-    struct picture_s * picture;
+    struct picture_s * picture, *picture_base;
     
     uint32_t shift;
     int is_sequence_needed;
@@ -37,7 +37,7 @@ typedef struct mpeg2dec_s {
     /* which is 224K for MP@ML streams. */
     /* (we make no pretenses of decoding anything more than that) */
     /* allocated in init - gcc has problems allocating such big structures */
-    uint8_t * chunk_buffer;
+    uint8_t * chunk_buffer, *chunk_base;
     /* pointer to current position in chunk_buffer */
     uint8_t * chunk_ptr;
     /* last start code ? */

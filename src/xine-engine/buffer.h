@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.h,v 1.37 2002/03/20 23:12:58 guenter Exp $
+ * $Id: buffer.h,v 1.38 2002/03/24 14:15:37 guenter Exp $
  *
  *
  * contents:
@@ -214,6 +214,7 @@ struct fifo_buffer_s
   int              buffer_pool_num_free;
   int		   buffer_pool_capacity;
   int		   buffer_pool_buf_size;
+  void            *buffer_pool_base; /*used to free mem chunk */
 } ;
 
 /*
