@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.42 2001/09/09 15:39:47 jkeil Exp $
+ * $Id: video_out.c,v 1.43 2001/09/10 13:36:56 jkeil Exp $
  *
  */
 
@@ -143,6 +143,8 @@ static void *video_out_loop (void *this_gen) {
   uint32_t           video_step, video_step_new;
   vo_instance_t     *this = (vo_instance_t *) this_gen;
   sigset_t           vo_mask;
+  int		     prof_video_out = profiler_allocate_slot ("video output");
+  int		     prof_spu_blend = profiler_allocate_slot ("spu blend");
   /*
   int                dummysignum;
   */
@@ -180,7 +182,7 @@ static void *video_out_loop (void *this_gen) {
     /* sigwait(&vo_mask, &dummysignum); */ /* wait for next timer tick */
     pause (); 
 
-    profiler_start_count (2);
+    profiler_start_count (prof_video_out);
 
     video_step_new = this->metronom->get_video_rate (this->metronom);
     if (video_step_new != video_step) {
@@ -198,7 +200,7 @@ static void *video_out_loop (void *this_gen) {
     img = this->display_img_buf_queue->first;
     
     if (!img) {
-      profiler_stop_count (2);
+      profiler_stop_count (prof_video_out);
       continue;
     }
     
@@ -253,7 +255,7 @@ static void *video_out_loop (void *this_gen) {
     */
 
     if (diff<0) {
-      profiler_stop_count (2);
+      profiler_stop_count (prof_video_out);
       continue;
     }
 
@@ -267,7 +269,7 @@ static void *video_out_loop (void *this_gen) {
     img = vo_remove_from_img_buf_queue (this->display_img_buf_queue);
 
     if (!img) {
-      profiler_stop_count (2);
+      profiler_stop_count (prof_video_out);
       continue;
     }
 
@@ -285,18 +287,18 @@ static void *video_out_loop (void *this_gen) {
        * for flushing it's buffers. So don't remove it! */
       vo_overlay_t *ovl;
       
-      profiler_start_count (4);
+      profiler_start_count (prof_spu_blend);
 
       ovl = this->overlay_source->get_overlay (this->overlay_source, img->PTS);
       if (ovl && this->driver->overlay_blend)
 	this->driver->overlay_blend (this->driver, img, ovl); 
 
-      profiler_stop_count (4);
+      profiler_stop_count (prof_spu_blend);
     }
     
     this->driver->display_frame (this->driver, img); 
 
-    profiler_stop_count (2);
+    profiler_stop_count (prof_video_out);
   }
 
   /*

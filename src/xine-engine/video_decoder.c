@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.47 2001/09/09 15:39:47 jkeil Exp $
+ * $Id: video_decoder.c,v 1.48 2001/09/10 13:36:56 jkeil Exp $
  *
  */
 
@@ -55,7 +55,8 @@ void *video_decoder_loop (void *this_gen) {
   int              streamtype;
   video_decoder_t *decoder;
   spu_decoder_t   *spu_decoder;
-
+  int		   prof_video_decode = profiler_allocate_slot ("video decoder");
+  int		   prof_spu_decode = profiler_allocate_slot ("spu decoder");
 
   while (running) {
 
@@ -98,18 +99,18 @@ void *video_decoder_loop (void *this_gen) {
       break;
 
     case BUF_SPU_CLUT:
-      profiler_start_count (3);
+      profiler_start_count (prof_spu_decode);
 
       spu_decoder = update_spu_decoder(this, buf->type);
 
       if (spu_decoder)
         spu_decoder->decode_data (spu_decoder, buf);
 
-      profiler_stop_count (3);
+      profiler_stop_count (prof_spu_decode);
       break;
 
     case BUF_SPU_PACKAGE:
-      profiler_start_count (3);
+      profiler_start_count (prof_spu_decode);
 
       /* now, decode this buffer if it's the right track */
       if ( (buf->type  & 0xFFFF)== this->spu_channel) {
@@ -121,7 +122,7 @@ void *video_decoder_loop (void *this_gen) {
 
       }
 
-      profiler_stop_count (3);
+      profiler_stop_count (prof_spu_decode);
       break;
 
     case BUF_CONTROL_END:
@@ -167,7 +168,7 @@ void *video_decoder_loop (void *this_gen) {
       break;
 
     default:
-      profiler_start_count (0);
+      profiler_start_count (prof_video_decode);
 
       if ( (buf->type & 0xFF000000) == BUF_VIDEO_BASE ) {
 
@@ -200,7 +201,7 @@ void *video_decoder_loop (void *this_gen) {
       } else
 	printf ("video_decoder: unknown buffer type: %08x\n", buf->type);
 
-      profiler_stop_count (0);
+      profiler_stop_count (prof_video_decode);
 
       break;
 

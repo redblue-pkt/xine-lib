@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xshm.c,v 1.32 2001/09/10 00:53:06 miguelfreitas Exp $
+ * $Id: video_out_xshm.c,v 1.33 2001/09/10 13:36:56 jkeil Exp $
  * 
  * video_out_xshm.c, X11 shared memory extension interface for xine
  *
@@ -125,12 +125,15 @@ typedef struct xshm_driver_s {
 
   int              gui_width;		 /* size of gui window */
   int              gui_height;
-  int              gui_size_changed;
+  int              gui_changed;
   int              dest_x;
   int              dest_y;
 
   /* display anatomy */
   double           display_ratio;        /* given by visual parameter from init function */
+
+  /* profiler */
+  int		   prof_yuv2rgb;
 
   /* gui callbacks */
 
@@ -142,6 +145,11 @@ typedef struct xshm_driver_s {
 			  int *dest_width, int *dest_height);
 
 } xshm_driver_t;
+
+/* possible values for xshm_driver_t, field gui_changed */
+#define	GUI_SIZE_CHANGED	1
+#define	GUI_ASPECT_CHANGED	2
+
 
 int gX11Fail;
 
@@ -326,23 +334,6 @@ static void dispose_ximage (xshm_driver_t *this,
   }
 }
 
-#ifdef ARCH_X86
-#undef	DETAILED_TIMING		/* define as 1 to get cpu cycle timing for */
-				/* the yuv2rgb conversion below */
-
-#define	CPU_MHZ		908	/* your cpu's frequency, in Mhz */
-				/* My A7V board operates the 900Mhz T'bird */
-				/* at 908Mhz? */
-#endif
-
-#ifdef	DETAILED_TIMING
-static inline uint64_t rdtsc()
-{
-    uint64_t tsc;
-    __asm__ __volatile__("rdtsc" : "=A"(tsc));
-    return tsc;
-}
-#endif
 
 /*
  * and now, the driver functions
@@ -356,10 +347,7 @@ static void xshm_frame_copy (vo_frame_t *vo_img, uint8_t **src) {
   xshm_frame_t  *frame = (xshm_frame_t *) vo_img ;
   xshm_driver_t *this = (xshm_driver_t *) vo_img->instance->driver;
 
-#ifdef DETAILED_TIMING
-  uint64_t tsc = rdtsc();
-  uint32_t cycles;
-#endif
+  profiler_start_count (this->prof_yuv2rgb);
 
   if (frame->format == IMGFMT_YV12) {
     this->yuv2rgb->yuv2rgb_fun (this->yuv2rgb, frame->rgb_dst,
@@ -371,10 +359,7 @@ static void xshm_frame_copy (vo_frame_t *vo_img, uint8_t **src) {
 				 
   }
   
-#ifdef DETAILED_TIMING
-  cycles = rdtsc() - tsc;
-  printf("yuv2rgb: %u cycles, %d µsec\n", cycles, cycles/CPU_MHZ);
-#endif
+  profiler_stop_count (this->prof_yuv2rgb);
 
   frame->rgb_dst += frame->stripe_inc; 
 }
@@ -579,13 +564,13 @@ static void xshm_update_frame_format (vo_driver_t *this_gen,
       || (height != this->delivered_height)
       || (ratio_code != this->delivered_ratio_code)
       || (flags != this->delivered_flags)
-      || this->gui_size_changed) {
+      || this->gui_changed) {
 
     this->delivered_width      = width;
     this->delivered_height     = height;
     this->delivered_ratio_code = ratio_code;
     this->delivered_flags      = flags;
-    this->gui_size_changed     = 0;
+    this->gui_changed	       = 0;
     
     xshm_calc_output_size (this);
 
@@ -834,12 +819,7 @@ static int xshm_set_property (vo_driver_t *this_gen,
     if (value>ASPECT_DVB)
       value = ASPECT_AUTO;
     this->user_ratio = value;
-
-#if 0
-    xshm_calc_output_size (this);
-#else
-    this->gui_size_changed = 1;
-#endif
+    this->gui_changed |= GUI_ASPECT_CHANGED;
 
   } else {
     printf ("video_out_xshm: tried to set unsupported property %d\n", property);
@@ -922,7 +902,7 @@ static int xshm_gui_data_exchange (vo_driver_t *this_gen,
       this->gui_width  = area->w;
       this->gui_height = area->h;
 
-      this->gui_size_changed = 1;
+      this->gui_changed |= GUI_SIZE_CHANGED;
     }
 
     XUnlockDisplay (this->display);
@@ -1058,6 +1038,9 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
   this->expecting_event	    = 0;
   this->gc		    = XCreateGC (this->display, this->drawable,
 					 0, NULL);
+
+  this->prof_yuv2rgb	    = profiler_allocate_slot ("xshm yuv2rgb convert");
+  printf("xshm, yuv2rgb profiler %d\n", this->prof_yuv2rgb);
 
   this->vo_driver.get_capabilities     = xshm_get_capabilities;
   this->vo_driver.alloc_frame          = xshm_alloc_frame;

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: monitor.c,v 1.4 2001/09/06 13:39:36 jkeil Exp $
+ * $Id: monitor.c,v 1.5 2001/09/10 13:36:56 jkeil Exp $
  *
  * debug print and profiling functions - implementation
  *
@@ -32,7 +32,7 @@
 #include "utils.h"
 #include "monitor.h"
 
-#define MAX_ID 5
+#define MAX_ID 10
 
 #ifdef DEBUG
 
@@ -51,9 +51,19 @@ void profiler_init () {
   }
 }
 
-void profiler_set_label (int id, char *label) {
+int profiler_allocate_slot (char *label) {
+  int id;
+
+  for (id = 0; id < MAX_ID && profiler_label[id] != NULL; id++)
+    ;
+
+  if (id >= MAX_ID)
+    return -1;
+
   profiler_label[id] = label;
+  return id;
 }
+
 
 #ifdef ARCH_X86
 __inline__ unsigned long long int rdtsc()
@@ -65,12 +75,18 @@ __inline__ unsigned long long int rdtsc()
 #endif
 
 void profiler_start_count (int id) {
+
+  if ((unsigned)id >= MAX_ID) return;
+
 #ifdef ARCH_X86
   profiler_start[id] = rdtsc();
 #endif
 }
 
 void profiler_stop_count (int id) {
+
+  if ((unsigned)id >= MAX_ID) return;
+
 #ifdef ARCH_X86
   profiler_times[id] += rdtsc() - profiler_start[id];
 #endif

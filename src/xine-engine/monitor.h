@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: monitor.h,v 1.4 2001/09/06 18:38:12 jkeil Exp $
+ * $Id: monitor.h,v 1.5 2001/09/10 13:36:56 jkeil Exp $
  *
  * debug print and profiling functions
  *
@@ -81,7 +81,7 @@ extern uint32_t xine_debug;
 
 void profiler_init ();
 
-void profiler_set_label (int id, char *label);
+int profiler_allocate_slot (char *label);
 
 void profiler_start_count (int id);
 
@@ -100,7 +100,7 @@ void profiler_print_results ();
 #endif
 
 #define profiler_init()
-#define profiler_set_label(id, label)
+#define profiler_allocate_slot(label)	(-1)
 #define profiler_start_count(id)
 #define profiler_stop_count(id)
 #define profiler_print_results()

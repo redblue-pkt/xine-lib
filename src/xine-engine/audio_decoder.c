@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.35 2001/09/10 03:04:48 guenter Exp $
+ * $Id: audio_decoder.c,v 1.36 2001/09/10 13:36:56 jkeil Exp $
  *
  *
  * functions that implement audio decoding
@@ -41,6 +41,7 @@ void *audio_decoder_loop (void *this_gen) {
   int              running = 1;
   int              i,j;
   audio_decoder_t *decoder;
+  int		   prof_audio_decode = profiler_allocate_slot ("audio decoder/output");
 
   while (running) {
 
@@ -130,7 +131,7 @@ void *audio_decoder_loop (void *this_gen) {
       if (this->audio_mute)
 	break;
 
-      profiler_start_count (1);
+      profiler_start_count (prof_audio_decode);
 
       if ( (buf->type & 0xFF000000) == BUF_AUDIO_BASE ) {
 	
@@ -197,7 +198,7 @@ void *audio_decoder_loop (void *this_gen) {
       } else
 	printf ("audio_loop: unknown buffer type: %08x\n", buf->type);
 
-      profiler_stop_count (1);
+      profiler_stop_count (prof_audio_decode);
     }
     
     buf->free_buffer (buf);
