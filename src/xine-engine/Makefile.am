@@ -29,12 +29,20 @@ noinst_HEADERS = xine_internal.h buffer.h metronom.h configfile.h \
 
 ##
 # Hardcoded rule: 
-#  gcc failed to compile this with some optimized flags on all of my 
-#  systems.
+#  gcc failed to compile this with -fPIC flag
+#  hackish: [X] yes   [ ] no
 #
-cpu_accel.lo:
-	$(CC) -DHAVE_CONFIG_H $(INCLUDES) -pipe `echo "@DEBUG_CFLAGS@" | sed -e 's/\-DDEBUG//' -e 's/\-g//'` -fomit-frame-pointer -Wall -Wp,-MD,.deps/cpu_accel.P -c $(basename $@).c -o $@
-#	echo timestamp > $(basename $@).o
+LIBTOOLNOFPIC = $(SHELL) $(top_builddir)/libtool-nofpic
+LTCOMPILENOFPIC = $(LIBTOOLNOFPIC) --mode=compile $(CC) $(DEFS) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
+cpu_accel.lo: cpu_accel.c
+	@echo '$(LTCOMPILENOFPIC) -c $<'; \
+	$(LTCOMPILENOFPIC) -Wp,-MD,.deps/$(*F).pp -c $<
+	@-sed -e 's/^\([^:]*\)\.o[ 	]*:/\1.lo \1.o :/' \
+	  < .deps/$(*F).pp > .deps/$(*F).P; \
+	tr ' ' '\012' < .deps/$(*F).pp \
+	  | sed -e 's/^\\$$//' -e '/^$$/ d' -e '/:$$/ d' -e 's/$$/ :/' \
+	    >> .deps/$(*F).P; \
+	rm -f .deps/$(*F).pp
 
 
 debug:
