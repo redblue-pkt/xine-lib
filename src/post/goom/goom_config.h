@@ -29,8 +29,10 @@
 /* #define STANDALONE */
 
 /*  for pc users with mmx processors. */
+#if 0
 #ifdef ARCH_X86
 #define HAVE_MMX
+#endif
 #endif
 
 #ifdef ARCH_PPC

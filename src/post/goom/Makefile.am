@@ -2,9 +2,6 @@ include $(top_srcdir)/misc/Makefile.common
 
 EXTRA_DIST = zoom_filter_mmx.c zoom_filter_xmmx.c ppc_zoom_ultimate.s
 
-## -fomit-frame-pointer segfaults here
-CFLAGS = `echo @CFLAGS@ | sed -e 's/-fomit-frame-pointer//g;s/-Os//g'`
-
 libdir = $(XINE_PLUGINDIR)/post
 
 lib_LTLIBRARIES = xineplug_post_goom.la
@@ -14,9 +11,13 @@ if PPC_ARCH
 else
 ## only compile if MMX is supported.
 if HAVE_FFMMX
-  extra_files = zoom_filter_mmx.c zoom_filter_xmmx.c
+extra_files = zoom_filter_mmx.c zoom_filter_xmmx.c
+MMX_CFLAG = -DHAVE_MMX
 endif
 endif
+
+## -fomit-frame-pointer segfaults here
+CFLAGS = $(MMX_CFLAG) `echo @CFLAGS@ | sed -e 's/-fomit-frame-pointer//g;s/-Os//g'`
 
 xineplug_post_goom_la_SOURCES = $(extra_files) xine_goom.c \
 			        goom_core.c \
