@@ -62,6 +62,8 @@ typedef struct {
 typedef struct {
   input_plugin_t   input_plugin;
 
+  xine_stream_t   *stream;
+  
   pnm_t           *pnm;
 
   char            *mrl;
@@ -207,38 +209,46 @@ static int pnm_plugin_get_optional_data (input_plugin_t *this_gen,
   return INPUT_OPTIONAL_UNSUPPORTED;
 }
 
-static input_plugin_t *open_plugin (input_class_t *cls_gen, xine_stream_t *stream, 
+static int pnm_plugin_open (input_plugin_t *this_gen) {
+  pnm_input_plugin_t *this = (pnm_input_plugin_t *) this_gen;
+
+  pnm_t              *pnm;
+
+#ifdef LOG
+  printf ("input_pnm: trying to open '%s'\n", this->mrl);
+#endif
+
+  pnm = pnm_connect (this->mrl);
+
+  if (!pnm) {
+    return 0;
+  }
+
+  this->pnm    = pnm;
+  
+  return 1;
+}
+
+static input_plugin_t *pnm_class_get_instance (input_class_t *cls_gen, xine_stream_t *stream, 
 				    const char *data) {
 
   /* pnm_input_class_t  *cls = (pnm_input_class_t *) cls_gen; */
   pnm_input_plugin_t *this;
-  pnm_t              *pnm;
   char               *mrl = strdup(data);
-
-#ifdef LOG
-  printf ("input_pnm: trying to open '%s'\n", mrl);
-#endif
 
   if (strncasecmp (mrl, "pnm://", 6)) {
     free (mrl);
     return NULL;
   }
 
-  pnm = pnm_connect (mrl);
-
-  if (!pnm) {
-    free (mrl);
-    return NULL;
-  }
-
   this = (pnm_input_plugin_t *) xine_xmalloc (sizeof (pnm_input_plugin_t));
 
-  this->pnm    = pnm;
+  this->stream = stream;
+  this->pnm    = NULL;
   this->mrl    = mrl; 
-  this->nbc    = nbc_init (stream);
+  this->nbc    = nbc_init (this->stream);
   
-  nbc_set_high_water_mark(this->nbc, 50);
-  
+  this->input_plugin.open              = pnm_plugin_open;
   this->input_plugin.get_capabilities  = pnm_plugin_get_capabilities;
   this->input_plugin.read              = pnm_plugin_read;
   this->input_plugin.read_block        = pnm_plugin_read_block;
@@ -280,7 +290,7 @@ static void *init_class (xine_t *xine, void *data) {
 
   this->xine   = xine;
 
-  this->input_class.open_plugin        = open_plugin;
+  this->input_class.get_instance       = pnm_class_get_instance;
   this->input_class.get_identifier     = pnm_class_get_identifier;
   this->input_class.get_description    = pnm_class_get_description;
   this->input_class.get_dir            = NULL;
@@ -297,7 +307,7 @@ static void *init_class (xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_INPUT, 11, "pnm", XINE_VERSION_CODE, NULL, init_class },
+  { PLUGIN_INPUT, 12, "pnm", XINE_VERSION_CODE, NULL, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
 

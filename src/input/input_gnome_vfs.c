@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_gnome_vfs.c,v 1.7 2003/03/03 07:37:23 esnel Exp $
+ * $Id: input_gnome_vfs.c,v 1.8 2003/04/13 16:02:53 tmattern Exp $
  */
 
 
@@ -50,6 +50,7 @@ typedef struct {
 	GnomeVFSHandle *fh;
 	off_t curpos;
 	char *mrl;
+	GnomeVFSURI *uri;
 
 	/* Preview */
 	char preview[MAX_PREVIEW_SIZE];
@@ -237,8 +238,25 @@ gnomevfs_plugin_dispose (input_plugin_t *this_gen )
 		gnome_vfs_close (this->fh);
 	if (this->mrl)
 		g_free (this->mrl);
-
+	if (this->uri)
+		gnome_vfs_uri_unref (this->uri);
 	g_free (this);
+}
+
+static int
+gnomevfs_plugin_open (input_plugin_t *this_gen )
+{
+	gnomevfs_input_t *this = (gnomevfs_input_t *) this_gen;
+
+	D("gnomevfs_klass_open: opening '%s'", this->mrl);
+	if (gnome_vfs_open_uri (&this->fh, this->uri, GNOME_VFS_OPEN_READ) != GNOME_VFS_OK)
+	{
+		D("gnomevfs_klass_open: failed to open '%s'", this->mrl);
+		return 0;
+	}
+
+	return 1;
+
 }
 
 static void
@@ -249,15 +267,15 @@ gnomevfs_klass_dispose (input_class_t *this_gen)
 	g_free (this);
 }
 
+
 static input_plugin_t *
-gnomevfs_klass_open (input_class_t *klass_gen, xine_stream_t *stream,
+gnomevfs_klass_get_instance (input_class_t *klass_gen, xine_stream_t *stream,
 		const char *mrl)
 {
 	gnomevfs_input_t *this;
-	GnomeVFSHandle *fh;
 	GnomeVFSURI *uri;
 
-	D("gnomevfs_klass_open: %s", mrl);
+	D("gnomevfs_klass_get_instance: %s", mrl);
 
 	uri = gnome_vfs_uri_new (mrl);
 	if (uri == NULL)
@@ -275,19 +293,14 @@ gnomevfs_klass_open (input_class_t *klass_gen, xine_stream_t *stream,
 		return NULL;
 	}
 
-	D("gnomevfs_klass_open: opening '%s'", mrl);
-	if (gnome_vfs_open_uri (&fh, uri, GNOME_VFS_OPEN_READ) != GNOME_VFS_OK)
-	{
-		D("gnomevfs_klass_open: failed to open '%s'", mrl);
-		return NULL;
-	}
-
 	D("Creating the structure for stream '%s'", mrl);
 	this = g_new0 (gnomevfs_input_t, 1);
 	this->stream = stream;
-	this->fh = fh;
+	this->fh = NULL;
 	this->mrl = g_strdup (mrl);
+	this->uri = uri;
 
+	this->input_plugin.open              = gnomevfs_plugin_open;
 	this->input_plugin.get_capabilities  = gnomevfs_plugin_get_capabilities;
 	this->input_plugin.read              = gnomevfs_plugin_read;
 	this->input_plugin.read_block        = gnomevfs_plugin_read_block;
@@ -321,7 +334,7 @@ static void
 	this = g_new0 (gnomevfs_input_class_t, 1);
 	this->xine = xine;
 
-	this->input_class.open_plugin        = gnomevfs_klass_open;
+	this->input_class.get_instance       = gnomevfs_klass_get_instance;
 	this->input_class.get_identifier     = gnomevfs_klass_get_identifier;
 	this->input_class.get_description    = gnomevfs_klass_get_description;
 	this->input_class.get_dir            = NULL;
@@ -333,7 +346,7 @@ static void
 }
 
 plugin_info_t xine_plugin_info[] = {
-	{ PLUGIN_INPUT, 11, "gnomevfs", XINE_VERSION_CODE, NULL,
+	{ PLUGIN_INPUT, 12, "gnomevfs", XINE_VERSION_CODE, NULL,
 		init_input_class },
 	{ PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

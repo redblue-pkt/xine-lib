@@ -581,19 +581,27 @@ static off_t dvb_plugin_get_current_pos (input_plugin_t *this_gen){
 static void dvb_plugin_dispose (input_plugin_t *this_gen) {
   dvb_input_plugin_t *this = (dvb_input_plugin_t *) this_gen;
 
-  close(this->fd);
-  this->fd = -1;
-
+  if (this->fd != -1) {
+    close(this->fd);
+    this->fd = -1;
+  }
+  
   if (this->nbc) {
     nbc_close (this->nbc);
     this->nbc = NULL;
   }
 
-  xine_event_dispose_queue (this->event_queue);
+  if (this->event_queue)
+    xine_event_dispose_queue (this->event_queue);
 
   free (this->mrl);
-  free (this->channels);
-  tuner_dispose ( ((dvb_input_plugin_t *)this)->tuner );
+  
+  if (this->channels)
+    free (this->channels);
+    
+  if (this->tuner)
+    tuner_dispose (this->tuner);
+  
   free (this);
 }
 
@@ -808,77 +816,45 @@ static channel_t *load_channels (int *num_ch, fe_type_t fe_type) {
   return channels;
 }
 
-static input_plugin_t *open_plugin (input_class_t *cls_gen,
-				    xine_stream_t *stream,
-				    const char *data) {
-
-  dvb_input_class_t  *cls = (dvb_input_class_t *) cls_gen;
-  dvb_input_plugin_t *this;
+static int dvb_plugin_open (input_plugin_t *this_gen) {
+  dvb_input_plugin_t *this = (dvb_input_plugin_t *) this_gen;
   tuner_t            *tuner;
   channel_t          *channels;
   int                 num_channels;
-  char               *mrl = (char *) data;
-
-  if (strncasecmp (mrl, "dvb:/",5))
-    return NULL;
 
   if ( !(tuner = tuner_init()) ) {
     printf ("input_dvb: cannot open dvb device\n");
-    return NULL;
+    return 0;
   }
 
   if ( !(channels = load_channels(&num_channels, tuner->feinfo.type)) ) {
     tuner_dispose (tuner);
-    return NULL;
+    return 0;
   }
-
-  this = (dvb_input_plugin_t *) xine_xmalloc (sizeof(dvb_input_plugin_t));
 
   this->tuner    = tuner;
   this->channels = channels;
+  this->num_channels = num_channels;
 
-  if ( sscanf (mrl, "dvb://%d", &this->channel) != 1)
+  if ( sscanf (this->mrl, "dvb://%d", &this->channel) != 1)
     this->channel = 0;
 
   if (!tuner_set_channel (this->tuner, &this->channels[this->channel])) {
     printf ("input_dvb: tuner_set_channel failed\n");
     tuner_dispose(this->tuner);
     free(this->channels);
-    free (this);
-    return NULL;
+    return 0;
   }
 
   if ((this->fd = open (DVR_DEVICE, O_RDONLY)) < 0){
     printf ("input_dvb: cannot open dvr device '%s'\n", DVR_DEVICE);
     tuner_dispose(this->tuner);
     free(this->channels);
-    free (this);
-    return NULL;
+    return 0;
   }
 
-  this->mrl = strdup(mrl);
-
   this->curpos       = 0;
-  this->nbc          = nbc_init (stream);
-  nbc_set_high_water_mark (this->nbc, 80);
-  this->stream       = stream;
-  this->tuner        = tuner;
-  this->channels     = channels;
-  this->num_channels = num_channels;
   this->osd          = NULL;
-
-  this->input_plugin.get_capabilities  = dvb_plugin_get_capabilities;
-  this->input_plugin.read              = dvb_plugin_read;
-  this->input_plugin.read_block        = dvb_plugin_read_block;
-  this->input_plugin.seek              = dvb_plugin_seek;
-  this->input_plugin.get_current_pos   = dvb_plugin_get_current_pos;
-  this->input_plugin.get_length        = dvb_plugin_get_length;
-  this->input_plugin.get_blocksize     = dvb_plugin_get_blocksize;
-  this->input_plugin.get_mrl           = dvb_plugin_get_mrl;
-  this->input_plugin.get_optional_data = dvb_plugin_get_optional_data;
-  this->input_plugin.dispose           = dvb_plugin_dispose;
-  this->input_plugin.input_class       = cls_gen;
-  this->cls                            = cls;
 
   pthread_mutex_init (&this->mutex, NULL);
 
@@ -892,7 +868,45 @@ static input_plugin_t *open_plugin (input_class_t *cls_gen,
 						TEXTPALETTE_WHITE_NONE_TRANSLUCID,
 						OSD_TEXT3);
 
-  return (input_plugin_t *) this;
+  return 1;
+}
+
+static input_plugin_t *dvb_class_get_instance (input_class_t *cls_gen,
+				    xine_stream_t *stream,
+				    const char *data) {
+
+  dvb_input_class_t  *cls = (dvb_input_class_t *) cls_gen;
+  dvb_input_plugin_t *this;
+  char               *mrl = (char *) data;
+
+  if (strncasecmp (mrl, "dvb:/",5))
+    return NULL;
+
+  this = (dvb_input_plugin_t *) xine_xmalloc (sizeof(dvb_input_plugin_t));
+
+  this->mrl          = strdup(mrl);
+  this->cls          = cls;
+  this->tuner        = NULL;
+  this->channels     = NULL;
+  this->fd           = -1;
+  this->nbc          = nbc_init (this->stream);
+  this->osd          = NULL;
+  this->event_queue  = NULL;
+    
+  this->input_plugin.open              = dvb_plugin_open;
+  this->input_plugin.get_capabilities  = dvb_plugin_get_capabilities;
+  this->input_plugin.read              = dvb_plugin_read;
+  this->input_plugin.read_block        = dvb_plugin_read_block;
+  this->input_plugin.seek              = dvb_plugin_seek;
+  this->input_plugin.get_current_pos   = dvb_plugin_get_current_pos;
+  this->input_plugin.get_length        = dvb_plugin_get_length;
+  this->input_plugin.get_blocksize     = dvb_plugin_get_blocksize;
+  this->input_plugin.get_mrl           = dvb_plugin_get_mrl;
+  this->input_plugin.get_optional_data = dvb_plugin_get_optional_data;
+  this->input_plugin.dispose           = dvb_plugin_dispose;
+  this->input_plugin.input_class       = cls_gen;
+
+  return &this->input_plugin;
 }
 
 /*
@@ -932,7 +946,7 @@ static void *init_class (xine_t *xine, void *data) {
 
   this->xine   = xine;
 
-  this->input_class.open_plugin        = open_plugin;
+  this->input_class.get_instance       = dvb_class_get_instance;
   this->input_class.get_identifier     = dvb_class_get_identifier;
   this->input_class.get_description    = dvb_class_get_description;
   this->input_class.get_dir            = NULL;
@@ -957,6 +971,6 @@ static void *init_class (xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */
-  { PLUGIN_INPUT, 11, "DVB", XINE_VERSION_CODE, NULL, init_class },
+  { PLUGIN_INPUT, 12, "DVB", XINE_VERSION_CODE, NULL, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

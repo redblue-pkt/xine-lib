@@ -108,7 +108,7 @@ typedef struct {
 } http_input_class_t;
 
 static int http_plugin_host_connect_attempt (struct in_addr ia, int port, 
-					     xine_t *xine) {
+					     http_input_plugin_t *this) {
 
   int                s;
   struct sockaddr_in sin;
@@ -116,7 +116,8 @@ static int http_plugin_host_connect_attempt (struct in_addr ia, int port,
   s=socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
 
   if (s==-1) {
-    xine_log (xine, XINE_LOG_MSG, _("input_http: failed to open socket\n"));
+    xine_message(this->stream, XINE_MSG_GENERAL_WARNING, "failed to open socket", NULL);
+    xine_log (this->stream->xine, XINE_LOG_MSG, _("input_http: failed to open socket\n"));
     return -1;
   }
 
@@ -125,7 +126,8 @@ static int http_plugin_host_connect_attempt (struct in_addr ia, int port,
   sin.sin_port   = htons(port);
 	
   if (connect(s, (struct sockaddr *)&sin, sizeof(sin))==-1 && errno != EINPROGRESS) {
-    xine_log (xine, XINE_LOG_MSG, _("input_http: cannot connect to host\n"));
+    xine_message(this->stream, XINE_MSG_CONNECTION_REFUSED, "cannot connect to host", NULL);
+    xine_log (this->stream->xine, XINE_LOG_MSG, _("input_http: cannot connect to host\n"));
     close(s);
     return -1;
   }	
@@ -133,26 +135,27 @@ static int http_plugin_host_connect_attempt (struct in_addr ia, int port,
   return s;
 }
 
-static int http_plugin_host_connect (const char *host, int port, xine_t *xine) {
+static int http_plugin_host_connect (const char *host, int port, http_input_plugin_t *this) {
   struct hostent *h;
   int i;
   int s;
 	
   h=gethostbyname(host);
   if (h==NULL) {
-    xine_log (xine, XINE_LOG_MSG, _("input_http: unable to resolve >%s<\n"), host);
+    xine_message(this->stream, XINE_MSG_UNKNOWN_HOST, "unable to resolve ", host, NULL);
+    xine_log (this->stream->xine, XINE_LOG_MSG, _("input_http: unable to resolve >%s<\n"), host);
     return -1;
   }
 	
   for(i=0; h->h_addr_list[i]; i++) {
     struct in_addr ia;
     memcpy(&ia, h->h_addr_list[i], 4);
-    s=http_plugin_host_connect_attempt(ia, port, xine);
+    s=http_plugin_host_connect_attempt(ia, port, this);
     if(s != -1)
       return s;
   }
 
-  xine_log (xine, XINE_LOG_MSG, _("http: unable to connect to >%s<\n"), host);
+  xine_log (this->stream->xine, XINE_LOG_MSG, _("http: unable to connect to >%s<\n"), host);
   return -1;
 }
 
@@ -450,11 +453,13 @@ static off_t http_plugin_read (input_plugin_t *this_gen,
         timeout.tv_usec = 0;
 
         if (select (this->fh+1, &rset, NULL, NULL, &timeout) <= 0) {
+          xine_message(this->stream, XINE_MSG_READ_ERROR, "network timeout", NULL);
           xine_log (this->stream->xine, XINE_LOG_MSG, _("input_http: timeout\n"));
           return 0;
         }
         continue;
       }
+      xine_message(this->stream, XINE_MSG_READ_ERROR, NULL);
       xine_log (this->stream->xine, XINE_LOG_MSG, _("input_http: read error %d\n"), errno);
       return 0;
     }
@@ -637,9 +642,11 @@ static int http_plugin_get_optional_data (input_plugin_t *this_gen,
 static void http_plugin_dispose (input_plugin_t *this_gen ) {
   http_input_plugin_t *this = (http_input_plugin_t *) this_gen;
 
-  close(this->fh);
-  this->fh = -1;
-
+  if (this->fh != -1) {
+    close(this->fh);
+    this->fh = -1;
+  }
+  
   if (this->nbc) {
     nbc_close (this->nbc);
     this->nbc = NULL;
@@ -648,29 +655,14 @@ static void http_plugin_dispose (input_plugin_t *this_gen ) {
   free (this_gen);
 }
 
-static input_plugin_t *open_plugin (input_class_t *cls_gen, xine_stream_t *stream,
-				    const char *mrl) {
-
-  /* http_input_class_t  *cls = (http_input_class_t *) cls_gen;*/
-  http_input_plugin_t *this;
+  
+static int http_plugin_open (input_plugin_t *this_gen ) {
+  http_input_plugin_t *this = (http_input_plugin_t *) this_gen;
   char                *proxy;
   int                  done,len,linenum;
   int                  shoutcast = 0, httpcode;
   
-  this = (http_input_plugin_t *) xine_xmalloc(sizeof(http_input_plugin_t));
   this->shoutcast_pos = 0;
-
-  strncpy (this->mrlbuf, mrl, BUFSIZE);
-  strncpy (this->mrlbuf2, mrl, BUFSIZE);
-  this->mrl = this->mrlbuf2;
-
-  if (strncasecmp (this->mrlbuf, "http://", 7)) {
-    free (this);
-    return NULL;
-  }
-
-  this->stream = stream;
-
   this->proxybuf[0] = '\0';
   proxy = getenv("http_proxy");
   
@@ -680,8 +672,7 @@ static input_plugin_t *open_plugin (input_class_t *cls_gen, xine_stream_t *strea
     if (http_plugin_parse_url (this->proxybuf, &this->proxyuser,
 			       &this->proxypassword, &this->proxyhost, 
 			       &this->proxyport, NULL)) {
-      free (this);
-      return NULL;
+      return 0;
     }
     
     if (this->proxyport == 0)
@@ -690,15 +681,14 @@ static input_plugin_t *open_plugin (input_class_t *cls_gen, xine_stream_t *strea
     if (this->proxyuser != NULL)
       if (http_plugin_basicauth (this->proxyuser, this->proxypassword,
 				 this->proxyauth, BUFSIZE)) {
-	free (this);
-	return NULL;
+	xine_message(this->stream, XINE_MSG_CONNECTION_REFUSED, "proxy error", NULL);
+	return 0;
       }
   }
   
   if (http_plugin_parse_url (this->mrlbuf, &this->user, &this->password,
 			     &this->host, &this->port, &this->filename)) {
-    free (this);
-    return NULL;
+    return 0;
   }
 
   if(this->port == 0)
@@ -706,8 +696,8 @@ static input_plugin_t *open_plugin (input_class_t *cls_gen, xine_stream_t *strea
 
   if (this->user != NULL)
     if (http_plugin_basicauth (this->user, this->password, this->auth, BUFSIZE)) {
-      free (this);
-      return NULL;
+      xine_message(this->stream, XINE_MSG_CONNECTION_REFUSED, "basic auth error", NULL);
+      return 0;
     }
 
   {
@@ -727,16 +717,14 @@ static input_plugin_t *open_plugin (input_class_t *cls_gen, xine_stream_t *strea
   }
   
   if (proxy != NULL)
-    this->fh = http_plugin_host_connect (this->proxyhost, this->proxyport, 
-					 this->stream->xine);
+    this->fh = http_plugin_host_connect (this->proxyhost, this->proxyport, this);
   else
-    this->fh = http_plugin_host_connect (this->host, this->port, this->stream->xine);
+    this->fh = http_plugin_host_connect (this->host, this->port, this);
 
   this->curpos = 0;
 
   if (this->fh == -1) {
-    free (this);
-    return NULL;
+    return 0;
   }
 
   if (proxy != NULL)
@@ -773,9 +761,9 @@ static input_plugin_t *open_plugin (input_class_t *cls_gen, xine_stream_t *strea
   strcat (this->buf, "\015\012");
   
   if (write (this->fh, this->buf, strlen(this->buf)) != strlen(this->buf)) {
+    xine_message(this->stream, XINE_MSG_CONNECTION_REFUSED, "couldn't send request", NULL);
     printf ("input_http: couldn't send request\n");
-    free (this);
-    return NULL ;
+    return 0;
   }
 
 #ifdef LOG
@@ -800,9 +788,9 @@ static input_plugin_t *open_plugin (input_class_t *cls_gen, xine_stream_t *strea
 	xine_log (this->stream->xine, XINE_LOG_MSG, _("input_http: EAGAIN\n"));
 	continue;
       default:
+	xine_message(this->stream, XINE_MSG_READ_ERROR, NULL);
 	xine_log (this->stream->xine, XINE_LOG_MSG, _("input_http: read error\n"));
-	free (this);
-	return NULL;
+	return 0;
       }
     }
 
@@ -831,10 +819,10 @@ static input_plugin_t *open_plugin (input_class_t *cls_gen, xine_stream_t *strea
 	  
 	  /* icecast ? */
 	  if (sscanf(this->buf, "ICY %d OK", &httpcode) != 1)	{
+	    xine_message(this->stream, XINE_MSG_CONNECTION_REFUSED, "invalid http answer", NULL);
 	    xine_log (this->stream->xine, XINE_LOG_MSG, 
 		      _("input_http: invalid http answer\n"));
-	    free (this);
-	    return NULL;
+	    return 0;
 	  } else {
 	    shoutcast = 1;
 	    done = 1;
@@ -846,11 +834,12 @@ static input_plugin_t *open_plugin (input_class_t *cls_gen, xine_stream_t *strea
 		    _("input_http: 3xx redirection: >%d %s<\n"),
 		    httpcode, httpstatus);
 	} else if (httpcode < 200 || httpcode >= 300) {
+	  xine_message(this->stream, XINE_MSG_CONNECTION_REFUSED, "http status not 2xx: ",
+	               httpstatus, NULL);
       	  xine_log (this->stream->xine, XINE_LOG_MSG,
 		    _("input_http: http status not 2xx: >%d %s<\n"),
 		    httpcode, httpstatus);
-	  free (this);
-	  return NULL;
+	  return 0;
 	}
       } else {
 	if (this->contentlength == 0) {
@@ -870,9 +859,10 @@ static input_plugin_t *open_plugin (input_class_t *cls_gen, xine_stream_t *strea
 	  printf ("input_http: trying to open target of redirection: >%s<\n",
             href);
 #endif
-	  free (this);
-	  return open_plugin (cls_gen, stream, href);
-	}
+          free (this->mrl);
+          this->mrl = href;
+          return http_plugin_open(this_gen);
+        }
       }
  
       if (len == -1)
@@ -886,10 +876,6 @@ static input_plugin_t *open_plugin (input_class_t *cls_gen, xine_stream_t *strea
 #ifdef LOG
   printf ("input_http: end of headers\n");
 #endif
-
-  this->nbc    = nbc_init (this->stream);
-
-  nbc_set_high_water_mark(this->nbc, 30);
 
   /*
    * fill preview buffer
@@ -912,9 +898,9 @@ static input_plugin_t *open_plugin (input_class_t *cls_gen, xine_stream_t *strea
     this->mrlbuf2[3] = ' ';
     if (read_shoutcast_header(this)) {
       /* problem when reading shoutcast header */
-	    printf ("troubles with shoutcast header\n");
-      free (this);
-      return NULL;
+      xine_message(this->stream, XINE_MSG_CONNECTION_REFUSED, "can't read shoutcast header", NULL);
+      printf ("can't read shoutcast header\n");
+      return 0;
     }
     this->shoutcast_mode = 1;
     this->shoutcast_pos = 0;
@@ -922,6 +908,31 @@ static input_plugin_t *open_plugin (input_class_t *cls_gen, xine_stream_t *strea
     this->shoutcast_mode = 0;
   }
 
+  return 1;
+}
+
+/*
+ * http input plugin class
+ */
+static input_plugin_t *http_class_get_instance (input_class_t *cls_gen, xine_stream_t *stream,
+				    const char *mrl) {
+
+  /* http_input_class_t  *cls = (http_input_class_t *) cls_gen;*/
+  http_input_plugin_t *this;
+  
+  if (strncasecmp (mrl, "http://", 7)) {
+    return NULL;
+  }
+  this = (http_input_plugin_t *) xine_xmalloc(sizeof(http_input_plugin_t));
+
+  strncpy (this->mrlbuf, mrl, BUFSIZE);
+  strncpy (this->mrlbuf2, mrl, BUFSIZE);
+  this->mrl     = this->mrlbuf2;
+  this->stream  = stream;
+  this->fh      = -1;
+  this->nbc     = nbc_init (this->stream);
+  
+  this->input_plugin.open              = http_plugin_open;
   this->input_plugin.get_capabilities  = http_plugin_get_capabilities;
   this->input_plugin.read              = http_plugin_read;
   this->input_plugin.read_block        = http_plugin_read_block;
@@ -936,10 +947,6 @@ static input_plugin_t *open_plugin (input_class_t *cls_gen, xine_stream_t *strea
 
   return &this->input_plugin;
 }
-
-/*
- * http input plugin class
- */
 
 static char *http_class_get_description (input_class_t *this_gen) {
   return _("http input plugin");
@@ -966,7 +973,7 @@ static void *init_class (xine_t *xine, void *data) {
   this->config = xine->config;
   config       = xine->config;
 
-  this->input_class.open_plugin        = open_plugin;
+  this->input_class.get_instance       = http_class_get_instance;
   this->input_class.get_identifier     = http_class_get_identifier;
   this->input_class.get_description    = http_class_get_description;
   this->input_class.get_dir            = NULL;
@@ -983,7 +990,7 @@ static void *init_class (xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_INPUT, 11, "http", XINE_VERSION_CODE, NULL, init_class },
+  { PLUGIN_INPUT, 12, "http", XINE_VERSION_CODE, NULL, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_file.c,v 1.78 2003/04/04 19:20:49 miguelfreitas Exp $
+ * $Id: input_file.c,v 1.79 2003/04/13 16:02:53 tmattern Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -184,7 +184,8 @@ static int file_plugin_get_optional_data (input_plugin_t *this_gen,
 static void file_plugin_dispose (input_plugin_t *this_gen ) {
   file_input_plugin_t *this = (file_input_plugin_t *) this_gen;
 
-  close(this->fh);
+  if (this->fh != -1)
+    close(this->fh);
 
   free (this->mrl);
 
@@ -218,23 +219,39 @@ static char *decode_uri (char *uri) {
   return uri;
 }
 
-static input_plugin_t *open_plugin (input_class_t *cls_gen, xine_stream_t *stream, 
+static int file_plugin_open (input_plugin_t *this_gen ) {
+  file_input_plugin_t *this = (file_input_plugin_t *) this_gen;
+  char                *filename;
+
+  #ifdef LOG
+  printf("file_plugin_open\n");
+  #endif
+  if (!strncasecmp (this->mrl, "file:", 5)) 
+    filename = decode_uri (&(this->mrl[5]));
+  else
+    filename = decode_uri(this->mrl);
+
+  this->fh = open (filename, O_RDONLY);
+
+  if (this->fh == -1) {
+    return 0;
+  }
+
+  return 1;
+}
+
+static input_plugin_t *file_class_get_instance (input_class_t *cls_gen, xine_stream_t *stream, 
 				    const char *data) {
 
   /* file_input_class_t  *cls = (file_input_class_t *) cls_gen; */
   file_input_plugin_t *this;
   char                *mrl = strdup(data);
-  char                *filename;
-  int                  fh;
 
-  if (!strncasecmp (mrl, "file:", 5)) 
-    filename = decode_uri (&mrl[5]);
-  else
-    filename = decode_uri(mrl);
+  #ifdef LOG
+  printf("file_class_get_instance\n");
+  #endif
 
-  fh = open (filename, O_RDONLY);
-
-  if (fh == -1) {
+  if ((strncasecmp (mrl, "file:", 5)) && (strstr (mrl, ":/"))) {
     free (mrl);
     return NULL;
   }
@@ -242,8 +259,9 @@ static input_plugin_t *open_plugin (input_class_t *cls_gen, xine_stream_t *strea
   this = (file_input_plugin_t *) xine_xmalloc (sizeof (file_input_plugin_t));
   this->stream = stream;
   this->mrl    = mrl;
-  this->fh     = fh;
+  this->fh     = -1;
 
+  this->input_plugin.open               = file_plugin_open;
   this->input_plugin.get_capabilities   = file_plugin_get_capabilities;
   this->input_plugin.read               = file_plugin_read;
   this->input_plugin.read_block         = file_plugin_read_block;
@@ -780,7 +798,7 @@ static void *init_plugin (xine_t *xine, void *data) {
   this->config = xine->config;
   config       = xine->config;
   
-  this->input_class.open_plugin        = open_plugin;
+  this->input_class.get_instance       = file_class_get_instance;
   this->input_class.get_identifier     = file_class_get_identifier;
   this->input_class.get_description    = file_class_get_description;
   this->input_class.get_dir            = file_class_get_dir;
@@ -819,6 +837,6 @@ static void *init_plugin (xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_INPUT, 11, "FILE", XINE_VERSION_CODE, NULL, init_plugin },
+  { PLUGIN_INPUT, 12, "FILE", XINE_VERSION_CODE, NULL, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

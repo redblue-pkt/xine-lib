@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_mms.c,v 1.38 2003/02/28 02:51:48 storri Exp $
+ * $Id: input_mms.c,v 1.39 2003/04/13 16:02:53 tmattern Exp $
  *
  * mms input plugin based on work from major mms
  */
@@ -71,6 +71,7 @@ const char * mms_bandwidth_strs[]={"14.4 Kbps (Modem)", "19.2 Kbps (Modem)",
 typedef struct {
   input_plugin_t   input_plugin;
 
+  xine_stream_t   *stream;
   mms_t           *mms;
   mmsh_t          *mmsh;
 
@@ -250,18 +251,14 @@ static off_t mms_plugin_get_current_pos (input_plugin_t *this_gen){
 static void mms_plugin_dispose (input_plugin_t *this_gen) {
   mms_input_plugin_t *this = (mms_input_plugin_t *) this_gen;
 
-  if (this->mms) {
-    switch (this->protocol) {
-      case PROTOCOL_MMST:
-        mms_close (this->mms);
-        break;
-      case PROTOCOL_MMSH:
-        mmsh_close (this->mmsh);
-        break;
-    }
-    this->mms  = NULL;
-    this->mmsh = NULL;
-  }
+  if (this->mms)
+    mms_close (this->mms);
+  
+  if (this->mmsh)
+    mmsh_close (this->mmsh);
+  
+  this->mms  = NULL;
+  this->mmsh = NULL;
 
   if (this->nbc) {
     nbc_close (this->nbc);
@@ -322,13 +319,45 @@ void bandwidth_changed_cb (void *this_gen, xine_cfg_entry_t *entry) {
   }
 }
 
-static input_plugin_t *open_plugin (input_class_t *cls_gen, xine_stream_t *stream, 
+static int mms_plugin_open (input_plugin_t *this_gen) {
+  mms_input_plugin_t *this = (mms_input_plugin_t *) this_gen;
+  mms_t              *mms  = NULL;
+  mmsh_t             *mmsh = NULL;
+  
+  switch (this->protocol) {
+    case PROTOCOL_UNDEFINED:
+      mms = mms_connect (this->stream, this->mrl, this->bandwidth);
+      if (mms) {
+        this->protocol = PROTOCOL_MMST;
+      } else {
+        mmsh = mmsh_connect (this->stream, this->mrl, this->bandwidth);
+        this->protocol = PROTOCOL_MMSH;
+      }
+      break;
+    case PROTOCOL_MMST:
+      mms = mms_connect (this->stream, this->mrl, this->bandwidth);
+      break;
+    case PROTOCOL_MMSH:
+      mmsh = mmsh_connect (this->stream, this->mrl, this->bandwidth);
+      break;
+  }
+  
+  if (!mms && !mmsh) {
+    return 0;
+  }
+  
+  this->mms      = mms;
+  this->mmsh     = mmsh;
+  this->curpos   = 0;
+  
+  return 1;
+}
+
+static input_plugin_t *mms_class_get_instance (input_class_t *cls_gen, xine_stream_t *stream, 
 				    const char *data) {
 
   mms_input_class_t  *cls = (mms_input_class_t *) cls_gen;
   mms_input_plugin_t *this;
-  mms_t              *mms  = NULL;
-  mmsh_t             *mmsh = NULL;
   char               *mrl  = strdup(data);
   xine_cfg_entry_t    bandwidth_entry;
   int                 protocol;
@@ -350,42 +379,20 @@ static input_plugin_t *open_plugin (input_class_t *cls_gen, xine_stream_t *strea
 
   this = (mms_input_plugin_t *) malloc (sizeof (mms_input_plugin_t));
   cls->ip = this;
-  
+  this->stream   = stream;
+  this->mms      = NULL;
+  this->mmsh     = NULL;
+  this->protocol = protocol;
+  this->mrl      = mrl; 
+  this->curpos   = 0;
+  this->nbc      = nbc_init (this->stream);
+
   if (xine_config_lookup_entry (stream->xine, "input.mms_network_bandwidth", 
                                 &bandwidth_entry)) {
     bandwidth_changed_cb(cls, &bandwidth_entry);
   }
-    
-  switch (protocol) {
-    case PROTOCOL_UNDEFINED:
-      mms = mms_connect (stream, mrl, this->bandwidth);
-      if (mms) {
-        protocol = PROTOCOL_MMST;
-      } else {
-        mmsh = mmsh_connect (stream, mrl, this->bandwidth);
-        protocol = PROTOCOL_MMSH;
-      }
-      break;
-    case PROTOCOL_MMST:
-      mms = mms_connect (stream, mrl, this->bandwidth);
-      break;
-    case PROTOCOL_MMSH:
-      mmsh = mmsh_connect (stream, mrl, this->bandwidth);
-      break;
-  }
-  
-  if (!mms && !mmsh) {
-    free (mrl);
-    return NULL;
-  }
-  
-  this->mms      = mms;
-  this->mmsh     = mmsh;
-  this->protocol = protocol;
-  this->mrl      = mrl; 
-  this->curpos   = 0;
-  this->nbc      = nbc_init (stream);
 
+  this->input_plugin.open              = mms_plugin_open;
   this->input_plugin.get_capabilities  = mms_plugin_get_capabilities;
   this->input_plugin.read              = mms_plugin_read;
   this->input_plugin.read_block        = mms_plugin_read_block;
@@ -429,7 +436,7 @@ static void *init_class (xine_t *xine, void *data) {
   this->xine   = xine;
   this->ip                             = NULL;
 
-  this->input_class.open_plugin        = open_plugin;
+  this->input_class.get_instance       = mms_class_get_instance;
   this->input_class.get_identifier     = mms_class_get_identifier;
   this->input_class.get_description    = mms_class_get_description;
   this->input_class.get_dir            = NULL;
@@ -451,6 +458,6 @@ static void *init_class (xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_INPUT, 11, "mms", XINE_VERSION_CODE, NULL, init_class },
+  { PLUGIN_INPUT, 12, "mms", XINE_VERSION_CODE, NULL, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

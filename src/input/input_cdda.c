@@ -20,7 +20,7 @@
  * Compact Disc Digital Audio (CDDA) Input Plugin 
  *   by Mike Melanson (melanson@pcisys.net)
  *
- * $Id: input_cdda.c,v 1.12 2003/04/06 00:51:29 hadess Exp $
+ * $Id: input_cdda.c,v 1.13 2003/04/13 16:02:53 tmattern Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -1225,76 +1225,39 @@ static void cdda_plugin_dispose (input_plugin_t *this_gen ) {
 
   _cdda_free_cddb_info(this);
 
-  close(this->fd);
+  if (this->fd != -1)
+    close(this->fd);
 
   free(this->mrl);
 
   free(this);
 }
 
-static input_plugin_t *open_plugin (input_class_t *cls_gen, xine_stream_t *stream,
-                                    const char *data) {
-
-  cdda_input_plugin_t *this;
-  cdda_input_class_t  *class = (cdda_input_class_t *) cls_gen;
+static int cdda_plugin_open (input_plugin_t *this_gen ) {
+  cdda_input_plugin_t *this = (cdda_input_plugin_t *) this_gen;
+  cdda_input_class_t  *class = (cdda_input_class_t *) this_gen->input_class;
   cdrom_toc            toc;
   int                  fd;
-  int                  track;
-  xine_cfg_entry_t     enable_entry, server_entry, port_entry, cachedir_entry;
-
-  /* fetch the CD track to play */
-  if (!strncasecmp (data, "cdda:", 5)) {
-    if (data[5] != '/')
-      track = atoi(&data[5]);
-    else
-      track = atoi(&data[6]);
-    /* CD tracks start at 1, reject illegal tracks */
-    if (track <= 0)
-      return NULL;
-  } else
-    return NULL;
-
+  
+#ifdef LOG
+  printf("cdda_plugin_open\n");
+#endif
+  
   /* get the CD TOC */
   init_cdrom_toc(&toc);
   fd = open (class->cdda_device, O_RDONLY);
   if (fd == -1)
-    return NULL;
+    return 0;
   read_cdrom_toc(fd, &toc);
 
-  if ((toc.first_track > track) || 
-      (toc.last_track < track)) {
+  if ((toc.first_track > (this->track + 1)) || 
+      (toc.last_track < (this->track + 1))) {
     free_cdrom_toc(&toc);
-    return NULL;
+    return 0;
   }
 
-  this = (cdda_input_plugin_t *) xine_xmalloc (sizeof (cdda_input_plugin_t));
-  this->stream = stream;
   this->fd = fd;
   
-  /*
-   * Lookup config entries.
-   */
-  class->ip = this;
-  if(xine_config_lookup_entry(this->stream->xine, "input.cdda_use_cddb", 
-			      &enable_entry)) 
-    enable_cddb_changed_cb(class, &enable_entry);
-
-  if(xine_config_lookup_entry(this->stream->xine, "input.cdda_cddb_server", 
-			      &server_entry)) 
-    server_changed_cb(class, &server_entry);
-  
-  if(xine_config_lookup_entry(this->stream->xine, "input.cdda_cddb_port", 
-			      &port_entry)) 
-    port_changed_cb(class, &port_entry);
-
-  if(xine_config_lookup_entry(this->stream->xine, "input.cdda_cddb_cachedir", 
-			      &cachedir_entry)) 
-    cachedir_changed_cb(class, &cachedir_entry);
-
-
-  /* CD tracks start from 1; internal data structure indexes from 0 */
-  this->track = track - 1;
-
   /* set up the frame boundaries for this particular track */
   this->first_frame = this->current_frame = 
     toc.toc_entries[this->track].first_frame;
@@ -1363,22 +1326,7 @@ static input_plugin_t *open_plugin (input_class_t *cls_gen, xine_stream_t *strea
   }
 
   free_cdrom_toc(&toc);
-
-  this->input_plugin.get_capabilities   = cdda_plugin_get_capabilities;
-  this->input_plugin.read               = cdda_plugin_read;
-  this->input_plugin.read_block         = cdda_plugin_read_block;
-  this->input_plugin.seek               = cdda_plugin_seek;
-  this->input_plugin.get_current_pos    = cdda_plugin_get_current_pos;
-  this->input_plugin.get_length         = cdda_plugin_get_length;
-  this->input_plugin.get_blocksize      = cdda_plugin_get_blocksize;
-  this->input_plugin.get_mrl            = cdda_plugin_get_mrl;
-  this->input_plugin.get_optional_data  = cdda_plugin_get_optional_data;
-  this->input_plugin.dispose            = cdda_plugin_dispose;
-  this->input_plugin.input_class        = cls_gen;
-
-  this->mrl = strdup(data);
-
-  return &this->input_plugin;
+  return 1;
 }
 
 static char ** cdda_class_get_autoplay_list (input_class_t *this_gen, 
@@ -1412,6 +1360,78 @@ static char ** cdda_class_get_autoplay_list (input_class_t *this_gen,
   free_cdrom_toc(&toc);
   return this->autoplaylist;
 }
+
+static input_plugin_t *cdda_class_get_instance (input_class_t *cls_gen, xine_stream_t *stream,
+                                    const char *mrl) {
+
+  cdda_input_plugin_t *this;
+  cdda_input_class_t  *class = (cdda_input_class_t *) cls_gen;
+  int                  track;
+  xine_cfg_entry_t     enable_entry, server_entry, port_entry, cachedir_entry;
+
+#ifdef LOG
+  printf("cdda_class_get_instance\n");
+#endif
+  /* fetch the CD track to play */
+  if (!strncasecmp (mrl, "cdda:", 5)) {
+    if (mrl[5] != '/')
+      track = atoi(&mrl[5]);
+    else
+      track = atoi(&mrl[6]);
+    /* CD tracks start at 1, reject illegal tracks */
+    if (track <= 0)
+      return NULL;
+  } else
+    return NULL;
+
+
+  this = (cdda_input_plugin_t *) xine_xmalloc (sizeof (cdda_input_plugin_t));
+  
+  class->ip = this;
+  this->stream     = stream;
+  this->mrl        = strdup(mrl);
+  
+  /* CD tracks start from 1; internal data structure indexes from 0 */
+  this->track      = track - 1;
+  this->cddb.track = NULL;
+  this->fd         = -1;
+  
+  this->input_plugin.open               = cdda_plugin_open;
+  this->input_plugin.get_capabilities   = cdda_plugin_get_capabilities;
+  this->input_plugin.read               = cdda_plugin_read;
+  this->input_plugin.read_block         = cdda_plugin_read_block;
+  this->input_plugin.seek               = cdda_plugin_seek;
+  this->input_plugin.get_current_pos    = cdda_plugin_get_current_pos;
+  this->input_plugin.get_length         = cdda_plugin_get_length;
+  this->input_plugin.get_blocksize      = cdda_plugin_get_blocksize;
+  this->input_plugin.get_mrl            = cdda_plugin_get_mrl;
+  this->input_plugin.get_optional_data  = cdda_plugin_get_optional_data;
+  this->input_plugin.dispose            = cdda_plugin_dispose;
+  this->input_plugin.input_class        = cls_gen;
+  
+  /*
+   * Lookup config entries.
+   */
+  class->ip = this;
+  if(xine_config_lookup_entry(this->stream->xine, "input.cdda_use_cddb", 
+			      &enable_entry)) 
+    enable_cddb_changed_cb(class, &enable_entry);
+
+  if(xine_config_lookup_entry(this->stream->xine, "input.cdda_cddb_server", 
+			      &server_entry)) 
+    server_changed_cb(class, &server_entry);
+  
+  if(xine_config_lookup_entry(this->stream->xine, "input.cdda_cddb_port", 
+			      &port_entry)) 
+    port_changed_cb(class, &port_entry);
+
+  if(xine_config_lookup_entry(this->stream->xine, "input.cdda_cddb_cachedir", 
+			      &cachedir_entry)) 
+    cachedir_changed_cb(class, &cachedir_entry);
+
+  return &this->input_plugin;
+}
+
 
 static char *cdda_class_get_identifier (input_class_t *this_gen) {
   return "cdda";
@@ -1455,7 +1475,7 @@ static void *init_plugin (xine_t *xine, void *data) {
   this->config = xine->config;
   config       = xine->config;
 
-  this->input_class.open_plugin        = open_plugin;
+  this->input_class.get_instance       = cdda_class_get_instance;
   this->input_class.get_identifier     = cdda_class_get_identifier;
   this->input_class.get_description    = cdda_class_get_description;
   /* this->input_class.get_dir            = cdda_class_get_dir; */
@@ -1494,7 +1514,7 @@ static void *init_plugin (xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */
-  { PLUGIN_INPUT, 11, "CD", XINE_VERSION_CODE, NULL, init_plugin },
+  { PLUGIN_INPUT, 12, "CD", XINE_VERSION_CODE, NULL, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
 

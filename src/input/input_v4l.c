@@ -72,6 +72,7 @@ typedef struct {
 typedef struct {
   input_plugin_t   input_plugin;
 
+  xine_stream_t   *stream;
   char            *mrl;
 
   off_t            curpos;
@@ -267,7 +268,8 @@ static void v4l_plugin_dispose (input_plugin_t *this_gen) {
   if(this->mrl)
     free(this->mrl);
 
-  close(this->video_fd);
+  if (this->video_fd != -1)
+    close(this->video_fd);
 
   free (this);
 }
@@ -285,29 +287,17 @@ static int v4l_plugin_get_optional_data (input_plugin_t *this_gen,
   return INPUT_OPTIONAL_UNSUPPORTED;
 }
 
-
-static input_plugin_t *open_plugin (input_class_t *cls_gen,
-		xine_stream_t *stream, const char *data) {
+static int v4l_plugin_open (input_plugin_t *this_gen) {
+  v4l_input_plugin_t *this = (v4l_input_plugin_t *) this_gen;
 
   /* v4l_input_class_t  *cls = (v4l_input_class_t *) cls_gen; */
-  v4l_input_plugin_t *this;
   int                 i, j, ret, found;
-  char               *mrl = strdup(data);
 
 #ifdef LOG
   printf ("input_v4l: trying to open '%s'\n", mrl);
 #endif
   found = 0;
 
-  if (strncasecmp (mrl, "v4l:", 4)) {
-    free (mrl);
-    return NULL;
-  }
-
-  this = (v4l_input_plugin_t *) xine_xmalloc (sizeof (v4l_input_plugin_t));
-
-  this->mrl    = mrl; 
-  
   /*
    * pre-alloc a bunch of frames
    */
@@ -320,24 +310,21 @@ static input_plugin_t *open_plugin (input_class_t *cls_gen,
 #ifdef LOG
     printf ("input_v4l: cannot open v4l device\n");
 #endif
-    free(this);
-    return NULL;
+    return 0;
   }
    
   if (ioctl(this->video_fd,VIDIOCGCAP,&this->video_cap) < 0) {
 #ifdef LOG
     printf ("input_v4l: VIDIOCGCAP ioctl went wrong\n");
 #endif
-    free(this);
-    return NULL;
+    return 0;
   }
 
   if (!(this->video_cap.type & VID_TYPE_CAPTURE)) {
 #ifdef LOG
     printf ("input_v4l: grab device does not handle capture\n");
 #endif
-    free(this);
-    return NULL;
+    return 0;
   }
 
   /* figure out the resolution */
@@ -357,8 +344,7 @@ static input_plugin_t *open_plugin (input_class_t *cls_gen,
 #ifdef LOG
     printf ("input_v4l: grab device does not support any preset resolutions");
 #endif
-    free(this);
-    return NULL;
+    return 0;
   }
 
   for (i=0; i<NUM_FRAMES; i++) {
@@ -440,8 +426,7 @@ static input_plugin_t *open_plugin (input_class_t *cls_gen,
     if ((unsigned char*)-1 == this->video_buf) {
       perror("mmap");
       close (this->video_fd);
-      free(this);
-      return NULL;
+      return 0;
     }
     this->gb_frame = 0;
   
@@ -471,8 +456,7 @@ static input_plugin_t *open_plugin (input_class_t *cls_gen,
       }
 #endif
       close (this->video_fd);
-      free (this);
-      return NULL;
+      return 0;
     }
     this->frame_format = this->gb_buf.format;
     this->use_mmap = 1;
@@ -487,11 +471,35 @@ static input_plugin_t *open_plugin (input_class_t *cls_gen,
     break;
   }
 
-  stream->stream_info[XINE_STREAM_INFO_VIDEO_WIDTH] = resolutions[j].width;
-  stream->stream_info[XINE_STREAM_INFO_VIDEO_HEIGHT] = resolutions[j].height;
+  this->stream->stream_info[XINE_STREAM_INFO_VIDEO_WIDTH] = resolutions[j].width;
+  this->stream->stream_info[XINE_STREAM_INFO_VIDEO_HEIGHT] = resolutions[j].height;
 
   this->start_time=0;
   
+  return 1;
+}
+
+static input_plugin_t *v4l_class_get_instance (input_class_t *cls_gen,
+		xine_stream_t *stream, const char *data) {
+
+  /* v4l_input_class_t  *cls = (v4l_input_class_t *) cls_gen; */
+  v4l_input_plugin_t *this;
+  char               *mrl = strdup(data);
+
+  if (strncasecmp (mrl, "v4l:", 4)) {
+    free (mrl);
+    return NULL;
+  }
+
+  this = (v4l_input_plugin_t *) xine_xmalloc (sizeof (v4l_input_plugin_t));
+
+  this->stream   = stream; 
+  this->mrl      = mrl; 
+  this->video_fd = -1;
+  pthread_mutex_init (&this->frames_lock, NULL);
+  pthread_cond_init  (&this->frame_freed, NULL);
+  
+  this->input_plugin.open              = v4l_plugin_open;
   this->input_plugin.get_capabilities  = v4l_plugin_get_capabilities;
   this->input_plugin.read              = v4l_plugin_read;
   this->input_plugin.read_block        = v4l_plugin_read_block;
@@ -533,7 +541,7 @@ static void *init_class (xine_t *xine, void *data) {
 
   this->xine   = xine;
 
-  this->input_class.open_plugin        = open_plugin;
+  this->input_class.get_instance       = v4l_class_get_instance;
   this->input_class.get_identifier     = v4l_class_get_identifier;
   this->input_class.get_description    = v4l_class_get_description;
   this->input_class.get_dir            = NULL;
@@ -550,7 +558,7 @@ static void *init_class (xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_INPUT, 11, "v4l", XINE_VERSION_CODE, NULL, init_class },
+  { PLUGIN_INPUT, 12, "v4l", XINE_VERSION_CODE, NULL, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
 

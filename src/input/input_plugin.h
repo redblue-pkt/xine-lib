@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_plugin.h,v 1.46 2003/02/28 02:51:48 storri Exp $
+ * $Id: input_plugin.h,v 1.47 2003/04/13 16:02:54 tmattern Exp $
  */
 
 #ifndef HAVE_INPUT_PLUGIN_H
@@ -29,7 +29,7 @@
 #include "buffer.h"
 #include "configfile.h"
 
-#define INPUT_PLUGIN_IFACE_VERSION   11
+#define INPUT_PLUGIN_IFACE_VERSION   12
  
 typedef struct input_class_s input_class_t ;
 typedef struct input_plugin_s input_plugin_t;
@@ -37,10 +37,11 @@ typedef struct input_plugin_s input_plugin_t;
 struct input_class_s {
 
   /*
-   * open a new instance of this plugin class
+   * create a new instance of this plugin class
+   * return NULL if the plugin does'nt handle the given mrl
    */
-  input_plugin_t* (*open_plugin) (input_class_t *this, xine_stream_t *stream, const char *mrl);
-
+  input_plugin_t* (*get_instance) (input_class_t *this, xine_stream_t *stream, const char *mrl);
+  
   /*
    * return short, human readable identifier for this plugin class
    */
@@ -78,6 +79,12 @@ struct input_class_s {
 };
 
 struct input_plugin_s {
+
+  /*
+   * open the stream
+   * return 0 if an error occured
+   */
+  int (*open) (input_plugin_t *this);
 
   /*
    * return capabilities of the current playable entity. See

@@ -39,7 +39,7 @@
  * usage: 
  *   xine pvr:<prefix_to_tmp_files>\!<prefix_to_saved_files>\!<max_page_age>
  *
- * $Id: input_pvr.c,v 1.14 2003/03/31 15:34:16 miguelfreitas Exp $
+ * $Id: input_pvr.c,v 1.15 2003/04/13 16:02:54 tmattern Exp $
  */
 
 /**************************************************************************
@@ -1208,16 +1208,22 @@ static void pvr_plugin_dispose (input_plugin_t *this_gen ) {
     this->stream->xine->clock->unregister_scr(this->stream->xine->clock, &this->scr->scr);
     this->scr->scr.exit(&this->scr->scr);
   }
-  
-  xine_event_dispose_queue (this->event_queue);
 
-  close(this->dev_fd);
+  if (this->event_queue)
+    xine_event_dispose_queue (this->event_queue);
+
+  if (this->dev_fd != -1)
+    close(this->dev_fd);
 
   pvr_finish_recording(this);
   
   free (this->mrl);
-  free (this->tmp_prefix);
-  free (this->save_prefix);
+  
+  if (this->tmp_prefix)
+    free (this->tmp_prefix);
+    
+  if (this->save_prefix)
+    free (this->save_prefix);
   
   show = xine_list_first_content (this->saved_shows);
   while (show) {
@@ -1226,38 +1232,79 @@ static void pvr_plugin_dispose (input_plugin_t *this_gen ) {
     show = xine_list_next_content (this->saved_shows);
   }
   xine_list_free(this->saved_shows);
-
-  
   free (this);
 }
 
-static input_plugin_t *open_plugin (input_class_t *cls_gen, xine_stream_t *stream, 
-				    const char *data) {
-
-  pvr_input_class_t  *cls = (pvr_input_class_t *) cls_gen;
-  pvr_input_plugin_t *this;
-  char                *mrl = strdup(data);
+static int pvr_plugin_open (input_plugin_t *this_gen ) {
+  pvr_input_plugin_t  *this = (pvr_input_plugin_t *) this_gen;
   char                *aux;
   int                  dev_fd;
   int64_t              time;
   int                  err;
   
+  aux = &this->mrl[4];
+
+  dev_fd = open (PVR_DEVICE, O_RDWR);
+  if (dev_fd == -1) {
+    printf("input_pvr: error opening device %s\n", PVR_DEVICE );
+    return 0;
+  }
+  
+  this->dev_fd       = dev_fd;
+  
+  /* register our own scr provider */   
+  time = this->stream->xine->clock->get_current_time(this->stream->xine->clock);
+  this->scr = pvrscr_init();
+  this->scr->scr.start(&this->scr->scr, time);
+  this->stream->xine->clock->register_scr(this->stream->xine->clock, &this->scr->scr);
+  this->scr_tunning = 0;
+    
+  this->event_queue = xine_event_new_queue (this->stream);
+    
+  /* enable resample method */
+  this->stream->xine->config->update_num(this->stream->xine->config,"audio.av_sync_method",1);
+    
+  this->session = 0;
+  this->rec_fd = -1;
+  this->play_fd = -1;
+  this->first_page = 0;
+  this->show_page = 0;
+  this->save_page = -1;
+  this->input = -1;
+  this->channel = -1;
+  this->pvr_playing = 1;
+  this->preview_buffers = NUM_PREVIEW_BUFFERS;
+
+  this->saved_id = 0;
+      
+  this->pvr_running = 1;
+  
+  if ((err = pthread_create (&this->pvr_thread,
+			     NULL, pvr_loop, this)) != 0) {
+    fprintf (stderr, "input_pvr: can't create new thread (%s)\n",
+	     strerror(err));
+    abort();
+  }
+  
+  return 1;
+}
+
+static input_plugin_t *pvr_class_get_instance (input_class_t *cls_gen, xine_stream_t *stream, 
+				    const char *data) {
+
+  pvr_input_class_t   *cls = (pvr_input_class_t *) cls_gen;
+  pvr_input_plugin_t  *this;
+  char                *mrl = strdup(data);
+  char                *aux;
+  
   if (strncasecmp (mrl, "pvr:", 4)) 
     return NULL;
   aux = &mrl[4];
 
-  dev_fd = open (PVR_DEVICE, O_RDWR);
-
-  if (dev_fd == -1) {
-    printf("input_pvr: error opening device %s\n", PVR_DEVICE );
-    free (mrl);
-    return NULL;
-  }
-  
   this = (pvr_input_plugin_t *) xine_xmalloc (sizeof (pvr_input_plugin_t));
   this->class        = cls;
   this->stream       = stream;
-  this->dev_fd       = dev_fd;
+  this->dev_fd       = -1;
   this->mrl          = mrl;
   this->max_page_age = 3;
 
@@ -1290,6 +1337,7 @@ static input_plugin_t *open_plugin (input_class_t *cls_gen, xine_stream_t *strea
   printf("input_pvr: max_page_age=%d\n", this->max_page_age);
 #endif
   
+  this->input_plugin.open               = pvr_plugin_open;
   this->input_plugin.get_capabilities   = pvr_plugin_get_capabilities;
   this->input_plugin.read               = pvr_plugin_read;
   this->input_plugin.read_block         = pvr_plugin_read_block;
@@ -1302,45 +1350,15 @@ static input_plugin_t *open_plugin (input_class_t *cls_gen, xine_stream_t *strea
   this->input_plugin.dispose            = pvr_plugin_dispose;
   this->input_plugin.input_class        = cls_gen;
 
-  /* register our own scr provider */   
-  time = this->stream->xine->clock->get_current_time(this->stream->xine->clock);
-  this->scr = pvrscr_init();
-  this->scr->scr.start(&this->scr->scr, time);
-  this->stream->xine->clock->register_scr(this->stream->xine->clock, &this->scr->scr);
-  this->scr_tunning = 0;
-    
-  this->event_queue = xine_event_new_queue (this->stream);
-    
-  /* enable resample method */
-  stream->xine->config->update_num(stream->xine->config,"audio.av_sync_method",1);
-    
-  this->session = 0;
-  this->rec_fd = -1;
-  this->play_fd = -1;
-  this->first_page = 0;
-  this->show_page = 0;
-  this->save_page = -1;
+  this->scr = NULL;
+  this->event_queue = NULL;
   this->save_name = NULL;
-  this->input = -1;
-  this->channel = -1;
-  this->pvr_playing = 1;
-  this->preview_buffers = NUM_PREVIEW_BUFFERS;
-
-  this->saved_id = 0;
   this->saved_shows = xine_list_new();
       
-  this->pvr_running = 1;
   pthread_mutex_init (&this->lock, NULL);
   pthread_mutex_init (&this->dev_lock, NULL);
   pthread_cond_init  (&this->has_valid_data,NULL);
   pthread_cond_init  (&this->wake_pvr,NULL);
-  
-  if ((err = pthread_create (&this->pvr_thread,
-			     NULL, pvr_loop, this)) != 0) {
-    fprintf (stderr, "input_pvr: can't create new thread (%s)\n",
-	     strerror(err));
-    abort();
-  }
   
   return &this->input_plugin;
 }
@@ -1376,7 +1394,7 @@ static void *init_plugin (xine_t *xine, void *data) {
   this->config = xine->config;
   config       = xine->config;
   
-  this->input_class.open_plugin        = open_plugin;
+  this->input_class.get_instance       = pvr_class_get_instance;
   this->input_class.get_identifier     = pvr_class_get_identifier;
   this->input_class.get_description    = pvr_class_get_description;
   this->input_class.get_dir            = NULL;
@@ -1393,7 +1411,7 @@ static void *init_plugin (xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_INPUT, 11, "pvr", XINE_VERSION_CODE, NULL, init_plugin },
+  { PLUGIN_INPUT, 12, "pvr", XINE_VERSION_CODE, NULL, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
 

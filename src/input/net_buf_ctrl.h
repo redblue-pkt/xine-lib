@@ -31,8 +31,6 @@ nbc_t *nbc_init (xine_stream_t *xine);
 
 void nbc_check_buffers (nbc_t *this);
 
-void nbc_end_of_stream (nbc_t *this);
-
 void nbc_close (nbc_t *this);
 
 void nbc_set_high_water_mark(nbc_t *this, int value);

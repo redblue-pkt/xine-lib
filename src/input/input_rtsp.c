@@ -212,46 +212,54 @@ static int rtsp_plugin_get_optional_data (input_plugin_t *this_gen,
   return INPUT_OPTIONAL_UNSUPPORTED;
 }
 
-static input_plugin_t *open_plugin (input_class_t *cls_gen, xine_stream_t *stream, 
-				    const char *data) {
+static int rtsp_plugin_open (input_plugin_t *this_gen) {
+  rtsp_input_plugin_t *this = (rtsp_input_plugin_t *) this_gen;
 
-  /* rtsp_input_class_t  *cls = (rtsp_input_class_t *) cls_gen; */
-  rtsp_input_plugin_t *this;
-  rtsp_session_t              *rtsp;
-  char               *mrl = strdup(data);
+  rtsp_session_t      *rtsp;
 
 #ifdef LOG
   printf ("input_rtsp: trying to open '%s'\n", mrl);
 #endif
+
+  rtsp = rtsp_session_start(this->mrl);
+
+  if (!rtsp) {
+#ifdef LOG
+    printf ("input_rtsp: returning null.\n");
+#endif
+    return 0;
+  }
+
+  this->rtsp = rtsp;
+  
+  return 1;
+}
+
+static input_plugin_t *rtsp_class_get_instance (input_class_t *cls_gen, xine_stream_t *stream, 
+				    const char *data) {
+
+  /* rtsp_input_class_t  *cls = (rtsp_input_class_t *) cls_gen; */
+  rtsp_input_plugin_t *this;
+  char                *mrl = strdup(data);
 
   if (strncasecmp (mrl, "rtsp://", 6)) {
     free (mrl);
     return NULL;
   }
 
-  rtsp = rtsp_session_start(mrl);
-
-  if (!rtsp) {
-    free (mrl);
-#ifdef LOG
-    printf ("input_rtsp: returning null.\n");
-#endif
-    return NULL;
-  }
-
   this = (rtsp_input_plugin_t *) xine_xmalloc (sizeof (rtsp_input_plugin_t));
 
-  this->rtsp    = rtsp;
-  this->mrl    = mrl;
+  this->rtsp    = NULL;
+  this->mrl     = mrl;
   /* since we handle only real streams yet, we can savely add
    * an .rm extention to force handling by demux_real.
    */
   this->public_mrl = xine_xmalloc (sizeof (char)*(strlen(this->mrl)+10));
   sprintf(this->public_mrl, "%s.rm", this->mrl);
   
-  this->nbc    = nbc_init (stream);
-  nbc_set_high_water_mark(this->nbc, 50);
+  this->nbc     = nbc_init (stream);
 
+  this->input_plugin.open              = rtsp_plugin_open;
   this->input_plugin.get_capabilities  = rtsp_plugin_get_capabilities;
   this->input_plugin.read              = rtsp_plugin_read;
   this->input_plugin.read_block        = rtsp_plugin_read_block;
@@ -293,7 +301,7 @@ static void *init_class (xine_t *xine, void *data) {
 
   this->xine   = xine;
 
-  this->input_class.open_plugin        = open_plugin;
+  this->input_class.get_instance       = rtsp_class_get_instance;
   this->input_class.get_identifier     = rtsp_class_get_identifier;
   this->input_class.get_description    = rtsp_class_get_description;
   this->input_class.get_dir            = NULL;
@@ -310,7 +318,7 @@ static void *init_class (xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_INPUT, 11, "rtsp", XINE_VERSION_CODE, NULL, init_class },
+  { PLUGIN_INPUT, 12, "rtsp", XINE_VERSION_CODE, NULL, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
 

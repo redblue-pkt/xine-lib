@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_vcd.c,v 1.65 2003/04/06 00:51:29 hadess Exp $
+ * $Id: input_vcd.c,v 1.66 2003/04/13 16:02:54 tmattern Exp $
  *
  */
 
@@ -797,7 +797,8 @@ static void vcd_plugin_dispose (input_plugin_t *this_gen ) {
 
   vcd_input_plugin_t *this = (vcd_input_plugin_t *) this_gen;
 
-  close(this->fd);
+  if (this->fd != -1)
+    close(this->fd);
 
   free (this->mrl);
   free (this);
@@ -815,51 +816,21 @@ static int vcd_plugin_get_optional_data (input_plugin_t *this_gen,
   return INPUT_OPTIONAL_UNSUPPORTED;
 }
 
-static input_plugin_t *open_plugin (input_class_t *cls_gen, xine_stream_t *stream, 
-				    const char *data) {
-
-  vcd_input_class_t  *cls = (vcd_input_class_t *) cls_gen; 
-  vcd_input_plugin_t *this;
-  char               *mrl = strdup(data);
+static int vcd_plugin_open (input_plugin_t *this_gen) {
+  vcd_input_plugin_t *this = (vcd_input_plugin_t *) this_gen;
+  vcd_input_class_t  *cls = this->cls;
   char               *filename;
   int                 fd;
 
-  if (strncasecmp (mrl, "vcd:/",5)) {
-    free (mrl);
-    return 0;
-  }
-    
   fd = open (cls->device, O_RDONLY);
-
   if (fd == -1) {
-    free (mrl);
     return 0;
   }
 
-  this = (vcd_input_plugin_t *) xine_xmalloc(sizeof(vcd_input_plugin_t));
-
-  this->stream = stream;
-  this->mrl    = mrl;
   this->fd     = fd;
 
-  this->input_plugin.get_capabilities  = vcd_plugin_get_capabilities;
-  this->input_plugin.read              = vcd_plugin_read;
-  this->input_plugin.read_block        = vcd_plugin_read_block;
-  this->input_plugin.seek              = vcd_plugin_seek;
-  this->input_plugin.get_current_pos   = vcd_plugin_get_current_pos;
-  this->input_plugin.get_length        = vcd_plugin_get_length;
-  this->input_plugin.get_blocksize     = vcd_plugin_get_blocksize;
-  this->input_plugin.get_mrl           = vcd_plugin_get_mrl;
-  this->input_plugin.get_optional_data = vcd_plugin_get_optional_data;
-  this->input_plugin.dispose           = vcd_plugin_dispose;
-  this->input_plugin.input_class       = cls_gen;
-  this->cls                            = cls;
-
   if (input_vcd_read_toc (this->cls, this->fd)) {
-    close (this->fd);
-    free (this);
-    free (mrl);
-    return NULL;
+    return 0;
   }
 
   filename = (char *) &this->mrl[5];
@@ -867,19 +838,13 @@ static input_plugin_t *open_plugin (input_class_t *cls_gen, xine_stream_t *strea
 
   if (sscanf (filename, "%d", &this->cur_track) != 1) {
     printf ("input_vcd: malformed MRL. Use vcd:/<track #>\n");
-    close (this->fd);
-    free (this);
-    free (mrl);
-    return NULL;
+    return 0;
   }
 
   if (this->cur_track>=this->cls->total_tracks) {
     printf ("input_vcd: invalid track %d (valid range: 0 .. %d)\n",
 	    this->cur_track, this->cls->total_tracks-1);
-    close (this->fd);
-    free (this);
-    free (mrl);
-    return NULL;
+    return 0;
   }
 
 #if defined (__linux__) || defined(__sun)
@@ -901,6 +866,40 @@ static input_plugin_t *open_plugin (input_class_t *cls_gen, xine_stream_t *strea
   }
 #endif
   
+  return 1;
+}
+
+static input_plugin_t *vcd_class_get_instance (input_class_t *cls_gen, xine_stream_t *stream, 
+				    const char *data) {
+
+  vcd_input_class_t  *cls = (vcd_input_class_t *) cls_gen; 
+  vcd_input_plugin_t *this;
+  char               *mrl = strdup(data);
+
+  if (strncasecmp (mrl, "vcd:/",5)) {
+    free (mrl);
+    return 0;
+  }
+    
+  this = (vcd_input_plugin_t *) xine_xmalloc(sizeof(vcd_input_plugin_t));
+
+  this->stream = stream;
+  this->mrl    = mrl;
+  this->fd     = -1;
+
+  this->input_plugin.open              = vcd_plugin_open;
+  this->input_plugin.get_capabilities  = vcd_plugin_get_capabilities;
+  this->input_plugin.read              = vcd_plugin_read;
+  this->input_plugin.read_block        = vcd_plugin_read_block;
+  this->input_plugin.seek              = vcd_plugin_seek;
+  this->input_plugin.get_current_pos   = vcd_plugin_get_current_pos;
+  this->input_plugin.get_length        = vcd_plugin_get_length;
+  this->input_plugin.get_blocksize     = vcd_plugin_get_blocksize;
+  this->input_plugin.get_mrl           = vcd_plugin_get_mrl;
+  this->input_plugin.get_optional_data = vcd_plugin_get_optional_data;
+  this->input_plugin.dispose           = vcd_plugin_dispose;
+  this->input_plugin.input_class       = cls_gen;
+  this->cls                            = cls;
 
   return &this->input_plugin;
 }
@@ -1071,7 +1070,7 @@ static void *init_class (xine_t *xine, void *data) {
 
   this->xine   = xine;
 
-  this->input_class.open_plugin        = open_plugin;
+  this->input_class.get_instance       = vcd_class_get_instance;
   this->input_class.get_identifier     = vcd_class_get_identifier;
   this->input_class.get_description    = vcd_class_get_description;
   this->input_class.get_dir            = vcd_class_get_dir;
@@ -1099,6 +1098,6 @@ static void *init_class (xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_INPUT, 11, "VCD", XINE_VERSION_CODE, NULL, init_class },
+  { PLUGIN_INPUT, 12, "VCD", XINE_VERSION_CODE, NULL, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

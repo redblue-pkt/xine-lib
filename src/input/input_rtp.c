@@ -113,6 +113,8 @@ typedef struct {
   char             *mrl;
   config_values_t  *config;
 
+  char             *filename;
+  int               port;
   int               is_rtp;
   
   int               fh;
@@ -135,6 +137,7 @@ typedef struct {
   pthread_t         reader_thread;
 
   int               curpos;
+  int               rtp_running;
 
 } rtp_input_plugin_t;
 
@@ -156,11 +159,11 @@ typedef struct {
  *
  */
 static int host_connect_attempt(struct in_addr ia, int port, xine_t *xine) {
-  int    s=socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP);
+  int s=socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP);
   struct sockaddr_in sin;
   int optval;
   
-  if(s==-1) {
+  if(s == -1) {
     LOG_MSG_STDERR(xine, _("socket(): %s.\n"), strerror(errno));
     return -1;
   }
@@ -174,14 +177,15 @@ static int host_connect_attempt(struct in_addr ia, int port, xine_t *xine) {
   if ((setsockopt(s, SOL_SOCKET, SO_RCVBUF,
 		  &optval, sizeof(optval))) < 0) {
     LOG_MSG_STDERR(xine, _("setsockopt(SO_RCVBUF): %s.\n"), strerror(errno));
-    abort();
+    return -1;
   }
   
   /* datagram socket */
   if (bind(s, (struct sockaddr *)&sin, sizeof(sin))) {
     LOG_MSG_STDERR(xine, _("bind(): %s.\n"), strerror(errno));
-    abort();
+    return -1;
   }
+  
   /* multicast ? */
   if ((ntohl(sin.sin_addr.s_addr) >> 28) == 0xe) {
 #ifdef HAVE_IP_MREQN
@@ -199,7 +203,7 @@ static int host_connect_attempt(struct in_addr ia, int port, xine_t *xine) {
     if (setsockopt(s, IPPROTO_IP, IP_ADD_MEMBERSHIP,&mreqn,sizeof(mreqn))) {
       LOG_MSG_STDERR(xine, _("setsockopt(IP_ADD_MEMBERSHIP) failed (multicast kernel?): %s.\n"),
 		     strerror(errno));
-      abort();
+      return -1;
     }
   }
   
@@ -529,64 +533,30 @@ static int rtp_plugin_get_optional_data (input_plugin_t *this_gen,
 static void rtp_plugin_dispose (input_plugin_t *this_gen ) {
   rtp_input_plugin_t *this = (rtp_input_plugin_t *) this_gen;
   
-  LOG_MSG(this->stream->xine, _("RTP: stopping reading thread...\n"));
   
-  pthread_cancel(this->reader_thread);
-  pthread_join(this->reader_thread, NULL);
+  if (this->rtp_running) {
+    LOG_MSG(this->stream->xine, _("RTP: stopping reading thread...\n"));
+    pthread_cancel(this->reader_thread);
+    pthread_join(this->reader_thread, NULL);
+    LOG_MSG(this->stream->xine, _("RTP: reading thread terminated\n"));
+  }
+  
+  
+  if (this->fh != -1)
+    close(this->fh);
 
-  LOG_MSG(this->stream->xine, _("RTP: reading thread terminated\n"));
-  
-  close(this->fh);
   free(this->buffer);
   free(this->mrl);
   free(this);
 }
 
-static input_plugin_t *rtp_plugin_open (input_class_t *cls_gen,
-					xine_stream_t *stream,
-					const char *mrl) {
-  rtp_input_plugin_t *this;
-  const char         *filename = NULL;
-  char               *pptr;
-  int                 port = 7658;
+static int rtp_plugin_open (input_plugin_t *this_gen ) {
+  rtp_input_plugin_t *this = (rtp_input_plugin_t *) this_gen;
   int                 err;
-  int                 is_rtp = 0;
 
-  if (!strncasecmp (mrl, "rtp://", 6)) {
-    filename = &mrl[6];
-    is_rtp = 1;
-  }
-  else if (!strncasecmp (mrl, "udp://", 6)) {
-    filename = &mrl[6];
-    is_rtp = 0;
-  }
+  LOG_MSG(this->stream->xine, _("Opening >%s<\n"), this->filename);
   
-  if (filename == NULL || strlen(filename) == 0)
-    return NULL;
-  
-  this = (rtp_input_plugin_t *) malloc(sizeof(rtp_input_plugin_t));
-  this->stream = stream;
-
-  this->mrl = strdup(mrl);
-  this->is_rtp = is_rtp;
-
-  pthread_mutex_init(&this->buffer_mutex, NULL);
-  pthread_cond_init(&this->buffer_notempty, NULL);
-  pthread_cond_init(&this->buffer_empty, NULL);
-
-  this->buffer = malloc(BUFFER_SIZE);
-  this->buffer_start = 0;
-  this->buffer_length = 0;
-  
-  LOG_MSG(this->stream->xine, _("Opening >%s<\n"), filename);
-  
-  pptr=strrchr(filename, ':');
-  if(pptr) {
-       *pptr++ = 0;
-       sscanf(pptr,"%d", &port);
-  }
-
-  this->fh = host_connect(filename, port, this->stream->xine);
+  this->fh = host_connect(this->filename, this->port, this->stream->xine);
 
   if (this->fh == -1) {
        return 0;
@@ -595,6 +565,7 @@ static input_plugin_t *rtp_plugin_open (input_class_t *cls_gen,
   this->last_input_error = 0;
   this->input_eof = 0;
   this->curpos = 0;
+  this->rtp_running = 1;
 
   if ((err = pthread_create(&this->reader_thread, NULL, 
 		            input_plugin_read_loop, (void *)this)) != 0) {
@@ -607,6 +578,61 @@ static input_plugin_t *rtp_plugin_open (input_class_t *cls_gen,
   this->preview_timeout.tv_sec = time(NULL) + 5;
   this->preview_timeout.tv_nsec = 0;
     
+  return 1;
+}
+
+static input_plugin_t *rtp_class_get_instance (input_class_t *cls_gen,
+					xine_stream_t *stream,
+					const char *data) {
+  rtp_input_plugin_t *this;
+  char               *filename = NULL;
+  char               *pptr;
+  char               *mrl;
+  int                 is_rtp = 0;
+  int                 port = 7658;
+
+  mrl = strdup(data);
+  if (!strncasecmp (mrl, "rtp://", 6)) {
+    filename = &mrl[6];
+    is_rtp = 1;
+  }
+  else if (!strncasecmp (mrl, "udp://", 6)) {
+    filename = &mrl[6];
+    is_rtp = 0;
+  }
+  
+  if (filename == NULL || strlen(filename) == 0) {
+    free(mrl);
+    return NULL;
+  }
+  
+  pptr=strrchr(filename, ':');
+  if (pptr) {
+    *pptr++ = 0;
+    sscanf(pptr,"%d", &port);
+  }
+  
+  this = (rtp_input_plugin_t *) malloc(sizeof(rtp_input_plugin_t));
+  this->stream      = stream;
+  this->mrl         = mrl;
+  this->filename    = filename;
+  this->port        = port;
+  this->is_rtp      = is_rtp;
+  this->fh          = -1;
+  this->rtp_running = 0;
+
+  pthread_mutex_init(&this->buffer_mutex, NULL);
+  pthread_cond_init(&this->buffer_notempty, NULL);
+  pthread_cond_init(&this->buffer_empty, NULL);
+
+  this->buffer = malloc(BUFFER_SIZE);
+  this->buffer_start = 0;
+  this->buffer_length = 0;
+  
+  this->preview_timeout.tv_sec = time(NULL) + 5;
+  this->preview_timeout.tv_nsec = 0;
+    
+  this->input_plugin.open              = rtp_plugin_open;
   this->input_plugin.get_capabilities  = rtp_plugin_get_capabilities;
   this->input_plugin.read              = rtp_plugin_read;
   this->input_plugin.read_block        = NULL;
@@ -619,7 +645,7 @@ static input_plugin_t *rtp_plugin_open (input_class_t *cls_gen,
   this->input_plugin.dispose           = rtp_plugin_dispose;
   this->input_plugin.input_class       = cls_gen;
   
-  return (input_plugin_t *) this;
+  return &this->input_plugin;
 }
 
 
@@ -649,7 +675,7 @@ static void *init_class (xine_t *xine, void *data) {
   this->config = xine->config;
   this->xine   = xine;
 
-  this->input_class.open_plugin       = rtp_plugin_open;
+  this->input_class.get_instance      = rtp_class_get_instance;
   this->input_class.get_description   = rtp_class_get_description;
   this->input_class.get_identifier    = rtp_class_get_identifier;
   this->input_class.get_dir           = NULL;
@@ -667,7 +693,7 @@ static void *init_class (xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_INPUT, 11, "rtp", XINE_VERSION_CODE, NULL, init_class },
+  { PLUGIN_INPUT, 12, "rtp", XINE_VERSION_CODE, NULL, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
 

@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.151 2003/04/08 17:51:58 guenter Exp $
+ * $Id: input_dvd.c,v 1.152 2003/04/13 16:02:53 tmattern Exp $
  *
  */
 
@@ -366,11 +366,18 @@ static void dvd_plugin_dispose (input_plugin_t *this_gen) {
   
   trace_print("Called\n");
   
-  xine_event_dispose_queue (this->event_queue);
-  dvdnav_close(this->dvdnav);
-  /* raise the freeing flag, so that the plugin will be freed as soon
-   * as all buffers have returned to the libdvdnav read ahead cache */
-  this->freeing = 1;
+  if (this->event_queue)
+    xine_event_dispose_queue (this->event_queue);
+   
+  if (this->dvdnav) {
+    dvdnav_close(this->dvdnav);
+    /* raise the freeing flag, so that the plugin will be freed as soon
+     * as all buffers have returned to the libdvdnav read ahead cache */
+    this->freeing = 1;
+  } else {
+    pthread_mutex_destroy(&this->buf_mutex);
+    free(this);
+  }
 }
 
 
@@ -1185,78 +1192,20 @@ check_solaris_vold_device(dvd_input_class_t *this)
 }
 #endif
 
-/* dvdnav CLASS functions */
-
-/*
- * Opens the DVD plugin. The MRL takes the following form:
- *
- * dvd:[dvd_path]/[vts[.program]]
- *
- * e.g.
- *   dvd:/                    - Play (navigate)
- *   dvd:/1                   - Play Title 1
- *   dvd:/1.3                 - Play Title 1, program 3
- *   dvd:/dev/dvd2/           - Play (navigate) from /dev/dvd2
- *   dvd:/dev/dvd2/1.3        - Play Title 1, program 3 from /dev/dvd2
- */
-static input_plugin_t *open_plugin (input_class_t *class_gen, xine_stream_t *stream, const char *data) {
-  dvd_input_plugin_t    *this;
-  dvd_input_class_t     *class = (dvd_input_class_t*)class_gen;
+static int dvd_plugin_open (input_plugin_t *this_gen) {
+  dvd_input_plugin_t    *this = (dvd_input_plugin_t*)this_gen;
+  dvd_input_class_t     *class = (dvd_input_class_t*)this_gen->input_class;
+  
   char                  *locator;
   int                    last_slash = 0;
   dvdnav_status_t        ret;
   char                  *intended_dvd_device;
-  xine_cfg_entry_t      region_entry, lang_entry, cache_entry;
   xine_event_t           event;
-  static char *handled_mrl = "dvd:/";
-
+  static char           *handled_mrl = "dvd:/";
+  xine_cfg_entry_t       region_entry, lang_entry, cache_entry;
+  
   trace_print("Called\n");
 
-  /* Check we can handle this MRL */
-  if (strncasecmp (data, handled_mrl, strlen(handled_mrl) ) != 0)
-    return NULL;
-
-  this = (dvd_input_plugin_t *) xine_xmalloc (sizeof (dvd_input_plugin_t));
-  if (this == NULL) {
-    XINE_ASSERT(0, "input_dvd.c: xine_xmalloc failed!!!! You have run out of memory\n");
-  }
-
-  this->input_plugin.get_capabilities   = dvd_plugin_get_capabilities;
-  this->input_plugin.read               = dvd_plugin_read;
-  this->input_plugin.read_block         = dvd_plugin_read_block;
-  this->input_plugin.seek               = dvd_plugin_seek;
-  this->input_plugin.get_current_pos    = dvd_plugin_get_current_pos;
-  this->input_plugin.get_length         = dvd_plugin_get_length;
-  this->input_plugin.get_blocksize      = dvd_plugin_get_blocksize;
-  this->input_plugin.get_mrl            = dvd_plugin_get_mrl;
-  this->input_plugin.get_optional_data  = dvd_plugin_get_optional_data;
-  this->input_plugin.dispose            = dvd_plugin_dispose;
-  this->input_plugin.input_class        = class_gen;
-
-  this->stream = stream;
-  this->stream->stream_info[XINE_STREAM_INFO_VIDEO_HAS_STILL] = 1;
-
-  this->dvdnav                 = NULL;
-  this->opened                 = 0;
-  this->seekable               = 0;
-  this->buttonN                = 0;
-  this->typed_buttonN          = 0;
-  this->pause_timer            = 0;
-  this->pg_length              = 0;
-  this->pgc_length             = 0;
-  this->dvd_name               = NULL;
-  this->mrl                    = strdup(data);
-/*
-  this->mrls                   = NULL;
-  this->num_mrls               = 0;
-*/
-
-  pthread_mutex_init(&this->buf_mutex, NULL);
-  this->mem_stack              = 0;
-  this->freeing                = 0;
-  
-  this->event_queue = xine_event_new_queue (this->stream);
-  
   /* we already checked the "dvd:/" MRL above */
   locator = &this->mrl[strlen(handled_mrl)];
   while (*locator == '/') locator++;
@@ -1317,10 +1266,7 @@ static input_plugin_t *open_plugin (input_class_t *class_gen, xine_stream_t *str
   }
   
   dvdnav_get_title_string(this->dvdnav, &this->dvd_name);
-
-  /* config callbacks may react now */
-  class->ip = this;
-
+  
   /* Set region code */
   if (xine_config_lookup_entry (this->stream->xine, "input.dvd_region", 
 				&region_entry)) 
@@ -1341,6 +1287,7 @@ static input_plugin_t *open_plugin (input_class_t *class_gen, xine_stream_t *str
 			       &cache_entry))
     seek_mode_cb(class, &cache_entry);
   
+
   if(this->mode == MODE_TITLE) {
     int tt, i, pr, found;
     int titles, parts;
@@ -1401,6 +1348,83 @@ static input_plugin_t *open_plugin (input_class_t *class_gen, xine_stream_t *str
 
   update_title_display(this);
   
+  return 1;
+}
+
+/* dvdnav CLASS functions */
+
+/*
+ * Opens the DVD plugin. The MRL takes the following form:
+ *
+ * dvd:[dvd_path]/[vts[.program]]
+ *
+ * e.g.
+ *   dvd:/                    - Play (navigate)
+ *   dvd:/1                   - Play Title 1
+ *   dvd:/1.3                 - Play Title 1, program 3
+ *   dvd:/dev/dvd2/           - Play (navigate) from /dev/dvd2
+ *   dvd:/dev/dvd2/1.3        - Play Title 1, program 3 from /dev/dvd2
+ */
+static input_plugin_t *dvd_class_get_instance (input_class_t *class_gen, xine_stream_t *stream, const char *data) {
+  dvd_input_plugin_t    *this;
+  dvd_input_class_t     *class = (dvd_input_class_t*)class_gen;
+  static char *handled_mrl = "dvd:/";
+
+  trace_print("Called\n");
+  
+  /* Check we can handle this MRL */
+  if (strncasecmp (data, handled_mrl, strlen(handled_mrl) ) != 0)
+    return NULL;
+
+  this = (dvd_input_plugin_t *) xine_xmalloc (sizeof (dvd_input_plugin_t));
+  if (this == NULL) {
+    XINE_ASSERT(0, "input_dvd.c: xine_xmalloc failed!!!! You have run out of memory\n");
+  }
+
+  this->input_plugin.open               = dvd_plugin_open;
+  this->input_plugin.get_capabilities   = dvd_plugin_get_capabilities;
+  this->input_plugin.read               = dvd_plugin_read;
+  this->input_plugin.read_block         = dvd_plugin_read_block;
+  this->input_plugin.seek               = dvd_plugin_seek;
+  this->input_plugin.get_current_pos    = dvd_plugin_get_current_pos;
+  this->input_plugin.get_length         = dvd_plugin_get_length;
+  this->input_plugin.get_blocksize      = dvd_plugin_get_blocksize;
+  this->input_plugin.get_mrl            = dvd_plugin_get_mrl;
+  this->input_plugin.get_optional_data  = dvd_plugin_get_optional_data;
+  this->input_plugin.dispose            = dvd_plugin_dispose;
+  this->input_plugin.input_class        = class_gen;
+
+  this->stream = stream;
+  this->stream->stream_info[XINE_STREAM_INFO_VIDEO_HAS_STILL] = 1;
+
+  this->dvdnav                 = NULL;
+  this->opened                 = 0;
+  this->seekable               = 0;
+  this->buttonN                = 0;
+  this->typed_buttonN          = 0;
+  this->pause_timer            = 0;
+  this->pg_length              = 0;
+  this->pgc_length             = 0;
+  this->dvd_name               = NULL;
+  this->mrl                    = strdup(data);
+/*
+  this->mrls                   = NULL;
+  this->num_mrls               = 0;
+*/
+
+printf("dvd_class_get_instance2\n");
+  pthread_mutex_init(&this->buf_mutex, NULL);
+  this->mem_stack              = 0;
+  this->freeing                = 0;
+  
+printf("dvd_class_get_instance21\n");
+  this->event_queue = xine_event_new_queue (this->stream);
+printf("dvd_class_get_instance22\n");
+  
+  /* config callbacks may react now */
+  class->ip = this;
+
+printf("dvd_class_get_instance3\n");
   return &this->input_plugin;
 }
 
@@ -1476,7 +1500,7 @@ static void *init_class (xine_t *xine, void *data) {
 
   this = (dvd_input_class_t *) malloc (sizeof (dvd_input_class_t));
   
-  this->input_class.open_plugin        = open_plugin;
+  this->input_class.get_instance       = dvd_class_get_instance;
   this->input_class.get_identifier     = dvd_class_get_identifier;
   this->input_class.get_description    = dvd_class_get_description;
 /*
@@ -1580,6 +1604,12 @@ static void *init_class (xine_t *xine, void *data) {
 
 /*
  * $Log: input_dvd.c,v $
+ * Revision 1.152  2003/04/13 16:02:53  tmattern
+ * Input plugin api change:
+ * old open() function replaced by :
+ *   *_class_get_instance() : return an instance if the plugin handles the mrl
+ *   *_plugin_open() : open the stream
+ *
  * Revision 1.151  2003/04/08 17:51:58  guenter
  * beta10
  *
@@ -1990,6 +2020,6 @@ static void *init_class (xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_INPUT, 11, "DVD", XINE_VERSION_CODE, NULL, init_class },
+  { PLUGIN_INPUT, 12, "DVD", XINE_VERSION_CODE, NULL, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

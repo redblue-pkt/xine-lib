@@ -1,6 +1,6 @@
-/* 
+/*
  * Copyright (C) 2000-2002 the xine project
- * 
+ *
  * This file is part of xine, a free video player.
  * 
  * xine is free software; you can redistribute it and/or modify
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_stdin_fifo.c,v 1.46 2003/03/20 23:26:11 miguelfreitas Exp $
+ * $Id: input_stdin_fifo.c,v 1.47 2003/04/13 16:02:54 tmattern Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -45,7 +45,7 @@ typedef struct {
   input_plugin_t   input_plugin;
 
   xine_stream_t   *stream;
-  
+
   int              fh;
   char            *mrl;
   off_t            curpos;
@@ -54,7 +54,7 @@ typedef struct {
   off_t            preview_size;
   off_t            preview_pos;
 
-  nbc_t           *nbc; 
+  nbc_t           *nbc;
 
   char             scratch[1025];
 
@@ -109,8 +109,8 @@ static off_t stdin_plugin_read (input_plugin_t *this_gen,
         FD_ZERO (&rset);
         FD_SET  (this->fh, &rset);
 
-        timeout.tv_sec  = 0;
-        timeout.tv_usec = 10000;
+        timeout.tv_sec  = 30;
+        timeout.tv_usec = 0;
       
         if (select (this->fh+1, &rset, NULL, NULL, &timeout) <= 0) {
           nbc_check_buffers (this->nbc);
@@ -272,7 +272,7 @@ static void stdin_plugin_dispose (input_plugin_t *this_gen ) {
   if (this->nbc) 
     nbc_close (this->nbc);
 
-  if (this->fh != STDIN_FILENO)
+  if ((this->fh != STDIN_FILENO) && (this->fh != -1))
     close(this->fh);
   
   free (this->mrl);
@@ -295,8 +295,53 @@ static int stdin_plugin_get_optional_data (input_plugin_t *this_gen,
   return INPUT_OPTIONAL_UNSUPPORTED;
 }
 
+static int stdin_plugin_open (input_plugin_t *this_gen ) {
+  stdin_input_plugin_t *this = (stdin_input_plugin_t *) this_gen;
 
-static input_plugin_t *open_plugin (input_class_t *cls_gen, xine_stream_t *stream, 
+#ifdef LOG
+  printf ("input_stdin_fifo: trying to open '%s'...\n",
+	  mrl);
+#endif
+
+  if (this->fh == -1) {
+    char *filename;
+
+    filename = (char *) &this->mrl[5];
+    this->fh = open (filename, O_RDONLY);
+
+#ifdef LOG
+    printf("input_stdin_fifo: filename '%s'\n", filename);
+#endif
+
+    if (this->fh == -1) {
+      printf ("stdin: failed to open '%s'\n",
+	      filename);
+      return 0;
+    }
+  }
+
+
+  /*
+   * mrl accepted and opened successfully at this point
+   *
+   * => create plugin instance
+   */
+
+  this->curpos          = 0;
+
+  /*
+   * fill preview buffer
+   */
+
+  this->preview_size = stdin_plugin_read (&this->input_plugin, this->preview,
+					  MAX_PREVIEW_SIZE);
+  this->preview_pos  = 0;
+
+  return 1;
+}
+
+
+static input_plugin_t *stdin_class_get_instance (input_class_t *cls_gen, xine_stream_t *stream,
 				    const char *data) {
 
   /* stdin_input_class_t  *cls = (stdin_input_class_t *) cls_gen; */
@@ -305,12 +350,7 @@ static input_plugin_t *open_plugin (input_class_t *cls_gen, xine_stream_t *strea
   int                   fh;
 
 
-#ifdef LOG
-  printf ("input_stdin_fifo: trying to open '%s'...\n",
-	  mrl);
-#endif
-
-  if (!strncasecmp(mrl, "stdin:/", 7) 
+  if (!strncasecmp(mrl, "stdin:/", 7)
       || !strncmp(mrl, "-", 1)) {
 
     fh = STDIN_FILENO;
@@ -319,24 +359,17 @@ static input_plugin_t *open_plugin (input_class_t *cls_gen, xine_stream_t *strea
     char *filename;
 
     filename = (char *) &mrl[5];
-    
-    fh = open (filename, O_RDONLY);
-
+    fh = -1;
+#ifdef LOG
     printf("input_stdin_fifo: filename '%s'\n", filename);
-  
-    if (fh == -1) {
-      printf ("stdin: failed to open '%s'\n",
-	      filename);
-      free (mrl);
-      return NULL;
-    }
+#endif
   } else {
     free (mrl);
     return NULL;
   }
-  
 
-  /* 
+
+  /*
    * mrl accepted and opened successfully at this point
    *
    * => create plugin instance
@@ -345,7 +378,11 @@ static input_plugin_t *open_plugin (input_class_t *cls_gen, xine_stream_t *strea
   this       = (stdin_input_plugin_t *) xine_xmalloc(sizeof(stdin_input_plugin_t));
 
   this->stream = stream;
+  this->curpos = 0;
+  this->mrl    = mrl;
+  this->fh     = fh;
 
+  this->input_plugin.open              = stdin_plugin_open;
   this->input_plugin.get_capabilities  = stdin_plugin_get_capabilities;
   this->input_plugin.read              = stdin_plugin_read;
   this->input_plugin.read_block        = stdin_plugin_read_block;
@@ -358,23 +395,10 @@ static input_plugin_t *open_plugin (input_class_t *cls_gen, xine_stream_t *strea
   this->input_plugin.get_optional_data = stdin_plugin_get_optional_data;
   this->input_plugin.input_class       = cls_gen;
 
-  this->curpos          = 0;
-  this->mrl             = mrl;
-  this->fh              = fh;
-
   /*
    * buffering control
    */
-
   this->nbc    = nbc_init (this->stream);
-
-  /*
-   * fill preview buffer
-   */
-
-  this->preview_size = stdin_plugin_read (&this->input_plugin, this->preview,
-					  MAX_PREVIEW_SIZE);
-  this->preview_pos  = 0;
 
   return &this->input_plugin;
 }
@@ -401,11 +425,12 @@ static void *init_class (xine_t *xine, void *data) {
 
   stdin_input_class_t  *this;
 
+  printf ("input_stdin_fifo: init_class\n");
   this = (stdin_input_class_t *) xine_xmalloc (sizeof (stdin_input_class_t));
 
   this->xine   = xine;
 
-  this->input_class.open_plugin        = open_plugin;
+  this->input_class.get_instance       = stdin_class_get_instance;
   this->input_class.get_identifier     = stdin_class_get_identifier;
   this->input_class.get_description    = stdin_class_get_description;
   this->input_class.get_dir            = NULL;
@@ -421,7 +446,7 @@ static void *init_class (xine_t *xine, void *data) {
  */
 
 plugin_info_t xine_plugin_info[] = {
-  /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_INPUT, 11, "stdin", XINE_VERSION_CODE, NULL, init_class },
+  /* type, API, "name", version, special_info, init_function */
+  { PLUGIN_INPUT, 12, "stdin", XINE_VERSION_CODE, NULL, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
