@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_oss_out.c,v 1.105 2004/04/26 17:57:08 mroi Exp $
+ * $Id: audio_oss_out.c,v 1.106 2004/04/26 18:01:06 mroi Exp $
  *
  * 20-8-2001 First implementation of Audio sync and Audio driver separation.
  * Copyright (C) 2001 James Courtier-Dutton James@superbug.demon.co.uk
@@ -1043,7 +1043,6 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
       this->mixer.name = (char *)malloc(1);
       this->mixer.name[0] = '\0';
     }
-    printf("DEBUG: mixer name %s\n", this->mixer.name);
     _x_assert(this->mixer.name[0] != '\0');
     
     mixer_fd = open(this->mixer.name, O_RDONLY);
