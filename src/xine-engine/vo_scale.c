@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: vo_scale.c,v 1.30 2004/01/18 18:17:55 mroi Exp $
+ * $Id: vo_scale.c,v 1.31 2004/05/11 02:21:16 miguelfreitas Exp $
  * 
  * Contains common code to calculate video scaling parameters.
  * In short, it will map frame dimensions to screen/window size.
@@ -168,6 +168,21 @@ void _x_vo_scale_compute_output_size (vo_scale_t *this) {
       this->displayed_height = this->delivered_height;
     }
   }  
+  
+  /* make sure displayed values are sane, that is, we are not trying to display
+   * something outside the delivered image. may happen when zoom < 100%.
+   */
+  if( this->displayed_width > this->delivered_width ) {
+    this->output_width = (double) this->output_width * 
+                         this->delivered_width / this->displayed_width + 0.5;
+    this->displayed_width = this->delivered_width;
+  }
+  if( this->displayed_height > this->delivered_height ) {
+    this->output_height = (double) this->output_height * 
+                          this->delivered_height / this->displayed_height + 0.5;
+    this->displayed_height = this->delivered_height;
+  }
+  
   this->output_xoffset =
     (this->gui_width - this->output_width) * this->output_horizontal_position + this->gui_x;
   this->output_yoffset =
@@ -206,7 +221,7 @@ void _x_vo_scale_compute_output_size (vo_scale_t *this) {
     this->border[2].w = this->output_xoffset;
     this->border[2].h = this->gui_height;
     /* right */
-    this->border[3].x = this->output_xoffset + this->output_width;;
+    this->border[3].x = this->output_xoffset + this->output_width;
     this->border[3].y = 0;
     this->border[3].w = this->gui_width - this->border[3].x;
     this->border[3].h = this->gui_height;
