@@ -159,8 +159,12 @@ static void *demux_loop (void *stream_gen) {
 
       /* someone may want to interrupt us */
       pthread_mutex_unlock( &stream->demux_lock );
-      if( stream->demux_action_pending )
+      if( stream->demux_action_pending ) {
+#ifdef LOG
+        printf ("demux: sched_yield\n");
+#endif
         sched_yield();
+      }
       pthread_mutex_lock( &stream->demux_lock );
     }
 
@@ -253,5 +257,15 @@ int xine_demux_stop_thread (xine_stream_t *stream) {
   
   pthread_mutex_unlock (&stream->counter_lock);
     
+  /*
+   * Wake up xine_play if it's waiting for a frame
+   */
+  pthread_mutex_lock (&stream->first_frame_lock);
+  if (stream->first_frame_flag) {
+    stream->first_frame_flag = 0;
+    pthread_cond_signal(&stream->first_frame_reached);
+  }
+  pthread_mutex_unlock (&stream->first_frame_lock);
+  
   return 0;
 }
