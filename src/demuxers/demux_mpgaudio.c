@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpgaudio.c,v 1.112 2003/10/04 17:24:10 tmattern Exp $
+ * $Id: demux_mpgaudio.c,v 1.113 2003/10/05 15:03:30 tmattern Exp $
  *
  * demultiplexer for mpeg audio (i.e. mp3) streams
  *
@@ -51,7 +51,7 @@
 #include "group_audio.h"
 
 #define NUM_PREVIEW_BUFFERS  10
-#define SNIFF_BUFFER_LENGTH 1024
+#define SNIFF_BUFFER_LENGTH  1024
 
 #define WRAP_THRESHOLD       120000
 
@@ -559,12 +559,12 @@ static void read_id3_tags (demux_mpgaudio_t *this) {
   }
 }
 
-static int id3v2_parse_header(demux_mpgaudio_t *this, uint8_t *mp3_frame_header,
+static int id3v2_parse_header(input_plugin_t *input, uint8_t *mp3_frame_header,
                               id3v2_header_t *tag_header) {
   uint8_t buf[6];
 
   tag_header->id = BE_32(mp3_frame_header);
-  if (this->input->read (this->input, buf, 6) == 6) {
+  if (input->read (input, buf, 6) == 6) {
     tag_header->revision = buf[0];
     tag_header->flags    = buf[1];
 
@@ -579,11 +579,11 @@ static int id3v2_parse_header(demux_mpgaudio_t *this, uint8_t *mp3_frame_header,
   }
 }
 
-static int id3v22_parse_frame_header(demux_mpgaudio_t *this,
+static int id3v22_parse_frame_header(input_plugin_t *input,
                                      id3v22_frame_header_t *frame_header) {
   uint8_t buf[6];
 
-  if (this->input->read (this->input, buf, 6) == 6) {
+  if (input->read (input, buf, 6) == 6) {
     frame_header->id    = (buf[0] << 16) + (buf[1] << 8) + buf[2];
 
     /* only 7 bits per byte */
@@ -661,7 +661,7 @@ static int id3v22_parse_tag(demux_mpgaudio_t *this, int8_t *mp3_frame_header) {
   id3v22_frame_header_t tag_frame_header;
   int pos = 0;
 
-  if (id3v2_parse_header(this, mp3_frame_header, &tag_header)) {
+  if (id3v2_parse_header(this->input, mp3_frame_header, &tag_header)) {
 
     if (tag_header.flags & ID3V2_COMPRESS_FLAG) {
       /* compressed tag ? just skip it */
@@ -669,7 +669,7 @@ static int id3v22_parse_tag(demux_mpgaudio_t *this, int8_t *mp3_frame_header) {
     } else {
 
       while ((pos + 6) < tag_header.size) {
-        if (id3v22_parse_frame_header(this, &tag_frame_header)) {
+        if (id3v22_parse_frame_header(this->input, &tag_frame_header)) {
           pos += 6;
           if (tag_frame_header.id && tag_frame_header.size) {
             if ((pos + tag_frame_header.size) < tag_header.size) {
@@ -1002,6 +1002,8 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
                                     input_plugin_t *input) {
 
   demux_mpgaudio_t *this;
+  id3v2_header_t    tag_header;
+  mpg_audio_frame_t frame;
   uint8_t           buf[MAX_PREVIEW_SIZE];
   uint8_t          *riff_check;
   int               i;
@@ -1069,17 +1071,31 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
       if (!ok)
         return NULL;
 
-#if 0
-    /* flac files can contain id3v2 tags */
-    } else if (head == ID3V22_TAG) {
-      lprintf("id3v2.2 tag detected (but not parsed)\n");
-    } else if (head == ID3V23_TAG) {
-      lprintf("id3v2.3 tag detected (but not parsed)\n");
-    } else if (head == ID3V24_TAG) {
-      lprintf("id3v2.4 tag detected (but not parsed)\n");
-#endif
+    } else if ((head == ID3V22_TAG) ||
+               (head == ID3V23_TAG) ||
+               (head == ID3V24_TAG)) {
+      /* check if a mp3 frame follows the tag
+       * id3v2 are not specific to mp3 files,
+       * flac files can contain id3v2 tags
+       */
+      ptr = buf + 4;
+      tag_header.size = (ptr[2] << 21) + (ptr[3] << 14) + (ptr[4] << 7) + ptr[5];
+      lprintf("id3v2.%d tag detected, size: %d\n", buf[3], tag_header.size);
+
+      ptr += tag_header.size + 6;
+      if ((ptr + 4) <= (buf + MAX_PREVIEW_SIZE)) {
+        if (!mpg123_parse_frame_header(&frame, ptr)) {
+          lprintf ("invalid mp3 frame header\n");
+          return NULL;
+        }
+        lprintf ("a valid mp3 frame follows the id3 tag\n");
+      } else {
+        lprintf ("the id3v2 tag is too long\n");
+        return NULL;
+      }
+
     } else if (!sniff_buffer_looks_like_mp3 (input)) {
-      lprintf ("head_check failed\n");
+      lprintf ("sniff_buffer_looks_like_mp3 failed\n");
       return NULL;
     }
   }
