@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_plugin.h,v 1.13 2004/05/16 17:58:16 tmattern Exp $
+ * $Id: xine_plugin.h,v 1.14 2004/06/08 20:44:27 mroi Exp $
  *
  * generic plugin definitions
  *
@@ -39,9 +39,14 @@
 /* this flag may be or'ed with type in order to force preloading the plugin.
  * very useful to register config items on xine initialization.
  */
-#define PLUGIN_MUST_PRELOAD   128 
+#define PLUGIN_MUST_PRELOAD   (1 << 7)
 
-#define PLUGIN_TYPE_MASK      127
+/* this flag may be or'ed with type to prevent the plugin loader from unloading
+ * the plugin
+ */
+#define PLUGIN_NO_UNLOAD      (1 << 8)
+
+#define PLUGIN_TYPE_MASK      ((1 << 7) - 1)
 
 typedef struct {
   uint8_t                  type;                    /* one of the PLUGIN_* constants above     */

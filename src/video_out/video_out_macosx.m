@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_macosx.m,v 1.1 2004/06/05 16:06:13 jcdutton Exp $
+ * $Id: video_out_macosx.m,v 1.2 2004/06/08 20:44:27 mroi Exp $
  *
  * This output driver makes use of xine's objective-c video_output 
  * classes located in the macosx folder.
@@ -342,14 +342,9 @@ static vo_info_t vo_info_macosx = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_VIDEO_OUT, 19, "macosx", XINE_VERSION_CODE, &vo_info_macosx, init_class },
+  /* work around the problem that dlclose() is not allowed to
+   * get rid of an image module which contains objective C code and simply
+   * crashes with a Trace/BPT trap when we try to do so */
+  { PLUGIN_VIDEO_OUT | PLUGIN_NO_UNLOAD, 19, "macosx", XINE_VERSION_CODE, &vo_info_macosx, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
-
-/* Dirty hack to get around the problem that dlclose() is not allowed to
- * get rid of an image module which contains objective C code and simply
- * crashes with a Trace/BPT trap when we try to do so.
- * If this symbol if found in the library, dlclose() will be omitted.
- */
-int plugin_contains_objc_code = 1;
-

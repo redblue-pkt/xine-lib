@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.177 2004/06/05 16:06:13 jcdutton Exp $
+ * $Id: load_plugins.c,v 1.178 2004/06/08 20:44:27 mroi Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -511,6 +511,7 @@ static void collect_plugins(xine_t *this, char *path){
 		    _("load_plugins: cannot open plugin lib %s:\n%s\n"), str, error);
 
 	  } else {
+	    int do_not_unload = 0;
 
 	    if (info || (info = dlsym(lib, "xine_plugin_info"))) {
        
@@ -569,6 +570,7 @@ static void collect_plugins(xine_t *this, char *path){
 		/* get next info either from lib or cache */
 		if( lib ) {
 		  info++;
+		  do_not_unload = (do_not_unload || (info->type & PLUGIN_NO_UNLOAD));
 		}
 		else {
 		  info = _get_cached_plugin ( this->plugin_catalog->cache,
@@ -582,11 +584,8 @@ static void collect_plugins(xine_t *this, char *path){
 	      xine_log (this, XINE_LOG_PLUGIN,
 			_("load_plugins: can't get plugin info from %s:\n%s\n"), str, error);
 	    }
-	    if( lib )
-#ifdef HOST_OS_DARWIN
-		if (dlsym (lib, "plugin_contains_objc_code") == NULL)
-#endif
-	      	    dlclose(lib);
+	    if( lib && !do_not_unload )
+	      dlclose(lib);
 	  }
 	  break;
 	case S_IFDIR:
