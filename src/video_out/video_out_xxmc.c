@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xxmc.c,v 1.7 2004/10/30 15:12:49 totte67 Exp $
+ * $Id: video_out_xxmc.c,v 1.8 2004/11/14 20:38:28 totte67 Exp $
  *
  * video_out_xxmc.c, X11 decoding accelerated video extension interface for xine
  *
@@ -395,10 +395,12 @@ static void xxmc_duplicate_frame_data(vo_frame_t *this_gen,
   XvMCSubpicture *tmp;
   int need_dummy;
 
+  if (original->format != XINE_IMGFMT_XXMC)
+    return;
   xxmc = &orig->xxmc_data;
-  xvmc_context_reader_lock( &driver->xvmc_lock);
+  xvmc_context_writer_lock( &driver->xvmc_lock);
   if (!xxmc_xvmc_surface_valid(driver,orig->xvmc_surf)) {
-    xvmc_context_reader_unlock( &driver->xvmc_lock );
+    xvmc_context_writer_unlock( &driver->xvmc_lock );
     return;
   }		
   this->xxmc_data = *xxmc;
@@ -437,7 +439,7 @@ static void xxmc_duplicate_frame_data(vo_frame_t *this_gen,
     if (tmp) xxmc_xvmc_free_subpicture( driver, tmp);
   }
   
-  xvmc_context_reader_unlock( &driver->xvmc_lock );
+  xvmc_context_writer_unlock( &driver->xvmc_lock );
   xprintf(xine, XINE_VERBOSITY_DEBUG, "Duplicated XvMC frame %d %d.\n",
 	  this->width,this->height);
 }   
@@ -470,10 +472,12 @@ static void xxmc_frame_dispose (vo_frame_t *vo_img) {
 
   xprintf (this->xine, XINE_VERBOSITY_DEBUG, "Disposing of frame\n");
 
+  xvmc_context_writer_lock( &this->xvmc_lock );
   if (this->xvmc_cap && frame->xvmc_surf) {
     xxmc_xvmc_free_surface( this, frame->xvmc_surf );
     frame->xvmc_surf = 0;
   }
+  xvmc_context_writer_unlock( &this->xvmc_lock );
 
   if (frame->image) {
 
@@ -2416,10 +2420,6 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *vi
   this->cpu_saver = 0.;
 
   this->xoverlay = NULL;
-
-  /*
-   * FIXME: YV12 deinterlace method.
-   */
 
   use_unscaled = 1;
   entry = this->config->lookup_entry (this->config, "gui.osd_use_unscaled");
