@@ -1,20 +1,20 @@
 /*
  * MMX optimized motion estimation
- * Copyright (c) 2001 Gerard Lantau.
+ * Copyright (c) 2001 Fabrice Bellard.
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2 of the License, or (at your option) any later version.
  *
- * This program is distributed in the hope that it will be useful,
+ * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
  * mostly by Michael Niedermayer <michaelni@gmx.at>
  */
@@ -25,6 +25,8 @@ static const __attribute__ ((aligned(8))) UINT64 round_tab[3]={
 0x0001000100010001,
 0x0002000200020002,
 };
+
+static __attribute__ ((aligned(8))) uint64_t bone= 0x0101010101010101LL;
 
 static inline void sad8_mmx(UINT8 *blk1, UINT8 *blk2, int stride, int h)
 {
@@ -115,6 +117,7 @@ static inline void sad8_4_mmx2(UINT8 *blk1, UINT8 *blk2, int stride, int h)
     int len= -(stride<<h);
     asm volatile(
         ".balign 16			\n\t"
+        "movq "MANGLE(bone)", %%mm5	\n\t"
         "1:				\n\t" 
         "movq (%1, %%eax), %%mm0	\n\t"
         "movq (%2, %%eax), %%mm2	\n\t"
@@ -122,6 +125,7 @@ static inline void sad8_4_mmx2(UINT8 *blk1, UINT8 *blk2, int stride, int h)
         "movq 1(%2, %%eax), %%mm3	\n\t"
         "pavgb %%mm2, %%mm0		\n\t"
         "pavgb %%mm1, %%mm3		\n\t"
+        "psubusb %%mm5, %%mm3		\n\t"
         "pavgb %%mm3, %%mm0		\n\t"
         "movq (%3, %%eax), %%mm2	\n\t"
         "psadbw %%mm2, %%mm0		\n\t"
@@ -132,6 +136,7 @@ static inline void sad8_4_mmx2(UINT8 *blk1, UINT8 *blk2, int stride, int h)
         "movq 1(%2, %%eax), %%mm4	\n\t"
         "pavgb %%mm3, %%mm1		\n\t"
         "pavgb %%mm4, %%mm2		\n\t"
+        "psubusb %%mm5, %%mm2		\n\t"
         "pavgb %%mm1, %%mm2		\n\t"
         "movq (%3, %%eax), %%mm1	\n\t"
         "psadbw %%mm1, %%mm2		\n\t"

@@ -1,32 +1,33 @@
 /*
  * DSP utils
- * Copyright (c) 2000, 2001 Gerard Lantau.
+ * Copyright (c) 2000, 2001 Fabrice Bellard.
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2 of the License, or (at your option) any later version.
  *
- * This program is distributed in the hope that it will be useful,
+ * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * gmc & q-pel support by Michael Niedermayer <michaelni@gmx.at>
+ * gmc & q-pel & 32/64 bit based MC by Michael Niedermayer <michaelni@gmx.at>
  */
-#include <stdlib.h>
-#include <stdio.h>
-#include <math.h>
 #include "avcodec.h"
 #include "dsputil.h"
 #include "simple_idct.h"
 
 void (*ff_idct)(DCTELEM *block);
+void (*ff_idct_put)(UINT8 *dest, int line_size, DCTELEM *block);
+void (*ff_idct_add)(UINT8 *dest, int line_size, DCTELEM *block);
+void (*av_fdct)(DCTELEM *block);
 void (*get_pixels)(DCTELEM *block, const UINT8 *pixels, int line_size);
+void (*diff_pixels)(DCTELEM *block, const UINT8 *s1, const UINT8 *s2, int stride);
 void (*put_pixels_clamped)(const DCTELEM *block, UINT8 *pixels, int line_size);
 void (*add_pixels_clamped)(const DCTELEM *block, UINT8 *pixels, int line_size);
 void (*gmc1)(UINT8 *dst, UINT8 *src, int srcStride, int h, int x16, int y16, int rounder);
@@ -45,8 +46,10 @@ op_pixels_abs_func pix_abs8x8_xy2;
 UINT8 cropTbl[256 + 2 * MAX_NEG_CROP];
 UINT32 squareTbl[512];
 
-extern UINT16 default_intra_matrix[64];
-extern UINT16 default_non_intra_matrix[64];
+extern INT16 default_intra_matrix[64];
+extern INT16 default_non_intra_matrix[64];
+extern INT16 ff_mpeg4_default_intra_matrix[64];
+extern INT16 ff_mpeg4_default_non_intra_matrix[64];
 
 UINT8 zigzag_direct[64] = {
     0, 1, 8, 16, 9, 2, 3, 10,
@@ -87,6 +90,8 @@ UINT8 ff_alternate_vertical_scan[64] = {
     38, 46, 54, 62, 39, 47, 55, 63,
 };
 
+#ifdef SIMPLE_IDCT
+
 /* Input permutation for the simple_idct_mmx */
 static UINT8 simple_mmx_permutation[64]={
 	0x00, 0x08, 0x04, 0x09, 0x01, 0x0C, 0x05, 0x0D, 
@@ -98,6 +103,7 @@ static UINT8 simple_mmx_permutation[64]={
 	0x22, 0x2A, 0x26, 0x2B, 0x23, 0x2E, 0x27, 0x2F, 
 	0x32, 0x3A, 0x36, 0x3B, 0x33, 0x3E, 0x37, 0x3F,
 };
+#endif
 
 /* a*inverse[b]>>32 == a/b for all 0<=a<=65536 && 2<=b<=255 */
 UINT32 inverse[256]={
@@ -141,7 +147,7 @@ UINT8 zigzag_end[64];
 UINT8 permutation[64];
 //UINT8 invPermutation[64];
 
-static void build_zigzag_end()
+static void build_zigzag_end(void)
 {
     int lastIndex;
     int lastIndexAfterPerm=0;
@@ -175,6 +181,28 @@ void get_pixels_c(DCTELEM *block, const UINT8 *pixels, int line_size)
         p += 8;
     }
 }
+
+void diff_pixels_c(DCTELEM *block, const UINT8 *s1, const UINT8 *s2, int stride){
+    DCTELEM *p;
+    int i;
+
+    /* read the pixels */
+    p = block;
+    for(i=0;i<8;i++) {
+        p[0] = s1[0] - s2[0];
+        p[1] = s1[1] - s2[1];
+        p[2] = s1[2] - s2[2];
+        p[3] = s1[3] - s2[3];
+        p[4] = s1[4] - s2[4];
+        p[5] = s1[5] - s2[5];
+        p[6] = s1[6] - s2[6];
+        p[7] = s1[7] - s2[7];
+        s1 += stride;
+        s2 += stride;
+        p += 8;
+    }
+}
+
 
 void put_pixels_clamped_c(const DCTELEM *block, UINT8 *pixels, int line_size)
 {
@@ -224,6 +252,358 @@ void add_pixels_clamped_c(const DCTELEM *block, UINT8 *pixels, int line_size)
     }
 }
 
+#ifdef __GNUC__
+
+struct unaligned_64 { uint64_t l; } __attribute__((packed));
+struct unaligned_32 { uint32_t l; } __attribute__((packed));
+
+#define LD32(a) (((const struct unaligned_32 *) (a))->l)
+#define LD64(a) (((const struct unaligned_64 *) (a))->l)
+
+#else /* __GNUC__ */
+
+#define LD32(a) (*((uint32_t*)(a)))
+#define LD64(a) (*((uint64_t*)(a)))
+
+#endif /* !__GNUC__ */
+
+#if 0
+
+#define PIXOP2(OPNAME, OP) \
+void OPNAME ## _pixels(uint8_t *block, const uint8_t *pixels, int line_size, int h)\
+{\
+    int i;\
+    for(i=0; i<h; i++){\
+        OP(*((uint64_t*)block), LD64(pixels));\
+        pixels+=line_size;\
+        block +=line_size;\
+    }\
+}\
+\
+void OPNAME ## _no_rnd_pixels_x2(uint8_t *block, const uint8_t *pixels, int line_size, int h)\
+{\
+    int i;\
+    for(i=0; i<h; i++){\
+        const uint64_t a= LD64(pixels  );\
+        const uint64_t b= LD64(pixels+1);\
+        OP(*((uint64_t*)block), (a&b) + (((a^b)&0xFEFEFEFEFEFEFEFEULL)>>1));\
+        pixels+=line_size;\
+        block +=line_size;\
+    }\
+}\
+\
+void OPNAME ## _pixels_x2(uint8_t *block, const uint8_t *pixels, int line_size, int h)\
+{\
+    int i;\
+    for(i=0; i<h; i++){\
+        const uint64_t a= LD64(pixels  );\
+        const uint64_t b= LD64(pixels+1);\
+        OP(*((uint64_t*)block), (a|b) - (((a^b)&0xFEFEFEFEFEFEFEFEULL)>>1));\
+        pixels+=line_size;\
+        block +=line_size;\
+    }\
+}\
+\
+void OPNAME ## _no_rnd_pixels_y2(uint8_t *block, const uint8_t *pixels, int line_size, int h)\
+{\
+    int i;\
+    for(i=0; i<h; i++){\
+        const uint64_t a= LD64(pixels          );\
+        const uint64_t b= LD64(pixels+line_size);\
+        OP(*((uint64_t*)block), (a&b) + (((a^b)&0xFEFEFEFEFEFEFEFEULL)>>1));\
+        pixels+=line_size;\
+        block +=line_size;\
+    }\
+}\
+\
+void OPNAME ## _pixels_y2(uint8_t *block, const uint8_t *pixels, int line_size, int h)\
+{\
+    int i;\
+    for(i=0; i<h; i++){\
+        const uint64_t a= LD64(pixels          );\
+        const uint64_t b= LD64(pixels+line_size);\
+        OP(*((uint64_t*)block), (a|b) - (((a^b)&0xFEFEFEFEFEFEFEFEULL)>>1));\
+        pixels+=line_size;\
+        block +=line_size;\
+    }\
+}\
+\
+void OPNAME ## _pixels_xy2(uint8_t *block, const uint8_t *pixels, int line_size, int h)\
+{\
+        int i;\
+        const uint64_t a= LD64(pixels  );\
+        const uint64_t b= LD64(pixels+1);\
+        uint64_t l0=  (a&0x0303030303030303ULL)\
+                    + (b&0x0303030303030303ULL)\
+                    + 0x0202020202020202ULL;\
+        uint64_t h0= ((a&0xFCFCFCFCFCFCFCFCULL)>>2)\
+                   + ((b&0xFCFCFCFCFCFCFCFCULL)>>2);\
+        uint64_t l1,h1;\
+\
+        pixels+=line_size;\
+        for(i=0; i<h; i+=2){\
+            uint64_t a= LD64(pixels  );\
+            uint64_t b= LD64(pixels+1);\
+            l1=  (a&0x0303030303030303ULL)\
+               + (b&0x0303030303030303ULL);\
+            h1= ((a&0xFCFCFCFCFCFCFCFCULL)>>2)\
+              + ((b&0xFCFCFCFCFCFCFCFCULL)>>2);\
+            OP(*((uint64_t*)block), h0+h1+(((l0+l1)>>2)&0x0F0F0F0F0F0F0F0FULL));\
+            pixels+=line_size;\
+            block +=line_size;\
+            a= LD64(pixels  );\
+            b= LD64(pixels+1);\
+            l0=  (a&0x0303030303030303ULL)\
+               + (b&0x0303030303030303ULL)\
+               + 0x0202020202020202ULL;\
+            h0= ((a&0xFCFCFCFCFCFCFCFCULL)>>2)\
+              + ((b&0xFCFCFCFCFCFCFCFCULL)>>2);\
+            OP(*((uint64_t*)block), h0+h1+(((l0+l1)>>2)&0x0F0F0F0F0F0F0F0FULL));\
+            pixels+=line_size;\
+            block +=line_size;\
+        }\
+}\
+\
+void OPNAME ## _no_rnd_pixels_xy2(uint8_t *block, const uint8_t *pixels, int line_size, int h)\
+{\
+        int i;\
+        const uint64_t a= LD64(pixels  );\
+        const uint64_t b= LD64(pixels+1);\
+        uint64_t l0=  (a&0x0303030303030303ULL)\
+                    + (b&0x0303030303030303ULL)\
+                    + 0x0101010101010101ULL;\
+        uint64_t h0= ((a&0xFCFCFCFCFCFCFCFCULL)>>2)\
+                   + ((b&0xFCFCFCFCFCFCFCFCULL)>>2);\
+        uint64_t l1,h1;\
+\
+        pixels+=line_size;\
+        for(i=0; i<h; i+=2){\
+            uint64_t a= LD64(pixels  );\
+            uint64_t b= LD64(pixels+1);\
+            l1=  (a&0x0303030303030303ULL)\
+               + (b&0x0303030303030303ULL);\
+            h1= ((a&0xFCFCFCFCFCFCFCFCULL)>>2)\
+              + ((b&0xFCFCFCFCFCFCFCFCULL)>>2);\
+            OP(*((uint64_t*)block), h0+h1+(((l0+l1)>>2)&0x0F0F0F0F0F0F0F0FULL));\
+            pixels+=line_size;\
+            block +=line_size;\
+            a= LD64(pixels  );\
+            b= LD64(pixels+1);\
+            l0=  (a&0x0303030303030303ULL)\
+               + (b&0x0303030303030303ULL)\
+               + 0x0101010101010101ULL;\
+            h0= ((a&0xFCFCFCFCFCFCFCFCULL)>>2)\
+              + ((b&0xFCFCFCFCFCFCFCFCULL)>>2);\
+            OP(*((uint64_t*)block), h0+h1+(((l0+l1)>>2)&0x0F0F0F0F0F0F0F0FULL));\
+            pixels+=line_size;\
+            block +=line_size;\
+        }\
+}\
+\
+void (*OPNAME ## _pixels_tab[4])(uint8_t *block, const uint8_t *pixels, int line_size, int h) = {\
+    OPNAME ## _pixels,\
+    OPNAME ## _pixels_x2,\
+    OPNAME ## _pixels_y2,\
+    OPNAME ## _pixels_xy2,\
+};\
+\
+void (*OPNAME ## _no_rnd_pixels_tab[4])(uint8_t *block, const uint8_t *pixels, int line_size, int h) = {\
+    OPNAME ## _pixels,\
+    OPNAME ## _no_rnd_pixels_x2,\
+    OPNAME ## _no_rnd_pixels_y2,\
+    OPNAME ## _no_rnd_pixels_xy2,\
+};
+
+#define op_avg(a, b) a = ( ((a)|(b)) - ((((a)^(b))&0xFEFEFEFEFEFEFEFEULL)>>1) )
+#else // 64 bit variant
+
+#define PIXOP2(OPNAME, OP) \
+void OPNAME ## _pixels(uint8_t *block, const uint8_t *pixels, int line_size, int h)\
+{\
+    int i;\
+    for(i=0; i<h; i++){\
+        OP(*((uint32_t*)(block  )), LD32(pixels  ));\
+        OP(*((uint32_t*)(block+4)), LD32(pixels+4));\
+        pixels+=line_size;\
+        block +=line_size;\
+    }\
+}\
+\
+void OPNAME ## _no_rnd_pixels_x2(uint8_t *block, const uint8_t *pixels, int line_size, int h)\
+{\
+    int i;\
+    for(i=0; i<h; i++){\
+        int j;\
+        for(j=0; j<2; j++){\
+            const uint32_t a= LD32(pixels  );\
+            const uint32_t b= LD32(pixels+1);\
+            OP(*((uint32_t*)block), (a&b) + (((a^b)&0xFEFEFEFEUL)>>1));\
+            pixels+=4;\
+            block +=4;\
+        }\
+        pixels+=line_size-8;\
+        block +=line_size-8;\
+    }\
+}\
+\
+void OPNAME ## _pixels_x2(uint8_t *block, const uint8_t *pixels, int line_size, int h)\
+{\
+    int i;\
+    for(i=0; i<h; i++){\
+        int j;\
+        for(j=0; j<2; j++){\
+            const uint32_t a= LD32(pixels  );\
+            const uint32_t b= LD32(pixels+1);\
+            OP(*((uint32_t*)block), (a|b) - (((a^b)&0xFEFEFEFEUL)>>1));\
+            pixels+=4;\
+            block +=4;\
+        }\
+        pixels+=line_size-8;\
+        block +=line_size-8;\
+    }\
+}\
+\
+void OPNAME ## _no_rnd_pixels_y2(uint8_t *block, const uint8_t *pixels, int line_size, int h)\
+{\
+    int i;\
+    for(i=0; i<h; i++){\
+        int j;\
+        for(j=0; j<2; j++){\
+            const uint32_t a= LD32(pixels          );\
+            const uint32_t b= LD32(pixels+line_size);\
+            OP(*((uint32_t*)block), (a&b) + (((a^b)&0xFEFEFEFEUL)>>1));\
+            pixels+=4;\
+            block +=4;\
+        }\
+        pixels+=line_size-8;\
+        block +=line_size-8;\
+    }\
+}\
+\
+void OPNAME ## _pixels_y2(uint8_t *block, const uint8_t *pixels, int line_size, int h)\
+{\
+    int i;\
+    for(i=0; i<h; i++){\
+        int j;\
+        for(j=0; j<2; j++){\
+            const uint32_t a= LD32(pixels          );\
+            const uint32_t b= LD32(pixels+line_size);\
+            OP(*((uint32_t*)block), (a|b) - (((a^b)&0xFEFEFEFEUL)>>1));\
+            pixels+=4;\
+            block +=4;\
+        }\
+        pixels+=line_size-8;\
+        block +=line_size-8;\
+    }\
+}\
+\
+void OPNAME ## _pixels_xy2(uint8_t *block, const uint8_t *pixels, int line_size, int h)\
+{\
+    int j;\
+    for(j=0; j<2; j++){\
+        int i;\
+        const uint32_t a= LD32(pixels  );\
+        const uint32_t b= LD32(pixels+1);\
+        uint32_t l0=  (a&0x03030303UL)\
+                    + (b&0x03030303UL)\
+                    + 0x02020202UL;\
+        uint32_t h0= ((a&0xFCFCFCFCUL)>>2)\
+                   + ((b&0xFCFCFCFCUL)>>2);\
+        uint32_t l1,h1;\
+\
+        pixels+=line_size;\
+        for(i=0; i<h; i+=2){\
+            uint32_t a= LD32(pixels  );\
+            uint32_t b= LD32(pixels+1);\
+            l1=  (a&0x03030303UL)\
+               + (b&0x03030303UL);\
+            h1= ((a&0xFCFCFCFCUL)>>2)\
+              + ((b&0xFCFCFCFCUL)>>2);\
+            OP(*((uint32_t*)block), h0+h1+(((l0+l1)>>2)&0x0F0F0F0FUL));\
+            pixels+=line_size;\
+            block +=line_size;\
+            a= LD32(pixels  );\
+            b= LD32(pixels+1);\
+            l0=  (a&0x03030303UL)\
+               + (b&0x03030303UL)\
+               + 0x02020202UL;\
+            h0= ((a&0xFCFCFCFCUL)>>2)\
+              + ((b&0xFCFCFCFCUL)>>2);\
+            OP(*((uint32_t*)block), h0+h1+(((l0+l1)>>2)&0x0F0F0F0FUL));\
+            pixels+=line_size;\
+            block +=line_size;\
+        }\
+        pixels+=4-line_size*(h+1);\
+        block +=4-line_size*h;\
+    }\
+}\
+\
+void OPNAME ## _no_rnd_pixels_xy2(uint8_t *block, const uint8_t *pixels, int line_size, int h)\
+{\
+    int j;\
+    for(j=0; j<2; j++){\
+        int i;\
+        const uint32_t a= LD32(pixels  );\
+        const uint32_t b= LD32(pixels+1);\
+        uint32_t l0=  (a&0x03030303UL)\
+                    + (b&0x03030303UL)\
+                    + 0x01010101UL;\
+        uint32_t h0= ((a&0xFCFCFCFCUL)>>2)\
+                   + ((b&0xFCFCFCFCUL)>>2);\
+        uint32_t l1,h1;\
+\
+        pixels+=line_size;\
+        for(i=0; i<h; i+=2){\
+            uint32_t a= LD32(pixels  );\
+            uint32_t b= LD32(pixels+1);\
+            l1=  (a&0x03030303UL)\
+               + (b&0x03030303UL);\
+            h1= ((a&0xFCFCFCFCUL)>>2)\
+              + ((b&0xFCFCFCFCUL)>>2);\
+            OP(*((uint32_t*)block), h0+h1+(((l0+l1)>>2)&0x0F0F0F0FUL));\
+            pixels+=line_size;\
+            block +=line_size;\
+            a= LD32(pixels  );\
+            b= LD32(pixels+1);\
+            l0=  (a&0x03030303UL)\
+               + (b&0x03030303UL)\
+               + 0x01010101UL;\
+            h0= ((a&0xFCFCFCFCUL)>>2)\
+              + ((b&0xFCFCFCFCUL)>>2);\
+            OP(*((uint32_t*)block), h0+h1+(((l0+l1)>>2)&0x0F0F0F0FUL));\
+            pixels+=line_size;\
+            block +=line_size;\
+        }\
+        pixels+=4-line_size*(h+1);\
+        block +=4-line_size*h;\
+    }\
+}\
+\
+void (*OPNAME ## _pixels_tab[4])(uint8_t *block, const uint8_t *pixels, int line_size, int h) = {\
+    OPNAME ## _pixels,\
+    OPNAME ## _pixels_x2,\
+    OPNAME ## _pixels_y2,\
+    OPNAME ## _pixels_xy2,\
+};\
+\
+void (*OPNAME ## _no_rnd_pixels_tab[4])(uint8_t *block, const uint8_t *pixels, int line_size, int h) = {\
+    OPNAME ## _pixels,\
+    OPNAME ## _no_rnd_pixels_x2,\
+    OPNAME ## _no_rnd_pixels_y2,\
+    OPNAME ## _no_rnd_pixels_xy2,\
+};
+#define op_avg(a, b) a = ( ((a)|(b)) - ((((a)^(b))&0xFEFEFEFEUL)>>1) )
+#endif
+
+#define op_put(a, b) a = b
+
+PIXOP2(avg, op_avg)
+PIXOP2(put, op_put)
+#undef op_avg
+#undef op_put
+
+#if 0
+/* FIXME this stuff could be removed as its ot really used anymore */
 #define PIXOP(BTYPE, OPNAME, OP, INCR)                                                   \
                                                                                          \
 static void OPNAME ## _pixels(BTYPE *block, const UINT8 *pixels, int line_size, int h)    \
@@ -323,17 +703,12 @@ void (*OPNAME ## _pixels_tab[4])(BTYPE *block, const UINT8 *pixels, int line_siz
     OPNAME ## _pixels_xy2,                                                               \
 };
 
-
 /* rounding primitives */
 #define avg2(a,b) ((a+b+1)>>1)
 #define avg4(a,b,c,d) ((a+b+c+d+2)>>2)
 
-#define op_put(a, b) a = b
 #define op_avg(a, b) a = avg2(a, b)
 #define op_sub(a, b) a -= b
-
-PIXOP(UINT8, put, op_put, line_size)
-PIXOP(UINT8, avg, op_avg, line_size)
 
 PIXOP(DCTELEM, sub, op_sub, 8)
 
@@ -343,13 +718,12 @@ PIXOP(DCTELEM, sub, op_sub, 8)
 #define avg2(a,b) ((a+b)>>1)
 #define avg4(a,b,c,d) ((a+b+c+d+1)>>2)
 
-PIXOP(UINT8, put_no_rnd, op_put, line_size)
-PIXOP(UINT8, avg_no_rnd, op_avg, line_size)
-
 /* motion estimation */
 
 #undef avg2
 #undef avg4
+#endif
+
 #define avg2(a,b) ((a+b+1)>>1)
 #define avg4(a,b,c,d) ((a+b+c+d+2)>>2)
 
@@ -872,6 +1246,20 @@ void clear_blocks_c(DCTELEM *blocks)
     memset(blocks, 0, sizeof(DCTELEM)*6*64);
 }
 
+/* XXX: those functions should be suppressed ASAP when all IDCTs are
+   converted */
+void gen_idct_put(UINT8 *dest, int line_size, DCTELEM *block)
+{
+    ff_idct (block);
+    put_pixels_clamped(block, dest, line_size);
+}
+
+void gen_idct_add(UINT8 *dest, int line_size, DCTELEM *block)
+{
+    ff_idct (block);
+    add_pixels_clamped(block, dest, line_size);
+}
+
 void dsputil_init(void)
 {
     int i, j;
@@ -888,11 +1276,12 @@ void dsputil_init(void)
     }
 
 #ifdef SIMPLE_IDCT
-    ff_idct = simple_idct;
+    ff_idct = NULL;
 #else
     ff_idct = j_rev_dct;
 #endif
     get_pixels = get_pixels_c;
+    diff_pixels = diff_pixels_c;
     put_pixels_clamped = put_pixels_clamped_c;
     add_pixels_clamped = add_pixels_clamped_c;
     gmc1= gmc1_c;
@@ -906,7 +1295,7 @@ void dsputil_init(void)
     pix_abs8x8_x2  = pix_abs8x8_x2_c;
     pix_abs8x8_y2  = pix_abs8x8_y2_c;
     pix_abs8x8_xy2 = pix_abs8x8_xy2_c;
-    av_fdct = jpeg_fdct_ifast;
+    av_fdct = fdct_ifast;
 
     use_permuted_idct = 1;
 
@@ -925,9 +1314,16 @@ void dsputil_init(void)
     use_permuted_idct = 0;
 #endif
 
-#ifdef SIMPLE_IDCT
-    if(ff_idct == simple_idct) use_permuted_idct=0;
-#endif
+//#ifdef SIMPLE_IDCT
+    if (ff_idct == NULL) {
+        ff_idct_put = simple_idct_put;
+        ff_idct_add = simple_idct_add;
+        use_permuted_idct=0;
+    } else {
+        ff_idct_put = gen_idct_put;
+        ff_idct_add = gen_idct_add;
+    }
+//#endif
 
     if(use_permuted_idct)
 #ifdef SIMPLE_IDCT
@@ -953,9 +1349,19 @@ void dsputil_init(void)
         }
         block_permute(default_intra_matrix);
         block_permute(default_non_intra_matrix);
+        block_permute(ff_mpeg4_default_intra_matrix);
+        block_permute(ff_mpeg4_default_non_intra_matrix);
     }
     
     build_zigzag_end();
+}
+
+/* remove any non bit exact operation (testing purpose) */
+void avcodec_set_bit_exact(void)
+{
+#ifdef HAVE_MMX
+    dsputil_set_bit_exact_mmx();
+#endif
 }
 
 void get_psnr(UINT8 *orig_image[3], UINT8 *coded_image[3],

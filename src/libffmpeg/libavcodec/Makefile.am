@@ -16,7 +16,8 @@ noinst_LTLIBRARIES = libavcodec.la
 libavcodec_la_SOURCES = common.c utils.c mpegvideo.c h263.c jrevdct.c jfdctfst.c \
 			mjpeg.c dsputil.c \
 			motion_est.c imgconvert.c msmpeg4.c \
-			mpeg12.c h263dec.c rv10.c simple_idct.c
+			mpeg12.c h263dec.c rv10.c simple_idct.c \
+			ratecontrol.c
 #imgresample.c
 
 libavcodec_la_LDFLAGS = \

@@ -1,27 +1,23 @@
 /*
  * RV10 codec
- * Copyright (c) 2000,2001 Gerard Lantau.
+ * Copyright (c) 2000,2001 Fabrice Bellard.
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2 of the License, or (at your option) any later version.
  *
- * This program is distributed in the hope that it will be useful,
+ * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include "common.h"
-#include "dsputil.h"
 #include "avcodec.h"
+#include "dsputil.h"
 #include "mpegvideo.h"
 
 //#define DEBUG
@@ -337,9 +333,9 @@ static int rv10_decode_picture_header(MpegEncContext *s)
 static int rv10_decode_init(AVCodecContext *avctx)
 {
     MpegEncContext *s = avctx->priv_data;
-    int i;
     static int done;
 
+//    s->avctx= avctx;
     s->out_format = FMT_H263;
 
     s->width = avctx->width;
@@ -350,11 +346,6 @@ static int rv10_decode_init(AVCodecContext *avctx)
 
     if (MPV_common_init(s) < 0)
         return -1;
-
-    /* XXX: suppress this matrix init, only needed because using mpeg1
-       dequantize in mmx case */
-    for(i=0;i<64;i++)
-        s->non_intra_matrix[i] = default_non_intra_matrix[i];
 
     h263_decode_init_vlc(s);
 
@@ -439,9 +430,27 @@ static int rv10_decode_frame(AVCodecContext *avctx,
     s->rv10_first_dc_coded[0] = 0;
     s->rv10_first_dc_coded[1] = 0;
     s->rv10_first_dc_coded[2] = 0;
-    
+
+    s->block_wrap[0]=
+    s->block_wrap[1]=
+    s->block_wrap[2]=
+    s->block_wrap[3]= s->mb_width*2 + 2;
+    s->block_wrap[4]=
+    s->block_wrap[5]= s->mb_width + 2;
+    s->block_index[0]= s->block_wrap[0]*(s->mb_y*2 + 1) - 1 + s->mb_x*2;
+    s->block_index[1]= s->block_wrap[0]*(s->mb_y*2 + 1)     + s->mb_x*2;
+    s->block_index[2]= s->block_wrap[0]*(s->mb_y*2 + 2) - 1 + s->mb_x*2;
+    s->block_index[3]= s->block_wrap[0]*(s->mb_y*2 + 2)     + s->mb_x*2;
+    s->block_index[4]= s->block_wrap[4]*(s->mb_y + 1)                    + s->block_wrap[0]*(s->mb_height*2 + 2) + s->mb_x;
+    s->block_index[5]= s->block_wrap[4]*(s->mb_y + 1 + s->mb_height + 2) + s->block_wrap[0]*(s->mb_height*2 + 2) + s->mb_x;
     /* decode each macroblock */
     for(i=0;i<mb_count;i++) {
+        s->block_index[0]+=2;
+        s->block_index[1]+=2;
+        s->block_index[2]+=2;
+        s->block_index[3]+=2;
+        s->block_index[4]++;
+        s->block_index[5]++;
 #ifdef DEBUG
         printf("**mb x=%d y=%d\n", s->mb_x, s->mb_y);
 #endif
@@ -459,6 +468,12 @@ static int rv10_decode_frame(AVCodecContext *avctx,
         if (++s->mb_x == s->mb_width) {
             s->mb_x = 0;
             s->mb_y++;
+            s->block_index[0]= s->block_wrap[0]*(s->mb_y*2 + 1) - 1;
+            s->block_index[1]= s->block_wrap[0]*(s->mb_y*2 + 1);
+            s->block_index[2]= s->block_wrap[0]*(s->mb_y*2 + 2) - 1;
+            s->block_index[3]= s->block_wrap[0]*(s->mb_y*2 + 2);
+            s->block_index[4]= s->block_wrap[4]*(s->mb_y + 1)                    + s->block_wrap[0]*(s->mb_height*2 + 2);
+            s->block_index[5]= s->block_wrap[4]*(s->mb_y + 1 + s->mb_height + 2) + s->block_wrap[0]*(s->mb_height*2 + 2);
         }
     }
 

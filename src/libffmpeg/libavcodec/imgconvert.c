@@ -1,20 +1,20 @@
 /*
  * Misc image convertion routines
- * Copyright (c) 2001 Gerard Lantau.
+ * Copyright (c) 2001, 2002 Fabrice Bellard.
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2 of the License, or (at your option) any later version.
  *
- * This program is distributed in the hope that it will be useful,
+ * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 #include "avcodec.h"
 #include "dsputil.h"
@@ -361,6 +361,8 @@ int img_convert(AVPicture *dst, int dst_pix_fmt,
 {
     int i;
 
+    assert(pix_fmt != PIX_FMT_ANY && dst_pix_fmt != PIX_FMT_ANY);
+
     if (dst_pix_fmt == pix_fmt) {
         switch(pix_fmt) {
         case PIX_FMT_YUV420P:
@@ -479,7 +481,7 @@ static void deinterlace_bottom_field(UINT8 *dst, int dst_wrap,
     int y, y1, i;
     UINT8 *buf;
 
-    buf= (UINT8*) malloc(5 * width);
+    buf = (UINT8*)av_malloc(5 * width);
 
     src = src1;
     for(y=0;y<height;y+=2) {
@@ -509,7 +511,7 @@ static void deinterlace_bottom_field(UINT8 *dst, int dst_wrap,
         dst += dst_wrap;
         src += (2 + 1) * src_wrap;
     }
-    free(buf);
+    av_free(buf);
 }
 
 
@@ -546,3 +548,5 @@ int avpicture_deinterlace(AVPicture *dst, AVPicture *src,
     }
     return 0;
 }
+
+#undef FIX

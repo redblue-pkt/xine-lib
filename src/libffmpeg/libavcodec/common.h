@@ -1,8 +1,6 @@
 #ifndef COMMON_H
 #define COMMON_H
 
-#undef DEBUG
-
 #define FFMPEG_VERSION_INT 0x000406
 #define FFMPEG_VERSION     "0.4.6"
 
@@ -19,18 +17,19 @@
 
 #ifdef HAVE_AV_CONFIG_H
 /* only include the following when compiling package */
-#include "../config.h"
+#include "config.h"
 
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>
+#include <math.h>
 
 #ifndef ENODATA
 #define ENODATA  61
 #endif
 
-#endif
+#endif /* HAVE_AV_CONFIG_H */
 
 #ifdef CONFIG_WIN32
 
@@ -51,20 +50,14 @@ typedef UINT16 uint16_t;
 typedef INT16 int16_t;
 typedef UINT32 uint32_t;
 typedef INT32 int32_t;
+typedef UINT64 uint64_t;
+typedef INT64 int64_t;
 
 #ifndef __MINGW32__
 #define INT64_C(c)     (c ## i64)
 #define UINT64_C(c)    (c ## i64)
 
 #define inline __inline
-
-/*
-  Disable warning messages:
-    warning C4244: '=' : conversion from 'double' to 'float', possible loss of data
-    warning C4305: 'argument' : truncation from 'const double' to 'float'
-*/
-#pragma warning( disable : 4244 )
-#pragma warning( disable : 4305 )
 
 #else
 #define INT64_C(c)     (c ## LL)
@@ -78,22 +71,9 @@ typedef INT32 int32_t;
 #define DEBUG
 #endif
 
-// code from bits/byteswap.h (C) 1997, 1998 Free Software Foundation, Inc.
-#define bswap_32(x) \
-     ((((x) & 0xff000000) >> 24) | (((x) & 0x00ff0000) >>  8) | \
-      (((x) & 0x0000ff00) <<  8) | (((x) & 0x000000ff) << 24))
-#define be2me_32(x) bswap_32(x)
-
 #define snprintf _snprintf
 
-#ifndef __MINGW32__
-/* no config.h with VC */
-#define CONFIG_ENCODERS 1
-#define CONFIG_DECODERS 1
-#define CONFIG_AC3      1
-#endif
-
-#else
+#else /* CONFIG_WIN32 */
 
 /* unix */
 
@@ -111,8 +91,6 @@ typedef unsigned long long UINT64;
 typedef signed char INT8;
 typedef signed int INT32;
 typedef signed long long INT64;
-
-#include "xine-engine/bswap.h"
 
 #ifdef HAVE_AV_CONFIG_H
 
@@ -133,9 +111,18 @@ typedef signed long long INT64;
 
 #endif /* !CONFIG_WIN32 */
 
+#include "bswap.h"
+
+#ifdef HAVE_AV_CONFIG_H
+
+#if defined(__MINGW32__) || defined(__CYGWIN__) || \
+    defined(__OS2__) || defined (__OpenBSD__)
+#define MANGLE(a) "_" #a
+#else
+#define MANGLE(a) #a
+#endif
 
 /* debug stuff */
-#ifdef HAVE_AV_CONFIG_H
 
 #ifndef DEBUG
 #define NDEBUG
@@ -150,11 +137,7 @@ inline void dprintf(const char* fmt,...) {}
 #else
 
 #ifdef DEBUG
-#if __GNUC__ > 2 || (__GNUC__ == 2 && __GNUC_MINOR__ >= 95) || !defined(__GNUC__)
-#define dprintf(...)	     printf(__VA_ARGS__)
-#else
 #define dprintf(fmt,args...) printf(fmt, ## args)
-#endif
 #else
 #define dprintf(fmt,args...)
 #endif
@@ -162,6 +145,14 @@ inline void dprintf(const char* fmt,...) {}
 #endif /* !CONFIG_WIN32 */
 
 #endif /* HAVE_AV_CONFIG_H */
+
+#define av_abort()      do { fprintf(stderr, "Abort at %s:%d\n", __FILE__, __LINE__); abort(); } while (0)
+
+/* assume b>0 */
+#define ROUNDED_DIV(a,b) (((a)>0 ? (a) + ((b)>>1) : (a) - ((b)>>1))/(b))
+#define ABS(a) ((a) >= 0 ? (a) : (-(a)))
+#define MAX(a,b) ((a) > (b) ? (a) : (b))
+#define MIN(a,b) ((a) > (b) ? (b) : (a))
 
 /* bit output */
 
@@ -189,6 +180,7 @@ void init_put_bits(PutBitContext *s,
 INT64 get_bit_count(PutBitContext *s); /* XXX: change function name */
 void align_put_bits(PutBitContext *s);
 void flush_put_bits(PutBitContext *s);
+void put_string(PutBitContext * pbc, char *s);
 
 /* jpeg specific put_bits */
 void jflush_put_bits(PutBitContext *s);
@@ -250,7 +242,7 @@ static inline void put_bits(PutBitContext *s, int n, unsigned int value)
 #endif
     //    printf("put_bits=%d %x\n", n, value);
     assert(n == 32 || value < (1U << n));
-
+    
     bit_buf = s->bit_buf;
     bit_left = s->bit_left;
 
@@ -430,7 +422,6 @@ static inline void jput_bits(PutBitContext *s, int n, int value)
  }
 #endif
 
-
 static inline uint8_t* pbBufPtr(PutBitContext *s)
 {
 #ifdef ALT_BITSTREAM_WRITER
@@ -483,7 +474,6 @@ static inline unsigned int get_bits(GetBitContext *s, int n){
     }
     printf(" ");
 #endif
-    
     return result;
 #endif //!ALIGNED_BITSTREAM
 #else //ALT_BITSTREAM_READER
@@ -509,10 +499,10 @@ static inline unsigned int get_bits1(GetBitContext *s){
     result>>= 8 - 1;
     index++;
     s->index= index;
+    
 #ifdef DUMP_STREAM
     printf("%d ", result);
 #endif
-    
     return result;
 #else
     if(s->bit_cnt>0){
@@ -888,7 +878,62 @@ static inline int mid_pred(int a, int b, int c)
     return a + b + c - vmin - vmax;
 }
 
+static inline int clip(int a, int amin, int amax)
+{
+    if (a < amin)
+        return amin;
+    else if (a > amax)
+        return amax;
+    else
+        return a;
+}
+
 /* memory */
+void *av_malloc(int size);
 void *av_mallocz(int size);
+void av_free(void *ptr);
+void __av_freep(void **ptr);
+#define av_freep(p) __av_freep((void **)(p))
+
+/* math */
+int ff_gcd(int a, int b);
+
+static inline int ff_sqrt(int a)
+{
+    int ret=0;
+    int s;
+    int ret_sq=0;
+
+    for(s=15; s>=0; s--){
+        int b= ret_sq + (1<<(s*2)) + (ret<<s)*2;
+        if(b<=a){
+            ret_sq=b;
+            ret+= 1<<s;
+        }
+    }
+    return ret;
+}
+#define RUNTIME_CPUDETECT
+
+#if __CPU__ >= 686 && !defined(RUNTIME_CPUDETECT)
+#define COPY3_IF_LT(x,y,a,b,c,d)\
+asm volatile (\
+    "cmpl %0, %3	\n\t"\
+    "cmovl %3, %0	\n\t"\
+    "cmovl %4, %1	\n\t"\
+    "cmovl %5, %2	\n\t"\
+    : "+r" (x), "+r" (a), "+r" (c)\
+    : "r" (y), "r" (b), "r" (d)\
+);
+#else
+#define COPY3_IF_LT(x,y,a,b,c,d)\
+if((y)<(x)){\
+     (x)=(y);\
+     (a)=(b);\
+     (c)=(d);\
+}
+#endif
+
+#define CLAMP_TO_8BIT(d) ((d > 0xff) ? 0xff : (d < 0) ? 0 : d)
 
 #endif

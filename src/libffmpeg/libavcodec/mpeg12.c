@@ -1,26 +1,25 @@
 /*
  * MPEG1 encoder / MPEG2 decoder
- * Copyright (c) 2000,2001 Gerard Lantau.
+ * Copyright (c) 2000,2001 Fabrice Bellard.
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2 of the License, or (at your option) any later version.
  *
- * This program is distributed in the hope that it will be useful,
+ * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 //#define DEBUG
 #include "avcodec.h"
 #include "dsputil.h"
 #include "mpegvideo.h"
-#include "xineutils.h"
 
 #include "mpeg12data.h"
 
@@ -33,8 +32,6 @@
 #define SLICE_MAX_START_CODE	0x000001af
 #define EXT_START_CODE		0x000001b5
 #define USER_START_CODE		0x000001b2
-
-#define ABS(a) ((a)<0 ? -(a) : (a))
 
 static void mpeg1_encode_block(MpegEncContext *s, 
                          DCTELEM *block, 
@@ -400,8 +397,11 @@ void mpeg1_encode_init(MpegEncContext *s)
         }
     }
     s->mv_penalty= mv_penalty;
-    
     s->fcode_tab= fcode_tab;
+    s->min_qcoeff=-255;
+    s->max_qcoeff= 255;
+    s->intra_quant_bias= 3<<(QUANT_BIAS_SHIFT-3); //(a + x*3/8)/x
+    s->inter_quant_bias= 0;
 }
  
 static inline void encode_dc(MpegEncContext *s, int diff, int component)
@@ -853,6 +853,8 @@ static int mpeg_decode_mb(MpegEncContext *s,
                 if (cbp & (1 << (5 - i))) {
                     if (mpeg2_decode_block_intra(s, block[i], i) < 0)
                         return -1;
+                } else {
+                    s->block_last_index[i] = -1;
                 }
             }
         } else {
@@ -860,6 +862,8 @@ static int mpeg_decode_mb(MpegEncContext *s,
                 if (cbp & (1 << (5 - i))) {
                     if (mpeg2_decode_block_non_intra(s, block[i], i) < 0)
                         return -1;
+                } else {
+                    s->block_last_index[i] = -1;
                 }
             }
         }
@@ -868,6 +872,8 @@ static int mpeg_decode_mb(MpegEncContext *s,
             if (cbp & (1 << (5 - i))) {
                 if (mpeg1_decode_block(s, block[i], i) < 0)
                     return -1;
+            } else {
+                s->block_last_index[i] = -1;
             }
         }
     }
@@ -1028,9 +1034,9 @@ static int mpeg2_decode_block_non_intra(MpegEncContext *s,
         UINT8 *buf_ptr;
         i = 0;
         if (n < 4) 
-            matrix = s->non_intra_matrix;
+            matrix = s->inter_matrix;
         else
-            matrix = s->chroma_non_intra_matrix;
+            matrix = s->chroma_inter_matrix;
             
         /* special case for the first coef. no need to add a second vlc table */
         SAVE_BITS(&s->gb);
@@ -1184,6 +1190,9 @@ static int mpeg_decode_init(AVCodecContext *avctx)
     s->buf_ptr = s->buffer;
     s->mpeg_enc_ctx.picture_number = 0;
     s->repeat_field = 0;
+    s->mpeg_enc_ctx.codec_id= avctx->codec->id;
+    avctx->mbskip_table= s->mpeg_enc_ctx.mbskip_table;
+    s->mpeg_enc_ctx.flags= avctx->flags;
     return 0;
 }
 
@@ -1273,6 +1282,7 @@ static void mpeg_decode_sequence_extension(MpegEncContext *s)
         s->frame_rate = (s->frame_rate * frame_rate_ext_n) / frame_rate_ext_d;
     dprintf("sequence extension\n");
     s->mpeg2 = 1;
+    s->avctx->sub_id = 2; /* indicates mpeg2 found */
 }
 
 static void mpeg_decode_quant_matrix_extension(MpegEncContext *s)
@@ -1293,8 +1303,8 @@ static void mpeg_decode_quant_matrix_extension(MpegEncContext *s)
         for(i=0;i<64;i++) {
             v = get_bits(&s->gb, 8);
             j = zigzag_direct[i];
-            s->non_intra_matrix[j] = v;
-            s->chroma_non_intra_matrix[j] = v;
+            s->inter_matrix[j] = v;
+            s->chroma_inter_matrix[j] = v;
         }
     }
     if (get_bits1(&s->gb)) {
@@ -1308,7 +1318,7 @@ static void mpeg_decode_quant_matrix_extension(MpegEncContext *s)
         for(i=0;i<64;i++) {
             v = get_bits(&s->gb, 8);
             j = zigzag_direct[i];
-            s->chroma_non_intra_matrix[j] = v;
+            s->chroma_inter_matrix[j] = v;
         }
     }
 }
@@ -1334,6 +1344,8 @@ static void mpeg_decode_picture_coding_extension(MpegEncContext *s)
     /* composite display not parsed */
     dprintf("intra_dc_precision=%d\n", s->intra_dc_precision);
     dprintf("picture_structure=%d\n", s->picture_structure);
+    dprintf("top field first=%d\n", s->top_field_first);
+    dprintf("repeat first field=%d\n", s->repeat_first_field);
     dprintf("conceal=%d\n", s->concealment_motion_vectors);
     dprintf("intra_vlc_format=%d\n", s->intra_vlc_format);
     dprintf("alternate_scan=%d\n", s->alternate_scan);
@@ -1387,7 +1399,6 @@ static int mpeg_decode_slice(AVCodecContext *avctx,
     s->mb_x = -1;
     s->mb_y = start_code;
     s->mb_incr = 0;
-
     /* start frame decoding */
     if (s->first_slice) {
         s->first_slice = 0;
@@ -1404,6 +1415,7 @@ static int mpeg_decode_slice(AVCodecContext *avctx,
 
     for(;;) {
         clear_blocks(s->block[0]);
+        emms_c();
         ret = mpeg_decode_mb(s, s->block);
         dprintf("ret=%d\n", ret);
         if (ret < 0)
@@ -1460,7 +1472,7 @@ static int mpeg1_decode_sequence(AVCodecContext *avctx,
     Mpeg1Context *s1 = avctx->priv_data;
     MpegEncContext *s = &s1->mpeg_enc_ctx;
     int width, height, i, v, j;
-    
+
     init_get_bits(&s->gb, buf, buf_size);
 
     width = get_bits(&s->gb, 12);
@@ -1488,7 +1500,12 @@ static int mpeg1_decode_sequence(AVCodecContext *avctx,
         s->avctx = avctx;
         avctx->width = width;
         avctx->height = height;
-        avctx->frame_rate = frame_rate_tab[s->frame_rate_index];
+        if (s->frame_rate_index >= 9) {
+            /* at least give a valid frame rate (some old mpeg1 have this) */
+            avctx->frame_rate = 25 * FRAME_RATE_BASE;
+        } else {
+            avctx->frame_rate = frame_rate_tab[s->frame_rate_index];
+        }
         s->frame_rate = avctx->frame_rate;
         avctx->bit_rate = s->bit_rate;
         
@@ -1526,20 +1543,20 @@ static int mpeg1_decode_sequence(AVCodecContext *avctx,
         for(i=0;i<64;i++) {
             v = get_bits(&s->gb, 8);
             j = zigzag_direct[i];
-            s->non_intra_matrix[j] = v;
-            s->chroma_non_intra_matrix[j] = v;
+            s->inter_matrix[j] = v;
+            s->chroma_inter_matrix[j] = v;
         }
 #ifdef DEBUG
         dprintf("non intra matrix present\n");
         for(i=0;i<64;i++)
-            dprintf(" %d", s->non_intra_matrix[zigzag_direct[i]]);
+            dprintf(" %d", s->inter_matrix[zigzag_direct[i]]);
         printf("\n");
 #endif
     } else {
         for(i=0;i<64;i++) {
             v = default_non_intra_matrix[i];
-            s->non_intra_matrix[i] = v;
-            s->chroma_non_intra_matrix[i] = v;
+            s->inter_matrix[i] = v;
+            s->chroma_inter_matrix[i] = v;
         }
     }
 
@@ -1549,6 +1566,7 @@ static int mpeg1_decode_sequence(AVCodecContext *avctx,
     s->picture_structure = PICT_FRAME;
     s->frame_pred_frame_dct = 1;
     s->mpeg2 = 0;
+    avctx->sub_id = 1; /* indicates mpeg1 */
     return 0;
 }
 
@@ -1566,7 +1584,7 @@ static int mpeg_decode_frame(AVCodecContext *avctx,
     dprintf("fill_buffer\n");
 
     *data_size = 0;
-    
+
     /* special case for last picture */
     if (buf_size == 0) {
         if (s2->picture_number > 0) {
@@ -1583,15 +1601,18 @@ static int mpeg_decode_frame(AVCodecContext *avctx,
 
     buf_ptr = buf;
     buf_end = buf + buf_size;
-    
-    if (s->repeat_field % 2 == 1) {
+
+#if 0    
+    if (s->repeat_field % 2 == 1) { 
         s->repeat_field++;
         //fprintf(stderr,"\nRepeating last frame: %d -> %d! pict: %d %d", avctx->frame_number-1, avctx->frame_number,
-        //                                                         s2->picture_number, s->repeat_field);
-        *data_size = sizeof(AVPicture);
-        goto the_end;
+        //        s2->picture_number, s->repeat_field);
+        if (avctx->flags & CODEC_FLAG_REPEAT_FIELD) {
+            *data_size = sizeof(AVPicture);
+            goto the_end;
+        }
     }
-        
+#endif
     while (buf_ptr < buf_end) {
         buf_start = buf_ptr;
         /* find start next code */
@@ -1641,13 +1662,27 @@ static int mpeg_decode_frame(AVCodecContext *avctx,
                         if (ret == 1) {
                             /* got a picture: exit */
                             /* first check if we must repeat the frame */
+                            avctx->repeat_pict = 0;
+#if 0
                             if (s2->progressive_frame && s2->repeat_first_field) {
                                 //fprintf(stderr,"\nRepeat this frame: %d! pict: %d",avctx->frame_number,s2->picture_number);
-                                s2->repeat_first_field = 0;
-                                s2->progressive_frame = 0;
+                                //s2->repeat_first_field = 0;
+                                //s2->progressive_frame = 0;
                                 if (++s->repeat_field > 2)
                                     s->repeat_field = 0;
+                                avctx->repeat_pict = 1;
                             }
+#endif                      
+                            if (s2->repeat_first_field) {
+                                if (s2->progressive_sequence) {
+                                    if (s2->top_field_first)
+                                        avctx->repeat_pict = 4;
+                                    else
+                                        avctx->repeat_pict = 2;
+                                } else if (s2->progressive_frame) {
+                                    avctx->repeat_pict = 1;
+                                }
+                            }         
                             *data_size = sizeof(AVPicture);
                             goto the_end;
                         }

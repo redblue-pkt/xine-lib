@@ -4,12 +4,19 @@
 #define BIN_ONLY_SHAPE   2
 #define GRAY_SHAPE       3
 
+#define SIMPLE_VO_TYPE 1
+#define CORE_VO_TYPE   3
+
 // aspect_ratio_info
-#define EXTENDET_PAR 15
+#define EXTENDED_PAR 15
 
 //vol_sprite_usage / sprite_enable
 #define STATIC_SPRITE 1
 #define GMC_SPRITE 2
+
+#define MOTION_MARKER 0x1F001
+#define DC_MARKER     0x6B001
+
 
 /* dc encoding for mpeg4 */
 const UINT8 DCtab_lum[13][2] =
@@ -122,3 +129,27 @@ static const UINT16 pixel_aspect[16][2]={
  {0, 0},
  {0, 0},
 };
+
+/* these matrixes will be permuted for the idct */
+INT16 ff_mpeg4_default_intra_matrix[64] = {
+  8, 17, 18, 19, 21, 23, 25, 27,
+ 17, 18, 19, 21, 23, 25, 27, 28,
+ 20, 21, 22, 23, 24, 26, 28, 30,
+ 21, 22, 23, 24, 26, 28, 30, 32,
+ 22, 23, 24, 26, 28, 30, 32, 35,
+ 23, 24, 26, 28, 30, 32, 35, 38,
+ 25, 26, 28, 30, 32, 35, 38, 41,
+ 27, 28, 30, 32, 35, 38, 41, 45, 
+};
+
+INT16 ff_mpeg4_default_non_intra_matrix[64] = {
+ 16, 17, 18, 19, 20, 21, 22, 23,
+ 17, 18, 19, 20, 21, 22, 23, 24,
+ 18, 19, 20, 21, 22, 23, 24, 25,
+ 19, 20, 21, 22, 23, 24, 26, 27,
+ 20, 21, 22, 23, 25, 26, 27, 28,
+ 21, 22, 23, 24, 26, 27, 28, 30,
+ 22, 23, 24, 26, 27, 28, 30, 31,
+ 23, 24, 25, 27, 28, 30, 31, 33,
+};
+

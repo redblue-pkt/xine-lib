@@ -1,35 +1,30 @@
 /*
  * utils for libavcodec
- * Copyright (c) 2001 Gerard Lantau.
+ * Copyright (c) 2001 Fabrice Bellard.
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2 of the License, or (at your option) any later version.
  *
- * This program is distributed in the hope that it will be useful,
+ * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
-#include <stdio.h>
-#include <string.h>
-#include <errno.h>
-#include "common.h"
-#include "dsputil.h"
 #include "avcodec.h"
+#include "dsputil.h"
+#include "mpegvideo.h"
 #ifdef HAVE_MALLOC_H
 #include <malloc.h>
-#else
-#include <stdlib.h>
 #endif
 
 /* memory alloc */
-void *av_mallocz(int size)
+void *av_malloc(int size)
 {
     void *ptr;
 #if defined ( ARCH_X86 ) && defined ( HAVE_MEMALIGN )
@@ -52,6 +47,31 @@ void *av_mallocz(int size)
     return ptr;
 }
 
+void *av_mallocz(int size)
+{
+    void *ptr;
+    ptr = av_malloc(size);
+    if (!ptr)
+        return NULL;
+    memset(ptr, 0, size);
+    return ptr;
+}
+
+/* NOTE: ptr = NULL is explicetly allowed */
+void av_free(void *ptr)
+{
+    /* XXX: this test should not be needed on most libcs */
+    if (ptr)
+        free(ptr);
+}
+
+/* cannot call it directly because of 'void **' casting is not automatic */
+void __av_freep(void **ptr)
+{
+    av_free(*ptr);
+    *ptr = NULL;
+}
+
 /* encoder management */
 AVCodec *first_avcodec;
 
@@ -70,13 +90,16 @@ int avcodec_open(AVCodecContext *avctx, AVCodec *codec)
 
     avctx->codec = codec;
     avctx->frame_number = 0;
-    avctx->priv_data = av_mallocz(codec->priv_data_size);
-    if (!avctx->priv_data) 
-        return -ENOMEM;
+    if (codec->priv_data_size > 0) {
+        avctx->priv_data = av_mallocz(codec->priv_data_size);
+        if (!avctx->priv_data) 
+            return -ENOMEM;
+    } else {
+        avctx->priv_data = NULL;
+    }
     ret = avctx->codec->init(avctx);
     if (ret < 0) {
-        free(avctx->priv_data);
-        avctx->priv_data = NULL;
+        av_freep(&avctx->priv_data);
         return ret;
     }
     return 0;
@@ -138,8 +161,7 @@ int avcodec_close(AVCodecContext *avctx)
 {
     if (avctx->codec->close)
         avctx->codec->close(avctx);
-    free(avctx->priv_data);
-    avctx->priv_data = NULL;
+    av_freep(&avctx->priv_data);
     avctx->codec = NULL;
     return 0;
 }
@@ -205,6 +227,7 @@ AVCodec *avcodec_find(enum CodecID id)
 }
 
 const char *pix_fmt_str[] = {
+    "??",
     "yuv420p",
     "yuv422",
     "rgb24",
@@ -218,6 +241,7 @@ void avcodec_string(char *buf, int buf_size, AVCodecContext *enc, int encode)
     const char *codec_name;
     AVCodec *p;
     char buf1[32];
+    char channels_str[100];
     int bitrate;
 
     if (encode)
@@ -259,19 +283,54 @@ void avcodec_string(char *buf, int buf_size, AVCodecContext *enc, int encode)
                      enc->width, enc->height, 
                      (float)enc->frame_rate / FRAME_RATE_BASE);
         }
+        snprintf(buf + strlen(buf), buf_size - strlen(buf),
+                ", q=%d-%d", enc->qmin, enc->qmax);
+
         bitrate = enc->bit_rate;
         break;
     case CODEC_TYPE_AUDIO:
         snprintf(buf, buf_size,
                  "Audio: %s",
                  codec_name);
+        switch (enc->channels) {
+            case 1:
+                strcpy(channels_str, "mono");
+                break;
+            case 2:
+                strcpy(channels_str, "stereo");
+                break;
+            case 6:
+                strcpy(channels_str, "5:1");
+                break;
+            default:
+                sprintf(channels_str, "%d channels", enc->channels);
+                break;
+        }
         if (enc->sample_rate) {
             snprintf(buf + strlen(buf), buf_size - strlen(buf),
                      ", %d Hz, %s",
                      enc->sample_rate,
-                     enc->channels == 2 ? "stereo" : "mono");
+                     channels_str);
         }
-	bitrate = enc->bit_rate;
+        
+        /* for PCM codecs, compute bitrate directly */
+        switch(enc->codec_id) {
+        case CODEC_ID_PCM_S16LE:
+        case CODEC_ID_PCM_S16BE:
+        case CODEC_ID_PCM_U16LE:
+        case CODEC_ID_PCM_U16BE:
+            bitrate = enc->sample_rate * enc->channels * 16;
+            break;
+        case CODEC_ID_PCM_S8:
+        case CODEC_ID_PCM_U8:
+        case CODEC_ID_PCM_ALAW:
+        case CODEC_ID_PCM_MULAW:
+            bitrate = enc->sample_rate * enc->channels * 8;
+            break;
+        default:
+            bitrate = enc->bit_rate;
+            break;
+        }
         break;
     default:
         abort();
@@ -364,6 +423,15 @@ int avpicture_get_size(int pix_fmt, int width, int height)
     return size;
 }
 
+unsigned avcodec_version( void )
+{
+  return LIBAVCODEC_VERSION_INT;
+}
+
+unsigned avcodec_build( void )
+{
+  return LIBAVCODEC_BUILD;
+}
 
 /* must be called before any other functions */
 void avcodec_init(void)
@@ -412,6 +480,7 @@ void avcodec_register_all(void)
     register_avcodec(&msmpeg4v1_decoder);
     register_avcodec(&msmpeg4v2_decoder);
     register_avcodec(&msmpeg4v3_decoder);
+    register_avcodec(&wmv1_decoder);
     register_avcodec(&mpeg_decoder);
     register_avcodec(&h263i_decoder);
     register_avcodec(&rv10_decoder);
@@ -423,20 +492,28 @@ void avcodec_register_all(void)
 
 }
 
-static int encode_init(AVCodecContext *s)
+/* this should be called after seeking and before trying to decode the next frame */
+void avcodec_flush_buffers(AVCodecContext *avctx)
+{
+    MpegEncContext *s = avctx->priv_data;
+    s->num_available_buffers=0;
+}
+
+
+static int raw_encode_init(AVCodecContext *s)
 {
     return 0;
 }
 
-static int decode_frame(AVCodecContext *avctx, 
-                        void *data, int *data_size,
-                        UINT8 *buf, int buf_size)
+static int raw_decode_frame(AVCodecContext *avctx,
+			    void *data, int *data_size,
+			    UINT8 *buf, int buf_size)
 {
     return -1;
 }
 
-static int encode_frame(AVCodecContext *avctx,
-                        unsigned char *frame, int buf_size, void *data)
+static int raw_encode_frame(AVCodecContext *avctx,
+			    unsigned char *frame, int buf_size, void *data)
 {
     return -1;
 }
@@ -446,8 +523,8 @@ AVCodec rawvideo_codec = {
     CODEC_TYPE_VIDEO,
     CODEC_ID_RAWVIDEO,
     0,
-    encode_init,
-    encode_frame,
+    raw_encode_init,
+    raw_encode_frame,
     NULL,
-    decode_frame,
+    raw_decode_frame,
 };

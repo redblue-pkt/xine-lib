@@ -1,21 +1,39 @@
+/*
+ * DSP utils
+ * Copyright (c) 2000, 2001, 2002 Fabrice Bellard.
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2 of the License, or (at your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ */
 #ifndef DSPUTIL_H
 #define DSPUTIL_H
 
 #include "common.h"
 #include "avcodec.h"
+#include "xineutils.h"
 
 #undef DEBUG
-//#define DEBUG
 /* dct code */
 typedef short DCTELEM;
 
-void jpeg_fdct_ifast (DCTELEM *data);
+void fdct_ifast (DCTELEM *data);
 
 void j_rev_dct (DCTELEM *data);
 
 void fdct_mmx(DCTELEM *block);
 
-void (*av_fdct)(DCTELEM *block);
+extern void (*av_fdct)(DCTELEM *block);
 
 /* encoding scans */
 extern UINT8 ff_alternate_horizontal_scan[64];
@@ -37,7 +55,10 @@ void dsputil_init(void);
 /* pixel ops : interface with DCT */
 
 extern void (*ff_idct)(DCTELEM *block);
+extern void (*ff_idct_put)(UINT8 *dest, int line_size, DCTELEM *block);
+extern void (*ff_idct_add)(UINT8 *dest, int line_size, DCTELEM *block);
 extern void (*get_pixels)(DCTELEM *block, const UINT8 *pixels, int line_size);
+extern void (*diff_pixels)(DCTELEM *block, const UINT8 *s1, const UINT8 *s2, int stride);
 extern void (*put_pixels_clamped)(const DCTELEM *block, UINT8 *pixels, int line_size);
 extern void (*add_pixels_clamped)(const DCTELEM *block, UINT8 *pixels, int line_size);
 extern void (*gmc1)(UINT8 *dst, UINT8 *src, int srcStride, int h, int x16, int y16, int rounder);
@@ -45,6 +66,7 @@ extern void (*clear_blocks)(DCTELEM *blocks);
 
 
 void get_pixels_c(DCTELEM *block, const UINT8 *pixels, int line_size);
+void diff_pixels_c(DCTELEM *block, const UINT8 *s1, const UINT8 *s2, int stride);
 void put_pixels_clamped_c(const DCTELEM *block, UINT8 *pixels, int line_size);
 void add_pixels_clamped_c(const DCTELEM *block, UINT8 *pixels, int line_size);
 void clear_blocks_c(DCTELEM *blocks);
@@ -59,13 +81,6 @@ extern op_pixels_func put_no_rnd_pixels_tab[4];
 extern op_pixels_func avg_no_rnd_pixels_tab[4];
 extern qpel_mc_func qpel_mc_rnd_tab[16];
 extern qpel_mc_func qpel_mc_no_rnd_tab[16];
-
-
-/* sub pixel (encoding) */
-extern void (*sub_pixels_tab[4])(DCTELEM *block, const UINT8 *pixels, int line_size, int h);
-
-#define sub_pixels_2(block, pixels, line_size, dxy) \
-   sub_pixels_tab[dxy](block, pixels, line_size, 8)
 
 /* motion estimation */
 
@@ -91,9 +106,9 @@ static inline int block_permute_op(int j)
 }
 
 void block_permute(INT16 *block);
-
+          
 #if defined(ARCH_X86)
-#define HAVE_MMX
+#define HAVE_MMX 1 
 #endif
 
 #if defined(HAVE_MMX)
@@ -108,10 +123,10 @@ void block_permute(INT16 *block);
 
 extern int mm_flags;
 
-/* int mm_support(void); */
+/*int mm_support(void);*/
 #define mm_support() xine_mm_accel()
 
-#if 0
+#if 0 
 static inline void emms(void)
 {
     __asm __volatile ("emms;":::"memory");
@@ -127,6 +142,7 @@ static inline void emms(void)
 #define __align8 __attribute__ ((aligned (8)))
 
 void dsputil_init_mmx(void);
+void dsputil_set_bit_exact_mmx(void);
 
 #elif defined(ARCH_ARMV4L)
 

@@ -1,27 +1,23 @@
 /*
  * High quality image resampling with polyphase filters 
- * Copyright (c) 2001 Gerard Lantau.
+ * Copyright (c) 2001 Fabrice Bellard.
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2 of the License, or (at your option) any later version.
  *
- * This program is distributed in the hope that it will be useful,
+ * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <math.h>
-#include "dsputil.h"
 #include "avcodec.h"
+#include "dsputil.h"
 
 #ifdef USE_FASTMEMCPY
 #include "fastmemcpy.h"
@@ -454,7 +450,7 @@ ImgReSampleContext *img_resample_init(int owidth, int oheight,
 
     return s;
  fail:
-    free(s);
+    av_free(s);
     return NULL;
 }
 
@@ -474,8 +470,8 @@ void img_resample(ImgReSampleContext *s,
 
 void img_resample_close(ImgReSampleContext *s)
 {
-    free(s->line_buf);
-    free(s);
+    av_free(s->line_buf);
+    av_free(s);
 }
 
 #ifdef TEST
@@ -522,7 +518,7 @@ static void dump_filter(INT16 *filter)
 }
 
 #ifdef HAVE_MMX
-int mm_flags;
+extern int mm_flags;
 #endif
 
 int main(int argc, char **argv)
@@ -609,7 +605,7 @@ int main(int argc, char **argv)
                        img, XSIZE, XSIZE, YSIZE);
     if (memcmp(img1, img2, xsize * ysize) != 0) {
         fprintf(stderr, "mmx error\n");
-        abort();
+        exit(1);
     }
     printf("MMX OK\n");
 #endif

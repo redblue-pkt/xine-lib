@@ -1,6 +1,6 @@
 /*
  * MMX optimized forward DCT
- * The gcc porting is Copyright (c) 2001 Gerard Lantau.
+ * The gcc porting is Copyright (c) 2001 Fabrice Bellard.
  *
  * from  fdctam32.c - AP922 MMX(3D-Now) forward-DCT
  * 
@@ -10,7 +10,7 @@
 #include "../common.h"
 #include "mmx.h"
 
-//#define ATTR_ALIGN(align) __attribute__ ((__aligned__ (align)))
+#define ATTR_ALIGN(align) __attribute__ ((__aligned__ (align)))
 
 //////////////////////////////////////////////////////////////////////
 //
