@@ -16,11 +16,12 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
- *
+ */
+
+/*
  * SND/AU File Demuxer by Mike Melanson (melanson@pcisys.net)
  *
- * $Id: demux_snd.c,v 1.29 2003/04/17 19:01:28 miguelfreitas Exp $
- *
+ * $Id: demux_snd.c,v 1.30 2003/07/04 15:12:50 andruil Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -46,18 +47,12 @@
 #define snd_TAG 0x2E736E64
 
 typedef struct {
-
   demux_plugin_t       demux_plugin;
 
-  xine_stream_t        *stream;
-
-  config_values_t     *config;
-
+  xine_stream_t       *stream;
   fifo_buffer_t       *video_fifo;
   fifo_buffer_t       *audio_fifo;
-
   input_plugin_t      *input;
-
   int                  status;
 
   unsigned int         audio_type;
@@ -74,18 +69,10 @@ typedef struct {
   off_t                data_size;
 
   int                  seek_flag;  /* this is set when a seek just occurred */
-
-  char                 last_mrl[1024];
 } demux_snd_t;
 
 typedef struct {
-
   demux_class_t     demux_class;
-
-  /* class-wide, global variables here */
-
-  xine_t           *xine;
-  config_values_t  *config;
 } demux_snd_class_t;
 
 /* returns 1 if the SND file was opened successfully, 0 otherwise */
@@ -94,7 +81,7 @@ static int open_snd_file(demux_snd_t *this) {
   unsigned char header[SND_HEADER_SIZE];
   unsigned int encoding;
 
-  if (!xine_demux_read_header(this->input, header, SND_HEADER_SIZE))
+  if (xine_demux_read_header(this->input, header, SND_HEADER_SIZE) != SND_HEADER_SIZE)
     return 0;
 
   /* check the signature */
@@ -259,7 +246,7 @@ static int demux_snd_seek (demux_plugin_t *this_gen,
   
   /* if input is non-seekable, do not proceed with the rest of this
    * seek function */
-  if ((this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) == 0)
+  if (!INPUT_IS_SEEKABLE(this->input))
     return this->status;
 
   /* check the boundary offsets */
@@ -314,9 +301,8 @@ static int demux_snd_get_optional_data(demux_plugin_t *this_gen,
 }
 
 static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *stream,
-                                    input_plugin_t *input_gen) {
+                                    input_plugin_t *input) {
 
-  input_plugin_t *input = (input_plugin_t *) input_gen;
   demux_snd_t    *this;
 
   this         = xine_xmalloc (sizeof (demux_snd_t));
@@ -367,8 +353,6 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
     return NULL;
   }
 
-  strncpy (this->last_mrl, input->get_mrl (input), 1024);
-
   return &this->demux_plugin;
 }
 
@@ -402,9 +386,7 @@ void *demux_snd_init_plugin (xine_t *xine, void *data) {
 
   demux_snd_class_t     *this;
 
-  this         = xine_xmalloc (sizeof (demux_snd_class_t));
-  this->config = xine->config;
-  this->xine   = xine;
+  this  = xine_xmalloc (sizeof (demux_snd_class_t));
 
   this->demux_class.open_plugin     = open_plugin;
   this->demux_class.get_description = get_description;

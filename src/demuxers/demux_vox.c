@@ -16,11 +16,13 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
- *
+ */
+
+/*
  * VOX Demuxer by Mike Melanson (melanson@pcisys.net)
  * This a demuxer for .vox files containing raw Dialogic ADPCM data.
  *
- * $Id: demux_vox.c,v 1.4 2003/04/17 19:01:32 miguelfreitas Exp $
+ * $Id: demux_vox.c,v 1.5 2003/07/04 15:12:51 andruil Exp $
  *
  */
 
@@ -44,31 +46,17 @@
 #define DIALOGIC_SAMPLERATE 8000
 
 typedef struct {
-
   demux_plugin_t       demux_plugin;
 
   xine_stream_t       *stream;
-
-  config_values_t     *config;
-
   fifo_buffer_t       *video_fifo;
   fifo_buffer_t       *audio_fifo;
-
   input_plugin_t      *input;
-
   int                  status;
-
-  char                 last_mrl[1024];
 } demux_vox_t;
 
 typedef struct {
-
   demux_class_t     demux_class;
-
-  /* class-wide, global variables here */
-
-  xine_t           *xine;
-  config_values_t  *config;
 } demux_vox_class_t;
 
 static int demux_vox_send_chunk (demux_plugin_t *this_gen) {
@@ -196,10 +184,28 @@ static int demux_vox_get_optional_data(demux_plugin_t *this_gen,
 }
 
 static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *stream,
-                                   input_plugin_t *input_gen) {
+                                   input_plugin_t *input) {
 
-  input_plugin_t *input = (input_plugin_t *) input_gen;
   demux_vox_t   *this;
+
+  switch (stream->content_detection_method) {
+
+  case METHOD_BY_CONTENT:
+  case METHOD_EXPLICIT:
+  case METHOD_BY_EXTENSION: {
+    char *extensions, *mrl;
+
+    mrl = input->get_mrl (input);
+    extensions = class_gen->get_extensions (class_gen);
+
+    if (!xine_demux_check_extension (mrl, extensions))
+      return NULL;
+  }
+  break;
+
+  default:
+    return NULL;
+  }
 
   this         = xine_xmalloc (sizeof (demux_vox_t));
   this->stream = stream;
@@ -218,30 +224,6 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   this->demux_plugin.demux_class       = class_gen;
 
   this->status = DEMUX_FINISHED;
-
-  switch (stream->content_detection_method) {
-
-  case METHOD_BY_CONTENT:
-  case METHOD_EXPLICIT:
-  case METHOD_BY_EXTENSION: {
-    char *extensions, *mrl;
-
-    mrl = input->get_mrl (input);
-    extensions = class_gen->get_extensions (class_gen);
-
-    if (!xine_demux_check_extension (mrl, extensions)) {
-      free (this);
-      return NULL;
-    }
-  }
-  break;
-
-  default:
-    free (this);
-    return NULL;
-  }
-
-  strncpy (this->last_mrl, input->get_mrl (input), 1024);
 
   return &this->demux_plugin;
 }
@@ -273,9 +255,7 @@ void *demux_vox_init_plugin (xine_t *xine, void *data) {
 
   demux_vox_class_t     *this;
 
-  this         = xine_xmalloc (sizeof (demux_vox_class_t));
-  this->config = xine->config;
-  this->xine   = xine;
+  this = xine_xmalloc (sizeof (demux_vox_class_t));
 
   this->demux_class.open_plugin     = open_plugin;
   this->demux_class.get_description = get_description;

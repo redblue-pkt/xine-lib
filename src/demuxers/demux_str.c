@@ -16,16 +16,19 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
- *
+ */
+
+/*
  * STR File Demuxer by Mike Melanson (melanson@pcisys.net)
  *                  and Stuart Caie (kyzer@4u.net)
  * This demuxer handles either raw STR files (which are just a concatenation
  * of raw compact disc sectors) or STR files with RIFF headers.
  *
- * $Id: demux_str.c,v 1.11 2003/05/04 12:17:45 f1rmb Exp $
+ * $Id: demux_str.c,v 1.12 2003/07/04 15:12:51 andruil Exp $
  */
 
-/* CD-XA format:
+/*
+ * CD-XA format:
  *
  * - the format is a series of 2352 byte CD sectors
  *   - 0x000:   12 bytes: sync header (00 FF FF FF FF FF FF FF FF FF FF 00)
@@ -116,6 +119,11 @@
 #include <string.h>
 #include <stdlib.h>
 
+/********** logging **********/
+#define LOG_MODULE "demux_str"
+/* #define LOG_VERBOSE */
+/* #define LOG */
+
 #include "xine_internal.h"
 #include "xineutils.h"
 #include "compat.h"
@@ -154,22 +162,17 @@
 #define FRAME_DURATION 45000
 
 typedef struct {
-
   demux_plugin_t       demux_plugin;
 
   xine_stream_t       *stream;
-
-  config_values_t     *config;
-
   fifo_buffer_t       *video_fifo;
   fifo_buffer_t       *audio_fifo;
-
   input_plugin_t      *input;
+  int                  status;
 
   off_t                data_start;
   off_t                data_size;
   off_t                current_pos;
-  int                  status;
 
   xine_bmiheader       bih[STR_MAX_CHANNELS];
   unsigned char        audio_info[STR_MAX_CHANNELS];
@@ -178,18 +181,10 @@ typedef struct {
 
   int                  seek_flag;
   int                  default_video_channel;
-
-  char                 last_mrl[1024];
 } demux_str_t;
 
 typedef struct {
-
   demux_class_t     demux_class;
-
-  /* class-wide, global variables here */
-
-  xine_t           *xine;
-  config_values_t  *config;
 } demux_str_class_t;
 
 
@@ -205,9 +200,7 @@ static int open_str_file(demux_str_t *this) {
   this->input->seek(this->input, 0, SEEK_SET);
   if (this->input->read(this->input, check_bytes, STR_CHECK_BYTES) !=
       STR_CHECK_BYTES) {
-#ifdef LOG
-    printf("PSX STR: read error\n");
-#endif
+    lprintf("read error\n");
     return 0;
   }
 
@@ -223,39 +216,31 @@ static int open_str_file(demux_str_t *this) {
   /* we need to check up to 32 sectors for up to 32 audio/video channels */
   for (sector = 0; sector < STR_MAX_CHANNELS; sector++) {
 
-#ifdef LOG
-    printf("PSX STR: file=%d channel=%-2d submode=%02x coding_info=%02x\n",
-	   check_bytes[local_offset + 0x10],
-	   check_bytes[local_offset + 0x11],
-	   check_bytes[local_offset + 0x12],
-	   check_bytes[local_offset + 0x13]);
-#endif
+    lprintf("file=%d channel=%-2d submode=%02x coding_info=%02x\n",
+            check_bytes[local_offset + 0x10],
+            check_bytes[local_offset + 0x11],
+            check_bytes[local_offset + 0x12],
+            check_bytes[local_offset + 0x13]);
 
     /* check for 12-byte sync marker */
     if ((BE_32(&check_bytes[local_offset + 0]) != 0x00FFFFFF) ||
 	(BE_32(&check_bytes[local_offset + 4]) != 0xFFFFFFFF) ||
 	(BE_32(&check_bytes[local_offset + 8]) != 0xFFFFFF00)) {
-#ifdef LOG
-      printf("PSX STR: sector %d sync error\n", sector);
-#endif
+      lprintf("sector %d sync error\n", sector);
       return 0;
     }
 
     /* the 32 bits starting at 0x10 and at 0x14 should be the same */
     if (BE_32(&check_bytes[local_offset + 0x10]) !=
 	BE_32(&check_bytes[local_offset + 0x14])) {
-#ifdef LOG
-      printf("PSX STR: sector %d control bits copy error\n", sector);
-#endif
+      lprintf("sector %d control bits copy error\n", sector);
       return 0;
     }
 
     /* channel should be from 0 to 31 */
     channel = check_bytes[local_offset + 0x11];
     if (channel >= STR_MAX_CHANNELS) {
-#ifdef LOG
-	printf("PSX STR: sector %d channel %d error\n", sector, channel);
-#endif
+      lprintf("sector %d channel %d error\n", sector, channel);
       return 0;
     }
 
@@ -290,15 +275,12 @@ static int open_str_file(demux_str_t *this) {
       break;
 
     default:
-#ifdef LOG
-	printf("PSX STR: sector %d channel %d unknown type error\n",
-	       sector, channel);
-#endif
-	/* several films (e.g. 37xa16.xap in Strider 1) have empty
-	 * sectors with 0 as the type, despite having plenty of
-	 * video/audio sectors
-	 */
-	/*return 0*/;
+      lprintf("sector %d channel %d unknown type error\n", sector, channel);
+      /* several films (e.g. 37xa16.xap in Strider 1) have empty
+       * sectors with 0 as the type, despite having plenty of
+       * video/audio sectors
+       */
+       /*return 0*/;
     }
 
     /* seek to the next sector and read in the header */
@@ -306,9 +288,7 @@ static int open_str_file(demux_str_t *this) {
     this->input->seek(this->input, this->data_start +
 		      ((sector+1) * CD_RAW_SECTOR_SIZE), SEEK_SET);
     if (this->input->read(this->input, check_bytes, 0x30) != 0x30) {
-#ifdef LOG
-      printf("PSX STR: sector %d read error\n", sector);
-#endif
+      lprintf("sector %d read error\n", sector);
       return 0;
     }
   }
@@ -341,7 +321,7 @@ static int open_str_file(demux_str_t *this) {
       else {
 	strcpy(audinfo, "No audio");
       }
-      printf("PSX STR: channel %-2d %-22s%s\n", channel, vidinfo, audinfo);
+      lprintf("channel %-2d %-22s%s\n", channel, vidinfo, audinfo);
     }
   }
 #endif
@@ -528,11 +508,9 @@ static int demux_str_seek (demux_plugin_t *this_gen,
 
   /* round to ensure we start on a sector */
   start_pos /= CD_RAW_SECTOR_SIZE;
-#ifdef LOG
-  printf("PSX STR: seeking to sector %d (%02d:%02d)\n",
-	 (int)start_pos, (int)start_pos / (60*75),
-	 ((int)start_pos / 75)%60);
-#endif
+  lprintf("seeking to sector %d (%02d:%02d)\n",
+    (int)start_pos, (int)start_pos / (60*75),
+    ((int)start_pos / 75)%60);
 
   /* reposition at the chosen sector */
   this->current_pos = start_pos * CD_RAW_SECTOR_SIZE;
@@ -573,14 +551,13 @@ static int demux_str_get_optional_data(demux_plugin_t *this_gen,
 }
 
 static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *stream,
-                                    input_plugin_t *input_gen) {
+                                    input_plugin_t *input) {
 
-  input_plugin_t *input = (input_plugin_t *) input_gen;
   demux_str_t    *this;
 
-  if (! (input->get_capabilities(input) & INPUT_CAP_SEEKABLE)) {
-    if (stream->xine->verbosity >= XINE_VERBOSITY_DEBUG) 
-      printf(_("deux_str: PSX STR: input not seekable, can not handle!\n"));
+  if (!INPUT_IS_SEEKABLE(input)) {
+    xprintf(stream->xine, XINE_VERBOSITY_DEBUG,
+      "input not seekable, can not handle!\n");
     return NULL;
   }
 
@@ -631,8 +608,6 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
     return NULL;
   }
 
-  strncpy (this->last_mrl, input->get_mrl (input), 1024);
-
   return &this->demux_plugin;
 }
 
@@ -662,9 +637,7 @@ void *demux_str_init_plugin (xine_t *xine, void *data) {
 
   demux_str_class_t     *this;
 
-  this         = xine_xmalloc (sizeof (demux_str_class_t));
-  this->config = xine->config;
-  this->xine   = xine;
+  this = xine_xmalloc (sizeof (demux_str_class_t));
 
   this->demux_class.open_plugin     = open_plugin;
   this->demux_class.get_description = get_description;

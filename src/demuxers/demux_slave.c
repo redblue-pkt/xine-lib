@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (C) 2000-2003 the xine project
  * May 2003 - Miguel Freitas
  * This plugin was sponsored by 1Control
@@ -18,13 +18,14 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
- *
- * $Id: demux_slave.c,v 1.2 2003/05/15 20:23:16 miguelfreitas Exp $
+ */
+
+/*
+ * $Id: demux_slave.c,v 1.3 2003/07/04 15:12:51 andruil Exp $
  *
  * demuxer for slave "protocol"
  * master xine must be started with XINE_PARAM_BROADCASTER_PORT set, that is,
  * 'xine --broadcast-port <port_number>'
- *
  */
 
 #ifdef HAVE_CONFIG_H
@@ -37,6 +38,11 @@
 #include <unistd.h>
 #include <string.h>
 
+/********** logging **********/
+#define LOG_MODULE "demux_slave"
+/* #define LOG_VERBOSE */
+/* #define LOG */
+
 #include "xine_internal.h"
 #include "xineutils.h"
 #include "compat.h"
@@ -47,41 +53,29 @@
 #define NETWORK_PREBUFFER   90000
 
 typedef struct {  
-
   demux_plugin_t      demux_plugin;
 
   xine_stream_t       *stream;
-
-  config_values_t     *config;
-
   fifo_buffer_t       *video_fifo;
   fifo_buffer_t       *audio_fifo;
-
   input_plugin_t      *input;
+  int                  status;
 
   int64_t              last_vpts;
   int                  send_newpts;
-  int                  status;
-  
+
                         /* additional decoder flags and other dec-spec. stuff */
   uint32_t             decoder_info[BUF_NUM_DEC_INFO];
                         /* pointers to dec-spec. stuff */
   void                 *decoder_info_ptr[BUF_NUM_DEC_INFO];
   xine_list_t          *dec_infos;   /* dec-spec. stuff */
-  
+
   uint8_t              scratch[SCRATCH_SIZE+1];
   int                  scratch_used;
-      
 } demux_slave_t ;
 
 typedef struct {
-
   demux_class_t     demux_class;
-
-  /* class-wide, global variables here */
-
-  xine_t           *xine;
-  config_values_t  *config;
 } demux_slave_class_t;
 
 
@@ -101,36 +95,36 @@ static int demux_slave_next (demux_slave_t *this) {
   this->scratch[this->scratch_used] = '\0';
 
   if( !n ) {
-    printf("demux_slave: connection closed\n");
+    lprintf("connection closed\n");
     this->status = DEMUX_FINISHED;
     return 0;
   }
-    
+
   p = strchr(this->scratch,'\n');
   s = strchr(this->scratch,' ');
 
   if( !s || s > p )
     s = p;
-    
+
   if( !p || !s || (s-this->scratch+1) > MAX_COMMAND_SIZE ) {
-    printf("demux_slave: protocol error\n");
+    lprintf("protocol error\n");
     this->status = DEMUX_FINISHED;
     return 0;
   }
-  
+
   *s++ = '\0';
   p++;
-    
+
   if( !strcmp(this->scratch,"buffer") ) {
     int32_t    size ;     /* size of _content_                                     */
     uint32_t   type;
     int64_t    pts;       /* presentation time stamp, used for a/v sync            */
     int64_t    disc_off;  /* discontinuity offset                                  */
     uint32_t   decoder_flags; /* stuff like keyframe, is_header ... see below      */
-    
+
     if( sscanf(s,"fifo=%10s size=%d type=%u pts=%lld disc=%lld flags=%u",
                fifo_name, &size, &type, &pts, &disc_off, &decoder_flags) != 6 ) {
-      printf("demux_slave: 'buffer' command error\n");
+      lprintf("'buffer' command error\n");
       this->status = DEMUX_FINISHED;
       return 0;
     }
@@ -139,7 +133,7 @@ static int demux_slave_next (demux_slave_t *this) {
       this->send_newpts = 0;
       this->last_vpts = 0;
     }
-      
+
     /* if we join an already existing broadcaster we must take care
      * of the initial pts.
      */
@@ -147,28 +141,27 @@ static int demux_slave_next (demux_slave_t *this) {
       xine_demux_control_newpts( this->stream, pts, 0 );
       this->send_newpts = 0;
     }
-    
+
     /* check if we are not late on playback.
      * that might happen if user hits "pause" on the master, for example.
      */
-    if( pts && 
+    if( pts &&
         (curvpts = this->stream->xine->clock->get_current_time(this->stream->xine->clock)) >
         (this->last_vpts + CHECK_VPTS_INTERVAL) ) {
       if( this->last_vpts &&
           pts - (NETWORK_PREBUFFER/2) +
           this->stream->metronom->get_option(this->stream->metronom, METRONOM_VPTS_OFFSET) <
           curvpts ) {
-        if (this->stream->xine->verbosity >= XINE_VERBOSITY_LOG)
-          printf("demux_slave: we are running late, forcing newpts.\n");
+        xprintf(this->stream->xine, XINE_VERBOSITY_LOG, "we are running late, forcing newpts.\n");
         xine_demux_control_newpts( this->stream, pts - NETWORK_PREBUFFER, 0 );
       }
-      this->last_vpts = curvpts;  
+      this->last_vpts = curvpts;
     }
-    
-      
+
+
     if( !strcmp(fifo_name,"video") || !this->audio_fifo )
       buf = this->video_fifo->buffer_pool_alloc(this->video_fifo);
-    else 
+    else
       buf = this->audio_fifo->buffer_pool_alloc(this->audio_fifo);
 
     /* copy data to buf, either from stratch or network */
@@ -179,13 +172,13 @@ static int demux_slave_next (demux_slave_t *this) {
       memcpy(buf->content, p, n);
     if( n < size )
       this->input->read(this->input, &buf->content[n], size-n);
-    
+
     p += n;
     n = this->scratch_used - (p-this->scratch);
     if( n )
       memmove(this->scratch, p, n);
     this->scratch_used = n;
-    
+
     /* populate our buf */
     buf->size = size;
     buf->type = type;
@@ -195,42 +188,42 @@ static int demux_slave_next (demux_slave_t *this) {
 
     /* set decoder info */
     for( i = 0; i < BUF_NUM_DEC_INFO; i++ ) {
-      buf->decoder_info[i] = this->decoder_info[i];  
-      buf->decoder_info_ptr[i] = this->decoder_info_ptr[i];  
+      buf->decoder_info[i] = this->decoder_info[i];
+      buf->decoder_info_ptr[i] = this->decoder_info_ptr[i];
     }
     memset(this->decoder_info, 0, sizeof(this->decoder_info));
     memset(this->decoder_info_ptr, 0, sizeof(this->decoder_info_ptr));
-  
+
     if( !strcmp(fifo_name,"video") )
       this->video_fifo->put(this->video_fifo, buf);
     else if (this->audio_fifo)
       this->audio_fifo->put(this->audio_fifo, buf);
     else
       buf->free_buffer(buf);
-  
+
   } else if( !strcmp(this->scratch,"decoder_info") ) {
-    
+
     uint32_t decoder_info;
     int has_data;
     int size;
-    
+
     if( sscanf(s,"index=%d decoder_info=%u has_data=%d",
                &i, &decoder_info, &has_data) != 3 ||
                i < 0 || i > BUF_NUM_DEC_INFO) {
-      printf("demux_slave: 'decoder_info' command error\n");
+      lprintf("'decoder_info' command error\n");
       this->status = DEMUX_FINISHED;
       return 0;
     }
-    
+
     this->decoder_info[i] = decoder_info;
-    
+
     size = (has_data) ? decoder_info : 0;
 
     if( size ) {
       this->decoder_info_ptr[i] = malloc(size);
       xine_list_append_content(this->dec_infos, this->decoder_info_ptr[i]);
     }
-    
+
     n = this->scratch_used - (p-this->scratch);
     if( n > size )
       n = size;
@@ -238,30 +231,30 @@ static int demux_slave_next (demux_slave_t *this) {
       memcpy(this->decoder_info_ptr[i], p, n);
     if( n < size )
       this->input->read(this->input, (char *)this->decoder_info_ptr[i]+n, size-n);
-    
+
     p += n;
     n = this->scratch_used - (p-this->scratch);
     if( n )
       memmove(this->scratch, p, n);
     this->scratch_used = n;
-    
+
 
   } else if( !strcmp(this->scratch,"flush_engine") ) {
-    
+
     xine_demux_flush_engine( this->stream );
     n = this->scratch_used - (p-this->scratch);
     if( n )
       memmove(this->scratch, p, n);
     this->scratch_used = n;
-    
+
   } else {
-    printf("demux_slave: unknown command '%s'\n", this->scratch);
+    lprintf("unknown command '%s'\n", this->scratch);
     n = this->scratch_used - (p-this->scratch);
     if( n )
       memmove(this->scratch, p, n);
     this->scratch_used = n;
   }
-    
+
   return 1;
 }
 
@@ -310,7 +303,7 @@ static int demux_slave_seek (demux_plugin_t *this_gen,
 static void demux_slave_dispose (demux_plugin_t *this_gen) {
   demux_slave_t *this = (demux_slave_t *) this_gen;
   void *data;
-  
+
   /* free all decoder information */
   data = xine_list_first_content (this->dec_infos);
   while (data) {
@@ -341,17 +334,15 @@ static int demux_slave_get_optional_data(demux_plugin_t *this_gen,
 
 
 static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *stream,
-                                    input_plugin_t *input_gen) {
+                                    input_plugin_t *input) {
 
-  input_plugin_t *input = (input_plugin_t *) input_gen;
   demux_slave_t *this;
   static char slave_id_str[] = "master xine v1\n";
-  int len;
 
   this         = xine_xmalloc (sizeof (demux_slave_t));
 
   switch (stream->content_detection_method) {
-  
+
   case METHOD_BY_EXTENSION: {
     char *mrl;
 
@@ -359,14 +350,14 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
 
     if(!strncmp(mrl, "slave://", 8))
       break;
-    
+
     free (this);
     return NULL;
   }
-  
+
   case METHOD_BY_CONTENT: {
 
-    if ( (len = xine_demux_read_header(input, this->scratch, SCRATCH_SIZE)) > 0) {
+    if ( xine_demux_read_header(input, this->scratch, SCRATCH_SIZE) > 0) {
       if (!strncmp(this->scratch,slave_id_str,strlen(slave_id_str)))
         break;
     }
@@ -400,13 +391,13 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   this->demux_plugin.demux_class       = class_gen;
 
   this->status = DEMUX_FINISHED;
-      
+
   this->input->read(this->input, this->scratch,strlen(slave_id_str));
-  this->scratch_used = 0;        
+  this->scratch_used = 0;
 
   memset(this->decoder_info, 0, sizeof(this->decoder_info));
   memset(this->decoder_info_ptr, 0, sizeof(this->decoder_info_ptr));
- 
+
   return &this->demux_plugin;
 }
 
@@ -437,9 +428,7 @@ static void *init_plugin (xine_t *xine, void *data) {
 
   demux_slave_class_t     *this;
 
-  this         = xine_xmalloc (sizeof (demux_slave_class_t));
-  this->config = xine->config;
-  this->xine   = xine;
+  this = xine_xmalloc (sizeof (demux_slave_class_t));
 
   this->demux_class.open_plugin     = open_plugin;
   this->demux_class.get_description = get_description;

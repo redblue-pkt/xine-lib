@@ -16,12 +16,14 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
- *
+ */
+
+/*
  * SMJPEG File Demuxer by Mike Melanson (melanson@pcisys.net)
  * For more information on the SMJPEG file format, visit:
  *   http://www.lokigames.com/development/smjpeg.php3
  *
- * $Id: demux_smjpeg.c,v 1.38 2003/04/17 19:01:27 miguelfreitas Exp $
+ * $Id: demux_smjpeg.c,v 1.39 2003/07/04 15:12:50 andruil Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -60,31 +62,21 @@
 #define SMJPEG_CHUNK_PREAMBLE_SIZE 12
 
 typedef struct {
-
   demux_plugin_t       demux_plugin;
 
   xine_stream_t       *stream;
-
-  config_values_t     *config;
-
   fifo_buffer_t       *video_fifo;
   fifo_buffer_t       *audio_fifo;
-
   input_plugin_t      *input;
-
-  off_t                input_length;
   int                  status;
 
-  /* when this flag is set, demuxer only dispatches audio samples until it
-   * encounters a video keyframe, then it starts sending every frame again */
-  int                  waiting_for_keyframe;
+  off_t                input_length;
 
   /* video information */
   unsigned int         video_type;
   xine_bmiheader       bih;
 
   /* audio information */
-  unsigned int         audio_codec;
   unsigned int         audio_type;
   unsigned int         audio_sample_rate;
   unsigned int         audio_bits;
@@ -92,26 +84,19 @@ typedef struct {
 
   /* playback information */
   unsigned int         duration;  /* duration in milliseconds */
-
-  char                 last_mrl[1024];
 } demux_smjpeg_t;
 
 typedef struct {
-
   demux_class_t     demux_class;
-
-  /* class-wide, global variables here */
-
-  xine_t           *xine;
-  config_values_t  *config;
 } demux_smjpeg_class_t;
 
 /* returns 1 if the SMJPEG file was opened successfully, 0 otherwise */
 static int open_smjpeg_file(demux_smjpeg_t *this) {
 
-  unsigned int chunk_tag;
+  unsigned int  chunk_tag;
   unsigned char signature[8];
   unsigned char header_chunk[SMJPEG_HEADER_CHUNK_MAX_SIZE];
+  unsigned int  audio_codec = 0;
 
   if (!xine_demux_read_header(this->input, signature, SMJPEG_SIGNATURE_SIZE))
     return 0;
@@ -175,11 +160,11 @@ static int open_smjpeg_file(demux_smjpeg_t *this) {
        * files to denote a slightly different format; thus, use the
        * following special case */
       if (BE_32(&header_chunk[8]) == APCM_TAG) {
-        this->audio_codec = be2me_32(APCM_TAG);
+        audio_codec = be2me_32(APCM_TAG);
         this->audio_type = BUF_AUDIO_SMJPEG_IMA;
       } else {
-        this->audio_codec = *(uint32_t *)&header_chunk[8];
-        this->audio_type = formattag_to_buf_audio(this->audio_codec);
+        audio_codec = *(uint32_t *)&header_chunk[8];
+        this->audio_type = formattag_to_buf_audio(audio_codec);
       }
       break;
 
@@ -195,10 +180,10 @@ static int open_smjpeg_file(demux_smjpeg_t *this) {
 
   if(!this->video_type)
     this->video_type = BUF_VIDEO_UNKNOWN;
-  
-  if(!this->audio_type && this->audio_codec)
+
+  if(!this->audio_type && audio_codec)
     this->audio_type = BUF_AUDIO_UNKNOWN;
-  
+
   return 1;
 }
 
@@ -406,13 +391,12 @@ static int demux_smjpeg_get_optional_data(demux_plugin_t *this_gen,
 }
 
 static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *stream,
-                                    input_plugin_t *input_gen) {
+                                    input_plugin_t *input) {
 
-  input_plugin_t *input = (input_plugin_t *) input_gen;
   demux_smjpeg_t *this;
 
-  if (! (input->get_capabilities(input) & INPUT_CAP_SEEKABLE)) {
-    if (stream->xine->verbosity >= XINE_VERBOSITY_DEBUG) 
+  if (!INPUT_IS_SEEKABLE(input)) {
+    if (stream->xine->verbosity >= XINE_VERBOSITY_DEBUG)
       printf(_("demux_smjpeg.c: input not seekable, can not handle!\n"));
     return NULL;
   }
@@ -465,8 +449,6 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
     return NULL;
   }
 
-  strncpy (this->last_mrl, input->get_mrl (input), 1024);
-
   return &this->demux_plugin;
 }
 
@@ -497,9 +479,7 @@ void *demux_smjpeg_init_plugin (xine_t *xine, void *data) {
 
   demux_smjpeg_class_t     *this;
 
-  this         = xine_xmalloc (sizeof (demux_smjpeg_class_t));
-  this->config = xine->config;
-  this->xine   = xine;
+  this = xine_xmalloc (sizeof (demux_smjpeg_class_t));
 
   this->demux_class.open_plugin     = open_plugin;
   this->demux_class.get_description = get_description;
