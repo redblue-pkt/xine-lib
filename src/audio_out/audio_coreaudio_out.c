@@ -286,7 +286,7 @@ static int ao_coreaudio_write(ao_driver_t *this_gen, int16_t *data,
 
   if (this->buf_writepos + (num_frames * this->bytes_per_frame) > BUFSIZE) {
       /* buffer overflow */
-      printf ("CoreAudio: audio buffer overflow!\n");
+      //printf ("CoreAudio: audio buffer overflow!\n");
       pthread_mutex_unlock (&this->mutex);
       return 1;
   }
@@ -333,6 +333,8 @@ static void ao_coreaudio_close(ao_driver_t *this_gen)
   if (this->converter_component) {
       this->converter_component = NULL;
   }
+
+  pthread_mutex_destroy (&this->mutex);
 }
 
 static uint32_t ao_coreaudio_get_capabilities (ao_driver_t *this_gen) {
