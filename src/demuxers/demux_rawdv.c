@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_rawdv.c,v 1.21 2004/06/13 21:28:54 miguelfreitas Exp $
+ * $Id: demux_rawdv.c,v 1.22 2004/12/21 05:24:47 conrad Exp $
  *
  * demultiplexer for raw dv streams
  */
@@ -356,6 +356,21 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   this->status = DEMUX_FINISHED;
 
   switch (stream->content_detection_method) {
+
+  case METHOD_BY_CONTENT: {
+    uint8_t buf[8];
+    
+    if (_x_demux_read_header(input, buf, 8) != 8)
+      return 0;
+
+    /* DIF (DV) movie file */
+    if (!((buf[0] == 0x1f) && (buf[1] == 0x07) && (buf[2] == 00) &&
+	  (buf[4] ^ 0x01))) {
+      free (this);
+      return NULL;
+    }
+  }
+  break;
 
   case METHOD_BY_EXTENSION: {
     char *extensions, *mrl;
