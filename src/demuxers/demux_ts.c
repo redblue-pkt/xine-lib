@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ts.c,v 1.11 2001/09/01 14:33:00 guenter Exp $
+ * $Id: demux_ts.c,v 1.12 2001/09/04 16:19:27 guenter Exp $
  *
  * Demultiplexer for MPEG2 Transport Streams.
  *
@@ -944,6 +944,7 @@ static void demux_ts_stop(demux_plugin_t *this_gen)
 {
   demux_ts *this = (demux_ts *)this_gen;
   buf_element_t *buf;
+  void *p;
 
   printf ("demux_ts: stop...\n");
 
@@ -958,6 +959,7 @@ static void demux_ts_stop(demux_plugin_t *this_gen)
   this->status = DEMUX_FINISHED;
 
   pthread_cancel (this->thread);
+  pthread_join (this->thread, &p);
 
   this->fifoVideo->clear(this->fifoVideo);
   if(this->fifoAudio)

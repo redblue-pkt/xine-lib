@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_avi.c,v 1.33 2001/09/02 22:26:54 guenter Exp $
+ * $Id: demux_avi.c,v 1.34 2001/09/04 16:19:27 guenter Exp $
  *
  * demultiplexer for avi streams
  *
@@ -808,6 +808,7 @@ static void demux_avi_stop (demux_plugin_t *this_gen) {
   
   demux_avi_t   *this = (demux_avi_t *) this_gen;
   buf_element_t *buf;
+  void *p;
 
   if (this->status != DEMUX_OK) {
     printf ("demux_avi: stop...ignored\n");
@@ -818,6 +819,7 @@ static void demux_avi_stop (demux_plugin_t *this_gen) {
   this->status = DEMUX_FINISHED;
   
   pthread_cancel (this->thread);
+  pthread_join (this->thread, &p);
 
   AVI_close (this->avi);
   this->avi = NULL;
