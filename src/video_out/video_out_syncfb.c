@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_syncfb.c,v 1.34 2001/11/06 11:49:44 matt2000 Exp $
+ * $Id: video_out_syncfb.c,v 1.35 2001/11/06 13:08:15 matt2000 Exp $
  * 
  * video_out_syncfb.c, SyncFB (for Matrox G200/G400 cards) interface for xine
  * 
@@ -119,6 +119,7 @@ typedef struct {
 
   int                frame_width;
   int                frame_height;
+  int                frame_format;
 
   int                deinterlace_enabled;
 
@@ -141,61 +142,56 @@ int gX11Fail;
 //
 // internal video_out_syncfb functions
 // 
-static void write_frame_YUV422(syncfb_driver_t* this, syncfb_frame_t* frame, uint_8* y, uint_8* cb, uint_8* cr)
+static void write_frame_YUV422(syncfb_driver_t* this, syncfb_frame_t* frame)
 {
+   uint_8*  y  = (uint_8 *)frame->vo_frame.base[0];
+   uint_8*  cb = (uint_8 *)frame->vo_frame.base[1];
+   uint_8*  cr = (uint_8 *)frame->vo_frame.base[2];
    uint_8*  crp;
    uint_8*  cbp;
-   uint_32* dest32;
+   uint_32* dst32 = (uint_32 *)(this->video_mem + this->bufinfo.offset);
    int h,w;
-	
-   int src_width = frame->width;
-   int src_height = frame->height;
-
    int bespitch = (frame->width + 31) & ~31; 
 
-   dest32 = (uint_32 *)(this->video_mem + this->bufinfo.offset);
-
-   for(h=0; h < src_height/2; h++) {
+   for(h = 0; h < (frame->height / 2); h++) {
       cbp = cb;
       crp = cr;
       
-      for(w=0; w < src_width/2; w++) {
-	 *dest32++ = (*y) + ((*cb)<<8) + ((*(y+1))<<16) + ((*cr)<<24);
+      for(w = 0; w < (frame->width / 2); w++) {
+	 *dst32++ = (*y) + ((*cb)<<8) + ((*(y+1))<<16) + ((*cr)<<24);
 	 y++; y++; cb++; cr++;
       }
 
-      dest32 += (bespitch - src_width) / 2;
+      dst32 += (bespitch - frame->width) / 2;
 
-      for(w=0; w < src_width/2; w++) {
-	 *dest32++ = (*y) + ((*cbp)<<8) + ((*(y+1))<<16) + ((*crp)<<24);
+      for(w=0; w < (frame->width / 2); w++) {
+	 *dst32++ = (*y) + ((*cbp)<<8) + ((*(y+1))<<16) + ((*crp)<<24);
 	 y++; y++; cbp++; crp++;
       }
       
-      dest32 += (bespitch - src_width) / 2;
+      dst32 += (bespitch - frame->width) / 2;
    }
 }
 
-static void write_frame_YUV420P2(syncfb_driver_t* this, syncfb_frame_t* frame, uint_8* y, uint_8* cb, uint_8* cr)
-{
-   uint_8* dest;
-   int h;
-
+static void write_frame_YUV420P2(syncfb_driver_t* this, syncfb_frame_t* frame)
+{   
+   uint_8*  y    = (uint_8 *)frame->vo_frame.base[0];
+   uint_8*  cb   = (uint_8 *)frame->vo_frame.base[1];
+   uint_8*  cr   = (uint_8 *)frame->vo_frame.base[2];
+   uint_8*  dst8 = this->video_mem + this->bufinfo.offset_p2;
+   int h, w;
+   int bespitch = (frame->width + 31) & ~31; 
+   
    register uint_32 *tmp32;
    register uint_8  *rcr;
    register uint_8  *rcb;
-   register int      w;
-
-   int src_width = frame->width;
-   int src_height = frame->height;
-   int bespitch = (frame->width + 31) & ~31; 
 
    rcr = cr;
    rcb = cb;
 	
-   dest = this->video_mem + this->bufinfo.offset_p2;
-   for(h=0; h < src_height/2; h++) {
-      tmp32 = (uint_32 *)dest;
-      w = (src_width/8) * 2;
+   for(h = 0; h < (frame->height / 2); h++) {
+      tmp32 = (uint_32 *)dst8;
+      w = (frame->width / 8) * 2;
       
       while(w--) {
 	 register uint_32 temp;
@@ -210,64 +206,92 @@ static void write_frame_YUV420P2(syncfb_driver_t* this, syncfb_frame_t* frame, u
 	 tmp32++;
       }
       
-      dest += bespitch;
+      dst8 += bespitch;
    }
 
-   dest = this->video_mem + this->bufinfo.offset;
-
-   for(h=0; h < src_height; h++) {
-      fast_memcpy(dest, y, src_width);
-      y    += src_width;
-      dest += bespitch;
+   dst8 = this->video_mem + this->bufinfo.offset;
+   for(h = 0; h < frame->height; h++) {
+      fast_memcpy(dst8, y, frame->width);
+      y    += frame->width;
+      dst8 += bespitch;
    }
 }
 
-static void write_frame_YUV420P3(syncfb_driver_t* this, syncfb_frame_t* frame, uint_8* y, uint_8* cb, uint_8* cr)
-{
-   uint_8* dest;
+static void write_frame_YUV420P3(syncfb_driver_t* this, syncfb_frame_t* frame)
+{   
+   uint_8*  y    = (uint_8 *)frame->vo_frame.base[0];
+   uint_8*  cb   = (uint_8 *)frame->vo_frame.base[1];
+   uint_8*  cr   = (uint_8 *)frame->vo_frame.base[2];
+   uint_8*  dst8 = this->video_mem + this->bufinfo.offset;
    int h;
-
-   int src_width = frame->width;
-   int src_height = frame->height;
-   
    int bespitch = (frame->width + 31) & ~31; 
-   dest = this->video_mem + this->bufinfo.offset;
 
-   for(h=0; h < src_height; h++) {
-      fast_memcpy(dest, y, src_width);
-      y    += src_width;
-      dest += bespitch;
+   for(h = 0; h < frame->height; h++) {
+      fast_memcpy(dst8, y, frame->width);
+      y    += frame->width;
+      dst8 += bespitch;
    }
 
-   dest = this->video_mem + this->bufinfo.offset_p2;
-   for(h=0; h < src_height/2; h++) {
-      fast_memcpy(dest, cb, src_width/2);
-      cb   += src_width/2;
-      dest += bespitch/2;
+   dst8 = this->video_mem + this->bufinfo.offset_p2;
+   for(h = 0; h < (frame->height / 2); h++) {
+      fast_memcpy(dst8, cb, (frame->width / 2));
+      cb   += (frame->width / 2);
+      dst8 += (bespitch / 2);
    }
 
-   dest = this->video_mem + this->bufinfo.offset_p3;
-   for(h=0; h < src_height/2; h++) {
-      fast_memcpy(dest, cr, src_width/2);
-      cr   += src_width/2;
-      dest += bespitch/2;
+   dst8 = this->video_mem + this->bufinfo.offset_p3;
+   for(h=0; h < (frame->height / 2); h++) {
+      fast_memcpy(dst8, cr, (frame->width / 2));
+      cr   += (frame->width / 2);
+      dst8 += (bespitch / 2);
+   }
+}
+
+static void write_frame_YUY2(syncfb_driver_t* this, syncfb_frame_t* frame)
+{   
+   uint_8* src8 = (uint_8 *)frame->vo_frame.base[0];
+   uint_8* dst8 = (uint_8 *)(this->video_mem + this->bufinfo.offset);
+   int h;
+   int bespitch = (frame->width + 31) & ~31; 
+
+   for(h = 0; h < frame->height; h++) {
+      fast_memcpy(dst8, src8, (frame->width * 2));
+
+      dst8 += (bespitch * 2);
+      src8 += (frame->width * 2);
    }
 }
 
 static void write_frame_sfb(syncfb_driver_t* this, syncfb_frame_t* frame)
 {
-   uint8_t *src[3];
-
-   src[0] = frame->vo_frame.base[0];
-   src[1] = frame->vo_frame.base[1];
-   src[2] = frame->vo_frame.base[2];
+   switch(frame->format) {
       
-   if(this->yuv_format == VIDEO_PALETTE_YUV422) {
-      write_frame_YUV422(this, frame, src[0], src[1], src[2]);
-   } else if(this->yuv_format == VIDEO_PALETTE_YUV420P2) { 
-      write_frame_YUV420P2(this, frame, src[0], src[1], src[2]);
-   } else if(this->yuv_format == VIDEO_PALETTE_YUV420P3) {
-      write_frame_YUV420P3(this, frame, src[0], src[1], src[2]);
+    case IMGFMT_YUY2:
+      if(this->capabilities.palettes & (1<<VIDEO_PALETTE_YUV422))
+	write_frame_YUY2(this, frame);
+      else
+	 printf("video_out_syncfb: error. (YUY2 not supported by your graphic card)\n");	
+      break;
+      
+    case IMGFMT_YV12:
+      if(this->yuv_format == VIDEO_PALETTE_YUV422) {
+	 write_frame_YUV422(this, frame);
+      } else if(this->yuv_format == VIDEO_PALETTE_YUV420P2) {
+	 write_frame_YUV420P2(this, frame);
+      } else if(this->yuv_format == VIDEO_PALETTE_YUV420P3) {
+	 write_frame_YUV420P3(this, frame);
+      } else {
+	 printf("video_out_syncfb: error. (YV12 not supported by your graphic card)\n");
+      }	   
+      break;
+      
+    case IMGFMT_RGB:
+      printf("video_out_syncfb: error. (RGB565 not yet supported)\n");
+      break;
+      
+    default:
+      printf("video_out_syncfb: error. (unknown frame format)\n");
+      break;
    }
 }
 
@@ -332,7 +356,7 @@ static void syncfb_adapt_to_output_area(syncfb_driver_t* this,
 
       // sanity checking - certain situations *may* crash the SyncFB module, so
       // take care that we always have valid numbers.
-      if(posx >= 0 && posy >= 0 && this->frame_width > 0 && this->frame_height > 0 && this->output_width > 0 && this->output_height > 0) {
+      if(posx >= 0 && posy >= 0 && this->frame_width > 0 && this->frame_height > 0 && this->output_width > 0 && this->output_height > 0 && this->frame_format > 0) {
 	 if(ioctl(this->fd, SYNCFB_GET_CONFIG, &this->syncfb_config))
 	   printf("video_out_syncfb: error. (get_config ioctl failed)\n");
 	
@@ -344,12 +368,25 @@ static void syncfb_adapt_to_output_area(syncfb_driver_t* this,
 	    this->syncfb_config.src_crop_left  = 0;
 	    this->syncfb_config.src_crop_right = 0;
 	 }
-
-	 // FIXME: hard coded to YUV420P3, YUV420P2, YUV422 at the moment
-	 //        as soon as support for YUY2 and RGB is added, we will
-	 //        replace this->yuv_format with the frame format.
-	 this->syncfb_config.src_palette = this->yuv_format;
-   
+	 
+	 switch(this->frame_format) {
+	  case IMGFMT_YV12:
+	    this->syncfb_config.src_palette = this->yuv_format;
+	    break;
+	    
+	  case IMGFMT_YUY2:
+	    this->syncfb_config.src_palette = VIDEO_PALETTE_YUV422;
+	    break;
+	    
+	  case IMGFMT_RGB:
+	    this->syncfb_config.src_palette = VIDEO_PALETTE_RGB565;
+	    break;
+	    
+	  default:
+	    this->syncfb_config.src_palette = 0;
+	    break;
+	 }
+	 
 	 this->syncfb_config.fb_screen_size = this->virtual_screen_width * this->virtual_screen_height * (this->screen_depth / 8);
 	 this->syncfb_config.src_width      = this->frame_width;
 	 this->syncfb_config.src_height     = this->frame_height;
@@ -362,12 +399,14 @@ static void syncfb_adapt_to_output_area(syncfb_driver_t* this,
 
 	 this->syncfb_config.default_repeat   = (this->deinterlace_enabled) ? 1 : this->default_repeat;
 
-	 if(ioctl(this->fd,SYNCFB_SET_CONFIG,&this->syncfb_config))
-	   printf("video_out_syncfb: error. (set_config ioctl failed)\n");
-	 if(ioctl(this->fd, SYNCFB_ON))
-	   printf("video_out_syncfb: error. (on ioctl failed)\n");
-	 else
-	   this->overlay_state = 1;
+	 if(this->capabilities.palettes & (1<<this->syncfb_config.src_palette)) {
+	    if(ioctl(this->fd,SYNCFB_SET_CONFIG,&this->syncfb_config))
+	      printf("video_out_syncfb: error. (set_config ioctl failed)\n");
+	    if(ioctl(this->fd, SYNCFB_ON))
+	      printf("video_out_syncfb: error. (on ioctl failed)\n");
+	    else
+	      this->overlay_state = 1;
+	 }
       }
    }
    
@@ -668,9 +707,10 @@ static void syncfb_display_frame(vo_driver_t* this_gen, vo_frame_t* frame_gen)
    syncfb_driver_t* this = (syncfb_driver_t *) this_gen;
    syncfb_frame_t* frame = (syncfb_frame_t *) frame_gen;
 
-   if((frame->width != this->frame_width) || (frame->height != this->frame_height)) {
+   if((frame->width != this->frame_width) || (frame->height != this->frame_height) || (frame->format != this->frame_format)) {
       this->frame_height = frame->height;
       this->frame_width  = frame->width;
+      this->frame_format = frame->format;
    }
    
    if((frame->width != this->delivered_width)
@@ -866,20 +906,9 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen)
       this->supported_capabilities |= VO_CAP_YV12;
       this->yuv_format = VIDEO_PALETTE_YUV422;
       printf("video_out_syncfb: SyncFB module supports YUV 4:2:2.\n");   
-   } else {
-      //
-      // FIXME: this "else" will be removed as soon as we add support
-      //        for YUY2 and RGB
-      // 
-      printf("video_out_syncfb: aborting. (YUV420P3 support not available)\n");      
-      
-      close(this->fd);
-      free(this);
-      
-      return NULL;
    }
-   // FIXME: not sure but is YUYV the same as YUY2?
-   if(this->capabilities.palettes & (1<<VIDEO_PALETTE_YUYV)) {
+   
+   if(this->capabilities.palettes & (1<<VIDEO_PALETTE_YUV422)) {
       this->supported_capabilities |= VO_CAP_YUY2;
       printf("video_out_syncfb: SyncFB module supports YUY2.\n");
    }
@@ -896,9 +925,6 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen)
       
       return NULL;
    }
-
-  // little hack to hard code to YV12 until rest is supported.
-  this->supported_capabilities = VO_CAP_YV12;
    
   XGetWindowAttributes(visual->display, DefaultRootWindow(visual->display), &attr);  
    
@@ -908,6 +934,7 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen)
   this->display               = visual->display;
   this->display_ratio         = visual->display_ratio;
   this->drawable              = visual->d;
+  this->frame_format          = 0;
   this->frame_height          = 0;
   this->frame_width           = 0;
   this->gc                    = XCreateGC (this->display, this->drawable, 0, NULL);
