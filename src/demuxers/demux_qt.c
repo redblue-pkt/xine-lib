@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.110 2002/11/11 04:02:43 tmmm Exp $
+ * $Id: demux_qt.c,v 1.111 2002/11/15 04:30:17 tmmm Exp $
  *
  */
 
@@ -95,6 +95,11 @@ typedef unsigned int qt_atom;
 #define ESDS_ATOM QT_ATOM('e', 's', 'd', 's')
 
 #define IMA4_FOURCC QT_ATOM('i', 'm', 'a', '4')
+
+#define UDTA_ATOM QT_ATOM('u', 'd', 't', 'a')
+#define CPY_ATOM QT_ATOM(0xA9, 'c', 'p', 'y')
+#define DES_ATOM QT_ATOM(0xA9, 'd', 'e', 's')
+#define CMT_ATOM QT_ATOM(0xA9, 'c', 'm', 't')
 
 /* placeholder for cutting and pasting */
 #define _ATOM QT_ATOM('', '', '', '')
@@ -255,6 +260,10 @@ typedef struct {
 
   int                    palette_count;
   palette_entry_t        palette[PALETTE_COUNT];
+
+  char                  *copyright;
+  char                  *description;
+  char                  *comment;
 
   qt_error last_error;
 } qt_info;
@@ -476,6 +485,10 @@ qt_info *create_qt_info(void) {
   info->video_codec = 0;
   info->video_decoder_config = NULL;
 
+  info->copyright = NULL;
+  info->description = NULL;
+  info->comment = NULL;
+
   info->last_error = QT_OK;
 
   return info;
@@ -491,6 +504,9 @@ void free_qt_info(qt_info *info) {
       free(info->audio_decoder_config);
     if(info->video_decoder_config)
       free(info->video_decoder_config);
+    free(info->copyright);
+    free(info->description);
+    free(info->comment);
     free(info);
     info = NULL;
   }
@@ -1371,6 +1387,7 @@ static void parse_moov_atom(qt_info *info, unsigned char *moov_atom) {
   unsigned int *sample_table_indices;
   unsigned int min_offset_table;
   int64_t min_offset;
+  int string_size;
 
   /* make sure this is actually a moov atom */
   if (BE_32(&moov_atom[4]) != MOOV_ATOM) {
@@ -1399,6 +1416,27 @@ static void parse_moov_atom(qt_info *info, unsigned char *moov_atom) {
       if (info->last_error != QT_OK)
         return;
       i += BE_32(&moov_atom[i - 4]) - 4;
+
+    } else if (current_atom == CPY_ATOM) {
+
+      string_size = BE_16(&moov_atom[i + 4]) + 1;
+      info->copyright = xine_xmalloc(string_size);
+      strncpy(info->copyright, &moov_atom[i + 8], string_size - 1);
+      info->copyright[string_size - 1] = 0;
+
+    } else if (current_atom == DES_ATOM) {
+
+      string_size = BE_16(&moov_atom[i + 4]) + 1;
+      info->description = xine_xmalloc(string_size);
+      strncpy(info->description, &moov_atom[i + 8], string_size - 1);
+      info->description[string_size - 1] = 0;
+
+    } else if (current_atom == CMT_ATOM) {
+
+      string_size = BE_16(&moov_atom[i + 4]) + 1;
+      info->comment = xine_xmalloc(string_size);
+      strncpy(info->comment, &moov_atom[i + 8], string_size - 1);
+      info->comment[string_size - 1] = 0;
     }
   }
 
@@ -1833,6 +1871,21 @@ static void demux_qt_send_headers(demux_plugin_t *this_gen) {
     this->qt->audio_sample_rate;
   this->stream->stream_info[XINE_STREAM_INFO_AUDIO_BITS] =
     this->qt->audio_bits;
+
+  if (this->qt->copyright)
+    this->stream->meta_info[XINE_META_INFO_ARTIST] =
+      strdup(this->qt->copyright);
+  if (this->qt->description)
+    this->stream->meta_info[XINE_META_INFO_TITLE] =
+      strdup(this->qt->description);
+  if (this->qt->comment)
+    this->stream->meta_info[XINE_META_INFO_COMMENT] =
+      strdup(this->qt->comment);
+
+  this->stream->stream_info[XINE_STREAM_INFO_VIDEO_FOURCC] = 
+    this->qt->video_codec;
+  this->stream->stream_info[XINE_STREAM_INFO_AUDIO_FOURCC] = 
+    this->qt->audio_codec;
 
   /* send start buffers */
   xine_demux_control_start(this->stream);
