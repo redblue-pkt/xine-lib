@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_oss_out.c,v 1.18 2001/06/24 07:17:37 guenter Exp $
+ * $Id: audio_oss_out.c,v 1.19 2001/06/24 23:08:42 guenter Exp $
  */
 
 /* required for swab() */
@@ -103,6 +103,7 @@ typedef struct oss_functions_s {
   int            audio_step;           /* pts per 32 768 samples (sample = #bytes/2) */
   int32_t        bytes_per_kpts;       /* bytes per 1024/90000 sec                   */
 
+  uint16_t      *sample_buffer;
   int16_t       *zero_space;
   
   int            audio_started;
@@ -275,7 +276,6 @@ static int ao_write_audio_data(ao_functions_t *this_gen,
   uint32_t         vpts, buffer_vpts;
   int32_t          gap;
   int              bDropPackage;
-  uint16_t         sample_buffer[10000];
   count_info       info;
   int              pos;
 
@@ -348,35 +348,35 @@ static int ao_write_audio_data(ao_functions_t *this_gen,
     switch (this->mode) {
     case AO_CAP_MODE_MONO:
       audio_out_resample_mono (output_samples, num_samples,
-			       sample_buffer, num_output_samples);
-      write(this->audio_fd, sample_buffer, num_output_samples * 2);
+			       this->sample_buffer, num_output_samples);
+      write(this->audio_fd, this->sample_buffer, num_output_samples * 2);
       break;
     case AO_CAP_MODE_STEREO:
       audio_out_resample_stereo (output_samples, num_samples,
-				 sample_buffer, num_output_samples);
-      write(this->audio_fd, sample_buffer, num_output_samples * 4);
+				 this->sample_buffer, num_output_samples);
+      write(this->audio_fd, this->sample_buffer, num_output_samples * 4);
       break;
     case AO_CAP_MODE_4CHANNEL:
       audio_out_resample_4channel (output_samples, num_samples,
-				   sample_buffer, num_output_samples);
-      write(this->audio_fd, sample_buffer, num_output_samples * 8);
+				   this->sample_buffer, num_output_samples);
+      write(this->audio_fd, this->sample_buffer, num_output_samples * 8);
       break;
     case AO_CAP_MODE_5CHANNEL:
       audio_out_resample_5channel (output_samples, num_samples,
-				   sample_buffer, num_output_samples);
-      write(this->audio_fd, sample_buffer, num_output_samples * 10);
+				   this->sample_buffer, num_output_samples);
+      write(this->audio_fd, this->sample_buffer, num_output_samples * 10);
       break;
     case AO_CAP_MODE_AC3:
       num_output_samples = num_samples+8;
-      sample_buffer[0] = 0xf872;  //spdif syncword
-      sample_buffer[1] = 0x4e1f;  // .............
-      sample_buffer[2] = 0x0001;  // AC3 data
-      sample_buffer[3] = num_samples * 8;
-//      sample_buffer[4] = 0x0b77;  // AC3 syncwork already in output_samples
+      this->sample_buffer[0] = 0xf872;  //spdif syncword
+      this->sample_buffer[1] = 0x4e1f;  // .............
+      this->sample_buffer[2] = 0x0001;  // AC3 data
+      this->sample_buffer[3] = num_samples * 8;
+//      this->sample_buffer[4] = 0x0b77;  // AC3 syncwork already in output_samples
 
       // ac3 seems to be swabbed data
-      swab(output_samples,sample_buffer+4,  num_samples  );
-      write(this->audio_fd, sample_buffer, num_output_samples);
+      swab(output_samples,this->sample_buffer+4,  num_samples  );
+      write(this->audio_fd, this->sample_buffer, num_output_samples);
       write(this->audio_fd, this->zero_space, 6144-num_output_samples);
       num_output_samples=num_output_samples/4;
       break;
@@ -424,6 +424,7 @@ static void ao_exit(ao_functions_t *this_gen)
   if (this->audio_fd != -1)
     close(this->audio_fd);
 
+  free (this->sample_buffer);
   free (this->zero_space);
   free (this);
 }
@@ -604,6 +605,8 @@ ao_functions_t *init_audio_out_plugin (config_values_t *config) {
   this->output_sample_rate = 0;
   this->audio_fd = -1;
 
+  this->sample_buffer = malloc (40000);
+  memset (this->sample_buffer, 0, 40000);
   this->zero_space = malloc (8192);
   memset (this->zero_space, 0, 8192);
 
