@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.70 2004/05/13 21:15:33 jstembridge Exp $
+ * $Id: xine_decoder.c,v 1.71 2004/05/23 16:12:04 jstembridge Exp $
  *
  * thin layer to use real binary-only codecs in xine
  *
@@ -306,7 +306,6 @@ static void realdec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) 
         this->chunk_buffer_size = 0;
         this->pts = buf->pts;
         lprintf ("new frame starting, pts=%lld\n", this->pts);
-
       }
       
       if ((this->chunk_buffer_size + buf->size) > this->chunk_buffer_max) {
@@ -392,9 +391,7 @@ static void realdec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) 
                                                   XINE_IMGFMT_YV12,
                                                   VO_BOTH_FIELDS);
 
-        /* the binary codec seems to correct the strange timestamps (for b-frames?)
-         * so use the one it returns */
-        img->pts = transform_out[2] * 90;
+        img->pts       = this->pts;
         img->duration  = this->duration;
         _x_stream_info_set(this->stream, XINE_STREAM_INFO_FRAME_DURATION, this->duration);
         img->bad_frame = 0;
