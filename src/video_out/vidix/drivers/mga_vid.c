@@ -50,6 +50,13 @@
 
 #define MGA_DEFAULT_FRAMES 64
 
+#define BES
+
+#ifdef MGA_TV
+#undef BES
+#define CRTC2
+#endif
+
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -365,6 +372,7 @@ int VIDIX_NAME(vixPlaybackFrameSelect)(unsigned int frame)
     if (mga_irq == -1)
 #endif
     {
+#ifdef BES
 	//we don't need the vcount protection as we're only hitting
 	//one register (and it doesn't seem to be double buffered)
 	regs.besctl = (regs.besctl & ~0x07000000) + (mga_next_frame << 25);
@@ -372,6 +380,7 @@ int VIDIX_NAME(vixPlaybackFrameSelect)(unsigned int frame)
 
 	// writel( regs.besglobctl + ((readl(VCOUNT)+2)<<16),
 	writel(BESGLOBCTL, regs.besglobctl + (MGA_VSYNC_POS<<16));
+#endif
 #ifdef CRTC2
 	crtc2_frame_sel(mga_next_frame);
 #endif
@@ -383,6 +392,7 @@ int VIDIX_NAME(vixPlaybackFrameSelect)(unsigned int frame)
 
 static void mga_vid_write_regs(int restore)
 {
+#ifdef BES
     //Make sure internal registers don't get updated until we're done
     writel(BESGLOBCTL, (readl(VCOUNT)-1)<<16);
 
@@ -552,7 +562,10 @@ static void mga_vid_write_regs(int restore)
 	printf(MGA_MSG" BESGLOBCTL = 0x%08x\n", readl(BESGLOBCTL));
 	printf(MGA_MSG" BESSTATUS= 0x%08x\n", readl(BESSTATUS));
     }
+#endif
+
 #ifdef CRTC2
+#if 0
     if (cregs_save.c2ctl == 0)
     {
 	//int i;
@@ -572,6 +585,7 @@ static void mga_vid_write_regs(int restore)
 	writel(C2MISC,         cregs_save.c2misc);
 	return;
     }
+#endif
     // writel(C2CTL, cregs.c2ctl);
 
     writel(C2CTL, ((readl(C2CTL) & ~0x03e00000) + (cregs.c2ctl & 0x03e00000)));
@@ -584,9 +598,9 @@ static void mga_vid_write_regs(int restore)
     //	writeb(XMISCCTRL, (readb(XMISCCTRL) & 0x19) | 0x92);
     //	writeb(XMISCCTRL, (readb(XMISCCTRL) & ~0xe9) + 0xa2);
     writel(C2DATACTL,   cregs.c2datactl);
-    writel(C2HPARAM,    cregs.c2hparam);
+//    writel(C2HPARAM,    cregs.c2hparam);
     writel(C2HSYNC,     cregs.c2hsync);
-    writel(C2VPARAM,    cregs.c2vparam);
+//    writel(C2VPARAM,    cregs.c2vparam);
     writel(C2VSYNC,     cregs.c2vsync);
     //xx
     //writel(C2MISC,      cregs.c2misc);
@@ -604,11 +618,28 @@ static void mga_vid_write_regs(int restore)
 
     //xx
     //writel(C2SPICSTARTADD1, cregs.c2spicstartadd1);
-    //writel(C2SUBPICLUT, cregs.c2subpiclut);
+
+    //set Color Lookup Table for Subpicture Layer
+    unsigned char r, g, b, y, cb, cr;
+    int i;
+    for (i = 0; i < 16; i++) {
+           
+        r = (i & 0x8) ? 0xff : 0x00;
+        g = (i & 0x4) ? ((i & 0x2) ? 0xff : 0xaa) : ((i & 0x2) ? 0x55 : 0x00);
+        b = (i & 0x1) ? 0xff : 0x00;
+
+        y  = ((r * 16829 + g *  33039 + b *  6416 + 0x8000) >> 16) + 16; 
+        cb = ((r * -9714 + g * -19071 + b * 28784 + 0x8000) >> 16) + 128; 
+        cr = ((r * 28784 + g * -24103 + b * -4681 + 0x8000) >> 16) + 128;
+
+        cregs.c2subpiclut = (cr << 24) | (cb << 16) | (y << 8) | i;
+        writel(C2SUBPICLUT, cregs.c2subpiclut);
+    }
+
     //writel(C2PRELOAD,   cregs.c2preload);
 
     // finaly enable everything
-    writel(C2CTL,       cregs.c2ctl);
+//    writel(C2CTL,       cregs.c2ctl);
     //	printf("c2ctl:0x%08x c2datactl:0x%08x\n",readl(C2CTL), readl(C2DATACTL));
     //	printf("c2misc:0x%08x\n", readl(C2MISC));
 #endif
@@ -740,7 +771,7 @@ int VIDIX_NAME(vixConfigPlayback)(vidix_playback_t *config)
     {
 	/*FIXME: this driver can use more frames but we need to apply
 	 some tricks to avoid RGB-memory hits*/
-	mga_src_base = ((mga_ram_size/2)*0x100000-config->num_frames*config->frame_size);
+	mga_src_base = ((mga_ram_size/2)*0x100000-(config->num_frames+1)*config->frame_size);
 	mga_src_base &= (~0xFFFF); /* 64k boundary */
 	if(mga_src_base>=0) break;
     }
@@ -793,7 +824,7 @@ int VIDIX_NAME(vixConfigPlayback)(vidix_playback_t *config)
     //    config->offsets[1] = config->frame_size;
     //    config->offsets[2] = 2*config->frame_size;
     //    config->offsets[3] = 3*config->frame_size;
-    for (i = 1; i < config->num_frames+1; i++)
+    for (i = 1; i < config->num_frames+2; i++)
 	config->offsets[i] = i*config->frame_size;
 
     config->offset.y=0;
@@ -985,7 +1016,7 @@ int VIDIX_NAME(vixConfigPlayback)(vidix_playback_t *config)
 	cregs.c2datactl = 1         // disable dither - propably not needed, we are already in YUV mode
 	    + (1<<1)	// Y filter enable
 	    + (1<<2)	// CbCr filter enable
-	    + (0<<3)	// subpicture enable (disabled)
+	    + (1<<3)	// subpicture enable (enabled)
 	    + (0<<4)	// NTSC enable (disabled - PAL)
 	    + (0<<5)	// C2 static subpicture enable (disabled)
 	    + (0<<6)	// C2 subpicture offset division (disabled)
@@ -1043,7 +1074,7 @@ int VIDIX_NAME(vixConfigPlayback)(vidix_playback_t *config)
 	cregs.c2datactl = 1         // disable dither - propably not needed, we are already in YUV mode
 	    + (1<<1)	// Y filter enable
 	    + (1<<2)	// CbCr filter enable
-	    + (0<<3)	// subpicture enable (disabled)
+	    + (1<<3)	// subpicture enable (enabled)
 	    + (0<<4)	// NTSC enable (disabled - PAL)
 	    + (0<<5)	// C2 static subpicture enable (disabled)
 	    + (0<<6)	// C2 subpicture offset division (disabled)
@@ -1099,7 +1130,7 @@ int VIDIX_NAME(vixConfigPlayback)(vidix_playback_t *config)
 	cregs.c2datactl = 0         // enable dither - propably not needed, we are already in YUV mode
 	    + (1<<1)	// Y filter enable
 	    + (1<<2)	// CbCr filter enable
-	    + (0<<3)	// subpicture enable (disabled)
+	    + (1<<3)	// subpicture enable (enabled)
 	    + (0<<4)	// NTSC enable (disabled - PAL)
 	    + (0<<5)	// C2 static subpicture enable (disabled)
 	    + (0<<6)	// C2 subpicture offset division (disabled)
@@ -1151,7 +1182,8 @@ int VIDIX_NAME(vixConfigPlayback)(vidix_playback_t *config)
 
     cregs.c2preload=(vsyncstart << 16) | (hsyncstart); // from
 
-    cregs.c2spicstartadd0=0; // not used
+    memset(config->dga_addr + config->offsets[config->num_frames], 0, config->frame_size); // clean spic area
+    cregs.c2spicstartadd0=(uint32_t) mga_src_base + baseadrofs + config->num_frames*config->frame_size;
     //cregs.c2spicstartadd1=0; // not used
 
     cregs.c2startadd0=regs.besa1org;
@@ -1506,8 +1538,9 @@ int VIDIX_NAME(vixPlaybackSetEq)( const vidix_video_eq_t * eq)
     }
 
     regs.beslumactl = luma;
-
+#ifdef BES
     writel(BESLUMACTL, regs.beslumactl);
+#endif
     return(0);
 }
 
