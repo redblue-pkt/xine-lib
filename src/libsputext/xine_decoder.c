@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.87 2004/12/12 22:01:11 mroi Exp $
+ * $Id: xine_decoder.c,v 1.88 2004/12/22 21:29:26 mroi Exp $
  *
  */
 
@@ -741,11 +741,6 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
           start_vpts = extra_info.vpts + diff * this->img_duration;
           end_vpts = start_vpts + (end-start) * this->img_duration;
           
-          _x_spu_decoder_sleep(this->stream, start_vpts);
-          draw_subtitle(this, start_vpts, end_vpts);
-          
-          return;     
-          
         } else {
           
           if( !uses_time ) {
@@ -767,12 +762,13 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
           
           start_vpts = extra_info.vpts + diff * 90;
           end_vpts = start_vpts + (end-start) * 90;
-          
-          _x_spu_decoder_sleep(this->stream, start_vpts);
-          draw_subtitle(this, start_vpts, end_vpts);
-          
-          return;     
         }
+        
+        _x_spu_decoder_sleep(this->stream, start_vpts);
+        update_output_size( this );
+        draw_subtitle(this, start_vpts, end_vpts);
+        
+        return;  
       }
     }
 
@@ -790,6 +786,7 @@ static void spudec_reset (spu_decoder_t *this_gen) {
   lprintf("i guess we just seeked\n");
   this->width = this->height = 0;
   this->started = this->finished = 0;
+  this->last_subtitle_end = 0;
 }
 
 static void spudec_discontinuity (spu_decoder_t *this_gen) {
