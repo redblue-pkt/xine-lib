@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mmsh.c,v 1.30 2004/04/07 19:44:29 mroi Exp $
+ * $Id: mmsh.c,v 1.31 2004/12/13 21:06:54 tmattern Exp $
  *
  * MMS over HTTP protocol
  *   written by Thibaut Mattern
@@ -70,7 +70,10 @@
 #define MMSH_UNKNOWN                0
 #define MMSH_SEEKABLE               1
 #define MMSH_LIVE                   2
-#define CHUNK_HEADER_LENGTH        12
+
+#define CHUNK_HEADER_LENGTH         4
+#define EXT_HEADER_LENGTH           8
+#define CHUNK_TYPE_RESET       0x4324
 #define CHUNK_TYPE_DATA        0x4424
 #define CHUNK_TYPE_END         0x4524
 #define CHUNK_TYPE_ASF_HEADER  0x4824
@@ -330,42 +333,85 @@ static int get_answer (mmsh_t *this) {
 }
 
 static int get_chunk_header (mmsh_t *this) {
-  char chunk_header[CHUNK_HEADER_LENGTH];
-  int len;
+  uint8_t chunk_header[CHUNK_HEADER_LENGTH];
+  uint8_t ext_header[EXT_HEADER_LENGTH];
+  int read_len;
+  int ext_header_len;
 
-  lprintf ("get_chunk\n");
+  lprintf ("get_chunk_header\n");
 
-  /* chunk header */
-  len = _x_io_tcp_read(this->stream, this->s, chunk_header, CHUNK_HEADER_LENGTH);
-  if (len != CHUNK_HEADER_LENGTH) {
+  /* read chunk header */
+  read_len = _x_io_tcp_read(this->stream, this->s, chunk_header, CHUNK_HEADER_LENGTH);
+  if (read_len != CHUNK_HEADER_LENGTH) {
     xprintf (this->stream->xine, XINE_VERBOSITY_LOG,
-             "chunk header read failed, %d != %d\n", len, CHUNK_HEADER_LENGTH);
+             "libmmsh: chunk header read failed, %d != %d\n", read_len, CHUNK_HEADER_LENGTH);
     return 0;
   }
-  this->chunk_type       = LE_16 (chunk_header);
-  this->chunk_length     = LE_16 (chunk_header + 2) - 8;
-  this->chunk_seq_number = LE_32 (chunk_header + 4);
- 
-   
-  /* display debug infos */
-#ifdef LOG
+  this->chunk_type       = LE_16 (&chunk_header[0]);
+  this->chunk_length     = LE_16 (&chunk_header[2]);
+  lprintf ("get_chunk_header2\n");
+  
   switch (this->chunk_type) {
     case CHUNK_TYPE_DATA:
-      printf ("libmmsh: chunk type:       CHUNK_TYPE_DATA\n");
-      printf ("libmmsh: chunk length:     %d\n", this->chunk_length);
-      printf ("libmmsh: chunk seq:        %d\n", this->chunk_seq_number);
+      ext_header_len = 8;
       break;
     case CHUNK_TYPE_END:
-      printf ("libmmsh: chunk type:       CHUNK_TYPE_END\n");
-      printf ("libmmsh: continue: %d\n", this->chunk_seq_number);
+      ext_header_len = 4;
       break;
     case CHUNK_TYPE_ASF_HEADER:
-      printf ("libmmsh: chunk type:       CHUNK_TYPE_ASF_HEADER\n");
-      printf ("libmmsh: chunk length:     %d\n", this->chunk_length);
+      ext_header_len = 8;
       break;
+    case CHUNK_TYPE_RESET:
+      ext_header_len = 4;
+      break;
+    default:
+      ext_header_len = 0;
   }
-#endif
+  /* read extended header */
+  if (ext_header_len > 0) {
+    read_len = _x_io_tcp_read(this->stream, this->s, ext_header, ext_header_len);
+    if (read_len != ext_header_len) {
+      xprintf (this->stream->xine, XINE_VERBOSITY_LOG,
+               "extended header read failed, %d != %d\n", read_len, ext_header_len);
+      return 0;
+    }
+  }
+  lprintf ("get_chunk_header3\n");
+  
+  switch (this->chunk_type) {
+    case CHUNK_TYPE_DATA:
+      this->chunk_seq_number = LE_32 (&ext_header[0]);
+      lprintf ("chunk type:       CHUNK_TYPE_DATA\n");
+      lprintf ("chunk length:     %d\n", this->chunk_length);
+      lprintf ("chunk seq:        %d\n", this->chunk_seq_number);
+      lprintf ("unknown:          %d\n", ext_header[4]);
+      lprintf ("mmsh seq:         %d\n", ext_header[5]);
+      lprintf ("len2:             %d\n", LE_16(&ext_header[6]));
+      break;
+    case CHUNK_TYPE_END:
+      this->chunk_seq_number = LE_32 (&ext_header[0]);
+      lprintf ("chunk type:       CHUNK_TYPE_END\n");
+      lprintf ("continue: %d\n", this->chunk_seq_number);
+      break;
+    case CHUNK_TYPE_ASF_HEADER:
+      lprintf ("chunk type:       CHUNK_TYPE_ASF_HEADER\n");
+      lprintf ("chunk length:     %d\n", this->chunk_length);
+      lprintf ("unknown:          %2X %2X %2X %2X %2X %2X\n",
+               ext_header[0], ext_header[1], ext_header[2], ext_header[3],
+               ext_header[4], ext_header[5]);
+      lprintf ("len2:             %d\n", LE_16(&ext_header[6]));
+      break;
+    case CHUNK_TYPE_RESET:
+      lprintf ("chunk type:       CHUNK_TYPE_RESET\n");
+      lprintf ("chunk seq:        %d\n", this->chunk_seq_number);
+      lprintf ("unknown:          %2X %2X %2X %2X\n",
+               ext_header[0], ext_header[1], ext_header[2], ext_header[3]);
+      break;
+    default:
+      lprintf ("unknown chunk:          %4X\n", this->chunk_type);
+  }
 
+  this->chunk_length -= ext_header_len;
   return 1;
 }
 
@@ -397,17 +443,23 @@ static int get_header (mmsh_t *this) {
         break;
       }
     } else {
+      lprintf("get_chunk_header failed\n");
       return 0;
     }
   }
 
-  /* read the first data chunk */
-  len = _x_io_tcp_read(this->stream, this->s, this->buf, this->chunk_length);
-  if (len != this->chunk_length) {
-    return 0;
+  if (this->chunk_type == CHUNK_TYPE_DATA) {
+    /* read the first data chunk */
+    len = _x_io_tcp_read(this->stream, this->s, this->buf, this->chunk_length);
+    if (len != this->chunk_length) {
+      return 0;
+    } else {
+      this->buf_size = this->packet_length;
+      return 1;
+    }
   } else {
-    this->buf_size = this->packet_length;
-    return 1;
+    /* unexpected packet type */
+    return 0;
   }
 }
 
@@ -726,7 +778,7 @@ static int mmsh_connect_int(mmsh_t *this, int bandwidth) {
                 this->num_stream_ids, stream_selection);
       break;
   }
-  
+
   if (!send_command (this, this->str))
     goto fail;
   
@@ -832,6 +884,12 @@ fail:
 }
 
 
+/*
+ * returned value:
+ *  0: error
+ *  1: data packet read
+ *  2: new header read
+ */
 static int get_media_packet (mmsh_t *this) {
   int len = 0;
 
@@ -844,28 +902,38 @@ static int get_media_packet (mmsh_t *this) {
          *     0: stop
          *     1: a new stream follows
          */
-        if (this->chunk_seq_number == 0) {
+        if (this->chunk_seq_number == 0)
           return 0;
-        } else {
-          close(this->s);
+        
+        close(this->s);
 
-          if (mmsh_tcp_connect(this))
-            return 0;
+        if (mmsh_tcp_connect(this))
+          return 0;
 
-          if (!mmsh_connect_int(this, this->user_bandwitdh))
-            return 0;
-    
-          this->current_pos = 0;
-          this->buf_size = 0;
-          return 1;
-        }
-        break;
+        if (!mmsh_connect_int(this, this->user_bandwitdh))
+          return 0;
+
+        /* mmsh_connect_int reads the first data packet */
+        /* this->buf_size is set by mmsh_connect_int */    
+        return 2;
+
       case CHUNK_TYPE_DATA:
-        this->current_pos = (off_t)this->asf_header_len + (off_t)this->chunk_seq_number * (off_t)this->packet_length;
+        /* nothing to do */
         break;
+      
+      case CHUNK_TYPE_RESET:
+        /* next chunk is an ASF header */
+        if (this->chunk_length != 0) {
+          /* that's strange, don't know what to do */
+          return 0;
+        }
+        if (!get_header(this))
+          return 0;
+        return 2;
+      
       default:
         xprintf (this->stream->xine, XINE_VERBOSITY_LOG,
-                 "libmmsh: invalid chunk type\n");
+                 "libmmsh: unexpected chunk type\n");
         return 0;
     }
 
@@ -929,12 +997,19 @@ int mmsh_read (mmsh_t *this, char *data, int len) {
       bytes_left = this->buf_size - this->buf_read;
 
       if (bytes_left == 0) {
+        int packet_type;
+
         this->buf_read = 0;
-        if (!get_media_packet (this)) {
-          xprintf (this->stream->xine, XINE_VERBOSITY_LOG,
+        packet_type = get_media_packet (this);
+
+	if (packet_type == 0) {
+	  xprintf (this->stream->xine, XINE_VERBOSITY_LOG,
                    "libmmsh: get_media_packet failed\n");
           return total;
-        }
+	} else if (packet_type == 2) {
+	  continue;
+	}
+
         bytes_left = this->buf_size;
       }
 
