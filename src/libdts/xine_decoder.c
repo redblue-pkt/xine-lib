@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.41 2003/05/25 15:23:51 jcdutton Exp $
+ * $Id: xine_decoder.c,v 1.42 2003/05/25 15:45:06 jcdutton Exp $
  *
  * 04-09-2001 DTS passtrough  (C) Joachim Koenig 
  * 09-12-2001 DTS passthrough inprovements (C) James Courtier-Dutton
@@ -191,6 +191,25 @@ void dts_discontinuity (audio_decoder_t *this_gen) {
 }
 
 #ifdef ENABLE_DTS_PARSE
+
+#if 0
+/* FIXME: Make this re-entrant */
+void InverseADPCM(void) {
+/*
+ * NumADPCMCoeff =4, the number of ADPCM coefficients.
+ * raADPCMcoeff[] are the ADPCM coefficients extracted
+ * from the bit stream.
+ * raSample[NumADPCMCoeff], ..., raSample[-1] are the
+ * history from last subframe or subsubframe. It must
+ * updated each time before reverse ADPCM is run for a
+ * block of samples for each subband.
+ */
+for (m=0; m<nNumSample; m++)
+for (n=0; n<NumADPCMCoeff; n++)
+raSample[m] += raADPCMcoeff[n]*raSample[m-n-1];
+}
+#endif
+
 
 static void dts_parse_data (dts_decoder_t *this, buf_element_t *buf) {
   uint8_t        *data_in = (uint8_t *)buf->content;
@@ -406,7 +425,7 @@ static void dts_parse_data (dts_decoder_t *this, buf_element_t *buf) {
   n = 0;
   for (ch=0; ch<number_of_primary_audio_channels; ch++) {
     int32_t adj;
-    if ( quantization_index_codebook_select[ch][n] == 0 ) { /* Transmitted only if SEL=0 (Huffman code used) */
+    if ( quantization_index_codebook_select[ch][n] == 0 ) { /* Transmitted only if quantization_index_codebook_select=0 (Huffman code used) */
       /* Extract ADJ index */
       adj = getbits(&state, 2);
       /* Look up ADJ table */
@@ -417,7 +436,7 @@ static void dts_parse_data (dts_decoder_t *this, buf_element_t *buf) {
   for (n=1; n<5; n++){
     for (ch=0; ch<number_of_primary_audio_channels; ch++){
       int32_t adj;
-      if ( quantization_index_codebook_select[ch][n] < 3 ) { /* Transmitted only when SEL<3 */
+      if ( quantization_index_codebook_select[ch][n] < 3 ) { /* Transmitted only when quantization_index_codebook_select<3 */
         /* Extract ADJ index */
         adj = getbits(&state, 2);
         /* Look up ADJ table */
@@ -429,7 +448,7 @@ static void dts_parse_data (dts_decoder_t *this, buf_element_t *buf) {
   for (n=5; n<10; n++){
     for (ch=0; ch<number_of_primary_audio_channels; ch++){
       int32_t adj;
-      if ( quantization_index_codebook_select[ch][n] < 7 ) { /* Transmitted only when SEL<7 */
+      if ( quantization_index_codebook_select[ch][n] < 7 ) { /* Transmitted only when quantization_index_codebook_select<7 */
         /* Extract ADJ index */
         adj = getbits(&state, 2);
         /* Look up ADJ table */
@@ -475,7 +494,6 @@ static void dts_parse_data (dts_decoder_t *this, buf_element_t *buf) {
 
   /* Bit Allocation Index V ABITS variable bits */
   /* FIXME: No getbits here */
-  /* FIXME: What is InverseQ? */
   int32_t nQSelect;
   for (ch=0; ch<number_of_primary_audio_channels; ch++) {
     /* Bit Allocation Quantizer Select tells which codebook was used */
@@ -483,7 +501,8 @@ static void dts_parse_data (dts_decoder_t *this, buf_element_t *buf) {
     /* Use this codebook to decode the bit stream for bit_allocation_index[ch][n] */
     for (n=0; n<high_frequency_VQ_start_subband[ch]; n++) {
       /* Not for VQ encoded subbands. */
-      /* QABITS.ppQ[nQSelect]->InverseQ(InputFrame, bit_allocation_index[ch][n]); */
+      /* FIXME: What is Inverse Quantization(InverseQ) ? */
+      QABITS.ppQ[nQSelect]->InverseQ(InputFrame, bit_allocation_index[ch][n]);
     }
   }
 
@@ -506,6 +525,7 @@ static void dts_parse_data (dts_decoder_t *this, buf_element_t *buf) {
           if ( bit_allocation_index[ch][n] >0 ) {
             /* Present only if bits allocated */
             /* Use codebook nQSelect to decode transition_mode from the bit stream */
+            /* FIXME: What is Inverse Quantization(InverseQ) ? */
             QTMODE.ppQ[nQSelect]->InverseQ(InputFrame,transition_mode[ch][n]);
           }
         }
@@ -544,7 +564,7 @@ static void dts_parse_data (dts_decoder_t *this, buf_element_t *buf) {
          */
         /* Use the (Huffman) code indicated by nQSelect to decode */
         /* the quantization index of scale_factors from the bit stream */
-        /* FIXME: What is InverseQ ??? */
+        /* FIXME: What is Inverse Quantization(InverseQ) ? */
         QSCALES.ppQ[nQSelect]->InverseQ(InputFrame, nScale);
         /* Take care of difference encoding */
         if ( nQSelect < 5 ) { /* Huffman encoded, nScale is the difference */
@@ -561,6 +581,7 @@ static void dts_parse_data (dts_decoder_t *this, buf_element_t *buf) {
         if (transition_mode[ch][n]>0) {
           /* Use the (Huffman) code indicated by nQSelect to decode */
           /* the quantization index of scale_factors from the bit stream */
+          /* FIXME: What is Inverse Quantization(InverseQ) ? */
           QSCALES.ppQ[nQSelect]->InverseQ(InputFrame, nScale);
           /* Take care of difference encoding */
           if ( nQSelect < 5 ) /* Huffman encoded, nScale is the difference */
@@ -579,6 +600,7 @@ static void dts_parse_data (dts_decoder_t *this, buf_element_t *buf) {
     for (n=high_frequency_VQ_start_subband[ch]; n<subband_activity_count[ch]; n++) {
       /* Use the code book indicated by nQSelect to decode */
       /* the quantization index of scale_factors from the bit stream */
+      /* FIXME: What is Inverse Quantization(InverseQ) ? */
       QSCALES.ppQ[nQSelect]->InverseQ(InputFrame, nScale);
       /* Take care of difference encoding */
       if ( nQSelect < 5 ) /* Huffman encoded, nScale is the difference */
@@ -608,6 +630,7 @@ static void dts_parse_data (dts_decoder_t *this, buf_element_t *buf) {
       for (n=subband_activity_count[ch]; n<subband_activity_count[nSourceCh]; n++) {
         /* Use the code book indicated by nQSelect to decode */
         /* the quantization index of scale_factors_for_joint_subband_coding */
+        /* FIXME: What is Inverse Quantization(InverseQ) ? */
         QSCALES.ppQ[nQSelect]->InverseQ(InputFrame, nJScale);
         /* Bias by 64 */
         nJScale = nJScale + 64;
@@ -723,7 +746,7 @@ static void dts_parse_data (dts_decoder_t *this, buf_element_t *buf) {
        * Determine quantization index code book and its type
        */
       /* Select quantization index code book */
-      nSEL = SEL[ch][nABITS-1];
+      nSEL = quantization_index_codebook_select[ch][nABITS-1];
       /* Determine its type */
       nQType = 1; /* Assume Huffman type by default */
       if ( nSEL==nNumQ ) { /* Not Huffman type */
@@ -746,11 +769,13 @@ static void dts_parse_data (dts_decoder_t *this, buf_element_t *buf) {
           break;
         case 1: /* Huffman code */
           for (m=0; m<8; m++)
+            /* FIXME: What is Inverse Quantization(InverseQ) ? */
             pCQGroup->ppQ[nSEL]->InverseQ(InputFrame,AUDIO[m]);
           break;
         case 2: /* No further encoding */
           for (m=0; m<8; m++) {
             /* Extract quantization index from the bit stream */
+            /* FIXME: What is Inverse Quantization(InverseQ) ? */
             pCQGroup->ppQ[nSEL]->InverseQ(InputFrame, nCode)
             /* Take care of 2's compliment */
             AUDIO[m] = pCQGroup->ppQ[nSEL]->SignExtension(nCode);
@@ -761,6 +786,7 @@ static void dts_parse_data (dts_decoder_t *this, buf_element_t *buf) {
           m = 0;
           for (nBlock=0; nBlock<2; nBlock++) {
             /* Extract the block code index from the bit stream */
+            /* FIXME: What is Inverse Quantization(InverseQ) ? */
             pCQGroup->ppQ[nSEL]->InverseQ(InputFrame, nCode)
             /* Look up 4 samples from the block code book */
             /* FIXME: How to implement LookUp? */
@@ -788,9 +814,9 @@ static void dts_parse_data (dts_decoder_t *this, buf_element_t *buf) {
       else /* After-transient */
         rScale = rStepSize * scale_factors[ch][n][1]; /* Use second scale factor */
       /* Adjustmemt of scale factor */
-      rScale *= arADJ[ch][SEL[ch][nABITS-1]]; /* arADJ[ ][ ] are assumed 1 */
+      rScale *= scale_factor_adjustment_index[ch][quantization_index_codebook_select[ch][nABITS-1]]; /* scale_factor_adjustment_index[ ][ ] are assumed 1 */
       /* unless changed by bit */
-      /* stream when SEL indicates */
+      /* stream when quantization_index_codebook_select indicates */
       /* Huffman code. */
       /* Scale the samples */
       nSample = 8*nSubSubFrame; /* Set sample index */
