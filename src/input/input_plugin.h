@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_plugin.h,v 1.40 2002/12/15 22:18:09 rockyb Exp $
+ * $Id: input_plugin.h,v 1.41 2002/12/15 22:58:47 guenter Exp $
  */
 
 #ifndef HAVE_INPUT_PLUGIN_H
@@ -83,12 +83,18 @@ struct input_plugin_s {
    * return capabilities of the current playable entity. See
    * get_current_pos below for a description of a "playable entity"
    * Capabilities a created by "OR"ing a mask of constants listed
-   * below which start "INPUT_CAP".  Depending on the mask value
-   * returned, some of the routines below may or may not get
-   * called. For example, if INPUT_CAP_SEEKABLE is not set, the seek
-   * routine will not get called.
+   * below which start "INPUT_CAP".  
+   *
+   * depending on the values set, some of the functions below
+   * will or will not get called or should (not) be able to
+   * do certain tasks.
+   *
+   * for example if INPUT_CAP_SEEKABLE is set,
+   * the seek() function is expected to work fully at any time.
+   * however, if the flag is not set, the seek() function should
+   * make a best-effort attempt to seek, e.g. at least
+   * relative forward seeking should work.
    */
-
   uint32_t (*get_capabilities) (input_plugin_t *this);
 
   /*
@@ -122,7 +128,7 @@ struct input_plugin_s {
 
   /*
    * return number of bytes in the next playable entity or -1 if the
-   * input is unlimited, as would be the case in a stream.
+   * input is unlimited, as would be the case in a network stream.
    * 
    * A "playable entity" tends to be the entities listed in a playback
    * list or the units on which playback control generally works on.
@@ -145,8 +151,12 @@ struct input_plugin_s {
    * supported, 0 otherwise). See the description above under
    * get_length for a description of a "complete playable entity".
    * 
-   * The block size is used in allocation buffers; when block reads
-   * are performed, this is the requested number of bytes to read.
+   * this block size is only used for mpeg streams stored on
+   * a block oriented storage media, e.g. DVDs and VCDs, to speed
+   * up the demuxing process. only set this (and the INPUT_CAP_BLOCK
+   * flag) if this is the case for your input plugin.
+   *
+   * make this function simply return 0 if unsure.
    */
 
   uint32_t (*get_blocksize) (input_plugin_t *this);
