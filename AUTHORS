@@ -489,5 +489,8 @@ Szymon Stefanek <s.stefanek@libero.it>
 Vincent Pelletier <subdino2004@yahoo.fr>
   Word wrap and other improvements in libsputext.
 
+Daniel Mack <xine@zonque.org>
+  native MacOSX video and audio output plugins
+
   
 (let us know if we've forgotten anyone)

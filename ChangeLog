@@ -24,6 +24,7 @@
   * support DTS audio in AVI
   * revised FLAC playback subsystem
   * subtitles improvements - word wrap and new subtitle format variants
+  * native MacOSX video and audio output plugins
 
 xine-lib (1-rc4a)
   * audio out now uses a more user friendly "Speaker arrangement" config item;
