@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ts.c,v 1.112 2004/12/09 13:16:52 mlampard Exp $
+ * $Id: demux_ts.c,v 1.113 2004/12/10 12:42:02 miguelfreitas Exp $
  *
  * Demultiplexer for MPEG2 Transport Streams.
  *
@@ -201,6 +201,27 @@
 #define DSM_CC_STREAM    0xF2
 #define ISO13522_STREAM  0xF3
 #define PROG_STREAM_DIR  0xFF
+
+  typedef enum
+    {
+      ISO_11172_VIDEO = 0x01,           /* ISO/IEC 11172 Video */
+      ISO_13818_VIDEO = 0x02,           /* ISO/IEC 13818-2 Video */
+      ISO_11172_AUDIO = 0x03,           /* ISO/IEC 11172 Audio */
+      ISO_13818_AUDIO = 0x04,           /* ISO/IEC 13818-3 Audi */
+      ISO_13818_PRIVATE = 0x05,         /* ISO/IEC 13818-1 private sections */
+      ISO_13818_PES_PRIVATE = 0x06,     /* ISO/IEC 13818-1 PES packets containing private data */
+      ISO_13522_MHEG = 0x07,            /* ISO/IEC 13512 MHEG */
+      ISO_13818_DSMCC = 0x08,           /* ISO/IEC 13818-1 Annex A  DSM CC */
+      ISO_13818_TYPE_A = 0x0a,          /* ISO/IEC 13818-6 Multiprotocol encapsulation */
+      ISO_13818_TYPE_B = 0x0b,          /* ISO/IEC 13818-6 DSM-CC U-N Messages */
+      ISO_13818_TYPE_C = 0x0c,          /* ISO/IEC 13818-6 Stream Descriptors */
+      ISO_13818_TYPE_D = 0x0d,          /* ISO/IEC 13818-6 Sections (any type, including private data) */
+      ISO_13818_AUX = 0x0e,             /* ISO/IEC 13818-1 auxiliary */
+      ISO_13818_PART7_AUDIO = 0x0f,     /* ISO/IEC 13818-7 Audio with ADTS transport sytax */
+      ISO_14496_PART2_VIDEO = 0x10,     /* ISO/IEC 14496-2 Visual (MPEG-4) */
+      ISO_14496_PART3_AUDIO = 0x11,     /* ISO/IEC 14496-3 Audio with LATM transport syntax */
+      ISO_14496_PART10_VIDEO = 0x1b     /* ISO/IEC 14496-10 Video (MPEG-4 part 10/AVC, aka H.264) */
+    } streamType;
 
 #define WRAP_THRESHOLD       120000
 
@@ -720,7 +741,25 @@ static int demux_ts_parse_pes_header (xine_t *xine, demux_ts_media *m,
 
     m->content   = p;
     m->size      = packet_len;
-    m->type      = BUF_VIDEO_MPEG;
+    switch (m->descriptor_tag) {
+    case ISO_11172_VIDEO:
+    case ISO_13818_VIDEO:
+      lprintf ("demux_ts: found MPEG video type.\n");
+      m->type      = BUF_VIDEO_MPEG;
+      break;
+    case ISO_14496_PART2_VIDEO:
+      lprintf ("demux_ts: found MPEG4 video type.\n");
+      m->type      = BUF_VIDEO_MPEG4;
+      break;
+    case ISO_14496_PART10_VIDEO:
+      lprintf ("demux_ts: found H264 video type.\n");
+      m->type      = BUF_VIDEO_H264;
+      break;
+    default:
+      lprintf ("demux_ts: unknown video type: %d, defaulting to MPEG.\n", m->descriptor_tag);
+      m->type      = BUF_VIDEO_MPEG;
+      break;
+    }
     return 1;
 
   } else if ((stream_id & 0xe0) == 0xc0) {
@@ -731,7 +770,22 @@ static int demux_ts_parse_pes_header (xine_t *xine, demux_ts_media *m,
 
     m->content   = p;
     m->size      = packet_len;
-    m->type      = BUF_AUDIO_MPEG + track;
+    switch (m->descriptor_tag) {
+    case  ISO_11172_AUDIO: 
+    case  ISO_13818_AUDIO:
+      lprintf ("demux_ts: found MPEG audio track.\n");
+      m->type      = BUF_AUDIO_MPEG + track;
+      break;
+    case  ISO_13818_PART7_AUDIO:
+    case  ISO_14496_PART3_AUDIO:
+      lprintf ("demux_ts: found AAC audio track.\n");
+      m->type      = BUF_AUDIO_AAC + track;
+      break;
+    default:
+      lprintf ("demux_ts: unknown audio type: %d, defaulting to MPEG.\n", m->descriptor_tag);
+      m->type      = BUF_AUDIO_MPEG + track;
+      break;
+    }
     return 1;
 
   } else {
@@ -949,24 +1003,6 @@ static void demux_ts_parse_pmt (demux_ts_t     *this,
                                 unsigned char *pkt,
                                 unsigned int   pusi,
                                 uint32_t       program_count) {
-  typedef enum
-    {
-      ISO_11172_VIDEO = 1, /* 1 */
-      ISO_13818_VIDEO = 2, /* 2 */
-      ISO_11172_AUDIO = 3, /* 3 */
-      ISO_13818_AUDIO = 4, /* 4 */
-      ISO_13818_PRIVATE = 5, /* 5 */
-      ISO_13818_PES_PRIVATE = 6, /* 6 */
-      ISO_13522_MHEG = 7, /* 7 */
-      ISO_13818_DSMCC = 8, /* 8 */
-      ISO_13818_TYPE_A = 9, /* 9 */
-      ISO_13818_TYPE_B = 10, /* a */
-      ISO_13818_TYPE_C = 11, /* b */
-      ISO_13818_TYPE_D = 12, /* c */
-      ISO_13818_TYPE_E = 13, /* d */
-      ISO_13818_AUX = 14,
-
-    } streamType;
 
   uint32_t       table_id;
   uint32_t       section_syntax_indicator;
@@ -1151,6 +1187,8 @@ printf("Program Number is %i, looking for %i\n",program_number,this->program_num
     switch (stream[0]) {
     case ISO_11172_VIDEO:
     case ISO_13818_VIDEO:
+    case ISO_14496_PART2_VIDEO:
+    case ISO_14496_PART10_VIDEO:
       if (this->videoPid == INVALID_PID) {
 #ifdef TS_PMT_LOG
         printf ("demux_ts: PMT video pid 0x%.4x\n", pid);
@@ -1163,6 +1201,8 @@ printf("Program Number is %i, looking for %i\n",program_number,this->program_num
       break;
     case ISO_11172_AUDIO:
     case ISO_13818_AUDIO:
+    case ISO_13818_PART7_AUDIO:
+    case ISO_14496_PART3_AUDIO:
       if (this->audioPid == INVALID_PID) {
 #ifdef TS_PMT_LOG
         printf ("demux_ts: PMT audio pid 0x%.4x\n", pid);
