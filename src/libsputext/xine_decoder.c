@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.17 2002/03/14 13:57:15 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.18 2002/03/25 22:55:42 f1rmb Exp $
  *
  * code based on mplayer module:
  *
@@ -808,7 +808,7 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
 
     this->renderer->set_position (this->osd, 0, y); 
 
-    this->renderer->render_text (this->osd, 0, 0, "sputext decoder", OSD_TEXT1);
+    /*  this->renderer->render_text (this->osd, 0, 0, "sputext decoder", OSD_TEXT1); */
     
     current_time = this->xine->metronom->get_current_time (this->xine->metronom);
     this->renderer->show (this->osd, current_time);
@@ -829,6 +829,10 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
     int64_t     pts_factor;
     int         frame_num;
     subtitle_t *subtitle;
+
+    /* don't want to see subtitle */
+    if(this->xine->spu_channel_user == -2)
+      return;
 
     subtitle = NULL;
       
