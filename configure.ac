@@ -754,7 +754,7 @@ AM_CONDITIONAL(HAVE_OSS, test x"$have_ossaudio" = "xyes")
 dnl ---------------------------------------------
 dnl Alsa support
 dnl ---------------------------------------------
-AM_PATH_ALSA(0.9.0, 
+AM_PATH_ALSA(0.9.4, 
         [ AC_DEFINE(HAVE_ALSA,1,[Define this if you have Alsa (libasound) installed])
           if test x"$have_alsa09" = "xyes"; then
             AC_DEFINE(HAVE_ALSA09,1,[Define this if you have alsa 0.9.x and more installed])
