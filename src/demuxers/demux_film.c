@@ -21,7 +21,7 @@
  * For more information on the FILM file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_film.c,v 1.35 2002/10/22 04:08:47 tmmm Exp $
+ * $Id: demux_film.c,v 1.36 2002/10/23 10:46:37 jkeil Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -146,8 +146,13 @@ static int open_film_file(demux_film_t *film) {
   /* reset the file */
   film->input->seek(film->input, 0, SEEK_SET);
 
-  /* get the header length and file version */
+  /* get the signature, header length and file version */
   if (film->input->read(film->input, scratch, 16) != 16) {
+    return 0;
+  }
+
+  /* FILM signature correct? */
+  if (strncmp(scratch, "FILM", 4)) {
     return 0;
   }
 
