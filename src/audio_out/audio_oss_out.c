@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_oss_out.c,v 1.42 2001/10/07 22:44:57 guenter Exp $
+ * $Id: audio_oss_out.c,v 1.43 2001/10/14 14:39:36 guenter Exp $
  *
  * 20-8-2001 First implementation of Audio sync and Audio driver separation.
  * Copyright (C) 2001 James Courtier-Dutton James@superbug.demon.co.uk
@@ -64,6 +64,8 @@
 #include "audio_out.h"
 #include "utils.h"
 
+#include <sys/time.h>
+
 #ifndef AFMT_S16_NE
 # if defined(sparc) || defined(__sparc__) || defined(PPC)
 /* Big endian machines */
@@ -86,18 +88,18 @@
 #define ZERO_BUF_SIZE        15360
 
 #define GAP_TOLERANCE         5000
-#define GAP_NONRT_TOLERANCE  15000
 #define MAX_GAP              90000
-#define NOT_REAL_TIME           -1
+
+#define OSS_SYNC_AUTO_DETECT  0
+#define OSS_SYNC_GETODELAY    1
+#define OSS_SYNC_GETOPTR      2
+#define OSS_SYNC_SOFTSYNC     3
 
 #ifdef CONFIG_DEVFS_FS
 #define DSP_TEMPLATE "/dev/sound/dsp%d"
 #else
 #define DSP_TEMPLATE "/dev/dsp%d"
 #endif
-
-static int checked_getoptr = 0;
-static int use_getodelay = 0;
 
 typedef struct oss_driver_s {
 
@@ -110,14 +112,14 @@ typedef struct oss_driver_s {
   config_values_t *config;
 
   int32_t          output_sample_rate, input_sample_rate;
+  int32_t          output_sample_k_rate;
   uint32_t         num_channels;
   uint32_t	   bits_per_sample;
   uint32_t	   bytes_per_frame;
   uint32_t         bytes_in_buffer;      /* number of bytes writen to audio hardware   */
   
   int              audio_started;
-  int              audio_has_realtime;   /* OSS driver supports real-time              */
-
+  int              sync_method;
 
   struct {
     char          *name;
@@ -126,14 +128,15 @@ typedef struct oss_driver_s {
     int            mute;
   } mixer;
 
+  struct timeval   start_time;
 } oss_driver_t;
 
 /*
  * open the audio device for writing to
  */
 static int ao_oss_open(ao_driver_t *this_gen,
-		       uint32_t bits, uint32_t rate, int mode)
-{
+		       uint32_t bits, uint32_t rate, int mode) {
+
   oss_driver_t *this = (oss_driver_t *) this_gen;
   int tmp;
 
@@ -200,6 +203,7 @@ static int ao_oss_open(ao_driver_t *this_gen,
       }
     }
     this->output_sample_rate = tmp;
+    this->output_sample_k_rate = this->output_sample_rate / 1000;
     xprintf (VERBOSE|AUDIO, "audio_oss_out: audio rate : %d requested, %d provided by device/sec\n",
 	     this->input_sample_rate, this->output_sample_rate);
   }
@@ -242,6 +246,7 @@ static int ao_oss_open(ao_driver_t *this_gen,
     }
     this->num_channels = 2; /* FIXME: is this correct ? */
     this->output_sample_rate = this->input_sample_rate;
+    this->output_sample_k_rate = this->output_sample_rate / 1000;
     printf ("audio_oss_out : AO_CAP_MODE_A52\n");
     break;
   }
@@ -269,82 +274,72 @@ static int ao_oss_open(ao_driver_t *this_gen,
   ioctl(this->audio_fd,SNDCTL_DSP_SETFRAGMENT,&tmp); 
   */
 
-  /*
-   * Final check of realtime capability, make sure GETOPTR
-   * doesn't return an error.
-   */
-  if ( this->audio_has_realtime && !checked_getoptr ) {
-    count_info info;
-    int ret = ioctl(this->audio_fd, SNDCTL_DSP_GETOPTR, &info);
-    if ( ret == -1 && errno == EINVAL ) {
-      this->audio_has_realtime = 0;
-      printf("audio_oss_out: Audio driver SNDCTL_DSP_GETOPTR reports %s,"
-		" disabling realtime sync...\n", strerror(errno) );
-      printf("audio_oss_out: ...Will use video master clock for soft-sync instead\n");
-      printf("audio_oss_out: ...There may be audio/video synchronization issues\n");
-    }
-    checked_getoptr = 1;
-  }
-
-  /*
-   * check if SNDCTL_DSP_GETODELAY works. if so, using it is preferred.
-   */
-  if ( this->audio_has_realtime && checked_getoptr ) {
-    count_info info;
-    int ret = ioctl(this->audio_fd, SNDCTL_DSP_GETODELAY, &info);
-    if ( ret != -1 && errno != EINVAL ) {
-      printf("audio_oss_out: using SNDCTL_DSP_GETODELAY\n");
-      use_getodelay = 1;
-    }
-  }
-
+  if (this->sync_method == OSS_SYNC_SOFTSYNC) 
+    gettimeofday(&this->start_time, NULL);
 
   return this->output_sample_rate;
 }
 
-static int ao_oss_num_channels(ao_driver_t *this_gen) 
-{
+static int ao_oss_num_channels(ao_driver_t *this_gen) {
+
   oss_driver_t *this = (oss_driver_t *) this_gen;
   return this->num_channels;
 }
 
-static int ao_oss_bytes_per_frame(ao_driver_t *this_gen)
-{
+static int ao_oss_bytes_per_frame(ao_driver_t *this_gen) {
+
   oss_driver_t *this = (oss_driver_t *) this_gen;
+
   return this->bytes_per_frame;
 }
 
-static int ao_oss_get_gap_tolerance (ao_driver_t *this_gen)
-{
-  oss_driver_t *this = (oss_driver_t *) this_gen;
-  if (this->audio_has_realtime)
-    return GAP_TOLERANCE;
-  else
-    return GAP_NONRT_TOLERANCE;
+static int ao_oss_get_gap_tolerance (ao_driver_t *this_gen){
+
+  /* oss_driver_t *this = (oss_driver_t *) this_gen; */
+
+  return GAP_TOLERANCE;
 }
 
-static int ao_oss_delay(ao_driver_t *this_gen)
-{
+static int ao_oss_delay(ao_driver_t *this_gen) {
+
   count_info    info;
   oss_driver_t *this = (oss_driver_t *) this_gen;
   int           bytes_left;
+  int           frames;
+  struct        timeval tv;
 
-  if (this->audio_has_realtime) {
-    if (use_getodelay) {
-      ioctl (this->audio_fd, SNDCTL_DSP_GETODELAY, &bytes_left);
-    } else {
-      ioctl (this->audio_fd, SNDCTL_DSP_GETOPTR, &info);
-      
-      bytes_left = this->bytes_in_buffer - info.bytes; /* calc delay */
-      
-      if (bytes_left<=0) /* buffer ran dry */
-	bytes_left = 0;
-    }
+  switch (this->sync_method) {
 
-  } else {
-    return NOT_REAL_TIME;
+  case OSS_SYNC_SOFTSYNC:
+    /* use system real-time clock to get pseudo audio frame position */
+
+    gettimeofday(&tv, NULL);
+
+    frames  = (tv.tv_usec + 1000000 - this->start_time.tv_usec)
+                  * this->output_sample_k_rate / 1000;
+    frames += (tv.tv_sec - this->start_time.tv_sec)
+                  * this->output_sample_rate;
+    frames -= this->output_sample_rate;
+
+    /* calc delay */
+
+    bytes_left = this->bytes_in_buffer - frames * this->bytes_per_frame;
+
+    if (bytes_left<=0) /* buffer ran dry */
+      bytes_left = 0;
+    break;
+  case OSS_SYNC_GETOPTR:
+    ioctl (this->audio_fd, SNDCTL_DSP_GETOPTR, &info);
+    
+    bytes_left = this->bytes_in_buffer - info.bytes; /* calc delay */
+      
+    if (bytes_left<=0) /* buffer ran dry */
+      bytes_left = 0;
+    break;
+  case OSS_SYNC_GETODELAY:
+    ioctl (this->audio_fd, SNDCTL_DSP_GETODELAY, &bytes_left);
+    break;
   }
-
 
   return bytes_left / this->bytes_per_frame;
 }
@@ -355,30 +350,54 @@ static int ao_oss_delay(ao_driver_t *this_gen)
   * I.E. Stereo 16 bits audio frames are 4 bytes.
   */
 static int ao_oss_write(ao_driver_t *this_gen,
-			int16_t* frame_buffer, uint32_t num_frames)
-{
+			int16_t* frame_buffer, uint32_t num_frames) {
+
   oss_driver_t *this = (oss_driver_t *) this_gen;
+
+  if (this->sync_method == OSS_SYNC_SOFTSYNC) {
+    int            simulated_bytes_in_buffer, frames ;
+    struct timeval tv;
+    /* check if simulated buffer ran dry */
+
+    gettimeofday(&tv, NULL);
+
+    frames  = (tv.tv_usec + 1000000 - this->start_time.tv_usec)
+                  * this->output_sample_k_rate / 1000;
+    frames += (tv.tv_sec - this->start_time.tv_sec)
+                  * this->output_sample_rate;
+    frames -= this->output_sample_rate;
+
+    /* calc delay */
+
+    simulated_bytes_in_buffer = frames * this->bytes_per_frame;
+
+    if (this->bytes_in_buffer < simulated_bytes_in_buffer)
+      this->bytes_in_buffer = simulated_bytes_in_buffer;
+  }
 
   this->bytes_in_buffer += num_frames * this->bytes_per_frame;
 
   return write(this->audio_fd, frame_buffer, num_frames * this->bytes_per_frame); 
 }
 
-static void ao_oss_close(ao_driver_t *this_gen)
-{
+static void ao_oss_close(ao_driver_t *this_gen) {
+
   oss_driver_t *this = (oss_driver_t *) this_gen;
+
   close(this->audio_fd);
   this->audio_fd = -1;
 }
 
 static uint32_t ao_oss_get_capabilities (ao_driver_t *this_gen) {
+
   oss_driver_t *this = (oss_driver_t *) this_gen;
+
   return this->capabilities;
 }
 
-static void ao_oss_exit(ao_driver_t *this_gen)
-{
-  oss_driver_t *this = (oss_driver_t *) this_gen;
+static void ao_oss_exit(ao_driver_t *this_gen) {
+
+  oss_driver_t    *this   = (oss_driver_t *) this_gen;
   config_values_t *config = this->config;
 
   config->set_int (config, "mixer_volume", this->mixer.volume);
@@ -391,6 +410,7 @@ static void ao_oss_exit(ao_driver_t *this_gen)
 }
 
 static int ao_oss_get_property (ao_driver_t *this_gen, int property) {
+
   oss_driver_t *this = (oss_driver_t *) this_gen;
   int           mixer_fd;
   int           audio_devs;
@@ -433,6 +453,7 @@ static int ao_oss_get_property (ao_driver_t *this_gen, int property) {
 }
 
 static int ao_oss_set_property (ao_driver_t *this_gen, int property, int value) {
+
   oss_driver_t *this = (oss_driver_t *) this_gen;
   int           mixer_fd;
   int           audio_devs;
@@ -603,23 +624,44 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
   status = ioctl(audio_fd, SOUND_PCM_WRITE_RATE, &arg);
 
   /*
-   * get capabilities
+   * find out which sync method to use
    */
 
-  ioctl (audio_fd, SNDCTL_DSP_GETCAPS, &caps);
+  this->sync_method = config->lookup_int (config, "oss_audio_sync",
+					  OSS_SYNC_AUTO_DETECT);
 
-  if ((caps & DSP_CAP_REALTIME) > 0) {
-    xprintf (VERBOSE|AUDIO, "audio_oss_out : realtime check: passed :-)\n");
-    this->audio_has_realtime = 1;
-  } else {
-    printf ("audio_oss_out : realtime check: *FAILED* :-(((((\n");
-    this->audio_has_realtime = 0;
+  if (this->sync_method == OSS_SYNC_AUTO_DETECT) {
+
+    ioctl (audio_fd, SNDCTL_DSP_GETCAPS, &caps);
+    
+    if ((caps & DSP_CAP_REALTIME) > 0) {
+
+      count_info info;
+
+      /*
+       * check if SNDCTL_DSP_GETODELAY works. if so, using it is preferred.
+       */
+
+      if (ioctl(audio_fd, SNDCTL_DSP_GETODELAY, &info) != -1) {
+	printf("audio_oss_out: using SNDCTL_DSP_GETODELAY\n");
+	this->sync_method = OSS_SYNC_GETODELAY;
+      } else if (ioctl(this->audio_fd, SNDCTL_DSP_GETOPTR, &info) != -1) {
+	printf("audio_oss_out: using SNDCTL_DSP_GETOPTR\n");
+	this->sync_method = OSS_SYNC_GETOPTR;
+      } else 
+	this->sync_method = OSS_SYNC_SOFTSYNC;
+    } else {
+      printf ("audio_oss_out: realtime check: *FAILED*\n");
+      
+      this->sync_method = OSS_SYNC_SOFTSYNC;
+    }
   }
 
-  if( !this->audio_has_realtime ) {
-    printf("audio_oss_out: Audio driver realtime sync disabled...\n");
-    printf("audio_oss_out: ...Will use video master clock for soft-sync instead\n");
-    printf("audio_oss_out: ...There may be audio/video synchronization issues\n");
+  if (this->sync_method == OSS_SYNC_SOFTSYNC) {
+    gettimeofday(&this->start_time, NULL);
+    printf ("audio_oss_out: Audio driver realtime sync disabled...\n");
+    printf ("audio_oss_out: ...will use system real-time clock for soft-sync instead\n");
+    printf ("audio_oss_out: ...there may be audio/video synchronization issues\n");
   }
 
   this->capabilities = 0;
@@ -712,16 +754,14 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
       */
       this->capabilities |= AO_CAP_MUTE_VOL;
       
-    }
-    else {
+    } else {
       if(strcmp(this->mixer.name, "/dev/mixer")) {
 	config->set_str(config, "mixer_name", "/dev/mixer");
 	config->save(config);
 	goto __again;
-      }
-      else
-	printf("%s(): open() %s failed: %s\n", 
-	       __FUNCTION__, this->mixer.name, strerror(errno));
+      } else
+	printf ("audio_oss_out: open() mixer %s failed: %s\n", 
+		this->mixer.name, strerror(errno));
     }
     
     this->mixer.mute = 0;
@@ -733,8 +773,9 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
   }
   close (audio_fd);
 
-  this->output_sample_rate = 0;
-  this->audio_fd = -1;
+  this->output_sample_rate    = 0;
+  this->output_sample_k_rate  = 0;
+  this->audio_fd              = -1;
 
   this->config                        = config;
   this->ao_driver.get_capabilities    = ao_oss_get_capabilities;

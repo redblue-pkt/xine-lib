@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.20 2001/10/07 22:44:57 guenter Exp $
+ * $Id: audio_out.c,v 1.21 2001/10/14 14:39:36 guenter Exp $
  * 
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -262,58 +262,52 @@ static int ao_write(ao_instance_t *this,
   else
     delay = 0;
 
-  if ((delay >=0) /* audio driver supports realtime */
-      || !this->audio_started) {
-
-    /*
-     * where, in the timeline is the "end" of the audio buffer at the moment?
-     */
+  /*
+   * where, in the timeline is the "end" of the audio buffer at the moment?
+   */
     
-    cur_time = this->metronom->get_current_time (this->metronom);
-    buffer_vpts = cur_time;
+  cur_time = this->metronom->get_current_time (this->metronom);
+  buffer_vpts = cur_time;
+  
+  /* External A52 decoder delay correction */
+  if ((this->mode==AO_CAP_MODE_A52) || (this->mode==AO_CAP_MODE_AC5)) 
+    delay+=10; 
+  
+  buffer_vpts += delay * 1024 / this->frames_per_kpts;
+  
+  /*
+   * calculate gap:
+   */
+  
+  gap = vpts - buffer_vpts;
+  
+  /*
+    printf ("vpts : %d   buffer_vpts : %d  gap %d\n",
+    vpts, buffer_vpts, gap);
+  */
+  
+  if (gap>this->gap_tolerance) {
     
-    /* External A52 decoder delay correction */
-    if ((this->mode==AO_CAP_MODE_A52) || (this->mode==AO_CAP_MODE_AC5)) 
-      delay+=10; 
     
-    buffer_vpts += delay * 1024 / this->frames_per_kpts;
-    
-    /*
-     * calculate gap:
-     */
-    
-    gap = vpts - buffer_vpts;
-    
-    /*
-      printf ("vpts : %d   buffer_vpts : %d  gap %d\n",
-      vpts, buffer_vpts, gap);
-    */
-    
-    if (gap>this->gap_tolerance) {
-      
-      
-      if (gap>15000)
-	ao_fill_gap (this, gap);
-      else {
-	printf ("audio_out: adjusting master clock %d -> %d\n",
-		cur_time, cur_time + gap);
-	this->metronom->adjust_clock (this->metronom, 
-				      cur_time + gap);
-      }
-      
-      /* keep xine responsive */
-      
-      if (gap>MAX_GAP)
-	return 0;
-      
-    } else if (gap < (-1 * this->gap_tolerance)) {
-      bDropPackage = 1;
-      xprintf (VERBOSE|AUDIO, "audio_out: audio package (vpts = %d %d)"
-	       "dropped\n", vpts, gap);
+    if (gap>15000)
+      ao_fill_gap (this, gap);
+    else {
+      printf ("audio_out: adjusting master clock %d -> %d\n",
+	      cur_time, cur_time + gap);
+      this->metronom->adjust_clock (this->metronom, 
+				    cur_time + gap);
     }
     
-  } /* audio driver supports realtime */
-  
+    /* keep xine responsive */
+    
+    if (gap>MAX_GAP)
+      return 0;
+    
+  } else if (gap < (-1 * this->gap_tolerance)) {
+    bDropPackage = 1;
+    xprintf (VERBOSE|AUDIO, "audio_out: audio package (vpts = %d %d)"
+	     "dropped\n", vpts, gap);
+  }
   
   /*
    * resample and output frames
