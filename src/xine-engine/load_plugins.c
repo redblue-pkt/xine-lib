@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.123 2002/12/18 03:59:10 guenter Exp $
+ * $Id: load_plugins.c,v 1.124 2002/12/23 11:42:12 miguelfreitas Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -1175,13 +1175,16 @@ xine_video_port_t *xine_open_video_driver (xine_t *this,
 					   int visual_type, void *visual) {
 
   plugin_node_t      *node;
-  vo_driver_t   *driver;
+  vo_driver_t        *driver;
   xine_video_port_t  *port;
   vo_info_t          *vo_info;
   plugin_catalog_t   *catalog = this->plugin_catalog;
 
   driver = NULL;
 
+  if( !strcasecmp(id, "auto") )
+    id = NULL;
+  
   pthread_mutex_lock (&catalog->lock);
 
   node = xine_list_first_content (catalog->vout);
@@ -1200,15 +1203,6 @@ xine_video_port_t *xine_open_video_driver (xine_t *this,
 	driver = _load_video_driver (this, node, visual);
 
 	if (driver) {
-
-	  xine_cfg_entry_t entry;
-
-	  /* remember plugin id */
-
-	  if (xine_config_lookup_entry (this, "video.driver", &entry)) {
-	    entry.str_value = node->info->id;
-	    xine_config_update_entry (this, &entry);
-	  }
 
 	  break;
 	}
@@ -1323,11 +1317,14 @@ xine_audio_port_t *xine_open_audio_driver (xine_t *this, const char *id,
 					   void *data) {
 
   plugin_node_t      *node;
-  ao_driver_t   *driver;
+  ao_driver_t        *driver;
   xine_audio_port_t  *port;
   ao_info_t          *ao_info;
   plugin_catalog_t   *catalog = this->plugin_catalog;
 
+  if( !strcasecmp(id, "auto") )
+    id = NULL;
+  
   pthread_mutex_lock (&catalog->lock);
 
   driver = NULL;
@@ -1345,15 +1342,6 @@ xine_audio_port_t *xine_open_audio_driver (xine_t *this, const char *id,
     } else {
       driver = _load_audio_driver (this, node, data);
       if (driver) {
-
-	xine_cfg_entry_t entry;
-
-	/* remember plugin id */
-
-	if (xine_config_lookup_entry (this, "audio.driver", &entry)) {
-	  entry.str_value = node->info->id;
-	  xine_config_update_entry (this, &entry);
-	}
 
 	break;
       }
