@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.108 2003/09/04 00:37:31 jcdutton Exp $
+ * $Id: audio_alsa_out.c,v 1.109 2003/09/17 18:21:09 jcdutton Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -64,6 +64,7 @@
 
 /*
 #define ALSA_LOG
+#define ALSA_LOG_BUFFERS
 */
 /*
 #define LOG_DEBUG
@@ -72,7 +73,6 @@
 #define AO_OUT_ALSA_IFACE_VERSION 7
 
 #define BUFFER_TIME               1000*1000
-#define PERIOD_TIME               100*1000
 #define GAP_TOLERANCE             5000
 
 #define MIXER_MASK_LEFT           (1 << 0)
@@ -280,8 +280,13 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
   snd_pcm_sw_params_t  *swparams;
   snd_pcm_access_mask_t *mask;
   snd_pcm_uframes_t     period_size;
+  snd_pcm_uframes_t     period_size_min; 
+  snd_pcm_uframes_t     period_size_max; 
+  snd_pcm_uframes_t     buffer_size_min;
+  snd_pcm_uframes_t     buffer_size_max;
   uint32_t              periods;
   uint32_t              buffer_time=BUFFER_TIME;
+  snd_pcm_uframes_t     buffer_time_to_size;
   int                   err, dir;
   int                 open_mode=1; /* NONBLOCK */
   /* int                   open_mode=0;  BLOCK */
@@ -438,6 +443,27 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
     printf ("audio_alsa_out: audio rate : %d requested, %d provided by device/sec\n",
 	    this->input_sample_rate, this->output_sample_rate);
   }
+  buffer_time_to_size = ( (uint64_t)buffer_time * rate) / 1000000;
+  err = snd_pcm_hw_params_get_buffer_size_min(params, &buffer_size_min);
+  err = snd_pcm_hw_params_get_buffer_size_max(params, &buffer_size_max);
+  dir=0;
+  err = snd_pcm_hw_params_get_period_size_min(params, &period_size_min,&dir);
+  dir=0;
+  err = snd_pcm_hw_params_get_period_size_max(params, &period_size_max,&dir);
+#ifdef ALSA_LOG_BUFFERS
+  printf("Buffer size range from %lu to %lu\n",buffer_size_min, buffer_size_max);
+  printf("Period size range from %lu to %lu\n",period_size_min, period_size_max);
+  printf("Buffer time size %lu\n",buffer_time_to_size);
+#endif
+  this->buffer_size = buffer_time_to_size;
+  if (buffer_size_max < this->buffer_size) this->buffer_size = buffer_size_max;
+  if (buffer_size_min > this->buffer_size) this->buffer_size = buffer_size_min;
+  period_size=this->buffer_size/8;
+  this->buffer_size = period_size*8;
+#ifdef ALSA_LOG_BUFFERS
+  printf("To choose buffer_size = %ld\n",this->buffer_size);
+  printf("To choose period_size = %ld\n",period_size);
+#endif
 
 #if 0
   /* Set period to buffer size ratios at 8 periods to 1 buffer */
@@ -448,8 +474,6 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
     printf ("audio_alsa_out: unable to set any periods\n");
     goto __close;
   }
-#endif
-
   /* set the ring-buffer time [us] (large enough for x us|y samples ...) */
   dir=0;
   err = snd_pcm_hw_params_set_buffer_time_near(this->audio_fd, params, &buffer_time, &dir);
@@ -457,12 +481,17 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
     printf ("audio_alsa_out: buffer time not available\n");
     goto __close;
   }
+#endif
+  dir=0;
+  err = snd_pcm_hw_params_set_buffer_size_near(this->audio_fd, params, &this->buffer_size);
+  if (err < 0) {
+    printf ("audio_alsa_out: buffer time not available\n");
+    goto __close;
+  }
   err = snd_pcm_hw_params_get_buffer_size(params, &(this->buffer_size));
-
 #if 1
   /* set the period time [us] (interrupt every x us|y samples ...) */
   dir=1;
-  period_size=this->buffer_size/8;
   err = snd_pcm_hw_params_set_period_size_near(this->audio_fd, params, &period_size, &dir);
   if (err < 0) {
     printf ("audio_alsa_out: period time not available");
