@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.166 2003/04/07 21:36:44 jcdutton Exp $
+ * $Id: demux_mpeg_block.c,v 1.167 2003/04/08 09:43:04 jcdutton Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -446,7 +446,6 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
   } else { /* mpeg 2 */
     /* check PES scrambling_control */
     if (((p[6] & 0x30) != 0) ) {
-      printf("demux_mpeg_block:ENCRYPTED STREAM\n");
       xine_log (this->stream->xine, XINE_LOG_MSG,
 		_("demux_mpeg_block: warning: pes header indicates that this stream may be encrypted (encryption mode %d)\n"), (p[6] & 0x30) >> 4);
 
@@ -455,7 +454,7 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
         xine_log (this->stream->xine, XINE_LOG_MSG,
 		_("demux_mpeg_block: too many errors, stopping playback. Maybe this stream is scrambled?\n"));
         this->status = DEMUX_FINISHED;
-        /* FIXME: Put nice EVENT for user here */
+        xine_message(this->stream, XINE_MSG_GENERAL_WARNING, "Encrypted media stream.\nPlayback aborted.\nMaybe libdvdcss is missing.", NULL);
       }
 
     }
