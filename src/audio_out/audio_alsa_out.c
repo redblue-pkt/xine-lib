@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.110 2003/09/27 14:59:43 jcdutton Exp $
+ * $Id: audio_alsa_out.c,v 1.111 2003/10/04 22:27:58 jcdutton Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -1261,12 +1261,12 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
   /*
    * open that device
    */
-  err=snd_pcm_open(&this->audio_fd, pcm_device, SND_PCM_STREAM_PLAYBACK, 0);
+  err=snd_pcm_open(&this->audio_fd, pcm_device, SND_PCM_STREAM_PLAYBACK, 1); /* NON-BLOCK mode */
   if(err <0 ) {
     xine_log (this->class->xine, XINE_LOG_MSG,
-          "snd_pcm_open() failed: %d", err); 
+          "snd_pcm_open() failed:%d:%s\n", err, snd_strerror(err)); 
     xine_log (this->class->xine, XINE_LOG_MSG,
-          ">>> Check if another program don't already use PCM <<<"); 
+          ">>> Check if another program don't already use PCM <<<\n"); 
     return NULL; 
   }
 

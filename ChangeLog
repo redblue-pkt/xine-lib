@@ -45,8 +45,10 @@ xine-lib (1-rc1)
   * fix crasher in CDDA plugin
   * nvtv tvmode support removed from xine-lib. it is better suited in the
     frontends where it should be replaced with the new libnvtvsimple.
+  * Fix blocking on xine start when using alsa.
   * fix mp3 VBR length and pts computation
   * initial id3v2 support (id3v2.3 and id3v2.4 are not yet supported)
+  * Fix blocking on xine start when using alsa.
 
 xine-lib (1-rc0a)
   * includes ffmpeg's MPEG encode in dist tarball (fixes DXR3 support)
