@@ -84,7 +84,7 @@ if test "$echo_cflags" = "yes"; then
 fi
 
 if test "$echo_libs" = "yes"; then
-      echo -L@libdir@ -lxine
+      echo -L@libdir@ -lxine @THREAD_LIBS@
 fi      
 if test "$echo_plugindir" = "yes"; then
       echo "@XINE_PLUGINPATH@"
