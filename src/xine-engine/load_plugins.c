@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.179 2004/06/09 17:31:08 mroi Exp $
+ * $Id: load_plugins.c,v 1.180 2004/06/13 15:40:30 miguelfreitas Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -1656,6 +1656,10 @@ video_decoder_t *_x_get_video_decoder (xine_stream_t *stream, uint8_t stream_typ
     if (vd) {
       vd->node = node;
       node->ref ++;
+      xprintf(stream->xine, XINE_VERBOSITY_DEBUG,
+          "load_plugins: plugin %s will be used for video streamtype %02x.\n", 
+          node->info->id, stream_type);
+      
       pthread_mutex_unlock (&catalog->lock);
       return vd;
     } else {
@@ -1729,6 +1733,9 @@ audio_decoder_t *_x_get_audio_decoder (xine_stream_t *stream, uint8_t stream_typ
     if (ad) {
       ad->node = node;
       node->ref ++;
+      xprintf(stream->xine, XINE_VERBOSITY_DEBUG,
+          "load_plugins: plugin %s will be used for audio streamtype %02x.\n", 
+          node->info->id, stream_type);
       pthread_mutex_unlock (&catalog->lock);
       return ad;
     } else {
@@ -1801,6 +1808,9 @@ spu_decoder_t *_x_get_spu_decoder (xine_stream_t *stream, uint8_t stream_type) {
     if (sd) {
       sd->node = node;
       node->ref ++;
+      xprintf(stream->xine, XINE_VERBOSITY_DEBUG,
+          "load_plugins: plugin %s will be used for spu streamtype %02x.\n", 
+          node->info->id, stream_type);
       pthread_mutex_unlock (&catalog->lock);
       return sd;
     } else {
