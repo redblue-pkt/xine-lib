@@ -43,7 +43,8 @@ SUBDIRS = \
 	libxinevdec \
 	libxineadec \
 	libvorbis \
-	libreal 
+	libreal \
+	libfaad
 
 debug:
 	@list='$(SUBDIRS)'; for subdir in $$list; do \
