@@ -1594,8 +1594,6 @@ void do_layer3(mpgaudio_t *mp)
     }
   }
 
-  printf ("audio output...mp3\n");
-
   if ((!mp->is_output_initialized) || (mp->sample_rate_device != fr->sample_rate)) {
 
     if (mp->is_output_initialized) 
@@ -1605,8 +1603,6 @@ void do_layer3(mpgaudio_t *mp)
 			 stereo-1 ? AO_CAP_MODE_STEREO: AO_CAP_MODE_MONO);
     mp->is_output_initialized = 1;
     mp->sample_rate_device = fr->sample_rate;
-
-    printf ("layer3\n");
   }
 
   mp->ao_output->write_audio_data (mp->ao_output, (int16_t*)mp->osspace, num_bytes/(stereo-1 ? 4:2), 
