@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3.c,v 1.32 2002/06/25 14:41:53 mroi Exp $
+ * $Id: video_out_dxr3.c,v 1.33 2002/06/28 16:55:37 mroi Exp $
  */
  
 /* mpeg1 encoding video out plugin for the dxr3.  
@@ -652,7 +652,7 @@ static int dxr3_get_property(vo_driver_t *this_gen, int property)
   case VO_PROP_TVMODE:
     return 0;
   case VO_PROP_VO_TYPE:
-    return VO_TYPE_DXR3;
+    return this->overlay_enabled ? VO_TYPE_DXR3_OVERLAY : VO_TYPE_DXR3_TVOUT;
   }
   printf("video_out_dxr3: property %d not implemented.\n", property);
   return 0;
@@ -689,6 +689,7 @@ static int dxr3_set_property(vo_driver_t *this_gen, int property, int value)
       printf("video_out_dxr3: setting aspect ratio to anamorphic\n");
 #endif
       if (!this->overlay_enabled || fullscreen)
+        /* FIXME: Is it necessary to switch to anamorphic mode in fullscreen? */
         val = EM8300_ASPECTRATIO_16_9;
       else /* The overlay window can adapt to the ratio */
         val = EM8300_ASPECTRATIO_4_3;
