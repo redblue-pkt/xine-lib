@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xshm.c,v 1.106 2003/02/03 17:24:47 esnel Exp $
+ * $Id: video_out_xshm.c,v 1.107 2003/02/22 16:56:01 hadess Exp $
  * 
  * video_out_xshm.c, X11 shared memory extension interface for xine
  *
@@ -1091,6 +1091,11 @@ static vo_driver_t *xshm_open_plugin (video_driver_class_t *class_gen, const voi
   int			swapped;
   int			cpu_byte_order;
   XColor                dummy;
+
+  if (!XInitThreads()) {
+    printf ("video_out_xshm: No thread-safe X libraries available.\n");
+    return NULL;
+  }
 
   this = malloc (sizeof (xshm_driver_t));
 
