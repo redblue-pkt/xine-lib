@@ -1381,6 +1381,7 @@ echo "  * planar video effects:"
 echo "   - invert"
 echo "  * SFX:"
 echo "   - goom            - oscope"
+echo "   - fftscope"
 echo ""
 
 dnl Video plugins
