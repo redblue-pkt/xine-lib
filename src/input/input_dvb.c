@@ -169,8 +169,9 @@
 #define MAX_EPG_ENTRIES_PER_CHANNEL 10
 
 /*
-#define DEBUG_LOAD_EIT
+#define DEBUG_EPG
 */
+
 #define bcdtoint(i) ((((i & 0xf0) >> 4) * 10) + (i & 0x0f))
 
 typedef struct {
@@ -1203,7 +1204,7 @@ static void load_epg_data(dvb_input_plugin_t *this)
   epg_entry_t* current_epg = NULL;
   channel_t* current_channel = NULL;
   int i;
-#ifdef DEBUG_LOAD_EIT
+#ifdef DEBUG_EPG
   struct tm* starttime = NULL;
 #endif
   /* seen_channels array is used to store information of channels that were
@@ -1253,7 +1254,8 @@ static void load_epg_data(dvb_input_plugin_t *this)
 
       if (current_channel->epg_count >= MAX_EPG_ENTRIES_PER_CHANNEL) {
 
-	  xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,"input_dvb: load_epg_data(): MAX_EPG_ENTRIES_PER_CHANNEL reached!\n");
+	  xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
+		   "input_dvb: load_epg_data(): MAX_EPG_ENTRIES_PER_CHANNEL reached!\n");
 	  continue;
       }
 
@@ -1367,7 +1369,7 @@ static void load_epg_data(dvb_input_plugin_t *this)
         descriptor_id = eit[1];
         eit += 2;
       }
-#ifdef DEBUG_LOAD_EIT
+#ifdef DEBUG_EPG
       if (current_channel_index == this->channel) {
         starttime = 
 	  localtime(&this->channels[current_channel_index].epg[current_channel->epg_count]->starttime);
@@ -1507,7 +1509,7 @@ static epg_entry_t* ith_next_epg(channel_t* channel, int count) {
 	   difftime(channel->epg[counter + 1]->starttime, current_time) < 0.0)
 	counter++;
 
-#ifdef DEBUG_LOAD_EIT
+#ifdef DEBUG_EPG
     if (counter > 0)
 	 printf ("input_dvb: EPG discarded %d EPG(s)\n", counter);
 #endif
@@ -1749,8 +1751,9 @@ static void show_eit(dvb_input_plugin_t *this) {
 
     /* Alright, were are now showing stuff to the user so we can load more EPG
        data "secretly" in case there's only one entry in EPG anymore ;) */
-    if (next_epg(&this->channels[this->channel]) == NULL)
+    if (next_epg(&this->channels[this->channel]) == NULL) {
 	load_epg_data(this); 
+    }
 	
   } else {
     this->epg_displaying = 0;
@@ -2328,7 +2331,7 @@ static void dvb_plugin_dispose (input_plugin_t *this_gen) {
 
   /* Free the EPG data. */
   for (i = 0; i < this->num_channels; ++i) {
-      for (j = 0; j < this->channels[i].epg_count; ++j) {
+      for (j = 0; j < MAX_EPG_ENTRIES_PER_CHANNEL && this->channels[i].epg[j]; ++j) {
         if(this->channels[i].epg[j]->description)
 	  free(this->channels[i].epg[j]->description);
         if(this->channels[i].epg[j]->progname)
@@ -2337,7 +2340,7 @@ static void dvb_plugin_dispose (input_plugin_t *this_gen) {
           free(this->channels[i].epg[j]->content);
 	if(this->channels[i].epg[j])
           free(this->channels[i].epg[j]);
-	  this->channels[i].epg[j] = NULL;
+	this->channels[i].epg[j] = NULL;
       }
   }
 
