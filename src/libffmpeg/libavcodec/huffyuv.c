@@ -117,24 +117,6 @@ static const unsigned char classic_add_chroma[256] = {
     6, 12,  8, 10,  7,  9,  6,  4,  6,  2,  2,  3,  3,  3,  3,  2,
 };
 
-static inline void bswap_buf(uint32_t *dst, uint32_t *src, int w){
-    int i;
-    
-    for(i=0; i+8<=w; i+=8){
-        dst[i+0]= bswap_32(src[i+0]);
-        dst[i+1]= bswap_32(src[i+1]);
-        dst[i+2]= bswap_32(src[i+2]);
-        dst[i+3]= bswap_32(src[i+3]);
-        dst[i+4]= bswap_32(src[i+4]);
-        dst[i+5]= bswap_32(src[i+5]);
-        dst[i+6]= bswap_32(src[i+6]);
-        dst[i+7]= bswap_32(src[i+7]);
-    }
-    for(;i<w; i++){
-        dst[i+0]= bswap_32(src[i+0]);
-    }
-}
-
 static inline int add_left_prediction(uint8_t *dst, uint8_t *src, int w, int acc){
     int i;
 
@@ -255,17 +237,15 @@ static int generate_bits_table(uint32_t *dst, uint8_t *len_table){
     uint32_t bits=0;
 
     for(len=32; len>0; len--){
-        int bit= 1<<(32-len);
         for(index=0; index<256; index++){
-            if(len_table[index]==len){
-                if(bits & (bit-1)){
-                    fprintf(stderr, "Error generating huffman table\n");
-                    return -1;
-                }
-                dst[index]= bits>>(32-len);
-                bits+= bit;
-            }
+            if(len_table[index]==len)
+                dst[index]= bits++;
         }
+        if(bits & 1){
+            fprintf(stderr, "Error generating huffman table\n");
+            return -1;
+        }
+        bits >>= 1;
     }
     return 0;
 }
@@ -749,7 +729,7 @@ static int decode_frame(AVCodecContext *avctx, void *data, int *data_size, uint8
     if (buf_size == 0)
         return 0;
 
-    bswap_buf((uint32_t*)s->bitstream_buffer, (uint32_t*)buf, buf_size/4);
+    s->dsp.bswap_buf((uint32_t*)s->bitstream_buffer, (uint32_t*)buf, buf_size/4);
     
     init_get_bits(&s->gb, s->bitstream_buffer, buf_size*8);
 
@@ -1117,7 +1097,7 @@ static int encode_frame(AVCodecContext *avctx, unsigned char *buf, int buf_size,
         char *p= avctx->stats_out;
         for(i=0; i<3; i++){
             for(j=0; j<256; j++){
-                sprintf(p, "%Ld ", s->stats[i][j]);
+                sprintf(p, "%llu ", s->stats[i][j]);
                 p+= strlen(p);
                 s->stats[i][j]= 0;
             }
@@ -1126,7 +1106,7 @@ static int encode_frame(AVCodecContext *avctx, unsigned char *buf, int buf_size,
         }
     }else{
         flush_put_bits(&s->pb);
-        bswap_buf((uint32_t*)buf, (uint32_t*)buf, size);
+        s->dsp.bswap_buf((uint32_t*)buf, (uint32_t*)buf, size);
     }
     
     s->picture_number++;

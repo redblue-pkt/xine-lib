@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.126 2003/06/12 21:33:33 jstembridge Exp $
+ * $Id: xine_decoder.c,v 1.127 2003/06/19 00:47:19 tmmm Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -759,6 +759,16 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
       this->stream->meta_info[XINE_META_INFO_VIDEOCODEC]
 	= strdup ("HuffYUV (ffmpeg)");
       break;
+    case BUF_VIDEO_VP31:
+      this->codec = avcodec_find_decoder (CODEC_ID_VP3);
+      this->stream->meta_info[XINE_META_INFO_VIDEOCODEC]
+	= strdup ("On2 VP3.1 (ffmpeg)");
+      break;
+    case BUF_VIDEO_4XM:
+      this->codec = avcodec_find_decoder (CODEC_ID_4XM);
+      this->stream->meta_info[XINE_META_INFO_VIDEOCODEC]
+	= strdup ("4XM (ffmpeg)");
+      break;
     default:
       printf ("ffmpeg: unknown video format (buftype: 0x%08X)\n",
 	      buf->type & 0xFFFF0000);
@@ -1057,6 +1067,10 @@ void avcodec_register_all(void)
     register_avcodec(&huffyuv_decoder);
     register_avcodec(&cyuv_decoder);
     register_avcodec(&h264_decoder);
+    register_avcodec(&vp3_decoder);
+    register_avcodec(&fourxm_decoder);
+    register_avcodec(&ra_144_decoder);
+    register_avcodec(&ra_288_decoder);
 }
 
 static void ff_dispose (video_decoder_t *this_gen) {
@@ -1223,6 +1237,16 @@ static void ff_audio_decode_data (audio_decoder_t *this_gen, buf_element_t *buf)
       this->codec = avcodec_find_decoder (CODEC_ID_DVAUDIO);
       this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] 
 	= strdup ("DV Audio (ffmpeg)");
+      break;
+    case BUF_AUDIO_14_4:
+      this->codec = avcodec_find_decoder (CODEC_ID_RA_144);
+      this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] 
+	= strdup ("Real 14.4 (ffmpeg)");
+      break;
+    case BUF_AUDIO_28_8:
+      this->codec = avcodec_find_decoder (CODEC_ID_RA_288);
+      this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] 
+	= strdup ("Real 28.8 (ffmpeg)");
       break;
     case BUF_AUDIO_MPEG:
       this->codec = avcodec_find_decoder (CODEC_ID_MP3LAME);
@@ -1477,6 +1501,8 @@ static uint32_t supported_video_types[] = {
   BUF_VIDEO_MPEG, 
   BUF_VIDEO_DV,
   BUF_VIDEO_HUFFYUV,
+/*  BUF_VIDEO_VP31,*/
+  BUF_VIDEO_4XM,
   0 
 };
 
@@ -1489,6 +1515,8 @@ static uint32_t supported_audio_types[] = {
   BUF_AUDIO_WMAV1,
   BUF_AUDIO_WMAV2,
   BUF_AUDIO_DV,
+  BUF_AUDIO_14_4,
+  BUF_AUDIO_28_8,
   /* BUF_AUDIO_MPEG, */
   0
 };

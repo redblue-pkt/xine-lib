@@ -16,6 +16,7 @@ ASFLAGS =
 noinst_LTLIBRARIES = libavcodec.la
 
 libavcodec_la_SOURCES = \
+	4xm.c \
 	common.c \
 	cyuv.c \
 	dsputil.c \
@@ -42,11 +43,14 @@ libavcodec_la_SOURCES = \
 	mpegvideo.c \
 	msmpeg4.c \
 	opts.c \
+	ra144.c \
+	ra288.c \
 	ratecontrol.c \
 	rv10.c \
 	simple_idct.c \
 	svq1.c \
 	utils.c \
+	vp3.c \
 	wmadec.c 
 
 libavcodec_la_LDFLAGS = \
@@ -77,6 +81,7 @@ noinst_HEADERS = \
 	os_support.h \
 	simple_idct.h \
 	svq1_cb.h \
+	vp3data.h \
 	wmadata.h
 
 .s.lo:

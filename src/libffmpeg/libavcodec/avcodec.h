@@ -15,8 +15,8 @@ extern "C" {
 
 #define LIBAVCODEC_VERSION_INT 0x000406
 #define LIBAVCODEC_VERSION     "0.4.6"
-#define LIBAVCODEC_BUILD       4666
-#define LIBAVCODEC_BUILD_STR   "4666"
+#define LIBAVCODEC_BUILD       4669
+#define LIBAVCODEC_BUILD_STR   "4669"
 
 #define LIBAVCODEC_IDENT	"FFmpeg" LIBAVCODEC_VERSION "b" LIBAVCODEC_BUILD_STR
 
@@ -52,6 +52,12 @@ enum CodecID {
     CODEC_ID_CYUV,
     CODEC_ID_H264,
     CODEC_ID_INDEO3,
+    CODEC_ID_VP3,
+    CODEC_ID_AAC,
+    CODEC_ID_MPEG4AAC,
+    CODEC_ID_ASV1,
+    CODEC_ID_FFV1,
+    CODEC_ID_4XM,
 
     /* various pcm "codecs" */
     CODEC_ID_PCM_S16LE,
@@ -67,6 +73,13 @@ enum CodecID {
     CODEC_ID_ADPCM_IMA_QT,
     CODEC_ID_ADPCM_IMA_WAV,
     CODEC_ID_ADPCM_MS,
+    CODEC_ID_ADPCM_4XM,
+
+	/* AMR */
+    CODEC_ID_AMR_NB,
+    /* RealAudio codecs*/
+    CODEC_ID_RA_144,
+    CODEC_ID_RA_288,
 };
 
 enum CodecType {
@@ -79,24 +92,24 @@ enum CodecType {
  * Pixel format.
  */
 enum PixelFormat {
-    PIX_FMT_YUV420P,
-    PIX_FMT_YUV422,
-    PIX_FMT_RGB24,     ///< 3 bytes, R is first 
-    PIX_FMT_BGR24,     ///< 3 bytes, B is first 
-    PIX_FMT_YUV422P,
-    PIX_FMT_YUV444P,
+    PIX_FMT_YUV420P,   ///< Planar YUV 4:2:0 (1 Cr & Cb sample per 2x2 Y samples)
+    PIX_FMT_YUV422,    
+    PIX_FMT_RGB24,     ///< Packed pixel, 3 bytes per pixel, RGBRGB...
+    PIX_FMT_BGR24,     ///< Packed pixel, 3 bytes per pixel, BGRBGR...
+    PIX_FMT_YUV422P,   ///< Planar YUV 4:2:2 (1 Cr & Cb sample per 2x1 Y samples)
+    PIX_FMT_YUV444P,   ///< Planar YUV 4:4:4 (1 Cr & Cb sample per 1x1 Y samples)
     PIX_FMT_RGBA32,    ///< always stored in cpu endianness 
-    PIX_FMT_YUV410P,
-    PIX_FMT_YUV411P,
+    PIX_FMT_YUV410P,   ///< Planar YUV 4:1:0 (1 Cr & Cb sample per 4x4 Y samples)
+    PIX_FMT_YUV411P,   ///< Planar YUV 4:1:1 (1 Cr & Cb sample per 4x1 Y samples)
     PIX_FMT_RGB565,    ///< always stored in cpu endianness 
     PIX_FMT_RGB555,    ///< always stored in cpu endianness, most significant bit to 1 
     PIX_FMT_GRAY8,
     PIX_FMT_MONOWHITE, ///< 0 is white 
     PIX_FMT_MONOBLACK, ///< 0 is black 
     PIX_FMT_PAL8,      ///< 8 bit with RGBA palette 
-    PIX_FMT_YUVJ420P,  ///< YUV full scale (jpeg)
-    PIX_FMT_YUVJ422P,  ///< YUV full scale (jpeg)
-    PIX_FMT_YUVJ444P,  ///< YUV full scale (jpeg)
+    PIX_FMT_YUVJ420P,  ///< Planar YUV 4:2:0 full scale (jpeg)
+    PIX_FMT_YUVJ422P,  ///< Planar YUV 4:2:2 full scale (jpeg)
+    PIX_FMT_YUVJ444P,  ///< Planar YUV 4:4:4 full scale (jpeg)
     PIX_FMT_NB,
 };
 
@@ -109,8 +122,11 @@ enum SampleFormat {
 #define AVCODEC_MAX_AUDIO_FRAME_SIZE 131072
 
 /**
- * Required number of zero bytes at the end of the input bitstream for decoding.
- * to avoid overreading (and possibly segfaulting)
+ * Required number of additionally allocated bytes at the end of the input bitstream for decoding.
+ * this is mainly needed because some optimized bitstream readers read 
+ * 32 or 64 bit at once and could read over the end<br>
+ * Note, if the first 23 bits of the additional bytes are not 0 then damaged
+ * MPEG bitstreams could cause overread and segfault
  */
 #define FF_INPUT_BUFFER_PADDING_SIZE 8
 
@@ -308,7 +324,7 @@ static const int Motion_Est_QTab[] = { ME_ZERO, ME_PHODS, ME_LOG,
      * type of the buffer (to keep track of who has to dealloc data[*])\
      * - encoding: set by the one who allocs it\
      * - decoding: set by the one who allocs it\
-     * Note: user allocated (direct rendering) & internal buffers can not coexist currently\ 
+     * Note: user allocated (direct rendering) & internal buffers can not coexist currently\
      */\
     int type;\
     \
@@ -838,6 +854,7 @@ typedef struct AVCodecContext {
 #define FF_IDCT_MLIB         6
 #define FF_IDCT_ARM          7
 #define FF_IDCT_ALTIVEC      8
+#define FF_IDCT_SH4          9
 
     /**
      * slice count.
@@ -1101,6 +1118,31 @@ typedef struct AVCodecContext {
      * Dont touch, used by lavc default_get_buffer()
      */
     void *internal_buffer;
+    
+#define FF_QUALITY_SCALE 256
+    /**
+     * global quality for codecs which cannot change it per frame.
+     * this should be proportional to MPEG1/2/4 qscale.
+     * - encoding: set by user.
+     * - decoding: unused
+     */
+    int global_quality;
+    
+#define FF_CODER_TYPE_VLC   0
+#define FF_CODER_TYPE_AC    1
+    /**
+     * coder type
+     * - encoding: set by user.
+     * - decoding: unused
+     */
+    int coder_type;
+
+    /**
+     * context model
+     * - encoding: set by user.
+     * - decoding: unused
+     */
+    int context_model;
 } AVCodecContext;
 
 
@@ -1172,7 +1214,7 @@ typedef struct AVCodec {
  */
 typedef struct AVPicture {
     uint8_t *data[4];
-    int linesize[4];
+    int linesize[4];       ///< number of bytes per line
 } AVPicture;
 
 extern AVCodec ac3_encoder;
@@ -1192,6 +1234,8 @@ extern AVCodec wmv1_encoder;
 extern AVCodec wmv2_encoder;
 extern AVCodec huffyuv_encoder;
 extern AVCodec h264_encoder;
+extern AVCodec asv1_encoder;
+extern AVCodec ffv1_encoder;
 
 extern AVCodec h263_decoder;
 extern AVCodec mpeg4_decoder;
@@ -1220,6 +1264,16 @@ extern AVCodec oggvorbis_decoder;
 extern AVCodec cyuv_decoder;
 extern AVCodec h264_decoder;
 extern AVCodec indeo3_decoder;
+extern AVCodec vp3_decoder;
+extern AVCodec amr_nb_decoder;
+extern AVCodec amr_nb_encoder;
+extern AVCodec aac_decoder;
+extern AVCodec mpeg4aac_decoder;
+extern AVCodec asv1_decoder;
+extern AVCodec ffv1_decoder;
+extern AVCodec fourxm_decoder;
+extern AVCodec ra_144_decoder;
+extern AVCodec ra_288_decoder;
 
 /* pcm codecs */
 #define PCM_CODEC(id, name) \
@@ -1240,6 +1294,7 @@ PCM_CODEC(CODEC_ID_PCM_MULAW, pcm_mulaw);
 PCM_CODEC(CODEC_ID_ADPCM_IMA_QT, adpcm_ima_qt);
 PCM_CODEC(CODEC_ID_ADPCM_IMA_WAV, adpcm_ima_wav);
 PCM_CODEC(CODEC_ID_ADPCM_MS, adpcm_ms);
+PCM_CODEC(CODEC_ID_ADPCM_4XM, adpcm_4xm);
 
 #undef PCM_CODEC
 
@@ -1361,6 +1416,12 @@ void avcodec_register_all(void);
 void avcodec_flush_buffers(AVCodecContext *avctx);
 
 /* misc usefull functions */
+
+/**
+ * returns a single letter to describe the picture type
+ */
+char av_get_pict_type_char(int pict_type);
+
 /**
  * reduce a fraction.
  * this is usefull for framerate calculations

@@ -84,7 +84,7 @@ void *__av_mallocz_static(void** location, unsigned int size)
     return ptr;
 }
 /* free all static arrays and reset pointers to 0 */
-void av_free_static()
+void av_free_static(void)
 {
     if (array_static)
     {
@@ -157,8 +157,9 @@ int avcodec_default_get_buffer(AVCodecContext *s, AVFrame *pic){
         int w, h, pixel_size;
         
         avcodec_get_chroma_sub_sample(s->pix_fmt, &h_chroma_shift, &v_chroma_shift);
-        
         switch(s->pix_fmt){
+        case PIX_FMT_RGB555:
+        case PIX_FMT_RGB565:
         case PIX_FMT_YUV422:
             pixel_size=2;
             break;
@@ -343,9 +344,15 @@ int avcodec_encode_video(AVCodecContext *avctx, uint8_t *buf, int buf_size,
     return ret;
 }
 
-/* decode a frame. return -1 if error, otherwise return the number of
-   bytes used. If no frame could be decompressed, *got_picture_ptr is
-   zero. Otherwise, it is non zero */
+/** 
+ * decode a frame. 
+ * @param buf bitstream buffer, must be FF_INPUT_BUFFER_PADDING_SIZE larger then the actual read bytes
+ * because some optimized bitstream readers read 32 or 64 bit at once and could read over the end
+ * @param buf_size the size of the buffer in bytes
+ * @param got_picture_ptr zero if no frame could be decompressed, Otherwise, it is non zero
+ * @return -1 if error, otherwise return the number of
+ * bytes used. 
+ */
 int avcodec_decode_video(AVCodecContext *avctx, AVFrame *picture, 
                          int *got_picture_ptr,
                          uint8_t *buf, int buf_size)
@@ -632,6 +639,18 @@ void avcodec_default_free_buffers(AVCodecContext *s){
     av_freep(&s->internal_buffer);
     
     s->internal_buffer_count=0;
+}
+
+char av_get_pict_type_char(int pict_type){
+    switch(pict_type){
+    case I_TYPE: return 'I'; 
+    case P_TYPE: return 'P'; 
+    case B_TYPE: return 'B'; 
+    case S_TYPE: return 'S'; 
+    case SI_TYPE:return 'i'; 
+    case SP_TYPE:return 'p'; 
+    default:     return '?';
+    }
 }
 
 int av_reduce(int *dst_nom, int *dst_den, int64_t nom, int64_t den, int64_t max){

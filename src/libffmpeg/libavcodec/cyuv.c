@@ -37,7 +37,6 @@
 #include "avcodec.h"
 #include "dsputil.h"
 #include "mpegvideo.h"
-#include "bswap.h"
 
 
 typedef struct CyuvDecodeContext {
@@ -97,6 +96,9 @@ static int cyuv_decode_frame(AVCodecContext *avctx,
 
     /* pixel data starts 48 bytes in, after 3x16-byte tables */
     stream_ptr = 48;
+
+    if(s->frame.data[0])
+        avctx->release_buffer(avctx, &s->frame);
 
     s->frame.reference = 0;
     if(avctx->get_buffer(avctx, &s->frame) < 0) {
@@ -158,8 +160,6 @@ static int cyuv_decode_frame(AVCodecContext *avctx,
 
     *data_size=sizeof(AVFrame);
     *(AVFrame*)data= s->frame;
-
-    avctx->release_buffer(avctx, &s->frame);
 
     return buf_size;
 }

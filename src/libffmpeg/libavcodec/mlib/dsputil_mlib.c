@@ -251,18 +251,19 @@ void dsputil_init_mlib(DSPContext* c, AVCodecContext *avctx)
 
     c->add_pixels_clamped = add_pixels_clamped_mlib;
     put_pixels_clamped = c->put_pixels_clamped;
-
-    if(avctx->dct_algo==FF_DCT_AUTO || avctx->dct_algo==FF_DCT_MLIB){
-	c->fdct = ff_fdct_mlib;
-    }
-
-    if(avctx->idct_algo==FF_IDCT_AUTO || avctx->idct_algo==FF_IDCT_MLIB){
-        c->idct_put= ff_idct_put_mlib;
-        c->idct_add= ff_idct_add_mlib;
-        c->idct_permutation_type= FF_NO_IDCT_PERM;
-    }
 }
 
 void MPV_common_init_mlib(MpegEncContext *s)
 {
+    int i;
+
+    if(s->avctx->dct_algo==FF_DCT_AUTO || s->avctx->dct_algo==FF_DCT_MLIB){
+	s->dsp.fdct = ff_fdct_mlib;
+    }
+
+    if(s->avctx->idct_algo==FF_IDCT_AUTO || s->avctx->idct_algo==FF_IDCT_MLIB){
+        s->dsp.idct_put= ff_idct_put_mlib;
+        s->dsp.idct_add= ff_idct_add_mlib;
+        s->dsp.idct_permutation_type= FF_NO_IDCT_PERM;
+    }
 }
