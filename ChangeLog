@@ -13,6 +13,7 @@ xine-lib (1-rc4)
   * support for AAC audio in RealMedia files
   * implement chapter skipping in ogm files
   * more RTP/UDP plugin fixes
+  * secure http status string parsing, use status in mmsh again
   * fix endianness problem in OSD texts (using UCS-2LE or UCS-2BE encoding)
   * raw AAC fixes and support for 5.1 AAC streams
   * AVI demuxer OpenDML (AVI2.0) support
@@ -29,6 +30,7 @@ xine-lib (1-rc4)
     * Sierra VMD
   * new MOD demuxer
   * new, safer method for on-the-fly rewiring of post plugins
+  * add iso-8859-9 and iso-8859-15 codepages into xine fonts
 
 xine-lib (1-rc3a)
   * new subtitle formats: jacobsub, subviewer 2.0, subrip 0.9
