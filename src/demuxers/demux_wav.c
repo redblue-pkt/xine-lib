@@ -20,7 +20,7 @@
  * MS WAV File Demuxer by Mike Melanson (melanson@pcisys.net)
  * based on WAV specs that are available far and wide
  *
- * $Id: demux_wav.c,v 1.1 2002/07/07 01:24:40 tmmm Exp $
+ * $Id: demux_wav.c,v 1.2 2002/07/09 02:41:29 miguelfreitas Exp $
  *
  */
 
@@ -47,7 +47,6 @@
 
 #define VALID_ENDS "wav"
 #define WAV_SIGNATURE_SIZE 16
-#define WAV_HEADER_MAX_SIZE 0x14
 /* this is the hex value for 'data' */
 #define data_TAG 0x61746164
 #define PCM_BLOCK_ALIGN 1024
@@ -71,7 +70,8 @@ typedef struct {
   int                  send_end_buffers;
   int                  status;
 
-  xine_waveformatex    wave;
+  xine_waveformatex    *wave;
+  int                  wave_size;
   unsigned int         audio_type;
 
   off_t                data_start;
@@ -103,13 +103,13 @@ static void *demux_wav_loop (void *this_gen) {
 
       /* just load data chunks from wherever the stream happens to be
        * pointing; issue a DEMUX_FINISHED status is EOF is reached */
-      remaining_sample_bytes = this->wave.nBlockAlign;
+      remaining_sample_bytes = this->wave->nBlockAlign;
       current_file_pos = this->input->get_current_pos(this->input);
 
       current_pts = current_file_pos;
       current_pts -= this->data_start;
       current_pts *= 90000;
-      current_pts /= this->wave.nAvgBytesPerSec;
+      current_pts /= this->wave->nAvgBytesPerSec;
 
       if (this->seek_flag) {
         xine_demux_control_newpts(this->xine, current_pts, 0);
@@ -134,6 +134,7 @@ static void *demux_wav_loop (void *this_gen) {
 
         if (this->input->read(this->input, buf->content, buf->size) !=
           buf->size) {
+          buf->free_buffer(buf);
           this->status = DEMUX_FINISHED;
           break;
         }
@@ -141,15 +142,15 @@ static void *demux_wav_loop (void *this_gen) {
         if (!remaining_sample_bytes)
           buf->decoder_flags |= BUF_FLAG_FRAME_END;
 
-        buf->decoder_info[1] = this->wave.nSamplesPerSec;
-        buf->decoder_info[2] = this->wave.wBitsPerSample;
-        buf->decoder_info[3] = this->wave.nChannels;
+        buf->decoder_info[1] = this->wave->nSamplesPerSec;
+        buf->decoder_info[2] = this->wave->wBitsPerSample;
+        buf->decoder_info[3] = this->wave->nChannels;
         this->audio_fifo->put (this->audio_fifo, buf);
       }
     }
 
     /* wait before sending end buffers: user might want to do a new seek */
-    while(this->send_end_buffers && this->video_fifo->size(this->video_fifo) &&
+    while(this->send_end_buffers && this->audio_fifo->size(this->audio_fifo) &&
           this->status != DEMUX_OK){
       pthread_mutex_unlock( &this->mutex );
       xine_usec_sleep(100000);
@@ -256,8 +257,6 @@ static int demux_wav_start (demux_plugin_t *this_gen,
   unsigned int chunk_tag;
   unsigned int chunk_size;
   unsigned char chunk_preamble[8];
-  unsigned int wav_header_size;
-  unsigned char wav_header[WAV_HEADER_MAX_SIZE];
 
   pthread_mutex_lock(&this->mutex);
 
@@ -269,21 +268,22 @@ static int demux_wav_start (demux_plugin_t *this_gen,
     /* go straight for the format structure */
     this->input->seek(this->input, WAV_SIGNATURE_SIZE, SEEK_SET);
     if (this->input->read(this->input,
-      (unsigned char *)&wav_header_size, 4) != 4) {
+      (unsigned char *)&this->wave_size, 4) != 4) {
       this->status = DEMUX_FINISHED;
       pthread_mutex_unlock(&this->mutex);
       return this->status;
     }
-    wav_header_size = le2me_32(wav_header_size);
-    if (this->input->read(this->input, wav_header, wav_header_size) !=
-      wav_header_size) {
+    this->wave_size = le2me_32(this->wave_size);
+    this->wave = (xine_waveformatex *) malloc( this->wave_size );
+    
+    if (this->input->read(this->input, (void *)this->wave, this->wave_size) !=
+      this->wave_size) {
       this->status = DEMUX_FINISHED;
       pthread_mutex_unlock(&this->mutex);
       return this->status;
     }
-    memcpy(&this->wave, wav_header, sizeof(this->wave));
-    xine_waveformatex_le2me(&this->wave);
-    this->audio_type = formattag_to_buf_audio(this->wave.wFormatTag);
+    xine_waveformatex_le2me(this->wave);
+    this->audio_type = formattag_to_buf_audio(this->wave->wFormatTag);
     if(!this->audio_type) {
       xine_report_codec( this->xine, XINE_CODEC_AUDIO, this->audio_type, 0, 0);
       this->status = DEMUX_FINISHED;
@@ -315,25 +315,25 @@ static int demux_wav_start (demux_plugin_t *this_gen,
     /* print vital stats */
     xine_log(this->xine, XINE_LOG_FORMAT,
       _("demux_wav: format 0x%X audio, %d Hz, %d bits/sample, %d channel%c\n"),
-      this->wave.wFormatTag,
-      this->wave.nSamplesPerSec,
-      this->wave.wBitsPerSample,
-      this->wave.nChannels,
-      (this->wave.nChannels == 1) ? ' ' : 's');
+      this->wave->wFormatTag,
+      this->wave->nSamplesPerSec,
+      this->wave->wBitsPerSample,
+      this->wave->nChannels,
+      (this->wave->nChannels == 1) ? ' ' : 's');
     xine_log(this->xine, XINE_LOG_FORMAT,
       _("demux_wav: running time = %d min, %d sec\n"),
-      this->data_size / this->wave.nAvgBytesPerSec / 60,
-      this->data_size / this->wave.nAvgBytesPerSec % 60);
+      this->data_size / this->wave->nAvgBytesPerSec / 60,
+      this->data_size / this->wave->nAvgBytesPerSec % 60);
     xine_log(this->xine, XINE_LOG_FORMAT,
       _("demux_wav: average bytes/sec = %d, block alignment = %d\n"),
-      this->wave.nAvgBytesPerSec,
-      this->wave.nBlockAlign);
+      this->wave->nAvgBytesPerSec,
+      this->wave->nBlockAlign);
 
     /* special block alignment hack so that the demuxer doesn't send
      * packets with individual PCM samples */
-    if ((this->wave.nAvgBytesPerSec / this->wave.nBlockAlign) ==
-      this->wave.nSamplesPerSec)
-      this->wave.nBlockAlign = PCM_BLOCK_ALIGN;
+    if ((this->wave->nAvgBytesPerSec / this->wave->nBlockAlign) ==
+      this->wave->nSamplesPerSec)
+      this->wave->nBlockAlign = PCM_BLOCK_ALIGN;
 
     /* send start buffers */
     xine_demux_control_start(this->xine);
@@ -341,15 +341,14 @@ static int demux_wav_start (demux_plugin_t *this_gen,
     /* send init info to decoders */
     if (this->audio_fifo && this->audio_type) {
       buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
-      buf->content = buf->mem;
       buf->type = this->audio_type;
       buf->decoder_flags = BUF_FLAG_HEADER;
       buf->decoder_info[0] = 0;
-      buf->decoder_info[1] = this->wave.nSamplesPerSec;
-      buf->decoder_info[2] = this->wave.wBitsPerSample;
-      buf->decoder_info[3] = this->wave.nChannels;
-      memcpy(buf->content, &this->wave, sizeof(this->wave));
-      buf->size = sizeof(this->wave);
+      buf->decoder_info[1] = this->wave->nSamplesPerSec;
+      buf->decoder_info[2] = this->wave->wBitsPerSample;
+      buf->decoder_info[3] = this->wave->nChannels;
+      buf->content = (void *)this->wave;
+      buf->size = this->wave_size;
       this->audio_fifo->put (this->audio_fifo, buf);
     }
 
@@ -391,8 +390,8 @@ static int demux_wav_seek (demux_plugin_t *this_gen,
      * by the block alignment integer-wise, and multiply that by the
      * block alignment to get the new aligned offset. */
     data_offset = start_pos - this->data_start;
-    data_offset /= this->wave.nBlockAlign;
-    data_offset *= this->wave.nBlockAlign;
+    data_offset /= this->wave->nBlockAlign;
+    data_offset *= this->wave->nBlockAlign;
     data_offset += this->data_start;
 
     this->input->seek(this->input, data_offset, SEEK_SET);
@@ -400,6 +399,7 @@ static int demux_wav_seek (demux_plugin_t *this_gen,
 
   this->seek_flag = 1;
   status = this->status = DEMUX_OK;
+  xine_demux_flush_engine (this->xine);
   pthread_mutex_unlock(&this->mutex);
 
   return status;
@@ -458,7 +458,7 @@ static int demux_wav_get_stream_length (demux_plugin_t *this_gen) {
 
   demux_wav_t *this = (demux_wav_t *) this_gen;
 
-  return (int)(this->data_size / this->wave.nAvgBytesPerSec);
+  return (int)(this->data_size / this->wave->nAvgBytesPerSec);
 }
 
 demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
