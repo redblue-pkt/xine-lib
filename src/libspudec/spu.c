@@ -35,7 +35,7 @@
  * along with this program; see the file COPYING.  If not, write to
  * the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: spu.c,v 1.24 2001/11/20 03:43:18 miguelfreitas Exp $
+ * $Id: spu.c,v 1.25 2001/11/26 20:02:33 guenter Exp $
  *
  */
 
@@ -53,7 +53,9 @@
 #include "video_out/alphablend.h"
 #include "xineutils.h"
 
+/*
 #define LOG_DEBUG 1
+*/
 
 #ifdef DEBUG
 
