@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * $Id: yuv2rgb.c,v 1.9 2001/07/17 19:40:27 guenter Exp $
+ * $Id: yuv2rgb.c,v 1.10 2001/07/30 19:37:18 guenter Exp $
  */
 
 #include "config.h"
@@ -1202,7 +1202,7 @@ static void yuy22rgb_c_init (yuv2rgb_t *this, int mode)
 
   case MODE_24_RGB:
   case MODE_24_BGR:
-    this->yuv2rgb_fun = (mode==MODE_24_RGB) ? yuy22rgb_c_24_rgb : yuy22rgb_c_24_bgr;
+    this->yuy22rgb_fun = (mode==MODE_24_RGB) ? yuy22rgb_c_24_rgb : yuy22rgb_c_24_bgr;
     break;
   case MODE_15_BGR:
   case MODE_16_BGR:
