@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.8 2002/09/05 22:18:56 mroi Exp $
+ * $Id: xine_decoder.c,v 1.9 2002/11/19 02:31:03 tmmm Exp $
  *
  */
 
@@ -34,12 +34,18 @@
 #include "xineutils.h"
 #include "faad.h"
 
-/* #define LOG */
+/*
+#define LOG
+*/
+
+typedef struct {
+  audio_decoder_class_t   decoder_class;
+} faad_class_t;
 
 typedef struct faad_decoder_s {
   audio_decoder_t  audio_decoder;
 
-  xine_t          *xine;
+  xine_stream_t    *stream;
   
   /* faad2 stuff */
   faacDecHandle           faac_dec;
@@ -61,7 +67,6 @@ typedef struct faad_decoder_s {
   unsigned char    num_channels; 
   uint32_t         ao_cap_mode; 
    
-  ao_instance_t   *audio_out;
   int              output_open;
 } faad_decoder_t;
 
@@ -72,27 +77,13 @@ static void faad_reset (audio_decoder_t *this_gen) {
   this->size = 0;
 }
 
-static void faad_init (audio_decoder_t *this_gen, ao_instance_t *audio_out) {
-
-  faad_decoder_t *this = (faad_decoder_t *) this_gen;
-
-  this->audio_out          = audio_out;
-  this->output_open        = 0;
-  this->faac_dec           = NULL; 
-  this->faac_failed        = 0;
-  this->buf                = NULL;
-  this->size               = 0;
-  this->max_audio_src_size = 0;
-  this->sample_size_table  = NULL;
-}
-
 static int faad_open_dec( faad_decoder_t *this ) {
   this->faac_dec = faacDecOpen();
   if( !this->faac_dec ) {
-    xine_log (this->xine, XINE_LOG_MSG,
+    xine_log (this->stream->xine, XINE_LOG_MSG,
               "libfaad: libfaad faacDecOpen() failed.\n" );
     this->faac_failed++;
-    xine_report_codec( this->xine, XINE_CODEC_AUDIO, 0, BUF_AUDIO_AAC, 0);
+    xine_report_codec( this->stream, XINE_CODEC_AUDIO, 0, BUF_AUDIO_AAC, 0);
     return 1;
   }
   
@@ -135,8 +126,8 @@ static void faad_decode_audio ( faad_decoder_t *this, int end_frame ) {
     decoded = this->faac_finfo.samples * 2; /* 1 sample = 2 bytes */
     
 #ifdef LOG
-//    printf("libfaad: decoded %d/%d output %ld\n",
-//           used, this->size, this->faac_finfo.samples );
+    printf("libfaad: decoded %d/%d output %ld\n",
+           used, this->size, this->faac_finfo.samples );
 #endif
       
     if (sample_buffer == NULL) {
@@ -145,7 +136,7 @@ static void faad_decode_audio ( faad_decoder_t *this, int end_frame ) {
     }
     else {
       while( decoded ) {
-        audio_buffer = this->audio_out->get_buffer (this->audio_out);
+        audio_buffer = this->stream->audio_out->get_buffer (this->stream->audio_out);
         
         if( decoded < audio_buffer->mem_size )
           outsize = decoded; 
@@ -157,7 +148,7 @@ static void faad_decode_audio ( faad_decoder_t *this, int end_frame ) {
         audio_buffer->num_frames = outsize / (this->num_channels*2);
         audio_buffer->vpts = this->pts;
 
-        this->audio_out->put_buffer (this->audio_out, audio_buffer);
+        this->stream->audio_out->put_buffer (this->stream->audio_out, audio_buffer);
         
         this->pts = 0;
         decoded -= outsize;
@@ -206,11 +197,11 @@ static void faad_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
                         buf->decoder_info[2], &this->rate, &this->num_channels);
     
     if( used < 0 ) {
-      xine_log (this->xine, XINE_LOG_MSG,
+      xine_log (this->stream->xine, XINE_LOG_MSG,
               "libfaad: libfaad faacDecInit2() failed.\n" );
       this->faac_failed++;
       this->faac_dec = NULL;
-      xine_report_codec( this->xine, XINE_CODEC_AUDIO, 0, buf->type, 0);
+      xine_report_codec( this->stream, XINE_CODEC_AUDIO, 0, buf->type, 0);
       return;
     }
 #ifdef LOG
@@ -239,7 +230,7 @@ static void faad_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
     this->num_channels=buf->decoder_info[3] ; 
   
     if (this->output_open) {
-        this->audio_out->close (this->audio_out);
+        this->stream->audio_out->close (this->stream->audio_out);
         this->output_open = 0;
     }
 
@@ -251,7 +242,7 @@ static void faad_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
   } else {
 
 #ifdef LOG
-//    printf ("faad: decoding %d data bytes...\n", buf->size);
+    printf ("faad: decoding %d data bytes...\n", buf->size);
 #endif
 
     if( (int)buf->size <= 0 || this->faac_failed )
@@ -279,12 +270,12 @@ static void faad_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
       used = faacDecInit(this->faac_dec, this->buf,
                          &this->rate, &this->num_channels);
       if( used < 0 ) {
-        xine_log (this->xine, XINE_LOG_MSG,
+        xine_log (this->stream->xine, XINE_LOG_MSG,
                 "libfaad: libfaad faacDecInit() failed.\n" );
         this->faac_failed++;
         faacDecClose(this->faac_dec);
         this->faac_dec = NULL;
-        xine_report_codec( this->xine, XINE_CODEC_AUDIO, 0, buf->type, 0);
+        xine_report_codec( this->stream, XINE_CODEC_AUDIO, 0, buf->type, 0);
         return;
       }
 #ifdef LOG
@@ -307,11 +298,12 @@ static void faad_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
             this->ao_cap_mode=AO_CAP_MODE_STEREO;
             break; 
         }
-        this->output_open = this->audio_out->open (this->audio_out,
+
+        this->output_open = this->stream->audio_out->open (this->stream->audio_out,
                                                    this->bits_per_sample,
                                                    this->rate,
                                                    this->ao_cap_mode) ;
-                                                               
+
         this->rec_audio_src_size = this->num_channels * FAAD_MIN_STREAMSIZE;
       }
 
@@ -320,12 +312,15 @@ static void faad_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
   }
 }
 
-static void faad_close (audio_decoder_t *this_gen) {
+static void faad_discontinuity (audio_decoder_t *this_gen) {
+}
+
+static void faad_dispose (audio_decoder_t *this_gen) {
 
   faad_decoder_t *this = (faad_decoder_t *) this_gen; 
 
   if (this->output_open) 
-    this->audio_out->close (this->audio_out);
+    this->stream->audio_out->close (this->stream->audio_out);
   this->output_open = 0;
     
   if( this->buf )
@@ -339,30 +334,56 @@ static void faad_close (audio_decoder_t *this_gen) {
     faacDecClose(this->faac_dec);
   this->faac_dec = NULL;
   this->faac_failed = 0;
+
+  free (this);
 }
 
-static char *faad_get_id(void) {
-  return "faad";
-}
 
-static void faad_dispose (audio_decoder_t *this_gen) {
-  free (this_gen);
-}
-
-static void *init_audio_decoder_plugin (xine_t *xine, void *data) {
+static audio_decoder_t *open_plugin (audio_decoder_class_t *class_gen, xine_stream_t *stream) {
 
   faad_decoder_t *this ;
 
   this = (faad_decoder_t *) malloc (sizeof (faad_decoder_t));
-  this->xine = xine;
-  
-  this->audio_decoder.init                = faad_init;
+
   this->audio_decoder.decode_data         = faad_decode_data;
   this->audio_decoder.reset               = faad_reset;
-  this->audio_decoder.close               = faad_close;
-  this->audio_decoder.get_identifier      = faad_get_id;
+  this->audio_decoder.discontinuity       = faad_discontinuity;
   this->audio_decoder.dispose             = faad_dispose;
-    
+
+  this->output_open        = 0;
+  this->faac_dec           = NULL; 
+  this->faac_failed        = 0;
+  this->buf                = NULL;
+  this->size               = 0;
+  this->max_audio_src_size = 0;
+  this->sample_size_table  = NULL;
+
+  return &this->audio_decoder;
+}
+
+static char *get_identifier (audio_decoder_class_t *this) {
+  return "FAAD";
+}
+
+static char *get_description (audio_decoder_class_t *this) {
+  return "Freeware Advanced Audio Decoder";
+}
+
+static void dispose_class (audio_decoder_class_t *this) {
+  free (this);
+}
+
+static void *init_plugin (xine_t *xine, void *data) {
+
+  faad_class_t *this ;
+
+  this = (faad_class_t *) malloc (sizeof (faad_class_t));
+
+  this->decoder_class.open_plugin     = open_plugin;
+  this->decoder_class.get_identifier  = get_identifier;
+  this->decoder_class.get_description = get_description;
+  this->decoder_class.dispose         = dispose_class;
+
   return this;
 }
 
@@ -377,6 +398,6 @@ static decoder_info_t dec_info_audio = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_AUDIO_DECODER, 9, "faad", XINE_VERSION_CODE, &dec_info_audio, init_audio_decoder_plugin },
+  { PLUGIN_AUDIO_DECODER, 11, "faad", XINE_VERSION_CODE, &dec_info_audio, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
