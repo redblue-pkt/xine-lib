@@ -32,7 +32,7 @@
  *
  * ID3v2 specs: http://www.id3.org/
  *
- * $Id: id3.c,v 1.4 2003/12/08 22:10:20 tmattern Exp $
+ * $Id: id3.c,v 1.5 2003/12/08 23:20:16 tmattern Exp $
  */
  
 #ifdef HAVE_CONFIG_H
@@ -49,6 +49,35 @@
 #include "xineutils.h"
 #include "bswap.h"
 #include "id3.h"
+
+#define ID3_GENRE_COUNT 126
+static const char* const id3_genre[] =
+  {"Blues", "Classic Rock", "Country", "Dance", "Disco",
+   "Funk", "Grunge", "Hip-Hop", "Jazz", "Metal",
+   "New Age", "Oldies", "Other", "Pop", "R&B",
+   "Rap", "Reggae", "Rock", "Techno", "Industrial",
+   "Alternative", "Ska", "Death Metal", "Pranks", "Soundtrack",
+   "Euro-Techno", "Ambient", "Trip-Hop", "Vocal", "Jazz+Funk",
+   "Fusion", "Trance", "Classical", "Instrumental", "Acid",
+   "House", "Game", "Sound Clip", "Gospel", "Noise",
+   "AlternRock", "Bass", "Soul", "Punk", "Space",
+   "Meditative", "Instrumental Pop", "Instrumental Rock", "Ethnic", "Gothic",
+   "Darkwave", "Techno-Industrial", "Electronic", "Pop-Folk", "Eurodance",
+   "Dream", "Southern Rock", "Comedy", "Cult", "Gangsta",
+   "Top 40", "Christian Rap", "Pop/Funk", "Jungle", "Native American",
+   "Cabaret", "New Wave", "Psychadelic", "Rave", "Showtunes",
+   "Trailer", "Lo-Fi", "Tribal", "Acid Punk", "Acid Jazz",
+   "Polka", "Retro", "Musical", "Rock & Roll", "Hard Rock",
+   "Folk", "Folk-Rock", "National Folk", "Swing", "Fast Fusion",
+   "Bebob", "Latin", "Revival", "Celtic", "Bluegrass",
+   "Avantgarde", "Gothic Rock", "Progressive Rock", "Psychedelic Rock", "Symphonic Rock",
+   "Slow Rock", "Big Band", "Chorus", "Easy Listening", "Acoustic",
+   "Humour", "Speech", "Chanson", "Opera", "Chamber Music",
+   "Sonata", "Symphony", "Booty Bass", "Primus", "Porn Groove",
+   "Satire", "Slow Jam", "Club", "Tango", "Samba",
+   "Folklore", "Ballad", "Power Ballad", "Rhythmic Soul", "Freestyle",
+   "Duet", "Punk Rock", "Drum Solo", "A capella", "Euro-House",
+   "Dance Hall" };
 
 int id3v1_parse_tag (input_plugin_t *input, xine_stream_t *stream) {
 
@@ -67,6 +96,11 @@ int id3v1_parse_tag (input_plugin_t *input, xine_stream_t *stream) {
       _x_meta_info_n_set(stream, XINE_META_INFO_ARTIST, tag.artist, 30);
       _x_meta_info_n_set(stream, XINE_META_INFO_ALBUM, tag.album, 30);
       _x_meta_info_n_set(stream, XINE_META_INFO_COMMENT, tag.comment, 30);
+      
+      if (tag.genre < ID3_GENRE_COUNT) {
+        _x_meta_info_set(stream, XINE_META_INFO_GENRE, id3_genre[tag.genre]);
+      }
+      
     }
     return 1;
   } else {

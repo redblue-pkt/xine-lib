@@ -22,7 +22,7 @@
  * Supported versions: v1, v2.2
  * TODO: v2.3, v2.4
  *
- * $Id: id3.h,v 1.2 2003/12/08 22:10:20 tmattern Exp $
+ * $Id: id3.h,v 1.3 2003/12/08 23:20:16 tmattern Exp $
  */
 
 #ifndef ID3_H
@@ -116,13 +116,13 @@ typedef struct {
 } id3v23_frame_ext_header_t;
 
 typedef struct {
-  char tag[3];
-  char title[30];
-  char artist[30];
-  char album[30];
-  char year[4];
-  char comment[30];
-  char genre;
+  char    tag[3];
+  char    title[30];
+  char    artist[30];
+  char    album[30];
+  char    year[4];
+  char    comment[30];
+  uint8_t genre;
 } id3v1_tag_t;
 
 int id3v1_parse_tag (input_plugin_t *input, xine_stream_t *stream);
@@ -134,5 +134,6 @@ int id3v22_parse_tag(input_plugin_t *input,
 int id3v23_parse_tag(input_plugin_t *input,
                      xine_stream_t *stream,
                      int8_t *mp3_frame_header);
+
 
 #endif /* ID3_H */
