@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.2 2003/06/10 16:30:15 jcdutton Exp $
+ * $Id: xine_decoder.c,v 1.3 2003/06/10 22:01:54 jcdutton Exp $
  *
  * stuff needed to turn libmpeg2 into a xine decoder plugin
  */
@@ -60,10 +60,7 @@ static void mpeg2_video_decode_data (video_decoder_t *this_gen, buf_element_t *b
   const mpeg2_info_t * info;
   mpeg2_state_t state;
   vo_frame_t * img;
-//  vo_setup_result_t setup_result;
-#ifdef LOG
-  printf ("libmpeg2: decode_data, flags=0x%08x ...\n", buf_element->decoder_flags);
-#endif
+  if (buf_element->decoder_flags != 0) return;
 
   mpeg2_buffer (this->mpeg2dec, current, end);
 
@@ -74,25 +71,6 @@ static void mpeg2_video_decode_data (video_decoder_t *this_gen, buf_element_t *b
         /* might set nb fbuf, convert format, stride */
         /* might set fbufs */
         mpeg2_custom_fbuf (this->mpeg2dec, 1);  /* <- Force libmpeg2 to use xine frame buffers. */
-        img = this->stream->video_out->get_frame (this->stream->video_out,
-                                              info->sequence->picture_width,
-                                              info->sequence->picture_height,
-                                              //picture->aspect_ratio_information,
-                                              1,
-                                              XINE_IMGFMT_YV12,
-                                              //picture->picture_structure);
-                                              0);
-        mpeg2_set_buf (this->mpeg2dec, img->base, img);
-
-        img = this->stream->video_out->get_frame (this->stream->video_out,
-                                              info->sequence->picture_width,
-                                              info->sequence->picture_height,
-                                              //picture->aspect_ratio_information,
-                                              1,
-                                              XINE_IMGFMT_YV12,
-                                              //picture->picture_structure);
-                                              0);
-        mpeg2_set_buf (this->mpeg2dec, img->base, img);
         break;
       case STATE_PICTURE:
         /* might skip */
@@ -106,6 +84,9 @@ static void mpeg2_video_decode_data (video_decoder_t *this_gen, buf_element_t *b
                                               XINE_IMGFMT_YV12,
                                               //picture->picture_structure);
                                               0);
+#ifdef LOG
+        printf ("libmpeg2:decode_data:get_frame id=%d\n", img->id);
+#endif
         mpeg2_set_buf (this->mpeg2dec, img->base, img);
         break;
       case STATE_SLICE:
@@ -113,11 +94,19 @@ static void mpeg2_video_decode_data (video_decoder_t *this_gen, buf_element_t *b
         /* draw current picture */
         /* might free frame buffer */
         if (info->display_fbuf) {
-          img = (vo_frame_t *) info->display_fbuf->id; 
+          img = (vo_frame_t *) info->display_fbuf->id;
+          //img->pts=0;
+          img->duration=3600;
+#ifdef LOG
+          printf ("libmpeg2:decode_data:draw_frame id=%d\n", img->id);
+#endif
           img->draw (img, this->stream);
         }
-        if (info->discard_fbuf) {
-          img = (vo_frame_t *) info->discard_fbuf->id; 
+        img = (vo_frame_t *) info->discard_fbuf->id; 
+        if (info->discard_fbuf && img) {
+#ifdef LOG
+          printf ("libmpeg2:decode_data:free_frame id=%d\n", img->id);
+#endif
           img->free(img);
         }
         break;
@@ -127,10 +116,6 @@ static void mpeg2_video_decode_data (video_decoder_t *this_gen, buf_element_t *b
 
  }
 
-
-#ifdef LOG
-  printf ("libmpeg2: decode_data...done\n");
-#endif
 }
 
 static void mpeg2_video_flush (video_decoder_t *this_gen) {
@@ -146,12 +131,18 @@ static void mpeg2_video_flush (video_decoder_t *this_gen) {
 static void mpeg2_video_reset (video_decoder_t *this_gen) {
   mpeg2_video_decoder_t *this = (mpeg2_video_decoder_t *) this_gen;
 
+#ifdef LOG
+  printf ("libmpeg2: reset\n");
+#endif
 //  mpeg2_reset (&this->mpeg2dec);
 }
 
 static void mpeg2_video_discontinuity (video_decoder_t *this_gen) {
   mpeg2_video_decoder_t *this = (mpeg2_video_decoder_t *) this_gen;
 
+#ifdef LOG
+  printf ("libmpeg2: dicontinuity\n");
+#endif
 //  mpeg2_discontinuity (&this->mpeg2dec);
 }
 
@@ -196,7 +187,7 @@ static video_decoder_t *open_plugin (video_decoder_class_t *class_gen, xine_stre
  */
 
 static char *get_identifier (video_decoder_class_t *this) {
-  return "mpeg2dec";
+  return "mpeg2new";
 }
 
 static char *get_description (video_decoder_class_t *this) {
@@ -233,6 +224,6 @@ static decoder_info_t dec_info_mpeg2 = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_VIDEO_DECODER, 14, "mpeg2", XINE_VERSION_CODE, &dec_info_mpeg2, init_plugin },
+  { PLUGIN_VIDEO_DECODER, 14, "mpeg2new", XINE_VERSION_CODE, &dec_info_mpeg2, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
