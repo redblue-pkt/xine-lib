@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_interface.c,v 1.40 2003/02/11 16:42:43 miguelfreitas Exp $
+ * $Id: xine_interface.c,v 1.41 2003/02/12 22:22:33 miguelfreitas Exp $
  *
  * convenience/abstraction layer, functions to implement
  * libxine's public interface
@@ -309,6 +309,13 @@ int xine_gui_send_vo_data (xine_stream_t *stream,
 			   int type, void *data) {
 
   return stream->video_driver->gui_data_exchange (stream->video_driver, 
+						  type, data);
+}
+
+int xine_port_send_gui_data (xine_video_port_t *vo,
+			   int type, void *data) {
+
+  return vo->driver->gui_data_exchange (vo->driver, 
 						  type, data);
 }
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.59 2003/02/11 16:42:40 miguelfreitas Exp $
+ * $Id: xine.h.in,v 1.60 2003/02/12 22:22:31 miguelfreitas Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -838,9 +838,13 @@ const char *const *xine_list_video_output_plugins (xine_t *self) ;
  * visual specific gui <-> xine engine communication                 *
  *********************************************************************/
 
-/* talk to video output driver */
+/* talk to video output driver - old method */
 int    xine_gui_send_vo_data (xine_stream_t *self,
 			      int type, void *data);
+
+/* new (preferred) method to talk to video driver. */
+int    xine_port_send_gui_data (xine_video_port_t *vo,
+			        int type, void *data);
 
 typedef struct {
 
