@@ -2,7 +2,8 @@ xine-lib (1-xxx)
   * Fixed segfault when seeking with the "xvmc" and "xxmc" plugins playing 
     files with IDCT / mocomp XvMC acceleration. 
   * polypaudio sound server support
-    
+  * fix playback of MMS streams with the new input cache layer [bug #1066926]
+        
 xine-lib (1-rc7)
   * Build system improvements: replacement functions, better work with headers
   * Set the codec name for Real Media even if we can't play the files
