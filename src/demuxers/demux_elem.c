@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_elem.c,v 1.56 2002/10/28 03:24:43 miguelfreitas Exp $
+ * $Id: demux_elem.c,v 1.57 2002/10/29 00:25:06 guenter Exp $
  *
  * demultiplexer for elementary mpeg streams
  * 
@@ -136,6 +136,8 @@ static void demux_mpeg_elem_send_headers (demux_plugin_t *this_gen) {
     }
   }
 
+  this->status = DEMUX_OK;
+
   xine_demux_control_headers_done (this->stream);
 }
 
@@ -179,11 +181,6 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   input_plugin_t *input = (input_plugin_t *) input_gen;
   demux_mpeg_elem_t *this;
 
-  if (! (input->get_capabilities(input) & INPUT_CAP_SEEKABLE)) {
-    printf(_("demux_elem.c: input not seekable, can not handle!\n"));
-    return NULL;
-  }
-
   this         = xine_xmalloc (sizeof (demux_mpeg_elem_t));
   this->stream = stream;
   this->input  = input;
@@ -201,14 +198,17 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   switch (stream->content_detection_method) {
 
   case METHOD_BY_CONTENT: {
+    int got_sample;
     int bs = 4;
     
     if(!input) {
       free (this);
       return NULL;
     }
+
+    got_sample = 0;
   
-    if((input->get_capabilities(input) & INPUT_CAP_SEEKABLE) != 0) {
+    if ((input->get_capabilities(input) & INPUT_CAP_SEEKABLE) != 0) {
       input->seek(input, 0, SEEK_SET);
 
       bs = input->get_blocksize(input);
@@ -216,24 +216,36 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
       if (bs<4)
 	bs = 4;
 
-      if (input->read(input, this->scratch, bs) == bs) {
-	/*
-	printf ("demux_elem: %02x %02x %02x %02x (bs=%d)\n",
-		this->scratch[0], this->scratch[1], 
-		this->scratch[2], this->scratch[3], bs);
-	*/
-	
-	if (this->scratch[0] || this->scratch[1] 
-	    || (this->scratch[2] != 0x01) || (this->scratch[3] != 0xb3)) {
-          free (this);
-          return NULL;
-        }
-	
-	this->input = input;
-        break;
-      }
+      if (input->read(input, this->scratch, bs) == bs) 
+	got_sample = 1;
+    } else if ((input->get_capabilities(input) & INPUT_CAP_PREVIEW) != 0) {
+      input->get_optional_data (input, this->scratch, INPUT_OPTIONAL_DATA_PREVIEW);
+      got_sample = 1;
     }
-    return NULL;
+
+    if (!got_sample) {
+      free (this);
+      return NULL;
+    }
+
+#ifdef LOG	
+    printf ("demux_elem: %02x %02x %02x %02x (bs=%d)\n",
+	    this->scratch[0], this->scratch[1], 
+	    this->scratch[2], this->scratch[3], bs);
+#endif
+	
+    if (this->scratch[0] || this->scratch[1] 
+	|| (this->scratch[2] != 0x01) || (this->scratch[3] != 0xb3)) {
+      free (this);
+      return NULL;
+    }
+	
+    this->input = input;
+    
+#ifdef LOG	
+    printf ("demux_elem: input accepted.\n");
+#endif
+
   }
   break;
 
