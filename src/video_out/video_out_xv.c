@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.192 2004/03/16 18:50:33 hadess Exp $
+ * $Id: video_out_xv.c,v 1.193 2004/03/23 09:46:11 esnel Exp $
  *
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -955,9 +955,8 @@ static int xv_gui_data_exchange (vo_driver_t *this_gen,
   break;
 
   case XINE_GUI_SEND_DRAWABLE_CHANGED:
-    this->drawable = (Drawable) data;
-
     XLockDisplay (this->display);
+    this->drawable = (Drawable) data;
     XFreeGC(this->display, this->gc);
     this->gc = XCreateGC (this->display, this->drawable, 0, NULL);
     if(this->xoverlay)
