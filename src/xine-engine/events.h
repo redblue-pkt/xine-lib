@@ -53,6 +53,8 @@ extern "C" {
 #define XINE_EVENT_PLAYBACK_FINISHED    15
 #define XINE_EVENT_BRANCHED             16
 #define XINE_EVENT_NEED_NEXT_MRL        17 
+#define XINE_EVENT_INPUT_NEXT           18
+#define XINE_EVENT_INPUT_PREVIOUS       19
 
 /*
  * generic event type.
