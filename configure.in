@@ -263,10 +263,12 @@ dnl Imlib (for xine-logoconv)
 dnl
 AC_PATH_PROG(IMLIB_CONFIG, imlib-config, no)
 if test "$IMLIB_CONFIG" != "no" ; then
-  IMLIB_CFLAGS=`$IMLIB_CONFIG --cflags`
-  IMLIB_LIBS=`$IMLIB_CONFIG --libs`
+	AC_CHECK_HEADER(Imlib.h,
+	[ have_imlib="yes"
+	  IMLIB_CFLAGS=`$IMLIB_CONFIG --cflags`
+	  IMLIB_LIBS=`$IMLIB_CONFIG --libs` ])
 fi
-AM_CONDITIONAL(HAVE_IMLIB, [test x"$IMLIB_CONFIG" != x"no"])
+AM_CONDITIONAL(HAVE_IMLIB, [test x"$have_imlib" != x"no"])
 AC_SUBST(IMLIB_CFLAGS)
 AC_SUBST(IMLIB_LIBS)
 
