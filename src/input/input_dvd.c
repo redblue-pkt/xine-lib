@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.26 2001/10/05 11:31:39 miguelfreitas Exp $
+ * $Id: input_dvd.c,v 1.27 2001/10/05 14:49:32 heikos Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -39,9 +39,11 @@
 #endif
 #ifdef HAVE_LINUX_CDROM_H
 # include <linux/cdrom.h>
+#elif defined __FreeBSD__
+# include "sys/dvdio.h"
 #endif
 #if ! defined (HAVE_LINUX_CDROM_H) && ! defined (HAVE_SYS_CDIO_H)
-#error "you need to add cdrom / VCD support for your platform to input_vcd and configure.in"
+#error "you need to add dvd support for your platform to input_dvd.c and configure.in"
 #endif
 
 #include "xine_internal.h"
