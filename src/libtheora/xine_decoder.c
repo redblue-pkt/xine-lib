@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.6 2003/05/04 13:13:58 heinchen Exp $
+ * $Id: xine_decoder.c,v 1.7 2003/06/19 15:31:04 heinchen Exp $
  *
  * xine decoder plugin using libtheora
  *
@@ -53,6 +53,7 @@ typedef struct theora_decoder_s {
   video_decoder_t    theora_decoder;
   theora_class_t     *class;
   theora_info        t_info;
+  theora_comment     t_comment;
   theora_state       t_state;
   ogg_packet         op;
   yuv_buffer         yuv;
@@ -62,9 +63,10 @@ typedef struct theora_decoder_s {
   char*              packet;
   int                done;
   int                width, height;
-  int                initialized;
   int                frame_duration;
   int                skipframes;
+  int                hp_read;
+  int                initialized;
 } theora_decoder_t;
 
 static void readin_op (theora_decoder_t *this, char* src, int size) {
@@ -84,8 +86,10 @@ static void show_op_stats (theora_decoder_t *this) {
 
 static void yuv2frame(yuv_buffer *yuv, vo_frame_t *frame) {
   int i;
-  /*fixme - clarify if the frame must be copied or if there is a simpler solution
+  /*fixme - clarify if the frame must be copied or if there is a faster solution
    like exchanging the pointers*/
+
+  /*copy all 3 parts of the picture*/
   for(i=0;i<yuv->y_height;i++)
     xine_fast_memcpy(frame->base[0]+yuv->y_width*i, 
 	   yuv->y+yuv->y_stride*i, 
@@ -101,7 +105,7 @@ static void yuv2frame(yuv_buffer *yuv, vo_frame_t *frame) {
 }
 
 static int collect_data (theora_decoder_t *this, buf_element_t *buf ) {
-  /* Assembles an ogg_packet which was send with send_ogg_packet over xinebuffers */
+  /* Assembles an ogg_packet which was sent with send_ogg_packet over xinebuffers */
   /* this->done, this->rejected, this->op and this->decoder->flags are needed*/
   int op_size = sizeof (ogg_packet);
 
@@ -150,11 +154,24 @@ static void theora_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
   int ret;
 
   if (!collect_data(this, buf)) return;
+  /*return, until a entire packets is collected*/
 
-  if ((buf->decoder_flags & BUF_FLAG_HEADER) && !this->initialized) {
-    if (theora_decode_header(&this->t_info,&this->op)>=0) {
-      theora_decode_init (&this->t_state,&this->t_info);
-      this->initialized=1;
+  if ( (buf->decoder_flags & BUF_FLAG_PREVIEW) ) {
+    /*get the first 3 packets and decode the header during preview*/
+
+
+    if (this->hp_read<=2) {
+      /*decode three header packets*/
+      if (theora_decode_header(&this->t_info, &this->t_comment,&this->op)<0) {
+	printf ("libtheora: Was unable to decode header #%d, corrput stream?\n",this->hp_read);
+      } else {
+	this->hp_read++;
+      }
+    }
+
+    if (this->hp_read==3) {
+      /*headers are now decoded. initialize the decoder*/
+      theora_decode_init (&this->t_state, &this->t_info);
       this->frame_duration=((int64_t)90000*this->t_info.fps_denominator)/this->t_info.fps_numerator;
 #ifdef LOG
       printf("libtheora: theora stream is Theora %dx%d %.02f fps video.\n",
@@ -163,13 +180,17 @@ static void theora_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 #endif	  
       this->width=this->t_info.width;
       this->height=this->t_info.height;
-    } else
-      printf ("libtheora: Header could not be decoded.\n");
+      this->initialized=1;
+      this->hp_read++;
+    }
+
   } else if (buf->decoder_flags & BUF_FLAG_HEADER) {
+    /*ignore headerpackets*/
+
     return;
-  } else if (buf->decoder_flags & BUF_FLAG_PREVIEW) {
-    return;
+
   } else {
+    /*decode videodata*/
 
     if (!this->initialized) {
       printf ("libtheora: cannot decode stream without header\n");
@@ -240,6 +261,8 @@ static void theora_dispose (video_decoder_t *this_gen) {
   printf ("libtheora: dispose \n");
 
   theora_clear (&this->t_state);
+  theora_comment_clear (&this->t_comment);
+  theora_info_clear (&this->t_info);
   this->stream->video_out->close(this->stream->video_out, this->stream);
   free (this->packet);
   free (this);
@@ -253,9 +276,11 @@ static video_decoder_t *theora_open_plugin (video_decoder_class_t *class_gen, xi
 
   theora_decoder_t  *this ;
 
-  printf ("You are trying to decode an theorastream. Theora is in the moment\n");
-  printf ("in development, expect nasty surprises. If the stream could not be played back\n");
-  printf ("go to http://xine.sourceforge.net and grab the latest release of xine.\n");
+  printf ("You are trying to decode an theorastream. At the moment, theora is in\n");
+  printf ("development. If the stream could not be played back go to\n");
+  printf ("http://xine.sourceforge.net and get the latest release of xine.\n");
+  printf ("This release will play back streams which have been encoded with\n");
+  printf ("libtheora-alpha2."\n");
 
   this = (theora_decoder_t *) malloc (sizeof (theora_decoder_t));
   memset(this, 0, sizeof (theora_decoder_t));
@@ -278,6 +303,8 @@ static video_decoder_t *theora_open_plugin (video_decoder_class_t *class_gen, xi
 
   this->initialized                  = 0;
 
+  theora_comment_init (&this->t_comment);
+  theora_info_init (&this->t_info);
   stream->video_out->open (stream->video_out, stream);
 
   return &this->theora_decoder;

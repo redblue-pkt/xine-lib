@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ogg.c,v 1.101 2003/05/25 13:39:14 guenter Exp $
+ * $Id: demux_ogg.c,v 1.102 2003/06/19 15:31:04 heinchen Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -87,6 +87,7 @@ typedef struct demux_ogg_s {
 
 #ifdef HAVE_THEORA
   theora_info           t_info;
+  theora_comment        t_comment;
 #endif
 
   int                   status;
@@ -414,10 +415,14 @@ static void send_ogg_buf (demux_ogg_t *this,
   } else if ((this->buf_types[stream_num] & 0xFFFF0000) == BUF_VIDEO_THEORA) {
 
     int64_t pts;
-    theora_info test;
+    theora_info t_info;
+    theora_comment t_comment;
+
+    theora_info_init (&t_info);
+    theora_comment_init (&t_comment);
 
     /*Lets see if this is an Header*/
-    if ((theora_decode_header(&test,op))>=0) {
+    if ((theora_decode_header(&t_info, &t_comment, op))>=0) {
       decoder_flags=decoder_flags|BUF_FLAG_HEADER;
 #ifdef LOG
       printf ("demux_ogg: found an header\n");
@@ -439,6 +444,9 @@ static void send_ogg_buf (demux_ogg_t *this,
 #endif
 
     send_ogg_packet (this, this->video_fifo, op, pts, decoder_flags, stream_num);
+
+    theora_comment_clear (&t_comment);
+    theora_info_clear (&t_info);
 #endif
 
   } else if ((this->buf_types[stream_num] & 0xFF000000) == BUF_VIDEO_BASE) {
@@ -1029,7 +1037,7 @@ static void demux_ogg_send_header (demux_ogg_t *this) {
 #ifdef HAVE_THEORA
 	  printf ("demux_ogg: Theorastreamsupport is highly alpha at the moment\n");
 
-	  if (theora_decode_header(&this->t_info, &op)>=0) {
+	  if (theora_decode_header(&this->t_info, &this->t_comment, &op)>=0) {
 
 	    this->num_video_streams++;
 
@@ -1038,7 +1046,7 @@ static void demux_ogg_send_header (demux_ogg_t *this) {
 
 	    this->frame_duration = ((int64_t) 90000*this->t_info.fps_denominator)/this->t_info.fps_numerator;
 
-	    this->preview_buffers[stream_num]=1;
+	    this->preview_buffers[stream_num]=3;
 	    this->buf_types[stream_num] = BUF_VIDEO_THEORA;
 
 	    this->stream->meta_info[XINE_META_INFO_VIDEOCODEC]
@@ -1050,6 +1058,11 @@ static void demux_ogg_send_header (demux_ogg_t *this) {
 	    this->stream->stream_info[XINE_STREAM_INFO_FRAME_DURATION]
 	      = ((int64_t) 90000*this->t_info.fps_denominator)/this->t_info.fps_numerator;
 
+#ifdef LOG
+	    printf ("demux_ogg: decoded theora header \n");
+	    printf ("           frameduration %d\n",this->frame_duration);
+	    printf ("           w:%d h:%d \n",this->t_info.width,this->t_info.height);
+#endif
 	  } else {
 	    /*Rejected stream*/
 	    printf ("demux_ogg: A theora header was rejected by libtheora\n");
@@ -1297,6 +1310,11 @@ static void demux_ogg_dispose (demux_plugin_t *this_gen) {
   }
 
   ogg_sync_clear(&this->oy);
+
+#ifdef HAVE_THEORA
+  theora_comment_clear (&this->t_comment);
+  theora_info_clear (&this->t_info);
+#endif
 
   free (this);
 }
@@ -1582,7 +1600,12 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen,
   this->demux_plugin.demux_class       = class_gen;
   
   this->status = DEMUX_FINISHED;
-  
+
+#ifdef HAVE_THEORA
+  theora_info_init (&this->t_info);
+  theora_comment_init (&this->t_comment);
+#endif  
+
   return &this->demux_plugin;
 }
 
