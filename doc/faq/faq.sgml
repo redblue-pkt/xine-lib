@@ -1598,8 +1598,43 @@
    <sect2 id="aspectratio">
     <title>The aspect ratio of the video is wrong!</title>
     <para>
-     Try pressing "a" to change the aspect ratio.
+     Usually xine discovers the screen aspect ratio by
+     querying the X-server and then adjusts the video automatically
+     to make it look right. However, if that doesn't work try 
+     pressing "a" to manually change the aspect ratio.
     </para>
+
+    <para>
+     If you have a wide screen monitor, make sure the X-server
+     is correctly configured. The X-server must know the physical 
+     size of the screen, which is independent of the resolution
+     being used.
+    </para>
+
+    <para>
+     For XFree86 the screen size should be set with the file
+     <filename>/etc/X11/XF86Config</filename>, under the section
+     <parameter>"Monitor"</parameter> as in the example below:
+    </para>
+
+    <para>
+     <programlisting>
+Section "Monitor"
+&nbsp;&nbsp;&nbsp;Identifier   "Monitor0"
+&nbsp;&nbsp;&nbsp;VendorName   "Monitor Vendor"
+&nbsp;&nbsp;&nbsp;ModelName    "DDC Probed Monitor - ViewSonic G773-2"
+&nbsp;&nbsp;&nbsp;DisplaySize  320	240
+&nbsp;&nbsp;&nbsp;HorizSync    30.0 - 70.0
+&nbsp;&nbsp;&nbsp;VertRefresh  50.0 - 180.0
+EndSection
+     </programlisting>
+    </para>
+
+    <para>
+     Where <parameter>DisplaySize</parameter> specifies, 
+     in millimeters, the physical size of the monitor's picture area.
+    </para>
+
    </sect2>
 
    <sect2 id="discardedskipped">
