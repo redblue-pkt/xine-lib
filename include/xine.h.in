@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.67 2003/03/19 01:11:12 holstsn Exp $
+ * $Id: xine.h.in,v 1.68 2003/03/20 22:58:41 miguelfreitas Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -290,6 +290,8 @@ int  xine_get_param (xine_stream_t *stream, int param);
 #define XINE_PARAM_IGNORE_VIDEO           13
 #define XINE_PARAM_IGNORE_AUDIO           14
 #define XINE_PARAM_IGNORE_SPU             15
+#define XINE_PARAM_ENABLE_BROADCAST       16 /* 0(default) => don't         */
+
 
 /* speed values */
 #define XINE_SPEED_PAUSE                   0
@@ -1226,6 +1228,7 @@ void xine_config_reset (xine_t *self);
 /* specific event types */
 #define XINE_EVENT_SET_V4L2             200
 #define XINE_EVENT_PVR_SAVE             201
+#define XINE_EVENT_PVR_REPORT_NAME      202
 
 /*
  * xine event struct
@@ -1332,6 +1335,7 @@ typedef struct {
 
 /* 
  * ask pvr to save (ie. do not discard) the current session
+ * see comments on input_pvr.c to understand how it works.
  */
 typedef struct {
   /* mode values:
@@ -1341,6 +1345,7 @@ typedef struct {
    * 2 = save everything on current session
    */
   int mode; 
+  int id;
   char name[256]; /* name for saving, might be longer */
 } xine_pvr_save_data_t;
 
