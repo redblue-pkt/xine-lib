@@ -19,7 +19,7 @@
  *
  * input plugin for http network streams
  *
- * $Id: input_http.c,v 1.64 2003/09/25 13:42:19 f1rmb Exp $
+ * $Id: input_http.c,v 1.65 2003/09/25 13:47:17 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -207,7 +207,7 @@ static int http_plugin_parse_url (char *urlbuf, char **user, char **password,
       *host = start;
 
 #ifdef ENABLE_IPV6
-  // Add support for RFC 2732
+  /* Add support for RFC 2732 */
   {
       char *hostbracket, *hostendbracket;
 
@@ -221,7 +221,7 @@ static int http_plugin_parse_url (char *urlbuf, char **user, char **password,
 	      *hostendbracket = '\0';
 	      *host = (hostbracket + 1);
 	      
-	      // Might have a trailing port
+	      /* Might have a trailing port */
 	      
 	      if (*(hostendbracket+1) == ':') {
 		  portcolon = (hostendbracket + 1);
