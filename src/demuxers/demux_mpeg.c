@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg.c,v 1.112 2003/04/26 19:36:23 guenter Exp $
+ * $Id: demux_mpeg.c,v 1.113 2003/04/26 19:39:30 miguelfreitas Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  * reads streams of variable blocksizes
@@ -285,7 +285,7 @@ static void parse_mpeg2_packet (demux_mpeg_t *this, int stream_id, int64_t scr) 
 
     if((this->dummy_space[0] & 0xE0) == 0x20) {
 
-      buf = this->input->read_block (this->input, this->video_fifo, header_len+3+len);
+      buf = this->input->read_block (this->input, this->video_fifo, header_len+len-1);
 
       track = (this->dummy_space[0] & 0x1f);
 
