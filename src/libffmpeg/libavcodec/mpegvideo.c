@@ -3926,6 +3926,8 @@ static int sse_mb(MpegEncContext *s){
                +sse(s, s->new_picture.data[2] + s->mb_x*8  + s->mb_y*s->uvlinesize*8,s->dest[2], w>>1, h>>1, s->uvlinesize);
 }
 
+/* xine: do not need this for decode or MPEG-1 encoding modes */
+#if 0
 static int pre_estimate_motion_thread(AVCodecContext *c, void *arg){
     MpegEncContext *s= arg;
 
@@ -3969,6 +3971,7 @@ static int estimate_motion_thread(AVCodecContext *c, void *arg){
     }
     return 0;
 }
+#endif
 
 static int mb_var_thread(AVCodecContext *c, void *arg){
     MpegEncContext *s= arg;

@@ -136,8 +136,8 @@
  /* Start codes. */
  #define SEQ_END_CODE		0x000001b7
  #define SEQ_START_CODE		0x000001b3
---- mpegvideo.c	2004-05-28 18:20:57.000000000 +0200
-+++ mpegvideo.c	2004-05-28 18:22:54.000000000 +0200
+--- mpegvideo.c	2004-08-04 18:17:52.000000000 +0200
++++ mpegvideo.c	2004-08-04 18:19:08.000000000 +0200
 @@ -38,6 +38,14 @@
  //#undef NDEBUG
  //#include <assert.h>
@@ -235,7 +235,24 @@
      default:
          assert(0);
      }
-@@ -3964,6 +3993,8 @@
+@@ -3897,6 +3926,8 @@
+                +sse(s, s->new_picture.data[2] + s->mb_x*8  + s->mb_y*s->uvlinesize*8,s->dest[2], w>>1, h>>1, s->uvlinesize);
+ }
+ 
++/* xine: do not need this for decode or MPEG-1 encoding modes */
++#if 0
+ static int pre_estimate_motion_thread(AVCodecContext *c, void *arg){
+     MpegEncContext *s= arg;
+ 
+@@ -3940,6 +3971,7 @@
+     }
+     return 0;
+ }
++#endif
+ 
+ static int mb_var_thread(AVCodecContext *c, void *arg){
+     MpegEncContext *s= arg;
+@@ -3964,6 +3996,8 @@
  }
  
  static void write_slice_end(MpegEncContext *s){
@@ -244,7 +261,7 @@
      if(s->codec_id==CODEC_ID_MPEG4){
          if(s->partitioned_frame){
              ff_mpeg4_merge_partitions(s);
-@@ -3973,6 +4004,7 @@
+@@ -3973,6 +4007,7 @@
      }else if(s->out_format == FMT_MJPEG){
          ff_mjpeg_stuffing(&s->pb);
      }
@@ -252,7 +269,7 @@
  
      align_put_bits(&s->pb);
      flush_put_bits(&s->pb);
-@@ -4024,10 +4056,13 @@
+@@ -4024,10 +4059,13 @@
      case CODEC_ID_FLV1:
          s->gob_index = ff_h263_get_gob_height(s);
          break;
@@ -266,7 +283,7 @@
      }
  #endif
  
-@@ -4081,9 +4116,12 @@
+@@ -4081,9 +4119,12 @@
                      if(s->start_mb_y != mb_y || mb_x!=0){
                          write_slice_end(s);
  
@@ -279,7 +296,7 @@
                      }
                  
                      assert((put_bits_count(&s->pb)&7) == 0);
-@@ -4105,19 +4143,25 @@
+@@ -4105,19 +4146,25 @@
                          s->avctx->rtp_callback(s->avctx, s->ptr_lastgob, current_packet_size, 0);
                      
                      switch(s->codec_id){
@@ -305,7 +322,7 @@
                      }
  
                      if(s->flags&CODEC_FLAG_PASS1){
-@@ -4231,9 +4275,12 @@
+@@ -4231,9 +4278,12 @@
                      
                      s->mv_dir = MV_DIR_FORWARD | MV_DIR_BACKWARD | MV_DIRECT;
                      s->mb_intra= 0;
@@ -318,7 +335,7 @@
                      encode_mb_hq(s, &backup_s, &best_s, CANDIDATE_MB_TYPE_DIRECT, pb, pb2, tex_pb, 
                                   &dmin, &next_block, mx, my);
                  }
-@@ -4421,9 +4468,12 @@
+@@ -4421,9 +4471,12 @@
                      s->mb_intra= 0;
                      motion_x=s->b_direct_mv_table[xy][0];
                      motion_y=s->b_direct_mv_table[xy][1];
@@ -331,7 +348,7 @@
                      break;
                  case CANDIDATE_MB_TYPE_BIDIR:
                      s->mv_dir = MV_DIR_FORWARD | MV_DIR_BACKWARD;
-@@ -4530,11 +4580,14 @@
+@@ -4530,11 +4583,14 @@
          }
      }
  
@@ -346,7 +363,7 @@
  
      write_slice_end(s);
  
-@@ -4597,12 +4650,15 @@
+@@ -4597,12 +4653,15 @@
      s->me.mb_var_sum_temp    =
      s->me.mc_mb_var_sum_temp = 0;
  
@@ -362,17 +379,17 @@
          
      s->me.scene_change_score=0;
      
-@@ -4621,6 +4677,8 @@
+@@ -4621,6 +4680,8 @@
          ff_update_duplicate_context(s->thread_context[i], s);
      }
-
+ 
 +/* xine: do not need this for decode or MPEG-1 encoding modes */
 +#if 0
      ff_init_me(s);
-
+ 
      /* Estimate motion for every MB */
-@@ -4633,6 +4691,8 @@
-
+@@ -4633,6 +4694,8 @@
+ 
          s->avctx->execute(s->avctx, estimate_motion_thread, (void**)&(s->thread_context[0]), NULL, s->avctx->thread_count);
      }else /* if(s->pict_type == I_TYPE) */{
 +#endif /* #if 0 */
@@ -380,7 +397,7 @@
          /* I-Frame */
          for(i=0; i<s->mb_stride*s->mb_height; i++)
              s->mb_type[i]= CANDIDATE_MB_TYPE_INTRA;
-@@ -4656,6 +4716,8 @@
+@@ -4656,6 +4719,8 @@
  //printf("Scene change detected, encoding as I Frame %d %d\n", s->current_picture.mb_var_sum, s->current_picture.mc_mb_var_sum);
      }
  
@@ -389,7 +406,7 @@
      if(!s->umvplus){
          if(s->pict_type==P_TYPE || s->pict_type==S_TYPE) {
              s->f_code= ff_get_best_fcode(s, s->p_mv_table, CANDIDATE_MB_TYPE_INTER);
-@@ -4709,11 +4771,14 @@
+@@ -4709,11 +4774,14 @@
              }
          }
      }
@@ -404,7 +421,7 @@
  #ifdef CONFIG_RISKY
          switch(s->codec_id){
          case CODEC_ID_MPEG4:
-@@ -4726,6 +4791,7 @@
+@@ -4726,6 +4794,7 @@
              break;
          }
  #endif
@@ -412,7 +429,7 @@
  
          s->lambda= s->lambda_table[0];
          //FIXME broken
-@@ -4759,6 +4825,8 @@
+@@ -4759,6 +4828,8 @@
  
      s->last_bits= put_bits_count(&s->pb);
      switch(s->out_format) {
@@ -421,7 +438,7 @@
      case FMT_MJPEG:
          mjpeg_picture_header(s);
          break;
-@@ -4778,11 +4846,15 @@
+@@ -4778,11 +4849,15 @@
              h263_encode_picture_header(s, picture_number);
          break;
  #endif
