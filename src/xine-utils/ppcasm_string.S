@@ -16,16 +16,11 @@
 
 #ifdef ARCH_PPC
 
-#warning Be forewarned - using PowerPC assembly
-
-#define __KERNEL__
-#define __ASSEMBLY__
+//#warning Be forewarned - using PowerPC assembly
 
 #include "ppc_asm.tmpl"
-#include <linux/config.h>
-#include <asm/processor.h>
-#include <asm/cache.h>
-#include <asm/errno.h>
+#define N_FUN   36
+#define N_SO    100
 
 #define COPY_16_BYTES		\
 	lwz	r7,4(r4);	\
@@ -37,60 +32,42 @@
 	stw	r9,12(r6);	\
 	stwu	r10,16(r6)
 
-#define COPY_16_BYTES_WITHEX(n)	\
-8 ## n ## 0:			\
-	lwz	r7,4(r4);	\
-8 ## n ## 1:			\
-	lwz	r8,8(r4);	\
-8 ## n ## 2:			\
-	lwz	r9,12(r4);	\
-8 ## n ## 3:			\
-	lwzu	r10,16(r4);	\
-8 ## n ## 4:			\
-	stw	r7,4(r6);	\
-8 ## n ## 5:			\
-	stw	r8,8(r6);	\
-8 ## n ## 6:			\
-	stw	r9,12(r6);	\
-8 ## n ## 7:			\
-	stwu	r10,16(r6)
+#define __stringify_1(x)        #x
+#define __stringify(x)          __stringify_1(x)
 
-#define COPY_16_BYTES_EXCODE(n)			\
-9 ## n ## 0:					\
-	addi	r5,r5,-(16 * n);		\
-	b	104f;				\
-9 ## n ## 1:					\
-	addi	r5,r5,-(16 * n);		\
-	b	105f;				\
-.section __ex_table,"a";			\
-	.align	2;				\
-	.long	8 ## n ## 0b,9 ## n ## 0b;	\
-	.long	8 ## n ## 1b,9 ## n ## 0b;	\
-	.long	8 ## n ## 2b,9 ## n ## 0b;	\
-	.long	8 ## n ## 3b,9 ## n ## 0b;	\
-	.long	8 ## n ## 4b,9 ## n ## 1b;	\
-	.long	8 ## n ## 5b,9 ## n ## 1b;	\
-	.long	8 ## n ## 6b,9 ## n ## 1b;	\
-	.long	8 ## n ## 7b,9 ## n ## 1b;	\
-	.text
+#define _GLOBFN(n)\
+        .stabs __stringify(n:F-1),N_FUN,0,0,n;\
+        .type  n,@function; \
+       .globl n;\
+n:
+
+#define _SIZE(n) \
+       .size n, .-n
 
 	.text
 
+       .stabs  "src/xine-utils",N_SO,0,0,.
+       .stabs  "ppcasm_string.S",N_SO,0,0,.
+
+#warning FIXME:        Get cache line sizes from /proc
+#define L1_CACHE_LINE_SIZE 32
 CACHELINE_BYTES = 32
 LG_CACHELINE_BYTES = 5
 CACHELINE_MASK = (32 -1)
-
-	.global	ppcasm_cacheable_memcpy
-ppcasm_cacheable_memcpy:
-#if 0 /* this part causes "error loading shared library: unexpected reloc type
-         0x0b (???) */
+/*
+ * This version uses dcbz on the complete cache lines in the
+ * destination area to reduce memory traffic.  This requires that
+ * the destination area is cacheable.
+ * We only use this version if the source and dest don't overlap.
+ * -- paulus.
+ */
+_GLOBFN(ppcasm_cacheable_memcpy)
 	add	r7,r3,r5		/* test if the src & dst overlap */
 	add	r8,r4,r5
 	cmplw	0,r4,r7
 	cmplw	1,r3,r8
 	crand	0,0,4			/* cr0.lt &= cr1.lt */
-	blt	ppcasm_memcpy			/* if regions overlap */
-#endif
+	blt	66f //ppcasm_memcpy     /* if regions overlap */
 	addi	r4,r4,-4
 	addi	r6,r3,-4
 	neg	r0,r3
@@ -157,9 +134,10 @@ ppcasm_cacheable_memcpy:
 	bdnz	40b
 65:	blr
 
-	.globl	ppcasm_memcpy
-ppcasm_memcpy:
-	srwi.	r7,r5,3
+_SIZE(ppcasm_cacheable_memcpy)
+
+_GLOBFN(ppcasm_memcpy)
+66:    srwi.   r7,r5,3
 	addi	r6,r3,-4
 	addi	r4,r4,-4
 	beq	2f			/* if less than 8 bytes to do */
@@ -198,5 +176,7 @@ ppcasm_memcpy:
 	beq	2b
 	mtctr	r7
 	b	1b
+
+_SIZE(ppcasm_memcpy)
 
 #endif /* ARCH_PPC */

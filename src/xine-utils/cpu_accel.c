@@ -41,7 +41,7 @@
 static uint32_t arch_accel (void)
 {
   uint32_t caps;
-  /* No need to test for this on AMD64, we know what the 
+  /* No need to test for this on AMD64, we know what the
      platform has.  */
   caps = MM_ACCEL_X86_MMX | MM_ACCEL_X86_SSE | MM_ACCEL_X86_MMXEXT | MM_ACCEL_X86_SSE2;
 
@@ -112,8 +112,8 @@ static uint32_t arch_accel (void)
     caps |= MM_ACCEL_X86_SSE | MM_ACCEL_X86_MMXEXT;
 
   if (edx & 0x04000000)       /* SSE2 */
-    caps |= MM_ACCEL_X86_SSE2;  
-    
+    caps |= MM_ACCEL_X86_SSE2;
+
   cpuid (0x80000000, eax, ebx, ecx, edx);
   if (eax < 0x80000001)       /* no extended capabilities */
     return caps;
@@ -157,10 +157,13 @@ static void sigill_handler (int sig)
 
 static uint32_t arch_accel (void)
 {
+    /* FIXME: Autodetect cache line size via AUX ELF vector or otherwise */
+    uint32_t flags = MM_ACCEL_PPC_CACHE32;
+
     signal (SIGILL, sigill_handler);
     if (sigsetjmp (jmpbuf, 1)) {
-	signal (SIGILL, SIG_DFL);
-	return 0;
+      signal (SIGILL, SIG_DFL);
+      return flags;
     }
 
     canjump = 1;
@@ -171,7 +174,7 @@ static uint32_t arch_accel (void)
 		  : "r" (-1));
 
     signal (SIGILL, SIG_DFL);
-    return MM_ACCEL_PPC_ALTIVEC;
+    return flags|MM_ACCEL_PPC_ALTIVEC;
 }
 #endif /* ARCH_PPC */
 
@@ -207,7 +210,7 @@ uint32_t xine_mm_accel (void)
     if( accel & MM_ACCEL_X86_SSE ) {
       void (*old_sigill_handler)(int);
 
-      old_sigill_handler = signal (SIGILL, sigill_handler); 
+      old_sigill_handler = signal (SIGILL, sigill_handler);
 
       if (setjmp(sigill_return)) {
 	lprintf ("OS doesn't support SSE instructions.\n");
@@ -220,7 +223,7 @@ uint32_t xine_mm_accel (void)
     }
 #endif /* _MSC_VER */
 #endif /* ARCH_X86 || ARCH_X86_64 */
-    
+
     if(getenv("XINE_NO_ACCEL")) {
       accel = 0;
     }

@@ -403,7 +403,7 @@ static struct {
 #endif /* ARCH_X86 */
 #ifdef ARCH_PPC
   { "ppcasm_memcpy()", ppcasm_memcpy, 0, 0 },
-  { "ppcasm_cacheable_memcpy()", ppcasm_cacheable_memcpy, 0, 0 },
+  { "ppcasm_cacheable_memcpy()", ppcasm_cacheable_memcpy, 0, MM_ACCEL_PPC_CACHE32 },
 #endif /* ARCH_PPC */
   { NULL, NULL, 0, 0 }
 };

@@ -1,23 +1,23 @@
 /*
  * Copyright (C) 2000-2004 the xine project
- * 
+ *
  * This file is part of xine, a free video player.
- * 
+ *
  * xine is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * xine is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xineutils.h,v 1.84 2004/04/06 19:20:17 valtri Exp $
+ * $Id: xineutils.h,v 1.85 2004/04/25 17:43:58 manfredtremmel Exp $
  *
  */
 #ifndef XINEUTILS_H
@@ -54,7 +54,7 @@ extern "C" {
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
-  
+
 #include <stdio.h>
 #include <string.h>
 
@@ -70,7 +70,7 @@ extern "C" {
 
   int xine_mutex_init    (xine_mutex_t *mutex, const pthread_mutexattr_t *mutexattr,
 			  char *id);
-  
+
   int xine_mutex_lock    (xine_mutex_t *mutex, char *who);
   int xine_mutex_unlock  (xine_mutex_t *mutex, char *who);
   int xine_mutex_destroy (xine_mutex_t *mutex);
@@ -84,7 +84,7 @@ extern "C" {
  * long constant values MUST be suffixed by LL and unsigned long long
  * values by ULL, lest they be truncated by the compiler)
  */
-  
+
 /* generic accelerations */
 #define MM_ACCEL_MLIB           0x00000001
 
@@ -92,10 +92,13 @@ extern "C" {
 #define MM_ACCEL_X86_MMX        0x80000000
 #define MM_ACCEL_X86_3DNOW      0x40000000
 #define MM_ACCEL_X86_MMXEXT     0x20000000
-#define MM_ACCEL_X86_SSE	0x10000000
-#define MM_ACCEL_X86_SSE2	0x08000000
-/* powerpc accelerations */
+#define MM_ACCEL_X86_SSE        0x10000000
+#define MM_ACCEL_X86_SSE2       0x08000000
+
+/* powerpc accelerations and features */
 #define MM_ACCEL_PPC_ALTIVEC    0x04000000
+#define MM_ACCEL_PPC_CACHE32    0x02000000
+
 /* x86 compat defines */
 #define MM_MMX                  MM_ACCEL_X86_MMX
 #define MM_3DNOW                MM_ACCEL_X86_3DNOW
@@ -624,7 +627,7 @@ void *xine_xmalloc(size_t size) __attribute__ ((__malloc__));
  */
 void *xine_xmalloc_aligned(size_t alignment, size_t size, void **base);
 
-/* 
+/*
  * Get user home directory.
  */
 const char *xine_get_homedir(void);
@@ -679,14 +682,14 @@ static inline char *_private_strpbrk(const char *s, const char *accept) {
 #else
 static inline char *_private_strsep(char **stringp, const char *delim) {
   char *begin, *end;
-  
+
   begin = *stringp;
   if(begin == NULL)
     return NULL;
-  
+
   if(delim[0] == '\0' || delim[1] == '\0') {
     char ch = delim[0];
-    
+
     if(ch == '\0')
       end = NULL;
     else {
@@ -700,14 +703,14 @@ static inline char *_private_strsep(char **stringp, const char *delim) {
   }
   else
     end = xine_strpbrk(begin, delim);
-  
+
   if(end) {
     *end++ = '\0';
     *stringp = end;
   }
   else
     *stringp = NULL;
-  
+
   return begin;
 }
 #define xine_strsep _private_strsep
@@ -720,7 +723,7 @@ static inline char *_private_strsep(char **stringp, const char *delim) {
 static inline void _private_setenv(const char *name, const char *val, int _xx) {
   int  len  = strlen(name) + strlen(val) + 2;
   char *env = (char *)malloc(len);
-  
+
   sprintf(env, "%s%c%s", name, '=', val);
   putenv(env);
   /*free(env); The string passed to putenv must not be freed*/
@@ -731,8 +734,8 @@ static inline void _private_setenv(const char *name, const char *val, int _xx) {
 /*
  * Color Conversion Utility Functions
  * The following data structures and functions facilitate the conversion
- * of RGB images to packed YUV (YUY2) images. There are also functions to 
- * convert from YUV9 -> YV12. All of the meaty details are written in 
+ * of RGB images to packed YUV (YUY2) images. There are also functions to
+ * convert from YUV9 -> YV12. All of the meaty details are written in
  * color.c.
  */
 
@@ -763,16 +766,16 @@ extern void (*yuv411_to_yv12)
    unsigned char *v_src, int v_src_pitch, unsigned char *v_dest, int v_dest_pitch,
    int width, int height);
 extern void (*yv12_to_yuy2)
-  (unsigned char *y_src, int y_src_pitch, 
-   unsigned char *u_src, int u_src_pitch, 
-   unsigned char *v_src, int v_src_pitch, 
+  (unsigned char *y_src, int y_src_pitch,
+   unsigned char *u_src, int u_src_pitch,
+   unsigned char *v_src, int v_src_pitch,
    unsigned char *yuy2_map, int yuy2_pitch,
    int width, int height, int progressive);
 extern void (*yuy2_to_yv12)
   (unsigned char *yuy2_map, int yuy2_pitch,
-   unsigned char *y_dst, int y_dst_pitch, 
-   unsigned char *u_dst, int u_dst_pitch, 
-   unsigned char *v_dst, int v_dst_pitch, 
+   unsigned char *y_dst, int y_dst_pitch,
+   unsigned char *u_dst, int u_dst_pitch,
+   unsigned char *v_dst, int v_dst_pitch,
    int width, int height);
 
 #define SCALEFACTOR 65536
@@ -830,7 +833,7 @@ extern void yuy2_to_yuy2
   (unsigned char *src, int src_pitch,
    unsigned char *dst, int dst_pitch,
    int width, int height);
- 
+
 /* print a hexdump of the given data */
 void xine_hexdump (const char *buf, int length);
 
@@ -845,7 +848,7 @@ void xine_hexdump (const char *buf, int length);
 #  define EXPECT_TRUE(x)  __builtin_expect((x),1)
 #  define EXPECT_FALSE(x) __builtin_expect((x),0)
 #endif
-  
+
 #ifdef NDEBUG
 #define _x_assert(exp) \
   do {                                                                \
@@ -938,7 +941,7 @@ void xine_hexdump (const char *buf, int length);
         printf( "%s", fmtargs );                                            \
       }                                                                     \
     }while(0)
-#else 
+#else
   #define llprintf(cat, ...)                                                \
     do{                                                                     \
       if(cat){                                                              \
@@ -964,7 +967,7 @@ void xine_hexdump (const char *buf, int length);
         xine_log(xine, XINE_LOG_TRACE, fmtargs);                            \
       }                                                                     \
     } while(0)
-#else 
+#else
   #define xprintf(xine, verbose, ...)                                       \
     do {                                                                    \
       if((xine) && (xine)->verbosity >= verbose){                           \
@@ -1012,11 +1015,11 @@ void xine_hexdump (const char *buf, int length);
 typedef struct xine_node_s {
 
   struct xine_node_s    *next, *prev;
-  
+
   void                  *content;
 
   int                    priority;
-  
+
 } xine_node_t;
 
 
