@@ -312,7 +312,22 @@ static off_t xio_rw_abort(xine_stream_t *stream, int fd, int cmd, char *buf, off
 #ifndef WIN32
       if (errno == EAGAIN)
         continue;
-      perror("io_helper: I/O error");
+
+      if (errno == EACCES) {
+        _x_message(stream, XINE_MSG_PERMISSION_ERROR, NULL, NULL);
+	xine_log (stream->xine, XINE_LOG_MSG,
+		  _("io_helper: Permission denied\n"));
+      } else if (errno == ENOENT) {
+        _x_message(stream, XINE_MSG_FILE_NOT_FOUND, NULL, NULL);
+	xine_log (stream->xine, XINE_LOG_MSG,
+		  _("io_helper: File not found\n"));
+      } else if (errno == ECONNREFUSED) {
+	_x_message(stream, XINE_MSG_CONNECTION_REFUSED, NULL, NULL);
+	xine_log (stream->xine, XINE_LOG_MSG,
+		  _("io_helper: Connection Refused\n"));
+      } else {
+        perror("io_helper: I/O error");
+      }
 #else
       if (WSAGetLastError() == WSAEWOULDBLOCK)
         continue;
