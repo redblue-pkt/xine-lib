@@ -553,7 +553,9 @@ zoomFilterFastRGB (Uint * pix1,
 
 			firstTime = 0;
 			generatePrecalCoef ();
+#ifdef HAVE_MMX
 			select_zoom_filter ();
+#endif
 
 			freebrutS =
 				(unsigned int *) calloc (resx * resy * 2 + 128, sizeof(unsigned int));
