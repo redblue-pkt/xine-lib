@@ -6,7 +6,7 @@ libdir = $(XINE_PLUGINDIR)
 
 vcd_SRCS = xineplug_inp_vcd.c vcdplayer.c vcdio.c xine-extra.c
 
-EXTRA_DIST = $(vcdx_SRCS)
+EXTRA_DIST = $(vcd_SRCS)
 
 if ENABLE_VCDX
 lib_LTLIBRARIES = xineplug_inp_vcd.la
