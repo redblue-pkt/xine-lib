@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.78 2004/03/13 13:59:19 mroi Exp $
+ * $Id: xine_decoder.c,v 1.79 2004/04/07 18:10:20 valtri Exp $
  *
  */
 
@@ -35,9 +35,6 @@
 /*
 #define LOG
 */
-
-/* FIXME: evil, evil, evil! */
-#define XINE_ENGINE_INTERNAL
 
 #include "buffer.h"
 #include "xine_internal.h"
@@ -512,14 +509,13 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
             
           diff = start - extra_info.frame_number;
           
-          /* draw it if less than 1/2 second left */
-          if( diff < 90000/2 / this->img_duration ) {
-            start_vpts = extra_info.vpts + diff * this->img_duration;
-            end_vpts = start_vpts + (end-start) * this->img_duration;
-       
-            draw_subtitle(this, start_vpts, end_vpts);
-            return;     
-          }
+          start_vpts = extra_info.vpts + diff * this->img_duration;
+          end_vpts = start_vpts + (end-start) * this->img_duration;
+          
+          _x_spu_decoder_sleep(this->stream, start_vpts);
+          draw_subtitle(this, start_vpts, end_vpts);
+          
+          return;     
           
         } else {
           
@@ -540,31 +536,21 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
             
           diff = start - extra_info.input_time;
           
-          /* draw it if less than 1/2 second left */
-          if( diff < 500 || this->ogm ) {
-            start_vpts = extra_info.vpts + diff * 90;
-            end_vpts = start_vpts + (end-start) * 90;
-            
-            draw_subtitle(this, start_vpts, end_vpts);
-            return;     
-          }
+          start_vpts = extra_info.vpts + diff * 90;
+          end_vpts = start_vpts + (end-start) * 90;
+          
+          _x_spu_decoder_sleep(this->stream, start_vpts);
+          draw_subtitle(this, start_vpts, end_vpts);
+          
+          return;     
         }
       }
     }
 
-    /* we may never block on ogm mode because we are on the same thread
-     * as the video decoder. therefore nothing will possibly happen
-     * (like frames being displayed) if we hang here doing nothing. 
-     * it is possible, but unlikely, that the very first ogm subtitle
-     * gets dropped because of the following return.
-     */
-    if( this->ogm )
+    if (_x_spu_decoder_sleep(this->stream, 0))
+      xine_usec_sleep (50000);
+    else
       return;
-    
-    if (this->class->xine->port_ticket->ticket_revoked)
-      this->class->xine->port_ticket->renew(this->class->xine->port_ticket, 0);
-    xine_usec_sleep (50000);
-
   }
 }  
 

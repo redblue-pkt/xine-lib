@@ -20,7 +20,7 @@
  * Demuxer helper functions
  * hide some xine engine details from demuxers and reduce code duplication
  *
- * $Id: demux.c,v 1.47 2004/03/03 20:09:16 mroi Exp $ 
+ * $Id: demux.c,v 1.48 2004/04/07 18:10:20 valtri Exp $ 
  */
 
 
@@ -93,6 +93,11 @@ void _x_demux_flush_engine (xine_stream_t *stream) {
   _x_demux_control_headers_done (stream);
 
   if (stream->video_out) {
+    video_overlay_manager_t *ovl = stream->video_out->get_overlay_manager(stream->video_out);
+    ovl->flush_events(ovl);
+  }
+  
+  if (stream->video_out) {
     stream->video_out->flush(stream->video_out);
     stream->video_out->set_property(stream->video_out, VO_PROP_DISCARD_FRAMES, 0);
   }
@@ -144,6 +149,9 @@ void _x_demux_control_headers_done (xine_stream_t *stream) {
     header_count_audio = 0;
   }
   
+  /* we use demux_action_pending to wake up sleeping spu decoders */
+  stream->demux_action_pending = 1;
+  
   buf = stream->video_fifo->buffer_pool_alloc (stream->video_fifo);
   buf->type = BUF_CONTROL_HEADERS_DONE;
   stream->video_fifo->put (stream->video_fifo, buf);
@@ -168,6 +176,8 @@ void _x_demux_control_headers_done (xine_stream_t *stream) {
     pthread_cond_timedwait (&stream->counter_changed, &stream->counter_lock, &ts);
   }
 
+  stream->demux_action_pending = 0;
+  
   lprintf ("headers processed.\n");
 
   pthread_mutex_unlock (&stream->counter_lock);

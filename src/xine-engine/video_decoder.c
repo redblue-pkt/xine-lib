@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.145 2004/03/28 19:51:56 mroi Exp $
+ * $Id: video_decoder.c,v 1.146 2004/04/07 18:10:21 valtri Exp $
  *
  */
 
@@ -56,6 +56,43 @@ static void update_spu_decoder (xine_stream_t *stream, int type) {
 
   }
   return ;
+}
+
+int _x_spu_decoder_sleep(xine_stream_t *stream, int64_t next_spu_vpts)
+{
+  int64_t time, wait;
+  int thread_vacant = 1;
+  
+  /* we wait until one second before the next SPU is due */
+  next_spu_vpts -= 90000;
+  
+  do {
+    if (next_spu_vpts)
+      time = stream->xine->clock->get_current_time(stream->xine->clock);
+    else
+      time = 0;
+    
+    /* wait in pieces of one half second */
+    if (next_spu_vpts - time < 90000/2)
+      wait = next_spu_vpts - time;
+    else
+      wait = 90000/2;
+    
+    if (wait > 0) xine_usec_sleep(wait * 11);
+    
+    if (stream->xine->port_ticket->ticket_revoked)
+      stream->xine->port_ticket->renew(stream->xine->port_ticket, 0);
+    
+    /* we have to return if video out calls for the decoder */
+    if (stream->video_fifo->first)
+      thread_vacant = (stream->video_fifo->first->type != BUF_CONTROL_FLUSH_DECODER);
+    /* we have to return if the demuxer needs us to release a buffer */
+    if (thread_vacant)
+      thread_vacant = !stream->demux_action_pending;
+    
+  } while (wait == 90000/2 && thread_vacant);
+  
+  return thread_vacant;
 }
 
 static void *video_decoder_loop (void *stream_gen) {

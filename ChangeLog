@@ -10,6 +10,7 @@ xine-lib (1-rc3c)
   * preparing for future MinGW port
   * improved network buffer management policy.
   * asf/mmst/mmsh proper support for "media changing" command.
+  * improve playback with subtitles, fix the seeking
 
 xine-lib (1-rc3b)
   * fix SDL plugin that was broken in rc3

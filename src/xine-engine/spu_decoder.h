@@ -114,4 +114,31 @@ struct spu_decoder_s {
   void *node; /* used by plugin loader */
 };
 
+
+/* SPU decoders differ from video and audio decoders in one significant
+ * way: unlike audio and video, SPU streams are not continuous;
+ * this results in another difference, programmers have to consider:
+ * while both audio and video decoders are automatically blocked in
+ * their get_buffer()/get_frame() methods when the output cannot take
+ * any more data, this does not work for SPU, because it could take
+ * minutes before the next free slot becomes available and we must not
+ * block the decoder thread for that long;
+ * therefore, we provide a convenience function for SPU decoders which
+ * implements a wait until a timestamp sufficiently close to the VPTS
+ * of the next SPU is reached, but the waiting will end before that,
+ * if some outside condition requires us to release the decoder thread
+ * to other tasks;
+ * if this functions returns with 1, noone needs the decoder thread and
+ * you may continue waiting; if it returns 0, finish whatever you are
+ * doing and return;
+ * the usual pattern for SPU decoders is this:
+ *
+ * do {
+ *   spu = prepare_spu();
+ *   int thread_vacant = _x_spu_decoder_sleep(this->stream, spu->vpts);
+ *   int success = process_spu(spu);
+ * } while (!success && thread_vacant);
+ */
+int _x_spu_decoder_sleep(xine_stream_t *, int64_t next_spu_vpts);
+
 #endif /* HAVE_SPUDEC_H */
