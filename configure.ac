@@ -1738,7 +1738,7 @@ case "$host_or_hostalias" in
     CFLAGS="-O3 -fomit-frame-pointer $m_wm $m_psb -fexpensive-optimizations $f_si $f_nsa -ffast-math -funroll-loops -finline-functions $CFLAGS"
     DEBUG_CFLAGS="-O0 -g $DEBUG_CFLAGS"
     AC_DEFINE_UNQUOTED(ARCH_X86_64,,[Define this if you're running x86 architecture])
-    AC_DEFINE(FPM_INTEL,1,[Define to select libmad fixed point arithmetic implementation])
+    AC_DEFINE(FPM_64BIT,1,[Define to select libmad fixed point arithmetic implementation])
     ;;
 
   s390-*)
