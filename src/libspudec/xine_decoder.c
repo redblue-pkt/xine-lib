@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2001 the xine project
+ * Copyright (C) 2000-2003 the xine project
  * 
  * Copyright (C) James Courtier-Dutton James@superbug.demon.co.uk - July 2001
  *
@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.99 2003/08/15 14:36:55 mroi Exp $
+ * $Id: xine_decoder.c,v 1.100 2003/10/23 20:12:33 mroi Exp $
  *
  * stuff needed to turn libspu into a xine decoder plugin
  */
@@ -379,6 +379,6 @@ static decoder_info_t dec_info_data = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_SPU_DECODER, 14, "spudec", XINE_VERSION_CODE, &dec_info_data, &init_plugin },
+  { PLUGIN_SPU_DECODER, 15, "spudec", XINE_VERSION_CODE, &dec_info_data, &init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: post.h,v 1.12 2003/10/06 21:52:45 miguelfreitas Exp $
+ * $Id: post.h,v 1.13 2003/10/23 20:12:33 mroi Exp $
  *
  * post plugin definitions
  *
@@ -38,7 +38,7 @@
 #  include <xine/xineutils.h>
 #endif
 
-#define POST_PLUGIN_IFACE_VERSION 5
+#define POST_PLUGIN_IFACE_VERSION 6
 
 
 typedef struct post_class_s post_class_t;

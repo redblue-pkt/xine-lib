@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2002 the xine project
+ * Copyright (C) 2000-2003 the xine project
  * 
  * This file is part of xine, a free video player.
  * 
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_goom.c,v 1.36 2003/10/06 21:52:43 miguelfreitas Exp $
+ * $Id: xine_goom.c,v 1.37 2003/10/23 20:12:34 mroi Exp $
  *
  * GOOM post plugin.
  *
@@ -122,7 +122,7 @@ post_info_t goom_special_info = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_POST | PLUGIN_MUST_PRELOAD, 5, "goom", XINE_VERSION_CODE, &goom_special_info, &goom_init_plugin },
+  { PLUGIN_POST | PLUGIN_MUST_PRELOAD, 6, "goom", XINE_VERSION_CODE, &goom_special_info, &goom_init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
 

@@ -32,7 +32,7 @@
 #  include <xine/buffer.h>
 #endif
 
-#define SPU_DECODER_IFACE_VERSION 14
+#define SPU_DECODER_IFACE_VERSION 15
 
 /*
  * generic xine spu decoder plugin interface

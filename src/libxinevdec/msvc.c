@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2002 the xine project
+ * Copyright (C) 2002-2003 the xine project
  * 
  * This file is part of xine, a free video player.
  * 
@@ -22,7 +22,7 @@
  * based on overview of Microsoft Video-1 algorithm
  * by Mike Melanson: http://www.pcisys.net/~melanson/codecs/video1.txt
  *
- * $Id: msvc.c,v 1.23 2003/08/04 03:47:10 miguelfreitas Exp $
+ * $Id: msvc.c,v 1.24 2003/10/23 20:12:34 mroi Exp $
  */
 
 #include <stdlib.h>
@@ -409,6 +409,6 @@ static decoder_info_t dec_info_video = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_VIDEO_DECODER, 15, "msvc", XINE_VERSION_CODE, &dec_info_video, init_plugin },
+  { PLUGIN_VIDEO_DECODER, 16, "msvc", XINE_VERSION_CODE, &dec_info_video, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
