@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decoder.c,v 1.70 2002/04/06 15:40:19 jcdutton Exp $
+ * $Id: dxr3_decoder.c,v 1.71 2002/04/09 10:56:19 mlampard Exp $
  *
  * dxr3 video and spu decoder plugin. Accepts the video and spu data
  * from XINE and sends it directly to the corresponding dxr3 devices.
@@ -458,6 +458,11 @@ static int get_duration(int framecode, int repeat_first_field)
 	return duration;
 }
 
+static void dxr3_reset(video_decoder_t *this_gen)
+{
+/*	dxr3_decoder_t *this = (dxr3_decoder_t *) this_gen; */
+}
+
 /* *** dxr3_flush ***
    flush the dxr3's onboard buffers - but I'm not sure that this is 
    doing that - more testing is required.
@@ -762,7 +767,7 @@ video_decoder_t *init_video_decoder_plugin (int iface_version,
 	char *tmpstr;
 	int dashpos;
 
-	if (iface_version != 5) {
+	if (iface_version != 6) {
 		printf( "dxr3: plugin doesn't support plugin API version %d.\n"
 		 "dxr3: this means there's a version mismatch between xine and this\n"
 		 "dxr3: decoder plugin. Installing current plugins should help.\n",
@@ -797,6 +802,7 @@ video_decoder_t *init_video_decoder_plugin (int iface_version,
 	this->video_decoder.close               = dxr3_close;
 	this->video_decoder.get_identifier      = dxr3_get_id;
 	this->video_decoder.flush		= dxr3_flush;
+	this->video_decoder.reset		= dxr3_reset;
 	this->video_decoder.priority            = cfg->register_num(cfg,
 		"dxr3.decoder_priority", 10, "Dxr3: video decoder priority", NULL, NULL, NULL);
 	
