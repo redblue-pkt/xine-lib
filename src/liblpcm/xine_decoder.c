@@ -17,7 +17,10 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.2 2001/08/21 19:39:50 jcdutton Exp $
+ * $Id: xine_decoder.c,v 1.3 2001/08/30 23:43:49 jcdutton Exp $
+ * 
+ * 31-8-2001 Added LPCM rate sensing.
+ *   (c) 2001 James Courtier-Dutton James@superbug.demon.co.uk
  *
  * stuff needed to turn libac3 into a xine decoder plugin
  */
@@ -30,7 +33,6 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <netinet/in.h> /* ntohs */
-
 #include "audio_out.h"
 #include "buffer.h"
 #include "xine_internal.h"
@@ -41,6 +43,7 @@ typedef struct lpcm_decoder_s {
 
   uint32_t         pts;
   uint32_t         last_pts;
+  uint32_t         rate;
   
   ao_instance_t  *audio_out;
   int              output_open;
@@ -60,35 +63,35 @@ void lpcm_init (audio_decoder_t *this_gen, ao_instance_t *audio_out) {
   this->output_open   = 0;
   this->pts           = 0;
   this->last_pts      = 0;
+  this->rate          = 0;
 }
 
 
 void lpcm_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 
   lpcm_decoder_t *this = (lpcm_decoder_t *) this_gen;
-  int16_t *p=(int16_t *)buf->content;
-  int i;
+  int16_t *sample_buffer=(int16_t *)buf->content;
   
   if (buf->decoder_info[0] == 0)
     return;
- 
-  if (buf->PTS) 
+  if (buf->PTS > 0) {
+    this->last_pts=this->pts; 
     this->pts = buf->PTS; 
-  
+  }
+  if ((this->last_pts > 0) && (this->pts > 0) && (this->rate == 0)) {
+    this->rate=(45000 * buf->size)/(this->pts-this->last_pts);
+  }
+  if (this->rate == 0) 
+    return;
   if (!this->output_open) {      
     this->output_open = (this->audio_out->open (this->audio_out, 16, 
-                                                48000,
+                                                this->rate,
                                                 AO_CAP_MODE_STEREO));
   }
-
   if (!this->output_open) 
     return;
-
-  for(i=0; i<buf->size/2; i++)
-    p[i] = ntohs(p[i]);     
-
   this->audio_out->write (this->audio_out,
-                                     buf->content,
+                                     sample_buffer,
 				     buf->size/4,
                                      this->pts);
 
