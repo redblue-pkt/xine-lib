@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.118 2002/06/09 08:30:58 esnel Exp $
+ * $Id: video_out_xv.c,v 1.119 2002/06/10 21:42:45 mshopf Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -134,6 +134,7 @@ struct xv_driver_s {
   int                delivered_width;   
   int                delivered_height;     
   int                delivered_ratio_code;
+  int                delivered_duration;
 
   /* 
    * displayed part of delivered images,
@@ -847,6 +848,7 @@ static void xv_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
       this->delivered_width      = frame->width;
       this->delivered_height     = frame->height;
       this->delivered_ratio_code = frame->ratio_code;
+      this->delivered_duration   = frame->vo_frame.duration;
 
       xv_compute_ideal_size (this);
       

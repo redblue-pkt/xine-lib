@@ -28,7 +28,7 @@
  \endverbatim
  */
 /*
- * $Id: xine.h.tmpl.in,v 1.97 2002/06/07 12:42:01 miguelfreitas Exp $
+ * $Id: xine.h.tmpl.in,v 1.98 2002/06/10 21:42:44 mshopf Exp $
  *
  */
 
@@ -1999,6 +1999,48 @@ int xine_get_error (xine_t *self);
 char *xine_set_locale(void);
 
           /** @} end of locale_group */
+
+          /**
+	   * \defgroup xine_tvmode TV mode selection functions
+	   * @{
+	   */
+/**
+ * \fn void xine_tvmode_init ();
+ * \brief connect to nvtvd server and save current TV and X settings
+ * \param none
+ */
+void xine_tvmode_init ();
+
+/**
+ * \fn void xine_tvmode_exit ();
+ * \brief restore old TV and X settings and close nvtvd connection
+ * \param none
+ */
+void xine_tvmode_exit ();
+
+/**
+ * \fn int xine_tvmode_switch (int type, int width, int height, double fps);
+ * \brief try to change TV state if enabled
+ * \param type select 'regular' (0) or 'TV' (1) state
+ * \param width frame width the mode should match best or 0 if unknown
+ * \param height frame height the mode should match best or 0 if unknown
+ * \param fps frame rate the mode should match best or 0 if unknown
+ * \return finally selected state
+ * \sa xine_tvmode_init(), xine_tvmode_exit(), xine_tvmode_size()
+ */
+int xine_tvmode_switch (int type, int width, int height, double fps);
+
+/**
+ * \fn void xine_tvmode_size (int *width, int *height, double *pixelaspect, double *fps);
+ * \brief addapt (maximum) output size to visible area if necessary and return pixel aspect and real  frame rate if available
+ * \param width output width to be adapted or NULL
+ * \param height output height to be adapted or NULL
+ * \param pixelaspect pixel aspect to be adapted or NULL
+ * \param frame rate of current TV mode to be adapted or NULL
+ */
+void xine_tvmode_size (int *width, int *height, double *pixelaspect, double *fps);
+
+          /** @} end of xine_tvmode */
 
      /** @} end of xine_api */
 
