@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mms.c,v 1.48 2004/04/15 22:10:55 tmattern Exp $
+ * $Id: mms.c,v 1.49 2004/07/25 17:11:59 mroi Exp $
  *
  * MMS over TCP protocol
  *   based on work from major mms
@@ -126,8 +126,6 @@ struct mms_s {
   char          scmd[CMD_HEADER_LEN + CMD_BODY_LEN];
   char         *scmd_body; /* pointer to &scmd[CMD_HEADER_LEN] */
   int           scmd_len; /* num bytes written in header */
-  
-  char          str[1024]; /* scratch buffer to built strings */
   
   /* receive buffer */
   uint8_t       buf[BUF_SIZE];
@@ -820,6 +818,7 @@ mms_t *mms_connect (xine_stream_t *stream, const char *url, int bandwidth) {
   int     url_conv = 0;
 #endif
   mms_t  *this;
+  char    str[1024];
   int     res;
  
   if (!url)
@@ -872,11 +871,11 @@ mms_t *mms_connect (xine_stream_t *stream, const char *url, int bandwidth) {
   /* command 0x1 */
   lprintf("send command 0x01\n");
   mms_gen_guid(this->guid);
-  sprintf (this->str, "\x1c\x03NSPlayer/7.0.0.1956; {%s}; Host: %s",
+  snprintf (str, sizeof(str), "\x1c\x03NSPlayer/7.0.0.1956; {%s}; Host: %s",
     this->guid, this->host);
-  string_utf16 (url_conv, this->scmd_body, this->str, strlen(this->str) + 2);
+  string_utf16 (url_conv, this->scmd_body, str, strlen(str) + 2);
 
-  if (!send_command (this, 1, 0, 0x0004000b, strlen(this->str) * 2 + 8)) {
+  if (!send_command (this, 1, 0, 0x0004000b, strlen(str) * 2 + 8)) {
     xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
             "libmms: failed to send command 0x01\n");
     goto fail;

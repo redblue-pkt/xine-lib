@@ -20,7 +20,7 @@
  * Compact Disc Digital Audio (CDDA) Input Plugin 
  *   by Mike Melanson (melanson@pcisys.net)
  *
- * $Id: input_cdda.c,v 1.61 2004/07/20 00:50:10 rockyb Exp $
+ * $Id: input_cdda.c,v 1.62 2004/07/25 17:11:59 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -901,7 +901,7 @@ static int network_command( xine_stream_t *stream, int socket, char *data_buf, c
   int      ret, n;
 
   va_start(args, msg);
-  vsnprintf(buf, _BUFSIZ, msg, args);
+  vsnprintf(buf, _BUFSIZ - 1, msg, args);
   va_end(args);
 
   /* Each line sent is '\n' terminated */
@@ -1175,7 +1175,7 @@ static void _cdda_mkdir_safe(xine_t *xine, char *path) {
 #else
   {
     HANDLE          hList;
-    TCHAR           szDir[MAX_PATH+1];
+    TCHAR           szDir[MAX_PATH+3];
     WIN32_FIND_DATA FileData;
     
     // Get the proper directory path
@@ -1210,7 +1210,7 @@ static void _cdda_mkdir_recursive_safe(xine_t *xine, char *path) {
   memset(&buf, 0, sizeof(buf));
   memset(&buf2, 0, sizeof(buf2));
 
-  sprintf(buf, "%s", path);
+  snprintf(buf, sizeof(buf), "%s", path);
   pp = buf;
   while((p = xine_strsep(&pp, "/")) != NULL) {
     if(p && strlen(p)) {
@@ -1219,12 +1219,12 @@ static void _cdda_mkdir_recursive_safe(xine_t *xine, char *path) {
 		if (*buf2 != '\0') {
 #endif
 
-      sprintf(buf2, "%s/%s", buf2, p);
+      snprintf(buf2, sizeof(buf2), "%s/%s", buf2, p);
 
 #ifdef WIN32
 		}
 		else {
-          sprintf(buf2, "%s", p);
+          snprintf(buf2, sizeof(buf2), "%s", p);
 		}
 
 #endif /* WIN32 */
@@ -1241,7 +1241,7 @@ static char *_cdda_cddb_get_default_location(void) {
   static char buf[XINE_PATH_MAX + XINE_NAME_MAX + 1];
   
   memset(&buf, 0, sizeof(buf));
-  sprintf(buf, "%s/.xine/cddbcache", (xine_get_homedir()));
+  snprintf(buf, sizeof(buf), "%s/.xine/cddbcache", (xine_get_homedir()));
   
   return buf;
 }
@@ -1345,7 +1345,7 @@ static int _cdda_load_cached_cddb_infos(cdda_input_plugin_t *this) {
     return 0;
   
   memset(&cdir, 0, sizeof(cdir));
-  sprintf(cdir, "%s", this->cddb.cache_dir);
+  snprintf(cdir, sizeof(cdir), "%s", this->cddb.cache_dir);
   
   if((dir = opendir(cdir)) != NULL) {
     struct dirent *pdir;
@@ -1354,12 +1354,12 @@ static int _cdda_load_cached_cddb_infos(cdda_input_plugin_t *this) {
       char discid[9];
       
       memset(&discid, 0, sizeof(discid));
-      sprintf(discid, "%08lx", this->cddb.disc_id);
+      snprintf(discid, sizeof(discid), "%08lx", this->cddb.disc_id);
      
       if(!strcasecmp(pdir->d_name, discid)) {
 	FILE *fd;
 	
-	sprintf(cdir, "%s/%s", cdir, discid);
+	snprintf(cdir, sizeof(cdir), "%s/%s", cdir, discid);
 	if((fd = fopen(cdir, "r")) == NULL) {
 	  xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
 		  "input_cdda: fopen(%s) failed: %s.\n", cdir, strerror(errno));
@@ -1448,11 +1448,11 @@ static void _cdda_save_cached_cddb_infos(cdda_input_plugin_t *this, char *fileco
   memset(&cfile, 0, sizeof(cfile));
 
   /* Ensure "~/.xine/cddbcache" exist */
-  sprintf(cfile, "%s", this->cddb.cache_dir);
+  snprintf(cfile, sizeof(cfile), "%s", this->cddb.cache_dir);
   
   _cdda_mkdir_recursive_safe(this->stream->xine, cfile);
   
-  sprintf(cfile, "%s/%08lx", this->cddb.cache_dir, this->cddb.disc_id);
+  snprintf(cfile, sizeof(cfile), "%s/%08lx", this->cddb.cache_dir, this->cddb.disc_id);
   
   if((fd = fopen(cfile, "w")) == NULL) {
     xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
@@ -1572,9 +1572,9 @@ static int _cdda_cddb_retrieve(cdda_input_plugin_t *this) {
     memset(&buffer, 0, sizeof(buffer));
     sprintf(buffer, "cddb query %08lx %d ", this->cddb.disc_id, this->cddb.num_tracks);
     for (i = 0; i < this->cddb.num_tracks; i++) {
-      sprintf(buffer, "%s%d ", buffer, this->cddb.track[i].start);
+      snprintf(buffer, sizeof(buffer), "%s%d ", buffer, this->cddb.track[i].start);
     }
-    sprintf(buffer, "%s%d\n", buffer, this->cddb.disc_length);
+    snprintf(buffer, sizeof(buffer), "%s%d\n", buffer, this->cddb.disc_length);
     if ((err = _cdda_cddb_send_command(this, buffer)) <= 0) {
       xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
 	      "input_cdda: error while sending cddb query command.\n");
@@ -1605,7 +1605,7 @@ static int _cdda_cddb_retrieve(cdda_input_plugin_t *this) {
 		  
     /* Send read command */
     memset(&buffer, 0, sizeof(buffer));
-    sprintf(buffer, "cddb read %s %s\n", this->cddb.disc_category, this->cddb.cdiscid);
+    snprintf(buffer, sizeof(buffer), "cddb read %s %s\n", this->cddb.disc_category, this->cddb.cdiscid);
     if ((err = _cdda_cddb_send_command(this, buffer)) <= 0) {
       xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
 	      "input_cdda: error while sending cddb read command.\n");
@@ -1631,7 +1631,7 @@ static int _cdda_cddb_retrieve(cdda_input_plugin_t *this) {
 
       memset(&buffer, 0, sizeof(buffer));
       _cdda_cddb_socket_read(this, buffer, sizeof(buffer) - 1);
-      sprintf(buffercache, "%s%s\n", buffercache, buffer);
+      snprintf(buffercache, sizeof(buffercache), "%s%s\n", buffercache, buffer);
 
       if (sscanf(buffer, "DTITLE=%s", &buf[0]) == 1) {
         char *pt, *artist, *title;

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_file.c,v 1.94 2004/07/20 00:50:11 rockyb Exp $
+ * $Id: input_file.c,v 1.95 2004/07/25 17:11:59 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -452,7 +452,7 @@ static uint32_t get_file_type(char *filepathname, char *origin, xine_t *xine) {
   char         buf[XINE_PATH_MAX + XINE_NAME_MAX + 1];
 
   if((lstat(filepathname, &pstat)) < 0) {
-    sprintf(buf, "%s/%s", origin, filepathname);
+    snprintf(buf, sizeof(buf), "%s/%s", origin, filepathname);
     if((lstat(buf, &pstat)) < 0) {
       lprintf ("lstat failed for %s{%s}\n", filepathname, origin);
       file_type |= mrl_unknown;
@@ -498,7 +498,7 @@ static off_t get_file_size(char *filepathname, char *origin) {
   char         buf[XINE_PATH_MAX + XINE_NAME_MAX + 1];
 
   if((lstat(filepathname, &pstat)) < 0) {
-    sprintf(buf, "%s/%s", origin, filepathname);
+    snprintf(buf, sizeof(buf), "%s/%s", origin, filepathname);
     if((lstat(buf, &pstat)) < 0)
       return (off_t) 0;
   }
@@ -556,7 +556,7 @@ static xine_mrl_t **file_class_get_dir (input_class_t *this_gen,
   this->config->update_string(this->config, "input.file_origin_path", current_dir);
 
   if(strcasecmp(current_dir, "/"))
-    sprintf(current_dir_slashed, "%s/", current_dir);
+    snprintf(current_dir_slashed, sizeof(current_dir_slashed), "%s/", current_dir);
   else
     sprintf(current_dir_slashed, "/");
   
@@ -582,7 +582,7 @@ static xine_mrl_t **file_class_get_dir (input_class_t *this_gen,
   while((pdirent = readdir(pdir)) != NULL) {
     
     memset(fullfilename, 0, sizeof(fullfilename));
-    sprintf(fullfilename, "%s/%s", current_dir, pdirent->d_name);
+    snprintf(fullfilename, sizeof(fullfilename), "%s/%s", current_dir, pdirent->d_name);
     
     if(is_a_dir(fullfilename)) {
       

@@ -38,7 +38,7 @@
  * usage: 
  *   xine pvr:/<prefix_to_tmp_files>\!<prefix_to_saved_files>\!<max_page_age>
  *
- * $Id: input_pvr.c,v 1.47 2004/07/20 00:50:11 rockyb Exp $
+ * $Id: input_pvr.c,v 1.48 2004/07/25 17:11:59 mroi Exp $
  */
 
 /**************************************************************************
@@ -512,9 +512,11 @@ static void pvr_adjust_realtime_speed(pvr_input_plugin_t *this, fifo_buffer_t *f
 static char *make_temp_name(pvr_input_plugin_t *this, int page) {
 
   char *filename;
-  filename = malloc(strlen(this->tmp_prefix)+PVR_FILENAME_SIZE);
+  
+  int size = strlen(this->tmp_prefix)+PVR_FILENAME_SIZE;
+  filename = malloc(size);
       
-  sprintf(filename, PVR_FILENAME, this->tmp_prefix, this->session, page);
+  snprintf(filename, size, PVR_FILENAME, this->tmp_prefix, this->session, page);
   
   return filename;
 }
@@ -527,14 +529,15 @@ static char *make_base_save_name(int channel, time_t tm) {
   struct tm rec_time;
   char *filename;
   
-  filename = malloc(SAVE_BASE_FILENAME_SIZE);
+  int size = SAVE_BASE_FILENAME_SIZE;
+  filename = malloc(size);
   
   localtime_r(&tm, &rec_time);
       
-  sprintf(filename, SAVE_BASE_FILENAME, 
-          channel, rec_time.tm_mon+1, rec_time.tm_mday,
-          rec_time.tm_year+1900, rec_time.tm_hour, rec_time.tm_min,
-          rec_time.tm_sec);
+  snprintf(filename, size, SAVE_BASE_FILENAME, 
+           channel, rec_time.tm_mon+1, rec_time.tm_mday,
+           rec_time.tm_year+1900, rec_time.tm_hour, rec_time.tm_min,
+           rec_time.tm_sec);
   return filename;
 }
 
@@ -544,9 +547,11 @@ static char *make_base_save_name(int channel, time_t tm) {
 static char *make_save_name(pvr_input_plugin_t *this, char *base, int page) {
 
   char *filename;
-  filename = malloc(strlen(this->save_prefix)+strlen(base)+SAVE_FILENAME_SIZE);
+  
+  int size = strlen(this->save_prefix)+strlen(base)+SAVE_FILENAME_SIZE;
+  filename = malloc(size);
       
-  sprintf(filename, SAVE_FILENAME, this->save_prefix, base, page);
+  snprintf(filename, size, SAVE_FILENAME, this->save_prefix, base, page);
   
   return filename;
 }
@@ -938,7 +943,8 @@ static void pvr_finish_recording (pvr_input_plugin_t *this) {
       
       data.mode = 0;
       data.id = show->id;
-      strcpy(data.name, show->base_name);
+      strncpy(data.name, show->base_name, sizeof(data.name));
+      data.name[sizeof(data.name) - 1] = '\0';
       
       xine_event_send(this->stream, &event);
     } else {
