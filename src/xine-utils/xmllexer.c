@@ -17,7 +17,7 @@
  *  along with this program; if not, write to the Free Software
  *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- *  $Id: xmllexer.c,v 1.8 2004/05/31 17:37:49 tmattern Exp $
+ *  $Id: xmllexer.c,v 1.9 2005/01/16 17:51:04 dsalt Exp $
  *
  */
 
@@ -353,11 +353,13 @@ int lexer_get_token(char * tok, int tok_size) {
 	}
       } else {
 				/* data mode, stop if char equal '<' */
-	if (c == '<') {
+        switch (c)
+        {
+        case '<':
 	  tok[tok_pos] = '\0';
 	  lex_mode = NORMAL;
 	  return T_DATA;
-	} else {
+	default:
 	  tok[tok_pos] = c;
 	  tok_pos++;
 	  lexbuf_pos++;
@@ -410,4 +412,72 @@ int lexer_get_token(char * tok, int tok_size) {
   /* tok == null */
   lprintf("token buffer is null\n");
   return T_ERROR;
+}
+
+static struct {
+  char code, namelen, name[6];
+} lexer_entities[] = {
+  { '"',  4, "quot" },
+  { '&',  3, "amp" },
+  { '\'', 4, "apos" },
+  { '<',  2, "lt" },
+  { '>',  2, "gt" },
+  { 0 }
+};
+
+char *lexer_decode_entities (const char *tok)
+{
+  char *buf = xine_xmalloc (strlen (tok) + 1);
+  char *bp = buf;
+  char c;
+
+  while ((c = *tok++))
+  {
+    if (c != '&')
+      *bp++ = c;
+    else
+    {
+      /* parse the character entity (on failure, treat it as literal text) */
+      const char *tp = tok;
+      long i;
+
+      for (i = 0; lexer_entities[i].code; ++i)
+	if (!strncmp (lexer_entities[i].name, tok, lexer_entities[i].namelen)
+	    && tok[lexer_entities[i].namelen] == ';')
+	  break;
+      if (lexer_entities[i].code)
+      {
+        tok += lexer_entities[i].namelen + 1;
+	*bp++ = lexer_entities[i].code;
+	continue;
+      }
+
+      if (*tp++ != '#')
+      {
+        /* not a recognised name and not numeric */
+	*bp++ = '&';
+	continue;
+      }
+
+      /* entity is a number
+       * (note: strtol() allows "0x" prefix for hexadecimal, but we don't)
+       */
+      if (*tp == 'x' && tp[1] && tp[2] != 'x')
+	i = strtol (tp + 1, &tp, 16);
+      else
+	i = strtol (tp, &tp, 10);
+
+      if (i < 1 || i > 255 || *tp != ';')
+      {
+        /* out of range, or format error */
+	*bp++ = '&';
+	continue;
+      }
+
+      tok = tp + 1;
+      *bp++ = i;
+    }
+  }
+  *bp = 0;
+  return buf;
 }

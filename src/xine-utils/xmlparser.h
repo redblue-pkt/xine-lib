@@ -17,7 +17,7 @@
  *  along with this program; if not, write to the Free Software
  *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- *  $Id: xmlparser.h,v 1.2 2003/07/19 00:22:43 tmattern Exp $
+ *  $Id: xmlparser.h,v 1.3 2005/01/16 17:51:04 dsalt Exp $
  *
  */
 #ifndef XML_PARSER_H
@@ -59,6 +59,18 @@ int   xml_parser_get_property_int (xml_node_t *node, const char *name,
 				   int def_value);
 int xml_parser_get_property_bool (xml_node_t *node, const char *name, 
 				  int def_value);
+
+/* for output:
+ * returns an escaped string (free() it when done)
+ * input must be in ASCII or UTF-8
+ */
+
+typedef enum {
+  XML_ESCAPE_NO_QUOTE,
+  XML_ESCAPE_SINGLE_QUOTE,
+  XML_ESCAPE_DOUBLE_QUOTE
+} xml_escape_quote_t;
+char *xml_escape_string (const char *s, xml_escape_quote_t quote_type);
 
 /* for debugging purposes: dump read-in xml tree in a nicely
  * indented fashion

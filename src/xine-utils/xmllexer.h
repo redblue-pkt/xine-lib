@@ -17,7 +17,7 @@
  *  along with this program; if not, write to the Free Software
  *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xmllexer.h,v 1.3 2003/12/09 00:02:39 f1rmb Exp $
+ * $Id: xmllexer.h,v 1.4 2005/01/16 17:51:04 dsalt Exp $
  *
  */
 
@@ -50,5 +50,6 @@
 /* public functions */
 void lexer_init(char * buf, int size);
 int lexer_get_token(char * tok, int tok_size);
+char *lexer_decode_entities (const char *tok);
 
 #endif

@@ -18,7 +18,7 @@
  *  along with this program; if not, write to the Free Software
  *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- *  $Id: xmlparser.c,v 1.13 2003/12/06 18:11:53 mroi Exp $
+ *  $Id: xmlparser.c,v 1.14 2005/01/16 17:51:04 dsalt Exp $
  *
  */
 
@@ -205,7 +205,7 @@ static int xml_parser_get_node (xml_node_t *current_node, char *root_name, int r
 	    /* avoid a memory leak */
 	    free(current_node->data);
 	  }
-	  current_node->data = strdup(tok);
+	  current_node->data = lexer_decode_entities(tok);
 	  lprintf("info: node data : %s\n", current_node->data);
 	  break;
 	default:
@@ -389,7 +389,7 @@ static int xml_parser_get_node (xml_node_t *current_node, char *root_name, int r
 	    current_property = current_property->next;
 	  }
 	  current_property->name = strdup(property_name);
-	  current_property->value = strdup(tok);
+	  current_property->value = lexer_decode_entities(tok);
 	  lprintf("info: new property %s=%s\n", current_property->name, current_property->value);
 	  state = 2;
 	  break;
@@ -523,6 +523,40 @@ int xml_parser_get_property_bool (xml_node_t *node, const char *name,
     return 0;
 }
 
+static int xml_escape_string_internal (char *buf, const char *s,
+				       xml_escape_quote_t quote_type)
+{
+  int c, length = 0;
+  int sl = buf ? 8 : 0;
+  /* calculate max required buffer size */
+  while ((c = *s++ & 0xFF))
+    switch (c)
+    {
+    case '"':  if (quote_type != XML_ESCAPE_DOUBLE_QUOTE) goto literal;
+	       length += snprintf (buf + length, sl, "&quot;"); break;
+    case '\'': if (quote_type != XML_ESCAPE_SINGLE_QUOTE) goto literal;
+	       length += snprintf (buf + length, sl, "&apos;"); break;
+    case '&':  length += snprintf (buf + length, sl, "&amp;");  break;
+    case '<':  length += snprintf (buf + length, sl, "&lt;");   break;
+    case '>':  length += snprintf (buf + length, sl, "&gt;");   break;
+    case 127:  length += snprintf (buf + length, sl, "&#127;"); break;
+    case '\t':
+    case '\n':
+      literal: if (buf)	buf[length] = c; ++length; break;
+    default:   if (c >= ' ') goto literal;
+	       length += snprintf (buf + length, sl, "&#%d;", c); break;
+    }
+  if (buf)
+    buf[length] = 0;
+  return length + 1;
+}
+
+char *xml_escape_string (const char *s, xml_escape_quote_t quote_type)
+{
+  char *buf = xine_xmalloc (xml_escape_string_internal (NULL, s, quote_type));
+  return buf ? (xml_escape_string_internal (buf, s, quote_type), buf) : NULL;
+}
+
 static void printf_indent (int indent, const char *format, ...) {
 
   int     i ;
@@ -550,7 +584,9 @@ static void xml_parser_dump_node (xml_node_t *node, int indent) {
 
   p = node->props;
   while (p) {
-    printf ("%s='%s'", p->name, p->value);
+    char *value = xml_escape_string (p->value, XML_ESCAPE_SINGLE_QUOTE);
+    printf ("%s='%s'", p->name, value);
+    free (value);
     p = p->next;
     if (p) {
       printf ("\n");
