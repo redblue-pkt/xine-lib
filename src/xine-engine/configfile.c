@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: configfile.c,v 1.46 2003/02/28 02:51:51 storri Exp $
+ * $Id: configfile.c,v 1.47 2003/03/25 12:49:15 mroi Exp $
  *
  * config object (was: file) management - implementation
  *
@@ -591,9 +591,11 @@ static void xine_config_update_num (config_values_t *this,
   if (entry->callback) {
     xine_cfg_entry_t cb_entry;
     xine_config_shallow_copy(&cb_entry, entry);
+    /* do not enter the callback from within a locked context */
+    pthread_mutex_unlock(&this->config_lock);
     entry->callback (entry->callback_data, &cb_entry);
-  }
-  pthread_mutex_unlock(&this->config_lock);
+  } else
+    pthread_mutex_unlock(&this->config_lock);
 }
 
 static void xine_config_update_string (config_values_t *this,
@@ -601,6 +603,7 @@ static void xine_config_update_string (config_values_t *this,
 				       const char *value) {
 
   cfg_entry_t *entry;
+  char *str_free = NULL;
 
 #ifdef LOG
   printf ("configfile: updating %s to %s\n",
@@ -625,16 +628,19 @@ static void xine_config_update_string (config_values_t *this,
 
   pthread_mutex_lock(&this->config_lock);
   if (value != entry->str_value) {
-    free (entry->str_value);
-
+    str_free = entry->str_value;
     entry->str_value = copy_string (value);
   }
 
   if (entry->callback) {
     xine_cfg_entry_t cb_entry;
     xine_config_shallow_copy(&cb_entry, entry);
+    /* FIXME: find a solution which does not enter the callback with the lock acquired,
+     * but does also handle the char* leak- and race-free without unnecessary string copying */
     entry->callback (entry->callback_data, &cb_entry);
   }
+
+  if (str_free) free(str_free);
   pthread_mutex_unlock(&this->config_lock);
 }
 
