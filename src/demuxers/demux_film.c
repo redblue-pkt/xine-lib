@@ -21,7 +21,7 @@
  * For more information on the FILM file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_film.c,v 1.57 2003/02/07 03:38:16 tmmm Exp $
+ * $Id: demux_film.c,v 1.58 2003/02/22 07:20:25 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -142,6 +142,7 @@ static int open_film_file(demux_film_t *film) {
   unsigned char *film_header;
   unsigned int film_header_size;
   unsigned char scratch[16];
+  unsigned char preview[MAX_PREVIEW_SIZE];
   unsigned int chunk_type;
   unsigned int chunk_size;
   unsigned int i, j;
@@ -157,12 +158,20 @@ static int open_film_file(demux_film_t *film) {
   film->audio_bits = 0;
   film->audio_channels = 0;
 
-  /* reset the file */
-  film->input->seek(film->input, 0, SEEK_SET);
+  if (film->input->get_capabilities(film->input) & INPUT_CAP_SEEKABLE) {
+    /* reset the file */
+    film->input->seek(film->input, 0, SEEK_SET);
 
-  /* get the signature, header length and file version */
-  if (film->input->read(film->input, scratch, 16) != 16) {
-    return 0;
+    /* get the signature, header length and file version */
+    if (film->input->read(film->input, scratch, 16) != 16) {
+      return 0;
+    }
+  } else {
+    film->input->get_optional_data(film->input, preview,
+      INPUT_OPTIONAL_DATA_PREVIEW);
+
+    /* copy over the header bytes for processing */
+    memcpy(scratch, preview, 16);
   }
 
   /* FILM signature correct? */
@@ -170,6 +179,12 @@ static int open_film_file(demux_film_t *film) {
     return 0;
   }
   debug_film_load("  demux_film: found 'FILM' signature\n");
+
+  /* file is qualified; if the input was not seekable, skip over the header
+   * bytes in the stream */
+  if ((film->input->get_capabilities(film->input) & INPUT_CAP_SEEKABLE) == 0) {
+    film->input->seek(film->input, 16, SEEK_SET);
+  }
 
   /* header size = header size - 16-byte FILM signature */
   film_header_size = BE_32(&scratch[4]) - 16;
@@ -529,7 +544,7 @@ static int demux_film_send_chunk(demux_plugin_t *this_gen) {
     }
   } else if(this->audio_fifo && this->audio_channels == 1) {
 
-    /* load an mono audio sample and packetize it */
+    /* load a mono audio sample and packetize it */
     remaining_sample_bytes = this->sample_table[i].sample_size;
     this->input->seek(this->input, this->sample_table[i].sample_offset,
       SEEK_SET);
@@ -721,35 +736,71 @@ static int demux_film_seek (demux_plugin_t *this_gen,
   int found;
   int64_t keyframe_pts;
 
-  this->waiting_for_keyframe = 0;
+  this->waiting_for_keyframe = 1;
+  this->status = DEMUX_OK;
+  xine_demux_flush_engine(this->stream);
+
+  if( !this->stream->demux_thread_running ) {
+    this->waiting_for_keyframe = 0;
+    this->last_sample = 0;
+  }
+    
+  /* if input is non-seekable, do not proceed with the rest of this
+   * seek function */
+  if ((this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) == 0)
+    return this->status;
 
   /* perform a binary search on the sample table, testing the offset 
    * boundaries first */
-  if (start_pos <= 0)
-    best_index = 0;
-  else if (start_pos >= this->data_size) {
-    this->status = DEMUX_FINISHED;
-    return this->status;
-  } else {
-    start_pos += this->data_start;
-    left = 0;
-    right = this->sample_count - 1;
-    found = 0;
+  if (start_pos) {
+    if (start_pos <= 0)
+      best_index = 0;
+    else if (start_pos >= this->data_size) {
+      this->status = DEMUX_FINISHED;
+      return this->status;
+    } else {
+      start_pos += this->data_start;
+      left = 0;
+      right = this->sample_count - 1;
+      found = 0;
 
-    while (!found) {
-      middle = (left + right) / 2;
-      if ((start_pos >= this->sample_table[middle].sample_offset) &&
-          (start_pos <= this->sample_table[middle].sample_offset + 
-           this->sample_table[middle].sample_size)) {
-        found = 1;
-      } else if (start_pos < this->sample_table[middle].sample_offset) {
-        right = middle;
-      } else {
-        left = middle;
+      while (!found) {
+        middle = (left + right) / 2;
+        if ((start_pos >= this->sample_table[middle].sample_offset) &&
+            (start_pos <= this->sample_table[middle].sample_offset + 
+             this->sample_table[middle].sample_size)) {
+          found = 1;
+        } else if (start_pos < this->sample_table[middle].sample_offset) {
+          right = middle;
+        } else {
+          left = middle;
+        }
       }
-    }
 
-    best_index = middle;
+      best_index = middle;
+    }
+  } else {
+    int64_t pts = 90000 * start_time;
+
+    if (pts <= this->sample_table[0].pts)
+      best_index = 0;
+    else if (pts >= this->sample_table[this->sample_count - 1].pts) {
+      this->status = DEMUX_FINISHED;
+      return this->status;
+    } else {
+      left = 0;
+      right = this->sample_count - 1;
+      do {
+        middle = (left + right + 1) / 2;
+        if (pts < this->sample_table[middle].pts) {
+          right = (middle - 1);
+        } else {
+          left = middle;
+        }
+      } while (left < right);
+
+      best_index = left;
+    }
   }
 
   /* search back in the table for the nearest keyframe */
@@ -763,7 +814,6 @@ static int demux_film_seek (demux_plugin_t *this_gen,
   /* not done yet; now that the nearest keyframe has been found, seek
    * back to the first audio frame that has a pts less than or equal to
    * that of the keyframe */
-  this->waiting_for_keyframe = 1;
   keyframe_pts = this->sample_table[best_index].pts;
   while (best_index) {
     if ((this->sample_table[best_index].audio) &&
@@ -774,15 +824,7 @@ static int demux_film_seek (demux_plugin_t *this_gen,
   }
 
   this->current_sample = best_index;
-  this->status = DEMUX_OK;
-  xine_demux_flush_engine(this->stream);
   
-  if( !this->stream->demux_thread_running ) {
-    this->waiting_for_keyframe = 0;
-
-    this->last_sample = 0;
-  }
-    
   return this->status;
 }
 
@@ -821,11 +863,6 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
 
   input_plugin_t *input = (input_plugin_t *) input_gen;
   demux_film_t    *this;
-
-  if (! (input->get_capabilities(input) & INPUT_CAP_SEEKABLE)) {
-    printf(_("demux_film.c: input not seekable, can not handle!\n"));
-    return NULL;
-  }
 
   this         = xine_xmalloc (sizeof (demux_film_t));
   this->stream = stream;
