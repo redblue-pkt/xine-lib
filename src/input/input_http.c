@@ -389,76 +389,71 @@ static off_t http_plugin_read (input_plugin_t *this_gen,
   http_input_plugin_t *this = (http_input_plugin_t *) this_gen;
   off_t n, num_bytes;
 
-  nbc_check_buffers (this->nbc);
-
   num_bytes = 0;
 
-  while (num_bytes < nlen) {
+  if (this->shoutcast_mode && (this->shoutcast_pos == this->shoutcast_metaint)) {
+    http_plugin_read_metainf(this_gen);
+  }
 
-    if (this->shoutcast_mode && (this->shoutcast_pos == this->shoutcast_metaint)) {
+  if (this->preview_pos < this->preview_size) {
+
+    n = this->preview_size - this->preview_pos;
+    if (n > (nlen - num_bytes))
+      n = nlen - num_bytes;
+
+#ifdef LOG
+    printf ("input_http: %lld bytes from preview (which has %lld bytes)\n",
+            n, this->preview_size);
+#endif
+
+    if (this->shoutcast_mode) {
+      if ((this->shoutcast_pos + n) >= this->shoutcast_metaint) {
+        int i = this->shoutcast_metaint - this->shoutcast_pos;
+        memcpy (&buf[num_bytes], &this->preview[this->preview_pos], i);
+        this->shoutcast_pos += i;
+        this->preview_pos += i;
+        num_bytes += i;
+        this->curpos += i;
+        n -= i;
+        http_plugin_read_metainf(this_gen);
+      }
+
+      this->shoutcast_pos += n;
+    }
+
+    memcpy (&buf[num_bytes], &this->preview[this->preview_pos], n);
+
+    this->preview_pos += n;
+    num_bytes += n;
+    this->curpos += n;
+  } 
+
+  n = nlen - num_bytes;
+  if( n && this->shoutcast_mode) {
+    if ((this->shoutcast_pos + n) >= this->shoutcast_metaint) {
+      int i = this->shoutcast_metaint - this->shoutcast_pos;
+      i = xine_read_abort (this->stream, this->fh, &buf[num_bytes], i);
+      if (i < 0) {
+        xine_message(this->stream, XINE_MSG_READ_ERROR, NULL);
+        xine_log (this->stream->xine, XINE_LOG_MSG, _("input_http: read error %d\n"), errno);
+        return 0;
+      }
+
+      this->shoutcast_pos += i;
+      num_bytes += i;
+      this->curpos += i;
+      n -= i;
       http_plugin_read_metainf(this_gen);
     }
 
-    if (this->preview_pos < this->preview_size) {
+    this->shoutcast_pos += n;
+  }
 
-      n = this->preview_size - this->preview_pos;
-      if (n > (nlen - num_bytes))
-	n = nlen - num_bytes;
-
-#ifdef LOG
-      printf ("input_http: %lld bytes from preview (which has %lld bytes)\n",
-	      n, this->preview_size);
-#endif
-
-      if (this->shoutcast_mode) {
-        if ((this->shoutcast_pos + n) < this->shoutcast_metaint) {
-          memcpy (&buf[num_bytes], &this->preview[this->preview_pos], n);
-          this->shoutcast_pos += n;
-        } else {
-          n = this->shoutcast_metaint - this->shoutcast_pos;
-          memcpy (&buf[num_bytes], &this->preview[this->preview_pos], n);
-          this->shoutcast_pos += n;
-        }
-      } else {
-        memcpy (&buf[num_bytes], &this->preview[this->preview_pos], n);
-      }
-      this->preview_pos += n;
-
-    } else {
-      n = nlen - num_bytes;
-      if (this->shoutcast_mode) {
-        if ((this->shoutcast_pos + n) < this->shoutcast_metaint) {
-          n = read (this->fh, &buf[num_bytes], n);
-          this->shoutcast_pos += n;
-        } else {
-          n = this->shoutcast_metaint - this->shoutcast_pos;
-          n = read (this->fh, &buf[num_bytes], n);
-          this->shoutcast_pos += n;
-        }
-      } else {
-        n = read (this->fh, &buf[num_bytes], n);
-      }
-    }
+  if( n ) {
+    n = xine_read_abort (this->stream, this->fh, &buf[num_bytes], n);
 
     /* read errors */
     if (n < 0) {
-      if(errno == EAGAIN) {
-        fd_set rset;
-        struct timeval timeout;
-
-        FD_ZERO (&rset);
-        FD_SET  (this->fh, &rset);
-
-        timeout.tv_sec  = 30;
-        timeout.tv_usec = 0;
-
-        if (select (this->fh+1, &rset, NULL, NULL, &timeout) <= 0) {
-          xine_message(this->stream, XINE_MSG_READ_ERROR, "network timeout", NULL);
-          xine_log (this->stream->xine, XINE_LOG_MSG, _("input_http: timeout\n"));
-          return 0;
-        }
-        continue;
-      }
       xine_message(this->stream, XINE_MSG_READ_ERROR, NULL);
       xine_log (this->stream->xine, XINE_LOG_MSG, _("input_http: read error %d\n"), errno);
       return 0;
@@ -466,9 +461,6 @@ static off_t http_plugin_read (input_plugin_t *this_gen,
 
     num_bytes += n;
     this->curpos += n;
-
-    /* end of stream */
-    if (!n) break;
   }
 
   return num_bytes;
@@ -592,10 +584,11 @@ static off_t http_plugin_seek(input_plugin_t *this_gen, off_t offset, int origin
   if ((origin == SEEK_CUR) && (offset >= 0)) {
 
     for (;((int)offset) - BUFSIZE > 0; offset -= BUFSIZE) {
-      http_plugin_read (this_gen, this->seek_buf, BUFSIZE);
+      if( !this_gen->read (this_gen, this->seek_buf, BUFSIZE) )
+        return this->curpos;
     }
 
-    http_plugin_read (this_gen, this->seek_buf, offset);
+    this_gen->read (this_gen, this->seek_buf, offset);
   }
 
   if (origin == SEEK_SET) {
@@ -606,10 +599,11 @@ static off_t http_plugin_seek(input_plugin_t *this_gen, off_t offset, int origin
       offset -= this->curpos;
 
       for (;((int)offset) - BUFSIZE > 0; offset -= BUFSIZE) {
-        http_plugin_read (this_gen, this->seek_buf, BUFSIZE);
+        if( !this_gen->read (this_gen, this->seek_buf, BUFSIZE) )
+          return this->curpos;
       }
 
-      http_plugin_read (this_gen, this->seek_buf, offset);
+      this_gen->read (this_gen, this->seek_buf, offset);
     }
   }
 

@@ -20,7 +20,7 @@
  * Read from a tcp network stream over a lan (put a tweaked mp1e encoder the
  * other end and you can watch tv anywhere in the house ..)
  *
- * $Id: input_net.c,v 1.43 2003/04/13 16:02:53 tmattern Exp $
+ * $Id: input_net.c,v 1.44 2003/04/13 16:34:51 miguelfreitas Exp $
  *
  * how to set up mp1e for use with this plugin:
  * 
@@ -171,38 +171,37 @@ static off_t net_plugin_read (input_plugin_t *this_gen,
   printf ("input_net: reading %d bytes...\n", len);
 #endif
 
-  nbc_check_buffers (this->nbc);
-
   total=0;
-  while (total<len){
-
-    if (this->preview_pos < this->preview_size) {
-      n = this->preview_size - this->preview_pos;
-      if (n > (len - total))
-        n = len - total;
+  if (this->preview_pos < this->preview_size) {
+    n = this->preview_size - this->preview_pos;
+    if (n > (len - total))
+      n = len - total;
 #ifdef LOG
-      printf ("input_net: %lld bytes from preview (which has %lld bytes)\n",
-	      n, this->preview_size);
+    printf ("input_net: %lld bytes from preview (which has %lld bytes)\n",
+            n, this->preview_size);
 #endif
 
-      memcpy (&buf[total], &this->preview[this->preview_pos], n);
-      this->preview_pos += n;
-    } else
-    {
-      n = read (this->fh, &buf[total], len-total);
-    }
+    memcpy (&buf[total], &this->preview[this->preview_pos], n);
+    this->preview_pos += n;
+    this->curpos += n;
+    total += n;
+  }
+
+  if( (len-total) > 0 ) {
+    n = xine_read_abort (this->stream, this->fh, &buf[total], len-total);
 
 #ifdef LOG
     printf ("input_net: got %lld bytes (%lld/%lld bytes read)\n",
 	    n,total,len);
 #endif
   
-    if (n > 0){
-      this->curpos += n;
-      total += n;
+    if (n < 0) {
+      xine_message(this->stream, XINE_MSG_READ_ERROR, NULL);
+      return 0;
     }
-    else if (n<0 && errno!=EAGAIN) 
-      return total;
+
+    this->curpos += n;
+    total += n;
   }
   return total;
 }
@@ -255,18 +254,30 @@ static off_t net_plugin_get_current_pos (input_plugin_t *this_gen){
 static off_t net_plugin_seek (input_plugin_t *this_gen, off_t offset, int origin) {
   net_input_plugin_t *this = (net_input_plugin_t *) this_gen;
 
-  printf ("input_net: seek %lld bytes, origin %d\n",
-	  offset, origin);
-
-  /* only relative forward-seeking is implemented */
-
   if ((origin == SEEK_CUR) && (offset >= 0)) {
 
     for (;((int)offset) - BUFSIZE > 0; offset -= BUFSIZE) {
-      this->curpos += net_plugin_read (this_gen, this->seek_buf, BUFSIZE);
+      if( !this_gen->read (this_gen, this->seek_buf, BUFSIZE) )
+        return this->curpos;
     }
 
-    this->curpos += net_plugin_read (this_gen, this->seek_buf, offset);
+    this_gen->read (this_gen, this->seek_buf, offset);
+  }
+
+  if (origin == SEEK_SET) {
+
+    if (offset < this->curpos)
+      printf ("input_net: cannot seek back! (%lld > %lld)\n", this->curpos, offset);
+    else {
+      offset -= this->curpos;
+
+      for (;((int)offset) - BUFSIZE > 0; offset -= BUFSIZE) {
+        if( !this_gen->read (this_gen, this->seek_buf, BUFSIZE) )
+          return this->curpos;
+      }
+
+      this_gen->read (this_gen, this->seek_buf, offset);
+    }
   }
 
   return this->curpos;

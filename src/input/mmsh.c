@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mmsh.c,v 1.13 2003/02/28 02:51:48 storri Exp $
+ * $Id: mmsh.c,v 1.14 2003/04/13 16:34:51 miguelfreitas Exp $
  *
  * based on mms.c and specs from avifile
  * (http://avifile.sourceforge.net/asf-1.0.htm)
@@ -129,6 +129,8 @@ static const char* mmsh_RangeRequest =
 
 struct mmsh_s {
 
+  xine_stream_t *stream;
+
   int           s;
 
   char         *host;
@@ -169,52 +171,6 @@ struct mmsh_s {
   int           has_video;
 };
 
-/* network/socket utility functions */
-
-static ssize_t read_timeout(int fd, void *buf, size_t count) {
-  
-  ssize_t ret, total;
-
-  total = 0;
-
-  while (total < count) {
-  
-    ret=read (fd, ((uint8_t*)buf)+total, count-total);
-
-    if (ret<0) {
-      if(errno == EAGAIN) {
-        fd_set rset;
-        struct timeval timeout;
-    
-        FD_ZERO (&rset);
-        FD_SET  (fd, &rset);
-
-        timeout.tv_sec  = 30;
-        timeout.tv_usec = 0;
-        
-        if (select (fd+1, &rset, NULL, NULL, &timeout) <= 0) {
-          return -1;
-        }
-        continue;
-      }
-
-#ifdef LOG
-      printf ("libmmsh: read error.\n");
-#endif
-      return ret;
-    } else
-      total += ret;
-      
-    /* end of stream */
-    if (!ret) break;
-  }
-
-#ifdef LOG
-  /* printf ("libmmsh: read completed %d/%d\n", total, count); */
-#endif
-
-  return total;
-}
 
 static int host_connect_attempt(struct in_addr ia, int port) {
 
@@ -379,7 +335,7 @@ static int get_answer (mmsh_t *this) {
 
   while (!done) {
 
-    if (read_timeout (this->s, &(this->buf[len]), 1) <= 0) {
+    if (xine_read_abort (this->stream, this->s, &(this->buf[len]), 1) <= 0) {
       printf ("libmmsh: alert: end of stream\n");
       return 0;
     }
@@ -456,11 +412,11 @@ static int get_answer (mmsh_t *this) {
   return 1;
 }
 
-static int receive (int s, char *buf, size_t count) {
+static int receive (xine_stream_t *stream, int s, char *buf, size_t count) {
 
   ssize_t  len;
 
-  len = read_timeout (s, buf, count);
+  len = xine_read_abort (stream, s, buf, count);
   if (len < 0) {
     perror ("libmmsh: read error:");
     return 0;
@@ -477,7 +433,7 @@ static int get_chunk_header (mmsh_t *this) {
   printf ("libmmsh: get_chunk\n");
 #endif
   /* chunk header */
-  len = receive (this->s, chunk_header, CHUNK_HEADER_LENGTH);
+  len = receive (this->stream, this->s, chunk_header, CHUNK_HEADER_LENGTH);
   if (len != CHUNK_HEADER_LENGTH) {
     printf ("libmmsh: chunk header read failed\n");
     return 0;
@@ -519,7 +475,7 @@ static int get_header (mmsh_t *this) {
           printf ("libmmsh: the asf header exceed %d bytes\n", ASF_HEADER_SIZE);
           return 0;
         } else {
-          len = read_timeout (this->s, this->asf_header + this->asf_header_len,
+          len = xine_read_abort (this->stream, this->s, this->asf_header + this->asf_header_len,
                               this->chunk_length);
           this->asf_header_len += len;
           if (len != this->chunk_length) {
@@ -535,7 +491,7 @@ static int get_header (mmsh_t *this) {
   }
 
   /* read the first data chunk */
-  len = read_timeout (this->s, this->buf, this->chunk_length);
+  len = xine_read_abort (this->stream, this->s, this->buf, this->chunk_length);
   if (len != this->chunk_length) {
     return 0;
   } else {
@@ -807,6 +763,7 @@ mmsh_t *mmsh_connect (xine_stream_t *stream, const char *url_, int bandwidth) {
 
   this = (mmsh_t*) xine_xmalloc (sizeof (mmsh_t));
 
+  this->stream          = stream;
   this->url             = url;
   this->host            = host;
   this->path            = path;
@@ -1012,7 +969,7 @@ static int get_media_packet (mmsh_t *this) {
       printf("libmmsh: invalid chunk length\n");
       return 0;
     } else {
-      len = read_timeout (this->s, this->buf, this->chunk_length);
+      len = xine_read_abort (this->stream, this->s, this->buf, this->chunk_length);
 
       if (len == this->chunk_length) {
         /* explicit padding with 0 */

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mms.c,v 1.22 2003/02/28 02:51:48 storri Exp $
+ * $Id: mms.c,v 1.23 2003/04/13 16:34:51 miguelfreitas Exp $
  *
  * based on work from major mms
  * utility functions to handle communication with an mms server
@@ -65,6 +65,8 @@
 
 struct mms_s {
 
+  xine_stream_t *stream;
+
   int           s;
 
   char         *host;
@@ -101,50 +103,6 @@ struct mms_s {
   int           has_video;
 };
 
-/* network/socket utility functions */
-
-static ssize_t read_timeout(int fd, void *buf, size_t count) {
-  
-  ssize_t ret, total;
-
-  total = 0;
-
-  while (total < count) {
-  
-    ret=read (fd, ((uint8_t*)buf)+total, count-total);
-
-    if (ret<0) {
-      if(errno == EAGAIN) {
-        fd_set rset;
-        struct timeval timeout;
-    
-        FD_ZERO (&rset);
-        FD_SET  (fd, &rset);
-        
-        timeout.tv_sec  = 30;
-        timeout.tv_usec = 0;
-        
-        if (select (fd+1, &rset, NULL, NULL, &timeout) <= 0) {
-          return -1;
-        }
-        continue;
-      }
-      
-      printf ("mms: read error.\n");
-      return ret;
-    } else
-      total += ret;
-    
-    /* end of stream */
-    if (!ret) break;
-  }
-
-#ifdef LOG
-  printf ("mms: read completed %d/%d\n", total, count);
-#endif
-
-  return total;
-}
 
 static int host_connect_attempt(struct in_addr ia, int port) {
 
@@ -425,7 +383,7 @@ static int get_answer (mms_t *this) {
   while (command == 0x1b) {
     int len, length;
 
-    len = read_timeout (this->s, this->buf, 12);
+    len = xine_read_abort (this->stream, this->s, this->buf, 12);
     if (len != 12) {
       printf ("\nalert! eof\n");
       return 0;
@@ -437,7 +395,7 @@ static int get_answer (mms_t *this) {
     printf ("\n\npacket length: %d\n", length);
 #endif
 
-    len = read_timeout (this->s, this->buf+12, length+4) ;
+    len = xine_read_abort (this->stream, this->s, this->buf+12, length+4) ;
     if (len<=0) {
       printf ("alert! eof\n");
       return 0;
@@ -456,11 +414,11 @@ static int get_answer (mms_t *this) {
   return 1;
 }
 
-static int receive (int s, char *buf, size_t count) {
+static int receive (xine_stream_t *stream, int s, char *buf, size_t count) {
 
   ssize_t  len;
 
-  len = read_timeout (s, buf, count);
+  len = xine_read_abort (stream, s, buf, count);
   if (len < 0) {
     perror ("read error:");
     return 0;
@@ -477,7 +435,7 @@ static int get_header (mms_t *this) {
 
   while (1) {
 
-    if (!receive (this->s, pre_header, 8)) {
+    if (!receive (this->stream, this->s, pre_header, 8)) {
       printf ("libmms: pre-header read failed\n");
       return 0;
     }
@@ -502,7 +460,7 @@ static int get_header (mms_t *this) {
 	      packet_len);
 #endif
 
-      if (!receive (this->s, &this->asf_header[this->asf_header_len], packet_len)) {
+      if (!receive (this->stream, this->s, &this->asf_header[this->asf_header_len], packet_len)) {
 	printf ("libmms: header data read failed\n");
 	return 0;
       }
@@ -524,7 +482,7 @@ static int get_header (mms_t *this) {
 
       int packet_len, command;
 
-      if (!receive (this->s, (char *) &packet_len, 4)) {
+      if (!receive (this->stream, this->s, (char *) &packet_len, 4)) {
 	printf ("packet_len read failed\n");
 	return 0;
       }
@@ -536,7 +494,7 @@ static int get_header (mms_t *this) {
 	      packet_len);
 #endif
       
-      if (!receive (this->s, this->buf, packet_len)) {
+      if (!receive (this->stream, this->s, this->buf, packet_len)) {
 	printf ("command data read failed\n");
 	return 0 ;
       }
@@ -832,6 +790,7 @@ mms_t *mms_connect (xine_stream_t *stream, const char *url_, int bandwidth) {
 
   this = (mms_t*) xine_xmalloc (sizeof (mms_t));
 
+  this->stream          = stream;
   this->url             = url;
   this->host            = host;
   this->path            = path;
@@ -1049,7 +1008,7 @@ mms_t *mms_connect (xine_stream_t *stream, const char *url_, int bandwidth) {
 static int get_media_packet (mms_t *this) {
   unsigned char  pre_header[8];
 
-  if (!receive (this->s, pre_header, 8)) {
+  if (!receive (this->stream, this->s, pre_header, 8)) {
     printf ("pre-header read failed\n");
     return 0;
   }
@@ -1074,7 +1033,7 @@ static int get_media_packet (mms_t *this) {
 	    packet_len);
 #endif
 
-    if (!receive (this->s, this->buf, packet_len)) {
+    if (!receive (this->stream, this->s, this->buf, packet_len)) {
       printf ("media data read failed\n");
       return 0;
     }
@@ -1087,7 +1046,7 @@ static int get_media_packet (mms_t *this) {
 
     int packet_len, command;
 
-    if (!receive (this->s, (char *)&packet_len, 4)) {
+    if (!receive (this->stream, this->s, (char *)&packet_len, 4)) {
       printf ("packet_len read failed\n");
       return 0;
     }
@@ -1099,7 +1058,7 @@ static int get_media_packet (mms_t *this) {
 	    packet_len);
 #endif
 
-    if (!receive (this->s, this->buf, packet_len)) {
+    if (!receive (this->stream, this->s, this->buf, packet_len)) {
       printf ("command data read failed\n");
       return 0;
     }
