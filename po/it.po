@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: xine-lib\n"
 "POT-Creation-Date: 2003-04-08 19:47+0200\n"
-"PO-Revision-Date: 2003-04-12 20:05+0200\n"
+"PO-Revision-Date: 2003-04-16 15:24+0200\n"
 "Last-Translator: Giovanni Venturi <jumpyj@libero.it>\n"
 "Language-Team: italiano <kde-i18n-it@mail.kde.org>\n"
 "MIME-Version: 1.0\n"
@@ -149,11 +149,11 @@ msgstr ""
 
 #: src/demuxers/demux_film.c:224
 msgid "invalid FILM chunk size\n"
-msgstr "FILM non valido di grossa dimensione\n"
+msgstr "dimensione di parte di FILM non valida\n"
 
 #: src/demuxers/demux_film.c:379
 msgid "unrecognized FILM chunk\n"
-msgstr "grosso FILM non roconosciuto\n"
+msgstr "parte di FILM non roconosciuta\n"
 
 #: src/demuxers/demux_mpeg_block.c:297 src/demuxers/demux_mpeg_block.c:455
 msgid ""
@@ -212,14 +212,14 @@ msgstr ""
 #, c-format
 msgid "demux_wc3movie: SHOT chunk referenced invalid palette (%d >= %d)\n"
 msgstr ""
-"demux_wc3movie: grosso pezzo SHOT di riferimento con palette non valida (%d "
-">= %d)\n"
+"demux_wc3movie: parte di SHOT di riferimento con palette non valida (%d >= %"
+"d)\n"
 
 #. report an unknown chunk and skip it
 #: src/demuxers/demux_wc3movie.c:300 src/demuxers/demux_wc3movie.c:538
 #, c-format
 msgid "demux_wc3movie: encountered unknown chunk: %c%c%c%c\n"
-msgstr "demux_wc3movie: incontrato grosso pezzo sconosciuto: %c%c%c%c\n"
+msgstr "demux_wc3movie: incontrata parte sconosciuta: %c%c%c%c\n"
 
 #: src/demuxers/demux_wc3movie.c:449
 msgid "demux_wc3movie: There was a problem while loading palette chunks\n"
@@ -690,7 +690,7 @@ msgstr ""
 
 #: src/libffmpeg/xine_decoder.c:989
 msgid "ffmpeg mpeg-4 postprocessing quality"
-msgstr "ffmpeg mpeg-4 qualità di postprocesso"
+msgstr "ffmpeg mpeg-4 qualità di post elaborazione"
 
 #: src/dxr3/video_out_dxr3.c:258
 msgid "swap odd and even lines"
@@ -740,10 +740,14 @@ msgstr "Dxr3: sovrapponi l'intervallo di chiave del colore"
 #: src/dxr3/video_out_dxr3.c:379
 msgid "A greater value widens the tolerance for the overlay keycolor"
 msgstr ""
+"Un valore maggiore allarga la tolleranza per la sovrapposizione di chiave "
+"del colore"
 
 #: src/dxr3/video_out_dxr3.c:382
 msgid "Crops the overlay area from top and bottom to avoid green lines"
 msgstr ""
+"Ritaglia l'area di sovrapposizione superiore e inferiore per evitare linee "
+"verdi"
 
 #: src/dxr3/video_out_dxr3.c:395
 msgid "dxr3 preferred tv mode"
@@ -788,6 +792,7 @@ msgstr "Dxr3: priorità del plugin SCR"
 #: src/dxr3/dxr3_scr.c:84
 msgid "Scr priorities greater 5 make the dxr3 xine's master clock."
 msgstr ""
+"Le priorità Scr maggiori di 5 rendono dxr3 l'orologio principale di xine."
 
 #: src/dxr3/dxr3_mpeg_encoders.c:182
 msgid "Dxr3enc: rte mpeg output bitrate (kbit/s)"
@@ -803,11 +808,11 @@ msgstr ""
 
 #: src/dxr3/dxr3_mpeg_encoders.c:389
 msgid "Dxr3enc: fame mpeg encoding quality"
-msgstr ""
+msgstr "Dxr3enc: qualità di codifica mpeg di fame"
 
 #: src/dxr3/dxr3_mpeg_encoders.c:390
 msgid "The encoding quality of the libfame mpeg encoder library."
-msgstr ""
+msgstr "Qualità della codifica della libreria mpeg di libfame."
 
 #: src/liba52/xine_decoder.c:674
 msgid "a/52 volume control"
@@ -819,7 +824,7 @@ msgstr "abilita intervallo dinamico a/52 di compensazione"
 
 #: src/liba52/xine_decoder.c:680
 msgid "enable audio downmixing to 2.0 surround stereo"
-msgstr ""
+msgstr "abilita l'audio downmixing a stereo surround 2.0"
 
 #: src/libdivx4/xine_decoder.c:544
 msgid "Relative path to libdivxdecore.so to open"
@@ -828,6 +833,7 @@ msgstr "Percorso relativo a libdivxdecore.so da aprire"
 #: src/libdivx4/xine_decoder.c:569
 msgid "the postprocessing level, 0 = none and fast, 6 = all and slow"
 msgstr ""
+"il livello di post elaborazione, 0 = nullo e veloce, 6 = massimo e lento"
 
 #: src/libdivx4/xine_decoder.c:572
 msgid "use divx4 plugin for msmpeg4v3 streams"
@@ -839,7 +845,7 @@ msgstr "Versione divx da controllare (imposta a 0 (predefinito) se incerto)"
 
 #: src/xine-utils/memcpy.c:465
 msgid "Memcopy method to use in xine for large data chunks."
-msgstr ""
+msgstr "Metodo memcopy per far usare a xine grossi pezzi di molti dati."
 
 #: src/libsputext/xine_decoder.c:419
 msgid "font for external subtitles"
@@ -859,27 +865,27 @@ msgstr "codifica dei sottotitoli"
 
 #: src/libspucc/xine_decoder.c:223
 msgid "Enable closed captions in MPEG-2 streams"
-msgstr ""
+msgstr "Abilita didascalie negli stream MPEG-2"
 
 #: src/libspucc/xine_decoder.c:230
 msgid "Closed-captioning foreground/background scheme"
-msgstr ""
+msgstr "Schema di primo piano/sfondo per didascalie"
 
 #: src/libspucc/xine_decoder.c:236
 msgid "Standard closed captioning font"
-msgstr ""
+msgstr "Font predefinito per didascalie"
 
 #: src/libspucc/xine_decoder.c:242
 msgid "Italic closed captioning font"
-msgstr ""
+msgstr "Font italico di didascalie"
 
 #: src/libspucc/xine_decoder.c:248
 msgid "Closed captioning font size"
-msgstr ""
+msgstr "Dimensione font di didascalie"
 
 #: src/libspucc/xine_decoder.c:253
 msgid "Center-adjust closed captions"
-msgstr ""
+msgstr "Didascalie centrate"
 
 #: src/libxvid/xine_decoder.c:220
 #, c-format
@@ -888,6 +894,12 @@ msgid ""
 "xvid: library (%d.%d) and library used to compile this plugin (%d.%d).\n"
 "xvid: Compiling this plugin against current XviD library should help.\n"
 msgstr ""
+"xvid: non c'è corrispondenza tra le API usate da XviD correntemente "
+"installato\n"
+"xvid: libreria (%d.%d) e libreria usata per compilare questo plugin (%d.%"
+"d).\n"
+"xvid: Compilare questo plugin al posto della corrente libreria XviD dovrebbe "
+"aiutare.\n"
 
 #: src/libxinevdec/fli.c:365
 #, c-format
@@ -895,11 +907,13 @@ msgid ""
 "FLI: in chunk FLI_COPY : source data (%d bytes) bigger than image, skipping "
 "chunk\n"
 msgstr ""
+"FLI: in parte di FLI_COPY : sorgente dati (%d byte) più grande "
+"dell'immagine, sto saltando la parte\n"
 
 #: src/libxinevdec/fli.c:381
 #, c-format
 msgid "FLI: Unrecognized chunk type: %d\n"
-msgstr ""
+msgstr "FLI: parte di tipo non riconosciuto: %d\n"
 
 #: src/libxinevdec/fli.c:407
 #, c-format
@@ -907,30 +921,34 @@ msgid ""
 "  warning: processed FLI chunk where chunk size = %d\n"
 "  and final chunk ptr = %d\n"
 msgstr ""
+"  attenzione: sono stati elaborate parti di FLI dove la dimensione del pezzo "
+"= %d\n"
+"  e il ptr della parte finale = %d\n"
 
 #. *************************************************************************
 #. * MS RLE specific decode functions
 #. ************************************************************************
 #: src/libxinevdec/msrle.c:75
 msgid "MS RLE: stream ptr just went out of bounds (1)\n"
-msgstr ""
+msgstr "MS RLE: stream ptr appena andato fuori dei limiti (1)\n"
 
 #: src/libxinevdec/msrle.c:115
 msgid "MS RLE: frame ptr just went out of bounds (1)\n"
-msgstr ""
+msgstr "MS RLE: frame ptr appena andato fuori dei limiti (1)\n"
 
 #: src/libxinevdec/msrle.c:122
 msgid "MS RLE: stream ptr just went out of bounds (2)\n"
-msgstr ""
+msgstr "MS RLE: stream ptr appena andato fuori dei limiti (2)\n"
 
 #: src/libxinevdec/msrle.c:145
 msgid "MS RLE: frame ptr just went out of bounds (2)\n"
-msgstr ""
+msgstr "MS RLE: frame ptr appena andato fuori dei limiti (2)\n"
 
 #: src/libxinevdec/msrle.c:166
 #, c-format
 msgid "MS RLE: ended frame decode with bytes left over (%d < %d)\n"
 msgstr ""
+"MS RLE: il frame di fine si decodifica con i byte lasciati sopra (%d < %d)\n"
 
 #~ msgid "demux_wav.c: input not seekable, can not handle!\n"
 #~ msgstr "demux_wav.c: input non ricercabile, non è trattabile!\n"
