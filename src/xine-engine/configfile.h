@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: configfile.h,v 1.15 2002/09/11 17:41:08 guenter Exp $
+ * $Id: configfile.h,v 1.16 2002/09/14 20:11:52 guenter Exp $
  *
  * config file management
  *
@@ -172,7 +172,6 @@ struct config_values_s {
    * config values are stored here:
    */
   cfg_entry_t         *first, *last, *cur;
-  xine_cfg_entry_t     public_entry;
 };
 
 /*
