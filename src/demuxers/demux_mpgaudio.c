@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpgaudio.c,v 1.91 2003/01/31 14:06:09 miguelfreitas Exp $
+ * $Id: demux_mpgaudio.c,v 1.92 2003/02/14 18:50:04 miguelfreitas Exp $
  *
  * demultiplexer for mpeg audio (i.e. mp3) streams
  *
@@ -420,6 +420,7 @@ static void demux_mpgaudio_send_headers (demux_plugin_t *this_gen) {
       break;
     }
   }
+  this->status        = DEMUX_OK;
 }
 
 static int demux_mpgaudio_seek (demux_plugin_t *this_gen,
@@ -480,11 +481,6 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   input_plugin_t   *input = (input_plugin_t *) input_gen;
   unsigned char     riff_check[RIFF_CHECK_BYTES];
   int               i;
-
-  if (!stream->audio_fifo) {
-    xine_log (stream->xine, XINE_LOG_MSG, _("demux_mpgaudio: no audio driver!\n") );
-    return NULL;
-  }
 
 #ifdef LOG
   printf ("demux_mpgaudio: trying to open %s...\n", input->get_mrl(input));
