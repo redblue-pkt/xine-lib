@@ -374,6 +374,15 @@ AC_CHECK_DXR3()
 AM_CONDITIONAL(HAVE_DXR3, test x"$have_dxr3" = "xyes")
 AM_CONDITIONAL(HAVE_FAME, test x"$have_fame" = "xyes")
 
+
+dnl
+dnl zlib
+dnl
+dnl Test for libz
+AC_CHECK_LIB(z, gzsetparams, AC_CHECK_HEADER(zlib.h,have_zlib=yes,),)
+AM_CONDITIONAL(HAVE_ZLIB, test x"$have_zlib" = "xyes")
+
+
 dnl
 dnl ip_mreqn
 dnl
