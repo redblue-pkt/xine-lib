@@ -23,7 +23,7 @@
 #include "avcodec.h"
 #include "mpegvideo.h"
 
-#undef DEBUG
+//#define DEBUG
 
 static int h263_decode_init(AVCodecContext *avctx)
 {
@@ -39,6 +39,8 @@ static int h263_decode_init(AVCodecContext *avctx)
     /* select sub codec */
     switch(avctx->codec->id) {
     case CODEC_ID_H263:
+        s->gob_number = 0;
+        s->first_gob_line = 0;
         break;
     case CODEC_ID_MPEG4:
         s->time_increment_bits = 4; /* default value for broken headers */
@@ -56,8 +58,9 @@ static int h263_decode_init(AVCodecContext *avctx)
     }
 
     /* for h263, we allocate the images after having read the header */
-    if (MPV_common_init(s) < 0)
-        return -1;
+    if (avctx->codec->id != CODEC_ID_H263)
+        if (MPV_common_init(s) < 0)
+            return -1;
 
     /* XXX: suppress this matrix init, only needed because using mpeg1
        dequantize in mmx case */
@@ -92,7 +95,7 @@ static int h263_decode_frame(AVCodecContext *avctx,
     printf("*****frame %d size=%d\n", avctx->frame_number, buf_size);
     printf("bytes=%x %x %x %x\n", buf[0], buf[1], buf[2], buf[3]);
 #endif
-
+    
     /* no supplementary picture */
     if (buf_size == 0) {
         *data_size = 0;
@@ -110,17 +113,24 @@ static int h263_decode_frame(AVCodecContext *avctx,
         ret = intel_h263_decode_picture_header(s);
     } else {
         ret = h263_decode_picture_header(s);
+        /* After H263 header decode we have the height, width,       */
+        /* and other parameters. So then we could init the picture   */
+        /* FIXME: By the way H263 decoder is evolving it should have */
+        /* an H263EncContext                                         */
+        if (!s->context_initialized) {
+            avctx->width = s->width;
+            avctx->height = s->height;
+            if (MPV_common_init(s) < 0)
+                return -1;
+        } else if (s->width != avctx->width || s->height != avctx->height) {
+            /* H.263 could change picture size any time */
+            MPV_common_end(s);
+            if (MPV_common_init(s) < 0)
+                return -1;
+        }
     }
     if (ret < 0)
         return -1;
-
-    /* make sure we start with an I-frame */
-    if (s->waiting_for_keyframe) {
-      if (s->pict_type != I_TYPE)
-	return -1;
-      else
-	s->waiting_for_keyframe = 0;
-    }
 
     MPV_frame_start(s);
 
@@ -130,10 +140,17 @@ static int h263_decode_frame(AVCodecContext *avctx,
 
     /* decode each macroblock */
     for(s->mb_y=0; s->mb_y < s->mb_height; s->mb_y++) {
+        /* Check for GOB headers on H.263 */
+        /* FIXME: In the future H.263+ will have intra prediction */
+        /* and we are gonna need another way to detect MPEG4      */
+        if (s->mb_y && !s->h263_pred) {
+            s->first_gob_line = h263_decode_gob_header(s);
+        }
         for(s->mb_x=0; s->mb_x < s->mb_width; s->mb_x++) {
 #ifdef DEBUG
             printf("**mb x=%d y=%d\n", s->mb_x, s->mb_y);
 #endif
+            //fprintf(stderr,"\nFrame: %d\tMB: %d",avctx->frame_number, (s->mb_y * s->mb_width) + s->mb_x);
             /* DCT & quantize */
             if (s->h263_msmpeg4) {
                 msmpeg4_dc_scale(s);
@@ -152,8 +169,10 @@ static int h263_decode_frame(AVCodecContext *avctx,
                 if (msmpeg4_decode_mb(s, s->block) < 0)
                     return -1;
             } else {
-                if (h263_decode_mb(s, s->block) < 0)
+                if (h263_decode_mb(s, s->block) < 0) {
+                    fprintf(stderr,"\nError at MB: %d\n", (s->mb_y * s->mb_width) + s->mb_x);
                     return -1;
+                }
             }
             MPV_decode_mb(s, s->block);
         }

@@ -128,7 +128,16 @@ typedef struct MpegEncContext {
     int P_frame_bits;    /* same for P frame */
     INT64 wanted_bits;
     INT64 total_bits;
-
+    
+    /* H.263 specific */
+    int gob_number;
+    int gob_index;
+    int first_gob_line;
+    
+    /* H.263+ specific */
+    int umvplus;
+    int umvplus_dec;
+    
     /* mpeg4 specific */
     int time_increment_bits;
     int shape;
@@ -177,12 +186,17 @@ typedef struct MpegEncContext {
     int interlaced_dct;
     int last_qscale;
     int first_slice;
-
+    
+    /* RTP specific */
+    int rtp_mode;
+    int rtp_payload_size;
+    UINT8 *ptr_lastgob;
+    UINT8 *ptr_last_mb_line;
+    UINT32 mb_line_avgsize;
+    
     DCTELEM block[6][64] __align8;
     void (*dct_unquantize)(struct MpegEncContext *s, 
                            DCTELEM *block, int n, int qscale);
-
-    int waiting_for_keyframe;
 } MpegEncContext;
 
 int MPV_common_init(MpegEncContext *s);
@@ -190,7 +204,7 @@ void MPV_common_end(MpegEncContext *s);
 void MPV_decode_mb(MpegEncContext *s, DCTELEM block[6][64]);
 void MPV_frame_start(MpegEncContext *s);
 void MPV_frame_end(MpegEncContext *s);
-#ifdef ARCH_X86
+#ifdef HAVE_MMX
 void MPV_common_init_mmx(MpegEncContext *s);
 #endif
 
@@ -230,7 +244,7 @@ typedef struct RLTable {
 void init_rl(RLTable *rl);
 void init_vlc_rl(RLTable *rl);
 
-static inline int get_rl_index(const RLTable *rl, int last, int run, int level)
+extern inline int get_rl_index(const RLTable *rl, int last, int run, int level)
 {
     int index;
     index = rl->index_run[last][run];
@@ -245,6 +259,7 @@ void h263_encode_mb(MpegEncContext *s,
                     DCTELEM block[6][64],
                     int motion_x, int motion_y);
 void h263_encode_picture_header(MpegEncContext *s, int picture_number);
+int h263_encode_gob_header(MpegEncContext * s, int mb_line);
 void h263_dc_scale(MpegEncContext *s);
 INT16 *h263_pred_motion(MpegEncContext * s, int block, 
                         int *px, int *py);
@@ -255,6 +270,7 @@ void h263_encode_init_vlc(MpegEncContext *s);
 
 void h263_decode_init_vlc(MpegEncContext *s);
 int h263_decode_picture_header(MpegEncContext *s);
+int h263_decode_gob_header(MpegEncContext *s);
 int mpeg4_decode_picture_header(MpegEncContext * s);
 int intel_h263_decode_picture_header(MpegEncContext *s);
 int h263_decode_mb(MpegEncContext *s,

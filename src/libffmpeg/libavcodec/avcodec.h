@@ -1,3 +1,6 @@
+#ifndef AVCODEC_H
+#define AVCODEC_H
+
 #include "common.h"
 
 enum CodecID {
@@ -9,11 +12,20 @@ enum CodecID {
     CODEC_ID_AC3,
     CODEC_ID_MJPEG,
     CODEC_ID_MPEG4,
-    CODEC_ID_PCM,
     CODEC_ID_RAWVIDEO,
     CODEC_ID_MSMPEG4,
     CODEC_ID_H263P,
     CODEC_ID_H263I,
+
+    /* various pcm "codecs" */
+    CODEC_ID_PCM_S16LE,
+    CODEC_ID_PCM_S16BE,
+    CODEC_ID_PCM_U16LE,
+    CODEC_ID_PCM_U16BE,
+    CODEC_ID_PCM_S8,
+    CODEC_ID_PCM_U8,
+    CODEC_ID_PCM_MULAW,
+    CODEC_ID_PCM_ALAW,
 };
 
 enum CodecType {
@@ -28,6 +40,11 @@ enum PixelFormat {
     PIX_FMT_BGR24,
     PIX_FMT_YUV422P,
     PIX_FMT_YUV444P,
+};
+
+/* currently unused, may be used if 24/32 bits samples ever supported */
+enum SampleFormat {
+    SAMPLE_FMT_S16 = 0,         /* signed 16 bits */
 };
 
 /* in bytes */
@@ -74,6 +91,7 @@ typedef struct AVCodecContext {
     /* audio only */
     int sample_rate; /* samples per sec */
     int channels;
+    int sample_fmt;  /* sample format, currenly unused */
 
     /* the following data should not be initialized */
     int frame_size; /* in samples, initialized when calling 'init' */
@@ -85,6 +103,19 @@ typedef struct AVCodecContext {
     struct AVCodec *codec;
     void *priv_data;
 
+    /* The following data is for RTP friendly coding */
+    /* By now only H.263/H.263+ coder honours this   */
+    int rtp_mode;   /* 1 for activate RTP friendly-mode           */
+                    /* highers numbers represent more error-prone */
+                    /* enviroments, by now just "1" exist         */
+    
+    int rtp_payload_size;   /* The size of the RTP payload, the coder will  */
+                            /* do it's best to deliver a chunk with size    */
+                            /* below rtp_payload_size, the chunk will start */
+                            /* with a start code on some codecs like H.263  */
+                            /* This doesn't take account of any particular  */
+                            /* headers inside the transmited RTP payload    */
+                 
     /* the following fields are ignored */
     void *opaque;   /* can be used to carry app specific stuff */
     char codec_name[32];
@@ -130,13 +161,30 @@ extern AVCodec mpeg_decoder;
 extern AVCodec h263i_decoder;
 extern AVCodec rv10_decoder;
 extern AVCodec mjpeg_decoder;
+#ifdef FF_AUDIO_CODECS
+extern AVCodec mp3_decoder;
 
-/* dummy raw codecs */
-extern AVCodec pcm_codec;
+/* pcm codecs */
+#define PCM_CODEC(id, name) \
+extern AVCodec name ## _decoder; \
+extern AVCodec name ## _encoder;
+
+PCM_CODEC(CODEC_ID_PCM_S16LE, pcm_s16le);
+PCM_CODEC(CODEC_ID_PCM_S16BE, pcm_s16be);
+PCM_CODEC(CODEC_ID_PCM_U16LE, pcm_u16le);
+PCM_CODEC(CODEC_ID_PCM_U16BE, pcm_u16be);
+PCM_CODEC(CODEC_ID_PCM_S8, pcm_s8);
+PCM_CODEC(CODEC_ID_PCM_U8, pcm_u8);
+PCM_CODEC(CODEC_ID_PCM_ALAW, pcm_alaw);
+PCM_CODEC(CODEC_ID_PCM_MULAW, pcm_mulaw);
+
+#undef PCM_CODEC
+#endif
+
+/* dummy raw video codec */
 extern AVCodec rawvideo_codec;
 
 /* the following codecs use external GPL libs */
-extern AVCodec mp3_decoder;
 extern AVCodec ac3_decoder;
 
 /* resample.c */
@@ -184,6 +232,7 @@ void avcodec_init(void);
 
 void register_avcodec(AVCodec *format);
 AVCodec *avcodec_find_encoder(enum CodecID id);
+AVCodec *avcodec_find_encoder_by_name(const char *name);
 AVCodec *avcodec_find_decoder(enum CodecID id);
 AVCodec *avcodec_find_decoder_by_name(const char *name);
 void avcodec_string(char *buf, int buf_size, AVCodecContext *enc, int encode);
@@ -203,3 +252,13 @@ int avcodec_encode_video(AVCodecContext *avctx, UINT8 *buf, int buf_size,
 int avcodec_close(AVCodecContext *avctx);
 
 void avcodec_register_all(void);
+
+#ifdef FF_POSTPROCESS
+#ifndef MBC
+#define MBC 48
+#define MBR 36
+#endif
+extern int quant_store[MBR+1][MBC+1]; // [Review]
+#endif
+
+#endif /* AVCODEC_H */

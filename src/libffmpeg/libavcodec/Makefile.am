@@ -2,6 +2,8 @@
 ## Process this file with automake to produce Makefile.in
 ##
 
+SUBDIRS = armv4l i386 mlib
+
 #CFLAGS = -D_FILE_OFFSET_BITS=64 @GLOBAL_CFLAGS@ -DCONFIG_DECODERS -DHAVE_AV_CONFIG_H
 
 CFLAGS = @GLOBAL_CFLAGS@ @LIBFFMPEG_CFLAGS@ -DCONFIG_DECODERS -DHAVE_AV_CONFIG_H
@@ -11,28 +13,22 @@ LIBTOOL = $(SHELL) $(top_builddir)/libtool-nofpic
 
 noinst_LTLIBRARIES = libavcodec.la
 
-if HAVE_FFMMX
-mmx_modules = mpegvideo_mmx.c sad_mmx.s dsputil_mmx.c idct_mmx.c
-#mmx_modules = mpegvideo_mmx.c sad_mmx.s
-endif
-
-if HAVE_MLIB
-mlib_modules = dsputil_mlib.c idct_mlib.c
-endif
-
-EXTRA_DIST = mpegvideo_mmx.c sad_mmx.s dsputil_mmx.c idct_mmx.c \
-	dsputil_mlib.c idct_mlib.c
-
-libavcodec_la_SOURCES = dsputil.c   fdctref.c   jfdctfst.c  mpeg12.c   \
-		        utils.c     rv10.c      h263.c      jrevdct.c  \
-		        common.c    h263dec.c   msmpeg4.c   \
-			mpegvideo.c mjpeg.c     motion_est.c \
-			$(mmx_modules) $(mlib_modules)
+libavcodec_la_SOURCES = common.c utils.c mpegvideo.c h263.c jrevdct.c jfdctfst.c \
+			mjpeg.c dsputil.c \
+			motion_est.c imgconvert.c msmpeg4.c \
+			mpeg12.c h263dec.c rv10.c simple_idct.c
+#imgresample.c
+ 
+libavcodec_la_LDFLAGS = \
+		$(top_builddir)/src/libffmpeg/libavcodec/armv4l/libavcodec_armv4l.la \
+		$(top_builddir)/src/libffmpeg/libavcodec/i386/libavcodec_mmx.la \
+		$(top_builddir)/src/libffmpeg/libavcodec/mlib/libavcodec_mlib.la \
+		-avoid-version -module
 
 
-noinst_HEADERS = avcodec.h    dsputil.h   mpegvideo.h   dsputil_mmx_avg.h\
+noinst_HEADERS = avcodec.h    dsputil.h   mpegvideo.h \
 		 common.h     h263data.h  mpeg4data.h   msmpeg4data.h \
-		 mpeg12data.h
+		 mpeg12data.h simple_idct.h
 
 .s.lo:
 	$(ASCOMPILE) -o $@ `test -f $< || echo '$(srcdir)/'`$<

@@ -1,10 +1,13 @@
 #ifndef COMMON_H
 #define COMMON_H
 
-#define FFMPEG_VERSION_INT 0x000405
-#define FFMPEG_VERSION     "0.4.5"
+#define FFMPEG_VERSION_INT 0x000406
+#define FFMPEG_VERSION     "0.4.6"
+/* CVS version as 26-12-2001 */
 
-#ifdef WIN32
+#undef DEBUG
+
+#if defined(WIN32) && !defined(__MINGW32__)
 #define CONFIG_WIN32
 #endif
 
@@ -43,6 +46,7 @@ typedef INT16 int16_t;
 typedef UINT32 uint32_t;
 typedef INT32 int32_t;
 
+#ifndef __MINGW32__
 #define INT64_C(c)     (c ## i64)
 #define UINT64_C(c)    (c ## i64)
 
@@ -55,6 +59,11 @@ typedef INT32 int32_t;
 */
 #pragma warning( disable : 4244 )
 #pragma warning( disable : 4305 )
+
+#else
+#define INT64_C(c)     (c ## LL)
+#define UINT64_C(c)    (c ## ULL)
+#endif /* __MINGW32__ */
 
 #define M_PI    3.14159265358979323846
 #define M_SQRT2 1.41421356237309504880  /* sqrt(2) */
@@ -71,10 +80,12 @@ typedef INT32 int32_t;
 
 #define snprintf _snprintf
 
+#ifndef __MINGW32__
+/* no config.h with VC */
 #define CONFIG_ENCODERS 1
 #define CONFIG_DECODERS 1
 #define CONFIG_AC3      1
-#define CONFIG_MPGLIB   1
+#endif
 
 #else
 
@@ -112,14 +123,34 @@ typedef signed long long INT64;
 #include "fastmemcpy.h"
 #endif
 
+#endif /* HAVE_AV_CONFIG_H */
+
+#endif /* !CONFIG_WIN32 */
+
+/* debug stuff */
+#ifdef HAVE_AV_CONFIG_H
+
 #ifndef DEBUG
 #define NDEBUG
 #endif
 #include <assert.h>
 
-#endif /* HAVE_AV_CONFIG_H */
+/* dprintf macros */
+#if defined(CONFIG_WIN32) && !defined(__MINGW32__)
+
+inline void dprintf(const char* fmt,...) {}
+
+#else
+
+#ifdef DEBUG
+#define dprintf(fmt,args...) printf(fmt, ## args)
+#else
+#define dprintf(fmt,args...)
+#endif
 
 #endif /* !CONFIG_WIN32 */
+
+#endif /* HAVE_AV_CONFIG_H */
 
 /* bit output */
 
@@ -141,7 +172,7 @@ void init_put_bits(PutBitContext *s,
                    void *opaque,
                    void (*write_data)(void *, UINT8 *, int));
 void put_bits(PutBitContext *s, int n, unsigned int value);
-INT64 get_bit_count(PutBitContext *s);
+INT64 get_bit_count(PutBitContext *s); /* XXX: change function name */
 void align_put_bits(PutBitContext *s);
 void flush_put_bits(PutBitContext *s);
 
@@ -168,6 +199,7 @@ void init_get_bits(GetBitContext *s,
                    UINT8 *buffer, int buffer_size);
 
 unsigned int get_bits_long(GetBitContext *s, int n);
+unsigned int show_bits_long(GetBitContext *s, int n);
 
 static inline unsigned int get_bits(GetBitContext *s, int n){
     if(s->bit_cnt>=n){
@@ -197,6 +229,19 @@ static inline unsigned int get_bits1(GetBitContext *s){
     return get_bits_long(s,1);
 }
 
+/* This function is identical to get_bits(), the only */
+/* diference is that it doesn't touch the buffer      */
+/* it is usefull to see the buffer.                   */
+static inline unsigned int show_bits(GetBitContext *s, int n)
+{
+    if(s->bit_cnt>=n) {
+        /* most common case here */
+        unsigned int val = s->bit_buf >> (32 - n);
+        return val;
+    }
+    return show_bits_long(s,n);
+}
+
 static inline void skip_bits(GetBitContext *s, int n){
     if(s->bit_cnt>=n){
         /* most common case here */
@@ -223,6 +268,10 @@ static inline void skip_bits1(GetBitContext *s){
     }
 }
 
+static inline int get_bits_count(GetBitContext *s)
+{
+    return (s->buf_ptr - s->buf) * 8 - s->bit_cnt;
+}
 
 void align_get_bits(GetBitContext *s);
 int init_vlc(VLC *vlc, int nb_bits, int nb_codes,

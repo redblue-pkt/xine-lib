@@ -67,18 +67,52 @@ int pix_abs16x16_x2_c(UINT8 *blk1, UINT8 *blk2, int lx, int h);
 int pix_abs16x16_y2_c(UINT8 *blk1, UINT8 *blk2, int lx, int h);
 int pix_abs16x16_xy2_c(UINT8 *blk1, UINT8 *blk2, int lx, int h);
 
+#if defined (SIMPLE_IDCT) && defined (ARCH_X86)
+static inline int block_permute_op(int j)
+{
+static const int table[64]={
+	0x00, 0x08, 0x01, 0x09, 0x04, 0x0C, 0x05, 0x0D,
+	0x10, 0x18, 0x11, 0x19, 0x14, 0x1C, 0x15, 0x1D,
+	0x02, 0x0A, 0x03, 0x0B, 0x06, 0x0E, 0x07, 0x0F,
+	0x12, 0x1A, 0x13, 0x1B, 0x16, 0x1E, 0x17, 0x1F,
+	0x20, 0x28, 0x21, 0x29, 0x24, 0x2C, 0x25, 0x2D,
+	0x30, 0x38, 0x31, 0x39, 0x34, 0x3C, 0x35, 0x3D,
+	0x22, 0x2A, 0x23, 0x2B, 0x26, 0x2E, 0x27, 0x2F,
+	0x32, 0x3A, 0x33, 0x3B, 0x36, 0x3E, 0x37, 0x3F,
+};
+
+	return table[j];
+}
+#elif defined (SIMPLE_IDCT)
+static inline int block_permute_op(int j)
+{
+    return j;
+}
+#else
 static inline int block_permute_op(int j)
 {
     return (j & 0x38) | ((j & 6) >> 1) | ((j & 1) << 2);
 }
+#endif
 
 void block_permute(INT16 *block);
 
 #if defined(ARCH_X86)
 
+#define HAVE_MMX 1
+
 #include "xineutils.h"
 
 extern int mm_flags;
+
+#define mm_support() xine_mm_accel()
+
+#if 0
+static inline void emms(void)
+{
+    __asm __volatile ("emms;":::"memory");
+}
+#endif
 
 #define emms_c() \
 {\
@@ -92,36 +126,29 @@ void dsputil_init_mmx(void);
 
 #elif defined(ARCH_ARMV4L)
 
+#define emms_c()
+
 /* This is to use 4 bytes read to the IDCT pointers for some 'zero'
    line ptimizations */
 #define __align8 __attribute__ ((aligned (4)))
 
 void dsputil_init_armv4l(void);   
 
-#endif
-
-
-
-#if defined(HAVE_MLIB)
+#elif defined(HAVE_MLIB)
+ 
+#define emms_c()
 
 /* SPARC/VIS IDCT needs 8-byte aligned DCT blocks */
 #define __align8 __attribute__ ((aligned (8)))
 
-void dsputil_init_mlib(void);
+void dsputil_init_mlib(void);   
 
-#endif	/* HAVE_MLIB */
+#else
 
+#define emms_c()
 
-/*
- * provide empty defaults, if the target specific accelerated dsputils did
- * not define these:
- */
-#ifndef	__align8
-#define	__align8
-#endif
+#define __align8
 
-#ifndef	emms_c
-#define	emms_c()
 #endif
 
 #endif

@@ -20,7 +20,7 @@
 #include <stdio.h>
 #include "avcodec.h"
 #include "dsputil.h"
-#include "xineutils.h"
+#include "simple_idct.h"
 
 void (*ff_idct)(DCTELEM *block);
 void (*get_pixels)(DCTELEM *block, const UINT8 *pixels, int line_size);
@@ -389,6 +389,27 @@ int pix_abs16x16_xy2_c(UINT8 *pix1, UINT8 *pix2, int line_size, int h)
 
 /* permute block according so that it corresponds to the MMX idct
    order */
+#ifdef SIMPLE_IDCT
+void block_permute(INT16 *block)
+{
+	int i;
+	INT16 temp[64];
+
+//	for(i=0; i<64; i++) temp[i] = block[ block_permute_op(i) ];
+	for(i=0; i<64; i++) temp[ block_permute_op(i) ] = block[i];
+
+	for(i=0; i<64; i++) block[i] = temp[i];
+/*
+	for(i=0; i<64; i++)
+	{
+		if((i&7)==0) printf("\n");
+		printf("%2d ", block[i]);
+	}
+*/
+}
+
+#else
+
 void block_permute(INT16 *block)
 {
     int tmp1, tmp2, tmp3, tmp4, tmp5, tmp6;
@@ -410,16 +431,12 @@ void block_permute(INT16 *block)
         block += 8;
     }
 }
+#endif
 
 void dsputil_init(void)
 {
     int i, j;
-#ifdef ARCH_X86
-    uint32_t mm = xine_mm_accel();
-#endif
-    int use_permuted_mmx_idct;
-    int accel_dsputil;
-
+    int use_permuted_idct;
 
     for(i=0;i<256;i++) cropTbl[i + MAX_NEG_CROP] = i;
     for(i=0;i<MAX_NEG_CROP;i++) {
@@ -431,7 +448,11 @@ void dsputil_init(void)
         squareTbl[i] = (i - 256) * (i - 256);
     }
 
+#ifdef SIMPLE_IDCT
+    ff_idct = simple_idct;
+#else
     ff_idct = j_rev_dct;
+#endif
     get_pixels = get_pixels_c;
     put_pixels_clamped = put_pixels_clamped_c;
     add_pixels_clamped = add_pixels_clamped_c;
@@ -442,46 +463,34 @@ void dsputil_init(void)
     pix_abs16x16_xy2 = pix_abs16x16_xy2_c;
     av_fdct = jpeg_fdct_ifast;
 
-    use_permuted_mmx_idct = 1;
-    accel_dsputil = 0;
+    use_permuted_idct = 1;
 
-#ifdef ARCH_X86
-    if (!accel_dsputil && (mm & MM_ACCEL_X86_MMX)) {
-	dsputil_init_mmx();
-	accel_dsputil = 1;
-	/* printf("AVCODEC: Using mmx idct\n"); */
-    }
+#ifdef HAVE_MMX
+    dsputil_init_mmx();
 #endif
 #ifdef ARCH_ARMV4L
-    if (!accel_dsputil) {
-	dsputil_init_armv4l();
-	accel_dsputil = 1;
-	/* printf("AVCODEC: Using armv4l idct\n"); */
-    }
+    dsputil_init_armv4l();
 #endif
 #ifdef HAVE_MLIB
-    if (!accel_dsputil) {
-	dsputil_init_mlib();
-	accel_dsputil = 1;
-	use_permuted_mmx_idct = 0;
-	/* printf("AVCODEC: Using mediaLib idct\n"); */
-    }
+    dsputil_init_mlib();
+    use_permuted_idct = 0;
 #endif
-    if (!accel_dsputil) {
-	/* printf("AVCODEC: Using C idct\n"); */
-    }
 
-    if (use_permuted_mmx_idct) {
-	/* permute for IDCT */
-	for(i=0;i<64;i++) {
-	    j = zigzag_direct[i];
-	    zigzag_direct[i] = block_permute_op(j);
-	    j = ff_alternate_horizontal_scan[i];
-	    ff_alternate_horizontal_scan[i] = block_permute_op(j);
-	    j = ff_alternate_vertical_scan[i];
-	    ff_alternate_vertical_scan[i] = block_permute_op(j);
-	}
-	block_permute(default_intra_matrix);
-	block_permute(default_non_intra_matrix);
+#ifdef SIMPLE_IDCT
+    if(ff_idct == simple_idct) use_permuted_idct=0;
+#endif
+
+    if (use_permuted_idct) {
+        /* permute for IDCT */
+        for(i=0;i<64;i++) {
+            j = zigzag_direct[i];
+            zigzag_direct[i] = block_permute_op(j);
+            j = ff_alternate_horizontal_scan[i];
+            ff_alternate_horizontal_scan[i] = block_permute_op(j);
+            j = ff_alternate_vertical_scan[i];
+            ff_alternate_vertical_scan[i] = block_permute_op(j);
+        }
+        block_permute(default_intra_matrix);
+        block_permute(default_non_intra_matrix);
     }
 }

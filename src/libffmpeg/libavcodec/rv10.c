@@ -24,7 +24,7 @@
 #include "avcodec.h"
 #include "mpegvideo.h"
 
-#undef DEBUG
+//#define DEBUG
 
 static const UINT16 rv_lum_code[256] =
 {

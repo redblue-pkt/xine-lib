@@ -16,19 +16,36 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
-#include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>
 #include "common.h"
 #include "dsputil.h"
 #include "avcodec.h"
+#ifdef HAVE_MALLOC_H
+#include <malloc.h>
+#else
+#include <stdlib.h>
+#endif
 
 /* memory alloc */
 void *av_mallocz(int size)
 {
     void *ptr;
+#if defined ( ARCH_X86 ) && defined ( HAVE_MEMALIGN )
+    ptr = memalign(64,size);
+    /* Why 64? 
+       Indeed, we should align it:
+         on 4 for 386
+         on 16 for 486
+	 on 32 for 586, PPro - k6-III
+	 on 64 for K7 (maybe for P3 too).
+       Because L1 and L2 caches are aligned on those values.
+       But I don't want to code such logic here!
+     */
+#else
     ptr = malloc(size);
+#endif
     if (!ptr)
         return NULL;
     memset(ptr, 0, size);
@@ -138,6 +155,18 @@ AVCodec *avcodec_find_encoder(enum CodecID id)
     return NULL;
 }
 
+AVCodec *avcodec_find_encoder_by_name(const char *name)
+{
+    AVCodec *p;
+    p = first_avcodec;
+    while (p) {
+        if (p->encode != NULL && strcmp(name,p->name) == 0)
+            return p;
+        p = p->next;
+    }
+    return NULL;
+}
+
 AVCodec *avcodec_find_decoder(enum CodecID id)
 {
     AVCodec *p;
@@ -188,6 +217,7 @@ void avcodec_string(char *buf, int buf_size, AVCodecContext *enc, int encode)
     const char *codec_name;
     AVCodec *p;
     char buf1[32];
+    int bitrate;
 
     if (encode)
         p = avcodec_find_encoder(enc->codec_id);
@@ -228,6 +258,7 @@ void avcodec_string(char *buf, int buf_size, AVCodecContext *enc, int encode)
                      enc->width, enc->height, 
                      (float)enc->frame_rate / FRAME_RATE_BASE);
         }
+        bitrate = enc->bit_rate;
         break;
     case CODEC_TYPE_AUDIO:
         snprintf(buf, buf_size,
@@ -239,13 +270,31 @@ void avcodec_string(char *buf, int buf_size, AVCodecContext *enc, int encode)
                      enc->sample_rate,
                      enc->channels == 2 ? "stereo" : "mono");
         }
+        /* for PCM codecs, compute bitrate directly */
+        switch(enc->codec_id) {
+        case CODEC_ID_PCM_S16LE:
+        case CODEC_ID_PCM_S16BE:
+        case CODEC_ID_PCM_U16LE:
+        case CODEC_ID_PCM_U16BE:
+            bitrate = enc->sample_rate * enc->channels * 16;
+            break;
+        case CODEC_ID_PCM_S8:
+        case CODEC_ID_PCM_U8:
+        case CODEC_ID_PCM_ALAW:
+        case CODEC_ID_PCM_MULAW:
+            bitrate = enc->sample_rate * enc->channels * 8;
+            break;
+        default:
+            bitrate = enc->bit_rate;
+            break;
+        }
         break;
     default:
         abort();
     }
-    if (enc->bit_rate != 0) {
+    if (bitrate != 0) {
         snprintf(buf + strlen(buf), buf_size - strlen(buf), 
-                 ", %d kb/s", enc->bit_rate / 1000);
+                 ", %d kb/s", bitrate / 1000);
     }
 }
 
@@ -353,7 +402,6 @@ void avcodec_register_all(void)
     register_avcodec(&mpeg4_encoder);
     register_avcodec(&msmpeg4_encoder);
 #endif /* CONFIG_ENCODERS */
-    register_avcodec(&pcm_codec);
     register_avcodec(&rawvideo_codec);
 
     /* decoders */
@@ -365,13 +413,32 @@ void avcodec_register_all(void)
     register_avcodec(&h263i_decoder);
     register_avcodec(&rv10_decoder);
     register_avcodec(&mjpeg_decoder);
-#ifdef CONFIG_MPGLIB
+#ifdef FF_AUDIO_CODECS
     register_avcodec(&mp3_decoder);
-#endif
 #ifdef CONFIG_AC3
     register_avcodec(&ac3_decoder);
 #endif
+#endif
 #endif /* CONFIG_DECODERS */
+
+#ifdef FF_AUDIO_CODECS
+    /* pcm codecs */
+
+#define PCM_CODEC(id, name) \
+    register_avcodec(& name ## _encoder); \
+    register_avcodec(& name ## _decoder); \
+
+PCM_CODEC(CODEC_ID_PCM_S16LE, pcm_s16le);
+PCM_CODEC(CODEC_ID_PCM_S16BE, pcm_s16be);
+PCM_CODEC(CODEC_ID_PCM_U16LE, pcm_u16le);
+PCM_CODEC(CODEC_ID_PCM_U16BE, pcm_u16be);
+PCM_CODEC(CODEC_ID_PCM_S8, pcm_s8);
+PCM_CODEC(CODEC_ID_PCM_U8, pcm_u8);
+PCM_CODEC(CODEC_ID_PCM_ALAW, pcm_alaw);
+PCM_CODEC(CODEC_ID_PCM_MULAW, pcm_mulaw);
+
+#undef PCM_CODEC
+#endif
 }
 
 static int encode_init(AVCodecContext *s)
@@ -391,18 +458,6 @@ static int encode_frame(AVCodecContext *avctx,
 {
     return -1;
 }
-
-/* dummy pcm codec */
-AVCodec pcm_codec = {
-    "pcm",
-    CODEC_TYPE_AUDIO,
-    CODEC_ID_PCM,
-    0,
-    encode_init,
-    encode_frame,
-    NULL,
-    decode_frame,
-};
 
 AVCodec rawvideo_codec = {
     "rawvideo",
