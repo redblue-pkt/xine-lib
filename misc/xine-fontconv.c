@@ -388,7 +388,7 @@ int main(int argc, char *argv[]) {
    * command line parsing
    */
 
-  if (argc<3) {
+  if (argc<3 || argc>4) {
     printf ("usage:%s font.ttf fontname [encoding]\n", argv[0]);
     exit (1);
   }
@@ -414,10 +414,10 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
-  if (argc==3) {
+  if (argc==4) {
     encoding=argv[3];
   } else {
-    encoding="UNICODE"; //default tagret charset - no conv
+    encoding="UNICODE"; //default target charset - no conv
   }    
 
   cd = iconv_open("UNICODE", encoding);
