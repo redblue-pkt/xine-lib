@@ -18,7 +18,7 @@ xineplug_decode_ff_la_LDFLAGS = \
 		$(top_builddir)/src/libffmpeg/libavcodec/libavcodec.la \
 		-avoid-version -module
 
-noinst_HEADERS = config.h bswap.h
+noinst_HEADERS = config.h
 
 debug:
 	@$(MAKE) CFLAGS="@DEBUG_CFLAGS@ -DCONFIG_DECODERS -DHAVE_AV_CONFIG_H"

@@ -29,7 +29,7 @@
 #define NDEBUG
 #include <assert.h>
 
-#include "../bswap.h"
+#include "xine-engine/bswap.h"
 
 void init_put_bits(PutBitContext *s, 
                    UINT8 *buffer, int buffer_size,

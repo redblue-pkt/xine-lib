@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.10 2001/08/16 12:33:00 ehasenle Exp $
+ * $Id: xine_decoder.c,v 1.11 2001/08/17 13:34:25 heikos Exp $
  *
  * stuff needed to turn libspu into a xine decoder plugin
  */
@@ -35,13 +35,13 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#include <byteswap.h>
 
 #include "spu.h"
 #include "buffer.h"
 #include "events.h"
 #include "xine_internal.h"
 #include "video_out/alphablend.h"
+#include "xine-engine/bswap.h"
 
 static clut_t __default_clut[] = {
   {y: 0x00, cr: 0x80, cb:0x80},
