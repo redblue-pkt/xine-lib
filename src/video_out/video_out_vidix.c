@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_vidix.c,v 1.8 2002/08/10 21:25:20 miguelfreitas Exp $
+ * $Id: video_out_vidix.c,v 1.9 2002/08/16 21:53:27 miguelfreitas Exp $
  * 
  * video_out_vidix.c
  *
@@ -47,7 +47,7 @@
 
 #include <X11/Xlib.h>
 #include "video_out_x11.h"
-
+#include "vo_scale.h"
               
 #undef LOG
            
@@ -82,8 +82,6 @@ struct vidix_driver_s {
           
   pthread_mutex_t    mutex;
 
-  int user_ratio;
-
   uint32_t           capabilities;
 
    /* X11 / Xv related stuff */
@@ -91,71 +89,10 @@ struct vidix_driver_s {
   int                screen;
   Drawable           drawable;
 
-  /* 
-   * "delivered" size:
-   * frame dimension / aspect as delivered by the decoder
-   * used (among other things) to detect frame size changes
-   */
-  int                delivered_width;   
-  int                delivered_height;     
-  int                delivered_ratio_code;
+  vo_scale_t         sc;
+
   int                delivered_format;
-
-  /* 
-   * displayed part of delivered images,
-   * taking zoom into account
-   */
-
-  int                displayed_xoffset;
-  int                displayed_yoffset;
-  int                displayed_width;
-  int                displayed_height;
-  
-  /* 
-   * "ideal" size :
-   * displayed width/height corrected by aspect ratio
-   */
-
-  int                ideal_width, ideal_height;
-  double             ratio_factor;         /* output frame must fullfill:
-					      height = width * ratio_factor   */
-
-  /*
-   * "gui" size / offset:
-   * what gui told us about where to display the video
-   */
-  
-  int                gui_x, gui_y;
-  int                gui_width, gui_height;
-  int                gui_win_x, gui_win_y;
-  
-  /*
-   * "output" size:
-   *
-   * this is finally the ideal size "fitted" into the
-   * gui size while maintaining the aspect ratio
-   * 
-   */
-
-  /* Window */
-  int                output_width;
-  int                output_height;
-  int                output_xoffset;
-  int                output_yoffset;
-
-  /* display anatomy */
-  double             display_ratio;        /* given by visual parameter
-					      from init function              */
-
-  void              *user_data;
-
-  /* gui callback */
-
-  void (*frame_output_cb) (void *user_data,
-			   int video_width, int video_height,
-			   int *dest_x, int *dest_y, 
-			   int *dest_height, int *dest_width,
-			   int *win_x, int *win_y);
+  int                zoom_x, zoom_y;
 };
 
 static void free_framedata(vidix_frame_t* frame)
@@ -385,37 +322,32 @@ static vo_frame_t *vidix_alloc_frame (vo_driver_t *this_gen) {
 
   return (vo_frame_t *) frame;
 }
+
+
+static void vidix_compute_ideal_size (vidix_driver_t *this) {
+
+  vo_scale_compute_ideal_size( &this->sc );
+
+}
+
 /*
  * make ideal width/height "fit" into the gui
  */
 
 static void vidix_compute_output_size (vidix_driver_t *this) {
-  
-  double x_factor, y_factor;
+
   uint32_t apitch;
   int err,i;
   
-  if( !this->ideal_width || !this->ideal_height )
+  if( !this->sc.ideal_width || !this->sc.ideal_height )
     return;
-  
-  x_factor = (double) this->gui_width  / (double) this->ideal_width;
-  y_factor = (double) this->gui_height / (double) this->ideal_height;
-  
-  if ( x_factor < y_factor ) {
-    this->output_width   = (double) this->gui_width;
-    this->output_height  = (double) this->ideal_height * x_factor ;
-  } else {
-    this->output_width   = (double) this->ideal_width  * y_factor ;
-    this->output_height  = (double) this->gui_height;
-  }
 
-  this->output_xoffset = (this->gui_width - this->output_width) / 2 + this->gui_x;
-  this->output_yoffset = (this->gui_height - this->output_height) / 2 + this->gui_y;
-
+  vo_scale_compute_output_size( &this->sc );
+  
 #ifdef LOG
   printf ("video_out_vidix: frame source %d x %d => screen output %d x %d\n",
-	  this->delivered_width, this->delivered_height,
-	  this->output_width, this->output_height);
+	  this->sc.delivered_width, this->sc.delivered_height,
+	  this->sc.output_width, this->sc.output_height);
 #endif
   
   if( this->vidix_started ) {
@@ -427,13 +359,14 @@ static void vidix_compute_output_size (vidix_driver_t *this) {
   this->vidix_play.fourcc = this->delivered_format;
   this->vidix_play.capability = this->vidix_cap.flags; /* every ;) */
   this->vidix_play.blend_factor = 0; /* for now */
-  this->vidix_play.src.x = this->vidix_play.src.y = 0;
-  this->vidix_play.src.w = this->delivered_width;
-  this->vidix_play.src.h = this->delivered_height;
-  this->vidix_play.dest.x = this->gui_win_x+this->output_xoffset;
-  this->vidix_play.dest.y = this->gui_win_y+this->output_yoffset;
-  this->vidix_play.dest.w = this->output_width;
-  this->vidix_play.dest.h = this->output_height;
+  this->vidix_play.src.x = this->sc.displayed_xoffset;
+  this->vidix_play.src.y = this->sc.displayed_yoffset;
+  this->vidix_play.src.w = this->sc.displayed_width;
+  this->vidix_play.src.h = this->sc.displayed_height;
+  this->vidix_play.dest.x = this->sc.gui_win_x+this->sc.output_xoffset;
+  this->vidix_play.dest.y = this->sc.gui_win_y+this->sc.output_yoffset;
+  this->vidix_play.dest.w = this->sc.output_width;
+  this->vidix_play.dest.h = this->sc.output_height;
   this->vidix_play.num_frames=NUM_FRAMES;
   this->vidix_play.src.pitch.y = this->vidix_play.src.pitch.u = this->vidix_play.src.pitch.v = 0;
 
@@ -470,87 +403,15 @@ static void vidix_compute_output_size (vidix_driver_t *this) {
            this->vidix_play.frame_size);
 
   apitch = this->vidix_play.dest.pitch.y-1;
-  this->dstrides.y = (this->delivered_width + apitch) & ~apitch;
+  this->dstrides.y = (this->sc.delivered_width + apitch) & ~apitch;
   apitch = this->vidix_play.dest.pitch.v-1;
-  this->dstrides.v = (this->delivered_width + apitch) & ~apitch;
+  this->dstrides.v = (this->sc.delivered_width + apitch) & ~apitch;
   apitch = this->vidix_play.dest.pitch.u-1;
-  this->dstrides.u = (this->delivered_width + apitch) & ~apitch;
+  this->dstrides.u = (this->sc.delivered_width + apitch) & ~apitch;
      
   vdlPlaybackOn(this->vidix_handler);
   this->vidix_started = 1;
 }
-
-static void vidix_compute_ideal_size (vidix_driver_t *this) {
-
-  double image_ratio, desired_ratio, corr_factor;
-  
-  this->displayed_xoffset = (this->delivered_width  - this->displayed_width) / 2;
-  this->displayed_yoffset = (this->delivered_height - this->displayed_height) / 2;
-
-  /* 
-   * aspect ratio
-   */
-
-  image_ratio = (double) this->delivered_width / (double) this->delivered_height;
-  
-  switch (this->user_ratio) {
-  case ASPECT_AUTO:
-    switch (this->delivered_ratio_code) {
-    case XINE_ASPECT_RATIO_ANAMORPHIC:  /* anamorphic     */
-    case XINE_ASPECT_RATIO_PAN_SCAN:    /* we display pan&scan as widescreen */
-      desired_ratio = 16.0 /9.0;
-      break;
-    case XINE_ASPECT_RATIO_211_1:       /* 2.11:1 */
-      desired_ratio = 2.11/1.0;
-      break;
-    case XINE_ASPECT_RATIO_SQUARE:      /* square pels */
-    case XINE_ASPECT_RATIO_DONT_TOUCH:  /* probably non-mpeg stream => don't touch aspect ratio */
-      desired_ratio = image_ratio;
-      break;
-    case 0:                             /* forbidden -> 4:3 */
-      printf ("video_out_vidix: invalid ratio, using 4:3\n");
-    default:
-      printf ("video_out_vidix: unknown aspect ratio (%d) in stream => using 4:3\n",
-	      this->delivered_ratio_code);
-    case XINE_ASPECT_RATIO_4_3:         /* 4:3             */
-      desired_ratio = 4.0 / 3.0;
-      break;
-    }
-    break;
-  case ASPECT_ANAMORPHIC:
-    desired_ratio = 16.0 / 9.0;
-    break;
-  case ASPECT_DVB:
-    desired_ratio = 2.0 / 1.0;
-    break;
-  case ASPECT_SQUARE:
-    desired_ratio = image_ratio;
-    break;
-  case ASPECT_FULL:
-  default:
-    desired_ratio = 4.0 / 3.0;
-  }
-
-  this->ratio_factor = this->display_ratio * desired_ratio;
-
-  corr_factor = this->ratio_factor / image_ratio ;
-
-  if (fabs(corr_factor - 1.0) < 0.005) {
-    this->ideal_width  = this->delivered_width;
-    this->ideal_height = this->delivered_height;
-
-  } else {
-
-    if (corr_factor >= 1.0) {
-      this->ideal_width  = this->delivered_width * corr_factor + 0.5;
-      this->ideal_height = this->delivered_height;
-    } else {
-      this->ideal_width  = this->delivered_width;
-      this->ideal_height = this->delivered_height / corr_factor + 0.5;
-    }
-  }
-}
-
 
 static void vidix_update_frame_format (vo_driver_t *this_gen,
 				    vo_frame_t *frame_gen,
@@ -623,23 +484,8 @@ static int vidix_redraw_needed (vo_driver_t *this_gen) {
   vidix_driver_t  *this = (vidix_driver_t *) this_gen;
   int ret = 0;
 
-  int gui_x, gui_y, gui_width, gui_height, gui_win_x, gui_win_y;
-  
-  this->frame_output_cb (this->user_data,
-			 this->ideal_width, this->ideal_height, 
-			 &gui_x, &gui_y, &gui_width, &gui_height,
-			 &gui_win_x, &gui_win_y );
 
-  if ( (gui_x != this->gui_x) || (gui_y != this->gui_y)
-      || (gui_width != this->gui_width) || (gui_height != this->gui_height)
-      || (gui_win_x != this->gui_win_x) || (gui_win_y != this->gui_win_y) ) {
-
-    this->gui_x      = gui_x;
-    this->gui_y      = gui_y;
-    this->gui_width  = gui_width;
-    this->gui_height = gui_height;
-    this->gui_win_x  = gui_win_x;
-    this->gui_win_y  = gui_win_y;
+  if( vo_scale_redraw_needed( &this->sc ) ) {
 
     vidix_compute_output_size (this);
 
@@ -657,19 +503,19 @@ static void vidix_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
 
   pthread_mutex_lock(&this->mutex);
 
-  if ( (frame->width != this->delivered_width)
-	 || (frame->height != this->delivered_height)
-	 || (frame->ratio_code != this->delivered_ratio_code) 
+  if ( (frame->width != this->sc.delivered_width)
+	 || (frame->height != this->sc.delivered_height)
+	 || (frame->ratio_code != this->sc.delivered_ratio_code) 
 	 || (frame->format != this->delivered_format ) ) {
 	 printf("video_out_vidix: change frame format\n");
       
-      this->delivered_width      = frame->width;
-      this->delivered_height     = frame->height;
-      this->delivered_ratio_code = frame->ratio_code;
+      this->sc.delivered_width      = frame->width;
+      this->sc.delivered_height     = frame->height;
+      this->sc.delivered_ratio_code = frame->ratio_code;
       this->delivered_format     = frame->format;
 
       vidix_compute_ideal_size( this );
-      this->gui_width = 0; /* trigger re-calc of output size */
+      this->sc.force_redraw = 1;
   }
     
   /* 
@@ -692,28 +538,17 @@ static int vidix_get_property (vo_driver_t *this_gen, int property) {
   vidix_driver_t *this = (vidix_driver_t *) this_gen;
   
   if ( property == VO_PROP_ASPECT_RATIO)
-    return this->user_ratio ;
+    return this->sc.user_ratio ;
   
+  if ( property == VO_PROP_ZOOM_X )
+    return this->zoom_x;
+
+  if ( property == VO_PROP_ZOOM_Y )
+    return this->zoom_y;
+
   return 0;
 }
 
-static char *aspect_ratio_name(int a)
-{
-  switch (a) {
-  case ASPECT_AUTO:
-    return "auto";
-  case ASPECT_SQUARE:
-    return "square";
-  case ASPECT_FULL:
-    return "4:3";
-  case ASPECT_ANAMORPHIC:
-    return "16:9";
-  case ASPECT_DVB:
-    return "2:1";
-  default:
-    return "unknown";
-  }
-}
 
 static int vidix_set_property (vo_driver_t *this_gen,
 			    int property, int value) {
@@ -723,11 +558,32 @@ static int vidix_set_property (vo_driver_t *this_gen,
   if ( property == VO_PROP_ASPECT_RATIO) {
     if (value>=NUM_ASPECT_RATIOS)
       value = ASPECT_AUTO;
-    this->user_ratio = value;
+    this->sc.user_ratio = value;
     printf("video_out_vidix: aspect ratio changed to %s\n",
-	   aspect_ratio_name(value));
+	   vo_scale_aspect_ratio_name(value));
     
     vidix_compute_ideal_size (this);
+    this->sc.force_redraw = 1;
+  } 
+
+  if ( property == VO_PROP_ZOOM_X ) {
+    if ((value >= VO_ZOOM_MIN) && (value <= VO_ZOOM_MAX)) {
+      this->zoom_x = value;
+      this->sc.zoom_factor_x = (double)value / (double)VO_ZOOM_STEP;
+
+      vidix_compute_ideal_size (this);
+      this->sc.force_redraw = 1;
+    }
+  } 
+
+  if ( property == VO_PROP_ZOOM_Y ) {
+    if ((value >= VO_ZOOM_MIN) && (value <= VO_ZOOM_MAX)) {
+      this->zoom_y = value;
+      this->sc.zoom_factor_y = (double)value / (double)VO_ZOOM_STEP;
+
+      vidix_compute_ideal_size (this);
+      this->sc.force_redraw = 1;
+    }
   } 
   
   return value;
@@ -737,12 +593,11 @@ static void vidix_get_property_min_max (vo_driver_t *this_gen,
 				     int property, int *min, int *max) {
 
 /*  vidix_driver_t *this = (vidix_driver_t *) this_gen; */
-}
 
-static void vidix_translate_gui2video(vidix_driver_t *this,
-				   int x, int y,
-				   int *vid_x, int *vid_y)
-{
+  if ( property == VO_PROP_ZOOM_X || property == VO_PROP_ZOOM_Y ) {
+    *min = VO_ZOOM_MIN;
+    *max = VO_ZOOM_MAX;
+  }
 }
 
 static int vidix_gui_data_exchange (vo_driver_t *this_gen,
@@ -767,6 +622,22 @@ static int vidix_gui_data_exchange (vo_driver_t *this_gen,
 #ifdef LOG
       printf ("video_out_vidix: GUI_DATA_EX_EXPOSE_EVENT\n");
 #endif
+    break;
+
+  case GUI_DATA_EX_TRANSLATE_GUI_TO_VIDEO:
+    {
+      int x1, y1, x2, y2;
+      x11_rectangle_t *rect = data;
+
+      vo_scale_translate_gui2video(&this->sc, rect->x, rect->y,
+			     &x1, &y1);
+      vo_scale_translate_gui2video(&this->sc, rect->x + rect->w, rect->y + rect->h,
+			     &x2, &y2);
+      rect->x = x1;
+      rect->y = y1;
+      rect->w = x2-x1;
+      rect->h = y2-y1;
+    }
     break;
       
   default:
@@ -823,24 +694,21 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
 
   this->display           = visual->display;
   this->screen            = visual->screen;
-  this->display_ratio     = visual->display_ratio;
   this->drawable          = visual->d;
-  this->frame_output_cb   = visual->frame_output_cb;
-  this->user_data         = visual->user_data;
  
+  vo_scale_init( &this->sc, visual->display_ratio, this->vidix_cap.flags & FLAG_UPSCALER, 0 );
+  this->sc.frame_output_cb   = visual->frame_output_cb;
+  this->sc.user_data         = visual->user_data;
+  this->zoom_x = this->zoom_y = 100;
   
   this->config            = config;
   pthread_mutex_init (&this->mutex, NULL);
   
-  this->output_xoffset    = 0;
-  this->output_yoffset    = 0;
-  this->output_width      = 0;
-  this->output_height     = 0;
   this->capabilities      = VO_CAP_YUY2 | VO_CAP_YV12;
 
   XGetWindowAttributes(this->display, this->drawable, &window_attributes);
-  this->gui_width         = window_attributes.width;
-  this->gui_height        = window_attributes.height;
+  this->sc.gui_width         = window_attributes.width;
+  this->sc.gui_height        = window_attributes.height;
 
   this->vo_driver.get_capabilities     = vidix_get_capabilities;
   this->vo_driver.alloc_frame          = vidix_alloc_frame;
@@ -872,5 +740,4 @@ vo_info_t *get_video_out_plugin_info() {
   vo_info_vidix.description = _("xine video output plugin using libvidix");
   return &vo_info_vidix;
 }
-
 
