@@ -22,6 +22,8 @@ dvd_device              path to your local dvd device file
 dvd_raw_device          path to a raw device set up for dvd access
 			(option, e.g. /dev/rdvd)
 
+five_lfe_channel        1/0 : enable 5.1-channel playback
+
 five_channel            1/0 : enable 5-channel playback
 
 four_channel            1/0 : enable 4-channel playback
