@@ -1,3 +1,4 @@
+  * new SyncFB video out plugin (see README.syncfb)
   * catch SIGSEGV during libdivxdecore version probing. see README.divx4.
   
 xine (0.9.3) unstable; urgency=low
