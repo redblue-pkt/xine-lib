@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.179 2003/11/16 23:33:48 f1rmb Exp $
+ * $Id: video_out.c,v 1.180 2003/11/19 12:05:26 mroi Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -923,7 +923,7 @@ static void *video_out_loop (void *this_gen) {
   int64_t            vpts, diff;
   vo_frame_t        *img;
   vos_t             *this = (vos_t *) this_gen;
-  int64_t            frame_duration, next_frame_vpts;
+  int64_t            next_frame_vpts;
   int64_t            usec_to_sleep;
  
 #ifndef WIN32
@@ -940,7 +940,6 @@ static void *video_out_loop (void *this_gen) {
    * of xine) : the video output loop
    */
    
-  frame_duration = 1500; /* default */
   next_frame_vpts = this->clock->get_current_time (this->clock);
 
 #ifdef LOG
@@ -1012,10 +1011,10 @@ static void *video_out_loop (void *this_gen) {
      */
 
     if (img) {
-      frame_duration = img->duration;
       next_frame_vpts = img->vpts + img->duration;
     } else {
-      next_frame_vpts += frame_duration;
+      /* we do not know, when the next frame is due, so only wait a little */
+      next_frame_vpts += 1000;
     }
     
 #ifdef LOG
