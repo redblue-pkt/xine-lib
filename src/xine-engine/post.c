@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: post.c,v 1.7 2003/01/01 16:19:14 komadori Exp $
+ * $Id: post.c,v 1.8 2003/01/02 12:05:19 mroi Exp $
  */
  
 /*
@@ -203,14 +203,17 @@ static audio_buffer_t * post_audio_get_buffer(xine_audio_port_t *port_gen) {
 static void post_audio_put_buffer(xine_audio_port_t *port_gen, audio_buffer_t *buf,
                                   xine_stream_t *stream) {
   post_audio_port_t *port = (post_audio_port_t *)port_gen;
+  port->original_port->put_buffer(port->original_port, buf, stream);
 }
                                     
 static void post_audio_close(xine_audio_port_t *port_gen, xine_stream_t *stream) {
   post_audio_port_t *port = (post_audio_port_t *)port_gen;
+  port->original_port->close(port->original_port, stream);
 }
 
 static void post_audio_exit(xine_audio_port_t *port_gen) {
   post_audio_port_t *port = (post_audio_port_t *)port_gen;
+  port->original_port->exit(port->original_port);
 }
 
 static int post_audio_control (xine_audio_port_t *port_gen, int cmd, ...) {
@@ -229,6 +232,7 @@ static int post_audio_control (xine_audio_port_t *port_gen, int cmd, ...) {
 
 static void post_audio_flush(xine_audio_port_t *port_gen) {
   post_audio_port_t *port = (post_audio_port_t *)port_gen;
+  port->original_port->flush(port->original_port);
 }
 
 static int post_audio_status(xine_audio_port_t *port_gen, xine_stream_t *stream,
