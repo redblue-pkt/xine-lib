@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.3 2002/11/22 03:38:08 guenter Exp $
+ * $Id: xine_decoder.c,v 1.4 2002/11/22 17:03:38 guenter Exp $
  *
  * thin layer to use real binary-only codecs in xine
  *
@@ -74,7 +74,14 @@ typedef struct realdec_decoder_s {
   int              num_chunks;
   uint32_t         chunk_tab[CHUNK_TAB_SIZE];
 
+  /* keep track of timestamps, estimate framerate */
   uint64_t         pts;
+  int              num_frames;
+  uint64_t         last_pts;
+  uint64_t         duration;
+
+  uint8_t         *frame_buffer;
+  int              frame_size;
 
 } realdec_decoder_t;
 
@@ -192,12 +199,10 @@ static void realdec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) 
 
     }
 
-    /*
-      real_init (&this->real, stream->video_out);
-    */
-
     this->stream->video_out->open(this->stream->video_out, this->stream);
     
+    this->frame_size   = this->width*this->height;
+    this->frame_buffer = xine_xmalloc (this->width*this->height*3/2);
 
   } else if (this->context) {
 
@@ -231,10 +236,28 @@ static void realdec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) 
 						  XINE_IMGFMT_YV12,
 						  VO_BOTH_FIELDS);
 	
-	img->pts       = 0; /* FIXME */
-	img->duration  = 3000; /* FIXME */
+	if (this->pts != this->last_pts) {
+	  int64_t new_duration;
+
+	  img->pts         = this->pts * 90;
+	  new_duration     = (this->pts - this->last_pts) * 90 / (this->num_frames+1);
+	  this->duration   = (this->duration * 9 + new_duration)/10;
+	  this->num_frames = 0;
+	  this->last_pts   = this->pts;
+	} else {
+	  img->pts       = 0;
+	  this->num_frames++;
+	}
+	img->duration  = this->duration; 
 	img->bad_frame = 0;
 	
+	printf ("libreal: pts %lld %lld diff %lld # %d est. duration %lld\n", 
+		this->pts*90, 
+		buf->pts*90,
+		(buf->pts - this->pts) * 90,
+		this->num_frames,
+		this->duration);
+
 	printf ("libreal: decoding %d bytes:\n", this->chunk_buffer_size);
 	hexdump (this->chunk_buffer, this->chunk_buffer_size);
 
@@ -242,14 +265,18 @@ static void realdec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) 
 	hexdump (transform_in, 6*4);
 	
 	result = cls->rvyuv_transform (this->chunk_buffer, 
-				       img->base[0], 
+				       this->frame_buffer, 
 				       transform_in,
 				       transform_out, 
 				       this->context);
 
 	printf ("libreal: decoding result: %d\n", result);
 	
-	/* xine_fast_memcpy (dy, sy, this->bih.biWidth); */
+	xine_fast_memcpy (img->base[0], this->frame_buffer, this->frame_size);
+	xine_fast_memcpy (img->base[1], this->frame_buffer+this->frame_size, 
+			  this->frame_size/4);
+	xine_fast_memcpy (img->base[2], this->frame_buffer+this->frame_size*5/4, 
+			  this->frame_size/4);
 	
 	img->draw(img, this->stream);
 	img->free(img);
@@ -343,6 +370,10 @@ static video_decoder_t *open_plugin (video_decoder_class_t *class_gen,
 
   this->context    = 0;
   this->num_chunks = 0;
+  this->pts        = 0;
+  this->last_pts   = 0;
+  this->num_frames = 0;
+  this->duration   = 3000;
 
   return &this->video_decoder;
 }
@@ -415,8 +446,10 @@ static void *init_class (xine_t *xine, void *data) {
   this = (real_class_t *) xine_xmalloc (sizeof (real_class_t));
 
   if (!load_syms_linux (this, "/usr/local/RealPlayer8/Codecs/drv3.so.6.0")) {
-    free (this);
-    return NULL;
+    if (!load_syms_linux (this, "/opt/RealPlayer8/Codecs/drv3.so.6.0")) {
+      free (this);
+      return NULL;
+    }
   }
 
   this->decoder_class.open_plugin     = open_plugin;
