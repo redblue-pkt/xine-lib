@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.84 2002/09/18 04:20:09 jcdutton Exp $
+ * $Id: input_dvd.c,v 1.85 2002/09/18 06:42:23 jcdutton Exp $
  *
  */
 
@@ -66,11 +66,6 @@
 #warning "This might not compile due to missing cdrom ioctls"
 #endif
 
-/* Xine includes */
-#include "xineutils.h"
-#include "buffer.h"
-#include "xine_internal.h"
-
 /* DVDNAV includes */
 #ifdef HAVE_DVDNAV
 #  include <dvdnav/dvdnav.h>
@@ -80,6 +75,11 @@
 
 /* libdvdread includes */
 #include "nav_read.h"
+
+/* Xine includes */
+#include "xineutils.h"
+#include "buffer.h"
+#include "xine_internal.h"
 
 /* Print debug messages? */
 #define INPUT_DEBUG
@@ -1527,6 +1527,9 @@ static void *init_input_plugin (xine_t *xine, void *data) {
 
 /*
  * $Log: input_dvd.c,v $
+ * Revision 1.85  2002/09/18 06:42:23  jcdutton
+ * Try to get xine-lib to compile.
+ *
  * Revision 1.84  2002/09/18 04:20:09  jcdutton
  * Updating the DVD menu code to use better nav_pci information.
  * libspudec parses nav_pci info correctly.

@@ -8,8 +8,8 @@ xineplug_decode_spu_la_SOURCES =  spu.c xine_decoder.c nav_read.c nav_print.c
 xineplug_decode_spu_la_LIBADD = $(top_builddir)/src/xine-engine/libxine.la
 xineplug_decode_spu_la_LDFLAGS = -avoid-version -module
 
-noinst_HEADERS = spu.h nav_read.h bswap.h nav_print.h nav_types.h
-include_HEADERS = spu_decoder_api.h
+noinst_HEADERS = spu.h nav_read.h bswap.h nav_print.h
+include_HEADERS = spu_decoder_api.h nav_types.h
 
 ##
 ## Install header files (default=$includedir/xine)

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.100 2002/09/18 00:51:34 guenter Exp $
+ * $Id: xine_internal.h,v 1.101 2002/09/18 06:42:23 jcdutton Exp $
  *
  */
 
@@ -55,6 +55,7 @@ extern "C" {
 #include "lrb.h"
 
 #ifdef XINE_COMPILE
+#include "libspudec/nav_types.h"
 #include "libspudec/spu_decoder_api.h"
 #else
 #include "spu_decoder_api.h"
