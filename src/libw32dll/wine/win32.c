@@ -2865,8 +2865,7 @@ struct libs
     struct exports* exps;
 };
 
-#define FF(X,Y) \
-{#X, Y, (void*)exp##X},
+#define FF(X,Y) {#X, Y, (void*)exp##X},
 
 struct exports exp_kernel32[]={
 FF(IsBadWritePtr, 357)
@@ -3075,8 +3074,7 @@ FF(StringFromGUID2, -1)
 FF(InitCommonControls, 17)
 };
 
-#define LL(X) \
-{#X".dll", sizeof(exp_##X)/sizeof(struct exports), exp_##X},
+#define LL(X) {#X".dll", sizeof(exp_##X)/sizeof(struct exports), exp_##X},
 
 struct libs libraries[]={
 LL(kernel32)
