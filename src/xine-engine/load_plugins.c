@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.85 2002/09/06 18:13:11 mroi Exp $
+ * $Id: load_plugins.c,v 1.86 2002/09/08 14:24:20 mroi Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -611,6 +611,7 @@ const char *xine_get_input_plugin_description(xine_p this, const char *plugin_id
 
       return ip->get_description(ip);
     }
+    node = xine_list_next_content (catalog->input);
   }
   return NULL;
 }
@@ -776,6 +777,7 @@ const char *const *xine_get_autoplay_mrls (xine_p this, const char *plugin_id, i
 
       return ip->get_autoplay_list (ip, num_mrls);
     }
+    node = xine_list_next_content (catalog->input);
   }
   return NULL;
 }
@@ -803,6 +805,7 @@ const xine_mrl_t *const *xine_get_browse_mrls (xine_p this, const char *plugin_i
 
       return ip->get_dir (ip, start_mrl, num_mrls);
     }
+    node = xine_list_next_content (catalog->input);
   }
   return NULL;
 }
