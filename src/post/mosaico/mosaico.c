@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mosaico.c,v 1.23 2004/04/17 19:54:31 mroi Exp $
+ * $Id: mosaico.c,v 1.24 2004/05/29 14:45:26 mroi Exp $
  */
  
 /*
@@ -294,7 +294,7 @@ static void mosaico_close(xine_video_port_t *port_gen, xine_stream_t *stream)
   pthread_mutex_lock(&this->mutex);
   free_frame = this->pip[pip_num].frame;
   this->pip[pip_num].frame = NULL;
-  port->original_port->close(port->original_port, NULL);
+  port->original_port->close(port->original_port, port->stream);
   pthread_mutex_unlock(&this->mutex);
 
   if (free_frame)

@@ -23,7 +23,7 @@
  * It simply creates output channels to match the speaker arrangement.
  * E.g. Converts Stereo into Surround 5.1
  *
- * $Id: upmix.c,v 1.13 2004/05/23 16:20:56 mroi Exp $
+ * $Id: upmix.c,v 1.14 2004/05/29 14:45:25 mroi Exp $
  *
  */
 
@@ -177,14 +177,10 @@ static int upmix_port_open(xine_audio_port_t *port_gen, xine_stream_t *stream,
   _x_post_rewire(&this->post);
   _x_post_inc_usage(port);
   
-  if (stream)
-    port->stream = stream;
-  else
-    port->stream = POST_NULL_STREAM;
+  port->stream = stream;
   port->bits = bits;
   port->rate = rate;
   port->mode = mode;
-  port->open_count++;
   capabilities = port->original_port->get_capabilities(port->original_port);
   
   this->ratio = (double)FOO_WIDTH/(double)FOO_HEIGHT;
@@ -223,15 +219,16 @@ static int upmix_port_open(xine_audio_port_t *port_gen, xine_stream_t *stream,
   return port->original_port->open(port->original_port, stream, bits, rate, mode );
 }
 
+#if 0
 static void upmix_port_close(xine_audio_port_t *port_gen, xine_stream_t *stream ) {
 
   post_audio_port_t  *port = (post_audio_port_t *)port_gen;
 
   port->stream = NULL;
   port->original_port->close(port->original_port, stream );
-  port->open_count--;
   _x_post_dec_usage(port);
 }
+#endif
 
 static int upmix_frames_2to51_any_to_float( uint8_t *dst8, uint8_t *src8, int num_frames, int step_channel_in, af_sub_t *sub) {
   float *dst=(float *)dst8;
@@ -383,19 +380,6 @@ static void upmix_port_put_buffer (xine_audio_port_t *port_gen,
   return;
 }
 
-static int upmix_port_audio_status(xine_audio_port_t *port_gen, xine_stream_t *stream,
-               uint32_t *bits, uint32_t *rate, int *mode) {
-  post_audio_port_t *port = (post_audio_port_t *)port_gen;
-
-  if (port->port_lock) pthread_mutex_lock(port->port_lock);
-  *bits = port->bits;
-  *rate = port->rate;
-  *mode = port->mode;
-  if (port->port_lock) pthread_mutex_unlock(port->port_lock);
-  return 1;
-}
-
-
 static void upmix_dispose(post_plugin_t *this_gen)
 {
   post_plugin_upmix_t *this = (post_plugin_upmix_t *)this_gen;
@@ -414,7 +398,7 @@ static post_plugin_t *upmix_open_plugin(post_class_t *class_gen, int inputs,
   post_plugin_upmix_t *this  = (post_plugin_upmix_t *)xine_xmalloc(sizeof(post_plugin_upmix_t));
   post_in_t            *input;
   post_out_t           *output;
-  xine_post_in_t    *input_api;
+  xine_post_in_t       *input_api;
   post_audio_port_t    *port;
   
   if (!this || !audio_target || !audio_target[0] ) {
@@ -428,9 +412,10 @@ static post_plugin_t *upmix_open_plugin(post_class_t *class_gen, int inputs,
   
   port = _x_post_intercept_audio_port(&this->post, audio_target[0], &input, &output);
   port->new_port.open       = upmix_port_open;
+#if 0
   port->new_port.close      = upmix_port_close;
+#endif
   port->new_port.put_buffer = upmix_port_put_buffer;
-  port->new_port.status     = upmix_port_audio_status;
 
   input_api       = &this->params_input;
   input_api->name = "parameters";

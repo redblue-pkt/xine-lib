@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: switch.c,v 1.13 2004/04/17 19:54:31 mroi Exp $
+ * $Id: switch.c,v 1.14 2004/05/29 14:45:26 mroi Exp $
  */
  
 /*
@@ -253,7 +253,7 @@ static int switch_draw(vo_frame_t *frame, xine_stream_t *stream)
     pthread_cond_wait(&this->display_condition_changed, &this->mutex);
   if (this->selected_source == source_num) {
     _x_post_frame_copy_down(frame, frame->next);
-    skip = frame->next->draw(frame->next, NULL);
+    skip = frame->next->draw(frame->next, XINE_ANON_STREAM);
     _x_post_frame_copy_up(frame, frame->next);
     this->vpts_limit = frame->vpts + frame->duration;
     if (skip) {

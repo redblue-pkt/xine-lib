@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.156 2004/04/16 16:34:22 hadess Exp $
+ * $Id: xine_internal.h,v 1.157 2004/05/29 14:45:25 mroi Exp $
  *
  */
 
@@ -327,6 +327,9 @@ struct xine_stream_s {
 #endif
 };
 
+/* when explicitly noted, some functions accept an anonymous stream,
+ * which is a valid stream that does not want to be addressed. */
+#define XINE_ANON_STREAM ((xine_stream_t *)-1)
 
 
 /*

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: post.h,v 1.20 2004/05/18 03:16:12 miguelfreitas Exp $
+ * $Id: post.h,v 1.21 2004/05/29 14:45:25 mroi Exp $
  *
  * post plugin definitions
  *
@@ -41,8 +41,6 @@
 #endif
 
 #define POST_PLUGIN_IFACE_VERSION 9
-
-#define POST_NULL_STREAM    (xine_stream_t *)-1
 
 
 typedef struct post_class_s post_class_t;
@@ -199,8 +197,8 @@ struct post_video_port_s {
   int                       usage_count;
   pthread_mutex_t           usage_lock;
   
-  /* the stream we are being fed by; NULL means no stream is connected,
-   * POST_NULL_STREAM means a NULL stream is connected */
+  /* the stream we are being fed by; NULL means no stream is connected;
+   * this may be an anonymous stream */
   xine_stream_t            *stream;
   
   /* point to a mutex here, if you need some synchronization */
@@ -297,17 +295,14 @@ struct post_audio_port_s {
   int                usage_count;
   pthread_mutex_t    usage_lock;
   
-  /* the stream we are being fed by; NULL means no stream is connected,
-   * POST_NULL_STREAM means a NULL stream is connected */
+  /* the stream we are being fed by; NULL means no stream is connected;
+   * this may be an anonymous stream */
   xine_stream_t     *stream;
   
   /* some values remembered by port->open() */
   uint32_t           bits;
   uint32_t           rate;
   uint32_t           mode;
-  
-  /* ++ for every open, -- for every close */
-  int                open_count;
   
   /* point to a mutex here, if you need some synchronization */
   pthread_mutex_t   *port_lock;

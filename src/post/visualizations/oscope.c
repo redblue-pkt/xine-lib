@@ -20,7 +20,7 @@
  * Basic Oscilloscope Visualization Post Plugin For xine
  *   by Mike Melanson (melanson@pcisys.net)
  *
- * $Id: oscope.c,v 1.18 2004/05/18 03:17:03 miguelfreitas Exp $
+ * $Id: oscope.c,v 1.19 2004/05/29 14:45:26 mroi Exp $
  *
  */
 
@@ -163,8 +163,8 @@ static int oscope_rewire_video(xine_post_out_t *output_gen, void *data)
   
   if (!data)
     return 0;
-  old_port->close(old_port, NULL);
-  new_port->open(new_port, NULL);
+  old_port->close(old_port, XINE_ANON_STREAM);
+  new_port->open(new_port, XINE_ANON_STREAM);
   /* reconnect ourselves */
   this->vo_port = new_port;
   return 1;
@@ -179,14 +179,10 @@ static int oscope_port_open(xine_audio_port_t *port_gen, xine_stream_t *stream,
   _x_post_rewire(&this->post);
   _x_post_inc_usage(port);
   
-  if (stream)
-    port->stream = stream;
-  else
-    port->stream = POST_NULL_STREAM;
+  port->stream = stream;
   port->bits = bits;
   port->rate = rate;
   port->mode = mode;
-  port->open_count++;
   
   this->ratio = (double)OSCOPE_WIDTH/(double)OSCOPE_HEIGHT;
 
@@ -197,7 +193,7 @@ static int oscope_port_open(xine_audio_port_t *port_gen, xine_stream_t *stream,
   this->data_idx = 0;
   init_yuv_planes(&this->yuv, OSCOPE_WIDTH, OSCOPE_HEIGHT);
 
-  this->vo_port->open(this->vo_port, NULL);
+  this->vo_port->open(this->vo_port, XINE_ANON_STREAM);
   this->metronom->set_master(this->metronom, stream->metronom);
 
   return port->original_port->open(port->original_port, stream, bits, rate, mode );
@@ -210,12 +206,10 @@ static void oscope_port_close(xine_audio_port_t *port_gen, xine_stream_t *stream
 
   port->stream = NULL;
 
-  this->vo_port->close(this->vo_port, NULL);
+  this->vo_port->close(this->vo_port, XINE_ANON_STREAM);
   this->metronom->set_master(this->metronom, NULL);
  
   port->original_port->close(port->original_port, stream );
-  
-  port->open_count--;
   
   _x_post_dec_usage(port);
 }
@@ -292,7 +286,7 @@ static void oscope_port_put_buffer (xine_audio_port_t *port_gen,
       draw_oscope_dots(this);
       yuv444_to_yuy2(&this->yuv, frame->base[0], frame->pitches[0]);
   
-      frame->draw(frame, NULL);
+      frame->draw(frame, XINE_ANON_STREAM);
       frame->free(frame);
 
     }

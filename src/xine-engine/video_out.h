@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.h,v 1.105 2004/01/07 19:52:43 mroi Exp $
+ * $Id: video_out.h,v 1.106 2004/05/29 14:45:25 mroi Exp $
  *
  *
  * xine version of video_out.h 
@@ -87,7 +87,7 @@ struct vo_frame_s {
   /* at least one of proc_frame() and proc_slice() MUST set the variable proc_called to 1 */
   void (*proc_slice) (vo_frame_t *vo_img, uint8_t **src);
 
-  /* XvMC routine for rendering  macroblocks */
+  /* XvMC routine for rendering  macroblocks, may be NULL */
   void (*proc_macro_block)(int x,
 			   int y,
 			   int mb_type,
@@ -109,7 +109,7 @@ struct vo_frame_s {
 
   /* append this frame to the display queue, 
      returns number of frames to skip if decoder is late */
-  /* when the frame does not originate from a stream, it is legal to pass a NULL stream */
+  /* when the frame does not originate from a stream, it is legal to pass an anonymous stream */
   int (*draw) (vo_frame_t *vo_img, xine_stream_t *stream);
 
   /* lock frame as reference, must be paired with free.
@@ -191,7 +191,7 @@ struct xine_video_port_s {
 
   /* open display driver for video output */
   /* when you are not a full-blown stream, but still need to open the port
-   * (e.g. you are a post plugin) it is legal to pass a NULL stream */
+   * (e.g. you are a post plugin) it is legal to pass an anonymous stream */
   void (*open) (xine_video_port_t *self, xine_stream_t *stream);
 
   /* 
@@ -226,13 +226,13 @@ struct xine_video_port_s {
   int (*get_property) (xine_video_port_t *self, int property);
   int (*set_property) (xine_video_port_t *self, int property, int value);
   
-  /* return true if port is opened for this stream, stream can be NULL */
+  /* return true if port is opened for this stream, stream can be anonymous */
   int (*status) (xine_video_port_t *self, xine_stream_t *stream, 
                  int *width, int *height, int64_t *img_duration);
   
   /* video driver is no longer used by decoder => close */
   /* when you are not a full-blown stream, but still need to close the port
-   * (e.g. you are a post plugin) it is legal to pass a NULL stream */
+   * (e.g. you are a post plugin) it is legal to pass an anonymous stream */
   void (*close) (xine_video_port_t *self, xine_stream_t *stream);
 
   /* called on xine exit */

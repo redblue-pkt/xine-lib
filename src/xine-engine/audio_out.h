@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.h,v 1.69 2004/05/23 16:20:56 mroi Exp $
+ * $Id: audio_out.h,v 1.70 2004/05/29 14:45:25 mroi Exp $
  */
 #ifndef HAVE_AUDIO_OUT_H
 #define HAVE_AUDIO_OUT_H
@@ -186,7 +186,7 @@ struct xine_audio_port_s {
    * return value: 0:failure, >0:output sample rate
    */
   /* when you are not a full-blown stream, but still need to open the port
-   * (e.g. you are a post plugin) it is legal to pass a NULL stream */
+   * (e.g. you are a post plugin) it is legal to pass an anonymous stream */
   int (*open) (xine_audio_port_t *, xine_stream_t *stream,
 	       uint32_t bits, uint32_t rate, int mode);
 
@@ -199,12 +199,12 @@ struct xine_audio_port_s {
    * append a buffer filled with audio data to the audio fifo
    * for output
    */
-  /* when the frame does not originate from a stream, it is legal to pass a NULL stream */
+  /* when the frame does not originate from a stream, it is legal to pass an anonymous stream */
   void (*put_buffer) (xine_audio_port_t *, audio_buffer_t *buf, xine_stream_t *stream);
 
   /* audio driver is no longer used by decoder => close */
   /* when you are not a full-blown stream, but still need to close the port
-   * (e.g. you are a post plugin) it is legal to pass a NULL stream */
+   * (e.g. you are a post plugin) it is legal to pass an anonymous stream */
   void (*close) (xine_audio_port_t *self, xine_stream_t *stream);
 
   /* called on xine exit */
@@ -224,6 +224,7 @@ struct xine_audio_port_s {
   
   /*
    * Check if port is opened for this stream and get parameters.
+   * The stream can be anonymous.
    */
   int (*status) (xine_audio_port_t *, xine_stream_t *stream,
 	       uint32_t *bits, uint32_t *rate, int *mode);

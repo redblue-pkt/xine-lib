@@ -20,7 +20,7 @@
  * FftGraph Visualization Post Plugin For xine
  *   by Thibaut Mattern (tmattern@noos.fr)
  *
- * $Id: fftgraph.c,v 1.11 2004/05/18 03:17:03 miguelfreitas Exp $
+ * $Id: fftgraph.c,v 1.12 2004/05/29 14:45:26 mroi Exp $
  *
  */
 
@@ -196,8 +196,8 @@ static int fftgraph_rewire_video(xine_post_out_t *output_gen, void *data)
   if (!data)
     return 0;
   /* register our stream at the new output port */
-  old_port->close(old_port, NULL);
-  new_port->open(new_port, NULL);
+  old_port->close(old_port, XINE_ANON_STREAM);
+  new_port->open(new_port, XINE_ANON_STREAM);
   /* reconnect ourselves */
   this->vo_port = new_port;
   return 1;
@@ -217,14 +217,10 @@ static int fftgraph_port_open(xine_audio_port_t *port_gen, xine_stream_t *stream
   _x_post_rewire(&this->post);
   _x_post_inc_usage(port);
   
-  if (stream)
-    port->stream = stream;
-  else
-    port->stream = POST_NULL_STREAM;
+  port->stream = stream;
   port->bits = bits;
   port->rate = rate;
   port->mode = mode;
-  port->open_count++;
   
   this->ratio = (double)FFTGRAPH_WIDTH / (double)FFTGRAPH_HEIGHT;
   
@@ -235,7 +231,7 @@ static int fftgraph_port_open(xine_audio_port_t *port_gen, xine_stream_t *stream
   this->samples_per_frame = rate / FPS;
   this->data_idx = 0;
 
-  this->vo_port->open(this->vo_port, NULL);
+  this->vo_port->open(this->vo_port, XINE_ANON_STREAM);
   this->metronom->set_master(this->metronom, stream->metronom);
 
   this->fft = fft_new(FFT_BITS);
@@ -300,12 +296,10 @@ static void fftgraph_port_close(xine_audio_port_t *port_gen, xine_stream_t *stre
   fft_dispose(this->fft);
   this->fft = NULL;
 
-  this->vo_port->close(this->vo_port, NULL);
+  this->vo_port->close(this->vo_port, XINE_ANON_STREAM);
   this->metronom->set_master(this->metronom, NULL);
  
   port->original_port->close(port->original_port, stream );
-  
-  port->open_count--;
   
   _x_post_dec_usage(port);
 }
@@ -387,7 +381,7 @@ static void fftgraph_port_put_buffer (xine_audio_port_t *port_gen,
 
       draw_fftgraph(this, frame);
 
-      frame->draw(frame, NULL);
+      frame->draw(frame, XINE_ANON_STREAM);
       frame->free(frame);
     }
   } while( this->sample_counter >= this->samples_per_frame );

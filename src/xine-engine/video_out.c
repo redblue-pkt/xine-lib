@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.194 2004/05/23 21:30:26 tmattern Exp $
+ * $Id: video_out.c,v 1.195 2004/05/29 14:45:25 mroi Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -58,8 +58,6 @@
 /* wait this delay if the first frame is still referenced */
 #define FIRST_FRAME_POLL_DELAY   3000
 #define FIRST_FRAME_MAX_POLL       10    /* poll n times at most */
-
-#define NULL_STREAM    (xine_stream_t *)-1
 
 typedef struct {
   vo_frame_t        *first;
@@ -356,6 +354,9 @@ static int vo_frame_draw (vo_frame_t *img, xine_stream_t *stream) {
   int            frames_to_skip;
   int            duration;
 
+  /* handle anonymous streams like NULL for easy checking */
+  if (stream == XINE_ANON_STREAM) stream = NULL;
+  
   img->stream = stream;
   this->current_width = img->width;
   this->current_height = img->height;
@@ -441,7 +442,7 @@ static int vo_frame_draw (vo_frame_t *img, xine_stream_t *stream) {
     pthread_mutex_lock(&this->streams_lock);
     for (stream = xine_list_first_content(this->streams); stream;
          stream = xine_list_next_content(this->streams)) {
-      if (stream == NULL_STREAM) continue;
+      if (stream == XINE_ANON_STREAM) continue;
       pthread_mutex_lock (&stream->first_frame_lock);
       if (stream->first_frame_flag == 2) {
         stream->first_frame_flag = (this->grab_only) ? 0 : 1;
@@ -493,7 +494,7 @@ static int vo_frame_draw (vo_frame_t *img, xine_stream_t *stream) {
     pthread_mutex_lock(&this->streams_lock);
     for (stream = xine_list_first_content(this->streams); stream;
          stream = xine_list_next_content(this->streams)) {
-      if (stream == NULL_STREAM) continue;
+      if (stream == XINE_ANON_STREAM) continue;
       _x_stream_info_set(stream, XINE_STREAM_INFO_SKIPPED_FRAMES, 
 			 1000 * this->num_frames_skipped / this->num_frames_delivered);
       _x_stream_info_set(stream, XINE_STREAM_INFO_DISCARDED_FRAMES,
@@ -884,7 +885,7 @@ static void overlay_and_display_frame (vos_t *this,
     pthread_mutex_lock(&this->streams_lock);
     for (stream = xine_list_first_content(this->streams); stream;
          stream = xine_list_next_content(this->streams)) {
-      if (stream == NULL_STREAM) continue;
+      if (stream == XINE_ANON_STREAM) continue;
       pthread_mutex_lock (&stream->first_frame_lock);
       if (stream->first_frame_flag) {
         stream->first_frame_flag = 0;
@@ -1030,7 +1031,7 @@ static void *video_out_loop (void *this_gen) {
       pthread_mutex_lock(&this->streams_lock);
       for (stream = xine_list_first_content(this->streams); stream;
            stream = xine_list_next_content(this->streams)) {
-	if (stream == NULL_STREAM) continue;
+	if (stream == XINE_ANON_STREAM) continue;
         if (stream->video_decoder_plugin && stream->video_fifo) {
           buf_element_t *buf;
           
@@ -1144,7 +1145,7 @@ int xine_get_next_video_frame (xine_video_port_t *this_gen,
     img = this->display_img_buf_queue->first;
     if (!img) {
       pthread_mutex_unlock(&this->display_img_buf_queue->mutex);
-      if (stream != NULL_STREAM && stream->video_fifo->fifo_size == 0 &&
+      if (stream != XINE_ANON_STREAM && stream->video_fifo->fifo_size == 0 &&
           stream->demux_plugin->get_status(stream->demux_plugin) != DEMUX_OK)
         /* no further data can be expected here */
         return 0;
@@ -1201,7 +1202,6 @@ static void vo_open (xine_video_port_t *this_gen, xine_stream_t *stream) {
   if (!this->overlay_enabled && (stream == NULL || stream->spu_channel_user > -2))
     /* enable overlays if our new stream might want to show some */
     this->overlay_enabled = 1;
-  if (stream == NULL) stream = NULL_STREAM;
   pthread_mutex_lock(&this->streams_lock);
   xine_list_append_content(this->streams, stream);
   pthread_mutex_unlock(&this->streams_lock);
@@ -1219,7 +1219,6 @@ static void vo_close (xine_video_port_t *this_gen, xine_stream_t *stream) {
   this->video_opened = 0;
   
   /* unregister stream */
-  if (stream == NULL) stream = NULL_STREAM;
   pthread_mutex_lock(&this->streams_lock);
   for (cur = xine_list_first_content(this->streams); cur;
        cur = xine_list_next_content(this->streams))
@@ -1363,7 +1362,7 @@ static int vo_status (xine_video_port_t *this_gen, xine_stream_t *stream,
       *width = this->current_width;
       *height = this->current_height;
       *img_duration = this->current_duration;
-      ret = 1;
+      ret = !!stream; /* return false for a NULL stream, true otherwise */
       break;
     }
   pthread_mutex_unlock(&this->streams_lock);
@@ -1448,7 +1447,7 @@ static void vo_enable_overlay (xine_video_port_t *this_gen, int overlay_enabled)
     pthread_mutex_lock(&this->streams_lock);
     for (stream = xine_list_first_content(this->streams) ; stream ;
          stream = xine_list_next_content(this->streams)) {
-      if (stream == NULL_STREAM || stream->spu_channel_user > -2) {
+      if (stream == XINE_ANON_STREAM || stream->spu_channel_user > -2) {
 	pthread_mutex_unlock(&this->streams_lock);
 	return;
       }

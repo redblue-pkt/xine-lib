@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: post.c,v 1.25 2004/05/18 03:16:12 miguelfreitas Exp $
+ * $Id: post.c,v 1.26 2004/05/29 14:45:25 mroi Exp $
  */
  
 /*
@@ -61,10 +61,7 @@ static void post_video_open(xine_video_port_t *port_gen, xine_stream_t *stream) 
   if (port->port_lock) pthread_mutex_lock(port->port_lock);
   port->original_port->open(port->original_port, stream);
   if (port->port_lock) pthread_mutex_unlock(port->port_lock);
-  if (stream)
-    port->stream = stream;
-  else
-    port->stream = POST_NULL_STREAM;
+  port->stream = stream;
 }
 
 static vo_frame_t *post_video_get_frame(xine_video_port_t *port_gen, uint32_t width, 
@@ -189,15 +186,19 @@ static int post_video_rewire(xine_post_out_t *output_gen, void *data) {
   xine_video_port_t *new_port   = (xine_video_port_t *)data;
   post_video_port_t *input_port = (post_video_port_t *)output->user_data;
   post_plugin_t     *this       = output->post;
+  int64_t img_duration;
+  int width, height;
   
   if (!new_port)
     return 0;
   
   this->running_ticket->revoke(this->running_ticket, 1);
   
-  new_port->open(new_port, (input_port->stream == POST_NULL_STREAM) ? NULL : input_port->stream);
-  input_port->original_port->close(input_port->original_port,
-    (input_port->stream == POST_NULL_STREAM) ? NULL : input_port->stream);
+  if (input_port->original_port->status(input_port->original_port, input_port->stream,
+      &width, &height, &img_duration)) {
+    new_port->open(new_port, input_port->stream);
+    input_port->original_port->close(input_port->original_port, input_port->stream);
+  }
   input_port->original_port = new_port;
   
   this->running_ticket->issue(this->running_ticket, 1);
@@ -612,14 +613,10 @@ static int post_audio_open(xine_audio_port_t *port_gen, xine_stream_t *stream,
   if (port->port_lock) pthread_mutex_lock(port->port_lock);
   result = port->original_port->open(port->original_port, stream, bits, rate, mode);
   if (port->port_lock) pthread_mutex_unlock(port->port_lock);
-  if (stream)
-    port->stream = stream;
-  else
-    port->stream = POST_NULL_STREAM;
+  port->stream = stream;
   port->bits   = bits;
   port->rate   = rate;
   port->mode   = mode;
-  port->open_count++;
   return result;
 }
 
@@ -650,7 +647,6 @@ static void post_audio_close(xine_audio_port_t *port_gen, xine_stream_t *stream)
   port->original_port->close(port->original_port, stream);
   if (port->port_lock) pthread_mutex_unlock(port->port_lock);
   port->stream = NULL;
-  port->open_count--;
   _x_post_dec_usage(port);
 }
 
@@ -693,6 +689,9 @@ static int post_audio_status(xine_audio_port_t *port_gen, xine_stream_t *stream,
   
   if (port->port_lock) pthread_mutex_lock(port->port_lock);
   result = port->original_port->status(port->original_port, stream, bits, rate, mode);
+  *bits = port->bits;
+  *rate = port->rate;
+  *mode = port->mode;
   if (port->port_lock) pthread_mutex_unlock(port->port_lock);
   return result;
 }
@@ -703,17 +702,18 @@ static int post_audio_rewire(xine_post_out_t *output_gen, void *data) {
   xine_audio_port_t *new_port   = (xine_audio_port_t *)data;
   post_audio_port_t *input_port = (post_audio_port_t *)output->user_data;
   post_plugin_t     *this       = output->post;
+  uint32_t bits, rate;
+  int mode;
   
   if (!new_port)
     return 0;
   
   this->running_ticket->revoke(this->running_ticket, 1);
   
-  if( input_port->open_count ) {
-    new_port->open(new_port, (input_port->stream == POST_NULL_STREAM) ? NULL : input_port->stream,
-      input_port->bits, input_port->rate, input_port->mode);
-    input_port->original_port->close(input_port->original_port,
-      (input_port->stream == POST_NULL_STREAM) ? NULL : input_port->stream);
+  if (input_port->original_port->status(input_port->original_port, input_port->stream,
+      &bits, &rate, &mode)) {
+    new_port->open(new_port, input_port->stream, bits, rate, mode);
+    input_port->original_port->close(input_port->original_port, input_port->stream);
   }
   input_port->original_port = new_port;
   
@@ -767,8 +767,6 @@ post_audio_port_t *_x_post_intercept_audio_port(post_plugin_t *post, xine_audio_
     (*output)->user_data = port;
     xine_list_append_content(post->output, *output);
   }
-    
-  port->open_count = 0;
   
   return port;
 }

@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.177 2004/05/21 13:41:02 tmattern Exp $
+ * $Id: audio_out.c,v 1.178 2004/05/29 14:45:25 mroi Exp $
  *
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -99,8 +99,6 @@
 #define AUDIO_BUF_SIZE       32768
 
 #define ZERO_BUF_SIZE         5000
-
-#define NULL_STREAM     (xine_stream_t *)-1
 
 /* By adding gap errors (difference between reported and expected
  * sound card clock) into metronom's vpts_offset we can use its 
@@ -1092,7 +1090,7 @@ static void *ao_loop (void *this_gen) {
 	pthread_mutex_lock(&this->streams_lock);
 	for (stream = xine_list_first_content(this->streams); stream;
 	     stream = xine_list_next_content(this->streams)) {
-	  if (stream == NULL_STREAM) continue;
+	  if (stream == XINE_ANON_STREAM) continue;
 	  stream->metronom->set_option(stream->metronom, METRONOM_ADJ_VPTS_OFFSET,
                                        -gap/SYNC_GAP_RATE );
           last_sync_time = cur_time;
@@ -1190,7 +1188,7 @@ int xine_get_next_audio_frame (xine_audio_port_t *this_gen,
     in_buf = this->out_fifo->first;
     if (!in_buf) {
       pthread_mutex_unlock(&this->out_fifo->mutex);
-      if (stream != NULL_STREAM && stream->audio_fifo->fifo_size == 0 &&
+      if (stream != XINE_ANON_STREAM && stream->audio_fifo->fifo_size == 0 &&
 	  stream->demux_plugin->get_status(stream->demux_plugin) !=DEMUX_OK)
         /* no further data can be expected here */
         return 0;
@@ -1370,7 +1368,6 @@ static int ao_open(xine_audio_port_t *this_gen, xine_stream_t *stream,
     stream->metronom->set_audio_rate(stream->metronom, this->audio_step);
   }
 
-  if (stream == NULL) stream = NULL_STREAM;
   pthread_mutex_lock(&this->streams_lock);
   xine_list_append_content(this->streams, stream);
   pthread_mutex_unlock(&this->streams_lock);
@@ -1403,6 +1400,9 @@ static void ao_put_buffer (xine_audio_port_t *this_gen,
     return;
   }
 
+  /* handle anonymous streams like NULL for easy checking */
+  if (stream == XINE_ANON_STREAM) stream = NULL;
+  
   buf->stream = stream;
   
   pts = buf->vpts;
@@ -1438,7 +1438,6 @@ static void ao_close(xine_audio_port_t *this_gen, xine_stream_t *stream) {
   xprintf (this->xine, XINE_VERBOSITY_DEBUG, "ao_close\n");
 
   /* unregister stream */
-  if (stream == NULL) stream = NULL_STREAM;
   pthread_mutex_lock(&this->streams_lock);
   for (cur = xine_list_first_content(this->streams); cur;
        cur = xine_list_next_content(this->streams))
@@ -1808,7 +1807,7 @@ static int ao_status (xine_audio_port_t *this_gen, xine_stream_t *stream,
       *bits = this->input.bits;
       *rate = this->input.rate;
       *mode = this->input.mode;
-      ret = 1;
+      ret = !!stream; /* return false for a NULL stream, true otherwise */
       break;
     }
   pthread_mutex_unlock(&this->streams_lock);
