@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_vidix.c,v 1.35 2003/03/16 22:28:14 jstembridge Exp $
+ * $Id: video_out_vidix.c,v 1.36 2003/04/12 13:02:30 jstembridge Exp $
  * 
  * video_out_vidix.c
  *
@@ -269,7 +269,7 @@ static void write_frame_YUY2(vidix_driver_t* this, vidix_frame_t* frame)
    for(h = 0; h < frame->height; h++) {
       xine_fast_memcpy(dst8, src8, double_width);
 
-      dst8 += (this->dstrides.y * 2);
+      dst8 += this->dstrides.y;
       src8 += frame->vo_frame.pitches[0];
    }
 }
@@ -505,13 +505,24 @@ static void vidix_config_playback (vidix_driver_t *this) {
     memset(this->vidix_mem + this->vidix_play.offsets[i], 0x80,
            this->vidix_play.frame_size);
 
-  apitch = this->vidix_play.dest.pitch.y-1;
-  this->dstrides.y = (this->sc.delivered_width + apitch) & ~apitch;
-  apitch = this->vidix_play.dest.pitch.v-1;
-  this->dstrides.v = (this->sc.delivered_width + apitch) & ~apitch;
-  apitch = this->vidix_play.dest.pitch.u-1;
-  this->dstrides.u = (this->sc.delivered_width + apitch) & ~apitch;
-     
+  switch(this->delivered_format) {
+    case XINE_IMGFMT_YV12:
+      apitch = this->vidix_play.dest.pitch.y-1;
+      this->dstrides.y = (this->sc.delivered_width + apitch) & ~apitch;
+      apitch = this->vidix_play.dest.pitch.v-1;
+      this->dstrides.v = (this->sc.delivered_width + apitch) & ~apitch;
+      apitch = this->vidix_play.dest.pitch.u-1;
+      this->dstrides.u = (this->sc.delivered_width + apitch) & ~apitch;
+      break;
+    case XINE_IMGFMT_YUY2:
+      apitch = this->vidix_play.dest.pitch.y-1;
+      this->dstrides.y = (this->sc.delivered_width*2 + apitch) & ~apitch;
+      break;
+    default:
+      printf("video_out_vidix: error. (unknown frame format: %04x)\n",
+             this->delivered_format);
+ }
+
 #ifdef LOG
   printf("video_out_vidix: overlay on\n");
 #endif  
