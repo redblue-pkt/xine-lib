@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.76 2001/11/18 03:53:25 guenter Exp $
+ * $Id: xine.c,v 1.77 2001/11/20 12:41:58 miguelfreitas Exp $
  *
  * top-level xine functions
  *
@@ -106,7 +106,8 @@ void xine_stop (xine_t *this) {
 
   this->metronom->set_speed (this->metronom, SPEED_NORMAL);
   this->speed      = SPEED_NORMAL;
-  this->audio_mute = 0;
+  this->video_out->video_paused = 0;
+  this->audio_out->audio_paused = 0;
 
   this->status = XINE_STOP;
   printf ("xine_stop: stopping demuxer\n");
@@ -304,7 +305,8 @@ void xine_play (xine_t *this, char *mrl,
     strncpy (this->cur_mrl, mrl, 1024);
     
     this->metronom->set_speed (this->metronom, SPEED_NORMAL);
-    this->audio_mute = 0;
+    this->video_out->video_paused = 0;
+    this->audio_out->audio_paused = 0;
     this->speed = SPEED_NORMAL;
   }
 
@@ -363,7 +365,6 @@ void xine_exit (xine_t *this) {
 
   printf ("xine_exit: shutdown audio\n");
 
-  this->audio_mute = 1;
   audio_decoder_shutdown (this);
 
   printf ("xine_exit: shutdown video\n");
@@ -581,10 +582,10 @@ void xine_set_speed (xine_t *this, int speed) {
 
   this->metronom->set_speed (this->metronom, speed);
 
-  if (speed == SPEED_PAUSE) 
-    this->audio_mute = 2;
-  else
-    this->audio_mute = speed != SPEED_NORMAL;
+  this->video_out->video_paused = (speed == SPEED_PAUSE);
+  /* see coment on audio_out loop about audio_paused */
+  this->audio_out->audio_paused = (speed != SPEED_NORMAL) + 
+                                  (speed == SPEED_PAUSE);
 
   this->speed      = speed;
 

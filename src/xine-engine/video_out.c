@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.56 2001/11/18 03:53:25 guenter Exp $
+ * $Id: video_out.c,v 1.57 2001/11/20 12:41:58 miguelfreitas Exp $
  *
  */
 
@@ -192,14 +192,17 @@ static void *video_out_loop (void *this_gen) {
     /* sigwait(&vo_mask, &dummysignum); */ /* wait for next timer tick */
     pause (); 
 
-    xine_profiler_start_count (prof_video_out);
-
+    if( this->video_paused )
+      continue;
+    
     video_step_new = this->metronom->get_video_rate (this->metronom);
     if (video_step_new != video_step) {
       video_step = video_step_new;
       vo_set_timer (video_step);
     }
     pts_absdiff = 1000000;
+    
+    xine_profiler_start_count (prof_video_out);
 
     cur_pts = this->metronom->get_current_time (this->metronom);
     
@@ -410,6 +413,7 @@ static void vo_close (vo_instance_t *this) {
     void *p;
 
     this->video_loop_running = 0;
+    this->video_paused = 0;
     /*kill (0, SIGALRM);*/
     pthread_join (this->video_thread, &p);
   }
@@ -608,6 +612,7 @@ vo_instance_t *vo_new_instance (vo_driver_t *driver, metronom_t *metronom) {
   this->free_img_buf_queue    = vo_new_img_buf_queue ();
   this->display_img_buf_queue = vo_new_img_buf_queue ();
   this->video_loop_running    = 0;
+  this->video_paused          = 0;
   this->pts_per_frame         = 0;
   this->pts_per_half_frame    = 0;
   this->overlay_enabled       = 1;

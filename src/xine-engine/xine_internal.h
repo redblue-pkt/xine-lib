@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.55 2001/11/15 23:18:04 guenter Exp $
+ * $Id: xine_internal.h,v 1.56 2001/11/20 12:41:58 miguelfreitas Exp $
  *
  */
 
@@ -192,7 +192,6 @@ struct xine_s {
   uint32_t                   audio_track_map[50];
   int                        audio_track_map_entries;
   int                        audio_finished;
-  int                        audio_mute;
   uint32_t                   audio_type;
 
   /* Lock for xine player functions */

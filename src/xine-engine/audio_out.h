@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.h,v 1.20 2001/11/10 13:48:03 guenter Exp $
+ * $Id: audio_out.h,v 1.21 2001/11/20 12:41:58 miguelfreitas Exp $
  */
 #ifndef HAVE_AUDIO_OUT_H
 #define HAVE_AUDIO_OUT_H
@@ -181,6 +181,7 @@ struct ao_instance_s {
   metronom_t     *metronom;
 
   int             audio_loop_running;
+  int             audio_paused;
   pthread_t       audio_thread;
 
   int             audio_step;           /* pts per 32 768 samples (sample = #bytes/2) */

@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.34 2001/11/19 19:10:41 miguelfreitas Exp $
+ * $Id: audio_out.c,v 1.35 2001/11/20 12:41:57 miguelfreitas Exp $
  * 
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -293,7 +293,8 @@ static void *ao_loop (void *this_gen) {
   uint32_t        ac5_type;
   uint32_t        ac5_length;
   uint32_t        ac5_pcm_length;
-
+  int             paused_wait;
+  
   this->audio_loop_running = 1;
   
   while ((this->audio_loop_running) ||
@@ -306,33 +307,46 @@ static void *ao_loop (void *this_gen) {
 
     buf = fifo_remove (this->out_fifo);
 
-    delay = this->driver->delay(this->driver);
+    do {
+      delay = this->driver->delay(this->driver);
 
-    /*
-     * where, in the timeline is the "end" of the 
-     * hardware audio buffer at the moment?
-     */
+      /*
+       * where, in the timeline is the "end" of the 
+       * hardware audio buffer at the moment?
+       */
     
-    cur_time = this->metronom->get_current_time (this->metronom);
-    hw_vpts = cur_time;
+      cur_time = this->metronom->get_current_time (this->metronom);
+      hw_vpts = cur_time;
   
 #ifdef AUDIO_OUT_LOG
-    printf ("audio_out: current delay is %d, current time is %d\n",
+      printf ("audio_out: current delay is %d, current time is %d\n",
 	    delay, cur_time);
 #endif
 
-    /* External A52 decoder delay correction */
-    if ((this->mode==AO_CAP_MODE_A52) || (this->mode==AO_CAP_MODE_AC5)) 
-      delay+=10; 
+      /* External A52 decoder delay correction */
+      if ((this->mode==AO_CAP_MODE_A52) || (this->mode==AO_CAP_MODE_AC5)) 
+        delay+=10; 
   
-    hw_vpts += delay * 1024 / this->frames_per_kpts;
+      hw_vpts += delay * 1024 / this->frames_per_kpts;
   
-    /*
-     * calculate gap:
-     */
+      /*
+       * calculate gap:
+       */
     
-    gap = buf->vpts - hw_vpts;
-    
+      gap = buf->vpts - hw_vpts;
+
+      /* wait until user unpauses stream
+         audio_paused == 1 means we are playing at a different speed
+         them we must process buffers otherwise the entire engine will stop.
+      */
+      paused_wait = (this->audio_paused == 2) ||
+        (this->audio_paused && gap > this->gap_tolerance);
+      
+      if ( paused_wait )
+        xine_usec_sleep (50000);
+    } while ( paused_wait );
+
+        
    /* 
       printf ("vpts : %d   buffer_vpts : %d  gap %d\n",
       hw_vpts, buf->vpts, gap);
@@ -342,7 +356,8 @@ static void *ao_loop (void *this_gen) {
      * output audio data synced to master clock
      */
   
-    if (gap < (-1 * this->gap_tolerance) || !buf->num_frames) {
+    if (gap < (-1 * this->gap_tolerance) || !buf->num_frames || 
+        this->audio_paused ) {
 
       /* drop package */
 
@@ -629,6 +644,7 @@ static void ao_close(ao_instance_t *this) {
     void *p;
 
     this->audio_loop_running = 0;
+    this->audio_paused = 0;
 
     audio_buffer = fifo_remove(this->free_fifo);
     audio_buffer->num_frames = 0;
@@ -684,6 +700,7 @@ ao_instance_t *ao_new_instance (ao_driver_t *driver, metronom_t *metronom,
   this->get_property          = ao_get_property;
   this->set_property          = ao_set_property;
   this->audio_loop_running    = 0;
+  this->audio_paused          = 0;
   /* FIXME: is 4* good enough for all resample cases?? */
   this->frame_buffer          = xine_xmalloc (4 * AUDIO_BUF_SIZE);
   this->zero_space            = xine_xmalloc (ZERO_BUF_SIZE * 2 * 6);

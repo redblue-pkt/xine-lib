@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.h,v 1.29 2001/11/15 23:18:04 guenter Exp $
+ * $Id: video_out.h,v 1.30 2001/11/20 12:41:58 miguelfreitas Exp $
  *
  *
  * xine version of video_out.h 
@@ -155,6 +155,7 @@ struct vo_instance_s {
   vo_frame_t        *last_frame;
 
   int                video_loop_running;
+  int                video_paused;
   pthread_t          video_thread;
 
   int                pts_per_half_frame;

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.55 2001/11/17 14:26:39 f1rmb Exp $
+ * $Id: audio_decoder.c,v 1.56 2001/11/20 12:41:57 miguelfreitas Exp $
  *
  *
  * functions that implement audio decoding
@@ -157,6 +157,7 @@ void *audio_decoder_loop (void *this_gen) {
 
     default:
 
+#if 0
       while (this->audio_mute==2) {
 	xine_usec_sleep (50000);
       }
@@ -168,6 +169,7 @@ void *audio_decoder_loop (void *this_gen) {
 	*/
 	break;
       }
+#endif
 
       xine_profiler_start_count (prof_audio_decode);
 
