@@ -1,6 +1,9 @@
   * fix the deadlock with non-seekable input plugins
   * guess codeset for OSD if nl_langinfo(CODESET) is missing or not working
   * new option - list of domains, where don't use proxy
+  * fix possible crashes in front-ends that create and delete streams
+  * revert changes to the DVD plugin that made it impossible to play mounted
+    DVDs
 
 xine-lib (1-rc3b)
   * fix SDL plugin that was broken in rc3
