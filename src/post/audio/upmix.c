@@ -23,7 +23,7 @@
  * It simply creates output channels to match the speaker arrangement.
  * E.g. Converts Stereo into Surround 5.1
  *
- * $Id: upmix.c,v 1.10 2004/05/17 21:28:06 jcdutton Exp $
+ * $Id: upmix.c,v 1.11 2004/05/17 21:47:01 jcdutton Exp $
  *
  */
 
@@ -381,6 +381,19 @@ static void upmix_port_put_buffer (xine_audio_port_t *port_gen,
   return;
 }
 
+static int upmix_port_audio_status(xine_audio_port_t *port_gen, xine_stream_t *stream,
+               uint32_t *bits, uint32_t *rate, int *mode) {
+  post_audio_port_t *port = (post_audio_port_t *)port_gen;
+
+  if (port->port_lock) pthread_mutex_lock(port->port_lock);
+  *bits = port->bits;
+  *rate = port->rate;
+  *mode = port->mode;
+  if (port->port_lock) pthread_mutex_unlock(port->port_lock);
+  return 1;
+}
+
+
 static void upmix_dispose(post_plugin_t *this_gen)
 {
   post_plugin_upmix_t *this = (post_plugin_upmix_t *)this_gen;
@@ -415,6 +428,7 @@ static post_plugin_t *upmix_open_plugin(post_class_t *class_gen, int inputs,
   port->new_port.open       = upmix_port_open;
   port->new_port.close      = upmix_port_close;
   port->new_port.put_buffer = upmix_port_put_buffer;
+  port->new_port.status     = upmix_port_audio_status;
 
   input_api       = &this->params_input;
   input_api->name = "parameters";
