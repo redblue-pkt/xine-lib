@@ -34,8 +34,14 @@
 * Author: Stephen Torri <storri@users.sourceforge.net>
 */
 #include "xine_check.h"
+
+
+#if defined(__linux__)
+#include <linux/major.h>
+#include <linux/hdreg.h>
+
 #include "xineutils.h"
-#include <X11/Xlib.h>
+
 #include <sys/stat.h>
 #include <sys/ioctl.h>
 #include <sys/utsname.h>
@@ -43,10 +49,17 @@
 #include <stdlib.h>
 #include <errno.h>
 
-#if defined(__linux__)
-#include <linux/major.h>
-#include <linux/hdreg.h>
+#ifdef HAVE_X11
+#include <X11/Xlib.h>
+#endif
+
+#ifdef HAVE_XV
 #include <X11/extensions/Xvlib.h>
+#endif
+
+#include <dlfcn.h>
+
+
 
 xine_health_check_t*
 xine_health_check (xine_health_check_t* hc) {
@@ -271,11 +284,17 @@ xine_health_check_x (xine_health_check_t* hc) {
 xine_health_check_t*
 xine_health_check_xv (xine_health_check_t* hc) {
 
+#ifdef HAVE_X11
+#ifdef HAVE_XV
   Display *dpy;
   unsigned int ver, rev, eventB, reqB, errorB;
   char * disname = NULL;
+  void * dl_handle;
+  int (*xvquery_extension)(int);
+  char * err = NULL;
 
   /* Majority of thi code was taken from or inspired by the xvinfo.c file of XFree86 */
+
   if(!(dpy = XOpenDisplay(disname))) {
     char* display_name = "";
     if (disname != NULL) {
@@ -290,7 +309,23 @@ xine_health_check_xv (xine_health_check_t* hc) {
     return hc;
   }
 
-  if((Success != XvQueryExtension(dpy, &ver, &rev, &reqB, &eventB, &errorB))) {
+  dlerror(); /* clear error code */
+  dl_handle = dlopen("libXv.a", RTLD_LAZY);
+  if(!dl_handle) {
+    hc->msg = dlerror();
+    hc->status = XINE_HEALTH_CHECK_FAIL;
+    return hc;
+  }
+
+  xvquery_extension = dlsym(dl_handle,"XvQueryExtension");
+
+  if((err = dlerror()) != NULL) {
+    hc->msg = err;
+    hc->status = XINE_HEALTH_CHECK_FAIL;
+    return hc;
+  }
+
+  if((Success != (*xvquery_extension)(dpy, &ver, &rev, &reqB, &eventB, &errorB))) {
     hc->msg = (char*) malloc (sizeof (char) * 80);
     sprintf(hc->msg, "No X-Video Extension on %s", (disname != NULL) ? disname : XDisplayName(NULL));
     hc->status = XINE_HEALTH_CHECK_FAIL;
@@ -300,7 +335,20 @@ xine_health_check_xv (xine_health_check_t* hc) {
     sprintf(hc->msg, "X-Video Extension version %d.%d\n", ver , rev);
     hc->status = XINE_HEALTH_CHECK_OK;
   }
+  dlclose(dl_handle);
   return hc;
+#else
+  hc->msg = (char*) malloc (sizeof (char) * 20);
+  sprintf(hc->msg, "No X-Video Extension");
+  hc->status = XINE_HEALTH_CHECK_FAIL;
+  return hc;
+#endif /* ! HAVE_HV */
+#else
+  hc->msg = (char*) malloc (sizeof (char) * 23);
+  sprintf(hc->msg, "No X11 windowing system");
+  hc->status = XINE_HEALTH_CHECK_FAIL;
+  return hc;
+#endif /* ! HAVE_X11 */
 }
 
 #else	/* !__linux__ */
