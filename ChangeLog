@@ -1,3 +1,5 @@
+xine-lib (1-rc4a)
+  * alsa audio out now uses a more user friendly "Speaker arrangement" config item.
   * fix possible crash in CDDB queries
   * work around the gnome-vfs sftp: method having a max read size of 256k,
     makes it possible to play AVIs over sftp:
@@ -40,7 +42,6 @@ xine-lib (1-rc4)
   * all config entries have help strings now
   * seeking support for matroska files
   * libmpeg2 now has native VIS motion compensation routines on SPARC
-  * alsa audio out now uses a more user friendly "Speaker arrangement" config item.
 
 xine-lib (1-rc3c)
   * fix the deadlock with non-seekable input plugins
