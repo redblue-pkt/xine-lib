@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_file.c,v 1.65 2002/10/27 22:48:57 guenter Exp $
+ * $Id: input_file.c,v 1.66 2002/10/31 17:00:49 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -271,12 +271,13 @@ static input_plugin_t *open_plugin (input_class_t *cls_gen, xine_stream_t *strea
   char                *filename, *subtitle;
   int                  fh;
 
-  if (!strncasecmp (mrl, "file://", 7)) 
-    filename = decode_uri (&mrl[7]);
+  if (!strncasecmp (mrl, "file:", 5)) 
+    filename = decode_uri (&mrl[5]);
   else
     filename = mrl;
 
-  subtitle = strrchr (filename, '#');
+  /* FIXME: find a better solution (multiple streams) for text subtitles */
+  subtitle = strrchr (filename, '?');
   if (subtitle) {
     *subtitle = 0;
     subtitle++;

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_stdin_fifo.c,v 1.33 2002/10/23 21:19:42 guenter Exp $
+ * $Id: input_stdin_fifo.c,v 1.34 2002/10/31 17:00:52 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -88,7 +88,7 @@ static int stdin_plugin_open(input_plugin_t *this_gen, const char *mrl) {
   free(this->mrl);
   this->mrl = strdup(mrl);
 
-  if (!strncasecmp(this->mrl, "stdin://", 8) 
+  if (!strncasecmp(this->mrl, "stdin:/", 7) 
       || !strncmp(this->mrl, "-", 1)) {
 #if defined(CONFIG_DEVFS_FS)
     filename = "/dev/vc/stdin";
@@ -96,22 +96,10 @@ static int stdin_plugin_open(input_plugin_t *this_gen, const char *mrl) {
     filename = "/dev/stdin";
 #endif
 
-  } else if(!strncasecmp(this->mrl, "fifo://", 7)) {
+  } else if(!strncasecmp(this->mrl, "fifo:/", 6)) {
 
-    if ((pfn = strrchr((this->mrl + 7), ':')) != NULL) {
-
-      filename = ++pfn;
-
-    } else {
-
-      if (!(strncasecmp(this->mrl + 7, "mpeg1", 5))
-	  || (!(strncasecmp(this->mrl + 7, "mpeg2", 5)))) {
-	filename = (char *) &this->mrl[12];
-
-      } else {
-	filename = (char *) &this->mrl[7];
-      }
-    }
+    filename = (char *) &this->mrl[6];
+    
   } else {
     return 0;
   }

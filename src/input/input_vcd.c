@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_vcd.c,v 1.53 2002/10/23 21:19:42 guenter Exp $
+ * $Id: input_vcd.c,v 1.54 2002/10/31 17:00:53 mroi Exp $
  *
  */
 
@@ -348,7 +348,7 @@ static int vcd_plugin_open (input_plugin_t *this_gen, const char *mrl) {
   free(this->mrl);
   this->mrl = strdup(mrl);
 
-  if (strncasecmp (this->mrl, "vcd://",6))
+  if (strncasecmp (this->mrl, "vcd:/",5))
     return 0;
     
   this->fd = open (this->device, O_RDONLY);
@@ -363,10 +363,10 @@ static int vcd_plugin_open (input_plugin_t *this_gen, const char *mrl) {
     return 0;
   }
 
-  filename = (char *) &this->mrl[6];
+  filename = (char *) &this->mrl[5];
 
   if (sscanf (filename, "%d", &this->cur_track) != 1) {
-    LOG_MSG_STDERR(this->xine, _("input_vcd: malformed MRL. Use vcd://<track #>\n"));
+    LOG_MSG_STDERR(this->xine, _("input_vcd: malformed MRL. Use vcd:/<track #>\n"));
     close (this->fd);
     this->fd = -1;
     return 0;
@@ -1013,7 +1013,7 @@ static xine_mrl_t **vcd_plugin_get_dir (input_plugin_t *this_gen,
     char mrl[1024];
     
     memset(&mrl, 0, sizeof (mrl));
-    sprintf(mrl, "vcd://%d",i);
+    sprintf(mrl, "vcd:/%d",i);
     
     if((i-1) >= this->mrls_allocated_entries) {
       ++this->mrls_allocated_entries;
@@ -1094,7 +1094,7 @@ static char **vcd_plugin_get_autoplay_list (input_plugin_t *this_gen,
     if(this->filelist[i - 1] == NULL)
       this->filelist[i - 1] = (char *) realloc(this->filelist[i - 1], sizeof(char *) * 256);
 
-    sprintf (this->filelist[i - 1], "vcd://%d",i);
+    sprintf (this->filelist[i - 1], "vcd:/%d",i);
     /* printf ("list[%d] : %d %s\n", i, this->filelist[i-1], this->filelist[i-1]);   */
   }
 

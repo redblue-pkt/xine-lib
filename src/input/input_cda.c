@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_cda.c,v 1.35 2002/10/23 21:19:42 guenter Exp $
+ * $Id: input_cda.c,v 1.36 2002/10/31 17:00:44 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -1379,7 +1379,7 @@ static int cda_plugin_open (input_plugin_t *this_gen, const char *mrl) {
   free(this->mrl);
   this->mrl = strdup(mrl);
 
-  if(strncasecmp (this->mrl, "cda://", 6))
+  if(strncasecmp (this->mrl, "cda:/", 5))
     return 0;
   
   if(!_cda_open_cd(this->cda)) {
@@ -1396,10 +1396,10 @@ static int cda_plugin_open (input_plugin_t *this_gen, const char *mrl) {
     _cda_cbbd_grab_infos(this);
   }
 
-  filename = (char *) &this->mrl[6];
+  filename = (char *) &this->mrl[5];
   
   if(sscanf(filename, "%d", &this->cda->cur_track) != 1) {
-    LOG_MSG_STDERR(this->xine, _("input_cda: malformed MRL. Use cda://<track #>\n"));
+    LOG_MSG_STDERR(this->xine, _("input_cda: malformed MRL. Use cda:/<track #>\n"));
     _cda_free_cda(this->cda);
     return 0;
   }
@@ -1656,7 +1656,7 @@ static xine_mrl_t **cda_plugin_get_dir (input_plugin_t *this_gen,
     char mrl[1024];
     
     memset(&mrl, 0, sizeof (mrl));
-    sprintf(mrl, "cda://%d",i);
+    sprintf(mrl, "cda:/%d",i);
     
     if((i-1) >= this->mrls_allocated_entries) {
       ++this->mrls_allocated_entries;
@@ -1735,7 +1735,7 @@ static char **cda_plugin_get_autoplay_list (input_plugin_t *this_gen, int *nFile
     if(this->filelist[i - 1] == NULL)
       this->filelist[i - 1] = (char *) realloc(this->filelist[i - 1], sizeof(char *) * 256);
     
-    sprintf (this->filelist[i - 1], "cda://%d",i);
+    sprintf (this->filelist[i - 1], "cda:/%d",i);
   }
   
   this->filelist[i - 1] = (char *) realloc(this->filelist[i - 1], sizeof(char *));

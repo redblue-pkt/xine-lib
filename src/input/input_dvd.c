@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.107 2002/10/27 20:07:39 mroi Exp $
+ * $Id: input_dvd.c,v 1.108 2002/10/31 17:00:45 mroi Exp $
  *
  */
 
@@ -370,7 +370,7 @@ static void dvd_build_mrl_list(dvd_input_plugin_t *this) {
      * - possible alignment of the mrl array 
      * - an array of mrl structures       sizeof(xine_mrl_t)       * num_mrls
      * - enough chars for every filename  sizeof(char)*25     * num_mrls
-     *   - "dvd://:000000.000000\0" = 25 chars
+     *   - "dvd:/000000.000000\0" = 25 chars
      */
     if ((this->mrls = (xine_mrl_t **) malloc(sizeof(xine_mrl_t *) + num_mrls *
 	(sizeof(xine_mrl_t*) + sizeof(xine_mrl_t) + 25*sizeof(char)) +
@@ -392,9 +392,9 @@ static void dvd_build_mrl_list(dvd_input_plugin_t *this) {
 	  mrl->link = NULL;
 	  mrl->type = mrl_dvd;
 	  mrl->size = 0;
-	  snprintf(name, 25, (j == 0) ? "dvd://" :
-		             (j == 1) ? "dvd://:%d" :
-		                        "dvd://:%d.%d", i, j);
+	  snprintf(name, 25, (j == 0) ? "dvd:/" :
+		             (j == 1) ? "dvd:/%d" :
+		                        "dvd:/%d.%d", i, j);
 	  name = &name[25];
 	  mrl++;
 	}
@@ -1172,19 +1172,18 @@ check_solaris_vold_device(dvd_input_class_t *this)
 /*
  * Opens the DVD plugin. The MRL takes the following form:
  *
- * dvd://[dvd_path][:vts[.program]]
+ * dvd:/[vts[/program]]
  *
  * e.g.
- *   dvd://                    - Play (navigate) /dev/dvd
- *   dvd:///dev/dvd2           - Play (navigate) /dev/dvd2
- *   dvd:///dev/dvd2:1         - Play Title 1 from /dev/dvd2
- *   dvd://:1.3                - Play Title 1, program 3 from /dev/dvd
+ *   dvd:/                    - Play (navigate)
+ *   dvd:/1                   - Play Title 1
+ *   dvd:/1.3                 - Play Title 1, program 3
  */
 static input_plugin_t *open_plugin (input_class_t *class_gen, xine_stream_t *stream, const char *data) {
   dvd_input_plugin_t    *this;
   dvd_input_class_t     *class = (dvd_input_class_t*)class_gen;
   char                  *locator;
-  int                    colon_point;
+  int                    slash_point;
   dvdnav_status_t        ret;
   char                  *intended_dvd_device;
   xine_cfg_entry_t      region_entry, lang_entry, cache_entry;
@@ -1238,34 +1237,26 @@ static input_plugin_t *open_plugin (input_class_t *class_gen, xine_stream_t *str
   this->dvd_name_length        = 0;
 
   /* Check we can handle this MRL */
-  if (!strncasecmp (this->mrl, "dvd://",6))
-    locator = &this->mrl[6];
+  if (!strncasecmp (this->mrl, "dvd:/",5))
+    locator = &this->mrl[5];
   else {
     return 0;
   }
 
   /* Attempt to parse MRL */
-  colon_point=0;
-  while((locator[colon_point] != '\0') && (locator[colon_point] != ':')) {
-    colon_point++;
+  slash_point=0;
+  while((locator[slash_point] != '\0') && (locator[slash_point] != '/')) {
+    slash_point++;
   }
 
-  if(locator[colon_point] == ':') {
+  if(locator[slash_point] == '/') {
     this->mode = MODE_TITLE; 
   } else {
     this->mode = MODE_NAVIGATE;
   }
 
   printf("input_dvd.c:open_plugin:dvd_device=%s\n",class->dvd_device); 
-  locator[colon_point] = '\0';
-  ret = DVDNAV_STATUS_OK;
-  if(colon_point == 0) {
-    /* Use default device */
-    intended_dvd_device=class->dvd_device;
-  } else {
-    /* Use specified device */
-    intended_dvd_device=locator;
-  }
+  intended_dvd_device=class->dvd_device;
   
   if(this->opened) {
     if ( intended_dvd_device==this->current_dvd_device ) {
@@ -1372,7 +1363,7 @@ static input_plugin_t *open_plugin (input_class_t *class_gen, xine_stream_t *str
     int titles;
     
     /* A program and/or VTS was specified */
-    locator += colon_point + 1;
+    locator += slash_point + 1;
 
     if(locator[0] == '\0') {
       /* Empty specifier */
@@ -1473,7 +1464,7 @@ static char ** dvd_class_get_autoplay_list (input_class_t *this_gen,
 
 #endif
 
-  this->filelist2[0] = "dvd://";
+  this->filelist2[0] = "dvd:/";
   this->filelist2[1] = NULL;
   *num_files = 1;
 
@@ -1662,6 +1653,10 @@ static void *init_class (xine_t *xine, void *data) {
 
 /*
  * $Log: input_dvd.c,v $
+ * Revision 1.108  2002/10/31 17:00:45  mroi
+ * adapt input plugins to new MRL syntax
+ * (mostly turning :// into :/)
+ *
  * Revision 1.107  2002/10/27 20:07:39  mroi
  * less noise and register skip_behaviour (chapter skip keys work again)
  *
