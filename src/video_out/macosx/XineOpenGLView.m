@@ -409,22 +409,22 @@ static uint32_t NSColorToYUV (NSColor *color);
         texture_buffer = malloc (sizeof (char) *
                                  video_width * video_height * 3);
 
+        {
+            // There _has_ to be a better way of doing this ...
+
+            uint32_t *p, *q;
+            p = (uint32_t *) texture_buffer;
+            q = (uint32_t *) (char *) (texture_buffer + (sizeof(char) * video_width * video_height * 3));
+
+            for (; p < q; p++) *p = initialColorYUV;
+        }
+
     }
 
     if (!initialColorYUVIsSet && initialColor)
     {
         initialColorYUV = NSColorToYUV(initialColor);
         initialColorYUVIsSet = YES;
-    }
-
-    {
-        // There _has_ to be a better way of doing this ...
-
-        uint32_t *p, *q;
-        p = (uint32_t *) texture_buffer;
-        q = (uint32_t *) (char *) (texture_buffer + (sizeof(char) * video_width * video_height * 3));
-
-        for (; p < q; p++) *p = initialColorYUV;
     }
 
     /* Create textures */
