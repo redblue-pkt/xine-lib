@@ -1,7 +1,8 @@
 
 SUBDIRS = man
 
-EXTRA_DIST = $(docs_DOCS) FAQ FAQ_es MRL.txt README.solaris dataflow.dia xine-lib-API.cfg
+EXTRA_DIST = $(docs_DOCS) FAQ FAQ_es MRL.txt README.solaris dataflow.dia\
+			  xine-lib-API.cfg README.xinerc
 
 docdir = $(prefix)/share/doc/xine
 docs_DOCS =

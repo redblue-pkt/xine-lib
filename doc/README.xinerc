@@ -1,0 +1,36 @@
+
+   ----------------------
+    some .xinerc options
+   ----------------------
+
+option                  meaning
+--------------------------------------------------------------------
+
+ac3_level               0..~200% : ac3 volume control
+
+ac3_pass_through        1/0 : enable ac3 output via spdif port
+
+audio_driver_name       audio driver to use, same as command line 
+                        option -A (e.g. oss, alsa, esd, artsd)
+
+colorkey                colorkey to use, may be usefull to change
+                        if parts of your desktio become transparent
+
+five_channel            1/0 : enable 5-channel playback
+
+four_channel            1/0 : enable 4-channel playback
+
+skin                    skin to use, see <prefix>/share/xine/skins
+                        for installed skins (e.g. metal, lcd, pitt)
+
+video_driver_name       video driver to use, same as command line 
+                        option -V (e.g. Xv, XShm)
+
+win32_path              path to where you have installed win32
+                        codec dlls for avi playback, e.g. 
+                        /usr/lib/win32
+
+zoom_mpeg1              1/0 : enable automatic zoom of small
+                        (e.g. mpeg1) videos to double size
+
+

@@ -315,6 +315,12 @@ surround here, you'll have to enable it in your ~/.xinerc:
 ac3_pass_through:1
 
 
+what do all these .xinerc entries mean?
+---------------------------------------
+
+you'll find more info about them in doc/README.xinerc
+
+
 where and how do I get the latest development version?
 ------------------------------------------------------
 
