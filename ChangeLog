@@ -1,8 +1,10 @@
 xine-lib (1.0.0-alpha1) 
   * transport stream demuxer fixes
+  * DVD playback should be working again (please report DVDs that don't play!)
   * stdin_fifo input plugin
   * vcd input plugin  
   * native Windows Media Audio (a.k.a. WMA, DivX audio) decoding via ffmpeg
+  * XviD decoder is working again
   * DV decoder (ffmpeg)
 
 xine-lib (1.0.0-alpha0) 
