@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * $Id: yuv2rgb.c,v 1.41 2003/03/06 16:49:32 guenter Exp $
+ * $Id: yuv2rgb.c,v 1.42 2003/04/23 00:28:04 tchamp Exp $
  */
 
 #include "config.h"
@@ -1329,7 +1329,7 @@ static void scale_line_4 (uint8_t *source, uint8_t *dest,
 }
 
 
-#define RGB(i)							\
+#define X_RGB(i)							\
 	U = pu[i];						\
 	V = pv[i];						\
 	r = this->table_rV[V];					\
@@ -1416,16 +1416,16 @@ static void yuv2rgb_c_32 (yuv2rgb_t *this, uint8_t * _dst,
       width = this->dest_width >> 3;
 
       do {
-	  RGB(0);
+	  X_RGB(0);
 	  DST1(0);
 
-	  RGB(1);
+	  X_RGB(1);
 	  DST1(1);
       
-	  RGB(2);
+	  X_RGB(2);
 	  DST1(2);
 
-	  RGB(3);
+	  X_RGB(3);
 	  DST1(3);
 
 	  pu += 4;
@@ -1480,19 +1480,19 @@ static void yuv2rgb_c_32 (yuv2rgb_t *this, uint8_t * _dst,
 
       width = this->source_width >> 3;
       do {
-	RGB(0);
+	X_RGB(0);
 	DST1(0);
 	DST2(0);
 
-	RGB(1);
+	X_RGB(1);
 	DST2(1);
 	DST1(1);
 
-	RGB(2);
+	X_RGB(2);
 	DST1(2);
 	DST2(2);
 
-	RGB(3);
+	X_RGB(3);
 	DST2(3);
 	DST1(3);
       
@@ -1547,16 +1547,16 @@ static void yuv2rgb_c_24_rgb (yuv2rgb_t *this, uint8_t * _dst,
       width = this->dest_width >> 3;
 
       do {
-	  RGB(0);
+	  X_RGB(0);
 	  DST1RGB(0);
 
-	  RGB(1);
+	  X_RGB(1);
 	  DST1RGB(1);
       
-	  RGB(2);
+	  X_RGB(2);
 	  DST1RGB(2);
 
-	  RGB(3);
+	  X_RGB(3);
 	  DST1RGB(3);
 
 	  pu += 4;
@@ -1611,19 +1611,19 @@ static void yuv2rgb_c_24_rgb (yuv2rgb_t *this, uint8_t * _dst,
 
       width = this->source_width >> 3;
       do {
-	RGB(0);
+	X_RGB(0);
 	DST1RGB(0);
 	DST2RGB(0);
 
-	RGB(1);
+	X_RGB(1);
 	DST2RGB(1);
 	DST1RGB(1);
 
-	RGB(2);
+	X_RGB(2);
 	DST1RGB(2);
 	DST2RGB(2);
 
-	RGB(3);
+	X_RGB(3);
 	DST2RGB(3);
 	DST1RGB(3);
 
@@ -1678,16 +1678,16 @@ static void yuv2rgb_c_24_bgr (yuv2rgb_t *this, uint8_t * _dst,
       width = this->dest_width >> 3;
 
       do {
-	  RGB(0);
+	  X_RGB(0);
 	  DST1BGR(0);
 
-	  RGB(1);
+	  X_RGB(1);
 	  DST1BGR(1);
       
-	  RGB(2);
+	  X_RGB(2);
 	  DST1BGR(2);
 
-	  RGB(3);
+	  X_RGB(3);
 	  DST1BGR(3);
 
 	  pu += 4;
@@ -1742,19 +1742,19 @@ static void yuv2rgb_c_24_bgr (yuv2rgb_t *this, uint8_t * _dst,
       pv   = _pv;
       width = this->source_width >> 3;
       do {
-	RGB(0);
+	X_RGB(0);
 	DST1BGR(0);
 	DST2BGR(0);
 
-	RGB(1);
+	X_RGB(1);
 	DST2BGR(1);
 	DST1BGR(1);
 
-	RGB(2);
+	X_RGB(2);
 	DST1BGR(2);
 	DST2BGR(2);
 
-	RGB(3);
+	X_RGB(3);
 	DST2BGR(3);
 	DST1BGR(3);
 
@@ -1809,16 +1809,16 @@ static void yuv2rgb_c_16 (yuv2rgb_t *this, uint8_t * _dst,
       width = this->dest_width >> 3;
 
       do {
-	  RGB(0);
+	  X_RGB(0);
 	  DST1(0);
 
-	  RGB(1);
+	  X_RGB(1);
 	  DST1(1);
       
-	  RGB(2);
+	  X_RGB(2);
 	  DST1(2);
 
-	  RGB(3);
+	  X_RGB(3);
 	  DST1(3);
 
 	  pu += 4;
@@ -1872,19 +1872,19 @@ static void yuv2rgb_c_16 (yuv2rgb_t *this, uint8_t * _dst,
       pv   = _pv;
       width = this->source_width >> 3;
       do {
-	RGB(0);
+	X_RGB(0);
 	DST1(0);
 	DST2(0);
 
-	RGB(1);
+	X_RGB(1);
 	DST2(1);
 	DST1(1);
 
-	RGB(2);
+	X_RGB(2);
 	DST1(2);
 	DST2(2);
 
-	RGB(3);
+	X_RGB(3);
 	DST2(3);
 	DST1(3);
 
@@ -1939,16 +1939,16 @@ static void yuv2rgb_c_8 (yuv2rgb_t *this, uint8_t * _dst,
       width = this->dest_width >> 3;
 
       do {
-	  RGB(0);
+	  X_RGB(0);
 	  DST1(0);
 
-	  RGB(1);
+	  X_RGB(1);
 	  DST1(1);
       
-	  RGB(2);
+	  X_RGB(2);
 	  DST1(2);
 
-	  RGB(3);
+	  X_RGB(3);
 	  DST1(3);
 
 	  pu += 4;
@@ -2003,19 +2003,19 @@ static void yuv2rgb_c_8 (yuv2rgb_t *this, uint8_t * _dst,
 
       width = this->source_width >> 3;
       do {
-	RGB(0);
+	X_RGB(0);
 	DST1(0);
 	DST2(0);
 
-	RGB(1);
+	X_RGB(1);
 	DST2(1);
 	DST1(1);
 
-	RGB(2);
+	X_RGB(2);
 	DST1(2);
 	DST2(2);
 
-	RGB(3);
+	X_RGB(3);
 	DST2(3);
 	DST1(3);
       
@@ -2114,16 +2114,16 @@ static void yuv2rgb_c_palette (yuv2rgb_t *this, uint8_t * _dst,
       width = this->dest_width >> 3;
 
       do {
-	  RGB(0);
+	  X_RGB(0);
 	  DST1CMAP(0);
 
-	  RGB(1);
+	  X_RGB(1);
 	  DST1CMAP(1);
       
-	  RGB(2);
+	  X_RGB(2);
 	  DST1CMAP(2);
 
-	  RGB(3);
+	  X_RGB(3);
 	  DST1CMAP(3);
 
 	  pu += 4;
@@ -2177,19 +2177,19 @@ static void yuv2rgb_c_palette (yuv2rgb_t *this, uint8_t * _dst,
       pv   = _pv;
       width = this->source_width >> 3;
       do {
-	RGB(0);
+	X_RGB(0);
 	DST1CMAP(0);
 	DST2CMAP(0);
 
-	RGB(1);
+	X_RGB(1);
 	DST2CMAP(1);
 	DST1CMAP(1);
 
-	RGB(2);
+	X_RGB(2);
 	DST1CMAP(2);
 	DST2CMAP(2);
 
-	RGB(3);
+	X_RGB(3);
 	DST2CMAP(3);
 	DST1CMAP(3);
 
@@ -2610,16 +2610,16 @@ static void yuy22rgb_c_32 (yuv2rgb_t *this, uint8_t * _dst, uint8_t * _p)
 
     do {
 
-      RGB(0);
+      X_RGB(0);
       DST1(0);
 
-      RGB(1);
+      X_RGB(1);
       DST1(1);
       
-      RGB(2);
+      X_RGB(2);
       DST1(2);
       
-      RGB(3);
+      X_RGB(3);
       DST1(3);
 
       pu += 4;
@@ -2688,16 +2688,16 @@ static void yuy22rgb_c_24_rgb (yuv2rgb_t *this, uint8_t * _dst, uint8_t * _p)
     width = this->dest_width >> 3;
     
     do {
-      RGB(0);
+      X_RGB(0);
       DST1RGB(0);
       
-      RGB(1);
+      X_RGB(1);
       DST1RGB(1);
       
-      RGB(2);
+      X_RGB(2);
       DST1RGB(2);
       
-      RGB(3);
+      X_RGB(3);
       DST1RGB(3);
 
       pu += 4;
@@ -2766,16 +2766,16 @@ static void yuy22rgb_c_24_bgr (yuv2rgb_t *this, uint8_t * _dst, uint8_t * _p)
     width = this->dest_width >> 3;
     
     do {
-      RGB(0);
+      X_RGB(0);
       DST1BGR(0);
       
-      RGB(1);
+      X_RGB(1);
       DST1BGR(1);
       
-      RGB(2);
+      X_RGB(2);
       DST1BGR(2);
 
-      RGB(3);
+      X_RGB(3);
       DST1BGR(3);
       
       pu += 4;
@@ -2840,16 +2840,16 @@ static void yuy22rgb_c_16 (yuv2rgb_t *this, uint8_t * _dst, uint8_t * _p)
     width = this->dest_width >> 3;
     
     do {
-      RGB(0);
+      X_RGB(0);
       DST1(0);
 
-      RGB(1);
+      X_RGB(1);
       DST1(1);
       
-      RGB(2);
+      X_RGB(2);
       DST1(2);
       
-      RGB(3);
+      X_RGB(3);
       DST1(3);
 
       pu += 4;
@@ -2914,16 +2914,16 @@ static void yuy22rgb_c_8 (yuv2rgb_t *this, uint8_t * _dst, uint8_t * _p)
     width = this->dest_width >> 3;
     
     do {
-      RGB(0);
+      X_RGB(0);
       DST1(0);
       
-      RGB(1);
+      X_RGB(1);
       DST1(1);
 
-      RGB(2);
+      X_RGB(2);
       DST1(2);
       
-      RGB(3);
+      X_RGB(3);
       DST1(3);
 
       pu += 4;
@@ -3031,16 +3031,16 @@ static void yuy22rgb_c_palette (yuv2rgb_t *this, uint8_t * _dst, uint8_t * _p)
     width = this->dest_width >> 3;
     
     do {
-      RGB(0);
+      X_RGB(0);
       DST1CMAP(0);
 
-      RGB(1);
+      X_RGB(1);
       DST1CMAP(1);
 
-      RGB(2);
+      X_RGB(2);
       DST1CMAP(2);
 
-      RGB(3);
+      X_RGB(3);
       DST1CMAP(3);
 
       pu += 4;
