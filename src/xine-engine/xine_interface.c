@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_interface.c,v 1.78 2004/02/12 18:19:12 mroi Exp $
+ * $Id: xine_interface.c,v 1.79 2004/02/16 20:19:10 uid86226 Exp $
  *
  * convenience/abstraction layer, functions to implement
  * libxine's public interface
@@ -329,7 +329,9 @@ void xine_set_param (xine_stream_t *stream, int param, int value) {
 
   switch (param) {
   case XINE_PARAM_SPEED:
+    pthread_mutex_lock (&stream->frontend_lock);
     _x_set_speed (stream, value);
+    pthread_mutex_unlock (&stream->frontend_lock);
     break;
 
   case XINE_PARAM_AV_OFFSET:

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.c,v 1.134 2004/01/18 18:18:31 mroi Exp $
+ * $Id: metronom.c,v 1.135 2004/02/16 20:19:09 uid86226 Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -41,6 +41,7 @@
 */
 
 #define METRONOM_INTERNAL
+#define METRONOM_CLOCK_INTERNAL
 
 #include "xine_internal.h"
 #include "metronom.h"

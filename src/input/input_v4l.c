@@ -1175,7 +1175,7 @@ static int v4l_adjust_realtime_speed(v4l_input_plugin_t *this, fifo_buffer_t *fi
 	    "Buffer is empty, pausing playback (used: %d, num_free: %d)\r\n",
 	    num_used, num_free);
     
-    this->stream->xine->clock->set_speed (this->stream->xine->clock, XINE_SPEED_PAUSE);
+    _x_set_speed(this->stream, XINE_SPEED_PAUSE);
     this->stream->xine->clock->set_option (this->stream->xine->clock, CLOCK_SCR_ADJUSTABLE, 0);
     
     this->scr_tunning = SCR_PAUSED;
@@ -1196,7 +1196,7 @@ static int v4l_adjust_realtime_speed(v4l_input_plugin_t *this, fifo_buffer_t *fi
       
       pvrscr_speed_tunning(this->scr, 1.0);
       
-      this->stream->xine->clock->set_speed (this->stream->xine->clock, XINE_SPEED_NORMAL);
+      _x_set_speed(this->stream, XINE_SPEED_NORMAL);
       this->stream->xine->clock->set_option (this->stream->xine->clock, CLOCK_SCR_ADJUSTABLE, 1);
     }
   } else if (scr_tunning == SCR_SKIP) {

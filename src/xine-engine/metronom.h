@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.h,v 1.56 2003/11/20 00:42:14 tmattern Exp $
+ * $Id: metronom.h,v 1.57 2004/02/16 20:19:10 uid86226 Exp $
  *
  * metronom: general pts => virtual calculation/assoc
  *                   
@@ -237,6 +237,7 @@ struct metronom_s {
 
 metronom_t *_x_metronom_init (int have_video, int have_audio, xine_t *xine);
 
+/* FIXME: reorder this structure on the next cleanup to remove the dummies */
 struct metronom_clock_s {
 
   /*
@@ -249,6 +250,7 @@ struct metronom_clock_s {
    * system clock reference (SCR) functions
    */
 
+#ifdef METRONOM_CLOCK_INTERNAL
   /*
    * start clock (no clock reset)
    * at given pts
@@ -266,6 +268,11 @@ struct metronom_clock_s {
    * resume clock from where it was stopped
    */
   void (*resume_clock) (metronom_clock_t *self);
+#else
+  void *dummy1;
+  void *dummy2;
+  void *dummy3;
+#endif
 
 
   /*
@@ -279,13 +286,16 @@ struct metronom_clock_s {
    */
   void (*adjust_clock) (metronom_clock_t *self, int64_t desired_pts);
 
-
+#ifdef METRONOM_CLOCK_INTERNAL
   /*
    * set clock speed
    * for constants see xine_internal.h
    */
 
   int (*set_speed) (metronom_clock_t *self, int speed);
+#else
+  void *dummy4;
+#endif
 
   /*
    * (un)register a System Clock Reference provider at the metronom
@@ -293,6 +303,7 @@ struct metronom_clock_s {
   int    (*register_scr) (metronom_clock_t *self, scr_plugin_t *scr);
   void (*unregister_scr) (metronom_clock_t *self, scr_plugin_t *scr);
 
+#ifdef METRONOM_CLOCK_INTERNAL
   void (*exit) (metronom_clock_t *self);
   
   xine_t         *xine;
@@ -302,12 +313,22 @@ struct metronom_clock_s {
   pthread_t       sync_thread;
   int             thread_running;
   int             scr_adjustable;
+#else
+  void *dummy5;
+  void *dummy6;
+  void *dummy7;
+  void *dummy8;
+  pthread_t dummy9;
+  int dummy10;
+  int dummy11;
+#endif
   
   int speed;
-  
+
+#ifdef METRONOM_CLOCK_INTERNAL
   pthread_mutex_t lock;
   pthread_cond_t  cancel;
-
+#endif
 };
 
 metronom_clock_t *_x_metronom_clock_init(xine_t *xine);

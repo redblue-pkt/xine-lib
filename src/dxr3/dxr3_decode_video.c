@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decode_video.c,v 1.51 2004/01/12 17:35:15 miguelfreitas Exp $
+ * $Id: dxr3_decode_video.c,v 1.52 2004/02/16 20:19:09 uid86226 Exp $
  */
  
 /* dxr3 video decoder plugin.
@@ -517,12 +517,6 @@ static void dxr3_decode_data(video_decoder_t *this_gen, buf_element_t *buf)
     time = clock->get_current_time(clock);
     this->scr->scr_plugin.start(&this->scr->scr_plugin, time);
     clock->register_scr(clock, &this->scr->scr_plugin);
-#if LOG_VID
-    if (this->class->clock->scr_master == &this->scr->scr_plugin)
-      printf("dxr3_decode_video: dxr3_scr plugin is master\n");
-    else
-      printf("dxr3_decode_video: dxr3scr plugin is NOT master\n");
-#endif
   }
   
   /* update the pts timestamp in the card, which tags the data we write to it */

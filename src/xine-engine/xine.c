@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.282 2004/02/15 20:31:23 mroi Exp $
+ * $Id: xine.c,v 1.283 2004/02/16 20:19:10 uid86226 Exp $
  */
 
 /*
@@ -54,6 +54,7 @@
 
 #define XINE_ENABLE_EXPERIMENTAL_FEATURES
 #define XINE_ENGINE_INTERNAL
+#define METRONOM_CLOCK_INTERNAL
 
 #include "xine_internal.h"
 #include "plugin_catalog.h"
@@ -1539,8 +1540,6 @@ int xine_get_status (xine_stream_t *stream) {
 
 void _x_set_speed (xine_stream_t *stream, int speed) {
 
-  pthread_mutex_lock (&stream->frontend_lock);
-
   if (speed <= XINE_SPEED_PAUSE)
     speed = XINE_SPEED_PAUSE;
   else if (speed > XINE_SPEED_FAST_4)
@@ -1551,8 +1550,6 @@ void _x_set_speed (xine_stream_t *stream, int speed) {
   
   if (stream->slave && (stream->slave_affection & XINE_MASTER_SLAVE_SPEED))
     __set_speed_internal (stream->slave, speed);
-
-  pthread_mutex_unlock (&stream->frontend_lock);
 }
 
 

@@ -38,7 +38,7 @@
  * usage: 
  *   xine pvr:/<prefix_to_tmp_files>\!<prefix_to_saved_files>\!<max_page_age>
  *
- * $Id: input_pvr.c,v 1.41 2004/02/12 18:09:20 mroi Exp $
+ * $Id: input_pvr.c,v 1.42 2004/02/16 20:19:09 uid86226 Exp $
  */
 
 /**************************************************************************
@@ -460,7 +460,7 @@ static void pvr_adjust_realtime_speed(pvr_input_plugin_t *this, fifo_buffer_t *f
     this->scr_tunning = -2; /* marked as paused */
     pvrscr_speed_tunning(this->scr, 1.0);
     this->speed_before_pause = speed;
-    this->stream->xine->clock->set_speed ( this->stream->xine->clock, XINE_SPEED_PAUSE);
+    _x_set_speed(this->stream, XINE_SPEED_PAUSE);
 #ifdef SCRLOG
     printf("input_pvr: buffer empty, pausing playback\n" );
 #endif
@@ -472,7 +472,7 @@ static void pvr_adjust_realtime_speed(pvr_input_plugin_t *this, fifo_buffer_t *f
       this->scr_tunning = 0;
       
       pvrscr_speed_tunning(this->scr, 1.0 );
-      this->stream->xine->clock->set_speed ( this->stream->xine->clock, this->speed_before_pause);
+      _x_set_speed(this->stream, this->speed_before_pause);
 #ifdef SCRLOG
       printf("input_pvr: resuming playback\n" );
 #endif
@@ -674,7 +674,7 @@ static int pvr_play_file(pvr_input_plugin_t *this, fifo_buffer_t *fifo, uint8_t 
     this->play_blk = (this->rec_blk) ? (this->rec_blk-1) : 0;
      
     if( speed > XINE_SPEED_NORMAL )
-      this->stream->xine->clock->set_speed (this->stream->xine->clock, XINE_SPEED_NORMAL);
+      _x_set_speed(this->stream, XINE_SPEED_NORMAL);
     
     if( this->play_fd != -1 ) {
       if(this->play_fd != this->rec_fd )
@@ -977,7 +977,7 @@ static void pvr_event_handler (pvr_input_plugin_t *this) {
 
     case XINE_EVENT_SET_V4L2:
       /* make sure we are not paused */
-      this->stream->xine->clock->set_speed ( this->stream->xine->clock, XINE_SPEED_NORMAL);
+      _x_set_speed(this->stream, XINE_SPEED_NORMAL);
 
       if( v4l2_data->session_id != this->session ) {
         /* if session changes -> closes the old one */

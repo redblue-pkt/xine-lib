@@ -99,13 +99,13 @@ static void report_progress (xine_stream_t *stream, int p) {
 
 static void nbc_set_speed_pause (xine_stream_t *stream) {
   xprintf(stream->xine, XINE_VERBOSITY_DEBUG, "\nnet_buf_ctrl: nbc_put_cb: set_speed_pause\n");
-  stream->xine->clock->set_speed (stream->xine->clock, XINE_SPEED_PAUSE);
+  _x_set_speed(stream, XINE_SPEED_PAUSE);
   stream->xine->clock->set_option (stream->xine->clock, CLOCK_SCR_ADJUSTABLE, 0);
 }
 
 static void nbc_set_speed_normal (xine_stream_t *stream) {
   xprintf(stream->xine, XINE_VERBOSITY_DEBUG, "\nnet_buf_ctrl: nbc_put_cb: set_speed_normal\n");
-  stream->xine->clock->set_speed (stream->xine->clock, XINE_SPEED_NORMAL);
+  _x_set_speed(stream, XINE_SPEED_NORMAL);
   stream->xine->clock->set_option (stream->xine->clock, CLOCK_SCR_ADJUSTABLE, 1);
 }
 
