@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.h,v 1.84 2002/12/16 01:34:08 guenter Exp $
+ * $Id: buffer.h,v 1.85 2002/12/21 03:03:15 tmmm Exp $
  *
  *
  * contents:
@@ -231,7 +231,28 @@ struct buf_element_s {
 /* do not decode the buffer contents, detect framing only */
 #define BUF_FLAG_FRAMING     0x0800 
 
+/* Special buffer types:
+ * Sometimes there is a need to relay special information from a demuxer
+ * to a video decoder. For example, some file types store palette data in
+ * the file header independant of the video data. The special buffer type
+ * offers a way to communicate this or any other custom, format-specific
+ * data to the decoder.
+ *
+ * The interface was designed in a way that did not require an API
+ * version bump. To send a special buffer type, set a buffer's flags field
+ * to BUF_SPECIAL_PALETTE. Set the buffer's decoder_info[1] field to a
+ * number according to one of the special buffer subtypes defined below.
+ * The second and third decoder_info[] fields are defined according to
+ * your buffer type's requirements.
+ *
+ * Finally, remember to set the buffer's size to 0. This way, if a special
+ * buffer is sent to a decode that does not know how to handle it, the
+ * buffer will fall through to the case where the buffer's data content
+ * is accumulated and no harm will be done.
+ */
+
 /* these are the types of special buffers */
+
 /* 
  * In a BUF_SPECIAL_PALETTE buffer:
  * decoder_info[1] = BUF_SPECIAL_PALETTE
@@ -284,12 +305,11 @@ struct buf_element_s {
 /*
  * In a BUF_SPECIAL_STSD_ATOM buffer:
  * decoder_info[1] = BUF_SPECIAL_STSD_ATOM
- * buf content is a copy of the stsd atom
+ * decoder_info[2] = size of the stsd atom
+ * decoder_info[3] = pointer to stsd atom
  * binary-only quicktime decoders need this, sent by qt demuxer
  */
 #define BUF_SPECIAL_STSD_ATOM  5
-
-
 
 /*
  * In a BUF_SPECIAL_LPCM_CONFIG buffer:

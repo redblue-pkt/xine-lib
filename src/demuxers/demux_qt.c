@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.129 2002/12/18 20:32:20 esnel Exp $
+ * $Id: demux_qt.c,v 1.130 2002/12/21 03:03:16 tmmm Exp $
  *
  */
 
@@ -2084,10 +2084,10 @@ static void demux_qt_send_headers(demux_plugin_t *this_gen) {
   /* send stsd to the decoder */
   buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
   buf->decoder_flags = BUF_FLAG_SPECIAL;
-  buf->decoder_info[0] = BUF_SPECIAL_STSD_ATOM;
-  buf->decoder_info[1] = this->qt->video_stsd_size;
-  memcpy (buf->content, this->qt->video_stsd, this->qt->video_stsd_size);
-  buf->size = this->qt->video_stsd_size;
+  buf->decoder_info[1] = BUF_SPECIAL_STSD_ATOM;
+  buf->decoder_info[2] = this->qt->video_stsd_size;
+  buf->decoder_info[3] = (unsigned int)&this->qt->video_stsd;
+  buf->size = 0;
   buf->type = this->qt->video_type;
   this->video_fifo->put (this->video_fifo, buf);
 
@@ -2118,10 +2118,10 @@ static void demux_qt_send_headers(demux_plugin_t *this_gen) {
     /* send stsd to the decoder */
     buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
     buf->decoder_flags = BUF_FLAG_SPECIAL;
-    buf->decoder_info[0] = BUF_SPECIAL_STSD_ATOM;
-    buf->decoder_info[1] = this->qt->audio_stsd_size;
-    memcpy (buf->content, this->qt->audio_stsd, this->qt->audio_stsd_size);
-    buf->size = this->qt->audio_stsd_size;
+    buf->decoder_info[1] = BUF_SPECIAL_STSD_ATOM;
+    buf->decoder_info[2] = this->qt->audio_stsd_size;
+    buf->decoder_info[3] = (unsigned int)&this->qt->audio_stsd;
+    buf->size = 0;
     buf->type = this->qt->audio_type;
     this->audio_fifo->put (this->audio_fifo, buf);
 
