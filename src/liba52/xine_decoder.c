@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.2 2001/09/03 21:50:15 guenter Exp $
+ * $Id: xine_decoder.c,v 1.3 2001/09/11 14:10:04 jcdutton Exp $
  *
  * stuff needed to turn liba52 into a xine decoder plugin
  */
@@ -247,9 +247,9 @@ static void a52dec_decode_frame (a52dec_decoder_t *this, uint32_t pts) {
 	this->audio_out->close (this->audio_out);
       
       
-      this->output_open = (this->audio_out->open (this->audio_out, 16, 
+      this->output_open = this->audio_out->open (this->audio_out, 16, 
 						  this->a52_sample_rate,
-						  output_mode) == 1);
+						  output_mode) ;
       this->output_sampling_rate = this->a52_sample_rate;
       this->output_mode = output_mode;
     }
@@ -323,9 +323,9 @@ static void a52dec_decode_frame (a52dec_decoder_t *this, uint32_t pts) {
       
       a52_syncinfo (this->frame_buffer, &flags, &sample_rate, &bit_rate);
       
-      this->output_open = (this->audio_out->open (this->audio_out, 16, 
+      this->output_open = this->audio_out->open (this->audio_out, 16, 
 						  sample_rate,
-						  AO_CAP_MODE_A52) == 1);
+						  AO_CAP_MODE_A52) ;
       this->output_mode = AO_CAP_MODE_A52;
     }
     

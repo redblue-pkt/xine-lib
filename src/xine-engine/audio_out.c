@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.14 2001/09/10 21:52:59 guenter Exp $
+ * $Id: audio_out.c,v 1.15 2001/09/11 14:10:04 jcdutton Exp $
  * 
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -169,7 +169,7 @@ static int ao_open(ao_instance_t *this,
 
   this->metronom->set_audio_rate(this->metronom, this->audio_step);
 
-  return 1;
+  return this->output_frame_rate;
 }
 
 static void ao_fill_gap (ao_instance_t *this, uint32_t pts_len) {
