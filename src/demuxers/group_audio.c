@@ -19,7 +19,7 @@
  *
  * This file contains plugin entries for several demuxers used in games
  *
- * $Id: group_audio.c,v 1.3 2003/01/07 06:29:16 tmmm Exp $
+ * $Id: group_audio.c,v 1.4 2003/01/08 06:57:54 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -34,6 +34,7 @@ void *demux_aud_init_plugin (xine_t *xine, void *data);
 void *demux_aiff_init_plugin (xine_t *xine, void *data);
 void *demux_cdda_init_plugin (xine_t *xine, void *data);
 void *demux_mpgaudio_init_class (xine_t *xine, void *data);
+void *demux_nsf_init_plugin (xine_t *xine, void *data);
 void *demux_realaudio_init_plugin (xine_t *xine, void *data);
 void *demux_snd_init_plugin (xine_t *xine, void *data);
 void *demux_voc_init_plugin (xine_t *xine, void *data);
@@ -50,6 +51,7 @@ plugin_info_t xine_plugin_info[] = {
   { PLUGIN_DEMUX, 20, "aiff", XINE_VERSION_CODE, NULL, demux_aiff_init_plugin },
   { PLUGIN_DEMUX, 20, "cdda", XINE_VERSION_CODE, NULL, demux_cdda_init_plugin },
   { PLUGIN_DEMUX, 20, "mp3", XINE_VERSION_CODE, NULL, demux_mpgaudio_init_class },
+  { PLUGIN_DEMUX, 20, "nsf", XINE_VERSION_CODE, NULL, demux_nsf_init_plugin },
   { PLUGIN_DEMUX, 20, "realaudio", XINE_VERSION_CODE, NULL, demux_realaudio_init_plugin },
   { PLUGIN_DEMUX, 20, "snd", XINE_VERSION_CODE, NULL, demux_snd_init_plugin },
   { PLUGIN_DEMUX, 20, "voc", XINE_VERSION_CODE, NULL, demux_voc_init_plugin },
