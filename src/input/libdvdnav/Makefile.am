@@ -32,6 +32,7 @@ noinst_HEADERS = \
 	dvdnav.h \
 	dvdnav_events.h \
 	dvdnav_internal.h \
+	dvdread_internal.h \
 	remap.h \
 	vm.h \
 	vmcmd.h \
