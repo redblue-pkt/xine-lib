@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_qt.c,v 1.14 2001/11/18 03:53:23 guenter Exp $
+ * $Id: demux_qt.c,v 1.15 2001/11/24 16:30:31 jkeil Exp $
  *
  * demultiplexer for quicktime streams, based on:
  *
@@ -526,6 +526,8 @@ typedef struct demux_qt_s {
 
   quicktime_t          *qt;
 
+  int			has_audio;	 /* 1 if this qt stream has audio */
+
   int                   video_step; /* in PTS */
   double                audio_factor;
   
@@ -1002,8 +1004,10 @@ static int quicktime_atom_reset(quicktime_atom_t *atom)
   atom->type[0] = atom->type[1] = atom->type[2] = atom->type[3] = 0;
   return 0;
 }
-static int quicktime_atom_is(quicktime_atom_t *atom, char *type)
+static int quicktime_atom_is(quicktime_atom_t *atom, char *_type)
 {
+  unsigned char *type = _type;
+
   if(atom->type[0] == type[0] &&
      atom->type[1] == type[1] &&
      atom->type[2] == type[2] &&
@@ -3434,7 +3438,13 @@ static int quicktime_audio_bits(quicktime_t *file, int track)
 
 static char* quicktime_audio_compressor(quicktime_t *file, int track)
 {
-  return file->atracks[track].track->mdia.minf.stbl.stsd.table[0].format;
+  if (track < file->total_atracks)
+    return file->atracks[track].track->mdia.minf.stbl.stsd.table[0].format;
+  /*
+   * XXX: quick hack to avoid crashes when there's no audio.
+   * olympus 2040 digital camera records quicktime video without audio
+   */
+  return "NONE";
 }
 
 static int quicktime_track_channels(quicktime_t *file, int track)
@@ -3948,11 +3958,13 @@ static void *demux_qt_loop (void *this_gen) {
 
   do {
 
-    audio_pos = quicktime_audio_position (this->qt, 0);
+    if (this->has_audio) {
+      audio_pos = quicktime_audio_position (this->qt, 0);
 
-    if ( (audio_pos + 256) > quicktime_audio_length (this->qt, 0)) {
-      this->status = DEMUX_FINISHED;
-      break;
+      if ( (audio_pos + 256) > quicktime_audio_length (this->qt, 0)) {
+	this->status = DEMUX_FINISHED;
+	break;
+      }
     }
 
     /*
@@ -3975,7 +3987,7 @@ static void *demux_qt_loop (void *this_gen) {
 
     video_pts = frame_num * this->video_step ;
 
-    if ( this->audio_fifo && (audio_pts < video_pts)) { 
+    if ( this->has_audio && this->audio_fifo && (audio_pts < video_pts)) { 
 
       buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
       
@@ -4160,7 +4172,6 @@ static int demux_qt_detect_compressors (demux_qt_t *this) {
   
   printf ("demux_qt: video codec >%s<\n",buf_video_name(this->video_type));
   
-  audio = quicktime_audio_compressor (this->qt, 0);
 
   this->wavex.nChannels       = quicktime_track_channels (this->qt, 0);
   this->wavex.nSamplesPerSec  = quicktime_sample_rate (this->qt, 0);
@@ -4171,6 +4182,9 @@ static int demux_qt_detect_compressors (demux_qt_t *this) {
 
   this->audio_factor = 90000.0 / ((double) quicktime_sample_rate (this->qt, 0)) ;
 
+  this->has_audio = quicktime_has_audio (this->qt);
+
+  audio = quicktime_audio_compressor (this->qt, 0);
   if (!strncasecmp (audio, "raw ", 4)) {
     this->audio_type = BUF_AUDIO_LPCM_LE;
     this->wavex.wFormatTag = WAVE_FORMAT_ADPCM;
