@@ -5,12 +5,12 @@ The road to 1.0
 required for 1.0
 ----------------
 
-- make sure all decoder config options get always registered
 - fix rate estimation in demux_mpeg/demux_mpeg_block 
-- sputext decoder plugin (zoltan & michael)
+- sputext decoder plugin (zoltan & michael & miguel)
 - input_dvd: detect errors, display useful error messages
 - fix/update documentation
 - mute xine's console output unless verbose is set
+- fix tvout support (nvtv)
 
 optional
 --------
@@ -18,87 +18,26 @@ optional
 - fix streaming of small files (e.g. http) 
 - implement timeout in input_http, implement it correctly using select()
 - input_rtp
-- rtsp support
 - mmsh support
 - theora support
 - audio filter plugins (see also post plugins)
 - detect broken savage drivers in health check, disable Xv in that case
-- dvb support (guenter)
 - id3v2 (guenter)
-- syncfb video output plugin
-- vidix video output plugin
 - directfb video output plugin
 - reduce memory footprint (e.g. variable fifo buffer sizes...)
 - bring dxr3 video out to work with aaxine (michael)
 - streaming of avi files (e.g. via http)
 - Multiple DVD Subtitles displayed at the same time (jcdutton)
-- Passing extra info throught the decoders untouched (jcdutton)
-- Move DVD Still image sleep() from input_dvd.c to ./src/xine-engine (jcdutton)
 - Move read cache code from libdvdnav into input_dvd.c (jcdutton)
 - Support DVD "Trick" modes. Super Fast forward/reverse (jcdutton)
 - Add user selectable option for resampling audio out instead of current "gap feedback" method. (jcdutton)
 - xvid decoder plugin 
-- quicktime binary codec support (port from mplayer) (stephen)
 - implement get_audio/video_frame at least for 1 set of demuxer+decoders
   implement null_audio/video_output plugins
   implement test frontend that uses these functions
 - opengl video output plugin (matthias)
 - irix audio output plugin (matthias)
 - input_net (guenter)
-
-Assigned tasks
-==============
-
-- log/info dialog, xitk-gui  
-
-  Daniel Caujolle-Bert
-
-- a gtk/gnome gui, perhaps by building a bonobo component?
-  this should be possible now, xine is a library and can be embedded
-  in other applications
-
-  Sean Middleditch
-  madcat@e-kolay.net
-  Guenter Bartsch
-
-- navigation support, subtitle decoder
-
-  James Courtier-Dutton, 
-  Rich Wareham,
-
-- still images, metronom
-
-  Miguel Freitas,
-  James Courtier-Dutton,
-  Guenter Bartsch
-
-- Solaris(SPARC/intel) port
-
-  Juergen Keil
-
-- dxr3 support, 4,5,5.1 multichannel audio
-  
-  Eduard Hasenleithner
-
-- IRIX port
-
-  Matthias Hopf
-
-- win32 port
-
-  Matthew Grooms 
-
-- kde part / qt port
- 
-  Philip Stadermann
-
-- mpeg4ip streaming support
-
-  Fabio Bizzi, Guenter Bartsch
-
-- browser plugin
-
-  Guenter Bartsch
 
 Open Tasks
 ==========
@@ -119,8 +58,5 @@ Open Tasks
 - MAS support (http://www.mediaapplicationserver.net)
 - nonlinear video editing and compositing frontend (michael)
 - stream format conversion frontend
-- audio filters (e.g. compressor plugin)
-
-
-
+- audio filters
 
