@@ -64,9 +64,10 @@ int yuv2rgb_setup (yuv2rgb_t *this,
 		   int y_stride, int uv_stride,
 		   int dest_width, int dest_height,
 		   int rgb_stride) {
-
+  /*
   printf ("yuv2rgb setup (%d x %d => %d x %d)\n", source_width, source_height,
 	  dest_width, dest_height);
+	  */
   this->source_width  = source_width;
   this->source_height = source_height;
   this->y_stride      = y_stride;

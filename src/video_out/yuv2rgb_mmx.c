@@ -521,7 +521,7 @@ static inline void yuv420_rgb15 (yuv2rgb_t *this,
 	  /* printf ("i : %d\n",i); */
 
 	  mmx_yuv2rgb (y_buf, u_buf, v_buf); 
-	  mmx_unpack_16rgb (img, cpu); 
+	  mmx_unpack_15rgb (img, cpu); 
 	  y_buf += 8;
 	  u_buf += 4;
 	  v_buf += 4;
