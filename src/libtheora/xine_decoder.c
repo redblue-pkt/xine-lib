@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.8 2003/06/19 19:46:20 holstsn Exp $
+ * $Id: xine_decoder.c,v 1.9 2003/06/19 20:07:48 heinchen Exp $
  *
  * xine decoder plugin using libtheora
  *
@@ -78,10 +78,6 @@ static void readin_op (theora_decoder_t *this, char* src, int size) {
   }
   xine_fast_memcpy ( this->packet+this->done, src, size);
   this->done=this->done+size;
-}
-
-static void show_op_stats (theora_decoder_t *this) {
-  printf ("         : size %ld\n",this->op.bytes);
 }
 
 static void yuv2frame(yuv_buffer *yuv, vo_frame_t *frame) {
@@ -258,7 +254,9 @@ static void theora_dispose (video_decoder_t *this_gen) {
 
   theora_decoder_t *this = (theora_decoder_t *) this_gen;
 
+#ifdef LOG
   printf ("libtheora: dispose \n");
+#endif
 
   theora_clear (&this->t_state);
   theora_comment_clear (&this->t_comment);
