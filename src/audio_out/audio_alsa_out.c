@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.106 2003/09/01 04:08:41 jcdutton Exp $
+ * $Id: audio_alsa_out.c,v 1.107 2003/09/02 01:28:23 jcdutton Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -305,7 +305,7 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
     this->num_channels = 2;
     pcm_device = config->register_string(config,
                                          "audio.alsa_front_device",
-                                         "default",
+                                         "front",
                                          _("device used for stereo output"),
                                          NULL,
                                          10, NULL,
@@ -1184,7 +1184,7 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
 				       NULL);
   pcm_device = config->register_string(config,
 				       "audio.alsa_front_device",
-				       "default",
+				       "front",
 				       _("device used for stereo output"),
 				       NULL,
 				       10, NULL,
