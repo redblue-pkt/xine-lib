@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.18 2002/09/05 22:18:57 mroi Exp $
+ * $Id: xine_decoder.c,v 1.19 2002/12/06 17:24:20 mroi Exp $
  *
  * closed caption spu decoder. receive data by events. 
  *
@@ -39,7 +39,7 @@
 typedef struct spucc_decoder_s {
   spu_decoder_t      spu_decoder;
 
-  xine_t            *xine;
+  xine_stream_t     *stream;
   
   /* closed captioning decoder state */
   cc_decoder_t *ccdec;
@@ -60,6 +60,10 @@ typedef struct spucc_decoder_s {
      debug and maintain.
   */
   pthread_mutex_t cc_mutex;
+  
+  /* events will be sent here */
+  xine_event_queue_t *queue;
+  
 } spucc_decoder_t;
 
 
@@ -102,15 +106,15 @@ static void spucc_do_close(spucc_decoder_t *this)
 
 
 /* CAUTION: THIS FUNCTION ASSUMES THAT THE MUTEX IS ALREADY LOCKED! */
-static void spucc_do_init (spucc_decoder_t *this, vo_instance_t *vo_out)
+static void spucc_do_init (spucc_decoder_t *this, xine_video_port_t *vo_out)
 {
   if (! this->cc_open) {
 #ifdef LOG_DEBUG
     printf("spucc: init\n");
 #endif
     /* initialize caption renderer */
-    this->cc_cfg.renderer = cc_renderer_open(this->xine->osd_renderer,
-					     this->xine->metronom,
+    this->cc_cfg.renderer = cc_renderer_open(this->stream->osd_renderer,
+					     this->stream->metronom,
 					     &this->cc_cfg,
 					     this->video_width,
 					     this->video_height);
@@ -279,18 +283,23 @@ void spucc_notify_frame_change(spucc_decoder_t *this, int width, int height)
 
 /*------------------- implementation of spudec interface -------------------*/
 
-static void spudec_init (spu_decoder_t *this_gen, vo_instance_t *vo_out) {
-
-  spucc_decoder_t *this = (spucc_decoder_t *) this_gen;
-
-  pthread_mutex_lock(&this->cc_mutex);
-  spucc_do_init(this, vo_out);
-  pthread_mutex_unlock(&this->cc_mutex);
-}
-
-
 static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
   spucc_decoder_t *this = (spucc_decoder_t *) this_gen;
+  xine_event_t *event;
+  
+  if ((event = xine_event_get(this->queue))) {
+    switch (event->type) {
+    case XINE_EVENT_FRAME_FORMAT_CHANGE:
+      {
+        xine_format_change_data_t *frame_change = 
+          (xine_format_change_data_t *)event;
+        
+        spucc_notify_frame_change(this, frame_change->width,
+				  frame_change->height);
+      }
+      break;
+    }
+  }
   
   if (buf->decoder_flags & BUF_FLAG_PREVIEW) {
   } else {
@@ -308,95 +317,79 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
   }
 }  
 
-
 static void spudec_reset (spu_decoder_t *this_gen) {
 }
 
-
-static void spudec_close (spu_decoder_t *this_gen) {
-  spucc_decoder_t *this = (spucc_decoder_t *) this_gen;
-
-  pthread_mutex_lock(&this->cc_mutex);
-  spucc_do_close(this);
-  pthread_mutex_unlock(&this->cc_mutex);
-}
-
-static void spudec_event_listener(void *this_gen, xine_event_t *event_gen) {
-  spucc_decoder_t *this  = (spucc_decoder_t *) this_gen;
-  
-  if((!this) || (!event_gen)) {
-    return;
-  }
-
-  switch (event_gen->type) {
-    case XINE_EVENT_FRAME_CHANGE:
-    {
-      xine_frame_change_event_t *frame_change = 
-        (xine_frame_change_event_t *)event_gen;
-      
-      spucc_notify_frame_change(this, frame_change->width,
-				frame_change->height);
-    }
-    break;
-    
-    case XINE_EVENT_CLOSED_CAPTION:
-    {
-      xine_closed_caption_event_t *closed_caption = 
-        (xine_closed_caption_event_t *)event_gen;
-      
-      pthread_mutex_lock(&this->cc_mutex);
-      if (this->cc_cfg.cc_enabled) {
-	if (!this->cc_open)
-	  spucc_do_init (this, NULL);
-	if (this->cc_cfg.can_cc) {
-	  decode_cc(this->ccdec, closed_caption->buffer,
-		    closed_caption->buf_len, closed_caption->pts);
-	}
-      }
-      pthread_mutex_unlock(&this->cc_mutex);
-    }
-    break;
-  }
-}
-
-
-static char *spudec_get_id(void) {
-  return "spucc";
+static void spudec_discontinuity (spu_decoder_t *this_gen) {
 }
 
 static void spudec_dispose (spu_decoder_t *this_gen) {
   spucc_decoder_t *this = (spucc_decoder_t *) this_gen;
 
-  xine_remove_event_listener (this->xine, spudec_event_listener);
-  spucc_unregister_cfg_callbacks(this->xine->config);
+  pthread_mutex_lock(&this->cc_mutex);
+  spucc_do_close(this);
+  pthread_mutex_unlock(&this->cc_mutex);
+
+  spucc_unregister_cfg_callbacks(this->stream->xine->config);
+  xine_event_dispose_queue(this->queue);
   pthread_mutex_destroy (&this->cc_mutex);
   free (this);
 }
 
 
-static void *init_spu_decoder_plugin (xine_t *xine, void *data) {
+static spu_decoder_t *spudec_open_plugin (spu_decoder_class_t *class, xine_stream_t *stream) {
 
   spucc_decoder_t *this ;
 
   this = (spucc_decoder_t *) xine_xmalloc (sizeof (spucc_decoder_t));
 
-  this->spu_decoder.init                = spudec_init;
   this->spu_decoder.decode_data         = spudec_decode_data;
   this->spu_decoder.reset               = spudec_reset;
-  this->spu_decoder.close               = spudec_close;
-  this->spu_decoder.get_identifier      = spudec_get_id;
+  this->spu_decoder.discontinuity       = spudec_discontinuity;
   this->spu_decoder.dispose             = spudec_dispose;
+  this->spu_decoder.get_nav_pci         = NULL;
+  this->spu_decoder.set_button          = NULL;
 
-  this->xine                            = xine;
+  this->stream                          = stream;
+  this->queue                           = xine_event_new_queue(stream);
   this->cc_open = 0;
 
   pthread_mutex_init(&this->cc_mutex, NULL);
-  spucc_register_cfg_vars(this, xine->config);
+  spucc_register_cfg_vars(this, stream->xine->config);
   cc_decoder_init();
    
-  xine_register_event_listener(xine, spudec_event_listener, this);
-   
-  return (spu_decoder_t *) this;
+  pthread_mutex_lock(&this->cc_mutex);
+  spucc_do_init(this, stream->video_out);
+  pthread_mutex_unlock(&this->cc_mutex);
+  
+  return &this->spu_decoder;
+}
+
+static char *spudec_get_identifier(spu_decoder_class_t *class) {
+  return "spucc";
+}
+
+static char *spudec_get_description(spu_decoder_class_t *class) {
+  return "closed caption decoder plugin";
+}
+
+static void spudec_class_dispose(spu_decoder_class_t *class) {
+  free(class);
+}
+
+
+static void *init_spu_decoder_plugin (xine_t *xine, void *data) {
+
+  spu_decoder_class_t *this ;
+
+  this = (spu_decoder_class_t *) xine_xmalloc (sizeof (spu_decoder_class_t));
+
+  this->open_plugin      = spudec_open_plugin;
+  this->get_identifier   = spudec_get_identifier;
+  this->get_description  = spudec_get_description;
+  this->dispose          = spudec_class_dispose;
+
+  return this;
 }
 
 /* plugin catalog information */
@@ -409,6 +402,6 @@ static decoder_info_t spudec_info = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_SPU_DECODER, 9, "spucc", XINE_VERSION_CODE, &spudec_info, &init_spu_decoder_plugin },
+  { PLUGIN_SPU_DECODER, 12, "spucc", XINE_VERSION_CODE, &spudec_info, &init_spu_decoder_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
