@@ -4,7 +4,10 @@
 
 # we must not use CFLAGS here, gcc optimizations produce
 # bad code if we do so.
-AM_CFLAGS = -O2 $(LIBFFMPEG_CFLAGS)
+AM_CFLAGS = $(LIBFFMPEG_CFLAGS)
+# CFLAGS is here to filter out -funroll-loops because it causes bad
+# behavior of libavcodec
+CFLAGS = `echo @CFLAGS@ | sed -e 's/-funroll-loops//g'`
 
 ASFLAGS =
 
