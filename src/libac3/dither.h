@@ -27,11 +27,11 @@ extern const uint16_t dither_lut[256];
 
 static inline uint16_t dither_gen(void)
 {
-	int16_t state;
+    int16_t state;
 
-	state = dither_lut[lfsr_state >> 8] ^ (lfsr_state << 8);
+    state = dither_lut[lfsr_state >> 8] ^ (lfsr_state << 8);
 	
-	lfsr_state = (uint16_t) state;
+    lfsr_state = (uint16_t) state;
 
-	return ((state * (int32_t) (0.707106 * 256.0))>>8);
+    return ((state * (int32_t) (0.707106 * 256.0))>>8);
 }

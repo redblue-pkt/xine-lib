@@ -21,4 +21,4 @@
  *
  */
 
-void coeff_unpack(bsi_t *bsi, audblk_t *audblk,stream_samples_t samples);
+void coeff_unpack(ac3_state_t * state, audblk_t *audblk,stream_samples_t samples);

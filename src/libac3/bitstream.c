@@ -23,57 +23,54 @@
 
 #include <stdlib.h>
 #include <stdio.h>
-#include <inttypes.h>
-
-#include <bswap.h>
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
 
 #include "ac3.h"
 #include "ac3_internal.h"
 #include "bitstream.h"
 
+#define BUFFER_SIZE 4096
 
-uint32_t ac3bits_left = 0;
-uint64_t ac3current_word;
-uint64_t *buffer_start = 0;
+static uint8_t *buffer_start;
 
+uint32_t bits_left;
+uint32_t current_word;
 
-static inline uint64_t getdword (void)
+void bitstream_set_ptr (uint8_t * buf)
 {
-	return be2me_64 (*buffer_start++);
+    buffer_start = buf;
+    bits_left = 0;
 }
 
-
-static inline void bitstream_fill_current (void)
+static inline void
+bitstream_fill_current()
 {
-	//ac3current_word = bswap_64 (*buffer_start++);
-	ac3current_word = getdword ();
+    current_word = *((uint32_t*)buffer_start)++;
+    current_word = swab32(current_word);
 }
 
+//
+// The fast paths for _get is in the
+// bitstream.h header file so it can be inlined.
+//
+// The "bottom half" of this routine is suffixed _bh
+//
+// -ah
+//
 
-uint32_t bitstream_get_bh (uint32_t num_bits)
+uint32_t
+bitstream_get_bh(uint32_t num_bits)
 {
-	uint32_t result;
+    uint32_t result;
 
-	num_bits -= ac3bits_left;
-	result = (ac3current_word << (64 - ac3bits_left)) >> (64 - ac3bits_left);
+    num_bits -= bits_left;
+    result = (current_word << (32 - bits_left)) >> (32 - bits_left);
 
-	bitstream_fill_current();
+    bitstream_fill_current();
 
-	if(num_bits != 0)
-		result = (result << num_bits) | (ac3current_word >> (64 - num_bits));
+    if(num_bits != 0)
+	result = (result << num_bits) | (current_word >> (32 - num_bits));
 	
-	ac3bits_left = 64 - num_bits;
+    bits_left = 32 - num_bits;
 
-	return result;
-}
-
-
-void bitstream_init (uint8_t *start)
-{
-	//initialize the start of the buffer
-	buffer_start = (uint64_t *) start;
-	ac3bits_left = 0;
+    return result;
 }

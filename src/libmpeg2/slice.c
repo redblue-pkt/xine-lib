@@ -1007,12 +1007,13 @@ static inline void slice_intra_DCT (picture_t * picture, int cc,
 static inline void slice_non_intra_DCT (picture_t * picture, uint8_t * dest,
 					int stride)
 {
-    memset (picture->DCTblock, 0, 64 * sizeof (int16_t));
+    if (!picture->skip_non_intra_dct) 
+        memset (picture->DCTblock, 0, 64 * sizeof (int16_t));
     if (picture->mpeg1)
 	get_mpeg1_non_intra_block (picture);
     else
         get_non_intra_block (picture);
-    if (!picture->skip_non_intra_dct)
+    if (!picture->skip_non_intra_dct) 
         idct_block_add (picture->DCTblock, dest, stride);
 }
 

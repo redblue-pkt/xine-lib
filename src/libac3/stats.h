@@ -1,5 +1,5 @@
 /* 
- *    exponent.h
+ *  stats.h
  *
  *	Copyright (C) Aaron Holtzman - May 1999
  *
@@ -21,8 +21,7 @@
  *
  */
 
-#define UNPACK_FBW  1
-#define UNPACK_CPL  2
-#define UNPACK_LFE  4
-
-void exponent_unpack( bsi_t *bsi, audblk_t *audblk);
+void stats_print_syncinfo(ac3_state_t * state);
+void stats_print_bsi(ac3_state_t * state);
+void stats_print_audblk(ac3_state_t * state,audblk_t *audblk);
+void stats_print_banner(ac3_state_t * state);

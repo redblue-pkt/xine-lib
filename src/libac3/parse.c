@@ -22,463 +22,393 @@
  *
  */
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif 
-
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include "ac3.h"
 #include "ac3_internal.h"
 
-
 #include "bitstream.h"
-#include "crc.h"
+#include "stats.h"
+#include "debug.h"
 #include "parse.h"
+#include "bit_allocate.h"
 
-/* Misc LUT */
-static const uint16_t nfchans[8] = {2,1,2,3,3,4,4,5};
+static const uint8_t nfchans[8] = {2, 1, 2, 3, 3, 4, 4, 5};
 
-struct frmsize_s
+int parse_syncinfo (uint8_t * buf, int * sample_rate, int * bit_rate)
 {
-	uint16_t bit_rate;
-	uint16_t frm_size[3];
-};
+    static int rate[] = { 32,  40,  48,  56,  64,  80,  96, 112,
+			 128, 160, 192, 224, 256, 320, 384, 448,
+			 512, 576, 640};
+    int frmsizecod;
+    int bitrate;
 
-static const struct frmsize_s frmsizecod_tbl[64] = 
-{
-	{ 32  ,{64   ,69   ,96   } },
-	{ 32  ,{64   ,70   ,96   } },
-	{ 40  ,{80   ,87   ,120  } },
-	{ 40  ,{80   ,88   ,120  } },
-	{ 48  ,{96   ,104  ,144  } },
-	{ 48  ,{96   ,105  ,144  } },
-	{ 56  ,{112  ,121  ,168  } },
-	{ 56  ,{112  ,122  ,168  } },
-	{ 64  ,{128  ,139  ,192  } },
-	{ 64  ,{128  ,140  ,192  } },
-	{ 80  ,{160  ,174  ,240  } },
-	{ 80  ,{160  ,175  ,240  } },
-	{ 96  ,{192  ,208  ,288  } },
-	{ 96  ,{192  ,209  ,288  } },
-	{ 112 ,{224  ,243  ,336  } },
-	{ 112 ,{224  ,244  ,336  } },
-	{ 128 ,{256  ,278  ,384  } },
-	{ 128 ,{256  ,279  ,384  } },
-	{ 160 ,{320  ,348  ,480  } },
-	{ 160 ,{320  ,349  ,480  } },
-	{ 192 ,{384  ,417  ,576  } },
-	{ 192 ,{384  ,418  ,576  } },
-	{ 224 ,{448  ,487  ,672  } },
-	{ 224 ,{448  ,488  ,672  } },
-	{ 256 ,{512  ,557  ,768  } },
-	{ 256 ,{512  ,558  ,768  } },
-	{ 320 ,{640  ,696  ,960  } },
-	{ 320 ,{640  ,697  ,960  } },
-	{ 384 ,{768  ,835  ,1152 } },
-	{ 384 ,{768  ,836  ,1152 } },
-	{ 448 ,{896  ,975  ,1344 } },
-	{ 448 ,{896  ,976  ,1344 } },
-	{ 512 ,{1024 ,1114 ,1536 } },
-	{ 512 ,{1024 ,1115 ,1536 } },
-	{ 576 ,{1152 ,1253 ,1728 } },
-	{ 576 ,{1152 ,1254 ,1728 } },
-	{ 640 ,{1280 ,1393 ,1920 } },
-	{ 640 ,{1280 ,1394 ,1920 } }
-};
+    if ((buf[0] != 0x0b) || (buf[1] != 0x77))	// syncword
+	return 0;
 
-/* Parse a syncinfo structure, minus the sync word */
-void parse_syncinfo(syncinfo_t *syncinfo, uint8_t *data)
-{
-	//
-	// We need to read in the entire syncinfo struct (0x0b77 + 24 bits)
-	// in order to determine how big the frame is
-	//
+    frmsizecod = buf[4] & 63;
+    if (frmsizecod >= 38)
+	return 0;
+    *bit_rate = bitrate = rate [frmsizecod >> 1];
 
-	// Get the sampling rate 
-	syncinfo->fscod  = (data[2] >> 6) & 0x3;
-
-	if(syncinfo->fscod == 3) {
-		//invalid sampling rate code
-#ifndef FAST_ERROR
-		error_flag = 1;	
-#endif
-		return;
-	}
-	else if(syncinfo->fscod == 2)
-		syncinfo->sampling_rate = 32000;
-	else if(syncinfo->fscod == 1)
-		syncinfo->sampling_rate = 44100;
-	else
-		syncinfo->sampling_rate = 48000;
-
-	// Get the frame size code 
-	syncinfo->frmsizecod = data[2] & 0x3f;
-
-	// Calculate the frame size and bitrate
-	syncinfo->frame_size = 
-		frmsizecod_tbl[syncinfo->frmsizecod].frm_size[syncinfo->fscod];
-	syncinfo->bit_rate = frmsizecod_tbl[syncinfo->frmsizecod].bit_rate;
-
+    switch (buf[4] & 0xc0) {
+    case 0:	// 48 KHz
+	*sample_rate = 48000;
+	return 4 * bitrate;
+    case 0x40:
+	*sample_rate = 44100;
+	return 2 * (320 * bitrate / 147 + (frmsizecod & 1));
+    case 0x80:
+	*sample_rate = 32000;
+	return 6 * bitrate;
+    default:
+	return 0;
+    }
 }
 
-
-/**
- * This routine fills a bsi struct from the AC3 stream
- **/
-
-void parse_bsi(bsi_t *bsi)
+int parse_bsi (ac3_state_t * state, uint8_t * buf)
 {
-	/* Check the AC-3 version number */
-	bsi->bsid = bitstream_get(5);
+    int chaninfo;
 
-	/* Get the audio service provided by the steram */
-	bsi->bsmod = bitstream_get(3);
+    state->fscod = buf[4] >> 6;
 
-	/* Get the audio coding mode (ie how many channels)*/
-	bsi->acmod = bitstream_get(3);
-	/* Predecode the number of full bandwidth channels as we use this
-	 * number a lot */
-	bsi->nfchans = nfchans[bsi->acmod];
+    if (buf[5] >= 0x48)		// bsid >= 9
+	return 1;
 
-	/* If it is in use, get the centre channel mix level */
-	if ((bsi->acmod & 0x1) && (bsi->acmod != 0x1))
-		bsi->cmixlev = bitstream_get(2);
+    state->acmod = buf[6] >> 5;
+    state->nfchans = nfchans[state->acmod];
 
-	/* If it is in use, get the surround channel mix level */
-	if (bsi->acmod & 0x4)
-		bsi->surmixlev = bitstream_get(2);
+    bitstream_set_ptr (buf + 6);
+    bitstream_get (3);	// skip acmod we already parsed
 
-	/* Get the dolby surround mode if in 2/0 mode */
-	if(bsi->acmod == 0x2)
-		bsi->dsurmod= bitstream_get(2);
+    if ((state->acmod & 0x1) && (state->acmod != 0x1))
+	state->cmixlev = bitstream_get (2);
 
-	/* Is the low frequency effects channel on? */
-	bsi->lfeon = bitstream_get(1);
+    if (state->acmod & 0x4)
+	state->surmixlev = bitstream_get (2);
 
-	/* Get the dialogue normalization level */
-	bsi->dialnorm = bitstream_get(5);
+    if (state->acmod == 0x2)
+	bitstream_get (2);	// dsurmod
 
-	/* Does compression gain exist? */
-	if ((bsi->compre = bitstream_get(1))) {
-		/* Get compression gain */
-		bsi->compr = bitstream_get(8);
-	}
+    state->lfeon = bitstream_get (1);
 
-	/* Does language code exist? */
-	if ((bsi->langcode = bitstream_get(1))) {
-		/* Get langauge code */
-		bsi->langcod = bitstream_get(8);
-	}
+    chaninfo = (state->acmod) ? 0 : 1;
+    do {
+	bitstream_get (5);	// dialnorm
+	if (bitstream_get (1))	// compre
+	    bitstream_get (8);	// compr
+	if (bitstream_get (1))	// langcode
+	    bitstream_get (8);	// langcod
+	if (bitstream_get (1))	// audprodie
+	    bitstream_get (7);	// mixlevel + roomtyp
+    } while (chaninfo--);
 
-	/* Does audio production info exist? */
-	if ((bsi->audprodie = bitstream_get(1))) {
-		/* Get mix level */
-		bsi->mixlevel = bitstream_get(5);
+    bitstream_get (2);		// copyrightb + origbs
 
-		/* Get room type */
-		bsi->roomtyp = bitstream_get(2);
-	}
+    if (bitstream_get (1))	// timecod1e
+	bitstream_get (14);	// timecod1
+    if (bitstream_get (1))	// timecod2e
+	bitstream_get (14);	// timecod2
 
-	/* If we're in dual mono mode then get some extra info */
-	if (!bsi->acmod) {
-		/* Get the dialogue normalization level two */
-		bsi->dialnorm2 = bitstream_get(5);
+    if (bitstream_get (1)) {	// addbsie
+	int addbsil;
 
-		/* Does compression gain two exist? */
-		if ((bsi->compr2e = bitstream_get(1))) {
-			/* Get compression gain two */
-			bsi->compr2 = bitstream_get(8);
-		}
+	addbsil = bitstream_get (6);
+	do {
+	    bitstream_get (8);	// addbsi
+	} while (addbsil--);
+    }
 
-		/* Does language code two exist? */
-		if ((bsi->langcod2e = bitstream_get(1))) {
-			/* Get langauge code two */
-			bsi->langcod2 = bitstream_get(8);
-		}
-
-		/* Does audio production info two exist? */
-		if ((bsi->audprodi2e = bitstream_get(1))) {
-			/* Get mix level two */
-			bsi->mixlevel2 = bitstream_get(5);
-
-			/* Get room type two */
-			bsi->roomtyp2 = bitstream_get(2);
-		}
-	}
-
-	/* Get the copyright bit */
-	bsi->copyrightb = bitstream_get(1);
-
-	/* Get the original bit */
-	bsi->origbs = bitstream_get(1);
-	
-	/* Does timecode one exist? */
-	if ((bsi->timecod1e = bitstream_get(1)))
-		bsi->timecod1 = bitstream_get(14);
-
-	/* Does timecode two exist? */
-	if ((bsi->timecod2e = bitstream_get(1)))
-		bsi->timecod2 = bitstream_get(14);
-
-	/* Does addition info exist? */
-	if ((bsi->addbsie = bitstream_get(1))) {
-		uint32_t i;
-
-		/* Get how much info is there */
-		bsi->addbsil = bitstream_get(6);
-
-		/* Get the additional info */
-		for(i=0;i<(bsi->addbsil + 1);i++)
-			bsi->addbsi[i] = bitstream_get(8);
-	}
-
+    stats_print_bsi(state);
+    return 0;
 }
 
-
-/* More pain inducing parsing */
-void parse_audblk(bsi_t *bsi,audblk_t *audblk)
+static int parse_exponents (int expstr, int ngrps, uint8_t exponent,
+			    uint8_t * dest)
 {
-	int i,j;
+    int exps;
+    int8_t exp_1, exp_2, exp_3;
 
-	for (i=0; i < bsi->nfchans; i++) {
-		/* Is this channel an interleaved 256 + 256 block ? */
-		audblk->blksw[i] = bitstream_get(1);
+    while (ngrps--) {
+	exps = bitstream_get (7);
+	if (exps >= 125)
+	    return 1;
+
+	exp_1 = exps / 25;
+	exp_2 = (exps - (exp_1 * 25)) / 5;
+	exp_3 = exps - (exp_1 * 25) - (exp_2 * 5) ;
+
+	exponent += (exp_1 - 2);
+	if (exponent > 24)
+	    return 1;
+
+	switch (expstr) {
+	case EXP_D45:
+	    *(dest++) = exponent;
+	    *(dest++) = exponent;
+	case EXP_D25:
+	    *(dest++) = exponent;
+	case EXP_D15:
+	    *(dest++) = exponent;
 	}
 
-	for (i=0;i < bsi->nfchans; i++) {
-		/* Should we dither this channel? */
-		audblk->dithflag[i] = bitstream_get(1);
+	exponent += (exp_2 - 2);
+	if (exponent > 24)
+	    return 1;
+
+	switch (expstr) {
+	case EXP_D45:
+	    *(dest++) = exponent;
+	    *(dest++) = exponent;
+	case EXP_D25:
+	    *(dest++) = exponent;
+	case EXP_D15:
+	    *(dest++) = exponent;
 	}
 
-	/* Does dynamic range control exist? */
-	if ((audblk->dynrnge = bitstream_get(1))) {
-		/* Get dynamic range info */
-		audblk->dynrng = bitstream_get(8);
+	exponent += (exp_3 - 2);
+	if (exponent > 24)
+	    return 1;
+
+	switch (expstr) {
+	case EXP_D45:
+	    *(dest++) = exponent;
+	    *(dest++) = exponent;
+	case EXP_D25:
+	    *(dest++) = exponent;
+	case EXP_D15:
+	    *(dest++) = exponent;
 	}
+    }	
 
-	/* If we're in dual mono mode then get the second channel DR info */
-	if (bsi->acmod == 0) {
-		/* Does dynamic range control two exist? */
-		if ((audblk->dynrng2e = bitstream_get(1))) {
-			/* Get dynamic range info */
-			audblk->dynrng2 = bitstream_get(8);
-		}
-	}
+    return 0;
+}
 
-	/* Does coupling strategy exist? */
-	if ((audblk->cplstre = bitstream_get(1))) {
-		/* Is coupling turned on? */
-		if ((audblk->cplinu = bitstream_get(1))) {
-			for(i=0;i < bsi->nfchans; i++)
-				audblk->chincpl[i] = bitstream_get(1);
-			if(bsi->acmod == 0x2)
-				audblk->phsflginu = bitstream_get(1);
-			audblk->cplbegf = bitstream_get(4);
-			audblk->cplendf = bitstream_get(4);
-			audblk->ncplsubnd = (audblk->cplendf + 2) - audblk->cplbegf + 1;
+static inline int zero_snr_offsets (ac3_state_t * state, audblk_t * audblk)
+{
+    int i;
 
-			/* Calculate the start and end bins of the coupling channel */
-			audblk->cplstrtmant = (audblk->cplbegf * 12) + 37 ; 
-			audblk->cplendmant =  ((audblk->cplendf + 3) * 12) + 37;
+    if ((audblk->csnroffst) ||
+	(audblk->cplinu && audblk->cplba.fsnroffst) ||
+	(state->lfeon && audblk->lfeba.fsnroffst))
+	return 0;
+    for (i = 0; i < state->nfchans; i++)
+	if (audblk->ba[i].fsnroffst)
+	    return 0;
+    return 1;
+}
 
-			/* The number of combined subbands is ncplsubnd minus each combined
-			 * band */
-			audblk->ncplbnd = audblk->ncplsubnd; 
+int parse_audblk (ac3_state_t * state, audblk_t * audblk)
+{
+    int i, chaninfo;
+    uint8_t cplexpstr, chexpstr[5], lfeexpstr, do_bit_alloc;
 
-			for(i=1; i< audblk->ncplsubnd; i++) {
-				audblk->cplbndstrc[i] = bitstream_get(1);
-				audblk->ncplbnd -= audblk->cplbndstrc[i];
-			}
-		}
-	}
+    for (i = 0; i < state->nfchans; i++)
+	audblk->blksw[i] = bitstream_get (1);
 
-	if(audblk->cplinu) {
-		/* Loop through all the channels and get their coupling co-ords */	
-		for(i=0;i < bsi->nfchans;i++) {
-			if(!audblk->chincpl[i])
-				continue;
+    for (i = 0; i < state->nfchans; i++)
+	audblk->dithflag[i] = bitstream_get (1);
 
-			/* Is there new coupling co-ordinate info? */
-			if ((audblk->cplcoe[i] = bitstream_get(1))) {
-				audblk->mstrcplco[i] = bitstream_get(2); 
-				for(j=0;j < audblk->ncplbnd; j++) {
-					audblk->cplcoexp[i][j] = bitstream_get(4); 
-					audblk->cplcomant[i][j] = bitstream_get(4); 
-				}
-			}
-		}
+    chaninfo = (state->acmod) ? 0 : 1;
+    do {
+	if (bitstream_get (1))	// dynrnge
+	    bitstream_get (8);	// dynrng
+    } while (chaninfo--);
 
-		/* If we're in dual mono mode, there's going to be some phase info */
-		if( (bsi->acmod == 0x2) && audblk->phsflginu && 
-				(audblk->cplcoe[0] || audblk->cplcoe[1])) {
-			for(j=0;j < audblk->ncplbnd; j++)
-				audblk->phsflg[j] = bitstream_get(1); 
-
-		}
-	}
-
-	/* If we're in dual mono mode, there may be a rematrix strategy */
-	if(bsi->acmod == 0x2) {
-		if ((audblk->rematstr = bitstream_get(1))) {
-			if (!audblk->cplinu) { 
-				for(i = 0; i < 4; i++) 
-					audblk->rematflg[i] = bitstream_get(1);
-			}
-			if((audblk->cplbegf > 2) && audblk->cplinu) {
-				for(i = 0; i < 4; i++) 
-					audblk->rematflg[i] = bitstream_get(1);
-			}
-			if((audblk->cplbegf <= 2) && audblk->cplinu) { 
-				for(i = 0; i < 3; i++) 
-					audblk->rematflg[i] = bitstream_get(1);
-			} 
-			if((audblk->cplbegf == 0) && audblk->cplinu) 
-				for(i = 0; i < 2; i++) 
-					audblk->rematflg[i] = bitstream_get(1);
-
-		}
-	}
-
+    if (bitstream_get (1)) {	// cplstre
+	audblk->cplinu = bitstream_get (1);
 	if (audblk->cplinu) {
-		/* Get the coupling channel exponent strategy */
-		audblk->cplexpstr = bitstream_get(2);
-		audblk->ncplgrps = (audblk->cplendmant - audblk->cplstrtmant) / 
-		  (((audblk->cplexpstr-1)>=0)?(3 << (audblk->cplexpstr-1)):(3 >> (-(audblk->cplexpstr-1))));
+	    for (i = 0; i < state->nfchans; i++)
+		audblk->chincpl[i] = bitstream_get (1);
+	    if (state->acmod == 0x2)
+		audblk->phsflginu = bitstream_get (1);
+	    audblk->cplbegf = bitstream_get (4);
+	    audblk->cplendf = bitstream_get (4);
+
+	    audblk->cplstrtmant = audblk->cplbegf * 12 + 37;
+	    audblk->cplendmant = audblk->cplendf * 12 + 73;
+	    audblk->ncplsubnd = audblk->cplendf + 3 - audblk->cplbegf;
+	    audblk->ncplbnd = audblk->ncplsubnd;
+
+	    for(i = 1; i< audblk->ncplsubnd; i++) {
+		audblk->cplbndstrc[i] = bitstream_get (1);
+		audblk->ncplbnd -= audblk->cplbndstrc[i];
+	    }
 	}
+    }
 
-	for(i = 0; i < bsi->nfchans; i++)
-		audblk->chexpstr[i] = bitstream_get(2);
+    if (audblk->cplinu) {
+	int j, cplcoe;
 
-	/* Get the exponent strategy for lfe channel */
-	if(bsi->lfeon) 
-		audblk->lfeexpstr = bitstream_get(1);
-
-	/* Determine the bandwidths of all the fbw channels */
-	for(i = 0; i < bsi->nfchans; i++) { 
-		uint16_t grp_size;
-
-		if(audblk->chexpstr[i] != EXP_REUSE) { 
-			if (audblk->cplinu && audblk->chincpl[i]) {
-				audblk->endmant[i] = audblk->cplstrtmant;
-			} else {
-				audblk->chbwcod[i] = bitstream_get(6); 
-				audblk->endmant[i] = ((audblk->chbwcod[i] + 12) * 3) + 37;
-			}
-
-			/* Calculate the number of exponent groups to fetch */
-			grp_size =  3 * (1 << (audblk->chexpstr[i] - 1));
-			audblk->nchgrps[i] = (audblk->endmant[i] - 1 + (grp_size - 3)) / grp_size;
+	cplcoe = 0;
+	for (i = 0; i < state->nfchans; i++)
+	    if (audblk->chincpl[i])
+		if (bitstream_get (1)) {	// cplcoe
+		    cplcoe = 1;
+		    audblk->mstrcplco[i] = bitstream_get (2);
+		    for (j = 0; j < audblk->ncplbnd; j++) {
+			audblk->cplcoexp[i][j] = bitstream_get (4);
+			audblk->cplcomant[i][j] = bitstream_get (4);
+		    }
 		}
+	if ((state->acmod == 0x2) && audblk->phsflginu && cplcoe)
+	    for (j = 0; j < audblk->ncplbnd; j++)
+		audblk->phsflg[j] = bitstream_get (1);
+    }
+
+    if ((state->acmod == 0x2) && (bitstream_get (1))) {	// rematstr
+	if ((audblk->cplbegf > 2) || (audblk->cplinu == 0))
+	    for (i = 0; i < 4; i++) 
+		audblk->rematflg[i] = bitstream_get (1);
+	else if ((audblk->cplbegf == 0) && audblk->cplinu)
+	    for (i = 0; i < 2; i++)
+		audblk->rematflg[i] = bitstream_get (1);
+	else if ((audblk->cplbegf <= 2) && audblk->cplinu)
+	    for(i = 0; i < 3; i++)
+		audblk->rematflg[i] = bitstream_get (1);
+    }
+
+    cplexpstr = EXP_REUSE;
+    lfeexpstr = EXP_REUSE;
+    if (audblk->cplinu)
+	cplexpstr = bitstream_get (2);
+    for (i = 0; i < state->nfchans; i++)
+	chexpstr[i] = bitstream_get (2);
+    if (state->lfeon) 
+	lfeexpstr = bitstream_get (1);
+
+    for (i = 0; i < state->nfchans; i++)
+	if (chexpstr[i] != EXP_REUSE) {
+	    if (audblk->cplinu && audblk->chincpl[i])
+		audblk->endmant[i] = audblk->cplstrtmant;
+	    else {
+		audblk->chbwcod[i] = bitstream_get (6);
+		audblk->endmant[i] = ((audblk->chbwcod[i] + 12) * 3) + 37;
+	    }
 	}
 
-	/* Get the coupling exponents if they exist */
-	if(audblk->cplinu && (audblk->cplexpstr != EXP_REUSE)) {
-		audblk->cplabsexp = bitstream_get(4);
-		for(i=0;i< audblk->ncplgrps;i++)
-			audblk->cplexps[i] = bitstream_get(7);
-	}
+    do_bit_alloc = 0;
 
-	/* Get the fwb channel exponents */
-	for(i=0;i < bsi->nfchans; i++) {
-		if(audblk->chexpstr[i] != EXP_REUSE) {
-			audblk->exps[i][0] = bitstream_get(4);			
-			for(j=1;j<=audblk->nchgrps[i];j++)
-				audblk->exps[i][j] = bitstream_get(7);
-			audblk->gainrng[i] = bitstream_get(2);
+    if (cplexpstr != EXP_REUSE) {
+	int cplabsexp, ncplgrps;
+
+	do_bit_alloc = 1;
+	ncplgrps = ((audblk->cplendmant - audblk->cplstrtmant) /
+		    (3 << (cplexpstr - 1)));
+	cplabsexp = bitstream_get (4) << 1;
+	if (parse_exponents (cplexpstr, ncplgrps, cplabsexp,
+			     audblk->cpl_exp + audblk->cplstrtmant))
+	    return 1;
+    }
+    for (i = 0; i < state->nfchans; i++)
+	if (chexpstr[i] != EXP_REUSE) {
+	    int grp_size, nchgrps;
+
+	    do_bit_alloc = 1;
+	    grp_size = 3 * (1 << (chexpstr[i] - 1));
+	    nchgrps = (audblk->endmant[i] - 1 + (grp_size - 3)) / grp_size;
+	    audblk->fbw_exp[i][0] = bitstream_get (4);
+	    if (parse_exponents (chexpstr[i], nchgrps, audblk->fbw_exp[i][0],
+				 audblk->fbw_exp[i] + 1))
+		return 1;
+	    bitstream_get (2);	// gainrng
+	}
+    if (lfeexpstr != EXP_REUSE) {
+	do_bit_alloc = 1;
+	audblk->lfe_exp[0] = bitstream_get (4);
+	if (parse_exponents (lfeexpstr, 2, audblk->lfe_exp[0],
+			     audblk->lfe_exp + 1))
+	    return 1;
+    }
+
+    if (bitstream_get (1)) {	// baie
+	do_bit_alloc = 1;
+	audblk->sdcycod = bitstream_get (2);
+	audblk->fdcycod = bitstream_get (2);
+	audblk->sgaincod = bitstream_get (2);
+	audblk->dbpbcod = bitstream_get (2);
+	audblk->floorcod = bitstream_get (3);
+    }
+    if (bitstream_get (1)) {	//snroffste
+	do_bit_alloc = 1;
+	audblk->csnroffst = bitstream_get (6);
+	if (audblk->cplinu) {
+	    audblk->cplba.fsnroffst = bitstream_get (4);
+	    audblk->cplba.fgaincod = bitstream_get (3);
+	}
+	for (i = 0; i < state->nfchans; i++) {
+	    audblk->ba[i].fsnroffst = bitstream_get (4);
+	    audblk->ba[i].fgaincod = bitstream_get (3);
+	}
+	if (state->lfeon) {
+	    audblk->lfeba.fsnroffst = bitstream_get (4);
+	    audblk->lfeba.fgaincod = bitstream_get (3);
+	}
+    }
+    if ((audblk->cplinu) && (bitstream_get (1))) {	// cplleake
+	do_bit_alloc = 1;
+	audblk->cplfleak = bitstream_get (3);
+	audblk->cplsleak = bitstream_get (3);
+    }
+
+    if (bitstream_get (1)) {	// deltbaie
+	do_bit_alloc = 1;
+	if (audblk->cplinu)
+	    audblk->cplba.deltbae = bitstream_get (2);
+	for (i = 0; i < state->nfchans; i++)
+	    audblk->ba[i].deltbae = bitstream_get (2);
+	if (audblk->cplinu && (audblk->cplba.deltbae == DELTA_BIT_NEW)) {
+	    audblk->cplba.deltnseg = bitstream_get (3);
+	    for (i = 0; i < audblk->cplba.deltnseg + 1; i++) {
+		audblk->cplba.deltoffst[i] = bitstream_get (5);
+		audblk->cplba.deltlen[i] = bitstream_get (4);
+		audblk->cplba.deltba[i] = bitstream_get (3);
+	    }
+	}
+	for (i = 0; i < state->nfchans; i++) {
+	    if (audblk->ba[i].deltbae == DELTA_BIT_NEW) {
+		int j;
+		audblk->ba[i].deltnseg = bitstream_get (3);
+		for (j = 0; j < audblk->ba[i].deltnseg + 1; j++) {
+		    audblk->ba[i].deltoffst[j] = bitstream_get (5);
+		    audblk->ba[i].deltlen[j] = bitstream_get (4);
+		    audblk->ba[i].deltba[j] = bitstream_get (3);
 		}
+	    }
 	}
+    }
 
-	/* Get the lfe channel exponents */
-	if(bsi->lfeon && (audblk->lfeexpstr != EXP_REUSE)) {
-		audblk->lfeexps[0] = bitstream_get(4);
-		audblk->lfeexps[1] = bitstream_get(7);
-		audblk->lfeexps[2] = bitstream_get(7);
+    if (do_bit_alloc) {
+	if (zero_snr_offsets (state, audblk)) {
+	    memset (audblk->cpl_bap, 0, sizeof (audblk->cpl_bap));
+	    memset (audblk->fbw_bap, 0, sizeof (audblk->fbw_bap));
+	    memset (audblk->lfe_bap, 0, sizeof (audblk->lfe_bap));
+	} else {
+	    if (audblk->cplinu)
+		bit_allocate (state->fscod, audblk, &audblk->cplba,
+			      audblk->cplstrtmant, audblk->cplendmant,
+			      (audblk->cplfleak << 8) + 768,
+			      (audblk->cplsleak << 8) + 768,
+			      audblk->cpl_exp, audblk->cpl_bap, 0);
+	    for (i = 0; i < state->nfchans; i++)
+		bit_allocate (state->fscod, audblk, audblk->ba + i, 0,
+			      audblk->endmant[i], 0, 0,
+			      audblk->fbw_exp[i], audblk->fbw_bap[i], 0);
+	    if (state->lfeon) {
+		audblk->lfeba.deltbae = DELTA_BIT_NONE;
+		bit_allocate (state->fscod, audblk, &audblk->lfeba, 0, 7, 0, 0,
+			      audblk->lfe_exp, audblk->lfe_bap, 1);
+	    }
 	}
+    }
 
-	/* Get the parametric bit allocation parameters */
-	audblk->baie = bitstream_get(1);
+    if (bitstream_get (1)) {	// skiple
+	i = bitstream_get (9);	// skipl
+	while (i--)
+	    bitstream_get (8);
+    }
 
-	if(audblk->baie) {
-		audblk->sdcycod = bitstream_get(2);
-		audblk->fdcycod = bitstream_get(2);
-		audblk->sgaincod = bitstream_get(2);
-		audblk->dbpbcod = bitstream_get(2);
-		audblk->floorcod = bitstream_get(3);
-	}
-
-	/* Get the SNR off set info if it exists */
-	audblk->snroffste = bitstream_get(1);
-
-	if(audblk->snroffste) {
-		audblk->csnroffst = bitstream_get(6);
-
-		if(audblk->cplinu) {
-			audblk->cplfsnroffst = bitstream_get(4);
-			audblk->cplfgaincod = bitstream_get(3);
-		}
-
-		for(i = 0;i < bsi->nfchans; i++) {
-			audblk->fsnroffst[i] = bitstream_get(4);
-			audblk->fgaincod[i] = bitstream_get(3);
-		}
-		if(bsi->lfeon) {
-
-			audblk->lfefsnroffst = bitstream_get(4);
-			audblk->lfefgaincod = bitstream_get(3);
-		}
-	}
-
-	/* Get coupling leakage info if it exists */
-	if(audblk->cplinu) {
-		audblk->cplleake = bitstream_get(1);	
-		
-		if(audblk->cplleake) {
-			audblk->cplfleak = bitstream_get(3);
-			audblk->cplsleak = bitstream_get(3);
-		}
-	}
-	
-	/* Get the delta bit alloaction info */
-	audblk->deltbaie = bitstream_get(1);	
-	
-	if(audblk->deltbaie) {
-		if(audblk->cplinu)
-			audblk->cpldeltbae = bitstream_get(2);
-
-		for(i = 0;i < bsi->nfchans; i++)
-			audblk->deltbae[i] = bitstream_get(2);
-
-		if (audblk->cplinu && (audblk->cpldeltbae == DELTA_BIT_NEW)) {
-			audblk->cpldeltnseg = bitstream_get(3);
-			for(i = 0;i < audblk->cpldeltnseg + 1; i++) {
-				audblk->cpldeltoffst[i] = bitstream_get(5);
-				audblk->cpldeltlen[i] = bitstream_get(4);
-				audblk->cpldeltba[i] = bitstream_get(3);
-			}
-		}
-
-		for(i = 0;i < bsi->nfchans; i++) {
-			if (audblk->deltbae[i] == DELTA_BIT_NEW) {
-				audblk->deltnseg[i] = bitstream_get(3);
-				for(j = 0; j < audblk->deltnseg[i] + 1; j++) {
-					audblk->deltoffst[i][j] = bitstream_get(5);
-					audblk->deltlen[i][j] = bitstream_get(4);
-					audblk->deltba[i][j] = bitstream_get(3);
-				}
-			}
-		}
-	}
-
-	/* Check to see if there's any dummy info to get */
-	if((audblk->skiple =  bitstream_get(1))) {
-		uint16_t skip_data;
-
-		audblk->skipl = bitstream_get(9);
-
-		for (i = 0; i < audblk->skipl; i++) {
-			skip_data = bitstream_get(8);
-		}
-	}
-
+    stats_print_audblk(state,audblk);
+    return 0;
 }

@@ -25,11 +25,6 @@
 #define inline 
 #endif
 
-#define FAST_ERROR
-#ifdef FAST_ERROR
-#include <setjmp.h>
-#endif
-
 /* Exponent strategy constants */
 #define EXP_REUSE (0)
 #define EXP_D15   (1)
@@ -45,15 +40,8 @@
 /* samples work structure */
 typedef float stream_samples_t[6][256];
 
-/* global config structure */
-extern ac3_config_t ac3_config;
 /* global error flag */
-#ifdef FAST_ERROR
-extern jmp_buf error_jmp_mark;
-#define HANDLE_ERROR() longjmp (error_jmp_mark, -1)
-#else
 extern uint32_t error_flag;
-#endif
 
 /* Everything you wanted to know about band structure */
 /*
@@ -80,273 +68,91 @@ extern uint32_t error_flag;
  * conditional fields.
  */
 
-typedef struct syncinfo_s
-{
-	uint32_t	magic;
-	/* Sync word == 0x0B77 */
-	 uint16_t   syncword; 
-	/* crc for the first 5/8 of the sync block */
-	/* uint16_t   crc1; */
-	/* Stream Sampling Rate (kHz) 0 = 48, 1 = 44.1, 2 = 32, 3 = reserved */
-	uint16_t		fscod;	
-	/* Frame size code */
-	uint16_t		frmsizecod;
+typedef struct ac3_state_s {
+    int nfchans;	// number of channels, derived from acmod
 
-	/* Information not in the AC-3 bitstream, but derived */
-	/* Frame size in 16 bit words */
-	uint16_t frame_size;
-	/* Bit rate in kilobits */
-	uint16_t bit_rate;
-	/* sampling rate in hertz */
-	uint32_t sampling_rate;
-} syncinfo_t;
+    /* from syncinfo */
+    uint8_t fscod;	// sample rate
 
-typedef struct bsi_s
-{
-	uint32_t	magic;
-	/* Bit stream identification == 0x8 */
-	uint16_t bsid;	
-	/* Bit stream mode */
-	uint16_t bsmod;
-	/* Audio coding mode */
-	uint16_t acmod;
-	/* If we're using the centre channel then */
-		/* centre mix level */
-		uint16_t cmixlev;
-	/* If we're using the surround channel then */
-		/* surround mix level */
-		uint16_t surmixlev;
-	/* If we're in 2/0 mode then */
-		/* Dolby surround mix level - NOT USED - */
-		uint16_t dsurmod;
-	/* Low frequency effects on */
-	uint16_t lfeon;
-	/* Dialogue Normalization level */
-	uint16_t dialnorm;
-	/* Compression exists */
-	uint16_t compre;
-		/* Compression level */
-		uint16_t compr;
-	/* Language code exists */
-	uint16_t langcode;
-		/* Language code */
-		uint16_t langcod;
-	/* Audio production info exists*/
-	uint16_t audprodie;
-		uint16_t mixlevel;
-		uint16_t roomtyp;
-	/* If we're in dual mono mode (acmod == 0) then extra stuff */
-		uint16_t dialnorm2;
-		uint16_t compr2e;
-			uint16_t compr2;
-		uint16_t langcod2e;
-			uint16_t langcod2;
-		uint16_t audprodi2e;
-			uint16_t mixlevel2;
-			uint16_t roomtyp2;
-	/* Copyright bit */
-	uint16_t copyrightb;
-	/* Original bit */
-	uint16_t origbs;
-	/* Timecode 1 exists */
-	uint16_t timecod1e;
-		/* Timecode 1 */
-		uint16_t timecod1;
-	/* Timecode 2 exists */
-	uint16_t timecod2e;
-		/* Timecode 2 */
-		uint16_t timecod2;
-	/* Additional bit stream info exists */
-	uint16_t addbsie;
-		/* Additional bit stream length - 1 (in bytes) */
-		uint16_t addbsil;
-		/* Additional bit stream information (max 64 bytes) */
-		uint8_t	addbsi[64];
+    /* from bsi */
+    uint8_t acmod;	// coded channels
+    uint8_t cmixlev;	// centre channel mix level
+    uint8_t surmixlev;	// surround channels mix level
+    uint8_t lfeon;	// coded lfe channel
+} ac3_state_t;
 
-	/* Information not in the AC-3 bitstream, but derived */
-	/* Number of channels (excluding LFE)
-	 * Derived from acmod */
-	uint16_t nfchans;
-} bsi_t;
-
+typedef struct ac3_ba_s {
+    uint16_t fsnroffst;	// fine SNR offset
+    uint16_t fgaincod;	// fast gain
+    uint16_t deltbae;	// delta bit allocation exists
+    uint16_t deltnseg;	// number of delta bit segments
+    uint16_t deltoffst[8];	// delta bit offset
+    uint16_t deltlen[8];	// delta bit length
+    uint16_t deltba[8];		// delta bit value
+} ac3_ba_t;
 
 /* more pain */
-typedef struct audblk_s
-{
-	uint32_t	magic1;
-	/* block switch bit indexed by channel num */
-	uint16_t blksw[5];
-	/* dither enable bit indexed by channel num */
-	uint16_t dithflag[5];
-	/* dynamic range gain exists */
-	uint16_t dynrnge;
-		/* dynamic range gain */
-		uint16_t dynrng;
-	/* if acmod==0 then */
-	/* dynamic range 2 gain exists */
-	uint16_t dynrng2e;
-		/* dynamic range 2 gain */
-		uint16_t dynrng2;
-	/* coupling strategy exists */
-	uint16_t cplstre;
-		/* coupling in use */
-		uint16_t cplinu;
-			/* channel coupled */
-			uint16_t chincpl[5];
-			/* if acmod==2 then */
-				/* Phase flags in use */
-				uint16_t phsflginu;
-			/* coupling begin frequency code */
-			uint16_t cplbegf;
-			/* coupling end frequency code */
-			uint16_t cplendf;
-			/* coupling band structure bits */
-			uint16_t cplbndstrc[18];
-			/* Do coupling co-ords exist for this channel? */
-			uint16_t cplcoe[5];
-			/* Master coupling co-ordinate */
-			uint16_t mstrcplco[5];
-			/* Per coupling band coupling co-ordinates */
-			uint16_t cplcoexp[5][18];
-			uint16_t cplcomant[5][18];
-			/* Phase flags for dual mono */
-			uint16_t phsflg[18];
-	/* Is there a rematrixing strategy */
-	uint16_t rematstr;
-		/* Rematrixing bits */
-		uint16_t rematflg[4];
-	/* Coupling exponent strategy */
-	uint16_t cplexpstr;
-	/* Exponent strategy for full bandwidth channels */
-	uint16_t chexpstr[5];
-	/* Exponent strategy for lfe channel */
-	uint16_t lfeexpstr;
-	/* Channel bandwidth for independent channels */
-	uint16_t chbwcod[5];
-		/* The absolute coupling exponent */
-		uint16_t cplabsexp;
-		/* Coupling channel exponents (D15 mode gives 18 * 12 /3  encoded exponents */
-		uint16_t cplexps[18 * 12 / 3];
-	/* Sanity checking constant */
-	uint32_t	magic2;
-	/* fbw channel exponents */
-	uint16_t exps[5][252 / 3];
-	/* channel gain range */
-	uint16_t gainrng[5];
-	/* low frequency exponents */
-	uint16_t lfeexps[3];
+typedef struct audblk_s {
+    uint32_t magic1;
 
-	/* Bit allocation info */
-	uint16_t baie;
-		/* Slow decay code */
-		uint16_t sdcycod;
-		/* Fast decay code */
-		uint16_t fdcycod;
-		/* Slow gain code */
-		uint16_t sgaincod;
-		/* dB per bit code */
-		uint16_t dbpbcod;
-		/* masking floor code */
-		uint16_t floorcod;
+    // not reused between blocks
+    uint16_t blksw[5];		// imdct block transform switch
+    uint16_t dithflag[5];	// channel dither flag
 
-	/* SNR offset info */
-	uint16_t snroffste;
-		/* coarse SNR offset */
-		uint16_t csnroffst;
-		/* coupling fine SNR offset */
-		uint16_t cplfsnroffst;
-		/* coupling fast gain code */
-		uint16_t cplfgaincod;
-		/* fbw fine SNR offset */
-		uint16_t fsnroffst[5];
-		/* fbw fast gain code */
-		uint16_t fgaincod[5];
-		/* lfe fine SNR offset */
-		uint16_t lfefsnroffst;
-		/* lfe fast gain code */
-		uint16_t lfefgaincod;
+    uint16_t cplinu;		// coupling in use
+    uint16_t chincpl[5];	// channel coupled
+    uint16_t phsflginu;		// phase flags in use (stereo only)
+    uint16_t cplbegf;		// coupling begin frequency code
+    uint16_t cplendf;		// coupling end frequency code
+    uint16_t cplbndstrc[18];	// coupling band structure
+    // derived information
+    uint16_t cplstrtmant;	// coupling channel start mantissa
+    uint16_t cplendmant;	// coupling channel end mantissa
+    uint16_t ncplsubnd;		// number of coupling sub-bands
+    uint16_t ncplbnd;		// number of coupling bands
+
+    // should we simply have float cplco[5][18] instead of these 4 ?
+    uint8_t mstrcplco[5];	// per channel master coupling coordinate
+    uint8_t cplcoexp[5][18];	// per band coupling exponent
+    uint8_t cplcomant[5][18];	// per band coupling mantissa
+    uint8_t phsflg[18];		// per band phase flags for stereo
+
+    uint16_t rematflg[4];	// stereo rematrixing
+
+    uint16_t chbwcod[5];	// channel bandwidth for independant channels
+
+    uint32_t	magic2;
+
+    uint16_t sdcycod;		// slow decay
+    uint16_t fdcycod;		// fast decay
+    uint16_t sgaincod;		// slow gain
+    uint16_t dbpbcod;		// dB per bit - encodes the dbknee value
+    uint16_t floorcod;		// masking floor
+
+    uint16_t csnroffst;		// coarse SNR offset
+    ac3_ba_t cplba;		// coupling bit allocation parameters
+    ac3_ba_t ba[5];		// channel bit allocation parameters
+    ac3_ba_t lfeba;		// lfe bit allocation parameters
+
+    uint16_t cplfleak;		// coupling fast leak init
+    uint16_t cplsleak;		// coupling slow leak init
 	
-	/* Coupling leak info */
-	uint16_t cplleake;
-		/* coupling fast leak initialization */
-		uint16_t cplfleak;
-		/* coupling slow leak initialization */
-		uint16_t cplsleak;
-	
-	/* delta bit allocation info */
-	uint16_t deltbaie;
-		/* coupling delta bit allocation exists */
-		uint16_t cpldeltbae;
-		/* fbw delta bit allocation exists */
-		uint16_t deltbae[5];
-		/* number of cpl delta bit segments */
-		uint16_t cpldeltnseg;
-			/* coupling delta bit allocation offset */
-			uint16_t cpldeltoffst[8];
-			/* coupling delta bit allocation length */
-			uint16_t cpldeltlen[8];
-			/* coupling delta bit allocation length */
-			uint16_t cpldeltba[8];
-		/* number of delta bit segments */
-		uint16_t deltnseg[5];
-			/* fbw delta bit allocation offset */
-			uint16_t deltoffst[5][8];
-			/* fbw delta bit allocation length */
-			uint16_t deltlen[5][8];
-			/* fbw delta bit allocation length */
-			uint16_t deltba[5][8];
 
-	/* skip length exists */
-	uint16_t skiple;
-		/* skip length */
-		uint16_t skipl;
 
-	//Removed Feb 2000 -ah
-	//added Jul 2000 ++dent
-	/* channel mantissas */
-	uint16_t chmant[5][256];
 
 	/* coupling mantissas */
-//	uint16_t cplmant[256];
-
-	//Added Jun 2000 -MaXX
-	/* coupling floats */
-	float cpl_flt[ 256 ];
-
-	//Removed Feb 2000 -ah
-	//added Jul 2000 ++dent
-	/* coupling mantissas */
-	uint16_t lfemant[7];
+	uint16_t cplmant[256];
 
 
 	/*  -- Information not in the bitstream, but derived thereof  -- */
 
-	/* Number of coupling sub-bands */
-	uint16_t ncplsubnd;
-
-	/* Number of combined coupling sub-bands
-	 * Derived from ncplsubnd and cplbndstrc */
-	uint16_t ncplbnd;
-
-	/* Number of exponent groups by channel
-	 * Derived from strmant, endmant */
-	uint16_t nchgrps[5];
-
-	/* Number of coupling exponent groups
-	 * Derived from cplbegf, cplendf, cplexpstr */
-	uint16_t ncplgrps;
-			
 	/* End mantissa numbers of fbw channels */
 	uint16_t endmant[5];
 
-	/* Start and end mantissa numbers for the coupling channel */
-	uint16_t cplstrtmant;
-	uint16_t cplendmant;
-
 	/* Decoded exponent info */
-	uint16_t fbw_exp[5][256];
-	uint16_t cpl_exp[256];
-	uint16_t lfe_exp[7];
+	uint8_t fbw_exp[5][256];
+	uint8_t cpl_exp[256];
+	uint8_t lfe_exp[7];
 
 	/* Bit allocation pointer results */
 	uint16_t fbw_bap[5][256];

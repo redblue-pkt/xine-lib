@@ -22,74 +22,60 @@
  *
  */
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif 
-
 #include <stdlib.h>
 #include <stdio.h>
 #include "ac3.h"
 #include "ac3_internal.h"
 
 
+#include "decode.h"
 #include "rematrix.h"
-
 
 struct rematrix_band_s
 {
-	uint32_t start;
-	uint32_t end;
-} rematrix_band[] = {
-	{13, 24},
-	{25, 36},
-	{37, 60},
-	{61, 252}
+    uint32_t start;
+    uint32_t end;
 };
 
+struct rematrix_band_s rematrix_band[] = { {13,24}, {25,36}, {37 ,60}, {61,252}};
 
-/**
- *
- **/
+static inline uint32_t min(uint32_t a,uint32_t b);
 
-inline uint32_t min (uint32_t a, uint32_t b)
+static inline uint32_t
+min(uint32_t a,uint32_t b)
 {
-	return (a < b) ? a : b;
+    return (a < b ? a : b);
 }
 
-
-/**
- * This routine simply does stereo remartixing for the 2 channel 
- * stereo mode
- **/
-
-void rematrix (audblk_t *audblk, stream_samples_t samples)
+/* This routine simply does stereo rematixing for the 2 channel 
+ * stereo mode */
+void rematrix(audblk_t *audblk, stream_samples_t samples)
 {
-	uint32_t num_bands;
-	uint32_t start;
-	uint32_t end;
-	int i,j;
+    uint32_t num_bands;
+    uint32_t start;
+    uint32_t end;
+    uint32_t i,j;
+    float left,right;
 
-	if (!audblk->cplinu || audblk->cplbegf > 2)
-		num_bands = 4;
-	else if (audblk->cplbegf > 0)
-		num_bands = 3;
-	else
-		num_bands = 2;
+    if(!audblk->cplinu || audblk->cplbegf > 2)
+	num_bands = 4;
+    else if (audblk->cplbegf > 0)
+	num_bands = 3;
+    else
+	num_bands = 2;
 
-	for (i=0; i < num_bands; i++) {
-		if (!audblk->rematflg[i])
-			continue;
+    for(i=0;i < num_bands; i++) {
+	if(!audblk->rematflg[i])
+	    continue;
 
-		start = rematrix_band[i].start;
-		end = min (rematrix_band[i].end ,12 * audblk->cplbegf + 36);
+	start = rematrix_band[i].start;
+	end = min(rematrix_band[i].end ,12 * audblk->cplbegf + 36);
 	
-		for (j=start;j < end; j++) {
-			float left,right;
-
-			left  = samples[0][j] + samples[1][j];
-			right = samples[0][j] - samples[1][j];
-			samples[0][j] = left;
-			samples[1][j] = right;
-		}
+	for(j=start;j < end; j++) {
+	    left  = samples[0][j] + samples[1][j];
+	    right = samples[0][j] - samples[1][j];
+	    samples[0][j] = left;
+	    samples[1][j] = right;
 	}
+    }
 }

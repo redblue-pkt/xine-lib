@@ -21,6 +21,6 @@
  *
  */
 
-void parse_syncinfo(syncinfo_t *syncinfo,uint8_t *data);
-void parse_audblk(bsi_t *bsi,audblk_t *audblk);
-void parse_bsi(bsi_t *bsi);
+int parse_syncinfo(uint8_t * buf, int * sample_rate, int * bit_rate);
+int parse_audblk(ac3_state_t *state,audblk_t *audblk);
+int parse_bsi(ac3_state_t *state, uint8_t * buf);

@@ -21,9 +21,6 @@
  *
  */
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif 
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -94,24 +91,24 @@ uint16_t lfsr_state = 1;
 
 uint16_t dither_gen(void)
 {
-	int i;
-	uint32_t state;
+    int i;
+    uint32_t state;
 
-	//explicitly bring the state into a local var as gcc > 3.0?
-	//doesn't know how to optimize out the stores
-	state = lfsr_state;
+    //explicitly bring the state into a local var as gcc > 3.0?
+    //doesn't know how to optimize out the stores
+    state = lfsr_state;
 
-	//Generate eight pseudo random bits
-	for(i=0;i<8;i++) {
-		state <<= 1;	
+    //Generate eight pseudo random bits
+    for(i=0;i<8;i++) {
+	state <<= 1;	
 
-		if(state & 0x10000)
-			state ^= 0xa011;
-	}
+	if(state & 0x10000)
+	    state ^= 0xa011;
+    }
 
-	lfsr_state = state;
+    lfsr_state = state;
 
-	return (((((int32_t)state<<8)>>8) * (int32_t) (0.707106 * 256.0))>>16);
+    return (((((int32_t)state<<8)>>8) * (int32_t) (0.707106 * 256.0))>>16);
 }
 
 #endif

@@ -17,13 +17,13 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.1 2001/04/29 16:40:33 guenter Exp $
+ * $Id: xine_decoder.c,v 1.2 2001/05/26 15:07:18 guenter Exp $
  *
  * stuff needed to turn libac3 into a xine decoder plugin
  */
 
 /*
- * FIXME: libac3 uses global variables (that are written)
+ * FIXME: libac3 uses global variables (that are written to)
  */
 
 
@@ -34,10 +34,23 @@
 #include "buffer.h"
 #include "xine_internal.h"
 
+#define FRAME_SIZE 4096
 
 typedef struct ac3dec_decoder_s {
   audio_decoder_t  audio_decoder;
-  ac3_config_t     ac3c; /* FIXME - global variables, see above */
+
+  uint32_t         pts;
+
+  uint8_t          frame_buffer[FRAME_SIZE];
+  uint8_t         *frame_ptr;
+  int              sync_todo;
+  int              frame_length, frame_todo;
+  uint16_t         syncword;
+
+  ao_functions_t  *audio_out;
+  int              output_sampling_rate;
+  int              output_open;
+
 } ac3dec_decoder_t;
 
 int ac3dec_can_handle (audio_decoder_t *this_gen, int buf_type) {
@@ -49,21 +62,109 @@ void ac3dec_init (audio_decoder_t *this_gen, ao_functions_t *audio_out) {
 
   ac3dec_decoder_t *this = (ac3dec_decoder_t *) this_gen;
 
-  ac3_init (&this->ac3c, audio_out);
+  this->audio_out = audio_out;
+  ac3_init ();
+  this->syncword      = 0;
+  this->sync_todo     = 6;
+  this->output_open   = 0;
 }
 
 void ac3dec_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
-  /* ac3dec_decoder_t *this = (ac3dec_decoder_t *) this_gen;*/
 
-  ac3_decode_data (buf->content, buf->content + buf->size,
-		   buf->PTS);
+  ac3dec_decoder_t *this = (ac3dec_decoder_t *) this_gen;
+
+  uint8_t     *current = buf->content;
+  uint8_t     *end = buf->content + buf->size;
+  ac3_frame_t *ac3_frame;
+  int          sampling_rate;
+
+  uint8_t byte;
+  
+  this->pts = buf->PTS;
+  
+  while (current != end) {
+
+    while (1) {
+      byte = *current++;
+
+      if (this->sync_todo>0) {
+
+	/* search and collect syncinfo */
+
+	if (this->syncword != 0x0b77) {
+	  this->syncword = (this->syncword << 8) | byte;
+
+	  if (this->syncword == 0x0b77) {
+
+	    this->frame_buffer[0] = 0x0b;
+	    this->frame_buffer[1] = 0x77;
+	  
+	    this->sync_todo = 4;
+	    this->frame_ptr = this->frame_buffer+2;
+	  }
+	} else {
+	  *this->frame_ptr++ = byte;
+	  this->sync_todo--;
+
+	  if (this->sync_todo==0) {
+	    this->frame_length = ac3_frame_length (this->frame_buffer);
+	    this->frame_todo = this->frame_length - 6;
+	  }
+
+	}
+      } else {
+
+	*this->frame_ptr++ = byte;
+	this->frame_todo--;
+	
+	if (this->frame_todo == 0)
+	  break;
+      }
+
+      if (current == end) 
+	return ;
+    }
+
+    /* now, decode this frame */
+
+    ac3_frame = ac3_decode_frame (this->frame_buffer);
+
+    /*  output audio */
+
+    if (!this->output_open 
+	|| (ac3_frame->sampling_rate != this->output_sampling_rate) ) {
+      
+      if (this->output_open)
+	this->audio_out->close (this->audio_out);
+
+      this->output_open = (this->audio_out->open (this->audio_out, 16, 
+						  ac3_frame->sampling_rate,
+						  AO_CAP_MODE_STEREO) == 1);
+      this->output_sampling_rate = ac3_frame->sampling_rate;
+    }
+
+    if (this->output_open) {
+      this->audio_out->write_audio_data (this->audio_out,
+					 ac3_frame->audio_data,
+					 256*6,
+					 this->pts);
+      this->pts = 0;
+    }
+
+    /* done with frame, prepare for next one */
+
+    this->syncword   = 0;
+    this->sync_todo  = 6;
+
+  }
 }
 
 void ac3dec_close (audio_decoder_t *this_gen) {
 
-  /* ac3dec_decoder_t *this = (ac3dec_decoder_t *) this_gen; */
+  ac3dec_decoder_t *this = (ac3dec_decoder_t *) this_gen; 
 
-  ac3_reset ();
+  if (this->output_open) 
+    this->audio_out->close (this->audio_out);
 }
 
 static char *ac3dec_get_id(void) {
@@ -78,11 +179,6 @@ audio_decoder_t *init_audio_decoder_plugin (int iface_version, config_values_t *
     return NULL;
 
   this = (ac3dec_decoder_t *) malloc (sizeof (ac3dec_decoder_t));
-
-  this->ac3c.flags                = 0;
-  this->ac3c.fill_buffer_callback = NULL;
-  this->ac3c.num_output_ch        = 2; /* FIXME */
-  this->ac3c.dual_mono_ch_sel     = 0;
 
   this->audio_decoder.interface_version   = 1;
   this->audio_decoder.can_handle          = ac3dec_can_handle;
