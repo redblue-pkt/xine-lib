@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ogg.c,v 1.99 2003/05/12 19:37:49 heinchen Exp $
+ * $Id: demux_ogg.c,v 1.100 2003/05/12 19:44:35 heinchen Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -1416,7 +1416,7 @@ static int demux_ogg_get_optional_data(demux_plugin_t *this_gen,
       return DEMUX_OPTIONAL_SUCCESS;
     } else if ((channel>=0) && (channel<this->num_streams)) {
       for (stream_num=0; stream_num<this->num_streams; stream_num++) {
-	if (this->buf_types[stream_num]==BUF_AUDIO_VORBIS+channel) {
+	if ((this->buf_types[stream_num]&0xFF00001F)==BUF_AUDIO_BASE+channel) {
 	  if (this->language[stream_num]) {
 	    sprintf(str, "%s", this->language[stream_num]);
 	    return DEMUX_OPTIONAL_SUCCESS;
