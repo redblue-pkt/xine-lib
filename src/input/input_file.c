@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_file.c,v 1.75 2003/03/03 07:37:23 esnel Exp $
+ * $Id: input_file.c,v 1.76 2003/03/07 17:01:34 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -227,7 +227,7 @@ static input_plugin_t *open_plugin (input_class_t *cls_gen, xine_stream_t *strea
   if (!strncasecmp (mrl, "file:", 5)) 
     filename = decode_uri (&mrl[5]);
   else
-    filename = mrl;
+    filename = decode_uri(mrl);
 
   fh = open (filename, O_RDONLY);
 
