@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.c,v 1.68 2002/03/12 19:51:29 guenter Exp $
+ * $Id: metronom.c,v 1.69 2002/03/12 22:00:07 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -382,17 +382,17 @@ static void metronom_got_video_frame (metronom_t *this, vo_frame_t *img) {
   img->vpts = this->video_vpts + this->av_offset;
 
 #ifdef LOG
-  printf ("metronom: video vpts for %10lld : %10lld (duration:%d%c%d)\n", 
-	  pts, this->video_vpts, img->duration,
-	  (this->video_drift<0)?'+':'-', abs(this->video_drift) );
+  printf ("metronom: video vpts for %10lld : %10lld (duration:%d drift:%lld step:%lld)\n", 
+	  pts, this->video_vpts, img->duration, this->video_drift, this->video_drift_step );
 #endif
   
-  img->duration -= this->video_drift_step;
+  if( this->video_drift * this->video_drift_step > 0 )
+  {
+    img->duration -= this->video_drift_step;
 
-  this->video_drift -= this->video_drift_step;
-  if (this->video_drift<0) 
-    this->video_drift = 0;
-
+    this->video_drift -= this->video_drift_step;
+  }
+  
   this->video_vpts += img->duration;
 
   pthread_mutex_unlock (&this->lock);
