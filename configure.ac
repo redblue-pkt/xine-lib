@@ -530,7 +530,7 @@ AC_CHECK_PROG(DEPMOD, depmod, depmod, no)
 dnl ---------------------------------------------
 dnl Check for divx4
 dnl ---------------------------------------------
-dnl AC_CHECK_DIVX4(, AC_MSG_RESULT(*** All of DIVX4 dependent parts will be disabled ***))
+dnl AC_CHECK_DIVX4(, AC_MSG_RESULT(*** All DIVX4 dependent parts will be disabled ***))
 dnl AM_CONDITIONAL(HAVE_DIVX4, test x"$no_divx4" != "xyes")
 
 
@@ -539,7 +539,7 @@ dnl Ogg/Vorbis libs.
 dnl ---------------------------------------------
 AM_PATH_OGG(
            [ AM_PATH_VORBIS([], 
-	                    AC_MSG_RESULT([*** All of OGG/VORBIS dependent parts will be disabled ***])) 
+	                    AC_MSG_RESULT([*** All OGG/VORBIS dependent parts will be disabled ***])) 
 	   ], 
            AC_MSG_RESULT([*** All of OGG/VORBIS dependent parts will be disabled ***]))
 AM_CONDITIONAL(HAVE_VORBIS, [test x"$no_ogg" != "xyes" -a x"$no_vorbis" != "xyes"])
@@ -548,8 +548,21 @@ AM_CONDITIONAL(HAVE_VORBIS, [test x"$no_ogg" != "xyes" -a x"$no_vorbis" != "xyes
 dnl ---------------------------------------------
 dnl XviD libs.
 dnl ---------------------------------------------
-AM_PATH_XVID([], AC_MSG_RESULT([*** All of XviD dependent parts will be disabled ***]))
+AM_PATH_XVID([], AC_MSG_RESULT([*** All XviD dependent parts will be disabled ***]))
 AM_CONDITIONAL(HAVE_XVID, [test x"$no_xvid" != "xyes"])	
+
+
+dnl ---------------------------------------------
+dnl MNG libs.
+dnl ---------------------------------------------
+AC_CHECK_LIB(mng, mng_initialize,
+	[ AC_CHECK_HEADER(libmng.h,
+		[ have_libmng=yes
+		  MNG_LIBS="-lmng" ], 
+		AC_MSG_RESULT([*** All libmng dependent parts will be disabled ***]))],
+	AC_MSG_RESULT([*** All libmng dependent parts will be disabled ***]))
+AM_CONDITIONAL(HAVE_LIBMNG, test x"$have_libmng" = "xyes")
+AC_SUBST(MNG_LIBS)
 
 
 dnl ---------------------------------------------
@@ -1247,6 +1260,9 @@ if test x"$enable_asf" = "xyes"; then
 fi
 if test x"$no_oggvorbis" = "xno"; then
   echo "   - ogg"
+fi
+if test x"$have_libmng" = "xyes"; then
+  echo "   - mng"
 fi
 echo ""
 

@@ -44,8 +44,8 @@ Mike Melanson <melanson@pcisys.net>
   SMC video decoders
 
 Robin KAY <komadori@myrealbox.com>
-  pgx64[fb] video output plugin, WVE demuxer, EA ADPCM decoder, various
-  bugfixes
+  pgx64[fb] video output plugin, WVE demuxer, MNG demuxer, EA ADPCM
+  decoder, various bugfixes
 
 Stephen Torri <storri@users.sourceforge.net>
   Automake, autoconf, libtool development, and build fixes,

@@ -10,12 +10,12 @@ if HAVE_VORBIS
 ogg_module = xineplug_dmx_ogg.la
 endif
 
-#if HAVE_ZLIB
-#qt_modules = xineplug_dmx_qt.la
-#endif
-
 if BUILD_ASF
 asf_module = xineplug_dmx_asf.la 
+endif
+
+if HAVE_LIBMNG
+mng_module = xineplug_dmx_mng.la
 endif
 
 ##
@@ -23,21 +23,10 @@ endif
 # ---------
 # All of xine demuxer plugins should be named like the scheme "xineplug_dmx_"
 
-#lib_LTLIBRARIES = $(ogg_module) $(asf_module) $(qt_modules) xineplug_dmx_avi.la\
-#	xineplug_dmx_mpeg_block.la xineplug_dmx_mpeg.la \
-#	xineplug_dmx_mpeg_elem.la xineplug_dmx_mpeg_audio.la \
-#	xineplug_dmx_cda.la xineplug_dmx_film.la \
-#	xineplug_dmx_roq.la xineplug_dmx_fli.la \
-#	xineplug_dmx_smjpeg.la xineplug_dmx_wav.la \
-#	xineplug_dmx_idcin.la xineplug_dmx_wc3movie.la \
-#	xineplug_dmx_vqa.la xineplug_dmx_voc.la \
-#	xineplug_dmx_aiff.la xineplug_dmx_snd.la \
-#	xineplug_dmx_yuv4mpeg2.la xineplug_dmx_real.la
-#	xineplug_dmx_mpeg_pes.la xineplug_dmx_mpeg_ts.la
-
 XINELIB = $(top_builddir)/src/xine-engine/libxine.la
 
-lib_LTLIBRARIES = $(ogg_module) $(asf_module) xineplug_dmx_avi.la\
+lib_LTLIBRARIES = $(ogg_module) $(asf_module) $(mng_module) \
+	xineplug_dmx_avi.la\
 	xineplug_dmx_mpeg_block.la \
 	xineplug_dmx_mpeg.la \
 	xineplug_dmx_mpeg_audio.la \
@@ -59,11 +48,11 @@ lib_LTLIBRARIES = $(ogg_module) $(asf_module) xineplug_dmx_avi.la\
 	xineplug_dmx_real.la \
 	xineplug_dmx_realaudio.la \
 	xineplug_dmx_eawve.la \
-	xineplug_dmx_mpeg_ts.la
+	xineplug_dmx_mpeg_ts.la \
+	xineplug_dmx_mng.la
 
 xineplug_dmx_ogg_la_SOURCES = demux_ogg.c
-xineplug_dmx_ogg_la_LIBADD = $(OGG_LIBS) $(VORBIS_LIBS)\
-	$(XINELIB)
+xineplug_dmx_ogg_la_LIBADD = $(OGG_LIBS) $(VORBIS_LIBS) $(XINELIB)
 xineplug_dmx_ogg_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 xineplug_dmx_avi_la_SOURCES = demux_avi.c
@@ -165,6 +154,10 @@ xineplug_dmx_realaudio_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS
 xineplug_dmx_eawve_la_SOURCES = demux_eawve.c
 xineplug_dmx_eawve_la_LIBADD = $(XINELIB)
 xineplug_dmx_eawve_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
+
+xineplug_dmx_mng_la_SOURCES = demux_mng.c
+xineplug_dmx_mng_la_LIBADD = $(XINELIB) $(ZLIB_LIBS) $(MNG_LIBS)
+xineplug_dmx_mng_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 include_HEADERS = demux.h
 noinst_HEADERS = asfheader.h qtpalette.h
