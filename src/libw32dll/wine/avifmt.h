@@ -218,7 +218,7 @@ typedef struct {
 } AVIStreamHeader;
 
 /* Flags for index */
-#define AVIIF_LIST          0x00000001L // chunk is a 'LIST'
+#define AVIIF_LIST          0x00000001L // chunk is a 'LIST' 
 #define AVIIF_KEYFRAME      0x00000010L // this frame is a key frame.
 
 #define AVIIF_NOTIME	    0x00000100L // this frame doesn't take any time

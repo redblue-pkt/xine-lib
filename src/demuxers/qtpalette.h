@@ -1,6 +1,8 @@
-//  Default Palettes for Quicktime Files
-//  Automatically generated from a utility derived from XAnim:
-//    http://xanim.va.pubnix.com/home.html
+/*
+ * Default Palettes for Quicktime Files
+ *  Automatically generated from a utility derived from XAnim:
+ *  http://xanim.va.pubnix.com/home.html
+ */
 
 #ifndef QTPALETTE_H
 #define QTPALETTE_H

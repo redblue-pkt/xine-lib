@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg.c,v 1.83 2002/10/23 20:22:42 guenter Exp $
+ * $Id: demux_mpeg.c,v 1.84 2002/10/23 20:26:33 guenter Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  * reads streams of variable blocksizes
@@ -1145,7 +1145,6 @@ static int demux_mpeg_get_stream_length (demux_plugin_t *this_gen) {
 static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *stream,
 				    input_plugin_t *input) {
   demux_mpeg_t       *this;
-  config_values_t    *config = ((demux_mpeg_class_t *) class_gen)->config;
 
   this         = xine_xmalloc (sizeof (demux_mpeg_t));
   this->stream = stream;

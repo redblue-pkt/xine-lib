@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xineutils.h,v 1.23 2002/09/16 21:49:35 miguelfreitas Exp $
+ * $Id: xineutils.h,v 1.24 2002/10/23 20:26:35 guenter Exp $
  *
  */
 #ifndef XINEUTILS_H
@@ -563,24 +563,6 @@ void xine_probe_fast_memcpy(config_values_t *config);
 #endif
 
 
-
-		      /* Debugging/Monitoring */
-
-#if (__GNUC__ > 2 || (__GNUC__ == 2 && __GNUC_MINOR__ >= 95) || !defined(__GNUC__)) && !defined(__cplusplus)
-#define xlerror(...) do {                                                        \
-        printf("XINE lib %s:%d:(%s) ", __FILE__, __LINE__, __XINE_FUNCTION__);   \
-        printf(__VA_ARGS__);                                                     \
-	printf("\n");                                                            \
-} while (0)
-#else
-#define xlerror(args...) do {                                                    \
-        printf("XINE lib %s:%d:(%s) ", __FILE__, __LINE__, __XINE_FUNCTION__);   \
-        printf(##args);                                                          \
-        printf("\n");                                                            \
-} while (0)
-#endif
-
-
 /*
  * Debug stuff
  */
@@ -641,7 +623,7 @@ void xine_strdupa(char *dest, char *src);
 #ifdef HAVE_STRPBRK
 #define xine_strpbrk strpbrk
 #else
-static inline char *_x_strpbrk(const char *s, const char *accept) {
+static __inline__ char *_x_strpbrk(const char *s, const char *accept) {
 
   while(*s != '\0') {
     const char *a = accept;
@@ -659,7 +641,7 @@ static inline char *_x_strpbrk(const char *s, const char *accept) {
 #ifdef HAVE_STRSEP
 #define xine_strsep strsep
 #else
-static inline char *_x_strsep(char **stringp, const char *delim) {
+static __inline__ char *_x_strsep(char **stringp, const char *delim) {
   char *begin, *end;
   
   begin = *stringp;
@@ -699,7 +681,7 @@ static inline char *_x_strsep(char **stringp, const char *delim) {
 #ifdef	HAVE_SETENV
 #define	xine_setenv	setenv
 #else
-static inline void _x_setenv(const char *name, const char *val, int _xx)
+static __inline__ void _x_setenv(const char *name, const char *val, int _xx)
 {
   int len  = strlen(name) + strlen(val) + 2;
   char *env;

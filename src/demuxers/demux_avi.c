@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_avi.c,v 1.126 2002/10/22 17:14:47 jkeil Exp $
+ * $Id: demux_avi.c,v 1.127 2002/10/23 20:26:32 guenter Exp $
  *
  * demultiplexer for avi streams
  *
@@ -64,10 +64,11 @@
 #include "xineutils.h"
 #include "demux.h"
 
-#define	WINE_TYPEDEFS_ONLY
-#include "libw32dll/wine/avifmt.h"
-#include "libw32dll/wine/windef.h"
-#include "libw32dll/wine/vfw.h"
+/*
+ * stolen from wine headers
+ */
+
+#define AVIIF_KEYFRAME      0x00000010L
 
 /*
 #define LOG

@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.98 2002/10/23 11:59:52 jcdutton Exp $
+ * $Id: input_dvd.c,v 1.99 2002/10/23 20:26:34 guenter Exp $
  *
  */
 
@@ -209,7 +209,7 @@ void read_ahead_cb(void *this_gen, xine_cfg_entry_t *entry) {
    return;
   class->read_ahead_flag = entry->num_value;
 
-//  dvdnav_set_readahead_flag(this->dvdnav, entry->num_value);
+  /*  dvdnav_set_readahead_flag(this->dvdnav, entry->num_value);*/
 }
  
 void region_changed_cb (void *this_gen, xine_cfg_entry_t *entry) {
@@ -790,7 +790,7 @@ static void dvd_event_listener(void *this_gen, const xine_event_t *event) {
   dvd_input_class_t  *class = (dvd_input_class_t*)this->input_plugin.input_class;
   config_values_t  *config = class->config;       /* Pointer to XineRC config file   */  
   printf("input_dvd:dvd_event_listener: EVENT=%d\n", event->type);
-//  dvd_input_class_t     *class = (dvd_input_class_t*)class_gen;
+  /*  dvd_input_class_t     *class = (dvd_input_class_t*)class_gen; */
   if(!this->dvdnav) {
     return;
   }
@@ -943,11 +943,13 @@ static void dvd_event_listener(void *this_gen, const xine_event_t *event) {
         }
         if (this->stream->spu_decoder_plugin->get_nav_pci(this->stream->spu_decoder_plugin, &nav_pci) ) {
 /* FIXME Implement mouse move event */
-          //xine_input_event_t *input_event = (xine_input_event_t*) event;      
-      /* printf("input_dvd: Mouse move (x,y) = (%i,%i)\n", input_event->x,
-	     input_event->y); */
-          //dvdnav_mouse_select(this->dvdnav, &nav_pci, input_event->x, input_event->y);
-          //xine_dvd_send_button_update(this, 0);
+#if 0
+          xine_input_event_t *input_event = (xine_input_event_t*) event;
+	  printf("input_dvd: Mouse move (x,y) = (%i,%i)\n", input_event->x,
+		 input_event->y); 
+	  dvdnav_mouse_select(this->dvdnav, &nav_pci, input_event->x, input_event->y);
+          xine_dvd_send_button_update(this, 0);
+#endif
         }
       }
       break;
@@ -1656,6 +1658,9 @@ static void *init_class (xine_t *xine, void *data) {
 
 /*
  * $Log: input_dvd.c,v $
+ * Revision 1.99  2002/10/23 20:26:34  guenter
+ * final c++ -> c coding style fixes, libxine compiles now
+ *
  * Revision 1.98  2002/10/23 11:59:52  jcdutton
  * Oops...will compile now.
  *

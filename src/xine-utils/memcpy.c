@@ -123,7 +123,10 @@ __asm__ __volatile__(\
 }
 
 /* linux kernel __memcpy (from: /include/asm/string.h) */
-static inline void * __memcpy(void * to, const void * from, size_t n)
+static __inline__ void * __memcpy (
+			       void * to, 
+			       const void * from, 
+			       size_t n)
 {
 int d0, d1, d2;
 

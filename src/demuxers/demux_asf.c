@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.69 2002/10/22 23:39:53 tmattern Exp $
+ * $Id: demux_asf.c,v 1.70 2002/10/23 20:26:32 guenter Exp $
  *
  * demultiplexer for asf streams
  *
@@ -1485,9 +1485,9 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen,
   return &this->demux_plugin;
 }
  
- static char *get_description (demux_class_t *this_gen) {
-   return "ASF demux plugin";
- }
+static char *get_description (demux_class_t *this_gen) {
+  return "ASF demux plugin";
+}
  
 static char *get_identifier (demux_class_t *this_gen) {
   return "ASF";
