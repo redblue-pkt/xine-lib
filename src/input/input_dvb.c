@@ -2415,7 +2415,7 @@ static int dvb_plugin_open(input_plugin_t * this_gen)
     xine_cfg_entry_t adapter;
     xine_cfg_entry_t lastchannel;
     
-    xine_config_lookup_entry(this->stream->xine, "input.dvb_adapternum", &adapter);
+    xine_config_lookup_entry(this->stream->xine, "media.dvb.adapter", &adapter);
 
     if (!(tuner = tuner_init(this->class->xine,adapter.num_value))) {
       xprintf(this->class->xine, XINE_VERBOSITY_LOG, _("input_dvb: cannot open dvb device\n"));
@@ -2914,7 +2914,7 @@ static void *init_class (xine_t *xine, void *data) {
 		       15, NULL, NULL);
 
 
-  config->register_num(config, "input.dvb_adapternum",
+  config->register_num(config, "media.dvb.adapter",
 		       0,
 		       _("Number of dvb card to use."),
 		       _("Leave this at zero unless you "
