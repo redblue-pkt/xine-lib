@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3.c,v 1.51 2002/08/17 14:30:10 mroi Exp $
+ * $Id: video_out_dxr3.c,v 1.52 2002/08/27 19:19:39 mroi Exp $
  */
  
 /* mpeg1 encoding video out plugin for the dxr3.  
@@ -749,7 +749,7 @@ static void dxr3_display_frame(vo_driver_t *this_gen, vo_frame_t *frame_gen)
     }
   }
   if (frame->aspect != this->aspect)
-    dxr3_set_property(this_gen, VO_PROP_ASPECT_RATIO, frame->vo_frame.ratio);
+    dxr3_set_property(this_gen, VO_PROP_ASPECT_RATIO, frame->aspect);
   if (frame->pan_scan && !this->pan_scan) {
     dxr3_set_property(this_gen, VO_PROP_ZOOM_X, 1);
     this->pan_scan = 1;
