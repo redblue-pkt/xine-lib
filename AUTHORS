@@ -153,6 +153,7 @@ Contributions
   Damien Clermonte <damien.clermonte@free.fr>
     http input plugin patches
 
+  Thibaut Mattern <tmattern@noos.fr>
+    zooming feature for Xv video-out plugin
+
   (let us know if we've forgotten anyone)
-
-
