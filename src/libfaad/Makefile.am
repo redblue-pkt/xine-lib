@@ -19,7 +19,7 @@ faad_module = xineplug_decode_faad.la
 
 lib_LTLIBRARIES = $(faad_module)
 
-VPATH = @srcdir@:codebook:
+VPATH = @srcdir@:@srcdir@/codebook:
 
 xineplug_decode_faad_la_SOURCES = xine_decoder.c \
 	bits.c data.c decoder.c drc.c error.c filtbank.c \
