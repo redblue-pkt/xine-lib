@@ -339,11 +339,13 @@ void mpeg2_find_sequence_header (mpeg2dec_t * mpeg2dec,
 
 	if (code == 0xb3) {	/* sequence_header_code */
 	    if (header_process_sequence_header (picture, mpeg2dec->chunk_buffer)) {
-	        fprintf (stderr, "bad sequence header\n");
+	        printf ("libmpeg2: bad sequence header\n");
 		return;
 	    }
 	  
 	    if (mpeg2dec->is_sequence_needed) {
+	        printf ("libmpeg2: found sequence header! :-)\n");
+
 	        mpeg2dec->is_sequence_needed = 0;
 		picture->forward_reference_frame =
 		    mpeg2dec->output->get_frame (mpeg2dec->output,

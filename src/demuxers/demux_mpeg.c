@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg.c,v 1.14 2001/05/31 22:54:39 guenter Exp $
+ * $Id: demux_mpeg.c,v 1.15 2001/06/09 22:05:30 guenter Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  * reads streams of variable blocksizes
@@ -42,6 +42,8 @@
 #include "demux.h"
 #include "utils.h"
 
+#define NUM_PREVIEW_BUFFERS 50
+
 static uint32_t xine_debug;
 
 typedef struct demux_mpeg_s {
@@ -58,6 +60,7 @@ typedef struct demux_mpeg_s {
   unsigned char        dummy_space[100000];
 
   int                  status;
+  int                  preview_mode;
 } demux_mpeg_t ;
 
 static uint32_t read_bytes (demux_mpeg_t *this, int n) {
@@ -157,6 +160,11 @@ static void parse_mpeg2_packet (demux_mpeg_t *this, int nID) {
     buf->type      = BUF_AUDIO_AC3 + track;
     buf->PTS       = pts;
     buf->DTS       = 0 ; /* FIXME */
+    if (this->preview_mode)
+      buf->decoder_info[0] = 0;
+    else
+      buf->decoder_info[0] = 1;
+
     buf->input_pos = this->input->get_current_pos (this->input);
     
     if(this->audio_fifo)
@@ -202,6 +210,10 @@ static void parse_mpeg2_packet (demux_mpeg_t *this, int nID) {
     buf->type      = BUF_AUDIO_MPEG + track;
     buf->PTS       = pts;
     buf->DTS       = 0;   /* FIXME */
+    if (this->preview_mode)
+      buf->decoder_info[0] = 0;
+    else
+      buf->decoder_info[0] = 1;
     buf->input_pos = this->input->get_current_pos(this->input);
 
     if(this->audio_fifo)
@@ -248,6 +260,10 @@ static void parse_mpeg2_packet (demux_mpeg_t *this, int nID) {
     buf->type = BUF_VIDEO_MPEG;
     buf->PTS  = pts;
     buf->DTS  = 0;
+    if (this->preview_mode)
+      buf->decoder_info[0] = 0;
+    else
+      buf->decoder_info[0] = 1;
     buf->input_pos = this->input->get_current_pos(this->input);
 
     this->video_fifo->put (this->video_fifo, buf);
@@ -362,6 +378,10 @@ static void parse_mpeg1_packet (demux_mpeg_t *this, int nID)
     buf->type      = BUF_AUDIO_MPEG + track ;
     buf->PTS       = pts;
     buf->DTS       = 0;   /* FIXME */
+    if (this->preview_mode)
+      buf->decoder_info[0] = 0;
+    else
+      buf->decoder_info[0] = 1;
     buf->input_pos = this->input->get_current_pos(this->input);
 
     if(this->audio_fifo)
@@ -381,6 +401,10 @@ static void parse_mpeg1_packet (demux_mpeg_t *this, int nID)
     buf->type = BUF_VIDEO_MPEG;
     buf->PTS  = pts;
     buf->DTS  = 0; /* FIXME */
+    if (this->preview_mode)
+      buf->decoder_info[0] = 0;
+    else
+      buf->decoder_info[0] = 1;
     buf->input_pos = this->input->get_current_pos(this->input);
 
     this->video_fifo->put (this->video_fifo, buf);
@@ -478,6 +502,8 @@ static void *demux_mpeg_loop (void *this_gen) {
   buf_element_t *buf;
   uint32_t w;
 
+  this->status     = DEMUX_OK;
+
   do {
     w = parse_pack (this);
 
@@ -532,14 +558,6 @@ static void demux_mpeg_start (demux_plugin_t *this_gen,
   this->video_fifo    = video_fifo;
   this->audio_fifo    = audio_fifo;
 
-  this->status     = DEMUX_OK;
-
-  if ((this->input->get_capabilities (this->input) & INPUT_CAP_SEEKABLE) != 0 ) {
-    xprintf (VERBOSE|DEMUX, "=>seek to %Ld\n",pos);
-    this->input->seek (this->input, pos+4, SEEK_SET);
-  } else
-    read_bytes(this, 4);
-
   buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
   buf->type    = BUF_CONTROL_START;
   this->video_fifo->put (this->video_fifo, buf);
@@ -549,6 +567,34 @@ static void demux_mpeg_start (demux_plugin_t *this_gen,
     buf->type    = BUF_CONTROL_START;
     this->audio_fifo->put (this->audio_fifo, buf);
   }
+
+  if ((this->input->get_capabilities (this->input) & INPUT_CAP_SEEKABLE) != 0 ) {
+
+    uint32_t w;
+    int num_buffers = NUM_PREVIEW_BUFFERS;
+
+    this->preview_mode = 1;
+
+    this->input->seek (this->input, 0, SEEK_SET);
+
+    this->status = DEMUX_OK ;
+
+    do {
+      w = parse_pack (this);
+      
+      if (w != 0x000001ba)
+	demux_mpeg_resync (this, w);
+      
+      num_buffers --;
+
+    } while ( (this->status == DEMUX_OK) && (num_buffers>0)) ;
+
+    xprintf (VERBOSE|DEMUX, "=>seek to %Ld\n",pos);
+    this->input->seek (this->input, pos+4, SEEK_SET);
+  } else
+    read_bytes(this, 4);
+
+  this->preview_mode = 0;
 
   pthread_create (&this->thread, NULL, demux_mpeg_loop, this) ;
 }
