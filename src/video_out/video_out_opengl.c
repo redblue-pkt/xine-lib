@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_opengl.c,v 1.18 2002/09/05 20:44:42 mroi Exp $
+ * $Id: video_out_opengl.c,v 1.19 2002/11/21 23:24:50 mshopf Exp $
  * 
  * video_out_glut.c, glut based OpenGL rendering interface for xine
  * Matthias Hopf <mat@mshopf.de>
@@ -42,7 +42,7 @@
  */
 
 
-#if 0					/* set to 1 for debugging messages */
+#if 1					/* set to 1 for debugging messages */
 #  define DEBUGF(x) fprintf x
 #else
 #  define DEBUGF(x) ((void) 0)
@@ -57,9 +57,6 @@
 #include "config.h"
 #endif
 
-#warning DISABLED: FIXME
-#if 0
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -68,8 +65,12 @@
 
 #include <X11/Xlib.h>
 
-#include "video_out.h"
-#include "video_out_x11.h"
+#include <sys/ipc.h>
+#include <sys/shm.h>
+#include <sys/time.h>
+
+#include <pthread.h>
+#include <netinet/in.h>
 
 #include <GL/gl.h>
 #include <GL/glx.h>
@@ -82,17 +83,13 @@
 #endif
 #endif
 
-#include <sys/ipc.h>
-#include <sys/shm.h>
-#include <sys/time.h>
-
-#include <pthread.h>
-#include <netinet/in.h>
-
+#include "xine.h"
+#include "video_out.h"
 #include "xine_internal.h"
 #include "alphablend.h"
 #include "yuv2rgb.h"
 #include "xineutils.h"
+#include "vo_scale.h"
 
 
 #define STRIPE_HEIGHT 16
@@ -119,10 +116,8 @@ typedef struct opengl_frame_s {
     vo_frame_t         vo_frame;
 
     /* frame properties as delivered by the decoder: */
-    int                width, height;
-    int                ratio_code;
-    int                format;
-    int                flags;
+    int                width,  height;
+    int                ratio_code, format, flags;
 
     /* opengl only data */
     uint8_t           *rgb_dst;
@@ -136,19 +131,14 @@ typedef struct opengl_driver_s {
 
     vo_driver_t      vo_driver;
 
+    vo_scale_t       sc;
+    vo_overlay_t    *overlay;
     config_values_t *config;
 
     /* X11 / Xv related stuff */
     Display         *display;
     int              screen;
     Drawable         drawable;
-
-    /* Output data */
-    opengl_frame_t  *cur_frame;
-    vo_overlay_t    *overlay;
-
-    /* display anatomy */
-    double           display_ratio;
 
     /* OpenGL related */
     GLXContext       context;
@@ -159,11 +149,12 @@ typedef struct opengl_driver_s {
     /* current texture size - this is not frame dependend! */
     int              texture_width, texture_height;
 
-    /* last frame delivered from the decoder */
+    /* last frame delivered from the decoder for frame change detection */
     int              last_width;
     int              last_height;
     int              last_ratio_code;
 
+#if 0
     /* ideal size */
     int              ideal_width, ideal_height;
     int              user_ratio;
@@ -175,28 +166,18 @@ typedef struct opengl_driver_s {
     /* output size */
     int              output_width, output_height;
     int              output_xoffset, output_yoffset;
-  
+#endif 
     /* software yuv2rgb related */
     int                yuv2rgb_gamma;
     uint8_t           *yuv2rgb_cmap;
     yuv2rgb_factory_t *yuv2rgb_factory;
 
-
-    void            *user_data;
-
-    /* gui callbacks */
-
-    void (*frame_output_cb) (void *user_data,
-			     int video_width, int video_height,
-			     int *dest_x, int *dest_y, 
-			     int *dest_height, int *dest_width,
-			     int *win_x, int *win_u);
-
-    void (*dest_size_cb) (void *user_data,
-			  int video_width, int video_height, 
-			  int *dest_width, int *dest_height);
-
 } opengl_driver_t;
+
+typedef struct {
+  video_driver_class_t driver_class;
+  config_values_t     *config;
+} opengl_class_t;
 
 
 enum { CONTEXT_BAD = 0, CONTEXT_SAME_DRAWABLE, CONTEXT_RELOAD, CONTEXT_SET };
@@ -217,7 +198,18 @@ static void opengl_frame_copy (vo_frame_t *vo_img, uint8_t **src) {
 
 /*  DEBUGF ((stderr, "*** %p: frame_copy src %p/%p/%p to %p\n", frame, src[0], src[1], src[2], frame->rgb_dst)); */
 
-    if (frame->format == IMGFMT_YV12) {
+    if ((char *) frame->rgb_dst + frame->stripe_inc > (char *) frame->texture
+        + frame->width * frame->height
+	* BYTES_PER_PIXEL) {
+        /* frame->rgb_dst can walk off the end of the frame's image data when
+         * xshm_frame_field, which resets it, is not called properly. This can
+         * happen with corrupt MPEG streams
+         * FIXME: Is there a way to ensure frame->rgb_dst validity?
+         */
+        DEBUGF ((stderr, "video_out_xshm: corrupt value of frame->rgb_dst -- skipping\n"));
+        return;
+    }
+    if (frame->format == XINE_IMGFMT_YV12) {
 	frame->yuv2rgb->yuv2rgb_fun (frame->yuv2rgb, frame->rgb_dst,
 				     src[0], src[1], src[2]);
     } else {
@@ -238,15 +230,15 @@ static void opengl_frame_field (vo_frame_t *vo_img, int which_field) {
     switch (which_field & VO_BOTH_FIELDS) {
     case VO_TOP_FIELD:
 	frame->rgb_dst    = frame->texture;
-	frame->stripe_inc = 2*STRIPE_HEIGHT * frame->width * BYTES_PER_PIXEL;
+	frame->stripe_inc = 2 * STRIPE_HEIGHT * BYTES_PER_PIXEL * frame->width;
 	break;
     case VO_BOTTOM_FIELD:
-	frame->rgb_dst    = frame->texture + frame->width * BYTES_PER_PIXEL ;
-	frame->stripe_inc = 2*STRIPE_HEIGHT * frame->width * BYTES_PER_PIXEL;
+	frame->rgb_dst    = frame->texture + BYTES_PER_PIXEL * frame->width;
+	frame->stripe_inc = 2 * STRIPE_HEIGHT * BYTES_PER_PIXEL * frame->width;
 	break;
     case VO_BOTH_FIELDS:
 	frame->rgb_dst    = frame->texture;
-	frame->stripe_inc = STRIPE_HEIGHT * frame->width * BYTES_PER_PIXEL;
+	frame->stripe_inc = STRIPE_HEIGHT * BYTES_PER_PIXEL * frame->width;
 	break;
     }
 /*  DEBUGF ((stderr, "*** %p: frame_field: rgb_dst %p\n", frame, frame->rgb_dst)); */
@@ -305,6 +297,12 @@ static vo_frame_t *opengl_alloc_frame (vo_driver_t *this_gen) {
 }
 
 
+static void opengl_compute_ideal_size (opengl_driver_t *this) {
+
+    vo_scale_compute_ideal_size (&this->sc);
+}
+
+
 static void opengl_update_frame_format (vo_driver_t *this_gen,
 					vo_frame_t *frame_gen,
 					uint32_t width, uint32_t height,
@@ -341,21 +339,17 @@ static void opengl_update_frame_format (vo_driver_t *this_gen,
 	assert (frame->texture);
 
 	switch (format) {
-	case IMGFMT_YV12:
+	case XINE_IMGFMT_YV12:
 	    frame->vo_frame.pitches[0] = 8*((width + 7) / 8);
 	    frame->vo_frame.pitches[1] = 8*((width + 15) / 16);
 	    frame->vo_frame.pitches[2] = 8*((width + 15) / 16);
-	    frame->vo_frame.base[0] = xine_xmalloc_aligned(16, frame->vo_frame.pitches[0] * height,
-							   &frame->chunk[0]);
-	    frame->vo_frame.base[1] = xine_xmalloc_aligned(16, frame->vo_frame.pitches[1] * ((height+1)/2),
-							   &frame->chunk[1]);
-	    frame->vo_frame.base[2] = xine_xmalloc_aligned(16, frame->vo_frame.pitches[2] * ((height+1)/2),
-							   &frame->chunk[2]);
+	    frame->vo_frame.base[0] = xine_xmalloc_aligned(16, frame->vo_frame.pitches[0] * height,         (void **) &frame->chunk[0]);
+	    frame->vo_frame.base[1] = xine_xmalloc_aligned(16, frame->vo_frame.pitches[1] * ((height+1)/2), (void **) &frame->chunk[1]);
+	    frame->vo_frame.base[2] = xine_xmalloc_aligned(16, frame->vo_frame.pitches[2] * ((height+1)/2), (void **) &frame->chunk[2]);
 	    break;
-	case IMGFMT_YUY2:
+	case XINE_IMGFMT_YUY2:
 	    frame->vo_frame.pitches[0] = 8*((width + 3) / 4);
-	    frame->vo_frame.base[0] = xine_xmalloc_aligned(16, frame->vo_frame.pitches[0] * height,
-							   &frame->chunk[0]);
+	    frame->vo_frame.base[0] = xine_xmalloc_aligned(16, frame->vo_frame.pitches[0] * height,         (void **) &frame->chunk[0]);
 	    break;
 	default:
 	    fprintf (stderr, "video_out_opengl: image format %d not supported, update video driver!\n", format);
@@ -391,111 +385,31 @@ static void opengl_update_frame_format (vo_driver_t *this_gen,
 }
 
 
-static void opengl_compute_ideal_size (opengl_driver_t *this,
-                                       int width, int height, int ratio_code) {
-    double image_ratio, desired_ratio;
-    double corr_factor;
-
-/*  DEBUGF ((stderr, "*** compute_ideal_size\n")); */
-    /*
-     * aspect ratio calculation
-     */
-    image_ratio = (double) width / (double) height;
-
-    switch (this->user_ratio) {
-    case ASPECT_AUTO:
-	switch (ratio_code) {
-	case XINE_ASPECT_RATIO_ANAMORPHIC:  /* anamorphic     */
-	case XINE_ASPECT_RATIO_PAN_SCAN:    /* we display pan&scan as widescreen */
-	    desired_ratio = 16.0 /9.0;
-	    break;
-	case XINE_ASPECT_RATIO_211_1:       /* 2.11:1 */
-	    desired_ratio = 2.11/1.0;
-	    break;
-	case XINE_ASPECT_RATIO_SQUARE:      /* square pels */
-	case XINE_ASPECT_RATIO_DONT_TOUCH:  /* probably non-mpeg stream => don't touch aspect ratio */
-	    desired_ratio = image_ratio;
-	    break;
-	case 0:                             /* forbidden -> 4:3 */
-	    printf ("video_out_opengl: invalid ratio, using 4:3\n");
-	default:
-	    printf ("video_out_opengl: unknown aspect ratio (%d) in stream => using 4:3\n",
-		    ratio_code);
-	case XINE_ASPECT_RATIO_4_3:         /* 4:3             */
-	    desired_ratio = 4.0 / 3.0;
-	    break;
-	}
-	break;
-    case ASPECT_ANAMORPHIC:
-	desired_ratio = 16.0 / 9.0;
-	break;
-    case ASPECT_DVB:
-	desired_ratio = 2.0 / 1.0;
-	break;
-    case ASPECT_SQUARE:
-	desired_ratio = image_ratio;
-	break;
-    case ASPECT_FULL:
-    default:
-	desired_ratio = 4.0 / 3.0;
-    }
-
-    corr_factor = desired_ratio * this->display_ratio / image_ratio;
-
-    if (fabs (corr_factor - 1.0) < 0.005) {
-	this->ideal_width  = width;
-	this->ideal_height = height;
-    } else {
-	if (corr_factor >= 1.0) {
-	    this->ideal_width  = width * corr_factor + 0.5;
-	    this->ideal_height = height;
-	} else {
-	    this->ideal_width  = width;
-	    this->ideal_height = height / corr_factor + 0.5;
-	}
-    }
-
-    DEBUGF ((stderr, "*** opengl_compute_ideal_size %dx%d -> %dx%d\n",
-	     width, height,
-	     this->ideal_width, this->ideal_height));
-}
-
-
 static void opengl_compute_output_size (opengl_driver_t *this) {
 
-    double x_factor, y_factor;
-    int    old_width = this->output_width,   old_height = this->output_height;
-    int    old_x     = this->output_xoffset, old_y      = this->output_yoffset;
+    int old_width  = this->sc.output_width;
+    int old_height = this->sc.output_height;
+    int old_x      = this->sc.output_xoffset;
+    int old_y      = this->sc.output_yoffset;
 
-    DEBUGF ((stderr, "*** compute_output_size for gui %dx%d ideal %dx%d\n",
-	     this->gui_width, this->gui_height,
-	     this->ideal_width, this->ideal_height));
-    /*
-     * make the frame fit into the given destination area
-     */
-  
-    x_factor = (double) this->gui_width  / (double) this->ideal_width;
-    y_factor = (double) this->gui_height / (double) this->ideal_height;
-  
-    if ( x_factor < y_factor ) {
-	this->output_width   = (double) this->ideal_width  * x_factor ;
-	this->output_height  = (double) this->ideal_height * x_factor ;
-    } else {
-	this->output_width   = (double) this->ideal_width  * y_factor ;
-	this->output_height  = (double) this->ideal_height * y_factor ;
-    }
-    this->output_xoffset = (this->gui_width - this->output_width) / 2 + this->gui_x;
-    this->output_yoffset = (this->gui_height - this->output_height) / 2 - this->gui_y;
+    vo_scale_compute_output_size (&this->sc);
 
-    DEBUGF ((stderr,
-	     "video_out_opengl: screen output %d x %d offset %d/%d\n",
-	     this->output_width, this->output_height,
-	     this->output_xoffset, this->output_yoffset
-	));
+    /* avoid problems in yuv2rgb */
+    if (this->sc.output_height < ((this->sc.delivered_height + 15) >> 4))
+        this->sc.output_height = ((this->sc.delivered_height + 15) >> 4);
+    if (this->sc.output_width < 8)
+        this->sc.output_width = 8;
+    if (this->sc.output_width & 1) /* yuv2rgb_mlib needs an even YUV2 width */
+        this->sc.output_width++;
+    DEBUGF ((stderr, "video_out_opengl: this source %d x %d => screen output %d x %d\n",
+             this->sc.delivered_width, this->sc.delivered_height,
+             this->sc.output_width, this->sc.output_height));
 
     /* Force state reinitialization / clear */
-    if ( (old_width != this->ideal_width || old_height != this->ideal_height
-	  || old_x  != this->output_xoffset || old_y   != this->output_yoffset)
+    if ( (old_width  != this->sc.output_width ||
+	  old_height != this->sc.output_height ||
+	  old_x   != this->sc.output_xoffset ||
+	  old_y   != this->sc.output_yoffset)
 	 && this->context_state == CONTEXT_SET)
 	this->context_state = CONTEXT_RELOAD;
 }
@@ -554,33 +468,15 @@ static void opengl_overlay_blend (vo_driver_t *this_gen, vo_frame_t *frame_gen,
 
 
 static int opengl_redraw_needed (vo_driver_t *this_gen) {
+
     opengl_driver_t  *this = (opengl_driver_t *) this_gen;
-    int gui_x, gui_y, gui_width, gui_height, gui_win_x, gui_win_y;
 
-    DEBUGF ((stderr, "*** redraw_needed %dx%d\n", this->ideal_width, this->ideal_height));
-    this->frame_output_cb (this->user_data,
-			   this->ideal_width,
-			   this->ideal_height, 
-			   &gui_x, &gui_y, &gui_width, &gui_height,
-			   &gui_win_x, &gui_win_y );
-    DEBUGF ((stderr, "*** frame_output_cb returned\n"));
+    DEBUGF ((stderr, "*** redraw_needed %dx%d\n", this->sc.delivered_width, this->sc.delivered_height));
 
-    if ( (this->gui_x     != gui_x)     || (this->gui_y      != gui_y)      ||
-	 (this->gui_width != gui_width) || (this->gui_height != gui_height) ||
-	 (this->gui_win_x != gui_win_x) || (this->gui_win_y  != gui_win_y)  ||
-         (this->context_state != CONTEXT_SET)) {
-
-	this->gui_x      = gui_x;
-	this->gui_y      = gui_y;
-	this->gui_width  = gui_width;
-	this->gui_height = gui_height;
-	this->gui_win_x  = gui_win_x;
-	this->gui_win_y  = gui_win_y;
-	
+    if (vo_scale_redraw_needed (&this->sc)) {
 	opengl_compute_output_size (this);
-	
 	/* Actually, the output area is cleared in render_image */
-	return 1;
+        return 1;
     }
     return 0;
 }
@@ -620,26 +516,31 @@ static void opengl_render_image (opengl_driver_t *this, opengl_frame_t *frame,
 	this->last_ratio_code = frame->ratio_code;
 	
 	DEBUGF ((stderr, "video_out_opengl: display format changed\n"));
-	opengl_compute_ideal_size (this, frame->width, frame->height,
-	                           frame->ratio_code);
-	this->gui_width = 0;		/* trigger re-calc of output size */
+	opengl_compute_ideal_size  (this);
+	opengl_compute_output_size (this);
     }
-	
-    /*
-     * tell gui about image size and ask for offset
-     */
-    this->cur_frame = frame;
-    opengl_redraw_needed ((vo_driver_t *) this);
 
+    /*
+     * Check texture size
+     */
+    if (this->texture_width < frame->width || this->texture_height < frame->height)
+	this->context_state = CONTEXT_RELOAD;
+	
     /*
      * check whether a new context has to be created
      */
+DEBUGF ((stderr, "video_out_opengl: CHECK\n"));
     if (((ctx == this->context || ! ctx) &&
 	 (this->context_state == CONTEXT_BAD ||
 	  this->context_state == CONTEXT_SAME_DRAWABLE)) ||
 	(self != this->renderthread))
     {
+static int glxAttrib[] = {
+GLX_RGBA, GLX_RED_SIZE, 1, GLX_GREEN_SIZE, 1, GLX_BLUE_SIZE, 1, None
+} ;
+DEBUGF ((stderr, "video_out_opengl: ASSERT\n"));
 	assert (this->vinfo);
+DEBUGF ((stderr, "video_out_opengl: PASSED\n"));
 	if ((this->context_state == CONTEXT_SAME_DRAWABLE) &&
 	    (self == this->renderthread))
 	{
@@ -649,8 +550,12 @@ static void opengl_render_image (opengl_driver_t *this, opengl_frame_t *frame,
 	    if (this->context)
 		glXDestroyContext (this->display, this->context);
 	}
-	DEBUGF ((stderr, "create\n"));
+DEBUGF ((stderr, "screen %dx%d\n", ((Screen *) this->screen)->width, ((Screen *)this->screen)->height));
+DEBUGF ((stderr, "glXChooseVisual\n"));
+this->vinfo = glXChooseVisual (this->display, this->screen, glxAttrib);
+	DEBUGF ((stderr, "create display %p vinfo %p\n", this->display, this->vinfo));
 	ctx = glXCreateContext (this->display, this->vinfo, NULL, True);
+	DEBUGF ((stderr, "created\n"));
 	assert (ctx);
 	this->context = ctx;
 	this->context_state = CONTEXT_RELOAD;
@@ -666,7 +571,6 @@ static void opengl_render_image (opengl_driver_t *this, opengl_frame_t *frame,
      */
     if (ctx)
     {
-	int i;
 	void *texture_data;
 
 	DEBUGF ((stderr, "set context %p\n", ctx));
@@ -683,7 +587,7 @@ static void opengl_render_image (opengl_driver_t *this, opengl_frame_t *frame,
 	else if (this->context_state == CONTEXT_SET ||
 		 this->context_state == CONTEXT_RELOAD)
 	    this->context_state = CONTEXT_RELOAD;
-	glViewport (0, 0, this->gui_width, this->gui_height);
+	glViewport (0, 0, this->sc.gui_width, this->sc.gui_height);
 	glMatrixMode (GL_MODELVIEW);
 	glLoadIdentity ();
 	glClearColor (0, 0, 0, 0);
@@ -696,7 +600,6 @@ static void opengl_render_image (opengl_driver_t *this, opengl_frame_t *frame,
 	glHint       (GL_PERSPECTIVE_CORRECTION_HINT, GL_FASTEST);
 
 #if USE_SPHERE
-	glClear    (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glDepthFunc     (GL_LEQUAL);
 	glEnable        (GL_DEPTH_TEST);
 	glMatrixMode(GL_TEXTURE);
@@ -714,10 +617,9 @@ static void opengl_render_image (opengl_driver_t *this, opengl_frame_t *frame,
 	glTexGeni       (GL_T, GL_TEXTURE_GEN_MODE, GL_SPHERE_MAP);
 
 #else
-	glClear    (GL_COLOR_BUFFER_BIT);
 	glMatrixMode (GL_PROJECTION);
 	glLoadIdentity ();
-	glOrtho (0, this->gui_width, this->gui_height, 0, -1, 1);
+	glOrtho (0, this->sc.gui_width, this->sc.gui_height, 0, -1, 1);
 #endif
 
 #if USE_TEXTURES
@@ -744,6 +646,13 @@ static void opengl_render_image (opengl_driver_t *this, opengl_frame_t *frame,
 #endif
     }
 
+    if (ctx || opengl_redraw_needed ((vo_driver_t *) this)) {
+#if USE_SPHERE
+	glClear    (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+#else
+	glClear    (GL_COLOR_BUFFER_BIT);
+#endif
+    }
 
     if (frame)
     {
@@ -751,8 +660,8 @@ static void opengl_render_image (opengl_driver_t *this, opengl_frame_t *frame,
 	 * Render one image
 	 */
 #if USE_TEXTURES
-        int x1 = this->output_xoffset,    y1 = this->output_yoffset;
-	int x2 = x1 + this->output_width, y2 = y1 + this->output_height;
+        int x1 = this->sc.output_xoffset,    y1 = this->sc.output_yoffset;
+	int x2 = x1 + this->sc.output_width, y2 = y1 + this->sc.output_height;
 	float tx = (float) frame->width  / this->texture_width;
 	float ty = (float) frame->height / this->texture_height;
 
@@ -802,10 +711,7 @@ static void opengl_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) 
     opengl_frame_t   *frame = (opengl_frame_t *) frame_gen;
 
     DEBUGF ((stderr, "*** display_frame ***\n"));
-    if( this->cur_frame )
-	this->cur_frame->vo_frame.displayed (&this->cur_frame->vo_frame);
-    this->cur_frame = frame;
-
+    DEBUGF ((stderr, "video_out_xshm: about to draw frame %d x %d...\n", frame->width, frame->height));
     XLockDisplay (this->display);
     opengl_render_image (this, frame, NULL);
     XUnlockDisplay (this->display);
@@ -820,7 +726,6 @@ static void opengl_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) 
     /* FIXME: check that */
 #if 1
     frame->vo_frame.displayed (&frame->vo_frame);
-    this->cur_frame = NULL;
 #endif
     DEBUGF ((stderr, "done display_frame\n"));
 }
@@ -833,7 +738,7 @@ static int opengl_get_property (vo_driver_t *this_gen, int property) {
     DEBUGF ((stderr, "*** get_property\n"));
     switch (property) {
     case VO_PROP_ASPECT_RATIO:
-	return this->user_ratio ;
+	return this->sc.user_ratio ;
     case VO_PROP_BRIGHTNESS:
 	return this->yuv2rgb_gamma;
     default:
@@ -845,23 +750,6 @@ static int opengl_get_property (vo_driver_t *this_gen, int property) {
 }
 
 
-static char *aspect_ratio_name(int a) {
-    switch (a) {
-    case ASPECT_AUTO:
-	return "auto";
-    case ASPECT_SQUARE:
-	return "square";
-    case ASPECT_FULL:
-	return "4:3";
-    case ASPECT_ANAMORPHIC:
-	return "16:9";
-    case ASPECT_DVB:
-	return "2:1";
-    default:
-	return "unknown";
-    }
-}
-
 static int opengl_set_property (vo_driver_t *this_gen, 
 				int property, int value) {
 
@@ -870,15 +758,13 @@ static int opengl_set_property (vo_driver_t *this_gen,
     DEBUGF ((stderr, "*** set_property\n"));
     switch (property) {
     case VO_PROP_ASPECT_RATIO:
-	if (value>=NUM_ASPECT_RATIOS)
-	    value = ASPECT_AUTO;
-	this->user_ratio = value;
-	fprintf(stderr, "video_out_opengl: aspect ratio changed to %s\n",
-	        aspect_ratio_name(value));
-	this->gui_width = 0;		/* trigger re-calc of output size */
-	opengl_compute_ideal_size (this, this->last_width,
-	                           this->last_height, this->last_ratio_code);
-	opengl_redraw_needed      ((vo_driver_t *) this);
+	if (value >= NUM_ASPECT_RATIOS)
+	    value  = ASPECT_AUTO;
+	this->sc.user_ratio = value;
+	fprintf (stderr, "video_out_opengl: aspect ratio changed to %s\n",
+	         vo_scale_aspect_ratio_name (value));
+	opengl_compute_ideal_size (this);
+//	opengl_redraw_needed      ((vo_driver_t *) this);
 	break;
     case VO_PROP_BRIGHTNESS:
 	this->yuv2rgb_gamma = value;
@@ -907,34 +793,6 @@ static void opengl_get_property_min_max (vo_driver_t *this_gen,
 }
 
 
-static void opengl_translate_gui2video(opengl_driver_t *this,
-				       opengl_frame_t  *frame,
-				       int x, int y,
-				       int *vid_x, int *vid_y) {
-
-    DEBUGF ((stderr, "*** translate_gui2video ***\n"));
-    if (this->output_width > 0 && this->output_height > 0) {
-	/*
-	 * the driver may center a small output area inside a larger
-	 * gui area.  This is the case in fullscreen mode, where we often
-	 * have black borders on the top/bottom/left/right side.
-	 */
-	x -= this->output_xoffset;
-	y -= this->output_yoffset;
-
-	/*
-	 * the driver scales the delivered area into an output area.
-	 * translate output area coordianates into the delivered area
-	 * coordiantes.
-	 */
-	x = x * frame->width  / this->output_width;
-	y = y * frame->height / this->output_height;
-    }
-
-    *vid_x = x;
-    *vid_y = y;
-}
-
 static int opengl_gui_data_exchange (vo_driver_t *this_gen, 
 				     int data_type, void *data) {
 
@@ -946,7 +804,8 @@ static int opengl_gui_data_exchange (vo_driver_t *this_gen,
     DEBUGF ((stderr, "*** gui_data_exchange ***\n"));
 
     switch (data_type) {
-    case GUI_SELECT_VISUAL:
+
+    case XINE_GUI_SEND_SELECT_VISUAL:
 	DEBUGF ((stderr, "*** gui_select_visual ***\n"));
 	XLockDisplay (this->display);
 	this->vinfo = glXChooseVisual (this->display, this->screen, glxAttrib);
@@ -957,7 +816,7 @@ static int opengl_gui_data_exchange (vo_driver_t *this_gen,
 	DEBUGF ((stderr, "*** visual %p depth %d\n", this->vinfo->visual, this->vinfo->depth));
 	break;
       
-    case GUI_DATA_EX_EXPOSE_EVENT:
+    case XINE_GUI_SEND_EXPOSE_EVENT:
 	DEBUGF ((stderr, "*** gui_expose ***\n"));
 
 	/* Note that the global GLX context is not available on all
@@ -971,7 +830,7 @@ static int opengl_gui_data_exchange (vo_driver_t *this_gen,
 	    this->context_state = CONTEXT_RELOAD;
 	break;
 
-    case GUI_DATA_EX_DRAWABLE_CHANGED:
+    case XINE_GUI_SEND_DRAWABLE_CHANGED:
 	DEBUGF ((stderr, "*** gui_drawable_changed: %ld\n", (Drawable) data));
 	XLockDisplay (this->display);
 	/* Unfortunately, the last drawable is already gone, so we cannot
@@ -993,22 +852,21 @@ static int opengl_gui_data_exchange (vo_driver_t *this_gen,
 	XUnlockDisplay (this->display);
 	break;
 
-    case GUI_DATA_EX_TRANSLATE_GUI_TO_VIDEO:
-/*  	DEBUGF ((stderr, "*** gui_translate_gui_to_video ***\n")); */
-	if (this->cur_frame) {
-	    int x1, y1, x2, y2;
-	    x11_rectangle_t *rect = data;
-
-	    opengl_translate_gui2video(this, this->cur_frame,
-				       rect->x, rect->y, &x1, &y1);
-	    opengl_translate_gui2video(this, this->cur_frame,
-				       rect->x + rect->w, rect->y + rect->h,
-				       &x2, &y2);
-	    rect->x = x1;
-	    rect->y = y1;
-	    rect->w = x2-x1;
-	    rect->h = y2-y1;
-	}
+    case XINE_GUI_SEND_TRANSLATE_GUI_TO_VIDEO: {
+            x11_rectangle_t *rect = data;
+            int x1, y1, x2, y2;
+/*  	    DEBUGF ((stderr, "*** gui_translate_gui_to_video ***\n")); */
+      
+            vo_scale_translate_gui2video(&this->sc, rect->x, rect->y,
+                                     &x1, &y1);
+            vo_scale_translate_gui2video(&this->sc,
+                                     rect->x + rect->w, rect->y + rect->h,
+                                     &x2, &y2);
+            rect->x = x1;
+            rect->y = y1;
+            rect->w = x2-x1;
+            rect->h = y2-y1;
+        }
 	break;
 
     default:
@@ -1020,13 +878,13 @@ static int opengl_gui_data_exchange (vo_driver_t *this_gen,
 }
 
 
-static void opengl_exit (vo_driver_t *this_gen) {
+static void opengl_dispose (vo_driver_t *this_gen) {
     opengl_driver_t *this = (opengl_driver_t *) this_gen;
 
-    XLockDisplay (this->display);
-    if (this->cur_frame)
-	this->cur_frame->vo_frame.dispose (&this->cur_frame->vo_frame);
-    XUnlockDisplay (this->display);
+//    XLockDisplay (this->display);
+//    if (this->cur_frame)
+//	this->cur_frame->vo_frame.dispose (&this->cur_frame->vo_frame);
+//    XUnlockDisplay (this->display);
 
     glXMakeCurrent (this->display, None, NULL);
     glXDestroyContext (this->display, this->context);
@@ -1036,46 +894,36 @@ static void opengl_exit (vo_driver_t *this_gen) {
 }
 
 
-static void *init_video_out_plugin (config_values_t *config, void *visual_gen) {
+static vo_driver_t *opengl_open_plugin (video_driver_class_t *class_gen,
+                                        const void *visual_gen) {
+    opengl_class_t     *class   = (opengl_class_t *) class_gen;
+    x11_visual_t       *visual  = (x11_visual_t *) visual_gen;
 
-    opengl_driver_t      *this;
-    x11_visual_t         *visual = (x11_visual_t *) visual_gen;
-    Display              *display = NULL;
+    opengl_driver_t    *this;
 
-    visual = (x11_visual_t *) visual_gen;
-    display = visual->display;
+    fprintf (stderr, "EXPERIMENTAL opengl output plugin TNG\n");
 
-    fprintf (stderr, "EXPERIMENTAL opengl output plugin\n");
     /*
      * allocate plugin struct
      */
+    this = calloc (1, sizeof (opengl_driver_t));
+    assert (this);
 
-    this = malloc (sizeof (opengl_driver_t));
-
-    if (!this) {
-	printf ("video_out_opengl: malloc failed\n");
-	return NULL;
-    }
-
-    memset (this, 0, sizeof(opengl_driver_t));
-
-    this->config		    = config;
+    this->config		    = class->config;
     this->display		    = visual->display;
     this->screen		    = visual->screen;
-    this->display_ratio	    = visual->display_ratio;
-    this->frame_output_cb     = visual->frame_output_cb;
-    this->dest_size_cb        = visual->dest_size_cb;
-    this->user_data           = visual->user_data;
-    this->gui_x               = 0;
-    this->gui_y               = 0;
-    this->gui_width	    = 0;
-    this->gui_height	    = 0;
-    this->user_ratio          = ASPECT_AUTO;
-    this->texture_width       = 0;
-    this->texture_height      = 0;
-    this->drawable	    = None;      /* We need a different one with a dedicated visual anyway */
-    this->context_state       = CONTEXT_BAD;
-    this->cur_frame           = NULL;
+
+    vo_scale_init (&this->sc, 0, 0);
+
+    this->sc.frame_output_cb        = visual->frame_output_cb;
+    this->sc.dest_size_cb           = visual->dest_size_cb;
+    this->sc.user_data              = visual->user_data;
+    this->sc.user_ratio             = ASPECT_AUTO;
+    this->sc.scaling_disabled       = 0;
+
+    /* We will not be able to use the current drawable... */
+    this->drawable	            = None;
+    this->context_state             = CONTEXT_BAD;
 
     this->vo_driver.get_capabilities     = opengl_get_capabilities;
     this->vo_driver.alloc_frame          = opengl_alloc_frame;
@@ -1088,32 +936,65 @@ static void *init_video_out_plugin (config_values_t *config, void *visual_gen) {
     this->vo_driver.set_property         = opengl_set_property;
     this->vo_driver.get_property_min_max = opengl_get_property_min_max;
     this->vo_driver.gui_data_exchange    = opengl_gui_data_exchange;
+    this->vo_driver.dispose              = opengl_dispose;
     this->vo_driver.redraw_needed        = opengl_redraw_needed;
-    this->vo_driver.exit                 = opengl_exit;
 
-    this->yuv2rgb_gamma = config->register_range (config,
-						  "video.opengl_gamma", 0,
-						  -100, 100,
-						  _("gamma correction for OpenGL driver"),
-						  NULL, NULL, NULL);
+    this->yuv2rgb_gamma = class->config->register_range (class->config,
+	  "video.opengl_gamma", 0, -100, 100,
+	  _("gamma correction for OpenGL driver"),
+	  NULL, 0, NULL, NULL);
     this->yuv2rgb_factory = yuv2rgb_factory_init (YUV_FORMAT, YUV_SWAP_MODE, 
 						  this->yuv2rgb_cmap);
-    this->yuv2rgb_factory->set_gamma (this->yuv2rgb_factory, this->yuv2rgb_gamma);
-
+    this->yuv2rgb_factory->set_gamma (this->yuv2rgb_factory,
+				      this->yuv2rgb_gamma);
     return &this->vo_driver;
 }
 
-static vo_info_t vo_info_shm = {
-    6,
-    "OpenGL",
-    NULL,
-    VISUAL_TYPE_X11,
-    3
-};
-
-vo_info_t *get_video_out_plugin_info() {
-    vo_info_shm.description = _("xine video output plugin using OpenGL(tm)");
-    return &vo_info_shm;
+/*
+ * Class Functions
+ */
+static char* opengl_get_identifier (video_driver_class_t *this_gen) {
+    return "OpenGL";
 }
 
-#endif
+static char* opengl_get_description (video_driver_class_t *this_gen) {
+    return _("xine video output plugin using OpenGL - TNG");
+}
+
+static void opengl_dispose_class (video_driver_class_t *this) {
+
+    free (this);
+}
+
+static void *opengl_init_class (xine_t *xine, void *visual_gen) {
+
+    opengl_class_t *this = (opengl_class_t *) malloc (sizeof (opengl_class_t));
+
+    this->driver_class.open_plugin     = opengl_open_plugin;
+    this->driver_class.get_identifier  = opengl_get_identifier;
+    this->driver_class.get_description = opengl_get_description;
+    this->driver_class.dispose         = opengl_dispose_class;
+
+    this->config                       = xine->config;
+
+    return this;
+}
+
+
+static vo_info_t vo_info_opengl = {
+  6,                    /* priority    */
+  XINE_VISUAL_TYPE_X11  /* visual type */
+};
+
+
+/*
+ * exported plugin catalog entry
+ */
+
+plugin_info_t xine_plugin_info[] = {
+  /* type, API, "name", version, special_info, init_function */
+  { PLUGIN_VIDEO_OUT, 11, "opengl", XINE_VERSION_CODE,
+    &vo_info_opengl, opengl_init_class },
+  { PLUGIN_NONE, 0, "", 0, NULL, NULL }
+};
+
