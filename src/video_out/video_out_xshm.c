@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xshm.c,v 1.35 2001/09/11 17:12:39 jkeil Exp $
+ * $Id: video_out_xshm.c,v 1.36 2001/09/21 14:34:58 jkeil Exp $
  * 
  * video_out_xshm.c, X11 shared memory extension interface for xine
  *
@@ -494,12 +494,12 @@ static void xshm_calc_output_size (xshm_driver_t *this) {
       ideal_height = this->delivered_height;
     }
     else if (corr_factor >= 1.0) {
-      ideal_width  = this->delivered_width * corr_factor;
+      ideal_width  = this->delivered_width * corr_factor + 0.5;
       ideal_height = this->delivered_height;
     }
     else {
       ideal_width  = this->delivered_width;
-      ideal_height = this->delivered_height / corr_factor;
+      ideal_height = this->delivered_height / corr_factor + 0.5;
     }
 
     /* little hack to zoom mpeg1 / other small streams  by default*/
@@ -513,8 +513,17 @@ static void xshm_calc_output_size (xshm_driver_t *this) {
       ideal_height *= this->output_scale_factor;
     }
 
-    /* yuv2rgb_mmx prefers "width%8 == 0" */
-    ideal_width &= ~7;
+    /*
+     * HACK: make sure our special DVD optimized version of
+     * scale_line is used.
+     */
+    if (this->delivered_width == 720 && ideal_width == 1024
+	&& this->delivered_height == 576 && ideal_height == 576) {
+      ideal_width = 1008;
+    } else {
+      /* yuv2rgb_mmx prefers "width%8 == 0" */
+      ideal_width &= ~7;
+    }
 
     this->calc_dest_size (ideal_width, ideal_height, 
 			  &dest_width, &dest_height);

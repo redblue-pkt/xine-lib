@@ -4,6 +4,12 @@
 
 #include <inttypes.h>
 
+
+/* internal function use to scale yuv data */
+typedef void (*scale_line_func_t) (uint8_t *source, uint8_t *dest,
+				   int width, int step);
+
+
 /*
  * modes supported - feel free to implement yours
  */
@@ -53,6 +59,8 @@ struct yuv2rgb_s {
   void         *table_gU[256];
   int           table_gV[256];
   void         *table_bU[256];
+
+  scale_line_func_t scale_line;
 } ;
 
 

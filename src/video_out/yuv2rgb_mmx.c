@@ -354,40 +354,6 @@ static inline void mmx_unpack_24rgb (uint8_t * image, int cpu)
     movntq (mm4, *(image+16));
 }
 
-static void scale_line (uint8_t *source, uint8_t *dest,
-			int width, int step) {
-
-  int p1;
-  int p2;
-  int dx;
-
-  p1 = *source++;
-  p2 = *source++;
-  dx = 0;
-
-  while (width) {
-
-    /*
-    printf ("scale_line, width = %d\n", width);
-    printf ("scale_line, dx = %d, p1 = %d, p2 = %d\n", dx, p1, p2);
-    */
- 
-    *dest = (p1 * (32768 - dx) + p2 * dx) / 32768;
-
-    dx += step;
-    while (dx > 32768) {
-      dx -= 32768;
-      p1 = p2;
-      p2 = *source++;
-    }
-
-    dest ++;
-    width --;
-  }
-
-}
-			
-
 static inline void yuv420_rgb16 (yuv2rgb_t *this,
 				 uint8_t * image,
 				 uint8_t * py, uint8_t * pu, uint8_t * pv,
@@ -433,6 +399,7 @@ static inline void yuv420_rgb16 (yuv2rgb_t *this,
 
     } else {
 
+      scale_line_func_t scale_line = this->scale_line;
       uint8_t *y_buf, *u_buf, *v_buf;
       int      dy = 0;
 
@@ -540,6 +507,7 @@ static inline void yuv420_rgb15 (yuv2rgb_t *this,
 
     } else {
 
+      scale_line_func_t scale_line = this->scale_line;
       uint8_t *y_buf, *u_buf, *v_buf;
       int      dy = 0;
 
@@ -643,6 +611,8 @@ static inline void yuv420_rgb24 (yuv2rgb_t *this,
 	}
       } while (--height);
     } else {
+
+      scale_line_func_t scale_line = this->scale_line;
       uint8_t *y_buf, *u_buf, *v_buf;
       int      dy = 0;
 
@@ -749,6 +719,8 @@ static inline void yuv420_argb32 (yuv2rgb_t *this,
 	}
       } while (--height);
     } else {
+
+      scale_line_func_t scale_line = this->scale_line;
       uint8_t *y_buf, *u_buf, *v_buf;
       int      dy = 0;
 
@@ -855,6 +827,8 @@ static inline void yuv420_abgr32 (yuv2rgb_t *this,
 	}
       } while (--height);
     } else {
+
+      scale_line_func_t scale_line = this->scale_line;
       uint8_t *y_buf, *u_buf, *v_buf;
       int      dy = 0;
 

@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * $Id: yuv2rgb.c,v 1.16 2001/09/16 23:13:45 f1rmb Exp $
+ * $Id: yuv2rgb.c,v 1.17 2001/09/21 14:34:58 jkeil Exp $
  */
 
 #include "config.h"
@@ -35,7 +35,13 @@
 #include "yuv2rgb.h"
 #include "attributes.h"
 #include "cpu_accel.h"
+#include "monitor.h"
 #include "utils.h"
+
+
+static int prof_scale_line = -1;
+
+static scale_line_func_t find_scale_line_func(int step);
 
 
 const int32_t Inverse_Table_6_9[8][4] = {
@@ -74,6 +80,9 @@ int yuv2rgb_setup (yuv2rgb_t *this,
   printf ("yuv2rgb setup (%d x %d => %d x %d)\n", source_width, source_height,
 	  dest_width, dest_height);
 	  */
+  if (prof_scale_line == -1)
+    prof_scale_line = profiler_allocate_slot("xshm scale line");
+
   this->source_width  = source_width;
   this->source_height = source_height;
   this->y_stride      = y_stride;
@@ -99,6 +108,8 @@ int yuv2rgb_setup (yuv2rgb_t *this,
   this->step_dx = source_width  * 32768 / dest_width;
   this->step_dy = source_height * 32768 / dest_height;
     
+  this->scale_line = find_scale_line_func(this->step_dx);
+
   if ((source_width == dest_width) && (source_height == dest_height)) {
     this->do_scale = 0;
 
@@ -137,11 +148,17 @@ int yuv2rgb_setup (yuv2rgb_t *this,
 }
 
 
-static void scale_line (uint8_t *source, uint8_t *dest,
-			int width, int step) {
+static void scale_line_gen (uint8_t *source, uint8_t *dest,
+			    int width, int step) {
+  /*
+   * scales a yuv source row to a dest row, with interpolation
+   * (good quality, but slow)
+   */
   int p1;
   int p2;
   int dx;
+
+  profiler_start_count(prof_scale_line);
 
   p1 = *source++;
   p2 = *source++;
@@ -162,7 +179,214 @@ static void scale_line (uint8_t *source, uint8_t *dest,
     width --;
   }
 
+  profiler_stop_count(prof_scale_line);
 }
+
+#if 0
+static void scale_line_fast (uint8_t *source, uint8_t *dest,
+			     int width, int step) {
+  /*
+   * scales a yuv source row to a dest row, without interpolation
+   * (faster then scale_line_gen, but quality suffers especially for
+   * large scale factors)
+   */
+  int dx;
+
+  profiler_start_count(prof_scale_line);
+
+  dx = 0;
+
+  while (--width >= 0) {
+
+    *dest++ = *source;
+
+    dx += step;
+    while (dx > 32768) {
+      dx -= 32768;
+      source++;
+    }
+  }
+
+  profiler_stop_count(prof_scale_line);
+}
+#endif
+
+/*
+ * Interpolates 7 output pixels from 5 source pixels using shifts.
+ * Useful for scaling an mpeg2 dvd input source to 16:9 format
+ * (720 x 576 ==> 1008 x 576)
+ *
+ * Interpolated source pixels are at n*5/7 (n=0..6):
+ * 0.0, 0.71428, 1.42857, 2.14285, 2.85714, 3.57142, 4.28571
+ *
+ * We use:
+ * 0.0				source[0]
+ * 0.71428 => 3/4 (0.75)	(1*source[0] + 3*source[1]) >> 2
+ * 1.42857 => 1+3/8 (1.375)	(5*source[1] + 3*source[2]) >> 3
+ * 2.14285 => 2+1/8 (2.125)	(7*source[2] + 1*source[3]) >> 3
+ * 2.85714 => 2+7/8 (2.875)	(1*source[2] + 7*source[3]) >> 3
+ * 3.57142 => 3+5/8 (3.625)	(3*source[3] + 5*source[4]) >> 3
+ * 4.28571 => 4+1/4 (4.25)	(3*source[4] + 1*source[5]) >> 2
+ */
+static void scale_line_5_7 (uint8_t *source, uint8_t *dest,
+			    int width, int step) {
+
+  int p1, p2;
+
+  profiler_start_count(prof_scale_line);
+
+  p1 = source[0];
+  while ((width -= 7) >= 0) {
+    dest[0] = p1;
+    p2 = source[1];
+    dest[1] = (1*p1 + 3*p2) >> 2;
+    p1 = source[2];
+    dest[2] = (5*p2 + 3*p1) >> 3;
+    p2 = source[3];
+    dest[3] = (7*p1 + 1*p2) >> 3;
+    dest[4] = (1*p1 + 7*p2) >> 3;
+    p1 = source[4];
+    dest[5] = (3*p2 + 5*p1) >> 3;
+    p2 = source[5];
+    dest[6] = (3*p1 + 1*p2) >> 2;
+    source += 5;
+    dest += 7;
+    p1 = p2;
+  }
+
+  switch (width + 7) {
+  case 6: *dest++ = source[0];
+  case 5: *dest++ = (1*source[0] + 3*source[1]) >> 2;
+  case 4: *dest++ = (5*source[1] + 3*source[2]) >> 3;
+  case 3: *dest++ = (7*source[2] + 1*source[3]) >> 3;
+  case 2: *dest++ = (1*source[2] + 7*source[3]) >> 3;
+  case 1: *dest++ = (3*source[3] + 5*source[4]) >> 3;
+  }
+
+  profiler_stop_count(prof_scale_line);
+}
+
+			
+/*
+ * Interpolates 16 output pixels from 15 source pixels using shifts.
+ * Useful for scaling an mpeg2 dvd input source to 4:3 format
+ * (720 x 576 ==> 768 x 576)
+ */
+static void scale_line_15_16 (uint8_t *source, uint8_t *dest,
+			      int width, int step) {
+
+  int p1, p2;
+
+  profiler_start_count(prof_scale_line);
+
+  while ((width -= 16) >= 0) {
+    p1 = source[0];
+    dest[0] = p1;
+    p2 = source[1];
+    dest[1] = (1*p1 + 7*p2) >> 3;
+    p1 = source[2];
+    dest[2] = (1*p2 + 7*p1) >> 3;
+    p2 = source[3];
+    dest[3] = (1*p1 + 3*p2) >> 2;
+    p1 = source[4];
+    dest[4] = (1*p2 + 3*p1) >> 2;
+    p2 = source[5];
+    dest[5] = (3*p1 + 5*p2) >> 3;
+    p1 = source[6];
+    dest[6] = (3*p2 + 5*p1) >> 3;
+    p2 = source[7];
+    dest[7] = (1*p1 + 1*p1) >> 1;
+    p1 = source[8];
+    dest[8] = (1*p2 + 1*p1) >> 1;
+    p2 = source[9];
+    dest[9] = (5*p1 + 3*p2) >> 3;
+    p1 = source[10];
+    dest[10] = (5*p2 + 3*p1) >> 3;
+    p2 = source[11];
+    dest[11] = (3*p1 + 1*p2) >> 2;
+    p1 = source[12];
+    dest[12] = (3*p2 + 1*p1) >> 2;
+    p2 = source[13];
+    dest[13] = (7*p1 + 1*p2) >> 3;
+    p1 = source[14];
+    dest[14] = (7*p2 + 1*p1) >> 3;
+    dest[15] = p1;
+    source += 15;
+    dest += 16;
+  }
+
+  switch (width + 16) {
+  case 15: *dest++ = source[0];
+  case 14: *dest++ = (1*source[0] + 7*source[1]) >> 3;
+  case 13: *dest++ = (1*source[1] + 7*source[2]) >> 3;
+  case 12: *dest++ = (1*source[2] + 3*source[3]) >> 2;
+  case 11: *dest++ = (1*source[3] + 3*source[4]) >> 2;
+  case 10: *dest++ = (3*source[4] + 5*source[5]) >> 3;
+  case  9: *dest++ = (3*source[5] + 5*source[6]) >> 3;
+  case  8: *dest++ = (1*source[6] + 1*source[7]) >> 1;
+  case  7: *dest++ = (1*source[7] + 1*source[8]) >> 1;
+  case  6: *dest++ = (5*source[8] + 3*source[9]) >> 3;
+  case  5: *dest++ = (5*source[9] + 3*source[10]) >> 3;
+  case  4: *dest++ = (3*source[10] + 1*source[11]) >> 2;
+  case  3: *dest++ = (3*source[11] + 1*source[12]) >> 2;
+  case  2: *dest++ = (7*source[12] + 1*source[13]) >> 3;
+  case  1: *dest++ = (7*source[13] + 1*source[14]) >> 3;
+  }
+
+  profiler_stop_count(prof_scale_line);
+}
+
+			
+static void scale_line_1_2 (uint8_t *source, uint8_t *dest,
+			    int width, int step) {
+  int p1, p2;
+
+  /* Interpolates 2 output pixels from one source pixels. */
+
+  profiler_start_count(prof_scale_line);
+
+  p1 = *source;
+  while ((width -= 4) >= 0) {
+    *dest++ = p1;
+    p2 = *++source;
+    *dest++ = (p1 + p2) >> 1;
+    *dest++ = p2;
+    p1 = *++source;
+    *dest++ = (p2 + p1) >> 1;
+  }
+
+  switch (width + 4) {
+  case 3: *dest++ = source[0];
+  case 2: *dest++ = (source[0] + source[1]) >> 1;
+  case 1: *dest++ = source[1];
+  }
+
+  profiler_stop_count(prof_scale_line);
+}
+
+			
+static scale_line_func_t find_scale_line_func(int step) {
+#if 1
+  if (abs(step - 5*32768/7) < 10) {
+    printf("yuv2rgb: using dvd 16:9 optimized scale_line\n");
+    return scale_line_5_7;
+  }
+  if (abs(step - 15*32768/16) < 10) {
+    printf("yuv2rgb: using dvd 4:3 optimized scale_line\n");
+    return scale_line_15_16;
+  }
+  if (abs(step - 1*32768/2) < 10) {
+    printf("yuv2rgb: using optimized 2*zoom scale_line\n");
+    return scale_line_1_2;
+  }
+  printf("yuv2rgb: using generic scale_line with interpolation\n");
+  return scale_line_gen;
+#else
+  printf("yuv2rgb: using generic scale_line without interpolation\n");
+  return scale_line_fast;
+#endif
+}
+
 
 static void scale_line_2 (uint8_t *source, uint8_t *dest,
 			  int width, int step) {
@@ -273,6 +497,8 @@ static void yuv2rgb_c_32 (yuv2rgb_t *this, uint8_t * _dst,
   int dy;
 
   if (this->do_scale) {
+    scale_line_func_t scale_line = this->scale_line;
+
     scale_line (_pu, this->u_buffer,
 		this->dest_width >> 1, this->step_dx);
     scale_line (_pv, this->v_buffer,
@@ -398,6 +624,8 @@ static void yuv2rgb_c_24_rgb (yuv2rgb_t *this, uint8_t * _dst,
   int dy;
 
   if (this->do_scale) {
+
+    scale_line_func_t scale_line = this->scale_line;
 
     scale_line (_pu, this->u_buffer,
 		this->dest_width >> 1, this->step_dx);
@@ -525,6 +753,8 @@ static void yuv2rgb_c_24_bgr (yuv2rgb_t *this, uint8_t * _dst,
 
   if (this->do_scale) {
 
+    scale_line_func_t scale_line = this->scale_line;
+
     scale_line (_pu, this->u_buffer,
 		this->dest_width >> 1, this->step_dx);
     scale_line (_pv, this->v_buffer,
@@ -651,6 +881,8 @@ static void yuv2rgb_c_16 (yuv2rgb_t *this, uint8_t * _dst,
   int dy;
 
   if (this->do_scale) {
+    scale_line_func_t scale_line = this->scale_line;
+
     scale_line (_pu, this->u_buffer,
 		this->dest_width >> 1, this->step_dx);
     scale_line (_pv, this->v_buffer,
@@ -773,6 +1005,8 @@ static void yuv2rgb_c_palette (yuv2rgb_t *this, uint8_t * _dst,
   int dy;
 
   if (this->do_scale) {
+    scale_line_func_t scale_line = this->scale_line;
+
     scale_line (_pu, this->u_buffer,
 		this->dest_width >> 1, this->step_dx);
     scale_line (_pv, this->v_buffer,
