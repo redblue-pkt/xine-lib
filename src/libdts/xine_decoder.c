@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.30 2002/10/31 07:27:55 jcdutton Exp $
+ * $Id: xine_decoder.c,v 1.31 2002/11/12 21:34:46 mroi Exp $
  *
  * 04-09-2001 DTS passtrough  (C) Joachim Koenig 
  * 09-12-2001 DTS passthrough inprovements (C) James Courtier-Dutton
@@ -41,8 +41,9 @@
 #include "audio_out.h"
 #include "buffer.h"
 
-
+/*
 #define LOG_DEBUG
+*/
 
 typedef struct {
   audio_decoder_class_t   decoder_class;
@@ -68,6 +69,9 @@ void dts_reset (audio_decoder_t *this_gen) {
 
 }
 
+void dts_discontinuity (audio_decoder_t *this_gen) {
+}
+
 
 void dts_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 
@@ -82,7 +86,10 @@ void dts_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
   uint32_t  number_of_frames;
   uint32_t  first_access_unit;
   int n, i ;
+  
+#ifdef LOG_DEBUG
   printf("DTS decode_data called.\n");
+#endif
 
   if ((this->stream->audio_out->get_capabilities(this->stream->audio_out) & AO_CAP_MODE_AC5) == 0) {
     return;
@@ -225,6 +232,7 @@ static audio_decoder_t *open_plugin (audio_decoder_class_t *class_gen, xine_stre
 
   this->audio_decoder.decode_data         = dts_decode_data;
   this->audio_decoder.reset               = dts_reset;
+  this->audio_decoder.discontinuity       = dts_discontinuity;
   this->audio_decoder.dispose             = dts_dispose;
 
   this->stream        = stream;
@@ -274,6 +282,6 @@ static decoder_info_t dec_info_audio = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_AUDIO_DECODER, 10, "dts", XINE_VERSION_CODE, &dec_info_audio, init_plugin },
+  { PLUGIN_AUDIO_DECODER, 11, "dts", XINE_VERSION_CODE, &dec_info_audio, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
