@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ts.c,v 1.83 2003/05/19 13:52:29 jcdutton Exp $
+ * $Id: demux_ts.c,v 1.84 2003/06/26 21:18:46 jcdutton Exp $
  *
  * Demultiplexer for MPEG2 Transport Streams.
  *
@@ -893,7 +893,7 @@ static void demux_ts_parse_pmt (demux_ts_t     *this,
       ISO_13818_TYPE_D = 12, /* c */
       ISO_13818_TYPE_E = 13, /* d */
       ISO_13818_AUX = 14,
-      PRIVATE_A52 = 0x81
+      PRIVATE_A52 = 0x91
     } streamType;
 
   uint32_t       table_id;
