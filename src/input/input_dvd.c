@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.188 2004/08/28 15:06:26 jcdutton Exp $
+ * $Id: input_dvd.c,v 1.189 2004/08/28 22:51:50 jcdutton Exp $
  *
  */
 
@@ -409,7 +409,8 @@ static void dvd_plugin_dispose (input_plugin_t *this_gen) {
     xine_event_dispose_queue (this->event_queue);
    
   ((dvd_input_class_t *)this_gen->input_class)->ip = NULL;
-  dvdnav_close(this->dvdnav);
+  if (this->dvdnav)
+    dvdnav_close(this->dvdnav);
   
   pthread_mutex_lock(&this->buf_mutex);
   if (this->mem_stack) {
@@ -420,7 +421,8 @@ static void dvd_plugin_dispose (input_plugin_t *this_gen) {
   } else {
     pthread_mutex_unlock(&this->buf_mutex);
     pthread_mutex_destroy(&this->buf_mutex);
-    free(this->mem);
+    if (this->mem)
+      free(this->mem);
     free(this);
   }
 }
