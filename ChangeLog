@@ -36,6 +36,7 @@ xine-lib (1-rc4)
   * make the protocol in MMS configurable - TCP, HTTP or autoprobe
   * added video output plugin for Sun PGX32 framebuffers
   * new video out plugin using CACA - Colored ASCII Art
+  * fix a crash when using the gnome-vfs plugin with newer gnome-vfs versions
 
 xine-lib (1-rc3a)
   * new subtitle formats: jacobsub, subviewer 2.0, subrip 0.9

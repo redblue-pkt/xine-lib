@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_gnome_vfs.c,v 1.17 2003/12/14 22:13:23 siggi Exp $
+ * $Id: input_gnome_vfs.c,v 1.18 2004/03/01 00:17:28 hadess Exp $
  */
 
 
@@ -172,7 +172,8 @@ static off_t
 gnomevfs_plugin_get_length (input_plugin_t *this_gen)
 {
 	gnomevfs_input_t *this = (gnomevfs_input_t *) this_gen;
-	GnomeVFSFileInfo info;
+	GnomeVFSFileInfo *info;
+	off_t length;
 
 	if (this->fh == NULL)
 	{
@@ -180,14 +181,17 @@ gnomevfs_plugin_get_length (input_plugin_t *this_gen)
 		return 0;
 	}
 
-	if (gnome_vfs_get_file_info (this->mrl,
-				&info,
+	info = gnome_vfs_file_info_new ();
+	if (gnome_vfs_get_file_info (this->mrl, info,
 				GNOME_VFS_FILE_INFO_DEFAULT) == GNOME_VFS_OK)
 	{
-		D ("gnomevfs_plugin_get_length: %d", (int) info.size);
-		return (off_t) info.size;
-	} else
+		length = info->size;
+		gnome_vfs_file_info_unref (info);
+		D ("gnomevfs_plugin_get_length: %lld", length);
+		return length;
+	} else {
 		return 0;
+	}
 }
 
 static uint32_t
