@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_interface.c,v 1.8 2002/09/09 19:24:48 f1rmb Exp $
+ * $Id: xine_interface.c,v 1.9 2002/09/10 10:40:22 mroi Exp $
  *
  * convenience/abstraction layer, functions to implement
  * libxine's public interface
@@ -237,7 +237,6 @@ xine_cfg_entry_t *xine_config_lookup_entry (xine_p this, char *key) {
  * update a config entry (which was returned from lookup_entry() )
  */
 void xine_config_update_entry (xine_p this, xine_cfg_entry_t *entry) {
-  printf ("xine_interface: xine_config_update_entry: not implemented\n");
 
   switch (entry->type) {
   case XINE_CONFIG_TYPE_RANGE:
