@@ -6,7 +6,7 @@ AUTOMAKE_OPTIONS = 1.3
 
 SUBDIRS = doc m4 src misc include
 
-EXTRA_DIST = cvscompile
+EXTRA_DIST = cvscompile.sh
 
 noinst_HEADERS = config.h
 
