@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.51 2002/08/27 22:22:15 tmattern Exp $
+ * $Id: demux_asf.c,v 1.52 2002/08/27 22:34:33 tmattern Exp $
  *
  * demultiplexer for asf streams
  *
@@ -70,7 +70,6 @@ typedef struct {
   fifo_buffer_t    *fifo;
 
   uint8_t          *buffer;
-  uint32_t          bitrate;
 } asf_stream_t;
 
 typedef struct demux_asf_s {
@@ -574,7 +573,9 @@ static int asf_read_header (demux_asf_t *this) {
 	goto fail;
       */
     } else if (!memcmp(&g, &stream_group_guid, sizeof(GUID))) {
+#ifdef LOG
       printf("demux_asf: GUID stream group\n");
+#endif
       int streams;
       int stream_id;
       int i;
