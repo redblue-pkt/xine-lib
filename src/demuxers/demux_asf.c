@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.148 2004/02/09 22:24:36 jstembridge Exp $
+ * $Id: demux_asf.c,v 1.149 2004/03/07 20:02:40 tmattern Exp $
  *
  * demultiplexer for asf streams
  *
@@ -102,6 +102,8 @@ typedef struct demux_asf_s {
   input_plugin_t   *input;
 
   int64_t           keyframe_ts;
+  int               keyframe_found;
+  
   int               seqno;
   uint32_t          packet_size;
   uint8_t           packet_flags;
@@ -129,7 +131,9 @@ typedef struct demux_asf_s {
   char              copyright[512];
   char              comment[512];
 
-  uint32_t          length, rate;
+  uint32_t          length;
+  uint32_t					rate;
+  uint64_t          preroll;
 
   /* packet filling */
   int               packet_size_left;
@@ -364,28 +368,36 @@ static int asf_read_header (demux_asf_t *this) {
     switch (guid) {
       case GUID_ASF_FILE_PROPERTIES:
         {
-          uint64_t file_size;
+          uint64_t file_size, send_time;
           uint32_t flags;
 
           guid = get_guid(this);
           file_size = get_le64(this); /* file size */
+
           get_le64(this); /* creation time */
           get_le64(this); /* nb packets */
 
           this->length =  get_le64(this) / 10000; /* duration */
-          get_le64(this); /* send time */
-          if (this->length)
-            this->rate = file_size / (this->length / 1000);
-          else
-            this->rate = 0;
+          send_time = get_le64(this); /* send time */
 
-          _x_stream_info_set(this->stream, XINE_STREAM_INFO_BITRATE, this->rate*8);
-
-          get_le64(this); /* preroll in 1/1000 s*/
+          this->preroll = get_le64(this); /* preroll in 1/1000 s */
+          this->length -= this->preroll;
+          
           flags = get_le32(this); /* flags */
           get_le32(this); /* min packet size */
           this->packet_size = get_le32(this); /* max packet size */
           get_le32(this); /* max bitrate */
+
+          if (this->length) {
+            /* FIXME: the rate is not constant ! */
+            this->rate = file_size / (this->length / 1000);
+          } else {
+            this->rate = 0;
+          }
+
+          _x_stream_info_set(this->stream, XINE_STREAM_INFO_BITRATE, this->rate * 8);
+
+          
         }
         break;
 
@@ -721,10 +733,12 @@ static void check_newpts (demux_asf_t *this, int64_t pts, int video, int frame_e
   diff = pts - this->last_pts[video];
 
 #ifdef LOG
-  if (video) {
-    printf ("demux_asf: VIDEO: pts = %8lld, diff = %8lld\n", pts, pts - this->last_pts[video]);
-  } else {
-    printf ("demux_asf: AUDIO: pts = %8lld, diff = %8lld\n", pts, pts - this->last_pts[video]);
+  if (pts) {
+    if (video) {
+      printf ("demux_asf: VIDEO: pts = %8lld, diff = %8lld\n", pts, pts - this->last_pts[video]);
+    } else {
+      printf ("demux_asf: AUDIO: pts = %8lld, diff = %8lld\n", pts, pts - this->last_pts[video]);
+    }
   }
 #endif
 
@@ -816,15 +830,12 @@ static void asf_send_buffer_nodefrag (demux_asf_t *this, asf_stream_t *stream,
     this->input->read (this->input, buf->content, bufsize);
 
     buf->extra_info->input_pos  = this->input->get_current_pos (this->input);
-    if (this->rate)
-      buf->extra_info->input_time = (int)((int64_t)buf->extra_info->input_pos
-                                          * 1000 / this->rate);
-    else
-      buf->extra_info->input_time = 0;
+    buf->extra_info->input_time = timestamp;
 
-    lprintf ("input pos is %lld, input time is %d\n",
+    lprintf ("input pos is %lld, input time is %d, rate %d\n",
 	     buf->extra_info->input_pos,
-	     buf->extra_info->input_time);
+	     buf->extra_info->input_time,
+	     this->rate);
 
     buf->pts        = timestamp * 90;
     buf->type       = stream->buf_type;
@@ -930,11 +941,7 @@ static void asf_send_buffer_defrag (demux_asf_t *this, asf_stream_t *stream,
       xine_fast_memcpy (buf->content, p, bufsize);
       
       buf->extra_info->input_pos  = this->input->get_current_pos (this->input);
-      if (this->rate)
-         buf->extra_info->input_time = (int)((int64_t)buf->extra_info->input_pos
-                                       * 1000 / this->rate);
-      else
-         buf->extra_info->input_time = 0;
+      buf->extra_info->input_time = stream->timestamp;
       
 #if 0
           /* tm: not needed */          
@@ -1202,9 +1209,9 @@ static int asf_parse_packet_payload_common(demux_asf_t *this,
       if ((*stream)->stream_id == this->video_stream_id) {
         lprintf ("bad seq: waiting for keyframe\n");
 
-        (*stream)->resync =  1;
-        (*stream)->skip   =  1;
-        this->keyframe_ts =  0;
+        (*stream)->resync    =  1;
+        (*stream)->skip      =  1;
+        this->keyframe_found =  0;
       }
       this->send_newpts =  1;
     }
@@ -1255,11 +1262,14 @@ static int asf_parse_packet_payload_single(demux_asf_t *this,
                                            int64_t *timestamp) {
   uint32_t s_hdr_size = 0;
   uint32_t data_length = 0;
-  uint32_t data_sent=0;
+  uint32_t data_sent = 0;
 
   lprintf ("asf_parse_packet_payload_single\n");
 
   *timestamp = frag_offset;
+  if (*timestamp)
+  	*timestamp -= this->preroll;
+
   frag_offset = 0;
   get_byte (this); s_hdr_size += 1;
 
@@ -1300,12 +1310,13 @@ static int asf_parse_packet_payload_single(demux_asf_t *this,
 
     if (stream && stream->fifo) {
       /* keyframe detection for non-seekable input plugins */
-      if (stream->skip && (raw_id & 0x80) && !this->keyframe_ts) {
+      if (stream->skip && (raw_id & 0x80) && !this->keyframe_found) {
         xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "demux_asf: keyframe detected\n");
-        this->keyframe_ts = 1;
+        this->keyframe_ts = *timestamp;
+        this->keyframe_found = 1;
       }
 
-      if (stream->resync && (*timestamp >= this->keyframe_ts) && (this->keyframe_ts)) {
+      if (stream->resync && (this->keyframe_found) && (*timestamp >= this->keyframe_ts)) {
         xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "demux_asf: stream resynced\n");
         stream->resync = 0;
         stream->skip = 0;
@@ -1355,6 +1366,9 @@ static int asf_parse_packet_payload_multiple(demux_asf_t *this,
   if (rlen >= 8) {
     payload_size  = get_le32(this); s_hdr_size += 4;
     *timestamp    = get_le32(this); s_hdr_size += 4;
+    if (*timestamp)
+	    *timestamp -= this->preroll;
+	    
     if (rlen - 8) this->input->seek (this->input, rlen - 8, SEEK_CUR);
     s_hdr_size += rlen - 8;
   } else {
@@ -1403,10 +1417,11 @@ static int asf_parse_packet_payload_multiple(demux_asf_t *this,
       /* keyframe detection for non-seekable input plugins */
       if (stream->skip && (raw_id & 0x80) && !this->keyframe_ts) {
         xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "demux_asf: keyframe detected\n");
-        this->keyframe_ts = 1;
+        this->keyframe_found = 1;
+        this->keyframe_ts = *timestamp;
       }
-      if (stream->resync && (*timestamp >= this->keyframe_ts) &&
-          this->keyframe_ts && !frag_offset) {
+      if (stream->resync && this->keyframe_found && (*timestamp >= this->keyframe_ts) &&
+          !frag_offset) {
         xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "demux_asf: stream resynced\n");
         stream->resync = 0;
         stream->skip = 0;
@@ -1818,7 +1833,7 @@ static int demux_asf_seek (demux_plugin_t *this_gen,
   uint32_t       frag_offset = 0;
   uint32_t       rlen        = 0;
   uint32_t       seq         = 0;
-  uint8_t        raw_id, stream_id, keyframe;
+  uint8_t        raw_id, stream_id;
   int            i, state;
   int64_t        ts;
 
@@ -1846,10 +1861,14 @@ static int demux_asf_seek (demux_plugin_t *this_gen,
   this->last_pts[PTS_VIDEO] = 0;
   this->last_pts[PTS_AUDIO] = 0;
   this->keyframe_ts = 0;
+  this->keyframe_found = 0;
+  
+  /* engine sync stuff */
+  this->send_newpts   = 1;
+  this->buf_flag_seek = 1;
 
   if (this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) {
 
-    this->buf_flag_seek = 1;
     _x_demux_flush_engine(this->stream);
     
     if ( (!start_pos) && (start_time))
@@ -1871,7 +1890,6 @@ static int demux_asf_seek (demux_plugin_t *this_gen,
     /* no video stream */
     if (this->video_stream_id == -1) {
       lprintf ("demux_asf_seek: no video stream\n");
-
       state = 2;
     }
 
@@ -1899,10 +1917,9 @@ static int demux_asf_seek (demux_plugin_t *this_gen,
       for (this->frame = 0; this->frame < (this->nb_frames & 0x3f); this->frame++) {
         raw_id = get_byte(this); this->packet_size_left -= 1;
 
-	lprintf ("demux_asf_seek: raw_id = %d\n", raw_id);
+        lprintf ("demux_asf_seek: raw_id = %d\n", raw_id);
 
         stream_id = raw_id & 0x7f;
-        keyframe = raw_id & 0x80;
         if (asf_parse_packet_payload_common(this, raw_id, &stream, &frag_offset, &rlen, &seq))
           break;
         
@@ -1915,16 +1932,15 @@ static int demux_asf_seek (demux_plugin_t *this_gen,
         }
         
         if (state == 0) {
-          if (keyframe && (stream_id == this->video_stream_id) && !frag_offset) {
-            this->keyframe_ts = ts;
+          if (this->keyframe_found) {
             if (this->audio_stream_id == -1) {
               lprintf ("demux_asf_seek: no audio stream\n");
-
               state = 5;
             }
-            state = 1; /* search an audio packet with pts < keyframe pts */
+            state = 1; /* search an audio packet with pts < this->keyframe_pts */
 
-	    lprintf ("demux_asf_seek: keyframe found at %lld, timestamp = %lld\n", start_pos, ts);
+            lprintf ("demux_asf_seek: keyframe found at %lld, timestamp = %lld\n", start_pos, ts);
+            check_newpts (this, ts * 90, 1, 0);
           }
         } else if (state == 1) {
           if ((stream_id == this->audio_stream_id) && ts &&
@@ -1936,10 +1952,12 @@ static int demux_asf_seek (demux_plugin_t *this_gen,
           }
         } else if (state == 2) {
           if ((stream_id == this->audio_stream_id) && !frag_offset) {
+            this->keyframe_found = 1;
             this->keyframe_ts = ts;
             state = 5; /* end */
 
             lprintf ("demux_asf_seek: audio packet found at %lld, timestamp = %lld\n", start_pos, ts);
+            check_newpts (this, ts * 90, 0, 0);
           }
         }
       }
@@ -1948,23 +1966,25 @@ static int demux_asf_seek (demux_plugin_t *this_gen,
     if (state != 5) {
       xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "demux_asf: demux_asf_seek: begining of the stream\n");
       this->input->seek (this->input, this->first_packet_pos, SEEK_SET);
+      this->keyframe_found = 1;
     } else {
       this->input->seek (this->input, start_pos + this->packet_size, SEEK_SET);
     }
+    lprintf ("demux_asf_seek: keyframe_found=%d, keyframe_ts=%lld\n",
+             this->keyframe_found, this->keyframe_ts);
     this->streams[this->video_stream].resync = 1;
     this->streams[this->video_stream].skip   = 1;
     this->streams[this->audio_stream].resync = 1;
     this->streams[this->audio_stream].skip   = 1;
   } else {
     /* "streaming" mode */
-    this->keyframe_ts = 0; /* means next keyframe */
+    this->keyframe_ts = 0;
+    this->keyframe_found = 0; /* means next keyframe */
     this->streams[this->video_stream].resync = 1;
     this->streams[this->video_stream].skip   = 1;
     this->streams[this->audio_stream].resync = 0;
     this->streams[this->audio_stream].skip   = 0;
   }
-  this->send_newpts                        = 1;
-  this->buf_flag_seek                      = 1;
   return this->status;
   
 error:
