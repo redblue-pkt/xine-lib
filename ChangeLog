@@ -36,6 +36,8 @@ xine-lib (1-rc1)
   * Add support for some A52 streams into demux_mpeg_pes.
     Used by PRO7 digital tv channel.
   * fix colors of YUY2 overlay blending
+  * new fftgraph viz plugin
+  * updated goom support
 
 xine-lib (1-rc0a)
   * includes ffmpeg's MPEG encode in dist tarball (fixes DXR3 support)
