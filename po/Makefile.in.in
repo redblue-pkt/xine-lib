@@ -26,6 +26,7 @@ exec_prefix = @exec_prefix@
 datadir = @datadir@
 localedir = $(datadir)/locale
 gettextsrcdir = $(datadir)/gettext/po
+install_sh = @install_sh@
 mkdir_p = @mkdir_p@
 
 INSTALL = @INSTALL@
