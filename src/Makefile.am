@@ -36,7 +36,10 @@ SUBDIRS = \
 	liba52 \
 	libspudec \
 	libmad \
-	libw32dll 
+	libw32dll \
+	liblpcm \
+	libxinevdec \
+	libxineadec 
 
 debug:
 	@list='$(SUBDIRS)'; for subdir in $$list; do \
