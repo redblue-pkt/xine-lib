@@ -19,7 +19,8 @@ lib_LTLIBRARIES = xineplug_decode_ff.la
 xineplug_decode_ff_la_SOURCES = xine_decoder.c
 xineplug_decode_ff_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 xineplug_decode_ff_la_LIBADD = $(XINE_LIB) \
-	$(top_builddir)/src/libffmpeg/libavcodec/libavcodec.la
+	$(top_builddir)/src/libffmpeg/libavcodec/libavcodec.la \
+	$(top_builddir)/src/libffmpeg/libavcodec/libpostproc/libpostprocess.la
 
 debug:
 	@list='$(SUBDIRS)'; for subdir in $$list; do \

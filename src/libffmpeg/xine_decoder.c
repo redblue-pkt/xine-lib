@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.99 2003/03/07 01:22:54 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.100 2003/03/14 17:46:05 jstembridge Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -42,6 +42,7 @@
 
 #include "libavcodec/avcodec.h"
 #include "libavcodec/dsputil.h"
+#include "libavcodec/libpostproc/postprocess.h"
 
 /*
 #define LOG
@@ -50,11 +51,16 @@
 #define SLICE_BUFFER_SIZE (1194 * 1024)
 #define abs_float(x) ( ((x)<0) ? -(x) : (x) )
 
-typedef struct {
+typedef struct ff_video_decoder_s ff_video_decoder_t;
+
+typedef struct ff_video_class_s {
   video_decoder_class_t   decoder_class;
+
+  ff_video_decoder_t     *ip;
+  xine_t                 *xine;
 } ff_video_class_t;
 
-typedef struct ff_decoder_s {
+struct ff_video_decoder_s {
   video_decoder_t   video_decoder;
 
   ff_video_class_t *class;
@@ -72,6 +78,12 @@ typedef struct ff_decoder_s {
   AVFrame           *av_frame;
   AVCodecContext    *context;
   AVCodec           *codec;
+  
+  int                pp_available;
+  int                pp_quality;
+  pp_context_t      *pp_context;
+  pp_mode_t         *pp_mode;
+  uint8_t           *pp_data[3];
 
   /* mpeg sequence header parsing, stolen from libmpeg2 */
 
@@ -88,7 +100,7 @@ typedef struct ff_decoder_s {
   int               output_format;
   yuv_planes_t      yuv;
    
-} ff_video_decoder_t;
+};
 
 typedef struct {
   audio_decoder_class_t   decoder_class;
@@ -172,6 +184,46 @@ static void init_video_codec (ff_video_decoder_t *this, xine_bmiheader *bih) {
     init_yuv_planes(&this->yuv, this->bih.biWidth, this->bih.biHeight);
   } else
     this->output_format = XINE_IMGFMT_YV12;
+}
+
+static void init_postprocess (ff_video_decoder_t *this) {
+  int flags;
+  uint32_t cpu_caps;
+  
+  /* Detect what cpu accel we have */
+  cpu_caps = xine_mm_accel();
+  flags = PP_FORMAT_420;
+ 
+  if(cpu_caps & MM_ACCEL_X86_MMX)
+    flags |= PP_CPU_CAPS_MMX;
+    
+  if(cpu_caps & MM_ACCEL_X86_MMXEXT)
+    flags |= PP_CPU_CAPS_MMX2;
+  
+  if(cpu_caps & MM_ACCEL_X86_3DNOW)  
+    flags |= PP_CPU_CAPS_3DNOW;
+   
+  /* Set up post processer */
+  this->pp_context = pp_get_context(this->bih.biWidth, this->bih.biHeight, flags);
+  
+  /* Config mode - using libpostproc default minus autolevels */
+  this->pp_mode = pp_get_mode_by_name_and_quality("hb:a,vb:a,dr:a", 
+                                                  this->pp_quality);
+}
+
+static void pp_quality_cb(void *user_data, xine_cfg_entry_t *entry) {
+  ff_video_class_t   *class = (ff_video_class_t *) user_data;
+  
+  if(class->ip) {
+    ff_video_decoder_t *this  = class->ip;
+    
+    this->pp_quality = entry->num_value;  
+    if(this->pp_mode) {
+      pp_free_mode(this->pp_mode);
+      this->pp_mode = pp_get_mode_by_name_and_quality("hb:a,vb:a,dr:a", 
+                                                      this->pp_quality);
+    }
+  }
 }
 
 static void find_sequence_header (ff_video_decoder_t *this,
@@ -431,6 +483,21 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 
     init_video_codec (this, (xine_bmiheader *)buf->content );
 
+    /* Allow post processing on mpeg-4 (based) codecs */
+    switch(this->codec->id) {
+      case CODEC_ID_MPEG4:
+      case CODEC_ID_MSMPEG4V1:
+      case CODEC_ID_MSMPEG4V2:
+      case CODEC_ID_MSMPEG4V3:
+      case CODEC_ID_WMV1:
+      case CODEC_ID_WMV2:
+	this->pp_available = 1;
+	break;
+      default:
+	this->pp_available = 0;
+	break;
+    }
+  
   } else if (this->decoder_ok) {
 
     if( this->size + buf->size > this->bufsize ) {
@@ -559,9 +626,32 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 	  dy = img->base[0];
 	  du = img->base[1];
 	  dv = img->base[2];
-	  sy = this->av_frame->data[0];
-	  su = this->av_frame->data[1];
-	  sv = this->av_frame->data[2];
+	  
+	  if(this->pp_quality > 0 && this->pp_available) {
+	    if(this->pp_context == NULL) {
+	      init_postprocess(this);
+	    
+	      this->pp_data[0] = xine_xmalloc(this->av_frame->linesize[0] * this->bih.biHeight);
+	      this->pp_data[1] = xine_xmalloc(this->av_frame->linesize[1] * this->bih.biHeight / 2);
+	      this->pp_data[2] = xine_xmalloc(this->av_frame->linesize[2] * this->bih.biHeight / 2);
+            }  
+
+	    pp_postprocess(this->av_frame->data, this->av_frame->linesize, 
+			   this->pp_data, this->av_frame->linesize, 
+			   this->bih.biWidth, this->bih.biHeight,
+			   this->av_frame->qscale_table, this->av_frame->qstride,
+			   this->pp_mode, this->pp_context, 
+			   this->av_frame->pict_type);
+
+	    sy = this->pp_data[0];
+	    su = this->pp_data[1];
+	    sv = this->pp_data[2];
+
+	  } else {
+	    sy = this->av_frame->data[0];
+	    su = this->av_frame->data[1];
+	    sv = this->av_frame->data[2];
+	  }
 	  
           if (this->context->pix_fmt == PIX_FMT_YUV410P) {
 
@@ -795,6 +885,19 @@ static void ff_dispose (video_decoder_t *this_gen) {
   if (this->buf)
     free(this->buf);
   this->buf = NULL;
+  
+  if(this->pp_context)
+    pp_free_context(this->pp_context);
+    
+  if(this->pp_mode)
+    pp_free_mode(this->pp_mode);
+  
+  if(this->pp_data[0])
+    free(this->pp_data[0]);
+  if(this->pp_data[1])
+    free(this->pp_data[1]);
+  if(this->pp_data[2])
+    free(this->pp_data[2]);
 
   free (this->chunk_buffer);
   free (this_gen);
@@ -803,6 +906,7 @@ static void ff_dispose (video_decoder_t *this_gen) {
 static video_decoder_t *ff_video_open_plugin (video_decoder_class_t *class_gen, xine_stream_t *stream) {
 
   ff_video_decoder_t  *this ;
+  xine_cfg_entry_t     quality_entry;
 
 #ifdef LOG
   printf ("ffmpeg: open_plugin\n");
@@ -819,6 +923,7 @@ static video_decoder_t *ff_video_open_plugin (video_decoder_class_t *class_gen, 
 
   this->stream                            = stream;
   this->class                             = (ff_video_class_t *) class_gen;
+  this->class->ip                         = this;
 
   this->chunk_buffer = xine_xmalloc (SLICE_BUFFER_SIZE + 4);
 
@@ -833,6 +938,16 @@ static video_decoder_t *ff_video_open_plugin (video_decoder_class_t *class_gen, 
   this->aspect_ratio = 0;
   this->xine_aspect_ratio = XINE_VO_ASPECT_DONT_TOUCH;
 
+  this->pp_context  = NULL;
+  this->pp_mode     = NULL;
+  this->pp_data[0]  = NULL;
+  this->pp_data[1]  = NULL;
+  this->pp_data[2]  = NULL;
+
+  if(xine_config_lookup_entry(this->class->xine, "codec.ffmpeg_pp_quality",
+     &quality_entry))
+    this->pp_quality = quality_entry.num_value;
+    
   return &this->video_decoder;
 }
 
@@ -860,6 +975,7 @@ static void init_once_routine(void) {
 static void *init_video_plugin (xine_t *xine, void *data) {
 
   ff_video_class_t *this;
+  config_values_t  *config;
   
   this = (ff_video_class_t *) malloc (sizeof (ff_video_class_t));
 
@@ -867,8 +983,17 @@ static void *init_video_plugin (xine_t *xine, void *data) {
   this->decoder_class.get_identifier  = ff_video_get_identifier;
   this->decoder_class.get_description = ff_video_get_description;
   this->decoder_class.dispose         = ff_video_dispose_class;
+  this->ip                            = NULL;
+  this->xine                          = xine;
 
   pthread_once( &once_control, init_once_routine );
+  
+  /* Configuration for post processing quality - default to mid (3) for the
+   * moment */
+  config = xine->config;
+  xine->config->register_range(config, "codec.ffmpeg_pp_quality", 3, 
+    0, PP_QUALITY_MAX,  _("ffmpeg mpeg-4 postprocessing quality"), NULL,
+    10, pp_quality_cb, this);  
   
   return this;
 }
@@ -1171,7 +1296,7 @@ static decoder_info_t dec_info_ffmpeg_audio = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_VIDEO_DECODER, 14, "ffmpegvideo", XINE_VERSION_CODE, &dec_info_ffmpeg_video, init_video_plugin },
+  { PLUGIN_VIDEO_DECODER | PLUGIN_MUST_PRELOAD, 14, "ffmpegvideo", XINE_VERSION_CODE, &dec_info_ffmpeg_video, init_video_plugin },
   { PLUGIN_AUDIO_DECODER, 13, "ffmpegaudio", XINE_VERSION_CODE, &dec_info_ffmpeg_audio, init_audio_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
