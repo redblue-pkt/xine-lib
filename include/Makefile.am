@@ -11,7 +11,7 @@ CONFIG_CLEAN_FILES = xine.h
 debug:
 	@$(MAKE) CFLAGS="$(DEBUG_CFLAGS)"
 
-install-debug: install
+install-debug: debug
 
 
 mostlyclean-generic:

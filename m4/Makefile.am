@@ -34,7 +34,7 @@ EXTRA_DIST = \
 
 debug:
 
-install-debug: install
+install-debug: debug
 
 mostlyclean-generic:
 	-rm -f *~ \#* .*~ .\#*
