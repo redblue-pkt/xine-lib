@@ -16,7 +16,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: backend.h,v 1.3 2003/05/04 01:35:06 hadess Exp $
+ * $Id: backend.h,v 1.4 2003/05/04 22:22:21 f1rmb Exp $
  *
  * Contents:
  *
@@ -124,7 +124,9 @@ typedef struct {
 /* The backend(s) use static information, so there can only be one
    backend active: */
 
+#ifdef XINE_HAVE_NVTV
 extern BackAccessPtr back_access;
 extern BackCardPtr back_card;
+#endif
 
 #endif /* _BACKEND_H */

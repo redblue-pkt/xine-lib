@@ -16,7 +16,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: back_client.c,v 1.3 2003/05/04 01:35:05 hadess Exp $
+ * $Id: back_client.c,v 1.4 2003/05/04 22:22:21 f1rmb Exp $
  *
  * Contents:
  *
@@ -480,8 +480,10 @@ CardPtr back_client_init (void)
 {
   CardPtr card;
 
+#ifdef XINE_HAVE_NVTV
   back_access = &bcl_access_func;
   back_card   = &bcl_card_func;
+#endif
   bcl_openPipes ();
   pipeWriteCmd (pipe_out, PCmd_Init);
   pipeWriteArgs (pipe_out, 0);
