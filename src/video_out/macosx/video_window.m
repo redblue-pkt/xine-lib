@@ -26,23 +26,19 @@
 #include <OpenGL/OpenGL.h>
 #include <OpenGL/gl.h>
 #include <OpenGL/glext.h>
+
 #import "video_window.h"
+
+NSString *XineViewDidResizeNotification = @"XineViewDidResizeNotification";
 
 @implementation XineVideoWindow
 
-- (void) displayTexture {
-    if ([openGLView lockFocusIfCanDraw]) {
-        [openGLView drawRect: [openGLView bounds]];
-        [openGLView reloadTexture];
-        [openGLView unlockFocus];
-    }
-}
 
 - (void) setContentSize: (NSSize) size {
     width = size.width;
     height = size.height;
 
-    [openGLView setVideoSize: width : height];
+    [openGLView setVideoSize: width height: height];
    
     if (keepAspectRatio)
         [self setAspectRatio: size];
@@ -62,6 +58,10 @@
                       screen: aScreen];
 
     openGLView = [[XineOpenGLView alloc] initWithFrame:rect];
+
+    /* receive notifications about window resizing from the xine view */
+    [openGLView setDelegate:self];
+
     [self setContentView: openGLView];
     [self setTitle: @"xine video output"];
     keepAspectRatio = 0;
@@ -151,6 +151,23 @@
     return keepAspectRatio;
 }
 
+- (void) displayTexture {
+    if ([openGLView lockFocusIfCanDraw]) {
+        [openGLView drawRect: [openGLView bounds]];
+        [openGLView reloadTexture];
+        [openGLView unlockFocus];
+    }
+}
+
+/* Delegate methods */
+
+- (void) xineViewDidResize:(NSNotification *)note {
+  NSRect frame = [self frame];
+  frame.size = [[self contentView] frame].size;
+
+  [self setFrame:[self frameRectForContentRect:frame] display:YES];
+}
+
 @end
 
 
@@ -160,8 +177,16 @@
     return YES;
 }
 
+- (void) displayTexture {
+    if ([self lockFocusIfCanDraw]) {
+    [self drawRect: [self bounds]];
+    [self reloadTexture];
+    [self unlockFocus];
+    }
+}
+
 - (id) initWithFrame: (NSRect) frame {
-    
+
     NSOpenGLPixelFormatAttribute attribs[] = {
         NSOpenGLPFAAccelerated,
         NSOpenGLPFANoRecovery,
@@ -181,7 +206,7 @@
         return nil;
     }
 
-    self = [super initWithFrame:frame pixelFormat: fmt];
+    self = [super initWithFrame:frame pixelFormat:fmt];
 
     currentContext = [self openGLContext];
     [currentContext makeCurrentContext];
@@ -221,9 +246,9 @@
         glDeleteTextures (1, &i_texture);
 
     if (texture_buffer)
-        texture_buffer = realloc (texture_buffer, sizeof (char) * width * height * 3);
+        texture_buffer = realloc (texture_buffer, sizeof (char) * width * height * 2);
     else
-        texture_buffer = malloc (sizeof (char) * width * height * 3);
+        texture_buffer = malloc (sizeof (char) * width * height * 2);
 
     /* Create textures */
     glGenTextures (1, &i_texture);
@@ -289,7 +314,7 @@
     switch (fullscreen_mode) {
     case XINE_FULLSCREEN_OVERSCAN:
         if (((float) fs_width / (float) fs_height) > ((float) width / (float) height)) {
-           w = (float) width * ((float) fs_height / (float) height);
+            w = (float) width * ((float) fs_height / (float) height);
             h = fs_height;
             x = (fs_width - w) / 2;
             y = 0;
@@ -300,7 +325,7 @@
             y = (fs_height - h) / 2;
         }
         break;
-	
+    
     case XINE_FULLSCREEN_CROP:
         if (((float) fs_width / (float) fs_height) > ((float) width / (float) height)) {
             w = fs_width;
@@ -316,7 +341,7 @@
         break;
     }
 
-    printf ("MacOSX fullscreen mode: %dx%d => w = %dx%d @ %d,%d\n", width, height, w, h, x, y);
+    printf ("MacOSX fullscreen mode: %dx%d => %dx%d @ %d,%d\n", width, height, w, h, x, y);
 
     glViewport (x, y, w, h);
 }
@@ -440,19 +465,61 @@
     return texture_buffer;
 }
 
-- (void) setVideoSize: (int) w : (int) h {
-    width = w;
-    height = h;
+- (void) setVideoSize:(int)w height:(int)h
+{
+    NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
     
-    [self initTextures];
+    if (w != width || h != height) {
+        
+        NSSize newSize;
+        
+        newSize.width = w;
+        newSize.height = h;
+        
+        /* If our delegate handles xineViewWillResize:toSize:, send the
+         * message to him; otherwise, just resize ourselves */
+        if ([delegate respondsToSelector:@selector(xineViewWillResize:toSize:)]) {
+            NSSize oldSize = NSMakeSize(width, height);
+            NSSize proposedSize = NSMakeSize(w, h);
+            newSize = [delegate xineViewWillResize:oldSize toSize:proposedSize];
+            width = newSize.width;
+            height = newSize.height;
+        } else {
+            width = w;
+            height = h;
+        }
+        
+        [self setFrameSize:newSize];
+        [self setBoundsSize:newSize];
+        
+        /* Post a notification that we resized, and also notify our delegate */
+        NSNotification *note =
+            [NSNotification notificationWithName:XineViewDidResizeNotification
+                                          object:self];
+        [[NSNotificationCenter defaultCenter] postNotification:note];
+        if ([delegate respondsToSelector:@selector(xineViewDidResize:)]) { 
+            [delegate xineViewDidResize:note];
+        }
+        
+        if (isFullScreen)
+            [self calcFullScreenAspect];
+    }
+
+    [self initTextures];    
     
-    if (isFullScreen)
-        [self calcFullScreenAspect];
+    [pool release];
 }
 
 - (int) isFullScreen {
     return isFullScreen;
 }
 
-@end
+- (id) delegate {
+    return delegate;
+}
 
+- (void) setDelegate:(id)aDelegate {
+    delegate = aDelegate;
+}
+
+@end

@@ -28,17 +28,19 @@ typedef enum {
 
 
 @interface XineOpenGLView : NSOpenGLView {
-    int                        width, height;
-    char                      *texture_buffer;
-    unsigned long              i_texture;
-    int                        initDone;
-    int                        isFullScreen;
-    XineVideoWindowFullScreenMode fullscreen_mode;
-    NSOpenGLContext           *opengl_context;
-    NSOpenGLContext           *fullScreenContext;
-    NSOpenGLContext  *currentContext;
+    IBOutlet id                    delegate;
+    int                            width, height;
+    char *                         texture_buffer;
+    unsigned long                  i_texture;
+    int                            initDone;
+    int                            isFullScreen;
+    XineVideoWindowFullScreenMode  fullscreen_mode;
+    NSOpenGLContext *              opengl_context;
+    NSOpenGLContext *              fullScreenContext;
+    NSOpenGLContext *              currentContext;
 }
 
+- (void) displayTexture;
 - (void) drawQuad;
 - (void) drawRect: (NSRect) rect;
 - (void) goFullScreen: (XineVideoWindowFullScreenMode) mode;
@@ -47,9 +49,12 @@ typedef enum {
 - (void) reshape;
 - (void) initTextures;
 - (void) reloadTexture;
-- (id) initWithFrame: (NSRect) frame;
 - (char *) getTextureBuffer;
-- (void) setVideoSize: (int) w: (int) h;
+- (void) setVideoSize:(int)w height:(int)h;
+
+/* Delegate methods */
+- (id) delegate;
+- (void) setDelegate:(id)aDelegate;
 
 @end
 
@@ -72,4 +77,20 @@ typedef enum {
 - (void) setKeepsAspectRatio: (int) i;
 - (int) keepsAspectRatio;
 @end
+
+
+/* XineOpenGLView delegate methods */
+
+@interface NSObject (XineOpenGLViewDelegate)
+    
+- (NSSize)xineViewWillResize:(NSSize)previousSize
+                      toSize:(NSSize)proposedFrameSize;
+- (void)xineViewDidResize:(NSNotification *)aNotification;
+
+@end
+
+
+/* XineOpenGLView notifications */
+
+extern NSString *XineViewDidResizeNotification;
 
