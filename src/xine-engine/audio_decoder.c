@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.12 2001/06/03 18:08:56 guenter Exp $
+ * $Id: audio_decoder.c,v 1.13 2001/06/03 20:16:33 guenter Exp $
  *
  *
  * functions that implement audio decoding
@@ -64,69 +64,6 @@ void *audio_decoder_loop (void *this_gen) {
 
       break;
 
-      case BUF_AUDIO_AC3:
-      case BUF_AUDIO_MPEG:
-      case BUF_AUDIO_LPCM:
-      case BUF_AUDIO_AVI:
-      
-	/* printf ("audio_decoder: got an audio buffer, type %08x\n", buf->type); */
-
-	/* update track map */
-
-	i = 0;
-	while ( (i<this->audio_track_map_entries) && (this->audio_track_map[i]<buf->type) ) 
-	  i++;
-	  
-	if ( (i==this->audio_track_map_entries) || (this->audio_track_map[i] != buf->type) ) {
-
-	  /* printf ("audio_decoder: inserting audio type %08x into track map\n", buf->type); */
-	  
-	  j = this->audio_track_map_entries;
-	  while (j>i) {
-	    this->audio_track_map[j] = this->audio_track_map[j-1];
-	    j--;
-	  }
-	  this->audio_track_map[i] = buf->type;
-	  this->audio_track_map_entries++;
-
-	  if (i<=this->audio_channel) {
-	    /* printf ("audio_decoder: resetting audio decoder because of new channel\n"); */
-	    
-	    if (this->cur_audio_decoder_plugin) {
-	      this->cur_audio_decoder_plugin->close (this->cur_audio_decoder_plugin);
-	      this->cur_audio_decoder_plugin = NULL;
-	    }
-	  }
-	}
-
-	/* now, decode this buffer if it's the right track */
-	
-	if (buf->type == this->audio_track_map[this->audio_channel]) {
-
-	  int streamtype = (buf->type>>16) & 0xFF;
-
-	  /* printf ("audio_decoder_c: buffer is from the right track => decode it\n"); */
-
-
-	  decoder = this->audio_decoder_plugins [streamtype];
-
-	  if (decoder) {
-	    if (this->cur_audio_decoder_plugin != decoder) {
-	      
-	      if (this->cur_audio_decoder_plugin) 
-		this->cur_audio_decoder_plugin->close (this->cur_audio_decoder_plugin);
-	      
-	      this->cur_audio_decoder_plugin = decoder;
-	      this->cur_audio_decoder_plugin->init (this->cur_audio_decoder_plugin, this->audio_out);
-	      
-	    }
-	    
-	    decoder->decode_data (decoder, buf);
-	  }
-	}
-	
-	break;
-
       case BUF_CONTROL_END:
 	if (this->cur_audio_decoder_plugin) {
 	  this->cur_audio_decoder_plugin->close (this->cur_audio_decoder_plugin);
@@ -153,6 +90,70 @@ void *audio_decoder_loop (void *this_gen) {
 	running = 0;
 	break;
 
+      default:
+	if ( (buf->type & 0xFF000000) == BUF_AUDIO_BASE ) {
+      
+	  /* printf ("audio_decoder: got an audio buffer, type %08x\n", buf->type); */
+
+	  /* update track map */
+	  
+	  i = 0;
+	  while ( (i<this->audio_track_map_entries) && (this->audio_track_map[i]<buf->type) ) 
+	    i++;
+
+	  /*
+	  printf ("audio_decoder: got an audio buffer, type %08x, %d map entries, i=%d\n", 
+		  buf->type, this->audio_track_map_entries, i); 
+	  */
+	  
+	  if ( (i==this->audio_track_map_entries) || (this->audio_track_map[i] != buf->type) ) {
+	    
+	    j = this->audio_track_map_entries;
+	    while (j>i) {
+	      this->audio_track_map[j] = this->audio_track_map[j-1];
+	      j--;
+	    }
+	    this->audio_track_map[i] = buf->type;
+	    this->audio_track_map_entries++;
+	    
+	    if (i<=this->audio_channel) {
+	      /* printf ("audio_decoder: resetting audio decoder because of new channel\n"); */
+	      
+	      if (this->cur_audio_decoder_plugin) {
+		this->cur_audio_decoder_plugin->close (this->cur_audio_decoder_plugin);
+		this->cur_audio_decoder_plugin = NULL;
+	      }
+	    }
+	    
+	  }
+	  
+	  /* now, decode this buffer if it's the right track */
+	  
+	  if (buf->type == this->audio_track_map[this->audio_channel]) {
+	    
+	    int streamtype = (buf->type>>16) & 0xFF;
+	    
+	    /* printf ("audio_decoder_c: buffer is from the right track => decode it\n"); */
+	    
+	    
+	    decoder = this->audio_decoder_plugins [streamtype];
+	    
+	    if (decoder) {
+	      if (this->cur_audio_decoder_plugin != decoder) {
+		
+		if (this->cur_audio_decoder_plugin) 
+		  this->cur_audio_decoder_plugin->close (this->cur_audio_decoder_plugin);
+		
+		this->cur_audio_decoder_plugin = decoder;
+		this->cur_audio_decoder_plugin->init (this->cur_audio_decoder_plugin, this->audio_out);
+		
+	      }
+	      
+	      decoder->decode_data (decoder, buf);
+	    }
+	  }
+	} else
+	  printf ("audio_decoder: unknown buffer type: %08x\n", buf->type);
       }
     }
     else {

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.11 2001/05/31 22:54:39 guenter Exp $
+ * $Id: demux_mpeg_block.c,v 1.12 2001/06/03 20:16:33 guenter Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -244,6 +244,8 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this) {
 
       if(this->audio_fifo)
 	this->audio_fifo->put (this->audio_fifo, buf);
+      else
+	buf->free_buffer(buf);
       
       return ;
     } else if ((p[0]&0xf0) == 0xa0) {
@@ -268,6 +270,8 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this) {
 
       if(this->audio_fifo)
 	this->audio_fifo->put (this->audio_fifo, buf);
+      else
+	buf->free_buffer(buf);
       
       return ;
     }
@@ -303,6 +307,8 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this) {
       
     if(this->audio_fifo)
       this->audio_fifo->put (this->audio_fifo, buf);
+    else
+      buf->free_buffer(buf);
 
     return ;
 
@@ -423,31 +429,21 @@ static int demux_mpeg_block_open(demux_plugin_t *this_gen,
       this->blocksize = input->get_blocksize(input);
       
       if (!this->blocksize)
-	return DEMUX_CANNOT_HANDLE;
+	this->blocksize = 2048;
+
+      /* make sure it's mpeg-2 */
 
       if (input->read(input, buf, this->blocksize)) {
 	
-	if(buf[0] || buf[1] || (buf[2] != 0x01))
+	if(buf[0] || buf[1] || (buf[2] != 0x01) || (buf[3] != 0xba))
 	  return DEMUX_CANNOT_HANDLE;
-	
-	switch(buf[3]) {
 
-	case 0xba:
-	  if((buf[4] & 0xc0) == 0x40) {
-	    this->input = input;
-	    return DEMUX_CAN_HANDLE;
-	  }
-	  break;
+	if ((buf[4]>>4) != 4)
+	  return DEMUX_CANNOT_HANDLE;
 	  
-	case 0xe0:
-	  if((buf[6] & 0xc0) == 0x80) {
-	    this->input = input;
-	    return DEMUX_CAN_HANDLE;
-	  }
-	  break;
- 
-	}
-      }
+	this->input = input;
+	return DEMUX_CAN_HANDLE;
+      }	
     }
     return DEMUX_CANNOT_HANDLE;
   }
