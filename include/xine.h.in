@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.81 2003/05/05 16:22:08 miguelfreitas Exp $
+ * $Id: xine.h.in,v 1.82 2003/05/08 21:14:44 miguelfreitas Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -1370,11 +1370,18 @@ typedef struct {
   uint32_t framerate_numerator; /* framerate as numerator/denominator */
   uint32_t framerate_denominator;
   uint32_t framelines;          /* Total lines per frame including blanking */
+  uint64_t stardard_id;         /* One of the V4L2_STD_* values */
   uint32_t colorstandard;       /* One of the V4L2_COLOR_STD_* values */
   uint32_t colorsubcarrier;     /* The color subcarrier frequency */
   int frame_width;              /* scaled frame width */
   int frame_height;             /* scaled frame height */
 
+  /* mpeg2 parameters */
+  int bitrate_vbr;              /* 1 = vbr, 0 = cbr */
+  int bitrate_mean;             /* mean (target) bitrate in kbps*/
+  int bitrate_peak;             /* peak (max) bitrate in kbps */
+  int gop_size;                 /* GOP size in frames */
+  
   /* used by pvr plugin */
   int32_t session_id;           /* -1 stops pvr recording */
 } xine_set_v4l2_data_t;
