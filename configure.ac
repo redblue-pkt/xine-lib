@@ -1517,6 +1517,9 @@ case "$host_or_hostalias" in
 			*Athlon* | *Duron* | *K7*)
 			    archopt_val="$k7cpu"
 			    ;;
+			VIAEzra)
+			    archopt_val="c3"
+			    ;;
 			esac
 		    fi 
 		fi
