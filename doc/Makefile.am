@@ -1,10 +1,10 @@
 
 SUBDIRS = man
 
-EXTRA_DIST = $(docs_DOCS) MRL.txt dataflow.dia xine-lib-API.cfg
+EXTRA_DIST = $(docs_DOCS) FAQ FAQ_es MRL.txt README.solaris dataflow.dia xine-lib-API.cfg
 
 docdir = $(prefix)/share/doc/xine
-docs_DOCS = README-lib.solaris FAQ-lib FAQ-lib_es
+docs_DOCS =
 
 
 install-data-local:

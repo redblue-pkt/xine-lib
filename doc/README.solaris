@@ -1,0 +1,30 @@
+building xine on solaris
+------------------------
+
+* Compile xine with GNU make (gmake, /opt/sfw/bin/gmake)
+
+* If you get a "fatal: relocation error" ... "symbol __divdi3:
+  referenced symbol not found" error when running xine, re-configure 
+  xine-lib with gcc as the linker command (env LD=gcc configure ...)
+
+* To get VIS accelerated MPEG decoding and colour space conversion 
+  on Solaris SPARC, download and install Sun's mediaLib 2.0, available
+  here:
+
+    http://www.sun.com/sparc/vis/mediaLib.html
+
+
+Known Problems
+--------------
+
+* Can't use MIT shared memory for local video display
+
+  The default value for the maximum allowed shared memory segment size
+  (1MByte) is very small on solaris.  You may want to increase the
+  max. allowed shared memory segment size.  Add the following line to
+  /etc/system to increase the shmmax parameter to 8MBytes:
+
+	set shmsys:shminfo_shmmax=8388608
+
+  Reboot the machine after modifying /etc/system to activate the new
+  default.

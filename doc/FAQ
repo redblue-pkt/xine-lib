@@ -40,7 +40,7 @@ xine comes in two (official) parts now, xine-lib and xine-ui.
 
 First you have to build and install xine-lib:
 
-./autogen.sh  <--- only neccessary if you checked xine out of CVS
+./cvscompile.sh  <--- only neccessary if you checked xine out of CVS
 ./configure
 make
 make install
@@ -56,7 +56,7 @@ to make sure this works.
 
 Now you can build and install xine-ui, same procedure as for xine-lib:
 
-./autogen.sh  <--- only neccessary if you checked xine out of CVS
+./cvscompile.sh  <--- only neccessary if you checked xine out of CVS
 ./configure
 make
 make install
@@ -90,7 +90,7 @@ your configuration, e.g.
 
 export XINE_BUILD=k7-pc-linux-gnu
 rm -f config.cache
-./autogen.sh
+./cvscompile.sh
 make
 make install
 

@@ -13,7 +13,7 @@ Puede probar versiones del gcc remendadas (patched), pero estas no son
 soportadas y probablemente no funcionen (por ejemplo el pgcc conocido para 
 hacer libmpeg falla).
 
-./autogen.sh  <--- solo necesario si comprobara Xine sin CVS
+./cvscompile.sh  <--- solo necesario si comprobara Xine sin CVS
 ./configure
 make
 make install
