@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.91 2002/07/10 14:02:41 mroi Exp $
+ * $Id: xine_internal.h,v 1.92 2002/07/14 20:55:17 miguelfreitas Exp $
  *
  */
 
@@ -263,6 +263,8 @@ struct xine_s {
   void                      *report_codec_user_data;
   
   int                        playing_logo;
+  int                        curtime_needed_for_osd;
+  pthread_mutex_t            osd_lock;
 };
 
 /*
@@ -442,6 +444,7 @@ char **xine_get_autoplay_mrls (xine_t *this, char *plugin_id, int *num_mrls);
 
 void xine_notify_stream_finished (xine_t *this);
 void xine_report_codec( xine_t *this, int codec_type, uint32_t fourcc, uint32_t buf_type, int handled );
+void xine_internal_osd (xine_t *this, char *str, int duration);
 
 /*
  * video decoder stuff

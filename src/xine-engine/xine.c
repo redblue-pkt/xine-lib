@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.144 2002/07/14 01:27:03 tmmm Exp $
+ * $Id: xine.c,v 1.145 2002/07/14 20:55:17 miguelfreitas Exp $
  *
  * top-level xine functions
  *
@@ -169,12 +169,15 @@ int xine_register_report_codec_cb(xine_t *this, xine_report_codec_t report_codec
   return 0;
 }
 
-static void xine_internal_osd (xine_t *this, char *str, 
-			       uint32_t start_time, uint32_t duration) {
+void xine_internal_osd (xine_t *this, char *str, int duration) {
 
   uint32_t seconds;
   char tstr[256];
-
+  int64_t start_time;
+  
+  this->curtime_needed_for_osd = 0;
+  start_time = this->metronom->get_current_time (this->metronom);
+    
   if (this->osd_display) {
    
     this->osd_renderer->filled_rect (this->osd, 0, 0, 299, 99, 0);
@@ -226,8 +229,6 @@ void xine_stop_internal (xine_t *this) {
 
   printf ("xine_stop\n");
 
-  /* xine_internal_osd (this, "}", this->metronom->get_current_time (this->metronom), 30000); never works */
-  
   if (this->status == XINE_STOP) {
     printf ("xine_stop ignored\n");
     return;
@@ -273,6 +274,7 @@ void xine_stop (xine_t *this) {
   if(this->status == XINE_STOP) {
     play_logo_internal(this);
   }
+
   pthread_mutex_unlock (&this->xine_lock);
 }
 
@@ -485,11 +487,9 @@ int xine_play_internal (xine_t *this, char *mrl,
     this->status = XINE_PLAY;
     strncpy (this->cur_mrl, mrl, 1024);
     
-    /* osd */
-    /* FIXME: how do we assure an updated cur_input_time? */
-    /* xine_usec_sleep(100000); */
-    xine_internal_osd (this, ">", this->metronom->get_current_time (this->metronom), 300000);
-
+    /* osd will be updated as soon as we know cur_input_time */
+    if( !this->playing_logo )
+      this->curtime_needed_for_osd = 5;
   }
 
   return 1;
@@ -582,6 +582,7 @@ void xine_exit (xine_t *this) {
   pthread_mutex_destroy (&this->logo_lock);
   pthread_mutex_destroy (&this->xine_lock);
   pthread_mutex_destroy (&this->finished_lock);
+  pthread_mutex_destroy (&this->osd_lock);
 
   free (this);
 
@@ -634,6 +635,8 @@ xine_t *xine_init (vo_driver_t *vo,
   pthread_mutex_init (&this->xine_lock, NULL);
 
   pthread_mutex_init (&this->finished_lock, NULL);
+  
+  pthread_mutex_init (&this->osd_lock, NULL);
 
   this->finished_thread_running = 0;
 
@@ -853,27 +856,29 @@ void xine_set_speed (xine_t *this, int speed) {
 
   /* osd */
 
+  pthread_mutex_lock (&this->osd_lock);
   switch (speed) {
   case SPEED_PAUSE:
-    xine_internal_osd (this, "<", this->metronom->get_current_time (this->metronom), 10000);
+    xine_internal_osd (this, "<", 10000);
     break;
   case SPEED_SLOW_4:
-    xine_internal_osd (this, "<>", this->metronom->get_current_time (this->metronom), 20000 * speed);
+    xine_internal_osd (this, "<>", 20000 * speed);
     break;
   case SPEED_SLOW_2:
-    xine_internal_osd (this, "@>", this->metronom->get_current_time (this->metronom), 20000 * speed);
+    xine_internal_osd (this, "@>", 20000 * speed);
     break;
   case SPEED_NORMAL:
-    xine_internal_osd (this, ">", this->metronom->get_current_time (this->metronom), 20000 * speed);
+    xine_internal_osd (this, ">", 20000 * speed);
     break;
   case SPEED_FAST_2:
-    xine_internal_osd (this, "$$", this->metronom->get_current_time (this->metronom), 20000 * speed);
+    xine_internal_osd (this, "$$", 20000 * speed);
     break;
   case SPEED_FAST_4:
-    xine_internal_osd (this, "$$$", this->metronom->get_current_time (this->metronom), 20000 * speed);
+    xine_internal_osd (this, "$$$", 20000 * speed);
     break;
   } 
-
+  pthread_mutex_unlock (&this->osd_lock);
+    
   /* make sure osd can be displayed */
   xine_usec_sleep(100000);
 

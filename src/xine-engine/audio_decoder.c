@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.79 2002/07/13 15:54:03 tmattern Exp $
+ * $Id: audio_decoder.c,v 1.80 2002/07/14 20:55:17 miguelfreitas Exp $
  *
  *
  * functions that implement audio decoding
@@ -68,9 +68,15 @@ void *audio_decoder_loop (void *this_gen) {
 
     if (buf->input_pos)
       this->cur_input_pos = buf->input_pos;
-    
-    if (buf->input_time)
+    if (buf->input_length)
+      this->cur_input_length = buf->input_length;
+    if (buf->input_time) {
       this->cur_input_time = buf->input_time;
+      pthread_mutex_lock (&this->osd_lock);
+      if( this->curtime_needed_for_osd && !(--this->curtime_needed_for_osd) )
+          xine_internal_osd (this, ">",90000);
+      pthread_mutex_unlock (&this->osd_lock);
+    }
       
     switch (buf->type) {
       

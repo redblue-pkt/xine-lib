@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.91 2002/07/05 15:08:58 mroi Exp $
+ * $Id: video_decoder.c,v 1.92 2002/07/14 20:55:17 miguelfreitas Exp $
  *
  */
 
@@ -83,9 +83,14 @@ void *video_decoder_loop (void *this_gen) {
       this->cur_input_pos = buf->input_pos;
     if (buf->input_length)
       this->cur_input_length = buf->input_length;
-    if (buf->input_time)
+    if (buf->input_time) {
       this->cur_input_time = buf->input_time;
-
+      pthread_mutex_lock (&this->osd_lock);
+      if( this->curtime_needed_for_osd && !(--this->curtime_needed_for_osd) )
+          xine_internal_osd (this, ">",90000);
+      pthread_mutex_unlock (&this->osd_lock);
+    }
+    
 #ifdef VIDEO_DECODER_LOG
     printf ("video_decoder: got buffer 0x%08x\n", buf->type);      
 #endif
