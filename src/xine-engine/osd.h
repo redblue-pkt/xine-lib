@@ -18,14 +18,16 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
  * OSD stuff (text and graphic primitives)
+ * $ID:$
  */
 
 #ifndef HAVE_OSD_H
 #define HAVE_OSD_H
 
 #include "video_overlay.h"
+#ifdef __OSD_C__
 #include "video_out/alphablend.h"
-
+#endif
 typedef struct osd_object_s osd_object_t;
 
 typedef struct osd_renderer_s osd_renderer_t;
