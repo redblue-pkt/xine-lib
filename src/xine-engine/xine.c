@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.278 2003/12/28 15:01:39 siggi Exp $
+ * $Id: xine.c,v 1.279 2004/01/04 00:00:58 storri Exp $
  */
 
 /*
@@ -511,6 +511,13 @@ static void __mrl_unescape(char *mrl) {
 static int __open_internal (xine_stream_t *stream, const char *mrl) {
 
   const char *stream_setup;
+
+  if (!mrl) {
+    xprintf (stream->xine, XINE_VERBOSITY_LOG, _("xine: error while parsing mrl\n"));
+    stream->err = XINE_ERROR_MALFORMED_MRL;
+    stream->status = XINE_STATUS_STOP;
+    return 0;
+  }
 
   lprintf ("opening MRL '%s'...\n", mrl);
 
