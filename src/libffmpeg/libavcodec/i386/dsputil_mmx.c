@@ -70,8 +70,8 @@ static const uint64_t mm_wtwo __attribute__ ((aligned(8))) = 0x0002000200020002U
 #define MOVQ_BONE(regd)  __asm __volatile ("movq %0, %%" #regd " \n\t" ::"m"(mm_bone))
 #define MOVQ_WTWO(regd)  __asm __volatile ("movq %0, %%" #regd " \n\t" ::"m"(mm_wtwo))
 #else
-// for shared library it's better to use this way for accessing constants
-// pcmpeqd -> -1
+/*  for shared library it's better to use this way for accessing constants */
+/*  pcmpeqd -> -1 */
 #define MOVQ_BONE(regd) \
     __asm __volatile ( \
     "pcmpeqd %%" #regd ", %%" #regd " \n\t" \
@@ -86,9 +86,9 @@ static const uint64_t mm_wtwo __attribute__ ((aligned(8))) = 0x0002000200020002U
 
 #endif
 
-// using regr as temporary and for the output result
-// first argument is unmodifed and second is trashed
-// regfe is supposed to contain 0xfefefefefefefefe
+/*  using regr as temporary and for the output result */
+/*  first argument is unmodifed and second is trashed */
+/*  regfe is supposed to contain 0xfefefefefefefefe */
 #define PAVGB_MMX_NO_RND(rega, regb, regr, regfe) \
     "movq " #rega ", " #regr "	\n\t"\
     "pand " #regb ", " #regr "	\n\t"\
@@ -105,7 +105,7 @@ static const uint64_t mm_wtwo __attribute__ ((aligned(8))) = 0x0002000200020002U
     "psrlq $1, " #regb "	\n\t"\
     "psubb " #regb ", " #regr "	\n\t"
 
-// mm6 is supposed to contain 0xfefefefefefefefe
+/*  mm6 is supposed to contain 0xfefefefefefefefe */
 #define PAVGBP_MMX_NO_RND(rega, regb, regr,  regc, regd, regp) \
     "movq " #rega ", " #regr "	\n\t"\
     "movq " #regc ", " #regp "	\n\t"\
@@ -192,7 +192,7 @@ static const uint64_t mm_wtwo __attribute__ ((aligned(8))) = 0x0002000200020002U
 
 static void get_pixels_mmx(DCTELEM *block, const UINT8 *pixels, int line_size)
 {
-    asm volatile(
+    __asm__ volatile(
         "movl $-128, %%eax	\n\t"
         "pxor %%mm7, %%mm7	\n\t"
         ".balign 16		\n\t"
@@ -220,7 +220,7 @@ static void get_pixels_mmx(DCTELEM *block, const UINT8 *pixels, int line_size)
 
 static void diff_pixels_mmx(DCTELEM *block, const UINT8 *s1, const UINT8 *s2, int stride)
 {
-    asm volatile(
+    __asm__ volatile(
         "pxor %%mm7, %%mm7	\n\t"
         "movl $-128, %%eax	\n\t"
         ".balign 16		\n\t"
@@ -278,9 +278,9 @@ static void put_pixels_clamped_mmx(const DCTELEM *block, UINT8 *pixels, int line
         pix += line_size*4;
         p += 32;
 
-    // if here would be an exact copy of the code above
-    // compiler would generate some very strange code
-    // thus using "r"
+    /*  if here would be an exact copy of the code above */
+    /*  compiler would generate some very strange code */
+    /*  thus using "r" */
     __asm __volatile(
 	    "movq	(%3), %%mm0\n\t"
 	    "movq	8(%3), %%mm1\n\t"
@@ -477,7 +477,7 @@ void dsputil_init_mmx(void)
         avg_no_rnd_pixels_tab[0][1] = avg_no_rnd_pixels16_x2_mmx;
         avg_no_rnd_pixels_tab[0][2] = avg_no_rnd_pixels16_y2_mmx;
         avg_no_rnd_pixels_tab[0][3] = avg_no_rnd_pixels16_xy2_mmx;
-        
+
         put_pixels_tab[1][0] = put_pixels8_mmx;
         put_pixels_tab[1][1] = put_pixels8_x2_mmx;
         put_pixels_tab[1][2] = put_pixels8_y2_mmx;
@@ -538,7 +538,7 @@ void dsputil_init_mmx(void)
             avg_pixels_tab[0][1] = avg_pixels16_x2_3dnow;
             avg_pixels_tab[0][2] = avg_pixels16_y2_3dnow;
             avg_pixels_tab[0][3] = avg_pixels16_xy2_3dnow;
-            
+
             put_pixels_tab[1][1] = put_pixels8_x2_3dnow;
             put_pixels_tab[1][2] = put_pixels8_y2_3dnow;
             put_no_rnd_pixels_tab[1][1] = put_no_rnd_pixels8_x2_3dnow;
@@ -557,13 +557,13 @@ void dsputil_init_mmx(void)
             ff_idct = ff_mmx_idct;
         }
 #ifdef SIMPLE_IDCT
-//	ff_idct = simple_idct;
+/* 	ff_idct = simple_idct; */
 	ff_idct = simple_idct_mmx;
 #endif
     }
 
 #if 0
-    // for speed testing
+    /* for speed testing */
     get_pixels = just_return;
     put_pixels_clamped = just_return;
     add_pixels_clamped = just_return;
@@ -593,8 +593,8 @@ void dsputil_init_mmx(void)
     avg_no_rnd_pixels_tab[2] = just_return;
     avg_no_rnd_pixels_tab[3] = just_return;
 
-    //av_fdct = just_return;
-    //ff_idct = just_return;
+    /* av_fdct = just_return; */
+    /* ff_idct = just_return; */
 #endif
 }
 
@@ -602,7 +602,7 @@ void gen_idct_put(UINT8 *dest, int line_size, DCTELEM *block);
 
 /**
  * this will send coeff matrixes which would have different results for the 16383 type MMX vs C IDCTs to the C IDCT
- */ 
+ */
 void bit_exact_idct_put(UINT8 *dest, int line_size, INT16 *block){
     if(   block[0]>1022 && block[1]==0 && block[4 ]==0 && block[5 ]==0
        && block[8]==0   && block[9]==0 && block[12]==0 && block[13]==0){
@@ -613,7 +613,7 @@ void bit_exact_idct_put(UINT8 *dest, int line_size, INT16 *block){
             tmp[i]= block[i];
         for(i=0; i<64; i++)
             block[i]= tmp[block_permute_op(i)];
-        
+
         simple_idct_put(dest, line_size, block);
     }
     else
@@ -626,7 +626,7 @@ void bit_exact_idct_put(UINT8 *dest, int line_size, INT16 *block){
 void dsputil_set_bit_exact_mmx(void)
 {
     if (mm_flags & MM_MMX) {
-    
+
         /* MMX2 & 3DNOW */
         put_no_rnd_pixels_tab[0][1] = put_no_rnd_pixels16_x2_mmx;
         put_no_rnd_pixels_tab[0][2] = put_no_rnd_pixels16_y2_mmx;
