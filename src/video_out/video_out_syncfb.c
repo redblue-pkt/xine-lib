@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_syncfb.c,v 1.37 2001/11/06 13:20:57 matt2000 Exp $
+ * $Id: video_out_syncfb.c,v 1.38 2001/11/06 14:23:31 matt2000 Exp $
  * 
  * video_out_syncfb.c, SyncFB (for Matrox G200/G400 cards) interface for xine
  * 
@@ -366,7 +366,7 @@ static void syncfb_adapt_to_output_area(syncfb_driver_t* this,
 	 this->syncfb_config.syncfb_mode = SYNCFB_FEATURE_SCALE;
 	 if(this->deinterlace_enabled) {
 	    this->syncfb_config.syncfb_mode |= SYNCFB_FEATURE_DEINTERLACE | SYNCFB_FEATURE_CROP;
-	    this->syncfb_config.src_crop_top   = 1;
+	    this->syncfb_config.src_crop_top   = 0;
 	    this->syncfb_config.src_crop_bot   = 1;
 	    this->syncfb_config.src_crop_left  = 0;
 	    this->syncfb_config.src_crop_right = 0;
@@ -395,7 +395,7 @@ static void syncfb_adapt_to_output_area(syncfb_driver_t* this,
 	 this->syncfb_config.src_height     = this->frame_height;
 
 	 this->syncfb_config.image_width    = this->output_width;
-	 this->syncfb_config.image_height   = this->output_height;
+	 this->syncfb_config.image_height   = (this->deinterlace_enabled) ? (this->output_height-2) : this->output_height;
 
 	 this->syncfb_config.image_xorg     = posx+this->output_xoffset;
 	 this->syncfb_config.image_yorg     = posy+this->output_yoffset;
