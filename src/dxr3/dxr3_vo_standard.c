@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_vo_standard.c,v 1.7 2001/11/25 20:21:25 hrm Exp $
+ * $Id: dxr3_vo_standard.c,v 1.8 2001/12/11 02:26:59 hrm Exp $
  *
  *******************************************************************
  * Dummy video out plugin for the dxr3. Is responsible for setting *
@@ -65,12 +65,8 @@ static void dummy_frame_dispose (vo_frame_t *frame_gen)
 {
   dxr3_frame_t  *frame = (dxr3_frame_t *) frame_gen;
 
-  if (frame->mem[0])
-  	free (frame->mem[0]);
-  if (frame->mem[1])
-        free (frame->mem[1]);
-  if (frame->mem[2])
-        free (frame->mem[2]);
+  if (frame->mem)
+  	free (frame->mem);
   free(frame);
 }
 
@@ -100,19 +96,10 @@ static void dxr3_update_frame_format (vo_driver_t *this_gen,
   if ((frame->width != width) || (frame->height != height)
         || (frame->format != format)) {
          
-        if (frame->mem[0]) {
-           free (frame->mem[0]);
-           frame->mem[0] = NULL;
+        if (frame->mem) {
+           free (frame->mem);
+           frame->mem = NULL;
         }
-        if (frame->mem[1]) {
-           free (frame->mem[1]);
-           frame->mem[1] = NULL;
-        }
-        if (frame->mem[2]) {
-           free (frame->mem[2]);
-           frame->mem[2] = NULL;
-        }
-
         frame->width  = width;
         frame->height = height;
         frame->format = format;
@@ -133,15 +120,13 @@ static void dxr3_update_frame_format (vo_driver_t *this_gen,
         
         if (format == IMGFMT_YV12) {
            image_size = width * height;
-      	   frame->vo_frame.base[0] = malloc_aligned(16,image_size, 
-      	    		(void**) &frame->mem[0]);
-	   frame->vo_frame.base[1] = malloc_aligned(16,image_size/4, 
-	   		(void**) &frame->mem[1]);
-	   frame->vo_frame.base[2] = malloc_aligned(16,image_size/4, 
-	   		(void**) &frame->mem[2]);
+      	   frame->vo_frame.base[0] = malloc_aligned(16,image_size*3/2, 
+      	    		(void**) &frame->mem);
+	   frame->vo_frame.base[1] = frame->vo_frame.base[0] + image_size; 
+	   frame->vo_frame.base[2] = frame->vo_frame.base[1] + image_size/4; 
 	}else if (format == IMGFMT_YUY2) {
       	   frame->vo_frame.base[0] = malloc_aligned(16, image_size*2,
-      	   		 (void**)&frame->mem[0]);
+      	   		 (void**)&frame->mem);
            frame->vo_frame.base[1] = frame->vo_frame.base[2] = 0;
 	}
       }
@@ -202,11 +187,11 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen)
 	this->config			     = config;
 
 	/* open control device */
-	devname = config->register_string (config, LOOKUP_DEV, DEFAULT_DEV, NULL,NULL,NULL,NULL);
+	this->devname = config->register_string (config, LOOKUP_DEV, DEFAULT_DEV, NULL,NULL,NULL,NULL);
 
-	if ((this->fd_control = open(devname, O_WRONLY)) < 0) {
+	if ((this->fd_control = open(this->devname, O_WRONLY)) < 0) {
 		fprintf(stderr, "dxr3_vo: Failed to open control device %s (%s)\n",
-		 devname, strerror(errno));
+		 this->devname, strerror(errno));
 		return 0;
 	}
 

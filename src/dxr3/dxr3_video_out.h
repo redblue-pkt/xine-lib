@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_video_out.h,v 1.8 2001/11/29 07:17:07 mlampard Exp $
+ * $Id: dxr3_video_out.h,v 1.9 2001/12/11 02:26:59 hrm Exp $
  *
  */
 
@@ -80,6 +80,9 @@ typedef struct {
 	struct coeff colcal_lower[3];
 } dxr3_overlay_t;
 
+typedef enum { ENC_FAME, ENC_RTE } encoder_type;
+typedef struct encoder_data_s encoder_data_t;
+
 typedef struct dxr3_driver_s {
 	vo_driver_t     vo_driver;
 	config_values_t *config;
@@ -87,14 +90,21 @@ typedef struct dxr3_driver_s {
         int 		fd_video;
 	int 		aspectratio;
 	int 		tv_mode;
+	int		enhanced_mode; /* enhanced play mode */
 	em8300_bcs_t 	bcs;
-	
+	const char	*devname;
+
 	/* for encoder plugin */
-        uint8_t 	*out[3]; /* aligned buffer for YV12 data, copied from frames */
-        uint8_t 	*buf[3]; /* unaligned YV12 buffer */
-        int 		oheight; /* height after adding black bars to correct a.r. */
-	int 		video_iheight; /* input height (before adding black bars) */
-	int 		video_height;  /* output height (after adding bars) */
+	encoder_data_t	*enc; /* encoder data */
+	double		fps; /* frames per second */
+	int		format; /* color format */
+	const char	*file_out;
+	/* height after adding black bars to correct a.r. */
+        int 		oheight; 
+	/* input height (before adding black bars) */
+	int 		video_iheight; 
+	/* output height (after adding bars) */
+	int 		video_height;  
 
 	/* for overlay */
 	dxr3_overlay_t overlay;
@@ -116,25 +126,30 @@ typedef struct dxr3_driver_s {
 	
 	char 		*user_data;
 
-	void 		(*request_dest_size) (char *userdata, int video_width, int video_height, int *dest_x,
+	void 		(*request_dest_size) (char *userdata, int video_width, 
+				int video_height, int *dest_x,
 		        	int *dest_y, int *dest_height, int *dest_width);
 } dxr3_driver_t;
 
 typedef struct dxr3_frame_s {
   vo_frame_t    vo_frame;
-  int           width, height;
-  uint8_t       *mem[3]; 	/* allocated for YV12 or YUY2 buffers */
-  uint8_t       *real_base[3]; 	/* same buffers alligned on 16 bytes */
+  int           width, height,oheight;
+  uint8_t       *mem; 		/* allocated for YV12 or YUY2 buffers */
+  uint8_t       *real_base[3]; 	/* yuv/yuy2 buffers in mem aligned on 16 */
   int           format;
   dxr3_driver_t *vo_instance; 	/* points to self, for use in dxr3_frame_copy */
   int           copy_calls; 	/* counts calls to dxr3_frame_copy function */
-#if USE_MPEG_BUFFER
   unsigned char *mpeg; 		/* encoded mpeg data */
   unsigned int  mpeg_size; 	/* length of data */
-#endif
-}dxr3_frame_t;
+} dxr3_frame_t;
 
-static char *devname;
+struct encoder_data_s {
+	encoder_type type;
+	int (*on_update_format)(dxr3_driver_t *);
+	int (*on_frame_copy)(dxr3_driver_t *, dxr3_frame_t *, uint8_t **src);
+	int (*on_display_frame)(dxr3_driver_t *, dxr3_frame_t *);
+	int (*on_close)(dxr3_driver_t *);
+}; 
 
 /* func definitions */
 /* Overlay functions */

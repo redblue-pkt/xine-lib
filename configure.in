@@ -389,8 +389,9 @@ AC_SUBST([LINUX_INCLUDE])
 
 AC_CHECK_DXR3()
 AM_CONDITIONAL(HAVE_DXR3, test x"$have_dxr3" = "xyes")
-AM_CONDITIONAL(HAVE_FAME, test x"$have_fame" = "xyes")
-
+AM_CONDITIONAL(HAVE_LIBFAME, test x"$have_libfame" = "xyes")
+AM_CONDITIONAL(HAVE_LIBRTE, test x"$have_librte" = "xyes")
+AM_CONDITIONAL(HAVE_ENCODER, test x"$have_encoder" = "xyes")
 
 dnl
 dnl zlib
@@ -863,7 +864,7 @@ if test x$no_aalib != "xyes"; then
   echo "   - aa (Ascii ART)"
 fi
 if test x"$have_dxr3" = "xyes"; then
-  if test x"$have_fame" = "xyes"; then
+  if test x"$have_encoder" = "xyes"; then
     echo "   - dxr3enc"
   fi
   echo "   - dxr3"

@@ -94,6 +94,12 @@
 /* Define this if you have ip_mreqn in netinet/in.h */
 #undef HAVE_IP_MREQN
 
+/* Define this if you have libfame mpeg encoder installed (fame.sf.net) */
+#undef HAVE_LIBFAME
+
+/* Define this if you have librte mpeg encoder installed (zapping.sf.net) */
+#undef HAVE_LIBRTE
+
 /* Define one of these to select libmad fixed point arithmetic implementation */
 #undef FPM_INTEL
 #undef FPM_64BIT
