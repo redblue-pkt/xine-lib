@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.141 2003/11/26 23:44:10 f1rmb Exp $
+ * $Id: xine_decoder.c,v 1.142 2003/11/27 17:02:36 hadess Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -1358,11 +1358,13 @@ static void ff_audio_decode_data (audio_decoder_t *this_gen, buf_element_t *buf)
       _x_meta_info_set(this->stream, XINE_META_INFO_AUDIOCODEC,  
 	"MS Windows Media Audio 2 (ffmpeg)");
       break;
+    /* FIXME DV Audio has disappeared from libffmpeg
     case BUF_AUDIO_DV:
       this->codec = avcodec_find_decoder (CODEC_ID_DVAUDIO);
       _x_meta_info_set(this->stream, XINE_META_INFO_AUDIOCODEC,  
 	"DV Audio (ffmpeg)");
       break;
+    */
     case BUF_AUDIO_14_4:
       this->codec = avcodec_find_decoder (CODEC_ID_RA_144);
       _x_meta_info_set(this->stream, XINE_META_INFO_AUDIOCODEC,  
