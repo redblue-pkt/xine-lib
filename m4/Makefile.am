@@ -1,12 +1,12 @@
 ##
 ## Process this file with automake to produce Makefile.in
 ##
-#if INSTALL_M4
-#m4datadir = @ACLOCAL_DIR@
-#m4data_DATA = xine.m4
-#endif
-
+if INSTALL_M4
+m4datadir = @ACLOCAL_DIR@
+else
 m4datadir = $(datadir)/aclocal
+endif
+
 m4data_DATA = xine.m4
 
 EXTRA_DIST = xine.m4 _xine.m4 arts.m4 esd.m4 iconv.m4 lcmessage.m4 vorbis.m4 aa.m4 as.m4 \
