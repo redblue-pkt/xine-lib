@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_macosx.m,v 1.7 2004/07/05 01:20:01 athp Exp $
+ * $Id: video_out_macosx.m,v 1.8 2004/10/13 15:19:20 athp Exp $
  *
  * This output driver makes use of xine's objective-c video_output 
  * classes located in the macosx folder.
@@ -32,11 +32,17 @@
 #include <unistd.h>
 #include <string.h>
 
-#include "xine.h"
+#define LOG_MODULE "video_out_macosx"
+#define LOG_VERBOSE
+/*
+#define LOG
+*/
+
 #include "video_out.h"
+#include "vo_scale.h"
+#include "xine.h"
 #include "xine_internal.h"
 #include "xineutils.h"
-#include "vo_scale.h"
 
 #include "macosx/video_window.h"
 
@@ -125,6 +131,9 @@ static void macosx_update_frame_format(vo_driver_t *vo_driver, vo_frame_t *vo_fr
     frame->width  = width;
     frame->height = height;
     frame->format = format;
+
+    lprintf ("frame change, new height:%d width:%d (ratio:%lf) format:%d\n",
+             height, width, ratio, format);
 
     switch(format) {
 
@@ -252,6 +261,8 @@ static int macosx_gui_data_exchange(vo_driver_t *vo_driver, int data_type, void 
   case XINE_GUI_SEND_TRANSLATE_GUI_TO_VIDEO:
   case XINE_GUI_SEND_VIDEOWIN_VISIBLE:
   case XINE_GUI_SEND_SELECT_VISUAL:
+  default:
+    lprintf("unknown GUI data type %d\n", data_type);
     break;
   }
 
@@ -340,7 +351,7 @@ plugin_info_t xine_plugin_info[] = {
   /* work around the problem that dlclose() is not allowed to
    * get rid of an image module which contains objective C code and simply
    * crashes with a Trace/BPT trap when we try to do so */
-  { PLUGIN_VIDEO_OUT | PLUGIN_NO_UNLOAD, 19, "macosx", XINE_VERSION_CODE, &vo_info_macosx, init_class },
+  { PLUGIN_VIDEO_OUT | PLUGIN_NO_UNLOAD, 20, "macosx", XINE_VERSION_CODE, &vo_info_macosx, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
 
