@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_smb.c,v 1.1 2004/10/18 18:01:46 miguelfreitas Exp $
+ * $Id: input_smb.c,v 1.2 2004/10/18 18:26:12 miguelfreitas Exp $
  */
 
 
@@ -236,7 +236,8 @@ static void
 {
 	smb_input_class_t *this;
 
-	if (smbc_init(smb_auth,1)) return NULL;
+	if (smbc_init(smb_auth,(xine->verbosity >= XINE_VERBOSITY_DEBUG)))
+	  return NULL;
 
 	this = (smb_input_class_t *) xine_xmalloc(sizeof(smb_input_class_t));
 	this->xine = xine;
