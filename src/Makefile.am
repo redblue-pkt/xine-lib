@@ -1,3 +1,5 @@
+include $(top_srcdir)/misc/Makefile.common
+
 # Order is important be careful changing SUBDIRS
 #SUBDIRS = \
 #	libdivx4 \
@@ -29,24 +31,3 @@ SUBDIRS = \
 	libfaad \
 	libflac \
 	post
-
-debug:
-	@list='$(SUBDIRS)'; for subdir in $$list; do \
-	  (cd $$subdir && $(MAKE) $@) || exit; \
-	done;
-
-install-debug: debug
-	@list='$(SUBDIRS)'; for subdir in $$list; do \
-	  (cd $$subdir && $(MAKE) $@) || exit; \
-	done;
-
-mostlyclean-generic:
-	-rm -f *~ \#* .*~ .\#* 
-
-
-maintainer-clean-generic:
-	-@echo "This command is intended for maintainers to use;"
-	-@echo "it deletes files that may require special tools to rebuild."
-	-rm -f Makefile.in
-
-

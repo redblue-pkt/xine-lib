@@ -1,3 +1,5 @@
+include $(top_srcdir)/misc/Makefile.common
+
 REAL_CFLAGS = -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE -I$(srcdir)/../librtsp
 
 AM_CFLAGS = $(REAL_CFLAGS) @ANSI_FLAGS@
@@ -17,17 +19,3 @@ noinst_HEADERS = \
   asmrp.h \
   rmff.h \
   sdpplin.h
-  
-debug:
-	@$(MAKE) CFLAGS="$(DEBUG_CFLAGS) $(DVD_CFLAGS)"
-
-install-debug: debug
-	@$(MAKE) $(AM_MAKEFLAGS) install-exec-am install-data-am
-
-mostlyclean-generic:
-	-rm -f *~ \#* .*~ .\#*
-
-maintainer-clean-generic:
-	-@echo "This command is intended for maintainers to use;"
-	-@echo "it deletes files that may require special tools to rebuild."
-	-rm -f Makefile.in

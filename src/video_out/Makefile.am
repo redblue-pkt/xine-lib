@@ -1,3 +1,5 @@
+include $(top_srcdir)/misc/Makefile.common
+
 SUBDIRS = libdha vidix
 
 EXTRA_DIST = video_out_directfb.c video_out_opengl.c
@@ -8,12 +10,6 @@ VIDIX_CFLAGS = -I$(top_builddir)/src/video_out/vidix \
 AM_CFLAGS = $(X_CFLAGS) \
 	-DXINE_COMPILE $(SDL_CFLAGS) $(VIDIX_CFLAGS) \
 	$(AALIB_CFLAGS) $(MLIB_CFLAGS)
-
-DEBUG_CFLAGS = @DEBUG_CFLAGS@ $(X_CFLAGS) \
-	-DXINE_COMPILE $(SDL_CFLAGS) $(VIDIX_CFLAGS) \
-	$(AALIB_CFLAGS) $(MLIB_CFLAGS)
-
-LIBTOOL = $(SHELL) $(top_builddir)/libtool-nofpic
 
 libdir = $(XINE_PLUGINDIR)
 
@@ -64,7 +60,6 @@ endif
 lib_LTLIBRARIES = $(xshm_module) $(xv_module) $(aa_module) $(pgx64_module) \
 	$(vidix_module) $(fb_module) $(sdl_module) $(syncfb_module) \
 	xineplug_vo_out_none.la
-XINE_LIB = $(top_builddir)/src/xine-engine/libxine.la
 
 xineplug_vo_out_xv_la_SOURCES = deinterlace.c alphablend.c video_out_xv.c
 xineplug_vo_out_xv_la_LIBADD = \
@@ -122,44 +117,3 @@ xineplug_vo_out_none_la_SOURCES =  video_out_none.c
 xineplug_vo_out_none_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 noinst_HEADERS = alphablend.h deinterlace.h video_out_syncfb.h yuv2rgb.h 
-
-$(XINE_LIB):
-	@cd $(top_builddir)/src/xine-engine && $(MAKE)
-
-debug:
-	@$(MAKE) CFLAGS="$(DEBUG_CFLAGS) -DXINE_COMPILE"
-
-install-debug: debug
-	@list='$(SUBDIRS)'; for subdir in $$list; do \
-	  (cd $$subdir && $(MAKE) $@) || exit;\
-	done;
-	@$(MAKE) $(AM_MAKEFLAGS) install-exec-am install-data-am
-
-###
-# Install header files (default=$includedir/xine)
-#
-install-includeHEADERS: $(include_HEADERS)
-	@$(NORMAL_INSTALL)
-	$(mkinstalldirs) $(DESTDIR)$(includedir)/xine
-	@list='$(include_HEADERS)'; for p in $$list; do \
-	  if test -f "$$p"; then d= ; else d="$(srcdir)/"; fi; \
-	  echo " $(INSTALL_DATA) $$d$$p $(DESTDIR)$(includedir)/xine/$$p"; \
-	  $(INSTALL_DATA) $$d$$p $(DESTDIR)$(includedir)/xine/$$p; \
-	done
-
-###
-# Remove them
-#
-uninstall-includeHEADERS:
-	@$(NORMAL_UNINSTALL)
-	@list='$(include_HEADERS)'; for p in $$list; do \
-	  rm -f $(DESTDIR)$(includedir)/xine/$$p; \
-	done
-
-mostlyclean-generic:
-	-rm -f *~ \#* .*~ .\#*
-
-maintainer-clean-generic:
-	-@echo "This command is intended for maintainers to use;"
-	-@echo "it deletes files that may require special tools to rebuild."
-	-rm -f Makefile.in

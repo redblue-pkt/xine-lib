@@ -1,7 +1,6 @@
-AM_CFLAGS = $(X_CFLAGS) $(LIBFAME_CFLAGS)
+include $(top_srcdir)/misc/Makefile.common
 
-LIBTOOL = $(SHELL) $(top_builddir)/libtool-nofpic
-XINE_LIB = $(top_builddir)/src/xine-engine/libxine.la
+AM_CFLAGS = $(X_CFLAGS) $(LIBFAME_CFLAGS)
 
 libdir = $(XINE_PLUGINDIR)
 
@@ -46,49 +45,9 @@ xineplug_vo_out_dxr3_la_SOURCES = \
 xineplug_vo_out_dxr3_la_LIBADD = $(link_fame) $(link_rte) $(link_x_libs) $(XINE_LIB)
 xineplug_vo_out_dxr3_la_LDFLAGS = -avoid-version -module
 
-$(XINE_LIB):
-	@cd $(top_builddir)/src/xine-engine && $(MAKE)
-
 noinst_HEADERS = \
 	em8300.h \
 	alphablend.h \
 	dxr3.h \
 	dxr3_scr.h \
 	video_out_dxr3.h
-
-debug:
-	@$(MAKE) CFLAGS="$(DEBUG_CFLAGS)"
-
-install-debug: debug
-	@$(MAKE) $(AM_MAKEFLAGS) install-exec-am install-data-am
-
-###
-# Install header files (default=$includedir/xine)
-#
-install-includeHEADERS: $(include_HEADERS)
-	@$(NORMAL_INSTALL)
-	$(mkinstalldirs) $(DESTDIR)$(includedir)/xine
-	@list='$(include_HEADERS)'; for p in $$list; do \
-	  if test -f "$$p"; then d= ; else d="$(srcdir)/"; fi; \
-	  echo " $(INSTALL_DATA) $$d$$p $(DESTDIR)$(includedir)/xine/$$p"; \
-	  $(INSTALL_DATA) $$d$$p $(DESTDIR)$(includedir)/xine/$$p; \
-	done
-
-
-###
-# Remove them
-#
-uninstall-includeHEADERS:
-	@$(NORMAL_UNINSTALL)
-	list='$(include_HEADERS)'; for p in $$list; do \
-	  rm -f $(DESTDIR)$(includedir)/xine/$$p; \
-	done
-
-
-mostlyclean-generic:
-	-rm -f *~ \#* .*~ .\#*
-
-maintainer-clean-generic:
-	-@echo "This command is intended for maintainers to use;"
-	-@echo "it deletes files that may require special tools to rebuild."
-	-rm -f Makefile.in

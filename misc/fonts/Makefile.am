@@ -1,3 +1,5 @@
+include $(top_srcdir)/misc/Makefile.common
+
 datadir = $(XINE_FONTDIR)
 data_DATA = \
 	cetus-16.xinefont.gz \
@@ -33,16 +35,3 @@ data_DATA = \
 # font used for osd
 #
 EXTRA_DIST = cetus.ttf README.cetus $(data_DATA)
-
-debug:
-
-install-debug: install
-
-mostlyclean-generic:
-	-rm -f *~ \#* .*~ .\#* 
-
-
-maintainer-clean-generic:
-	-@echo "This command is intended for maintainers to use;"
-	-@echo "it deletes files that may require special tools to rebuild."
-	-rm -f Makefile.in

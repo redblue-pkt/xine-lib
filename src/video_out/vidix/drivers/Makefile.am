@@ -1,7 +1,6 @@
+include $(top_srcdir)/misc/Makefile.common
 
 EXTRA_DIST = genfb_vid.c nvidia_vid.c
-
-LIBTOOL = $(SHELL) $(top_builddir)/libtool-nofpic
 
 libdir = $(XINE_PLUGINDIR)/vidix
 
@@ -81,17 +80,3 @@ noinst_HEADERS = mach64.h nvidia.h glint_regs.h pm3_regs.h radeon.h \
 
 AM_CPPFLAGS = -I$(top_srcdir)/src/video_out/vidix \
 	-I$(top_srcdir)/src/video_out/libdha
-
-debug:
-	@$(MAKE) CFLAGS="$(DEBUG_CFLAGS) -DXINE_COMPILE"
-
-install-debug: debug
-	@$(MAKE) $(AM_MAKEFLAGS) install-exec-am install-data-am
-
-mostlyclean-generic:
-	-rm -f *~ \#* .*~ .\#* rage128_vid.c mga_crtc2_vid.c
-
-maintainer-clean-generic:
-	-@echo "This command is intended for maintainers to use;"
-	-@echo "it deletes files that may require special tools to rebuild."
-	-rm -f Makefile.in

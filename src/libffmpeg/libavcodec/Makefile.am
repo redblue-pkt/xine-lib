@@ -1,6 +1,4 @@
-##
-## Process this file with automake to produce Makefile.in
-##
+include $(top_srcdir)/misc/Makefile.common
 
 SUBDIRS = armv4l i386 mlib alpha libpostproc
 
@@ -12,8 +10,6 @@ EXTRA_DIST = fdctref.c imgresample.c motion_est_template.c svq3.c wmv2.c \
 
 AM_CFLAGS = $(LIBFFMPEG_CFLAGS) -DCONFIG_RISKY
 ASFLAGS =
-
-LIBTOOL = $(SHELL) $(top_builddir)/libtool-nofpic
 
 noinst_LTLIBRARIES = libavcodec.la
 
@@ -83,20 +79,3 @@ noinst_HEADERS = \
 
 .s.lo:
 	$(ASCOMPILE) -o $@ `test -f $< || echo '$(srcdir)/'`$<
-
-debug:
-	@list='$(SUBDIRS)'; for subdir in $$list; do \
-	  (cd $$subdir && $(MAKE) $@) || exit;\
-	done;
-	@$(MAKE) CFLAGS="$(DEBUG_CFLAGS) $(LIBFFMPEG_CFLAGS)"
-
-install-debug: debug
-	@$(MAKE) $(AM_MAKEFLAGS) install-exec-am install-data-am
-
-mostlyclean-generic:
-	-rm -f *~ \#* .*~ .\#*
-
-maintainer-clean-generic:
-	-@echo "This command is intended for maintainers to use;"
-	-@echo "it deletes files that may require special tools to rebuild."
-	-rm -f Makefile.in

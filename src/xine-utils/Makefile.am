@@ -1,6 +1,4 @@
-##
-## Process this file with automake to produce Makefile.in
-##
+include $(top_srcdir)/misc/Makefile.common
 
 noinst_LTLIBRARIES = libxineutils.la
 
@@ -39,44 +37,3 @@ include_HEADERS = attributes.h \
 	xmllexer.h \
 	xmlparser.h \
 	xine_buffer.h
-
-debug:
-	@$(MAKE) CFLAGS="$(DEBUG_CFLAGS) $(THREAD_CFLAGS) $(X_CFLAGS)"
-
-install-debug: debug
-	@$(MAKE) $(AM_MAKEFLAGS) install-exec-am install-data-am
-
-
-
-###
-# Install header files (default=$includedir/xine)
-#
-install-includeHEADERS: $(include_HEADERS)
-	@$(NORMAL_INSTALL)
-	$(mkinstalldirs) $(DESTDIR)$(includedir)/xine
-	@list='$(include_HEADERS)'; for p in $$list; do \
-	  if test -f "$$p"; then d= ; else d="$(srcdir)/"; fi; \
-	  echo " $(INSTALL_DATA) $$d$$p $(DESTDIR)$(includedir)/xine/"; \
-	  $(INSTALL_DATA) $$d$$p $(DESTDIR)$(includedir)/xine/; \
-	done
-
-
-###
-# Remove them
-#
-uninstall-includeHEADERS:
-	@$(NORMAL_UNINSTALL)
-	list='$(include_HEADERS)'; for p in $$list; do \
-	  rm -f $(DESTDIR)$(includedir)/xine/$$p; \
-	done
-
-
-mostlyclean-generic:
-	-rm -f *~ \#* .*~ .\#* 
-
-
-maintainer-clean-generic:
-	-@echo "This command is intended for maintainers to use;"
-	-@echo "it deletes files that may require special tools to rebuild."
-	-rm -f Makefile.in
-

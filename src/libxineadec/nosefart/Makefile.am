@@ -1,8 +1,4 @@
-##
-## Process this file with automake to produce Makefile.in
-##
-
-LIBTOOL = $(SHELL) $(top_builddir)/libtool-nofpic
+include $(top_srcdir)/misc/Makefile.common
 
 AM_CFLAGS = -DNSF_PLAYER
 
@@ -38,18 +34,3 @@ noinst_HEADERS = \
 	osd.h \
 	version.h \
 	vrcvisnd.h
-
-debug:
-	@$(MAKE) CFLAGS="$(DEBUG_CFLAGS) $(LIBFFMPEG_CFLAGS)"
-
-install-debug: debug
-	@$(MAKE) $(AM_MAKEFLAGS) install-exec-am install-data-am
-
-mostlyclean-generic:
-	-rm -f *~ \#* .*~ .\#*
-
-maintainer-clean-generic:
-	-@echo "This command is intended for maintainers to use;"
-	-@echo "it deletes files that may require special tools to rebuild."
-	-rm -f Makefile.in
-

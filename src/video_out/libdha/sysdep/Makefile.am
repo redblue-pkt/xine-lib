@@ -1,3 +1,5 @@
+include $(top_srcdir)/misc/Makefile.common
+
 EXTRA_DIST = \
 	libdha_os2.c \
 	libdha_win32.c \
@@ -31,14 +33,3 @@ noinst_HEADERS = \
 	AsmMacros_powerpc.h \
 	AsmMacros_sparc.h \
 	AsmMacros_x86.h
-
-debug:
-install-debug:
-
-mostlyclean-generic:
-	-rm -f *~ \#* .*~ .\#*
-
-maintainer-clean-generic:
-	-@echo "This command is intended for maintainers to use;"
-	-@echo "it deletes files that may require special tools to rebuild."
-	-rm -f Makefile.in

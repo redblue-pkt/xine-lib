@@ -1,3 +1,4 @@
+include $(top_srcdir)/misc/Makefile.common
 
 EXTRA_DIST = README dhahelper.c
 
@@ -50,14 +51,3 @@ uninstall-local:
 @BUILD_DHA_KMOD_TRUE@	  echo "rm -f $(DESTDIR)$(moddir)/`echo $$p|sed 's/$(EXEEXT)$$//'|sed '$(transform)'|sed 's/$$/$(EXEEXT)/'`"; \
 @BUILD_DHA_KMOD_TRUE@	  rm -f $(DESTDIR)$(moddir)/`echo $$p|sed 's/$(EXEEXT)$$//'|sed '$(transform)'|sed 's/$$/$(EXEEXT)/'`; \
 @BUILD_DHA_KMOD_TRUE@	done
-
-debug:
-install-debug: install
-
-mostlyclean-generic:
-	-rm -f *~ \#* .*~ .\#* test
-
-maintainer-clean-generic:
-	-@echo "This command is intended for maintainers to use;"
-	-@echo "it deletes files that may require special tools to rebuild."
-	-rm -f Makefile.in

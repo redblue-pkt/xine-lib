@@ -1,13 +1,8 @@
-#
-# the Makefile for the native xine audio decoders
-#
+include $(top_srcdir)/misc/Makefile.common
 
 EXTRA_DIST = fooaudio.c
 
-LIBTOOL = $(SHELL) $(top_builddir)/libtool-nofpic
-
 libdir = $(XINE_PLUGINDIR)
-XINE_LIB = $(top_builddir)/src/xine-engine/libxine.la
 
 AM_CFLAGS = -DNSF_PLAYER
 
@@ -55,20 +50,3 @@ xineplug_decode_28k8_la_LIBADD = $(top_builddir)/src/xine-engine/libxine.la
 xineplug_decode_28k8_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 # noinst_HEADERS = 
-
-$(XINE_LIB):
-	@cd $(top_builddir)/src/xine-engine && $(MAKE)
-
-debug:
-	@$(MAKE) CFLAGS="$(DEBUG_CFLAGS)"
-
-install-debug: debug
-	@$(MAKE) $(AM_MAKEFLAGS) install-exec-am install-data-am
-
-mostlyclean-generic:
-	-rm -f *~ \#* .*~ .\#*
-
-maintainer-clean-generic:
-	-@echo "This command is intended for maintainers to use;"
-	-@echo "it deletes files that may require special tools to rebuild."
-	-rm -f Makefile.in

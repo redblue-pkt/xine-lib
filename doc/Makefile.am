@@ -1,3 +1,4 @@
+include $(top_srcdir)/misc/Makefile.common
 
 SUBDIRS = man hackersguide faq
 
@@ -29,14 +30,3 @@ uninstall-local:
 		rm -f $$dir/$$name; \
 		echo "removing $$dir/$$name" ; \
 	done
-
-debug:
-install-debug: install
-
-mostlyclean-generic:
-	-rm -f *~ \#* .*~ .\#*
-
-maintainer-clean-generic:
-	-@echo "This command is intended for maintainers to use;"
-	-@echo "it deletes files that may require special tools to rebuild."
-	-rm -f Makefile.in

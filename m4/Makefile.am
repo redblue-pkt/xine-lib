@@ -1,6 +1,4 @@
-##
-## Process this file with automake to produce Makefile.in
-##
+include $(top_srcdir)/misc/Makefile.common
 
 if INSTALL_M4
 m4datadir = @ACLOCAL_DIR@
@@ -35,16 +33,3 @@ EXTRA_DIST = \
 	xine.m4 \
 	_xine.m4 \
 	xvid.m4
-
-debug:
-
-install-debug: install
-	@$(MAKE) $(AM_MAKEFLAGS) install-exec-am install-data-am
-
-mostlyclean-generic:
-	-rm -f *~ \#* .*~ .\#*
-
-maintainer-clean-generic:
-	-@echo "This command is intended for maintainers to use;"
-	-@echo "it deletes files that may require special tools to rebuild."
-	-rm -f Makefile.in

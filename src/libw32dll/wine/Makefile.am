@@ -1,3 +1,5 @@
+include $(top_srcdir)/misc/Makefile.common
+
 EXTRA_DIST = stubs.s wrapper.S
 
 noinst_LTLIBRARIES = $(wine_lib)
@@ -77,15 +79,3 @@ stubs.lo: stubs.s
 
 wrapper.lo: wrapper.S
 	$(CC) -c $(srcdir)/wrapper.S -o wrapper.lo
-
-debug:
-	@$(MAKE) CFLAGS="$(DEBUG_CFLAGS)"
-
-mostlyclean-generic:
-	-rm -f *~ \#* .*~ .\#*
-
-maintainer-clean-generic:
-	-@echo "This command is intended for maintainers to use;"
-	-@echo "it deletes files that may require special tools to rebuild."
-	-rm -f Makefile.in
-

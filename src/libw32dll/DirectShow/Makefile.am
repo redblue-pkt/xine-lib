@@ -1,13 +1,9 @@
+include $(top_srcdir)/misc/Makefile.common
 
 AM_CFLAGS = $(X_CFLAGS) -fno-omit-frame-pointer \
 	-Wmissing-prototypes -Wimplicit-function-declaration \
 	-DWIN32_PATH=\"@w32_path@\" -DNOAVIFILE_HEADERS \
 	-I$(srcdir)/.. -I$(srcdir)/../wine
-
-#DEBUG_CFLAGS = @DEBUG_CFLAGS@ $(X_CFLAGS) -fno-omit-frame-pointer \
-#	-Wmissing-prototypes -Wimplicit-function-declaration \
-#	-DWIN32_PATH=\\\"@w32_path@\\\" -DNOAVIFILE_HEADERS \
-#	-I$(srcdir)/.. -I$(srcdir)/../wine
 
 if HAVE_W32DLL
 ds_filter_lib = libds_filter.la
@@ -36,14 +32,3 @@ noinst_HEADERS = \
 	DS_AudioDecoder.h \
 	DS_Filter.h \
 	DS_VideoDecoder.h
-
-debug:
-	@$(MAKE) CFLAGS="$(DEBUG_CFLAGS)"
-
-mostlyclean-generic:
-	-rm -f *~ \#* .*~ .\#*
-
-maintainer-clean-generic:
-	-@echo "This command is intended for maintainers to use;"
-	-@echo "it deletes files that may require special tools to rebuild."
-	-rm -f Makefile.in

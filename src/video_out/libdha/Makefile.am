@@ -1,3 +1,5 @@
+include $(top_srcdir)/misc/Makefile.common
+
 EXTRA_DIST = README pci_db2c.awk
 
 SUBDIRS = bin kernelhelper oth sysdep
@@ -36,21 +38,3 @@ pci_names.lo: $(awk_generated)
 	depfile='$(DEPDIR)/$*.Plo' tmpdepfile='$(DEPDIR)/$*.TPlo' \
 	$(CCDEPMODE) $(depcomp) \
 	$(LTCOMPILE) -c -o $@ `test -f $*.c || echo '$(srcdir)/'`$*.c
-
-debug:
-	@$(MAKE) CFLAGS="$(DEBUG_CFLAGS) @STATIC@ -DXINE_COMPILE"
-
-install-debug: debug
-	@list='$(SUBDIRS)'; for subdir in $$list; do \
-	  (cd $$subdir && $(MAKE) $@) || exit;\
-	done;
-	@$(MAKE) $(AM_MAKEFLAGS) install-exec-am install-data-am
-
-mostlyclean-generic:
-	-rm -f *~ \#* .*~ .\#* test
-	-rm -f $(awk_generated)
-
-maintainer-clean-generic:
-	-@echo "This command is intended for maintainers to use;"
-	-@echo "it deletes files that may require special tools to rebuild."
-	-rm -f Makefile.in

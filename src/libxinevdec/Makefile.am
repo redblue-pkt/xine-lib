@@ -1,13 +1,12 @@
-EXTRA_DIST = foovideo.c
+include $(top_srcdir)/misc/Makefile.common
 
-LIBTOOL = $(SHELL) $(top_builddir)/libtool-nofpic
+EXTRA_DIST = foovideo.c
 
 if HAVE_LIBPNG
 image_module = xineplug_decode_image.la
 endif
 
 libdir = $(XINE_PLUGINDIR)
-XINE_LIB = $(top_builddir)/src/xine-engine/libxine.la
 
 lib_LTLIBRARIES = $(image_module) \
 	xineplug_decode_cinepak.la \
@@ -96,20 +95,3 @@ xineplug_decode_image_la_LIBADD = $(XINE_LIB) $(DYNAMIC_LD_LIBS) $(PNG_LIBS)
 xineplug_decode_image_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 noinst_HEADERS = svq1_codebooks.h
-
-$(XINE_LIB):
-	@cd $(top_builddir)/src/xine-engine && $(MAKE)
-
-debug:
-	@$(MAKE) CFLAGS="$(DEBUG_CFLAGS)"
-
-install-debug: debug
-	@$(MAKE) $(AM_MAKEFLAGS) install-exec-am install-data-am
-
-mostlyclean-generic:
-	-rm -f *~ \#* .*~ .\#*
-
-maintainer-clean-generic:
-	-@echo "This command is intended for maintainers to use;"
-	-@echo "it deletes files that may require special tools to rebuild."
-	-rm -f Makefile.in

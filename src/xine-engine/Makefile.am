@@ -1,6 +1,4 @@
-##
-## Process this file with automake to produce Makefile.in
-##
+include $(top_srcdir)/misc/Makefile.common
 
 SUBDIRS = nvtv
 
@@ -41,46 +39,8 @@ noinst_HEADERS = bswap.h
 @INCLUDED_INTL_TRUE@@INTLLIBS@:
 @INCLUDED_INTL_TRUE@	@cd $(top_builddir)/intl && $(MAKE) libintl.la
 
-debug:
-	@$(MAKE) CFLAGS="$(DEBUG_CFLAGS) $(THREAD_CFLAGS) $(X_CFLAGS) $(FT2_CFLAGS)"
-
-install-debug: debug
-	@$(MAKE) $(AM_MAKEFLAGS) install-exec-am install-data-am
-
 $(XINEUTILS_LIB):
 	cd $(top_srcdir)/src/xine-utils && $(MAKE) libxineutils.la
 
 $(NVTVCLIENT_LIB):
 	cd $(top_builddir)/src/xine-engine/nvtv && $(MAKE) libnvclient.la
-
-###
-# Install header files (default=$includedir/xine)
-#
-install-includeHEADERS: $(include_HEADERS)
-	@$(NORMAL_INSTALL)
-	$(mkinstalldirs) $(DESTDIR)$(includedir)/xine
-	@list='$(include_HEADERS)'; for p in $$list; do \
-	  if test -f "$$p"; then d= ; else d="$(srcdir)/"; fi; \
-	  echo " $(INSTALL_DATA) $$d$$p $(DESTDIR)$(includedir)/xine/"; \
-	  $(INSTALL_DATA) $$d$$p $(DESTDIR)$(includedir)/xine/; \
-	done
-
-
-###
-# Remove them
-#
-uninstall-includeHEADERS:
-	@$(NORMAL_UNINSTALL)
-	list='$(include_HEADERS)'; for p in $$list; do \
-	  rm -f $(DESTDIR)$(includedir)/xine/$$p; \
-	done
-
-
-mostlyclean-generic:
-	-rm -f *~ \#* .*~ .\#* 
-
-
-maintainer-clean-generic:
-	-@echo "This command is intended for maintainers to use;"
-	-@echo "it deletes files that may require special tools to rebuild."
-	-rm -f Makefile.in

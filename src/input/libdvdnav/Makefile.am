@@ -1,3 +1,5 @@
+include $(top_srcdir)/misc/Makefile.common
+
 DVD_CFLAGS = -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE
 
 AM_CPPFLAGS = -DDVDNAV_COMPILE
@@ -49,17 +51,3 @@ noinst_HEADERS = \
 	dvd_input.h \
 	dvd_udf.h \
 	bswap.h 
-
-debug:
-	@$(MAKE) CFLAGS="$(DEBUG_CFLAGS) $(DVD_CFLAGS)"
-
-install-debug: debug
-	@$(MAKE) $(AM_MAKEFLAGS) install-exec-am install-data-am
-
-mostlyclean-generic:
-	-rm -f *~ \#* .*~ .\#*
-
-maintainer-clean-generic:
-	-@echo "This command is intended for maintainers to use;"
-	-@echo "it deletes files that may require special tools to rebuild."
-	-rm -f Makefile.in

@@ -1,8 +1,8 @@
+include $(top_srcdir)/misc/Makefile.common
+
 AM_CFLAGS = -DXINE_COMPILE $(ALSA_CFLAGS) $(ESD_CFLAGS) $(IRIXAL_CFLAGS) $(ARTS_CFLAGS)
 
 EXTRA_DIST = audio_irixal_out.c
-
-LIBTOOL = $(SHELL) $(top_builddir)/libtool-nofpic
 
 libdir = $(XINE_PLUGINDIR)
 
@@ -76,21 +76,3 @@ xineplug_ao_out_sun_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 xineplug_ao_out_arts_la_SOURCES = audio_arts_out.c
 xineplug_ao_out_arts_la_LIBADD = $(ARTS_LIBS)
 xineplug_ao_out_arts_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
-
-debug:
-	@$(MAKE) CFLAGS="$(DEBUG_CFLAGS)"
-
-
-install-debug: debug
-	@$(MAKE) $(AM_MAKEFLAGS) install-exec-am install-data-am
-
-
-mostlyclean-generic:
-	-rm -f *~ \#* .*~ .\#*
-
-
-maintainer-clean-generic:
-	-@echo "This command is intended for maintainers to use;"
-	-@echo "it deletes files that may require special tools to rebuild."
-	-rm -f Makefile.in
-
