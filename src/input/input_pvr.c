@@ -39,7 +39,7 @@
  * usage: 
  *   xine pvr:<prefix_to_tmp_files>\!<prefix_to_saved_files>\!<max_page_age>
  *
- * $Id: input_pvr.c,v 1.11 2003/03/21 17:41:13 miguelfreitas Exp $
+ * $Id: input_pvr.c,v 1.12 2003/03/21 17:54:53 miguelfreitas Exp $
  */
 
 /**************************************************************************
@@ -604,7 +604,9 @@ static int pvr_rec_file(pvr_input_plugin_t *this) {
 static int pvr_play_file(pvr_input_plugin_t *this, fifo_buffer_t *fifo, uint8_t *buffer, int speed) {
   
   off_t pos;
-
+  xine_event_t         event;
+  xine_pvr_realtime_t  data;
+      
   /* check for realtime. don't switch back unless enough buffers are
    * free to not block the pvr thread */
   if( this->play_blk >= this->rec_blk-1 && speed >= XINE_SPEED_NORMAL &&
@@ -624,6 +626,13 @@ static int pvr_play_file(pvr_input_plugin_t *this, fifo_buffer_t *fifo, uint8_t 
 #ifdef LOG
       printf("input_pvr: switching back to realtime\n");
 #endif
+      event.type        = XINE_EVENT_PVR_REALTIME;
+      event.stream      = this->stream;
+      event.data        = &data;
+      event.data_length = sizeof(data);
+      gettimeofday(&event.tv, NULL);
+      data.mode = 1;
+      xine_event_send(this->stream, &event);
     }
     this->want_data = 1;
   
@@ -634,11 +643,19 @@ static int pvr_play_file(pvr_input_plugin_t *this, fifo_buffer_t *fifo, uint8_t 
 
     if( this->play_fd == -1 || (this->play_blk - this->page_block[this->play_page]) >= BLOCKS_PER_PAGE ) {
       
+       if(this->play_fd == -1) {
 #ifdef LOG
-       if(this->play_fd == -1)
          printf("input_pvr: switching to non-realtime\n");
 #endif
-       
+         event.type        = XINE_EVENT_PVR_REALTIME;
+         event.stream      = this->stream;
+         event.data        = &data;
+         event.data_length = sizeof(data);
+         gettimeofday(&event.tv, NULL);
+         data.mode = 0;
+         xine_event_send(this->stream, &event);
+       }
+              
        if( this->play_fd != -1 && this->play_fd != this->rec_fd ) {
          close(this->play_fd);  
        }

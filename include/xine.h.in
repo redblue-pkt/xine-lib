@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.68 2003/03/20 22:58:41 miguelfreitas Exp $
+ * $Id: xine.h.in,v 1.69 2003/03/21 17:54:54 miguelfreitas Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -1229,6 +1229,7 @@ void xine_config_reset (xine_t *self);
 #define XINE_EVENT_SET_V4L2             200
 #define XINE_EVENT_PVR_SAVE             201
 #define XINE_EVENT_PVR_REPORT_NAME      202
+#define XINE_EVENT_PVR_REALTIME         203
 
 /*
  * xine event struct
@@ -1348,6 +1349,14 @@ typedef struct {
   int id;
   char name[256]; /* name for saving, might be longer */
 } xine_pvr_save_data_t;
+
+typedef struct {
+  /* mode values:
+   * 0 = non realtime
+   * 1 = realtime
+   */
+  int mode; 
+} xine_pvr_realtime_t;
 
 #endif
 
