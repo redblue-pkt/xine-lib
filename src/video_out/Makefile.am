@@ -163,7 +163,8 @@ xineplug_vo_out_none_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 xineplug_vo_out_macosx_la_SOURCES = alphablend.c video_out_macosx.m
 xineplug_vo_out_macosx_la_CPPFLAGS = $(X_CFLAGS) $(MLIB_CFLAGS)
 xineplug_vo_out_macosx_la_LIBADD = $(MLIB_LIBS) $(OPENGL_LIBS) $(GLUT_LIBS) \
-	$(GLU_LIBS) $(X_LIBS) $(XINE_LIB)
+	$(GLU_LIBS) $(X_LIBS) $(XINE_LIB) \
+	$(top_builddir)/src/video_out/macosx/libxine_macosx_video.la
 # The "-Wl,-framework -Wl,Cocoa" is needed for libtool versions before
 # 1.5.x (1.257): the default version that ships with Mac OS X is 1.5 (1.1220)
 xineplug_vo_out_macosx_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@ \
