@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.68 2002/10/22 04:23:19 storri Exp $
+ * $Id: demux_asf.c,v 1.69 2002/10/22 23:39:53 tmattern Exp $
  *
  * demultiplexer for asf streams
  *
@@ -1223,8 +1223,9 @@ static void demux_asf_send_headers (demux_plugin_t *this_gen) {
   demux_asf_t *this = (demux_asf_t *) this_gen;
   int      i;
   int      stream_id;
-  uint32_t buf_type, bitrate, max_vrate, max_arate, sum_rate;
-
+  uint32_t buf_type, max_vrate, max_arate, sum_rate;
+  uint32_t bitrate = 0;
+  
   pthread_mutex_lock (&this->mutex);
 
   this->video_fifo  = this->stream->video_fifo;
