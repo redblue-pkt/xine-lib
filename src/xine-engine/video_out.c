@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.63 2002/01/06 00:49:01 guenter Exp $
+ * $Id: video_out.c,v 1.64 2002/01/08 01:04:30 miguelfreitas Exp $
  *
  */
 
@@ -272,7 +272,9 @@ static void *video_out_loop (void *this_gen) {
         last_draw_vpts = cur_pts;
         
       if( last_draw_vpts && (cur_pts - last_draw_vpts) > (8 * this->pts_per_frame) ) {
+#ifdef VIDEO_OUT_LOG
         printf("video_out : sending decoder flush due to inactivity\n");
+#endif
         video_out_send_decoder_flush( this->xine->video_fifo );
         last_draw_vpts = cur_pts;
         flush_sent = 1;
@@ -369,9 +371,9 @@ static void *video_out_loop (void *this_gen) {
 	  continue;
 	}
 
-//#ifdef VIDEO_OUT_LOG
+#ifdef VIDEO_OUT_LOG
 	printf("video_out : generating still frame (cur_pts = %d) \n", cur_pts);
-//#endif
+#endif
 	
 	/* keep playing still frames */
 	img = this->duplicate_frame( this, img_backup );
@@ -405,6 +407,7 @@ static void *video_out_loop (void *this_gen) {
       if (img_backup) {
 	pthread_mutex_lock (&img_backup->mutex);
 	printf("video_out : freeing frame backup\n");
+	
 	img_backup->display_locked = 0;
 	if( !img_backup->decoder_locked )
 	  vo_append_to_img_buf_queue (this->free_img_buf_queue, img_backup);
