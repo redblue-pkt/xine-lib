@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.42 2001/10/06 14:56:37 miguelfreitas Exp $
+ * $Id: load_plugins.c,v 1.43 2001/10/06 17:40:38 heikos Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -94,7 +94,6 @@ void load_demux_plugins (xine_t *this,
 	if(!(plugin = dlopen (str, RTLD_LAZY))) {
 	  fprintf(stderr, "load_plugins: cannot open demux plugin %s:\n%s\n",
 		  str, dlerror());
-	  exit(1);
 	}
 	else {
 	  void *(*initplug) (int, config_values_t *);
