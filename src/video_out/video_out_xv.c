@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.60 2001/09/19 02:40:58 miguelfreitas Exp $
+ * $Id: video_out_xv.c,v 1.61 2001/09/19 12:57:50 miguelfreitas Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -405,7 +405,6 @@ static void xv_update_frame_format (vo_driver_t *this_gen,
 
 static void xv_deinterlace_frame (xv_driver_t *this) {
 
-  XvImage *imgtmp;
   uint8_t *recent_bitmaps[VO_NUM_RECENT_FRAMES];
   xv_frame_t *frame = this->recent_frames[0];
   int i;
@@ -434,15 +433,6 @@ static void xv_deinterlace_frame (xv_driver_t *this) {
   memcpy(this->deinterlace_frame.image->data + frame->width*frame->height,
          frame->image->data + frame->width*frame->height,
          frame->width*frame->height*1/2);
-
-#if 0
-  imgtmp = this->deinterlace_frame.image;
-  this->deinterlace_frame.image = frame->image;
-  frame->image = imgtmp;
-  frame->vo_frame.base[0] = frame->image->data;
-  frame->vo_frame.base[1] = frame->image->data + frame->width * frame->height * 5 / 4;
-  frame->vo_frame.base[2] = frame->image->data + frame->width * frame->height;
-#endif
 
   for( i = 0; i < VO_NUM_RECENT_FRAMES; i++ )
     recent_bitmaps[i] = (this->recent_frames[i]) ? this->recent_frames[i]->image->data :
@@ -896,9 +886,9 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
 
   display = visual->display;
   xine_debug  = config->lookup_int (config, "xine_debug", 0);
-  
+
   /*
-   * check for Xvideo support 
+   * check for Xvideo support
    */
 
   if (Success != XvQueryExtension(display,&ver,&rel,&req,&ev,&err)) {
@@ -906,7 +896,7 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
     return NULL;
   }
 
-  /* 
+  /*
    * check adaptors, search for one that supports (at least) yuv12
    */
 
@@ -917,25 +907,23 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
   }
 
   xv_port = 0;
-  adaptor_num = 0;
 
-  while ( (adaptor_num < adaptors) && !xv_port) {
+  for ( adaptor_num = 0; (adaptor_num < adaptors) && !xv_port; adaptor_num++ ) {
 
     if (adaptor_info[adaptor_num].type & XvImageMask) {
 
-      for (j = 0; j < adaptor_info[adaptor_num].num_ports; j++)
-	if (( !(xv_check_yv12 (display, 
-			       adaptor_info[adaptor_num].base_id + j))) 
-	    && (XvGrabPort (display, 
-			    adaptor_info[adaptor_num].base_id + j, 
-			    0) == Success)) {
-	  xv_port = adaptor_info[adaptor_num].base_id + j;
-	  break; 
-	}
-      
-    }
+      for (j = 0; j < adaptor_info[adaptor_num].num_ports && !xv_port; j++)
+        if (( !(xv_check_yv12 (display,
+                   adaptor_info[adaptor_num].base_id + j)))
+            && (XvGrabPort (display,
+                adaptor_info[adaptor_num].base_id + j,
+                0) == Success)) {
+          xv_port = adaptor_info[adaptor_num].base_id + j;
+        }
 
-    adaptor_num++;
+      if( xv_port )
+        break;
+    }
   }
 
   if (!xv_port) {
@@ -946,8 +934,9 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
     /* XvFreeAdaptorInfo (adaptor_info); this crashed on me (gb)*/
     return NULL;
   } else
-    printf ("video_out_xv: using Xv port %ld for hardware "
-	    "colorspace conversion and scaling.\n", xv_port);
+    printf ("video_out_xv: using Xv port %ld from adaptor %s for hardware "
+            "colorspace conversion and scaling.\n", xv_port,
+            adaptor_info[adaptor_num].name);
 
   /*
    * from this point on, nothing should go wrong anymore; so let's start initializing this driver
