@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dvdnav_internal.h,v 1.3 2002/08/09 22:52:14 mroi Exp $
+ * $Id: dvdnav_internal.h,v 1.4 2002/08/27 19:24:33 mroi Exp $
  *
  */
 
@@ -59,6 +59,9 @@
 #ifndef DVD_VIDEO_LB_LEN
 #define DVD_VIDEO_LB_LEN 2048
 #endif
+
+/* where should libdvdnav write its messages (stdout/stderr) */
+#define MSG_OUT stdout
 
 typedef struct read_cache_s read_cache_t;
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: read_cache.c,v 1.2 2002/08/19 17:17:00 mroi Exp $
+ * $Id: read_cache.c,v 1.3 2002/08/27 19:24:33 mroi Exp $
  *
  */
 
@@ -93,10 +93,10 @@ struct read_cache_s {
 };
 #endif
 
-#define _MT_TRACE 0
+#define READ_CACHE_TRACE 0
 
-#if _MT_TRACE
-#define dprintf(fmt, args...) fprintf(stderr, "%s: "fmt,  __func__ , ## args);
+#if READ_CACHE_TRACE
+#define dprintf(fmt, args...) fprintf(MSG_OUT, "libdvdnav: %s: "fmt,  __func__ , ## args);
 #else
 #define dprintf(fmt, args...) /* Nowt */
 #endif
@@ -312,7 +312,7 @@ int dvdnav_read_cache_block( read_cache_t *self, int sector, size_t block_count,
   } else {
     /* Miss */
 
-    fprintf(stderr, "DVD read cache miss! (not bad but a performance hit) sector=%d\n", sector); 
+    fprintf(MSG_OUT, "libdvdnav: DVD read cache miss! (not bad but a performance hit) sector=%d\n", sector); 
     result = DVDReadBlocks( self->dvd_self->file, sector, block_count, *buf);
     self->read_point = sector+block_count;
     if(self->read_point > self->pos + self->size) {

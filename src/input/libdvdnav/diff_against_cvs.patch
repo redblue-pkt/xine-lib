@@ -82,12 +82,21 @@
  
  
  /* Maximum length of an error string */
+@@ -60,7 +61,7 @@
+ #endif
+ 
+ /* where should libdvdnav write its messages (stdout/stderr) */
+-#define MSG_OUT stderr
++#define MSG_OUT stdout
+ 
+ typedef struct read_cache_s read_cache_t;
+ 
 --- src/input/libdvdnav/highlight.c	Fri Jul 26 12:58:10 2002
 +++ src/input/libdvdnav/highlight.c	Fri Aug  9 22:02:46 2002
-@@ -35,10 +35,10 @@
+@@ -34,10 +34,10 @@
+ #include "dvdnav_internal.h"
  
  #include "vm.h"
- #
 -#include <dvdread/nav_types.h>
 +#include "nav_types.h"
  
