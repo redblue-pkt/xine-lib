@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.27 2002/10/03 06:04:54 jcdutton Exp $
+ * $Id: xine_decoder.c,v 1.28 2002/10/03 07:28:23 jcdutton Exp $
  *
  * 04-09-2001 DTS passtrough  (C) Joachim Koenig 
  * 09-12-2001 DTS passthrough inprovements (C) James Courtier-Dutton
@@ -132,7 +132,8 @@ void dts_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
     audio_buffer->first_access_unit = buf->decoder_info[2]; /* First access unit */
 
 #ifdef LOG_DEBUG
-    printf("DTS first access unit=%u\n",audio_buffer->first_access_unit);
+    printf("DTS frame_header_count = %u\n",audio_buffer->frame_header_count);
+    printf("DTS first access unit = %u\n",audio_buffer->first_access_unit);
 #endif
 
     if (n == first_access_unit) {
@@ -162,6 +163,8 @@ void dts_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
     }
 
 #ifdef LOG_DEBUG
+    printf("DTS AC5 type=%d\n",ac5_type);
+    printf("DTS AC5_spdif_type=%d\n",ac5_spdif_type);
     printf("DTS AC5 length=%d\n",ac5_length);
     for(i=2000;i<2048;i++) {
       printf("%02x ",data[i]);
