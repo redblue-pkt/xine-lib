@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_oss_out.c,v 1.87 2003/03/06 16:49:30 guenter Exp $
+ * $Id: audio_oss_out.c,v 1.88 2003/03/27 11:39:23 siggi Exp $
  *
  * 20-8-2001 First implementation of Audio sync and Audio driver separation.
  * Copyright (C) 2001 James Courtier-Dutton James@superbug.demon.co.uk
@@ -929,11 +929,13 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
 			       NULL, 0, NULL, NULL)) {
       this->capabilities |= AO_CAP_MODE_A52;
       this->capabilities |= AO_CAP_MODE_AC5;
-      printf ("a/52-pass-through ");
+      if (class->xine->verbosity >= XINE_VERBOSITY_LOG)
+        printf ("a/52-pass-through ");
     } else 
-      printf ("(a/52-pass-through not enabled in xine config)");
+      if (class->xine->verbosity >= XINE_VERBOSITY_LOG)
+        printf ("(a/52-pass-through not enabled in xine config)");
   }    
-
+  
   if (class->xine->verbosity >= XINE_VERBOSITY_LOG) 
     printf ("\n");
   
