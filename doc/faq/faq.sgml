@@ -1053,14 +1053,8 @@
     <title>Can xine produce 4-/5-channel surround audio output?</title>
     <para>
      Yep, it can do that using OSS or ALSA drivers, provided that the driver
-     supports it. On startup xine tells you what modes are supported by your
-     audio driver, e.g:
-     <screen>&nbsp;&nbsp;&nbsp;audio_alsa_out : supported modes are mono stereo (4-channel not enabled in xine config) (5-channel not enabled in xine config) (5.1-channel not enabled in xine config) (a/52 and DTS pass-through not enabled in xine config)</screen>
-    </para>
-    <para>
-     On this machine 4-channel surround would be possible. However, since xine
-     cannot detect if there are actually speakers connected to the additional
-     channels, you'll have to activate that feature manually.
+     supports it. However, since xine cannot detect if there are actually speakers
+     connected to the additional channels, you'll have to activate that feature manually.
     </para>
     <para>
      You can do this either in the config dialog while xine is running (press
