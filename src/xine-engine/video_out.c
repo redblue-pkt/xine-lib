@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.211 2004/10/17 19:13:09 mroi Exp $
+ * $Id: video_out.c,v 1.212 2004/10/18 21:07:38 f1rmb Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -1248,7 +1248,7 @@ static void vo_open (xine_video_port_t *this_gen, xine_stream_t *stream) {
   this->discard_frames = 0;
   this->last_delivery_pts = 0;
   this->warn_threshold_event_sent = this->warn_threshold_exceeded = 0;
-  if (!this->overlay_enabled && (stream == NULL || stream->spu_channel_user > -2))
+  if (!this->overlay_enabled && (stream == XINE_ANON_STREAM || stream == NULL || stream->spu_channel_user > -2))
     /* enable overlays if our new stream might want to show some */
     this->overlay_enabled = 1;
   pthread_mutex_lock(&this->streams_lock);
