@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.189 2004/08/28 22:51:50 jcdutton Exp $
+ * $Id: input_dvd.c,v 1.190 2004/09/01 16:17:39 jcdutton Exp $
  *
  */
 
@@ -137,7 +137,7 @@
 /* Debugging macros */
 #ifdef __GNUC__
 # ifdef INPUT_DEBUG_TRACE
-#  define trace_print(s, args...) printf("input_dvd: " __func__ ": " s, ##args);
+#  define trace_print(s, args...) printf("input_dvd: %s : " s, __FUNCTION__, ##args);
 # else
 #  define trace_print(s, args...) /* Nothing */
 # endif
@@ -1340,6 +1340,15 @@ static int dvd_plugin_open (input_plugin_t *this_gen) {
   /* Attempt to parse MRL */
   /* FIXME: strlen is dangerous, we should use a bounded max len version of strlen. */
   last_colon = locator_len = strlen(locator);
+  /* Special case if mrl is dvd:/  just play DVD from DVD drive.
+   * If is it not the special case, we want to backstep over the "/"
+   */
+  if (locator_len > 0) {
+    locator--;
+    locator_len++;
+    last_colon++;
+  }
+ 
   while (last_colon && locator[last_colon] != ':' )
     last_colon--;
 
