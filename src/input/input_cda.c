@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_cda.c,v 1.17 2002/02/17 17:32:50 guenter Exp $
+ * $Id: input_cda.c,v 1.18 2002/03/24 01:37:41 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -266,36 +266,6 @@ static void _cda_mkdir_recursive_safe(char *path) {
       _cda_mkdir_safe(buf2);
     }
   }
-}
-
-/*
- * Return user name.
- */
-static char *_cda_get_username_safe(void) {
-  char          *un;
-  struct passwd *pw;
-
-  pw = getpwuid(geteuid());
-
-  un = strdup(((pw && pw->pw_name) ? strdup(pw->pw_name) : "unknown"));
-
-  return un;
-}
-
-/*
- * Return host name.
- */
-static char *_cda_get_hostname_safe(void) {
-  char *hn;
-  char  buf[2048];
-
-  memset(&buf, 0, sizeof(buf));
-  if(gethostname(&buf[0], sizeof(buf)) == 0)
-    hn = strdup(buf);
-  else
-    hn = strdup("unknown");
-  
-  return hn;
 }
 
 /*
@@ -590,7 +560,6 @@ static void _cda_cddb_socket_close(cda_input_plugin_t *this) {
  */
 static void _cda_cddb_retrieve(cda_input_plugin_t *this) {
   char  buffer[2048];
-  char *username, *hostname;
   int   err, i;
 
   if(this == NULL)
@@ -623,9 +592,6 @@ static void _cda_cddb_retrieve(cda_input_plugin_t *this) {
       return;
     }
     
-    username = _cda_get_username_safe();
-    hostname = _cda_get_hostname_safe();
-    
     memset(&buffer, 0, sizeof(buffer));
     
     /* Get welcome message */
@@ -633,7 +599,11 @@ static void _cda_cddb_retrieve(cda_input_plugin_t *this) {
       if((err = _cda_cddb_handle_code(buffer)) >= 0) {
 	/* send hello */
 	memset(&buffer, 0, sizeof(buffer));
-	sprintf(buffer, "cddb hello %s %s xine %s\n", username, hostname, VERSION);
+        /* We don't send current user/host name to prevent spam.
+         * Software that sends this is considered spyware
+         * that most people don't like.
+         */
+	sprintf(buffer, "cddb hello unknown localhost xine %s\n", VERSION);
 	if((err = _cda_cddb_send_command(this, buffer)) > 0) {
 	  /* Get answer from hello */
 	  memset(&buffer, 0, sizeof(buffer));
@@ -712,8 +682,6 @@ static void _cda_cddb_retrieve(cda_input_plugin_t *this) {
       }
     }
     _cda_cddb_socket_close(this);
-    free(username);
-    free(hostname);
   }
  
 }
