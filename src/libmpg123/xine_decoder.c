@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.4 2001/08/07 14:15:04 guenter Exp $
+ * $Id: xine_decoder.c,v 1.5 2001/08/21 19:39:50 jcdutton Exp $
  *
  * stuff needed to turn libmpg123 into a xine decoder plugin
  */
@@ -44,7 +44,7 @@ typedef struct mpgdec_decoder_s {
 
   mpgaudio_t      *mpg;
 
-  ao_functions_t  *audio_out;
+  ao_instance_t  *audio_out;
   int              output_sampling_rate;
   int              output_open;
 
@@ -55,7 +55,7 @@ int mpgdec_can_handle (audio_decoder_t *this_gen, int buf_type) {
 }
 
 
-void mpgdec_init (audio_decoder_t *this_gen, ao_functions_t *audio_out) {
+void mpgdec_init (audio_decoder_t *this_gen, ao_instance_t *audio_out) {
 
   mpgdec_decoder_t *this = (mpgdec_decoder_t *) this_gen;
 

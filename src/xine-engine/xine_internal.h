@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.38 2001/08/17 16:15:37 f1rmb Exp $
+ * $Id: xine_internal.h,v 1.39 2001/08/21 19:39:50 jcdutton Exp $
  *
  */
 
@@ -93,7 +93,7 @@ struct audio_decoder_s {
 
   int (*can_handle) (audio_decoder_t *this, int buf_type);
 
-  void (*init) (audio_decoder_t *this, ao_functions_t *audio_out);
+  void (*init) (audio_decoder_t *this, ao_instance_t *audio_out);
 
   void (*decode_data) (audio_decoder_t *this, buf_element_t *buf);
 
@@ -167,7 +167,7 @@ struct xine_s {
   video_decoder_t           *cur_video_decoder_plugin;
   int                        video_finished;
 
-  ao_functions_t            *audio_out;
+  ao_instance_t            *audio_out;
   fifo_buffer_t             *audio_fifo;
   pthread_t                  audio_thread;
   audio_decoder_t           *audio_decoder_plugins[DECODER_PLUGIN_MAX];
@@ -202,7 +202,7 @@ config_values_t *config_file_init (char *filename);
  */
 
 xine_t *xine_init (vo_driver_t *vo, 
-		   ao_functions_t *ao,
+		   ao_driver_t *ao,
 		   config_values_t *config,
 		   gui_stream_end_cb_t stream_end_cb,
 		   gui_get_next_mrl_cb_t get_next_mrl_cb,
@@ -447,7 +447,7 @@ char **xine_list_audio_output_plugins ();
  * load a specific audio output plugin
  */
 
-ao_functions_t *xine_load_audio_output_plugin(config_values_t *config, char *id);
+ao_driver_t *xine_load_audio_output_plugin(config_values_t *config, char *id);
 
 /**
  * @defgroup eventgroup Sending events

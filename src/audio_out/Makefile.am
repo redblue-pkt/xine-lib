@@ -1,7 +1,7 @@
 CFLAGS = @GLOBAL_CFLAGS@ -DXINE_COMPILE $(ALSA_CFLAGS) $(ESD_CFLAGS) $(IRIXAL_CFLAGS) $(ARTS_CFLAGS)
 
-EXTRA_DIST = audio_alsa_out.c audio_alsa05_out.c audio_esd_out.c \
-	audio_sun_out.c audio_arts_out.c 
+#EXTRA_DIST = audio_alsa_out.c audio_alsa05_out.c audio_esd_out.c \
+#	audio_sun_out.c audio_arts_out.c 
 ## audio_irixal_out.c
 
 LIBTOOL = $(SHELL) $(top_builddir)/libtool-nofpic
@@ -18,19 +18,19 @@ endif
 #
 if HAVE_ALSA
 if HAVE_ALSA05
-alsa05_module = xineplug_ao_out_alsa05.la
+#alsa05_module = xineplug_ao_out_alsa05.la
 endif
 if HAVE_ALSA09
-alsa_module = xineplug_ao_out_alsa.la
+#alsa_module = xineplug_ao_out_alsa.la
 endif
 endif
 
 if HAVE_ESD
-esd_module = xineplug_ao_out_esd.la
+#esd_module = xineplug_ao_out_esd.la
 endif
 
 if HAVE_SUNAUDIO
-sun_module = xineplug_ao_out_sun.la
+#sun_module = xineplug_ao_out_sun.la
 endif
 
 ## if HAVE_IRIXAL
@@ -38,7 +38,7 @@ endif
 ## endif
 
 if HAVE_ARTS
-arts_module = xineplug_ao_out_arts.la
+#arts_module = xineplug_ao_out_arts.la
 endif
 
 ##

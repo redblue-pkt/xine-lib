@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: interface.c,v 1.4 2001/05/27 23:48:12 guenter Exp $
+ * $Id: interface.c,v 1.5 2001/08/21 19:39:50 jcdutton Exp $
  */
 
 #include <stdlib.h>
@@ -40,7 +40,7 @@ void mpg_audio_reset (mpgaudio_t *mp) {
   mp->header                =  0;
 }
 
-mpgaudio_t *mpg_audio_init (ao_functions_t *ao_output) 
+mpgaudio_t *mpg_audio_init (ao_instance_t *ao_output) 
 {
   mpgaudio_t *mp;
 

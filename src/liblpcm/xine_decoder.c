@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.1 2001/08/04 20:14:54 guenter Exp $
+ * $Id: xine_decoder.c,v 1.2 2001/08/21 19:39:50 jcdutton Exp $
  *
  * stuff needed to turn libac3 into a xine decoder plugin
  */
@@ -42,7 +42,7 @@ typedef struct lpcm_decoder_s {
   uint32_t         pts;
   uint32_t         last_pts;
   
-  ao_functions_t  *audio_out;
+  ao_instance_t  *audio_out;
   int              output_open;
 
 } lpcm_decoder_t;
@@ -52,7 +52,7 @@ int lpcm_can_handle (audio_decoder_t *this_gen, int buf_type) {
 }
 
 
-void lpcm_init (audio_decoder_t *this_gen, ao_functions_t *audio_out) {
+void lpcm_init (audio_decoder_t *this_gen, ao_instance_t *audio_out) {
 
   lpcm_decoder_t *this = (lpcm_decoder_t *) this_gen;
 
@@ -87,7 +87,7 @@ void lpcm_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
   for(i=0; i<buf->size/2; i++)
     p[i] = ntohs(p[i]);     
 
-  this->audio_out->write_audio_data (this->audio_out,
+  this->audio_out->write (this->audio_out,
                                      buf->content,
 				     buf->size/4,
                                      this->pts);

@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mpglib.h,v 1.5 2001/08/07 14:15:04 guenter Exp $
+ * $Id: mpglib.h,v 1.6 2001/08/21 19:39:50 jcdutton Exp $
  */
 
 #ifndef HAVE_MPGLIB_H
@@ -48,7 +48,7 @@ typedef struct mpstr {
 
   int             is_output_initialized;
   int             sample_rate_device;
-  ao_functions_t *ao_output;
+  ao_instance_t *ao_output;
   unsigned char   osspace[8192];
 
   uint32_t        pts;
@@ -62,7 +62,7 @@ typedef struct mpstr {
 extern "C" {
 #endif
   
-mpgaudio_t  *mpg_audio_init (ao_functions_t *ao_output);
+mpgaudio_t  *mpg_audio_init (ao_instance_t *ao_output);
 
 void mpg_audio_reset (mpgaudio_t *mp);
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.22 2001/08/02 14:35:58 joachim_koenig Exp $
+ * $Id: xine_decoder.c,v 1.23 2001/08/21 19:39:50 jcdutton Exp $
  *
  * stuff needed to turn libac3 into a xine decoder plugin
  */
@@ -69,7 +69,7 @@ typedef struct ac3dec_decoder_s {
   sample_t         delay[6*256];
   sample_t         samples[6][256];
 
-  ao_functions_t  *audio_out;
+  ao_instance_t	  *audio_out;
   int              audio_caps;
   int              bypass_mode;
   int              output_sampling_rate;
@@ -83,7 +83,7 @@ int ac3dec_can_handle (audio_decoder_t *this_gen, int buf_type) {
 }
 
 
-void ac3dec_init (audio_decoder_t *this_gen, ao_functions_t *audio_out) {
+void ac3dec_init (audio_decoder_t *this_gen, ao_instance_t *audio_out) {
 
   ac3dec_decoder_t *this = (ac3dec_decoder_t *) this_gen;
   /* int i; */
@@ -303,7 +303,7 @@ static void ac3dec_decode_frame (ac3dec_decoder_t *this, uint32_t pts) {
       
     /*  output decoded samples */
       
-    this->audio_out->write_audio_data (this->audio_out,
+    this->audio_out->write (this->audio_out,
 					 this->int_samples,
 					 256*6,
 					 pts);
@@ -328,7 +328,7 @@ static void ac3dec_decode_frame (ac3dec_decoder_t *this, uint32_t pts) {
     }
     
     if (this->output_open) {
-      this->audio_out->write_audio_data (this->audio_out,
+      this->audio_out->write (this->audio_out,
 					 (int16_t*)this->frame_buffer,
 					 this->frame_length,
 					 pts);

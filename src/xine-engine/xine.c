@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.44 2001/08/20 20:49:51 f1rmb Exp $
+ * $Id: xine.c,v 1.45 2001/08/21 19:39:50 jcdutton Exp $
  *
  * top-level xine functions
  *
@@ -452,7 +452,7 @@ static void event_handler(xine_t *xine, event_t *event, void *data) {
 }
 
 xine_t *xine_init (vo_driver_t *vo, 
-		   ao_functions_t *ao,
+		   ao_driver_t *ao,
 		   config_values_t *config,
 		   gui_stream_end_cb_t stream_end_cb,
 		   gui_get_next_mrl_cb_t get_next_mrl_cb,
@@ -515,8 +515,9 @@ xine_t *xine_init (vo_driver_t *vo,
   video_decoder_init (this);
 
   if(ao) {
-    this->audio_out = ao;
-    this->audio_out->connect (this->audio_out, this->metronom);
+    this->audio_out = ao_new_instance (ao, this->metronom);
+//    this->audio_out = ao;
+//    this->audio_out->connect (this->audio_out, this->metronom);
   }
   audio_decoder_init (this);
   printf("xine_init returning\n");

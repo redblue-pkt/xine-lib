@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.h,v 1.8 2001/07/20 22:37:56 guenter Exp $
+ * $Id: audio_out.h,v 1.9 2001/08/21 19:39:50 jcdutton Exp $
  */
 #ifndef HAVE_AUDIO_OUT_H
 #define HAVE_AUDIO_OUT_H
@@ -37,13 +37,13 @@ extern "C" {
 #define AUDIO_OUT_IFACE_VERSION  1
 
 /*
- * ao_functions_s contains the functions every audio output
+ * ao_driver_s contains the driver every audio output
  * driver plugin has to implement.
  */
 
-typedef struct ao_functions_s ao_functions_t;
+typedef struct ao_driver_s ao_driver_t;
 
-struct ao_functions_s {
+struct ao_driver_s {
 
   /* 
    *
@@ -52,12 +52,7 @@ struct ao_functions_s {
    *
    * See AO_CAP_* bellow.
    */
-  uint32_t (*get_capabilities) (ao_functions_t *this);
-
-  /*
-   * connect this driver to the xine engine
-   */
-  void (*connect) (ao_functions_t *this, metronom_t *metronom);
+  uint32_t (*get_capabilities) (ao_driver_t *this);
 
   /*
    * open the driver and make it ready to receive audio data 
@@ -65,8 +60,21 @@ struct ao_functions_s {
    *
    * return value: <=0 : failure, 1 : ok
    */
+  int (*open)(ao_driver_t *this, uint32_t bits, uint32_t rate, int mode);
 
-  int (*open)(ao_functions_t *this, uint32_t bits, uint32_t rate, int mode);
+  /* return the number of audio channels
+   */
+  int (*num_channels)(ao_driver_t *self_gen);
+
+  /* return the number of bytes per frame.
+   * A frame is equivalent to one sample being output on every audio channel.
+   */
+  int (*bytes_per_frame)(ao_driver_t *self_gen);
+
+  /* return the delay is frames measured by 
+   * looking at pending samples in the audio output device
+   */
+  int (*delay)(ao_driver_t *self_gen);
 
   /*
    * write audio data to output buffer 
@@ -76,24 +84,20 @@ struct ao_functions_s {
    *   0 => audio samples were not yet processed, 
    *        call write_audio_data with the _same_ samples again
    */
-
-  int (*write_audio_data)(ao_functions_t *this,
-			  int16_t* audio_data, uint32_t num_samples, 
-			  uint32_t pts);
+  int (*write)(ao_driver_t *this,
+			  int16_t* audio_data, uint32_t num_samples);
 
   /*
    * this is called when the decoder no longer uses the audio
    * output driver - the driver should get ready to get opened() again
    */
-
-  void (*close)(ao_functions_t *this);
+  void (*close)(ao_driver_t *this);
 
   /*
    * shut down this audio output driver plugin and
    * free all resources allocated
    */
-
-  void (*exit) (ao_functions_t *this);
+  void (*exit) (ao_driver_t *this);
 
   /*
    * Get, Set a property of audio driver.
@@ -103,19 +107,82 @@ struct ao_functions_s {
    *
    * See AC_PROP_* bellow for available properties.
    */
-  int (*get_property) (ao_functions_t *this, int property);
+  int (*get_property) (ao_driver_t *this, int property);
 
-  int (*set_property) (ao_functions_t *this,  int property, int value);
+  int (*set_property) (ao_driver_t *this,  int property, int value);
 
 };
 
+/*
+ * ao_instance_s contains the instance every audio decoder talks to
+ */
+typedef struct ao_instance_s ao_instance_t;
 
+struct ao_instance_s {
+  uint32_t (*get_capabilities) (ao_instance_t *this); /* for constants see below */
+
+  /* open display driver for video output */
+  int (*open) (ao_instance_t *this,
+	uint32_t bits, uint32_t rate, int mode);
+
+  /*
+   * write audio data to output buffer
+   * audio driver must sync sample playback with metronom
+   * return value:
+   *   1 => audio samples were processed ok
+   *   0 => audio samples were not yet processed,
+   *        call write_audio_data with the _same_ samples again
+   */
+
+  int (*write)(ao_driver_t *this,
+                          int16_t* audio_data, uint32_t num_frames,
+                          uint32_t pts);
+
+  /* audio driver is no longer used by decoder => close */
+  void (*close) (ao_instance_t *self);
+
+  /* called on xine exit */
+  void (*exit) (ao_instance_t *this);
+
+  /* private stuff */
+
+  ao_driver_t       *driver;
+  metronom_t        *metronom;
+
+  int                audio_loop_running;
+  pthread_t          audio_thread;
+  int            audio_step;           /* pts per 32 768 samples (sample = #bytes/2) */
+  int32_t        frames_per_kpts;       /* bytes per 1024/90000 sec                   */
+  int32_t        output_frame_rate, input_frame_rate;
+  double         frame_rate_factor;
+  uint32_t       num_channels;
+  uint32_t 	 frames_in_buffer;  /* a frame is equivalent to one sample in each channel. */
+  int            audio_started;
+  int            audio_has_realtime;   /* OSS driver supports real-time              */
+  uint32_t       last_audio_vpts;
+  int            resample_conf;
+  int            do_resample;
+  int	 	 mode;
+  uint16_t      *frame_buffer;
+  int16_t       *zero_space;
+  int                pts_per_half_frame;
+  int                pts_per_frame;
+ 
+  int                num_frames_delivered;
+  int                num_frames_skipped;
+  int                num_frames_discarded;
+};
+
+/* This initiates the audio_out sync routines
+ * found in ./src/xine-engine/audio_out.c
+ */
+ao_instance_t *ao_new_instance (ao_driver_t *driver, metronom_t *metronom) ;
 /*
  * to build a dynamic audio output plugin,
- * you have to implement these functions:
+ * you have to implement these driver:
  *
  *
- * ao_functions_t *init_audio_out_plugin (config_values_t *config)
+ * ao_driver_t *init_audio_out_plugin (config_values_t *config)
  *
  * init this plugin, check if device is available
  *

@@ -295,7 +295,7 @@ void do_layer2(mpgaudio_t *mp)
     mp->sample_rate_device = fr->sample_rate;
   }
 
-  mp->ao_output->write_audio_data (mp->ao_output, (int16_t*)mp->osspace, num_bytes/(stereo-1 ? 4:2), 
+  mp->ao_output->write (mp->ao_output, (int16_t*)mp->osspace, num_bytes/(stereo-1 ? 4:2), 
 				   mp->pts);
   mp->pts = 0;
 				   

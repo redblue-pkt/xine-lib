@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.37 2001/08/14 01:38:17 guenter Exp $
+ * $Id: load_plugins.c,v 1.38 2001/08/21 19:39:50 jcdutton Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -713,11 +713,11 @@ char **xine_list_audio_output_plugins(void) {
   return plugin_ids;
 }
 
-ao_functions_t *xine_load_audio_output_plugin(config_values_t *config, 
+ao_driver_t *xine_load_audio_output_plugin(config_values_t *config, 
 					      char *id) {
 
   DIR *dir;
-  ao_functions_t *aod = NULL;
+  ao_driver_t *aod = NULL;
   
   dir = opendir (XINE_PLUGINDIR);
   
@@ -757,7 +757,7 @@ ao_functions_t *xine_load_audio_output_plugin(config_values_t *config,
 	    
 	      if((initplug = dlsym(plugin, "init_audio_out_plugin")) != NULL) {
 		
-		aod = (ao_functions_t *) initplug(config);
+		aod = (ao_driver_t *) initplug(config);
 		
 		if (aod)
 		  printf("load_plugins: audio output plugin %s successfully"

@@ -157,7 +157,7 @@ void do_layer1(mpgaudio_t *mp)
     printf ("layer1\n");
   }
 
-  mp->ao_output->write_audio_data (mp->ao_output, (int16_t*)mp->osspace, num_bytes/(stereo-1 ? 4:2), 
+  mp->ao_output->write (mp->ao_output, (int16_t*)mp->osspace, num_bytes/(stereo-1 ? 4:2), 
 				   mp->pts);
   mp->pts = 0;
 				   

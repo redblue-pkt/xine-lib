@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.15 2001/08/06 13:21:26 ehasenle Exp $
+ * $Id: w32codec.c,v 1.16 2001/08/21 19:39:50 jcdutton Exp $
  *
  * routines for using w32 codecs
  *
@@ -63,7 +63,7 @@ typedef struct w32v_decoder_s {
 typedef struct w32a_decoder_s {
   audio_decoder_t   audio_decoder;
 
-  ao_functions_t   *audio_out;
+  ao_instance_t   *audio_out;
   int               decoder_ok;
 
   unsigned char     buf[16384];
@@ -404,7 +404,7 @@ static char* get_auds_codec_name(w32a_decoder_t *this, int id){
   return NULL;
 }
 
-static void w32a_init (audio_decoder_t *this_gen, ao_functions_t *audio_out) {
+static void w32a_init (audio_decoder_t *this_gen, ao_instance_t *audio_out) {
 
   w32a_decoder_t *this = (w32a_decoder_t *) this_gen;
 
@@ -523,7 +523,7 @@ static void w32a_decode_audio (w32a_decoder_t *this,
 		this->sample_buf[0], this->sample_buf[1], this->sample_buf[2], this->sample_buf[3], 
 		this->sample_buf[ash.cbDstLengthUsed-2], this->sample_buf[ash.cbDstLengthUsed-1]);
 		*/
-	this->audio_out->write_audio_data (this->audio_out,
+	this->audio_out->write (this->audio_out,
 					   (int16_t*) this->sample_buf, 
 					   ash.cbDstLengthUsed / (this->num_channels*2), 
 					   nPTS); 
