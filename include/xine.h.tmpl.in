@@ -28,7 +28,7 @@
  \endverbatim
  */
 /*
- * $Id: xine.h.tmpl.in,v 1.87 2002/03/16 13:33:47 esnel Exp $
+ * $Id: xine.h.tmpl.in,v 1.88 2002/03/18 19:34:16 guenter Exp $
  *
  */
 
@@ -1854,65 +1854,18 @@ osd_renderer_t *xine_get_osd_renderer (xine_t *self);
 	   * \defgroup log_group Logging section
 	   * @{
 	   */
-             /**
-	      * \defgroup log_def log defines.
-	      * @{
-	      */
-/**
- * \def XINE_LOG_MSG
- * \sa xine_log()
-*/
-#define XINE_LOG_MSG       0
-/**
- * \def XINE_LOG_INPUT
- * \sa xine_log()
-*/
-#define XINE_LOG_INPUT     1
-/**
- * \def XINE_LOG_DEMUX
- * \sa xine_log()
-*/
-#define XINE_LOG_DEMUX     2
-/**
- * \def XINE_LOG_CODEC
- * \sa xine_log()
-*/
-#define XINE_LOG_CODEC     3
-/**
- * \def XINE_LOG_VIDEO
- * \sa xine_log()
-*/
-#define XINE_LOG_VIDEO     4
-/**
- * \def XINE_LOG_METRONOM
- * \sa xine_log()
-*/
-#define XINE_LOG_METRONOM  5
-/**
- * \def XINE_LOG_PLUGIN
- * \sa xine_log()
-*/
-#define XINE_LOG_PLUGIN    6
-/**
- * \def XINE_LOG_NUM
- * number of log buffers defined *
- * \sa xine_log()
-*/
-#define XINE_LOG_NUM       7
-
-            /** @} end of log_def */
 /**
  * \fn unsigned int xine_get_log_section_count(void)
  * \brief return number of available buffers.
  * \sa xine_get_log_names(), xine_log(), xine_get_log()
  */
-unsigned int xine_get_log_section_count(void);
+int xine_get_log_section_count(xine_t *self);
 /**
  * \fn const char **xine_get_log_names(void)
  * \brief return a NULL terminated array of log sections names.
  * \sa xine_get_log_section_count(), xine_log(), xine_get_log()
  */
-const char **xine_get_log_names(void);
+char **xine_get_log_names(xine_t *self);
 /**
  * \fn void xine_log (xine_t *self, int buf, const char *format, ...)
  * \param self xine object.

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.73 2002/03/12 19:51:29 guenter Exp $
+ * $Id: xine_internal.h,v 1.74 2002/03/18 19:34:17 guenter Exp $
  *
  */
 
@@ -138,8 +138,8 @@ struct audio_decoder_s {
 /*
  * log output
  */
-#define XINE_LOG_MSG       0 /* warnings, errors, ... */
-#define XINE_LOG_FORMAT    1 /* stream format, decoders, video size... */
+#define XINE_LOG_FORMAT    0 /* stream format, decoders, video size... */
+#define XINE_LOG_MSG       1 /* warnings, errors, ... */
 #define XINE_LOG_PLUGIN    2
 #define XINE_LOG_NUM       3 /* # of log buffers defined */
 
@@ -593,11 +593,11 @@ osd_renderer_t *xine_get_osd_renderer (xine_t *this);
  * xine log functions 
  */
   
-const char **xine_get_log_names(void);
-
-void xine_log (xine_t *this, int buf, const char *format, ...);
-
+char **xine_get_log_names (xine_t *this);
+void   xine_log (xine_t *this, int buf, const char *format, ...);
 char **xine_get_log (xine_t *this, int buf);
+int    xine_get_log_section_count (xine_t *this);
+
 
 /*
  * xine error reporting
