@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.166 2002/10/14 18:24:59 guenter Exp $
+ * $Id: xine.c,v 1.167 2002/10/15 16:10:18 guenter Exp $
  *
  * top-level xine functions
  *
@@ -57,17 +57,25 @@
 #include "xineutils.h"
 #include "compat.h"
 
-void xine_notify_stream_finished (xine_stream_t *stream) {
+void xine_handle_stream_end (xine_stream_t *stream, int non_user) {
 
-  xine_event_t event;
 
   if (stream->status == XINE_STATUS_QUIT)
     return;
 
-  event.data_length = 0;
-  event.type        = XINE_EVENT_UI_PLAYBACK_FINISHED;
+  if (non_user) {
+    /* frontends will not be interested in receiving this event
+     * if they have called xine_stop explicitly, so only send
+     * it if stream playback finished because of stream end reached
+     */
 
-  xine_event_send (stream, &event);
+    xine_event_t event;
+
+    event.data_length = 0;
+    event.type        = XINE_EVENT_UI_PLAYBACK_FINISHED;
+    
+    xine_event_send (stream, &event);
+  }
 }
 
 void xine_report_codec (xine_stream_t *stream, int codec_type, 
