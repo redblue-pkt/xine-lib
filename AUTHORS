@@ -328,7 +328,8 @@ Howdy Pierce <howdy@cardinalpeak.com>
   demux_ts bugfixes
 
 James Slorach  <jrs47@janx.org>
-  fix for wrong abs() macro, deinterlacing fix
+  fix for wrong abs() macro, deinterlacing fix, reported problem
+  with estimation used by video_out to discard frames.
 
 Steffen Lorscheider <loli@users.sourceforge.net>
   gui programming
@@ -498,5 +499,7 @@ André Pang <ozone@algorithm.com.au>
 Stefan Kristiansson <stefan@langante.mine.nu>
   moved Xv initialization from class to plugin context
 
-  
+Ryan Tadlock <pholan-xine-users@midnight.postino.com>
+  compensation for the field delay of some deinterlacing algorithms
+    
 (let us know if we've forgotten anyone)

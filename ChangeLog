@@ -9,7 +9,8 @@ xine-lib (1-rc6)
   * support for Annodex files
   * VobSub-in-Matroska support
   * guess and use Windows encoding as default for external subtitles
-  
+  * quality improvements for full frame rate deinterlacing modes
+    
 xine-lib (1-rc5)  
   * add support for ejecting removable media on Solaris
   * fix stuttering playback of some realmedia streams
