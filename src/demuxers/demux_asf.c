@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.130 2003/10/06 15:46:20 mroi Exp $
+ * $Id: demux_asf.c,v 1.131 2003/10/08 22:53:17 tmattern Exp $
  *
  * demultiplexer for asf streams
  *
@@ -239,7 +239,7 @@ static uint64_t get_le64 (demux_asf_t *this) {
     | ((uint64_t) buf[4] << 32)
     | ((uint64_t) buf[5] << 40)
     | ((uint64_t) buf[6] << 48)
-    | ((uint64_t) buf[7] << 54) ;
+    | ((uint64_t) buf[7] << 56) ;
 }
 
 static int get_guid (demux_asf_t *this) {
@@ -1097,7 +1097,7 @@ static int asf_parse_packet_payload_common(demux_asf_t *this,
         buf->type = BUF_CONTROL_RESET_DECODER;
         (*stream)->fifo->put((*stream)->fifo, buf);
       }
-      if ((*stream) == &this->streams[this->video_stream]) {
+      if ((*stream)->stream_id == this->video_stream_id) {
 #ifdef LOG
         printf ("demux_asf: bad seq: waiting for keyframe\n");
 #endif
@@ -1735,8 +1735,8 @@ static void demux_asf_send_headers (demux_plugin_t *this_gen) {
   this->num_video_streams        = 0;
   this->audio_stream             = 0;
   this->video_stream             = 0;
-  this->audio_stream_id          = 0;
-  this->video_stream_id          = 0;
+  this->audio_stream_id          = -1;
+  this->video_stream_id          = -1;
   this->control_stream_id        = 0;
   this->packet_size              = 0;
   this->seqno                    = 0;
@@ -1788,7 +1788,7 @@ static void demux_asf_send_headers (demux_plugin_t *this_gen) {
       if (this->stream->xine->verbosity >= XINE_VERBOSITY_LOG) 
 	printf("demux_asf: stream: %d, bitrate %d bps\n", stream_id, bitrate);
       if ((buf_type == BUF_VIDEO_BASE) &&
-	  (bitrate > max_vrate || this->video_stream_id == 0)) {
+	  (bitrate > max_vrate || this->video_stream_id == -1)) {
 
 	this->stream->stream_info[XINE_STREAM_INFO_HAS_VIDEO]  = 1;
 	this->stream->stream_info[XINE_STREAM_INFO_VIDEO_BITRATE] = bitrate;
@@ -1797,7 +1797,7 @@ static void demux_asf_send_headers (demux_plugin_t *this_gen) {
 	this->video_stream    = i;
 	this->video_stream_id = stream_id;
       } else if ((buf_type == BUF_AUDIO_BASE) &&
-		 (bitrate > max_arate || this->audio_stream_id == 0)) {
+		 (bitrate > max_arate || this->audio_stream_id == -1)) {
 
 	this->stream->stream_info[XINE_STREAM_INFO_HAS_AUDIO]  = 1;
 	this->stream->stream_info[XINE_STREAM_INFO_AUDIO_BITRATE] = bitrate;
@@ -1938,7 +1938,7 @@ static int demux_asf_seek (demux_plugin_t *this_gen,
         if (state == 0) {
           if (keyframe && (stream_id == this->video_stream_id) && !frag_offset) {
             this->keyframe_ts = ts;
-            if (this->audio_stream_id == 0) {
+            if (this->audio_stream_id == -1) {
 #ifdef LOG
               printf ("demux_asf: demux_asf_seek: no audio stream\n");
 #endif
