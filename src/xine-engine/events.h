@@ -57,7 +57,7 @@ extern "C" {
 #define XINE_EVENT_INPUT_PREVIOUS       19
 #define XINE_EVENT_INPUT_ANGLE_NEXT     20
 #define XINE_EVENT_INPUT_ANGLE_PREVIOUS 21
-
+#define XINE_EVENT_SPU_FORCEDISPLAY	22
 
 /*
  * generic event type.

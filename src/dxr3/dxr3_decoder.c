@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decoder.c,v 1.27 2001/11/01 12:38:08 mlampard Exp $
+ * $Id: dxr3_decoder.c,v 1.28 2001/11/02 13:18:27 mlampard Exp $
  *
  * dxr3 video and spu decoder plugin. Accepts the video and spu data
  * from XINE and sends it directly to the corresponding dxr3 devices.
@@ -595,7 +595,12 @@ static void spudec_event_listener (void *this_gen, xine_event_t *event_gen) {
 	this->menu=0;
     }
     break;
-  }
+  case XINE_EVENT_SPU_FORCEDISPLAY:
+    {
+    	this->menu=event->data;
+    }
+    break;    	 
+  }  
 }
 
 static char *spudec_get_id(void)
