@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.306 2004/12/20 21:22:21 mroi Exp $
+ * $Id: xine.c,v 1.307 2005/01/18 22:38:31 holstsn Exp $
  */
 
 /*
@@ -273,7 +273,8 @@ static void stop_internal (xine_stream_t *stream) {
 
   lprintf ("status before = %d\n", stream->status);
 
-  if (stream->status == XINE_STATUS_STOP) {
+  if ( stream->status == XINE_STATUS_IDLE ||
+       stream->status == XINE_STATUS_STOP ) {
     _x_demux_control_end(stream, 0);
     lprintf ("ignored\n");
     return;
@@ -391,6 +392,16 @@ void xine_close (xine_stream_t *stream) {
 
   close_internal (stream);
 
+  /*
+   * set status to idle.
+   * not putting this into close_internal because it is also called
+   * by open_internal.
+   */
+
+  /* Don't change status if we're quitting */
+  if (stream->status != XINE_STATUS_QUIT)
+    stream->status = XINE_STATUS_IDLE;
+
   pthread_mutex_unlock (&stream->frontend_lock);
 }
 
@@ -467,7 +478,7 @@ xine_stream_t *xine_stream_new (xine_t *this,
   _x_extra_info_reset( stream->audio_decoder_extra_info );
 
   stream->xine                   = this;
-  stream->status                 = XINE_STATUS_STOP;
+  stream->status                 = XINE_STATUS_IDLE;
 
   stream->spu_decoder_plugin     = NULL;
   stream->spu_decoder_streamtype = -1;
@@ -633,7 +644,8 @@ static int open_internal (xine_stream_t *stream, const char *mrl) {
   if (!mrl) {
     xprintf (stream->xine, XINE_VERBOSITY_LOG, _("xine: error while parsing mrl\n"));
     stream->err = XINE_ERROR_MALFORMED_MRL;
-    stream->status = XINE_STATUS_STOP;
+    if (stream->status != XINE_STATUS_IDLE)
+      stream->status = XINE_STATUS_STOP;
     return 0;
   }
 
@@ -718,7 +730,7 @@ static int open_internal (xine_stream_t *stream, const char *mrl) {
 	  if (!(stream->demux_plugin = _x_find_demux_plugin_by_name(stream, demux_name, stream->input_plugin))) {
 	    xine_log(stream->xine, XINE_LOG_MSG, _("xine: specified demuxer %s failed to start\n"), demux_name);
 	    stream->err = XINE_ERROR_NO_DEMUX_PLUGIN;
-	    stream->status = XINE_STATUS_STOP;
+	    stream->status = XINE_STATUS_IDLE;
 	    free(demux_name);
 	    return 0;
 	  }
@@ -729,7 +741,7 @@ static int open_internal (xine_stream_t *stream, const char *mrl) {
 	} else {
 	  xprintf(stream->xine, XINE_VERBOSITY_LOG, _("xine: error while parsing mrl\n"));
 	  stream->err = XINE_ERROR_MALFORMED_MRL;
-	  stream->status = XINE_STATUS_STOP;
+	  stream->status = XINE_STATUS_IDLE;
 	  return 0;
 	}
 	continue;
@@ -759,14 +771,14 @@ static int open_internal (xine_stream_t *stream, const char *mrl) {
 	  } else {
 	    xprintf(stream->xine, XINE_VERBOSITY_LOG, _("xine: error opening rip input plugin instance\n"));
 	    stream->err = XINE_ERROR_MALFORMED_MRL;
-	    stream->status = XINE_STATUS_STOP;
+	    stream->status = XINE_STATUS_IDLE;
 	    return 0;
 	  }
 
 	} else {
 	  xprintf(stream->xine, XINE_VERBOSITY_LOG, _("xine: error while parsing mrl\n"));
 	  stream->err = XINE_ERROR_MALFORMED_MRL;
-	  stream->status = XINE_STATUS_STOP;
+	  stream->status = XINE_STATUS_IDLE;
 	  return 0;
 	}
 	continue;
@@ -790,7 +802,7 @@ static int open_internal (xine_stream_t *stream, const char *mrl) {
 	  if (!(stream->demux_plugin = _x_find_demux_plugin_last_probe(stream, demux_name, stream->input_plugin))) {
 	    xine_log(stream->xine, XINE_LOG_MSG, _("xine: last_probed demuxer %s failed to start\n"), demux_name);
 	    stream->err = XINE_ERROR_NO_DEMUX_PLUGIN;
-	    stream->status = XINE_STATUS_STOP;
+	    stream->status = XINE_STATUS_IDLE;
 	    free(demux_name);
 	    return 0;
 	  }
@@ -802,7 +814,7 @@ static int open_internal (xine_stream_t *stream, const char *mrl) {
 	} else {
 	  xprintf(stream->xine, XINE_VERBOSITY_LOG, _("xine: error while parsing mrl\n"));
 	  stream->err = XINE_ERROR_MALFORMED_MRL;
-	  stream->status = XINE_STATUS_STOP;
+	  stream->status = XINE_STATUS_IDLE;
 	  return 0;
 	}
 	continue;
@@ -814,7 +826,7 @@ static int open_internal (xine_stream_t *stream, const char *mrl) {
 	} else {
 	  xprintf(stream->xine, XINE_VERBOSITY_LOG, _("xine: error while parsing mrl\n"));
 	  stream->err = XINE_ERROR_MALFORMED_MRL;
-	  stream->status = XINE_STATUS_STOP;
+	  stream->status = XINE_STATUS_IDLE;
 	  return 0;
 	}
 	xprintf (stream->xine, XINE_VERBOSITY_LOG, _("ignoring video\n"));
@@ -827,7 +839,7 @@ static int open_internal (xine_stream_t *stream, const char *mrl) {
 	} else {
 	  xprintf(stream->xine, XINE_VERBOSITY_LOG, _("xine: error while parsing mrl\n"));
 	  stream->err = XINE_ERROR_MALFORMED_MRL;
-	  stream->status = XINE_STATUS_STOP;
+	  stream->status = XINE_STATUS_IDLE;
 	  return 0;
 	}
 	xprintf (stream->xine, XINE_VERBOSITY_LOG, _("ignoring audio\n"));
@@ -840,7 +852,7 @@ static int open_internal (xine_stream_t *stream, const char *mrl) {
 	} else {
 	  xprintf(stream->xine, XINE_VERBOSITY_LOG, _("xine: error while parsing mrl\n"));
 	  stream->err = XINE_ERROR_MALFORMED_MRL;
-	  stream->status = XINE_STATUS_STOP;
+	  stream->status = XINE_STATUS_IDLE;
 	  return 0;
 	}
 	xprintf (stream->xine, XINE_VERBOSITY_LOG, _("ignoring subpicture\n"));
@@ -853,7 +865,7 @@ static int open_internal (xine_stream_t *stream, const char *mrl) {
 	} else {
 	  xprintf(stream->xine, XINE_VERBOSITY_LOG, _("xine: error while parsing mrl\n"));
 	  stream->err = XINE_ERROR_MALFORMED_MRL;
-	  stream->status = XINE_STATUS_STOP;
+	  stream->status = XINE_STATUS_IDLE;
 	  return 0;
 	}
 	xprintf (stream->xine, XINE_VERBOSITY_LOG, _("input cache plugin disabled\n"));
@@ -879,7 +891,7 @@ static int open_internal (xine_stream_t *stream, const char *mrl) {
 	} else {
 	  xprintf(stream->xine, XINE_VERBOSITY_LOG, _("xine: error while parsing mrl\n"));
 	  stream->err = XINE_ERROR_MALFORMED_MRL;
-	  stream->status = XINE_STATUS_STOP;
+	  stream->status = XINE_STATUS_IDLE;
 	  return 0;
 	}
 	continue;
@@ -904,7 +916,7 @@ static int open_internal (xine_stream_t *stream, const char *mrl) {
 	} else {
 	  xprintf(stream->xine, XINE_VERBOSITY_LOG, _("xine: error while parsing mrl\n"));
 	  stream->err = XINE_ERROR_MALFORMED_MRL;
-	  stream->status = XINE_STATUS_STOP;
+	  stream->status = XINE_STATUS_IDLE;
 	  return 0;
 	}
 	continue;
@@ -939,7 +951,7 @@ static int open_internal (xine_stream_t *stream, const char *mrl) {
 	} else {
 	  xprintf(stream->xine, XINE_VERBOSITY_LOG, _("xine: error while parsing mrl\n"));
 	  stream->err = XINE_ERROR_MALFORMED_MRL;
-	  stream->status = XINE_STATUS_STOP;
+	  stream->status = XINE_STATUS_IDLE;
 	  return 0;
 	}
 	continue;
@@ -970,7 +982,7 @@ static int open_internal (xine_stream_t *stream, const char *mrl) {
 	      config_entry);
 	  }
           stream->err = XINE_ERROR_MALFORMED_MRL;
-          stream->status = XINE_STATUS_STOP;
+          stream->status = XINE_STATUS_IDLE;
 	  free(config_entry);
           return 0;
 	}
@@ -993,7 +1005,7 @@ static int open_internal (xine_stream_t *stream, const char *mrl) {
       xine_log (stream->xine, XINE_LOG_MSG, _("xine: couldn't find demux for >%s<\n"), mrl);
       stream->err = XINE_ERROR_NO_DEMUX_PLUGIN;
 
-      stream->status = XINE_STATUS_STOP;
+      stream->status = XINE_STATUS_IDLE;
 
       /* force the engine to unregister fifo callbacks */
       _x_demux_control_nop(stream, BUF_FLAG_END_STREAM);
@@ -1037,13 +1049,15 @@ static int open_internal (xine_stream_t *stream, const char *mrl) {
     stream->input_plugin = NULL;
     stream->err = XINE_ERROR_NO_DEMUX_PLUGIN;
 
-    stream->status = XINE_STATUS_STOP;
+    stream->status = XINE_STATUS_IDLE;
 
     xprintf (stream->xine, XINE_VERBOSITY_DEBUG, "return from\n");
     return 0;
   }
 
   _x_demux_control_headers_done (stream);
+
+  stream->status = XINE_STATUS_STOP;
 
   lprintf ("done\n");
   return 1;
