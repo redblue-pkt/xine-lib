@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.104 2003/08/31 17:56:24 jcdutton Exp $
+ * $Id: audio_alsa_out.c,v 1.105 2003/09/01 00:51:45 jcdutton Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -381,6 +381,7 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
     printf ("audio_alsa_out: >>> check if another program don't already use PCM <<<\n");     
     return 0;
   }
+  /* printf ("audio_alsa_out: snd_pcm_open() opened %s\n", pcm_device); */ 
   /* We wanted non blocking open but now put it back to normal */
   //snd_pcm_nonblock(this->audio_fd, 0);
   snd_pcm_nonblock(this->audio_fd, 1);
@@ -1140,6 +1141,19 @@ static void ao_alsa_mixer_init(ao_driver_t *this_gen) {
 
 }
 
+static void alsa_passthru_cb (void *user_data,
+                                  xine_cfg_entry_t *entry) {
+  alsa_driver_t *this = (alsa_driver_t *) user_data;
+  int32_t value = entry->num_value;
+  if (value) {
+    this->capabilities |= AO_CAP_MODE_A52;
+    this->capabilities |= AO_CAP_MODE_AC5;
+  } else {
+    this->capabilities &= ~AO_CAP_MODE_A52;
+    this->capabilities &= ~AO_CAP_MODE_AC5;
+  }
+}
+
 /*
  * Initialize plugin
  */
@@ -1323,8 +1337,8 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
                                0,
                                _("used to inform xine about what the sound card can do"),
                                NULL,
-                               0, NULL,
-                               NULL) ) {
+                               0, alsa_passthru_cb,
+                               this) ) {
     this->capabilities |= AO_CAP_MODE_A52;
     this->capabilities |= AO_CAP_MODE_AC5;
     if (class->xine->verbosity >= XINE_VERBOSITY_LOG)
