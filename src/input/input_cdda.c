@@ -20,7 +20,7 @@
  * Compact Disc Digital Audio (CDDA) Input Plugin 
  *   by Mike Melanson (melanson@pcisys.net)
  *
- * $Id: input_cdda.c,v 1.58 2004/05/20 18:43:32 mroi Exp $
+ * $Id: input_cdda.c,v 1.59 2004/05/26 16:37:41 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -1095,6 +1095,19 @@ static void cachedir_changed_cb(void *data, xine_cfg_entry_t *cfg) {
     this->cddb.cache_dir = cfg->str_value;
   }
 }
+#ifdef CDROM_SELECT_SPEED
+static void speed_changed_cb(void *data, xine_cfg_entry_t *cfg) {
+  cdda_input_class_t *class = (cdda_input_class_t *) data;
+  
+  if (class->ip) {
+    cdda_input_plugin_t *this = class->ip;
+    if (this->fd != -1)
+      if (ioctl(this->fd, CDROM_SELECT_SPEED, cfg->num_value) != 0)
+        xprintf(class->xine, XINE_VERBOSITY_DEBUG,
+          "input_cdda: setting drive speed to %d failed\n", cfg->num_value);
+  }
+}
+#endif
 
 /*
  * Return 1 if CD has been changed, 0 of not, -1 on error.
@@ -1813,6 +1826,17 @@ static int cdda_open(cdda_input_plugin_t *this_gen,
 
   if (this_gen)
     this_gen->fd = fd;
+  
+#ifdef CDROM_SELECT_SPEED
+  if (this_gen->stream) {
+    int speed;
+    speed = this_gen->stream->xine->config->lookup_entry(this_gen->stream->xine->config,
+      "input.drive_slowdown")->num_value;
+    if (speed && ioctl(fd, CDROM_SELECT_SPEED, speed) != 0)
+      xprintf(this_gen->stream->xine, XINE_VERBOSITY_DEBUG,
+        "input_cdda: setting drive speed to %d failed\n", speed);
+  }
+#endif
 
   *fdd = fd;
   return 0;
@@ -1967,8 +1991,19 @@ static int cdda_close(cdda_input_plugin_t *this_gen) {
   if (!this_gen)
       return 0;
 
-  if( this_gen->fd != -1 )
-      close(this_gen->fd);
+  if( this_gen->fd != -1 ) {
+#ifdef CDROM_SELECT_SPEED
+    if (this_gen->stream) {
+      int speed;
+      speed = this_gen->stream->xine->config->lookup_entry(this_gen->stream->xine->config,
+        "input.drive_slowdown")->num_value;
+      if (speed && ioctl(this_gen->fd, CDROM_SELECT_SPEED, 0) != 0)
+        xprintf(this_gen->stream->xine, XINE_VERBOSITY_DEBUG,
+          "input_cdda: setting drive speed to normal failed\n");
+    }
+#endif
+    close(this_gen->fd);
+  }
   this_gen->fd = -1;
 
   if (this_gen->net_fd != -1)
@@ -2515,6 +2550,19 @@ static void *init_plugin (xine_t *xine, void *data) {
 			  "with uncontrollable names will be created in this directory. Be sure to use "
 			  "a dedicated directory not used for anything but CDDB caching."), XINE_CONFIG_SECURITY, 
 			  cachedir_changed_cb, (void *) this);
+
+#ifdef CDROM_SELECT_SPEED
+  config->register_num(config, "input.drive_slowdown", 4,
+		       _("slow down disc drive to this speed factor"),
+		       _("Since some CD or DVD drives make some really "
+			 "loud noises because of the fast disc rotation, "
+			 "xine will try to slow them down. With standard "
+			 "CD or DVD playback, the high datarates that "
+			 "require the fast rotation are not needed, so "
+			 "the slowdown should not affect playback performance.\n"
+			 "A value of zero here will disable the slowdown."),
+		       10, speed_changed_cb, (void *) this);
+#endif
 
   this->cddb_error = 0;
 
