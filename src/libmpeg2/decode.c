@@ -494,30 +494,32 @@ void mpeg2_reset (mpeg2dec_t * mpeg2dec) {
   
   mpeg2dec->pts = 0;
   
-  if( !picture->mpeg1 )
+  if( !picture->mpeg1 ) 
     mpeg2dec->is_sequence_needed = 1;
+  else {
+    /* to free reference frames one also needs to fix slice.c to 
+     * abort when they are NULL. unfortunately it seems to break
+     * DVD menus.
+     *
+     * ...so let's do this for mpeg-1 only :)
+     */
+    if ( picture->current_frame && 
+	 picture->current_frame != picture->backward_reference_frame &&
+	 picture->current_frame != picture->forward_reference_frame )
+      picture->current_frame->free (picture->current_frame);
+    picture->current_frame = NULL;
+    
+    if (picture->forward_reference_frame)
+      picture->forward_reference_frame->free (picture->forward_reference_frame);
+    picture->forward_reference_frame = NULL;
+    
+    if (picture->backward_reference_frame)
+      picture->backward_reference_frame->free (picture->backward_reference_frame);
+    picture->backward_reference_frame = NULL;
+  }
   
   mpeg2dec->in_slice = 0;
 
-  /* to free reference frames one also needs to fix slice.c to 
-   * abort when they are NULL. unfortunately it seems to break
-   * DVD menus.
-   */
-  /*
-  if ( picture->current_frame && 
-       picture->current_frame != picture->backward_reference_frame &&
-       picture->current_frame != picture->forward_reference_frame )
-    picture->current_frame->free (picture->current_frame);
-  picture->current_frame = NULL;
-  
-  if (picture->forward_reference_frame)
-    picture->forward_reference_frame->free (picture->forward_reference_frame);
-  picture->forward_reference_frame = NULL;
-  
-  if (picture->backward_reference_frame)
-    picture->backward_reference_frame->free (picture->backward_reference_frame);
-  picture->backward_reference_frame = NULL;
-  */
 }
 
 /* flush must never allocate any frame (get_frame/duplicate_frame).
