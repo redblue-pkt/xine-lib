@@ -9,7 +9,7 @@ Package: libxine-dev
 Architecture: any
 Section: devel
 Depends: libxine0 (= ${Source-Version}), libc6-dev, xlibs-dev
-Conflicts: xine-ui (<< 0.9.1)
+Conflicts: xine-ui (<< 0.9.5)
 Description: the xine video player library, development packages
  This contains development files (headers, documentation and the like)
  for the xine library (libxine).
