@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpgaudio.c,v 1.99 2003/03/19 23:22:17 holstsn Exp $
+ * $Id: demux_mpgaudio.c,v 1.100 2003/03/21 14:37:40 f1rmb Exp $
  *
  * demultiplexer for mpeg audio (i.e. mp3) streams
  *
@@ -634,7 +634,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
     head = demux_mpgaudio_read_head (input, buf);
 
 #ifdef LOG
-    printf ("demux_mpgaudio: head is %x head2 is %x\n", head, head2);
+    printf ("demux_mpgaudio: head is %x\n", head);
 #endif
     
     if (head == RIFF_TAG) {
