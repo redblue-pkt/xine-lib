@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.50 2001/10/06 11:54:49 jcdutton Exp $
+ * $Id: demux_mpeg_block.c,v 1.51 2001/10/06 13:48:17 jkeil Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -281,12 +281,16 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
     }
 
   } else { /* mpeg 2 */
+    /* check PES scrambling_control */
     if ((p[6] & 0x30) != 0) {
-        printf("demux_mpeg_block:Encrypted PES MPEG2 stream.\n");
-        printf("                 You will need to find an input plugin which can decrypt.\n");
+        printf("demux_mpeg_block: Encrypted PES MPEG2 stream.\n");
+	printf("\n\tSorry, Xine doesn't play encrypted MPEG2 streams. The legal status of\n"
+	       "\tCSS decryption is unclear and we will not provide such code.\n\n");
 	buf->free_buffer(buf);
+	this->status = DEMUX_FINISHED;
         return;
     }
+
     if (p[7] & 0x80) { /* PTS avail */
       
       PTS  = (p[ 9] & 0x0E) << 29 ;
