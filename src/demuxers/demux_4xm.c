@@ -23,7 +23,7 @@
  * For more information on the 4xm file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_4xm.c,v 1.3 2003/07/03 00:58:52 andruil Exp $
+ * $Id: demux_4xm.c,v 1.4 2003/07/16 00:52:45 andruil Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -206,8 +206,8 @@ static int open_fourxm_file(demux_fourxm_t *fourxm) {
 }
 
 static int demux_fourxm_send_chunk(demux_plugin_t *this_gen) {
-
   demux_fourxm_t *this = (demux_fourxm_t *) this_gen;
+
   buf_element_t *buf = NULL;
   unsigned int fourcc_tag;
   unsigned int size;
@@ -343,7 +343,6 @@ static int demux_fourxm_send_chunk(demux_plugin_t *this_gen) {
 }
 
 static void demux_fourxm_send_headers(demux_plugin_t *this_gen) {
-
   demux_fourxm_t *this = (demux_fourxm_t *) this_gen;
   buf_element_t *buf;
 
@@ -421,7 +420,6 @@ static int demux_fourxm_get_status (demux_plugin_t *this_gen) {
 }
 
 static int demux_fourxm_get_stream_length (demux_plugin_t *this_gen) {
-
 /*  demux_fourxm_t *this = (demux_fourxm_t *) this_gen;*/
 
   return 0;
@@ -509,14 +507,12 @@ static char *get_mimetypes (demux_class_t *this_gen) {
 }
 
 static void class_dispose (demux_class_t *this_gen) {
-
   demux_fourxm_class_t *this = (demux_fourxm_class_t *) this_gen;
 
   free (this);
 }
 
 void *demux_fourxm_init_plugin (xine_t *xine, void *data) {
-
   demux_fourxm_class_t     *this;
 
   this = xine_xmalloc (sizeof (demux_fourxm_class_t));

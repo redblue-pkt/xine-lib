@@ -16,12 +16,13 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
- *
+ */
+
+/*
  * MS WAV File Demuxer by Mike Melanson (melanson@pcisys.net)
  * based on WAV specs that are available far and wide
  *
- * $Id: demux_wav.c,v 1.43 2003/05/23 15:36:58 jcdutton Exp $
- *
+ * $Id: demux_wav.c,v 1.44 2003/07/16 00:52:45 andruil Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -47,18 +48,12 @@
 #define PCM_BLOCK_ALIGN 1024
 
 typedef struct {
-
   demux_plugin_t       demux_plugin;
 
   xine_stream_t       *stream;
-
-  config_values_t     *config;
-
   fifo_buffer_t       *video_fifo;
   fifo_buffer_t       *audio_fifo;
-
   input_plugin_t      *input;
-
   int                  status;
 
   xine_waveformatex    *wave;
@@ -69,30 +64,21 @@ typedef struct {
   off_t                data_size;
 
   int                  seek_flag;  /* this is set when a seek just occurred */
-
-  char                 last_mrl[1024];
 } demux_wav_t;
 
 typedef struct {
-
   demux_class_t     demux_class;
-
-  /* class-wide, global variables here */
-
-  xine_t           *xine;
-  config_values_t  *config;
 } demux_wav_class_t;
 
 /* returns 1 if the WAV file was opened successfully, 0 otherwise */
 static int open_wav_file(demux_wav_t *this) {
-
   uint8_t signature[WAV_SIGNATURE_SIZE];
   uint32_t chunk_tag;
   uint32_t chunk_size;
   uint8_t chunk_preamble[8];
 
   /* check the signature */
-  if (!xine_demux_read_header(this->input, signature, WAV_SIGNATURE_SIZE))
+  if (xine_demux_read_header(this->input, signature, WAV_SIGNATURE_SIZE) != WAV_SIGNATURE_SIZE)
     return 0;
 
   if ((signature[0] != 'R') ||
@@ -183,8 +169,8 @@ static int open_wav_file(demux_wav_t *this) {
 }
 
 static int demux_wav_send_chunk(demux_plugin_t *this_gen) {
-
   demux_wav_t *this = (demux_wav_t *) this_gen;
+
   buf_element_t *buf = NULL;
   unsigned int remaining_sample_bytes;
   off_t current_file_pos;
@@ -193,7 +179,7 @@ static int demux_wav_send_chunk(demux_plugin_t *this_gen) {
   /* just load data chunks from wherever the stream happens to be
    * pointing; issue a DEMUX_FINISHED status if EOF is reached */
   remaining_sample_bytes = this->wave->nBlockAlign;
-  current_file_pos = 
+  current_file_pos =
     this->input->get_current_pos(this->input) - this->data_start;
 
   current_pts = current_file_pos;
@@ -255,7 +241,7 @@ static int demux_wav_send_chunk(demux_plugin_t *this_gen) {
     }
     printf("\n");
 #endif
- 
+
     if (!remaining_sample_bytes)
       buf->decoder_flags |= BUF_FLAG_FRAME_END;
 
@@ -267,7 +253,6 @@ static int demux_wav_send_chunk(demux_plugin_t *this_gen) {
 }
 
 static void demux_wav_send_headers(demux_plugin_t *this_gen) {
-
   demux_wav_t *this = (demux_wav_t *) this_gen;
   buf_element_t *buf;
 
@@ -279,11 +264,11 @@ static void demux_wav_send_headers(demux_plugin_t *this_gen) {
   /* load stream information */
   this->stream->stream_info[XINE_STREAM_INFO_HAS_VIDEO] = 0;
   this->stream->stream_info[XINE_STREAM_INFO_HAS_AUDIO] = 1;
-  this->stream->stream_info[XINE_STREAM_INFO_AUDIO_CHANNELS] = 
+  this->stream->stream_info[XINE_STREAM_INFO_AUDIO_CHANNELS] =
     this->wave->nChannels;
-  this->stream->stream_info[XINE_STREAM_INFO_AUDIO_SAMPLERATE] = 
+  this->stream->stream_info[XINE_STREAM_INFO_AUDIO_SAMPLERATE] =
     this->wave->nSamplesPerSec;
-  this->stream->stream_info[XINE_STREAM_INFO_AUDIO_BITS] = 
+  this->stream->stream_info[XINE_STREAM_INFO_AUDIO_BITS] =
     this->wave->wBitsPerSample;
 
   /* send start buffers */
@@ -312,10 +297,10 @@ static int demux_wav_seek (demux_plugin_t *this_gen,
   this->seek_flag = 1;
   this->status = DEMUX_OK;
   xine_demux_flush_engine (this->stream);
-  
+
   /* if input is non-seekable, do not proceed with the rest of this
    * seek function */
-  if ((this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) == 0)
+  if (!INPUT_IS_SEEKABLE(this->input))
     return this->status;
 
   /* check the boundary offsets */
@@ -355,7 +340,6 @@ static int demux_wav_get_status (demux_plugin_t *this_gen) {
 
 /* return the approximate length in miliseconds */
 static int demux_wav_get_stream_length (demux_plugin_t *this_gen) {
-
   demux_wav_t *this = (demux_wav_t *) this_gen;
 
   return (int)((int64_t) this->data_size * 1000 / this->wave->nAvgBytesPerSec);
@@ -371,9 +355,8 @@ static int demux_wav_get_optional_data(demux_plugin_t *this_gen,
 }
 
 static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *stream,
-                                    input_plugin_t *input_gen) {
+                                    input_plugin_t *input) {
 
-  input_plugin_t *input = (input_plugin_t *) input_gen;
   demux_wav_t    *this;
 
   this         = xine_xmalloc (sizeof (demux_wav_t));
@@ -424,8 +407,6 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
     return NULL;
   }
 
-  strncpy (this->last_mrl, input->get_mrl (input), 1024);
-
   /* special block alignment hack so that the demuxer doesn't send
    * packets with individual PCM samples */
   if ((this->wave->nAvgBytesPerSec / this->wave->nBlockAlign) ==
@@ -455,19 +436,15 @@ static char *get_mimetypes (demux_class_t *this_gen) {
 }
 
 static void class_dispose (demux_class_t *this_gen) {
-
   demux_wav_class_t *this = (demux_wav_class_t *) this_gen;
 
   free (this);
 }
 
 void *demux_wav_init_plugin (xine_t *xine, void *data) {
-
   demux_wav_class_t     *this;
 
-  this         = xine_xmalloc (sizeof (demux_wav_class_t));
-  this->config = xine->config;
-  this->xine   = xine;
+  this = xine_xmalloc (sizeof (demux_wav_class_t));
 
   this->demux_class.open_plugin     = open_plugin;
   this->demux_class.get_description = get_description;

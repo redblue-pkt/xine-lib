@@ -16,7 +16,9 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
- *
+ */
+
+/*
  * NSF File "Demuxer" by Mike Melanson (melanson@pcisys.net)
  * This is really just a loader for NES Music File Format (extension NSF)
  * which loads an entire NSF file and passes it over to the NSF audio
@@ -28,7 +30,7 @@
  * For more information regarding the NSF format, visit:
  *   http://www.tripoint.org/kevtris/nes/nsfspec.txt
  *
- * $Id: demux_nsf.c,v 1.13 2003/04/26 20:16:17 guenter Exp $
+ * $Id: demux_nsf.c,v 1.14 2003/07/16 00:52:45 andruil Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -40,6 +42,11 @@
 #include <unistd.h>
 #include <string.h>
 #include <stdlib.h>
+
+/********** logging **********/
+#define LOG_MODULE "demux_nsf"
+/* #define LOG_VERBOSE */
+/* #define LOG */
 
 #include "xine_internal.h"
 #include "xineutils.h"
@@ -55,20 +62,12 @@
 #define NSF_PTS_INC (90000 / NSF_REFRESH_RATE)
 
 typedef struct {
-
   demux_plugin_t       demux_plugin;
 
   xine_stream_t       *stream;
-
-  config_values_t     *config;
-
   fifo_buffer_t       *video_fifo;
   fifo_buffer_t       *audio_fifo;
-
   input_plugin_t      *input;
-
-  int                  thread_running;
-
   int                  status;
 
   char                *title;
@@ -81,25 +80,14 @@ typedef struct {
 
   int64_t              current_pts;
   int                  file_sent;
-
-  char                 last_mrl[1024];
-
 } demux_nsf_t;
 
 typedef struct {
-
   demux_class_t     demux_class;
-
-  /* class-wide, global variables here */
-
-  xine_t           *xine;
-  config_values_t  *config;
 } demux_nsf_class_t;
-
 
 /* returns 1 if the NSF file was opened successfully, 0 otherwise */
 static int open_nsf_file(demux_nsf_t *this) {
-
   unsigned char header[NSF_HEADER_SIZE];
 
   this->input->seek(this->input, 0, SEEK_SET);
@@ -127,7 +115,6 @@ static int open_nsf_file(demux_nsf_t *this) {
 }
 
 static int demux_nsf_send_chunk(demux_plugin_t *this_gen) {
-
   demux_nsf_t *this = (demux_nsf_t *) this_gen;
   buf_element_t *buf;
   int bytes_read;
@@ -172,7 +159,7 @@ static int demux_nsf_send_chunk(demux_plugin_t *this_gen) {
 
       buf->decoder_info[1] = this->current_song;
       this->new_song = 0;
-      sprintf(title, "%s, song %d/%d", 
+      sprintf(title, "%s, song %d/%d",
         this->title, this->current_song, this->total_songs);
       if (this->stream->meta_info[XINE_META_INFO_TITLE])
         free (this->stream->meta_info[XINE_META_INFO_TITLE]);
@@ -197,7 +184,6 @@ static int demux_nsf_send_chunk(demux_plugin_t *this_gen) {
 }
 
 static void demux_nsf_send_headers(demux_plugin_t *this_gen) {
-
   demux_nsf_t *this = (demux_nsf_t *) this_gen;
   buf_element_t *buf;
   char copyright[100];
@@ -293,7 +279,6 @@ static int demux_nsf_get_status (demux_plugin_t *this_gen) {
 
 /* return the approximate length in miliseconds */
 static int demux_nsf_get_stream_length (demux_plugin_t *this_gen) {
-
   return 0;
 }
 
@@ -307,14 +292,13 @@ static int demux_nsf_get_optional_data(demux_plugin_t *this_gen,
 }
 
 static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *stream,
-                                    input_plugin_t *input_gen) {
+                                    input_plugin_t *input) {
 
-  input_plugin_t *input = (input_plugin_t *) input_gen;
   demux_nsf_t   *this;
 
-  if (! (input->get_capabilities(input) & INPUT_CAP_SEEKABLE)) {
-    if (stream->xine->verbosity >= XINE_VERBOSITY_DEBUG) 
-      printf(_("demux_nsf.c: input not seekable, can not handle!\n"));
+  if (!INPUT_IS_SEEKABLE(input)) {
+    xprintf(stream->xine, XINE_VERBOSITY_DEBUG,
+            _("input not seekable, can not handle!\n"));
     return NULL;
   }
 
@@ -338,6 +322,19 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
 
   switch (stream->content_detection_method) {
 
+  case METHOD_BY_EXTENSION: {
+    char *extensions, *mrl;
+
+    mrl = input->get_mrl (input);
+    extensions = class_gen->get_extensions (class_gen);
+
+    if (!xine_demux_check_extension (mrl, extensions)) {
+      free (this);
+      return NULL;
+    }
+  }
+  /* falling through is intended */
+
   case METHOD_BY_CONTENT:
   case METHOD_EXPLICIT:
 
@@ -348,38 +345,10 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
 
   break;
 
-  case METHOD_BY_EXTENSION: {
-    char *ending, *mrl;
-
-    mrl = input->get_mrl (input);
-
-    ending = strrchr(mrl, '.');
-
-    if (!ending) {
-      free (this);
-      return NULL;
-    }
-
-    if (strncasecmp (ending, ".nsf", 4)) {
-      free (this);
-      return NULL;
-    }
-
-    if (!open_nsf_file(this)) {
-      free (this);
-      return NULL;
-    }
-
-  }
-
-  break;
-
   default:
     free (this);
     return NULL;
   }
-
-  strncpy (this->last_mrl, input->get_mrl (input), 1024);
 
   return &this->demux_plugin;
 }
@@ -401,19 +370,15 @@ static char *get_mimetypes (demux_class_t *this_gen) {
 }
 
 static void class_dispose (demux_class_t *this_gen) {
-
   demux_nsf_class_t *this = (demux_nsf_class_t *) this_gen;
 
   free (this);
 }
 
 void *demux_nsf_init_plugin (xine_t *xine, void *data) {
-
   demux_nsf_class_t     *this;
 
-  this         = xine_xmalloc (sizeof (demux_nsf_class_t));
-  this->config = xine->config;
-  this->xine   = xine;
+  this = xine_xmalloc (sizeof (demux_nsf_class_t));
 
   this->demux_class.open_plugin     = open_plugin;
   this->demux_class.get_description = get_description;
@@ -424,4 +389,3 @@ void *demux_nsf_init_plugin (xine_t *xine, void *data) {
 
   return this;
 }
-

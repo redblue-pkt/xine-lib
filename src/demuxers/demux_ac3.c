@@ -23,7 +23,7 @@
  * This demuxer detects raw AC3 data in a file and shovels AC3 data
  * directly to the AC3 decoder.
  *
- * $Id: demux_ac3.c,v 1.8 2003/07/03 00:58:52 andruil Exp $
+ * $Id: demux_ac3.c,v 1.9 2003/07/16 00:52:45 andruil Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -118,7 +118,6 @@ static const struct frmsize_s frmsizecod_tbl[64] =
 
 /* returns 1 if the AC3 file was opened successfully, 0 otherwise */
 static int open_ac3_file(demux_ac3_t *this) {
-
   unsigned char preamble[AC3_PREAMBLE_BYTES];
 
   /* check if the sync mark matches up */
@@ -160,8 +159,8 @@ static int open_ac3_file(demux_ac3_t *this) {
 }
 
 static int demux_ac3_send_chunk (demux_plugin_t *this_gen) {
-
   demux_ac3_t *this = (demux_ac3_t *) this_gen;
+
   buf_element_t *buf = NULL;
   off_t current_stream_pos;
   int64_t audio_pts;
@@ -170,7 +169,7 @@ static int demux_ac3_send_chunk (demux_plugin_t *this_gen) {
   current_stream_pos = this->input->get_current_pos(this->input);
   frame_number = current_stream_pos / this->frame_size;
 
-  /* 
+  /*
    * Each frame represents 256 new audio samples according to the a52 spec.
    * Thus, the pts computation should work something like:
    *
@@ -221,7 +220,6 @@ static int demux_ac3_send_chunk (demux_plugin_t *this_gen) {
 }
 
 static void demux_ac3_send_headers(demux_plugin_t *this_gen) {
-
   demux_ac3_t *this = (demux_ac3_t *) this_gen;
   buf_element_t *buf;
 
@@ -284,7 +282,6 @@ static int demux_ac3_get_status (demux_plugin_t *this_gen) {
 
 /* return the approximate length in milliseconds */
 static int demux_ac3_get_stream_length (demux_plugin_t *this_gen) {
-
   demux_ac3_t *this = (demux_ac3_t *) this_gen;
 
   return this->running_time;
@@ -372,14 +369,12 @@ static char *get_mimetypes (demux_class_t *this_gen) {
 }
 
 static void class_dispose (demux_class_t *this_gen) {
-
   demux_ac3_class_t *this = (demux_ac3_class_t *) this_gen;
 
   free (this);
 }
 
 void *demux_ac3_init_plugin (xine_t *xine, void *data) {
-
   demux_ac3_class_t     *this;
 
   this = xine_xmalloc (sizeof (demux_ac3_class_t));

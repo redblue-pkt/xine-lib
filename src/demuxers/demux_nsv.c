@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2002 the xine project
+ * Copyright (C) 2000-2003 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -16,12 +16,14 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
- *
+ */
+
+/*
  * Nullsoft Video (NSV) file demuxer by Mike Melanson (melanson@pcisys.net)
  * For more information regarding the NSV file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_nsv.c,v 1.2 2003/05/27 03:39:52 tmmm Exp $
+ * $Id: demux_nsv.c,v 1.3 2003/07/16 00:52:45 andruil Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -33,6 +35,11 @@
 #include <unistd.h>
 #include <string.h>
 #include <stdlib.h>
+
+/********** logging **********/
+#define LOG_MODULE "demux_nsv"
+/* #define LOG_VERBOSE */
+/* #define LOG */
 
 #include "xine_internal.h"
 #include "xineutils.h"
@@ -53,78 +60,39 @@
 
 #define BEEF 0xBEEF
 
-/* debug support */
-#define DEBUG_NSV 0
-
-#if DEBUG_NSV
-#define debug_nsv printf
-#else
-static inline void debug_nsv(const char *format, ...) { }
-#endif
-
 typedef struct {
-
   demux_plugin_t       demux_plugin;
 
   xine_stream_t       *stream;
-
-  config_values_t     *config;
-
   fifo_buffer_t       *video_fifo;
   fifo_buffer_t       *audio_fifo;
-
   input_plugin_t      *input;
-
-  int                  thread_running;
-
-  off_t                data_start;
-  off_t                data_size;
   int                  status;
+
+  off_t                data_size;
 
   unsigned int         fps;
   unsigned int         frame_pts_inc;
 
-  unsigned int         video_fourcc;
   unsigned int         video_type;
   int64_t              video_pts;
-
-  unsigned int         audio_fourcc;
   unsigned int         audio_type;
-  unsigned int         audio_bits;
-  unsigned int         audio_channels;
-  unsigned int         audio_sample_rate;
-  unsigned int         audio_frame_count;
 
   xine_bmiheader       bih;
-  xine_waveformatex    wave;
-
-  char                 last_mrl[1024];
-
 } demux_nsv_t;
 
 typedef struct {
-
   demux_class_t     demux_class;
-
-  /* class-wide, global variables here */
-
-  xine_t           *xine;
-  config_values_t  *config;
 } demux_nsv_class_t;
 
 /* returns 1 if the NSV file was opened successfully, 0 otherwise */
 static int open_nsv_file(demux_nsv_t *this) {
+  unsigned char preview[28];
+  unsigned int  video_fourcc;
+  unsigned int  audio_fourcc;
 
-  unsigned char preview[MAX_PREVIEW_SIZE];
-
-  if (this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) {
-    this->input->seek(this->input, 0, SEEK_SET);
-    if (this->input->read(this->input, preview, 4) != 4)
-      return 0;
-  } else {
-    this->input->get_optional_data(this->input, preview,
-      INPUT_OPTIONAL_DATA_PREVIEW);
-  }
+  if (xine_demux_read_header(this->input, preview, 4) != 4)
+    return 0;
 
   /* check for a 'NSV' signature */
   if ((preview[0] != 'N') ||
@@ -132,13 +100,10 @@ static int open_nsv_file(demux_nsv_t *this) {
       (preview[2] != 'V'))
     return 0;
 
-  debug_nsv("  demux_nsv: NSV file detected\n");
+  lprintf("NSV file detected\n");
 
-  /* file is qualified, proceed to load; jump over the first 4 bytes if
-   * stream is non-seekable */
-  if ((this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) == 0) {
-    this->input->seek(this->input, 4, SEEK_SET);
-  }
+  /* file is qualified, proceed to load; jump over the first 4 bytes */
+  this->input->seek(this->input, 4, SEEK_SET);
 
   this->data_size = this->input->get_length(this->input);
 
@@ -149,7 +114,7 @@ static int open_nsv_file(demux_nsv_t *this) {
     if (this->input->read(this->input, &preview[4], 24) != 24)
       return 0;
 
-    debug_nsv("  demux_nsv: found NSVf chunk\n");
+    lprintf("found NSVf chunk\n");
     this->data_size = BE_32(&preview[8]);
 
     /* skip the rest of the data */
@@ -169,27 +134,28 @@ static int open_nsv_file(demux_nsv_t *this) {
   if (this->input->read(this->input, &preview[4], 12) != 12)
     return 0;
 
-  this->video_fourcc = ME_32(&preview[4]);
+  video_fourcc = ME_32(&preview[4]);
   if (BE_32(&preview[4]) == NONE_TAG)
     this->video_type = 0;
   else
-    this->video_type = fourcc_to_buf_video(this->video_fourcc);
-  this->audio_fourcc = ME_32(&preview[8]);
+    this->video_type = fourcc_to_buf_video(video_fourcc);
+
+  audio_fourcc = ME_32(&preview[8]);
   if (BE_32(&preview[8]) == NONE_TAG)
     this->audio_type = 0;
   else
-    this->audio_type = formattag_to_buf_audio(this->audio_fourcc);
+    this->audio_type = formattag_to_buf_audio(audio_fourcc);
 
   this->bih.biSize = sizeof(this->bih);
   this->bih.biWidth = LE_16(&preview[12]);
   this->bih.biHeight = LE_16(&preview[14]);
-  this->bih.biCompression = this->video_fourcc;
+  this->bih.biCompression = video_fourcc;
   this->video_pts = 0;
 
   /* may not be true, but set it for the time being */
   this->frame_pts_inc = 3003;
 
-  debug_nsv("  video: %c%c%c%c, buffer type %08X, %dx%d\n",
+  lprintf("video: %c%c%c%c, buffer type %08X, %dx%d\n",
     preview[4],
     preview[5],
     preview[6],
@@ -202,8 +168,8 @@ static int open_nsv_file(demux_nsv_t *this) {
 }
 
 static int demux_nsv_send_chunk(demux_plugin_t *this_gen) {
-
   demux_nsv_t *this = (demux_nsv_t *) this_gen;
+
   unsigned char header[8];
   buf_element_t *buf;
   off_t current_file_pos;
@@ -213,9 +179,9 @@ static int demux_nsv_send_chunk(demux_plugin_t *this_gen) {
 
   current_file_pos = this->input->get_current_pos(this->input);
 
-  debug_nsv (" dispatching video & audio chunks...\n");
+  lprintf("dispatching video & audio chunks...\n");
 
-  /* 
+  /*
    * Read 7 bytes and expect the stream to be sitting at 1 of 3 places:
    *  1) start of a new 'NSVs' chunk; need to seek over the next 9 bytes,
    *     read 7 bytes, and move onto case 2
@@ -236,7 +202,7 @@ static int demux_nsv_send_chunk(demux_plugin_t *this_gen) {
 
   /* situation #3 from the comment */
   case 0xBEEF:
-    debug_nsv ("   situation #3\n");
+    lprintf("situation #3\n");
     video_size = LE_32(&header[2]);
     video_size >>= 4;
     video_size &= 0xFFFFF;
@@ -245,7 +211,7 @@ static int demux_nsv_send_chunk(demux_plugin_t *this_gen) {
 
   /* situation #1 from the comment, characters 'NS' (swapped) from the stream */
   case 0x534E:
-    debug_nsv ("   situation #1\n");
+    lprintf("situation #1\n");
     this->input->seek(this->input, 9, SEEK_CUR);
     if (this->input->read(this->input, header, 7) != 7) {
       this->status = DEMUX_FINISHED;
@@ -256,7 +222,7 @@ static int demux_nsv_send_chunk(demux_plugin_t *this_gen) {
 
   /* situation #2 from the comment */
   default:
-    debug_nsv ("   situation #2\n");
+    lprintf("situation #2\n");
     /* need 1 more byte */
     if (this->input->read(this->input, &header[7], 1) != 1) {
       this->status = DEMUX_FINISHED;
@@ -270,19 +236,19 @@ static int demux_nsv_send_chunk(demux_plugin_t *this_gen) {
         /* 29.97 fps */
         this->frame_pts_inc = 3003;
         break;
- 
+
       case 3:
         /* 23.976 fps */
         this->frame_pts_inc = 3753;
         break;
- 
+
       case 5:
         /* 14.98 fps */
         this->frame_pts_inc = 6006;
         break;
 
       default:
-        printf ("demux_nsv: unknown framerate: 0x%02X\n", this->fps);
+        lprintf("unknown framerate: 0x%02X\n", this->fps);
         this->frame_pts_inc = 90000;
         break;
       }
@@ -298,7 +264,7 @@ static int demux_nsv_send_chunk(demux_plugin_t *this_gen) {
 
   }
 
-  debug_nsv ("   sending video chunk with size 0x%X, audio chunk with size 0x%X\n",
+  lprintf("sending video chunk with size 0x%X, audio chunk with size 0x%X\n",
     video_size, audio_size);
 
   while (video_size) {
@@ -362,7 +328,6 @@ static int demux_nsv_send_chunk(demux_plugin_t *this_gen) {
 }
 
 static void demux_nsv_send_headers(demux_plugin_t *this_gen) {
-
   demux_nsv_t *this = (demux_nsv_t *) this_gen;
   buf_element_t *buf;
 
@@ -391,11 +356,6 @@ static void demux_nsv_send_headers(demux_plugin_t *this_gen) {
     buf->type = this->video_type;
     this->video_fifo->put (this->video_fifo, buf);
   }
-
-  /* send init info to the audio decoder */
-  if (this->audio_fifo && this->audio_type) {
-
-  }
 }
 
 static int demux_nsv_seek (demux_plugin_t *this_gen,
@@ -403,7 +363,7 @@ static int demux_nsv_seek (demux_plugin_t *this_gen,
 
   demux_nsv_t *this = (demux_nsv_t *) this_gen;
 
-  debug_nsv("  demux_nsv: starting demuxer\n");
+  lprintf("starting demuxer\n");
   /* if thread is not running, initialize demuxer */
   if( !this->stream->demux_thread_running ) {
 
@@ -428,7 +388,6 @@ static int demux_nsv_get_status (demux_plugin_t *this_gen) {
 }
 
 static int demux_nsv_get_stream_length (demux_plugin_t *this_gen) {
-
   return 0;
 }
 
@@ -438,14 +397,12 @@ static uint32_t demux_nsv_get_capabilities(demux_plugin_t *this_gen) {
 
 static int demux_nsv_get_optional_data(demux_plugin_t *this_gen,
                                        void *data, int data_type) {
-
   return DEMUX_OPTIONAL_UNSUPPORTED;
 }
 
 static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *stream,
-                                    input_plugin_t *input_gen) {
+                                    input_plugin_t *input) {
 
-  input_plugin_t *input = (input_plugin_t *) input_gen;
   demux_nsv_t    *this;
 
   this         = xine_xmalloc (sizeof (demux_nsv_t));
@@ -468,6 +425,19 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
 
   switch (stream->content_detection_method) {
 
+  case METHOD_BY_EXTENSION: {
+    char *extensions, *mrl;
+
+    mrl = input->get_mrl (input);
+    extensions = class_gen->get_extensions (class_gen);
+
+    if (!xine_demux_check_extension (mrl, extensions)) {
+      free (this);
+      return NULL;
+    }
+  }
+  /* falling through is intended */
+
   case METHOD_BY_CONTENT:
   case METHOD_EXPLICIT:
 
@@ -478,38 +448,10 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
 
   break;
 
-  case METHOD_BY_EXTENSION: {
-    char *ending, *mrl;
-
-    mrl = input->get_mrl (input);
-
-    ending = strrchr(mrl, '.');
-
-    if (!ending) {
-      free (this);
-      return NULL;
-    }
-
-    if (strncasecmp (ending, ".nsv", 4)) {
-      free (this);
-      return NULL;
-    }
-
-    if (!open_nsv_file(this)) {
-      free (this);
-      return NULL;
-    }
-
-  }
-
-  break;
-
   default:
     free (this);
     return NULL;
   }
-
-  strncpy (this->last_mrl, input->get_mrl (input), 1024);
 
   return &this->demux_plugin;
 }
@@ -531,19 +473,15 @@ static char *get_mimetypes (demux_class_t *this_gen) {
 }
 
 static void class_dispose (demux_class_t *this_gen) {
-
   demux_nsv_class_t *this = (demux_nsv_class_t *) this_gen;
 
   free (this);
 }
 
 void *demux_nsv_init_plugin (xine_t *xine, void *data) {
-
   demux_nsv_class_t     *this;
 
-  this         = xine_xmalloc (sizeof (demux_nsv_class_t));
-  this->config = xine->config;
-  this->xine   = xine;
+  this = xine_xmalloc (sizeof (demux_nsv_class_t));
 
   this->demux_class.open_plugin     = open_plugin;
   this->demux_class.get_description = get_description;

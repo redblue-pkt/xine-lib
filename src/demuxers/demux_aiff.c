@@ -21,7 +21,7 @@
 /*
  * AIFF File Demuxer by Mike Melanson (melanson@pcisys.net)
  *
- * $Id: demux_aiff.c,v 1.30 2003/07/03 00:58:52 andruil Exp $
+ * $Id: demux_aiff.c,v 1.31 2003/07/16 00:52:45 andruil Exp $
  *
  */
 
@@ -168,8 +168,8 @@ static int open_aiff_file(demux_aiff_t *this) {
 }
 
 static int demux_aiff_send_chunk (demux_plugin_t *this_gen) {
-
   demux_aiff_t *this = (demux_aiff_t *) this_gen;
+
   buf_element_t *buf = NULL;
   unsigned int remaining_sample_bytes;
   off_t current_file_pos;
@@ -232,7 +232,6 @@ static int demux_aiff_send_chunk (demux_plugin_t *this_gen) {
 }
 
 static void demux_aiff_send_headers(demux_plugin_t *this_gen) {
-
   demux_aiff_t *this = (demux_aiff_t *) this_gen;
   buf_element_t *buf;
 
@@ -318,20 +317,17 @@ static int demux_aiff_get_status (demux_plugin_t *this_gen) {
 
 /* return the approximate length in miliseconds */
 static int demux_aiff_get_stream_length (demux_plugin_t *this_gen) {
-
   demux_aiff_t *this = (demux_aiff_t *) this_gen;
 
   return this->running_time;
 }
 
-static uint32_t demux_aiff_get_capabilities(demux_plugin_t *this_gen)
-{
+static uint32_t demux_aiff_get_capabilities(demux_plugin_t *this_gen){
   return DEMUX_CAP_NOCAP;
 }
 
 static int demux_aiff_get_optional_data(demux_plugin_t *this_gen,
-					void *data, int data_type)
-{
+					void *data, int data_type){
   return DEMUX_OPTIONAL_UNSUPPORTED;
 }
 
@@ -410,14 +406,12 @@ static char *get_mimetypes (demux_class_t *this_gen) {
 }
 
 static void class_dispose (demux_class_t *this_gen) {
-
   demux_aiff_class_t *this = (demux_aiff_class_t *) this_gen;
 
   free (this);
 }
 
 void *demux_aiff_init_plugin (xine_t *xine, void *data) {
-
   demux_aiff_class_t     *this;
 
   this = xine_xmalloc (sizeof (demux_aiff_class_t));

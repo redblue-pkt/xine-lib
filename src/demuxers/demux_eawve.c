@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_eawve.c,v 1.17 2003/07/03 12:35:18 andruil Exp $
+ * $Id: demux_eawve.c,v 1.18 2003/07/16 00:52:45 andruil Exp $
  *
  * demux_eawve.c, Demuxer plugin for Electronic Arts' WVE file format
  *
@@ -81,8 +81,7 @@ typedef struct {
  * Read an arbitary number of byte into a word
  */
 
-static uint32_t read_arbitary(input_plugin_t *input)
-{
+static uint32_t read_arbitary(input_plugin_t *input){
   uint8_t size, byte;
   int i;
   uint32_t word;
@@ -108,8 +107,7 @@ static uint32_t read_arbitary(input_plugin_t *input)
  * Returns 1 if the WVE file is valid and successfully opened, 0 otherwise
  */
 
-static int process_header(demux_eawve_t *this)
-{
+static int process_header(demux_eawve_t *this){
   int inHeader;
   uint32_t blockid, size;
 
@@ -206,8 +204,7 @@ static int process_header(demux_eawve_t *this)
  * !IMPORTANT! !IMPORTANT! !IMPORTANT! !IMPORTANT! !IMPORTANT!
  */
 
-static int demux_eawve_send_chunk(demux_eawve_t *this)
-{
+static int demux_eawve_send_chunk(demux_eawve_t *this){
   chunk_header_t header;
 
   if (this->input->read(this->input, (void*)&header, sizeof(chunk_header_t)) != sizeof(chunk_header_t)) {
@@ -280,8 +277,7 @@ static int demux_eawve_send_chunk(demux_eawve_t *this)
   return this->status;
 }
 
-static void demux_eawve_send_headers(demux_plugin_t *this_gen)
-{
+static void demux_eawve_send_headers(demux_plugin_t *this_gen){
   demux_eawve_t *this = (demux_eawve_t *) this_gen;
 
   this->video_fifo  = this->stream->video_fifo;
@@ -314,8 +310,7 @@ static void demux_eawve_send_headers(demux_plugin_t *this_gen)
   }
 }
 
-static int demux_eawve_seek(demux_eawve_t *this, off_t start_pos, int start_time)
-{
+static int demux_eawve_seek(demux_eawve_t *this, off_t start_pos, int start_time){
 
   if (!this->thread_running) {
     xine_demux_control_newpts(this->stream, 0, 0);
@@ -329,18 +324,15 @@ static int demux_eawve_seek(demux_eawve_t *this, off_t start_pos, int start_time
   return this->status;
 }
 
-static void demux_eawve_dispose(demux_eawve_t *this)
-{
+static void demux_eawve_dispose(demux_eawve_t *this){
   free(this);
 }
 
-static int demux_eawve_get_status(demux_eawve_t *this)
-{
+static int demux_eawve_get_status(demux_eawve_t *this){
   return this->status;
 }
 
-static int demux_eawve_get_stream_length(demux_eawve_t *this)
-{
+static int demux_eawve_get_stream_length(demux_eawve_t *this){
   return (int)((int64_t)this->num_samples * 1000 / 22050);
 }
 
@@ -353,9 +345,7 @@ static int demux_eawve_get_optional_data(demux_plugin_t *this_gen,
   return DEMUX_OPTIONAL_UNSUPPORTED;
 }
 
-static demux_plugin_t* open_plugin(demux_class_t *class_gen, xine_stream_t *stream, input_plugin_t *input)
-{
-
+static demux_plugin_t* open_plugin(demux_class_t *class_gen, xine_stream_t *stream, input_plugin_t *input){
   demux_eawve_t    *this;
 
   if (!INPUT_IS_SEEKABLE(input))
@@ -412,33 +402,27 @@ static demux_plugin_t* open_plugin(demux_class_t *class_gen, xine_stream_t *stre
   return &this->demux_plugin;
 }
 
-static char *get_description(demux_class_t *this_gen)
-{
+static char *get_description(demux_class_t *this_gen){
   return "Electronics Arts WVE format demux plugin";
 }
 
-static char *get_identifier(demux_class_t *this_gen)
-{
+static char *get_identifier(demux_class_t *this_gen){
   return "EA WVE";
 }
 
-static char *get_extensions(demux_class_t *this_gen)
-{
+static char *get_extensions(demux_class_t *this_gen){
   return "wve";
 }
 
-static char *get_mimetypes(demux_class_t *this_gen)
-{
+static char *get_mimetypes(demux_class_t *this_gen){
   return NULL;
 }
 
-static void class_dispose(demux_class_t *this)
-{
+static void class_dispose(demux_class_t *this){
   free(this);
 }
 
-void *demux_eawve_init_plugin(xine_t *xine, void *data)
-{
+void *demux_eawve_init_plugin(xine_t *xine, void *data){
   demux_eawve_class_t     *this;
 
   this = xine_xmalloc(sizeof(demux_eawve_class_t));

@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (C) 2003 the xine project
  * Copyright (C) 2003 Jeroen Asselman <j.asselman@itsec-ps.nl>
  * 
@@ -17,11 +17,12 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
- *
- * $Id: demux_yuv_frames.c,v 1.6 2003/06/16 16:42:51 holstsn Exp $
+ */
+
+/*
+ * $Id: demux_yuv_frames.c,v 1.7 2003/07/16 00:52:46 andruil Exp $
  *
  * dummy demultiplexer for raw yuv frames (delivered by v4l)
- *
  */
 
 #ifdef HAVE_CONFIG_H
@@ -34,41 +35,32 @@
 #include <string.h>
 #include <stdlib.h>
 
+/********** logging **********/
+#define LOG_MODULE "demux_yuv_frames"
+/* #define LOG_VERBOSE */
+/* #define LOG */
+
 #include "xine_internal.h"
 #include "xineutils.h"
 #include "demux.h"
 
 #define WRAP_THRESHOLD       20000
 
-#define PLUGIN "demux_yuv_frames"
-/*
-#define LOG
-*/
-
 typedef struct demux_yuv_frames_s {
   demux_plugin_t        demux_plugin;
 
   xine_stream_t        *stream;
-  
   fifo_buffer_t        *audio_fifo;
   fifo_buffer_t        *video_fifo;
-
   input_plugin_t       *input;
-
   int                   status;
-  int			seek_flag;
+
+  int                   seek_flag;
   int64_t               last_pts;
-    
 } demux_yuv_frames_t ;
 
 typedef struct {
-
   demux_class_t     demux_class;
-
-  /* class-wide, global variables here */
-
-  xine_t           *xine;
-  config_values_t  *config;
 } demux_yuv_frames_class_t;
 
 
@@ -78,84 +70,73 @@ static int demux_yuv_frames_get_status (demux_plugin_t *this_gen) {
   return this->status;
 }
 
-static int switch_buf(demux_yuv_frames_t *this , buf_element_t *buf)
-{
-   int result = 0;
-   
-   if (!buf) 
-      return 0;
-   
-   if (this->seek_flag) {
-      this->seek_flag = 0;
-      xine_demux_control_newpts(this->stream, buf->pts, BUF_FLAG_SEEK);
-   } else
-   if (abs(this->last_pts - buf->pts) > WRAP_THRESHOLD) {
-      xine_demux_control_newpts(this->stream, buf->pts, 0);
-   }
-   
-   this->last_pts = buf->pts;
-   
-   switch (buf->type) {
-      case BUF_VIDEO_YUV_FRAMES:
-	 this->video_fifo->put(this->video_fifo, buf);
-	 result = 1;	/* 1, we still should read audio */
-	 break;
-      case BUF_AUDIO_RAWPCM:
-	 if (!this->stream->stream_info[XINE_STREAM_INFO_HAS_VIDEO])
-	    xine_demux_control_newpts(this->stream, buf->pts, 0);
+static int switch_buf(demux_yuv_frames_t *this , buf_element_t *buf){
+  int result = 0;
 
-	 this->audio_fifo->put(this->audio_fifo, buf);
-	 break;
-      default:
-#ifdef LOG
-	 printf ("demux_yuv_frames: help, unknown buffer type %08x\n",
-	       buf->type);
-#endif
-	 buf->free_buffer(buf); 
-   }
+  if (!buf)
+    return 0;
 
-   return result;
+  if (this->seek_flag) {
+    this->seek_flag = 0;
+    xine_demux_control_newpts(this->stream, buf->pts, BUF_FLAG_SEEK);
+  } else if (abs(this->last_pts - buf->pts) > WRAP_THRESHOLD) {
+    xine_demux_control_newpts(this->stream, buf->pts, 0);
+  }
+
+  this->last_pts = buf->pts;
+
+  switch (buf->type) {
+    case BUF_VIDEO_YUV_FRAMES:
+      this->video_fifo->put(this->video_fifo, buf);
+      result = 1;	/* 1, we still should read audio */
+      break;
+    case BUF_AUDIO_RAWPCM:
+      if (!this->stream->stream_info[XINE_STREAM_INFO_HAS_VIDEO])
+        xine_demux_control_newpts(this->stream, buf->pts, 0);
+      this->audio_fifo->put(this->audio_fifo, buf);
+      break;
+    default:
+      lprintf ("dhelp, unknown buffer type %08x\n", buf->type);
+      buf->free_buffer(buf);
+  }
+
+  return result;
 }
 
-static int demux_yuv_frames_send_chunk (demux_plugin_t *this_gen)
-{ 
-   demux_yuv_frames_t *this = (demux_yuv_frames_t *) this_gen;
-   buf_element_t      *buf;
-   int	 first = 1;
-   
-   do {
-      if ( this->stream->stream_info[XINE_STREAM_INFO_HAS_VIDEO])
-         buf = this->input->read_block (this->input, this->video_fifo, 0);
-      else
-	 buf = this->input->read_block (this->input, this->audio_fifo, 0);
-      
-   } while (switch_buf(this, buf));
-  
-   return this->status;
+static int demux_yuv_frames_send_chunk (demux_plugin_t *this_gen){
+  demux_yuv_frames_t *this = (demux_yuv_frames_t *) this_gen;
+  buf_element_t      *buf;
+
+  do {
+    if ( this->stream->stream_info[XINE_STREAM_INFO_HAS_VIDEO])
+      buf = this->input->read_block (this->input, this->video_fifo, 0);
+    else
+      buf = this->input->read_block (this->input, this->audio_fifo, 0);
+  } while (switch_buf(this, buf));
+
+  return this->status;
 }
 
-static void demux_yuv_frames_send_headers (demux_plugin_t *this_gen)
-{
-   demux_yuv_frames_t *this = (demux_yuv_frames_t *) this_gen;
-   this->video_fifo  = this->stream->video_fifo;
-   this->audio_fifo  = this->stream->audio_fifo;
-   
-   this->status = DEMUX_OK;
+static void demux_yuv_frames_send_headers (demux_plugin_t *this_gen){
+  demux_yuv_frames_t *this = (demux_yuv_frames_t *) this_gen;
+
+  this->video_fifo  = this->stream->video_fifo;
+  this->audio_fifo  = this->stream->audio_fifo;
+
+  this->status = DEMUX_OK;
 }
 
 static int demux_yuv_frames_seek (demux_plugin_t *this_gen,
 			    off_t start_pos, int start_time) {
+  demux_yuv_frames_t *this = (demux_yuv_frames_t *) this_gen;
 
-  demux_yuv_frames_t *this = (demux_yuv_frames_t *) this_gen; 
   this->seek_flag = 1;
-  this->last_pts = 0; 
+  this->last_pts = 0;
   return this->status;
 }
 
 static int demux_yuv_frames_get_stream_length (demux_plugin_t *this_gen) {
-
   /* demux_yuv_frames_t *this = (demux_yuv_frames_t *) this_gen;  */
-
   return 0;
 }
 
@@ -169,16 +150,15 @@ static int demux_yuv_frames_get_optional_data(demux_plugin_t *this_gen,
 }
 
 static void demux_yuv_frames_dispose (demux_plugin_t *this_gen) {
-
-  demux_yuv_frames_t *this = (demux_yuv_frames_t *) this_gen;  
+  demux_yuv_frames_t *this = (demux_yuv_frames_t *) this_gen;
 
   free (this);
 }
 
-static demux_plugin_t *open_plugin (demux_class_t *class_gen, 
-				    xine_stream_t *stream, 
+static demux_plugin_t *open_plugin (demux_class_t *class_gen,
+				    xine_stream_t *stream,
 				    input_plugin_t *input) {
-  
+
   demux_yuv_frames_t *this;
 
   switch (stream->content_detection_method) {
@@ -188,9 +168,8 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen,
     break;
 
   case METHOD_BY_EXTENSION: {
-
     char *mrl;
-    
+
     mrl = input->get_mrl (input);
 
     if (strncmp (mrl, "v4l:/", 5))
@@ -205,9 +184,8 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen,
   default:
     return NULL;
   }
-#ifdef LOG
-  printf ("demux_yuv_frames: input accepted.\n");
-#endif
+  lprintf ("demux_yuv_frames: input accepted.\n");
+
   /*
    * if we reach this point, the input has been accepted.
    */
@@ -227,22 +205,22 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen,
   this->demux_plugin.get_capabilities  = demux_yuv_frames_get_capabilities;
   this->demux_plugin.get_optional_data = demux_yuv_frames_get_optional_data;
   this->demux_plugin.demux_class       = class_gen;
-  
+
   this->status = DEMUX_FINISHED;
-  
+
   return &this->demux_plugin;
 }
 
 
 
 /*
- * ogg demuxer class
+ * demuxer class
  */
 
 static char *get_description (demux_class_t *this_gen) {
   return "YUV frames dummy demux plugin";
 }
- 
+
 static char *get_identifier (demux_class_t *this_gen) {
   return "YUV_FRAMES";
 }
@@ -256,19 +234,15 @@ static char *get_mimetypes (demux_class_t *this_gen) {
 }
 
 static void class_dispose (demux_class_t *this_gen) {
-
   demux_yuv_frames_class_t *this = (demux_yuv_frames_class_t *) this_gen;
 
   free (this);
 }
 
 static void *init_class (xine_t *xine, void *data) {
-  
   demux_yuv_frames_class_t     *this;
-  
-  this         = xine_xmalloc (sizeof (demux_yuv_frames_class_t));
-  this->config = xine->config;
-  this->xine   = xine;
+
+  this = xine_xmalloc (sizeof (demux_yuv_frames_class_t));
 
   this->demux_class.open_plugin     = open_plugin;
   this->demux_class.get_description = get_description;
@@ -285,7 +259,7 @@ static void *init_class (xine_t *xine, void *data) {
  */
 
 plugin_info_t xine_plugin_info[] = {
-  /* type, API, "name", version, special_info, init_function */  
+  /* type, API, "name", version, special_info, init_function */
   { PLUGIN_DEMUX, 21, "yuv_frames", XINE_VERSION_CODE, NULL, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
@@ -293,4 +267,3 @@ plugin_info_t xine_plugin_info[] = {
 /*
  * vim:sw=3:sts=3:
  */
-

@@ -21,7 +21,7 @@
  */
 
 /*
- * $Id: demux_slave.c,v 1.3 2003/07/04 15:12:51 andruil Exp $
+ * $Id: demux_slave.c,v 1.4 2003/07/16 00:52:45 andruil Exp $
  *
  * demuxer for slave "protocol"
  * master xine must be started with XINE_PARAM_BROADCASTER_PORT set, that is,
@@ -259,7 +259,6 @@ static int demux_slave_next (demux_slave_t *this) {
 }
 
 static int demux_slave_send_chunk (demux_plugin_t *this_gen) {
-
   demux_slave_t *this = (demux_slave_t *) this_gen;
 
   demux_slave_next(this);
@@ -275,7 +274,6 @@ static int demux_slave_get_status (demux_plugin_t *this_gen) {
 
 
 static void demux_slave_send_headers (demux_plugin_t *this_gen) {
-
   demux_slave_t *this = (demux_slave_t *) this_gen;
 
   this->video_fifo  = this->stream->video_fifo;
@@ -292,9 +290,7 @@ static void demux_slave_send_headers (demux_plugin_t *this_gen) {
   this->send_newpts = 1;
 }
 
-static int demux_slave_seek (demux_plugin_t *this_gen,
-				  off_t start_pos, int start_time) {
-
+static int demux_slave_seek (demux_plugin_t *this_gen, off_t start_pos, int start_time) {
   demux_slave_t *this = (demux_slave_t *) this_gen;
 
   return this->status;
@@ -357,7 +353,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
 
   case METHOD_BY_CONTENT: {
 
-    if ( xine_demux_read_header(input, this->scratch, SCRATCH_SIZE) > 0) {
+    if (xine_demux_read_header(input, this->scratch, SCRATCH_SIZE) > 0) {
       if (!strncmp(this->scratch,slave_id_str,strlen(slave_id_str)))
         break;
     }
@@ -418,14 +414,12 @@ static char *get_mimetypes (demux_class_t *this_gen) {
 }
 
 static void class_dispose (demux_class_t *this_gen) {
-
   demux_slave_class_t *this = (demux_slave_class_t *) this_gen;
 
   free (this);
 }
 
 static void *init_plugin (xine_t *xine, void *data) {
-
   demux_slave_class_t     *this;
 
   this = xine_xmalloc (sizeof (demux_slave_class_t));

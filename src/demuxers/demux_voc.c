@@ -16,15 +16,16 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
- *
+ */
+
+/*
  * Creative Voice File Demuxer by Mike Melanson (melanson@pcisys.net)
  * Note that this demuxer does not yet support very many things that can
  * possibly be seen in a VOC file. It only plays the first block in a file.
  * It will only play that block if it is PCM data. More variations will be
  * supported as they are encountered.
  *
- * $Id: demux_voc.c,v 1.30 2003/04/17 19:01:32 miguelfreitas Exp $
- *
+ * $Id: demux_voc.c,v 1.31 2003/07/16 00:52:45 andruil Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -50,21 +51,14 @@
 #define BLOCK_PREAMBLE_SIZE 4
 
 typedef struct {
-
   demux_plugin_t       demux_plugin;
 
   xine_stream_t       *stream;
-
-  config_values_t     *config;
-
   fifo_buffer_t       *video_fifo;
   fifo_buffer_t       *audio_fifo;
-
   input_plugin_t      *input;
-
   int                  status;
 
-  unsigned int         voc_audio_type;
   unsigned int         audio_type;
   unsigned int         audio_sample_rate;
   unsigned int         audio_bits;
@@ -75,29 +69,20 @@ typedef struct {
   unsigned int         running_time;
 
   int                  seek_flag;  /* this is set when a seek just occurred */
-
-  char                 last_mrl[1024];
 } demux_voc_t;
 
 typedef struct {
-
   demux_class_t     demux_class;
-
-  /* class-wide, global variables here */
-
-  xine_t           *xine;
-  config_values_t  *config;
 } demux_voc_class_t;
 
 /* returns 1 if the VOC file was opened successfully, 0 otherwise */
 static int open_voc_file(demux_voc_t *this) {
-
   unsigned char header[VOC_HEADER_SIZE];
   unsigned char preamble[BLOCK_PREAMBLE_SIZE];
   off_t first_block_offset;
   signed char sample_rate_divisor;
 
-  if (!xine_demux_read_header(this->input, header, VOC_HEADER_SIZE))
+  if (xine_demux_read_header(this->input, header, VOC_HEADER_SIZE) != VOC_HEADER_SIZE)
     return 0;
 
   /* check the signature */
@@ -129,7 +114,6 @@ static int open_voc_file(demux_voc_t *this) {
     return 0;
 
   /* this app only knows how to deal with format 0 data (raw PCM) */
-  this->voc_audio_type = preamble[1];
   if (preamble[1] != 0) {
     xine_log(this->stream->xine, XINE_LOG_MSG,
       _("unknown VOC compression type (0x%02X); please report to xine developers\n"),
@@ -149,8 +133,8 @@ static int open_voc_file(demux_voc_t *this) {
 }
 
 static int demux_voc_send_chunk(demux_plugin_t *this_gen) {
-
   demux_voc_t *this = (demux_voc_t *) this_gen;
+
   buf_element_t *buf = NULL;
   unsigned int remaining_sample_bytes;
   off_t current_file_pos;
@@ -208,7 +192,6 @@ static int demux_voc_send_chunk(demux_plugin_t *this_gen) {
 }
 
 static void demux_voc_send_headers(demux_plugin_t *this_gen) {
-
   demux_voc_t *this = (demux_voc_t *) this_gen;
   buf_element_t *buf;
 
@@ -244,9 +227,7 @@ static void demux_voc_send_headers(demux_plugin_t *this_gen) {
   }
 }
 
-static int demux_voc_seek (demux_plugin_t *this_gen,
-                           off_t start_pos, int start_time) {
-
+static int demux_voc_seek (demux_plugin_t *this_gen, off_t start_pos, int start_time) {
   demux_voc_t *this = (demux_voc_t *) this_gen;
 
   this->seek_flag = 1;
@@ -255,7 +236,7 @@ static int demux_voc_seek (demux_plugin_t *this_gen,
 
   /* if input is non-seekable, do not proceed with the rest of this
    * seek function */
-  if ((this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) == 0)
+  if (!INPUT_IS_SEEKABLE(this->input))
     return this->status;
 
   /* check the boundary offsets */
@@ -294,7 +275,6 @@ static int demux_voc_get_status (demux_plugin_t *this_gen) {
 
 /* return the approximate length in miliseconds */
 static int demux_voc_get_stream_length (demux_plugin_t *this_gen) {
-
   demux_voc_t *this = (demux_voc_t *) this_gen;
 
   return this->running_time * 1000;
@@ -310,9 +290,8 @@ static int demux_voc_get_optional_data(demux_plugin_t *this_gen,
 }
 
 static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *stream,
-                                    input_plugin_t *input_gen) {
+                                    input_plugin_t *input) {
 
-  input_plugin_t *input = (input_plugin_t *) input_gen;
   demux_voc_t    *this;
 
   this         = xine_xmalloc (sizeof (demux_voc_t));
@@ -363,8 +342,6 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
     return NULL;
   }
 
-  strncpy (this->last_mrl, input->get_mrl (input), 1024);
-
   return &this->demux_plugin;
 }
 
@@ -385,19 +362,15 @@ static char *get_mimetypes (demux_class_t *this_gen) {
 }
 
 static void class_dispose (demux_class_t *this_gen) {
-
   demux_voc_class_t *this = (demux_voc_class_t *) this_gen;
 
   free (this);
 }
 
 void *demux_voc_init_plugin (xine_t *xine, void *data) {
-
   demux_voc_class_t     *this;
 
-  this         = xine_xmalloc (sizeof (demux_voc_class_t));
-  this->config = xine->config;
-  this->xine   = xine;
+  this = xine_xmalloc (sizeof (demux_voc_class_t));
 
   this->demux_class.open_plugin     = open_plugin;
   this->demux_class.get_description = get_description;

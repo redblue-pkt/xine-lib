@@ -22,7 +22,7 @@
  * VOX Demuxer by Mike Melanson (melanson@pcisys.net)
  * This a demuxer for .vox files containing raw Dialogic ADPCM data.
  *
- * $Id: demux_vox.c,v 1.5 2003/07/04 15:12:51 andruil Exp $
+ * $Id: demux_vox.c,v 1.6 2003/07/16 00:52:45 andruil Exp $
  *
  */
 
@@ -60,8 +60,8 @@ typedef struct {
 } demux_vox_class_t;
 
 static int demux_vox_send_chunk (demux_plugin_t *this_gen) {
-
   demux_vox_t *this = (demux_vox_t *) this_gen;
+
   buf_element_t *buf = NULL;
   off_t current_file_pos;
   int64_t audio_pts;
@@ -100,7 +100,6 @@ static int demux_vox_send_chunk (demux_plugin_t *this_gen) {
 }
 
 static void demux_vox_send_headers(demux_plugin_t *this_gen) {
-
   demux_vox_t *this = (demux_vox_t *) this_gen;
   buf_element_t *buf;
 
@@ -133,9 +132,7 @@ static void demux_vox_send_headers(demux_plugin_t *this_gen) {
   }
 }
 
-static int demux_vox_seek (demux_plugin_t *this_gen,
-                           off_t start_pos, int start_time) {
-
+static int demux_vox_seek (demux_plugin_t *this_gen, off_t start_pos, int start_time) {
   demux_vox_t *this = (demux_vox_t *) this_gen;
 
   /* if thread is not running, initialize demuxer */
@@ -167,7 +164,6 @@ static int demux_vox_get_status (demux_plugin_t *this_gen) {
 
 /* return the approximate length in miliseconds */
 static int demux_vox_get_stream_length (demux_plugin_t *this_gen) {
-
   demux_vox_t *this = (demux_vox_t *) this_gen;
 
   return (int)((int64_t)this->input->get_length(this->input) 
@@ -245,14 +241,12 @@ static char *get_mimetypes (demux_class_t *this_gen) {
 }
 
 static void class_dispose (demux_class_t *this_gen) {
-
   demux_vox_class_t *this = (demux_vox_class_t *) this_gen;
 
   free (this);
 }
 
 void *demux_vox_init_plugin (xine_t *xine, void *data) {
-
   demux_vox_class_t     *this;
 
   this = xine_xmalloc (sizeof (demux_vox_class_t));
@@ -266,4 +260,3 @@ void *demux_vox_init_plugin (xine_t *xine, void *data) {
 
   return this;
 }
-

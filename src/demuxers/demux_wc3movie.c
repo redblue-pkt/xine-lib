@@ -16,13 +16,15 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
- *
+ */
+
+/*
  * File Demuxer for Wing Commander III MVE movie files
  *   by Mike Melanson (melanson@pcisys.net)
  * For more information on the MVE file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_wc3movie.c,v 1.37 2003/04/26 20:16:28 guenter Exp $
+ * $Id: demux_wc3movie.c,v 1.38 2003/07/16 00:52:45 andruil Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -34,6 +36,11 @@
 #include <unistd.h>
 #include <string.h>
 #include <stdlib.h>
+
+/********** logging **********/
+#define LOG_MODULE "demux_wc3movie"
+/* #define LOG_VERBOSE */
+/* #define LOG */
 
 #include "xine_internal.h"
 #include "xineutils.h"
@@ -71,22 +78,14 @@
 #define PREAMBLE_SIZE 8
 
 typedef struct {
-
   demux_plugin_t       demux_plugin;
 
   xine_stream_t       *stream;
-
-  config_values_t     *config;
-
   fifo_buffer_t       *video_fifo;
   fifo_buffer_t       *audio_fifo;
-
   input_plugin_t      *input;
-
   int                  status;
 
-  unsigned int         fps;
-  unsigned int         frame_pts_inc;
   unsigned int         video_width;
   unsigned int         video_height;
 
@@ -102,18 +101,10 @@ typedef struct {
   off_t                data_size;
 
   int64_t              video_pts;
-
-  char                 last_mrl[1024];
 } demux_mve_t;
 
 typedef struct {
-
   demux_class_t     demux_class;
-
-  /* class-wide, global variables here */
-
-  xine_t           *xine;
-  config_values_t  *config;
 } demux_mve_class_t;
 
 /* bizarre palette lookup table */
@@ -153,8 +144,8 @@ const unsigned char wc3_pal_lookup[] = {
 };
 
 static int demux_mve_send_chunk(demux_plugin_t *this_gen) {
-
   demux_mve_t *this = (demux_mve_t *) this_gen;
+
   buf_element_t *buf = NULL;
   int64_t text_pts = 0;
   int64_t audio_pts = 0;
@@ -177,25 +168,18 @@ static int demux_mve_send_chunk(demux_plugin_t *this_gen) {
     chunk_size = (BE_32(&preamble[4]) + 1) & (~1);
 
     if (chunk_tag == BRCH_TAG) {
-
       /* empty chunk; do nothing */
-
     } else if (chunk_tag == SHOT_TAG) {
-
       if (this->seek_flag) {
-
         /* reset pts */
         this->video_pts = 0;
         xine_demux_control_newpts(this->stream, 0, BUF_FLAG_SEEK);
         this->seek_flag = 0;
-
       } else {
-
         /* record the offset of the SHOT chunk */
-        this->shot_offsets[this->current_shot] = 
+        this->shot_offsets[this->current_shot] =
           this->input->get_current_pos(this->input) - PREAMBLE_SIZE;
       }
-
       this->current_shot++;
 
       /* this is the start of a new shot; send a new palette */
@@ -223,9 +207,7 @@ static int demux_mve_send_chunk(demux_plugin_t *this_gen) {
       this->video_fifo->put (this->video_fifo, buf);
 
     } else if (chunk_tag == AUDI_TAG) {
-
       if( this->audio_fifo ) {
-
         audio_pts = this->video_pts - WC3_PTS_INC;
   
         while (chunk_size) {
@@ -258,7 +240,6 @@ static int demux_mve_send_chunk(demux_plugin_t *this_gen) {
         this->input->seek(this->input, chunk_size, SEEK_CUR);
       }
     } else if (chunk_tag == VGA_TAG) {
-
       while (chunk_size) {
         buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
         buf->type = BUF_VIDEO_WC3;
@@ -286,18 +267,14 @@ static int demux_mve_send_chunk(demux_plugin_t *this_gen) {
         this->video_fifo->put (this->video_fifo, buf);
       }
       this->video_pts += WC3_PTS_INC;
-
     } else if (chunk_tag == TEXT_TAG) {
-
       text_pts = this->video_pts - WC3_PTS_INC;
 
       /* unhandled thus far */
       this->input->seek(this->input, chunk_size, SEEK_CUR);
-
     } else {
-
       /* report an unknown chunk and skip it */
-      printf (_("demux_wc3movie: encountered unknown chunk: %c%c%c%c\n"),
+      lprintf("encountered unknown chunk: %c%c%c%c\n",
         (chunk_tag >> 24) & 0xFF,
         (chunk_tag >> 16) & 0xFF,
         (chunk_tag >>  8) & 0xFF,
@@ -310,7 +287,6 @@ static int demux_mve_send_chunk(demux_plugin_t *this_gen) {
 }
 
 static void demux_mve_send_headers(demux_plugin_t *this_gen) {
-
   demux_mve_t *this = (demux_mve_t *) this_gen;
   buf_element_t *buf;
 
@@ -385,11 +361,7 @@ static int open_mve_file(demux_mve_t *this) {
   unsigned char header[WC3_HEADER_SIZE];
   void *title;
 
-  /* these are the frame dimensions unless others are found */
-  this->video_width = WC3_USUAL_WIDTH;
-  this->video_height = WC3_USUAL_HEIGHT;
-
-  if (!xine_demux_read_header(this->input, header, WC3_HEADER_SIZE))
+  if (xine_demux_read_header(this->input, header, WC3_HEADER_SIZE) != WC3_HEADER_SIZE)
     return 0;
 
   if ((BE_32(&header[0]) != FORM_TAG) ||
@@ -398,7 +370,11 @@ static int open_mve_file(demux_mve_t *this) {
     return 0;
 
   /* file is qualified */
-  
+
+  /* these are the frame dimensions unless others are found */
+  this->video_width = WC3_USUAL_WIDTH;
+  this->video_height = WC3_USUAL_HEIGHT;
+
   /* load the number of palettes, the only interesting piece of information
    * in the _PC_ chunk; take it for granted that it will always appear at
    * position 0x1C */
@@ -520,7 +496,7 @@ static int open_mve_file(demux_mve_t *this) {
 
       default:
         /* report an unknown chunk and skip it */
-        printf (_("demux_wc3movie: encountered unknown chunk: %c%c%c%c\n"),
+        lprintf("encountered unknown chunk: %c%c%c%c\n",
           (chunk_tag >> 24) & 0xFF,
           (chunk_tag >> 16) & 0xFF,
           (chunk_tag >>  8) & 0xFF,
@@ -528,15 +504,12 @@ static int open_mve_file(demux_mve_t *this) {
         this->input->seek(this->input, chunk_size, SEEK_CUR);
         break;
     }
-
   }
 
   /* note the data start offset */
   this->data_start = this->input->get_current_pos(this->input);
-
-  this->data_size = this->input->get_length(this->input) - this->data_start;
-
-  this->video_pts = 0;
+  this->data_size  = this->input->get_length(this->input) - this->data_start;
+  this->video_pts  = 0;
 
   this->stream->meta_info[XINE_META_INFO_TITLE] = title;
 
@@ -571,7 +544,7 @@ static int demux_mve_seek (demux_plugin_t *this_gen,
 
   /* if input is non-seekable, do not proceed with the rest of this
    * seek function */  
-  if ((this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) == 0)
+  if (!INPUT_IS_SEEKABLE(this->input))
     return this->status;
 
   /* make sure the first shot has been recorded */
@@ -670,7 +643,6 @@ static int demux_mve_get_status (demux_plugin_t *this_gen) {
 }
 
 static int demux_mve_get_stream_length (demux_plugin_t *this_gen) {
-
   return 0;
 }
 
@@ -684,9 +656,8 @@ static int demux_mve_get_optional_data(demux_plugin_t *this_gen,
 }
 
 static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *stream,
-                                    input_plugin_t *input_gen) {
+                                    input_plugin_t *input) {
 
-  input_plugin_t *input = (input_plugin_t *) input_gen;
   demux_mve_t    *this;
 
   this         = xine_xmalloc (sizeof (demux_mve_t));
@@ -737,8 +708,6 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
     return NULL;
   }
 
-  strncpy (this->last_mrl, input->get_mrl (input), 1024);
-
   return &this->demux_plugin;
 }
 
@@ -759,19 +728,15 @@ static char *get_mimetypes (demux_class_t *this_gen) {
 }
 
 static void class_dispose (demux_class_t *this_gen) {
-
   demux_mve_class_t *this = (demux_mve_class_t *) this_gen;
 
   free (this);
 }
 
 void *demux_wc3movie_init_plugin (xine_t *xine, void *data) {
-
   demux_mve_class_t     *this;
 
-  this         = xine_xmalloc (sizeof (demux_mve_class_t));
-  this->config = xine->config;
-  this->xine   = xine;
+  this = xine_xmalloc (sizeof (demux_mve_class_t));
 
   this->demux_class.open_plugin     = open_plugin;
   this->demux_class.get_description = get_description;

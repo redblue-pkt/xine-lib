@@ -23,7 +23,7 @@
  * For more information regarding the Interplay MVE file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_ipmovie.c,v 1.10 2003/07/03 15:45:49 andruil Exp $
+ * $Id: demux_ipmovie.c,v 1.11 2003/07/16 00:52:45 andruil Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -374,7 +374,7 @@ static int process_ipmovie_chunk(demux_ipmovie_t *this) {
           chunk_type = CHUNK_BAD;
           break;
         }
-        if (this->input->read(this->input, scratch, opcode_size) != 
+        if (this->input->read(this->input, scratch, opcode_size) !=
           opcode_size) {
           chunk_type = CHUNK_BAD;
           break;
@@ -501,7 +501,6 @@ static int process_ipmovie_chunk(demux_ipmovie_t *this) {
 
 /* returns 1 if the MVE file was opened successfully, 0 otherwise */
 static int open_ipmovie_file(demux_ipmovie_t *this) {
-
   unsigned char signature[IPMOVIE_SIGNATURE_SIZE];
 
   this->audio_type = 0;
@@ -533,7 +532,6 @@ static int open_ipmovie_file(demux_ipmovie_t *this) {
 }
 
 static int demux_ipmovie_send_chunk(demux_plugin_t *this_gen) {
-
   demux_ipmovie_t *this = (demux_ipmovie_t *) this_gen;
 
   if (process_ipmovie_chunk(this) == CHUNK_BAD)
@@ -543,7 +541,6 @@ static int demux_ipmovie_send_chunk(demux_plugin_t *this_gen) {
 }
 
 static void demux_ipmovie_send_headers(demux_plugin_t *this_gen) {
-
   demux_ipmovie_t *this = (demux_ipmovie_t *) this_gen;
   buf_element_t *buf;
 
@@ -631,7 +628,6 @@ static int demux_ipmovie_get_status (demux_plugin_t *this_gen) {
 }
 
 static int demux_ipmovie_get_stream_length (demux_plugin_t *this_gen) {
-
   return 0;
 }
 
@@ -717,17 +713,15 @@ static char *get_mimetypes (demux_class_t *this_gen) {
 }
 
 static void class_dispose (demux_class_t *this_gen) {
-
   demux_ipmovie_class_t *this = (demux_ipmovie_class_t *) this_gen;
 
   free (this);
 }
 
 void *demux_ipmovie_init_plugin (xine_t *xine, void *data) {
-
   demux_ipmovie_class_t     *this;
 
-  this         = xine_xmalloc (sizeof (demux_ipmovie_class_t));
+  this = xine_xmalloc (sizeof (demux_ipmovie_class_t));
 
   this->demux_class.open_plugin     = open_plugin;
   this->demux_class.get_description = get_description;

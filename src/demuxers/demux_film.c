@@ -21,7 +21,7 @@
  * For more information on the FILM file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_film.c,v 1.62 2003/07/03 15:45:49 andruil Exp $
+ * $Id: demux_film.c,v 1.63 2003/07/16 00:52:45 andruil Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -358,8 +358,8 @@ static int open_film_file(demux_film_t *film) {
 }
 
 static int demux_film_send_chunk(demux_plugin_t *this_gen) {
-
   demux_film_t *this = (demux_film_t *) this_gen;
+
   buf_element_t *buf = NULL;
   unsigned int cvid_chunk_size;
   unsigned int i, j, k;
@@ -655,7 +655,6 @@ static int demux_film_send_chunk(demux_plugin_t *this_gen) {
 }
 
 static void demux_film_send_headers(demux_plugin_t *this_gen) {
-
   demux_film_t *this = (demux_film_t *) this_gen;
   buf_element_t *buf;
 
@@ -706,9 +705,9 @@ static void demux_film_send_headers(demux_plugin_t *this_gen) {
   }
 }
 
-static int demux_film_seek (demux_plugin_t *this_gen,
-                            off_t start_pos, int start_time) {
+static int demux_film_seek (demux_plugin_t *this_gen, off_t start_pos, int start_time) {
   demux_film_t *this = (demux_film_t *) this_gen;
+
   int best_index;
   int left, middle, right;
   int found;
@@ -909,14 +908,12 @@ static char *get_mimetypes (demux_class_t *this_gen) {
 }
 
 static void class_dispose (demux_class_t *this_gen) {
-
   demux_film_class_t *this = (demux_film_class_t *) this_gen;
 
   free (this);
 }
 
 void *demux_film_init_plugin (xine_t *xine, void *data) {
-
   demux_film_class_t     *this;
 
   this = xine_xmalloc (sizeof (demux_film_class_t));

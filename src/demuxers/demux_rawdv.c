@@ -16,11 +16,12 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
- *
- * $Id: demux_rawdv.c,v 1.8 2003/06/16 12:22:06 miguelfreitas Exp $
+ */
+
+/*
+ * $Id: demux_rawdv.c,v 1.9 2003/07/16 00:52:45 andruil Exp $
  *
  * demultiplexer for raw dv streams
- * 
  */
 
 #ifdef HAVE_CONFIG_H
@@ -43,38 +44,25 @@
 #define PAL_FRAME_SIZE  144000
 #define PAL_FRAME_RATE 25
 
-typedef struct {  
-
+typedef struct {
   demux_plugin_t      demux_plugin;
 
   xine_stream_t       *stream;
-
-  config_values_t     *config;
-
   fifo_buffer_t       *video_fifo;
   fifo_buffer_t       *audio_fifo;
-
   input_plugin_t      *input;
+  int                  status;
 
   int                  frame_size;
   int                  bytes_left;
-  
+
   uint32_t             cur_frame;
   uint32_t             duration;
   uint64_t             pts;
-  
-  int                  status;
-  
 } demux_raw_dv_t ;
 
 typedef struct {
-
   demux_class_t     demux_class;
-
-  /* class-wide, global variables here */
-
-  xine_t           *xine;
-  config_values_t  *config;
 } demux_raw_dv_class_t;
 
 
@@ -84,7 +72,7 @@ static int demux_raw_dv_next (demux_raw_dv_t *this) {
 
   buf = this->video_fifo->buffer_pool_alloc(this->video_fifo);
   buf->content = buf->mem;
-    
+
   if( this->bytes_left <= buf->max_size ) {
     buf->size = this->bytes_left;
     buf->decoder_flags |= BUF_FLAG_FRAME_END;
@@ -92,9 +80,9 @@ static int demux_raw_dv_next (demux_raw_dv_t *this) {
     buf->size = buf->max_size;
   }
   this->bytes_left -= buf->size;
-  
+
   n = this->input->read (this->input, buf->content, buf->size);
-  
+
   if (n != buf->size) {
     buf->free_buffer(buf);
     return 0;
@@ -123,18 +111,17 @@ static int demux_raw_dv_next (demux_raw_dv_t *this) {
     abuf->extra_info->input_time = buf->extra_info->input_time;
     abuf->extra_info->input_pos = buf->extra_info->input_pos;
     this->audio_fifo->put (this->audio_fifo, abuf);
-  }		  
+  }
   if (!this->bytes_left) {
     this->bytes_left = this->frame_size;
     this->pts += this->duration;
     this->cur_frame++;
   }
-  
+
   return 1;
 }
 
 static int demux_raw_dv_send_chunk (demux_plugin_t *this_gen) {
-
   demux_raw_dv_t *this = (demux_raw_dv_t *) this_gen;
 
   if (!demux_raw_dv_next(this))
@@ -150,8 +137,8 @@ static int demux_raw_dv_get_status (demux_plugin_t *this_gen) {
 
 
 static void demux_raw_dv_send_headers (demux_plugin_t *this_gen) {
-
   demux_raw_dv_t *this = (demux_raw_dv_t *) this_gen;
+
   buf_element_t *buf, *abuf;
   xine_bmiheader *bih;
   unsigned char *scratch, scratch2[4];
@@ -165,8 +152,8 @@ static void demux_raw_dv_send_headers (demux_plugin_t *this_gen) {
   scratch = (unsigned char *) malloc(NTSC_FRAME_SIZE);
   if (scratch == NULL )
     return;
-  
-  if ((this->input->get_capabilities(this->input)) & INPUT_CAP_SEEKABLE) {
+
+  if (INPUT_IS_SEEKABLE(this->input)) {
     this->input->seek(this->input, 0, SEEK_SET);
     if( this->input->read (this->input, scratch, NTSC_FRAME_SIZE) != NTSC_FRAME_SIZE )
       return;
@@ -179,7 +166,7 @@ static void demux_raw_dv_send_headers (demux_plugin_t *this_gen) {
       i = NTSC_FRAME_SIZE;
     else
       i = PAL_FRAME_SIZE;
-    
+
     i -= NTSC_FRAME_SIZE;
     while (i > 0) {
       if( this->input->read (this->input, scratch2, 4) != 4 )
@@ -187,24 +174,24 @@ static void demux_raw_dv_send_headers (demux_plugin_t *this_gen) {
       i -= 4;
     }
   }
-  
+
   buf = this->video_fifo->buffer_pool_alloc(this->video_fifo);
   buf->content = buf->mem;
   buf->type = BUF_VIDEO_DV;
   buf->decoder_flags |= BUF_FLAG_HEADER;
-  
+
   bih = (xine_bmiheader *)buf->content;
-  
+
   if( !(scratch[3] & 0x80) ) {
     /* NTSC */
-    this->frame_size = NTSC_FRAME_SIZE; 
+    this->frame_size = NTSC_FRAME_SIZE;
     this->duration = buf->decoder_info[1] = 3003;
     bih->biWidth = 720;
     bih->biHeight = 480;
     this->stream->stream_info[XINE_STREAM_INFO_VIDEO_BITRATE] = NTSC_FRAME_SIZE * NTSC_FRAME_RATE * 8;
   } else {
     /* PAL */
-    this->frame_size = PAL_FRAME_SIZE; 
+    this->frame_size = PAL_FRAME_SIZE;
     this->duration = buf->decoder_info[1] = 3600;
     bih->biWidth = 720;
     bih->biHeight = 576;
@@ -242,17 +229,17 @@ static void demux_raw_dv_send_headers (demux_plugin_t *this_gen) {
         packet. */
         const unsigned char *s = &scratch[i * 150 * 80 + 6 * 80 + j * 16 * 80 + 3];
         /* Pack id 0x50 contains audio metadata */
-        if (s[0] == 0x50) { 
+        if (s[0] == 0x50) {
           /* printf("aaux %d: %2.2x %2.2x %2.2x %2.2x %2.2x\n",
            j, s[0], s[1], s[2], s[3], s[4]);
           */
           int smp, flag;
-          
+
           done = 1;
-          
+
           smp = (s[4] >> 3) & 0x07;
           flag = s[3] & 0x20;
-          
+
           if (flag == 0) {
             switch (smp) {
               case 0:
@@ -265,7 +252,7 @@ static void demux_raw_dv_send_headers (demux_plugin_t *this_gen) {
                 abuf->decoder_info[1] = 32000;
                 break;
             }
-          } else { 
+          } else {
             switch (smp) {
               case 0:
                 abuf->decoder_info[1] = 48000;
@@ -289,8 +276,8 @@ static void demux_raw_dv_send_headers (demux_plugin_t *this_gen) {
     abuf->decoder_info[3] = 2; /* Audio bits (ffmpeg only supports 2 channels) */
     this->audio_fifo->put (this->audio_fifo, abuf);
     this->stream->stream_info[XINE_STREAM_INFO_HAS_AUDIO] = 1;
-  }		  
-  
+  }
+
 }
 
 static int demux_raw_dv_seek (demux_plugin_t *this_gen,
@@ -298,8 +285,8 @@ static int demux_raw_dv_seek (demux_plugin_t *this_gen,
 
   demux_raw_dv_t *this = (demux_raw_dv_t *) this_gen;
 
-  
-  if (!(this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE)) {
+
+  if (!INPUT_IS_SEEKABLE(this->input)) {
     this->status = DEMUX_OK;
     return this->status;
   }
@@ -342,9 +329,8 @@ static int demux_raw_dv_get_optional_data(demux_plugin_t *this_gen,
 }
 
 static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *stream,
-                                    input_plugin_t *input_gen) {
+                                    input_plugin_t *input) {
 
-  input_plugin_t *input = (input_plugin_t *) input_gen;
   demux_raw_dv_t *this;
 
   this         = xine_xmalloc (sizeof (demux_raw_dv_t));
@@ -363,7 +349,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   this->demux_plugin.get_optional_data = demux_raw_dv_get_optional_data;
   this->demux_plugin.demux_class       = class_gen;
 
-  if (!(this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE)) {
+  if (!INPUT_IS_SEEKABLE(this->input)) {
     /* "live" DV streams require more prebuffering */
     this->stream->metronom_prebuffer = 90000;
   }
@@ -413,19 +399,15 @@ static char *get_mimetypes (demux_class_t *this_gen) {
 }
 
 static void class_dispose (demux_class_t *this_gen) {
-
   demux_raw_dv_class_t *this = (demux_raw_dv_class_t *) this_gen;
 
   free (this);
 }
 
 static void *init_plugin (xine_t *xine, void *data) {
-
   demux_raw_dv_class_t     *this;
 
-  this         = xine_xmalloc (sizeof (demux_raw_dv_class_t));
-  this->config = xine->config;
-  this->xine   = xine;
+  this = xine_xmalloc (sizeof (demux_raw_dv_class_t));
 
   this->demux_class.open_plugin     = open_plugin;
   this->demux_class.get_description = get_description;
@@ -442,7 +424,7 @@ static void *init_plugin (xine_t *xine, void *data) {
  */
 
 plugin_info_t xine_plugin_info[] = {
-  /* type, API, "name", version, special_info, init_function */  
+  /* type, API, "name", version, special_info, init_function */
   { PLUGIN_DEMUX, 21, "rawdv", XINE_VERSION_CODE, NULL, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

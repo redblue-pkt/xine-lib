@@ -16,7 +16,9 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
- *
+ */
+
+/*
  * VQA File Demuxer by Mike Melanson (melanson@pcisys.net)
  * For more information regarding the VQA file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
@@ -27,7 +29,7 @@
  * block needs information from the previous audio block in order to be
  * decoded, thus making random seeking difficult.
  *
- * $Id: demux_vqa.c,v 1.29 2003/04/26 20:16:26 guenter Exp $
+ * $Id: demux_vqa.c,v 1.30 2003/07/16 00:52:45 andruil Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -66,21 +68,16 @@
 #define VQA_PREAMBLE_SIZE 8
 
 typedef struct {
-
   demux_plugin_t       demux_plugin;
 
   xine_stream_t       *stream;
-
-  config_values_t     *config;
-
   fifo_buffer_t       *video_fifo;
   fifo_buffer_t       *audio_fifo;
-
   input_plugin_t      *input;
+  int                  status;
 
   off_t                data_start;
   off_t                filesize;
-  int                  status;
 
   unsigned char        header[VQA_HEADER_SIZE];
 
@@ -91,27 +88,18 @@ typedef struct {
   int64_t              video_pts;
   unsigned int         audio_frames;
   unsigned int         iteration;
-
-  char                 last_mrl[1024];
 } demux_vqa_t ;
 
 typedef struct {
-
   demux_class_t     demux_class;
-
-  /* class-wide, global variables here */
-
-  xine_t           *xine;
-  config_values_t  *config;
 } demux_vqa_class_t;
 
 /* returns 1 if the VQA file was opened successfully, 0 otherwise */
 static int open_vqa_file(demux_vqa_t *this) {
-
   unsigned char scratch[12];
   unsigned int chunk_size;
 
-  if (!xine_demux_read_header(this->input, scratch, 12))
+  if (xine_demux_read_header(this->input, scratch, 12) != 12)
     return 0;
 
   /* check for the VQA signatures */
@@ -151,8 +139,8 @@ static int open_vqa_file(demux_vqa_t *this) {
 }
 
 static int demux_vqa_send_chunk(demux_plugin_t *this_gen) {
-
   demux_vqa_t *this = (demux_vqa_t *) this_gen;
+
   buf_element_t *buf = NULL;
   unsigned char preamble[VQA_PREAMBLE_SIZE];
   unsigned int chunk_size;
@@ -183,23 +171,23 @@ static int demux_vqa_send_chunk(demux_plugin_t *this_gen) {
       buf->extra_info->input_length = this->filesize;
       buf->extra_info->input_time = audio_pts / 90;
       buf->pts = audio_pts;
-  
+
       if (chunk_size > buf->max_size)
         buf->size = buf->max_size;
       else
         buf->size = chunk_size;
       chunk_size -= buf->size;
-  
+
       if (this->input->read(this->input, buf->content, buf->size) !=
         buf->size) {
         buf->free_buffer(buf);
         this->status = DEMUX_FINISHED;
         break;
       }
-  
+
       if (!chunk_size)
         buf->decoder_flags |= BUF_FLAG_FRAME_END;
-  
+
       this->audio_fifo->put (this->audio_fifo, buf);
     }else{
       this->input->seek(this->input, chunk_size, SEEK_CUR);
@@ -256,7 +244,6 @@ static int demux_vqa_send_chunk(demux_plugin_t *this_gen) {
 }
 
 static void demux_vqa_send_headers(demux_plugin_t *this_gen) {
-
   demux_vqa_t *this = (demux_vqa_t *) this_gen;
   buf_element_t *buf;
 
@@ -267,11 +254,11 @@ static void demux_vqa_send_headers(demux_plugin_t *this_gen) {
 
   /* load stream information */
   this->stream->stream_info[XINE_STREAM_INFO_HAS_VIDEO] = 1;
-  this->stream->stream_info[XINE_STREAM_INFO_HAS_AUDIO] = 
+  this->stream->stream_info[XINE_STREAM_INFO_HAS_AUDIO] =
     (this->audio_channels) ? 1 : 0;
-  this->stream->stream_info[XINE_STREAM_INFO_VIDEO_WIDTH] = 
+  this->stream->stream_info[XINE_STREAM_INFO_VIDEO_WIDTH] =
     LE_16(&this->header[6]);
-  this->stream->stream_info[XINE_STREAM_INFO_VIDEO_HEIGHT] = 
+  this->stream->stream_info[XINE_STREAM_INFO_VIDEO_HEIGHT] =
     LE_16(&this->header[8]);
   this->stream->stream_info[XINE_STREAM_INFO_AUDIO_CHANNELS] =
     this->audio_channels;
@@ -314,7 +301,6 @@ static int demux_vqa_seek (demux_plugin_t *this_gen,
 
   /* if thread is not running, initialize demuxer */
   if( !this->stream->demux_thread_running ) {
-
     this->status = DEMUX_OK;
   }
 
@@ -322,7 +308,6 @@ static int demux_vqa_seek (demux_plugin_t *this_gen,
 }
 
 static void demux_vqa_dispose (demux_plugin_t *this_gen) {
-
   demux_vqa_t *this = (demux_vqa_t *) this_gen;
 
   free(this);
@@ -335,7 +320,6 @@ static int demux_vqa_get_status (demux_plugin_t *this_gen) {
 }
 
 static int demux_vqa_get_stream_length (demux_plugin_t *this_gen) {
-
   return 0;
 }
 
@@ -349,9 +333,8 @@ static int demux_vqa_get_optional_data(demux_plugin_t *this_gen,
 }
 
 static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *stream,
-                                    input_plugin_t *input_gen) {
+                                    input_plugin_t *input) {
 
-  input_plugin_t *input = (input_plugin_t *) input_gen;
   demux_vqa_t    *this;
 
   this         = xine_xmalloc (sizeof (demux_vqa_t));
@@ -402,8 +385,6 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
     return NULL;
   }
 
-  strncpy (this->last_mrl, input->get_mrl (input), 1024);
-
   return &this->demux_plugin;
 }
 
@@ -424,19 +405,15 @@ static char *get_mimetypes (demux_class_t *this_gen) {
 }
 
 static void class_dispose (demux_class_t *this_gen) {
-
   demux_vqa_class_t *this = (demux_vqa_class_t *) this_gen;
 
   free (this);
 }
 
 void *demux_vqa_init_plugin (xine_t *xine, void *data) {
-
   demux_vqa_class_t     *this;
 
-  this         = xine_xmalloc (sizeof (demux_vqa_class_t));
-  this->config = xine->config;
-  this->xine   = xine;
+  this = xine_xmalloc (sizeof (demux_vqa_class_t));
 
   this->demux_class.open_plugin     = open_plugin;
   this->demux_class.get_description = get_description;
@@ -454,7 +431,7 @@ void *demux_vqa_init_plugin (xine_t *xine, void *data) {
 
 #if 0
 plugin_info_t xine_plugin_info[] = {
-  /* type, API, "name", version, special_info, init_function */  
+  /* type, API, "name", version, special_info, init_function */
   { PLUGIN_DEMUX, 21, "vqa", XINE_VERSION_CODE, NULL, demux_vqa_init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

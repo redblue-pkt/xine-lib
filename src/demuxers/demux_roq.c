@@ -16,12 +16,14 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
- *
+ */
+
+/*
  * RoQ File Demuxer by Mike Melanson (melanson@pcisys.net)
  * For more information regarding the RoQ file format, visit:
  *   http://www.csse.monash.edu.au/~timf/
  *
- * $Id: demux_roq.c,v 1.39 2003/04/26 20:16:23 guenter Exp $
+ * $Id: demux_roq.c,v 1.40 2003/07/16 00:52:45 andruil Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -33,6 +35,11 @@
 #include <unistd.h>
 #include <string.h>
 #include <stdlib.h>
+
+/********** logging **********/
+#define LOG_MODULE "demux_roq"
+/* #define LOG_VERBOSE */
+/* #define LOG */
 
 #include "xine_internal.h"
 #include "xineutils.h"
@@ -51,50 +58,36 @@
 #define RoQ_SOUND_STEREO   0x1021
 
 typedef struct {
-
   demux_plugin_t       demux_plugin;
 
   xine_stream_t       *stream;
-
-  config_values_t     *config;
-
   fifo_buffer_t       *video_fifo;
   fifo_buffer_t       *audio_fifo;
-
   input_plugin_t      *input;
-
-  off_t                start;
   int                  status;
 
-  unsigned int         fps;
-  unsigned int         frame_pts_inc; 
+  unsigned int         frame_pts_inc;
 
   unsigned int         width;
   unsigned int         height;
   unsigned int         audio_channels;
-
-  char                 last_mrl[1024];
 } demux_roq_t ;
 
 typedef struct {
-
   demux_class_t     demux_class;
-
-  /* class-wide, global variables here */
-
-  xine_t           *xine;
-  config_values_t  *config;
 } demux_roq_class_t;
 
 /* returns 1 if the RoQ file was opened successfully, 0 otherwise */
 static int open_roq_file(demux_roq_t *this) {
-
   char preamble[RoQ_CHUNK_PREAMBLE_SIZE];
   int i;
   unsigned int chunk_type;
   unsigned int chunk_size;
+  unsigned int fps;
 
-  if (!xine_demux_read_header(this->input, preamble, RoQ_CHUNK_PREAMBLE_SIZE))
+  this->input->seek(this->input, 0, SEEK_SET);
+  if (this->input->read(this->input, preamble, RoQ_CHUNK_PREAMBLE_SIZE) !=
+      RoQ_CHUNK_PREAMBLE_SIZE)
     return 0;
 
   /* check for the RoQ magic numbers */
@@ -102,10 +95,6 @@ static int open_roq_file(demux_roq_t *this) {
       (LE_32(&preamble[2]) != 0xFFFFFFFF))
     return 0;
     
-  /* file is qualified; skip over the header bytes in the stream */
-  this->input->seek(this->input, RoQ_CHUNK_PREAMBLE_SIZE, SEEK_SET);
-
-
   this->width = this->height = 0;
   this->audio_channels = 0;  /* assume no audio at first */
 
@@ -118,12 +107,12 @@ static int open_roq_file(demux_roq_t *this) {
    *
    * therefore, the frame pts increment is 90000 / fps
    */
-  this->fps = LE_16(&preamble[6]);
-  this->frame_pts_inc = 90000 / this->fps;
+  fps = LE_16(&preamble[6]);
+  this->frame_pts_inc = 90000 / fps;
 
   /* iterate through the first 2 seconds worth of chunks searching for
    * the RoQ_INFO chunk and an audio chunk */
-  i = this->fps * 2;
+  i = fps * 2;
   while (i-- > 0) {
     /* if this read fails, then maybe it's just a really small RoQ file
      * (even less than 2 seconds) */
@@ -177,8 +166,8 @@ static int open_roq_file(demux_roq_t *this) {
 }
 
 static int demux_roq_send_chunk(demux_plugin_t *this_gen) {
-
   demux_roq_t *this = (demux_roq_t *) this_gen;
+
   buf_element_t *buf = NULL;
   char preamble[RoQ_CHUNK_PREAMBLE_SIZE];
   unsigned int chunk_type;
@@ -257,7 +246,7 @@ static int demux_roq_send_chunk(demux_plugin_t *this_gen) {
     if (chunk_type == RoQ_QUAD_CODEBOOK) {
       /* if it is, figure in the size of the next VQ chunk, too */
       this->input->seek(this->input, chunk_size, SEEK_CUR);
-      if (this->input->read(this->input, preamble, RoQ_CHUNK_PREAMBLE_SIZE) != 
+      if (this->input->read(this->input, preamble, RoQ_CHUNK_PREAMBLE_SIZE) !=
         RoQ_CHUNK_PREAMBLE_SIZE) {
         this->status = DEMUX_FINISHED;
         return this->status;
@@ -296,14 +285,13 @@ static int demux_roq_send_chunk(demux_plugin_t *this_gen) {
     }
     video_pts_counter += this->frame_pts_inc;
   } else {
-    printf ("demux_roq: encountered bad chunk type: %d\n", chunk_type);
+    lprintf("encountered bad chunk type: %d\n", chunk_type);
   }
 
   return this->status;
 }
 
 static void demux_roq_send_headers(demux_plugin_t *this_gen) {
-
   demux_roq_t *this = (demux_roq_t *) this_gen;
   buf_element_t *buf;
 
@@ -314,7 +302,7 @@ static void demux_roq_send_headers(demux_plugin_t *this_gen) {
 
   /* load stream information */
   this->stream->stream_info[XINE_STREAM_INFO_HAS_VIDEO] = 1;
-  this->stream->stream_info[XINE_STREAM_INFO_HAS_AUDIO] = 
+  this->stream->stream_info[XINE_STREAM_INFO_HAS_AUDIO] =
     (this->audio_channels) ? 1 : 0;
   this->stream->stream_info[XINE_STREAM_INFO_VIDEO_WIDTH] = this->width;
   this->stream->stream_info[XINE_STREAM_INFO_VIDEO_HEIGHT] = this->height;
@@ -366,13 +354,13 @@ static int demux_roq_seek (demux_plugin_t *this_gen,
     xine_demux_control_newpts(this->stream, 0, 0);
 
     this->status = DEMUX_OK;
-  
+
     /* start after the signature chunk */
     this->input->seek(this->input, RoQ_CHUNK_PREAMBLE_SIZE, SEEK_SET);
-    
+
     this->status = DEMUX_OK;
   }
-  
+
   return this->status;
 }
 
@@ -388,7 +376,6 @@ static int demux_roq_get_status (demux_plugin_t *this_gen) {
 }
 
 static int demux_roq_get_stream_length (demux_plugin_t *this_gen) {
-
   return 0;
 }
 
@@ -402,10 +389,15 @@ static int demux_roq_get_optional_data(demux_plugin_t *this_gen,
 }
 
 static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *stream,
-                                    input_plugin_t *input_gen) {
+                                    input_plugin_t *input) {
 
-  input_plugin_t *input = (input_plugin_t *) input_gen;
   demux_roq_t    *this;
+
+  if (!INPUT_IS_SEEKABLE(input)) {
+    xprintf(stream->xine, XINE_VERBOSITY_DEBUG,
+            _("input not seekable, can not handle!\n"));
+    return NULL;
+  }
 
   this         = xine_xmalloc (sizeof (demux_roq_t));
   this->stream = stream;
@@ -424,7 +416,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   this->demux_plugin.demux_class       = class_gen;
 
   this->status = DEMUX_FINISHED;
-  
+
   switch (stream->content_detection_method) {
 
   case METHOD_BY_EXTENSION: {
@@ -455,8 +447,6 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
     return NULL;
   }
 
-  strncpy (this->last_mrl, input->get_mrl (input), 1024);
-
   return &this->demux_plugin;
 }
 
@@ -477,19 +467,15 @@ static char *get_mimetypes (demux_class_t *this_gen) {
 }
 
 static void class_dispose (demux_class_t *this_gen) {
-
   demux_roq_class_t *this = (demux_roq_class_t *) this_gen;
 
   free (this);
 }
 
 void *demux_roq_init_plugin (xine_t *xine, void *data) {
-
   demux_roq_class_t     *this;
 
-  this         = xine_xmalloc (sizeof (demux_roq_class_t));
-  this->config = xine->config;
-  this->xine   = xine;
+  this  = xine_xmalloc (sizeof (demux_roq_class_t));
 
   this->demux_class.open_plugin     = open_plugin;
   this->demux_class.get_description = get_description;
@@ -507,7 +493,7 @@ void *demux_roq_init_plugin (xine_t *xine, void *data) {
 
 #if 0
 plugin_info_t xine_plugin_info[] = {
-  /* type, API, "name", version, special_info, init_function */  
+  /* type, API, "name", version, special_info, init_function */
   { PLUGIN_DEMUX, 21, "roq", XINE_VERSION_CODE, NULL, demux_roq_init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

@@ -34,7 +34,7 @@
  * data. This makes seeking conceptually impossible. Upshot: Random
  * seeking is not supported.
  *
- * $Id: demux_aud.c,v 1.9 2003/07/03 00:58:52 andruil Exp $
+ * $Id: demux_aud.c,v 1.10 2003/07/16 00:52:45 andruil Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -82,7 +82,6 @@ typedef struct {
 
 /* returns 1 if the AUD file was opened successfully, 0 otherwise */
 static int open_aud_file(demux_aud_t *this) {
-
   unsigned char header[AUD_HEADER_SIZE];
 
   if (xine_demux_read_header(this->input, header, AUD_HEADER_SIZE) != AUD_HEADER_SIZE)
@@ -124,8 +123,8 @@ static int open_aud_file(demux_aud_t *this) {
 }
 
 static int demux_aud_send_chunk(demux_plugin_t *this_gen) {
-
   demux_aud_t *this = (demux_aud_t *) this_gen;
+
   unsigned char chunk_preamble[AUD_CHUNK_PREAMBLE_SIZE];
   unsigned int chunk_size;
   off_t current_file_pos;
@@ -186,7 +185,6 @@ static int demux_aud_send_chunk(demux_plugin_t *this_gen) {
 }
 
 static void demux_aud_send_headers(demux_plugin_t *this_gen) {
-
   demux_aud_t *this = (demux_aud_t *) this_gen;
   buf_element_t *buf;
 
@@ -250,7 +248,6 @@ static int demux_aud_get_status (demux_plugin_t *this_gen) {
 }
 
 static int demux_aud_get_stream_length (demux_plugin_t *this_gen) {
-
   return 0;
 }
 
@@ -335,14 +332,12 @@ static char *get_mimetypes (demux_class_t *this_gen) {
 }
 
 static void class_dispose (demux_class_t *this_gen) {
-
   demux_aud_class_t *this = (demux_aud_class_t *) this_gen;
 
   free (this);
 }
 
 void *demux_aud_init_plugin (xine_t *xine, void *data) {
-
   demux_aud_class_t     *this;
 
   this = xine_xmalloc (sizeof (demux_aud_class_t));

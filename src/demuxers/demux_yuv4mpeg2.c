@@ -16,13 +16,15 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
- *
+ */
+
+/*
  * YUV4MPEG2 File Demuxer by Mike Melanson (melanson@pcisys.net)
  * For more information regarding the YUV4MPEG2 file format and associated
  * tools, visit:
  *   http://mjpeg.sourceforge.net/
  *
- * $Id: demux_yuv4mpeg2.c,v 1.22 2003/04/26 20:16:29 guenter Exp $
+ * $Id: demux_yuv4mpeg2.c,v 1.23 2003/07/16 00:52:46 andruil Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -49,23 +51,16 @@
 #define Y4M_HEADER_BYTES 100
 
 typedef struct {
-
   demux_plugin_t       demux_plugin;
 
   xine_stream_t       *stream;
-
-  config_values_t     *config;
-
   fifo_buffer_t       *video_fifo;
   fifo_buffer_t       *audio_fifo;
-
   input_plugin_t      *input;
-
-  int                  thread_running;
+  int                  status;
 
   off_t                data_start;
   off_t                data_size;
-  int                  status;
 
   xine_bmiheader       bih;
 
@@ -74,29 +69,20 @@ typedef struct {
   unsigned int         frame_size;
 
   int                  seek_flag;
-
-  char                 last_mrl[1024];
 } demux_yuv4mpeg2_t;
 
 typedef struct {
-
   demux_class_t     demux_class;
-
-  /* class-wide, global variables here */
-
-  xine_t           *xine;
-  config_values_t  *config;
 } demux_yuv4mpeg2_class_t;
 
 /* returns 1 if the YUV4MPEG2 file was opened successfully, 0 otherwise */
 static int open_yuv4mpeg2_file(demux_yuv4mpeg2_t *this) {
-
   unsigned char header[Y4M_HEADER_BYTES];
   int i;
 
   this->bih.biWidth = this->bih.biHeight = this->fps = this->data_start = 0;
 
-  if (!xine_demux_read_header(this->input, header, Y4M_HEADER_BYTES))
+  if (xine_demux_read_header(this->input, header, Y4M_HEADER_BYTES) != Y4M_HEADER_BYTES)
     return 0;
 
   /* check for the Y4M signature */
@@ -145,8 +131,9 @@ static int open_yuv4mpeg2_file(demux_yuv4mpeg2_t *this) {
       i++;
     else
       break;
+
   this->data_start = i;
-  if (this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) {
+  if (INPUT_IS_SEEKABLE(this->input)) {
     this->data_size = this->input->get_length(this->input) -
       this->data_start;
   }
@@ -163,8 +150,8 @@ static int open_yuv4mpeg2_file(demux_yuv4mpeg2_t *this) {
 }
 
 static int demux_yuv4mpeg2_send_chunk(demux_plugin_t *this_gen) {
-
   demux_yuv4mpeg2_t *this = (demux_yuv4mpeg2_t *) this_gen;
+
   buf_element_t *buf = NULL;
   unsigned char preamble[Y4M_FRAME_SIGNATURE_SIZE];
   int bytes_remaining;
@@ -226,7 +213,6 @@ static int demux_yuv4mpeg2_send_chunk(demux_plugin_t *this_gen) {
 } 
 
 static void demux_yuv4mpeg2_send_headers(demux_plugin_t *this_gen) {
-
   demux_yuv4mpeg2_t *this = (demux_yuv4mpeg2_t *) this_gen;
   buf_element_t *buf;
 
@@ -260,7 +246,7 @@ static int demux_yuv4mpeg2_seek (demux_plugin_t *this_gen,
 
   demux_yuv4mpeg2_t *this = (demux_yuv4mpeg2_t *) this_gen;
 
-  if (this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) {
+  if (INPUT_IS_SEEKABLE(this->input)) {
 
      /* YUV4MPEG2 files are essentially constant bit-rate video. Seek along
       * the calculated frame boundaries. Divide the requested seek offset
@@ -293,7 +279,6 @@ static int demux_yuv4mpeg2_seek (demux_plugin_t *this_gen,
 }
 
 static void demux_yuv4mpeg2_dispose (demux_plugin_t *this_gen) {
-
   demux_yuv4mpeg2_t *this = (demux_yuv4mpeg2_t *) this_gen;
 
   free(this);
@@ -306,7 +291,6 @@ static int demux_yuv4mpeg2_get_status (demux_plugin_t *this_gen) {
 }
 
 static int demux_yuv4mpeg2_get_stream_length (demux_plugin_t *this_gen) {
-
   demux_yuv4mpeg2_t *this = (demux_yuv4mpeg2_t *) this_gen;
 
   return (int)((int64_t) this->data_size * 1000 / 
@@ -323,9 +307,8 @@ static int demux_yuv4mpeg2_get_optional_data(demux_plugin_t *this_gen,
 }
 
 static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *stream,
-                                    input_plugin_t *input_gen) {
+                                    input_plugin_t *input) {
 
-  input_plugin_t *input = (input_plugin_t *) input_gen;
   demux_yuv4mpeg2_t *this;
 
   this         = xine_xmalloc (sizeof (demux_yuv4mpeg2_t));
@@ -376,8 +359,6 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
     return NULL;
   }
 
-  strncpy (this->last_mrl, input->get_mrl (input), 1024);
-
   return &this->demux_plugin;
 }
 
@@ -398,19 +379,15 @@ static char *get_mimetypes (demux_class_t *this_gen) {
 }
 
 static void class_dispose (demux_class_t *this_gen) {
-
   demux_yuv4mpeg2_class_t *this = (demux_yuv4mpeg2_class_t *) this_gen;
 
   free (this);
 }
 
 static void *init_plugin (xine_t *xine, void *data) {
-
   demux_yuv4mpeg2_class_t     *this;
 
-  this         = xine_xmalloc (sizeof (demux_yuv4mpeg2_class_t));
-  this->config = xine->config;
-  this->xine   = xine;
+  this = xine_xmalloc (sizeof (demux_yuv4mpeg2_class_t));
 
   this->demux_class.open_plugin     = open_plugin;
   this->demux_class.get_description = get_description;

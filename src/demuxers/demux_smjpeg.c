@@ -23,7 +23,7 @@
  * For more information on the SMJPEG file format, visit:
  *   http://www.lokigames.com/development/smjpeg.php3
  *
- * $Id: demux_smjpeg.c,v 1.39 2003/07/04 15:12:50 andruil Exp $
+ * $Id: demux_smjpeg.c,v 1.40 2003/07/16 00:52:45 andruil Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -35,6 +35,11 @@
 #include <unistd.h>
 #include <string.h>
 #include <stdlib.h>
+
+/********** logging **********/
+#define LOG_MODULE "demux_smjpeg"
+/* #define LOG_VERBOSE */
+/* #define LOG */
 
 #include "xine_internal.h"
 #include "xineutils.h"
@@ -92,13 +97,13 @@ typedef struct {
 
 /* returns 1 if the SMJPEG file was opened successfully, 0 otherwise */
 static int open_smjpeg_file(demux_smjpeg_t *this) {
-
   unsigned int  chunk_tag;
   unsigned char signature[8];
   unsigned char header_chunk[SMJPEG_HEADER_CHUNK_MAX_SIZE];
   unsigned int  audio_codec = 0;
 
-  if (!xine_demux_read_header(this->input, signature, SMJPEG_SIGNATURE_SIZE))
+  if (xine_demux_read_header(this->input, signature, SMJPEG_SIGNATURE_SIZE) !=
+      SMJPEG_SIGNATURE_SIZE)
     return 0;
 
   /* check for the SMJPEG signature */
@@ -138,8 +143,8 @@ static int open_smjpeg_file(demux_smjpeg_t *this) {
       break;
 
     case _VID_TAG:
-      if (this->input->read(this->input, header_chunk, 
-        SMJPEG_VIDEO_HEADER_SIZE) != SMJPEG_VIDEO_HEADER_SIZE)
+      if (this->input->read(this->input, header_chunk,
+          SMJPEG_VIDEO_HEADER_SIZE) != SMJPEG_VIDEO_HEADER_SIZE)
         return 0;
 
       this->bih.biWidth = BE_16(&header_chunk[8]);
@@ -149,8 +154,8 @@ static int open_smjpeg_file(demux_smjpeg_t *this) {
       break;
 
     case _SND_TAG:
-      if (this->input->read(this->input, header_chunk, 
-        SMJPEG_AUDIO_HEADER_SIZE) != SMJPEG_AUDIO_HEADER_SIZE)
+      if (this->input->read(this->input, header_chunk,
+          SMJPEG_AUDIO_HEADER_SIZE) != SMJPEG_AUDIO_HEADER_SIZE)
         return 0;
 
       this->audio_sample_rate = BE_16(&header_chunk[4]);
@@ -188,8 +193,8 @@ static int open_smjpeg_file(demux_smjpeg_t *this) {
 }
 
 static int demux_smjpeg_send_chunk(demux_plugin_t *this_gen) {
-
   demux_smjpeg_t *this = (demux_smjpeg_t *) this_gen;
+
   buf_element_t *buf = NULL;
   unsigned int chunk_tag;
   int64_t pts;
@@ -201,7 +206,7 @@ static int demux_smjpeg_send_chunk(demux_plugin_t *this_gen) {
 
   /* load the next sample */
   current_file_pos = this->input->get_current_pos(this->input);
-  if (this->input->read(this->input, preamble, 
+  if (this->input->read(this->input, preamble,
     SMJPEG_CHUNK_PREAMBLE_SIZE) != SMJPEG_CHUNK_PREAMBLE_SIZE) {
     this->status = DEMUX_FINISHED;
     return this->status;  /* skip to next while() iteration to bail out */
@@ -295,12 +300,11 @@ static int demux_smjpeg_send_chunk(demux_plugin_t *this_gen) {
 
   if (chunk_tag == vidD_TAG)
     last_frame_pts = buf->pts;
-  
+
   return this->status;
 }
 
 static void demux_smjpeg_send_headers(demux_plugin_t *this_gen) {
-
   demux_smjpeg_t *this = (demux_smjpeg_t *) this_gen;
   buf_element_t *buf;
 
@@ -311,7 +315,7 @@ static void demux_smjpeg_send_headers(demux_plugin_t *this_gen) {
 
   /* load stream information */
   this->stream->stream_info[XINE_STREAM_INFO_HAS_VIDEO] = 1;
-  this->stream->stream_info[XINE_STREAM_INFO_HAS_AUDIO] = 
+  this->stream->stream_info[XINE_STREAM_INFO_HAS_AUDIO] =
     (this->audio_channels) ? 1 : 0;
   this->stream->stream_info[XINE_STREAM_INFO_VIDEO_WIDTH]  = this->bih.biWidth;
   this->stream->stream_info[XINE_STREAM_INFO_VIDEO_HEIGHT] = this->bih.biHeight;
@@ -347,9 +351,7 @@ static void demux_smjpeg_send_headers(demux_plugin_t *this_gen) {
   }
 }
 
-static int demux_smjpeg_seek (demux_plugin_t *this_gen,
-                               off_t start_pos, int start_time) {
-
+static int demux_smjpeg_seek (demux_plugin_t *this_gen, off_t start_pos, int start_time) {
   demux_smjpeg_t *this = (demux_smjpeg_t *) this_gen;
 
   /* if thread is not running, initialize demuxer */
@@ -396,8 +398,8 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   demux_smjpeg_t *this;
 
   if (!INPUT_IS_SEEKABLE(input)) {
-    if (stream->xine->verbosity >= XINE_VERBOSITY_DEBUG)
-      printf(_("demux_smjpeg.c: input not seekable, can not handle!\n"));
+    xprintf(stream->xine, XINE_VERBOSITY_DEBUG,
+            _("input not seekable, can not handle!\n"));
     return NULL;
   }
 
@@ -469,14 +471,12 @@ static char *get_mimetypes (demux_class_t *this_gen) {
 }
 
 static void class_dispose (demux_class_t *this_gen) {
-
   demux_smjpeg_class_t *this = (demux_smjpeg_class_t *) this_gen;
 
   free (this);
 }
 
 void *demux_smjpeg_init_plugin (xine_t *xine, void *data) {
-
   demux_smjpeg_class_t     *this;
 
   this = xine_xmalloc (sizeof (demux_smjpeg_class_t));

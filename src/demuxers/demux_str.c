@@ -24,7 +24,7 @@
  * This demuxer handles either raw STR files (which are just a concatenation
  * of raw compact disc sectors) or STR files with RIFF headers.
  *
- * $Id: demux_str.c,v 1.12 2003/07/04 15:12:51 andruil Exp $
+ * $Id: demux_str.c,v 1.13 2003/07/16 00:52:45 andruil Exp $
  */
 
 /*
@@ -499,9 +499,7 @@ static void demux_str_send_headers(demux_plugin_t *this_gen) {
   }
 }
 
-static int demux_str_seek (demux_plugin_t *this_gen,
-                               off_t start_pos, int start_time) {
-
+static int demux_str_seek (demux_plugin_t *this_gen, off_t start_pos, int start_time) {
   demux_str_t *this = (demux_str_t *) this_gen;
 
   xine_demux_flush_engine (this->stream);
@@ -537,8 +535,6 @@ static int demux_str_get_stream_length (demux_plugin_t *this_gen) {
 
   return (int)((int64_t) this->input->get_length(this->input) 
                 * 1000 / (CD_RAW_SECTOR_SIZE * 75));
-
-  return 0;
 }
 
 static uint32_t demux_str_get_capabilities(demux_plugin_t *this_gen) {
@@ -557,7 +553,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
 
   if (!INPUT_IS_SEEKABLE(input)) {
     xprintf(stream->xine, XINE_VERBOSITY_DEBUG,
-      "input not seekable, can not handle!\n");
+      _("input not seekable, can not handle!\n"));
     return NULL;
   }
 
@@ -634,7 +630,6 @@ static void class_dispose (demux_class_t *this_gen) {
 }
 
 void *demux_str_init_plugin (xine_t *xine, void *data) {
-
   demux_str_class_t     *this;
 
   this = xine_xmalloc (sizeof (demux_str_class_t));

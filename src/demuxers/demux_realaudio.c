@@ -16,11 +16,12 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
- *
+ */
+
+/*
  * RealAudio File Demuxer by Mike Melanson (melanson@pcisys.net)
  *
- * $Id: demux_realaudio.c,v 1.20 2003/05/06 20:19:56 esnel Exp $
- *
+ * $Id: demux_realaudio.c,v 1.21 2003/07/16 00:52:45 andruil Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -44,50 +45,36 @@
 #define RA_AUDIO_HEADER_SIZE 0x39
 
 typedef struct {
-
   demux_plugin_t       demux_plugin;
 
   xine_stream_t       *stream;
-
-  config_values_t     *config;
-
   fifo_buffer_t       *video_fifo;
   fifo_buffer_t       *audio_fifo;
-
   input_plugin_t      *input;
-
   int                  status;
 
   xine_waveformatex    wave;
-  unsigned int         audio_fourcc;
   unsigned int         audio_type;
 
   off_t                data_start;
   off_t                data_size;
 
   int                  seek_flag;  /* this is set when a seek just occurred */
-
-  char                 last_mrl[1024];
 } demux_ra_t;
 
 typedef struct {
-
   demux_class_t     demux_class;
-
-  /* class-wide, global variables here */
-
-  xine_t           *xine;
-  config_values_t  *config;
 } demux_ra_class_t;
 
 /* returns 1 if the RealAudio file was opened successfully, 0 otherwise */
 static int open_ra_file(demux_ra_t *this) {
-
   unsigned char file_header[RA_FILE_HEADER_SIZE];
   unsigned char audio_header[RA_AUDIO_HEADER_SIZE];
+  unsigned int  audio_fourcc;
 
   /* check the signature */
-  if (!xine_demux_read_header(this->input, file_header, RA_FILE_HEADER_SIZE))
+  if (xine_demux_read_header(this->input, file_header, RA_FILE_HEADER_SIZE) !=
+      RA_FILE_HEADER_SIZE)
     return 0;
 
   if ((file_header[0] != '.') ||
@@ -100,7 +87,7 @@ static int open_ra_file(demux_ra_t *this) {
 
   /* load the audio header */
   if (this->input->read(this->input, audio_header, RA_AUDIO_HEADER_SIZE) !=
-    RA_AUDIO_HEADER_SIZE)
+      RA_AUDIO_HEADER_SIZE)
     return 0;
 
   /* find the important information */
@@ -110,23 +97,23 @@ static int open_ra_file(demux_ra_t *this) {
   this->wave.nSamplesPerSec = BE_16(&audio_header[0x20]);
   this->wave.nBlockAlign = BE_16(&audio_header[0x1A]);
   this->wave.wBitsPerSample = audio_header[0x25];
-  this->audio_fourcc = *(unsigned int *)&audio_header[0x2E];
-  this->audio_type = formattag_to_buf_audio(this->audio_fourcc);
+  audio_fourcc = *(unsigned int *)&audio_header[0x2E];
+  this->audio_type = formattag_to_buf_audio(audio_fourcc);
 
   /* skip extra header data (such as song title etc.) */
   if (this->input->seek(this->input, this->data_start, SEEK_SET) !=
-    this->data_start)
+      this->data_start)
     return 0;
 
   if( !this->audio_type )
     this->audio_type = BUF_AUDIO_UNKNOWN;
-  
+
   return 1;
 }
 
 static int demux_ra_send_chunk(demux_plugin_t *this_gen) {
-
   demux_ra_t *this = (demux_ra_t *) this_gen;
+
   buf_element_t *buf = NULL;
   unsigned int remaining_sample_bytes;
   off_t current_file_pos;
@@ -138,11 +125,7 @@ static int demux_ra_send_chunk(demux_plugin_t *this_gen) {
   current_file_pos =
     this->input->get_current_pos(this->input) - this->data_start;
 
-
-
   current_pts = 0;  /* let the engine sort out the pts for now */
-
-
 
   if (this->seek_flag) {
     xine_demux_control_newpts(this->stream, current_pts, 0);
@@ -183,7 +166,6 @@ static int demux_ra_send_chunk(demux_plugin_t *this_gen) {
 }
 
 static void demux_ra_send_headers(demux_plugin_t *this_gen) {
-
   demux_ra_t *this = (demux_ra_t *) this_gen;
   buf_element_t *buf;
 
@@ -228,10 +210,10 @@ static int demux_ra_seek (demux_plugin_t *this_gen,
   this->seek_flag = 1;
   this->status = DEMUX_OK;
   xine_demux_flush_engine (this->stream);
-  
+
   /* if input is non-seekable, do not proceed with the rest of this
    * seek function */
-  if ((this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) == 0)
+  if (!INPUT_IS_SEEKABLE(this->input))
     return this->status;
 
   /* check the boundary offsets */
@@ -271,12 +253,11 @@ static int demux_ra_get_status (demux_plugin_t *this_gen) {
 
 /* return the approximate length in miliseconds */
 static int demux_ra_get_stream_length (demux_plugin_t *this_gen) {
-
   demux_ra_t *this = (demux_ra_t *) this_gen;
 
-  if(this->wave.nAvgBytesPerSec) 
+  if(this->wave.nAvgBytesPerSec)
     return (int)((int64_t) this->data_size * 1000 / this->wave.nAvgBytesPerSec);
-  else 
+  else
     return 0;
 }
 
@@ -290,9 +271,8 @@ static int demux_ra_get_optional_data(demux_plugin_t *this_gen,
 }
 
 static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *stream,
-                                    input_plugin_t *input_gen) {
+                                    input_plugin_t *input) {
 
-  input_plugin_t *input = (input_plugin_t *) input_gen;
   demux_ra_t     *this;
 
   this         = xine_xmalloc (sizeof (demux_ra_t));
@@ -343,8 +323,6 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
     return NULL;
   }
 
-  strncpy (this->last_mrl, input->get_mrl (input), 1024);
-
   return &this->demux_plugin;
 }
 
@@ -365,19 +343,15 @@ static char *get_mimetypes (demux_class_t *this_gen) {
 }
 
 static void class_dispose (demux_class_t *this_gen) {
-
   demux_ra_class_t *this = (demux_ra_class_t *) this_gen;
 
   free (this);
 }
 
 void *demux_realaudio_init_plugin (xine_t *xine, void *data) {
-
   demux_ra_class_t     *this;
 
-  this         = xine_xmalloc (sizeof (demux_ra_class_t));
-  this->config = xine->config;
-  this->xine   = xine;
+  this = xine_xmalloc (sizeof (demux_ra_class_t));
 
   this->demux_class.open_plugin     = open_plugin;
   this->demux_class.get_description = get_description;

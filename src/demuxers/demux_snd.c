@@ -21,7 +21,7 @@
 /*
  * SND/AU File Demuxer by Mike Melanson (melanson@pcisys.net)
  *
- * $Id: demux_snd.c,v 1.30 2003/07/04 15:12:50 andruil Exp $
+ * $Id: demux_snd.c,v 1.31 2003/07/16 00:52:45 andruil Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -77,7 +77,6 @@ typedef struct {
 
 /* returns 1 if the SND file was opened successfully, 0 otherwise */
 static int open_snd_file(demux_snd_t *this) {
-
   unsigned char header[SND_HEADER_SIZE];
   unsigned int encoding;
 
@@ -147,8 +146,8 @@ static int open_snd_file(demux_snd_t *this) {
 }
 
 static int demux_snd_send_chunk(demux_plugin_t *this_gen) {
-
   demux_snd_t *this = (demux_snd_t *) this_gen;
+
   buf_element_t *buf = NULL;
   unsigned int remaining_sample_bytes;
   off_t current_file_pos;
@@ -199,7 +198,6 @@ static int demux_snd_send_chunk(demux_plugin_t *this_gen) {
 }
 
 static void demux_snd_send_headers(demux_plugin_t *this_gen) {
-
   demux_snd_t *this = (demux_snd_t *) this_gen;
   buf_element_t *buf;
 
@@ -235,9 +233,7 @@ static void demux_snd_send_headers(demux_plugin_t *this_gen) {
   }
 }
 
-static int demux_snd_seek (demux_plugin_t *this_gen,
-                           off_t start_pos, int start_time) {
-
+static int demux_snd_seek (demux_plugin_t *this_gen, off_t start_pos, int start_time) {
   demux_snd_t *this = (demux_snd_t *) this_gen;
   
   this->seek_flag = 1;
@@ -285,7 +281,6 @@ static int demux_snd_get_status (demux_plugin_t *this_gen) {
 
 /* return the approximate length in miliseconds */
 static int demux_snd_get_stream_length (demux_plugin_t *this_gen) {
-
   demux_snd_t *this = (demux_snd_t *) this_gen;
 
   return this->running_time * 1000;
@@ -376,14 +371,12 @@ static char *get_mimetypes (demux_class_t *this_gen) {
 }
 
 static void class_dispose (demux_class_t *this_gen) {
-
   demux_snd_class_t *this = (demux_snd_class_t *) this_gen;
 
   free (this);
 }
 
 void *demux_snd_init_plugin (xine_t *xine, void *data) {
-
   demux_snd_class_t     *this;
 
   this  = xine_xmalloc (sizeof (demux_snd_class_t));

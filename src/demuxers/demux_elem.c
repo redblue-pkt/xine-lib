@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_elem.c,v 1.72 2003/07/03 12:35:18 andruil Exp $
+ * $Id: demux_elem.c,v 1.73 2003/07/16 00:52:45 andruil Exp $
  *
  * demultiplexer for elementary mpeg streams
  */
@@ -93,7 +93,6 @@ static int demux_mpeg_elem_next (demux_mpeg_elem_t *this, int preview_mode) {
 }
 
 static int demux_mpeg_elem_send_chunk (demux_plugin_t *this_gen) {
-
   demux_mpeg_elem_t *this = (demux_mpeg_elem_t *) this_gen;
 
   if (!demux_mpeg_elem_next(this, 0))
@@ -109,7 +108,6 @@ static int demux_mpeg_elem_get_status (demux_plugin_t *this_gen) {
 
 
 static void demux_mpeg_elem_send_headers (demux_plugin_t *this_gen) {
-
   demux_mpeg_elem_t *this = (demux_mpeg_elem_t *) this_gen;
 
   this->video_fifo  = this->stream->video_fifo;
@@ -118,9 +116,9 @@ static void demux_mpeg_elem_send_headers (demux_plugin_t *this_gen) {
   this->blocksize = this->input->get_blocksize(this->input);
   if (!this->blocksize)
     this->blocksize = 2048;
-  
+
   xine_demux_control_start(this->stream);
-  
+
   if (INPUT_IS_SEEKABLE(this->input)) {
     int num_buffers = NUM_PREVIEW_BUFFERS;
 
@@ -263,14 +261,12 @@ static char *get_mimetypes (demux_class_t *this_gen) {
 }
 
 static void class_dispose (demux_class_t *this_gen) {
-
   demux_mpeg_elem_class_t *this = (demux_mpeg_elem_class_t *) this_gen;
 
   free (this);
 }
 
 static void *init_plugin (xine_t *xine, void *data) {
-
   demux_mpeg_elem_class_t     *this;
 
   this = xine_xmalloc (sizeof (demux_mpeg_elem_class_t));

@@ -24,7 +24,7 @@
  * linear PCM "decoder" (which in turn sends them directly to the audio
  * output target; this is a really fancy CD-playing architecture).
  *
- * $Id: demux_cdda.c,v 1.8 2003/07/03 12:35:18 andruil Exp $
+ * $Id: demux_cdda.c,v 1.9 2003/07/16 00:52:45 andruil Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -69,7 +69,6 @@ typedef struct {
 } demux_cdda_class_t;
 
 static int demux_cdda_send_chunk (demux_plugin_t *this_gen) {
-
   demux_cdda_t *this = (demux_cdda_t *) this_gen;
   buf_element_t *buf = NULL;
 
@@ -100,7 +99,6 @@ static int demux_cdda_send_chunk (demux_plugin_t *this_gen) {
 }
 
 static void demux_cdda_send_headers(demux_plugin_t *this_gen) {
-
   demux_cdda_t *this = (demux_cdda_t *) this_gen;
   buf_element_t *buf;
 
@@ -134,9 +132,7 @@ static void demux_cdda_send_headers(demux_plugin_t *this_gen) {
   }
 }
 
-static int demux_cdda_seek (demux_plugin_t *this_gen,
-                            off_t start_pos, int start_time) {
-
+static int demux_cdda_seek (demux_plugin_t *this_gen, off_t start_pos, int start_time) {
   demux_cdda_t *this = (demux_cdda_t *) this_gen;
 
   if (start_pos)
@@ -164,21 +160,18 @@ static int demux_cdda_get_status (demux_plugin_t *this_gen) {
 
 /* return the approximate length in miliseconds */
 static int demux_cdda_get_stream_length (demux_plugin_t *this_gen) {
-
   demux_cdda_t *this = (demux_cdda_t *) this_gen;
 
-  return (int)((int64_t) this->input->get_length(this->input) 
+  return (int)((int64_t) this->input->get_length(this->input)
                 * 1000 / CD_BYTES_PER_SECOND);
 }
 
-static uint32_t demux_cdda_get_capabilities(demux_plugin_t *this_gen)
-{
+static uint32_t demux_cdda_get_capabilities(demux_plugin_t *this_gen){
   return DEMUX_CAP_NOCAP;
 }
 
 static int demux_cdda_get_optional_data(demux_plugin_t *this_gen,
-                                        void *data, int data_type)
-{
+                                        void *data, int data_type){
   return DEMUX_OPTIONAL_UNSUPPORTED;
 }
 
@@ -188,7 +181,8 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   demux_cdda_t   *this;
 
   if (!INPUT_IS_SEEKABLE(input)) {
-    xprintf(stream->xine, XINE_VERBOSITY_DEBUG, "input not seekable, can not handle!\n");
+    xprintf(stream->xine, XINE_VERBOSITY_DEBUG,
+      _("input not seekable, can not handle!\n"));
     return NULL;
   }
 
@@ -247,14 +241,12 @@ static char *get_mimetypes (demux_class_t *this_gen) {
 }
 
 static void class_dispose (demux_class_t *this_gen) {
-
   demux_cdda_class_t *this = (demux_cdda_class_t *) this_gen;
 
   free (this);
 }
 
 void *demux_cdda_init_plugin (xine_t *xine, void *data) {
-
   demux_cdda_class_t     *this;
 
   this = xine_xmalloc (sizeof (demux_cdda_class_t));

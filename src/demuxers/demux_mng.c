@@ -16,8 +16,10 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
- *
- * $Id: demux_mng.c,v 1.8 2003/04/26 20:16:09 guenter Exp $
+ */
+
+/*
+ * $Id: demux_mng.c,v 1.9 2003/07/16 00:52:45 andruil Exp $
  *
  * demux_mng.c, Demuxer plugin for Multiple-image Network Graphics format
  *
@@ -35,49 +37,45 @@
 
 #include <libmng.h>
 
+/********** logging **********/
+#define LOG_MODULE "demux_mng"
+/* #define LOG_VERBOSE */
+/* #define LOG */
+
 #include "xine_internal.h"
 #include "xineutils.h"
 #include "demux.h"
 
 typedef struct {
-  demux_plugin_t demux_plugin;
-  xine_stream_t *stream;
-  config_values_t *config;
-  fifo_buffer_t *video_fifo;
-  input_plugin_t *input;
+  demux_plugin_t     demux_plugin;
 
-  int thread_running;
-  int status;
+  xine_stream_t     *stream;
+  fifo_buffer_t     *video_fifo;
+  input_plugin_t    *input;
+  int                status;
 
-  mng_handle mngh;
-  xine_bmiheader bih;
-  uint8_t *image;
-  int started, tick_count, timer_count;
-  
-  char last_mrl[1024];
+  mng_handle         mngh;
+  xine_bmiheader     bih;
+  uint8_t           *image;
+
+  int                started;
+  int                tick_count;
+  int                timer_count;
 } demux_mng_t;
 
 typedef struct {
   demux_class_t     demux_class;
-
-  /* class-wide, global variables here */
-
-  xine_t           *xine;
-  config_values_t  *config;
 } demux_mng_class_t;
 
-static mng_ptr mymng_alloc(mng_uint32 size)
-{
+static mng_ptr mymng_alloc(mng_uint32 size){
   return (mng_ptr)calloc(1, size);
 }
 
-static void mymng_free(mng_ptr p, mng_uint32 size)
-{
+static void mymng_free(mng_ptr p, mng_uint32 size){
   free(p);
 }
 
-mng_bool mymng_open_stream(mng_handle mngh)
-{
+mng_bool mymng_open_stream(mng_handle mngh){
   demux_mng_t *this = (demux_mng_t*)mng_get_userdata(mngh);
 
   if (this->input->get_current_pos(this->input) != 0) {
@@ -90,8 +88,7 @@ mng_bool mymng_open_stream(mng_handle mngh)
   return MNG_TRUE;
 }
 
-mng_bool mymng_close_stream(mng_handle mngh)
-{
+mng_bool mymng_close_stream(mng_handle mngh){
   demux_mng_t *this = (demux_mng_t*)mng_get_userdata(mngh);
 
   this->status = DEMUX_FINISHED;
@@ -99,8 +96,7 @@ mng_bool mymng_close_stream(mng_handle mngh)
   return MNG_TRUE;
 }
 
-mng_bool mymng_read_stream(mng_handle mngh, mng_ptr buffer, mng_uint32 size, mng_uint32 *bytesread)
-{
+mng_bool mymng_read_stream(mng_handle mngh, mng_ptr buffer, mng_uint32 size, mng_uint32 *bytesread){
   demux_mng_t *this = (demux_mng_t*)mng_get_userdata(mngh);
 
   *bytesread = this->input->read(this->input, buffer, size);
@@ -108,8 +104,7 @@ mng_bool mymng_read_stream(mng_handle mngh, mng_ptr buffer, mng_uint32 size, mng
   return MNG_TRUE;
 }
 
-mng_bool mymng_process_header(mng_handle mngh, mng_uint32 width, mng_uint32 height)
-{
+mng_bool mymng_process_header(mng_handle mngh, mng_uint32 width, mng_uint32 height){
   demux_mng_t *this = (demux_mng_t*)mng_get_userdata(mngh);
 
   this->bih.biWidth = width;
@@ -122,15 +117,13 @@ mng_bool mymng_process_header(mng_handle mngh, mng_uint32 width, mng_uint32 heig
   return MNG_TRUE;
 }
 
-mng_uint32 mymng_get_tick_count(mng_handle mngh)
-{
+mng_uint32 mymng_get_tick_count(mng_handle mngh){
   demux_mng_t *this = (demux_mng_t*)mng_get_userdata(mngh);
 
   return this->tick_count;
 }
 
-mng_bool mymng_set_timer(mng_handle mngh, mng_uint32 msecs)
-{
+mng_bool mymng_set_timer(mng_handle mngh, mng_uint32 msecs){
   demux_mng_t *this = (demux_mng_t*)mng_get_userdata(mngh);
 
   this->timer_count = msecs;
@@ -138,15 +131,13 @@ mng_bool mymng_set_timer(mng_handle mngh, mng_uint32 msecs)
   return MNG_TRUE;
 }
 
-mng_ptr mymng_get_canvas_line(mng_handle mngh, mng_uint32 line)
-{
+mng_ptr mymng_get_canvas_line(mng_handle mngh, mng_uint32 line){
   demux_mng_t *this = (demux_mng_t*)mng_get_userdata(mngh);
 
   return this->image + line * this->bih.biWidth * 3;
 }
 
-mng_bool mymng_refresh(mng_handle mngh, mng_uint32 x, mng_uint32 y, mng_uint32 w, mng_uint32 h)
-{
+mng_bool mymng_refresh(mng_handle mngh, mng_uint32 x, mng_uint32 y, mng_uint32 w, mng_uint32 h){
   return MNG_TRUE;
 }
 
@@ -156,14 +147,13 @@ mng_bool mymng_refresh(mng_handle mngh, mng_uint32 x, mng_uint32 y, mng_uint32 w
  * !IMPORTANT! !IMPORTANT! !IMPORTANT! !IMPORTANT! !IMPORTANT!
  */
 
-static int demux_mng_send_chunk(demux_mng_t *this)
-{
+static int demux_mng_send_chunk(demux_mng_t *this){
   int size = this->bih.biWidth * this->bih.biHeight * 3;
   uint8_t *image_ptr = this->image;
 
   int err = mng_display_resume(this->mngh);
   if ((err != MNG_NOERROR) && (err != MNG_NEEDTIMERWAIT)) {
-    fprintf(stderr, "demux_mng: mng_display_resume returned an error (%d)\n", err);
+    lprintf("mng_display_resume returned an error (%d)\n", err);
     this->status = DEMUX_FINISHED;
   }
 
@@ -202,8 +192,7 @@ static int demux_mng_send_chunk(demux_mng_t *this)
   return this->status;
 }
 
-static void demux_mng_send_headers(demux_mng_t *this)
-{
+static void demux_mng_send_headers(demux_mng_t *this){
   buf_element_t *buf;
 
   this->video_fifo = this->stream->video_fifo;
@@ -229,29 +218,25 @@ static void demux_mng_send_headers(demux_mng_t *this)
   this->video_fifo->put(this->video_fifo, buf);
 }
 
-static int demux_mng_seek(demux_mng_t *this, off_t start_pos, int start_time)
-{
+static int demux_mng_seek(demux_mng_t *this, off_t start_pos, int start_time){
   return this->status;
 }
 
-static void demux_mng_dispose(demux_mng_t *this)
-{
+static void demux_mng_dispose(demux_mng_t *this){
+
   mng_cleanup(&this->mngh);
 
-  if (this->image) {
+  if (this->image)
     free(this->image);
-  }
 
   free(this);
 }
 
-static int demux_mng_get_status(demux_mng_t *this)
-{
+static int demux_mng_get_status(demux_mng_t *this){
   return this->status;
 }
 
-static int demux_mng_get_stream_length(demux_mng_t *this)
-{
+static int demux_mng_get_stream_length(demux_mng_t *this){
   return 0;
 }
 
@@ -263,9 +248,8 @@ static int demux_mng_get_optional_data(demux_plugin_t *this_gen, void *data, int
   return DEMUX_OPTIONAL_UNSUPPORTED;
 }
 
-static demux_plugin_t* open_plugin(demux_class_t *class_gen, xine_stream_t *stream, input_plugin_t *input_gen)
-{
-  input_plugin_t *input = (input_plugin_t *) input_gen;
+static demux_plugin_t* open_plugin(demux_class_t *class_gen, xine_stream_t *stream, input_plugin_t *input){
+
   demux_mng_t    *this;
 
   this         = xine_xmalloc (sizeof (demux_mng_t));
@@ -289,25 +273,20 @@ static demux_plugin_t* open_plugin(demux_class_t *class_gen, xine_stream_t *stre
   switch (stream->content_detection_method) {
     case METHOD_BY_CONTENT:
     case METHOD_EXPLICIT:
-      if ((this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) == 0) {
+      if (!INPUT_IS_SEEKABLE(this->input)) {
         free(this);
         return NULL;
       }
     break;
 
     case METHOD_BY_EXTENSION: {
-      char *ending, *mrl;
+      char *extensions, *mrl;
 
       mrl = input->get_mrl(input);
+      extensions = class_gen->get_extensions (class_gen);
 
-      ending = strrchr(mrl, '.');
-      if (!ending) {
-        free(this);
-        return NULL;
-      }
-
-      if (strncasecmp(ending, ".mng", 4) && strncasecmp(ending, ".png", 4)) {
-        free(this);
+      if (!xine_demux_check_extension (mrl, extensions)) {
+        free (this);
         return NULL;
       }
     }
@@ -346,46 +325,36 @@ static demux_plugin_t* open_plugin(demux_class_t *class_gen, xine_stream_t *stre
     }
   }
 
-  strncpy (this->last_mrl, input->get_mrl(input), 1024);
-
   return &this->demux_plugin;
 }
 
-static char *get_description(demux_class_t *this_gen)
-{
+static char *get_description(demux_class_t *this_gen){
   return "Multiple-image Network Graphics demux plugin";
 }
 
-static char *get_identifier(demux_class_t *this_gen)
-{
+static char *get_identifier(demux_class_t *this_gen){
   return "MNG";
 }
 
-static char *get_extensions(demux_class_t *this_gen)
-{
+static char *get_extensions(demux_class_t *this_gen){
   return "png mng";
 }
 
-static char *get_mimetypes(demux_class_t *this_gen)
-{
+static char *get_mimetypes(demux_class_t *this_gen){
   return "image/png: png: PNG image;"
          "image/x-png: png: PNG image;"
          "video/mng: mng: MNG animation;"
          "video/x-mng: mng: MNG animation;";
 }
 
-static void class_dispose(demux_class_t *this)
-{
+static void class_dispose(demux_class_t *this){
   free (this);
 }
 
-static void *init_plugin(xine_t *xine, void *data)
-{
+static void *init_plugin(xine_t *xine, void *data){
   demux_mng_class_t     *this;
 
-  this         = xine_xmalloc (sizeof (demux_mng_class_t));
-  this->config = xine->config;
-  this->xine   = xine;
+  this  = xine_xmalloc (sizeof (demux_mng_class_t));
 
   this->demux_class.open_plugin     = open_plugin;
   this->demux_class.get_description = get_description;

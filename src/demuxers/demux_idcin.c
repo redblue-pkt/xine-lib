@@ -65,7 +65,7 @@
  *     - if any bytes exceed 63, do not shift the bytes at all before
  *       transmitting them to the video decoder
  *
- * $Id: demux_idcin.c,v 1.40 2003/07/03 15:45:49 andruil Exp $
+ * $Id: demux_idcin.c,v 1.41 2003/07/16 00:52:45 andruil Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -127,8 +127,8 @@ typedef struct {
 } demux_idcin_class_t;
 
 static int demux_idcin_send_chunk(demux_plugin_t *this_gen) {
-
   demux_idcin_t *this = (demux_idcin_t *) this_gen;
+
   buf_element_t *buf = NULL;
   unsigned int command;
   unsigned char preamble[8];
@@ -276,7 +276,6 @@ static int demux_idcin_send_chunk(demux_plugin_t *this_gen) {
 
 /* returns 1 if the CIN file was opened successfully, 0 otherwise */
 static int open_idcin_file(demux_idcin_t *this) {
-
   unsigned char header[IDCIN_HEADER_SIZE];
 
   if (xine_demux_read_header(this->input, header, IDCIN_HEADER_SIZE) != IDCIN_HEADER_SIZE)
@@ -305,7 +304,7 @@ static int open_idcin_file(demux_idcin_t *this) {
 
   /* check the audio sample rate */
   this->audio_sample_rate = LE_32(&header[8]);
-  if ((this->audio_sample_rate != 0) && 
+  if ((this->audio_sample_rate != 0) &&
      ((this->audio_sample_rate < 8000) || (this->audio_sample_rate > 48000)))
     return 0;
 
@@ -319,11 +318,11 @@ static int open_idcin_file(demux_idcin_t *this) {
   if (this->audio_channels > 2)
     return 0;
 
-  /* if execution got this far, qualify it as a valid Id CIN file 
+  /* if execution got this far, qualify it as a valid Id CIN file
    * and continue loading */
   lprintf("%dx%d video, %d Hz, %d channels, %d bits PCM audio\n",
     this->video_width, this->video_height,
-    this->audio_sample_rate, 
+    this->audio_sample_rate,
     this->audio_channels,
     this->audio_bytes_per_sample * 8);
 
@@ -337,11 +336,11 @@ static int open_idcin_file(demux_idcin_t *this) {
 
   /* load stream information */
   this->stream->stream_info[XINE_STREAM_INFO_HAS_VIDEO] = 1;
-  this->stream->stream_info[XINE_STREAM_INFO_HAS_AUDIO] = 
+  this->stream->stream_info[XINE_STREAM_INFO_HAS_AUDIO] =
     (this->audio_channels) ? 1 : 0;
   this->stream->stream_info[XINE_STREAM_INFO_VIDEO_WIDTH] =
     this->video_width;
-  this->stream->stream_info[XINE_STREAM_INFO_VIDEO_HEIGHT] = 
+  this->stream->stream_info[XINE_STREAM_INFO_VIDEO_HEIGHT] =
     this->video_height;
   this->stream->stream_info[XINE_STREAM_INFO_AUDIO_CHANNELS] =
     this->audio_channels;
@@ -354,7 +353,6 @@ static int open_idcin_file(demux_idcin_t *this) {
 }
 
 static void demux_idcin_send_headers(demux_plugin_t *this_gen) {
-
   demux_idcin_t *this = (demux_idcin_t *) this_gen;
   buf_element_t *buf;
 
@@ -418,9 +416,7 @@ static void demux_idcin_send_headers(demux_plugin_t *this_gen) {
   }
 }
 
-static int demux_idcin_seek (demux_plugin_t *this_gen,
-                              off_t start_pos, int start_time) {
-
+static int demux_idcin_seek (demux_plugin_t *this_gen, off_t start_pos, int start_time) {
   demux_idcin_t *this = (demux_idcin_t *) this_gen;
 
   /* if thread is not running, initialize demuxer */
@@ -430,7 +426,7 @@ static int demux_idcin_seek (demux_plugin_t *this_gen,
     xine_demux_control_newpts(this->stream, 0, 0);
 
     this->status = DEMUX_OK;
-  
+
     /* reposition stream past the Huffman tables */
     this->input->seek(this->input, 0x14 + 0x10000, SEEK_SET);
 
@@ -453,7 +449,6 @@ static int demux_idcin_get_status (demux_plugin_t *this_gen) {
 }
 
 static int demux_idcin_get_stream_length (demux_plugin_t *this_gen) {
-
   return 0;
 }
 
@@ -540,14 +535,12 @@ static char *get_mimetypes (demux_class_t *this_gen) {
 }
 
 static void class_dispose (demux_class_t *this_gen) {
-
   demux_idcin_class_t *this = (demux_idcin_class_t *) this_gen;
 
   free (this);
 }
 
 void *demux_idcin_init_plugin (xine_t *xine, void *data) {
-
   demux_idcin_class_t     *this;
 
   this         = xine_xmalloc (sizeof (demux_idcin_class_t));

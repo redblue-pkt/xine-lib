@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_image.c,v 1.4 2003/07/03 15:45:49 andruil Exp $
+ * $Id: demux_image.c,v 1.5 2003/07/16 00:52:45 andruil Exp $
  *
  * image dummy demultiplexer
  */
@@ -85,7 +85,6 @@ static int demux_image_send_chunk (demux_plugin_t *this_gen) {
 }
 
 static void demux_image_send_headers (demux_plugin_t *this_gen) {
-
   demux_image_t *this = (demux_image_t *) this_gen;
 
   this->video_fifo  = this->stream->video_fifo;
@@ -101,13 +100,12 @@ static void demux_image_send_headers (demux_plugin_t *this_gen) {
 static int demux_image_seek (demux_plugin_t *this_gen,
 			    off_t start_pos, int start_time) {
 
-  demux_image_t *this = (demux_image_t *) this_gen; 
-  
+  demux_image_t *this = (demux_image_t *) this_gen;
+
   return this->status;
 }
 
 static int demux_image_get_stream_length (demux_plugin_t *this_gen) {
-
   /* demux_image_t *this = (demux_image_t *) this_gen;  */
 
   return 0;
@@ -123,8 +121,7 @@ static int demux_image_get_optional_data(demux_plugin_t *this_gen,
 }
 
 static void demux_image_dispose (demux_plugin_t *this_gen) {
-
-  demux_image_t *this = (demux_image_t *) this_gen;  
+  demux_image_t *this = (demux_image_t *) this_gen;
 
   lprintf("closed\n");
   free (this);
@@ -209,7 +206,6 @@ static char *get_mimetypes (demux_class_t *this_gen) {
 }
 
 static void class_dispose (demux_class_t *this_gen) {
-
   demux_image_class_t *this = (demux_image_class_t *) this_gen;
 
   lprintf("class closed\n");
@@ -217,9 +213,8 @@ static void class_dispose (demux_class_t *this_gen) {
 }
 
 static void *init_class (xine_t *xine, void *data) {
-  
   demux_image_class_t     *this;
-  
+
   this  = xine_xmalloc (sizeof (demux_image_class_t));
 
   this->demux_class.open_plugin     = open_plugin;
@@ -238,7 +233,7 @@ static void *init_class (xine_t *xine, void *data) {
  */
 
 plugin_info_t xine_plugin_info[] = {
-  /* type, API, "name", version, special_info, init_function */  
+  /* type, API, "name", version, special_info, init_function */
   { PLUGIN_DEMUX, 21, "image", XINE_VERSION_CODE, NULL, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

@@ -24,7 +24,7 @@
  * avoid while programming a FLI decoder, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_fli.c,v 1.42 2003/07/03 12:35:18 andruil Exp $
+ * $Id: demux_fli.c,v 1.43 2003/07/16 00:52:45 andruil Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -151,8 +151,8 @@ static int open_fli_file(demux_fli_t *this) {
 }
 
 static int demux_fli_send_chunk(demux_plugin_t *this_gen) {
-
   demux_fli_t *this = (demux_fli_t *) this_gen;
+
   buf_element_t *buf = NULL;
   unsigned char fli_buf[6];
   unsigned int chunk_size;
@@ -160,7 +160,7 @@ static int demux_fli_send_chunk(demux_plugin_t *this_gen) {
   off_t current_file_pos;
 
   current_file_pos = this->input->get_current_pos(this->input);
-  
+
   /* get the chunk size nd magic number */
   if (this->input->read(this->input, fli_buf, 6) != 6) {
     this->status = DEMUX_FINISHED;
@@ -168,8 +168,8 @@ static int demux_fli_send_chunk(demux_plugin_t *this_gen) {
   }
   chunk_size = LE_32(&fli_buf[0]);
   chunk_magic = LE_16(&fli_buf[4]);
-  
-  if ((chunk_magic == FLI_CHUNK_MAGIC_1) || 
+
+  if ((chunk_magic == FLI_CHUNK_MAGIC_1) ||
       (chunk_magic == FLI_CHUNK_MAGIC_2)) {
 
     /* send a buffer with only the chunk header */
@@ -192,20 +192,20 @@ static int demux_fli_send_chunk(demux_plugin_t *this_gen) {
       buf->extra_info->input_time = this->pts_counter / 90;
       buf->extra_info->input_length = this->stream_len;
       buf->pts = this->pts_counter;
-  
+
       if (chunk_size > buf->max_size)
         buf->size = buf->max_size;
       else
         buf->size = chunk_size;
       chunk_size -= buf->size;
-  
+
       if (this->input->read(this->input, buf->content, buf->size) !=
         buf->size) {
         buf->free_buffer(buf);
         this->status = DEMUX_FINISHED;
         break;
       }
-  
+
       if (!chunk_size)
         buf->decoder_flags |= BUF_FLAG_FRAME_END;
       this->video_fifo->put(this->video_fifo, buf);
@@ -213,12 +213,11 @@ static int demux_fli_send_chunk(demux_plugin_t *this_gen) {
     this->pts_counter += this->frame_pts_inc;
   } else
     this->input->seek(this->input, chunk_size, SEEK_CUR);
-  
+
   return this->status;
 }
 
 static void demux_fli_send_headers(demux_plugin_t *this_gen) {
-
   demux_fli_t *this = (demux_fli_t *) this_gen;
   buf_element_t *buf;
 
@@ -232,7 +231,7 @@ static void demux_fli_send_headers(demux_plugin_t *this_gen) {
   this->stream->stream_info[XINE_STREAM_INFO_HAS_AUDIO] = 0;
   this->stream->stream_info[XINE_STREAM_INFO_VIDEO_WIDTH] = this->width;
   this->stream->stream_info[XINE_STREAM_INFO_VIDEO_HEIGHT] = this->height;
-  this->stream->stream_info[XINE_STREAM_INFO_FRAME_DURATION] = 
+  this->stream->stream_info[XINE_STREAM_INFO_FRAME_DURATION] =
     this->frame_pts_inc;
 
   /* send start buffers */
@@ -250,9 +249,7 @@ static void demux_fli_send_headers(demux_plugin_t *this_gen) {
   this->video_fifo->put (this->video_fifo, buf);
 }
 
-static int demux_fli_seek (demux_plugin_t *this_gen,
-                           off_t start_pos, int start_time) {
-
+static int demux_fli_seek (demux_plugin_t *this_gen, off_t start_pos, int start_time) {
   demux_fli_t *this = (demux_fli_t *) this_gen;
 
   /* if thread is not running, initialize demuxer */
@@ -261,13 +258,11 @@ static int demux_fli_seek (demux_plugin_t *this_gen,
     /* send new pts */
     xine_demux_control_newpts(this->stream, 0, 0);
 
-    this->status = DEMUX_OK;
-  
-    this->stream_len = this->input->get_length(this->input);
-
+    this->status      = DEMUX_OK;
+    this->stream_len  = this->input->get_length(this->input);
     this->pts_counter = 0;
   }
-  
+
   return this->status;
 }
 
@@ -283,7 +278,6 @@ static int demux_fli_get_status (demux_plugin_t *this_gen) {
 }
 
 static int demux_fli_get_stream_length (demux_plugin_t *this_gen) {
-
   return 0;
 }
 
@@ -369,14 +363,12 @@ static char *get_mimetypes (demux_class_t *this_gen) {
 }
 
 static void class_dispose (demux_class_t *this_gen) {
-
   demux_fli_class_t *this = (demux_fli_class_t *) this_gen;
 
   free (this);
 }
 
 static void *init_plugin (xine_t *xine, void *data) {
-
   demux_fli_class_t     *this;
 
   this = xine_xmalloc (sizeof (demux_fli_class_t));
@@ -396,7 +388,7 @@ static void *init_plugin (xine_t *xine, void *data) {
  */
 
 plugin_info_t xine_plugin_info[] = {
-  /* type, API, "name", version, special_info, init_function */  
+  /* type, API, "name", version, special_info, init_function */
   { PLUGIN_DEMUX, 21, "fli", XINE_VERSION_CODE, NULL, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

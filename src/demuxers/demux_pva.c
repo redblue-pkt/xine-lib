@@ -16,12 +16,14 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
- *
+ */
+
+/*
  * TechnoTrend PVA File Demuxer by Mike Melanson (melanson@pcisys.net)
  * For more information regarding the PVA file format, refer to this PDF:
  *   http://www.technotrend.de/download/av_format_v1.pdf
  *
- * $Id: demux_pva.c,v 1.9 2003/04/26 20:16:21 guenter Exp $
+ * $Id: demux_pva.c,v 1.10 2003/07/16 00:52:45 andruil Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -33,6 +35,11 @@
 #include <unistd.h>
 #include <string.h>
 #include <stdlib.h>
+
+/********** logging **********/
+#define LOG_MODULE "demux_pva"
+/* #define LOG_VERBOSE */
+/* #define LOG */
 
 #include "xine_internal.h"
 #include "xineutils.h"
@@ -48,40 +55,22 @@
 #define PTS_VIDEO 1
 
 typedef struct {
-
   demux_plugin_t       demux_plugin;
 
   xine_stream_t       *stream;
-
-  config_values_t     *config;
-
   fifo_buffer_t       *video_fifo;
   fifo_buffer_t       *audio_fifo;
-
   input_plugin_t      *input;
-
-  int                  thread_running;
-  
-  int                  send_newpts;
-  int                  buf_flag_seek;
-  int64_t              last_pts[2];
-
-  off_t                data_start;
-  off_t                data_size;
   int                  status;
 
-  char                 last_mrl[1024];
+  int                  send_newpts;
+  int64_t              last_pts[2];
 
+  off_t                data_size;
 } demux_pva_t;
 
 typedef struct {
-
   demux_class_t     demux_class;
-
-  /* class-wide, global variables here */
-
-  xine_t           *xine;
-  config_values_t  *config;
 } demux_pva_class_t;
 
 
@@ -89,8 +78,7 @@ typedef struct {
    i guess llabs may not be available everywhere */
 #define abs(x) ( ((x)<0) ? -(x) : (x) )
 
-static void check_newpts( demux_pva_t *this, int64_t pts, int video )
-{
+static void check_newpts( demux_pva_t *this, int64_t pts, int video ){
   int64_t diff;
 
   diff = pts - this->last_pts[video];
@@ -98,12 +86,8 @@ static void check_newpts( demux_pva_t *this, int64_t pts, int video )
   if( pts &&
       (this->send_newpts || (this->last_pts[video] && abs(diff)>WRAP_THRESHOLD) ) ) {
 
-    if (this->buf_flag_seek) {
-      xine_demux_control_newpts(this->stream, pts, BUF_FLAG_SEEK);
-      this->buf_flag_seek = 0;
-    } else {
-      xine_demux_control_newpts(this->stream, pts, 0);
-    }
+    xine_demux_control_newpts(this->stream, pts, 0);
+
     this->send_newpts = 0;
     this->last_pts[1-video] = 0;
   }
@@ -112,11 +96,8 @@ static void check_newpts( demux_pva_t *this, int64_t pts, int video )
     this->last_pts[video] = pts;
 }
 
-
-
 /* returns 1 if the PVA file was opened successfully, 0 otherwise */
 static int open_pva_file(demux_pva_t *this) {
-
   unsigned char preamble[PVA_PREAMBLE_SIZE];
 
   this->input->seek(this->input, 0, SEEK_SET);
@@ -142,8 +123,8 @@ static int open_pva_file(demux_pva_t *this) {
 }
 
 static int demux_pva_send_chunk(demux_plugin_t *this_gen) {
-
   demux_pva_t *this = (demux_pva_t *) this_gen;
+
   buf_element_t *buf;
   int chunk_size;
   unsigned char preamble[PVA_PREAMBLE_SIZE];
@@ -153,7 +134,7 @@ static int demux_pva_send_chunk(demux_plugin_t *this_gen) {
   unsigned int flags, header_len;
 
   if (this->input->read(this->input, preamble, PVA_PREAMBLE_SIZE) !=
-    PVA_PREAMBLE_SIZE) {
+      PVA_PREAMBLE_SIZE) {
     this->status = DEMUX_FINISHED;
     return this->status;
   }
@@ -166,8 +147,7 @@ static int demux_pva_send_chunk(demux_plugin_t *this_gen) {
 
   chunk_size = BE_16(&preamble[6]);
 
-  current_file_pos = this->input->get_current_pos(this->input) -
-    this->data_start;
+  current_file_pos = this->input->get_current_pos(this->input);
 
   if (preamble[2] == 1) {
     
@@ -289,7 +269,6 @@ static int demux_pva_send_chunk(demux_plugin_t *this_gen) {
 }
 
 static void demux_pva_send_headers(demux_plugin_t *this_gen) {
-
   demux_pva_t *this = (demux_pva_t *) this_gen;
   buf_element_t *buf;
   int n;
@@ -354,7 +333,6 @@ static void demux_pva_send_headers(demux_plugin_t *this_gen) {
 
     this->video_fifo->put(this->audio_fifo, buf);
   }
-
 }
 
 #define SEEK_BUFFER_SIZE 1024
@@ -405,7 +383,7 @@ static int demux_pva_seek (demux_plugin_t *this_gen,
 
     this->status = DEMUX_OK;
 
-  } else 
+  } else
     xine_demux_flush_engine(this->stream);
 
   return this->status;
@@ -423,7 +401,6 @@ static int demux_pva_get_status (demux_plugin_t *this_gen) {
 }
 
 static int demux_pva_get_stream_length (demux_plugin_t *this_gen) {
-
   return 0;
 }
 
@@ -437,14 +414,13 @@ static int demux_pva_get_optional_data(demux_plugin_t *this_gen,
 }
 
 static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *stream,
-                                    input_plugin_t *input_gen) {
+                                    input_plugin_t *input) {
 
-  input_plugin_t *input = (input_plugin_t *) input_gen;
   demux_pva_t    *this;
 
-  if (! (input->get_capabilities(input) & INPUT_CAP_SEEKABLE)) {
-    if (stream->xine->verbosity >= XINE_VERBOSITY_DEBUG) 
-      printf(_("demux_pva.c: input not seekable, can not handle!\n"));
+  if (!INPUT_IS_SEEKABLE(input)) {
+    xprintf(stream->xine, XINE_VERBOSITY_DEBUG,
+            _("input not seekable, can not handle!\n"));
     return NULL;
   }
 
@@ -468,6 +444,19 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
 
   switch (stream->content_detection_method) {
 
+  case METHOD_BY_EXTENSION: {
+    char *extensions, *mrl;
+
+    mrl = input->get_mrl (input);
+    extensions = class_gen->get_extensions (class_gen);
+
+    if (!xine_demux_check_extension (mrl, extensions)) {
+      free (this);
+      return NULL;
+    }
+  }
+  /* falling through is intended */
+
   case METHOD_BY_CONTENT:
   case METHOD_EXPLICIT:
 
@@ -477,38 +466,10 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
     }
   break;
 
-  case METHOD_BY_EXTENSION: {
-    char *ending, *mrl;
-
-    mrl = input->get_mrl (input);
-
-    ending = strrchr(mrl, '.');
-
-    if (!ending) {
-      free (this);
-      return NULL;
-    }
-
-    if (strncasecmp (ending, ".pva", 4)) {
-      free (this);
-      return NULL;
-    }
-
-    if (!open_pva_file(this)) {
-      free (this);
-      return NULL;
-    }
-
-  }
-
-  break;
-
   default:
     free (this);
     return NULL;
   }
-
-  strncpy (this->last_mrl, input->get_mrl (input), 1024);
 
   return &this->demux_plugin;
 }
@@ -530,19 +491,15 @@ static char *get_mimetypes (demux_class_t *this_gen) {
 }
 
 static void class_dispose (demux_class_t *this_gen) {
-
   demux_pva_class_t *this = (demux_pva_class_t *) this_gen;
 
   free (this);
 }
 
 static void *init_plugin (xine_t *xine, void *data) {
-
   demux_pva_class_t     *this;
 
-  this         = xine_xmalloc (sizeof (demux_pva_class_t));
-  this->config = xine->config;
-  this->xine   = xine;
+  this = xine_xmalloc (sizeof (demux_pva_class_t));
 
   this->demux_class.open_plugin     = open_plugin;
   this->demux_class.get_description = get_description;
