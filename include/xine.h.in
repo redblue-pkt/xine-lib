@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.25 2002/10/24 19:37:27 guenter Exp $
+ * $Id: xine.h.in,v 1.26 2002/10/24 22:54:27 guenter Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -486,6 +486,18 @@ const char *const *xine_get_autoplay_input_plugin_ids (xine_t *self);
 char **xine_get_autoplay_mrls (xine_t *self, 
 			       const char *plugin_id, 
 			       int *num_mrls);
+
+/* get a list of file extensions for file types supported by xine
+ * the list is separated by spaces 
+ *
+ * the pointer returned can be free()ed when no longer used */
+char *xine_get_file_extensions (xine_t *self);
+
+/* get a list of mime types supported by xine
+ *
+ * the pointer returned can be free()ed when no longer used */
+char *xine_get_mime_types (xine_t *self);
+
 
 /* get a description string for an input plugin */
 const char *xine_get_input_plugin_description (xine_t *self, 

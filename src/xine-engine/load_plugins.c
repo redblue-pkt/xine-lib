@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.103 2002/10/18 20:17:07 f1rmb Exp $
+ * $Id: load_plugins.c,v 1.104 2002/10/24 22:54:27 guenter Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -1282,6 +1282,112 @@ void free_spu_decoder (xine_stream_t *stream, spu_decoder_t *sd) {
   /* FIXME: unload plugin if no-longer used */
 
   pthread_mutex_unlock (&catalog->lock);
+}
+
+/* get a list of file extensions for file types supported by xine
+ * the list is separated by spaces 
+ *
+ * the pointer returned can be free()ed when no longer used */
+char *xine_get_file_extensions (xine_t *self) {
+
+  plugin_catalog_t *catalog = self->plugin_catalog;
+  int               len, pos;
+  plugin_node_t    *node;
+  char             *str;
+
+  pthread_mutex_lock (&catalog->lock);
+
+  /* calc length of output */
+
+  len = 0; node = xine_list_first_content (catalog->demux);
+  while (node) {
+    demux_class_t *cls = (demux_class_t *)node->plugin_class;
+
+    len += strlen(cls->get_extensions (cls))+1;
+
+    node = xine_list_next_content (catalog->demux);
+  }
+
+  /* create output */
+
+  str = malloc (len+1);
+  pos = 0;
+
+  node = xine_list_first_content (catalog->demux);
+  while (node) {
+    demux_class_t *cls = (demux_class_t *)node->plugin_class;
+    char *e;
+    int l;
+
+    e = cls->get_extensions (cls);
+    l = strlen(e);
+    memcpy (&str[pos], e, l);
+
+    node = xine_list_next_content (catalog->demux);
+    pos += l;
+    str[pos] = ' ';
+    pos++;
+  }
+
+  str[pos] = 0;
+  
+  pthread_mutex_unlock (&catalog->lock);
+
+  return str;
+}
+
+/* get a list of mime types supported by xine
+ *
+ * the pointer returned can be free()ed when no longer used */
+char *xine_get_mime_types (xine_t *self) {
+
+  plugin_catalog_t *catalog = self->plugin_catalog;
+  int               len, pos;
+  plugin_node_t    *node;
+  char             *str;
+
+  pthread_mutex_lock (&catalog->lock);
+
+  /* calc length of output */
+
+  len = 0; node = xine_list_first_content (catalog->demux);
+  while (node) {
+    demux_class_t *cls = (demux_class_t *)node->plugin_class;
+    char *s;
+
+    s = cls->get_mimetypes (cls);
+    if (s)
+      len += strlen(s);
+
+    node = xine_list_next_content (catalog->demux);
+  }
+
+  /* create output */
+
+  str = malloc (len+1);
+  pos = 0;
+
+  node = xine_list_first_content (catalog->demux);
+  while (node) {
+    demux_class_t *cls = (demux_class_t *)node->plugin_class;
+    char *s;
+    int l;
+
+    s = cls->get_mimetypes (cls);
+    if (s) {
+      l = strlen(s);
+      memcpy (&str[pos], s, l);
+
+      pos += l;
+    }
+    node = xine_list_next_content (catalog->demux);
+  }
+
+  str[pos] = 0;
+  
+  pthread_mutex_unlock (&catalog->lock);
+
+  return str;
 }
 
 
