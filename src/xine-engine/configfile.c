@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: configfile.c,v 1.71 2004/12/13 10:58:33 mroi Exp $
+ * $Id: configfile.c,v 1.72 2004/12/13 11:11:27 mlampard Exp $
  *
  * config object (was: file) management - implementation
  *
@@ -119,6 +119,7 @@ static config_entry_translation_t config_entry_translation[] = {
   { "input.dvb_last_channel_watched",		"media.dvb.last_channel" },
   { "input.dvbdisplaychan",			"media.dvb.display_channel" },
   { "input.dvbzoom",				"media.dvb.zoom" },
+  { "input.dvb_adapternum",			"media.dvb.adapter"},
   { "input.dvd_device",				"media.dvd.device" },
   { "input.dvd_language",			"media.dvd.language" },
   { "input.dvd_raw_device",			"media.dvd.raw_device" },
