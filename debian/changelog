@@ -1,8 +1,10 @@
-xine-lib (1-rc2-0) unstable; urgency=low
+xine-lib (1-rc2-1) unstable; urgency=low
 
   * new upstream release
+    * handles "#" and "%" characters in filenames gracefully (closes: #206890)
+    * includes enhanced VCD input plugin (closes: 130489)
 
- -- Siggi Langauf <siggi@debian.org>  Fri, 24 Oct 2003 01:03:01 +0200
+ -- Siggi Langauf <siggi@debian.org>  Mon, 27 Oct 2003 17:10:28 +0100
 
 xine-lib (1-rc1-1) unstable; urgency=high
 
