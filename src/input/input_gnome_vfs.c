@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_gnome_vfs.c,v 1.9 2003/04/26 22:34:32 guenter Exp $
+ * $Id: input_gnome_vfs.c,v 1.10 2003/06/08 21:58:09 hadess Exp $
  */
 
 
@@ -282,13 +282,13 @@ gnomevfs_klass_get_instance (input_class_t *klass_gen, xine_stream_t *stream,
 		return NULL;
 
 	/* local files should be handled by the file input */
-	if (gnome_vfs_uri_is_local (uri) == TRUE)
+	if (strncmp (mrl, "file:/", strlen ("file:/")) == 0)
 	{
-		D("gnomevfs_klass_open: '%s' is local", mrl);
+		D("gnomevfs_klass_open: '%s' is a file:///", mrl);
 		gnome_vfs_uri_unref (uri);
 		return NULL;
 	} else if (strncmp (gnome_vfs_uri_get_scheme (uri), "http", 4) == 0) {
-		D("gnomevfs_klass_open: '%s' is http", mrl);
+		D("gnomevfs_klass_open: '%s' is http://", mrl);
 		gnome_vfs_uri_unref (uri);
 		return NULL;
 	}
