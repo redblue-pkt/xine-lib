@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.h,v 1.132 2004/02/02 22:22:52 manfredtremmel Exp $
+ * $Id: buffer.h,v 1.133 2004/02/04 23:24:27 jstembridge Exp $
  *
  *
  * contents:
@@ -340,7 +340,7 @@ struct buf_element_s {
  *
  * The interface was designed in a way that did not require an API
  * version bump. To send a special buffer type, set a buffer's flags field
- * to BUF_SPECIAL_PALETTE. Set the buffer's decoder_info[1] field to a
+ * to BUF_FLAG_SPECIAL. Set the buffer's decoder_info[1] field to a
  * number according to one of the special buffer subtypes defined below.
  * The second and third decoder_info[] fields are defined according to
  * your buffer type's requirements.
