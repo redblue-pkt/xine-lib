@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_interface.c,v 1.61 2003/10/24 09:34:01 mroi Exp $
+ * $Id: xine_interface.c,v 1.62 2003/10/26 12:15:34 mroi Exp $
  *
  * convenience/abstraction layer, functions to implement
  * libxine's public interface
@@ -246,8 +246,8 @@ int xine_config_lookup_entry (xine_t *this, const char *key,
   int result;
   config_values_t *config = this->config;
 
-  pthread_mutex_lock(&config->config_lock);
   config->cur = config->lookup_entry (config, key);
+  pthread_mutex_lock(&config->config_lock);
   /* do not hand out unclaimed entries */
   if (config->cur && config->cur->type == CONFIG_TYPE_UNKNOWN)
     config->cur = NULL;
