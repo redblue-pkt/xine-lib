@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_oss_out.c,v 1.66 2002/06/03 09:45:12 f1rmb Exp $
+ * $Id: audio_oss_out.c,v 1.67 2002/06/03 23:12:44 tmattern Exp $
  *
  * 20-8-2001 First implementation of Audio sync and Audio driver separation.
  * Copyright (C) 2001 James Courtier-Dutton James@superbug.demon.co.uk
@@ -403,6 +403,7 @@ static int ao_oss_write(ao_driver_t *this_gen,
 
   oss_driver_t *this = (oss_driver_t *) this_gen;
 
+  //printf ("audio_oss_out: ao_oss_write()\n");
   if (this->sync_method == OSS_SYNC_SOFTSYNC) {
     int            simulated_bytes_in_buffer, frames ;
     struct timeval tv;
@@ -582,17 +583,24 @@ static int ao_oss_set_property (ao_driver_t *this_gen, int property, int value) 
 }
 
 static int ao_oss_ctrl(ao_driver_t *this_gen, int cmd, ...) {
-  /*oss_driver_t *this = (oss_driver_t *) this_gen;*/
+  oss_driver_t *this = (oss_driver_t *) this_gen;
 
   switch (cmd) {
 
   case AO_CTRL_PLAY_PAUSE:
+    printf ("audio_oss_out: AO_CTRL_PLAY_PAUSE\n");
+    ioctl(this->audio_fd, SNDCTL_DSP_RESET, NULL);
+    ao_oss_close(this_gen);
+    ao_oss_open(this_gen, this->bits_per_sample, this->input_sample_rate, this->mode);
     break;
 
   case AO_CTRL_PLAY_RESUME:
+    printf ("audio_oss_out: AO_CTRL_PLAY_RESUME\n");
     break;
 
   case AO_CTRL_FLUSH_BUFFERS:
+    printf ("audio_oss_out: AO_CTRL_FLUSH_BUFFERS\n");
+    ioctl(this->audio_fd, SNDCTL_DSP_RESET, NULL);
     break;
   }
 
