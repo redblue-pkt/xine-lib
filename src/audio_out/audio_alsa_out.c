@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_alsa_out.c,v 1.4 2001/05/30 18:31:32 joachim_koenig Exp $
+ * $Id: audio_alsa_out.c,v 1.5 2001/05/31 18:36:08 joachim_koenig Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -304,6 +304,7 @@ static void ao_write_audio_data(ao_functions_t *this_gen,
   int32_t  diff, gap;
   int      bDropPackage;
   uint16_t sample_buffer[8192];
+  int      num_output_samples;
   snd_pcm_sframes_t res = 0;                                                                
 
   if (this->audio_fd == NULL) {
@@ -361,24 +362,36 @@ static void ao_write_audio_data(ao_functions_t *this_gen,
    * resample and output samples
    */
   if (!bDropPackage) {
-    /* Multiples of xfer_align eg:- 4 */
-    int num_output_samples = ((num_samples * (this->output_sample_rate + this->output_rate_correction) / this->input_sample_rate / 4) * 4)+4; 
-    audio_out_resample_stereo (output_samples, num_samples,
+    if ((this->open_mode & AO_CAP_MODE_AC3) == 0) {
+      /* Multiples of xfer_align eg:- 4 */
+      num_output_samples = ((num_samples * (this->output_sample_rate + this->output_rate_correction) / this->input_sample_rate / 4) * 4)+4; 
+      audio_out_resample_stereo (output_samples, num_samples,
 			       sample_buffer, num_output_samples);
-     do {
-       res=snd_pcm_avail_update(this->audio_fd);
-       usleep(3200);
-     } while (res<num_output_samples+512);
-  /* Special note, the new ALSA outputs in counts of frames.
-   * A Frame is one sample for all channels, so here a Stereo 16 bits frame is 4 bytes.
-   */
-     if ((this->open_mode & AO_CAP_MODE_AC3) == 0) {
-       res=snd_pcm_writei(this->audio_fd, sample_buffer, num_output_samples);    
-     } else {
-       res=snd_pcm_writei(this->audio_fd, output_samples, num_samples);    
-     }
-     if(res != num_output_samples) error("BUFFER MAYBE FULL!!!!!!!!!!!!");
-     if (res < 0)                                                   
+    } else {
+       num_output_samples = num_samples;
+       sample_buffer[0] = 0xf872;  //spdif syncword
+       sample_buffer[1] = 0x4e1f;  // .............
+       sample_buffer[2] = 0x0001;  // AC3 data
+       sample_buffer[3] = num_samples * 16;
+       sample_buffer[4] = 0x0b77;  // AC3 syncwork
+
+       // ac3 seems to be swabbed data
+       swab(output_samples,&sample_buffer[5],  num_samples * 2 );
+    }
+
+    do {
+         res=snd_pcm_avail_update(this->audio_fd);
+         usleep(3200);
+    } while (res<num_output_samples+512);
+
+    /* Special note, the new ALSA outputs in counts of frames.
+     * A Frame is one sample for all channels, so here a Stereo 16 bits frame is 4 bytes.
+     */
+    res=snd_pcm_writei(this->audio_fd, sample_buffer, num_output_samples);    
+
+
+    if(res != num_output_samples) error("BUFFER MAYBE FULL!!!!!!!!!!!!");
+    if (res < 0)                                                   
              error("writei returned error: %s", snd_strerror(res));                    
     /*
      * remember vpts
@@ -518,7 +531,7 @@ ao_functions_t *init_audio_out_plugin (config_values_t *config) {
 
 static ao_info_t ao_info_alsa = {
   AUDIO_OUT_IFACE_VERSION,
-  "alsa",
+  "alsa09",
   "xine audio output plugin using alsa-compliant audio devices/drivers",
   10
 };
