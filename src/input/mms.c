@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mms.c,v 1.49 2004/07/25 17:11:59 mroi Exp $
+ * $Id: mms.c,v 1.50 2004/12/13 19:12:56 miguelfreitas Exp $
  *
  * MMS over TCP protocol
  *   based on work from major mms
@@ -1120,7 +1120,7 @@ static int get_media_packet (mms_t *this) {
                   return 0;
                 }
               }
-              this->current_pos = 0;
+              /* this->current_pos = 0; */
             }
             break;
 
