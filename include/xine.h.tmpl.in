@@ -28,7 +28,7 @@
  \endverbatim
  */
 /*
- * $Id: xine.h.tmpl.in,v 1.79 2002/02/12 16:45:06 f1rmb Exp $
+ * $Id: xine.h.tmpl.in,v 1.80 2002/02/12 23:31:32 f1rmb Exp $
  *
  */
 
@@ -192,7 +192,7 @@ int xine_check_version(int major, int minor, int sub);
 		 * @{
 		 */
 /** 
- * \def VO_CAP_COPIES_IMAGEE
+ * \def VO_CAP_COPIES_IMAGE
  * driver copies image (i.e. converts it to rgb buffers 
  * in the private fields of image buffer)
  */
@@ -343,23 +343,23 @@ int xine_check_version(int major, int minor, int sub);
 		* @{
 		*/
 /**
- * \def ZOOM_STEP
+ * \def VO_ZOOM_STEP
  * Step for the zoom feature
  * \sa VO_PROP_ZOOM_X
  */
-#define ZOOM_STEP        100
+#define VO_ZOOM_STEP                 100
 /**
- * \def ZOOM_MAX
+ * \def VO_ZOOM_MAX
  * Max value for zoom properties
  * \sa VO_PROP_ZOOM_X
  */
-#define ZOOM_MAX         400
+#define VO_ZOOM_MAX                  400
 /**
- * \def ZOOM_MIN
+ * \def VO_ZOOM_MIN
  * Min value for zoom properties
  * \sa VO_PROP_ZOOM_X
  */
-#define ZOOM_MIN         -85
+#define VO_ZOOM_MIN                 -85
     
                /** @} end of video_zoom */
 	       
