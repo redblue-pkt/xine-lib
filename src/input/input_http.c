@@ -119,7 +119,6 @@ static int http_plugin_host_connect_attempt (struct in_addr ia, int port,
   s=socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
 
   if (s==-1) {
-    xine_message(this->stream, XINE_MSG_GENERAL_WARNING, "failed to open socket", NULL);
     xine_log (this->stream->xine, XINE_LOG_MSG, _("input_http: failed to open socket\n"));
     return -1;
   }
@@ -163,6 +162,7 @@ static int http_plugin_host_connect (const char *host, int port, http_input_plug
       return s;
   }
 
+  xine_message(this->stream, XINE_MSG_CONNECTION_REFUSED, "cannot connect to ", host, NULL);
   xine_log (this->stream->xine, XINE_LOG_MSG, _("http: unable to connect to >%s<\n"), host);
   return -1;
 }
@@ -657,7 +657,8 @@ static void http_plugin_dispose (input_plugin_t *this_gen ) {
     this->nbc = NULL;
   }
 
-  free (this_gen);
+  free (this->mrl);
+  free (this);
 }
 
   
@@ -758,9 +759,15 @@ static int http_plugin_open (input_plugin_t *this_gen ) {
     sprintf (this->buf + strlen(this->buf), "Authorization: Basic %s\015\012",
 	     this->auth);
   
-  sprintf (this->buf + strlen(this->buf), "User-Agent: xine/%s\015\012",
-	   VERSION);
-  
+  if (!strncmp(this->filename + strlen(this->filename) - 4, ".nsv", 4)) {
+#ifdef LOG
+    printf("input_http: using winamp http user-agent\n");
+#endif
+    strcat (this->buf, "User-Agent: Nullsoft Winamp3 version 3.0d build 488\015\012");
+  } else {
+    sprintf (this->buf + strlen(this->buf), "User-Agent: xine/%s\015\012",
+             VERSION);
+  }
   strcat (this->buf, "Accept: */*\015\012");
   strcat (this->buf, "Icy-MetaData: 1\015\012");
   
@@ -878,8 +885,8 @@ static int http_plugin_open (input_plugin_t *this_gen ) {
 	  printf ("input_http: trying to open target of redirection: >%s<\n",
             href);
 #endif
-          free (this->mrl);
-          this->mrl = href;
+          strncpy (this->mrlbuf, href, BUFSIZE);
+          strncpy (this->mrlbuf2, href, BUFSIZE);
           return http_plugin_open(this_gen);
         }
       }
