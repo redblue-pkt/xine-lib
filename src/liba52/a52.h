@@ -105,7 +105,7 @@ typedef struct a52_state_s {
 #define A52_LFE 16
 #define A52_ADJUST_LEVEL 32
 
-sample_t * a52_init (uint32_t mm_accel);
+sample_t * a52_init (uint32_t mm_accel, sample_t **samples_base);
 int a52_syncinfo (uint8_t * buf, int * flags,
 		  int * sample_rate, int * bit_rate);
 int a52_frame (a52_state_t * state, uint8_t * buf, int * flags,
