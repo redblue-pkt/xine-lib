@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: configfile.c,v 1.41 2002/12/21 16:25:31 rockyb Exp $
+ * $Id: configfile.c,v 1.42 2003/01/13 17:43:08 mroi Exp $
  *
  * config object (was: file) management - implementation
  *
@@ -60,9 +60,33 @@ static char *copy_string (const char *str) {
   return cpy;
 }
 
+static int enum_config_section(const char *sect) {
+  static char *known_section[] = {
+    "gui",
+    "audio",
+    "video",
+    "dxr3",
+    "input",
+    "codec",
+    "post",
+    "decoder",
+    "misc",
+    NULL
+  };
+  int i = 0;
+  
+  while (known_section[i])
+    if (strcmp(sect, known_section[i++]) == 0)
+      return i;
+  return i + 1;
+}
+
 static cfg_entry_t *xine_config_add (config_values_t *this, const char *key) {
 
-  cfg_entry_t *entry;
+  cfg_entry_t *entry, *cur, *prev;
+  char *new_parse, *new_section, *new_plugin, *new_name;
+  char *cur_parse, *cur_section, *cur_plugin, *cur_name;
+  char *tmp;
 
   entry = (cfg_entry_t *) xine_xmalloc (sizeof (cfg_entry_t));
   entry->config        = this;
@@ -72,18 +96,93 @@ static cfg_entry_t *xine_config_add (config_values_t *this, const char *key) {
   entry->str_sticky    = NULL;
   entry->str_value     = NULL;
 
-  entry->next          = NULL;
-
-  if (this->last)
-    this->last->next = entry;
+  /* extract parts of the new key */
+  new_parse = strdup(key);
+  cur_parse = NULL;
+  if ((tmp = strchr(new_parse, '.'))) {
+    new_section = new_parse;
+    *tmp        = '\0';
+    tmp++;
+    if ((new_name = strchr(tmp, '.'))) {
+      new_plugin = tmp;
+      *new_name  = '\0';
+      new_name++;
+    } else {
+      new_plugin = NULL;
+      new_name   = tmp;
+    }
+  } else {
+    new_section = NULL;
+    new_plugin  = NULL;
+    new_name    = new_parse;
+  }
+  
+  /* search right position */
+  for (cur = this->first, prev = NULL; cur; prev = cur, cur = cur->next) {
+    /* extract parts of the cur key */
+    free(cur_parse);
+    cur_parse = strdup(cur->key);
+    if ((tmp = strchr(cur_parse, '.'))) {
+      cur_section = cur_parse;
+      *tmp        = '\0';
+      tmp++;
+      if ((cur_name = strchr(tmp, '.'))) {
+        cur_plugin = tmp;
+        *cur_name  = '\0';
+        cur_name++;
+      } else {
+        cur_plugin = NULL;
+        cur_name   = tmp;
+      }
+    } else {
+      cur_section = NULL;
+      cur_plugin  = NULL;
+      cur_name    = cur_parse;
+    }
+    
+    /* sort by section name */
+    if (!new_section &&  cur_section) break;
+    if ( new_section && !cur_section) continue;
+    if ( new_section &&  cur_section) {
+      int new_sec_num = enum_config_section(new_section);
+      int cur_sec_num = enum_config_section(cur_section);
+      int cmp         = strcmp(new_section, cur_section);
+      if (new_sec_num < cur_sec_num) break;
+      if (new_sec_num > cur_sec_num) continue;
+      if (cmp < 0) break;
+      if (cmp > 0) continue;
+    }
+    /* sort by plugin name */
+    if (!new_plugin &&  cur_plugin) break;
+    if ( new_plugin && !cur_plugin) continue;
+    if ( new_plugin &&  cur_plugin) {
+      int cmp = strcmp(new_plugin, cur_plugin);
+      if (cmp < 0) break;
+      if (cmp > 0) continue;
+    }
+    /* sort by entry name */
+    {
+      int cmp = strcmp(new_name, cur_name);
+      if (cmp < 0) break;
+      if (cmp > 0) continue;
+    }
+    
+    break;
+  }
+  
+  entry->next = cur;
+  if (!cur)
+    this->last = entry;
+  if (prev)
+    prev->next = entry;
   else
     this->first = entry;
-
-  this->last = entry;
-
+    
 #ifdef LOG
   printf ("configfile: add entry key=%s\n", key);
 #endif
+  free(new_parse);
+  free(cur_parse);
 
   return entry;
 }

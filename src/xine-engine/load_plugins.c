@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.132 2003/01/11 21:22:20 mroi Exp $
+ * $Id: load_plugins.c,v 1.133 2003/01/13 17:43:11 mroi Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -1088,29 +1088,30 @@ demux_plugin_t *find_demux_plugin_by_name(xine_stream_t *stream, const char *nam
 const char *const *xine_get_autoplay_input_plugin_ids(xine_t *this) {
 
   plugin_catalog_t   *catalog;
-  int                 i;
   plugin_node_t      *node;
 
   catalog = this->plugin_catalog;
 
   pthread_mutex_lock (&catalog->lock);
 
-  i = 0;
+  catalog->ids[0] = NULL;
   node = xine_list_first_content (catalog->input);
   while (node) {
     input_class_t *ic;
 
     ic = (input_class_t *) node->plugin_class;
     if (ic->get_autoplay_list) {
+      int i = 0, j;
+
+      while (catalog->ids[i] && strcmp(catalog->ids[i], node->info->id) < 0)
+        i++;
+      for (j = PLUGIN_MAX - 1; j > i; j--)
+        catalog->ids[j] = catalog->ids[j - 1];
 
       catalog->ids[i] = node->info->id;
-
-      i++;
     }
     node = xine_list_next_content (catalog->input);
   }
-
-  catalog->ids[i] = NULL;
 
   pthread_mutex_unlock (&catalog->lock);
 
@@ -1121,29 +1122,30 @@ const char *const *xine_get_browsable_input_plugin_ids(xine_t *this) {
 
 
   plugin_catalog_t   *catalog;
-  int                 i;
   plugin_node_t      *node;
 
   catalog = this->plugin_catalog;
 
   pthread_mutex_lock (&catalog->lock);
 
-  i = 0;
+  catalog->ids[0] = NULL;
   node = xine_list_first_content (catalog->input);
   while (node) {
     input_class_t *ic;
 
     ic = (input_class_t *) node->plugin_class;
     if (ic->get_dir) {
+      int i = 0, j;
+
+      while (catalog->ids[i] && strcmp(catalog->ids[i], node->info->id) < 0)
+        i++;
+      for (j = PLUGIN_MAX - 1; j > i; j--)
+        catalog->ids[j] = catalog->ids[j - 1];
 
       catalog->ids[i] = node->info->id;
-
-      i++;
     }
     node = xine_list_next_content (catalog->input);
   }
-
-  catalog->ids[i] = NULL;
 
   pthread_mutex_unlock (&catalog->lock);
 
