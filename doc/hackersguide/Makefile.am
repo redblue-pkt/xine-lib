@@ -20,6 +20,11 @@ docs: $(docs_DATA)
 
 distclean-generic: clean-docs
 
+docs-prepare: $(addprefix $(srcdir)/, $(hackersguide_sgml))
+	for file in $(hackersguide_sgml); do \
+	  test -f ./$$file || cp $(srcdir)/$$file .; \
+	done
+
 clean-docs:
 	rm -f $(docs_DATA)
 	test "x$(srcdir)" = x. || rm -f $(hackersguide_sgml)
@@ -28,14 +33,11 @@ dist-hook:
 	@make fail_if_missing=yes docs
 	cp $(docs_DATA) $(distdir)
 
-$(hackersguide_sgml): %.sgml: $(srcdir)/%.sgml
-	cp $^ .
-
 if HAVE_SGMLTOOLS
-hackersguide.html: $(hackersguide_sgml)
+hackersguide.html: docs-prepare $(hackersguide_sgml)
 	$(SGMLTOOLS) -b onehtml hackersguide.sgml;
 else
-hackersguide.html: $(hackersguide_sgml)
+hackersguide.html: docs-prepare $(hackersguide_sgml)
 	if test x"$(fail_if_missing)" = x"yes"; then \
 	  echo "Please install sgmltools-lite."; \
 	  exit 1; \
