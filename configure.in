@@ -121,14 +121,14 @@ AM_TYPE_PTRDIFF_T
 AC_SUBST(DEBUG_CFLAGS)
 AC_SUBST(GLOBAL_CFLAGS)
 
-
 dnl
 dnl threads
 dnl
 case "$host" in
   *-*-freebsd*)
-    THREAD_LIBS="-pthread"
-    CFLAGS="$CFLAGS -I/usr/local/include -L/usr/local/lib -D_THREAD_SAFE"
+    THREAD_LIBS="-L/usr/local/lib -pthread"
+    THREAD_CFLAGS="-I/usr/local/include -D_THREAD_SAFE"
+    CFLAGS="$CFLAGS -L/usr/local/lib $THREAD_CFLAGS"
     CPPFLAGS="$CPPFLAGS -I/usr/local/include -L/usr/local/lib"
     ;;
   *)
@@ -138,7 +138,7 @@ case "$host" in
     ;;
 esac
 AC_SUBST(THREAD_LIBS)
-
+AC_SUBST(THREAD_CFLAGS)
 
 dnl
 dnl dynamic linker

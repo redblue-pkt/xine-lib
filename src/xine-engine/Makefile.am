@@ -2,7 +2,8 @@
 ## Process this file with automake to produce Makefile.in
 ##
 
-CFLAGS = @GLOBAL_CFLAGS@
+CFLAGS = @GLOBAL_CFLAGS@ @THREAD_CFLAGS@
+
 
 EXTRA_DIST = cpu_accel.c
 

@@ -1,7 +1,7 @@
 
 SUBDIRS = man xine-lib-API
 
-EXTRA_DIST = $(docs_DOCS) FAQ FAQ_it FAQ_es FAQ_fr MRL.txt \
+EXTRA_DIST = $(docs_DOCS) FAQ FAQ_it FAQ_es FAQ_fr FAQ_pl MRL.txt \
 	README.solaris README.freebsd README.irix \
 	dataflow.dia xine-lib-API.cfg
 

@@ -26,6 +26,8 @@ dnl AM_PATH_AALIB([MINIMUM-VERSION, [ACTION-IF-FOUND [,ACTION-IF-NOT-FOUND ]]])
 dnl Test for AALIB, and define AALIB_CFLAGS and AALIB_LIBS, AALIB_STATIC_LIBS.
 dnl
 dnl ***********************
+dnl 26/09/2001
+dnl   * fixed --disable-aalibtest.
 dnl 17/09/2001
 dnl   * use both aalib-config, and *last chance* aainfo for guessing.
 dnl 19/08/2001
@@ -42,7 +44,7 @@ AC_ARG_WITH(aalib-prefix,
 AC_ARG_WITH(aalib-exec-prefix,
     [  --with-aalib-exec-prefix=PFX                                                                            Exec prefix where AALIB is installed (optional)],
             aalib_config_exec_prefix="$withval", aalib_config_exec_prefix="")
-AC_ARG_ENABLE(aalib-test, 
+AC_ARG_ENABLE(aalibtest, 
     [  --disable-aalibtest     Do not try to compile and run a test AALIB program],, enable_aalibtest=yes)
 
   if test x$aalib_config_exec_prefix != x ; then
@@ -63,14 +65,14 @@ AC_ARG_ENABLE(aalib-test,
   if test x"$enable_aalibtest" != "xyes"; then
     AC_MSG_CHECKING(for AALIB version >= $min_aalib_version)
   else
+    if ! test -x AALIB_CONFIG; then
+      AALIB_CONFIG=""
+    fi
     AC_PATH_PROG(AALIB_CONFIG, aalib-config, no)
 
     if test "$AALIB_CONFIG" = "no" ; then
 
-dnl
-dnl Add aainfo stuff here.
-dnl
-dnl aalib-config missed, check for old aainfo
+dnl aalib-config is missing, check for old aainfo
 
       AALIB_LIBS="$AALIB_LIBS -laa"
       if test x$aalib_config_exec_prefix != x ; then
@@ -132,7 +134,7 @@ dnl checks the results of xine-config to some extent
 dnl
         AC_LANG_SAVE()
         AC_LANG_C()
-        rm -f conf.xinetest
+        rm -f conf.aalibtest
         AC_TRY_RUN([
 #include <stdio.h>
 #include <stdlib.h>
@@ -142,7 +144,7 @@ int main () {
   int major, minor;
    char *tmp_version;
 
-  system ("touch conf.xinetest");
+  system ("touch conf.aalibtest");
 
   /* HP/UX 9 (%@#!) writes to sscanf strings */
   tmp_version = (char *) strdup("$min_aalib_version");
@@ -164,7 +166,7 @@ int main () {
 #ifdef AA_LIB_MINNOR
      printf("\n*** An old version of AALIB (%d.%d) was found.\n", AA_LIB_VERSION, AA_LIB_MINNOR);
 #else
-printf("\n*** An old version of AALIB (%d.%d) was found.\n", AA_LIB_VERSION, AA_LIB_MINOR);
+     printf("\n*** An old version of AALIB (%d.%d) was found.\n", AA_LIB_VERSION, AA_LIB_MINOR);
 #endif
      printf("*** You need a version of AALIB newer than %d.%d. The latest version of\n", major, minor);
      printf("*** AALIB is always available from:\n");
@@ -174,6 +176,7 @@ printf("\n*** An old version of AALIB (%d.%d) was found.\n", AA_LIB_VERSION, AA_
   return 1;
 }
 ],, no_aalib=yes,[echo $ac_n "cross compiling; assumed OK... $ac_c"])
+
         CFLAGS="$ac_save_CFLAGS"
         LIBS="$ac_save_LIBS"
       fi
@@ -201,7 +204,7 @@ dnl checks the results of aalib-config to some extent
 dnl
       AC_LANG_SAVE()
       AC_LANG_C()
-      rm -f conf.xinetest
+      rm -f conf.aalibtest
       AC_TRY_RUN([
 #include <stdio.h>
 #include <stdlib.h>
@@ -211,7 +214,7 @@ int main () {
   int major, minor;
    char *tmp_version;
 
-  system ("touch conf.xinetest");
+  system ("touch conf.aalibtest");
 
   /* HP/UX 9 (%@#!) writes to sscanf strings */
   tmp_version = (char *) strdup("$min_aalib_version");
@@ -243,29 +246,29 @@ printf("\n*** An old version of AALIB (%d.%d) was found.\n", AA_LIB_VERSION, AA_
   return 1;
 }
 ],, no_aalib=yes,[echo $ac_n "cross compiling; assumed OK... $ac_c"])
-       CFLAGS="$ac_save_CFLAGS"
-       LIBS="$ac_save_LIBS"
-     fi
-    fi dnl AALIB_CONFIG
+      CFLAGS="$ac_save_CFLAGS"
+      LIBS="$ac_save_LIBS"
+    fi
+  fi dnl AALIB_CONFIG
 
-    if test "x$no_aalib" = x; then
-      AC_MSG_RESULT(yes)
-      ifelse([$2], , :, [$2])     
+  if test "x$no_aalib" = x; then
+    AC_MSG_RESULT(yes)
+    ifelse([$2], , :, [$2])     
+  else
+    AC_MSG_RESULT(no)
+    if test "$AALIB_CONFIG" = "no"; then
+      echo "*** The [aalib-config|aainfo] program installed by AALIB could not be found"
+      echo "*** If AALIB was installed in PREFIX, make sure PREFIX/bin is in"
+      echo "*** your path, or use --with-aalib-prefix to set the prefix"
+      echo "*** where AALIB is installed."
     else
-      AC_MSG_RESULT(no)
-      if test "$AALIB_CONFIG" = "no"; then
-        echo "*** The aalib-config program installed by AALIB could not be found"
-        echo "*** If AALIB was installed in PREFIX, make sure PREFIX/bin is in"
-        echo "*** your path, or use --with-aalib-prefix to set the prefix"
-	echo "*** where AALIB is installed."
+      if test -f conf.aalibtest ; then
+        :
       else
-        if test -f conf.xinetest ; then
-          :
-        else
-          echo "*** Could not run AALIB test program, checking why..."
-          CFLAGS="$CFLAGS $AALIB_CFLAGS"
-          LIBS="$LIBS $AALIB_LIBS"
-          AC_TRY_LINK([
+        echo "*** Could not run AALIB test program, checking why..."
+        CFLAGS="$CFLAGS $AALIB_CFLAGS"
+        LIBS="$LIBS $AALIB_LIBS"
+        AC_TRY_LINK([
 #include <stdio.h>
 #include <aalib.h>
 ],      [ 
@@ -291,15 +294,14 @@ printf("\n*** An old version of AALIB (%d.%d) was found.\n", AA_LIB_VERSION, AA_
           echo "*** or that you have moved AALIB since it was installed." ])
           CFLAGS="$ac_save_CFLAGS"
           LIBS="$ac_save_LIBS"
-        fi
       fi
-      AALIB_CFLAGS=""
-      AALIB_LIBS=""
-      ifelse([$3], , :, [$3])
     fi
+    AALIB_CFLAGS=""
+    AALIB_LIBS=""
+    ifelse([$3], , :, [$3])
+  fi
   AC_SUBST(AALIB_CFLAGS)
   AC_SUBST(AALIB_LIBS)
   AC_LANG_RESTORE()
-  rm -f conf.xinetest
+  rm -f conf.aalibtest
 ])
-
