@@ -6,7 +6,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: xine-lib 0.9.9\n"
-"POT-Creation-Date: 2002-06-23 10:57+0200\n"
+"POT-Creation-Date: 2002-06-24 21:51+0200\n"
 "PO-Revision-Date: 2002-02-15 15:08+0200\n"
 "Last-Translator: Tomá¹ Kovár <tomask@mac.com>\n"
 "Language-Team: Slovak <ski18n@lists.isternet.sk>\n"
@@ -785,8 +785,7 @@ msgstr "input_dvd: krátke èítanie v module input_dvd (%d != %d)\n"
 #: src/input/input_dvd.c:475
 #, c-format
 msgid "input_dvd: error in input_dvd plugin read: %Ld bytes is not a sector!\n"
-msgstr ""
-"input_dvd: chyba pri èítaní v module input_dvd: %d bajtov nie je sektor!\n"
+msgstr "input_dvd: chyba pri èítaní v module input_dvd: %Ld bajtov nie je sektor!\n"
 
 #: src/input/input_dvd.c:487
 msgid "input_dvd: read error in input_dvd plugin\n"
@@ -981,7 +980,7 @@ msgstr "input_vcd: zlyhala funkcia CDROM_DRIVE_STATUS: %s\n"
 msgid "vcd device input plugin as shipped with xine"
 msgstr "modul vstupu zo zariadenia vcd dodávaný so xine"
 
-#: src/input/input_vcd.c:991
+#: src/input/input_vcd.c:991 src/input/input_vcd.c:1071
 #, c-format
 msgid "unable to open %s: %s.\n"
 msgstr "nemo¾no otvori» %s: %s.\n"
@@ -989,11 +988,6 @@ msgstr "nemo¾no otvori» %s: %s.\n"
 #: src/input/input_vcd.c:999 src/input/input_vcd.c:1079
 msgid "vcd_read_toc failed\n"
 msgstr "zlyhala funkcia vcd_read_toc\n"
-
-#: src/input/input_vcd.c:1071
-#, c-format
-msgid "unable to open %s: %s."
-msgstr "nemo¾no otvori» %s: %s."
 
 #: src/input/input_vcd.c:1146
 #, c-format
@@ -1552,7 +1546,7 @@ msgstr ""
 "          To znamená, ¾e xine a tento vstupný modul majú rozlièné verzie.\n"
 "          In¹talácia aktuálneho demultiplexného modulu by mala pomôc».\n"
 
-#: src/libffmpeg/xine_decoder.c:375
+#: src/libffmpeg/xine_decoder.c:379
 #, fuzzy, c-format
 msgid ""
 "ffmpeg: plugin doesn't support plugin API version %d.\n"
@@ -1573,7 +1567,7 @@ msgstr ""
 msgid "The device file of the dxr3 mpeg decoder card control device."
 msgstr ""
 
-#: src/dxr3/dxr3_decode_spu.c:100
+#: src/dxr3/dxr3_decode_spu.c:106
 #, fuzzy, c-format
 msgid ""
 "dxr3_decode_spu: plugin doesn't support plugin API version %d.\n"
@@ -1616,7 +1610,7 @@ msgstr ""
 msgid "Use alternate Play mode"
 msgstr ""
 
-#: src/dxr3/dxr3_decode_video.c:181
+#: src/dxr3/dxr3_decode_video.c:181 src/dxr3/video_out_dxr3.c:161
 msgid "Enabling this option will utilise a smoother play mode."
 msgstr ""
 
@@ -1673,15 +1667,6 @@ msgstr ""
 #: src/dxr3/video_out_dxr3.c:160
 msgid "dxr3: use alternate play mode for mpeg encoder playback"
 msgstr ""
-
-#: src/dxr3/video_out_dxr3.c:161
-msgid "Enabling this option will utilise a smoother play mode"
-msgstr ""
-
-#: src/dxr3/video_out_dxr3.c:214 src/dxr3/video_out_dxr3.c:236
-#, fuzzy
-msgid "none"
-msgstr "hotovo\n"
 
 #: src/dxr3/video_out_dxr3.c:221
 msgid "the encoder for non mpeg content"
@@ -1817,23 +1802,11 @@ msgstr ""
 "           To znamená, ¾e xine a tento vstupný modul majú rozlièné verzie.\n"
 "           In¹talácia aktuálneho demultiplexného modulu by mala pomôc».\n"
 
-#: src/xine-utils/memcpy.c:437
+#: src/xine-utils/memcpy.c:439
 msgid "Memcopy method to use in xine for large data chunks."
 msgstr ""
 
-#: src/libsputext/xine_decoder.c:1039
-msgid "Small"
-msgstr ""
-
-#: src/libsputext/xine_decoder.c:1040
-msgid "Normal"
-msgstr ""
-
 #: src/libsputext/xine_decoder.c:1041
-msgid "Large"
-msgstr ""
-
-#: src/libsputext/xine_decoder.c:1045
 #, fuzzy, c-format
 msgid ""
 "libsputext: doesn't support plugin api version %d.\n"
@@ -1845,20 +1818,20 @@ msgstr ""
 "To znamená, ¾e xine a tento vstupný modul majú rozlièné verzie.\n"
 "In¹talácia aktuálneho vstupného modulu by mala pomôc».\n"
 
-#: src/libsputext/xine_decoder.c:1067
+#: src/libsputext/xine_decoder.c:1063
 msgid "font for avi subtitles"
 msgstr ""
 
-#: src/libsputext/xine_decoder.c:1073
+#: src/libsputext/xine_decoder.c:1069
 msgid "subtitle size (relative window size)"
 msgstr ""
 
-#: src/libsputext/xine_decoder.c:1078
-msgid "source encoging of subtitles"
+#: src/libsputext/xine_decoder.c:1074
+msgid "source encoding of subtitles"
 msgstr ""
 
-#: src/libsputext/xine_decoder.c:1083
-msgid "target encoging for subtitles (have to match font encoding)"
+#: src/libsputext/xine_decoder.c:1079
+msgid "target encoding for subtitles (have to match font encoding)"
 msgstr ""
 
 #: src/libspucc/xine_decoder.c:220
@@ -1897,7 +1870,7 @@ msgstr ""
 "To znamená, ¾e xine a tento vstupný modul majú rozlièné verzie.\n"
 "In¹talácia aktuálneho vstupného modulu by mala pomôc».\n"
 
-#: src/libxvid/xine_decoder.c:224
+#: src/libxvid/xine_decoder.c:226
 #, fuzzy, c-format
 msgid ""
 "xvid: plugin doesn't support plugin API version %d.\n"
@@ -1908,7 +1881,7 @@ msgstr ""
 "           To znamená, ¾e xine a tento vstupný modul majú rozlièné verzie.\n"
 "           In¹talácia aktuálneho demultiplexného modulu by mala pomôc».\n"
 
-#: src/libxvid/xine_decoder.c:234
+#: src/libxvid/xine_decoder.c:236
 #, c-format
 msgid ""
 "xvid: there is mismatch between API used by currently installed XviD\n"
@@ -1951,6 +1924,13 @@ msgstr ""
 "demux_avi: modul nepodporuje API modulov vo verzii %d.\n"
 "           To znamená, ¾e xine a tento vstupný modul majú rozlièné verzie.\n"
 "           In¹talácia aktuálneho demultiplexného modulu by mala pomôc».\n"
+
+#~ msgid "unable to open %s: %s."
+#~ msgstr "nemo¾no otvori» %s: %s."
+
+#, fuzzy
+#~ msgid "none"
+#~ msgstr "hotovo\n"
 
 #~ msgid ""
 #~ "demux_qt: video codec %s (%f fps), audio codec %s (%ld Hz, %d bits)\n"

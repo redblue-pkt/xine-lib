@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3.c,v 1.30 2002/06/24 17:40:44 pmhahn Exp $
+ * $Id: video_out_dxr3.c,v 1.31 2002/06/24 19:55:38 f1rmb Exp $
  */
  
 /* mpeg1 encoding video out plugin for the dxr3.  
@@ -211,7 +211,7 @@ vo_driver_t *init_video_out_plugin(config_values_t *config, void *visual_gen)
   printf("rte, ");
 #endif
 #endif
-  available_encoders[encoder] = _("none");
+  available_encoders[encoder] = "none";
   available_encoders[encoder + 1] = NULL;
 #if LOG_VID
   printf("none\n");
@@ -233,7 +233,7 @@ vo_driver_t *init_video_out_plugin(config_values_t *config, void *visual_gen)
       return 0;
     }
 #endif
-    if (strcmp(available_encoders[encoder], _("none")) == 0)
+    if (strcmp(available_encoders[encoder], "none") == 0)
       printf("video_out_dxr3: Mpeg encoding disabled.\n"
              "video_out_dxr3: that's ok, you don't need it for mpeg video like DVDs, but\n"
              "video_out_dxr3: you will not be able to play non-mpeg content using this video out\n"

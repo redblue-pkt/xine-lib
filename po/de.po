@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: xine-lib 0.9.12\n"
-"POT-Creation-Date: 2002-06-23 10:57+0200\n"
+"POT-Creation-Date: 2002-06-24 21:51+0200\n"
 "PO-Revision-Date: 2002-06-24 19:42+0200\n"
 "Last-Translator: Philipp Hahn <pmhahn@users.sf.net>\n"
 "Language-Team: German <de@li.org>\n"
@@ -42,7 +42,8 @@ msgstr "ALSA Mixergerät"
 #: src/audio_out/audio_alsa_out.c:994 src/audio_out/audio_alsa_out.c:1007
 #: src/audio_out/audio_alsa_out.c:1020 src/audio_out/audio_alsa_out.c:1038
 msgid "used to inform xine about what the sound card can do"
-msgstr "Wird gebraucht, um xine über die Fähigkeiten der Soundkarte zu informieren"
+msgstr ""
+"Wird gebraucht, um xine über die Fähigkeiten der Soundkarte zu informieren"
 
 #: src/audio_out/audio_alsa_out.c:1090
 msgid "xine audio output plugin using alsa-compliant audio devices/drivers"
@@ -70,7 +71,9 @@ msgstr "A/V Synchronisationsanpassung für OSS SoftSync"
 
 #: src/audio_out/audio_oss_out.c:774
 msgid "Use this to manually adjust a/v sync if you're using softsync"
-msgstr "Benutze dies um die A/V Synchronisation manuell anzupassen, falls SoftSync benutzt wird"
+msgstr ""
+"Benutze dies um die A/V Synchronisation manuell anzupassen, falls SoftSync "
+"benutzt wird"
 
 #: src/audio_out/audio_oss_out.c:796
 msgid "Enable 4.0 channel analog surround output"
@@ -981,7 +984,7 @@ msgstr "input_vcd: Auslesen vom Status des VCD-Laufwerks schlug fehl: %s\n"
 msgid "vcd device input plugin as shipped with xine"
 msgstr "Mit xine ausgeliefertes VCD Plugin"
 
-#: src/input/input_vcd.c:991
+#: src/input/input_vcd.c:991 src/input/input_vcd.c:1071
 #, c-format
 msgid "unable to open %s: %s.\n"
 msgstr "Kann %s nicht öffnen: %s.\n"
@@ -989,11 +992,6 @@ msgstr "Kann %s nicht öffnen: %s.\n"
 #: src/input/input_vcd.c:999 src/input/input_vcd.c:1079
 msgid "vcd_read_toc failed\n"
 msgstr "vcd_read_toc schlug fehl\n"
-
-#: src/input/input_vcd.c:1071
-#, c-format
-msgid "unable to open %s: %s."
-msgstr "Kann %s nicht öffnen: %s."
 
 #: src/input/input_vcd.c:1146
 #, c-format
@@ -1324,7 +1322,8 @@ msgstr "Schattenpuffer zur Synchronisation mit Strahlenrücklauf"
 
 #: src/video_out/video_out_xv.c:1463
 msgid "Software deinterlace method (Key I toggles deinterlacer on/off)"
-msgstr "Software Deinterlacing Methode (Taste 'i' schaltet Deinterlacing ein/aus)"
+msgstr ""
+"Software Deinterlacing Methode (Taste 'i' schaltet Deinterlacing ein/aus)"
 
 #: src/video_out/video_out_xv.c:1479
 msgid "xine video output plugin using the MIT X video extension"
@@ -1451,7 +1450,9 @@ msgstr "Läustärke beim Starten wiederherstellen"
 
 #: src/xine-engine/audio_out.c:765
 msgid "if this not set, xine will not touch any mixer settings at startup"
-msgstr "Wenn nicht angewählte, wird xine die Lautstärke beim Starten unverändert lassen"
+msgstr ""
+"Wenn nicht angewählte, wird xine die Lautstärke beim Starten unverändert "
+"lassen"
 
 #: src/xine-engine/osd.c:863
 msgid "Palette (foreground-border-background) to use on subtitles"
@@ -1478,7 +1479,8 @@ msgstr "load_plugins: Demultiplexer-Plugin gefunden : %s\n"
 
 #: src/xine-engine/load_plugins.c:161
 msgid "load_plugins: too many demux plugins installed, exiting.\n"
-msgstr "load_plugins: Zu viele Demultiplexer-Plugins installiert, beende jetzt.\n"
+msgstr ""
+"load_plugins: Zu viele Demultiplexer-Plugins installiert, beende jetzt.\n"
 
 #: src/xine-engine/load_plugins.c:300
 #, c-format
@@ -1554,7 +1556,7 @@ msgstr ""
 "         diesem Dekodierungs-Plugin existiert.\n"
 "Das Installieren aktueller Dekodierungs-Plugins sollte helfen.\n"
 
-#: src/libffmpeg/xine_decoder.c:375
+#: src/libffmpeg/xine_decoder.c:379
 #, c-format
 msgid ""
 "ffmpeg: plugin doesn't support plugin API version %d.\n"
@@ -1576,7 +1578,7 @@ msgstr "DXR3: Gerätepfad"
 msgid "The device file of the dxr3 mpeg decoder card control device."
 msgstr "Der Gerätepfad für das Steuergerät der DXR3-MPEG-Dekoderkarte."
 
-#: src/dxr3/dxr3_decode_spu.c:100
+#: src/dxr3/dxr3_decode_spu.c:106
 #, c-format
 msgid ""
 "dxr3_decode_spu: plugin doesn't support plugin API version %d.\n"
@@ -1597,7 +1599,8 @@ msgid ""
 "dxr3_decode_video: decoder plugin. Installing current plugins should help.\n"
 msgstr ""
 "dxr3_decode_video: Plugin unterstützt die API-Version %d nicht.\n"
-"                   Das bedeutet das ein Versionsunterschied zwischen xine und\n"
+"                   Das bedeutet das ein Versionsunterschied zwischen xine "
+"und\n"
 "                   diesem Plugin existiert.\n"
 "Das Installieren aktueller Plugins sollte helfen.\n"
 
@@ -1607,7 +1610,9 @@ msgstr "DXR3: Videodekoder Priorität"
 
 #: src/dxr3/dxr3_decode_video.c:165
 msgid "Decoder priorities greater 5 enable hardware decoding, 0 disables it."
-msgstr "Dekoderprioritäten größer 5 aktivieren Hardwaredekodierung, 0 deaktiviert sie."
+msgstr ""
+"Dekoderprioritäten größer 5 aktivieren Hardwaredekodierung, 0 deaktiviert "
+"sie."
 
 #: src/dxr3/dxr3_decode_video.c:175
 msgid "Try to sync video every frame"
@@ -1615,13 +1620,14 @@ msgstr "Versuche Video mit jedem Bild zu synchonisieren"
 
 #: src/dxr3/dxr3_decode_video.c:176
 msgid "This is relevant for progressive video only (most PAL films)."
-msgstr "Dies ist nur für progessive Videos (die meisten PAL-Filme) interessant."
+msgstr ""
+"Dies ist nur für progessive Videos (die meisten PAL-Filme) interessant."
 
 #: src/dxr3/dxr3_decode_video.c:180
 msgid "Use alternate Play mode"
 msgstr "Alternativen Wiedergabemodus benutzen"
 
-#: src/dxr3/video_out_dxr3.c:161 src/dxr3/dxr3_decode_video.c:181
+#: src/dxr3/dxr3_decode_video.c:181 src/dxr3/video_out_dxr3.c:161
 msgid "Enabling this option will utilise a smoother play mode."
 msgstr "Das Aktivieren dieser Option sorgt für eine flüssigere Wiedergabe."
 
@@ -1641,7 +1647,8 @@ msgstr "DXR3enc: Bitrate der RTE-MPEG Wiedergabe (kBit/s)"
 msgid ""
 "The bitrate the mpeg encoder library librte should use for dxr3's encoding "
 "mode"
-msgstr "Bitrate für die MPEG-Enkodierungsbibliothek librte zur DXR3 Enkodierung."
+msgstr ""
+"Bitrate für die MPEG-Enkodierungsbibliothek librte zur DXR3 Enkodierung."
 
 #: src/dxr3/dxr3_mpeg_encoders.c:375
 msgid "Dxr3enc: fame mpeg encoding quality"
@@ -1679,10 +1686,6 @@ msgstr "Falls deaktiviert, geht xine von einem 4:3 Seitenverhältniss aus."
 msgid "dxr3: use alternate play mode for mpeg encoder playback"
 msgstr "dxr3: Benutze alternativen Wiedergabemodus für MPEG-Wiedergabe"
 
-#: src/dxr3/video_out_dxr3.c:214 src/dxr3/video_out_dxr3.c:236
-msgid "none"
-msgstr "Keine"
-
 #: src/dxr3/video_out_dxr3.c:221
 msgid "the encoder for non mpeg content"
 msgstr "Der Enkodierer für nicht-MPEG-Inhalte"
@@ -1691,7 +1694,9 @@ msgstr "Der Enkodierer für nicht-MPEG-Inhalte"
 msgid ""
 "Content other than mpeg has to pass an additional reencoding stage, because "
 "the dxr3 handles mpeg only."
-msgstr "Nicht-MPEG-Inhalte müssen eine zusätzliche Reenkodierungsstufe durchlaufen, da die DXR3 nur MPEG kann."
+msgstr ""
+"Nicht-MPEG-Inhalte müssen eine zusätzliche Reenkodierungsstufe durchlaufen, "
+"da die DXR3 nur MPEG kann."
 
 #: src/dxr3/video_out_dxr3.c:252
 msgid "Dxr3: contrast control"
@@ -1719,7 +1724,8 @@ msgstr "DXR3: Farbbereich für Overlay"
 
 #: src/dxr3/video_out_dxr3.c:282
 msgid "A greater value widens the tolerance for the overlay keycolor"
-msgstr "Ein größerer Wert vergrößert die Toleranz für die den Farbwert des Overlays"
+msgstr ""
+"Ein größerer Wert vergrößert die Toleranz für die den Farbwert des Overlays"
 
 #: src/dxr3/video_out_dxr3.c:293
 msgid "dxr3 preferred tv mode"
@@ -1799,7 +1805,8 @@ msgstr "Priorität des divx4-Plugins (>5 zum aktivieren)"
 
 #: src/libdivx4/xine_decoder.c:598
 msgid "the postprocessing level, 0 = none and fast, 6 = all and slow"
-msgstr "Nachbearbeitungsstufe, 0 = keine, aber schnell, 6 = alles, dafür langsam"
+msgstr ""
+"Nachbearbeitungsstufe, 0 = keine, aber schnell, 6 = alles, dafür langsam"
 
 #: src/libdivx4/xine_decoder.c:601
 msgid "use divx4 plugin for msmpeg4v3 streams"
@@ -1822,23 +1829,11 @@ msgstr ""
 "           diesem Dekodierungs-Plugin existiert.\n"
 "Das Installieren aktueller Plugins sollte helfen.\n"
 
-#: src/xine-utils/memcpy.c:437
+#: src/xine-utils/memcpy.c:439
 msgid "Memcopy method to use in xine for large data chunks."
 msgstr "Kopiermethode für große Datenbereiche."
 
-#: src/libsputext/xine_decoder.c:1039
-msgid "Small"
-msgstr "Klein"
-
-#: src/libsputext/xine_decoder.c:1040
-msgid "Normal"
-msgstr "Normal"
-
 #: src/libsputext/xine_decoder.c:1041
-msgid "Large"
-msgstr "Groß"
-
-#: src/libsputext/xine_decoder.c:1045
 #, c-format
 msgid ""
 "libsputext: doesn't support plugin api version %d.\n"
@@ -1849,21 +1844,23 @@ msgstr ""
 "            Das bedeutet das ein Versionsunterschied zwischen xine und\n"
 "            diesem Plugin existiert.\n"
 
-#: src/libsputext/xine_decoder.c:1067
+#: src/libsputext/xine_decoder.c:1063
 msgid "font for avi subtitles"
 msgstr "Zeichensatz für AVI-Untertitel"
 
-#: src/libsputext/xine_decoder.c:1073
+#: src/libsputext/xine_decoder.c:1069
 msgid "subtitle size (relative window size)"
 msgstr "Untertitelgröße (Relativ zu Fenstergröße)"
 
-#: src/libsputext/xine_decoder.c:1078
+#: src/libsputext/xine_decoder.c:1074
 msgid "source encoding of subtitles"
 msgstr "Zeichenkodierung für Untertitel"
 
-#: src/libsputext/xine_decoder.c:1083
+#: src/libsputext/xine_decoder.c:1079
 msgid "target encoding for subtitles (have to match font encoding)"
-msgstr "Zielzeichenkodierung für Untertitel (muß mit Zeichensatzkodierung übereinstimmen)"
+msgstr ""
+"Zielzeichenkodierung für Untertitel (muß mit Zeichensatzkodierung "
+"übereinstimmen)"
 
 #: src/libspucc/xine_decoder.c:220
 msgid "Enable closed captions in MPEG-2 streams"
@@ -1901,7 +1898,7 @@ msgstr ""
 "          diesem Plugin existiert.\n"
 "Das Installieren aktueller Plugins sollte helfen.\n"
 
-#: src/libxvid/xine_decoder.c:224
+#: src/libxvid/xine_decoder.c:226
 #, c-format
 msgid ""
 "xvid: plugin doesn't support plugin API version %d.\n"
@@ -1913,7 +1910,7 @@ msgstr ""
 "      diesem Dekodierung-Plugin existiert.\n"
 "Das Installieren aktueller Plugins sollte helfen.\n"
 
-#: src/libxvid/xine_decoder.c:234
+#: src/libxvid/xine_decoder.c:236
 #, c-format
 msgid ""
 "xvid: there is mismatch between API used by currently installed XviD\n"
@@ -1922,7 +1919,8 @@ msgid ""
 msgstr ""
 "xvid: Es existiert ein API-Versionsunterschied zwischen der verwendeten\n"
 "      XviD-Bibliothek (%d.%d) und der Version zum Übersetzungszeitpunkt\n"
-"      (%d.%d). Das Neuübersetzten mit der momentanen Bibliothek sollte hefen.\n"
+"      (%d.%d). Das Neuübersetzten mit der momentanen Bibliothek sollte "
+"hefen.\n"
 
 #: src/libxinevdec/cinepak.c:432
 #, c-format
@@ -1962,6 +1960,21 @@ msgstr ""
 "           Das bedeutet das ein Versionsunterschied zwischen xine und\n"
 "           diesem Dekodierungs-Plugin existiert.\n"
 "Das Installieren aktueller Plugins sollte helfen.\n"
+
+#~ msgid "unable to open %s: %s."
+#~ msgstr "Kann %s nicht öffnen: %s."
+
+#~ msgid "none"
+#~ msgstr "Keine"
+
+#~ msgid "Small"
+#~ msgstr "Klein"
+
+#~ msgid "Normal"
+#~ msgstr "Normal"
+
+#~ msgid "Large"
+#~ msgstr "Groß"
 
 #~ msgid ""
 #~ "demux_qt: video codec %s (%f fps), audio codec %s (%ld Hz, %d bits)\n"

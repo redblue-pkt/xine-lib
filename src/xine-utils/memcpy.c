@@ -421,14 +421,16 @@ void xine_probe_fast_memcpy(config_values_t *config)
   char *buf1, *buf2;
   int i, j, best;
   int config_flags = -1;
-  static char *memcpy_methods[] = {"probe", "glibc",
+  static char *memcpy_methods[] = { 
+    "probe", "glibc",
 #ifdef ARCH_X86
-     "kernel", "mmx", "mmxext", "sse", 
+    "kernel", "mmx", "mmxext", "sse", 
 #endif
 #ifdef ARCH_PPC
-	"ppcasm_memcpy", "ppcasm_cacheable_memcpy",
+    "ppcasm_memcpy", "ppcasm_cacheable_memcpy",
 #endif
-     NULL};
+    NULL
+  };
   
   config_flags = xine_mm_accel();
 

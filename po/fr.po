@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: xine-lib 0.9.9\n"
-"POT-Creation-Date: 2002-06-23 10:57+0200\n"
+"POT-Creation-Date: 2002-06-24 21:51+0200\n"
 "PO-Revision-Date: 2002-06-07 15:08 +0200\n"
 "Last-Translator: Daniel Caujolle-Bert <segfault@club-internet.fr>\n"
 "Language-Team: French <fr@li.org>\n"
@@ -997,18 +997,13 @@ msgstr ""
 msgid "vcd device input plugin as shipped with xine"
 msgstr "Plugin d'entrée VCD fournis avec xine"
 
-#: src/input/input_vcd.c:991
+#: src/input/input_vcd.c:991 src/input/input_vcd.c:1071
 #, c-format
 msgid "unable to open %s: %s.\n"
 msgstr ""
 
 #: src/input/input_vcd.c:999 src/input/input_vcd.c:1079
 msgid "vcd_read_toc failed\n"
-msgstr ""
-
-#: src/input/input_vcd.c:1071
-#, c-format
-msgid "unable to open %s: %s."
 msgstr ""
 
 #: src/input/input_vcd.c:1146
@@ -1562,7 +1557,7 @@ msgstr ""
 "          plugin de demultiplexage ne correspondent pas.\n"
 "Installer la version courante des plugins de demultiplexage peut aider.\n"
 
-#: src/libffmpeg/xine_decoder.c:375
+#: src/libffmpeg/xine_decoder.c:379
 #, fuzzy, c-format
 msgid ""
 "ffmpeg: plugin doesn't support plugin API version %d.\n"
@@ -1584,7 +1579,7 @@ msgstr ""
 msgid "The device file of the dxr3 mpeg decoder card control device."
 msgstr ""
 
-#: src/dxr3/dxr3_decode_spu.c:100
+#: src/dxr3/dxr3_decode_spu.c:106
 #, fuzzy, c-format
 msgid ""
 "dxr3_decode_spu: plugin doesn't support plugin API version %d.\n"
@@ -1629,7 +1624,7 @@ msgstr ""
 msgid "Use alternate Play mode"
 msgstr ""
 
-#: src/dxr3/dxr3_decode_video.c:181
+#: src/dxr3/dxr3_decode_video.c:181 src/dxr3/video_out_dxr3.c:161
 msgid "Enabling this option will utilise a smoother play mode."
 msgstr ""
 
@@ -1685,14 +1680,6 @@ msgstr ""
 
 #: src/dxr3/video_out_dxr3.c:160
 msgid "dxr3: use alternate play mode for mpeg encoder playback"
-msgstr ""
-
-#: src/dxr3/video_out_dxr3.c:161
-msgid "Enabling this option will utilise a smoother play mode"
-msgstr ""
-
-#: src/dxr3/video_out_dxr3.c:214 src/dxr3/video_out_dxr3.c:236
-msgid "none"
 msgstr ""
 
 #: src/dxr3/video_out_dxr3.c:221
@@ -1834,23 +1821,11 @@ msgstr ""
 "           plugin de demultiplexage ne correspondent pas.\n"
 "Installer la version courante des plugins de demultiplexage peut aider.\n"
 
-#: src/xine-utils/memcpy.c:437
+#: src/xine-utils/memcpy.c:439
 msgid "Memcopy method to use in xine for large data chunks."
 msgstr ""
 
-#: src/libsputext/xine_decoder.c:1039
-msgid "Small"
-msgstr ""
-
-#: src/libsputext/xine_decoder.c:1040
-msgid "Normal"
-msgstr ""
-
 #: src/libsputext/xine_decoder.c:1041
-msgid "Large"
-msgstr ""
-
-#: src/libsputext/xine_decoder.c:1045
 #, fuzzy, c-format
 msgid ""
 "libsputext: doesn't support plugin api version %d.\n"
@@ -1863,20 +1838,20 @@ msgstr ""
 "d'entrée ne correspondent pas.\n"
 "Installer la version courante des plugins d'entrée peut aider.\n"
 
-#: src/libsputext/xine_decoder.c:1067
+#: src/libsputext/xine_decoder.c:1063
 msgid "font for avi subtitles"
 msgstr ""
 
-#: src/libsputext/xine_decoder.c:1073
+#: src/libsputext/xine_decoder.c:1069
 msgid "subtitle size (relative window size)"
 msgstr ""
 
-#: src/libsputext/xine_decoder.c:1078
-msgid "source encoging of subtitles"
+#: src/libsputext/xine_decoder.c:1074
+msgid "source encoding of subtitles"
 msgstr ""
 
-#: src/libsputext/xine_decoder.c:1083
-msgid "target encoging for subtitles (have to match font encoding)"
+#: src/libsputext/xine_decoder.c:1079
+msgid "target encoding for subtitles (have to match font encoding)"
 msgstr ""
 
 #: src/libspucc/xine_decoder.c:220
@@ -1916,7 +1891,7 @@ msgstr ""
 "d'entrée ne correspondent pas.\n"
 "Installer la version courante des plugins d'entrée peux aider.\n"
 
-#: src/libxvid/xine_decoder.c:224
+#: src/libxvid/xine_decoder.c:226
 #, fuzzy, c-format
 msgid ""
 "xvid: plugin doesn't support plugin API version %d.\n"
@@ -1928,7 +1903,7 @@ msgstr ""
 "           plugin de demultiplexage ne correspondent pas.\n"
 "Installer la version courante des plugins de demultiplexage peux aider.\n"
 
-#: src/libxvid/xine_decoder.c:234
+#: src/libxvid/xine_decoder.c:236
 #, c-format
 msgid ""
 "xvid: there is mismatch between API used by currently installed XviD\n"

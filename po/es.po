@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: xine-lib 0.9.8\n"
-"POT-Creation-Date: 2002-06-23 10:57+0200\n"
+"POT-Creation-Date: 2002-06-24 21:51+0200\n"
 "PO-Revision-Date: 2002-02-20 00:00+0100\n"
 "Last-Translator: Juan Manuel García Molina <juanma_gm@wanadoo.es>\n"
 "Language-Team: Spanish <es@li.org>\n"
@@ -993,7 +993,7 @@ msgstr "input_vcd: falló CDROM_DRIVE_STATUS: %s\n"
 msgid "vcd device input plugin as shipped with xine"
 msgstr "plugin de entrada del dispositivo de vcd incluido en xine"
 
-#: src/input/input_vcd.c:991
+#: src/input/input_vcd.c:991 src/input/input_vcd.c:1071
 #, c-format
 msgid "unable to open %s: %s.\n"
 msgstr "no se puede abrir %s: %s.\n"
@@ -1001,11 +1001,6 @@ msgstr "no se puede abrir %s: %s.\n"
 #: src/input/input_vcd.c:999 src/input/input_vcd.c:1079
 msgid "vcd_read_toc failed\n"
 msgstr "falló vcd_read_toc\n"
-
-#: src/input/input_vcd.c:1071
-#, c-format
-msgid "unable to open %s: %s."
-msgstr "no se puede abrir %s: %s."
 
 #: src/input/input_vcd.c:1146
 #, c-format
@@ -1570,7 +1565,7 @@ msgstr ""
 "           y este plugin demultiplexor.\n"
 "Instalar los plugins demultiplexores actuales debería ser de ayuda.\n"
 
-#: src/libffmpeg/xine_decoder.c:375
+#: src/libffmpeg/xine_decoder.c:379
 #, fuzzy, c-format
 msgid ""
 "ffmpeg: plugin doesn't support plugin API version %d.\n"
@@ -1592,7 +1587,7 @@ msgstr ""
 msgid "The device file of the dxr3 mpeg decoder card control device."
 msgstr ""
 
-#: src/dxr3/dxr3_decode_spu.c:100
+#: src/dxr3/dxr3_decode_spu.c:106
 #, fuzzy, c-format
 msgid ""
 "dxr3_decode_spu: plugin doesn't support plugin API version %d.\n"
@@ -1637,7 +1632,7 @@ msgstr ""
 msgid "Use alternate Play mode"
 msgstr ""
 
-#: src/dxr3/dxr3_decode_video.c:181
+#: src/dxr3/dxr3_decode_video.c:181 src/dxr3/video_out_dxr3.c:161
 msgid "Enabling this option will utilise a smoother play mode."
 msgstr ""
 
@@ -1694,15 +1689,6 @@ msgstr ""
 #: src/dxr3/video_out_dxr3.c:160
 msgid "dxr3: use alternate play mode for mpeg encoder playback"
 msgstr ""
-
-#: src/dxr3/video_out_dxr3.c:161
-msgid "Enabling this option will utilise a smoother play mode"
-msgstr ""
-
-#: src/dxr3/video_out_dxr3.c:214 src/dxr3/video_out_dxr3.c:236
-#, fuzzy
-msgid "none"
-msgstr "hecho\n"
 
 #: src/dxr3/video_out_dxr3.c:221
 msgid "the encoder for non mpeg content"
@@ -1843,23 +1829,11 @@ msgstr ""
 "           y este plugin demultiplexor.\n"
 "Instalar los plugins demultiplexores actuales debería ser de ayuda.\n"
 
-#: src/xine-utils/memcpy.c:437
+#: src/xine-utils/memcpy.c:439
 msgid "Memcopy method to use in xine for large data chunks."
 msgstr ""
 
-#: src/libsputext/xine_decoder.c:1039
-msgid "Small"
-msgstr ""
-
-#: src/libsputext/xine_decoder.c:1040
-msgid "Normal"
-msgstr ""
-
 #: src/libsputext/xine_decoder.c:1041
-msgid "Large"
-msgstr ""
-
-#: src/libsputext/xine_decoder.c:1045
 #, fuzzy, c-format
 msgid ""
 "libsputext: doesn't support plugin api version %d.\n"
@@ -1873,20 +1847,20 @@ msgstr ""
 "de entrada.\n"
 "Instalar los plugins de entrada actuales debería ser de ayuda.\n"
 
-#: src/libsputext/xine_decoder.c:1067
+#: src/libsputext/xine_decoder.c:1063
 msgid "font for avi subtitles"
 msgstr ""
 
-#: src/libsputext/xine_decoder.c:1073
+#: src/libsputext/xine_decoder.c:1069
 msgid "subtitle size (relative window size)"
 msgstr ""
 
-#: src/libsputext/xine_decoder.c:1078
-msgid "source encoging of subtitles"
+#: src/libsputext/xine_decoder.c:1074
+msgid "source encoding of subtitles"
 msgstr ""
 
-#: src/libsputext/xine_decoder.c:1083
-msgid "target encoging for subtitles (have to match font encoding)"
+#: src/libsputext/xine_decoder.c:1079
+msgid "target encoding for subtitles (have to match font encoding)"
 msgstr ""
 
 #: src/libspucc/xine_decoder.c:220
@@ -1927,7 +1901,7 @@ msgstr ""
 "de entrada.\n"
 "Instalar los plugins de entrada actuales debería ser de ayuda.\n"
 
-#: src/libxvid/xine_decoder.c:224
+#: src/libxvid/xine_decoder.c:226
 #, fuzzy, c-format
 msgid ""
 "xvid: plugin doesn't support plugin API version %d.\n"
@@ -1939,7 +1913,7 @@ msgstr ""
 "           y este plugin demultiplexor.\n"
 "Instalar los plugins demultiplexores actuales debería ser de ayuda.\n"
 
-#: src/libxvid/xine_decoder.c:234
+#: src/libxvid/xine_decoder.c:236
 #, c-format
 msgid ""
 "xvid: there is mismatch between API used by currently installed XviD\n"
@@ -1985,6 +1959,13 @@ msgstr ""
 "           esto significa que no hay una versión que coincida entre xine\n"
 "           y este plugin demultiplexor.\n"
 "Instalar los plugins demultiplexores actuales debería ser de ayuda.\n"
+
+#~ msgid "unable to open %s: %s."
+#~ msgstr "no se puede abrir %s: %s."
+
+#, fuzzy
+#~ msgid "none"
+#~ msgstr "hecho\n"
 
 #~ msgid ""
 #~ "demux_qt: video codec %s (%f fps), audio codec %s (%ld Hz, %d bits)\n"
