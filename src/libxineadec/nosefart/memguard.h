@@ -20,7 +20,7 @@
 ** memguard.h
 **
 ** memory allocation wrapper routines
-** $Id: memguard.h,v 1.1 2003/01/08 07:04:35 tmmm Exp $
+** $Id: memguard.h,v 1.2 2003/03/01 02:23:01 storri Exp $
 */
 
 #ifndef  _MEMGUARD_H_
@@ -54,6 +54,9 @@ extern boolean mem_debug;
 
 /*
 ** $Log: memguard.h,v $
+** Revision 1.2  2003/03/01 02:23:01  storri
+** Added new line at end of file to remove compiler warning.
+**
 ** Revision 1.1  2003/01/08 07:04:35  tmmm
 ** initial import of Nosefart sources
 **
@@ -64,3 +67,4 @@ extern boolean mem_debug;
 ** initial revision
 **
 */
+
