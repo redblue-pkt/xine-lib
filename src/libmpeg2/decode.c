@@ -62,7 +62,7 @@ void mpeg2_init (mpeg2dec_t * mpeg2dec,
     mpeg2dec->output = output;
     mpeg2dec->chunk_ptr = mpeg2dec->chunk_buffer;
     mpeg2dec->code = 0xb4;
-    mpeg2dec->seek_mode = 1;
+    mpeg2dec->seek_mode = 0;
 
     memset (mpeg2dec->picture, 0, sizeof (picture_t));
 
@@ -167,7 +167,23 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 	    fprintf (stderr, "bad sequence header\n");
 	    exit (1);
 	}
-	if (mpeg2dec->is_sequence_needed) {
+	if (mpeg2dec->is_sequence_needed 
+	    || (picture->frame_width != picture->coded_picture_width)
+	    || (picture->frame_height != picture->coded_picture_height)) {
+
+	    printf ("mpeg2dec: frame size has changed to from %d x %d to %d x %d\n",
+		    picture->frame_width, picture->frame_height,
+		    picture->coded_picture_width, picture->coded_picture_height);
+	    fflush(stdout);
+
+	    if (picture->forward_reference_frame) 
+	      picture->forward_reference_frame->free (picture->forward_reference_frame);
+	  
+	    if (picture->backward_reference_frame) 
+	      picture->backward_reference_frame->free (picture->backward_reference_frame);
+
+	    printf ("mpeg2dec: old frames freed.\n"); fflush (stdout);
+
 	    mpeg2dec->is_sequence_needed = 0;
 	    picture->forward_reference_frame =
 	        mpeg2dec->output->get_frame (mpeg2dec->output,
@@ -187,7 +203,9 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 					     picture->frame_duration);
 	    picture->backward_reference_frame->PTS = 0;
 	    picture->backward_reference_frame->bFrameBad = 1;
-	    
+
+	    picture->frame_width = picture->coded_picture_width;
+	    picture->frame_height = picture->coded_picture_height;
 	}
 	break;
 
@@ -349,6 +367,8 @@ void mpeg2_find_sequence_header (mpeg2dec_t * mpeg2dec,
 
   uint8_t code;
   picture_t *picture = mpeg2dec->picture;
+
+  mpeg2dec->seek_mode = 1;
 
   while (current != end) {
     code = mpeg2dec->code;

@@ -120,6 +120,8 @@ typedef struct picture_s {
     struct vo_frame_s * backward_reference_frame;
     struct vo_frame_s * throwaway_frame;
 
+    int frame_width, frame_height;
+
     int second_field;
 
     int mpeg1;
