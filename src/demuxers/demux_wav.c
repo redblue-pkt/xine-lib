@@ -22,7 +22,7 @@
  * MS WAV File Demuxer by Mike Melanson (melanson@pcisys.net)
  * based on WAV specs that are available far and wide
  *
- * $Id: demux_wav.c,v 1.59 2004/06/13 21:28:55 miguelfreitas Exp $
+ * $Id: demux_wav.c,v 1.60 2004/06/14 19:15:36 hadess Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -72,6 +72,8 @@ typedef struct {
 typedef struct {
   demux_class_t     demux_class;
 } demux_wav_class_t;
+
+static int demux_wav_get_stream_length (demux_plugin_t *this_gen);
 
 /* returns 1 if the WAV file was opened successfully, 0 otherwise */
 static int open_wav_file(demux_wav_t *this) {
@@ -315,6 +317,15 @@ static int demux_wav_seek (demux_plugin_t *this_gen,
    * seek function */
   if (!INPUT_IS_SEEKABLE(this->input))
     return this->status;
+
+  /* time-based seeking, the start_pos code will then align the blocks
+   * if necessary */
+  if (start_time != 0) {
+    int length = demux_wav_get_stream_length (this_gen);
+    if (length != 0) {
+      start_pos = start_time * this->data_size / length;
+    }
+  }
 
   /* check the boundary offsets */
   if (start_pos <= 0)
