@@ -17,9 +17,12 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpgaudio.c,v 1.108 2003/09/22 23:16:14 tmattern Exp $
+ * $Id: demux_mpgaudio.c,v 1.109 2003/09/28 14:16:00 tmattern Exp $
  *
  * demultiplexer for mpeg audio (i.e. mp3) streams
+ *
+ * mp3 file structure:
+ *   [id3v2] [Xing] Frame1 Frame2 Frame3... [id3v1]
  *
  */
 
@@ -60,7 +63,39 @@
 #define RIFF_TAG FOURCC_TAG('R', 'I', 'F', 'F')
 #define AVI_TAG FOURCC_TAG('A', 'V', 'I', ' ')
 #define CDXA_TAG FOURCC_TAG('C', 'D', 'X', 'A')
-#define ID3V2_TAG FOURCC_TAG('I', 'D', '3', 0)  /* ID3 v2.x.y tags */
+#define ID3V22_TAG FOURCC_TAG('I', 'D', '3', 2)  /* ID3 v2.2 tags */
+#define ID3V23_TAG FOURCC_TAG('I', 'D', '3', 3)  /* ID3 v2.3 tags */
+#define ID3V24_TAG FOURCC_TAG('I', 'D', '3', 4)  /* ID3 v2.4 tags */
+#define XING_TAG FOURCC_TAG('X', 'i', 'n', 'g')
+
+/* Xing header stuff */
+#define XING_FRAMES_FLAG     0x0001
+#define XING_BYTES_FLAG      0x0002
+#define XING_TOC_FLAG        0x0004
+#define XING_VBR_SCALE_FLAG  0x0008
+
+typedef struct {
+  /* header */
+  uint16_t  frame_sync;
+  uint8_t   mpeg25_bit;
+  uint8_t   lsf_bit;
+  uint8_t   layer;
+  uint8_t   protection_bit;
+  uint8_t   bitrate_idx;
+  uint8_t   freq_idx;
+  uint8_t   padding_bit;
+  uint8_t   private_bit;
+  uint8_t   channel_mode;
+  uint8_t   mode_extension;
+  uint8_t   copyright;
+  uint8_t   original;
+  uint8_t   emphasis;
+
+  uint8_t   version_idx;
+  int       bitrate;
+  int       samplerate;
+  int       length;               /* in bytes */
+} mpg_audio_frame_t;
 
 typedef struct {
 
@@ -75,12 +110,24 @@ typedef struct {
   int                  status;
 
   int                  stream_length;
-  long                 bitrate;
+  int                  br;               /* bitrate */
+  int                  abr;              /* average bitrate */
   int64_t              last_pts;
   int                  send_newpts;
   int                  buf_flag_seek;
   uint32_t             blocksize;
 
+  mpg_audio_frame_t    cur_frame;
+  double               cur_fpts;
+  int                  is_vbr;
+
+  /* Xing header */
+  int                  check_xing;
+  uint32_t             xflags;
+  uint32_t             xframes;
+  uint32_t             xbytes;
+  uint8_t              xtoc[100];
+  uint32_t             xvbr_scale;
 } demux_mpgaudio_t ;
 
 typedef struct {
@@ -106,79 +153,249 @@ const int tabsel_123[2][3][16] = {
      {0, 8,16,24,32,40,48, 56, 64, 80, 96,112,128,144,160,} }
 };
 
-static int frequencies[2][3] = {
+static int frequencies[3][3] = {
 	{ 44100, 48000, 32000 },
-	{ 22050, 24000, 16000 }
+	{ 22050, 24000, 16000 },
+	{ 11025, 12000,  8000 }
 };
 
 
-static int mpg123_head_check(unsigned long head) {
-  if ((head & 0xffe00000) != 0xffe00000)
-    return 0;
-  if (!((head >> 17) & 3))
-    return 0;
-  if (((head >> 12) & 0xf) == 0xf)
-    return 0;
-  if (!((head >> 12) & 0xf))
-    return 0;
-  if (((head >> 10) & 0x3) == 0x3)
-    return 0;
-  if (((head >> 19) & 1) == 1 
-      && ((head >> 17) & 3) == 3 
-      && ((head >> 16) & 1) == 1)
-    return 0;
-  if ((head & 0xffff0000) == 0xfffe0000)
-    return 0;
-  
-  return 1;
+static int mpg123_xhead_check(char *buf)
+{
+  return (BE_32(buf) == XING_TAG);
 }
 
-static int mpg123_xhead_check(unsigned char *buf)
-{
-  if (buf[3] != 'X')
-    return 0;
-  if (buf[2] != 'i')
-    return 0;
-  if (buf[1] != 'n')
-    return 0;
-  if (buf[0] != 'g')
-    return 0;
+static void check_newpts (demux_mpgaudio_t *this, int64_t pts) {
 
-  return 1;
-}
+  int64_t diff;
 
+  diff = pts - this->last_pts;
 
-/* Return length of an MP3 frame using potential 32-bit header value.  See
- * "http://www.dv.co.yu/mpgscript/mpeghdr.htm" for details on the header
- * format.
- *
- * NOTE: As an optimization and because they are rare, this returns 0 for
- * version 2.5 or free format MP3s.
- */
-static size_t get_mp3_frame_length (unsigned long mp3_header)
-{
-  int ver = 4 - ((mp3_header >> 19) & 3u);
-  int br = (mp3_header >> 12) & 0xfu;
-  int srf = (mp3_header >> 10) & 3u;
-
-  /* are frame sync and layer 3 bits set? */
-  if (((mp3_header & 0xffe20000ul) == 0xffe20000ul)
-    /* good version? */
-      && ((ver == 1) || (ver == 2))
-      /* good bitrate index (not free or invalid)? */
-      && (br > 0) && (br < 15)
-      /* good sampling rate frequency index? */
-      && (srf != 3)
-      /* not using reserved emphasis value? */
-      && ((mp3_header & 3u) != 2)) {
-
-    /* then this is most likely the beginning of a valid frame */
-    size_t length = (size_t) tabsel_123[ver - 1][2][br] * 144000;
-    length /= frequencies[ver - 1][srf];
-    return length += ((mp3_header >> 9) & 1u) - 4;
+  if( pts &&
+      (this->send_newpts || (this->last_pts && abs(diff)>WRAP_THRESHOLD) ) ) {
+    if (this->buf_flag_seek) {
+      xine_demux_control_newpts(this->stream, pts, BUF_FLAG_SEEK);
+      this->buf_flag_seek = 0;
+    } else {
+      xine_demux_control_newpts(this->stream, pts, 0);
+    }
+    this->send_newpts = 0;
   }
-  return 0;
+
+  if( pts )
+    this->last_pts = pts;
 }
+
+static int mpg123_parse_frame_header(mpg_audio_frame_t *frame, uint8_t *buf) {
+  uint32_t head;
+
+  head = BE_32(buf);
+
+  lprintf("header: %08X\n", head);
+  frame->frame_sync     =  head >> 21;
+  if (frame->frame_sync != 0x7ff) {
+    lprintf("invalid frame sync\n");
+    return 0;
+  }
+
+  frame->mpeg25_bit     = (head >> 20) & 0x1;
+  frame->lsf_bit        = (head >> 19) & 0x1;
+  if (!frame->mpeg25_bit) {
+    if (frame->lsf_bit) {
+      lprintf("reserved mpeg25 lsf combination\n");
+      return 0;
+    } else
+      frame->version_idx = 2;  /* MPEG Version 2.5 */
+  } else {
+    if (!frame->lsf_bit)
+      frame->version_idx = 1;  /* MPEG Version 2 */
+    else
+      frame->version_idx = 0;  /* MPEG Version 1 */
+  }
+
+  frame->layer          = 4 - ((head >> 17) & 0x3);
+  if (frame->layer == 4) {
+    lprintf("reserved layer\n");
+    return 0;
+  }
+
+  frame->protection_bit = (head >> 16) & 0x1;
+  frame->bitrate_idx    = (head >> 12) & 0xf;
+  if ((frame->bitrate_idx == 0) || (frame->bitrate_idx == 15)) {
+    lprintf("invalid bitrate index\n");
+    return 0;
+  }
+
+  frame->freq_idx       = (head >> 10) & 0x3;
+  if (frame->freq_idx == 3) {
+    lprintf("invalid frequence index\n");
+    return 0;
+  }
+
+  frame->padding_bit    = (head >>  9) & 0x1;
+  frame->private_bit    = (head >>  8) & 0x1;
+  frame->channel_mode   = (head >>  6) & 0x3;
+  frame->mode_extension = (head >>  4) & 0x3;
+  frame->copyright      = (head >>  3) & 0x1;
+  frame->original       = (head >>  2) & 0x1;
+  frame->emphasis       =  head        & 0x3;
+  if (frame->emphasis == 2) {
+    lprintf("reserved emphasis\n");
+    return 0;
+  }
+  
+  frame->bitrate = tabsel_123[!frame->lsf_bit][frame->layer - 1][frame->bitrate_idx] * 1000;
+  frame->samplerate = frequencies[frame->version_idx][frame->freq_idx];
+  if (frame->layer == 1) {
+    frame->length = (12 * frame->bitrate / frame->samplerate + frame->padding_bit) * 4;
+  } else {
+    frame->length = 144 * frame->bitrate / frame->samplerate + frame->padding_bit;
+  }
+  lprintf("bitrate: %d bps\n", frame->bitrate);
+  lprintf("samplerate: %d Hz\n", frame->samplerate);
+  lprintf("length: %d bytes, %d ms\n", frame->length, (1000 * frame->length) / (frame->bitrate / 8));
+  return 1;
+}
+
+static int mpg123_parse_xing_header(demux_mpgaudio_t *this, uint8_t *buf, int bufsize) {
+
+  int i;
+  uint8_t *ptr = buf;
+  double frame_duration;
+
+  /* offset of the Xing header */
+  if( this->cur_frame.mpeg25_bit ) {
+    /* mpeg1 */
+    if( this->cur_frame.channel_mode != 3 )
+      ptr += (32 + 4);
+    else
+      ptr += (17 + 4);
+  } else {
+    /* mpeg2 */
+    if( this->cur_frame.channel_mode != 3 )
+      ptr += (17 + 4);
+    else
+      ptr += (9 + 4);
+  }
+
+  if (ptr >= (buf + bufsize)) return 0;
+  lprintf("checking %08X\n", *ptr);
+  if (mpg123_xhead_check(ptr)) {
+    lprintf("Xing header found\n");
+
+    ptr += 4; if (ptr >= (buf + bufsize)) return 0;
+
+    this->xflags = BE_32(ptr);
+    ptr += 4; if (ptr >= (buf + bufsize)) return 0;
+
+    if (this->xflags & XING_FRAMES_FLAG) {
+      this->xframes = BE_32(ptr);
+      lprintf("xframes: %d\n", this->xframes);
+      ptr += 4; if (ptr >= (buf + bufsize)) return 0;
+    }
+    if (this->xflags & XING_BYTES_FLAG) {
+      this->xbytes = BE_32(ptr);
+      lprintf("xbytes: %d\n", this->xbytes);
+      ptr += 4; if (ptr >= (buf + bufsize)) return 0;
+    }
+    if (this->xflags & XING_TOC_FLAG) {
+      lprintf("toc found\n");
+      for (i = 0; i < 100; i++) {
+        this->xtoc[i] = *(ptr + i);
+#ifdef LOG
+        printf("%d ", this->xtoc[i]);
+#endif
+      }
+#ifdef LOG
+        printf("\n");
+#endif
+    }
+    ptr += 100; if (ptr >= (buf + bufsize)) return 0;
+    this->xvbr_scale = -1;
+    if (this->xflags & XING_VBR_SCALE_FLAG) {
+      this->xvbr_scale = BE_32(ptr);
+      lprintf("xvbr_scale: %d\n", this->xvbr_scale);
+    }
+
+    /* 1 kbit = 1000 bits ! (and not 1024 bits) */
+    if (this->xflags & (XING_FRAMES_FLAG | XING_BYTES_FLAG)) {
+      if (this->cur_frame.layer == 1) {
+        frame_duration = 384.0 / (double)this->cur_frame.samplerate;
+      } else {
+        frame_duration = 1152.0 / (double)this->cur_frame.samplerate;
+      }
+      this->abr = ((double)this->xbytes * 8.0) / ((double)this->xframes * frame_duration);
+      this->stream_length = (double)this->xframes * frame_duration;
+      this->is_vbr = 1;
+      lprintf("abr: %d bps\n", this->abr);
+      lprintf("stream_length: %d s, %d min %d s\n", this->stream_length,
+              this->stream_length / 60, this->stream_length % 60);
+    } else {
+      /* it's a stupid Xing header */
+      this->is_vbr = 0;
+    }
+    return 1;
+  } else {
+    lprintf("Xing header not found\n");
+    return 0;
+  }
+}
+
+static int mpg123_parse_frame_payload(demux_mpgaudio_t *this,
+                                      uint8_t *frame_header,
+                                      int decoder_flags) {
+  buf_element_t *buf;
+  off_t          frame_pos, len;
+  uint64_t       pts = 0;
+
+  frame_pos = this->input->get_current_pos(this->input) - 4;
+  lprintf("frame_pos = %lld\n", frame_pos);
+
+  buf = this->audio_fifo->buffer_pool_alloc(this->audio_fifo);
+
+  /* the decoder needs the frame header */
+  memcpy(buf->mem, frame_header, 4);
+
+  len = this->input->read(this->input, buf->mem + 4, this->cur_frame.length - 4);
+  if (len != (this->cur_frame.length - 4)) {
+    buf->free_buffer(buf);
+    return 0;
+  }
+
+  /*
+   * compute stream length (in s)
+   * use the Xing header if there is one (VBR)
+   * otherwise use CBR formula
+   */
+  if (this->check_xing) {
+    mpg123_parse_xing_header(this, buf->mem, len + 4);
+    if (!this->is_vbr) {
+      this->stream_length = this->input->get_length(this->input) / (this->br / 8);
+    }
+    this->check_xing = 0;
+  }
+
+  if (this->cur_frame.layer == 1) {
+    this->cur_fpts += 90000.0 * 384.0 / (double)this->cur_frame.samplerate;
+  } else {
+    this->cur_fpts += 90000.0 * 1152.0 / (double)this->cur_frame.samplerate;
+  }
+  pts = (int64_t)this->cur_fpts;
+  check_newpts(this, pts);
+
+  buf->extra_info->input_pos  = frame_pos;
+  buf->extra_info->input_time = pts / 90;
+  buf->pts                    = pts;
+  buf->size                   = len + 4;
+  buf->content                = buf->mem;
+  buf->type                   = BUF_AUDIO_MPEG;
+  buf->decoder_info[0]        = 1;
+  buf->decoder_flags          = decoder_flags;
+
+  this->audio_fifo->put(this->audio_fifo, buf);
+  return 1;
+}
+
 
 static unsigned char * demux_mpgaudio_read_buffer_header (input_plugin_t *input)
 {
@@ -211,54 +428,43 @@ static unsigned char * demux_mpgaudio_read_buffer_header (input_plugin_t *input)
 
 /* Scan through the first SNIFF_BUFFER_LENGTH bytes of the
  * buffer to find a potential 32-bit MP3 frame header. */
-static int _sniff_buffer_looks_like_mp3 (input_plugin_t *input)
+static int sniff_buffer_looks_like_mp3 (input_plugin_t *input)
 {
-  unsigned long mp3_header;
   int offset;
   unsigned char *buf;
+  mpg_audio_frame_t frame;
 
   buf = demux_mpgaudio_read_buffer_header (input);
   if (buf == NULL)
     return 0;
 
-  mp3_header = 0;
   for (offset = 0; offset < SNIFF_BUFFER_LENGTH; offset++) {
     size_t length;
 
-    mp3_header <<= 8;
-    mp3_header |= buf[offset];
-    mp3_header &= 0xfffffffful;
+    if (mpg123_parse_frame_header(&frame, buf + offset)) {
+      length = frame.length;
 
-    length = get_mp3_frame_length (mp3_header);
-
-    if (length != 0) {
       /* Since one frame is available, is there another frame
        * just to be sure this is more likely to be a real MP3
        * buffer? */
-      offset += 1 + length;
-
-      if(((mp3_header >> 16) & 1) == 1)
-        offset -= 2;
+      offset += length;
 
       if (offset + 4 > SNIFF_BUFFER_LENGTH)
       {
         free (buf);
-	return 0;
+        return 0;
       }
 
-      mp3_header = BE_32(&buf[offset]);
-      length = get_mp3_frame_length (mp3_header);
-
-      if (length != 0) {
+      if (mpg123_parse_frame_header(&frame, buf + offset)) {
         free (buf);
-	return 1;
+        lprintf("mpeg audio frame detected\n");
+        return 1;
       }
       break;
     }
   }
 
   free (buf);
-
   return 0;
 }
 
@@ -310,174 +516,76 @@ static void read_id3_tags (demux_mpgaudio_t *this) {
       chomp (tag.comment);
 
       this->stream->meta_info [XINE_META_INFO_TITLE]
-	= strdup (tag.title);
+        = strdup (tag.title);
       this->stream->meta_info [XINE_META_INFO_ARTIST]
-	= strdup (tag.artist);
+        = strdup (tag.artist);
       this->stream->meta_info [XINE_META_INFO_ALBUM]
-	= strdup (tag.album);
+        = strdup (tag.album);
       this->stream->meta_info [XINE_META_INFO_COMMENT]
-	= strdup (tag.comment);
+        = strdup (tag.comment);
     }
   }
 }
 
-static void mpg123_decode_header(demux_mpgaudio_t *this, unsigned long newhead) {
 
-  int lsf, mpeg25;
-  int lay, bitrate_index;
-  char *ver;
-
-  /*
-   * lsf==0 && mpeg25==0 : MPEG Version 1 (ISO/IEC 11172-3)
-   * lsf==1 && mpeg25==0 : MPEG Version 2 (ISO/IEC 13818-3)
-   * lsf==1 && mpeg25==1 : MPEG Version 2.5 (later extension of MPEG 2)
-   */
-
-  mpeg25 = !((newhead >> 20) & 1);              /* mpeg 2.5 ext */
-  lsf    = !((newhead >> 19) & 1);              /* lsf ext */
-
-  if (mpeg25)
-    ver = "2.5";
-  else
-    ver = (lsf) ? "2" : "1";
-
-  /* Layer I, II, III */
-  lay = 4 - ((newhead >> 17) & 3);
-  bitrate_index = ((newhead >> 12) & 0xf);
-
-  this->bitrate = tabsel_123[lsf][lay - 1][bitrate_index] * 1000;
+static int mpg123_read_frame_header(demux_mpgaudio_t *this, uint8_t *header_buf, int bytes) {
+  off_t len;
+  int i;
   
-  if( !this->bitrate ) /* bitrate can't be zero, default to 128 */
-    this->bitrate = 128000;
-
-  this->stream->stream_info[XINE_STREAM_INFO_BITRATE] = this->bitrate;
-  lprintf("mpeg %s audio layer %d\n", ver, lay);
-  lprintf("bitrate: %ld\n", this->bitrate);
-  this->stream_length = (int)(this->input->get_length(this->input) / (this->bitrate / 8));
-  lprintf("stream_length: %d s\n", this->stream_length);
-}
-
-static void check_newpts( demux_mpgaudio_t *this, int64_t pts ) {
-
-  int64_t diff;
-
-  diff = pts - this->last_pts;
-
-  if( pts &&
-      (this->send_newpts || (this->last_pts && abs(diff)>WRAP_THRESHOLD) ) ) {
-    if (this->buf_flag_seek) {
-      xine_demux_control_newpts(this->stream, pts, BUF_FLAG_SEEK);
-      this->buf_flag_seek = 0;
-    } else {
-      xine_demux_control_newpts(this->stream, pts, 0);
-    }
-    this->send_newpts = 0;
+  for (i = 0; i < (4 - bytes); i++) {
+    header_buf[i] = header_buf[i + bytes];
   }
 
-  if( pts )
-    this->last_pts = pts;
+  len = this->input->read(this->input, header_buf + 4 - bytes, bytes);
+  if (len != bytes) {
+    return 0;
+  }
+  return 1;
 }
 
 static int demux_mpgaudio_next (demux_mpgaudio_t *this, int decoder_flags) {
-
-  buf_element_t *buf;
-  uint32_t       blocksize;
-  uint32_t       head;
-  off_t          buffer_pos;
-  off_t          done;
-  uint64_t       pts = 0;
-
-  buffer_pos = this->input->get_current_pos(this->input);
+  uint8_t  header_buf[4];
+  int      bytes = 4;
 
   if (!this->audio_fifo)
     return 0;
 
-  buf = this->audio_fifo->buffer_pool_alloc(this->audio_fifo);
+  for (;;) {
 
-  blocksize = (this->blocksize ? this->blocksize : buf->max_size);
-  done = this->input->read(this->input, buf->mem, blocksize);
+    if (mpg123_read_frame_header(this, header_buf, bytes)) {
 
-  if (done <= 0) {
-    buf->free_buffer(buf);
-    return 0;
-  }
+      if (mpg123_parse_frame_header(&this->cur_frame, header_buf)) {
 
-  if (this->bitrate == 0) {
-    int i, ver, srindex, brindex, xbytes, xframes;
+        if (!this->br) {
+          this->br = this->cur_frame.bitrate;
+        }
+        return mpg123_parse_frame_payload(this, header_buf, decoder_flags);
 
-    for( i = 0; i < done-4; i++ ) {
-      head = (buf->mem[i+0] << 24) + (buf->mem[i+1] << 16) +
-             (buf->mem[i+2] << 8) + buf->mem[i+3];
+      } else if ((BE_32(header_buf)) == ID3V22_TAG) {
+        lprintf("ID3V2.2 tag\n");
+        /* TODO: add parsing here */
+        bytes = 1;
 
-      if (mpg123_head_check(head)) {
-         mpg123_decode_header(this,head);
-         break;
+      } else if ((BE_32(header_buf)) == ID3V23_TAG) {
+        lprintf("ID3V2.3 tag\n");
+        /* TODO: add parsing here */
+        bytes = 1;
+
+      } else if ((BE_32(header_buf)) == ID3V24_TAG) {
+        lprintf("ID3V2.4 tag\n");
+        /* TODO: add parsing here */
+        bytes = 1;
+
+      } else {
+        /* skip */
+        bytes = 1;
       }
-    }
-    /* Now check for the Xing header to get the correct bitrate */
-    ver = (buf->mem[i+1] & 0x08) >> 3;
-    brindex = (buf->mem[i+2] & 0xf0) >> 4;
-    srindex = (buf->mem[i+2] & 0x0c) >> 2;
 
-    for( i = 0; i < buf->size-16; i++ ) {
-      head = (buf->mem[i+0] << 24) + (buf->mem[i+1] << 16) +
-             (buf->mem[i+2] << 8) + buf->mem[i+3];
-
-      if (mpg123_xhead_check((unsigned char *)&head)) {
-        long long total_bytes, magic1, magic2;
-
-        xframes = BE_32(buf->mem+i+8);
-	xbytes = BE_32(buf->mem+i+12);
-
-	if (xframes <= 0) {
-          break;
-	}
-
-	total_bytes = (long long) frequencies[!ver][srindex] * (long long) xbytes;
-	magic1 = total_bytes / (long long) (576 + ver * 576);
-	magic2 = magic1 / (long long) xframes;
-
-	/* 1 kbit = 1000 bits ! (and not 1024 bits) */
-	this->bitrate = (int) ((long long) magic2 / (long long) 125) * 1000;
-
-	this->stream->stream_info[XINE_STREAM_INFO_BITRATE] = this->bitrate;
-
-	this->stream_length = (int)(this->input->get_length(this->input) / (this->bitrate / 8));
-	break;
-      }
+    } else {
+      lprintf("read error\n");
+      return 0;
     }
   }
-
-  buf->pts = 0;
-  if (this->bitrate) {
-    pts = (90000 * buffer_pos) / (this->bitrate / 8);
-    check_newpts(this, pts);
-  }
-#if 0
-  buf->pts = pts;
-#endif
-
-  buf->extra_info->input_pos       = this->input->get_current_pos(this->input);
-  {
-    int len = this->input->get_length(this->input);
-    if (len>0)
-      buf->extra_info->input_time = (int)((int64_t)buf->extra_info->input_pos 
-                                          * this->stream_length * 1000 / len);
-    else 
-      buf->extra_info->input_time = pts / 90;
-  }
-#if 0
-  buf->pts             = pts;
-#endif
-  buf->size            = done;
-  buf->content         = buf->mem;
-  buf->type            = BUF_AUDIO_MPEG;
-  buf->decoder_info[0] = 1;
-  buf->decoder_flags   = decoder_flags;
-
-  this->audio_fifo->put(this->audio_fifo, buf);
-
-  return 1;
 }
 
 static int demux_mpgaudio_send_chunk (demux_plugin_t *this_gen) {
@@ -496,9 +604,8 @@ static int demux_mpgaudio_get_status (demux_plugin_t *this_gen) {
   return this->status;
 }
 
-static uint32_t demux_mpgaudio_read_head(input_plugin_t *input, uint8_t *buf) {
+static int demux_mpgaudio_read_head(input_plugin_t *input, uint8_t *buf) {
 
-  uint32_t  head=0;
   int       bs = 0;
   int       i, optional;
 
@@ -514,8 +621,7 @@ static uint32_t demux_mpgaudio_read_head(input_plugin_t *input, uint8_t *buf) {
     if(!bs)
       bs = MAX_PREVIEW_SIZE;
 
-    if(input->read(input, buf, bs))
-      head = (buf[0] << 24) + (buf[1] << 16) + (buf[2] << 8) + buf[3];
+    input->read(input, buf, bs);
 
     lprintf("stream is seekable\n");
 
@@ -530,51 +636,38 @@ static uint32_t demux_mpgaudio_read_head(input_plugin_t *input, uint8_t *buf) {
 	    buf[0], buf[1], buf[2], buf[3]);
     
     for(i = 0; i < (optional - 4); i++) {
-      head = (buf[i] << 24) + (buf[i + 1] << 16) + (buf[i + 2] << 8) + buf[i + 3];
-      if(head == RIFF_TAG)
-	return head;
+      if (BE_32(buf + i) == RIFF_TAG)
+        return 1;
     }
-
-    head = (buf[0] << 24) + (buf[1] << 16) + (buf[2] << 8) + buf[3];
-    
   } else {
     lprintf("not seekable, no preview\n");
     return 0;
   }
-
-  return head;
+  return 1;
 }
 
 static void demux_mpgaudio_send_headers (demux_plugin_t *this_gen) {
 
   demux_mpgaudio_t *this = (demux_mpgaudio_t *) this_gen;
-  uint8_t           buf[MAX_PREVIEW_SIZE];
   int i;
 
   this->stream_length = 0;
-  this->bitrate       = 0;
   this->last_pts      = 0;
   this->status        = DEMUX_OK;
+  this->check_xing    = 1;
 
   this->stream->stream_info[XINE_STREAM_INFO_HAS_VIDEO] = 0;
   this->stream->stream_info[XINE_STREAM_INFO_HAS_AUDIO] = 1;
 
 
   if ((this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) != 0) {
-    uint32_t head;
     off_t pos;
-
-    head = demux_mpgaudio_read_head(this->input, buf);
-    if (mpg123_head_check(head))
-      mpg123_decode_header(this, head);
 
     /* check ID3 v1 at the end of the stream */
     pos = this->input->get_length(this->input) - 128;
     this->input->seek (this->input, pos, SEEK_SET);
     read_id3_tags (this);
   }
-
-  this->blocksize = this->input->get_blocksize(this->input);
 
   /*
    * send preview buffers
@@ -589,21 +682,109 @@ static void demux_mpgaudio_send_headers (demux_plugin_t *this_gen) {
       break;
     }
   }
+
+  if (this->is_vbr)
+    this->stream->stream_info[XINE_STREAM_INFO_BITRATE] = this->abr;
+  else
+    this->stream->stream_info[XINE_STREAM_INFO_BITRATE] = this->br;
+
+  if (this->cur_frame.layer == 1)
+    this->stream->stream_info[XINE_STREAM_INFO_FRAME_DURATION] =
+      384000 / this->cur_frame.samplerate;
+  else
+    this->stream->stream_info[XINE_STREAM_INFO_FRAME_DURATION] =
+      1152000 / this->cur_frame.samplerate;
+
   this->status = DEMUX_OK;
 }
 
+/* interpolate in Xing TOC to get file seek point in bytes */
+static off_t xing_get_seek_point(demux_mpgaudio_t *this, int time)
+{
+  off_t seekpoint;
+  int a;
+  float fa, fb, fx;
+  float percent;
+
+  percent = ((float)time / 10.0f)/ (float)this->stream_length;
+  if (percent < 0.0f)   percent = 0.0f;
+  if (percent > 100.0f) percent = 100.0f;
+
+  a = (int)percent;
+  if (a > 99) a = 99;
+  fa = this->xtoc[a];
+  if (a < 99) {
+      fb = this->xtoc[a + 1];
+  } else {
+      fb = 256.0f;
+  }
+
+  fx = fa + (fb - fa) * (percent - a);
+  seekpoint = (off_t)((1.0f / 256.0f) * fx * this->xbytes);
+
+  return seekpoint;
+}
+
+/* interpolate in Xing TOC to get file seek point in ms */
+static int xing_get_seek_time(demux_mpgaudio_t *this, off_t pos)
+{
+  int seektime;
+  int a, b;
+  float fb, fx;
+  float percent;
+
+  fx = 256.0f * (float)pos / (float)this->xbytes;
+  if (fx < 0.0f)   fx = 0.0f;
+  if (fx > 256.0f) fx = 256.0f;
+
+  for (b = 0; b < 100; b++) {
+    fb = this->xtoc[b];
+    if (fb > fx)
+      break;
+  }
+ 
+  if (b > 0) {
+    a = b - 1;
+  } else {
+    a = 0;
+  }
+
+  percent = a + (fx - this->xtoc[a]);
+  seektime = 10.0f * percent * this->stream_length;
+
+  return seektime;
+}
+
 static int demux_mpgaudio_seek (demux_plugin_t *this_gen,
-				 off_t start_pos, int start_time) {
+                                off_t start_pos, int start_time) {
 
   demux_mpgaudio_t *this = (demux_mpgaudio_t *) this_gen;
-  start_time /= 1000;
 
   if ((this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) != 0) {
 
-    if (!start_pos && start_time && this->stream_length > 0)
-         start_pos = start_time * this->input->get_length(this->input) /
-                     this->stream_length;
-
+    if (!start_pos && start_time && this->stream_length > 0) {
+      if (this->is_vbr && (this->xflags & (XING_TOC_FLAG | XING_BYTES_FLAG))) {
+        /* vbr  */
+        start_pos = xing_get_seek_point(this, start_time);
+        lprintf("time seek: vbr\n");
+      } else {
+        /* cbr  */
+        start_pos = start_time * this->input->get_length(this->input) /
+                    this->stream_length;
+        lprintf("time seek: cbr\n");
+      }
+    } else {
+      if (this->is_vbr && (this->xflags & (XING_TOC_FLAG | XING_BYTES_FLAG))) {
+        /* vbr  */
+        start_time = xing_get_seek_time(this, start_pos);
+        lprintf("pos seek: vbr\n");
+      } else {
+        /* cbr  */
+        start_time = (1000 * start_pos * this->stream_length) / this->input->get_length(this->input);
+        lprintf("pos seek: cbr\n");
+      }
+    }
+    this->cur_fpts = 90 * start_time;
     this->input->seek (this->input, start_pos, SEEK_SET);
   }
 
@@ -612,8 +793,7 @@ static int demux_mpgaudio_seek (demux_plugin_t *this_gen,
 
   if( !this->stream->demux_thread_running ) {
     this->buf_flag_seek = 0;
-  }
-  else {
+  } else {
     this->buf_flag_seek = 1;
     xine_demux_flush_engine(this->stream);
   }
@@ -645,10 +825,9 @@ static int demux_mpgaudio_get_optional_data(demux_plugin_t *this_gen,
 } 
 
 static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *stream,
-				    input_plugin_t *input_gen) {
+                                    input_plugin_t *input) {
 
   demux_mpgaudio_t *this;
-  input_plugin_t   *input = (input_plugin_t *) input_gen;
   uint8_t           buf[MAX_PREVIEW_SIZE];
   uint8_t          *riff_check;
   int               i;
@@ -661,14 +840,16 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   case METHOD_BY_CONTENT: {
     uint32_t head;
 
-    head = demux_mpgaudio_read_head (input, buf);
+    if (!demux_mpgaudio_read_head(input, buf))
+      return NULL;
 
-    lprintf("head is %x\n", head);
+    head = BE_32(buf);
+    lprintf("head is %8X\n", head);
     
     if (head == RIFF_TAG) {
       int ok;
 
-      lprintf("**** found RIFF tag\n");
+      lprintf("found RIFF tag\n");
       /* skip the length */
       ptr = buf + 8;
 
@@ -680,7 +861,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
        * marker */
       if ((BE_32(riff_check) == AVI_TAG) ||
           (BE_32(riff_check) == CDXA_TAG)) {
-        lprintf("**** found AVI or CDXA tag\n");
+        lprintf("found AVI or CDXA tag\n");
         return NULL;
       }
 
@@ -706,20 +887,21 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
       for (i = 0; i < RIFF_CHECK_BYTES - 4; i++) {
         head = BE_32(riff_check + i);
 
-        lprintf("**** mpg123: checking %08X\n", head);
+        lprintf("checking %08X\n", head);
 
-        if (mpg123_head_check(head)
-            || _sniff_buffer_looks_like_mp3(input))
-	  ok = 1;
+        if (sniff_buffer_looks_like_mp3(input))
+          ok = 1;
       }
       if (!ok)
-	return NULL;
+        return NULL;
 
-    } else if ((head & 0xFFFFFF00) == ID3V2_TAG) {
-      lprintf("id3v2 tag detected (but not parsed)\n");
-    } else if (!mpg123_head_check(head) &&
-		    !_sniff_buffer_looks_like_mp3 (input)) {
-
+    } else if (head == ID3V22_TAG) {
+      lprintf("id3v2.2 tag detected (but not parsed)\n");
+    } else if (head == ID3V23_TAG) {
+      lprintf("id3v2.3 tag detected (but not parsed)\n");
+    } else if (head == ID3V24_TAG) {
+      lprintf("id3v2.4 tag detected (but not parsed)\n");
+    } else if (!sniff_buffer_looks_like_mp3 (input)) {
       lprintf ("head_check failed\n");
       return NULL;
     }
