@@ -47,10 +47,22 @@ static int h263_decode_init(AVCodecContext *avctx)
     case CODEC_ID_MPEG4:
         s->time_increment_bits = 4; /* default value for broken headers */
         s->h263_pred = 1;
+        s->has_b_frames = 1;
         break;
-    case CODEC_ID_MSMPEG4:
+    case CODEC_ID_MSMPEG4V1:
         s->h263_msmpeg4 = 1;
         s->h263_pred = 1;
+        s->msmpeg4_version=1;
+        break;
+    case CODEC_ID_MSMPEG4V2:
+        s->h263_msmpeg4 = 1;
+        s->h263_pred = 1;
+        s->msmpeg4_version=2;
+        break;
+    case CODEC_ID_MSMPEG4V3:
+        s->h263_msmpeg4 = 1;
+        s->h263_pred = 1;
+        s->msmpeg4_version=3;
         break;
     case CODEC_ID_H263I:
         s->h263_intel = 1;
@@ -60,7 +72,7 @@ static int h263_decode_init(AVCodecContext *avctx)
     }
 
     /* for h263, we allocate the images after having read the header */
-    if (avctx->codec->id != CODEC_ID_H263)
+    if (avctx->codec->id != CODEC_ID_H263 && avctx->codec->id != CODEC_ID_MPEG4)
         if (MPV_common_init(s) < 0)
             return -1;
 
@@ -115,22 +127,25 @@ static int h263_decode_frame(AVCodecContext *avctx,
         ret = intel_h263_decode_picture_header(s);
     } else {
         ret = h263_decode_picture_header(s);
-        /* After H263 header decode we have the height, width,       */
+    }
+
+        /* After H263 & mpeg4 header decode we have the height, width,*/
         /* and other parameters. So then we could init the picture   */
         /* FIXME: By the way H263 decoder is evolving it should have */
         /* an H263EncContext                                         */
-        if (!s->context_initialized) {
-            avctx->width = s->width;
-            avctx->height = s->height;
-            if (MPV_common_init(s) < 0)
-                return -1;
-        } else if (s->width != avctx->width || s->height != avctx->height) {
-            /* H.263 could change picture size any time */
-            MPV_common_end(s);
-            if (MPV_common_init(s) < 0)
-                return -1;
-        }
+    if (!s->context_initialized) {
+        avctx->width = s->width;
+        avctx->height = s->height;
+        avctx->aspect_ratio_info= s->aspect_ratio_info;
+        if (MPV_common_init(s) < 0)
+            return -1;
+    } else if (s->width != avctx->width || s->height != avctx->height) {
+        /* H.263 could change picture size any time */
+        MPV_common_end(s);
+        if (MPV_common_init(s) < 0)
+            return -1;
     }
+
     if (ret < 0)
         return -1;
 
@@ -141,6 +156,12 @@ static int h263_decode_frame(AVCodecContext *avctx,
 #endif
 
     /* decode each macroblock */
+    s->block_wrap[0]=
+    s->block_wrap[1]=
+    s->block_wrap[2]=
+    s->block_wrap[3]= s->mb_width*2 + 2;
+    s->block_wrap[4]=
+    s->block_wrap[5]= s->mb_width + 2;
     for(s->mb_y=0; s->mb_y < s->mb_height; s->mb_y++) {
         /* Check for GOB headers on H.263 */
         /* FIXME: In the future H.263+ will have intra prediction */
@@ -148,7 +169,20 @@ static int h263_decode_frame(AVCodecContext *avctx,
         if (s->mb_y && !s->h263_pred) {
             s->first_gob_line = h263_decode_gob_header(s);
         }
+
+        s->block_index[0]= s->block_wrap[0]*(s->mb_y*2 + 1) - 1;
+        s->block_index[1]= s->block_wrap[0]*(s->mb_y*2 + 1);
+        s->block_index[2]= s->block_wrap[0]*(s->mb_y*2 + 2) - 1;
+        s->block_index[3]= s->block_wrap[0]*(s->mb_y*2 + 2);
+        s->block_index[4]= s->block_wrap[4]*(s->mb_y + 1)                    + s->block_wrap[0]*(s->mb_height*2 + 2);
+        s->block_index[5]= s->block_wrap[4]*(s->mb_y + 1 + s->mb_height + 2) + s->block_wrap[0]*(s->mb_height*2 + 2);
         for(s->mb_x=0; s->mb_x < s->mb_width; s->mb_x++) {
+            s->block_index[0]+=2;
+            s->block_index[1]+=2;
+            s->block_index[2]+=2;
+            s->block_index[3]+=2;
+            s->block_index[4]++;
+            s->block_index[5]++;
 #ifdef DEBUG
             printf("**mb x=%d y=%d\n", s->mb_x, s->mb_y);
 #endif
@@ -163,28 +197,8 @@ static int h263_decode_frame(AVCodecContext *avctx,
                 s->y_dc_scale = 8;
                 s->c_dc_scale = 8;
             }
-
-#ifdef HAVE_MMX
-            if (mm_flags & MM_MMX) {
-                asm volatile(
-			"pxor %%mm7, %%mm7		\n\t"
-			"movl $-128*6, %%eax		\n\t"
-			"1:				\n\t"
-			"movq %%mm7, (%0, %%eax)	\n\t"
-			"movq %%mm7, 8(%0, %%eax)	\n\t"
-			"movq %%mm7, 16(%0, %%eax)	\n\t"
-			"movq %%mm7, 24(%0, %%eax)	\n\t"
-			"addl $32, %%eax		\n\t"
-			" js 1b				\n\t"
-			: : "r" (((int)s->block)+128*6)
-			: "%eax"
-                );
-            }else{
-                memset(s->block, 0, sizeof(s->block));
-            }
-#else
-            memset(s->block, 0, sizeof(s->block));
-#endif
+            clear_blocks(s->block[0]);
+            
             s->mv_dir = MV_DIR_FORWARD;
             s->mv_type = MV_TYPE_16X16; 
             if (s->h263_msmpeg4) {
@@ -208,9 +222,15 @@ static int h263_decode_frame(AVCodecContext *avctx,
             if (h > 16)
                 h = 16;
             offset = y * s->linesize;
-            src_ptr[0] = s->current_picture[0] + offset;
-            src_ptr[1] = s->current_picture[1] + (offset >> 2);
-            src_ptr[2] = s->current_picture[2] + (offset >> 2);
+            if(s->pict_type==B_TYPE || (!s->has_b_frames)){
+                src_ptr[0] = s->current_picture[0] + offset;
+                src_ptr[1] = s->current_picture[1] + (offset >> 2);
+                src_ptr[2] = s->current_picture[2] + (offset >> 2);
+            } else {
+                src_ptr[0] = s->last_picture[0] + offset;
+                src_ptr[1] = s->last_picture[1] + (offset >> 2);
+                src_ptr[2] = s->last_picture[2] + (offset >> 2);
+            }
             avctx->draw_horiz_band(avctx, src_ptr, s->linesize,
                                    y, s->width, h);
         }
@@ -221,9 +241,15 @@ static int h263_decode_frame(AVCodecContext *avctx,
 
     MPV_frame_end(s);
     
-    pict->data[0] = s->current_picture[0];
-    pict->data[1] = s->current_picture[1];
-    pict->data[2] = s->current_picture[2];
+    if(s->pict_type==B_TYPE || (!s->has_b_frames)){
+        pict->data[0] = s->current_picture[0];
+        pict->data[1] = s->current_picture[1];
+        pict->data[2] = s->current_picture[2];
+    } else {
+        pict->data[0] = s->last_picture[0];
+        pict->data[1] = s->last_picture[1];
+        pict->data[2] = s->last_picture[2];
+    }
     pict->linesize[0] = s->linesize;
     pict->linesize[1] = s->linesize / 2;
     pict->linesize[2] = s->linesize / 2;
@@ -262,10 +288,34 @@ AVCodec h263_decoder = {
     CODEC_CAP_DRAW_HORIZ_BAND,
 };
 
-AVCodec msmpeg4_decoder = {
+AVCodec msmpeg4v1_decoder = {
+    "msmpeg4v1",
+    CODEC_TYPE_VIDEO,
+    CODEC_ID_MSMPEG4V1,
+    sizeof(MpegEncContext),
+    h263_decode_init,
+    NULL,
+    h263_decode_end,
+    h263_decode_frame,
+    CODEC_CAP_DRAW_HORIZ_BAND,
+};
+
+AVCodec msmpeg4v2_decoder = {
+    "msmpeg4v2",
+    CODEC_TYPE_VIDEO,
+    CODEC_ID_MSMPEG4V2,
+    sizeof(MpegEncContext),
+    h263_decode_init,
+    NULL,
+    h263_decode_end,
+    h263_decode_frame,
+    CODEC_CAP_DRAW_HORIZ_BAND,
+};
+
+AVCodec msmpeg4v3_decoder = {
     "msmpeg4",
     CODEC_TYPE_VIDEO,
-    CODEC_ID_MSMPEG4,
+    CODEC_ID_MSMPEG4V3,
     sizeof(MpegEncContext),
     h263_decode_init,
     NULL,

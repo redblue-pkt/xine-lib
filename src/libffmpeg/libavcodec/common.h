@@ -13,6 +13,7 @@
 //#define ALT_BITSTREAM_READER
 //#define ALIGNED_BITSTREAM
 #define FAST_GET_FIRST_VLC
+//#define DUMP_STREAM // only works with the ALT_BITSTREAM_READER
 
 #ifdef HAVE_AV_CONFIG_H
 /* only include the following when compiling package */
@@ -197,7 +198,10 @@ typedef struct GetBitContext {
     int bit_cnt;
     UINT8 *buf, *buf_ptr, *buf_end;
 #endif
+    int size;
 } GetBitContext;
+
+static inline int get_bits_count(GetBitContext *s);
 
 typedef struct VLC {
     int bits;
@@ -466,6 +470,13 @@ static inline unsigned int get_bits(GetBitContext *s, int n){
     result>>= 32 - n;
     index+= n;
     s->index= index;
+#ifdef DUMP_STREAM
+    while(n){
+        printf("%d", (result>>(n-1))&1);
+        n--;
+    }
+    printf(" ");
+#endif
     
     return result;
 #endif //!ALIGNED_BITSTREAM
@@ -492,6 +503,9 @@ static inline unsigned int get_bits1(GetBitContext *s){
     result>>= 8 - 1;
     index++;
     s->index= index;
+#ifdef DUMP_STREAM
+    printf("%d ", result);
+#endif
     
     return result;
 #else
@@ -550,9 +564,54 @@ static inline unsigned int show_bits(GetBitContext *s, int n)
 #endif //!ALT_BITSTREAM_READER
 }
 
+static inline int show_aligned_bits(GetBitContext *s, int offset, int n)
+{
+#ifdef ALT_BITSTREAM_READER
+#ifdef ALIGNED_BITSTREAM
+    int index= (s->index + offset + 7)&(~7);
+    uint32_t result1= be2me_32( ((uint32_t *)s->buffer)[index>>5] );
+    uint32_t result2= be2me_32( ((uint32_t *)s->buffer)[(index>>5) + 1] );
+#ifdef ARCH_X86
+    asm ("shldl %%cl, %2, %0\n\t"
+         : "=r" (result1)
+	 : "0" (result1), "r" (result2), "c" (index));
+#else
+    result1<<= (index&0x1F);
+    result2= (result2>>1) >> (31-(index&0x1F));
+    result1|= result2;
+#endif
+    result1>>= 32 - n;
+    
+    return result1;
+#else //ALIGNED_BITSTREAM
+    int index= (s->index + offset + 7)>>3;
+    uint32_t result= be2me_32( unaligned32( ((uint8_t *)s->buffer)+index ) );
+
+    result>>= 32 - n;
+    
+    return result;
+#endif //!ALIGNED_BITSTREAM
+#else //ALT_BITSTREAM_READER
+    int index= (get_bits_count(s) + offset + 7)>>3;
+    uint32_t result= be2me_32( unaligned32( ((uint8_t *)s->buf)+index ) );
+
+    result>>= 32 - n;
+//printf(" %X %X %d \n", (int)(((uint8_t *)s->buf)+index ), (int)s->buf_ptr, s->bit_cnt);    
+    return result;
+#endif //!ALT_BITSTREAM_READER
+}
+
 static inline void skip_bits(GetBitContext *s, int n){
 #ifdef ALT_BITSTREAM_READER
     s->index+= n;
+#ifdef DUMP_STREAM
+    {
+        int result;
+        s->index-= n;
+        result= get_bits(s, n);
+    }
+#endif
+
 #else
     if(s->bit_cnt>=n){
         /* most common case here */
@@ -570,6 +629,10 @@ static inline void skip_bits(GetBitContext *s, int n){
 static inline void skip_bits1(GetBitContext *s){
 #ifdef ALT_BITSTREAM_READER
     s->index++;
+#ifdef DUMP_STREAM
+    s->index--;
+    printf("%d ", get_bits1(s));
+#endif
 #else
     if(s->bit_cnt>0){
         /* most common case here */
@@ -593,6 +656,7 @@ static inline int get_bits_count(GetBitContext *s)
 #endif
 }
 
+int check_marker(GetBitContext *s, char *msg);
 void align_get_bits(GetBitContext *s);
 int init_vlc(VLC *vlc, int nb_bits, int nb_codes,
              const void *bits, int bits_wrap, int bits_size,
@@ -694,6 +758,13 @@ static inline int get_vlc(GetBitContext *s, VLC *vlc)
     if (n > 0) {
         /* most common case (90%)*/
         FLUSH_BITS(n);
+#ifdef DUMP_STREAM
+        {
+            int n= bit_cnt - s->index;
+            skip_bits(s, n);
+            RESTORE_BITS(s);
+        }
+#endif
         RESTORE_BITS(s);
         return code;
     } else if (n == 0) {
@@ -728,6 +799,13 @@ static inline int get_vlc(GetBitContext *s, VLC *vlc)
             table_bits = vlc->table_bits + code;
         }
     }
+#ifdef DUMP_STREAM
+    {
+        int n= bit_cnt - s->index;
+        skip_bits(s, n);
+        RESTORE_BITS(s);
+    }
+#endif
     RESTORE_BITS(s);
     return code;
 }
@@ -784,6 +862,24 @@ static inline int av_log2(unsigned int v)
         n++;
     }
     return n;
+}
+
+/* median of 3 */
+static inline int mid_pred(int a, int b, int c)
+{
+    int vmin, vmax;
+    vmax = vmin = a;
+    if (b < vmin)
+        vmin = b;
+    else
+	vmax = b;
+
+    if (c < vmin)
+        vmin = c;
+    else if (c > vmax)
+        vmax = c;
+
+    return a + b + c - vmin - vmax;
 }
 
 /* memory */

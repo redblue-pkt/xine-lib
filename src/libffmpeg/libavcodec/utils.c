@@ -113,7 +113,8 @@ int avcodec_decode_video(AVCodecContext *avctx, AVPicture *picture,
 
     ret = avctx->codec->decode(avctx, picture, got_picture_ptr, 
                                buf, buf_size);
-    avctx->frame_number++;
+    if (*got_picture_ptr)                           
+        avctx->frame_number++;
     return ret;
 }
 
@@ -367,21 +368,57 @@ int avpicture_get_size(int pix_fmt, int width, int height)
 /* must be called before any other functions */
 void avcodec_init(void)
 {
+    static int inited = 0;
+
+    if (inited != 0)
+	return;
+    inited = 1;
+
     dsputil_init();
 }
 
 /* simple call to use all the codecs */
 void avcodec_register_all(void)
 {
+    static int inited = 0;
+    
+    if (inited != 0)
+	return;
+    inited = 1;
+
+    /* encoders */
+#ifdef CONFIG_ENCODERS
+    register_avcodec(&ac3_encoder);
+    register_avcodec(&mp2_encoder);
+#ifdef CONFIG_MP3LAME
+    register_avcodec(&mp3lame_encoder);
+#endif
+    register_avcodec(&mpeg1video_encoder);
+    register_avcodec(&h263_encoder);
+    register_avcodec(&h263p_encoder);
+    register_avcodec(&rv10_encoder);
+    register_avcodec(&mjpeg_encoder);
+    register_avcodec(&mpeg4_encoder);
+    register_avcodec(&msmpeg4v1_encoder);
+    register_avcodec(&msmpeg4v2_encoder);
+    register_avcodec(&msmpeg4v3_encoder);
+#endif /* CONFIG_ENCODERS */
+    register_avcodec(&rawvideo_codec);
+
     /* decoders */
 #ifdef CONFIG_DECODERS
     register_avcodec(&h263_decoder);
     register_avcodec(&mpeg4_decoder);
-    register_avcodec(&msmpeg4_decoder);
+    register_avcodec(&msmpeg4v1_decoder);
+    register_avcodec(&msmpeg4v2_decoder);
+    register_avcodec(&msmpeg4v3_decoder);
     register_avcodec(&mpeg_decoder);
     register_avcodec(&h263i_decoder);
     register_avcodec(&rv10_decoder);
     register_avcodec(&mjpeg_decoder);
+#ifdef CONFIG_AC3
+    register_avcodec(&ac3_decoder);
+#endif
 #endif /* CONFIG_DECODERS */
 
 }

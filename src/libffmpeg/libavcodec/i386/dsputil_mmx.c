@@ -25,21 +25,57 @@
 
 int mm_flags; /* multimedia extension flags */
 
-int pix_abs16x16_mmx(UINT8 *blk1, UINT8 *blk2, int lx, int h);
-int pix_abs16x16_sse(UINT8 *blk1, UINT8 *blk2, int lx, int h);
-int pix_abs16x16_x2_mmx(UINT8 *blk1, UINT8 *blk2, int lx, int h);
-int pix_abs16x16_y2_mmx(UINT8 *blk1, UINT8 *blk2, int lx, int h);
-int pix_abs16x16_xy2_mmx(UINT8 *blk1, UINT8 *blk2, int lx, int h);
+int pix_abs16x16_mmx(UINT8 *blk1, UINT8 *blk2, int lx);
+int pix_abs16x16_x2_mmx(UINT8 *blk1, UINT8 *blk2, int lx);
+int pix_abs16x16_y2_mmx(UINT8 *blk1, UINT8 *blk2, int lx);
+int pix_abs16x16_xy2_mmx(UINT8 *blk1, UINT8 *blk2, int lx);
+
+int pix_abs16x16_mmx2(UINT8 *blk1, UINT8 *blk2, int lx);
+int pix_abs16x16_x2_mmx2(UINT8 *blk1, UINT8 *blk2, int lx);
+int pix_abs16x16_y2_mmx2(UINT8 *blk1, UINT8 *blk2, int lx);
+int pix_abs16x16_xy2_mmx2(UINT8 *blk1, UINT8 *blk2, int lx);
+
+int pix_abs8x8_mmx(UINT8 *blk1, UINT8 *blk2, int lx);
+int pix_abs8x8_x2_mmx(UINT8 *blk1, UINT8 *blk2, int lx);
+int pix_abs8x8_y2_mmx(UINT8 *blk1, UINT8 *blk2, int lx);
+int pix_abs8x8_xy2_mmx(UINT8 *blk1, UINT8 *blk2, int lx);
+
+int pix_abs8x8_mmx2(UINT8 *blk1, UINT8 *blk2, int lx);
+int pix_abs8x8_x2_mmx2(UINT8 *blk1, UINT8 *blk2, int lx);
+int pix_abs8x8_y2_mmx2(UINT8 *blk1, UINT8 *blk2, int lx);
+int pix_abs8x8_xy2_mmx2(UINT8 *blk1, UINT8 *blk2, int lx);
+
 
 /* external functions, from idct_mmx.c */
 void ff_mmx_idct(DCTELEM *block);
 void ff_mmxext_idct(DCTELEM *block);
 
 /* pixel operations */
-static const unsigned long long int mm_wone __attribute__ ((aligned(8))) = 0x0001000100010001;
-static const unsigned long long int mm_wtwo __attribute__ ((aligned(8))) = 0x0002000200020002;
+static const unsigned long long int mm_wone __attribute__ ((aligned(8))) = 0x0001000100010001LL;
+static const unsigned long long int mm_wtwo __attribute__ ((aligned(8))) = 0x0002000200020002LL;
 //static const unsigned short mm_wone[4] __attribute__ ((aligned(8))) = { 0x1, 0x1, 0x1, 0x1 };
 //static const unsigned short mm_wtwo[4] __attribute__ ((aligned(8))) = { 0x2, 0x2, 0x2, 0x2 };
+
+#define JUMPALIGN() __asm __volatile (".balign 8"::)
+#define MOVQ_ZERO(regd)  __asm __volatile ("pxor %%" #regd ", %%" #regd ::)
+
+#ifndef PIC
+#define MOVQ_WONE(regd)  __asm __volatile ("movq %0, %%" #regd " \n\t" ::"m"(mm_wone))
+#define MOVQ_WTWO(regd)  __asm __volatile ("movq %0, %%" #regd " \n\t" ::"m"(mm_wtwo))
+#else
+// for shared library it's better to use this way for accessing constants
+// pcmpeqd -> -1
+#define MOVQ_WONE(regd) \
+    __asm __volatile ( \
+       "pcmpeqd %%" #regd ", %%" #regd " \n\t" \
+       "psrlw $15, %%" #regd ::)
+
+#define MOVQ_WTWO(regd) \
+    __asm __volatile ( \
+       "pcmpeqd %%" #regd ", %%" #regd " \n\t" \
+       "psrlw $15, %%" #regd " \n\t" \
+       "psllw $1, %%" #regd ::)
+#endif
 
 /***********************************/
 /* 3Dnow specific */
@@ -78,7 +114,7 @@ static void get_pixels_mmx(DCTELEM *block, const UINT8 *pixels, int line_size)
     /* read the pixels */
     p = block;
     pix = pixels;
-    __asm __volatile("pxor %%mm7, %%mm7":);
+    MOVQ_ZERO(mm7);
     for(i=0;i<4;i++) {
 	__asm __volatile(
 		"movq	%1, %%mm0\n\t"
@@ -105,12 +141,11 @@ static void put_pixels_clamped_mmx(const DCTELEM *block, UINT8 *pixels, int line
 {
     const DCTELEM *p;
     UINT8 *pix;
-    int i;
 
     /* read the pixels */
     p = block;
     pix = pixels;
-    for(i=0;i<2;i++) {
+    /* unrolled loop */
 	__asm __volatile(
 		"movq	%3, %%mm0\n\t"
 		"movq	8%3, %%mm1\n\t"
@@ -132,7 +167,29 @@ static void put_pixels_clamped_mmx(const DCTELEM *block, UINT8 *pixels, int line
 		:"memory");
         pix += line_size*4;
         p += 32;
-    }
+
+    // if here would be an exact copy of the code above
+    // compiler would generate some very strange code
+    // thus using "r"
+    __asm __volatile(
+	    "movq	(%3), %%mm0\n\t"
+	    "movq	8(%3), %%mm1\n\t"
+	    "movq	16(%3), %%mm2\n\t"
+	    "movq	24(%3), %%mm3\n\t"
+	    "movq	32(%3), %%mm4\n\t"
+	    "movq	40(%3), %%mm5\n\t"
+	    "movq	48(%3), %%mm6\n\t"
+	    "movq	56(%3), %%mm7\n\t"
+	    "packuswb %%mm1, %%mm0\n\t"
+	    "packuswb %%mm3, %%mm2\n\t"
+	    "packuswb %%mm5, %%mm4\n\t"
+	    "packuswb %%mm7, %%mm6\n\t"
+	    "movq	%%mm0, (%0)\n\t"
+	    "movq	%%mm2, (%0, %1)\n\t"
+	    "movq	%%mm4, (%0, %1, 2)\n\t"
+	    "movq	%%mm6, (%0, %2)\n\t"
+	    ::"r" (pix), "r" (line_size), "r" (line_size*3), "r"(p)
+	    :"memory");
 }
 
 static void add_pixels_clamped_mmx(const DCTELEM *block, UINT8 *pixels, int line_size)
@@ -144,8 +201,9 @@ static void add_pixels_clamped_mmx(const DCTELEM *block, UINT8 *pixels, int line
     /* read the pixels */
     p = block;
     pix = pixels;
-	__asm __volatile("pxor	%%mm7, %%mm7":);
-    for(i=0;i<4;i++) {
+    MOVQ_ZERO(mm7);
+    i = 4;
+    while (i) {
 	__asm __volatile(
 		"movq	%2, %%mm0\n\t"
 		"movq	8%2, %%mm1\n\t"
@@ -172,19 +230,47 @@ static void add_pixels_clamped_mmx(const DCTELEM *block, UINT8 *pixels, int line
 		:"memory");
         pix += line_size*2;
         p += 16;
-    }
+        i--;
+    };
 }
 
 static void put_pixels_mmx(UINT8 *block, const UINT8 *pixels, int line_size, int h)
 {
-    int dh, hh;
+    int hh;
     UINT8 *p;
     const UINT8 *pix;
+
     p   = block;
-    pix = pixels;
+    pix = pixels; // 2s
+#if 0
+    do {
+      __asm __volatile(
+	"movq	%1, %%mm0\n\t"
+	"movq	%%mm0, %0\n\t"
+	:"=m"(*p)
+	:"m"(*pix)
+	:"memory");
+	pix += line_size;
+	p += line_size;
+    } while (--h);
+#else
+    // this optimized code is not very usefull
+    // the above loop is definitely faster
+    // at least on Celeron 500MHz
+    hh = h & 3;
+    while (hh) {
+      __asm __volatile(
+	  "movq	%1, %%mm0\n\t"
+	  "movq	%%mm0, %0\n\t"
+	  :"=m"(*p)
+	  :"m"(*pix)
+	  :"memory");
+	pix += line_size;
+	p += line_size;
+	hh--;
+    }
     hh=h>>2;
-    dh=h&3;
-    while(hh--) {
+    while (hh) {
     __asm __volatile(
 	"movq	(%1), %%mm0		\n\t"
 	"movq	(%1, %2), %%mm1		\n\t"
@@ -196,19 +282,11 @@ static void put_pixels_mmx(UINT8 *block, const UINT8 *pixels, int line_size, int
 	"movq	%%mm3, (%0, %3)		\n\t"
 	::"r"(p), "r"(pix), "r"(line_size), "r"(line_size*3)
 	:"memory");
-        pix = pix + line_size*4;
-        p =   p   + line_size*4;
+        pix += line_size*4;
+	p += line_size*4;
+        hh--;
     }
-    while(dh--) {
-     __asm __volatile(
-	"movq	%1, %%mm0\n\t"
-	"movq	%%mm0, %0\n\t"
-	:"=m"(*p)
-	:"m"(*pix)
-	:"memory");
-        pix = pix + line_size;
-        p =   p   + line_size;
-    }
+#endif
 }
 
 static void put_pixels_x2_mmx(UINT8 *block, const UINT8 *pixels, int line_size, int h)
@@ -217,10 +295,9 @@ static void put_pixels_x2_mmx(UINT8 *block, const UINT8 *pixels, int line_size, 
   const UINT8 *pix;
   p = block;
   pix = pixels;
-  __asm __volatile(
-	"pxor	%%mm7, %%mm7\n\t"
-	"movq	%0, %%mm4\n\t"
-	::"m"(mm_wone));
+  MOVQ_ZERO(mm7);
+  MOVQ_WONE(mm4);
+  JUMPALIGN();
   do {
     __asm __volatile(
 	"movq	%1, %%mm0\n\t"
@@ -252,10 +329,9 @@ static void put_pixels_y2_mmx(UINT8 *block, const UINT8 *pixels, int line_size, 
   const UINT8 *pix;
   p = block;
   pix = pixels;
-  __asm __volatile(
-	"pxor	%%mm7, %%mm7\n\t"
-	"movq	%0, %%mm4\n\t"
-	::"m"(mm_wone));
+  MOVQ_ZERO(mm7);
+  MOVQ_WONE(mm4);
+  JUMPALIGN();
   do {
     __asm __volatile(
 	"movq	%1, %%mm0\n\t"
@@ -288,11 +364,10 @@ static void put_pixels_xy2_mmx(UINT8 *block, const UINT8 *pixels, int line_size,
   UINT8 *p;
   const UINT8 *pix;
   p = block;
-  pix = pixels;
-  __asm __volatile(
-	"pxor	%%mm7, %%mm7\n\t"
-	"movq	%0, %%mm6\n\t"
-	::"m"(mm_wtwo));
+  pix = pixels; // 1s
+  MOVQ_ZERO(mm7);
+  MOVQ_WTWO(mm6);
+  JUMPALIGN();
   do {
     __asm __volatile(
 	"movq	%1, %%mm0\n\t"
@@ -338,7 +413,7 @@ static void   put_no_rnd_pixels_x2_mmx( UINT8  *block, const UINT8 *pixels, int 
   const UINT8 *pix;
   p = block;
   pix = pixels;
-  __asm __volatile("pxor %%mm7, %%mm7\n\t":);
+  MOVQ_ZERO(mm7);
   do {
     __asm __volatile(
 	"movq	%1, %%mm0\n\t"
@@ -369,7 +444,8 @@ static void put_no_rnd_pixels_y2_mmx( UINT8  *block, const UINT8 *pixels, int li
   const UINT8 *pix;
   p = block;
   pix = pixels;
-  __asm __volatile("pxor %%mm7, %%mm7\n\t":);
+  MOVQ_ZERO(mm7);
+  JUMPALIGN();
   do {
     __asm __volatile(
 	"movq	%1, %%mm0\n\t"
@@ -401,10 +477,9 @@ static void   put_no_rnd_pixels_xy2_mmx( UINT8  *block, const UINT8 *pixels, int
   const UINT8 *pix;
   p = block;
   pix = pixels;
-  __asm __volatile(
-	"pxor	%%mm7, %%mm7\n\t"
-	"movq	%0, %%mm6\n\t"
-	::"m"(mm_wone));
+  MOVQ_ZERO(mm7);
+  MOVQ_WONE(mm6);
+  JUMPALIGN();
   do {
     __asm __volatile(
 	"movq	%1, %%mm0\n\t"
@@ -450,10 +525,9 @@ static void avg_pixels_mmx(UINT8 *block, const UINT8 *pixels, int line_size, int
   const UINT8 *pix;
   p = block;
   pix = pixels;
-  __asm __volatile(
-	"pxor	%%mm7, %%mm7\n\t"
-	"movq	%0, %%mm6\n\t"
-	::"m"(mm_wone));
+  MOVQ_ZERO(mm7);
+  MOVQ_WONE(mm6);
+  JUMPALIGN();
   do {
     __asm __volatile(
 	"movq	%0, %%mm0\n\t"
@@ -487,10 +561,9 @@ static void   avg_pixels_x2_mmx( UINT8  *block, const UINT8 *pixels, int line_si
   const UINT8 *pix;
   p = block;
   pix = pixels;
-  __asm __volatile(
-	"pxor	%%mm7, %%mm7\n\t"
-	"movq	%0, %%mm6\n\t"
-	::"m"(mm_wone));
+  MOVQ_ZERO(mm7);
+  MOVQ_WONE(mm6);
+  JUMPALIGN();
   do {
     __asm __volatile(
 	"movq	%1, %%mm1\n\t"
@@ -533,10 +606,9 @@ static void   avg_pixels_y2_mmx( UINT8  *block, const UINT8 *pixels, int line_si
   const UINT8 *pix;
   p = block;
   pix = pixels;
-  __asm __volatile(
-	"pxor	%%mm7, %%mm7\n\t"
-	"movq	%0, %%mm6\n\t"
-	::"m"(mm_wone));
+  MOVQ_ZERO(mm7);
+  MOVQ_WONE(mm6);
+  JUMPALIGN();
   do {
     __asm __volatile(
 	"movq	%1, %%mm1\n\t"
@@ -579,10 +651,10 @@ static void   avg_pixels_xy2_mmx( UINT8  *block, const UINT8 *pixels, int line_s
   const UINT8 *pix;
   p = block;
   pix = pixels;
-  __asm __volatile(
-	"pxor	%%mm7, %%mm7\n\t"
-	"movq	%0, %%mm6\n\t"
-	::"m"(mm_wtwo));
+  MOVQ_ZERO(mm7);
+  // this doesn't seem to be used offten - so
+  // the inside usage of mm_wone is not optimized
+  MOVQ_WTWO(mm6);
   do {
     __asm __volatile(
 	"movq	%1, %%mm0\n\t"
@@ -639,7 +711,7 @@ static void avg_no_rnd_pixels_mmx( UINT8  *block, const UINT8 *pixels, int line_
   const UINT8 *pix;
   p = block;
   pix = pixels;
-  __asm __volatile("pxor %%mm7, %%mm7\n\t":);
+  MOVQ_ZERO(mm7);
   do {
     __asm __volatile(
 	"movq	%1, %%mm0\n\t"
@@ -670,8 +742,7 @@ static void   avg_no_rnd_pixels_x2_mmx( UINT8  *block, const UINT8 *pixels, int 
   const UINT8 *pix;
   p = block;
   pix = pixels;
-  __asm __volatile(
-      "pxor	%%mm7, %%mm7\n\t":);
+  MOVQ_ZERO(mm7);
   do {
     __asm __volatile(
 	"movq	%1, %%mm0\n\t"
@@ -710,8 +781,7 @@ static void   avg_no_rnd_pixels_y2_mmx( UINT8  *block, const UINT8 *pixels, int 
   const UINT8 *pix;
   p = block;
   pix = pixels;
-  __asm __volatile(
-      "pxor	%%mm7, %%mm7\n\t":);
+  MOVQ_ZERO(mm7);
   do {
     __asm __volatile(
 	"movq	%1, %%mm0\n\t"
@@ -750,10 +820,9 @@ static void   avg_no_rnd_pixels_xy2_mmx( UINT8  *block, const UINT8 *pixels, int
   const UINT8 *pix;
   p = block;
   pix = pixels;
-  __asm __volatile(
-	"pxor	%%mm7, %%mm7\n\t"
-	"movq	%0, %%mm6\n\t"
-	::"m"(mm_wone));
+  MOVQ_ZERO(mm7);
+  MOVQ_WONE(mm6);
+  JUMPALIGN();
   do {
     __asm __volatile(
 	"movq	%1, %%mm0\n\t"
@@ -807,7 +876,7 @@ static void sub_pixels_mmx( DCTELEM  *block, const UINT8 *pixels, int line_size,
   const UINT8 *pix;
   p = block;
   pix = pixels;
-  __asm __volatile("pxor %%mm7, %%mm7":);
+  MOVQ_ZERO(mm7);
   do {
     __asm __volatile(
 	"movq	%0, %%mm0\n\t"
@@ -834,10 +903,9 @@ static void sub_pixels_x2_mmx( DCTELEM  *block, const UINT8 *pixels, int line_si
   const UINT8 *pix;
   p = block;
   pix = pixels;
-  __asm __volatile(
-      "pxor	%%mm7, %%mm7\n\t"
-      "movq	%0, %%mm6"
-      ::"m"(mm_wone));
+  MOVQ_ZERO(mm7);
+  MOVQ_WONE(mm6);
+  JUMPALIGN();
   do {
     __asm __volatile(
 	"movq	%0, %%mm0\n\t"
@@ -874,10 +942,8 @@ static void sub_pixels_y2_mmx( DCTELEM  *block, const UINT8 *pixels, int line_si
   const UINT8 *pix;
   p = block;
   pix = pixels;
-  __asm __volatile(
-      "pxor	%%mm7, %%mm7\n\t"
-      "movq	%0, %%mm6"
-      ::"m"(mm_wone));
+  MOVQ_ZERO(mm7);
+  MOVQ_WONE(mm6);
   do {
     __asm __volatile(
 	"movq	%0, %%mm0\n\t"
@@ -914,10 +980,9 @@ static void   sub_pixels_xy2_mmx( DCTELEM  *block, const UINT8 *pixels, int line
   const UINT8 *pix;
   p = block;
   pix = pixels;
-  __asm __volatile(
-	"pxor	%%mm7, %%mm7\n\t"
-	"movq	%0, %%mm6\n\t"
-	::"m"(mm_wtwo));
+  MOVQ_ZERO(mm7);
+  MOVQ_WTWO(mm6);
+  JUMPALIGN();
   do {
     __asm __volatile(
 	"movq	%1, %%mm0\n\t"
@@ -961,11 +1026,30 @@ static void   sub_pixels_xy2_mmx( DCTELEM  *block, const UINT8 *pixels, int line
   } while(--h);
 }
 
+static void clear_blocks_mmx(DCTELEM *blocks)
+{
+        asm volatile(
+                "pxor %%mm7, %%mm7		\n\t"
+                "movl $-128*6, %%eax		\n\t"
+                "1:				\n\t"
+                "movq %%mm7, (%0, %%eax)	\n\t"
+                "movq %%mm7, 8(%0, %%eax)	\n\t"
+                "movq %%mm7, 16(%0, %%eax)	\n\t"
+                "movq %%mm7, 24(%0, %%eax)	\n\t"
+                "addl $32, %%eax		\n\t"
+                " js 1b				\n\t"
+                : : "r" (((int)blocks)+128*6)
+                : "%eax"
+        );
+}
+
+static void just_return() { return; }
+
 void dsputil_init_mmx(void)
 {
-    mm_flags = xine_mm_accel();
-#if 0
-    printf("CPU flags:");
+    mm_flags = mm_support();
+#if 1
+    printf("libavcodec: CPU flags:");
     if (mm_flags & MM_MMX)
         printf(" mmx");
     if (mm_flags & MM_MMXEXT)
@@ -983,11 +1067,16 @@ void dsputil_init_mmx(void)
         get_pixels = get_pixels_mmx;
         put_pixels_clamped = put_pixels_clamped_mmx;
         add_pixels_clamped = add_pixels_clamped_mmx;
-        
-        pix_abs16x16 = pix_abs16x16_mmx;
-        pix_abs16x16_x2 = pix_abs16x16_x2_mmx;
-        pix_abs16x16_y2 = pix_abs16x16_y2_mmx;
+        clear_blocks= clear_blocks_mmx;
+       
+        pix_abs16x16     = pix_abs16x16_mmx;
+        pix_abs16x16_x2  = pix_abs16x16_x2_mmx;
+        pix_abs16x16_y2  = pix_abs16x16_y2_mmx;
         pix_abs16x16_xy2 = pix_abs16x16_xy2_mmx;
+        pix_abs8x8    = pix_abs8x8_mmx;
+        pix_abs8x8_x2 = pix_abs8x8_x2_mmx;
+        pix_abs8x8_y2 = pix_abs8x8_y2_mmx;
+        pix_abs8x8_xy2= pix_abs8x8_xy2_mmx;
         av_fdct = fdct_mmx;
 
         put_pixels_tab[0] = put_pixels_mmx;
@@ -1016,10 +1105,16 @@ void dsputil_init_mmx(void)
         sub_pixels_tab[3] = sub_pixels_xy2_mmx;
 
         if (mm_flags & MM_MMXEXT) {
-            pix_abs16x16 = pix_abs16x16_sse;
-        }
-
-        if (mm_flags & MM_SSE) {
+            pix_abs16x16    = pix_abs16x16_mmx2;
+            pix_abs16x16_x2 = pix_abs16x16_x2_mmx2;
+            pix_abs16x16_y2 = pix_abs16x16_y2_mmx2;
+            pix_abs16x16_xy2= pix_abs16x16_xy2_mmx2;
+            
+            pix_abs8x8    = pix_abs8x8_mmx2;
+            pix_abs8x8_x2 = pix_abs8x8_x2_mmx2;
+            pix_abs8x8_y2 = pix_abs8x8_y2_mmx2;
+            pix_abs8x8_xy2= pix_abs8x8_xy2_mmx2;
+            
             put_pixels_tab[1] = put_pixels_x2_sse;
             put_pixels_tab[2] = put_pixels_y2_sse;
             
@@ -1054,4 +1149,44 @@ void dsputil_init_mmx(void)
 	ff_idct = simple_idct_mmx;
 #endif
     }
+
+#if 0
+    // for speed testing
+    get_pixels = just_return;
+    put_pixels_clamped = just_return;
+    add_pixels_clamped = just_return;
+
+    pix_abs16x16 = just_return;
+    pix_abs16x16_x2 = just_return;
+    pix_abs16x16_y2 = just_return;
+    pix_abs16x16_xy2 = just_return;
+
+    put_pixels_tab[0] = just_return;
+    put_pixels_tab[1] = just_return;
+    put_pixels_tab[2] = just_return;
+    put_pixels_tab[3] = just_return;
+
+    put_no_rnd_pixels_tab[0] = just_return;
+    put_no_rnd_pixels_tab[1] = just_return;
+    put_no_rnd_pixels_tab[2] = just_return;
+    put_no_rnd_pixels_tab[3] = just_return;
+
+    avg_pixels_tab[0] = just_return;
+    avg_pixels_tab[1] = just_return;
+    avg_pixels_tab[2] = just_return;
+    avg_pixels_tab[3] = just_return;
+
+    avg_no_rnd_pixels_tab[0] = just_return;
+    avg_no_rnd_pixels_tab[1] = just_return;
+    avg_no_rnd_pixels_tab[2] = just_return;
+    avg_no_rnd_pixels_tab[3] = just_return;
+
+    sub_pixels_tab[0] = just_return;
+    sub_pixels_tab[1] = just_return;
+    sub_pixels_tab[2] = just_return;
+    sub_pixels_tab[3] = just_return;
+
+    //av_fdct = just_return;
+    //ff_idct = just_return;
+#endif
 }

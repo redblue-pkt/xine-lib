@@ -128,6 +128,7 @@ void init_get_bits(GetBitContext *s,
         s->bit_cnt += 8;
     }
 #endif
+    s->size= buffer_size;
 }
 
 #ifndef ALT_BITSTREAM_READER
@@ -199,6 +200,14 @@ void align_get_bits(GetBitContext *s)
         get_bits(s, n);
     }
 #endif
+}
+
+int check_marker(GetBitContext *s, char *msg)
+{
+    int bit= get_bits1(s);
+    if(!bit) printf("Marker bit missing %s\n", msg);
+
+    return bit;
 }
 
 #ifndef ALT_BITSTREAM_READER

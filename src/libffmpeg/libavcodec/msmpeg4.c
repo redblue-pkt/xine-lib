@@ -29,7 +29,6 @@
  * TODO: 
  *        - (encoding) select best mv table (two choices)
  *        - (encoding) select best vlc/dc table 
- *        - (decoding) handle slice indication
  */
 //#define DEBUG
 
@@ -44,12 +43,18 @@ typedef struct MVTable {
     VLC vlc;                /* decoding: vlc */
 } MVTable;
 
+static UINT32 v2_dc_lum_table[512][2];
+static UINT32 v2_dc_chroma_table[512][2];
+
 static void msmpeg4_encode_block(MpegEncContext * s, DCTELEM * block, int n);
 static int msmpeg4_decode_block(MpegEncContext * s, DCTELEM * block,
                                 int n, int coded);
 static int msmpeg4_decode_dc(MpegEncContext * s, int n, int *dir_ptr);
 static int msmpeg4_decode_motion(MpegEncContext * s, 
                                  int *mx_ptr, int *my_ptr);
+static void msmpeg4v2_encode_motion(MpegEncContext * s, int val);
+static void init_h263_dc_for_msmpeg4();
+
 
 extern UINT32 inverse[256];
 
@@ -166,7 +171,11 @@ void msmpeg4_encode_picture_header(MpegEncContext * s, int picture_number)
     put_bits(&s->pb, 5, s->qscale);
 
     s->rl_table_index = 2;
-    s->rl_chroma_table_index = 1; /* only for I frame */
+    if(s->msmpeg4_version==2)
+        s->rl_chroma_table_index = 2; /* only for I frame */
+    else
+        s->rl_chroma_table_index = 1; /* only for I frame */
+
     s->dc_table_index = 1;
     s->mv_table_index = 1; /* only if P frame */
     s->use_skip_mb_code = 1; /* only if P frame */
@@ -174,21 +183,25 @@ void msmpeg4_encode_picture_header(MpegEncContext * s, int picture_number)
     if (s->pict_type == I_TYPE) {
         put_bits(&s->pb, 5, 0x17); /* indicate only one "slice" */
 
-        code012(&s->pb, s->rl_chroma_table_index);
-        code012(&s->pb, s->rl_table_index);
+        if(s->msmpeg4_version!=2){
+            code012(&s->pb, s->rl_chroma_table_index);
+            code012(&s->pb, s->rl_table_index);
 
-        put_bits(&s->pb, 1, s->dc_table_index);
+            put_bits(&s->pb, 1, s->dc_table_index);
+        }
         s->no_rounding = 1;
     } else {
         put_bits(&s->pb, 1, s->use_skip_mb_code);
         
         s->rl_chroma_table_index = s->rl_table_index;
-        code012(&s->pb, s->rl_table_index);
+        if(s->msmpeg4_version!=2){
+            code012(&s->pb, s->rl_table_index);
 
-        put_bits(&s->pb, 1, s->dc_table_index);
+            put_bits(&s->pb, 1, s->dc_table_index);
 
-        put_bits(&s->pb, 1, s->mv_table_index);
-	
+            put_bits(&s->pb, 1, s->mv_table_index);
+        }
+
 	if(s->flipflop_rounding){
 	    s->no_rounding ^= 1;
 	}else{
@@ -203,6 +216,8 @@ void msmpeg4_encode_picture_header(MpegEncContext * s, int picture_number)
         init_mv_table(&mv_tables[1]);
         for(i=0;i<NB_RL_TABLES;i++)
             init_rl(&rl_table[i]);
+
+        init_h263_dc_for_msmpeg4();
     }
 
 #ifdef DEBUG
@@ -226,18 +241,17 @@ void msmpeg4_encode_ext_header(MpegEncContext * s)
 /* predict coded block */
 static inline int coded_block_pred(MpegEncContext * s, int n, UINT8 **coded_block_ptr)
 {
-    int x, y, wrap, pred, a, b, c;
+    int xy, wrap, pred, a, b, c;
 
-    x = 2 * s->mb_x + 1 + (n & 1);
-    y = 2 * s->mb_y + 1 + ((n & 2) >> 1);
-    wrap = s->mb_width * 2 + 2;
+    xy = s->block_index[n];
+    wrap = s->block_wrap[0];
 
     /* B C
      * A X 
      */
-    a = s->coded_block[(x - 1) + (y) * wrap];
-    b = s->coded_block[(x - 1) + (y - 1) * wrap];
-    c = s->coded_block[(x) + (y - 1) * wrap];
+    a = s->coded_block[xy - 1       ];
+    b = s->coded_block[xy - 1 - wrap];
+    c = s->coded_block[xy     - wrap];
     
     if (b == c) {
         pred = a;
@@ -246,7 +260,7 @@ static inline int coded_block_pred(MpegEncContext * s, int n, UINT8 **coded_bloc
     }
     
     /* store value */
-    *coded_block_ptr = &s->coded_block[(x) + (y) * wrap];
+    *coded_block_ptr = &s->coded_block[xy];
 
     return pred;
 }
@@ -314,14 +328,30 @@ void msmpeg4_encode_mb(MpegEncContext * s,
         if (s->use_skip_mb_code)
             put_bits(&s->pb, 1, 0);	/* mb coded */
         
-        put_bits(&s->pb, 
-                 table_mb_non_intra[cbp + 64][1], 
-                 table_mb_non_intra[cbp + 64][0]);
+        if(s->msmpeg4_version==2){
+            put_bits(&s->pb, 
+                     v2_mb_type[cbp&3][1], 
+                     v2_mb_type[cbp&3][0]);
+            if((cbp&3) != 3) coded_cbp= cbp ^ 0x3C;
+            else             coded_cbp= cbp;
 
-        /* motion vector */
-        h263_pred_motion(s, 0, &pred_x, &pred_y);
-        msmpeg4_encode_motion(s, motion_x - pred_x, 
-                              motion_y - pred_y);
+            put_bits(&s->pb, 
+                     cbpy_tab[coded_cbp>>2][1], 
+                     cbpy_tab[coded_cbp>>2][0]);
+                        
+            h263_pred_motion(s, 0, &pred_x, &pred_y);
+            msmpeg4v2_encode_motion(s, motion_x - pred_x);
+            msmpeg4v2_encode_motion(s, motion_y - pred_y);
+        }else{
+            put_bits(&s->pb, 
+                     table_mb_non_intra[cbp + 64][1], 
+                     table_mb_non_intra[cbp + 64][0]);
+
+            /* motion vector */
+            h263_pred_motion(s, 0, &pred_x, &pred_y);
+            msmpeg4_encode_motion(s, motion_x - pred_x, 
+                                  motion_y - pred_y);
+        }
     } else {
 	/* compute cbp */
 	cbp = 0;
@@ -343,19 +373,36 @@ void msmpeg4_encode_mb(MpegEncContext * s,
             printf("cbp=%x %x\n", cbp, coded_cbp);
 #endif
 
-	if (s->pict_type == I_TYPE) {
+        if(s->msmpeg4_version==2){
+            if (s->pict_type == I_TYPE) {
+                put_bits(&s->pb, 
+                         v2_intra_cbpc[cbp&3][1], v2_intra_cbpc[cbp&3][0]);
+            } else {
+                if (s->use_skip_mb_code)
+                    put_bits(&s->pb, 1, 0);	/* mb coded */
+                put_bits(&s->pb, 
+                         v2_mb_type[(cbp&3) + 4][1], 
+                         v2_mb_type[(cbp&3) + 4][0]);
+            }
+            put_bits(&s->pb, 1, 0);	/* no AC prediction yet */
+            put_bits(&s->pb, 
+                     cbpy_tab[cbp>>2][1], 
+                     cbpy_tab[cbp>>2][0]);
+        }else{
+            if (s->pict_type == I_TYPE) {
+                set_stat(ST_INTRA_MB);
+                put_bits(&s->pb, 
+                         table_mb_intra[coded_cbp][1], table_mb_intra[coded_cbp][0]);
+            } else {
+                if (s->use_skip_mb_code)
+                    put_bits(&s->pb, 1, 0);	/* mb coded */
+                put_bits(&s->pb, 
+                         table_mb_non_intra[cbp][1], 
+                         table_mb_non_intra[cbp][0]);
+            }
             set_stat(ST_INTRA_MB);
-            put_bits(&s->pb, 
-                     table_mb_intra[coded_cbp][1], table_mb_intra[coded_cbp][0]);
-        } else {
-            if (s->use_skip_mb_code)
-                put_bits(&s->pb, 1, 0);	/* mb coded */
-            put_bits(&s->pb, 
-                     table_mb_non_intra[cbp][1], 
-                     table_mb_non_intra[cbp][0]);
+            put_bits(&s->pb, 1, 0);	/* no AC prediction yet */
         }
-        set_stat(ST_INTRA_MB);
-        put_bits(&s->pb, 1, 0);	/* no AC prediction yet */
     }
 
     for (i = 0; i < 6; i++) {
@@ -367,10 +414,9 @@ void msmpeg4_encode_mb(MpegEncContext * s,
 /* strongly inspirated from MPEG4, but not exactly the same ! */
 void msmpeg4_dc_scale(MpegEncContext * s)
 {
-    if (s->qscale < 5){
+    if (s->qscale < 5 || s->msmpeg4_version==2){
         s->y_dc_scale = 8;
         s->c_dc_scale = 8;
-//        s->c_dc_scale = (s->qscale + 13)>>1;
     }else if (s->qscale < 9){
         s->y_dc_scale = 2 * s->qscale;
         s->c_dc_scale = (s->qscale + 13)>>1;
@@ -378,56 +424,30 @@ void msmpeg4_dc_scale(MpegEncContext * s)
         s->y_dc_scale = s->qscale + 8;
         s->c_dc_scale = (s->qscale + 13)>>1;
     }
-    // this differs for quant >24 from mpeg4 
-    
-//    if(s->qscale==13) s->c_dc_scale=14;
-    
-//    if(s->qscale>=6)
-//     printf("%d", s->qscale);
-    
-    /* s->c_dc_scale values (found by Michael Nidermayer)
-     qscale=2 -> 8 (yes iam sure about that)
-     qscale=3 -> 8
-     qscale=4 -> 8
-     qscale=5 -> 9
-     qscale=6 -> 9 
-     qscale=7 -> 10
-     qscale=8 -> 10
-     qscale=9 -> 11
-     qscale=10-> 11
-    */
 }
 
 /* dir = 0: left, dir = 1: top prediction */
 static int msmpeg4_pred_dc(MpegEncContext * s, int n, 
                            INT16 **dc_val_ptr, int *dir_ptr)
 {
-    int a, b, c, xy, wrap, pred, scale;
+    int a, b, c, wrap, pred, scale;
     INT16 *dc_val;
 
     /* find prediction */
     if (n < 4) {
-	wrap = s->mb_width * 2 + 2;
-	xy = 2 * s->mb_y + 1 + ((n & 2) >> 1);
-        xy *= wrap;
-	xy += 2 * s->mb_x + 1 + (n & 1);
-	dc_val = s->dc_val[0];
 	scale = s->y_dc_scale;
     } else {
-	wrap = s->mb_width + 2;
-	xy = s->mb_y + 1;
-        xy *= wrap;
-	xy += s->mb_x + 1;
-	dc_val = s->dc_val[n - 4 + 1];
 	scale = s->c_dc_scale;
     }
+    wrap = s->block_wrap[n];
+    dc_val= s->dc_val[0] + s->block_index[n];
 
     /* B C
      * A X 
      */
-    a = dc_val[xy - 1];
-    b = dc_val[xy - 1 - wrap];
-    c = dc_val[xy - wrap];
+    a = dc_val[ - 1];
+    b = dc_val[ - 1 - wrap];
+    c = dc_val[ - wrap];
 
     /* XXX: the following solution consumes divisions, but it does not
        necessitate to modify mpegvideo.c. The problem comes from the
@@ -478,7 +498,7 @@ static int msmpeg4_pred_dc(MpegEncContext * s, int n,
     }
 
     /* update predictor */
-    *dc_val_ptr = &dc_val[xy];
+    *dc_val_ptr = &dc_val[0];
     return pred;
 }
 
@@ -502,35 +522,46 @@ static void msmpeg4_encode_dc(MpegEncContext * s, int level, int n, int *dir_ptr
     /* do the prediction */
     level -= pred;
 
-    sign = 0;
-    if (level < 0) {
-        level = -level;
-        sign = 1;
-    }
-    
-    code = level;
-    if (code > DC_MAX) 
-        code = DC_MAX;
+    if(s->msmpeg4_version==2){
+        if (n < 4) {
+            put_bits(&s->pb, 
+                     v2_dc_lum_table[level+256][1],
+                     v2_dc_lum_table[level+256][0]);
+        }else{
+            put_bits(&s->pb, 
+                     v2_dc_chroma_table[level+256][1],
+                     v2_dc_chroma_table[level+256][0]);
+        }
+    }else{
+        sign = 0;
+        if (level < 0) {
+            level = -level;
+            sign = 1;
+        }
+        code = level;
+        if (code > DC_MAX) 
+            code = DC_MAX;
 
-    if (s->dc_table_index == 0) {
-        if (n < 4) {
-            put_bits(&s->pb, table0_dc_lum[code][1], table0_dc_lum[code][0]);
+        if (s->dc_table_index == 0) {
+            if (n < 4) {
+                put_bits(&s->pb, table0_dc_lum[code][1], table0_dc_lum[code][0]);
+            } else {
+                put_bits(&s->pb, table0_dc_chroma[code][1], table0_dc_chroma[code][0]);
+            }
         } else {
-            put_bits(&s->pb, table0_dc_chroma[code][1], table0_dc_chroma[code][0]);
+            if (n < 4) {
+                put_bits(&s->pb, table1_dc_lum[code][1], table1_dc_lum[code][0]);
+            } else {
+                put_bits(&s->pb, table1_dc_chroma[code][1], table1_dc_chroma[code][0]);
+            }
         }
-    } else {
-        if (n < 4) {
-            put_bits(&s->pb, table1_dc_lum[code][1], table1_dc_lum[code][0]);
-        } else {
-            put_bits(&s->pb, table1_dc_chroma[code][1], table1_dc_chroma[code][0]);
+            
+        if (code == DC_MAX)
+            put_bits(&s->pb, 8, level);
+            
+        if (level != 0) {
+            put_bits(&s->pb, 1, sign);
         }
-    }
-        
-    if (code == DC_MAX)
-        put_bits(&s->pb, 8, level);
-        
-    if (level != 0) {
-        put_bits(&s->pb, 1, sign);
     }
 }
 
@@ -558,7 +589,10 @@ static void msmpeg4_encode_block(MpegEncContext * s, DCTELEM * block, int n)
     } else {
         i = 0;
         rl = &rl_table[3 + s->rl_table_index];
-        run_diff = 1;
+        if(s->msmpeg4_version==2)
+            run_diff = 0;
+        else
+            run_diff = 1;
         set_stat(ST_INTER_AC);
     }
 
@@ -629,6 +663,72 @@ static VLC mb_non_intra_vlc;
 static VLC mb_intra_vlc;
 static VLC dc_lum_vlc[2];
 static VLC dc_chroma_vlc[2];
+static VLC v2_dc_lum_vlc;
+static VLC v2_dc_chroma_vlc;
+static VLC cbpy_vlc;
+static VLC v2_intra_cbpc_vlc;
+static VLC v2_mb_type_vlc;
+static VLC v2_mv_vlc;
+
+/* this table is practically identical to the one from h263 except that its inverted */
+static void init_h263_dc_for_msmpeg4()
+{
+    static int inited=0;
+    
+    if(!inited){
+        int level, uni_code, uni_len;
+        inited=1;
+
+        for(level=-256; level<256; level++){
+            int size, v, l;
+            /* find number of bits */
+            size = 0;
+            v = abs(level);
+            while (v) {
+                v >>= 1;
+		    size++;
+            }
+
+            if (level < 0)
+                l= (-level) ^ ((1 << size) - 1);
+            else
+                l= level;
+
+            /* luminance h263 */
+            uni_code= DCtab_lum[size][0];
+            uni_len = DCtab_lum[size][1];
+            uni_code ^= (1<<uni_len)-1; //M$ doesnt like compatibility
+
+            if (size > 0) {
+                uni_code<<=size; uni_code|=l;
+                uni_len+=size;
+                if (size > 8){
+                    uni_code<<=1; uni_code|=1;
+                    uni_len++;
+                }
+            }
+            v2_dc_lum_table[level+256][0]= uni_code;
+            v2_dc_lum_table[level+256][1]= uni_len;
+
+            /* chrominance h263 */
+            uni_code= DCtab_chrom[size][0];
+            uni_len = DCtab_chrom[size][1];
+            uni_code ^= (1<<uni_len)-1; //M$ doesnt like compatibility
+            
+            if (size > 0) {
+                uni_code<<=size; uni_code|=l;
+                uni_len+=size;
+                if (size > 8){
+                    uni_code<<=1; uni_code|=1;
+                    uni_len++;
+                }
+            }
+            v2_dc_chroma_table[level+256][0]= uni_code;
+            v2_dc_chroma_table[level+256][1]= uni_len;
+
+        }
+    }
+}
 
 /* init all vlc decoding tables */
 int msmpeg4_decode_init_vlc(MpegEncContext *s)
@@ -659,6 +759,27 @@ int msmpeg4_decode_init_vlc(MpegEncContext *s)
     init_vlc(&dc_chroma_vlc[1], 9, 120, 
              &table1_dc_chroma[0][1], 8, 4,
              &table1_dc_chroma[0][0], 8, 4);
+    
+    init_h263_dc_for_msmpeg4();
+    init_vlc(&v2_dc_lum_vlc, 9, 512, 
+             &v2_dc_lum_table[0][1], 8, 4,
+             &v2_dc_lum_table[0][0], 8, 4);
+    init_vlc(&v2_dc_chroma_vlc, 9, 512, 
+             &v2_dc_chroma_table[0][1], 8, 4,
+             &v2_dc_chroma_table[0][0], 8, 4);
+    
+    init_vlc(&cbpy_vlc, 6, 16,
+             &cbpy_tab[0][1], 2, 1,
+             &cbpy_tab[0][0], 2, 1);
+    init_vlc(&v2_intra_cbpc_vlc, 3, 4,
+             &v2_intra_cbpc[0][1], 2, 1,
+             &v2_intra_cbpc[0][0], 2, 1);
+    init_vlc(&v2_mb_type_vlc, 5, 8,
+             &v2_mb_type[0][1], 2, 1,
+             &v2_mb_type[0][0], 2, 1);
+    init_vlc(&v2_mv_vlc, 9, 33,
+             &mvtab[0][1], 2, 1,
+             &mvtab[0][0], 2, 1);
 
     init_vlc(&mb_non_intra_vlc, 9, 128, 
              &table_mb_non_intra[0][1], 8, 4,
@@ -692,16 +813,21 @@ int msmpeg4_decode_picture_header(MpegEncContext * s)
 
     if (s->pict_type == I_TYPE) {
         code = get_bits(&s->gb, 5); 
-        /* 0x17: one slice, 0x18: three slices */
-        /* XXX: implement it */
-	//printf("%d %d %d\n", code, s->slice_height, s->first_slice_line);
+        /* 0x17: one slice, 0x18: two slices */
         if (code < 0x17)
             return -1;
         s->slice_height = s->mb_height / (code - 0x16);
-        s->rl_chroma_table_index = decode012(&s->gb);
-        s->rl_table_index = decode012(&s->gb);
+        if(s->msmpeg4_version==2){
+            s->rl_chroma_table_index = 2;
+            s->rl_table_index = 2;
 
-        s->dc_table_index = get_bits1(&s->gb);
+            s->dc_table_index = 0; //not used
+        }else{
+            s->rl_chroma_table_index = decode012(&s->gb);
+            s->rl_table_index = decode012(&s->gb);
+
+            s->dc_table_index = get_bits1(&s->gb);
+        }
         s->no_rounding = 1;
 /*	printf(" %d %d %d %d     \n", 
 		s->qscale,
@@ -711,12 +837,21 @@ int msmpeg4_decode_picture_header(MpegEncContext * s)
     } else {
         s->use_skip_mb_code = get_bits1(&s->gb);
         
-        s->rl_table_index = decode012(&s->gb);
-        s->rl_chroma_table_index = s->rl_table_index;
+        if(s->msmpeg4_version==2){
+            s->rl_table_index = 2;
+            s->rl_chroma_table_index = s->rl_table_index;
 
-        s->dc_table_index = get_bits1(&s->gb);
+            s->dc_table_index = 0; //not used
 
-        s->mv_table_index = get_bits1(&s->gb);
+            s->mv_table_index = 0;
+        }else{
+            s->rl_table_index = decode012(&s->gb);
+            s->rl_chroma_table_index = s->rl_table_index;
+
+            s->dc_table_index = get_bits1(&s->gb);
+
+            s->mv_table_index = get_bits1(&s->gb);
+        }
 /*	printf(" %d %d %d %d %d     \n", 
 		s->use_skip_mb_code, 
 		s->rl_table_index, 
@@ -731,7 +866,18 @@ int msmpeg4_decode_picture_header(MpegEncContext * s)
 //	printf("%d", s->no_rounding);
     }
     
-   
+#if 0
+if(s->msmpeg4_version==2)
+{
+int i;
+for(i=0; i<s->gb.size*8; i++)
+//    printf("%d", get_bits1(&s->gb));
+    get_bits1(&s->gb);
+printf("END\n");
+return -1;
+}
+#endif
+
 #ifdef DEBUG
     printf("*****frame %d:\n", frame_count++);
 #endif
@@ -765,6 +911,127 @@ static inline void memsetw(short *tab, int val, int n)
     int i;
     for(i=0;i<n;i++)
         tab[i] = val;
+}
+
+static void msmpeg4v2_encode_motion(MpegEncContext * s, int val)
+{
+    int range, bit_size, sign, code, bits;
+
+    if (val == 0) {
+        /* zero vector */
+        code = 0;
+        put_bits(&s->pb, mvtab[code][1], mvtab[code][0]);
+    } else {
+        bit_size = s->f_code - 1;
+        range = 1 << bit_size;
+        if (val <= -64)
+            val += 64;
+        else if (val >= 64)
+            val -= 64;
+
+        if (val >= 0) {
+            sign = 0;
+        } else {
+            val = -val;
+            sign = 1;
+        }
+        val--;
+        code = (val >> bit_size) + 1;
+        bits = val & (range - 1);
+
+        put_bits(&s->pb, mvtab[code][1] + 1, (mvtab[code][0] << 1) | sign); 
+        if (bit_size > 0) {
+            put_bits(&s->pb, bit_size, bits);
+        }
+    }
+}
+
+/* this is identical to h263 except that its range is multiplied by 2 */
+static int msmpeg4v2_decode_motion(MpegEncContext * s, int pred, int f_code)
+{
+    int code, val, sign, shift;
+
+    code = get_vlc(&s->gb, &v2_mv_vlc);
+    if (code < 0)
+        return 0xffff;
+
+    if (code == 0)
+        return pred;
+    sign = get_bits1(&s->gb);
+    shift = f_code - 1;
+    val = (code - 1) << shift;
+    if (shift > 0)
+        val |= get_bits(&s->gb, shift);
+    val++;
+    if (sign)
+        val = -val;
+    val += pred;
+
+    if (val <= -64)
+        val += 64;
+    else if (val >= 64)
+        val -= 64;
+
+    return val;
+}
+
+
+int msmpeg4v2_decode_mb(MpegEncContext *s, 
+                      DCTELEM block[6][64])
+{
+    int cbp, code, i;
+    if (s->pict_type == P_TYPE) {
+        if (s->use_skip_mb_code) {
+            if (get_bits1(&s->gb)) {
+                /* skip mb */
+                s->mb_intra = 0;
+                for(i=0;i<6;i++)
+                    s->block_last_index[i] = -1;
+                s->mv_dir = MV_DIR_FORWARD;
+                s->mv_type = MV_TYPE_16X16;
+                s->mv[0][0][0] = 0;
+                s->mv[0][0][1] = 0;
+                s->mb_skiped = 1;
+                return 0;
+            }
+        }
+
+        code = get_vlc(&s->gb, &v2_mb_type_vlc);
+        s->mb_intra = code >>2;
+    
+        cbp = code & 0x3;
+    } else {
+        s->mb_intra = 1;
+        cbp= get_vlc(&s->gb, &v2_intra_cbpc_vlc);
+    }
+
+    if (!s->mb_intra) {
+        int mx, my;
+
+        cbp|= get_vlc(&s->gb, &cbpy_vlc)<<2;
+        if((cbp&3) != 3) cbp^= 0x3C;
+        
+        h263_pred_motion(s, 0, &mx, &my);
+        mx= msmpeg4v2_decode_motion(s, mx, 1);
+        my= msmpeg4v2_decode_motion(s, my, 1);
+        
+        s->mv_dir = MV_DIR_FORWARD;
+        s->mv_type = MV_TYPE_16X16;
+        s->mv[0][0][0] = mx;
+        s->mv[0][0][1] = my;
+    } else {
+        s->ac_pred = get_bits1(&s->gb);
+        cbp|= get_vlc(&s->gb, &cbpy_vlc)<<2;
+    }
+
+    for (i = 0; i < 6; i++) {
+        if (msmpeg4_decode_block(s, block[i], i, (cbp >> (5 - i)) & 1) < 0)
+	{
+             fprintf(stderr,"\nIgnoring error while decoding block: %d x %d (%d)\n", s->mb_x, s->mb_y, i);
+             return -1;
+	}
+    }
+    return 0;
 }
 
 int msmpeg4_decode_mb(MpegEncContext *s, 
@@ -803,6 +1070,8 @@ int msmpeg4_decode_mb(MpegEncContext *s,
         }
     }
 
+    if(s->msmpeg4_version==2) return msmpeg4v2_decode_mb(s, block); //FIXME merge if possible
+    
     if (s->pict_type == P_TYPE) {
         set_stat(ST_INTER_MB);
         if (s->use_skip_mb_code) {
@@ -915,7 +1184,12 @@ static int msmpeg4_decode_block(MpegEncContext * s, DCTELEM * block,
         qadd = (s->qscale - 1) | 1;
 	i = 0;
         rl = &rl_table[3 + s->rl_table_index];
-        run_diff = 1;
+
+        if(s->msmpeg4_version==2)
+            run_diff = 0;
+        else
+            run_diff = 1;
+
         if (!coded) {
             s->block_last_index[n] = i - 1;
             return 0;
@@ -999,21 +1273,32 @@ static int msmpeg4_decode_dc(MpegEncContext * s, int n, int *dir_ptr)
     int level, pred;
     INT16 *dc_val;
 
-    if (n < 4) {
-        level = get_vlc(&s->gb, &dc_lum_vlc[s->dc_table_index]);
-    } else {
-        level = get_vlc(&s->gb, &dc_chroma_vlc[s->dc_table_index]);
-    }
-    if (level < 0)
-        return -1;
+    if(s->msmpeg4_version==2){
+        if (n < 4) {
+            level = get_vlc(&s->gb, &v2_dc_lum_vlc);
+        } else {
+            level = get_vlc(&s->gb, &v2_dc_chroma_vlc);
+        }
+        if (level < 0) 
+            return -1;
+        level-=256;
+    }else{  //FIXME optimize use unified tables & index
+        if (n < 4) {
+            level = get_vlc(&s->gb, &dc_lum_vlc[s->dc_table_index]);
+        } else {
+            level = get_vlc(&s->gb, &dc_chroma_vlc[s->dc_table_index]);
+        }
+        if (level < 0)
+            return -1;
 
-    if (level == DC_MAX) {
-        level = get_bits(&s->gb, 8);
-        if (get_bits1(&s->gb))
-            level = -level;
-    } else if (level != 0) {
-        if (get_bits1(&s->gb))
-            level = -level;
+        if (level == DC_MAX) {
+            level = get_bits(&s->gb, 8);
+            if (get_bits1(&s->gb))
+                level = -level;
+        } else if (level != 0) {
+            if (get_bits1(&s->gb))
+                level = -level;
+        }
     }
 
     pred = msmpeg4_pred_dc(s, n, &dc_val, dir_ptr);

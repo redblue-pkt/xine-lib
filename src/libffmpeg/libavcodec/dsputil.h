@@ -41,11 +41,13 @@ extern void (*get_pixels)(DCTELEM *block, const UINT8 *pixels, int line_size);
 extern void (*put_pixels_clamped)(const DCTELEM *block, UINT8 *pixels, int line_size);
 extern void (*add_pixels_clamped)(const DCTELEM *block, UINT8 *pixels, int line_size);
 extern void (*gmc1)(UINT8 *dst, UINT8 *src, int srcStride, int h, int x16, int y16, int rounder);
+extern void (*clear_blocks)(DCTELEM *blocks);
 
 
 void get_pixels_c(DCTELEM *block, const UINT8 *pixels, int line_size);
 void put_pixels_clamped_c(const DCTELEM *block, UINT8 *pixels, int line_size);
 void add_pixels_clamped_c(const DCTELEM *block, UINT8 *pixels, int line_size);
+void clear_blocks_c(DCTELEM *blocks);
 
 /* add and put pixel (decoding) */
 typedef void (*op_pixels_func)(UINT8 *block, const UINT8 *pixels, int line_size, int h);
@@ -67,17 +69,21 @@ extern void (*sub_pixels_tab[4])(DCTELEM *block, const UINT8 *pixels, int line_s
 
 /* motion estimation */
 
-typedef int (*op_pixels_abs_func)(UINT8 *blk1, UINT8 *blk2, int line_size, int h);
+typedef int (*op_pixels_abs_func)(UINT8 *blk1, UINT8 *blk2, int line_size);
 
 extern op_pixels_abs_func pix_abs16x16;
 extern op_pixels_abs_func pix_abs16x16_x2;
 extern op_pixels_abs_func pix_abs16x16_y2;
 extern op_pixels_abs_func pix_abs16x16_xy2;
+extern op_pixels_abs_func pix_abs8x8;
+extern op_pixels_abs_func pix_abs8x8_x2;
+extern op_pixels_abs_func pix_abs8x8_y2;
+extern op_pixels_abs_func pix_abs8x8_xy2;
 
-int pix_abs16x16_c(UINT8 *blk1, UINT8 *blk2, int lx, int h);
-int pix_abs16x16_x2_c(UINT8 *blk1, UINT8 *blk2, int lx, int h);
-int pix_abs16x16_y2_c(UINT8 *blk1, UINT8 *blk2, int lx, int h);
-int pix_abs16x16_xy2_c(UINT8 *blk1, UINT8 *blk2, int lx, int h);
+int pix_abs16x16_c(UINT8 *blk1, UINT8 *blk2, int lx);
+int pix_abs16x16_x2_c(UINT8 *blk1, UINT8 *blk2, int lx);
+int pix_abs16x16_y2_c(UINT8 *blk1, UINT8 *blk2, int lx);
+int pix_abs16x16_xy2_c(UINT8 *blk1, UINT8 *blk2, int lx);
 
 static inline int block_permute_op(int j)
 {
@@ -102,7 +108,8 @@ void block_permute(INT16 *block);
 
 extern int mm_flags;
 
-int mm_support(void);
+/* int mm_support(void); */
+#define mm_support() xine_mm_accel()
 
 #if 0
 static inline void emms(void)

@@ -14,11 +14,14 @@ enum CodecID {
     CODEC_ID_MJPEG,
     CODEC_ID_MPEG4,
     CODEC_ID_RAWVIDEO,
-    CODEC_ID_MSMPEG4,
+    CODEC_ID_MSMPEG4V1,
+    CODEC_ID_MSMPEG4V2,
+    CODEC_ID_MSMPEG4V3,
     CODEC_ID_H263P,
     CODEC_ID_H263I,
 
 };
+#define CODEC_ID_MSMPEG4 CODEC_ID_MSMPEG4V3
 
 enum CodecType {
     CODEC_TYPE_VIDEO,
@@ -48,11 +51,19 @@ extern int motion_estimation_method;
 #define ME_FULL   1
 #define ME_LOG    2
 #define ME_PHODS  3
+#define ME_EPZS   4
+#define ME_X1     5
 
 /* encoding support */
+/* note not everything is supported yet */
 
 #define CODEC_FLAG_HQ     0x0001 /* high quality (non real time) encoding */
 #define CODEC_FLAG_QSCALE 0x0002 /* use fixed qscale */
+#define CODEC_FLAG_4MV    0x0004 /* 4 MV per MB allowed */
+#define CODEC_FLAG_B      0x0008 /* use B frames */
+#define CODEC_FLAG_QPEL   0x0010 /* use qpel MC */
+#define CODEC_FLAG_GMC    0x0020 /* use GMC */
+#define CODEC_FLAG_TYPE   0x0040 /* fixed I/P frame type, from avctx->key_frame */
 
 /* codec capabilities */
 
@@ -63,12 +74,19 @@ extern int motion_estimation_method;
 
 typedef struct AVCodecContext {
     int bit_rate;
+    int bit_rate_tolerance; /* amount of +- bits (>0)*/
     int flags;
     int sub_id;    /* some codecs needs additionnal format info. It is
                       stored there */
     /* video only */
     int frame_rate; /* frames per sec multiplied by FRAME_RATE_BASE */
     int width, height;
+    int aspect_ratio_info;
+#define FF_ASPECT_SQUARE 1
+#define FF_ASPECT_4_3_625 2
+#define FF_ASPECT_4_3_525 3
+#define FF_ASPECT_16_9_625 4
+#define FF_ASPECT_16_9_525 5
     int gop_size; /* 0 = intra only */
     int pix_fmt;  /* pixel format, see PIX_FMT_xxx */
 
@@ -92,6 +110,12 @@ typedef struct AVCodecContext {
                          a key frame (intra, or seekable) */
     int quality;      /* quality of the previous encoded frame 
                          (between 1 (good) and 31 (bad)) */
+    float qcompress;  /* amount of qscale change between easy & hard scenes (0.0-1.0)*/
+    float qblur;      /* amount of qscale smoothing over time (0.0-1.0) */
+    int qmin;         /* min qscale */
+    int qmax;         /* max qscale */
+    int max_qdiff;    /* max qscale difference between frames */
+    
     struct AVCodec *codec;
     void *priv_data;
 
@@ -122,6 +146,17 @@ typedef struct AVCodecContext {
     float psnr_cb;
     float psnr_cr;
                  
+    /* statistics, used for 2-pass encoding */
+    int mv_bits;
+    int header_bits;
+    int i_tex_bits;
+    int p_tex_bits;
+    int i_count;
+    int p_count;
+    int skip_count;
+    int misc_bits; // cbp, mb_type
+    int frame_bits;
+
     /* the following fields are ignored */
     void *opaque;   /* can be used to carry app specific stuff */
     char codec_name[32];
@@ -152,7 +187,9 @@ typedef struct AVPicture {
 
 extern AVCodec h263_decoder;
 extern AVCodec mpeg4_decoder;
-extern AVCodec msmpeg4_decoder;
+extern AVCodec msmpeg4v1_decoder;
+extern AVCodec msmpeg4v2_decoder;
+extern AVCodec msmpeg4v3_decoder;
 extern AVCodec mpeg_decoder;
 extern AVCodec h263i_decoder;
 extern AVCodec rv10_decoder;
