@@ -55,7 +55,6 @@
 #define MOD_BITS 16
 #define MOD_CHANNELS 2
 
-//#define MOD_REFRESH_RATE 60
 #define OUT_BYTES_PER_SECOND (MOD_SAMPLERATE * MOD_CHANNELS * (MOD_BITS >> 3))
 
 #define BLOCK_SIZE 4096
@@ -293,6 +292,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   
   switch (stream->content_detection_method) {
 
+  case METHOD_EXPLICIT:
   case METHOD_BY_EXTENSION: {
     char *extensions, *mrl;
 
@@ -303,19 +303,14 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
       free (this);
       return NULL;
     }
-  }
-  /* falling through is intended */
-
-  case METHOD_BY_CONTENT:
-  case METHOD_EXPLICIT:
-
     if (!open_mod_file(this)) {
       free (this);
       return NULL;
     }
-
+  }
   break;
 
+  case METHOD_BY_CONTENT:
   default:
     free (this);
     return NULL;
