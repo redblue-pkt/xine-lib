@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3.c,v 1.54 2002/09/05 20:44:39 mroi Exp $
+ * $Id: video_out_dxr3.c,v 1.55 2002/09/20 12:51:58 mroi Exp $
  */
  
 /* mpeg1 encoding video out plugin for the dxr3.  
@@ -76,7 +76,7 @@ static vo_info_t   vo_info_dxr3 = {
 
 plugin_info_t      xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_VIDEO_OUT, 6, "dxr3", XINE_VERSION_CODE, &vo_info_dxr3, &dxr3_vo_init_plugin },
+  { PLUGIN_VIDEO_OUT, 9, "dxr3", XINE_VERSION_CODE, &vo_info_dxr3, &dxr3_vo_init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
 
