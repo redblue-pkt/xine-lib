@@ -36,7 +36,7 @@
  * along with this program; see the file COPYING.  If not, write to
  * the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: spu.c,v 1.77 2004/07/14 01:18:48 miguelfreitas Exp $
+ * $Id: spu.c,v 1.78 2004/07/19 17:12:48 mroi Exp $
  *
  */
 
@@ -793,8 +793,12 @@ static void spudec_draw_picture (xine_t *xine, spudec_state_t *state, spudec_seq
  *  ovl->clip_right  = ovl->width - 1;
  */
 
-
-  ovl->data_size = seq->cmd_offs * 2 * sizeof(rle_elem_t);
+  /* allocate for the worst case:
+   *  - both fields running to the very end
+   *  - 2 RLE elements per byte meaning single pixel RLE
+   */
+  ovl->data_size = ((seq->cmd_offs - state->field_offs[0]) + 
+                    (seq->cmd_offs - state->field_offs[1])) * 2 * sizeof(rle_elem_t);
 
   if (ovl->rle) {
     xprintf (xine, XINE_VERBOSITY_DEBUG, 
