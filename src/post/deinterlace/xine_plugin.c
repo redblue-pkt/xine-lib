@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_plugin.c,v 1.8 2003/06/22 15:42:07 miguelfreitas Exp $
+ * $Id: xine_plugin.c,v 1.9 2003/06/26 22:25:03 miguelfreitas Exp $
  *
  * advanced video deinterlacer plugin
  * Jun/2003 by Miguel Freitas
@@ -162,7 +162,7 @@ static int set_parameters (xine_post_t *this_gen, void *param_gen) {
   return 1;
 }
 
-int get_parameters (xine_post_t *this_gen, void *param_gen) {
+static int get_parameters (xine_post_t *this_gen, void *param_gen) {
   post_plugin_deinterlace_t *this = (post_plugin_deinterlace_t *)this_gen;
   deinterlace_parameters_t *param = (deinterlace_parameters_t *)param_gen;
   
@@ -177,7 +177,7 @@ int get_parameters (xine_post_t *this_gen, void *param_gen) {
   return 1;
 }
  
-xine_post_api_descr_t * get_param_descr (void) {
+static xine_post_api_descr_t * get_param_descr (void) {
   return &param_descr;
 }
 
