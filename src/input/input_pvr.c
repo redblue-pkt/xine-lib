@@ -38,7 +38,7 @@
  * usage: 
  *   xine pvr:/<prefix_to_tmp_files>\!<prefix_to_saved_files>\!<max_page_age>
  *
- * $Id: input_pvr.c,v 1.30 2003/08/04 02:52:23 miguelfreitas Exp $
+ * $Id: input_pvr.c,v 1.31 2003/08/09 23:15:46 miguelfreitas Exp $
  */
 
 /**************************************************************************
@@ -750,6 +750,13 @@ static int pvr_play_file(pvr_input_plugin_t *this, fifo_buffer_t *fifo, uint8_t 
          this->play_blk = this->page_block[this->play_page];
        }
        
+       /* that should be impossible */
+       if( this->play_page > this->rec_page ||
+           this->play_blk >= this->rec_blk-1 ) {
+         this->play_page = this->rec_page;
+         this->play_blk = this->page_block[this->play_page];
+       }
+
        /* check if we can reuse the same handle */
        if( this->play_page == this->rec_page ) {
          this->play_fd = this->rec_fd;
@@ -993,6 +1000,11 @@ static void pvr_event_handler (pvr_input_plugin_t *this) {
     switch (event->type) {
 
     case XINE_EVENT_SET_V4L2:
+      /* make sure we are not paused */
+      this->stream->xine->clock->set_speed ( this->stream->xine->clock, XINE_SPEED_NORMAL);
+      if( this->stream->audio_out )
+        this->stream->audio_out->set_property( this->stream->audio_out, AO_PROP_PAUSED, 0 );
+
       if( v4l2_data->session_id != this->session ) {
         /* if session changes -> closes the old one */
         pthread_mutex_lock(&this->lock);
@@ -1002,6 +1014,8 @@ static void pvr_event_handler (pvr_input_plugin_t *this) {
         this->session = v4l2_data->session_id;
         this->new_session = 1;
         this->pvr_play_paused = 0;
+        this->scr_tunning = 0;
+        pvrscr_speed_tunning(this->scr, 1.0 );
         pvr_break_rec_page(this);
         pthread_mutex_unlock(&this->lock);
         xine_demux_flush_engine (this->stream);
@@ -1137,7 +1151,10 @@ static void pvr_event_handler (pvr_input_plugin_t *this) {
       break;
 
     case XINE_EVENT_PVR_PAUSE:
-      this->pvr_play_paused = pause_data->mode;
+      /* ignore event if trying to pause, but already paused */
+      if(this->stream->xine->clock->speed != XINE_SPEED_PAUSE ||
+         !pause_data->mode)
+        this->pvr_play_paused = pause_data->mode;
       break;
 
     case XINE_EVENT_SET_MPEG_DATA: {
