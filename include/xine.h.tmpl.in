@@ -29,7 +29,7 @@
    \endverbatim
  */
 /*
- * $Id: xine.h.tmpl.in,v 1.7 2001/04/26 11:31:35 f1rmb Exp $
+ * $Id: xine.h.tmpl.in,v 1.8 2001/04/26 21:08:27 f1rmb Exp $
  *
  */
 
@@ -340,5 +340,9 @@ vo_driver_t *load_video_output_plugin(config_values_t *config,
 
 /** @} end of loadpluginsgroup */
 
+#define XINE_PLUGINDIR  "@XINE_PLUGINPATH@"
+#define XINE_SKINDIR    "@XINE_SKINPATH@"
+
 /** @} end of xine_api */
+
 #endif
