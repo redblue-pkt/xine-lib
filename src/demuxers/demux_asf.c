@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.151 2004/03/18 09:07:00 pmhahn Exp $
+ * $Id: demux_asf.c,v 1.152 2004/03/28 19:11:32 jstembridge Exp $
  *
  * demultiplexer for asf streams
  *
@@ -1416,7 +1416,7 @@ static int asf_parse_packet_payload_multiple(demux_asf_t *this,
   if (stream && stream->fifo) {
     if (!frag_offset) {
       /* keyframe detection for non-seekable input plugins */
-      if (stream->skip && (raw_id & 0x80) && !this->keyframe_ts) {
+      if (stream->skip && (raw_id & 0x80) && !this->keyframe_found) {
         xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "demux_asf: keyframe detected\n");
         this->keyframe_found = 1;
         this->keyframe_ts = *timestamp;
