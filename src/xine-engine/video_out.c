@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.145 2003/02/21 02:05:12 guenter Exp $
+ * $Id: video_out.c,v 1.146 2003/02/22 14:22:13 mroi Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -300,17 +300,13 @@ static vo_frame_t *vo_get_frame (xine_video_port_t *this_gen,
 static int vo_frame_draw (vo_frame_t *img, xine_stream_t *stream) {
 
   vos_t         *this = (vos_t *) img->port;
-  extra_info_t   empty_info;
   int64_t        diff;
   int64_t        cur_vpts;
   int64_t        pic_vpts ;
   int            frames_to_skip;
 
   img->stream = stream;
-  extra_info_reset(&empty_info);
-  if (memcmp(&empty_info, img->extra_info, sizeof(extra_info_t)) == 0)
-    /* the extra info is empty -> set it here */
-    extra_info_merge( img->extra_info, stream->video_decoder_extra_info );
+  extra_info_merge( img->extra_info, stream->video_decoder_extra_info );
   this->current_width = img->width;
   this->current_height = img->height;
   
