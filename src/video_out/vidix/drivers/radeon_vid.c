@@ -924,9 +924,6 @@ int vixInit( void )
   printf(RADEON_MSG" Video memory = %uMb\n",radeon_ram_size/0x100000);
   err = mtrr_set_type(pci_info.base0,radeon_ram_size,MTRR_TYPE_WRCOMB);
   if(!err) printf(RADEON_MSG" Set write-combining type of video memory\n");
-  if(bm_open() == 0) def_cap.flags |= FLAG_DMA | FLAG_EQ_DMA;
-  else
-    if(__verbose) printf(RADEON_MSG" Can't initialize busmastering: %s\n",strerror(errno));
   return 0;  
 }
 
@@ -934,7 +931,6 @@ void vixDestroy( void )
 {
   unmap_phys_mem(radeon_mem_base,radeon_ram_size);
   unmap_phys_mem(radeon_mmio_base,0xFFFF);
-  bm_close();
 }
 
 int vixGetCapability(vidix_capability_t *to)

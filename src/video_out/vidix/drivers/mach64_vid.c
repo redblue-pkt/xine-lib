@@ -443,6 +443,7 @@ static void reset_regs( void )
   }
 }
 
+
 int vixInit(void)
 {
   int err;
@@ -496,9 +497,6 @@ int vixInit(void)
   mach64_vid_make_default();
 
   if(__verbose > VERBOSE_LEVEL) mach64_vid_dump_regs();
-  if(bm_open() == 0) mach64_cap.flags |= FLAG_DMA | FLAG_EQ_DMA;
-  else
-    if(__verbose) printf("[mach64] Can't initialize busmastering: %s\n",strerror(errno));
   return 0;
 }
 
@@ -506,7 +504,6 @@ void vixDestroy(void)
 {
   unmap_phys_mem(mach64_mem_base,mach64_ram_size);
   unmap_phys_mem(mach64_mmio_base,0x4000);
-  bm_close();
 }
 
 int vixGetCapability(vidix_capability_t *to)
@@ -873,32 +870,19 @@ int vixQueryFourcc(vidix_fourcc_t *to)
 
 int vixConfigPlayback(vidix_playback_t *info)
 {
-  unsigned rgb_size,nfr;
   if(!is_supported_fourcc(info->fourcc)) return ENOSYS;
-  if(info->num_frames>VID_PLAY_MAXFRAMES) info->num_frames=VID_PLAY_MAXFRAMES;
 
   mach64_compute_framesize(info);
-  rgb_size = mach64_get_xres()*mach64_get_yres()*((mach64_vid_get_dbpp()+7)/8);
-  nfr = info->num_frames;
-  for(;nfr>0;nfr--)
+
+  if(info->num_frames>4) info->num_frames=4;
+  for(;info->num_frames>0; info->num_frames--)
   {
-      mach64_overlay_offset = mach64_ram_size - info->frame_size*nfr;
+      mach64_overlay_offset = mach64_ram_size - info->frame_size*info->num_frames;
       mach64_overlay_offset &= 0xffff0000;
-      if(mach64_overlay_offset >= (int)rgb_size ) break;
+      if(mach64_overlay_offset>0) break;
   }
-  if(nfr <= 3)
-  {
-   nfr = info->num_frames;
-   for(;nfr>0;nfr--)
-   {
-      mach64_overlay_offset = mach64_ram_size - info->frame_size*nfr;
-      mach64_overlay_offset &= 0xffff0000;
-      if(mach64_overlay_offset>=0) break;
-   }
-  }
-  if(nfr <= 0) return EINVAL;
-  info->num_frames=nfr;
-  num_mach64_buffers = info->num_frames;
+  if(info->num_frames <= 0) return EINVAL;
+
   info->dga_addr = (char *)mach64_mem_base + mach64_overlay_offset;
   mach64_vid_init_video(info);
   return 0;
@@ -906,15 +890,8 @@ int vixConfigPlayback(vidix_playback_t *info)
 
 int vixPlaybackOn(void)
 {
-  int err;
   mach64_vid_display_video();
-  err = INREG(SCALER_BUF_PITCH) == besr.vid_buf_pitch ? 0 : EINTR;
-  if(err)
-  {
-    printf("[mach64] *** Internal fatal error ***: Detected pitch corruption\n"
-	   "[mach64] Try decrease number of buffers\n");
-  }
-  return err;
+  return 0;
 }
 
 int vixPlaybackOff(void)
@@ -934,12 +911,12 @@ int vixPlaybackFrameSelect(unsigned int frame)
     deinterlacing and TV-in
     */
     if(num_mach64_buffers==1) return 0;
+
     for(i=0; i<3; i++)
     {
     	off[i]  = mach64_buffer_base[frame][i];
     	off[i+3]= mach64_buffer_base[last_frame][i];
     }
-    if(__verbose > VERBOSE_LEVEL) printf("mach64_vid: flip_page = %u\n",frame);
 
 #if 0 // delay routine so the individual frames can be ssen better
 {
