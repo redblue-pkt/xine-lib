@@ -147,7 +147,7 @@ AC_DEFUN([AM_CHECK_CDROM_IOCTLS],
 #ifdef HAVE_LINUX_CDROM_H
 #  include <linux/cdrom.h>
 #endif
-#if defined(CDROM_DRIVE_STATUS) || defined(CDIOCALLOW)
+#if defined(CDROM_DRIVE_STATUS) || defined(CDIOCALLOW) || defined(CDROMCDXA)
   we_have_cdrom_ioctls
 #endif
 ],

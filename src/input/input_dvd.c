@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.14 2001/07/16 19:36:00 mshopf Exp $
+ * $Id: input_dvd.c,v 1.15 2001/07/17 13:28:10 jkeil Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -41,7 +41,7 @@
 # include <linux/config.h> /* Check for DEVFS */
 # include <linux/cdrom.h>
 #endif
-#if ! defined (HAVE_LINUX_CDROM_H) && ! defined (HAVE_SYS_CDIO)
+#if ! defined (HAVE_LINUX_CDROM_H) && ! defined (HAVE_SYS_CDIO_H)
 #error "you need to add cdrom / VCD support for your platform to input_vcd and configure.in"
 #endif
 
