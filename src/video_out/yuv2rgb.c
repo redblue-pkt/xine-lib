@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * $Id: yuv2rgb.c,v 1.21 2001/09/27 18:41:33 jkeil Exp $
+ * $Id: yuv2rgb.c,v 1.22 2001/09/28 19:39:25 jkeil Exp $
  */
 
 #include "config.h"
@@ -262,6 +262,235 @@ static void scale_line_15_16 (uint8_t *source, uint8_t *dest,
   if (--width <= 0) goto done;
   *dest++ = (7*source[13] + 1*source[14]) >> 3;
  done:
+  profiler_stop_count(prof_scale_line);
+}
+
+
+/*
+ * Interpolates 53 output pixels from 45 source pixels using shifts.
+ * Useful for scaling a NTSC mpeg2 dvd input source to 16:9 display
+ * resulution
+ * fullscreen resolution, or to 16:9 format on a monitor using square
+ * pixels.
+ * (720 x 480 ==> 848 x 480)
+ */
+static void scale_line_45_53 (uint8_t *source, uint8_t *dest,
+			      int width, int step) {
+
+  int p1, p2;
+
+  profiler_start_count(prof_scale_line);
+
+  while ((width -= 53) >= 0) {
+    p1 = source[0];
+    p2 = source[1];
+    dest[0] = p1;
+    dest[1] = (1*p1 + 7*p2) >> 3;
+    p1 = source[2];
+    dest[2] = (1*p2 + 3*p1) >> 2;
+    p2 = source[3];
+    dest[3] = (1*p1 + 1*p2) >> 1;
+    p1 = source[4];
+    dest[4] = (5*p2 + 3*p1) >> 3;
+    p2 = source[5];
+    dest[5] = (3*p1 + 1*p2) >> 2;
+    p1 = source[6];
+    dest[6] = (7*p2 + 1*p1) >> 3;
+    dest[7] = p1;
+    p2 = source[7];
+    dest[8] = (1*p1 + 3*p2) >> 2;
+    p1 = source[8];
+    dest[9] = (3*p2 + 5*p1) >> 3;
+    p2 = source[9];
+    dest[10] = (1*p1 + 1*p2) >> 1;
+    p1 = source[10];
+    dest[11] = (5*p2 + 3*p1) >> 3;
+    p2 = source[11];
+    dest[12] = (3*p1 + 1*p2) >> 2;
+    p1 = source[12];
+    dest[13] = p2;
+    dest[14] = (1*p2 + 7*p1) >> 3;
+    p2 = source[13];
+    dest[15] = (1*p1 + 3*p2) >> 2;
+    p1 = source[14];
+    dest[16] = (3*p2 + 5*p1) >> 3;
+    p2 = source[15];
+    dest[17] = (5*p1 + 3*p2) >> 3;
+    p1 = source[16];
+    dest[18] = (3*p2 + 1*p1) >> 2;
+    p2 = source[17];
+    dest[19] = (7*p1 + 1*p2) >> 3;
+    dest[20] = p2;
+    p1 = source[18];
+    dest[21] = (1*p2 + 7*p1) >> 3;
+    p2 = source[19];
+    dest[22] = (3*p1 + 5*p2) >> 3;
+    p1 = source[20];
+    dest[23] = (1*p2 + 1*p1) >> 1;
+    p2 = source[21];
+    dest[24] = (5*p1 + 3*p2) >> 3;
+    p1 = source[22];
+    dest[25] = (3*p2 + 1*p1) >> 2;
+    p2 = source[23];
+    dest[26] = (7*p1 + 1*p2) >> 3;
+    dest[27] = (1*p1 + 7*p2) >> 3;
+    p1 = source[24];
+    dest[28] = (1*p2 + 3*p1) >> 2;
+    p2 = source[25];
+    dest[29] = (3*p1 + 5*p2) >> 3;
+    p1 = source[26];
+    dest[30] = (1*p2 + 1*p1) >> 1;
+    p2 = source[27];
+    dest[31] = (5*p1 + 3*p2) >> 3;
+    p1 = source[28];
+    dest[32] = (7*p2 + 1*p1) >> 3;
+    p2 = source[29];
+    dest[33] = p1;
+    dest[34] = (1*p1 + 7*p2) >> 3;
+    p1 = source[30];
+    dest[35] = (1*p2 + 3*p1) >> 2;
+    p2 = source[31];
+    dest[36] = (3*p1 + 5*p2) >> 3;
+    p1 = source[32];
+    dest[37] = (5*p2 + 3*p1) >> 3;
+    p2 = source[33];
+    dest[38] = (3*p1 + 1*p2) >> 2;
+    p1 = source[34];
+    dest[39] = (7*p2 + 1*p1) >> 3;
+    dest[40] = p1;
+    p2 = source[35];
+    dest[41] = (1*p1 + 3*p2) >> 2;
+    p1 = source[36];
+    dest[42] = (3*p2 + 5*p1) >> 3;
+    p2 = source[37];
+    dest[43] = (1*p1 + 1*p2) >> 1;
+    p1 = source[38];
+    dest[44] = (5*p2 + 3*p1) >> 3;
+    p2 = source[39];
+    dest[45] = (3*p1 + 1*p2) >> 2;
+    p1 = source[40];
+    dest[46] = p2;
+    dest[47] = (1*p2 + 7*p1) >> 3;
+    p2 = source[41];
+    dest[48] = (1*p1 + 3*p2) >> 2;
+    p1 = source[42];
+    dest[49] = (3*p2 + 5*p1) >> 3;
+    p2 = source[43];
+    dest[50] = (1*p1 + 1*p2) >> 1;
+    p1 = source[44];
+    dest[51] = (3*p2 + 1*p1) >> 2;
+    p2 = source[45];
+    dest[52] = (7*p1 + 1*p2) >> 3;
+    source += 45;
+    dest += 53;
+  }
+
+  if ((width += 53) <= 0) goto done;
+  *dest++ = source[0];
+  if (--width <= 0) goto done;
+  *dest++ = (1*source[0] + 7*source[1]) >> 3;
+  if (--width <= 0) goto done;
+  *dest++ = (1*source[1] + 3*source[2]) >> 2;
+  if (--width <= 0) goto done;
+  *dest++ = (1*source[2] + 1*source[3]) >> 1;
+  if (--width <= 0) goto done;
+  *dest++ = (5*source[3] + 3*source[4]) >> 3;
+  if (--width <= 0) goto done;
+  *dest++ = (3*source[4] + 1*source[5]) >> 2;
+  if (--width <= 0) goto done;
+  *dest++ = (7*source[5] + 1*source[6]) >> 3;
+  if (--width <= 0) goto done;
+  *dest++ = source[6];
+  if (--width <= 0) goto done;
+  *dest++ = (1*source[6] + 3*source[7]) >> 2;
+  if (--width <= 0) goto done;
+  *dest++ = (3*source[7] + 5*source[8]) >> 3;
+  if (--width <= 0) goto done;
+  *dest++ = (1*source[8] + 1*source[9]) >> 1;
+  if (--width <= 0) goto done;
+  *dest++ = (5*source[9] + 3*source[10]) >> 3;
+  if (--width <= 0) goto done;
+  *dest++ = (3*source[10] + 1*source[11]) >> 2;
+  if (--width <= 0) goto done;
+  *dest++ = source[11];
+  if (--width <= 0) goto done;
+  *dest++ = (1*source[11] + 7*source[12]) >> 3;
+  if (--width <= 0) goto done;
+  *dest++ = (1*source[12] + 3*source[13]) >> 2;
+  if (--width <= 0) goto done;
+  *dest++ = (3*source[13] + 5*source[14]) >> 3;
+  if (--width <= 0) goto done;
+  *dest++ = (5*source[14] + 3*source[15]) >> 3;
+  if (--width <= 0) goto done;
+  *dest++ = (3*source[15] + 1*source[16]) >> 2;
+  if (--width <= 0) goto done;
+  *dest++ = (7*source[16] + 1*source[17]) >> 3;
+  if (--width <= 0) goto done;
+  *dest++ = source[17];
+  if (--width <= 0) goto done;
+  *dest++ = (1*source[17] + 7*source[18]) >> 3;
+  if (--width <= 0) goto done;
+  *dest++ = (3*source[18] + 5*source[19]) >> 3;
+  if (--width <= 0) goto done;
+  *dest++ = (1*source[19] + 1*source[20]) >> 1;
+  if (--width <= 0) goto done;
+  *dest++ = (5*source[20] + 3*source[21]) >> 3;
+  if (--width <= 0) goto done;
+  *dest++ = (3*source[21] + 1*source[22]) >> 2;
+  if (--width <= 0) goto done;
+  *dest++ = (7*source[22] + 1*source[23]) >> 3;
+  if (--width <= 0) goto done;
+  *dest++ = (1*source[22] + 7*source[23]) >> 3;
+  if (--width <= 0) goto done;
+  *dest++ = (1*source[23] + 3*source[24]) >> 2;
+  if (--width <= 0) goto done;
+  *dest++ = (3*source[24] + 5*source[25]) >> 3;
+  if (--width <= 0) goto done;
+  *dest++ = (1*source[25] + 1*source[26]) >> 1;
+  if (--width <= 0) goto done;
+  *dest++ = (5*source[26] + 3*source[27]) >> 3;
+  if (--width <= 0) goto done;
+  *dest++ = (7*source[27] + 1*source[28]) >> 3;
+  if (--width <= 0) goto done;
+  *dest++ = source[28];
+  if (--width <= 0) goto done;
+  *dest++ = (1*source[28] + 7*source[29]) >> 3;
+  if (--width <= 0) goto done;
+  *dest++ = (1*source[29] + 3*source[30]) >> 2;
+  if (--width <= 0) goto done;
+  *dest++ = (3*source[30] + 5*source[31]) >> 3;
+  if (--width <= 0) goto done;
+  *dest++ = (5*source[31] + 3*source[32]) >> 3;
+  if (--width <= 0) goto done;
+  *dest++ = (3*source[32] + 1*source[33]) >> 2;
+  if (--width <= 0) goto done;
+  *dest++ = (7*source[33] + 1*source[34]) >> 3;
+  if (--width <= 0) goto done;
+  *dest++ = source[34];
+  if (--width <= 0) goto done;
+  *dest++ = (1*source[34] + 3*source[35]) >> 2;
+  if (--width <= 0) goto done;
+  *dest++ = (3*source[35] + 5*source[36]) >> 3;
+  if (--width <= 0) goto done;
+  *dest++ = (1*source[36] + 1*source[37]) >> 1;
+  if (--width <= 0) goto done;
+  *dest++ = (5*source[37] + 3*source[38]) >> 3;
+  if (--width <= 0) goto done;
+  *dest++ = (3*source[38] + 1*source[39]) >> 2;
+  if (--width <= 0) goto done;
+  *dest++ = source[39];
+  if (--width <= 0) goto done;
+  *dest++ = (1*source[39] + 7*source[40]) >> 3;
+  if (--width <= 0) goto done;
+  *dest++ = (1*source[40] + 3*source[41]) >> 2;
+  if (--width <= 0) goto done;
+  *dest++ = (3*source[41] + 5*source[42]) >> 3;
+  if (--width <= 0) goto done;
+  *dest++ = (1*source[42] + 1*source[43]) >> 1;
+  if (--width <= 0) goto done;
+  *dest++ = (3*source[43] + 1*source[44]) >> 2;
+ done:
+
   profiler_stop_count(prof_scale_line);
 }
 
@@ -894,8 +1123,10 @@ static void scale_line_1_2 (uint8_t *source, uint8_t *dest,
 }
 
 			
-/* Scale line with no scaling. */
-
+/*
+ * Scale line with no horizontal scaling. For NTSC mpeg2 dvd input in
+ * 4:3 output format (720x480 -> 720x540)
+ */
 static void scale_line_1_1 (uint8_t *source, uint8_t *dest,
 			    int width, int step) {
 
@@ -912,13 +1143,14 @@ static scale_line_func_t find_scale_line_func(int step) {
     scale_line_func_t	func;
     char	       *desc;
   } scale_line[] = {
-    { 15, 16, scale_line_15_16, "dvd(pal) 4:3" },
-    { 45, 64, scale_line_45_64, "dvd fullscreen(1024x768)" },
+    { 15, 16, scale_line_15_16, "dvd 4:3(pal)" },
+    { 45, 64, scale_line_45_64, "dvd 16:9(pal), fullscreen(1024x768)" },
     {  9, 16, scale_line_9_16,  "dvd fullscreen(1280x1024)" },
-    { 11, 12, scale_line_11_12, "vcd(pal) 4:3" },
-    { 11, 24, scale_line_11_24, "vcd(pal) 4:3 2*zoom" },
-    {  5,  8, scale_line_5_8,   "svcd(pal) 4:3" },
-    {  3,  4, scale_line_3_4,   "svcd(ntsc) 4:3" },
+    { 45, 53, scale_line_45_53, "dvd 16:9(ntsc)" },
+    { 11, 12, scale_line_11_12, "vcd 4:3(pal)" },
+    { 11, 24, scale_line_11_24, "vcd 4:3(pal) 2*zoom" },
+    {  5,  8, scale_line_5_8,   "svcd 4:3(pal)" },
+    {  3,  4, scale_line_3_4,   "svcd 4:3(ntsc)" },
     {  1,  2, scale_line_1_2,   "2*zoom" },
     {  1,  1, scale_line_1_1,   "non-scaled" },
   };
