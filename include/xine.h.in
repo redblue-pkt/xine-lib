@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.8 2002/09/07 20:09:28 mroi Exp $
+ * $Id: xine.h.in,v 1.9 2002/09/08 16:20:09 mroi Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -363,10 +363,10 @@ int xine_register_report_codec_cb(xine_p self,
 
 /* possible ratios for XINE_PARAM_VO_ASPECT_RATIO */
 #define XINE_VO_ASPECT_AUTO                0
-#define XINE_VO_ASPECT_ANAMORPHIC          1 /* 16:9 */
+#define XINE_VO_ASPECT_SQUARE              1 /* 1:1  */
 #define XINE_VO_ASPECT_4_3                 2 /* 4:3  */
-#define XINE_VO_ASPECT_DVB                 3 /* 1:2  */
-#define XINE_VO_ASPECT_SQUARE              4 /* 1:1  */
+#define XINE_VO_ASPECT_ANAMORPHIC          3 /* 16:9 */
+#define XINE_VO_ASPECT_DVB                 4 /* 1:2  */
 #define XINE_VO_ASPECT_NUM_RATIOS          5
 #define XINE_VO_ASPECT_PAN_SCAN            41
 #define XINE_VO_ASPECT_DONT_TOUCH          42

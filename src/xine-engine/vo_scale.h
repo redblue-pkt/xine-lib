@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: vo_scale.h,v 1.2 2002/09/04 23:31:13 guenter Exp $
+ * $Id: vo_scale.h,v 1.3 2002/09/08 16:20:13 mroi Exp $
  * 
  * vo_scale.h
  *
@@ -41,10 +41,6 @@ typedef struct {
 } vo_scale_rect_t;
 
 struct vo_scale_s {
-
-  /* display anatomy */
-  double             display_ratio;        /* given by visual parameter
-					      from init function              */
 
   /* true if driver supports frame zooming */
   int                support_zoom;
@@ -75,12 +71,9 @@ struct vo_scale_s {
   int                displayed_height;
   double             zoom_factor_x, zoom_factor_y;
 
-  /* 
-   * "ideal" size :
-   * delivered width/height corrected by aspect ratio and display_ratio
-   * units: screen pixels
+  /*
+   * user's aspect selection
    */
-  int                ideal_width, ideal_height;
   int                user_ratio;
 
   /*
@@ -179,8 +172,7 @@ char *vo_scale_aspect_ratio_name(int a);
  * initialize rescaling struct
  */
  
-void vo_scale_init(vo_scale_t *this, double display_ratio,
-                  int support_zoom, int scaling_disabled );
+void vo_scale_init(vo_scale_t *this, int support_zoom, int scaling_disabled );
 
 #ifdef __cplusplus
 }

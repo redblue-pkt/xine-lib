@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: vo_scale.c,v 1.6 2002/09/05 05:51:15 jcdutton Exp $
+ * $Id: vo_scale.c,v 1.7 2002/09/08 16:20:13 mroi Exp $
  * 
  * Contains common code to calculate video scaling parameters.
  * In short, it will map frame dimensions to screen/window size.
@@ -43,12 +43,11 @@
 
 void vo_scale_compute_ideal_size (vo_scale_t *this) {
 
-  double image_ratio, desired_ratio, corr_factor;
+  double image_ratio, desired_ratio;
   
   if (this->scaling_disabled) {
 
-    this->ideal_width   = this->delivered_width;
-    this->ideal_height  = this->delivered_height;
+    this->video_pixel_aspect = this->gui_pixel_aspect;
 
   } else {
   
@@ -58,6 +57,7 @@ void vo_scale_compute_ideal_size (vo_scale_t *this) {
   
     image_ratio = (double) this->delivered_width / (double) this->delivered_height;
     
+    printf("vo_scale: DEBUG: user ratio %d, delivered ratio %d\n", this->user_ratio, this->delivered_ratio_code);
     switch (this->user_ratio) {
     case ASPECT_AUTO:
       switch (this->delivered_ratio_code) {
@@ -65,11 +65,9 @@ void vo_scale_compute_ideal_size (vo_scale_t *this) {
       case XINE_VO_ASPECT_PAN_SCAN:    /* we display pan&scan as widescreen */
         desired_ratio = 16.0 /9.0;
         break;
-#if 0 /* FIXME */
-      case XINE_VO_ASPECT_211_1:       /* 2.11:1 */
+      case XINE_VO_ASPECT_DVB:         /* 2.11:1 */
         desired_ratio = 2.11/1.0;
         break;
-#endif
       case XINE_VO_ASPECT_SQUARE:      /* square pels */
       case XINE_VO_ASPECT_DONT_TOUCH:  /* probably non-mpeg stream => don't touch aspect ratio */
         desired_ratio = image_ratio;
@@ -98,25 +96,6 @@ void vo_scale_compute_ideal_size (vo_scale_t *this) {
       desired_ratio = 4.0 / 3.0;
     }
 
-    corr_factor = this->display_ratio * desired_ratio / image_ratio ;
-
-    if (fabs(corr_factor - 1.0) < 0.005) {
-      this->ideal_width  = this->delivered_width;
-      this->ideal_height = this->delivered_height;
-
-    } else {
-
-      if (corr_factor >= 1.0) {
-        this->ideal_width  = this->delivered_width * corr_factor + 0.5;
-        this->ideal_height = this->delivered_height;
-      } else {
-        this->ideal_width  = this->delivered_width;
-        this->ideal_height = this->delivered_height / corr_factor + 0.5;
-      }
-    }
-
-
-#if 0  
     this->video_pixel_aspect = desired_ratio / image_ratio;
     
     assert (this->gui_pixel_aspect != 0.0);
@@ -124,7 +103,6 @@ void vo_scale_compute_ideal_size (vo_scale_t *this) {
 	< 0.005) {
       this->video_pixel_aspect = this->gui_pixel_aspect;
     }
-#endif
 
 #if 0
     
@@ -146,10 +124,11 @@ void vo_scale_compute_ideal_size (vo_scale_t *this) {
 
 void vo_scale_compute_output_size (vo_scale_t *this) {
   
-  double x_factor, y_factor;
+  double x_factor, y_factor, aspect;
     
-  x_factor = (double) this->gui_width  / (double) this->ideal_width;
-  y_factor = (double) this->gui_height / (double) this->ideal_height;
+  aspect   = this->video_pixel_aspect / this->gui_pixel_aspect;
+  x_factor = (double) this->gui_width  / (double) (this->delivered_width * aspect);
+  y_factor = (double) (this->gui_height * aspect) / (double)  this->delivered_height;
 
   if (this->scaling_disabled) {
 
@@ -172,7 +151,7 @@ void vo_scale_compute_output_size (vo_scale_t *this) {
         this->output_width = this->gui_width;
         this->displayed_width = this->delivered_width / this->zoom_factor_x;
         
-        this->output_height = this->ideal_height * x_factor;
+        this->output_height = this->delivered_height * x_factor;
         if( this->output_height * this->zoom_factor_y <= this->gui_height ) {
           this->displayed_height = this->delivered_height;
           this->output_height = this->output_height * this->zoom_factor_y;
@@ -185,7 +164,7 @@ void vo_scale_compute_output_size (vo_scale_t *this) {
         this->output_height = this->gui_height;
         this->displayed_height = this->delivered_height / this->zoom_factor_y;
         
-        this->output_width = this->ideal_width * y_factor;
+        this->output_width = this->delivered_width * y_factor;
         if( this->output_width * this->zoom_factor_x <= this->gui_width ) {
           this->displayed_width = this->delivered_width;
           this->output_width = this->output_width * this->zoom_factor_x;
@@ -199,9 +178,9 @@ void vo_scale_compute_output_size (vo_scale_t *this) {
     } else {
       if(x_factor < y_factor) {
         this->output_width   = (double) this->gui_width;
-        this->output_height  = (double) this->ideal_height * x_factor;
+        this->output_height  = (double) this->delivered_height * x_factor;
       } else {
-        this->output_width   = (double) this->ideal_width  * y_factor;
+        this->output_width   = (double) this->delivered_width  * y_factor;
         this->output_height  = (double) this->gui_height;
       }
       this->displayed_width = this->delivered_width;
@@ -265,21 +244,22 @@ void vo_scale_compute_output_size (vo_scale_t *this) {
 
 int vo_scale_redraw_needed (vo_scale_t *this) {
   int gui_x, gui_y, gui_width, gui_height, gui_win_x, gui_win_y;
-  double gui_aspect;
+  double gui_pixel_aspect;
   int ret = 0;
   
   if( this->frame_output_cb ) {
     this->frame_output_cb (this->user_data,
-			   this->ideal_width, this->ideal_height, 
+			   this->delivered_width, this->delivered_height, 
 			   this->video_pixel_aspect,
 			   &gui_x, &gui_y, &gui_width, &gui_height,
-			   &gui_aspect, &gui_win_x, &gui_win_y );
+			   &gui_pixel_aspect, &gui_win_x, &gui_win_y );
   } else {
     printf ("vo_scale: error! frame_output_cb must be set!\n");
   }
 
   if ( (gui_x != this->gui_x) || (gui_y != this->gui_y)
       || (gui_width != this->gui_width) || (gui_height != this->gui_height)
+      || (gui_pixel_aspect != this->gui_pixel_aspect)
       || (gui_win_x != this->gui_win_x) || (gui_win_y != this->gui_win_y) ) {
 
     this->gui_x      = gui_x;
@@ -288,6 +268,7 @@ int vo_scale_redraw_needed (vo_scale_t *this) {
     this->gui_height = gui_height;
     this->gui_win_x  = gui_win_x;
     this->gui_win_y  = gui_win_y;
+    this->gui_pixel_aspect = gui_pixel_aspect;
 
     ret = 1;
   }
@@ -358,17 +339,15 @@ char *vo_scale_aspect_ratio_name(int a) {
  * initialize rescaling struct
  */
  
-void vo_scale_init(vo_scale_t *this, double display_ratio,
-                  int support_zoom, int scaling_disabled ) {
+void vo_scale_init(vo_scale_t *this, int support_zoom, int scaling_disabled ) {
   
   memset( this, 0, sizeof(vo_scale_t) );
-  this->display_ratio = display_ratio;
-  this->gui_pixel_aspect = display_ratio;
   this->support_zoom = support_zoom;
   this->scaling_disabled = scaling_disabled;
   this->force_redraw = 1;
   this->zoom_factor_x = 1.0;
   this->zoom_factor_y = 1.0;
+  this->gui_pixel_aspect = 1.0;
   this->user_ratio = ASPECT_AUTO;
 }                  
 

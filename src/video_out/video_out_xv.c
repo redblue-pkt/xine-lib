@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.130 2002/09/05 20:44:42 mroi Exp $
+ * $Id: video_out_xv.c,v 1.131 2002/09/08 16:20:11 mroi Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -1140,7 +1140,7 @@ static void *init_video_out_plugin (xine_t *xine, void *visual_gen) {
   this->overlay           = NULL;
   this->screen            = visual->screen;
   
-  vo_scale_init (&this->sc, 1.0 /* FIXME */, 1, 0 );
+  vo_scale_init (&this->sc, 1, 0 );
   this->sc.frame_output_cb   = visual->frame_output_cb;
   this->sc.user_data         = visual->user_data;
   
