@@ -43,10 +43,14 @@
 
 extern int errno;
 
-#define PREVIEW_SIZE            2200
-#define BUFSIZE 1024
+/*
+#define LOG
+*/
 
-#define DEFAULT_HTTP_PORT 80
+#define PREVIEW_SIZE            2200
+#define BUFSIZE                 1024
+
+#define DEFAULT_HTTP_PORT         80
 
 typedef struct {
   input_plugin_t   input_plugin;
@@ -64,6 +68,7 @@ typedef struct {
     
   char             buf[BUFSIZE];
   char             mrlbuf[BUFSIZE];
+  char             mrlbuf2[BUFSIZE]; /* icecast */
   char             proxybuf[BUFSIZE];
 
   char             auth[BUFSIZE];
@@ -292,7 +297,8 @@ static int http_plugin_open (input_plugin_t *this_gen, char *mrl) {
   int     done,len,linenum;
 
   strncpy (this->mrlbuf, mrl, BUFSIZE);
-  this->mrl = mrl;
+  strncpy (this->mrlbuf2, mrl, BUFSIZE);
+  this->mrl = this->mrlbuf2;
 
   if (strncasecmp (this->mrlbuf, "http://", 7))
     return 0;
@@ -440,10 +446,18 @@ static int http_plugin_open (input_plugin_t *this_gen, char *mrl) {
 	char httpstatus[BUFSIZE];
 
 	if (sscanf(this->buf, "HTTP/%d.%d %d %[^\015\012]", &httpver, &httpsub,
-		   &httpcode, httpstatus) != 4)
-	{
-      	  xine_log (this->xine, XINE_LOG_MSG, _("input_http: invalid http answer\n"));
-	  return 0;
+		   &httpcode, httpstatus) != 4)	{
+	  
+	  /* icecast ? */
+	  if (sscanf(this->buf, "ICY %d OK", &httpcode) != 1)	{
+	    xine_log (this->xine, XINE_LOG_MSG, _("input_http: invalid http answer\n"));
+	    return 0;
+	  } else {
+	    this->mrlbuf2[0] = 'i';
+	    this->mrlbuf2[1] = 'c';
+	    this->mrlbuf2[2] = 'e';
+	    this->mrlbuf2[3] = ' ';
+	  }
 	}
 	
 	if (httpcode >= 300 && httpcode < 400) {
@@ -516,7 +530,7 @@ static off_t http_plugin_read (input_plugin_t *this_gen,
 	n = nlen - num_bytes;
 
 #ifdef LOG
-      printf ("stdin: %lld bytes from preview (which has %lld bytes)\n",
+      printf ("input_http: %lld bytes from preview (which has %lld bytes)\n",
 	      n, this->preview_size);
 #endif
 
@@ -647,7 +661,7 @@ static char *http_plugin_get_identifier (input_plugin_t *this_gen) {
 static char* http_plugin_get_mrl (input_plugin_t *this_gen) {
   http_input_plugin_t *this = (http_input_plugin_t *) this_gen;
 
-  return this->mrl;
+  return this->mrlbuf2;
 }
 
 static int http_plugin_get_optional_data (input_plugin_t *this_gen, 

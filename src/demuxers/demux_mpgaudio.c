@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpgaudio.c,v 1.53 2002/08/10 21:39:53 miguelfreitas Exp $
+ * $Id: demux_mpgaudio.c,v 1.54 2002/08/18 22:44:50 guenter Exp $
  *
  * demultiplexer for mpeg audio (i.e. mp3) streams
  *
@@ -39,6 +39,10 @@
 #include "compat.h"
 #include "demux.h"
 #include "bswap.h"
+
+/*
+#define LOG
+*/
 
 #define DEMUX_MPGAUDIO_IFACE_VERSION 3
 
@@ -152,8 +156,10 @@ static void mpg123_decode_header(demux_mpgaudio_t *this,unsigned long newhead)
   if( !this->bitrate ) /* bitrate can't be zero, default to 128 */
     this->bitrate = 128;
     
+#ifdef LOG
   xine_log (this->xine, XINE_LOG_FORMAT, 
 	    _("demux_mpgaudio: MPEG %s  Layer %d  %ldkbps\n"), ver, lay, this->bitrate );
+#endif
   this->stream_length = (int)(this->input->get_length(this->input) / (this->bitrate * 1000 / 8));
 }
 
@@ -212,8 +218,13 @@ static int demux_mpgaudio_next (demux_mpgaudio_t *this) {
 
   /*buf->pts             = 0;*/
   buf->input_pos       = this->input->get_current_pos(this->input);
-  buf->input_time      = buf->input_pos * this->stream_length /
-                         this->input->get_length(this->input);
+  {
+    int len = this->input->get_length(this->input);
+    if (len>0)
+      buf->input_time = buf->input_pos * this->stream_length / len;
+    else 
+      buf->input_time = 0;
+  }
   buf->pts             = pts;
   buf->type            = BUF_AUDIO_MPEG;
   buf->decoder_info[0] = 1;
@@ -296,8 +307,8 @@ static int demux_mpgaudio_get_status (demux_plugin_t *this_gen) {
   return (this->thread_running?DEMUX_OK:DEMUX_FINISHED);
 }
 
-static uint32_t demux_mpgaudio_read_head(input_plugin_t *input)
-{
+static uint32_t demux_mpgaudio_read_head(input_plugin_t *input) {
+
   uint8_t buf[4096];
   uint32_t head=0;
   int bs = 0;
@@ -316,7 +327,23 @@ static uint32_t demux_mpgaudio_read_head(input_plugin_t *input)
 
     if(input->read(input, buf, bs))
       head = (buf[0] << 24) + (buf[1] << 16) + (buf[2] << 8) + buf[3];
+
+#ifdef LOG
+    printf ("demux_mpgaudio: stream is seekable\n");
+#endif
+
+  } else  if (input->get_optional_data (input, buf, INPUT_OPTIONAL_DATA_PREVIEW)) {
+    head = (buf[0] << 24) + (buf[1] << 16) + (buf[2] << 8) + buf[3];
+#ifdef LOG
+    printf ("demux_mpgaudio: got preview\n");
+#endif
+  } else {
+#ifdef LOG
+    printf ("demux_mpgaudio: not seekable, no preview\n");
+#endif
+    return 0;
   }
+
   return head;
 }
 
@@ -361,6 +388,10 @@ static int demux_mpgaudio_start (demux_plugin_t *this_gen,
 
     this->input->seek (this->input, start_pos, SEEK_SET);
 
+  } else if( !this->thread_running ) {
+
+    
+
   }
 
   this->status = DEMUX_OK;
@@ -397,8 +428,8 @@ static int demux_mpgaudio_seek (demux_plugin_t *this_gen,
 			     off_t start_pos, int start_time) {
   demux_mpgaudio_t *this = (demux_mpgaudio_t *) this_gen;
 
-	return demux_mpgaudio_start (this_gen, this->video_fifo, this->audio_fifo,
-			 start_pos, start_time);
+  return demux_mpgaudio_start (this_gen, this->video_fifo, this->audio_fifo,
+			       start_pos, start_time);
 }
 
 static int demux_mpgaudio_open(demux_plugin_t *this_gen,
@@ -417,8 +448,14 @@ static int demux_mpgaudio_open(demux_plugin_t *this_gen,
 
     head = demux_mpgaudio_read_head(input);
 
+#ifdef LOG
+    printf ("demux_mpgaudio: head is %x\n", head);
+#endif
+
     if (head == RIFF_TAG) {
-//printf (" **** found RIFF tag\n");
+#ifdef LOG
+      printf (" **** found RIFF tag\n");
+#endif
       /* skip the remaining 12 bytes of the RIFF tag */
       input->seek(input, 12, SEEK_CUR);
 
@@ -438,7 +475,9 @@ static int demux_mpgaudio_open(demux_plugin_t *this_gen,
 
       for (i = 0; i < RIFF_CHECK_BYTES - 4; i++) {
         head = be2me_32(*(unsigned int *)&riff_check[i]);
-//printf (" **** mpg123: checking %08X\n", head);
+#ifdef LOG
+	printf ("demux_mpgaudio: **** mpg123: checking %08X\n", head);
+#endif
         if (mpg123_head_check(head)) {
           this->input = input;
           return DEMUX_CAN_HANDLE;
@@ -460,6 +499,15 @@ static int demux_mpgaudio_open(demux_plugin_t *this_gen,
     char *m, *valid_ends;
 
     MRL = input->get_mrl (input);
+
+#ifdef LOG
+    printf ("demux_mpgaudio: stage by extension %s\n", MRL);
+#endif
+
+    if (!strncmp (MRL, "ice ://", 7)) {
+      this->input = input;
+      return DEMUX_CAN_HANDLE;
+    }
     
     suffix = strrchr(MRL, '.');
     
@@ -510,8 +558,7 @@ static void demux_mpgaudio_close (demux_plugin_t *this) {
 static int demux_mpgaudio_get_stream_length (demux_plugin_t *this_gen) {
   demux_mpgaudio_t *this = (demux_mpgaudio_t *) this_gen;
 
-  if( this->stream_length > 0 )
-  {
+  if( this->stream_length > 0 ) {
     return this->stream_length;
   }
   else
