@@ -206,8 +206,8 @@ xine_health_check_t* _x_health_check_cdrom (xine_health_check_t* hc) {
   int fd;
 
   hc->title       = "Check for CDROM drive";
-  hc->explanation = "Either create a symbolic link /dev/cdrom pointing to"
-                    "your cdrom device or set your cdrom device in the"
+  hc->explanation = "Either create a symbolic link /dev/cdrom pointing to "
+                    "your cdrom device or set your cdrom device in the "
                     "preferences dialog.";
 
   if (stat (hc->cdrom_dev,&cdrom_st) < 0) {
@@ -242,8 +242,8 @@ xine_health_check_t* _x_health_check_dvdrom(xine_health_check_t* hc) {
   int fd;
 
   hc->title       = "Check for DVD drive";
-  hc->explanation = "Either create a symbolic link /dev/dvd pointing to"
-                    "your cdrom device or set your cdrom device in the"
+  hc->explanation = "Either create a symbolic link /dev/dvd pointing to "
+                    "your cdrom device or set your cdrom device in the "
                     "preferences dialog.";
 
   if (stat (hc->dvd_dev,&dvdrom_st) < 0) {
