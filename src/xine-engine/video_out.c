@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.81 2002/03/20 23:12:58 guenter Exp $
+ * $Id: video_out.c,v 1.82 2002/03/21 12:58:20 miguelfreitas Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -473,6 +473,8 @@ static vo_frame_t *get_next_frame (vos_t *this, int64_t cur_vpts) {
       img->display_locked = 1;
   
       do {
+	/* always restore duration so drift correction shouldn't cause any trouble */
+	img->duration = this->img_backup->duration;
 	this->metronom->got_video_frame(this->metronom, img);
       } while (img->vpts < (cur_vpts - img->duration/2) );
 
