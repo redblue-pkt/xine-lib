@@ -16,9 +16,14 @@
  * Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 
+#ifdef HAVE_CONFIG_H
+# include "config.h"
+#endif
+
 #include <dlfcn.h>
 #include <stdio.h>
 #include <stdlib.h>
+
 #include "deinterlace.h"
 
 typedef struct methodlist_item_s methodlist_item_t;

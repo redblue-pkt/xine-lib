@@ -49,11 +49,17 @@
  *
  */
 
+#ifdef HAVE_CONFIG_H
+# include "config.h"
+#endif
+
 #include <stdio.h>
 #include <string.h>
 
-#ifdef HAVE_CONFIG_H
-# include "config.h"
+#if HAVE_INTTYPES_H
+#include <inttypes.h>
+#else
+#include <stdint.h>
 #endif
 
 #include "attributes.h"

@@ -19,6 +19,12 @@
 #ifndef TVTIME_H_INCLUDED
 #define TVTIME_H_INCLUDED
 
+#if HAVE_INTTYPES_H
+#include <inttypes.h>
+#else
+#include <stdint.h>
+#endif
+
 #include "deinterlace.h"
 
 /**

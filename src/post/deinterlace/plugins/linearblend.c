@@ -21,15 +21,16 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#include <stdio.h>
-#if defined (__SVR4) && defined (__sun)
-# include <sys/int_types.h>
-#else
-# include <stdint.h>
-#endif
-
 #ifdef HAVE_CONFIG_H
 # include "config.h"
+#endif
+
+#include <stdio.h>
+
+#if HAVE_INTTYPES_H
+#include <inttypes.h>
+#else
+#include <stdint.h>
 #endif
 
 #include "attributes.h"

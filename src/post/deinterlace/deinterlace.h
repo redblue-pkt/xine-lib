@@ -19,10 +19,10 @@
 #ifndef DEINTERLACE_H_INCLUDED
 #define DEINTERLACE_H_INCLUDED
 
-#if defined (__SVR4) && defined (__sun)
-# include <sys/int_types.h>
+#if HAVE_INTTYPES_H
+#include <inttypes.h>
 #else
-# include <stdint.h>
+#include <stdint.h>
 #endif
 
 #ifdef __cplusplus

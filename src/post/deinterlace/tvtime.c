@@ -16,27 +16,27 @@
  * Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 
+#ifdef HAVE_CONFIG_H
+# include "config.h"
+#endif
+
 #define _GNU_SOURCE
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <math.h>
-#if defined (__SVR4) && defined (__sun)
-# include <sys/int_types.h>
+
+#if HAVE_INTTYPES_H
+#include <inttypes.h>
 #else
-# include <stdint.h>
+#include <stdint.h>
 #endif
+
 #include "speedy.h"
 #include "deinterlace.h"
-
-#ifdef HAVE_CONFIG_H
-# include "config.h"
-#endif
-
 #include "pulldown.h"
 #include "tvtime.h"
-
 
 /* use tvtime_t */
 #define pulldown_alg this->pulldown_alg

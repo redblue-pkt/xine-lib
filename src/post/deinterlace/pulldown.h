@@ -19,11 +19,12 @@
 #ifndef PULLDOWN_H_INCLUDED
 #define PULLDOWN_H_INCLUDED
 
-#if defined (__SVR4) && defined (__sun)
-# include <sys/int_types.h>
+#if HAVE_INTTYPES_H
+#include <inttypes.h>
 #else
-# include <stdint.h>
+#include <stdint.h>
 #endif
+
 #include "speedy.h"
 
 #ifdef __cplusplus
