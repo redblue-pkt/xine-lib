@@ -60,6 +60,7 @@ xineplug_vo_out_opengl_la_LIBADD =  $(OPENGL_LIBS) $(GLUT_LIBS) $(GLU_LIBS) $(X_
 xineplug_vo_out_opengl_la_LDFLAGS = -avoid-version -module
 
 xineplug_vo_out_syncfb_la_SOURCES = alphablend.c video_out_syncfb.c 
+xineplug_vo_out_syncfb_la_LIBADD = $(X_LIBS)
 xineplug_vo_out_syncfb_la_LDFLAGS = -avoid-version -module
 
 xineplug_vo_out_aa_la_SOURCES =  video_out_aa.c
