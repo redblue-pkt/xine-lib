@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_sun_out.c,v 1.10 2001/09/14 20:44:01 jcdutton Exp $
+ * $Id: audio_sun_out.c,v 1.11 2001/09/23 15:24:53 jkeil Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -56,7 +56,8 @@
 #define AO_SUN_IFACE_VERSION 2
 
 #define GAP_TOLERANCE         5000
-#define MAX_GAP              90000
+#define GAP_NONRT_TOLERANCE  15000
+#define	NOT_REAL_TIME		-1
 
 
 typedef struct sun_driver_s {
@@ -82,8 +83,6 @@ typedef struct sun_driver_s {
   }		 use_rtsc;
 
     int		 convert_u8_s8;	       /* Builtin conversion 8-bit UNSIGNED->SIGNED */
-
-  int            static_delay;         /* estimated delay for non-realtime drivers   */
 } sun_driver_t;
 
 
@@ -236,7 +235,7 @@ static int ao_sun_open(ao_driver_t *this_gen,
     return 0;
   }
 
-  if (this->audio_fd > -1) {
+  if (this->audio_fd >= 0) {
 
     if ( (mode == this->mode) && (rate == this->input_sample_rate) )
       return this->output_sample_rate;
@@ -296,6 +295,7 @@ static int ao_sun_open(ao_driver_t *this_gen,
 	     info.play.sample_rate, info.play.channels,
 	     info.play.precision);
       close(this->audio_fd);
+      this->audio_fd = -1;
       return 0;
   }
 
@@ -338,12 +338,17 @@ static int ao_sun_delay(ao_driver_t *this_gen)
       && this->use_rtsc == RTSC_ENABLED) {
     return this->frames_in_buffer - info.play.samples;
   }
-  return this->static_delay / this->bytes_per_frame;
+  return NOT_REAL_TIME;
 }
 
 static int ao_sun_get_gap_tolerance (ao_driver_t *this_gen)
 {
-  return GAP_TOLERANCE;
+  sun_driver_t *this = (sun_driver_t *) this_gen;
+
+  if (this->use_rtsc == RTSC_ENABLED)
+    return GAP_TOLERANCE;
+  else
+    return GAP_NONRT_TOLERANCE;
 }
 
  /* Write audio samples
@@ -396,7 +401,7 @@ static void ao_sun_exit(ao_driver_t *this_gen)
 {
   sun_driver_t *this = (sun_driver_t *) this_gen;
   
-  if (this->audio_fd != -1)
+  if (this->audio_fd >= 0)
     close(this->audio_fd);
 
   free (this);
@@ -521,10 +526,9 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
 
   close (audio_fd);
 
+  this->audio_fd = -1;
   this->use_rtsc = realtime_samplecounter_available(this->audio_dev);
   this->output_sample_rate = 0;
-
-  this->static_delay = config->lookup_int (config, "sun_static_delay", 1000);
 
   this->ao_driver.get_capabilities	= ao_sun_get_capabilities;
   this->ao_driver.get_property		= ao_sun_get_property;
