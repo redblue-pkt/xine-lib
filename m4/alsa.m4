@@ -47,12 +47,12 @@ AC_DEFUN([AM_PATH_ALSA],
 if test x"$enable_alsa" != "xno"; then
 
   if test x$alsa_prefix != x ; then
-    ALSA_LIBS="-L$alsa_prefix/lib"
+    ALSA_LIBS="-L$alsa_prefix/$XINE_LIBNAME"
     ALSA_STATIC_LIB="$alsa_prefix"
     ALSA_CFLAGS="-I$alsa_prefix/include"
   fi
   if test x$alsa_exec_prefix != x ; then
-    ALSA_LIBS="-L$alsa_exec_prefix/lib"
+    ALSA_LIBS="-L$alsa_exec_prefix/$XINE_LIBNAME"
     ALSA_STATIC_LIB="$alsa_exec_prefix"
     ALSA_CFLAGS="-I$alsa_exec_prefix/include"
   fi
@@ -61,7 +61,7 @@ if test x"$enable_alsa" != "xno"; then
   if test x$ALSA_STATIC_LIB != x; then
     ALSA_STATIC_LIB="$ALSA_STATIC_LIB/lib/libasound.a"
   else
-    ALSA_STATIC_LIB="/usr/lib/libasound.a"
+    ALSA_STATIC_LIB="/usr/$XINE_LIBNAME/libasound.a"
   fi
   ALSA_CFLAGS="$ALSA_CFLAGS"
 

@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_mng.c,v 1.20 2004/01/12 17:35:15 miguelfreitas Exp $
+ * $Id: demux_mng.c,v 1.21 2004/02/19 02:50:25 rockyb Exp $
  *
  * demux_mng.c, Demuxer plugin for Multiple-image Network Graphics format
  *
@@ -73,11 +73,11 @@ typedef struct {
   demux_class_t     demux_class;
 } demux_mng_class_t;
 
-static mng_ptr mymng_alloc(mng_uint32 size){
+static mng_ptr mymng_alloc(mng_size_t size){
   return (mng_ptr)calloc(1, size);
 }
 
-static void mymng_free(mng_ptr p, mng_uint32 size){
+static void mymng_free(mng_ptr p, mng_size_t size){
   free(p);
 }
 

@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdint.h>
 #include "goom_core.h"
 #include "goom_tools.h"
 #include "filters.h"
@@ -107,8 +108,8 @@ goom_init (guint32 resx, guint32 resy, int cinemascope)
                 
 	cycle = 0;
 
-	p1 = (guint32 *) ((1 + ((unsigned int) (pixel)) / 128) * 128);
-	p2 = (guint32 *) ((1 + ((unsigned int) (back)) / 128) * 128);
+	p1 = (guint32 *) ((1 + ((uintptr_t) (pixel)) / 128) * 128);
+	p2 = (guint32 *) ((1 + ((uintptr_t) (back)) / 128) * 128);
 
 	init_ifs (resx, c_resoly);
 	gmline1 = goom_lines_init (resx, c_resoly,
@@ -149,8 +150,8 @@ goom_set_resolution (guint32 resx, guint32 resy, int cinemascope)
 	bzero (pixel, buffsize * sizeof (guint32) + 128);
 	back = (guint32 *) malloc (buffsize * sizeof (guint32) + 128);
 	bzero (back, buffsize * sizeof (guint32) + 128);
-	p1 = (guint32 *) ((1 + ((unsigned int) (pixel)) / 128) * 128);
-	p2 = (guint32 *) ((1 + ((unsigned int) (back)) / 128) * 128);
+	p1 = (guint32 *) ((1 + ((uintptr_t) (pixel)) / 128) * 128);
+	p2 = (guint32 *) ((1 + ((uintptr_t) (back)) / 128) * 128);
 
 	init_ifs (resx, c_resoly);
 	goom_lines_set_res (gmline1, resx, c_resoly);

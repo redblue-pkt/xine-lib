@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * $Id: yuv2rgb.c,v 1.48 2003/12/06 18:11:56 mroi Exp $
+ * $Id: yuv2rgb.c,v 1.49 2004/02/19 02:50:26 rockyb Exp $
  */
 
 #include "config.h"
@@ -68,7 +68,7 @@ static void *my_malloc_aligned (size_t alignment, size_t size, void **chunk) {
 
   *chunk = pMem;
 
-  while ((int) pMem % alignment)
+  while ((uintptr_t) pMem % alignment)
     pMem++;
 
   return pMem;

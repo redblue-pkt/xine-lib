@@ -15,7 +15,7 @@ AC_ARG_ENABLE(oggtest, [  --disable-oggtest       Do not try to compile and run 
   if test x$ogg_prefix != x ; then
     ogg_args="$ogg_args --prefix=$ogg_prefix"
     OGG_CFLAGS="-I$ogg_prefix/include"
-    OGG_LIBS="-L$ogg_prefix/lib"
+    OGG_LIBS="-L$ogg_prefix/$XINE_LIBNAME"
   fi
 
   OGG_LIBS="$OGG_LIBS -logg"

@@ -220,6 +220,35 @@ AC_CHECK_LIB(c, dlopen,
 	                  AC_MSG_ERROR(dynamic linker needed)))
 AC_SUBST(DYNAMIC_LD_LIBS)
 
+dnl ---------------------------------------------
+dnl determie libdir name
+dnl ---------------------------------------------
+AC_MSG_CHECKING([libdir name])
+case $host in
+*-*-linux*)
+ # Test if the compiler is 64bit
+ echo 'int i;' > conftest.$ac_ext
+ xine_cv_cc_64bit_output=no
+ if AC_TRY_EVAL(ac_compile); then
+ case `/usr/bin/file conftest.$ac_objext` in
+ *"ELF 64"*)
+   xine_cv_cc_64bit_output=yes
+   ;;
+ esac
+ fi
+ rm -rf conftest*
+ ;;
+esac
+
+case $host_cpu:$xine_cv_cc_64bit_output in
+powerpc64:yes | s390x:yes | sparc64:yes | x86_64:yes)
+ XINE_LIBNAME="lib64"
+ ;;
+*:*)
+ XINE_LIBNAME="lib"
+ ;;
+esac
+AC_MSG_RESULT([$XINE_LIBNAME])
 
 dnl ---------------------------------------------
 dnl mpeg2lib and ffmpeg stuff
@@ -479,7 +508,7 @@ AM_CONDITIONAL(PPC_ARCH, test x$ppc_arch = "xyes")
 
 
 AC_ARG_WITH(xv-path,[  --with-xv-path=path     Where $xv_lib is installed],
-            xv_path="$withval", xv_path="/usr/X11R6/lib")
+            xv_path="$withval", xv_path="/usr/X11R6/$XINE_LIBNAME")
 
 AC_CHECK_LIB(Xv, XvShmCreateImage, 
              [ AC_MSG_CHECKING(for $xv_lib location)
@@ -590,6 +619,8 @@ dnl ---------------------------------------------
 AC_CHECK_HEADER(linux/fb.h,
                 [AC_DEFINE(HAVE_FB,1,[Define this if you have linux framebuffer support])
                  have_fb=yes],)
+AC_ARG_ENABLE(fb, [  --disable-fb            Do not build linux framebuffer support],
+	      have_fb=no, have_fb=yes)
 AM_CONDITIONAL(HAVE_FB, [test x"$have_fb" = "xyes"])
 
 
@@ -607,9 +638,13 @@ else
 dnl ---------------------------------------------
 dnl Check for DirectFB
 dnl ---------------------------------------------
+AC_ARG_ENABLE(directfb,
+	[  --enable-directfb           Enable use of DirectFB],
+		enable_directfb=yes,
+		enable_directfb=no)
 
   DIRECTFB_REQUIRED_VERSION=0.9.9
-
+if test x$enable_directfb = "xyes"; then
   AC_MSG_CHECKING(for DirectFB)
   if $PKG_CONFIG --atleast-version $DIRECTFB_REQUIRED_VERSION directfb ; then
         AC_MSG_RESULT(found)
@@ -619,7 +654,7 @@ dnl ---------------------------------------------
   else
     AC_MSG_RESULT([*** All of DIRECTFB dependent parts will be disabled ***])
   fi
-
+fi
 fi
 
 AC_SUBST(DIRECTFB_CFLAGS)
@@ -1685,6 +1720,13 @@ case "$host_or_hostalias" in
     DEBUG_CFLAGS="-O2 $DEBUG_CFLAGS"
     AC_DEFINE_UNQUOTED(FPM_ARM,,[Define to select libmad fixed point arithmetic implementation])
     enable_armv4l="yes"
+    ;;
+
+  x86_64-*)
+    dnl One has to carefully make performance analysis
+    CFLAGS="$CFLAGS -O2"
+    DEBUG_CFLAGS="$DEBUG_CFLAGS -O2"
+    AC_DEFINE_UNQUOTED(FPM_64BIT,,[Define to select libmad fixed pointarithmetic implementation])
     ;;
 
   *)

@@ -16,7 +16,7 @@ AC_ARG_ENABLE(theoratest, [  --disable-theoratest       Do not try to compile an
   if test x$theora_prefix != x ; then
     theora_args="$theora_args --prefix=$theora_prefix"
     THEORA_CFLAGS="-I$theora_prefix/include"
-    THEORA_LIBDIR="-L$theora_prefix/lib"
+    THEORA_LIBDIR="-L$theora_prefix/$XINE_LIBNAME"
   fi
 
   THEORA_LIBS="$THEORA_LIBDIR -ltheora -lm"

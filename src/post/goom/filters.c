@@ -18,6 +18,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include <stdio.h>
+#include <stdint.h>
 
 #ifdef HAVE_MMX
 #define USE_ASM
@@ -559,15 +560,15 @@ zoomFilterFastRGB (Uint * pix1,
 
 			freebrutS =
 				(unsigned int *) calloc (resx * resy * 2 + 128, sizeof(unsigned int));
-			brutS = (guint32 *) ((1 + ((unsigned int) (freebrutS)) / 128) * 128);
+			brutS = (guint32 *) ((1 + ((uintptr_t) (freebrutS)) / 128) * 128);
 
 			freebrutD =
 				(unsigned int *) calloc (resx * resy * 2 + 128, sizeof(unsigned int));
-			brutD = (guint32 *) ((1 + ((unsigned int) (freebrutD)) / 128) * 128);
+			brutD = (guint32 *) ((1 + ((uintptr_t) (freebrutD)) / 128) * 128);
 
 			freebrutT =
 				(unsigned int *) calloc (resx * resy * 2 + 128, sizeof(unsigned int));
-			brutT = (guint32 *) ((1 + ((unsigned int) (freebrutT)) / 128) * 128);
+			brutT = (guint32 *) ((1 + ((uintptr_t) (freebrutT)) / 128) * 128);
 
 			/** modif here by jeko : plus de multiplications **/
 			{

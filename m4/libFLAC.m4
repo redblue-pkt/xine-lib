@@ -16,9 +16,9 @@ AC_ARG_ENABLE(libFLACtest, [  --disable-libFLACtest       Do not try to compile 
   if test "x$libFLAC_libraries" != "x" ; then
     LIBFLAC_LIBS="-L$libFLAC_libraries"
   elif test "x$libFLAC_prefix" != "x" ; then
-    LIBFLAC_LIBS="-L$libFLAC_prefix/lib"
+    LIBFLAC_LIBS="-L$libFLAC_prefix/$XINE_LIBNAME"
   elif test "x$prefix" != "xNONE" ; then
-    LIBFLAC_LIBS="-L$prefix/lib"
+    LIBFLAC_LIBS="-L$prefix/$XINE_LIBNAME"
   fi
 
   LIBFLAC_LIBS="$LIBFLAC_LIBS -lFLAC -lm"

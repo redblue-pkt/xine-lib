@@ -15,7 +15,7 @@ AC_ARG_ENABLE(speextest, [  --disable-speextest       Do not try to compile and 
   if test x$speex_prefix != x ; then
     speex_args="$speex_args --prefix=$speex_prefix"
     SPEEX_CFLAGS="-I$speex_prefix/include"
-    SPEEX_LIBDIR="-L$speex_prefix/lib"
+    SPEEX_LIBDIR="-L$speex_prefix/$XINE_LIBNAME"
   fi
 
   SPEEX_LIBS="$SPEEX_LIBDIR -lspeex -lm"

@@ -15,7 +15,7 @@ AC_ARG_ENABLE(xvidtest, [  --disable-xvidtest       Do not try to compile and ru
   if test x$xvid_prefix != x ; then
     xvid_args="$xvid_args --prefix=$xvid_prefix"
     XVID_CFLAGS="-I$xvid_prefix/include"
-    XVID_LIBS="-L$xvid_prefix/lib"
+    XVID_LIBS="-L$xvid_prefix/$XINE_LIBNAME"
   fi
 
   XVID_LIBS="$XVID_LIBS -lxvidcore"

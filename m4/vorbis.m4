@@ -15,7 +15,7 @@ AC_ARG_ENABLE(vorbistest, [  --disable-vorbistest       Do not try to compile an
   if test x$vorbis_prefix != x ; then
     vorbis_args="$vorbis_args --prefix=$vorbis_prefix"
     VORBIS_CFLAGS="-I$vorbis_prefix/include"
-    VORBIS_LIBDIR="-L$vorbis_prefix/lib"
+    VORBIS_LIBDIR="-L$vorbis_prefix/$XINE_LIBNAME"
   fi
 
   VORBIS_LIBS="$VORBIS_LIBDIR -lvorbis -lm"
