@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ogg.c,v 1.37 2002/08/28 20:56:42 guenter Exp $
+ * $Id: demux_ogg.c,v 1.38 2002/08/28 22:16:53 guenter Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -817,11 +817,23 @@ static void *demux_ogg_loop (void *this_gen) {
   this->status = DEMUX_FINISHED;
 
   if (this->send_end_buffers) {
+#ifdef LOG
+    printf ("demux_ogg: sending end buffers\n");
+#endif
     xine_demux_control_end(this->xine, BUF_FLAG_END_STREAM);
+  } else {
+#ifdef LOG
+    printf ("demux_ogg: not sending end buffers\n");
+#endif
   }
 
   this->thread_running = 0;
   pthread_mutex_unlock( &this->mutex );
+
+#ifdef LOG
+  printf ("demux_ogg: thread ends\n");
+#endif
+
   pthread_exit(NULL);
 
   return NULL;
@@ -877,6 +889,12 @@ static int demux_ogg_start (demux_plugin_t *this_gen,
   pthread_mutex_lock( &this->mutex );
   err = 1;
 
+  this->status = DEMUX_OK;
+
+  /*
+   * send start buffers
+   */
+
   if( !this->thread_running ) {
     this->video_fifo  = video_fifo;
     this->audio_fifo  = audio_fifo;
@@ -895,7 +913,15 @@ static int demux_ogg_start (demux_plugin_t *this_gen,
     this->avg_bitrate       = 1;
 
     this->input->seek (this->input, 0, SEEK_SET);
+  }
 
+  if( !this->thread_running && (this->status == DEMUX_OK) ) {
+    xine_demux_control_start(this->xine);
+  } else {
+    xine_demux_flush_engine(this->xine);
+  }
+
+  if (this->status == DEMUX_OK) {
     /* send header */
     demux_ogg_send_header (this);
   }
@@ -918,15 +944,6 @@ static int demux_ogg_start (demux_plugin_t *this_gen,
     this->input->seek (this->input, start_pos, SEEK_SET);
   }
 
-  /*
-   * send start buffers
-   */
-  if( !this->thread_running && (this->status == DEMUX_OK) ) {
-    xine_demux_control_start(this->xine);
-  } else {
-    xine_demux_flush_engine(this->xine);
-  }
-
   this->send_newpts     = 1;
 
   if( !this->thread_running ) {
@@ -938,6 +955,11 @@ static int demux_ogg_start (demux_plugin_t *this_gen,
     this->send_end_buffers  = 1;
     this->thread_running    = 1;
     this->buf_flag_seek     = 0;
+
+#ifdef LOG
+    printf ("demux_ogg: creating thread (send_end_buffers=%d)\n",
+	    this->send_end_buffers);
+#endif
 
     if ((err = pthread_create (&this->thread,
 			       NULL, demux_ogg_loop, this)) != 0) {
