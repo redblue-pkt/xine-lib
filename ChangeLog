@@ -20,6 +20,7 @@ xine-lib (1-beta3)
     "test.mpg#subtitle:file.sub" or the frontend option.
   * updated VIDIX driver (image controls supported)
   * "mms over http" streaming protocol support
+  * experimental v4l input plugin (analogue tv)
   * FLAC support (demuxer/decoder)
   * fixed yuy2 overlays on big-endian systems
 	
