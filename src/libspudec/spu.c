@@ -35,7 +35,7 @@
  * along with this program; see the file COPYING.  If not, write to
  * the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: spu.c,v 1.19 2001/10/23 21:51:11 jcdutton Exp $
+ * $Id: spu.c,v 1.20 2001/10/26 11:21:08 jcdutton Exp $
  *
  */
 
@@ -85,11 +85,17 @@ int spu_reassembly (spu_seq_t *seq, int start, uint8_t *pkt_data, u_int pkt_len)
     seq->cmd_offs = (((u_int)pkt_data[2])<<8) | pkt_data[3];
 
     if (seq->buf_len < seq->seq_len) {
-      if (seq->buf)
+      if (seq->buf) {
+        xprintf (VERBOSE|SPU, "FREE1: seq->buf %p\n", seq->buf);
         free(seq->buf);
+        seq->buf = NULL;
+        xprintf (VERBOSE|SPU, "FREE2: seq->buf %p\n", seq->buf);
+      }
 
       seq->buf_len = seq->seq_len;
       seq->buf = malloc(seq->buf_len);
+      xprintf (VERBOSE|SPU, "MALLOC: seq->buf %p, len=%d\n", seq->buf,seq->buf_len);
+
     }
     seq->ra_offs = 0;
     
@@ -307,7 +313,6 @@ static int spu_next_line (vo_overlay_t *spu)
 void spu_draw_picture (spu_state_t *state, spu_seq_t* seq, vo_overlay_t *ovl)
 {
   rle_elem_t *rle;
-
   field = 0;
   bit_ptr[0] = seq->buf + state->field_offs[0];
   bit_ptr[1] = seq->buf + state->field_offs[1];
@@ -334,10 +339,12 @@ void spu_draw_picture (spu_state_t *state, spu_seq_t* seq, vo_overlay_t *ovl)
 //      free(ovl->rle);
     ovl->data_size = seq->cmd_offs * 2 * sizeof(rle_elem_t);
     ovl->rle = malloc(ovl->data_size);
+    xprintf (VERBOSE|SPU, "MALLOC: ovl->rle %p, len=%d\n", ovl->rle,ovl->data_size);
 //  }
 
   state->modified = 0; /* mark as already processed */
   rle = ovl->rle;
+  xprintf (VERBOSE|SPU, "Draw RLE=%p\n",rle);
 
   while (bit_ptr[1] < seq->buf + seq->cmd_offs) {
     u_int len;
@@ -373,6 +380,9 @@ void spu_draw_picture (spu_state_t *state, spu_seq_t* seq, vo_overlay_t *ovl)
 
   ovl->num_rle = rle - ovl->rle;
   ovl->rgb_clut = 0;
+  xprintf (VERBOSE|SPU, "Num RLE=%d\n",ovl->num_rle);
+  xprintf (VERBOSE|SPU, "Date size=%d\n",ovl->data_size);
+  xprintf (VERBOSE|SPU, "sizeof RLE=%d\n",sizeof(rle_elem_t));
 }
 
 /* Heuristic to discover the colors used by the subtitles
