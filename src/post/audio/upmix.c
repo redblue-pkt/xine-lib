@@ -17,13 +17,13 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * Reference Visualization Post Plugin For xine
- *   by Mike Melanson (melanson@pcisys.net)
- * This is an example/template for the xine visualization post plugin
- * process. It simply paints the screen a solid color and rotates through
- * colors on each iteration.
+ * Upmix audio filter for xine.
+ *   (c) 2004 James Courtier-Dutton (James@superbug.demon.co.uk)
+ * This is an up-mix audio filter post plugin.
+ * It simply creates output channels to match the speaker arrangement.
+ * E.g. Converts Stereo into Surround 5.1
  *
- * $Id: upmix.c,v 1.8 2004/05/17 16:12:48 jcdutton Exp $
+ * $Id: upmix.c,v 1.9 2004/05/17 16:19:05 jcdutton Exp $
  *
  */
 
