@@ -58,6 +58,9 @@ Stephen Torri <storri@users.sourceforge.net>
 Stefan Holst <mail@s-holst.de>
   real media streaming support, input_net fixes, image demuxer/decoder
 
+Andreas Heinchen <andreas.heinchen@gmx.de>
+  theora support, subtitles in ogm streams
+
 xine is using
 =============
 

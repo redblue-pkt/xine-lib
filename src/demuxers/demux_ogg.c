@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_ogg.c,v 1.104 2003/07/16 14:14:17 andruil Exp $
+ * $Id: demux_ogg.c,v 1.105 2003/07/17 16:07:52 heinchen Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -140,7 +140,8 @@ static int intlog(int num) {
   return(ret);
 }
 
-static int get_stream (demux_ogg_t *this, int serno){
+static int get_stream (demux_ogg_t *this, int serno) {
+  /*finds the stream_num, which belongs to a ogg serno*/
   int i;
 
   for (i = 0; i<this->num_streams; i++) {
@@ -188,6 +189,48 @@ static int read_ogg_packet (demux_ogg_t *this) {
     }
   }
   return 1;
+}
+
+static void get_stream_length (demux_ogg_t *this) {
+  /*determine the streamlenght and set this->time_length accordingly.
+    ATTENTION:current_pos and oggbuffers will be destroyed by this function,
+    there will be no way to continue playback uninterrupted.
+
+    You have to seek afterwards, because after get_stream_length, the
+    current_position is at the end of the file */
+
+  int filelength;
+  int done=0;
+  int stream_num;
+
+  this->time_length=-1;
+
+  if (this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) {
+    filelength=this->input->get_length(this->input);
+    
+    if (filelength!=-1) {
+      if (filelength>70000) {
+	this->demux_plugin.seek((demux_plugin_t *)this, (off_t) filelength-65536 ,0);
+      }
+      done=0;
+      while (!done) {
+	if (!read_ogg_packet (this)) {
+	  if (this->time_length) {
+	    this->stream->stream_info[XINE_STREAM_INFO_BITRATE]
+	      = ((int64_t) 8000*filelength)/this->time_length;
+	    /*this is a fine place to compute avg_bitrate*/
+	    this->avg_bitrate= 8000*filelength/this->time_length;
+	  }
+	  return;
+	}
+	stream_num=get_stream(this, ogg_page_serialno (&this->og) );
+	if (stream_num!=-1) {
+	  if (this->time_length < (get_pts(this, stream_num, ogg_page_granulepos(&this->og) / 90)))
+	    this->time_length = get_pts(this, stream_num, ogg_page_granulepos(&this->og)) / 90;
+	}
+      }
+    }  
+  }
 }
 
 static void send_ogg_packet (demux_ogg_t *this,
@@ -285,7 +328,8 @@ static void check_newpts (demux_ogg_t *this, int64_t pts, int video, int preview
 
   /* use pts for bitrate measurement */
 
-  if (pts>180000) {
+  /*compute avg_bitrate if time_length isn't set*/
+  if ((pts>180000) && !(this->time_length)) {
     this->avg_bitrate = this->input->get_current_pos (this->input) * 8 * 90000/ pts;
 
     if (this->avg_bitrate<1)
@@ -537,7 +581,6 @@ static void demux_ogg_send_header (demux_ogg_t *this) {
   int          stream_num = -1;
   int          cur_serno;
   int          done = 0;
-  int          filelength,position;
   ogg_packet   op;
   xine_event_t ui_event;
 
@@ -1060,31 +1103,9 @@ static void demux_ogg_send_header (demux_ogg_t *this) {
   ui_event.data_length = 0;
   xine_event_send(this->stream, &ui_event);
 
-  this->time_length=-1;
+  /*get the streamlength*/
+  get_stream_length (this);
 
-  if (INPUT_IS_SEEKABLE(this->input)) {
-    position=this->input->get_current_pos(this->input);
-    filelength=this->input->get_length(this->input);
-    
-    if (filelength!=-1) {
-      if (filelength>70000)
-	this->demux_plugin.seek((demux_plugin_t *)this, (off_t) filelength-65536 ,0);
-      done=0;
-      while (!done) {
-	if (!read_ogg_packet (this)) {
-	  if (this->time_length)
-	    this->stream->stream_info[XINE_STREAM_INFO_BITRATE]
-	      = ((int64_t) 8000*filelength)/this->time_length;
-	  return;
-	}
-	stream_num=get_stream(this, ogg_page_serialno (&this->og) );
-	if (stream_num!=-1) {
-	  if (this->time_length < (get_pts(this, stream_num, ogg_page_granulepos(&this->og) / 90)))
-	    this->time_length = get_pts(this, stream_num, ogg_page_granulepos(&this->og)) / 90;
-	}
-      }
-    }  
-  }
 }
 
 static void demux_ogg_send_content (demux_ogg_t *this) {
@@ -1306,12 +1327,54 @@ static int demux_ogg_seek (demux_plugin_t *this_gen,
     this->keyframe_needed = (this->num_video_streams>0);
 
     if ( (!start_pos) && (start_time)) {
-      if (this->time_length!=-1)
-	start_pos = start_time * 1000 * this->input->get_length(this->input) / this->time_length ;
-      else
-	start_pos = start_time * this->avg_bitrate/8;
+      if (this->time_length!=-1) {
+	/*do the seek via time*/
+	int current_time=-1;
+	off_t current_pos;
+	current_pos=this->input->get_current_pos(this->input);
 
-      lprintf ("seeking to %d seconds => %lld bytes\n", start_time, start_pos);
+	/*try to find out the current time*/
+	if (this->last_pts[PTS_VIDEO]) {
+	  current_time=this->last_pts[PTS_VIDEO]/90000;
+	} else if (this->last_pts[PTS_AUDIO]) {
+	  current_time=this->last_pts[PTS_AUDIO]/90000;
+	}
+
+	/*fixme, the file could grow, do something
+	 about this->time_length using get_lenght to verify, that the stream
+	hasn` changed its length, otherwise no seek to "new" data is possible*/
+
+	lprintf ("seek to time %d called\n",start_time);
+	lprintf ("current time is %d\n",current_time); 
+
+	if (current_time > start_time) {
+	  /*seek between beginning and current_pos*/
+
+	  /*fixme - sometimes we seek backwards and during
+	    keyframeseeking, we undo the seek*/
+
+	  start_pos = start_time * current_pos
+	  / current_time ;
+	} else {
+	  /*seek between current_pos and end*/
+	  start_pos = current_pos +
+	    ((start_time - current_time) *
+	     ( this->input->get_length(this->input) - current_pos ) /
+	     ( (this->time_length / 1000) - current_time)
+	    );
+	}
+
+	lprintf ("current_pos is%lld\n",current_pos);
+	lprintf ("new_pos is %lld\n",start_pos); 
+
+      } else {
+	/*seek using avg_bitrate*/
+	start_pos = start_time * this->avg_bitrate/8;
+      }
+
+      lprintf ("seeking to %d seconds => %lld bytes\n",
+	      start_time, start_pos);
+
     }
 
     ogg_sync_reset(&this->oy);
@@ -1329,6 +1392,18 @@ static int demux_ogg_seek (demux_plugin_t *this_gen,
     this->input->seek (this->input, start_pos, SEEK_SET);
 
   }
+
+  /* fixme - this would be a nice position to do the following tasks
+     1. adjust an ogg videostream to a keyframe
+     2. compare the keyframe_pts with start_time. if the difference is to
+        high (e.g. larger than max keyframe_intervall, do a new seek or 
+	continue reading
+     3. adjust the audiostreams in such a way, that the
+        difference is not to high.
+
+     In short words, do all the cleanups necessary to continue playback
+     without further actions
+  */
   
   this->send_newpts     = 1;
 
@@ -1360,14 +1435,15 @@ static int demux_ogg_get_stream_length (demux_plugin_t *this_gen) {
   demux_ogg_t *this = (demux_ogg_t *) this_gen; 
 
   if (this->time_length==-1){
-    if (this->avg_bitrate)
+    if (this->avg_bitrate) {
       return (int)((int64_t)1000 * this->input->get_length (this->input) * 8 /
 		   this->avg_bitrate);
-    else
+    } else {
       return 0;
-  }
-  else
+    }
+  } else {
     return this->time_length;
+  }
 }
 
 static uint32_t demux_ogg_get_capabilities(demux_plugin_t *this_gen) {
