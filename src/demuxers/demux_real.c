@@ -31,7 +31,7 @@
  *   
  *   Based on FFmpeg's libav/rm.c.
  *
- * $Id: demux_real.c,v 1.83 2004/01/15 20:06:06 jstembridge Exp $
+ * $Id: demux_real.c,v 1.84 2004/01/15 20:13:46 jstembridge Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -1093,6 +1093,8 @@ static int demux_real_send_chunk(demux_plugin_t *this_gen) {
 
         buf->decoder_flags = decoder_flags;
         decoder_flags &= ~BUF_FLAG_FRAME_START;
+        
+        buf->type = this->video_stream->buf_type;
       
         if(this->input->read(this->input, buf->content, buf->size) < buf->size) {
           xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
@@ -1104,7 +1106,9 @@ static int demux_real_send_chunk(demux_plugin_t *this_gen) {
         
         /* RV30 and RV40 streams contain some fragments that shouldn't be passed 
          * to the decoder. The first byte of these fragments is different from
-         * that found in the preceding fragments making up the frame */
+         * that found in the preceding fragments making up the frame. The purpose
+         * of these fragments is unknown, but realplayer doesn't appear to pass
+         * them to the decoder either */
         if((n == fragment_size) && 
            ((buf->type == BUF_VIDEO_RV30) || buf->type == BUF_VIDEO_RV40)) {
           
@@ -1129,8 +1133,6 @@ static int demux_real_send_chunk(demux_plugin_t *this_gen) {
         buf->extra_info->input_length  = input_length;
         buf->extra_info->input_time    = input_time;
         buf->extra_info->total_time    = this->duration;
-        
-        buf->type = this->video_stream->buf_type;
         
         this->video_fifo->put(this->video_fifo, buf);
         
