@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mmsh.c,v 1.8 2003/01/16 00:40:48 tmattern Exp $
+ * $Id: mmsh.c,v 1.9 2003/01/25 15:00:10 tmattern Exp $
  *
  * based on mms.c and specs from avifile
  * (http://avifile.sourceforge.net/asf-1.0.htm)
@@ -1008,7 +1008,9 @@ static int get_media_packet (mmsh_t *this) {
       len = read_timeout (this->s, this->buf, this->chunk_length);
 
       if (len == this->chunk_length) {
-        /* implicit padding (with "random" data) */
+        /* explicit padding with 0 */
+        memset(this->buf + this->chunk_length, 0,
+               this->packet_length - this->chunk_length);
         this->buf_size = this->packet_length;
         return 1;
       } else {

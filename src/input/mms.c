@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mms.c,v 1.18 2003/01/15 01:05:24 tmattern Exp $
+ * $Id: mms.c,v 1.19 2003/01/25 15:00:07 tmattern Exp $
  *
  * based on work from major mms
  * utility functions to handle communication with an mms server
@@ -1074,7 +1074,8 @@ static int get_media_packet (mms_t *this) {
       return 0;
     }
 
-    /* implicit padding (with "random" data)*/
+    /* explicit padding with 0 */
+    memset(this->buf + packet_len, 0, this->packet_length - packet_len);
     this->buf_size = this->packet_length;
 
   } else {
