@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.168 2005/01/12 00:05:36 tmattern Exp $
+ * $Id: demux_asf.c,v 1.169 2005/02/06 15:26:00 tmattern Exp $
  *
  * demultiplexer for asf streams
  *
@@ -2257,6 +2257,6 @@ demuxer_info_t demux_info_asf = {
  
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */
-  { PLUGIN_DEMUX, 25, "asf", XINE_VERSION_CODE, &demux_info_asf, init_class },
+  { PLUGIN_DEMUX, 26, "asf", XINE_VERSION_CODE, &demux_info_asf, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

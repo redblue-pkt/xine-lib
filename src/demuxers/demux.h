@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux.h,v 1.38 2004/06/13 21:28:52 miguelfreitas Exp $
+ * $Id: demux.h,v 1.39 2005/02/06 15:26:00 tmattern Exp $
  */
 
 #ifndef HAVE_DEMUX_H
@@ -33,7 +33,7 @@
 #  include <xine/xine_internal.h>
 #endif
 
-#define DEMUXER_PLUGIN_IFACE_VERSION    25
+#define DEMUXER_PLUGIN_IFACE_VERSION    26
 
 #define DEMUX_OK                   0
 #define DEMUX_FINISHED             1
@@ -170,6 +170,9 @@ struct demux_plugin_s {
    */
 
   demux_class_t *demux_class;
+
+  void *node; /* used by plugin loader */
+
 } ;
 
 /*

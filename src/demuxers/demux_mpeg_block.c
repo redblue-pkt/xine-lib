@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.210 2004/12/17 20:08:45 miguelfreitas Exp $
+ * $Id: demux_mpeg_block.c,v 1.211 2005/02/06 15:26:16 tmattern Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  * used with fixed blocksize devices (like dvd/vcd)
@@ -1560,6 +1560,6 @@ demuxer_info_t demux_info_mpeg_block = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_DEMUX, 25, "mpeg_block", XINE_VERSION_CODE, &demux_info_mpeg_block, init_plugin },
+  { PLUGIN_DEMUX, 26, "mpeg_block", XINE_VERSION_CODE, &demux_info_mpeg_block, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

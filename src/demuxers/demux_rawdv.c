@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_rawdv.c,v 1.23 2004/12/22 21:32:36 mroi Exp $
+ * $Id: demux_rawdv.c,v 1.24 2005/02/06 15:26:18 tmattern Exp $
  *
  * demultiplexer for raw dv streams
  */
@@ -449,6 +449,6 @@ demuxer_info_t demux_info_raw_dv = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */
-  { PLUGIN_DEMUX, 25, "rawdv", XINE_VERSION_CODE, &demux_info_raw_dv, init_plugin },
+  { PLUGIN_DEMUX, 26, "rawdv", XINE_VERSION_CODE, &demux_info_raw_dv, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

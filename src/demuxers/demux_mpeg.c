@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_mpeg.c,v 1.145 2004/12/17 20:08:44 miguelfreitas Exp $
+ * $Id: demux_mpeg.c,v 1.146 2005/02/06 15:26:17 tmattern Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  * reads streams of variable blocksizes
@@ -1264,6 +1264,6 @@ demuxer_info_t demux_info_mpeg = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_DEMUX, 25, "mpeg", XINE_VERSION_CODE, &demux_info_mpeg, init_plugin },
+  { PLUGIN_DEMUX, 26, "mpeg", XINE_VERSION_CODE, &demux_info_mpeg, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

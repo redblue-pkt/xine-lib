@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_elem.c,v 1.85 2004/06/13 21:28:52 miguelfreitas Exp $
+ * $Id: demux_elem.c,v 1.86 2005/02/06 15:26:16 tmattern Exp $
  *
  * demultiplexer for elementary mpeg streams
  */
@@ -307,6 +307,6 @@ demuxer_info_t demux_info_elem = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_DEMUX, 25, "elem", XINE_VERSION_CODE, &demux_info_elem, init_plugin },
+  { PLUGIN_DEMUX, 26, "elem", XINE_VERSION_CODE, &demux_info_elem, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

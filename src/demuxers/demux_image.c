@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_image.c,v 1.16 2005/02/03 23:18:34 holstsn Exp $
+ * $Id: demux_image.c,v 1.17 2005/02/06 15:26:16 tmattern Exp $
  *
  * image dummy demultiplexer
  */
@@ -236,6 +236,6 @@ demuxer_info_t demux_info_image = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */
-  { PLUGIN_DEMUX, 25, "image", XINE_VERSION_CODE, &demux_info_image, init_class },
+  { PLUGIN_DEMUX, 26, "image", XINE_VERSION_CODE, &demux_info_image, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

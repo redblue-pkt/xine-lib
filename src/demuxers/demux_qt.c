@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.197 2005/01/02 17:25:22 mroi Exp $
+ * $Id: demux_qt.c,v 1.198 2005/02/06 15:26:18 tmattern Exp $
  *
  */
 
@@ -3028,6 +3028,6 @@ demuxer_info_t demux_info_qt = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_DEMUX, 25, "quicktime", XINE_VERSION_CODE, &demux_info_qt, init_plugin },
+  { PLUGIN_DEMUX, 26, "quicktime", XINE_VERSION_CODE, &demux_info_qt, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

@@ -24,7 +24,7 @@
  * For more information on the FLV file format, visit:
  * http://download.macromedia.com/pub/flash/flash_file_format_specification.pdf
  *
- * $Id: demux_flv.c,v 1.5 2005/02/03 07:19:05 valtri Exp $
+ * $Id: demux_flv.c,v 1.6 2005/02/06 15:26:16 tmattern Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -345,6 +345,6 @@ demuxer_info_t demux_info_flv = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */
-  { PLUGIN_DEMUX, 25, "flashvideo", XINE_VERSION_CODE, &demux_info_flv, init_plugin },
+  { PLUGIN_DEMUX, 26, "flashvideo", XINE_VERSION_CODE, &demux_info_flv, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

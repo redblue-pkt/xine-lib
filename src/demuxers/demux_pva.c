@@ -23,7 +23,7 @@
  * For more information regarding the PVA file format, refer to this PDF:
  *   http://www.technotrend.de/download/av_format_v1.pdf
  *
- * $Id: demux_pva.c,v 1.20 2004/12/17 20:08:47 miguelfreitas Exp $
+ * $Id: demux_pva.c,v 1.21 2005/02/06 15:26:18 tmattern Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -526,6 +526,6 @@ demuxer_info_t demux_info_pva = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */
-  { PLUGIN_DEMUX, 25, "pva", XINE_VERSION_CODE, &demux_info_pva, init_plugin },
+  { PLUGIN_DEMUX, 26, "pva", XINE_VERSION_CODE, &demux_info_pva, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_avi.c,v 1.217 2005/02/03 07:19:05 valtri Exp $
+ * $Id: demux_avi.c,v 1.218 2005/02/06 15:26:00 tmattern Exp $
  *
  * demultiplexer for avi streams
  *
@@ -2367,6 +2367,6 @@ demuxer_info_t demux_info_avi = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */
-  { PLUGIN_DEMUX, 25, "avi", XINE_VERSION_CODE, &demux_info_avi, init_class },
+  { PLUGIN_DEMUX, 26, "avi", XINE_VERSION_CODE, &demux_info_avi, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
