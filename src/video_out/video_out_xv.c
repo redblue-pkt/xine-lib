@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.201 2004/06/26 14:47:34 mroi Exp $
+ * $Id: video_out_xv.c,v 1.202 2004/06/27 11:16:20 mroi Exp $
  *
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -1521,11 +1521,6 @@ static void dispose_class (video_driver_class_t *this_gen) {
 
 static void *init_class (xine_t *xine, void *visual_gen) {
   xv_class_t        *this = (xv_class_t *) xine_xmalloc (sizeof (xv_class_t));
-
-  if (!XInitThreads()) {
-    xprintf (xine, XINE_VERBOSITY_LOG, _("video_out_xv: No thread-safe X libraries available.\n"));
-    return NULL;
-  }
 
   this->driver_class.open_plugin     = open_plugin;
   this->driver_class.get_identifier  = get_identifier;

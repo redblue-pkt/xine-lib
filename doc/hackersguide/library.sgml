@@ -40,6 +40,12 @@
    will find a very easy and hopefully self-explaining xine frontend
    to give you a start.
   </para>
+  <para>
+   One important thing to note is that any X11 based xine-lib frontend
+   must call <function>XInitThreads()</function> before calling the
+   first Xlib function, because xine will access the display from
+   within a different thread than the frontend.
+  </para>
   <sect2>
    <title>Source code of a simple X11 frontend</title>
    <programlisting>
