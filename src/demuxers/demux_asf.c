@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.85 2002/12/02 22:33:30 tmattern Exp $
+ * $Id: demux_asf.c,v 1.86 2002/12/06 19:23:29 miguelfreitas Exp $
  *
  * demultiplexer for asf streams
  *
@@ -1310,7 +1310,9 @@ static void asf_read_packet(demux_asf_t *this) {
           asf_send_buffer_nodefrag (this, stream, 0, seq, timestamp,
                                     object_length, object_length);
       } else {
+#ifdef LOG
         printf ("demux_asf: unhandled stream type, id %d\n", stream_id);
+#endif
         this->input->seek (this->input, object_length, SEEK_CUR);
       }
       seq++;
@@ -1376,7 +1378,9 @@ static void asf_read_packet(demux_asf_t *this) {
         asf_send_buffer_nodefrag (this, stream, frag_offset, seq, timestamp,
                                   frag_len, payload_size);
     } else {
+#ifdef LOG
       printf ("demux_asf: unhandled stream type, id %d\n", stream_id);
+#endif
       this->input->seek (this->input, frag_len, SEEK_CUR);
     }
     this->packet_size_left -= frag_len;
