@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  *
- * $Id: video_out_pgx64.c,v 1.29 2003/06/15 11:44:57 komadori Exp $
+ * $Id: video_out_pgx64.c,v 1.30 2003/06/15 20:04:35 komadori Exp $
  *
  * video_out_pgx64.c, Sun PGX64/PGX24 output plugin for xine
  *
@@ -350,13 +350,13 @@ static void pgx64_display_frame(pgx64_driver_t *this, pgx64_frame_t *frame)
 
   if (frame->format == XINE_IMGFMT_YV12) {
     if (this->deinterlace) {
-      register uint8_t *y = frame->vo_frame.base[0];
-      register uint8_t *ydest = this->fbbase+frame->buf_y;
-      register uint8_t *u = frame->vo_frame.base[1];
-      register uint8_t *v = frame->vo_frame.base[2];
-      register uint8_t *udest = this->fbbase+frame->buf_u;
-      register uint8_t *vdest = this->fbbase+frame->buf_v;
-      int i = 0;
+      uint8_t *y = frame->vo_frame.base[0];
+      uint8_t *ydest = this->fbbase+frame->buf_y;
+      uint8_t *u = frame->vo_frame.base[1];
+      uint8_t *v = frame->vo_frame.base[2];
+      uint8_t *udest = this->fbbase+frame->buf_u;
+      uint8_t *vdest = this->fbbase+frame->buf_v;
+      int i;
 
       for (i = 0; i < frame->height/2; i++, y += 2*frame->vo_frame.pitches[0], ydest += frame->vo_frame.pitches[0]) {
         memcpy(ydest, y, frame->vo_frame.pitches[0]);
@@ -375,7 +375,18 @@ static void pgx64_display_frame(pgx64_driver_t *this, pgx64_frame_t *frame)
     }
   }
   else {
-    memcpy(this->fbbase+frame->buf_y, frame->vo_frame.base[0], frame->lengths[0]);
+    if (this->deinterlace) {
+      uint8_t *y = frame->vo_frame.base[0];
+      uint8_t *ydest = this->fbbase+frame->buf_y;
+      int i;
+
+      for (i = 0; i < frame->height/2; i++, y += 2*frame->vo_frame.pitches[0], ydest += frame->vo_frame.pitches[0]) {
+        memcpy(ydest, y, frame->vo_frame.pitches[0]);
+      }
+    }
+    else {
+      memcpy(this->fbbase+frame->buf_y, frame->vo_frame.base[0], frame->lengths[0]);
+    }
   }
 
   if ((this->current != NULL) && (this->current != frame)) {
