@@ -60,6 +60,7 @@ static deinterlace_method_t linearmethod =
     1,
     deinterlace_scanline_linear,
     copy_scanline,
+    0,
     0
 };
 

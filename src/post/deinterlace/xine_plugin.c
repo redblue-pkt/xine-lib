@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_plugin.c,v 1.34 2004/07/14 02:44:15 miguelfreitas Exp $
+ * $Id: xine_plugin.c,v 1.35 2004/07/17 16:35:16 miguelfreitas Exp $
  *
  * advanced video deinterlacer plugin
  * Jun/2003 by Miguel Freitas
@@ -645,7 +645,9 @@ static int deinterlace_draw(vo_frame_t *frame, xine_stream_t *stream)
   post_plugin_deinterlace_t *this = (post_plugin_deinterlace_t *)port->post;
   vo_frame_t *orig_frame;
   vo_frame_t *yuy2_frame;
-  int i, skip, progressive = 0;
+  int i, skip = 0, progressive = 0;
+  int fields[2];
+  int framerate_mode;
 
   orig_frame = frame;
   _x_post_frame_copy_down(frame, frame->next);
@@ -673,16 +675,30 @@ static int deinterlace_draw(vo_frame_t *frame, xine_stream_t *stream)
            frame->progressive_frame, frame->repeat_first_field,
            frame->top_field_first, frame->duration);
   
-  /* this should be used to detect any special rff pattern */
+  /* detect special rff patterns */
   this->rff_pattern = this->rff_pattern << 1;
   this->rff_pattern |= !!frame->repeat_first_field;
   
   if( ((this->rff_pattern & 0xff) == 0xaa ||
       (this->rff_pattern & 0xff) == 0x55) ) {
-    /* special case for ntsc 3:2 pulldown */
+    /*
+     * special case for ntsc 3:2 pulldown (called flags or soft pulldown).
+     * we know all frames are indeed progressive.
+     */
     progressive = 1;
   }
 
+  /* using frame->progressive_frame may help displaying still menus.
+   * however, it is known that some rare material set it wrong.
+   * 
+   * we also assume that repeat_first_field is progressive (it doesn't
+   * make much sense to display interlaced fields out of order)
+   */
+  if( this->use_progressive_frame_flag &&
+      (frame->repeat_first_field || frame->progressive_frame) ) {
+    progressive = 1;
+  }
+  
   if( !frame->bad_frame && 
       (frame->flags & VO_INTERLACED_FLAG) &&
       this->tvtime->curmethod ) {
@@ -724,70 +740,91 @@ static int deinterlace_draw(vo_frame_t *frame, xine_stream_t *stream)
       }
     }
 
+    if( !this->cheap_mode ) {
+      framerate_mode = this->framerate_mode;
+      this->tvtime->pulldown_alg = this->pulldown;
+    } else {
+      framerate_mode = FRAMERATE_HALF_TFF;
+      this->tvtime->pulldown_alg = PULLDOWN_NONE;
+    }
+    
+    if( framerate_mode == FRAMERATE_FULL ) {
+      int top_field_first = frame->top_field_first;
+      
+      /* if i understood mpeg2 specs correctly, top_field_first
+       * shall be zero for field pictures and the output order
+       * is the same that the fields are decoded.
+       * frame->flags allow us to find the first decoded field.
+       *
+       * note: frame->field() is called later to switch decoded
+       *       field but frame->flags do not change.
+       */
+      if ( (frame->flags & VO_BOTH_FIELDS) != VO_BOTH_FIELDS ) {
+        top_field_first = (frame->flags & VO_TOP_FIELD) ? 1 : 0;
+      }
+      
+      if ( top_field_first ) {
+        fields[0] = 0;
+        fields[1] = 1;
+      } else {
+        fields[0] = 1;
+        fields[1] = 0;
+      }
+    } else if ( framerate_mode == FRAMERATE_HALF_TFF ) {
+      fields[0] = 0;
+    } else if ( framerate_mode == FRAMERATE_HALF_BFF ) {
+      fields[0] = 1;
+    }
+    
+    
+    if( progressive ) {
 
-    /* using frame->progressive_frame may help displaying still menus.
-     * however, it is known that some rare material set it wrong.
-     * 
-     * we assume that repeat_first_field is progressive (it doesn't make
-     * much sense to display interlaced fields out of order)
-     */
-    if( progressive || frame->repeat_first_field ||
-        (this->use_progressive_frame_flag && frame->progressive_frame) ) {
-
+      /* If the previous field was interlaced and this one is progressive
+       * we need to run a deinterlace on the first field of this frame
+       * in order to let output for the previous frames last field be
+       * generated. This is only necessary for the deinterlacers that
+       * delay output by one field.  This is signaled by the delaysfield
+       * flag in the deinterlace method structure. The previous frames
+       * duration is used in the calculation because the generated frame
+       * represents the second half of the previous frame.
+       */
+      if (this->recent_frame[0] && !this->recent_frame[0]->progressive_frame && 
+          this->tvtime->curmethod->delaysfield)
+      {
+	skip = deinterlace_build_output_field( 
+          this, port, stream,
+          frame, yuy2_frame,
+          fields[0], 0,
+	  0,
+	  (framerate_mode == FRAMERATE_FULL) ? this->recent_frame[0]->duration/2 : this->recent_frame[0]->duration,
+	  0);
+      }
       pthread_mutex_unlock (&this->lock);
       skip = yuy2_frame->draw(yuy2_frame, stream);
       pthread_mutex_lock (&this->lock);
       _x_post_frame_copy_up(frame, yuy2_frame);
 
     } else {
-      int fields[2];
-      int framerate_mode;
 
-      if( !this->cheap_mode ) {
-        framerate_mode = this->framerate_mode;
-        this->tvtime->pulldown_alg = this->pulldown;
-      } else {
-        framerate_mode = FRAMERATE_HALF_TFF;
-        this->tvtime->pulldown_alg = PULLDOWN_NONE;
-      }
 
-      if( framerate_mode == FRAMERATE_FULL ) {
-        int top_field_first = frame->top_field_first;
-
-        /* if i understood mpeg2 specs correctly, top_field_first
-         * shall be zero for field pictures and the output order
-         * is the same that the fields are decoded.
-         * frame->flags allow us to find the first decoded field.
-         *
-         * note: frame->field() is called later to switch decoded
-         *       field but frame->flags do not change.
-         */
-        if ( (frame->flags & VO_BOTH_FIELDS) != VO_BOTH_FIELDS ) {
-          top_field_first = (frame->flags & VO_TOP_FIELD) ? 1 : 0;
-        }
-
-        if ( top_field_first ) {
-          fields[0] = 0;
-          fields[1] = 1;
-        } else {
-          fields[0] = 1;
-          fields[1] = 0;
-        }
-      } else if ( framerate_mode == FRAMERATE_HALF_TFF ) {
-        fields[0] = 0;
-      } else if ( framerate_mode == FRAMERATE_HALF_BFF ) {
-        fields[0] = 1;
-      }
+      /* If the previous field was progressive and we are using a
+       * filter that delays it's output by one field then we need
+       * to skip the first field's output. Otherwise the effective
+       * display duration of the previous frame will be extended
+       * by 1/2 of this frames duration when output is generated
+       * using the last field of the progressive frame. */
 
       /* Build the output from the first field. */
-      skip = deinterlace_build_output_field( 
-        this, port, stream,
-        frame, yuy2_frame,
-        fields[0], 0,
-        frame->pts,
-        (framerate_mode == FRAMERATE_FULL) ? frame->duration/2 : frame->duration,
-        0);
-      
+      if ( !(this->recent_frame[0] && this->recent_frame[0]->progressive_frame &&
+             this->tvtime->curmethod->delaysfield) ) {
+        skip = deinterlace_build_output_field( 
+          this, port, stream,
+          frame, yuy2_frame,
+          fields[0], 0,
+          frame->pts,
+          (framerate_mode == FRAMERATE_FULL) ? frame->duration/2 : frame->duration,
+          0);
+      }  
 
       if( framerate_mode == FRAMERATE_FULL ) {
   
@@ -808,6 +845,9 @@ static int deinterlace_draw(vo_frame_t *frame, xine_stream_t *stream)
     if( this->pulldown )
       skip = 0;
 
+    /* store back progressive flag for frame history */
+    yuy2_frame->progressive_frame = progressive;
+      
     /* keep track of recent frames */
     i = NUM_RECENT_FRAMES-1;
     if( this->recent_frame[i] )

@@ -187,7 +187,8 @@ static deinterlace_method_t greedymethod =
     1,
     copy_scanline,
     deinterlace_greedy_packed422_scanline_mmxext,
-    0
+    0,
+    1
 };
 
 #ifdef BUILD_TVTIME_PLUGINS

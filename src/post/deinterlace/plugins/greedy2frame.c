@@ -82,7 +82,8 @@ static deinterlace_method_t greedymethod =
     0,
     0,
     0,
-    DeinterlaceGreedy2Frame_SSE
+    DeinterlaceGreedy2Frame_SSE,
+    1
 };
 
 #ifdef BUILD_TVTIME_PLUGINS

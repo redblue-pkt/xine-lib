@@ -156,6 +156,7 @@ static deinterlace_method_t vfirmethod =
     1,
     deinterlace_scanline_vfir,
     copy_scanline,
+    0,
     0
 };
 

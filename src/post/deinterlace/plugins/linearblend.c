@@ -317,6 +317,7 @@ static deinterlace_method_t linearblendmethod_mmxext =
     1,
     deinterlace_scanline_linear_blend_mmxext,
     deinterlace_scanline_linear_blend2_mmxext,
+    0,
     0
 };
 
@@ -339,6 +340,7 @@ static deinterlace_method_t linearblendmethod =
     1,
     deinterlace_scanline_linear_blend,
     deinterlace_scanline_linear_blend2,
+    0,
     0
 };
 

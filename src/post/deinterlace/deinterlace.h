@@ -169,6 +169,7 @@ struct deinterlace_method_s
     deinterlace_interp_scanline_t interpolate_scanline;
     deinterlace_copy_scanline_t copy_scanline;
     deinterlace_frame_t deinterlace_frame;
+    int delaysfield; /* delays output by one field relative to input */
 };
 
 /**

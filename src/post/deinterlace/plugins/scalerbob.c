@@ -48,6 +48,7 @@ static deinterlace_method_t scalerbobmethod =
     1,
     0,
     0,
+    0,
     0
 };
 
