@@ -16,6 +16,11 @@ URL:         http://xine.sourceforge.net
 Packager:    Daniel Caujolle-Bert <f1rmb@users.sourceforge.net>
 BuildRoot:   /tmp/%{name}-root
 
+@HAVE_OSS_TRUE@%package oss
+@HAVE_OSS_TRUE@Summary:     XINE - oss support.
+@HAVE_OSS_TRUE@Group:       Development/Libraries
+@HAVE_OSS_TRUE@Requires:    xine-lib >= 0.5.0
+
 @HAVE_ALSA05_TRUE@%package alsa05
 @HAVE_ALSA05_TRUE@Summary:     XINE - alsa 0.5.x support.
 @HAVE_ALSA05_TRUE@Group:       Development/Libraries
@@ -31,10 +36,30 @@ BuildRoot:   /tmp/%{name}-root
 @HAVE_ARTS_TRUE@Group:       Development/Libraries
 @HAVE_ARTS_TRUE@Requires:    xine-lib >= 0.5.0
 
+@HAVE_ESD_TRUE@%package esd
+@HAVE_ESD_TRUE@Summary:     XINE - esd support.
+@HAVE_ESD_TRUE@Group:       Development/Libraries
+@HAVE_ESD_TRUE@Requires:    xine-lib >= 0.5.0, libesd
+
 @HAVE_DXR3_TRUE@%package dxr3
 @HAVE_DXR3_TRUE@Summary:     XINE - DXR3 support.
 @HAVE_DXR3_TRUE@Group:       Development/Libraries
 @HAVE_DXR3_TRUE@Requires:    xine-lib >= 0.5.0
+
+@HAVE_XV_TRUE@%package xv
+@HAVE_XV_TRUE@Summary:     XINE - XFree XVideo support.
+@HAVE_XV_TRUE@Group:       Development/Libraries
+@HAVE_XV_TRUE@Requires:    xine-lib >= 0.5.0
+
+@HAVE_AA_TRUE@%package aa
+@HAVE_AA_TRUE@Summary:     XINE - Ascii Art support.
+@HAVE_AA_TRUE@Group:       Development/Libraries
+@HAVE_AA_TRUE@Requires:    xine-lib >= 0.5.0, libaa
+
+@W32DLL_DEP@%package w32dll
+@W32DLL_DEP@Summary:     XINE - win32dll decoder support.
+@W32DLL_DEP@Group:       Development/Libraries
+@W32DLL_DEP@Requires:    xine-lib >= 0.5.0
 
 %package docs
 Summary:     XINE - html API documentation.
@@ -66,6 +91,9 @@ xine 는 GPL라이선스를 따르는 UNIX용 공개 동영상 플레이어입니다. 이
 플레이어는 mpeg-2 와 mpeg 1 스트림을 지원하며, 현재는 지원하지
 않지만 나중에는 mpeg-4 와 다른 형식의 동영상도 지원할 예정입니다.
 
+@HAVE_OSS_TRUE@%description oss
+@HAVE_OSS_TRUE@audio plugin with oss support.
+
 @HAVE_ALSA05_TRUE@%description alsa05
 @HAVE_ALSA05_TRUE@audio plugin with alsa 0.5.x support.
 
@@ -75,8 +103,20 @@ xine 는 GPL라이선스를 따르는 UNIX용 공개 동영상 플레이어입니다. 이
 @HAVE_ARTS_TRUE@%description arts
 @HAVE_ARTS_TRUE@audio plugin with arts support.
 
+@HAVE_ESD_TRUE@%description esd
+@HAVE_ESD_TRUE@audio plugin with esd support.
+
 @HAVE_DXR3_TRUE@%description dxr3
 @HAVE_DXR3_TRUE@video/decoder plugins for DXR3 card support.
+
+@HAVE_XV_TRUE@%description xv
+@HAVE_XV_TRUE@video plugin using XFree XVideo extension.
+
+@HAVE_AA_TRUE@%description aa
+@HAVE_AA_TRUE@video plugin using Ascii Art library.
+
+@W32DLL_DEP@%description w32dll
+@W32DLL_DEP@win32dll decoder support.
 
 %description docs
 HTML documentation of XINE API.
@@ -169,26 +209,22 @@ rm -rf $RPM_BUILD_ROOT
 %{prefix}/lib/xine/plugins/xineplug_decode_mpg123.so
 %{prefix}/lib/xine/plugins/xineplug_decode_spu.la
 %{prefix}/lib/xine/plugins/xineplug_decode_spu.so
-%{prefix}/lib/xine/plugins/xineplug_decode_w32dll.la
-%{prefix}/lib/xine/plugins/xineplug_decode_w32dll.so
 # audio driver plugins
-%{prefix}/lib/xine/plugins/xineplug_ao_out_esd.la
-%{prefix}/lib/xine/plugins/xineplug_ao_out_esd.so
-%{prefix}/lib/xine/plugins/xineplug_ao_out_oss.la
-%{prefix}/lib/xine/plugins/xineplug_ao_out_oss.so
+# see other packages.
+#
 # video driver plugins
-%{prefix}/lib/xine/plugins/xineplug_vo_out_aa.la
-%{prefix}/lib/xine/plugins/xineplug_vo_out_aa.so
 %{prefix}/lib/xine/plugins/xineplug_vo_out_syncfb.la
 %{prefix}/lib/xine/plugins/xineplug_vo_out_syncfb.so
 %{prefix}/lib/xine/plugins/xineplug_vo_out_xshm.la
 %{prefix}/lib/xine/plugins/xineplug_vo_out_xshm.so
-%{prefix}/lib/xine/plugins/xineplug_vo_out_xv.la
-%{prefix}/lib/xine/plugins/xineplug_vo_out_xv.so
+# lib and logo.
 %{prefix}/lib/libxine*.la
 %{prefix}/lib/libxine*.so*
 %{prefix}/share/xine/skins/*
-##%{prefix}/share/doc/xine/*
+
+@HAVE_OSS_TRUE@%files oss
+@HAVE_OSS_TRUE@%{prefix}/lib/xine/plugins/xineplug_ao_out_oss.la
+@HAVE_OSS_TRUE@%{prefix}/lib/xine/plugins/xineplug_ao_out_oss.so
 
 @HAVE_ALSA05_TRUE@%files alsa05
 @HAVE_ALSA05_TRUE@%{prefix}/lib/xine/plugins/xineplug_ao_out_alsa05.la
@@ -202,16 +238,34 @@ rm -rf $RPM_BUILD_ROOT
 @HAVE_ARTS_TRUE@%{prefix}/lib/xine/plugins/xineplug_ao_out_arts.la
 @HAVE_ARTS_TRUE@%{prefix}/lib/xine/plugins/xineplug_ao_out_arts.so
 
+@HAVE_ESD_TRUE@%files esd
+@HAVE_ESD_TRUE@%{prefix}/lib/xine/plugins/xineplug_ao_out_esd.la
+@HAVE_ESD_TRUE@%{prefix}/lib/xine/plugins/xineplug_ao_out_esd.so
+
 @HAVE_DXR3_TRUE@%files dxr3
 @HAVE_DXR3_TRUE@%{prefix}/lib/xine/plugins/xineplug_decode_dxr3.la
 @HAVE_DXR3_TRUE@%{prefix}/lib/xine/plugins/xineplug_decode_dxr3.so
 @HAVE_DXR3_TRUE@%{prefix}/lib/xine/plugins/xineplug_vo_out_dxr3.la
 @HAVE_DXR3_TRUE@%{prefix}/lib/xine/plugins/xineplug_vo_out_dxr3.so
 
+@HAVE_XV_TRUE@%files xv
+@HAVE_XV_TRUE@%{prefix}/lib/xine/plugins/xineplug_vo_out_xv.la
+@HAVE_XV_TRUE@%{prefix}/lib/xine/plugins/xineplug_vo_out_xv.so
+
+@HAVE_AA_TRUE@%files aa
+@HAVE_AA_TRUE@%{prefix}/lib/xine/plugins/xineplug_vo_out_aa.la
+@HAVE_AA_TRUE@%{prefix}/lib/xine/plugins/xineplug_vo_out_aa.so
+
+@W32DLL_DEP@%files w32dll
+@W32DLL_DEP@%{prefix}/lib/xine/plugins/xineplug_decode_w32dll.la
+@W32DLL_DEP@%{prefix}/lib/xine/plugins/xineplug_decode_w32dll.so
+
 %files docs
 %{prefix}/share/doc/xine/xine-lib-API/*
 
 %changelog
+* Thu Jul 26 2001 Daniel Caujolle-Bert <f1rmb@users.sourceforge.net>
+- Made oss, aa, xv, esd, w32dll, documentation as separate packages.
 * Thu Jul 26 2001 Matthias Dahl <matthew2k@web.de>
 - added seperate arts package and one missing demuxer plugin to filelist
 * Wed Jul 18 2001 Daniel Caujolle-Bert <f1rmb@users.sourceforge.net>
