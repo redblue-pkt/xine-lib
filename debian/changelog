@@ -1,8 +1,12 @@
-xine-lib (1-rc7-0) unstable; urgency=low
+xine-lib (1-rc7-1) unstable; urgency=medium
 
   * New upstream release
+    * new DVB subsystem (closes: #223541, #223555, #223562)
+    * makes Win32 DLL loader work with 2.6 kernels (closes: #265455)
+  * added more explicit dependancy on libpng12-dev, so maybe
+    "apt-get build-dep xine-lib" will work again...
 
- -- Siggi Langauf <siggi@debian.org>  Sun, 31 Oct 2004 16:58:55 +0100
+ -- Siggi Langauf <siggi@debian.org>  Wed, 10 Nov 2004 09:26:46 +0100
 
 xine-lib (1-rc6a-1) unstable; urgency=high
 
