@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.169 2003/12/14 23:21:19 f1rmb Exp $
+ * $Id: load_plugins.c,v 1.170 2003/12/14 23:23:17 f1rmb Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -537,11 +537,10 @@ static void collect_plugins(xine_t *this, char *path){
 	      }
 	    }
 	    else {
-	      char *dl_error_msg = dlerror();
+	      char *error = dlerror();
 
 	      xine_log (this, XINE_LOG_PLUGIN,
-			_("load_plugins: can't get plugin info from %s:\n%s\n"),
-			str, dl_error_msg);
+			_("load_plugins: can't get plugin info from %s:\n%s\n"), str, error);
 	    }
 	    if( lib )
 	      dlclose(lib);
@@ -577,10 +576,10 @@ static void *_load_plugin_class(xine_t *this,
   void *lib;
 
   if(!(lib = dlopen (filename, RTLD_LAZY | RTLD_GLOBAL))) {
+    char *error = dlerror();
 
     xine_log (this, XINE_LOG_PLUGIN,
-	      _("load_plugins: cannot (stage 2) open plugin lib %s:\n%s\n"),
-	      filename, dlerror());
+	      _("load_plugins: cannot (stage 2) open plugin lib %s:\n%s\n"), filename, error);
 
   } else {
 
