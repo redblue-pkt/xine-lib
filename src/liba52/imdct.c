@@ -425,7 +425,6 @@ void a52_imdct_init (uint32_t mm_accel)
     } else
 #endif
     {
-	fprintf (stderr, "liba52:No accelerated IMDCT transform found\n");
 	ifft128 = ifft128_c;
 	ifft64 = ifft64_c;
     }
