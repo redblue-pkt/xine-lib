@@ -17,13 +17,17 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_plugin.c,v 1.33 2004/07/08 02:13:01 miguelfreitas Exp $
+ * $Id: xine_plugin.c,v 1.34 2004/07/14 02:44:15 miguelfreitas Exp $
  *
  * advanced video deinterlacer plugin
  * Jun/2003 by Miguel Freitas
  *
  * heavily based on tvtime.sf.net by Billy Biggs
  */
+
+/*
+#define LOG
+*/
 
 #include "xine_internal.h"
 #include "post.h"
@@ -628,7 +632,7 @@ static int deinterlace_build_output_field(
     skip = deinterlaced_frame->draw(deinterlaced_frame, stream);
   }
     
-  _x_post_frame_copy_up(frame, deinterlaced_frame);
+  /* _x_post_frame_copy_up(frame, deinterlaced_frame); */
   deinterlaced_frame->free(deinterlaced_frame);
   pthread_mutex_lock (&this->lock);
   
@@ -665,6 +669,10 @@ static int deinterlace_draw(vo_frame_t *frame, xine_stream_t *stream)
   }
   pthread_mutex_unlock (&this->lock);
 
+  lprintf("frame flags pf: %d rff: %d tff: %d duration: %d\n",
+           frame->progressive_frame, frame->repeat_first_field,
+           frame->top_field_first, frame->duration);
+  
   /* this should be used to detect any special rff pattern */
   this->rff_pattern = this->rff_pattern << 1;
   this->rff_pattern |= !!frame->repeat_first_field;
