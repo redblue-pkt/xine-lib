@@ -10,6 +10,4 @@ usr/share/aclocal/xine.m4
 usr/share/man/man1/xine-config.1
 usr/share/doc/xine/README.freebsd
 usr/share/doc/xine/README.irix
-usr/share/doc/xine/README.plugins
 usr/share/doc/xine/README.solaris
-usr/share/doc/xine/dataflow.dia
