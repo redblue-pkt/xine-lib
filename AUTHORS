@@ -404,7 +404,7 @@ Matthew Grooms
   msvc win32 port
 
 Conrad Parker <conrad@metadecks.org>
-  speex support
+  speex and Annodex support
 
 Marcel Janssen <korgull@home.nl>
   libavcodec MPEG encoder for DXR3
