@@ -38,7 +38,7 @@
  * usage: 
  *   xine pvr:/<prefix_to_tmp_files>\!<prefix_to_saved_files>\!<max_page_age>
  *
- * $Id: input_pvr.c,v 1.23 2003/05/15 16:41:57 miguelfreitas Exp $
+ * $Id: input_pvr.c,v 1.24 2003/05/15 17:46:22 miguelfreitas Exp $
  */
 
 /**************************************************************************
@@ -1128,11 +1128,21 @@ static void pvr_event_handler (pvr_input_plugin_t *this) {
        struct ivtv_ioctl_codec codec;
     
        pthread_mutex_lock(&this->dev_lock);
+
+       /* how lame. we must close and reopen to change bitrate. */
+       close(this->dev_fd);
+       this->dev_fd = open (PVR_DEVICE, O_RDWR);
+       if (this->dev_fd == -1) {
+         printf("input_pvr: error opening device %s\n", PVR_DEVICE );
+         return;
+       }
+       
        if (ioctl(this->dev_fd, IVTV_IOC_G_CODEC, &codec) < 0) {
          printf("input_pvr: IVTV_IOC_G_CODEC failed, maybe API changed?\n");
        } else {
          codec.bitrate      = mpeg_data->bitrate_mean;
          codec.bitrate_peak = mpeg_data->bitrate_peak;
+         codec.stream_type  = IVTV_STREAM_DVD;
 
          if (ioctl(this->dev_fd, IVTV_IOC_S_CODEC, &codec) < 0) {
            printf("input_pvr: IVTV_IOC_S_CODEC failed, maybe API changed?\n");
