@@ -38,7 +38,7 @@
  * usage: 
  *   xine pvr:/<prefix_to_tmp_files>\!<prefix_to_saved_files>\!<max_page_age>
  *
- * $Id: input_pvr.c,v 1.21 2003/05/09 17:57:15 miguelfreitas Exp $
+ * $Id: input_pvr.c,v 1.22 2003/05/09 20:49:34 miguelfreitas Exp $
  */
 
 /**************************************************************************
@@ -463,6 +463,7 @@ static void pvr_adjust_realtime_speed(pvr_input_plugin_t *this, fifo_buffer_t *f
     /* buffer is empty. pause it for a while */
     this->scr_tunning = -2; /* marked as paused */
     pvrscr_speed_tunning(this->scr, 0.0);
+    this->stream->audio_out->set_property( this->stream->audio_out, AO_PROP_PAUSED, 2 );
 #ifdef SCRLOG
     printf("input_pvr: buffer empty, pausing playback\n" );
 #endif
@@ -474,6 +475,7 @@ static void pvr_adjust_realtime_speed(pvr_input_plugin_t *this, fifo_buffer_t *f
       this->scr_tunning = 0;
       
       pvrscr_speed_tunning(this->scr, 1.0 );
+      this->stream->audio_out->set_property( this->stream->audio_out, AO_PROP_PAUSED, 0 );
 #ifdef SCRLOG
       printf("input_pvr: resuming playback\n" );
 #endif
@@ -677,6 +679,7 @@ static int pvr_play_file(pvr_input_plugin_t *this, fifo_buffer_t *fifo, uint8_t 
      
     if( speed > XINE_SPEED_NORMAL ) {
       this->stream->xine->clock->set_speed (this->stream->xine->clock, XINE_SPEED_NORMAL);
+      this->stream->audio_out->set_property( this->stream->audio_out, AO_PROP_PAUSED, 0 );
     }
     
     if( this->play_fd != -1 ) {
