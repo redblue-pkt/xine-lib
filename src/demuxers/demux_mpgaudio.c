@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpgaudio.c,v 1.104 2003/08/05 18:23:56 hadess Exp $
+ * $Id: demux_mpgaudio.c,v 1.105 2003/08/10 16:03:21 miguelfreitas Exp $
  *
  * demultiplexer for mpeg audio (i.e. mp3) streams
  *
@@ -74,6 +74,7 @@ typedef struct {
   int64_t              last_pts;
   int                  send_newpts;
   int                  buf_flag_seek;
+  uint32_t             blocksize;
 
 } demux_mpgaudio_t ;
 
@@ -422,26 +423,32 @@ static void check_newpts( demux_mpgaudio_t *this, int64_t pts ) {
 
 static int demux_mpgaudio_next (demux_mpgaudio_t *this, int decoder_flags) {
 
-  buf_element_t *buf = NULL;
+  buf_element_t *buf;
+  uint32_t       blocksize;
   uint32_t       head;
   off_t          buffer_pos;
+  off_t          done;
   uint64_t       pts = 0;
-  int            worked = 0;
 
   buffer_pos = this->input->get_current_pos(this->input);
-  if(this->audio_fifo)
-    buf = this->input->read_block(this->input, 
-				  this->audio_fifo, 2048);
 
-  if (buf == NULL) {
-    this->status = DEMUX_FINISHED;
+  if (!this->audio_fifo)
+    return 0;
+
+  buf = this->audio_fifo->buffer_pool_alloc(this->audio_fifo);
+
+  blocksize = (this->blocksize ? this->blocksize : buf->max_size);
+  done = this->input->read(this->input, buf->mem, blocksize);
+
+  if (done <= 0) {
+    buf->free_buffer(buf);
     return 0;
   }
 
   if (this->bitrate == 0) {
     int i, ver,srindex,brindex,xbytes,xframes;
 
-    for( i = 0; i < buf->size-4; i++ ) {
+    for( i = 0; i < done-4; i++ ) {
       head = (buf->mem[i+0] << 24) + (buf->mem[i+1] << 16) +
              (buf->mem[i+2] << 8) + buf->mem[i+3];
 
@@ -501,16 +508,15 @@ static int demux_mpgaudio_next (demux_mpgaudio_t *this, int decoder_flags) {
 #if 0
   buf->pts             = pts;
 #endif
+  buf->size            = done;
+  buf->content         = buf->mem;
   buf->type            = BUF_AUDIO_MPEG;
   buf->decoder_info[0] = 1;
   buf->decoder_flags   = decoder_flags;
 
-  worked = (buf->size == 2048);
+  this->audio_fifo->put(this->audio_fifo, buf);
 
-  if(this->audio_fifo)
-    this->audio_fifo->put(this->audio_fifo, buf);
-
-  return worked;
+  return 1;
 }
 
 static int demux_mpgaudio_send_chunk (demux_plugin_t *this_gen) {
@@ -611,6 +617,8 @@ static void demux_mpgaudio_send_headers (demux_plugin_t *this_gen) {
 
     read_id3_tags (this);
   }
+
+  this->blocksize = this->input->get_blocksize(this->input);
 
   /*
    * send preview buffers

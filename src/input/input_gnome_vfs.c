@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_gnome_vfs.c,v 1.13 2003/07/26 15:44:47 hadess Exp $
+ * $Id: input_gnome_vfs.c,v 1.14 2003/08/10 16:03:21 miguelfreitas Exp $
  */
 
 
@@ -94,7 +94,7 @@ gnomevfs_plugin_read (input_plugin_t *this_gen, char *buf, off_t len)
 			return -1;
 		} else if (res == GNOME_VFS_ERROR_EOF) {
 			D("gnomevfs_plugin_read: GNOME_VFS_ERROR_EOF");
-			return 0;
+			return num_bytes;
 		}
 
 		if (n <= 0)
@@ -121,7 +121,7 @@ gnomevfs_plugin_read_block (input_plugin_t *this_gen, fifo_buffer_t *fifo,
 
 	total_bytes = gnomevfs_plugin_read (this_gen, buf->content, todo);
 
-	if (total_bytes) buf->size = total_bytes;
+	if (total_bytes == todo) buf->size = todo;
 	else
 	{
 		buf->free_buffer (buf);

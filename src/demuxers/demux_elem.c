@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_elem.c,v 1.74 2003/07/25 21:02:05 miguelfreitas Exp $
+ * $Id: demux_elem.c,v 1.75 2003/08/10 16:03:21 miguelfreitas Exp $
  *
  * demultiplexer for elementary mpeg streams
  */
@@ -55,7 +55,7 @@ typedef struct {
   input_plugin_t      *input;
   int                  status;
 
-  int                  blocksize;
+  uint32_t             blocksize;
 } demux_mpeg_elem_t ;
 
 typedef struct {
@@ -64,22 +64,23 @@ typedef struct {
 
 static int demux_mpeg_elem_next (demux_mpeg_elem_t *this, int preview_mode) {
   buf_element_t *buf;
+  uint32_t blocksize;
+  off_t done;
 
   lprintf ("next piece\n");
-  buf = this->input->read_block(this->input, this->video_fifo, this->blocksize);
+  buf = this->video_fifo->buffer_pool_alloc(this->video_fifo);
+  blocksize = (this->blocksize ? this->blocksize : buf->max_size);
+  done = this->input->read(this->input, buf->mem, blocksize);
+  lprintf ("read size = %lld\n", done);
 
-  if (!buf) {
-    this->status = DEMUX_FINISHED;
-    return 0;
-  }
-
-  lprintf ("size = %d\n", buf->size);
-  if (buf->size <= 0) {
+  if (done <= 0) {
     buf->free_buffer (buf);
     this->status = DEMUX_FINISHED;
     return 0;
   }
 
+  buf->size                  = done;
+  buf->content               = buf->mem;
   buf->pts                   = 0;
   buf->extra_info->input_pos = this->input->get_current_pos(this->input);
   buf->type                  = BUF_VIDEO_MPEG;
@@ -89,7 +90,7 @@ static int demux_mpeg_elem_next (demux_mpeg_elem_t *this, int preview_mode) {
 
   this->video_fifo->put(this->video_fifo, buf);
   
-  return (buf->size > 0);
+  return 1;
 }
 
 static int demux_mpeg_elem_send_chunk (demux_plugin_t *this_gen) {
@@ -114,8 +115,6 @@ static void demux_mpeg_elem_send_headers (demux_plugin_t *this_gen) {
   this->audio_fifo  = this->stream->audio_fifo;
 
   this->blocksize = this->input->get_blocksize(this->input);
-  if (!this->blocksize)
-    this->blocksize = 2048;
 
   xine_demux_control_start(this->stream);
 
