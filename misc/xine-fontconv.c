@@ -1,7 +1,7 @@
 /*
- * Copyright (C) 2001 the xine project
+ * Copyright (C) 2001-2002 the xine project
  * 
- * This file is part of xine, a unix video player.
+ * This file is part of xine, a free video player.
  * 
  * xine is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,7 +27,7 @@
  *   gcc -o xine-fontconv xine-fontconv.c -lfreetype -lz -I/usr/include/freetype2
  *
  * usage:
- *   xine-fontconv font.ttf fontname
+ *   xine-fontconv font.ttf fontname [encoding]
  *
  * begin                : Sat Dec 1 2001
  * copyright            : (C) 2001 by Miguel Freitas
@@ -37,6 +37,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <zlib.h>
+#include <iconv.h>
 
 #ifndef OLD_FREETYPE2
 #include <ft2build.h>
@@ -79,6 +80,8 @@ struct osd_font_s {
 osd_fontchar_t fontchar;
 osd_font_t     font;
 
+iconv_t cd;					// iconv conversion descriptor
+
 void print_bitmap (FT_Bitmap *bitmap) {
 
   int x,y;
@@ -96,6 +99,7 @@ void print_bitmap (FT_Bitmap *bitmap) {
 
 FT_Bitmap *create_bitmap (int width, int height) {
   FT_Bitmap * bitmap;
+  printf("Bitmap char %d %d\n",width,height);
   bitmap = malloc( sizeof( FT_Bitmap ) );
   bitmap->rows = height;
   bitmap->width = width;
@@ -206,8 +210,9 @@ void render_font (FT_Face face, char *fontname, int size, int thickness) {
   FT_BitmapGlyph      glyph_bitmap;
   FT_Vector           origin;
   int                 max_bearing_y = 0;        
-  int                 c, i;
+  int                 i;
   int                 converted;
+  unsigned char	      c;
 
   static int border_pos[9][2] = {
     {-1,0},{1,0},{0,-1},{0,1},
@@ -254,12 +259,23 @@ void render_font (FT_Face face, char *fontname, int size, int thickness) {
    * this is needed to align all bitmaps by the upper position.
    */
 
-  for (c = 32; c < 256; c++) {
-    glyph_index = FT_Get_Char_Index( face, c );
-  
+  for (c = 32; c < 0xff; c++) {
+    unsigned int o=0;
+    char *inbuf = &c;
+    char *outbuf = (char*)&o;
+    int inbytesleft = 1;
+    int outbytesleft = sizeof(unsigned int);
+
+    size_t count = iconv(cd, &inbuf, &inbytesleft, &outbuf, &outbytesleft);
+
+    if (count==-1)
+	continue;
+
+    glyph_index = FT_Get_Char_Index( face, o);
+
     if (!glyph_index)
       continue;
-      
+
     error = FT_Load_Glyph (face,               /* handle to face object */
                            glyph_index,        /* glyph index           */
                            FT_LOAD_DEFAULT );  /* load flags            */
@@ -267,6 +283,8 @@ void render_font (FT_Face face, char *fontname, int size, int thickness) {
     if (error) {
       continue;
     }
+
+    printf("bearing_y %d\n",face->glyph->metrics.horiBearingY);
 
     if( (face->glyph->metrics.horiBearingY >> 6) > max_bearing_y )
       max_bearing_y = (face->glyph->metrics.horiBearingY >> 6);
@@ -277,12 +295,25 @@ void render_font (FT_Face face, char *fontname, int size, int thickness) {
 
   gzwrite (fp, &font, 40+6);
  
-  for (c = 32; c < 256; c++) {
+  for (c = 32; c < 0xff; c++) {
+    unsigned int o=0;
+    char *inbuf = &c;
+    char *outbuf = (char*)&o;
+    int inbytesleft = 1;
+    int outbytesleft = sizeof(unsigned int);
+    
+    size_t count = iconv(cd, &inbuf, &inbytesleft, &outbuf, &outbytesleft);
+
     converted = 0;
+
+    if (count==-1)
+	continue;
+
     
     for( i=0; i < 9; i++ ) {
-  
-      glyph_index = FT_Get_Char_Index( face, c );
+
+      glyph_index = FT_Get_Char_Index( face, o);
+
         
       if (glyph_index) {
           
@@ -292,7 +323,7 @@ void render_font (FT_Face face, char *fontname, int size, int thickness) {
           
         if (!error) {
           error = FT_Get_Glyph( face->glyph, &glyph );
-    
+	    
           if( i == 0 ) {
             out_bitmap = create_bitmap( f266CeilToInt(MAX(face->glyph->metrics.horiAdvance, face->glyph->metrics.width + face->glyph->metrics.horiBearingX)),
                                         f266CeilToInt((max_bearing_y<<6) - face->glyph->metrics.horiBearingY + 
@@ -303,6 +334,8 @@ void render_font (FT_Face face, char *fontname, int size, int thickness) {
           origin.y = thickness + border_pos[i][1]*thickness;
 
           error = FT_Glyph_To_Bitmap( &glyph, ft_render_mode_normal, &origin, 1 );  
+
+
           if (error) {
             printf("error generating bitmap [%d]\n",c);
             return;
@@ -319,7 +352,8 @@ void render_font (FT_Face face, char *fontname, int size, int thickness) {
           converted = 1;          
                               
           FT_Done_Glyph( glyph );
-        }
+        
+	}
       }
     }
     
@@ -331,6 +365,7 @@ void render_font (FT_Face face, char *fontname, int size, int thickness) {
       fontchar.code = c;
       fontchar.width = out_bitmap->width;
       fontchar.height = out_bitmap->rows;
+  
       gzwrite (fp, &fontchar,6);
       gzwrite (fp, out_bitmap->buffer, out_bitmap->width*out_bitmap->rows);
     }
@@ -342,18 +377,19 @@ void render_font (FT_Face face, char *fontname, int size, int thickness) {
 
 int main(int argc, char *argv[]) {
 
-  int                 error;
-  int                 len;
-  FT_Library          library;
-  FT_Face             face;
-  int thickness = 0;
+  int          error;
+  int          len;
+  FT_Library   library;
+  FT_Face      face;
+  int          thickness = 0;
+  char*        encoding;
 
   /*
    * command line parsing
    */
 
-  if (argc!=3) {
-    printf ("usage:%s font.ttf fontname\n", argv[0]);
+  if (argc<3) {
+    printf ("usage:%s font.ttf fontname [encoding]\n", argv[0]);
     exit (1);
   }
   
@@ -378,10 +414,24 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
+  if (argc=3) {
+    encoding=argv[3];
+  } else {
+    encoding="UNICODE"; //default tagret charset - no conv
+  }    
+
+  cd = iconv_open("UNICODE", encoding);
+  if (cd==(iconv_t)-1) {
+    printf("Unsupported encoding");
+    return 1;
+  }
+
   render_font (face, argv[2], 16, thickness);
   render_font (face, argv[2], 20, thickness);
   render_font (face, argv[2], 24, thickness);
   render_font (face, argv[2], 32, thickness);
+
+  iconv_close(cd);
 
   /*
    * some rgb -> yuv conversion,
@@ -407,5 +457,3 @@ int main(int argc, char *argv[]) {
   */
   return 0;
 }
-
-
