@@ -142,8 +142,9 @@ Bastien Nocera <hadess@hadess.net>
 Philip Stadermann <pstadermann@gmx.de>
   arts audio server support, kde frontend
 
-Ji';?e Villette <villette@chem.leidenuniv.nl>
-  'xinetic', 'CelomaGold', 'CelomaMdk' and 'CelomaChrome'skins.
+Jérôme Villette <villette@chem.leidenuniv.nl>
+  'xinetic', 'CelomaGold', 'CelomaMdk', 'CelomaChrome', 'Centori' 
+and 'Keramic' skins.
 
 Bill Fink <billfink@mindspring.com>
   powerpc patches, oss output softsync, "skip by chapter" feature
@@ -176,7 +177,7 @@ Stefan Reinauer <stepan@suse.de>
   ia64, s/390 patches
 
 Bartlomiej Muryn <forever@klub.chip.pl>
-  README.dxr3 and xine-ui polish translations, dxr3 testing
+  README.dxr3 and .po Polish translations, dxr3 testing
 
 Damien Clermonte <damien.clermonte@free.fr>
   http input plugin patches

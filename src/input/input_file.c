@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_file.c,v 1.66 2002/10/31 17:00:49 mroi Exp $
+ * $Id: input_file.c,v 1.67 2002/11/08 23:28:00 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -840,7 +840,7 @@ static void *init_plugin (xine_t *xine, void *data) {
   this->xine   = xine;
   this->config = xine->config;
   config       = xine->config;
-
+  
   this->input_class.open_plugin        = open_plugin;
   this->input_class.get_identifier     = file_class_get_identifier;
   this->input_class.get_description    = file_class_get_description;
