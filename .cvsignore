@@ -18,3 +18,4 @@ missing
 mkinstalldirs
 stamp-h1
 *.cache
+post-install.sh
