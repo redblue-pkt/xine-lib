@@ -32,7 +32,7 @@
   * Fixed crash when the video_out loop still references a disposed stream
   * Make amp work with 8-bit sounds
   * Simple libsmbclient (samba) input plugin
-  * improved DVB plugin with support for A52, subtitles, teletext and
+  * improved DVB plugin with support for A52, subtitles, and
     EIT (electronic program guide).
   * new request optimizer (cache) layer for input plugins to avoid the
     overhead of expensive system calls for reading just a couple of
