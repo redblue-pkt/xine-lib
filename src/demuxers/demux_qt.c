@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.121 2002/11/28 10:21:06 petli Exp $
+ * $Id: demux_qt.c,v 1.122 2002/11/29 18:38:02 tmmm Exp $
  *
  */
 
@@ -98,6 +98,8 @@ typedef unsigned int qt_atom;
 
 #define IMA4_FOURCC QT_ATOM('i', 'm', 'a', '4')
 #define MP4A_FOURCC QT_ATOM('m', 'p', '4', 'a')
+#define TWOS_FOURCC QT_ATOM('t', 'w', 'o', 's')
+#define SOWT_FOURCC QT_ATOM('s', 'o', 'w', 't')
 
 #define UDTA_ATOM QT_ATOM('u', 'd', 't', 'a')
 #define CPY_ATOM QT_ATOM(0xA9, 'c', 'p', 'y')
@@ -1872,6 +1874,14 @@ static int demux_qt_send_chunk(demux_plugin_t *this_gen) {
         this->status = DEMUX_FINISHED;
         break;
       }
+
+      /* Special case alert: If this is signed, 8-bit data, transform
+       * the data to unsigned. */
+      if ((this->qt->audio_bits == 8) && 
+          ((this->qt->audio_codec == TWOS_FOURCC) ||
+           (this->qt->audio_codec == SOWT_FOURCC)))
+        for (j = 0; j < buf->size; j++)
+          buf->content[j] += 0x80;
 
       if (!remaining_sample_bytes) {
         buf->decoder_flags |= BUF_FLAG_FRAME_END;
