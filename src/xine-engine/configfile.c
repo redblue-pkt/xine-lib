@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: configfile.c,v 1.6 2001/11/18 03:53:25 guenter Exp $
+ * $Id: configfile.c,v 1.7 2001/11/18 15:08:31 guenter Exp $
  *
  * config file management - implementation
  *
@@ -35,6 +35,10 @@
 #include <assert.h>
 #include "configfile.h"
 #include "xineutils.h"
+
+/* 
+#define CONFIG_LOG
+*/
 
 
 /* 
@@ -72,7 +76,9 @@ static cfg_entry_t *config_file_add (config_values_t *this, char *key) {
   
   this->last = entry;
 
+#ifdef CONFIG_LOG
   printf ("configfile: add entry key=%s\n", key);
+#endif
 
   return entry;
 }
@@ -105,7 +111,9 @@ static char *config_file_register_string (config_values_t *this,
   assert (def_value);
   assert (description);
 
+#ifdef CONFIG_LOG
   printf ("configfile: registering %s\n", key);
+#endif
 
   /* make sure this entry exists, create it if not */
 
@@ -146,7 +154,9 @@ static int config_file_register_num (config_values_t *this,
   assert (key);
   assert (description);
 
+#ifdef CONFIG_LOG
   printf ("configfile: registering %s\n", key);
+#endif
 
   /* make sure this entry exists, create it if not */
 
@@ -192,7 +202,9 @@ static int config_file_register_bool (config_values_t *this,
   assert (key);
   assert (description);
 
+#ifdef CONFIG_LOG
   printf ("configfile: registering %s\n", key);
+#endif
 
   /* make sure this entry exists, create it if not */
 
@@ -239,7 +251,9 @@ static int config_file_register_range (config_values_t *this,
   assert (key);
   assert (description);
 
+#ifdef CONFIG_LOG
   printf ("configfile: registering %s\n", key);
+#endif
 
   /* make sure this entry exists, create it if not */
 
@@ -284,8 +298,10 @@ static int config_file_parse_enum (char *str, char **values) {
 
   while (*value) {
 
+#ifdef CONFIG_LOG
     printf ("configfile: parse enum, >%s< ?= >%s<\n",
 	    *value, str);
+#endif
 
     if (!strcmp (*value, str))
       return i;
@@ -294,8 +310,10 @@ static int config_file_parse_enum (char *str, char **values) {
     i++;
   }
 
+#ifdef CONFIG_LOG
   printf ("configfile: warning, >%s< is not a valid enum here, using 0\n",
 	  str);
+#endif
 
   return 0;
 }
@@ -314,7 +332,9 @@ static int config_file_register_enum (config_values_t *this,
   assert (values);
   assert (description);
 
+#ifdef CONFIG_LOG
   printf ("configfile: registering %s\n", key);
+#endif
 
   /* make sure this entry exists, create it if not */
 
@@ -357,8 +377,10 @@ static void config_file_update_num (config_values_t *this,
 
   if (!entry) {
 
+#ifdef CONFIG_LOG
     printf ("configfile: WARNING! tried to update unknown key %s (to %d)\n",
 	    key, value);
+#endif
     return;
 
   }
@@ -378,8 +400,10 @@ static void config_file_update_string (config_values_t *this,
 
   if (!entry) {
 
+#ifdef CONFIG_LOG
     printf ("configfile: WARNING! tried to update unknown key %s (to %s)\n",
 	    key, value);
+#endif
     return;
 
   }
@@ -399,7 +423,9 @@ static void config_file_save (config_values_t *this) {
 
   sprintf (filename, "%s/.xine/config", xine_get_homedir());
 
+#ifdef CONFIG_LOG
   printf ("writing config file to %s\n", filename);
+#endif
 
   f_config = fopen (filename, "w");
 
@@ -544,6 +570,9 @@ config_values_t *config_file_init (char *filename) {
 
 /*
  * $Log: configfile.c,v $
+ * Revision 1.7  2001/11/18 15:08:31  guenter
+ * more cleanups, config stuff bugfixes
+ *
  * Revision 1.6  2001/11/18 03:53:25  guenter
  * new configfile interface, code cleanup, xprintf is gone
  *

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_arts_out.c,v 1.7 2001/11/17 14:26:37 f1rmb Exp $
+ * $Id: audio_arts_out.c,v 1.8 2001/11/18 15:08:30 guenter Exp $
  */
 
 /* required for swab() */
@@ -41,7 +41,7 @@
 #include "xineutils.h"
 #include "audio_out.h"
 
-#define AO_OUT_ARTS_IFACE_VERSION 2
+#define AO_OUT_ARTS_IFACE_VERSION 3
 
 #define AUDIO_NUM_FRAGMENTS     15
 #define AUDIO_FRAGMENT_SIZE   8192

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.55 2001/11/18 03:53:25 guenter Exp $
+ * $Id: load_plugins.c,v 1.56 2001/11/18 15:08:31 guenter Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -50,6 +50,10 @@
 #define	__FUNCTION__	__func__
 #endif
 
+/*
+#define LOAD_LOG
+*/
+
 extern int errno;
 
 static char *plugin_name;
@@ -68,9 +72,9 @@ void (*old_segv_handler)(int);
 #endif
  
 static void segv_handler (int hubba) {
-  fprintf(stderr,"\nInitialization of plugin '%s' failed (segmentation fault).\n",plugin_name);
-  fprintf(stderr,"You probably need to remove the offending file.\n");
-  fprintf(stderr,"(This error is usually due an incorrect plugin version)\n"); 
+  printf ("\nload_plugins: Initialization of plugin '%s' failed (segmentation fault).\n",plugin_name);
+  printf ("load_plugins: You probably need to remove the offending file.\n");
+  printf ("load_plugins: (This error is usually due an incorrect plugin version)\n"); 
   exit(1);
 }
 
@@ -140,10 +144,11 @@ void load_demux_plugins (xine_t *this,
 	plugin_name = str;
 	
 	if(!(plugin = dlopen (str, RTLD_LAZY))) {
-	  fprintf(stderr, "load_plugins: cannot open demux plugin %s:\n%s\n",
+	  printf ("load_plugins: cannot open demux plugin %s:\n%s\n",
 		  str, dlerror());
-	}
-	else {
+
+	} else {
+
 	  void *(*initplug) (int, xine_t *);
 	  
 	  if((initplug = dlsym(plugin, "init_demuxer_plugin")) != NULL) {
@@ -161,8 +166,7 @@ void load_demux_plugins (xine_t *this,
 	  }
 	  
 	  if(this->num_demuxer_plugins > DEMUXER_PLUGIN_MAX) {
-	    fprintf(stderr, "%s(%d): too many demux plugins installed, "
-		    "exiting.\n", __FILE__, __LINE__);
+	    printf ("load_plugins: too many demux plugins installed, exiting.\n");
 	    exit(1);
 	  }
 	}
@@ -266,12 +270,6 @@ void load_input_plugins (xine_t *this,
 			 config_values_t *config, int iface_version) {
   DIR *dir;
   
-  if(this == NULL || config == NULL) {
-    printf("%s(%s@%d): parameter should be non null, exiting\n",
-	   __FILE__, __FUNCTION__, __LINE__);
-    exit(1);
-  }
-
   this->num_input_plugins = 0;
   
   install_segv_handler();
@@ -349,9 +347,6 @@ static char **_xine_get_featured_input_plugin_ids(xine_t *this, int feature) {
   int              i;
   int              n = 0;
 
-  if(!this)
-    return NULL;
-  
   if(!this->num_input_plugins)
     return NULL;
 
@@ -819,19 +814,25 @@ char **xine_list_audio_output_plugins(void) {
 
 	if(!(plugin = dlopen (str, RTLD_LAZY))) {
 
-	  /* printf("load_plugins: cannot load plugin %s (%s)\n",
-		 str, dlerror()); */
+	  printf("load_plugins: cannot load plugin %s (%s)\n",
+		 str, dlerror()); 
 
 	} else {
 
 	  ao_info_t* (*getinfo) ();
 	  ao_info_t   *ao_info;
 
-	  /* printf ("load_plugins: plugin %s successfully loaded.\n", str);  */
+#ifdef LOAD_LOG
+	  printf ("load_plugins: plugin %s successfully loaded.\n", str);  
+#endif
 
 	  if ((getinfo = dlsym(plugin, "get_audio_out_plugin_info")) != NULL) {
 	    ao_info = getinfo();
-	    /* printf("load_plugins: id=%s, priority=%d\n", ao_info->id, ao_info->priority);  */
+
+#ifdef LOAD_LOG
+	    printf("load_plugins: id=%s, priority=%d, interface_version=%d\n", 
+		   ao_info->id, ao_info->priority, ao_info->interface_version); 
+#endif
 
 	    if ( ao_info->interface_version == AUDIO_OUT_IFACE_VERSION) {
 
@@ -848,13 +849,17 @@ char **xine_list_audio_output_plugins(void) {
 		j--;
 	      }
 
-	      /*printf("i = %d, id=%s, priority=%d\n", i, ao_info->id, ao_info->priority); */
 	      plugin_ids[i] = (char *) malloc (strlen(ao_info->id)+1);
 	      strcpy (plugin_ids[i], ao_info->id);
 	      plugin_prios[i] = ao_info->priority;
 
 	      num_plugins++;
 	      plugin_ids[num_plugins] = NULL;
+	    } else {
+
+	      printf ("load_plugins: audio output plugin >%s< doesn't support interface version %d\n",
+		      ao_info->id, AUDIO_OUT_IFACE_VERSION);    
+
 	    }
 	  } else {
 
