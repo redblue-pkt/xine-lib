@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.124 2002/12/23 11:42:12 miguelfreitas Exp $
+ * $Id: load_plugins.c,v 1.125 2002/12/23 17:15:00 guenter Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -1182,7 +1182,7 @@ xine_video_port_t *xine_open_video_driver (xine_t *this,
 
   driver = NULL;
 
-  if( !strcasecmp(id, "auto") )
+  if (id && !strcasecmp(id, "auto"))
     id = NULL;
   
   pthread_mutex_lock (&catalog->lock);
@@ -1322,7 +1322,7 @@ xine_audio_port_t *xine_open_audio_driver (xine_t *this, const char *id,
   ao_info_t          *ao_info;
   plugin_catalog_t   *catalog = this->plugin_catalog;
 
-  if( !strcasecmp(id, "auto") )
+  if (id && !strcasecmp(id, "auto") )
     id = NULL;
   
   pthread_mutex_lock (&catalog->lock);
