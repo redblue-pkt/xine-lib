@@ -20,7 +20,7 @@
  * stream metainfo helper functions
  * hide some xine engine details from demuxers and reduce code duplication
  *
- * $Id: info_helper.c,v 1.10 2004/08/17 22:17:30 jstembridge Exp $ 
+ * $Id: info_helper.c,v 1.11 2004/12/12 00:39:14 miguelfreitas Exp $ 
  */
 
 #ifdef HAVE_CONFIG_H
@@ -30,6 +30,10 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdarg.h>
+
+#ifdef HAVE_ICONV
+#  include <iconv.h>
+#endif
 
 #define XINE_ENGINE_INTERNAL
 
@@ -169,9 +173,9 @@ static int __meta_valid(int info) {
 }
 
 /*
- * Set private meta info to value (can be NULL).
+ * Set private meta info to utf-8 string value (can be NULL).
  */
-static void __meta_info_set_unlocked(xine_stream_t *stream, int info, const char *value) {
+static void __meta_info_set_unlocked_utf8(xine_stream_t *stream, int info, const char *value) {
   if(__meta_valid(info)) {
     
     if(stream->meta_info[info])
@@ -185,11 +189,65 @@ static void __meta_info_set_unlocked(xine_stream_t *stream, int info, const char
 }
 
 /*
+ * Set private meta info to value (can be NULL) with a given encoding.
+ * if encoding is NULL assume locale.
+ */
+static void __meta_info_set_unlocked_encoding(xine_stream_t *stream, int info, const char *value, const char *enc) {
+#ifdef HAVE_ICONV
+  iconv_t cd;
+
+  if (value) {
+    if (enc == NULL) {
+      if ((enc = xine_get_system_encoding()) == NULL) {
+        xprintf(stream->xine, XINE_VERBOSITY_LOG,
+                _("info_helper: can't find out current locale character set\n"));
+      }
+    }
+
+    if (enc) {
+      if ((cd = iconv_open("UTF-8", enc)) == (iconv_t)-1) {
+        xprintf(stream->xine, XINE_VERBOSITY_LOG,
+                _("info_helper: unsupported conversion %s -> UTF-8, no conversion performed\n"), enc);
+      } else {
+        char *utf8_value;
+        char *inbuf, *outbuf;
+        size_t inbytesleft, outbytesleft;
+
+        inbuf = (char *)value;
+        inbytesleft = strlen(value);
+        outbytesleft = 4 * inbytesleft; /* estimative (max) */
+        outbuf = utf8_value = malloc(outbytesleft+1);
+        
+        iconv(cd, &inbuf, &inbytesleft, &outbuf, &outbytesleft );
+        *outbuf = '\0';
+
+        __meta_info_set_unlocked_utf8(stream, info, utf8_value);
+
+        free(utf8_value);
+        iconv_close(cd);
+        return;
+      }
+    }
+  }
+#endif
+  
+  __meta_info_set_unlocked_utf8(stream, info, value);
+}
+
+/*
+ * Set private meta info to value (can be NULL)
+ * value string must be provided with current locale encoding.
+ */
+static void __meta_info_set_unlocked(xine_stream_t *stream, int info, const char *value) {
+  __meta_info_set_unlocked_encoding(stream, info, value, NULL);
+}
+
+/*
  * Reset (nullify) private info value.
  */
 void _x_meta_info_reset(xine_stream_t *stream, int info) {
   pthread_mutex_lock(&stream->meta_mutex);
-  __meta_info_set_unlocked(stream, info, NULL);
+  __meta_info_set_unlocked_utf8(stream, info, NULL);
   pthread_mutex_unlock(&stream->meta_mutex);
 }
 
@@ -210,12 +268,32 @@ void _x_meta_info_public_reset(xine_stream_t *stream, int info) {
 }
 
 /*
- * Set private meta info value.
+ * Set private meta info value using current locale.
  */
 void _x_meta_info_set(xine_stream_t *stream, int info, const char *str) {
   pthread_mutex_lock(&stream->meta_mutex);
   if(str)
     __meta_info_set_unlocked(stream, info, str);
+  pthread_mutex_unlock(&stream->meta_mutex);
+}
+
+/*
+ * Set private meta info value using specified encoding.
+ */
+void _x_meta_info_set_encoding(xine_stream_t *stream, int info, const char *str, const char *enc) {
+  pthread_mutex_lock(&stream->meta_mutex);
+  if(str)
+    __meta_info_set_unlocked_encoding(stream, info, str, enc);
+  pthread_mutex_unlock(&stream->meta_mutex);
+}
+
+/*
+ * Set private meta info value using utf8.
+ */
+void _x_meta_info_set_utf8(xine_stream_t *stream, int info, const char *str) {
+  pthread_mutex_lock(&stream->meta_mutex);
+  if(str)
+    __meta_info_set_unlocked_utf8(stream, info, str);
   pthread_mutex_unlock(&stream->meta_mutex);
 }
 
