@@ -61,6 +61,9 @@ struct AD {
 #define GETN(p,n,target) memcpy(target,&data[p],n)
 
 
+static const char MALLOC_FAILED[] = "dvd_udf: %s: failed to malloc %d bytes\n";
+
+
 /*
  * reads absolute Logical Block of the disc
  * returns number of read bytes on success, 0 on error
@@ -274,7 +277,7 @@ int UDFFileIdentifier (uint8_t *data, uint8_t *FileCharacteristics, char *FileNa
  * return 1 on success, 0 on error;
  */
 
-int UDFMapICB (int fd, struct AD ICB, uint8_t *FileType, struct AD *File)
+int UDFMapICB (int fd, const struct AD *ICB, uint8_t *FileType, struct AD *File)
 {
   uint8_t *LogBlock;
   uint32_t lbnum;
@@ -285,7 +288,7 @@ int UDFMapICB (int fd, struct AD ICB, uint8_t *FileType, struct AD *File)
     return 0;
   }
 
-  lbnum=partition.Start+ICB.Location;
+  lbnum=partition.Start+ICB->Location;
 
   do {
     if (!UDFReadLB(fd, lbnum++,1,LogBlock)) TagID=0;
@@ -296,7 +299,7 @@ int UDFMapICB (int fd, struct AD ICB, uint8_t *FileType, struct AD *File)
       free(LogBlock);
       return 1;
     };
-  } while ((lbnum<=partition.Start+ICB.Location+(ICB.Length-1)/DVD_VIDEO_LB_LEN) && (TagID!=261));
+  } while ((lbnum<=partition.Start+ICB->Location+(ICB->Length-1)/DVD_VIDEO_LB_LEN) && (TagID!=261));
 
   free(LogBlock);
   return 0;
@@ -309,7 +312,7 @@ int UDFMapICB (int fd, struct AD ICB, uint8_t *FileType, struct AD *File)
  * return 1 on success, 0 on error;
  */
 
-int UDFScanDir (int fd, struct AD Dir, char *FileName, struct AD *FileICB)
+int UDFScanDir (int fd, const struct AD *Dir, char *FileName, struct AD *FileICB)
 {
   uint8_t   *LogBlock;
   uint32_t   lbnum, lb_dir_end, offset;
@@ -319,18 +322,23 @@ int UDFScanDir (int fd, struct AD Dir, char *FileName, struct AD *FileICB)
   int        p, retval = 0;
   
   LogBlock = (uint8_t*)malloc(DVD_VIDEO_LB_LEN * 30);
+  if ( !LogBlock ) {
+    fprintf(stderr, MALLOC_FAILED, __FUNCTION__, DVD_VIDEO_LB_LEN * 30);
+    goto error_0;
+  }
+
   filename = (char*)malloc(MAX_FILE_LEN);
-  if ((LogBlock == NULL) || (filename == NULL)) {
-    fprintf(stderr, "%s: malloc failed\n", __FUNCTION__);
-    goto bail;
+  if ( !filename ) {
+    fprintf(stderr, MALLOC_FAILED, __FUNCTION__, MAX_FILE_LEN);
+    goto error_1;
   }
 
   /*
    * read complete directory
    */
   
-  lbnum        = partition.Start+Dir.Location;
-  lb_dir_end   = partition.Start+Dir.Location+(Dir.Length-1)/DVD_VIDEO_LB_LEN;
+  lbnum        = partition.Start+Dir->Location;
+  lb_dir_end   = partition.Start+Dir->Location+(Dir->Length-1)/DVD_VIDEO_LB_LEN;
   offset       = 0;
   
   while (lbnum<=lb_dir_end) {
@@ -351,7 +359,7 @@ int UDFScanDir (int fd, struct AD Dir, char *FileName, struct AD *FileICB)
       p += UDFFileIdentifier(&LogBlock[p],&filechar,filename,FileICB);
       if (!strcasecmp (FileName,filename)) {
         retval = 1;
-	goto bail;
+        goto bail;
       }
     } else
 	  p=offset;
@@ -360,8 +368,12 @@ int UDFScanDir (int fd, struct AD Dir, char *FileName, struct AD *FileICB)
   retval = 0;
 
 bail:
-  free(LogBlock);
   free(filename);
+
+error_1:
+  free(LogBlock);
+
+error_0:
   return retval;
 }
 
@@ -381,11 +393,16 @@ int UDFFindPartition (int fd, int partnum, struct Partition *part)
   uint32_t lastsector;
   int i,terminate,volvalid,retval = 0;
 
-  LogBlock = (uint8_t*)malloc(DVD_VIDEO_LB_LEN);
   Anchor = (uint8_t*)malloc(DVD_VIDEO_LB_LEN);
-  if ((LogBlock == NULL) || (Anchor == NULL)) {
-    fprintf(stderr, "%s: malloc failed\n", __FUNCTION__);
-    goto bail;
+  if ( !Anchor ) {
+    fprintf(stderr, MALLOC_FAILED, __FUNCTION__, DVD_VIDEO_LB_LEN);
+    goto error_0;
+  }
+
+  LogBlock = (uint8_t*)malloc(DVD_VIDEO_LB_LEN);
+  if ( !LogBlock ) {
+    fprintf(stderr, MALLOC_FAILED, __FUNCTION__, DVD_VIDEO_LB_LEN);
+    goto error_1;
   }
 
   /* find anchor */
@@ -424,13 +441,13 @@ int UDFFindPartition (int fd, int partnum, struct Partition *part)
     lbnum=MVDS_location;
     do {
       if (!UDFReadLB (fd, lbnum++, 1, LogBlock))
-	TagID=0;
+        TagID=0;
       else
-	UDFDescriptor (LogBlock, &TagID);
+        UDFDescriptor (LogBlock, &TagID);
       if ((TagID==5) && (!part->valid)) {  /* Partition Descriptor */
-	UDFPartition (LogBlock,&part->Flags,&part->Number,part->Contents,
-		      &part->Start,&part->Length);
-	part->valid=(partnum==part->Number);
+        UDFPartition (LogBlock,&part->Flags,&part->Number,part->Contents,
+                      &part->Start,&part->Length);
+        part->valid=(partnum==part->Number);
       } else if ((TagID==6) && (!volvalid)) {  /* Logical Volume Descriptor */
 	if (UDFLogVolume(LogBlock,part->VolumeDesc)) {  
           /* TODO: sector size wrong! */
@@ -444,7 +461,11 @@ int UDFFindPartition (int fd, int partnum, struct Partition *part)
 
 bail:
   free(LogBlock);
+
+error_1:
   free(Anchor);
+
+error_0:
   return retval;
 }
 
@@ -456,7 +477,7 @@ bail:
  * returns absolute LB number, or 0 on error
  */
 
-uint32_t UDFFindFile (int fd, char *filename, off_t *size)
+off_t UDFFindFile (int fd, char *filename, off_t *size)
 {
   uint8_t *LogBlock;
   uint8_t filetype;
@@ -464,19 +485,31 @@ uint32_t UDFFindFile (int fd, char *filename, off_t *size)
   uint16_t TagID;
   struct AD RootICB,File,ICB;
   char *tokenline;
+  char *tokenbuf;
   char *token;
   off_t lb_number;
   int Partition=0;  /* this is the standard location for DVD Video */
 
-  LogBlock = (uint8_t*)malloc(DVD_VIDEO_LB_LEN);
   tokenline = (char*)malloc(MAX_FILE_LEN);
-  if ((LogBlock == NULL) || (tokenline == NULL)) {
-    fprintf(stderr, "%s: malloc failed\n", __FUNCTION__);
-    goto bail;
+  if ( !tokenline ) {
+    fprintf(stderr, MALLOC_FAILED, __FUNCTION__, MAX_FILE_LEN);
+    goto error_0;
   }
+
+  tokenbuf = (char*)malloc(MAX_FILE_LEN);
+  if ( !tokenbuf ) {
+    fprintf(stderr, MALLOC_FAILED, __FUNCTION__, MAX_FILE_LEN);
+    goto error_1;
+  }
+
+  LogBlock = (uint8_t*)malloc(DVD_VIDEO_LB_LEN);
+  if ( !LogBlock ) {
+    fprintf(stderr, MALLOC_FAILED, __FUNCTION__, DVD_VIDEO_LB_LEN);
+    goto error_2;
+  }
+
   memset(tokenline, 0, MAX_FILE_LEN);
-  
-  strncat (tokenline,filename,MAX_FILE_LEN);
+  strncat(tokenline, filename, MAX_FILE_LEN);
   
   /* Find partition */
   if (!UDFFindPartition(fd, Partition,&partition))
@@ -486,7 +519,7 @@ uint32_t UDFFindFile (int fd, char *filename, off_t *size)
   lbnum=partition.Start;
   
   do {
-    if (!UDFReadLB(fd, lbnum++,1,LogBlock))
+    if (!UDFReadLB(fd, lbnum++, 1, LogBlock))
       TagID=0;
     else
       UDFDescriptor(LogBlock,&TagID);
@@ -494,25 +527,24 @@ uint32_t UDFFindFile (int fd, char *filename, off_t *size)
     if (TagID==256)		/* File Set Descriptor */
       UDFAD(&LogBlock[400],&RootICB,UDFADlong);
   } while ((lbnum<partition.Start+partition.Length) && (TagID!=8) && (TagID!=256));
-  if (TagID!=256)
-    goto bail;
-  if (RootICB.Partition!=Partition)
+
+  if ( (TagID!=256) || (RootICB.Partition != Partition) )
     goto bail;
   
   /* Find root dir */
-  if (!UDFMapICB(fd, RootICB,&filetype,&File))
+  if ( !UDFMapICB(fd, &RootICB, &filetype, &File) )
     goto bail;
-  if (filetype!=4)		/* root dir should be dir */
+  if (filetype != 4)		/* root dir should be dir */
     goto bail;
   
   /* Tokenize filepath */
-  token=strtok(tokenline,"/");
+  token = strtok_r(tokenline, "/", &tokenbuf);
   while (token) {
-    if (!UDFScanDir(fd, File,token,&ICB))
+    if (!UDFScanDir(fd, &File, token, &ICB))
       goto bail;
-    if (!UDFMapICB(fd, ICB,&filetype,&File))
+    if (!UDFMapICB(fd, &ICB, &filetype, &File))
       goto bail;
-    token=strtok(NULL,"/");
+    token = strtok_r(NULL, "/", &tokenbuf);
   }
   
   *size = File.Length;
@@ -525,7 +557,14 @@ uint32_t UDFFindFile (int fd, char *filename, off_t *size)
 
 bail:
   free(LogBlock);
+
+error_2:
+  free(tokenbuf);
+
+error_1:
   free(tokenline);
+
+error_0:
   return retval;
 }
 
@@ -540,6 +579,7 @@ void UDFListDir(int fd, char *dirname, int nMaxFiles, char **file_list, int *nFi
   uint16_t   TagID;
   struct AD  RootICB,Dir,ICB;
   char      *tokenline;
+  char      *tokenbuf;
   char      *token, *ntoken;
   uint8_t    filetype;
   char      *filename;
@@ -548,12 +588,32 @@ void UDFListDir(int fd, char *dirname, int nMaxFiles, char **file_list, int *nFi
   char      *dest;
   int        Partition=0;  /* this is the standard location for DVD Video */
   
-  LogBlock = (uint8_t*)malloc(DVD_VIDEO_LB_LEN * 30);
-  tokenline = (char*)malloc(MAX_FILE_LEN);
   filename = (char*)malloc(MAX_FILE_LEN);
-  if ((LogBlock == NULL) || (tokenline == NULL) || (filename == NULL)) {
-    fprintf(stderr, "%s: malloc failed\n", __FUNCTION__);
-    goto bail;
+  if ( !filename )
+  {
+    fprintf(stderr, MALLOC_FAILED, __FUNCTION__, MAX_FILE_LEN);
+    goto error_0;
+  }
+
+  tokenline = (char*)malloc(MAX_FILE_LEN);
+  if ( !tokenline )
+  {
+    fprintf(stderr, MALLOC_FAILED, __FUNCTION__, MAX_FILE_LEN);
+    goto error_1;
+  }
+
+  tokenbuf = (char*)malloc(MAX_FILE_LEN);
+  if ( !tokenbuf )
+  {
+    fprintf(stderr, MALLOC_FAILED, __FUNCTION__, MAX_FILE_LEN);
+    goto error_2;
+  }
+
+  LogBlock = (uint8_t*)malloc(DVD_VIDEO_LB_LEN * 30);
+  if ( !LogBlock )
+  {
+    fprintf(stderr, MALLOC_FAILED, __FUNCTION__, DVD_VIDEO_LB_LEN*30);
+    goto error_3;
   }
  
   *nFiles = 0;
@@ -584,7 +644,7 @@ void UDFListDir(int fd, char *dirname, int nMaxFiles, char **file_list, int *nFi
     goto bail;
   
   /* Find root dir */
-  if (!UDFMapICB(fd, RootICB,&filetype,&Dir)) 
+  if (!UDFMapICB(fd, &RootICB, &filetype, &Dir)) 
     goto bail;
   if (filetype!=4) 
     goto bail;  /* root dir should be dir */
@@ -592,13 +652,13 @@ void UDFListDir(int fd, char *dirname, int nMaxFiles, char **file_list, int *nFi
   
 
   /* Tokenize filepath */
-  token=strtok(tokenline,"/");
-  ntoken=strtok(NULL,"/");
+  token = strtok_r(tokenline, "/", &tokenbuf);
+  ntoken = strtok_r(NULL, "/", &tokenbuf);
   while (token != NULL) {
 
-    if (!UDFScanDir(fd, Dir,token,&ICB)) 
+    if (!UDFScanDir(fd, &Dir, token, &ICB)) 
       goto bail;
-    if (!UDFMapICB(fd, ICB,&filetype,&Dir)) 
+    if (!UDFMapICB(fd, &ICB, &filetype, &Dir)) 
       goto bail;
 
     if (ntoken == NULL) {
@@ -614,48 +674,54 @@ void UDFListDir(int fd, char *dirname, int nMaxFiles, char **file_list, int *nFi
 
       while (lbnum<=lb_dir_end) {
 
-	if (!UDFReadLB(fd, lbnum++,1,&LogBlock[offset])) 
-	  break;
+        if (!UDFReadLB(fd, lbnum++,1,&LogBlock[offset])) 
+                break;
 
-	offset += DVD_VIDEO_LB_LEN;
+        offset += DVD_VIDEO_LB_LEN;
       }
 
 
       p=0;
       while (p<offset) {
-	UDFDescriptor(&LogBlock[p],&TagID);
-	/* printf ("tagid : %d\n",TagID);  */
-	if (TagID==257) {
-	  p+=UDFFileIdentifier(&LogBlock[p],&filechar,filename,&ICB);
+        UDFDescriptor(&LogBlock[p],&TagID);
+        /* printf ("tagid : %d\n",TagID);  */
+        if (TagID==257) {
+            p+=UDFFileIdentifier(&LogBlock[p],&filechar,filename,&ICB);
 
-	  /* printf ("file : >%s< %d (p: %d)\n", filename, *nFiles,p);  */
+            /* printf ("file : >%s< %d (p: %d)\n", filename, *nFiles,p);  */
 
-	  if (strcmp (filename,"")) {
+            if (strcmp (filename,"")) {
 
-	    dest = file_list[*nFiles];
-	    strncpy (dest,filename,256);
-	    (*nFiles)++;
+              dest = file_list[*nFiles];
+              strncpy (dest,filename,256);
+              (*nFiles)++;
 	    
-	    if ((*nFiles)>=nMaxFiles)
-	      goto bail;
-	    
-	  }
-
-	} else {
-	  p=offset;
-	}
+              if ((*nFiles)>=nMaxFiles)
+                goto bail;
+            }
+        } else {
+            p=offset;
+        }
       }
-
     } 
 
-    token=ntoken;
-    ntoken=strtok(NULL,"/");
+    token = ntoken;
+    ntoken = strtok_r(NULL, "/", &tokenbuf);
   }
 
 bail:
   free(LogBlock);
+
+error_3:
+  free(tokenbuf);
+
+error_2:
   free(tokenline);
+
+error_1:
   free(filename);
+
+error_0:
   return;
 }
 

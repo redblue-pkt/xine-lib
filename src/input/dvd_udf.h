@@ -32,7 +32,7 @@
 
 int UDFReadLB (int fd, off_t lb_number, size_t block_count, uint8_t *data);
 
-uint32_t UDFFindFile(int fd, char *filename, off_t *size);
+off_t UDFFindFile(int fd, char *filename, off_t *size);
 
 void UDFListDir(int fd, char *dirname, int nMaxFiles, char **file_list, int *nFiles) ;
 
