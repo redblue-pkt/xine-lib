@@ -3,7 +3,11 @@ xine-lib (1.0.0-alpha2/beta0)
   * DVD menu button highlight position fixes
   * internal engine changes to allow a new layer of post effect plugins
   * VCD playback fixed (actually it was a bug in the real demuxer)
-
+  * pnm input plugin (old real network protocol)
+  * real demuxer fixes
+  * use binary real codecs to decode rv20/30 video, sipro/cook audio
+    (experimental)
+	
 xine-lib (1.0.0-alpha1) 
   * transport stream demuxer fixes
   * DVD playback should be working again (please report DVDs that don't play!)
