@@ -77,14 +77,6 @@ xineplug_ao_out_arts_la_SOURCES = audio_arts_out.c
 xineplug_ao_out_arts_la_LIBADD = $(ARTS_LIBS)
 xineplug_ao_out_arts_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
-noinst_HEADERS = \
-	audio_alsa_out.h \
-	audio_arts_out.h \
-	audio_esd_out.h \
-	audio_irixal_out.h \
-	audio_oss_out.h \
-	audio_sun_out.h
-
 debug:
 	@$(MAKE) CFLAGS="$(DEBUG_CFLAGS)"
 
