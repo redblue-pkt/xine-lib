@@ -22,8 +22,13 @@ install-includeHEADERS: $(include_HEADERS)
 	$(mkinstalldirs) $(DESTDIR)$(includedir)/xine
 	@list='$(include_HEADERS)'; for p in $$list; do \
 	  if test -f "$$p"; then d= ; else d="$(srcdir)/"; fi; \
-	  echo " $(INSTALL_DATA) $$d$$p $(DESTDIR)$(includedir)/xine/$$p"; \
-	  $(INSTALL_DATA) $$d$$p $(DESTDIR)$(includedir)/xine/$$p; \
+	  if test "$$p" != "xine.h"; then \
+	    echo " $(INSTALL_DATA) $$d$$p $(DESTDIR)$(includedir)/xine/$$p"; \
+	    $(INSTALL_DATA) $$d$$p $(DESTDIR)$(includedir)/xine/$$p; \
+	  else \
+	    echo " $(INSTALL_DATA) $$d$$p $(DESTDIR)$(includedir)/$$p"; \
+	    $(INSTALL_DATA) $$d$$p $(DESTDIR)$(includedir)/$$p; \
+	  fi; \
 	done
 
 
@@ -33,7 +38,11 @@ install-includeHEADERS: $(include_HEADERS)
 uninstall-includeHEADERS:
 	@$(NORMAL_UNINSTALL)
 	list='$(include_HEADERS)'; for p in $$list; do \
-	  rm -f $(DESTDIR)$(includedir)/xine/$$p; \
+	  if test "$$p" != "xine.h"; then \
+	    rm -f $(DESTDIR)$(includedir)/xine/$$p; \
+	  else \
+	    rm -f $(DESTDIR)$(includedir)/$$p; \
+	fi; \
 	done
 
 
