@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.22 2001/09/10 15:30:19 guenter Exp $
+ * $Id: w32codec.c,v 1.23 2001/09/14 14:20:51 jcdutton Exp $
  *
  * routines for using w32 codecs
  *
@@ -420,9 +420,9 @@ static int w32a_init_audio (w32a_decoder_t *this,
   if (this->output_open)
     this->audio_out->close (this->audio_out);
 
-  this->output_open = (this->audio_out->open( this->audio_out, 
+  this->output_open = this->audio_out->open( this->audio_out, 
 					      16, in_fmt->nSamplesPerSec, 
-					      (in_fmt->nChannels == 2) ? AO_CAP_MODE_STEREO : AO_CAP_MODE_MONO) == 1);
+					      (in_fmt->nChannels == 2) ? AO_CAP_MODE_STEREO : AO_CAP_MODE_MONO);
   if (!this->output_open) {
     printf("ACM_Decoder: Cannot open audio output device\n");
     return 0;
