@@ -5,8 +5,12 @@ $(XINE_LIB):
 	@cd $(top_srcdir)/src/xine-engine && $(MAKE)
 
 install-data-hook:
-	@if [ -x "$(top_srcdir)/post-install.sh" ] && [ "$$MAKELEVEL" -eq 0 ]; then \
-	  $(top_srcdir)/post-install.sh; \
+	@if test $$MAKELEVEL -le 3 ; then \
+	  rm -f $(XINE_PLUGINDIR)/*.la ; \
+	  rm -f $(XINE_PLUGINDIR)/*/*.la ; \
+	  if test -x "$(top_srcdir)/post-install.sh" ; then \
+	    $(top_srcdir)/post-install.sh ; \
+	  fi \
 	fi
 
 debug:
