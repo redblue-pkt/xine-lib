@@ -35,7 +35,7 @@
  * along with this program; see the file COPYING.  If not, write to
  * the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: spu.c,v 1.68 2003/08/15 14:36:55 mroi Exp $
+ * $Id: spu.c,v 1.69 2003/10/12 18:51:59 mroi Exp $
  *
  */
 
@@ -443,7 +443,7 @@ void spudec_process (spudec_decoder_t *this, int stream_id) {
 #ifdef LOG_BUTTON
       fprintf(stderr, "libspudec: add_event type=%d : current time=%lld, spu vpts=%lli\n",
         this->event.event_type,
-        this->stream->xine->clock->get_current_time(this->stream->metronom),
+        this->stream->xine->clock->get_current_time(this->stream->xine->clock),
         this->event.vpts);
 #endif 
       ovl_manager->add_event(ovl_manager, (void *)&this->event);
