@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ogg.c,v 1.102 2003/06/19 15:31:04 heinchen Exp $
+ * $Id: demux_ogg.c,v 1.103 2003/07/08 14:39:24 heinchen Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -1052,16 +1052,22 @@ static void demux_ogg_send_header (demux_ogg_t *this) {
 	    this->stream->meta_info[XINE_META_INFO_VIDEOCODEC]
               = strdup ("theora");
 	    this->stream->stream_info[XINE_STREAM_INFO_VIDEO_WIDTH]
-	      = this->t_info.width;
+	      = this->t_info.frame_width;
 	    this->stream->stream_info[XINE_STREAM_INFO_VIDEO_HEIGHT]
-	      = this->t_info.height;
+	      = this->t_info.frame_height;
 	    this->stream->stream_info[XINE_STREAM_INFO_FRAME_DURATION]
 	      = ((int64_t) 90000*this->t_info.fps_denominator)/this->t_info.fps_numerator;
+
+	    /*currently aspect_nominator and -denumerator are 0?*/
+	    if (this->t_info.aspect_denominator)
+	      this->stream->stream_info[XINE_STREAM_INFO_VIDEO_RATIO]
+		= ((int64_t) this->t_info.aspect_numerator*10000)/this->t_info.aspect_denominator;
 
 #ifdef LOG
 	    printf ("demux_ogg: decoded theora header \n");
 	    printf ("           frameduration %d\n",this->frame_duration);
-	    printf ("           w:%d h:%d \n",this->t_info.width,this->t_info.height);
+	    printf ("           w:%d h:%d \n",this->t_info.frame_width,this->t_info.frame_height);
+	    printf ("           an:%d ad:%d \n",this->t_info.aspect_numerator,this->t_info.aspect_denominator);
 #endif
 	  } else {
 	    /*Rejected stream*/
@@ -1133,9 +1139,12 @@ static void demux_ogg_send_header (demux_ogg_t *this) {
 	this->demux_plugin.seek((demux_plugin_t *)this, (off_t) filelength-65536 ,0);
       done=0;
       while (!done) {
-	if (!read_ogg_packet (this))
+	if (!read_ogg_packet (this)) {
+	  if (this->time_length)
+	    this->stream->stream_info[XINE_STREAM_INFO_BITRATE]
+	      = ((int64_t) 8000*filelength)/this->time_length;
 	  return;
-
+	}
 	stream_num=get_stream(this, ogg_page_serialno (&this->og) );
 	if (stream_num!=-1) {
 	  if (this->time_length < (get_pts(this, stream_num, ogg_page_granulepos(&this->og) / 90)))
