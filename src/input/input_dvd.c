@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.115 2002/11/17 16:23:38 mroi Exp $
+ * $Id: input_dvd.c,v 1.116 2002/11/18 11:33:59 mroi Exp $
  *
  */
 
@@ -211,7 +211,7 @@ static uint32_t dvd_plugin_get_capabilities (input_plugin_t *this_gen) {
 
   return INPUT_CAP_BLOCK |
 #if CAN_SEEK
-    (this->seekable ? INPUT_CAP_SEEKABLE : 0) | INPUT_CAP_VARIABLE_BITRATE | 
+    (this->seekable ? INPUT_CAP_SEEKABLE : 0) |
 #endif
     INPUT_CAP_AUDIOLANG | INPUT_CAP_SPULANG | INPUT_CAP_CHAPTERS; 
 }
@@ -1555,19 +1555,17 @@ void dvd_class_dispose(input_class_t *this_gen) {
 }
 
 static int dvd_class_eject_media (input_class_t *this_gen) {
-  dvd_input_plugin_t *this = (dvd_input_plugin_t *) this_gen;
+  dvd_input_class_t *this = (dvd_input_class_t *) this_gen;
   int   ret, status;
   int   fd;
 
   /* printf("input_dvd: Eject Device %s current device %s opened=%d handle=%p trying...\n",this->dvd_device, this->current_dvd_device, this->opened, this->dvdnav); */
-/* FIXME: dvd_plugin_dispose must happen before eject, but we don't have the plugin stream pointer. */
-/*  dvd_plugin_dispose (this_gen) ;*/
-  ret=dvd_umount_media(this->current_dvd_device);
+  ret=dvd_umount_media(this->dvd_device);
   /**********
         printf("ipnut_dvd: umount result: %s\n", 
                   strerror(errno));  
    ***********/
-  if ((fd = open (this->current_dvd_device, O_RDONLY|O_NONBLOCK)) > -1) {
+  if ((fd = open (this->dvd_device, O_RDONLY|O_NONBLOCK)) > -1) {
 
 #if defined (__linux__)
     if((status = ioctl(fd, CDROM_DRIVE_STATUS, CDSL_CURRENT)) > 0) {
@@ -1611,7 +1609,7 @@ static int dvd_class_eject_media (input_class_t *this_gen) {
 
     close(fd);
   } else {
-    printf("input_dvd: Device %s failed to open during eject calls\n",this->current_dvd_device);
+    printf("input_dvd: Device %s failed to open during eject calls\n",this->dvd_device);
   }
   return 1;
 }
@@ -1666,6 +1664,10 @@ static void *init_class (xine_t *xine, void *data) {
 
 /*
  * $Log: input_dvd.c,v $
+ * Revision 1.116  2002/11/18 11:33:59  mroi
+ * getting rid of obviously unused INPUT_CAP_VARIABLE_BITRATE
+ * fix ejecting (works now)
+ *
  * Revision 1.115  2002/11/17 16:23:38  mroi
  * cleanup: bring config entries back to life
  * introduce a seekable flag
