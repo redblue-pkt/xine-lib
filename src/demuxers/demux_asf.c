@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.28 2002/03/17 19:11:09 guenter Exp $
+ * $Id: demux_asf.c,v 1.29 2002/03/17 19:22:10 guenter Exp $
  *
  * demultiplexer for asf streams
  *
@@ -948,9 +948,8 @@ static void asf_read_packet(demux_asf_t *this) {
     this->packet_size_left -= 4;
     break;
   default:
-    printf ("demux_asf: unknow segtype %x\n", this->segtype);
-    frag_offset = get_le32(this);
-    this->packet_size_left -= 4;
+    printf ("demux_asf: unknown segtype %x\n", this->segtype);
+    frag_offset = 0;
     break;
   }
   flags         = get_byte(this); 
