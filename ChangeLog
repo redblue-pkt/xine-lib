@@ -35,6 +35,7 @@ xine-lib (next version) [someone fill in stability and urgency]
   * file:// mrl use an uri-like syntax now, %xx-encoded chars are handled,
     '#' is used to separate subtitle files
   * incorporated pgx64[fb] plugin
+  * improved support for invalid mpeg streams
 	
 xine-lib (0.9.13) unstable; urgency=low
 
