@@ -76,7 +76,7 @@ xineplug_inp_net_la_SOURCES = input_net.c net_buf_ctrl.c
 xineplug_inp_net_la_LIBADD = $(XINE_LIB)
 xineplug_inp_net_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
-xineplug_inp_mms_la_SOURCES = input_mms.c net_buf_ctrl.c mms.c mmsh.c
+xineplug_inp_mms_la_SOURCES = input_mms.c net_buf_ctrl.c mms.c mmsh.c http_helper.c
 xineplug_inp_mms_la_LIBADD = $(XINE_LIB) @LIBICONV@
 xineplug_inp_mms_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
