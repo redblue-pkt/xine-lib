@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.96 2003/07/02 12:56:10 jcdutton Exp $
+ * $Id: audio_alsa_out.c,v 1.97 2003/07/18 20:51:51 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -34,6 +34,7 @@
 #endif
 
 #include <stdio.h>
+#include <stdarg.h>
 #include <errno.h>
 #include <string.h>
 #include <unistd.h>
@@ -227,6 +228,45 @@ static long ao_alsa_get_volume_from_percent(int val, long min, long max) {
   return tmp;
 }
 
+/*
+ * Error callback, we need to control this, 
+ * error message should be printed in non DEBUG mode.
+ */
+static void error_callback(const char *file, int line, 
+			   const char *function, int err, const char *fmt, ...) {
+#ifdef DEBUG
+  va_list   args;
+  char     *buf;
+  int       n, size = 100;
+  
+  if((buf = xine_xmalloc(size)) == NULL) 
+    return;
+  
+  while(1) {
+    
+    va_start(args, fmt);
+    n = vsnprintf(buf, size, fmt, args);
+    va_end(args);
+    
+    if(n > -1 && n < size)
+      break;
+    
+    if(n > -1)
+      size = n + 1;
+    else
+      size *= 2;
+    
+    if((buf = realloc(buf, size)) == NULL)
+      return;
+  }
+  
+   
+  printf("%s: %s() %s.\n", file, function, buf);
+
+  if(buf)
+    free(buf);
+#endif
+}
 
 /*
  * open the audio device for writing to
@@ -1086,6 +1126,7 @@ static void ao_alsa_mixer_init(ao_driver_t *this_gen) {
 /*
  * Initialize plugin
  */
+
 static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *data) {
 
   alsa_class_t        *class = (alsa_class_t *) class_gen;
@@ -1097,6 +1138,11 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
 
   this = (alsa_driver_t *) malloc (sizeof (alsa_driver_t));
   this->class = class;
+
+  err = snd_lib_error_set_handler(error_callback);
+  if(err < 0)
+    xine_log(this->class->xine, XINE_LOG_MSG, "snd_lib_error_set_handler() failed: %d", err); 
+  
   snd_pcm_hw_params_alloca(&params);
   /* Fill the .xinerc file with options */ 
   this->mmap = config->register_bool (config,
