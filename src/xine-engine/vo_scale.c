@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: vo_scale.c,v 1.33 2004/10/08 20:54:36 mroi Exp $
+ * $Id: vo_scale.c,v 1.34 2004/10/09 06:44:52 mroi Exp $
  * 
  * Contains common code to calculate video scaling parameters.
  * In short, it will map frame dimensions to screen/window size.
@@ -356,8 +356,10 @@ static void vo_scale_vertical_pos_changed(void *data, xine_cfg_entry_t *entry) {
 static void vo_scale_disable_scaling_changed(void *data, xine_cfg_entry_t *entry) {
   vo_scale_t *this = (vo_scale_t *)data;
   
-  this->scaling_disabled = entry->num_value;
-  this->force_redraw = 1;
+  if (this->scaling_disabled < 2) {
+    this->scaling_disabled = entry->num_value;
+    this->force_redraw = 1;
+  }
 }
 
 
@@ -398,7 +400,7 @@ void _x_vo_scale_init(vo_scale_t *this, int support_zoom, int scaling_disabled,
 	"The position is given as a percentage, so a value of 50 means \"in the "
 	"middle\", while 0 means \"at the top\" and 100 \"at the bottom\"."),
       10, vo_scale_vertical_pos_changed, this) / 100.0;
-  this->scaling_disabled = scaling_disabled ||
+  this->scaling_disabled = (scaling_disabled << 1) |
     config->register_bool(config, "video.disable_scaling", 0,
       _("disable all video scaling"),
       _("If you want the video image to be always shown at its original resolution, "
