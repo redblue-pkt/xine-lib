@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.29 2002/07/17 18:17:49 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.30 2002/07/19 03:03:37 miguelfreitas Exp $
  * 
  * 31-8-2001 Added LPCM rate sensing.
  *   (c) 2001 James Courtier-Dutton James@superbug.demon.co.uk
@@ -86,30 +86,61 @@ void lpcm_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
   int16_t        *sample_buffer=(int16_t *)buf->content;
   int             stream_be;
   audio_buffer_t *audio_buffer;
+  int             format_changed = 0;
+  
   /* Drop preview data */
   if (buf->decoder_flags & BUF_FLAG_PREVIEW)
     return;
 
-  /*
-   * (re-)open output device
-   */
-  if ( buf->decoder_flags & BUF_FLAG_HEADER ) {
-
-    if (this->output_open)
-        this->audio_out->close (this->audio_out);
-
+  /* get config byte from mpeg2 stream */
+  if ( (buf->decoder_flags & BUF_FLAG_SPECIAL) &&
+        buf->decoder_info[1] == BUF_SPECIAL_LPCM_CONFIG ) {
+    int bits_per_sample = 16;
+    int sample_rate;
+    int num_channels;
+      
+    num_channels = (buf->decoder_info[2] & 0x7) + 1;
+    sample_rate = buf->decoder_info[2] & 0x10 ? 96000 : 48000;
+    switch ((buf->decoder_info[2]>>6) & 3) {
+      case 0: bits_per_sample = 16; break;
+      case 1: bits_per_sample = 20; break;
+      case 2: bits_per_sample = 24; break;
+    }
+    
+    if( this->bits_per_sample != bits_per_sample ||
+        this->number_of_channels != num_channels ||
+        this->rate != sample_rate ||
+        !this->output_open ) {
+      this->bits_per_sample = bits_per_sample;
+      this->number_of_channels = num_channels;
+      this->rate = sample_rate;
+      format_changed++;
+    } 
+  }
+  
+  if( buf->decoder_flags & BUF_FLAG_HEADER ) {
     this->rate=buf->decoder_info[1];
     this->bits_per_sample=buf->decoder_info[2] ; 
     this->number_of_channels=buf->decoder_info[3] ; 
-    this->ao_cap_mode=(this->number_of_channels == 2) ? AO_CAP_MODE_STEREO : AO_CAP_MODE_MONO; 
+    format_changed++;
+  }
+  
+  /*
+   * (re-)open output device
+   */
+  if ( format_changed ) {
+    if (this->output_open)
+        this->audio_out->close (this->audio_out);
 
+    this->ao_cap_mode=(this->number_of_channels == 2) ? AO_CAP_MODE_STEREO : AO_CAP_MODE_MONO; 
+   
     this->output_open = this->audio_out->open (this->audio_out,
-                                               this->bits_per_sample,
+                                               (this->bits_per_sample>16)?16:this->bits_per_sample,
                                                this->rate,
                                                this->ao_cap_mode) ;
   }
 
-  if (!this->output_open) 
+  if (!this->output_open || (buf->decoder_flags & BUF_FLAG_HEADER) ) 
     return;
 
   audio_buffer = this->audio_out->get_buffer (this->audio_out);

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.h,v 1.60 2002/07/17 20:29:04 miguelfreitas Exp $
+ * $Id: buffer.h,v 1.61 2002/07/19 03:03:37 miguelfreitas Exp $
  *
  *
  * contents:
@@ -248,6 +248,8 @@ struct buf_element_s {
  * decoder_info[1] = BUF_SPECIAL_DECODER_CONFIG
  * decoder_info[2] = data size
  * decoder_info[3] = pointer to data
+ * This buffer is used to pass config information from  .mp4 files 
+ * (atom esds) to decoders. both mpeg4 and aac streams use that.
  */
 #define BUF_SPECIAL_DECODER_CONFIG  4
 
@@ -255,9 +257,23 @@ struct buf_element_s {
  * In a BUF_SPECIAL_SAMPLE_SIZE_TABLE buffer:
  * decoder_info[1] = BUF_SPECIAL_SAMPLE_SIZE_TABLE
  * decoder_info[2] = 
- * decoder_info[3] = pointer to table with sample sizes (within current frame)
+ * decoder_info[3] = pointer to table with sample sizes 
+ *                   (within current frame)
+ * libfaad needs to decode data on sample-sized chunks. 
+ * unfortunately original sample sizes are not know at decoder stage. 
+ * this buffer is used to pass such information.
  */
 #define BUF_SPECIAL_SAMPLE_SIZE_TABLE 5
+
+/*
+ * In a BUF_SPECIAL_LPCM_CONFIG buffer:
+ * decoder_info[1] = BUF_SPECIAL_LPCM_CONFIG
+ * decoder_info[2] = config data
+ * lpcm data encoded into mpeg2 streams have a format configuration
+ * byte in every frame. this is used to detect the sample rate,
+ * number of bits and channels.
+ */
+#define BUF_SPECIAL_LPCM_CONFIG 6
 
 
 typedef struct palette_entry_s palette_entry_t;

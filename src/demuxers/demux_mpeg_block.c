@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.108 2002/07/17 18:17:48 miguelfreitas Exp $
+ * $Id: demux_mpeg_block.c,v 1.109 2002/07/19 03:03:36 miguelfreitas Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -90,11 +90,6 @@ typedef struct demux_mpeg_block_s {
   int64_t               last_pts[2];
   int                   send_newpts;
   int                   buf_flag_seek;
-
-
-  int                   pcm_bits;
-  int                   pcm_rate;
-  int                   pcm_channels;
 
 } demux_mpeg_block_t ;
 
@@ -255,7 +250,9 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
   p = buf->content; /* len = this->mnBlocksize; */
   if (preview_mode)
     buf->decoder_flags = BUF_FLAG_PREVIEW;
-
+  else
+    buf->decoder_flags = 0;
+    
   buf->input_pos = this->input->get_current_pos (this->input);
   buf->input_length = this->input->get_length (this->input);
 
@@ -588,26 +585,11 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
       }
       dynamic_range = p[6];
 
-      /* send header with audio parameters */
-      if( !preview_mode &&
-          (this->pcm_rate != sample_rate ||
-           this->pcm_bits != bits_per_sample ||
-           this->pcm_channels != num_channels) ) {
-
-        buf_element_t *buf2;
-
-        buf2 = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-
-        buf2->type = BUF_AUDIO_LPCM_BE + track;
-        buf2->decoder_flags = BUF_FLAG_HEADER;
-
-        buf2->decoder_info[1] = this->pcm_rate = sample_rate;
-        buf2->decoder_info[2] = this->pcm_bits = bits_per_sample;
-        buf2->decoder_info[3] = this->pcm_channels = num_channels;
-
-        this->video_fifo->put(this->video_fifo, buf2);
-      }
-
+      /* send lpcm config byte */
+      buf->decoder_flags |= BUF_FLAG_SPECIAL;
+      buf->decoder_info[1] = BUF_SPECIAL_LPCM_CONFIG;
+      buf->decoder_info[2] = p[5];
+      
       pcm_offset = 7;
 
       buf->content   = p+pcm_offset;
@@ -933,8 +915,6 @@ static int demux_mpeg_block_start (demux_plugin_t *this_gen,
 
   this->video_fifo  = video_fifo;
   this->audio_fifo  = audio_fifo;
-
-  this->pcm_bits = this->pcm_rate = this->pcm_channels = 0;
 
   if((this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) != 0) {
     if (!this->blocksize)
