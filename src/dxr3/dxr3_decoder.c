@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decoder.c,v 1.75 2002/05/01 22:22:56 jcdutton Exp $
+ * $Id: dxr3_decoder.c,v 1.76 2002/05/01 22:58:42 jcdutton Exp $
  *
  * dxr3 video and spu decoder plugin. Accepts the video and spu data
  * from XINE and sends it directly to the corresponding dxr3 devices.
@@ -129,6 +129,8 @@ typedef struct dxr3_decoder_s {
 
 static int dxr3_tested = 0;
 static int dxr3_ok;
+
+int spudec_copy_nav_to_btn(pci_t* nav_pci, int32_t button, int32_t mode, em8300_button_t* btn );
 
 static void dxr3_presence_test( xine_t* xine)
 {
@@ -981,9 +983,17 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf)
 			
 			nav_read_pci(&pci, p + 7);
 			
-			if (pci.hli.hl_gi.hli_ss == 1)
+			if (pci.hli.hl_gi.hli_ss == 1) {
+                                em8300_button_t btn;
 				/* menu ahead, remember pci for later evaluation */
 				xine_fast_memcpy(&this->pci, &pci, sizeof(pci_t));
+                                if ( (spudec_copy_nav_to_btn(&this->pci, this->buttonN, 0, &btn ) > 0)) {
+                                  if (ioctl(this->fd_spu, EM8300_IOCTL_SPU_BUTTON, &btn)) {
+  	                            printf("dxr3: failed to set spu button (%s)\n",
+		                    strerror(errno));
+                                  }
+                                }
+                        }
 			
 			if ((pci.hli.hl_gi.hli_ss == 0) && (this->pci.hli.hl_gi.hli_ss == 1)) {
 				/* leaving menu */
@@ -1023,7 +1033,7 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf)
 	}
 //        if (this->xine->spu_channel != stream_id && this->menu!=1 ) return; 
         /* Hide any previous button highlights */
-	ioctl(this->fd_spu, EM8300_IOCTL_SPU_BUTTON, NULL);
+//	ioctl(this->fd_spu, EM8300_IOCTL_SPU_BUTTON, NULL);
 	if (buf->pts) {
 		int64_t vpts;
 		uint32_t vpts32;
