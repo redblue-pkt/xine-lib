@@ -1,6 +1,6 @@
 /*
  * libmad - MPEG audio decoder library
- * Copyright (C) 2000-2001 Robert Leslie
+ * Copyright (C) 2000-2004 Underbit Technologies, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * $Id: timer.c,v 1.5 2003/12/07 15:34:30 f1rmb Exp $
+ * $Id: timer.c,v 1.6 2004/04/22 00:23:26 miguelfreitas Exp $
  */
 
 # ifdef HAVE_CONFIG_H
@@ -26,9 +26,10 @@
 # include "global.h"
 
 # include <stdio.h>
-# include <stdlib.h>  /* For abort() */
 
-# include "xineutils.h"
+# ifdef HAVE_ASSERT_H
+#  include <assert.h>
+# endif
 
 # include "timer.h"
 
@@ -77,7 +78,7 @@ void mad_timer_negate(mad_timer_t *timer)
  */
 mad_timer_t mad_timer_abs(mad_timer_t timer)
 {
-  if (mad_timer_sign(timer) < 0)
+  if (timer.seconds < 0)
     mad_timer_negate(&timer);
 
   return timer;
@@ -123,7 +124,7 @@ void reduce_rational(unsigned long *numer, unsigned long *denom)
 
   factor = gcd(*numer, *denom);
 
-  _x_assert(factor != 0);
+  assert(factor != 0);
 
   *numer /= factor;
   *denom /= factor;
@@ -140,7 +141,7 @@ unsigned long scale_rational(unsigned long numer, unsigned long denom,
   reduce_rational(&numer, &denom);
   reduce_rational(&scale, &denom);
 
-  _x_assert(denom != 0);
+  assert(denom != 0);
 
   if (denom < scale)
     return numer * (scale / denom) + numer * (scale % denom) / denom;
@@ -326,7 +327,8 @@ unsigned long mad_timer_fraction(mad_timer_t timer, unsigned long denom)
 
   switch (denom) {
   case 0:
-    return MAD_TIMER_RESOLUTION / timer.fraction;
+    return timer.fraction ?
+      MAD_TIMER_RESOLUTION / timer.fraction : MAD_TIMER_RESOLUTION + 1;
 
   case MAD_TIMER_RESOLUTION:
     return timer.fraction;

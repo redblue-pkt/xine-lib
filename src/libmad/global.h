@@ -1,6 +1,6 @@
 /*
  * libmad - MPEG audio decoder library
- * Copyright (C) 2000-2001 Robert Leslie
+ * Copyright (C) 2000-2004 Underbit Technologies, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * $Id: global.h,v 1.3 2003/02/28 02:51:49 storri Exp $
+ * $Id: global.h,v 1.4 2004/04/22 00:22:36 miguelfreitas Exp $
  */
 
 # ifndef LIBMAD_GLOBAL_H
@@ -39,12 +39,20 @@
 # endif
 
 # if defined(OPT_SPEED) && !defined(OPT_SSO)
-#  define OPT_SSO 1
+#  define OPT_SSO
 # endif
 
 # if defined(HAVE_UNISTD_H) && defined(HAVE_WAITPID) &&  \
     defined(HAVE_FCNTL) && defined(HAVE_PIPE) && defined(HAVE_FORK)
 #  define USE_ASYNC
+# endif
+
+# if !defined(HAVE_ASSERT_H)
+#  if defined(NDEBUG)
+#   define assert(x)	/* nothing */
+#  else
+#   define assert(x)	do { if (!(x)) abort(); } while (0)
+#  endif
 # endif
 
 # endif
