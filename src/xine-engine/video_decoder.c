@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.82 2002/04/09 13:53:52 miguelfreitas Exp $
+ * $Id: video_decoder.c,v 1.83 2002/04/16 12:27:20 jcdutton Exp $
  *
  */
 
@@ -80,6 +80,8 @@ void *video_decoder_loop (void *this_gen) {
 
     if (buf->input_pos)
       this->cur_input_pos = buf->input_pos;
+    if (buf->input_length)
+      this->cur_input_length = buf->input_length;
     if (buf->input_time)
       this->cur_input_time = buf->input_time;
 

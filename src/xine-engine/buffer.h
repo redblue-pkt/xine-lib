@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.h,v 1.39 2002/04/09 03:38:01 miguelfreitas Exp $
+ * $Id: buffer.h,v 1.40 2002/04/16 12:27:20 jcdutton Exp $
  *
  *
  * contents:
@@ -150,6 +150,7 @@ struct buf_element_s {
   int64_t               pts;       /* presentation time stamp, used for a/v sync            */
   int64_t               disc_off;  /* discontinuity offset                                  */
   off_t                 input_pos; /* remember where this buf came from in the input source */
+  off_t                 input_length; /* remember the length of the input source */
   int                   input_time;/* time offset in seconds from beginning of stream       */
 
   uint32_t              decoder_flags; /* stuff like keyframe, is_header ... see below      */

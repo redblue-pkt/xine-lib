@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.118 2002/04/16 11:06:37 jcdutton Exp $
+ * $Id: xine.c,v 1.119 2002/04/16 12:27:20 jcdutton Exp $
  *
  * top-level xine functions
  *
@@ -550,6 +550,7 @@ xine_t *xine_init (vo_driver_t *vo,
   this->spu_channel_auto   = -1;
   this->spu_channel_user   = -1;
   this->cur_input_pos      = 0;
+  this->cur_input_length   = 0;
 
   /*
    * init and start decoder threads
@@ -641,8 +642,8 @@ int xine_get_current_position (xine_t *this) {
   }
   
   /* pos = this->mCurInput->seek (0, SEEK_CUR); */
-  len = this->cur_input_plugin->get_length (this->cur_input_plugin);
-
+  len = this->cur_input_length;
+  if (len == 0) len = this->cur_input_plugin->get_length (this->cur_input_plugin); 
   share = (double) this->cur_input_pos / (double) len * 65535;
 
   pthread_mutex_unlock (&this->xine_lock);

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.76 2002/04/09 04:35:17 miguelfreitas Exp $
+ * $Id: xine_internal.h,v 1.77 2002/04/16 12:27:21 jcdutton Exp $
  *
  */
 
@@ -167,6 +167,7 @@ struct xine_s {
   int                        status;
   int                        speed;
   off_t                      cur_input_pos;
+  off_t                      cur_input_length;
   int                        cur_input_time;
   char                       cur_mrl[1024];
 

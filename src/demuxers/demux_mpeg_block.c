@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.91 2002/04/16 10:54:22 jcdutton Exp $
+ * $Id: demux_mpeg_block.c,v 1.92 2002/04/16 12:27:20 jcdutton Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -183,6 +183,7 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
     buf->decoder_flags = 0;
 
   buf->input_pos = this->input->get_current_pos (this->input);
+  buf->input_length = this->input->get_length (this->input);
 
   if (this->rate)
     buf->input_time = buf->input_pos / (this->rate * 50);
@@ -302,6 +303,7 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
     buf->type      = BUF_SPU_NAV;
     buf->pts       = 0;   /* NAV packets do not have PES values */
     buf->input_pos = this->input->get_current_pos(this->input);
+    buf->input_length = this->input->get_length (this->input);
     this->video_fifo->put (this->video_fifo, buf);
 
 #ifdef LOG
@@ -485,6 +487,7 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
       buf->type      = BUF_SPU_PACKAGE + spu_id;
       buf->pts       = pts;
       buf->input_pos = this->input->get_current_pos(this->input);
+      buf->input_length = this->input->get_length (this->input);
       
       this->video_fifo->put (this->video_fifo, buf);    
       
@@ -507,6 +510,7 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
       buf->pts       = pts;
 
       buf->input_pos = this->input->get_current_pos(this->input);
+      buf->input_length = this->input->get_length (this->input);
 
       if(this->audio_fifo)
 	this->audio_fifo->put (this->audio_fifo, buf);
@@ -567,6 +571,7 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
       buf->pts       = pts;
 
       buf->input_pos = this->input->get_current_pos(this->input);
+      buf->input_length = this->input->get_length (this->input);
 
       if(this->audio_fifo)
 	this->audio_fifo->put (this->audio_fifo, buf);
@@ -584,6 +589,7 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
     buf->pts       = pts;
 
     buf->input_pos = this->input->get_current_pos(this->input);
+    buf->input_length = this->input->get_length (this->input);
 
     this->video_fifo->put (this->video_fifo, buf);
 
@@ -600,6 +606,7 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
     buf->pts       = pts;
 
     buf->input_pos = this->input->get_current_pos(this->input);
+    buf->input_length = this->input->get_length (this->input);
 
     if(this->audio_fifo)
       this->audio_fifo->put (this->audio_fifo, buf);
