@@ -29,6 +29,7 @@ xine-lib (1-beta13)
   * dxr3: using decoder timestamps will hopefully fix some last sync problems
   * (hopefully) fix crashes with win32 Quicktime DLLs
   * improve seeking in asf and avi files
+  * fix seeking to near the end of avi files
   * fix handling of exotic a/v RIFF chunks (00iv, 0031, ...) in avi files
 
 xine-lib (1-beta12)
