@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: utils.c,v 1.37 2004/10/30 15:04:47 miguelfreitas Exp $
+ * $Id: utils.c,v 1.38 2005/03/31 22:46:15 hadess Exp $
  *
  */
 #define	_POSIX_PTHREAD_SEMANTICS 1	/* for 5-arg getpwuid_r on solaris */
@@ -420,11 +420,12 @@ char *xine_chomp(char *str) {
 void xine_usec_sleep(unsigned usec) {
 #if HAVE_NANOSLEEP
   /* nanosleep is prefered on solaris, because it's mt-safe */
-  struct timespec ts;
+  struct timespec ts, remaining;
 
   ts.tv_sec =   usec / 1000000;
   ts.tv_nsec = (usec % 1000000) * 1000;
-  nanosleep(&ts, NULL);
+  while (nanosleep (&ts, &remaining) == -1 && errno == EINTR)
+    ts = remaining;
 #else
 #  if WIN32
   Sleep(usec / 1000);
