@@ -20,7 +20,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: cc_decoder.c,v 1.15 2002/04/24 20:26:07 jcdutton Exp $
+ * $Id: cc_decoder.c,v 1.16 2002/04/26 20:31:47 jkeil Exp $
  *
  * stuff needed to provide closed captioning decoding and display
  *
@@ -453,8 +453,20 @@ static clut_t interpolate_color(clut_t src, clut_t dest, int steps,
   int res_y = ((int) src.y) + (diff_y * current_step / (steps + 1));
   int res_cr = ((int) src.cr) + (diff_cr * current_step / (steps + 1));
   int res_cb = ((int) src.cb) + (diff_cb * current_step / (steps + 1));
+#if __SUNPRO_C
+  /*
+   * Sun's Forte compiler refuses to initialize automatic structure
+   * variable with bitfields, so we use explicit assignments for now.
+   */
+  clut_t res;
+  res.y = res_y;
+  res.cr = res_cr;
+  res.cb = res_cb;
+  res.foo = 0;
+#else
   clut_t res = CLUT_Y_CR_CB_INIT((uint8_t) res_y, (uint8_t) res_cr,
 				 (uint8_t) res_cb);
+#endif
   return res;
 }
 
