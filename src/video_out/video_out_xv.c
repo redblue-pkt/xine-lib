@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.182 2003/11/26 01:03:32 miguelfreitas Exp $
+ * $Id: video_out_xv.c,v 1.183 2003/11/26 18:36:34 miguelfreitas Exp $
  *
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -614,7 +614,7 @@ static void xv_overlay_begin (vo_driver_t *this_gen,
 			      vo_frame_t *frame_gen, int changed) {
   xv_driver_t  *this = (xv_driver_t *) this_gen;
 
-  this->ovl_changed = changed;
+  this->ovl_changed += changed;
 
   if( this->ovl_changed && this->xoverlay ) {
     XLockDisplay (this->display);
@@ -974,6 +974,7 @@ static int xv_gui_data_exchange (vo_driver_t *this_gen,
     this->gc = XCreateGC (this->display, this->drawable, 0, NULL);
     if(this->xoverlay)
       x11osd_drawable_changed(this->xoverlay, this->drawable);
+    this->ovl_changed = 1;
     XUnlockDisplay (this->display);
     this->sc.force_redraw = 1;
     break;

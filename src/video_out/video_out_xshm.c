@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xshm.c,v 1.120 2003/11/26 01:03:32 miguelfreitas Exp $
+ * $Id: video_out_xshm.c,v 1.121 2003/11/26 18:36:34 miguelfreitas Exp $
  * 
  * video_out_xshm.c, X11 shared memory extension interface for xine
  *
@@ -609,7 +609,7 @@ static void xshm_overlay_begin (vo_driver_t *this_gen,
 			      vo_frame_t *frame_gen, int changed) {
   xshm_driver_t  *this  = (xshm_driver_t *) this_gen;
 
-  this->ovl_changed = changed;
+  this->ovl_changed += changed;
 
   if( this->ovl_changed && this->xoverlay ) {
     XLockDisplay (this->display);
@@ -928,6 +928,7 @@ static int xshm_gui_data_exchange (vo_driver_t *this_gen,
     this->gc = XCreateGC (this->display, this->drawable, 0, NULL);
     if(this->xoverlay)
       x11osd_drawable_changed(this->xoverlay, this->drawable);
+    this->ovl_changed = 1;
     XUnlockDisplay (this->display);
   break;
 

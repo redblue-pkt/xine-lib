@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_vidix.c,v 1.52 2003/11/26 01:03:32 miguelfreitas Exp $
+ * $Id: video_out_vidix.c,v 1.53 2003/11/26 18:36:34 miguelfreitas Exp $
  * 
  * video_out_vidix.c
  *
@@ -585,7 +585,7 @@ static void vidix_overlay_begin (vo_driver_t *this_gen,
 #ifdef HAVE_X11
   vidix_driver_t  *this = (vidix_driver_t *) this_gen;
 
-  this->ovl_changed = changed;
+  this->ovl_changed += changed;
 
   if( this->ovl_changed && this->xoverlay ) {
     XLockDisplay (this->display);
@@ -883,6 +883,7 @@ static int vidix_gui_data_exchange (vo_driver_t *this_gen,
       this->gc = XCreateGC(this->display, this->drawable, 0, NULL);
       if(this->xoverlay)
         x11osd_drawable_changed(this->xoverlay, this->drawable);
+      this->ovl_changed = 1;
       XUnlockDisplay(this->display);
 #endif
     }

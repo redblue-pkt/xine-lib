@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: x11osd.c,v 1.2 2003/11/26 10:02:52 miguelfreitas Exp $
+ * $Id: x11osd.c,v 1.3 2003/11/26 18:36:34 miguelfreitas Exp $
  *
  * x11osd.c, use X11 Nonrectangular Window Shape Extension to draw xine OSD
  *
@@ -158,6 +158,11 @@ x11osd_drawable_changed (x11osd * osd, Window window)
                               osd->visual, AllocNone);
 
   XSelectInput (osd->display, osd->window, ExposureMask);
+  
+  osd->clean = 0;
+  x11osd_clear(osd);
+  osd->mapped = 0;
+  x11osd_expose(osd);
 }
 
 static int x11_error = False ;
