@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.142 2004/06/05 14:11:24 tmattern Exp $
+ * $Id: w32codec.c,v 1.143 2004/06/05 15:59:36 tmattern Exp $
  *
  * routines for using w32 codecs
  * DirectShow support by Miguel Freitas (Nov/2001)
@@ -1294,6 +1294,17 @@ static int w32a_init_audio (w32a_decoder_t *this,
 }
 
 
+static void w32a_ensure_buffer_size(w32a_decoder_t *this, int size) {
+  if( this->size + size > this->max_audio_src_size ) {
+    this->max_audio_src_size = this->size + 2 * size;
+    xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
+	    "w32codec: increasing source buffer to %d to avoid overflow.\n", 
+      this->max_audio_src_size);
+    this->buf = realloc( this->buf, this->max_audio_src_size );
+  }
+}
+
+
 static void w32a_decode_audio (w32a_decoder_t *this,
 			       unsigned char *data, 
 			       uint32_t size, 
@@ -1333,14 +1344,7 @@ static void w32a_decode_audio (w32a_decoder_t *this,
   
   this->sumsize += size;
 
-  if( this->size + size > this->max_audio_src_size ) {
-    this->max_audio_src_size = this->size + 2 * size;
-    xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
-	    "w32codec: increasing source buffer to %d to avoid overflow.\n", 
-      this->max_audio_src_size);
-    this->buf = realloc( this->buf, this->max_audio_src_size );
-  }
-  
+  w32a_ensure_buffer_size(this, this->size + size);
   xine_fast_memcpy (&this->buf[this->size], data, size);
 
   lprintf("w32a_decode_audio: demux pts=%lld, this->size=%d, d=%d, rate=%lf\n",
@@ -1462,13 +1466,7 @@ static void w32a_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
     lprintf ("got audio header\n");
     
     /* accumulate init data */
-    if( this->size + buf->size > this->max_audio_src_size ) {
-      this->max_audio_src_size = this->size + 2 * buf->size;
-      xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
-              "w32codec: increasing source buffer to %d to avoid overflow.\n", 
-        this->max_audio_src_size);
-      this->buf = realloc( this->buf, this->max_audio_src_size );
-    }
+    w32a_ensure_buffer_size(this, this->size + buf->size);
     memcpy(this->buf + this->size, buf->content, buf->size);
     this->size += buf->size;
     
