@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.57 2002/07/01 18:53:22 miguelfreitas Exp $
+ * $Id: demux_qt.c,v 1.58 2002/07/05 15:10:48 tmmm Exp $
  *
  */
 
@@ -254,8 +254,11 @@ typedef struct {
   pthread_mutex_t      mutex;
   int                  send_end_buffers;
 
-  off_t                start;
   int                  status;
+
+  /* when this flag is set, demuxer only dispatches audio samples until it
+   * encounters a video keyframe, then it starts sending every frame again */
+  int                  waiting_for_keyframe;
 
   qt_info             *qt;
   xine_bmiheader       bih;
@@ -1090,6 +1093,10 @@ static void *demux_qt_loop (void *this_gen) {
     /* main demuxer loop */
     while (this->status == DEMUX_OK) {
 
+      /* someone may want to interrupt us */
+      pthread_mutex_unlock( &this->mutex );
+      pthread_mutex_lock( &this->mutex );
+
       i = this->current_frame;
 
       /* if there is an incongruency between last and current sample, it
@@ -1104,10 +1111,24 @@ static void *demux_qt_loop (void *this_gen) {
         last_frame_pts = 0;
       }
 
+      this->last_frame = this->current_frame;
+      this->current_frame++;
+
       /* check if all the samples have been sent */
       if (i >= this->qt->frame_count) {
         this->status = DEMUX_FINISHED;
         break;
+      }
+
+      /* check if we're only sending audio samples until the next keyframe */
+      if ((this->waiting_for_keyframe) &&
+          (this->qt->frames[i].type == MEDIA_VIDEO)) {
+        if (this->qt->frames[i].keyframe) {
+          this->waiting_for_keyframe = 0;
+        } else {
+          /* move on to the next sample */
+          continue;
+        }
       }
 
       if (this->qt->frames[i].type == MEDIA_VIDEO) {
@@ -1188,15 +1209,6 @@ static void *demux_qt_loop (void *this_gen) {
           this->audio_fifo->put(this->audio_fifo, buf);
         }
       }
-
-
-      this->last_frame = this->current_frame;
-      this->current_frame++;
-
-      /* someone may want to interrupt us */
-      pthread_mutex_unlock( &this->mutex );
-      pthread_mutex_lock( &this->mutex );
-
     }
 
     /* wait before sending end buffers: user might want to do a new seek */
@@ -1291,6 +1303,7 @@ static int demux_qt_start (demux_plugin_t *this_gen,
   if (!this->thread_running) {
     this->video_fifo = video_fifo;
     this->audio_fifo = audio_fifo;
+    this->waiting_for_keyframe = 0;
 
     /* create the QT structure */
     if ((this->qt = create_qt_info()) == NULL) {
@@ -1391,7 +1404,8 @@ static int demux_qt_start (demux_plugin_t *this_gen,
   }
 
   pthread_mutex_unlock(&this->mutex);
-return 0;
+
+  return this->status;
 }
 
 
@@ -1399,8 +1413,10 @@ static int demux_qt_seek (demux_plugin_t *this_gen,
                              off_t start_pos, int start_time) {
   demux_qt_t *this = (demux_qt_t *) this_gen;
 
-  int i;
   int best_index;
+  int left, middle, right;
+  int found;
+  int64_t keyframe_pts;
 
   pthread_mutex_lock(&this->mutex);
 
@@ -1409,23 +1425,54 @@ static int demux_qt_seek (demux_plugin_t *this_gen,
     return this->status;
   }
 
-  /* perform a linear search through the table to get the closest offset */
-  best_index = this->qt->frame_count - 1;
-  for (i = 0; i < this->qt->frame_count; i++) {
-    if (this->qt->frames[i].offset > start_pos) {
-      best_index = i;
-      break;
+  /* perform a binary search on the sample table, testing the offset
+   * boundaries first */
+  if (start_pos <= this->qt->frames[0].offset)
+    best_index = 0;
+  else if (start_pos >= this->qt->frames[this->qt->frame_count - 1].offset) {
+    this->status = DEMUX_FINISHED;
+    pthread_mutex_unlock( &this->mutex );
+    return this->status;
+  } else {
+    left = 0;
+    right = this->qt->frame_count - 1;
+    found = 0;
+
+    while (!found) {
+      middle = (left + right) / 2;
+      if ((start_pos >= this->qt->frames[middle].offset) &&
+          (start_pos <= this->qt->frames[middle].offset +
+           this->qt->frames[middle].size)) {
+        found = 1;
+      } else if (start_pos < this->qt->frames[middle].offset) {
+        right = middle;
+      } else {
+        left = middle;
+      }
     }
+
+    best_index = middle;
   }
 
   /* search back in the table for the nearest keyframe */
   while (best_index--) {
     if (this->qt->frames[best_index].keyframe) {
-      this->current_frame = best_index;
       break;
     }
   }
 
+  /* not done yet; now that the nearest keyframe has been found, seek
+   * back to the first audio frame that has a pts less than or equal to
+   * that of the keyframe */
+  this->waiting_for_keyframe = 1;
+  keyframe_pts = this->qt->frames[best_index].pts;
+  while (best_index--) {
+    if (this->qt->frames[best_index].type == MEDIA_AUDIO) {
+      break;
+    }
+  }
+
+  this->current_frame = best_index;
   this->status = DEMUX_OK;
   pthread_mutex_unlock( &this->mutex );
 
@@ -1443,6 +1490,8 @@ static void demux_qt_stop (demux_plugin_t *this_gen) {
     pthread_mutex_unlock( &this->mutex );
     return;
   }
+
+  this->current_frame = this->last_frame = 0;
 
   this->send_end_buffers = 0;
   this->status = DEMUX_FINISHED;
