@@ -435,9 +435,9 @@ static off_t http_plugin_read (input_plugin_t *this_gen,
         n = read (this->fh, &buf[num_bytes], n);
       }
     }
-      
-    if (n <= 0) {
-      
+
+    /* read errors */
+    if (n < 0) {
       switch (errno) {
       case EAGAIN:
 	xine_log (this->stream->xine, XINE_LOG_MSG, _("input_http: EAGAIN\n"));
@@ -450,6 +450,9 @@ static off_t http_plugin_read (input_plugin_t *this_gen,
     
     num_bytes += n;
     this->curpos += n;
+    
+    /* end of stream */
+    if (!n) break;
   }
   return num_bytes;
 }
@@ -886,7 +889,7 @@ static input_plugin_t *open_plugin (input_class_t *cls_gen, xine_stream_t *strea
 
   this->preview_size = http_plugin_read (&this->input_plugin, this->preview,
 					 PREVIEW_SIZE);
-  
+
   this->preview_pos  = 0;
   this->curpos  = 0;
   
