@@ -5,7 +5,7 @@ LIBTOOL = $(SHELL) $(top_builddir)/libtool-nofpic
 libdir = $(XINE_PLUGINDIR)
 
 if HAVE_DXR3
-dxr3_modules = xineplug_decode_dxr3.la xineplug_vo_out_dxr3.la 
+dxr3_modules = xineplug_decode_dxr3_video.la xineplug_decode_dxr3_spu.la xineplug_vo_out_dxr3.la 
 endif
 if HAVE_LIBFAME
 link_fame = -lfame
@@ -16,8 +16,11 @@ endif
 
 lib_LTLIBRARIES = $(dxr3_modules) 
 
-xineplug_decode_dxr3_la_SOURCES = dxr3_decoder.c nav_read.c
-xineplug_decode_dxr3_la_LDFLAGS = -avoid-version -module
+xineplug_decode_dxr3_video_la_SOURCES = dxr3_decode_video.c
+xineplug_decode_dxr3_video_la_LDFLAGS = -avoid-version -module
+
+xineplug_decode_dxr3_spu_la_SOURCES = dxr3_decode_spu.c nav_read.c
+xineplug_decode_dxr3_spu_la_LDFLAGS = -avoid-version -module
 
 xineplug_vo_out_dxr3_la_SOURCES = dxr3_video_out.c \
 		dxr3_vo_core.c mpeg_encoders.c alphablend.c
