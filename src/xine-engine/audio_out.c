@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.29 2001/11/17 14:26:39 f1rmb Exp $
+ * $Id: audio_out.c,v 1.30 2001/11/17 17:29:39 jcdutton Exp $
  * 
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -292,6 +292,7 @@ static void *ao_loop (void *this_gen) {
   int             num_output_frames ;
   uint32_t        ac5_type;
   uint32_t        ac5_length;
+  uint32_t        ac5_pcm_length;
   uint32_t        i;
 
   this->audio_loop_running = 1;
@@ -336,9 +337,9 @@ static void *ao_loop (void *this_gen) {
     
     gap = buf->vpts - hw_vpts;
     
-    /*
+   /* 
       printf ("vpts : %d   buffer_vpts : %d  gap %d\n",
-      vpts, buffer_vpts, gap);
+      hw_vpts, buf->vpts, gap);
     */
 
     /*
@@ -455,35 +456,29 @@ static void *ao_loop (void *this_gen) {
                    ((data[6] & 0xff) << 4)  |
                    ((data[7] & 0xf0) >> 4);
         ac5_length++;
-        /* printf("AC5 length=%d\n",ac5_length); */
-        if (ac5_length > 8191) {
+        if (ac5_length > 4088) {
+          /* Biggest PCM length from AC5 is 4096 */
           break;
         }
-        ac5_length = ac5_length << 3; /* Convert bytes to bits */
-	this->frame_buffer[3] = ac5_length;
+	this->frame_buffer[3] = ac5_length << 3; /* Convert bytes to bits */
 	
 	/* ac3 seems to be swabbed data */
 	swab(buf->mem,this->frame_buffer+4,  ac5_length );
-	
-        this->driver->write(this->driver, this->frame_buffer, (ac5_length / 2) + 4);
-	
-	break;
-	
-
-
-
-
-	memset(this->frame_buffer,0xff,6144);
-	this->frame_buffer[0] = 0xf872;  /* spdif syncword */
-	this->frame_buffer[1] = 0x4e1f;  /* .............  */
-	this->frame_buffer[2] = 0x0001;  /*                */
-	
-	this->frame_buffer[3] = 0x3ee0;
-	
-	/* ac3 seems to be swabbed data */
-	swab(buf->mem,this->frame_buffer+4,  2014  );
-	
-	this->driver->write(this->driver, this->frame_buffer, 1024);
+        if (ac5_length <= 248) {
+          ac5_pcm_length = 64;
+        } else if (ac5_length <= 504) {
+          ac5_pcm_length = 128;
+        } else if (ac5_length <= 1016) {
+          ac5_pcm_length = 256;
+        } else if (ac5_length <= 2040) {
+          ac5_pcm_length = 512;
+        } else if (ac5_length <= 4088) {
+          ac5_pcm_length = 1024;
+        } else {
+          printf("BAD AC5 length\n");
+          break; 
+        } 
+        this->driver->write(this->driver, this->frame_buffer, ac5_pcm_length);
 	
 	break;
 	
