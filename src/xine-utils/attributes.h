@@ -37,7 +37,9 @@
 #endif 
 #else
 #undef	ATTRIBUTE_PACKED
-#define	__attribute_not_used__(x)	/**/
+#ifndef __attribute__
+#define	__attribute__(x)	/**/
+#endif /* __attribute __*/
 #endif
 
 #endif /* ATTRIBUTE_H_ */
