@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.138 2003/11/22 20:29:41 jstembridge Exp $
+ * $Id: xine_decoder.c,v 1.139 2003/11/23 16:55:35 jstembridge Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -1053,7 +1053,7 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 	this->aspect_ratio = av_q2d(this->context->sample_aspect_ratio) * 
             (double) this->context->width / (double) this->context->height;
 
-	if(this->av_frame->type == FF_BUFFER_TYPE_INTERNAL) {
+	if(!this->av_frame->opaque) {
 	  img = this->stream->video_out->get_frame (this->stream->video_out,
 						    this->context->width,
 						    this->context->height,
@@ -1062,8 +1062,6 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 						    VO_BOTH_FIELDS|this->frame_flags);
 	  free_img = 1;
 	} else {
-	  assert(this->av_frame->opaque);
-
 	  img = (vo_frame_t*) this->av_frame->opaque;
 	  free_img = 0;
 	}
@@ -1080,7 +1078,7 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 
 	  if(this->pp_available && this->pp_quality) {
 
-	    if(this->av_frame->type != FF_BUFFER_TYPE_INTERNAL) {
+	    if(this->av_frame->opaque) {
 	      img = this->stream->video_out->get_frame (this->stream->video_out,
 						        img->width,
 						        img->height,
@@ -1098,7 +1096,7 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 			   this->pp_mode, this->pp_context, 
 			   this->av_frame->pict_type);
 
-	  } else if(this->av_frame->type == FF_BUFFER_TYPE_INTERNAL) {
+	  } else if(!this->av_frame->opaque) {
 	    ff_convert_frame(this, img);
 	  }
 	}
