@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.183 2004/06/20 16:59:13 mroi Exp $
+ * $Id: input_dvd.c,v 1.184 2004/06/21 18:48:17 mroi Exp $
  *
  */
 
@@ -201,12 +201,6 @@ typedef struct {
   char             *mrl;          /* Current MRL                     */
   dvdnav_t         *dvdnav;       /* Handle for libdvdnav            */
   const char       *dvd_name;
-/*
-  xine_mrl_t           **mrls;
-  int               num_mrls;
-*/
-  char              filelist[MAX_DIR_ENTRIES][MAX_STR_LEN];
-  char              ui_title[MAX_STR_LEN + 1];
   
   /* special buffer handling for libdvdnav caching */
   pthread_mutex_t   buf_mutex;
@@ -222,11 +216,10 @@ typedef struct {
   input_class_t       input_class;
 
   xine_t             *xine;
-  config_values_t    *config;       /* Pointer to XineRC config file   */  
+  config_values_t    *config;
 
-  int                 mrls_allocated_entries;
-  xine_mrl_t        **mrls;
-  char		     *dvd_device;	  /* Default DVD device		     */
+  char               *dvd_device;    /* default DVD device */
+  char               *eject_device;  /* the device last opened is remembered for eject */
 
   dvd_input_plugin_t *ip;
 
@@ -235,7 +228,7 @@ typedef struct {
   int32_t             language;
   int32_t             region;
 
-  char               *filelist2[MAX_DIR_ENTRIES];
+  char               *filelist[MAX_DIR_ENTRIES];
 
 } dvd_input_class_t;
 
@@ -353,6 +346,7 @@ static void send_mouse_enter_leave_event(dvd_input_plugin_t *this, int direction
 }
  
 static void update_title_display(dvd_input_plugin_t *this) {
+  char ui_title[MAX_STR_LEN + 1];
   xine_event_t uevent;
   xine_ui_data_t data;
   int tt=-1, pr=-1;
@@ -371,37 +365,37 @@ static void update_title_display(dvd_input_plugin_t *this) {
     /* Reflect angle info if appropriate */
     dvdnav_get_angle_info(this->dvdnav, &cur_angle, &num_angle);
     if(num_angle > 1) {
-      snprintf(this->ui_title, MAX_STR_LEN,
+      snprintf(ui_title, MAX_STR_LEN,
                "Title %i, Chapter %i, Angle %i of %i",
                tt,pr,cur_angle, num_angle); 
     } else {
-      snprintf(this->ui_title, MAX_STR_LEN, 
+      snprintf(ui_title, MAX_STR_LEN, 
 	       "Title %i, Chapter %i",
 	       tt,pr);
     }
   } else if (tt == 0 && dvdnav_menu_table[pr]) {
-    snprintf(this->ui_title, MAX_STR_LEN,
+    snprintf(ui_title, MAX_STR_LEN,
              "DVD %s Menu",
              dvdnav_menu_table[pr]);
   } else {
-    strcpy(this->ui_title, "DVD Menu");
+    strcpy(ui_title, "DVD Menu");
   }
-  ui_str_length = strlen(this->ui_title);
+  ui_str_length = strlen(ui_title);
   
   if (this->dvd_name && this->dvd_name[0] &&
       (ui_str_length + strlen(this->dvd_name) < MAX_STR_LEN)) {
-    snprintf(this->ui_title+ui_str_length, MAX_STR_LEN - ui_str_length, 
+    snprintf(ui_title+ui_str_length, MAX_STR_LEN - ui_str_length, 
 	     ", %s", this->dvd_name);
   }
 #ifdef INPUT_DEBUG
-  printf("input_dvd: Changing title to read '%s'\n", this->ui_title);
+  printf("input_dvd: Changing title to read '%s'\n", ui_title);
 #endif
   uevent.type = XINE_EVENT_UI_SET_TITLE;
   uevent.stream = this->stream;
   uevent.data = &data;
   uevent.data_length = sizeof(data);;
-  memcpy(data.str, this->ui_title, strlen(this->ui_title) + 1);
-  data.str_len = strlen(this->ui_title) + 1;
+  memcpy(data.str, ui_title, strlen(ui_title) + 1);
+  data.str_len = strlen(ui_title) + 1;
   xine_event_send(this->stream, &uevent);
 }
 
@@ -1463,6 +1457,10 @@ static int dvd_plugin_open (input_plugin_t *this_gen) {
   printf("input_dvd: DVD device successfully opened.\n");
 #endif
 
+  /* remember the last successfully opened device for ejecting */
+  free(class->eject_device);
+  class->eject_device = strdup(this->current_dvd_device);
+
   /* Tell Xine to update the UI */
   event.type = XINE_EVENT_UI_CHANNELS_CHANGED;
   event.stream = this->stream;
@@ -1532,10 +1530,6 @@ static input_plugin_t *dvd_class_get_instance (input_class_t *class_gen, xine_st
   this->pgc_length             = 0;
   this->dvd_name               = NULL;
   this->mrl                    = strdup(data);
-/*
-  this->mrls                   = NULL;
-  this->num_mrls               = 0;
-*/
 
   pthread_mutex_init(&this->buf_mutex, NULL);
   this->mem_stack              = 0;
@@ -1586,24 +1580,24 @@ static char **dvd_class_get_autoplay_list (input_class_t *this_gen,
   dvd_input_class_t *this = (dvd_input_class_t *) this_gen;
   trace_print("get_autoplay_list entered\n"); 
 
-  this->filelist2[0] = "dvd:/";
-  this->filelist2[1] = NULL;
+  this->filelist[0] = "dvd:/";
+  this->filelist[1] = NULL;
   *num_files = 1;
 
-  return this->filelist2;
+  return this->filelist;
 }
 
 static void dvd_class_dispose(input_class_t *this_gen) {
   dvd_input_class_t *this = (dvd_input_class_t*)this_gen;
   
-  free(this->mrls); this->mrls = NULL;
+  free(this->eject_device);
   free(this);
 }
 
 static int dvd_class_eject_media (input_class_t *this_gen) {
   dvd_input_class_t *this = (dvd_input_class_t*)this_gen;
 
-  return media_eject_media (this->xine, this->dvd_device);
+  return media_eject_media (this->xine, this->eject_device);
 }
 
 static void *init_class (xine_t *xine, void *data) {
@@ -1635,12 +1629,9 @@ static void *init_class (xine_t *xine, void *data) {
   this->input_class.eject_media        = dvd_class_eject_media;
   
   this->config                         = config;
-  this->mrls                           = NULL;
 
   this->ip                             = NULL;
 
-/*  this->num_mrls               = 0; */
-  
   this->dvd_device = config->register_string(config,
 					     "input.dvd_device",
 					     DVD_PATH,
