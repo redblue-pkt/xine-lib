@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.78 2002/11/13 03:47:51 guenter Exp $
+ * $Id: demux_asf.c,v 1.79 2002/11/18 03:39:07 miguelfreitas Exp $
  *
  * demultiplexer for asf streams
  *
@@ -630,8 +630,10 @@ static int asf_get_packet(demux_asf_t *this) {
 
   while ( (this->status == DEMUX_OK) && (sig != 0x820000) ) {
     sig = ((sig << 8) | get_byte(this)) & 0xFFFFFF;
-  }
-
+  }       
+  if( this->status != DEMUX_OK )
+    return 0;
+  
   this->packet_flags = get_byte(this);
   this->segtype = get_byte(this);
   this->packet_padsize = 0;
@@ -770,11 +772,8 @@ static void asf_send_buffer_nodefrag (demux_asf_t *this, asf_stream_t *stream,
     buf->pts        = timestamp * 90;
 
     if (buf->pts && this->send_discontinuity && this->keyframe_found) {
-      this->send_discontinuity--;
-      if( !this->send_discontinuity )
-        asf_send_discontinuity (this, buf->pts);
-      else
-        buf->pts = 0;
+      this->send_discontinuity=0;
+      asf_send_discontinuity (this, buf->pts);
     }
 
     buf->type       = stream->buf_type;
@@ -952,21 +951,17 @@ static void asf_read_packet(demux_asf_t *this) {
   stream_id  = raw_id & 0x7f;
 
   stream    = NULL;
-  if ( (raw_id & 0x80) || this->keyframe_found || (this->num_video_streams==0)) {
 #ifdef LOG
-    printf ("asf_demuxer: got stream =%d \n", stream_id);
+  printf ("asf_demuxer: got raw_id =%d keyframe_found=%d\n", raw_id, this->keyframe_found);
 #endif
+  if ( (raw_id & 0x80) || this->keyframe_found || (this->num_video_streams==0)) {
     for (i = 0; i < this->num_streams; i++){
       if (this->streams[i].stream_id == stream_id &&
           (stream_id == this->audio_stream_id || stream_id == this->video_stream_id)) {
         stream = &this->streams[i];
-
-        if( raw_id & 0x80 )
-          this->keyframe_found = 1;
       }
     }
   }
-   
 
   seq           = get_byte(this);
   switch (this->segtype){
@@ -987,6 +982,11 @@ static void asf_read_packet(demux_asf_t *this) {
     frag_offset = 0;
     break;
   }
+  
+  /* only set keyframe_found if we have it's beginning */
+  if( (raw_id & 0x80) && stream && !frag_offset )
+    this->keyframe_found = 1;
+       
   flags         = get_byte(this); 
 
 #ifdef LOG
@@ -1262,8 +1262,10 @@ static int demux_asf_seek (demux_plugin_t *this_gen,
   /*
    * seek to start position
    */
-  this->send_discontinuity       = 2;
+  this->send_discontinuity       = 1;
   this->last_video_pts           = 0;
+  this->frame                    = 0;
+  this->packet_size_left         = 0;
   this->keyframe_found           = (this->num_video_streams==0);
 
   if (this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) {
