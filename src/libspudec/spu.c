@@ -35,7 +35,7 @@
  * along with this program; see the file COPYING.  If not, write to
  * the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: spu.c,v 1.65 2003/05/02 15:54:33 miguelfreitas Exp $
+ * $Id: spu.c,v 1.66 2003/05/03 14:24:06 mroi Exp $
  *
  */
 
@@ -364,18 +364,15 @@ void spudec_process (spudec_decoder_t *this, uint32_t stream_id) {
           continue;
         }
         if ( this->pci.hli.hl_gi.fosl_btnn > 0) {
-          spu_button_t spu_button;
+          int buttonN;
 	  xine_event_t event;
 	  
           this->buttonN = this->pci.hli.hl_gi.fosl_btnn ;
           event.type = XINE_EVENT_INPUT_BUTTON_FORCE;
 	  event.stream = this->stream;
-	  event.data = &spu_button;
-	  event.data_length = sizeof(spu_button);
-          spu_button.buttonN  = this->buttonN;
-          /* The BUTTON_FORCE event cannot call "get_nav_pci",
-             so the nav_pci info has to be passed in the event instead. */
-          memcpy(&spu_button.nav_pci, &this->pci, sizeof(pci_t) );
+	  event.data = &buttonN;
+	  event.data_length = sizeof(buttonN);
+          buttonN  = this->buttonN;
           xine_event_send(this->stream, &event);
         }
 #ifdef LOG_BUTTON

@@ -24,17 +24,7 @@
 #ifndef HAVE_SPU_API_H
 #define HAVE_SPU_API_H
 
-#define SPU_DECODER_IFACE_VERSION 13
-
-#ifdef XINE_COMPILE
-#  ifdef HAVE_DVDNAV
-#    include <dvdnav/nav_types.h>
-#  else
-#    include "../input/libdvdnav/nav_types.h"
-#  endif
-#else
-#  include "nav_types.h"
-#endif
+#define SPU_DECODER_IFACE_VERSION 14
 
 /*
  * generic xine spu decoder plugin interface
@@ -70,38 +60,50 @@ struct spu_decoder_class_s {
  
 struct spu_decoder_s {
 
-/*  void (*init) (spu_decoder_t *this, vo_instance_t *video_out);*/
-
+  /*
+   * decode data from buf and feed the overlay to overlay manager
+   */  
   void (*decode_data) (spu_decoder_t *this, buf_element_t *buf);
 
+  /*
+   * reset decoder after engine flush (prepare for new
+   * SPU data not related to recently decoded data)
+   */
   void (*reset) (spu_decoder_t *this);
     
+  /*
+   * inform decoder that a time reference discontinuity has happened.
+   * that is, it must forget any currently held pts value
+   */
   void (*discontinuity) (spu_decoder_t *this);
 
+  /*
+   * close down, free all resources
+   */
   void (*dispose) (spu_decoder_t *this);
 
-  int (*get_nav_pci) (spu_decoder_t *this, pci_t *nav_pci);
+  /*
+   * When the SPU decoder also handles data used in user interaction,
+   * you can query the related information here. The typical example
+   * for this is DVD NAV packets which are handled by the SPU decoder
+   * and can be received readily parsed from here.
+   * The caller and the decoder must agree on the structure which is
+   * passed here.
+   * This function pointer may be NULL, if the plugin does not have
+   * such functionality.
+   */
+  int  (*get_interact_info) (spu_decoder_t *this, void *data);
 
+  /*
+   * When the SPU decoder also handles menu overlays for user inter-
+   * action, you can set a menu button here. The typical example for
+   * this is DVD menus.
+   * This function pointer may be NULL, if the plugin does not have
+   * such functionality.
+   */
   void (*set_button) (spu_decoder_t *this_gen, int32_t button, int32_t mode);
 
   void *node; /* used by plugin loader */
-};
-
-typedef struct spu_button_s spu_button_t;
-struct spu_button_s {
-  uint32_t show;
-  uint8_t  color[4];
-  uint8_t  trans[4];
-  uint16_t left, right;
-  uint16_t top, bottom;
-  int64_t  pts;
-  uint32_t buttonN;
-  pci_t    nav_pci;
-};
-
-typedef struct spudec_clut_table_s spudec_clut_table_t;
-struct spudec_clut_table_s {
-  uint32_t clut[16];
 };
 
 #endif /* HAVE_SPUDEC_H */

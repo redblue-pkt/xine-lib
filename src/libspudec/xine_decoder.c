@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.97 2003/04/30 16:49:35 mroi Exp $
+ * $Id: xine_decoder.c,v 1.98 2003/05/03 14:24:07 mroi Exp $
  *
  * stuff needed to turn libspu into a xine decoder plugin
  */
@@ -199,15 +199,15 @@ static void spudec_dispose (spu_decoder_t *this_gen) {
 /* This is not perfectly in sync with the display, but all the same, */
 /* much closer than doing it at the input stage. */
 /* returns a bool for error/success.*/
-static int spudec_get_nav_pci (spu_decoder_t *this_gen, pci_t *pci) {
+static int spudec_get_interact_info (spu_decoder_t *this_gen, void *data) {
   spudec_decoder_t *this  = (spudec_decoder_t *) this_gen;
-  /*printf("get_nav_pci() called\n");*/
-  if (!this || !pci) 
+  /*printf("get_interact_info() called\n");*/
+  if (!this || !data) 
     return 0;
  
-  /*printf("get_nav_pci() coping nav_pci\n");*/
+  /*printf("get_interact_info() coping nav_pci\n");*/
   pthread_mutex_lock(&this->nav_pci_lock);
-  memcpy(pci, &this->pci, sizeof(pci_t) );
+  memcpy(data, &this->pci, sizeof(pci_t) );
   pthread_mutex_unlock(&this->nav_pci_lock);
   return 1;
 
@@ -305,7 +305,7 @@ static spu_decoder_t *open_plugin (spu_decoder_class_t *class_gen, xine_stream_t
   this->spu_decoder.reset               = spudec_reset;
   this->spu_decoder.discontinuity       = spudec_discontinuity;
   this->spu_decoder.dispose             = spudec_dispose;
-  this->spu_decoder.get_nav_pci         = spudec_get_nav_pci;
+  this->spu_decoder.get_interact_info   = spudec_get_interact_info;
   this->spu_decoder.set_button          = spudec_set_button;
   this->stream                          = stream;
   this->class                           = (spudec_class_t *) class_gen;
@@ -379,6 +379,6 @@ static decoder_info_t dec_info_data = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_SPU_DECODER, 13, "spudec", XINE_VERSION_CODE, &dec_info_data, &init_plugin },
+  { PLUGIN_SPU_DECODER, 14, "spudec", XINE_VERSION_CODE, &dec_info_data, &init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

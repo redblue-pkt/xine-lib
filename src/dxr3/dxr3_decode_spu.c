@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decode_spu.c,v 1.34 2003/04/30 16:51:57 mroi Exp $
+ * $Id: dxr3_decode_spu.c,v 1.35 2003/05/03 14:24:07 mroi Exp $
  */
  
 /* dxr3 spu decoder plugin.
@@ -71,7 +71,7 @@ static decoder_info_t dxr3_spudec_info = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_SPU_DECODER, 13, "dxr3-spudec", XINE_VERSION_CODE, &dxr3_spudec_info, &dxr3_spudec_init_plugin },
+  { PLUGIN_SPU_DECODER, 14, "dxr3-spudec", XINE_VERSION_CODE, &dxr3_spudec_info, &dxr3_spudec_init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
 
@@ -87,7 +87,7 @@ static void    dxr3_spudec_decode_data(spu_decoder_t *this_gen, buf_element_t *b
 static void    dxr3_spudec_reset(spu_decoder_t *this_gen);
 static void    dxr3_spudec_discontinuity(spu_decoder_t *this_gen);
 static void    dxr3_spudec_dispose(spu_decoder_t *this_gen);
-static int     dxr3_spudec_get_nav_pci(spu_decoder_t *this_gen, pci_t *pci);
+static int     dxr3_spudec_interact_info(spu_decoder_t *this_gen, void *data);
 static void    dxr3_spudec_set_button(spu_decoder_t *this_gen, int32_t button, int32_t mode);
 
 /* plugin structures */
@@ -174,7 +174,7 @@ static spu_decoder_t *dxr3_spudec_open_plugin(spu_decoder_class_t *class_gen, xi
   this->spu_decoder.reset             = dxr3_spudec_reset;
   this->spu_decoder.discontinuity     = dxr3_spudec_discontinuity;
   this->spu_decoder.dispose           = dxr3_spudec_dispose;
-  this->spu_decoder.get_nav_pci       = dxr3_spudec_get_nav_pci;
+  this->spu_decoder.get_interact_info = dxr3_spudec_interact_info;
   this->spu_decoder.set_button        = dxr3_spudec_set_button;
   
   this->class                         = class;
@@ -319,15 +319,14 @@ static void dxr3_spudec_decode_data(spu_decoder_t *this_gen, buf_element_t *buf)
 	this->button_filter = 0;
         if ( this->pci.hli.hl_gi.fosl_btnn > 0) {
           /* a button is forced here, inform nav plugin */
-          spu_button_t spu_button;
+          int buttonN;
           xine_event_t event;
-          this->buttonN      = this->pci.hli.hl_gi.fosl_btnn ;
+          this->buttonN      = this->pci.hli.hl_gi.fosl_btnn;
           event.type         = XINE_EVENT_INPUT_BUTTON_FORCE;
 	  event.stream       = this->stream;
-	  event.data         = &spu_button;
-	  event.data_length  = sizeof(spu_button);
-          spu_button.buttonN = this->buttonN;
-	  memcpy(&spu_button.nav_pci, &this->pci, sizeof(pci_t));
+	  event.data         = &buttonN;
+	  event.data_length  = sizeof(buttonN);
+          buttonN            = this->buttonN;
           xine_event_send(this->stream, &event);
         }
 	if ((dxr3_spudec_copy_nav_to_btn(this, 0, &btn ) > 0)) {
@@ -514,12 +513,12 @@ static void dxr3_spudec_dispose(spu_decoder_t *this_gen)
   free (this);
 }
 
-static int dxr3_spudec_get_nav_pci(spu_decoder_t *this_gen, pci_t *pci)
+static int dxr3_spudec_interact_info(spu_decoder_t *this_gen, void *data)
 {
   dxr3_spudec_t *this = (dxr3_spudec_t *)this_gen;
   
   pthread_mutex_lock(&this->pci_lock);
-  memcpy(pci, &this->pci, sizeof(pci_t) );
+  memcpy(data, &this->pci, sizeof(pci_t) );
   pthread_mutex_unlock(&this->pci_lock);
   return 1;
 }
@@ -598,7 +597,7 @@ static int dxr3_spudec_copy_nav_to_btn(dxr3_spudec_t *this, int32_t mode, em8300
   btni_t *button_ptr;
   
   if ((this->buttonN <= 0) || (this->buttonN > this->pci.hli.hl_gi.btn_ns)) {
-    spu_button_t spu_button;
+    int buttonN;
     xine_event_t event;
     
     printf("dxr3_decode_spu: Unable to select button number %i as it doesn't exist. Forcing button 1\n",
@@ -607,10 +606,9 @@ static int dxr3_spudec_copy_nav_to_btn(dxr3_spudec_t *this, int32_t mode, em8300
     /* inform nav plugin that we have chosen another button */
     event.type         = XINE_EVENT_INPUT_BUTTON_FORCE;
     event.stream       = this->stream;
-    event.data         = &spu_button;
-    event.data_length  = sizeof(spu_button);
-    spu_button.buttonN = this->buttonN;
-    memcpy(&spu_button.nav_pci, &this->pci, sizeof(pci_t));
+    event.data         = &buttonN;
+    event.data_length  = sizeof(buttonN);
+    buttonN            = this->buttonN;
     xine_event_send(this->stream, &event);
   }
   

@@ -27,6 +27,7 @@ xineplug_decode_dxr3_video_la_LIBADD = $(XINE_LIB)
 xineplug_decode_dxr3_video_la_LDFLAGS = -avoid-version -module
 
 if HAVE_DVDNAV
+AM_CPPFLAGS = $(DVDNAV_CFLAGS)
 xineplug_decode_dxr3_spu_la_SOURCES = dxr3_decode_spu.c
 xineplug_decode_dxr3_spu_la_LIBADD = $(XINE_LIB) $(DVDNAV_LIBS)
 else

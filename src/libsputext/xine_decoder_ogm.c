@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder_ogm.c,v 1.2 2003/04/26 13:46:48 heinchen Exp $
+ * $Id: xine_decoder_ogm.c,v 1.3 2003/05/03 14:24:09 mroi Exp $
  *
  */
 
@@ -475,7 +475,7 @@ static spu_decoder_t *spuogm_class_open_plugin (spu_decoder_class_t *class_gen, 
   this->spu_decoder.reset               = spudec_reset;
   this->spu_decoder.discontinuity       = spudec_discontinuity;
   this->spu_decoder.dispose             = spudec_dispose;
-  this->spu_decoder.get_nav_pci         = NULL;
+  this->spu_decoder.get_interact_info   = NULL;
   this->spu_decoder.set_button          = NULL;
   this->spu_decoder.dispose             = spudec_dispose;
 
@@ -560,6 +560,6 @@ static decoder_info_t spudec_info = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_SPU_DECODER, 13, "spuogm", XINE_VERSION_CODE, &spudec_info, &init_spu_decoder_plugin },
+  { PLUGIN_SPU_DECODER, 14, "spuogm", XINE_VERSION_CODE, &spudec_info, &init_spu_decoder_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

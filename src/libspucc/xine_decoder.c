@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.24 2002/12/26 21:53:42 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.25 2003/05/03 14:24:08 mroi Exp $
  *
  * closed caption spu decoder. receive data by events. 
  *
@@ -347,7 +347,7 @@ static spu_decoder_t *spudec_open_plugin (spu_decoder_class_t *class, xine_strea
   this->spu_decoder.reset               = spudec_reset;
   this->spu_decoder.discontinuity       = spudec_discontinuity;
   this->spu_decoder.dispose             = spudec_dispose;
-  this->spu_decoder.get_nav_pci         = NULL;
+  this->spu_decoder.get_interact_info   = NULL;
   this->spu_decoder.set_button          = NULL;
 
   this->stream                          = stream;
@@ -398,6 +398,6 @@ static decoder_info_t spudec_info = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_SPU_DECODER, 13, "spucc", XINE_VERSION_CODE, &spudec_info, &init_spu_decoder_plugin },
+  { PLUGIN_SPU_DECODER, 14, "spucc", XINE_VERSION_CODE, &spudec_info, &init_spu_decoder_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
