@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.55 2002/09/18 00:51:33 guenter Exp $
+ * $Id: xine_decoder.c,v 1.56 2002/10/14 19:29:19 guenter Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -48,10 +48,17 @@
 
 #define SLICE_BUFFER_SIZE (1194 * 1024)
 
+typedef struct {
+  video_decoder_class_t   decoder_class;
+  int                     illegal_vlc;
+} ff_class_t;
+
 typedef struct ff_decoder_s {
   video_decoder_t   video_decoder;
 
-  xine_t           *xine;
+  ff_class_t       *class;
+
+  xine_stream_t    *stream;
   vo_instance_t    *video_out;
   int               video_step;
   int               decoder_ok;
@@ -61,7 +68,6 @@ typedef struct ff_decoder_s {
   int               bufsize;
   int               size;
   int               skipframes;
-  int               illegal_vlc;
 
   AVPicture         av_picture;
   AVCodecContext    context;
@@ -104,7 +110,7 @@ static void init_codec (ff_decoder_t *this, AVCodec *codec) {
      M$ "ISO MPEG4" uses illegal vlc code combinations, a ISO MPEG4 compliant
      decoder which support error resilience should handle them like errors.
   */
-  if (this->illegal_vlc)
+  if (this->class->illegal_vlc)
     this->context.error_resilience=-1;
   
   if (this->buf)
@@ -227,11 +233,11 @@ static void find_sequence_header (ff_decoder_t *this,
 	this->video_step      = 3000;
       }
 
-      this->xine->stream_info[XINE_STREAM_INFO_VIDEO_WIDTH]    = width;
-      this->xine->stream_info[XINE_STREAM_INFO_VIDEO_HEIGHT]   = height;
-      this->xine->stream_info[XINE_STREAM_INFO_FRAME_DURATION] = this->video_step;
+      this->stream->stream_info[XINE_STREAM_INFO_VIDEO_WIDTH]    = width;
+      this->stream->stream_info[XINE_STREAM_INFO_VIDEO_HEIGHT]   = height;
+      this->stream->stream_info[XINE_STREAM_INFO_FRAME_DURATION] = this->video_step;
 
-      this->xine->meta_info[XINE_META_INFO_VIDEOCODEC] 
+      this->stream->meta_info[XINE_META_INFO_VIDEOCODEC] 
 	= strdup ("mpeg-1 (ffmpeg)");
 
       /*
@@ -291,9 +297,9 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
     memcpy ( &this->bih, buf->content, sizeof (xine_bmiheader));
     this->video_step = buf->decoder_info[1];
 
-    this->xine->stream_info[XINE_STREAM_INFO_VIDEO_WIDTH]    = this->bih.biWidth;
-    this->xine->stream_info[XINE_STREAM_INFO_VIDEO_HEIGHT]   = this->bih.biHeight;
-    this->xine->stream_info[XINE_STREAM_INFO_FRAME_DURATION] = this->video_step;
+    this->stream->stream_info[XINE_STREAM_INFO_VIDEO_WIDTH]    = this->bih.biWidth;
+    this->stream->stream_info[XINE_STREAM_INFO_VIDEO_HEIGHT]   = this->bih.biHeight;
+    this->stream->stream_info[XINE_STREAM_INFO_FRAME_DURATION] = this->video_step;
 
     /* init codec */
 
@@ -302,61 +308,61 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
     switch (codec_type) {
     case BUF_VIDEO_MSMPEG4_V1:
       codec = avcodec_find_decoder (CODEC_ID_MSMPEG4V1);
-      this->xine->meta_info[XINE_META_INFO_VIDEOCODEC] 
+      this->stream->meta_info[XINE_META_INFO_VIDEOCODEC] 
 	= strdup ("ms mpeg-4 v1 (ffmpeg)");
       break;
     case BUF_VIDEO_MSMPEG4_V2:
       codec = avcodec_find_decoder (CODEC_ID_MSMPEG4V2);
-      this->xine->meta_info[XINE_META_INFO_VIDEOCODEC] 
+      this->stream->meta_info[XINE_META_INFO_VIDEOCODEC] 
 	= strdup ("ms mpeg-4 v2 (ffmpeg)");
       break;
     case BUF_VIDEO_MSMPEG4_V3:
       codec = avcodec_find_decoder (CODEC_ID_MSMPEG4);
-      this->xine->meta_info[XINE_META_INFO_VIDEOCODEC] 
+      this->stream->meta_info[XINE_META_INFO_VIDEOCODEC] 
 	= strdup ("ms mpeg-4 v3 (ffmpeg)");
       break;
     case BUF_VIDEO_WMV7:
       codec = avcodec_find_decoder (CODEC_ID_WMV1);
-      this->xine->meta_info[XINE_META_INFO_VIDEOCODEC] 
+      this->stream->meta_info[XINE_META_INFO_VIDEOCODEC] 
 	= strdup ("ms wmv 7 (ffmpeg)");
       break;
     case BUF_VIDEO_MPEG4 :
     case BUF_VIDEO_XVID :
     case BUF_VIDEO_DIVX5 :
       codec = avcodec_find_decoder (CODEC_ID_MPEG4);
-      this->xine->meta_info[XINE_META_INFO_VIDEOCODEC] 
+      this->stream->meta_info[XINE_META_INFO_VIDEOCODEC] 
 	= strdup ("mpeg-4 (ffmpeg)");
       break;
     case BUF_VIDEO_JPEG:
     case BUF_VIDEO_MJPEG:
       codec = avcodec_find_decoder (CODEC_ID_MJPEG);
-      this->xine->meta_info[XINE_META_INFO_VIDEOCODEC] 
+      this->stream->meta_info[XINE_META_INFO_VIDEOCODEC] 
 	= strdup ("mjpeg (ffmpeg)");
       break;
     case BUF_VIDEO_I263:
       codec = avcodec_find_decoder (CODEC_ID_H263I);
-      this->xine->meta_info[XINE_META_INFO_VIDEOCODEC] 
+      this->stream->meta_info[XINE_META_INFO_VIDEOCODEC] 
 	= strdup ("i263 (ffmpeg)");
       break;
     case BUF_VIDEO_H263:
       codec = avcodec_find_decoder (CODEC_ID_H263);
-      this->xine->meta_info[XINE_META_INFO_VIDEOCODEC] 
+      this->stream->meta_info[XINE_META_INFO_VIDEOCODEC] 
 	= strdup ("h263 (ffmpeg)");
       break;
     case BUF_VIDEO_RV10:
       codec = avcodec_find_decoder (CODEC_ID_RV10);
-      this->xine->meta_info[XINE_META_INFO_VIDEOCODEC] 
+      this->stream->meta_info[XINE_META_INFO_VIDEOCODEC] 
 	= strdup ("real video 1.0 (ffmpeg)");
       break;
     case BUF_VIDEO_SORENSON_V1:
       codec = avcodec_find_decoder (CODEC_ID_SVQ1);
-      this->xine->meta_info[XINE_META_INFO_VIDEOCODEC] 
+      this->stream->meta_info[XINE_META_INFO_VIDEOCODEC] 
 	= strdup ("sorenson svq 1 (ffmpeg)");
       break;
     default:
       printf ("ffmpeg: unknown video format (buftype: 0x%08X)\n",
 	      buf->type & 0xFFFF0000);
-      this->xine->meta_info[XINE_META_INFO_VIDEOCODEC] 
+      this->stream->meta_info[XINE_META_INFO_VIDEOCODEC] 
 	= strdup ("unknown (ffmpeg)");
     }
 
@@ -387,7 +393,7 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
        M$ "ISO MPEG4" uses illegal vlc code combinations, a ISO MPEG4 compliant
        decoder which support error resilience should handle them like errors.
     */
-    if( this->illegal_vlc )
+    if (this->class->illegal_vlc)
       this->context.error_resilience=-1;
     
     if( this->buf )
@@ -585,26 +591,6 @@ static void ff_reset (video_decoder_t *this_gen) {
   /* seems to handle seeking quite nicelly without any code here */
 }
 
-static void ff_close (video_decoder_t *this_gen) {
-
-  ff_decoder_t *this = (ff_decoder_t *) this_gen;
-
-  if (this->decoder_ok) {
-    avcodec_close (&this->context);
-
-    this->video_out->close(this->video_out);
-    this->decoder_ok = 0;
-  }
-  
-  if (this->buf)
-    free(this->buf);
-  this->buf = NULL;
-}
-
-static char *ff_get_id(void) {
-  return "ffmpeg video decoder";
-}
-
 void avcodec_register_all(void)
 {
     static int inited = 0;
@@ -628,44 +614,85 @@ void avcodec_register_all(void)
     register_avcodec(&mjpeg_decoder);
 }
 
-static void init_routine(void) {
-  avcodec_init();
-  avcodec_register_all();
-}
-
 static void ff_dispose (video_decoder_t *this_gen) {
+  ff_decoder_t *this = (ff_decoder_t *) this_gen;
+
+  if (this->decoder_ok) {
+    avcodec_close (&this->context);
+
+    this->video_out->close(this->video_out);
+    this->decoder_ok = 0;
+  }
+  
+  if (this->buf)
+    free(this->buf);
+  this->buf = NULL;
+
   free (this_gen);
 }
 
-static void *init_video_decoder_plugin (xine_t *xine, void *data) {
+void * open_plugin (void *class_gen, xine_stream_t *stream, 
+		    const void *data) {
+
 
   ff_decoder_t *this ;
-  static pthread_once_t once_control = PTHREAD_ONCE_INIT;
 
   this = (ff_decoder_t *) malloc (sizeof (ff_decoder_t));
 
-  this->video_decoder.init                = ff_init;
   this->video_decoder.decode_data         = ff_decode_data;
   this->video_decoder.flush               = ff_flush;
   this->video_decoder.reset               = ff_reset;
-  this->video_decoder.close               = ff_close;
-  this->video_decoder.get_identifier      = ff_get_id;
   this->video_decoder.dispose             = ff_dispose;
   this->size				  = 0;
 
-  this->xine                              = xine;
+  this->stream                            = stream;
+  this->class                             = (ff_class_t *) class_gen;
 
   this->chunk_buffer = xine_xmalloc (SLICE_BUFFER_SIZE + 4);
-
-  this->illegal_vlc = xine->config->register_bool (xine->config, "codec.ffmpeg_illegal_vlc", 1,
-                      _("allow illegal vlc codes in mpeg4 streams"), NULL, 
-						   10, NULL, NULL);
-
-  pthread_once( &once_control, init_routine );
 
   return (video_decoder_t *) this;
 }
 
+/*
+ * ffmpeg plugin class
+ */
+
+static char *get_identifier (video_decoder_class_t *this) {
+  return "ffmpeg";
+}
+
+static char *get_description (video_decoder_class_t *this) {
+  return "ffmpeg based video decoder plugin";
+}
+
+static void dispose_class (video_decoder_class_t *this) {
+  free (this);
+}
+
+static void init_once_routine(void) {
+  avcodec_init();
+  avcodec_register_all();
+}
+
+static void *init_plugin (xine_t *xine, void *data) {
+
+  ff_class_t *this;
+  static pthread_once_t once_control = PTHREAD_ONCE_INIT;
+  
+  this = (ff_class_t *) malloc (sizeof (ff_class_t));
+
+  this->decoder_class.get_identifier  = get_identifier;
+  this->decoder_class.get_description = get_description;
+  this->decoder_class.dispose         = dispose_class;
+
+  this->illegal_vlc = xine->config->register_bool (xine->config, "codec.ffmpeg_illegal_vlc", 1,
+						   _("allow illegal vlc codes in mpeg4 streams"), NULL, 
+						   10, NULL, NULL);
+
+  pthread_once( &once_control, init_once_routine );
+  
+  return this;
+}
 
 /*
  * exported plugin catalog entry
@@ -689,6 +716,7 @@ static decoder_info_t dec_info_ffmpeg = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_VIDEO_DECODER, 10, "ffmpeg", XINE_VERSION_CODE, &dec_info_ffmpeg, init_video_decoder_plugin },
+  { PLUGIN_VIDEO_DECODER, 11, "ffmpeg", XINE_VERSION_CODE, &dec_info_ffmpeg, 
+    init_plugin, open_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

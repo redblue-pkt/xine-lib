@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.h,v 1.3 2002/10/14 15:47:40 guenter Exp $
+ * $Id: video_decoder.h,v 1.4 2002/10/14 19:29:20 guenter Exp $
  *
  * xine video decoder plugin interface
  *
@@ -49,6 +49,12 @@ struct video_decoder_class_s {
    * this plugin class
    */
   char* (*get_description) (video_decoder_class_t *this);
+
+  /*
+   * free all class-related resources
+   */
+
+  void (*dispose) (video_decoder_class_t *this);
 };
 
 

@@ -9,21 +9,21 @@ SUBDIRS = \
 	libmpeg2 \
 	libspudec \
 	demuxers \
-	liba52 \
+#	liba52 \
 	libffmpeg \
-	liblpcm \
-	libw32dll \
-	libmad \
-	libdts \
-	libvorbis \
-	libdivx4 \
-	libsputext \
-	libspucc \
-	libxvid \
-	libxinevdec \
-	libxineadec \
-	libfaad
-	
+#	liblpcm \
+#	libw32dll \
+	libmad 
+#	libdts \
+#	libvorbis \
+#	libdivx4 \
+#	libsputext \
+#	libspucc \
+#	libxvid \
+#	libxinevdec \
+#	libxineadec \
+#	libfaad
+
 debug:
 	@list='$(SUBDIRS)'; for subdir in $$list; do \
 	  (cd $$subdir && $(MAKE) $@) || exit; \
