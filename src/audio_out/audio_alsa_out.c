@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.131 2004/03/19 13:17:47 f1rmb Exp $
+ * $Id: audio_alsa_out.c,v 1.132 2004/03/20 01:32:29 jcdutton Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -361,7 +361,7 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
     this->num_channels = 2;
     pcm_device = config->register_string(config,
                                          "audio.alsa_front_device",
-                                         "front",
+                                         "plug:front",
                                          _("device used for stereo output"),
                                          NULL,
                                          10, NULL,
@@ -371,7 +371,7 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
     this->num_channels = 4;
     pcm_device = config->register_string(config,
                                          "audio.alsa_surround40_device",
-                                         "surround40",
+                                         "plug:surround40",
                                          _("device used for 4-channel output"),
                                          NULL,
                                          10, NULL,
@@ -383,7 +383,7 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
     this->num_channels = 6;
     pcm_device = config->register_string(config,
                                          "audio.alsa_surround51_device",
-                                         "surround51",
+                                         "plug:surround51",
                                          _("device used for 5+ channel output"),
                                          NULL,
                                          10, NULL,
