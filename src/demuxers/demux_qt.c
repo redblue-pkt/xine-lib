@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.153 2003/02/22 14:42:58 esnel Exp $
+ * $Id: demux_qt.c,v 1.154 2003/03/28 14:56:00 miguelfreitas Exp $
  *
  */
 
@@ -1941,6 +1941,7 @@ static int demux_qt_send_chunk(demux_plugin_t *this_gen) {
     strcpy(data->mrl, this->qt->references[this->qt->chosen_reference].url);
     data->alternative = 0;
     xine_event_send(this->stream, &uevent);
+    free(data);
 
     this->status = DEMUX_FINISHED;
     return this->status;

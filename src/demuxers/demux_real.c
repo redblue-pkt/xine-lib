@@ -28,7 +28,7 @@
  *   
  *   Based on FFmpeg's libav/rm.c.
  *
- * $Id: demux_real.c,v 1.45 2003/03/04 10:30:28 mroi Exp $
+ * $Id: demux_real.c,v 1.46 2003/03/28 14:56:02 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -659,7 +659,8 @@ static int demux_real_parse_references( demux_real_t *this) {
       strcpy(data->mrl, &buf[i]);
       data->alternative = alternative;
       xine_event_send(this->stream, &uevent);
-      
+      free(data);
+
       i = j;
     }
   }  
