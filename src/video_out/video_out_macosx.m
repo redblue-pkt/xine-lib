@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_macosx.m,v 1.10 2004/11/12 06:38:36 athp Exp $
+ * $Id: video_out_macosx.m,v 1.11 2004/11/26 06:09:51 athp Exp $
  *
  * This output driver makes use of xine's objective-c video_output 
  * classes located in the macosx folder.
@@ -62,6 +62,7 @@ typedef struct {
   int                   ratio;
   xine_t               *xine;
   id                    view;
+  alphablend_t          alphablend_extra_data;
 } macosx_driver_t;
 
 typedef struct {
@@ -224,10 +225,12 @@ static void macosx_overlay_blend (vo_driver_t *this_gen, vo_frame_t *frame_gen,
       /* TODO: It may be possible to accelerate the blending via Quartz
        * Extreme ... */
       blend_yuv(frame->vo_frame.base, overlay,
-          frame->width, frame->height, frame->vo_frame.pitches);
+          frame->width, frame->height, frame->vo_frame.pitches,
+          &this->alphablend_extra_data);
     else
       blend_yuy2(frame->vo_frame.base[0], overlay,
-          frame->width, frame->height, frame->vo_frame.pitches[0]);
+          frame->width, frame->height, frame->vo_frame.pitches[0],
+          &this->alphablend_extra_data);
   }
 }
 
@@ -291,6 +294,8 @@ static int macosx_gui_data_exchange(vo_driver_t *vo_driver, int data_type, void 
 static void macosx_dispose(vo_driver_t *vo_driver) {
   macosx_driver_t *this = (macosx_driver_t *) vo_driver;
 
+  _x_alphablend_free(&this->alphablend_extra_data);
+
   free(this);
 }
 
@@ -325,6 +330,8 @@ static vo_driver_t *open_plugin(video_driver_class_t *driver_class, const void *
   driver->vo_driver.dispose              = macosx_dispose;
   driver->vo_driver.redraw_needed        = macosx_redraw_needed;
  
+  _x_alphablend_init(&driver->alphablend_extra_data, class->xine);
+
   return &driver->vo_driver;
 }    
 
