@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.64 2002/08/26 11:50:47 mroi Exp $
+ * $Id: input_dvd.c,v 1.65 2002/08/29 04:32:12 jcdutton Exp $
  *
  */
 
@@ -1043,14 +1043,29 @@ static void dvdnav_event_listener (void *this_gen, xine_event_t *event) {
   }
 
   switch(event->type) {
-   case XINE_EVENT_INPUT_MENU1:
-    dvdnav_menu_call(this->dvdnav, DVD_MENU_Root);
-    break;
    case XINE_EVENT_INPUT_MENU2:
+    printf( "MENU2 key hit.\n");
     dvdnav_menu_call(this->dvdnav, DVD_MENU_Title);
     break;
    case XINE_EVENT_INPUT_MENU3:
+    printf( "MENU3 key hit.\n");
+    dvdnav_menu_call(this->dvdnav, DVD_MENU_Root);
+    break;
+   case XINE_EVENT_INPUT_MENU4:
+    printf( "MENU3 key hit.\n");
+    dvdnav_menu_call(this->dvdnav, DVD_MENU_Subpicture);
+    break;
+   case XINE_EVENT_INPUT_MENU5:
+    printf( "MENU3 key hit.\n");
     dvdnav_menu_call(this->dvdnav, DVD_MENU_Audio);
+    break;
+   case XINE_EVENT_INPUT_MENU6:
+    printf( "MENU3 key hit.\n");
+    dvdnav_menu_call(this->dvdnav, DVD_MENU_Angle);
+    break;
+   case XINE_EVENT_INPUT_MENU7:
+    printf( "MENU3 key hit.\n");
+    dvdnav_menu_call(this->dvdnav, DVD_MENU_Part);
     break;
    case XINE_EVENT_INPUT_NEXT:
     dvdnav_next_pg_search(this->dvdnav);
@@ -1442,6 +1457,10 @@ input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
 
 /*
  * $Log: input_dvd.c,v $
+ * Revision 1.65  2002/08/29 04:32:12  jcdutton
+ * Use more Fkeys to jump to different DVD menus.
+ * We can now jump directly to Title, Root, Sub-Picture, Audio, Angle, PTT (Chapter) menus.
+ *
  * Revision 1.64  2002/08/26 11:50:47  mroi
  * adapt to xine coding guidelines
  *

@@ -43,6 +43,7 @@ extern "C" {
 #define XINE_EVENT_UI_CHANNELS_CHANGED   5 /* inform ui that new channel info is available */
 #define XINE_EVENT_UI_SET_TITLE          6 /* request title display change in ui */
 #define XINE_EVENT_INPUT_MENU1           7
+#define XINE_EVENT_INPUT_MENU0           8 /* Escape key just a duplicate */
 #define XINE_EVENT_INPUT_MENU2           8
 #define XINE_EVENT_INPUT_MENU3           9
 #define XINE_EVENT_INPUT_UP             10
@@ -61,6 +62,10 @@ extern "C" {
 #define XINE_EVENT_FRAME_CHANGE         23
 #define XINE_EVENT_CLOSED_CAPTION       24
 #define XINE_EVENT_INPUT_BUTTON_FORCE   25
+#define XINE_EVENT_INPUT_MENU4          26
+#define XINE_EVENT_INPUT_MENU5          27
+#define XINE_EVENT_INPUT_MENU6          28
+#define XINE_EVENT_INPUT_MENU7          29
 
 #define XINE_EVENT_INPUT_NUMBER_0       30
 #define XINE_EVENT_INPUT_NUMBER_1       31
