@@ -1021,6 +1021,35 @@
     </para>
 
   </sect1>
+  <sect1 id="smoothness">
+
+    <title>Oki, xine doesn't drop frames now but video output still is not really smooth</title>
+    
+    <para>
+      video output can be further improved by tuning your linux kernel:
+      <itemizedlist>
+        <listitem>
+	  <para>
+	    set HZ to 1000 in
+	    <filename>  /usr/src/linux/include/asm-i386/param.h </filename>
+	  </para>
+        </listitem>
+	<listitem>
+          <para>
+	    try applying scheduler patches, especially the O(1) and the preemptive
+	    patches have proven useful at the time of this writing (spring 2003).
+          </para>
+	</listitem>
+      </itemizedlist>
+      linux 2.5/2.6 will probably have these improvements out of the box.
+    </para>
+    
+    <para>
+      Miguel Freitas has written a nice article about his kernel multimedia experiments
+      <ulink url="http://cambuca.ldhs.cetuc.puc-rio.br/~miguel/multimedia_sim/">here</ulink>.
+    </para>
+
+  </sect1>
 
   <sect1 id="ports">
 

@@ -61,6 +61,8 @@ Table of Contents
 4. Running xine
    
     I have a lot of dropped frames - what can I do?
+    Oki, xine doesn't drop frames now but video output still is not really
+        smooth
     I have problems when using xine on FreeBSD, Solaris, ... !
     What is aalib? How do I use it in xine?
     What do all these ~/.xine/config (~/.gxine/config) entries mean?
@@ -765,6 +767,22 @@ optimizing options. A few things you should check (in order of importance):
             
     to a higher value (e.g. 1000 or 2500)
    
+-------------------------------------------------------------------------------
+
+Oki, xine doesn't drop frames now but video output still is not really smooth
+
+video output can be further improved by tuning your linux kernel:
+
+  * set HZ to 1000 in /usr/src/linux/include/asm-i386/param.h
+   
+  * try applying scheduler patches, especially the O(1) and the preemptive
+    patches have proven useful at the time of this writing (spring 2003).
+   
+linux 2.5/2.6 will probably have these improvements out of the box.
+
+Miguel Freitas has written a nice article about his kernel multimedia
+experiments here.
+
 -------------------------------------------------------------------------------
 
 I have problems when using xine on FreeBSD, Solaris, ... !
