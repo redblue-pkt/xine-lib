@@ -34,7 +34,7 @@ xineplug_vo_out_xshm_la_SOURCES = yuv2rgb.c yuv2rgb_mmx.c yuv2rgb_mlib.c \
 xineplug_vo_out_xshm_la_LIBADD =  $(X_LIBS) -lXext
 xineplug_vo_out_xshm_la_LDFLAGS = -avoid-version -module
 
-xineplug_vo_out_syncfb_la_SOURCES =  video_out_syncfb.c 
+xineplug_vo_out_syncfb_la_SOURCES = alphablend.c video_out_syncfb.c 
 xineplug_vo_out_syncfb_la_LDFLAGS = -avoid-version -module
 
 xineplug_vo_out_aa_la_SOURCES =  video_out_aa.c
