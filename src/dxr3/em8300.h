@@ -250,6 +250,14 @@ struct em8300_s
 	
 	int playmode;
 	
+	/* Sysfs */
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,5,46)
+	struct class_device classdev;
+	struct class_device classdev_mv;
+	struct class_device classdev_ma;
+	struct class_device classdev_sp;
+#endif
+
 	/* Fifos */
 	struct fifo_s *mvfifo;
 	struct fifo_s *mafifo;
