@@ -465,4 +465,7 @@ Yann Vernier <yann@algonet.se>
 David Woodhouse
   file (wave) audio out plugin
 
+Koos Vriezen <koos.vriezen@xs4all.nl>
+  asx ENTRYREF tag handling
+
 (let us know if we've forgotten anyone)

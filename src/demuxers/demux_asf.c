@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.152 2004/03/28 19:11:32 jstembridge Exp $
+ * $Id: demux_asf.c,v 1.153 2004/03/28 20:00:46 tmattern Exp $
  *
  * demultiplexer for asf streams
  *
@@ -1660,6 +1660,18 @@ static int demux_asf_parse_asx_references( demux_asf_t *this) {
             char *href   = NULL;
 
             asx_ref = asx_entry->child;
+            if (!asx_ref && !strcasecmp(asx_entry->name, "ENTRYREF")) {
+              for(asx_prop = asx_entry->props; asx_prop; asx_prop = asx_prop->next)
+
+                if(!strcasecmp(asx_prop->name, "HREF")) {
+
+                    href = asx_prop->value;
+
+                    if(href)
+                      break;
+                }
+            }
+
             while(asx_ref) {
 
               if(!strcasecmp(asx_ref->name, "REF")) {
