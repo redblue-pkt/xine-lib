@@ -28,7 +28,7 @@
  \endverbatim
  */
 /*
- * $Id: xine.h.tmpl.in,v 1.70 2001/12/20 16:50:54 miguelfreitas Exp $
+ * $Id: xine.h.tmpl.in,v 1.71 2001/12/27 14:30:29 f1rmb Exp $
  *
  */
 
@@ -1606,10 +1606,13 @@ int xine_get_current_frame (xine_t *self, int *width, int *height,
 */
 #define XINE_ASPECT_RATIO_DONT_TOUCH 42
 
-/* osd stuff */
+
+          /**
+	   * \defgroup osd_group OSD section
+	   * @{
+	   */
 
 typedef struct osd_object_s osd_object_t;
-
 typedef struct osd_renderer_s osd_renderer_t;
 typedef struct osd_font_s osd_font_t;
 
@@ -1708,29 +1711,148 @@ struct osd_renderer_s {
 
 osd_renderer_t *xine_get_osd_renderer (xine_t *self);
 
-/*
- * xine log functions 
+          /** @} end of osd_group */
+
+
+          /**
+	   * \defgroup log_group Logging section
+	   * @{
+	   */
+             /**
+	      * \defgroup log_def log defines.
+	      * @{
+	      */
+/**
+ * \def XINE_LOG_MSG
+ * \sa xine_log()
+*/
+#define XINE_LOG_MSG       0
+/**
+ * \def XINE_LOG_INPUT
+ * \sa xine_log()
+*/
+#define XINE_LOG_INPUT     1
+/**
+ * \def XINE_LOG_DEMUX
+ * \sa xine_log()
+*/
+#define XINE_LOG_DEMUX     2
+/**
+ * \def XINE_LOG_CODEC
+ * \sa xine_log()
+*/
+#define XINE_LOG_CODEC     3
+/**
+ * \def XINE_LOG_VIDEO
+ * \sa xine_log()
+*/
+#define XINE_LOG_VIDEO     4
+/**
+ * \def XINE_LOG_METRONOM
+ * \sa xine_log()
+*/
+#define XINE_LOG_METRONOM  5
+/**
+ * \def XINE_LOG_PLUGIN
+ * \sa xine_log()
+*/
+#define XINE_LOG_PLUGIN    6
+/**
+ * \def XINE_LOG_NUM
+ * number of log buffers defined *
+ * \sa xine_log()
+*/
+#define XINE_LOG_NUM       7
+
+            /** @} end of log_def */
+/**
+ * \fn unsigned int xine_get_log_section_count(void)
+ * \brief return number of available buffers.
+ * \sa xine_get_log_names(), xine_log(), xine_get_log()
  */
-  
-#define XINE_LOG_MSG    0
-#define XINE_LOG_CODEC  1
-#define XINE_LOG_NUM    2 /* # of log buffers defined */
-
+unsigned int xine_get_log_section_count(void);
+/**
+ * \fn const char **xine_get_log_names(void)
+ * \brief return a NULL terminated array of log sections names.
+ * \sa xine_get_log_section_count(), xine_log(), xine_get_log()
+ */
 const char **xine_get_log_names(void);
-
+/**
+ * \fn void xine_log (xine_t *self, int buf, const char *format, ...)
+ * \param self xine object.
+ * \param buf buffer section (#see @ref log_def)
+ * \brief write message to buffer 'buf'.
+ *
+ */
 void xine_log (xine_t *self, int buf, const char *format, ...);
-
+/**
+ * \fn char **xine_get_log (xine_t *self, int buf)
+ * \param self xine object.
+ * \param buf buffer section (#see @ref log_def)
+ * \return an array of char, NULL terminated.
+ * \brief return a message array from buffer 'buf' (#see @ref log_def)
+ *
+ */
 char **xine_get_log (xine_t *self, int buf);
 
-/*
- * xine error reporting
- */
+          /** @} end of log_group */
 
+
+          /**
+	   * \defgroup error_group Error reporting.
+	   * @{
+	   */
+             /**
+	      * \defgroup error_def error defines.
+	      * @{
+	      */
+/**
+ * \def XINE_ERROR_NONE
+ * No error reported.
+ * \sa xine_get_error()
+*/
 #define XINE_ERROR_NONE              0
+/**
+ * \def XINE_ERROR_NO_INPUT_PLUGIN
+ * No input plugin found to handle a stream type.
+ * \sa xine_get_error()
+*/
 #define XINE_ERROR_NO_INPUT_PLUGIN   1
+/**
+ * \def XINE_ERROR_NO_DEMUXER_PLUGIN
+ * No demuxer plugin found to handle a stream type.
+ * \sa xine_get_error()
+*/
 #define XINE_ERROR_NO_DEMUXER_PLUGIN 2
 
+             /** @} end of error_def */
+
+/**
+ * \fn int xine_get_error (xine_t *self)
+ * \param self xine object.
+ * \return return last error (#see @ref error_def)
+ * \brief return the last error.
+ *
+ */
 int xine_get_error (xine_t *self);
+
+          /** @} end of error_group */
+
+
+          /**
+	   * \defgroup locale_group localisation.
+	   * @{
+	   */
+/**
+ * \fn char *xine_set_locale(void)
+ * \return current locale.
+ * \brief prepare and setup localization for xine-lib usage.
+ * This function should be called BEFORE xine_init() ( #see xine_init() )
+ *
+ */
+char *xine_set_locale(void);
+
+          /** @} end of locale_group */
 
      /** @} end of xine_api */
 

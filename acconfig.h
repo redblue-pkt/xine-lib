@@ -51,6 +51,9 @@
 /* Define this to osd fonts dir location*/
 #undef XINE_FONTDIR
 
+/* Path where catalog files will be. */
+#undef XINE_LOCALEDIR
+
 /* Define this if you have X11R6 installed */
 #undef HAVE_X11
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.h,v 1.15 2001/12/22 20:16:49 miguelfreitas Exp $
+ * $Id: metronom.h,v 1.16 2001/12/27 14:30:30 f1rmb Exp $
  *
  * metronom: general pts => virtual calculation/assoc
  *                   
@@ -55,6 +55,12 @@ typedef struct metronom_s metronom_t ;
 typedef struct scr_plugin_s scr_plugin_t;
 
 struct metronom_s {
+
+  /*
+   * Pointer to current xine object. We use a void pointer to avoid type declaration clash.
+   * Ugly but working.
+   */
+  void *xine;
 
   /*
    * this is called to tell metronom to prepare for a new video stream
@@ -272,7 +278,7 @@ struct metronom_s {
   int             avg_frame_duration;
 };
 
-metronom_t *metronom_init (int have_audio);
+metronom_t *metronom_init (int have_audio, void *xine);
 
 /*
  * SCR plugins

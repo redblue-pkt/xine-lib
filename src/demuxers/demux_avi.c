@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_avi.c,v 1.58 2001/12/09 19:32:11 guenter Exp $
+ * $Id: demux_avi.c,v 1.59 2001/12/27 14:30:29 f1rmb Exp $
  *
  * demultiplexer for avi streams
  *
@@ -47,6 +47,26 @@
 #include "libw32dll/wine/vfw.h"
 
 #define VALID_ENDS "avi"
+
+#ifdef __GNUC__
+#define LOG_MSG_STDERR(xine, message, args...) {                     \
+    xine_log(xine, XINE_LOG_DEMUX, message, ##args);                 \
+    fprintf(stderr, message, ##args);                                \
+  }
+#define LOG_MSG(xine, message, args...) {                            \
+    xine_log(xine, XINE_LOG_DEMUX, message, ##args);                 \
+    printf(message, ##args);                                         \
+  }
+#else
+#define LOG_MSG_STDERR(xine, ...) {                                  \
+    xine_log(xine, XINE_LOG_DEMUX, __VAR_ARGS__);                    \
+    fprintf(stderr, __VA_ARGS__);                                    \
+  }
+#define LOG_MSG(xine, ...) {                                         \
+    xine_log(xine, XINE_LOG_DEMUX, __VAR_ARGS__);                    \
+    printf(__VA_ARGS__);                                             \
+  }
+#endif
 
 /* The following variable indicates the kind of error */
 
@@ -108,6 +128,8 @@ typedef struct
 
 typedef struct demux_avi_s {
   demux_plugin_t       demux_plugin;
+
+  xine_t              *xine;
 
   config_values_t     *config;
 
@@ -484,7 +506,7 @@ static avi_t *AVI_init(demux_avi_t *this)  {
     AVI->n_idx = 0;
     i=0;
     
-    printf ("demux_avi: reconstructing index");
+    LOG_MSG(this->xine, _("demux_avi: reconstructing index"));
     
     while(1) {
       if( this->input->read(this->input, data,8) != 8 ) 
@@ -493,7 +515,7 @@ static avi_t *AVI_init(demux_avi_t *this)  {
       
       i++;
       if (i>1000) {
-	printf (".");
+	LOG_MSG(this->xine, ".");
 	i = 0; fflush (stdout);
       }
       
@@ -515,7 +537,7 @@ static avi_t *AVI_init(demux_avi_t *this)  {
       
       this->input->seek(this->input, PAD_EVEN(n), SEEK_CUR);
     }
-    printf ("done\n");
+    LOG_MSG(this->xine, _("done\n"));
     idx_type = 1;
   }
   
@@ -821,7 +843,7 @@ static void *demux_avi_loop (void *this_gen) {
     }
   }
 
-  printf ("demux_avi: demux loop finished.\n");
+  LOG_MSG(this->xine, _("demux_avi: demux loop finished.\n"));
 
   pthread_exit(NULL);
 
@@ -835,7 +857,7 @@ static void demux_avi_stop (demux_plugin_t *this_gen) {
   void *p;
 
   if (this->status != DEMUX_OK) {
-    printf ("demux_avi: stop...ignored\n");
+    LOG_MSG(this->xine, _("demux_avi: stop...ignored\n"));
     return;
   }
 
@@ -893,19 +915,19 @@ static void demux_avi_start (demux_plugin_t *this_gen,
 
   this->status       = DEMUX_OK;
 
-  printf ("demux_avi: video format = %s, audio format = 0x%lx\n",
+  LOG_MSG(this->xine, _("demux_avi: video format = %s, audio format = 0x%lx\n"),
 	  this->avi->compressor, this->avi->a_fmt);
   this->no_audio = 0;
   
   this->avi->audio_type = formattag_to_buf_audio (this->avi->a_fmt);
    
   if( !this->avi->audio_type ) {
-    printf ("demux_avi: unknown audio type 0x%lx\n", this->avi->a_fmt);
+    LOG_MSG(this->xine, _("demux_avi: unknown audio type 0x%lx\n"), this->avi->a_fmt);
     this->no_audio  = 1;
     this->avi->audio_type     = BUF_CONTROL_NOP;
   }
   else
-    printf ("demux_avi: audio type %s (wFormatTag 0x%x)\n",
+    LOG_MSG(this->xine, _("demux_avi: audio type %s (wFormatTag 0x%x)\n"),
             buf_audio_name(this->avi->audio_type),
             (int)this->avi->a_fmt);
 
@@ -923,7 +945,7 @@ static void demux_avi_start (demux_plugin_t *this_gen,
       if (this->avi->video_posf>this->avi->video_frames) {
 	this->status = DEMUX_FINISHED;
 
-	printf ("demux_avi: video seek to start failed\n");
+	LOG_MSG(this->xine, _("demux_avi: video seek to start failed\n"));
 	return;
       }
     }
@@ -940,7 +962,7 @@ static void demux_avi_start (demux_plugin_t *this_gen,
       if (this->avi->video_posf>this->avi->video_frames) {
 	this->status = DEMUX_FINISHED;
 
-	printf ("demux_avi: video seek to start failed\n");
+	LOG_MSG(this->xine, _("demux_avi: video seek to start failed\n"));
 	return;
       }
     }
@@ -957,7 +979,7 @@ static void demux_avi_start (demux_plugin_t *this_gen,
       if (this->avi->audio_posc>this->avi->audio_chunks) {
 	this->status = DEMUX_FINISHED;
 
-	printf ("demux_avi: audio seek to start failed\n");
+	LOG_MSG(this->xine, _("demux_avi: audio seek to start failed\n"));
 	return;
       }
     }
@@ -988,14 +1010,14 @@ static void demux_avi_start (demux_plugin_t *this_gen,
   this->avi->video_type = fourcc_to_buf_video((void*)&this->avi->bih.biCompression);
   
   if ( !this->avi->video_type ) {
-      printf ("demux_avi: unknown avi format %.4s\n",
+      LOG_MSG(this->xine, _("demux_avi: unknown avi format %.4s\n"),
 	      (char*)&this->avi->bih.biCompression);
 
       this->status = DEMUX_FINISHED;
       return;
   }
   buf->type = this->avi->video_type;
-  printf ("demux_avi: video codec >%s<\n",buf_video_name(buf->type));
+  LOG_MSG(this->xine, _("demux_avi: video codec >%s<\n"), buf_video_name(buf->type));
 
   this->video_fifo->put (this->video_fifo, buf);
 
@@ -1032,14 +1054,14 @@ static void demux_avi_start (demux_plugin_t *this_gen,
 
     this->have_spu = 1;
 
-    printf ("demux_avi: text subtitle file available\n");
+    LOG_MSG(this->xine, _("demux_avi: text subtitle file available\n"));
 
   } else
     this->have_spu = 0;
 
   if ((err = pthread_create (&this->thread, NULL, demux_avi_loop, this)) != 0) {
-    fprintf (stderr, "demux_avi: can't create new thread (%s)\n",
-	     strerror(err));
+    LOG_MSG_STDERR(this->xine, _("demux_avi: can't create new thread (%s)\n"),
+		   strerror(err));
     exit (1);
   }
 }
@@ -1070,13 +1092,13 @@ static int demux_avi_open(demux_plugin_t *this_gen,
 
     if (this->avi) {
 
-      printf ("demux_avi: %ld frames\n", this->avi->video_frames);
+      LOG_MSG(this->xine, _("demux_avi: %ld frames\n"), this->avi->video_frames);
 
       strncpy(this->last_mrl, input->get_mrl (input), 1024);
 
       return DEMUX_CAN_HANDLE;
     } else 
-      printf ("demux_avi: AVI_init failed (AVI_errno: %d)\n",this->AVI_errno);
+      LOG_MSG(this->xine, _("demux_avi: AVI_init failed (AVI_errno: %d)\n"), this->AVI_errno);
 
     return DEMUX_CANNOT_HANDLE;
   }
@@ -1113,7 +1135,8 @@ static int demux_avi_open(demux_plugin_t *this_gen,
 	    strncpy(this->last_mrl, input->get_mrl (input), 1024);
 	    return DEMUX_CAN_HANDLE;
 	  } else {
-	    printf ("demux_avi: AVI_init failed (AVI_errno: %d)\n",this->AVI_errno);
+	    LOG_MSG(this->xine, _("demux_avi: AVI_init failed (AVI_errno: %d)\n"), 
+		    this->AVI_errno);
 	    return DEMUX_CANNOT_HANDLE;
 	  }
 	}
@@ -1156,15 +1179,17 @@ demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
   demux_avi_t     *this;
 
   if (iface != 6) {
-    printf( "demux_avi: this plugin doesn't support plugin API version %d.\n"
-	    "demux_avi: this means there's a version mismatch between xine and this "
-	    "demux_avi: demuxer plugin.\nInstalling current demuxer plugins should help.\n",
+    LOG_MSG(xine, 
+	    _("demux_avi: this plugin doesn't support plugin API version %d.\n"
+	      "demux_avi: this means there's a version mismatch between xine and this "
+	      "demux_avi: demuxer plugin.\nInstalling current demuxer plugins should help.\n"),
 	    iface);
     return NULL;
   }
 
   this         = xine_xmalloc (sizeof (demux_avi_t));
   this->config = xine->config;
+  this->xine   = xine;
 
   (void*) this->config->register_string(this->config,
 					"mrl.ends_avi", VALID_ENDS,

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: resample.c,v 1.1 2001/08/21 19:48:48 jcdutton Exp $
+ * $Id: resample.c,v 1.2 2001/12/27 14:30:30 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -278,5 +278,3 @@ void audio_out_resample_6channel(int16_t* input_samples, uint32_t in_samples,
   output_samples[out_samples*6-2] = input_samples[in_samples*6-2];
   output_samples[out_samples*6-1] = input_samples[in_samples*6-1];
 }
-
-

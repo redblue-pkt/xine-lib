@@ -20,6 +20,7 @@ Options:
 	[--skindir]
 	[--scriptdir]
 	[--desktopdir]
+	[--localedir]
 EOF
 	exit $1
 }
@@ -72,6 +73,9 @@ while test $# -gt 0; do
     --desktopdir)
       echo_desktopdir=yes
       ;;
+    --localedir)
+      echo_localedir=yes
+      ;;
     *)
       usage 1 1>&2
       ;;
@@ -92,7 +96,7 @@ if test "$echo_cflags" = "yes"; then
 fi
 
 if test "$echo_libs" = "yes"; then
-      echo -L@libdir@ -lxineutils -lxine @THREAD_LIBS@
+      echo -L@libdir@ -lxineutils -lxine @INTLLIBS@ @THREAD_LIBS@
 fi      
 if test "$echo_plugindir" = "yes"; then
       echo "@XINE_PLUGINPATH@"
@@ -105,4 +109,7 @@ if test "$echo_scriptdir" = "yes"; then
 fi
 if test "$echo_desktopdir" = "yes"; then
       echo "@XINE_DESKTOPPATH@"
+fi
+if test "$echo_localedir" = "yes"; then
+      echo "@XINE_LOCALEPATH@"
 fi

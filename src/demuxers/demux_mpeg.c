@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg.c,v 1.46 2001/11/30 00:53:51 f1rmb Exp $
+ * $Id: demux_mpeg.c,v 1.47 2001/12/27 14:30:29 f1rmb Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  * reads streams of variable blocksizes
@@ -45,11 +45,33 @@
 #define VALID_MRLS          "stdin,fifo"
 #define VALID_ENDS          "mpg,mpeg,mpe"
 
+#ifdef __GNUC__
+#define LOG_MSG_STDERR(xine, message, args...) {                     \
+    xine_log(xine, XINE_LOG_DEMUX, message, ##args);                 \
+    fprintf(stderr, message, ##args);                                \
+  }
+#define LOG_MSG(xine, message, args...) {                            \
+    xine_log(xine, XINE_LOG_DEMUX, message, ##args);                 \
+    printf(message, ##args);                                         \
+  }
+#else
+#define LOG_MSG_STDERR(xine, ...) {                                  \
+    xine_log(xine, XINE_LOG_DEMUX, __VAR_ARGS__);                    \
+    fprintf(stderr, __VA_ARGS__);                                    \
+  }
+#define LOG_MSG(xine, ...) {                                         \
+    xine_log(xine, XINE_LOG_DEMUX, __VAR_ARGS__);                    \
+    printf(__VA_ARGS__);                                             \
+  }
+#endif
+
 #define NUM_PREVIEW_BUFFERS 150
 
 typedef struct demux_mpeg_s {
 
   demux_plugin_t       demux_plugin;
+  
+  xine_t              *xine;
 
   config_values_t     *config;
 
@@ -104,9 +126,8 @@ static uint32_t read_bytes (demux_mpeg_t *this, int n) {
     res = (buf[2]<<8) | buf[3] | (buf[1]<<16) | (buf[0] << 24);
     break;
   default:
-    fprintf (stderr,
-	     "How how - something wrong in wonderland demux:read_bytes (%d)\n",
-	     n);
+    LOG_MSG_STDERR(this->xine,
+		   _("How how - something wrong in wonderland demux:read_bytes (%d)\n"), n);
     exit (1);
   }
 
@@ -643,7 +664,7 @@ static void *demux_mpeg_loop (void *this_gen) {
     }
   }
 
-  printf ("demux loop finished (status: %d, buf:%x)\n",
+  LOG_MSG(this->xine, _("demux loop finished (status: %d, buf:%x)\n"),
 	  this->status, w);
 
   pthread_exit(NULL);
@@ -657,7 +678,7 @@ static void demux_mpeg_stop (demux_plugin_t *this_gen) {
   buf_element_t *buf;
   void *p;
 
-  printf ("demux_mpeg: stop...\n");
+  LOG_MSG(this->xine, _("demux_mpeg: stop...\n"));
 
   if (this->status != DEMUX_OK) {
 
@@ -760,8 +781,8 @@ static void demux_mpeg_start (demux_plugin_t *this_gen,
 
   if ((err = pthread_create (&this->thread,
 			     NULL, demux_mpeg_loop, this)) != 0) {
-    fprintf (stderr, "demux_mpeg: can't create new thread (%s)\n",
-	     strerror(err));
+    LOG_MSG_STDERR(this->xine, _("demux_mpeg: can't create new thread (%s)\n"),
+		   strerror(err));
     exit (1);
   }
 }
@@ -849,7 +870,7 @@ static int demux_mpeg_open(demux_plugin_t *this_gen,
 	    return DEMUX_CANNOT_HANDLE;
 	  }
 	  
-	  fprintf(stderr, "You should specify mpeg(mpeg1/mpeg2) stream type.\n");
+	  LOG_MSG_STDERR(this->xine, _("You should specify mpeg(mpeg1/mpeg2) stream type.\n"));
 	  return DEMUX_CANNOT_HANDLE;
 	}
       }
@@ -913,15 +934,17 @@ demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
   demux_mpeg_t    *this;
 
   if (iface != 6) {
-    printf( "demux_mpeg: plugin doesn't support plugin API version %d.\n"
-	    "demux_mpeg: this means there's a version mismatch between xine and this "
-	    "demux_mpeg: demuxer plugin.\nInstalling current demux plugins should help.\n",
+    LOG_MSG(xine,
+	    _("demux_mpeg: plugin doesn't support plugin API version %d.\n"
+	      "            this means there's a version mismatch between xine and this "
+	      "            demuxer plugin.\nInstalling current demux plugins should help.\n"),
 	    iface);
     return NULL;
   }
-
-  this          = xine_xmalloc (sizeof (demux_mpeg_t));
+  
+  this         = xine_xmalloc (sizeof (demux_mpeg_t));
   this->config = xine->config;
+  this->xine   = xine;
 
   /* Calling register_string() configure valid mrls in configfile */
   (void*) this->config->register_string(this->config, "mrl.mrls_mpeg", VALID_MRLS,

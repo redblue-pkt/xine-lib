@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_stdin_fifo.c,v 1.17 2001/11/18 03:53:23 guenter Exp $
+ * $Id: input_stdin_fifo.c,v 1.18 2001/12/27 14:30:30 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -40,8 +40,32 @@
 #include "xineutils.h"
 #include "input_plugin.h"
 
+extern int errno;
+
+#ifdef __GNUC__
+#define LOG_MSG_STDERR(xine, message, args...) {                     \
+    xine_log(xine, XINE_LOG_INPUT, message, ##args);                 \
+    fprintf(stderr, message, ##args);                                \
+  }
+#define LOG_MSG(xine, message, args...) {                            \
+    xine_log(xine, XINE_LOG_INPUT, message, ##args);                 \
+    printf(message, ##args);                                         \
+  }
+#else
+#define LOG_MSG_STDERR(xine, ...) {                                  \
+    xine_log(xine, XINE_LOG_INPUT, __VAR_ARGS__);                    \
+    fprintf(stderr, __VA_ARGS__);                                    \
+  }
+#define LOG_MSG(xine, ...) {                                         \
+    xine_log(xine, XINE_LOG_INPUT, __VAR_ARGS__);                    \
+    printf(__VA_ARGS__);                                             \
+  }
+#endif
+
 typedef struct {
   input_plugin_t   input_plugin;
+
+  xine_t          *xine;
   
   int              fh;
   char            *mrl;
@@ -225,7 +249,7 @@ static void stdin_plugin_stop(input_plugin_t *this_gen) {
  *
  */
 static char *stdin_plugin_get_description (input_plugin_t *this_gen) {
-  return "stdin/fifo input plugin as shipped with xine";
+  return _("stdin/fifo input plugin as shipped with xine");
 }
 
 /*
@@ -253,16 +277,18 @@ input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
   config_values_t      *config;
 
   if (iface != 5) {
-    printf("rtp input plugin doesn't support plugin API version %d.\n"
-	   "PLUGIN DISABLED.\n"
-	   "This means there's a version mismatch between xine and this input"
-	   "plugin.\nInstalling current input plugins should help.\n",
-	   iface);
+    LOG_MSG(xine,
+	    _("stdin/fifo input plugin doesn't support plugin API version %d.\n"
+	      "PLUGIN DISABLED.\n"
+	      "This means there's a version mismatch between xine and this input"
+	      "plugin.\nInstalling current input plugins should help.\n"),
+	    iface);
     return NULL;
   }
 
   this       = (stdin_input_plugin_t *) xine_xmalloc(sizeof(stdin_input_plugin_t));
   config     = xine->config;
+  this->xine = xine;
 
   this->input_plugin.interface_version = INPUT_PLUGIN_IFACE_VERSION;
   this->input_plugin.get_capabilities  = stdin_plugin_get_capabilities;

@@ -13,7 +13,7 @@ rm -f config.cache
 srcdir=`dirname $0`
 test -z "$srcdir" && srcdir=.
 
-m4_files="_xine.m4 alsa.m4 arts.m4 esd.m4 aa.m4 irixal.m4 ogg.m4 vorbis.m4"
+m4_files="_xine.m4 arts.m4 esd.m4 iconv.m4 lcmessage.m4 vorbis.m4 aa.m4 as.m4 gettext.m4 irixal.m4 ogg.m4 alsa.m4 codeset.m4 glibc21.m4 isc-posix.m4 progtest.m4"
 if test -d $srcdir/m4; then
     rm -f acinclude.m4
     for m4f in $m4_files; do

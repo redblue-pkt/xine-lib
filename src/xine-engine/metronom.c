@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.c,v 1.45 2001/12/25 14:39:01 miguelfreitas Exp $
+ * $Id: metronom.c,v 1.46 2001/12/27 14:30:30 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -48,6 +48,26 @@
 #define MAX_NUM_WRAP_DIFF       100
 #define MAX_SCR_PROVIDERS        10
 #define PREBUFFER_PTS_OFFSET  30000
+
+#ifdef __GNUC__
+#define LOG_MSG_STDERR(xine, message, args...) {                     \
+    xine_log((xine_t*)xine, XINE_LOG_METRONOM, message, ##args);     \
+    fprintf(stderr, message, ##args);                                \
+  }
+#define LOG_MSG(xine, message, args...) {                            \
+    xine_log((xine_t*)xine, XINE_LOG_METRONOM, message, ##args);     \
+    printf(message, ##args);                                         \
+  }
+#else
+#define LOG_MSG_STDERR(xine, ...) {                                  \
+    xine_log((xine_t*)xine, XINE_LOG_METRONOM, __VAR_ARGS__);        \
+    fprintf(stderr, __VA_ARGS__);                                    \
+  }
+#define LOG_MSG(xine, ...) {                                         \
+    xine_log((xine_t*)xine, XINE_LOG_METRONOM, __VAR_ARGS__);        \
+    printf(__VA_ARGS__);                                             \
+  }
+#endif
 
 /*
 #define METRONOM_LOG
@@ -233,10 +253,10 @@ static void metronom_video_stream_start (metronom_t *this) {
 
   pthread_mutex_lock (&this->lock);
 
-  printf ("metronom: video stream start...\n");
+  LOG_MSG(this->xine, _("metronom: video stream start...\n"));
 
   if (this->video_stream_running) {
-    printf ("metronom: video stream start ignored\n");
+    LOG_MSG(this->xine, _("metronom: video stream start ignored\n"));
     pthread_mutex_unlock (&this->lock);
     return;
   }
@@ -263,7 +283,7 @@ static void metronom_video_stream_start (metronom_t *this) {
   if (this->have_audio) {
     /*while (!this->audio_stream_running) {*/
     if (!this->audio_stream_running) {
-      printf ("metronom: waiting for audio to start...\n");
+      LOG_MSG(this->xine, _("metronom: waiting for audio to start...\n"));
       pthread_cond_wait (&this->audio_started, &this->lock);
     }
   }
@@ -279,10 +299,10 @@ static void metronom_video_stream_end (metronom_t *this) {
   
   pthread_mutex_lock (&this->lock);
 
-  printf ("metronom: video stream end\n");
+  LOG_MSG(this->xine, _("metronom: video stream end\n"));
 
   if (!this->video_stream_running) {
-    printf ("metronom: video stream end ignored\n");
+    LOG_MSG(this->xine, _("metronom: video stream end ignored\n"));
     pthread_mutex_unlock (&this->lock);
     return;
   }
@@ -292,7 +312,7 @@ static void metronom_video_stream_end (metronom_t *this) {
   if (this->have_audio) {
     /* while (this->audio_stream_running) { */
     if (this->audio_stream_running) {
-      printf ("metronom: waiting for audio to end...\n");
+      LOG_MSG(this->xine, _("metronom: waiting for audio to end...\n"));
       pthread_cond_wait (&this->audio_ended, &this->lock);
     }
   }
@@ -306,10 +326,10 @@ static void metronom_audio_stream_start (metronom_t *this) {
 
   pthread_mutex_lock (&this->lock);
 
-  printf ("metronom: audio stream start...\n");
+  LOG_MSG(this->xine, _("metronom: audio stream start...\n"));
 
   if (this->audio_stream_running) {
-    printf ("metronom: audio stream start ignored\n");
+    LOG_MSG(this->xine, _("metronom: audio stream start ignored\n"));
     pthread_mutex_unlock (&this->lock);
     return;
   }
@@ -334,7 +354,7 @@ static void metronom_audio_stream_start (metronom_t *this) {
 
   /*while (!this->video_stream_running) { */
   if (!this->video_stream_running) {
-    printf ("metronom: waiting for video to start...\n");
+    LOG_MSG(this->xine, _("metronom: waiting for video to start...\n"));
     pthread_cond_wait (&this->video_started, &this->lock);
   }
 
@@ -342,7 +362,7 @@ static void metronom_audio_stream_start (metronom_t *this) {
 
   pthread_mutex_unlock (&this->lock);
 
-  printf ("metronom: audio stream start...done\n");
+  LOG_MSG(this->xine, _("metronom: audio stream start...done\n"));
 
   metronom_start_clock (this, 0);
 }
@@ -351,9 +371,9 @@ static void metronom_audio_stream_end (metronom_t *this) {
   
   pthread_mutex_lock (&this->lock);
 
-  printf ("metronom: audio stream end\n");
+  LOG_MSG(this->xine, _("metronom: audio stream end\n"));
   if (!this->audio_stream_running) {
-    printf ("metronom: audio stream end ignored\n");
+    LOG_MSG(this->xine, _("metronom: audio stream end ignored\n"));
     pthread_mutex_unlock (&this->lock);
     return;
   }
@@ -362,7 +382,7 @@ static void metronom_audio_stream_end (metronom_t *this) {
 
   /* while (this->video_stream_running) { */
   if (this->video_stream_running) {
-    printf ("metronom: waiting for video to end...\n");
+    LOG_MSG(this->xine, _("metronom: waiting for video to end...\n"));
     pthread_cond_wait (&this->video_ended, &this->lock);
   }
 
@@ -445,14 +465,14 @@ static void metronom_expect_video_discontinuity (metronom_t *this) {
   this->video_discontinuity_count++;
   pthread_cond_signal (&this->video_discontinuity_reached);
   
-  printf ("metronom: video discontinuity #%d\n",
+  LOG_MSG(this->xine, _("metronom: video discontinuity #%d\n"),
 	  this->video_discontinuity_count);
   
   if( this->have_audio ) {
     while ( this->audio_discontinuity_count <
             this->video_discontinuity_count ) {
 
-      printf ("metronom: waiting for audio discontinuity #%d\n",
+      LOG_MSG(this->xine, _("metronom: waiting for audio discontinuity #%d\n"),
 	      this->video_discontinuity_count);
 
       pthread_cond_wait (&this->audio_discontinuity_reached, &this->lock);
@@ -460,7 +480,7 @@ static void metronom_expect_video_discontinuity (metronom_t *this) {
   
     if ( this->video_vpts < this->audio_vpts ) {
       this->video_vpts = this->audio_vpts;
-      printf("metronom: video vpts adjusted to %d\n", this->video_vpts);
+      LOG_MSG(this->xine, _("metronom: video vpts adjusted to %d\n"), this->video_vpts);
     }
   }
   
@@ -515,7 +535,7 @@ static uint32_t metronom_got_video_frame (metronom_t *this, uint32_t pts, uint32
       
       vpts = pts + this->video_wrap_offset;
 
-      printf ("metronom: video pts discontinuity/start, pts is %d, wrap_offset is %d, vpts is %d\n",
+      LOG_MSG(this->xine, _("metronom: video pts discontinuity/start, pts is %d, wrap_offset is %d, vpts is %d\n"),
 	      pts, this->video_wrap_offset, vpts);
 
     } else {
@@ -530,7 +550,7 @@ static uint32_t metronom_got_video_frame (metronom_t *this, uint32_t pts, uint32
 	
 	if (this->wrap_diff_counter > MAX_NUM_WRAP_DIFF) {
 	  
-	  printf ("metronom: forcing video_wrap (%d) and audio wrap (%d)",
+	  LOG_MSG(this->xine, _("metronom: forcing video_wrap (%d) and audio wrap (%d)"),
 		  this->video_wrap_offset, this->audio_wrap_offset);
 	  
 	  if (this->video_wrap_offset > this->audio_wrap_offset)
@@ -538,7 +558,7 @@ static uint32_t metronom_got_video_frame (metronom_t *this, uint32_t pts, uint32
 	  else
 	    this->video_wrap_offset = this->audio_wrap_offset;
 	  
-	  printf (" to %d\n", this->video_wrap_offset);
+	  LOG_MSG(this->xine, _(" to %d\n"), this->video_wrap_offset);
 	  
 	  this->wrap_diff_counter = 0;
 	}
@@ -602,7 +622,7 @@ static uint32_t metronom_got_video_frame (metronom_t *this, uint32_t pts, uint32
 
       this->video_vpts = pts + this->video_wrap_offset; 
 
-      printf ("metronom: delta too big, setting vpts to %d\n",
+      LOG_MSG(this->xine, _("metronom: delta too big, setting vpts to %d\n"),
 	      this->video_vpts);
 
   
@@ -645,20 +665,21 @@ static void metronom_expect_audio_discontinuity (metronom_t *this) {
   this->audio_discontinuity_count++;
   pthread_cond_signal (&this->audio_discontinuity_reached);
   
-  printf ("metronom: audio discontinuity #%d\n",
+  LOG_MSG(this->xine, _("metronom: audio discontinuity #%d\n"),
 	  this->audio_discontinuity_count);
   
   while ( this->audio_discontinuity_count >
 	  this->video_discontinuity_count ) {
 
-    printf ("metronom: waiting for video_discontinuity #%d\n", this->audio_discontinuity_count);
+    LOG_MSG(this->xine, _("metronom: waiting for video_discontinuity #%d\n"), 
+	    this->audio_discontinuity_count);
 
     pthread_cond_wait (&this->video_discontinuity_reached, &this->lock);
   }
   
   if ( this->audio_vpts < this->video_vpts ) {
     this->audio_vpts         = this->video_vpts;
-    printf("metronom: audio vpts adjusted to %d\n", this->audio_vpts);
+    LOG_MSG(this->xine, _("metronom: audio vpts adjusted to %d\n"), this->audio_vpts);
   }
   
   /* this->num_audio_samples_guessed = 1; */
@@ -701,7 +722,7 @@ static uint32_t metronom_got_audio_samples (metronom_t *this, uint32_t pts,
       
       vpts = pts + this->audio_wrap_offset;
 
-      printf ("metronom: audio pts discontinuity/start, pts is %d, wrap_offset is %d, vpts is %d\n",
+      LOG_MSG(this->xine, _("metronom: audio pts discontinuity/start, pts is %d, wrap_offset is %d, vpts is %d\n"),
 	      pts, this->audio_wrap_offset, vpts);
 
 
@@ -718,7 +739,7 @@ static uint32_t metronom_got_audio_samples (metronom_t *this, uint32_t pts,
 	
 	if (this->wrap_diff_counter > MAX_NUM_WRAP_DIFF) {
 	  
-	  printf ("metronom: forcing video_wrap (%d) and audio wrap (%d)",
+	  LOG_MSG(this->xine, _("metronom: forcing video_wrap (%d) and audio wrap (%d)"),
 		  this->video_wrap_offset, this->audio_wrap_offset);
 	  
 	  if (this->video_wrap_offset > this->audio_wrap_offset)
@@ -726,7 +747,7 @@ static uint32_t metronom_got_audio_samples (metronom_t *this, uint32_t pts,
 	  else
 	    this->video_wrap_offset = this->audio_wrap_offset;
 	  
-	  printf ("to %d\n", this->video_wrap_offset);
+	  LOG_MSG(this->xine, _("to %d\n"), this->video_wrap_offset);
 	  
 	  this->wrap_diff_counter = 0;
 	}
@@ -776,7 +797,7 @@ static void metronom_set_av_offset (metronom_t *this, int32_t pts) {
 
   pthread_mutex_unlock (&this->lock);
 
-  printf ("metronom: av_offset=%d pts\n", pts);
+  LOG_MSG(this->xine, _("metronom: av_offset=%d pts\n"), pts);
 }
 
 static int32_t metronom_get_av_offset (metronom_t *this) {
@@ -796,7 +817,7 @@ static scr_plugin_t* get_master_scr(metronom_t *this) {
     }
   }
   if (select < 0) {
-    printf("metronom: panic - no scr provider found!\n");
+    LOG_MSG(this->xine, _("metronom: panic - no scr provider found!\n"));
     return NULL;
   }
   return this->scr_list[select];
@@ -847,11 +868,12 @@ static int metronom_sync_loop (metronom_t *this) {
 }
 
 
-metronom_t * metronom_init (int have_audio) {
+metronom_t * metronom_init (int have_audio, void *xine) {
 
   metronom_t *this = xine_xmalloc (sizeof (metronom_t));
   int         err;
 
+  this->xine                 = xine;
   this->audio_stream_start   = metronom_audio_stream_start;
   this->audio_stream_end     = metronom_audio_stream_end  ;
   this->video_stream_start   = metronom_video_stream_start;
@@ -880,8 +902,8 @@ metronom_t * metronom_init (int have_audio) {
 
   if ((err = pthread_create(&this->sync_thread, NULL,
       			    (void*(*)(void*)) metronom_sync_loop, this)) != 0)
-    printf("metronom: cannot create sync thread (%s)\n",
-	   strerror(err));
+    LOG_MSG(this->xine, _("metronom: cannot create sync thread (%s)\n"),
+	    strerror(err));
 
   pthread_mutex_init (&this->lock, NULL);
   pthread_cond_init (&this->video_started, NULL);
@@ -896,4 +918,3 @@ metronom_t * metronom_init (int have_audio) {
 
   return this;
 }
-

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ogg.c,v 1.11 2001/11/30 00:53:51 f1rmb Exp $
+ * $Id: demux_ogg.c,v 1.12 2001/12/27 14:30:30 f1rmb Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -46,9 +46,31 @@
 
 #define VALID_ENDS  "ogg"
 
+#ifdef __GNUC__
+#define LOG_MSG_STDERR(xine, message, args...) {                     \
+    xine_log(xine, XINE_LOG_DEMUX, message, ##args);                 \
+    fprintf(stderr, message, ##args);                                \
+  }
+#define LOG_MSG(xine, message, args...) {                            \
+    xine_log(xine, XINE_LOG_DEMUX, message, ##args);                 \
+    printf(message, ##args);                                         \
+  }
+#else
+#define LOG_MSG_STDERR(xine, ...) {                                  \
+    xine_log(xine, XINE_LOG_DEMUX, __VAR_ARGS__);                    \
+    fprintf(stderr, __VA_ARGS__);                                    \
+  }
+#define LOG_MSG(xine, ...) {                                         \
+    xine_log(xine, XINE_LOG_DEMUX, __VAR_ARGS__);                    \
+    printf(__VA_ARGS__);                                             \
+  }
+#endif
+
 typedef struct demux_ogg_s {
   demux_plugin_t        demux_plugin;
 
+  xine_t               *xine;
+  
   config_values_t      *config;
 
   fifo_buffer_t        *audio_fifo;
@@ -102,9 +124,8 @@ static void demux_ogg_send_package (demux_ogg_t *this, int is_content) {
     cur_serno = ogg_page_serialno (&this->og);
     
     if (ogg_page_bos(&this->og)) {
-      printf("demux_ogg: beginning of stream\n");
-      printf("demux_ogg: serial number %d\n",
-	     ogg_page_serialno (&this->og));
+      LOG_MSG(this->xine, _("demux_ogg: beginning of stream\ndemux_ogg: serial number %d\n"),
+	      ogg_page_serialno (&this->og));
     }
     
     for (i = 0; i<this->num_streams; i++) {
@@ -119,7 +140,7 @@ static void demux_ogg_send_package (demux_ogg_t *this, int is_content) {
       stream_num = this->num_streams;
       this->buf_types[stream_num] = 0;
       
-      printf("demux_ogg: found a new stream, serialnumber %d\n", cur_serno);
+      LOG_MSG(this->xine, _("demux_ogg: found a new stream, serialnumber %d\n"), cur_serno);
       
       this->num_streams++;
     }
@@ -135,7 +156,7 @@ static void demux_ogg_send_package (demux_ogg_t *this, int is_content) {
 	if (!strncmp (&op.packet[1], "vorbis", 6)) {
 	  this->buf_types[stream_num] = BUF_AUDIO_VORBIS;
 	} else {
-	  printf ("demux_ogg: unknown streamtype, signature: >%.8s<\n",
+	  LOG_MSG(this->xine, _("demux_ogg: unknown streamtype, signature: >%.8s<\n"),
 		  op.packet);
 	  this->buf_types[stream_num] = BUF_CONTROL_NOP;
 	}
@@ -234,7 +255,7 @@ static void demux_ogg_stop (demux_plugin_t *this_gen) {
   void *p;
 
   if (this->status != DEMUX_OK) {
-    printf ("demux_ogg: stop...ignored\n");
+    LOG_MSG(this->xine, _("demux_ogg: stop...ignored\n"));
     return;
   }
 
@@ -336,8 +357,8 @@ static void demux_ogg_start (demux_plugin_t *this_gen,
 
   if ((err = pthread_create (&this->thread,
 			     NULL, demux_ogg_loop, this)) != 0) {
-    fprintf (stderr, "demux_ogg: can't create new thread (%s)\n",
-	     strerror(err));
+    LOG_MSG_STDERR(this->xine, _("demux_ogg: can't create new thread (%s)\n"),
+		   strerror(err));
     exit (1);
   }
 }
@@ -409,15 +430,17 @@ demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
   demux_ogg_t     *this;
 
   if (iface != 6) {
-    printf( "demux_ogg: plugin doesn't support plugin API version %d.\n"
-	    "demux_ogg: this means there's a version mismatch between xine and this "
-	    "demux_ogg: demuxer plugin.\nInstalling current demux plugins should help.\n",
+    LOG_MSG(xine,
+	    _("demux_ogg: plugin doesn't support plugin API version %d.\n"
+	      "           this means there's a version mismatch between xine and this "
+	      "           demuxer plugin.\nInstalling current demux plugins should help.\n"),
 	    iface);
     return NULL;
   }
-
+  
   this         = xine_xmalloc (sizeof (demux_ogg_t));
   this->config = xine->config;
+  this->xine   = xine;
 
   (void*) this->config->register_string(this->config,
 					"mrl.ends_ogg", VALID_ENDS,

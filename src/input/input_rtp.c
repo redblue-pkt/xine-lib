@@ -84,6 +84,28 @@
 #include "xineutils.h"
 #include "input_plugin.h"
 
+extern int errno;
+
+#ifdef __GNUC__
+#define LOG_MSG_STDERR(xine, message, args...) {                     \
+    xine_log(xine, XINE_LOG_INPUT, message, ##args);                 \
+    fprintf(stderr, message, ##args);                                \
+  }
+#define LOG_MSG(xine, message, args...) {                            \
+    xine_log(xine, XINE_LOG_INPUT, message, ##args);                 \
+    printf(message, ##args);                                         \
+  }
+#else
+#define LOG_MSG_STDERR(xine, ...) {                                  \
+    xine_log(xine, XINE_LOG_INPUT, __VAR_ARGS__);                    \
+    fprintf(stderr, __VA_ARGS__);                                    \
+  }
+#define LOG_MSG(xine, ...) {                                         \
+    xine_log(xine, XINE_LOG_INPUT, __VAR_ARGS__);                    \
+    printf(__VA_ARGS__);                                             \
+  }
+#endif
+
 #define RTP_BLOCKSIZE 2048
 
 typedef struct _input_buffer {
@@ -96,6 +118,8 @@ typedef struct _input_buffer {
 
 typedef struct {
   input_plugin_t    input_plugin;
+
+  xine_t           *xine;
   
   char             *mrl;
   config_values_t  *config;
@@ -125,12 +149,12 @@ typedef struct {
 /*
  *
  */
-static int host_connect_attempt(struct in_addr ia, int port) {
+static int host_connect_attempt(struct in_addr ia, int port, xine_t *xine) {
   int    s=socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP);
   struct sockaddr_in sin;
   
   if(s==-1) {
-    perror("socket");
+    LOG_MSG_STDERR(xine, _("socket(): %s.\n"), strerror(errno));
     return -1;
   }
   
@@ -140,7 +164,7 @@ static int host_connect_attempt(struct in_addr ia, int port) {
   
   /* datagram socket */
   if (bind(s, (struct sockaddr *)&sin, sizeof(sin))) {
-    perror("bind failed");
+    LOG_MSG_STDERR(xine, _("bind(): %s.\n"), strerror(errno));
     exit(1);
   }
   /* multicast ? */
@@ -158,7 +182,8 @@ static int host_connect_attempt(struct in_addr ia, int port) {
     mreqn.imr_interface.s_addr = INADDR_ANY;
 #endif
     if (setsockopt(s, IPPROTO_IP, IP_ADD_MEMBERSHIP,&mreqn,sizeof(mreqn))) {
-      perror("setsockopt IP_ADD_MEMBERSHIP failed (multicast kernel?)");
+      LOG_MSG_STDERR(xine, _("setsockopt(IP_ADD_MEMBERSHIP) failed (multicast kernel?): %s.\n"),
+		     strerror(errno));
       exit(1);
     }
   }
@@ -169,7 +194,7 @@ static int host_connect_attempt(struct in_addr ia, int port) {
 /*
  *
  */
-static int host_connect(const char *host, int port) {
+static int host_connect(const char *host, int port, xine_t *xine) {
   struct hostent *h;
   int i;
   int s;
@@ -177,7 +202,7 @@ static int host_connect(const char *host, int port) {
   h=gethostbyname(host);
   if(h==NULL)
     {
-      fprintf(stderr,"unable to resolve '%s'.\n", host);
+      LOG_MSG_STDERR(xine, _("unable to resolve '%s'.\n"), host);
       return -1;
     }
   
@@ -186,11 +211,11 @@ static int host_connect(const char *host, int port) {
     {
       struct in_addr ia;
       memcpy(&ia, h->h_addr_list[i],4);
-      s=host_connect_attempt(ia, port);
+      s = host_connect_attempt(ia, port, xine);
       if(s != -1)
 	return s;
     }
-  fprintf(stderr, "unable to connect to '%s'.\n", host);
+  LOG_MSG_STDERR(xine, _("unable to connect to '%s'.\n"), host);
   return -1;
 }
 
@@ -213,7 +238,7 @@ static void * input_plugin_read_loop(void *arg) {
     if (!(*this)->free_buffers) {
       (*this)->input_eof = 1;
       if (!warned) {
-	printf("OUCH - ran out of buffers\n");
+	LOG_MSG((*this)->xine, _("OUCH - ran out of buffers\n"));
 	warned = 1;
       }
       pthread_cond_signal(&(*this)->buffer_notempty);
@@ -243,7 +268,8 @@ static void * input_plugin_read_loop(void *arg) {
     
     /* For now - check whether we're dropping input */
     if (++seq != *(unsigned short *)buf->buf) {
-      printf("OUCH - dropped input packet %d %d\n", seq, *(unsigned short *)buf->buf);
+      LOG_MSG((*this)->xine, _("OUCH - dropped input packet %d %d\n"),
+	      seq, *(unsigned short *)buf->buf);
       seq = *(unsigned short *)buf->buf;
     }
     buf->buf[1] = buf->buf[0] = 0;
@@ -282,7 +308,7 @@ static int rtp_plugin_open (input_plugin_t *this_gen, char *mrl ) {
   if(strncmp(filename, "//", 2)==0)
   	filename+=2;
   
-  printf ("Opening >%s<\n", filename);
+  LOG_MSG(this->xine, _("Opening >%s<\n"), filename);
   
   pptr=strrchr(filename, ':');
   if(pptr)
@@ -293,7 +319,7 @@ static int rtp_plugin_open (input_plugin_t *this_gen, char *mrl ) {
 
   if (this->fh != -1)
       close(this->fh);
-  this->fh = host_connect(filename, port);
+  this->fh = host_connect(filename, port, this->xine);
 
   if (this->fh == -1) {
        return 0;
@@ -310,8 +336,8 @@ static int rtp_plugin_open (input_plugin_t *this_gen, char *mrl ) {
   pthread_attr_setdetachstate(&thread_attrs, PTHREAD_CREATE_DETACHED);
   if ((err = pthread_create(&this->reader_thread, &thread_attrs, 
 		            input_plugin_read_loop, (void *)&this)) != 0) {
-    fprintf (stderr, "input_rtp: can't create new thread (%s)\n",
-	     strerror(err));
+    LOG_MSG_STDERR(this->xine, _("input_rtp: can't create new thread (%s)\n"),
+		   strerror(err));
     exit (1);
   }
   pthread_attr_destroy(&thread_attrs);
@@ -421,7 +447,7 @@ static int rtp_plugin_eject_media (input_plugin_t *this_gen) {
  */
 static char *rtp_plugin_get_description (input_plugin_t *this_gen) {
 
-  return "rtp input plugin as shipped with xine";
+  return _("rtp input plugin as shipped with xine");
 }
 
 /*
@@ -460,27 +486,29 @@ input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
   int                 bufn;
 
   if (iface != 5) {
-    printf("rtp input plugin doesn't support plugin API version %d.\n"
-	   "PLUGIN DISABLED.\n"
-	   "This means there's a version mismatch between xine and this input"
-	   "plugin.\nInstalling current input plugins should help.\n",
-	   iface);
+    LOG_MSG(xine,
+	    _("rtp input plugin doesn't support plugin API version %d.\n"
+	      "PLUGIN DISABLED.\n"
+	      "This means there's a version mismatch between xine and this input"
+	      "plugin.\nInstalling current input plugins should help.\n"),
+	    iface);
     return NULL;
   }
 
     
   this       = (rtp_input_plugin_t *) xine_xmalloc(sizeof(rtp_input_plugin_t));
   config     = xine->config;
+  this->xine = xine;
   
   for (bufn = 0; bufn < N_BUFFERS; bufn++) {
     input_buffer_t *buf = xine_xmalloc(sizeof(input_buffer_t));
     if (!buf) {
-      fprintf(stderr, "unable to allocate input buffer.\n");
+      LOG_MSG_STDERR(xine, _("unable to allocate input buffer.\n"));
       exit(1);
     }
     buf->buf = xine_xmalloc(IBUFFER_SIZE);
     if (!buf->buf) {
-      fprintf(stderr, "unable to allocate input buffer.\n");
+      LOG_MSG_STDERR(xine, _("unable to allocate input buffer.\n"));
       exit(1);
     }
     buf->next = this->free_buffers;

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.16 2001/11/30 00:53:51 f1rmb Exp $
+ * $Id: demux_asf.c,v 1.17 2001/12/27 14:30:29 f1rmb Exp $
  *
  * demultiplexer for asf streams
  *
@@ -58,6 +58,26 @@
 
 #define VALID_ENDS    "asf,wmv"
 
+#ifdef __GNUC__
+#define LOG_MSG_STDERR(xine, message, args...) {                     \
+    xine_log(xine, XINE_LOG_DEMUX, message, ##args);                 \
+    fprintf(stderr, message, ##args);                                \
+  }
+#define LOG_MSG(xine, message, args...) {                            \
+    xine_log(xine, XINE_LOG_DEMUX, message, ##args);                 \
+    printf(message, ##args);                                         \
+  }
+#else
+#define LOG_MSG_STDERR(xine, ...) {                                  \
+    xine_log(xine, XINE_LOG_DEMUX, __VAR_ARGS__);                    \
+    fprintf(stderr, __VA_ARGS__);                                    \
+  }
+#define LOG_MSG(xine, ...) {                                         \
+    xine_log(xine, XINE_LOG_DEMUX, __VAR_ARGS__);                    \
+    printf(__VA_ARGS__);                                             \
+  }
+#endif
+
 typedef struct {
   int               num;
   int               seq;
@@ -76,6 +96,8 @@ typedef struct {
 
 typedef struct demux_asf_s {
   demux_plugin_t    demux_plugin;
+
+  xine_t           *xine;
 
   config_values_t  *config;
 
@@ -213,7 +235,7 @@ static uint8_t get_byte (demux_asf_t *this) {
   /* printf ("%02x ", buf); */
   
   if (i != 1) {
-    printf ("demux_asf: end of data\n");
+    LOG_MSG(this->xine, _("demux_asf: end of data\n"));
     this->status = DEMUX_FINISHED;
   }
 
@@ -230,7 +252,7 @@ static uint16_t get_le16 (demux_asf_t *this) {
   /* printf (" [%02x %02x] ", buf[0], buf[1]); */
 
   if (i != 2) {
-    printf ("demux_asf: end of data\n");
+    LOG_MSG(this->xine, _("demux_asf: end of data\n"));
     this->status = DEMUX_FINISHED;
   }
 
@@ -247,7 +269,7 @@ static uint32_t get_le32 (demux_asf_t *this) {
   /* printf ("%02x %02x %02x %02x ", buf[0], buf[1], buf[2], buf[3]); */
 
   if (i != 4) {
-    printf ("demux_asf: end of data\n");
+    LOG_MSG(this->xine, _("demux_asf: end of data\n"));
     this->status = DEMUX_FINISHED;
   }
 
@@ -262,7 +284,7 @@ static uint64_t get_le64 (demux_asf_t *this) {
   i = this->input->read (this->input, buf, 8);
 
   if (i != 8) {
-    printf ("demux_asf: end of data\n");
+    LOG_MSG(this->xine, _("demux_asf: end of data\n"));
     this->status = DEMUX_FINISHED;
   }
 
@@ -315,11 +337,11 @@ static void asf_send_audio_header (demux_asf_t *this, int stream_id) {
     formattag_to_buf_audio ( wavex->wFormatTag );
     
   if ( !this->streams[this->num_streams].buf_type ) {
-    printf ("demux_asf: unknown audio type 0x%x\n", wavex->wFormatTag);
+    LOG_MSG(this->xine, _("demux_asf: unknown audio type 0x%x\n"), wavex->wFormatTag);
     this->streams[this->num_streams].buf_type     = BUF_CONTROL_NOP;
   }
   else
-    printf ("demux_asf: audio format : %s (wFormatTag 0x%x)\n", 
+    LOG_MSG(this->xine, _("demux_asf: audio format : %s (wFormatTag 0x%x)\n"), 
 	    buf_audio_name(this->streams[this->num_streams].buf_type),
 	    wavex->wFormatTag);
 
@@ -339,7 +361,7 @@ static void asf_send_audio_header (demux_asf_t *this, int stream_id) {
   buf->content = buf->mem;
   memcpy (buf->content, this->wavex, this->wavex_size);
 
-  printf ("demux_asf: wavex header is %d bytes long\n", this->wavex_size);
+  LOG_MSG(this->xine, _("demux_asf: wavex header is %d bytes long\n"), this->wavex_size);
 
   buf->size = this->wavex_size;
   buf->type = this->streams[this->num_streams].buf_type;
@@ -366,7 +388,7 @@ static void asf_send_video_header (demux_asf_t *this, int stream_id) {
     fourcc_to_buf_video((void*)&bih->biCompression);
     
   if( !this->streams[this->num_streams].buf_type ) {
-    printf ("demux_asf: unknown video format %.4s\n",
+    LOG_MSG(this->xine, _("demux_asf: unknown video format %.4s\n"),
 	    (char*)&bih->biCompression);
     
     this->status = DEMUX_FINISHED;
@@ -382,8 +404,8 @@ static void asf_send_video_header (demux_asf_t *this, int stream_id) {
   /* 
   printf ("demux_asf: video format : %.4s\n", (char*)&bih->biCompression);
   */
-  printf ("demux_asf: video format : %s\n", 
-           buf_video_name(this->streams[this->num_streams].buf_type));
+  LOG_MSG(this->xine, _("demux_asf: video format : %s\n"), 
+	  buf_video_name(this->streams[this->num_streams].buf_type));
 
   buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
   buf->content = buf->mem;
@@ -406,7 +428,7 @@ static int asf_read_header (demux_asf_t *this) {
 
   get_guid(this, &g);
   if (memcmp(&g, &asf_header, sizeof(GUID))) {
-    printf ("demux_asf: file doesn't start with an asf header\n");
+    LOG_MSG(this->xine, _("demux_asf: file doesn't start with an asf header\n"));
     return 0;
   }
   get_le64(this);
@@ -439,7 +461,7 @@ static int asf_read_header (demux_asf_t *this) {
       } else
 	this->rate = 0;
 
-      printf ("demux_asf: stream length is %d sec, rate is %d bytes/sec\n",
+      LOG_MSG(this->xine, _("demux_asf: stream length is %d sec, rate is %d bytes/sec\n"),
 	      this->length, this->rate);
 
       start_time = get_le32(this); /* start timestamp in 1/1000 s*/
@@ -490,8 +512,8 @@ static int asf_read_header (demux_asf_t *this) {
           this->reorder_w=(buffer[2]<<8)|buffer[1];
           this->reorder_b=(buffer[4]<<8)|buffer[3];
   	  this->reorder_w/=this->reorder_b;
-          printf("demux_asf: audio conceal interleave detected (%d x %d x %d)\n",
-             this->reorder_w, this->reorder_h, this->reorder_b );
+          LOG_MSG(this->xine, _("demux_asf: audio conceal interleave detected (%d x %d x %d)\n"),
+		  this->reorder_w, this->reorder_h, this->reorder_b );
 	} else {
 	  this->reorder_b=this->reorder_h=this->reorder_w=1;        
         }
@@ -587,7 +609,7 @@ static int asf_get_packet(demux_asf_t *this) {
   
   if (this->packet_flags & 0x40) {
     get_le16(this);
-    printf("demux_asf: absolute size ignored\n");
+    LOG_MSG(this->xine, _("demux_asf: absolute size ignored\n"));
     hdr_size += 2;
   }
       
@@ -618,12 +640,12 @@ static int asf_get_packet(demux_asf_t *this) {
   return 1;
 }
 
-static void hexdump (unsigned char *data, int len) {
+static void hexdump (unsigned char *data, int len, xine_t *xine) {
   int i;
 
   for (i=0; i<len; i++)
-    printf ("%02x ", data[i]);
-  printf ("\n");
+    LOG_MSG(xine, "%02x ", data[i]);
+  LOG_MSG(xine, "\n");
 
 }
 
@@ -783,8 +805,9 @@ static void asf_send_buffer_defrag (demux_asf_t *this, asf_stream_t *stream,
     stream->timestamp = timestamp;
   }
   
-  if( stream->frag_offset + frag_len > DEFRAG_BUFSIZE )
-    printf("demux_asf: buffer overflow on defrag!\n");
+  if( stream->frag_offset + frag_len > DEFRAG_BUFSIZE ) {
+    LOG_MSG(this->xine, _("demux_asf: buffer overflow on defrag!\n"));
+  }
   else {  
     this->input->read (this->input, &stream->buffer[stream->frag_offset], frag_len);
     stream->frag_offset += frag_len;
@@ -792,7 +815,7 @@ static void asf_send_buffer_defrag (demux_asf_t *this, asf_stream_t *stream,
   
   /*
   printf ("demux_asf: read %d bytes :", frag_len);
-  hexdump (buf->content, frag_len);
+  hexdump (buf->content, frag_len, this->xine);
   */
 }
 
@@ -814,7 +837,7 @@ static void asf_read_packet(demux_asf_t *this) {
       this->input->seek (this->input, this->packet_size_left, SEEK_CUR);
     
     if (!asf_get_packet(this)) {
-      printf ("demux_asf: get_packet failed\n");
+      LOG_MSG(this->xine, _("demux_asf: get_packet failed\n"));
       this->status = DEMUX_FINISHED;
       return ;
     }
@@ -848,7 +871,7 @@ static void asf_read_packet(demux_asf_t *this) {
     this->packet_size_left -= 4;
     break;
   default:
-    printf("demux_asf: unknow segtype %x\n",this->segtype);
+    LOG_MSG(this->xine, _("demux_asf: unknow segtype %x\n"), this->segtype);
     frag_offset = get_le32(this);
     this->packet_size_left -= 4;
     break;
@@ -1027,7 +1050,7 @@ static void demux_asf_stop (demux_plugin_t *this_gen) {
   void *p;
 
   if (this->status != DEMUX_OK) {
-    printf ("demux_asf: stop...ignored\n");
+    LOG_MSG(this->xine, _("demux_asf: stop...ignored\n"));
     return;
   }
 
@@ -1113,10 +1136,10 @@ static void demux_asf_start (demux_plugin_t *this_gen,
     return;
   } 
 
-  printf ("demux_asf: title        : %s\n", this->title);
-  printf ("demux_asf: author       : %s\n", this->author);
-  printf ("demux_asf: copyright    : %s\n", this->copyright);
-  printf ("demux_asf: comment      : %s\n", this->comment);
+  LOG_MSG(this->xine, _("demux_asf: title        : %s\n"), this->title);
+  LOG_MSG(this->xine, _("demux_asf: author       : %s\n"), this->author);
+  LOG_MSG(this->xine, _("demux_asf: copyright    : %s\n"), this->copyright);
+  LOG_MSG(this->xine, _("demux_asf: comment      : %s\n"), this->comment);
 
   /*
    * seek to start position
@@ -1144,7 +1167,7 @@ static void demux_asf_start (demux_plugin_t *this_gen,
 
   if ((err = pthread_create (&this->thread,
 			     NULL, demux_asf_loop, this)) != 0) {
-    fprintf (stderr, "demux_asf: can't create new thread (%s)\n",
+    LOG_MSG_STDERR(this->xine, _("demux_asf: can't create new thread (%s)\n"),
 	     strerror(err));
     exit (1);
   }
@@ -1218,15 +1241,17 @@ demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
   demux_asf_t     *this;
 
   if (iface != 6) {
-    printf( "demux_asf: plugin doesn't support plugin API version %d.\n"
-	    "demux_asf: this means there's a version mismatch between xine and this "
-	    "demux_asf: demuxer plugin.\nInstalling current demux plugins should help.\n",
+    LOG_MSG(xine, 
+	    _("demux_asf: plugin doesn't support plugin API version %d.\n"
+	      "           this means there's a version mismatch between xine and this "
+	      "           demuxer plugin.\nInstalling current demux plugins should help.\n"),
 	    iface);
     return NULL;
   }
   
   this         = xine_xmalloc (sizeof (demux_asf_t));
   this->config = xine->config;
+  this->xine   = xine;
 
   (void*) this->config->register_string(this->config,
 					"mrl.ends_asf", VALID_ENDS,

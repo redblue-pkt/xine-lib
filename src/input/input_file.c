@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_file.c,v 1.35 2001/12/14 21:03:03 f1rmb Exp $
+ * $Id: input_file.c,v 1.36 2001/12/27 14:30:30 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -43,6 +43,26 @@ extern int errno;
 
 #define MAXFILES      65535
 
+#ifdef __GNUC__
+#define LOG_MSG_STDERR(xine, message, args...) {                     \
+    xine_log(xine, XINE_LOG_INPUT, message, ##args);                 \
+    fprintf(stderr, message, ##args);                                \
+  }
+#define LOG_MSG(xine, message, args...) {                            \
+    xine_log(xine, XINE_LOG_INPUT, message, ##args);                 \
+    printf(message, ##args);                                         \
+  }
+#else
+#define LOG_MSG_STDERR(xine, ...) {                                  \
+    xine_log(xine, XINE_LOG_INPUT, __VAR_ARGS__);                    \
+    fprintf(stderr, __VA_ARGS__);                                    \
+  }
+#define LOG_MSG(xine, ...) {                                         \
+    xine_log(xine, XINE_LOG_INPUT, __VAR_ARGS__);                    \
+    printf(__VA_ARGS__);                                             \
+  }
+#endif
+
 #ifndef S_ISLNK
 #define S_ISLNK(mode)  0
 #endif
@@ -67,6 +87,8 @@ extern int errno;
 
 typedef struct {
   input_plugin_t    input_plugin;
+
+  xine_t           *xine;
   
   int               fh;
   int               show_hidden_files;
@@ -175,7 +197,7 @@ static int _sortfiles_default(const mrl_t *s1, const mrl_t *s2) {
 /*
  * Return the type (OR'ed) of the given file *fully named*
  */
-static uint32_t get_file_type(char *filepathname, char *origin) {
+static uint32_t get_file_type(char *filepathname, char *origin, xine_t *xine) {
   struct stat  pstat;
   int          mode;
   uint32_t     file_type = 0;
@@ -184,7 +206,7 @@ static uint32_t get_file_type(char *filepathname, char *origin) {
   if((lstat(filepathname, &pstat)) < 0) {
     sprintf(buf, "%s/%s", origin, filepathname);
     if((lstat(buf, &pstat)) < 0) {
-      printf("lstat failed for %s{%s}\n", filepathname, origin);
+      LOG_MSG(xine, _("lstat failed for %s{%s}\n"), filepathname, origin);
       file_type |= mrl_unknown;
       return file_type;
     }
@@ -267,7 +289,7 @@ static int file_plugin_open (input_plugin_t *this_gen, char *mrl) {
     *subtitle = 0;
     subtitle++;
 
-    printf ("input_file: trying to open subtitle file '%s'\n",
+    LOG_MSG(this->xine, _("input_file: trying to open subtitle file '%s'\n"),
 	    subtitle);
 
     this->sub = fopen (subtitle, "r");
@@ -325,7 +347,7 @@ static buf_element_t *file_plugin_read_block (input_plugin_t *this_gen, fifo_buf
     num_bytes = read (this->fh, buf->mem + total_bytes, todo-total_bytes);
     if (num_bytes <= 0) {
       if (num_bytes < 0) 
-	fprintf (stderr, "input_file: read error (%s)\n", strerror (errno));
+	LOG_MSG_STDERR(this->xine, _("input_file: read error (%s)\n"), strerror(errno));
       buf->free_buffer (buf);
       buf = NULL;
       break;
@@ -469,7 +491,7 @@ static mrl_t **file_plugin_get_dir (input_plugin_t *this_gen,
 	sprintf(dir_files[num_dir_files].mrl, "%s%s", 
 		current_dir_slashed, pdirent->d_name);
 	dir_files[num_dir_files].link   = NULL;
-	dir_files[num_dir_files].type   = get_file_type(fullfilename, current_dir);
+	dir_files[num_dir_files].type   = get_file_type(fullfilename, current_dir, this->xine);
 	dir_files[num_dir_files].size   = get_file_size(fullfilename, current_dir);
 
 	/* The file is a link, follow it */
@@ -481,13 +503,13 @@ static mrl_t **file_plugin_get_dir (input_plugin_t *this_gen,
 	  linksize = readlink(fullfilename, linkbuf, XINE_PATH_MAX + XINE_NAME_MAX);
 	  
 	  if(linksize < 0) {
-	    fprintf(stderr, "%s(%d): readlink() failed: %s\n", 
-		    __XINE_FUNCTION__, __LINE__, strerror(errno));
+	    LOG_MSG_STDERR(this->xine, _("%s(%d): readlink() failed: %s\n"), 
+			   __XINE_FUNCTION__, __LINE__, strerror(errno));
 	  }
 	  else {
 	    dir_files[num_dir_files].link = (char *) xine_xmalloc(linksize + 1);
 	    strncpy(dir_files[num_dir_files].link, linkbuf, linksize);
-	    dir_files[num_dir_files].type |= get_file_type(dir_files[num_dir_files].link, current_dir);
+	    dir_files[num_dir_files].type |= get_file_type(dir_files[num_dir_files].link, current_dir, this->xine);
 	  }
 	}
 	
@@ -508,7 +530,7 @@ static mrl_t **file_plugin_get_dir (input_plugin_t *this_gen,
 	sprintf(hide_files[num_hide_files].mrl, "%s%s", 
 		current_dir_slashed, pdirent->d_name);
 	hide_files[num_hide_files].link   = NULL;
-	hide_files[num_hide_files].type   = get_file_type(fullfilename, current_dir);
+	hide_files[num_hide_files].type   = get_file_type(fullfilename, current_dir, this->xine);
 	hide_files[num_hide_files].size   = get_file_size(fullfilename, current_dir);
 	
 	/* The file is a link, follow it */
@@ -520,14 +542,14 @@ static mrl_t **file_plugin_get_dir (input_plugin_t *this_gen,
 	  linksize = readlink(fullfilename, linkbuf, XINE_PATH_MAX + XINE_NAME_MAX);
 	  
 	  if(linksize < 0) {
-	    fprintf(stderr, "%s(%d): readlink() failed: %s\n", 
-		    __XINE_FUNCTION__, __LINE__, strerror(errno));
+	    LOG_MSG_STDERR(this->xine, _("%s(%d): readlink() failed: %s\n"), 
+			   __XINE_FUNCTION__, __LINE__, strerror(errno));
 	  }
 	  else {
 	    hide_files[num_hide_files].link = (char *) 
 	      xine_xmalloc(linksize + 1);
 	    strncpy(hide_files[num_hide_files].link, linkbuf, linksize);
-	    hide_files[num_hide_files].type |= get_file_type(hide_files[num_hide_files].link, current_dir);
+	    hide_files[num_hide_files].type |= get_file_type(hide_files[num_hide_files].link, current_dir, this->xine);
 	  }
 	}
 	
@@ -544,7 +566,7 @@ static mrl_t **file_plugin_get_dir (input_plugin_t *this_gen,
       sprintf(norm_files[num_norm_files].mrl, "%s%s", 
 	      current_dir_slashed, pdirent->d_name);
       norm_files[num_norm_files].link   = NULL;
-      norm_files[num_norm_files].type   = get_file_type(fullfilename, current_dir);
+      norm_files[num_norm_files].type   = get_file_type(fullfilename, current_dir, this->xine);
       norm_files[num_norm_files].size   = get_file_size(fullfilename, current_dir);
       
       /* The file is a link, follow it */
@@ -556,14 +578,14 @@ static mrl_t **file_plugin_get_dir (input_plugin_t *this_gen,
 	linksize = readlink(fullfilename, linkbuf, XINE_PATH_MAX + XINE_NAME_MAX);
 	
 	if(linksize < 0) {
-	  fprintf(stderr, "%s(%d): readlink() failed: %s\n", 
-		  __XINE_FUNCTION__, __LINE__, strerror(errno));
+	  LOG_MSG_STDERR(this->xine, _("%s(%d): readlink() failed: %s\n"), 
+			 __XINE_FUNCTION__, __LINE__, strerror(errno));
 	}
 	else {
 	  norm_files[num_norm_files].link = (char *) 
 	    xine_xmalloc(linksize + 1);
 	  strncpy(norm_files[num_norm_files].link, linkbuf, linksize);
-	  norm_files[num_norm_files].type |= get_file_type(norm_files[num_norm_files].link, current_dir);
+	  norm_files[num_norm_files].type |= get_file_type(norm_files[num_norm_files].link, current_dir, this->xine);
 	}
       }
       
@@ -744,7 +766,7 @@ static void file_plugin_stop (input_plugin_t *this_gen) {
  *
  */
 static char *file_plugin_get_description (input_plugin_t *this_gen) {
-  return "plain file input plugin as shipped with xine";
+  return _("plain file input plugin as shipped with xine");
 }
 
 /*
@@ -762,7 +784,7 @@ static int file_plugin_get_optional_data (input_plugin_t *this_gen,
   
   file_input_plugin_t *this = (file_input_plugin_t *) this_gen;
 
-  printf ("input_file: get optional data, type %08x, sub %p\n",
+  LOG_MSG(this->xine, _("input_file: get optional data, type %08x, sub %p\n"),
 	  data_type, this->sub);
 
 
@@ -791,16 +813,18 @@ input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
   config_values_t     *config;
 
   if (iface != 5) {
-    printf("file input plugin doesn't support plugin API version %d.\n"
-	   "PLUGIN DISABLED.\n"
-	   "This means there's a version mismatch between xine and this input"
-	   "plugin.\nInstalling current input plugins should help.\n",
-	   iface);
+    LOG_MSG(xine,
+	    _("file input plugin doesn't support plugin API version %d.\n"
+	      "PLUGIN DISABLED.\n"
+	      "This means there's a version mismatch between xine and this input"
+	      "plugin.\nInstalling current input plugins should help.\n"),
+	    iface);
     return NULL;
   }
 
   this       = (file_input_plugin_t *) xine_xmalloc (sizeof (file_input_plugin_t));
   config     = xine->config;
+  this->xine = xine;
 
   this->input_plugin.interface_version  = INPUT_PLUGIN_IFACE_VERSION;
   this->input_plugin.get_capabilities   = file_plugin_get_capabilities;

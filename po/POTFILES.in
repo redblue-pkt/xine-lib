@@ -1,0 +1,26 @@
+# For updating this file, look at the result of:
+#  head -3 po/POTFILES.in > /tmp/POTFILES.in && find src -name "*.[chy]" | xargs grep -l '[^A-Za-z_]_(' | grep -v src/xine-engine/xineintl.h >> /tmp/POTFILES.in && cp /tmp/POTFILES.in po/
+
+src/demuxers/demux_ts.c
+src/demuxers/demux_avi.c
+src/demuxers/demux_elem.c
+src/demuxers/demux_mpeg.c
+src/demuxers/demux_mpeg_block.c
+src/demuxers/demux_mpgaudio.c
+src/demuxers/demux_pes.c
+src/demuxers/demux_qt.c
+src/demuxers/demux_ogg.c
+src/demuxers/demux_asf.c
+src/demuxers/demux_cda.c
+src/input/input_net.c
+src/input/input_rtp.c
+src/input/input_stdin_fifo.c
+src/input/input_dvd.c
+src/input/input_file.c
+src/input/input_vcd.c
+src/input/input_http.c
+src/input/input_cda.c
+src/xine-engine/metronom.c
+src/xine-engine/video_out.c
+src/xine-engine/xine.c
+src/xine-engine/load_plugins.c

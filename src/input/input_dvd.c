@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.40 2001/12/16 13:38:42 miguelfreitas Exp $
+ * $Id: input_dvd.c,v 1.41 2001/12/27 14:30:30 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -52,6 +52,28 @@
 #include "dvd_udf.h"
 #include "read_cache.h"
 
+extern int errno;
+
+#ifdef __GNUC__
+#define LOG_MSG_STDERR(xine, message, args...) {                     \
+    xine_log(xine, XINE_LOG_INPUT, message, ##args);                 \
+    fprintf(stderr, message, ##args);                                \
+  }
+#define LOG_MSG(xine, message, args...) {                            \
+    xine_log(xine, XINE_LOG_INPUT, message, ##args);                 \
+    printf(message, ##args);                                         \
+  }
+#else
+#define LOG_MSG_STDERR(xine, ...) {                                  \
+    xine_log(xine, XINE_LOG_INPUT, __VAR_ARGS__);                    \
+    fprintf(stderr, __VA_ARGS__);                                    \
+  }
+#define LOG_MSG(xine, ...) {                                         \
+    xine_log(xine, XINE_LOG_INPUT, __VAR_ARGS__);                    \
+    printf(__VA_ARGS__);                                             \
+  }
+#endif
+
 #if defined(__sun)
 #define RDVD    "/vol/dev/aliases/cdrom0"
 #define DVD     RDVD
@@ -63,6 +85,8 @@
 typedef struct {
 
   input_plugin_t    input_plugin;
+
+  xine_t           *xine;
   
   char             *mrl;
   config_values_t  *config;
@@ -118,7 +142,7 @@ static int openDrive (dvd_input_plugin_t *this) {
   this->dvd_fd = open(this->device, O_RDONLY /* | O_NONBLOCK */ );
 
   if (this->dvd_fd < 0) {
-    printf ("input_dvd: unable to open dvd drive (%s): %s\n",
+    LOG_MSG(this->xine, _("input_dvd: unable to open dvd drive (%s): %s\n"),
             this->device, strerror(errno));
     return -1;
   }
@@ -215,11 +239,11 @@ dvd_read_copyright(int fd, dvd_struct *s)
   memset(buf, 0, sizeof(buf));
 
   if (ioctl(fd, USCSICMD, &sc)) {
-    perror("USCSICMD dvd_read_copyright");
+    LOG_MSG(this->xine, _("USCSICMD dvd_read_copyright: %s"), strerror(errno));
     return -1;
   }
   if (sc.uscsi_status) {
-    fprintf(stderr, "bad status: READ DVD STRUCTURE (copyright)\n");
+    LOG_MSG_STDERR(this->xine, _("bad status: READ DVD STRUCTURE (copyright)\n"));
     return -1;
   }
 
@@ -273,7 +297,7 @@ static int openDVDFile (dvd_input_plugin_t *this,
   int   encrypted=0;
 
   if (openDrive(this) < 0) {
-    printf ("input_dvd: cannot open dvd drive >%s<\n", this->device);
+    LOG_MSG(this->xine, _("input_dvd: cannot open dvd drive >%s<\n"), this->device);
     return 0;
   }
 
@@ -284,7 +308,7 @@ static int openDVDFile (dvd_input_plugin_t *this,
     dvd.copyright.type      = DVD_STRUCT_COPYRIGHT;
     dvd.copyright.layer_num = 0;
     if (ioctl (this->dvd_fd, DVD_READ_STRUCT, &dvd) < 0) {
-      printf ("input_dvd: Could not read Copyright Structure\n");
+      LOG_MSG(this->xine, _("input_dvd: Could not read Copyright Structure\n"));
       return 0;
     }
     encrypted = (dvd.copyright.cpst != 0) ;
@@ -297,7 +321,7 @@ static int openDVDFile (dvd_input_plugin_t *this,
     dvd.layer_num = 0;
 
     if (ioctl(this->dvd_fd, DVDIOCREADSTRUCTURE, &dvd) < 0) {
-      printf ("input_dvd: Could not read Copyright Structure\n");
+      LOG_MSG(this->xine, _("input_dvd: Could not read Copyright Structure\n"));
       return 0;
     }
 
@@ -310,23 +334,24 @@ static int openDVDFile (dvd_input_plugin_t *this,
     dvd.copyright.type      = DVD_STRUCT_COPYRIGHT;
     dvd.copyright.layer_num = 0;
     if (dvd_read_copyright(this->raw_fd, &dvd) < 0)
-      printf ("input_dvd: Could not read Copyright Structure.\n"
-	      "           Assuming disk is not encrypted.\n");
+      LOG_MSG(this->xine, _("input_dvd: Could not read Copyright Structure.\n"
+			    "           Assuming disk is not encrypted.\n"));
     else
       encrypted = (dvd.copyright.cpst != 0);
   }
 #endif
 
   if( encrypted ) {
-    printf("\ninput_dvd: Sorry, xine doesn't play encrypted DVDs. The legal status of CSS\n"
-           "           decryption is unclear and we will not provide such code.\n\n");
+    LOG_MSG(this->xine,
+	    _("\ninput_dvd: Sorry, xine doesn't play encrypted DVDs. The legal status of CSS\n"
+	      "           decryption is unclear and we will not provide such code.\n\n"));
     return 0;
   }
 
   snprintf (str, sizeof(str), "/VIDEO_TS/%s", filename);
 
   if (!(lbnum = UDFFindFile(this->dvd_fd, str, size))) {
-    printf ("input_dvd: cannot open file >%s<\n", filename);
+    LOG_MSG(this->xine, _("input_dvd: cannot open file >%s<\n"), filename);
 
     closeDrive (this);
 
@@ -371,7 +396,7 @@ static int dvd_plugin_open (input_plugin_t *this_gen, char *mrl) {
   this->file_lbcur = this->file_lbstart;
 
   if (!this->file_lbstart) {
-    printf ("input_dvd: Unable to find >%s< on dvd.\n", filename);
+    LOG_MSG(this->xine, _("input_dvd: Unable to find >%s< on dvd.\n"), filename);
     return 0;
   }
 
@@ -406,7 +431,7 @@ static off_t dvd_plugin_read (input_plugin_t *this_gen,
 
   if (nlen != DVD_VIDEO_LB_LEN) {
 
-    printf ("input_dvd: error read: %Ld bytes is not a sector!\n", 
+    LOG_MSG(this->xine, _("input_dvd: error read: %Ld bytes is not a sector!\n"), 
 	    nlen);
 
     return 0;
@@ -422,12 +447,14 @@ static off_t dvd_plugin_read (input_plugin_t *this_gen,
     this->file_size_left -= DVD_VIDEO_LB_LEN;
 
     return DVD_VIDEO_LB_LEN;
-  } else if (bytes_read < 0)
-    printf ("input_dvd: read error in input_dvd plugin (%s)\n",
+  } else if (bytes_read < 0) {
+    LOG_MSG(this->xine, _("input_dvd: read error in input_dvd plugin (%s)\n"),
 	    strerror (errno));
-  else
-    printf ("input_dvd: short read in input_dvd (%d != %d)\n",
+  }
+  else {
+    LOG_MSG(this->xine, _("input_dvd: short read in input_dvd (%d != %d)\n"),
 	    bytes_read, DVD_VIDEO_LB_LEN);
+  }
   return 0;
 }
 
@@ -443,8 +470,9 @@ static buf_element_t *dvd_plugin_read_block (input_plugin_t *this_gen,
      * at STAGE_BY_CONTENT probe stage
      */
     if(nlen != DVD_VIDEO_LB_LEN)
-      printf ("input_dvd: error in input_dvd plugin read: %Ld bytes "
-      	     "is not a sector!\n", nlen);
+      LOG_MSG(this->xine,
+	      _("input_dvd: error in input_dvd plugin read: %Ld bytes "
+		"is not a sector!\n"), nlen);
     return NULL;
   }
 
@@ -455,7 +483,7 @@ static buf_element_t *dvd_plugin_read_block (input_plugin_t *this_gen,
     buf->type = BUF_DEMUX_BLOCK;
 
   } else {
-    printf ("input_dvd: read error in input_dvd plugin\n");
+    LOG_MSG(this->xine, _("input_dvd: read error in input_dvd plugin\n"));
   }
 
 
@@ -488,7 +516,7 @@ static off_t dvd_plugin_seek (input_plugin_t *this_gen, off_t offset, int origin
 
     break;
   default:
-    printf ("input_dvd: seek: %d is an unknown origin\n", origin); 
+    LOG_MSG(this->xine, _("input_dvd: seek: %d is an unknown origin\n"), origin); 
   }
   
   return lseek (this->raw_fd, 
@@ -529,19 +557,19 @@ static int dvd_plugin_eject_media (input_plugin_t *this_gen) {
       switch(status) {
       case CDS_TRAY_OPEN:
 	if((ret = ioctl(fd, CDROMCLOSETRAY)) != 0) {
-	  printf ("input_dvd: CDROMCLOSETRAY failed: %s\n", 
+	  LOG_MSG(this->xine, _("input_dvd: CDROMCLOSETRAY failed: %s\n"), 
 		  strerror(errno));  
 	}
 	break;
       case CDS_DISC_OK:
 	if((ret = ioctl(fd, CDROMEJECT)) != 0) {
-	  printf ("input_dvd: CDROMEJECT failed: %s\n", strerror(errno));  
+	  LOG_MSG(this->xine, _("input_dvd: CDROMEJECT failed: %s\n"), strerror(errno));  
 	}
 	break;
       }
     }
     else {
-      printf ("input_dvd: CDROM_DRIVE_STATUS failed: %s\n", 
+      LOG_MSG(this->xine, _("input_dvd: CDROM_DRIVE_STATUS failed: %s\n"), 
 	      strerror(errno));
       close(fd);
       return 0;
@@ -552,15 +580,15 @@ static int dvd_plugin_eject_media (input_plugin_t *this_gen) {
 # if defined (__sun)
     status = 0;
     if ((ret = ioctl(fd, CDROMEJECT)) != 0) {
-      printf("input_dvd: CDROMEJECT failed: %s\n", strerror(errno));
+      LOG_MSG(this->xine, _("input_dvd: CDROMEJECT failed: %s\n"), strerror(errno));
     }
 
 # else
     if (ioctl(fd, CDIOCALLOW) == -1) {
-      perror("ioctl(cdromallow)");
+      LOG_MSG(this->xine, _("ioctl(cdromallow): %s"), strerror(errno));
     } else {
       if (ioctl(fd, CDIOCEJECT) == -1) {
-        perror("ioctl(cdromeject)");
+      LOG_MSG(this->xine, _("ioctl(cdromeject): %s"), strerror(errno));
       }
     }
 # endif
@@ -587,7 +615,7 @@ static void dvd_plugin_stop (input_plugin_t *this_gen) {
 
 static char *dvd_plugin_get_description (input_plugin_t *this_gen) {
 
-  return "dvd device input plugin as shipped with xine";
+  return _("dvd device input plugin as shipped with xine");
 }
 
 
@@ -661,7 +689,7 @@ static mrl_t **dvd_plugin_get_dir (input_plugin_t *this_gen,
 
   }
   else {
-    printf ("input_dvd: unable to open dvd drive (%s): %s\n",
+    LOG_MSG(this->xine, _("input_dvd: unable to open dvd drive (%s): %s\n"),
             this->device, strerror(errno));
     return NULL;
   }
@@ -721,7 +749,7 @@ static char **dvd_plugin_get_autoplay_list (input_plugin_t *this_gen,
     close (fd);
     
   } else {
-    printf ("input_dvd: unable to open dvd drive (%s): %s\n",
+    LOG_MSG(this->xine, _("input_dvd: unable to open dvd drive (%s): %s\n"),
             this->device, strerror(errno));
     *nFiles = 0;
     return NULL;
@@ -766,16 +794,18 @@ input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
   int i;
 
   if (iface != 5) {
-    printf("dvd input plugin doesn't support plugin API version %d.\n"
-	   "PLUGIN DISABLED.\n"
-	   "This means there's a version mismatch between xine and this input"
-	   "plugin.\nInstalling current input plugins should help.\n",
-	   iface);
+    LOG_MSG(xine,
+	    _("dvd input plugin doesn't support plugin API version %d.\n"
+	      "PLUGIN DISABLED.\n"
+	      "This means there's a version mismatch between xine and this input"
+	      "plugin.\nInstalling current input plugins should help.\n"),
+	    iface);
     return NULL;
   }
   
   this       = (dvd_input_plugin_t *) xine_xmalloc (sizeof (dvd_input_plugin_t));
   config     = xine->config;
+  this->xine = xine;
   
   for (i = 0; i < MAX_DIR_ENTRIES; i++) {
     this->filelist[i]       = (char *) xine_xmalloc(sizeof(char *) * 256);

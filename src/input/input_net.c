@@ -41,15 +41,38 @@
 #include "xineutils.h"
 #include "input_plugin.h"
 
+extern int errno;
+
 #if !defined(NDELAY) && defined(O_NDELAY)
 #define	FNDELAY	O_NDELAY
 #endif
 
+#ifdef __GNUC__
+#define LOG_MSG_STDERR(xine, message, args...) {                     \
+    xine_log(xine, XINE_LOG_INPUT, message, ##args);                 \
+    fprintf(stderr, message, ##args);                                \
+  }
+#define LOG_MSG(xine, message, args...) {                            \
+    xine_log(xine, XINE_LOG_INPUT, message, ##args);                 \
+    printf(message, ##args);                                         \
+  }
+#else
+#define LOG_MSG_STDERR(xine, ...) {                                  \
+    xine_log(xine, XINE_LOG_INPUT, __VAR_ARGS__);                    \
+    fprintf(stderr, __VA_ARGS__);                                    \
+  }
+#define LOG_MSG(xine, ...) {                                         \
+    xine_log(xine, XINE_LOG_INPUT, __VAR_ARGS__);                    \
+    printf(__VA_ARGS__);                                             \
+  }
+#endif
 
 #define NET_BS_LEN 2324
 
 typedef struct {
   input_plugin_t   input_plugin;
+
+  xine_t          *xine;
   
   int              fh;
   char            *mrl;
@@ -64,7 +87,7 @@ typedef struct {
 /* **************************************************************** */
 
 
-static int host_connect_attempt(struct in_addr ia, int port) {
+static int host_connect_attempt(struct in_addr ia, int port, xine_t *xine) {
 	int s=socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
 	
 	struct sockaddr_in sin;
@@ -74,13 +97,13 @@ static int host_connect_attempt(struct in_addr ia, int port) {
 	
 	if(s==-1)
 	{
-		perror("socket");
+		LOG_MSG_STDERR(xine, _("socket(): %s\n"), strerror(errno));
 		return -1;
 	}
 	
 	if(fcntl(s, F_SETFL, FNDELAY)==-1)
 	{
-		perror("nonblocking");
+		LOG_MSG_STDERR(xine, _("fcntl(nonblocking): %s\n"), strerror(errno));
 		close(s);
 		return -1;
 	}
@@ -91,7 +114,7 @@ static int host_connect_attempt(struct in_addr ia, int port) {
 	
 	if(connect(s, (struct sockaddr *)&sin, sizeof(sin))==-1 && errno != EINPROGRESS)
 	{
-		perror("connect");
+		LOG_MSG_STDERR(xine, _("connect(): %s\n"), strerror(errno));
 		close(s);
 		return -1;
 	}	
@@ -110,7 +133,7 @@ static int host_connect_attempt(struct in_addr ia, int port) {
 			return -1;
 		case -1:
 			/* Ermm.. ?? */
-			perror("select");
+			LOG_MSG(xine, _("select(): %s\n"), strerror(errno));
 			close(s);
 			return -1;
 	}
@@ -118,7 +141,7 @@ static int host_connect_attempt(struct in_addr ia, int port) {
 	return s;
 }
 
-static int host_connect(const char *host, int port) {
+static int host_connect(const char *host, int port, xine_t *xine) {
 	struct hostent *h;
 	int i;
 	int s;
@@ -126,7 +149,7 @@ static int host_connect(const char *host, int port) {
 	h=gethostbyname(host);
 	if(h==NULL)
 	{
-		fprintf(stderr,"unable to resolve '%s'.\n", host);
+		LOG_MSG_STDERR(xine, _("unable to resolve '%s'.\n"), host);
 		return -1;
 	}
 	
@@ -135,11 +158,11 @@ static int host_connect(const char *host, int port) {
 	{
 		struct in_addr ia;
 		memcpy(&ia, h->h_addr_list[i],4);
-		s=host_connect_attempt(ia, port);
+		s = host_connect_attempt(ia, port, xine);
 		if(s != -1)
 			return s;
 	}
-	fprintf(stderr, "unable to connect to '%s'.\n", host);
+	LOG_MSG_STDERR(xine, _("unable to connect to '%s'.\n"), host);
 	return -1;
 }
 /* **************************************************************** */
@@ -171,7 +194,7 @@ static int net_plugin_open (input_plugin_t *this_gen, char *mrl) {
   	sscanf(pptr,"%d", &port);
   }
 
-  this->fh = host_connect(filename, port);
+  this->fh = host_connect(filename, port, this->xine);
   this->curpos = 0;
 
   if (this->fh == -1) {
@@ -260,7 +283,7 @@ static void net_plugin_stop (input_plugin_t *this_gen) {
  *
  */
 static char *net_plugin_get_description (input_plugin_t *this_gen) {
-  return "net input plugin as shipped with xine";
+	return _("net input plugin as shipped with xine");
 }
 
 /*
@@ -297,16 +320,18 @@ input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
   config_values_t    *config;
 
   if (iface != 5) {
-    printf("net input plugin doesn't support plugin API version %d.\n"
-	   "PLUGIN DISABLED.\n"
-	   "This means there's a version mismatch between xine and this input"
-	   "plugin.\nInstalling current input plugins should help.\n",
-	   iface);
+    LOG_MSG(xine,
+	    _("net input plugin doesn't support plugin API version %d.\n"
+	      "PLUGIN DISABLED.\n"
+	      "This means there's a version mismatch between xine and this input"
+	      "plugin.\nInstalling current input plugins should help.\n"),
+	    iface);
     return NULL;
   }
 
   this       = (net_input_plugin_t *) xine_xmalloc(sizeof(net_input_plugin_t));
   config     = xine->config;
+  this->xine = xine;
 
   this->input_plugin.interface_version = INPUT_PLUGIN_IFACE_VERSION;
   this->input_plugin.get_capabilities  = net_plugin_get_capabilities;

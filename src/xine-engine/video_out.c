@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.60 2001/12/24 16:31:57 hrm Exp $
+ * $Id: video_out.c,v 1.61 2001/12/27 14:30:30 f1rmb Exp $
  *
  */
 
@@ -35,6 +35,26 @@
 #include "video_out.h"
 #include "xine_internal.h"
 #include "xineutils.h"
+
+#ifdef __GNUC__
+#define LOG_MSG_STDERR(xine, message, args...) {                     \
+    xine_log(xine, XINE_LOG_VIDEO, message, ##args);                 \
+    fprintf(stderr, message, ##args);                                \
+  }
+#define LOG_MSG(xine, message, args...) {                            \
+    xine_log(xine, XINE_LOG_VIDEO, message, ##args);                 \
+    printf(message, ##args);                                         \
+  }
+#else
+#define LOG_MSG_STDERR(xine, ...) {                                  \
+    xine_log(xine, XINE_LOG_VIDEO, __VAR_ARGS__);                    \
+    fprintf(stderr, __VA_ARGS__);                                    \
+  }
+#define LOG_MSG(xine, ...) {                                         \
+    xine_log(xine, XINE_LOG_VIDEO, __VAR_ARGS__);                    \
+    printf(__VA_ARGS__);                                             \
+  }
+#endif
 
 /*
 #define VIDEO_OUT_LOG
@@ -186,7 +206,7 @@ static void *video_out_loop (void *this_gen) {
   sigemptyset(&vo_mask);
   sigaddset(&vo_mask, SIGALRM);
   if (sigprocmask (SIG_UNBLOCK,  &vo_mask, NULL)) {
-    printf ("video_out: sigprocmask failed.\n");
+    LOG_MSG(this->xine, _("video_out: sigprocmask failed.\n"));
   }
 #if HAVE_SIGACTION
   {
@@ -248,9 +268,9 @@ static void *video_out_loop (void *this_gen) {
       absdiff = abs(diff);
       
       if (diff >this->pts_per_half_frame) {
-	printf ( "video_out : throwing away image with pts %d because "
-		 "it's too old (diff : %d > %d).\n",pts,diff,
-		 this->pts_per_half_frame);
+	LOG_MSG(this->xine, _("video_out : throwing away image with pts %d because "
+			      "it's too old (diff : %d > %d).\n"), 
+		pts, diff, this->pts_per_half_frame);
 
 	this->num_frames_discarded++;
 
@@ -387,7 +407,7 @@ static void *video_out_loop (void *this_gen) {
       if (img && !img->next) {
 	
 	if (img_backup) {
-	  printf("video_out : overwriting frame backup\n");
+	  LOG_MSG(this->xine, _("video_out : overwriting frame backup\n"));
 	  vo_append_to_img_buf_queue (this->free_img_buf_queue, img_backup);
 	}
         
@@ -491,15 +511,15 @@ static void vo_open (vo_instance_t *this) {
     if((err = pthread_create (&this->video_thread,
 			      &pth_attrs, video_out_loop, this)) != 0) {
 
-      printf ("video_out : can't create thread (%s)\n", strerror(err));
+      LOG_MSG(this->xine, _("video_out : can't create thread (%s)\n"), strerror(err));
       /* FIXME: how does this happen ? */
-      printf ("video_out : sorry, this should not happen. please restart xine.\n");
+      LOG_MSG(this->xine, _("video_out : sorry, this should not happen. please restart xine.\n"));
       exit(1);
     }
     else
-      printf ("video_out : thread created\n");
+      LOG_MSG(this->xine, _("video_out : thread created\n"));
   } else
-    printf ("video_out : vo_open : warning! video thread already running\n");
+    LOG_MSG(this->xine, _("video_out : vo_open : warning! video thread already running\n"));
 
 }
 
@@ -696,7 +716,7 @@ static int vo_frame_draw (vo_frame_t *img) {
 #endif
 
   if (img->display_locked) {
-    printf ("video_out : ALERT! frame is already locked for displaying\n");
+    LOG_MSG(this->xine, _("video_out : ALERT! frame is already locked for displaying\n"));
     return frames_to_skip;
   }
 
@@ -709,7 +729,7 @@ static int vo_frame_draw (vo_frame_t *img) {
       printf ("video_out : frame rejected, %d frames to skip\n", frames_to_skip);
 #endif
 
-      printf ("vo_frame_draw: rejected, %d frames to skip\n", frames_to_skip);
+      LOG_MSG(this->xine, _("vo_frame_draw: rejected, %d frames to skip\n"), frames_to_skip);
 
       pthread_mutex_lock (&img->mutex);
       img->display_locked = 0;
@@ -756,9 +776,9 @@ static int vo_frame_draw (vo_frame_t *img) {
    */
 
   if (this->num_frames_delivered>199) {
-    fprintf (stderr,
-	     "%d frames delivered, %d frames skipped, %d frames discarded\n", 
-            this->num_frames_delivered, this->num_frames_skipped, this->num_frames_discarded);
+    LOG_MSG_STDERR(this->xine,
+		   _("%d frames delivered, %d frames skipped, %d frames discarded\n"), 
+		   this->num_frames_delivered, this->num_frames_skipped, this->num_frames_discarded);
 
     this->num_frames_delivered = 0;
     this->num_frames_discarded = 0;

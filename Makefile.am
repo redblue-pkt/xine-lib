@@ -4,7 +4,7 @@
 
 AUTOMAKE_OPTIONS = 1.3
 
-SUBDIRS = doc m4 misc include src
+SUBDIRS = doc m4 intl po misc include src
 
 EXTRA_DIST = cvscompile.sh automake.diff \
              debian/README.Debian debian/changelog debian/control \
@@ -49,4 +49,4 @@ maintainer-clean-generic:
 	-rm -f Makefile.in configure acinclude.m4 aclocal.m4
 	-rm -f config.h.in stamp-h.in ltconfig ltmain.sh
 	-rm -f config.guess config.sub install-sh missing mkinstalldirs
-	-rm -f libtool-nofpic depcomp config.log
+	-rm -f libtool-nofpic depcomp config.log config.status

@@ -1,4 +1,4 @@
-dnl Configure paths for XINE
+nl Configure paths for XINE
 dnl
 dnl Copyright (C) 2001 Daniel Caujolle-Bert <segfault@club-internet.fr>
 dnl  
@@ -74,6 +74,7 @@ AC_ARG_ENABLE(xinetest,
       xine_script_dir=`$XINE_CONFIG $xine_config_args --scriptdir`
       xine_desktop_dir=`$XINE_CONFIG $xine_config_args --desktopdir`
       xine_plugin_dir=`$XINE_CONFIG $xine_config_args --plugindir`
+      xine_locale_dir=`$XINE_CONFIG $xine_config_args --localedir`
       dnl    if test "x$enable_xinetest" = "xyes" ; then
       ac_save_CFLAGS="$CFLAGS"
       ac_save_LIBS="$LIBS"

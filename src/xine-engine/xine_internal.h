@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.66 2001/12/24 00:45:03 guenter Exp $
+ * $Id: xine_internal.h,v 1.67 2001/12/27 14:30:30 f1rmb Exp $
  *
  */
 
@@ -50,6 +50,7 @@ extern "C" {
 #endif
 #include "osd.h"
 #include "scratch.h"
+#include "xineintl.h"
 
 #define INPUT_PLUGIN_MAX       50
 #define DEMUXER_PLUGIN_MAX     50
@@ -137,9 +138,14 @@ struct audio_decoder_s {
 /*
  * log output
  */
-#define XINE_LOG_MSG    0
-#define XINE_LOG_CODEC  1
-#define XINE_LOG_NUM    2 /* # of log buffers defined */
+#define XINE_LOG_MSG       0
+#define XINE_LOG_INPUT     1
+#define XINE_LOG_DEMUX     2
+#define XINE_LOG_CODEC     3
+#define XINE_LOG_VIDEO     4
+#define XINE_LOG_METRONOM  5
+#define XINE_LOG_PLUGIN    6
+#define XINE_LOG_NUM       7 /* # of log buffers defined */
 
 typedef void (*xine_event_listener_t) (void *user_data, xine_event_t *);
 

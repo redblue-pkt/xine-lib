@@ -115,6 +115,20 @@ AC_SUBST(STATIC)
 
 
 dnl
+dnl NLS Support
+dnl
+dnl ALL_LINGUAS="cs da de el en@quot en@boldquot es et fr gl id it ja ko nl nn no pl pt pt_BR ru sl sv tr zh"
+ALL_LINGUAS="fr"
+AM_GNU_GETTEXT(use-libtool)
+AC_LINK_FILES($nls_cv_header_libgt, $nls_cv_header_intl)
+AM_CONDITIONAL(INCLUDED_INTL, test x$USE_INCLUDED_LIBINTL = "xyes")
+if test x"$USE_INCLUDED_LIBINTL" = x"yes"; then
+   INTLDIR="-I\$(top_builddir)/intl -I\$(top_srcdir)/intl"
+fi
+AC_SUBST(INTLDIR)
+
+
+dnl
 dnl Check for assembler (ffmpeg need it), don't call this before LIBTOOL
 dnl
 AM_PROG_AS
@@ -716,11 +730,16 @@ eval XINE_FONTPATH="$XINE_FONTDIR"
 AC_DEFINE_UNQUOTED(XINE_FONTDIR,"$XINE_FONTPATH")
 AC_SUBST(XINE_FONTPATH)
 
+XINE_LOCALEDIR="${datadir}/locale"
+eval XINE_LOCALEPATH="$XINE_LOCALEDIR"
+AC_DEFINE_UNQUOTED(XINE_LOCALEDIR, "$XINE_LOCALEPATH")
+AC_SUBST(XINE_LOCALEPATH)
 
 AC_SUBST(XINE_PLUGINDIR)
 AC_SUBST(XINE_DEMUXDIR)
 AC_SUBST(XINE_SKINDIR)
 AC_SUBST(XINE_FONTDIR)
+AC_SUBST(XINE_LOCALEDIR)
 
 
 dnl Where scripts will/should be installed.
@@ -753,7 +772,7 @@ AC_SUBST(w32_path)
 dnl
 dnl Some include paths ( !!! DO NOT REMOVE !!! )
 dnl
-INCLUDES='-I$(top_srcdir) -I$(top_builddir) -I$(top_srcdir)/src -I$(top_builddir)/src -I$(top_srcdir)/src/xine-engine -I$(top_builddir)/src/xine-engine -I$(top_srcdir)/src/xine-utils -I$(top_builddir)/src/xine-utils'
+INCLUDES='-I$(top_srcdir) -I$(top_builddir) -I$(top_srcdir)/src -I$(top_builddir)/src -I$(top_srcdir)/src/xine-engine -I$(top_builddir)/src/xine-engine -I$(top_srcdir)/src/xine-utils -I$(top_builddir)/src/xine-utils $(INTLDIR)'
 AC_SUBST(INCLUDES)
 
 
@@ -828,7 +847,9 @@ misc/guenter.spec
 misc/SlackBuild
 misc/guenter_rpms.sh
 misc/build_rpms.sh
-misc/fonts/Makefile],
+misc/fonts/Makefile
+intl/Makefile
+po/Makefile.in],
 [chmod +x ./misc/SlackBuild ./misc/build_rpms.sh ./misc/guenter_rpms.sh; rm -f include/xine.h; echo '/* !! DO NO EDIT THIS FILE, it is automatically generated */' > include/xine.h && cat include/xine.h.tmpl >> include/xine.h])
 
 dnl

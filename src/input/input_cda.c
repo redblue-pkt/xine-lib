@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_cda.c,v 1.12 2001/12/14 21:03:03 f1rmb Exp $
+ * $Id: input_cda.c,v 1.13 2001/12/27 14:30:30 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -69,6 +69,8 @@
 #include "xineutils.h"
 #include "input_plugin.h"
 
+extern int errno;
+
 /*
 #define DEBUG_DISC
 #define DEBUG_POS
@@ -81,6 +83,26 @@
 #else
 #define _ENTER_FUNC()
 #define _LEAVE_FUNC()
+#endif
+
+#ifdef __GNUC__
+#define LOG_MSG_STDERR(xine, message, args...) {                     \
+    xine_log(xine, XINE_LOG_INPUT, message, ##args);                 \
+    fprintf(stderr, message, ##args);                                \
+  }
+#define LOG_MSG(xine, message, args...) {                            \
+    xine_log(xine, XINE_LOG_INPUT, message, ##args);                 \
+    printf(message, ##args);                                         \
+  }
+#else
+#define LOG_MSG_STDERR(xine, ...) {                                  \
+    xine_log(xine, XINE_LOG_INPUT, __VAR_ARGS__);                    \
+    fprintf(stderr, __VA_ARGS__);                                    \
+  }
+#define LOG_MSG(xine, ...) {                                         \
+    xine_log(xine, XINE_LOG_INPUT, __VAR_ARGS__);                    \
+    printf(__VA_ARGS__);                                             \
+  }
 #endif
 
 #if defined(__sun)
@@ -115,6 +137,7 @@ typedef struct {
 } trackinfo_t;
 
 typedef struct {
+  xine_t       *xine;
   int           fd;
   char         *device_name;
   int           cur_track;
@@ -435,7 +458,7 @@ static int _cda_load_cached_cddb_infos(cda_input_plugin_t *this) {
 	
 	sprintf(cdir, "%s/%s", cdir, discid);
 	if((fd = fopen(cdir, "r")) == NULL) {
-	  fprintf(stderr, "input_cda: fopen(%s) failed: %s\n", cdir, strerror(errno));
+	  LOG_MSG_STDERR(this->xine, _("input_cda: fopen(%s) failed: %s\n"), cdir, strerror(errno));
 	  closedir(dir);
 	  return 0;
 	}
@@ -493,7 +516,7 @@ static void _cda_save_cached_cddb_infos(cda_input_plugin_t *this, char *filecont
   sprintf(cfile, "%s/%08lx", this->cddb.cache_dir, this->cda->disc_id);
   
   if((fd = fopen(cfile, "w")) == NULL) {
-    fprintf(stderr, "input_cda: fopen(%s) failed: %s\n", cfile, strerror(errno));
+    LOG_MSG(this->xine, _("input_cda: fopen(%s) failed: %s\n"), cfile, strerror(errno));
     return;
   }
   else {
@@ -583,12 +606,12 @@ static void _cda_cddb_retrieve(cda_input_plugin_t *this) {
     
     this->cddb.fd = _cda_cddb_socket_open(this);
     if(this->cddb.fd >= 0) {
-      printf("input_cda: server '%s:%d' successfuly connected.\n", 
+      LOG_MSG(this->xine, _("input_cda: server '%s:%d' successfuly connected.\n"), 
 	     this->cddb.server, this->cddb.port);
       
     }
     else {
-      printf("input_cda: opening server '%s:%d' failed: %s\n", 
+      LOG_MSG(this->xine, _("input_cda: opening server '%s:%d' failed: %s\n"), 
 	     this->cddb.server, this->cddb.port, strerror(errno));
       this->cda->have_cddb_info = 0;
       return;
@@ -757,7 +780,7 @@ static int _cda_is_cd_changed(cdainfo_t *cda) {
     return -1;
   
   if((err = ioctl(cda->fd, CDROM_MEDIA_CHANGED, cd_changed)) < 0) {
-    fprintf(stderr, "input_cda: ioctl(CDROM_MEDIA_CHANGED) failed: %s.\n", strerror(errno));
+    LOG_MSG_STDERR(this->xine, _("input_cda: ioctl(CDROM_MEDIA_CHANGED) failed: %s.\n"), strerror(errno));
     return -1;
   }
   
@@ -824,7 +847,7 @@ static int _cda_get_status_cd(cdainfo_t *cda) {
  
   if(ioctl(cda->fd, CDROMSUBCHNL, &sc) < 0) {
 #endif
-    fprintf(stderr, "input_cda: ioctl(CDROMSUBCHNL) failed: %s.\n", strerror(errno));
+    LOG_MSG_STDERR(cda->xine, _("input_cda: ioctl(CDROMSUBCHNL) failed: %s.\n"), strerror(errno));
     return 0;
   }
 
@@ -959,25 +982,25 @@ static int _cda_play_chunk_cd(cdainfo_t *cda, int start, int end) {
   
 #ifdef CDIOCSTART
   if(ioctl(cda->fd, CDIOCSTART) < 0) {
-    fprintf(stderr, "input_cda: ioctl(CDIOCSTART) failed: %s.\n", strerror(errno));
+    LOG_MSG_STDERR(cda->xine, _("input_cda: ioctl(CDIOCSTART) failed: %s.\n"), strerror(errno));
     return 0;
   }
 #endif
 #ifdef CDROMSTART
   if (ioctl(cda->fd, CDROMSTART)) {
-    fprintf(stderr, "input_cda: ioctl(CDROMSTART) failed: %s.\n", strerror(errno));
+    LOG_MSG_STDERR(cda->xine, _("input_cda: ioctl(CDROMSTART) failed: %s.\n"), strerror(errno));
     return 0;
   }
 #endif
 #ifdef CDIOCPLAYMSF
   if(ioctl(cda->fd, CDIOCPLAYMSF, (char *)&cdmsf) < 0) {
-    fprintf(stderr, "input_cda: ioctl(CDIOCPLAYMSF) failed: %s.\n", strerror(errno));
+    LOG_MSG_STDERR(cda->xine, _("input_cda: ioctl(CDIOCPLAYMSF) failed: %s.\n"), strerror(errno));
     return 0;
   }
 #endif  
 #ifdef CDROMPLAYMSF
   if(ioctl(cda->fd, CDROMPLAYMSF, &msf)) {
-    fprintf(stderr, "input_cda: ioctl(CDROMPLAYMSF) failed: %s.\n", strerror(errno));
+    LOG_MSG_STDERR(cda->xine, _("input_cda: ioctl(CDROMPLAYMSF) failed: %s.\n"), strerror(errno));
     return 0;
   }
 #endif
@@ -998,10 +1021,10 @@ static int _cda_open_cd(cdainfo_t *cda) {
   if((cda->fd = open(cda->device_name, O_RDONLY)) < 0) {
 #endif  
     if(errno == EACCES) {
-      fprintf(stderr, "input_cda: No rights to open %s.\n", cda->device_name);
+      LOG_MSG_STDERR(cda->xine, _("input_cda: No rights to open %s.\n"), cda->device_name);
     }
     else if(errno != ENXIO) {
-      fprintf(stderr, "input_cda: open(%s) failed: %s.\n", cda->device_name, strerror(errno));
+      LOG_MSG_STDERR(cda->xine, _("input_cda: open(%s) failed: %s.\n"), cda->device_name, strerror(errno));
     }
     
     return 0;
@@ -1095,33 +1118,33 @@ static int _cda_eject_cd(cdainfo_t *cda) {
     switch(status) {
     case CDS_TRAY_OPEN:
       if((err = ioctl(cda->fd, CDROMCLOSETRAY)) != 0) {
-	fprintf(stderr, "input_cda: ioctl(CDROMCLOSETRAY) failed: %s\n", strerror(errno));  
+	LOG_MSG_STDERR(cda->xine, _("input_cda: ioctl(CDROMCLOSETRAY) failed: %s\n"), strerror(errno));  
       }
       break;
     case CDS_DISC_OK:
       if((err = ioctl(cda->fd, CDROMEJECT)) != 0) {
-	fprintf(stderr, "input_cda: ioctl(CDROMEJECT) failed: %s\n", strerror(errno));  
+	LOG_MSG_STDERR(cda->xine, _("input_cda: ioctl(CDROMEJECT) failed: %s\n"), strerror(errno));  
       }
       break;
     }
   }
   else {
-    fprintf(stderr, "input_cda: ioctl(CDROM_DRIVE_STATUS) failed: %s\n", strerror(errno));
+    LOG_MSG_STDERR(cda->xine, _("input_cda: ioctl(CDROM_DRIVE_STATUS) failed: %s\n"), strerror(errno));
     _cda_close_cd(cda);
     return 0;
   }
 #elif defined (__FreeBSD__)
   if(ioctl(cda->fd, CDIOCALLOW) == -1) {
-    fprintf(stderr, "input_cda: ioctl(CDROMALLOW) failed: %s\n", strerror(errno));
+    LOG_MSG_STDERR(cda->xine, _("input_cda: ioctl(CDROMALLOW) failed: %s\n"), strerror(errno));
   } 
   else {
     if(ioctl(cda->fd, CDIOCEJECT) == -1) {
-      fprintf(stderr, "input_cda: ioctl(CDROMEJECT) failed: %s\n", strerror(errno));
+      LOG_MSG_STDERR(cda->xine, _("input_cda: ioctl(CDROMEJECT) failed: %s\n"), strerror(errno));
     }
   }
 #elif defined (__sun)
   if((err = ioctl(cda->fd, CDROMEJECT)) != 0) {
-    fprintf(stderr, "input_cda: ioctl(CDROMEJECT) failed: %s\n", strerror(errno));  
+    LOG_MSG_STDERR(cda->xine, _("input_cda: ioctl(CDROMEJECT) failed: %s\n"), strerror(errno));  
   }
 #endif
 
@@ -1152,7 +1175,7 @@ static int _cda_read_toc_cd(cdainfo_t *cda) {
 
 #ifdef CDIOREADTOCHEADER
   if(ioctl(cda->fd, CDIOREADTOCHEADER, (char *)&cdth) < 0) {
-    fprintf(stderr, "input_cda: ioctl(CDIOREADTOCHEADER) failed: %s.\n", strerror(errno));
+    LOG_MSG_STDERR(cda->xine, _("input_cda: ioctl(CDIOREADTOCHEADER) failed: %s.\n"), strerror(errno));
     return 0;
   }
 
@@ -1160,7 +1183,7 @@ static int _cda_read_toc_cd(cdainfo_t *cda) {
 #endif
 #ifdef CDROMREADTOCHDR
   if(ioctl(cda->fd, CDROMREADTOCHDR, &hdr) < 0) {
-    fprintf(stderr, "input_cda: ioctl(CDROMREADTOCHDR) failed: %s.\n", strerror(errno));
+    LOG_MSG_STDERR(cda->xine, _("input_cda: ioctl(CDROMREADTOCHDR) failed: %s.\n"), strerror(errno));
     return 0;
   }
 
@@ -1197,7 +1220,7 @@ static int _cda_read_toc_cd(cdainfo_t *cda) {
   cdte.data_len       = sizeof(toc_buffer);
   
   if(ioctl(cda->fd, CDIOREADTOCENTRYS, (char *)&cdte) < 0) {
-    fprintf(stderr, "input_cda: ioctl(CDIOREADTOCENTRYS) failed: %s.\n", strerror(errno));
+    LOG_MSG_STDERR(cda->xine, _("input_cda: ioctl(CDIOREADTOCENTRYS) failed: %s.\n"), strerror(errno));
     return 0;
   }
   
@@ -1220,7 +1243,7 @@ static int _cda_read_toc_cd(cdainfo_t *cda) {
     entry.cdte_format = CDROM_MSF;
     
     if(ioctl(cda->fd, CDROMREADTOCENTRY, &entry))	{
-      fprintf(stderr, "input_cda: ioctl(CDROMREADTOCENTRY) failed: %s.\n", strerror(errno));
+      LOG_MSG_STDERR(cda->xine, _("input_cda: ioctl(CDROMREADTOCENTRY) failed: %s.\n"), strerror(errno));
       return 0;
     }
     cda->track[i].track  = i + 1;
@@ -1402,13 +1425,13 @@ static int cda_plugin_open (input_plugin_t *this_gen, char *mrl) {
   filename = (char *) &mrl[6];
   
   if(sscanf(filename, "%d", &this->cda->cur_track) != 1) {
-    fprintf(stderr, "input_cda: malformed MRL. Use cda://<track #>\n");
+    LOG_MSG_STDERR(this->xine, _("input_cda: malformed MRL. Use cda://<track #>\n"));
     _cda_free_cda(this->cda);
     return 0;
   }
   
   if((!this->cda->cur_track) || (this->cda->cur_track > this->cda->num_tracks)) {
-    fprintf(stderr, "input_cda: invalid track %d (valid range: 1 .. %d)\n",
+    LOG_MSG_STDERR(this->xine, _("input_cda: invalid track %d (valid range: 1 .. %d)\n"),
 	    this->cda->cur_track, this->cda->num_tracks - 1);
     _cda_free_cda(this->cda);
     return 0;
@@ -1491,7 +1514,7 @@ static off_t cda_plugin_seek (input_plugin_t *this_gen, off_t offset, int origin
     break;
     
   default:
-    fprintf (stderr, "input_cda: error seek to origin %d not implemented!\n",
+    LOG_MSG_STDERR(this->xine, _("input_cda: error seek to origin %d not implemented!\n"),
 	     origin);
     return 0;
   }
@@ -1604,7 +1627,7 @@ static void cda_plugin_stop (input_plugin_t *this_gen) {
 static char *cda_plugin_get_description (input_plugin_t *this_gen) {
   _ENTER_FUNC();
   _LEAVE_FUNC();
-  return "cd audio plugin as shipped with xine";
+  return _("cd audio plugin as shipped with xine");
 }
 
 /*
@@ -1778,11 +1801,12 @@ input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
   _ENTER_FUNC();
 
   if (iface != 5) {
-    printf("cda input plugin doesn't support plugin API version %d.\n"
-	   "PLUGIN DISABLED.\n"
-	   "This means there's a version mismatch between xine and this input"
-	   "plugin.\nInstalling current input plugins should help.\n",
-	   iface);
+    LOG_MSG(xine,
+	    _("cda input plugin doesn't support plugin API version %d.\n"
+	      "PLUGIN DISABLED.\n"
+	      "This means there's a version mismatch between xine and this input"
+	      "plugin.\nInstalling current input plugins should help.\n"),
+	    iface);
     return NULL;
   }
     
@@ -1819,6 +1843,7 @@ input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
   this->mrl            = NULL;
   
   this->cda            = (cdainfo_t *) xine_xmalloc(sizeof(cdainfo_t));
+  this->cda->xine      = xine;
   this->cda->cur_track = -1;
   this->cda->cur_pos   = -1;
   
