@@ -1,8 +1,10 @@
 /*
  * bitstream.c
- * Copyright (C) 1999-2001 Aaron Holtzman <aholtzma@ess.engr.uvic.ca>
+ * Copyright (C) 2000-2002 Michel Lespinasse <walken@zoy.org>
+ * Copyright (C) 1999-2000 Aaron Holtzman <aholtzma@ess.engr.uvic.ca>
  *
  * This file is part of a52dec, a free ATSC A-52 stream decoder.
+ * See http://liba52.sourceforge.net/ for updates.
  *
  * a52dec is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,28 +31,22 @@
 
 #define BUFFER_SIZE 4096
 
-static uint32_t * buffer_start;
-
-uint32_t bits_left;
-uint32_t current_word;
-
-void bitstream_set_ptr (uint8_t * buf)
+void a52_bitstream_set_ptr (a52_state_t * state, uint8_t * buf)
 {
     int align;
 
-    align = (int)buf & 3;
-    buffer_start = (uint32_t *) (buf - align);
-    bits_left = 0;
-    bitstream_get (align * 8);
+    align = (long)buf & 3;
+    state->buffer_start = (uint32_t *) (buf - align);
+    state->bits_left = 0;
+    bitstream_get (state, align * 8);
 }
 
-static inline void
-bitstream_fill_current()
+static inline void bitstream_fill_current (a52_state_t * state)
 {
     uint32_t tmp;
 
-    tmp = *(buffer_start++);
-    current_word = swab32 (tmp);
+    tmp = *(state->buffer_start++);
+    state->current_word = swab32 (tmp);
 }
 
 /*
@@ -62,38 +58,38 @@ bitstream_fill_current()
  * -ah
  */
 
-uint32_t
-bitstream_get_bh(uint32_t num_bits)
+uint32_t a52_bitstream_get_bh (a52_state_t * state, uint32_t num_bits)
 {
     uint32_t result;
 
-    num_bits -= bits_left;
-    result = (current_word << (32 - bits_left)) >> (32 - bits_left);
+    num_bits -= state->bits_left;
+    result = ((state->current_word << (32 - state->bits_left)) >>
+	      (32 - state->bits_left));
 
-    bitstream_fill_current();
+    bitstream_fill_current (state);
 
-    if(num_bits != 0)
-	result = (result << num_bits) | (current_word >> (32 - num_bits));
-	
-    bits_left = 32 - num_bits;
+    if (num_bits != 0)
+	result = (result << num_bits) | (state->current_word >> (32 - num_bits));
+
+    state->bits_left = 32 - num_bits;
 
     return result;
 }
 
-int32_t
-bitstream_get_bh_2(uint32_t num_bits)
+int32_t a52_bitstream_get_bh_2 (a52_state_t * state, uint32_t num_bits)
 {
     int32_t result;
 
-    num_bits -= bits_left;
-    result = (((int32_t)current_word) << (32 - bits_left)) >> (32 - bits_left);
+    num_bits -= state->bits_left;
+    result = ((((int32_t)state->current_word) << (32 - state->bits_left)) >>
+	      (32 - state->bits_left));
 
-    bitstream_fill_current();
+    bitstream_fill_current(state);
 
-    if(num_bits != 0)
-	result = (result << num_bits) | (current_word >> (32 - num_bits));
+    if (num_bits != 0)
+	result = (result << num_bits) | (state->current_word >> (32 - num_bits));
 	
-    bits_left = 32 - num_bits;
+    state->bits_left = 32 - num_bits;
 
     return result;
 }

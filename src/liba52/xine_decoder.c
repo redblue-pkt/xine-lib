@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.28 2002/07/05 17:32:02 mroi Exp $
+ * $Id: xine_decoder.c,v 1.29 2002/08/28 20:27:56 mroi Exp $
  *
  * stuff needed to turn liba52 into a xine decoder plugin
  */
@@ -58,7 +58,7 @@ typedef struct a52dec_decoder_s {
   int              frame_length, frame_todo;
   uint16_t         syncword;
 
-  a52_state_t      a52_state;
+  a52_state_t     *a52_state;
   int              a52_flags;
   int              a52_bit_rate;
   int              a52_sample_rate;
@@ -67,8 +67,6 @@ typedef struct a52dec_decoder_s {
 
   int              a52_flags_map[11];
   int              ao_flags_map[11];
-
-  sample_t        *samples, *samples_base;
 
   ao_instance_t	  *audio_out;
   int              audio_caps;
@@ -154,8 +152,8 @@ void a52dec_init (audio_decoder_t *this_gen, ao_instance_t *audio_out) {
   this->output_open   = 0;
   this->pts           = 0;
 
-  if( !this->samples )
-    this->samples = a52_init (xine_mm_accel(), &this->samples_base);
+  if( !this->a52_state )
+    this->a52_state = a52_init (xine_mm_accel());
 
   /*
    * find out if this driver supports a52 output
@@ -275,6 +273,7 @@ static void a52dec_decode_frame (a52dec_decoder_t *this, int64_t pts) {
     sample_t         level = this->a52_level;
     audio_buffer_t  *buf;
     int16_t         *int_samples;
+    sample_t        *samples = a52_samples(this->a52_state);
     
     /* 
      * oki, decode this frame in software
@@ -284,7 +283,7 @@ static void a52dec_decode_frame (a52dec_decoder_t *this, int64_t pts) {
     
     a52_output_flags = this->a52_flags_map[this->a52_flags & A52_CHANNEL_MASK];
     
-    if (a52_frame (&this->a52_state, 
+    if (a52_frame (this->a52_state, 
 		   this->frame_buffer, 
 		   &a52_output_flags,
 		   &level, 384)) {
@@ -293,7 +292,7 @@ static void a52dec_decode_frame (a52dec_decoder_t *this, int64_t pts) {
     }
     
     if (this->disable_dynrng)
-      a52_dynrng (&this->a52_state, NULL, NULL);
+      a52_dynrng (this->a52_state, NULL, NULL);
 
     this->have_lfe = a52_output_flags & A52_LFE;
     if (this->have_lfe)
@@ -334,7 +333,7 @@ static void a52dec_decode_frame (a52dec_decoder_t *this, int64_t pts) {
     buf->num_frames = 256*6;
 
     for (i = 0; i < 6; i++) {
-      if (a52_block (&this->a52_state, this->samples)) {
+      if (a52_block (this->a52_state)) {
 	printf ("liba52: a52_block error\n");
 	buf->num_frames = 0;
 	break; 
@@ -342,32 +341,32 @@ static void a52dec_decode_frame (a52dec_decoder_t *this, int64_t pts) {
       
       switch (output_mode) {
       case AO_CAP_MODE_MONO:
-	float_to_int (&this->samples[0], int_samples+(i*256), 1);
+	float_to_int (&samples[0], int_samples+(i*256), 1);
 	break;
       case AO_CAP_MODE_STEREO:
-	float_to_int (&this->samples[0*256], int_samples+(i*256*2), 2);
-	float_to_int (&this->samples[1*256], int_samples+(i*256*2)+1, 2);
+	float_to_int (&samples[0*256], int_samples+(i*256*2), 2);
+	float_to_int (&samples[1*256], int_samples+(i*256*2)+1, 2);
 	break;
       case AO_CAP_MODE_4CHANNEL:
-	float_to_int (&this->samples[0*256], int_samples+(i*256*4),   4); /*  L */
-	float_to_int (&this->samples[1*256], int_samples+(i*256*4)+1, 4); /*  R */
-	float_to_int (&this->samples[2*256], int_samples+(i*256*4)+2, 4); /* RL */
-	float_to_int (&this->samples[3*256], int_samples+(i*256*4)+3, 4); /* RR */
+	float_to_int (&samples[0*256], int_samples+(i*256*4),   4); /*  L */
+	float_to_int (&samples[1*256], int_samples+(i*256*4)+1, 4); /*  R */
+	float_to_int (&samples[2*256], int_samples+(i*256*4)+2, 4); /* RL */
+	float_to_int (&samples[3*256], int_samples+(i*256*4)+3, 4); /* RR */
 	break;
       case AO_CAP_MODE_5CHANNEL:
-	float_to_int (&this->samples[0*256], int_samples+(i*256*5)+0, 5); /*  L */
-	float_to_int (&this->samples[1*256], int_samples+(i*256*5)+4, 5); /*  C */
-	float_to_int (&this->samples[2*256], int_samples+(i*256*5)+1, 5); /*  R */
-	float_to_int (&this->samples[3*256], int_samples+(i*256*5)+2, 5); /* RL */
-	float_to_int (&this->samples[4*256], int_samples+(i*256*5)+3, 5); /* RR */
+	float_to_int (&samples[0*256], int_samples+(i*256*5)+0, 5); /*  L */
+	float_to_int (&samples[1*256], int_samples+(i*256*5)+4, 5); /*  C */
+	float_to_int (&samples[2*256], int_samples+(i*256*5)+1, 5); /*  R */
+	float_to_int (&samples[3*256], int_samples+(i*256*5)+2, 5); /* RL */
+	float_to_int (&samples[4*256], int_samples+(i*256*5)+3, 5); /* RR */
 	break;
       case AO_CAP_MODE_5_1CHANNEL:
-	float_to_int (&this->samples[0*256], int_samples+(i*256*6)+5, 6); /* lfe */
-	float_to_int (&this->samples[1*256], int_samples+(i*256*6)+0, 6); /*   L */
-	float_to_int (&this->samples[2*256], int_samples+(i*256*6)+4, 6); /*   C */
-	float_to_int (&this->samples[3*256], int_samples+(i*256*6)+1, 6); /*   R */
-	float_to_int (&this->samples[4*256], int_samples+(i*256*6)+2, 6); /*  RL */
-	float_to_int (&this->samples[5*256], int_samples+(i*256*6)+3, 6); /*  RR */
+	float_to_int (&samples[0*256], int_samples+(i*256*6)+5, 6); /* lfe */
+	float_to_int (&samples[1*256], int_samples+(i*256*6)+0, 6); /*   L */
+	float_to_int (&samples[2*256], int_samples+(i*256*6)+4, 6); /*   C */
+	float_to_int (&samples[3*256], int_samples+(i*256*6)+1, 6); /*   R */
+	float_to_int (&samples[4*256], int_samples+(i*256*6)+2, 6); /*  RL */
+	float_to_int (&samples[5*256], int_samples+(i*256*6)+3, 6); /*  RR */
 	break;
       default:
 	printf ("liba52: help - unsupported mode %08x\n", output_mode);
@@ -521,12 +520,10 @@ void a52dec_close (audio_decoder_t *this_gen) {
   if (this->output_open) 
     this->audio_out->close (this->audio_out);
 
-  if( this->samples ) {
-    free (this->samples_base);
-    this->samples = NULL;
-  }
-  
   this->output_open = 0;
+  
+  a52_free(this->a52_state);
+  this->a52_state = NULL;
 
 #ifdef DEBUG_A52
   close (a52file); 

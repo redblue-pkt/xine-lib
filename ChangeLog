@@ -15,6 +15,7 @@ xine-lib (next version) [someone fill in stability and urgency]
   * icecast/shoutcast support
   * dvd raw device support
   * decode id3v1 tags in mp3 files 
+  * updated internal liba52 to version 0.7.4
 	
 xine-lib (0.9.13) unstable; urgency=low
 

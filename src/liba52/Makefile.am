@@ -9,7 +9,7 @@ libdir = $(XINE_PLUGINDIR)
 lib_LTLIBRARIES = xineplug_decode_a52.la
 
 xineplug_decode_a52_la_SOURCES =  bitstream.c bit_allocate.c \
-	parse.c downmix.c imdct.c imdct_mlib.c \
+	parse.c downmix.c imdct.c \
 	xine_decoder.c
 xineplug_decode_a52_la_LDFLAGS = -avoid-version -module
 
