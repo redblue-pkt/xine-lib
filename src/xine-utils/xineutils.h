@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xineutils.h,v 1.50 2003/05/20 13:54:57 mroi Exp $
+ * $Id: xineutils.h,v 1.51 2003/05/31 13:54:27 miguelfreitas Exp $
  *
  */
 #ifndef XINEUTILS_H
@@ -770,6 +770,12 @@ extern void (*yuv411_to_yv12)
   (unsigned char *y_src, int y_src_pitch, unsigned char *y_dest, int y_dest_pitch,
    unsigned char *u_src, int u_src_pitch, unsigned char *u_dest, int u_dest_pitch,
    unsigned char *v_src, int v_src_pitch, unsigned char *v_dest, int v_dest_pitch,
+   int width, int height);
+extern void (*yv12_to_yuy2)
+  (unsigned char *y_src, int y_src_pitch, 
+   unsigned char *u_src, int u_src_pitch, 
+   unsigned char *v_src, int v_src_pitch, 
+   unsigned char *yuy2_map, int yuy2_pitch,
    int width, int height);
 
 #define SCALEFACTOR 65536
