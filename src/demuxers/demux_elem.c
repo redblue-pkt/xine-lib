@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_elem.c,v 1.54 2002/10/26 22:00:51 guenter Exp $
+ * $Id: demux_elem.c,v 1.55 2002/10/27 04:14:27 tmmm Exp $
  *
  * demultiplexer for elementary mpeg streams
  * 
@@ -42,15 +42,11 @@
 
 #define NUM_PREVIEW_BUFFERS 50
 
-#define DEMUX_MPEG_ELEM_IFACE_VERSION 1
-
-#define VALID_ENDS  "mpv"
-
 typedef struct {  
 
   demux_plugin_t      demux_plugin;
 
-  xine_t              *xine;
+  xine_stream_t       *stream;
 
   config_values_t     *config;
 
@@ -69,8 +65,19 @@ typedef struct {
   int                  send_end_buffers;
 
   uint8_t              scratch[4096];
+
+  char                 last_mrl[1024];
 } demux_mpeg_elem_t ;
 
+typedef struct {
+
+  demux_class_t     demux_class;
+
+  /* class-wide, global variables here */
+
+  xine_t           *xine;
+  config_values_t  *config;
+} demux_mpeg_elem_class_t;
 
 static int demux_mpeg_elem_next (demux_mpeg_elem_t *this, int preview_mode) {
   buf_element_t *buf;
@@ -129,7 +136,7 @@ static void *demux_mpeg_elem_loop (void *this_gen) {
   this->status = DEMUX_FINISHED;
 
   if (this->send_end_buffers) {
-    xine_demux_control_end(this->xine, BUF_FLAG_END_STREAM);
+    xine_demux_control_end(this->stream, BUF_FLAG_END_STREAM);
   }
 
   this->thread_running = 0;
@@ -137,7 +144,6 @@ static void *demux_mpeg_elem_loop (void *this_gen) {
 
   pthread_exit(NULL);
 }
-
 
 static void demux_mpeg_elem_stop (demux_plugin_t *this_gen) {
 
@@ -158,9 +164,9 @@ static void demux_mpeg_elem_stop (demux_plugin_t *this_gen) {
   pthread_mutex_unlock( &this->mutex );
   pthread_join (this->thread, &p);
 
-  xine_demux_flush_engine(this->xine);
+  xine_demux_flush_engine(this->stream);
 
-  xine_demux_control_end(this->xine, BUF_FLAG_END_USER);
+  xine_demux_control_end(this->stream, BUF_FLAG_END_USER);
 }
 
 static int demux_mpeg_elem_get_status (demux_plugin_t *this_gen) {
@@ -170,18 +176,20 @@ static int demux_mpeg_elem_get_status (demux_plugin_t *this_gen) {
 }
 
 
-static int demux_elem_send_headers (demux_mpeg_elem_t *this) {
+static void demux_mpeg_elem_send_headers (demux_plugin_t *this_gen) {
+
+  demux_mpeg_elem_t *this = (demux_mpeg_elem_t *) this_gen;
 
   pthread_mutex_lock (&this->mutex);
 
-  this->video_fifo  = this->xine->video_fifo;
-  this->audio_fifo  = this->xine->audio_fifo;
+  this->video_fifo  = this->stream->video_fifo;
+  this->audio_fifo  = this->stream->audio_fifo;
 
   this->blocksize = this->input->get_blocksize(this->input);
   if (!this->blocksize)
     this->blocksize = 2048;
   
-  xine_demux_control_start(this->xine);
+  xine_demux_control_start(this->stream);
   
   if ((this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) != 0) {
     int num_buffers = NUM_PREVIEW_BUFFERS;
@@ -195,11 +203,9 @@ static int demux_elem_send_headers (demux_mpeg_elem_t *this) {
     }
   }
 
-  xine_demux_control_headers_done (this->xine);
+  xine_demux_control_headers_done (this->stream);
 
   pthread_mutex_unlock (&this->mutex);
-
-  return DEMUX_CAN_HANDLE;
 }
 
 static int demux_mpeg_elem_start (demux_plugin_t *this_gen,
@@ -211,12 +217,10 @@ static int demux_mpeg_elem_start (demux_plugin_t *this_gen,
 
   pthread_mutex_lock( &this->mutex );
 
-  printf ("demux_elem: start\n");
-  
   this->status = DEMUX_OK;
 
   if (this->thread_running) 
-    xine_demux_flush_engine(this->xine);
+    xine_demux_flush_engine(this->stream);
 
   
   if ((this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) != 0) {
@@ -226,8 +230,6 @@ static int demux_mpeg_elem_start (demux_plugin_t *this_gen,
     this->input->seek (this->input, start_pos, SEEK_SET);
   }
   
-  printf ("demux_elem: seek done\n");
-
   /*
    * now start demuxing
    */
@@ -235,13 +237,11 @@ static int demux_mpeg_elem_start (demux_plugin_t *this_gen,
 
   if( !this->thread_running ) {
 
-    printf ("demux_elem: start thread\n");
-
     this->send_end_buffers = 1;
     this->thread_running = 1;
     if ((err = pthread_create (&this->thread,
 			     NULL, demux_mpeg_elem_loop, this)) != 0) {
-      printf ("demux_elem: can't create new thread (%s)\n",
+      printf ("demux_mpeg_elem: can't create new thread (%s)\n",
 	      strerror(err));
       abort();
     }
@@ -259,19 +259,53 @@ static int demux_mpeg_elem_seek (demux_plugin_t *this_gen,
   return demux_mpeg_elem_start (this_gen, start_pos, start_time);
 }
 
+static void demux_mpeg_elem_dispose (demux_plugin_t *this) {
 
-static int demux_mpeg_elem_open(demux_plugin_t *this_gen,
-				input_plugin_t *input, int stage) {
+  demux_mpeg_elem_stop(this);
 
-  demux_mpeg_elem_t *this = (demux_mpeg_elem_t *) this_gen;
+  free (this);
+}
 
-  switch(stage) {
-    
-  case STAGE_BY_CONTENT: {
+static int demux_mpeg_elem_get_stream_length(demux_plugin_t *this_gen) {
+  return 0 ; /*FIXME: implement */
+}
+
+static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *stream,
+                                    input_plugin_t *input_gen) {
+
+  input_plugin_t *input = (input_plugin_t *) input_gen;
+  demux_mpeg_elem_t *this;
+
+  if (! (input->get_capabilities(input) & INPUT_CAP_SEEKABLE)) {
+    printf(_("demux_elem.c: input not seekable, can not handle!\n"));
+    return NULL;
+  }
+
+  this         = xine_xmalloc (sizeof (demux_mpeg_elem_t));
+  this->stream = stream;
+  this->input  = input;
+
+  this->demux_plugin.send_headers      = demux_mpeg_elem_send_headers;
+  this->demux_plugin.start             = demux_mpeg_elem_start;
+  this->demux_plugin.seek              = demux_mpeg_elem_seek;
+  this->demux_plugin.stop              = demux_mpeg_elem_stop;
+  this->demux_plugin.dispose           = demux_mpeg_elem_dispose;
+  this->demux_plugin.get_status        = demux_mpeg_elem_get_status;
+  this->demux_plugin.get_stream_length = demux_mpeg_elem_get_stream_length;
+  this->demux_plugin.demux_class       = class_gen;
+
+  this->status = DEMUX_FINISHED;
+  pthread_mutex_init (&this->mutex, NULL);
+
+  switch (stream->content_detection_method) {
+
+  case METHOD_BY_CONTENT: {
     int bs = 4;
     
-    if(!input)
-      return DEMUX_CANNOT_HANDLE;
+    if(!input) {
+      free (this);
+      return NULL;
+    }
   
     if((input->get_capabilities(input) & INPUT_CAP_SEEKABLE) != 0) {
       input->seek(input, 0, SEEK_SET);
@@ -289,96 +323,87 @@ static int demux_mpeg_elem_open(demux_plugin_t *this_gen,
 	*/
 	
 	if (this->scratch[0] || this->scratch[1] 
-	    || (this->scratch[2] != 0x01) || (this->scratch[3] != 0xb3))
-	  return DEMUX_CANNOT_HANDLE;
+	    || (this->scratch[2] != 0x01) || (this->scratch[3] != 0xb3)) {
+          free (this);
+          return NULL;
+        }
 	
 	this->input = input;
-	return demux_elem_send_headers(this);
+        break;
       }
     }
-    return DEMUX_CANNOT_HANDLE;
+    return NULL;
   }
   break;
-  
-  case STAGE_BY_EXTENSION: {
-    char *suffix;
-    char *MRL;
-    char *m, *valid_ends;
 
-    MRL = input->get_mrl (input);
+  case METHOD_BY_EXTENSION: {
+    char *ending, *mrl;
 
-    suffix = strrchr(MRL, '.');
-    
-    if(suffix) {
-      xine_strdupa(valid_ends, (this->config->register_string(this->config,
-							      "mrl.ends_elem", VALID_ENDS,
-							      _("valid mrls ending for elementary demuxer"),
-							      NULL, 20, NULL, NULL)));
-      while((m = xine_strsep(&valid_ends, ",")) != NULL) { 
-	
-	while(*m == ' ' || *m == '\t') m++;
-	
-	if(!strcasecmp((suffix + 1), m)) {
-	  this->input = input;
-	  return demux_elem_send_headers(this);
-	}
-      }
+    mrl = input->get_mrl (input);
+
+    ending = strrchr(mrl, '.');
+
+    if (!ending) {
+      free (this);
+      return NULL;
     }
-    
-    return DEMUX_CANNOT_HANDLE;
+
+    if (strncasecmp (ending, ".mpv", 4)) {
+      free (this);
+      return NULL;
+    }
   }
+
   break;
-  
+
   default:
-    return DEMUX_CANNOT_HANDLE;
-    break;
+    free (this);
+    return NULL;
   }
-  
-  return DEMUX_CANNOT_HANDLE;
+
+  strncpy (this->last_mrl, input->get_mrl (input), 1024);
+
+  return &this->demux_plugin;
 }
 
-static char *demux_mpeg_elem_get_id(void) {
+static char *get_description (demux_class_t *this_gen) {
+  return "Elementary MPEG stream demux plugin";
+}
+
+static char *get_identifier (demux_class_t *this_gen) {
   return "MPEG_ELEM";
 }
 
-static char *demux_mpeg_elem_get_mimetypes(void) {
-  return "";
+static char *get_extensions (demux_class_t *this_gen) {
+  return "mpv";
 }
 
-static void demux_mpeg_elem_dispose (demux_plugin_t *this) {
+static char *get_mimetypes (demux_class_t *this_gen) {
+  return NULL;
+}
+
+static void class_dispose (demux_class_t *this_gen) {
+
+  demux_mpeg_elem_class_t *this = (demux_mpeg_elem_class_t *) this_gen;
+
   free (this);
 }
 
-static int demux_mpeg_elem_get_stream_length(demux_plugin_t *this_gen) {
-  return 0 ; /*FIXME: implement */
-}
+static void *init_plugin (xine_t *xine, void *data) {
 
-static void *init_demuxer_plugin (xine_t *xine, void *data) {
+  demux_mpeg_elem_class_t     *this;
 
-  demux_mpeg_elem_t *this;
-
-  this         = xine_xmalloc (sizeof (demux_mpeg_elem_t));
+  this         = xine_xmalloc (sizeof (demux_mpeg_elem_class_t));
   this->config = xine->config;
   this->xine   = xine;
 
-  (void*) this->config->register_string(this->config,
-					"mrl.ends_elem", VALID_ENDS,
-					_("valid mrls ending for elementary demuxer"),
-					NULL, 20, NULL, NULL);    
+  this->demux_class.open_plugin     = open_plugin;
+  this->demux_class.get_description = get_description;
+  this->demux_class.get_identifier  = get_identifier;
+  this->demux_class.get_mimetypes   = get_mimetypes;
+  this->demux_class.get_extensions  = get_extensions;
+  this->demux_class.dispose         = class_dispose;
 
-  this->demux_plugin.open              = demux_mpeg_elem_open;
-  this->demux_plugin.start             = demux_mpeg_elem_start;
-  this->demux_plugin.seek              = demux_mpeg_elem_seek;
-  this->demux_plugin.stop              = demux_mpeg_elem_stop;
-  this->demux_plugin.dispose           = demux_mpeg_elem_dispose;
-  this->demux_plugin.get_status        = demux_mpeg_elem_get_status;
-  this->demux_plugin.get_identifier    = demux_mpeg_elem_get_id;
-  this->demux_plugin.get_stream_length = demux_mpeg_elem_get_stream_length;
-  this->demux_plugin.get_mimetypes     = demux_mpeg_elem_get_mimetypes;
-  
-  this->status = DEMUX_FINISHED;
-  pthread_mutex_init( &this->mutex, NULL );
-  
   return this;
 }
 
@@ -388,6 +413,6 @@ static void *init_demuxer_plugin (xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_DEMUX, 11, "elem", XINE_VERSION_CODE, NULL, init_demuxer_plugin },
+  { PLUGIN_DEMUX, 14, "elem", XINE_VERSION_CODE, NULL, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
