@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.11 2003/07/08 12:24:40 heinchen Exp $
+ * $Id: xine_decoder.c,v 1.12 2003/07/13 18:36:34 heinchen Exp $
  *
  * xine decoder plugin using libtheora
  *
@@ -84,10 +84,19 @@ static void readin_op (theora_decoder_t *this, char* src, int size) {
 static void yuv2frame(yuv_buffer *yuv, vo_frame_t *frame, int offset_x, int offset_y) {
   int i;
   int crop_offset;
-  /*fixme - clarify if the frame must be copied or if there is a faster solution
-   like exchanging the pointers*/
 
-  /*copy yuv data onto the frame, respecting offsets*/
+  /* fixme - direct rendering (exchaning pointers) may be possible.
+   * frame->base[0] = yuv->y could work if one could change the
+   * pitches[0,1,2] values, and rely on the drawing routine using
+   * the new pitches. With cropping and offsets, it's a bit trickier,
+   * but it would still be possible.
+   * Attempts at doing this have yielded nothing but SIGSEVs so far.
+   */
+
+  /* Copy yuv data onto the frame. Cropping and offset as specified
+   * by the frame_width, frame_height, offset_x and offset_y fields
+   * in the theora header is carried out.
+   */
 
   crop_offset=offset_x+yuv->y_stride*offset_y;
   for(i=0;i<frame->height;i++)
@@ -218,7 +227,7 @@ static void theora_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
       /*fixme - aspectratio from theora is not considered*/
       frame = this->stream->video_out->get_frame( this->stream->video_out,
 						  this->width, this->height,
-						  ASPECT_SQUARE,
+						  XINE_VO_ASPECT_SQUARE,
 						  XINE_IMGFMT_YV12,
 						  VO_BOTH_FIELDS);
       yuv2frame(&yuv, frame, this->offset_x, this->offset_y);
