@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.117 2002/12/06 18:38:40 miguelfreitas Exp $
+ * $Id: video_out.c,v 1.118 2002/12/16 18:57:49 miguelfreitas Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -307,6 +307,9 @@ static int vo_frame_draw (vo_frame_t *img, xine_stream_t *stream) {
   this->num_frames_delivered++;
 
   diff = pic_vpts - cur_vpts;
+  /* avoid division by zero */
+  if( img->duration <= 0 )
+    img->duration = 3000;
   frames_to_skip = ((-1 * diff) / img->duration + 3) * 2;
 
   if (frames_to_skip<0)
