@@ -21,7 +21,7 @@
  * For more information on the SMJPEG file format, visit:
  *   http://www.lokigames.com/development/smjpeg.php3
  *
- * $Id: demux_smjpeg.c,v 1.1 2002/07/07 01:24:40 tmmm Exp $
+ * $Id: demux_smjpeg.c,v 1.2 2002/07/10 06:28:19 pmhahn Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -409,7 +409,7 @@ this->video_type = BUF_VIDEO_JPEG;
         this->bih.biHeight);
     if (this->audio_type)
       xine_log (this->xine, XINE_LOG_FORMAT,
-        _("demux_smjpeg: '%c%c%c%c' audio @ %d Hz, %d bits, %d channel%c\n"),
+        _("demux_smjpeg: '%c%c%c%c' audio @ %d Hz, %d bits, %d %s\n"),
         *((char *)&this->audio_codec + 0),
         *((char *)&this->audio_codec + 1),
         *((char *)&this->audio_codec + 2),
@@ -417,7 +417,7 @@ this->video_type = BUF_VIDEO_JPEG;
         this->audio_sample_rate,
         this->audio_bits,
         this->audio_channels,
-        (this->audio_channels == 1) ? 0 : 's');
+        (this->audio_channels == 1) ? _("channel") : _("channels"));
 
     /* send start buffers */
     xine_demux_control_start(this->xine);

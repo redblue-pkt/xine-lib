@@ -20,7 +20,7 @@
  * MS WAV File Demuxer by Mike Melanson (melanson@pcisys.net)
  * based on WAV specs that are available far and wide
  *
- * $Id: demux_wav.c,v 1.2 2002/07/09 02:41:29 miguelfreitas Exp $
+ * $Id: demux_wav.c,v 1.3 2002/07/10 06:28:19 pmhahn Exp $
  *
  */
 
@@ -314,12 +314,12 @@ static int demux_wav_start (demux_plugin_t *this_gen,
 
     /* print vital stats */
     xine_log(this->xine, XINE_LOG_FORMAT,
-      _("demux_wav: format 0x%X audio, %d Hz, %d bits/sample, %d channel%c\n"),
+      _("demux_wav: format 0x%X audio, %d Hz, %d bits/sample, %d %s\n"),
       this->wave->wFormatTag,
       this->wave->nSamplesPerSec,
       this->wave->wBitsPerSample,
       this->wave->nChannels,
-      (this->wave->nChannels == 1) ? ' ' : 's');
+      (this->wave->nChannels == 1) ? _("channel") : _("channels"));
     xine_log(this->xine, XINE_LOG_FORMAT,
       _("demux_wav: running time = %d min, %d sec\n"),
       this->data_size / this->wave->nAvgBytesPerSec / 60,
