@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.h,v 1.55 2003/04/23 14:11:08 tchamp Exp $
+ * $Id: audio_out.h,v 1.56 2003/07/22 09:36:03 mroi Exp $
  */
 #ifndef HAVE_AUDIO_OUT_H
 #define HAVE_AUDIO_OUT_H
@@ -90,7 +90,7 @@ struct ao_driver_s {
    * write audio data to output buffer 
    * audio driver must sync sample playback with metronom
    * return value: 
-   *   1 => audio samples were processed ok
+   *  >0 => audio samples were processed ok
    *   0 => audio samples were not yet processed, 
    *        call write_audio_data with the _same_ samples again
    */
