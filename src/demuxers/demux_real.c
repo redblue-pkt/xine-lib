@@ -31,7 +31,7 @@
  *   
  *   Based on FFmpeg's libav/rm.c.
  *
- * $Id: demux_real.c,v 1.84 2004/01/15 20:13:46 jstembridge Exp $
+ * $Id: demux_real.c,v 1.85 2004/01/25 18:08:56 jstembridge Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -1178,20 +1178,18 @@ static int demux_real_send_chunk(demux_plugin_t *this_gen) {
     check_newpts (this, pts, PTS_AUDIO, 0);
     
     /* Each packet of AAC is made up of several AAC frames preceded by a
-     * list of the sizes of these frames - just read through the list of
-     * sizes as faad doesn't need it and then send all the AAC frames
-     * together */
+     * header defining the size of the frames - just skip over the header
+     * and pass the concatenated AAC frames to the decoder together */
     if(this->audio_stream->buf_type == BUF_AUDIO_AAC) {
-      int n = 0;
+      int frames;
       
-      /* First two bytes contain unknown value */
-      size -= 2;      
-      stream_read_word(this);
+      /* Upper 4 bits of second byte is frame count */
+      frames = (stream_read_word(this) & 0xf0) >> 4;
       
-      while(n < size) {
-        n    += stream_read_word(this);
-        size -= 2;
-      }
+      /* 2 bytes per frame size */
+      this->input->seek(this->input, 2*frames, SEEK_CUR);
+      
+      size -= 2 + 2*frames;
     }
         
     if(_x_demux_read_send_data(this->audio_fifo, this->input, size, pts, 
