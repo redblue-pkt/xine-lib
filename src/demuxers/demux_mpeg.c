@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg.c,v 1.71 2002/08/07 03:13:37 tmmm Exp $
+ * $Id: demux_mpeg.c,v 1.72 2002/08/25 00:29:49 tmattern Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  * reads streams of variable blocksizes
@@ -235,7 +235,7 @@ static void check_newpts( demux_mpeg_t *this, int64_t pts, int video )
 
   diff = pts - this->last_pts[video];
 
-  if( !this->preview_mode && pts &&
+  if( !this->preview_mode && (pts || this->buf_flag_seek) &&
       (this->send_newpts || (this->last_pts[video] && abs(diff)>WRAP_THRESHOLD) ) ) {
 
     if (this->buf_flag_seek) {
