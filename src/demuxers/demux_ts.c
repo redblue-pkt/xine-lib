@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ts.c,v 1.50 2002/06/12 12:22:33 f1rmb Exp $
+ * $Id: demux_ts.c,v 1.51 2002/06/21 20:01:48 miguelfreitas Exp $
  *
  * Demultiplexer for MPEG2 Transport Streams.
  *
@@ -87,7 +87,7 @@
 #include "xineutils.h"
 #include "demux.h"
 
-#define VALID_MRLS   "fifo,stdin,dvb"
+#define VALID_MRLS   "fifo,stdin,dvb,tcp"
 #define VALID_ENDS   "m2t,ts,trp"
 
 #ifdef __GNUC__
@@ -159,8 +159,10 @@ typedef struct {
   int64_t          pts;
   buf_element_t   *buf;
   unsigned int     counter;
-  int corrupted_pes;
-  uint32_t buffered_bytes;
+  uint8_t          descriptor_tag;
+  int64_t          packet_count;
+  int              corrupted_pes;
+  uint32_t         buffered_bytes;
 
 } demux_ts_media;
 
@@ -203,6 +205,7 @@ typedef struct {
   int64_t          PCR;
   int64_t          last_PCR;
   unsigned int     pid;
+  unsigned int     pid_count;
   unsigned int     videoPid;
   unsigned int     audioPid;
   unsigned int     videoMedia;
@@ -414,8 +417,10 @@ static int demux_ts_parse_pes_header (demux_ts_media *m,
   uint32_t       header_len;
   int64_t        pts;
   uint32_t       stream_id;
+  int            pkt_len;
 
   p = buf;
+  pkt_len = packet_len;
 
   /* we should have a PES packet here */
 
@@ -475,11 +480,23 @@ static int demux_ts_parse_pes_header (demux_ts_media *m,
   if (stream_id == 0xbd) {
 
     int track, spu_id;
-
+      
+#ifdef LOG
+    printf ("demux_ts: audio buf = %02X %02X %02X %02X %02X %02X %02X %02X\n",
+	  p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7]);
+#endif
     track = p[0] & 0x0F; /* hack : ac3 track */
+    // we check the descriptor tag first because some stations
+    // do not include any of the ac3 header info in their audio tracks
+    // these "raw" streams may begin with a byte that looks like a stream type.
+    if((m->descriptor_tag == 0x81) ||    /* ac3 - raw */ 
+       (p[0] == 0x0B && p[1] == 0x77)) { /* ac3 - syncword */
+      m->content   = p;
+      m->size = packet_len;
+      m->type = BUF_AUDIO_A52;
+      return 1;
 
-    if ((p[0] & 0xE0) == 0x20) {
-
+    } else if ((p[0] & 0xE0) == 0x20) {
       spu_id = (p[0] & 0x1f);
 
       m->content   = p+1;
@@ -618,7 +635,8 @@ static void demux_ts_buffer_pes(demux_ts *this, unsigned char *ts,
 static void demux_ts_pes_new(demux_ts *this,
                              unsigned int mediaIndex,
                              unsigned int pid,
-                             fifo_buffer_t *fifo) {
+                             fifo_buffer_t *fifo,
+			     uint8_t descriptor) {
 
   demux_ts_media *m = &this->media[mediaIndex];
 
@@ -628,6 +646,7 @@ static void demux_ts_pes_new(demux_ts *this,
   if (m->buf != NULL) m->buf->free_buffer(m->buf);
   m->buf = NULL;
   m->counter = INVALID_CC;
+  m->descriptor_tag = descriptor;
   m->corrupted_pes = 1;
   m->buffered_bytes = 0;
 }
@@ -837,10 +856,11 @@ static void demux_ts_parse_pmt (demux_ts      *this,
 #ifdef TS_PMT_LOG
         printf ("demux_ts: PMT video pid %.4x\n", pid);
 #endif
-        demux_ts_pes_new(this, mediaIndex, pid, this->video_fifo);
+        demux_ts_pes_new(this, mediaIndex, pid, this->video_fifo,stream[0]);
+	this->videoMedia = mediaIndex;
+	this->videoPid = pid;
       }
-      this->videoPid = pid;
-      this->videoMedia = mediaIndex;
+
       break;
     case ISO_11172_AUDIO:
     case ISO_13818_AUDIO:
@@ -848,7 +868,7 @@ static void demux_ts_parse_pmt (demux_ts      *this,
 #ifdef TS_PMT_LOG
         printf ("demux_ts: PMT audio pid %.4x\n", pid);
 #endif
-        demux_ts_pes_new(this, mediaIndex, pid, this->audio_fifo);
+        demux_ts_pes_new(this, mediaIndex, pid, this->audio_fifo,stream[0]);
         this->audioPid = pid;
         this->audioMedia = mediaIndex;
       }
@@ -868,7 +888,7 @@ static void demux_ts_parse_pmt (demux_ts      *this,
 #ifdef TS_PMT_LOG
           printf ("demux_ts: PMT AC3 audio pid %.4x\n", pid);
 #endif
-          demux_ts_pes_new(this, mediaIndex, pid, this->audio_fifo);
+          demux_ts_pes_new(this, mediaIndex, pid, this->audio_fifo,stream[0]);
           this->audioPid = pid;
           this->audioMedia = mediaIndex;
           break;
@@ -884,10 +904,7 @@ static void demux_ts_parse_pmt (demux_ts      *this,
       printf ("\n");
 #endif
       if (this->audioPid == INVALID_PID) {
-#ifdef TS_PMT_LOG
-        printf ("demux_ts: PMT AC3 audio pid %.4x\n", pid);
-#endif
-        demux_ts_pes_new(this, mediaIndex, pid, this->audio_fifo);
+	demux_ts_pes_new(this, mediaIndex, pid, this->audio_fifo, stream[0]);
         this->audioPid = pid;
         this->audioMedia = mediaIndex;
       }
@@ -1411,12 +1428,13 @@ static int demux_ts_open(demux_plugin_t *this_gen, input_plugin_t *input,
       return DEMUX_CAN_HANDLE;
     }
 
+    
     if((input->get_capabilities(input) & INPUT_CAP_SEEKABLE) != 0) {
       input->seek(input, 0, SEEK_SET);
-
-      if(input->get_blocksize(input))
-       return DEMUX_CANNOT_HANDLE;
-
+      /* why is this a restriction ???      
+       if(input->get_blocksize(input))
+ 	return DEMUX_CANNOT_HANDLE;
+      */
       if(input->read(input, buf, 6)) {
 
        if(buf[0] == 0x47)
@@ -1431,6 +1449,7 @@ static int demux_ts_open(demux_plugin_t *this_gen, input_plugin_t *input,
 
       if(buf[0] == 0x47) {
 	this->input = input;
+        this->blockSize = PKT_SIZE;
 	return DEMUX_CAN_HANDLE;
       }
     }
