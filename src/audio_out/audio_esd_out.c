@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_esd_out.c,v 1.4 2001/06/24 23:08:42 guenter Exp $
+ * $Id: audio_esd_out.c,v 1.5 2001/06/25 08:46:55 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -181,7 +181,6 @@ static int ao_write_audio_data(ao_functions_t *this_gen,
   uint32_t         vpts, buffer_vpts;
   int32_t          gap;
   int              bDropPackage;
-  int              pos;
 
   if (this->audio_fd<0)
     return 1;
@@ -316,7 +315,6 @@ static int ao_set_property (ao_functions_t *this, int property, int value) {
 ao_functions_t *init_audio_out_plugin (config_values_t *config) {
 
   esd_functions_t *this;
-  int              caps;
   int              audio_fd;
 
   /*
