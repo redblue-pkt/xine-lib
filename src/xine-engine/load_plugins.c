@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.48 2001/10/23 21:33:41 f1rmb Exp $
+ * $Id: load_plugins.c,v 1.49 2001/10/23 21:51:11 jcdutton Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -753,7 +753,7 @@ ao_driver_t *xine_load_audio_output_plugin(config_values_t *config,
 	   && (pEntry->d_name[nLen-1]=='o'))) {
 	
 	sprintf (str, "%s/%s", XINE_PLUGINDIR, pEntry->d_name);
-	
+        /* RTLD_GLOBAL is needed when using ALSA09 */	
 	if(!(plugin = dlopen (str, RTLD_LAZY | RTLD_GLOBAL))) {
 	  printf("load_plugins: audio output plugin %s failed to link: %s\n",
 		 str, dlerror());

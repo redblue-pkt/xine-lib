@@ -35,7 +35,7 @@
  * along with this program; see the file COPYING.  If not, write to
  * the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: spu.c,v 1.18 2001/10/23 00:50:47 miguelfreitas Exp $
+ * $Id: spu.c,v 1.19 2001/10/23 21:51:11 jcdutton Exp $
  *
  */
 
@@ -51,6 +51,7 @@
 
 #include "spu.h"
 #include "video_out/alphablend.h"
+#include "monitor.h"
 
 #define LOG_DEBUG 1
 
@@ -76,8 +77,8 @@
 /* Return value: reassembly complete = 1 */
 int spu_reassembly (spu_seq_t *seq, int start, uint8_t *pkt_data, u_int pkt_len)
 {
-  LOG (LOG_DEBUG, "pkt_len: %d\n", pkt_len);
-  LOG (LOG_DEBUG, "Reassembly: start=%d seq=%p\n", start,seq);
+  xprintf (VERBOSE|SPU, "pkt_len: %d\n", pkt_len);
+  xprintf (VERBOSE|SPU, "Reassembly: start=%d seq=%p\n", start,seq);
 
   if (start) {
     seq->seq_len = (((u_int)pkt_data[0])<<8) | pkt_data[1];
@@ -92,8 +93,8 @@ int spu_reassembly (spu_seq_t *seq, int start, uint8_t *pkt_data, u_int pkt_len)
     }
     seq->ra_offs = 0;
     
-    LOG (LOG_DEBUG, "buf_len: %d\n", seq->buf_len);
-    LOG (LOG_DEBUG, "cmd_off: %d\n", seq->cmd_offs);
+    xprintf (VERBOSE|SPU, "buf_len: %d\n", seq->buf_len);
+    xprintf (VERBOSE|SPU, "cmd_off: %d\n", seq->cmd_offs);
   }
 
   if (seq->ra_offs < seq->buf_len) {
@@ -140,10 +141,10 @@ void spu_do_commands(spu_state_t *state, spu_seq_t* seq, vo_overlay_t *ovl)
   uint8_t *buf = state->cmd_ptr;
   uint8_t *next_seq;
 
-  LOG (LOG_DEBUG, "SPU EVENT\n");
+  xprintf (VERBOSE|SPU, "SPU EVENT\n");
   
   state->delay = (buf[0] << 8) + buf[1];
-  LOG (LOG_DEBUG, "\tdelay=%d\n",state->delay);
+  xprintf (VERBOSE|SPU, "\tdelay=%d\n",state->delay);
   next_seq = seq->buf + (buf[2] << 8) + buf[3];
   buf += 4;
 
@@ -157,13 +158,13 @@ void spu_do_commands(spu_state_t *state, spu_seq_t* seq, vo_overlay_t *ovl)
   while (buf < next_seq && *buf != CMD_SPU_EOF) {
     switch (*buf) {
     case CMD_SPU_SHOW:		/* show subpicture */
-      LOG (LOG_DEBUG, "\tshow subpicture\n");
+      xprintf (VERBOSE|SPU, "\tshow subpicture\n");
       state->visible = 1;
       buf++;
       break;
       
     case CMD_SPU_HIDE:		/* hide subpicture */
-      LOG (LOG_DEBUG, "\thide subpicture\n");
+      xprintf (VERBOSE|SPU, "\thide subpicture\n");
       state->visible = 2;
       buf++;
       break;
@@ -181,7 +182,7 @@ void spu_do_commands(spu_state_t *state, spu_seq_t* seq, vo_overlay_t *ovl)
       ovl->color[2] = state->clut[clut->entry1];
       ovl->color[1] = state->clut[clut->entry2];
       ovl->color[0] = state->clut[clut->entry3];
-      LOG (LOG_DEBUG, "\tclut [%x %x %x %x]\n",
+      xprintf (VERBOSE|SPU, "\tclut [%x %x %x %x]\n",
 	   ovl->color[0], ovl->color[1], ovl->color[2], ovl->color[3]);
       state->modified = 1;
       buf += 3;
@@ -195,7 +196,7 @@ void spu_do_commands(spu_state_t *state, spu_seq_t* seq, vo_overlay_t *ovl)
       ovl->trans[2] = trans->entry1;
       ovl->trans[1] = trans->entry2;
       ovl->trans[0] = trans->entry3;
-      LOG (LOG_DEBUG, "\ttrans [%d %d %d %d]\n",
+      xprintf (VERBOSE|SPU, "\ttrans [%d %d %d %d]\n",
 	   ovl->trans[0], ovl->trans[1], ovl->trans[2], ovl->trans[3]);
       state->modified = 1;
       buf += 3;
@@ -218,7 +219,7 @@ void spu_do_commands(spu_state_t *state, spu_seq_t* seq, vo_overlay_t *ovl)
       ovl->clip_left   = 0;
       ovl->clip_right  = ovl->width - 1;
 
-      LOG (LOG_DEBUG, "\tx = %d y = %d width = %d height = %d\n",
+      xprintf (VERBOSE|SPU, "\tx = %d y = %d width = %d height = %d\n",
 	   ovl->x, ovl->y, ovl->width, ovl->height );
       state->modified = 1;
       buf += 7;
@@ -227,14 +228,14 @@ void spu_do_commands(spu_state_t *state, spu_seq_t* seq, vo_overlay_t *ovl)
     case CMD_SPU_SET_PXD_OFFSET:	/* image top[0] field / image bottom[1] field*/
       state->field_offs[0] = (((u_int)buf[1]) << 8) | buf[2];
       state->field_offs[1] = (((u_int)buf[3]) << 8) | buf[4];
-      LOG (LOG_DEBUG, "\toffset[0] = %d offset[1] = %d\n",
+      xprintf (VERBOSE|SPU, "\toffset[0] = %d offset[1] = %d\n",
 	   state->field_offs[0], state->field_offs[1]);
       state->modified = 1;
       buf += 5;
       break;
       
     case CMD_SPU_MENU:
-      LOG (LOG_DEBUG, "\tForce Display/Menu\n");
+      xprintf (VERBOSE|SPU, "\tForce Display/Menu\n");
       state->menu = 1;
       buf++;
       break;
@@ -297,7 +298,7 @@ static int spu_next_line (vo_overlay_t *spu)
   field ^= 1; // Toggle fields
 	
   if (put_y >= spu->height) {
-    LOG (LOG_DEBUG, "put_y >= spu->height\n");
+    xprintf (VERBOSE|SPU, "put_y >= spu->height\n");
     return -1;
   }
   return 0;
