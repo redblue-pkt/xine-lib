@@ -21,7 +21,7 @@
  * For more information regarding the Id CIN file format, visit:
  *   http://www.csse.monash.edu.au/~timf/
  *
- * $Id: demux_idcin.c,v 1.3 2002/08/01 03:56:31 tmmm Exp $
+ * $Id: demux_idcin.c,v 1.4 2002/08/12 00:13:32 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -48,6 +48,7 @@
 #define IDCIN_HEADER_SIZE 20
 #define HUFFMAN_TABLE_SIZE 65536
 #define IDCIN_FRAME_PTS_INC  (90000 / 14)
+#define PALETTE_SIZE 256
 
 typedef struct {
 
@@ -68,6 +69,7 @@ typedef struct {
   int                  send_end_buffers;
 
   off_t                start;
+  off_t                filesize;
   int                  status;
 
   unsigned int         video_width;
@@ -86,13 +88,26 @@ static void *demux_idcin_loop (void *this_gen) {
   buf_element_t *buf = NULL;
   unsigned int command;
   off_t current_file_pos;
+  unsigned char preamble[8];
+  unsigned char disk_palette[PALETTE_SIZE * 3];
+  palette_entry_t palette[PALETTE_SIZE];
+  int i;
+  unsigned int remaining_sample_bytes;
+  uint64_t pts_counter = 0;
 
   pthread_mutex_lock( &this->mutex );
+
+  /* reposition stream past the Huffman tables */
+  this->input->seek(this->input, 0x14 + 0x10000, SEEK_SET);
 
   /* do-while needed to seek after demux finished */
   do {
     /* main demuxer loop */
     while (this->status == DEMUX_OK) {
+
+      /* someone may want to interrupt us */
+      pthread_mutex_unlock( &this->mutex );
+      pthread_mutex_lock( &this->mutex );
 
       current_file_pos = this->input->get_current_pos(this->input);
 
@@ -104,6 +119,84 @@ static void *demux_idcin_loop (void *this_gen) {
       }
 
       command = le2me_32(command);
+      if (command == 2) {
+        this->status = DEMUX_FINISHED;
+        break;
+      } else {
+        if (command == 1) {
+          /* load a 768-byte palette and pass it to the demuxer */
+          if (this->input->read(this->input, disk_palette, PALETTE_SIZE * 3) !=
+            PALETTE_SIZE * 3) {
+            this->status = DEMUX_FINISHED;
+            pthread_mutex_unlock(&this->mutex);
+            break;
+          }
+
+          /* convert palette to internal structure */
+          for (i = 0; i < PALETTE_SIZE; i++) {
+            /* these are VGA color DAC values, which means they only range
+             * from 0..63; adjust as appropriate */
+            palette[i].r = disk_palette[i * 3 + 0] * 4;
+            palette[i].g = disk_palette[i * 3 + 1] * 4;
+            palette[i].b = disk_palette[i * 3 + 2] * 4;
+          }
+
+          buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
+          buf->decoder_flags = BUF_FLAG_SPECIAL;
+          buf->decoder_info[1] = BUF_SPECIAL_PALETTE;
+          buf->decoder_info[2] = PALETTE_SIZE;
+          buf->decoder_info[3] = (unsigned int)&palette;
+          buf->size = 0;
+          buf->type = BUF_VIDEO_IDCIN;
+          this->video_fifo->put (this->video_fifo, buf);
+        }
+      }
+
+      /* load the video frame */
+      if (this->input->read(this->input, preamble, 8) != 8) {
+        this->status = DEMUX_FINISHED;
+        pthread_mutex_unlock(&this->mutex);
+        break;
+      }
+      remaining_sample_bytes = LE_32(&preamble[0]) - 4;
+//printf ("  loading video frame at offset %llX, %X bytes\n",
+//  this->input->get_current_pos(this->input),
+//  remaining_sample_bytes);
+
+      while (remaining_sample_bytes) {
+        buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
+        buf->type = BUF_VIDEO_IDCIN;
+        buf->input_pos = this->input->get_current_pos(this->input);
+        buf->input_length = this->filesize;
+        buf->input_time = pts_counter / 90000;
+        buf->pts = pts_counter;
+
+        if (remaining_sample_bytes > buf->max_size)
+          buf->size = buf->max_size;
+        else
+          buf->size = remaining_sample_bytes;
+        remaining_sample_bytes -= buf->size;
+
+        if (this->input->read(this->input, buf->content, buf->size) !=
+          buf->size) {
+          buf->free_buffer(buf);
+          this->status = DEMUX_FINISHED;
+          break;
+        }
+
+        /* all frames are intra-coded */
+        buf->decoder_flags |= BUF_FLAG_KEYFRAME;
+        if (!remaining_sample_bytes)
+          buf->decoder_flags |= BUF_FLAG_FRAME_END;
+
+        this->video_fifo->put(this->video_fifo, buf);
+      }
+
+      /* load the audio frame */
+      if (this->audio_fifo && this->audio_sample_rate) {
+      }
+
+      pts_counter += IDCIN_FRAME_PTS_INC;
     }
 
     /* wait before sending end buffers: user might want to do a new seek */
@@ -255,6 +348,7 @@ static int demux_idcin_start (demux_plugin_t *this_gen,
     this->audio_sample_rate = LE_32(&header[8]);
     this->audio_bytes_per_sample = LE_32(&header[12]);
     this->audio_channels = LE_32(&header[16]);
+    this->filesize = this->input->get_length(this->input);
 
     /* read the Huffman table */
     if (this->input->read(this->input, this->huffman_table,
@@ -275,11 +369,6 @@ static int demux_idcin_start (demux_plugin_t *this_gen,
         this->audio_bytes_per_sample * 8,
         this->audio_sample_rate,
         (this->audio_channels == 1) ? "monaural" : "stereo");
-
-
-pthread_mutex_unlock(&this->mutex);
-return DEMUX_FINISHED;
-
 
     /* send start buffers */
     xine_demux_control_start(this->xine);
