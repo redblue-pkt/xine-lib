@@ -15,6 +15,7 @@ xine (0.9.9) unstable; urgency=low
   * several dxr3 fixes
   * avi multiple audio stream support
   * font encoding support for avi subtitles
+  * avi subtitles can be turned off
   * mms streaming plugin
   * better playing support for ffmpeg/win32 codecs on slow machines
   * using "%" instead of ":" as subtitle file seperator
