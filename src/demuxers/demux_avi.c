@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_avi.c,v 1.191 2004/02/02 17:40:11 tmattern Exp $
+ * $Id: demux_avi.c,v 1.192 2004/02/02 17:58:34 tmattern Exp $
  *
  * demultiplexer for avi streams
  *
@@ -1543,7 +1543,6 @@ static int demux_avi_next (demux_avi_t *this, int decoder_flags) {
       /* read audio */
 
       buf->pts    = audio_pts;
-      buf->pts    = 0;
       buf->size   = AVI_read_audio (this, audio, buf->mem, buf->max_size, &buf->decoder_flags);
       buf->decoder_flags |= decoder_flags;
 
