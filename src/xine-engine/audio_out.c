@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.159 2003/12/24 13:06:12 mroi Exp $
+ * $Id: audio_out.c,v 1.160 2003/12/31 23:29:06 jcdutton Exp $
  *
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -253,6 +253,7 @@ typedef struct {
   double          compression_factor;   /* current compression */
   double          compression_factor_max; /* user limit on compression */
   int             do_amp;
+  int             amp_mute;
   double          amp_factor;
 
   /* 10-band equalizer */
@@ -537,13 +538,17 @@ static void audio_filter_amp (aos_t *this, int16_t *mem, int num_frames) {
 
   int    i;
   int    num_channels;
+  double amp_factor;
 
   num_channels = _x_ao_mode2channels (this->input.mode);
   if (!num_channels)
     return;
 
+  amp_factor=this->amp_factor;
+  if (this->amp_mute) amp_factor=0.0;
+ 
   for (i=0; i<num_frames*num_channels; i++) {
-    mem[i] = mem[i] * this->amp_factor;
+    mem[i] = mem[i] * amp_factor;
   }
 }
 
@@ -1530,6 +1535,10 @@ static int ao_get_property (xine_audio_port_t *this_gen, int property) {
     ret = this->amp_factor*100;
     break;
   
+  case AO_PROP_AMP_MUTE:
+    ret = this->amp_mute;
+    break;
+  
   case AO_PROP_EQ_30HZ:
   case AO_PROP_EQ_60HZ:
   case AO_PROP_EQ_125HZ:
@@ -1582,6 +1591,10 @@ static int ao_set_property (xine_audio_port_t *this_gen, int property, int value
     this->do_amp = (this->amp_factor != 1.0);
 
     ret = this->amp_factor*100;
+    break;
+
+  case AO_PROP_AMP_MUTE:
+    this->amp_mute = value;
     break;
 
   case AO_PROP_EQ_30HZ:
@@ -1849,6 +1862,7 @@ xine_audio_port_t *_x_ao_new_port (xine_t *xine, ao_driver_t *driver,
   this->do_compress            = 0;
   this->amp_factor             = 1.0;
   this->do_amp                 = 0;
+  this->amp_mute               = 0;
 
   this->do_equ                 = 0;
   this->eq_gain[0]             = 0;

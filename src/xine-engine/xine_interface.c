@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_interface.c,v 1.74 2003/12/14 00:28:02 f1rmb Exp $
+ * $Id: xine_interface.c,v 1.75 2003/12/31 23:29:06 jcdutton Exp $
  *
  * convenience/abstraction layer, functions to implement
  * libxine's public interface
@@ -380,6 +380,11 @@ void xine_set_param (xine_stream_t *stream, int param, int value) {
       stream->audio_out->set_property (stream->audio_out, AO_PROP_AMP, value);
     break;
 
+  case XINE_PARAM_AUDIO_AMP_MUTE:
+    if (stream->audio_out)
+      stream->audio_out->set_property (stream->audio_out, AO_PROP_AMP_MUTE, value);
+    break;
+
   case XINE_PARAM_AUDIO_CLOSE_DEVICE:
     if (stream->audio_out)
       stream->audio_out->set_property (stream->audio_out, AO_PROP_CLOSE_DEVICE, value);
@@ -487,6 +492,11 @@ int xine_get_param (xine_stream_t *stream, int param) {
     if (!stream->audio_out)
       return -1;
     return stream->audio_out->get_property (stream->audio_out, AO_PROP_AMP);
+
+  case XINE_PARAM_AUDIO_AMP_MUTE:
+    if (!stream->audio_out)
+      return -1;
+    return stream->audio_out->get_property (stream->audio_out, AO_PROP_AMP_MUTE);
 
   case XINE_PARAM_EQ_30HZ:
   case XINE_PARAM_EQ_60HZ:
