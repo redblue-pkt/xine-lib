@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_file.c,v 1.3 2001/04/21 00:14:40 f1rmb Exp $
+ * $Id: input_file.c,v 1.4 2001/04/24 17:42:27 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -34,20 +34,26 @@
 #include "monitor.h"
 #include "input_plugin.h"
 
-
 static uint32_t xine_debug;
-static int input_file_handle;
-static char *input_file_mrl;
 
-static uint32_t file_plugin_get_capabilities () {
+typedef struct file_input_plugin_s {
+  input_plugin_t   input_plugin;
+  
+  int              fh;
+  char            *mrl;
+  config_values_t *config;
+} file_input_plugin_t;
+
+static uint32_t file_plugin_get_capabilities (input_plugin_t *this_gen) {
   return INPUT_CAP_SEEKABLE;
 }
 
-static int file_plugin_open (char *mrl) {
+static int file_plugin_open (input_plugin_t *this_gen, char *mrl) {
 
-  char *filename;
+  char                *filename;
+  file_input_plugin_t *this = (file_input_plugin_t *) this_gen;
 
-  input_file_mrl = mrl;
+  this->mrl = mrl;
 
   if (!strncasecmp (mrl, "file:",5))
     filename = &mrl[5];
@@ -56,9 +62,9 @@ static int file_plugin_open (char *mrl) {
 
   xprintf (VERBOSE|INPUT, "Opening >%s<\n",filename);
 
-  input_file_handle = open (filename, O_RDONLY);
+  this->fh = open (filename, O_RDONLY);
 
-  if (input_file_handle == -1) {
+  if (this->fh == -1) {
     return 0;
   }
 
@@ -66,20 +72,22 @@ static int file_plugin_open (char *mrl) {
 }
 
 
-static off_t file_plugin_read (char *buf, off_t len) {
-  return read (input_file_handle, buf, len);
+static off_t file_plugin_read (input_plugin_t *this_gen, char *buf, off_t len) {
+  file_input_plugin_t *this = (file_input_plugin_t *) this_gen;
+  return read (this->fh, buf, len);
 }
 
-static buf_element_t *file_plugin_read_block (fifo_buffer_t *fifo, off_t todo) {
+static buf_element_t *file_plugin_read_block (input_plugin_t *this_gen, fifo_buffer_t *fifo, off_t todo) {
 
-  off_t num_bytes, total_bytes;
-  buf_element_t *buf = fifo->buffer_pool_alloc ();
+  off_t                 num_bytes, total_bytes;
+  file_input_plugin_t  *this = (file_input_plugin_t *) this_gen;
+  buf_element_t        *buf = fifo->buffer_pool_alloc (fifo);
 
   buf->content = buf->mem;
   total_bytes = 0;
 
   while (total_bytes < todo) {
-    num_bytes = read (input_file_handle, buf->mem + total_bytes, todo-total_bytes);
+    num_bytes = read (this->fh, buf->mem + total_bytes, todo-total_bytes);
     total_bytes += num_bytes;
     if (!num_bytes) {
       buf->free_buffer (buf);
@@ -91,31 +99,37 @@ static buf_element_t *file_plugin_read_block (fifo_buffer_t *fifo, off_t todo) {
 }
 
 
-static off_t file_plugin_seek (off_t offset, int origin) {
-  return lseek (input_file_handle, offset, origin);
+static off_t file_plugin_seek (input_plugin_t *this_gen, off_t offset, int origin) {
+  file_input_plugin_t *this = (file_input_plugin_t *) this_gen;
+
+  return lseek (this->fh, offset, origin);
 }
 
 
-static off_t file_plugin_get_current_pos (){
-  return lseek (input_file_handle, 0, SEEK_CUR);
+static off_t file_plugin_get_current_pos (input_plugin_t *this_gen){
+  file_input_plugin_t *this = (file_input_plugin_t *) this_gen;
+
+  return lseek (this->fh, 0, SEEK_CUR);
 }
 
 
-static off_t file_plugin_get_length (void) {
-  struct stat buf ;
+static off_t file_plugin_get_length (input_plugin_t *this_gen) {
 
-  if (fstat (input_file_handle, &buf) == 0) {
+  struct stat          buf ;
+  file_input_plugin_t *this = (file_input_plugin_t *) this_gen;
+
+  if (fstat (this->fh, &buf) == 0) {
     return buf.st_size;
   } else
     perror ("system call fstat");
   return 0;
 }
 
-static uint32_t file_plugin_get_blocksize () {
+static uint32_t file_plugin_get_blocksize (input_plugin_t *this_gen) {
   return 0;
 }
 
-static char **file_plugin_get_dir (char *filename, int *nFiles) {
+static char **file_plugin_get_dir (input_plugin_t *this_gen, char *filename, int *nFiles) {
   /* not yet implemented */
 
   printf ("input_file : get_dir () not implemented yet!\n");
@@ -123,61 +137,68 @@ static char **file_plugin_get_dir (char *filename, int *nFiles) {
   return NULL;
 }
 
-static int file_plugin_eject_media () {
+static int file_plugin_eject_media (input_plugin_t *this_gen) {
   return 1; /* doesn't make sense */
 }
 
-static char* file_plugin_get_mrl () {
-  return input_file_mrl;
+static char* file_plugin_get_mrl (input_plugin_t *this_gen) {
+  file_input_plugin_t *this = (file_input_plugin_t *) this_gen;
+
+  return this->mrl;
 }
 
-static void file_plugin_close (void) {
+static void file_plugin_close (input_plugin_t *this_gen) {
+  file_input_plugin_t *this = (file_input_plugin_t *) this_gen;
+
   xprintf (VERBOSE|INPUT, "closing input\n");
 
-  close(input_file_handle);
-  input_file_handle = -1;
+  close(this->fh);
+  this->fh = -1;
 }
 
 
-static char *file_plugin_get_description (void) {
+static char *file_plugin_get_description (input_plugin_t *this_gen) {
   return "plain file input plugin as shipped with xine";
 }
 
 
-static char *file_plugin_get_identifier (void) {
+static char *file_plugin_get_identifier (input_plugin_t *this_gen) {
   return "file";
 }
 
-
-static input_plugin_t plugin_info = {
-  INPUT_PLUGIN_IFACE_VERSION,
-  file_plugin_get_capabilities,
-  file_plugin_open,
-  file_plugin_read,
-  file_plugin_read_block,
-  file_plugin_seek,
-  file_plugin_get_current_pos,
-  file_plugin_get_length,
-  file_plugin_get_blocksize,
-  file_plugin_get_dir,
-  file_plugin_eject_media,
-  file_plugin_get_mrl,
-  file_plugin_close,
-  file_plugin_get_description,
-  file_plugin_get_identifier,
-  NULL, /* autoplay */
-  NULL /* clut */
-};
-
-
 input_plugin_t *get_input_plugin (int iface, config_values_t *config) {
 
-  /* FIXME: set debug level (from config?) */
+  file_input_plugin_t *this;
+
+  xine_debug = config->lookup_int (config, "xine_debug", 0);
 
   switch (iface) {
   case 1:
-    input_file_handle = -1;
-    return &plugin_info;
+    this = (file_input_plugin_t *) malloc (sizeof (file_input_plugin_t));
+
+    this->input_plugin.interface_version = INPUT_PLUGIN_IFACE_VERSION;
+    this->input_plugin.get_capabilities  = file_plugin_get_capabilities;
+    this->input_plugin.open              = file_plugin_open;
+    this->input_plugin.read              = file_plugin_read;
+    this->input_plugin.read_block        = file_plugin_read_block;
+    this->input_plugin.seek              = file_plugin_seek;
+    this->input_plugin.get_current_pos   = file_plugin_get_current_pos;
+    this->input_plugin.get_length        = file_plugin_get_length;
+    this->input_plugin.get_blocksize     = file_plugin_get_blocksize;
+    this->input_plugin.get_dir           = file_plugin_get_dir;
+    this->input_plugin.eject_media       = file_plugin_eject_media;
+    this->input_plugin.get_mrl           = file_plugin_get_mrl;
+    this->input_plugin.close             = file_plugin_close;
+    this->input_plugin.get_description   = file_plugin_get_description;
+    this->input_plugin.get_identifier    = file_plugin_get_identifier;
+    this->input_plugin.get_autoplay_list = NULL;
+    this->input_plugin.get_clut          = NULL;
+
+    this->fh      = -1;
+    this->mrl     = NULL;
+    this->config  = config;
+
+    return (input_plugin_t *) this;
     break;
   default:
     fprintf(stderr,
@@ -189,3 +210,4 @@ input_plugin_t *get_input_plugin (int iface, config_values_t *config) {
     return NULL;
   }
 }
+

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.5 2001/04/24 15:47:32 guenter Exp $
+ * $Id: load_plugins.c,v 1.6 2001/04/24 17:42:27 guenter Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -156,7 +156,7 @@ void load_input_plugins (xine_t *this,
 	else {
 	  void *(*initplug) (int, config_values_t *);
 	  
-	  if((initplug = dlsym(plugin, "init_demuxer_plugin")) != NULL) {
+	  if((initplug = dlsym(plugin, "init_input_plugin")) != NULL) {
 	    input_plugin_t *ip;
 	      
 	    ip = (input_plugin_t *) initplug(iface_version, config);
@@ -164,7 +164,7 @@ void load_input_plugins (xine_t *this,
 	    
 	    printf("input plugin found : %s(ID: %s, iface: %d)\n", 
 		   str,   
-		   this->input_plugins[this->num_input_plugins]->get_identifier(),
+		   this->input_plugins[this->num_input_plugins]->get_identifier(this->input_plugins[this->num_input_plugins]),
 		   this->input_plugins[this->num_input_plugins]->interface_version);
 
 	    this->num_input_plugins++;

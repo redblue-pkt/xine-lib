@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_plugin.h,v 1.2 2001/04/21 00:14:41 f1rmb Exp $
+ * $Id: input_plugin.h,v 1.3 2001/04/24 17:42:27 guenter Exp $
  */
 
 #ifndef HAVE_INPUT_PLUGIN_H
@@ -40,7 +40,9 @@ typedef struct {         /* CLUT == Color LookUp Table */
 } __attribute__ ((packed)) clut_t;
 #endif
 
-typedef struct input_plugin_s
+typedef struct input_plugin_s input_plugin_t;
+
+struct input_plugin_s
 {
 
   /*
@@ -52,18 +54,18 @@ typedef struct input_plugin_s
    * return capabilities of input source
    */
 
-  uint32_t (*get_capabilities) (void);
+  uint32_t (*get_capabilities) (input_plugin_t *this);
 
   /*
    * open input MRL - return 1 if succ
    */
-  int (*open) (char *mrl);
+  int (*open) (input_plugin_t *this, char *mrl);
 
 
   /*
    * read nlen bytes, return number of bytes read
    */
-  off_t (*read) (char *buf, off_t nlen);
+  off_t (*read) (input_plugin_t *this, char *buf, off_t nlen);
 
 
   /*
@@ -71,7 +73,7 @@ typedef struct input_plugin_s
    * for blocked input sources len must be == blocksize
    * the fifo parameter is only used to get access to the buffer_pool_alloc function
    */
-  buf_element_t *(*read_block)(fifo_buffer_t *fifo, off_t len);
+  buf_element_t *(*read_block)(input_plugin_t *this, fifo_buffer_t *fifo, off_t len);
 
 
   /*
@@ -79,34 +81,34 @@ typedef struct input_plugin_s
    *
    * if seeking failed, -1 is returned
    */
-  off_t (*seek) (off_t offset, int origin);
+  off_t (*seek) (input_plugin_t *this, off_t offset, int origin);
 
 
   /*
    * get current position in stream.
    *
    */
-  off_t (*get_current_pos) (void);
+  off_t (*get_current_pos) (input_plugin_t *this);
 
 
   /*
    * return length of input (-1 => unlimited, e.g. stream)
    */
-  off_t (*get_length) (void);
+  off_t (*get_length) (input_plugin_t *this);
 
 
   /*
    * return block size of input source (if supported, 0 otherwise)
    */
 
-  uint32_t (*get_blocksize) (void);
+  uint32_t (*get_blocksize) (input_plugin_t *this);
 
 
   /*
    * ls function
    * return value: NULL => filename is a file, **char=> filename is a dir
    */
-  char** (*get_dir) (char *filename, int *nFiles);
+  char** (*get_dir) (input_plugin_t *this, char *filename, int *nFiles);
 
 
   /*
@@ -114,25 +116,25 @@ typedef struct input_plugin_s
    *
    * returns 0 for temporary failures
    */
-  int (*eject_media) (void);
+  int (*eject_media) (input_plugin_t *this);
 
 
   /*
    * return current MRL
    */
-  char * (*get_mrl) (void);
+  char * (*get_mrl) (input_plugin_t *this);
 
 
   /*
    * close input source
    */
-  void (*close) (void);
+  void (*close) (input_plugin_t *this);
 
 
   /*
    * return human readable (verbose = 1 line) description for this plugin
    */
-  char* (*get_description) (void);
+  char* (*get_description) (input_plugin_t *this);
 
 
   /*
@@ -140,35 +142,29 @@ typedef struct input_plugin_s
    * this is used for GUI buttons, The identifier must have max. 4 characters
    * characters (max. 5 including terminating \0)
    */
-  char* (*get_identifier) (void);
+  char* (*get_identifier) (input_plugin_t *this);
 
 
   /*
    * generate autoplay list
    * return value: list of MRLs
    */
-  char** (*get_autoplay_list) (int *nFiles);
+  char** (*get_autoplay_list) (input_plugin_t *this, int *nFiles);
 
 
   /*
    * gets the subtitle/menu palette
    */
-  clut_t* (*get_clut) (void);
+  clut_t* (*get_clut) (input_plugin_t *this);
+};
 
-
-} input_plugin_t;
+/*
+ * possible capabilites an input plugin can have:
+ */
 
 #define INPUT_CAP_SEEKABLE 1
 #define INPUT_CAP_BLOCK    2
 #define INPUT_CAP_AUTOPLAY 4
 #define INPUT_CAP_CLUT     8
-
-
-/*
- * init/get plugin structure
- *
- * try to initialize the plugin with given interface version
- * and configuration options
- */
 
 #endif

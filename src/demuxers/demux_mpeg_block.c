@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.3 2001/04/21 00:14:40 f1rmb Exp $
+ * $Id: demux_mpeg_block.c,v 1.4 2001/04/24 17:42:26 guenter Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -69,7 +69,7 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this) {
   uint32_t       nStreamID;
   
 
-  buf = this->input->read_block (this->video_fifo, this->blocksize);
+  buf = this->input->read_block (this->input, this->video_fifo, this->blocksize);
 
   if (buf==NULL) {
     this->status = DEMUX_FINISHED;
@@ -223,7 +223,7 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this) {
       buf->type      = BUF_SPU_PACKAGE + nSPUID;
       buf->PTS       = nPTS;
       buf->DTS       = nDTS ;
-      buf->input_pos = this->input->seek (0, SEEK_CUR);
+      buf->input_pos = this->input->seek (this->input, 0, SEEK_CUR);
       
       this->spu_fifo->put (this->spu_fifo, buf);    
       
@@ -240,7 +240,7 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this) {
       buf->type      = BUF_AUDIO_AC3 + nTrack;
       buf->PTS       = nPTS;
       buf->DTS       = nDTS ;
-      buf->input_pos = this->input->seek (0, SEEK_CUR);
+      buf->input_pos = this->input->seek (this->input, 0, SEEK_CUR);
 
       this->audio_fifo->put (this->audio_fifo, buf);
       
@@ -263,7 +263,7 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this) {
       buf->type      = BUF_AUDIO_LPCM + nTrack;
       buf->PTS       = nPTS;
       buf->DTS       = nDTS ;
-      buf->input_pos = this->input->seek (0, SEEK_CUR);
+      buf->input_pos = this->input->seek (this->input, 0, SEEK_CUR);
 
       this->audio_fifo->put (this->audio_fifo, buf);
       
@@ -279,7 +279,7 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this) {
     buf->type      = BUF_VIDEO_MPEG;
     buf->PTS       = nPTS;
     buf->DTS       = nDTS;
-    buf->input_pos = this->input->seek (0, SEEK_CUR);
+    buf->input_pos = this->input->seek (this->input, 0, SEEK_CUR);
 
     this->video_fifo->put (this->video_fifo, buf);
 
@@ -297,7 +297,7 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this) {
     buf->type      = BUF_AUDIO_MPEG + nTrack;
     buf->PTS       = nPTS;
     buf->DTS       = nDTS;
-    buf->input_pos = this->input->seek (0, SEEK_CUR);
+    buf->input_pos = this->input->seek (this->input, 0, SEEK_CUR);
       
     this->audio_fifo->put (this->audio_fifo, buf);
 
@@ -329,11 +329,11 @@ static void *demux_mpeg_block_loop (void *this_gen) {
 
   this->status = DEMUX_FINISHED;
 
-  buf = this->video_fifo->buffer_pool_alloc ();
+  buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
   buf->type    = BUF_CONTROL_END;
   this->video_fifo->put (this->video_fifo, buf);
 
-  buf = this->audio_fifo->buffer_pool_alloc ();
+  buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
   buf->type    = BUF_CONTROL_END;
   this->audio_fifo->put (this->audio_fifo, buf);
 
@@ -375,19 +375,19 @@ static void demux_mpeg_block_start (demux_plugin_t *this_gen,
   pos /= (off_t) this->blocksize;
   pos *= (off_t) this->blocksize;
 
-  if((this->input->get_capabilities() & INPUT_CAP_SEEKABLE) != 0) {
+  if((this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) != 0) {
     xprintf (VERBOSE|DEMUX, "=>seek to %Ld\n",pos);
-    this->input->seek (pos, SEEK_SET);
+    this->input->seek (this->input, pos, SEEK_SET);
   }
 
   /* 
    * send start buffer
    */
 
-  buf = this->video_fifo->buffer_pool_alloc ();
+  buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
   buf->type    = BUF_CONTROL_START;
   this->video_fifo->put (this->video_fifo, buf);
-  buf = this->audio_fifo->buffer_pool_alloc ();
+  buf = this->audio_fifo->buffer_pool_alloc (this->video_fifo);
   buf->type    = BUF_CONTROL_START;
   this->audio_fifo->put (this->audio_fifo, buf);
 
@@ -410,15 +410,15 @@ static int demux_mpeg_block_open(demux_plugin_t *this_gen,
   case STAGE_BY_CONTENT: {
     uint8_t buf[4096];
     
-    if((input->get_capabilities() & INPUT_CAP_SEEKABLE) != 0) {
-      input->seek(0, SEEK_SET);
+    if((input->get_capabilities(input) & INPUT_CAP_SEEKABLE) != 0) {
+      input->seek(input, 0, SEEK_SET);
       
-      this->blocksize = input->get_blocksize();
+      this->blocksize = input->get_blocksize(input);
       
       if (!this->blocksize)
 	return DEMUX_CANNOT_HANDLE;
 
-      if (input->read(buf, this->blocksize)) {
+      if (input->read(input, buf, this->blocksize)) {
 	
 	if(buf[0] || buf[1] || (buf[2] != 0x01))
 	  return DEMUX_CANNOT_HANDLE;
@@ -449,7 +449,7 @@ static int demux_mpeg_block_open(demux_plugin_t *this_gen,
     char *ending;
     char *MRL;
     
-    MRL = input->get_mrl ();
+    MRL = input->get_mrl (input);
     
     media = strstr(MRL, "://");
     if(media) {
@@ -506,10 +506,12 @@ demux_plugin_t *init_demux_mpeg_block(int iface, config_values_t *config) {
 
   demux_mpeg_block_t *this = xmalloc (sizeof (demux_mpeg_block_t));
 
+  xine_debug  = config->lookup_int (config, "xine_debug", 0);
+
   switch (iface) {
 
   case 1:
-    // FIXME xine_debug = xd;
+
     this->demux_plugin.interface_version = DEMUXER_PLUGIN_IFACE_VERSION;
     this->demux_plugin.open              = demux_mpeg_block_open;
     this->demux_plugin.start             = demux_mpeg_block_start;
