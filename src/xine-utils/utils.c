@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: utils.c,v 1.10 2002/11/22 05:25:17 storri Exp $
+ * $Id: utils.c,v 1.11 2003/01/12 16:38:08 holstsn Exp $
  *
  */
 #define	_POSIX_PTHREAD_SEMANTICS 1	/* for 5-arg getpwuid_r on solaris */
@@ -78,7 +78,7 @@ const char *xine_get_homedir(void) {
     return homedir;
 
 #ifdef HAVE_GETPWUID_R
-  if(getpwuid_r(getuid(), &pwd, homedir, sizeof(homedir), &pw) != 0 && pw == NULL) {
+  if(getpwuid_r(getuid(), &pwd, homedir, sizeof(homedir), &pw) != 0 || pw == NULL) {
 #else
   if((pw = getpwuid(getuid())) == NULL) {
 #endif
