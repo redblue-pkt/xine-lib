@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_goom.c,v 1.3 2002/12/25 15:12:02 mroi Exp $
+ * $Id: xine_goom.c,v 1.4 2002/12/27 23:25:16 tmattern Exp $
  *
  * GOOM post plugin.
  *
@@ -29,11 +29,12 @@
 #include <stdio.h>
 
 #include "xine_internal.h"
+#include "xineutils.h"
 #include "post.h"
 
 #include "goom_core.h"
 
-#define FPS 10
+#define FPS 15
 #define DURATION 90000/FPS
 
 #define GOOM_WIDTH  320
@@ -331,6 +332,7 @@ static void goom_port_put_buffer (xine_audio_port_t *port_gen,
     frame->pts = buf->vpts;
     frame->duration = 90000 * this->sample_counter / this->sample_rate;
   
+#if 0
     /* FIXME: use accelerated color conversion */
     for (i=0, j=0; i<GOOM_WIDTH * GOOM_HEIGHT; i+=2, j+=4) {
       double r1 = (goom_frame[i]   & 0xFF0000) >> 16;
@@ -350,7 +352,28 @@ static void goom_port_put_buffer (xine_audio_port_t *port_gen,
       frame -> base[0][j+3] = v;
     
     }
-    
+#else
+
+    /* Not perfect, but fast */
+    for (i=0, j=0; i<GOOM_WIDTH * GOOM_HEIGHT; i+=2, j+=4) {
+      uint8_t r1 = (goom_frame[i]   & 0xFF0000) >> 16;
+      uint8_t g1 = (goom_frame[i]   &   0xFF00) >>  8;
+      uint8_t b1 = (goom_frame[i]   &     0xFF);
+      uint8_t r2 = (goom_frame[i+1] & 0xFF0000) >> 16;
+      uint8_t g2 = (goom_frame[i+1] &   0xFF00) >>  8;
+      uint8_t b2 = (goom_frame[i+1] &     0xFF);
+      uint8_t y1 = (y_r_table[r1] + y_g_table[g1] + y_b_table[b1]) / SCALEFACTOR;
+      uint8_t y2 = (y_r_table[r2] + y_g_table[g2] + y_b_table[b2]) / SCALEFACTOR;
+      uint8_t u  = ((u_r_table[r1] + u_g_table[g1] + u_b_table[b1]) / SCALEFACTOR) + 128;
+      uint8_t v  = ((v_r_table[r2] + v_g_table[g2] + v_b_table[b2]) / SCALEFACTOR) + 128;
+  
+      frame -> base[0][j]   = y1;
+      frame -> base[0][j+1] = u;
+      frame -> base[0][j+2] = y2;
+      frame -> base[0][j+3] = v;
+    }
+#endif
+  
     frame->draw(frame, stream);
     frame->free(frame);
     
