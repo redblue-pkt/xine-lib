@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: planar.c,v 1.4 2003/10/23 20:12:34 mroi Exp $
+ * $Id: planar.c,v 1.5 2003/11/07 18:37:34 miguelfreitas Exp $
  *
  * catalog for planar post plugins
  */
@@ -47,6 +47,9 @@ post_info_t eq2_special_info = { XINE_POST_TYPE_VIDEO_FILTER };
 extern void *unsharp_init_plugin(xine_t *xine, void *);
 post_info_t unsharp_special_info = { XINE_POST_TYPE_VIDEO_FILTER };
 
+extern void *pp_init_plugin(xine_t *xine, void *);
+post_info_t pp_special_info = { XINE_POST_TYPE_VIDEO_FILTER };
+
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
   { PLUGIN_POST, 6, "expand", XINE_VERSION_CODE+1, &expand_special_info, &expand_init_plugin },
@@ -56,5 +59,6 @@ plugin_info_t xine_plugin_info[] = {
   { PLUGIN_POST, 6, "boxblur", XINE_VERSION_CODE, &boxblur_special_info, &boxblur_init_plugin },
   { PLUGIN_POST, 6, "eq2", XINE_VERSION_CODE, &eq2_special_info, &eq2_init_plugin },
   { PLUGIN_POST, 6, "unsharp", XINE_VERSION_CODE, &unsharp_special_info, &unsharp_init_plugin },
+  { PLUGIN_POST, 6, "pp", XINE_VERSION_CODE, &pp_special_info, &pp_init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
