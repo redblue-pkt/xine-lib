@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xineutils.h,v 1.19 2002/07/20 04:20:56 tmmm Exp $
+ * $Id: xineutils.h,v 1.20 2002/07/24 08:00:13 f1rmb Exp $
  *
  */
 #ifndef XINEUTILS_H
@@ -566,13 +566,13 @@ void xine_probe_fast_memcpy(config_values_t *config);
 		      /* Debugging/Monitoring */
 
 #if (__GNUC__ > 2 || (__GNUC__ == 2 && __GNUC_MINOR__ >= 95) || !defined(__GNUC__)) && !defined(__cplusplus)
-#define xlerror(...) do {                                                     \
+#define xlerror(...) do {                                                        \
         printf("XINE lib %s:%d:(%s) ", __FILE__, __LINE__, __XINE_FUNCTION__);   \
         printf(__VA_ARGS__);                                                     \
 	printf("\n");                                                            \
 } while (0)
 #else
-#define xlerror(args...) do {                                                 \
+#define xlerror(args...) do {                                                    \
         printf("XINE lib %s:%d:(%s) ", __FILE__, __LINE__, __XINE_FUNCTION__);   \
         printf(##args);                                                          \
         printf("\n");                                                            \
@@ -628,13 +628,13 @@ void xine_usec_sleep(unsigned usec);
 
 
 void xine_strdupa(char *dest, char *src);
-#define xine_strdupa(d, s) {                                        \
-  (d) = NULL;                                                       \
-  if((s) != NULL) {                                                 \
-    (d) = (char *) alloca(strlen((s)) + 1);                         \
-    strcpy((d), (s));                                               \
-  }                                                                 \
-}
+#define xine_strdupa(d, s) do {                                             \
+                                (d) = NULL;                                 \
+                                if((s) != NULL) {                           \
+                                  (d) = (char *) alloca(strlen((s)) + 1);   \
+                                  strcpy((d), (s));                         \
+                                }                                           \
+                              } while(0)
 
 /* Shamefully copied from glibc 2.2.3 */
 #ifdef HAVE_STRPBRK
