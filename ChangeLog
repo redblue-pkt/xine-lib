@@ -30,6 +30,8 @@ xine-lib (next version) [someone fill in stability and urgency]
   * xine engine can open more than one stream at a time
   * audio compressor filter
   * content detection fixes (e.g. mpeg program streams)
+  * much improved plugin loader, makes it possible to have several
+    versions of libxine installed in parallel
 	
 xine-lib (0.9.13) unstable; urgency=low
 

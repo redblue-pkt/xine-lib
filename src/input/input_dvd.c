@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.105 2002/10/26 20:15:21 mroi Exp $
+ * $Id: input_dvd.c,v 1.106 2002/10/26 22:50:52 guenter Exp $
  *
  */
 
@@ -150,6 +150,8 @@ typedef struct {
   int32_t           region;
   int32_t           language;
 
+  char             *filelist2[MAX_DIR_ENTRIES];
+
 } dvd_input_class_t;
 
 typedef struct {
@@ -178,7 +180,6 @@ typedef struct {
   int               num_mrls;
 */
   char              filelist[MAX_DIR_ENTRIES][MAX_STR_LEN];
-  char             *filelist2[MAX_DIR_ENTRIES];
   char              ui_title[MAX_STR_LEN + 1];
   
   /* special buffer handling for libdvdnav caching */
@@ -1449,19 +1450,16 @@ static xine_mrl_t **dvd_class_get_dir (input_class_t *this_gen,
   *nFiles = 0;
    return NULL;
 }
+#endif
 
-static char **dvd_class_get_autoplay_list (input_class_t *this_gen, 
-							   int *nFiles) {
+static char ** dvd_class_get_autoplay_list (input_class_t *this_gen, 
+					    int *num_files) {
+
   dvd_input_class_t *this = (dvd_input_class_t *) this_gen;
   int i;
   trace_print("get_autoplay_list entered\n"); 
-  /* Close the plugin is opened */
-  if(this->opened) {
-    dvdnav_close(this->dvdnav);
-    this->dvdnav = NULL;
-    this->opened = 0;
-  }
 
+#if 0
   /* rebuild thie MRL browser list */
   dvd_build_mrl_list(this);
   *nFiles = this->num_mrls;
@@ -1472,9 +1470,15 @@ static char **dvd_class_get_autoplay_list (input_class_t *this_gen,
     this->filelist2[i] = &(this->filelist[i][0]);
   }
   this->filelist2[*nFiles] = NULL;
+
+#endif
+
+  this->filelist2[0] = "dvd://";
+  this->filelist2[1] = NULL;
+  *num_files = 1;
+
   return this->filelist2;
 }
-#endif
 
 void dvd_class_dispose(input_class_t *this_gen) {
   dvd_input_class_t *this = (dvd_input_class_t*)this_gen;
@@ -1565,10 +1569,9 @@ static void *init_class (xine_t *xine, void *data) {
   this->input_class.get_description    = dvd_class_get_description;
 /*
   this->input_class.get_dir            = dvd_class_get_dir;
-  this->input_class.get_autoplay_list  = dvd_class_get_autoplay_list;
 */
   this->input_class.get_dir            = NULL;
-  this->input_class.get_autoplay_list  = NULL;
+  this->input_class.get_autoplay_list  = dvd_class_get_autoplay_list;
   this->input_class.dispose            = dvd_class_dispose;
   this->input_class.eject_media        = dvd_class_eject_media;
   
@@ -1659,6 +1662,9 @@ static void *init_class (xine_t *xine, void *data) {
 
 /*
  * $Log: input_dvd.c,v $
+ * Revision 1.106  2002/10/26 22:50:52  guenter
+ * timeouts for mms, send progress report events, introduce verbosity engine parameter (not implemented yet), document new plugin loader in changelog
+ *
  * Revision 1.105  2002/10/26 20:15:21  mroi
  * first step in getting dvd events back
  *

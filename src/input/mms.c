@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mms.c,v 1.11 2002/10/02 15:54:51 mroi Exp $
+ * $Id: mms.c,v 1.12 2002/10/26 22:50:52 guenter Exp $
  *
  * based on work from major mms
  * utility functions to handle communication with an mms server
@@ -41,6 +41,7 @@
 #include <stdlib.h>
 #include <time.h>
 
+#include "xine_internal.h"
 #include "xineutils.h"
 
 #include "bswap.h"
@@ -78,7 +79,7 @@ struct mms_s {
   char          str[1024]; /* scratch buffer to built strings */
 
   /* receive buffer */
-  char          buf[BUF_SIZE];
+  uint8_t       buf[BUF_SIZE];
   int           buf_size;
   int           buf_read;
 
@@ -95,6 +96,39 @@ struct mms_s {
 
 /* network/socket utility functions */
 
+static ssize_t read_timeout(int fd, void *buf, size_t count) {
+  
+  ssize_t ret, total;
+  int     timeout;
+
+  timeout = 30; total = 0;
+
+  while (total < count) {
+  
+    while ( ((ret=read (fd, buf+total, count-total)) < 0)
+	    && ( (errno == EINPROGRESS) || (errno == EAGAIN))
+	    && (timeout>0)) {
+    
+      sleep (1);
+#ifdef LOG
+      printf ("mms: read in progress...%d, %d/%d\n", errno, total, count);
+#endif
+      timeout--;
+    }
+    
+    if (ret<0)
+      return ret;
+    else
+      total += ret;
+  }
+
+#ifdef LOG
+  printf ("mms: read completed %d/%d\n", total, count);
+#endif
+
+  return total;
+}
+
 static int host_connect_attempt(struct in_addr ia, int port) {
 
   int                s;
@@ -105,6 +139,10 @@ static int host_connect_attempt(struct in_addr ia, int port) {
     printf ("libmms: socket(): %s\n", strerror(errno));
     return -1;
   }
+
+  /* put socket in non-blocking mode */
+
+  fcntl (s, F_SETFL, fcntl (s, F_GETFL) | O_NONBLOCK);  
 
   sin.sin_family = AF_INET;	
   sin.sin_addr   = ia;
@@ -157,17 +195,26 @@ static void put_32 (mms_t *this, uint32_t value) {
 }
 
 static int send_data (int s, char *buf, int len) {
-  int total;
+  int total, timeout;
 
-  total = 0;
+  total = 0; timeout = 30;
   while (total < len){ 
     int n;
 
     n = write (s, &buf[total], len - total);
+
+#ifdef LOG
+    printf ("mms: sending data, %d of %d\n", n, len);
+#endif
+
     if (n > 0)
       total += n;
-    else if (n < 0 && errno != EAGAIN) 
-      return total;
+    else if (n < 0) {
+      if ((timeout>0) && ((errno == EAGAIN) || (errno == EINPROGRESS))) {
+	sleep (1); timeout--;
+      } else
+	return -1;
+    }
   }
   return total;
 }
@@ -300,19 +347,33 @@ static void print_answer (char *data, int len) {
 
 }  
 
-static void get_answer (mms_t *this) {
+static int get_answer (mms_t *this) {
  
   int   command = 0x1b;
 
   while (command == 0x1b) {
-    int len;
+    int len, length;
 
-    len = read (this->s, this->buf, BUF_SIZE) ;
-    if (!len) {
+    len = read_timeout (this->s, this->buf, 12);
+    if (len != 12) {
       printf ("\nalert! eof\n");
-      return;
+      return 0;
+    }
+
+    length = get_32 (this->buf, 8);
+
+#ifdef LOG
+    printf ("\n\npacket length: %d\n", length);
+#endif
+
+    len = read_timeout (this->s, this->buf+12, length+4) ;
+    if (len<=0) {
+      printf ("alert! eof\n");
+      return 0;
     }
     
+    len += 12;
+
     print_answer (this->buf, len);
 
     command = get_32 (this->buf, 36) & 0xFFFF;
@@ -321,34 +382,20 @@ static void get_answer (mms_t *this) {
       send_command (this, 0x1b, 0, 0, 0);
   }
 
+  return 1;
 }
 
 static int receive (int s, char *buf, size_t count) {
 
-  ssize_t  len, total;
+  ssize_t  len;
 
-  total = 0;
-
-  while (total < count) {
-    len = read (s, &buf[total], count-total);
-    if (len < 0) {
-      perror ("read error:");
-      return 0;
-    }
-
-    total += len;
-
-#ifdef LOG
-    if (len != 0) {
-      printf ("[%d/%d]", total, count);
-      fflush (stdout);
-    }
-#endif
-
+  len = read_timeout (s, buf, count);
+  if (len < 0) {
+    perror ("read error:");
+    return 0;
   }
 
-  return 1;
-
+  return len;
 }
 
 static void get_header (mms_t *this) {
@@ -616,7 +663,22 @@ void mms_gen_guid(char guid[]) {
   guid[36] = '\0';
 }
 
-mms_t *mms_connect (const char *url_) {
+static void report_progress (xine_stream_t *stream, int p) {
+
+  xine_event_t             event;
+  xine_progress_data_t     prg;
+
+  prg.description = _("Connecting MMS server...");
+  prg.percent = p;
+  
+  event.type = XINE_EVENT_PROGRESS;
+  event.data = &prg;
+  event.data_length = sizeof (xine_progress_data_t);
+  
+  xine_event_send (stream, &event);
+}
+
+mms_t *mms_connect (xine_stream_t *stream, const char *url_) {
   mms_t *this;
   char  *url     = NULL;
   char  *url1    = NULL;
@@ -629,6 +691,8 @@ mms_t *mms_connect (const char *url_) {
   if(!url_)
     return NULL;
 
+  report_progress (stream, 0);
+
   url = strdup (url_);
   port = MMS_PORT;
   url1 = mms_connect_common(&s, &port, url, &host, &path, &file);
@@ -638,6 +702,8 @@ mms_t *mms_connect (const char *url_) {
     return NULL;
   }
   
+  report_progress (stream, 10);
+
   this = (mms_t*) malloc (sizeof (mms_t));
 
   this->url             = url;
@@ -670,11 +736,16 @@ mms_t *mms_connect (const char *url_) {
   send_command (this, 1, 0, 0x0004000b, strlen(this->str) * 2 + 8);
 
   printf("libmms: before read \n");
-  len = read (this->s, this->buf, BUF_SIZE) ;
-  if (len > 0)
-    print_answer (this->buf, len);
-  else
+
+  if (!get_answer (this)) {
     printf ("libmms: read failed: %s\n", strerror(errno));
+    close (this->s);
+    free (url);
+    free (this);
+    return NULL;
+  }
+
+  report_progress (stream, 20);
 
   /* cmd2 */
 
@@ -682,9 +753,15 @@ mms_t *mms_connect (const char *url_) {
   memset (this->scmd_body, 0, 8);
   send_command (this, 2, 0, 0, 28 * 2 + 8);
 
-  len = read (this->s, this->buf, BUF_SIZE) ;
-  if (len)
-    print_answer (this->buf, len);
+  if (!get_answer (this)) {
+    printf ("libmms: read failed: %s\n", strerror(errno));
+    close (this->s);
+    free (url);
+    free (this);
+    return NULL;
+  }
+
+  report_progress (stream, 30);
 
   /* 0x5 */
 
@@ -694,19 +771,24 @@ mms_t *mms_connect (const char *url_) {
 
   get_answer (this);
 
-  /* 0x15 */
+  report_progress (stream, 40);
 
+  /* 0x15 */
 
   memset (this->scmd_body, 0, 40);
   this->scmd_body[32] = 2;
 
   send_command (this, 0x15, 1, 0, 40);
 
+  get_answer (this);
+
   this->num_stream_ids = 0;
 
   get_header (this);
 
   interp_header (this);
+
+  report_progress (stream, 50);
 
   /* 0x33 */
 
@@ -725,6 +807,8 @@ mms_t *mms_connect (const char *url_) {
 
   get_answer (this);
 
+  report_progress (stream, 75);
+
   /* 0x07 */
 
   
@@ -738,7 +822,12 @@ mms_t *mms_connect (const char *url_) {
   send_command (this, 0x07, 1, 
 		0xFFFF | this->stream_ids[0] << 16, 
 		24);
+
+  report_progress (stream, 100);
+
+#ifdef LOG
   printf(" mms_connect: passed\n" );
+#endif
   return this;
 }
 
@@ -752,9 +841,12 @@ static int get_media_packet (mms_t *this) {
   }
 
 #ifdef LOG
-  for (i = 0; i < 8; i++)
-    printf ("pre_header[%d] = %02x (%d)\n",
-	    i, pre_header[i], pre_header[i]);
+  {
+    int i;
+    for (i = 0; i < 8; i++)
+      printf ("pre_header[%d] = %02x (%d)\n",
+	      i, pre_header[i], pre_header[i]);
+  }
 #endif
 
   if (pre_header[4] == 0x04) {

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mms.h,v 1.6 2002/09/06 18:13:11 mroi Exp $
+ * $Id: mms.h,v 1.7 2002/10/26 22:50:52 guenter Exp $
  *
  * libmms public header
  */
@@ -26,11 +26,12 @@
 #define HAVE_MMS_H
 
 #include <inttypes.h>
+#include "xine_internal.h"
 
 typedef struct mms_s mms_t;
 
 char*    mms_connect_common(int *s ,int *port, char *url, char **host, char **path, char **file);
-mms_t*   mms_connect (const char *url);
+mms_t*   mms_connect (xine_stream_t *stream, const char *url);
 
 int      mms_read (mms_t *this, char *data, int len);
 uint32_t mms_get_length (mms_t *this);

@@ -238,7 +238,7 @@ static int http_plugin_parse_url (char *urlbuf, char **user, char **password,
 }
 
 static int http_plugin_basicauth (const char *user, const char *password,
-    char* dest, int len) {
+				  char* dest, int len) {
   static char *enctable="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
   char        *tmp;
   char        *sptr;
@@ -294,9 +294,6 @@ static int http_plugin_basicauth (const char *user, const char *password,
   free(tmp);
   return 0;
 }
-
-static off_t http_plugin_read (input_plugin_t *this_gen, 
-			       char *buf, off_t nlen) ;
 
 static off_t http_plugin_read (input_plugin_t *this_gen, 
 			       char *buf, off_t nlen) {

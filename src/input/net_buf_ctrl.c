@@ -33,7 +33,9 @@
 #define DEFAULT_LOW_WATER_MARK  2
 #define DEFAULT_HIGH_WATER_MARK 5
 
+/*
 #define LOG
+*/
 
 struct nbc_s {
 
@@ -45,6 +47,23 @@ struct nbc_s {
 
 };
 
+static void report_progress (xine_stream_t *stream, int p) {
+
+  xine_event_t             event;
+  xine_progress_data_t     prg;
+
+  prg.description = _("Buffering...");
+  prg.percent = p;
+  
+  event.type = XINE_EVENT_PROGRESS;
+  event.data = &prg;
+  event.data_length = sizeof (xine_progress_data_t);
+  
+  xine_event_send (stream, &event);
+}
+
+
+
 void nbc_check_buffers (nbc_t *this) {
 
   int fifo_fill;
@@ -53,12 +72,15 @@ void nbc_check_buffers (nbc_t *this) {
   if (this->stream->audio_fifo) {
     fifo_fill += 8*this->stream->audio_fifo->size(this->stream->audio_fifo);
   }
-#ifdef LOG
   if (this->buffering) {
+
+    report_progress (this->stream, fifo_fill*100 / this->high_water_mark);
+
+#ifdef LOG
     printf ("net_buf_ctl: buffering (%d/%d)...\n", 
 	    fifo_fill, this->high_water_mark);
-  }
 #endif
+  }
   if (fifo_fill<this->low_water_mark) {
     
     if (!this->buffering) {

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_avi.c,v 1.128 2002/10/26 22:00:50 guenter Exp $
+ * $Id: demux_avi.c,v 1.129 2002/10/26 22:50:52 guenter Exp $
  *
  * demultiplexer for avi streams
  *
@@ -426,16 +426,17 @@ static long idx_grow(demux_avi_t *this, long (*stopper)(demux_avi_t *, void *),
       /* send event to frontend about index generation progress */
 
       xine_event_t             event;
-      xine_idx_progress_data_t idx;
+      xine_progress_data_t     prg;
       off_t                    file_len;
 
       file_len = this->input->get_length (this->input);
 
-      idx.percent = 100 * this->idx_grow.nexttagoffset / file_len;
+      prg.description = _("Restoring index...");
+      prg.percent = 100 * this->idx_grow.nexttagoffset / file_len;
 
-      event.type = XINE_EVENT_BUILDING_INDEX;
-      event.data = &idx;
-      event.data_length = sizeof (xine_idx_progress_data_t);
+      event.type = XINE_EVENT_PROGRESS;
+      event.data = &prg;
+      event.data_length = sizeof (xine_progress_data_t);
       
       xine_event_send (this->stream, &event);
     }

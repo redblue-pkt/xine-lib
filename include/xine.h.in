@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.28 2002/10/26 14:31:36 mroi Exp $
+ * $Id: xine.h.in,v 1.29 2002/10/26 22:50:52 guenter Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -302,6 +302,7 @@ void   xine_register_log_cb (xine_t *self, xine_log_cb_t cb,
 #define XINE_PARAM_AUDIO_COMPR_LEVEL       8 /* <100=>off, % compress otherw*/
 #define XINE_PARAM_AUDIO_AMP_LEVEL         9 /* 0..200, 100=>100% (default) */
 #define XINE_PARAM_AUDIO_REPORT_LEVEL     10 /* 1=>send events, 0=> don't   */
+#define XINE_PARAM_VERBOSITY              11 /* control console output      */
 
 /* stream format detection strategies */
 
@@ -792,7 +793,7 @@ void xine_config_reset (xine_t *self);
 #define XINE_EVENT_FRAME_FORMAT_CHANGE    5 /* e.g. aspect ratio change during dvd playback */
 #define XINE_EVENT_AUDIO_LEVEL            6 /* report current audio level (l/r) */
 #define XINE_EVENT_QUIT                   7 /* last event sent when stream is disposed */
-#define XINE_EVENT_BUILDING_INDEX         8 /* event sent through index generation */
+#define XINE_EVENT_PROGRESS               8 /* index creation/network connections */
 
 /* input events coming from frontend */
 
@@ -881,8 +882,9 @@ typedef struct {
  * index generation / buffering
  */
 typedef struct {
+  const char         *description; /* e.g. "connecting..." */
   int                 percent;
-} xine_idx_progress_data_t;
+} xine_progress_data_t;
 
 
 /* opaque xine_event_queue_t */
