@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.184 2004/06/01 04:34:01 tmmm Exp $
+ * $Id: demux_qt.c,v 1.185 2004/06/01 22:05:47 jcdutton Exp $
  *
  */
 
@@ -2592,6 +2592,8 @@ static void demux_qt_send_headers(demux_plugin_t *this_gen) {
     buf->decoder_info[1] = audio_trak->properties->audio.sample_rate;
     buf->decoder_info[2] = audio_trak->properties->audio.bits;
     buf->decoder_info[3] = audio_trak->properties->audio.channels;
+    /* FIXME from jcdutton: Shouldn't this be a memcpy ? */
+    /* I don't know enough about this Quicktime demuxer to be sure */
     buf->content = (void *)&audio_trak->properties->audio.wave;
     buf->size = sizeof(audio_trak->properties->audio.wave);
     this->audio_fifo->put (this->audio_fifo, buf);
