@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_oss_out.c,v 1.106 2004/04/26 18:01:06 mroi Exp $
+ * $Id: audio_oss_out.c,v 1.107 2004/04/30 12:57:47 jcdutton Exp $
  *
  * 20-8-2001 First implementation of Audio sync and Audio driver separation.
  * Copyright (C) 2001 James Courtier-Dutton James@superbug.demon.co.uk
@@ -713,6 +713,8 @@ static int probe_audio_devices(oss_driver_t *this) {
   return best_rate; /* Will be zero if we did not find one */
 }  
   
+static void oss_speaker_arrangement_cb (void *user_data,
+                                  xine_cfg_entry_t *entry);
 
 static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *data) {
 
@@ -725,6 +727,22 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
   static char     *sync_methods[] = {"auto", "getodelay", "getoptr", "softsync", "probebuffer", NULL};
   static char     *devname_opts[] = {"auto", "/dev/dsp", "/dev/sound/dsp", NULL};
   int devname_val, devname_num;
+  static char         *speaker_arrangement[] = {"Mono", "Stereo", "Headphones", "A52_Passthru", "Surround21", "Surround3", "Surround4", "Surround41", "Surround5", "Surround51", "Surround6", "Surround61", "Surround71", NULL};
+  #define MONO 0
+  #define STEREO 1
+  #define HEADPHONES 2
+  #define A52_PASSTHRU 3
+  #define SURROUND21 4
+  #define SURROUND3  5
+  #define SURROUND4  6
+  #define SURROUND41 7
+  #define SURROUND5  8
+  #define SURROUND51 9
+  #define SURROUND6  10
+  #define SURROUND61 11
+  #define SURROUND71 12
+  int speakers;
+
   
   this = (oss_driver_t *) xine_xmalloc (sizeof (oss_driver_t));
 
@@ -917,6 +935,14 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
     return NULL;
   }
 
+  speakers = config->register_enum(config, "audio.speaker_arrangement", 1,
+                        speaker_arrangement,
+                        _("Speaker arrangement"),
+                        _("Select how your speakers are arranged."
+                        "This determines which speakers xine uses for output"),
+                        0,  oss_speaker_arrangement_cb, this);
+
+
   xprintf(class->xine, XINE_VERBOSITY_DEBUG, "audio_oss_out: supported modes are ");
   num_channels = 1; 
   status = ioctl(audio_fd, SNDCTL_DSP_CHANNELS, &num_channels); 
@@ -932,16 +958,8 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
   }
   num_channels = 4; 
   status = ioctl(audio_fd, SNDCTL_DSP_CHANNELS, &num_channels); 
-  if ( (status != -1) && (num_channels==4) ) {
-    if (config->register_bool (config, "audio.four_channel", 0,
-                               _("sound system can handle 4.0 audio"),
-                               _("Enable this, if you want your sound system to "
-                                 "receive four channel surround sound from xine. "
-                                 "This means two front channels (left and right) "
-                                 "and two rear channels (left and right).\n"
-                                 "You need to connect the necessary speakers to "
-                                 "take advantage of this."),
-			       0, NULL, NULL)) {
+  if ( (status != -1) && (num_channels==4) )  {
+    if  ( speakers == SURROUND4 ) {
       this->capabilities |= AO_CAP_MODE_4CHANNEL;
       xprintf(class->xine, XINE_VERBOSITY_DEBUG, "4-channel ");
     } 
@@ -951,15 +969,7 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
   num_channels = 5; 
   status = ioctl(audio_fd, SNDCTL_DSP_CHANNELS, &num_channels); 
   if ( (status != -1) && (num_channels==5) ) {
-    if (config->register_bool (config, "audio.five_channel", 0,
-                               _("sound system can handle 5.0 audio"),
-                               _("Enable this, if you want your sound system to "
-                                 "receive five channel surround sound from xine. "
-                                 "This means three front channels (left, center and "
-                                 "right) and two rear channels (left and right).\n"
-                                 "You need to connect the necessary speakers to "
-                                 "take advantage of this."),
-			       0, NULL, NULL)) {
+    if  ( speakers == SURROUND5 ) {
       this->capabilities |= AO_CAP_MODE_5CHANNEL;
       xprintf(class->xine, XINE_VERBOSITY_DEBUG, "5-channel ");
     }
@@ -969,15 +979,7 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
   num_channels = 6; 
   status = ioctl(audio_fd, SNDCTL_DSP_CHANNELS, &num_channels); 
   if ( (status != -1) && (num_channels==6) ) {
-    if (config->register_bool (config, "audio.five_lfe_channel", 0,
-                               _("sound system can handle 5.1 audio"),
-                               _("Enable this, if you want your sound system to "
-                                 "receive five channel plus LFE surround sound from "
-                                 "xine. This means three front channels (left, center "
-                                 "and right), two rear channels (left and right) and "
-                                 "a subwoofer (LFE) channel.\nYou need to connect "
-                                 "the necessary speakers to take advantage of this."),
-			       0, NULL, NULL)) {
+    if  ( speakers == SURROUND51 ) {
       this->capabilities |= AO_CAP_MODE_5_1CHANNEL;
       xprintf(class->xine, XINE_VERBOSITY_DEBUG, "5.1-channel ");
     } 
@@ -989,14 +991,7 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
 
   /* one would normally check for (caps & AFMT_AC3) before asking about passthrough,
    * but some buggy OSS drivers do not report this properly, so we ask anyway */
-  if (config->register_bool (config, "audio.a52_pass_through", 0,
-                             _("sound system can handle undecoded digital sound"),
-                             _("Enable this, if you want your sound system to "
-                               "receive undecoded digital sound from xine.\n"
-                               "You need to connect a digital surround decoder "
-                               "capable of decoding the formats you want to play "
-                               "to your sound card's digital output. "),
-			     0, NULL, NULL)) {
+  if  ( speakers == A52_PASSTHRU ) {
     this->capabilities |= AO_CAP_MODE_A52;
     this->capabilities |= AO_CAP_MODE_AC5;
     xprintf(class->xine, XINE_VERBOSITY_DEBUG, "a/52-pass-through ");
@@ -1104,6 +1099,40 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
 
   return &this->ao_driver;
 }
+
+static void oss_speaker_arrangement_cb (void *user_data,
+                                  xine_cfg_entry_t *entry) {
+  oss_driver_t *this = (oss_driver_t *) user_data;
+  int32_t value = entry->num_value;
+  if (value == A52_PASSTHRU) {
+    this->capabilities |= AO_CAP_MODE_A52;
+    this->capabilities |= AO_CAP_MODE_AC5;
+  } else {
+    this->capabilities &= ~AO_CAP_MODE_A52;
+    this->capabilities &= ~AO_CAP_MODE_AC5;
+  }
+  if (value == SURROUND4) {
+    this->capabilities |= AO_CAP_MODE_4CHANNEL;
+  } else {
+    this->capabilities &= ~AO_CAP_MODE_4CHANNEL;
+  }
+  if (value == SURROUND41) {
+    this->capabilities |= AO_CAP_MODE_4_1CHANNEL;
+  } else {
+    this->capabilities &= ~AO_CAP_MODE_4_1CHANNEL;
+  }
+  if (value == SURROUND5) {
+    this->capabilities |= AO_CAP_MODE_5CHANNEL;
+  } else {
+    this->capabilities &= ~AO_CAP_MODE_5CHANNEL;
+  }
+  if (value >= SURROUND51) {
+    this->capabilities |= AO_CAP_MODE_5_1CHANNEL;
+  } else {
+    this->capabilities &= ~AO_CAP_MODE_5_1CHANNEL;
+  }
+}
+
 
 /*
  * class functions
