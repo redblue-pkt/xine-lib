@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.26 2001/09/19 11:16:08 jkeil Exp $
+ * $Id: w32codec.c,v 1.27 2001/09/19 18:42:55 jkeil Exp $
  *
  * routines for using w32 codecs
  *
@@ -53,10 +53,12 @@ typedef struct w32v_decoder_s {
   BITMAPINFOHEADER  bih, o_bih; 
   HIC               hic;
   int               yuv_supported ;
+  int		    yuv_hack_needed ;
   int               flipped ;
   unsigned char     buf[128*1024];
   void             *img_buffer;
   int               size;
+  long		    outfmt;
 
   /* profiler */
   int		   prof_rgb2yuv;
@@ -172,30 +174,33 @@ static char* get_vids_codec_name(w32v_decoder_t *this,
 				 int buf_type) {
 
   this->yuv_supported=0;
+  this->yuv_hack_needed=0;
   this->flipped=0;
 
   switch (buf_type) {
   case BUF_VIDEO_MSMPEG4_V12:
     /* Microsoft MPEG-4 v1/v2 */
-    this->yuv_supported=0;
+    this->yuv_supported=1;
+    this->yuv_hack_needed=1;
     this->flipped=1;
     return "mpg4c32.dll";
 
   case BUF_VIDEO_MSMPEG4_V3:
     /* Microsoft MPEG-4 v3 */
-    this->yuv_supported=0;
+    this->yuv_supported=1;
+    this->yuv_hack_needed=1;
     this->flipped=1;
     return "divxc32.dll";
 
   case BUF_VIDEO_IV50:
     /* Video in Indeo Video 5 format */
     this->yuv_supported=1;   /* YUV pic is upside-down :( */
-    this->flipped=1;
+    this->flipped=0;
     return "ir50_32.dll";
 
   case BUF_VIDEO_IV41:
     /* Video in Indeo Video 4.1 format */
-    this->flipped=1;
+    this->flipped=0;
     return "ir41_32.dll";
     
   case BUF_VIDEO_IV32:
@@ -238,13 +243,9 @@ static char* get_vids_codec_name(w32v_decoder_t *this,
   return NULL;
 }
 
-#ifdef IMGFMT_YUY2
 #undef IMGFMT_YUY2
-#endif
-#define IMGFMT_YUY2  mmioFOURCC('Y','U','Y','2')
-#ifdef IMGFMT_YV12
 #undef IMGFMT_YV12
-#endif
+#define IMGFMT_YUY2  mmioFOURCC('Y','U','Y','2')
 #define IMGFMT_YV12  mmioFOURCC('Y','V','1','2')
 #define IMGFMT_32RGB mmioFOURCC( 32,'R','G','B')
 #define IMGFMT_24RGB mmioFOURCC( 24,'R','G','B')
@@ -259,6 +260,7 @@ static int w32v_can_handle (video_decoder_t *this_gen, int buf_type) {
 	   buf_type == BUF_VIDEO_IV50 ||
            buf_type == BUF_VIDEO_IV41 ||
            buf_type == BUF_VIDEO_IV32 ||
+           buf_type == BUF_VIDEO_IV31 ||
            buf_type == BUF_VIDEO_CINEPAK ||
            /* buf_type == BUF_VIDEO_ATIVCR1 || */
            buf_type == BUF_VIDEO_ATIVCR2 ||
@@ -277,6 +279,8 @@ static void w32v_init (video_decoder_t *this_gen, vo_instance_t *video_out) {
 static void w32v_init_codec (w32v_decoder_t *this, int buf_type) {
 
   HRESULT  ret;
+  uint32_t vo_cap;
+  int outfmt;
 
   w32v_init_rgb_ycc();
 
@@ -286,6 +290,13 @@ static void w32v_init_codec (w32v_decoder_t *this, int buf_type) {
   this->o_bih.biSize = sizeof(BITMAPINFOHEADER);
   
   win32_codec_name = get_vids_codec_name (this, buf_type);
+
+  outfmt = IMGFMT_15RGB;
+  if (this->yuv_supported) {
+    vo_cap = this->video_out->get_capabilities (this->video_out);
+    if (vo_cap & VO_CAP_YUY2)
+      outfmt = IMGFMT_YUY2;
+  }
 
   this->hic = ICOpen (mmioFOURCC('v','i','d','c'), 
 		      this->bih.biCompression, 
@@ -313,20 +324,22 @@ static void w32v_init_codec (w32v_decoder_t *this, int buf_type) {
 	  (char*)&this->o_bih.biCompression,
 	  this->o_bih.biCompression);
 
+  if(outfmt==IMGFMT_YUY2 || outfmt==IMGFMT_15RGB)
+    this->o_bih.biBitCount=16;
+  else
+    this->o_bih.biBitCount=outfmt&0xFF;
+
+  this->o_bih.biSizeImage = this->o_bih.biWidth * this->o_bih.biHeight
+      * this->o_bih.biBitCount / 8;
+
   if (this->flipped)
     this->o_bih.biHeight=-this->bih.biHeight; 
 
-  if (this->yuv_supported) {
-    this->o_bih.biBitCount=16;
-    this->o_bih.biCompression = IMGFMT_YUY2;
-  } else { 
-    this->o_bih.biCompression = 0; /* RGB */
-    this->o_bih.biBitCount = 16;
-  }
-
-  this->o_bih.biSizeImage = this->o_bih.biWidth * abs(this->o_bih.biHeight)
-      * this->o_bih.biBitCount/8;
-
+  if(outfmt==IMGFMT_YUY2 && !this->yuv_hack_needed)
+    this->o_bih.biCompression = mmioFOURCC('Y','U','Y','2');
+  else 
+    this->o_bih.biCompression = 0;
+      
   ret = ICDecompressQuery(this->hic, &this->bih, &this->o_bih);
   
   if(ret){
@@ -342,12 +355,16 @@ static void w32v_init_codec (w32v_decoder_t *this, int buf_type) {
     return;
   }
 
+  if (outfmt==IMGFMT_YUY2 && this->yuv_hack_needed)
+    this->o_bih.biCompression = mmioFOURCC('Y','U','Y','2'); 
+
   this->size = 0;
 
   this->img_buffer = malloc (this->o_bih.biSizeImage);
 
   this->video_out->open (this->video_out);
 
+  this->outfmt = outfmt;
   this->decoder_ok = 1;
 }
 
@@ -389,7 +406,7 @@ static void w32v_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 					this->bih.biWidth, 
 					this->bih.biHeight, 
 					42, 
-					IMGFMT_YUY2,
+					this->outfmt,
 					this->video_step,
 					VO_BOTH_FIELDS);
 
@@ -402,11 +419,11 @@ static void w32v_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 			 &this->bih, this->buf,
 			 &this->o_bih, this->img_buffer);
 
-      if (this->yuv_supported) {
-	/* already decoded into YUY2 format */
+      if (this->outfmt==IMGFMT_YUY2) {
+	/* already decoded into YUY2 format by DLL */
 	memcpy(img->base[0], this->img_buffer, this->bih.biHeight*this->bih.biWidth*2);
       } else {
-	/* now, convert rgb to yuv (this is to slow) */
+	/* now, convert rgb to yuv */
 	int row, col;
 #if	HAS_SLOW_MULT
 	int32_t *ctab = rgb_ycc_tab;
