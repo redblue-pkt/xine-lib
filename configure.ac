@@ -1503,12 +1503,18 @@ case "$host_or_hostalias" in
 
       if test "$GCC" = yes ; then
 	dnl Check for gcc cpu optimization support
-	AC_TRY_CFLAGS("-mcpu=i386", 
-		sarchopt="-mcpu",
-		AC_TRY_CFLAGS("-march=i386", 
-			sarchopt="-march",
-			[ AC_MSG_RESULT(** no cpu optimization supports **)
-			  sarchopt=no ]))
+	AC_TRY_CFLAGS("-mtune=i386", 
+	  sarchopt="-mtune",
+  	  AC_TRY_CFLAGS("-mcpu=i386", 
+	    sarchopt="-mcpu",
+            AC_TRY_CFLAGS("-march=i386", 
+	      sarchopt="-march",
+	      [ AC_MSG_RESULT(** no cpu optimization supports **)
+	        sarchopt=no 
+	      ]
+            )
+          )
+        )
 
 	dnl special check for k7 cpu CC support
         AC_TRY_CFLAGS("$sarchopt=athlon", k7cpu="athlon", k7cpu="i686")
