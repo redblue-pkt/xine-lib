@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.148 2002/12/15 01:05:36 rockyb Exp $
+ * $Id: demux_mpeg_block.c,v 1.149 2002/12/15 04:58:07 rockyb Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -646,6 +646,9 @@ static int demux_mpeg_block_send_chunk (demux_plugin_t *this_gen) {
    in bytes and in time. 
 
    On failure return 0.
+
+   This might be used after deciding that mux_rate in a stream is faulty.
+
 */
 
 /* How many *sucessful* PTS samples do we take? */
@@ -855,8 +858,13 @@ static void demux_mpeg_block_send_headers (demux_plugin_t *this_gen) {
   
   xine_demux_control_start(this->stream);
   
-  if (!this->rate)
+  if (!this->rate) {
+#ifdef ESITMATE_RATE_FIXED
     this->rate = demux_mpeg_block_estimate_rate (this);
+#else 
+    this->rate = 0;
+#endif
+  }
   
   if((this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) != 0) {
     
