@@ -61,6 +61,8 @@ xineplug_dmx_mpeg_elem_la_SOURCES = demux_elem.c
 xineplug_dmx_mpeg_elem_la_LIBADD = $(XINELIB)
 xineplug_dmx_mpeg_elem_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
+##remove me on pes reactivation
+EXTRA_DIST = demux_pes.c
 #xineplug_dmx_mpeg_pes_la_SOURCES = demux_pes.c
 #xineplug_dmx_mpeg_pes_la_LIBADD = $(XINELIB)
 #xineplug_dmx_mpeg_pes_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@

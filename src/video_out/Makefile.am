@@ -1,5 +1,7 @@
 SUBDIRS = libdha vidix
 
+EXTRA_DIST = video_out_directfb.c video_out_opengl.c
+
 VIDIX_CFLAGS = -I$(top_builddir)/src/video_out/vidix \
 	-I$(top_srcdir)/src/video_out/vidix
 

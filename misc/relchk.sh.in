@@ -41,7 +41,7 @@ getdir() {
 main() {
   rm -f $log $logerror
 
-  ./cvscompile.sh $CONFIG_ARGS && make dist && mv $distdir.tar.gz $distdir.tmp.tar.gz
+  ./configure $CONFIG_ARGS && make dist && mv $distdir.tar.gz $distdir.tmp.tar.gz
   make clean && make distclean && mv $distdir.tmp.tar.gz $distdir.tar.gz
   tar -xzf $distdir.tar.gz
 

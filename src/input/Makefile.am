@@ -2,6 +2,8 @@
 ## Process this file with automake to produce Makefile.in
 ##
 
+EXTRA_DIST = input_dvd.c input_vcd.c input_gnome_vfs.c input_rtp.c
+
 if HAVE_DVDNAV
 SUBDIRS = dvb libreal librtsp libdvdread
 else
@@ -109,10 +111,6 @@ xineplug_inp_http_la_SOURCES = input_http.c net_buf_ctrl.c
 xineplug_inp_http_la_LIBADD = $(XINE_LIB)
 xineplug_inp_http_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
-#xineplug_inp_cda_la_SOURCES = input_cda.c
-#xineplug_inp_cda_la_LIBADD = $(XINE_LIB)
-#xineplug_inp_cda_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
-
 xineplug_inp_pnm_la_SOURCES = input_pnm.c net_buf_ctrl.c pnm.c
 xineplug_inp_pnm_la_LIBADD = $(XINE_LIB)
 xineplug_inp_pnm_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
@@ -139,8 +137,6 @@ xineplug_inp_gnome_vfs_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS
 
 include_HEADERS = input_plugin.h
 noinst_HEADERS = net_buf_ctrl.h mms.h mmsh.h pnm.h
-
-EXTRA_DIST = input_dvd.c input_vcd.c input_gnome_vfs.c
 
 $(XINE_LIB):
 	@cd $(top_builddir)/src/xine-engine && $(MAKE)

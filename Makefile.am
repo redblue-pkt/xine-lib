@@ -25,6 +25,7 @@ EXTRA_DIST = autogen.sh \
 	     README \
 	     TODO \
 	     depcomp \
+	     CREDITS \
 	     @DEPCOMP@
 
 noinst_HEADERS = config.h
@@ -53,7 +54,7 @@ prune-cache:
 
 release-check: misc/relchk.sh
 	@mv -f .cvsversion .cvsversion.tmp
-	@./configure && $(SHELL) misc/relchk.sh
+	@./autogen.sh && $(SHELL) misc/relchk.sh
 	@mv -f .cvsversion.tmp .cvsversion
 
 

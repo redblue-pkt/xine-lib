@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: xine-lib 0.9.15\n"
-"POT-Creation-Date: 2003-01-13 13:19+0100\n"
+"POT-Creation-Date: 2003-01-29 12:09+0100\n"
 "PO-Revision-Date: 2002-11-25 10:28+0100\n"
 "Last-Translator: Frantisek Dvorak <valtri@atlas.cz>\n"
 "Language-Team: Czech <cs@li.org>\n"
@@ -131,7 +131,7 @@ msgstr "Obnovuje se index..."
 msgid "demux_avi: avi index is broken\n"
 msgstr "demux_avi: index avi je poru¹en\n"
 
-#: src/demuxers/demux_mpgaudio.c:484
+#: src/demuxers/demux_mpgaudio.c:485
 msgid "demux_mpgaudio: no audio driver!\n"
 msgstr "demux_mpgaudio: ¾ádný zvukový ovladaè!\n"
 
@@ -153,71 +153,27 @@ msgstr ""
 msgid "demux_qt.c: input is block organized, can not handle!\n"
 msgstr "demux_qt.c: vstup je blokovì organizovaný, nelze zpracovat!\n"
 
-#: src/demuxers/demux_qt.c:2390
-#, c-format
-msgid "demux_qt: Apple Quicktime file, %srunning time: %d min, %d sec\n"
-msgstr "demux_qt: Soubor Apple Quicktime, %sdoba pøehrávání: %d min, %d s\n"
-
-#: src/demuxers/demux_qt.c:2396
-#, c-format
-msgid "demux_qt: '%c%c%c%c' video @ %dx%d\n"
-msgstr "demux_qt: '%c%c%c%c' video @ %dx%d\n"
-
-#: src/demuxers/demux_qt.c:2405
-#, c-format
-msgid "demux_qt: '%c%c%c%c' audio @ %d Hz, %d bits, %d %s\n"
-msgstr "demux_qt: '%c%c%c%c' zvuk @ %d Hz, %d bitù, %d %s\n"
-
-#: src/demuxers/demux_qt.c:2413 src/demuxers/demux_smjpeg.c:508
-#: src/demuxers/demux_wav.c:386
-msgid "channel"
-msgid_plural "channels"
-msgstr[0] "kanál"
-msgstr[1] "kanály"
-msgstr[2] "kanálù"
-
-#: src/demuxers/demux_ogg.c:417
+#: src/demuxers/demux_ogg.c:416
 msgid "ogg: vorbis audio track indicated but no vorbis stream header found.\n"
 msgstr ""
 "ogg: zji¹tìna zvuková stopa vorbis, ale nenalezena ¾ádná hlavièka dat "
 "vorbis.\n"
 
-#: src/demuxers/demux_cda.c:187
-msgid "demux_cda.c: input not seekable, can not handle!\n"
-msgstr ""
-"demux_cda.c: u tohoto vstupu nelze nastavovat pozici v datech, nelze "
-"zpracovat!\n"
-
-#: src/demuxers/demux_film.c:176
+#: src/demuxers/demux_film.c:203
 msgid "invalid FILM chunk size\n"
 msgstr "neplatná velikost datového bloku FILM\n"
 
-#: src/demuxers/demux_film.c:262
+#: src/demuxers/demux_film.c:322
 msgid "unrecognized FILM chunk\n"
 msgstr "nerozpoznaný datový blok FILM\n"
 
-#: src/demuxers/demux_film.c:665
+#: src/demuxers/demux_film.c:724
 msgid "demux_film.c: input not seekable, can not handle!\n"
 msgstr ""
 "demux_film.c: u tohoto vstupu nelze nastavovat pozici v datech, nelze "
 "zpracovat!\n"
 
-#: src/demuxers/demux_film.c:736
-#, c-format
-msgid "demux_film: FILM version %c%c%c%c, running time: %d min, %d sec\n"
-msgstr "demux_film: FILM verze %c%c%c%c, doba pøehrávání: %d min, %d s\n"
-
-#: src/demuxers/demux_film.c:745
-#, c-format
-msgid "demux_film: %c%c%c%c video @ %dx%d, %d Hz playback clock\n"
-msgstr "demux_film: %c%c%c%c video @ %dx%d, hodiny pro pøehrávání %d Hz\n"
-
-#: src/demuxers/demux_film.c:755
-#, c-format
-msgid "demux_film: %d Hz, %d-bit %s%s PCM audio\n"
-msgstr "demux_film: %d Hz, %d-bitový %s%s PCM zvuk\n"
-
-#: src/demuxers/demux_mpeg_block.c:300
+#: src/demuxers/demux_mpeg_block.c:299
 msgid ""
 "demux_mpeg_block: too many errors, stopping playback. Maybe this stream is "
 "scrambled?\n"
@@ -225,7 +181,7 @@ msgstr ""
 "demux_mpeg_block: pøíli¹ mnoho chyb, zastavuje se pøehrávání. Mo¾ná jsou "
 "tyto data zakódována.\n"
 
-#: src/demuxers/demux_mpeg_block.c:415
+#: src/demuxers/demux_mpeg_block.c:414
 #, c-format
 msgid ""
 "demux_mpeg_block: warning: pes header indicates that this stream may be "
@@ -240,52 +196,17 @@ msgstr ""
 "demux_roq.c: u tohoto vstupu nelze nastavovat pozici v datech, nelze "
 "zpracovat!\n"
 
-#: src/demuxers/demux_roq.c:478
-#, c-format
-msgid "demux_roq: RoQ file, video is %dx%d, %d frames/sec\n"
-msgstr "demux_roq: Soubor RoQ, video je %dx%d, %d snímkù/s\n"
-
-#: src/demuxers/demux_roq.c:482
-#, c-format
-msgid "demux_roq: 16-bit, 22050 Hz %s RoQ DPCM audio\n"
-msgstr "demux_roq: 16 bitù, 22050 Hz %s RoQ DPCM zvuk\n"
-
 #: src/demuxers/demux_fli.c:284
 msgid "demux_fli.c: input not seekable, can not handle!\n"
 msgstr ""
 "demux_fli.c: u tohoto vstupu nelze nastavovat pozici v datech, nelze "
 "zpracovat!\n"
 
-#: src/demuxers/demux_fli.c:354
-#, c-format
-msgid "demux_fli: FLI type: %04X, speed: %d/%d\n"
-msgstr "demux_fli: typ FLI: %04X, rychlost: %d/%d\n"
-
-#: src/demuxers/demux_fli.c:358
-#, c-format
-msgid "demux_fli: %d frames, %dx%d\n"
-msgstr "demux_fli: %d rámcù, %dx%d\n"
-
-#: src/demuxers/demux_fli.c:361
-#, c-format
-msgid "demux_fli: running time: %d min, %d sec\n"
-msgstr "demux_fli: doba pøehrávání: %d min, %d s\n"
-
-#: src/demuxers/demux_idcin.c:462
+#: src/demuxers/demux_idcin.c:496
 msgid "demux_idcin.c: input not seekable, can not handle!\n"
 msgstr ""
 "demux_idcin.c: u tohoto vstupu nelze nastavovat pozici v datech, nelze "
 "zpracovat!\n"
-
-#: src/demuxers/demux_idcin.c:531
-#, c-format
-msgid "demux_idcin: Id CIN file, video is %dx%d, 14 frames/sec\n"
-msgstr "demux_idcin: Soubor Id CIN, video je %dx%d, 14 snímkù/s\n"
-
-#: src/demuxers/demux_idcin.c:536
-#, c-format
-msgid "demux_idcin: %d-bit, %d Hz %s PCM audio\n"
-msgstr "demux_idcin: %d-bitový, %d Hz %s PCM zvuk\n"
 
 #: src/demuxers/demux_smjpeg.c:417
 msgid "demux_smjpeg.c: input not seekable, can not handle!\n"
@@ -293,57 +214,17 @@ msgstr ""
 "demux_smjpeg.c: u tohoto vstupu nelze nastavovat pozici v datech, nelze "
 "zpracovat!\n"
 
-#: src/demuxers/demux_smjpeg.c:486
-#, c-format
-msgid "demux_smjpeg: SMJPEG file, running time: %d min, %d sec\n"
-msgstr "demux_smjpeg: Soubor SMJPEG, doba pøehrávání: %d min, %d s\n"
-
-#: src/demuxers/demux_smjpeg.c:491
-#, c-format
-msgid "demux_smjpeg: '%c%c%c%c' video @ %dx%d\n"
-msgstr "demux_smjpeg: '%c%c%c%c' video @ %dx%d\n"
-
-#: src/demuxers/demux_smjpeg.c:500
-#, c-format
-msgid "demux_smjpeg: '%c%c%c%c' audio @ %d Hz, %d bits, %d %s\n"
-msgstr "demux_smjpeg: '%c%c%c%c' zvuk @ %d Hz, %d bitù, %d %s\n"
-
-#: src/demuxers/demux_wav.c:312
+#: src/demuxers/demux_wav.c:317
 msgid "demux_wav.c: input not seekable, can not handle!\n"
 msgstr ""
 "demux_wav.c: u tohoto vstupu nelze nastavovat pozici v datech, nelze "
 "zpracovat!\n"
 
-#: src/demuxers/demux_wav.c:381
-#, c-format
-msgid "demux_wav: format 0x%X audio, %d Hz, %d bits/sample, %d %s\n"
-msgstr "demux_wav: formát zvuku 0x%X, %d Hz, %d bitù/vzorek, %d %s\n"
-
-#: src/demuxers/demux_wav.c:388
-#, c-format
-msgid "demux_wav: running time = %lld min, %lld sec\n"
-msgstr "demux_wav: doba pøehrávání = %lld min, %lld s\n"
-
-#: src/demuxers/demux_wav.c:392
-#, c-format
-msgid "demux_wav: average bytes/sec = %d, block alignment = %d\n"
-msgstr "demux_wav: prùmìrnì %d bytù/s, zarovnání bloku %d\n"
-
-#: src/demuxers/demux_aiff.c:347
+#: src/demuxers/demux_aiff.c:352
 msgid "demux_aiff.c: input not seekable, can not handle!\n"
 msgstr ""
 "demux_aiff.c: u tohoto vstupu nelze nastavovat pozici v datech, nelze "
 "zpracovat!\n"
-
-#: src/demuxers/demux_aiff.c:416
-#, c-format
-msgid "demux_aiff: %d Hz, %d channels, %d bits, %d frames\n"
-msgstr "demux_aiff: %d Hz, %d kanálù, %d bitù, %d snímkù\n"
-
-#: src/demuxers/demux_aiff.c:422
-#, c-format
-msgid "demux_aiff: running time: %d min, %d sec\n"
-msgstr "demux_aiff: doba pøehrávání: %d min, %d s\n"
 
 #: src/demuxers/demux_snd.c:121
 msgid "demux_snd: bad header parameters\n"
@@ -360,16 +241,6 @@ msgstr ""
 "demux_snd.c: u tohoto vstupu nelze nastavovat pozici v datech, nelze "
 "zpracovat!\n"
 
-#: src/demuxers/demux_snd.c:392
-#, c-format
-msgid "demux_snd: %d Hz, %d channels, %d bits, %d frames\n"
-msgstr "demux_snd: %d Hz, %d kanálù, %d bitù, %d snímkù\n"
-
-#: src/demuxers/demux_snd.c:398
-#, c-format
-msgid "demux_snd: running time: %d min, %d sec\n"
-msgstr "demux_snd: doba pøehrávání: %d min, %d s\n"
-
 #: src/demuxers/demux_voc.c:126
 #, c-format
 msgid "unknown VOC block type (0x%02X); please report to xine developers\n"
@@ -381,17 +252,11 @@ msgid ""
 "unknown VOC compression type (0x%02X); please report to xine developers\n"
 msgstr "neznámý typ komprese VOC (0x%02X); prosím oznamte výojáøùm xine\n"
 
-#: src/demuxers/demux_voc.c:315
+#: src/demuxers/demux_voc.c:321
 msgid "demux_voc.c: input not seekable, can not handle!\n"
 msgstr ""
 "demux_voc.c: u tohoto vstupu nelze nastavovat pozici v datech, nelze "
 "zpracovat!\n"
-
-#: src/demuxers/demux_voc.c:384
-#, c-format
-msgid "demux_voc: VOC format 0x%X audio, %d Hz, running time: %d min, %d sec\n"
-msgstr ""
-"demux_voc: formát zvuku VOC 0x%X, %d Hz, doba pøehrávání: %d min, %d s\n"
 
 #: src/demuxers/demux_wc3movie.c:210
 #, c-format
@@ -400,16 +265,16 @@ msgstr ""
 "demux_wc3movie: datový blok SHOT odkazoval na neplatnou paletu (%d >= %d)\n"
 
 #. report an unknown chunk and skip it
-#: src/demuxers/demux_wc3movie.c:296 src/demuxers/demux_wc3movie.c:499
+#: src/demuxers/demux_wc3movie.c:300 src/demuxers/demux_wc3movie.c:503
 #, c-format
 msgid "demux_wc3movie: encountered unknown chunk: %c%c%c%c\n"
 msgstr "demux_wc3movie: vyskytl se neznámý datový blok: %c%c%c%c\n"
 
-#: src/demuxers/demux_wc3movie.c:425
+#: src/demuxers/demux_wc3movie.c:429
 msgid "demux_wc3movie: There was a problem while loading palette chunks\n"
 msgstr "demux_wc3movie: Byl zde problém bìhem naèítání datových blokù palety\n"
 
-#: src/demuxers/demux_wc3movie.c:672
+#: src/demuxers/demux_wc3movie.c:676
 msgid "demux_mve.c: input not seekable, can not handle!\n"
 msgstr ""
 "demux_mve.c: u tohoto vstupu nelze nastavovat pozici v datech, nelze "
@@ -543,7 +408,7 @@ msgstr "input_http: nelze zjistit adresu >%s<\n"
 msgid "http: unable to connect to >%s<\n"
 msgstr "http: nelze se pøipojit k >%s<\n"
 
-#: src/input/input_http.c:443 src/input/input_http.c:791
+#: src/input/input_http.c:443 src/input/input_http.c:794
 msgid "input_http: EAGAIN\n"
 msgstr "input_http: EAGAIN\n"
 
@@ -552,183 +417,53 @@ msgstr "input_http: EAGAIN\n"
 msgid "input_http: read error %d\n"
 msgstr "input_http: chyba ètení %d\n"
 
-#: src/input/input_http.c:707
+#: src/input/input_http.c:710
 #, c-format
 msgid "input_http: opening >/%s< on host >%s<"
 msgstr "input_http: otvírá se >/%s< na serveru >%s<"
 
-#: src/input/input_http.c:711
+#: src/input/input_http.c:714
 #, c-format
 msgid "%s via proxy >%s<"
 msgstr "%s pøes proxy >%s<"
 
-#: src/input/input_http.c:794
+#: src/input/input_http.c:797
 msgid "input_http: read error\n"
 msgstr "input_http: chyba ètení\n"
 
-#: src/input/input_http.c:826
+#: src/input/input_http.c:829
 msgid "input_http: invalid http answer\n"
 msgstr "input_http: neplatná odpovìï http\n"
 
-#: src/input/input_http.c:837
+#: src/input/input_http.c:840
 #, c-format
 msgid "input_http: 3xx redirection not implemented: >%d %s<\n"
 msgstr "input_http: pøesmìrování 3xx není implementováno: >%d %s<\n"
 
-#: src/input/input_http.c:844
+#: src/input/input_http.c:847
 #, c-format
 msgid "input_http: http status not 2xx: >%d %s<\n"
 msgstr "input_http: stav http není 2xx: >%d %s<\n"
 
-#: src/input/input_http.c:855
+#: src/input/input_http.c:858
 #, c-format
 msgid "input_http: content length = %Ld bytes\n"
 msgstr "input_http: délka obsahu = %Ld bytù\n"
 
-#: src/input/input_http.c:861
+#: src/input/input_http.c:864
 msgid "input_http: Location redirection not implemented\n"
 msgstr "input_http: Pøesmìrování umístìní není implementováno\n"
 
-#: src/input/input_http.c:933
+#: src/input/input_http.c:936
 msgid "http input plugin"
 msgstr "vstupní modul http"
-
-#: src/input/input_cda.c:433 src/input/input_cda.c:491
-#, c-format
-msgid "input_cda: fopen(%s) failed: %s\n"
-msgstr "input_cda: fopen(%s) selhalo: %s\n"
-
-#: src/input/input_cda.c:580
-#, c-format
-msgid "input_cda: server '%s:%d' successfuly connected.\n"
-msgstr "input_cda: úspì¹né pøipojení k serveru '%s:%d'.\n"
-
-#: src/input/input_cda.c:585
-#, c-format
-msgid "input_cda: opening server '%s:%d' failed: %s\n"
-msgstr "input_cda: selhal pøístup k serveru '%s:%d': %s\n"
-
-#: src/input/input_cda.c:753
-#, c-format
-msgid "input_cda: ioctl(CDROM_MEDIA_CHANGED) failed: %s.\n"
-msgstr "input_cda: selhalo ioctl(CDROM_MEDIA_CHANGED): %s.\n"
-
-#: src/input/input_cda.c:820
-#, c-format
-msgid "input_cda: ioctl(CDROMSUBCHNL) failed: %s.\n"
-msgstr "input_cda: selhalo ioctl(CDROMSUBCHNL): %s.\n"
-
-#: src/input/input_cda.c:955
-#, c-format
-msgid "input_cda: ioctl(CDIOCSTART) failed: %s.\n"
-msgstr "input_cda: selhalo ioctl(CDIOCSTART): %s.\n"
-
-#: src/input/input_cda.c:961
-#, c-format
-msgid "input_cda: ioctl(CDROMSTART) failed: %s.\n"
-msgstr "input_cda: selhalo ioctl(CDROMSTART): %s.\n"
-
-#: src/input/input_cda.c:967
-#, c-format
-msgid "input_cda: ioctl(CDIOCPLAYMSF) failed: %s.\n"
-msgstr "input_cda: selhalo ioctl(CDIOCPLAYMSF): %s.\n"
-
-#: src/input/input_cda.c:973
-#, c-format
-msgid "input_cda: ioctl(CDROMPLAYMSF) failed: %s.\n"
-msgstr "input_cda: selhalo ioctl(CDROMPLAYMSF): %s.\n"
-
-#: src/input/input_cda.c:995
-#, c-format
-msgid "input_cda: No rights to open %s.\n"
-msgstr "input_cda: Nejsou práva k otevøení %s.\n"
-
-#: src/input/input_cda.c:998
-#, c-format
-msgid "input_cda: open(%s) failed: %s.\n"
-msgstr "input_cda: selhala funkce open(%s): %s.\n"
-
-#: src/input/input_cda.c:1092
-#, c-format
-msgid "input_cda: ioctl(CDROMCLOSETRAY) failed: %s\n"
-msgstr "input_cda: selhalo ioctl(CDROMCLOSETRAY): %s\n"
-
-#: src/input/input_cda.c:1097 src/input/input_cda.c:1113
-#: src/input/input_cda.c:1118
-#, c-format
-msgid "input_cda: ioctl(CDROMEJECT) failed: %s\n"
-msgstr "input_cda: selhalo ioctl(CDROMEJECT): %s\n"
-
-#: src/input/input_cda.c:1103
-#, c-format
-msgid "input_cda: ioctl(CDROM_DRIVE_STATUS) failed: %s\n"
-msgstr "input_cda: selhalo ioctl(CDROM_DRIVE_STATUS): %s\n"
-
-#: src/input/input_cda.c:1109
-#, c-format
-msgid "input_cda: ioctl(CDROMALLOW) failed: %s\n"
-msgstr "input_cda: selhalo ioctl(CDROMALLOW): %s\n"
-
-#: src/input/input_cda.c:1149
-#, c-format
-msgid "input_cda: ioctl(CDIOREADTOCHEADER) failed: %s.\n"
-msgstr "input_cda: selhalo ioctl(CDIOREADTOCHEADER): %s.\n"
-
-#: src/input/input_cda.c:1157
-#, c-format
-msgid "input_cda: ioctl(CDROMREADTOCHDR) failed: %s.\n"
-msgstr "input_cda: selhalo ioctl(CDROMREADTOCHDR): %s.\n"
-
-#: src/input/input_cda.c:1194
-#, c-format
-msgid "input_cda: ioctl(CDIOREADTOCENTRYS) failed: %s.\n"
-msgstr "input_cda: selhalo ioctl(CDIOREADTOCENTRYS): %s.\n"
-
-#: src/input/input_cda.c:1217
-#, c-format
-msgid "input_cda: ioctl(CDROMREADTOCENTRY) failed: %s.\n"
-msgstr "input_cda: selhalo ioctl(CDROMREADTOCENTRY): %s.\n"
-
-#: src/input/input_cda.c:1401
-msgid "input_cda: malformed MRL. Use cda:/<track #>\n"
-msgstr "input_cda: neplatné MRL. Pou¾ijte cda://<stopa #>\n"
-
-#: src/input/input_cda.c:1407
-#, c-format
-msgid "input_cda: invalid track %d (valid range: 1 .. %d)\n"
-msgstr "input_cda: neplatná stopa %d (platný rozsah: 1 .. %d)\n"
-
-#: src/input/input_cda.c:1490
-#, c-format
-msgid "input_cda: error seek to origin %d not implemented!\n"
-msgstr "input_cda: posuv na cíl typu %d není implementován!\n"
-
-#: src/input/input_cda.c:1606
-msgid "cd audio plugin as shipped with xine"
-msgstr "modul pro zvukové CD dodávaný se xine"
-
-#: src/input/input_cda.c:1832
-msgid "path to your local cd audio device file"
-msgstr "cesta k va¹emu místnímu souboru zaøízení zvukového CD"
-
-#: src/input/input_cda.c:1837
-msgid "cddbp server name"
-msgstr "jméno cddbp serveru"
-
-#: src/input/input_cda.c:1841
-msgid "cddbp server port"
-msgstr "port cddbp serveru"
-
-#: src/input/input_cda.c:1848
-msgid "cddbp cache directory"
-msgstr "adresáø se záznamy cddbp"
 
 # (used only ISO8859-1 characters)
 #: src/input/net_buf_ctrl.c:55
 msgid "Buffering..."
 msgstr "Nahrává se..."
 
-#: src/libw32dll/w32codec.c:1482 src/libw32dll/w32codec.c:1554
+#: src/libw32dll/w32codec.c:1484 src/libw32dll/w32codec.c:1556
 msgid "path to win32 codec dlls"
 msgstr "cesta ke kodekùm win32"
 
@@ -746,15 +481,15 @@ msgstr ""
 msgid "syncfb (teletux) device node"
 msgstr "uzel zaøízení syncfb (teletux)"
 
-#: src/video_out/video_out_fb.c:657 src/video_out/video_out_xshm.c:1071
+#: src/video_out/video_out_xshm.c:1053 src/video_out/video_out_fb.c:657
 msgid "disable all video scaling (faster!)"
 msgstr "zakázat ve¹keré zmìny mìøítka (rychlej¹í!)"
 
-#: src/video_out/video_out_xshm.c:1218
+#: src/video_out/video_out_xshm.c:1200
 msgid "gamma correction for XShm driver"
 msgstr "gama korekce pro ovladaè XShm"
 
-#: src/video_out/video_out_xshm.c:1237
+#: src/video_out/video_out_xshm.c:1219
 msgid "xine video output plugin using the MIT X shared memory extension"
 msgstr "výstupní modul videa xine pou¾ije roz¹íøení MIT X shared memory"
 
@@ -808,22 +543,22 @@ msgstr "výstupní modul videa xine pou¾ije OpenGL"
 msgid "xine video output plugin using the DirectFB library."
 msgstr "výstupní modul videa xine pou¾ije knihovnu DirectFB"
 
-#: src/video_out/video_out_vidix.c:733
+#: src/video_out/video_out_vidix.c:996
 msgid "xine video output plugin using libvidix"
 msgstr "výstupní modul videa xine pou¾ije libvidix"
 
-#: src/xine-engine/tvmode.c:269
+#: src/xine-engine/tvmode.c:339
 msgid "NVidia TV-Out support."
 msgstr "Podpora TV-výstupu NVidia"
 
 # This message should match with FAQ_cs.
-#: src/xine-engine/video_out.c:386
+#: src/xine-engine/video_out.c:390
 #, c-format
 msgid "%d frames delivered, %d frames skipped, %d frames discarded\n"
 msgstr "%d snímkù pøedaných, %d snímkù pøeskoèených, %d snímkù zahozených\n"
 
 # This message should match with FAQ_cs.
-#: src/xine-engine/video_out.c:500
+#: src/xine-engine/video_out.c:504
 #, c-format
 msgid ""
 "video_out: throwing away image with pts %lld because it's too old (diff : %"
@@ -832,48 +567,48 @@ msgstr ""
 "video_out: zahození obrazu s pts %lld, proto¾e je pøíli¹ starý (rozdíl : %"
 "lld).\n"
 
-#: src/xine-engine/video_out.c:1285
+#: src/xine-engine/video_out.c:1296
 #, c-format
 msgid "video_out: can't create thread (%s)\n"
 msgstr "video_out: nelze vytvoøit vlákno (%s)\n"
 
 #. FIXME: how does this happen ?
-#: src/xine-engine/video_out.c:1288
+#: src/xine-engine/video_out.c:1299
 msgid "video_out: sorry, this should not happen. please restart xine.\n"
 msgstr ""
 "video_out: Lituji, toto by se nemìlo pøihodit. Prosím restartujte xine.\n"
 
-#: src/xine-engine/xine.c:460 src/xine-engine/xine.c:628
+#: src/xine-engine/xine.c:496 src/xine-engine/xine.c:706
 msgid "xine: cannot find input plugin for this MRL\n"
 msgstr "xine: nelze nalézt vstupní modul pro toto MRL\n"
 
-#: src/xine-engine/xine.c:495
+#: src/xine-engine/xine.c:532
 #, c-format
 msgid "xine: specified demuxer %s failed to start\n"
 msgstr "xine: selhalo spu¹tìní demultiplexoru %s\n"
 
-#: src/xine-engine/xine.c:652
+#: src/xine-engine/xine.c:730
 #, c-format
 msgid "xine: couldn't find demux for >%s<\n"
 msgstr "xine: nelze nalézt demultiplexor pro >%s<\n"
 
-#: src/xine-engine/xine.c:679
+#: src/xine-engine/xine.c:766
 msgid "xine: demuxer failed to start\n"
 msgstr "xine: selhalo spu¹tìní demultiplexoru\n"
 
-#: src/xine-engine/xine.c:772
+#: src/xine-engine/xine.c:859
 msgid "xine_play: no demux available\n"
 msgstr "xine_play: ¾ádný dostupný demultiplexor\n"
 
-#: src/xine-engine/xine.c:787
+#: src/xine-engine/xine.c:874
 msgid "xine_play: demux failed to start\n"
 msgstr "xine_play: selhalo spu¹tìní demultiplexoru\n"
 
-#: src/xine-engine/xine.c:1257
+#: src/xine-engine/xine.c:1358
 msgid "messages"
 msgstr "zprávy"
 
-#: src/xine-engine/xine.c:1258
+#: src/xine-engine/xine.c:1359
 msgid "plugin"
 msgstr "modul"
 
@@ -907,22 +642,22 @@ msgstr ""
 msgid "Palette (foreground-border-background) to use on subtitles"
 msgstr "Paleta (popøedí-okraj-pozadí) pou¾itá na titulky"
 
-#: src/xine-engine/load_plugins.c:280
+#: src/xine-engine/load_plugins.c:269
 #, c-format
 msgid "load_plugins: unable to stat %s\n"
 msgstr "load_plugins: nelze provést stat na %s\n"
 
-#: src/xine-engine/load_plugins.c:327
+#: src/xine-engine/load_plugins.c:312
 #, c-format
 msgid "load_plugins: plugin %s found\n"
 msgstr "load_plugins: nalezen modul %s\n"
 
-#: src/xine-engine/load_plugins.c:372
+#: src/xine-engine/load_plugins.c:357
 #, c-format
 msgid "load_plugins: unknown plugin type %d in %s\n"
 msgstr "load_plugins: neznámý typ modulu %d v %s\n"
 
-#: src/xine-engine/load_plugins.c:392
+#: src/xine-engine/load_plugins.c:375
 #, c-format
 msgid ""
 "load_plugins: can't get plugin info from %s:\n"
@@ -931,7 +666,12 @@ msgstr ""
 "load_plugins: nelze získat informace o modulu z %s:\n"
 "%s\n"
 
-#: src/xine-engine/load_plugins.c:425
+#: src/xine-engine/load_plugins.c:395
+#, fuzzy, c-format
+msgid "load_plugins: skipping unreadable plugin directory %s.\n"
+msgstr "load_plugins: neznámý typ modulu %d v %s\n"
+
+#: src/xine-engine/load_plugins.c:413
 #, c-format
 msgid ""
 "load_plugins: cannot (stage 2) open plugin lib %s:\n"
@@ -940,31 +680,31 @@ msgstr ""
 "load_plugins: nelze (fáze 2) otevøít knihovnu modulu %s:\n"
 "%s\n"
 
-#: src/dxr3/video_out_dxr3.c:223
+#: src/dxr3/video_out_dxr3.c:258
 msgid "swap odd and even lines"
 msgstr "prohodit liché a sudé øádky"
 
-#: src/dxr3/video_out_dxr3.c:226
+#: src/dxr3/video_out_dxr3.c:261
 msgid "Add black bars to correct aspect ratio"
 msgstr "Upravit pomìr stran pøidáním èerných pruhù"
 
-#: src/dxr3/video_out_dxr3.c:227
+#: src/dxr3/video_out_dxr3.c:262
 msgid "If disabled, will assume source has 4:3 aspect ratio."
 msgstr "Jestli¾e je zakázáno, bude se pøedpokládat video s pomìrem stran 4:3."
 
-#: src/dxr3/video_out_dxr3.c:231
+#: src/dxr3/video_out_dxr3.c:266
 msgid "dxr3: use alternate play mode for mpeg encoder playback"
 msgstr "dxr3: pou¾ít alternativní re¾im pøehrávání pro mpeg kodér"
 
-#: src/dxr3/dxr3_decode_video.c:256 src/dxr3/video_out_dxr3.c:232
+#: src/dxr3/video_out_dxr3.c:267 src/dxr3/dxr3_decode_video.c:256
 msgid "Enabling this option will utilise a smoother play mode."
 msgstr "Povolením této volby se vyu¾ije hlad¹í re¾im pøehrávání"
 
-#: src/dxr3/video_out_dxr3.c:279
+#: src/dxr3/video_out_dxr3.c:314
 msgid "the encoder for non mpeg content"
 msgstr "kodér pro ne-mpeg obsah"
 
-#: src/dxr3/video_out_dxr3.c:280
+#: src/dxr3/video_out_dxr3.c:315
 msgid ""
 "Content other than mpeg has to pass an additional reencoding stage, because "
 "the dxr3 handles mpeg only."
@@ -972,35 +712,35 @@ msgstr ""
 "Obsah jiný ne¾ mpeg musí projít dal¹í pøekódovávací fází, proto¾e dxr3 "
 "pracuje pouze s mpegy."
 
-#: src/dxr3/video_out_dxr3.c:309
+#: src/dxr3/video_out_dxr3.c:344
 msgid "Dxr3: contrast control"
 msgstr "Dxr3: ovládání kontrastu"
 
-#: src/dxr3/video_out_dxr3.c:311
+#: src/dxr3/video_out_dxr3.c:346
 msgid "Dxr3: saturation control"
 msgstr "Dxr3: ovládání sytosti"
 
-#: src/dxr3/video_out_dxr3.c:313
+#: src/dxr3/video_out_dxr3.c:348
 msgid "Dxr3: brightness control"
 msgstr "Dxr3: ovládání jasu"
 
-#: src/dxr3/video_out_dxr3.c:322
+#: src/dxr3/video_out_dxr3.c:357
 msgid "Dxr3: videoout mode (tv or overlay)"
 msgstr "Dxr3: videovýstupní re¾im (tv nebo overlay)"
 
-#: src/dxr3/video_out_dxr3.c:349
+#: src/dxr3/video_out_dxr3.c:387
 msgid "Dxr3: overlay colorkey value"
 msgstr "Dxr3: hodnota klíèové barvy overlay"
 
-#: src/dxr3/video_out_dxr3.c:352
+#: src/dxr3/video_out_dxr3.c:390
 msgid "Dxr3: overlay colorkey range"
 msgstr "Dxr3: rozsah klíèové barvy overlay"
 
-#: src/dxr3/video_out_dxr3.c:353
+#: src/dxr3/video_out_dxr3.c:391
 msgid "A greater value widens the tolerance for the overlay keycolor"
 msgstr "Vìt¹í hodnota roz¹íøí toleranci pro klíèové barvy overlay"
 
-#: src/dxr3/video_out_dxr3.c:366
+#: src/dxr3/video_out_dxr3.c:404
 msgid "dxr3 preferred tv mode"
 msgstr "dxr3 dal pøednost re¾imu tv"
 
@@ -1033,11 +773,11 @@ msgstr "Opravovat dobu trvání snímkù v poru¹ených sekvencích"
 msgid "Enable this for streams with wrong frame durations."
 msgstr "Toto povolte pro sekvence s nesprávnou délkou snímkù."
 
-#: src/dxr3/dxr3_scr.c:80
+#: src/dxr3/dxr3_scr.c:83
 msgid "Dxr3: SCR plugin priority"
 msgstr "Dxr3: priorita modulu SCR"
 
-#: src/dxr3/dxr3_scr.c:81
+#: src/dxr3/dxr3_scr.c:84
 msgid "Scr priorities greater 5 make the dxr3 xine's master clock."
 msgstr "Priorita SCR vìt¹í ne¾ 5 udìlá z dxr3 hlavní hodiny xine."
 
@@ -1061,15 +801,15 @@ msgstr "Dxr3enc: kvalita mpeg kódování knihovny fame"
 msgid "The encoding quality of the libfame mpeg encoder library."
 msgstr "Kvalita kódování knihovny libfame generující mpeg."
 
-#: src/liba52/xine_decoder.c:674
+#: src/liba52/xine_decoder.c:676
 msgid "a/52 volume control"
 msgstr "nastavení hlasitosti a/52"
 
-#: src/liba52/xine_decoder.c:677
+#: src/liba52/xine_decoder.c:679
 msgid "enable a/52 dynamic range compensation"
 msgstr "povolit dynamické vyrovnávání rozsahu a/52"
 
-#: src/liba52/xine_decoder.c:680
+#: src/liba52/xine_decoder.c:682
 msgid "enable audio downmixing to 2.0 surround stereo"
 msgstr "povolit redukci zvuku do 2.0 surround stereo"
 
@@ -1094,17 +834,13 @@ msgstr "nejmen¹í dovolená verze Divx (jestli nevíte, nastavte 0 (pøedvolené))"
 msgid "Memcopy method to use in xine for large data chunks."
 msgstr "Metoda memcopy pou¾itá ve xine pro velké datové bloky"
 
-#: src/libsputext/xine_decoder.c:381
+#: src/libsputext/xine_decoder.c:399
 msgid "font for avi subtitles"
 msgstr "font titulkù pro AVI"
 
-#: src/libsputext/xine_decoder.c:387
+#: src/libsputext/xine_decoder.c:405
 msgid "subtitle size (relative window size)"
 msgstr "velikost titulkù (vzhledem k velikosti okna)"
-
-#: src/libsputext/xine_decoder.c:392
-msgid "subtitle time offset in 1/100 sec"
-msgstr "èasový posun titulkù v 1/100 s"
 
 #: src/libspucc/xine_decoder.c:223
 msgid "Enable closed captions in MPEG-2 streams"
@@ -1189,6 +925,175 @@ msgstr "MS RLE: ukazatel na snímek vy¹el z mezí (2)\n"
 #, c-format
 msgid "MS RLE: ended frame decode with bytes left over (%d < %d)\n"
 msgstr "MS RLE: koncový rámec dekódován i se zbytkem bytù (%d < %d)\n"
+
+#~ msgid "demux_cda.c: input not seekable, can not handle!\n"
+#~ msgstr ""
+#~ "demux_cda.c: u tohoto vstupu nelze nastavovat pozici v datech, nelze "
+#~ "zpracovat!\n"
+
+#~ msgid "input_cda: fopen(%s) failed: %s\n"
+#~ msgstr "input_cda: fopen(%s) selhalo: %s\n"
+
+#~ msgid "input_cda: server '%s:%d' successfuly connected.\n"
+#~ msgstr "input_cda: úspì¹né pøipojení k serveru '%s:%d'.\n"
+
+#~ msgid "input_cda: opening server '%s:%d' failed: %s\n"
+#~ msgstr "input_cda: selhal pøístup k serveru '%s:%d': %s\n"
+
+#~ msgid "input_cda: ioctl(CDROM_MEDIA_CHANGED) failed: %s.\n"
+#~ msgstr "input_cda: selhalo ioctl(CDROM_MEDIA_CHANGED): %s.\n"
+
+#~ msgid "input_cda: ioctl(CDROMSUBCHNL) failed: %s.\n"
+#~ msgstr "input_cda: selhalo ioctl(CDROMSUBCHNL): %s.\n"
+
+#~ msgid "input_cda: ioctl(CDIOCSTART) failed: %s.\n"
+#~ msgstr "input_cda: selhalo ioctl(CDIOCSTART): %s.\n"
+
+#~ msgid "input_cda: ioctl(CDROMSTART) failed: %s.\n"
+#~ msgstr "input_cda: selhalo ioctl(CDROMSTART): %s.\n"
+
+#~ msgid "input_cda: ioctl(CDIOCPLAYMSF) failed: %s.\n"
+#~ msgstr "input_cda: selhalo ioctl(CDIOCPLAYMSF): %s.\n"
+
+#~ msgid "input_cda: ioctl(CDROMPLAYMSF) failed: %s.\n"
+#~ msgstr "input_cda: selhalo ioctl(CDROMPLAYMSF): %s.\n"
+
+#~ msgid "input_cda: No rights to open %s.\n"
+#~ msgstr "input_cda: Nejsou práva k otevøení %s.\n"
+
+#~ msgid "input_cda: open(%s) failed: %s.\n"
+#~ msgstr "input_cda: selhala funkce open(%s): %s.\n"
+
+#~ msgid "input_cda: ioctl(CDROMCLOSETRAY) failed: %s\n"
+#~ msgstr "input_cda: selhalo ioctl(CDROMCLOSETRAY): %s\n"
+
+#~ msgid "input_cda: ioctl(CDROMEJECT) failed: %s\n"
+#~ msgstr "input_cda: selhalo ioctl(CDROMEJECT): %s\n"
+
+#~ msgid "input_cda: ioctl(CDROM_DRIVE_STATUS) failed: %s\n"
+#~ msgstr "input_cda: selhalo ioctl(CDROM_DRIVE_STATUS): %s\n"
+
+#~ msgid "input_cda: ioctl(CDROMALLOW) failed: %s\n"
+#~ msgstr "input_cda: selhalo ioctl(CDROMALLOW): %s\n"
+
+#~ msgid "input_cda: ioctl(CDIOREADTOCHEADER) failed: %s.\n"
+#~ msgstr "input_cda: selhalo ioctl(CDIOREADTOCHEADER): %s.\n"
+
+#~ msgid "input_cda: ioctl(CDROMREADTOCHDR) failed: %s.\n"
+#~ msgstr "input_cda: selhalo ioctl(CDROMREADTOCHDR): %s.\n"
+
+#~ msgid "input_cda: ioctl(CDIOREADTOCENTRYS) failed: %s.\n"
+#~ msgstr "input_cda: selhalo ioctl(CDIOREADTOCENTRYS): %s.\n"
+
+#~ msgid "input_cda: ioctl(CDROMREADTOCENTRY) failed: %s.\n"
+#~ msgstr "input_cda: selhalo ioctl(CDROMREADTOCENTRY): %s.\n"
+
+#~ msgid "input_cda: malformed MRL. Use cda:/<track #>\n"
+#~ msgstr "input_cda: neplatné MRL. Pou¾ijte cda://<stopa #>\n"
+
+#~ msgid "input_cda: invalid track %d (valid range: 1 .. %d)\n"
+#~ msgstr "input_cda: neplatná stopa %d (platný rozsah: 1 .. %d)\n"
+
+#~ msgid "input_cda: error seek to origin %d not implemented!\n"
+#~ msgstr "input_cda: posuv na cíl typu %d není implementován!\n"
+
+#~ msgid "cd audio plugin as shipped with xine"
+#~ msgstr "modul pro zvukové CD dodávaný se xine"
+
+#~ msgid "path to your local cd audio device file"
+#~ msgstr "cesta k va¹emu místnímu souboru zaøízení zvukového CD"
+
+#~ msgid "cddbp server name"
+#~ msgstr "jméno cddbp serveru"
+
+#~ msgid "cddbp server port"
+#~ msgstr "port cddbp serveru"
+
+#~ msgid "cddbp cache directory"
+#~ msgstr "adresáø se záznamy cddbp"
+
+#~ msgid "demux_qt: Apple Quicktime file, %srunning time: %d min, %d sec\n"
+#~ msgstr "demux_qt: Soubor Apple Quicktime, %sdoba pøehrávání: %d min, %d s\n"
+
+#~ msgid "demux_qt: '%c%c%c%c' video @ %dx%d\n"
+#~ msgstr "demux_qt: '%c%c%c%c' video @ %dx%d\n"
+
+#~ msgid "demux_qt: '%c%c%c%c' audio @ %d Hz, %d bits, %d %s\n"
+#~ msgstr "demux_qt: '%c%c%c%c' zvuk @ %d Hz, %d bitù, %d %s\n"
+
+#~ msgid "channel"
+#~ msgid_plural "channels"
+#~ msgstr[0] "kanál"
+#~ msgstr[1] "kanály"
+#~ msgstr[2] "kanálù"
+
+#~ msgid "demux_film: FILM version %c%c%c%c, running time: %d min, %d sec\n"
+#~ msgstr "demux_film: FILM verze %c%c%c%c, doba pøehrávání: %d min, %d s\n"
+
+#~ msgid "demux_film: %c%c%c%c video @ %dx%d, %d Hz playback clock\n"
+#~ msgstr "demux_film: %c%c%c%c video @ %dx%d, hodiny pro pøehrávání %d Hz\n"
+
+#~ msgid "demux_film: %d Hz, %d-bit %s%s PCM audio\n"
+#~ msgstr "demux_film: %d Hz, %d-bitový %s%s PCM zvuk\n"
+
+#~ msgid "demux_roq: RoQ file, video is %dx%d, %d frames/sec\n"
+#~ msgstr "demux_roq: Soubor RoQ, video je %dx%d, %d snímkù/s\n"
+
+#~ msgid "demux_roq: 16-bit, 22050 Hz %s RoQ DPCM audio\n"
+#~ msgstr "demux_roq: 16 bitù, 22050 Hz %s RoQ DPCM zvuk\n"
+
+#~ msgid "demux_fli: FLI type: %04X, speed: %d/%d\n"
+#~ msgstr "demux_fli: typ FLI: %04X, rychlost: %d/%d\n"
+
+#~ msgid "demux_fli: %d frames, %dx%d\n"
+#~ msgstr "demux_fli: %d rámcù, %dx%d\n"
+
+#~ msgid "demux_fli: running time: %d min, %d sec\n"
+#~ msgstr "demux_fli: doba pøehrávání: %d min, %d s\n"
+
+#~ msgid "demux_idcin: Id CIN file, video is %dx%d, 14 frames/sec\n"
+#~ msgstr "demux_idcin: Soubor Id CIN, video je %dx%d, 14 snímkù/s\n"
+
+#~ msgid "demux_idcin: %d-bit, %d Hz %s PCM audio\n"
+#~ msgstr "demux_idcin: %d-bitový, %d Hz %s PCM zvuk\n"
+
+#~ msgid "demux_smjpeg: SMJPEG file, running time: %d min, %d sec\n"
+#~ msgstr "demux_smjpeg: Soubor SMJPEG, doba pøehrávání: %d min, %d s\n"
+
+#~ msgid "demux_smjpeg: '%c%c%c%c' video @ %dx%d\n"
+#~ msgstr "demux_smjpeg: '%c%c%c%c' video @ %dx%d\n"
+
+#~ msgid "demux_smjpeg: '%c%c%c%c' audio @ %d Hz, %d bits, %d %s\n"
+#~ msgstr "demux_smjpeg: '%c%c%c%c' zvuk @ %d Hz, %d bitù, %d %s\n"
+
+#~ msgid "demux_wav: format 0x%X audio, %d Hz, %d bits/sample, %d %s\n"
+#~ msgstr "demux_wav: formát zvuku 0x%X, %d Hz, %d bitù/vzorek, %d %s\n"
+
+#~ msgid "demux_wav: running time = %lld min, %lld sec\n"
+#~ msgstr "demux_wav: doba pøehrávání = %lld min, %lld s\n"
+
+#~ msgid "demux_wav: average bytes/sec = %d, block alignment = %d\n"
+#~ msgstr "demux_wav: prùmìrnì %d bytù/s, zarovnání bloku %d\n"
+
+#~ msgid "demux_aiff: %d Hz, %d channels, %d bits, %d frames\n"
+#~ msgstr "demux_aiff: %d Hz, %d kanálù, %d bitù, %d snímkù\n"
+
+#~ msgid "demux_aiff: running time: %d min, %d sec\n"
+#~ msgstr "demux_aiff: doba pøehrávání: %d min, %d s\n"
+
+#~ msgid "demux_snd: %d Hz, %d channels, %d bits, %d frames\n"
+#~ msgstr "demux_snd: %d Hz, %d kanálù, %d bitù, %d snímkù\n"
+
+#~ msgid "demux_snd: running time: %d min, %d sec\n"
+#~ msgstr "demux_snd: doba pøehrávání: %d min, %d s\n"
+
+#~ msgid ""
+#~ "demux_voc: VOC format 0x%X audio, %d Hz, running time: %d min, %d sec\n"
+#~ msgstr ""
+#~ "demux_voc: formát zvuku VOC 0x%X, %d Hz, doba pøehrávání: %d min, %d s\n"
+
+#~ msgid "subtitle time offset in 1/100 sec"
+#~ msgstr "èasový posun titulkù v 1/100 s"
 
 #~ msgid "source encoding of subtitles"
 #~ msgstr "zdrojové kódování titulkù"

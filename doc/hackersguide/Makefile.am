@@ -1,5 +1,5 @@
 
-EXTRA_DIST = README intro.sgml hackersguide.sgml architecture.fig
+EXTRA_DIST = README intro.sgml hackersguide.sgml architecture.fig overlays.fig
 
 docdir = $(prefix)/share/doc/xine/hackersguide
 

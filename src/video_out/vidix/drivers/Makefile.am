@@ -1,4 +1,6 @@
 
+EXTRA_DIST = genfb_vid.c nvidia_vid.c
+
 LIBTOOL = $(SHELL) $(top_builddir)/libtool-nofpic
 
 libdir = $(XINE_PLUGINDIR)/vidix

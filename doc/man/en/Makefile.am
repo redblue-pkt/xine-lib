@@ -1,6 +1,4 @@
-#SUBDIRS = man3
 
-#man_MANS = xine-lib.3 xine-config.1
 man_MANS = xine-config.1
 
 EXTRA_DIST = $(man_MANS)

@@ -1,9 +1,6 @@
 AM_CFLAGS = -DXINE_COMPILE $(ALSA_CFLAGS) $(ESD_CFLAGS) $(IRIXAL_CFLAGS) $(ARTS_CFLAGS)
 
-EXTRA_DIST = audio_arts_out.c \
-	audio_esd_out.c \
-	audio_irixal_out.c \
-	audio_sun_out.c 
+EXTRA_DIST = audio_irixal_out.c
 
 LIBTOOL = $(SHELL) $(top_builddir)/libtool-nofpic
 
