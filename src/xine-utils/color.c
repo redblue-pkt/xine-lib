@@ -61,7 +61,7 @@
  * instructions), these macros will automatically map to those special
  * instructions.
  *
- * $Id: color.c,v 1.15 2003/05/31 13:54:27 miguelfreitas Exp $
+ * $Id: color.c,v 1.16 2003/06/02 00:03:58 miguelfreitas Exp $
  */
 
 #include "xine_internal.h"
@@ -708,37 +708,6 @@ void yv12_to_yuy2_c
     }
 }
 
-#ifdef ARCH_X86
-
-#define MMX_CALL(MMX_INSTRUCTIONS)                                          \
-    do {                                                                    \
-    __asm__ __volatile__(                                                   \
-        ".align 8 \n\t"                                                     \
-        MMX_INSTRUCTIONS                                                    \
-        :                                                                   \
-        : "r" (p_line1),  "r" (p_line2),  "r" (p_y1),  "r" (p_y2),          \
-          "r" (p_u), "r" (p_v) );                                           \
-    p_line1 += 16; p_line2 += 16; p_y1 += 8; p_y2 += 8; p_u += 4; p_v += 4; \
-    } while(0);                                                             \
-
-#define MMX_YUV420_YUYV "                                                 \n\
-movq       (%2), %%mm0  # Load 8 Y            y7 y6 y5 y4 y3 y2 y1 y0     \n\
-movd       (%4), %%mm1  # Load 4 Cb           00 00 00 00 u3 u2 u1 u0     \n\
-movd       (%5), %%mm2  # Load 4 Cr           00 00 00 00 v3 v2 v1 v0     \n\
-punpcklbw %%mm2, %%mm1  #                     v3 u3 v2 u2 v1 u1 v0 u0     \n\
-movq      %%mm0, %%mm2  #                     y7 y6 y5 y4 y3 y2 y1 y0     \n\
-punpcklbw %%mm1, %%mm2  #                     v1 y3 u1 y2 v0 y1 u0 y0     \n\
-movq      %%mm2, (%0)   # Store low YUYV                                  \n\
-punpckhbw %%mm1, %%mm0  #                     v3 y7 u3 y6 v2 y5 u2 y4     \n\
-movq      %%mm0, 8(%0)  # Store high YUYV                                 \n\
-movq       (%3), %%mm0  # Load 8 Y            Y7 Y6 Y5 Y4 Y3 Y2 Y1 Y0     \n\
-movq      %%mm0, %%mm2  #                     Y7 Y6 Y5 Y4 Y3 Y2 Y1 Y0     \n\
-punpcklbw %%mm1, %%mm2  #                     v1 Y3 u1 Y2 v0 Y1 u0 Y0     \n\
-movq      %%mm2, (%1)   # Store low YUYV                                  \n\
-punpckhbw %%mm1, %%mm0  #                     v3 Y7 u3 Y6 v2 Y5 u2 Y4     \n\
-movq      %%mm0, 8(%1)  # Store high YUYV                                 \n\
-"
-#endif
 
 void yv12_to_yuy2_mmx
   (unsigned char *y_src, int y_src_pitch, 
@@ -769,7 +738,28 @@ void yv12_to_yuy2_mmx
 
         for( i_x = width / 8 ; i_x-- ; )
         {
-            MMX_CALL( MMX_YUV420_YUYV );
+           __asm__ __volatile__(".align 8 \n\t"
+            "movq       (%0), %%mm0 \n\t"  /* Load 8 Y            y7 y6 y5 y4 y3 y2 y1 y0 */
+            "movd       (%1), %%mm1 \n\t"  /* Load 4 Cb           00 00 00 00 u3 u2 u1 u0 */
+            "movd       (%2), %%mm2 \n\t"  /* Load 4 Cr           00 00 00 00 v3 v2 v1 v0 */
+            "punpcklbw %%mm2, %%mm1 \n\t"  /*                     v3 u3 v2 u2 v1 u1 v0 u0 */
+            "movq      %%mm0, %%mm2 \n\t"  /*                     y7 y6 y5 y4 y3 y2 y1 y0 */
+            "punpcklbw %%mm1, %%mm2 \n\t"  /*                     v1 y3 u1 y2 v0 y1 u0 y0 */
+            :
+            : "r" (p_y1), "r" (p_u), "r" (p_v) );
+           __asm__ __volatile__(".align 8 \n\t"
+            "movq      %%mm2, (%0)  \n\t"  /* Store low YUYV                              */
+            "punpckhbw %%mm1, %%mm0 \n\t"  /*                     v3 y7 u3 y6 v2 y5 u2 y4 */
+            "movq      %%mm0, 8(%0) \n\t"  /* Store high YUYV                             */
+            "movq       (%2), %%mm0 \n\t"  /* Load 8 Y            Y7 Y6 Y5 Y4 Y3 Y2 Y1 Y0 */
+            "movq      %%mm0, %%mm2 \n\t"  /*                     Y7 Y6 Y5 Y4 Y3 Y2 Y1 Y0 */
+            "punpcklbw %%mm1, %%mm2 \n\t"  /*                     v1 Y3 u1 Y2 v0 Y1 u0 Y0 */
+            "movq      %%mm2, (%1)  \n\t"  /* Store low YUYV                              */
+            "punpckhbw %%mm1, %%mm0 \n\t"  /*                     v3 Y7 u3 Y6 v2 Y5 u2 Y4 */
+            "movq      %%mm0, 8(%1) \n\t"  /* Store high YUYV                             */
+            :                                                                  
+            : "r" (p_line1),  "r" (p_line2),  "r" (p_y2) );
+          p_line1 += 16; p_line2 += 16; p_y1 += 8; p_y2 += 8; p_u += 4; p_v += 4; \
         }
 
         p_y1 += i_source_margin;
