@@ -35,7 +35,7 @@
  * along with this program; see the file COPYING.  If not, write to
  * the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: spu.c,v 1.40 2002/07/06 16:36:43 mroi Exp $
+ * $Id: spu.c,v 1.41 2002/07/06 16:38:30 mroi Exp $
  *
  */
 
@@ -848,7 +848,7 @@ void spudec_copy_nav_to_overlay(pci_t* nav_pci, uint32_t* clut, int32_t button, 
   button_ptr = &nav_pci->hli.btnit[button-1];
   /* button areas in the nav packet are in screen coordinates,
    * overlay clipping areas are in overlay coordinates;
-   * therefore we must substract the display coordinates of the underlying overlay */
+   * therefore we must subtract the display coordinates of the underlying overlay */
   overlay->clip_left   = (button_ptr->x_start > base->x) ? (button_ptr->x_start - base->x) : 0;
   overlay->clip_top    = (button_ptr->y_start > base->y) ? (button_ptr->y_start - base->y) : 0;
   overlay->clip_right  = (button_ptr->x_end   > base->x) ? (button_ptr->x_end   - base->x) : 0;
