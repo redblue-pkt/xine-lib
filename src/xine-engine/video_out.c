@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.44 2001/09/11 09:03:51 jkeil Exp $
+ * $Id: video_out.c,v 1.45 2001/09/12 19:50:41 guenter Exp $
  *
  */
 
@@ -375,6 +375,11 @@ static vo_frame_t *vo_get_frame (vo_instance_t *this,
   img->bDisplayLock = 0;
   img->bDecoderLock = 1;
   img->bDriverLock  = 0;
+  img->width        = width;
+  img->height       = height;
+  img->ratio        = ratio;
+  img->format       = format;
+  img->duration     = duration;
 
   /* let driver ensure this image has the right format */
 
@@ -442,6 +447,10 @@ static void vo_frame_free (vo_frame_t *img) {
   pthread_mutex_unlock (&img->mutex);
 }
 
+static vo_frame_t *vo_get_last_frame (vo_instance_t *this) {
+  return this->last_frame;
+}
+
 static int vo_frame_draw (vo_frame_t *img) {
 
   vo_instance_t *this = img->instance;
@@ -493,10 +502,12 @@ static int vo_frame_draw (vo_frame_t *img) {
 
     xprintf (VERBOSE|VIDEO, "frame is ok => appending to display buffer\n");
 
+    this->last_frame = img;
+
     pthread_mutex_lock (&img->mutex);
     img->bDisplayLock = 1;
     pthread_mutex_unlock (&img->mutex);
-    
+
     vo_append_to_img_buf_queue (this->display_img_buf_queue, img);
 
   } else {
@@ -550,6 +561,7 @@ vo_instance_t *vo_new_instance (vo_driver_t *driver, metronom_t *metronom) {
 
   this->open                  = vo_open;
   this->get_frame             = vo_get_frame;
+  this->get_last_frame        = vo_get_last_frame;
   this->close                 = vo_close;
   this->exit                  = vo_exit;
   this->get_capabilities      = vo_get_capabilities;

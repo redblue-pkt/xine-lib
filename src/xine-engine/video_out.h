@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.h,v 1.17 2001/08/17 15:54:31 ehasenle Exp $
+ * $Id: video_out.h,v 1.18 2001/09/12 19:50:41 guenter Exp $
  *
  *
  * xine version of video_out.h 
@@ -63,6 +63,10 @@ struct vo_frame_s {
   int                        bFrameBad; /* e.g. frame skipped or based on skipped frame */
   uint8_t                   *base[3];
   int                        nType;     /* I, B or P frame */
+
+  /* additional information to be able to duplicate frames: */
+  int                        width, height;
+  int                        ratio, format, duration;
 
   int                        bDisplayLock, bDecoderLock, bDriverLock;
   pthread_mutex_t            mutex; /* so the various locks will be serialized */
@@ -124,6 +128,8 @@ struct vo_instance_s {
 			    uint32_t height, int ratio_code, 
 			    int format, uint32_t duration,
 			    int flags);
+
+  vo_frame_t* (*get_last_frame) (vo_instance_t *this);
   
   /* overlay stuff */
   void (*register_ovl_src) (vo_instance_t *this, ovl_src_t *ovl_src);
@@ -143,6 +149,8 @@ struct vo_instance_s {
   
   img_buf_fifo_t    *free_img_buf_queue;
   img_buf_fifo_t    *display_img_buf_queue;
+
+  vo_frame_t        *last_frame;
 
   int                video_loop_running;
   pthread_t          video_thread;
