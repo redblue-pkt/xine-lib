@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_overlay.h,v 1.18 2003/12/09 00:02:38 f1rmb Exp $
+ * $Id: video_overlay.h,v 1.19 2004/12/08 18:18:24 miguelfreitas Exp $
  *
  */
 
@@ -38,7 +38,7 @@
 
 #define MAX_OBJECTS   50
 #define MAX_EVENTS    50
-#define MAX_SHOWING    5
+#define MAX_SHOWING   16
 
 #define OVERLAY_EVENT_NULL             0
 #define OVERLAY_EVENT_SHOW             1

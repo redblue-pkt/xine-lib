@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_overlay.c,v 1.36 2004/11/24 15:45:58 mroi Exp $
+ * $Id: video_overlay.c,v 1.37 2004/12/08 18:18:23 miguelfreitas Exp $
  *
  */
 
@@ -215,13 +215,13 @@ static void video_overlay_reset (video_overlay_t *this) {
   }
   pthread_mutex_unlock (&this->events_mutex);
   
+  for( i = 0; i < MAX_SHOWING; i++ )
+    this->showing[i].handle = -1;
+  
   for (i=0; i < MAX_OBJECTS; i++) {
     internal_video_overlay_free_handle(this, i);
   }
    
-  for( i = 0; i < MAX_SHOWING; i++ )
-    this->showing[i].handle = -1;
-    
   this->showing_changed = 0;
 }
 
@@ -362,6 +362,7 @@ static int video_overlay_event( video_overlay_t *this, int64_t vpts ) {
           /* this->objects[handle].overlay is about to be
            * overwritten by this event data. make sure we free it if needed.
            */
+          remove_showing_handle(this,handle);
           internal_video_overlay_free_handle(this, handle);
           
           this->objects[handle].handle = handle;
@@ -559,7 +560,7 @@ static void video_overlay_dispose(video_overlay_manager_t *this_gen) {
       free (this->events[i].event);
     }
   }
-
+  
   for (i=0; i < MAX_OBJECTS; i++)
     internal_video_overlay_free_handle(this, i);
 
