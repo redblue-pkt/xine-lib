@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: ldt_keeper.c,v 1.6 2003/02/17 03:18:03 miguelfreitas Exp $
+ * $Id: ldt_keeper.c,v 1.7 2003/02/17 19:54:43 miguelfreitas Exp $
  *
  *
  * contents:
@@ -124,10 +124,13 @@ struct modify_ldt_ldt_s {
 /* user level (privilege level: 3) ldt (1<<2) segment selector */
 #define       LDT_SEL(idx) ((idx) << 3 | 1 << 2 | 3)
 
-/* i got value 17 from wine sources, it's the first free LDT entry */
-/* unfortunately it clashes with linuxthreads. lets try another one. */
+/*
+ * linuxthreads can use all LDT entries from 0 to PTHREAD_THREADS_MAX-1.
+ * by default PTHREAD_THREADS_MAX = 1024, so unless one has recompiled
+ * it's own glibc/linuxthreads this should be a safe value.
+ */
 #ifndef       TEB_SEL_IDX
-#define       TEB_SEL_IDX     27
+#define       TEB_SEL_IDX     1024
 #endif
 
 #define       TEB_SEL LDT_SEL(TEB_SEL_IDX)
