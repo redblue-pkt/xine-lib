@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: asfheader.h,v 1.3 2003/10/06 15:46:20 mroi Exp $
+ * $Id: asfheader.h,v 1.4 2005/01/12 00:05:36 tmattern Exp $
  *
  * demultiplexer for asf streams
  *
@@ -41,60 +41,71 @@
 #define GUID_ASF_HEADER                         1
 #define GUID_ASF_DATA                           2
 #define GUID_ASF_SIMPLE_INDEX                   3
+#define GUID_INDEX                              4
+#define GUID_MEDIA_OBJECT_INDEX                 5
+#define GUID_TIMECODE_INDEX                     6
 
     /* header ASF objects */
-#define GUID_ASF_FILE_PROPERTIES                4
-#define GUID_ASF_STREAM_PROPERTIES              5
-#define GUID_ASF_STREAM_BITRATE_PROPERTIES      6
-#define GUID_ASF_CONTENT_DESCRIPTION            7
-#define GUID_ASF_EXTENDED_CONTENT_ENCRYPTION    8
-#define GUID_ASF_SCRIPT_COMMAND                 9
-#define GUID_ASF_MARKER                        10
-#define GUID_ASF_HEADER_EXTENSION              11
-#define GUID_ASF_BITRATE_MUTUAL_EXCLUSION      12
-#define GUID_ASF_CODEC_LIST                    13
-#define GUID_ASF_EXTENDED_CONTENT_DESCRIPTION  14
-#define GUID_ASF_ERROR_CORRECTION              15
-#define GUID_ASF_PADDING                       16
+#define GUID_ASF_FILE_PROPERTIES                7
+#define GUID_ASF_STREAM_PROPERTIES              8
+#define GUID_ASF_HEADER_EXTENSION               9
+#define GUID_ASF_CODEC_LIST                    10
+#define GUID_ASF_SCRIPT_COMMAND                11
+#define GUID_ASF_MARKER                        12
+#define GUID_ASF_BITRATE_MUTUAL_EXCLUSION      13
+#define GUID_ASF_ERROR_CORRECTION              14
+#define GUID_ASF_CONTENT_DESCRIPTION           15
+#define GUID_ASF_EXTENDED_CONTENT_DESCRIPTION  16
+#define GUID_ASF_STREAM_BITRATE_PROPERTIES     17
+#define GUID_ASF_EXTENDED_CONTENT_ENCRYPTION   18
+#define GUID_ASF_PADDING                       19
     
     /* stream properties object stream type */
-#define GUID_ASF_AUDIO_MEDIA                   17
-#define GUID_ASF_VIDEO_MEDIA                   18
-#define GUID_ASF_COMMAND_MEDIA                 19
+#define GUID_ASF_AUDIO_MEDIA                   20
+#define GUID_ASF_VIDEO_MEDIA                   21
+#define GUID_ASF_COMMAND_MEDIA                 22
+#define GUID_ASF_JFIF_MEDIA                    23
+#define GUID_ASF_DEGRADABLE_JPEG_MEDIA         24
+#define GUID_ASF_FILE_TRANSFER_MEDIA           25
+#define GUID_ASF_BINARY_MEDIA                  26
 
     /* stream properties object error correction type */
-#define GUID_ASF_NO_ERROR_CORRECTION           20
-#define GUID_ASF_AUDIO_SPREAD                  21
+#define GUID_ASF_NO_ERROR_CORRECTION           27
+#define GUID_ASF_AUDIO_SPREAD                  28
 
     /* mutual exclusion object exlusion type */
-#define GUID_ASF_MUTEX_BITRATE                 22
-#define GUID_ASF_MUTEX_UKNOWN                  23
+#define GUID_ASF_MUTEX_BITRATE                 29
+#define GUID_ASF_MUTEX_UKNOWN                  30
 
     /* header extension */
-#define GUID_ASF_RESERVED_1                    24
+#define GUID_ASF_RESERVED_1                    31
     
     /* script command */
-#define GUID_ASF_RESERVED_SCRIPT_COMMNAND      25
+#define GUID_ASF_RESERVED_SCRIPT_COMMNAND      32
 
     /* marker object */
-#define GUID_ASF_RESERVED_MARKER               26
+#define GUID_ASF_RESERVED_MARKER               33
 
     /* various */
 /*
 #define GUID_ASF_HEAD2                         27
 */
-#define GUID_ASF_AUDIO_CONCEAL_NONE            27
-#define GUID_ASF_CODEC_COMMENT1_HEADER         28
-#define GUID_ASF_2_0_HEADER                    29
+#define GUID_ASF_AUDIO_CONCEAL_NONE            34
+#define GUID_ASF_CODEC_COMMENT1_HEADER         35
+#define GUID_ASF_2_0_HEADER                    36
 
-#define GUID_END                               30
+#define GUID_END                               37
 
 
 /* asf stream types */
-#define ASF_STREAM_TYPE_UNKNOWN  0
-#define ASF_STREAM_TYPE_AUDIO    1
-#define ASF_STREAM_TYPE_VIDEO    2
-#define ASF_STREAM_TYPE_CONTROL  3
+#define ASF_STREAM_TYPE_UNKNOWN           0
+#define ASF_STREAM_TYPE_AUDIO             1
+#define ASF_STREAM_TYPE_VIDEO             2
+#define ASF_STREAM_TYPE_CONTROL           3
+#define ASF_STREAM_TYPE_JFIF              4
+#define ASF_STREAM_TYPE_DEGRADABLE_JPEG   5
+#define ASF_STREAM_TYPE_FILE_TRANSFER     6
+#define ASF_STREAM_TYPE_BINARY            7
 
 #define ASF_MAX_NUM_STREAMS     23
 
@@ -130,6 +141,14 @@ static const struct
     { "simple index",
     { 0x33000890, 0xe5b1, 0x11cf, { 0x89, 0xf4, 0x00, 0xa0, 0xc9, 0x03, 0x49, 0xcb }} },
 
+    { "index",
+    { 0xd6e229d3, 0x35da, 0x11d1, { 0x90, 0x34, 0x00, 0xa0, 0xc9, 0x03, 0x49, 0xbe }} },
+
+    { "media object index",
+    { 0xfeb103f8, 0x12ad, 0x4c64, { 0x84, 0x0f, 0x2a, 0x1d, 0x2f, 0x7a, 0xd4, 0x8c }} },
+
+    { "timecode index",
+    { 0x3cb73fd0, 0x0c4a, 0x4803, { 0x95, 0x3d, 0xed, 0xf7, 0xb6, 0x22, 0x8f, 0x0c }} },
 
     /* header ASF objects */
     { "file properties",
@@ -138,14 +157,11 @@ static const struct
     { "stream header",
     { 0xb7dc0791, 0xa9b7, 0x11cf, { 0x8e, 0xe6, 0x00, 0xc0, 0x0c, 0x20, 0x53, 0x65 }} },
 
-    { "stream bitrate properties", /* (http://get.to/sdp) */
-    { 0x7bf875ce, 0x468d, 0x11d1, { 0x8d, 0x82, 0x00, 0x60, 0x97, 0xc9, 0xa2, 0xb2 }} },
+    { "header extension",
+    { 0x5fbf03b5, 0xa92e, 0x11cf, { 0x8e, 0xe3, 0x00, 0xc0, 0x0c, 0x20, 0x53, 0x65 }} },
 
-    { "content description",
-    { 0x75b22633, 0x668e, 0x11cf, { 0xa6, 0xd9, 0x00, 0xaa, 0x00, 0x62, 0xce, 0x6c }} },
-
-    { "extended content encryption",
-    { 0x298ae614, 0x2622, 0x4c17, { 0xb9, 0x35, 0xda, 0xe0, 0x7e, 0xe9, 0x28, 0x9c }} },
+    { "codec list",
+    { 0x86d15240, 0x311d, 0x11d0, { 0xa3, 0xa4, 0x00, 0xa0, 0xc9, 0x03, 0x48, 0xf6 }} },
 
     { "script command",
     { 0x1efb1a30, 0x0b62, 0x11d0, { 0xa3, 0x9b, 0x00, 0xa0, 0xc9, 0x03, 0x48, 0xf6 }} },
@@ -153,20 +169,23 @@ static const struct
     { "marker",
     { 0xf487cd01, 0xa951, 0x11cf, { 0x8e, 0xe6, 0x00, 0xc0, 0x0c, 0x20, 0x53, 0x65 }} },
 
-    { "header extension",
-    { 0x5fbf03b5, 0xa92e, 0x11cf, { 0x8e, 0xe3, 0x00, 0xc0, 0x0c, 0x20, 0x53, 0x65 }} },
-
     { "bitrate mutual exclusion",
     { 0xd6e229dc, 0x35da, 0x11d1, { 0x90, 0x34, 0x00, 0xa0, 0xc9, 0x03, 0x49, 0xbe }} },
 
-    { "codec list",
-    { 0x86d15240, 0x311d, 0x11d0, { 0xa3, 0xa4, 0x00, 0xa0, 0xc9, 0x03, 0x48, 0xf6 }} },
+    { "error correction",
+    { 0x75b22635, 0x668e, 0x11cf, { 0xa6, 0xd9, 0x00, 0xaa, 0x00, 0x62, 0xce, 0x6c }} },
+
+    { "content description",
+    { 0x75b22633, 0x668e, 0x11cf, { 0xa6, 0xd9, 0x00, 0xaa, 0x00, 0x62, 0xce, 0x6c }} },
 
     { "extended content description",
     { 0xd2d0a440, 0xe307, 0x11d2, { 0x97, 0xf0, 0x00, 0xa0, 0xc9, 0x5e, 0xa8, 0x50 }} },
 
-    { "error correction",
-    { 0x75b22635, 0x668e, 0x11cf, { 0xa6, 0xd9, 0x00, 0xaa, 0x00, 0x62, 0xce, 0x6c }} },
+    { "stream bitrate properties", /* (http://get.to/sdp) */
+    { 0x7bf875ce, 0x468d, 0x11d1, { 0x8d, 0x82, 0x00, 0x60, 0x97, 0xc9, 0xa2, 0xb2 }} },
+
+    { "extended content encryption",
+    { 0x298ae614, 0x2622, 0x4c17, { 0xb9, 0x35, 0xda, 0xe0, 0x7e, 0xe9, 0x28, 0x9c }} },
 
     { "padding",
     { 0x1806d474, 0xcadf, 0x4509, { 0xa4, 0xba, 0x9a, 0xab, 0xcb, 0x96, 0xaa, 0xe8 }} },
@@ -182,6 +201,17 @@ static const struct
     { "command media",
     { 0x59dacfc0, 0x59e6, 0x11d0, { 0xa3, 0xac, 0x00, 0xa0, 0xc9, 0x03, 0x48, 0xf6 }} },
 
+    { "JFIF media (JPEG)",
+    { 0xb61be100, 0x5b4e, 0x11cf, { 0xa8, 0xfd, 0x00, 0x80, 0x5f, 0x5c, 0x44, 0x2b }} },
+
+    { "Degradable JPEG media",
+    { 0x35907de0, 0xe415, 0x11cf, { 0xa9, 0x17, 0x00, 0x80, 0x5f, 0x5c, 0x44, 0x2b }} },
+
+    { "File Transfer media",
+    { 0x91bd222c, 0xf21c, 0x497a, { 0x8b, 0x6d, 0x5a, 0xa8, 0x6b, 0xfc, 0x01, 0x85 }} },
+
+    { "Binary media",
+    { 0x3afb65e2, 0x47ef, 0x40f2, { 0xac, 0x2c, 0x70, 0xa9, 0x0d, 0x71, 0xd3, 0x43 }} },
 
     /* stream properties object error correction */
     { "no error correction",

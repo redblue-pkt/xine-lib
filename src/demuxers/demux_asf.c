@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.167 2004/12/24 17:43:38 hadess Exp $
+ * $Id: demux_asf.c,v 1.168 2005/01/12 00:05:36 tmattern Exp $
  *
  * demultiplexer for asf streams
  *
@@ -44,7 +44,6 @@
 /*
 #define LOG
 */
-
 #include "xine_internal.h"
 #include "demux.h"
 #include "xineutils.h"
@@ -246,11 +245,11 @@ static uint64_t get_le64 (demux_asf_t *this) {
   return LE_64(buf);
 }
 
-static int get_guid_id (demux_asf_t *this, GUID g) {
+static int get_guid_id (demux_asf_t *this, GUID *g) {
   int i;
 
   for (i = 1; i < GUID_END; i++) {
-    if (!memcmp(&g, &guids[i].guid, sizeof(GUID))) {
+    if (!memcmp(g, &guids[i].guid, sizeof(GUID))) {
       lprintf ("GUID: %s\n", guids[i].name);
       return i;
     }
@@ -259,8 +258,8 @@ static int get_guid_id (demux_asf_t *this, GUID g) {
   xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
 	  "demux_asf: unknown GUID: 0x%" PRIx32 ", 0x%" PRIx16 ", 0x%" PRIx16 ", "
 	  "{ 0x%" PRIx8 ", 0x%" PRIx8 ", 0x%" PRIx8 ", 0x%" PRIx8 ", 0x%" PRIx8 ", 0x%" PRIx8 ", 0x%" PRIx8 ", 0x%" PRIx8 " }\n",
-	  g.Data1, g.Data2, g.Data3,
-	  g.Data4[0], g.Data4[1], g.Data4[2], g.Data4[3], g.Data4[4], g.Data4[5], g.Data4[6], g.Data4[7]);
+	  g->Data1, g->Data2, g->Data3,
+	  g->Data4[0], g->Data4[1], g->Data4[2], g->Data4[3], g->Data4[4], g->Data4[5], g->Data4[6], g->Data4[7]);
 
   return GUID_ERROR;
 }
@@ -277,7 +276,7 @@ static int get_guid (demux_asf_t *this) {
     g.Data4[i] = get_byte(this);
   }
    
-  return get_guid_id(this, g);
+  return get_guid_id(this, &g);
 }
 
 static void get_str16_nolen(demux_asf_t *this, int len,
@@ -396,7 +395,7 @@ static int asf_read_header (demux_asf_t *this) {
 
           guid = get_guid(this);
           file_size = get_le64(this); /* file size */
-
+        
           get_le64(this); /* creation time */
           this->packet_count = get_le64(this); /* nb packets */
   
@@ -450,7 +449,10 @@ static int asf_read_header (demux_asf_t *this) {
               break;
 
             default:
-              goto fail;
+	      lprintf("unexpected GUID\n");
+	      pos2 = this->input->get_current_pos (this->input);
+	      this->input->seek (this->input, gsize - (pos2 - pos1 + 24), SEEK_CUR);
+              continue;
           }
 
           guid = get_guid(this);
@@ -978,6 +980,7 @@ static int asf_parse_packet_align(demux_asf_t *this) {
   mod = (current_pos - this->first_packet_pos) % this->packet_size;
   this->packet_size_left = mod ? this->packet_size - mod : 0;
   packet_pos = current_pos + this->packet_size_left;
+
   if (this->packet_size_left) {
     lprintf("last packet is not finished, %d bytes\n", this->packet_size_left);
     current_pos = this->input->seek (this->input, packet_pos, SEEK_SET);
@@ -988,9 +991,9 @@ static int asf_parse_packet_align(demux_asf_t *this) {
   this->packet_size_left = 0;
   
   /* check packet_count */
-  packet_num = (current_pos - this->first_packet_pos) / this->packet_size;
+  packet_num = (packet_pos - this->first_packet_pos) / this->packet_size;
   lprintf("packet_num=%lld, packet_count=%lld\n", packet_num, this->packet_count);
-  if (packet_num == this->packet_count) {
+  if (packet_num >= this->packet_count) {
     /* end of payload data */
     current_pos = this->input->get_current_pos (this->input);
     lprintf("end of payload data, current_pos=%lld\n", current_pos);
@@ -1046,10 +1049,29 @@ static int asf_parse_packet_ecd(demux_asf_t *this, uint32_t  *p_hdr_size) {
         *p_hdr_size += read_size;
 
       } else {
-
-        /* skip invalid packet */
-        xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "demux_asf: skip invalid packet: %2X\n", ecd_flags);
-        this->input->seek (this->input, this->packet_size - *p_hdr_size, SEEK_CUR);
+        GUID *guid = (GUID *)buf;
+      
+        /* check if it's a new stream */
+        buf[0] = ecd_flags;
+        if (this->input->read (this->input, buf + 1, 15) != 15) {
+          this->status = DEMUX_FINISHED;
+          return 1;
+        }
+        *p_hdr_size += 15;
+        guid->Data1 = LE_32(buf);
+        guid->Data2 = LE_16(buf + 4);
+        guid->Data3 = LE_16(buf + 6);
+        if (get_guid_id(this, guid) == GUID_ASF_HEADER) {
+          lprintf("new asf header detected\n");
+          _x_demux_control_end(this->stream, 0);
+          if (demux_asf_send_headers_common(this))
+            return 1;
+        } else {
+      
+          /* skip invalid packet */
+          xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "demux_asf: skip invalid packet: %2X\n", ecd_flags);
+          this->input->seek (this->input, this->packet_size - *p_hdr_size, SEEK_CUR);
+        }
         invalid_packet = 1;
       }
     }

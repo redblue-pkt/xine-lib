@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mmsh.c,v 1.33 2004/12/14 23:13:09 tmattern Exp $
+ * $Id: mmsh.c,v 1.34 2005/01/12 00:05:38 tmattern Exp $
  *
  * MMS over HTTP protocol
  *   written by Thibaut Mattern
@@ -183,7 +183,7 @@ struct mmsh_s {
   int           stream_ids[ASF_MAX_NUM_STREAMS];
   int           stream_types[ASF_MAX_NUM_STREAMS];
   int           packet_length;
-  uint32_t      file_length;
+  int64_t       file_length;
   char          guid[37];
   uint32_t      bitrates[ASF_MAX_NUM_STREAMS];
   uint32_t      bitrates_pos[ASF_MAX_NUM_STREAMS];
@@ -452,7 +452,6 @@ static int get_header (mmsh_t *this) {
     if (len != this->chunk_length) {
       return 0;
     } else {
-      this->buf_size = this->packet_length;
       return 1;
     }
   } else {
@@ -492,9 +491,9 @@ static void interp_header (mmsh_t *this) {
       case GUID_ASF_FILE_PROPERTIES:
 
         this->packet_length = LE_32(this->asf_header + i + 92 - 24);
-        this->file_length   = LE_32(this->asf_header + i + 40 - 24);
-        lprintf ("file object, packet length = %d (%d)\n",
-		 this->packet_length, LE_32(this->asf_header + i + 96 - 24));
+        this->file_length   = LE_64(this->asf_header + i + 40 - 24);
+        lprintf ("file object, file_length = %lld, packet length = %d",
+		 this->file_length, this->packet_count);
         break;
 
       case GUID_ASF_STREAM_PROPERTIES:
@@ -510,16 +509,18 @@ static void interp_header (mmsh_t *this) {
               type = ASF_STREAM_TYPE_AUDIO;
               this->has_audio = 1;
               break;
-
+    
             case GUID_ASF_VIDEO_MEDIA:
+            case GUID_ASF_JFIF_MEDIA:
+            case GUID_ASF_DEGRADABLE_JPEG_MEDIA:
               type = ASF_STREAM_TYPE_VIDEO;
               this->has_video = 1;
               break;
-
+          
             case GUID_ASF_COMMAND_MEDIA:
               type = ASF_STREAM_TYPE_CONTROL;
               break;
-
+        
             default:
               type = ASF_STREAM_TYPE_UNKNOWN;
           }
@@ -793,6 +794,7 @@ static int mmsh_connect_int(mmsh_t *this, int bandwidth) {
   if (!get_header(this))
     goto fail;
   interp_header(this);
+  this->buf_size = this->packet_length;
   
   for (i = 0; i < this->num_stream_ids; i++) {
     if ((this->stream_ids[i] != audio_stream) &&
@@ -928,12 +930,15 @@ static int get_media_packet (mmsh_t *this) {
       
       case CHUNK_TYPE_RESET:
         /* next chunk is an ASF header */
+      
         if (this->chunk_length != 0) {
           /* that's strange, don't know what to do */
           return 0;
         }
         if (!get_header(this))
           return 0;
+        interp_header(this);
+        this->buf_size = this->packet_length;
         return 2;
       
       default:
@@ -946,6 +951,12 @@ static int get_media_packet (mmsh_t *this) {
       
     if (len == this->chunk_length) {
       /* explicit padding with 0 */
+      if (this->chunk_length > this->packet_length) {
+        xprintf (this->stream->xine, XINE_VERBOSITY_LOG,
+                 "libmmsh: chunk_length(%d) > packet_length(%d)\n",
+                 this->chunk_length, this->packet_length);
+        return 0;
+      }
       memset(this->buf + this->chunk_length, 0,
              this->packet_length - this->chunk_length);
       this->buf_size = this->packet_length;

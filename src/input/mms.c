@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mms.c,v 1.52 2004/12/14 23:13:09 tmattern Exp $
+ * $Id: mms.c,v 1.53 2005/01/12 00:05:37 tmattern Exp $
  *
  * MMS over TCP protocol
  *   based on work from major mms
@@ -58,7 +58,6 @@
 /*
 #define LOG 
 */
-
 #include "xine_internal.h"
 #include "xineutils.h"
 
@@ -140,7 +139,7 @@ struct mms_s {
   int           stream_ids[ASF_MAX_NUM_STREAMS];
   int           stream_types[ASF_MAX_NUM_STREAMS];
   int           asf_packet_len;
-  uint32_t      file_len;
+  uint64_t      file_len;
   char          guid[37];
   uint32_t      bitrates[ASF_MAX_NUM_STREAMS];
   uint32_t      bitrates_pos[ASF_MAX_NUM_STREAMS];
@@ -540,9 +539,9 @@ static void interp_asf_header (mms_t *this) {
       case GUID_ASF_FILE_PROPERTIES:
 
         this->asf_packet_len = LE_32(this->asf_header + i + 92 - 24);
-        this->file_len   = LE_32(this->asf_header + i + 40 - 24);
-        lprintf ("file object, packet length = %d (%d)\n",
-                 this->asf_packet_len, LE_32(this->asf_header + i + 96 - 24));
+        this->file_len       = LE_64(this->asf_header + i + 40 - 24);
+        lprintf ("file object, file_length = %lld, packet length = %d",
+		 this->file_len, this->asf_packet_len);
         break;
 
       case GUID_ASF_STREAM_PROPERTIES:
@@ -560,6 +559,8 @@ static void interp_asf_header (mms_t *this) {
               break;
     
             case GUID_ASF_VIDEO_MEDIA:
+            case GUID_ASF_JFIF_MEDIA:
+            case GUID_ASF_DEGRADABLE_JPEG_MEDIA:
               type = ASF_STREAM_TYPE_VIDEO;
               this->has_video = 1;
               break;
@@ -1170,10 +1171,7 @@ static int get_media_packet (mms_t *this) {
                    "libmms: invalid asf packet len: %d bytes\n", header.packet_len);
           return 0;
         }
-    
-        /* simulate a seek */
-        this->current_pos = (off_t)this->asf_header_len + (off_t)header.packet_seq * (off_t)this->asf_packet_len;
-    
+
         len = _x_io_tcp_read (this->stream, this->s, this->buf, header.packet_len);
         if (len != header.packet_len) {
           xprintf (this->stream->xine, XINE_VERBOSITY_LOG,
