@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.240 2003/03/30 15:19:46 tmattern Exp $
+ * $Id: xine.c,v 1.241 2003/04/13 16:08:26 tmattern Exp $
  *
  * top-level xine functions
  *
@@ -67,7 +67,7 @@ void xine_handle_stream_end (xine_stream_t *stream, int non_user) {
   if (stream->status == XINE_STATUS_QUIT)
     return;
   stream->status = XINE_STATUS_STOP;
-  
+
   /* join thread if needed to fix resource leaks */  
   xine_demux_stop_thread( stream );
     
@@ -225,7 +225,7 @@ void xine_stop (xine_stream_t *stream) {
 /* redundant? (xine_stop_internal calls xine_demux_flush_engine)
   if (stream->audio_out)
     stream->audio_out->flush(stream->audio_out);
-    
+
   if (stream->video_out)
     stream->video_out->flush(stream->video_out);
 */
@@ -396,7 +396,7 @@ xine_stream_t *xine_stream_new (xine_t *this,
   stream->header_count_audio     = 0; 
   stream->header_count_video     = 0; 
   stream->finished_count_audio   = 0; 
-  stream->finished_count_video   = 0; 
+  stream->finished_count_video   = 0;
   stream->err                    = 0;
   stream->next_audio_port        = NULL;
   stream->next_video_port        = NULL;
@@ -520,7 +520,7 @@ static int xine_open_internal (xine_stream_t *stream, const char *mrl) {
     char *input_source = (char *)malloc(stream_setup - mrl + 1);
     memcpy(input_source, mrl, stream_setup - mrl);
     input_source[stream_setup - mrl] = '\0';
-    
+
     /*
      * find an input plugin
      */
@@ -551,9 +551,16 @@ static int xine_open_internal (xine_stream_t *stream, const char *mrl) {
     stream->meta_info[XINE_META_INFO_INPUT_PLUGIN]
       = strdup (stream->input_plugin->input_class->get_identifier (stream->input_plugin->input_class));
   }
-    
+
+  if (!stream->input_plugin->open(stream->input_plugin)) {
+    stream->input_plugin->dispose(stream->input_plugin);
+    stream->input_plugin = NULL;
+    stream->err = XINE_ERROR_INPUT_FAILED;
+    return 0;
+  }
+        
   if (*stream_setup) {
-    
+
     while (stream_setup && *stream_setup && *(++stream_setup)) {
       if (strncasecmp(stream_setup, "demux", 5) == 0) {
         if (*(stream_setup += 5) == ':') {
@@ -941,6 +948,9 @@ static int xine_play_internal (xine_stream_t *stream, int start_pos, int start_t
   demux_status = stream->demux_plugin->seek (stream->demux_plugin,
 						   pos, start_time);
   stream->demux_action_pending = 0;
+  pthread_mutex_lock (&stream->first_frame_lock);
+  stream->first_frame_flag = 1;
+  pthread_mutex_unlock (&stream->first_frame_lock);
   pthread_mutex_unlock( &stream->demux_lock );
 
   if (demux_status != DEMUX_OK) {
@@ -948,7 +958,7 @@ static int xine_play_internal (xine_stream_t *stream, int start_pos, int start_t
 	      _("xine_play: demux failed to start\n"));
 
     stream->err = XINE_ERROR_DEMUX_FAILED;
-
+    stream->first_frame_flag = 0;
     return 0;
 
   } else {
@@ -956,9 +966,6 @@ static int xine_play_internal (xine_stream_t *stream, int start_pos, int start_t
     stream->status = XINE_STATUS_PLAY;
   }
 
-  pthread_mutex_lock (&stream->first_frame_lock);
-  stream->first_frame_flag = 1;
-  pthread_mutex_unlock (&stream->first_frame_lock);
   pthread_mutex_lock( &stream->current_extra_info_lock );
   extra_info_reset( stream->current_extra_info );
   pthread_mutex_unlock( &stream->current_extra_info_lock );

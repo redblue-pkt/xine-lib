@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.75 2003/04/08 14:24:26 hadess Exp $
+ * $Id: xine.h.in,v 1.76 2003/04/13 16:08:26 tmattern Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -687,6 +687,7 @@ int  xine_get_status (xine_stream_t *stream);
 #define XINE_ERROR_NO_DEMUX_PLUGIN         2
 #define XINE_ERROR_DEMUX_FAILED            3
 #define XINE_ERROR_MALFORMED_MRL           4
+#define XINE_ERROR_INPUT_FAILED            5
 
 /*
  * try to find out audio/spu language of given channel

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.145 2003/04/06 01:17:11 guenter Exp $
+ * $Id: load_plugins.c,v 1.146 2003/04/13 16:08:26 tmattern Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -109,7 +109,7 @@ static int _get_decoder_priority (xine_t *this, int default_priority,
 
 
 static plugin_info_t *_get_cached_plugin ( xine_list_t *list,
-			    char *filename, struct stat *statbuffer, 
+			    char *filename, struct stat *statbuffer,
 			    plugin_info_t *previous_info){
 
   plugin_node_t *node;
@@ -578,7 +578,7 @@ static void load_plugin_list(FILE *fp, xine_list_t *plugins) {
   while (fgets (line, 1023, fp)) {
     if (line[0] == '#')
       continue;
-      
+
     if (line[0] == '[' && version_ok) {
       if((value = strchr (line, ']')))
         *value = (char) 0;
@@ -988,7 +988,7 @@ input_plugin_t *find_input_plugin (xine_stream_t *stream, const char *mrl) {
   while (node) {
     input_plugin_t   *plugin;
 
-    if ((plugin = ((input_class_t *)node->plugin_class)->open_plugin(node->plugin_class, stream, mrl))) {
+    if ((plugin = ((input_class_t *)node->plugin_class)->get_instance(node->plugin_class, stream, mrl))) {
       pthread_mutex_unlock (&catalog->lock);
       return plugin;
     }
@@ -1095,7 +1095,7 @@ demux_plugin_t *find_demux_plugin_by_name(xine_stream_t *stream, const char *nam
     }
     node = xine_list_next_content(catalog->demux);
   }
-  
+
   pthread_mutex_unlock(&catalog->lock);
   return NULL;
 }
@@ -1105,7 +1105,7 @@ demux_plugin_t *find_demux_plugin_by_name(xine_stream_t *stream, const char *nam
  * by content and extension except last_demux_name which is tested after
  * every other demuxer.
  *
- * this way we can make sure no demuxer will interfere on probing of a 
+ * this way we can make sure no demuxer will interfere on probing of a
  * known stream.
  */
 
@@ -1163,7 +1163,7 @@ demux_plugin_t *find_demux_plugin_last_probe(xine_stream_t *stream, const char *
     printf ("load_plugins: using demuxer '%s'\n", last_demux_name);
     return plugin;
   }
-  
+
   return NULL;
 }
 
@@ -1667,8 +1667,8 @@ void free_video_decoder (xine_stream_t *stream, video_decoder_t *vd) {
 
   pthread_mutex_lock (&catalog->lock);
 
+  
   vd->dispose (vd);
-
   node->ref--;
   /* FIXME: unload plugin if no-longer used */
 
