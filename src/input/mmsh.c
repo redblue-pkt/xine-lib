@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mmsh.c,v 1.7 2003/01/15 20:08:24 tmattern Exp $
+ * $Id: mmsh.c,v 1.8 2003/01/16 00:40:48 tmattern Exp $
  *
  * based on mms.c and specs from avifile
  * (http://avifile.sourceforge.net/asf-1.0.htm)
@@ -147,6 +147,7 @@ struct mmsh_s {
   uint16_t      chunk_type;
   uint16_t      chunk_length;
   uint16_t      chunk_seq_number;
+  int           chunk_eos;
   uint8_t       buf[CHUNK_SIZE];
   
   int           buf_size;
@@ -812,6 +813,7 @@ mmsh_t *mmsh_connect (xine_stream_t *stream, const char *url_, int bandwidth) {
   this->buf_read        = 0;
   this->has_audio       = 0;
   this->has_video       = 0;
+  this->chunk_eos       = 0;
   
 #ifdef LOG
   printf ("libmmsh: url=%s\nlibmmsh:   host=%s\nlibmmsh:   "
@@ -988,19 +990,30 @@ static int get_media_packet (mmsh_t *this) {
   printf("libmms: get_media_packet: this->packet_length: %d\n", this->packet_length);
 #endif
   
-  if( get_chunk_header(this)) {
+  if (!this->chunk_eos && get_chunk_header(this)) {
+    switch (this->chunk_type) {
+      case CHUNK_TYPE_END:
+        this->chunk_eos = 1;
+      case CHUNK_TYPE_DATA:
+        break;
+      default:
+        printf("libmms: invalid chunk type\n");
+        return 0;
+    }
+    
     if (this->chunk_length > CHUNK_SIZE) {
       printf("libmms: invalid chunk length\n");
       return 0;
     } else {
       len = read_timeout (this->s, this->buf, this->chunk_length);
-    }
-    if (len) {
-      /* implicit padding (with "random" data) */
-      this->buf_size = this->packet_length;
-      return 1;
-    } else {
-      return 0;
+
+      if (len == this->chunk_length) {
+        /* implicit padding (with "random" data) */
+        this->buf_size = this->packet_length;
+        return 1;
+      } else {
+        return 0;
+      }
     }
   } else {
     return 0;
