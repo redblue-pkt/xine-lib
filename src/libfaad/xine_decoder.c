@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.28 2004/01/12 17:35:16 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.29 2004/01/26 20:13:58 jstembridge Exp $
  *
  */
 
@@ -282,6 +282,17 @@ this->num_channels = 2;
         case 1:
           this->ao_cap_mode=AO_CAP_MODE_MONO; 
           break;
+        case 6:
+          if(this->stream->audio_out->get_capabilities(this->stream->audio_out) &
+             AO_CAP_MODE_5_1CHANNEL) {
+            this->ao_cap_mode = AO_CAP_MODE_5_1CHANNEL;
+            break;
+          } else {
+            this->faac_cfg = faacDecGetCurrentConfiguration(this->faac_dec);
+            this->faac_cfg->downMatrix = 1;
+            faacDecSetConfiguration(this->faac_dec, this->faac_cfg);
+            this->num_channels = 2;
+          }
         case 2:
           this->ao_cap_mode=AO_CAP_MODE_STEREO;
           break; 
