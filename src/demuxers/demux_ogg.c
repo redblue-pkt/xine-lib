@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_ogg.c,v 1.107 2003/08/28 16:10:16 andruil Exp $
+ * $Id: demux_ogg.c,v 1.108 2003/09/03 13:41:10 andruil Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -35,6 +35,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <string.h>
+#include <ctype.h>
 #include <stdlib.h>
 
 #include <ogg/ogg.h>
@@ -77,6 +78,17 @@
 #define WRAP_THRESHOLD           900000
 
 #define SUB_BUFSIZE 1024
+
+typedef struct chapter_entry_s {
+  int64_t           start_pts;
+  char              *name;
+} chapter_entry_t;
+
+typedef struct chapter_info_s {
+  int                current_chapter;
+  int                max_chapter;
+  chapter_entry_t   *entries;
+} chapter_info_t;
 
 typedef struct demux_ogg_s {
   demux_plugin_t        demux_plugin;
@@ -123,6 +135,8 @@ typedef struct demux_ogg_s {
   int                   ignore_keyframes;
   int                   time_length;
 
+  char                 *title;
+  chapter_info_t       *chapter_info;
 } demux_ogg_t ;
 
 typedef struct {
@@ -476,6 +490,75 @@ static void send_ogg_buf (demux_ogg_t *this,
 
     lprintf ("video buffer, type=%08x\n", this->buf_types[stream_num]);
 
+    if (op->packet[0] == PACKET_TYPE_COMMENT ) {
+      char           **ptr;
+      char           *comment;
+      vorbis_comment vc;
+      vorbis_info    vi;
+
+      vorbis_comment_init(&vc);
+      vorbis_info_init(&vi);
+
+      /* this is necessary to make libvorbis accept this vorbis_info*/
+      vi.rate=1;
+
+      if ( vorbis_synthesis_headerin(&vi, &vc, op) >= 0) {
+        char *chapter_time = 0;
+        char *chapter_name = 0;
+        int   chapter_no = 0;
+        ptr=vc.user_comments;
+        while(*ptr) {
+          comment=*ptr;
+          if ( !strncasecmp ("TITLE=", comment,6) ) {
+            this->title=strdup (comment + strlen ("TITLE=") );
+            this->stream->meta_info[XINE_META_INFO_TITLE] = strdup (this->title);
+          }
+          if ( !chapter_time && strlen(comment) == 22 &&
+              !strncasecmp ("CHAPTER" , comment, 7) &&
+              isdigit(*(comment+7)) && isdigit(*(comment+8)) &&
+              (*(comment+9) == '=')) {
+
+            chapter_time = strdup(comment+10);
+            chapter_no   = strtol(comment+7, NULL, 10);
+          }
+          if ( !chapter_name && !strncasecmp("CHAPTER", comment, 7) &&
+               isdigit(*(comment+7)) && isdigit(*(comment+8)) &&
+               !strncasecmp ("NAME=", comment+9, 5)) {
+
+            if (strtol(comment+7,NULL,10) == chapter_no) {
+              chapter_name = strdup(comment+14);
+            }
+          }
+          if (chapter_time && chapter_name && chapter_no){
+            int hour, min, sec, msec;
+
+            lprintf("create chapter entry: no=%d name=%s time=%s\n", chapter_no, chapter_name, chapter_time);
+            hour= strtol(chapter_time, NULL, 10);
+            min = strtol(chapter_time+3, NULL, 10);
+            sec = strtol(chapter_time+6, NULL, 10);
+            msec = strtol(chapter_time+9, NULL, 10);
+            lprintf("time: %d %d %d %d\n", hour, min,sec,msec);
+
+            if (!this->chapter_info) {
+              this->chapter_info = (chapter_info_t *)xine_xmalloc(sizeof(chapter_info_t));
+              this->chapter_info->current_chapter = -1;
+            }
+            this->chapter_info->max_chapter = chapter_no;
+            this->chapter_info->entries = realloc( this->chapter_info->entries, chapter_no*sizeof(chapter_entry_t));
+            this->chapter_info->entries[chapter_no-1].name = chapter_name;
+            this->chapter_info->entries[chapter_no-1].start_pts = (msec + (1000.0 * sec) + (60000.0 * min) + (3600000.0 * hour))*90;
+
+            free (chapter_time);
+            chapter_no = 0;
+            chapter_time = chapter_name = 0;
+          }
+	  ++ptr;
+	}
+      }
+      vorbis_comment_clear(&vc);
+      vorbis_info_clear(&vi);
+    }
+
     todo = op->bytes;
     done = 1+hdrlen;
     while (done<todo) {
@@ -514,7 +597,48 @@ static void send_ogg_buf (demux_ogg_t *this,
                buf->pts);
 
       this->video_fifo->put (this->video_fifo, buf);
+    }
 
+    if (this->chapter_info && op->granulepos != -1) {
+      int chapter = 0;
+      int64_t pts = get_pts(this, stream_num, op->granulepos );
+
+      /*lprintf("CHP max=%d current=%d pts=%lld\n",
+              this->chapter_info->max_chapter, this->chapter_info->current_chapter, pts);*/
+
+      while (chapter < this->chapter_info->max_chapter &&
+             this->chapter_info->entries[chapter].start_pts < pts) {
+        chapter++;
+      }
+      chapter--;
+
+      if (chapter != this->chapter_info->current_chapter){
+        xine_event_t uevent;
+        xine_ui_data_t data;
+        int title_len;
+
+        this->chapter_info->current_chapter = chapter;
+        if (this->stream->meta_info[XINE_META_INFO_TITLE])
+          free (this->stream->meta_info[XINE_META_INFO_TITLE]);
+        if (chapter >= 0) {
+          char t_title[256];
+
+          sprintf(t_title, "%s / %s", this->title, this->chapter_info->entries[chapter].name);
+          this->stream->meta_info[XINE_META_INFO_TITLE] = strdup(t_title);
+        } else {
+          this->stream->meta_info[XINE_META_INFO_TITLE] = strdup (this->title);
+        }
+        lprintf("new TITLE: %s\n", this->stream->meta_info[XINE_META_INFO_TITLE]);
+
+        uevent.type = XINE_EVENT_UI_SET_TITLE;
+        uevent.stream = this->stream;
+        uevent.data = &data;
+        uevent.data_length = sizeof(data);
+        title_len = strlen(this->stream->meta_info[XINE_META_INFO_TITLE]) + 1;
+        memcpy(data.str, this->stream->meta_info[XINE_META_INFO_TITLE], title_len);
+        data.str_len = title_len;
+        xine_event_send(this->stream, &uevent);
+      }
     }
   } else if ((this->buf_types[stream_num] & 0xFF000000) == BUF_SPU_BASE) {
 
@@ -1252,6 +1376,14 @@ static void demux_ogg_dispose (demux_plugin_t *this_gen) {
   theora_info_clear (&this->t_info);
 #endif
 
+  if (this->chapter_info){
+    free (this->chapter_info->entries);
+    free (this->chapter_info);
+  }
+  if (this->title){
+    free (this->title);
+  }
+
   free (this);
 }
 
@@ -1561,6 +1693,9 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen,
   theora_info_init (&this->t_info);
   theora_comment_init (&this->t_comment);
 #endif  
+
+  this->chapter_info = 0;
+  this->title = 0;
 
   return &this->demux_plugin;
 }
