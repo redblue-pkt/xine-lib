@@ -130,7 +130,7 @@ int main() {
     printf("\n*** An old version of ALSA (%d.%d.%d) was found.\n",
            SND_LIB_MAJOR, SND_LIB_MINOR, SND_LIB_SUBMINOR);
     printf("*** You need a version of ALSA newer than %d.%d.%d. The latest version of\n", major, minor, micro);
-    printf("*** ALSA is always available from:  http://www.alsa-drivers.org/\n");
+    printf("*** ALSA is always available from:  http://www.alsa-project.org/\n");
     printf("***\n");
     printf("*** If you have already installed a sufficiently new version\n");
     printf("*** the easiest way to fix this is to remove the old version, and\n");
