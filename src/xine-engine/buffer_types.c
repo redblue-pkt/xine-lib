@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer_types.c,v 1.14 2002/04/19 02:19:11 miguelfreitas Exp $
+ * $Id: buffer_types.c,v 1.15 2002/04/20 15:00:27 guenter Exp $
  *
  *
  * contents:
@@ -309,6 +309,14 @@ static video_db_t video_db[] = {
   },
   BUF_VIDEO_H263,
   "H263 format"
+},
+{
+  {
+    mmioFOURCC('c', 'y', 'u', 'v'),
+    0
+  },
+  BUF_VIDEO_CYUV,
+  "cyuv format"
 },
 { { 0 }, 0, "last entry" }
 };
