@@ -2,10 +2,17 @@
  * FIXME: this file should be removed, but to do that
  *        we need all these tests and checks in our
  *        configure.in
+ *
+ * jk: Hmm, all the tests and checks _are_ in xine's main config.h now, and
+ * the libw32dll source compiles for me on linux, freebsd and solaris (with
+ * this file removed, or with a direct include of "../../config.h").  So, why
+ * do we still need this pre-configured (for a linux box?) config.h file ???
  */
 #if 0
 #include "../../config.h"
 #else
+
+#warning using obsolete config information which might not be correct for your system!
 
 /* include/config.h.  Generated automatically by configure.  */
 /* include/config.h.in.  Generated automatically from configure.in by autoheader.  */

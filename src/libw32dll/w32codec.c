@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.27 2001/09/19 18:42:55 jkeil Exp $
+ * $Id: w32codec.c,v 1.28 2001/09/20 09:33:23 jkeil Exp $
  *
  * routines for using w32 codecs
  *
@@ -200,7 +200,7 @@ static char* get_vids_codec_name(w32v_decoder_t *this,
 
   case BUF_VIDEO_IV41:
     /* Video in Indeo Video 4.1 format */
-    this->flipped=0;
+    this->flipped=1;
     return "ir41_32.dll";
     
   case BUF_VIDEO_IV32:

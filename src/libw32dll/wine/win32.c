@@ -15,6 +15,7 @@
 #include <stdlib.h>
 #include <ctype.h>
 #include <pthread.h>
+#include <errno.h>
 #ifdef HAVE_MALLOC_H
 #include <malloc.h>
 #endif
@@ -52,8 +53,7 @@ do_cpuid(unsigned int ax, unsigned int *regs)
     );
 }
 
-#ifdef USE_TSC
-static unsigned int localcount()
+static unsigned int c_localcount_tsc()
 {
     int a;
     __asm__ __volatile__("rdtsc\n\t"
@@ -62,7 +62,7 @@ static unsigned int localcount()
     :"edx");
     return a;
 }
-static void longcount(long long* z)
+static void c_longcount_tsc(long long* z)
 {
     __asm__ __volatile__(
     "pushl %%ebx\n\t"
@@ -73,10 +73,7 @@ static void longcount(long long* z)
     "popl %%ebx\n\t"
     ::"a"(z));
 }    
-#else
-#include <sys/time.h>
-#include <unistd.h>
-static unsigned int localcount()
+static unsigned int c_localcount_notsc()
 {
     struct timeval tv;
     unsigned limit=~0;
@@ -84,7 +81,7 @@ static unsigned int localcount()
     gettimeofday(&tv, 0);
     return limit*tv.tv_usec;
 }
-static void longcount(long long* z)
+static void c_longcount_notsc(long long* z)
 {
     struct timeval tv;
     unsigned long long result;
@@ -97,7 +94,45 @@ static void longcount(long long* z)
     result+=limit*tv.tv_usec;
     *z=result;
 }
-#endif
+
+static unsigned int localcount_stub(void);
+static void longcount_stub(long long* z);
+static unsigned int (*localcount)()=localcount_stub;
+static void (*longcount)(long long*)=longcount_stub;
+
+static unsigned int localcount_stub(void)
+{
+    unsigned int regs[4];
+    do_cpuid(1, regs);
+    if ((regs[3] & 0x00000010) != 0) 
+    {
+	localcount=c_localcount_tsc;
+	longcount=c_longcount_tsc;
+    }	
+    else 
+    {
+    	localcount=c_localcount_notsc;
+	longcount=c_longcount_notsc;
+    }
+    return localcount();
+}
+static void longcount_stub(long long* z)
+{
+    unsigned int regs[4];
+    do_cpuid(1, regs);
+    if ((regs[3] & 0x00000010) != 0) 
+    {
+	localcount=c_localcount_tsc;
+	longcount=c_longcount_tsc;
+    }	
+    else 
+    {
+    	localcount=c_localcount_notsc;
+	longcount=c_longcount_notsc;
+    }
+    longcount(z);
+}
+
 
 int LOADER_DEBUG=1;
 static void dbgprintf(char* fmt, ...)
@@ -375,8 +410,13 @@ struct mutex_list_t;
 
 struct mutex_list_t
 {
+    char type;
     pthread_mutex_t *pm;
+    pthread_cond_t  *pc;
+    char state;
+    char reset;
     char name[64];
+    int  semaphore;
     struct mutex_list_t* next;
     struct mutex_list_t* prev;
 };
@@ -385,21 +425,26 @@ static mutex_list* mlist=NULL;
 void* WINAPI expCreateEventA(void* pSecAttr, char bManualReset, 
     char bInitialState, const char* name)
 {
-#warning ManualReset
     pthread_mutex_t *pm;
-    dbgprintf("CreateEvent\n");
+    pthread_cond_t  *pc;
     if(mlist!=NULL)
     {
 	mutex_list* pp=mlist;
 	if(name!=NULL)
 	do
 	{
-	    if(strcmp(pp->name, name)==0)
+	    if((strcmp(pp->name, name)==0) && (pp->type==0))
+	    {
+		dbgprintf("CreateEventA(0x%x, 0x%x, 0x%x, 0x%x='%s') => 0x%x\n",
+		    pSecAttr, bManualReset, bInitialState, name, name, pp->pm);
 		return pp->pm;
-	} while((pp=pp->prev));
+	    }
+	}while((pp=pp->prev));
     }	
     pm=my_mreq(sizeof(pthread_mutex_t), 0);
     pthread_mutex_init(pm, NULL);
+    pc=my_mreq(sizeof(pthread_cond_t), 0);
+    pthread_cond_init(pc, NULL);
     if(mlist==NULL)
     {
 	mlist=my_mreq(sizeof(mutex_list), 00);
@@ -408,42 +453,123 @@ void* WINAPI expCreateEventA(void* pSecAttr, char bManualReset,
     else
     {
 	mlist->next=my_mreq(sizeof(mutex_list), 00);
-	mlist->next->prev=mlist->next;
+	mlist->next->prev=mlist;
 	mlist->next->next=NULL;
 	mlist=mlist->next;
     }
+    mlist->type=0; /* Type Event */
     mlist->pm=pm;
+    mlist->pc=pc;
+    mlist->state=bInitialState;
+    mlist->reset=bManualReset;
     if(name!=NULL)
         strncpy(mlist->name, name, 64);
 	else
 	mlist->name[0]=0;
     if(pm==NULL)
 	dbgprintf("ERROR::: CreateEventA failure\n");
+/*
     if(bInitialState)
         pthread_mutex_lock(pm);
-    return pm;
+*/
+    if(name)
+    dbgprintf("CreateEventA(0x%x, 0x%x, 0x%x, 0x%x='%s') => 0x%x\n",
+        pSecAttr, bManualReset, bInitialState, name, name, mlist);
+    else
+    dbgprintf("CreateEventA(0x%x, 0x%x, 0x%x, NULL) => 0x%x\n",
+        pSecAttr, bManualReset, bInitialState, mlist);
+    return mlist;
 }    
 
 void* WINAPI expSetEvent(void* event)
 {
-    dbgprintf("Trying to lock %X\n", event);
-    pthread_mutex_lock(event);
-    return event;
+    mutex_list *ml = (mutex_list *)event;
+    dbgprintf("SetEvent(%x) => 0x1\n", event);
+    pthread_mutex_lock(ml->pm);
+    if (ml->state == 0) {
+	ml->state = 1;
+	pthread_cond_signal(ml->pc);
+    }
+    pthread_mutex_unlock(ml->pm);
+
+    return (void *)1;
 }
 void* WINAPI expResetEvent(void* event)
 {
-    dbgprintf("Unlocking %X\n", event);
-    pthread_mutex_unlock(event);    
-    return event;
+    mutex_list *ml = (mutex_list *)event;
+    dbgprintf("ResetEvent(0x%x) => 0x1\n", event);
+    pthread_mutex_lock(ml->pm);
+    ml->state = 0;
+    pthread_mutex_unlock(ml->pm);    
+
+    return (void *)1;
 }
 
 void* WINAPI expWaitForSingleObject(void* object, int duration)
 {
-#warning not sure
-    dbgprintf("WaitForSingleObject: duration %d\n", duration);
-    pthread_mutex_lock(object);
-    pthread_mutex_unlock(object);
-    return object;
+    mutex_list *ml = (mutex_list *)object;
+    int ret=WAIT_FAILED; // fixed by Zdenek Kabelac
+    mutex_list* pp=mlist;
+//    dbgprintf("WaitForSingleObject(0x%x, duration %d) =>\n",object, duration);
+    // loop below was slightly fixed - its used just for checking if
+    // this object really exists in our list
+    if (!ml)
+        return (void*) ret;
+    while (pp && (pp->pm != ml->pm))
+        pp = pp->prev;
+    if (!pp) {
+        //dbgprintf("WaitForSingleObject: NotFound\n");
+        return (void*)ret;
+    }
+
+    pthread_mutex_lock(ml->pm);
+
+    switch(ml->type) {
+      case 0: /* Event */
+	if (duration == 0) { /* Check Only */
+		if (ml->state == 1) ret = WAIT_FAILED;
+		else                   ret = WAIT_OBJECT_0;
+	}
+	if (duration == -1) { /* INFINITE */
+		if (ml->state == 0)
+			pthread_cond_wait(ml->pc,ml->pm);
+		if (ml->reset)
+			ml->state = 0;
+		ret = WAIT_OBJECT_0;
+	}
+	if (duration > 0) {  /* Timed Wait */
+		struct timespec abstime;
+		struct timeval now;
+		gettimeofday(&now, 0);
+		abstime.tv_sec = now.tv_sec + (now.tv_usec+duration)/1000000;
+		abstime.tv_nsec = ((now.tv_usec+duration)%1000000)*1000;
+		if (ml->state == 0)
+			ret=pthread_cond_timedwait(ml->pc,ml->pm,&abstime);
+		if (ret == ETIMEDOUT) ret = WAIT_TIMEOUT;
+		else                  ret = WAIT_OBJECT_0;
+		if (ml->reset)
+			ml->state = 0;	
+	}
+        break;
+      case 1:  /* Semaphore */
+        if (duration == 0) {
+		if(ml->semaphore==0) ret = WAIT_FAILED;
+		else {
+			ml->semaphore++;
+			ret = WAIT_OBJECT_0;
+		}
+        }
+	if (duration == -1) {
+		if (ml->semaphore==0)
+			pthread_cond_wait(ml->pc,ml->pm);
+		ml->semaphore--;
+	}
+        break;
+    }
+    pthread_mutex_unlock(ml->pm);
+
+    dbgprintf("WaitForSingleObject(0x%x, %d): 0x%x => 0x%x \n",object,duration,ml,ret);
+    return (void *)ret;
 }    
 
 static BYTE PF[64] = {0,};
@@ -837,12 +963,31 @@ int WINAPI expLoadStringA(long instance, long  id, void* buf, long size)
 long WINAPI expMultiByteToWideChar(long v1, long v2, char* s1, long siz1, short* s2, int siz2)
 {
 #warning FIXME
-    dbgprintf("MB2WCh\n");
-    dbgprintf("WARNING: Unsupported call: MBToWCh %s\n", s1);       
+    int i;
+    int result;
     if(s2==0)
-	return 1;
-    s2[0]=0;
-    return 1;
+    	result=1;
+    else
+    {
+    if(siz1>siz2/2)siz1=siz2/2;    
+    for(i=1; i<=siz1; i++)
+    {
+    	*s2=*s1;
+	if(!*s1)break;
+	s2++;
+	s1++;
+    }
+    result=i;
+    }
+    if(s1)
+    dbgprintf("MultiByteToWideChar(codepage %d, flags 0x%x, string 0x%x='%s', "
+	"size %d, dest buffer 0x%x, dest size %d) => %d\n",
+	    v1, v2, s1, s1, siz1, s2, siz2, result);
+    else
+    dbgprintf("MultiByteToWideChar(codepage %d, flags 0x%x, string NULL, "
+	"size %d, dest buffer 0x%x, dest size %d) =>\n",
+	    v1, v2, siz1, s2, siz2, result);
+    return result;
 }
 long WINAPI expWideCharToMultiByte(long v1, long v2, short* s1, long siz1, char* s2, int siz2, char* c3, int* siz3)
 {
@@ -862,35 +1007,59 @@ long WINAPI expGetVersionExA(OSVERSIONINFOA* c)
     strcpy(c->szCSDVersion, "Win98");
     return 1;
 }        
-#include <sys/types.h>
-#include <sys/ipc.h>
-#include <sys/sem.h>
 HANDLE WINAPI expCreateSemaphoreA(char* v1, long init_count, long max_count, char* name)
 {
-#warning FIXME
-/*    struct sembuf buf[1];
-    int sem=semget(IPC_PRIVATE,1,IPC_CREAT);
-    if(sem==-1)
+    pthread_mutex_t *pm;
+    pthread_cond_t  *pc;
+    if(mlist!=NULL)
     {
-	printf("semget() failed\n");
-	return (HANDLE)-1;
+	mutex_list* pp=mlist;
+	if(name!=NULL)
+	do
+	{
+	    if((strcmp(pp->name, name)==0) && (pp->type==1))
+	    {
+	        dbgprintf("CreateSemaphoreA(0x%x, init_count %d, max_count %d, name 0x%x='%s') => 0x%x",
+		    v1, init_count, max_count, name, name, mlist);
+		return (HANDLE)mlist;
+	    }
+	}while((pp=pp->prev));
     }	
-    buf[0].sem_num=0;
-    printf("%s\n", name);
-    printf("Init count %d, max count %d\n", init_count, max_count);
-    buf[0].sem_op=-max_count+init_count;
-    buf[0].sem_flg=0;
-    if(semop(sem, &buf, 1)<0)
+    pm=my_mreq(sizeof(pthread_mutex_t), 0);
+    pthread_mutex_init(pm, NULL);
+    pc=my_mreq(sizeof(pthread_cond_t), 0);
+    pthread_cond_init(pc, NULL);
+    if(mlist==NULL)
     {
-	printf("semop() failed\n");
+	mlist=my_mreq(sizeof(mutex_list), 00);
+	mlist->next=mlist->prev=NULL;
     }
-    return sem;	
-*/    
-    void* z;
-    dbgprintf("CreateSemaphoreA\n");
-    z=my_mreq(24, 0);
-    pthread_mutex_init(z, NULL);
-    return (HANDLE)z;
+    else
+    {
+	mlist->next=my_mreq(sizeof(mutex_list), 00);
+	mlist->next->prev=mlist;
+	mlist->next->next=NULL;
+	mlist=mlist->next;
+    }
+    mlist->type=1; /* Type Semaphore */
+    mlist->pm=pm;
+    mlist->pc=pc;
+    mlist->state=0;
+    mlist->reset=0;
+    mlist->semaphore=init_count;
+    if(name!=NULL)
+        strncpy(mlist->name, name, 64);
+    else
+	mlist->name[0]=0;
+    if(pm==NULL)
+	dbgprintf("ERROR::: CreateSemaphoreA failure\n");
+    if(name)
+	dbgprintf("CreateSemaphoreA(0x%x, init_count %d, max_count %d, name 0x%x='%s') => 0x%x",
+	v1, init_count, max_count, name, name, mlist);
+    else
+	dbgprintf("CreateSemaphoreA(0x%x, init_count %d, max_count %d, name 0) => 0x%x",
+	v1, init_count, max_count, mlist);
+    return (HANDLE)mlist;
 }
         
 long WINAPI expReleaseSemaphore(long hsem, long increment, long* prev_count)
@@ -899,19 +1068,16 @@ long WINAPI expReleaseSemaphore(long hsem, long increment, long* prev_count)
 // is greater than zero and nonsignaled when its count is equal to zero
 // Each time a waiting thread is released because of the semaphore's signaled
 // state, the count of the semaphore is decreased by one. 
-  //    struct sembuf buf[1];
-    dbgprintf("ReleaseSemaphore\n");
-    dbgprintf("WARNING: Unsupported call: ReleaseSemaphoreA\n");       
-/*    if(hsem==-1)return 0;
-    buf[0].sem_num=0;
-    buf[0].sem_op=-1;
-    buf[0].sem_flg=0;
-    if(semop(hsem, &buf, 1)<0)
-    {
-	printf("ReleaseSemaphore: semop() failed\n");
-    }*/
+    mutex_list *ml = (mutex_list *)hsem;
 
-    return 1;//zero on error
+    pthread_mutex_lock(ml->pm);
+    if (prev_count != 0) *prev_count = ml->semaphore;
+    if (ml->semaphore == 0) pthread_cond_signal(ml->pc);
+    ml->semaphore += increment;
+    pthread_mutex_unlock(ml->pm);
+    dbgprintf("ReleaseSemaphore(semaphore 0x%x, increment %d, prev_count 0x%x) => 1\n",
+	hsem, increment, prev_count);
+    return 1;
 }
 
 
