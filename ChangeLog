@@ -1,3 +1,11 @@
+xine (0.9.10) unstable; urgency=low
+
+  * cinepak video decoder (native)
+  * libwin32 compilation fixes
+  * dxr3 compilation fixes
+	
+ -- Guenter Bartsch <guenter@users.sourceforge.net> 
+
 xine (0.9.9) unstable; urgency=low
   
   * new (fast) demuxer seeking
