@@ -268,7 +268,8 @@ if test "$IMLIB_CONFIG" != "no" ; then
 	  IMLIB_CFLAGS=`$IMLIB_CONFIG --cflags`
 	  IMLIB_LIBS=`$IMLIB_CONFIG --libs` ])
 fi
-AM_CONDITIONAL(HAVE_IMLIB, [test x"$have_imlib" != x"no"])
+
+AM_CONDITIONAL(HAVE_IMLIB, [test x"$have_imlib" = "xyes"])
 AC_SUBST(IMLIB_CFLAGS)
 AC_SUBST(IMLIB_LIBS)
 
