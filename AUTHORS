@@ -407,4 +407,7 @@ Philip Jägenstedt <philipj@telia.com>
 Laurent Aimar <fenrir@videolan.org>
   MPEG demuxer fixes
 
+Adrian Schroeter <adrian@suse.de>
+  AMD64 support
+
 (let us know if we've forgotten anyone)

@@ -112,7 +112,7 @@ quote of the day:
 */
 
 
-#ifdef ARCH_X86
+#if defined(ARCH_X86) || defined(ARCH_X86_64)
 
 #ifndef _MSC_VER
 /* for small memory blocks (<256 bytes) this version is faster */

@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * $Id: yuv2rgb.c,v 1.42 2003/04/23 00:28:04 tchamp Exp $
+ * $Id: yuv2rgb.c,v 1.43 2003/08/25 14:32:37 mroi Exp $
  */
 
 #include "config.h"
@@ -2408,7 +2408,7 @@ static void yuv2rgb_set_csc_levels (yuv2rgb_factory_t *this,
 			 entry_size * div_round (cbu * (i-128), 76309));
   }
 
-#ifdef ARCH_X86
+#if defined(ARCH_X86) || defined(ARCH_X86_64)
   mmx_yuv2rgb_set_csc_levels (this, brightness, contrast, saturation);
 #endif  
 }
@@ -3157,7 +3157,7 @@ yuv2rgb_factory_t* yuv2rgb_factory_init (int mode, int swapped,
 
   yuv2rgb_factory_t *this;
 
-#ifdef ARCH_X86
+#if defined(ARCH_X86) || defined(ARCH_X86_64)
   uint32_t mm = xine_mm_accel();
 #endif
 
@@ -3182,7 +3182,7 @@ yuv2rgb_factory_t* yuv2rgb_factory_init (int mode, int swapped,
    */
 
   this->yuv2rgb_fun = NULL;
-#ifdef ARCH_X86
+#if defined(ARCH_X86) || defined(ARCH_X86_64)
   if ((this->yuv2rgb_fun == NULL) && (mm & MM_ACCEL_X86_MMXEXT)) {
 
     yuv2rgb_init_mmxext (this);

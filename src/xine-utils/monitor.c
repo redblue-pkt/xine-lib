@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: monitor.c,v 1.5 2002/06/09 22:26:01 f1rmb Exp $
+ * $Id: monitor.c,v 1.6 2003/08/25 14:32:37 mroi Exp $
  *
  * debug print and profiling functions - implementation
  *
@@ -64,7 +64,7 @@ int xine_profiler_allocate_slot (char *label) {
 }
 
 
-#ifdef ARCH_X86
+#if defined(ARCH_X86) || defined(ARCH_X86_64)
 __inline__ unsigned long long int rdtsc()
 {
   unsigned long long int x;
@@ -77,7 +77,7 @@ void xine_profiler_start_count (int id) {
 
   if ((unsigned)id >= MAX_ID) return;
 
-#ifdef ARCH_X86
+#if defined(ARCH_X86) || defined(ARCH_X86_64)
   profiler_start[id] = rdtsc();
 #endif
 }
@@ -86,7 +86,7 @@ void xine_profiler_stop_count (int id) {
 
   if ((unsigned)id >= MAX_ID) return;
 
-#ifdef ARCH_X86
+#if defined(ARCH_X86) || defined(ARCH_X86_64)
   profiler_times[id] += rdtsc() - profiler_start[id];
 #endif
   profiler_calls[id]++;
@@ -95,7 +95,7 @@ void xine_profiler_stop_count (int id) {
 void xine_profiler_print_results () {
   int i;
 
-#ifdef ARCH_X86
+#if defined(ARCH_X86) || defined(ARCH_X86_64)
   static long long int cpu_speed;	/* cpu cyles/usec */
   if (!cpu_speed) {
     long long int tsc_start, tsc_end;
@@ -125,7 +125,7 @@ void xine_profiler_print_results () {
 	      i, profiler_label[i], profiler_times[i], profiler_calls[i]);
       if (profiler_calls[i]) {
 	  printf(" %12lld", profiler_times[i] / profiler_calls[i]);
-#ifdef ARCH_X86
+#if defined(ARCH_X86) || defined(ARCH_X86_64)
 	  printf(" %9lld", profiler_times[i] / (cpu_speed * profiler_calls[i]));
 #endif
       }

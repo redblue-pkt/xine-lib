@@ -166,7 +166,7 @@ xine_health_check_t* xine_health_check_kernel (xine_health_check_t* hc) {
   return hc;
 }
 
-#ifdef ARCH_X86
+#if defined(ARCH_X86) || defined(ARCH_X86_64)
 xine_health_check_t* xine_health_check_mtrr (xine_health_check_t* hc) {
   char *file = "/proc/mtrr";
   FILE *fd;

@@ -61,7 +61,7 @@
  * instructions), these macros will automatically map to those special
  * instructions.
  *
- * $Id: color.c,v 1.21 2003/07/27 12:47:23 hadess Exp $
+ * $Id: color.c,v 1.22 2003/08/25 14:32:37 mroi Exp $
  */
 
 #include "xine_internal.h"
@@ -318,7 +318,7 @@ static void yuv444_to_yuy2_c(yuv_planes_t *yuv_planes, unsigned char *yuy2_map,
  */
 static void yuv444_to_yuy2_mmx(yuv_planes_t *yuv_planes, unsigned char *yuy2_map,
   int pitch) {
-#ifdef ARCH_X86
+#if defined(ARCH_X86) || defined(ARCH_X86_64)
   int h, i, j, k;
   int width_div_8 = yuv_planes->row_width / 8;
   int width_mod_8 = yuv_planes->row_width % 8;
@@ -796,7 +796,7 @@ static void yv12_to_yuy2_c
 }
 
 
-#ifdef ARCH_X86
+#if defined(ARCH_X86) || defined(ARCH_X86_64)
 
 #define MMXEXT_YUV420_YUYV( )                                                      \
 do {                                                                               \
@@ -840,7 +840,7 @@ static void yv12_to_yuy2_mmxext
    unsigned char *v_src, int v_src_pitch, 
    unsigned char *yuy2_map, int yuy2_pitch,
    int width, int height, int progressive ) {
-#ifdef ARCH_X86
+#if defined(ARCH_X86) || defined(ARCH_X86_64)
     uint8_t *p_line1, *p_line2 = yuy2_map;
     uint8_t *p_y1, *p_y2 = y_src;
     uint8_t *p_u = u_src;
@@ -1004,7 +1004,7 @@ static void yuy2_to_yv12_c
 }
 
 
-#ifdef ARCH_X86
+#if defined(ARCH_X86) || defined(ARCH_X86_64)
 
 /* yuy2->yv12 with subsampling (some ideas from mplayer's yuy2toyv12) */
 #define MMXEXT_YUYV_YUV420( )                                                      \
@@ -1059,7 +1059,7 @@ static void yuy2_to_yv12_mmxext
    unsigned char *u_dst, int u_dst_pitch, 
    unsigned char *v_dst, int v_dst_pitch, 
    int width, int height) {
-#ifdef ARCH_X86
+#if defined(ARCH_X86) || defined(ARCH_X86_64)
     uint8_t *p_line1, *p_line2 = yuy2_map;
     uint8_t *p_y1, *p_y2 = y_dst;
     uint8_t *p_u = u_dst;

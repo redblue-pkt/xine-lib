@@ -34,7 +34,18 @@
 #define	LOG
 */
 
-#ifdef ARCH_X86
+#if defined(ARCH_X86) || defined(ARCH_X86_64)
+#if defined __x86_64__
+static uint32_t arch_accel (void)
+{
+  uint32_t caps;
+  /* No need to test for this on AMD64, we know what the 
+     platform has.  */
+  caps = MM_ACCEL_X86_MMX | MM_ACCEL_X86_SSE | MM_ACCEL_X86_MMXEXT | MM_ACCEL_X86_SSE2;
+
+  return caps;
+}
+#else
 static uint32_t arch_accel (void)
 {
 #ifndef _MSC_VER
@@ -118,6 +129,7 @@ static uint32_t arch_accel (void)
   return 0;
 #endif
 }
+#endif /* x86_64 */
 
 static jmp_buf sigill_return;
 
@@ -170,7 +182,7 @@ uint32_t xine_mm_accel (void)
   if (!initialized) {
     accel = arch_accel ();
 
-#ifdef ARCH_X86
+#if defined(ARCH_X86) || defined(ARCH_X86_64)
 #ifndef _MSC_VER
 
     /* test OS support for SSE */

@@ -46,7 +46,7 @@
 static void deinterlace_bob_yuv_mmx( uint8_t *pdst, uint8_t *psrc[],
     int width, int height )
 {
-#ifdef ARCH_X86
+#if defined(ARCH_X86) || defined(ARCH_X86_64)
   int Line;
   uint64_t *YVal1;
   uint64_t *YVal2;
@@ -190,7 +190,7 @@ static void deinterlace_bob_yuv_mmx( uint8_t *pdst, uint8_t *psrc[],
 static int deinterlace_weave_yuv_mmx( uint8_t *pdst, uint8_t *psrc[],
     int width, int height )
 {
-#ifdef ARCH_X86
+#if defined(ARCH_X86) || defined(ARCH_X86_64)
 
   int Line;
   uint64_t *YVal1;
@@ -389,7 +389,7 @@ static int deinterlace_weave_yuv_mmx( uint8_t *pdst, uint8_t *psrc[],
 static int deinterlace_greedy_yuv_mmx( uint8_t *pdst, uint8_t *psrc[],
     int width, int height )
 {
-#ifdef ARCH_X86
+#if defined(ARCH_X86) || defined(ARCH_X86_64)
   int Line;
   int	LoopCtr;
   uint64_t *L1;					// ptr to Line1, of 3
@@ -552,7 +552,7 @@ static int deinterlace_greedy_yuv_mmx( uint8_t *pdst, uint8_t *psrc[],
 static void deinterlace_onefield_yuv_mmx( uint8_t *pdst, uint8_t *psrc[],
     int width, int height )
 {
-#ifdef ARCH_X86
+#if defined(ARCH_X86) || defined(ARCH_X86_64)
   int Line;
   uint64_t *YVal1;
   uint64_t *YVal3;
@@ -633,7 +633,7 @@ static void deinterlace_onefield_yuv_mmx( uint8_t *pdst, uint8_t *psrc[],
 static void deinterlace_linearblend_yuv_mmx( uint8_t *pdst, uint8_t *psrc[],
     int width, int height )
 {
-#ifdef ARCH_X86
+#if defined(ARCH_X86) || defined(ARCH_X86_64)
   int Line;
   uint64_t *YVal1;
   uint64_t *YVal2;
@@ -753,7 +753,7 @@ static void deinterlace_linearblend_yuv( uint8_t *pdst, uint8_t *psrc[],
 
 static int check_for_mmx(void)
 {
-#ifdef ARCH_X86
+#if defined(ARCH_X86) || defined(ARCH_X86_64)
 static int config_flags = -1;
 
   if ( config_flags == -1 )

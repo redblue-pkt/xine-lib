@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xineutils.h,v 1.58 2003/07/19 11:50:33 mroi Exp $
+ * $Id: xineutils.h,v 1.59 2003/08/25 14:32:37 mroi Exp $
  *
  */
 #ifndef XINEUTILS_H
@@ -103,7 +103,7 @@ extern "C" {
 uint32_t xine_mm_accel (void);
 /* uint32_t xine_mm_support (void) ; */
 
-#ifdef ARCH_X86
+#if defined(ARCH_X86) || defined(ARCH_X86_64)
 
 typedef	union {
 #ifdef _MSC_VER

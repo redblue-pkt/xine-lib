@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: read_cache.c,v 1.9 2003/04/29 21:55:52 jcdutton Exp $
+ * $Id: read_cache.c,v 1.10 2003/08/25 14:32:37 mroi Exp $
  *
  */
 
@@ -448,7 +448,7 @@ void dvdnav_pre_cache_blocks(read_cache_t *self, int sector, size_t block_count)
       self->chunk[use].cache_buffer_base = realloc(self->chunk[use].cache_buffer_base,
         block_count * DVD_VIDEO_LB_LEN + ALIGNMENT);
       self->chunk[use].cache_buffer =
-        (uint8_t *)(((int)self->chunk[use].cache_buffer_base & ~(ALIGNMENT - 1)) + ALIGNMENT);
+        (uint8_t *)(((uintptr_t)self->chunk[use].cache_buffer_base & ~(ALIGNMENT - 1)) + ALIGNMENT);
       dprintf("pre_cache DVD read realloc happened\n");
       self->chunk[use].cache_malloc_size = block_count;
     } else {
@@ -466,7 +466,7 @@ void dvdnav_pre_cache_blocks(read_cache_t *self, int sector, size_t block_count)
 	self->chunk[i].cache_buffer_base =
 	  malloc((block_count > 500 ? block_count : 500) * DVD_VIDEO_LB_LEN + ALIGNMENT);
 	self->chunk[i].cache_buffer =
-	  (uint8_t *)(((int)self->chunk[i].cache_buffer_base & ~(ALIGNMENT - 1)) + ALIGNMENT);
+	  (uint8_t *)(((uintptr_t)self->chunk[i].cache_buffer_base & ~(ALIGNMENT - 1)) + ALIGNMENT);
 	self->chunk[i].cache_malloc_size = block_count > 500 ? block_count : 500;
 	dprintf("pre_cache DVD read malloc %d blocks\n",
 	  (block_count > 500 ? block_count : 500 ));
