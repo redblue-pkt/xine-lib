@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.87 2002/09/23 03:34:03 tmmm Exp $
+ * $Id: demux_qt.c,v 1.88 2002/09/28 17:13:16 tmmm Exp $
  *
  */
 
@@ -474,6 +474,8 @@ static qt_error parse_trak_atom(qt_sample_table *sample_table,
   int color_count;
   int color_end;
   int color_index;
+  int color_dec;
+  int color_greyscale;
   unsigned char *color_table;
 
   /* initialize sample table structure */
@@ -571,6 +573,7 @@ static qt_error parse_trak_atom(qt_sample_table *sample_table,
         /* figure out the palette situation */
         color_depth = trak_atom[i + 0x5F];
         sample_table->media_description.video.depth = color_depth;
+        color_greyscale = color_depth & 0x20;
         color_depth &= 0x1F;
 
         /* if the depth is 2, 4, or 8 bpp, file is palettized */
@@ -578,9 +581,30 @@ static qt_error parse_trak_atom(qt_sample_table *sample_table,
 
           color_flag = BE_16(&trak_atom[i + 0x60]);
 
-          /* if flag bit 3 is set, load the default palette */
-          if (color_flag & 0x08) {
+          if (color_greyscale) {
 
+            sample_table->media_description.video.palette_count =
+              1 << color_depth;
+
+            /* compute the greyscale palette */
+            color_index = 255;
+            color_dec = 256 / 
+              (sample_table->media_description.video.palette_count - 1);
+            for (j = 0; 
+                 j < sample_table->media_description.video.palette_count;
+                 j++) {
+
+              sample_table->media_description.video.palette[j].r = color_index;
+              sample_table->media_description.video.palette[j].g = color_index;
+              sample_table->media_description.video.palette[j].b = color_index;
+              color_index -= color_dec;
+              if (color_index < 0)
+                color_index = 0;
+            }
+
+          } else if (color_flag & 0x08) {
+
+            /* if flag bit 3 is set, load the default palette */
             sample_table->media_description.video.palette_count =
               1 << color_depth;
 
