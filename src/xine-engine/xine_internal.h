@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.33 2001/07/19 17:53:15 ehasenle Exp $
+ * $Id: xine_internal.h,v 1.34 2001/07/24 18:04:22 guenter Exp $
  *
  */
 
@@ -289,7 +289,7 @@ char **xine_get_browsable_input_plugin_ids (xine_t *this) ;
  */
 
 mrl_t **xine_get_browse_mrls (xine_t *this, char *plugin_id, 
-			      char *start_mrl);
+			      char *start_mrl, int *num_mrls);
 
 /*
  * autoplay support
@@ -304,7 +304,7 @@ char **xine_get_autoplay_input_plugin_ids (xine_t *this) ;
 /*
  * get autoplay MRL list for input plugin named <plugin_id>
  */
-char **xine_get_autoplay_mrls (xine_t *this, char *plugin_id);
+char **xine_get_autoplay_mrls (xine_t *this, char *plugin_id, int *num_mrls);
 
 /*
  * internal use only

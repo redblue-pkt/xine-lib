@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.32 2001/07/19 17:53:15 ehasenle Exp $
+ * $Id: load_plugins.c,v 1.33 2001/07/24 18:04:22 guenter Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -770,10 +770,10 @@ ao_functions_t *xine_load_audio_output_plugin(config_values_t *config,
 /** ***************************************************************
  *  Autoplay featured plugins section
  */
-char **xine_get_autoplay_mrls (xine_t *this, char *plugin_id) {
+char **xine_get_autoplay_mrls (xine_t *this, char *plugin_id, int *num_mrls) {
   input_plugin_t  *ip;
   char           **autoplay_mrls = NULL;
-  int              i, n;
+  int              i;
   
   if(!this || !plugin_id)
     return NULL;
@@ -789,7 +789,7 @@ char **xine_get_autoplay_mrls (xine_t *this, char *plugin_id) {
       if(((ip->get_capabilities(ip)) & INPUT_CAP_AUTOPLAY)) {
 
 	if(ip->get_autoplay_list)
-	  autoplay_mrls = ip->get_autoplay_list(ip, &n);
+	  autoplay_mrls = ip->get_autoplay_list(ip, num_mrls);
 
       }
       goto autoplay_mrls_done;
@@ -803,10 +803,10 @@ char **xine_get_autoplay_mrls (xine_t *this, char *plugin_id) {
 /** ***************************************************************
  *  Browse featured plugins section
  */
-mrl_t **xine_get_browse_mrls (xine_t *this, char *plugin_id, char *start_mrl) {
+mrl_t **xine_get_browse_mrls (xine_t *this, char *plugin_id, char *start_mrl, int *num_mrls) {
   input_plugin_t  *ip;
   mrl_t **browse_mrls = NULL;
-  int              i, n;
+  int              i;
   
   if(!this || !plugin_id)
     return NULL;
@@ -822,7 +822,7 @@ mrl_t **xine_get_browse_mrls (xine_t *this, char *plugin_id, char *start_mrl) {
       if(((ip->get_capabilities(ip)) & INPUT_CAP_GET_DIR)) {
 
 	if(ip->get_dir)
-	  browse_mrls = ip->get_dir(ip, start_mrl, &n);
+	  browse_mrls = ip->get_dir(ip, start_mrl, num_mrls);
 
       }
       goto browse_mrls_done;
