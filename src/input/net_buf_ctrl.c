@@ -445,8 +445,6 @@ static void nbc_get_cb (fifo_buffer_t *fifo,
         int has_audio = _x_stream_info_get(this->stream, XINE_STREAM_INFO_HAS_AUDIO);
         if (((this->video_fifo_length == 0) && has_video) ||
             ((this->audio_fifo_length == 0) && has_audio)) {
-          int other_fifo_free;
-
           /* do not pause if a fifo is full to avoid yoyo (play-pause-play-pause) */
           if ((this->video_fifo_free > FULL_FIFO_MARK) &&
               (this->audio_fifo_free > FULL_FIFO_MARK)) {
