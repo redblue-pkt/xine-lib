@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.166 2003/06/29 10:57:08 mroi Exp $
+ * $Id: input_dvd.c,v 1.167 2003/08/21 00:37:26 miguelfreitas Exp $
  *
  */
 
@@ -255,7 +255,11 @@ static uint32_t dvd_plugin_get_capabilities (input_plugin_t *this_gen) {
   
   trace_print("Called\n");
 
-  return INPUT_CAP_BLOCK |
+  return INPUT_CAP_BLOCK | 
+  /* TODO: figure out if there is any "allow copying" flag on DVD.
+   *       maybe set INPUT_CAP_RIP_FORBIDDEN only for encrypted media?
+   */
+    INPUT_CAP_RIP_FORBIDDEN |
 #if CAN_SEEK
     (this->seekable ? INPUT_CAP_SEEKABLE : 0) |
 #endif
@@ -1732,6 +1736,9 @@ static void *init_class (xine_t *xine, void *data) {
 
 /*
  * $Log: input_dvd.c,v $
+ * Revision 1.167  2003/08/21 00:37:26  miguelfreitas
+ * RIP Input Plugin
+ *
  * Revision 1.166  2003/06/29 10:57:08  mroi
  * on some DVDs, the first highlight information (which button to highlight) will
  * arrive before the first SPU packet, therefore the SPU decoder has not yet been

@@ -19,7 +19,7 @@
  *
  * input plugin for http network streams
  *
- * $Id: input_http.c,v 1.62 2003/06/19 14:46:03 guenter Exp $
+ * $Id: input_http.c,v 1.63 2003/08/21 00:37:29 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -541,8 +541,15 @@ static off_t http_plugin_get_length (input_plugin_t *this_gen) {
 }
 
 static uint32_t http_plugin_get_capabilities (input_plugin_t *this_gen) {
+  http_input_plugin_t *this = (http_input_plugin_t *) this_gen;
+  uint32_t caps = INPUT_CAP_PREVIEW;
 
-  return INPUT_CAP_PREVIEW;
+  /* Nullsoft asked to not allow saving streaming nsv files */
+  if (this->filename && 
+      !strncmp(this->filename + strlen(this->filename) - 4, ".nsv", 4))
+    caps |= INPUT_CAP_RIP_FORBIDDEN;
+
+  return caps;
 }
 
 static uint32_t http_plugin_get_blocksize (input_plugin_t *this_gen) {

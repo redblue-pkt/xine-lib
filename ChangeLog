@@ -8,6 +8,8 @@ xine-lib (1-rc1)
   * get the correct duration and bitrate for MP3s with Xing headers (VBR)
   * fix alignment check in configure (fixes weird colours with MPEG2 on PPC)
   * improved expand plugin (increased performance, allow subtitle shifting)
+  * ripping feature - save streams to local files. (RIP = RIP Input Plugin)
+    example: xine stream_mrl#rip:file.raw
   * MPEG demuxer fixes (support VLC streams)
 
 xine-lib (1-rc0a)

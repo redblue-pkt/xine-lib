@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_plugin.h,v 1.50 2003/07/03 00:58:51 andruil Exp $
+ * $Id: input_plugin.h,v 1.51 2003/08/21 00:37:29 miguelfreitas Exp $
  */
 
 #ifndef HAVE_INPUT_PLUGIN_H
@@ -264,6 +264,14 @@ struct input_plugin_s {
  */
 
 #define INPUT_CAP_CHAPTERS             0x00000080
+
+/*
+ * INPUT_CAP_RIP_FORBIDDEN:
+ *   means that rip/disk saving must not be used.
+ *   (probably at author's request)
+ */
+
+#define INPUT_CAP_RIP_FORBIDDEN        0x00000100
 
 #define INPUT_IS_SEEKABLE(input) (((input)->get_capabilities(input) & INPUT_CAP_SEEKABLE) != 0)
 

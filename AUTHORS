@@ -254,7 +254,7 @@ Sergiy Kudryk <linux_ua@yahoo.com>
 Frantisek Dvorak <valtri@atlas.cz>
   czech internationalization files (xine lib/ui).
   unicode support for xinefonts.
-  sputext decoder improvements
+  sputext decoder improvements, RIP Input Plugin
   lots of other improvements and bugfixes on inputs and demuxers
   
 Ian Goldberg <ian@cypherpunks.ca>

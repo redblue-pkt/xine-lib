@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.253 2003/08/15 14:35:09 mroi Exp $
+ * $Id: xine.c,v 1.254 2003/08/21 00:37:29 miguelfreitas Exp $
  */
 
 /*
@@ -568,6 +568,44 @@ static int xine_open_internal (xine_stream_t *stream, const char *mrl) {
 	  stream->meta_info[XINE_META_INFO_SYSTEMLAYER]
 	   = strdup (stream->demux_plugin->demux_class->get_identifier(stream->demux_plugin->demux_class));
 	  free(demux_name);
+	} else {
+	  printf("xine: error while parsing mrl\n");
+	  stream->err = XINE_ERROR_MALFORMED_MRL;
+	  stream->status = XINE_STATUS_STOP;
+	  return 0;
+	}
+	continue;
+      }
+      if (strncasecmp(stream_setup, "rip", 3) == 0) {
+        if (*(stream_setup += 3) == ':') {
+	  /* filename to rip */
+	  const char *tmp = ++stream_setup;
+	  char *filename;
+	  input_plugin_t *input_rip;
+
+	  stream_setup = strchr(stream_setup, ';');
+	  if (stream_setup) {
+	    filename = (char *)malloc(stream_setup - tmp + 1);
+	    memcpy(filename, tmp, stream_setup - tmp);
+	    filename[stream_setup - tmp] = '\0';
+	  } else {
+	    filename = (char *)malloc(strlen(tmp));
+	    memcpy(filename, tmp, strlen(tmp));
+	    filename[strlen(tmp)] = '\0';
+	  }
+
+	  xine_log(stream->xine, XINE_LOG_MSG,
+	    _("xine: join rip input plugin\n"));
+	  input_rip = rip_plugin_get_instance (stream, filename);
+	  if( input_rip ) {
+	    stream->input_plugin = input_rip;
+	  } else {
+	    printf("xine: error opening rip plugin instance\n");
+	    stream->err = XINE_ERROR_MALFORMED_MRL;
+	    stream->status = XINE_STATUS_STOP;
+	    return 0;
+	  }
+
 	} else {
 	  printf("xine: error while parsing mrl\n");
 	  stream->err = XINE_ERROR_MALFORMED_MRL;
