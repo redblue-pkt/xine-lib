@@ -137,11 +137,15 @@ SOURCE="..\src\xine-engine\events.c"
 # End Source File
 # Begin Source File
 
-SOURCE="..\src\xine-engine\load_plugins.c"
+SOURCE="..\src\xine-engine\info_helper.c"
 # End Source File
 # Begin Source File
 
-SOURCE="..\src\xine-engine\locale.c"
+SOURCE="..\src\xine-engine\input_rip.c"
+# End Source File
+# Begin Source File
+
+SOURCE="..\src\xine-engine\load_plugins.c"
 # End Source File
 # Begin Source File
 
