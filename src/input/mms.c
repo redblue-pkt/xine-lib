@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mms.c,v 1.33 2003/10/12 14:28:37 komadori Exp $
+ * $Id: mms.c,v 1.34 2003/10/16 21:47:32 tmattern Exp $
  *
  * MMS over TCP protocol
  *   based on work from major mms
@@ -401,6 +401,7 @@ static int get_header (mms_t *this) {
   uint8_t pre_header[8];
   off_t len;
   
+  this->asf_header_read = 0;
   this->asf_header_len = 0;
 
   while (1) {
@@ -915,7 +916,7 @@ mms_t *mms_connect (xine_stream_t *stream, const char *url, int bandwidth) {
   
   report_progress (stream, 40);
 
-  /* TODO: insert network timing rquest here */
+  /* TODO: insert network timing request here */
   /* command 0x2 */
   string_utf16 (url_conv, &this->scmd_body[8], "\002\000\\\\192.168.0.129\\TCP\\1037\0000", 28);
   memset (this->scmd_body, 0, 8);
@@ -1204,21 +1205,17 @@ int mms_read (mms_t *this, char *data, int len) {
       int n, bytes_left ;
 
       bytes_left = this->buf_size - this->buf_read;
-
-      while (!bytes_left) {
-
-        this->buf_read = 0;
-
+      if (bytes_left == 0) {
         if (!get_media_packet (this)) {
           lprintf ("get_media_packet failed\n");
           return total;
         }
-        bytes_left = this->buf_size - this->buf_read;
+        this->buf_read = 0;
+        bytes_left = this->buf_size;
       }
-      
 
-      if ((len-total)<bytes_left)
-        n = len-total;
+      if (len <= bytes_left)
+        n = len;
       else
         n = bytes_left;
 
