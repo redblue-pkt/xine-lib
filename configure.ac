@@ -1304,3 +1304,53 @@ if test "x$am_cv_have_irixal" = xyes; then
 fi
 echo "---"
 
+dnl
+dnl do some checking if necessary paths are set
+dnl
+
+dnl some levels of variable expansion to get final install paths
+final_libdir="`eval eval eval eval echo $libdir`"
+final_bindir="`eval eval eval eval echo $bindir`"
+
+if test -r /etc/ld.so.conf && ! grep -x "$final_libdir/?" /etc/ld.so.conf >/dev/null ; then
+  if test "$final_libdir" != "/lib" -a "$final_libdir" != "/usr/lib" ; then
+    if ! echo $LD_LIBRARY_PATH | grep -E "(:|^)$final_libdir(/?:|/?$)" >/dev/null ; then
+      echo
+      echo "****************************************************************"
+      echo "xine-lib will be installed to $final_libdir"
+      echo
+      echo "This path is not mentioned among the linker search paths in your"
+      echo "/etc/ld.so.conf. This means it is possible that xine-lib will"
+      echo "not be found when you try to compile or run a program using it."
+      echo "If this happens, you should add $final_libdir to"
+      echo "the environment variable LD_LIBRARY_PATH like that:"
+      echo
+      echo "export LD_LIBRARY_PATH=$final_libdir:\$LD_LIBRARY_PATH"
+      echo
+      echo "Alternatively you can add a line \"$final_libdir\""
+      echo "to your /etc/ld.so.conf."
+      echo "****************************************************************"
+      echo
+    fi
+  fi
+fi
+
+if ! echo $PATH | grep -E "(:|^)$final_bindir(/?:|/?$)" >/dev/null ; then
+  echo
+  echo "****************************************************************"
+  echo "xine-config will be installed to $final_bindir"
+  echo
+  echo "This path is not in your search path. This means it is possible"
+  echo "that xine-config will not be found when you try to compile a"
+  echo "program using xine-lib. This will result in build failures."
+  echo "If this happens, you should add $final_bindir to"
+  echo "the environment variable PATH like that:"
+  echo
+  echo "export PATH=$final_bindir:\$PATH"
+  echo
+  echo "Note that this is only needed for compilation. It is not needed"
+  echo "to have xine-config in your search path at runtime. (Although"
+  echo "it will not cause any harm either.)"
+  echo "****************************************************************"
+  echo
+fi
