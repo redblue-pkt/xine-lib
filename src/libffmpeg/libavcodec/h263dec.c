@@ -545,7 +545,7 @@ retry:
                 num_end_markers--;
         }
         if(num_end_markers || error){
-            fprintf(stderr, "concealing errors\n");
+//            fprintf(stderr, "concealing errors\n");
 //printf("type:%d\n", s->pict_type);
             ff_error_resilience(s);
         }
