@@ -313,17 +313,8 @@ AM_CONDITIONAL(HAVE_FB, [test x"$have_fb" = "xyes"])
 dnl
 dnl check for SDL
 dnl
-AC_SUBST(SDL_CFLAGS)
-AC_SUBST(SDL_LIBS)
-SDL_CFLAGS=""
-SDL_LIBS=""
-AC_CHECK_PROG([SDLCONFIG],[sdl-config],[yes])
-if test x"$SDLCONFIG" = x"yes"; then
-    SDL_CFLAGS="`sdl-config --cflags`"
-    SDL_LIBS="`sdl-config --libs`"
-fi
-AM_CONDITIONAL(HAVE_SDL, [test x"$SDLCONFIG" = x"yes"])
-
+AM_PATH_SDL(1.2.0, AC_DEFINE(HAVE_SDL),[])
+AM_CONDITIONAL(HAVE_SDL, [test x"$no_sdl" != x"yes"])
 
 dnl
 dnl Check for divx4
@@ -919,7 +910,7 @@ fi
 if test x$have_fb = "xyes"; then
   echo "   - fb (Linux framebuffer device)"
 fi
-if test x"$SDLCONFIG" = x"yes"; then
+if test x"$no_sdl" != x"yes"; then
   echo "   - sdl (Simple DirectMedia Layer)"
 fi
 if test x"$have_dxr3" = "xyes"; then

@@ -46,6 +46,11 @@ BuildRoot:   /tmp/%{name}-root
 @HAVE_XV_TRUE@Group:       Development/Libraries
 @HAVE_XV_TRUE@Requires:    xine-lib >= %{ver}
 
+@HAVE_SDL_TRUE@%package sdl
+@HAVE_SDL_TRUE@Summary:     XINE - SDL (Simple DirectMedia Layer) video support.
+@HAVE_SDL_TRUE@Group:       Development/Libraries
+@HAVE_SDL_TRUE@Requires:    xine-lib >= %{ver}, libSDL
+
 @HAVE_AA_TRUE@%package aa
 @HAVE_AA_TRUE@Summary:     XINE - Ascii Art support.
 @HAVE_AA_TRUE@Group:       Development/Libraries
@@ -118,6 +123,9 @@ ler qualquer vídeo com máximo desempenho.
 
 @HAVE_XV_TRUE@%description xv
 @HAVE_XV_TRUE@video plugin using XFree XVideo extension.
+
+@HAVE_SDL_TRUE@%description sdl
+@HAVE_SDL_TRUE@video plugin using SDL (Simple DirectMedia Layer) library.
 
 @HAVE_AA_TRUE@%description aa
 @HAVE_AA_TRUE@video plugin using Ascii Art library.
@@ -298,6 +306,11 @@ rm -rf $RPM_BUILD_ROOT
 @HAVE_XV_TRUE@%defattr(-,root,root)
 @HAVE_XV_TRUE@%{prefix}/lib/xine/plugins/xineplug_vo_out_xv.la
 @HAVE_XV_TRUE@%{prefix}/lib/xine/plugins/xineplug_vo_out_xv.so
+
+@HAVE_SDL_TRUE@%files sdl
+@HAVE_SDL_TRUE@%defattr(-,root,root)
+@HAVE_SDL_TRUE@%{prefix}/lib/xine/plugins/xineplug_vo_out_sdl.la
+@HAVE_SDL_TRUE@%{prefix}/lib/xine/plugins/xineplug_vo_out_sdl.so
 
 @HAVE_AA_TRUE@%files aa
 @HAVE_AA_TRUE@%defattr(-,root,root)

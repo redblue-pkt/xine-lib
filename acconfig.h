@@ -111,6 +111,9 @@
 /* this one isn't implemented: */
 #undef FPM_M68K
 
+/* Define this if you have SDL library installed */
+#undef HAVE_SDL
+
 @BOTTOM@
 /* Disable GCC compiler extensions, if gcc is not in use */
 #ifndef	__GNUC__
