@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mosaico.c,v 1.8 2003/03/04 10:30:29 mroi Exp $
+ * $Id: mosaico.c,v 1.9 2003/03/14 12:07:14 skaboy Exp $
  */
  
 /*
@@ -35,7 +35,9 @@
 #define DEFAULT_H (150)
 #define MAXPIP (5)
 
-/*#define LOG*/
+
+#define LOG
+
 
 /* plugin class initialization function */
 static void *mosaico_init_plugin(xine_t *xine, void *);
@@ -64,6 +66,7 @@ struct post_mosaico_out_s {
   vo_frame_t *saved_frame_2[MAXPIP]; 
   pthread_mutex_t mut1, mut2;
   mosaico_stream_t info[MAXPIP];
+  xine_video_port_t *vo_port;
   unsigned int pip;
 };
 
@@ -207,7 +210,9 @@ static post_plugin_t *mosaico_open_plugin(post_class_t *class_gen, int inputs,
   this->input = xine_list_new();
   this->output = xine_list_new();
 
-/*  background*/
+  output->vo_port = video_target[0];
+
+/* background */
   port = post_intercept_video_port(this, video_target[0]);
   port->port.open      = mosaico_open;
   port->port.get_frame = mosaico_get_frame;
@@ -223,7 +228,7 @@ static post_plugin_t *mosaico_open_plugin(post_class_t *class_gen, int inputs,
   output->pip = inputs-1;
   xine_list_append_content(this->output, output);
  
-/*  init mutex*/
+/* init mutex */
   pthread_mutex_init(&output->mut1, NULL);
   pthread_mutex_init(&output->mut2, NULL);
   output->saved_frame = NULL;
@@ -332,19 +337,7 @@ static void mosaico_open(xine_video_port_t *port_gen, xine_stream_t *stream)
 {
   post_video_port_t *port = (post_video_port_t *)port_gen;
   post_mosaico_out_t *output = (post_mosaico_out_t *)xine_list_first_content(port->post->output);
-  /*xine_video_port_t *pt;
-  xine_post_in_t *in;
-  int i = 0;
 
-  in = xine_list_first_content(port->post->input);
-
-  while(in != NULL) {
-  pt = in->data;
-  if(pt == port_gen) break; printf("trovato %d\n", i);
-  
-  in = xine_list_next_content(port->post->input);
-  i++;
-  }*/
   output->stream = stream;
   port->original_port->open(port->original_port, stream);
    
@@ -415,7 +408,7 @@ static void frame_copy_content(vo_frame_t *to, vo_frame_t *from) {
   
   case XINE_IMGFMT_YV12:
     /* Y */
-    size = to->pitches[0] * to->height;    
+    size = to->pitches[0] * to->height;   
     xine_fast_memcpy(to->base[0], from->base[0], size);
 
     /* U */
@@ -580,7 +573,7 @@ static int mosaico_draw(vo_frame_t *frame, xine_stream_t *stream)
   pthread_mutex_lock(&output->mut1);
   if(output->saved_frame != NULL) {
     skip = output->saved_frame->draw(output->saved_frame, stream);
-/*    new_frame->free(new_frame);*/
+    /*    new_frame->free(new_frame);*/
     frame->vpts = output->saved_frame->vpts;
     pthread_mutex_unlock(&output->mut1);
     post_restore_video_frame(frame, port);
@@ -601,6 +594,10 @@ static int mosaico_draw_2(vo_frame_t *frame, xine_stream_t *stream)
   xine_video_port_t *pt;
   xine_post_in_t *in;
   int i = 0;
+#if 0
+  int skip;
+  vo_frame_t *newframe;
+#endif
 
   in = xine_list_first_content(port->post->input);
 
@@ -616,10 +613,60 @@ static int mosaico_draw_2(vo_frame_t *frame, xine_stream_t *stream)
     i++;
   }
 
-  _mosaico_draw_1(NULL, output);
-  _mosaico_draw_2(frame, output, i-1);
+  _mosaico_draw_1(NULL, output); 
+  _mosaico_draw_2(frame, output, i-1);  
+ 
 
+#if 0
+
+  pthread_mutex_lock(&output->mut1);
+  pthread_mutex_lock(&output->mut2);
+
+  if(output->saved_frame != NULL) {    
+
+    /*printf("get\n");*/
+    newframe = output->vo_port->get_frame(output->vo_port, output->saved_frame->width, output->saved_frame->height,
+					  output->saved_frame->ratio, output->saved_frame->format,
+					  VO_BOTH_FIELDS);
+    /*printf("got\n");*/
+    newframe->extra_info->invalid = 1; 
+    newframe->pts = frame->pts;
+    newframe->duration = output->saved_frame->duration;
+    newframe->bad_frame = output->saved_frame->bad_frame;
+    /*newframe->vpts = frame->vpts;*/
+    /*vpts = 0;
+      frame->duration = 90000 * this->samples_per_frame / this->sample_rate;
+      this->sample_counter -= this->samples_per_frame;
+    */
+    frame_copy_content(newframe, output->saved_frame);
+    
+    /*memset(frame->base[0], this->current_yuv_byte, FOO_WIDTH * FOO_HEIGHT * 2);
+      this->current_yuv_byte += 3;
+
+      frame->draw(frame, stream);*/
+    
+    /*printf("dis\n");*/
+    if(newframe->draw) 
+      skip = newframe->draw(newframe, output->saved_frame->stream);
+    else {
+      skip = 0;
+      printf("salta..\n");
+    }
+    newframe->free(newframe); 
+    /*printf("draw2 %d\n", skip);*/ 
+    /*frame->vpts = output->saved_frame->vpts;*/
+    post_restore_video_frame(frame, port);
+    
+    pthread_mutex_unlock(&output->mut1);
+    pthread_mutex_unlock(&output->mut2);
+
+    return skip;
+  }
+  /*pthread_mutex_unlock(&output->mut1);
+    pthread_mutex_unlock(&output->mut2);*/
+#else 
   post_restore_video_frame(frame, port);
-  
+#endif
+
   return 0;
 }
