@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mmsh.c,v 1.3 2003/01/14 23:39:11 tmattern Exp $
+ * $Id: mmsh.c,v 1.4 2003/01/14 23:40:56 tmattern Exp $
  *
  * based on mms.c and specs from avifile
  * (http://avifile.sourceforge.net/asf-1.0.htm)
@@ -48,9 +48,9 @@
 #include "mmsh.h"
 #include "../demuxers/asfheader.h"
 
-
+/*
 #define LOG
-
+*/
 #define MMSH_PORT 80
 
 #define BUF_SIZE 102400
