@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.70 2002/03/12 19:51:29 guenter Exp $
+ * $Id: load_plugins.c,v 1.71 2002/03/14 17:28:06 guenter Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -729,8 +729,8 @@ char **xine_list_video_output_plugins (int visual_type) {
     }
     closedir(dir);
   } else {
-    fprintf(stderr, "load_plugins: %s - cannot access plugin dir: %s",
-	    __XINE_FUNCTION__, strerror(errno));
+    printf ("load_plugins: %s - cannot access plugin dir '%s': %s\n",
+	    __XINE_FUNCTION__, XINE_PLUGINDIR, strerror(errno));
   }
   
   remove_segv_handler();
