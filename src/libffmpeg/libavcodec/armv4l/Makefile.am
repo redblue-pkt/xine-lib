@@ -15,8 +15,3 @@ EXTRA_DIST =  $(libavcodec_armv4l_src) $(libavcodec_armv4l_dummy)
 armv4l_modules = 
 
 libavcodec_armv4l_la_SOURCES = $(armv4l_modules) $(libavcodec_armv4l_dummy)
-
-noinst_HEADERS = 
-
-.s.lo:
-	$(ASCOMPILE) -o $@ `test -f $< || echo '$(srcdir)/'`$<

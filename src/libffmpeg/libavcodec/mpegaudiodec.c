@@ -1206,6 +1206,7 @@ static int decode_header(MPADecodeContext *s, uint32_t header)
     return 0;
 }
 
+#if 0
 /* useful helper to get mpeg audio stream infos. Return -1 if error in
    header */
 int mp_decode_header(int *sample_rate_ptr,
@@ -1246,6 +1247,7 @@ int mp_decode_header(int *sample_rate_ptr,
     *decoded_frame_size_ptr = decoded_frame_size * 2 * s->nb_channels;
     return 0;
 }
+#endif
 
 /* return the number of decoded frames */
 static int mp_decode_layer1(MPADecodeContext *s)

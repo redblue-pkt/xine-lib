@@ -588,6 +588,7 @@ static void diff_bytes_mmx(uint8_t *dst, uint8_t *src1, uint8_t *src2, int w){
     for(; i<w; i++)
         dst[i+0] = src1[i+0]-src2[i+0];
 }
+#endif
 
 static void sub_hfyu_median_prediction_mmx2(uint8_t *dst, uint8_t *src1, uint8_t *src2, int w, int *left, int *left_top){
     int i=0;
@@ -624,6 +625,8 @@ static void sub_hfyu_median_prediction_mmx2(uint8_t *dst, uint8_t *src1, uint8_t
     *left_top= src1[w-1];
     *left    = src2[w-1];
 }
+
+#ifdef CONFIG_ENCODERS
 
 #define LBUTTERFLY2(a1,b1,a2,b2)\
     "paddw " #b1 ", " #a1 "		\n\t"\
@@ -1599,10 +1602,10 @@ void dsputil_init_mmx(DSPContext* c, AVCodecContext *avctx)
 #endif
 
     if (mm_flags & MM_MMX) {
-        const int dct_algo = avctx->dct_algo;
         const int idct_algo= avctx->idct_algo;
-
 #ifdef CONFIG_ENCODERS
+        const int dct_algo = avctx->dct_algo;
+
         if(dct_algo==FF_DCT_AUTO || dct_algo==FF_DCT_MMX)
             c->fdct = ff_fdct_mmx;
 #endif //CONFIG_ENCODERS

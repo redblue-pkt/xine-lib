@@ -10,6 +10,3 @@ EXTRA_DIST = postprocess_template.c
 libpostprocess_la_SOURCES = postprocess.c
 
 noinst_HEADERS = mangle.h postprocess.h postprocess_internal.h
-
-.s.lo:
-	$(ASCOMPILE) -o $@ `test -f $< || echo '$(srcdir)/'`$<

@@ -257,6 +257,7 @@ void rv10_encode_picture_header(MpegEncContext *s, int picture_number)
     put_bits(&s->pb, 3, 0);	/* ignored */
 }
 
+#if 0
 static int get_num(GetBitContext *gb)
 {
     int n, n1;
@@ -269,6 +270,7 @@ static int get_num(GetBitContext *gb)
         return (n << 16) | n1;
     }
 }
+#endif
 
 #endif //CONFIG_ENCODERS
 

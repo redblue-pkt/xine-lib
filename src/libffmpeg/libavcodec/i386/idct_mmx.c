@@ -22,10 +22,11 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#include "../common.h"
+#include "../dsputil.h"
 
 #include "mmx.h"
 
+#undef ATTR_ALIGN
 #define ATTR_ALIGN(align) __attribute__ ((__aligned__ (align)))
 
 #define ROW_SHIFT 11
@@ -553,6 +554,10 @@ static int32_t rounder5[] ATTR_ALIGN(8) =
 
 #undef COL_SHIFT
 #undef ROW_SHIFT
+
+/* the macro below will generate these */
+void ff_mmx_idct(DCTELEM *block);
+void ff_mmxext_idct(DCTELEM *block);
 
 #define declare_idct(idct,table,idct_row_head,idct_row,idct_row_tail,idct_row_mid)	\
 void idct (int16_t * block)					\

@@ -7,9 +7,10 @@
  *  Intel Application Note AP-922 - fast, precise implementation of DCT
  *        http://developer.intel.com/vtune/cbts/appnotes.htm
  */
-#include "../common.h"
+#include "../dsputil.h"
 #include "mmx.h"
 
+#undef ATTR_ALIGN
 #define ATTR_ALIGN(align) __attribute__ ((__aligned__ (align)))
 
 //////////////////////////////////////////////////////////////////////

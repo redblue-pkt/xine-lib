@@ -314,7 +314,7 @@ typedef struct Vp3DecodeContext {
 #define xC6S2 25080
 #define xC7S1 12785
 
-void vp3_idct_c(int16_t *input_data, int16_t *dequant_matrix, 
+static void vp3_idct_c(int16_t *input_data, int16_t *dequant_matrix, 
     int16_t *output_data)
 {
     int32_t intermediate_data[64];
@@ -548,7 +548,7 @@ void vp3_idct_c(int16_t *input_data, int16_t *dequant_matrix,
     }
 }
 
-void vp3_idct_put(int16_t *input_data, int16_t *dequant_matrix, 
+static void vp3_idct_put(int16_t *input_data, int16_t *dequant_matrix, 
     uint8_t *dest, int stride)
 {
     int16_t transformed_data[64];
@@ -574,7 +574,7 @@ void vp3_idct_put(int16_t *input_data, int16_t *dequant_matrix,
     }
 }
 
-void vp3_idct_add(int16_t *input_data, int16_t *dequant_matrix, 
+static void vp3_idct_add(int16_t *input_data, int16_t *dequant_matrix, 
     uint8_t *dest, int stride)
 {
     int16_t transformed_data[64];

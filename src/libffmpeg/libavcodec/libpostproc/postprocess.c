@@ -105,13 +105,13 @@ try to unroll inner for(x=0 ... loop to avoid these damn if(x ... checks
 //#define NUM_BLOCKS_AT_ONCE 16 //not used yet
 
 #ifdef ARCH_X86
-static const uint64_t __attribute__((aligned(8))) w05=		0x0005000500050005LL;
-static const uint64_t __attribute__((aligned(8))) w20=		0x0020002000200020LL;
-             uint64_t __attribute__((aligned(8))) b00= 		0x0000000000000000LL;
-static const uint64_t __attribute__((aligned(8))) b01= 		0x0101010101010101LL;
-static const uint64_t __attribute__((aligned(8))) b02= 		0x0202020202020202LL;
-static const uint64_t __attribute__((aligned(8))) b08= 		0x0808080808080808LL;
-static const uint64_t __attribute__((aligned(8))) b80= 		0x8080808080808080LL;
+static const uint64_t __attribute__((aligned(8))) w05=		0x0005000500050005ULL;
+static const uint64_t __attribute__((aligned(8))) w20=		0x0020002000200020ULL;
+static const uint64_t __attribute__((aligned(8))) b00= 		0x0000000000000000ULL;
+static const uint64_t __attribute__((aligned(8))) b01= 		0x0101010101010101ULL;
+static const uint64_t __attribute__((aligned(8))) b02= 		0x0202020202020202ULL;
+static const uint64_t __attribute__((aligned(8))) b08= 		0x0808080808080808ULL;
+static const uint64_t __attribute__((aligned(8))) b80= 		0x8080808080808080ULL;
 #endif
 
 
@@ -152,13 +152,6 @@ static char *replaceTable[]=
 	"fa", 		"x1hdeblock:a,x1vdeblock:a,dering:a,autolevels,tmpnoise:a:150:200:400",
 	NULL //End Marker
 };
-
-#ifdef ARCH_X86
-static inline void unusedVariableWarningFixer()
-{
-	if(w05 + w20 + b00 + b01 + b02 + b08 + b80 == 0) b00=0;
-}
-#endif
 
 // The horizontal Functions exist only in C cuz the MMX code is faster with vertical filters and transposing
 

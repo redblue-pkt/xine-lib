@@ -15,8 +15,3 @@ mlib_modules = $(libavcodec_mlib_src)
 endif
 
 libavcodec_mlib_la_SOURCES = $(mlib_modules) $(libavcodec_mlib_dummy)
-
-noinst_HEADERS = 
-
-.s.lo:
-	$(ASCOMPILE) -o $@ `test -f $< || echo '$(srcdir)/'`$<

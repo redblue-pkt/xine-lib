@@ -36,7 +36,7 @@
 //#undef NDEBUG
 //#include <assert.h>
 
-#ifdef CONFIG_ENCODERS
+#if defined(CONFIG_ENCODERS) || defined(XINE_MPEG_ENCODER)
 static void encode_picture(MpegEncContext *s, int picture_number);
 #endif //CONFIG_ENCODERS
 static void dct_unquantize_mpeg1_c(MpegEncContext *s, 
@@ -46,7 +46,7 @@ static void dct_unquantize_mpeg2_c(MpegEncContext *s,
 static void dct_unquantize_h263_c(MpegEncContext *s, 
                                   DCTELEM *block, int n, int qscale);
 static void draw_edges_c(uint8_t *buf, int wrap, int width, int height, int w);
-#ifdef CONFIG_ENCODERS
+#if defined(CONFIG_ENCODERS) || defined(XINE_MPEG_ENCODER)
 static int dct_quantize_c(MpegEncContext *s, DCTELEM *block, int n, int qscale, int *overflow);
 static int dct_quantize_trellis_c(MpegEncContext *s, DCTELEM *block, int n, int qscale, int *overflow);
 static int sse_mb(MpegEncContext *s);
@@ -87,7 +87,7 @@ static const uint8_t h263_chroma_roundtab[16] = {
     0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2,
 };
 
-#ifdef CONFIG_ENCODERS
+#if defined(CONFIG_ENCODERS) || defined(XINE_MPEG_ENCODER)
 static uint8_t (*default_mv_penalty)[MAX_MV*2+1]=NULL;
 static uint8_t default_fcode_tab[MAX_MV*2+1];
 
@@ -173,7 +173,7 @@ void ff_init_scantable(uint8_t *permutation, ScanTable *st, const uint8_t *src_s
     }
 }
 
-#ifdef CONFIG_ENCODERS
+#if defined(CONFIG_ENCODERS) || defined(XINE_MPEG_ENCODER)
 void ff_write_quant_matrix(PutBitContext *pb, int16_t *matrix){
     int i;
 
@@ -194,7 +194,7 @@ int DCT_common_init(MpegEncContext *s)
     s->dct_unquantize_mpeg1 = dct_unquantize_mpeg1_c;
     s->dct_unquantize_mpeg2 = dct_unquantize_mpeg2_c;
 
-#ifdef CONFIG_ENCODERS
+#if defined(CONFIG_ENCODERS) || defined(XINE_MPEG_ENCODER)
     s->dct_quantize= dct_quantize_c;
 #endif
         
@@ -217,7 +217,7 @@ int DCT_common_init(MpegEncContext *s)
     MPV_common_init_ppc(s);
 #endif
 
-#ifdef CONFIG_ENCODERS
+#if defined(CONFIG_ENCODERS) || defined(XINE_MPEG_ENCODER)
     s->fast_dct_quantize= s->dct_quantize;
 
     if(s->flags&CODEC_FLAG_TRELLIS_QUANT){
@@ -569,7 +569,7 @@ void MPV_common_end(MpegEncContext *s)
     s->current_picture_ptr= NULL;
 }
 
-#ifdef CONFIG_ENCODERS
+#if defined(CONFIG_ENCODERS) || defined(XINE_MPEG_ENCODER)
 
 /* init video encoder */
 int MPV_encode_init(AVCodecContext *avctx)
@@ -686,6 +686,7 @@ int MPV_encode_init(AVCodecContext *avctx)
         s->low_delay= 0; //s->max_b_frames ? 0 : 1;
         avctx->delay= s->low_delay ? 0 : (s->max_b_frames + 1);
         break;
+#if defined(CONFIG_ENCODERS) || !defined(XINE_MPEG_ENCODER)
     case CODEC_ID_MPEG2VIDEO:
         s->out_format = FMT_MPEG1;
         s->low_delay= 0; //s->max_b_frames ? 0 : 1;
@@ -802,6 +803,7 @@ int MPV_encode_init(AVCodecContext *avctx)
         s->low_delay=1;
         break;
 #endif
+#endif
     default:
         return -1;
     }
@@ -836,24 +838,25 @@ int MPV_encode_init(AVCodecContext *avctx)
     if (MPV_common_init(s) < 0)
         return -1;
     
-#ifdef CONFIG_ENCODERS_FULL
+#if defined(CONFIG_ENCODERS) || !defined(XINE_MPEG_ENCODER)
     ff_init_me(s);
 #endif
 
-#ifdef CONFIG_ENCODERS
+#if defined(CONFIG_ENCODERS) || !defined(XINE_MPEG_ENCODER)
 #ifdef CONFIG_RISKY
     if (s->out_format == FMT_H263)
         h263_encode_init(s);
     if(s->msmpeg4_version)
         ff_msmpeg4_encode_init(s);
 #endif
+#endif
     if (s->out_format == FMT_MPEG1)
         ff_mpeg1_encode_init(s);
-#endif
 
     /* init default q matrix */
     for(i=0;i<64;i++) {
         int j= s->dsp.idct_permutation[i];
+#if defined(CONFIG_ENCODERS) || !defined(XINE_MPEG_ENCODER)
 #ifdef CONFIG_RISKY
         if(s->codec_id==CODEC_ID_MPEG4 && s->mpeg_quant){
             s->intra_matrix[j] = ff_mpeg4_default_intra_matrix[i];
@@ -862,6 +865,7 @@ int MPV_encode_init(AVCodecContext *avctx)
             s->intra_matrix[j] =
             s->inter_matrix[j] = ff_mpeg1_default_non_intra_matrix[i];
         }else
+#endif
 #endif
         { /* mpeg1/2 */
             s->intra_matrix[j] = ff_mpeg1_default_intra_matrix[i];
@@ -906,8 +910,10 @@ int MPV_encode_end(AVCodecContext *avctx)
     ff_rate_control_uninit(s);
 
     MPV_common_end(s);
+#if defined(CONFIG_ENCODERS) || !defined(XINE_MPEG_ENCODER)
     if (s->out_format == FMT_MJPEG)
         mjpeg_close(s);
+#endif
 
     av_freep(&avctx->extradata);
       
@@ -1343,7 +1349,7 @@ void ff_print_debug_info(MpegEncContext *s, Picture *pict){
     }
 }
 
-#ifdef CONFIG_ENCODERS
+#if defined(CONFIG_ENCODERS) || defined(XINE_MPEG_ENCODER)
 
 static int get_sae(uint8_t *src, int ref, int stride){
     int x,y;
@@ -1636,10 +1642,10 @@ int MPV_encode_picture(AVCodecContext *avctx,
 
         MPV_frame_end(s);
 
+#if defined(CONFIG_ENCODERS) || !defined(XINE_MPEG_ENCODER)
         if (s->out_format == FMT_MJPEG)
             mjpeg_picture_trailer(s);
         
-#ifdef CONFIG_ENCODERS_FULL
         if(s->flags&CODEC_FLAG_PASS1)
             ff_write_pass1_stats(s);
 #endif
@@ -2611,7 +2617,7 @@ void MPV_decode_mb(MpegEncContext *s, DCTELEM block[6][64])
     }
 }
 
-#ifdef CONFIG_ENCODERS
+#if defined(CONFIG_ENCODERS) || defined(XINE_MPEG_ENCODER)
 
 static inline void dct_single_coeff_elimination(MpegEncContext *s, int n, int threshold)
 {
@@ -2816,7 +2822,7 @@ void ff_init_block_index(MpegEncContext *s){ //FIXME maybe rename
     }    
 }
 
-#ifdef CONFIG_ENCODERS
+#if defined(CONFIG_ENCODERS) || defined(XINE_MPEG_ENCODER)
 
 static void encode_mb(MpegEncContext *s, int motion_x, int motion_y)
 {
@@ -3055,6 +3061,7 @@ static void encode_mb(MpegEncContext *s, int motion_x, int motion_y)
     case CODEC_ID_MPEG1VIDEO:
     case CODEC_ID_MPEG2VIDEO:
         mpeg1_encode_mb(s, s->block, motion_x, motion_y); break;
+#if defined(CONFIG_ENCODERS) || !defined(XINE_MPEG_ENCODER)
 #ifdef CONFIG_RISKY
     case CODEC_ID_MPEG4:
         mpeg4_encode_mb(s, s->block, motion_x, motion_y); break;
@@ -3072,6 +3079,7 @@ static void encode_mb(MpegEncContext *s, int motion_x, int motion_y)
 #endif
     case CODEC_ID_MJPEG:
         mjpeg_encode_mb(s, s->block); break;
+#endif
     default:
         assert(0);
     }
@@ -3156,7 +3164,7 @@ void ff_mpeg_flush(AVCodecContext *avctx){
     s->parse_context.last_index= 0;
 }
 
-#ifdef CONFIG_ENCODERS
+#if defined(CONFIG_ENCODERS) || defined(XINE_MPEG_ENCODER)
 void ff_copy_bits(PutBitContext *pb, uint8_t *src, int length)
 {
     int bytes= length>>4;
@@ -3344,11 +3352,13 @@ static void encode_picture(MpegEncContext *s, int picture_number)
     s->current_picture.mb_var_sum = 0;
     s->current_picture.mc_mb_var_sum = 0;
 
+#if defined(CONFIG_ENCODERS) || !defined(XINE_MPEG_ENCODER)
 #ifdef CONFIG_RISKY
     /* we need to initialize some time vars before we can encode b-frames */
     // RAL: Condition added for MPEG1VIDEO
     if (s->codec_id == CODEC_ID_MPEG1VIDEO || s->codec_id == CODEC_ID_MPEG2VIDEO || (s->h263_pred && !s->h263_msmpeg4))
         ff_set_mpeg4_time(s, s->picture_number); 
+#endif
 #endif
         
     s->scene_change_score=0;
@@ -3366,7 +3376,7 @@ static void encode_picture(MpegEncContext *s, int picture_number)
     /* Estimate motion for every MB */
     s->mb_intra=0; //for the rate distoration & bit compare functions
     if(s->pict_type != I_TYPE){
-#ifdef CONFIG_ENCODERS_FULL
+#if defined(CONFIG_ENCODERS) || !defined(XINE_MPEG_ENCODER)
         if(s->pict_type != B_TYPE){
             if((s->avctx->pre_me && s->last_non_b_pict_type==I_TYPE) || s->avctx->pre_me==2){
                 s->me.pre_pass=1;
@@ -3439,7 +3449,7 @@ static void encode_picture(MpegEncContext *s, int picture_number)
 //printf("Scene change detected, encoding as I Frame %d %d\n", s->current_picture.mb_var_sum, s->current_picture.mc_mb_var_sum);
     }
 
-#ifdef CONFIG_ENCODERS_FULL
+#if defined(CONFIG_ENCODERS) || !defined(XINE_MPEG_ENCODER)
     if(!s->umvplus){
         if(s->pict_type==P_TYPE || s->pict_type==S_TYPE) {
             s->f_code= ff_get_best_fcode(s, s->p_mv_table, MB_TYPE_INTER);
@@ -3470,6 +3480,7 @@ static void encode_picture(MpegEncContext *s, int picture_number)
         s->current_picture.quality = ff_rate_estimate_qscale(s);
 
     if(s->adaptive_quant){
+#if defined(CONFIG_ENCODERS) || !defined(XINE_MPEG_ENCODER)
 #ifdef CONFIG_RISKY
         switch(s->codec_id){
         case CODEC_ID_MPEG4:
@@ -3481,6 +3492,7 @@ static void encode_picture(MpegEncContext *s, int picture_number)
             ff_clean_h263_qscales(s);
             break;
         }
+#endif
 #endif
 
         s->lambda= s->lambda_table[0];
@@ -3514,6 +3526,7 @@ static void encode_picture(MpegEncContext *s, int picture_number)
 
     s->last_bits= get_bit_count(&s->pb);
     switch(s->out_format) {
+#if defined(CONFIG_ENCODERS) || !defined(XINE_MPEG_ENCODER)
     case FMT_MJPEG:
         mjpeg_picture_header(s);
         break;
@@ -3531,6 +3544,15 @@ static void encode_picture(MpegEncContext *s, int picture_number)
             ff_flv_encode_picture_header(s, picture_number);
         else
             h263_encode_picture_header(s, picture_number);
+        break;
+#else
+    case FMT_H263:
+        break;
+#endif
+#else
+    case FMT_MJPEG:
+        break;
+    case FMT_H263:
         break;
 #endif
     case FMT_MPEG1:
@@ -3566,6 +3588,7 @@ static void encode_picture(MpegEncContext *s, int picture_number)
      
     s->last_mv_dir = 0;
 
+#if defined(CONFIG_ENCODERS) || !defined(XINE_MPEG_ENCODER)
 #ifdef CONFIG_RISKY
     switch(s->codec_id){
     case CODEC_ID_H263:
@@ -3578,6 +3601,7 @@ static void encode_picture(MpegEncContext *s, int picture_number)
             ff_mpeg4_init_partitions(s);
         break;
     }
+#endif
 #endif
 
     s->resync_mb_x=0;
@@ -3602,6 +3626,7 @@ static void encode_picture(MpegEncContext *s, int picture_number)
             ff_update_block_index(s);
 
             /* write gob / video packet header  */
+#if defined(CONFIG_ENCODERS) || !defined(XINE_MPEG_ENCODER)
 #ifdef CONFIG_RISKY
             if(s->rtp_mode && mb_y + mb_x>0){
                 int current_packet_size, is_gob_start;
@@ -3656,6 +3681,7 @@ static void encode_picture(MpegEncContext *s, int picture_number)
                     s->resync_mb_y=mb_y;
                 }
             }
+#endif
 #endif
 
             if(  (s->resync_mb_x   == s->mb_x)
@@ -3742,8 +3768,10 @@ static void encode_picture(MpegEncContext *s, int picture_number)
                     
                     s->mv_dir = MV_DIR_FORWARD | MV_DIR_BACKWARD | MV_DIRECT;
                     s->mb_intra= 0;
+#if defined(CONFIG_ENCODERS) || !defined(XINE_MPEG_ENCODER)
 #ifdef CONFIG_RISKY
                     ff_mpeg4_set_direct_mv(s, mx, my);
+#endif
 #endif
                     encode_mb_hq(s, &backup_s, &best_s, MB_TYPE_DIRECT, pb, pb2, tex_pb, 
                                  &dmin, &next_block, mx, my);
@@ -3913,8 +3941,10 @@ static void encode_picture(MpegEncContext *s, int picture_number)
                     s->mb_intra= 0;
                     motion_x=s->b_direct_mv_table[xy][0];
                     motion_y=s->b_direct_mv_table[xy][1];
+#if defined(CONFIG_ENCODERS) || !defined(XINE_MPEG_ENCODER)
 #ifdef CONFIG_RISKY
                     ff_mpeg4_set_direct_mv(s, motion_x, motion_y);
+#endif
 #endif
                     break;
                 case MB_TYPE_BIDIR:
@@ -3986,6 +4016,7 @@ static void encode_picture(MpegEncContext *s, int picture_number)
     }
     emms_c();
 
+#if defined(CONFIG_ENCODERS) || !defined(XINE_MPEG_ENCODER)
 #ifdef CONFIG_RISKY
     if(s->codec_id==CODEC_ID_MPEG4 && s->partitioned_frame)
         ff_mpeg4_merge_partitions(s);
@@ -3995,6 +4026,7 @@ static void encode_picture(MpegEncContext *s, int picture_number)
 
     if(s->codec_id==CODEC_ID_MPEG4) 
         ff_mpeg4_stuffing(&s->pb);
+#endif
 #endif
 
     //if (s->gob_number)
@@ -4634,7 +4666,7 @@ static const AVOption mpeg4_options[] =
     AVOPTION_END()
 };
 
-#ifdef CONFIG_ENCODERS
+#if defined(CONFIG_ENCODERS) || defined(XINE_MPEG_ENCODER)
 
 AVCodec mpeg1video_encoder = {
     "mpeg1video",
@@ -4646,6 +4678,7 @@ AVCodec mpeg1video_encoder = {
     MPV_encode_end,
 };
 
+#if defined(CONFIG_ENCODERS) || !defined(XINE_MPEG_ENCODER)
 #ifdef CONFIG_RISKY
 
 AVCodec mpeg2video_encoder = {
@@ -4764,6 +4797,8 @@ AVCodec mjpeg_encoder = {
     MPV_encode_picture,
     MPV_encode_end,
 };
+
+#endif
 
 #endif //CONFIG_ENCODERS
 

@@ -222,14 +222,14 @@ AC_SUBST(DYNAMIC_LD_LIBS)
 
 
 dnl ---------------------------------------------
-dnl mpeg2lib stuff
+dnl mpeg2lib and ffmpeg stuff
 dnl ---------------------------------------------
 
 AC_SUBST(LIBMPEG2_CFLAGS)
 AC_SUBST(LIBFFMPEG_CFLAGS)
 
 LIBMPEG2_CFLAGS=""
-LIBFFMPEG_CFLAGS="-DSIMPLE_IDCT -DHAVE_AV_CONFIG_H -DRUNTIME_CPUDETECT -DUSE_FASTMEMCPY -DCONFIG_RISKY -DCONFIG_ENCODERS -DCONFIG_DECODERS"
+LIBFFMPEG_CFLAGS="-DSIMPLE_IDCT -DHAVE_AV_CONFIG_H -DRUNTIME_CPUDETECT -DUSE_FASTMEMCPY -DCONFIG_RISKY -DCONFIG_DECODERS -DXINE_MPEG_ENCODER"
 
 AC_CHECK_DECL(lrintf,[AC_DEFINE(HAVE_LRINTF,1,[Define this if the 'lrintf' function is declared in math.h])],,[
 #define _ISOC9X_SOURCE
@@ -1821,6 +1821,7 @@ src/libffmpeg/libavcodec/armv4l/Makefile
 src/libffmpeg/libavcodec/i386/Makefile
 src/libffmpeg/libavcodec/mlib/Makefile
 src/libffmpeg/libavcodec/alpha/Makefile
+src/libffmpeg/libavcodec/ppc/Makefile
 src/libffmpeg/libavcodec/libpostproc/Makefile
 src/libflac/Makefile
 src/liblpcm/Makefile

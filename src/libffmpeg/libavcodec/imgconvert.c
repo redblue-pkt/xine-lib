@@ -535,7 +535,7 @@ static void img_copy_plane(uint8_t *dst, int dst_wrap,
 /**
  * Copy image 'src' to 'dst'.
  */
-void img_copy(AVPicture *dst, const AVPicture *src,
+static void img_copy(AVPicture *dst, const AVPicture *src,
               int pix_fmt, int width, int height)
 {
     int bwidth, bits, i;

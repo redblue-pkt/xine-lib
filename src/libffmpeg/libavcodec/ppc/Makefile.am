@@ -1,8 +1,9 @@
 include $(top_srcdir)/misc/Makefile.common
 
-# we must not use CFLAGS here, gcc optimizations produce
-# bad code if we do so.
 AM_CFLAGS = $(LIBFFMPEG_CFLAGS)
+# CFLAGS is here to filter out -funroll-loops because it causes bad
+# behavior of libavcodec
+CFLAGS = `echo @CFLAGS@ | sed -e 's/-funroll-loops//g'`
 
 ASFLAGS =
 
@@ -19,14 +20,11 @@ libavcodec_ppc_dummy = libavcodec_ppc_dummy.c
 
 EXTRA_DIST =  $(libavcodec_ppc_src) $(libavcodec_ppc_dummy)
 
-if ARCH_POWERPC
-ppc_modules = $(libavcodec_ppc_src)
-endif
+#if PPC_ARCH
+#ppc_modules = $(libavcodec_ppc_src)
+#endif
 
 
 libavcodec_ppc_la_SOURCES = $(ppc_modules) $(libavcodec_ppc_dummy)
 
 noinst_HEADERS = dsputil_altivec.h dsputil_ppc.h gcc_fixes.h
-
-.s.lo:
-	$(ASCOMPILE) -o $@ `test -f $< || echo '$(srcdir)/'`$<

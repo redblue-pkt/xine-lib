@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_encoder.c,v 1.6 2003/09/11 10:01:02 mroi Exp $
+ * $Id: xine_encoder.c,v 1.7 2003/11/01 18:12:53 mroi Exp $
  */
  
 /* mpeg encoders for the dxr3 video out plugin. */
@@ -256,7 +256,6 @@ static int lavc_on_display_frame(dxr3_driver_t *drv, dxr3_frame_t *frame)
 {
   int size;
   lavc_data_t* this = (lavc_data_t *)drv->enc;
-  char tmpstr[128];
   ssize_t written;
 	
   if (frame->vo_frame.bad_frame) return 1;

@@ -38,6 +38,8 @@
 #include "avcodec.h"
 #include "dsputil.h"
 
+#undef LE_16
+
 #define PALETTE_COUNT 256
 #define LE_16(x)  ((((uint8_t*)(x))[1] << 8) | ((uint8_t*)(x))[0])
 #define CHECK_STREAM_PTR(n) \

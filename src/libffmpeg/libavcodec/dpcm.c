@@ -44,6 +44,10 @@ typedef struct DPCMContext {
 #define SATURATE_S16(x)  if (x < -32768) x = -32768; \
   else if (x > 32767) x = 32767;
 #define SE_16BIT(x)  if (x & 0x8000) x -= 0x10000;
+
+#undef LE_16
+#undef LE_32
+
 #define LE_16(x)  ((((uint8_t*)(x))[1] << 8) | ((uint8_t*)(x))[0])
 #define LE_32(x)  ((((uint8_t*)(x))[3] << 24) | \
                    (((uint8_t*)(x))[2] << 16) | \

@@ -14,6 +14,13 @@ extern "C" {
 #include "common.h"
 #include "rational.h"
 
+/* FIXME: We cannot use ffmpeg's XvMC capabilities, since that would require
+ * linking the ffmpeg plugin against XvMC libraries, which is a bad thing,
+ * since they are output dependend.
+ * The correct fix would be to reimplement the XvMC functions libavcodec uses
+ * and do the necessary talking with our XvMC output plugin there. */
+#undef HAVE_XVMC
+
 #define FFMPEG_VERSION_INT     0x000408
 #define FFMPEG_VERSION         "0.4.8"
 #define LIBAVCODEC_BUILD       4688

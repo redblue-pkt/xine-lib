@@ -48,7 +48,7 @@
 #define MB_BTYPE_VLC_BITS 6
 #define TEX_VLC_BITS 9
 
-#ifdef CONFIG_ENCODERS
+#if defined(CONFIG_ENCODERS) || defined(XINE_MPEG_ENCODER)
 static void mpeg1_encode_block(MpegEncContext *s, 
                          DCTELEM *block, 
                          int component);
@@ -74,7 +74,7 @@ extern int XVMC_field_start(MpegEncContext *s, AVCodecContext *avctx);
 extern int XVMC_field_end(MpegEncContext *s);
 #endif
 
-#ifdef CONFIG_ENCODERS
+#if defined(CONFIG_ENCODERS) || defined(XINE_MPEG_ENCODER)
 static uint8_t (*mv_penalty)[MAX_MV*2+1]= NULL;
 static uint8_t fcode_tab[MAX_MV*2+1];
 
@@ -128,7 +128,7 @@ static void init_2d_vlc_rl(RLTable *rl)
     }
 }
 
-#ifdef CONFIG_ENCODERS
+#if defined(CONFIG_ENCODERS) || defined(XINE_MPEG_ENCODER)
 static void init_uni_ac_vlc(RLTable *rl, uint32_t *uni_ac_vlc_bits, uint8_t *uni_ac_vlc_len){
     int i;
 
@@ -383,7 +383,7 @@ void ff_mpeg1_clean_buffers(MpegEncContext *s){
     memset(s->last_mv, 0, sizeof(s->last_mv));
 }
 
-#ifdef CONFIG_ENCODERS
+#if defined(CONFIG_ENCODERS) || defined(XINE_MPEG_ENCODER)
 
 void ff_mpeg1_encode_slice_header(MpegEncContext *s){
     put_header(s, SLICE_MIN_START_CODE + s->mb_y);

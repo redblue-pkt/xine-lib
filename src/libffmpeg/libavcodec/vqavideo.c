@@ -82,6 +82,10 @@
 #define MAX_VECTORS (MAX_CODEBOOK_VECTORS + SOLID_PIXEL_VECTORS)
 #define MAX_CODEBOOK_SIZE (MAX_VECTORS * 4 * 4)
 
+#undef LE_16
+#undef BE_16
+#undef BE_32
+
 #define LE_16(x)  ((((uint8_t*)(x))[1] << 8) | ((uint8_t*)(x))[0])
 #define BE_16(x)  ((((uint8_t*)(x))[0] << 8) | ((uint8_t*)(x))[1])
 #define BE_32(x)  ((((uint8_t*)(x))[0] << 24) | \

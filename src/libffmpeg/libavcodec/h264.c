@@ -2919,9 +2919,11 @@ static int decode_slice_header(H264Context *h){
         h->max_pic_num= 1<<(h->sps.log2_max_frame_num + 1);
     }
         
+#if 0
     if(h->nal_unit_type == NAL_IDR_SLICE){
         get_ue_golomb(&s->gb); /* idr_pic_id */
     }
+#endif
    
     if(h->sps.poc_type==0){
         h->poc_lsb= get_bits(&s->gb, h->sps.log2_max_poc_lsb);
@@ -2982,12 +2984,14 @@ static int decode_slice_header(H264Context *h){
 
     s->qscale = h->pps.init_qp + get_se_golomb(&s->gb); //slice_qp_delta
     //FIXME qscale / qp ... stuff
+#if 0
     if(h->slice_type == SP_TYPE){
         get_bits1(&s->gb); /* sp_for_switch_flag */
     }
     if(h->slice_type==SP_TYPE || h->slice_type == SI_TYPE){
         get_se_golomb(&s->gb); /* slice_qs_delta */
     }
+#endif
 
     if( h->pps.deblocking_filter_parameters_present ) {
         h->disable_deblocking_filter_idc= get_ue_golomb(&s->gb);

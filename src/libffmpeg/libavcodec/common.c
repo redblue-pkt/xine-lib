@@ -60,7 +60,7 @@ void init_put_bits(PutBitContext *s, uint8_t *buffer, int buffer_size)
 #endif
 }
 
-#ifdef CONFIG_ENCODERS
+#if defined(CONFIG_ENCODERS) || defined(XINE_MPEG_ENCODER)
 
 /* return the number of bits output */
 int64_t get_bit_count(PutBitContext *s)
@@ -101,7 +101,7 @@ void flush_put_bits(PutBitContext *s)
 #endif
 }
 
-#ifdef CONFIG_ENCODERS
+#if defined(CONFIG_ENCODERS) || defined(XINE_MPEG_ENCODER)
 
 void put_string(PutBitContext * pbc, char *s)
 {

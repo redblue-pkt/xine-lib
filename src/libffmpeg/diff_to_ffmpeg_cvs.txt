@@ -1,10 +1,53 @@
-Index: libavcodec/common.h
-===================================================================
-RCS file: /cvsroot/ffmpeg/ffmpeg/libavcodec/common.h,v
-retrieving revision 1.106
-diff -u -u -r1.106 common.h
---- libavcodec/common.h	20 Oct 2003 20:23:46 -0000	1.106
-+++ libavcodec/common.h	21 Oct 2003 12:10:49 -0000
+--- libavcodec/avcodec.h	2003-10-30 07:00:25.000000000 +0100
++++ libavcodec/avcodec.h	2003-11-01 18:34:59.000000000 +0100
+@@ -14,6 +14,13 @@
+ #include "common.h"
+ #include "rational.h"
+ 
++/* FIXME: We cannot use ffmpeg's XvMC capabilities, since that would require
++ * linking the ffmpeg plugin against XvMC libraries, which is a bad thing,
++ * since they are output dependend.
++ * The correct fix would be to reimplement the XvMC functions libavcodec uses
++ * and do the necessary talking with our XvMC output plugin there. */
++#undef HAVE_XVMC
++
+ #define FFMPEG_VERSION_INT     0x000408
+ #define FFMPEG_VERSION         "0.4.8"
+ #define LIBAVCODEC_BUILD       4688
+--- libavcodec/cinepak.c	2003-10-27 16:24:38.000000000 +0100
++++ libavcodec/cinepak.c	2003-10-28 21:01:06.000000000 +0100
+@@ -37,6 +37,9 @@
+ 
+ #define PALETTE_COUNT 256
+ 
++#undef BE_16
++#undef BE_32
++
+ #define BE_16(x)  ((((uint8_t*)(x))[0] << 8) | ((uint8_t*)(x))[1])
+ #define BE_32(x)  ((((uint8_t*)(x))[0] << 24) | \
+                    (((uint8_t*)(x))[1] << 16) | \
+--- libavcodec/common.c	2003-10-27 16:24:38.000000000 +0100
++++ libavcodec/common.c	2003-10-27 19:42:02.000000000 +0100
+@@ -60,7 +60,7 @@
+ #endif
+ }
+ 
+-#ifdef CONFIG_ENCODERS
++#if defined(CONFIG_ENCODERS) || defined(XINE_MPEG_ENCODER)
+ 
+ /* return the number of bits output */
+ int64_t get_bit_count(PutBitContext *s)
+@@ -101,7 +101,7 @@
+ #endif
+ }
+ 
+-#ifdef CONFIG_ENCODERS
++#if defined(CONFIG_ENCODERS) || defined(XINE_MPEG_ENCODER)
+ 
+ void put_string(PutBitContext * pbc, char *s)
+ {
+--- libavcodec/common.h	2003-11-01 18:43:19.000000000 +0100
++++ libavcodec/common.h	2003-10-27 19:42:02.000000000 +0100
 @@ -184,11 +184,19 @@
  
  #    else
@@ -30,13 +73,21 @@ diff -u -u -r1.106 common.h
  
  #    endif /* !CONFIG_WIN32 */
  
-Index: libavcodec/dsputil.h
-===================================================================
-RCS file: /cvsroot/ffmpeg/ffmpeg/libavcodec/dsputil.h,v
-retrieving revision 1.74
-diff -u -u -r1.74 dsputil.h
---- libavcodec/dsputil.h	13 Oct 2003 17:27:30 -0000	1.74
-+++ libavcodec/dsputil.h	21 Oct 2003 12:10:51 -0000
+--- libavcodec/dpcm.c	2003-10-27 16:24:38.000000000 +0100
++++ libavcodec/dpcm.c	2003-10-28 21:01:51.000000000 +0100
+@@ -44,6 +44,10 @@
+ #define SATURATE_S16(x)  if (x < -32768) x = -32768; \
+   else if (x > 32767) x = 32767;
+ #define SE_16BIT(x)  if (x & 0x8000) x -= 0x10000;
++
++#undef LE_16
++#undef LE_32
++
+ #define LE_16(x)  ((((uint8_t*)(x))[1] << 8) | ((uint8_t*)(x))[0])
+ #define LE_32(x)  ((((uint8_t*)(x))[3] << 24) | \
+                    (((uint8_t*)(x))[2] << 16) | \
+--- libavcodec/dsputil.h	2003-11-01 18:43:19.000000000 +0100
++++ libavcodec/dsputil.h	2003-10-27 19:42:02.000000000 +0100
 @@ -29,9 +29,14 @@
  
  #include "common.h"
@@ -79,13 +130,8 @@ diff -u -u -r1.74 dsputil.h
  
  
  #define emms_c() \
-Index: libavcodec/fastmemcpy.h
-===================================================================
-RCS file: /cvsroot/ffmpeg/ffmpeg/libavcodec/fastmemcpy.h,v
-retrieving revision 1.1
-diff -u -u -r1.1 fastmemcpy.h
---- libavcodec/fastmemcpy.h	2 Aug 2001 08:29:38 -0000	1.1
-+++ libavcodec/fastmemcpy.h	21 Oct 2003 12:10:53 -0000
+--- libavcodec/fastmemcpy.h	2003-11-01 18:43:19.000000000 +0100
++++ libavcodec/fastmemcpy.h	2003-04-16 02:18:37.000000000 +0200
 @@ -1 +1,8 @@
 -#include "../libvo/fastmemcpy.h"
 +#ifndef __FASTMEMCPY_H__
@@ -96,89 +142,8 @@ diff -u -u -r1.1 fastmemcpy.h
 +#define memcpy(a,b,c) xine_fast_memcpy(a,b,c)
 +
 +#endif
-Index: libavcodec/mjpeg.c
-===================================================================
-RCS file: /cvsroot/ffmpeg/ffmpeg/libavcodec/mjpeg.c,v
-retrieving revision 1.78
-diff -u -u -r1.78 mjpeg.c
---- libavcodec/mjpeg.c	20 Oct 2003 20:23:46 -0000	1.78
-+++ libavcodec/mjpeg.c	21 Oct 2003 12:11:08 -0000
-@@ -1504,7 +1504,7 @@
- 	    4bytes	field_size
- 	    4bytes	field_size_less_padding
- 	*/
--    	s->buggy_avid = 1;
-+//    	s->buggy_avid = 1;
- //	if (s->first_picture)
- //	    printf("mjpeg: workarounding buggy AVID\n");
- 	s->interlace_polarity = get_bits(&s->gb, 8);
-Index: libavcodec/mpegvideo.c
-===================================================================
-RCS file: /cvsroot/ffmpeg/ffmpeg/libavcodec/mpegvideo.c,v
-retrieving revision 1.291
-diff -u -u -r1.291 mpegvideo.c
---- libavcodec/mpegvideo.c	20 Oct 2003 09:52:02 -0000	1.291
-+++ libavcodec/mpegvideo.c	21 Oct 2003 12:11:17 -0000
-@@ -836,7 +836,9 @@
-     if (MPV_common_init(s) < 0)
-         return -1;
-     
-+#ifdef CONFIG_ENCODERS_FULL
-     ff_init_me(s);
-+#endif
- 
- #ifdef CONFIG_ENCODERS
- #ifdef CONFIG_RISKY
-@@ -1637,8 +1639,10 @@
-         if (s->out_format == FMT_MJPEG)
-             mjpeg_picture_trailer(s);
-         
-+#ifdef CONFIG_ENCODERS_FULL
-         if(s->flags&CODEC_FLAG_PASS1)
-             ff_write_pass1_stats(s);
-+#endif
- 
-         for(i=0; i<4; i++){
-             avctx->error[i] += s->current_picture_ptr->error[i];
-@@ -3362,6 +3366,7 @@
-     /* Estimate motion for every MB */
-     s->mb_intra=0; //for the rate distoration & bit compare functions
-     if(s->pict_type != I_TYPE){
-+#ifdef CONFIG_ENCODERS_FULL
-         if(s->pict_type != B_TYPE){
-             if((s->avctx->pre_me && s->last_non_b_pict_type==I_TYPE) || s->avctx->pre_me==2){
-                 s->me.pre_pass=1;
-@@ -3399,6 +3404,7 @@
-                     ff_estimate_p_frame_motion(s, mb_x, mb_y);
-             }
-         }
-+#endif
-     }else /* if(s->pict_type == I_TYPE) */{
-         /* I-Frame */
-         //FIXME do we need to zero them?
-@@ -3433,6 +3439,7 @@
- //printf("Scene change detected, encoding as I Frame %d %d\n", s->current_picture.mb_var_sum, s->current_picture.mc_mb_var_sum);
-     }
- 
-+#ifdef CONFIG_ENCODERS_FULL
-     if(!s->umvplus){
-         if(s->pict_type==P_TYPE || s->pict_type==S_TYPE) {
-             s->f_code= ff_get_best_fcode(s, s->p_mv_table, MB_TYPE_INTER);
-@@ -3457,6 +3464,7 @@
-             ff_fix_long_b_mvs(s, s->b_bidir_back_mv_table, s->b_code, MB_TYPE_BIDIR);
-         }
-     }
-+#endif
-     
-     if (!s->fixed_qscale) 
-         s->current_picture.quality = ff_rate_estimate_qscale(s);
-Index: libavcodec/i386/cputest.c
-===================================================================
-RCS file: /cvsroot/ffmpeg/ffmpeg/libavcodec/i386/cputest.c,v
-retrieving revision 1.8
-diff -u -u -r1.8 cputest.c
---- libavcodec/i386/cputest.c	26 Nov 2002 16:26:58 -0000	1.8
-+++ libavcodec/i386/cputest.c	21 Oct 2003 12:11:37 -0000
+--- libavcodec/i386/cputest.c	2003-11-01 18:43:19.000000000 +0100
++++ libavcodec/i386/cputest.c	2003-07-02 16:36:41.000000000 +0200
 @@ -1,122 +1,13 @@
 -/* Cpu detection code, extracted from mmx.h ((c)1997-99 by H. Dietz
 -   and R. Fisher). Converted to C and improved by Fabrice Bellard */
@@ -305,13 +270,28 @@ diff -u -u -r1.8 cputest.c
  }
  
  #ifdef __TEST__
-Index: libavcodec/i386/mmx.h
-===================================================================
-RCS file: /cvsroot/ffmpeg/ffmpeg/libavcodec/i386/mmx.h,v
-retrieving revision 1.3
-diff -u -u -r1.3 mmx.h
---- libavcodec/i386/mmx.h	27 May 2002 08:31:54 -0000	1.3
-+++ libavcodec/i386/mmx.h	21 Oct 2003 12:11:38 -0000
+--- libavcodec/i386/fdct_mmx.c	2002-11-11 14:45:36.000000000 +0100
++++ libavcodec/i386/fdct_mmx.c	2003-10-24 14:04:32.000000000 +0200
+@@ -10,6 +10,7 @@
+ #include "../dsputil.h"
+ #include "mmx.h"
+ 
++#undef ATTR_ALIGN
+ #define ATTR_ALIGN(align) __attribute__ ((__aligned__ (align)))
+ 
+ //////////////////////////////////////////////////////////////////////
+--- libavcodec/i386/idct_mmx.c	2002-10-29 17:29:19.000000000 +0100
++++ libavcodec/i386/idct_mmx.c	2003-10-30 23:21:12.000000000 +0100
+@@ -26,6 +26,7 @@
+ 
+ #include "mmx.h"
+ 
++#undef ATTR_ALIGN
+ #define ATTR_ALIGN(align) __attribute__ ((__aligned__ (align)))
+ 
+ #define ROW_SHIFT 11
+--- libavcodec/i386/mmx.h	2003-11-01 18:43:19.000000000 +0100
++++ libavcodec/i386/mmx.h	2003-07-02 16:36:41.000000000 +0200
 @@ -1,243 +1 @@
 -/*
 - * mmx.h
@@ -557,29 +537,8 @@ diff -u -u -r1.3 mmx.h
 -
 -#endif /* AVCODEC_I386MMX_H */
 +#include "xineutils.h"
-Index: libavcodec/i386/motion_est_mmx.c
-===================================================================
-RCS file: /cvsroot/ffmpeg/ffmpeg/libavcodec/i386/motion_est_mmx.c,v
-retrieving revision 1.11
-diff -u -u -r1.11 motion_est_mmx.c
---- libavcodec/i386/motion_est_mmx.c	9 Sep 2003 22:59:16 -0000	1.11
-+++ libavcodec/i386/motion_est_mmx.c	21 Oct 2003 12:11:39 -0000
-@@ -26,7 +26,7 @@
- 0x0002000200020002,
- };
- 
--static __attribute__ ((aligned(8), unused)) uint64_t bone= 0x0101010101010101LL;
-+static const __attribute__ ((aligned(8), unused)) uint64_t bone= 0x0101010101010101LL;
- 
- static inline void sad8_mmx(uint8_t *blk1, uint8_t *blk2, int stride, int h)
- {
-Index: libavcodec/libpostproc/postprocess.c
-===================================================================
-RCS file: /cvsroot/ffmpeg/ffmpeg/libavcodec/libpostproc/postprocess.c,v
-retrieving revision 1.90
-diff -u -u -r1.90 postprocess.c
---- libavcodec/libpostproc/postprocess.c	14 Sep 2003 16:52:34 -0000	1.90
-+++ libavcodec/libpostproc/postprocess.c	21 Oct 2003 12:11:40 -0000
+--- libavcodec/libpostproc/postprocess.c	2003-11-01 18:43:19.000000000 +0100
++++ libavcodec/libpostproc/postprocess.c	2003-10-27 19:42:16.000000000 +0100
 @@ -70,8 +70,9 @@
  #include "config.h"
  #include <inttypes.h>
@@ -605,31 +564,14 @@ diff -u -u -r1.90 postprocess.c
  #include "postprocess.h"
  #include "postprocess_internal.h"
  
-@@ -104,13 +105,13 @@
- //#define NUM_BLOCKS_AT_ONCE 16 //not used yet
+@@ -152,44 +153,6 @@
+ 	NULL //End Marker
+ };
  
- #ifdef ARCH_X86
--static uint64_t __attribute__((aligned(8))) w05=		0x0005000500050005LL;
--static uint64_t __attribute__((aligned(8))) w20=		0x0020002000200020LL;
--static uint64_t __attribute__((aligned(8))) b00= 		0x0000000000000000LL;
--static uint64_t __attribute__((aligned(8))) b01= 		0x0101010101010101LL;
--static uint64_t __attribute__((aligned(8))) b02= 		0x0202020202020202LL;
--static uint64_t __attribute__((aligned(8))) b08= 		0x0808080808080808LL;
--static uint64_t __attribute__((aligned(8))) b80= 		0x8080808080808080LL;
-+static const uint64_t __attribute__((aligned(8))) w05=		0x0005000500050005LL;
-+static const uint64_t __attribute__((aligned(8))) w20=		0x0020002000200020LL;
-+             uint64_t __attribute__((aligned(8))) b00= 		0x0000000000000000LL;
-+static const uint64_t __attribute__((aligned(8))) b01= 		0x0101010101010101LL;
-+static const uint64_t __attribute__((aligned(8))) b02= 		0x0202020202020202LL;
-+static const uint64_t __attribute__((aligned(8))) b08= 		0x0808080808080808LL;
-+static const uint64_t __attribute__((aligned(8))) b80= 		0x8080808080808080LL;
- #endif
- 
- 
-@@ -156,37 +157,6 @@
- static inline void unusedVariableWarningFixer()
- {
- 	if(w05 + w20 + b00 + b01 + b02 + b08 + b80 == 0) b00=0;
+-#ifdef ARCH_X86
+-static inline void unusedVariableWarningFixer()
+-{
+-	if(w05 + w20 + b00 + b01 + b02 + b08 + b80 == 0) b00=0;
 -}
 -#endif
 -
@@ -661,16 +603,25 @@ diff -u -u -r1.90 postprocess.c
 -	asm volatile(	"prefetcht2 (%0)\n\t"
 -		: : "r" (p)
 -	);
- }
- #endif
+-}
+-#endif
+-
+ // The horizontal Functions exist only in C cuz the MMX code is faster with vertical filters and transposing
  
-Index: libavcodec/mlib/dsputil_mlib.c
-===================================================================
-RCS file: /cvsroot/ffmpeg/ffmpeg/libavcodec/mlib/dsputil_mlib.c,v
-retrieving revision 1.14
-diff -u -u -r1.14 dsputil_mlib.c
---- libavcodec/mlib/dsputil_mlib.c	11 Oct 2003 16:43:51 -0000	1.14
-+++ libavcodec/mlib/dsputil_mlib.c	21 Oct 2003 12:11:42 -0000
+ /**
+--- libavcodec/mjpeg.c	2003-11-01 18:43:19.000000000 +0100
++++ libavcodec/mjpeg.c	2003-10-27 19:42:08.000000000 +0100
+@@ -1504,7 +1504,7 @@
+ 	    4bytes	field_size
+ 	    4bytes	field_size_less_padding
+ 	*/
+-    	s->buggy_avid = 1;
++//    	s->buggy_avid = 1;
+ //	if (s->first_picture)
+ //	    printf("mjpeg: workarounding buggy AVID\n");
+ 	s->interlace_polarity = get_bits(&s->gb, 8);
+--- libavcodec/mlib/dsputil_mlib.c	2003-11-01 18:43:19.000000000 +0100
++++ libavcodec/mlib/dsputil_mlib.c	2003-10-27 19:42:17.000000000 +0100
 @@ -419,6 +419,7 @@
  
  void dsputil_init_mlib(DSPContext* c, AVCodecContext *avctx)
@@ -698,3 +649,475 @@ diff -u -u -r1.14 dsputil_mlib.c
      }
 +  }
  }
+--- libavcodec/mpeg12.c	2003-10-27 16:24:38.000000000 +0100
++++ libavcodec/mpeg12.c	2003-10-28 19:24:46.000000000 +0100
+@@ -48,7 +48,7 @@
+ #define MB_BTYPE_VLC_BITS 6
+ #define TEX_VLC_BITS 9
+ 
+-#ifdef CONFIG_ENCODERS
++#if defined(CONFIG_ENCODERS) || defined(XINE_MPEG_ENCODER)
+ static void mpeg1_encode_block(MpegEncContext *s, 
+                          DCTELEM *block, 
+                          int component);
+@@ -74,7 +74,7 @@
+ extern int XVMC_field_end(MpegEncContext *s);
+ #endif
+ 
+-#ifdef CONFIG_ENCODERS
++#if defined(CONFIG_ENCODERS) || defined(XINE_MPEG_ENCODER)
+ static uint8_t (*mv_penalty)[MAX_MV*2+1]= NULL;
+ static uint8_t fcode_tab[MAX_MV*2+1];
+ 
+@@ -128,7 +128,7 @@
+     }
+ }
+ 
+-#ifdef CONFIG_ENCODERS
++#if defined(CONFIG_ENCODERS) || defined(XINE_MPEG_ENCODER)
+ static void init_uni_ac_vlc(RLTable *rl, uint32_t *uni_ac_vlc_bits, uint8_t *uni_ac_vlc_len){
+     int i;
+ 
+@@ -383,7 +383,7 @@
+     memset(s->last_mv, 0, sizeof(s->last_mv));
+ }
+ 
+-#ifdef CONFIG_ENCODERS
++#if defined(CONFIG_ENCODERS) || defined(XINE_MPEG_ENCODER)
+ 
+ void ff_mpeg1_encode_slice_header(MpegEncContext *s){
+     put_header(s, SLICE_MIN_START_CODE + s->mb_y);
+--- libavcodec/mpegvideo.c	2003-11-01 18:43:19.000000000 +0100
++++ libavcodec/mpegvideo.c	2003-10-30 23:26:04.000000000 +0100
+@@ -36,7 +36,7 @@
+ //#undef NDEBUG
+ //#include <assert.h>
+ 
+-#ifdef CONFIG_ENCODERS
++#if defined(CONFIG_ENCODERS) || defined(XINE_MPEG_ENCODER)
+ static void encode_picture(MpegEncContext *s, int picture_number);
+ #endif //CONFIG_ENCODERS
+ static void dct_unquantize_mpeg1_c(MpegEncContext *s, 
+@@ -46,7 +46,7 @@
+ static void dct_unquantize_h263_c(MpegEncContext *s, 
+                                   DCTELEM *block, int n, int qscale);
+ static void draw_edges_c(uint8_t *buf, int wrap, int width, int height, int w);
+-#ifdef CONFIG_ENCODERS
++#if defined(CONFIG_ENCODERS) || defined(XINE_MPEG_ENCODER)
+ static int dct_quantize_c(MpegEncContext *s, DCTELEM *block, int n, int qscale, int *overflow);
+ static int dct_quantize_trellis_c(MpegEncContext *s, DCTELEM *block, int n, int qscale, int *overflow);
+ static int sse_mb(MpegEncContext *s);
+@@ -87,7 +87,7 @@
+     0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2,
+ };
+ 
+-#ifdef CONFIG_ENCODERS
++#if defined(CONFIG_ENCODERS) || defined(XINE_MPEG_ENCODER)
+ static uint8_t (*default_mv_penalty)[MAX_MV*2+1]=NULL;
+ static uint8_t default_fcode_tab[MAX_MV*2+1];
+ 
+@@ -173,7 +173,7 @@
+     }
+ }
+ 
+-#ifdef CONFIG_ENCODERS
++#if defined(CONFIG_ENCODERS) || defined(XINE_MPEG_ENCODER)
+ void ff_write_quant_matrix(PutBitContext *pb, int16_t *matrix){
+     int i;
+ 
+@@ -194,7 +194,7 @@
+     s->dct_unquantize_mpeg1 = dct_unquantize_mpeg1_c;
+     s->dct_unquantize_mpeg2 = dct_unquantize_mpeg2_c;
+ 
+-#ifdef CONFIG_ENCODERS
++#if defined(CONFIG_ENCODERS) || defined(XINE_MPEG_ENCODER)
+     s->dct_quantize= dct_quantize_c;
+ #endif
+         
+@@ -217,7 +217,7 @@
+     MPV_common_init_ppc(s);
+ #endif
+ 
+-#ifdef CONFIG_ENCODERS
++#if defined(CONFIG_ENCODERS) || defined(XINE_MPEG_ENCODER)
+     s->fast_dct_quantize= s->dct_quantize;
+ 
+     if(s->flags&CODEC_FLAG_TRELLIS_QUANT){
+@@ -569,7 +569,7 @@
+     s->current_picture_ptr= NULL;
+ }
+ 
+-#ifdef CONFIG_ENCODERS
++#if defined(CONFIG_ENCODERS) || defined(XINE_MPEG_ENCODER)
+ 
+ /* init video encoder */
+ int MPV_encode_init(AVCodecContext *avctx)
+@@ -686,6 +686,7 @@
+         s->low_delay= 0; //s->max_b_frames ? 0 : 1;
+         avctx->delay= s->low_delay ? 0 : (s->max_b_frames + 1);
+         break;
++#if defined(CONFIG_ENCODERS) || !defined(XINE_MPEG_ENCODER)
+     case CODEC_ID_MPEG2VIDEO:
+         s->out_format = FMT_MPEG1;
+         s->low_delay= 0; //s->max_b_frames ? 0 : 1;
+@@ -802,6 +803,7 @@
+         s->low_delay=1;
+         break;
+ #endif
++#endif
+     default:
+         return -1;
+     }
+@@ -836,22 +838,25 @@
+     if (MPV_common_init(s) < 0)
+         return -1;
+     
++#if defined(CONFIG_ENCODERS) || !defined(XINE_MPEG_ENCODER)
+     ff_init_me(s);
++#endif
+ 
+-#ifdef CONFIG_ENCODERS
++#if defined(CONFIG_ENCODERS) || !defined(XINE_MPEG_ENCODER)
+ #ifdef CONFIG_RISKY
+     if (s->out_format == FMT_H263)
+         h263_encode_init(s);
+     if(s->msmpeg4_version)
+         ff_msmpeg4_encode_init(s);
+ #endif
++#endif
+     if (s->out_format == FMT_MPEG1)
+         ff_mpeg1_encode_init(s);
+-#endif
+ 
+     /* init default q matrix */
+     for(i=0;i<64;i++) {
+         int j= s->dsp.idct_permutation[i];
++#if defined(CONFIG_ENCODERS) || !defined(XINE_MPEG_ENCODER)
+ #ifdef CONFIG_RISKY
+         if(s->codec_id==CODEC_ID_MPEG4 && s->mpeg_quant){
+             s->intra_matrix[j] = ff_mpeg4_default_intra_matrix[i];
+@@ -861,6 +866,7 @@
+             s->inter_matrix[j] = ff_mpeg1_default_non_intra_matrix[i];
+         }else
+ #endif
++#endif
+         { /* mpeg1/2 */
+             s->intra_matrix[j] = ff_mpeg1_default_intra_matrix[i];
+             s->inter_matrix[j] = ff_mpeg1_default_non_intra_matrix[i];
+@@ -904,8 +910,10 @@
+     ff_rate_control_uninit(s);
+ 
+     MPV_common_end(s);
++#if defined(CONFIG_ENCODERS) || !defined(XINE_MPEG_ENCODER)
+     if (s->out_format == FMT_MJPEG)
+         mjpeg_close(s);
++#endif
+ 
+     av_freep(&avctx->extradata);
+       
+@@ -1341,7 +1349,7 @@
+     }
+ }
+ 
+-#ifdef CONFIG_ENCODERS
++#if defined(CONFIG_ENCODERS) || defined(XINE_MPEG_ENCODER)
+ 
+ static int get_sae(uint8_t *src, int ref, int stride){
+     int x,y;
+@@ -1634,11 +1642,13 @@
+ 
+         MPV_frame_end(s);
+ 
++#if defined(CONFIG_ENCODERS) || !defined(XINE_MPEG_ENCODER)
+         if (s->out_format == FMT_MJPEG)
+             mjpeg_picture_trailer(s);
+         
+         if(s->flags&CODEC_FLAG_PASS1)
+             ff_write_pass1_stats(s);
++#endif
+ 
+         for(i=0; i<4; i++){
+             avctx->error[i] += s->current_picture_ptr->error[i];
+@@ -2607,7 +2617,7 @@
+     }
+ }
+ 
+-#ifdef CONFIG_ENCODERS
++#if defined(CONFIG_ENCODERS) || defined(XINE_MPEG_ENCODER)
+ 
+ static inline void dct_single_coeff_elimination(MpegEncContext *s, int n, int threshold)
+ {
+@@ -2812,7 +2822,7 @@
+     }    
+ }
+ 
+-#ifdef CONFIG_ENCODERS
++#if defined(CONFIG_ENCODERS) || defined(XINE_MPEG_ENCODER)
+ 
+ static void encode_mb(MpegEncContext *s, int motion_x, int motion_y)
+ {
+@@ -3051,6 +3061,7 @@
+     case CODEC_ID_MPEG1VIDEO:
+     case CODEC_ID_MPEG2VIDEO:
+         mpeg1_encode_mb(s, s->block, motion_x, motion_y); break;
++#if defined(CONFIG_ENCODERS) || !defined(XINE_MPEG_ENCODER)
+ #ifdef CONFIG_RISKY
+     case CODEC_ID_MPEG4:
+         mpeg4_encode_mb(s, s->block, motion_x, motion_y); break;
+@@ -3068,6 +3079,7 @@
+ #endif
+     case CODEC_ID_MJPEG:
+         mjpeg_encode_mb(s, s->block); break;
++#endif
+     default:
+         assert(0);
+     }
+@@ -3152,7 +3164,7 @@
+     s->parse_context.last_index= 0;
+ }
+ 
+-#ifdef CONFIG_ENCODERS
++#if defined(CONFIG_ENCODERS) || defined(XINE_MPEG_ENCODER)
+ void ff_copy_bits(PutBitContext *pb, uint8_t *src, int length)
+ {
+     int bytes= length>>4;
+@@ -3340,12 +3352,14 @@
+     s->current_picture.mb_var_sum = 0;
+     s->current_picture.mc_mb_var_sum = 0;
+ 
++#if defined(CONFIG_ENCODERS) || !defined(XINE_MPEG_ENCODER)
+ #ifdef CONFIG_RISKY
+     /* we need to initialize some time vars before we can encode b-frames */
+     // RAL: Condition added for MPEG1VIDEO
+     if (s->codec_id == CODEC_ID_MPEG1VIDEO || s->codec_id == CODEC_ID_MPEG2VIDEO || (s->h263_pred && !s->h263_msmpeg4))
+         ff_set_mpeg4_time(s, s->picture_number); 
+ #endif
++#endif
+         
+     s->scene_change_score=0;
+     
+@@ -3362,6 +3376,7 @@
+     /* Estimate motion for every MB */
+     s->mb_intra=0; //for the rate distoration & bit compare functions
+     if(s->pict_type != I_TYPE){
++#if defined(CONFIG_ENCODERS) || !defined(XINE_MPEG_ENCODER)
+         if(s->pict_type != B_TYPE){
+             if((s->avctx->pre_me && s->last_non_b_pict_type==I_TYPE) || s->avctx->pre_me==2){
+                 s->me.pre_pass=1;
+@@ -3399,6 +3414,7 @@
+                     ff_estimate_p_frame_motion(s, mb_x, mb_y);
+             }
+         }
++#endif
+     }else /* if(s->pict_type == I_TYPE) */{
+         /* I-Frame */
+         //FIXME do we need to zero them?
+@@ -3433,6 +3449,7 @@
+ //printf("Scene change detected, encoding as I Frame %d %d\n", s->current_picture.mb_var_sum, s->current_picture.mc_mb_var_sum);
+     }
+ 
++#if defined(CONFIG_ENCODERS) || !defined(XINE_MPEG_ENCODER)
+     if(!s->umvplus){
+         if(s->pict_type==P_TYPE || s->pict_type==S_TYPE) {
+             s->f_code= ff_get_best_fcode(s, s->p_mv_table, MB_TYPE_INTER);
+@@ -3457,11 +3474,13 @@
+             ff_fix_long_b_mvs(s, s->b_bidir_back_mv_table, s->b_code, MB_TYPE_BIDIR);
+         }
+     }
++#endif
+     
+     if (!s->fixed_qscale) 
+         s->current_picture.quality = ff_rate_estimate_qscale(s);
+ 
+     if(s->adaptive_quant){
++#if defined(CONFIG_ENCODERS) || !defined(XINE_MPEG_ENCODER)
+ #ifdef CONFIG_RISKY
+         switch(s->codec_id){
+         case CODEC_ID_MPEG4:
+@@ -3474,6 +3493,7 @@
+             break;
+         }
+ #endif
++#endif
+ 
+         s->lambda= s->lambda_table[0];
+         //FIXME broken
+@@ -3506,6 +3526,7 @@
+ 
+     s->last_bits= get_bit_count(&s->pb);
+     switch(s->out_format) {
++#if defined(CONFIG_ENCODERS) || !defined(XINE_MPEG_ENCODER)
+     case FMT_MJPEG:
+         mjpeg_picture_header(s);
+         break;
+@@ -3524,6 +3545,15 @@
+         else
+             h263_encode_picture_header(s, picture_number);
+         break;
++#else
++    case FMT_H263:
++        break;
++#endif
++#else
++    case FMT_MJPEG:
++        break;
++    case FMT_H263:
++        break;
+ #endif
+     case FMT_MPEG1:
+         mpeg1_encode_picture_header(s, picture_number);
+@@ -3558,6 +3588,7 @@
+      
+     s->last_mv_dir = 0;
+ 
++#if defined(CONFIG_ENCODERS) || !defined(XINE_MPEG_ENCODER)
+ #ifdef CONFIG_RISKY
+     switch(s->codec_id){
+     case CODEC_ID_H263:
+@@ -3571,6 +3602,7 @@
+         break;
+     }
+ #endif
++#endif
+ 
+     s->resync_mb_x=0;
+     s->resync_mb_y=0;
+@@ -3594,6 +3626,7 @@
+             ff_update_block_index(s);
+ 
+             /* write gob / video packet header  */
++#if defined(CONFIG_ENCODERS) || !defined(XINE_MPEG_ENCODER)
+ #ifdef CONFIG_RISKY
+             if(s->rtp_mode && mb_y + mb_x>0){
+                 int current_packet_size, is_gob_start;
+@@ -3649,6 +3682,7 @@
+                 }
+             }
+ #endif
++#endif
+ 
+             if(  (s->resync_mb_x   == s->mb_x)
+                && s->resync_mb_y+1 == s->mb_y){
+@@ -3734,9 +3768,11 @@
+                     
+                     s->mv_dir = MV_DIR_FORWARD | MV_DIR_BACKWARD | MV_DIRECT;
+                     s->mb_intra= 0;
++#if defined(CONFIG_ENCODERS) || !defined(XINE_MPEG_ENCODER)
+ #ifdef CONFIG_RISKY
+                     ff_mpeg4_set_direct_mv(s, mx, my);
+ #endif
++#endif
+                     encode_mb_hq(s, &backup_s, &best_s, MB_TYPE_DIRECT, pb, pb2, tex_pb, 
+                                  &dmin, &next_block, mx, my);
+                 }
+@@ -3905,9 +3941,11 @@
+                     s->mb_intra= 0;
+                     motion_x=s->b_direct_mv_table[xy][0];
+                     motion_y=s->b_direct_mv_table[xy][1];
++#if defined(CONFIG_ENCODERS) || !defined(XINE_MPEG_ENCODER)
+ #ifdef CONFIG_RISKY
+                     ff_mpeg4_set_direct_mv(s, motion_x, motion_y);
+ #endif
++#endif
+                     break;
+                 case MB_TYPE_BIDIR:
+                     s->mv_dir = MV_DIR_FORWARD | MV_DIR_BACKWARD;
+@@ -3978,6 +4016,7 @@
+     }
+     emms_c();
+ 
++#if defined(CONFIG_ENCODERS) || !defined(XINE_MPEG_ENCODER)
+ #ifdef CONFIG_RISKY
+     if(s->codec_id==CODEC_ID_MPEG4 && s->partitioned_frame)
+         ff_mpeg4_merge_partitions(s);
+@@ -3988,6 +4027,7 @@
+     if(s->codec_id==CODEC_ID_MPEG4) 
+         ff_mpeg4_stuffing(&s->pb);
+ #endif
++#endif
+ 
+     //if (s->gob_number)
+     //    fprintf(stderr,"\nNumber of GOB: %d", s->gob_number);
+@@ -4626,7 +4666,7 @@
+     AVOPTION_END()
+ };
+ 
+-#ifdef CONFIG_ENCODERS
++#if defined(CONFIG_ENCODERS) || defined(XINE_MPEG_ENCODER)
+ 
+ AVCodec mpeg1video_encoder = {
+     "mpeg1video",
+@@ -4638,6 +4678,7 @@
+     MPV_encode_end,
+ };
+ 
++#if defined(CONFIG_ENCODERS) || !defined(XINE_MPEG_ENCODER)
+ #ifdef CONFIG_RISKY
+ 
+ AVCodec mpeg2video_encoder = {
+@@ -4757,5 +4798,7 @@
+     MPV_encode_end,
+ };
+ 
++#endif
++
+ #endif //CONFIG_ENCODERS
+ 
+--- libavcodec/msvideo1.c	2003-10-27 16:24:38.000000000 +0100
++++ libavcodec/msvideo1.c	2003-10-28 21:04:59.000000000 +0100
+@@ -38,6 +38,8 @@
+ #include "avcodec.h"
+ #include "dsputil.h"
+ 
++#undef LE_16
++
+ #define PALETTE_COUNT 256
+ #define LE_16(x)  ((((uint8_t*)(x))[1] << 8) | ((uint8_t*)(x))[0])
+ #define CHECK_STREAM_PTR(n) \
+--- libavcodec/rpza.c	2003-10-27 16:24:38.000000000 +0100
++++ libavcodec/rpza.c	2003-10-28 21:05:35.000000000 +0100
+@@ -54,6 +54,9 @@
+ 
+ } RpzaContext;
+ 
++#undef BE_16
++#undef BE_32
++
+ #define BE_16(x)  ((((uint8_t*)(x))[0] << 8) | ((uint8_t*)(x))[1])
+ #define BE_32(x)  ((((uint8_t*)(x))[0] << 24) | \
+                    (((uint8_t*)(x))[1] << 16) | \
+--- libavcodec/vqavideo.c	2003-10-30 07:00:28.000000000 +0100
++++ libavcodec/vqavideo.c	2003-10-30 20:13:31.000000000 +0100
+@@ -82,6 +82,10 @@
+ #define MAX_VECTORS (MAX_CODEBOOK_VECTORS + SOLID_PIXEL_VECTORS)
+ #define MAX_CODEBOOK_SIZE (MAX_VECTORS * 4 * 4)
+ 
++#undef LE_16
++#undef BE_16
++#undef BE_32
++
+ #define LE_16(x)  ((((uint8_t*)(x))[1] << 8) | ((uint8_t*)(x))[0])
+ #define BE_16(x)  ((((uint8_t*)(x))[0] << 8) | ((uint8_t*)(x))[1])
+ #define BE_32(x)  ((((uint8_t*)(x))[0] << 24) | \
+--- libavcodec/xan.c	2003-10-30 07:00:29.000000000 +0100
++++ libavcodec/xan.c	2003-10-30 23:27:28.000000000 +0100
+@@ -58,6 +58,10 @@
+ 
+ } XanContext;
+ 
++#undef BE_16
++#undef LE_16
++#undef LE_32
++
+ #define BE_16(x)  ((((uint8_t*)(x))[0] << 8) | ((uint8_t*)(x))[1])
+ #define LE_16(x)  ((((uint8_t*)(x))[1] << 8) | ((uint8_t*)(x))[0])
+ #define LE_32(x)  ((((uint8_t*)(x))[3] << 24) | \
+@@ -69,6 +73,8 @@
+ #define SCALEFACTOR 65536
+ #define CENTERSAMPLE 128
+ 
++#undef COMPUTE_Y
++
+ #define COMPUTE_Y(r, g, b) \
+   (unsigned char) \
+   ((y_r_table[r] + y_g_table[g] + y_b_table[b]) / SCALEFACTOR)

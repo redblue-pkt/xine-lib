@@ -3,7 +3,7 @@ include $(top_srcdir)/misc/Makefile.common
 SUBDIRS = libavcodec 
 
 # this must always be included, even if the current machine has no DXR3...
-EXTRA_DIST = xine_encoder.c
+EXTRA_DIST = xine_encoder.c diff_to_ffmpeg_cvs.txt
 
 INTERNAL_DOCS = diff_to_ffmpeg_cvs.txt
 

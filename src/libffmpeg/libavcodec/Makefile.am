@@ -1,14 +1,9 @@
 include $(top_srcdir)/misc/Makefile.common
 
-SUBDIRS = armv4l i386 mlib alpha libpostproc
+SUBDIRS = armv4l i386 mlib alpha ppc libpostproc
 
-## we include ppc/* files since auto* doesn't dive into.
-## we also include imgresample.c motion_est.c which are unused
+## we include some unused files
 EXTRA_DIST = fdctref.c motion_est_template.c svq3.c wmv2.c \
-	ppc/dsputil_ppc.c ppc/libavcodec_ppc_dummy.c ppc/mpegvideo_altivec.c \
-	ppc/dsputil_altivec.c ppc/fft_altivec.c ppc/Makefile.am \
-	ppc/mpegvideo_ppc.c ppc/dsputil_altivec.h  ppc/idct_altivec.c \
-	ppc/dsputil_ppc.h ppc/gcc_fixes.h ppc/gmc_altivec.c \
 	imgresample.c motion_est.c
 
 AM_CFLAGS = $(LIBFFMPEG_CFLAGS)
@@ -74,6 +69,7 @@ libavcodec_la_LDFLAGS = \
 	$(top_builddir)/src/libffmpeg/libavcodec/armv4l/libavcodec_armv4l.la \
 	$(top_builddir)/src/libffmpeg/libavcodec/i386/libavcodec_mmx.la \
 	$(top_builddir)/src/libffmpeg/libavcodec/mlib/libavcodec_mlib.la \
+	$(top_builddir)/src/libffmpeg/libavcodec/ppc/libavcodec_ppc.la \
 	-avoid-version -module
 
 
@@ -105,6 +101,3 @@ noinst_HEADERS = \
 	svq1_vlc.h \
 	vp3data.h \
 	wmadata.h
-
-.s.lo:
-	$(ASCOMPILE) -o $@ `test -f $< || echo '$(srcdir)/'`$<

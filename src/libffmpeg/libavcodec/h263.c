@@ -2377,6 +2377,7 @@ static inline void mpeg4_encode_block(MpegEncContext * s, DCTELEM * block, int n
 #endif
 }
 
+#if 0
 static inline int mpeg4_get_block_length(MpegEncContext * s, DCTELEM * block, int n, int intra_dc, 
                                uint8_t *scan_table)
 {
@@ -2430,6 +2431,7 @@ static inline int mpeg4_get_block_length(MpegEncContext * s, DCTELEM * block, in
     
     return len;
 }
+#endif
 
 #endif
 
@@ -2593,12 +2595,14 @@ static int h263_decode_gob_header(MpegEncContext *s)
     return 0;
 }
 
+#if 0
 static inline void memsetw(short *tab, int val, int n)
 {
     int i;
     for(i=0;i<n;i++)
         tab[i] = val;
 }
+#endif
 
 #ifdef CONFIG_ENCODERS
 

@@ -495,7 +495,7 @@ static int ra144_decode_frame(AVCodecContext * avctx,
   temp=glob->swapbuf2alt;
   glob->swapbuf2alt=glob->swapbuf2;
   glob->swapbuf2=temp;
-  *data_size=data-datao;
+  *data_size=(char *)data-(char *)datao;
   return 20;
 }
 

@@ -129,7 +129,7 @@ typedef struct InternalBuffer{
 
 #define ALIGN(x, a) (((x)+(a)-1)&~((a)-1))
 
-void avcodec_align_dimensions(AVCodecContext *s, int *width, int *height){
+static void avcodec_align_dimensions(AVCodecContext *s, int *width, int *height){
     int w_align= 1;    
     int h_align= 1;    
     
@@ -283,7 +283,7 @@ void avcodec_default_release_buffer(AVCodecContext *s, AVFrame *pic){
 //printf("R%X\n", pic->opaque);
 }
 
-enum PixelFormat avcodec_default_get_format(struct AVCodecContext *s, enum PixelFormat * fmt){
+static enum PixelFormat avcodec_default_get_format(struct AVCodecContext *s, enum PixelFormat * fmt){
     return fmt[0];
 }
 
@@ -491,7 +491,7 @@ AVCodec *avcodec_find_decoder_by_name(const char *name)
     return NULL;
 }
 
-AVCodec *avcodec_find(enum CodecID id)
+static AVCodec *avcodec_find(enum CodecID id)
 {
     AVCodec *p;
     p = first_avcodec;
