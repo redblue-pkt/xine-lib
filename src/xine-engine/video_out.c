@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.12 2001/06/03 18:08:56 guenter Exp $
+ * $Id: video_out.c,v 1.13 2001/06/03 19:41:05 guenter Exp $
  *
  */
 
@@ -134,7 +134,7 @@ static void *video_out_loop (void *this_gen) {
 
   uint32_t           cur_pts;
   int                pts_absdiff, diff, absdiff, pts=0;
-  vo_frame_t *img;
+  vo_frame_t        *img;
   uint32_t           video_step, video_step_new;
   vo_instance_t     *this = (vo_instance_t *) this_gen;
   sigset_t           vo_mask;
@@ -304,6 +304,8 @@ static vo_frame_t *vo_get_frame (vo_instance_t *this,
 
 static void vo_close (vo_instance_t *this) {
 
+  printf ("vo_close\n");
+
   if (this->video_loop_running) {
     void *p;
 
@@ -313,26 +315,26 @@ static void vo_close (vo_instance_t *this) {
 }
 
 static void vo_free_img_buffers (vo_instance_t *this) {
-  /* vo_frame_t *img; */
+  vo_frame_t *img; 
 
-  /* FIXME
-  while ((img = remove_from_img_buf_queue_noblock (this->display_img_buf_queue))) {
-    gVideoDriver->dispose_image_buffer(img);
+  while (this->free_img_buf_queue->first) {
+    img = vo_remove_from_img_buf_queue (this->free_img_buf_queue);
+    img->dispose (img);
   }
 
-  while ((img = remove_from_img_buf_queue_noblock (this->free_img_buf_queue))) {
-    gVideoDriver->dispose_image_buffer(img);
+  while (this->display_img_buf_queue->first) {
+    img = vo_remove_from_img_buf_queue (this->display_img_buf_queue) ;
+    img->dispose (img);
   }
-  */
-
 }
 
 static void vo_exit (vo_instance_t *this) {
 
-  vo_close (this);
-  vo_free_img_buffers (this);
-  this->driver->exit (this->driver);
+  printf ("vo_exit\n");
 
+  vo_free_img_buffers (this);
+
+  this->driver->exit (this->driver);
 }
 
 static void vo_frame_displayed (vo_frame_t *img) {

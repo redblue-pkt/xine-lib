@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.16 2001/06/03 18:08:56 guenter Exp $
+ * $Id: video_decoder.c,v 1.17 2001/06/03 19:41:05 guenter Exp $
  *
  */
 
@@ -144,7 +144,6 @@ void video_decoder_shutdown (xine_t *this) {
   this->video_fifo->put (this->video_fifo, buf);
 
   pthread_join (this->video_thread, &p);
-
 
   this->video_out->exit (this->video_out);
 }

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.32 2001/06/03 19:11:06 guenter Exp $
+ * $Id: video_out_xv.c,v 1.33 2001/06/03 19:41:05 guenter Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -143,10 +143,18 @@ static void xv_frame_field (vo_frame_t *vo_img, int which_field) {
 
 static void xv_frame_dispose (vo_frame_t *vo_img) {
 
-  /* xv_frame_t     *frame = (xv_frame_t *) vo_img ;*/
+  xv_frame_t  *frame = (xv_frame_t *) vo_img ;
+  xv_driver_t *this = (xv_driver_t *) vo_img->instance->driver;
 
-  /* FIXME: implement */  
+  XLockDisplay (this->display); 
+  XShmDetach (this->display, &frame->shminfo);
+  XFree (frame->image);
+  XUnlockDisplay (this->display); 
 
+  shmdt (frame->shminfo.shmaddr);
+  shmctl (frame->shminfo.shmid, IPC_RMID,NULL);
+
+  free (frame);
 }
 
 
