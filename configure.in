@@ -935,6 +935,7 @@ src/libvorbis/Makefile
 src/libxvid/Makefile
 src/libdivx4/Makefile
 src/libxinevdec/Makefile
+src/libxineadec/Makefile
 src/xine-utils/Makefile
 src/input/Makefile
 src/xine-engine/Makefile
