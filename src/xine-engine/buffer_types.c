@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer_types.c,v 1.68 2003/10/19 16:32:08 jstembridge Exp $
+ * $Id: buffer_types.c,v 1.69 2003/10/25 04:03:33 tmmm Exp $
  *
  *
  * contents:
@@ -601,7 +601,9 @@ static video_db_t video_db[] = {
 static audio_db_t audio_db[] = {
 {
   {
-    0x2000, 0
+    0x2000,
+    meFOURCC('m', 's', 0x20, 0x00),
+    0
   },
   BUF_AUDIO_A52,
   "AC3"
