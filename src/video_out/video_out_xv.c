@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.142 2002/10/26 10:20:20 tmattern Exp $
+ * $Id: video_out_xv.c,v 1.143 2002/10/27 22:50:01 tmattern Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -435,10 +435,10 @@ static void xv_deinterlace_frame (xv_driver_t *this) {
   int xvscaling;
 
   xvscaling = (this->deinterlace_method == DEINTERLACE_ONEFIELDXV) ? 2 : 1;
-  
+
   if ( !this->deinterlace_frame.image
        || (frame->width != this->deinterlace_frame.width)
-       || (frame->height / xvscaling != this->deinterlace_frame.height )
+       || (frame->height != this->deinterlace_frame.height )
        || (frame->format != this->deinterlace_frame.format)) {
     XLockDisplay (this->display);
 
@@ -450,7 +450,7 @@ static void xv_deinterlace_frame (xv_driver_t *this) {
 						   frame->width,frame->height / xvscaling,
 						   frame->format);
     this->deinterlace_frame.width  = frame->width;
-    this->deinterlace_frame.height = frame->height / xvscaling;
+    this->deinterlace_frame.height = frame->height;
     this->deinterlace_frame.format = frame->format;
     this->deinterlace_frame.ratio_code = frame->ratio_code;
 
@@ -509,19 +509,19 @@ static void xv_deinterlace_frame (xv_driver_t *this) {
       src+=2*frame->width;
     }
     
-    dst = this->deinterlace_frame.image->data + frame->width*frame->height/2;
+    dst = this->deinterlace_frame.image->data + frame->width*frame->height / 2;
     src = this->recent_frames[0]->image->data + frame->width*frame->height;
     for( i = 0; i < frame->height; i+=4 ) {
-      xine_fast_memcpy(dst,src,frame->width/2);
-      dst+=frame->width/2;
+      xine_fast_memcpy(dst,src,frame->width / 2);
+      dst+=frame->width / 2;
       src+=frame->width;
     }
     
-    dst = this->deinterlace_frame.image->data + frame->width*frame->height*5/8;
-    src = this->recent_frames[0]->image->data + frame->width*frame->height*5/4;
+    dst = this->deinterlace_frame.image->data + frame->width*frame->height * 5 / 8;
+    src = this->recent_frames[0]->image->data + frame->width*frame->height * 5 / 4;
     for( i = 0; i < frame->height; i+=4 ) {
-      xine_fast_memcpy(dst,src,frame->width/2);
-      dst+=frame->width/2;
+      xine_fast_memcpy(dst,src,frame->width / 2);
+      dst+=frame->width / 2;
       src+=frame->width;
     }
   }
@@ -675,11 +675,11 @@ static void xv_display_frame (xine_vo_driver_t *this_gen, vo_frame_t *frame_gen)
     this->cur_frame = frame;
 
 
+  
     /*
      * let's see if this frame is different in size / aspect
      * ratio from the previous one
      */
-
     if ( (frame->width != this->sc.delivered_width)
          || (frame->height != this->sc.delivered_height)
          || (frame->ratio_code != this->sc.delivered_ratio_code) ) {
@@ -690,12 +690,6 @@ static void xv_display_frame (xine_vo_driver_t *this_gen, vo_frame_t *frame_gen)
     }
 
     /* 
-     * tell gui that we are about to display a frame,
-     * ask for offset and output size
-     */
-    xv_redraw_needed (this_gen);
-    
-    /* 
      * deinterlace frame if necessary
      * (currently only working for YUV images)
      */
@@ -703,6 +697,12 @@ static void xv_display_frame (xine_vo_driver_t *this_gen, vo_frame_t *frame_gen)
     if (this->deinterlace_enabled && this->deinterlace_method 
         && frame->format == XINE_IMGFMT_YV12)
       xv_deinterlace_frame (this);
+
+    /* 
+     * tell gui that we are about to display a frame,
+     * ask for offset and output size
+     */
+    xv_redraw_needed (this_gen);
 
     XLockDisplay (this->display);
 
