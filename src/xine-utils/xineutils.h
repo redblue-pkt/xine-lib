@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xineutils.h,v 1.61 2003/11/01 01:25:44 tmmm Exp $
+ * $Id: xineutils.h,v 1.62 2003/11/01 17:25:49 mroi Exp $
  *
  */
 #ifndef XINEUTILS_H
@@ -963,6 +963,39 @@ void xine_print_trace(void);
       }                                         \
     } while(0)
 #endif /* __GNUC__ */
+
+/* time measuring macros for profiling tasks */
+
+#ifdef DEBUG
+#  define XINE_PROFILE(function)                                            \
+     do {                                                                   \
+       struct timeval current_time;                                         \
+       double dtime;                                                        \
+       gettimeofday(&current_time, NULL);                                   \
+       dtime = -(current_time.tv_sec + (current_time.tv_usec / 1000000.0)); \
+       function;                                                            \
+       gettimeofday(&current_time, NULL);                                   \
+       dtime += current_time.tv_sec + (current_time.tv_usec / 1000000.0);   \
+       printf("%s: (%s:%d) took %lf seconds\n",                             \
+              LOG_MODULE, __XINE_FUNCTION__, __LINE__, dtime);              \
+     } while(0)
+#  define XINE_PROFILE_ACCUMULATE(function)                                 \
+     do {                                                                   \
+       struct timeval current_time;                                         \
+       static double dtime = 0;                                             \
+       gettimeofday(&current_time, NULL);                                   \
+       dtime -= current_time.tv_sec + (current_time.tv_usec / 1000000.0);   \
+       function;                                                            \
+       gettimeofday(&current_time, NULL);                                   \
+       dtime += current_time.tv_sec + (current_time.tv_usec / 1000000.0);   \
+       printf("%s: (%s:%d) took %lf seconds\n",                             \
+              LOG_MODULE, __XINE_FUNCTION__, __LINE__, dtime);              \
+     } while(0)
+#else
+#  define XINE_PROFILE(function) function
+#  define XINE_PROFILE_ACCUMULATE(function) function
+#endif /* LOG */
+
 
 /******** double chained lists with builtin iterator *******/
 
