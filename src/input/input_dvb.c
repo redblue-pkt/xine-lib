@@ -909,10 +909,11 @@ static void do_eit(dvb_input_plugin_t *this)
   int running_status=0;
   struct pollfd fd;
   foo=malloc(8192);
-  memset(foo,0,8192);
   char *buffer;
   int loops;
   int current_channel;    
+  memset(foo,0,8192);
+
   fd.fd = this->tuner->fd_pidfilter[EITFILTER];
   fd.events = POLLPRI;
 
