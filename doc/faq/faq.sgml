@@ -117,13 +117,13 @@
     </para>
     <para>
      To check out xine-modules from CVS, first do this:
-     <screen>&nbsp;&nbsp;&nbsp;<command>cvs -d :pserver:anonymous@cvs.xine.sourceforge.net:/cvsroot/xine login</command></screen>
+     <screen>&nbsp;&nbsp;&nbsp;<command>cvs -d :pserver:anonymous@cvs.xine.sf.net:/cvsroot/xine login</command></screen>
      The password is empty, just press Enter.
     </para>
     <para>
      Then, to check out individual modules (e.g. <filename>xine-lib</filename>, 
      <filename>gxine</filename> or <filename>xine-ui</filename>):
-     <screen>&nbsp;&nbsp;&nbsp;<command>cvs -d :pserver:anonymous@cvs.xine.sourceforge.net:/cvsroot/xine co &lt;modulename&gt;</command></screen>
+     <screen>&nbsp;&nbsp;&nbsp;<command>cvs -d :pserver:anonymous@cvs.xine.sf.net:/cvsroot/xine co &lt;modulename&gt;</command></screen>
     </para>
    </sect2>
 
@@ -317,7 +317,8 @@
     </para>
     <para>
      An example combining some of these would look like:
-     <screen>&nbsp;&nbsp;&nbsp;<command>./configure CC="/opt/intel/bin/icc" LD="/opt/intel/bin/xild" CPPFLAGS="-I/usr/local/include/dvdnav" LDFLAGS="-L/home/guenter/xine_libs"</command></screen>
+     <screen>&nbsp;&nbsp;&nbsp;<command>./configure CC="/opt/intel/bin/icc" LD="/opt/intel/bin/xild" \
+&nbsp;&nbsp;&nbsp;CPPFLAGS="-I/usr/local/include/dvdnav" LDFLAGS="-L/home/guenter/xine_libs"</command></screen>
     </para>
    </sect2>
 
