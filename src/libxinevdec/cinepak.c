@@ -22,7 +22,7 @@
  * based on overview of Cinepak algorithm and example decoder
  * by Tim Ferguson: http://www.csse.monash.edu.au/~timf/
  *
- * $Id: cinepak.c,v 1.22 2002/12/06 01:44:06 miguelfreitas Exp $
+ * $Id: cinepak.c,v 1.23 2002/12/15 16:35:51 esnel Exp $
  */
 
 #include <stdlib.h>
@@ -94,7 +94,7 @@ static void cinepak_decode_codebook (cvid_codebook_t *codebook,
       if ((data + 4) > eod)
         break;
 
-      flag  = (data[0] << 24) | (data[1] << 16) | (data[2] << 8) | data[3];
+      flag  = BE_32 (data);
       data += 4;
       mask  = 0x80000000;
     }
@@ -171,7 +171,7 @@ static void cinepak_decode_vectors (cvid_decoder_t *this, cvid_strip_t *strip,
 	if ((data + 4) > eod)
 	  return;
 
-	flag  = (data[0] << 24) | (data[1] << 16) | (data[2] << 8) | data[3];
+	flag  = BE_32 (data);
 	data += 4;
 	mask  = 0x80000000;
       }
@@ -181,7 +181,7 @@ static void cinepak_decode_vectors (cvid_decoder_t *this, cvid_strip_t *strip,
 	  if ((data + 4) > eod)
 	    return;
 
-	  flag  = (data[0] << 24) | (data[1] << 16) | (data[2] << 8) | data[3];
+	  flag  = BE_32 (data);
 	  data += 4;
 	  mask  = 0x80000000;
 	}
@@ -253,8 +253,8 @@ static void cinepak_decode_strip (cvid_decoder_t *this,
     return;
 
   while ((data + 4) <= eod) {
-    chunk_id   =  (data[0] << 8) | data[1];
-    chunk_size = ((data[2] << 8) | data[3]) - 4;
+    chunk_id   = BE_16 (&data[0]);
+    chunk_size = BE_16 (&data[2]) - 4;
     data      += 4;
     chunk_size = ((data + chunk_size) > eod) ? (eod - data) : chunk_size;
 
@@ -290,8 +290,8 @@ static void cinepak_decode_frame (cvid_decoder_t *this, uint8_t *data, int size)
   if (size < 10)
     return;
 
-  frame_flags =  data[0];
-  num_strips  = (data[8] << 8) | data[9];
+  frame_flags = data[0];
+  num_strips  = BE_16 (&data[8]);
   data	     += 10;
 
   if (num_strips > MAX_STRIPS)
@@ -301,13 +301,13 @@ static void cinepak_decode_frame (cvid_decoder_t *this, uint8_t *data, int size)
     if ((data + 12) > eod)
       break;
 
-    this->strips[i].id = (data[0] << 8) | data[1];
+    this->strips[i].id = BE_16 (data);
     this->strips[i].y1 = y0;
     this->strips[i].x1 = 0;
-    this->strips[i].y2 = y0 + ((data[8] << 8) | data[9]);
+    this->strips[i].y2 = y0 + BE_16 (&data[8]);
     this->strips[i].x2 = this->biWidth;
 
-    strip_size = (data[2] << 8) + data[3] - 12;
+    strip_size = BE_16 (&data[2]) - 12;
     data      += 12;
     strip_size = ((data + strip_size) > eod) ? (eod - data) : strip_size;
 
