@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decoder.c,v 1.49 2001/12/23 04:08:25 hrm Exp $
+ * $Id: dxr3_decoder.c,v 1.50 2001/12/23 04:27:33 hrm Exp $
  *
  * dxr3 video and spu decoder plugin. Accepts the video and spu data
  * from XINE and sends it directly to the corresponding dxr3 devices.
@@ -251,7 +251,7 @@ static void dxr3scr_adjust (scr_plugin_t *scr, uint32_t vpts) {
 	if (ioctl(self->fd_control, EM8300_IOCTL_SCR_GET, &cpts))
 		printf("dxr3scr: adjust get failed (%s)\n", strerror(errno));
 	cpts <<= 1;
-	self->offset = (vpts - (cpts + self->offset));
+	self->offset = vpts - cpts;
 	/* kernel driver ignores diffs < 7200 */
 	if (self->offset < -7200 || self->offset > 7200) {
 		vpts >>= 1;
