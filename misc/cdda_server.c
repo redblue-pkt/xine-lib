@@ -187,6 +187,7 @@ static int sock_check_opened(int socket) {
   return 0;
 }
 
+#if 0
 /*
  * read binary data from socket 
  */
@@ -235,6 +236,7 @@ static int sock_data_read (int socket, char *buf, int nlen) {
 
   return num_bytes;
 }
+#endif
 
 /*
  * read a line (\n-terminated) from socket 
