@@ -86,9 +86,9 @@ EOF
 @HAVE_DXR3_TRUE@EOF
 
 @HAVE_XV_TRUE@cat > package_descriptions_xv << EOF
-@HAVE_XV_TRUE@@PACKAGE@-dxr3: @PACKAGE@-xv @SPEC_VERSION@.
-@HAVE_XV_TRUE@@PACKAGE@-dxr3:
-@HAVE_XV_TRUE@@PACKAGE@-dxr3: video plugin with XVideo support.
+@HAVE_XV_TRUE@@PACKAGE@-xv: @PACKAGE@-xv @SPEC_VERSION@.
+@HAVE_XV_TRUE@@PACKAGE@-xv:
+@HAVE_XV_TRUE@@PACKAGE@-xv: video plugin with XVideo support.
 @HAVE_XV_TRUE@EOF
 
 @HAVE_AA_TRUE@cat > package_descriptions_aa << EOF
@@ -98,9 +98,9 @@ EOF
 @HAVE_AA_TRUE@EOF
 
 @W32DLL_DEP@cat > package_descriptions_w32 << EOF
-@W32DLL_DEP@@PACKAGE@-aa: @PACKAGE@-w32 @SPEC_VERSION@.
-@W32DLL_DEP@@PACKAGE@-aa:
-@W32DLL_DEP@@PACKAGE@-aa: video decoder with win32dll support.
+@W32DLL_DEP@@PACKAGE@-w32: @PACKAGE@-w32 @SPEC_VERSION@.
+@W32DLL_DEP@@PACKAGE@-w32:
+@W32DLL_DEP@@PACKAGE@-w32: video decoder with win32dll support.
 @W32DLL_DEP@EOF
 
 @HAVE_VORBIS_TRUE@cat > package_descriptions_oggvorbis << EOF
@@ -111,14 +111,14 @@ EOF
 }
 
 #
-# Create extra packages (alsa05, alsa09 and dxr3)
+# Create extra packages (alsa05, alsa09 and dxr3, etc...)
 #
 do_extra_packages() {
     cwd=`pwd`
 
 ## OSS plugin
 @HAVE_OSS_TRUE@    mkdir -p oss$PREFIX/lib/xine/plugins && \
-@HAVE_OSS_TRUE@    cp $PKG/$PREFIX/lib/xine/plugins/xineplug_ao_out_oss.la $PKG/$PREFIX/lib/xine/plugins/xineplug_ao_out_oss.so alsa05$PREFIX/lib/xine/plugins && \
+@HAVE_OSS_TRUE@    cp $PKG/$PREFIX/lib/xine/plugins/xineplug_ao_out_oss.la $PKG/$PREFIX/lib/xine/plugins/xineplug_ao_out_oss.so oss$PREFIX/lib/xine/plugins && \
 @HAVE_OSS_TRUE@    (cd oss && \
 @HAVE_OSS_TRUE@    echo "n" | makepkg $ossPACKAGE && \
 @HAVE_OSS_TRUE@    echo "move $ossPACKAGE to $SLCK" && mv $ossPACKAGE $SLCK) && \
@@ -145,7 +145,7 @@ do_extra_packages() {
 
 ## Arts plugin
 @HAVE_ARTS_TRUE@    mkdir -p arts$PREFIX/lib/xine/plugins && \
-@HAVE_ARTS_TRUE@    cp $PKG/$PREFIX/lib/xine/plugins/xineplug_ao_out_arts.la $PKG/$PREFIX/lib/xine/plugins/xineplug_ao_out_arts.so alsa09$PREFIX/lib/xine/plugins && \
+@HAVE_ARTS_TRUE@    cp $PKG/$PREFIX/lib/xine/plugins/xineplug_ao_out_arts.la $PKG/$PREFIX/lib/xine/plugins/xineplug_ao_out_arts.so arts$PREFIX/lib/xine/plugins && \
 @HAVE_ARTS_TRUE@    (cd arts && \
 @HAVE_ARTS_TRUE@    echo "n" | makepkg $artsPACKAGE && \
 @HAVE_ARTS_TRUE@    echo "move $artsPACKAGE to $SLCK" && mv $artsPACKAGE $SLCK) && \
@@ -154,7 +154,7 @@ do_extra_packages() {
 
 ## Esd plugin
 @HAVE_ESD_TRUE@    mkdir -p esd$PREFIX/lib/xine/plugins && \
-@HAVE_ESD_TRUE@    cp $PKG/$PREFIX/lib/xine/plugins/xineplug_ao_out_esd.la $PKG/$PREFIX/lib/xine/plugins/xineplug_ao_out_esd.so alsa09$PREFIX/lib/xine/plugins && \
+@HAVE_ESD_TRUE@    cp $PKG/$PREFIX/lib/xine/plugins/xineplug_ao_out_esd.la $PKG/$PREFIX/lib/xine/plugins/xineplug_ao_out_esd.so esd$PREFIX/lib/xine/plugins && \
 @HAVE_ESD_TRUE@    (cd esd && \
 @HAVE_ESD_TRUE@    echo "n" | makepkg $esdPACKAGE && \
 @HAVE_ESD_TRUE@    echo "move $esdPACKAGE to $SLCK" && mv $esdPACKAGE $SLCK) && \
@@ -267,8 +267,6 @@ build_pentiumpro() {
   do_build
   if test "$DIE" -eq 0; then 
     tar -czvf @PACKAGE@-@VERSION@-i686.tar.gz $PACKAGE package_descriptions
-
-
 @HAVE_OSS_TRUE@    rm -f package_descriptions
 @HAVE_OSS_TRUE@    mv package_descriptions_oss package_descriptions && \
 @HAVE_OSS_TRUE@    tar -czvf @PACKAGE@-@VERSION@-oss-i686.tar.gz $ossPACKAGE package_descriptions
