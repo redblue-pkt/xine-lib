@@ -1142,6 +1142,7 @@ void ff_estimate_p_frame_motion(MpegEncContext * s,
 //printf("%d %d %d %X %X %X\n", s->mb_width, mb_x, mb_y,(int)s, (int)s->mb_var, (int)s->mc_mb_var); fflush(stdout);
     s->mb_var   [s->mb_width * mb_y + mb_x] = varc;
     s->mc_mb_var[s->mb_width * mb_y + mb_x] = vard;
+    s->mb_mean  [s->mb_width * mb_y + mb_x] = (sum+7)>>4;
     s->mb_var_sum    += varc;
     s->mc_mb_var_sum += vard;
 //printf("E%d %d %d %X %X %X\n", s->mb_width, mb_x, mb_y,(int)s, (int)s->mb_var, (int)s->mc_mb_var); fflush(stdout);
@@ -1335,7 +1336,13 @@ static inline int check_bidir_mv(MpegEncContext * s,
     dxy = ((motion_fy & 1) << 1) | (motion_fx & 1);
     src_x = mb_x * 16 + (motion_fx >> 1);
     src_y = mb_y * 16 + (motion_fy >> 1);
-            
+    src_x = clip(src_x, -16, s->width);
+    if (src_x == s->width)
+        dxy&= 2;
+    src_y = clip(src_y, -16, s->height);
+    if (src_y == s->height)
+        dxy&= 1;
+
     ptr = s->last_picture[0] + (src_y * s->linesize) + src_x;
     put_pixels_tab[0][dxy](dest_y    , ptr    , s->linesize, 16);
     
@@ -1344,6 +1351,12 @@ static inline int check_bidir_mv(MpegEncContext * s,
     dxy = ((motion_by & 1) << 1) | (motion_bx & 1);
     src_x = mb_x * 16 + (motion_bx >> 1);
     src_y = mb_y * 16 + (motion_by >> 1);
+    src_x = clip(src_x, -16, s->width);
+    if (src_x == s->width)
+        dxy&= 2;
+    src_y = clip(src_y, -16, s->height);
+    if (src_y == s->height)
+        dxy&= 1;
             
     ptr = s->next_picture[0] + (src_y * s->linesize) + src_x;
     avg_pixels_tab[0][dxy](dest_y    , ptr    , s->linesize, 16);
@@ -1545,7 +1558,7 @@ void ff_estimate_b_frame_motion(MpegEncContext * s,
             score=fbmin;
             type= MB_TYPE_BIDIR;
         }
-        score= (score*score)>>8;
+        score= (score*score + 128*256)>>16;
         s->mc_mb_var_sum += score;
         s->mc_mb_var[mb_y*s->mb_width + mb_x] = score; //FIXME use SSD
     }
@@ -1697,18 +1710,15 @@ void ff_fix_long_b_mvs(MpegEncContext * s, int16_t (*mv_table)[2], int f_code, i
         int xy= (y+1)* (s->mb_width+2)+1;
         int i= y*s->mb_width;
         for(x=0; x<s->mb_width; x++){
-            if(s->mb_type[i]&type){
-                if(   fcode_tab[mv_table[xy][0] + MAX_MV] > f_code
-                   || fcode_tab[mv_table[xy][0] + MAX_MV] == 0
-                   || fcode_tab[mv_table[xy][1] + MAX_MV] > f_code
-                   || fcode_tab[mv_table[xy][1] + MAX_MV] == 0 ){
-                    if(s->mb_type[i]&(~type)) s->mb_type[i] &= ~type;
-                    else{
-                        mv_table[xy][0] = 0;
-                        mv_table[xy][1] = 0;
-                        //this is certainly bad FIXME            
-                    }
-                }
+            if(   fcode_tab[mv_table[xy][0] + MAX_MV] > f_code
+               || fcode_tab[mv_table[xy][0] + MAX_MV] == 0){
+                if(mv_table[xy][0]>0) mv_table[xy][0]=  (16<<f_code)-1;
+                else                  mv_table[xy][0]= -(16<<f_code);
+            }
+            if(   fcode_tab[mv_table[xy][1] + MAX_MV] > f_code
+               || fcode_tab[mv_table[xy][1] + MAX_MV] == 0){
+                if(mv_table[xy][1]>0) mv_table[xy][1]=  (16<<f_code)-1;
+                else                  mv_table[xy][1]= -(16<<f_code);
             }
             xy++;
             i++;

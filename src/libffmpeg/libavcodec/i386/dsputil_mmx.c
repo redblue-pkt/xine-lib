@@ -20,7 +20,6 @@
  */
 
 #include "../dsputil.h"
-#include "../simple_idct.h"
 
 int mm_flags; /* multimedia extension flags */
 
@@ -44,10 +43,6 @@ int pix_abs8x8_x2_mmx2(UINT8 *blk1, UINT8 *blk2, int lx);
 int pix_abs8x8_y2_mmx2(UINT8 *blk1, UINT8 *blk2, int lx);
 int pix_abs8x8_xy2_mmx2(UINT8 *blk1, UINT8 *blk2, int lx);
 
-/* external functions, from idct_mmx.c */
-void ff_mmx_idct(DCTELEM *block);
-void ff_mmxext_idct(DCTELEM *block);
-
 /* pixel operations */
 static const uint64_t mm_bone __attribute__ ((aligned(8))) = 0x0101010101010101ULL;
 static const uint64_t mm_wone __attribute__ ((aligned(8))) = 0x0001000100010001ULL;
@@ -70,8 +65,8 @@ static const uint64_t mm_wtwo __attribute__ ((aligned(8))) = 0x0002000200020002U
 #define MOVQ_BONE(regd)  __asm __volatile ("movq %0, %%" #regd " \n\t" ::"m"(mm_bone))
 #define MOVQ_WTWO(regd)  __asm __volatile ("movq %0, %%" #regd " \n\t" ::"m"(mm_wtwo))
 #else
-/*  for shared library it's better to use this way for accessing constants */
-/*  pcmpeqd -> -1 */
+// for shared library it's better to use this way for accessing constants
+// pcmpeqd -> -1
 #define MOVQ_BONE(regd) \
     __asm __volatile ( \
     "pcmpeqd %%" #regd ", %%" #regd " \n\t" \
@@ -86,9 +81,9 @@ static const uint64_t mm_wtwo __attribute__ ((aligned(8))) = 0x0002000200020002U
 
 #endif
 
-/*  using regr as temporary and for the output result */
-/*  first argument is unmodifed and second is trashed */
-/*  regfe is supposed to contain 0xfefefefefefefefe */
+// using regr as temporary and for the output result
+// first argument is unmodifed and second is trashed
+// regfe is supposed to contain 0xfefefefefefefefe
 #define PAVGB_MMX_NO_RND(rega, regb, regr, regfe) \
     "movq " #rega ", " #regr "	\n\t"\
     "pand " #regb ", " #regr "	\n\t"\
@@ -105,7 +100,7 @@ static const uint64_t mm_wtwo __attribute__ ((aligned(8))) = 0x0002000200020002U
     "psrlq $1, " #regb "	\n\t"\
     "psubb " #regb ", " #regr "	\n\t"
 
-/*  mm6 is supposed to contain 0xfefefefefefefefe */
+// mm6 is supposed to contain 0xfefefefefefefefe
 #define PAVGBP_MMX_NO_RND(rega, regb, regr,  regc, regd, regp) \
     "movq " #rega ", " #regr "	\n\t"\
     "movq " #regc ", " #regp "	\n\t"\
@@ -192,7 +187,7 @@ static const uint64_t mm_wtwo __attribute__ ((aligned(8))) = 0x0002000200020002U
 
 static void get_pixels_mmx(DCTELEM *block, const UINT8 *pixels, int line_size)
 {
-    __asm__ volatile(
+    asm volatile(
         "movl $-128, %%eax	\n\t"
         "pxor %%mm7, %%mm7	\n\t"
         ".balign 16		\n\t"
@@ -220,7 +215,7 @@ static void get_pixels_mmx(DCTELEM *block, const UINT8 *pixels, int line_size)
 
 static void diff_pixels_mmx(DCTELEM *block, const UINT8 *s1, const UINT8 *s2, int stride)
 {
-    __asm__ volatile(
+    asm volatile(
         "pxor %%mm7, %%mm7	\n\t"
         "movl $-128, %%eax	\n\t"
         ".balign 16		\n\t"
@@ -278,9 +273,9 @@ static void put_pixels_clamped_mmx(const DCTELEM *block, UINT8 *pixels, int line
         pix += line_size*4;
         p += 32;
 
-    /*  if here would be an exact copy of the code above */
-    /*  compiler would generate some very strange code */
-    /*  thus using "r" */
+    // if here would be an exact copy of the code above
+    // compiler would generate some very strange code
+    // thus using "r"
     __asm __volatile(
 	    "movq	(%3), %%mm0\n\t"
 	    "movq	8(%3), %%mm1\n\t"
@@ -420,6 +415,44 @@ static void clear_blocks_mmx(DCTELEM *blocks)
         );
 }
 
+static int pix_sum16_mmx(UINT8 * pix, int line_size){
+    const int h=16;
+    int sum;
+    int index= -line_size*h;
+
+    __asm __volatile(
+                "pxor %%mm7, %%mm7		\n\t"
+                "pxor %%mm6, %%mm6		\n\t"
+                "1:				\n\t"
+                "movq (%2, %1), %%mm0		\n\t"
+                "movq (%2, %1), %%mm1		\n\t"
+                "movq 8(%2, %1), %%mm2		\n\t"
+                "movq 8(%2, %1), %%mm3		\n\t"
+                "punpcklbw %%mm7, %%mm0		\n\t"
+                "punpckhbw %%mm7, %%mm1		\n\t"
+                "punpcklbw %%mm7, %%mm2		\n\t"
+                "punpckhbw %%mm7, %%mm3		\n\t"
+                "paddw %%mm0, %%mm1		\n\t"
+                "paddw %%mm2, %%mm3		\n\t"
+                "paddw %%mm1, %%mm3		\n\t"
+                "paddw %%mm3, %%mm6		\n\t"
+                "addl %3, %1			\n\t"
+                " js 1b				\n\t"
+                "movq %%mm6, %%mm5		\n\t"
+                "psrlq $32, %%mm6		\n\t"
+                "paddw %%mm5, %%mm6		\n\t"
+                "movq %%mm6, %%mm5		\n\t"
+                "psrlq $16, %%mm6		\n\t"
+                "paddw %%mm5, %%mm6		\n\t"
+                "movd %%mm6, %0			\n\t"
+                "andl $0xFFFF, %0		\n\t"
+                : "=&r" (sum), "+r" (index)
+                : "r" (pix - index), "r" (line_size)
+        );
+
+        return sum;
+}
+
 #if 0
 static void just_return() { return; }
 #endif
@@ -448,6 +481,7 @@ void dsputil_init_mmx(void)
         put_pixels_clamped = put_pixels_clamped_mmx;
         add_pixels_clamped = add_pixels_clamped_mmx;
         clear_blocks= clear_blocks_mmx;
+        pix_sum= pix_sum16_mmx;
 
         pix_abs16x16     = pix_abs16x16_mmx;
         pix_abs16x16_x2  = pix_abs16x16_x2_mmx;
@@ -477,7 +511,7 @@ void dsputil_init_mmx(void)
         avg_no_rnd_pixels_tab[0][1] = avg_no_rnd_pixels16_x2_mmx;
         avg_no_rnd_pixels_tab[0][2] = avg_no_rnd_pixels16_y2_mmx;
         avg_no_rnd_pixels_tab[0][3] = avg_no_rnd_pixels16_xy2_mmx;
-
+        
         put_pixels_tab[1][0] = put_pixels8_mmx;
         put_pixels_tab[1][1] = put_pixels8_x2_mmx;
         put_pixels_tab[1][2] = put_pixels8_y2_mmx;
@@ -538,7 +572,7 @@ void dsputil_init_mmx(void)
             avg_pixels_tab[0][1] = avg_pixels16_x2_3dnow;
             avg_pixels_tab[0][2] = avg_pixels16_y2_3dnow;
             avg_pixels_tab[0][3] = avg_pixels16_xy2_3dnow;
-
+            
             put_pixels_tab[1][1] = put_pixels8_x2_3dnow;
             put_pixels_tab[1][2] = put_pixels8_y2_3dnow;
             put_no_rnd_pixels_tab[1][1] = put_no_rnd_pixels8_x2_3dnow;
@@ -549,21 +583,10 @@ void dsputil_init_mmx(void)
             avg_pixels_tab[1][2] = avg_pixels8_y2_3dnow;
             avg_pixels_tab[1][3] = avg_pixels8_xy2_3dnow;
         }
-
-        /* idct */
-        if (mm_flags & MM_MMXEXT) {
-            ff_idct = ff_mmxext_idct;
-        } else {
-            ff_idct = ff_mmx_idct;
-        }
-#ifdef SIMPLE_IDCT
-/* 	ff_idct = simple_idct; */
-	ff_idct = simple_idct_mmx;
-#endif
     }
 
 #if 0
-    /* for speed testing */
+    // for speed testing
     get_pixels = just_return;
     put_pixels_clamped = just_return;
     add_pixels_clamped = just_return;
@@ -593,31 +616,9 @@ void dsputil_init_mmx(void)
     avg_no_rnd_pixels_tab[2] = just_return;
     avg_no_rnd_pixels_tab[3] = just_return;
 
-    /* av_fdct = just_return; */
-    /* ff_idct = just_return; */
+    //av_fdct = just_return;
+    //ff_idct = just_return;
 #endif
-}
-
-void gen_idct_put(UINT8 *dest, int line_size, DCTELEM *block);
-
-/**
- * this will send coeff matrixes which would have different results for the 16383 type MMX vs C IDCTs to the C IDCT
- */
-void bit_exact_idct_put(UINT8 *dest, int line_size, INT16 *block){
-    if(   block[0]>1022 && block[1]==0 && block[4 ]==0 && block[5 ]==0
-       && block[8]==0   && block[9]==0 && block[12]==0 && block[13]==0){
-        int16_t tmp[64];
-        int i;
-
-        for(i=0; i<64; i++)
-            tmp[i]= block[i];
-        for(i=0; i<64; i++)
-            block[i]= tmp[block_permute_op(i)];
-
-        simple_idct_put(dest, line_size, block);
-    }
-    else
-        gen_idct_put(dest, line_size, block);
 }
 
 /* remove any non bit exact operation (testing purpose). NOTE that
@@ -626,7 +627,7 @@ void bit_exact_idct_put(UINT8 *dest, int line_size, INT16 *block){
 void dsputil_set_bit_exact_mmx(void)
 {
     if (mm_flags & MM_MMX) {
-
+    
         /* MMX2 & 3DNOW */
         put_no_rnd_pixels_tab[0][1] = put_no_rnd_pixels16_x2_mmx;
         put_no_rnd_pixels_tab[0][2] = put_no_rnd_pixels16_y2_mmx;
@@ -643,9 +644,5 @@ void dsputil_set_bit_exact_mmx(void)
             pix_abs8x8_y2 = pix_abs8x8_y2_mmx;
             pix_abs8x8_xy2= pix_abs8x8_xy2_mmx;
         }
-#ifdef SIMPLE_IDCT
-        if(ff_idct_put==gen_idct_put && ff_idct == simple_idct_mmx)
-            ff_idct_put= bit_exact_idct_put;
-#endif
     }
 }

@@ -204,7 +204,6 @@ static void add_pixels_clamped_mlib(const DCTELEM *block, UINT8 *pixels, int lin
 }
 
 
-#ifdef	__notyet__	/* we'll probably need this after the next ffmeg sync */
 /* XXX: those functions should be suppressed ASAP when all IDCTs are
    converted */
 static void ff_idct_put_mlib(UINT8 *dest, int line_size, DCTELEM *data)
@@ -218,12 +217,6 @@ static void ff_idct_add_mlib(UINT8 *dest, int line_size, DCTELEM *data)
     mlib_VideoIDCT8x8_S16_S16 (data, data);
     add_pixels_clamped(data, dest, line_size);
 }
-#else
-static void ff_idct_mlib(DCTELEM *data)
-{
-    mlib_VideoIDCT8x8_S16_S16 (data, data);
-}
-#endif
 
 static void ff_fdct_mlib(DCTELEM *data)
 {
@@ -232,8 +225,6 @@ static void ff_fdct_mlib(DCTELEM *data)
 
 void dsputil_init_mlib(void)
 {
-    ff_idct = ff_idct_mlib;
-
     put_pixels_tab[0][0] = put_pixels16_mlib;
     put_pixels_tab[0][1] = put_pixels16_x2_mlib;
     put_pixels_tab[0][2] = put_pixels16_y2_mlib;
@@ -260,16 +251,15 @@ void dsputil_init_mlib(void)
 
 void MPV_common_init_mlib(MpegEncContext *s)
 {
+    int i;
+
     if(s->avctx->dct_algo==FF_DCT_AUTO || s->avctx->dct_algo==FF_DCT_MLIB){
 	s->fdct = ff_fdct_mlib;
     }
-#ifdef	__notyet__	/* we'll probably need this after the next ffmeg sync */
+
     if(s->avctx->idct_algo==FF_IDCT_AUTO || s->avctx->idct_algo==FF_IDCT_MLIB){
-	int i;
-	s->idct_put = ff_idct_put_mlib;
-        s->idct_add = ff_idct_add_mlib;
-	for(i=0; i<64; i++)
-	    s->idct_permutation[i] = i;
+        s->idct_put= ff_idct_put_mlib;
+        s->idct_add= ff_idct_add_mlib;
+        s->idct_permutation_type= FF_NO_IDCT_PERM;
     }
-#endif
 }

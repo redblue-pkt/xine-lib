@@ -32,15 +32,12 @@ void ff_jpeg_fdct_islow (DCTELEM *data);
 
 void j_rev_dct (DCTELEM *data);
 
-void fdct_mmx(DCTELEM *block);
+void ff_fdct_mmx(DCTELEM *block);
 
 /* encoding scans */
-extern UINT8 ff_alternate_horizontal_scan[64];
-extern UINT8 ff_alternate_vertical_scan[64];
-extern UINT8 zigzag_direct[64];
-
-/* permutation table */
-extern UINT8 permutation[64];
+extern const UINT8 ff_alternate_horizontal_scan[64];
+extern const UINT8 ff_alternate_vertical_scan[64];
+extern const UINT8 ff_zigzag_direct[64];
 
 /* pixel operations */
 #define MAX_NEG_CROP 384
@@ -52,7 +49,7 @@ extern UINT8 cropTbl[256 + 2 * MAX_NEG_CROP];
 void dsputil_init(void);
 
 /* minimum alignment rules ;)
-if u notice errors in the align stuff, need more alignment for some asm code for some cpu
+if u notice errors in the align stuff, need more alignment for some asm code for some cpu 
 or need to use a function with less aligned data then send a mail to the ffmpeg-dev list, ...
 
 !warning these alignments might not match reallity, (missing attribute((align)) stuff somewhere possible)
@@ -62,14 +59,13 @@ i (michael) didnt check them, these are just the alignents which i think could b
 */
 
 /* pixel ops : interface with DCT */
-extern void (*ff_idct)(DCTELEM *block/*align 16*/);
-extern void (*ff_idct_put)(UINT8 *dest/*align 8*/, int line_size, DCTELEM *block/*align 16*/);
-extern void (*ff_idct_add)(UINT8 *dest/*align 8*/, int line_size, DCTELEM *block/*align 16*/);
 extern void (*get_pixels)(DCTELEM *block/*align 16*/, const UINT8 *pixels/*align 8*/, int line_size);
 extern void (*diff_pixels)(DCTELEM *block/*align 16*/, const UINT8 *s1/*align 8*/, const UINT8 *s2/*align 8*/, int stride);
 extern void (*put_pixels_clamped)(const DCTELEM *block/*align 16*/, UINT8 *pixels/*align 8*/, int line_size);
 extern void (*add_pixels_clamped)(const DCTELEM *block/*align 16*/, UINT8 *pixels/*align 8*/, int line_size);
-extern void (*gmc1)(UINT8 *dst/*align 8*/, UINT8 *src/*align 1*/, int srcStride, int h, int x16, int y16, int rounder);
+extern void (*ff_gmc1)(UINT8 *dst/*align 8*/, UINT8 *src/*align 1*/, int srcStride, int h, int x16, int y16, int rounder);
+extern void (*ff_gmc )(UINT8 *dst/*align 8*/, UINT8 *src/*align 1*/, int stride, int h, int ox, int oy, 
+                  int dxx, int dxy, int dyx, int dyy, int shift, int r, int width, int height);
 extern void (*clear_blocks)(DCTELEM *blocks/*align 16*/);
 extern int (*pix_sum)(UINT8 * pix, int line_size);
 extern int (*pix_norm1)(UINT8 * pix, int line_size);
@@ -83,7 +79,7 @@ void add_pixels_clamped_c(const DCTELEM *block, UINT8 *pixels, int line_size);
 void clear_blocks_c(DCTELEM *blocks);
 
 /* add and put pixel (decoding) */
-/* blocksizes for op_pixels_func are 8x4,8x8 16x8 16x16 */
+// blocksizes for op_pixels_func are 8x4,8x8 16x8 16x16
 typedef void (*op_pixels_func)(UINT8 *block/*align width (8 or 16)*/, const UINT8 *pixels/*align 1*/, int line_size, int h);
 typedef void (*qpel_mc_func)(UINT8 *dst/*align width (8 or 16)*/, UINT8 *src/*align 1*/, int stride);
 
@@ -120,15 +116,14 @@ int pix_abs16x16_x2_c(UINT8 *blk1, UINT8 *blk2, int lx);
 int pix_abs16x16_y2_c(UINT8 *blk1, UINT8 *blk2, int lx);
 int pix_abs16x16_xy2_c(UINT8 *blk1, UINT8 *blk2, int lx);
 
-static inline int block_permute_op(int j)
-{
-	return permutation[j];
-}
-
-void block_permute(INT16 *block);
+/**
+ * permute block according to permuatation.
+ * @param last last non zero element in scantable order
+ */
+void ff_block_permute(INT16 *block, UINT8 *permutation, const UINT8 *scantable, int last);
 
 #if defined(ARCH_X86)
-#define HAVE_MMX 1
+#define HAVE_MMX 1 
 #endif
 
 #if defined(HAVE_MMX)
@@ -146,7 +141,7 @@ extern int mm_flags;
 /*int mm_support(void);*/
 #define mm_support() xine_mm_accel()
 
-#if 0
+#if 0 
 static inline void emms(void)
 {
     __asm __volatile ("emms;":::"memory");
@@ -172,16 +167,16 @@ void dsputil_set_bit_exact_mmx(void);
    line ptimizations */
 #define __align8 __attribute__ ((aligned (4)))
 
-void dsputil_init_armv4l(void);
+void dsputil_init_armv4l(void);   
 
 #elif defined(HAVE_MLIB)
-
+ 
 #define emms_c()
 
 /* SPARC/VIS IDCT needs 8-byte aligned DCT blocks */
 #define __align8 __attribute__ ((aligned (8)))
 
-void dsputil_init_mlib(void);
+void dsputil_init_mlib(void);   
 
 #elif defined(ARCH_ALPHA)
 
@@ -196,6 +191,14 @@ void dsputil_init_alpha(void);
 #define __align8 __attribute__ ((aligned (16)))
 
 void dsputil_init_ppc(void);
+
+#elif defined(HAVE_MMI)
+
+#define emms_c()
+
+#define __align8 __attribute__ ((aligned (16)))
+
+void dsputil_init_mmi(void);   
 
 #else
 
@@ -228,5 +231,52 @@ struct unaligned_32 { uint32_t l; } __attribute__((packed));
 void get_psnr(UINT8 *orig_image[3], UINT8 *coded_image[3],
               int orig_linesize[3], int coded_linesize,
               AVCodecContext *avctx);
+
+/* FFT computation */
+
+/* NOTE: soon integer code will be added, so you must use the
+   FFTSample type */
+typedef float FFTSample;
+
+typedef struct FFTComplex {
+    FFTSample re, im;
+} FFTComplex;
+
+typedef struct FFTContext {
+    int nbits;
+    int inverse;
+    uint16_t *revtab;
+    FFTComplex *exptab;
+    FFTComplex *exptab1; /* only used by SSE code */
+    void (*fft_calc)(struct FFTContext *s, FFTComplex *z);
+} FFTContext;
+
+int fft_init(FFTContext *s, int nbits, int inverse);
+void fft_permute(FFTContext *s, FFTComplex *z);
+void fft_calc_c(FFTContext *s, FFTComplex *z);
+void fft_calc_sse(FFTContext *s, FFTComplex *z);
+static inline void fft_calc(FFTContext *s, FFTComplex *z)
+{
+    s->fft_calc(s, z);
+}
+void fft_end(FFTContext *s);
+
+/* MDCT computation */
+
+typedef struct MDCTContext {
+    int n;  /* size of MDCT (i.e. number of input data * 2) */
+    int nbits; /* n = 2^nbits */
+    /* pre/post rotation tables */
+    FFTSample *tcos;
+    FFTSample *tsin;
+    FFTContext fft;
+} MDCTContext;
+
+int mdct_init(MDCTContext *s, int nbits, int inverse);
+void imdct_calc(MDCTContext *s, FFTSample *output, 
+                const FFTSample *input, FFTSample *tmp);
+void mdct_calc(MDCTContext *s, FFTSample *out, 
+               const FFTSample *input, FFTSample *tmp);
+void mdct_end(MDCTContext *s);
 
 #endif

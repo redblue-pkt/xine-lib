@@ -5,45 +5,45 @@
 #define FFMPEG_VERSION     "0.4.6"
 
 #if defined(WIN32) && !defined(__MINGW32__) && !defined(__CYGWIN__)
-#define CONFIG_WIN32
+#    define CONFIG_WIN32
 #endif
 
-/* #define ALT_BITSTREAM_WRITER */
-/* #define ALIGNED_BITSTREAM_WRITER */
+//#define ALT_BITSTREAM_WRITER
+//#define ALIGNED_BITSTREAM_WRITER
 
 #define ALT_BITSTREAM_READER
-/* #define LIBMPEG2_BITSTREAM_READER */
-/* #define A32_BITSTREAM_READER */
+//#define LIBMPEG2_BITSTREAM_READER
+//#define A32_BITSTREAM_READER
 
 #ifdef HAVE_AV_CONFIG_H
 /* only include the following when compiling package */
-#include "config.h"
+#    include "config.h"
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#ifndef __BEOS__
-#include <errno.h>
-#else
-#include "berrno.h"
-#endif
-#include <math.h>
+#    include <stdlib.h>
+#    include <stdio.h>
+#    include <string.h>
+#    ifndef __BEOS__
+#        include <errno.h>
+#    else
+#        include "berrno.h"
+#    endif
+#    include <math.h>
 
-#ifndef ENODATA
-#define ENODATA  61
-#endif
+#    ifndef ENODATA
+#        define ENODATA  61
+#    endif
 
 #endif /* HAVE_AV_CONFIG_H */
 
 /* Suppress restrict if it was not defined in config.h.  */
 #ifndef restrict
-#define restrict
+#    define restrict
 #endif
 
 #if defined(__GNUC__) && (__GNUC__ > 3 || __GNUC__ == 3 && __GNUC_MINOR__ > 0)
-#define always_inline __attribute__((always_inline)) inline
+#    define always_inline __attribute__((always_inline)) inline
 #else
-#define always_inline inline
+#    define always_inline inline
 #endif
 
 #ifdef CONFIG_WIN32
@@ -68,37 +68,37 @@ typedef INT32 int32_t;
 typedef UINT64 uint64_t;
 typedef INT64 int64_t;
 
-#ifndef __MINGW32__
-#define INT64_C(c)     (c ## i64)
-#define UINT64_C(c)    (c ## i64)
+#    ifndef __MINGW32__
+#        define INT64_C(c)     (c ## i64)
+#        define UINT64_C(c)    (c ## i64)
 
-#define inline __inline
+#        define inline __inline
 
-#else
-#define INT64_C(c)     (c ## LL)
-#define UINT64_C(c)    (c ## ULL)
-#endif /* __MINGW32__ */
+#    else
+#        define INT64_C(c)     (c ## LL)
+#        define UINT64_C(c)    (c ## ULL)
+#    endif /* __MINGW32__ */
 
-#define M_PI    3.14159265358979323846
-#define M_SQRT2 1.41421356237309504880  /* sqrt(2) */
+#    define M_PI    3.14159265358979323846
+#    define M_SQRT2 1.41421356237309504880  /* sqrt(2) */
 
-#ifdef _DEBUG
-#define DEBUG
-#endif
+#    ifdef _DEBUG
+#        define DEBUG
+#    endif
 
-#define snprintf _snprintf
+#    define snprintf _snprintf
 
 #else /* CONFIG_WIN32 */
 
 /* unix */
 
-#include <inttypes.h>
+#    include <inttypes.h>
 
-#ifndef __WINE_WINDEF16_H
+#    ifndef __WINE_WINDEF16_H
 /* workaround for typedef conflict in MPlayer (wine typedefs) */
 typedef unsigned short UINT16;
 typedef signed short INT16;
-#endif
+#    endif
 
 typedef unsigned char UINT8;
 typedef unsigned int UINT32;
@@ -107,45 +107,45 @@ typedef signed char INT8;
 typedef signed int INT32;
 typedef signed long long INT64;
 
-#ifdef HAVE_AV_CONFIG_H
+#    ifdef HAVE_AV_CONFIG_H
 
-#ifndef INT64_C
-#define INT64_C(c)     (c ## LL)
-#define UINT64_C(c)    (c ## ULL)
-#endif
+#        ifndef INT64_C
+#            define INT64_C(c)     (c ## LL)
+#            define UINT64_C(c)    (c ## ULL)
+#        endif
 
-#ifdef USE_FASTMEMCPY
-#include "fastmemcpy.h"
-#endif
+#        ifdef USE_FASTMEMCPY
+#            include "fastmemcpy.h"
+#        endif
 
-#endif /* HAVE_AV_CONFIG_H */
+#    endif /* HAVE_AV_CONFIG_H */
 
 #endif /* !CONFIG_WIN32 */
 
 #ifdef HAVE_AV_CONFIG_H
 
-#include "bswap.h"
+#    include "bswap.h"
 
-#if defined(__MINGW32__) || defined(__CYGWIN__) || \
-    defined(__OS2__) || defined (__OpenBSD__)
-#define MANGLE(a) "_" #a
-#else
-#define MANGLE(a) #a
-#endif
+#    if defined(__MINGW32__) || defined(__CYGWIN__) || \
+        defined(__OS2__) || defined (__OpenBSD__)
+#        define MANGLE(a) "_" #a
+#    else
+#        define MANGLE(a) #a
+#    endif
 
 /* debug stuff */
 
-#ifndef DEBUG
-#define NDEBUG
-#endif
-#include <assert.h>
+#    ifndef DEBUG
+#        define NDEBUG
+#    endif
+#    include <assert.h>
 
 /* dprintf macros */
-#if defined(CONFIG_WIN32) && !defined(__MINGW32__)
+#    if defined(CONFIG_WIN32) && !defined(__MINGW32__)
 
 inline void dprintf(const char* fmt,...) {}
 
-#else
+#    else
 
 #if __GNUC__
 #ifdef DEBUG
@@ -161,10 +161,12 @@ inline void dprintf(const char* fmt,...) {}
 #endif
 #endif
 
-#endif /* !CONFIG_WIN32 */
+#    endif /* !CONFIG_WIN32 */
 
-#define av_abort()      do { fprintf(stderr, "Abort at %s:%d\n", __FILE__, __LINE__); abort(); } while (0)
+#    define av_abort()      do { fprintf(stderr, "Abort at %s:%d\n", __FILE__, __LINE__); abort(); } while (0)
 
+//rounded divison & shift
+#define RSHIFT(a,b) ((a) > 0 ? ((a) + (1<<((b)-1)))>>(b) : ((a) + (1<<((b)-1))-1)>>(b))
 /* assume b>0 */
 #define ROUNDED_DIV(a,b) (((a)>0 ? (a) + ((b)>>1) : (a) - ((b)>>1))/(b))
 #define ABS(a) ((a) >= 0 ? (a) : (-(a)))
@@ -172,24 +174,24 @@ inline void dprintf(const char* fmt,...) {}
 #define MIN(a,b) ((a) > (b) ? (b) : (a))
 
 #ifdef ARCH_X86
-/* avoid +32 for shift optimization (gcc should do that ...) */
+// avoid +32 for shift optimization (gcc should do that ...)
 static inline  int32_t NEG_SSR32( int32_t a, int8_t s){
-    __asm__ ("sarl %1, %0\n\t"
+    asm ("sarl %1, %0\n\t"
          : "+r" (a)
          : "ic" ((uint8_t)(-s))
     );
     return a;
 }
 static inline uint32_t NEG_USR32(uint32_t a, int8_t s){
-    __asm__ ("shrl %1, %0\n\t"
+    asm ("shrl %1, %0\n\t"
          : "+r" (a)
          : "ic" ((uint8_t)(-s))
     );
     return a;
 }
 #else
-#define NEG_SSR32(a,s) ((( int32_t)(a))>>(32-(s)))
-#define NEG_USR32(a,s) (((uint32_t)(a))>>(32-(s)))
+#    define NEG_SSR32(a,s) ((( int32_t)(a))>>(32-(s)))
+#    define NEG_USR32(a,s) (((uint32_t)(a))>>(32-(s)))
 #endif
 
 /* bit output */
@@ -210,7 +212,7 @@ typedef struct PutBitContext {
     INT64 data_out_size; /* in bytes */
 } PutBitContext;
 
-void init_put_bits(PutBitContext *s,
+void init_put_bits(PutBitContext *s, 
                    UINT8 *buffer, int buffer_size,
                    void *opaque,
                    void (*write_data)(void *, UINT8 *, int));
@@ -248,7 +250,7 @@ static inline int get_bits_count(GetBitContext *s);
 
 typedef struct VLC {
     int bits;
-    VLC_TYPE (*table)[2]; /* code, bits */
+    VLC_TYPE (*table)[2]; // code, bits
     int table_size, table_allocated;
 } VLC;
 
@@ -260,9 +262,9 @@ typedef struct RL_VLC_ELEM {
 
 /* used to avoid missaligned exceptions on some archs (alpha, ...) */
 #ifdef ARCH_X86
-#define unaligned32(a) (*(UINT32*)(a))
+#    define unaligned32(a) (*(UINT32*)(a))
 #else
-#ifdef __GNUC__
+#    ifdef __GNUC__
 static inline uint32_t unaligned32(const void *v) {
     struct Unaligned {
 	uint32_t i;
@@ -270,16 +272,16 @@ static inline uint32_t unaligned32(const void *v) {
 
     return ((const struct Unaligned *) v)->i;
 }
-#elif defined(__DECC)
+#    elif defined(__DECC)
 static inline uint32_t unaligned32(const void *v) {
     return *(const __unaligned uint32_t *) v;
 }
-#else
+#    else
 static inline uint32_t unaligned32(const void *v) {
     return *(const uint32_t *) v;
 }
-#endif
-#endif /* !ARCH_X86 */
+#    endif
+#endif //!ARCH_X86
 
 #ifndef ALT_BITSTREAM_WRITER
 static inline void put_bits(PutBitContext *s, int n, unsigned int value)
@@ -290,13 +292,13 @@ static inline void put_bits(PutBitContext *s, int n, unsigned int value)
 #ifdef STATS
     st_out_bit_counts[st_current_index] += n;
 #endif
-    /*    printf("put_bits=%d %x\n", n, value); */
+    //    printf("put_bits=%d %x\n", n, value);
     assert(n == 32 || value < (1U << n));
-
+    
     bit_buf = s->bit_buf;
     bit_left = s->bit_left;
 
-    /*    printf("n=%d value=%x cnt=%d buf=%x\n", n, value, bit_cnt, bit_buf); */
+    //    printf("n=%d value=%x cnt=%d buf=%x\n", n, value, bit_cnt, bit_buf);
     /* XXX: optimize */
     if (n < bit_left) {
         bit_buf = (bit_buf<<n) | value;
@@ -305,7 +307,7 @@ static inline void put_bits(PutBitContext *s, int n, unsigned int value)
 	bit_buf<<=bit_left;
         bit_buf |= value >> (n - bit_left);
         *(UINT32 *)s->buf_ptr = be2me_32(bit_buf);
-        /* printf("bitbuf = %08x\n", bit_buf); */
+        //printf("bitbuf = %08x\n", bit_buf);
         s->buf_ptr+=4;
 	bit_left+=32 - n;
         bit_buf = value;
@@ -320,8 +322,8 @@ static inline void put_bits(PutBitContext *s, int n, unsigned int value)
 #ifdef ALT_BITSTREAM_WRITER
 static inline void put_bits(PutBitContext *s, int n, unsigned int value)
 {
-#ifdef ALIGNED_BITSTREAM_WRITER
-#ifdef ARCH_X86
+#    ifdef ALIGNED_BITSTREAM_WRITER
+#        ifdef ARCH_X86
     asm volatile(
 	"movl %0, %%ecx			\n\t"
 	"xorl %%eax, %%eax		\n\t"
@@ -339,20 +341,20 @@ static inline void put_bits(PutBitContext *s, int n, unsigned int value)
 	: "r" (s->buf), "r" (n), "0" (s->index), "1" (value<<(-n))
 	: "%eax", "%ecx"
     );
-#else
+#        else
     int index= s->index;
     uint32_t *ptr= ((uint32_t *)s->buf)+(index>>5);
-
-    value<<= 32-n;
-
+    
+    value<<= 32-n; 
+    
     ptr[0] |= be2me_32(value>>(index&31));
     ptr[1]  = be2me_32(value<<(32-(index&31)));
-/* if(n>24) printf("%d %d\n", n, value); */
+//if(n>24) printf("%d %d\n", n, value);
     index+= n;
     s->index= index;
-#endif
-#else /* ALIGNED_BITSTREAM_WRITER */
-#ifdef ARCH_X86
+#        endif
+#    else //ALIGNED_BITSTREAM_WRITER
+#        ifdef ARCH_X86
     asm volatile(
 	"movl $7, %%ecx			\n\t"
 	"andl %0, %%ecx			\n\t"
@@ -369,17 +371,17 @@ static inline void put_bits(PutBitContext *s, int n, unsigned int value)
 	: "r" (s->buf), "r" (n), "0" (s->index), "1" (value)
 	: "%ecx"
     );
-#else
+#        else
     int index= s->index;
     uint32_t *ptr= (uint32_t*)(((uint8_t *)s->buf)+(index>>3));
-
+    
     ptr[0] |= be2me_32(value<<(32-n-(index&7) ));
     ptr[1] = 0;
-/* if(n>24) printf("%d %d\n", n, value); */
+//if(n>24) printf("%d %d\n", n, value);
     index+= n;
     s->index= index;
-#endif
-#endif /* !ALIGNED_BITSTREAM_WRITER */
+#        endif
+#    endif //!ALIGNED_BITSTREAM_WRITER
 }
 #endif
 
@@ -389,13 +391,13 @@ static inline void jput_bits(PutBitContext *s, int n, unsigned int value)
 {
     unsigned int bit_buf, b;
     int bit_left, i;
-
+    
     assert(n == 32 || value < (1U << n));
 
     bit_buf = s->bit_buf;
     bit_left = s->bit_left;
 
-    /* printf("n=%d value=%x cnt=%d buf=%x\n", n, value, bit_cnt, bit_buf); */
+    //printf("n=%d value=%x cnt=%d buf=%x\n", n, value, bit_cnt, bit_buf);
     /* XXX: optimize */
     if (n < bit_left) {
         bit_buf = (bit_buf<<n) | value;
@@ -415,7 +417,7 @@ static inline void jput_bits(PutBitContext *s, int n, unsigned int value)
 	bit_left+= 32 - n;
         bit_buf = value;
     }
-
+    
     s->bit_buf = bit_buf;
     s->bit_left = bit_left;
 }
@@ -428,15 +430,15 @@ static inline void jput_bits(PutBitContext *s, int n, int value)
     int index= s->index;
     uint32_t *ptr= (uint32_t*)(((uint8_t *)s->buf)+(index>>3));
     int v= ptr[0];
-/* if(n>24) printf("%d %d\n", n, value); */
-
+//if(n>24) printf("%d %d\n", n, value);
+    
     v |= be2me_32(value<<(32-n-(index&7) ));
     if(((v+0x01010101)^0xFFFFFFFF)&v&0x80808080)
     {
 	/* handle idiotic (m)jpeg escapes */
 	uint8_t *bPtr= (uint8_t*)ptr;
 	int numChecked= ((index+n)>>3) - (index>>3);
-
+	
 	v= be2me_32(v);
 
 	*(bPtr++)= v>>24;
@@ -542,7 +544,7 @@ for examples see get_bits, show_bits, skip_bits, get_vlc
 #   define SKIP_CACHE(name, gb, num)\
         name##_cache <<= (num);\
 
-/* FIXME name? */
+// FIXME name?
 #   define SKIP_COUNTER(name, gb, num)\
         name##_index += (num);\
 
@@ -568,7 +570,7 @@ static inline int get_bits_count(GetBitContext *s){
     return s->index;
 }
 #elif defined LIBMPEG2_BITSTREAM_READER
-/* libmpeg2 like reader */
+//libmpeg2 like reader
 
 #   define MIN_CACHE_BITS 16
 
@@ -699,12 +701,12 @@ static inline unsigned int show_bits(GetBitContext *s, int n){
     OPEN_READER(re, s)
     UPDATE_CACHE(re, s)
     tmp= SHOW_UBITS(re, s, n);
-/*    CLOSE_READER(re, s) */
+//    CLOSE_READER(re, s)
     return tmp;
 }
 
 static inline void skip_bits(GetBitContext *s, int n){
-/* Note gcc seems to optimize this to s->index+=n for the ALT_READER :)) */
+ //Note gcc seems to optimize this to s->index+=n for the ALT_READER :))
     OPEN_READER(re, s)
     UPDATE_CACHE(re, s)
     LAST_SKIP_BITS(re, s, n)
@@ -797,16 +799,16 @@ void free_vlc(VLC *vlc);
     SKIP_BITS(name, gb, n)\
 }
 
-/* deprecated, dont use get_vlc for new code, use get_vlc2 instead or use GET_VLC directly */
+// deprecated, dont use get_vlc for new code, use get_vlc2 instead or use GET_VLC directly
 static inline int get_vlc(GetBitContext *s, VLC *vlc)
 {
     int code;
     VLC_TYPE (*table)[2]= vlc->table;
-
+    
     OPEN_READER(re, s)
     UPDATE_CACHE(re, s)
 
-    GET_VLC(code, re, s, table, vlc->bits, 3)
+    GET_VLC(code, re, s, table, vlc->bits, 3)    
 
     CLOSE_READER(re, s)
     return code;
@@ -816,7 +818,7 @@ static always_inline int get_vlc2(GetBitContext *s, VLC_TYPE (*table)[2],
                                   int bits, int max_depth)
 {
     int code;
-
+    
     OPEN_READER(re, s)
     UPDATE_CACHE(re, s)
 
@@ -829,7 +831,7 @@ static always_inline int get_vlc2(GetBitContext *s, VLC_TYPE (*table)[2],
 
 /* define it to include statistics code (useful only for optimizing
    codec efficiency */
-/* #define STATS */
+//#define STATS
 
 #ifdef STATS
 
@@ -918,9 +920,9 @@ static inline int ff_sqrt(int a)
     int ret=0;
     int s;
     int ret_sq=0;
-
+    
     if(a<128) return ff_sqrt_tab[a];
-
+    
     for(s=15; s>=0; s--){
         int b= ret_sq + (1<<(s*2)) + (ret<<s)*2;
         if(b<=a){
@@ -930,7 +932,31 @@ static inline int ff_sqrt(int a)
     }
     return ret;
 }
-#define RUNTIME_CPUDETECT
+
+/**
+ * converts fourcc string to int
+ */
+static inline int ff_get_fourcc(char *s){
+    assert( strlen(s)==4 );
+    
+    return (s[0]) + (s[1]<<8) + (s[2]<<16) + (s[3]<<24);
+}
+
+
+#ifdef ARCH_X86
+#define MASK_ABS(mask, level)\
+            asm volatile(\
+		"cdq			\n\t"\
+		"xorl %1, %0		\n\t"\
+		"subl %1, %0		\n\t"\
+		: "+a" (level), "=&d" (mask)\
+	    );
+#else
+#define MASK_ABS(mask, level)\
+            mask= level>>31;\
+            level= (level^mask)-mask;
+#endif
+
 
 #if __CPU__ >= 686 && !defined(RUNTIME_CPUDETECT)
 #define COPY3_IF_LT(x,y,a,b,c,d)\

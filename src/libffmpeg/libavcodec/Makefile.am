@@ -16,13 +16,17 @@ noinst_LTLIBRARIES = libavcodec.la
 libavcodec_la_SOURCES = \
 	common.c \
 	dsputil.c \
+	dv.c \
+	error_resilience.c \
 	eval.c \
+	fft.c \
 	h263.c \
 	h263dec.c \
 	imgconvert.c \
 	jfdctfst.c \
 	jfdctint.c \
 	jrevdct.c \
+	mdct.c \
 	mem.c \
 	mjpeg.c \
 	motion_est.c \
@@ -33,7 +37,8 @@ libavcodec_la_SOURCES = \
 	rv10.c \
 	simple_idct.c \
 	svq1.c \
-	utils.c	 
+	utils.c \
+	wmadec.c 
 #imgresample.c
 
 libavcodec_la_LDFLAGS = \

@@ -49,6 +49,40 @@ void register_avcodec(AVCodec *format)
     format->next = NULL;
 }
 
+void avcodec_get_context_defaults(AVCodecContext *s){
+    s->bit_rate= 800*1000;
+    s->bit_rate_tolerance= s->bit_rate*10;
+    s->qmin= 2;
+    s->qmax= 31;
+    s->rc_eq= "tex^qComp";
+    s->qcompress= 0.5;
+    s->max_qdiff= 3;
+    s->b_quant_factor=1.25;
+    s->b_quant_offset=1.25;
+    s->i_quant_factor=-0.8;
+    s->i_quant_offset=0.0;
+    s->error_concealment= 3;
+    s->error_resilience= 1;
+    s->workaround_bugs= FF_BUG_AUTODETECT;
+    s->frame_rate = 25 * FRAME_RATE_BASE;
+    s->gop_size= 50;
+    s->me_method= ME_EPZS;
+}
+
+/**
+ * allocates a AVCodecContext and set it to defaults.
+ * this can be deallocated by simply calling free() 
+ */
+AVCodecContext *avcodec_alloc_context(void){
+    AVCodecContext *avctx= av_mallocz(sizeof(AVCodecContext));
+    
+    if(avctx==NULL) return NULL;
+    
+    avcodec_get_context_defaults(avctx);
+    
+    return avctx;
+}
+
 int avcodec_open(AVCodecContext *avctx, AVCodec *codec)
 {
     int ret;
@@ -192,7 +226,6 @@ AVCodec *avcodec_find(enum CodecID id)
 }
 
 const char *pix_fmt_str[] = {
-    "??",
     "yuv420p",
     "yuv422",
     "rgb24",
@@ -201,9 +234,10 @@ const char *pix_fmt_str[] = {
     "yuv444p",
     "rgba32",
     "bgra32",
-    "yuv410p"
+    "yuv410p",
+    "yuv411p",
 };
-    
+
 void avcodec_string(char *buf, int buf_size, AVCodecContext *enc, int encode)
 {
     const char *codec_name;
@@ -251,9 +285,10 @@ void avcodec_string(char *buf, int buf_size, AVCodecContext *enc, int encode)
                      enc->width, enc->height, 
                      (float)enc->frame_rate / FRAME_RATE_BASE);
         }
-        snprintf(buf + strlen(buf), buf_size - strlen(buf),
-                ", q=%d-%d", enc->qmin, enc->qmax);
-
+        if (encode) {
+            snprintf(buf + strlen(buf), buf_size - strlen(buf),
+                     ", q=%d-%d", enc->qmin, enc->qmax);
+        }
         bitrate = enc->bit_rate;
         break;
     case CODEC_TYPE_AUDIO:
@@ -302,6 +337,14 @@ void avcodec_string(char *buf, int buf_size, AVCodecContext *enc, int encode)
         break;
     default:
         av_abort();
+    }
+    if (encode) {
+        if (enc->flags & CODEC_FLAG_PASS1)
+            snprintf(buf + strlen(buf), buf_size - strlen(buf),
+                     ", pass 1");
+        if (enc->flags & CODEC_FLAG_PASS2)
+            snprintf(buf + strlen(buf), buf_size - strlen(buf),
+                     ", pass 2");
     }
     if (bitrate != 0) {
         snprintf(buf + strlen(buf), buf_size - strlen(buf), 

@@ -38,9 +38,9 @@ static int init_pass2(MpegEncContext *s);
 static double get_qscale(MpegEncContext *s, RateControlEntry *rce, double rate_factor, int frame_num);
 
 void ff_write_pass1_stats(MpegEncContext *s){
-    sprintf(s->avctx->stats_out, "in:%d out:%d type:%d q:%d itex:%d ptex:%d mv:%d misc:%d fcode:%d bcode:%d mc-var:%d var:%d icount:%d;\n",
+    sprintf(s->avctx->stats_out, "in:%d out:%d type:%d q:%f itex:%d ptex:%d mv:%d misc:%d fcode:%d bcode:%d mc-var:%d var:%d icount:%d;\n",
             s->picture_number, s->input_picture_number - s->max_b_frames, s->pict_type, 
-            s->qscale, s->i_tex_bits, s->p_tex_bits, s->mv_bits, s->misc_bits, 
+            s->frame_qscale, s->i_tex_bits, s->p_tex_bits, s->mv_bits, s->misc_bits, 
             s->f_code, s->b_code, s->mc_mb_var_sum, s->mb_var_sum, s->i_count);
 }
 
@@ -64,9 +64,6 @@ int ff_rate_control_init(MpegEncContext *s)
     }
     rcc->buffer_index= s->avctx->rc_buffer_size/2;
 
-    rcc->next_non_b_qscale=10;
-    rcc->next_p_qscale=10;
-    
     if(s->flags&CODEC_FLAG_PASS2){
         int i;
         char *p;
@@ -108,7 +105,7 @@ int ff_rate_control_init(MpegEncContext *s)
             assert(picture_number < rcc->num_entries);
             rce= &rcc->entry[picture_number];
 
-            e+=sscanf(p, " in:%*d out:%*d type:%d q:%d itex:%d ptex:%d mv:%d misc:%d fcode:%d bcode:%d mc-var:%d var:%d icount:%d",
+            e+=sscanf(p, " in:%*d out:%*d type:%d q:%f itex:%d ptex:%d mv:%d misc:%d fcode:%d bcode:%d mc-var:%d var:%d icount:%d",
                    &rce->pict_type, &rce->qscale, &rce->i_tex_bits, &rce->p_tex_bits, &rce->mv_bits, &rce->misc_bits, 
                    &rce->f_code, &rce->b_code, &rce->mc_mb_var_sum, &rce->mb_var_sum, &rce->i_count);
             if(e!=12){
@@ -126,7 +123,7 @@ int ff_rate_control_init(MpegEncContext *s)
         rcc->short_term_qsum=0.001;
         rcc->short_term_qcount=0.001;
     
-        rcc->pass1_bits       =0.001;
+        rcc->pass1_rc_eq_output_sum= 0.001;
         rcc->pass1_wanted_bits=0.001;
         
         /* init stuff with the user specified complexity */
@@ -166,7 +163,7 @@ int ff_rate_control_init(MpegEncContext *s)
 
                 bits= rce.i_tex_bits + rce.p_tex_bits;
 
-                q= get_qscale(s, &rce, rcc->pass1_wanted_bits/rcc->pass1_bits, i);
+                q= get_qscale(s, &rce, rcc->pass1_wanted_bits/rcc->pass1_rc_eq_output_sum, i);
                 rcc->pass1_wanted_bits+= s->bit_rate/(s->frame_rate / (double)FRAME_RATE_BASE);
             }
         }
@@ -231,7 +228,6 @@ static double get_qscale(MpegEncContext *s, RateControlEntry *rce, double rate_f
     const int pict_type= rce->new_pict_type;
     const double mb_num= s->mb_num;  
     int i;
-    const double last_q= rcc->last_qscale_for[pict_type];
 
     double const_values[]={
         M_PI,
@@ -288,8 +284,8 @@ static double get_qscale(MpegEncContext *s, RateControlEntry *rce, double rate_f
         NULL
     };
     static double (*func1[])(void *, double)={
-        bits2qp,
-        qp2bits,
+        (void *)bits2qp,
+        (void *)qp2bits,
         NULL
     };
     char *func1_names[]={
@@ -300,7 +296,7 @@ static double get_qscale(MpegEncContext *s, RateControlEntry *rce, double rate_f
 
     bits= ff_eval(s->avctx->rc_eq, const_values, const_names, func1, func1_names, NULL, NULL, rce);
     
-    rcc->pass1_bits+= bits;
+    rcc->pass1_rc_eq_output_sum+= bits;
     bits*=rate_factor;
     if(bits<0.0) bits=0.0;
     bits+= 1.0; //avoid 1/0 issues
@@ -324,13 +320,34 @@ static double get_qscale(MpegEncContext *s, RateControlEntry *rce, double rate_f
         q= -q*s->avctx->i_quant_factor + s->avctx->i_quant_offset;
     else if(pict_type==B_TYPE && s->avctx->b_quant_factor<0.0)
         q= -q*s->avctx->b_quant_factor + s->avctx->b_quant_offset;
-    
+        
+    return q;
+}
+
+static double get_diff_limited_q(MpegEncContext *s, RateControlEntry *rce, double q){
+    RateControlContext *rcc= &s->rc_context;
+    AVCodecContext *a= s->avctx;
+    const int pict_type= rce->new_pict_type;
+    const double last_p_q    = rcc->last_qscale_for[P_TYPE];
+    const double last_non_b_q= rcc->last_qscale_for[rcc->last_non_b_pict_type];
+
+    if     (pict_type==I_TYPE && (a->i_quant_factor>0.0 || rcc->last_non_b_pict_type==P_TYPE))
+        q= last_p_q    *ABS(a->i_quant_factor) + a->i_quant_offset;
+    else if(pict_type==B_TYPE && a->b_quant_factor>0.0)
+        q= last_non_b_q*    a->b_quant_factor  + a->b_quant_offset;
+
     /* last qscale / qdiff stuff */
-    if     (q > last_q + s->max_qdiff) q= last_q + s->max_qdiff;
-    else if(q < last_q - s->max_qdiff) q= last_q - s->max_qdiff;
+    if(rcc->last_non_b_pict_type==pict_type || pict_type!=I_TYPE){
+        double last_q= rcc->last_qscale_for[pict_type];
+        if     (q > last_q + a->max_qdiff) q= last_q + a->max_qdiff;
+        else if(q < last_q - a->max_qdiff) q= last_q - a->max_qdiff;
+    }
 
     rcc->last_qscale_for[pict_type]= q; //Note we cant do that after blurring
     
+    if(pict_type!=B_TYPE)
+        rcc->last_non_b_pict_type= pict_type;
+
     return q;
 }
 
@@ -377,24 +394,30 @@ static double modify_qscale(MpegEncContext *s, RateControlEntry *rce, double q, 
         q*= s->avctx->rc_qmod_amp;
 
     bits= qp2bits(rce, q);
-
+//printf("q:%f\n", q);
     /* buffer overflow/underflow protection */
     if(buffer_size){
-        double expected_size= rcc->buffer_index - bits;
+        double expected_size= rcc->buffer_index;
 
         if(min_rate){
-            double d= 2*(buffer_size - (expected_size + min_rate))/buffer_size;
+            double d= 2*(buffer_size - expected_size)/buffer_size;
             if(d>1.0) d=1.0;
-            q/= pow(d, 1.0/s->avctx->rc_buffer_aggressivity);
+            else if(d<0.0001) d=0.0001;
+            q*= pow(d, 1.0/s->avctx->rc_buffer_aggressivity);
+
+            q= MIN(q, bits2qp(rce, MAX((min_rate - buffer_size + rcc->buffer_index)*2, 1)));
         }
 
         if(max_rate){
             double d= 2*expected_size/buffer_size;
             if(d>1.0) d=1.0;
-            q*= pow(d, 1.0/s->avctx->rc_buffer_aggressivity);
+            else if(d<0.0001) d=0.0001;
+            q/= pow(d, 1.0/s->avctx->rc_buffer_aggressivity);
+
+            q= MAX(q, bits2qp(rce, MAX(rcc->buffer_index/2, 1)));
         }
     }
-
+//printf("q:%f max:%f min:%f size:%f index:%d bits:%f agr:%f\n", q,max_rate, min_rate, buffer_size, rcc->buffer_index, bits, s->avctx->rc_buffer_aggressivity);
     if(s->avctx->rc_qsquish==0.0 || qmin==qmax){
         if     (q<qmin) q=qmin;
         else if(q>qmax) q=qmax;
@@ -410,7 +433,7 @@ static double modify_qscale(MpegEncContext *s, RateControlEntry *rce, double q, 
         
         q= exp(q);
     }
-
+    
     return q;
 }
 
@@ -439,10 +462,94 @@ static void update_predictor(Predictor *p, double q, double var, double size)
     p->coeff+= new_coeff;
 }
 
-int ff_rate_estimate_qscale(MpegEncContext *s)
+static void adaptive_quantization(MpegEncContext *s, double q){
+    int i;
+    const float lumi_masking= s->avctx->lumi_masking / (128.0*128.0);
+    const float dark_masking= s->avctx->dark_masking / (128.0*128.0);
+    const float temp_cplx_masking= s->avctx->temporal_cplx_masking;
+    const float spatial_cplx_masking = s->avctx->spatial_cplx_masking;
+    const float p_masking = s->avctx->p_masking;
+    float bits_sum= 0.0;
+    float cplx_sum= 0.0;
+    float cplx_tab[s->mb_num];
+    float bits_tab[s->mb_num];
+    const int qmin= 2; //s->avctx->mb_qmin;
+    const int qmax= 31; //s->avctx->mb_qmax;
+    
+    for(i=0; i<s->mb_num; i++){
+        float temp_cplx= sqrt(s->mc_mb_var[i]);
+        float spat_cplx= sqrt(s->mb_var[i]);
+        const int lumi= s->mb_mean[i];
+        float bits, cplx, factor;
+        
+        if(spat_cplx < q/3) spat_cplx= q/3; //FIXME finetune
+        if(temp_cplx < q/3) temp_cplx= q/3; //FIXME finetune
+        
+        if((s->mb_type[i]&MB_TYPE_INTRA)){//FIXME hq mode 
+            cplx= spat_cplx;
+            factor= 1.0 + p_masking;
+        }else{
+            cplx= temp_cplx;
+            factor= pow(temp_cplx, - temp_cplx_masking);
+        }
+        factor*=pow(spat_cplx, - spatial_cplx_masking);
+
+        if(lumi>127)
+            factor*= (1.0 - (lumi-128)*(lumi-128)*lumi_masking);
+        else
+            factor*= (1.0 - (lumi-128)*(lumi-128)*dark_masking);
+        
+        if(factor<0.00001) factor= 0.00001;
+        
+        bits= cplx*factor;
+        cplx_sum+= cplx;
+        bits_sum+= bits;
+        cplx_tab[i]= cplx;
+        bits_tab[i]= bits;
+    }
+
+    /* handle qmin/qmax cliping */
+    if(s->flags&CODEC_FLAG_NORMALIZE_AQP){
+        for(i=0; i<s->mb_num; i++){
+            float newq= q*cplx_tab[i]/bits_tab[i];
+            newq*= bits_sum/cplx_sum;
+
+            if     (newq > qmax){
+                bits_sum -= bits_tab[i];
+                cplx_sum -= cplx_tab[i]*q/qmax;
+            }
+            else if(newq < qmin){
+                bits_sum -= bits_tab[i];
+                cplx_sum -= cplx_tab[i]*q/qmin;
+            }
+        }
+    }
+   
+    for(i=0; i<s->mb_num; i++){
+        float newq= q*cplx_tab[i]/bits_tab[i];
+        int intq;
+
+        if(s->flags&CODEC_FLAG_NORMALIZE_AQP){
+            newq*= bits_sum/cplx_sum;
+        }
+
+        if(i && ABS(s->qscale_table[i-1] - newq)<0.75)
+            intq= s->qscale_table[i-1];
+        else
+            intq= (int)(newq + 0.5);
+
+        if     (intq > qmax) intq= qmax;
+        else if(intq < qmin) intq= qmin;
+//if(i%s->mb_width==0) printf("\n");
+//printf("%2d%3d ", intq, ff_sqrt(s->mc_mb_var[i]));
+        s->qscale_table[i]= intq;
+    }
+}
+
+float ff_rate_estimate_qscale(MpegEncContext *s)
 {
     float q;
-    int qscale, qmin, qmax;
+    int qmin, qmax;
     float br_compensation;
     double diff;
     double short_term_q;
@@ -460,7 +567,7 @@ int ff_rate_estimate_qscale(MpegEncContext *s)
     get_qminmax(&qmin, &qmax, s, pict_type);
 
     fps= (double)s->frame_rate / FRAME_RATE_BASE;
-//printf("input_picture_number:%d picture_number:%d\n", s->input_picture_number, s->picture_number);
+//printf("input_pic_num:%d pic_num:%d frame_rate:%d\n", s->input_picture_number, s->picture_number, s->frame_rate);
         /* update predictors */
     if(picture_number>2){
         const int last_var= s->last_pict_type == I_TYPE ? rcc->last_mb_var_sum : rcc->last_mc_mb_var_sum;
@@ -521,16 +628,13 @@ int ff_rate_estimate_qscale(MpegEncContext *s)
         rcc->frame_count[pict_type] ++;
 
         bits= rce->i_tex_bits + rce->p_tex_bits;
-        rate_factor= rcc->pass1_wanted_bits/rcc->pass1_bits * br_compensation;
+        rate_factor= rcc->pass1_wanted_bits/rcc->pass1_rc_eq_output_sum * br_compensation;
     
         q= get_qscale(s, rce, rate_factor, picture_number);
 
         assert(q>0.0);
 //printf("%f ", q);
-        if     (pict_type==I_TYPE && s->avctx->i_quant_factor>0.0)
-            q= rcc->next_p_qscale*s->avctx->i_quant_factor + s->avctx->i_quant_offset;
-        else if(pict_type==B_TYPE && s->avctx->b_quant_factor>0.0)
-            q= rcc->next_non_b_qscale*s->avctx->b_quant_factor + s->avctx->b_quant_offset;
+        q= get_diff_limited_q(s, rce, q);
 //printf("%f ", q);
         assert(q>0.0);
 
@@ -544,14 +648,13 @@ int ff_rate_estimate_qscale(MpegEncContext *s)
             q= short_term_q= rcc->short_term_qsum/rcc->short_term_qcount;
 //printf("%f ", q);
         }
+        assert(q>0.0);
+        
         q= modify_qscale(s, rce, q, picture_number);
 
         rcc->pass1_wanted_bits+= s->bit_rate/fps;
 
         assert(q>0.0);
-
-        if(pict_type != B_TYPE) rcc->next_non_b_qscale= q;
-        if(pict_type == P_TYPE) rcc->next_p_qscale= q;
     }
 //printf("qmin:%d, qmax:%d, q:%f\n", qmin, qmax, q);
     
@@ -561,19 +664,21 @@ int ff_rate_estimate_qscale(MpegEncContext *s)
         
 //    printf("%f %d %d %d\n", q, picture_number, (int)wanted_bits, (int)s->total_bits);
     
-
 //printf("%f %f %f\n", q, br_compensation, short_term_q);
-    qscale= (int)(q + 0.5);
-//printf("%d ", qscale);
-    
-//printf("q:%d diff:%d comp:%f rate_q:%d st_q:%f fvar:%d last_size:%d\n", qscale, (int)diff, br_compensation, 
-//       rate_q, short_term_q, s->mc_mb_var, s->frame_bits);
+   
+//printf("q:%d diff:%d comp:%f st_q:%f last_size:%d type:%d\n", qscale, (int)diff, br_compensation, 
+//       short_term_q, s->frame_bits, pict_type);
 //printf("%d %d\n", s->bit_rate, (int)fps);
 
-    rcc->last_qscale= qscale;
+    if(s->adaptive_quant)
+        adaptive_quantization(s, q);
+    else
+        q= (int)(q + 0.5);
+    
+    rcc->last_qscale= q;
     rcc->last_mc_mb_var_sum= s->mc_mb_var_sum;
     rcc->last_mb_var_sum= s->mb_var_sum;
-    return qscale;
+    return q;
 }
 
 //----------------------------------------------
@@ -689,21 +794,10 @@ static int init_pass2(MpegEncContext *s)
         assert(filter_size%2==1);
 
         /* fixed I/B QP relative to P mode */
-        rcc->next_non_b_qscale= 10;
-        rcc->next_p_qscale= 10;
         for(i=rcc->num_entries-1; i>=0; i--){
             RateControlEntry *rce= &rcc->entry[i];
-            const int pict_type= rce->new_pict_type;
-        
-            if     (pict_type==I_TYPE && s->avctx->i_quant_factor>0.0)
-                qscale[i]= rcc->next_p_qscale*s->avctx->i_quant_factor + s->avctx->i_quant_offset;
-            else if(pict_type==B_TYPE && s->avctx->b_quant_factor>0.0)
-                qscale[i]= rcc->next_non_b_qscale*s->avctx->b_quant_factor + s->avctx->b_quant_offset;
-
-            if(pict_type!=B_TYPE) 
-                rcc->next_non_b_qscale= qscale[i];
-            if(pict_type==P_TYPE) 
-                rcc->next_p_qscale= qscale[i];
+            
+            qscale[i]= get_diff_limited_q(s, rce, qscale[i]);
         }
 
         /* smooth curve */
