@@ -267,7 +267,7 @@ int xine_health_check_xv(void)
 	return retval;
 }
 #else	/* !__linux__ */
-int xine_health_check()
+int xine_health_check(char* cdrom_dev, char* dvd_dev)
 {
 	return 0;
 }
