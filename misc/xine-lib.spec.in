@@ -15,8 +15,8 @@ Version:     %{version}
 Release:     %{release}
 License:     GPL
 Group:       Development/Libraries
-Source:      http://xine.sourceforge.net/files/@PACKAGE@-@VERSION@.tar.gz
-URL:         http://xine.sourceforge.net/
+Source:      http://xinehq.de/files/@PACKAGE@-@VERSION@.tar.gz
+URL:         http://xinehq.de/
 Packager:    Manfred Tremmel <Manfred.Tremmel@iiv.de>
 BuildPreReq: zlib
 BuildRoot:   %{_tmppath}/%{name}-buildroot
@@ -247,6 +247,9 @@ rm -rf $RPM_BUILD_ROOT
 %files -n %{libname}
 %defattr(-,root,root)
 %doc README TODO AUTHORS COPYING ChangeLog
+%doc %{_datadir}/doc/xine/READ*
+%doc %{_datadir}/doc/xine/*.dia
+%doc %{_datadir}/doc/xine/faq/faq.*
 %{_bindir}/xine-config
 %{_libdir}/libxine*.so.*
 %{_libdir}/pkgconfig/*
@@ -275,6 +278,8 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Sat Mar 08 2003 Manfred Tremmel <Manfred.Tremmel@iiv.de>
+- added missing doc-files
 * Wed Jan 15 2003 Manfred Tremmel <Manfred.Tremmel@iiv.de>
 - removed man3 manpages in devel-filelist
 * Tue Dec 24 2002 Manfred Tremmel <Manfred.Tremmel@iiv.de>
