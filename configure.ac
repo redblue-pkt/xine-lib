@@ -179,6 +179,14 @@ case "$host" in
     DEBUG_CFLAGS="$DEBUG_CFLAGS"
 
     ;;
+
+  *-*-hpux11*)
+    THREAD_LIBS=" -lpthread"
+    THREAD_CFLAGS="-D_REENTRANT"
+    CFLAGS="$CFLAGS $THREAD_CFLAGS -DHPUX"
+
+    ;;
+
   *)
     AC_CHECK_LIB(pthread, pthread_create,
   	     [THREAD_LIBS="-lpthread"],
@@ -1063,6 +1071,12 @@ case "$host_or_hostalias" in
     CFLAGS="$CFLAGS -O"
     DEBUG_CFLAGS="$DEBUG_CFLAGS -O"
     AC_DEFINE_UNQUOTED(FPM_64BIT,,[Define to select libmad fixed pointarithmetic implementation])
+    ;;
+  hppa*-hp-*)
+    dnl -O3 seems to trigger gcc internal compiler errors, at least up to gcc 3.2.1
+    CFLAGS="$CFLAGS -O2"
+    DEBUG_CFLAGS="$DEBUG_CFLAGS -O2"
+    AC_DEFINE_UNQUOTED(FPM_DEFAULT,,[Define to select libmad fixed pointarithmetic implementation])
     ;;
 
   s390-*)
