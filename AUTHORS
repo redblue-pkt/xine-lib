@@ -90,10 +90,12 @@ xine is using
     MPlayer http://www.mplayerhq.hu/
     wine    http://www.winehq.com
 
-  some demuxers and decoders (especially the real demuxer),
-  MMX/MMX2/SSE memcpy methods (among other things) and
-  the vidix video output system are based on work from
+  some demuxers and decoders (especially the real demuxer) and
+  MMX/MMX2/SSE memcpy methods (among other things) are based on work from
     MPlayer http://www.mplayerhq.hu/
+
+  the vidix video system from
+    MPlayerXP http://mplayerxp.sf.net/
 
   VCD interpretation code in the extended VCD plugin from VCDImager
    by Herbert Valerio Riedel http://vcdimager.org 
