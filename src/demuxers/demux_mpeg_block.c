@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.117 2002/09/24 13:10:25 mroi Exp $
+ * $Id: demux_mpeg_block.c,v 1.118 2002/10/08 10:29:42 jcdutton Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -181,7 +181,8 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
     event.handled = 0;
     xine_send_event (this->xine, &event.event);
 
-    if (event.handled) {
+    /* strdup segfaults is passed a NULL */
+    if (event.handled && event.mrl) {
 
       char *next_mrl = strdup(event.mrl);
 
