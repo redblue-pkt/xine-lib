@@ -6,6 +6,8 @@ DEBUG_CFLAGS = @DEBUG_CFLAGS@ @ANSI_FLAGS@
 
 LIBTOOL = $(SHELL) $(top_builddir)/libtool-nofpic
 
+EXTRA_DIST = zoom_filter_mmx.c
+
 ## -fomit-frame-pointer segfaults here
 CFLAGS = `echo @CFLAGS@ | sed -e 's/-fomit-frame-pointer//g'`
 
