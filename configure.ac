@@ -693,7 +693,8 @@ if test "$GCC" = yes; then
         f_al="-malign-loops=4")
     AC_TRY_CFLAGS("-falign-jumps=4", f_aj="-falign-jumps=4",
         f_aj="-malign-jumps=4")
-    ANSI_FLAGS="-ansi"
+dnl    ANSI_FLAGS="-ansi"
+    ANSI_FLAGS="-std=gnu89"
     AC_SUBST(ANSI_FLAGS)
 fi
 
