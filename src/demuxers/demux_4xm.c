@@ -16,12 +16,14 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
- *
+ */
+
+/*
  * 4X Technologies (.4xm) File Demuxer by Mike Melanson (melanson@pcisys.net)
  * For more information on the 4xm file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_4xm.c,v 1.2 2003/06/21 22:33:49 tmmm Exp $
+ * $Id: demux_4xm.c,v 1.3 2003/07/03 00:58:52 andruil Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -33,6 +35,11 @@
 #include <unistd.h>
 #include <string.h>
 #include <stdlib.h>
+
+/********** logging **********/
+#define LOG_MODULE "demux_4xm"
+/* #define LOG_VERBOSE */
+/* #define LOG */
 
 #include "xine_internal.h"
 #include "xineutils.h"
@@ -73,21 +80,14 @@ typedef struct AudioTrack {
 } audio_track_t;
 
 typedef struct {
-
   demux_plugin_t       demux_plugin;
 
   xine_stream_t       *stream;
-
-  config_values_t     *config;
-
   fifo_buffer_t       *video_fifo;
   fifo_buffer_t       *audio_fifo;
-
   input_plugin_t      *input;
-
-  off_t                data_start;
-  off_t                data_size;
   int                  status;
+
   unsigned int         filesize;
 
   xine_bmiheader       bih;
@@ -98,17 +98,10 @@ typedef struct {
   int64_t              pts;
   int                  last_chunk_was_audio;
   int                  last_audio_frame_count;
-
 } demux_fourxm_t;
 
 typedef struct {
-
   demux_class_t     demux_class;
-
-  /* class-wide, global variables here */
-
-  xine_t           *xine;
-  config_values_t  *config;
 } demux_fourxm_class_t;
 
 /* Open a 4xm file
@@ -116,7 +109,7 @@ typedef struct {
  * It returns 1 if 4xm file was opened successfully. */
 static int open_fourxm_file(demux_fourxm_t *fourxm) {
 
-  unsigned char preview[MAX_PREVIEW_SIZE];
+  unsigned char preview[12];
   int header_size;
   unsigned char *header;
   int i;
@@ -124,33 +117,23 @@ static int open_fourxm_file(demux_fourxm_t *fourxm) {
   unsigned int size;
   unsigned int current_track;
 
-  if (fourxm->input->get_capabilities(fourxm->input) & INPUT_CAP_SEEKABLE) {
-    /* reset the file */
-    fourxm->input->seek(fourxm->input, 0, SEEK_SET);
-
-    /* the file signature will be in the first 12 bytes */
-    if (fourxm->input->read(fourxm->input, preview, 12) != 12) {
-      return 0;
-    }
-  } else {
-    fourxm->input->get_optional_data(fourxm->input, preview,
-      INPUT_OPTIONAL_DATA_PREVIEW);
-  }
+  /* the file signature will be in the first 12 bytes */
+  if (xine_demux_read_header(fourxm->input, preview, 12) != 12)
+    return 0;
 
   /* check for the signature tags */
   if ((LE_32(&preview[0]) !=  RIFF_TAG) ||
       (LE_32(&preview[8]) != _4XMV_TAG))
     return 0;
 
-  /* file is qualified; if the input was not seekable, skip over the header
-   * bytes in the stream */
-  if ((fourxm->input->get_capabilities(fourxm->input) & INPUT_CAP_SEEKABLE) == 0) {
-    fourxm->input->seek(fourxm->input, 12, SEEK_SET);
-  }
+  /* file is qualified; skip over the header bytes in the stream */
+  fourxm->input->seek(fourxm->input, 12, SEEK_SET);
 
+  /* seems to be unnecessary (see end of function)
   fourxm->filesize = LE_32(&preview[8]);
   if (fourxm->filesize == 0)
     fourxm->filesize = 0xFFFFFFFF;
+  */
 
   /* fetch the LIST-HEAD header */
   if (fourxm->input->read(fourxm->input, preview, 12) != 12)
@@ -162,8 +145,10 @@ static int open_fourxm_file(demux_fourxm_t *fourxm) {
   /* read the whole header */
   header_size = LE_32(&preview[4]) - 4;
   header = xine_xmalloc(header_size);
-  if (fourxm->input->read(fourxm->input, header, header_size) != header_size)
+  if (fourxm->input->read(fourxm->input, header, header_size) != header_size) {
+    free(header);
     return 0;
+  }
 
   fourxm->bih.biWidth = 0;
   fourxm->bih.biHeight = 0;
@@ -196,7 +181,7 @@ static int open_fourxm_file(demux_fourxm_t *fourxm) {
       current_track = LE_32(&header[i + 8]);
       if (current_track + 1 > fourxm->track_count) {
         fourxm->track_count = current_track + 1;
-        fourxm->tracks = realloc(fourxm->tracks, 
+        fourxm->tracks = realloc(fourxm->tracks,
           fourxm->track_count * sizeof(audio_track_t));
         if (!fourxm->tracks) {
           free(header);
@@ -207,7 +192,7 @@ static int open_fourxm_file(demux_fourxm_t *fourxm) {
       fourxm->tracks[current_track].channels = LE_32(&header[i + 36]);
       fourxm->tracks[current_track].sample_rate = LE_32(&header[i + 40]);
       fourxm->tracks[current_track].bits = LE_32(&header[i + 44]);
-      fourxm->tracks[current_track].audio_type = 
+      fourxm->tracks[current_track].audio_type =
         BUF_AUDIO_LPCM_LE + (current_track & 0x0000FFFF);
       i += 8 + size;
     }
@@ -308,8 +293,8 @@ static int demux_fourxm_send_chunk(demux_plugin_t *this_gen) {
     size = LE_32(&header[4]);
 
     if (current_track >= this->track_count) {
-      printf ("bad audio track number (%d >= %d)\n", current_track,
-        this->track_count);
+      lprintf ("bad audio track number (%d >= %d)\n",
+               current_track, this->track_count);
       this->status = DEMUX_FINISHED;
       return this->status;
     }
@@ -452,9 +437,8 @@ static int demux_fourxm_get_optional_data(demux_plugin_t *this_gen,
 }
 
 static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *stream,
-                                    input_plugin_t *input_gen) {
+                                    input_plugin_t *input) {
 
-  input_plugin_t *input = (input_plugin_t *) input_gen;
   demux_fourxm_t    *this;
 
   this         = xine_xmalloc (sizeof (demux_fourxm_t));
@@ -477,6 +461,19 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
 
   switch (stream->content_detection_method) {
 
+  case METHOD_BY_EXTENSION: {
+    char *extensions, *mrl;
+
+    mrl = input->get_mrl (input);
+    extensions = class_gen->get_extensions (class_gen);
+
+    if (!xine_demux_check_extension (mrl, extensions)) {
+      free (this);
+      return NULL;
+    }
+  }
+  /* falling through is intended */
+
   case METHOD_BY_CONTENT:
   case METHOD_EXPLICIT:
 
@@ -484,32 +481,6 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
       free (this);
       return NULL;
     }
-
-  break;
-
-  case METHOD_BY_EXTENSION: {
-    char *ending, *mrl;
-
-    mrl = input->get_mrl (input);
-
-    ending = strrchr(mrl, '.');
-
-    if (!ending) {
-      free (this);
-      return NULL;
-    }
-
-    if (strncasecmp (ending, ".4xm", 4)) {
-      free (this);
-      return NULL;
-    }
-
-    if (!open_fourxm_file(this)) {
-      free (this);
-      return NULL;
-    }
-
-  }
 
   break;
 
@@ -548,9 +519,7 @@ void *demux_fourxm_init_plugin (xine_t *xine, void *data) {
 
   demux_fourxm_class_t     *this;
 
-  this         = xine_xmalloc (sizeof (demux_fourxm_class_t));
-  this->config = xine->config;
-  this->xine   = xine;
+  this = xine_xmalloc (sizeof (demux_fourxm_class_t));
 
   this->demux_class.open_plugin     = open_plugin;
   this->demux_class.get_description = get_description;

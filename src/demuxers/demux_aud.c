@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2002 the xine project
+ * Copyright (C) 2000-2003 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -16,7 +16,9 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
- *
+ */
+
+/*
  * Westwood Studios AUD File Demuxer by Mike Melanson (melanson@pcisys.net)
  * For more information regarding the AUD file format, refer to:
  *   http://www.geocities.com/SiliconValley/8682/aud3.txt
@@ -32,7 +34,7 @@
  * data. This makes seeking conceptually impossible. Upshot: Random
  * seeking is not supported.
  *
- * $Id: demux_aud.c,v 1.8 2003/04/02 05:14:10 guenter Exp $
+ * $Id: demux_aud.c,v 1.9 2003/07/03 00:58:52 andruil Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -55,42 +57,26 @@
 #define AUD_CHUNK_PREAMBLE_SIZE 8
 
 typedef struct {
-
   demux_plugin_t       demux_plugin;
 
   xine_stream_t       *stream;
-
-  config_values_t     *config;
-
   fifo_buffer_t       *video_fifo;
   fifo_buffer_t       *audio_fifo;
-
   input_plugin_t      *input;
-
-  int                  thread_running;
+  int                  status;
 
   off_t                data_start;
   off_t                data_size;
-  int                  status;
 
   int                  audio_samplerate;
   int                  audio_channels;
   int                  audio_bits;
   int                  audio_type;
   int64_t              audio_frame_counter;
-
-  char                 last_mrl[1024];
-
 } demux_aud_t;
 
 typedef struct {
-
   demux_class_t     demux_class;
-
-  /* class-wide, global variables here */
-
-  xine_t           *xine;
-  config_values_t  *config;
 } demux_aud_class_t;
 
 
@@ -98,27 +84,16 @@ typedef struct {
 static int open_aud_file(demux_aud_t *this) {
 
   unsigned char header[AUD_HEADER_SIZE];
-  unsigned char preview[MAX_PREVIEW_SIZE];
 
-  if (this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) {
-    this->input->seek(this->input, 0, SEEK_SET);
-    if (this->input->read(this->input, header, AUD_HEADER_SIZE) !=
-      AUD_HEADER_SIZE)
-      return 0;
-  } else {
-    this->input->get_optional_data(this->input, preview,
-      INPUT_OPTIONAL_DATA_PREVIEW);
-
-    /* copy over the header bytes for processing */
-    memcpy(header, preview, AUD_HEADER_SIZE);
-  }
+  if (xine_demux_read_header(this->input, header, AUD_HEADER_SIZE) != AUD_HEADER_SIZE)
+    return 0;
 
   /* Probabilistic content detection strategy: There is no file signature
    * so perform sanity checks on various header parameters:
    *   8000 <= sample rate (16 bits) <= 48000  ==> 40001 acceptable numbers
    *   compression type (8 bits) = 1 or 99     ==> 2 acceptable numbers
    * There is a total of 24 bits. The number space contains 2^24 =
-   * 16777216 numbers. There are 40001 * 2 = 80002 acceptable combinations 
+   * 16777216 numbers. There are 40001 * 2 = 80002 acceptable combinations
    * of numbers. There is a 80002/16777216 = 0.48% chance of a false
    * positive.
    */
@@ -127,17 +102,14 @@ static int open_aud_file(demux_aud_t *this) {
     return 0;
 
   if (header[11] == 1)
-    this->audio_type = BUF_AUDIO_WESTWOOD;  
+    this->audio_type = BUF_AUDIO_WESTWOOD;
   else if (header[11] == 99)
-    this->audio_type = BUF_AUDIO_VQA_IMA;  
+    this->audio_type = BUF_AUDIO_VQA_IMA;
   else
     return 0;
 
-  /* file is qualified; if the input was not seekable, skip over the header
-   * bytes in the stream */
-  if ((this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) == 0) {
-    this->input->seek(this->input, AUD_HEADER_SIZE, SEEK_SET);
-  }
+  /* file is qualified; skip over the header bytes in the stream */
+  this->input->seek(this->input, AUD_HEADER_SIZE, SEEK_SET);
 
   /* flag 0 indicates stereo */
   this->audio_channels = (header[10] & 0x1) + 1;
@@ -259,13 +231,10 @@ static int demux_aud_seek (demux_plugin_t *this_gen,
 
   /* if input is non-seekable, do not proceed with the rest of this
    * seek function */
-  if ((this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) == 0)
+  if (!INPUT_IS_SEEKABLE(this->input))
     return this->status;
 
-
   /* no seeking yet */
-
-
   return this->status;
 }
 
@@ -295,9 +264,8 @@ static int demux_aud_get_optional_data(demux_plugin_t *this_gen,
 }
 
 static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *stream,
-                                    input_plugin_t *input_gen) {
+                                    input_plugin_t *input) {
 
-  input_plugin_t *input = (input_plugin_t *) input_gen;
   demux_aud_t    *this;
 
   this         = xine_xmalloc (sizeof (demux_aud_t));
@@ -320,6 +288,19 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
 
   switch (stream->content_detection_method) {
 
+  case METHOD_BY_EXTENSION: {
+    char *extensions, *mrl;
+
+    mrl = input->get_mrl (input);
+    extensions = class_gen->get_extensions (class_gen);
+
+    if (!xine_demux_check_extension (mrl, extensions)) {
+      free (this);
+      return NULL;
+    }
+  }
+  /* falling through is intended */
+
   case METHOD_BY_CONTENT:
   case METHOD_EXPLICIT:
 
@@ -329,38 +310,10 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
     }
   break;
 
-  case METHOD_BY_EXTENSION: {
-    char *ending, *mrl;
-
-    mrl = input->get_mrl (input);
-
-    ending = strrchr(mrl, '.');
-
-    if (!ending) {
-      free (this);
-      return NULL;
-    }
-
-    if (strncasecmp (ending, ".aud", 4)) {
-      free (this);
-      return NULL;
-    }
-
-    if (!open_aud_file(this)) {
-      free (this);
-      return NULL;
-    }
-
-  }
-
-  break;
-
   default:
     free (this);
     return NULL;
   }
-
-  strncpy (this->last_mrl, input->get_mrl (input), 1024);
 
   return &this->demux_plugin;
 }
@@ -392,9 +345,7 @@ void *demux_aud_init_plugin (xine_t *xine, void *data) {
 
   demux_aud_class_t     *this;
 
-  this         = xine_xmalloc (sizeof (demux_aud_class_t));
-  this->config = xine->config;
-  this->xine   = xine;
+  this = xine_xmalloc (sizeof (demux_aud_class_t));
 
   this->demux_class.open_plugin     = open_plugin;
   this->demux_class.get_description = get_description;

@@ -16,13 +16,14 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
- *
+ */
+
+/*
  * AC3 File Demuxer by Mike Melanson (melanson@pcisys.net)
  * This demuxer detects raw AC3 data in a file and shovels AC3 data
  * directly to the AC3 decoder.
  *
- * $Id: demux_ac3.c,v 1.7 2003/03/31 19:31:54 tmmm Exp $
- *
+ * $Id: demux_ac3.c,v 1.8 2003/07/03 00:58:52 andruil Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -45,21 +46,15 @@
 #define AC3_PREAMBLE_BYTES 5
 
 typedef struct {
-
   demux_plugin_t       demux_plugin;
 
   xine_stream_t       *stream;
-
-  config_values_t     *config;
-
   fifo_buffer_t       *video_fifo;
   fifo_buffer_t       *audio_fifo;
-
   input_plugin_t      *input;
-
   int                  status;
-  int                  seek_flag;
 
+  int                  seek_flag;
   int                  sample_rate;
   int                  frame_size;
   int                  running_time;
@@ -67,23 +62,14 @@ typedef struct {
   /* This hack indicates that 2 bytes (0x0B77) have already been consumed
    * from a non-seekable stream during the detection phase. */
   int                  first_non_seekable_frame;
-
-  char                 last_mrl[1024];
 } demux_ac3_t;
 
 typedef struct {
-
   demux_class_t     demux_class;
-
-  /* class-wide, global variables here */
-
-  xine_t           *xine;
-  config_values_t  *config;
 } demux_ac3_class_t;
 
 /* borrow some knowledge from the AC3 decoder */
-struct frmsize_s
-{
+struct frmsize_s {
   uint16_t bit_rate;
   uint16_t frm_size[3];
 };
@@ -134,33 +120,18 @@ static const struct frmsize_s frmsizecod_tbl[64] =
 static int open_ac3_file(demux_ac3_t *this) {
 
   unsigned char preamble[AC3_PREAMBLE_BYTES];
-  unsigned char preview[MAX_PREVIEW_SIZE];
 
   /* check if the sync mark matches up */
-  if (this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) {
-    this->input->seek(this->input, 0, SEEK_SET);
-    if (this->input->read(this->input, preamble, AC3_PREAMBLE_BYTES) != 
+  if (xine_demux_read_header(this->input, preamble, AC3_PREAMBLE_BYTES) !=
       AC3_PREAMBLE_BYTES)
-      return 0;
-  } else {
-    this->input->get_optional_data(this->input, preview,
-      INPUT_OPTIONAL_DATA_PREVIEW);
-
-    this->first_non_seekable_frame = 1;
-
-    /* copy over the header bytes for processing */
-    memcpy(preamble, preview, AC3_PREAMBLE_BYTES);
-  }
+    return 0;
 
   if ((preamble[0] != 0x0B) ||
       (preamble[1] != 0x77))
     return 0;
 
-  /* file is qualified; if the input was not seekable, skip over the header
-   * bytes in the stream */
-  if ((this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) == 0) {
-    this->input->seek(this->input, AC3_PREAMBLE_BYTES, SEEK_SET);
-  }
+  /* file is qualified; skip over the header bytes in the stream */
+  this->input->seek(this->input, AC3_PREAMBLE_BYTES, SEEK_SET);
 
   this->sample_rate = preamble[4] >> 6;
   if (this->sample_rate > 2)
@@ -181,6 +152,9 @@ static int open_ac3_file(demux_ac3_t *this) {
   this->running_time /= this->frame_size;
   this->running_time *= (90000 / 1000) * (256 * 3);
   this->running_time /= this->sample_rate;
+
+  if (!INPUT_IS_SEEKABLE(this->input))
+    this->first_non_seekable_frame = 1;
 
   return 1;
 }
@@ -284,7 +258,7 @@ static int demux_ac3_seek (demux_plugin_t *this_gen,
 
   /* if input is non-seekable, do not proceed with the rest of this
    * seek function */
-  if ((this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) == 0)
+  if (!INPUT_IS_SEEKABLE(this->input))
     return this->status;
 
   /* divide the requested offset integer-wise by the frame alignment and
@@ -326,9 +300,8 @@ static int demux_ac3_get_optional_data(demux_plugin_t *this_gen,
 }
 
 static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *stream,
-                                   input_plugin_t *input_gen) {
+                                   input_plugin_t *input) {
 
-  input_plugin_t *input = (input_plugin_t *) input_gen;
   demux_ac3_t   *this;
 
   this         = xine_xmalloc (sizeof (demux_ac3_t));
@@ -352,25 +325,18 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   switch (stream->content_detection_method) {
 
   case METHOD_BY_EXTENSION: {
-    char *ending, *mrl;
+    char *extensions, *mrl;
 
     mrl = input->get_mrl (input);
+    extensions = class_gen->get_extensions (class_gen);
 
-    ending = strrchr(mrl, '.');
-
-    if (!ending) {
+    if (!xine_demux_check_extension (mrl, extensions)) {
       free (this);
       return NULL;
     }
-
-    if (strncasecmp (ending, ".ac3", 4)) {
-      free (this);
-      return NULL;
-    }
-
   }
   /* falling through is intended */
-  
+
   case METHOD_BY_CONTENT:
   case METHOD_EXPLICIT:
 
@@ -381,13 +347,10 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
 
   break;
 
-
   default:
     free (this);
     return NULL;
   }
-
-  strncpy (this->last_mrl, input->get_mrl (input), 1024);
 
   return &this->demux_plugin;
 }
@@ -419,9 +382,7 @@ void *demux_ac3_init_plugin (xine_t *xine, void *data) {
 
   demux_ac3_class_t     *this;
 
-  this         = xine_xmalloc (sizeof (demux_ac3_class_t));
-  this->config = xine->config;
-  this->xine   = xine;
+  this = xine_xmalloc (sizeof (demux_ac3_class_t));
 
   this->demux_class.open_plugin     = open_plugin;
   this->demux_class.get_description = get_description;

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2002 the xine project
+ * Copyright (C) 2001-2003 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -16,10 +16,12 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
- *
+ */
+
+/*
  * AIFF File Demuxer by Mike Melanson (melanson@pcisys.net)
  *
- * $Id: demux_aiff.c,v 1.29 2003/03/31 19:31:54 tmmm Exp $
+ * $Id: demux_aiff.c,v 1.30 2003/07/03 00:58:52 andruil Exp $
  *
  */
 
@@ -57,18 +59,12 @@
 #define PCM_BLOCK_ALIGN 1024
 
 typedef struct {
-
   demux_plugin_t       demux_plugin;
 
   xine_stream_t       *stream;
-
-  config_values_t     *config;
-
   fifo_buffer_t       *video_fifo;
   fifo_buffer_t       *audio_fifo;
-
   input_plugin_t      *input;
-
   int                  status;
 
   unsigned int         audio_type;
@@ -85,18 +81,10 @@ typedef struct {
   off_t                data_size;
 
   int                  seek_flag;  /* this is set when a seek just occurred */
-
-  char                 last_mrl[1024];
 } demux_aiff_t;
 
 typedef struct {
-
   demux_class_t     demux_class;
-
-  /* class-wide, global variables here */
-
-  xine_t           *xine;
-  config_values_t  *config;
 } demux_aiff_class_t;
 
 /* returns 1 if the AIFF file was opened successfully, 0 otherwise */
@@ -107,31 +95,17 @@ static int open_aiff_file(demux_aiff_t *this) {
   unsigned int chunk_type;
   unsigned int chunk_size;
   unsigned char buffer[100];
-  unsigned char preview[MAX_PREVIEW_SIZE];
 
-  if (this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) {
-    this->input->seek(this->input, 0, SEEK_SET);
-    if (this->input->read(this->input, signature, AIFF_SIGNATURE_SIZE) !=
-      AIFF_SIGNATURE_SIZE)
-      return 0;
-  } else {
-    this->input->get_optional_data(this->input, preview,
-      INPUT_OPTIONAL_DATA_PREVIEW);
-
-    /* copy over the header bytes for processing */
-    memcpy(signature, preview, AIFF_SIGNATURE_SIZE);
-  }
+  if (xine_demux_read_header(this->input, signature, AIFF_SIGNATURE_SIZE) != AIFF_SIGNATURE_SIZE)
+    return 0;
 
   /* check the signature */
   if ((BE_32(&signature[0]) != FORM_TAG) ||
       (BE_32(&signature[8]) != AIFF_TAG))
     return 0;
 
-  /* file is qualified; if the input was not seekable, skip over the header
-   * bytes in the stream */
-  if ((this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) == 0) {
-    this->input->seek(this->input, AIFF_SIGNATURE_SIZE, SEEK_SET);
-  }
+  /* file is qualified; skip over the header bytes in the stream */
+  this->input->seek(this->input, AIFF_SIGNATURE_SIZE, SEEK_SET);
 
   /* audio type is PCM unless proven otherwise */
   this->audio_type = BUF_AUDIO_LPCM_BE;
@@ -141,13 +115,12 @@ static int open_aiff_file(demux_aiff_t *this) {
   this->audio_sample_rate = 0;
   this->audio_bytes_per_second = 0;
 
-  /* skip past the file header and traverse the chunks */
-  this->input->seek(this->input, 12, SEEK_SET);
+  /* traverse the chunks */
   while (1) {
     if (this->input->read(this->input, preamble, PREAMBLE_SIZE) !=
       PREAMBLE_SIZE) {
       this->status = DEMUX_FINISHED;
-      return DEMUX_CANNOT_HANDLE;
+      return 0;
     }
     chunk_type = BE_32(&preamble[0]);
     chunk_size = BE_32(&preamble[4]);
@@ -156,7 +129,7 @@ static int open_aiff_file(demux_aiff_t *this) {
       if (this->input->read(this->input, buffer, chunk_size) !=
         chunk_size) {
         this->status = DEMUX_FINISHED;
-        return DEMUX_CANNOT_HANDLE;
+        return 0;
       }
 
       this->audio_channels = BE_16(&buffer[0]);
@@ -166,7 +139,7 @@ static int open_aiff_file(demux_aiff_t *this) {
       this->audio_bytes_per_second = this->audio_channels *
         (this->audio_bits / 8) * this->audio_sample_rate;
 
-    } else if ((chunk_type == SSND_TAG) || 
+    } else if ((chunk_type == SSND_TAG) ||
                (chunk_type == APCM_TAG)) {
 
       /* audio data has been located; proceed to demux loop after
@@ -175,7 +148,7 @@ static int open_aiff_file(demux_aiff_t *this) {
       this->data_start = this->input->get_current_pos(this->input);
       this->data_size = this->audio_frames * this->audio_channels *
         (this->audio_bits / 8);
-      this->running_time = this->audio_frames / this->audio_sample_rate;
+      this->running_time = (this->audio_frames / this->audio_sample_rate) * 1000;
 
       this->audio_block_align = PCM_BLOCK_ALIGN;
 
@@ -306,7 +279,7 @@ static int demux_aiff_seek (demux_plugin_t *this_gen,
 
   /* if input is non-seekable, do not proceed with the rest of this
    * seek function */
-  if ((this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) == 0)
+  if (!INPUT_IS_SEEKABLE(this->input))
     return this->status;
 
   /* check the boundary offsets */
@@ -348,7 +321,7 @@ static int demux_aiff_get_stream_length (demux_plugin_t *this_gen) {
 
   demux_aiff_t *this = (demux_aiff_t *) this_gen;
 
-  return this->running_time * 1000;
+  return this->running_time;
 }
 
 static uint32_t demux_aiff_get_capabilities(demux_plugin_t *this_gen)
@@ -363,9 +336,8 @@ static int demux_aiff_get_optional_data(demux_plugin_t *this_gen,
 }
 
 static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *stream,
-                                    input_plugin_t *input_gen) {
+                                    input_plugin_t *input) {
 
-  input_plugin_t *input = (input_plugin_t *) input_gen;
   demux_aiff_t   *this;
 
   this         = xine_xmalloc (sizeof (demux_aiff_t));
@@ -388,6 +360,19 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
 
   switch (stream->content_detection_method) {
 
+  case METHOD_BY_EXTENSION: {
+    char *extensions, *mrl;
+
+    mrl = input->get_mrl (input);
+    extensions = class_gen->get_extensions (class_gen);
+
+    if (!xine_demux_check_extension (mrl, extensions)) {
+      free (this);
+      return NULL;
+    }
+  }
+  /* falling through is intended */
+
   case METHOD_BY_CONTENT:
   case METHOD_EXPLICIT:
 
@@ -398,38 +383,10 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
 
   break;
 
-  case METHOD_BY_EXTENSION: {
-    char *ending, *mrl;
-
-    mrl = input->get_mrl (input);
-
-    ending = strrchr(mrl, '.');
-    if (!ending) {
-      free (this);
-      return NULL;
-    }
-
-    if (strncasecmp (ending, ".aif", 4) &&
-        strncasecmp (ending, ".aiff", 5)) {
-      free (this);
-      return NULL;
-    }
-
-    if (!open_aiff_file(this)) {
-      free (this);
-      return NULL;
-    }
-
-  }
-
-  break;
-
   default:
     free (this);
     return NULL;
   }
-
-  strncpy (this->last_mrl, input->get_mrl (input), 1024);
 
   return &this->demux_plugin;
 }
@@ -463,9 +420,7 @@ void *demux_aiff_init_plugin (xine_t *xine, void *data) {
 
   demux_aiff_class_t     *this;
 
-  this         = xine_xmalloc (sizeof (demux_aiff_class_t));
-  this->config = xine->config;
-  this->xine   = xine;
+  this = xine_xmalloc (sizeof (demux_aiff_class_t));
 
   this->demux_class.open_plugin     = open_plugin;
   this->demux_class.get_description = get_description;

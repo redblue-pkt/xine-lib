@@ -1,5 +1,5 @@
-/* 
- * Copyright (C) 2000-2002 the xine project
+/*
+ * Copyright (C) 2000-2003 the xine project
  * 
  * This file is part of xine, a free video player.
  * 
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_plugin.h,v 1.49 2003/05/20 13:50:56 mroi Exp $
+ * $Id: input_plugin.h,v 1.50 2003/07/03 00:58:51 andruil Exp $
  */
 
 #ifndef HAVE_INPUT_PLUGIN_H
@@ -48,7 +48,7 @@ struct input_class_s {
    * return NULL if the plugin does'nt handle the given mrl
    */
   input_plugin_t* (*get_instance) (input_class_t *this, xine_stream_t *stream, const char *mrl);
-  
+
   /*
    * return short, human readable identifier for this plugin class
    */
@@ -265,6 +265,7 @@ struct input_plugin_s {
 
 #define INPUT_CAP_CHAPTERS             0x00000080
 
+#define INPUT_IS_SEEKABLE(input) (((input)->get_capabilities(input) & INPUT_CAP_SEEKABLE) != 0)
 
 #define INPUT_OPTIONAL_UNSUPPORTED    0
 #define INPUT_OPTIONAL_SUCCESS        1
