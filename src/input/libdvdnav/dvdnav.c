@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dvdnav.c,v 1.13 2003/02/20 16:01:58 mroi Exp $
+ * $Id: dvdnav.c,v 1.14 2003/02/24 18:22:33 mroi Exp $
  *
  */
 
@@ -55,6 +55,8 @@ static dvdnav_status_t dvdnav_clear(dvdnav_t * this) {
   /* Set initial values of flags */
   this->position_current.still = 0;
   this->skip_still = 0;
+  this->sync_wait = 0;
+  this->sync_wait_skip = 0;
   this->spu_clut_changed = 0;
   this->started = 0;
 
@@ -412,7 +414,7 @@ dvdnav_status_t dvdnav_get_next_cache_block(dvdnav_t *this, unsigned char **buf,
 #ifdef LOG_DEBUG
     fprintf(MSG_OUT, "libdvdnav: HOP_CHANNEL\n");
 #endif
-    if (this->position_next.hop_channel > HOP_SEEK) {
+    if (this->position_next.hop_channel - this->position_current.hop_channel >= HOP_SEEK) {
       int num_angles = 0, current;
       
       /* we seeked -> check for multiple angles */
@@ -448,7 +450,36 @@ dvdnav_status_t dvdnav_get_next_cache_block(dvdnav_t *this, unsigned char **buf,
     /* Make blockN > vobu_length to do expected_nav */
     this->vobu.vobu_length = 0;
     this->vobu.blockN      = 1;
+    this->sync_wait        = 0;
     pthread_mutex_unlock(&this->vm_lock); 
+    return S_OK;
+  }
+
+  /* Check the HIGHLIGHT flag */
+  if(this->position_current.button != this->position_next.button) {
+    dvdnav_highlight_event_t hevent;
+
+    (*event) = DVDNAV_HIGHLIGHT;
+#ifdef LOG_DEBUG
+    fprintf(MSG_OUT, "libdvdnav: HIGHLIGHT\n");
+#endif
+    (*len) = sizeof(hevent);
+    hevent.display = 1;
+    hevent.buttonN = this->position_next.button;
+    memcpy(*buf, &(hevent), sizeof(hevent));
+    this->position_current.button = this->position_next.button;
+    pthread_mutex_unlock(&this->vm_lock); 
+    return S_OK;
+  }
+  
+  /* Check the WAIT flag */
+  if(this->sync_wait) {
+    (*event) = DVDNAV_WAIT;
+#ifdef LOG_DEBUG
+    fprintf(MSG_OUT, "libdvdnav: WAIT\n");
+#endif
+    (*len) = 0;
+    pthread_mutex_unlock(&this->vm_lock);
     return S_OK;
   }
 
@@ -613,23 +644,6 @@ dvdnav_status_t dvdnav_get_next_cache_block(dvdnav_t *this, unsigned char **buf,
     return S_OK;
   }
      
-  /* Check the HIGHLIGHT flag */
-  if(this->position_current.button != this->position_next.button) {
-    dvdnav_highlight_event_t hevent;
-
-    (*event) = DVDNAV_HIGHLIGHT;
-#ifdef LOG_DEBUG
-    fprintf(MSG_OUT, "libdvdnav: HIGHLIGHT\n");
-#endif
-    (*len) = sizeof(hevent);
-    hevent.display = 1;
-    hevent.buttonN = this->position_next.button;
-    memcpy(*buf, &(hevent), sizeof(hevent));
-    this->position_current.button = this->position_next.button;
-    pthread_mutex_unlock(&this->vm_lock); 
-    return S_OK;
-  }
-
   /* Check the STILLFRAME flag */
   if(this->position_current.still != 0) {
     dvdnav_still_event_t still_event;
@@ -656,11 +670,19 @@ dvdnav_status_t dvdnav_get_next_cache_block(dvdnav_t *this, unsigned char **buf,
 #endif
       this->position_current.still = this->position_next.still;
 
-      if( this->position_current.still == 0 || this->skip_still ) {
-        /* no active cell still -> get us to the next cell */
-	vm_get_next_cell(this->vm);
-	this->position_current.still = 0; /* still gets activated at end of cell */
-	this->skip_still = 0;
+      /* we are about to leave a cell, so a lot of state changes could occur;
+       * under certain conditions, the application should get in sync with us before this,
+       * otherwise it might show stills or menus too shortly */
+      if ((this->position_current.still || this->pci.hli.hl_gi.hli_ss) && !this->sync_wait_skip) {
+        this->sync_wait = 1;
+      } else {
+	if( this->position_current.still == 0 || this->skip_still ) {
+	  /* no active cell still -> get us to the next cell */
+	  vm_get_next_cell(this->vm);
+	  this->position_current.still = 0; /* still gets activated at end of cell */
+	  this->skip_still = 0;
+	  this->sync_wait_skip = 0;
+	}
       }
       /* handle related state changes in next iteration */
       (*event) = DVDNAV_NOP;
@@ -957,6 +979,9 @@ uint32_t dvdnav_get_next_still_flag(dvdnav_t *this) {
 
 /*
  * $Log: dvdnav.c,v $
+ * Revision 1.14  2003/02/24 18:22:33  mroi
+ * fix seek detection
+ *
  * Revision 1.13  2003/02/20 16:01:58  mroi
  * syncing to libdvdnav 0.1.5 and modifying input plugin accordingly
  * quoting the ChangeLog:
