@@ -17,7 +17,7 @@
  *  along with this program; if not, write to the Free Software
  *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- *  $Id: xmllexer.c,v 1.1 2002/05/01 19:41:55 guenter Exp $
+ *  $Id: xmllexer.c,v 1.2 2003/07/19 00:22:43 tmattern Exp $
  *
  */
 
@@ -39,16 +39,18 @@
 */
 
 /* private global variables */
-char * lexbuf;
-int lexbuf_size = 0;
-int lexbuf_pos = 0;
-int lex_mode = NORMAL;
+static char * lexbuf;
+static int lexbuf_size = 0;
+static int lexbuf_pos  = 0;
+static int lex_mode    = NORMAL;
+static int in_comment  = 0;
 
 void lexer_init(char * buf, int size) {
-  lexbuf = buf;
+  lexbuf      = buf;
   lexbuf_size = size;
-  lexbuf_pos = 0;
-  lex_mode = NORMAL;
+  lexbuf_pos  = 0;
+  lex_mode    = NORMAL;
+  in_comment  = 0;
 #ifdef LOG
   printf("xmllexer: buffer length %d\n", size);
 #endif
@@ -63,7 +65,7 @@ int lexer_get_token(char * tok, int tok_size) {
     while ((tok_pos < tok_size) && (lexbuf_pos < lexbuf_size)) {
       c = lexbuf[lexbuf_pos];
 #ifdef LOG
-      printf("xmllexer: c=%c, state=%d\n", c, state);
+      printf("xmllexer: c=%c, state=%d, in_comment=%d\n", c, state, in_comment);
 #endif
       if (lex_mode == NORMAL) {
 				/* normal mode */
@@ -98,7 +100,8 @@ int lexer_get_token(char * tok, int tok_size) {
 	    break;
 
 	  case '/':
-	    state = 5;
+	    if (!in_comment) 
+	      state = 5;
 	    tok[tok_pos] = c;
 	    tok_pos++;
 	    break;
@@ -190,7 +193,8 @@ int lexer_get_token(char * tok, int tok_size) {
 	  /* T_M_STOP_1 */
 	case 4:
 	  tok[tok_pos] = '\0';
-	  lex_mode = DATA;
+	  if (!in_comment)
+	    lex_mode = DATA;
 	  return T_M_STOP_1;
 	  break;
 
@@ -201,7 +205,8 @@ int lexer_get_token(char * tok, int tok_size) {
 	    lexbuf_pos++;
 	    tok_pos++; /* FIXME */
 	    tok[tok_pos] = '\0';
-	    lex_mode = DATA;
+	    if (!in_comment)
+	      lex_mode = DATA;
 	    return T_M_STOP_2;
 	  } else {
 	    tok[tok_pos] = '\0';
@@ -237,6 +242,7 @@ int lexer_get_token(char * tok, int tok_size) {
 		tok[tok_pos++] = '-'; /* FIXME */
 		tok[tok_pos++] = '-';
 		tok[tok_pos] = '\0';
+		in_comment = 1;
 		return T_C_START;
 	      }
 	    break;
@@ -300,6 +306,7 @@ int lexer_get_token(char * tok, int tok_size) {
 	      lexbuf_pos -= 3;
 	      return T_IDENT;
 	    } else {
+	      in_comment = 0;
 	      return T_C_STOP;
 	    }
 	    break;
@@ -359,6 +366,10 @@ int lexer_get_token(char * tok, int tok_size) {
 	}
       }
     }
+#ifdef LOG
+    printf ("xmllexer: loop done tok_pos = %d, tok_size=%d, lexbuf_pos=%d, lexbuf_size=%d\n", 
+	    tok_pos, tok_size, lexbuf_pos, lexbuf_size);
+#endif
     /* pb */
     if (tok_pos >= tok_size) {
       printf("xmllexer: token buffer is too little\n");

@@ -1,7 +1,8 @@
 /*
- *  Copyright (C) 2002 the xine project
+ *  Copyright (C) 2002-2003 the xine project
  *
  *  This file is part of xine, a free video player.
+ *  This file is part of gxine, a free video player.
  *
  *  xine is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -17,7 +18,7 @@
  *  along with this program; if not, write to the Free Software
  *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- *  $Id: xmlparser.c,v 1.3 2002/12/02 22:37:08 f1rmb Exp $
+ *  $Id: xmlparser.c,v 1.4 2003/07/19 00:22:43 tmattern Exp $
  *
  */
 
@@ -28,6 +29,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdarg.h>
 #include <ctype.h>
 #include "xmllexer.h"
 #include "xmlparser.h"
@@ -37,14 +39,16 @@
 #define DATA_SIZE   4 * 1024
 #define MAX_RECURSION 10
 
-/* #define LOG */
+/*
+#define LOG
+*/
 
 /* private global variables */
-int xml_parser_mode;
+static int xml_parser_mode;
 
 /* private functions */
 
-char * strtoupper(char * str) {
+static char * strtoupper(char * str) {
   int i = 0;
 
   while (str[i] != '\0') {
@@ -54,7 +58,7 @@ char * strtoupper(char * str) {
   return str;
 }
 
-xml_node_t * new_xml_node() {
+static xml_node_t * new_xml_node() {
   xml_node_t * new_node;
 
   new_node = (xml_node_t*) malloc(sizeof(xml_node_t));
@@ -66,11 +70,11 @@ xml_node_t * new_xml_node() {
   return new_node;
 }
 
-void free_xml_node(xml_node_t * node) {
+static void free_xml_node(xml_node_t * node) {
   free(node);
 }
 
-xml_property_t * new_xml_property() {
+static xml_property_t * new_xml_property() {
   xml_property_t * new_property;
 
   new_property = (xml_property_t*) malloc(sizeof(xml_property_t));
@@ -80,11 +84,12 @@ xml_property_t * new_xml_property() {
   return new_property;
 }
 
-void free_xml_property(xml_property_t * property) {
+static void free_xml_property(xml_property_t * property) {
   free(property);
 }
 
 void xml_parser_init(char * buf, int size, int mode) {
+
   lexer_init(buf, size);
   xml_parser_mode = mode;
 }
@@ -120,11 +125,15 @@ void xml_parser_free_tree(xml_node_t *current_node) {
   }
 }
 
-int xml_parser_get_node(xml_node_t *current_node, char *root_name, int rec) {
+#define STATE_IDLE    0
+#define STATE_NODE    1
+#define STATE_COMMENT 7
+
+int xml_parser_get_node (xml_node_t *current_node, char *root_name, int rec) {
   char tok[TOKEN_SIZE];
   char property_name[TOKEN_SIZE];
   char node_name[TOKEN_SIZE];
-  int state = 0;
+  int state = STATE_IDLE;
   int res = 0;
   int parse_res;
   int bypass_get_token = 0;
@@ -138,10 +147,10 @@ int xml_parser_get_node(xml_node_t *current_node, char *root_name, int rec) {
     while ((bypass_get_token) || (res = lexer_get_token(tok, TOKEN_SIZE)) != T_ERROR) {
       bypass_get_token = 0;
 #ifdef LOG
-      printf("xmlparser: info: %d - %d : %s\n", state, res, tok);
+      printf("xmlparser: info: %d - %d : '%s'\n", state, res, tok);
 #endif
       switch (state) {
-      case 0:
+      case STATE_IDLE:
 	switch (res) {
 	case (T_EOL):
 	case (T_SEPAR):
@@ -151,13 +160,13 @@ int xml_parser_get_node(xml_node_t *current_node, char *root_name, int rec) {
 	  return 0; /* normal end */
 	  break;
 	case (T_M_START_1):
-	  state = 1;
+	  state = STATE_NODE;
 	  break;
 	case (T_M_START_2):
 	  state = 3;
 	  break;
 	case (T_C_START):
-	  state = 7;
+	  state = STATE_COMMENT;
 	  break;
 	case (T_TI_START):
 	  state = 8;
@@ -167,8 +176,7 @@ int xml_parser_get_node(xml_node_t *current_node, char *root_name, int rec) {
 	  break;
 	case (T_DATA):
 	  /* current data */
-	  current_node->data = (char *)malloc(strlen(tok) + 1);
-	  strcpy(current_node->data, tok);
+	  current_node->data = strdup(tok);
 #ifdef LOG
 	  printf("xmlparser: info: node data : %s\n", current_node->data);
 #endif
@@ -180,7 +188,7 @@ int xml_parser_get_node(xml_node_t *current_node, char *root_name, int rec) {
 	}
 	break;
 
-      case 1:
+      case STATE_NODE:
 	switch (res) {
 	case (T_IDENT):
 	  propertys = NULL;
@@ -213,20 +221,14 @@ int xml_parser_get_node(xml_node_t *current_node, char *root_name, int rec) {
 	  subtree = new_xml_node();
 
 	  /* set node name */
-	  subtree->name = malloc(strlen(node_name + 1));
-	  strcpy(subtree->name, node_name);
+	  subtree->name = strdup(node_name);
 
 	  /* set node propertys */
 	  subtree->props = propertys;
 #ifdef LOG
-	  printf("xmlparser: info: recursive level: %d\n", rec);
-	  printf("xmlparser: info: new subtree %s\n", node_name);
+	  printf("xmlparser: info: rec %d new subtree %s\n", rec, node_name);
 #endif
 	  parse_res = xml_parser_get_node(subtree, node_name, rec + 1);
-#ifdef LOG
-	  printf("xmlparser: info: new subtree result: %d\n", parse_res);
-	  printf("xmlparser: info: recursive level: %d\n", rec);
-#endif
 	  if (parse_res != 0) {
 	    return parse_res;
 	  }
@@ -237,7 +239,7 @@ int xml_parser_get_node(xml_node_t *current_node, char *root_name, int rec) {
 	    current_subtree->next = subtree;
 	    current_subtree = subtree;
 	  }
-	  state = 0;
+	  state = STATE_IDLE;
 	  break;
 	case (T_M_STOP_2):
 	  /* new leaf */
@@ -245,20 +247,22 @@ int xml_parser_get_node(xml_node_t *current_node, char *root_name, int rec) {
 	  subtree = new_xml_node();
 
 	  /* set node name */
-	  subtree->name = malloc(strlen(node_name + 1));
-	  strcpy(subtree->name, node_name);
+	  subtree->name = strdup (node_name);
 
 	  /* set node propertys */
 	  subtree->props = propertys;
 
+#ifdef LOG
+	  printf("xmlparser: info: rec %d new subtree %s\n", rec, node_name);
+#endif
 	  if (current_subtree == NULL) {
 	    current_node->child = subtree;
 	    current_subtree = subtree;
 	  } else {
 	    current_subtree->next = subtree;
-	    current_subtree = subtree;
+	    current_subtree = subtree; 
 	  }
-	  state = 0;
+	  state = STATE_IDLE;
 	  break;
 	case (T_IDENT):
 	  /* save property name */
@@ -335,8 +339,7 @@ int xml_parser_get_node(xml_node_t *current_node, char *root_name, int rec) {
 	    current_property->next = new_xml_property();
 	    current_property = current_property->next;
 	  }
-	  current_property->name = (char *)malloc(strlen(property_name) + 1);
-	  strcpy(current_property->name, property_name);
+	  current_property->name = strdup (property_name);
 #ifdef LOG
 	  printf("xmlparser: info: new property %s\n", current_property->name);
 #endif
@@ -367,10 +370,8 @@ int xml_parser_get_node(xml_node_t *current_node, char *root_name, int rec) {
 	    current_property->next = new_xml_property();
 	    current_property = current_property->next;
 	  }
-	  current_property->name = (char *)malloc(strlen(property_name) + 1);
-	  strcpy(current_property->name, property_name);
-	  current_property->value = (char *)malloc(strlen(tok) + 1);
-	  strcpy(current_property->value, tok);
+	  current_property->name = strdup(property_name);
+	  current_property->value = strdup(tok);
 #ifdef LOG
 	  printf("xmlparser: info: new property %s=%s\n", current_property->name, current_property->value);
 #endif
@@ -384,13 +385,13 @@ int xml_parser_get_node(xml_node_t *current_node, char *root_name, int rec) {
 	break;
 
 				/* --> expected */
-      case 7:
+      case STATE_COMMENT:
 	switch (res) {
 	case (T_C_STOP):
-	  state = 0;
+	  state = STATE_IDLE;
 	  break;
 	default:
-	  state = 7;
+	  state = STATE_COMMENT;
 	  break;
 	}
 	break;
@@ -455,3 +456,112 @@ int xml_parser_build_tree(xml_node_t **root_node) {
   free(tmp_node);
   return res;
 }
+
+char *xml_parser_get_property (xml_node_t *node, const char *name) {
+
+  xml_property_t *prop;
+
+  prop = node->props;
+  while (prop) {
+
+#ifdef LOG
+    printf ("xmlparser: looking for %s in %s\n", name, prop->name);
+#endif
+
+    if (!strcasecmp (prop->name, name)) {
+#ifdef LOG
+      printf ("xmlparser: found it. value=%s\n", prop->value);
+#endif
+      return prop->value;
+    }
+
+    prop = prop->next;
+  }
+
+  return NULL;
+}
+
+int xml_parser_get_property_int (xml_node_t *node, const char *name, 
+				 int def_value) {
+
+  char *v;
+  int   ret;
+
+  v = xml_parser_get_property (node, name);
+
+  if (!v)
+    return def_value;
+
+  if (sscanf (v, "%d", &ret) != 1)
+    return def_value;
+  else
+    return ret;
+}
+
+int xml_parser_get_property_bool (xml_node_t *node, const char *name, 
+				  int def_value) {
+
+  char *v;
+
+  v = xml_parser_get_property (node, name);
+
+  if (!v)
+    return def_value;
+
+  if (!strcasecmp (v, "true"))
+    return 1;
+  else
+    return 0;
+}
+
+static void printf_indent (int indent, const char *format, ...) {
+
+  int     i ;
+  va_list argp;
+
+  for (i=0; i<indent; i++)
+    printf (" ");
+
+  va_start (argp, format);
+    
+  vprintf (format, argp);
+
+  va_end (argp);
+}
+
+static void xml_parser_dump_node (xml_node_t *node, int indent) {
+
+  xml_property_t *p;
+  xml_node_t     *n;
+  int             l;
+
+  printf_indent (indent, "<%s ", node->name);
+
+  l = strlen (node->name);
+
+  p = node->props;
+  while (p) {
+    printf ("%s='%s'", p->name, p->value);
+    p = p->next;
+    if (p) {
+      printf ("\n");
+      printf_indent (indent+2+l, "");
+    }
+  }
+  printf (">\n");
+
+  n = node->child;
+  while (n) {
+
+    xml_parser_dump_node (n, indent+2);
+
+    n = n->next;
+  }
+
+  printf_indent (indent, "</%s>\n", node->name);
+}
+
+void xml_parser_dump_tree (xml_node_t *node) {
+  xml_parser_dump_node (node, 0);
+}
+

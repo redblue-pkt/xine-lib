@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2002 the xine project
+ *  Copyright (C) 2002-2003 the xine project
  *
  *  This file is part of xine, a free video player.
  *
@@ -17,7 +17,7 @@
  *  along with this program; if not, write to the Free Software
  *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- *  $Id: xmlparser.h,v 1.1 2002/05/01 19:41:55 guenter Exp $
+ *  $Id: xmlparser.h,v 1.2 2003/07/19 00:22:43 tmattern Exp $
  *
  */
 #ifndef XML_PARSER_H
@@ -54,5 +54,16 @@ int xml_parser_build_tree(xml_node_t **root_node);
 
 void xml_parser_free_tree(xml_node_t *root_node);
 
+char *xml_parser_get_property (xml_node_t *node, const char *name);
+int   xml_parser_get_property_int (xml_node_t *node, const char *name, 
+				   int def_value);
+int xml_parser_get_property_bool (xml_node_t *node, const char *name, 
+				  int def_value);
+
+/* for debugging purposes: dump read-in xml tree in a nicely
+ * indented fashion
+ */
+
+void xml_parser_dump_tree (xml_node_t *node) ;
 
 #endif
