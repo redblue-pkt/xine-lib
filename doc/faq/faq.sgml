@@ -535,7 +535,7 @@
       </para>
 
       <para>
-        It is highly recommended to switch DMA mode on for yout DVD drive
+        It is highly recommended to switch DMA mode on for your DVD drive
         (without it even very recent machines will have trouble producing
         smooth video output). Use a command like
         <command>hdparm -d 1 device</command>
@@ -712,7 +712,7 @@
 	pnm/rtsp url can be tricky as they're often packed into heavy JavaScript and
 	HTML code on most websites. You can either use a combination of your
 	browser's "save source" function and wget or use a xine browser plugin
-	(currenlty the gxine frontend comes with a simple mozilla plugin,
+	(currently the gxine frontend comes with a simple mozilla plugin,
 	for example). When you decided to dig out the url by hand don't get fooled
 	by the many redirectors that are often placed around the actual url.
 	Use wget to download any http://-style urls and use less to look inside
@@ -974,7 +974,8 @@
     <para>
       aalib is an ascii art library. xine comes with an aalib video output
       plugin so you can watch movies in your xterm, on the console or on your
-      old vt100 - very cool ;>
+      old vt100 - very cool ;> ... another nice option is to preview movies
+      on a remote server in your shell over ssh.
     </para>
     <para>
       To use it make sure you have aalib installed correctly before you
@@ -1016,7 +1017,7 @@
 
   <sect1>
 
-    <title> When I'm watching a movie, the sound effects ar much higher volume than the voices</title>
+    <title> When I'm watching a movie, the sound effects are much higher volume than the voices</title>
     
     <para>
       Congratulations, you seem to have an original movie audio track there.
@@ -1122,7 +1123,7 @@
   </sect1>
   <sect1>
 
-    <title>Changing the volume with the GUI control has not affect! What's up!?</title>
+    <title>Changing the volume with the GUI control has no effect! What's up!?</title>
     
     <para>
       Some xine drivers do not support volume changing although the GUI
@@ -1229,7 +1230,7 @@
       to recover. Not every decoder may support this feature.
     </para>
     <para>
-      When the frame is decoded to be show somewhere in future but the
+      When the frame is decoded to be shown somewhere in future but the
       output thread doesn't get scheduled in time by the operating system
       to complete the operation, the frame is discarded. One cause might
       be the disk access operation, which may halt the system for a few

@@ -69,12 +69,12 @@ Table of Contents
 5. Audio related questions
    
     What audio drivers does xine support? OSS? Alsa? Arts? Esd?
-    When I'm watching a movie, the sound effects ar much higher volume than the
-        voices
+    When I'm watching a movie, the sound effects are much higher volume than
+        the voices
     When I play this stream, xine shows video but there's no audio!
     Can xine produce 4-/5-channel surround audio output?
     What about ac3 output via spdif to an external ac3 decoder?
-    Changing the volume with the GUI control has not affect! What's up!?
+    Changing the volume with the GUI control has no effect! What's up!?
    
 6. Video related questions
    
@@ -431,7 +431,7 @@ your dvd drive (this could mean you either have to change the device
 permissions or add your user to a special group (e.g. addgroup cdrom username),
 depending on your setup and/or distribution.
 
-It is highly recommended to switch DMA mode on for yout DVD drive (without it
+It is highly recommended to switch DMA mode on for your DVD drive (without it
 even very recent machines will have trouble producing smooth video output). Use
 a command like hdparm -d 1 device on your dvd device. Please note that even if
 you're using ide-scsi you will have to set the dma flag on the ide device node
@@ -548,7 +548,7 @@ What about (live) network streams (pnm://, rtsp:// style urls) ?
 xine supports both pnm and rtsp streaming. However, digging out the actual pnm/
 rtsp url can be tricky as they're often packed into heavy JavaScript and HTML
 code on most websites. You can either use a combination of your browser's "save
-source" function and wget or use a xine browser plugin (currenlty the gxine
+source" function and wget or use a xine browser plugin (currently the gxine
 frontend comes with a simple mozilla plugin, for example). When you decided to
 dig out the url by hand don't get fooled by the many redirectors that are often
 placed around the actual url. Use wget to download any http://-style urls and
@@ -719,7 +719,8 @@ What is aalib? How do I use it in xine?
 
 aalib is an ascii art library. xine comes with an aalib video output plugin so
 you can watch movies in your xterm, on the console or on your old vt100 - very
-cool ;>
+cool ;> ... another nice option is to preview movies on a remote server in your
+shell over ssh.
 
 To use it make sure you have aalib installed correctly before you configure/
 build xine-lib and xine-ui. In addition to the xine binary a binary named 
@@ -747,7 +748,7 @@ sync).
 
 -------------------------------------------------------------------------------
 
-When I'm watching a movie, the sound effects ar much higher volume than the
+When I'm watching a movie, the sound effects are much higher volume than the
 voices
 
 Congratulations, you seem to have an original movie audio track there.
@@ -824,7 +825,7 @@ xine can do that too. Pretty much the same story as for 4-/5-channel surround
 
 -------------------------------------------------------------------------------
 
-Changing the volume with the GUI control has not affect! What's up!?
+Changing the volume with the GUI control has no effect! What's up!?
 
 Some xine drivers do not support volume changing although the GUI will show the
 volume bar. Usually this is not xines fault: aRts C API, for example, doesn't
@@ -906,7 +907,7 @@ at 11:30 but xine clock marks 11:31. When this situation is detected, xine will
 try to skip decoding a few frames to recover. Not every decoder may support
 this feature.
 
-When the frame is decoded to be show somewhere in future but the output thread
+When the frame is decoded to be shown somewhere in future but the output thread
 doesn't get scheduled in time by the operating system to complete the
 operation, the frame is discarded. One cause might be the disk access
 operation, which may halt the system for a few miliseconds without DMA. See
