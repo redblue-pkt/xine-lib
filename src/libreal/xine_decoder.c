@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.19 2002/12/21 12:56:48 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.20 2002/12/21 15:31:15 esnel Exp $
  *
  * thin layer to use real binary-only codecs in xine
  *
@@ -201,9 +201,8 @@ static int init_codec (realdec_decoder_t *this, buf_element_t *buf) {
   init_data.w = BE_16(&buf->content[12]);
   init_data.h = BE_16(&buf->content[14]);
   
-  this->width  = init_data.w;
-  this->width = (this->width + 7) & (~7);
-  this->height = init_data.h;
+  this->width  = (init_data.w + 1) & (~1);
+  this->height = (init_data.h + 1) & (~1);
   
   this->stream->stream_info[XINE_STREAM_INFO_VIDEO_WIDTH]    = this->width;
   this->stream->stream_info[XINE_STREAM_INFO_VIDEO_HEIGHT]   = this->height;
@@ -252,6 +251,35 @@ static int init_codec (realdec_decoder_t *this, buf_element_t *buf) {
   this->frame_buffer = xine_xmalloc (this->width*this->height*3/2);
 
   return 1;
+}
+
+static void realdec_copy_frame (realdec_decoder_t *this, uint8_t *base[3], int pitches[3]) {
+  int i, j;
+  uint8_t *src, *dst;
+
+  src = this->frame_buffer;
+  dst = base[0];
+
+  for (i=0; i < this->height; ++i) {
+    memcpy (dst, src, this->width);
+    src += this->width;
+    dst += pitches[0];
+  }
+
+  for (i=1; i < 3; i++) {
+    src = this->frame_buffer + this->frame_size;
+    dst = base[i];
+
+    if (i == 2) {
+      src += this->frame_size / 4;
+    }
+
+    for (j=0; j < (this->height / 2); ++j) {
+      memcpy (dst, src, (this->width / 2));
+      src += (this->width / 2);
+      dst += pitches[i];
+    }
+  }
 }
 
 static void realdec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
@@ -347,13 +375,8 @@ static void realdec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) 
 	printf ("libreal: transform result: %d\n", result);
 #endif
 
-	xine_fast_memcpy (img->base[0], this->frame_buffer, this->frame_size);
-	xine_fast_memcpy (img->base[1], this->frame_buffer+this->frame_size, 
-			  this->frame_size/4);
-	xine_fast_memcpy (img->base[2], 
-			  this->frame_buffer+this->frame_size*5/4, 
-			  this->frame_size/4);
-	
+	realdec_copy_frame (this, img->base, img->pitches);
+
 	img->draw(img, this->stream);
 	img->free(img);
 	
