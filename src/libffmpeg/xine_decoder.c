@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.88 2003/01/31 18:29:43 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.89 2003/02/02 06:08:30 tmmm Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -548,6 +548,28 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
               this->bih.biWidth,
               this->bih.biHeight);
 
+          } else if (this->context->pix_fmt == PIX_FMT_YUV411P) {
+
+            yuv411_to_yv12(
+             /* Y */
+              this->av_frame->data[0],
+              this->av_frame->linesize[0],
+              img->base[0],
+              img->pitches[0],
+             /* U */
+              this->av_frame->data[1],
+              this->av_frame->linesize[1],
+              img->base[1],
+              img->pitches[1],
+             /* V */
+              this->av_frame->data[2],
+              this->av_frame->linesize[2],
+              img->base[2],
+              img->pitches[2],
+             /* width x height */
+              this->bih.biWidth,
+              this->bih.biHeight);
+
           } else
 	  for (y=0; y<this->bih.biHeight; y++) {
 	    
@@ -558,7 +580,8 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 	    sy += this->av_frame->linesize[0];
 	  }
 	
-          if (this->context->pix_fmt != PIX_FMT_YUV410P)
+          if ((this->context->pix_fmt != PIX_FMT_YUV410P) &&
+              (this->context->pix_fmt != PIX_FMT_YUV411P))
           for (y=0; y<(this->bih.biHeight/2); y++) {
 	    
 	    if (this->context->pix_fmt != PIX_FMT_YUV444P) {
