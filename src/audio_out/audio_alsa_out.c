@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.88 2003/03/15 13:50:58 jstembridge Exp $
+ * $Id: audio_alsa_out.c,v 1.89 2003/03/15 14:32:18 jstembridge Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -59,8 +59,9 @@
 #include "compat.h"
 #include "audio_out.h"
 
-
+/*
 #define ALSA_LOG
+*/
 /*
 #define LOG_DEBUG
 */
@@ -354,7 +355,8 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
   /* Check for pause/resume support */
   this->has_pause_resume = ( snd_pcm_hw_params_can_pause (params)
 			    && snd_pcm_hw_params_can_resume (params) );
-  printf ("audio_alsa_out:open pause_resume=%d\n", this->has_pause_resume);
+  if (this->class->xine->verbosity >= XINE_VERBOSITY_LOG)
+    printf ("audio_alsa_out:open pause_resume=%d\n", this->has_pause_resume);
   this->sample_rate_factor = (double) this->output_sample_rate / (double) this->input_sample_rate;
   this->bytes_per_frame = snd_pcm_frames_to_bytes (this->audio_fd, 1);
   /*
@@ -796,7 +798,7 @@ static int ao_alsa_ctrl(ao_driver_t *this_gen, int cmd, ...) {
       if ((result=snd_pcm_prepare(this->audio_fd)) < 0) {
         printf("audio_alsa_out: Prepare call failed err=%d\n",result);
       }
-     }
+    }
     break;
   }
 
@@ -1092,6 +1094,7 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
 
   this->capabilities = 0;
 
+  if(class->xine->verbosity >= XINE_VERBOSITY_LOG) {
   printf ("audio_alsa_out : supported modes are ");
   if (!(snd_pcm_hw_params_test_format(this->audio_fd, params, SND_PCM_FORMAT_U8))) {
     this->capabilities |= AO_CAP_8BITS;
@@ -1105,6 +1108,7 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
     this->capabilities |= AO_CAP_MODE_STEREO;
     printf ("stereo ");
   }
+  }
   if (!(snd_pcm_hw_params_test_channels(this->audio_fd, params, 4)) &&
         config->register_bool (config,
                                "audio.four_channel",
@@ -1114,8 +1118,9 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
                                0, NULL,
                                NULL) ) {
     this->capabilities |= AO_CAP_MODE_4CHANNEL;
-    printf ("4-channel ");
-  } else {
+    if (class->xine->verbosity >= XINE_VERBOSITY_LOG)
+      printf ("4-channel ");
+  } else if (class->xine->verbosity >= XINE_VERBOSITY_LOG) {
     printf ("(4-channel not enabled in xine config) " );
   }
   if (!(snd_pcm_hw_params_test_channels(this->audio_fd, params, 5)) && 
@@ -1127,8 +1132,9 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
                                0, NULL,
                                NULL) ) {
     this->capabilities |= AO_CAP_MODE_5CHANNEL;
-    printf ("5-channel ");
-  } else {
+    if (class->xine->verbosity >= XINE_VERBOSITY_LOG)
+      printf ("5-channel ");
+  } else if (class->xine->verbosity >= XINE_VERBOSITY_LOG) {
     printf ("(5-channel not enabled in xine config) " );
   }
   if (!(snd_pcm_hw_params_test_channels(this->audio_fd, params, 6)) && 
@@ -1140,8 +1146,9 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
                                0, NULL,
                                NULL) ) {
     this->capabilities |= AO_CAP_MODE_5_1CHANNEL;
-    printf ("5.1-channel ");
-    } else {
+    if (class->xine->verbosity >= XINE_VERBOSITY_LOG)
+      printf ("5.1-channel ");
+  } else if (class->xine->verbosity >= XINE_VERBOSITY_LOG) {
     printf ("(5.1-channel not enabled in xine config) " );
   }
  
@@ -1159,11 +1166,13 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
                                NULL) ) {
     this->capabilities |= AO_CAP_MODE_A52;
     this->capabilities |= AO_CAP_MODE_AC5;
-    printf ("a/52 and DTS pass-through ");
-  } else {
+    if (class->xine->verbosity >= XINE_VERBOSITY_LOG)
+      printf ("a/52 and DTS pass-through ");
+  } else if (class->xine->verbosity >= XINE_VERBOSITY_LOG) {
     printf ("(a/52 and DTS pass-through not enabled in xine config)");
   }
-  printf ("\n");
+  if (class->xine->verbosity >= XINE_VERBOSITY_LOG)
+    printf ("\n");
 
   /* printf("audio_alsa_out: capabilities 0x%X\n",this->capabilities); */
 
