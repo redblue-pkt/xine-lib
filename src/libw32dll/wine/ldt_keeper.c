@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: ldt_keeper.c,v 1.7 2003/02/17 19:54:43 miguelfreitas Exp $
+ * $Id: ldt_keeper.c,v 1.8 2003/10/10 22:58:01 miguelfreitas Exp $
  *
  *
  * contents:
@@ -66,6 +66,11 @@
 #ifdef __linux__
 #include <asm/unistd.h>
 #include <asm/ldt.h>
+/* 2.5.xx+ calls this user_desc: */
+#include <linux/version.h>
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,5,47)
+#define modify_ldt_ldt_s user_desc
+#endif
 /* prototype it here, so we won't depend on kernel headers */
 #ifdef  __cplusplus
 extern "C" {
