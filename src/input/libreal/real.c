@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: real.c,v 1.3 2002/12/16 21:50:54 holstsn Exp $
+ * $Id: real.c,v 1.4 2002/12/17 10:33:35 holstsn Exp $
  *
  * special functions for real streams.
  * adopted from joschkas real tools.
@@ -600,12 +600,18 @@ rmff_header_t *real_parse_sdp(const char *data, char *stream_rules, uint32_t ban
       media=h->streams[0];
       have_audio=1;
       stream=0;
-    }
-    if(sdp_filter(data,"m=video",buf))
+    } else if(sdp_filter(data,"m=video",buf))
     {
       media=h->streams[1];
       have_video=1;
       stream=1;
+    } else if(sdp_filter(data,"m=",buf))
+    {
+      printf("real: warning: unknown media stream type '%s'\n", buf);
+      do {
+        data+=strchr(data,'\n')-data+1;
+      } while (*data && data[0]!='m');
+      continue;
     }
   
     /* cont stuff */

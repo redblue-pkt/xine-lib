@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: rtsp.c,v 1.3 2002/12/16 21:50:55 holstsn Exp $
+ * $Id: rtsp.c,v 1.4 2002/12/17 10:33:35 holstsn Exp $
  *
  * a minimalistic implementation of rtsp protocol,
  * *not* RFC 2326 compilant yet.
@@ -377,8 +377,7 @@ static int rtsp_get_answers(rtsp_t *s) {
         printf("librtsp: warning: Cseq mismatch. got %u, assumed %u", answer_seq, s->cseq);
 #endif
         s->cseq=answer_seq;
-      } else
-        s->cseq++;
+      }
     }
     if (!strncmp(answer,"Server:",7)) {
       sscanf(answer,"Server: %s",s->buffer);
@@ -405,6 +404,8 @@ static int rtsp_get_answers(rtsp_t *s) {
     *answer_ptr=answer;
     answer_ptr++;
   } while (strlen(answer)!=0);
+  
+  s->cseq++;
   
   *answer_ptr=NULL;
   rtsp_schedule_standard(s);
