@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decoder.c,v 1.74 2002/04/24 20:26:06 jcdutton Exp $
+ * $Id: dxr3_decoder.c,v 1.75 2002/05/01 22:22:56 jcdutton Exp $
  *
  * dxr3 video and spu decoder plugin. Accepts the video and spu data
  * from XINE and sends it directly to the corresponding dxr3 devices.
@@ -1073,6 +1073,40 @@ static void spudec_close (spu_decoder_t *this_gen)
         this->fd_spu				= 0;
 }
 
+int spudec_copy_nav_to_btn(pci_t* nav_pci, int32_t button, int32_t mode, em8300_button_t* btn ) {
+  btni_t *button_ptr;
+
+  /* FIXME: Need to communicate with dvdnav vm to get/set
+    "self->vm->state.HL_BTNN_REG" info.
+    now done via button events from dvdnav.
+   *
+   * if ( this->pci.hli.hl_gi.fosl_btnn > 0) {
+   *   button = this->pci.hli.hl_gi.fosl_btnn ;
+   * }
+   */
+  if((button <= 0) || (button > nav_pci->hli.hl_gi.btn_ns)) {
+    printf("dxr3_decoder:Unable to select button number %i as it doesn't exist. Forcing button 1\n",
+              button);
+    button = 1;
+  }
+  /* There is no point in highlighting an area it the area's colours are no different from the general overlay colours. */
+  button_ptr = &nav_pci->hli.btnit[button-1];
+  if(button_ptr->btn_coln != 0) {
+#ifdef LOG_BUTTON
+    fprintf(stderr, "libspudec: normal button clut\n");
+#endif
+    btn->color = (nav_pci->hli.btn_colit.btn_coli[button_ptr->btn_coln-1][mode] >> 16 );
+    btn->contrast = (nav_pci->hli.btn_colit.btn_coli[button_ptr->btn_coln-1][mode] );
+    /* FIXME:Only the first grouping of buttons are used at the moment */
+    btn->left = button_ptr->x_start;
+    btn->top  = button_ptr->y_start;
+    btn->right = button_ptr->x_end;
+    btn->bottom = button_ptr->y_end;
+    return 1;
+  } 
+  return -1;
+}
+
 static void spudec_event_listener (void *this_gen, xine_event_t *event_gen) {
 
   spudec_decoder_t *this  = (spudec_decoder_t *) this_gen;
@@ -1087,36 +1121,25 @@ static void spudec_event_listener (void *this_gen, xine_event_t *event_gen) {
 
       spu_button_t *but = event->data;
       em8300_button_t btn;
-      int i;
 #if LOG_SPU
         printf ("dxr3_spu: SPU_BUTTON\n");
 #endif
       
-      if (!but->show) {
+//      if (!but->show) {
 //	ioctl(this->fd_spu, EM8300_IOCTL_SPU_BUTTON, NULL);
-	break;
-      }
+//	break;
+//      }
       
       this->buttonN = but->buttonN;
-      
-      btn.color = btn.contrast = 0;
+      if ( (but->show > 0) && (spudec_copy_nav_to_btn(&this->pci, this->buttonN, but->show - 1, &btn ) > 0)) {
+        if (ioctl(this->fd_spu, EM8300_IOCTL_SPU_BUTTON, &btn)) {
+  	  printf("dxr3: failed to set spu button (%s)\n",
+		strerror(errno));
+        }
+      }
 #if LOG_SPU
         printf ("dxr3_spu: buttonN = %u\n",but->buttonN);
 #endif
-      
-      for (i = 0; i < 4; i++) {
-	btn.color    |= (but->color[i] & 0xf) << (4*i);
-	btn.contrast |= (but->trans[i] & 0xf) << (4*i);
-      }
-      
-      btn.left   = but->left;
-      btn.right  = but->right;
-      btn.top    = but->top;
-      btn.bottom = but->bottom;
-      
-      if (ioctl(this->fd_spu, EM8300_IOCTL_SPU_BUTTON, &btn))
-	printf("dxr3: failed to set spu button (%s)\n",
-		strerror(errno));
     }
     break;
 
