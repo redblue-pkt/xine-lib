@@ -28,7 +28,7 @@
  \endverbatim
  */
 /*
- * $Id: xine.h.tmpl.in,v 1.74 2002/01/10 15:31:26 jcdutton Exp $
+ * $Id: xine.h.tmpl.in,v 1.75 2002/01/10 15:48:55 jcdutton Exp $
  *
  */
 
@@ -405,6 +405,18 @@ typedef void vo_frame_t;
  * \sa vo_driver_t
  */
 typedef void vo_overlay_t;
+
+typedef struct vo_info_s vo_info_t;
+
+struct vo_info_s {
+   
+  int    interface_version; /* plugin interface version                  */
+  char  *id;                /* id of this plugin                         */
+  char  *description;       /* human-readable description of this plugin */
+  int    visual_type;       /* visual type supported by this plugin      */
+  int    priority;          /* priority of this plugin for auto-probing  */
+
+};
 
 /**
  * \struct vo_driver_t
