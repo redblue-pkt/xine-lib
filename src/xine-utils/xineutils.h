@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xineutils.h,v 1.35 2003/02/28 21:57:17 jkeil Exp $
+ * $Id: xineutils.h,v 1.36 2003/02/28 22:34:24 storri Exp $
  *
  */
 #ifndef XINEUTILS_H
@@ -824,13 +824,15 @@ print_trace (void)
  * Provide assert like feature with better description of failure 
  * Thanks to Mark Thomas 
  */ 
-#define XINE_ASSERT(exp, desc, args...)                         \
-  if (!(exp)) {                                                 \
-    printf("%s:%s:%d: assertion `" #exp "' failed. " desc "\n\n", \
-        __FILE__, __XINE_FUNCTION__, __LINE__, ##args);         \
-    print_trace();                                              \
-    abort();                                                    \
-  }
+#define XINE_ASSERT(exp, desc, args...)                             \
+  do {                                                              \
+    if (!(exp)) {                                                   \
+      printf("%s:%s:%d: assertion `" #exp "' failed. " desc "\n\n", \
+            __FILE__, __XINE_FUNCTION__, __LINE__, ##args);         \
+      print_trace();                                                \
+      abort();                                                      \
+    }                                                               \
+  } while(0)
 
 
 /******** double chained lists with builtin iterator *******/
