@@ -873,7 +873,13 @@ static void dvb_parse_si(dvb_input_plugin_t *this) {
 
   /* first - the PAT */  
   dvb_set_pidfilter (this, INTERNAL_FILTER, 0, DMX_PES_OTHER, DMX_OUT_TAP);
-  poll(&pfd,1,1500);
+  /* wait for up to 1.5 seconds */
+  if(poll(&pfd,1,1500)<1) /* PAT timed out - weird, but we'll default to using channels.conf info */
+  {
+    dvb_set_pidfilter (this,VIDFILTER,this->channels[this->channel].pid[VIDFILTER], DMX_PES_OTHER, DMX_OUT_TS_TAP);
+    dvb_set_pidfilter (this,AUDFILTER,this->channels[this->channel].pid[AUDFILTER], DMX_PES_OTHER, DMX_OUT_TS_TAP);
+    return;
+  }
   result = read (tuner->fd_pidfilter[INTERNAL_FILTER], tmpbuffer, 3);
   if(result!=3)
     printf("error\n");
@@ -904,7 +910,12 @@ static void dvb_parse_si(dvb_input_plugin_t *this) {
   bufptr = tmpbuffer;
     /* next - the PMT */
   dvb_set_pidfilter(this, INTERNAL_FILTER, this->channels[this->channel].pmtpid , DMX_PES_OTHER, DMX_OUT_TAP);
-  poll(&pfd,1,1500);
+ if(poll(&pfd,1,1500)<1) /* PMT timed out - weird, but we'll default to using channels.conf info */
+  {
+    dvb_set_pidfilter (this,VIDFILTER,this->channels[this->channel].pid[VIDFILTER], DMX_PES_OTHER, DMX_OUT_TS_TAP);
+    dvb_set_pidfilter (this,AUDFILTER,this->channels[this->channel].pid[AUDFILTER], DMX_PES_OTHER, DMX_OUT_TS_TAP);
+    return;
+  }
   result = read(tuner->fd_pidfilter[INTERNAL_FILTER],tmpbuffer,3);
 
   section_len = getbits (bufptr, 12, 12);
@@ -980,7 +991,7 @@ static void do_eit(dvb_input_plugin_t *this)
 
   for(loops=0;loops<=this->num_streams_in_this_ts*2;loops++){
     eit=foo;
-    if (poll(&fd,1,2000)<0) {
+    if (poll(&fd,1,2000)<1) {
      printf("(TImeout in EPG loop!! Quitting\n");
        return;  
     }
