@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.152 2003/05/20 14:55:55 mroi Exp $
+ * $Id: load_plugins.c,v 1.153 2003/05/26 23:34:41 miguelfreitas Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -286,11 +286,13 @@ static void collect_plugins(xine_t *this, char *path){
 	   */
 #if defined(__hpux)
 	  if(!strstr(str, ".sl"))
+#elif defined(__CYGWIN__)
+	  if(!strstr(str, ".dll"))
 #else
 	  if(!strstr(str, ".so")) 
 #endif
 	    break;
-	  
+
 	  plugin_name = str;
 	  lib = NULL;
 	  info = _get_cached_plugin ( this->plugin_catalog->cache,
