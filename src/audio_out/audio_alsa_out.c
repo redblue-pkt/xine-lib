@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.147 2004/07/15 21:46:51 hadess Exp $
+ * $Id: audio_alsa_out.c,v 1.148 2004/11/30 19:47:03 dsalt Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -129,12 +129,7 @@ static snd_output_t *jcd_out;
  */
 static int ao_alsa_get_percent_from_volume(long val, long min, long max) {
   int range = max - min;
-  int tmp;
-  if (range == 0)
-    return 0;
-  val -= min;
-  tmp = rint((double)val / (double)range * 100);
-  return tmp;
+  return (range == 0) ? 0 : ((val - min) * 100.0 / range + .5);
 }
 
 /* Stolen from alsa-lib */
@@ -267,13 +262,7 @@ static void *ao_alsa_handle_event_thread(void *data) {
  */
 static long ao_alsa_get_volume_from_percent(int val, long min, long max) {
   int range = max - min;
-  long tmp;
-  
-  if (range == 0)
-    return 0;
-  val -= min;
-  tmp = (long) ((range * val) / 100);
-  return tmp;
+  return (range == 0) ? min : (val * range / 100.0 + min + .5);
 }
 
 /*
