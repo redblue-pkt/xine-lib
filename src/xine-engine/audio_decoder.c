@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.40 2001/09/14 21:25:55 richwareham Exp $
+ * $Id: audio_decoder.c,v 1.41 2001/09/25 23:27:02 guenter Exp $
  *
  *
  * functions that implement audio decoding
@@ -133,6 +133,40 @@ void *audio_decoder_loop (void *this_gen) {
 
     case BUF_CONTROL_DISCONTINUITY:
       this->metronom->expect_audio_discontinuity (this->metronom);
+      break;
+
+    case BUF_CONTROL_AUDIO_CHANNEL:
+
+      printf ("audio_decoder: switching to streamtype %08x\n",
+	      buf->decoder_info[0]);
+
+      i = 0;
+      while ( (i<this->audio_track_map_entries) && (this->audio_track_map[i]<buf->decoder_info[0]) ) 
+	i++;
+	
+      printf ("audio_decoder: => virtual channel %d\n", i);
+
+      if ( (i==this->audio_track_map_entries) || (this->audio_track_map[i] != buf->decoder_info[0]) ) {
+	  
+	j = this->audio_track_map_entries;
+	while (j>i) {
+	  this->audio_track_map[j] = this->audio_track_map[j-1];
+	  j--;
+	}
+	this->audio_track_map[i] = buf->decoder_info[0];
+	this->audio_track_map_entries++;
+	
+	if (i != this->audio_channel) {
+	  /* close old audio decoder */
+	  if (this->cur_audio_decoder_plugin) {
+	    this->cur_audio_decoder_plugin->close (this->cur_audio_decoder_plugin);
+	    this->cur_audio_decoder_plugin = NULL;
+	  }
+	  this->audio_channel = i;
+	}
+      }
+
+
       break;
 
     default:
