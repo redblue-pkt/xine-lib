@@ -109,6 +109,9 @@ uninstall-includeHEADERS:
 
 
 debug:
+	@list='$(SUBDIRS)'; for subdir in $$list; do \
+	  (cd $$subdir && $(MAKE) $@) || exit;\
+	done;
 	@$(MAKE) CFLAGS="$(DEBUG_CFLAGS)"
 
 install-debug: debug
