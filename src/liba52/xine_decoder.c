@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.51 2003/05/10 00:50:50 jcdutton Exp $
+ * $Id: xine_decoder.c,v 1.52 2003/05/17 23:02:15 jcdutton Exp $
  *
  * stuff needed to turn liba52 into a xine decoder plugin
  */
@@ -398,7 +398,7 @@ void a52dec_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 #ifdef LOG
     printf ("liba52: processing...state %d\n", this->sync_state);
 #endif
-  while (current != end) {
+  while (current < end) {
     switch (this->sync_state) {
     case 0:  /* Looking for sync header */
 	  this->syncword = (this->syncword << 8) | *current++;
