@@ -76,7 +76,7 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
     picture_t * picture;
     int is_frame_done;
 
-    /* printf ("libmpeg2: parse_chunk 0x%02x\n", code);  */
+    /* printf ("libmpeg2: parse_chunk 0x%02x\n", code);   */
 
     /* wait for sequence_header_code */
     if (mpeg2dec->is_sequence_needed) {
@@ -99,7 +99,7 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
     if (is_frame_done) {
 	mpeg2dec->in_slice = 0;
 
-	if (((picture->picture_structure == FRAME_PICTURE) ||
+	if ( picture->current_frame && ((picture->picture_structure == FRAME_PICTURE) ||
 	     (picture->second_field)) ) {
 
 	    picture->current_frame->bFrameBad |= mpeg2dec->drop_frame;
@@ -232,10 +232,13 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 	if (!(mpeg2dec->in_slice)) {
 	    mpeg2dec->in_slice = 1;
 
-	    if (picture->second_field) 
-	      picture->current_frame->field(picture->current_frame, 
-	      			    picture->picture_structure);
-	    else {
+	    if (picture->second_field) {
+	      if (picture->current_frame)
+		picture->current_frame->field(picture->current_frame, 
+					      picture->picture_structure);
+	      else
+		mpeg2dec->drop_frame = 1;		
+	    } else {
 		if (picture->picture_coding_type == B_TYPE)
 		    picture->throwaway_frame = picture->current_frame =
 		        mpeg2dec->output->get_frame (mpeg2dec->output,
@@ -266,6 +269,8 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 	}
 
 	if (!(mpeg2dec->drop_frame)) {
+	    /* printf ("slice_process\n"); */
+
 	    slice_process (picture, code, buffer);
 
 #ifdef ARCH_X86
@@ -275,7 +280,7 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 	}
     }
 
-    /* printf ("parse_chunk %d completed\n", code); */
+    /* printf ("parse_chunk %d completed\n", code);  */
     return is_frame_done;
 }
 
