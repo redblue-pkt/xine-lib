@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_syncfb.c,v 1.22 2001/11/03 19:54:44 matt2000 Exp $
+ * $Id: video_out_syncfb.c,v 1.23 2001/11/03 20:31:36 matt2000 Exp $
  * 
  * video_out_syncfb.c, SyncFB (for Matrox G200/G400 cards) interface for xine
  * 
@@ -267,6 +267,14 @@ static void syncfb_adapt_to_output_area(syncfb_driver_t* this,
 {
    Window temp_window;
    int posx, posy;
+   
+   static int prev_output_width   = 0;
+   static int prev_output_height  = 0;
+   static int prev_output_xoffset = 0;
+   static int prev_output_yoffset = 0;
+   static int prev_deinterlacing  = 0;
+   static int prev_posx           = 0;
+   static int prev_posy           = 0;
 
    XLockDisplay(this->display);
 
@@ -283,52 +291,72 @@ static void syncfb_adapt_to_output_area(syncfb_driver_t* this,
      this->output_xoffset  = dest_x + (dest_width - this->output_width) / 2;
      this->output_yoffset  = dest_y;
    }
+
+   // try to minimize our config ioctls by checking if anything really has
+   // changed, otherwise leave things untouched because every config ioctl
+   // also turns off and on the SyncFB module.
+   if(prev_output_width   != this->output_width        ||
+      prev_output_height  != this->output_height       ||
+      prev_output_xoffset != this->output_xoffset      ||
+      prev_output_yoffset != this->output_yoffset      ||
+      prev_deinterlacing  != this->deinterlace_enabled ||
+      prev_posx           != posx                      ||
+      prev_posy           != posy) {
+      
+      prev_output_width   = this->output_width;
+      prev_output_height  = this->output_height;
+      prev_output_xoffset = this->output_xoffset;
+      prev_output_yoffset = this->output_yoffset;
+      prev_deinterlacing  = this->deinterlace_enabled;
+      prev_posx           = posx;
+      prev_posy           = posy;
    
-   //
-   // configuring SyncFB module from this point on.
-   //
+      //
+      // configuring SyncFB module from this point on.
+      //
 
-   if(ioctl(this->fd, SYNCFB_OFF))
-     printf("video_out_syncfb: error. (off ioctl failed)\n");
-   else
-     this->overlay_state = 0;
-
-   // sanity checking - certain situations *may* crash the SyncFB module, so
-   // take care that we always have valid numbers.
-   if(posx >= 0 && posy >= 0 && this->frame_width > 0 && this->frame_height > 0 && this->output_width > 0 && this->output_height > 0) {
-      if(ioctl(this->fd, SYNCFB_GET_CONFIG, &this->syncfb_config))
-	printf("video_out_syncfb: error. (get_config ioctl failed)\n");
-	
-      this->syncfb_config.syncfb_mode = SYNCFB_FEATURE_SCALE;
-      if(this->deinterlace_enabled) {
-	this->syncfb_config.syncfb_mode |= SYNCFB_FEATURE_DEINTERLACE | SYNCFB_FEATURE_CROP;
-        this->syncfb_config.src_crop_top   = 1;
-        this->syncfb_config.src_crop_bot   = 1;
-        this->syncfb_config.src_crop_left  = 0;
-        this->syncfb_config.src_crop_right = 0;
-      }
-
-      this->syncfb_config.src_palette = this->palette;
-   
-      this->syncfb_config.fb_screen_size = this->virtual_screen_width * this->virtual_screen_height * (this->screen_depth / 8);
-      this->syncfb_config.src_width      = this->frame_width;
-      this->syncfb_config.src_height     = this->frame_height;
-
-      this->syncfb_config.image_width    = this->output_width;
-      this->syncfb_config.image_height   = this->output_height;
-
-      this->syncfb_config.image_xorg     = posx+this->output_xoffset;
-      this->syncfb_config.image_yorg     = posy+this->output_yoffset;
-
-      this->syncfb_config.default_repeat   = (this->deinterlace_enabled) ? 1 : 2;
-
-      if(ioctl(this->fd,SYNCFB_SET_CONFIG,&this->syncfb_config))
-	printf("video_out_syncfb: error. (set_config ioctl failed)\n");
-      if(ioctl(this->fd, SYNCFB_ON))
-	printf("video_out_syncfb: error. (on ioctl failed)\n");
+      if(ioctl(this->fd, SYNCFB_OFF))
+	printf("video_out_syncfb: error. (off ioctl failed)\n");
       else
-	this->overlay_state = 1;
-   }	
+	this->overlay_state = 0;
+
+      // sanity checking - certain situations *may* crash the SyncFB module, so
+      // take care that we always have valid numbers.
+      if(posx >= 0 && posy >= 0 && this->frame_width > 0 && this->frame_height > 0 && this->output_width > 0 && this->output_height > 0) {
+	 if(ioctl(this->fd, SYNCFB_GET_CONFIG, &this->syncfb_config))
+	   printf("video_out_syncfb: error. (get_config ioctl failed)\n");
+	
+	 this->syncfb_config.syncfb_mode = SYNCFB_FEATURE_SCALE;
+	 if(this->deinterlace_enabled) {
+	    this->syncfb_config.syncfb_mode |= SYNCFB_FEATURE_DEINTERLACE | SYNCFB_FEATURE_CROP;
+	    this->syncfb_config.src_crop_top   = 1;
+	    this->syncfb_config.src_crop_bot   = 1;
+	    this->syncfb_config.src_crop_left  = 0;
+	    this->syncfb_config.src_crop_right = 0;
+	 }
+
+	 this->syncfb_config.src_palette = this->palette;
+   
+	 this->syncfb_config.fb_screen_size = this->virtual_screen_width * this->virtual_screen_height * (this->screen_depth / 8);
+	 this->syncfb_config.src_width      = this->frame_width;
+	 this->syncfb_config.src_height     = this->frame_height;
+
+	 this->syncfb_config.image_width    = this->output_width;
+	 this->syncfb_config.image_height   = this->output_height;
+
+	 this->syncfb_config.image_xorg     = posx+this->output_xoffset;
+	 this->syncfb_config.image_yorg     = posy+this->output_yoffset;
+
+	 this->syncfb_config.default_repeat   = (this->deinterlace_enabled) ? 1 : 3;
+
+	 if(ioctl(this->fd,SYNCFB_SET_CONFIG,&this->syncfb_config))
+	   printf("video_out_syncfb: error. (set_config ioctl failed)\n");
+	 if(ioctl(this->fd, SYNCFB_ON))
+	   printf("video_out_syncfb: error. (on ioctl failed)\n");
+	 else
+	   this->overlay_state = 1;
+      }
+   }
    
   /*
    * clear unused output area
@@ -783,7 +811,7 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen)
       printf("video_out_syncfb: aborting. (malloc failed)\n");
       return NULL;
    }
-   memset (this, 0, sizeof(syncfb_driver_t));
+   memset(this, 0, sizeof(syncfb_driver_t));
  
    // check for syncfb device
    if((this->fd = open(device_name, O_RDWR)) < 0) {
