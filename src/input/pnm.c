@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: pnm.c,v 1.7 2002/12/26 14:57:33 holstsn Exp $
+ * $Id: pnm.c,v 1.8 2002/12/26 20:30:00 holstsn Exp $
  *
  * pnm protocol implementation 
  * based upon code from joschka
@@ -548,11 +548,12 @@ static int pnm_get_headers(pnm_t *p, int *need_response) {
     size+=chunk_size;
     ptr+=chunk_size;
   }
-  
-  /* set pre-buffer to a low number */
-  /* prop_hdr[36]=0x01;
-  prop_hdr[37]=0xd6; */
 
+  if (!prop_hdr) {
+    printf("input_pnm: error while parsing headers.\n");
+    return 0;
+  }
+  
   /* set data offset */
   size--;
   prop_hdr[42]=(size>>24)%0xff;
@@ -780,7 +781,7 @@ pnm_t *pnm_connect(const char *mrl) {
   int pathbegin, hostend;
   pnm_t *p=malloc(sizeof(pnm_t));
   int fd;
-  int need_response;
+  int need_response=0;
   
   if (strncmp(mrl,"pnm://",6))
   {
