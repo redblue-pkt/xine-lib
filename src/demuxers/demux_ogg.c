@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_ogg.c,v 1.157 2004/12/12 06:55:58 athp Exp $
+ * $Id: demux_ogg.c,v 1.158 2004/12/17 00:21:38 tmattern Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -117,6 +117,7 @@ typedef struct stream_info_s {
   /* Annodex-specific stream information */
   int                   hide_first_header;
   int                   delivered_bos;
+  int                   delivered_eos;
 } stream_info_t;
 
 typedef struct demux_ogg_s {
@@ -717,7 +718,7 @@ static void send_ogg_buf (demux_ogg_t *this,
 
     buf->size = 12 + op->bytes + 1;
 
-    lprintf ("CMML stream %d (bytes=%d): PTS %d: %s\n",
+    lprintf ("CMML stream %d (bytes=%ld): PTS %lld: %s\n",
              stream_num, op->bytes, buf->pts, str);
 
     this->video_fifo->put (this->video_fifo, buf);
@@ -1496,6 +1497,43 @@ static int demux_ogg_send_chunk (demux_plugin_t *this_gen) {
       this->si[stream_num]->header_granulepos = -1;
 
   }
+  if (ogg_page_eos(&this->og)) {
+    int i;
+    int finished_streams = 0;
+  
+    lprintf("end of stream, serialnumber %d\n", cur_serno);
+    this->si[stream_num]->delivered_eos = 1;
+  
+    /* check if all logical streams are finished */
+    for (i = 0; i < this->num_streams; i++) {
+      finished_streams += this->si[i]->delivered_eos;
+    }
+
+    /* if all streams are finished, perhaps a chained stream follows */
+    if (finished_streams == this->num_streams) {
+      /* delete current logical streams */
+      for (i = 0; i < this->num_streams; i++) {
+        ogg_stream_clear(&this->si[i]->oss);
+        if (this->si[i]->language) {
+          free (this->si[i]->language);
+        }
+        free (this->si[i]);
+      }
+      this->num_streams       = 0;
+      this->num_audio_streams = 0;
+      this->num_video_streams = 0;
+      this->num_spu_streams   = 0;
+      this->avg_bitrate       = 1;
+      
+      /* try to read a chained stream */
+      this->send_newpts = 1;
+      this->last_pts[0] = 0;
+      this->last_pts[1] = 0;
+      
+      send_header(this);
+    }
+  }
+
   return this->status;
 }
 
@@ -2068,4 +2106,3 @@ plugin_info_t xine_plugin_info[] = {
   { PLUGIN_DEMUX, 25, "anx", XINE_VERSION_CODE, &demux_info_anx, anx_init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
-
