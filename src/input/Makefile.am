@@ -31,6 +31,10 @@ if HAVE_GNOME_VFS
 in_gnome_vfs = xineplug_inp_gnome_vfs.la
 endif
 
+if HAVE_ALSA
+v4l_ldflags = -lasound
+endif
+
 # For DVD
 if HAVE_DVDNAV
 DVD_CFLAGS = -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE $(DVDNAV_CFLAGS)
@@ -124,7 +128,7 @@ xineplug_inp_cdda_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 xineplug_inp_v4l_la_SOURCES = input_v4l.c
 xineplug_inp_v4l_la_LIBADD = $(XINE_LIB)
-xineplug_inp_v4l_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
+xineplug_inp_v4l_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@ $(v4l_ldflags)
 
 xineplug_inp_gnome_vfs_la_SOURCES = input_gnome_vfs.c
 xineplug_inp_gnome_vfs_la_LIBADD = $(GNOME_VFS_LIBS) $(XINE_LIB)

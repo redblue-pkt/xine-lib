@@ -9,6 +9,7 @@ AM_CFLAGS = -DNSF_PLAYER
 SUBDIRS = gsm610 nosefart
 
 lib_LTLIBRARIES = \
+	xineplug_decode_pcm.la \
 	xineplug_decode_adpcm.la \
 	xineplug_decode_logpcm.la \
 	xineplug_decode_roqaudio.la \
@@ -20,6 +21,10 @@ lib_LTLIBRARIES = \
 xineplug_decode_roqaudio_la_SOURCES = roqaudio.c
 xineplug_decode_roqaudio_la_LIBADD = $(XINE_LIB)
 xineplug_decode_roqaudio_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
+
+xineplug_decode_pcm_la_SOURCES = pcm.c
+xineplug_decode_pcm_la_LIBADD = $(XINE_LIB)
+xineplug_decode_pcm_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 xineplug_decode_adpcm_la_SOURCES = adpcm.c
 xineplug_decode_adpcm_la_LIBADD = $(XINE_LIB)

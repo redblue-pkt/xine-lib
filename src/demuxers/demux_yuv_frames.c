@@ -1,5 +1,6 @@
 /* 
  * Copyright (C) 2003 the xine project
+ * Copyright (C) 2003 Jeroen Asselman <j.asselman@itsec-ps.nl>
  * 
  * This file is part of xine, a free video player.
  * 
@@ -17,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_yuv_frames.c,v 1.5 2003/04/26 20:16:29 guenter Exp $
+ * $Id: demux_yuv_frames.c,v 1.6 2003/06/16 16:42:51 holstsn Exp $
  *
  * dummy demultiplexer for raw yuv frames (delivered by v4l)
  *
@@ -37,6 +38,9 @@
 #include "xineutils.h"
 #include "demux.h"
 
+#define WRAP_THRESHOLD       20000
+
+#define PLUGIN "demux_yuv_frames"
 /*
 #define LOG
 */
@@ -52,7 +56,9 @@ typedef struct demux_yuv_frames_s {
   input_plugin_t       *input;
 
   int                   status;
-  
+  int			seek_flag;
+  int64_t               last_pts;
+    
 } demux_yuv_frames_t ;
 
 typedef struct {
@@ -72,51 +78,77 @@ static int demux_yuv_frames_get_status (demux_plugin_t *this_gen) {
   return this->status;
 }
 
-static int demux_yuv_frames_send_chunk (demux_plugin_t *this_gen) {
+static int switch_buf(demux_yuv_frames_t *this , buf_element_t *buf)
+{
+   int result = 0;
+   
+   if (!buf) 
+      return 0;
+   
+   if (this->seek_flag) {
+      this->seek_flag = 0;
+      xine_demux_control_newpts(this->stream, buf->pts, BUF_FLAG_SEEK);
+   } else
+   if (abs(this->last_pts - buf->pts) > WRAP_THRESHOLD) {
+      xine_demux_control_newpts(this->stream, buf->pts, 0);
+   }
+   
+   this->last_pts = buf->pts;
+   
+   switch (buf->type) {
+      case BUF_VIDEO_YUV_FRAMES:
+	 this->video_fifo->put(this->video_fifo, buf);
+	 result = 1;	/* 1, we still should read audio */
+	 break;
+      case BUF_AUDIO_RAWPCM:
+	 if (!this->stream->stream_info[XINE_STREAM_INFO_HAS_VIDEO])
+	    xine_demux_control_newpts(this->stream, buf->pts, 0);
 
-  demux_yuv_frames_t *this = (demux_yuv_frames_t *) this_gen;
-  buf_element_t      *buf;
-
-  buf = this->input->read_block (this->input, NULL, 0);
-
-  if (!buf)
-    this->status = DEMUX_FINISHED;
-  else {
-
-    switch (buf->type) {
-    case BUF_VIDEO_YUV_FRAMES:
-      this->video_fifo->put (this->video_fifo, buf);
-      break;
-    default:
+	 this->audio_fifo->put(this->audio_fifo, buf);
+	 break;
+      default:
 #ifdef LOG
-      printf ("demux_yuv_frames: help, unknown buffer type %08x\n",
-	      buf->type);
+	 printf ("demux_yuv_frames: help, unknown buffer type %08x\n",
+	       buf->type);
 #endif
-      buf->free_buffer (buf);
-    }
-  }
+	 buf->free_buffer(buf); 
+   }
 
-  return this->status;
+   return result;
 }
 
-static void demux_yuv_frames_send_headers (demux_plugin_t *this_gen) {
+static int demux_yuv_frames_send_chunk (demux_plugin_t *this_gen)
+{ 
+   demux_yuv_frames_t *this = (demux_yuv_frames_t *) this_gen;
+   buf_element_t      *buf;
+   int	 first = 1;
+   
+   do {
+      if ( this->stream->stream_info[XINE_STREAM_INFO_HAS_VIDEO])
+         buf = this->input->read_block (this->input, this->video_fifo, 0);
+      else
+	 buf = this->input->read_block (this->input, this->audio_fifo, 0);
+      
+   } while (switch_buf(this, buf));
+  
+   return this->status;
+}
 
-  demux_yuv_frames_t *this = (demux_yuv_frames_t *) this_gen;
-
-  this->video_fifo  = this->stream->video_fifo;
-  this->audio_fifo  = this->stream->audio_fifo;
-
-  this->status = DEMUX_OK;
-
-  this->stream->stream_info[XINE_STREAM_INFO_HAS_VIDEO] = 1;
-  this->stream->stream_info[XINE_STREAM_INFO_HAS_AUDIO] = 1;
+static void demux_yuv_frames_send_headers (demux_plugin_t *this_gen)
+{
+   demux_yuv_frames_t *this = (demux_yuv_frames_t *) this_gen;
+   this->video_fifo  = this->stream->video_fifo;
+   this->audio_fifo  = this->stream->audio_fifo;
+   
+   this->status = DEMUX_OK;
 }
 
 static int demux_yuv_frames_seek (demux_plugin_t *this_gen,
 			    off_t start_pos, int start_time) {
 
   demux_yuv_frames_t *this = (demux_yuv_frames_t *) this_gen; 
-  
+  this->seek_flag = 1;
+  this->last_pts = 0; 
   return this->status;
 }
 
@@ -257,3 +289,8 @@ plugin_info_t xine_plugin_info[] = {
   { PLUGIN_DEMUX, 21, "yuv_frames", XINE_VERSION_CODE, NULL, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
+
+/*
+ * vim:sw=3:sts=3:
+ */
+
