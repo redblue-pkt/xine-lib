@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3.c,v 1.1 2001/07/20 17:28:21 ehasenle Exp $
+ * $Id: video_out_dxr3.c,v 1.2 2001/07/24 13:26:18 ehasenle Exp $
  *
  * Dummy video out plugin for the dxr3. Is responsible for setting
  * tv_mode, bcs values and the aspectratio.
@@ -61,12 +61,12 @@ static uint32_t dxr3_get_capabilities (vo_driver_t *this_gen)
 /* This are dummy functions to fill in the frame object */
 static void dummy_frame_copy (vo_frame_t *vo_img, uint8_t **src)
 {
-	printf("prevent this: xshm_frame_copy called\n");
+	fprintf(stderr, "dxr3_vo: dummy_frame_copy called!\n");
 }
 
 static void dummy_frame_field (vo_frame_t *vo_img, int which_field)
 {
-	printf("prevent this: xshm_frame_field called\n");
+	fprintf(stderr, "dxr3_vo: dummy_frame_field called!\n");
 }
 
 static void dummy_frame_dispose (vo_frame_t *frame)
@@ -94,20 +94,20 @@ static void dxr3_update_frame_format (vo_driver_t *this_gen,
 				      int ratio_code, int format)
 {
 	/* dxr3_driver_t  *this = (dxr3_driver_t *) this_gen; */
-	printf("dummy function: dxr3_update_frame_format\n");
+	fprintf(stderr, "dxr3_vo: dummy function update_frame_format called!\n");
 }
 
 static void dxr3_display_frame (vo_driver_t *this_gen, vo_frame_t *frame)
 {
 	/* dxr3_driver_t  *this = (dxr3_driver_t *) this_gen; */
-	printf("dummy function: dxr3_frame called\n");
+	fprintf(stderr, "dxr3_vo: dummy function dxr3_display_frame called!\n");
 }
 
 static void dxr3_overlay_blend (vo_driver_t *this_gen, vo_frame_t *frame_gen,
  vo_overlay_t *overlay)
 {
 	/* dxr3_driver_t *this = (dxr3_driver_t *) this_gen; */
-	printf("dummy function: dxr3_overlay_blend\n");
+	fprintf(stderr, "dxr3_vo: dummy function dxr3_overlay_blend called!\n");
 }
 
 static int dxr3_get_property (vo_driver_t *this_gen, int property)
@@ -133,7 +133,7 @@ static int dxr3_get_property (vo_driver_t *this_gen, int property)
 		break;
 	default:
 		val = 0;
-		fprintf(stderr, "dxr3: property %d not implemented!\n", property);
+		fprintf(stderr, "dxr3_vo: property %d not implemented!\n", property);
 	}
 
 	return val;
@@ -167,15 +167,15 @@ static int dxr3_set_property (vo_driver_t *this_gen,
 		this->aspectratio = value;
 
 		if (value == ASPECT_ANAMORPHIC) {
-			fprintf(stderr, "dxr3: setting aspect ratio to anamorphic\n");
+			fprintf(stderr, "dxr3_vo: setting aspect ratio to anamorphic\n");
 			val = EM8300_ASPECTRATIO_16_9;
 		} else {
-			fprintf(stderr, "dxr3: setting aspect ratio to full\n");
+			fprintf(stderr, "dxr3_vo: setting aspect ratio to full\n");
 			val = EM8300_ASPECTRATIO_4_3;
 		}
 
 		if (ioctl(this->fd_control, EM8300_IOCTL_SET_ASPECTRATIO, &val))
-			fprintf(stderr, "dxr3: failed to set aspect ratio (%s)\n",
+			fprintf(stderr, "dxr3_vo: failed to set aspect ratio (%s)\n",
 			 strerror(errno));
 
 		break;
@@ -183,7 +183,7 @@ static int dxr3_set_property (vo_driver_t *this_gen,
 
 	if (bcs_changed)
 		if (ioctl(this->fd_control, EM8300_IOCTL_SETBCS, &this->bcs))
-			fprintf(stderr, "dxr3: bcs set failed (%s)\n",
+			fprintf(stderr, "dxr3_vo: bcs set failed (%s)\n",
 			 strerror(errno));
 	return value;
 }
@@ -252,13 +252,13 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen)
 
 	/* open control device */
 	if ((this->fd_control = open(devname, O_WRONLY)) < 0) {
-		fprintf(stderr, "dxr3: Failed to open control device %s (%s)\n",
+		fprintf(stderr, "dxr3_vo: Failed to open control device %s (%s)\n",
 		 devname, strerror(errno));
 		return 0;
 	}
 
 	if (ioctl(this->fd_control, EM8300_IOCTL_GETBCS, &this->bcs))
-		fprintf(stderr, "dxr3: cannot read bcs values (%s)\n",
+		fprintf(stderr, "dxr3_vo: cannot read bcs values (%s)\n",
 		 strerror(errno));
 	this->vo_driver.set_property(&this->vo_driver,
 	 VO_PROP_ASPECT_RATIO, ASPECT_FULL);
@@ -266,24 +266,23 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen)
 	str = config->lookup_str(config, "dxr3_tvmode", "default");
 	if (!strcmp(str, "ntsc")) {
 		this->tv_mode = EM8300_VIDEOMODE_NTSC;
-		fprintf(stderr, "dxr3: setting tv_mode to NTSC\n");
+		fprintf(stderr, "dxr3_vo: setting tv_mode to NTSC\n");
 	} else if (!strcmp(str, "pal")) {
 		this->tv_mode = EM8300_VIDEOMODE_PAL;
-		fprintf(stderr, "dxr3: setting tv_mode to PAL 50Hz\n");
+		fprintf(stderr, "dxr3_vo: setting tv_mode to PAL 50Hz\n");
 	} else if (!strcmp(str, "pal60")) {
 		this->tv_mode = EM8300_VIDEOMODE_PAL60;
-		fprintf(stderr, "dxr3: setting tv_mode to PAL 60Hz\n");
+		fprintf(stderr, "dxr3_vo: setting tv_mode to PAL 60Hz\n");
 	} else {
 		this->tv_mode = EM8300_VIDEOMODE_DEFAULT;
 	}
 	if (this->tv_mode != EM8300_VIDEOMODE_DEFAULT)
 		if (ioctl(this->fd_control, EM8300_IOCTL_SET_VIDEOMODE, &this->tv_mode))
-			fprintf(stderr, "dxr3: setting video mode failed.");
+			fprintf(stderr, "dxr3_vo: setting video mode failed.");
 
   return &this->vo_driver;
 }
 
-/* TODO: VISUAL_TYPE_HARDWARE ? */
 static vo_info_t vo_info_dxr3 = {
   2, /* api version */
   "dxr3",
