@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3.c,v 1.3 2001/07/24 15:02:05 f1rmb Exp $
+ * $Id: video_out_dxr3.c,v 1.4 2001/07/25 15:03:15 ehasenle Exp $
  *
  * Dummy video out plugin for the dxr3. Is responsible for setting
  * tv_mode, bcs values and the aspectratio.
@@ -33,13 +33,9 @@
 #include <fcntl.h>
 #include <errno.h>
 
-#include <em8300.h>
+#include <linux/em8300.h>
 #include "video_out.h"
-
-#include <pthread.h>
-
 #include "xine_internal.h"
-#include "utils.h"
 
 char devname[]="/dev/em8300";
 
@@ -91,7 +87,7 @@ static vo_frame_t *dxr3_alloc_frame (vo_driver_t *this_gen)
 static void dxr3_update_frame_format (vo_driver_t *this_gen,
 				      vo_frame_t *frame,
 				      uint32_t width, uint32_t height,
-				      int ratio_code, int format)
+				      int ratio_code, int format, int flags)
 {
 	/* dxr3_driver_t  *this = (dxr3_driver_t *) this_gen; */
 	fprintf(stderr, "dxr3_vo: dummy function update_frame_format called!\n");

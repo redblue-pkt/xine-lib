@@ -64,18 +64,19 @@ AC_DEFUN(AC_LINUX_PATH,
 
 dnl AC_CHECK_DXR3()
 AC_DEFUN(AC_CHECK_DXR3,
-  [
-  AC_ARG_WITH(dxr3-path,
-   [  --with-dxr3-path=path   Where em8300.h is located],
-           em8300_path="$withval", em8300_path="$linux_path/include/linux")
- 
-  AC_CHECK_HEADER($em8300_path/em8300.h, 
-	   have_dxr3=yes
-           EM8300_INCLUDE_PATH="-I`eval echo $em8300_path`",
-           have_dxr3=no
-	   AC_MSG_RESULT(*** DXR3 support disabled ***))
-
-  AC_SUBST(EM8300_INCLUDE_PATH)
+[
+  AC_ARG_ENABLE(dxr3,
+    [  --disable-dxr3          Do not build the DXR3/HW+ plugins],,
+    enable_dxr3=yes)
+  if test x"$enable_dxr3" = xyes; then
+    AC_CHECK_HEADER($linux_path/include/linux/em8300.h, 
+         have_dxr3=yes,
+         have_dxr3=no
+         AC_MSG_RESULT(*** DXR3 support disabled due to missing em8300.h ***))
+  else
+    AC_MSG_RESULT(DXR3 plugins will not be built.)
+    have_dxr3=no
+  fi
 ])
 
 
