@@ -198,6 +198,20 @@ void nbc_close (nbc_t *this) {
   free (this);
 }
 
+void nbc_end_of_stream (nbc_t *this) {
+#ifdef LOG
+  printf("net_buf_ctrl: nbc_end_of_stream\n");
+#endif
+  /* unpause the engine */
+  if (this->buffering) {
+    this->buffering = 0;
+    this->stream->xine->clock->set_speed (this->stream->xine->clock, XINE_SPEED_NORMAL);
+    this->stream->xine->clock->set_option (this->stream->xine->clock, CLOCK_SCR_ADJUSTABLE, 1);
+    if (this->stream->audio_out)
+      this->stream->audio_out->set_property(this->stream->audio_out,AO_PROP_PAUSED,0);
+  }
+}
+
 nbc_t *nbc_init (xine_stream_t *stream) {
 
   nbc_t *this = (nbc_t *) malloc (sizeof (nbc_t));
