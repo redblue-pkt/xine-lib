@@ -16,7 +16,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: back_client.h,v 1.1 2003/01/18 15:29:22 miguelfreitas Exp $
+ * $Id: back_client.h,v 1.2 2003/02/05 00:14:02 miguelfreitas Exp $
  *
  * Contents:
  *
@@ -33,6 +33,12 @@ Bool back_client_avail (void);
 CardPtr back_client_init (void);
 
 /* client backend methods */
+
+/* Attention! The 'size' and 'aspect' strings returned by the find
+   operations in mode.spec are allocated, and should be freed when not
+   needed anymore. For the moment, this creates a memory leak, as this
+   behaviour is different from the other backends.  
+*/
 
 void bcl_openCard (CardPtr card);
 void bcl_closeCard (void);

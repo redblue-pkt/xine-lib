@@ -16,7 +16,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: back_client.c,v 1.1 2003/01/18 15:29:22 miguelfreitas Exp $
+ * $Id: back_client.c,v 1.2 2003/02/05 00:14:02 miguelfreitas Exp $
  *
  * Contents:
  *
@@ -25,11 +25,19 @@
  */
 
 #include <string.h>
-#include <sys/stat.h>
-#include <fcntl.h>
+
+#ifdef HAVE_UNISTD_H
 #include <unistd.h>
+#endif
+#ifdef HAVE_SYS_STAT_H
+#include <sys/stat.h>
+#endif
+
+
+#include <fcntl.h>
 
 #include "debug.h"
+#include "error.h"
 #include "backend.h"
 #include "back_client.h"
 #include "pipe.h"
@@ -218,6 +226,10 @@ TVConnect bcl_getConnection (void)
   return c;
 }
 
+/* Attention! The 'size' and 'aspect' strings returned mode.spec are 
+   allocated, and should be freed when not needed anymore.
+*/
+
 Bool bcl_findBySize (TVSystem system, int xres, int yres, char *size, 
     TVMode *mode)
 {
@@ -229,8 +241,10 @@ Bool bcl_findBySize (TVSystem system, int xres, int yres, char *size,
 		 sizeof(xres), &xres, sizeof(yres), &yres,
 		 strlen(size)+1, size);
   pipeReadCmd (pipe_in);
-  n = pipeReadArgs (pipe_in, 1, sizeof(TVMode), mode); 
-  return (n >= 1);
+  mode->spec.size = mode->spec.aspect = NULL;
+  n = pipeReadArgs (pipe_in, 3, sizeof(TVMode), mode, 
+		    0, &mode->spec.size, 0, &mode->spec.aspect); 
+  return (n >= 3);
 }
 
 Bool bcl_findByOverscan (TVSystem system, int xres, int yres, 
@@ -244,8 +258,10 @@ Bool bcl_findByOverscan (TVSystem system, int xres, int yres,
 		 sizeof(xres), &xres, sizeof(yres), &yres,
 		 sizeof(hoc), &hoc, sizeof(voc), &voc);
   pipeReadCmd (pipe_in);
-  n = pipeReadArgs (pipe_in, 1, sizeof(TVMode), mode);
-  return (n >= 1);
+  mode->spec.size = mode->spec.aspect = NULL;
+  n = pipeReadArgs (pipe_in, 3, sizeof(TVMode), mode, 
+		    0, &mode->spec.size, 0, &mode->spec.aspect); 
+  return (n >= 3);
 }
 
 void bcl_initSharedView (int *view_x, int *view_y)
@@ -339,6 +355,7 @@ BackCardRec bcl_card_func = {
 #endif
   setHeads:              bcl_setHeads,
   getHeads:              bcl_getHeads,
+  getHeadDev:            bcl_getHeadDev,
   probeChips:            bcl_probeChips,
   setChip:               bcl_setChip,
   setSettings:           bcl_setSettings,

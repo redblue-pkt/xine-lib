@@ -205,16 +205,4 @@
 #define FAKE_CRTC
 #endif
 
-#define ERROR(X...) fprintf(stderr, X)
-
-/* Fake output */
-#define FPRINTF(X...) fprintf(stderr, X)
-
-#ifdef NVTV_DEBUG
-#define DPRINTF(X...) fprintf(stderr, X)
-#define NO_TIMEOUT
-#else
-#define DPRINTF(X...) /* */
-#endif
-
-#endif
+#endif /* _DEBUG_H */

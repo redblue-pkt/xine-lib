@@ -16,7 +16,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: tv_common.h,v 1.1 2003/01/18 15:29:22 miguelfreitas Exp $
+ * $Id: tv_common.h,v 1.2 2003/02/05 00:14:03 miguelfreitas Exp $
  *
  * Contents:
  *
@@ -45,8 +45,6 @@ struct _TvEncoderObj {
   TVChip chip;
   I2CDevPtr dev;
   long minClock, maxClock; /* in kHz */
-  int hwconfig;
-  int hwstate;
   void (*Create) (TVEncoderObj *this, TVChip chip, I2CDevPtr dev);
   void (*InitRegs) (TVEncoderObj *this, int port);
   void (*SetRegs) (TVEncoderObj *this, TVEncoderRegs *r, TVState state);
@@ -54,6 +52,8 @@ struct _TvEncoderObj {
   void (*SetState) (TVEncoderObj *this, TVEncoderRegs *r, TVState state);
   TVConnect (*GetConnect) (TVEncoderObj *this);
   long (*GetStatus) (TVEncoderObj *this, int index);
+  int hwconfig;
+  int hwstate;
 };
 
 /* I2C Id of device for use in (s)printf */

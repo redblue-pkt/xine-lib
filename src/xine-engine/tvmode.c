@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: tvmode.c,v 1.11 2003/01/19 14:55:56 miguelfreitas Exp $
+ * $Id: tvmode.c,v 1.12 2003/02/05 00:14:02 miguelfreitas Exp $
  *
  * tvmode - TV output selection
  *
@@ -147,27 +147,6 @@ static void tvmode_connect(xine_t *this) {
         fprintf(stderr, "tvmode: cannot connect to nvtvd - no TV mode switching available\n");
     }
 
-    /* 
-
-    CardInfo *card = 0;
-
-    if (back_card)
-	back_card->closeCard ();
-
-    if (back_client_avail ()) {
-	if (! (card = back_client_init ()))
-	    back_card = 0;
-    } else {
-	back_card = 0;
-    }
-
-    if (back_card) {
-      back_card->openCard (card);
-      was_enabled = 1;
-    }
-    else
-      printf("tvmode: cannot connect to nvtvd - no TV mode switching available\n");
-      */
 }
 
 
@@ -213,31 +192,19 @@ static void tvmode_settvstate (xine_t *this, int width, int height, double fps) 
 	for (scano = scan_overscan; *scano && ! found; scano++) {
             fprintf(stderr,"tvmode: trying to use %dx%d %s\n",
 		     scanm[0], scanm[1], *scano);
-            /*
+
 	    if (back_card->findBySize (opt_system, scanm[0], scanm[1], *scano,
                         &mode)) {
 		current_width  = scanm[0];
 		current_height = scanm[1];
                 current_fps    = 25;	
                 found++;
-            } */
-            if (back_card->findBySize (opt_system, 800, 600, "Large",
-                        &mode)) {
-                current_width  = 800;
-                current_height = 600;
-		current_fps    = 25;	/* TODO: currently this is PAL only */
-		found++;
 	    }
 	}
     }
   
     /* Switch to mode */
     if (found) {
-        /*	back_card->setModeSettings (TV_PRIV_TVMODE | TV_PRIV_DUALVIEW,
-            &crt, &tv, &settings); */
-        /*    mode.regs.devFlags = DEV_MONITOR | DEV_TELEVISION; */
-        /* Modify the settings */
-
         back_card->getSettings (&settings);
         if (opt_connect > CONNECT_NONE) {
             settings.connector = opt_connect;
@@ -251,10 +218,6 @@ static void tvmode_settvstate (xine_t *this, int width, int height, double fps) 
         back_card->setModeSettings (&mode.regs, &settings);
 
         printf("tvmode: Trying to use mode %i x %i\n",current_width,current_height);
-        /*
-           back_card->setMode(&mode.regs);
-           back_card->setTestImage (NULL, &settings);
-         */
 	current_type = 1;
     } else {
 	printf("tvmode: cannot find any valid TV mode - TV output disabled\n");
@@ -338,13 +301,6 @@ void xine_tvmode_init (xine_t *this) {
   printf("tvmode: Initializing tvmode\n");
   xine_config_register_bool (this, "misc.nv_tvmode", 0, _("NVidia TV-Out support."), NULL, 0, nvtvmode_enable_cb, this);
   
-  /*
-  tvmode_enabled = this->config->register_bool(this->config, "misc.nv_tvmode", 
-					       0,
-					       _("NVidia TV-Out support."),
-					       NULL, 10,
-					       nvtvmode_enable_cb, this);
-  */
   _tvmode_init(this);
 }
 

@@ -1,4 +1,4 @@
-/* NVTV Local header -- Dirk Thierbach <dthierbach@gmx.de>
+/* NVTV error -- Dirk Thierbach <dthierbach@gmx.de>
  *
  * This file is part of nvtv, a tool for tv-output on NVidia cards.
  * 
@@ -16,49 +16,13 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: local.h,v 1.2 2003/02/05 00:14:03 miguelfreitas Exp $
+ * $Id: error.c,v 1.1 2003/02/05 00:14:03 miguelfreitas Exp $
  *
  * Contents:
  *
- * Header: Local declarations.
- *
- * - Defines for GTK2 vs. GTK.
- * - Define for Bool (must be included after xfree.h for this reason)
+ * Error handling.
  *
  */
 
-#ifndef _LOCAL_H
-#define _LOCAL_H
+#include "error.h"
 
-#ifdef __BORLANDC__
-#define inline
-#endif
-
-#ifdef HAVE_GTK
-
-#if GTK_MAJOR_VERSION >= 2
-
-#define gdk_screen gdk_x11_get_default_screen()
-#define gdk_root_window gdk_x11_get_default_root_xwindow()
-#define gtk_spin_button_set_shadow_type(x, y) 
-
-#endif
-#endif /* HAVE_GTK */
-
-#ifndef _XDEFS_H
-
-#ifndef __BORLANDC__
-typedef int Bool;
-#endif
-
-#ifndef TRUE
-#define TRUE 1
-#endif
-
-#ifndef FALSE
-#define FALSE 0
-#endif
-
-#endif /* _XDEFS_H */
-
-#endif /* _LOCAL_H */

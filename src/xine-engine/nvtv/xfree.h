@@ -16,9 +16,6 @@
 
 #include "miscstruct.h"
 
-#define DEBUG(x) /*x*/
-#define ErrorF(x...) fprintf(stderr,x)
-
 #define __inline__ inline
 
 /**** libc_wrapper.c */
@@ -83,6 +80,20 @@ void xf86getsecs(long * secs, long * usecs);
 
 
 /**** common/xf86str.h */
+
+/* Flags for driver messages */
+typedef enum {
+    X_PROBED,			/* Value was probed */
+    X_CONFIG,			/* Value was given in the config file */
+    X_DEFAULT,			/* Value is a default */
+    X_CMDLINE,			/* Value was given on the command line */
+    X_NOTICE,			/* Notice */
+    X_ERROR,			/* Error message */
+    X_WARNING,			/* Warning message */
+    X_INFO,			/* Informational message */
+    X_NONE,			/* No prefix */
+    X_NOT_IMPLEMENTED		/* Not implemented */
+} MessageType;
 
 /* Video mode flags */
 
@@ -229,9 +240,6 @@ typedef struct _ScrnInfoRec *ScrnInfoPtr;
 /**** common/xf86.h */
 
 extern ScrnInfoPtr *xf86Screens;	/* List of pointers to ScrnInfoRecs */
-
-#define xf86Msg(type,format,args...) /* fprintf(stderr,format,args) */
-#define xf86DrvMsg(scrnIndex,type,format, args...) /* fprintf(stderr,format,args) */
 
 /* ---------------- nv driver files ---------------- */
 

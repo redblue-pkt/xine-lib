@@ -16,7 +16,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: pipe.c,v 1.1 2003/01/18 15:29:22 miguelfreitas Exp $
+ * $Id: pipe.c,v 1.2 2003/02/05 00:14:03 miguelfreitas Exp $
  *
  * Contents:
  *
@@ -27,8 +27,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
+#include <string.h>
 
 #include "debug.h"
+#include "error.h"
 #include "pipe.h"
 
 /* 
@@ -154,9 +156,9 @@ int pipeReadArgs (FILE *pipe, int n, ...)
 /* 
  *  Read optional arguments from a pipe. Ellipsis parameters are:
  *    size_1, pointer_1, result_1, ..., size_n, pointer_n, result_n
- *  Ignore zero size or null pointer arguments. Return number of 
- *  initial arguments that matched input stream, and set each result 
- *  either to NULL or to pointer.
+ *  Ignore zero size or null pointer data. Return number of initial
+ *  arguments that matched input stream, and set each result either to
+ *  NULL or to pointer.  
  */
 
 int pipeReadArgsOpt (FILE *pipe, int n, ...)
