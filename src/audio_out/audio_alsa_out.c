@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.23 2001/08/26 17:52:53 jcdutton Exp $
+ * $Id: audio_alsa_out.c,v 1.24 2001/08/29 10:31:39 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -147,7 +147,7 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
     this->num_channels = 6;
     pcm_device = this->audio_surround51_device;
     break;
-  case AO_CAP_MODE_AC3:
+  case AO_CAP_MODE_A52:
     this->num_channels = 2;
     pcm_device = this->audio_ac3_device;
     break;
@@ -181,7 +181,7 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
     return 0;
   }
 
-  if (mode & AO_CAP_MODE_AC3) {
+  if (mode & AO_CAP_MODE_A52) {
     snd_pcm_info_alloca(&info);
 
     if ((err = snd_pcm_info(this->audio_fd, info)) < 0) {
@@ -509,7 +509,7 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
   this->audio_fd=NULL;
   this->output_sample_rate = 0;
   if (config->lookup_int (config, "ac3_pass_through", 0)) {
-    this->capabilities |= AO_CAP_MODE_AC3;
+    this->capabilities |= AO_CAP_MODE_A52;
   }
   printf("audio_alsa_out: Capabilities 0x%X\n",this->capabilities);
  
