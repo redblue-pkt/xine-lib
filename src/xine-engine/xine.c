@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.129 2002/05/21 00:12:32 siggi Exp $
+ * $Id: xine.c,v 1.130 2002/05/21 00:50:18 siggi Exp $
  *
  * top-level xine functions
  *
@@ -68,7 +68,7 @@ static void _logo_change_cb(void *data, cfg_entry_t *cfg) {
   
   /*
    * Start playback of new mrl only if 
-   * current status is XINE_STOP of XINE_LOGO 
+   * current status is XINE_STOP or XINE_LOGO 
    */
   pthread_mutex_lock (&this->xine_lock);
   if((this->status == XINE_LOGO) || (this->status == XINE_STOP)) {
@@ -246,12 +246,9 @@ void xine_stop_internal (xine_t *this) {
 
   if(this->cur_input_plugin) {
     this->cur_input_plugin->close(this->cur_input_plugin);
-    /*
-     * If we set it to NULL, xine_eject() will not work after
-     * a xine_stop() call.
-     *
-     * this->cur_input_plugin = NULL;
-     */
+    if (strcmp(this->cur_mrl, this->logo_mrl) != 0)
+      /* remember the last input plugin for a possible eject */
+      this->last_input_plugin = this->cur_input_plugin;
   }
 
   printf ("xine_stop: done\n");
@@ -492,21 +489,24 @@ int ret;
 
 int xine_eject (xine_t *this) {
   
-  if(this->cur_input_plugin == NULL) 
+  int status;
+
+  if(this->last_input_plugin == NULL) 
     return 0;
   
   pthread_mutex_lock (&this->xine_lock);
 
-  if ((this->status == XINE_STOP)
-      && this->cur_input_plugin && this->cur_input_plugin->eject_media) {
+  status = 0;
+  if (((this->status == XINE_STOP) || (this->status == XINE_LOGO))
+      && this->last_input_plugin && this->last_input_plugin->eject_media) {
 
     pthread_mutex_unlock (&this->xine_lock);
 
-    return this->cur_input_plugin->eject_media (this->cur_input_plugin);
+    status = this->last_input_plugin->eject_media (this->last_input_plugin);
   }
 
   pthread_mutex_unlock (&this->xine_lock);
-  return 0;
+  return status;
 }
 
 void xine_exit (xine_t *this) {
@@ -646,6 +646,7 @@ xine_t *xine_init (vo_driver_t *vo,
   this->spu_channel_user   = -1;
   this->cur_input_pos      = 0;
   this->cur_input_length   = 0;
+  this->last_input_plugin  = NULL;
 
   /*
    * init and start decoder threads

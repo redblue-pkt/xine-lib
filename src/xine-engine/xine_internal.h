@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.83 2002/05/14 14:55:47 esnel Exp $
+ * $Id: xine_internal.h,v 1.84 2002/05/21 00:50:22 siggi Exp $
  *
  */
 
@@ -167,6 +167,8 @@ struct xine_s {
   input_plugin_t            *input_plugins[INPUT_PLUGIN_MAX];
   int                        num_input_plugins;
   input_plugin_t            *cur_input_plugin;
+  /* kept to do proper ejecting (otherwise we eject the logo) */
+  input_plugin_t            *last_input_plugin;
 
   demux_plugin_t            *demuxer_plugins[DEMUXER_PLUGIN_MAX];
   int                        num_demuxer_plugins;
