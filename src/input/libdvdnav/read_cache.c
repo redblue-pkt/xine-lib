@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: read_cache.c,v 1.8 2003/04/29 15:58:30 jcdutton Exp $
+ * $Id: read_cache.c,v 1.9 2003/04/29 21:55:52 jcdutton Exp $
  *
  */
 
@@ -90,7 +90,7 @@ struct read_cache_s {
   read_cache_chunk_t  chunk[READ_CACHE_CHUNKS];
   int                 current;
   int                 freeing;  /* is set to one when we are about to dispose the cache */
-  int                 read_ahead_size;
+  uint32_t            read_ahead_size;
   int                 read_ahead_incr;
   int                 last_sector;
   pthread_mutex_t     lock;

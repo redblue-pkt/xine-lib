@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: vm.c,v 1.20 2003/04/29 15:58:31 jcdutton Exp $
+ * $Id: vm.c,v 1.21 2003/04/29 21:55:53 jcdutton Exp $
  *
  */
 
@@ -128,7 +128,7 @@ static void vm_print_current_domain_state(vm_t *vm) {
 
 static void dvd_read_name(char *name, const char *device) {
     int fd, i;
-#ifndef __FreeBSD__
+#if !defined(__FreeBSD__) && !defined(WIN32)
     off64_t off;
 #else
     off_t off;
@@ -1842,5 +1842,4 @@ void vm_position_print(vm_t *vm, vm_position_t *position) {
   position->block);
 }
 #endif
-
 

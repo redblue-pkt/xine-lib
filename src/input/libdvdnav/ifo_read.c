@@ -851,8 +851,8 @@ int ifoRead_TT_SRPT(ifo_handle_t *ifofile) {
     CHECK_VALUE(tt_srpt->title[i].pb_ty.zero_1 == 0);
     CHECK_VALUE(tt_srpt->title[i].nr_of_angles != 0);
     CHECK_VALUE(tt_srpt->title[i].nr_of_angles < 10);
-    /* CHECK_VALUE(tt_srpt->title[i].nr_of_ptts != 0);
-       XXX: this assertion breaks Ghostbusters: */
+    /* CHECK_VALUE(tt_srpt->title[i].nr_of_ptts != 0); */
+    /* XXX: this assertion breaks Ghostbusters: */
     CHECK_VALUE(tt_srpt->title[i].nr_of_ptts < 1000); /* ?? */
     CHECK_VALUE(tt_srpt->title[i].title_set_nr != 0);
     CHECK_VALUE(tt_srpt->title[i].title_set_nr < 100); /* ?? */
@@ -1799,8 +1799,10 @@ int ifoRead_PGCI_UT(ifo_handle_t *ifofile) {
       ifofile->pgci_ut = 0;
       return 0;
     }
-    /* FIXME: Iterate and verify that all menus that should exists accordingly
-              to pgci_ut->lu[i].exists really do? */
+    /*
+		 * FIXME: Iterate and verify that all menus that should exists accordingly
+		 * to pgci_ut->lu[i].exists really do?
+		 */
   }
 
   return 1;
@@ -1910,7 +1912,7 @@ int ifoRead_VTS_ATRT(ifo_handle_t *ifofile) {
 
   CHECK_ZERO(vts_atrt->zero_1);
   CHECK_VALUE(vts_atrt->nr_of_vtss != 0);
-  CHECK_VALUE(vts_atrt->nr_of_vtss < 100); /*??*/
+  CHECK_VALUE(vts_atrt->nr_of_vtss < 100); /* ?? */
   CHECK_VALUE((uint32_t)vts_atrt->nr_of_vtss * (4 + VTS_ATTRIBUTES_MIN_SIZE) + 
          VTS_ATRT_SIZE < vts_atrt->last_byte + 1);
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: searching.c,v 1.15 2003/04/29 15:58:31 jcdutton Exp $
+ * $Id: searching.c,v 1.16 2003/04/29 21:55:53 jcdutton Exp $
  *
  */
 
@@ -407,6 +407,14 @@ dvdnav_status_t dvdnav_get_position(dvdnav_t *this, unsigned int *pos,
   state = &(this->vm->state);
   if(!state->pgc) {
     printerr("No current PGC.");
+    pthread_mutex_unlock(&this->vm_lock);
+    return S_ERR;
+  }
+  if (this->position_current.hop_channel  != this->vm->hop_channel ||
+      this->position_current.domain       != state->domain         ||
+      this->position_current.vts          != state->vtsN           ||
+      this->position_current.cell_restart != state->cell_restart) {
+    printerr("New position not yet determined.");
     pthread_mutex_unlock(&this->vm_lock);
     return S_ERR;
   }

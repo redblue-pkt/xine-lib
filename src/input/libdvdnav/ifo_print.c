@@ -129,13 +129,13 @@ static void ifoPrint_video_attributes(video_attr_t *attr) {
     printf("(please send a bug report) ");
   }
   
-  /* Wide is allways allowed..!!! */
+  /*  Wide is allways allowed..!!! */
   switch(attr->permitted_df) {
   case 0:
     printf("pan&scan+letterboxed ");
     break;
   case 1:
-    printf("only pan&scan "); /*??*/
+    printf("only pan&scan "); /* ?? */
     break;
   case 2:
     printf("only letterboxed ");
@@ -323,7 +323,7 @@ static void ifoPrint_audio_attributes(audio_attr_t *attr) {
   case 4: /* Directors 2 */
     printf("Director's comments 2 ");
     break;
-    /*case 4:  Music score ? */
+    /* case 4: Music score ? */
   default:
     printf("(please send a bug report) ");
   }

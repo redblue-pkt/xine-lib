@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: decoder.c,v 1.8 2003/04/07 18:10:45 mroi Exp $
+ * $Id: decoder.c,v 1.9 2003/04/29 21:55:47 jcdutton Exp $
  *
  */
 
@@ -32,14 +32,15 @@
 #include <string.h>  /* For memset */
 #include "ifo_types.h" /* vm_cmd_t */
 #include <assert.h>
+
 #include "dvdnav_internal.h"
 
 uint32_t vm_getbits(command_t *command, int start, int count) {
   uint64_t result = 0;
-  uint64_t bit_mask=0xffffffffffffffff;  /* I could put -1 instead */
+  uint64_t bit_mask = 0;
   uint64_t examining = 0;
   int32_t  bits;
-
+  
   if (count == 0) return 0;
 
   if ( ((start - count) < -1) ||
@@ -50,6 +51,8 @@ uint32_t vm_getbits(command_t *command, int start, int count) {
     fprintf(MSG_OUT, "libdvdnav: Bad call to vm_getbits. Parameter out of range\n");
     assert(0);
   }
+  /* all ones, please */
+  bit_mask = ~bit_mask;
   bit_mask >>= 63 - start;
   bits = start + 1 - count;
   examining = ((bit_mask >> bits) << bits );

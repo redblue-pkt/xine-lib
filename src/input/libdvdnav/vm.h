@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: vm.h,v 1.8 2003/04/07 18:10:52 mroi Exp $
+ * $Id: vm.h,v 1.9 2003/04/29 21:55:54 jcdutton Exp $
  *
  */
 
@@ -64,7 +64,7 @@ typedef struct {
 typedef struct vm_position_s {
   int16_t  button;        /* Button highlighted */
   int32_t  vts;           /* vts number to use */
-  int32_t  domain;        /* domain to use */
+  domain_t domain;        /* domain to use */
   int32_t  spu_channel;   /* spu channel to use */
   int32_t  angle_channel; /* angle channel to use */
   int32_t  audio_channel; /* audio channel to use */
