@@ -19,7 +19,7 @@
  *
  * input plugin for http network streams
  *
- * $Id: input_http.c,v 1.99 2004/09/28 15:38:11 athp Exp $
+ * $Id: input_http.c,v 1.100 2004/12/01 22:55:31 tmattern Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -461,7 +461,7 @@ static int read_shoutcast_header(http_input_plugin_t *this) {
           lprintf("shoutcast mp3 detected\n");
         }
       }
-      
+
       if (len == -1)
         done = 1;
       else
@@ -473,7 +473,6 @@ static int read_shoutcast_header(http_input_plugin_t *this) {
   this->shoutcast_pos = 0;
   
   /* NSV resync */
-  /* FIXME: move that to the demuxer */
   if (this->shoutcast_mode == 2) {
     uint8_t c;
     int pos = 0;
@@ -721,7 +720,12 @@ static int http_plugin_open (input_plugin_t *this_gen ) {
 
 #ifdef LOG
   {
-    printf ("input_http: opening >%s< (on host >%s<)", this->mrl, this->host);
+    printf ("input_http: host     : >%s<\n", this->host);
+    printf ("input_http: port     : >%d<\n", this->port);
+    printf ("input_http: user     : >%s<\n", this->user);
+    printf ("input_http: password : >%s<\n", this->password);
+    printf ("input_http: path     : >%s<\n", this->uri);
+
     
     if (use_proxy)
       printf (" via proxy >%s:%d<", this_class->proxyhost, proxyport);
@@ -836,7 +840,7 @@ static int http_plugin_open (input_plugin_t *this_gen ) {
 		   &httpcode, httpstatus) != 4)	{
 	  
 	  /* icecast ? */
-	  if (sscanf(this->buf, "ICY %d OK", &httpcode) != 1)	{
+	  if (sscanf(this->buf, "ICY %d %50[^\015\012]", &httpcode, httpstatus) != 2)	{
 	    _x_message(this->stream, XINE_MSG_CONNECTION_REFUSED, "invalid http answer", NULL);
 	    xine_log (this->stream->xine, XINE_LOG_MSG, 
 		      _("input_http: invalid http answer\n"));
@@ -949,7 +953,7 @@ static input_plugin_t *http_class_get_instance (input_class_t *cls_gen, xine_str
   /* http_input_class_t  *cls = (http_input_class_t *) cls_gen;*/
   http_input_plugin_t *this;
   
-  if (strncasecmp (mrl, "http://", 7)) {
+  if (strncasecmp (mrl, "http://", 7) && (strncasecmp (mrl, "unsv://", 7))) {
     return NULL;
   }
   this = (http_input_plugin_t *) xine_xmalloc(sizeof(http_input_plugin_t));

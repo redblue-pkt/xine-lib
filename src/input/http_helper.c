@@ -19,7 +19,7 @@
  *
  * URL helper functions
  *
- * $Id: http_helper.c,v 1.3 2004/09/20 19:30:04 valtri Exp $ 
+ * $Id: http_helper.c,v 1.4 2004/12/01 22:55:31 tmattern Exp $ 
  */
 
 #ifdef HAVE_CONFIG_H
@@ -38,6 +38,7 @@ int _x_parse_url (char *url, char **proto, char** host, int *port,
   char	 *at         = NULL;
   char	 *portcolon  = NULL;
   char   *slash      = NULL;
+  char   *semicolon  = NULL;
   char   *end        = NULL;
   char   *strtol_err = NULL;
 
@@ -68,6 +69,11 @@ int _x_parse_url (char *url, char **proto, char** host, int *port,
   start += 3;
   at = strchr(start, '@');
   slash = strchr(start, '/');
+
+  /* stupid Nullsoft URL scheme */
+  semicolon = strchr(start, ';');
+  if (semicolon && (!slash || (semicolon < slash)))
+    slash = semicolon;
   
   if (at && slash && (at > slash))
     at = NULL;
@@ -145,10 +151,19 @@ int _x_parse_url (char *url, char **proto, char** host, int *port,
 
   /* uri */
   start = slash;
-  if (start)
-    *uri = strdup(start);
-  else
+  if (start) {
+    /* handle crazy Nullsoft URL scheme */
+    if (*start == ';') {
+      /* ";stream.nsv" => "/;stream.nsv" */
+      *uri = malloc(strlen(start) + 2);
+      *uri[0] = '/';
+      strcpy(*uri + 1, start);
+    } else {
+      *uri = strdup(start);
+    }
+  } else {
     *uri = strdup("/");
+  }
   
   return 1;
   
