@@ -20,7 +20,7 @@
  * Compact Disc Digital Audio (CDDA) Input Plugin 
  *   by Mike Melanson (melanson@pcisys.net)
  *
- * $Id: input_cdda.c,v 1.26 2003/05/20 20:40:29 tchamp Exp $
+ * $Id: input_cdda.c,v 1.27 2003/06/09 00:37:27 tchamp Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -2437,9 +2437,13 @@ static char ** cdda_class_get_autoplay_list (input_class_t *this_gen,
 #endif
 
   if (fd == -1) {
-    if (cdda_open(ip, ip->cdda_device, &toc) == -1) {
-      return NULL;
+    if (ip) {
+      if (cdda_open(ip, ip->cdda_device, &toc) == -1) {
+        return NULL;
+      }
     }
+    else
+        return NULL;
   }
 
 
