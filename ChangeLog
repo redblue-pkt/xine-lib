@@ -1,21 +1,26 @@
-xine-lib (1.0.0-alpha2/beta0)
+xine-lib (1.0.0-beta0)
   * fix decoder priority configuration
   * cache available plugins for faster xine loading
   * metronom's improvements for streams with slightly wrong sample rates
   * fix case were XV driver would segfault (YUY2)
+  * first xine post effect plugin
+  * new version of internal libdvdread fixing some DVD problems
+  * longstanding dxr3 bug fixed: for some still menus the highlight did not move
+  * asf demuxer fixes
+  * fb video output plugin ported to new architecture
+  * MPEG-4 file (*.mp4) support
+
+xine-lib (1.0.0-alpha2)
   * configurable image position
   * DVD menu button highlight position fixes
   * internal engine changes to allow a new layer of post effect plugins
   * VCD playback fixed (actually it was a bug in the real demuxer)
   * pnm input plugin (old real network protocol)
-  * asf demuxer fixes
   * real demuxer fixes
   * use binary real codecs to decode rv20/30 video, sipro/cook audio
     (experimental)
   * arts audio output plugin ported to new architecture
   * esound audio output plugin ported to new architecture
-  * fb video output plugin ported to new architecture
-  * MPEG-4 file (*.mp4) support
 	
 xine-lib (1.0.0-alpha1) 
   * transport stream demuxer fixes
