@@ -21,7 +21,7 @@
  * Actually, this decoder just reorganizes chunks of raw YUV data in such
  * a way that xine can display them.
  * 
- * $Id: yuv.c,v 1.21 2003/08/12 18:45:09 jstembridge Exp $
+ * $Id: yuv.c,v 1.22 2003/08/12 19:08:24 jstembridge Exp $
  */
 
 #include <stdio.h>
@@ -155,32 +155,70 @@ static void yuv_decode_data (video_decoder_t *this_gen,
     if (buf->decoder_flags & BUF_FLAG_FRAME_END) {
 
       if (buf->type == BUF_VIDEO_YV12) {
+        int      y;
+        uint8_t *dy, *du, *dv, *sy, *su, *sv;
 
         img = this->stream->video_out->get_frame (this->stream->video_out,
                                           this->width, this->height,
                                           this->ratio, XINE_IMGFMT_YV12, VO_BOTH_FIELDS);
+        
+        /* FIXME: Write and use xine wide yv12 copy function */
+        dy = img->base[0];
+        du = img->base[1];
+        dv = img->base[2];
+        sy = this->buf;
+        su = this->buf + (this->width * this->height * 5/4);
+        sv = this->buf + (this->width * this->height);
+        
+        for (y=0; y<this->height; y++) {
+          xine_fast_memcpy (dy, sy, this->width);
+          
+          dy += img->pitches[0];
+          sy += this->width;
+        }
+        
+        for (y=0; y<this->height/2; y++) {
+          xine_fast_memcpy (du, su, this->width/2);
+          xine_fast_memcpy (dv, sv, this->width/2);
+          
+          du += img->pitches[1];
+          dv += img->pitches[2];
+          su += this->width/2;
+          sv += this->width/2;   
+        }
 
-        xine_fast_memcpy(img->base[0], this->buf, this->width * this->height);
-        xine_fast_memcpy(img->base[1], 
-          this->buf + (this->width * this->height) +
-          ((this->width * this->height) / 4),
-          (this->width * this->height) / 4);
-        xine_fast_memcpy(img->base[2], this->buf + this->width * this->height,
-          (this->width * this->height) / 4);
- 
       } else if (buf->type == BUF_VIDEO_I420) {
+        int      y;
+        uint8_t *dy, *du, *dv, *sy, *su, *sv;
       
         img = this->stream->video_out->get_frame (this->stream->video_out,
                                           this->width, this->height,
                                           this->ratio, XINE_IMGFMT_YV12, VO_BOTH_FIELDS);
 
-        xine_fast_memcpy(img->base[0], this->buf, this->width * this->height);
-        xine_fast_memcpy(img->base[1], this->buf + this->width * this->height,
-          (this->width * this->height) / 4);
-        xine_fast_memcpy(img->base[2], 
-          this->buf + (this->width * this->height) +
-          ((this->width * this->height) / 4),
-          (this->width * this->height) / 4);
+        /* FIXME: Write and use xine wide yv12 copy function */
+        dy = img->base[0];
+        du = img->base[1];
+        dv = img->base[2];
+        sy = this->buf;
+        su = this->buf + (this->width * this->height);
+        sv = this->buf + (this->width * this->height * 5/4);
+        
+        for (y=0; y<this->height; y++) {
+          xine_fast_memcpy (dy, sy, this->width);
+          
+          dy += img->pitches[0];
+          sy += this->width;
+        }
+        
+        for (y=0; y<this->height/2; y++) {
+          xine_fast_memcpy (du, su, this->width/2);
+          xine_fast_memcpy (dv, sv, this->width/2);
+          
+          du += img->pitches[1];
+          dv += img->pitches[2];
+          su += this->width/2;
+          sv += this->width/2;   
+        }
 
       } else if (buf->type == BUF_VIDEO_YVU9) {
 
