@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_vidix.c,v 1.29 2003/02/20 20:19:39 jstembridge Exp $
+ * $Id: video_out_vidix.c,v 1.30 2003/02/21 01:55:18 jstembridge Exp $
  * 
  * video_out_vidix.c
  *
@@ -38,11 +38,15 @@
 #include <string.h>
 #include <inttypes.h>
 
+#ifdef HAVE_X11
 #include <X11/Xlib.h>
+#endif
 
+#ifdef HAVE_FB
 #include <fcntl.h>
 #include <sys/ioctl.h>
 #include <linux/fb.h>
+#endif
 
 #include "xine.h"
 #include "vidixlib.h"
@@ -111,10 +115,12 @@ struct vidix_driver_s {
   int                 visual_type;
   
   /* X11 related stuff */
+#ifdef HAVE_X11
   Display            *display;
   int                 screen;
   Drawable            drawable;
   GC                  gc;
+#endif
   
   /* fb related stuff */
   int                 fb_width;
@@ -290,6 +296,7 @@ static void write_frame_sfb(vidix_driver_t* this, vidix_frame_t* frame)
 static void vidix_clean_output_area(vidix_driver_t *this) {
 
   if(this->visual_type == XINE_VISUAL_TYPE_X11) {
+#ifdef HAVE_X11
     XLockDisplay(this->display);      
       
     XSetForeground(this->display, this->gc, BlackPixel(this->display, this->screen));
@@ -306,6 +313,7 @@ static void vidix_clean_output_area(vidix_driver_t *this) {
     XFlush(this->display);
 
     XUnlockDisplay(this->display);
+#endif
   }
 }
 
@@ -784,11 +792,13 @@ static int vidix_gui_data_exchange (vo_driver_t *this_gen,
 #endif
     
     if(this->visual_type == XINE_VISUAL_TYPE_X11) {
+#ifdef HAVE_X11
       this->drawable = (Drawable) data;
       XLockDisplay(this->display);
       XFreeGC(this->display, this->gc);
       this->gc = XCreateGC(this->display, this->drawable, 0, NULL);
       XUnlockDisplay(this->display);
+#endif
     }
     break;
   
@@ -962,6 +972,52 @@ static void query_fourccs (vidix_driver_t *this) {
     this->supports_yv12 = 0;
 }
 
+static void *init_class (xine_t *xine, void *visual_gen) {
+  vidix_class_t        *this;
+  int                   err;
+  
+  this = malloc (sizeof (vidix_class_t));
+  
+  if (!this) {
+    printf ("video_out_vidix: malloc failed\n");
+    return NULL;
+  }
+  memset (this, 0, sizeof(vidix_class_t));
+  
+  
+  if(vdlGetVersion() != VIDIX_VERSION)
+  {
+    printf("video_out_vidix: You have wrong version of VIDIX library\n");
+    free(this);
+    return NULL;
+  }
+  this->vidix_handler = vdlOpen((XINE_PLUGINDIR"/vidix/"), NULL, TYPE_OUTPUT, 0);
+  if(this->vidix_handler == NULL)
+  {
+    printf("video_out_vidix: Couldn't find working VIDIX driver\n");
+    free(this);
+    return NULL;
+  }
+  if((err=vdlGetCapability(this->vidix_handler,&this->vidix_cap)) != 0)
+  {
+    printf("video_out_vidix: Couldn't get capability: %s\n",strerror(err));
+    free(this);
+    return NULL;
+  }
+  printf("video_out_vidix: Using: %s by %s\n",this->vidix_cap.name,this->vidix_cap.author);
+
+  this->config            = xine->config;
+  
+  return this;
+}
+
+static void dispose_class (video_driver_class_t *this_gen) {
+  vidix_class_t        *this = (vidix_class_t *) this_gen;
+
+  free (this);
+}
+
+#ifdef HAVE_X11
 static vo_driver_t *vidix_open_plugin (video_driver_class_t *class_gen, const void *visual_gen) {
   vidix_driver_t       *this   = open_plugin(class_gen);
   config_values_t      *config = this->config;
@@ -1016,9 +1072,35 @@ static vo_driver_t *vidix_open_plugin (video_driver_class_t *class_gen, const vo
   return &this->vo_driver;
 }
 
+static char* vidix_get_identifier (video_driver_class_t *this_gen) {
+  return "vidix";
+}
+
+static char* vidix_get_description (video_driver_class_t *this_gen) {
+  return _("xine video output plugin using libvidix for x11");
+}
+
+static void *vidix_init_class (xine_t *xine, void *visual_gen) {
+
+  vidix_class_t *this = init_class (xine, visual_gen);
+  
+  this->driver_class.open_plugin     = vidix_open_plugin;
+  this->driver_class.get_identifier  = vidix_get_identifier;
+  this->driver_class.get_description = vidix_get_description;
+  this->driver_class.dispose         = dispose_class;
+  
+  return this;
+}
+
+static vo_info_t vo_info_vidix = {
+  2,                    /* priority    */
+  XINE_VISUAL_TYPE_X11  /* visual type */
+};
+#endif
+
+#ifdef HAVE_FB
 static vo_driver_t *vidixfb_open_plugin (video_driver_class_t *class_gen, const void *visual_gen) {
   vidix_driver_t          *this = open_plugin(class_gen);
-  config_values_t         *config = this->config;
   int                      fd;
   struct fb_var_screeninfo fb_var;
     
@@ -1043,77 +1125,12 @@ static vo_driver_t *vidixfb_open_plugin (video_driver_class_t *class_gen, const 
   return &this->vo_driver;
 }
 
-static char* vidix_get_identifier (video_driver_class_t *this_gen) {
-  return "vidix";
-}
-
 static char* vidixfb_get_identifier (video_driver_class_t *this_gen) {
   return "vidixfb";
 } 
 
-static char* vidix_get_description (video_driver_class_t *this_gen) {
-  return _("xine video output plugin using libvidix for x11");
-}
-
 static char* vidixfb_get_description (video_driver_class_t *this_gen) {
   return _("xine video output plugin using libvidix for linux frame buffer");
-}
-
-static void dispose_class (video_driver_class_t *this_gen) {
-  vidix_class_t        *this = (vidix_class_t *) this_gen;
-
-  free (this);
-}
-
-static void *init_class (xine_t *xine, void *visual_gen) {
-  vidix_class_t        *this;
-  int                   err;
-  
-  this = malloc (sizeof (vidix_class_t));
-  
-  if (!this) {
-    printf ("video_out_vidix: malloc failed\n");
-    return NULL;
-  }
-  memset (this, 0, sizeof(vidix_class_t));
-  
-  
-  if(vdlGetVersion() != VIDIX_VERSION)
-  {
-    printf("video_out_vidix: You have wrong version of VIDIX library\n");
-    free(this);
-    return NULL;
-  }
-  this->vidix_handler = vdlOpen((XINE_PLUGINDIR"/vidix/"), NULL, TYPE_OUTPUT, 0);
-  if(this->vidix_handler == NULL)
-  {
-    printf("video_out_vidix: Couldn't find working VIDIX driver\n");
-    free(this);
-    return NULL;
-  }
-  if((err=vdlGetCapability(this->vidix_handler,&this->vidix_cap)) != 0)
-  {
-    printf("video_out_vidix: Couldn't get capability: %s\n",strerror(err));
-    free(this);
-    return NULL;
-  }
-  printf("video_out_vidix: Using: %s by %s\n",this->vidix_cap.name,this->vidix_cap.author);
-
-  this->config            = xine->config;
-  
-  return this;
-}
-
-static void *vidix_init_class (xine_t *xine, void *visual_gen) {
-
-  vidix_class_t *this = init_class (xine, visual_gen);
-  
-  this->driver_class.open_plugin     = vidix_open_plugin;
-  this->driver_class.get_identifier  = vidix_get_identifier;
-  this->driver_class.get_description = vidix_get_description;
-  this->driver_class.dispose         = dispose_class;
-  
-  return this;
 }
 
 static void *vidixfb_init_class (xine_t *xine, void *visual_gen) {
@@ -1128,15 +1145,11 @@ static void *vidixfb_init_class (xine_t *xine, void *visual_gen) {
   return this;
 }
 
-static vo_info_t vo_info_vidix = {
-  2,                    /* priority    */
-  XINE_VISUAL_TYPE_X11  /* visual type */
-};
-
 static vo_info_t vo_info_vidixfb = {
   2,                    /* priority    */
   XINE_VISUAL_TYPE_FB   /* visual type */
 };
+#endif
 
 /*
  * exported plugin catalog entry
@@ -1144,7 +1157,11 @@ static vo_info_t vo_info_vidixfb = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
+#ifdef HAVE_X11
   { PLUGIN_VIDEO_OUT, 14, "vidix", XINE_VERSION_CODE, &vo_info_vidix, vidix_init_class },
+#endif
+#ifdef HAVE_FB
   { PLUGIN_VIDEO_OUT, 14, "vidixfb", XINE_VERSION_CODE, &vo_info_vidixfb, vidixfb_init_class },
+#endif
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
