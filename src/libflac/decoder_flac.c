@@ -32,6 +32,7 @@
 
 #define LOG_MODULE "flac_decoder"
 #define LOG_VERBOSE
+
 /*
 #define LOG
 */
@@ -186,9 +187,9 @@ flac_error_callback (const FLAC__StreamDecoder *decoder,
                      FLAC__StreamDecoderErrorStatus status,
                      void *client_data)
 {
-    /* This will be called if there is an error in the flac stream */
+  /* This will be called if there is an error in the flac stream */
   lprintf("flac_error_callback\n");
-  
+
 #ifdef LOG
   if (status == FLAC__STREAM_DECODER_ERROR_STATUS_LOST_SYNC)
     printf("libflac: Decoder lost synchronization.\n");
@@ -202,8 +203,6 @@ flac_error_callback (const FLAC__StreamDecoder *decoder,
                                                                                 
     return;
 }
-
-
 
 
 /*
@@ -237,7 +236,7 @@ flac_decode_data (audio_decoder_t *this_gen, buf_element_t *buf)
 {
     flac_decoder_t *this = (flac_decoder_t *) this_gen;
     int ret = 1;
-    
+        
     /* We are getting the stream header, open up the audio
      * device, and collect information about the stream
      */
@@ -303,14 +302,19 @@ flac_decode_data (audio_decoder_t *this_gen, buf_element_t *buf)
         /* We have enough to decode a frame */
         while( ret && this->buf_pos > this->min_size ) {
             
-            if( FLAC__stream_decoder_get_state(this->flac_decoder) == 
-                FLAC__STREAM_DECODER_SEARCH_FOR_METADATA ) {
+            FLAC__StreamDecoderState state = FLAC__stream_decoder_get_state(this->flac_decoder);
+                
+            if( state ==  FLAC__STREAM_DECODER_SEARCH_FOR_METADATA ) {
               lprintf("process_until_end_of_metadata\n");
-
               ret = FLAC__stream_decoder_process_until_end_of_metadata (this->flac_decoder);
-            } else {
+            } else if ( state == FLAC__STREAM_DECODER_SEARCH_FOR_FRAME_SYNC ||
+                        state == FLAC__STREAM_DECODER_READ_FRAME ) {
               lprintf("process_single\n");
               ret = FLAC__stream_decoder_process_single (this->flac_decoder);
+            } else {
+              lprintf("aborted.\n");
+              FLAC__stream_decoder_flush (this->flac_decoder);
+              break;
             }
         }
     } else
@@ -330,6 +334,9 @@ flac_dispose (audio_decoder_t *this_gen) {
     if (this->output_open) 
         this->stream->audio_out->close (this->stream->audio_out, this->stream);
 
+    if (this->buf)
+      free(this->buf);
+    
     free (this_gen);
 }
 
