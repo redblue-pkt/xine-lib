@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: utils.c,v 1.2 2001/06/21 17:34:24 guenter Exp $
+ * $Id: utils.c,v 1.3 2001/09/06 13:29:18 jkeil Exp $
  *
  */
 #define	_POSIX_PTHREAD_SEMANTICS 1	/* for 5-arg getpwuid_r on solaris */
@@ -32,6 +32,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <pwd.h>
+#include <time.h>
 #include <sys/types.h>
 
 /*
@@ -124,4 +125,21 @@ char *chomp(char *str) {
   while(*pbuf == '=' || *pbuf == '"') pbuf++;
 
   return pbuf;
+}
+
+
+/*
+ * A thread-safe usecond sleep
+ */
+void xine_usec_sleep(unsigned usec) {
+#if HAVE_NANOSLEEP
+  /* nanosleep is prefered on solaris, because it's mt-safe */
+  struct timespec ts;
+
+  ts.tv_sec =   usec / 1000000;
+  ts.tv_nsec = (usec % 1000000) * 1000;
+  nanosleep(&ts, NULL);
+#else
+  usleep(usec);
+#endif
 }

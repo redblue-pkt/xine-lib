@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: utils.h,v 1.2 2001/07/18 21:38:17 f1rmb Exp $
+ * $Id: utils.h,v 1.3 2001/09/06 13:29:18 jkeil Exp $
  *
  */
 #ifndef HAVE_UTILS_H
@@ -39,6 +39,11 @@ const char *get_homedir(void);
  */
 
 char *chomp (char *str);
+
+/*
+ * A thread-safe usecond sleep
+ */
+void xine_usec_sleep(unsigned usec);
 
 #ifdef __cplusplus
 }
