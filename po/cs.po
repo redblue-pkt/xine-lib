@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: xine-lib 0.9.13\n"
 "POT-Creation-Date: 2002-10-08 01:29+0200\n"
-"PO-Revision-Date: 2002-07-23 20:04+0200\n"
+"PO-Revision-Date: 2002-10-30 10:02+0100\n"
 "Last-Translator: Frantisek Dvorak <valtri@atlas.cz>\n"
 "Language-Team: Czech <cs@li.org>\n"
 "MIME-Version: 1.0\n"
@@ -52,7 +52,7 @@ msgstr "výstupní zvukový modul xine pou¾ije zvuková zaøízení/ovladaèe alsa"
 
 #: src/audio_out/audio_esd_out.c:415
 msgid "esd audio output latency (adjust a/v sync)"
-msgstr "zpo¾dìní zvukového výstupu esd (upraví synchronizaci zvuku/videa)"
+msgstr "zpo¾dìní zvukového výstupu esd (upraví synchronizaci zvuku a videa)"
 
 #: src/audio_out/audio_esd_out.c:440
 msgid "xine audio output plugin using esd"
@@ -65,7 +65,7 @@ msgstr "zaøízení /dev/dsp# pou¾ité pro výstup oss, -1 => autodetekce"
 #: src/audio_out/audio_oss_out.c:709
 msgid "A/V sync method to use by OSS, depends on driver/hardware"
 msgstr ""
-"metoda synchronizace zvuku/videa pou¾itá OSS, zále¾í na ovladaèi/hardwaru"
+"metoda synchronizace zvuku a videa pou¾itá OSS, zále¾í na ovladaèi/hardwaru"
 
 #: src/audio_out/audio_oss_out.c:776
 msgid "Adjust a/v sync for OSS softsync"
@@ -103,7 +103,7 @@ msgstr "výstupní zvukový modul xine pou¾ije zvuková zaøízení/ovladaèe OSS"
 
 #: src/audio_out/audio_sun_out.c:853
 msgid "device used for audio output with the 'Sun' audio plugin"
-msgstr "zaøízení pou¾ité pro výstup zvukovým modulem 'Sun'"
+msgstr "zaøízení pou¾ité pro výstup se zvukovým modulem 'Sun'"
 
 #: src/audio_out/audio_sun_out.c:938
 msgid "xine audio output plugin using sun-compliant audio devices/drivers"
@@ -272,16 +272,17 @@ msgstr "demux_qt: '%c%c%c%c' zvuk @ %d Hz, %d bitù, %d %s\n"
 
 #: src/demuxers/demux_qt.c:1781 src/demuxers/demux_smjpeg.c:471
 #: src/demuxers/demux_wav.c:340
-#, fuzzy
 msgid "channel"
 msgid_plural "channels"
 msgstr[0] "kanál"
-msgstr[1] "kanál"
-msgstr[2] "kanál"
+msgstr[1] "kanály"
+msgstr[2] "kanálù"
 
 #: src/demuxers/demux_ogg.c:413
 msgid "ogg: vorbis audio track indicated but no vorbis stream header found.\n"
 msgstr ""
+"ogg: zji¹tìna zvuková stopa vorbis, ale nenalezena ¾ádná hlavièka dat "
+"vorbis.\n"
 
 #: src/demuxers/demux_ogg.c:1084 src/demuxers/demux_ogg.c:1130
 msgid "valid mrls ending for ogg demuxer"
@@ -323,8 +324,8 @@ msgid ""
 "demux_mpeg_block: too many errors, stopping playback. Maybe this stream is "
 "scrambled?\n"
 msgstr ""
-"demux_mpeg_block: pøíli¹ mnoho chyb, zastavuje se pøehrávání. Mo¾ná je tento "
-"tok dat poru¹en.\n"
+"demux_mpeg_block: pøíli¹ mnoho chyb, zastavuje se pøehrávání. Mo¾ná jsou "
+"tyto data zakódována.\n"
 
 #: src/demuxers/demux_mpeg_block.c:460
 #, c-format
@@ -337,7 +338,7 @@ msgstr ""
 
 #: src/demuxers/demux_mpeg_block.c:1105 src/demuxers/demux_mpeg_block.c:1201
 msgid "valid mrls for mpeg block demuxer"
-msgstr "platná mrl pro blokový demultiplexor MPEG"
+msgstr "platná MRL pro blokový demultiplexor MPEG"
 
 #: src/demuxers/demux_mpeg_block.c:1146 src/demuxers/demux_mpeg_block.c:1205
 msgid "valid mrls ending for mpeg block demuxer"
@@ -350,7 +351,7 @@ msgstr "platná zakonèení MRL pro demultiplexor ROQ"
 #: src/demuxers/demux_roq.c:428
 #, c-format
 msgid "demux_roq: RoQ file, video is %dx%d, %d frames/sec\n"
-msgstr "demux_roq: Soubor RoQ, obraz je %dx%d, %d snímkù/s\n"
+msgstr "demux_roq: Soubor RoQ, video je %dx%d, %d snímkù/s\n"
 
 #: src/demuxers/demux_roq.c:432
 #, c-format
@@ -379,7 +380,7 @@ msgstr "platná zakonèení MRL pro demultiplexor IdCIN"
 #: src/demuxers/demux_idcin.c:472
 #, c-format
 msgid "demux_idcin: Id CIN file, video is %dx%d, 14 frames/sec\n"
-msgstr "demux_idcin: Soubor Id CIN, obraz je %dx%d, 14 snímkù/s\n"
+msgstr "demux_idcin: Soubor Id CIN, video je %dx%d, 14 snímkù/s\n"
 
 #: src/demuxers/demux_idcin.c:477
 #, c-format
@@ -396,9 +397,9 @@ msgid "demux_smjpeg: SMJPEG file, running time: %d min, %d sec\n"
 msgstr "demux_smjpeg: Soubor SMJPEG, doba pøehrávání: %d min, %d s\n"
 
 #: src/demuxers/demux_smjpeg.c:454
-#, fuzzy, c-format
+#, c-format
 msgid "demux_smjpeg: '%c%c%c%c' video @ %dx%d\n"
-msgstr "demux_smjpeg: %c%c%c%c video @ %dx%d\n"
+msgstr "demux_smjpeg: '%c%c%c%c' video @ %dx%d\n"
 
 #: src/demuxers/demux_smjpeg.c:463
 #, c-format
@@ -415,9 +416,9 @@ msgid "demux_wav: format 0x%X audio, %d Hz, %d bits/sample, %d %s\n"
 msgstr "demux_wav: formát zvuku 0x%X, %d Hz, %d bitù/vzorek, %d %s\n"
 
 #: src/demuxers/demux_wav.c:342
-#, fuzzy, c-format
+#, c-format
 msgid "demux_wav: running time = %lld min, %lld sec\n"
-msgstr "demux_wav: doba pøehrávání = %d min, %d s\n"
+msgstr "demux_wav: doba pøehrávání = %lld min, %lld s\n"
 
 #: src/demuxers/demux_wav.c:346
 #, c-format
@@ -425,94 +426,91 @@ msgid "demux_wav: average bytes/sec = %d, block alignment = %d\n"
 msgstr "demux_wav: prùmìrnì %d bytù/s, zarovnání bloku %d\n"
 
 #: src/demuxers/demux_aiff.c:321 src/demuxers/demux_aiff.c:505
-#, fuzzy
 msgid "valid mrls ending for aiff demuxer"
-msgstr "platná zakonèení MRL pro demultiplexor ASF"
+msgstr "platná zakonèení MRL pro demultiplexor AIFF"
 
 #: src/demuxers/demux_aiff.c:361
-#, fuzzy, c-format
+#, c-format
 msgid "demux_aiff: %d Hz, %d channels, %d bits, %d frames\n"
-msgstr "demux_qt: '%c%c%c%c' zvuk @ %d Hz, %d bitù, %d %s\n"
+msgstr "demux_aiff: %d Hz, %d kanálù, %d bitù, %d snímkù\n"
 
 #: src/demuxers/demux_aiff.c:367
-#, fuzzy, c-format
+#, c-format
 msgid "demux_aiff: running time: %d min, %d sec\n"
-msgstr "demux_fli: doba pøehrávání: %d min, %d s\n"
+msgstr "demux_aiff: doba pøehrávání: %d min, %d s\n"
 
 #: src/demuxers/demux_snd.c:206
 msgid "demux_snd: bad header parameters\n"
-msgstr ""
+msgstr "demux_snd: ¹patné parametry hlavièky\n"
 
 #: src/demuxers/demux_snd.c:243
-#, fuzzy, c-format
+#, c-format
 msgid "demux_snd: unsupported audio type: %d\n"
-msgstr "demux_avi: neznámý typ zvuku 0x%lx\n"
+msgstr "demux_snd: nepodporovaný typ zvuku: %d\n"
 
 #: src/demuxers/demux_snd.c:306 src/demuxers/demux_snd.c:489
-#, fuzzy
 msgid "valid mrls ending for snd demuxer"
-msgstr "platná zakonèení MRL pro demultiplexor TS"
+msgstr "platná zakonèení MRL pro demultiplexor SND"
 
 #: src/demuxers/demux_snd.c:345
-#, fuzzy, c-format
+#, c-format
 msgid "demux_snd: %d Hz, %d channels, %d bits, %d frames\n"
-msgstr "demux_qt: '%c%c%c%c' zvuk @ %d Hz, %d bitù, %d %s\n"
+msgstr "demux_snd: %d Hz, %d kanálù, %d bitù, %d snímkù\n"
 
 #: src/demuxers/demux_snd.c:351
-#, fuzzy, c-format
+#, c-format
 msgid "demux_snd: running time: %d min, %d sec\n"
-msgstr "demux_fli: doba pøehrávání: %d min, %d s\n"
+msgstr "demux_snd: doba pøehrávání: %d min, %d s\n"
 
 #: src/demuxers/demux_voc.c:215
 #, c-format
 msgid "unknown VOC block type (0x%02X); please report to xine developers\n"
-msgstr ""
+msgstr "neznámý typ bloku VOC (0x%02X); prosím oznamte vývojáøùm xine\n"
 
 #: src/demuxers/demux_voc.c:236
 #, c-format
 msgid ""
 "unknown VOC compression type (0x%02X); please report to xine developers\n"
-msgstr ""
+msgstr "neznámý typ komprese VOC (0x%02X); prosím oznamte výojáøùm xine\n"
 
 #: src/demuxers/demux_voc.c:305 src/demuxers/demux_voc.c:484
-#, fuzzy
 msgid "valid mrls ending for voc demuxer"
-msgstr "platná zakonèení MRL pro demultiplexor AVI"
+msgstr "platná zakonèení MRL pro demultiplexor VOC"
 
 #: src/demuxers/demux_voc.c:345
-#, fuzzy, c-format
+#, c-format
 msgid "demux_voc: VOC format 0x%X audio, %d Hz, running time: %d min, %d sec\n"
-msgstr "demux_wav: formát zvuku 0x%X, %d Hz, %d bitù/vzorek, %d %s\n"
+msgstr ""
+"demux_voc: formát zvuku VOC 0x%X, %d Hz, doba pøehrávání: %d min, %d s\n"
 
 #: src/demuxers/demux_vqa.c:347 src/demuxers/demux_vqa.c:513
-#, fuzzy
 msgid "valid mrls ending for vqa demuxer"
-msgstr "platná zakonèení MRL pro demultiplexor QT"
+msgstr "platná zakonèení MRL pro demultiplexor VQA"
 
 #: src/demuxers/demux_vqa.c:383
-#, fuzzy, c-format
+#, c-format
 msgid "demux_vqa: %dx%d VQA video; %d-channel %d Hz IMA ADPCM audio\n"
-msgstr "demux_idcin: %d-bitový, %d Hz %s PCM zvuk\n"
+msgstr "demux_vqa: %dx%d video VQA; %d-kanálový %d Hz IMA ADPCM zvuk\n"
 
 #: src/demuxers/demux_wc3movie.c:218
 #, c-format
 msgid "demux_wc3movie: SHOT chunk referenced invalid palette (%d >= %d)\n"
 msgstr ""
+"demux_wc3movie: datový blok SHOT odkazoval na neplatnou paletu (%d >= %d)\n"
 
 #. report an unknown chunk and skip it
 #: src/demuxers/demux_wc3movie.c:305 src/demuxers/demux_wc3movie.c:486
-#, fuzzy, c-format
+#, c-format
 msgid "demux_wc3movie: encountered unknown chunk: %c%c%c%c\n"
-msgstr "demux_film: neznámý video kodek %c%c%c%c\n"
+msgstr "demux_wc3movie: vyskytl se neznámý datový blok: %c%c%c%c\n"
 
 #: src/demuxers/demux_wc3movie.c:399
 msgid "demux_wc3movie: There was a problem while loading palette chunks\n"
-msgstr ""
+msgstr "demux_wc3movie: Byl zde problém bìhem naèítání datových blokù palety\n"
 
 #: src/demuxers/demux_wc3movie.c:558 src/demuxers/demux_wc3movie.c:822
-#, fuzzy
 msgid "valid mrls ending for mve demuxer"
-msgstr "platná zakonèení MRL pro demultiplexor MPEG"
+msgstr "platná zakonèení MRL pro demultiplexor MVE"
 
 #: src/input/input_net.c:102
 #, c-format
@@ -527,7 +525,7 @@ msgstr "input_net: connect(): %s\n"
 #: src/input/input_net.c:126
 #, c-format
 msgid "input_net: unable to resolve '%s'.\n"
-msgstr "input_net: nelze získat adresu '%s'.\n"
+msgstr "input_net: nelze zjistit adresu '%s'.\n"
 
 #: src/input/input_net.c:138
 #, c-format
@@ -606,15 +604,15 @@ msgstr "input_file: zkusí se otevøít soubor s titulky '%s'\n"
 
 #: src/input/input_file.c:475
 msgid "file input plugin"
-msgstr ""
+msgstr "modul pro vstup ze souboru"
 
 #: src/input/input_file.c:827
 msgid "file browsing start location"
-msgstr ""
+msgstr "poèáteèní umístìní pøi procházení souborù"
 
 #: src/input/input_file.c:834
 msgid "list hidden files"
-msgstr ""
+msgstr "seznam skrytých souborù"
 
 #: src/input/input_vcd.c:157 src/input/input_vcd.c:194
 msgid "input_vcd : error in ioctl CDROMREADTOCHDR\n"
@@ -640,7 +638,7 @@ msgstr "pøíkaz scsi selhal s výsledkem %d\n"
 
 #: src/input/input_vcd.c:369
 msgid "input_vcd: malformed MRL. Use vcd://<track #>\n"
-msgstr "input_vcd: ¹patné MRL. Pou¾ijte vcd://<stopa #>\n"
+msgstr "input_vcd: neplatné MRL. Pou¾ijte vcd://<stopa #>\n"
 
 #: src/input/input_vcd.c:376
 #, c-format
@@ -672,7 +670,7 @@ msgstr "input_vcd: selhalo ètení dat\n"
 
 #: src/input/input_vcd.c:735 src/input/input_vcd.c:786
 msgid "input_vcd: SEEK_CUR not implemented for offset != 0\n"
-msgstr "input_vcd: nenulový offset není pou¾itelný pøi SEEK_CUR\n"
+msgstr "input_vcd: pro nenulový offset není SEEK_CUR implementován!\n"
 
 #: src/input/input_vcd.c:753 src/input/input_vcd.c:794
 #, c-format
@@ -713,7 +711,7 @@ msgstr "cesta k va¹emu místnímu souboru VCD zaøízení"
 
 #: src/input/input_http.c:103
 msgid "input_http: failed to open socket\n"
-msgstr "input_http: selhalo otevøení socketu\n"
+msgstr "input_http: selhalo otevøení soketu\n"
 
 #: src/input/input_http.c:112
 msgid "input_http: cannot connect to host\n"
@@ -858,7 +856,7 @@ msgstr "input_cda: selhalo ioctl(CDIOREADTOCHEADER): %s.\n"
 #: src/input/input_cda.c:1159
 #, c-format
 msgid "input_cda: ioctl(CDROMREADTOCHDR) failed: %s.\n"
-msgstr "input_cda: ioctl(CDROMREADTOCHDR) selhalo: %s.\n"
+msgstr "input_cda: selhalo ioctl(CDROMREADTOCHDR): %s.\n"
 
 #: src/input/input_cda.c:1196
 #, c-format
@@ -905,8 +903,9 @@ msgid "cddbp cache directory"
 msgstr "adresáø se záznamy cddbp"
 
 #: src/input/net_buf_ctrl.c:67
+#, fuzzy
 msgid "buffering..."
-msgstr "nahrává se..."
+msgstr "Nahrává se..."
 
 #: src/libw32dll/w32codec.c:1365 src/libw32dll/w32codec.c:1402
 msgid "path to win32 codec dlls"
@@ -1021,12 +1020,11 @@ msgid "xine: cannot find input plugin for this MRL\n"
 msgstr "xine: nelze nalézt vstupní modul pro toto MRL\n"
 
 #: src/xine-engine/xine.c:303
-#, fuzzy, c-format
+#, c-format
 msgid "xine: couldn't find demux for >%s<\n"
 msgstr "xine: nelze nalézt demultiplexor pro >%s<\n"
 
 #: src/xine-engine/xine.c:394
-#, fuzzy
 msgid "xine_play: demux failed to start\n"
 msgstr "xine_play: selhalo spu¹tìní demultiplexoru\n"
 
@@ -1048,7 +1046,7 @@ msgstr "pøi !=0 v¾dy pøevzorkovat na danou frekvenci"
 
 #: src/xine-engine/audio_out.c:855
 msgid "adjust if audio is offsync"
-msgstr ""
+msgstr "upravte, jestli¾e bude zvuk nesynchronizovaný (A52 nebo AC5)"
 
 #: src/xine-engine/audio_out.c:895
 msgid "Audio volume"
@@ -1069,43 +1067,41 @@ msgid "Palette (foreground-border-background) to use on subtitles"
 msgstr "Paleta (popøedí-okraj-pozadí) pou¾itá na titulky"
 
 #: src/xine-engine/load_plugins.c:238
-#, fuzzy, c-format
+#, c-format
 msgid "load_plugins: unable to stat %s\n"
-msgstr ""
-"load_plugins: selhalo naètení modulu %s:\n"
-"%s\n"
+msgstr "load_plugins: nelze provést stat na %s\n"
 
 #: src/xine-engine/load_plugins.c:269
-#, fuzzy, c-format
+#, c-format
 msgid "load_plugins: plugin %s found\n"
-msgstr "load_plugins: nalezen vstupní modul : %s\n"
+msgstr "load_plugins: nalezen modul %s\n"
 
 #: src/xine-engine/load_plugins.c:302
-#, fuzzy, c-format
+#, c-format
 msgid "load_plugins: unknown plugin type %d in %s\n"
-msgstr "load_plugins: nalezen vstupní modul : %s\n"
+msgstr "load_plugins: neznámý typ modulu %d v %s\n"
 
 #: src/xine-engine/load_plugins.c:312
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "load_plugins: can't get plugin info from %s:\n"
 "%s\n"
 msgstr ""
-"load_plugins: nelze otevøít vstupní modul %s:\n"
+"load_plugins: nelze získat informace o modulu z %s:\n"
 "%s\n"
 
 #: src/xine-engine/load_plugins.c:344
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "load_plugins: cannot (stage 2) open plugin lib %s:\n"
 "%s\n"
 msgstr ""
-"load_plugins: nelze otevøít demultiplexní modul %s:\n"
+"load_plugins: nelze (fáze 2) otevøít knihovnu modulu %s:\n"
 "%s\n"
 
 #: src/libffmpeg/xine_decoder.c:661
 msgid "allow illegal vlc codes in mpeg4 streams"
-msgstr "dovolit nepovolené kodeky vlc v sekvencích mpeg4"
+msgstr "dovolit nepøípustné kódy VLC v sekvencích mpeg4"
 
 #: src/dxr3/video_out_dxr3.c:162
 msgid "swap odd and even lines"
@@ -1186,7 +1182,7 @@ msgstr "Zkusit synchronizovat video ka¾dý snímek"
 
 #: src/dxr3/dxr3_decode_video.c:179
 msgid "This is relevant for progressive video only (most PAL films)."
-msgstr "Toto má význam jen pro postupné video (nejvíce filmù PAL)"
+msgstr "Toto má význam jen pro postupné video (vìt¹ina filmù PAL)"
 
 #: src/dxr3/dxr3_decode_video.c:182
 msgid "Use alternate Play mode"
@@ -1194,7 +1190,7 @@ msgstr "Pou¾ít alternativní re¾im pøehrávání"
 
 #: src/dxr3/dxr3_decode_video.c:186
 msgid "Correct frame durations in broken streams"
-msgstr "Opravit dobu trvání snímkù v poru¹ených sekvencích"
+msgstr "Opravovat dobu trvání snímkù v poru¹ených sekvencích"
 
 #: src/dxr3/dxr3_decode_video.c:187
 msgid "Enable this for streams with wrong frame durations."
@@ -1312,11 +1308,11 @@ msgid ""
 "xvid: library (%d.%d) and library used to compile this plugin (%d.%d).\n"
 "xvid: Compiling this plugin against current XviD library should help.\n"
 msgstr ""
-"xvid: nekompatibilita mezi programovým rozhraním v souèasné dobì\n"
+"xvid: je zde nekompatibilita mezi programovým rozhraním v souèasné dobì\n"
 "      instalované knihovny Xvid (%d.%d) a knihovny pou¾ité ke kompilaci\n"
 "      tohoto modulu (%d.%d).\n"
-"      Pøekompilování tohoto modulu se souèasnou knihovnou XviD by mìlo "
-"pomoci.\n"
+"      Pøekompilování tohoto modulu se souèasnou knihovnou XviD by mìlo\n"
+"      pomoci.\n"
 
 #: src/libxinevdec/fli.c:350
 #, c-format
@@ -1324,11 +1320,13 @@ msgid ""
 "FLI: in chunk FLI_COPY : source data (%d bytes) bigger than image, skipping "
 "chunk\n"
 msgstr ""
+"FLI: v datovém bloku FLI_COPY : zdrojová data (%d bytù) vìt¹í ne¾ data "
+"snímku, datový blok se pøeskoèí\n"
 
 #: src/libxinevdec/fli.c:366
-#, fuzzy, c-format
+#, c-format
 msgid "FLI: Unrecognized chunk type: %d\n"
-msgstr "nerozpoznaný datový blok FILM\n"
+msgstr "FLI: Nerozpoznaný datový blok: %d\n"
 
 #: src/libxinevdec/fli.c:394
 #, c-format
@@ -1336,43 +1334,121 @@ msgid ""
 "  warning: processed FLI chunk where chunk size = %d\n"
 "  and final chunk ptr = %d\n"
 msgstr ""
+"  varování: zpracován datový blok FLI s velikostí = %d\n"
+"  a koncovým ukazatelem = %d\n"
 
 #. *************************************************************************
 #. * MS RLE specific decode functions
 #. ************************************************************************
 #: src/libxinevdec/msrle.c:69
 msgid "MS RLE: stream ptr just went out of bounds (1)\n"
-msgstr ""
+msgstr "MS RLE: ukazatel na data vy¹el z mezí (1)\n"
 
 #: src/libxinevdec/msrle.c:109
 msgid "MS RLE: frame ptr just went out of bounds (1)\n"
-msgstr ""
+msgstr "MS RLE: ukazatel na snímek vy¹el z mezí (1)\n"
 
 #: src/libxinevdec/msrle.c:116
 msgid "MS RLE: stream ptr just went out of bounds (2)\n"
-msgstr ""
+msgstr "MS RLE: ukazatel na data vy¹el z mezí (2)\n"
 
 #: src/libxinevdec/msrle.c:139
 msgid "MS RLE: frame ptr just went out of bounds (2)\n"
-msgstr ""
+msgstr "MS RLE: ukazatel na snímek vy¹el z mezí (2)\n"
 
 #: src/libxinevdec/msrle.c:160
 #, c-format
 msgid "MS RLE: ended frame decode with bytes left over (%d < %d)\n"
-msgstr ""
+msgstr "MS RLE: koncový rámec dekódován i se zbytkem bytù (%d < %d)\n"
 
-#~ msgid ""
-#~ "demux_film: This is not a FILM file (why was it sent to this demuxer?\n"
+#~ msgid "Restoring index..."
+#~ msgstr "Obnovuje se index..."
+
+#~ msgid "demux_qt.c: input not seekable, can not handle!\n"
 #~ msgstr ""
-#~ "demux_file: Toto není soubor FILM (proè byl poslán do tohoto "
-#~ "demultiplexoru?)\n"
+#~ "demux_qt.c: u tohoto vstupu nelze nastavovat pozici v datech, nelze "
+#~ "zpracovat!\n"
+
+#~ msgid "demux_qt.c: input is block organized, can not handle!\n"
+#~ msgstr "demux_qt.c: vstup je blokovì organizovaný, nelze zpracovat!\n"
+
+#~ msgid "demux_cda.c: input not seekable, can not handle!\n"
+#~ msgstr ""
+#~ "demux_cda.c: u tohoto vstupu nelze nastavovat pozici v datech, nelze "
+#~ "zpracovat!\n"
+
+#~ msgid "demux_film.c: input not seekable, can not handle!\n"
+#~ msgstr ""
+#~ "demux_film.c: u tohoto vstupu nelze nastavovat pozici v datech, nelze "
+#~ "zpracovat!\n"
+
+#~ msgid "demux_roq.c: input not seekable, can not handle!\n"
+#~ msgstr ""
+#~ "demux_roq.c: u tohoto vstupu nelze nastavovat pozici v datech, nelze "
+#~ "zpracovat!\n"
+
+#~ msgid "demux_fli.c: input not seekable, can not handle!\n"
+#~ msgstr ""
+#~ "demux_fli.c: u tohoto vstupu nelze nastavovat pozici v datech, nelze "
+#~ "zpracovat!\n"
+
+#~ msgid "demux_idcin.c: input not seekable, can not handle!\n"
+#~ msgstr ""
+#~ "demux_idcin.c: u tohoto vstupu nelze nastavovat pozici v datech, nelze "
+#~ "zpracovat!\n"
+
+#~ msgid "demux_smjpeg.c: input not seekable, can not handle!\n"
+#~ msgstr ""
+#~ "demux_smjpeg.c: u tohoto vstupu nelze nastavovat pozici v datech, nelze "
+#~ "zpracovat!\n"
+
+#~ msgid "demux_wav.c: input not seekable, can not handle!\n"
+#~ msgstr ""
+#~ "demux_wav.c: u tohoto vstupu nelze nastavovat pozici v datech, nelze "
+#~ "zpracovat!\n"
+
+#~ msgid "demux_aiff.c: input not seekable, can not handle!\n"
+#~ msgstr ""
+#~ "demux_aiff.c: u tohoto vstupu nelze nastavovat pozici v datech, nelze "
+#~ "zpracovat!\n"
+
+#~ msgid "demux_snd.c: input not seekable, can not handle!\n"
+#~ msgstr ""
+#~ "demux_snd.c: u tohoto vstupu nelze nastavovat pozici v datech, nelze "
+#~ "zpracovat!\n"
+
+#~ msgid "demux_voc.c: input not seekable, can not handle!\n"
+#~ msgstr ""
+#~ "demux_voc.c: u tohoto vstupu nelze nastavovat pozici v datech, nelze "
+#~ "zpracovat!\n"
+
+#~ msgid "demux_vqa.c: input not seekable, can not handle!\n"
+#~ msgstr ""
+#~ "demux_vqa.c: u tohoto vstupu nelze nastavovat pozici v datech, nelze "
+#~ "zpracovat!\n"
+
+#~ msgid "demux_mve.c: input not seekable, can not handle!\n"
+#~ msgstr ""
+#~ "demux_mve.c: u tohoto vstupu nelze nastavovat pozici v datech, nelze "
+#~ "zpracovat!\n"
+
+#~ msgid "input_http: read error %d\n"
+#~ msgstr "input_http: chyba ètení %d\n"
+
+#~ msgid "http input plugin"
+#~ msgstr "vstupní modul http"
+
+#~ msgid "Colorkey used for Xv video overlay"
+#~ msgstr "Klíèová barva pou¾itá pro pøekrývání videa u Xv"
+
+#~ msgid "xine: demuxer failed to start\n"
+#~ msgstr "xine: selhalo spu¹tìní demultiplexoru\n"
+
+#~ msgid "xine_play: no demux available\n"
+#~ msgstr "xine_play: ¾ádný dostupný demultiplexor\n"
 
 #~ msgid "demux_film: unknown video codec %c%c%c%c\n"
-#~ msgstr "demux_film: neznámý video kodek %c%c%c%c\n"
-
-#, fuzzy
-#~ msgid "demux_vqa: running time: %d min, %d sec\n"
-#~ msgstr "demux_fli: doba pøehrávání: %d min, %d s\n"
+#~ msgstr "demux_film: neznámý kodek videa %c%c%c%c\n"
 
 #~ msgid "lstat failed for %s{%s}\n"
 #~ msgstr "selhalo lstat pro %s{%s}\n"
@@ -1385,12 +1461,6 @@ msgstr ""
 
 #~ msgid "input_file: get optional data, type %08x, sub %p\n"
 #~ msgstr "input_file: volitelná data, typ %08x, podtyp %p\n"
-
-#~ msgid "origin path to grab file mrls"
-#~ msgstr "pùvodní cesta k získání souborových MRL"
-
-#~ msgid "hidden files displaying."
-#~ msgstr "zobrazování skrytých souborù"
 
 #~ msgid "xine_notify_stream_finished: can't create new thread (%s)\n"
 #~ msgstr "xine_notify_stream_finished: nelze vytvoøit nové vlákno (%s)\n"
@@ -1424,20 +1494,6 @@ msgstr ""
 
 #~ msgid "ogg: vorbis audio stream detected\n"
 #~ msgstr "ogg: detekována zvuková data vorbis\n"
-
-#, fuzzy
-#~ msgid "ogg: vorbis avg. bitrate %d, samplerate %d\n"
-#~ msgstr "ogg: detekována zvuková data vorbis\n"
-
-#, fuzzy
-#~ msgid "ogg: video format %.4s, frame size %d x %d, %d fps\n"
-#~ msgstr "demux_avi: velikost rámce videa %ld x %ld\n"
-
-#, fuzzy
-#~ msgid ""
-#~ "ogg: unknown stream type (signature >%.8s<). hex dump of bos packet "
-#~ "follows:\n"
-#~ msgstr "ogg: neznámý typ dat (signatura >%.8s<)\n"
 
 #~ msgid "demux_asf: audio format : %s (wFormatTag 0x%x)\n"
 #~ msgstr "demux_asf: zvukový formát: %s (wFormatTag 0x%x)\n"
@@ -1638,66 +1694,6 @@ msgstr ""
 #~ "demux_wav: modul nepodporuje programové rozhraní modulù ve verzi %d.\n"
 #~ "           Toto znamená nesluèitelnost verzí mezi xine a tímto\n"
 #~ "           demultiplexním modulem.\n"
-#~ "Nainstalování aktuálních demultiplexních modulù by mìlo pomoci.\n"
-
-#, fuzzy
-#~ msgid ""
-#~ "demux_aiff: plugin doesn't support plugin API version %d.\n"
-#~ "            this means there's a version mismatch between xine and "
-#~ "this             demuxer plugin.\n"
-#~ "Installing current demux plugins should help.\n"
-#~ msgstr ""
-#~ "demux_asf: modul nepodporuje programové rozhraní modulù ve verzi %d.\n"
-#~ "           Toto znamená nesluèitelnost verzí mezi xine a tímto\n"
-#~ "           demultiplexním modulem.\n"
-#~ "Nainstalování aktuálních demultiplexních modulù by mìlo pomoci.\n"
-
-#, fuzzy
-#~ msgid ""
-#~ "demux_snd: plugin doesn't support plugin API version %d.\n"
-#~ "           this means there's a version mismatch between xine and "
-#~ "this            demuxer plugin.\n"
-#~ "Installing current demux plugins should help.\n"
-#~ msgstr ""
-#~ "demux_pes: modul nepodporuje programové rozhraní modulù ve verzi %d.\n"
-#~ "           Toto znamená nesluèitelnost verzí mezi xine a tímto\n"
-#~ "           demultiplexním modulem.\n"
-#~ "Nainstalování aktuálních demultiplexních modulù by mìlo pomoci.\n"
-
-#, fuzzy
-#~ msgid ""
-#~ "demux_voc: plugin doesn't support plugin API version %d.\n"
-#~ "           this means there's a version mismatch between xine and "
-#~ "this            demuxer plugin.\n"
-#~ "Installing current demux plugins should help.\n"
-#~ msgstr ""
-#~ "demux_ogg: modul nepodporuje programové rozhraní modulù ve verzi %d.\n"
-#~ "           Toto znamená nesluèitelnost verzí mezi xine a tímto\n"
-#~ "           demultiplexním modulem.\n"
-#~ "Nainstalování aktuálních demultiplexních modulù by mìlo pomoci.\n"
-
-#, fuzzy
-#~ msgid ""
-#~ "demux_vqa: plugin doesn't support plugin API version %d.\n"
-#~ "           this means there's a version mismatch between xine and "
-#~ "this            demuxer plugin.\n"
-#~ "Installing current demux plugins should help.\n"
-#~ msgstr ""
-#~ "demux_asf: modul nepodporuje programové rozhraní modulù ve verzi %d.\n"
-#~ "           Toto znamená nesluèitelnost verzí mezi xine a tímto\n"
-#~ "           demultiplexním modulem.\n"
-#~ "Nainstalování aktuálních demultiplexních modulù by mìlo pomoci.\n"
-
-#, fuzzy
-#~ msgid ""
-#~ "demux_wc3movie: plugin doesn't support plugin API version %d.\n"
-#~ "                this means there's a version mismatch between xine and "
-#~ "this                 demuxer plugin.\n"
-#~ "Installing current demux plugins should help.\n"
-#~ msgstr ""
-#~ "demux_idcin: modul nepodporuje programové rozhraní modulù ve verzi %d.\n"
-#~ "             Toto znamená nesluèitelnost verzí mezi xine a tímto\n"
-#~ "             demultiplexním modulem.\n"
 #~ "Nainstalování aktuálních demultiplexních modulù by mìlo pomoci.\n"
 
 #~ msgid ""
@@ -2038,18 +2034,6 @@ msgstr ""
 #~ "           dekódovacím modulem.\n"
 #~ "Nainstalování aktuálních modulù by mìlo pomoci.\n"
 
-#, fuzzy
-#~ msgid ""
-#~ "libfaad: plugin doesn't support plugin API version %d.\n"
-#~ "libfaad: this means there's a version mismatch between xine and this "
-#~ "libfaad: decoder plugin.\n"
-#~ "Installing current plugins should help.\n"
-#~ msgstr ""
-#~ "libmad: modul nepodporuje programové rozhraní ve verzi %d.\n"
-#~ "        Toto znamená nesluèitelnost verzí mezi xine a tímto\n"
-#~ "        dekódovacím modulem.\n"
-#~ "Nainstalování aktuálních modulù by mìlo pomoci.\n"
-
 #~ msgid "input_dvd: unable to open dvd drive (%s): %s\n"
 #~ msgstr "input_dvd: nelze otevøít mechaniku dvd (%s): %s\n"
 
@@ -2143,10 +2127,6 @@ msgstr ""
 
 #~ msgid "path to a raw device set up for dvd access"
 #~ msgstr "cesta k raw zaøízení nastavenému pro pøístup k dvd"
-
-#, fuzzy
-#~ msgid "channels"
-#~ msgstr "kanál"
 
 #~ msgid "unable to open %s: %s."
 #~ msgstr "nelze otevøít %s: %s."
