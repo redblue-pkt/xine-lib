@@ -63,7 +63,7 @@
  *     - if any bytes exceed 63, do not shift the bytes at all before
  *       transmitting them to the video decoder
  *
- * $Id: demux_idcin.c,v 1.20 2002/10/26 22:00:51 guenter Exp $
+ * $Id: demux_idcin.c,v 1.21 2002/10/27 15:51:53 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -84,7 +84,6 @@
 #include "demux.h"
 #include "bswap.h"
 
-#define VALID_ENDS   "cin"
 #define IDCIN_HEADER_SIZE 20
 #define HUFFMAN_TABLE_SIZE 65536
 #define IDCIN_FRAME_PTS_INC  (90000 / 14)
@@ -494,6 +493,9 @@ static void demux_idcin_stop (demux_plugin_t *this_gen) {
 }
 
 static void demux_idcin_dispose (demux_plugin_t *this) {
+
+  demux_idcin_stop(this);
+
   free(this);
 }
 

@@ -21,7 +21,7 @@
  * For more information on the SMJPEG file format, visit:
  *   http://www.lokigames.com/development/smjpeg.php3
  *
- * $Id: demux_smjpeg.c,v 1.20 2002/10/26 23:23:15 tmmm Exp $
+ * $Id: demux_smjpeg.c,v 1.21 2002/10/27 15:51:53 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -53,8 +53,6 @@
 #define sndD_TAG FOURCC_TAG('s', 'n', 'd', 'D')
 #define vidD_TAG FOURCC_TAG('v', 'i', 'd', 'D')
 #define APCM_TAG FOURCC_TAG('A', 'P', 'C', 'M')
-
-#define VALID_ENDS   "mjpg"
 
 #define SMJPEG_SIGNATURE_SIZE 8
 /* 16 is the max size of a header chunk (the video header) */

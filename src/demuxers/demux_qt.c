@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.103 2002/10/26 22:00:53 guenter Exp $
+ * $Id: demux_qt.c,v 1.104 2002/10/27 15:51:53 tmmm Exp $
  *
  */
 
@@ -101,8 +101,6 @@ typedef unsigned int qt_atom;
 
 #define ATOM_PREAMBLE_SIZE 8
 #define PALETTE_COUNT 256
-
-#define VALID_ENDS   "mov,mp4,qt"
 
 /* these are things that can go wrong */
 typedef enum {

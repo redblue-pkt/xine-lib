@@ -21,7 +21,7 @@
  * For more information on the FILM file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_film.c,v 1.38 2002/10/26 22:00:51 guenter Exp $
+ * $Id: demux_film.c,v 1.39 2002/10/27 15:51:53 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -50,8 +50,6 @@
 #define FDSC_TAG FOURCC_TAG('F', 'D', 'S', 'C')
 #define STAB_TAG FOURCC_TAG('S', 'T', 'A', 'B')
 #define CVID_TAG FOURCC_TAG('c', 'v', 'i', 'd')
-
-#define VALID_ENDS   "cpk,cak,film"
 
 typedef struct {
   off_t sample_offset;

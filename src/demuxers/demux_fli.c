@@ -22,7 +22,7 @@
  * avoid while programming a FLI decoder, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_fli.c,v 1.20 2002/10/26 22:00:51 guenter Exp $
+ * $Id: demux_fli.c,v 1.21 2002/10/27 15:51:53 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -42,8 +42,6 @@
 #include "compat.h"
 #include "demux.h"
 #include "bswap.h"
-
-#define VALID_ENDS   "fli,flc"
 
 #define FLI_HEADER_SIZE 128
 #define FLI_FILE_MAGIC_1 0xAF11
