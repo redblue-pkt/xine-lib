@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.25 2003/12/30 02:00:11 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.26 2004/01/04 16:19:45 tmattern Exp $
  *
  */
 
@@ -94,7 +94,7 @@ static int faad_open_dec( faad_decoder_t *this ) {
     /* This is useful for RAW AAC files */
     this->faac_cfg = faacDecGetCurrentConfiguration(this->faac_dec);
     if( this->faac_cfg ) {
-      this->faac_cfg->defSampleRate = 44100;
+      this->faac_cfg->defSampleRate = this->rate;
       this->faac_cfg->outputFormat = FAAD_FMT_16BIT;
       this->faac_cfg->useOldADTSFormat = 0;
       faacDecSetConfiguration(this->faac_dec, this->faac_cfg);
@@ -210,7 +210,6 @@ static void faad_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
   /* get audio parameters from file header 
      (may be overwritten by libfaad returned parameters) */  
   if (buf->decoder_flags & BUF_FLAG_HEADER) {
-    
     this->rate=buf->decoder_info[1];
     this->bits_per_sample=buf->decoder_info[2] ; 
     this->num_channels=buf->decoder_info[3] ; 
@@ -249,7 +248,7 @@ static void faad_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
     
     if( !this->faac_dec ) {
 
-      /* mode for playing data from .aac files */    
+      /* mode for playing data from .aac files */
       this->mp4_mode = 0;
 
       if( faad_open_dec(this) )
@@ -345,6 +344,8 @@ static audio_decoder_t *open_plugin (audio_decoder_class_t *class_gen, xine_stre
   this->buf                = NULL;
   this->size               = 0;
   this->max_audio_src_size = 0;
+
+  this->rate               = 44100;
 
   return &this->audio_decoder;
 }
