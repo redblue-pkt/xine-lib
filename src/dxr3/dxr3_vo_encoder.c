@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_vo_encoder.c,v 1.11 2001/12/02 07:08:59 hrm Exp $
+ * $Id: dxr3_vo_encoder.c,v 1.12 2001/12/02 21:14:51 hrm Exp $
  *
  * mpeg1 encoding video out plugin for the dxr3.  
  *
@@ -122,6 +122,15 @@
  *
  * looks like it'll work with mp1e rte API as well, provided it's
  * stable and all threads don't become a tangled mess.
+ *
+ ****** Update 2/12/2001 by Harm
+ * 
+ * Switched to librte instead of that weird mp1e-fifo concoction.
+ * Not terribly impressed by the speed gain, if any, but certainly
+ * cleaner. To use it, install librte-0.4 (get it at zapping.sf.net, the
+ * API is still under development so don't expect newer versions to work
+ * right away), define USE_MP1E 1 in the header below and change -lfame
+ * to -lrte in Makefile.am
  */
 
 /* encoder specific config/setup stuff 	*
@@ -130,10 +139,6 @@
 
 /* dxr3 vo globals 			*/
 #include "dxr3_video_out.h"
-
-/* mp1e should send the data from display_frame (1), not frame_copy (0).
- * 0 is default since 1 doesn't work for mysterious reasons */
-#define MP1E_DISPLAY_FRAME 1
 
 static uint32_t dxr3_get_capabilities (vo_driver_t *this_gen)
 {
@@ -382,9 +387,12 @@ static void dxr3_update_frame_format (vo_driver_t *this_gen,
   }
 #endif
 #if USE_MP1E
-  if (*mp1e_cmd == 0) {
-    int frame_rate_num, frame_rate_den;
-    char line[128];
+  if (context == 0) {
+    enum rte_mux_mode mux_mode = RTE_VIDEO;
+    /* rte_codec *codec; */
+    enum rte_frame_rate frame_rate;
+    enum rte_pixformat pixformat;
+    char tmpstr[128];
 
     if (format != IMGFMT_YV12) {
       /* not supported yet; I need to fix the black bar stuff for YUYV
@@ -393,42 +401,74 @@ static void dxr3_update_frame_format (vo_driver_t *this_gen,
       printf("dxr3enc: format not supported yet with mp1e encoder.\n");
       exit(1);
     }
+
+    if (! rte_init() ) {
+      printf("dxr3enc: failed to init librte; exiting...\n");
+      exit(1);
+    } 
+    context = rte_context_new (width, oheight, "mp1e", NULL);
+    rte_set_verbosity(context, 2);
+    /* rte_codec_set seems to create a program stream ... */
+    /*codec = rte_codec_set(context, RTE_STREAM_VIDEO, 0, "mpeg1-video");*/
+    rte_set_mode(context, mux_mode);
+
     /* start guessing the framerate */
     fps = 90000.0/frame->vo_frame.duration;
-    if (fabs(fps - 25) < 0.01) { /* PAL */
-      printf("dxr3enc: setting mpeg output framerate to PAL (25 Hz)\n");
-      frame_rate_num = 25; frame_rate_den = 1; 
-    }  
+    if (fabs(fps - 23.976) < 0.01) { /* NTSC-FILM */
+      printf("dxr3enc: setting mpeg output framerate to NTSC-FILM (23.976 Hz))\n");
+      frame_rate = RTE_RATE_1;
+    }
     else if (fabs(fps - 24) < 0.01) { /* FILM */
       printf("dxr3enc: setting mpeg output framerate to FILM (24 Hz))\n");
-      frame_rate_num = 24; frame_rate_den = 1; 
+      frame_rate = RTE_RATE_2;
     }
-    else if (fabs(fps - 23.976) < 0.01) { /* NTSC-FILM */
-      printf("dxr3enc: setting mpeg output framerate to NTSC-FILM (23.976 Hz))\n");
-      frame_rate_num = 24000; frame_rate_den = 1001; 
-    }
+    else if (fabs(fps - 25) < 0.01) { /* PAL */
+      printf("dxr3enc: setting mpeg output framerate to PAL (25 Hz)\n");
+      frame_rate = RTE_RATE_3;
+    }  
     else if (fabs(fps - 29.97) < 0.01) { /* NTSC */
       printf("dxr3enc: setting mpeg output framerate to NTSC (29.97 Hz)\n");
-      frame_rate_num = 30000; frame_rate_den = 1001;
+      frame_rate = RTE_RATE_4;
     }
-    else { /* try 1/fps, if not legal, libfame will go to PAL */
-      frame_rate_num = (int)(fps + 0.5); frame_rate_den = 1;
-      printf("dxr3enc: trying to set mpeg output framerate to %d Hz\n",
-             frame_rate_num);
+    else { /* go to PAL */
+      frame_rate = RTE_RATE_3; 
+      printf("dxr3enc: can't do %g Hz, using PAL\n", fps);
     }
-    sprintf(line, "-s %dx%d -c raw:%s-%d-%d-%d-%d", 
-	width, oheight, (format == IMGFMT_YV12 ? "yuv420" : "yuyv"),
-	width, oheight, frame_rate_num, frame_rate_den);
-    sprintf(mp1e_cmd, mp1e_command, line);
-    printf("dxr3enc: running command \"%s\"\n", mp1e_cmd);
-    /* we can call popen here or on first call to mp1e_yuv_write.
-       here seems to work better, no clue why */
-    mp1e = popen(mp1e_cmd, "w");
-    if (mp1e == 0) {	
-      printf("dxr3enc: could not start '%s'\n", mp1e_cmd);
-      perror("dxr3enc:");
+    pixformat = (format == IMGFMT_YV12 ? RTE_YUV420 : RTE_YUYV); 
+    rte_bitrate=this->config->register_range(this->config,"dxr3enc.bitrate",5000, 500,10000, "Dxr3enc: rte mpeg output bitrate (kbit/s)",NULL,NULL,NULL);
+    rte_bitrate *= 1000;
+    if (!rte_set_video_parameters(context, pixformat,
+      context->width, context->height, frame_rate, rte_bitrate, "I")) {
+		printf("dxr3enc: set_video_parameters failed: %s\n",
+			context->error);
+		rte_context_destroy(context);
+		exit(1);
+    }
+    /* paranoid; make sure we don't do motion searching */
+    rte_set_motion(context, 0, 0);
+    rte_set_input(context, RTE_VIDEO, RTE_PUSH, FALSE, NULL, NULL, NULL);
+    snprintf (tmpstr, sizeof(tmpstr), "%s_mv", devname);
+    rte_set_output(context, NULL, NULL, tmpstr);
+    if (!rte_init_context(context)) {
+      printf("dxr3enc: cannot init the context: %s\n",
+		context->error);
+      rte_context_delete(context);
       exit(1);
     }
+    /* do the sync'ing and start encoding */
+    if (!rte_start_encoding(context)) {
+      printf("dxr3enc: cannot start encoding: %s\n",
+		context->error);
+      rte_context_delete(context);
+      exit(1);
+    }
+    rte_ptr = rte_push_video_data(context, NULL, 0); 
+    if (! rte_ptr) {
+      printf("dxr3enc: failed to get encoder buffer pointer.\n");
+      exit(1);
+    }
+    rte_time = 0.0;
+    rte_time_step = frame->vo_frame.duration/90000.;
   }
 #endif
   if(this->aspectratio!=aspect)
@@ -439,43 +479,6 @@ static void dxr3_update_frame_format (vo_driver_t *this_gen,
   frame->mpeg_size = 0;
 #endif
 }
-
-#if USE_MP1E
-static void mp1e_write_yuv(dxr3_frame_t *frame, dxr3_driver_t *this)
-{
-  int size, cnt, it;
- 
-  /* if we didn't already open mp1e, do so now 
-     (see comment in update_frame_format*/
-  if (mp1e == 0) {
-    printf("dxr3enc: running command \"%s\"\n", mp1e_cmd);
-    fflush(stdout);
-    mp1e = popen(mp1e_cmd, "w");
-  }
-  if (mp1e == 0) {	
-    printf("dxr3enc: could not start '%s'\n", mp1e_cmd);
-    perror("dxr3enc:");
-    exit(1);
-  }
-  size = frame->width*this->oheight;
-  /* that (%#)*$#& fwrite doesn't seem to work properly! 
-   * images were arsed up completely */
-  if (frame->vo_frame.format == IMGFMT_YV12) {
-    for ( cnt = 0 ; cnt < size ; ) { 
-      it = write(fileno(mp1e), frame->real_base[0]+cnt, size-cnt);
-      if (it > 0) cnt+=it;
-    }
-    for ( cnt = 0 ; cnt < size/4 ; ) {
-      it = write(fileno(mp1e), frame->real_base[1]+cnt, size/4-cnt);
-      if (it > 0) cnt+=it;
-    }
-    for ( cnt = 0 ; cnt < size/4 ; ) {
-      it = write(fileno(mp1e), frame->real_base[2]+cnt, size/4-cnt);
-      if (it > 0) cnt+=it;
-    }
-  }
-}
-#endif
 
 static void dxr3_frame_copy(vo_frame_t *frame_gen, uint8_t **src)
 {
@@ -569,8 +572,8 @@ static void dxr3_frame_copy(vo_frame_t *frame_gen, uint8_t **src)
     size = avcodec_encode_video(avc, buffer, DEFAULT_BUFFER_SIZE, &avp);
 # endif    
 #endif
-#if USE_MP1E && (! MP1E_DISPLAY_FRAME)
-  mp1e_write_yuv(frame, this);
+#if USE_MP1E
+  rte_time += rte_time_step;
 #endif
 #if (!USE_MPEG_BUFFER) && (!USE_MP1E)
     /* write to device now */
@@ -585,6 +588,7 @@ static void dxr3_frame_copy(vo_frame_t *frame_gen, uint8_t **src)
 static void dxr3_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen)
 {
   char tmpstr[256]; 
+  int size;
   dxr3_driver_t *this = (dxr3_driver_t*)this_gen;
   dxr3_frame_t *frame = (dxr3_frame_t*)frame_gen;
 #if USE_MAGIC_REGISTER
@@ -595,8 +599,13 @@ static void dxr3_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen)
   regs.val=6; /* Mike's mystery number :-) */
   ioctl(this->fd_control, EM8300_IOCTL_WRITEREG, &regs);
 #endif
-#if USE_MP1E && MP1E_DISPLAY_FRAME
-  mp1e_write_yuv(frame, this);
+#if USE_MP1E 
+  size = frame->width * this->oheight;
+  /* we should make real_base contiguous */
+  xine_fast_memcpy(rte_ptr, frame->real_base[0], size);
+  xine_fast_memcpy(rte_ptr+size, frame->real_base[1], size/4);
+  xine_fast_memcpy(rte_ptr+size*5/4, frame->real_base[2], size/4);
+  rte_ptr = rte_push_video_data(context, rte_ptr, rte_time);
 #endif
 #if USE_MPEG_BUFFER
   if (this->fd_video < 0) {
@@ -625,8 +634,11 @@ void dxr3_exit (vo_driver_t *this_gen)
 		dxr3_overlay_set_mode(&this->overlay, EM8300_OVERLAY_MODE_OFF );
 	close(this->fd_control);
 #if USE_MP1E
-	if (mp1e)
-		pclose(mp1e);
+	if (context) {
+		rte_stop(context);
+		rte_context_delete(context);
+		context = 0;	
+	}
 #endif
 }
 
@@ -726,11 +738,7 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen)
 	}
 #endif
 #if USE_MP1E
-	mp1e = 0;
-	mp1e_command = config->register_string(config, "dxr3enc.mp1e", 
-		"mp1e -v -m 1 -g I -b 5 %s > /dev/em8300_mv", 
-		"Dxr3enc: mp1e command line (must contain %s)",NULL,NULL,NULL);
-	*mp1e_cmd = 0;
+	context = 0;
 #endif
 	return &this->vo_driver;
 }

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_vo_encoder.h,v 1.9 2001/12/02 07:10:02 hrm Exp $
+ * $Id: dxr3_vo_encoder.h,v 1.10 2001/12/02 21:14:51 hrm Exp $
  *
  */
 
@@ -72,10 +72,14 @@
 #endif
 
 #if USE_MP1E
-	#include <stdio.h>
-	FILE* mp1e;
-	char* mp1e_command; /* from config, with %s for runtime stuff */
-	char mp1e_cmd[256]; /* complete, with %s filled in */
+	#define _GNU_SOURCE
+	#include <unistd.h>
+	#include <rte.h>
+	rte_context* context; /* handle for encoding */
+	void* rte_ptr; /* buffer maintened by librte */
+	double rte_time; /* frame time (s) */
+	double rte_time_step; /* time per frame (s) */
+	double rte_bitrate; /* mpeg out bitrate, default 2.3e6 bits/s */
 #  undef USE_MPEG_BUFFER
 #  define USE_MPEG_BUFFER 0 
 #endif

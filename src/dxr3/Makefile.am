@@ -6,6 +6,9 @@ LIBTOOL = $(SHELL) $(top_builddir)/libtool-nofpic
 
 libdir = $(XINE_PLUGINDIR)
 
+# replace -lfame by -lrte below and define USE_MP1E 1 in dxr3_vo_decoder.h to 
+# use librte! Works with API of librte-0.4. 
+
 if HAVE_DXR3
 if HAVE_FAME
 dxr3enc_module = xineplug_vo_out_dxr3enc.la 
