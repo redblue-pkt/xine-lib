@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * $Id: yuv2rgb.c,v 1.19 2001/09/25 18:39:36 jkeil Exp $
+ * $Id: yuv2rgb.c,v 1.20 2001/09/27 13:09:01 jkeil Exp $
  */
 
 #include "config.h"
@@ -182,36 +182,6 @@ static void scale_line_gen (uint8_t *source, uint8_t *dest,
   profiler_stop_count(prof_scale_line);
 }
 
-#if 0
-static void scale_line_fast (uint8_t *source, uint8_t *dest,
-			     int width, int step) {
-  /*
-   * scales a yuv source row to a dest row, without interpolation
-   * (faster then scale_line_gen, but quality suffers especially for
-   * large scale factors)
-   */
-  int dx;
-
-  profiler_start_count(prof_scale_line);
-
-  dx = 0;
-
-  while (--width >= 0) {
-
-    *dest++ = *source;
-
-    dx += step;
-    while (dx > 32768) {
-      dx -= 32768;
-      source++;
-    }
-  }
-
-  profiler_stop_count(prof_scale_line);
-}
-#endif
-
-			
 /*
  * Interpolates 16 output pixels from 15 source pixels using shifts.
  * Useful for scaling a PAL mpeg2 dvd input source to 4:3 format on
@@ -635,6 +605,179 @@ done:
 }
 
 
+/*
+ * Interpolates 12 output pixels from 11 source pixels using shifts.
+ * Useful for scaling a PAL vcd input source to 4:3 display format.
+ */
+static void scale_line_11_12 (uint8_t *source, uint8_t *dest,
+			     int width, int step) {
+
+  int p1, p2;
+
+  profiler_start_count(prof_scale_line);
+
+  while ((width -= 12) >= 0) {
+    p1 = source[0];
+    p2 = source[1];
+    dest[0] = p1;
+    dest[1] = (1*p1 + 7*p2) >> 3;
+    p1 = source[2];
+    dest[2] = (1*p2 + 7*p1) >> 3;
+    p2 = source[3];
+    dest[3] = (1*p1 + 3*p2) >> 2;
+    p1 = source[4];
+    dest[4] = (3*p2 + 5*p1) >> 3;
+    p2 = source[5];
+    dest[5] = (3*p1 + 5*p2) >> 3;
+    p1 = source[6];
+    dest[6] = (1*p2 + 1*p1) >> 1;
+    p2 = source[7];
+    dest[7] = (5*p1 + 3*p2) >> 3;
+    p1 = source[8];
+    dest[8] = (5*p2 + 3*p1) >> 3;
+    p2 = source[9];
+    dest[9] = (3*p1 + 1*p2) >> 2;
+    p1 = source[10];
+    dest[10] = (7*p2 + 1*p1) >> 3;
+    p2 = source[11];
+    dest[11] = (7*p1 + 1*p2) >> 3;
+    source += 11;
+    dest += 12;
+  }
+
+  if ((width += 12) <= 0) goto done;
+  *dest++ = source[0];
+  if (--width <= 0) goto done;
+  *dest++ = (1*source[0] + 7*source[1]) >> 3;
+  if (--width <= 0) goto done;
+  *dest++ = (1*source[1] + 7*source[2]) >> 3;
+  if (--width <= 0) goto done;
+  *dest++ = (1*source[2] + 3*source[3]) >> 2;
+  if (--width <= 0) goto done;
+  *dest++ = (3*source[3] + 5*source[4]) >> 3;
+  if (--width <= 0) goto done;
+  *dest++ = (3*source[4] + 5*source[5]) >> 3;
+  if (--width <= 0) goto done;
+  *dest++ = (1*source[5] + 1*source[6]) >> 1;
+  if (--width <= 0) goto done;
+  *dest++ = (5*source[6] + 3*source[7]) >> 3;
+  if (--width <= 0) goto done;
+  *dest++ = (5*source[7] + 3*source[8]) >> 3;
+  if (--width <= 0) goto done;
+  *dest++ = (3*source[8] + 1*source[9]) >> 2;
+  if (--width <= 0) goto done;
+  *dest++ = (7*source[9] + 1*source[10]) >> 3;
+done:
+
+  profiler_stop_count(prof_scale_line);
+}
+
+
+/*
+ * Interpolates 24 output pixels from 11 source pixels using shifts.
+ * Useful for scaling a PAL vcd input source to 4:3 display format
+ * at 2*zoom.
+ */
+static void scale_line_11_24 (uint8_t *source, uint8_t *dest,
+			     int width, int step) {
+
+  int p1, p2;
+
+  profiler_start_count(prof_scale_line);
+
+  while ((width -= 24) >= 0) {
+    p1 = source[0];
+    p2 = source[1];
+    dest[0] = p1;
+    dest[1] = (1*p1 + 1*p2) >> 1;
+    dest[2] = (1*p1 + 7*p2) >> 3;
+    p1 = source[2];
+    dest[3] = (5*p2 + 3*p1) >> 3;
+    dest[4] = (1*p2 + 7*p1) >> 3;
+    p2 = source[3];
+    dest[5] = (3*p1 + 1*p2) >> 2;
+    dest[6] = (1*p1 + 3*p2) >> 2;
+    p1 = source[4];
+    dest[7] = (3*p2 + 1*p1) >> 2;
+    dest[8] = (3*p2 + 5*p1) >> 3;
+    p2 = source[5];
+    dest[9] = (7*p1 + 1*p2) >> 3;
+    dest[10] = (3*p1 + 5*p2) >> 3;
+    p1 = source[6];
+    dest[11] = p2;
+    dest[12] = (1*p2 + 1*p1) >> 1;
+    dest[13] = p1;
+    p2 = source[7];
+    dest[14] = (5*p1 + 3*p2) >> 3;
+    dest[15] = (1*p1 + 7*p2) >> 3;
+    p1 = source[8];
+    dest[16] = (5*p2 + 3*p1) >> 3;
+    dest[17] = (1*p2 + 3*p1) >> 2;
+    p2 = source[9];
+    dest[18] = (3*p1 + 1*p2) >> 2;
+    dest[19] = (1*p1 + 3*p2) >> 2;
+    p1 = source[10];
+    dest[20] = (7*p2 + 1*p1) >> 3;
+    dest[21] = (3*p2 + 5*p1) >> 3;
+    p2 = source[11];
+    dest[22] = (7*p1 + 1*p2) >> 3;
+    dest[23] = (1*p1 + 1*p2) >> 1;
+    source += 11;
+    dest += 24;
+  }
+
+  if ((width += 24) <= 0) goto done;
+  *dest++ = source[0];
+  if (--width <= 0) goto done;
+  *dest++ = (1*source[0] + 1*source[1]) >> 1;
+  if (--width <= 0) goto done;
+  *dest++ = (1*source[0] + 7*source[1]) >> 3;
+  if (--width <= 0) goto done;
+  *dest++ = (5*source[1] + 3*source[2]) >> 3;
+  if (--width <= 0) goto done;
+  *dest++ = (1*source[1] + 7*source[2]) >> 3;
+  if (--width <= 0) goto done;
+  *dest++ = (3*source[2] + 1*source[3]) >> 2;
+  if (--width <= 0) goto done;
+  *dest++ = (1*source[2] + 3*source[3]) >> 2;
+  if (--width <= 0) goto done;
+  *dest++ = (3*source[3] + 1*source[4]) >> 2;
+  if (--width <= 0) goto done;
+  *dest++ = (3*source[3] + 5*source[4]) >> 3;
+  if (--width <= 0) goto done;
+  *dest++ = (7*source[4] + 1*source[5]) >> 3;
+  if (--width <= 0) goto done;
+  *dest++ = (3*source[4] + 5*source[5]) >> 3;
+  if (--width <= 0) goto done;
+  *dest++ = source[5];
+  if (--width <= 0) goto done;
+  *dest++ = (1*source[5] + 1*source[6]) >> 1;
+  if (--width <= 0) goto done;
+  *dest++ = source[6];
+  if (--width <= 0) goto done;
+  *dest++ = (5*source[6] + 3*source[7]) >> 3;
+  if (--width <= 0) goto done;
+  *dest++ = (1*source[6] + 7*source[7]) >> 3;
+  if (--width <= 0) goto done;
+  *dest++ = (5*source[7] + 3*source[8]) >> 3;
+  if (--width <= 0) goto done;
+  *dest++ = (1*source[7] + 3*source[8]) >> 2;
+  if (--width <= 0) goto done;
+  *dest++ = (3*source[8] + 1*source[9]) >> 2;
+  if (--width <= 0) goto done;
+  *dest++ = (1*source[8] + 3*source[9]) >> 2;
+  if (--width <= 0) goto done;
+  *dest++ = (7*source[9] + 1*source[10]) >> 3;
+  if (--width <= 0) goto done;
+  *dest++ = (3*source[9] + 5*source[10]) >> 3;
+  if (--width <= 0) goto done;
+  *dest++ = (7*source[10] + 1*source[11]) >> 3;
+done:
+
+  profiler_stop_count(prof_scale_line);
+}
+
+
 /* Interpolate 2 output pixels from one source pixel. */
 
 static void scale_line_1_2 (uint8_t *source, uint8_t *dest,
@@ -677,33 +820,31 @@ static void scale_line_1_1 (uint8_t *source, uint8_t *dest,
 
 			
 static scale_line_func_t find_scale_line_func(int step) {
-#if 1
-  if (step == 15*32768/16) {
-    printf("yuv2rgb: using dvd 4:3 optimized scale_line\n");
-    return scale_line_15_16;
-  }
-  if (step == 45*32768/64) {
-    printf("yuv2rgb: using dvd fullscreen(1024x768) optimized scale_line\n");
-    return scale_line_45_64;
-  }
-  if (step == 9*32768/16) {
-    printf("yuv2rgb: using dvd fullscreen(1280x1024) optimized scale_line\n");
-    return scale_line_9_16;
-  }
-  if (step == 1*32768/2) {
-    printf("yuv2rgb: using optimized 2*zoom scale_line\n");
-    return scale_line_1_2;
-  }
-  if (step == 1*32768/1) {
-    printf("yuv2rgb: using non-scaled scale_line\n");
-    return scale_line_1_1;
+  static struct {
+    int			src_step;
+    int			dest_step;
+    scale_line_func_t	func;
+    char	       *desc;
+  } scale_line[] = {
+    { 15, 16, scale_line_15_16, "dvd(pal) 4:3" },
+    { 45, 64, scale_line_45_64, "dvd fullscreen(1024x768)" },
+    {  9, 16, scale_line_9_16,  "dvd fullscreen(1280x1024)" },
+    { 11, 12, scale_line_11_12, "vcd(pal) 4:3" },
+    { 11, 24, scale_line_11_24, "vcd(pal) 4:3 2*zoom" },
+    {  1,  2, scale_line_1_2,   "2*zoom" },
+    {  1,  1, scale_line_1_1,   "non-scaled" },
+  };
+  int i;
+
+  for (i = 0; i < sizeof(scale_line)/sizeof(scale_line[0]); i++) {
+    if (step == scale_line[i].src_step*32768/scale_line[i].dest_step) {
+      printf("yuv2rgb: using %s optimized scale_line\n", scale_line[i].desc);
+      return scale_line[i].func;
+    }
   }
   printf("yuv2rgb: using generic scale_line with interpolation\n");
   return scale_line_gen;
-#else
-  printf("yuv2rgb: using generic scale_line without interpolation\n");
-  return scale_line_fast;
-#endif
+
 }
 
 
