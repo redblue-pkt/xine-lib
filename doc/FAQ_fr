@@ -1,0 +1,574 @@
+
+   ----------------------
+          xine FAQ
+   ----------------------
+
+
+portée de cette FAQ
+-------------------
+
+Cette FAQ couvre les version de xine supérieures à 0.5.0, elle couvre
+à la fois xine-lin (le moteur de xine et les plugins par défaut) et
+xine-ui (les implémentation de l'interface utilisateur pour la xlib
+et la console).
+
+
+Comment dois-je compiler tout cela ?
+------------------------------------
+
+Premièrement, assurez-vous que vous utilisez une version stable et
+officielle de gcc pour la compilation. Vous pouvez essayez des version
+patchées de gcc, mais celles-ci ne sont pas supportées et ne
+fonctionneront probablement pas (pgcc, par exemple, est connu pour ne
+pas fonctionner avec libmpeg).
+
+Vous devez utilisez make pour compiler xine. Sur la plupart des systems
+GNU/Linux, make est gnu make, sur les autres plateforme, utilisez
+"gmake" à la place.
+
+Si vous souhaitez compiler le support de Xv, assurez-vous que vous disposez
+de la librairie partagée Xv sur votre système, i.e. ls /usr/X11R6/lib/libXv*
+doit vous donnez quelques librairies .so, comme :
+
+/usr/X11R6/lib/libXv.a  /usr/X11R6/lib/libXv.so  /usr/X11R6/lib/libXv.so.1
+
+ou alors, vous avez libtool 1.4 ou plus installée. Si ce n'est pas le cas,
+et que vous ayez seulement libXv.a, vous pouvez créer une version partagée
+vous même :
+
+# ld --whole-archive -shared -o libXv.so.1 libXv.a
+# ln -s libXv.so.1 libXv.so
+# ldconfig
+
+Maintenant, vous pouvez construire xine sur votre système :
+
+Xine vient en deux parties (officielles) : xine-lib et xine-ui.
+
+Premièrement, vous devez construire et installer xine-lib :
+
+./cvscompile.sh  <--- seulement si vous avez obtenu xine via CVS
+./configure
+make
+make install
+
+Si vous avez installé xine-lib vers un prefixe non standard,
+assurez-vous que <prefixe>/bin est dans votre PATH et que votre
+"linker" trouvera les librairies dans <prefixe>/libs, avec bash
+vous pouvez tapez :
+
+export PATH="<prefix>/bin:$PATH"
+export LD_LIBRARY_PATH="<prefix>/lib:$LD_LIBRARY_PATH"
+
+pour vous assurez que cela fonctionne.
+
+Maintenant, vous pouvez construire et installer xine-ui, la procedure
+est la même que pour xinel-lib :
+
+./cvscompile.sh  <--- seulement si vous avez obtenu xine via CVS
+./configure
+make
+make install
+
+Si ./configure se plaint de ne pas trouver xine-libn, à nouveau (voir
+plus haut) vérifiez que <prefixe>/bin est dans votre PATH et que vote
+"linker" trouvera les librairies dans <prefixe>/lib.
+
+xine-lib s'est installé sans problème, mais xine-ui se plaint de ne pas
+-----------------------------------------------------------------------
+trouver xine-lib
+----------------
+
+Assurez-vous que <prefixe>/bin est dans votre PATH et que vote
+"linker" trouvera les librairies dans <prefixe>/lib, où <prefixe>
+est le répertoire dans lequel vous avez installé xine-lib (oui, vous
+devez "make install"-er xine-lib avant de pouvoir compiler xine-ui).
+Voir les questions précédantes pour le détail de la procedure de
+compilation et d'installation de xine-lib et xine-ui.
+
+
+Comment puis-je passer un paramètre CFLAGS additionnel pour la compilation ?
+----------------------------------------------------------------------------
+
+Vous pouvez faire cela en affectant la variable GLOBAL_CFLAGS et
+en relançant ./configure.
+
+Ceci peut être utile pour indiquer un chemin d'"include" ou
+de librairies additionnel au compilateur. Exemple :
+
+export GLOBAL_CFLAGS="-I/usr/include -L/home/guenter/xine_libs"
+
+
+Existe-t-il des binaires pour mon K7 ? Puis-je ne construire ?
+--------------------------------------------------------------
+
+Pour l'instant, nous ne fournissons pas de binaires pour le K7,
+Parce que la dernière version de gcc (2.92.2 au moment ou ceci
+est écrit) ne supporte pas le K7. Utilisez les binaires 686 en
+lieu et place. Ces binaires devraient fonctionner et utiliserons
+3DNOow !
+
+Si vous avez une version de gcc plus récente vous pouvez essayer
+de compiler "plus" de support du K7 (en particulier un meilleur
+ordonnancement des instructions). Si le script ./configure ne
+détecte pas correctement votre processeur ou gcc correctement,
+essayez d'affecter explicietement à variable XINE_BUILD une
+chaine de description de votre configuration, i.e :
+
+export XINE_BUILD=k7-pc-linux-gnu
+rm -f config.cache
+./cvscompile.sh
+make
+make install
+
+
+Comment faire en sorte que xine utilise les extentions Xv ?
+-----------------------------------------------------------
+
+xine -V Xv foo.mpg
+
+
+Xine ne fonctionne pas et renvoie "no video port found"
+-------------------------------------------------------
+
+Vous avez les extentions Xv, mais le "driver" de votre carte
+graphique ne les supporte pas. Premièrement, essayez de trouver
+un "driver" qui les supporte (demandez au vendeur de votre carte).
+Si votre driver supporte ces extensions mais que vous n'arrivez
+pas à le faire fonctionner, essayez une resolution plus basse
+(1024x768 est assez même pour les mpeg-2 anamorphiques).
+
+Si tout ceci échoue, vous pouvez quand même utiliser le support
+X11/XShm :
+
+xine -V XShm foo.vob
+
+
+Xine ne fonctionne pas et se plaint à propos des "audio drivers/devices"
+------------------------------------------------------------------------
+
+Vous pouvez sélectionner le "driver" audio en utilisant l'option -A.
+Par exemple, essayez :
+
+xine -A null
+
+Si vous avez les "drivers" ALSA installés, essayez :
+
+xine -A alsa09
+
+Si vous utilisez ESD, essayez :
+
+xine -A esd
+
+Si vous utilisez artsd, essayez :
+
+xine -A arts
+
+
+Xine affiche son logo, mais je ne vois pas ma vidéo ?
+-----------------------------------------------------
+
+Utilisez le bouton "play" de l'interface ou appuyez sur
+la touche "Entrée" pour lire la vidéo.
+
+
+Xine diffuse des son, mais je ne vois aucune image
+--------------------------------------------------
+
+si vous voyez beaucoup de messages "rejected", votre matétiel
+n'est pas correctement configuré pour xine. Ce peut être
+votre carte son qui ne supporte pas la fonctionnalité
+"temps réel" (xine essaie ceci au démarrage, c'est pourquoi
+vous pouvez voir ces messages à nouveau). Dans ce cas,
+essayez de trouver de meilleurs "drivers".
+
+Peut-être, votre matériel est-il simplement trop lent
+Voir "Xine <jette> beaucoup de <frames>" en dessous
+pour des trucs à propos de la vitesse.
+
+
+Où dois-je mettre les dlls "codec" de windows pour xine ?
+---------------------------------------------------------
+
+xine utilise par défaut le répertoire :
+
+/usr/lib/win32
+
+pour cherchez les dlls, mais vous pouvez changer cela dans
+votre ~/.xinerc en éditant :
+
+win32_path:/usr/lib/win32
+
+
+J'obtiens ce message: demux error! 00 00 00 (should be 0x000001)
+----------------------------------------------------------------
+
+Xine n'arrive, probablement, pas à accéder à votre source. Ceci arrive,
+le plus souvant, lorsque vous essayer de lire des DVDs cryptés. Souvenez
+vous que xine ne peut jouer de tels DVDs tel que (pour des raisons
+légales).
+
+Pour éviter ceci, vous pouvez utiliser un plugin décryptant les DVD via CSS.
+
+Une autre raison peut être que votre lecteur de DVD (RPC-2) n'est pas
+fixé à la bonne région.
+
+
+Quand je joue ce flux, xine montre des images mais je n'ai pas de son
+---------------------------------------------------------------------
+
+Essayez un autre canal audio :
+
+xine -a channel stream.vob
+
+quelques fichiers .vob on le son sur des canaux étranges (i.e. 3, 7, 10)
+
+
+Xine peut-il lire les (S)VCDs ?
+-------------------------------
+
+Oui, utilisez une MRL comme :
+
+xine VCD://<numéro de piste>
+
+
+Xine <jette> beaucoup de <frames>
+---------------------------------
+
+Votre matériel est trop lent pour xine. Assurez vous que vous
+avez activé toutes les options d'optimisation. Voici quelques
+points que vous pouvez tester :
+
+- utilisez un noyau récent et optimisé pour votre matériel
+
+- utilisez le dernier gas/gcc
+
+- fermez toutes les autres applications (utilisez un outil comme
+  top pour trouver quelles applications sont en train d'utiliser
+  votre CPU)
+
+- si vous n'utilisez pas Xv, assurez-vous que votre écran est configuré
+  pour utiliser 16bpp, pas 24 ou plus (ceci réduit l'utlisation de la
+  bande passante mémoire)
+
+- assurez-vous que le disque qui fournit les données vidéo est en mode DMA
+  (s'il le supporte)
+  Sous linux, vous pouvez utiliser htparm pour tester ceci, par exemple :
+  Under linux, you can use hdparm to check this, for example
+
+  hdparm /dev/hda
+
+  =>
+  ...
+   using_dma    =  1 (on)
+
+  plus d'information peut être trouvé là :
+
+  http://oreilly.linux.com/pub/a/linux/2000/06/29/hdparm.html
+
+- xine nécessite des accès mémoire très rapides, ce qui dépend de votre
+  chip set. Assuez vous que vous avez activé toutes les options qui
+  améliore la vitesse.
+
+  en particulier, le chipset via appolo pro est connu pour être
+  particulèrement étrange (surtout sur ma carte gigabyte). Si vous
+  ne pouvez pas configurer les accès à la RAM simplement en utilisant
+  le bios, vous pouvez quelques trucs "sales", comme expliqué sur
+  (par exemple) :
+         http://www.overclockers.com/tips105/index03.asp
+  Ce site web se concentre sur les outils windows pour optimiser
+  le chipset,vous pouvez faire la même chose sour FreeBSD avec pciconf.
+  Et les distributions linux dispose d'outils similaires.
+
+  S'il vous plait, contactez (en anglais) Heiko si vous avez le
+  moindre problème ou trucs à propos de l'optimisation du chipset
+  via apollo pro.
+
+- un outil d'optimisation est disponible là :
+
+  http://powertweak.sourceforge.net
+
+- activez le support des MTRR dans votre noyau. Si vous utiliser toujours
+  XFree 3.x, vous devez dire vosu même au noyau ou se trouve la mémoire
+  graphique. Vous trouverez des détails la dessus dans le linux dvd howto.
+
+  Si vous utiliser XFree 4.x, activer le support des MTRR est suffisant.
+
+  Essayez 'cat /proc/mtrr' - si le fichier existe et que vous trouvez
+  dedans un entrée correspondant à la quantité de mémoire dont vous
+  disposez, tout est correct.
+
+- paramétrer et utuiliser un périphérique "raw" pour l'accès au dvd
+
+  les périphériques "raw" devraient être disponible avec les noyaux
+  linux 2.4.x et il existe des "patchs" pour les autres noyaux sur
+
+  ftp://ftp.kernel.org/pub/linux/kernel/people/sct/raw-io/
+
+  pour utiliser un périphérique "raw", premièrement connectez un
+  périphérique "raw" au périphérique correspondant à votre lecteur
+  de dvd, par exemple :
+
+  raw /dev/raw1 /dev/hdc
+
+  ensuite, créez un lien nommé "rdvd" pointant vers le périphérique
+  "raw" :
+
+  ln -s /dev/raw1 /dev/rdvd
+
+
+Maintenant, comment je fais fonctionner les extentions Xv ?
+-----------------------------------------------------------
+
+D'abord, vous devez installé et utiliser XFree 4.x. Ensuite,
+assurez-vous que les "drivers" XFree que vous utilisez supportent
+Xv avec votre matéreriel. Voici quelque site pour trouver de tels
+"drivers" :
+
+g200/g400    : xfree 4.x supporte ces cartes directement
+nvidia cards : www.nvidia.com (ils fournissent des "drivers" binaires)
+ATI cards    : GATOS www.linuxvideo.org/gatos/
+i815         : Les derniers XFree 4.x les supportent
+3dfx (voodoo): Les derniers XFree 4.x les supportent
+savage       : http://www.probo.com/timr/savage40.html
+
+
+xine peut-il produire une sortie son sur 4/5 canaux ?
+-----------------------------------------------------
+
+Oui, xine peut le faire en utilisant les "drivers" OSS ou ALSA,
+du moment que les "drivers" le supporte. Au démarage xine vous
+dira quels modes sont supportés par votre "drivers", i.e. :
+
+audio_oss_out : supported modes are mono stereo (4-channel not enabled in
+.xinerc) (ac3-pass-through not enabled in .xinerc)
+
+sur cette machine la sortie 4 canaux est possible. Mais, comme
+xine ne peut détecter si des haut parleurs additionels sont
+connectés, vous devez activer ce mode dans ~/.xinerc par :
+
+four_channel:1
+
+
+Et à propos de la sortie ac3 via spdif vers un décodeur externe ?
+-----------------------------------------------------------------
+
+Xine peut le faire aussi. C'est la même histoire que pour la sortie
+4/5 canaux, vous devez l'activer dans ~/.xinerc :
+
+ac3_pass_through:1
+
+
+Que veulent dire toutes ces entrées dans .xinerc ?
+--------------------------------------------------
+
+Vous trouvez plus d'information la dessus dans doc/README.xinerc
+
+
+Où puis-je trouver la dernière version de développement ?
+---------------------------------------------------------
+
+Sur notre  CVS:
+
+cvs -d :pserver:anonymous@cvs.xine.sourceforge.net:/cvsroot/xine login
+
+<pas de mot de passe>
+
+cvs -d :pserver:anonymous@cvs.xine.sourceforge.net:/cvsroot/xine co xine-lib
+cvs -d :pserver:anonymous@cvs.xine.sourceforge.net:/cvsroot/xine co xine-ui
+
+
+Comment utiliser le plugin dvd ?
+--------------------------------
+
+Premièrement:
+Le plugin dvd fourni avec xine actuellement ne support pas les dvd
+encrypter. Vous aurez besoin pour cela un autre programme ou quelque
+chose comme un xine_dvd_plugin "amélioré" pour voir de tels dvd.
+Bien sur, il est possible de voir les flux mpeg2 décrypté (techniquement
+parlant) qui sont sur le dvd avec l'aide d'un programme additionnel.
+Du fait de la situation légale incertaine de l'encryption css, nous
+n'incluons rien de cette sorte dans la distribution de xine, nous ne
+encourrageons pas non plus l'utilisation de tels programmes (vous
+devez vérifier si l'utilisation de tels programmes est est légale
+là où vous vivez).
+Nous espérons que la situation changera rapidement.
+
+Pour les dvd qui ne sont pas encryptés, c'est généralement une bonne
+idée de regarder quels sont les fichiers du dvd en le "montant".
+Les fichiers ont des noms du genre .../VIDEO_TS/VTS_xx_x.VOB,
+ou x sont des nombres. Si vous voyez de gros fichiers .VOB sur le dvd,
+c'est probablement dans ces fichiers que ce trouve le film.
+Pour l'instant nous ne supportont pas la lecture complète et transparente
+d'un film complet - vous devrez lire individuellement chacune de ses
+parties
+
+Pour lire ce fichier VOB utiliser quelque chose comme :
+
+xine dvd://VTS_xx_x.VOB
+
+assurez-vous de ne pas mettre de chemin (pas de VIDEO_TS/) et d'utiliser
+des lettres majuscule pour le nom du fichier.
+
+Xine essaie de lire le dvd en utilisant /dev/cdrom (NDT:/dev/dvd plutot).
+Sur freebsd ceci ne fonctionnera que si vous créez un lien symbolique
+vers le devicenode de votre lecteur dvd.
+
+
+unable to open dvd drive (/dev/dvd)
+-----------------------------------
+
+Vous n'avez probablement pas de /dev/dvd (vérifiez cela). Si
+c'est le cas, créez simplement un lien /dev/dvd qui pointe vers
+le périphérique de votre lecteur de dvd.
+Quelque chose comme :
+
+cd /dev
+ln -s hdc dvd
+
+devrait le faire.
+
+
+J'ai des problème pour fixer la région de mon lecteur RPC-2
+-----------------------------------------------------------
+
+Vous pouvez télécharger un outil pour fixer le code de région de
+votre lecteur RPC-2, là :
+
+http://linuxtv.org/download/dvd/dvd_disc_20000215_css.tar.gz
+
+Attention: S'il vous plait, soyez attentif au fait que le nombre
+de changement de région est limité (habituellement, environ 5 fois),
+après cela le lecteur restera bloqué sur la dernière région.
+
+
+Le rapport largeur/hauteur est mauvais!
+---------------------------------------
+
+Essayer de presser la touche 'A' pour changer le rapport
+largeur/hauteur.
+
+
+Comment jouer un flux depuis STDIN ?
+------------------------------------
+
+Utilisez quelque chose comme :
+
+cat stream.mpg | xine stdin://mpeg1
+
+ou, si vous avez un flux mpeg-2 :
+
+cat stream.vob | xine stdin://mpeg2
+
+
+Comment changer la "peau" ? (NDT:peau=skin)
+---------------------------
+
+Lancez xine au moins une foix - pour qu'il écrive le fichier de
+configuration .xinerc dans votre répertoire "maison". Maintenant
+éditez ce fichier et changer la ligne "skin:default" pour correspondre
+à la "peau" que vous souhaitez utiliser. (NTD:les "peaux" sont dans
+<prefixe>/share/xine/skins)
+
+
+Comment changer les couleurs/la brillance/le contrast ?
+-------------------------------------------------------
+
+Pour le moment, ceci n'est supporté que par quelques "drivers" Xv.
+Vous trouverez dans ~/.xinerc des entrées comme :
+
+brightness:0
+saturation:0
+contrast:128
+
+les valeurs possibles dépendent de votre "drivers" Xv, c'est pourquoi
+vous devrez expérimenté un peu pour obtenir une bonne image.
+
+
+Certaines parties de mon bureau X deviennent transparente quand xine
+--------------------------------------------------------------------
+joue la vidéo !
+---------------
+
+Il semblerait que certaine couleur de votre environnement correspond à la
+couleur de transparence (NDT:colorkey) que Xv utilise. Vous pouvez modifier
+cette couleur. Il doit y avoir une ligne comme :
+
+colorkey:2110
+
+dans votre ~/.xinerc, vous pouvez changer cette couleur.
+
+
+Je n'ai pas de son, seulement : "audio driver 'oss' failed, using null
+----------------------------------------------------------------------
+driver instead."
+----------------
+
+D'abord, assurez vous que les "drivers" son OSS fonctinnent (i.e. vous
+pouvez jouer des sons avec d'autres programmes).
+
+Le raison la plus commune est qu'un autre programme est en train d'utiliser
+votre carte son. Si vous utiliser Linux, la commande "fuser /dev/dsp" doit
+vous fournir le PID (NDT:Process ID) du processus qui l'utilise.
+
+Si vous utilisez GNOMM, il y a des chances pour que ce soit ESD. Maintenant
+vous avez deux possibilités. Soit vous désactivez ESD (temporairement) en
+cliquant sur l'<applet> monitor son et en sélectionnant "Mettre Esound en
+standby". Alors xine pourra utiliser la sortie son OSS. L'autre méthode
+est de faire utiliser la sortie ESD par xine :
+
+xine -A esd
+
+Ceci peut fournir un son de plus mauvaise qualité, c'est pourquoi
+la première méthode est préférable.
+
+
+J'ai des problème pour utiliser xine sur FreeBSD, Solaris
+---------------------------------------------------------
+
+Lisez le fichier README correspondant dans le répertoire doc.
+
+
+Qu'est-ce que aalib ? Comment puis-je l'utiliser dans xine ?
+------------------------------------------------------------
+
+aalib est une librairie "ascii-art". Xine est fourni avec un
+plugin aalib avec lequel vous pouvez voir des films dans un
+xterm ou une console ou votre vieux vt100 - très cool ;>
+
+Pour l'utiliser, vérifier que vous avez bien installé aalib avant de
+configurer/construire xine-lib et xine-ui. En plus du binaire "xine",
+un binaire "aaxine" doit être construit et installé, pour l'utiliser :
+
+aaxine foo.mpg
+
+
+
+Un problème pour charger les librairies alsa 09
+-----------------------------------------------
+
+Joel Atyas <smilin@seedling.com> nous a écrit:
+
+J'ai un problème similaire qui semble être causé par une fonctionnalité
+de .xinerc qui est encore non documenté. Cette solution est une
+supposition sauvage: mettez les lignes
+
+alsa_pcm_device:plughw:0,0
+alsa_ac3_device:plughw:0,2
+
+quelque part dans  ~/.xinerc et réessayez.
+
+
+Je crois que j'ai trouvé un bug !
+---------------------------------
+
+xine est actuellement en plein développement. Soyez patient.
+Si vous avez le temps, s'il vous plait contactez nous et envoyez
+nous un rapport de bug complet. S'il vous plait, incluez-y toute
+la sortie de xine sur la console et les détails de votre
+matériel et système d'exploitation.
+
+Vous pouvez nous joindre par email :
+
+  Xine Mailing List <xine-user@lists.sourceforge.net>
+
+FAQ de Xine traduite par frederic.bonnaud@laposte.net.
