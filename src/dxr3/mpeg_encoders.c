@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mpeg_encoders.c,v 1.3 2001/12/23 02:36:55 hrm Exp $
+ * $Id: mpeg_encoders.c,v 1.4 2001/12/24 16:01:15 hrm Exp $
  *
  * mpeg encoders for the dxr3 video out plugin.  
  */ 
@@ -173,7 +173,7 @@ static int rte_on_display_frame( dxr3_driver_t* drv, dxr3_frame_t* frame )
 	int size;
 	rte_data_t* this = (rte_data_t*)drv->enc;
 
-	if ( (this->width != frame->width) || (this->height != frame->height)){
+	if ( (this->width != frame->width) || (this->height != frame->oheight)){
 		/* maybe we were reinitialized and get an old frame. */
 		return 0;
 	}
