@@ -41,6 +41,7 @@ xine-lib (1-rc1)
   * fix colors of YUY2 overlay blending
   * new fftgraph viz plugin
   * updated goom support
+  * better multibyte string support in OSD and external subtitles
   * fix crasher in CDDA plugin
   * nvtv tvmode support removed from xine-lib. it is better suited in the
     frontends where it should be replaced with the new libnvtvsimple.
