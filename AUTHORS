@@ -158,7 +158,7 @@ Contributions
     http input plugin patches
 
   Thibaut Mattern <tmattern@noos.fr>
-    zooming feature for Xv video-out plugin
+    zooming feature for Xv video-out plugin, demuxer cleanups and fixes
 
   Matthias Dahl <matthew2k@web.de>
     syncfb video-out plugin, XF86VidMode support, FAQ/README overhaul, bugfixes
@@ -224,6 +224,6 @@ Contributions
     czech internationalization files (xine lib/ui).
 
   Ian Goldberg <ian@cypherpunks.ca>
-    "streaming" AVI support (plays growing files)
+    "streaming" AVI support (plays growing files), >2GB AVI files
 
     (let us know if we've forgotten anyone)
