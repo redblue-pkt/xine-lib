@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_pes.c,v 1.4 2003/07/01 16:04:53 jcdutton Exp $
+ * $Id: demux_mpeg_pes.c,v 1.5 2003/07/12 00:45:04 jcdutton Exp $
  *
  * demultiplexer for mpeg 2 PES (Packetized Elementary Streams)
  * reads streams of variable blocksizes
@@ -243,8 +243,15 @@ static void demux_mpeg_pes_parse_pack (demux_mpeg_pes_t *this, int preview_mode)
       }
       buf->size = this->packet_len + 6;
     } else {
-      /* FIXME: Handle large PES packets. */
-      assert(0);
+#ifdef LOG
+      printf("Jumbo PES packet length=%d, stream_id=0x%x\n",this->packet_len, this->stream_id);
+#endif
+      i = this->input->read (this->input, buf->mem+6, (off_t) (buf->max_size - 6));
+      if (i != ( buf->max_size - 6)) {
+        buf->free_buffer (buf);
+        this->status = DEMUX_FINISHED;
+        return;
+      }
     }
 
     if (this->stream_id == 0xBB) {
@@ -871,6 +878,9 @@ static int32_t parse_private_stream_1(demux_mpeg_pes_t *this, uint8_t *p, buf_el
 
 static int32_t parse_video_stream(demux_mpeg_pes_t *this, uint8_t *p, buf_element_t *buf) {
   int32_t result;
+  uint32_t todo_length=0;
+  uint32_t i;
+  uint32_t chunk_length;
 
   result = parse_pes_for_pts(this, p, buf);
   if (result < 0) return -1;
@@ -878,7 +888,13 @@ static int32_t parse_video_stream(demux_mpeg_pes_t *this, uint8_t *p, buf_elemen
   p += result;
 
   buf->content   = p;
-  buf->size      = this->packet_len;
+
+  if (this->packet_len <= (buf->max_size - 6)) {
+    buf->size      = this->packet_len;
+  } else {
+    buf->size      = buf->max_size - result;
+    todo_length    = this->packet_len - buf->size;
+  }
   buf->type      = BUF_VIDEO_MPEG;
   buf->pts       = this->pts;
   buf->decoder_info[0] = this->pts - this->dts;
@@ -886,6 +902,29 @@ static int32_t parse_video_stream(demux_mpeg_pes_t *this, uint8_t *p, buf_elemen
     check_newpts( this, this->pts, PTS_VIDEO );
 
   this->video_fifo->put (this->video_fifo, buf);
+  while (todo_length > 0) {
+    buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
+    if (todo_length < buf->max_size) {
+      chunk_length = todo_length;
+    } else {
+      chunk_length = buf->max_size;
+    }
+    i = this->input->read (this->input, buf->mem, (off_t) (chunk_length));
+      if (i !=  chunk_length) {
+        buf->free_buffer (buf);
+        this->status = DEMUX_FINISHED;
+        return -1;
+      }
+    buf->content   = buf->mem;
+    buf->size      = chunk_length;
+    buf->type      = BUF_VIDEO_MPEG;
+    buf->pts       = 0;
+    this->video_fifo->put (this->video_fifo, buf);
+    todo_length -= chunk_length;
+  }
+
+    
+  
 #ifdef LOG
   printf ("demux_mpeg_pes: MPEG Video PACK put on fifo\n");
 #endif
