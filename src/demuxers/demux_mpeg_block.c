@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.128 2002/10/26 10:02:42 tmattern Exp $
+ * $Id: demux_mpeg_block.c,v 1.129 2002/10/26 21:47:29 mroi Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -821,14 +821,6 @@ static int demux_mpeg_block_estimate_rate (demux_mpeg_block_t *this) {
   
 }
 
-static void demux_mpeg_block_dispose (demux_plugin_t *this_gen) {
-
-  demux_mpeg_block_t *this = (demux_mpeg_block_t *) this_gen;
-  free (this->scratch_base);
-  free (this);
-  
-}
-
 static void demux_mpeg_block_stop (demux_plugin_t *this_gen) {
 
   demux_mpeg_block_t *this = (demux_mpeg_block_t *) this_gen;
@@ -851,6 +843,15 @@ static void demux_mpeg_block_stop (demux_plugin_t *this_gen) {
   xine_demux_flush_engine(this->stream);
   
   xine_demux_control_end(this->stream, BUF_FLAG_END_USER);
+}
+
+static void demux_mpeg_block_dispose (demux_plugin_t *this_gen) {
+
+  demux_mpeg_block_t *this = (demux_mpeg_block_t *) this_gen;
+  demux_mpeg_block_stop(this_gen);
+  free (this->scratch_base);
+  free (this);
+  
 }
 
 static int demux_mpeg_block_get_status (demux_plugin_t *this_gen) {
