@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.97 2003/01/10 21:10:52 miguelfreitas Exp $
+ * $Id: demux_asf.c,v 1.98 2003/01/18 00:06:02 tmattern Exp $
  *
  * demultiplexer for asf streams
  *
@@ -89,9 +89,10 @@ typedef struct demux_asf_s {
   int               keyframe_found;
 
   int               seqno;
-  int               packet_size;
-  int               packet_flags;
-
+  uint32_t          packet_size;
+  uint8_t           packet_flags;
+  uint32_t          data_size;
+  
   asf_stream_t      streams[MAX_NUM_STREAMS];
   uint32_t          bitrates[MAX_NUM_STREAMS];
   int               num_streams;
@@ -127,9 +128,9 @@ typedef struct demux_asf_s {
   int64_t           last_frame_pts;
 
   /* only for reading */
-  int               packet_padsize;
+  uint32_t          packet_padsize;
   int               nb_frames;
-  int               segtype;
+  uint8_t           segtype;
   int               frame;
 
   int               status;
@@ -599,7 +600,6 @@ static uint32_t asf_get_packet(demux_asf_t *this) {
 
   int64_t   timestamp;
   int       duration;
-  uint32_t  data_size;
   uint8_t   ecc_flags = 0;
   uint8_t   buf[16];
   uint32_t  p_hdr_size = 0;
@@ -622,22 +622,22 @@ static uint32_t asf_get_packet(demux_asf_t *this) {
   this->packet_flags = get_byte(this);  p_hdr_size += 1;
   this->segtype = get_byte(this);  p_hdr_size += 1;
 
-  /* Read packet size (plen): */
+  /* packet size */
   switch((this->packet_flags >> 5) & 3) {
     case 1:
-      data_size = get_byte(this); p_hdr_size += 1;
+      this->data_size = get_byte(this); p_hdr_size += 1;
       break;
     case 2:
-      data_size = get_le16(this); p_hdr_size += 2;
+      this->data_size = get_le16(this); p_hdr_size += 2;
       break;
     case 3:
-      data_size = get_le32(this); p_hdr_size += 4;
+      this->data_size = get_le32(this); p_hdr_size += 4;
       break;
     default:
-      data_size = 0;
+      this->data_size = 0;
   }
 
-  /* Read sequence: */
+  /* sequence */
   switch ((this->packet_flags >> 1) & 3) {
     case 1:
       get_byte(this); p_hdr_size += 1;
@@ -650,7 +650,7 @@ static uint32_t asf_get_packet(demux_asf_t *this) {
       break;
   }
 
-  /* Read padding size */
+  /* padding size */
   switch ((this->packet_flags >> 3) & 3){
     case 1:
       this->packet_padsize = get_byte(this); p_hdr_size += 1;
@@ -664,7 +664,7 @@ static uint32_t asf_get_packet(demux_asf_t *this) {
     default:
       this->packet_padsize = 0;
   }
-    
+
   timestamp = get_le32(this); p_hdr_size += 4;
   duration  = get_le16(this); p_hdr_size += 2;
   
@@ -677,19 +677,21 @@ static uint32_t asf_get_packet(demux_asf_t *this) {
   this->frame = 0;
     
   if ((this->packet_flags >> 5) & 3) {
-    /* absolute packet size */
+    /* absolute data size */
 #ifdef LOG
-    printf ("demux_asf: absolute packet size\n");
+    printf ("demux_asf: absolute data size\n");
 #endif
-    this->packet_padsize = this->packet_size - data_size;
+    this->packet_padsize = this->packet_size - this->data_size; /* not used */
   } else {
-    /* relative packet size */
+    /* relative data size */
 #ifdef LOG
-    printf ("demux_asf: relative packet size\n");
+    printf ("demux_asf: relative data size\n");
 #endif
+    this->data_size = this->packet_size - this->packet_padsize;
   }
-  this->packet_size_left = this->packet_size - p_hdr_size;
   
+  /* this->packet_size_left = this->packet_size - p_hdr_size; */
+  this->packet_size_left = this->data_size - p_hdr_size;
 #ifdef LOG
   printf ("demux_asf: new packet, size = %d, size_left = %d, flags = 0x%02x, padsize = %d, this->packet_size = %d\n",
     data_size, this->packet_size_left, this->packet_flags, this->packet_padsize, this->packet_size);
@@ -1001,9 +1003,9 @@ static void asf_read_packet(demux_asf_t *this) {
       return ;
     }
     
-    if ((this->packet_padsize < 0) || (this->packet_padsize > this->packet_size)) {
+    if (this->packet_padsize > this->packet_size) {
       /* skip packet */
-      printf ("demux_asf: invalid padsize\n");
+      printf ("demux_asf: invalid padsize: %d\n", this->packet_padsize);
       this->frame = this->nb_frames - 1;
       return;
     }
@@ -1135,9 +1137,9 @@ static void asf_read_packet(demux_asf_t *this) {
 
     } else {
 
-      data_length = this->packet_size_left - s_hdr_size - this->packet_padsize; 
+      data_length = this->packet_size_left - s_hdr_size;
 #ifdef LOG
-        printf ("demux_asf: reading grouping single segment, size = %d\n", data_length); 
+      printf ("demux_asf: reading grouping single segment, size = %d\n", data_length); 
 #endif
     }
 
@@ -1206,7 +1208,8 @@ static void asf_read_packet(demux_asf_t *this) {
       printf ("demux_asf: reading part segment, size = %d\n", frag_len);
 #endif
     } else {
-      frag_len = this->packet_size_left - s_hdr_size - this->packet_padsize; 
+      frag_len = this->packet_size_left - s_hdr_size;
+
 #ifdef LOG
       printf ("demux_asf: reading single segment, size = %d\n", frag_len); 
 #endif
@@ -1214,7 +1217,7 @@ static void asf_read_packet(demux_asf_t *this) {
 
     if (frag_len > this->packet_size_left) {
       /* skip packet */
-      printf ("demux_asf: invalid rlen %d\n", rlen);
+      printf ("demux_asf: invalid frag_len %d\n", frag_len);
       this->frame = this->nb_frames - 1;
       return;
     }
@@ -1384,6 +1387,9 @@ static void demux_asf_send_headers (demux_plugin_t *this_gen) {
     
     asf_send_audio_header(this, this->audio_stream);
     asf_send_video_header(this, this->video_stream);
+#ifdef LOG
+    printf ("demux_asf: send header done\n", this->wavex_size);
+#endif
   
   }
 
