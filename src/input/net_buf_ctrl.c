@@ -85,11 +85,6 @@ void nbc_check_buffers (nbc_t *this) {
     
     if (!this->buffering) {
 
-      /* FIXME: send progress events about buffering
-      xine_event_t             event;
-      xine_idx_progress_data_t idx;
-       */
-
       if (this->high_water_mark<150) {
 
 	/* increase marks to adapt to stream/network needs */
