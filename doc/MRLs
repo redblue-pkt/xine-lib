@@ -14,8 +14,8 @@ if they can handle the MRL.
 The second part, derivable from <stream_setup> and delimited from the
 first by a crosshatch ('#') contains parameters that modify the
 initialization and playback behaviour of the stream to which the MRL
-is passed. The possible parameters should be self-explaining, when
-looking into the grammar.
+is passed. The possible parameters are mentioned in the manpage to
+xine-ui.
 
 The following definition should be regarded as a guideline only.
 Of course any given input plugin only understands a subset of all
@@ -52,11 +52,11 @@ EBNF grammar for MRLs:
 <path_char>	::= (<unreserved>|<escaped>|:|@|&|=|+|$|,)
 <query>		::= {<mrl_char>}
 <stream_setup>	::= <stream_option>;{<stream_option>}
-<stream_option>	::= (<configoption>|<demux>|novideo|noaudio|nospu)
+<stream_option>	::= (<configoption>|<engine_option>|novideo|noaudio|nospu)
 <configoption>	::= <configentry>:<configvalue>
 <configentry>	::= <unreserved>{<unreserved>}
 <configvalue>	::= <conf_char>{<conf_char>}
-<demux>		::= demux:<stream_char>{<stream_char>}
+<engine_option>	::= <unreserved>{<unreserved>}:<stream_char>{<stream_char>}
 <stream_char>	::= (<unreserved>|<escaped>|:|@|&|=|+|$|,)
 <mrl_char>	::= (<reserved>|<unreserved>|<escaped>)
 <reserved>	::= (;|/|?|:|@|&|=|+|$|,)
