@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.83 2002/09/17 07:53:59 jcdutton Exp $
+ * $Id: input_dvd.c,v 1.84 2002/09/18 04:20:09 jcdutton Exp $
  *
  */
 
@@ -1127,16 +1127,22 @@ static void dvdnav_event_listener (void *this_gen, xine_event_t *event) {
    break;
    case XINE_EVENT_INPUT_SELECT:
    {
-      xine_dvdnav_send_button_update(this, 1);
-      dvdnav_button_activate(this->dvdnav);
+      pci_t nav_pci;
+      if (this->xine->cur_spu_decoder_plugin->get_nav_pci(this->xine->cur_spu_decoder_plugin, &nav_pci) ) {
+        xine_dvdnav_send_button_update(this, 1);
+        dvdnav_button_activate(this->dvdnav, &nav_pci);
+      }
    }
    break;
    case XINE_EVENT_MOUSE_BUTTON: 
    {
-     xine_input_event_t *input_event = (xine_input_event_t*) event;      
-     xine_dvdnav_send_button_update(this, 1);
-     dvdnav_mouse_activate(this->dvdnav, input_event->x, 
+     pci_t nav_pci;
+     if (this->xine->cur_spu_decoder_plugin->get_nav_pci(this->xine->cur_spu_decoder_plugin, &nav_pci) ) {
+       xine_input_event_t *input_event = (xine_input_event_t*) event;      
+       xine_dvdnav_send_button_update(this, 1);
+       dvdnav_mouse_activate(this->dvdnav, &nav_pci, input_event->x, 
 			    input_event->y);
+     }
    }
     break;
    case XINE_EVENT_INPUT_BUTTON_FORCE:  /* For libspudec to feedback forced button select from NAV PCI packets. */
@@ -1146,34 +1152,57 @@ static void dvdnav_event_listener (void *this_gen, xine_event_t *event) {
 #ifdef INPUT_DEBUG
      printf("input_dvd: BUTTON_FORCE %d\n", but->buttonN);
 #endif
-     dvdnav_button_select(this->dvdnav, but->buttonN);
+     dvdnav_button_select(this->dvdnav, &but->nav_pci, but->buttonN);
    }
     break;
    case XINE_EVENT_MOUSE_MOVE: 
      {
-      xine_input_event_t *input_event = (xine_input_event_t*) event;      
+      pci_t nav_pci;
+      if (this->xine->cur_spu_decoder_plugin->get_nav_pci(this->xine->cur_spu_decoder_plugin, &nav_pci) ) {
+        xine_input_event_t *input_event = (xine_input_event_t*) event;      
       /* printf("input_dvd: Mouse move (x,y) = (%i,%i)\n", input_event->x,
 	     input_event->y); */
-      dvdnav_mouse_select(this->dvdnav, input_event->x, input_event->y);
-      xine_dvdnav_send_button_update(this, 0);
+        dvdnav_mouse_select(this->dvdnav, &nav_pci, input_event->x, input_event->y);
+        xine_dvdnav_send_button_update(this, 0);
+      }
      }
     break;
    case XINE_EVENT_INPUT_UP:
-    dvdnav_upper_button_select(this->dvdnav);
-    xine_dvdnav_send_button_update(this, 0);
-    break;
+    {
+      pci_t nav_pci;
+      if (this->xine->cur_spu_decoder_plugin->get_nav_pci(this->xine->cur_spu_decoder_plugin, &nav_pci) ) {
+        dvdnav_upper_button_select(this->dvdnav, &nav_pci);
+        xine_dvdnav_send_button_update(this, 0);
+      }
+      break;
+    }
    case XINE_EVENT_INPUT_DOWN:
-    dvdnav_lower_button_select(this->dvdnav);
-    xine_dvdnav_send_button_update(this, 0);
-    break;
+    {
+      pci_t nav_pci;
+      if (this->xine->cur_spu_decoder_plugin->get_nav_pci(this->xine->cur_spu_decoder_plugin, &nav_pci) ) {
+        dvdnav_lower_button_select(this->dvdnav, &nav_pci);
+        xine_dvdnav_send_button_update(this, 0);
+      }
+      break;
+    }
    case XINE_EVENT_INPUT_LEFT:
-    dvdnav_left_button_select(this->dvdnav);
-    xine_dvdnav_send_button_update(this, 0);
-    break;
+    {
+      pci_t nav_pci;
+      if (this->xine->cur_spu_decoder_plugin->get_nav_pci(this->xine->cur_spu_decoder_plugin, &nav_pci) ) {
+        dvdnav_left_button_select(this->dvdnav, &nav_pci);
+        xine_dvdnav_send_button_update(this, 0);
+      }
+      break;
+    }
    case XINE_EVENT_INPUT_RIGHT:
-    dvdnav_right_button_select(this->dvdnav);
-    xine_dvdnav_send_button_update(this, 0);
-    break;
+    {
+      pci_t nav_pci;
+      if (this->xine->cur_spu_decoder_plugin->get_nav_pci(this->xine->cur_spu_decoder_plugin, &nav_pci) ) {
+        dvdnav_right_button_select(this->dvdnav, &nav_pci);
+        xine_dvdnav_send_button_update(this, 0);
+      }
+      break;
+    }
    case XINE_EVENT_INPUT_NUMBER_9:
     this->typed_buttonN++;
    case XINE_EVENT_INPUT_NUMBER_8:
@@ -1193,11 +1222,16 @@ static void dvdnav_event_listener (void *this_gen, xine_event_t *event) {
    case XINE_EVENT_INPUT_NUMBER_1:
     this->typed_buttonN++;
    case XINE_EVENT_INPUT_NUMBER_0:
-    dvdnav_button_select(this->dvdnav, this->typed_buttonN);
-    xine_dvdnav_send_button_update(this, 1);
-    dvdnav_button_activate(this->dvdnav);
-    this->typed_buttonN = 0;
-    break;
+    {
+      pci_t nav_pci;
+      if (this->xine->cur_spu_decoder_plugin->get_nav_pci(this->xine->cur_spu_decoder_plugin, &nav_pci) ) {
+        dvdnav_button_select(this->dvdnav, &nav_pci, this->typed_buttonN);
+        xine_dvdnav_send_button_update(this, 1);
+        dvdnav_button_activate(this->dvdnav, &nav_pci);
+        this->typed_buttonN = 0;
+      }
+      break;
+    }
    case XINE_EVENT_INPUT_NUMBER_10_ADD:
     this->typed_buttonN += 10;
   }
@@ -1493,6 +1527,11 @@ static void *init_input_plugin (xine_t *xine, void *data) {
 
 /*
  * $Log: input_dvd.c,v $
+ * Revision 1.84  2002/09/18 04:20:09  jcdutton
+ * Updating the DVD menu code to use better nav_pci information.
+ * libspudec parses nav_pci info correctly.
+ * libdvdnav does not parse nav_pci info at all.
+ *
  * Revision 1.83  2002/09/17 07:53:59  jcdutton
  * Make input_dvd.c mrl playlist work again.
  *

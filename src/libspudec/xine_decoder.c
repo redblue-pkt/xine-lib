@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.75 2002/09/05 22:18:58 mroi Exp $
+ * $Id: xine_decoder.c,v 1.76 2002/09/18 04:20:09 jcdutton Exp $
  *
  * stuff needed to turn libspu into a xine decoder plugin
  */
@@ -291,7 +291,24 @@ static void spudec_dispose (spu_decoder_t *this_gen) {
   free (this->event.object.overlay);
   free (this);
 }
+/* gets the current already correctly processed nav_pci info */
+/* This is not perfectly in sync with the display, but all the same, */
+/* much closer than doing it at the input stage. */
+/* returns a bool for error/success.*/
+static int spudec_get_nav_pci (spu_decoder_t *this_gen, void *pci) {
+  spudec_decoder_t *this  = (spudec_decoder_t *) this_gen;
+  pci_t *nav_pci = (pci_t *) pci;
 
+  if (!this || !nav_pci) 
+    return 0;
+ 
+  pthread_mutex_lock(&this->nav_pci_lock);
+  memcpy(nav_pci, &this->pci, sizeof(pci_t) );
+  pthread_mutex_unlock(&this->nav_pci_lock);
+  return 1;
+
+}
+ 
 static void *init_spu_decoder_plugin (xine_t *xine, void *data) {
 
   spudec_decoder_t *this ;
@@ -304,6 +321,7 @@ static void *init_spu_decoder_plugin (xine_t *xine, void *data) {
   this->spu_decoder.close               = spudec_close;
   this->spu_decoder.get_identifier      = spudec_get_id;
   this->spu_decoder.dispose             = spudec_dispose;
+  this->spu_decoder.get_nav_pci         = spudec_get_nav_pci;
 
   this->xine                            = xine;
   
