@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.132 2003/10/11 21:25:04 tmattern Exp $
+ * $Id: demux_asf.c,v 1.133 2003/10/13 23:49:01 tmattern Exp $
  *
  * demultiplexer for asf streams
  *
@@ -1269,14 +1269,14 @@ static int asf_parse_packet_payload_multiple(demux_asf_t *this,
  if (rlen >= 8) {
     payload_size  = get_le32(this); s_hdr_size += 4;
     *timestamp    = get_le32(this); s_hdr_size += 4;
-    this->input->seek (this->input, rlen - 8, SEEK_CUR);
+    if (rlen - 8) this->input->seek (this->input, rlen - 8, SEEK_CUR);
     s_hdr_size += rlen - 8;
   } else {
     if (this->stream->xine->verbosity >= XINE_VERBOSITY_DEBUG) 
       printf ("demux_asf: strange rlen %d\n", rlen);
     *timestamp   = 0;
     payload_size = 0;
-    this->input->seek (this->input, rlen, SEEK_CUR);
+    if (rlen) this->input->seek (this->input, rlen, SEEK_CUR);
     s_hdr_size += rlen;
   }
 
@@ -1900,14 +1900,12 @@ static int demux_asf_seek (demux_plugin_t *this_gen,
       printf ("demux_asf: demux_asf_seek: seek back\n");
 #endif
       if (this->input->seek (this->input, start_pos, SEEK_SET) != start_pos) {
-        if (this->stream->xine->verbosity >= XINE_VERBOSITY_DEBUG)
-          printf ("demux_asf: demux_asf_seek: seek failed\n");
+        printf ("demux_asf: demux_asf_seek: seek failed\n");
         goto error;
       }
   
       if (asf_parse_packet_header(this)) {
-        if (this->stream->xine->verbosity >= XINE_VERBOSITY_DEBUG)
-          printf ("demux_asf: demux_asf_seek: get_packet failed\n");
+        printf ("demux_asf: demux_asf_seek: get_packet failed\n");
         goto error;
       }
       
