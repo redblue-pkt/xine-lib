@@ -35,7 +35,7 @@
  * along with this program; see the file COPYING.  If not, write to
  * the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: spu.c,v 1.20 2001/10/26 11:21:08 jcdutton Exp $
+ * $Id: spu.c,v 1.21 2001/10/26 13:39:21 jcdutton Exp $
  *
  */
 
@@ -93,8 +93,9 @@ int spu_reassembly (spu_seq_t *seq, int start, uint8_t *pkt_data, u_int pkt_len)
       }
 
       seq->buf_len = seq->seq_len;
+      xprintf (VERBOSE|SPU, "MALLOC1: seq->buf %p, len=%d\n", seq->buf,seq->buf_len);
       seq->buf = malloc(seq->buf_len);
-      xprintf (VERBOSE|SPU, "MALLOC: seq->buf %p, len=%d\n", seq->buf,seq->buf_len);
+      xprintf (VERBOSE|SPU, "MALLOC2: seq->buf %p, len=%d\n", seq->buf,seq->buf_len);
 
     }
     seq->ra_offs = 0;
@@ -338,8 +339,9 @@ void spu_draw_picture (spu_state_t *state, spu_seq_t* seq, vo_overlay_t *ovl)
 //    if (ovl->rle)
 //      free(ovl->rle);
     ovl->data_size = seq->cmd_offs * 2 * sizeof(rle_elem_t);
+    xprintf (VERBOSE|SPU, "MALLOC1: ovl->rle %p, len=%d\n", ovl->rle,ovl->data_size);
     ovl->rle = malloc(ovl->data_size);
-    xprintf (VERBOSE|SPU, "MALLOC: ovl->rle %p, len=%d\n", ovl->rle,ovl->data_size);
+    xprintf (VERBOSE|SPU, "MALLOC2: ovl->rle %p, len=%d\n", ovl->rle,ovl->data_size);
 //  }
 
   state->modified = 0; /* mark as already processed */

@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.27 2001/10/26 11:21:08 jcdutton Exp $
+ * $Id: xine_decoder.c,v 1.28 2001/10/26 13:39:21 jcdutton Exp $
  *
  * stuff needed to turn libspu into a xine decoder plugin
  */
@@ -189,8 +189,12 @@ static void spudec_reset (spudec_decoder_t *this) {
 
   for (i=0; i < MAX_EVENTS; i++) {
     if (this->spu_events[i].event == NULL) {
-      this->spu_events[i].event = malloc (sizeof(spu_overlay_event_t));
-      xprintf (VERBOSE|SPU, "MALLOC: this->spu_events[%d].event %p, len=%d\n",
+      xprintf (VERBOSE|SPU, "MALLOC1: this->spu_events[%d].event %p, len=%d\n",
+               i,
+               this->spu_events[i].event,
+               sizeof(spu_overlay_event_t));
+      this->spu_events[i].event = xmalloc (sizeof(spu_overlay_event_t));
+      xprintf (VERBOSE|SPU, "MALLOC2: this->spu_events[%d].event %p, len=%d\n",
                i,
                this->spu_events[i].event,
                sizeof(spu_overlay_event_t));
@@ -204,8 +208,10 @@ static void spudec_reset (spudec_decoder_t *this) {
   this->spu_objects[1].handle=1;
   this->spu_objects[1].object_type=1;
   this->spu_objects[1].pts=0;
+  xprintf (VERBOSE|SPU, "MALLOC1: this->spu_objects[1].overlay %p, len=%d\n",
+            this->spu_objects[1].overlay, sizeof(vo_overlay_t));
   this->spu_objects[1].overlay = xmalloc (sizeof(vo_overlay_t));
-  xprintf (VERBOSE|SPU, "MALLOC: this->spu_objects[1].overlay %p, len=%d\n",
+  xprintf (VERBOSE|SPU, "MALLOC2: this->spu_objects[1].overlay %p, len=%d\n",
             this->spu_objects[1].overlay, sizeof(vo_overlay_t));
 /* xmalloc does memset */
 /*  memset(this->spu_objects[1].overlay,0,sizeof(vo_overlay_t));
@@ -314,13 +320,18 @@ int32_t spu_add_event(spudec_decoder_t *this,  spu_overlay_event_t *event) {
   this->spu_events[new_event].event->event_type=event->event_type;
   this->spu_events[new_event].event->vpts=event->vpts;
   this->spu_events[new_event].event->object.handle=event->object.handle;
-  this->spu_events[new_event].event->object.overlay = malloc (sizeof(vo_overlay_t));
-  xprintf (VERBOSE|SPU, "MALLOC: this->spu_events[%d].overlay %p, len=%d\n",
+  xprintf (VERBOSE|SPU, "MALLOC1: this->spu_events[new_event=%d].event->object.overlay %p, len=%d\n",
+            new_event,
+            this->spu_events[new_event].event->object.overlay,
+            sizeof(vo_overlay_t));
+  this->spu_events[new_event].event->object.overlay = xmalloc (sizeof(vo_overlay_t));
+  xprintf (VERBOSE|SPU, "MALLOC2: this->spu_events[new_event=%d].event->object.overlay %p, len=%d\n",
             new_event,
             this->spu_events[new_event].event->object.overlay,
             sizeof(vo_overlay_t));
   memcpy(this->spu_events[new_event].event->object.overlay, 
     event->object.overlay, sizeof(vo_overlay_t));
+  memset(event->object.overlay,0,sizeof(vo_overlay_t));
 //  print_overlay( event->object.overlay );
 //  print_overlay( this->spu_events[new_event].event->object.overlay );  
   pthread_mutex_unlock (&this->spu_events_mutex);
@@ -531,7 +542,14 @@ void spu_process_event( spudec_decoder_t *this, int vpts ) {
       xprintf (VERBOSE|SPU, "SHOW SPU NOW\n");
       if (this->spu_events[this_event].event->object.overlay != NULL) {
         this->spu_objects[handle].handle = handle;
+        xprintf (VERBOSE|SPU, "POINTER1: this->spu_objects[handle=%d].overlay=%p\n",
+                  handle,
+                  this->spu_objects[handle].overlay);
         this->spu_objects[handle].overlay = this->spu_events[this_event].event->object.overlay;
+        xprintf (VERBOSE|SPU, "POINTER2: this->spu_objects[handle=%d].overlay=%p\n",
+                  handle,
+                  this->spu_objects[handle].overlay);
+        this->spu_events[this_event].event->object.overlay = NULL;
       }
       this->spu_showing[1].handle = handle;
       break;
@@ -717,15 +735,21 @@ static void spudec_event_listener(void *this_gen, xine_event_t *event_gen) {
   switch (event->event.type) {
   case XINE_EVENT_SPU_BUTTON:
     {
-      spu_overlay_event_t *overlay_event;
-      vo_overlay_t        *overlay;
+      spu_overlay_event_t *overlay_event = NULL;
+      vo_overlay_t        *overlay = NULL;
       spu_button_t        *but = event->data;
-      overlay_event = malloc (sizeof(spu_overlay_event_t));
-      xprintf (VERBOSE|SPU, "MALLOC: overlay_event %p, len=%d\n",
+      xprintf (VERBOSE|SPU, "MALLOC1: overlay_event %p, len=%d\n",
                overlay_event,
                sizeof(spu_overlay_event_t));
-      overlay = malloc (sizeof(vo_overlay_t));
-      xprintf (VERBOSE|SPU, "MALLOC: overlay %p, len=%d\n",
+      overlay_event = xmalloc (sizeof(spu_overlay_event_t));
+      xprintf (VERBOSE|SPU, "MALLOC2: overlay_event %p, len=%d\n",
+               overlay_event,
+               sizeof(spu_overlay_event_t));
+      xprintf (VERBOSE|SPU, "MALLOC1: overlay %p, len=%d\n",
+               overlay,
+               sizeof(vo_overlay_t));
+      overlay = xmalloc (sizeof(vo_overlay_t));
+      xprintf (VERBOSE|SPU, "MALLOC2: overlay %p, len=%d\n",
                overlay,
                sizeof(vo_overlay_t));
       overlay_event->object.overlay=overlay;
