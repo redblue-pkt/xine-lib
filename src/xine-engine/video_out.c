@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.216 2005/02/13 22:14:17 holstsn Exp $
+ * $Id: video_out.c,v 1.217 2005/02/13 22:23:41 holstsn Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -484,7 +484,6 @@ static int vo_frame_draw (vo_frame_t *img, xine_stream_t *stream) {
       if (stream->first_frame_flag == 2) {
         if (this->grab_only) {
           stream->first_frame_flag = 0;
-          xprintf (stream->xine, XINE_VERBOSITY_DEBUG, "first frame reached 1\n");
           pthread_cond_broadcast(&stream->first_frame_reached);
         } else
           stream->first_frame_flag = 1;
@@ -945,7 +944,6 @@ static void overlay_and_display_frame (vos_t *this,
       pthread_mutex_lock (&stream->first_frame_lock);
       if (stream->first_frame_flag) {
         stream->first_frame_flag = 0;
-        xprintf (stream->xine, XINE_VERBOSITY_DEBUG, "first frame reached 2\n");
         pthread_cond_broadcast(&stream->first_frame_reached);
       }
       pthread_mutex_unlock (&stream->first_frame_lock);
