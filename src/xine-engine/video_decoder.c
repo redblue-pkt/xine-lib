@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.21 2001/06/14 09:19:44 guenter Exp $
+ * $Id: video_decoder.c,v 1.22 2001/06/14 10:48:24 guenter Exp $
  *
  */
 
@@ -49,10 +49,12 @@ void *video_decoder_loop (void *this_gen) {
      * there is a video decoder initialized, like
      *  in mpeg1/2 playback.
      */
-    if(this->cur_video_decoder_plugin != NULL) {
+    /*
+      if(this->cur_video_decoder_plugin != NULL) {
       if(this->status == XINE_PLAY)
-	this->status_callback (this->status);
-    }
+      this->status_callback (this->status);
+      }
+    */
     
     switch (buf->type) {
     case BUF_CONTROL_START:

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg.c,v 1.16 2001/06/11 03:14:29 heikos Exp $
+ * $Id: demux_mpeg.c,v 1.17 2001/06/14 10:48:24 guenter Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  * reads streams of variable blocksizes
@@ -152,6 +152,10 @@ static void parse_mpeg2_packet (demux_mpeg_t *this, int nID) {
 
     if(this->audio_fifo)
       buf = this->input->read_block (this->input, this->audio_fifo, nLen-4);
+    else {
+      buf = this->input->read (this->input, this->dummy_space, nLen);
+      return;
+    }
     
     if (buf == NULL) {
       this->status = DEMUX_FINISHED;

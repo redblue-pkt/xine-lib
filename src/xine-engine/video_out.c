@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.17 2001/06/14 09:19:44 guenter Exp $
+ * $Id: video_out.c,v 1.18 2001/06/14 10:48:24 guenter Exp $
  *
  */
 
@@ -327,6 +327,7 @@ static void vo_close (vo_instance_t *this) {
     void *p;
 
     this->video_loop_running = 0;
+    kill (0, SIGALRM);
     pthread_join (this->video_thread, &p);
   }
 }
