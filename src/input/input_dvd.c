@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.91 2002/10/02 15:56:51 mroi Exp $
+ * $Id: input_dvd.c,v 1.92 2002/10/06 15:48:02 jkeil Exp $
  *
  */
 
@@ -39,6 +39,7 @@
 /* Standard includes */
 #include <stdio.h>
 #include <stdlib.h>
+#include <stddef.h>
 #include <dirent.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -292,6 +293,11 @@ static void dvdnav_plugin_close (input_plugin_t *this_gen) {
   this->dvd_name_length        = 0;
 }
 
+
+/* Align pointer |p| to alignment |align| */
+#define	PTR_ALIGN(p, align)	((void*) (((long)(p) + (align) - 1) & ~((align)-1)) )
+
+
 static void dvdnav_build_mrl_list(dvdnav_input_plugin_t *this) {
   int num_titles, *num_parts;
 
@@ -313,6 +319,11 @@ static void dvdnav_build_mrl_list(dvdnav_input_plugin_t *this) {
 
   dvdnav_get_number_of_titles(this->dvdnav, &num_titles);
   if ((num_parts = (int *) calloc(num_titles, sizeof(int)))) {
+    struct xine_mrl_align_s {
+      char dummy;
+      xine_mrl_t mrl;
+    };
+    int xine_mrl_alignment = offsetof(struct xine_mrl_align_s, mrl);
     int num_mrls = 1, i;
     /* for each title, count the number of parts */
     for (i = 1; i <= num_titles; i++) {
@@ -323,16 +334,19 @@ static void dvdnav_build_mrl_list(dvdnav_input_plugin_t *this) {
     }
 
     /* allocate enough memory for:
-     * - a list of pointers to mrls       sizeof(xine_mrl_t *)     * num_mrls + 1
+     * - a list of pointers to mrls       sizeof(xine_mrl_t *)     * (num_mrls+1)
+     * - possible alignment of the mrl array 
      * - an array of mrl structures       sizeof(xine_mrl_t)       * num_mrls
      * - enough chars for every filename  sizeof(char)*25     * num_mrls
      *   - "dvd://:000000.000000\0" = 25 chars
      */
     if ((this->mrls = (xine_mrl_t **) malloc(sizeof(xine_mrl_t *) + num_mrls *
-	(sizeof(xine_mrl_t*) + sizeof(xine_mrl_t) + 25*sizeof(char))))) {
+	(sizeof(xine_mrl_t*) + sizeof(xine_mrl_t) + 25*sizeof(char)) +
+	xine_mrl_alignment))) {
     
       /* the first mrl struct comes after the pointer list */
-      xine_mrl_t *mrl = (xine_mrl_t *) &this->mrls[num_mrls+1];
+      xine_mrl_t *mrl = PTR_ALIGN(&this->mrls[num_mrls+1], xine_mrl_alignment);
+
       /* the chars for filenames come after the mrl structs */
       char *name = (char *) &mrl[num_mrls];
       int pos = 0, j;
@@ -1550,6 +1564,9 @@ static void *init_input_plugin (xine_t *xine, void *data) {
 
 /*
  * $Log: input_dvd.c,v $
+ * Revision 1.92  2002/10/06 15:48:02  jkeil
+ * Proper alignment is needed for the array of "xine_mrl_t" structures on SPARC.
+ *
  * Revision 1.91  2002/10/02 15:56:51  mroi
  * - kill global variables
  * - remove some code that could never be reached (after return)
