@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: configfile.c,v 1.43 2003/01/31 22:00:19 mroi Exp $
+ * $Id: configfile.c,v 1.44 2003/02/01 13:15:22 mroi Exp $
  *
  * config object (was: file) management - implementation
  *
@@ -713,64 +713,55 @@ void xine_config_load (xine_t *xine, const char *filename) {
 void xine_config_save (xine_t *xine, const char *filename) {
 
   config_values_t *this = xine->config;
-  char temp[XINE_PATH_MAX], traverse[XINE_PATH_MAX];
-  struct stat statbuf;
-  int temp_rename = 0;
-  FILE *f_config;
+  char temp[XINE_PATH_MAX];
+  int backup = 0;
+  struct stat backup_stat, config_stat;
+  FILE *f_config, *f_backup;
 
-  /* traverse symbolic links */
-  strncpy(traverse, filename, XINE_PATH_MAX);
-  if (lstat(traverse, &statbuf) == 0) {
-    while (S_ISLNK(statbuf.st_mode)) {
-      int i;
+  sprintf(temp, "%s~", filename);
 
-      if ((i = readlink(traverse, temp, XINE_PATH_MAX)) == -1) {
-        /* something failed -> revert */
-        strncpy(traverse, filename, XINE_PATH_MAX);
-	break;
-      }
-      temp[i] = '\0'; /* readlink does not terminate the string */
-      
-      /* search for a / to extract directory name */
-      for (i = strlen(traverse); i >= 0; i--) {
-        if (traverse[i] == '/' && (i == 0 || traverse[i-1] != '\\')) {
-	  traverse[i+1] = '\0';
-	  break;
-	}
-      }
-      if (i == -1)
-        /* no slash found at all */
-	traverse[i+1] = '\0';
+  if (stat(temp, &backup_stat) != 0) {
+    char line[1024];
+    
+#ifdef LOG
+    printf("configfile: backing up configfile to %s\n", temp);
+#endif
+    f_backup = fopen(temp, "w");
+    f_config = fopen(filename, "r");
+    
+    if (f_config && f_backup) {
+      while (fgets(line, 1023, f_config))
+        if (fputs(line, f_backup) == EOF)
+          break;
 
-      strncat(traverse, temp, XINE_PATH_MAX - strlen(traverse) - 1);
-      if (lstat(traverse, &statbuf) != 0) {
-        /* something failed -> revert */
-        strncpy(traverse, filename, XINE_PATH_MAX);
-	break;
-      }
+      fclose(f_config);
+      fclose(f_backup);
+      stat(filename, &config_stat);
+      stat(temp, &backup_stat);
+    
+      if (config_stat.st_size == backup_stat.st_size)
+        backup = 1;
+      else
+        unlink(temp);
+    } else {
+      if (f_config)
+        fclose(f_config);
+      if (f_backup)
+        fclose(f_backup);
     }
   }
   
-  sprintf(temp, "%s~", traverse);
-  
-  /* existence check */
-  f_config = fopen(temp, "r");
-  if (f_config)
-    fclose(f_config);
-
-  if (!f_config) {
-#ifdef LOG
-    printf ("writing config file to %s\n", temp);
-#endif
-    f_config = fopen(temp, "w");
-    temp_rename = 1;
-  } else {
-#ifdef LOG
-    printf ("writing config file to %s\n", traverse);
-#endif
-    f_config = fopen(traverse, "w");
+  if (!backup) {
+    printf("configfile: WARNING: backing up configfile to %s failed\n", temp);
+    printf("configfile: WARNING: your configuration will not be saved\n");
+    return;
   }
-    
+  
+#ifdef LOG
+  printf ("configfile: writing config file to %s\n", filename);
+#endif
+  f_config = fopen(filename, "w");
+      
   if (f_config) {
 
     cfg_entry_t *entry;
@@ -849,11 +840,20 @@ void xine_config_save (xine_t *xine, const char *filename) {
       entry = entry->next;
     }
     pthread_mutex_unlock(&this->config_lock);
-    if (fclose(f_config) != 0)
-      temp_rename = 0;
-    if (temp_rename)
-      rename(temp, traverse);
+    
+    if (fclose(f_config) != 0) {
+      printf("configfile: WARNING: writing configuration to %s failed\n", filename);
+      printf("configfile: WARNING: removing possibly broken config file %s\n", filename);
+      printf("configfile: WARNING: you should check the backup file %s\n", temp);
+      /* writing config failed -> remove file, it might be broken ... */
+      unlink(filename);
+      /* ... but keep the backup */
+      backup = 0;
+    }
   }
+  
+  if (backup)
+    unlink(temp);
 }
 
 static void xine_config_dispose (config_values_t *this) {
