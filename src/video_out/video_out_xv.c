@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.6 2001/04/28 19:47:42 guenter Exp $
+ * $Id: video_out_xv.c,v 1.7 2001/04/28 22:03:03 guenter Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -687,6 +687,7 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual) {
   XineramaScreenInfo   *screeninfo = NULL;
 #endif
 
+
   display = (Display *) visual;
   xine_debug  = config->lookup_int (config, "xine_debug", 0);
 
@@ -733,12 +734,17 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual) {
   } else
     printf ("video_out_xv: using Xv port %d for hardware colorspace conversion and scaling.\n", xv_port);
 
-  
   /*
    * from this point on, nothing should go wrong anymore; so let's start initializing this driver
    */
 
   this = malloc (sizeof (xv_driver_t));
+
+  if (!this) {
+    printf ("video_out_xv: malloc failed\n");
+    return NULL;
+  }
+
   memset (this, 0, sizeof(xv_driver_t));
 
   this->display      = display;
@@ -823,9 +829,8 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual) {
 	  xv_check_capability (this, VO_CAP_COLORKEY, VO_PROP_COLORKEY, attr[k],
 			       adaptor_info[i].base_id, "XV_COLORKEY");
       }
-      
-      XFree(attr);
     }
+    XFree(attr);
   } else {
     printf("video_out_xv: no port attributes defined.\n");
   }
@@ -911,9 +916,10 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual) {
    * init window
    */
 
+  /*
   xv_calc_format (this, 720, 576, 2);
   xv_setup_window (this);
-
+  */
   return &this->vo_driver;
 }
 

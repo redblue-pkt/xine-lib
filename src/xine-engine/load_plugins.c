@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.13 2001/04/28 21:23:04 guenter Exp $
+ * $Id: load_plugins.c,v 1.14 2001/04/28 22:03:03 guenter Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -178,7 +178,7 @@ void load_input_plugins (xine_t *this,
 
 	    this->num_input_plugins++;
 	  } else {
-	    printf ("load_plugins: %s is no valid input plugin (lacks init_input_plugin() function)\n");
+	    printf ("load_plugins: %s is no valid input plugin (lacks init_input_plugin() function)\n", str);
 	  }
 	  
 	  if(this->num_input_plugins > INPUT_PLUGIN_MAX) {
@@ -429,14 +429,14 @@ vo_driver_t *xine_load_video_output_plugin(config_values_t *config,
 		 str, dlerror());
 	  return NULL;
 	} else {
-	  void *(*initplug) (config_values_t *, void *);
-	  vo_info_t* (*getinfo) ();
+	  vo_info_t* (*getinfo) (void);
 	  vo_info_t   *vo_info;
 
 	  if ((getinfo = dlsym(plugin, "get_video_out_plugin_info")) != NULL) {
 	    vo_info = getinfo();
 	  
 	    if (!strcmp(id, vo_info->id)) {
+	      void *(*initplug) (config_values_t *, void *);
 	    
 	      if((initplug = dlsym(plugin, "init_video_out_plugin")) != NULL) {
 		
