@@ -61,7 +61,7 @@
  * strategy is to maintain a YUV palette rather than an RGB palette and
  * render the image directly in YUV.
  *
- * $Id: color.c,v 1.1 2002/07/14 01:27:03 tmmm Exp $
+ * $Id: color.c,v 1.2 2002/07/14 20:13:23 tmmm Exp $
  */
 
 #include "xine_internal.h"
@@ -191,7 +191,7 @@ void yuv444_to_yuy2_c(yuv_planes_t *yuv_planes, unsigned char *yuy2_map) {
   yuy2_index = 0;
   for (row_ptr = 0; row_ptr < yuv_planes->row_stride * yuv_planes->row_count;
     row_ptr += yuv_planes->row_stride) {
-    for (pixel_ptr = 0; pixel_ptr <  yuv_planes->row_stride - 2;
+    for (pixel_ptr = 0; pixel_ptr <  yuv_planes->row_width;
       pixel_ptr++, yuy2_index += 2)
       yuy2_map[yuy2_index] = yuv_planes->y[row_ptr + pixel_ptr];
   }
@@ -201,7 +201,7 @@ void yuv444_to_yuy2_c(yuv_planes_t *yuv_planes, unsigned char *yuy2_map) {
   for (row_ptr = 0; row_ptr < yuv_planes->row_stride * yuv_planes->row_count;
     row_ptr += yuv_planes->row_stride) {
 
-    for (pixel_ptr = 0; pixel_ptr <  yuv_planes->row_stride - 2;) {
+    for (pixel_ptr = 0; pixel_ptr <  yuv_planes->row_width;) {
       yuy2_map[yuy2_index] = yuv_planes->u[row_ptr + pixel_ptr];
       pixel_ptr++;
       yuy2_index += 2;
@@ -276,7 +276,7 @@ void yuv444_to_yuy2_c(yuv_planes_t *yuv_planes, unsigned char *yuy2_map) {
  *    mm2 >>= 3
  *
  * At this point, the lower 8 bits of mm2 contain a filtered C sample.
- * Move it out the YUY2 map and advance the map pointer by 4. Toss out
+ * Move it out to the YUY2 map and advance the map pointer by 4. Toss out
  * 2 of the samples in mm1 (C0 and C1) and loop twice more, once for
  * [C2..C5] and once for [C4..C7]. After computing 3 filtered samples,
  * increment the plane pointer by 6 and repeat the whole process.
@@ -288,7 +288,7 @@ void yuv444_to_yuy2_c(yuv_planes_t *yuv_planes, unsigned char *yuy2_map) {
  *
  */
 void yuv444_to_yuy2_mmx(yuv_planes_t *yuv_planes, unsigned char *yuy2_map) {
-
+#ifdef ARCH_X86
   int i, j, k;
   unsigned char *source_plane;
   unsigned char *dest_plane;
@@ -409,7 +409,7 @@ void yuv444_to_yuy2_mmx(yuv_planes_t *yuv_planes, unsigned char *yuy2_map) {
     /* iterate through blocks of 6 samples */
     for (j = 0; j < yuv_planes->row_width / 6; j++) {
 
-      movq_m2r(*source_plane, mm1); /* load 8 U samples */
+      movq_m2r(*source_plane, mm1); /* load 8 V samples */
       source_plane += 6;
 
       for (k = 0; k < 3; k++)
@@ -463,12 +463,13 @@ void yuv444_to_yuy2_mmx(yuv_planes_t *yuv_planes, unsigned char *yuy2_map) {
 
   /* be a good MMX citizen and empty MMX state */
   emms();
+#endif
 }
 
 /*
  * init_yuv_conversion
  *
- * This function precalculates all of the tables used for converted RGB
+ * This function precalculates all of the tables used for converting RGB
  * values to YUV values. This function also decides which conversion
  * functions to use.
  */
