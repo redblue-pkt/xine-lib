@@ -11,19 +11,11 @@ dnl Get the cflags and libraries from the artsc-config script
 dnl
 AC_ARG_WITH(arts-prefix,[  --with-arts-prefix=PFX  Prefix where ARTS is installed (optional)],
             arts_prefix="$withval", arts_prefix="")
-AC_ARG_WITH(arts-exec-prefix,[  --with-arts-exec-prefix=PFX                                                                             Exec prefix where ARTS is installed (optional)],
-            arts_exec_prefix="$withval", arts_exec_prefix="")
 AC_ARG_ENABLE(artstest, [  --disable-artstest      Do not try to compile and run a test ARTS program],
 		    , enable_artstest=yes)
 
-  if test x$arts_exec_prefix != x ; then
-     arts_args="$arts_args --exec-prefix=$arts_exec_prefix"
-     if test x${ARTS_CONFIG+set} != xset ; then
-        ARTS_CONFIG=$arts_exec_prefix/bin/artsc-config
-     fi
-  fi
   if test x$arts_prefix != x ; then
-     arts_args="$arts_args --prefix=$arts_prefix"
+     arts_args="$arts_args --arts-prefix=$arts_prefix"
      if test x${ARTS_CONFIG+set} != xset ; then
         ARTS_CONFIG=$arts_prefix/bin/artsc-config
      fi
