@@ -1612,7 +1612,7 @@
      The difference between these counters is a little subtle for the non
      developer. There are two threads running in order to display video:
      the decoder thread will deliver frames to the video output thread. 
-     The later is responsible for scheduling the frames to be displayed at
+     The latter is responsible for scheduling the frames to be displayed at
      the right time.
     </para>
     <para>
