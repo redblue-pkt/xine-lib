@@ -16,7 +16,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * $Id: layer3.c,v 1.4 2003/02/28 02:51:49 storri Exp $
+ * $Id: layer3.c,v 1.5 2003/12/07 15:34:30 f1rmb Exp $
  */
 
 # ifdef HAVE_CONFIG_H
@@ -1247,7 +1247,7 @@ enum mad_error III_huffdecode(struct mad_bitptr *ptr, mad_fixed_t xr[576],
     }
   }
 
-  XINE_ASSERT(-bits_left <= (MAD_BUFFER_GUARD * CHAR_BIT), "-bits_left > (MAD_BUFFER_GUARD * CHAR_BIT");
+  _x_assert(-bits_left <= (MAD_BUFFER_GUARD * CHAR_BIT));
 
 # if 0 && defined(DEBUG)
   if (bits_left < 0)
@@ -2430,8 +2430,7 @@ int mad_layer_III(struct mad_stream *stream, struct mad_frame *frame)
 		   *stream->main_data + stream->md_len - si.main_data_begin);
 
       if (md_len > si.main_data_begin) {
-	XINE_ASSERT((stream->md_len + md_len -
-		si.main_data_begin) <= MAD_BUFFER_MDLEN, "?");
+	_x_assert((stream->md_len + md_len - si.main_data_begin) <= MAD_BUFFER_MDLEN);
 
 	memcpy(*stream->main_data + stream->md_len,
 	       mad_bit_nextbyte(&stream->ptr),

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: lrb.c,v 1.6 2003/12/06 18:11:56 mroi Exp $
+ * $Id: lrb.c,v 1.7 2003/12/07 15:34:31 f1rmb Exp $
  *
  */
 
@@ -48,7 +48,7 @@ void lrb_drop (lrb_t *this) {
   
   buf_element_t *buf = this->oldest;
 
-  XINE_ASSERT(buf, "Oldest buffer element is NULL");
+  _x_assert(buf);
 
   this->oldest = buf->next;
 

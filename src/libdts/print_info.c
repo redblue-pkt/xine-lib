@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: print_info.c,v 1.1 2003/08/05 11:30:56 jcdutton Exp $
+ * $Id: print_info.c,v 1.2 2003/12/07 15:34:30 f1rmb Exp $
  *
  * 04-08-2003 DTS software decode (C) James Courtier-Dutton
  *
@@ -213,9 +213,9 @@ void dts_print_decoded_data(decoder_data_t *decoder_data) {
 #endif
 
 
-XINE_ASSERT(0, "Parse exited as required!");
+  printf("Parse exited as required!");
+  abort();
 
-return;
+  return;
 }
 #endif
-

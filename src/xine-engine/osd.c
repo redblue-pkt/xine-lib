@@ -1149,29 +1149,30 @@ static int osd_get_text_size(osd_object_t *osd, const char *text, int *width, in
 }
 
 static void osd_preload_fonts (osd_renderer_t *this, char *path) {
-  DIR *dir;
-  osd_font_t  *font;
-  char *pathname;
-  char *s, *p;
+  DIR   *dir;
+  char  *s, *p;
 
   lprintf ("path='%s'\n", path);
 
-  dir = opendir (path) ;
+  dir = opendir (path);
 
   if (dir) {
-
-    struct dirent *entry;
+    struct dirent  *entry;
 
     while ((entry = readdir (dir)) != NULL) {
-      int len;
+      int  len;
 
       len = strlen (entry->d_name);
-
-      if ( (len>12) && !strncmp (&entry->d_name[len-12], ".xinefont.gz", 12)) {
+      
+      if ( (len > 12) && !strncmp (&entry->d_name[len-12], ".xinefont.gz", 12)) {
 
         s = strdup(entry->d_name);
         p = strchr(s, '-');
+
         if( p ) {
+	  osd_font_t  *font;
+	  char        *pathname;
+
           *p++ = '\0';
           font = xine_xmalloc( sizeof(osd_font_t) );
           
@@ -1181,7 +1182,7 @@ static void osd_preload_fonts (osd_renderer_t *this, char *path) {
           lprintf("font '%s' size %d is preloaded\n", 
                   font->name, font->size);
 
-          pathname = malloc(1024);
+          pathname = (char *) xine_xmalloc(strlen(path) + strlen(entry->d_name) + 2);
           sprintf (pathname, "%s/%s", path, entry->d_name);
           font->filename = pathname;
           

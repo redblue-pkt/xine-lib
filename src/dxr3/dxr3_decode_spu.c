@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decode_spu.c,v 1.41 2003/12/05 15:54:57 f1rmb Exp $
+ * $Id: dxr3_decode_spu.c,v 1.42 2003/12/07 15:34:29 f1rmb Exp $
  */
  
 /* dxr3 spu decoder plugin.
@@ -354,8 +354,10 @@ static void dxr3_spudec_decode_data(spu_decoder_t *this_gen, buf_element_t *buf)
 	      xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
 		      "dxr3_decode_spu: failed to set spu button (%s)\n", strerror(errno));
 	    pthread_mutex_unlock(&this->dxr3_vo->spu_device_lock);
-	  } else
-	    XINE_ASSERT(0, "no working menu button found");
+	  } else {
+	    xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "no working menu button found\n");
+	    abort();
+	  }
 	}
       }
       
@@ -616,7 +618,8 @@ static int dxr3_spudec_copy_nav_to_btn(dxr3_spudec_t *this, int32_t mode, em8300
     if (!button_ptr && this->pci.hli.hl_gi.btngr_ns >= 3 && (this->pci.hli.hl_gi.btngr3_dsp_ty & 2))
       button_ptr = &this->pci.hli.btnit[2 * btns_per_group + this->buttonN - 1];
     
-    XINE_ASSERT(button_ptr, "No suitable letterbox button group found.");
+    xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "No suitable letterbox button group found.\n");
+    _x_assert(button_ptr);
     
   } else {
     unsigned int btns_per_group = 36 / this->pci.hli.hl_gi.btngr_ns;

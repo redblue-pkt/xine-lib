@@ -4,7 +4,7 @@
  * details.  THERE IS ABSOLUTELY NO WARRANTY FOR THIS SOFTWARE.
  */
 
-/* $Header: /nfshome/cvs/xine-lib/src/libxineadec/gsm610/rpe.c,v 1.2 2003/02/28 02:51:50 storri Exp $ */
+/* $Header: /nfshome/cvs/xine-lib/src/libxineadec/gsm610/rpe.c,v 1.3 2003/12/07 15:34:30 f1rmb Exp $ */
 
 #include <stdio.h>
 #include "xineutils.h"
@@ -141,7 +141,7 @@ static void RPE_grid_selection P3((x,xM,Mc_out),
 	 *
 	 *		temp1    = SASR( x[m + 3*i], 2 );
 	 *
-	 *		XINE_ASSERT(temp1 != MIN_WORD,"temp1 equals MIN_WORD");
+	 *		_x_assert(temp1 != MIN_WORD);
 	 *
 	 *		L_temp   = GSM_L_MULT( temp1, temp1 );
 	 *		L_result = GSM_L_ADD( L_temp, L_result );
@@ -245,8 +245,8 @@ static void APCM_quantization_xmaxc_to_exp_mant P3((xmaxc,exp_out,mant_out),
 		mant -= 8;
 	}
 
-	XINE_ASSERT( exp  >= -4 && exp <= 6,"exp is not within range of -4 to 6: %d", exp );
-	XINE_ASSERT( mant >= 0 && mant <= 7,"mant is not within range of 0 to 7: %d", mant );
+	_x_assert( exp  >= -4 && exp <= 6 );
+	_x_assert( mant >= 0 && mant <= 7 );
 
 	*exp_out  = exp;
 	*mant_out = mant;
@@ -289,14 +289,14 @@ static void APCM_quantization P5((xM,xMc,mant_out,exp_out,xmaxc_out),
 		itest |= (temp <= 0);
 		temp = SASR( temp, 1 );
 
-		XINE_ASSERT(exp <= 5, "exp is greater than 5: %d", exp);
+		_x_assert(exp <= 5);
 		if (itest == 0) exp++;		/* exp = add (exp, 1) */
 	}
 
-	XINE_ASSERT(exp <= 6 && exp >= 0, "exp is not within range of 0 to 6: %d", exp);
+	_x_assert(exp <= 6 && exp >= 0);
 	temp = exp + 5;
 
-	XINE_ASSERT(temp <= 11 && temp >= 0, "temp is within range of 0 to 11: %d", temp);
+	_x_assert(temp <= 11 && temp >= 0);
 	xmaxc = gsm_add( SASR(xmax, temp), exp << 3 );
 
 	/*   Quantizing and coding of the xM[0..12] RPE sequence
@@ -319,15 +319,15 @@ static void APCM_quantization P5((xM,xMc,mant_out,exp_out,xmaxc_out),
 	/* Direct computation of xMc[0..12] using table 4.5
 	 */
 
-	XINE_ASSERT((exp <= 4096) && (exp >= -4096), "exp is not within range of -4069 to 4096: %d", exp );
-	XINE_ASSERT((mant >= 0) && (mant <= 7), "mant is not within range of 0 to 7: %d", mant ); 
+	_x_assert((exp <= 4096) && (exp >= -4096));
+	_x_assert((mant >= 0) && (mant <= 7)); 
 
 	temp1 = 6 - exp;		/* normalization by the exponent */
 	temp2 = gsm_NRFAC[ mant ];  	/* inverse mantissa 		 */
 
 	for (i = 0; i <= 12; i++) {
 
-		XINE_ASSERT(temp1 >= 0 && temp1 < 16, "temp1 is not within range of 0 to 15: %d", temp1);
+		_x_assert(temp1 >= 0 && temp1 < 16);
 
 		temp = xM[i] << temp1;
 		temp = GSM_MULT( temp, temp2 );
@@ -360,21 +360,21 @@ static void APCM_inverse_quantization P4((xMc,mant,exp,xMp),
 	word	temp, temp1, temp2, temp3;
 	longword	ltmp;
 
-	XINE_ASSERT((mant >= 0) && (mant <= 7), "mant is not within range of 0 to 7: %d", mant ); 
+	_x_assert((mant >= 0) && (mant <= 7)); 
 
 	temp1 = gsm_FAC[ mant ];	/* see 4.2-15 for mant */
 	temp2 = gsm_sub( 6, exp );	/* see 4.2-15 for exp  */
 	temp3 = gsm_asl( 1, gsm_sub( temp2, 1 ));
 
 	for (i = 13; i--;) {
-	  XINE_ASSERT((mant >= 0) && (mant <= 7), "mant is not within range of 0 to 7: %d", mant ); 
+	  _x_assert((mant >= 0) && (mant <= 7)); 
 
-	  XINE_ASSERT((*xMc <= 7) && (*xMc >= 0), "xMc is not 3 bit unsigned: %d", *xMc ); /* 3 bit unsigned */
+	  _x_assert((*xMc <= 7) && (*xMc >= 0)); /* 3 bit unsigned */
 
 	  /* temp = gsm_sub( *xMc++ << 1, 7 ); */
 	  temp = (*xMc++ << 1) - 7;	        /* restore sign   */
 	  
-	  XINE_ASSERT((temp <= 7) && (temp >= -7), "temp is not 4 bit signed: %d", temp); /* 4 bit signed   */
+	  _x_assert((temp <= 7) && (temp >= -7)); /* 4 bit signed   */
 	  
 	  temp <<= 12;				/* 16 bit signed  */
 	  temp = GSM_MULT_R( temp1, temp );
@@ -400,7 +400,7 @@ static void RPE_grid_positioning P3((Mc,xMp,ep),
 {
 	int	i = 13;
 
-	XINE_ASSERT((0 <= Mc) && (Mc <= 3), "Mc is not within the range of 0 to 3: %d", Mc);
+	_x_assert((0 <= Mc) && (Mc <= 3));
 
         switch (Mc) {
                 case 3: *ep++ = 0;

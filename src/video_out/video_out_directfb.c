@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_directfb.c,v 1.24 2003/12/05 15:55:03 f1rmb Exp $
+ * $Id: video_out_directfb.c,v 1.25 2003/12/07 15:34:30 f1rmb Exp $
  *
  * DirectFB based output plugin.
  * Rich Wareham <richwareham@users.sourceforge.net>
@@ -353,8 +353,8 @@ static void directfb_overlay_blend (vo_driver_t *this_gen, vo_frame_t *frame_gen
     if( !overlay->rgb_clut || !overlay->clip_rgb_clut)
       directfb_overlay_clut_yuv2rgb(this,overlay);
 
-    XINE_ASSERT (this->delivered_width == frame->width, "Delivered frame width does not match desired width");
-    XINE_ASSERT (this->delivered_height == frame->height, "Delivered frame height does not match desire height");
+    _x_assert(this->delivered_width == frame->width);
+    _x_assert(this->delivered_height == frame->height);
 #   if BYTES_PER_PIXEL == 3
       blend_rgb24 ((uint8_t *)frame->texture, overlay,
                    frame->width, frame->height,

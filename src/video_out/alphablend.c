@@ -462,8 +462,7 @@ void blend_rgb16 (uint8_t * img, vo_overlay_t * img_overl,
       }
       break;
     case 6:  /* Finished */
-      XINE_ASSERT(0,"Don't ever get here\n");
-      /* This case will not fall through, XINE_ASSERT contains a call to abort() */
+      abort();
 
     case 7:  /* No button */
       clut = (clut_t*) img_overl->color;

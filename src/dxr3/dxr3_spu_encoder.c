@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_spu_encoder.c,v 1.3 2003/12/05 15:54:58 f1rmb Exp $
+ * $Id: dxr3_spu_encoder.c,v 1.4 2003/12/07 15:34:29 f1rmb Exp $
  */
 
 #include <stdio.h>
@@ -382,7 +382,7 @@ static void convert_overlay(spu_encoder_t *this)
   }
   
   /* we should be byte aligned here */
-  XINE_ASSERT(higher_nibble, "bad state during spu encoding");
+  _x_assert(higher_nibble);
   
   /* control sequence starts here */
   this->target[2] = offset >> 8;
@@ -467,7 +467,7 @@ static void write_rle(spu_encoder_t *this, int *offset, int *higher_nibble, int 
     write_nibble(this, offset, higher_nibble, (length & 0xc) | color);
     return;
   }
-  XINE_ASSERT(0, "bad state during spu encoding");
+  abort();
 }
 
 static void write_byte(spu_encoder_t *this, int *offset, uint8_t byte)

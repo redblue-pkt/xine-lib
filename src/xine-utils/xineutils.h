@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xineutils.h,v 1.70 2003/12/06 18:15:56 mroi Exp $
+ * $Id: xineutils.h,v 1.71 2003/12/07 15:34:31 f1rmb Exp $
  *
  */
 #ifndef XINEUTILS_H
@@ -830,9 +830,6 @@ extern int v_b_table[256];
 /* print a hexdump of the given data */
 void xine_hexdump (const char *buf, int length);
 
-/* backtrace printout funtion for use in XINE_ASSERT() macro */
-void xine_print_trace(void);
-
 /*
  * Optimization macros for conditions
  * Taken from the FIASCO L4 microkernel sources
@@ -844,64 +841,23 @@ void xine_print_trace(void);
 #  define EXPECT_TRUE(x)  __builtin_expect((x),1)
 #  define EXPECT_FALSE(x) __builtin_expect((x),0)
 #endif
-
-#ifdef DEBUG
-# define XINE_ABORT()                            \
-  abort();
-#else
-# define XINE_ABORT()                                                    \
-  /* don't abort, but print warning */                                   \
-  printf("%s: OOPS, your player reached a bad state\n", __FILE__);       \
-  printf("%s: please send a report with the full console output to the xine team.\n", __FILE__);
-#endif
-
-/**
- * Provide assert like feature with better description of failure 
- * Thanks to Mark Thomas 
- */ 
-#ifdef __GNUC__
-# define XINE_ASSERT(exp, desc, args...)                            \
-  do {                                                              \
-    if (!(exp)) {                                                   \
-      printf("%s:%s:%d: assertion `%s' failed. " desc "\n\n",       \
-             __FILE__, __XINE_FUNCTION__, __LINE__, #exp, ##args);  \
-      xine_print_trace();                                           \
-      XINE_ABORT();                                                 \
-    }                                                               \
-  } while(0)
-#else /* not GNU C, assume we have a C99 compiler */
-
-#ifdef _MSC_VER
-/*
-  #define XINE_ASSERT(exp, desc)	((void)((exp) || \
-            (printf desc, _assert(#exp, __FILE__, __LINE__), 0)))
-
-*/
-#  define XINE_ASSERT(exp, desc)                           \
-  do {                                                              \
-    if (!(exp)) {                                                   \
-      printf("%s:%s:%d: assertion `%s' failed. ",                   \
-             __FILE__, __XINE_FUNCTION__, __LINE__, #exp);          \
-      printf(desc);                                                 \
-      printf("\n\n");                                               \
-      xine_print_trace();                                           \
-      XINE_ABORT();                                                 \
-    }                                                               \
+  
+#ifdef NDEBUG
+#define _x_assert(exp) \
+  do {                                                       \
+    if (!(exp))                                              \
+      fprintf(stderr, "%s:%s:%d: Assertion `%s' failed.\n",  \
+              __FILE__, __XINE_FUNCTION__, __LINE__, #exp);  \
   } while(0)
 #else
-# define XINE_ASSERT(exp, ...)                                      \
-  do {                                                              \
-    if (!(exp)) {                                                   \
-      printf("%s:%s:%d: assertion `%s' failed. ",                   \
-             __FILE__, __XINE_FUNCTION__, __LINE__, #exp);          \
-      printf(__VA_ARGS__);                                          \
-      printf("\n\n");                                               \
-      xine_print_trace();                                           \
-      XINE_ABORT();                                                 \
-    }                                                               \
+#define _x_assert(exp) \
+  do {                                                       \
+    if (!(exp)) {                                            \
+      fprintf(stderr, "%s:%s:%d: Assertion `%s' failed.\n",  \
+              __FILE__, __XINE_FUNCTION__, __LINE__, #exp);  \
+      abort();                                               \
+    }                                                        \
   } while(0)
-#endif /* _MSC_VER */
-
 #endif
 
 /****** logging with xine **********************************/

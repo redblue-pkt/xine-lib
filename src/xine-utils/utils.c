@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: utils.c,v 1.21 2003/12/06 16:10:01 miguelfreitas Exp $
+ * $Id: utils.c,v 1.22 2003/12/07 15:34:31 f1rmb Exp $
  *
  */
 #define	_POSIX_PTHREAD_SEMANTICS 1	/* for 5-arg getpwuid_r on solaris */
@@ -139,32 +139,6 @@ void xine_usec_sleep(unsigned usec) {
   nanosleep(&ts, NULL);
 #else
   usleep(usec);
-#endif
-}
-
-
-/* Obtain a backtrace and print it to stdout. */
-void xine_print_trace (void) {
-#if HAVE_BACKTRACE
-  /* Code Taken from GNU C Library manual */
-  void *array[10];
-  size_t size;
-  char **strings;
-  size_t i;
-
-  size = backtrace (array, 10);
-  strings = backtrace_symbols (array, size);
-
-  printf ("Obtained %lu stack frames.\n", (unsigned long) size);
-
-  for (i = 0; i < size; i++) {
-     printf ("%s\n", strings[i]);
-  }
-  free (strings);
-#elif HAVE_PRINTSTACK
-  printstack(STDOUT_FILENO);
-#else
-  printf("stack backtrace not available.\n");
 #endif
 }
 

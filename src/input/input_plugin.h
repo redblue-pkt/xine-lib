@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_plugin.h,v 1.53 2003/11/23 23:20:57 valtri Exp $
+ * $Id: input_plugin.h,v 1.54 2003/12/07 15:34:30 f1rmb Exp $
  */
 
 #ifndef HAVE_INPUT_PLUGIN_H
@@ -328,8 +328,8 @@ struct input_plugin_s {
  * Duplicate two mrls entries (s = source, d = destination).
  */
 #define MRL_DUPLICATE(s, d) {                                                 \
-  XINE_ASSERT((s) != NULL, "value 's' is NULL");                              \
-  XINE_ASSERT((d) != NULL, "value 'd' is NULL");                              \
+  _x_assert((s) != NULL);                                                     \
+  _x_assert((d) != NULL);                                                     \
                                                                               \
   if((s)->origin) {                                                           \
     if((d)->origin) {                                                         \
@@ -374,11 +374,11 @@ struct input_plugin_s {
 #define MRLS_DUPLICATE(s, d) {                                                \
   int i = 0;                                                                  \
                                                                               \
-  XINE_ASSERT((s) != NULL, "value 's' is NULL");                              \
-  XINE_ASSERT((d) != NULL, "value 'd' is NULL");                              \
+  _x_assert((s) != NULL);                                                     \
+  _x_assert((d) != NULL);                                                     \
                                                                               \
   while((s) != NULL) {                                                        \
-    d[i] = (xine_mrl_t *) malloc(sizeof(xine_mrl_t));                                   \
+    d[i] = (xine_mrl_t *) malloc(sizeof(xine_mrl_t));                         \
     MRL_DUPLICATE(s[i], d[i]);                                                \
     i++;                                                                      \
   }                                                                           \

@@ -83,7 +83,8 @@ static void mlib_yuv420_rgb24 (yuv2rgb_t *this,
     dy = 0;
     dst_height = this->next_slice (this, &image);
 
-    XINE_ASSERT((this->dest_width&1) == 0, "mlib needs an even YUV2 width.");
+    /* mlib needs an even YUV2 width. */
+    _x_assert((this->dest_width&1) == 0);
 
     for (;;) {
       scale_line (pu, this->u_buffer,
@@ -161,7 +162,8 @@ static void mlib_yuv420_argb32 (yuv2rgb_t *this,
     dy = 0;
     dst_height = this->next_slice (this, &image);
 
-    XINE_ASSERT((this->dest_width&1) == 0, "mlib needs an even YUV2 width");
+    /* mlib needs an even YUV2 width */
+    _x_assert((this->dest_width&1) == 0);
 
     for (;;) {
       scale_line (pu, this->u_buffer,
@@ -239,7 +241,8 @@ static void mlib_yuv420_abgr32 (yuv2rgb_t *this,
     dy = 0;
     dst_height = this->next_slice (this, &image);
 
-    XINE_ASSERT ((this->dest_width&1) == 0, "mlib needs an even YUV2 width.");
+    /* mlib needs an even YUV2 width */
+    _x_assert((this->dest_width&1) == 0);
 
     for (;;) {
       scale_line (pu, this->u_buffer,

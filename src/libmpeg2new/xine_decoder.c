@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.16 2003/12/05 15:54:59 f1rmb Exp $
+ * $Id: xine_decoder.c,v 1.17 2003/12/07 15:34:30 f1rmb Exp $
  *
  * stuff needed to turn libmpeg2 into a xine decoder plugin
  */
@@ -74,7 +74,7 @@ static void mpeg2_video_print_bad_state(uint32_t * img_state) {
       m++;
     }
   }
-  if (m > 3) assert(0);
+  if (m > 3) abort();
   if (m == 0) printf("NO FRAMES\n");
 } 
 
@@ -206,7 +206,7 @@ static void mpeg2_video_decode_data (video_decoder_t *this_gen, buf_element_t *b
 #endif
         if (this->img_state[img->id] != 0) {
           printf ("libmpeg2:decode_data:get_frame id=%d BAD STATE:%d\n", img->id, this->img_state[img->id]);
-          assert(0);
+          abort();
         }
 
         this->img_state[img->id] = 1;
@@ -235,7 +235,7 @@ static void mpeg2_video_decode_data (video_decoder_t *this_gen, buf_element_t *b
 #endif
           if (this->img_state[img->id] != 1) {
             printf ("libmpeg2:decode_data:draw_frame id=%d BAD STATE:%d\n", img->id, this->img_state[img->id]);
-            assert(0);
+            abort();
           }
           if (this->img_state[img->id] == 1) {
             frame_skipping = img->draw (img, this->stream);
@@ -246,7 +246,7 @@ static void mpeg2_video_decode_data (video_decoder_t *this_gen, buf_element_t *b
         }
         if (info->discard_fbuf && !info->discard_fbuf->id) {
           printf ("libmpeg2:decode_data:BAD free_frame discard_fbuf=%p\n", info->discard_fbuf);
-          assert(0);
+          abort();
         }
         if (info->discard_fbuf && info->discard_fbuf->id) {
           img = (vo_frame_t *) info->discard_fbuf->id;
@@ -255,7 +255,7 @@ static void mpeg2_video_decode_data (video_decoder_t *this_gen, buf_element_t *b
 #endif
           if (this->img_state[img->id] != 2) {
             printf ("libmpeg2:decode_data:free_frame id=%d BAD STATE:%d\n", img->id, this->img_state[img->id]);
-            assert(0);
+            abort();
           }
           if (this->img_state[img->id] == 2) {
             img->free(img);
@@ -308,7 +308,7 @@ static void mpeg2_video_reset (video_decoder_t *this_gen) {
 
     if (this->img_state[img->id] != 1) {
       printf ("libmpeg2:decode_data:draw_frame id=%d BAD STATE:%d\n", img->id, this->img_state[img->id]);
-      assert(0);
+      abort();
     }
     if (this->img_state[img->id] == 1) {
       frame_skipping = img->draw (img, this->stream);
@@ -319,13 +319,13 @@ static void mpeg2_video_reset (video_decoder_t *this_gen) {
 
   if (info->discard_fbuf && !info->discard_fbuf->id) {
     printf ("libmpeg2:decode_data:BAD free_frame discard_fbuf=%p\n", info->discard_fbuf);
-    assert(0);
+    abort();
   }
   if (info->discard_fbuf && info->discard_fbuf->id) {
     img = (vo_frame_t *) info->discard_fbuf->id;
     if (this->img_state[img->id] != 2) {
       printf ("libmpeg2:decode_data:free_frame id=%d BAD STATE:%d\n", img->id, this->img_state[img->id]);
-      assert(0);
+      abort();
     }
     if (this->img_state[img->id] == 2) {
       img->free(img);
@@ -339,7 +339,7 @@ static void mpeg2_video_reset (video_decoder_t *this_gen) {
 
     if (this->img_state[img->id] != 1) {
       printf ("libmpeg2:decode_data:draw_frame id=%d BAD STATE:%d\n", img->id, this->img_state[img->id]);
-      assert(0);
+      abort();
     }
     if (this->img_state[img->id] == 1) {
       frame_skipping = img->draw (img, this->stream);
@@ -350,13 +350,13 @@ static void mpeg2_video_reset (video_decoder_t *this_gen) {
 
   if (info->discard_fbuf && !info->discard_fbuf->id) {
     printf ("libmpeg2:decode_data:BAD free_frame discard_fbuf=%p\n", info->discard_fbuf);
-    assert(0);
+    abort();
   }
   if (info->discard_fbuf && info->discard_fbuf->id) {
     img = (vo_frame_t *) info->discard_fbuf->id;
     if (this->img_state[img->id] != 2) {
       printf ("libmpeg2:decode_data:free_frame id=%d BAD STATE:%d\n", img->id, this->img_state[img->id]);
-      assert(0);
+      abort();
     }
     if (this->img_state[img->id] == 2) {
       img->free(img);
@@ -370,7 +370,7 @@ static void mpeg2_video_reset (video_decoder_t *this_gen) {
 
     if (this->img_state[img->id] != 1) {
       printf ("libmpeg2:decode_data:draw_frame id=%d BAD STATE:%d\n", img->id, this->img_state[img->id]);
-      assert(0);
+      abort();
     }
     if (this->img_state[img->id] == 1) {
       frame_skipping = img->draw (img, this->stream);
@@ -381,13 +381,13 @@ static void mpeg2_video_reset (video_decoder_t *this_gen) {
 
   if (info->discard_fbuf && !info->discard_fbuf->id) {
     printf ("libmpeg2:decode_data:BAD free_frame discard_fbuf=%p\n", info->discard_fbuf);
-    assert(0);
+    abort();
   }
   if (info->discard_fbuf && info->discard_fbuf->id) {
     img = (vo_frame_t *) info->discard_fbuf->id;
     if (this->img_state[img->id] != 2) {
       printf ("libmpeg2:decode_data:free_frame id=%d BAD STATE:%d\n", img->id, this->img_state[img->id]);
-      assert(0);
+      abort();
     }
     if (this->img_state[img->id] == 2) {
       img->free(img);

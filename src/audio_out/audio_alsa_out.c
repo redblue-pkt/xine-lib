@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.119 2003/12/05 15:54:56 f1rmb Exp $
+ * $Id: audio_alsa_out.c,v 1.120 2003/12/07 15:34:29 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -720,7 +720,9 @@ static int ao_alsa_write(ao_driver_t *this_gen, int16_t *data, uint32_t count) {
 #endif
     if ((res = snd_pcm_prepare(this->audio_fd))<0) {
       return 0;
-      XINE_ASSERT (0,"audio_alsa_out: xrun: prepare error: %s", snd_strerror(res));
+      xprintf(this->class->xine, XINE_VERBOSITY_DEBUG,
+	      "audio_alsa_out: xrun: prepare error: %s", snd_strerror(res));
+      abort();
     }
     state = snd_pcm_state(this->audio_fd);
 #ifdef LOG_DEBUG
@@ -762,7 +764,9 @@ static int ao_alsa_write(ao_driver_t *this_gen, int16_t *data, uint32_t count) {
         xprintf(this->class->xine, XINE_VERBOSITY_DEBUG, 
 		"audio_alsa_out:write:BAD STATE2, state = %d, going to try XRUN\n",state);
         if ((res = snd_pcm_prepare(this->audio_fd))<0) {
-          XINE_ASSERT(0, "audio_alsa_out: xrun: prepare error: %s", snd_strerror(res));
+          xprintf(this->class->xine, XINE_VERBOSITY_DEBUG,
+		  "audio_alsa_out: xrun: prepare error: %s", snd_strerror(res));
+	  abort();
         }
       }
     }

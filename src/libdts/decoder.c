@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: decoder.c,v 1.1 2003/08/05 11:30:56 jcdutton Exp $
+ * $Id: decoder.c,v 1.2 2003/12/07 15:34:30 f1rmb Exp $
  *
  * 04-08-2003 DTS software decode (C) James Courtier-Dutton
  *
@@ -80,7 +80,7 @@ static uint32_t getbits(getbits_state_t *state, uint32_t number_of_bits) {
   uint8_t byte=0;
   if (number_of_bits > 32) {
     printf("Number of bits > 32 in getbits\n");
-    assert(0);
+    abort();
   }
 
   if ((state->bit_position) > 0) {  /* Last getbits left us in the middle of a byte. */
@@ -447,7 +447,8 @@ void dts_parse_data (dts_decoder_t *this, buf_element_t *buf) {
       if (decoder_data.nQSelect == 6) {
           decoder_data.bit_allocation_index[ch][n] = getbits(&state,5);
       } else {
-        XINE_ASSERT(0, "bit_alloc parse failed, (nQSelect != 6) not implemented yet.");
+        printf("bit_alloc parse failed, (nQSelect != 6) not implemented yet.");
+	abort();
       }
 
       /*QABITS.ppQ[nQSelect]->InverseQ(&state, bit_allocation_index[ch][n]); */
@@ -476,7 +477,8 @@ void dts_parse_data (dts_decoder_t *this, buf_element_t *buf) {
             if (decoder_data.nQSelect == 0) {
             decoder_data.transition_mode[ch][n] = huff_lookup(&state, HuffA4);
             } else {
-              XINE_ASSERT(0, "transition mod parse failed, (nQSelect != 0) not implemented yet.");
+              printf("transition mod parse failed, (nQSelect != 0) not implemented yet.");
+	      abort();
             }
 
             /* QTMODE.ppQ[nQSelect]->InverseQ(&state,transition_mode[ch][n]); */

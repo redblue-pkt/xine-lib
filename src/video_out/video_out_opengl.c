@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_opengl.c,v 1.33 2003/12/05 15:55:03 f1rmb Exp $
+ * $Id: video_out_opengl.c,v 1.34 2003/12/07 15:34:30 f1rmb Exp $
  * 
  * video_out_glut.c, glut based OpenGL rendering interface for xine
  * Matthias Hopf <mat@mshopf.de>
@@ -339,7 +339,7 @@ static void opengl_update_frame_format (vo_driver_t *this_gen,
 	frame->chunk[0] = frame->chunk[1] = frame->chunk[2] = NULL;
 	
 	frame->texture = calloc (1, BYTES_PER_PIXEL * image_size);
-	XINE_ASSERT(frame->texture, "Frame texture is NULL");
+	_x_assert(frame->texture);
 
 	switch (format) {
 	case XINE_IMGFMT_YV12:
@@ -545,7 +545,7 @@ static void opengl_render_image (opengl_driver_t *this, opengl_frame_t *frame,
 	GLX_RGBA, GLX_RED_SIZE, 1, GLX_GREEN_SIZE, 1, GLX_BLUE_SIZE, 1, None
       } ;
 
-      XINE_ASSERT (this->vinfo, "this->vinfo is NULL");
+      _x_assert(this->vinfo);
 
       if ((this->context_state == CONTEXT_SAME_DRAWABLE) &&
 	  (self == this->renderthread))
@@ -565,7 +565,7 @@ static void opengl_render_image (opengl_driver_t *this, opengl_frame_t *frame,
       ctx = glXCreateContext (this->display, this->vinfo, NULL, True);
       DEBUGF ((stderr, "created\n"));
 
-      XINE_ASSERT(ctx, "ctx is NULL");
+      _x_assert(ctx);
 
       this->context = ctx;
       this->context_state = CONTEXT_RELOAD;
@@ -925,7 +925,7 @@ static vo_driver_t *opengl_open_plugin (video_driver_class_t *class_gen,
      * allocate plugin struct
      */
     this = calloc (1, sizeof (opengl_driver_t));
-    XINE_ASSERT (this, "OpenGL driver struct is not defined");
+    _x_assert(this);
 
     this->config		    = class->config;
     this->xine                      = class->xine;

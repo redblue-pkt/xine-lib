@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.102 2003/12/05 15:55:00 f1rmb Exp $
+ * $Id: xine_decoder.c,v 1.103 2003/12/07 15:34:30 f1rmb Exp $
  *
  * stuff needed to turn libspu into a xine decoder plugin
  */
@@ -236,8 +236,10 @@ static void spudec_set_button (spu_decoder_t *this_gen, int32_t button, int32_t 
   printf ("libspudec:xine_decoder.c:spudec_event_listener:this=%p\n",this);
   printf ("libspudec:xine_decoder.c:spudec_event_listener:this->menu_handle=%d\n",this->menu_handle);
 #endif
-  XINE_ASSERT(this->menu_handle >= 0, "Menu handle alloc failed. No more overlays objects available. Only 5 at once please.");
-
+  xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
+	  "Menu handle alloc failed. No more overlays objects available. Only 5 at once please.");
+  _x_assert(this->menu_handle >= 0);
+  
   if (show > 0) {
 #ifdef LOG_NAV
     fprintf (stderr,"libspudec:xine_decoder.c:spudec_event_listener:buttonN = %u show=%d\n",
@@ -271,7 +273,8 @@ static void spudec_set_button (spu_decoder_t *this_gen, int32_t button, int32_t 
   } else {
     xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
 	    "libspudec:xine_decoder.c:spudec_event_listener:HIDE ????\n");
-    XINE_ASSERT(0, "We dropped out here for some reason");
+    printf("We dropped out here for some reason");
+    abort();
     overlay_event->object.handle = this->menu_handle;
     overlay_event->event_type = OVERLAY_EVENT_HIDE;
   }

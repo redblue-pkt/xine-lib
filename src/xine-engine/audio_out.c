@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.155 2003/12/05 15:55:04 f1rmb Exp $
+ * $Id: audio_out.c,v 1.156 2003/12/07 15:34:30 f1rmb Exp $
  *
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -300,7 +300,7 @@ static void fifo_append_int (audio_fifo_t *fifo,
 
   /* buf->next = NULL; */
 
-  XINE_ASSERT(!buf->next, "Next audio buffer is not NULL.");
+  _x_assert(!buf->next);
 
   if (!fifo->first) {
     fifo->first       = buf;
@@ -1067,7 +1067,7 @@ static void *ao_loop (void *this_gen) {
 #endif
 
       lprintf ("loop: writing %d samples to sound device\n", out_buf->num_frames);
-
+      
       pthread_mutex_lock( &this->driver_lock );
       result = this->driver->write (this->driver, out_buf->mem, out_buf->num_frames );
       pthread_mutex_unlock( &this->driver_lock );
@@ -1077,8 +1077,10 @@ static void *ao_loop (void *this_gen) {
        *        Maybe we should pause the stream until the USB device is plugged in again.
        *        Return values 0 happen even if usb not unplugged, so needs further investigation.
        */
-      XINE_ASSERT(result >= 0, "write to sound card failed. Was a USB device unplugged?");
+      xprintf(this->xine, XINE_VERBOSITY_LOG, _("write to sound card failed. Was a USB device unplugged ?\n"));
 
+      _x_assert(result >= 0);
+      
       lprintf ("loop: next buf from fifo\n");
       fifo_append (this->free_fifo, in_buf);
       in_buf = NULL;

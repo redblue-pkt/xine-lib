@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.175 2003/12/05 15:54:58 f1rmb Exp $
+ * $Id: input_dvd.c,v 1.176 2003/12/07 15:34:30 f1rmb Exp $
  *
  */
 
@@ -1509,9 +1509,8 @@ static input_plugin_t *dvd_class_get_instance (input_class_t *class_gen, xine_st
     return NULL;
 
   this = (dvd_input_plugin_t *) xine_xmalloc (sizeof (dvd_input_plugin_t));
-  if (this == NULL) {
-    XINE_ASSERT(0, "input_dvd.c: xine_xmalloc failed!!!! You have run out of memory\n");
-  }
+  if (!this)
+    return NULL;
 
   this->input_plugin.open               = dvd_plugin_open;
   this->input_plugin.get_capabilities   = dvd_plugin_get_capabilities;
@@ -1629,6 +1628,8 @@ static void *init_class (xine_t *xine, void *data) {
 #endif
 
   this = (dvd_input_class_t *) xine_xmalloc (sizeof (dvd_input_class_t));
+  if (!this)
+    return NULL;
   
   this->input_class.get_instance       = dvd_class_get_instance;
   this->input_class.get_identifier     = dvd_class_get_identifier;
@@ -1727,6 +1728,9 @@ static void *init_class (xine_t *xine, void *data) {
 
 /*
  * $Log: input_dvd.c,v $
+ * Revision 1.176  2003/12/07 15:34:30  f1rmb
+ * get rid of XINE_{ASSERT,ABORT} and useless xine_print_trace (useless). Replace XINE_ASSERT by _x_assert, which works exaclty as assert, except that it still warns with NDEBUG defined (but don't abort). Fix missuning of assert(0), which isn't safe, abort is abort, assert is for debugging purpose only, so all assert(0) has been converted to abort() alls. In osd_preload_fonts(): alloc needed memory chunk. Define NDEBUG in CFLAGS, for non DEBUG build only.
+ *
  * Revision 1.175  2003/12/05 15:54:58  f1rmb
  * cleanup phase II. use xprintf when it's relevant, use xine_xmalloc when it's relevant too. Small other little fix (can't remember). Change few internal function prototype because it xine_t pointer need to be used if some xine's internal sections. NOTE: libdvd{nav,read} is still too noisy, i will take a look to made it quit, without invasive changes. To be continued...
  *

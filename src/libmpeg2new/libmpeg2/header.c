@@ -480,7 +480,7 @@ int mpeg2_header_picture (mpeg2dec_t * mpeg2dec)
 		    fbuf->buf[2] = fbuf->buf[1] + (size >> 2);
 		}
 	    }
-            assert(0);
+            abort();
 	    mpeg2_set_fbuf (mpeg2dec, type);
 	}
     } else {

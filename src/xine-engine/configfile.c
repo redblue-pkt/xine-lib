@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: configfile.c,v 1.58 2003/12/05 15:55:04 f1rmb Exp $
+ * $Id: configfile.c,v 1.59 2003/12/07 15:34:30 f1rmb Exp $
  *
  * config object (was: file) management - implementation
  *
@@ -203,8 +203,8 @@ static char *__config_register_string (config_values_t *this,
 
   cfg_entry_t *entry, *prev;
 
-  XINE_ASSERT(key, "Register key is NULL. This is a required argument.");
-  XINE_ASSERT(def_value, "Default value is NULL. This is a required argument.");
+  _x_assert(key);
+  _x_assert(def_value);
 
   lprintf ("registering %s\n", key);
 
@@ -266,7 +266,7 @@ static int __config_register_num (config_values_t *this,
 				  void *cb_data) {
 
   cfg_entry_t *entry, *prev;
-  XINE_ASSERT(key, "Register key is NULL. This is a required argument.");
+  _x_assert(key);
 
   lprintf ("registering %s\n", key);
 
@@ -331,7 +331,7 @@ static int __config_register_bool (config_values_t *this,
 				   void *cb_data) {
 
   cfg_entry_t *entry, *prev;
-  XINE_ASSERT(key, "Register key is NULL. This is a required argument.");
+  _x_assert(key);
 
   lprintf ("registering %s\n", key);
 
@@ -397,7 +397,7 @@ static int __config_register_range (config_values_t *this,
 				    void *cb_data) {
 
   cfg_entry_t *entry, *prev;
-  XINE_ASSERT(key, "Register key is NULL. This is a required argument.");
+  _x_assert(key);
 
   lprintf ("registering range %s\n", key);
 
@@ -489,8 +489,8 @@ static int __config_register_enum (config_values_t *this,
 				   void *cb_data) {
 
   cfg_entry_t *entry, *prev;
-  XINE_ASSERT(key, "Register key is NULL. This is a required argument.");
-  XINE_ASSERT(values, "Argument 'values' is NULL. This is a required argument.");
+  _x_assert(key);
+  _x_assert(values);
 
   lprintf ("registering enum %s\n", key);
 
@@ -909,8 +909,8 @@ static void __config_unregister_cb (config_values_t *this, const char *key) {
 
   cfg_entry_t *entry;
 
-  XINE_ASSERT(key, "Register key is NULL. This is a required argument.");
-  XINE_ASSERT(this, "Argument 'this' is NULL. Cannot find key if this is not set.");
+  _x_assert(key);
+  _x_assert(this);
 
   entry = __config_lookup_entry (this, key);
   if (entry) {

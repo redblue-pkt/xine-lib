@@ -19,6 +19,7 @@
 #include "config.h"
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <inttypes.h>
 #include <assert.h>
@@ -51,7 +52,7 @@ static uint32_t getbits(getbits_state_t *state, uint32_t number_of_bits) {
   uint8_t byte=0;
   if (number_of_bits > 32) {
     printf("Number of bits > 32 in getbits\n");
-    assert(0);
+    abort();
   }
 
   if ((state->bit_position) > 0) {  /* Last getbits left us in the middle of a byte. */
@@ -123,7 +124,7 @@ static uint32_t get32bits(getbits_state_t *state) {
 void navRead_PCI(pci_t *pci, unsigned char *buffer) {
   int32_t i, j;
   getbits_state_t state;
-  if (getbits_init(&state, buffer)) assert(0); /* Passed NULL pointers */
+  if (getbits_init(&state, buffer)) abort(); /* Passed NULL pointers */
 
   /* pci pci_gi */
   pci->pci_gi.nv_pck_lbn = getbits(&state, 32 );
@@ -291,7 +292,7 @@ void navRead_PCI(pci_t *pci, unsigned char *buffer) {
 void navRead_DSI(dsi_t *dsi, unsigned char *buffer) {
   int i;
   getbits_state_t state;
-  if (getbits_init(&state, buffer)) assert(0); /* Passed NULL pointers */
+  if (getbits_init(&state, buffer)) abort(); /* Passed NULL pointers */
 
   /* dsi dsi gi */
   dsi->dsi_gi.nv_pck_scr = getbits(&state, 32 );

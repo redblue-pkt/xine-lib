@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: vm.c,v 1.24 2003/08/03 09:44:16 mroi Exp $
+ * $Id: vm.c,v 1.25 2003/12/07 15:34:30 f1rmb Exp $
  *
  */
 
@@ -201,27 +201,27 @@ static void ifoOpenNewVTSI(vm_t *vm, dvd_reader_t *dvd, int vtsN) {
   vm->vtsi = ifoOpenVTSI(dvd, vtsN);
   if(vm->vtsi == NULL) {
     fprintf(MSG_OUT, "libdvdnav: ifoOpenVTSI failed - CRASHING!!!\n");
-    assert(0);
+    abort();
   }
   if(!ifoRead_VTS_PTT_SRPT(vm->vtsi)) {
     fprintf(MSG_OUT, "libdvdnav: ifoRead_VTS_PTT_SRPT failed - CRASHING!!!\n");
-    assert(0);
+    abort();
   }
   if(!ifoRead_PGCIT(vm->vtsi)) {
     fprintf(MSG_OUT, "libdvdnav: ifoRead_PGCIT failed - CRASHING!!!\n");
-    assert(0);
+    abort();
   }
   if(!ifoRead_PGCI_UT(vm->vtsi)) {
     fprintf(MSG_OUT, "libdvdnav: ifoRead_PGCI_UT failed - CRASHING!!!\n");
-    assert(0);
+    abort();
   }
   if(!ifoRead_VOBU_ADMAP(vm->vtsi)) {
     fprintf(MSG_OUT, "libdvdnav: ifoRead_VOBU_ADMAP vtsi failed - CRASHING\n");
-    assert(0);
+    abort();
   }
   if(!ifoRead_TITLE_VOBU_ADMAP(vm->vtsi)) {
     fprintf(MSG_OUT, "libdvdnav: ifoRead_TITLE_VOBU_ADMAP vtsi failed - CRASHING\n");
-    assert(0);
+    abort();
   }
   (vm->state).vtsN = vtsN;
 }
@@ -392,7 +392,7 @@ vm_t *vm_new_copy(vm_t *source) {
   
     /* restore pgc pointer into the new vtsi */
     if (!set_PGCN(target, pgcN))
-      assert(0);
+      abort();
     (target->state).pgN = pgN;
   }
   
@@ -867,7 +867,7 @@ video_attr_t vm_get_video_attr(vm_t *vm) {
   case FP_DOMAIN:
     return vm->vmgi->vmgi_mat->vmgm_video_attr;
   }
-  assert(0);
+  abort();
 }
 
 audio_attr_t vm_get_audio_attr(vm_t *vm, int streamN) {
@@ -880,7 +880,7 @@ audio_attr_t vm_get_audio_attr(vm_t *vm, int streamN) {
   case FP_DOMAIN:
     return vm->vmgi->vmgi_mat->vmgm_audio_attr;
   }
-  assert(0);
+  abort();
 }
 
 subp_attr_t vm_get_subp_attr(vm_t *vm, int streamN) {
@@ -893,7 +893,7 @@ subp_attr_t vm_get_subp_attr(vm_t *vm, int streamN) {
   case FP_DOMAIN:
     return vm->vmgi->vmgi_mat->vmgm_subp_attr;
   }
-  assert(0);
+  abort();
 }
 
 
@@ -1057,7 +1057,7 @@ static link_t play_Cell(vm_t *vm) {
   case 1: /*  The first cell in the block */
     switch((vm->state).pgc->cell_playback[(vm->state).cellN - 1].block_type) {
     case 0: /*  Not part of a block */
-      assert(0);
+      abort();
     case 1: /*  Angle block */
       /* Loop and check each cell instead? So we don't get outside the block? */
       (vm->state).cellN += (vm->state).AGL_REG - 1;
@@ -1080,7 +1080,7 @@ static link_t play_Cell(vm_t *vm) {
       fprintf(MSG_OUT, "libdvdnav: Invalid? Cell block_mode (%d), block_type (%d)\n",
 	      (vm->state).pgc->cell_playback[(vm->state).cellN - 1].block_mode,
 	      (vm->state).pgc->cell_playback[(vm->state).cellN - 1].block_type);
-      assert(0);
+      abort();
     }
     break;
   case 2: /*  Cell in the block */
@@ -1093,7 +1093,7 @@ static link_t play_Cell(vm_t *vm) {
   /* Updates (vm->state).pgN and PTTN_REG */
   if(!set_PGN(vm)) {
     /* Should not happen */
-    assert(0);
+    abort();
     return play_PGC_post(vm);
   }
   (vm->state).cell_restart++;
@@ -1161,7 +1161,7 @@ static link_t play_Cell_post(vm_t *vm) {
   default:
     switch((vm->state).pgc->cell_playback[(vm->state).cellN - 1].block_type) {
     case 0: /*  Not part of a block */
-      assert(0);
+      abort();
     case 1: /*  Angle block */
       /* Skip the 'other' angles */
       (vm->state).cellN++;
@@ -1176,7 +1176,7 @@ static link_t play_Cell_post(vm_t *vm) {
       fprintf(MSG_OUT, "libdvdnav: Invalid? Cell block_mode (%d), block_type (%d)\n",
 	      (vm->state).pgc->cell_playback[(vm->state).cellN - 1].block_mode,
 	      (vm->state).pgc->cell_playback[(vm->state).cellN - 1].block_type);
-      assert(0);
+      abort();
     }
     break;
   }
@@ -1278,7 +1278,7 @@ static int process_command(vm_t *vm, link_t link_values) {
 	(vm->state).HL_BTNN_REG = link_values.data1 << 10;
       assert((vm->state).pgc->next_pgc_nr != 0);
       if(!set_PGCN(vm, (vm->state).pgc->next_pgc_nr))
-	assert(0);
+	abort();
       link_values = play_PGC(vm);
       break;
     case LinkPrevPGC:
@@ -1288,7 +1288,7 @@ static int process_command(vm_t *vm, link_t link_values) {
 	(vm->state).HL_BTNN_REG = link_values.data1 << 10;
       assert((vm->state).pgc->prev_pgc_nr != 0);
       if(!set_PGCN(vm, (vm->state).pgc->prev_pgc_nr))
-	assert(0);
+	abort();
       link_values = play_PGC(vm);
       break;
     case LinkGoUpPGC:
@@ -1298,7 +1298,7 @@ static int process_command(vm_t *vm, link_t link_values) {
 	(vm->state).HL_BTNN_REG = link_values.data1 << 10;
       assert((vm->state).pgc->goup_pgc_nr != 0);
       if(!set_PGCN(vm, (vm->state).pgc->goup_pgc_nr))
-	assert(0);
+	abort();
       link_values = play_PGC(vm);
       break;
     case LinkTailPGC:
@@ -1346,7 +1346,7 @@ static int process_command(vm_t *vm, link_t link_values) {
 	  link_values.data1 = (vm->state).rsm_blockN;
 	  if(!set_PGN(vm)) {
 	    /* Were at the end of the PGC, should not happen for a RSM */
-	    assert(0);
+	    abort();
 	    link_values.command = LinkTailPGC;
 	    link_values.data1 = 0;  /* No button */
 	  }
@@ -1356,7 +1356,7 @@ static int process_command(vm_t *vm, link_t link_values) {
     case LinkPGCN:
       /* Link to Program Chain Number:data1 */
       if(!set_PGCN(vm, link_values.data1))
-	assert(0);
+	abort();
       link_values = play_PGC(vm);
       break;
     case LinkPTTN:
@@ -1367,7 +1367,7 @@ static int process_command(vm_t *vm, link_t link_values) {
       if(link_values.data2 != 0)
 	(vm->state).HL_BTNN_REG = link_values.data2 << 10;
       if(!set_VTS_PTT(vm, (vm->state).vtsN, (vm->state).VTS_TTN_REG, link_values.data1))
-	assert(0);
+	abort();
       link_values = play_PG(vm);
       break;
     case LinkPGN:
@@ -1401,7 +1401,7 @@ static int process_command(vm_t *vm, link_t link_values) {
       /* Set SPRM1 and SPRM2 */
       assert((vm->state).domain == VMGM_DOMAIN || (vm->state).domain == FP_DOMAIN); /* ?? */
       if(!set_TT(vm, link_values.data1))
-	assert(0);
+	abort();
       link_values = play_PGC(vm);
       break;
     case JumpVTS_TT:
@@ -1412,7 +1412,7 @@ static int process_command(vm_t *vm, link_t link_values) {
       /* Set SPRM1 and SPRM2 */
       assert((vm->state).domain == VTSM_DOMAIN || (vm->state).domain == VTS_DOMAIN); /* ?? */
       if(!set_VTS_TT(vm, (vm->state).vtsN, link_values.data1))
-	assert(0);
+	abort();
       link_values = play_PGC(vm);
       break;
     case JumpVTS_PTT:
@@ -1423,7 +1423,7 @@ static int process_command(vm_t *vm, link_t link_values) {
       /* Set SPRM1 and SPRM2 */
       assert((vm->state).domain == VTSM_DOMAIN || (vm->state).domain == VTS_DOMAIN); /* ?? */
       if(!set_VTS_PTT(vm, (vm->state).vtsN, link_values.data1, link_values.data2))
-	assert(0);
+	abort();
       link_values = play_PGC_PG(vm, (vm->state).pgN);
       break;
       
@@ -1434,7 +1434,7 @@ static int process_command(vm_t *vm, link_t link_values) {
       /* Stop SPRM9 Timer and any GPRM counters */
       assert((vm->state).domain == VMGM_DOMAIN || (vm->state).domain == VTSM_DOMAIN); /* ?? */
       if (!set_FP_PGC(vm))
-	assert(0);
+	abort();
       link_values = play_PGC(vm);
       break;
     case JumpSS_VMGM_MENU:
@@ -1444,7 +1444,7 @@ static int process_command(vm_t *vm, link_t link_values) {
       assert((vm->state).domain != VTS_DOMAIN); /* ?? */
       (vm->state).domain = VMGM_DOMAIN;
       if(!set_MENU(vm, link_values.data1))
-	assert(0);
+	abort();
       link_values = play_PGC(vm);
       break;
     case JumpSS_VTSM:
@@ -1478,7 +1478,7 @@ static int process_command(vm_t *vm, link_t link_values) {
       /* assert(link_values.data2 == 1); */
       (vm->state).VTS_TTN_REG = link_values.data2;
       if(!set_MENU(vm, link_values.data3))
-	assert(0);
+	abort();
       link_values = play_PGC(vm);
       break;
     case JumpSS_VMGM_PGC:
@@ -1487,7 +1487,7 @@ static int process_command(vm_t *vm, link_t link_values) {
       assert((vm->state).domain != VTS_DOMAIN); /* ?? */
       (vm->state).domain = VMGM_DOMAIN;
       if(!set_PGCN(vm, link_values.data1))
-	assert(0);
+	abort();
       link_values = play_PGC(vm);
       break;
       
@@ -1507,7 +1507,7 @@ static int process_command(vm_t *vm, link_t link_values) {
       set_RSMinfo(vm, link_values.data2, /* We dont have block info */ 0);      
       (vm->state).domain = VMGM_DOMAIN;
       if(!set_MENU(vm, link_values.data1))
-	assert(0);
+	abort();
       link_values = play_PGC(vm);
       break;
     case CallSS_VTSM:
@@ -1518,7 +1518,7 @@ static int process_command(vm_t *vm, link_t link_values) {
       set_RSMinfo(vm, link_values.data2, /* We dont have block info */ 0);
       (vm->state).domain = VTSM_DOMAIN;
       if(!set_MENU(vm, link_values.data1))
-	assert(0);
+	abort();
       link_values = play_PGC(vm);
       break;
     case CallSS_VMGM_PGC:
@@ -1529,12 +1529,12 @@ static int process_command(vm_t *vm, link_t link_values) {
       set_RSMinfo(vm, link_values.data2, /* We dont have block info */ 0);
       (vm->state).domain = VMGM_DOMAIN;
       if(!set_PGCN(vm, link_values.data1))
-	assert(0);
+	abort();
       link_values = play_PGC(vm);
       break;
     case PlayThis:
       /* Should never happen. */
-      assert(0);
+      abort();
       break;
     }
 
@@ -1818,7 +1818,7 @@ static pgcit_t* get_PGCIT(vm_t *vm) {
     pgcit = NULL;    /* Should never hapen */
     fprintf(MSG_OUT, "libdvdnav: get_PGCIT: Unknown domain:%d\n",
              (vm->state).domain);
-    assert(0);
+    abort();
     break;
   }
   
