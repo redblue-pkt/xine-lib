@@ -130,14 +130,11 @@ int main () {
      return 0;
   }
   else {
-     printf("\n*** An old version of AALIB (%d.%d) was found.\n",
-            AA_LIB_VERSION, 
 #ifdef AA_LIB_MINNOR
-            AA_LIB_MINNOR
+     printf("\n*** An old version of AALIB (%d.%d) was found.\n", AA_LIB_VERSION, AA_LIB_MINNOR);
 #else
-            AA_LIB_MINOR
+printf("\n*** An old version of AALIB (%d.%d) was found.\n", AA_LIB_VERSION, AA_LIB_MINOR);
 #endif
-            );
      printf("*** You need a version of AALIB newer than %d.%d. The latest version of\n", major, minor);
      printf("*** AALIB is always available from:\n");
      printf("***        http://www.ta.jcu.cz://aa\n");
