@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: asmrp.c,v 1.1 2002/12/12 22:14:54 holstsn Exp $
+ * $Id: asmrp.c,v 1.2 2002/12/17 16:49:48 jkeil Exp $
  *
  * a parser for real's asm rules
  *
@@ -342,7 +342,8 @@ static void asmrp_get_sym (asmrp_t *p) {
     asmrp_string (p);
     break;
 
-  case '0' ... '9':
+  case '0': case '1': case '2': case '3': case '4':
+  case '5': case '6': case '7': case '8': case '9':
     asmrp_number (p);
     break;
 
