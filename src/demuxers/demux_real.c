@@ -31,7 +31,7 @@
  *   
  *   Based on FFmpeg's libav/rm.c.
  *
- * $Id: demux_real.c,v 1.95 2004/03/14 21:37:52 jstembridge Exp $
+ * $Id: demux_real.c,v 1.96 2004/05/13 21:17:09 jstembridge Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -1144,7 +1144,6 @@ static int demux_real_send_chunk(demux_plugin_t *this_gen) {
         }
         
         buf->pts = pts;
-        pts = 0;
         
         buf->extra_info->input_pos     = this->input->get_current_pos(this->input);
         buf->extra_info->input_length  = input_length;
