@@ -49,7 +49,8 @@ lib_LTLIBRARIES = \
 	xineplug_inp_mms.la \
 	xineplug_inp_stdin_fifo.la \
 	xineplug_inp_pnm.la \
-	xineplug_inp_rtsp.la
+	xineplug_inp_rtsp.la \
+	xineplug_inp_net.la
 
 #lib_LTLIBRARIES = \
 #	$(in_cda) \
@@ -71,9 +72,9 @@ xineplug_inp_dvd_la_SOURCES = input_dvd.c
 xineplug_inp_dvd_la_LIBADD = $(XINE_LIB) $(link_dvdnav)
 xineplug_inp_dvd_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
-#xineplug_inp_net_la_SOURCES = input_net.c net_buf_ctrl.c
-#xineplug_inp_net_la_LIBADD = $(XINE_LIB)
-#xineplug_inp_net_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
+xineplug_inp_net_la_SOURCES = input_net.c net_buf_ctrl.c
+xineplug_inp_net_la_LIBADD = $(XINE_LIB)
+xineplug_inp_net_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 xineplug_inp_mms_la_SOURCES = input_mms.c net_buf_ctrl.c mms.c 
 xineplug_inp_mms_la_LIBADD = $(XINE_LIB)
