@@ -144,6 +144,9 @@ Contributions
   Andrew Meredith <andrew@anvil.org>
     Snapshot feature
 
+  Stefan Reinauer <stepan@suse.de>
+    ia64, s/390 patches
+
   (let us know if we've forgotten anyone)
 
 
