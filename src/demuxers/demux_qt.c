@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.126 2002/12/12 03:50:37 tmmm Exp $
+ * $Id: demux_qt.c,v 1.127 2002/12/16 01:34:08 guenter Exp $
  *
  */
 
@@ -231,6 +231,10 @@ typedef struct {
   unsigned int bytes_per_sample;
   unsigned int samples_per_frame;
 
+  /* verbatim copy of the stsd atom */
+  int          stsd_size;
+  void        *stsd;
+
 } qt_sample_table;
 
 typedef struct {
@@ -256,13 +260,16 @@ typedef struct {
   int wave_present;
   xine_waveformatex wave;
 
-  qt_atom video_codec;
-  unsigned int video_type;
-  unsigned int video_width;
-  unsigned int video_height;
-  unsigned int video_depth;
-  void *video_decoder_config;
-  int video_decoder_config_len;
+  qt_atom           video_codec;
+  unsigned int      video_type;
+  unsigned int      video_width;
+  unsigned int      video_height;
+  unsigned int      video_depth;
+  void             *video_decoder_config;
+  int               video_decoder_config_len;
+  int               video_stsd_size;
+  void             *video_stsd;
+
 
   qt_frame *frames;
   unsigned int frame_count;
@@ -377,6 +384,37 @@ static inline void debug_video_demux(const char *format, ...) { }
 #else
 static inline void debug_audio_demux(const char *format, ...) { }
 #endif
+
+static void hexdump (char *buf, int length) {
+
+  int i;
+
+  printf ("demux_qt: ascii contents>");
+  for (i = 0; i < length; i++) {
+    unsigned char c = buf[i];
+
+    if ((c >= 32) && (c <= 128))
+      printf ("%c", c);
+    else
+      printf (".");
+  }
+  printf ("\n");
+
+  printf ("demux_qt: complete hexdump of package follows:\ndemux_qt 0x0000:  ");
+  for (i = 0; i < length; i++) {
+    unsigned char c = buf[i];
+
+    printf ("%02x", c);
+
+    if ((i % 16) == 15)
+      printf ("\ndemux_qt 0x%04x: ", i);
+
+    if ((i % 2) == 1)
+      printf (" ");
+
+  }
+  printf ("\n");
+}
 
 void dump_moov_atom(unsigned char *moov_atom, int moov_atom_size) {
 #if DEBUG_DUMP_MOOV
@@ -594,8 +632,8 @@ static int mp4_read_descr_len(unsigned char *s, uint32_t *length) {
  * This function traverses through a trak atom searching for the sample
  * table atoms, which it loads into an internal sample table structure.
  */
-static qt_error parse_trak_atom(qt_sample_table *sample_table,
-  unsigned char *trak_atom) {
+static qt_error parse_trak_atom (qt_sample_table *sample_table,
+				 unsigned char *trak_atom) {
 
   int i, j;
   unsigned int trak_atom_size = BE_32(&trak_atom[0]);
@@ -713,6 +751,18 @@ static qt_error parse_trak_atom(qt_sample_table *sample_table,
     } else if (current_atom == MDHD_ATOM)
       sample_table->timescale = BE_32(&trak_atom[i + 0x10]);
     else if (current_atom == STSD_ATOM) {
+
+      printf ("demux_qt: stsd atom\n");
+
+      hexdump (&trak_atom[i], current_atom_size);
+
+      /* copy whole stsd atom so it can later be sent to the decoder */
+
+      sample_table->stsd_size = current_atom_size;
+      sample_table->stsd = xine_xmalloc (current_atom_size);
+      memcpy (sample_table->stsd, &trak_atom[i], current_atom_size);
+      
+      printf ("demux_qt: stsd copied\n");
 
       if (sample_table->type == MEDIA_VIDEO) {
 
@@ -1176,7 +1226,7 @@ free_sample_table:
 }
 
 static qt_error build_frame_table(qt_sample_table *sample_table,
-  unsigned int global_timescale) {
+				  unsigned int global_timescale) {
 
   int i, j;
   unsigned int frame_counter;
@@ -1464,8 +1514,8 @@ static void parse_moov_atom(qt_info *info, unsigned char *moov_atom) {
       sample_tables = (qt_sample_table *)realloc(sample_tables,
         sample_table_count * sizeof(qt_sample_table));
 
-      parse_trak_atom(&sample_tables[sample_table_count - 1],
-        &moov_atom[i - 4]);
+      parse_trak_atom (&sample_tables[sample_table_count - 1],
+		       &moov_atom[i - 4]);
       if (info->last_error != QT_OK)
         return;
       i += BE_32(&moov_atom[i - 4]) - 4;
@@ -1528,6 +1578,10 @@ static void parse_moov_atom(qt_info *info, unsigned char *moov_atom) {
           sample_tables[i].media_description.video.palette,
           PALETTE_COUNT * sizeof(palette_entry_t));
       }
+
+      /* stsd atom */
+      info->video_stsd      = sample_tables[i].stsd;
+      info->video_stsd_size = sample_tables[i].stsd_size;
 
     } else if (sample_tables[i].type == MEDIA_AUDIO) {
 
@@ -2000,6 +2054,8 @@ static void demux_qt_send_headers(demux_plugin_t *this_gen) {
   /* send header info to decoder. some mpeg4 streams need this */
   if( this->qt->video_decoder_config ) {
     buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
+    buf->decoder_flags = BUF_FLAG_SPECIAL;
+    buf->decoder_info[0] = BUF_SPECIAL_DECODER_CONFIG;
     buf->type = this->qt->video_type;
     buf->size = this->qt->video_decoder_config_len;
     buf->content = this->qt->video_decoder_config;      
@@ -2017,6 +2073,18 @@ static void demux_qt_send_headers(demux_plugin_t *this_gen) {
     buf->type = this->qt->video_type;
     this->video_fifo->put (this->video_fifo, buf);
   }
+
+  /* send stsd to the decoder */
+  buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
+  buf->decoder_flags = BUF_FLAG_SPECIAL;
+  buf->decoder_info[0] = BUF_SPECIAL_STSD_ATOM;
+  buf->decoder_info[1] = this->qt->video_stsd_size;
+  buf->decoder_info[3] = this->qt->video_stsd;
+  memcpy (buf->content, this->qt->video_stsd, this->qt->video_stsd_size);
+  buf->size = this->qt->video_stsd_size;
+  buf->type = this->qt->video_type;
+  this->video_fifo->put (this->video_fifo, buf);
+
 
   if (this->audio_fifo && this->qt->audio_type) {
     buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);

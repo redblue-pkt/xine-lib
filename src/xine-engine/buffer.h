@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.h,v 1.83 2002/12/04 04:11:01 tmmm Exp $
+ * $Id: buffer.h,v 1.84 2002/12/16 01:34:08 guenter Exp $
  *
  *
  * contents:
@@ -281,8 +281,14 @@ struct buf_element_s {
  */
 #define BUF_SPECIAL_DECODER_CONFIG  4
 
+/*
+ * In a BUF_SPECIAL_STSD_ATOM buffer:
+ * decoder_info[1] = BUF_SPECIAL_STSD_ATOM
+ * buf content is a copy of the stsd atom
+ * binary-only quicktime decoders need this, sent by qt demuxer
+ */
+#define BUF_SPECIAL_STSD_ATOM  5
 
-/* special buffer type 5 used to be defined but is now available for use */
 
 
 /*
