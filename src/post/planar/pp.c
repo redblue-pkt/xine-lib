@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: pp.c,v 1.2 2003/11/11 18:44:59 f1rmb Exp $
+ * $Id: pp.c,v 1.3 2003/11/29 01:23:24 miguelfreitas Exp $
  *
  * plugin for ffmpeg libpostprocess
  */
@@ -65,7 +65,6 @@ struct post_plugin_pp_s {
   xine_stream_t     *stream;
   int                frame_width;
   int                frame_height;
-  int                frame_format;
 
   pp_parameters_t params;
 
@@ -215,7 +214,7 @@ static post_plugin_t *pp_open_plugin(post_class_t *class_gen, int inputs,
 
   /* Detect what cpu accel we have */
   cpu_caps = xine_mm_accel();
-  this->pp_flags = 0;
+  this->pp_flags = PP_FORMAT_420;
   if(cpu_caps & MM_ACCEL_X86_MMX)
     this->pp_flags |= PP_CPU_CAPS_MMX;
   if(cpu_caps & MM_ACCEL_X86_MMXEXT)
@@ -378,6 +377,7 @@ static int pp_draw(vo_frame_t *frame, xine_stream_t *stream)
   post_video_port_t *port = (post_video_port_t *)frame->port;
   post_plugin_pp_t *this = (post_plugin_pp_t *)port->post;
   vo_frame_t *out_frame;
+  vo_frame_t *yv12_frame;
   int skip;
   int pp_flags;
 
@@ -385,8 +385,29 @@ static int pp_draw(vo_frame_t *frame, xine_stream_t *stream)
 
   if( !frame->bad_frame ) {
 
+    /* convert to YV12 if needed */
+    if( frame->format != XINE_IMGFMT_YV12 ) {
+
+      yv12_frame = port->original_port->get_frame(port->original_port,
+        frame->width, frame->height, frame->ratio, XINE_IMGFMT_YV12, frame->flags | VO_BOTH_FIELDS);
+  
+      yv12_frame->pts = frame->pts;
+      yv12_frame->duration = frame->duration;
+      _x_extra_info_merge(yv12_frame->extra_info, frame->extra_info);
+  
+      yuy2_to_yv12(frame->base[0], frame->pitches[0],
+                   yv12_frame->base[0], yv12_frame->pitches[0],
+                   yv12_frame->base[1], yv12_frame->pitches[1],
+                   yv12_frame->base[2], yv12_frame->pitches[2],
+                   frame->width, frame->height);
+
+    } else {
+      yv12_frame = frame;
+      yv12_frame->lock(yv12_frame);
+    }
+
     out_frame = port->original_port->get_frame(port->original_port,
-      frame->width, frame->height, frame->ratio, frame->format, frame->flags | VO_BOTH_FIELDS);
+      frame->width, frame->height, frame->ratio, XINE_IMGFMT_YV12, frame->flags | VO_BOTH_FIELDS);
   
     _x_extra_info_merge(out_frame->extra_info, frame->extra_info);
   
@@ -396,19 +417,12 @@ static int pp_draw(vo_frame_t *frame, xine_stream_t *stream)
     pthread_mutex_lock (&this->lock);
 
     if( !this->pp_context || 
-        this->frame_width != frame->width ||
-        this->frame_height != frame->height ||
-        this->frame_format != frame->format ) {
+        this->frame_width != yv12_frame->width ||
+        this->frame_height != yv12_frame->height ) {
 
-      this->frame_width = frame->width;
-      this->frame_height = frame->height;
-      this->frame_format = frame->format;
+      this->frame_width = yv12_frame->width;
+      this->frame_height = yv12_frame->height;
       pp_flags = this->pp_flags;
-
-      if( this->frame_format == XINE_IMGFMT_YV12 )
-        pp_flags |= PP_FORMAT_420;
-      else
-        pp_flags |= PP_FORMAT_422;
 
       if(this->pp_context)
         pp_free_context(this->pp_context);
@@ -426,7 +440,7 @@ static int pp_draw(vo_frame_t *frame, xine_stream_t *stream)
                                                       this->params.quality);
 
     if(this->pp_mode)
-      pp_postprocess(frame->base, frame->pitches, 
+      pp_postprocess(yv12_frame->base, yv12_frame->pitches, 
                      out_frame->base, out_frame->pitches, 
                      (frame->width+7)&(~7), frame->height,
                      NULL, 0,
@@ -443,6 +457,7 @@ static int pp_draw(vo_frame_t *frame, xine_stream_t *stream)
     }
 
     out_frame->free(out_frame);
+    yv12_frame->free(yv12_frame);
 
   } else {
     skip = frame->draw(frame, stream);
