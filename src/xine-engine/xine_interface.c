@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_interface.c,v 1.24 2002/10/20 16:18:07 guenter Exp $
+ * $Id: xine_interface.c,v 1.25 2002/10/24 19:37:29 guenter Exp $
  *
  * convenience/abstraction layer, functions to implement
  * libxine's public interface
@@ -343,10 +343,19 @@ void xine_set_param (xine_stream_t *stream, int param, int value) {
     break;
 
   case XINE_PARAM_AUDIO_VOLUME:
-    break; /* FIXME: implement */
+    if (stream->audio_out)
+      stream->audio_out->set_property (stream->audio_out, AO_PROP_MIXER_VOL, value);
+    break;
 
   case XINE_PARAM_AUDIO_MUTE:
-    break; /* FIXME: implement */
+    if (stream->audio_out)
+      stream->audio_out->set_property (stream->audio_out, AO_PROP_MUTE_VOL, value);
+    break;
+    
+  case XINE_PARAM_AUDIO_COMPR_LEVEL:
+    if (stream->audio_out)
+      stream->audio_out->set_property (stream->audio_out, AO_PROP_COMPRESSOR, value);
+    break;
     
   case XINE_PARAM_VO_DEINTERLACE:
   case XINE_PARAM_VO_ASPECT_RATIO:
@@ -385,10 +394,19 @@ int  xine_get_param (xine_stream_t *stream, int param) {
     return stream->video_channel;
 
   case XINE_PARAM_AUDIO_VOLUME:
-    return -1; /* FIXME: implement */
+    if (!stream->audio_out)
+      return -1;
+    return stream->audio_out->get_property (stream->audio_out, AO_PROP_MIXER_VOL);
 
   case XINE_PARAM_AUDIO_MUTE:
-    return -1; /* FIXME: implement */
+    if (!stream->audio_out)
+      return -1;
+    return stream->audio_out->get_property (stream->audio_out, AO_PROP_MUTE_VOL);
+
+  case XINE_PARAM_AUDIO_COMPR_LEVEL:
+    if (!stream->audio_out)
+      return -1;
+    return stream->audio_out->get_property (stream->audio_out, AO_PROP_COMPRESSOR);
 
   case XINE_PARAM_VO_DEINTERLACE:
   case XINE_PARAM_VO_ASPECT_RATIO:

@@ -28,6 +28,8 @@ xine-lib (next version) [someone fill in stability and urgency]
   * numeric selection of dvd menu buttons (could make some dvd easter eggs accesible)
   * big api cleanup
   * xine engine can open more than one stream at a time
+  * audio compressor filter
+  * content detection fixes (e.g. mpeg program streams)
 	
 xine-lib (0.9.13) unstable; urgency=low
 
