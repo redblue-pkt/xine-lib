@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.7 2001/05/30 02:09:24 f1rmb Exp $
+ * $Id: input_dvd.c,v 1.8 2001/05/30 21:48:23 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -491,6 +491,7 @@ static char **dvd_plugin_get_autoplay_list (input_plugin_t *this_gen,
 
     *nFiles = nFiles2;
 
+    this->filelist2[*nFiles] = NULL;
     close (fd);
 
   } else {

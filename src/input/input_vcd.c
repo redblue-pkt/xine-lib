@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_vcd.c,v 1.6 2001/05/11 17:15:45 f1rmb Exp $
+ * $Id: input_vcd.c,v 1.7 2001/05/30 21:48:23 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -378,7 +378,8 @@ static buf_element_t *vcd_plugin_read_block (input_plugin_t *this_gen,
   }
   while((data.subheader[2]&~0x01)==0x60);
   
-  memcpy (buf, data.data, VCDSECTORSIZE); /* FIXME */
+  buf->content = buf->mem;
+  memcpy (buf->mem, data.data, VCDSECTORSIZE); /* FIXME */
   return buf;
 }
 #elif defined (__FreeBSD__)
@@ -404,7 +405,9 @@ static buf_element_t *vcd_plugin_read_block (input_plugin_t *this_gen,
     }
     this->cur_sector++;
   } while ((data.subheader[2]&~0x01)==0x60);
-  memcpy (buf, data.data, VCDSECTORSIZE);
+
+  buf->content = buf->mem;
+  memcpy (buf->mem, data.data, VCDSECTORSIZE);
   return buf;
 }
 #endif
@@ -416,12 +419,12 @@ static buf_element_t *vcd_plugin_read_block (input_plugin_t *this_gen,
  */
 #if defined (__linux__)
 static off_t vcd_plugin_seek (input_plugin_t *this_gen, 
-				off_t offset, int origin) {
+			      off_t offset, int origin) {
 
-  vcd_input_plugin_t *this = (vcd_input_plugin_t *) this_gen;
-  struct cdrom_msf0       *start_msf;
-  uint32_t dist ;
-  off_t sector_pos;
+  vcd_input_plugin_t  *this = (vcd_input_plugin_t *) this_gen;
+  struct cdrom_msf0   *start_msf;
+  uint32_t             dist ;
+  off_t                sector_pos;
 
   start_msf = &this->tocent[this->cur_track].cdte_addr.msf;
 
@@ -569,7 +572,7 @@ static off_t vcd_plugin_get_current_pos (input_plugin_t *this_gen){
  *
  */
 static uint32_t vcd_plugin_get_capabilities (input_plugin_t *this_gen) {
-
+  
   return INPUT_CAP_SEEKABLE | INPUT_CAP_BLOCK | INPUT_CAP_AUTOPLAY | INPUT_CAP_GET_DIR;
 }
 
@@ -751,6 +754,8 @@ static char **vcd_plugin_get_autoplay_list (input_plugin_t *this_gen,
     sprintf (this->filelist[i-1], "vcd://%d",i);
     /* printf ("list[%d] : %d %s\n", i, this->filelist[i-1], this->filelist[i-1]);   */
   }
+
+  this->filelist[i-1] = NULL;
 
   return this->filelist;
 }

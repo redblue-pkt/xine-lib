@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.9 2001/05/30 02:09:24 f1rmb Exp $
+ * $Id: demux_mpeg_block.c,v 1.10 2001/05/30 21:48:23 f1rmb Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -431,17 +431,17 @@ static int demux_mpeg_block_open(demux_plugin_t *this_gen,
 	switch(buf[3]) {
 
 	case 0xba:
-	  if((buf[4] & 0xc0) == 0x40) 
+	  if((buf[4] & 0xc0) == 0x40) {
 	    this->input = input;
 	    return DEMUX_CAN_HANDLE;
-
+	  }
 	  break;
 	  
 	case 0xe0:
-	  if((buf[6] & 0xc0) == 0x80) 
+	  if((buf[6] & 0xc0) == 0x80) {
 	    this->input = input;
 	    return DEMUX_CAN_HANDLE;
-
+	  }
 	  break;
  
 	}
