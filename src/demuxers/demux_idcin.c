@@ -21,7 +21,49 @@
  * For more information regarding the Id CIN file format, visit:
  *   http://www.csse.monash.edu.au/~timf/
  *
- * $Id: demux_idcin.c,v 1.4 2002/08/12 00:13:32 tmmm Exp $
+ * CIN is a somewhat quirky and ill-defined format. Here are some notes
+ * for anyone trying to understand the technical details of this format:
+ *
+ * The format has no definite file signature. This is problematic for a
+ * general-purpose media player that wants to automatically detect file
+ * types. However, a CIN file does start with 5 32-bit numbers that
+ * specify audio and video parameters. This demuxer gets around the lack
+ * of file signature by performing sanity checks on those parameters.
+ * Probabalistically, this is a reasonable solution since the number of
+ * valid combinations of the 5 parameters is a very small subset of the
+ * total 160-bit number space.
+ *
+ * Refer to the function demux_idcin_open() for the precise A/V parameters
+ * that this demuxer allows.
+ *
+ * Next, each audio and video frame has a duration of 1/14 sec. If the
+ * audio sample rate is a multiple of the common frequency 22050 Hz it will
+ * divide evenly by 14. However, if the sample rate is 11025 Hz:
+ *   11025 (samples/sec) / 14 (frames/sec) = 787.5 (samples/frame)
+ * The way the CIN stores audio in this case is by storing 787 sample
+ * frames in the first audio frame and 788 sample frames in the second
+ * audio frame. Therefore, the total number of bytes in an audio frame
+ * is given as:
+ *   audio frame #0: 787 * (bytes/sample) * (# channels) bytes in frame
+ *   audio frame #1: 788 * (bytes/sample) * (# channels) bytes in frame
+ *   audio frame #2: 787 * (bytes/sample) * (# channels) bytes in frame
+ *   audio frame #3: 788 * (bytes/sample) * (# channels) bytes in frame
+ *
+ * Finally, not all Id CIN creation tools agree on the resolution of the
+ * color palette, apparently. Some creation tools specify red, green, and
+ * blue palette components in terms of 6-bit VGA color DAC values which
+ * range from 0..63. Other tools specify the RGB components as full 8-bit
+ * values that range from 0..63. Since there are no markers in the file to
+ * differentiate between the two variants, this demuxer uses the following
+ * heuristic:
+ *   - load the 768 palette bytes from disk
+ *   - assume that they will need to be shifted left by 2 bits to
+ *     transform them from 6-bit values to 8-bit values
+ *   - scan through all 768 palette bytes
+ *     - if any bytes exceed 63, do not shift the bytes at all before
+ *       transmitting them to the video decoder
+ *
+ * $Id: demux_idcin.c,v 1.5 2002/09/01 06:43:26 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -78,6 +120,9 @@ typedef struct {
   unsigned int         audio_bytes_per_sample;
   unsigned int         audio_channels;
 
+  int                  audio_chunk_size1;
+  int                  audio_chunk_size2;
+
   unsigned char        huffman_table[HUFFMAN_TABLE_SIZE];
 
 } demux_idcin_t;
@@ -94,6 +139,8 @@ static void *demux_idcin_loop (void *this_gen) {
   int i;
   unsigned int remaining_sample_bytes;
   uint64_t pts_counter = 0;
+  int current_audio_chunk = 1;
+  int scale_bits;
 
   pthread_mutex_lock( &this->mutex );
 
@@ -132,13 +179,22 @@ static void *demux_idcin_loop (void *this_gen) {
             break;
           }
 
+          /* scan the palette to figure out if it's 6- or 8-bit;
+           * assume 6-bit palette until a value > 63 is seen */
+          scale_bits = 2;
+          for (i = 0; i < PALETTE_SIZE * 3; i++)
+            if (disk_palette[i] > 63) {
+              scale_bits = 0;
+              break;
+            }
+
           /* convert palette to internal structure */
           for (i = 0; i < PALETTE_SIZE; i++) {
             /* these are VGA color DAC values, which means they only range
              * from 0..63; adjust as appropriate */
-            palette[i].r = disk_palette[i * 3 + 0] * 4;
-            palette[i].g = disk_palette[i * 3 + 1] * 4;
-            palette[i].b = disk_palette[i * 3 + 2] * 4;
+            palette[i].r = disk_palette[i * 3 + 0] << scale_bits;
+            palette[i].g = disk_palette[i * 3 + 1] << scale_bits;
+            palette[i].b = disk_palette[i * 3 + 2] << scale_bits;
           }
 
           buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
@@ -159,9 +215,6 @@ static void *demux_idcin_loop (void *this_gen) {
         break;
       }
       remaining_sample_bytes = LE_32(&preamble[0]) - 4;
-//printf ("  loading video frame at offset %llX, %X bytes\n",
-//  this->input->get_current_pos(this->input),
-//  remaining_sample_bytes);
 
       while (remaining_sample_bytes) {
         buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
@@ -194,6 +247,41 @@ static void *demux_idcin_loop (void *this_gen) {
 
       /* load the audio frame */
       if (this->audio_fifo && this->audio_sample_rate) {
+
+        if (current_audio_chunk == 1) {
+          remaining_sample_bytes = this->audio_chunk_size1;
+          current_audio_chunk = 2;
+        } else {
+          remaining_sample_bytes = this->audio_chunk_size2;
+          current_audio_chunk = 1;
+        }
+
+        while (remaining_sample_bytes) {
+          buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
+          buf->type = BUF_AUDIO_LPCM_LE;
+          buf->input_pos = this->input->get_current_pos(this->input);
+          buf->input_length = this->filesize;
+          buf->input_time = pts_counter / 90000;
+          buf->pts = pts_counter;
+
+          if (remaining_sample_bytes > buf->max_size)
+            buf->size = buf->max_size;
+          else
+            buf->size = remaining_sample_bytes;
+          remaining_sample_bytes -= buf->size;
+
+          if (this->input->read(this->input, buf->content, buf->size) !=
+            buf->size) {
+            buf->free_buffer(buf);
+            this->status = DEMUX_FINISHED;
+            break;
+          }
+
+          if (!remaining_sample_bytes)
+            buf->decoder_flags |= BUF_FLAG_FRAME_END;
+
+          this->audio_fifo->put(this->audio_fifo, buf);
+        }
       }
 
       pts_counter += IDCIN_FRAME_PTS_INC;
@@ -401,6 +489,19 @@ static int demux_idcin_start (demux_plugin_t *this_gen,
     this->video_fifo->put (this->video_fifo, buf);
 
     if (this->audio_fifo && this->audio_channels) {
+
+      /* initialize the chunk sizes */
+      if (this->audio_sample_rate % 14 != 0) {
+        this->audio_chunk_size1 = (this->audio_sample_rate / 14) *
+          this->audio_bytes_per_sample * this->audio_channels;
+        this->audio_chunk_size2 = (this->audio_sample_rate / 14 + 1) *
+          this->audio_bytes_per_sample * this->audio_channels;
+      } else {
+        this->audio_chunk_size1 = this->audio_chunk_size2 =
+          (this->audio_sample_rate / 14) * this->audio_bytes_per_sample *
+          this->audio_channels;
+      }
+
       buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
       buf->type = BUF_AUDIO_LPCM_LE;
       buf->decoder_flags = BUF_FLAG_HEADER;
