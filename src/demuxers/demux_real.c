@@ -31,7 +31,7 @@
  *   
  *   Based on FFmpeg's libav/rm.c.
  *
- * $Id: demux_real.c,v 1.97 2004/05/16 18:01:44 tmattern Exp $
+ * $Id: demux_real.c,v 1.98 2004/05/23 16:05:47 jstembridge Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -109,6 +109,7 @@ typedef struct {
 typedef struct {
   uint32_t             fourcc;
   uint32_t             buf_type;
+  uint32_t             format;
   
   real_index_entry_t  *index;
   int                  index_entries;
@@ -151,12 +152,16 @@ typedef struct {
   int64_t              last_pts[2];
   int                  send_newpts;
   int                  buf_flag_seek;
+  
+  uint32_t             last_ts;
+  uint32_t             next_ts;
+  int                  last_seq;
+  int                  next_seq;
 
   int                  fragment_size; /* video sub-demux */
   int                  fragment_count;
   uint32_t            *fragment_tab;
   int                  fragment_tab_max;
-  int                  fragment_id;
 
   int                  reference_mode;
 } demux_real_t ;
@@ -476,6 +481,7 @@ static void real_parse_headers (demux_real_t *this) {
 
           this->video_streams[this->num_video_streams].fourcc = fourcc;
           this->video_streams[this->num_video_streams].buf_type = _x_fourcc_to_buf_video(fourcc);
+          this->video_streams[this->num_video_streams].format = BE_32(mdpr->type_specific_data + 30);
           this->video_streams[this->num_video_streams].index = NULL;
           this->video_streams[this->num_video_streams].mdpr = mdpr;
 
@@ -873,6 +879,74 @@ static void check_newpts (demux_real_t *this, int64_t pts, int video, int previe
     this->last_pts[video] = pts;
 }
 
+static uint32_t real_fix_timestamp (demux_real_t *this, uint8_t *hdr, uint32_t ts_in) {
+  int      pict_type;
+  int      seq;
+  uint32_t ts_out;
+        
+  switch(this->video_stream->buf_type) {
+    case BUF_VIDEO_RV20:
+      pict_type = (hdr[0] & 0xC0) >> 6;
+      seq       = ((hdr[1] & 0x7F) << 6) + ((hdr[2] & 0xFC) >> 2);
+      break;
+    case BUF_VIDEO_RV30:
+      pict_type = (hdr[0] & 0x18) >> 3;
+      seq       = ((hdr[1] & 0x0F) << 9) + (hdr[2] << 1) + ((hdr[3] & 0x80) >> 7);
+      break;
+    case BUF_VIDEO_RV40:
+      pict_type = (hdr[0] & 0x60) >> 5;
+      seq       = ((hdr[1] & 0x07) << 10) + (hdr[2] << 2) + ((hdr[3] & 0xC0) >> 6);
+      break;
+    default:
+      xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
+              "demux_real: can't fix timestamp for buf type 0x%08x\n", 
+              this->video_stream->buf_type);
+      return ts_in;
+      break;
+  }
+            
+  switch (pict_type) {
+    case 0:
+    case 1: 
+      /* I frame */
+      ts_out = this->next_ts;
+            
+      this->last_ts = this->next_ts;
+      this->next_ts = ts_in;
+            
+      this->last_seq = this->next_seq;
+      this->next_seq = seq;
+      break;
+    case 2:
+      /* P frame */
+      ts_out = this->next_ts;
+                
+      this->last_ts  = this->next_ts;
+      if (seq < this->next_seq)
+        this->next_ts += seq + 8192 - this->next_seq;
+      else
+        this->next_ts += seq - this->next_seq;
+                
+      this->last_seq = this->next_seq;
+      this->next_seq = seq;
+      break;
+    case 3:
+      /* B frame */
+      if (seq < this->last_seq)
+        ts_out = ((seq + 8192 - this->last_seq) + this->last_ts);
+      else
+        ts_out = ((seq - this->last_seq) + this->last_ts);
+      break;
+    default:
+      xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
+              "unknown pict_type: %d\n", pict_type);
+      ts_out = 0;
+      break;
+  }
+  
+  return ts_out;            
+}
+
 static int stream_read_char (demux_real_t *this) {
   uint8_t ret;
   this->input->read (this->input, &ret, 1);
@@ -1122,28 +1196,28 @@ static int demux_real_send_chunk(demux_plugin_t *this_gen) {
         }
         
         /* RV30 and RV40 streams contain some fragments that shouldn't be passed 
-         * to the decoder. The first byte of these fragments is different from
-         * that found in the preceding fragments making up the frame. The purpose
-         * of these fragments is unknown, but realplayer doesn't appear to pass
-         * them to the decoder either */
+         * to the decoder. The purpose of these fragments is unknown, but 
+         * realplayer doesn't appear to pass them to the decoder either */        
         if((n == fragment_size) && 
-           ((buf->type == BUF_VIDEO_RV30) || buf->type == BUF_VIDEO_RV40)) {
-          
-          if(this->fragment_size == 0)
-            this->fragment_id = buf->content[0];
-          else if(this->fragment_id != buf->content[0]) {
-            lprintf("ignoring fragment\n");
-          
-            /* Discard buffer and skip over rest of fragment */
-            buf->free_buffer(buf);
-            this->input->seek(this->input, n - buf->size, SEEK_CUR);
-            this->fragment_count--;
+           (((buf->type == BUF_VIDEO_RV30) && (buf->content[0] & 0x20)) ||
+            ((buf->type == BUF_VIDEO_RV40) && (buf->content[0] & 0x80)))) {
+          lprintf("ignoring fragment\n");
 
-            break;
-          }
+          /* Discard buffer and skip over rest of fragment */
+          buf->free_buffer(buf);
+          this->input->seek(this->input, n - buf->size, SEEK_CUR);
+          this->fragment_count--;
+
+          break;
         }
+          
+        /* if the video stream has b-frames fix the timestamps */
+        if((this->video_stream->format >= 0x20200002) &&
+           (buf->decoder_flags & BUF_FLAG_FRAME_START))
+          pts = (int64_t) real_fix_timestamp(this, buf->content, timestamp) * 90;
         
         buf->pts = pts;
+        pts = 0;
         
         buf->extra_info->input_pos     = this->input->get_current_pos(this->input);
         buf->extra_info->input_length  = input_length;
@@ -1371,6 +1445,10 @@ static int demux_real_seek (demux_plugin_t *this_gen,
   this->send_newpts     = 1;
   this->old_seqnum      = -1;
   this->fragment_size   = 0;
+  
+  this->next_ts         = 0;
+  this->next_seq        = 0;
+
   this->status          = DEMUX_OK;
 
   return this->status;
