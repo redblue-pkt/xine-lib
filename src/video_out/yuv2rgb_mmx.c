@@ -110,8 +110,8 @@ void mmx_yuv2rgb_set_csc_levels(yuv2rgb_factory_t *this,
 
 static inline void mmx_yuv2rgb (uint8_t * py, uint8_t * pu, uint8_t * pv, mmx_csc_t *csc)
 {
-    static mmx_t mmx_80w = {0x0080008000800080};
-    static mmx_t mmx_00ffw = {0x00ff00ff00ff00ff};
+    static mmx_t mmx_80w = {0x0080008000800080ULL};
+    static mmx_t mmx_00ffw = {0x00ff00ff00ff00ffULL};
 
     movq_m2r (*py, mm6);		// mm6 = Y7 Y6 Y5 Y4 Y3 Y2 Y1 Y0
     pxor_r2r (mm4, mm4);		// mm4 = 0
@@ -212,9 +212,9 @@ static inline void mmx_yuv2rgb (uint8_t * py, uint8_t * pu, uint8_t * pv, mmx_cs
 // basic opt
 static inline void mmx_unpack_16rgb (uint8_t * image, int cpu)
 {
-    static mmx_t mmx_bluemask = {0xf8f8f8f8f8f8f8f8};
-    static mmx_t mmx_greenmask = {0xfcfcfcfcfcfcfcfc};
-    static mmx_t mmx_redmask = {0xf8f8f8f8f8f8f8f8};
+    static mmx_t mmx_bluemask = {0xf8f8f8f8f8f8f8f8ULL};
+    static mmx_t mmx_greenmask = {0xfcfcfcfcfcfcfcfcULL};
+    static mmx_t mmx_redmask = {0xf8f8f8f8f8f8f8f8ULL};
 
     /*
      * convert RGB plane to RGB 16 bits
@@ -257,9 +257,9 @@ static inline void mmx_unpack_16rgb (uint8_t * image, int cpu)
 
 static inline void mmx_unpack_15rgb (uint8_t * image, int cpu)
 {
-    static mmx_t mmx_bluemask = {0xf8f8f8f8f8f8f8f8};
-    static mmx_t mmx_greenmask = {0xf8f8f8f8f8f8f8f8};
-    static mmx_t mmx_redmask = {0xf8f8f8f8f8f8f8f8};
+    static mmx_t mmx_bluemask = {0xf8f8f8f8f8f8f8f8ULL};
+    static mmx_t mmx_greenmask = {0xf8f8f8f8f8f8f8f8ULL};
+    static mmx_t mmx_redmask = {0xf8f8f8f8f8f8f8f8ULL};
 
     /*
      * convert RGB plane to RGB 15 bits
