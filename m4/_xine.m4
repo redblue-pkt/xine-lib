@@ -94,6 +94,16 @@ AC_DEFUN(AC_CHECK_DXR3,
          have_dxr3=yes,
          have_dxr3=no
          AC_MSG_RESULT(*** DXR3 support disabled due to missing em8300.h ***))
+    if test "$have_dxr3" = "yes"; then
+      have_fame=yes
+      AC_CHECK_LIB(fame, fame_open, 
+        AC_CHECK_HEADER(fame.h, true, have_fame=no), have_fame=no)
+      if test "$have_fame" = "yes"; then
+        AC_MSG_RESULT([found libfame, will compile dxr3enc video out driver]);
+      else
+        AC_MSG_RESULT([*** dxr3enc support disabled due to missing libfame ***]);
+      fi
+    fi
   else
     AC_MSG_RESULT(DXR3 plugins will not be built.)
     have_dxr3=no
