@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.149 2003/11/16 23:33:49 f1rmb Exp $
+ * $Id: xine_internal.h,v 1.150 2003/11/26 23:44:11 f1rmb Exp $
  *
  */
 
@@ -84,7 +84,8 @@ extern "C" {
 
 #define XINE_LOG_MSG       0 /* warnings, errors, ... */
 #define XINE_LOG_PLUGIN    1
-#define XINE_LOG_NUM       2 /* # of log buffers defined */
+#define XINE_LOG_TRACE     2
+#define XINE_LOG_NUM       3 /* # of log buffers defined */
 
 #define XINE_STREAM_INFO_MAX 99
 

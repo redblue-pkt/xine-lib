@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_mms.c,v 1.42 2003/11/26 19:43:31 f1rmb Exp $
+ * $Id: input_mms.c,v 1.43 2003/11/26 23:44:09 f1rmb Exp $
  *
  * mms input plugin based on work from major mms
  */
@@ -35,7 +35,6 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#include "bswap.h"
 
 #define LOG_MODULE "input_mms"
 #define LOG_VERBOSE
@@ -43,6 +42,7 @@
 #define LOG
 */
 
+#include "bswap.h"
 #include "xine_internal.h"
 #include "xineutils.h"
 #include "input_plugin.h"

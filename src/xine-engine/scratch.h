@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: scratch.h,v 1.6 2003/11/11 18:45:01 f1rmb Exp $
+ * $Id: scratch.h,v 1.7 2003/11/26 23:44:11 f1rmb Exp $
  *
  * scratch buffer for log output
  *
@@ -29,6 +29,8 @@
 #include <stdarg.h>
 
 typedef struct scratch_buffer_s scratch_buffer_t;
+
+#define SCRATCH_LINE_LEN_MAX  1024
 
 struct scratch_buffer_s {
 

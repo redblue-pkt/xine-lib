@@ -24,7 +24,7 @@
  * This demuxer handles either raw STR files (which are just a concatenation
  * of raw compact disc sectors) or STR files with RIFF headers.
  *
- * $Id: demux_str.c,v 1.21 2003/11/26 19:43:31 f1rmb Exp $
+ * $Id: demux_str.c,v 1.22 2003/11/26 23:44:09 f1rmb Exp $
  */
 
 /*
@@ -549,8 +549,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   demux_str_t    *this;
 
   if (!INPUT_IS_SEEKABLE(input)) {
-    xprintf(stream->xine, XINE_VERBOSITY_DEBUG,
-      _("input not seekable, can not handle!\n"));
+    xprintf(stream->xine, XINE_VERBOSITY_DEBUG, "input not seekable, can not handle!\n");
     return NULL;
   }
 

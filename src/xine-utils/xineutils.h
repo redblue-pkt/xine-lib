@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xineutils.h,v 1.65 2003/11/26 21:28:47 valtri Exp $
+ * $Id: xineutils.h,v 1.66 2003/11/26 23:44:11 f1rmb Exp $
  *
  */
 #ifndef XINEUTILS_H
@@ -953,29 +953,29 @@ void xine_print_trace(void);
 #endif /* __GNUC__ */
 
 #ifdef  __GNUC__
-  #define xprintf(xine, verbose, fmt, args...)  \
-    do {                                        \
-      if((xine)->verbosity >= verbose){         \
-        LOG_MODULE_STRING                       \
-        printf(fmt, ##args);                    \
-      }                                         \
+  #define xprintf(xine, verbose, fmt, args...)       \
+    do {                                             \
+      if((xine)->verbosity >= verbose){              \
+        LOG_MODULE_STRING                            \
+        xine_log(xine, XINE_LOG_TRACE, fmt, ##args); \
+      }                                              \
     } while(0)
 #else
 #ifdef _MSC_VER
-  #define xprintf(xine, verbose, fmtargs)       \
-    do {                                        \
-      if((xine)->verbosity >= verbose){         \
-        LOG_MODULE_STRING                       \
-        printf("%s", fmtargs);                  \
-      }                                         \
+  #define xprintf(xine, verbose, fmtargs)            \
+    do {                                             \
+      if((xine)->verbosity >= verbose){              \
+        LOG_MODULE_STRING                            \
+        xine_log(xine, XINE_LOG_TRACE, fmtargs);     \
+      }                                              \
     } while(0)
 #else 
-  #define xprintf(xine, verbose, ...)           \
-    do {                                        \
-      if((xine)->verbosity >= verbose){         \
-        LOG_MODULE_STRING                       \
-        printf(__VA_ARGS__);                    \
-      }                                         \
+  #define xprintf(xine, verbose, ...)                \
+    do {                                             \
+      if((xine)->verbosity >= verbose){              \
+        LOG_MODULE_STRING                            \
+        xine_log(xine, XINE_LOG_TRACE, __VA_ARGS__); \
+      }                                              \
     } while(0)
 #endif /* _MSC_VER */
 #endif /* __GNUC__ */

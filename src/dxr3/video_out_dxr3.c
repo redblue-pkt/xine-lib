@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3.c,v 1.92 2003/11/26 20:30:36 mroi Exp $
+ * $Id: video_out_dxr3.c,v 1.93 2003/11/26 23:44:09 f1rmb Exp $
  */
  
 /* mpeg1 encoding video out plugin for the dxr3.  
@@ -285,9 +285,9 @@ static vo_driver_t *dxr3_vo_open_plugin(video_driver_class_t *class_gen, const v
 #endif
   if ((this->fd_control = open(tmpstr, O_WRONLY)) < 0) {
 
-      if (class->xine->verbosity >= XINE_VERBOSITY_LOG) 
-	printf("video_out_dxr3: Failed to open control device %s (%s)\n",
-	       tmpstr, strerror(errno));
+    xprintf(class->xine, XINE_VERBOSITY_LOG,
+	    "video_out_dxr3: Failed to open control device %s (%s)\n", tmpstr, strerror(errno));
+
     return 0;
   }
   

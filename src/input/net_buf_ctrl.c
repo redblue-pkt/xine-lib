@@ -237,8 +237,7 @@ static void nbc_alloc_cb (fifo_buffer_t *fifo, void *this_gen) {
       report_progress (this->stream, 100);
       this->buffering = 0;
 
-      if (this->stream->xine->verbosity >= XINE_VERBOSITY_DEBUG)
-        printf("\nnet_buf_ctrl: nbc_alloc_cb: stops buffering\n");
+      xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "\nnet_buf_ctrl: nbc_alloc_cb: stops buffering\n");
 
       nbc_set_speed_normal(this->stream);
     }
@@ -262,8 +261,7 @@ static void nbc_put_cb (fifo_buffer_t *fifo,
     /* do nothing if we are at the end of the stream */
     if (!this->enabled) {
       /* a new stream starts */
-      if (this->stream->xine->verbosity >= XINE_VERBOSITY_DEBUG)
-        printf("\nnet_buf_ctrl: nbc_put_cb: starts buffering\n");
+      xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "\nnet_buf_ctrl: nbc_put_cb: starts buffering\n");
       this->enabled           = 1;
       this->buffering         = 1;
       this->video_first_pts   = 0;
@@ -299,8 +297,7 @@ static void nbc_put_cb (fifo_buffer_t *fifo,
         report_progress (this->stream, 100);
         this->buffering = 0;
 
-        if (this->stream->xine->verbosity >= XINE_VERBOSITY_DEBUG)
-          printf("\nnet_buf_ctrl: nbc_put_cb: stops buffering\n");
+        xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "\nnet_buf_ctrl: nbc_put_cb: stops buffering\n");
 
         nbc_set_speed_normal(this->stream);
 
@@ -353,8 +350,7 @@ static void nbc_put_cb (fifo_buffer_t *fifo,
             this->progress = 100;
             report_progress (this->stream, this->progress);
 
-            if (this->stream->xine->verbosity >= XINE_VERBOSITY_DEBUG)
-              printf("\nnet_buf_ctrl: nbc_put_cb: stops buffering\n");
+            xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "\nnet_buf_ctrl: nbc_put_cb: stops buffering\n");
 
             nbc_set_speed_normal(this->stream);
           }
@@ -427,9 +423,9 @@ static void nbc_get_cb (fifo_buffer_t *fifo,
             this->progress  = 0;
             report_progress (this->stream, 0);
 
-            if (this->stream->xine->verbosity >= XINE_VERBOSITY_DEBUG)
-              printf("\nnet_buf_ctrl: nbc_get_cb: starts buffering, vid: %d, aud: %d\n",
-                     this->video_fifo_fill, this->audio_fifo_fill);
+            xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
+		    "\nnet_buf_ctrl: nbc_get_cb: starts buffering, vid: %d, aud: %d\n",
+		    this->video_fifo_fill, this->audio_fifo_fill);
             nbc_set_speed_pause(this->stream);
           }
         }

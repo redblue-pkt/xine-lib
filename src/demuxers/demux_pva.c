@@ -23,7 +23,7 @@
  * For more information regarding the PVA file format, refer to this PDF:
  *   http://www.technotrend.de/download/av_format_v1.pdf
  *
- * $Id: demux_pva.c,v 1.15 2003/11/16 23:33:43 f1rmb Exp $
+ * $Id: demux_pva.c,v 1.16 2003/11/26 23:44:09 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -419,8 +419,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   demux_pva_t    *this;
 
   if (!INPUT_IS_SEEKABLE(input)) {
-    xprintf(stream->xine, XINE_VERBOSITY_DEBUG,
-            _("input not seekable, can not handle!\n"));
+    xprintf(stream->xine, XINE_VERBOSITY_DEBUG, "input not seekable, can not handle!\n");
     return NULL;
   }
 

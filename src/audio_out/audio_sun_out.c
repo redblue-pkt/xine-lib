@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_sun_out.c,v 1.30 2003/10/06 15:27:10 mroi Exp $
+ * $Id: audio_sun_out.c,v 1.31 2003/11/26 23:44:08 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -412,12 +412,10 @@ static int ao_sun_open(ao_driver_t *this_gen,
   int pass;
   int ok;
 
-  if (this->xine->verbosity >= XINE_VERBOSITY_LOG)
-    printf ("audio_sun_out: ao_sun_open rate=%d, mode=%d\n", rate, mode);
+  xprintf(this->xine, XINE_VERBOSITY_LOG, "audio_sun_out: ao_sun_open rate=%d, mode=%d\n", rate, mode);
 
   if ( (mode & this->capabilities) == 0 ) {
-    if (this->xine->verbosity >= XINE_VERBOSITY_LOG)
-      printf ("audio_sun_out: unsupported mode %08x\n", mode);
+    xprintf(this->xine, XINE_VERBOSITY_LOG, "audio_sun_out: unsupported mode %08x\n", mode);
     return 0;
   }
 
@@ -544,8 +542,7 @@ static int ao_sun_open(ao_driver_t *this_gen,
 	   this->input_sample_rate, this->output_sample_rate);
   */
 
-  if (this->xine->verbosity >= XINE_VERBOSITY_LOG)
-    printf ("audio_sun_out: %d channels output\n",this->num_channels);
+  xprintf(this->xine, XINE_VERBOSITY_LOG, "audio_sun_out: %d channels output\n",this->num_channels);
   return this->output_sample_rate;
 }
 
@@ -894,8 +891,7 @@ static ao_driver_t *ao_sun_open_plugin (audio_driver_class_t *class_gen, const v
    * find best device driver/channel
    */
 
-  if (this->xine->verbosity >= XINE_VERBOSITY_LOG)
-    printf ("audio_sun_out: Opening audio device %s...\n", devname);
+  xprintf(this->xine, XINE_VERBOSITY_LOG, "audio_sun_out: Opening audio device %s...\n", devname);
 
   /*
    * open the device

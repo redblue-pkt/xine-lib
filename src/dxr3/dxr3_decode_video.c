@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decode_video.c,v 1.45 2003/11/16 23:33:44 f1rmb Exp $
+ * $Id: dxr3_decode_video.c,v 1.46 2003/11/26 23:44:09 f1rmb Exp $
  */
  
 /* dxr3 video decoder plugin.
@@ -556,13 +556,13 @@ static void dxr3_decode_data(video_decoder_t *this_gen, buf_element_t *buf)
         printf("dxr3_decode_video: set video pts failed (%s)\n",
           strerror(errno));
     }
-    if (this->stream->xine->verbosity >= XINE_VERBOSITY_DEBUG) {
-      if (delay >= 90000)   /* frame more than 1 sec ahead */
-	printf("dxr3_decode_video: WARNING: vpts %lld is %.02f seconds ahead of time!\n",
-	  vpts, delay/90000.0); 
-      if (delay < 0)
-	printf("dxr3_decode_video: WARNING: overdue frame.\n");
-    }
+    
+    if (delay >= 90000)   /* frame more than 1 sec ahead */
+      xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
+	      "dxr3_decode_video: WARNING: vpts %lld is %.02f seconds ahead of time!\n",
+	      vpts, delay/90000.0);
+    if (delay < 0)
+      xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "dxr3_decode_video: WARNING: overdue frame.\n");
   }
 #if LOG_PTS
   else if (buf->pts) {

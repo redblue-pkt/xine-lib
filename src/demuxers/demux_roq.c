@@ -23,7 +23,7 @@
  * For more information regarding the RoQ file format, visit:
  *   http://www.csse.monash.edu.au/~timf/
  *
- * $Id: demux_roq.c,v 1.48 2003/11/26 19:43:30 f1rmb Exp $
+ * $Id: demux_roq.c,v 1.49 2003/11/26 23:44:09 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -404,8 +404,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   demux_roq_t    *this;
 
   if (!INPUT_IS_SEEKABLE(input)) {
-    xprintf(stream->xine, XINE_VERBOSITY_DEBUG,
-            _("input not seekable, can not handle!\n"));
+    xprintf(stream->xine, XINE_VERBOSITY_DEBUG, "input not seekable, can not handle!\n");
     return NULL;
   }
 

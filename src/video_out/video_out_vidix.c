@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_vidix.c,v 1.54 2003/11/26 19:43:37 f1rmb Exp $
+ * $Id: video_out_vidix.c,v 1.55 2003/11/26 23:44:10 f1rmb Exp $
  * 
  * video_out_vidix.c
  *
@@ -755,8 +755,7 @@ static int vidix_set_property (vo_driver_t *this_gen,
     this->vidix_eq.hue = value;
       
     if((err = vdlPlaybackSetEq(this->vidix_handler, &this->vidix_eq)) != 0)
-      if(this->xine->verbosity >= XINE_VERBOSITY_LOG)
-        printf("video_out_vidix: can't set hue: %s\n", strerror(err));
+      xprintf(this->xine, XINE_VERBOSITY_LOG, "video_out_vidix: can't set hue: %s\n", strerror(err));
   }
       
   if ( property == VO_PROP_SATURATION ) {
@@ -764,8 +763,7 @@ static int vidix_set_property (vo_driver_t *this_gen,
     this->vidix_eq.saturation = value;
       
     if((err = vdlPlaybackSetEq(this->vidix_handler, &this->vidix_eq)) != 0)
-      if(this->xine->verbosity >= XINE_VERBOSITY_LOG)
-        printf("video_out_vidix: can't set saturation: %s\n", strerror(err));
+      xprintf(this->xine, XINE_VERBOSITY_LOG, "video_out_vidix: can't set saturation: %s\n", strerror(err));
   }
     
   if ( property == VO_PROP_BRIGHTNESS ) {
@@ -773,8 +771,7 @@ static int vidix_set_property (vo_driver_t *this_gen,
     this->vidix_eq.brightness = value;
       
     if((err = vdlPlaybackSetEq(this->vidix_handler, &this->vidix_eq)) != 0)
-      if(this->xine->verbosity >= XINE_VERBOSITY_LOG)
-        printf("video_out_vidix: can't set brightness: %s\n", strerror(err));
+      xprintf(this->xine, XINE_VERBOSITY_LOG, "video_out_vidix: can't set brightness: %s\n", strerror(err));
   }
       
   if ( property == VO_PROP_CONTRAST ) {
@@ -782,8 +779,7 @@ static int vidix_set_property (vo_driver_t *this_gen,
     this->vidix_eq.contrast = value;
       
     if((err = vdlPlaybackSetEq(this->vidix_handler, &this->vidix_eq)) != 0)
-      if(this->xine->verbosity >= XINE_VERBOSITY_LOG)
-        printf("video_out_vidix: can't set contrast: %s\n", strerror(err));
+      xprintf(this->xine, XINE_VERBOSITY_LOG, "video_out_vidix: can't set contrast: %s\n", strerror(err));
   }
   }
     
@@ -836,8 +832,7 @@ static void vidix_rgb_callback(vo_driver_t *this_gen, xine_cfg_entry_t *entry) {
   }  
 
   if((err = vdlPlaybackSetEq(this->vidix_handler, &this->vidix_eq)))
-    if(this->xine->verbosity >= XINE_VERBOSITY_LOG)
-      printf("video_out_vidix: can't set rgb intensity: %s\n", strerror(err));
+    xprintf(this->xine, XINE_VERBOSITY_LOG, "video_out_vidix: can't set rgb intensity: %s\n", strerror(err));
 }
 
 
@@ -964,8 +959,8 @@ static vidix_driver_t *open_plugin (video_driver_class_t *class_gen) {
   /* Find what equalizer flags are supported */
   if(this->vidix_cap.flags & FLAG_EQUALIZER) {
     if((err = vdlPlaybackGetEq(this->vidix_handler, &this->vidix_eq)) != 0) {
-      if(this->xine->verbosity >= XINE_VERBOSITY_LOG)
-        printf("video_out_vidix: couldn't get equalizer capabilities: %s\n", strerror(err));
+      xprintf(this->xine, XINE_VERBOSITY_LOG, 
+	      "video_out_vidix: couldn't get equalizer capabilities: %s\n", strerror(err));
     } else {
       if(this->vidix_eq.cap & VEQ_CAP_BRIGHTNESS) {
         this->props[VO_PROP_BRIGHTNESS].value = 0;
@@ -1008,9 +1003,8 @@ static vidix_driver_t *open_plugin (video_driver_class_t *class_gen) {
           (void*) vidix_rgb_callback, this);
   
        if((err = vdlPlaybackSetEq(this->vidix_handler, &this->vidix_eq)))
-         if(this->xine->verbosity >= XINE_VERBOSITY_LOG)
-           printf("video_out_vidix: can't set rgb intensity: %s\n", 
-                  strerror(err));
+         xprintf(this->xine, XINE_VERBOSITY_LOG, 
+		 "video_out_vidix: can't set rgb intensity: %s\n", strerror(err));
       }      
     }
   }
@@ -1061,8 +1055,7 @@ static void query_fourccs (vidix_driver_t *this) {
   
   if((err = vdlQueryFourcc(this->vidix_handler, &vidix_fourcc)) == 0) {
     this->capabilities |= VO_CAP_YUY2;
-    if(this->xine->verbosity >= XINE_VERBOSITY_LOG)
-      printf("video_out_vidix: adaptor supports the yuy2 format\n");
+    xprintf(this->xine, XINE_VERBOSITY_LOG, "video_out_vidix: adaptor supports the yuy2 format\n");
   }
     
   /* Detect if YV12 is supported - we always support yv12 but we need
@@ -1072,8 +1065,7 @@ static void query_fourccs (vidix_driver_t *this) {
   
   if((err = vdlQueryFourcc(this->vidix_handler, &vidix_fourcc)) == 0) {
     this->supports_yv12 = 1;
-    if(this->xine->verbosity >= XINE_VERBOSITY_LOG)
-      printf("video_out_vidix: adaptor supports the yv12 format\n");
+    xprintf(this->xine, XINE_VERBOSITY_LOG, "video_out_vidix: adaptor supports the yv12 format\n");
   } else
     this->supports_yv12 = 0;
 }
@@ -1110,9 +1102,9 @@ static void *init_class (xine_t *xine, void *visual_gen) {
     free(this);
     return NULL;
   }
-  if(xine->verbosity >= XINE_VERBOSITY_LOG)
-    printf("video_out_vidix: using driver: %s by %s\n",this->vidix_cap.name,this->vidix_cap.author);
 
+  xprintf(xine, XINE_VERBOSITY_LOG, 
+	  "video_out_vidix: using driver: %s by %s\n",this->vidix_cap.name,this->vidix_cap.author);
 
   this->xine              = xine;
   this->config            = xine->config;

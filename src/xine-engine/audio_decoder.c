@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.115 2003/11/26 19:43:38 f1rmb Exp $
+ * $Id: audio_decoder.c,v 1.116 2003/11/26 23:44:10 f1rmb Exp $
  *
  *
  * functions that implement audio decoding
@@ -183,9 +183,8 @@ static void *audio_decoder_loop (void *stream_gen) {
 
     case BUF_CONTROL_AUDIO_CHANNEL:
       {
-	if (stream->xine->verbosity >= XINE_VERBOSITY_DEBUG)
-	  printf ("audio_decoder: suggested switching to stream_id %02x\n",
-		  buf->decoder_info[0]);
+	xprintf(stream->xine, XINE_VERBOSITY_DEBUG, 
+		"audio_decoder: suggested switching to stream_id %02x\n", buf->decoder_info[0]);
 	stream->audio_channel_auto = buf->decoder_info[0] & 0xff;
       }
       break;

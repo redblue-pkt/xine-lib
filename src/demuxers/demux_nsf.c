@@ -30,7 +30,7 @@
  * For more information regarding the NSF format, visit:
  *   http://www.tripoint.org/kevtris/nes/nsfspec.txt
  *
- * $Id: demux_nsf.c,v 1.19 2003/11/16 23:33:43 f1rmb Exp $
+ * $Id: demux_nsf.c,v 1.20 2003/11/26 23:44:09 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -298,8 +298,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   demux_nsf_t   *this;
 
   if (!INPUT_IS_SEEKABLE(input)) {
-    xprintf(stream->xine, XINE_VERBOSITY_DEBUG,
-            _("input not seekable, can not handle!\n"));
+    xprintf(stream->xine, XINE_VERBOSITY_DEBUG, "input not seekable, can not handle!\n");
     return NULL;
   }
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.c,v 1.130 2003/11/26 19:43:38 f1rmb Exp $
+ * $Id: metronom.c,v 1.131 2003/11/26 23:44:10 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -313,8 +313,8 @@ static void metronom_handle_discontinuity (metronom_t *this, int type,
       this->force_audio_jump = 1;
       this->force_video_jump = 1;
       this->video_drift = 0;
-      xprintf(this->xine, XINE_VERBOSITY_DEBUG, "vpts adjusted with prebuffer to %lld\n", 
-        this->video_vpts);
+      xprintf(this->xine, XINE_VERBOSITY_DEBUG,
+	      "vpts adjusted with prebuffer to %lld\n", this->video_vpts);
       break;
 
     case DISC_ABSOLUTE:
@@ -529,7 +529,7 @@ static void metronom_handle_audio_discontinuity (metronom_t *this, int type,
   pthread_cond_signal (&this->audio_discontinuity_reached);
   
   xprintf(this->xine, XINE_VERBOSITY_DEBUG, "audio discontinuity #%d, type is %d, disc_off %lld\n",
-    this->audio_discontinuity_count, type, disc_off);
+	  this->audio_discontinuity_count, type, disc_off);
 
   if (this->have_video) {
   
@@ -538,7 +538,7 @@ static void metronom_handle_audio_discontinuity (metronom_t *this, int type,
             this->discontinuity_handled_count ) {
   
       xprintf(this->xine, XINE_VERBOSITY_DEBUG, "waiting for in_discontinuity update #%d\n", 
-        this->audio_discontinuity_count);
+	      this->audio_discontinuity_count);
   
       pthread_cond_wait (&this->video_discontinuity_reached, &this->lock);
     }

@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: broadcaster.c,v 1.3 2003/11/11 18:45:00 f1rmb Exp $
+ * $Id: broadcaster.c,v 1.4 2003/11/26 23:44:10 f1rmb Exp $
  * 
  * broadcaster.c - xine network broadcaster
  *
@@ -164,8 +164,7 @@ static void broadcaster_data_write(broadcaster_t *this, char *buf, int len) {
     /* in case of failure remove from list */
     if( sock_data_write(*psock, buf, len) < 0 ) {
 
-      if (this->stream->xine->verbosity >= XINE_VERBOSITY_LOG)
-        printf("broadcaster: closing socket %d\n", *psock);
+      xprintf(this->stream->xine, XINE_VERBOSITY_LOG, "broadcaster: closing socket %d\n", *psock);
       close(*psock);
       free(psock);
       if( this->connections->cur->next )
@@ -226,8 +225,8 @@ static void *manager_loop (void *this_gen) {
             int *psock = malloc(sizeof(int));
             *psock = ssock;
        
-            if (this->stream->xine->verbosity >= XINE_VERBOSITY_LOG)
-              printf("broadcaster: new connection socket %d\n", *psock);
+            xprintf(this->stream->xine, XINE_VERBOSITY_LOG, 
+		    "broadcaster: new connection socket %d\n", *psock);
             xine_list_append_content(this->connections, psock);
           }
         }
@@ -348,8 +347,7 @@ void _x_close_broadcaster(broadcaster_t *this)
   
   psock = xine_list_first_content (this->connections);
   while (psock) {
-    if (this->stream->xine->verbosity >= XINE_VERBOSITY_LOG)
-      printf("broadcaster: closing socket %d\n", *psock);
+    xprintf(this->stream->xine, XINE_VERBOSITY_LOG, "broadcaster: closing socket %d\n", *psock);
     close(*psock);
     free(psock);
     xine_list_delete_current (this->connections);

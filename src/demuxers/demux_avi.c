@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_avi.c,v 1.182 2003/11/26 19:43:28 f1rmb Exp $
+ * $Id: demux_avi.c,v 1.183 2003/11/26 23:44:09 f1rmb Exp $
  *
  * demultiplexer for avi streams
  *
@@ -684,8 +684,7 @@ static avi_t *AVI_init(demux_avi_t *this) {
     this->idx_grow.nexttagoffset = this->input->get_current_pos(this->input);
 
     if (this->input->read(this->input, data,8) != 8 ) {
-      xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
-	      "failed to read 8 bytes at pos %lld\n",
+      xprintf(this->stream->xine, XINE_VERBOSITY_LOG, "failed to read 8 bytes at pos %lld\n",
               this->idx_grow.nexttagoffset);
       break; /* We assume it's EOF */
     }
@@ -695,8 +694,7 @@ static avi_t *AVI_init(demux_avi_t *this) {
     next_chunk = this->idx_grow.nexttagoffset + 8 + n;
     
     if (n == 0) {
-      xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
-	      "invalid chunk length (0 byte)\n");
+      xprintf(this->stream->xine, XINE_VERBOSITY_LOG, "invalid chunk length (0 byte)\n");
       break;
     }
     
@@ -1504,7 +1502,7 @@ static void demux_avi_send_headers (demux_plugin_t *this_gen) {
 
   if (this->stream->xine->verbosity >= XINE_VERBOSITY_DEBUG) {
     for (i=0; i < this->avi->n_audio; i++)
-      printf ("demux_avi: audio format[%d] = 0x%x\n",
+      xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "demux_avi: audio format[%d] = 0x%x\n",
 	      i, this->avi->audio[i]->wavex->wFormatTag);
   }
   this->no_audio = 0;
@@ -1513,14 +1511,12 @@ static void demux_avi_send_headers (demux_plugin_t *this_gen) {
     this->avi->audio[i]->audio_type = _x_formattag_to_buf_audio (this->avi->audio[i]->wavex->wFormatTag);
 
     if( !this->avi->audio[i]->audio_type ) {
-      xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
-               "unknown audio type 0x%x\n",
+      xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "unknown audio type 0x%x\n",
 	       this->avi->audio[i]->wavex->wFormatTag);
       this->no_audio  = 1;
       this->avi->audio[i]->audio_type     = BUF_AUDIO_UNKNOWN;
     } else
-      xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
-               "demux_avi: audio type %s (wFormatTag 0x%x)\n",
+      xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "demux_avi: audio type %s (wFormatTag 0x%x)\n",
                _x_buf_audio_name(this->avi->audio[i]->audio_type),
                (int)this->avi->audio[i]->wavex->wFormatTag);
   }
@@ -1554,15 +1550,13 @@ static void demux_avi_send_headers (demux_plugin_t *this_gen) {
                          this->avi->compressor);
 
     if (!this->avi->video_type) {
-      xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
-               "demux_avi: unknown video codec '%.4s'\n",
+      xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "demux_avi: unknown video codec '%.4s'\n",
                (char*)&this->avi->bih->biCompression);
       this->avi->video_type = BUF_VIDEO_UNKNOWN;
     }
     buf->type = this->avi->video_type;
 
-    xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
-             "demux_avi: video codec is '%s'\n",
+    xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "demux_avi: video codec is '%s'\n",
              _x_buf_video_name(buf->type));
 
     this->video_fifo->put (this->video_fifo, buf);
@@ -1657,7 +1651,7 @@ static int demux_avi_seek_internal (demux_avi_t *this) {
    */
 
   xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
-           "start pos is %lld, start time is %d\n",start_pos, start_time);
+	   "start pos is %lld, start time is %d\n",start_pos, start_time);
 
   /* Seek video.  We do a single idx_grow at the beginning rather than
    * incrementally growing the index in a loop, so that if the index
@@ -1723,8 +1717,7 @@ static int demux_avi_seek_internal (demux_avi_t *this) {
    * position we've already found, so we won't be seeking though the
    * file much at this point. */
 
-  if (this->stream->xine->verbosity >= XINE_VERBOSITY_DEBUG)
-    lprintf ("video_pts = %lld\n", video_pts);
+  xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "video_pts = %lld\n", video_pts);
 
   /* FIXME ? */
   audio_pts = 77777777;

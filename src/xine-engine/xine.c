@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.272 2003/11/26 19:43:38 f1rmb Exp $
+ * $Id: xine.c,v 1.273 2003/11/26 23:44:11 f1rmb Exp $
  */
 
 /*
@@ -1203,7 +1203,7 @@ xine_t *xine_new (void) {
    */
 
   for (i = 0; i < XINE_LOG_NUM; i++)
-    this->log_buffers[i] = _x_new_scratch_buffer (25);
+    this->log_buffers[i] = _x_new_scratch_buffer (150);
 
 
 #ifdef WIN32
@@ -1611,27 +1611,25 @@ const char *const *xine_get_log_names (xine_t *this) {
 
   log_sections[XINE_LOG_MSG]      = _("messages");
   log_sections[XINE_LOG_PLUGIN]   = _("plugin");
+  log_sections[XINE_LOG_TRACE]    = _("trace");
   log_sections[XINE_LOG_NUM]      = NULL;
 
   return log_sections;
 }
 
 void xine_log (xine_t *this, int buf, const char *format, ...) {
-
   va_list argp;
-
+  char    buffer[SCRATCH_LINE_LEN_MAX];
+  
   va_start (argp, format);
-
   this->log_buffers[buf]->scratch_printf (this->log_buffers[buf], format, argp);
-  va_end (argp);
-
-  if (this->verbosity) {
-    va_start (argp, format);
-
-    vprintf (format, argp);
-
-    va_end (argp);
+  
+  if(this->verbosity) {
+    vsnprintf(buffer, SCRATCH_LINE_LEN_MAX, format, argp);
+    printf(buffer);
   }
+  
+  va_end (argp);
 }
 
 const char *const *xine_get_log (xine_t *this, int buf) {

@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_ogg.c,v 1.117 2003/11/26 19:43:30 f1rmb Exp $
+ * $Id: demux_ogg.c,v 1.118 2003/11/26 23:44:09 f1rmb Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -727,8 +727,7 @@ static void demux_ogg_send_header (demux_ogg_t *this) {
     } else {
       stream_num = get_stream(this, cur_serno);
       if (stream_num == -1) {
-	xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
-                 "help, stream with no beginning!\n");
+	xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "help, stream with no beginning!\n");
 	abort();
       }
     }
@@ -818,8 +817,7 @@ static void demux_ogg_send_header (demux_ogg_t *this) {
 	    this->preview_buffers[stream_num] += header->extra_headers;
 	  }
 #else
-	  xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
-                   "Speex stream detected, unable to play\n");
+	  xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "Speex stream detected, unable to play\n");
 
 	  this->buf_types[stream_num] = BUF_CONTROL_NOP;
 #endif
@@ -951,8 +949,8 @@ static void demux_ogg_send_header (demux_ogg_t *this) {
 	      this->buf_types[stream_num] = BUF_AUDIO_A52 | channel;
 	      break;
 	    default:
-              xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
-                       "demux_ogg: unknown audio codec type 0x%x\n", codec);
+              xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, 
+		       "demux_ogg: unknown audio codec type 0x%x\n", codec);
 	      this->buf_types[stream_num] = BUF_CONTROL_NOP;
 	      break;
 	    }
@@ -1099,9 +1097,8 @@ static void demux_ogg_send_header (demux_ogg_t *this) {
 
 #endif
 
-	    xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
-                     "FIXME, old audio format not handled\n");
-
+	    xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "FIXME, old audio format not handled\n");
+	    
 	    this->buf_types[stream_num] = BUF_CONTROL_NOP;
 
 	  } else {
@@ -1168,7 +1165,7 @@ static void demux_ogg_send_header (demux_ogg_t *this) {
 	  } else {
 	    /*Rejected stream*/
 	    xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
-                     " A theora header was rejected by libtheora\n");
+                     "A theora header was rejected by libtheora\n");
 	    this->buf_types[stream_num] = BUF_CONTROL_NOP;
 	    this->preview_buffers[stream_num] = 5; /* FIXME: don't know */
 	  }
@@ -1178,10 +1175,12 @@ static void demux_ogg_send_header (demux_ogg_t *this) {
 #endif
 
 	} else {
-          if(this->stream->xine->verbosity >= XINE_VERBOSITY_DEBUG){
-            printf ("demux_ogg: unknown stream type (signature >%.8s<). hex dump of bos packet follows:\n", op.packet);
+          xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
+		  "demux_ogg: unknown stream type (signature >%.8s<). hex dump of bos packet follows:\n",
+		  op.packet);
+	  if(this->stream->xine->verbosity >= XINE_VERBOSITY_DEBUG)
             xine_hexdump (op.packet, op.bytes);
-          }
+
 	  this->buf_types[stream_num] = BUF_CONTROL_NOP;
 	}
       }
@@ -1318,7 +1317,7 @@ static void demux_ogg_send_content (demux_ogg_t *this) {
 	  iframe=op.granulepos>>keyframe_granule_shift;
 	  pframe=op.granulepos-(iframe<<keyframe_granule_shift);
           xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
-                   "seeking keyframe i %lld p %lld\n",iframe,pframe);
+                   "seeking keyframe i %lld p %lld\n", iframe, pframe);
 	  if (pframe!=0)
 	    continue;
 	} else

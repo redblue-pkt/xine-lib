@@ -23,7 +23,7 @@
  * For more information on the SMJPEG file format, visit:
  *   http://www.lokigames.com/development/smjpeg.php3
  *
- * $Id: demux_smjpeg.c,v 1.46 2003/11/16 23:33:43 f1rmb Exp $
+ * $Id: demux_smjpeg.c,v 1.47 2003/11/26 23:44:09 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -398,8 +398,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   demux_smjpeg_t *this;
 
   if (!INPUT_IS_SEEKABLE(input)) {
-    xprintf(stream->xine, XINE_VERBOSITY_DEBUG,
-            _("input not seekable, can not handle!\n"));
+    xprintf(stream->xine, XINE_VERBOSITY_DEBUG, "input not seekable, can not handle!\n");
     return NULL;
   }
 

@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.173 2003/11/16 23:33:44 f1rmb Exp $
+ * $Id: input_dvd.c,v 1.174 2003/11/26 23:44:09 f1rmb Exp $
  *
  */
 
@@ -1376,8 +1376,7 @@ static int dvd_plugin_open (input_plugin_t *this_gen) {
       this->opened = 0; 
       ret = dvdnav_open(&this->dvdnav, intended_dvd_device);
       if(ret == DVDNAV_STATUS_ERR) {
-	if (this->stream->xine->verbosity >= XINE_VERBOSITY_LOG) 
-	  printf("input_dvd: Error opening DVD device\n");
+	xprintf(this->stream->xine, XINE_VERBOSITY_LOG, "input_dvd: Error opening DVD device\n");
 	_x_message (this->stream, XINE_MSG_READ_ERROR,
 		      intended_dvd_device, NULL);
         return 0;
@@ -1388,8 +1387,7 @@ static int dvd_plugin_open (input_plugin_t *this_gen) {
   } else {
     ret = dvdnav_open(&this->dvdnav, intended_dvd_device);
     if(ret == DVDNAV_STATUS_ERR) {
-      if (this->stream->xine->verbosity >= XINE_VERBOSITY_LOG) 
-	printf("input_dvd: Error opening DVD device\n");
+      xprintf(this->stream->xine, XINE_VERBOSITY_LOG, "input_dvd: Error opening DVD device\n");
       _x_message (this->stream, XINE_MSG_READ_ERROR,
 		    intended_dvd_device, NULL);
       return 0;
@@ -1727,6 +1725,9 @@ static void *init_class (xine_t *xine, void *data) {
 
 /*
  * $Log: input_dvd.c,v $
+ * Revision 1.174  2003/11/26 23:44:09  f1rmb
+ * xprintf clean pass. xprintf now log into new XINE_LOG_TRACE log buffer. scratch buffer enhancement (thanks Thibaut for the malloc tips), enlarge log buffer from 25 lines (very useless), to 150 (better).
+ *
  * Revision 1.173  2003/11/16 23:33:44  f1rmb
  * New stream/meta info (safe) stuff.
  * BIG NOTE: use helpers to access to these informations (get/set/reset):

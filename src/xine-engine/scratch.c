@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: scratch.c,v 1.11 2003/11/26 19:43:38 f1rmb Exp $
+ * $Id: scratch.c,v 1.12 2003/11/26 23:44:11 f1rmb Exp $
  *
  * top-level xine functions
  *
@@ -41,16 +41,12 @@
 #include "xineutils.h"
 
 static void scratch_printf (scratch_buffer_t *this, const char *format, va_list argp) {
-
-  vsnprintf (this->lines[this->cur], 1023, format, argp);
-
+  vsnprintf (this->lines[this->cur], SCRATCH_LINE_LEN_MAX, format, argp);
   lprintf ("printing format %s to line %d\n", format, this->cur);
-
   this->cur = (this->cur + 1) % this->num_lines;
 }
 
 static const char **scratch_get_content (scratch_buffer_t *this) {
-
   int i, j;
 
   for(i = 0, j = (this->cur - 1); i < this->num_lines; i++, j--) {
@@ -59,9 +55,7 @@ static const char **scratch_get_content (scratch_buffer_t *this) {
       j = (this->num_lines - 1);
 
     this->ordered[i] = this->lines[j];
-
     lprintf ("line %d contains >%s<\n", i , this->lines[j]);
-
   }
 
   return this->ordered;
@@ -69,42 +63,42 @@ static const char **scratch_get_content (scratch_buffer_t *this) {
 }
 
 static void scratch_dispose (scratch_buffer_t *this) {
-
-  int i;
-
-  for(i = 0; i < this->num_lines; i++ ) {
-    free (this->lines[i]);
-  }
-
+  char *mem;
+  int   i;
+  
+  mem = (char *) this->lines[0];
+  free(mem);
+  
+  for(i = 0; i < this->num_lines; i++ )
+    this->lines[i] = NULL;
+  
   free (this->lines);
   free (this->ordered);
   free (this);
-
 }
 
 scratch_buffer_t *_x_new_scratch_buffer (int num_lines) {
-
   scratch_buffer_t *this;
-  int i;
+  int               i;
+  char             *mem;
 
   this = xine_xmalloc (sizeof (scratch_buffer_t));
 
   this->lines   = xine_xmalloc (sizeof (char *) * (num_lines + 1));
   this->ordered = xine_xmalloc (sizeof (char *) * (num_lines + 1));
-  for (i=0; i<num_lines; i++) {
-    this->lines[i]   = (char *) xine_xmalloc (sizeof(char) * 1024);
-    memset(this->lines[i], 0, sizeof(this->lines[i]));
-  }
 
-  this->ordered[i]  = NULL;
-  this->lines[i]    = NULL;
+  mem = (char *) xine_xmalloc((sizeof(char) * SCRATCH_LINE_LEN_MAX) * num_lines);
 
+  for (i = 0; i < num_lines; i++)
+    this->lines[i] = (char *) (mem + i * SCRATCH_LINE_LEN_MAX);
+
+  this->ordered[i]     = NULL;
+  this->lines[i]       = NULL;
   this->scratch_printf = scratch_printf;
-  this->get_content = scratch_get_content;
-  this->dispose = scratch_dispose;
-
-  this->num_lines   = num_lines;
-  this->cur         = 0;
+  this->get_content    = scratch_get_content;
+  this->dispose        = scratch_dispose;
+  this->num_lines      = num_lines;
+  this->cur            = 0;
 
   return this;
 }

@@ -665,9 +665,8 @@ static int search_by_channel(v4l_input_plugin_t *this, char *input_source)
       }
       
       if (strstr(this->video_channel.name, input_source) == NULL) {
-	 if (this->stream->xine->verbosity >= XINE_VERBOSITY_LOG)
-	    PRINT("Tuner name not found\n");
-	 return -1;
+	xprintf(this->stream->xine, XINE_VERBOSITY_LOG, "Tuner name not found\n");
+	return -1;
       }
    
       this->tuner_name = input_source;
@@ -1189,9 +1188,9 @@ static int v4l_adjust_realtime_speed(v4l_input_plugin_t *this, fifo_buffer_t *fi
       /* Buffer is empty, and we did not pause playback */
       report_progress(this->stream, SCR_PAUSED);
       
-      if (this->stream->xine->verbosity >= XINE_VERBOSITY_LOG)
-	 PRINT("Buffer is empty, pausing playback (used: %d, num_free: %d)\r\n",
-	    num_used, num_free);
+      xprintf(this->stream->xine, XINE_VERBOSITY_LOG, 
+	      "Buffer is empty, pausing playback (used: %d, num_free: %d)\r\n",
+	      num_used, num_free);
       
       this->stream->xine->clock->set_speed (this->stream->xine->clock, XINE_SPEED_PAUSE);
       this->stream->xine->clock->set_option (this->stream->xine->clock, CLOCK_SCR_ADJUSTABLE, 0);
@@ -1211,9 +1210,8 @@ static int v4l_adjust_realtime_speed(v4l_input_plugin_t *this, fifo_buffer_t *fi
    if (scr_tunning == SCR_PAUSED) {
       if (2 * num_used > num_free) {
 	 /* Playback was paused, but we have normal buffer usage again */
-	 if (this->stream->xine->verbosity >= XINE_VERBOSITY_LOG)
-	    PRINT("Resuming playback (used: %d, free: %d)\r\n",
-	       num_used, num_free);
+	xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
+		"Resuming playback (used: %d, free: %d)\r\n", num_used, num_free);
 	 
 	 this->scr_tunning = 0;
 
@@ -1251,8 +1249,8 @@ static int v4l_adjust_realtime_speed(v4l_input_plugin_t *this, fifo_buffer_t *fi
       /* Check if speed adjustment should be changed */ 
       if (scr_tunning != this->scr_tunning) {
 	 this->scr_tunning = scr_tunning;
-	 if (this->stream->xine->verbosity >= XINE_VERBOSITY_LOG)
-	    PRINT("scr tunning = %d (used: %d, free: %d)\r\n", scr_tunning, num_used, num_free);
+	 xprintf(this->stream->xine, XINE_VERBOSITY_LOG, 
+		 "scr tunning = %d (used: %d, free: %d)\r\n", scr_tunning, num_used, num_free);
 	 pvrscr_speed_tunning(this->scr, 1.0 + (0.01 * scr_tunning));
       }
    } else
@@ -1263,8 +1261,8 @@ static int v4l_adjust_realtime_speed(v4l_input_plugin_t *this, fifo_buffer_t *fi
        */
       this->scr_tunning = 0;
 
-      if (this->stream->xine->verbosity >= XINE_VERBOSITY_LOG)
-	 PRINT("scr tunning resetting (used: %d, free: %d\r\n", num_used, num_free);
+      xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
+	      "scr tunning resetting (used: %d, free: %d\r\n", num_used, num_free);
       
       pvrscr_speed_tunning(this->scr, 1.0);
    }
