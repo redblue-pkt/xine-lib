@@ -47,10 +47,10 @@ BuildRoot:   /tmp/%{name}-root
 @HAVE_XV_TRUE@Group:       Development/Libraries
 @HAVE_XV_TRUE@Requires:    xine-lib >= %{ver}
 
-@HAVE_SDL_TRUE@%package sdl
-@HAVE_SDL_TRUE@Summary:     XINE - SDL (Simple DirectMedia Layer) video support.
-@HAVE_SDL_TRUE@Group:       Development/Libraries
-@HAVE_SDL_TRUE@Requires:    xine-lib >= %{ver}, libSDL
+#@HAVE_SDL_TRUE@%package sdl
+#@HAVE_SDL_TRUE@Summary:     XINE - SDL (Simple DirectMedia Layer) video support.
+#@HAVE_SDL_TRUE@Group:       Development/Libraries
+#@HAVE_SDL_TRUE@Requires:    xine-lib >= %{ver}, libSDL
 
 @HAVE_AA_TRUE@%package aa
 @HAVE_AA_TRUE@Summary:     XINE - Ascii Art support.
@@ -130,8 +130,8 @@ ler qualquer vídeo com máximo desempenho.
 @HAVE_XV_TRUE@%description xv
 @HAVE_XV_TRUE@video plugin using XFree XVideo extension.
 
-@HAVE_SDL_TRUE@%description sdl
-@HAVE_SDL_TRUE@video plugin using SDL (Simple DirectMedia Layer) library.
+#@HAVE_SDL_TRUE@%description sdl
+#@HAVE_SDL_TRUE@video plugin using SDL (Simple DirectMedia Layer) library.
 
 @HAVE_AA_TRUE@%description aa
 @HAVE_AA_TRUE@video plugin using Ascii Art library.
@@ -250,6 +250,10 @@ rm -rf $RPM_BUILD_ROOT
 # decoder plugins
 %{prefix}/lib/xine/plugins/xineplug_decode_a52.la
 %{prefix}/lib/xine/plugins/xineplug_decode_a52.so
+%{prefix}/lib/xine/plugins/xineplug_decode_cinepak.la
+%{prefix}/lib/xine/plugins/xineplug_decode_cinepak.so
+%{prefix}/lib/xine/plugins/xineplug_decode_cyuv.la
+%{prefix}/lib/xine/plugins/xineplug_decode_cyuv.so
 %{prefix}/lib/xine/plugins/xineplug_decode_ff.so
 %{prefix}/lib/xine/plugins/xineplug_decode_ff.la
 %{prefix}/lib/xine/plugins/xineplug_decode_lpcm.so
@@ -258,8 +262,8 @@ rm -rf $RPM_BUILD_ROOT
 %{prefix}/lib/xine/plugins/xineplug_decode_mad.la
 %{prefix}/lib/xine/plugins/xineplug_decode_mpeg2.la
 %{prefix}/lib/xine/plugins/xineplug_decode_mpeg2.so
-#%{prefix}/lib/xine/plugins/xineplug_decode_mpg123.la
-#%{prefix}/lib/xine/plugins/xineplug_decode_mpg123.so
+%{prefix}/lib/xine/plugins/xineplug_decode_msvc.la
+%{prefix}/lib/xine/plugins/xineplug_decode_msvc.so
 %{prefix}/lib/xine/plugins/xineplug_decode_spu.la
 %{prefix}/lib/xine/plugins/xineplug_decode_spu.so
 %{prefix}/lib/xine/plugins/xineplug_decode_spucc.la
@@ -293,6 +297,8 @@ rm -rf $RPM_BUILD_ROOT
 %{prefix}/share/locale/pt_BR/LC_MESSAGES/xine-lib.mo
 %{prefix}/share/locale/sk/LC_MESSAGES/xine-lib.mo
 %{prefix}/share/locale/es/LC_MESSAGES/xine-lib.mo
+%{prefix}/share/locale/cs/LC_MESSAGES/xine-lib.mo
+%{prefix}/share/locale/pl_PL/LC_MESSAGES/xine-lib.mo
 
 @HAVE_OSS_TRUE@%files oss
 @HAVE_OSS_TRUE@%defattr(-,root,root)
@@ -328,10 +334,10 @@ rm -rf $RPM_BUILD_ROOT
 @HAVE_XV_TRUE@%{prefix}/lib/xine/plugins/xineplug_vo_out_xv.la
 @HAVE_XV_TRUE@%{prefix}/lib/xine/plugins/xineplug_vo_out_xv.so
 
-@HAVE_SDL_TRUE@%files sdl
-@HAVE_SDL_TRUE@%defattr(-,root,root)
-@HAVE_SDL_TRUE@%{prefix}/lib/xine/plugins/xineplug_vo_out_sdl.la
-@HAVE_SDL_TRUE@%{prefix}/lib/xine/plugins/xineplug_vo_out_sdl.so
+#@HAVE_SDL_TRUE@%files sdl
+#@HAVE_SDL_TRUE@%defattr(-,root,root)
+#@HAVE_SDL_TRUE@%{prefix}/lib/xine/plugins/xineplug_vo_out_sdl.la
+#@HAVE_SDL_TRUE@%{prefix}/lib/xine/plugins/xineplug_vo_out_sdl.so
 
 @HAVE_AA_TRUE@%files aa
 @HAVE_AA_TRUE@%defattr(-,root,root)
@@ -354,12 +360,15 @@ rm -rf $RPM_BUILD_ROOT
 @HAVE_VORBIS_TRUE@%{prefix}/lib/xine/plugins/xineplug_decode_vorbis.la
 @HAVE_VORBIS_TRUE@%{prefix}/lib/xine/plugins/xineplug_decode_vorbis.so
 
-
 %files docs
 %defattr(-,root,root)
 %{prefix}/share/doc/xine/xine-lib-API/*
 
 %changelog
+* Wed May 1 2002 Matthias Dahl <matthew2k@web.de>
+- added cinepak, cyuv and msvc decode plugins
+- commented out sdl related parts because this is currently broken in xine-lib
+- added 'cs,pl_PL' translation catalogs
 * Sun Mar 31 2002 Matthias Dahl <matthew2k@web.de>
 - added mms input plugin, spucc decoder and missing xine_logo.zyuy2.
 - commented out video fill decoder for now as it seems to be no longer built
