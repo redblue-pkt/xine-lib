@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.41 2001/11/30 19:31:55 jcdutton Exp $
+ * $Id: xine_decoder.c,v 1.42 2001/11/30 20:35:48 jcdutton Exp $
  *
  * stuff needed to turn libspu into a xine decoder plugin
  */
@@ -221,6 +221,7 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
   cur_seq = &this->spu_stream_state[stream_id].ra_seq;
 
   if (buf->type == BUF_SPU_CLUT) {
+    printf("libspudec: SPU CLUT\n");
     if (buf->content[0]) { /* cheap endianess detection */
       xine_fast_memcpy(this->state.clut, buf->content, sizeof(uint32_t)*16);
     } else {
