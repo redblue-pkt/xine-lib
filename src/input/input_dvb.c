@@ -419,6 +419,9 @@ static tuner_t *tuner_init(xine_t * xine)
    /* open EIT with NONBLOCK */
    if(fcntl(this->fd_pidfilter[EITFILTER], F_SETFL, O_NONBLOCK)<0)
      xprintf(this->xine,XINE_VERBOSITY_DEBUG,"input_dvb: couldn't set EIT to nonblock: %s\n",strerror(errno));
+    /* and the internal filter used for PAT & PMT */
+   if(fcntl(this->fd_pidfilter[INTERNAL_FILTER], F_SETFL, O_NONBLOCK)<0)
+     xprintf(this->xine,XINE_VERBOSITY_DEBUG,"input_dvb: couldn't set EIT to nonblock: %s\n",strerror(errno));
     /* and the frontend */
     fcntl(this->fd_frontend, F_SETFL, O_NONBLOCK);
    
@@ -721,7 +724,7 @@ static int tuner_tune_it (tuner_t *this, struct dvb_frontend_parameters
   event.status=0;
 
   while (((event.status & FE_TIMEDOUT)==0) && ((event.status & FE_HAS_LOCK)==0)) {
-    if (poll(pfd,1,100) > 0){
+    if (poll(pfd,1,500) > 0){
       if (pfd[0].revents & POLLPRI){
         if ((status = ioctl(this->fd_frontend, FE_GET_EVENT, &event)) < 0){
 	  if (errno != EOVERFLOW) {
@@ -828,12 +831,16 @@ static void dvb_parse_si(dvb_input_plugin_t *this) {
   int	result;
   int  	section_len;
   int 	x;
+  struct pollfd pfd; 
   tuner_t *tuner = this->tuner;
   tmpbuffer = malloc (8192);
   bufptr = tmpbuffer;
 
+  pfd.fd=tuner->fd_pidfilter[INTERNAL_FILTER];
+  pfd.events = POLLPRI | POLLIN;
   /* first - the PAT */  
   dvb_set_pidfilter (this, INTERNAL_FILTER, 0, DMX_PES_OTHER, DMX_OUT_TAP);
+  poll(&pfd,1,1500);
   result = read (tuner->fd_pidfilter[INTERNAL_FILTER], tmpbuffer, 3);
   if(result!=3)
     printf("error\n");
@@ -860,10 +867,11 @@ static void dvb_parse_si(dvb_input_plugin_t *this) {
     bufptr+=4;
     this->num_streams_in_this_ts++;        
   }
-  printf("3");
+
   bufptr = tmpbuffer;
     /* next - the PMT */
   dvb_set_pidfilter(this, INTERNAL_FILTER, this->channels[this->channel].pmtpid , DMX_PES_OTHER, DMX_OUT_TAP);
+  poll(&pfd,1,1500);
   result = read(tuner->fd_pidfilter[INTERNAL_FILTER],tmpbuffer,3);
 
   section_len = getbits (bufptr, 12, 12);
