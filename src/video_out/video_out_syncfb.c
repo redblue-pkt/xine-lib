@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_syncfb.c,v 1.31 2001/11/05 17:31:20 matt2000 Exp $
+ * $Id: video_out_syncfb.c,v 1.32 2001/11/05 18:08:56 matt2000 Exp $
  * 
  * video_out_syncfb.c, SyncFB (for Matrox G200/G400 cards) interface for xine
  * 
@@ -93,7 +93,7 @@ typedef struct {
 
   // syncfb module related stuff
   int               fd;              // file descriptor of the syncfb device
-  int               palette;         // palette the syncfb module is using  
+  int               yuv_format;      // either YUV420P3, YUV420P2 or YUV422
   int               overlay_state;   // 0 = off, 1 = on
   uint8_t*          video_mem;       // mmapped video memory
   int               default_repeat;  // how many times a frame will be repeatedly displayed
@@ -262,11 +262,11 @@ static void write_frame_sfb(syncfb_driver_t* this, syncfb_frame_t* frame)
    src[1] = frame->vo_frame.base[1];
    src[2] = frame->vo_frame.base[2];
       
-   if(this->palette == VIDEO_PALETTE_YUV422) {
+   if(this->yuv_format == VIDEO_PALETTE_YUV422) {
       write_frame_YUV422(this, frame, src[0], src[1], src[2]);
-   } else if(this->palette == VIDEO_PALETTE_YUV420P2) { 
+   } else if(this->yuv_format == VIDEO_PALETTE_YUV420P2) { 
       write_frame_YUV420P2(this, frame, src[0], src[1], src[2]);
-   } else if(this->palette == VIDEO_PALETTE_YUV420P3) {
+   } else if(this->yuv_format == VIDEO_PALETTE_YUV420P3) {
       write_frame_YUV420P3(this, frame, src[0], src[1], src[2]);
    }
 }
@@ -345,7 +345,10 @@ static void syncfb_adapt_to_output_area(syncfb_driver_t* this,
 	    this->syncfb_config.src_crop_right = 0;
 	 }
 
-	 this->syncfb_config.src_palette = this->palette;
+	 // FIXME: hard coded to YUV420P3, YUV420P2, YUV422 at the moment
+	 //        as soon as support for YUY2 and RGB is added, we will
+	 //        replace this->yuv_format with the frame format.
+	 this->syncfb_config.src_palette = this->yuv_format;
    
 	 this->syncfb_config.fb_screen_size = this->virtual_screen_width * this->virtual_screen_height * (this->screen_depth / 8);
 	 this->syncfb_config.src_width      = this->frame_width;
@@ -847,10 +850,22 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen)
      
    // check for formats we need...
    this->supported_capabilities = 0;
+   this->yuv_format = 0;
    
+   // simple fallback mechanism - we want YUV 4:2:0 (3 plane) but we can also
+   // convert YV12 material to YUV 4:2:0 (2 plane) and YUV 4:2:2 ...
    if(this->capabilities.palettes & (1<<VIDEO_PALETTE_YUV420P3)) {
       this->supported_capabilities |= VO_CAP_YV12;
-      printf("video_out_syncfb: SyncFB module supports YV12.\n");
+      this->yuv_format = VIDEO_PALETTE_YUV420P3;
+      printf("video_out_syncfb: SyncFB module supports YUV 4:2:0 (3 plane).\n");
+   } else if(this->capabilities.palettes & (1<<VIDEO_PALETTE_YUV420P2)) {
+      this->supported_capabilities |= VO_CAP_YV12;
+      this->yuv_format = VIDEO_PALETTE_YUV420P2;
+      printf("video_out_syncfb: SyncFB module supports YUV 4:2:0 (2 plane)\n");
+   } else if(this->capabilities.palettes & (1<<VIDEO_PALETTE_YUV422)) {	   
+      this->supported_capabilities |= VO_CAP_YV12;
+      this->yuv_format = VIDEO_PALETTE_YUV422;
+      printf("video_out_syncfb: SyncFB module supports YUV 4:2:2.\n");   
    } else {
       //
       // FIXME: this "else" will be removed as soon as we add support
@@ -883,7 +898,6 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen)
    }
 
   // little hack to hard code to YV12 until rest is supported.
-  this->palette                = VIDEO_PALETTE_YUV420P3;
   this->supported_capabilities = VO_CAP_YV12;
    
   XGetWindowAttributes(visual->display, DefaultRootWindow(visual->display), &attr);  
