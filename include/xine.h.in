@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.57 2003/01/18 15:29:19 miguelfreitas Exp $
+ * $Id: xine.h.in,v 1.58 2003/01/29 02:33:35 miguelfreitas Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -819,6 +819,11 @@ char *xine_get_file_extensions (xine_t *self);
  * the pointer returned can be free()ed when no longer used */
 char *xine_get_mime_types (xine_t *self);
 
+/* get the demuxer identifier that handles a given mime type
+ *
+ * the pointer returned can be free()ed when no longer used
+ * returns NULL if no demuxer is available to handle this. */
+char *xine_get_demux_for_mime_type (xine_t *self, const char *mime_type);
 
 /* get a description string for an input plugin */
 const char *xine_get_input_plugin_description (xine_t *self,
@@ -1141,6 +1146,7 @@ void xine_config_reset (xine_t *self);
 #define XINE_EVENT_AUDIO_LEVEL            6 /* report current audio level (l/r) */
 #define XINE_EVENT_QUIT                   7 /* last event sent when stream is disposed */
 #define XINE_EVENT_PROGRESS               8 /* index creation/network connections */
+#define XINE_EVENT_MRL_REFERENCE          9 /* demuxer->frontend: MRL reference(s) for the real stream */
 
 /* input events coming from frontend */
 #define XINE_EVENT_INPUT_MOUSE_BUTTON   101
@@ -1230,6 +1236,26 @@ typedef struct {
   const char         *description; /* e.g. "connecting..." */
   int                 percent;
 } xine_progress_data_t;
+
+/*
+ * mrl reference data is sent by demuxers when a reference stream is found.
+ * this stream just contains pointers (urls) to the real data, which are
+ * passed to frontend using this event type. (examples: .asx, .mov and .ram)
+ * 
+ * ideally, frontends should add these mrls to a "hierarchical playlist". 
+ * that is, instead of the original file, the ones provided here should be
+ * played instead. on pratice, just using a simple playlist should work.
+ *
+ * mrl references should be played in the same order they are received, just
+ * after the current stream finishes.
+ * alternative playlists may be provided and should be used in case of
+ * failure of the primary playlist.
+ */
+typedef struct {
+  int                 alternative; /* alternative playlist number, usually 0 */
+  char                mrl[1]; /* might (will) be longer */
+} xine_mrl_reference_data_t;
+
 
 /* opaque xine_event_queue_t */
 typedef struct xine_event_queue_s xine_event_queue_t;

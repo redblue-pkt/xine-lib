@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.138 2003/01/18 20:35:24 f1rmb Exp $
+ * $Id: load_plugins.c,v 1.139 2003/01/29 02:33:36 miguelfreitas Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -37,6 +37,7 @@
 #include <string.h>
 #include <errno.h>
 #include <stdlib.h>
+#include <ctype.h>
 #include <signal.h>
 
 #include "xine_internal.h"
@@ -2008,6 +2009,52 @@ char *xine_get_mime_types (xine_t *self) {
   pthread_mutex_unlock (&catalog->lock);
 
   return str;
+}
+
+
+/* get the demuxer identifier that handles a given mime type
+ *
+ * the pointer returned can be free()ed when no longer used
+ * returns NULL if no demuxer is available to handle this. */
+char *xine_get_demux_for_mime_type (xine_t *self, const char *mime_type) {
+
+  plugin_catalog_t *catalog = self->plugin_catalog;
+  plugin_node_t    *node;
+  char             *id = NULL;
+  char             *mime_arg, *mime_demux;
+  char             *s;
+
+  /* create a copy and convert to lower case */  
+  mime_arg = strdup(mime_type);
+  for(s=mime_arg; *s; s++)
+    *s = tolower(*s);
+  
+  pthread_mutex_lock (&catalog->lock);
+
+  node = xine_list_first_content (catalog->demux);
+  while (node && !id) {
+    demux_class_t *cls = (demux_class_t *)node->plugin_class;
+
+    s = cls->get_mimetypes (cls);
+    if (s) {
+      mime_demux = strdup(s);
+      
+      for(s=mime_demux; *s; s++)
+        *s = tolower(*s);
+      
+      if( strstr(mime_demux, mime_arg) )
+        id = strdup(node->info->id);
+      
+      free(mime_demux);
+    }
+    node = xine_list_next_content (catalog->demux);
+  }
+
+  pthread_mutex_unlock (&catalog->lock);
+
+  free(mime_arg);
+  
+  return id;
 }
 
 

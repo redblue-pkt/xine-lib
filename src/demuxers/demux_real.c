@@ -28,7 +28,7 @@
  *   
  *   Based on FFmpeg's libav/rm.c.
  *
- * $Id: demux_real.c,v 1.37 2003/01/23 16:12:13 miguelfreitas Exp $
+ * $Id: demux_real.c,v 1.38 2003/01/29 02:33:36 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -40,6 +40,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <stdlib.h>
+#include <ctype.h>
 
 #include "xine_internal.h"
 #include "xineutils.h"
@@ -121,6 +122,7 @@ typedef struct {
 
   int                  fragment_size; /* video sub-demux */
 
+  int                  reference_mode;
 } demux_real_t ;
 
 typedef struct {
@@ -593,6 +595,77 @@ static void real_parse_headers (demux_real_t *this) {
   }
 }
 
+
+/* very naive approach for parsing ram files. it will extract known
+ * mrls directly so it should work for simple smil files too.
+ * no attempt is made to support smil features:
+ * http://service.real.com/help/library/guides/production/htmfiles/smil.htm
+ */
+static int demux_real_parse_references( demux_real_t *this) {
+
+  char           *buf = NULL;
+  int             buf_size = 0;
+  int             buf_used = 0;
+  int             len, i, j;
+  int             alternative = 0;
+  xine_mrl_reference_data_t *data;
+  xine_event_t    uevent;
+
+
+  /* read file to memory. 
+   * warning: dumb code, but hopefuly ok since reference file is small */
+  do {
+    buf_size += 1024;
+    buf = realloc(buf, buf_size+1);
+    
+    len = this->input->read(this->input, &buf[buf_used], buf_size-buf_used);
+
+    if( len > 0 )
+      buf_used += len;
+      
+    /* 50k of reference file? no way. something must be wrong */
+    if( buf_used > 50*1024 )
+      break;
+  } while( len > 0 );
+  
+  if(buf_used)
+    buf[buf_used] = '\0';
+
+  for(i=0;i<buf_used;i++) {
+    
+    /* "--stop--" is used to have pnm alternative for old real clients 
+     * new real clients will stop processing the file and thus use
+     * rtsp protocol.
+     */
+    if( !strncmp(&buf[i],"--stop--",8) )
+      alternative++;
+      
+    if( !strncmp(&buf[i],"pnm://",6) || !strncmp(&buf[i],"rtsp://",7) ) {
+      for(j=i; buf[j] && buf[j] != '"' && !isspace(buf[j]); j++ )
+        ;
+      j--;
+      buf[j]='\0';
+      printf("demux_real: ref=%s\n", &buf[i]);
+      
+      uevent.type = XINE_EVENT_MRL_REFERENCE;
+      uevent.stream = this->stream;
+      uevent.data_length = strlen(&buf[i])+sizeof(xine_mrl_reference_data_t);
+      data = malloc(uevent.data_length);
+      uevent.data = data;
+      strcpy(data->mrl, &buf[i]);
+      data->alternative = alternative;
+      xine_event_send(this->stream, &uevent);
+      
+      i = j;
+    }
+  }  
+  
+  free(buf);
+  
+  this->status = DEMUX_FINISHED;
+  return this->status;
+}
+        
 /* redefine abs as macro to handle 64-bit diffs.
    i guess llabs may not be available everywhere */
 #define abs(x) ( ((x)<0) ? -(x) : (x) )
@@ -654,6 +727,9 @@ static int demux_real_send_chunk(demux_plugin_t *this_gen) {
   int64_t         pts;
   off_t           offset;
 
+  if(this->reference_mode)
+    return demux_real_parse_references(this);
+    
   /* load a header from wherever the stream happens to be pointing */
   if ( (size=this->input->read(this->input, header, DATA_PACKET_HEADER_SIZE)) !=
       DATA_PACKET_HEADER_SIZE) {
@@ -876,7 +952,7 @@ static int demux_real_send_chunk(demux_plugin_t *this_gen) {
 
     n = this->input->read (this->input, buf->content, size);
 
-    if (n<size) {
+    if (n<size || size < 0) {
       printf ("demux_real: read error 44\n");
 
       buf->free_buffer(buf);
@@ -967,8 +1043,12 @@ static void demux_real_send_headers(demux_plugin_t *this_gen) {
   this->video_stream_num = -1;
   this->audio_stream_num = -1;
 
-  real_parse_headers (this);
-
+  if( !this->reference_mode ) {
+    real_parse_headers (this);
+  } else {
+    if ((this->input->get_capabilities (this->input) & INPUT_CAP_SEEKABLE) != 0) 
+      this->input->seek (this->input, 0, SEEK_SET);
+  }
 }
 
 static int demux_real_seek (demux_plugin_t *this_gen,
@@ -1023,6 +1103,26 @@ static int demux_real_get_optional_data(demux_plugin_t *this_gen,
   return DEMUX_OPTIONAL_UNSUPPORTED;
 }
 
+/* help function to discover stream type. returns:
+ *  0 if not known.
+ *  1 if normal stream.
+ *  2 if reference stream.
+ */
+static int real_check_stream_type(uint8_t *buf, int len)
+{
+  if ((buf[0] == 0x2e)
+      && (buf[1] == 'R')
+      && (buf[2] == 'M')
+      && (buf[3] == 'F'))
+    return 1;
+  
+  buf[len] = '\0';
+  if( strstr(buf,"pnm://") || strstr(buf,"rtsp://") || strstr(buf,"<smil>") )
+    return 2;
+    
+  return 0;
+}
+
 static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *stream,
                                     input_plugin_t *input_gen) {
 
@@ -1033,46 +1133,40 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
 
   case METHOD_BY_CONTENT:
     {
-      uint8_t buf[4096];
+      uint8_t buf[4096], len;
 
       if ((input->get_capabilities(input) & INPUT_CAP_SEEKABLE) != 0) {
 
 	input->seek(input, 0, SEEK_SET);
 
-	if (input->read(input, buf, 4)) {
+	if ((len = input->read(input, buf, 1024))) {
 
 #ifdef LOG
 	  printf ("demux_real: input seekable, read 4 bytes: %02x %02x %02x %02x\n",
 		  buf[0], buf[1], buf[2], buf[3]);
 #endif
 
-	  if ((buf[0] != 0x2e)
-	      || (buf[1] != 'R')
-	      || (buf[2] != 'M')
-	      || (buf[3] != 'F')) 
+	  if (!real_check_stream_type(buf,len))
 	    return NULL;
 	} else
 	  return NULL;
 
-      } else if (input->get_optional_data (input, buf, INPUT_OPTIONAL_DATA_PREVIEW)) {
+      } else if ((len = input->get_optional_data (input, buf, INPUT_OPTIONAL_DATA_PREVIEW))) {
 	
 #ifdef LOG
 	printf ("demux_real: input provides preview, read 4 bytes: %02x %02x %02x %02x\n",
 		buf[0], buf[1], buf[2], buf[3]);
 #endif
 
-	if ((buf[0] != 0x2e)
-	    || (buf[1] != 'R')
-	    || (buf[2] != 'M')
-	    || (buf[3] != 'F')) 
+	if (!real_check_stream_type(buf,len))
 	  return NULL;
       } else
 	return NULL;
     }
     
-
+#ifdef LOG
     printf ("demux_real: by content accepted.\n");
-
+#endif
   break;
 
   case METHOD_BY_EXTENSION: {
@@ -1118,6 +1212,32 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   this->stream = stream;
   this->input  = input;
 
+  
+  /* discover stream type */
+  {
+    uint8_t buf[4096], len;
+    
+    this->reference_mode = 0;
+    if ((len = input->get_capabilities(input) & INPUT_CAP_SEEKABLE) != 0) {
+
+      input->seek(input, 0, SEEK_SET);
+
+      if ((len = input->read(input, buf, 1024))) {
+        if (real_check_stream_type(buf,len) == 2)
+          this->reference_mode = 1;
+      }
+
+    } else if ((len = input->get_optional_data (input, buf, INPUT_OPTIONAL_DATA_PREVIEW))) {
+   
+      if (real_check_stream_type(buf,len) == 2)
+        this->reference_mode = 1;
+    }
+    
+    if(this->reference_mode)
+      printf("demux_real: reference stream detected\n");
+  }
+  
+  
   this->demux_plugin.send_headers      = demux_real_send_headers;
   this->demux_plugin.send_chunk        = demux_real_send_chunk;
   this->demux_plugin.seek              = demux_real_seek;
@@ -1131,7 +1251,6 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   this->demux_plugin.demux_class       = class_gen;
 
   strncpy (this->last_mrl, input->get_mrl (input), 1024);
-
 
   return &this->demux_plugin;
 }
@@ -1149,7 +1268,8 @@ static char *get_extensions (demux_class_t *this_gen) {
 }
 
 static char *get_mimetypes (demux_class_t *this_gen) {
-  return "audio/x-pn-realaudio: ra, rm, ram: Real Media File;"; 
+  return "audio/x-pn-realaudio: ra, rm, ram: Real Media file;"
+         "audio/x-pn-realaudio-plugin: rpm: Real Media plugin file;"; 
 }
 
 static void class_dispose (demux_class_t *this_gen) {
