@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: rtsp_session.c,v 1.6 2002/12/16 23:53:50 holstsn Exp $
+ * $Id: rtsp_session.c,v 1.7 2002/12/24 01:10:53 holstsn Exp $
  *
  * high level interface to rtsp servers.
  */
@@ -33,9 +33,9 @@
 
 #include "rtsp.h"
 #include "rtsp_session.h"
-#include "../libreal/real.h"
-#include "../libreal/rmff.h"
-#include "../libreal/asmrp.h"
+#include "real.h"
+#include "rmff.h"
+#include "asmrp.h"
 
 /*
 #define LOG
