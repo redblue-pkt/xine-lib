@@ -113,7 +113,13 @@ How to build xine in M$ Visual C:
     Under MinGW you can compile ffmpeg for xine by this way:
 
     #
-    # for cross-compiling add "--cross-prefix=i386-mingw32-"
+    # run the script/patch necessary for MSVC a for xine
+    #
+    cd ffmpeg
+    sh ../xine-lib/win32/scripts/ffmpeg_win32.patch
+
+    #
+    # for cross-compiling add "--cross-prefix=i386-mingw32-" and "--disable-mmx"
     #
     ./configure \
        --enable-gpl \
@@ -126,6 +132,9 @@ How to build xine in M$ Visual C:
     #
     # for cross-compiling finalize linking by running this command in
     # libavcodec/ directory
+    #
+    # it's done automatically if you have 'LIB.EXE' linked to 'lib' in your
+    # $PATH and set wine
     #
     wine LIB.EXE /machine:i386 /def:avcodec.def
 

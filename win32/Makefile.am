@@ -4,6 +4,7 @@ SUBDIRS = contrib include
 
 EXTRA_DIST = \
 	scripts/move_xine_fonts.bat \
+	scripts/ffmpeg_win32.patch \
 	README \
 	libdvdnav.def \
 	libxine.def \

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2004 the xine project
+ * Copyright (C) 2001-2005 the xine project
  * 
  * This file is part of xine, a free video player.
  * 
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.h,v 1.4 2004/09/26 22:54:52 valtri Exp $
+ * $Id: xine_decoder.h,v 1.5 2005/02/20 09:36:02 valtri Exp $
  *
  */
  
@@ -32,14 +32,6 @@
 #  include <avcodec.h>
 #else
 #  include "libavcodec/avcodec.h"
-#endif
-
-#ifdef _MSC_VER
-#  undef malloc
-#  undef free
-#  undef realloc
-#  undef printf
-#  undef fprintf
 #endif
 
 typedef struct ff_codec_s {
