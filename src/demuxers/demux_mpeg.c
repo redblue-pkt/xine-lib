@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg.c,v 1.118 2003/05/05 20:34:24 miguelfreitas Exp $
+ * $Id: demux_mpeg.c,v 1.119 2003/05/20 19:21:23 jcdutton Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  * reads streams of variable blocksizes
@@ -319,8 +319,11 @@ static void parse_mpeg2_packet (demux_mpeg_t *this, int stream_id, int64_t scr) 
             this->status = DEMUX_FINISHED;
             return;
           }
-
-          buf->type      = BUF_AUDIO_A52 + track;
+          if (track & 0x8) {
+            buf->type      = BUF_AUDIO_DTS + (track & 0x07); /* DVDs only have 8 tracks */
+          } else {
+            buf->type      = BUF_AUDIO_A52 + track;
+          }
           buf->pts       = pts;
           check_newpts( this, pts, PTS_AUDIO );
           pts = 0;
