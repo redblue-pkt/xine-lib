@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.198 2004/06/13 21:28:57 miguelfreitas Exp $
+ * $Id: video_out.c,v 1.199 2004/06/19 20:07:15 mroi Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -1243,6 +1243,10 @@ static int vo_get_property (xine_video_port_t *this_gen, int property) {
     ret = this->discard_frames;
     break;
     
+  case VO_PROP_BUFS_IN_FIFO:
+    ret = this->video_loop_running ? this->display_img_buf_queue->num_buffers : -1;
+    break;
+  
   /*
    * handle XINE_PARAM_xxx properties (convert from driver's range)
    */

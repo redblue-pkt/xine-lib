@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.h,v 1.106 2004/05/29 14:45:25 mroi Exp $
+ * $Id: video_out.h,v 1.107 2004/06/19 20:07:15 mroi Exp $
  *
  *
  * xine version of video_out.h 
@@ -260,7 +260,8 @@ struct xine_video_port_s {
 #define VO_PROP_DISCARD_FRAMES        14 /* not used by drivers */
 #define VO_PROP_WINDOW_WIDTH          15 /* read-only */
 #define VO_PROP_WINDOW_HEIGHT         16 /* read-only */
-#define VO_NUM_PROPERTIES             17
+#define VO_PROP_BUFS_IN_FIFO          17 /* read-only */
+#define VO_NUM_PROPERTIES             18
 
 /* number of colors in the overlay palette. Currently limited to 256
    at most, because some alphablend functions use an 8-bit index into

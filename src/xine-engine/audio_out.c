@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.179 2004/06/13 21:28:57 miguelfreitas Exp $
+ * $Id: audio_out.c,v 1.180 2004/06/19 20:07:15 mroi Exp $
  *
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -1585,6 +1585,10 @@ static int ao_get_property (xine_audio_port_t *this_gen, int property) {
   switch (property) {
   case AO_PROP_COMPRESSOR:
     ret = this->compression_factor_max*100;
+    break;
+  
+  case AO_PROP_BUFS_IN_FIFO:
+    ret = this->audio_loop_running ? this->out_fifo->num_buffers : -1;
     break;
   
   case AO_PROP_AMP:
