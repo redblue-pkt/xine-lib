@@ -1,4 +1,6 @@
   
+  * new (fast) demuxer seeking
+  * libdivx4 updated to support divx5
   * several memory leak fixes
   * sound card clock drift correction
   * reworked video driver api
@@ -6,7 +8,7 @@
   * win32 dll stability fixes
   * updated ffmpeg (with divx5 support)
   * updated mpeg2dec (0.2.1)
-  * new metronom code
+  * new metronom code and discontinuity handling
   * logo moved to xine-lib
   * improved still frame detection and video_out code 
   * several dxr3 fixes
