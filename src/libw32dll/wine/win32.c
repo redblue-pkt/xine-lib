@@ -5065,6 +5065,15 @@ static void* add_stub(void)
 {
     // generated code in runtime!
     char* answ = (char*)extcode+pos*0x30;
+    int i;
+
+    /* xine: check if stub for this export was created before */
+    for(i = 0; i < pos; i++) 
+    {
+      if(strcmp(export_names[pos], export_names[i])==0)
+        return extcode+i*0x30; /* return existing stub */
+    }
+      
 #if 0
     memcpy(answ, &unk_exp1, 0x64);
     *(int*)(answ+9)=pos;
@@ -5079,7 +5088,15 @@ static void* add_stub(void)
     *((long*) (answ + 18)) = (long)export_names;
     //answ[23] = 0x68; // pushl $0  (0x68 0x00000000)
     *((long*) (answ + 24)) = (long)called_unk;
-    pos++;
+
+    /* xine: don't overflow the stub tables */    
+    if( (pos+1) < sizeof(extcode) / 0x30 &&
+        (pos+1) < sizeof(export_names) / sizeof(export_names[0]) ) {
+      pos++;
+    } else {
+      strcpy(export_names[pos], "too many unresolved exports");
+    }
+      
     return (void*)answ;
 }
 
@@ -5139,7 +5156,9 @@ void* LookupExternal(const char* library, int ordinal)
 
 no_dll:
 #endif
+/* xine: pos is now tested inside add_stub()
     if(pos>150)return 0;
+*/
     sprintf(export_names[pos], "%s:%d", library, ordinal);
     return add_stub();
 }
@@ -5172,7 +5191,9 @@ void* LookupExternalByName(const char* library, const char* name)
 	    return libraries[i].exps[j].func;
 	}
     }
+/* xine: pos is now tested inside add_stub()
     if(pos>150)return 0;// to many symbols
+*/
     strcpy(export_names[pos], name);
     return add_stub();
 }
