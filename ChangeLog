@@ -1,3 +1,4 @@
+  * fix audio pause on discontinuities
   * cleanup of dxr3enc driver. Now official support for librte-0.4 besides
     the traditional libfame, via .xine/config file.
  
