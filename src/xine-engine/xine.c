@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.190 2002/11/09 23:22:33 guenter Exp $
+ * $Id: xine.c,v 1.191 2002/11/11 00:54:08 miguelfreitas Exp $
  *
  * top-level xine functions
  *
@@ -1040,7 +1040,7 @@ int xine_get_current_frame (xine_stream_t *stream, int *width, int *height,
     memcpy (img+frame->width*frame->height, frame->base[1], 
 	    frame->width*frame->height/4);
     memcpy (img+frame->width*frame->height+frame->width*frame->height/4, 
-	    frame->base[1], 
+	    frame->base[2], 
 	    frame->width*frame->height/4);
     break;
 
