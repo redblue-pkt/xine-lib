@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.c,v 1.86 2002/06/20 14:49:53 mroi Exp $
+ * $Id: metronom.c,v 1.87 2002/06/29 14:32:36 tmattern Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -281,10 +281,11 @@ static int64_t metronom_got_spu_packet (metronom_t *this, int64_t pts) {
 static void metronom_handle_video_discontinuity (metronom_t *this, int type,
 						 int64_t disc_off) {
 
-  int64_t av_diff;
   pthread_mutex_lock (&this->lock);
 
-  av_diff = this->video_vpts - this->audio_vpts;
+#ifdef LOG
+  printf ("metronom: av_diff=%ld\n", this->video_vpts - this->audio_vpts);
+#endif
 
   this->video_discontinuity_count++;
   pthread_cond_signal (&this->video_discontinuity_reached);
@@ -318,22 +319,37 @@ static void metronom_handle_video_discontinuity (metronom_t *this, int type,
 
   switch (type) {
   case DISC_STREAMSTART:
+#ifdef LOG
+    printf ("metronom: DISC_STREAMSTART\n");
+#endif
     this->vpts_offset      = this->video_vpts;
     this->in_discontinuity = 0;
+    this->force_audio_jump = 0;
     break;
   case DISC_ABSOLUTE:
+#ifdef LOG
+    printf ("metronom: DISC_ABSOLUTE\n");
+#endif
     this->next_vpts_offset = this->video_vpts - disc_off;
     this->in_discontinuity = 30;
+    this->force_audio_jump = 0;
     break;
   case DISC_RELATIVE:
+#ifdef LOG
+    printf ("metronom: DISC_RELATIVE\n");
+#endif
     this->next_vpts_offset = this->vpts_offset - disc_off;
     this->in_discontinuity = 30;
+    this->force_audio_jump = 0;
     break;
   case DISC_STREAMSEEK:
+#ifdef LOG
+    printf ("metronom: DISC_STREAMSEEK\n");
+#endif
     this->vpts_offset      = this->video_vpts - disc_off;
     this->next_vpts_offset = this->video_vpts - disc_off;
-    this->in_discontinuity = 0;
-    this->audio_vpts = this->video_vpts - av_diff;
+    this->in_discontinuity = 30;
+    this->force_audio_jump = 1;
     this->allow_full_ao_fill_gap = 1;
     break;
   }
@@ -481,17 +497,17 @@ static int64_t metronom_got_audio_samples (metronom_t *this, int64_t pts,
 
   pthread_mutex_lock (&this->lock);
 
-  if (this->in_discontinuity) 
+  if (this->in_discontinuity && !this->force_audio_jump) 
     pts = 0; /* ignore pts during discontinuities */
-  
   if (pts) {
     vpts = pts + this->vpts_offset;
     diff = this->audio_vpts - vpts;
     
     /* compare predicted and given vpts */
-    if( abs(diff) > AUDIO_DRIFT_TOLERANCE ) {
+    if( (abs(diff) > AUDIO_DRIFT_TOLERANCE) || this->force_audio_jump ) {
       this->audio_vpts = vpts;
       this->audio_drift_step = 0;
+      this->force_audio_jump = 0;
       printf("metronom: audio jump\n");
     }
     else {
