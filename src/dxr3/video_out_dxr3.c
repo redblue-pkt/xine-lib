@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3.c,v 1.11 2001/10/23 12:08:39 mlampard Exp $
+ * $Id: video_out_dxr3.c,v 1.12 2001/10/23 14:06:30 mlampard Exp $
  *
  * Dummy video out plugin for the dxr3. Is responsible for setting
  * tv_mode, bcs values and the aspectratio.
@@ -68,6 +68,7 @@ typedef struct dxr3_driver_s {
 	int overlay_enabled;
 	float desired_ratio;
 
+	void *user_data;
 	int video_width;
 	int video_height;
 	int video_aspect;
@@ -316,7 +317,7 @@ static int dxr3_set_property (vo_driver_t *this_gen,
 			 strerror(errno));
 		if (this->overlay_enabled && !fullscreen){
 			int foo;
-			this->request_dest_size((char *)this, this->width,
+			this->request_dest_size(this->user_data, this->width,
 			 this->width/this->desired_ratio, &foo, &foo, &foo, &foo);
 		}
 		break;
@@ -430,6 +431,7 @@ static void gather_screen_vars(dxr3_driver_t *this, x11_visual_t *vis)
 
 	this->win = vis->d;
 	this->display = vis->display;
+	this->user_data = vis->user_data;
 	this->gc = XCreateGC(this->display, this->win, 0, NULL);
 	scrn = DefaultScreen(this->display);
 
