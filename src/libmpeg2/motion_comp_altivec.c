@@ -1,6 +1,6 @@
 /*
  * motion_comp_altivec.c
- * Copyright (C) 2000-2001 Michel Lespinasse <walken@zoy.org>
+ * Copyright (C) 2000-2002 Michel Lespinasse <walken@zoy.org>
  * Copyright (C) 1999-2000 Aaron Holtzman <aholtzma@ess.engr.uvic.ca>
  *
  * This file is part of mpeg2dec, a free MPEG-2 video stream decoder.
@@ -26,7 +26,6 @@
 #include "config.h"
 
 #ifdef ARCH_PPC
-#ifdef ENABLE_ALTIVEC
 
 #include <inttypes.h>
 
@@ -46,7 +45,7 @@
  * unexpand -a
  */
 
-static void MC_put_16_altivec (uint8_t * dest, uint8_t * ref,
+static void MC_put_o_16_altivec (uint8_t * dest, uint8_t * ref,
 				 int stride, int height)
 {
     asm ("						\n"
@@ -82,7 +81,7 @@ static void MC_put_16_altivec (uint8_t * dest, uint8_t * ref,
 	 );
 }
 
-static void MC_put_8_altivec (uint8_t * dest, uint8_t * ref,
+static void MC_put_o_8_altivec (uint8_t * dest, uint8_t * ref,
 				int stride, int height)
 {
     asm ("						\n"
@@ -133,7 +132,7 @@ static void MC_put_8_altivec (uint8_t * dest, uint8_t * ref,
 	 );
 }
 
-static void MC_put_x16_altivec (uint8_t * dest, uint8_t * ref,
+static void MC_put_x_16_altivec (uint8_t * dest, uint8_t * ref,
 				 int stride, int height)
 {
     asm ("						\n"
@@ -179,7 +178,7 @@ static void MC_put_x16_altivec (uint8_t * dest, uint8_t * ref,
 	 );
 }
 
-static void MC_put_x8_altivec (uint8_t * dest, uint8_t * ref,
+static void MC_put_x_8_altivec (uint8_t * dest, uint8_t * ref,
 				int stride, int height)
 {
     asm ("						\n"
@@ -241,7 +240,7 @@ static void MC_put_x8_altivec (uint8_t * dest, uint8_t * ref,
 	 );
 }
 
-static void MC_put_y16_altivec (uint8_t * dest, uint8_t * ref,
+static void MC_put_y_16_altivec (uint8_t * dest, uint8_t * ref,
 				 int stride, int height)
 {
     asm ("						\n"
@@ -285,7 +284,7 @@ static void MC_put_y16_altivec (uint8_t * dest, uint8_t * ref,
 	 );
 }
 
-static void MC_put_y8_altivec (uint8_t * dest, uint8_t * ref,
+static void MC_put_y_8_altivec (uint8_t * dest, uint8_t * ref,
 				int stride, int height)
 {
     asm ("						\n"
@@ -344,7 +343,7 @@ static void MC_put_y8_altivec (uint8_t * dest, uint8_t * ref,
 	 );
 }
 
-static void MC_put_xy16_altivec (uint8_t * dest, uint8_t * ref,
+static void MC_put_xy_16_altivec (uint8_t * dest, uint8_t * ref,
 				  int stride, int height)
 {
     asm ("						\n"
@@ -425,7 +424,7 @@ static void MC_put_xy16_altivec (uint8_t * dest, uint8_t * ref,
 	 );
 }
 
-static void MC_put_xy8_altivec (uint8_t * dest, uint8_t * ref,
+static void MC_put_xy_8_altivec (uint8_t * dest, uint8_t * ref,
 				 int stride, int height)
 {
     asm ("						\n"
@@ -522,7 +521,7 @@ static void MC_put_xy8_altivec (uint8_t * dest, uint8_t * ref,
 	 );
 }
 
-static void MC_avg_16_altivec (uint8_t * dest, uint8_t * ref,
+static void MC_avg_o_16_altivec (uint8_t * dest, uint8_t * ref,
 				 int stride, int height)
 {
     asm ("						\n"
@@ -566,7 +565,7 @@ static void MC_avg_16_altivec (uint8_t * dest, uint8_t * ref,
 	 );
 }
 
-static void MC_avg_8_altivec (uint8_t * dest, uint8_t * ref,
+static void MC_avg_o_8_altivec (uint8_t * dest, uint8_t * ref,
 				int stride, int height)
 {
     asm ("						\n"
@@ -625,7 +624,7 @@ static void MC_avg_8_altivec (uint8_t * dest, uint8_t * ref,
 	 );
 }
 
-static void MC_avg_x16_altivec (uint8_t * dest, uint8_t * ref,
+static void MC_avg_x_16_altivec (uint8_t * dest, uint8_t * ref,
 				 int stride, int height)
 {
     asm ("						\n"
@@ -679,7 +678,7 @@ static void MC_avg_x16_altivec (uint8_t * dest, uint8_t * ref,
 	 );
 }
 
-static void MC_avg_x8_altivec (uint8_t * dest, uint8_t * ref,
+static void MC_avg_x_8_altivec (uint8_t * dest, uint8_t * ref,
 				int stride, int height)
 {
     asm ("						\n"
@@ -749,7 +748,7 @@ static void MC_avg_x8_altivec (uint8_t * dest, uint8_t * ref,
 	 );
 }
 
-static void MC_avg_y16_altivec (uint8_t * dest, uint8_t * ref,
+static void MC_avg_y_16_altivec (uint8_t * dest, uint8_t * ref,
 				 int stride, int height)
 {
     asm ("						\n"
@@ -802,7 +801,7 @@ static void MC_avg_y16_altivec (uint8_t * dest, uint8_t * ref,
 	 );
 }
 
-static void MC_avg_y8_altivec (uint8_t * dest, uint8_t * ref,
+static void MC_avg_y_8_altivec (uint8_t * dest, uint8_t * ref,
 				int stride, int height)
 {
     asm ("						\n"
@@ -869,7 +868,7 @@ static void MC_avg_y8_altivec (uint8_t * dest, uint8_t * ref,
 	 );
 }
 
-static void MC_avg_xy16_altivec (uint8_t * dest, uint8_t * ref,
+static void MC_avg_xy_16_altivec (uint8_t * dest, uint8_t * ref,
 				  int stride, int height)
 {
     asm ("						\n"
@@ -959,7 +958,7 @@ static void MC_avg_xy16_altivec (uint8_t * dest, uint8_t * ref,
 	 );
 }
 
-static void MC_avg_xy8_altivec (uint8_t * dest, uint8_t * ref,
+static void MC_avg_xy_8_altivec (uint8_t * dest, uint8_t * ref,
 				 int stride, int height)
 {
     asm ("						\n"
@@ -1064,9 +1063,8 @@ static void MC_avg_xy8_altivec (uint8_t * dest, uint8_t * ref,
 	 );
 }
 
-MOTION_COMP_EXTERN (altivec)
+MPEG2_MC_EXTERN (altivec)
 
-#endif  /* ENABLE_ALTIVEC */
 #endif	/* ARCH_PPC */
 
 #else	/* __ALTIVEC__ */

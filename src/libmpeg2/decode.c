@@ -1,8 +1,10 @@
 /*
  * decode.c
- * Copyright (C) 1999-2001 Aaron Holtzman <aholtzma@ess.engr.uvic.ca>
+ * Copyright (C) 2000-2002 Michel Lespinasse <walken@zoy.org>
+ * Copyright (C) 1999-2000 Aaron Holtzman <aholtzma@ess.engr.uvic.ca>
  *
  * This file is part of mpeg2dec, a free MPEG-2 video stream decoder.
+ * See http://libmpeg2.sourceforge.net/ for updates.
  *
  * mpeg2dec is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -44,9 +46,8 @@
 #define LOG
 */
 
-#define BUFFER_SIZE (224 * 1024)
-
-mpeg2_config_t config;
+/* #define BUFFER_SIZE (224 * 1024) */
+#define BUFFER_SIZE (1194 * 1024) /* new buffer size for mpeg2dec 0.2.1 */
 
 static void process_userdata(mpeg2dec_t *mpeg2dec, uint8_t *buffer);
 
@@ -54,12 +55,14 @@ void mpeg2_init (mpeg2dec_t * mpeg2dec,
 		 vo_instance_t * output)
 {
   static int do_init = 1;
+  uint32_t mm_accel;
 
     if (do_init) {
 	do_init = 0;
-	config.flags = xine_mm_accel();
-	idct_init ();
-	motion_comp_init ();
+	mm_accel = xine_mm_accel();
+	mpeg2_cpu_state_init (mm_accel);
+	mpeg2_idct_init (mm_accel);
+	mpeg2_mc_init (mm_accel);
     }
 
     if( !mpeg2dec->chunk_buffer )
@@ -81,8 +84,8 @@ void mpeg2_init (mpeg2dec_t * mpeg2dec,
 
     memset (mpeg2dec->picture, 0, sizeof (picture_t));
 
-    /* initialize supstructures */
-    header_state_init (mpeg2dec->picture);
+    /* initialize substructures */
+    mpeg2_header_state_init (mpeg2dec->picture);
 }
 
 static inline void get_frame_duration (mpeg2dec_t * mpeg2dec, vo_frame_t *frame)
@@ -141,11 +144,7 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 {
     picture_t * picture;
     int is_frame_done;
-/*
-    if (code >= 0xb0) { 
-      printf ("libmpeg2: parse_chunk 0x%02x\n", code);   
-    }
-*/
+    
     /* wait for sequence_header_code */
     if (mpeg2dec->is_sequence_needed) {
       if (code != 0xb3) {
@@ -159,7 +158,7 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
       return 0;
     }
 
-    stats_header (code, buffer);
+    mpeg2_stats (code, buffer);
 
     picture = mpeg2dec->picture;
     is_frame_done = mpeg2dec->in_slice && ((!code) || (code >= 0xb0));
@@ -167,51 +166,32 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
     if (is_frame_done) {
 	mpeg2dec->in_slice = 0;
 
-	if ( picture->current_frame && ((picture->picture_structure == FRAME_PICTURE) ||
-	     (picture->second_field)) ) {
-
-	  if (!mpeg2dec->drop_frame)
-	    picture->current_frame->bad_frame = 0;
-#ifdef LOG
-	    printf ("libmpeg2: drawing frame %d type %s: %s\n",
-		    picture->current_frame->id,
-		    picture->picture_coding_type == I_TYPE ? "I" :
-		    picture->picture_coding_type == P_TYPE ? "P" : "B",
-		    picture->current_frame->bad_frame ? "BAD" : "good");
-#endif 
-	    if (picture->picture_coding_type == B_TYPE) {
+	if (((picture->picture_structure == FRAME_PICTURE) ||
+	     (picture->second_field)) &&
+	    (!(mpeg2dec->drop_frame))) {
+	    
+	  if (picture->picture_coding_type == B_TYPE) {
+	    if( picture->current_frame && !picture->current_frame->drawn ) {
+	      picture->current_frame->bad_frame = 0;
 
 	      /* hack against wrong mpeg1 pts */
 	      if (picture->mpeg1) 
-		picture->current_frame->pts = 0;
+	        picture->current_frame->pts = 0;
 
-	      if( !picture->current_frame->drawn )
-	        mpeg2dec->frames_to_drop = picture->current_frame->draw (picture->current_frame);
+	      mpeg2dec->frames_to_drop = picture->current_frame->draw (picture->current_frame);
 	      picture->current_frame->drawn = 1;
-	      
-	      if( picture->current_frame == picture->backward_reference_frame )
-	        picture->backward_reference_frame = NULL;
-	        
-	      picture->current_frame->free (picture->current_frame);
-	      
-	      picture->current_frame = NULL;
-	      picture->throwaway_frame = NULL;
-	    } else if (picture->forward_reference_frame && !picture->forward_reference_frame->drawn) {
-              get_frame_duration(mpeg2dec, picture->forward_reference_frame);
-	      mpeg2dec->frames_to_drop = picture->forward_reference_frame->draw (picture->forward_reference_frame);
-	      picture->forward_reference_frame->drawn = 1;
 	    }
-
-#ifdef ARCH_X86
-	    if (config.flags & MM_ACCEL_X86_MMX)
-		emms ();
-#endif
+	  } else if (picture->forward_reference_frame && !picture->forward_reference_frame->drawn) {
+            get_frame_duration(mpeg2dec, picture->forward_reference_frame);
+	    mpeg2dec->frames_to_drop = picture->forward_reference_frame->draw (picture->forward_reference_frame);
+	    picture->forward_reference_frame->drawn = 1;
+	  }
 	}
     }
 
     switch (code) {
     case 0x00:	/* picture_start_code */
-	if (header_process_picture_header (picture, buffer)) {
+	if (mpeg2_header_picture (picture, buffer)) {
 	    fprintf (stderr, "bad picture header\n");
 	    exit (1);
 	}
@@ -291,8 +271,8 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
         break;
 
     case 0xb3:	/* sequence_header_code */
-	if (header_process_sequence_header (picture, buffer)) {
-  	    printf ("libmpeg2: bad sequence header\n");
+	if (mpeg2_header_sequence (picture, buffer)) {
+	    fprintf (stderr, "bad sequence header\n");
 	    /* exit (1); */
 	} else if (mpeg2dec->is_sequence_needed 
 	    || (picture->frame_width != picture->coded_picture_width)
@@ -331,9 +311,9 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 	break;
 
     case 0xb5:	/* extension_start_code */
-	if (header_process_extension (picture, buffer)) {
-	  printf ("libmpeg2: bad extension\n");
-	  exit (1);
+	if (mpeg2_header_extension (picture, buffer)) {
+	    fprintf (stderr, "bad extension\n");
+	    exit (1);
 	}
 	break;
 
@@ -342,7 +322,7 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
       printf ("libmpeg2: sequence end code not handled\n");
 #endif
     case 0xb8:	/* group of pictures start code */
-	if (header_process_group_of_pictures (picture, buffer)) {
+	if (mpeg2_header_group_of_pictures (picture, buffer)) {
 	  printf ("libmpeg2: bad group of pictures\n");
 	  exit (1);
 	}
@@ -363,8 +343,14 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 	      else
 		mpeg2dec->drop_frame = 1;		
 	    } else {
+		if ( picture->current_frame && 
+		     picture->current_frame != picture->backward_reference_frame &&
+		     picture->current_frame != picture->forward_reference_frame ) {
+			picture->current_frame->free (picture->current_frame);
+		}
+		
 		if (picture->picture_coding_type == B_TYPE)
-		    picture->throwaway_frame = picture->current_frame =
+		    picture->current_frame =
 		        mpeg2dec->output->get_frame (mpeg2dec->output,
 						     picture->coded_picture_width,
 						     picture->coded_picture_height,
@@ -404,14 +390,8 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 	}
 
 	if (!(mpeg2dec->drop_frame)) {
-	  if (slice_process (picture, code, buffer) == 1) {
+	    mpeg2_slice (picture, code, buffer);
 	    picture->current_frame->bad_frame = 0;
-	  }
-
-#ifdef ARCH_X86
-	    if (config.flags & MM_ACCEL_X86_MMX)
-		emms ();
-#endif
 	}
     }
 
@@ -432,11 +412,6 @@ static inline uint8_t * copy_chunk (mpeg2dec_t * mpeg2dec,
     limit = current + (mpeg2dec->chunk_buffer + BUFFER_SIZE - chunk_ptr);
     if (limit > end)
 	limit = end;
-
-    /* 
-    printf ("libmpeg2: copy chunk current %08x\n", current );
-    printf ("libmpeg2: copy chunk end     %08x\n", end); fflush(stdout);
-    */
 
     while (1) {
 
@@ -539,25 +514,38 @@ void mpeg2_close (mpeg2dec_t * mpeg2dec)
       dont remove any picture->*->free() below. doing so will cause buffer 
       leak, and we only have about 15 of them.
     */ 
-    if (picture->forward_reference_frame) {
-      picture->forward_reference_frame->free (picture->forward_reference_frame);
+ 
+    if ( picture->current_frame ) {
+      if( !picture->current_frame->drawn ) {
+        printf ("libmpeg2: blasting out current frame on close\n");
+        picture->current_frame->pts = 0;
+        get_frame_duration(mpeg2dec, picture->current_frame);
+        picture->current_frame->draw (picture->current_frame);
+        picture->current_frame->drawn = 1;
+      }
+         
+      if( picture->current_frame != picture->backward_reference_frame &&
+          picture->current_frame != picture->forward_reference_frame ) {
+        picture->current_frame->free (picture->current_frame);
+      }
+      picture->current_frame = NULL;
     }
     
-    if (picture->throwaway_frame) {
-      printf ("libmpeg2: blasting out throwaway frame on close\n");
-      picture->throwaway_frame->pts = 0;
-      get_frame_duration(mpeg2dec, picture->throwaway_frame);
-      picture->throwaway_frame->draw (picture->throwaway_frame);
-      picture->throwaway_frame->free (picture->throwaway_frame);
+    if (picture->forward_reference_frame) {
+      picture->forward_reference_frame->free (picture->forward_reference_frame);
+      picture->forward_reference_frame = NULL;
     }
-
+    
     if (picture->backward_reference_frame) {
-      printf ("libmpeg2: blasting out backward reference frame on close\n");
-      picture->backward_reference_frame->pts = 0;
-      get_frame_duration(mpeg2dec, picture->backward_reference_frame);
-      if( !picture->backward_reference_frame->drawn)
+      if( !picture->backward_reference_frame->drawn) {
+        printf ("libmpeg2: blasting out backward reference frame on close\n");
+        picture->backward_reference_frame->pts = 0;
+        get_frame_duration(mpeg2dec, picture->backward_reference_frame);
         picture->backward_reference_frame->draw (picture->backward_reference_frame);
+        picture->backward_reference_frame->drawn = 1;      
+      }
       picture->backward_reference_frame->free (picture->backward_reference_frame);
+      picture->backward_reference_frame = NULL;
     }
 
     if ( mpeg2dec->chunk_buffer ) {
@@ -587,11 +575,10 @@ void mpeg2_find_sequence_header (mpeg2dec_t * mpeg2dec,
 
     /* printf ("looking for sequence header... %02x\n", code);  */
 
-    stats_header (code, mpeg2dec->chunk_buffer);
+    mpeg2_stats (code, mpeg2dec->chunk_buffer);
 
     if (code == 0xb3) {	/* sequence_header_code */
-
-      if (header_process_sequence_header (picture, mpeg2dec->chunk_buffer)) {
+      if (mpeg2_header_sequence (picture, mpeg2dec->chunk_buffer)) {
 	printf ("libmpeg2: bad sequence header\n");
 	continue;
       }
@@ -616,7 +603,7 @@ void mpeg2_find_sequence_header (mpeg2dec_t * mpeg2dec,
 	xine_send_event(mpeg2dec->xine, &notify_event.event);
       }
     } else if (code == 0xb5) {	/* extension_start_code */
-      if (header_process_extension (picture, mpeg2dec->chunk_buffer)) {
+      if (mpeg2_header_extension (picture, mpeg2dec->chunk_buffer)) {
 	printf ("libmpeg2: bad extension\n");
 	continue ;
       }
