@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.61 2002/07/02 00:11:56 jcdutton Exp $
+ * $Id: audio_out.c,v 1.62 2002/07/28 21:37:35 heikos Exp $
  * 
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -290,7 +290,7 @@ static void *ao_loop (void *this_gen) {
   int64_t         hw_vpts;
   audio_buffer_t *buf, *in_buf;
   int64_t         gap;
-  int             delay;
+  int64_t         delay;
   int64_t         cur_time;
   int             num_output_frames ;
   int             paused_wait;
@@ -330,7 +330,7 @@ static void *ao_loop (void *this_gen) {
 
       /* External A52 decoder delay correction */
       if ((this->output.mode==AO_CAP_MODE_A52) || (this->output.mode==AO_CAP_MODE_AC5)) 
-        delay+=10; 
+        delay += this->passthrough_offset;
   
       hw_vpts += delay * 1024 / this->frames_per_kpts;
   
@@ -827,6 +827,12 @@ ao_instance_t *ao_new_instance (ao_driver_t *driver, xine_t *xine) {
   this->force_rate    = config->register_num (config, "audio.force_rate", 0,
 					      _("if !=0 always resample to given rate"),
 					      NULL, NULL, NULL);
+
+  this->passthrough_offset = config->register_num (config,
+						   "audio.passthrough_offset",
+						   10000,
+						   _("adjust if audio is offsync"),
+						   NULL, NULL, NULL);
 
   /*
    * pre-allocate memory for samples

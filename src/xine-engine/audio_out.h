@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.h,v 1.31 2002/07/01 13:51:28 miguelfreitas Exp $
+ * $Id: audio_out.h,v 1.32 2002/07/28 21:37:35 heikos Exp $
  */
 #ifndef HAVE_AUDIO_OUT_H
 #define HAVE_AUDIO_OUT_H
@@ -229,6 +229,8 @@ struct ao_instance_s {
   
   audio_buffer_t *frame_buf[2];         /* two buffers for "stackable" conversions */
   int16_t        *zero_space;
+
+  int64_t         passthrough_offset;
 };
 
 /* This initiates the audio_out sync routines
