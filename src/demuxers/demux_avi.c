@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_avi.c,v 1.77 2002/04/17 16:09:58 guenter Exp $
+ * $Id: demux_avi.c,v 1.78 2002/04/18 12:08:58 miguelfreitas Exp $
  *
  * demultiplexer for avi streams
  *
@@ -84,7 +84,8 @@ typedef struct
   long   audio_posc;        /* Audio position: chunk */
   long   audio_posb;        /* Audio position: byte within chunk */
 
-  char   wavex[64];
+  char   *wavex;
+  int    wavex_len;
 
   audio_index_entry_t   *audio_index;
 
@@ -218,6 +219,7 @@ static void AVI_close(avi_t *AVI)
 
   for(i=0; i<AVI->n_audio; i++) {
     if(AVI->audio[i]->audio_index) free(AVI->audio[i]->audio_index);
+    if(AVI->audio[i]->wavex) free(AVI->audio[i]->wavex);
     free(AVI->audio[i]);
   }
   free(AVI);
@@ -320,7 +322,7 @@ static avi_t *AVI_init(demux_avi_t *this)  {
      the start position of the 'movi' list and an optionally
      present idx1 tag */
   
-  hdrl_data = 0;
+  hdrl_data = NULL;
   
   while(1) {
 
@@ -350,7 +352,8 @@ static avi_t *AVI_init(demux_avi_t *this)  {
       }	else
 	  this->input->seek(this->input, n, SEEK_CUR);
 
-    } else if(strncasecmp(data,"idx1",4) == 0) {
+    } else if(strncasecmp(data,"idx1",4) == 0 || 
+              strncasecmp(data,"iddx",4) == 0) {
 
       /* n must be a multiple of 16, but the reading does not
 	 break if this is not the case */
@@ -451,8 +454,8 @@ static avi_t *AVI_init(demux_avi_t *this)  {
 
       } else if(lasttag == 2) {
 
-	memcpy (&AVI->audio[AVI->n_audio-1]->wavex, hdrl_data+i, n);
-	
+	AVI->audio[AVI->n_audio-1]->wavex=malloc(n);
+	AVI->audio[AVI->n_audio-1]->wavex_len=n;
 	AVI->audio[AVI->n_audio-1]->a_fmt   = str2ushort(hdrl_data+i  );
 	AVI->audio[AVI->n_audio-1]->a_chans = str2ushort(hdrl_data+i+2);
 	AVI->audio[AVI->n_audio-1]->a_rate  = str2ulong (hdrl_data+i+4);
@@ -469,8 +472,10 @@ static avi_t *AVI_init(demux_avi_t *this)  {
     i += n;
   }
   
-  free(hdrl_data);
-  
+  if( hdrl_data )
+    free( hdrl_data );
+  hdrl_data = NULL;
+      
   /* somehow ffmpeg doesn't specify the number of frames here */
   /* if (!vids_strh_seen || !vids_strf_seen || AVI->video_frames==0) { */
   if (!vids_strh_seen || !vids_strf_seen) 
@@ -1148,8 +1153,8 @@ static void demux_avi_start (demux_plugin_t *this_gen,
           buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
           buf->content = buf->mem;
           buf->decoder_flags = BUF_FLAG_HEADER;
-          memcpy (buf->content, &a->wavex, sizeof (a->wavex));
-          buf->size = sizeof (a->wavex);
+          memcpy (buf->content, a->wavex, a->wavex_len);
+          buf->size = a->wavex_len;
           buf->type = a->audio_type | i;
           buf->decoder_info[0] = 0; /* first package, containing wavex */
           buf->decoder_info[1] = a->a_rate; /* Audio Rate */
