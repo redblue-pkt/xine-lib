@@ -7,11 +7,11 @@ VIDIX_CFLAGS = -I$(top_builddir)/src/video_out/vidix \
 
 AM_CFLAGS = $(X_CFLAGS) \
 	-DXINE_COMPILE $(SDL_CFLAGS) $(VIDIX_CFLAGS) \
-	$(AALIB_CFLAGS)
+	$(AALIB_CFLAGS) $(MLIB_CFLAGS)
 
 DEBUG_CFLAGS = @DEBUG_CFLAGS@ $(X_CFLAGS) \
 	-DXINE_COMPILE $(SDL_CFLAGS) $(VIDIX_CFLAGS) \
-	$(AALIB_CFLAGS)
+	$(AALIB_CFLAGS) $(MLIB_CFLAGS)
 
 LIBTOOL = $(SHELL) $(top_builddir)/libtool-nofpic
 

@@ -219,7 +219,7 @@ AC_ARG_ENABLE(altivec,
 		enable_altivec=yes)
 
 AC_ARG_ENABLE(vis, 
-	[  --disable-vis            use assembly codes for Sun UltraSPARC cpus],
+	[  --disable-vis           use assembly codes for Sun UltraSPARC cpus],
          	enable_vis=no,
 		enable_vis=yes)
 
@@ -241,7 +241,8 @@ if test x$enable_mlib = xyes; then
                  LIBMPEG2_CONFIG_OBJS="$LIBMPEG2_CONFIG_OBJS idct_mlib.lo motion_comp_mlib.lo" 
                  LIBMPEG2_CFLAGS="$LIBMPEG2_CFLAGS -I$mlibhome/include" 
                  LIBA52_CFLAGS="$LIBA52_CFLAGS -I$mlibhome/include" 
-                 LIBFFMPEG_CFLAGS="$LIBFFMPEG_CFLAGS -I$mlibhome/include" 
+                 LIBFFMPEG_CFLAGS="$LIBFFMPEG_CFLAGS -I$mlibhome/include"
+                 MLIB_CFLAGS="-I$mlibhome/include"
 		 AC_DEFINE(HAVE_MLIB,1,[Define this if you have mlib installed])
                  AC_DEFINE(LIBMPEG2_MLIB,1,[Define this if you have mlib installed])
 		 AC_DEFINE(LIBA52_MLIB,1,[Define this if you have mlib installed])
@@ -249,6 +250,7 @@ if test x$enable_mlib = xyes; then
                , -L/opt/SUNWmlib/lib)
     AM_CONDITIONAL(HAVE_MLIB, test x$ac_have_mlib = "xyes")
 fi
+AC_SUBST(MLIB_CFLAGS)
 
 
 dnl ---------------------------------------------
