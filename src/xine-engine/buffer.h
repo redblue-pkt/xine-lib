@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.h,v 1.27 2001/12/24 00:45:03 guenter Exp $
+ * $Id: buffer.h,v 1.28 2002/01/03 20:57:30 miguelfreitas Exp $
  *
  *
  * contents:
@@ -137,8 +137,8 @@ struct buf_element_s {
   unsigned char        *mem;
   unsigned char        *content; /* start of raw content in pMem (without header etc) */
 
-  uint32_t              size ;   /* size of _content_ */
-  uint32_t              max_size;        
+  int32_t               size ;   /* size of _content_ */
+  int32_t               max_size;        
   uint32_t              type;
   uint32_t              PTS;     /* presentation time stamp, used for a/v sync */
   uint32_t              SCR;     /* system clock reference, used for discont. detection */
