@@ -85,13 +85,18 @@ static void xvid_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
     lprintf ("processing packet type = %08x, buf: %08x, buf->decoder_flags=%08x\n",
 	     buf->type, buf, buf->decoder_flags);
     
+    if (buf->decoder_flags & BUF_FLAG_FRAMERATE) {
+	this->frame_duration = buf->decoder_info[0];
+	_x_stream_info_set(this->stream, XINE_STREAM_INFO_FRAME_DURATION, 
+		           this->video_step);
+    }
+    
     if (buf->decoder_flags & BUF_FLAG_STDHEADER) {
 	xine_bmiheader *bih;
 	XVID_DEC_PARAM xparam;
     
 	/* initialize data describing video stream */
 	bih = (xine_bmiheader *) buf->content;
-	this->frame_duration = buf->decoder_info[1];
 	this->frame_width = bih->biWidth;
 	this->frame_height = bih->biHeight;
 	this->ratio = (double)bih->biWidth/(double)bih->biHeight;

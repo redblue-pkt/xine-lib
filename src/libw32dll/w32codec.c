@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.138 2004/01/12 17:35:17 miguelfreitas Exp $
+ * $Id: w32codec.c,v 1.139 2004/02/09 22:16:54 jstembridge Exp $
  *
  * routines for using w32 codecs
  * DirectShow support by Miguel Freitas (Nov/2001)
@@ -750,6 +750,13 @@ static void w32v_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
   if (buf->decoder_flags & BUF_FLAG_PREVIEW)
     return;
   
+  if (buf->decoder_flags & BUF_FLAG_FRAMERATE) {
+    this->video_step = buf->decoder_info[0];
+    _x_stream_info_set(this->stream, XINE_STREAM_INFO_FRAME_DURATION, this->video_step);
+  
+    lprintf ("video_step is %lld\n", this->video_step);
+  }
+  
   if (buf->decoder_flags & BUF_FLAG_STDHEADER) {
     int num_decoders;
 
@@ -763,15 +770,11 @@ static void w32v_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
       free( this->bih );
     this->bih = malloc(buf->size);
     memcpy ( this->bih, buf->content, buf->size );
-    this->video_step = buf->decoder_info[1];
 
     this->ratio = (double)this->bih->biWidth/(double)this->bih->biHeight;
 
     _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_WIDTH,    this->bih->biWidth);
     _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_HEIGHT,   this->bih->biHeight);
-    _x_stream_info_set(this->stream, XINE_STREAM_INFO_FRAME_DURATION, this->video_step);
-
-    lprintf ("video_step is %lld\n", this->video_step);
 
     pthread_mutex_lock(&win32_codec_mutex);
     num_decoders = get_vids_codec_n_name (this, buf->type);
@@ -829,9 +832,6 @@ static void w32v_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
     xine_fast_memcpy (&this->buf[this->size], buf->content, buf->size);
 
     this->size += buf->size;
-
-    if (buf->decoder_flags & BUF_FLAG_FRAMERATE)
-      this->video_step = buf->decoder_info[0];
 
     if (buf->decoder_flags & BUF_FLAG_FRAME_END)  {
 
