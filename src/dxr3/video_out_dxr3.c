@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3.c,v 1.50 2002/08/15 13:35:12 mroi Exp $
+ * $Id: video_out_dxr3.c,v 1.51 2002/08/17 14:30:10 mroi Exp $
  */
  
 /* mpeg1 encoding video out plugin for the dxr3.  
@@ -79,8 +79,10 @@ static void        dxr3_frame_dispose(vo_frame_t *frame_gen);
 static void        dxr3_update_frame_format(vo_driver_t *this_gen, vo_frame_t *frame_gen,
                                             uint32_t width, uint32_t height,
                                             int ratio_code, int format, int flags);
+static void        dxr3_overlay_begin(vo_driver_t *this_gen, vo_frame_t *frame_gen, int changed);
 static void        dxr3_overlay_blend(vo_driver_t *this_gen, vo_frame_t *frame_gen,
                                       vo_overlay_t *overlay);
+static void        dxr3_overlay_end(vo_driver_t *this_gen, vo_frame_t *frame_gen);
 static void        dxr3_display_frame(vo_driver_t *this_gen, vo_frame_t *frame_gen);
 static int         dxr3_redraw_needed(vo_driver_t *this_gen);
 static int         dxr3_get_property(vo_driver_t *this_gen, int property);
@@ -145,9 +147,9 @@ vo_driver_t *init_video_out_plugin(config_values_t *config, void *visual_gen)
   this->vo_driver.get_capabilities     = dxr3_get_capabilities;
   this->vo_driver.alloc_frame          = dxr3_alloc_frame;
   this->vo_driver.update_frame_format  = dxr3_update_frame_format;
-  this->vo_driver.overlay_begin        = NULL; /* not used */
+  this->vo_driver.overlay_begin        = dxr3_overlay_begin;
   this->vo_driver.overlay_blend        = dxr3_overlay_blend;
-  this->vo_driver.overlay_end          = NULL; /* not used */
+  this->vo_driver.overlay_end          = dxr3_overlay_end;
   this->vo_driver.display_frame        = dxr3_display_frame;
   this->vo_driver.redraw_needed        = dxr3_redraw_needed;
   this->vo_driver.get_property         = dxr3_get_property;
@@ -155,6 +157,8 @@ vo_driver_t *init_video_out_plugin(config_values_t *config, void *visual_gen)
   this->vo_driver.get_property_min_max = dxr3_get_property_min_max;
   this->vo_driver.gui_data_exchange    = dxr3_gui_data_exchange;
   this->vo_driver.exit                 = dxr3_exit;
+  
+  pthread_mutex_init(&this->spu_device_lock, NULL);
   
   this->config                         = config;
   this->swap_fields                    = config->register_bool(config,
@@ -610,11 +614,27 @@ static void dxr3_update_frame_format(vo_driver_t *this_gen, vo_frame_t *frame_ge
   frame->swap_fields     = this->swap_fields;
 }
 
+static void dxr3_overlay_begin(vo_driver_t *this_gen, vo_frame_t *frame_gen, int changed)
+{
+  dxr3_driver_t *this = (dxr3_driver_t *)this_gen;
+  
+  /* special treatment is only necessary for mpeg frames */
+  if (frame_gen->format != IMGFMT_MPEG) return;
+  
+  if (!this->spu_enc) this->spu_enc = dxr3_spu_encoder_init();
+  
+  if (!changed) {
+    this->spu_enc->need_reencode = 0;
+    return;
+  }
+  
+  this->spu_enc->need_reencode = 1;
+  this->spu_enc->overlay = NULL;
+}
+
 static void dxr3_overlay_blend(vo_driver_t *this_gen, vo_frame_t *frame_gen,
   vo_overlay_t *overlay)
 {
-  /* FIXME: We only blend non-mpeg frames here.
-     Is there any way to provide overlays for mpeg content? Subpictures? */
   if (frame_gen->format != IMGFMT_MPEG) {
     dxr3_frame_t *frame = (dxr3_frame_t *)frame_gen;
     
@@ -624,7 +644,86 @@ static void dxr3_overlay_blend(vo_driver_t *this_gen, vo_frame_t *frame_gen,
       else
         blend_yuy2(frame->vo_frame.base[0], overlay, frame->vo_frame.width, frame->vo_frame.height);
     }
+  } else { /* IMGFMT_MPEG */
+    dxr3_driver_t *this = (dxr3_driver_t *)this_gen;
+    if (!this->spu_enc->need_reencode) return;
+    /* FIXME: we only handle the last overlay because previous ones are simply overwritten */
+    this->spu_enc->overlay = overlay;
   }
+}
+
+static void dxr3_overlay_end(vo_driver_t *this_gen, vo_frame_t *frame_gen)
+{
+  dxr3_driver_t *this = (dxr3_driver_t *)this_gen;
+  em8300_button_t btn;
+  char tmpstr[128];
+  ssize_t written;
+  
+  if (frame_gen->format != IMGFMT_MPEG) return;
+  if (!this->spu_enc->need_reencode) return;
+  
+  dxr3_spu_encode(this->spu_enc);
+
+  /* try to open the dxr3 spu device */
+  if (!this->fd_spu) {
+    snprintf (tmpstr, sizeof(tmpstr), "%s_sp%s", this->devname, this->devnum);
+    if ((this->fd_spu = open (tmpstr, O_WRONLY)) < 0) {
+      printf("video_out_dxr3: Failed to open spu device %s (%s)\n",
+        tmpstr, strerror(errno));
+      printf("video_out_dxr3: Overlays are not available\n");
+      return;
+    }
+  }
+  
+  pthread_mutex_lock(&this->spu_device_lock);
+  
+  if (!this->spu_enc->overlay) {
+    uint8_t empty_spu[] = {
+      0x00, 0x26, 0x00, 0x08, 0x80, 0x00, 0x00, 0x80,
+      0x00, 0x00, 0x00, 0x20, 0x01, 0x03, 0x00, 0x00,
+      0x04, 0x00, 0x00, 0x05, 0x00, 0x00, 0x01, 0x00,
+      0x00, 0x01, 0x06, 0x00, 0x04, 0x00, 0x07, 0xFF,
+      0x00, 0x01, 0x00, 0x20, 0x02, 0xFF };
+    /* just clear any previous spu */
+    ioctl(this->fd_spu, EM8300_IOCTL_SPU_BUTTON, NULL);
+    write(this->fd_spu, empty_spu, sizeof(empty_spu));
+    pthread_mutex_unlock(&this->spu_device_lock);
+    return;
+  }
+  
+  /* copy clip palette */
+  this->spu_enc->color[4] = this->spu_enc->clip_color[0];
+  this->spu_enc->color[5] = this->spu_enc->clip_color[1];
+  this->spu_enc->color[6] = this->spu_enc->clip_color[2];
+  this->spu_enc->color[7] = this->spu_enc->clip_color[3];
+  /* set palette */
+  if (ioctl(this->fd_spu, EM8300_IOCTL_SPU_SETPALETTE, this->spu_enc->color))
+    printf("video_out_dxr3: failed to set CLUT (%s)\n", strerror(errno));
+  this->clut_cluttered = 1;
+  /* write spu */
+  written = write(this->fd_spu, this->spu_enc->target, this->spu_enc->size);
+  if (written < 0)
+    printf("video_out_dxr3: spu device write failed (%s)\n",
+      strerror(errno));
+  else if (written != this->spu_enc->size)
+    printf("video_out_dxr3: Could only write %d of %d spu bytes.\n",
+      written, this->spu_enc->size);
+  /* set clipping */
+  btn.color = 0x7654;
+  btn.contrast =
+    ((this->spu_enc->clip_trans[3] << 12) & 0xf000) |
+    ((this->spu_enc->clip_trans[2] <<  8) & 0x0f00) |
+    ((this->spu_enc->clip_trans[1] <<  4) & 0x00f0) |
+    ((this->spu_enc->clip_trans[0]      ) & 0x000f);
+  btn.left   = this->spu_enc->overlay->x + this->spu_enc->overlay->clip_left;
+  btn.right  = this->spu_enc->overlay->x + this->spu_enc->overlay->clip_right - 1;
+  btn.top    = this->spu_enc->overlay->y + this->spu_enc->overlay->clip_top;
+  btn.bottom = this->spu_enc->overlay->y + this->spu_enc->overlay->clip_bottom - 2;
+  if (ioctl(this->fd_spu, EM8300_IOCTL_SPU_BUTTON, &btn))
+    printf("dxr3_decode_spu: failed to set spu button (%s)\n",
+      strerror(errno));
+  
+  pthread_mutex_unlock(&this->spu_device_lock);
 }
 
 static void dxr3_display_frame(vo_driver_t *this_gen, vo_frame_t *frame_gen)
@@ -902,7 +1001,9 @@ static void dxr3_exit(vo_driver_t *this_gen)
     this->enc->on_close(this);
   if(this->overlay_enabled)
     ioctl(this->fd_control, EM8300_IOCTL_OVERLAY_SETMODE, &val);
-    
+  close(this->fd_control);
+  if (this->fd_spu) close(this->fd_spu);
+  pthread_mutex_destroy(&this->spu_device_lock);
   free(this);
 }
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decode_spu.c,v 1.14 2002/07/21 10:02:35 mroi Exp $
+ * $Id: dxr3_decode_spu.c,v 1.15 2002/08/17 14:30:09 mroi Exp $
  */
  
 /* dxr3 spu decoder plugin.
@@ -42,6 +42,7 @@
 #include "xine-engine/bswap.h"
 #include "nav_types.h"
 #include "nav_read.h"
+#include "video_out_dxr3.h"
 #include "dxr3.h"
 
 #define LOG_PTS 0
@@ -76,14 +77,15 @@ typedef struct dxr3_spu_stream_state_s {
 
 typedef struct dxr3_spudec_s {
   spu_decoder_t            spu_decoder;
-  vo_instance_t           *vo_out;
   xine_t                  *xine;
+  dxr3_driver_t           *dxr3_vo;      /* we need to talk to the video out */
   
   char                     devname[128];
   char                     devnum[3];
   int                      fd_spu;       /* to access the dxr3 spu device */
   
   dxr3_spu_stream_state_t  spu_stream_state[MAX_SPU_STREAMS];
+  uint32_t                 clut[16];     /* the current color lookup table */
   int                      menu;         /* are we in a menu? */
   int                      button_filter;
   pci_t                    pci;
@@ -145,6 +147,9 @@ spu_decoder_t *init_spu_decoder_plugin(int iface_version, xine_t *xine)
   this->spu_decoder.priority          = 10;
   
   this->xine                          = xine;
+  /* We need to talk to dxr3 video out to coordinate spus and overlays */
+  this->dxr3_vo                       = (dxr3_driver_t *)xine->video_driver;
+
   this->fd_spu                        = 0;
   this->menu                          = 0;
   this->button_filter                 = 1;
@@ -176,8 +181,7 @@ static void dxr3_spudec_init(spu_decoder_t *this_gen, vo_instance_t *vo_out)
   char tmpstr[128];
   int i;
   
-  this->vo_out = vo_out;
-  
+  pthread_mutex_lock(&this->dxr3_vo->spu_device_lock);
   /* open dxr3 spu device */
   snprintf(tmpstr, sizeof(tmpstr), "%s_sp%s", this->devname, this->devnum);
   if ((this->fd_spu = open(tmpstr, O_WRONLY)) < 0) {
@@ -188,6 +192,11 @@ static void dxr3_spudec_init(spu_decoder_t *this_gen, vo_instance_t *vo_out)
 #if LOG_SPU
   printf ("dxr3_decode_spu: init: SPU_FD = %i\n",this->fd_spu);
 #endif
+  /* We are talking directly to the dxr3 video out to allow concurrent
+   * access to the same spu device */
+  this->dxr3_vo->fd_spu = this->fd_spu;
+  pthread_mutex_unlock(&this->dxr3_vo->spu_device_lock);
+  
   for (i=0; i < MAX_SPU_STREAMS; i++) {
     this->spu_stream_state[i].stream_filter = 1;
     this->spu_stream_state[i].spu_length = 0;
@@ -208,8 +217,13 @@ static void dxr3_spudec_decode_data(spu_decoder_t *this_gen, buf_element_t *buf)
 #endif
     if (buf->content[0] == 0)  /* cheap endianess detection */
       dxr3_swab_clut((int *)buf->content);
+    pthread_mutex_lock(&this->dxr3_vo->spu_device_lock);
     if (ioctl(this->fd_spu, EM8300_IOCTL_SPU_SETPALETTE, buf->content))
       printf("dxr3_decode_spu: failed to set CLUT (%s)\n", strerror(errno));
+    /* remember clut, when video out places some overlay we may need to restore it */
+    memcpy(this->clut, buf->content, 16 * sizeof(uint32_t));
+    this->dxr3_vo->clut_cluttered = 0;
+    pthread_mutex_unlock(&this->dxr3_vo->spu_device_lock);
     return;
   }
   if(buf->type == BUF_SPU_SUBP_CONTROL) {
@@ -252,10 +266,13 @@ static void dxr3_spudec_decode_data(spu_decoder_t *this_gen, buf_element_t *buf)
           spu_button.buttonN  = this->buttonN;
           xine_send_event(this->xine, &spu_event.event);
         }
-        if ((dxr3_spudec_copy_nav_to_btn(this, 0, &btn ) > 0))
+	if ((dxr3_spudec_copy_nav_to_btn(this, 0, &btn ) > 0)) {
+	  pthread_mutex_lock(&this->dxr3_vo->spu_device_lock);
           if (ioctl(this->fd_spu, EM8300_IOCTL_SPU_BUTTON, &btn))
             printf("dxr3_decode_spu: failed to set spu button (%s)\n",
               strerror(errno));
+	  pthread_mutex_unlock(&this->dxr3_vo->spu_device_lock);
+	}
       }
       
       if ((pci.hli.hl_gi.hli_ss == 0) && (this->pci.hli.hl_gi.hli_ss == 1)) {
@@ -271,8 +288,10 @@ static void dxr3_spudec_decode_data(spu_decoder_t *this_gen, buf_element_t *buf)
         this->pci.hli.hl_gi.hli_ss = 0;
 	this->menu = 0;
 	this->button_filter = 1;
+	pthread_mutex_lock(&this->dxr3_vo->spu_device_lock);
         ioctl(this->fd_spu, EM8300_IOCTL_SPU_BUTTON, NULL);
         write(this->fd_spu, empty_spu, sizeof(empty_spu));
+	pthread_mutex_unlock(&this->dxr3_vo->spu_device_lock);
       }
     }
     return;
@@ -350,6 +369,8 @@ static void dxr3_spudec_decode_data(spu_decoder_t *this_gen, buf_element_t *buf)
     return;
   }
   
+  pthread_mutex_lock(&this->dxr3_vo->spu_device_lock);
+  
   /* write sync timestamp to the card */
   if (buf->pts) {
     int64_t vpts;
@@ -367,6 +388,13 @@ static void dxr3_spudec_decode_data(spu_decoder_t *this_gen, buf_element_t *buf)
       printf("dxr3_decode_spu: spu setpts failed (%s)\n", strerror(errno));
   }
   
+  /* has video out tampered with our palette */
+  if (this->dxr3_vo->clut_cluttered) {
+    if (ioctl(this->fd_spu, EM8300_IOCTL_SPU_SETPALETTE, this->clut))
+      printf("dxr3_decode_spu: failed to set CLUT (%s)\n", strerror(errno));
+    this->dxr3_vo->clut_cluttered = 0;
+  }
+  
   /* write spu data to the card */
 #if LOG_SPU
   printf ("dxr3_decode_spu: write: SPU_FD = %i\n",this->fd_spu);
@@ -375,11 +403,14 @@ static void dxr3_spudec_decode_data(spu_decoder_t *this_gen, buf_element_t *buf)
   if (written < 0) {
     printf("dxr3_decode_spu: spu device write failed (%s)\n",
       strerror(errno));
+    pthread_mutex_unlock(&this->dxr3_vo->spu_device_lock);
     return;
   }
   if (written != buf->size)
     printf("dxr3_decode_spu: Could only write %d of %d spu bytes.\n",
       written, buf->size);
+  
+  pthread_mutex_unlock(&this->dxr3_vo->spu_device_lock);
 }
 
 static void dxr3_spudec_reset(spu_decoder_t *this_gen)
@@ -397,8 +428,11 @@ static void dxr3_spudec_close(spu_decoder_t *this_gen)
 #if LOG_SPU
   printf("dxr3_decode_spu: close: SPU_FD = %i\n",this->fd_spu);
 #endif
+  pthread_mutex_lock(&this->dxr3_vo->spu_device_lock);
   close(this->fd_spu);
   this->fd_spu = 0;
+  this->dxr3_vo->fd_spu = 0;
+  pthread_mutex_unlock(&this->dxr3_vo->spu_device_lock);
 }
 
 static void dxr3_spudec_dispose(spu_decoder_t *this_gen)
@@ -444,10 +478,13 @@ static void dxr3_spudec_event_listener(void *this_gen, xine_event_t *event_gen)
 #endif
       this->buttonN = but->buttonN;
       if ((but->show > 0) && !this->button_filter &&
-          (dxr3_spudec_copy_nav_to_btn(this, but->show - 1, &btn) > 0))
+          (dxr3_spudec_copy_nav_to_btn(this, but->show - 1, &btn) > 0)) {
+	pthread_mutex_lock(&this->dxr3_vo->spu_device_lock);
         if (ioctl(this->fd_spu, EM8300_IOCTL_SPU_BUTTON, &btn))
           printf("dxr3_decode_spu: failed to set spu button (%s)\n",
             strerror(errno));
+	pthread_mutex_unlock(&this->dxr3_vo->spu_device_lock);
+      }
       if (but->show == 2) this->button_filter = 1;
 #if LOG_BTN
       printf("dxr3_decode_spu: buttonN = %u\n",but->buttonN);
@@ -464,9 +501,14 @@ static void dxr3_spudec_event_listener(void *this_gen, xine_event_t *event_gen)
 #ifdef WORDS_BIGENDIAN
       dxr3_swab_clut(clut->clut);
 #endif
+      pthread_mutex_lock(&this->dxr3_vo->spu_device_lock);
       if (ioctl(this->fd_spu, EM8300_IOCTL_SPU_SETPALETTE, clut->clut))
         printf("dxr3_decode_spu: failed to set CLUT (%s)\n",
           strerror(errno));
+      /* remember clut, when video out places some overlay we may need to restore it */
+      memcpy(this->clut, clut->clut, 16 * sizeof(uint32_t));
+      this->dxr3_vo->clut_cluttered = 0;
+      pthread_mutex_unlock(&this->dxr3_vo->spu_device_lock);
     }
     break;
   case XINE_EVENT_FRAME_CHANGE:
@@ -476,7 +518,7 @@ static void dxr3_spudec_event_listener(void *this_gen, xine_event_t *event_gen)
     printf("dxr3_decode_spu: aspect changed to %d\n", this->aspect);
 #endif
     break;
-  }  
+  }
 }
 
 static int dxr3_spudec_copy_nav_to_btn(dxr3_spudec_t *this, int32_t mode, em8300_button_t *btn)

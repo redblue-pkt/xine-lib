@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3.h,v 1.8 2002/08/11 13:22:55 mroi Exp $
+ * $Id: video_out_dxr3.h,v 1.9 2002/08/17 14:30:10 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -41,6 +41,7 @@
 
 /* plugin structures */
 typedef struct encoder_data_s encoder_data_t;
+typedef struct spu_encoder_s spu_encoder_t;
 
 typedef enum { ENC_FAME, ENC_RTE } encoder_type;
 
@@ -74,7 +75,10 @@ typedef struct dxr3_driver_s {
   char             devname[128];
   char             devnum[3];
   int              fd_control;
-  int              fd_video;      /* to access the relevant dxr3 devices */
+  int              fd_video;
+  pthread_mutex_t  spu_device_lock;
+  int              fd_spu;        /* to access the relevant dxr3 devices */
+  int              clut_cluttered;/* to tell spu decoder that it has to restore the palette */
   
   int              enhanced_mode;
   int              swap_fields;   /* swap fields */
@@ -88,7 +92,8 @@ typedef struct dxr3_driver_s {
   int              widescreen_enabled;
   em8300_bcs_t     bcs;
 
-  encoder_data_t  *enc;           /* encoder data */
+  encoder_data_t  *enc;           /* mpeg encoder data */
+  spu_encoder_t   *spu_enc;       /* spu encoder */
   int              video_iheight; /* input height (before adding black bars) */
   int              video_oheight; /* output height (after adding bars) */
   int              video_width;
@@ -133,10 +138,28 @@ struct encoder_data_s {
   int            (*on_close)(dxr3_driver_t *);
 }; 
 
-/* encoder plugins initialization functions */
+struct spu_encoder_s {
+  vo_overlay_t   *overlay;
+  int             need_reencode;
+  uint8_t        *target;
+  int             size;
+  int             malloc_size;
+  uint32_t        color[16];
+  uint8_t         trans[4];
+  int             map[OVL_PALETTE_SIZE];
+  uint32_t        clip_color[16];
+  uint8_t         clip_trans[4];
+  int             clip_map[OVL_PALETTE_SIZE];
+};
+
+/* mpeg encoder plugins initialization functions */
 #ifdef HAVE_LIBRTE
 int dxr3_rte_init(dxr3_driver_t *);
 #endif
 #ifdef HAVE_LIBFAME
 int dxr3_fame_init(dxr3_driver_t *);
 #endif
+
+/* spu encoder functions */
+spu_encoder_t *dxr3_spu_encoder_init(void);
+void           dxr3_spu_encode(spu_encoder_t *);
