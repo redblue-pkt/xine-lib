@@ -29,7 +29,7 @@ Architecture: any
 Depends: ${shlibs:Depends}
 Recommends: ${shlibs:Recommends}
 Suggests: ${shlibs:Suggests}, xine-dvdnav
-Conflicts: xine (<< 0.5.0), xine-dvd (<< 0.5.0), xine-dvd-css (<< 0.5.0), xine-ui (<< 0.9.10)
+Conflicts: sinek(<<0.7), xine-ui (<< 0.9.10)
 Replaces: xine-dvd
 Description: the xine video/media player library, binary files
  This is the xine media player library (libxine). 
