@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.178 2004/06/08 20:44:27 mroi Exp $
+ * $Id: load_plugins.c,v 1.179 2004/06/09 17:31:08 mroi Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -569,8 +569,8 @@ static void collect_plugins(xine_t *this, char *path){
 
 		/* get next info either from lib or cache */
 		if( lib ) {
-		  info++;
 		  do_not_unload = (do_not_unload || (info->type & PLUGIN_NO_UNLOAD));
+		  info++;
 		}
 		else {
 		  info = _get_cached_plugin ( this->plugin_catalog->cache,

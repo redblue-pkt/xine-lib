@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_plugin.h,v 1.14 2004/06/08 20:44:27 mroi Exp $
+ * $Id: xine_plugin.h,v 1.15 2004/06/09 17:31:08 mroi Exp $
  *
  * generic plugin definitions
  *
@@ -44,7 +44,7 @@
 /* this flag may be or'ed with type to prevent the plugin loader from unloading
  * the plugin
  */
-#define PLUGIN_NO_UNLOAD      (1 << 8)
+#define PLUGIN_NO_UNLOAD      (1 << 6)
 
 #define PLUGIN_TYPE_MASK      ((1 << 7) - 1)
 
