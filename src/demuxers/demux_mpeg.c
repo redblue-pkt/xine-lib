@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg.c,v 1.54 2002/04/11 22:27:11 jcdutton Exp $
+ * $Id: demux_mpeg.c,v 1.55 2002/04/19 03:05:07 miguelfreitas Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  * reads streams of variable blocksizes
@@ -47,6 +47,8 @@
 
 #define NUM_PREVIEW_BUFFERS 150
 
+#define WRAP_THRESHOLD       120000 
+
 typedef struct demux_mpeg_s {
 
   demux_plugin_t       demux_plugin;
@@ -73,6 +75,7 @@ typedef struct demux_mpeg_s {
   int                  send_end_buffers;
 
   int64_t              last_scr;
+  int64_t              last_pts;
   int                  send_newpts;
  
 } demux_mpeg_t;
@@ -118,7 +121,12 @@ static uint32_t read_bytes (demux_mpeg_t *this, int n) {
 
 static void check_newpts( demux_mpeg_t *this, int64_t pts )
 {
-  if( this->send_newpts && !this->preview_mode && pts ) {
+  int64_t diff;
+
+  diff = pts - this->last_pts;
+  
+  if( !this->preview_mode && pts && 
+      (this->send_newpts || (this->last_pts && abs(diff)>WRAP_THRESHOLD) ) ) {
     
     buf_element_t *buf;
   
@@ -135,6 +143,9 @@ static void check_newpts( demux_mpeg_t *this, int64_t pts )
     }
     this->send_newpts = 0;
   }
+  
+  if( !this->preview_mode && pts )
+    this->last_pts = pts;
 }
 
 static void parse_mpeg2_packet (demux_mpeg_t *this, int stream_id, int64_t scr) {
@@ -515,6 +526,8 @@ static uint32_t parse_pack(demux_mpeg_t *this) {
   }
 
   /* discontinuity ? */
+#if 0
+  /* scr-wrap detection disabled due bad streams */
   if( scr && !this->preview_mode )
   {  
     int64_t scr_diff = scr - this->last_scr;
@@ -537,7 +550,7 @@ static uint32_t parse_pack(demux_mpeg_t *this) {
     }
     this->last_scr = scr;
   }
-
+#endif
 
   /* system header */
 
@@ -749,7 +762,8 @@ static void demux_mpeg_start (demux_plugin_t *this_gen,
   
     this->rate          = 0; /* fixme */
     this->last_scr      = 0;
-
+    this->last_pts      = 0;
+    
     buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
     buf->type    = BUF_CONTROL_START;
     this->video_fifo->put (this->video_fifo, buf);
