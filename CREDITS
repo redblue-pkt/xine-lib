@@ -20,7 +20,7 @@ libcdio				0.68
 libdts				0.0.2
 libdvdnav			0.1.9 cvs		Michael Roitzsch
 libfaad				2.0 RC3 cvs		Miguel Freitas
-libmad				0.14.2b			Miguel Freitas
+libmad				0.15.1b			Miguel Freitas
 libmpeg2			0.2.1 [*]
 libmpg123
 libvcd				0.7.20

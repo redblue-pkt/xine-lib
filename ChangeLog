@@ -12,6 +12,7 @@ xine-lib (1-rc4)
   * avoid possible segfaults in cdda
   * libvcd updated to 0.7.20
   * libcdio updated to 0.68
+  * libmad updated to 0.15.1b
   * build improvements - different source and build directory, translations
   * avoid deadlock with raw AC3 streams and visualization
   * fix 24 bpp RGB output - may affect some users of xshm and fb
