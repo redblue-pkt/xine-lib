@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_avi.c,v 1.79 2002/04/23 00:55:46 miguelfreitas Exp $
+ * $Id: demux_avi.c,v 1.80 2002/04/23 13:30:42 esnel Exp $
  *
  * demultiplexer for avi streams
  *
@@ -228,6 +228,7 @@ static void AVI_close(avi_t *AVI)
 #define ERR_EXIT(x)	\
 do {			\
    this->AVI_errno = x; \
+   free (AVI);  \
    return 0;		\
 } while(0)
 
@@ -974,6 +975,10 @@ static void demux_avi_stop (demux_plugin_t *this_gen) {
 
 static void demux_avi_close (demux_plugin_t *this_gen) {
   demux_avi_t *this = (demux_avi_t *) this_gen;
+
+  if (this->avi)  
+    AVI_close (this->avi);
+
   free(this);
 }
 

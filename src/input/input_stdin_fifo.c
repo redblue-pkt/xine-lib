@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_stdin_fifo.c,v 1.22 2002/03/23 18:56:55 guenter Exp $
+ * $Id: input_stdin_fifo.c,v 1.23 2002/04/23 13:30:43 esnel Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -341,6 +341,10 @@ static int stdin_plugin_get_optional_data (input_plugin_t *this_gen,
   return INPUT_OPTIONAL_UNSUPPORTED;
 }
 
+static int stdin_plugin_dispose (input_plugin_t *this_gen ) {
+  free (this_gen);
+}
+
 
 input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
 
@@ -379,6 +383,7 @@ input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
   this->input_plugin.get_identifier    = stdin_plugin_get_identifier;
   this->input_plugin.get_autoplay_list = NULL;
   this->input_plugin.get_optional_data = stdin_plugin_get_optional_data;
+  this->input_plugin.dispose           = stdin_plugin_dispose;
   this->input_plugin.is_branch_possible= NULL;
 
   this->fh              = -1;

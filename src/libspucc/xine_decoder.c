@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.7 2002/04/09 13:53:52 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.8 2002/04/23 13:30:43 esnel Exp $
  *
  * closed caption spu decoder. receive data by events. 
  *
@@ -362,6 +362,15 @@ static char *spudec_get_id(void) {
   return "spucc";
 }
 
+static void spudec_dispose (spu_decoder_t *this_gen) {
+  spucc_decoder_t *this = (spucc_decoder_t *) this_gen;
+
+  xine_remove_event_listener (this->xine, spudec_event_listener);
+
+  pthread_mutex_destroy (&this->cc_mutex);
+  free (this);
+}
+
 
 spu_decoder_t *init_spu_decoder_plugin (int iface_version, xine_t *xine) {
 
@@ -383,6 +392,7 @@ spu_decoder_t *init_spu_decoder_plugin (int iface_version, xine_t *xine) {
   this->spu_decoder.reset               = spudec_reset;
   this->spu_decoder.close               = spudec_close;
   this->spu_decoder.get_identifier      = spudec_get_id;
+  this->spu_decoder.dispose             = spudec_dispose;
   this->spu_decoder.priority            = 1;
 
   this->xine                            = xine;

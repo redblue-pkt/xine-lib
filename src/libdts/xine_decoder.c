@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.18 2002/04/20 18:31:03 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.19 2002/04/23 13:30:43 esnel Exp $
  *
  * 04-09-2001 DTS passtrough  (C) Joachim Koenig 
  * 09-12-2001 DTS passthrough inprovements (C) James Courtier-Dutton
@@ -221,6 +221,10 @@ static char *dts_get_id(void) {
   return "dts";
 }
 
+static void dts_dispose (audio_decoder_t *this_gen) {
+  free (this_gen);
+}
+
 audio_decoder_t *init_audio_decoder_plugin (int iface_version, xine_t *xine) {
 
   dts_decoder_t *this ;
@@ -242,6 +246,7 @@ audio_decoder_t *init_audio_decoder_plugin (int iface_version, xine_t *xine) {
   this->audio_decoder.reset               = dts_reset;
   this->audio_decoder.close               = dts_close;
   this->audio_decoder.get_identifier      = dts_get_id;
+  this->audio_decoder.dispose             = dts_dispose;
   this->audio_decoder.priority            = 1;
     
   return (audio_decoder_t *) this;

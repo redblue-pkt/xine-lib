@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.93 2002/04/22 01:08:34 f1rmb Exp $
+ * $Id: demux_mpeg_block.c,v 1.94 2002/04/23 13:30:42 esnel Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -818,6 +818,7 @@ static int demux_mpeg_block_estimate_rate (demux_mpeg_block_t *this) {
 static void demux_mpeg_block_close (demux_plugin_t *this_gen) {
 
   demux_mpeg_block_t *this = (demux_mpeg_block_t *) this_gen;
+  free (this->scratch_base);
   free (this);
   
 }

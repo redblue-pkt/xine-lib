@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.9 2002/04/20 18:42:35 guenter Exp $
+ * $Id: xine_decoder.c,v 1.10 2002/04/23 13:30:44 esnel Exp $
  *
  * (ogg/)vorbis audio decoder plugin (libvorbis wrapper) for xine
  */
@@ -235,6 +235,10 @@ static char *vorbis_get_id(void) {
   return "vorbis";
 }
 
+static void vorbis_dispose (audio_decoder_t *this_gen) {
+  free (this_gen);
+}
+
 audio_decoder_t *init_audio_decoder_plugin (int iface_version, xine_t *xine) {
 
   vorbis_decoder_t *this ;
@@ -257,6 +261,7 @@ audio_decoder_t *init_audio_decoder_plugin (int iface_version, xine_t *xine) {
   this->audio_decoder.reset               = vorbis_reset;
   this->audio_decoder.close               = vorbis_close;
   this->audio_decoder.get_identifier      = vorbis_get_id;
+  this->audio_decoder.dispose             = vorbis_dispose;
   this->audio_decoder.priority            = 5;
   
   return (audio_decoder_t *) this;

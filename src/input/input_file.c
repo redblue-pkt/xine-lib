@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_file.c,v 1.43 2002/04/16 14:26:46 guenter Exp $
+ * $Id: input_file.c,v 1.44 2002/04/23 13:30:43 esnel Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -276,6 +276,9 @@ static int file_plugin_open (input_plugin_t *this_gen, char *mrl) {
 
   char                *filename, *subtitle;
   file_input_plugin_t *this = (file_input_plugin_t *) this_gen;
+
+  if (this->mrl)
+    free (this->mrl);
 
   this->mrl = strdup(mrl); /* FIXME: small memory leak */ 
 
@@ -833,6 +836,16 @@ static int file_plugin_get_optional_data (input_plugin_t *this_gen,
   return INPUT_OPTIONAL_UNSUPPORTED;
 }
 
+static int file_plugin_dispose (input_plugin_t *this_gen ) {
+  file_input_plugin_t *this = (file_input_plugin_t *) this_gen;
+
+  if (this->mrl)
+    free (this->mrl);
+
+  free (this->mrls);
+  free (this);
+}
+
 /*
  *
  */
@@ -873,6 +886,7 @@ input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
   this->input_plugin.get_identifier     = file_plugin_get_identifier;
   this->input_plugin.get_autoplay_list  = NULL;
   this->input_plugin.get_optional_data  = file_plugin_get_optional_data;
+  this->input_plugin.dispose            = file_plugin_dispose;
   this->input_plugin.is_branch_possible = NULL;
 
   this->fh                     = -1;

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.73 2002/04/23 00:58:32 miguelfreitas Exp $
+ * $Id: w32codec.c,v 1.74 2002/04/23 13:30:44 esnel Exp $
  *
  * routines for using w32 codecs
  * DirectShow support by Miguel Freitas (Nov/2001)
@@ -896,6 +896,10 @@ static char *w32v_get_id(void) {
   return "vfw (win32) video decoder";
 }
 
+static void w32v_dispose (video_decoder_t *this_gen) {
+  free (this_gen);
+}
+
 /*
  * audio stuff
  */
@@ -1343,6 +1347,7 @@ video_decoder_t *init_video_decoder_plugin (int iface_version, xine_t *xine) {
   this->video_decoder.reset               = w32v_reset;
   this->video_decoder.close               = w32v_close;
   this->video_decoder.get_identifier      = w32v_get_id;
+  this->video_decoder.dispose             = w32v_dispose;
   this->video_decoder.priority            = 1;
 
   pthread_mutex_init (&win32_codec_mutex, NULL);
@@ -1354,6 +1359,10 @@ video_decoder_t *init_video_decoder_plugin (int iface_version, xine_t *xine) {
 #endif
 
   return (video_decoder_t *) this;
+}
+
+static void w32a_dispose (audio_decoder_t *this_gen) {
+  free (this_gen);
 }
 
 audio_decoder_t *init_audio_decoder_plugin (int iface_version, xine_t *xine) {
@@ -1384,6 +1393,7 @@ audio_decoder_t *init_audio_decoder_plugin (int iface_version, xine_t *xine) {
   this->audio_decoder.reset               = w32a_reset;
   this->audio_decoder.close               = w32a_close;
   this->audio_decoder.get_identifier      = w32a_get_id;
+  this->audio_decoder.dispose             = w32a_dispose;
   this->audio_decoder.priority            = 1;
   
   pthread_mutex_init (&win32_codec_mutex, NULL);

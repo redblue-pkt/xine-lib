@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_plugin.h,v 1.22 2002/04/11 22:27:11 jcdutton Exp $
+ * $Id: input_plugin.h,v 1.23 2002/04/23 13:30:43 esnel Exp $
  */
 
 #ifndef HAVE_INPUT_PLUGIN_H
@@ -273,6 +273,11 @@ struct input_plugin_s
    */
   
   int (*is_branch_possible) (input_plugin_t *this, char *next_mrl);
+
+  /*
+   * free resources
+   */
+  void (*dispose) (input_plugin_t *this);
 };
 
 /*

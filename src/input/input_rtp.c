@@ -476,6 +476,31 @@ static int rtp_plugin_get_optional_data (input_plugin_t *this_gen,
   return INPUT_OPTIONAL_UNSUPPORTED;
 }
 
+static int rtp_plugin_dispose (input_plugin_t *this_gen ) {
+  rtp_input_plugin_t *this = (rtp_input_plugin_t *) this_gen;
+  input_buffer_t *buf;
+
+  if (this->fifo_tail.next) {
+    while (this->fifo_tail.next != &this->fifo_tail) {
+      buf = this->fifo_tail.next->buf;
+      this->fifo_tail.next = this->fifo_tail.next->next;
+
+      free (buf->buf);
+      free (buf);
+    }
+  }
+
+  while (this->free_buffers) {
+    buf = this->free_buffers;
+    this->free_buffers = this->free_buffers->next;
+
+    free (buf->buf);
+    free (buf);
+  }
+
+  free (this);
+}
+
 /*
  *
  */
@@ -533,6 +558,7 @@ input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
   this->input_plugin.get_mrl           = rtp_plugin_get_mrl;
   this->input_plugin.get_autoplay_list = NULL;
   this->input_plugin.get_optional_data = rtp_plugin_get_optional_data;
+  this->input_plugin.dispose           = rtp_plugin_dispose;
   this->input_plugin.is_branch_possible= NULL;
   
   this->fh      = -1;

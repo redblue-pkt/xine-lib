@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_vcd.c,v 1.38 2002/04/11 22:27:12 jcdutton Exp $
+ * $Id: input_vcd.c,v 1.39 2002/04/23 13:30:43 esnel Exp $
  *
  */
 
@@ -1121,6 +1121,17 @@ static int vcd_plugin_get_optional_data (input_plugin_t *this_gen,
   return INPUT_OPTIONAL_UNSUPPORTED;
 }
 
+static int vcd_plugin_dispose (input_plugin_t *this_gen ) {
+  vcd_input_plugin_t *this = (vcd_input_plugin_t *) this_gen;
+  int i;
+
+  for (i = 0; i < 100; i++)
+    free (this->filelist[i]);
+
+  free (this->mrls);
+  free (this);
+}
+
 /*
  *
  */
@@ -1166,6 +1177,7 @@ input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
   this->input_plugin.get_mrl           = vcd_plugin_get_mrl;
   this->input_plugin.get_autoplay_list = vcd_plugin_get_autoplay_list;
   this->input_plugin.get_optional_data = vcd_plugin_get_optional_data;
+  this->input_plugin.dispose           = vcd_plugin_dispose;
   this->input_plugin.is_branch_possible= NULL;
   
   this->device = config->register_string(config, "input.vcd_device", CDROM,

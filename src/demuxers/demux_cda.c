@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_cda.c,v 1.11 2002/04/09 03:38:00 miguelfreitas Exp $
+ * $Id: demux_cda.c,v 1.12 2002/04/23 13:30:42 esnel Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -289,7 +289,7 @@ static char *demux_cda_get_mimetypes(void) {
  *
  */
 static void demux_cda_close (demux_plugin_t *this) {
-
+  free (this);
 }
 
 /*

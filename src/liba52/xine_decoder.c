@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.23 2002/04/20 18:31:03 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.24 2002/04/23 13:30:43 esnel Exp $
  *
  * stuff needed to turn liba52 into a xine decoder plugin
  */
@@ -537,6 +537,10 @@ static char *a52dec_get_id(void) {
   return "a/52dec";
 }
 
+static void a52dec_dispose (audio_decoder_t *this_gen) {
+  free (this_gen);
+}
+
 audio_decoder_t *init_audio_decoder_plugin (int iface_version, xine_t *xine) {
 
   a52dec_decoder_t *this ;
@@ -561,6 +565,7 @@ audio_decoder_t *init_audio_decoder_plugin (int iface_version, xine_t *xine) {
   this->audio_decoder.reset               = a52dec_reset;
   this->audio_decoder.close               = a52dec_close;
   this->audio_decoder.get_identifier      = a52dec_get_id;
+  this->audio_decoder.dispose             = a52dec_dispose;
   this->audio_decoder.priority            = 2;
   
 

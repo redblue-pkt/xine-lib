@@ -325,6 +325,10 @@ static int net_plugin_get_optional_data (input_plugin_t *this_gen,
   return INPUT_OPTIONAL_UNSUPPORTED;
 }
 
+static int net_plugin_dispose (input_plugin_t *this_gen ) {
+  free (this_gen);
+}
+
 /*
  *
  */
@@ -365,6 +369,7 @@ input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
   this->input_plugin.get_identifier    = net_plugin_get_identifier;
   this->input_plugin.get_autoplay_list = NULL;
   this->input_plugin.get_optional_data = net_plugin_get_optional_data;
+  this->input_plugin.dispose           = net_plugin_dispose;
   this->input_plugin.is_branch_possible= NULL;
 
   this->fh        = -1;

@@ -50,6 +50,8 @@ struct spu_decoder_s {
 
   char* (*get_identifier) (void);
 
+  void (*dispose) (spu_decoder_t *this);
+
   int priority;
 
   metronom_t *metronom;

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_cda.c,v 1.19 2002/04/11 22:27:11 jcdutton Exp $
+ * $Id: input_cda.c,v 1.20 2002/04/23 13:30:42 esnel Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -1768,6 +1768,19 @@ static int cda_plugin_get_optional_data (input_plugin_t *this_gen, void *data, i
   return INPUT_OPTIONAL_UNSUPPORTED;
 }
 
+static int cda_plugin_dispose (input_plugin_t *this_gen ) {
+  cda_input_plugin_t *this = (cda_input_plugin_t *) this_gen;
+  int i;
+
+  for (i = 0; i < 100; i++)
+    free (this->filelist[i]);
+
+  free (this->cda->device_name);
+  free (this->cda);
+  free (this->mrls);
+  free (this);
+}
+
 /*
  * Initialize plugin.
  */
@@ -1813,6 +1826,7 @@ input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
   this->input_plugin.get_mrl            = cda_plugin_get_mrl;
   this->input_plugin.get_autoplay_list  = cda_plugin_get_autoplay_list;
   this->input_plugin.get_optional_data  = cda_plugin_get_optional_data;
+  this->input_plugin.dispose            = cda_plugin_dispose;
   this->input_plugin.is_branch_possible = NULL;
   
   this->xine           = xine;

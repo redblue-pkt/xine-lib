@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.19 2002/04/09 13:53:52 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.20 2002/04/23 13:30:44 esnel Exp $
  *
  * code based on mplayer module:
  *
@@ -997,6 +997,10 @@ static void update_osd_dst_encoding(void *this_gen, cfg_entry_t *entry)
   printf("libsputext: spu_dst_encoding = %s\n", this->dst_encoding );
 }
 
+static void spudec_dispose (spu_decoder_t *this_gen) {
+  free (this_gen);
+}
+
 spu_decoder_t *init_spu_decoder_plugin (int iface_version, xine_t *xine) {
 
   sputext_decoder_t *this ;
@@ -1017,6 +1021,7 @@ spu_decoder_t *init_spu_decoder_plugin (int iface_version, xine_t *xine) {
   this->spu_decoder.reset               = spudec_reset;
   this->spu_decoder.close               = spudec_close;
   this->spu_decoder.get_identifier      = spudec_get_id;
+  this->spu_decoder.dispose             = spudec_dispose;
   this->spu_decoder.priority            = 1;
 
   this->xine                            = xine;

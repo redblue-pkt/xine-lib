@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_elem.c,v 1.38 2002/04/11 22:27:11 jcdutton Exp $
+ * $Id: demux_elem.c,v 1.39 2002/04/23 13:30:42 esnel Exp $
  *
  * demultiplexer for elementary mpeg streams
  * 
@@ -360,7 +360,7 @@ static char *demux_mpeg_elem_get_mimetypes(void) {
 }
 
 static void demux_mpeg_elem_close (demux_plugin_t *this) {
-  /* nothing */
+  free (this);
 }
 
 static int demux_mpeg_elem_get_stream_length(demux_plugin_t *this_gen) {

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.119 2002/04/16 12:27:20 jcdutton Exp $
+ * $Id: xine.c,v 1.120 2002/04/23 13:30:44 esnel Exp $
  *
  * top-level xine functions
  *
@@ -455,7 +455,7 @@ int xine_eject (xine_t *this) {
 
 void xine_exit (xine_t *this) {
 
-  int i;
+  int i, j;
 
   xine_stop(this);
     
@@ -479,6 +479,39 @@ void xine_exit (xine_t *this) {
     this->log_buffers[i]->dispose (this->log_buffers[i]);
 
   this->metronom->exit (this->metronom);
+
+  for (i = 0; i < this->num_demuxer_plugins; i++)
+    this->demuxer_plugins[i]->close (this->demuxer_plugins[i]);
+
+  for (i = 0; i < this->num_input_plugins; i++)
+    this->input_plugins[i]->dispose (this->input_plugins[i]);
+
+  for (i = 0; i < DECODER_PLUGIN_MAX; i++) {
+    if (this->audio_decoder_plugins[i]) {
+      this->audio_decoder_plugins[i]->dispose (this->audio_decoder_plugins[i]);
+
+      for (j = i + 1; j < DECODER_PLUGIN_MAX; j++) {
+	if (this->audio_decoder_plugins[j] == this->audio_decoder_plugins[i])
+	  this->audio_decoder_plugins[j] = NULL;
+      }
+    }
+    if (this->video_decoder_plugins[i]) {
+      this->video_decoder_plugins[i]->dispose (this->video_decoder_plugins[i]);
+
+      for (j = i + 1; j < DECODER_PLUGIN_MAX; j++) {
+	if (this->video_decoder_plugins[j] == this->video_decoder_plugins[i])
+	  this->video_decoder_plugins[j] = NULL;
+      }
+    }
+    if (this->spu_decoder_plugins[i]) {
+      this->spu_decoder_plugins[i]->dispose (this->spu_decoder_plugins[i]);
+
+      for (j = i + 1; j < DECODER_PLUGIN_MAX; j++) {
+	if (this->spu_decoder_plugins[j] == this->spu_decoder_plugins[i])
+	  this->spu_decoder_plugins[j] = NULL;
+      }
+    }
+  }
 
   xine_profiler_print_results ();
 

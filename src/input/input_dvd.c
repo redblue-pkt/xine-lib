@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.44 2002/04/11 22:27:11 jcdutton Exp $
+ * $Id: input_dvd.c,v 1.45 2002/04/23 13:30:42 esnel Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -786,6 +786,21 @@ static int dvd_plugin_get_optional_data (input_plugin_t *this_gen,
   return INPUT_OPTIONAL_UNSUPPORTED;
 }
 
+static int dvd_plugin_dispose (input_plugin_t *this_gen ) {
+  dvd_input_plugin_t *this = (dvd_input_plugin_t *) this_gen;
+  int i;
+
+  read_cache_free (this->read_cache);
+
+  for (i = 0; i < MAX_DIR_ENTRIES; i++) {
+    free (this->filelist[i]);
+    free (this->filelist2[i]);
+  }
+
+  free (this->mrls);
+  free (this);
+}
+
 
 input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
 
@@ -830,6 +845,7 @@ input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
   this->input_plugin.get_mrl           = dvd_plugin_get_mrl;
   this->input_plugin.get_autoplay_list = dvd_plugin_get_autoplay_list;
   this->input_plugin.get_optional_data = dvd_plugin_get_optional_data;
+  this->input_plugin.dispose           = dvd_plugin_dispose;
   this->input_plugin.is_branch_possible= NULL;
   /* disable branch until we fix the problems branching from 
      menu vob to video vob

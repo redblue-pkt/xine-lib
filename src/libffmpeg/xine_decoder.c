@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.32 2002/04/21 02:56:39 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.33 2002/04/23 13:30:43 esnel Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -394,6 +394,10 @@ static void init_routine(void) {
   avcodec_register_all();
 }
 
+static void ff_dispose (video_decoder_t *this_gen) {
+  free (this_gen);
+}
+
 video_decoder_t *init_video_decoder_plugin (int iface_version, xine_t *xine) {
 
   ff_decoder_t *this ;
@@ -419,6 +423,7 @@ video_decoder_t *init_video_decoder_plugin (int iface_version, xine_t *xine) {
   this->video_decoder.close               = ff_close;
   this->video_decoder.get_identifier      = ff_get_id;
   this->video_decoder.priority            = 5;
+  this->video_decoder.dispose             = ff_dispose;
   this->size				  = 0;
 
   pthread_once( &once_control, init_routine );

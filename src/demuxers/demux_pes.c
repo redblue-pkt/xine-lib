@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_pes.c,v 1.24 2002/04/11 22:27:11 jcdutton Exp $
+ * $Id: demux_pes.c,v 1.25 2002/04/23 13:30:42 esnel Exp $
  *
  * demultiplexer for mpeg 2 PES (Packetized Elementary Streams)
  * reads streams of variable blocksizes
@@ -615,7 +615,7 @@ static char *demux_pes_get_mimetypes(void) {
 }
 
 static void demux_pes_close (demux_plugin_t *this) {
-  /* nothing */
+  free (this);
 }
 
 static int demux_pes_get_stream_length (demux_plugin_t *this_gen) {
