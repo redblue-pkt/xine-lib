@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.199 2005/03/01 04:50:44 tmmm Exp $
+ * $Id: demux_qt.c,v 1.200 2005/03/06 07:18:04 tmmm Exp $
  *
  */
 
@@ -1172,8 +1172,16 @@ static qt_error parse_trak_atom (qt_trak *trak,
           if (trak->stsd_atoms[k].audio.codec_fourcc == SAMR_FOURCC)
             trak->stsd_atoms[k].audio.vbr = 1;
 
-          if (trak->stsd_atoms[k].audio.codec_fourcc == ALAC_FOURCC)
+          if (trak->stsd_atoms[k].audio.codec_fourcc == ALAC_FOURCC) {
             trak->stsd_atoms[k].audio.vbr = 1;
+            /* further, FFmpeg's ALAC decoder requires 36 out-of-band bytes */
+            trak->stsd_atoms[k].audio.properties_atom_size = 36;
+            trak->stsd_atoms[k].audio.properties_atom = 
+              xine_xmalloc(trak->stsd_atoms[k].audio.properties_atom_size);
+            memcpy(trak->stsd_atoms[k].audio.properties_atom, 
+              &trak_atom[atom_pos + 0x20],
+              trak->stsd_atoms[k].audio.properties_atom_size);
+          }
 
           if (trak->stsd_atoms[k].audio.codec_fourcc == DRMS_FOURCC) {
             last_error = QT_DRM_NOT_SUPPORTED;
