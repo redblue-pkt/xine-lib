@@ -17,6 +17,8 @@ xine-lib (1-rc3)
   * default to menu button 1, if an invalid button is set
     (fixes main menu of "Alice in Wonderland" RC2)
   * fix yuy2 output on mga_vid vidix driver
+  * fix syncing code of audio visualization post plugins
+    (goom video does not jump any more)
 
 xine-lib (1-rc2)
   * XvMC support for hardware accelerated mpeg2 playback (-V xvmc)
