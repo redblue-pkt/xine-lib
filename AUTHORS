@@ -31,7 +31,8 @@ Matthias Hopf <Matthias.Hopf@informatik.uni-stuttgart.de>
   IRIX port, video out interface, opengl video output
 
 Thibaut Mattern <tmattern@noos.fr>
-  zooming feature for Xv video-out plugin, demuxer cleanups and fixes
+  zooming feature for Xv video-out plugin, demuxer cleanups and fixes,
+  mms input plugin fixes, xml parser
 
 Michael Roitzsch <mroi@users.sourceforge.net>
   several dxr3 fixes, massive engine contributions
