@@ -17,13 +17,13 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.82 2002/06/21 01:44:17 miguelfreitas Exp $
+ * $Id: w32codec.c,v 1.83 2002/07/01 17:56:05 miguelfreitas Exp $
  *
  * routines for using w32 codecs
  * DirectShow support by Miguel Freitas (Nov/2001)
  *
  */
-
+                   
 #include <stdlib.h>
 #include <stdio.h>
 #include <inttypes.h>
@@ -285,7 +285,8 @@ static char* get_vids_codec_name(w32v_decoder_t *this,
   buf_type &= 0xffff0000;
 
   switch (buf_type) {
-  case BUF_VIDEO_MSMPEG4_V12:
+  case BUF_VIDEO_MSMPEG4_V1:
+  case BUF_VIDEO_MSMPEG4_V2:
     /* Microsoft MPEG-4 v1/v2 */
     /* old dll is disabled now due segfaults 
      * (using directshow instead)
@@ -403,9 +404,10 @@ static char* get_vids_codec_name(w32v_decoder_t *this,
 static int w32v_can_handle (video_decoder_t *this_gen, int buf_type) {
   buf_type &= 0xFFFF0000;
 
-  return ( buf_type == BUF_VIDEO_MSMPEG4_V12 ||
-	   buf_type == BUF_VIDEO_MSMPEG4_V3 ||
-	   buf_type == BUF_VIDEO_IV50 ||
+  return ( buf_type == BUF_VIDEO_MSMPEG4_V1 ||
+           buf_type == BUF_VIDEO_MSMPEG4_V2 ||
+           buf_type == BUF_VIDEO_MSMPEG4_V3 ||
+           buf_type == BUF_VIDEO_IV50 ||
            buf_type == BUF_VIDEO_IV41 ||
            buf_type == BUF_VIDEO_IV32 ||
            buf_type == BUF_VIDEO_IV31 ||

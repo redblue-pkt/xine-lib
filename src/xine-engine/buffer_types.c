@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer_types.c,v 1.26 2002/06/24 12:26:30 jcdutton Exp $
+ * $Id: buffer_types.c,v 1.27 2002/07/01 17:56:05 miguelfreitas Exp $
  *
  *
  * contents:
@@ -136,6 +136,15 @@ static video_db_t video_db[] = {
   {
     meFOURCC('M', 'P', '4', '1'),
     meFOURCC('m', 'p', '4', '1'),
+    0
+  },
+  BUF_VIDEO_MSMPEG4_V1,
+  "Microsoft MPEG-4 format v1"
+},
+{
+  {
+    meFOURCC('M', 'P', '4', '1'),
+    meFOURCC('m', 'p', '4', '1'),
     meFOURCC('M', 'P', '4', '2'),
     meFOURCC('m', 'p', '4', '2'),
     meFOURCC('D', 'I', 'V', '2'),
@@ -144,8 +153,8 @@ static video_db_t video_db[] = {
     meFOURCC('m', 'p', 'g', '4'),
     0
   },
-  BUF_VIDEO_MSMPEG4_V12,
-  "Microsoft MPEG-4 format v1/v2"
+  BUF_VIDEO_MSMPEG4_V2,
+  "Microsoft MPEG-4 format v2"
 },
 {
   {

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.44 2002/07/01 13:33:12 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.45 2002/07/01 17:56:05 miguelfreitas Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -68,10 +68,9 @@ typedef struct ff_decoder_s {
 static int ff_can_handle (video_decoder_t *this_gen, int buf_type) {
   buf_type &= 0xFFFF0000;
 
-  /* ffmpeg currently does not support MSMPEG4 v1/v2 */
-  /* there's some problem with I263 too */
   return ( buf_type == BUF_VIDEO_MSMPEG4_V3 ||
-           /* buf_type == BUF_VIDEO_MSMPEG4_V12 || */
+           buf_type == BUF_VIDEO_MSMPEG4_V2 ||
+           buf_type == BUF_VIDEO_MSMPEG4_V1 ||
            buf_type == BUF_VIDEO_WMV7 ||
            buf_type == BUF_VIDEO_MPEG4 ||
            buf_type == BUF_VIDEO_XVID  ||
@@ -119,7 +118,12 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
     codec_type = buf->type & 0xFFFF0000;
 
     switch (codec_type) {
-    case BUF_VIDEO_MSMPEG4_V12:
+    case BUF_VIDEO_MSMPEG4_V1:
+      codec = avcodec_find_decoder (CODEC_ID_MSMPEG4V1);
+      break;
+    case BUF_VIDEO_MSMPEG4_V2:
+      codec = avcodec_find_decoder (CODEC_ID_MSMPEG4V2);
+      break;
     case BUF_VIDEO_MSMPEG4_V3:
       codec = avcodec_find_decoder (CODEC_ID_MSMPEG4);
       break;

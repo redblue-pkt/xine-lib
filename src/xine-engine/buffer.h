@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.h,v 1.53 2002/06/26 15:55:49 jkeil Exp $
+ * $Id: buffer.h,v 1.54 2002/07/01 17:56:05 miguelfreitas Exp $
  *
  *
  * contents:
@@ -83,7 +83,7 @@ extern "C" {
 #define BUF_VIDEO_MPEG4		0x02010000
 #define BUF_VIDEO_CINEPAK	0x02020000
 #define BUF_VIDEO_SORENSON_V1	0x02030000
-#define BUF_VIDEO_MSMPEG4_V12	0x02040000
+#define BUF_VIDEO_MSMPEG4_V2	0x02040000
 #define BUF_VIDEO_MSMPEG4_V3	0x02050000
 #define BUF_VIDEO_MJPEG		0x02060000
 #define BUF_VIDEO_IV50		0x02070000
@@ -116,6 +116,7 @@ extern "C" {
 #define BUF_VIDEO_FLI		0x02230000
 #define BUF_VIDEO_ROQ		0x02240000
 #define BUF_VIDEO_SORENSON_V3	0x02250000
+#define BUF_VIDEO_MSMPEG4_V1	0x02260000
 
 /* audio buffer types:  (please keep in sync with buffer_types.c) */
 

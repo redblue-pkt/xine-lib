@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.37 2002/06/12 12:22:35 f1rmb Exp $
+ * $Id: xine_decoder.c,v 1.38 2002/07/01 17:56:05 miguelfreitas Exp $
  *
  * xine decoder plugin using divx4
  *
@@ -231,7 +231,8 @@ static int divx4_init_decoder(divx4_decoder_t *this, buf_element_t *buf) {
 
   /* do we need divx 3.11 compatibility mode? */
   switch (buf->type & 0xFFFF0000) {
-  case BUF_VIDEO_MSMPEG4_V12:
+  case BUF_VIDEO_MSMPEG4_V1:
+  case BUF_VIDEO_MSMPEG4_V2:
   case BUF_VIDEO_MSMPEG4_V3:
     if (this->version >= 20020303) { 
       param.codec_version=311;
@@ -353,7 +354,7 @@ static int divx4_can_handle (video_decoder_t *this_gen, int buf_type) {
 
   /* divx4 currently does not support MSMPEG4 v1/v2 */
   return ( (buf_type == BUF_VIDEO_MSMPEG4_V3 && this->can_handle_311) ||
-           /* buf_type == BUF_VIDEO_MSMPEG4_V12 || */
+           /* buf_type == BUF_VIDEO_MSMPEG4_V2 || */
            (buf_type == BUF_VIDEO_MPEG4) ||
 	   (buf_type == BUF_VIDEO_DIVX5));
 }
