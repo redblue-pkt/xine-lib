@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_cda.c,v 1.4 2001/12/09 18:11:34 f1rmb Exp $
+ * $Id: input_cda.c,v 1.5 2001/12/09 18:32:20 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -503,6 +503,7 @@ static void _cda_cddb_retrieve(cda_input_plugin_t *this) {
     for(j=0;j<this->cda->num_tracks;j++)
       printf("Track %2d: '%s'\n", j, this->cda->track[j].title);
 #endif
+    this->cda->have_cddb_info = 1;
     return;
   }
   else {
