@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: xine-lib 0.9.13\n"
 "POT-Creation-Date: 2003-10-25 01:29+0000\n"
-"PO-Revision-Date: 2003-09-20 09:58+0200\n"
+"PO-Revision-Date: 2003-10-25 10:44+0200\n"
 "Last-Translator: Frantisek Dvorak <valtri@atlas.cz>\n"
 "Language-Team: Czech <cs@li.org>\n"
 "MIME-Version: 1.0\n"
@@ -661,17 +661,14 @@ msgstr ""
 "re¾im dxr3"
 
 #: src/libffmpeg/xine_encoder.c:163
-#, fuzzy
 msgid "Dxr3enc: Use quantizer instead of bitrate"
 msgstr "Dxr3enc: Pou¾ít kvantizér namísto bitového toku"
 
 #: src/libffmpeg/xine_encoder.c:168
-#, fuzzy
 msgid "Dxr3enc: Minimum quantizer"
 msgstr "Dxr3enc: Minimální kvantizér"
 
 #: src/libffmpeg/xine_encoder.c:172
-#, fuzzy
 msgid "Dxr3enc: Maximum quantizer"
 msgstr "Dxr3enc: Maximálné kvantizér"
 
@@ -1045,7 +1042,7 @@ msgstr "Stávající konfiguraèní soubor byl upraven novìj¹í verzí xine."
 #: src/xine-engine/configfile.c:969
 #, c-format
 msgid "configfile: entry '%s' mustn't be modified from MRL\n"
-msgstr ""
+msgstr "configfile: údaj '%s' nesmí být modifikován z MRL\n"
 
 #: src/xine-engine/input_rip.c:125 src/xine-engine/input_rip.c:250
 #, c-format
@@ -1089,12 +1086,14 @@ msgid ""
 "input_rip: target directory wasn't specified, please fill out the option "
 "'misc.save_dir'\n"
 msgstr ""
+"input_rip: cílový adresáø nebyl specifikován, prosím vyplòte volbu 'misc.save_dir'\n"
 
 #: src/xine-engine/input_rip.c:544
 msgid ""
 "The stream save feature is disabled until you set misc.save_dir in the "
 "configuration."
 msgstr ""
+"Vlastnost ukládání dat je zakázána, dokud nenastavíte v konfiguraci 'misc.save_dir'."
 
 #: src/xine-engine/input_rip.c:550
 msgid "input_rip: ripping/caching is not permitted!\n"
@@ -1240,12 +1239,12 @@ msgstr "xine: selhalo spu¹tìní posledního vyzkou¹eného demultiplexoru %s\n"
 
 #: src/xine-engine/xine.c:801
 msgid "xine: error while parsing MRL\n"
-msgstr ""
+msgstr "xine: chyba bìhem zpracování MRL\n"
 
 #: src/xine-engine/xine.c:805
 #, c-format
 msgid "xine: changing option '%s' from MRL isn't permitted\n"
-msgstr ""
+msgstr "xine: zmìna volby '%s' z MRL naní povolena\n"
 
 #: src/xine-engine/xine.c:826
 #, c-format
@@ -1267,23 +1266,23 @@ msgstr "xine_play: selhalo spu¹tìní demultiplexoru\n"
 #: src/xine-engine/xine.c:1234
 #, c-format
 msgid "xine: The specified save_dir \"%s\" might be a security risk.\n"
-msgstr ""
+msgstr "xine: Uvedený adresáø pro ukládání \"%s\" by mohl znamenat bezpeènostní riziko.\n"
 
 #: src/xine-engine/xine.c:1238
 msgid "The specified save_dir might be a security risk."
-msgstr ""
+msgstr "Uvedený adresáø pro ukládání by mohl znamenat bezpeènostní riziko."
 
 #: src/xine-engine/xine.c:1273
 msgid "Media format detection strategy"
-msgstr ""
+msgstr "Strategie zji¹tování formátu dat"
 
 #: src/xine-engine/xine.c:1283
 msgid "Path for saving streams"
-msgstr ""
+msgstr "Cesta pro ukládání dat"
 
 #: src/xine-engine/xine.c:1284
 msgid "Streams will be saved only into this directory"
-msgstr ""
+msgstr "Sekvence budou ukládány pouze do tohoto adresáøe"
 
 #: src/xine-engine/xine.c:1577
 msgid "messages"
