@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg.c,v 1.108 2003/03/17 22:54:44 f1rmb Exp $
+ * $Id: demux_mpeg.c,v 1.109 2003/04/23 00:38:48 tmmm Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  * reads streams of variable blocksizes
@@ -836,8 +836,11 @@ static int demux_mpeg_seek (demux_plugin_t *this_gen,
 
   if ((this->input->get_capabilities (this->input) & INPUT_CAP_SEEKABLE) != 0 ) {
 
-    if ( (!start_pos) && (start_time))
-      start_pos = start_time * this->rate * 50;
+    if ( (!start_pos) && (start_time)) {
+      start_pos = start_time;
+      start_pos *= this->rate;
+      start_pos *= 50;
+    }
 
     this->input->seek (this->input, start_pos+4, SEEK_SET);
 
