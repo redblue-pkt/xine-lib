@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: svq1.c,v 1.9 2002/09/05 22:19:03 mroi Exp $
+ * $Id: svq1.c,v 1.10 2002/10/06 19:55:18 jkeil Exp $
  */
 
 #include <stdio.h>
@@ -574,7 +574,7 @@ static uint32_t get_bits (bit_buffer_t *bitbuf, int count) {
   uint32_t result;
 
   /* load 32 bits of data (byte-aligned) */
-  result   = be2me_32 (*((uint32_t *) &bitbuf->buffer[bitbuf->bitpos >> 3]));
+  result   = BE_32 (&bitbuf->buffer[bitbuf->bitpos >> 3]);
 
   /* compensate for sub-byte offset */
   result <<= (bitbuf->bitpos & 0x7);
@@ -593,7 +593,7 @@ static uint32_t get_bit_cache(bit_buffer_t *bitbuf) {
   uint32_t result;
 
   /* load 32 bits of data (byte-aligned) */
-  result   = be2me_32 (*((uint32_t *) &bitbuf->buffer[bitbuf->bitpos >> 3]));
+  result   = BE_32 (&bitbuf->buffer[bitbuf->bitpos >> 3]);
 
   /* compensate for sub-byte offset */
   result <<= (bitbuf->bitpos & 0x7);
