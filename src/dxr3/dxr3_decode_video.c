@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decode_video.c,v 1.22 2002/11/20 11:57:42 mroi Exp $
+ * $Id: dxr3_decode_video.c,v 1.23 2002/12/08 15:56:23 mroi Exp $
  */
  
 /* dxr3 video decoder plugin.
@@ -113,6 +113,7 @@ typedef struct dxr3_decoder_s {
   int                    fd_video;             /* to access the dxr3 devices */
   
   int                    have_header_info;
+  int                    sequence_open;
   int                    width;
   int                    height;
   int                    aspect;
@@ -229,6 +230,7 @@ static video_decoder_t *dxr3_open_plugin(video_decoder_class_t *class_gen, xine_
   }
   
   this->have_header_info      = 0;
+  this->sequence_open         = 0;
   this->repeat_first_field    = 0;
   
   this->force_aspect          = 0;
@@ -294,7 +296,7 @@ static void dxr3_decode_data(video_decoder_t *this_gen, buf_element_t *buf)
   vo_frame_t *img;
   uint8_t *buffer, byte;
   uint32_t shift;
-  
+    
   vpts = 0;
   
   /* handle aspect hints from xine-dvdnav */
@@ -338,12 +340,17 @@ static void dxr3_decode_data(video_decoder_t *this_gen, buf_element_t *buf)
     if (byte == 0xb3) {
       /* sequence data */
       parse_mpeg_header(this, buffer);
+      this->sequence_open = 1;
       continue;
     }
     if (byte == 0xb5) {
       /* extension data */
-      if ((buffer[0] & 0xf0) == 0x80)
+      if ((buffer[0] & 0xf0) == 0x80) {
         this->repeat_first_field = (buffer[3] >> 1) & 1;
+	if (!this->dxr3_vo->overlay_enabled)
+	  /* in tv modes we tag all frames progressive to avoid still jitter */
+	  buffer[4] |= 0x80;
+      }
       /* check if we can keep syncing */
       if (this->repeat_first_field && this->sync_retry)  /* reset counter */
         this->sync_retry = 500;
@@ -357,6 +364,9 @@ static void dxr3_decode_data(video_decoder_t *this_gen, buf_element_t *buf)
       }
       continue;
     }
+    if (byte == 0xb7)
+      /* sequence end */
+      this->sequence_open = 0;
     if (byte != 0x00)  /* Don't care what it is. It's not a new frame */
       continue;
     /* we have a code for a new frame */
@@ -542,6 +552,9 @@ static void dxr3_decode_data(video_decoder_t *this_gen, buf_element_t *buf)
 
 static void dxr3_reset(video_decoder_t *this_gen)
 {
+  dxr3_decoder_t *this = (dxr3_decoder_t *)this_gen;
+  
+  this->sequence_open = 0;
 }
 
 static void dxr3_discontinuity(video_decoder_t *this_gen)
@@ -552,7 +565,17 @@ static void dxr3_flush(video_decoder_t *this_gen)
 {
   dxr3_decoder_t *this = (dxr3_decoder_t *)this_gen;
   
-  if (this->fd_video >= 0) fsync(this->fd_video);
+  if (this->sequence_open &&
+      this->stream->stream_info[XINE_STREAM_INFO_VIDEO_HAS_STILL]) {
+    /* The dxr3 needs a sequence end code for still menus to work correctly
+     * (the highlights won't move without), but some dvds have stills
+     * with no sequence end code. Since it is very likely that flush() is called
+     * in still situations, we send one here. */
+    static uint8_t end_buffer[4] = { 0x00, 0x00, 0x01, 0xb7 };
+    write(this->fd_video, &end_buffer, 4);
+    this->sequence_open = 0;
+    printf("dxr3_decode_video: WARNING: added missing end sequence\n");
+  }
 }
 
 static void dxr3_dispose(video_decoder_t *this_gen)
