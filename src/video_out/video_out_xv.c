@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.38 2001/06/10 02:07:28 guenter Exp $
+ * $Id: video_out_xv.c,v 1.39 2001/06/10 09:30:59 guenter Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -574,16 +574,21 @@ static int xv_gui_data_exchange (vo_driver_t *this_gen,
   }
     break;
 
-  case GUI_DATA_EX_EXPOSE_EVENT:
+  case GUI_DATA_EX_EXPOSE_EVENT: {
+
+    XExposeEvent * xev = (XExposeEvent *) data;
     
     /* FIXME : take care of completion events */
 
-    if (this->cur_frame)
-      XvShmPutImage(this->display, this->xv_port, 
-		    this->drawable, this->gc, this->cur_frame->image,
-		    0, 0,  this->cur_frame->width, this->cur_frame->height-5,
-		    this->output_xoffset, this->output_yoffset,
-		    this->output_width, this->output_height, False);
+    if (xev->count == 0) {
+      if (this->cur_frame)
+	XvShmPutImage(this->display, this->xv_port, 
+		      this->drawable, this->gc, this->cur_frame->image,
+		      0, 0,  this->cur_frame->width, this->cur_frame->height-5,
+		      this->output_xoffset, this->output_yoffset,
+		      this->output_width, this->output_height, False);
+    }
+  }
     break;
 
   case GUI_DATA_EX_DRAWABLE_CHANGED:

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xshm.c,v 1.5 2001/06/10 01:47:29 guenter Exp $
+ * $Id: video_out_xshm.c,v 1.6 2001/06/10 09:30:59 guenter Exp $
  * 
  * video_out_xshm.c, X11 shared memory extension interface for xine
  *
@@ -661,18 +661,24 @@ static int xshm_gui_data_exchange (vo_driver_t *this_gen,
 
   if (this->cur_frame) {
 
-    if (this->use_shm) {
+    XExposeEvent * xev = (XExposeEvent *) data;
 
-      XShmPutImage(this->display, 
-		   this->drawable, this->gc, this->cur_frame->image,
-		   0, 0,  this->cur_frame->width, this->cur_frame->height,
-		   this->cur_frame->width, this->cur_frame->height, False);
+    if (xev->count == 0) {
+
+      if (this->use_shm) {
+	
+	XShmPutImage(this->display, 
+		     this->drawable, this->gc, this->cur_frame->image,
+		     0, 0,  this->output_xoffset, this->output_yoffset,
+		     this->cur_frame->rgb_width, this->cur_frame->rgb_height, 
+		     False);
     
-    } else {
-      XPutImage(this->display, 
-		this->drawable, this->gc, this->cur_frame->image,
-		0, 0,  this->cur_frame->width, this->cur_frame->height,
-		this->cur_frame->width, this->cur_frame->height);
+      } else {
+	XPutImage(this->display, 
+		  this->drawable, this->gc, this->cur_frame->image,
+		  0, 0,  this->output_xoffset, this->output_yoffset,
+		  this->cur_frame->rgb_width, this->cur_frame->rgb_height);
+      }
     }
 
   }
