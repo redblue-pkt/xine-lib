@@ -21,7 +21,7 @@
  * For more information on the FILM file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_film.c,v 1.47 2002/12/21 12:56:45 miguelfreitas Exp $
+ * $Id: demux_film.c,v 1.48 2002/12/23 02:29:43 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -356,6 +356,7 @@ static int demux_film_send_chunk(demux_plugin_t *this_gen) {
 
       if (!fixed_cvid_header) {
         if (this->input->read(this->input, buf->content, 10) != 10) {
+          buf->free_buffer(buf);
           this->status = DEMUX_FINISHED;
           break;
         }
@@ -367,6 +368,7 @@ static int demux_film_send_chunk(demux_plugin_t *this_gen) {
         /* load the rest of the chunk */
         if (this->input->read(this->input, buf->content + 10, 
           buf->size - 10) != buf->size - 10) {
+          buf->free_buffer(buf);
           this->status = DEMUX_FINISHED;
           break;
         }
@@ -380,6 +382,7 @@ static int demux_film_send_chunk(demux_plugin_t *this_gen) {
       } else {
         if (this->input->read(this->input, buf->content, buf->size) !=
           buf->size) {
+          buf->free_buffer(buf);
           this->status = DEMUX_FINISHED;
           break;
         }
@@ -432,6 +435,7 @@ static int demux_film_send_chunk(demux_plugin_t *this_gen) {
 
       if (this->input->read(this->input, buf->content, buf->size) !=
         buf->size) {
+        buf->free_buffer(buf);
         this->status = DEMUX_FINISHED;
         break;
       }
@@ -465,6 +469,7 @@ static int demux_film_send_chunk(demux_plugin_t *this_gen) {
 
       if (this->input->read(this->input, buf->content, buf->size) !=
         buf->size) {
+        buf->free_buffer(buf);
         this->status = DEMUX_FINISHED;
         break;
       }
