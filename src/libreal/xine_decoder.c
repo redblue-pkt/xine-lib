@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.65 2004/02/05 00:01:39 jstembridge Exp $
+ * $Id: xine_decoder.c,v 1.66 2004/02/12 23:33:42 jstembridge Exp $
  *
  * thin layer to use real binary-only codecs in xine
  *
@@ -178,12 +178,21 @@ static int init_codec (realdec_decoder_t *this, buf_element_t *buf) {
   
   this->width  = (init_data.w + 1) & (~1);
   this->height = (init_data.h + 1) & (~1);
-  this->ratio  = (double)this->width / (double)this->height;
-
-  this->fps      = (double) BE_16(&buf->content[22]) + 
-                   ((double) BE_16(&buf->content[24]) / 65536.0);
-  this->duration = 90000.0 / this->fps;
   
+  if(buf->decoder_flags & BUF_FLAG_ASPECT)
+    this->ratio = (double)buf->decoder_info[1] / (double)buf->decoder_info[2];
+  else
+    this->ratio  = (double)this->width / (double)this->height;
+
+  if(buf->decoder_flags & BUF_FLAG_FRAMERATE)
+    this->duration = buf->decoder_info[0];
+  else {
+    this->fps      = (double) BE_16(&buf->content[22]) + 
+                     ((double) BE_16(&buf->content[24]) / 65536.0);
+    this->duration = 90000.0 / this->fps;
+  }
+  
+  lprintf("this->ratio=%d\n", this->ratio);
   lprintf("this->duration=%d\n", this->duration);
   
   lprintf ("init_data.w=%d(0x%x), init_data.h=%d(0x%x),"
@@ -195,6 +204,7 @@ static int init_codec (realdec_decoder_t *this, buf_element_t *buf) {
   _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_WIDTH,  this->width);
   _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_HEIGHT, this->height);
   _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_RATIO,  this->ratio*10000);
+  _x_stream_info_set(this->stream, XINE_STREAM_INFO_FRAME_DURATION, this->duration);
 
   init_data.subformat = BE_32(&buf->content[26]);
   init_data.format    = BE_32(&buf->content[30]);
@@ -275,8 +285,11 @@ static void realdec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) 
     /* Frame duration can be passed from demuxer to override value in
      * real video header */
 
-    if (buf->decoder_flags & BUF_FLAG_FRAMERATE)
+    if (buf->decoder_flags & BUF_FLAG_FRAMERATE) {
       this->duration = buf->decoder_info[0];
+      _x_stream_info_set(this->stream, XINE_STREAM_INFO_FRAME_DURATION, 
+                         this->duration);
+    }
 
     /* Each frame starts with BUF_FLAG_FRAME_START and ends with
      * BUF_FLAG_FRAME_END.
