@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.224 2003/01/27 18:45:58 mroi Exp $
+ * $Id: xine.c,v 1.225 2003/01/27 21:43:18 mroi Exp $
  *
  * top-level xine functions
  *
@@ -919,8 +919,10 @@ int xine_eject (xine_stream_t *stream) {
   pthread_mutex_lock (&stream->frontend_lock);
 
   status = 0;
-  if ((stream->status == XINE_STATUS_STOP)
-      && stream->eject_class && stream->eject_class->eject_media) {
+  /* only eject, if we are stopped OR a different input plugin is playing */
+  if (stream->eject_class && stream->eject_class->eject_media &&
+      ((stream->status == XINE_STATUS_STOP) ||
+      stream->eject_class != stream->input_plugin->input_class)) {
 
     status = stream->eject_class->eject_media (stream->eject_class);
   }
