@@ -28,7 +28,7 @@
  *   
  *   Based on FFmpeg's libav/rm.c.
  *
- * $Id: demux_real.c,v 1.47 2003/04/09 09:57:29 guenter Exp $
+ * $Id: demux_real.c,v 1.48 2003/04/09 12:08:26 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -1270,7 +1270,8 @@ static char *get_extensions (demux_class_t *this_gen) {
 static char *get_mimetypes (demux_class_t *this_gen) {
   return "audio/x-pn-realaudio: ra, rm, ram: Real Media file;"
          "audio/x-pn-realaudio-plugin: rpm: Real Media plugin file;"
-         "audio/x-real-audio: ra, rm, ram: Real Media file;"; 
+         "audio/x-real-audio: ra, rm, ram: Real Media file;"
+         "application/vnd.rn-realmedia ra, rm, ram: Real Media file;"; 
 }
 
 static void class_dispose (demux_class_t *this_gen) {
