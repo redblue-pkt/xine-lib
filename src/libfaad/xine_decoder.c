@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.23 2003/12/19 05:03:28 tmmm Exp $
+ * $Id: xine_decoder.c,v 1.24 2003/12/20 14:21:50 tmmm Exp $
  *
  */
 
@@ -254,6 +254,9 @@ static void faad_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 
       used = faacDecInit(this->faac_dec, this->buf, this->size,
                          &this->rate, &this->num_channels);
+// MAJOR HACK: faacDecInit always initializes a raw AAC stream as having
+// 1 audio channel; hardcode it to 2 here because...just because...
+this->num_channels = 2;
       if( used < 0 ) {
         xine_log (this->stream->xine, XINE_LOG_MSG,
 		  _("libfaad: libfaad faacDecInit() failed.\n"));
