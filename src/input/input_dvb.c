@@ -733,6 +733,7 @@ static input_plugin_t *open_plugin (input_class_t *cls_gen,
 
   this->curpos       = 0;
   this->nbc          = nbc_init (stream);
+  nbc_set_high_water_mark (this->nbc, 80);
   this->stream       = stream;
   this->tuner        = tuner;
   this->channels     = channels;
