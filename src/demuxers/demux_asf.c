@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.59 2002/09/19 21:46:21 guenter Exp $
+ * $Id: demux_asf.c,v 1.60 2002/10/12 15:52:29 tmmm Exp $
  *
  * demultiplexer for asf streams
  *
@@ -699,6 +699,7 @@ static void asf_send_discontinuity (demux_asf_t *this, int64_t pts) {
 
   if (this->buf_flag_seek) {
     xine_demux_control_newpts(this->xine, pts, BUF_FLAG_SEEK);
+    xine_demux_flush_engine(this->xine);
     this->buf_flag_seek = 0;
   } else {
     xine_demux_control_newpts(this->xine, pts, 0);
