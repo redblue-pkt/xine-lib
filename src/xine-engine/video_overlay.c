@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_overlay.c,v 1.3 2001/11/30 16:19:58 jcdutton Exp $
+ * $Id: video_overlay.c,v 1.4 2001/11/30 17:35:32 jcdutton Exp $
  *
  */
 
@@ -36,10 +36,7 @@
 #include "xineutils.h"
 #include "video_overlay.h"
 
-/*
 #define LOG_DEBUG 1
-*/
-
 
 typedef struct video_overlay_events_s {
   video_overlay_event_t  *event;
@@ -379,7 +376,7 @@ static void video_overlay_event( video_overlay_t *this, int vpts ) {
       case EVENT_MENU_SPU:
         /* mixes palette and copy rle */
 #ifdef LOG_DEBUG
-        printf ("MENU SPU NOW\n");
+        printf ("video_overlay.c:MENU SPU NOW\n");
 #endif
         if (this->video_overlay_events[this_event].event->object.overlay != NULL) {
           vo_overlay_t *event_overlay = this->video_overlay_events[this_event].event->object.overlay;
@@ -398,6 +395,13 @@ static void video_overlay_event( video_overlay_t *this, int vpts ) {
           if(overlay->rle) {
             free (overlay->rle);
           }
+#ifdef LOG_DEBUG
+	  printf("video_overlay.c:Menu SPU area is (%u,%u)-(%u,%u), display = 1\n",
+	       event_overlay->x, event_overlay->y,
+	       event_overlay->x + event_overlay->width,
+	       event_overlay->y + event_overlay->height);
+#endif
+	
           overlay->rle = event_overlay->rle;
           
           overlay->data_size = event_overlay->data_size;
