@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.136 2003/01/17 18:43:38 siggi Exp $
+ * $Id: load_plugins.c,v 1.137 2003/01/17 21:09:17 siggi Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -54,7 +54,7 @@
 /*
 #define LOG
 */
-#define LOG
+
 static char *plugin_name;
 
 #if DONT_CATCH_SIGSEGV
@@ -90,14 +90,6 @@ static void remove_segv_handler(void){
  * plugin list/catalog management functions
  *
  */
-
-static char  *_strclone(const char *str){
-  char *new;
-
-  new = xine_xmalloc(strlen(str)+1);
-  strcpy(new, str);
-  return new;
-}
 
 static int _get_decoder_priority (xine_t *this, int default_priority,
 				  char *id) {
@@ -164,12 +156,12 @@ static void _insert_plugin (xine_t *this,
   }
 
   entry = xine_xmalloc(sizeof(plugin_node_t));
-  entry->filename     = _strclone(filename);
+  entry->filename     = strdup(filename);
   entry->filesize     = statbuffer->st_size;
   entry->filemtime    = statbuffer->st_mtime;
   entry->info         = xine_xmalloc(sizeof(plugin_info_t));
   *(entry->info)      = *info;
-  entry->info->id     = _strclone(info->id);
+  entry->info->id     = strdup(info->id);
   entry->info->init   = NULL;
   entry->plugin_class = NULL;
   entry->ref          = 0;
@@ -593,7 +585,7 @@ static void load_plugin_list(FILE *fp, xine_list_t *plugins) {
         xine_list_append_content (plugins, node);
       }
       node                = xine_xmalloc(sizeof(plugin_node_t));
-      node->filename      = _strclone(line+1);
+      node->filename      = strdup(line+1);
       node->info          = xine_xmalloc(2*sizeof(plugin_info_t));
       node->info[1].type  = PLUGIN_NONE;
       decoder_info        = NULL;
@@ -655,7 +647,7 @@ static void load_plugin_list(FILE *fp, xine_list_t *plugins) {
           sscanf(value," %d",&i);
           node->info->API = i;
         } else if( !strcmp("id",line) ) {
-          node->info->id = _strclone(value);
+          node->info->id = strdup(value);
         } else if( !strcmp("version",line) ) {
           sscanf(value," %lu",&lu);
           node->info->version = lu;
