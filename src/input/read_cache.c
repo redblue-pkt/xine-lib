@@ -17,14 +17,14 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: read_cache.c,v 1.1 2001/09/11 00:57:11 guenter Exp $
+ * $Id: read_cache.c,v 1.2 2001/09/11 09:58:15 jkeil Exp $
  */
 
 #include <sys/types.h>
 #include <stdlib.h>
 #include <unistd.h>
 
-#include <xine/utils.h>
+#include "utils.h"
 
 #include "read_cache.h"
 

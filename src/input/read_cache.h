@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: read_cache.h,v 1.1 2001/09/11 00:57:11 guenter Exp $
+ * $Id: read_cache.h,v 1.2 2001/09/11 09:58:15 jkeil Exp $
  */
 
 #ifndef HAVE_READ_CACHE_H
@@ -25,7 +25,7 @@
 
 #include <inttypes.h>
 #include <sys/types.h>
-#include <xine/buffer.h>
+#include "buffer.h"
 
 typedef struct read_cache_s read_cache_t;
 
