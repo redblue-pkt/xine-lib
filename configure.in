@@ -454,14 +454,15 @@ case $host in
     sparc*-*-linux-*)
         case $host_alias in
         sparc-*)
-            GLOBAL_CFLAGS="$GLOBAL_CFLAGS -O3 -mcpu=supersparc -mtune=supersparc -funroll-loops -funroll-all-loops -finline-functions"
-            DEBUG_CFLAGS="$DEBUG_CFLAGS -O -mcpu=supersparc -mtune=supersparc -funroll-loops -funroll-all-loops -finline-functions"
+            cpu_cflags="-mcpu=supersparc -mtune=supersparc"
             ;;
         sparc64-*)
-            GLOBAL_CFLAGS="$GLOBAL_CFLAGS -O3 -mcpu=v9 -mtune=ultrasparc -funroll-loops -funroll-all-loops -finline-functions"
-            DEBUG_CFLAGS="$DEBUG_CFLAGS -O -mcpu=v9 -mtune=ultrasparc -funroll-loops -funroll-all-loops -finline-functions"
+	    #cpu_cflags="-mcpu=v9 -mtune=ultrasparc"
+	    cpu_cflags="-mcpu=v8 -mtune=ultrasparc"
             ;;
 	esac
+        GLOBAL_CFLAGS="$GLOBAL_CFLAGS -O3 $cpu_cflags -funroll-loops -funroll-all-loops -finline-functions"
+        DEBUG_CFLAGS="$DEBUG_CFLAGS -O $cpu_cflags -funroll-loops -funroll-all-loops -finline-functions"
 
 	AC_DEFINE(FPM_SPARC)
         ;;
@@ -469,19 +470,18 @@ case $host in
     sparc-*-solaris*)
         case `uname -m` in
         sun4c)
-            GLOBAL_CFLAGS="$GLOBAL_CFLAGS -O3 -mcpu=v7 -mtune=supersparc -funroll-loops -funroll-all-loops -finline-functions"
-            DEBUG_CFLAGS="$DEBUG_CFLAGS -O -mcpu=v7 -mtune=supersparc -funroll-loops -funroll-all-loops -finline-functions"
+	    cpu_cflags="-mcpu=v7 -mtune=supersparc"
             ;;
         sun4m)
-            GLOBAL_CFLAGS="$GLOBAL_CFLAGS -O3 -mcpu=v8 -mtune=supersparc -funroll-loops -funroll-all-loops -finline-functions"
-            DEBUG_CFLAGS="$DEBUG_CFLAGS -O -mcpu=v8 -mtune=supersparc -funroll-loops -funroll-all-loops -finline-functions"
+            cpu_cflags="-mcpu=v8 -mtune=supersparc"
             ;;
         sun4u)  
-            GLOBAL_CFLAGS="$GLOBAL_CFLAGS -O3 -mcpu=v9 -mtune=ultrasparc -funroll-loops -funroll-all-loops -finline-functions"
-            DEBUG_CFLAGS="$DEBUG_CFLAGS -O -mcpu=v9 -mtune=ultrasparc -funroll-loops -funroll-all-loops -finline-functions"
-
+            #cpu_cflags="-mcpu=v9 -mtune=ultrasparc"
+            cpu_cflags="-mcpu=v8 -mtune=ultrasparc"
 	    ;;
 	esac
+        GLOBAL_CFLAGS="$GLOBAL_CFLAGS -O3 $cpu_cflags -funroll-loops -funroll-all-loops -finline-functions"
+        DEBUG_CFLAGS="$DEBUG_CFLAGS -O $cpu_cflags -funroll-loops -funroll-all-loops -finline-functions"
 	AC_DEFINE(FPM_SPARC)
 	;;
 
