@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3.c,v 1.55 2002/09/20 12:51:58 mroi Exp $
+ * $Id: video_out_dxr3.c,v 1.56 2002/09/27 13:07:43 mroi Exp $
  */
  
 /* mpeg1 encoding video out plugin for the dxr3.  
@@ -665,6 +665,8 @@ static void dxr3_overlay_end(xine_vo_driver_t *this_gen, vo_frame_t *frame_gen)
   
   dxr3_spu_encode(this->spu_enc);
 
+  pthread_mutex_lock(&this->spu_device_lock);
+  
   /* try to open the dxr3 spu device */
   if (!this->fd_spu) {
     snprintf (tmpstr, sizeof(tmpstr), "%s_sp%s", this->devname, this->devnum);
@@ -672,11 +674,10 @@ static void dxr3_overlay_end(xine_vo_driver_t *this_gen, vo_frame_t *frame_gen)
       printf("video_out_dxr3: Failed to open spu device %s (%s)\n",
         tmpstr, strerror(errno));
       printf("video_out_dxr3: Overlays are not available\n");
+      pthread_mutex_unlock(&this->spu_device_lock);
       return;
     }
   }
-  
-  pthread_mutex_lock(&this->spu_device_lock);
   
   if (!this->spu_enc->overlay) {
     uint8_t empty_spu[] = {

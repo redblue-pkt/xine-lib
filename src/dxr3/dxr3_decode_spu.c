@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decode_spu.c,v 1.19 2002/09/18 15:42:10 mroi Exp $
+ * $Id: dxr3_decode_spu.c,v 1.20 2002/09/27 13:07:43 mroi Exp $
  */
  
 /* dxr3 spu decoder plugin.
@@ -184,19 +184,26 @@ static void dxr3_spudec_init(spu_decoder_t *this_gen, vo_instance_t *vo_out)
   int i;
   
   pthread_mutex_lock(&this->dxr3_vo->spu_device_lock);
-  /* open dxr3 spu device */
-  snprintf(tmpstr, sizeof(tmpstr), "%s_sp%s", this->devname, this->devnum);
-  if ((this->fd_spu = open(tmpstr, O_WRONLY)) < 0) {
-    printf("dxr3_decode_spu: Failed to open spu device %s (%s)\n",
-      tmpstr, strerror(errno));
-    return;
-  }
+  
+  if (this->dxr3_vo->fd_spu)
+    this->fd_spu = this->dxr3_vo->fd_spu;
+  else {
+    /* open dxr3 spu device */
+    snprintf(tmpstr, sizeof(tmpstr), "%s_sp%s", this->devname, this->devnum);
+    if ((this->fd_spu = open(tmpstr, O_WRONLY)) < 0) {
+      printf("dxr3_decode_spu: Failed to open spu device %s (%s)\n",
+        tmpstr, strerror(errno));
+      pthread_mutex_unlock(&this->dxr3_vo->spu_device_lock);
+      return;
+    }
 #if LOG_SPU
-  printf ("dxr3_decode_spu: init: SPU_FD = %i\n",this->fd_spu);
+    printf ("dxr3_decode_spu: init: SPU_FD = %i\n",this->fd_spu);
 #endif
-  /* We are talking directly to the dxr3 video out to allow concurrent
-   * access to the same spu device */
-  this->dxr3_vo->fd_spu = this->fd_spu;
+    /* We are talking directly to the dxr3 video out to allow concurrent
+     * access to the same spu device */
+    this->dxr3_vo->fd_spu = this->fd_spu;
+  }
+  
   pthread_mutex_unlock(&this->dxr3_vo->spu_device_lock);
   
   for (i=0; i < MAX_SPU_STREAMS; i++) {
