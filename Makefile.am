@@ -64,7 +64,7 @@ release-check: misc/relchk.sh
 
 slackbuild:
 	@(cd misc && $(MAKE) SlackBuild) && \
-	 CONFIG_OPT="--with-included-dvdnav" PREFIX="/usr" misc/SlackBuild
+	 PREFIX="/usr" misc/SlackBuild
 
 mostlyclean-generic:
 	-rm -f *~ \#* .*~ .\#* 

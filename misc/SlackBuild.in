@@ -57,8 +57,8 @@ do_build() {
   do_install_sh;
   cd @TAR_NAME@
   DIE=1
-  echo "./configure --prefix=$PREFIX $CONFIG_OPT && make && DESTDIR=$PKG make install-strip "  && \
-  ./configure --prefix=$PREFIX $CONFIG_OPT && make && DESTDIR=$PKG make install-strip && \
+  echo "./configure --prefix=$PREFIX $CONFIG_OPT && make && make install-strip DESTDIR=$PKG LIBRARY_PATH=$TMPBUILD/@TAR_NAME@/src/xine-engine/.libs" && \
+  ./configure --prefix=$PREFIX $CONFIG_OPT && make && make install-strip DESTDIR=$PKG LIBRARY_PATH=$TMPBUILD/@TAR_NAME@/src/xine-engine/.libs && \
   mkdir -p $PKG/install && cp $TMPBUILD/doinst.sh $PKG/install && \
   cd $PKG && \
   echo "n" | /sbin/makepkg $PACKAGE && \
@@ -95,7 +95,7 @@ build_pentiumpro() {
   if test "$DIE" -eq 0; then 
     tar -czvf @PACKAGE@-@VERSION@-i686.tar.gz $PACKAGE package_descriptions
   fi
-  do_clean
+##  do_clean
 }
 
 #
@@ -116,7 +116,7 @@ build_pentium() {
   if test "$DIE" -eq 0; then 
     tar -czvf @PACKAGE@-@VERSION@-i586.tar.gz $PACKAGE package_descriptions
   fi
-  do_clean
+##  do_clean
 }
 
 #
@@ -137,7 +137,7 @@ build_k6() {
   if test "$DIE" -eq 0; then 
     tar -czvf @PACKAGE@-@VERSION@-k6.tar.gz $PACKAGE package_descriptions
   fi
-  do_clean
+##  do_clean
 }
 
 #
@@ -158,7 +158,7 @@ build_k7() {
   if test "$DIE" -eq 0; then 
     tar -czvf @PACKAGE@-@VERSION@-k7.tar.gz $PACKAGE package_descriptions
   fi
-  do_clean
+##  do_clean
 }
 
 #
