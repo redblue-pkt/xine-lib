@@ -278,7 +278,7 @@ to make sure libxine can be found by the frontend(s).
 Last but not least. Here the build instructions. As stated earlier, those are
 the same for every xine module.
 
-      ./cvscompile.sh [-> *only* if you checked your sources out of CVS]
+      ./autogen.sh [-> *only* if you checked your sources out of CVS]
       ./configure
       make
       make install
@@ -301,7 +301,7 @@ In case that you have a fresh CVS checkout, you will need to do the following
 first in order to get a tarball release out of it which you can later use with
 the rpm -ta command above:
 
-./cvscompile.sh && make clean && make dist
+./autogen.sh && make clean && make dist
 
 In any case, please keep in mind that you have to build and install xine-lib
 first before you can proceed with xine-ui.
@@ -328,7 +328,7 @@ valid description string for your configuration, e.g.
 
     export xine_BUILD=k7-pc-linux-gnu
     rm -f config.cache
-    ./cvscompile.sh
+    ./autogen.sh
     make
     make install
     
@@ -715,7 +715,7 @@ optimizing options. A few things you should check:
 
 I have problems when using xine on FreeBSD, Solaris, ... !
 
-Check out the the corresponding README files in the directory xine-ui/doc
+Check out the the corresponding README files in the directory xine-lib/doc
 
 -------------------------------------------------------------------------------
 
@@ -1024,7 +1024,7 @@ Probably xine can't access your input source. Most commonly this happens when
 you're trying to play locked/encrypted DVDs. Remember that xine can't play such
 DVDs out-of-the box for legal reasons (see above).
 
-If it is legal where you life, you can try to install libdvdcss. Once you have
+If it is legal where you live, you can try to install libdvdcss. Once you have
 done that and re-start xine, it should automatically detect and use it to play
 back encrypted DVDs.
 

@@ -814,7 +814,7 @@ WIDTH="100%"
 ><TD
 ><PRE
 CLASS="PROGRAMLISTING"
->      ./cvscompile.sh [-&#62; *only* if you checked your sources out of CVS]
+>      ./autogen.sh [-&#62; *only* if you checked your sources out of CVS]
       ./configure
       make
       make install
@@ -865,7 +865,7 @@ CLASS="COMMAND"
 ><P
 >      <B
 CLASS="COMMAND"
-> ./cvscompile.sh &#38;&#38; make clean &#38;&#38; make dist </B
+> ./autogen.sh &#38;&#38; make clean &#38;&#38; make dist </B
 >
     </P
 ><P
@@ -920,7 +920,7 @@ WIDTH="100%"
 CLASS="PROGRAMLISTING"
 >    export xine_BUILD=k7-pc-linux-gnu
     rm -f config.cache
-    ./cvscompile.sh
+    ./autogen.sh
     make
     make install
     </PRE
@@ -1867,7 +1867,7 @@ NAME="AEN286"
 ><P
 >      Check out the the corresponding README files in the directory <TT
 CLASS="FILENAME"
->xine-ui/doc</TT
+>xine-lib/doc</TT
 >
     </P
 ></DIV
@@ -2623,7 +2623,7 @@ NAME="AEN426"
       can't play such DVDs out-of-the box for legal reasons (see above).
     </P
 ><P
->      If it is legal where you life, you can try to install libdvdcss. Once
+>      If it is legal where you live, you can try to install libdvdcss. Once
       you have done that and re-start xine, it should automatically detect
       and use it to play back encrypted DVDs.
     </P

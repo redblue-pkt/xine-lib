@@ -278,7 +278,7 @@
         those are the same for every xine module.
       </para>
       <programlisting>
-      ./cvscompile.sh [-> *only* if you checked your sources out of CVS]
+      ./autogen.sh [-> *only* if you checked your sources out of CVS]
       ./configure
       make
       make install
@@ -315,7 +315,7 @@
     </para>
     
     <para>
-      <command> ./cvscompile.sh && make clean && make dist </command>
+      <command> ./autogen.sh && make clean && make dist </command>
     </para>
     
     <para>
@@ -359,7 +359,7 @@
     <programlisting>
     export xine_BUILD=k7-pc-linux-gnu
     rm -f config.cache
-    ./cvscompile.sh
+    ./autogen.sh
     make
     make install
     </programlisting>
@@ -964,7 +964,7 @@
     <title>I have problems when using xine on FreeBSD, Solaris, ... !</title>
     
     <para>
-      Check out the the corresponding README files in the directory <filename>xine-ui/doc</filename>
+      Check out the the corresponding README files in the directory <filename>xine-lib/doc</filename>
     </para>
   </sect1>
 
@@ -1417,7 +1417,7 @@
       can't play such DVDs out-of-the box for legal reasons (see above).
     </para>
     <para>
-      If it is legal where you life, you can try to install libdvdcss. Once
+      If it is legal where you live, you can try to install libdvdcss. Once
       you have done that and re-start xine, it should automatically detect
       and use it to play back encrypted DVDs.
     </para>
