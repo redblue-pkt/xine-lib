@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.65 2002/07/15 02:15:38 miguelfreitas Exp $
+ * $Id: demux_qt.c,v 1.66 2002/07/16 05:15:05 tmmm Exp $
  *
  */
 
@@ -220,8 +220,6 @@ typedef struct {
         
   int64_t moov_first_offset;
   int64_t moov_last_offset;
-  int64_t mdat_first_offset;
-  int64_t mdat_last_offset;
 
   qt_atom audio_codec;
   unsigned int audio_type;
@@ -1006,11 +1004,10 @@ static qt_error open_qt_file(qt_info *info, input_plugin_t *input) {
       
   info->input_length = input->get_length (input);
 
-  /* traverse through the file looking for the moov and mdat atoms */
-  info->moov_first_offset = info->mdat_first_offset = -1;
+  /* traverse through the file looking for the moov atom */
+  info->moov_first_offset = -1;
 
-  while ((info->moov_first_offset == -1) ||
-    (info->mdat_first_offset == -1)) {
+  while (info->moov_first_offset == -1) {
 
     if (input->read(input, atom_preamble, ATOM_PREAMBLE_SIZE) != 
       ATOM_PREAMBLE_SIZE) {
@@ -1038,15 +1035,7 @@ static qt_error open_qt_file(qt_info *info, input_plugin_t *input) {
       }
     }
 
-    if (top_level_atom == MDAT_ATOM) {
-      info->mdat_first_offset = input->get_current_pos(input) -
-        ATOM_PREAMBLE_SIZE;
-      info->mdat_last_offset =
-        info->mdat_first_offset + top_level_atom_size;
-
-      /* skip to the next atom */
-      input->seek(input, top_level_atom_size - ATOM_PREAMBLE_SIZE, SEEK_CUR);
-    } else if (top_level_atom == MOOV_ATOM) {
+    if (top_level_atom == MOOV_ATOM) {
       info->moov_first_offset = input->get_current_pos(input) - 
         ATOM_PREAMBLE_SIZE;
       info->moov_last_offset =
@@ -1118,8 +1107,7 @@ static qt_error open_qt_file(qt_info *info, input_plugin_t *input) {
   }
 
   /* take apart the moov atom */
-  if ((info->moov_first_offset != -1) &&
-    (info->mdat_first_offset != -1))
+  if (info->moov_first_offset != -1)
     parse_moov_atom(info, moov_atom);
 
   if (!moov_atom) {
