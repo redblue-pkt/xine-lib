@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.56 2004/07/18 17:31:40 jcdutton Exp $
+ * $Id: xine_decoder.c,v 1.57 2004/07/18 18:02:02 jcdutton Exp $
  *
  * 04-09-2001 DTS passtrough  (C) Joachim Koenig 
  * 09-12-2001 DTS passthrough inprovements (C) James Courtier-Dutton
@@ -408,6 +408,7 @@ static void dts_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
                 old_dts_sample_rate != this->dts_sample_rate ||
 		old_dts_bit_rate    != this->dts_bit_rate) {
 
+              this->rate = this->dts_sample_rate;
               if (((this->dts_flags & DTS_CHANNEL_MASK) == DTS_3F2R) && (this->dts_flags & DTS_LFE))
                 _x_meta_info_set(this->stream, XINE_META_INFO_AUDIOCODEC, "DTS 5.1");
               else if ((((this->dts_flags & DTS_CHANNEL_MASK) == DTS_2F2R) && (this->dts_flags & DTS_LFE)) ||
