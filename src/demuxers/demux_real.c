@@ -30,7 +30,7 @@
  *   
  *   Based on FFmpeg's libav/rm.c.
  *
- * $Id: demux_real.c,v 1.61 2003/07/18 23:34:36 jstembridge Exp $
+ * $Id: demux_real.c,v 1.62 2003/07/19 16:11:39 jstembridge Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -130,8 +130,6 @@ typedef struct {
   off_t                data_start;
   off_t                data_size;
   unsigned int         duration;
-  unsigned int         packet_count;
-  unsigned int         current_packet;
 
   real_stream_t        video_streams[MAX_VIDEO_STREAMS];
   int                  num_video_streams;
@@ -328,7 +326,6 @@ static void real_parse_headers (demux_real_t *this) {
 
   this->data_start = 0;
   this->data_size = 0;
-  this->current_packet = 0;
   this->num_video_streams = 0;
   this->num_audio_streams = 0;
 
@@ -383,13 +380,11 @@ static void real_parse_headers (demux_real_t *this) {
 
       if (chunk_type == PROP_TAG) {
 
-        this->packet_count  = BE_32(&chunk_buffer[18]);
         this->duration      = BE_32(&chunk_buffer[22]);
         this->index_start   = BE_32(&chunk_buffer[30]);
         this->data_start    = BE_32(&chunk_buffer[34]);
 	this->avg_bitrate   = BE_32(&chunk_buffer[6]);
 
-        lprintf("PROP: packet count: %d\n", this->packet_count);
         lprintf("PROP: duration: %d ms\n", this->duration);
         lprintf("PROP: index start: %llX\n", this->index_start);
         lprintf("PROP: data start: %llX\n", this->data_start);
@@ -543,31 +538,89 @@ unknown:
   }
 
   /* Read index tables */
-  if((this->input->get_capabilities (this->input) & INPUT_CAP_SEEKABLE) != 0)
+  if(INPUT_IS_SEEKABLE(this->input))
     real_parse_index(this);
   
-  /* Select audio and video stream to play */
+  /* Simple stream selection case - 0/1 audio/video streams */
   if(this->num_video_streams == 1)
     this->video_stream = &this->video_streams[0];
-  else if(this->num_video_streams) {
-    /* FIXME: Determine which stream to play */
-    xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
-            "multiple video streams not supported\n");
-    this->status = DEMUX_FINISHED;
-    return;
-  } else
+  else
     this->video_stream = NULL;
-
+    
   if(this->num_audio_streams == 1)
     this->audio_stream = &this->audio_streams[0];
-  else if(this->num_audio_streams) {
-    /* FIXME: Determine which stream to play */
-    xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
-            "multiple audio streams not supported\n");
-    this->status = DEMUX_FINISHED;
-    return;
-  } else
-    this->audio_stream = NULL; 
+  else
+    this->audio_stream = NULL;
+
+  /* In the case of multiple audio/video streams select the first
+     streams found in the file */
+  if((this->num_video_streams > 1) || (this->num_audio_streams > 1)) {
+    int   len, offset;
+    off_t original_pos = 0;
+    char  search_buffer[MAX_PREVIEW_SIZE];
+
+    /* Get data to search through for stream chunks */
+    if(INPUT_IS_SEEKABLE(this->input)) {
+      original_pos = this->input->get_current_pos(this->input);
+    
+      if((len = this->input->read(this->input, search_buffer, MAX_PREVIEW_SIZE)) <= 0) {
+        xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
+                "failed to read header\n");
+        this->status = DEMUX_FINISHED;
+        return;
+      }
+      
+      offset = 0;
+    } else if((this->input->get_capabilities(this->input) & INPUT_CAP_PREVIEW) != 0) {
+      if((len = this->input->get_optional_data(this->input, search_buffer, INPUT_OPTIONAL_DATA_PREVIEW)) <= 0) {
+        xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
+                "failed to read header\n");
+        this->status = DEMUX_FINISHED;
+        return;
+      }
+      
+      /* Preview data starts at the beginning of the file */
+      offset = this->data_start + 18;
+    } else {
+      xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
+              "unable to search for correct stream\n");
+      this->status = DEMUX_FINISHED;
+      return;
+    }
+    
+    while((offset < len) &&
+          ((!this->video_stream && (this->num_video_streams > 0)) ||
+           (!this->audio_stream && (this->num_audio_streams > 0)))) {
+      uint32_t id;
+      int      i, stream;
+      
+      /* Check for end of the data chunk */
+      if(((id = BE_32(&search_buffer[0])) == DATA_TAG) ||
+         (id == INDX_TAG))
+        break;
+      
+      stream = BE_16(&search_buffer[offset + 4]);
+
+      for(i = 0; !this->video_stream && (i < this->num_video_streams); i++) {
+        if(stream == this->video_streams[i].mdpr->stream_number) {
+          this->video_stream = &this->video_streams[i];
+          lprintf("selecting video stream: %d\n", stream);
+        }
+      }
+      
+      for(i = 0; !this->audio_stream && (i < this->num_audio_streams); i++) {
+        if(stream == this->audio_streams[i].mdpr->stream_number) {
+          this->audio_stream = &this->audio_streams[i];
+          lprintf("selecting audio stream: %d\n", stream);
+        }
+      }
+
+      offset += BE_16(&search_buffer[offset + 2]);
+    }
+    
+    if(INPUT_IS_SEEKABLE(this->input))
+      this->input->seek(this->input, original_pos, SEEK_SET);
+  }
     
   /* Send headers and set meta info */
   if(this->video_stream) {
@@ -761,7 +814,7 @@ static int demux_real_send_chunk(demux_plugin_t *this_gen) {
   demux_real_t   *this = (demux_real_t *) this_gen;
   char            header[DATA_PACKET_HEADER_SIZE];
   int             stream, size, keyframe;
-  uint32_t        timestamp;
+  uint32_t        id, timestamp;
   int64_t         pts;
   off_t           offset;
 
@@ -775,6 +828,14 @@ static int demux_real_send_chunk(demux_plugin_t *this_gen) {
     xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
              "read failed. wanted %d bytes, but got only %d\n", DATA_PACKET_HEADER_SIZE, size);
 
+    this->status = DEMUX_FINISHED;
+    return this->status;
+  }
+
+  /* Check to see if we've gone past the end of the data chunk */
+  if(((id = BE_32(&header[0])) == DATA_TAG) ||
+     (id == INDX_TAG)) {
+    lprintf("finished reading data chunk\n");
     this->status = DEMUX_FINISHED;
     return this->status;
   }
@@ -989,12 +1050,6 @@ discard:
 
   }
 
-  if(this->packet_count && (this->current_packet == (this->packet_count - 1))) {
-    lprintf("read all packets\n");
-    this->status = DEMUX_FINISHED;
-  } else
-    this->current_packet++;
-
 #if 0
 
   this->current_data_chunk_packet_count--;
@@ -1111,9 +1166,6 @@ static int demux_real_seek (demux_plugin_t *this_gen,
       index = other_index;
 
     this->input->seek(this->input, index[i].offset, SEEK_SET);
-
-    /* is packet number global or is it local to current data chunk? */
-    this->current_packet = index[i].packetno;
 
     if(this->stream->demux_thread_running) {
       this->buf_flag_seek = 1;
