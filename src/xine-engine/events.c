@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: events.c,v 1.15 2002/10/26 21:48:49 mroi Exp $
+ * $Id: events.c,v 1.16 2002/10/29 09:47:39 esnel Exp $
  *
  * Event handling functions
  *
@@ -166,6 +166,7 @@ void xine_event_dispose_queue (xine_event_queue_t *queue) {
   if (queue->listener_thread) {
     void *p;
     pthread_join (*queue->listener_thread, &p);
+    free (queue->listener_thread);
   }
   
   /*
