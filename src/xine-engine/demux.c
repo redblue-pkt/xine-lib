@@ -226,7 +226,7 @@ int xine_demux_stop_thread (xine_stream_t *stream) {
   pthread_mutex_unlock( &stream->demux_lock );
 
 #ifdef LOG
-  printf ("demux: joining thread %d\n", stream->demux_thread );
+  printf ("demux: joining thread %ld\n", stream->demux_thread );
 #endif
   
   /* FIXME: counter_lock isn't meant to protect demux_thread update.
@@ -240,7 +240,5 @@ int xine_demux_stop_thread (xine_stream_t *stream) {
   
   pthread_mutex_unlock (&stream->counter_lock);
     
-  xine_demux_flush_engine(stream);
-  
   return 0;
 }

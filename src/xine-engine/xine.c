@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.178 2002/10/28 03:24:43 miguelfreitas Exp $
+ * $Id: xine.c,v 1.179 2002/10/28 11:19:51 miguelfreitas Exp $
  *
  * top-level xine functions
  *
@@ -165,6 +165,7 @@ static void xine_stop_internal (xine_stream_t *stream) {
   if (stream->demux_plugin) {
     
     xine_demux_stop_thread( stream );
+    xine_demux_flush_engine( stream );
 
     /*
      * wait until engine has really stopped
