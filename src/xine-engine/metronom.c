@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.c,v 1.103 2002/11/20 12:22:19 mroi Exp $
+ * $Id: metronom.c,v 1.104 2002/11/27 21:41:11 heikos Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -501,7 +501,7 @@ static int64_t metronom_got_audio_samples (metronom_t *this, int64_t pts,
   if (pts) {
     vpts = pts + this->vpts_offset;
     diff = this->audio_vpts - vpts;
-    
+
     /* compare predicted and given vpts */
     if((abs(diff) > AUDIO_DRIFT_TOLERANCE) || (this->force_audio_jump)) {
       this->force_audio_jump = 0;
@@ -513,7 +513,7 @@ static int64_t metronom_got_audio_samples (metronom_t *this, int64_t pts,
       if( this->audio_samples ) {
         /* calculate drift_step to recover vpts errors */
 #ifdef LOG  
-        printf("audio diff = %lld ", diff );
+        printf("metronom: audio diff = %lld \n", diff );
 #endif
         diff *= AUDIO_SAMPLE_NUM;
         diff /= this->audio_samples * 4;
@@ -527,7 +527,7 @@ static int64_t metronom_got_audio_samples (metronom_t *this, int64_t pts,
         this->audio_drift_step = diff;
                 
 #ifdef LOG  
-        printf("audio_drift = %lld, pts_per_smpls = %lld\n", diff,
+        printf("metronom: audio_drift = %lld, pts_per_smpls = %lld\n", diff,
                 this->pts_per_smpls );
 #endif
       }
