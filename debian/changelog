@@ -1,3 +1,9 @@
+xine-lib (0.9.7-3) unstable; urgency=high
+
+  * re-added check for HPPA (closes: #123036)
+
+ -- Siggi Langauf <siggi@debian.org>  Mon, 17 Dec 2001 11:44:24 +0100
+
 xine-lib (0.9.7-2) unstable; urgency=low
 
   * this package is based on a recent CVS snapshot, fixes a few things:

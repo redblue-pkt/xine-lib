@@ -225,6 +225,28 @@ dnl but only dynamic linking is possible when using libtool < 1.4.0
 
 AC_PREREQ_LIBTOOL(1.4.0, xv_lib="libXv.a", xv_lib="libXv.so")
 
+
+host_or_hostalias="$host"
+if test "$host_or_hostalias" = ""; then
+    dnl user has called ./configure with a host parameter unknown to
+    dnl config.sub; the canonical "$host" is empty
+    dnl
+    dnl Try the following switch with user's original host_alias 
+    dnl input instead.
+    dnl
+    host_or_hostalias="$host_alias"
+fi
+
+case "$host_or_hostalias" in
+  hppa*)
+	if test "$xv_lib" = "libXv.a"; then
+	  echo "warning: hppa linker - disabling static libXv"
+	  xv_lib="libXv.so"
+	fi
+	;;
+esac
+
+
 AC_ARG_WITH(xv-path,[  --with-xv-path=path    Where $xv_lib is installed],
             xv_path="$withval", xv_path="/usr/X11R6/lib")
 
@@ -454,16 +476,6 @@ COMMON_CFLAGS="$wall -D_REENTRANT -D_FILE_OFFSET_BITS=64 -DXINE_COMPILE"
 enable_w32dll="no"
 enable_ffmmx="no"
 
-host_or_hostalias="$host"
-if test "$host_or_hostalias" = ""; then
-    dnl user has called ./configure with a host parameter unknown to
-    dnl config.sub; the canonical "$host" is empty
-    dnl
-    dnl Try the following switch with user's original host_alias 
-    dnl input instead.
-    dnl
-    host_or_hostalias="$host_alias"
-fi
 
 case "$host_or_hostalias" in
   i386-*-freebsd*)
