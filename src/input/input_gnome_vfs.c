@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_gnome_vfs.c,v 1.3 2003/01/31 14:06:12 miguelfreitas Exp $
+ * $Id: input_gnome_vfs.c,v 1.4 2003/02/13 12:55:29 hadess Exp $
  */
 
 
@@ -33,9 +33,9 @@
 
 #include <libgnomevfs/gnome-vfs.h>
 
-/* #define D(x...) */
-#define D(x...) g_message (x)
-#define LOG
+#define D(x...)
+/* #define D(x...) g_message (x) */
+/* #define LOG */
 
 typedef struct {
 	input_class_t input_class;
@@ -50,8 +50,6 @@ typedef struct {
 	GnomeVFSHandle *fh;
 	off_t curpos;
 	char *mrl;
-	/* Subtitle */
-	GnomeVFSHandle *sub;
 
 	/* Preview */
 	char preview[MAX_PREVIEW_SIZE];
@@ -88,11 +86,13 @@ gnomevfs_plugin_read (input_plugin_t *this_gen, char *buf, off_t len)
 
 		D("gnomevfs_plugin_read: read %ld from gnome-vfs",
 				(long int) n);
-
-		if (res != GNOME_VFS_OK)
+		if (res != GNOME_VFS_OK && res != GNOME_VFS_ERROR_EOF)
 		{
 			D("gnomevfs_plugin_read: gnome_vfs_read returns %s",
 					gnome_vfs_result_to_string (res));
+			return -1;
+		} else if (res == GNOME_VFS_ERROR_EOF) {
+			D("gnomevfs_plugin_read: GNOME_VFS_ERROR_EOF");
 			return 0;
 		}
 
@@ -195,7 +195,7 @@ gnomevfs_plugin_get_length (input_plugin_t *this_gen)
 		return 0;
 	}
 
-	if (gnome_vfs_get_file_info_from_handle (this->fh,
+	if (gnome_vfs_get_file_info (this->mrl,
 				&info,
 				GNOME_VFS_FILE_INFO_DEFAULT) == GNOME_VFS_OK)
 	{
@@ -241,37 +241,8 @@ static int
 gnomevfs_plugin_get_optional_data (input_plugin_t *this_gen, 
 		void *data, int data_type)
 {
-	gnomevfs_input_t *this = (gnomevfs_input_t *) this_gen;
+	D ("input_gnomevfs: get optional data, type %08x\n", data_type);
 
-	D ("input_gnomevfs: get optional data, type %08x, sub %p\n",
-			data_type, this->sub);
-/* FIXME */
-#if 0
-	switch (data_type) {
-	case INPUT_OPTIONAL_DATA_TEXTSPU0:
-		if(this->sub)
-		{
-			GnomeVFSHandle **tmp;
-      
-			/* dirty hacks... */
-			tmp = data;
-			*tmp = this->sub;
-
-			return INPUT_OPTIONAL_SUCCESS;
-		}
-		break;
-	case INPUT_OPTIONAL_DATA_SPULANG:
-		sprintf(data, "%3s", (this->sub) ? "on" : "off");
-		return INPUT_OPTIONAL_SUCCESS;
-		break;
-	case INPUT_OPTIONAL_DATA_PREVIEW:
-		memcpy (data, this->preview, this->preview_size);
-		return this->preview_size;
-	default:
-		return INPUT_OPTIONAL_UNSUPPORTED;
-		break;
-	}
-#endif
 	return INPUT_OPTIONAL_UNSUPPORTED;
 }
 
@@ -282,8 +253,6 @@ gnomevfs_plugin_dispose (input_plugin_t *this_gen )
 
 	if (this->fh)
 		gnome_vfs_close (this->fh);
-	if (this->sub)
-		gnome_vfs_close (this->sub);
 	if (this->mrl)
 		g_free (this->mrl);
 
@@ -303,9 +272,7 @@ gnomevfs_klass_open (input_class_t *klass_gen, xine_stream_t *stream,
 		const char *mrl)
 {
 	gnomevfs_input_t *this;
-	GnomeVFSHandle *fh, *sub;
-	const char *subtitle_file;
-	char *subtitle_path, *subtitle;
+	GnomeVFSHandle *fh;
 	GnomeVFSURI *uri;
 
 	D("gnomevfs_klass_open: %s", mrl);
@@ -317,42 +284,27 @@ gnomevfs_klass_open (input_class_t *klass_gen, xine_stream_t *stream,
 	/* local files should be handled by the file input */
 	if (gnome_vfs_uri_is_local (uri) == TRUE)
 	{
+		D("gnomevfs_klass_open: '%s' is local", mrl);
+		gnome_vfs_uri_unref (uri);
+		return NULL;
+	} else if (strncmp (gnome_vfs_uri_get_scheme (uri), "http") == 0) {
+		D("gnomevfs_klass_open: '%s' is http", mrl);
 		gnome_vfs_uri_unref (uri);
 		return NULL;
 	}
 
-	subtitle_file = gnome_vfs_uri_get_fragment_identifier (uri);
-	if (subtitle_file != NULL)
+	D("gnomevfs_klass_open: opening '%s'", mrl);
+	if (gnome_vfs_open_uri (&fh, uri, GNOME_VFS_OPEN_READ) != GNOME_VFS_OK)
 	{
-		subtitle_path = gnome_vfs_uri_extract_dirname (uri);
-		subtitle = g_strdup_printf ("%s%s", subtitle_path,
-				subtitle_file);
-		g_free (subtitle_path);
-
-		D("input_file: trying to open subtitle file '%s'\n",
-				subtitle);
-
-		if (gnome_vfs_open (&sub, subtitle, GNOME_VFS_OPEN_READ)
-				!= GNOME_VFS_OK)
-			D("input_file: failed to open subtitle file '%s'\n",
-					subtitle);
-	} else {
-		sub = NULL;
-	}
-
-	if (gnome_vfs_open_uri (&fh, uri, GNOME_VFS_OPEN_READ)
-			!= GNOME_VFS_OK)
-	{
-		if (sub != NULL)
-			gnome_vfs_close (sub);
+		D("gnomevfs_klass_open: failed to open '%s'", mrl);
 		return NULL;
 	}
 
+	D("Creating the structure for stream '%s'", mrl);
 	this = g_new0 (gnomevfs_input_t, 1);
 	this->stream = stream;
 	this->fh = fh;
 	this->mrl = g_strdup (mrl);
-	this->sub = sub;
 
 	this->input_plugin.get_capabilities  = gnomevfs_plugin_get_capabilities;
 	this->input_plugin.read              = gnomevfs_plugin_read;
@@ -375,6 +327,8 @@ static void
 {
 	gnomevfs_input_class_t *this;
 
+	D("init_input_class");
+
 	if (gnome_vfs_initialized () == FALSE)
 		gnome_vfs_init ();
 	if (!g_thread_supported ())
@@ -395,7 +349,7 @@ static void
 }
 
 plugin_info_t xine_plugin_info[] = {
-	{ PLUGIN_INPUT, 9, "gnomevfs", XINE_VERSION_CODE, NULL,
+	{ PLUGIN_INPUT, 11, "gnomevfs", XINE_VERSION_CODE, NULL,
 		init_input_class },
 	{ PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
