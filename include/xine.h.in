@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.46 2002/12/15 16:04:15 mroi Exp $
+ * $Id: xine.h.in,v 1.47 2002/12/21 16:14:32 miguelfreitas Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -238,6 +238,9 @@ int xine_get_spu_lang   (xine_stream_t *stream, int channel,
  * depending of the nature and system layer of the stream,
  * some or all of this information may be unavailable or incorrect
  * (e.g. live network streams may not have a valid length)
+ *
+ * returns 1 on success, 0 on failure (data was not updated,
+ * probably because it's not known yet... try again later)
  */
 
 int  xine_get_pos_length (xine_stream_t *stream,
