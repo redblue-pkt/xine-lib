@@ -880,46 +880,46 @@ static void dvb_parse_si(dvb_input_plugin_t *this) {
     dvb_set_pidfilter (this,AUDFILTER,this->channels[this->channel].pid[AUDFILTER], DMX_PES_OTHER, DMX_OUT_TS_TAP);
     return;
   }
-  result = read (tuner->fd_pidfilter[INTERNAL_FILTER], tmpbuffer, 3);
-  if(result!=3)
+  result = read (tuner->fd_pidfilter[INTERNAL_FILTER], tmpbuffer, 4);
+  if(result!=4)
     printf("error\n");
-  section_len = getbits(tmpbuffer,12,12);
-  result = read (tuner->fd_pidfilter[INTERNAL_FILTER], tmpbuffer+3,section_len);
+  section_len = getbits(tmpbuffer,20,12);
+  result = read (tuner->fd_pidfilter[INTERNAL_FILTER], tmpbuffer+4,section_len);
   if(result!=section_len)
     printf("input_dvb: error reading in the PAT table\n");
 
   ioctl(tuner->fd_pidfilter[INTERNAL_FILTER], DMX_STOP);
-  
-  bufptr+=13;
-  this->num_streams_in_this_ts=-1;
-  
-  while(section_len>0){
+
+  bufptr+=9;
+  this->num_streams_in_this_ts=0;
+  section_len-=5;    
+
+  while(section_len>4){
     service_id = getbits (bufptr,0,16);
     for (x=0;x<this->num_channels;x++){
       if(this->channels[x].service_id==service_id) {
         this->channels[x].pmtpid = getbits (bufptr, 19, 13);
       }
     }
-    if(getbits(bufptr, 19,13)==0x1FFF)
-      break;
     section_len-=4;
     bufptr+=4;
-    this->num_streams_in_this_ts++;        
+    if(service_id>0) /* ignore NIT table for now */
+      this->num_streams_in_this_ts++;        
   }
 
   bufptr = tmpbuffer;
     /* next - the PMT */
   dvb_set_pidfilter(this, INTERNAL_FILTER, this->channels[this->channel].pmtpid , DMX_PES_OTHER, DMX_OUT_TAP);
- if(poll(&pfd,1,1500)<1) /* PMT timed out - weird, but we'll default to using channels.conf info */
+  if(poll(&pfd,1,1500)<1) /* PMT timed out - weird, but we'll default to using channels.conf info */
   {
     dvb_set_pidfilter (this,VIDFILTER,this->channels[this->channel].pid[VIDFILTER], DMX_PES_OTHER, DMX_OUT_TS_TAP);
     dvb_set_pidfilter (this,AUDFILTER,this->channels[this->channel].pid[AUDFILTER], DMX_PES_OTHER, DMX_OUT_TS_TAP);
     return;
   }
-  result = read(tuner->fd_pidfilter[INTERNAL_FILTER],tmpbuffer,3);
+  result = read(tuner->fd_pidfilter[INTERNAL_FILTER],tmpbuffer,4);
 
-  section_len = getbits (bufptr, 12, 12);
-  result = read(tuner->fd_pidfilter[INTERNAL_FILTER],tmpbuffer+3,section_len);
+  section_len = getbits (bufptr, 20, 12);
+  result = read(tuner->fd_pidfilter[INTERNAL_FILTER],tmpbuffer+4,section_len);
 
   ioctl(tuner->fd_pidfilter[INTERNAL_FILTER], DMX_STOP);
 
@@ -933,8 +933,9 @@ static void dvb_parse_si(dvb_input_plugin_t *this) {
   dvb_set_pidfilter(this, DITFILTER, 0x1e,DMX_PES_OTHER,DMX_OUT_TS_TAP);
   dvb_set_pidfilter(this, CATFILTER, 0x01,DMX_PES_OTHER,DMX_OUT_TS_TAP);
   dvb_set_pidfilter(this, NITFILTER, 0x10,DMX_PES_OTHER,DMX_OUT_TS_TAP);
-  dvb_set_pidfilter(this, SDTFILTER, 0x11,DMX_PES_OTHER,DMX_OUT_TS_TAP);
+  dvb_set_pidfilter(this, SDTFILTER, 0x11, DMX_PES_OTHER, DMX_OUT_TS_TAP);
 */
+
   /* we use the section filter for EIT because we are guarenteed a complete section */
   if(ioctl(tuner->fd_pidfilter[EITFILTER],DMX_SET_BUFFER_SIZE,8192*this->num_streams_in_this_ts)<0)
     printf("input_dvb: couldn't increase buffer size for EIT: %s \n",strerror(errno)); 
@@ -1312,7 +1313,11 @@ static void osd_show_channel (dvb_input_plugin_t *this) {
   this->stream->osd_renderer->line (this->channel_osd, 390, 183, 390, 219, 10);
 
   this->stream->osd_renderer->show (this->channel_osd, 0);
-
+  /* hide eit if showing */
+  if (this->displaying==1) {
+    this->stream->osd_renderer->hide (this->proginfo_osd,0);
+    this->stream->osd_renderer->hide (this->background,0);
+  }
 }
 
 
@@ -1359,8 +1364,13 @@ static void switch_channel (dvb_input_plugin_t *this) {
   this->fd = open (DVR_DEVICE, O_RDONLY);
 
   pthread_mutex_unlock (&this->mutex);
-
+  
   this->stream->osd_renderer->hide(this->channel_osd,0);
+  /* show eit for this channel if necessary */
+  if(this->displaying==1){
+    this->displaying=0;
+    show_eit(this);
+  }
 }
 
 
