@@ -1,8 +1,8 @@
 include $(top_srcdir)/misc/Makefile.common
 
-AM_CFLAGS = -DXINE_COMPILE $(ALSA_CFLAGS) $(ESD_CFLAGS) $(IRIXAL_CFLAGS) $(ARTS_CFLAGS)
+AM_CFLAGS = -DXINE_COMPILE $(ALSA_CFLAGS) $(ESD_CFLAGS) $(IRIXAL_CFLAGS) $(ARTS_CFLAGS) $(DIRECTX_CFLAGS)
 
-EXTRA_DIST = audio_irixal_out.c audio_directx_out.c
+EXTRA_DIST = audio_irixal_out.c
 
 libdir = $(XINE_PLUGINDIR)
 
@@ -32,6 +32,10 @@ if HAVE_ARTS
 arts_module = xineplug_ao_out_arts.la
 endif
 
+if HAVE_DIRECTX
+directx_module = xineplug_ao_out_directx.la
+endif
+
 ##
 # IMPORTANT:
 # ---------
@@ -42,7 +46,8 @@ lib_LTLIBRARIES = xineplug_ao_out_none.la $(oss_module) \
 	$(alsa_module) \
 	$(sun_module) \
 	$(arts_module) \
-	$(esd_module) 
+	$(esd_module) \
+	$(directx_module)
 
 #lib_LTLIBRARIES = \
 #	$(alsa_module) \
@@ -78,3 +83,7 @@ xineplug_ao_out_sun_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 xineplug_ao_out_arts_la_SOURCES = audio_arts_out.c
 xineplug_ao_out_arts_la_LIBADD = $(ARTS_LIBS)
 xineplug_ao_out_arts_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
+
+xineplug_ao_out_directx_la_SOURCES = audio_directx_out.c
+xineplug_ao_out_directx_la_LIBADD = $(DIRECTX_AUDIO_LIBS) $(XINE_LIB)
+xineplug_ao_out_directx_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@

@@ -163,9 +163,6 @@ AC_TYPE_OFF_T
 AC_TYPE_SIZE_T
 dnl AC_CHECK_TYPES([ptrdiff_t])
 AC_CHECK_GENERATE_INTTYPES([include])
-AC_CHECK_HEADERS(libgen.h)
-AC_CHECK_FUNCS(basename)
-AC_FUNC_FSEEKO
 
 
 dnl ---------------------------------------------
@@ -649,6 +646,51 @@ fi
 AC_SUBST(LIBSTK_CFLAGS)
 AC_SUBST(LIBSTK_LIBS)
 AM_CONDITIONAL(HAVE_STK, [test x"$have_stk" = x"yes"])
+
+
+dnl ---------------------------------------------
+dnl check for DirectX
+dnl ---------------------------------------------
+AC_MSG_CHECKING(for DirectX)
+DIRECTX_VIDEO_LIBS="$DIRECTX_LIBS -lgdi32 -lddraw"
+DIRECTX_AUDIO_LIBS="$DIRECTX_LIBS -ldsound"
+AC_LANG_SAVE()
+AC_LANG_C()
+ac_save_CFLAGS="$CFLAGS"
+ac_save_LIBS="$LIBS"
+CFLAGS="$CFLAGS $DIRECTX_CFLAGS"
+LIBS="$LIBS  $DIRECTX_VIDEO_LIBS $DIRECTX_AUDIO_LIBS"
+AC_COMPILE_IFELSE(
+  [
+#include <stddef.h>
+
+#include <windows.h>
+#include <ddraw.h>
+#include <dsound.h>
+
+int main() {
+  DirectDrawCreate(0, NULL, 0);
+  DirectsoundCreate(0, NULL, 0);
+  
+  return 0;
+}
+  ],
+  [have_directx=yes
+   AC_DEFINE(HAVE_DIRECTX,1,[Define this if you have DirectX])],,)
+CFLAGS=$ac_save_CFLAGS
+LIBS=$ac_save_LIBS
+AC_LANG_RESTORE()
+
+if test x$have_directx = xyes ; then
+  AC_MSG_RESULT(yes)
+else
+  AC_MSG_RESULT(*** All DirectX dependent parts will be disabled ***)
+fi
+
+AC_SUBST(DIRECTX_CFLAGS)
+AC_SUBST(DIRECTX_AUDIO_LIBS)
+AC_SUBST(DIRECTX_VIDEO_LIBS)
+AM_CONDITIONAL(HAVE_DIRECTX, test x$have_directx = "xyes" )
 
 
 dnl ---------------------------------------------
@@ -1283,8 +1325,9 @@ dnl Some extra checks.
 dnl ---------------------------------------------
 
 AC_CHECK_LIB(posix4, sched_get_priority_min)
-AC_CHECK_FUNCS([vsscanf sigaction sigset getpwuid_r nanosleep strsep strpbrk setenv])
-AC_CHECK_HEADERS(byteswap.h malloc.h execinfo.h ucontext.h sys/mman.h sys/mixer.h)
+AC_CHECK_FUNCS([vsscanf sigaction sigset getpwuid_r nanosleep strsep strpbrk setenv basename])
+AC_FUNC_FSEEKO
+AC_CHECK_HEADERS(byteswap.h malloc.h execinfo.h ucontext.h sys/mman.h sys/mixer.h libgen.h)
 
 
 if test "$GCC" = yes; then

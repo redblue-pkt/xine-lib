@@ -20,21 +20,23 @@
  * audio_directx_out.c, direct sound audio output plugin for xine
  * by Matthew Grooms <elon@altavista.com>
  *
- * $Id: audio_directx_out.c,v 1.8 2003/12/14 22:13:22 siggi Exp $
+ * $Id: audio_directx_out.c,v 1.9 2004/01/01 18:14:51 valtri Exp $
  */
 
 typedef unsigned char boolean;
 
 #include <windows.h>
 #include <dsound.h>
-#include "audio_out.h"
-#include "xine_internal.h"
 
 #define LOG_MODULE "audio_directx_out"
 #define LOG_VERBOSE
 /*
 #define LOG
 */
+
+#include "audio_out.h"
+#include "xine_internal.h"
+
 
 #define MAX_CHANNELS	          6
 #define MAX_BITS		  16
@@ -47,6 +49,18 @@ typedef unsigned char boolean;
 #define DSBUFF_RIGHT	          2
 
 #define AO_DIRECTX_IFACE_VERSION  8
+
+/*****************************************************************************
+ * DirectDraw GUIDs.
+ * Defining them here allows us to get rid of the dxguid library during
+ * the linking stage.
+ *****************************************************************************/
+#if 1
+static const GUID IID_IDirectSoundNotify = {
+	0xB0210783,0x89CD,0x11D0,{0xAF,0x08,0x00,0xA0,0xC9,0x25,0xCD,0x16}
+};
+#endif
+
 
 /* -----------------------------------------
  *
@@ -804,7 +818,7 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
   return ( ao_driver_t * ) ao_directx;
 }
 
-static char* get_identifier (video_driver_class_t *this_gen) {
+static char* get_identifier (audio_driver_class_t *this_gen) {
   return "DirectX";
 }
 

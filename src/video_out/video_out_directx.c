@@ -20,7 +20,7 @@
  * video_out_directx.c, direct draw video output plugin for xine
  * by Matthew Grooms <elon@altavista.com>
  *
- * $Id: video_out_directx.c,v 1.14 2003/12/14 22:13:25 siggi Exp $
+ * $Id: video_out_directx.c,v 1.15 2004/01/01 18:14:51 valtri Exp $
  */
 
 typedef unsigned char boolean;
@@ -50,6 +50,29 @@ typedef unsigned char boolean;
 #define BORDER_SIZE	     8
 #define IMGFMT_NATIVE	     4
 
+/*****************************************************************************
+ * DirectDraw GUIDs.
+ * Defining them here allows us to get rid of the dxguid library during
+ * the linking stage.
+ *****************************************************************************/
+#if 0
+static const GUID IID_IDirectDraw = {
+	0x6C14DB80,0xA733,0x11CE,{0xA5,0x21,0x00,0x20,0xAF,0x0B,0xE5,0x60}
+};
+#endif
+
+#if 0
+static const GUID IID_IDirectDraw2 = {
+	0xB3A6F3E0,0x2B43,0x11CF,{0xA2,0xDE,0x00,0xAA,0x00,0xB9,0x33,0x56}
+};
+#endif
+
+#if 1
+static const GUID IID_IDirectDraw4 = {
+	0x9C59509A,0x39BD,0x11D1,{0x8C,0x4A,0x00,0xC0,0x4F,0xD9,0x30,0xC5}
+};
+#endif
+
 /* -----------------------------------------
  *
  *  vo_directx frame struct
@@ -60,8 +83,8 @@ typedef struct {
   vo_frame_t               vo_frame;
   uint8_t                 *buffer;
   int			   format;
-  int			   width;
-  int			   height;
+  uint32_t			   width;
+  uint32_t			   height;
   int		           size;
   double	           ratio;
 } win32_frame_t;
@@ -78,17 +101,17 @@ typedef struct {
 
   xine_t                  *xine;
 
-  LPDIRECTDRAW7		   ddobj;	    /* direct draw object */
-  LPDIRECTDRAWSURFACE	   primary;	    /* primary dd surface */
-  LPDIRECTDRAWSURFACE 	   secondary;	    /* secondary dd surface  */
+  LPDIRECTDRAW4		   ddobj;	    /* direct draw object */
+  LPDIRECTDRAWSURFACE4	   primary;	    /* primary dd surface */
+  LPDIRECTDRAWSURFACE4 	   secondary;	    /* secondary dd surface  */
   LPDIRECTDRAWCLIPPER	   ddclipper;	    /* dd clipper object */
   uint8_t *		   contents;	    /* secondary contents */
   win32_frame_t           *current;         /* current frame */
 
   int			   req_format;	    /* requested frame format */
   int			   act_format;	    /* actual frame format */
-  int			   width;	    /* frame with */
-  int			   height;	    /* frame height */
+  uint32_t			   width;	    /* frame with */
+  uint32_t			   height;	    /* frame height */
   double		   ratio;	    /* frame ratio */
 
   yuv2rgb_factory_t       *yuv2rgb_factory; /* used for format conversion */
@@ -176,10 +199,10 @@ boolean CreatePrimary( win32_driver_t * win32_driver )
 
   /* try to get new interface */
 
-  result = IDirectDraw_QueryInterface( ddobj, &IID_IDirectDraw7, (LPVOID *) &win32_driver->ddobj );
+  result = IDirectDraw_QueryInterface( ddobj, &IID_IDirectDraw4, (LPVOID *) &win32_driver->ddobj );
   if( result != DD_OK )
     {
-      Error( 0, "ddobj->QueryInterface : DirectX 7 or higher required" );
+      Error( 0, "ddobj->QueryInterface : DirectX 4 or higher required" );
       return 0;
     }
 
@@ -194,7 +217,7 @@ boolean CreatePrimary( win32_driver_t * win32_driver )
   ddsd.dwFlags        = DDSD_CAPS;
   ddsd.ddsCaps.dwCaps = DDSCAPS_PRIMARYSURFACE;
 
-  result = IDirectDraw7_CreateSurface( win32_driver->ddobj, &ddsd, &win32_driver->primary, 0 );
+  result = IDirectDraw4_CreateSurface( win32_driver->ddobj, &ddsd, &win32_driver->primary, 0 );
   if( result != DD_OK )
     {
       Error( 0, "CreateSurface ( primary ) : error %i ", result );
@@ -203,7 +226,7 @@ boolean CreatePrimary( win32_driver_t * win32_driver )
 
   /* create our clipper object */
 
-  result = IDirectDraw7_CreateClipper( win32_driver->ddobj, 0, &win32_driver->ddclipper, 0 );
+  result = IDirectDraw4_CreateClipper( win32_driver->ddobj, 0, &win32_driver->ddclipper, 0 );
   if( result != DD_OK )
     {
       Error( 0, "CreateClipper : error %i", result );
@@ -221,7 +244,7 @@ boolean CreatePrimary( win32_driver_t * win32_driver )
 
   /* associate our primary surface with our clipper */
 
-  result = IDirectDrawSurface7_SetClipper( win32_driver->primary, win32_driver->ddclipper );
+  result = IDirectDrawSurface4_SetClipper( win32_driver->primary, win32_driver->ddclipper );
   if( result != DD_OK )
     {
       Error( 0, "ddclipper->SetHWnd : error %i", result );
@@ -274,7 +297,7 @@ boolean CreateSecondary( win32_driver_t * win32_driver, int width, int height, i
    * surface then release it */
 
   if( win32_driver->secondary )
-    IDirectDrawSurface7_Release( win32_driver->secondary );
+    IDirectDrawSurface4_Release( win32_driver->secondary );
 
   memset( &ddsd, 0, sizeof( ddsd ) );
   ddsd.dwSize         = sizeof( ddsd );
@@ -333,9 +356,9 @@ boolean CreateSecondary( win32_driver_t * win32_driver, int width, int height, i
     } 
 #endif /* RGB_SUPPORT */
 
-  lprintf("CreateSecondary() - IDirectDraw7_CreateSurface()\n");
+  lprintf("CreateSecondary() - IDirectDraw4_CreateSurface()\n");
 
-  if( IDirectDraw7_CreateSurface( win32_driver->ddobj, &ddsd, &win32_driver->secondary, 0 ) == DD_OK )
+  if( IDirectDraw4_CreateSurface( win32_driver->ddobj, &ddsd, &win32_driver->secondary, 0 ) == DD_OK )
     return TRUE;
 
   /*  Our fallback method is to create a back buffer
@@ -350,7 +373,7 @@ boolean CreateSecondary( win32_driver_t * win32_driver, int width, int height, i
 
   win32_driver->act_format = IMGFMT_NATIVE;
 
-  if( IDirectDraw7_CreateSurface( win32_driver->ddobj, &ddsd, &win32_driver->secondary, 0 ) == DD_OK )
+  if( IDirectDraw4_CreateSurface( win32_driver->ddobj, &ddsd, &win32_driver->secondary, 0 ) == DD_OK )
     return TRUE;
 
   /* This is bad. We cant even create a surface with
@@ -370,10 +393,10 @@ void Destroy( win32_driver_t * win32_driver )
     IDirectDrawClipper_Release( win32_driver->ddclipper );
 
   if( win32_driver->primary )
-    IDirectDrawSurface7_Release( win32_driver->primary );
+    IDirectDrawSurface4_Release( win32_driver->primary );
 
   if( win32_driver->secondary )
-    IDirectDrawSurface7_Release( win32_driver->secondary );
+    IDirectDrawSurface4_Release( win32_driver->secondary );
 
   if( win32_driver->ddobj )
     IDirectDraw_Release( win32_driver->ddobj );
@@ -395,10 +418,10 @@ boolean CheckPixelFormat( win32_driver_t * win32_driver )
 
   memset( &ddpf, 0, sizeof( DDPIXELFORMAT ));
   ddpf.dwSize = sizeof( DDPIXELFORMAT );
-  result = IDirectDrawSurface7_GetPixelFormat( win32_driver->primary, &ddpf );
+  result = IDirectDrawSurface4_GetPixelFormat( win32_driver->primary, &ddpf );
   if( result != DD_OK )
     {
-      Error( 0, "IDirectDrawSurface7_GetPixelFormat ( CheckPixelFormat ) : error %u", result );
+      Error( 0, "IDirectDrawSurface4_GetPixelFormat ( CheckPixelFormat ) : error %u", result );
       return 0;
     }
 
@@ -461,9 +484,9 @@ boolean CheckPixelFormat( win32_driver_t * win32_driver )
  * being pushed to the backend. */
 
 
-LPDIRECTDRAWSURFACE7 CreateBMP( win32_driver_t * win32_driver, int resource )
+LPDIRECTDRAWSURFACE4 CreateBMP( win32_driver_t * win32_driver, int resource )
 {
-  LPDIRECTDRAWSURFACE7	bmp_surf;
+  LPDIRECTDRAWSURFACE4	bmp_surf;
   DDSURFACEDESC2	bmp_ddsd;
   HBITMAP		bmp_hndl;
   BITMAP		bmp_head;
@@ -490,7 +513,7 @@ LPDIRECTDRAWSURFACE7 CreateBMP( win32_driver_t * win32_driver, int resource )
   bmp_ddsd.dwWidth        = bmp_head.bmWidth;
   bmp_ddsd.dwHeight       = bmp_head.bmHeight;
 
-  if( IDirectDraw7_CreateSurface( win32_driver->ddobj, &bmp_ddsd, &bmp_surf, 0 ) != DD_OK )
+  if( IDirectDraw4_CreateSurface( win32_driver->ddobj, &bmp_ddsd, &bmp_surf, 0 ) != DD_OK )
     {
       Error( 0, "CreateSurface ( bitmap ) : could not create dd surface" );
       return 0;
@@ -500,7 +523,7 @@ LPDIRECTDRAWSURFACE7 CreateBMP( win32_driver_t * win32_driver, int resource )
    * create a compat dc and load
    * our bitmap into the compat dc */
 
-  IDirectDrawSurface7_GetDC( bmp_surf, &hdc_dds );
+  IDirectDrawSurface4_GetDC( bmp_surf, &hdc_dds );
   hdc_mem = CreateCompatibleDC( hdc_dds );
   SelectObject( hdc_mem, bmp_hndl );
 
@@ -514,7 +537,7 @@ LPDIRECTDRAWSURFACE7 CreateBMP( win32_driver_t * win32_driver, int resource )
 
   DeleteDC( hdc_mem );
   DeleteObject( bmp_hndl );
-  IDirectDrawSurface7_ReleaseDC( bmp_surf, hdc_dds );
+  IDirectDrawSurface4_ReleaseDC( bmp_surf, hdc_dds );
 
   return bmp_surf;
 }
@@ -524,8 +547,8 @@ LPDIRECTDRAWSURFACE7 CreateBMP( win32_driver_t * win32_driver, int resource )
  * a h/w overlay of the current frame type
  * is supported. */
 
-boolean Overlay( LPDIRECTDRAWSURFACE7 src_surface, RECT * src_rect,
-		 LPDIRECTDRAWSURFACE7 dst_surface, RECT * dst_rect,
+boolean Overlay( LPDIRECTDRAWSURFACE4 src_surface, RECT * src_rect,
+		 LPDIRECTDRAWSURFACE4 dst_surface, RECT * dst_rect,
 		 COLORREF color_key )
 {
   DWORD			dw_color_key;
@@ -539,10 +562,10 @@ boolean Overlay( LPDIRECTDRAWSURFACE7 src_surface, RECT * src_rect,
 
   memset( &ddpf, 0, sizeof( DDPIXELFORMAT ));
   ddpf.dwSize = sizeof( DDPIXELFORMAT );
-  result = IDirectDrawSurface7_GetPixelFormat( dst_surface, &ddpf );
+  result = IDirectDrawSurface4_GetPixelFormat( dst_surface, &ddpf );
   if( result != DD_OK )
     {
-      Error( 0, "IDirectDrawSurface7_GetPixelFormat : could not get surface pixel format" );
+      Error( 0, "IDirectDrawSurface4_GetPixelFormat : could not get surface pixel format" );
       return FALSE;
     }
 
@@ -560,19 +583,19 @@ boolean Overlay( LPDIRECTDRAWSURFACE7 src_surface, RECT * src_rect,
 
   /* attempt to overlay the surface */
 
-  result = IDirectDrawSurface7_UpdateOverlay( src_surface, src_rect, dst_surface, dst_rect, flags, &ddofx );
+  result = IDirectDrawSurface4_UpdateOverlay( src_surface, src_rect, dst_surface, dst_rect, flags, &ddofx );
   if( result != DD_OK )
     {
       if( result == DDERR_SURFACELOST )
 	{
-	  IDirectDrawSurface7_Restore( src_surface );
-	  IDirectDrawSurface7_Restore( dst_surface );
+	  IDirectDrawSurface4_Restore( src_surface );
+	  IDirectDrawSurface4_Restore( dst_surface );
 
-	  IDirectDrawSurface7_UpdateOverlay( src_surface, src_rect, dst_surface, dst_rect, flags, &ddofx );
+	  IDirectDrawSurface4_UpdateOverlay( src_surface, src_rect, dst_surface, dst_rect, flags, &ddofx );
 	}
       else
 	{
-	  Error( 0, "IDirectDrawSurface7_UpdateOverlay : error %i", result );
+	  Error( 0, "IDirectDrawSurface4_UpdateOverlay : error %i", result );
 	  return FALSE;
 	}
     }
@@ -585,8 +608,8 @@ boolean Overlay( LPDIRECTDRAWSURFACE7 src_surface, RECT * src_rect,
  * h/w overlay of the current frame format is
  * not supported. */
 
-boolean BltCopy( LPDIRECTDRAWSURFACE7 src_surface, RECT * src_rect,
-		 LPDIRECTDRAWSURFACE7 dst_surface, RECT * dst_rect )
+boolean BltCopy( LPDIRECTDRAWSURFACE4 src_surface, RECT * src_rect,
+		 LPDIRECTDRAWSURFACE4 dst_surface, RECT * dst_rect )
 {
   DDSURFACEDESC	ddsd_target;
   HRESULT	result;
@@ -596,19 +619,19 @@ boolean BltCopy( LPDIRECTDRAWSURFACE7 src_surface, RECT * src_rect,
 
   /* attempt to blt the surface sontents */
 
-  result = IDirectDrawSurface7_Blt( dst_surface, dst_rect, src_surface, src_rect, DDBLT_WAIT, 0 );
+  result = IDirectDrawSurface4_Blt( dst_surface, dst_rect, src_surface, src_rect, DDBLT_WAIT, 0 );
   if( result != DD_OK )
     {
       if( result != DDERR_SURFACELOST )
 	{
-	  IDirectDrawSurface7_Restore( src_surface );
-	  IDirectDrawSurface7_Restore( dst_surface );
+	  IDirectDrawSurface4_Restore( src_surface );
+	  IDirectDrawSurface4_Restore( dst_surface );
 
-	  IDirectDrawSurface7_Blt( dst_surface, dst_rect, src_surface, src_rect, DDBLT_WAIT, 0 );
+	  IDirectDrawSurface4_Blt( dst_surface, dst_rect, src_surface, src_rect, DDBLT_WAIT, 0 );
 	}
       else
 	{
-	  Error( 0, "IDirectDrawSurface7_Blt : error %i", result );
+	  Error( 0, "IDirectDrawSurface4_Blt : error %i", result );
 	  return FALSE;
 	}
     }
@@ -729,7 +752,7 @@ boolean DisplayFrame( win32_driver_t * win32_driver )
 
 void * Lock( void * surface )
 {
-  LPDIRECTDRAWSURFACE7	lock_surface = ( LPDIRECTDRAWSURFACE7 ) surface;
+  LPDIRECTDRAWSURFACE4	lock_surface = ( LPDIRECTDRAWSURFACE4 ) surface;
   DDSURFACEDESC2	ddsd;
   HRESULT		result;
 
@@ -739,11 +762,11 @@ void * Lock( void * surface )
   memset( &ddsd, 0, sizeof( ddsd ) );
   ddsd.dwSize = sizeof( ddsd );
 
-  result = IDirectDrawSurface7_Lock( lock_surface, 0, &ddsd, DDLOCK_WAIT | DDLOCK_NOSYSLOCK, 0 );
+  result = IDirectDrawSurface4_Lock( lock_surface, 0, &ddsd, DDLOCK_WAIT | DDLOCK_NOSYSLOCK, 0 );
   if( result == DDERR_SURFACELOST )
     {
-      IDirectDrawSurface7_Restore( lock_surface );
-      result = IDirectDrawSurface7_Lock( lock_surface, 0, &ddsd, DDLOCK_WAIT | DDLOCK_NOSYSLOCK, 0 );
+      IDirectDrawSurface4_Restore( lock_surface );
+      result = IDirectDrawSurface4_Lock( lock_surface, 0, &ddsd, DDLOCK_WAIT | DDLOCK_NOSYSLOCK, 0 );
 
       if( result != DD_OK )
 	return 0;
@@ -767,12 +790,12 @@ void * Lock( void * surface )
 
 void Unlock( void * surface )
 {
-  LPDIRECTDRAWSURFACE7 lock_surface = ( LPDIRECTDRAWSURFACE7 ) surface;
+  LPDIRECTDRAWSURFACE4 lock_surface = ( LPDIRECTDRAWSURFACE4 ) surface;
 
   if( !surface )
     return;
 
-  IDirectDrawSurface7_Unlock( lock_surface, 0 );
+  IDirectDrawSurface4_Unlock( lock_surface, 0 );
 }
 
 /* -----------------------------------------
