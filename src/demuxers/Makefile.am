@@ -23,6 +23,7 @@ xineplug_dmx_mpeg_la_SOURCES = demux_mpeg.c
 xineplug_dmx_mpeg_la_LDFLAGS = -avoid-version -module
 
 xineplug_dmx_mpeg_audio_la_SOURCES = demux_mpgaudio.c
+xineplug_dmx_mpeg_audio_la_LIBADD = -lm
 xineplug_dmx_mpeg_audio_la_LDFLAGS = -avoid-version -module
 
 xineplug_dmx_mpeg_elem_la_SOURCES = demux_elem.c
