@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  *
- * $Id: video_out_pgx64.c,v 1.4 2002/10/05 04:11:58 komadori Exp $
+ * $Id: video_out_pgx64.c,v 1.5 2002/10/06 16:12:10 komadori Exp $
  *
  * video_out_pgx64.c, Sun PGX64/PGX24 output plugin for xine
  *
@@ -226,7 +226,7 @@ static inline void write_gsr(uint32_t gsr)
  * !IMPORTANT! !IMPORTANT! !IMPORTANT! !IMPORTANT! !IMPORTANT!
  */
 
-static void pgx64_config_changed(pgx64_driver_t *this, cfg_entry_t *entry)
+static void pgx64_config_changed(pgx64_driver_t *this, xine_cfg_entry_t *entry)
 {
   if (strcmp(entry->key, "video.pgx64_colour_key") == 0) {
     this->colour_key = entry->num_value;
@@ -373,12 +373,12 @@ static void pgx64_display_frame(pgx64_driver_t *this, pgx64_frame_t *frame)
 
         for (;p != endp;p++) {
           asm volatile("ld	[%0], %%f0\n\t"
-                       "add	%0, %1, %%l0\n\t"
+                       "add	%0, %1, %%o0\n\t"
                        "fexpand	%%f0, %%f6\n\t"
-                       "ld	[%%l0], %%f2\n\t"
-                       "add	%%l0, %1, %%l1\n\t"
+                       "ld	[%%o0], %%f2\n\t"
+                       "add	%%o0, %1, %%o1\n\t"
                        "fexpand	%%f2, %%f8\n\t"
-                       "ld	[%%l1], %%f4\n\t"
+                       "ld	[%%o1], %%f4\n\t"
                        "fpadd16	%%f6, %%f8, %%f0\n\t"
                        "fexpand	%%f4, %%f10\n\t"
                        "fpadd16	%%f0, %%f8, %%f2\n\t"
@@ -388,7 +388,7 @@ static void pgx64_display_frame(pgx64_driver_t *this, pgx64_frame_t *frame)
                        : : "r" (p), "r" (width)
                        : "%f0", "%f1", "%f2", "%f3", "%f4", "%f5",
                          "%f6", "%f7", "%f8", "%f9", "%f10", "%f11",
-                         "%l0", "%l1");
+                         "%o0", "%o1");
         }
 
         break;
