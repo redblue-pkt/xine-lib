@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mosaico.c,v 1.2 2003/02/27 01:15:50 tmmm Exp $
+ * $Id: mosaico.c,v 1.3 2003/02/27 09:49:14 skaboy Exp $
  */
  
 /*
@@ -34,6 +34,8 @@
 #define DEFAULT_W (150)
 #define DEFAULT_H (150)
 #define MAXPIP (5)
+
+/*#define LOG*/
 
 /* plugin class initialization function */
 static void *mosaico_init_plugin(xine_t *xine, void *);
@@ -62,7 +64,6 @@ struct post_mosaico_out_s {
   vo_frame_t *saved_frame_2[MAXPIP]; 
   pthread_mutex_t mut1, mut2;
   mosaico_stream_t info[MAXPIP];
-/*  //pthread_key_t key;*/
   unsigned int pip;
 };
 
@@ -148,11 +149,6 @@ static void *mosaico_init_plugin(xine_t *xine, void *data)
   config_values_t *cfg;
   int i;
   char string[255];
-/*
-  //add config entry management
-  //post.mosaico_input_0_xywh //background
-  //post.mosaico_input_[1..MAX]_(x, y, w, h) //little screen
-*/
 
   if (!this)
     return NULL;
@@ -176,8 +172,6 @@ static void *mosaico_init_plugin(xine_t *xine, void *data)
     cfg->register_num (cfg, string, DEFAULT_H, _("Default height"), NULL, 10, h_changed_cb, this);
   }
 
-  printf("mosaico loaded\n");
-
   return &this->class;
 }
 
@@ -195,7 +189,11 @@ static post_plugin_t *mosaico_open_plugin(post_class_t *class_gen, int inputs,
   int i;
   char string[255];
     
+  if(inputs < 2) return NULL;
+
+#ifdef LOG
   printf("mosaico open\n");
+#endif
 
   if (!this || !input1 || !output || !video_target || !video_target[0]) {
     free(this);
@@ -274,8 +272,6 @@ static post_plugin_t *mosaico_open_plugin(post_class_t *class_gen, int inputs,
   this->xine_post.video_input[i+1] = NULL;     
   this->dispose = mosaico_dispose;
 
-/*  //pthread_key_create(&output->key, NULL);*/
-
   return this;
 }
 
@@ -336,28 +332,22 @@ static void mosaico_open(xine_video_port_t *port_gen, xine_stream_t *stream)
 {
   post_video_port_t *port = (post_video_port_t *)port_gen;
   post_mosaico_out_t *output = (post_mosaico_out_t *)xine_list_first_content(port->post->output);
-  xine_video_port_t *pt;
+  /*xine_video_port_t *pt;
   xine_post_in_t *in;
   int i = 0;
-  int *dato, *dato2;
 
   in = xine_list_first_content(port->post->input);
 
-  /*  while(in != NULL) {
-    pt = in->data;
-    if(pt == port_gen) break;//printf("trovato %d\n", i);
-
-    in = xine_list_next_content(port->post->input);
-    i++;
-    }*/
+  while(in != NULL) {
+  pt = in->data;
+  if(pt == port_gen) break;//printf("trovato %d\n", i);
+  
+  in = xine_list_next_content(port->post->input);
+  i++;
+  }*/
   output->stream = stream;
   port->original_port->open(port->original_port, stream);
    
-  /*  dato = malloc(sizeof(int));
-  *dato = i;
-  pthread_setspecific(output->key, dato);
-  dato2 = pthread_getspecific(output->key);
-  printf("%d\n", *dato2);*/
 }
 
 static vo_frame_t *mosaico_get_frame(xine_video_port_t *port_gen, uint32_t width, 
@@ -406,13 +396,17 @@ static void frame_copy_content(vo_frame_t *to, vo_frame_t *from) {
   int size;
 
   if((to == NULL)||(from == NULL)) {
-    printf("oi oi oi \n\n");
+#ifdef LOG
+    printf("Something wrong in frame_copy_content\n");
+#endif
     return;
   }
-  /* //it works only for XINE_IMGFMT_YV12*/
+  /* it works only for XINE_IMGFMT_YV12*/
   switch (from->format) {
   case XINE_IMGFMT_YUY2:
+#ifdef LOG
     printf("not supported\n");
+#endif
     /*size = new_frame->pitches[0] * new_frame->height;   
     for (i = 0; i < size; i++)
     new_frame->base[0][i] = frame->base[0][i];*/
@@ -464,14 +458,18 @@ static int _mosaico_draw_2(vo_frame_t *frame, post_mosaico_out_t *output, int co
   pthread_mutex_lock(&output->mut2);
 
   if((output->saved_frame_2[cont] == NULL)&&(frame == NULL)) {
+#ifdef LOG
     printf("frame_2 NULL\n");
+#endif
     pthread_mutex_unlock(&output->mut1);
     pthread_mutex_unlock(&output->mut2);
     return 0;
   }
 
   if(output->saved_frame == NULL) {
+#ifdef LOG
     printf("saved frame NULL\n");
+#endif
     pthread_mutex_unlock(&output->mut1);
     pthread_mutex_unlock(&output->mut2);
     return 0;
@@ -512,7 +510,9 @@ static int _mosaico_draw_2(vo_frame_t *frame, post_mosaico_out_t *output, int co
 
     switch (output->saved_frame_2[ciclo-1]->format) {
     case XINE_IMGFMT_YUY2:
+#ifdef LOG
       printf("not supported\n");
+#endif
       /*size = new_frame->pitches[0] * new_frame->height;   
 	for (i = 0; i < size; i++)
 	new_frame->base[0][i] = frame->base[0][i];*/
@@ -586,7 +586,9 @@ static int mosaico_draw(vo_frame_t *frame, xine_stream_t *stream)
   
     return skip;
   }
+#ifdef LOG
   printf("ERROR!! oh oh\n\n");
+#endif
   return 0;
 }
 
@@ -594,9 +596,7 @@ static int mosaico_draw_2(vo_frame_t *frame, xine_stream_t *stream)
 {
 /*  //vo_frame_t *new_frame;*/
   post_video_port_t *port = (post_video_port_t *)frame->port;
-  post_mosaico_out_t *output = (post_mosaico_out_t *)xine_list_first_content(port->post->output);
-  int *dato;
-
+  post_mosaico_out_t *output = (post_mosaico_out_t *)xine_list_first_content(port->post->output);  
   xine_video_port_t *pt;
   xine_post_in_t *in;
   int i = 0;
@@ -606,7 +606,9 @@ static int mosaico_draw_2(vo_frame_t *frame, xine_stream_t *stream)
   while(in != NULL) {
     pt = in->data;
     if(pt == frame->port) {
-/*      //printf("trovato %d\n", i);*/
+#ifdef LOG
+      /*printf("trovato %d\n", i);*/
+#endif
       break;
     }
     in = xine_list_next_content(port->post->input);
