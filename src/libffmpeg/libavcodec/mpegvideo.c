@@ -761,7 +761,9 @@ int MPV_encode_init(AVCodecContext *avctx)
     if (MPV_common_init(s) < 0)
         return -1;
     
+#ifdef CONFIG_ENCODERS_FULL
     ff_init_me(s);
+#endif
 
 #ifdef CONFIG_ENCODERS
 #ifdef CONFIG_RISKY
@@ -1438,7 +1440,9 @@ int MPV_encode_picture(AVCodecContext *avctx,
             mjpeg_picture_trailer(s);
         
         if(s->flags&CODEC_FLAG_PASS1)
+#ifdef CONFIG_ENCODERS_FULL
             ff_write_pass1_stats(s);
+#endif
 
         for(i=0; i<4; i++){
             avctx->error[i] += s->current_picture_ptr->error[i];
@@ -3014,6 +3018,7 @@ static void encode_picture(MpegEncContext *s, int picture_number)
     /* Estimate motion for every MB */
     s->mb_intra=0; //for the rate distoration & bit compare functions
     if(s->pict_type != I_TYPE){
+#ifdef CONFIG_ENCODERS_FULL
         if(s->pict_type != B_TYPE){
             if((s->avctx->pre_me && s->last_non_b_pict_type==I_TYPE) || s->avctx->pre_me==2){
                 s->me.pre_pass=1;
@@ -3051,6 +3056,7 @@ static void encode_picture(MpegEncContext *s, int picture_number)
                     ff_estimate_p_frame_motion(s, mb_x, mb_y);
             }
         }
+#endif
     }else /* if(s->pict_type == I_TYPE) */{
         /* I-Frame */
         //FIXME do we need to zero them?
@@ -3087,12 +3093,15 @@ static void encode_picture(MpegEncContext *s, int picture_number)
 
     if(!s->umvplus){
         if(s->pict_type==P_TYPE || s->pict_type==S_TYPE) {
+#ifdef CONFIG_ENCODERS_FULL
             s->f_code= ff_get_best_fcode(s, s->p_mv_table, MB_TYPE_INTER);
         
             ff_fix_long_p_mvs(s);
+#endif
         }
 
         if(s->pict_type==B_TYPE){
+#ifdef CONFIG_ENCODERS_FULL
             int a, b;
 
             a = ff_get_best_fcode(s, s->b_forw_mv_table, MB_TYPE_FORWARD);
@@ -3107,6 +3116,7 @@ static void encode_picture(MpegEncContext *s, int picture_number)
             ff_fix_long_b_mvs(s, s->b_back_mv_table, s->b_code, MB_TYPE_BACKWARD);
             ff_fix_long_b_mvs(s, s->b_bidir_forw_mv_table, s->f_code, MB_TYPE_BIDIR);
             ff_fix_long_b_mvs(s, s->b_bidir_back_mv_table, s->b_code, MB_TYPE_BIDIR);
+#endif
         }
     }
     

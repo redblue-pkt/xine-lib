@@ -80,23 +80,6 @@ diff -u -r1.60 dsputil.h
  
  
  #define emms_c() \
-Index: libavcodec/mpegvideo.c
-===================================================================
-RCS file: /cvsroot/ffmpeg/ffmpeg/libavcodec/mpegvideo.c,v
-retrieving revision 1.231
-diff -u -r1.231 mpegvideo.c
---- libavcodec/mpegvideo.c	22 Mar 2003 12:09:01 -0000	1.231
-+++ libavcodec/mpegvideo.c	26 Mar 2003 13:49:19 -0000
-@@ -34,8 +34,7 @@
- #include "fastmemcpy.h"
- #endif
- 
--//#undef NDEBUG
--//#include <assert.h>
-+#define CONFIG_RISKY
- 
- #ifdef CONFIG_ENCODERS
- static void encode_picture(MpegEncContext *s, int picture_number);
 Index: libavcodec/i386/cputest.c
 ===================================================================
 RCS file: /cvsroot/ffmpeg/ffmpeg/libavcodec/i386/cputest.c,v
@@ -482,160 +465,6 @@ diff -u -r1.3 mmx.h
 -
 -#endif /* AVCODEC_I386MMX_H */
 +#include "xineutils.h"
-Index: libavcodec/i386/mpegvideo_mmx_template.c
-===================================================================
-RCS file: /cvsroot/ffmpeg/ffmpeg/libavcodec/i386/mpegvideo_mmx_template.c,v
-retrieving revision 1.15
-diff -u -r1.15 mpegvideo_mmx_template.c
---- libavcodec/i386/mpegvideo_mmx_template.c	3 Mar 2003 14:53:53 -0000	1.15
-+++ libavcodec/i386/mpegvideo_mmx_template.c	26 Mar 2003 13:49:20 -0000
-@@ -83,16 +83,25 @@
-     }
- 
-     if(s->out_format == FMT_H263 && s->mpeg_quant==0){
--    
-+
-+        /* the following code is patched using avifile's modifications
-+           to enable -fpic compilation. this patch has not been accepted on
-+           main ffmpeg cvs. */
-+
-         asm volatile(
-             "movd %%eax, %%mm3			\n\t" // last_non_zero_p1
-             SPREADW(%%mm3)
-             "pxor %%mm7, %%mm7			\n\t" // 0
-             "pxor %%mm4, %%mm4			\n\t" // 0
--            "movq (%2), %%mm5			\n\t" // qmat[0]
-+            "movq (%1), %%mm5			\n\t" // qmat[0]
-             "pxor %%mm6, %%mm6			\n\t"
--            "psubw (%3), %%mm6			\n\t" // -bias[0]
-+            "psubw (%2), %%mm6			\n\t" // -bias[0]
-             "movl $-128, %%eax			\n\t"
-+            : "+a" (last_non_zero_p1)
-+            : "r" (qmat), "r" (bias)
-+            );
-+	  /* CORE */
-+	  asm volatile(
-             ".balign 16				\n\t"
-             "1:					\n\t"
-             "pxor %%mm1, %%mm1			\n\t" // 0
-@@ -105,7 +114,7 @@
-             "por %%mm0, %%mm4			\n\t" 
-             "pxor %%mm1, %%mm0			\n\t" 
-             "psubw %%mm1, %%mm0			\n\t" // out=((ABS(block[i])*qmat[0] - bias[0]*qmat[0])>>16)*sign(block[i])
--            "movq %%mm0, (%5, %%eax)		\n\t"
-+            "movq %%mm0, (%3, %%eax)		\n\t"
-             "pcmpeqw %%mm7, %%mm0		\n\t" // out==0 ? 0xFF : 0x00
-             "movq (%4, %%eax), %%mm1		\n\t" 
-             "movq %%mm7, (%1, %%eax)		\n\t" // 0
-@@ -113,6 +122,11 @@
- 	    PMAXW(%%mm0, %%mm3)
-             "addl $8, %%eax			\n\t"
-             " js 1b				\n\t"
-+            : "+a" (last_non_zero_p1)
-+            : "r" (block+64), "r" (inv_zigzag_direct16+64), "r" (temp_block+64)
-+            );
-+	  /* EPILOGUE */
-+	  asm volatile(
-             "movq %%mm3, %%mm0			\n\t"
-             "psrlq $32, %%mm3			\n\t"
- 	    PMAXW(%%mm0, %%mm3)
-@@ -121,48 +135,46 @@
- 	    PMAXW(%%mm0, %%mm3)
-             "movd %%mm3, %%eax			\n\t"
-             "movzbl %%al, %%eax			\n\t" // last_non_zero_p1
--	    : "+a" (last_non_zero_p1)
--            : "r" (block+64), "r" (qmat), "r" (bias),
--              "r" (inv_zigzag_direct16+64), "r" (temp_block+64)
--        );
--        // note the asm is split cuz gcc doesnt like that many operands ...
--        asm volatile(
--            "movd %1, %%mm1			\n\t" // max_qcoeff
-+            "movd %2, %%mm1			\n\t" // max_qcoeff
- 	    SPREADW(%%mm1)
-             "psubusw %%mm1, %%mm4		\n\t" 
-             "packuswb %%mm4, %%mm4		\n\t"
--            "movd %%mm4, %0			\n\t" // *overflow
--        : "=g" (*overflow)
--        : "g" (s->max_qcoeff)
--        );
-+            "movd %%mm4, %1			\n\t" // *overflow
-+            : "+a" (last_non_zero_p1), "=r" (*overflow)
-+            : "r" (s->max_qcoeff)
-+            );
-     }else{ // FMT_H263
-         asm volatile(
--            "movd %%eax, %%mm3			\n\t" // last_non_zero_p1
-+            "pushl %%ebp				\n\t"
-+            "pushl %%ebx				\n\t"
-+            "movl %0, %%ebp				\n\t"
-+            "movl (%%ebp), %%ebx		\n\t"
-+            "movd %%ebx, %%mm3			\n\t" // last_non_zero_p1
-             SPREADW(%%mm3)
-             "pxor %%mm7, %%mm7			\n\t" // 0
-             "pxor %%mm4, %%mm4			\n\t" // 0
--            "movl $-128, %%eax			\n\t"
-+            "movl $-128, %%ebx			\n\t"
-             ".balign 16				\n\t"
-             "1:					\n\t"
-             "pxor %%mm1, %%mm1			\n\t" // 0
--            "movq (%1, %%eax), %%mm0		\n\t" // block[i]
-+            "movq (%1, %%ebx), %%mm0		\n\t" // block[i]
-             "pcmpgtw %%mm0, %%mm1		\n\t" // block[i] <= 0 ? 0xFF : 0x00
-             "pxor %%mm1, %%mm0			\n\t" 
-             "psubw %%mm1, %%mm0			\n\t" // ABS(block[i])
--            "movq (%3, %%eax), %%mm6		\n\t" // bias[0]
-+            "movq (%3, %%ebx), %%mm6		\n\t" // bias[0]
-             "paddusw %%mm6, %%mm0		\n\t" // ABS(block[i]) + bias[0]
--            "movq (%2, %%eax), %%mm5		\n\t" // qmat[i]
-+            "movq (%2, %%ebx), %%mm5		\n\t" // qmat[i]
-             "pmulhw %%mm5, %%mm0		\n\t" // (ABS(block[i])*qmat[0] + bias[0]*qmat[0])>>16
-             "por %%mm0, %%mm4			\n\t" 
-             "pxor %%mm1, %%mm0			\n\t" 
-             "psubw %%mm1, %%mm0			\n\t" // out=((ABS(block[i])*qmat[0] - bias[0]*qmat[0])>>16)*sign(block[i])
--            "movq %%mm0, (%5, %%eax)		\n\t"
-+            "movq %%mm0, (%5, %%ebx)		\n\t"
-             "pcmpeqw %%mm7, %%mm0		\n\t" // out==0 ? 0xFF : 0x00
--            "movq (%4, %%eax), %%mm1		\n\t" 
--            "movq %%mm7, (%1, %%eax)		\n\t" // 0
-+            "movq (%4, %%ebx), %%mm1		\n\t" 
-+            "movq %%mm7, (%1, %%ebx)		\n\t" // 0
-             "pandn %%mm1, %%mm0			\n\t"
- 	    PMAXW(%%mm0, %%mm3)
--            "addl $8, %%eax			\n\t"
-+            "addl $8, %%ebx			\n\t"
-             " js 1b				\n\t"
-             "movq %%mm3, %%mm0			\n\t"
-             "psrlq $32, %%mm3			\n\t"
-@@ -170,10 +182,14 @@
-             "movq %%mm3, %%mm0			\n\t"
-             "psrlq $16, %%mm3			\n\t"
- 	    PMAXW(%%mm0, %%mm3)
--            "movd %%mm3, %%eax			\n\t"
--            "movzbl %%al, %%eax			\n\t" // last_non_zero_p1
--	    : "+a" (last_non_zero_p1)
--            : "r" (block+64), "r" (qmat+64), "r" (bias+64),
-+            "movd %%mm3, %%ebx			\n\t"
-+            "movzbl %%bl, %%ebx			\n\t" // last_non_zero_p1
-+            "movl %%ebx, (%%ebp)		\n\t"
-+            "popl %%ebx					\n\t"
-+            "popl %%ebp					\n\t"
-+            :
-+			: "m" (last_non_zero_p1),
-+              "r" (block+64), "r" (qmat+64), "r" (bias+64),
-               "r" (inv_zigzag_direct16+64), "r" (temp_block+64)
-         );
-         // note the asm is split cuz gcc doesnt like that many operands ...
-@@ -183,8 +199,8 @@
-             "psubusw %%mm1, %%mm4		\n\t" 
-             "packuswb %%mm4, %%mm4		\n\t"
-             "movd %%mm4, %0			\n\t" // *overflow
--        : "=g" (*overflow)
--        : "g" (s->max_qcoeff)
-+        : "=r" (*overflow)
-+        : "r" (s->max_qcoeff)
-         );
-     }
- 
 Index: libavcodec/libpostproc/postprocess.c
 ===================================================================
 RCS file: /cvsroot/ffmpeg/ffmpeg/libavcodec/libpostproc/postprocess.c,v
@@ -722,3 +551,70 @@ diff -u -r1.61 mjpeg.c
  //	if (s->first_picture)
  //	    printf("mjpeg: workarounding buggy AVID\n");
  	s->interlace_polarity = get_bits(&s->gb, 8);
+Index: libavcodec/mpegvideo.c
+===================================================================
+RCS file: /cvsroot/xine/xine-lib/src/libffmpeg/libavcodec/mpegvideo.c,v
+retrieving revision 1.31
+diff -u -r1.31 mpegvideo.c
+--- libavcodec/mpegvideo.c	9 May 2003 23:54:05 -0000	1.31
++++ libavcodec/mpegvideo.c	25 May 2003 18:29:52 -0000
+@@ -761,7 +761,9 @@
+     if (MPV_common_init(s) < 0)
+         return -1;
+     
++#ifdef CONFIG_ENCODERS_FULL
+     ff_init_me(s);
++#endif
+ 
+ #ifdef CONFIG_ENCODERS
+ #ifdef CONFIG_RISKY
+@@ -1438,7 +1440,9 @@
+             mjpeg_picture_trailer(s);
+         
+         if(s->flags&CODEC_FLAG_PASS1)
++#ifdef CONFIG_ENCODERS_FULL
+             ff_write_pass1_stats(s);
++#endif
+ 
+         for(i=0; i<4; i++){
+             avctx->error[i] += s->current_picture_ptr->error[i];
+@@ -3014,6 +3018,7 @@
+     /* Estimate motion for every MB */
+     s->mb_intra=0; //for the rate distoration & bit compare functions
+     if(s->pict_type != I_TYPE){
++#ifdef CONFIG_ENCODERS_FULL
+         if(s->pict_type != B_TYPE){
+             if((s->avctx->pre_me && s->last_non_b_pict_type==I_TYPE) || s->avctx->pre_me==2){
+                 s->me.pre_pass=1;
+@@ -3051,6 +3056,7 @@
+                     ff_estimate_p_frame_motion(s, mb_x, mb_y);
+             }
+         }
++#endif
+     }else /* if(s->pict_type == I_TYPE) */{
+         /* I-Frame */
+         //FIXME do we need to zero them?
+@@ -3087,12 +3093,15 @@
+ 
+     if(!s->umvplus){
+         if(s->pict_type==P_TYPE || s->pict_type==S_TYPE) {
++#ifdef CONFIG_ENCODERS_FULL
+             s->f_code= ff_get_best_fcode(s, s->p_mv_table, MB_TYPE_INTER);
+         
+             ff_fix_long_p_mvs(s);
++#endif
+         }
+ 
+         if(s->pict_type==B_TYPE){
++#ifdef CONFIG_ENCODERS_FULL
+             int a, b;
+ 
+             a = ff_get_best_fcode(s, s->b_forw_mv_table, MB_TYPE_FORWARD);
+@@ -3107,6 +3116,7 @@
+             ff_fix_long_b_mvs(s, s->b_back_mv_table, s->b_code, MB_TYPE_BACKWARD);
+             ff_fix_long_b_mvs(s, s->b_bidir_forw_mv_table, s->f_code, MB_TYPE_BIDIR);
+             ff_fix_long_b_mvs(s, s->b_bidir_back_mv_table, s->b_code, MB_TYPE_BIDIR);
++#endif
+         }
+     }
+     
