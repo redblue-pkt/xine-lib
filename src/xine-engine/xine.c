@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.143 2002/07/13 11:11:04 tmattern Exp $
+ * $Id: xine.c,v 1.144 2002/07/14 01:27:03 tmmm Exp $
  *
  * top-level xine functions
  *
@@ -606,6 +606,9 @@ xine_t *xine_init (vo_driver_t *vo,
   pthread_mutex_unlock (&this->logo_lock);
 
   this->video_driver = vo;
+
+  /* initialize color conversion tables and functions */
+  init_yuv_conversion();
 
   /* init log buffers */
   for (i = 0; i < XINE_LOG_NUM; i++)

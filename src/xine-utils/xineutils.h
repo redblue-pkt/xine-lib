@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xineutils.h,v 1.15 2002/06/07 22:15:47 f1rmb Exp $
+ * $Id: xineutils.h,v 1.16 2002/07/14 01:27:03 tmmm Exp $
  *
  */
 #ifndef XINEUTILS_H
@@ -714,6 +714,56 @@ static inline void _x_setenv(const char *name, const char *val, int _xx)
 }
 #define	xine_setenv	_x_setenv
 #endif
+
+/*
+ * Color Conversion Utility Functions
+ * The following data structures and functions facilitate the conversion
+ * of RGB images to packed YUV (YUY2) images. All of the meaty details
+ * are written in color.c.
+ */
+
+typedef struct yuv_planes_s {
+
+  unsigned char *y;
+  unsigned char *u;
+  unsigned char *v;
+  unsigned int row_width;    /* frame width */
+  unsigned int row_stride;   /* frame width + 2 */
+  unsigned int row_count;    /* frame height */
+
+} yuv_planes_t;
+
+void init_yuv_conversion(void);
+void init_yuv_planes(yuv_planes_t *yuv_planes, int width, int height);
+void free_yuv_planes(yuv_planes_t *yuv_planes);
+
+extern void (*yuv444_to_yuy2)
+  (yuv_planes_t *yuv_planes, unsigned char *yuy2_map);
+
+#define SCALEFACTOR 65536
+#define CENTERSAMPLE 128
+
+#define COMPUTE_Y(r, g, b) \
+  (unsigned char) \
+  ((y_r_table[r] + y_g_table[g] + y_b_table[b]) / SCALEFACTOR)
+#define COMPUTE_U(r, g, b) \
+  (unsigned char) \
+  ((u_r_table[r] + u_g_table[g] + u_b_table[b]) / SCALEFACTOR + CENTERSAMPLE)
+#define COMPUTE_V(r, g, b) \
+  (unsigned char) \
+  ((v_r_table[r] + v_g_table[g] + v_b_table[b]) / SCALEFACTOR + CENTERSAMPLE)
+
+extern int y_r_table[256];
+extern int y_g_table[256];
+extern int y_b_table[256];
+
+extern int u_r_table[256];
+extern int u_g_table[256];
+extern int u_b_table[256];
+
+extern int v_r_table[256];
+extern int v_g_table[256];
+extern int v_b_table[256];
 
 #ifdef __cplusplus
 }
