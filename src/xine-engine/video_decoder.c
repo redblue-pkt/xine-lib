@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.110 2002/11/15 00:20:34 miguelfreitas Exp $
+ * $Id: video_decoder.c,v 1.111 2002/11/29 17:25:26 mroi Exp $
  *
  */
 
@@ -135,15 +135,6 @@ void *video_decoder_loop (void *stream_gen) {
       break;
 
     case BUF_CONTROL_END:
-
-      if (stream->video_decoder_plugin) {
-	free_video_decoder (stream, stream->video_decoder_plugin);
-	stream->video_decoder_plugin = NULL;
-      }
-      if (stream->spu_decoder_plugin) {
-        free_spu_decoder (stream, stream->spu_decoder_plugin);
-        stream->spu_decoder_plugin = NULL;
-      }
 
       /* wait for audio to reach this marker, if necessary */
 

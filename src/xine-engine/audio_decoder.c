@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.89 2002/11/12 18:40:54 miguelfreitas Exp $
+ * $Id: audio_decoder.c,v 1.90 2002/11/29 17:25:26 mroi Exp $
  *
  *
  * functions that implement audio decoding
@@ -95,13 +95,6 @@ void *audio_decoder_loop (void *stream_gen) {
       break;
       
     case BUF_CONTROL_END:
-
-      if (stream->audio_decoder_plugin) {
-	free_audio_decoder (stream, stream->audio_decoder_plugin);
-	stream->audio_decoder_plugin = NULL;
-	stream->audio_track_map_entries = 0;
-	stream->audio_type = 0;
-      }
 
       /* wait for video to reach this marker, if necessary */
       
