@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_vidix.c,v 1.9 2002/08/16 21:53:27 miguelfreitas Exp $
+ * $Id: video_out_vidix.c,v 1.10 2002/09/02 19:58:47 f1rmb Exp $
  * 
  * video_out_vidix.c
  *
@@ -113,7 +113,7 @@ static void free_framedata(vidix_frame_t* frame)
    }
 }
 
-
+#if 0
 static void write_frame_YUV422(vidix_driver_t* this, vidix_frame_t* frame)
 {
    uint8_t*  y  = (uint8_t *)frame->vo_frame.base[0];
@@ -192,7 +192,7 @@ static void write_frame_YUV420P2(vidix_driver_t* this, vidix_frame_t* frame)
       dst8 += this->dstrides.y;
    }
 }
-
+#endif
 static void write_frame_YUV420P3(vidix_driver_t* this, vidix_frame_t* frame)
 {   
    uint8_t* y    = (uint8_t *)frame->vo_frame.base[0];
