@@ -22,7 +22,7 @@
  * based on overview of Cinepak algorithm and example decoder
  * by Tim Ferguson: http://www.csse.monash.edu.au/~timf/
  *
- * $Id: cinepak.c,v 1.1 2002/04/30 08:28:10 esnel Exp $
+ * $Id: cinepak.c,v 1.2 2002/04/30 20:06:16 esnel Exp $
  */
 
 #include <stdlib.h>
@@ -78,7 +78,6 @@ typedef struct cvid_decoder_s {
 
   long		    biWidth;
   long		    biHeight;
-  short		    biBitCount;
   uint8_t          *img_buffer;
 
   cvid_strip_t	    strips[MAX_STRIPS];
