@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_sun_out.c,v 1.31 2003/11/26 23:44:08 f1rmb Exp $
+ * $Id: audio_sun_out.c,v 1.32 2003/11/29 15:41:37 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -870,6 +870,7 @@ static ao_driver_t *ao_sun_open_plugin (audio_driver_class_t *class_gen, const v
   config_values_t     *config = class->xine->config;
   sun_driver_t	      *this;
   char                *devname;
+  char                *audiodev;
   int                  audio_fd;
   int                  status;
   audio_info_t	       info;
@@ -878,10 +879,12 @@ static ao_driver_t *ao_sun_open_plugin (audio_driver_class_t *class_gen, const v
 
   this->xine = class->xine;
 
+  audiodev = getenv("AUDIODEV");
+
   /* Fill the .xinerc file with options */ 
   devname = config->register_string(config,
 				    "audio.sun_audio_device",
-				    "/dev/audio",
+				    audiodev && *audiodev ? audiodev : "/dev/audio",
 				    _("device used for audio output with the 'Sun' audio plugin"),
 				    NULL,
 				    10, NULL,
