@@ -183,12 +183,14 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 	      if (picture->mpeg1) 
 		picture->current_frame->pts = 0;
 
-	      mpeg2dec->frames_to_drop = picture->current_frame->draw (picture->current_frame);
+	      if( !picture->current_frame->drawn )
+	        mpeg2dec->frames_to_drop = picture->current_frame->draw (picture->current_frame);
 	      picture->current_frame->drawn = 1;
 	      
-	      /* frame must not be freed if we still have a copy of it */
-	      if( picture->current_frame != picture->backward_reference_frame )
-	        picture->current_frame->free (picture->current_frame);
+	      if( picture->current_frame == picture->backward_reference_frame )
+	        picture->backward_reference_frame = NULL;
+	        
+	      picture->current_frame->free (picture->current_frame);
 	      
 	      picture->current_frame = NULL;
 	      picture->throwaway_frame = NULL;
