@@ -1,6 +1,6 @@
 include $(top_srcdir)/misc/Makefile.common
 
-AM_CFLAGS = -I$(top_builddir)/src/libffmpeg/libavcodec/libpostproc
+AM_CFLAGS = -I$(top_srcdir)/src/libffmpeg/libavcodec/libpostproc
 POSTPROC_LIB  = $(top_builddir)/src/libffmpeg/libavcodec/libpostproc/libpostprocess.la
 
 libdir = $(XINE_PLUGINDIR)/post
