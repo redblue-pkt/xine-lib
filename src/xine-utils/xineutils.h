@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xineutils.h,v 1.73 2003/12/08 12:37:25 f1rmb Exp $
+ * $Id: xineutils.h,v 1.74 2003/12/13 01:47:35 f1rmb Exp $
  *
  */
 #ifndef XINEUTILS_H
@@ -718,19 +718,12 @@ static inline char *_private_strsep(char **stringp, const char *delim) {
 #ifdef HAVE_SETENV
 #define	xine_setenv	setenv
 #else
-static inline void _private_setenv(const char *name, const char *val, int _xx)
-{
-  int len  = strlen(name) + strlen(val) + 2;
-  char *env;
+static inline void _private_setenv(const char *name, const char *val, int _xx) {
+  int  len  = strlen(name) + strlen(val) + 2;
+  char env[len];
   
-  env = (char*)malloc(len);
-
-  if (env != NULL) {
-    strcpy(env, name);
-    strcat(env, "=");
-    strcat(env, val);
-    putenv(env);
-  }
+  sprintf(env, "%s%c%s", name, '=', val);
+  putenv(env);
 }
 #define	xine_setenv	_private_setenv
 #endif
