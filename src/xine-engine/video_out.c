@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.59 2001/12/24 00:45:03 guenter Exp $
+ * $Id: video_out.c,v 1.60 2001/12/24 16:31:57 hrm Exp $
  *
  */
 
@@ -561,16 +561,24 @@ static vo_frame_t * vo_duplicate_frame( vo_instance_t *this, vo_frame_t *img ) {
   image_size = img->width * img->height;
 
   if (img->format == IMGFMT_YV12) {
-    xine_fast_memcpy(dupl->base[0], img->base[0], image_size);
-    xine_fast_memcpy(dupl->base[1], img->base[1], image_size >> 2);
-    xine_fast_memcpy(dupl->base[2], img->base[2], image_size >> 2);
+    /* The dxr3 video out plugin does not allocate memory for the dxr3
+     * decoder, so we must check for NULL */
+    if (img->base[0])
+      xine_fast_memcpy(dupl->base[0], img->base[0], image_size);
+    if (img->base[1])
+      xine_fast_memcpy(dupl->base[1], img->base[1], image_size >> 2);
+    if (img->base[2])
+      xine_fast_memcpy(dupl->base[2], img->base[2], image_size >> 2);
   } else {
-    xine_fast_memcpy(dupl->base[0], img->base[0], image_size * 2);
+    if (img->base[0])
+      xine_fast_memcpy(dupl->base[0], img->base[0], image_size * 2);
   }  
   
   dupl->bad_frame = 0;
   dupl->PTS = dupl->SCR = 0;
-  
+
+  /* Support copy; Dangerous, since some decoders may use a source that's
+   * not dupl->base. It's up to the copy implementation to check for NULL */ 
   if (img->copy) {
     int height = img->height;
     int stride = img->width;

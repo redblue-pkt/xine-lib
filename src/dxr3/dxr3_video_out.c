@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_video_out.c,v 1.2 2001/12/23 02:36:55 hrm Exp $
+ * $Id: dxr3_video_out.c,v 1.3 2001/12/24 16:31:57 hrm Exp $
  *
  * mpeg1 encoding video out plugin for the dxr3.  
  *
@@ -250,7 +250,7 @@ static void dxr3_update_frame_format (vo_driver_t *this_gen,
 	}
   }
   else {
-	this->mpeg_source = 0;
+	/* this->mpeg_source = 0; */
   }
 
   /* for mpeg source, we don't have to do much. */

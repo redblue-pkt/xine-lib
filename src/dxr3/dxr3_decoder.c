@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decoder.c,v 1.51 2001/12/23 18:13:35 hrm Exp $
+ * $Id: dxr3_decoder.c,v 1.52 2001/12/24 16:31:57 hrm Exp $
  *
  * dxr3 video and spu decoder plugin. Accepts the video and spu data
  * from XINE and sends it directly to the corresponding dxr3 devices.
@@ -459,6 +459,7 @@ static void dxr3_decode_data (video_decoder_t *this_gen, buf_element_t *buf)
 
 	vpts = 0;
 
+#if 0
 	/* if we're just coming from a BUF_VIDEO_FILL situation,
 	 * do a flush for good riddance. (doesn't help much though) */
 	if (this->in_buffer_fill && buf->type != BUF_VIDEO_FILL)
@@ -486,6 +487,7 @@ static void dxr3_decode_data (video_decoder_t *this_gen, buf_element_t *buf)
 		this->last_pts += duration; /* predict vpts */
 		return;
 	}
+#endif
 
 	/* count the number of frame codes in this block of data 
 	 * this code borrowed from libmpeg2. 
