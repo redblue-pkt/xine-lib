@@ -2,7 +2,9 @@
 ## Process this file with automake to produce Makefile.in
 ##
 
-SUBDIRS = armv4l i386 mlib
+SUBDIRS = armv4l i386 mlib alpha
+
+EXTRA_DIST = fdctref.c imgresample.c
 
 #CFLAGS = -D_FILE_OFFSET_BITS=64 @CFLAGS@ -DCONFIG_DECODERS -DHAVE_AV_CONFIG_H
 

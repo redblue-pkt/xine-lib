@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: xine-lib 0.9.9\n"
-"POT-Creation-Date: 2002-06-20 18:56+0200\n"
+"POT-Creation-Date: 2002-06-22 01:48+0200\n"
 "PO-Revision-Date: 2002-05-18 08:36+0200\n"
 "Last-Translator: Frantisek Dvorak <valtri@atlas.cz>\n"
 "Language-Team: Czech <cs@li.org>\n"
@@ -116,16 +116,16 @@ msgstr ""
 msgid "xine audio output plugin using IRIX libaudio"
 msgstr ""
 
-#: src/demuxers/demux_ts.c:334
+#: src/demuxers/demux_ts.c:337
 msgid "demux_ts: FIXME: (unsupported )PAT spans multiple TS packets\n"
 msgstr "demux_ts: FIXME: (nepodporováno) PAT pøesahuje více paketù TS\n"
 
-#: src/demuxers/demux_ts.c:340
+#: src/demuxers/demux_ts.c:343
 #, c-format
 msgid "demux_ts: FIXME: (unsupported) PAT consists of multiple (%d) sections\n"
 msgstr "demux_ts: FIXME: (nepodporováno) PAT se skládá z více (%d) sekcí\n"
 
-#: src/demuxers/demux_ts.c:350
+#: src/demuxers/demux_ts.c:353
 #, c-format
 msgid ""
 "demux_ts: demux error! PAT with invalid CRC32: packet_crc32: %.8x "
@@ -134,31 +134,31 @@ msgstr ""
 "demux_ts: chyba z demuxu! PAT s neplatným CRC32: packet_crc32: %.8x "
 "calc_crc32: %.8x\n"
 
-#: src/demuxers/demux_ts.c:425
+#: src/demuxers/demux_ts.c:430
 #, c-format
 msgid "demux_ts: error %02x %02x %02x (should be 0x000001)\n"
 msgstr "demux_ts: chyba %02x %02x %02x (mìlo by být 0x000001)\n"
 
-#: src/demuxers/demux_ts.c:554
+#: src/demuxers/demux_ts.c:571
 #, c-format
 msgid "fifo unavailable (%d)\n"
 msgstr "nedostupné fifo (%d)\n"
 
-#: src/demuxers/demux_ts.c:563
+#: src/demuxers/demux_ts.c:580
 #, fuzzy, c-format
 msgid "demux_ts: unexpected cc %d (expected %d)\n"
 msgstr "demux_ts: zahozen vstupní paket cc: %d, oèekáván: %d\n"
 
-#: src/demuxers/demux_ts.c:586
+#: src/demuxers/demux_ts.c:603
 #, fuzzy
 msgid "demux_ts: corrupted pes encountered\n"
 msgstr "demux_ts: nalezen poru¹ený PES\n"
 
-#: src/demuxers/demux_ts.c:688
+#: src/demuxers/demux_ts.c:707
 msgid "demux error! PMT with invalid pointer\n"
 msgstr "chyba z demuxu! PMT s neplatným ukazatelem\n"
 
-#: src/demuxers/demux_ts.c:792
+#: src/demuxers/demux_ts.c:811
 #, c-format
 msgid ""
 "demux_ts: demux error! PMT with invalid CRC32: packet_crc32: %#.8x "
@@ -167,47 +167,47 @@ msgstr ""
 "demux_ts: chyba z demuxu! PMT s neplatným CRC32: packet_crc32: %#.8x "
 "calc_crc32: %#.8x\n"
 
-#: src/demuxers/demux_ts.c:807
+#: src/demuxers/demux_ts.c:826
 msgid "demux error! PMT with inconsistent progInfo length\n"
 msgstr "chyba z demuxu! PMT s nekonzistentní délkou progInfo\n"
 
-#: src/demuxers/demux_ts.c:824
+#: src/demuxers/demux_ts.c:843
 msgid "demux error! PMT with inconsistent streamInfo length\n"
 msgstr "chyba z demuxu! PMT s nekonzistentní délkou streamInfo\n"
 
-#: src/demuxers/demux_ts.c:1183
+#: src/demuxers/demux_ts.c:1200
 #, c-format
 msgid "demux error! invalid ts sync byte %.2x\n"
 msgstr "demux error! neplatný synchronizaèní byte ts %.2x\n"
 
-#: src/demuxers/demux_ts.c:1188
+#: src/demuxers/demux_ts.c:1205
 msgid "demux error! transport error\n"
 msgstr "chyba z demuxu! Chyba pøenosu\n"
 
-#: src/demuxers/demux_ts.c:1251
+#: src/demuxers/demux_ts.c:1268
 #, c-format
 msgid "demux_ts: demux error! invalid payload size %d\n"
 msgstr "demux_ts: chyba z demuxu! Neplatná velikost dat %d\n"
 
-#: src/demuxers/demux_ts.c:1446 src/demuxers/demux_ts.c:1660
+#: src/demuxers/demux_ts.c:1465 src/demuxers/demux_ts.c:1679
 msgid "valid mrls for ts demuxer"
 msgstr ""
 
-#: src/demuxers/demux_ts.c:1453
+#: src/demuxers/demux_ts.c:1472
 #, c-format
 msgid "demux %u ts_open!\n"
 msgstr "demux %u ts_open!\n"
 
-#: src/demuxers/demux_ts.c:1481 src/demuxers/demux_ts.c:1664
+#: src/demuxers/demux_ts.c:1500 src/demuxers/demux_ts.c:1683
 msgid "valid mrls ending for ts demuxer"
 msgstr ""
 
-#: src/demuxers/demux_ts.c:1554
+#: src/demuxers/demux_ts.c:1573
 #, c-format
 msgid "demux_ts: can't create new thread (%s)\n"
 msgstr "demux_ts: nelze vytvoøit nové vlákno (%s)\n"
 
-#: src/demuxers/demux_ts.c:1643
+#: src/demuxers/demux_ts.c:1662
 #, fuzzy, c-format
 msgid ""
 "demux_ts: plugin doesn't support plugin API version %d.\n"
@@ -405,46 +405,46 @@ msgstr ""
 "           To znamená nesluèitelnost verzí mezi xine a tímto modulem.\n"
 "Instalace aktuálního demux-modulu by mìla pomoci.\n"
 
-#: src/demuxers/demux_asf.c:341
+#: src/demuxers/demux_asf.c:335
 #, c-format
 msgid "demux_asf: audio format : %s (wFormatTag 0x%x)\n"
 msgstr "demux_asf: zvukový formát: %s (wFormatTag 0x%x)\n"
 
-#: src/demuxers/demux_asf.c:406
+#: src/demuxers/demux_asf.c:400
 #, c-format
 msgid "demux_asf: video format : %s\n"
 msgstr "demux_asf: video formát: %s\n"
 
-#: src/demuxers/demux_asf.c:464
+#: src/demuxers/demux_asf.c:458
 #, c-format
 msgid "demux_asf: stream length is %d sec, rate is %d bytes/sec\n"
 msgstr "demux_asf: délka videa je %d sekund, rychlost toku dat je %d bytù/s\n"
 
-#: src/demuxers/demux_asf.c:1253
+#: src/demuxers/demux_asf.c:1247
 #, c-format
 msgid "demux_asf: title        : %s\n"
 msgstr "demux_asf: název         : %s\n"
 
-#: src/demuxers/demux_asf.c:1255
+#: src/demuxers/demux_asf.c:1249
 #, c-format
 msgid "demux_asf: author       : %s\n"
 msgstr "demux_asf: autor         : %s\n"
 
-#: src/demuxers/demux_asf.c:1257
+#: src/demuxers/demux_asf.c:1251
 #, c-format
 msgid "demux_asf: copyright    : %s\n"
 msgstr "demux_asf: autorská práva: %s\n"
 
-#: src/demuxers/demux_asf.c:1259
+#: src/demuxers/demux_asf.c:1253
 #, c-format
 msgid "demux_asf: comment      : %s\n"
 msgstr "demux_asf: komentáø      : %s\n"
 
-#: src/demuxers/demux_asf.c:1369 src/demuxers/demux_asf.c:1421
+#: src/demuxers/demux_asf.c:1363 src/demuxers/demux_asf.c:1415
 msgid "valid mrls ending for asf demuxer"
 msgstr ""
 
-#: src/demuxers/demux_asf.c:1408
+#: src/demuxers/demux_asf.c:1402
 #, fuzzy, c-format
 msgid ""
 "demux_asf: plugin doesn't support plugin API version %d.\n"
@@ -1258,11 +1258,11 @@ msgstr ""
 "Toto znamená nesluèitelnost verzí mezi xine a tímto vstupním modulem.\n"
 "Instalace aktuálních vstupních modulù by mìla pomoci.\n"
 
-#: src/libw32dll/w32codec.c:1359 src/libw32dll/w32codec.c:1408
+#: src/libw32dll/w32codec.c:1379 src/libw32dll/w32codec.c:1428
 msgid "path to win32 codec dlls"
 msgstr ""
 
-#: src/libw32dll/w32codec.c:1398
+#: src/libw32dll/w32codec.c:1418
 #, fuzzy, c-format
 msgid ""
 "w32codec: plugin doesn't support plugin API version %d.\n"
@@ -1819,7 +1819,19 @@ msgstr ""
 msgid "Memcopy method to use in xine for large data chunks."
 msgstr ""
 
-#: src/libsputext/xine_decoder.c:1005
+#: src/libsputext/xine_decoder.c:1035
+msgid "Small"
+msgstr ""
+
+#: src/libsputext/xine_decoder.c:1036
+msgid "Normal"
+msgstr ""
+
+#: src/libsputext/xine_decoder.c:1037
+msgid "Large"
+msgstr ""
+
+#: src/libsputext/xine_decoder.c:1041
 #, fuzzy, c-format
 msgid ""
 "libsputext: doesn't support plugin api version %d.\n"
@@ -1831,15 +1843,19 @@ msgstr ""
 "Toto znamená nesluèitelnost verzí mezi xine a tímto vstupním modulem.\n"
 "Instalace aktuálních vstupních modulù by mìla pomoci.\n"
 
-#: src/libsputext/xine_decoder.c:1027
+#: src/libsputext/xine_decoder.c:1063
 msgid "font for avi subtitles"
 msgstr ""
 
-#: src/libsputext/xine_decoder.c:1032
+#: src/libsputext/xine_decoder.c:1069
+msgid "subtitle size (relative window size)"
+msgstr ""
+
+#: src/libsputext/xine_decoder.c:1074
 msgid "source encoging of subtitles"
 msgstr ""
 
-#: src/libsputext/xine_decoder.c:1037
+#: src/libsputext/xine_decoder.c:1079
 msgid "target encoging for subtitles (have to match font encoding)"
 msgstr ""
 

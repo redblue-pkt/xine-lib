@@ -1,5 +1,7 @@
 CFLAGS = @CFLAGS@ -DOPT_SPEED
 
+EXTRA_DIST = imdct_l_arm.S
+
 LIBTOOL = $(SHELL) $(top_builddir)/libtool-nofpic
 
 libdir = $(XINE_PLUGINDIR)

@@ -4,6 +4,8 @@
 
 SUBDIRS = libavcodec 
 
+EXTRA_DIST = diff_to_ffmpeg_cvs.txt
+
 LIBTOOL = $(SHELL) $(top_builddir)/libtool-nofpic
 
 libdir = $(XINE_PLUGINDIR)

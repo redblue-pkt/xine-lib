@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: xine-lib 0.9.9\n"
-"POT-Creation-Date: 2002-06-20 18:56+0200\n"
+"POT-Creation-Date: 2002-06-22 01:48+0200\n"
 "PO-Revision-Date: 2002-06-07 15:08 +0200\n"
 "Last-Translator: Daniel Caujolle-Bert <segfault@club-internet.fr>\n"
 "Language-Team: French <fr@li.org>\n"
@@ -46,7 +46,8 @@ msgstr "Utilisé pour informer xine de ce que la carte son sait faire"
 
 #: src/audio_out/audio_alsa_out.c:1090
 msgid "xine audio output plugin using alsa-compliant audio devices/drivers"
-msgstr "plugin de sortie audio de xine utilisant les pilotes/périphériques alsa"
+msgstr ""
+"plugin de sortie audio de xine utilisant les pilotes/périphériques alsa"
 
 #: src/audio_out/audio_esd_out.c:414
 msgid "esd audio output latency (adjust a/v sync)"
@@ -58,7 +59,8 @@ msgstr "plugin de sortie audio de xine utilisant esd"
 
 #: src/audio_out/audio_oss_out.c:638
 msgid "/dev/dsp# device to use for oss output, -1 => auto_detect"
-msgstr "périphérique /dev/dsp# a utiliser pour la sortie oss, -1 => détection auto"
+msgstr ""
+"périphérique /dev/dsp# a utiliser pour la sortie oss, -1 => détection auto"
 
 #: src/audio_out/audio_oss_out.c:706
 msgid "A/V sync method to use by OSS, depends on driver/hardware"
@@ -70,7 +72,8 @@ msgstr "Ajuste a/v sync pour softsync d'OSS"
 
 #: src/audio_out/audio_oss_out.c:774
 msgid "Use this to manually adjust a/v sync if you're using softsync"
-msgstr "A utiliser pour ajuster automatiquement a/v sync si vous utilisez softsync"
+msgstr ""
+"A utiliser pour ajuster automatiquement a/v sync si vous utilisez softsync"
 
 #: src/audio_out/audio_oss_out.c:796
 msgid "Enable 4.0 channel analog surround output"
@@ -106,7 +109,8 @@ msgstr "plugin de sortie audio de xine utilisant les pilotes/périphériques sun"
 
 #: src/audio_out/audio_arts_out.c:359
 msgid "xine audio output plugin using arts-compliant audio devices/drivers"
-msgstr "plugin de sortie audio de xine utilisant les pilotes/périphériques arts"
+msgstr ""
+"plugin de sortie audio de xine utilisant les pilotes/périphériques arts"
 
 #: src/audio_out/audio_irixal_out.c:382
 msgid "irixal audio output maximum gap length in 1/90000s"
@@ -116,46 +120,46 @@ msgstr "taille maximale du gap pour la sortie audio irixal en 1/90000s"
 msgid "xine audio output plugin using IRIX libaudio"
 msgstr "Sortie audio de Xine utilise IRIX libaudio"
 
-#: src/demuxers/demux_ts.c:334
+#: src/demuxers/demux_ts.c:337
 msgid "demux_ts: FIXME: (unsupported )PAT spans multiple TS packets\n"
 msgstr ""
 
-#: src/demuxers/demux_ts.c:340
+#: src/demuxers/demux_ts.c:343
 #, c-format
 msgid "demux_ts: FIXME: (unsupported) PAT consists of multiple (%d) sections\n"
 msgstr ""
 
-#: src/demuxers/demux_ts.c:350
+#: src/demuxers/demux_ts.c:353
 #, c-format
 msgid ""
 "demux_ts: demux error! PAT with invalid CRC32: packet_crc32: %.8x "
 "calc_crc32: %.8x\n"
 msgstr ""
 
-#: src/demuxers/demux_ts.c:425
+#: src/demuxers/demux_ts.c:430
 #, c-format
 msgid "demux_ts: error %02x %02x %02x (should be 0x000001)\n"
 msgstr "demux_ts: erreur %02x %02x %02x (devrais être 0x000001)\n"
 
-#: src/demuxers/demux_ts.c:554
+#: src/demuxers/demux_ts.c:571
 #, c-format
 msgid "fifo unavailable (%d)\n"
 msgstr "fifo non disponible (%d)\n"
 
-#: src/demuxers/demux_ts.c:563
+#: src/demuxers/demux_ts.c:580
 #, c-format
 msgid "demux_ts: unexpected cc %d (expected %d)\n"
 msgstr "demux_ts: cc inattendu %d (%d attendu)\n"
 
-#: src/demuxers/demux_ts.c:586
+#: src/demuxers/demux_ts.c:603
 msgid "demux_ts: corrupted pes encountered\n"
 msgstr "demux_ts : pes corrompu rencontré\n"
 
-#: src/demuxers/demux_ts.c:688
+#: src/demuxers/demux_ts.c:707
 msgid "demux error! PMT with invalid pointer\n"
 msgstr "erreur demux ! PMT avec pointeur invalide\n"
 
-#: src/demuxers/demux_ts.c:792
+#: src/demuxers/demux_ts.c:811
 #, c-format
 msgid ""
 "demux_ts: demux error! PMT with invalid CRC32: packet_crc32: %#.8x "
@@ -164,47 +168,47 @@ msgstr ""
 "demux_ts : erreur demux! PMT avec CRC non valide : packet_crc32: %#.8x "
 "calc_crc32: %#.8x\n"
 
-#: src/demuxers/demux_ts.c:807
+#: src/demuxers/demux_ts.c:826
 msgid "demux error! PMT with inconsistent progInfo length\n"
 msgstr "erreur demux ! PMT avec taille de progInfo inconsistente\n"
 
-#: src/demuxers/demux_ts.c:824
+#: src/demuxers/demux_ts.c:843
 msgid "demux error! PMT with inconsistent streamInfo length\n"
 msgstr "erreur demux ! PMT avec taille de streamInfo inconsistente\n"
 
-#: src/demuxers/demux_ts.c:1183
+#: src/demuxers/demux_ts.c:1200
 #, c-format
 msgid "demux error! invalid ts sync byte %.2x\n"
 msgstr "erreur demux ! octet de sync ts %.2x invalide\n"
 
-#: src/demuxers/demux_ts.c:1188
+#: src/demuxers/demux_ts.c:1205
 msgid "demux error! transport error\n"
 msgstr "erreur demux ! erreur de transport\n"
 
-#: src/demuxers/demux_ts.c:1251
+#: src/demuxers/demux_ts.c:1268
 #, c-format
 msgid "demux_ts: demux error! invalid payload size %d\n"
 msgstr ""
 
-#: src/demuxers/demux_ts.c:1446 src/demuxers/demux_ts.c:1660
+#: src/demuxers/demux_ts.c:1465 src/demuxers/demux_ts.c:1679
 msgid "valid mrls for ts demuxer"
 msgstr ""
 
-#: src/demuxers/demux_ts.c:1453
+#: src/demuxers/demux_ts.c:1472
 #, c-format
 msgid "demux %u ts_open!\n"
 msgstr ""
 
-#: src/demuxers/demux_ts.c:1481 src/demuxers/demux_ts.c:1664
+#: src/demuxers/demux_ts.c:1500 src/demuxers/demux_ts.c:1683
 msgid "valid mrls ending for ts demuxer"
 msgstr ""
 
-#: src/demuxers/demux_ts.c:1554
+#: src/demuxers/demux_ts.c:1573
 #, c-format
 msgid "demux_ts: can't create new thread (%s)\n"
 msgstr ""
 
-#: src/demuxers/demux_ts.c:1643
+#: src/demuxers/demux_ts.c:1662
 #, c-format
 msgid ""
 "demux_ts: plugin doesn't support plugin API version %d.\n"
@@ -413,47 +417,47 @@ msgstr ""
 "           plugin de demultiplexage ne correspondent pas.\n"
 "Installer la version courante des plugins de demultiplexage peux aider.\n"
 
-#: src/demuxers/demux_asf.c:341
+#: src/demuxers/demux_asf.c:335
 #, c-format
 msgid "demux_asf: audio format : %s (wFormatTag 0x%x)\n"
 msgstr "demux_asf: format audio: %s (wFormatTag 0x%x)\n"
 
-#: src/demuxers/demux_asf.c:406
+#: src/demuxers/demux_asf.c:400
 #, c-format
 msgid "demux_asf: video format : %s\n"
 msgstr "demux_asf: format vidéo: %s\n"
 
-#: src/demuxers/demux_asf.c:464
+#: src/demuxers/demux_asf.c:458
 #, c-format
 msgid "demux_asf: stream length is %d sec, rate is %d bytes/sec\n"
 msgstr ""
 "demux_asf: la longeur du flux est de %d sec, cadence à %d octets/secondes\n"
 
-#: src/demuxers/demux_asf.c:1253
+#: src/demuxers/demux_asf.c:1247
 #, c-format
 msgid "demux_asf: title        : %s\n"
 msgstr "demux_asf: titre        : %s\n"
 
-#: src/demuxers/demux_asf.c:1255
+#: src/demuxers/demux_asf.c:1249
 #, c-format
 msgid "demux_asf: author       : %s\n"
 msgstr "demux_asf: auteur       : %s\n"
 
-#: src/demuxers/demux_asf.c:1257
+#: src/demuxers/demux_asf.c:1251
 #, c-format
 msgid "demux_asf: copyright    : %s\n"
 msgstr "demux_asf: copyright    : %s\n"
 
-#: src/demuxers/demux_asf.c:1259
+#: src/demuxers/demux_asf.c:1253
 #, c-format
 msgid "demux_asf: comment      : %s\n"
 msgstr "demux_asf: commentaire  : %s\n"
 
-#: src/demuxers/demux_asf.c:1369 src/demuxers/demux_asf.c:1421
+#: src/demuxers/demux_asf.c:1363 src/demuxers/demux_asf.c:1415
 msgid "valid mrls ending for asf demuxer"
 msgstr ""
 
-#: src/demuxers/demux_asf.c:1408
+#: src/demuxers/demux_asf.c:1402
 #, c-format
 msgid ""
 "demux_asf: plugin doesn't support plugin API version %d.\n"
@@ -1285,11 +1289,11 @@ msgstr ""
 "d'entrée ne correspondent pas.\n"
 "Installer la version courante des plugins d'entrée peux aider.\n"
 
-#: src/libw32dll/w32codec.c:1359 src/libw32dll/w32codec.c:1408
+#: src/libw32dll/w32codec.c:1379 src/libw32dll/w32codec.c:1428
 msgid "path to win32 codec dlls"
 msgstr ""
 
-#: src/libw32dll/w32codec.c:1398
+#: src/libw32dll/w32codec.c:1418
 #, fuzzy, c-format
 msgid ""
 "w32codec: plugin doesn't support plugin API version %d.\n"
@@ -1353,7 +1357,8 @@ msgstr "périphérique framebuffer"
 
 #: src/video_out/video_out_fb.c:885
 msgid "xine video output plugin using linux framebuffer device"
-msgstr "plugin de sortie video de xine utilisant le périphérique framebuffer de linux"
+msgstr ""
+"plugin de sortie video de xine utilisant le périphérique framebuffer de linux"
 
 #: src/video_out/video_out_sdl.c:696
 msgid "xine video output plugin using Simple DirectMedia Layer"
@@ -1833,7 +1838,19 @@ msgstr ""
 msgid "Memcopy method to use in xine for large data chunks."
 msgstr ""
 
-#: src/libsputext/xine_decoder.c:1005
+#: src/libsputext/xine_decoder.c:1035
+msgid "Small"
+msgstr ""
+
+#: src/libsputext/xine_decoder.c:1036
+msgid "Normal"
+msgstr ""
+
+#: src/libsputext/xine_decoder.c:1037
+msgid "Large"
+msgstr ""
+
+#: src/libsputext/xine_decoder.c:1041
 #, fuzzy, c-format
 msgid ""
 "libsputext: doesn't support plugin api version %d.\n"
@@ -1846,15 +1863,19 @@ msgstr ""
 "d'entrée ne correspondent pas.\n"
 "Installer la version courante des plugins d'entrée peut aider.\n"
 
-#: src/libsputext/xine_decoder.c:1027
+#: src/libsputext/xine_decoder.c:1063
 msgid "font for avi subtitles"
 msgstr ""
 
-#: src/libsputext/xine_decoder.c:1032
+#: src/libsputext/xine_decoder.c:1069
+msgid "subtitle size (relative window size)"
+msgstr ""
+
+#: src/libsputext/xine_decoder.c:1074
 msgid "source encoging of subtitles"
 msgstr ""
 
-#: src/libsputext/xine_decoder.c:1037
+#: src/libsputext/xine_decoder.c:1079
 msgid "target encoging for subtitles (have to match font encoding)"
 msgstr ""
 
