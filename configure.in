@@ -597,8 +597,24 @@ case "$host_or_hostalias" in
     ;;
 
   *)
+    echo
+    echo "****************************** WARNING ******************************"
+    echo
     echo "Host type '$host' ($host_alias) is currently not supported by xine"
-    exit 1
+    echo
+    echo "Assuming that -O3 makes the compiler produce useful code."
+    echo
+    echo "You might experience problems with this, so please report your"
+    echo "architecture and, if possible, known good optimization flags for"
+    echo "your compiler to <xine-devel@lists.sf.net>"\!
+    echo
+    echo "*********************************************************************"
+    echo "(sleeping one minute so you can read this...)"
+    sleep 60
+
+    GLOBAL_CFLAGS="$GLOBAL_CFLAGS -O3"
+    DEBUG_CFLAGS="$DEBUG_CFLAGS -O"
+    AC_DEFINE(FPM_DEFAULT)
     ;;
 esac
 
