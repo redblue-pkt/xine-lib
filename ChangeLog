@@ -20,6 +20,10 @@ xine-lib (1-rc4)
   * DXR3: fix menu highlight areas in letterboxed overlay mode with 
     pan&scan content
   * DXR3: fix libavcodec encoder for frame widths not a multiple of 16
+  * mediaLib now used for bilinear scaling
+  * video_out_pgx32 now properly clips video output
+  * video_out_pgx64 now disables overlay when fully occluded, fixed displaying
+    some frames out of order when multi-buffering.
 
 xine-lib (1-rc3c)
   * fix the deadlock with non-seekable input plugins

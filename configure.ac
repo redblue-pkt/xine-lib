@@ -612,6 +612,27 @@ AM_CONDITIONAL(HAVE_SUNFB, [test x"$ac_have_sunfb" = "xyes"])
 
 
 dnl ---------------------------------------------
+dnl Check for Sun DGA
+dnl ---------------------------------------------
+
+saved_CPPFLAGS="$CPPFLAGS"
+CPPFLAGS="$CPPFLAGS -I/usr/openwin/include"
+AC_CHECK_LIB(dga, XDgaGrabDrawable, [
+	AC_CHECK_HEADER(dga/dga.h, [
+	        SUNDGA_CFLAGS="-I/usr/openwin/include"
+		SUNDGA_LIBS="-ldga"
+		AC_DEFINE(HAVE_SUNDGA,1,[Define this you have Sun DGA])
+		ac_have_sundga=yes
+	],
+	)
+],)
+CPPFLAGS="$saved_CFLAGS"
+AM_CONDITIONAL(HAVE_SUNDGA, [test x"$ac_have_sundga" = "xyes"])
+AC_SUBST(SUNDGA_CFLAGS)
+AC_SUBST(SUNDGA_LIBS)
+
+
+dnl ---------------------------------------------
 dnl Check linux framebuffer device support
 dnl ---------------------------------------------
 
@@ -2219,7 +2240,9 @@ if test x"$no_x" != "xyes"; then
   fi
   if test x$ac_have_sunfb = "xyes"; then
     echo "   - PGX64 (for Sun PGX64/PGX24 cards)"
-    echo "   - PGX32 (for Sun PGX32 cards)"
+    if test x$ac_have_sundga = "xyes"; then
+      echo "   - PGX32 (for Sun PGX32 cards)"
+    fi
   fi
 fi
 if test x$no_aalib != "xyes"; then

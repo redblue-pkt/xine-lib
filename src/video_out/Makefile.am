@@ -7,8 +7,8 @@ EXTRA_DIST = video_out_directfb.c video_out_opengl.c video_out_directx.c
 VIDIX_CFLAGS = -I$(top_builddir)/src/video_out/vidix \
 	-I$(top_srcdir)/src/video_out/vidix
 
-AM_CFLAGS = $(X_CFLAGS) \
-	-DXINE_COMPILE $(SDL_CFLAGS) $(VIDIX_CFLAGS) \
+AM_CFLAGS = $(X_CFLAGS) -DXINE_COMPILE \
+        $(SUNDGA_CFLAGS) $(SDL_CFLAGS) $(VIDIX_CFLAGS) \
 	$(AALIB_CFLAGS) $(MLIB_CFLAGS) $(LIBSTK_CFLAGS) \
 	$(DIRECTFB_CFLAGS) $(DIRECTX_CFLAGS) $(CACA_CFLAGS)
 
@@ -32,7 +32,9 @@ syncfb_module = xineplug_vo_out_syncfb.la
 endif
 if HAVE_SUNFB
 pgx64_module = xineplug_vo_out_pgx64.la
+if HAVE_SUNDGA
 pgx32_module = xineplug_vo_out_pgx32.la
+endif
 endif
 endif
 
@@ -110,11 +112,11 @@ xineplug_vo_out_syncfb_la_LIBADD = $(X_LIBS) $(XINE_LIB)
 xineplug_vo_out_syncfb_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 xineplug_vo_out_pgx64_la_SOURCES = alphablend.c video_out_pgx64.c
-xineplug_vo_out_pgx64_la_LIBADD = $(X_LIBS)
+xineplug_vo_out_pgx64_la_LIBADD = $(X_LIBS) $(SUNDGA_LIBS)
 xineplug_vo_out_pgx64_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 xineplug_vo_out_pgx32_la_SOURCES = video_out_pgx32.c
-xineplug_vo_out_pgx32_la_LIBADD = $(X_LIBS)
+xineplug_vo_out_pgx32_la_LIBADD = $(X_LIBS) $(SUNDGA_LIBS)
 xineplug_vo_out_pgx32_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 xineplug_vo_out_vidix_la_SOURCES = alphablend.c video_out_vidix.c $(X11OSD)

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  *
- * $Id: video_out_pgx32.c,v 1.3 2004/03/16 00:32:22 komadori Exp $
+ * $Id: video_out_pgx32.c,v 1.4 2004/04/16 12:17:03 komadori Exp $
  *
  * video_out_pgx32.c, Sun PGX32 output plugin for xine
  *
@@ -42,6 +42,7 @@
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 #include <X11/Xatom.h>
+#include <dga/dga.h>
 
 #include "xine_internal.h"
 #include "alphablend.h"
@@ -58,7 +59,6 @@
 #define FIFO_SPACE 0x0003
 
 #define RASTERISER_MODE 0x1014
-#define SCISSOR_MODE 0x1030
 #define AREA_STIPPLE_MODE 0x1034
 #define WINDOW_ORIGIN 0x1039
 
@@ -92,6 +92,10 @@
 #define WRITE_MASK 0x1158
 
 #define YUV_MODE 0x11E0
+
+#define SCISSOR_MODE 0x1030
+#define SCISSOR_MIN_XY 0x1031
+#define SCISSOR_MAX_XY 0x1032
 
 #define RENDER 0x1007
 #define RENDER_BEGIN 0x00000000006020C0L
@@ -165,10 +169,11 @@ typedef struct {
   uint8_t *vbase;
 
   Display *display;
-  int screen, depth;
+  int screen, depth, dgavis;
+  Visual *visual;
   Drawable drawable;
   GC gc;
-  Visual *visual;
+  Dga_drawable dgadraw;
 
   int delivered_format, deinterlace_en;
 } pgx32_driver_t;
@@ -429,6 +434,7 @@ static void pgx32_display_frame(vo_driver_t *this_gen, vo_frame_t *frame_gen)
   pgx32_driver_t *this = (pgx32_driver_t *)(void *)this_gen;
   pgx32_frame_t *frame = (pgx32_frame_t *)frame_gen;
   volatile uint64_t *vregs = (void *)(this->vbase+GFXP_REGSBASE);
+  short int *cliprects;
 
   if ((frame->width != this->vo_scale.delivered_width) ||
       (frame->height != this->vo_scale.delivered_height) ||
@@ -458,60 +464,94 @@ static void pgx32_display_frame(vo_driver_t *this_gen, vo_frame_t *frame_gen)
 
   memcpy((this->vbase+GFXP_VRAM_MMAPLEN)-frame->packedlen, frame->packedbuf, frame->packedlen);
 
-  XLockDisplay(this->display);
-  XGrabServer(this->display);
-  XSync(this->display, False);
+  DGA_DRAW_LOCK(this->dgadraw, -1);
+  if (DGA_DRAW_MODIF(this->dgadraw)) {
+    this->dgavis = dga_draw_visibility(this->dgadraw);
+  }
+  cliprects = dga_draw_clipinfo(this->dgadraw);
+  DGA_DRAW_UNLOCK(this->dgadraw);
 
-  while(le2me_64(vregs[FIFO_SPACE]) < 34) {}
+  /* There is a small window between unlocking the DGA drawable and locking
+   * the X server during which the status of the drawable could change, but
+   * this is unavoidable as my testing shows that having both locked at the
+   * same time causes the X server to become unresponsive. (Solaris 9 12/03)
+   */
 
-  vregs[RASTERISER_MODE] = 0;
-  vregs[SCISSOR_MODE] = 0;
-  vregs[AREA_STIPPLE_MODE] = 0;
-  vregs[WINDOW_ORIGIN] = 0;
+  if (this->dgavis != DGA_VIS_FULLY_OBSCURED) {
+    XLockDisplay(this->display);
+    XGrabServer(this->display);
+    XSync(this->display, False);
 
-  vregs[RECT_ORIGIN] = le2me_64((this->vo_scale.gui_win_x + this->vo_scale.output_xoffset) | ((this->vo_scale.gui_win_y + this->vo_scale.output_yoffset) << 16));
-  vregs[RECT_SIZE] = le2me_64(this->vo_scale.output_width | (this->vo_scale.output_height << 16));
+    while(le2me_64(vregs[FIFO_SPACE]) < 28) {}
 
-  vregs[DY] = le2me_64(1 << 16);
+    vregs[RASTERISER_MODE] = 0;
+    vregs[AREA_STIPPLE_MODE] = 0;
+    vregs[WINDOW_ORIGIN] = 0;
 
-  vregs[TEXTURE_ADDR_MODE] = le2me_64(1);
-  vregs[SSTART] = 0;
-  vregs[DSDX] = le2me_64((frame->width << 20) / this->vo_scale.output_width);
-  vregs[DSDY_DOM] = 0;
-  vregs[TSTART] = 0;
-  vregs[DTDX] = 0;
-  vregs[DTDY_DOM] = le2me_64((frame->height << 20) / this->vo_scale.output_height);
+    vregs[RECT_ORIGIN] = le2me_64((this->vo_scale.gui_win_x + this->vo_scale.output_xoffset) | ((this->vo_scale.gui_win_y + this->vo_scale.output_yoffset) << 16));
+    vregs[RECT_SIZE] = le2me_64(this->vo_scale.output_width | (this->vo_scale.output_height << 16));
 
-  vregs[TEXTURE_BASE_ADDR] = le2me_64((GFXP_VRAM_MMAPLEN-frame->packedlen) >> 1);
-  vregs[TEXTURE_MAP_FORMAT] = le2me_64((1 << 19) | frame->pitch_code);
+    vregs[DY] = le2me_64(1 << 16);
 
-  vregs[TEXTURE_DATA_FORMAT] = le2me_64(0x63);
-  vregs[TEXTURE_READ_MODE] = le2me_64((1 << 17) | (11 << 13) | (11 << 9) | 1);
-  vregs[TEXTURE_COLOUR_MODE] = le2me_64((0 << 4) | (3 << 1) | 1);
+    vregs[TEXTURE_ADDR_MODE] = le2me_64(1);
+    vregs[SSTART] = 0;
+    vregs[DSDX] = le2me_64((frame->width << 20) / this->vo_scale.output_width);
+    vregs[DSDY_DOM] = 0;
+    vregs[TSTART] = 0;
+    vregs[DTDX] = 0;
+    vregs[DTDY_DOM] = le2me_64((frame->height << 20) / this->vo_scale.output_height);
 
-  vregs[SHADING_MODE] = 0;
-  vregs[ALPHA_BLENDING_MODE] = 0;
-  vregs[DITHERING_MODE] = le2me_64((1 << 10) | 1);
-  vregs[LOGICAL_OP_MODE] = 0;
-  vregs[STENCIL_MODE] = 0;
+    vregs[TEXTURE_BASE_ADDR] = le2me_64((GFXP_VRAM_MMAPLEN-frame->packedlen) >> 1);
+    vregs[TEXTURE_MAP_FORMAT] = le2me_64((1 << 19) | frame->pitch_code);
 
-  vregs[READ_MODE] = le2me_64(this->screen_pitch_code);
-  vregs[WRITE_MODE] = le2me_64(1);
-  vregs[WRITE_MASK] = le2me_64(0x00ffffff);
+    vregs[TEXTURE_DATA_FORMAT] = le2me_64(0x63);
+    vregs[TEXTURE_READ_MODE] = le2me_64((1 << 17) | (11 << 13) | (11 << 9) | 1);
+    vregs[TEXTURE_COLOUR_MODE] = le2me_64((0 << 4) | (3 << 1) | 1);
 
-  vregs[YUV_MODE] = le2me_64(1);
+    vregs[SHADING_MODE] = 0;
+    vregs[ALPHA_BLENDING_MODE] = 0;
+    vregs[DITHERING_MODE] = le2me_64((1 << 10) | 1);
+    vregs[LOGICAL_OP_MODE] = 0;
+    vregs[STENCIL_MODE] = 0;
 
-  vregs[RENDER] = le2me_64(RENDER_BEGIN);
+    vregs[READ_MODE] = le2me_64(this->screen_pitch_code);
+    vregs[WRITE_MODE] = le2me_64(1);
+    vregs[WRITE_MASK] = le2me_64(0x00ffffff);
 
-  vregs[TEXTURE_READ_MODE] = 0;
-  vregs[TEXTURE_ADDR_MODE] = 0;
-  vregs[DITHERING_MODE] = 0;
-  vregs[TEXTURE_COLOUR_MODE] = 0;
-  vregs[YUV_MODE] = 0;
+    vregs[YUV_MODE] = le2me_64(1);
 
-  XUngrabServer(this->display);
-  XFlush(this->display);
-  XUnlockDisplay(this->display);
+    if (this->dgavis == DGA_VIS_PARTIALLY_OBSCURED) {
+      short int x0, y0, x1, y1;
+      vregs[SCISSOR_MODE] = le2me_64(1);
+      while ((y0 = *cliprects++) != DGA_Y_EOL) {
+        y1 = *cliprects++;
+        while ((x0 = *cliprects++) != DGA_X_EOL) {
+          x1 = *cliprects++;
+          while(le2me_64(vregs[FIFO_SPACE]) < 3) {}
+          vregs[SCISSOR_MIN_XY] = le2me_64((y0 << 16) | x0);
+          vregs[SCISSOR_MAX_XY] = le2me_64((y1 << 16) | x1);
+          vregs[RENDER] = le2me_64(RENDER_BEGIN);
+        }  
+      }
+      while(le2me_64(vregs[FIFO_SPACE]) < 6) {}
+      vregs[SCISSOR_MODE] = 0;
+    }
+    else {
+      vregs[SCISSOR_MODE] = 0;
+      while(le2me_64(vregs[FIFO_SPACE]) < 6) {}
+      vregs[RENDER] = le2me_64(RENDER_BEGIN);
+    }
+
+    vregs[TEXTURE_ADDR_MODE] = 0;
+    vregs[TEXTURE_READ_MODE] = 0;
+    vregs[TEXTURE_COLOUR_MODE] = 0;
+    vregs[DITHERING_MODE] = 0;
+    vregs[YUV_MODE] = 0;
+
+    XUngrabServer(this->display);
+    XFlush(this->display);
+    XUnlockDisplay(this->display);
+  }
 
   if (this->current != NULL) {
     this->current->vo_frame.free(&this->current->vo_frame);
@@ -657,12 +697,14 @@ static int pgx32_gui_data_exchange(vo_driver_t *this_gen, int data_type, void *d
       XWindowAttributes win_attrs;
 
       XLockDisplay(this->display);
-      this->drawable = (Drawable)data;
-      XGetWindowAttributes(this->display, this->drawable, &win_attrs);
-      this->depth  = win_attrs.depth;
-      this->visual = win_attrs.visual;
+      XDgaUnGrabDrawable(this->dgadraw);
       XFreeGC(this->display, this->gc);
-      this->gc = XCreateGC(this->display, this->drawable, 0, NULL);
+      XGetWindowAttributes(this->display, this->drawable, &win_attrs);
+      this->depth    = win_attrs.depth;
+      this->visual   = win_attrs.visual;
+      this->drawable = (Drawable)data;
+      this->gc       = XCreateGC(this->display, this->drawable, 0, NULL);
+      this->dgadraw  = XDgaGrabDrawable(this->display, this->drawable);
       XUnlockDisplay(this->display);
     }
     break;
@@ -707,6 +749,7 @@ static void pgx32_dispose(vo_driver_t *this_gen)
   pgx32_driver_t *this = (pgx32_driver_t *)(void *)this_gen;
 
   XLockDisplay (this->display);
+  XDgaUnGrabDrawable(this->dgadraw);
   XFreeGC(this->display, this->gc);
   XUnlockDisplay (this->display);
 
@@ -764,13 +807,13 @@ static vo_driver_t *pgx32_init_driver(video_driver_class_t *class_gen, const voi
   }
 
   if (ioctl(fbfd, VIS_GETIDENTIFIER, &ident) < 0) {
-    xprintf(class->xine, XINE_VERBOSITY_DEBUG, "video_out_sunfb: Error: ioctl failed, unable to determine framebuffer type\n");
+    xprintf(class->xine, XINE_VERBOSITY_DEBUG, "video_out_pgx32: Error: ioctl failed, unable to determine framebuffer type\n");
     close(fbfd);
     return NULL;
   }
 
   if (strcmp("TSIgfxp", ident.name) != 0) {
-    xprintf(class->xine, XINE_VERBOSITY_DEBUG, "video_out_pgx64: Error: '%s' is not a gfxp framebuffer device\n", devname);    
+    xprintf(class->xine, XINE_VERBOSITY_DEBUG, "video_out_pgx32: Error: '%s' is not a gfxp framebuffer device\n", devname);    
     close(fbfd);
     return NULL;
   }
@@ -816,11 +859,11 @@ static vo_driver_t *pgx32_init_driver(video_driver_class_t *class_gen, const voi
 
   this->class = class;
 
-  this->fbfd        = fbfd;
-  this->fb_width    = attr.fbtype.fb_width;
-  this->fb_height   = attr.fbtype.fb_height;
-  this->fb_depth    = attr.fbtype.fb_depth;
-  this->vbase       = vbase;
+  this->fbfd      = fbfd;
+  this->fb_width  = attr.fbtype.fb_width;
+  this->fb_height = attr.fbtype.fb_height;
+  this->fb_depth  = attr.fbtype.fb_depth;
+  this->vbase     = vbase;
 
   for (i=0; i<sizeof(pitch_code_table)/sizeof(pitch_code_table[0]); i++) {
     if (pitch_code_table[i][0] == this->fb_width) {
@@ -831,11 +874,15 @@ static vo_driver_t *pgx32_init_driver(video_driver_class_t *class_gen, const voi
   this->display  = ((x11_visual_t *)visual_gen)->display;
   this->screen   = ((x11_visual_t *)visual_gen)->screen;
   this->drawable = ((x11_visual_t *)visual_gen)->d;
-  this->gc       = XCreateGC(this->display, this->drawable, 0, NULL);
+
+  XLockDisplay(this->display);
+  this->gc      = XCreateGC(this->display, this->drawable, 0, NULL);
+  this->dgadraw = XDgaGrabDrawable(this->display, this->drawable);
 
   XGetWindowAttributes(this->display, this->drawable, &win_attrs);
   this->depth  = win_attrs.depth;
   this->visual = win_attrs.visual;
+  XUnlockDisplay(this->display);
 
   return (vo_driver_t *)this;
 }
@@ -858,6 +905,8 @@ static void *pgx32_init_class(xine_t *xine, void *visual_gen)
   if (!class) {
     return NULL;
   }
+
+  DGA_INIT();
 
   class->vo_driver_class.open_plugin     = pgx32_init_driver;
   class->vo_driver_class.get_identifier  = pgx32_get_identifier;

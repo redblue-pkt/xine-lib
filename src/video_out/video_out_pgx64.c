@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (C) 2000-2004 the xine project
  * 
  * This file is part of xine, a free video player.
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  *
- * $Id: video_out_pgx64.c,v 1.54 2004/03/16 00:32:22 komadori Exp $
+ * $Id: video_out_pgx64.c,v 1.55 2004/04/16 12:17:03 komadori Exp $
  *
  * video_out_pgx64.c, Sun PGX64/PGX24 output plugin for xine
  *
@@ -42,11 +42,21 @@
 #include <X11/Xutil.h>
 #include <X11/Xatom.h>
 
+#ifdef HAVE_SUNDGA
+#include <dga/dga.h>
+#endif
+
 #include "xine_internal.h"
 #include "alphablend.h"
 #include "bswap.h"
 #include "vo_scale.h"
 #include "xineutils.h"
+
+/*
+ * The maximum number of frames that can be used in multi-buffering
+ * configuration.
+ */
+#define MAX_MULTIBUF_FRAMES 15
 
 /*
  * The maximum number of frames that can be safely taken out of circulation.
@@ -155,19 +165,24 @@ typedef struct {
 
   pgx64_driver_class_t *class;
 
-  pgx64_frame_t *current, *detained[MAX_DETAINED_FRAMES];
-  int detained_frames;
+  pgx64_frame_t *current;
+  pgx64_frame_t *multibuf[MAX_MULTIBUF_FRAMES];
+  pgx64_frame_t *detained[MAX_DETAINED_FRAMES];
+  int multibuf_frames, detained_frames;
 
   int fbfd, fb_width, fb_height, fb_depth;
   uint32_t free_top, free_bottom, free_mark, buffers[2][3];
   uint8_t *vbase, *buffer_ptrs[2][3];
 
   Display *display;
-  int screen, depth;
-  Drawable drawable;
-  GC gc;
+  int screen, depth, dgavis;
   Visual *visual;
+  Drawable drawable;
   Colormap cmap;
+  GC gc;
+#ifdef HAVE_SUNDGA
+  Dga_drawable dgadraw;
+#endif
 
   int ovl_mode, ovl_changed, ovl_regen_needed;
   pthread_mutex_t ovl_mutex;
@@ -253,7 +268,13 @@ static void vram_reset(pgx64_driver_t * this)
 
   this->free_mark = this->free_top;
 
-  for (i=0;i<this->detained_frames;i++) {
+  for (i=0; i<this->multibuf_frames; i++) {
+    this->multibuf[i]->vo_frame.proc_frame = NULL;
+    this->multibuf[i]->vo_frame.proc_slice = NULL;
+  }
+  this->multibuf_frames = 0;
+
+  for (i=0; i<this->detained_frames; i++) {
     this->detained[i]->vo_frame.free(&this->detained[i]->vo_frame);
   }
   this->detained_frames = 0;
@@ -461,18 +482,23 @@ static void pgx64_display_frame(vo_driver_t *this_gen, vo_frame_t *frame_gen)
     vregs[OVERLAY_SCALE_INC] = le2me_32((((frame->width << 12) / this->vo_scale.output_width) << 16) | (((this->deinterlace_en ? frame->height/2 : frame->height) << 12) / this->vo_scale.output_height));
     vregs[SCALER_HEIGHT_WIDTH] = le2me_32((frame->width << 16) | (this->deinterlace_en ? frame->height/2 : frame->height));
 
-    if (this->ovl_mode == OVL_MODE_EXCLUSIVE) {
-      int horz_start = (this->vo_scale.gui_win_x + this->vo_scale.output_xoffset + 7) / 8;
-      int horz_end = (this->vo_scale.gui_win_x + this->vo_scale.output_xoffset + this->vo_scale.output_width) / 8;
+#ifdef HAVE_SUNDGA
+    DGA_DRAW_LOCK(this->dgadraw, -1);
+    this->dgavis = dga_draw_visibility(this->dgadraw);
+    DGA_DRAW_UNLOCK(this->dgadraw);
+#endif
 
-      vregs[OVERLAY_EXCLUSIVE_VERT] = le2me_32((this->vo_scale.gui_win_y + this->vo_scale.output_yoffset - 1) | ((this->vo_scale.gui_win_y + this->vo_scale.output_yoffset + this->vo_scale.output_height - 1) << 16));
-      vregs[OVERLAY_EXCLUSIVE_HORZ] = le2me_32(horz_start | (horz_end << 8) | ((this->fb_width/8 - horz_end) << 16) | OVERLAY_EXCLUSIVE_EN);
-    }
-    else {
-      vregs[OVERLAY_EXCLUSIVE_HORZ] = 0;
-    }
+    if (this->dgavis != DGA_VIS_FULLY_OBSCURED) {
+      if (this->ovl_mode == OVL_MODE_EXCLUSIVE) {
+        int horz_start = (this->vo_scale.gui_win_x + this->vo_scale.output_xoffset + 7) / 8;
+        int horz_end = (this->vo_scale.gui_win_x + this->vo_scale.output_xoffset + this->vo_scale.output_width) / 8;
 
-    vregs[OVERLAY_SCALE_CNTL] = le2me_32(OVERLAY_SCALE_EN);
+        vregs[OVERLAY_EXCLUSIVE_VERT] = le2me_32((this->vo_scale.gui_win_y + this->vo_scale.output_yoffset - 1) | ((this->vo_scale.gui_win_y + this->vo_scale.output_yoffset + this->vo_scale.output_height - 1) << 16));
+        vregs[OVERLAY_EXCLUSIVE_HORZ] = le2me_32(horz_start | (horz_end << 8) | ((this->fb_width/8 - horz_end) << 16) | OVERLAY_EXCLUSIVE_EN);
+      }
+
+      vregs[OVERLAY_SCALE_CNTL] = le2me_32(OVERLAY_SCALE_EN);
+    }
   }
 
   if (this->buf_mode == BUF_MODE_MULTI) {
@@ -500,6 +526,8 @@ static void pgx64_display_frame(vo_driver_t *this_gen, vo_frame_t *frame_gen)
 
       frame->vo_frame.proc_frame = pgx64_frame_proc_frame;
       frame->vo_frame.proc_slice = pgx64_frame_proc_slice;
+      _x_assert(this->multibuf_frames < MAX_MULTIBUF_FRAMES);
+      this->multibuf[this->multibuf_frames++] = frame;
     }
 
     for (i=0;i<frame->planes;i++) {
@@ -524,7 +552,9 @@ static void pgx64_display_frame(vo_driver_t *this_gen, vo_frame_t *frame_gen)
       this->buf_mode = BUF_MODE_DOUBLE;
       for (i=0;i<frame->planes;i++) {
         if ((this->buffers[1][i] = vram_alloc(this, frame->lengths[i])) < 0) {
-           this->buf_mode = BUF_MODE_SINGLE;
+          xprintf(this->class->xine, XINE_VERBOSITY_LOG, _("video_out_pgx64: Warning: low video memory, double-buffering disabled\n"));
+          this->buf_mode = BUF_MODE_SINGLE;
+          break;
         }
         else {
           this->buffer_ptrs[1][i] = this->vbase + this->buffers[1][i];
@@ -532,7 +562,6 @@ static void pgx64_display_frame(vo_driver_t *this_gen, vo_frame_t *frame_gen)
       }
 
       if (this->buf_mode == BUF_MODE_SINGLE) {
-        xprintf(this->class->xine, XINE_VERBOSITY_LOG, _("video_out_pgx64: Warning: low video memory, double-buffering disabled\n"));
         for (i=0;i<frame->planes;i++) {
           this->buffers[1][i] = this->buffers[0][i];
           this->buffer_ptrs[1][i] = this->vbase + this->buffers[1][i];
@@ -549,9 +578,6 @@ static void pgx64_display_frame(vo_driver_t *this_gen, vo_frame_t *frame_gen)
     for (i=0;i<frame->planes;i++) {
       memcpy(this->buffer_ptrs[this->dblbuf_select][i], frame->vo_frame.base[i], frame->lengths[i]);
     }
-
-    frame->vo_frame.proc_slice = NULL;
-    frame->vo_frame.proc_frame = NULL;
   }
 
   vregs[CAPTURE_CONFIG] = this->dblbuf_select ? le2me_32(CAPTURE_CONFIG_BUF1) : le2me_32(CAPTURE_CONFIG_BUF0);
@@ -889,15 +915,20 @@ static int pgx64_gui_data_exchange(vo_driver_t *this_gen, int data_type, void *d
       XWindowAttributes win_attrs;
 
       XLockDisplay(this->display);
-      this->drawable = (Drawable)data;
-      XGetWindowAttributes(this->display, this->drawable, &win_attrs);
-      this->depth  = win_attrs.depth;
-      this->visual = win_attrs.visual;
-      XFreeColormap(this->display, this->cmap);
-      this->cmap = XCreateColormap(this->display, this->drawable, this->visual, AllocNone);
-      XSetWindowColormap(this->display, this->drawable, this->cmap);
+#ifdef HAVE_SUNDGA
+      XDgaUnGrabDrawable(this->dgadraw);
+#endif
       XFreeGC(this->display, this->gc);
-      this->gc = XCreateGC(this->display, this->drawable, 0, NULL);
+      XGetWindowAttributes(this->display, this->drawable, &win_attrs);
+      this->depth    = win_attrs.depth;
+      this->visual   = win_attrs.visual;
+      this->drawable = (Drawable)data;
+      this->cmap     = XCreateColormap(this->display, this->drawable, this->visual, AllocNone);
+      XSetWindowColormap(this->display, this->drawable, this->cmap);
+      this->gc       = XCreateGC(this->display, this->drawable, 0, NULL);
+#ifdef HAVE_SUNDGA
+      this->dgadraw  = XDgaGrabDrawable(this->display, this->drawable);
+#endif
       XUnlockDisplay(this->display);
     }
     break;
@@ -928,8 +959,15 @@ static int pgx64_gui_data_exchange(vo_driver_t *this_gen, int data_type, void *d
 static int pgx64_redraw_needed(vo_driver_t *this_gen)
 {
   pgx64_driver_t *this = (pgx64_driver_t *)(void *)this_gen;
+  int modif = 0;
 
-  if (_x_vo_scale_redraw_needed(&this->vo_scale)) {  
+#ifdef HAVE_SUNDGA
+  DGA_DRAW_LOCK(this->dgadraw, -1);
+  modif = DGA_DRAW_MODIF(this->dgadraw);
+  DGA_DRAW_UNLOCK(this->dgadraw);
+#endif
+
+  if (modif || _x_vo_scale_redraw_needed(&this->vo_scale)) {  
     this->vo_scale.force_redraw = 1;
     this->ovl_regen_needed = 1;
     return 1;
@@ -948,6 +986,9 @@ static void pgx64_dispose(vo_driver_t *this_gen)
 
   XLockDisplay (this->display);
   XFreeColormap(this->display, this->cmap);
+#ifdef HAVE_SUNDGA
+  XDgaUnGrabDrawable(this->dgadraw);
+#endif
   XFreeGC(this->display, this->gc);
   XUnlockDisplay (this->display);
 
@@ -1080,13 +1121,19 @@ static vo_driver_t *pgx64_init_driver(video_driver_class_t *class_gen, const voi
   this->display  = ((x11_visual_t *)visual_gen)->display;
   this->screen   = ((x11_visual_t *)visual_gen)->screen;
   this->drawable = ((x11_visual_t *)visual_gen)->d;
-  this->gc       = XCreateGC(this->display, this->drawable, 0, NULL);
+
+  XLockDisplay(this->display);
+  this->gc      = XCreateGC(this->display, this->drawable, 0, NULL);
+#ifdef HAVE_SUNDGA
+  this->dgadraw = XDgaGrabDrawable(this->display, this->drawable);
+#endif
 
   XGetWindowAttributes(this->display, this->drawable, &win_attrs);
   this->depth  = win_attrs.depth;
   this->visual = win_attrs.visual;
   this->cmap   = XCreateColormap(this->display, this->drawable, this->visual, AllocNone);
   XSetWindowColormap(this->display, this->drawable, this->cmap);
+  XUnlockDisplay(this->display);
 
   this->colour_key  = class->config->register_num(this->class->config, "video.pgx64_colour_key", 1, "video overlay colour key", NULL, 10, pgx64_config_changed, this);
   this->brightness  = class->config->register_range(this->class->config, "video.pgx64_brightness", 0, -64, 63, "video overlay brightness", NULL, 10, pgx64_config_changed, this);
@@ -1117,6 +1164,10 @@ static void *pgx64_init_class(xine_t *xine, void *visual_gen)
   if (!class) {
     return NULL;
   }
+
+#ifdef HAVE_SUNDGA
+  DGA_INIT();
+#endif
 
   class->vo_driver_class.open_plugin     = pgx64_init_driver;
   class->vo_driver_class.get_identifier  = pgx64_get_identifier;
