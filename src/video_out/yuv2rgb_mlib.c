@@ -33,6 +33,7 @@
 #include <mlib_video.h>
 
 #include "attributes.h"
+#include "xineutils.h"
 #include "yuv2rgb.h"
 
 
