@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_avi.c,v 1.206 2004/07/03 19:22:16 tmattern Exp $
+ * $Id: demux_avi.c,v 1.207 2004/07/04 21:27:23 mroi Exp $
  *
  * demultiplexer for avi streams
  *
@@ -2005,7 +2005,7 @@ static void demux_avi_send_headers (demux_plugin_t *this_gen) {
           if (todo == 0)
             buf->decoder_flags |= BUF_FLAG_FRAME_END;
 
-          memcpy (buf->content, (void *)a->wavex + done, buf->size);
+          memcpy (buf->content, (uint8_t *)a->wavex + done, buf->size);
           buf->type = a->audio_type | i;
           buf->decoder_info[0] = 0;                         /* first package, containing wavex */
           buf->decoder_info[1] = a->wavex->nSamplesPerSec;  /* Audio Rate */
