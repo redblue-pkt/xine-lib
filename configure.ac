@@ -687,13 +687,26 @@ AC_ARG_ENABLE(fpic,
 
 dnl ---------------------------------------------
 dnl Build xine plugins with only the "xine_plugin_info" symbol exported
-dnl (let the user disable this feature, in case libtool does not offer it
+dnl (let the user disable this feature, in case libtool does not offer this
 dnl feature on the target platform)
 dnl ---------------------------------------------
 AC_ARG_ENABLE(min-symtab,
    [  --disable-min-symtab    Export all global symbols from xine plugins ],
    XINE_PLUGIN_MIN_SYMS="",
    XINE_PLUGIN_MIN_SYMS="-export-symbols-regex xine_plugin_info")
+
+if test "$with_gnu_ld" = yes; then
+   dnl
+   dnl -export-symbols-regex in libtool 1.4.X is broken, when GNU ld is
+   dnl used for linking.  libtool / gnu ld does not touch the dynamic
+   dnl symbol table, but removes the unwanted symbols from the
+   dnl symbol table => The debug versions of the the xine-lib plugins
+   dnl cannot be debugged.
+   dnl
+   dnl Don't use libtool's -export-symbols-regex on such a platform for now
+   dnl
+   XINE_PLUGIN_MIN_SYMS=""
+fi
 
 AC_SUBST(XINE_PLUGIN_MIN_SYMS)
 
@@ -1081,7 +1094,7 @@ AC_SUBST(w32_path)
 dnl ---------------------------------------------
 dnl some include paths ( !!! DO NOT REMOVE !!! )
 dnl
-INCLUDES='-I$(top_srcdir) -I$(top_builddir)/include -I$(top_srcdir)/include -I$(top_srcdir)/src -I$(top_srcdir)/src/xine-engine -I$(top_srcdir)/src/xine-utils $(INTLDIR)'
+INCLUDES='-I$(top_srcdir) -I$(top_builddir)/include -I$(top_srcdir)/include -I$(top_srcdir)/src -I$(top_builddir)/src/xine-engine -I$(top_srcdir)/src/xine-engine -I$(top_srcdir)/src/xine-utils $(INTLDIR)'
 AC_SUBST(INCLUDES)
 
 
