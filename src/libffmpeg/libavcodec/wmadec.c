@@ -92,7 +92,7 @@ typedef struct WMADecodeContext {
     int16_t coefs1[MAX_CHANNELS][BLOCK_MAX_SIZE];
     float coefs[MAX_CHANNELS][BLOCK_MAX_SIZE] __attribute__((aligned(16)));
     MDCTContext mdct_ctx[BLOCK_NB_SIZES];
-    float *windows[BLOCK_NB_SIZES] __attribute__((aligned(16)));
+    float *windows[BLOCK_NB_SIZES];
     FFTSample mdct_tmp[BLOCK_MAX_SIZE] __attribute__((aligned(16))); /* temporary storage for imdct */
     /* output buffer for one frame and the last for IMDCT windowing */
     float frame_out[MAX_CHANNELS][BLOCK_MAX_SIZE * 2] __attribute__((aligned(16)));
@@ -212,8 +212,8 @@ static void init_coef_vlc(VLC *vlc,
 
     init_vlc(vlc, 9, n, table_bits, 1, 1, table_codes, 4, 4);
 
-    run_table = malloc(n * sizeof(uint16_t));
-    level_table = malloc(n * sizeof(uint16_t));
+    run_table = av_malloc(n * sizeof(uint16_t));
+    level_table = av_malloc(n * sizeof(uint16_t));
     p = levels_table;
     i = 2;
     level = 1;
@@ -1226,7 +1226,7 @@ static int wma_decode_superframe(AVCodecContext *avctx,
 
     samples = data;
 
-    init_get_bits(&s->gb, buf, buf_size);
+    init_get_bits(&s->gb, buf, buf_size*8);
     
     if (s->use_bit_reservoir) {
         /* read super frame header */
@@ -1252,7 +1252,7 @@ static int wma_decode_superframe(AVCodecContext *avctx,
             }
             
             /* XXX: bit_offset bits into last frame */
-            init_get_bits(&s->gb, s->last_superframe, MAX_CODED_SUPERFRAME_SIZE);
+            init_get_bits(&s->gb, s->last_superframe, MAX_CODED_SUPERFRAME_SIZE*8);
             /* skip unused bits */
             if (s->last_bitoffset > 0)
                 skip_bits(&s->gb, s->last_bitoffset);
@@ -1265,7 +1265,7 @@ static int wma_decode_superframe(AVCodecContext *avctx,
 
         /* read each frame starting from bit_offset */
         pos = bit_offset + 4 + 4 + s->byte_offset_bits + 3;
-        init_get_bits(&s->gb, buf + (pos >> 3), MAX_CODED_SUPERFRAME_SIZE - (pos >> 3));
+        init_get_bits(&s->gb, buf + (pos >> 3), (MAX_CODED_SUPERFRAME_SIZE - (pos >> 3))*8);
         len = pos & 7;
         if (len > 0)
             skip_bits(&s->gb, len);

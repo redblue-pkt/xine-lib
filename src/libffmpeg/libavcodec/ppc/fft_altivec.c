@@ -1,7 +1,7 @@
 /*
  * FFT/IFFT transforms
  * AltiVec-enabled
- * Copyright (c) 2002 Romain Dolbeau <romain@dolbeau.org>
+ * Copyright (c) 2003 Romain Dolbeau <romain@dolbeau.org>
  * Based on code Copyright (c) 2002 Fabrice Bellard.
  *
  * This library is free software; you can redistribute it and/or
@@ -22,30 +22,30 @@
 
 #include "dsputil_altivec.h"
 
-// used to build registers permutation vectors (vcprm)
-// the 's' are for words in the _s_econd vector
-#define WORD_0 0x00,0x01,0x02,0x03
-#define WORD_1 0x04,0x05,0x06,0x07
-#define WORD_2 0x08,0x09,0x0a,0x0b
-#define WORD_3 0x0c,0x0d,0x0e,0x0f
-#define WORD_s0 0x10,0x11,0x12,0x13
-#define WORD_s1 0x14,0x15,0x16,0x17
-#define WORD_s2 0x18,0x19,0x1a,0x1b
-#define WORD_s3 0x1c,0x1d,0x1e,0x1f
+/*
+  those three macros are from libavcodec/fft.c
+  and are required for the reference C code
+*/
+/* butter fly op */
+#define BF(pre, pim, qre, qim, pre1, pim1, qre1, qim1) \
+{\
+  FFTSample ax, ay, bx, by;\
+  bx=pre1;\
+  by=pim1;\
+  ax=qre1;\
+  ay=qim1;\
+  pre = (bx + ax);\
+  pim = (by + ay);\
+  qre = (bx - ax);\
+  qim = (by - ay);\
+}
+#define MUL16(a,b) ((a) * (b))
+#define CMUL(pre, pim, are, aim, bre, bim) \
+{\
+   pre = (MUL16(are, bre) - MUL16(aim, bim));\
+   pim = (MUL16(are, bim) + MUL16(bre, aim));\
+}
 
-#define vcprm(a,b,c,d) (const vector unsigned char)(WORD_ ## a, WORD_ ## b, WORD_ ## c, WORD_ ## d)
-
-// vcprmle is used to keep the same index as in the SSE version.
-// it's the same as vcprm, with the index inversed
-// ('le' is Little Endian)
-#define vcprmle(a,b,c,d) vcprm(d,c,b,a)
-
-// used to build inverse/identity vectors (vcii)
-// n is _n_egative, p is _p_ositive
-#define FLOAT_n -1.
-#define FLOAT_p 1.
-
-#define vcii(a,b,c,d) (const vector float)(FLOAT_ ## a, FLOAT_ ## b, FLOAT_ ## c, FLOAT_ ## d)
 
 /**
  * Do a complex FFT with the parameters defined in fft_init(). The
@@ -55,20 +55,94 @@
  * This code assumes that the 'z' pointer is 16 bytes-aligned
  * It also assumes all FFTComplex are 8 bytes-aligned pair of float
  * The code is exactly the same as the SSE version, except
- * that successive MUL + ADD/SUB have been fusionned into
+ * that successive MUL + ADD/SUB have been merged into
  * fused multiply-add ('vec_madd' in altivec)
- *
- * To test this code you can use fft-test in libavcodec ; use
- * the following line in libavcodec to compile (MacOS X):
- * #####
- * gcc -I. -Ippc -no-cpp-precomp -pipe -O3 -fomit-frame-pointer -mdynamic-no-pic -Wall
- *     -faltivec -DARCH_POWERPC -DHAVE_ALTIVEC -DCONFIG_DARWIN fft-test.c fft.c
- *     ppc/fft_altivec.c ppc/dsputil_altivec.c mdct.c -DHAVE_LRINTF -o fft-test
- * #####
  */
 void fft_calc_altivec(FFTContext *s, FFTComplex *z)
 {
-    register const vector float vczero = (vector float)( 0., 0., 0., 0.);
+POWERPC_TBL_DECLARE(altivec_fft_num, s->nbits >= 6);
+#ifdef ALTIVEC_USE_REFERENCE_C_CODE
+    int ln = s->nbits;
+    int	j, np, np2;
+    int	nblocks, nloops;
+    register FFTComplex *p, *q;
+    FFTComplex *exptab = s->exptab;
+    int l;
+    FFTSample tmp_re, tmp_im;
+    
+POWERPC_TBL_START_COUNT(altivec_fft_num, s->nbits >= 6);
+ 
+    np = 1 << ln;
+
+    /* pass 0 */
+
+    p=&z[0];
+    j=(np >> 1);
+    do {
+        BF(p[0].re, p[0].im, p[1].re, p[1].im, 
+           p[0].re, p[0].im, p[1].re, p[1].im);
+        p+=2;
+    } while (--j != 0);
+
+    /* pass 1 */
+
+    
+    p=&z[0];
+    j=np >> 2;
+    if (s->inverse) {
+        do {
+            BF(p[0].re, p[0].im, p[2].re, p[2].im, 
+               p[0].re, p[0].im, p[2].re, p[2].im);
+            BF(p[1].re, p[1].im, p[3].re, p[3].im, 
+               p[1].re, p[1].im, -p[3].im, p[3].re);
+            p+=4;
+        } while (--j != 0);
+    } else {
+        do {
+            BF(p[0].re, p[0].im, p[2].re, p[2].im, 
+               p[0].re, p[0].im, p[2].re, p[2].im);
+            BF(p[1].re, p[1].im, p[3].re, p[3].im, 
+               p[1].re, p[1].im, p[3].im, -p[3].re);
+            p+=4;
+        } while (--j != 0);
+    }
+    /* pass 2 .. ln-1 */
+
+    nblocks = np >> 3;
+    nloops = 1 << 2;
+    np2 = np >> 1;
+    do {
+        p = z;
+        q = z + nloops;
+        for (j = 0; j < nblocks; ++j) {
+            BF(p->re, p->im, q->re, q->im,
+               p->re, p->im, q->re, q->im);
+            
+            p++;
+            q++;
+            for(l = nblocks; l < np2; l += nblocks) {
+                CMUL(tmp_re, tmp_im, exptab[l].re, exptab[l].im, q->re, q->im);
+                BF(p->re, p->im, q->re, q->im,
+                   p->re, p->im, tmp_re, tmp_im);
+                p++;
+                q++;
+            }
+
+            p += nloops;
+            q += nloops;
+        }
+        nblocks = nblocks >> 1;
+        nloops = nloops << 1;
+    } while (nblocks != 0);
+
+POWERPC_TBL_STOP_COUNT(altivec_fft_num, s->nbits >= 6);
+
+#else /* ALTIVEC_USE_REFERENCE_C_CODE */
+#ifdef CONFIG_DARWIN
+    register const vector float vczero = (const vector float)(0.);
+#else
+    register const vector float vczero = (const vector float){0.,0.,0.,0.};
+#endif
     
     int ln = s->nbits;
     int	j, np, np2;
@@ -76,6 +150,8 @@ void fft_calc_altivec(FFTContext *s, FFTComplex *z)
     register FFTComplex *p, *q;
     FFTComplex *cptr, *cptr1;
     int k;
+
+POWERPC_TBL_START_COUNT(altivec_fft_num, s->nbits >= 6);
 
     np = 1 << ln;
 
@@ -162,5 +238,8 @@ void fft_calc_altivec(FFTContext *s, FFTComplex *z)
         nblocks = nblocks >> 1;
         nloops = nloops << 1;
     } while (nblocks != 0);
-}
 
+POWERPC_TBL_STOP_COUNT(altivec_fft_num, s->nbits >= 6);
+
+#endif /* ALTIVEC_USE_REFERENCE_C_CODE */
+}

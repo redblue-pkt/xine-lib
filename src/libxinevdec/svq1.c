@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: svq1.c,v 1.23 2003/01/08 01:02:32 miguelfreitas Exp $
+ * $Id: svq1.c,v 1.24 2003/01/31 18:29:47 miguelfreitas Exp $
  */
 
 #include <stdio.h>
@@ -1495,7 +1495,7 @@ static uint32_t video_types[] = {
 
 static decoder_info_t dec_info_video = {
   video_types,         /* supported types */
-  4                    /* priority        */
+  6                    /* priority        */
 };
 
 plugin_info_t xine_plugin_info[] = {

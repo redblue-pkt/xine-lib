@@ -98,7 +98,6 @@ typedef struct RateControlContext{
     int last_non_b_pict_type;
 }RateControlContext;
 
-
 typedef struct ScanTable{
     const UINT8 *scantable;
     UINT8 permutated[64];
@@ -117,6 +116,7 @@ typedef struct Picture{
     uint16_t *mb_var;           /* Table for MB variances */
     uint16_t *mc_mb_var;        /* Table for motion compensated MB variances */
     uint8_t *mb_mean;           /* Table for MB luminance */
+    int32_t *mb_cmp_score;	/* Table for MB cmp scores, for mb decission */
     int b_frame_score;          /* */
 } Picture;
 
@@ -142,6 +142,7 @@ typedef struct MotionEstContext{
     int pre_penalty_factor;
     int penalty_factor;
     int sub_penalty_factor;
+    int mb_penalty_factor;
     int pre_pass;                      /* = 1 for the pre pass */
     int dia_size;
     UINT16 (*mv_penalty)[MAX_MV*2+1];  /* amount of bits needed to encode a MV */
@@ -160,6 +161,8 @@ typedef struct MotionEstContext{
                              int P[10][2], int pred_x, int pred_y,
                              int xmin, int ymin, int xmax, int ymax, Picture *ref_picture, int16_t (*last_mv)[2], 
                              int ref_mv_scale, uint16_t * const mv_penalty);
+    int (*get_mb_score)(struct MpegEncContext * s, int mx, int my, int pred_x, int pred_y, Picture *ref_picture, 
+                                  uint16_t * const mv_penalty);
 }MotionEstContext;
 
 typedef struct MpegEncContext {
@@ -226,6 +229,8 @@ typedef struct MpegEncContext {
     UINT8 *coded_block;          /* used for coded block pattern prediction (msmpeg4v3, wmv1)*/
     INT16 (*ac_val[3])[16];      /* used for for mpeg4 AC prediction, all 3 arrays must be continuous */
     int ac_pred;
+    uint8_t *prev_pict_types;   /* previous picture types in bitstream order, used for mb skip */
+#define PREV_PICT_TYPES_BUFFER_SIZE 256
     int mb_skiped;              /* MUST BE SET only during DECODING */
     UINT8 *mbskip_table;        /* used to avoid copy if macroblock skipped (for black regions for example) 
                                    and used for b-frame encoding & decoding (contains skip table of next P Frame) */
@@ -321,6 +326,8 @@ typedef struct MpegEncContext {
     uint8_t *intra_ac_vlc_last_length;
     uint8_t *inter_ac_vlc_length;
     uint8_t *inter_ac_vlc_last_length;
+    uint8_t *luma_dc_vlc_length;
+    uint8_t *chroma_dc_vlc_length;
 #define UNI_AC_ENC_INDEX(run,level) ((run)*128 + (level))
 
     /* precomputed matrix (combine qscale and DCT renorm) */
@@ -544,14 +551,15 @@ typedef struct MpegEncContext {
 #define SLICE_NOEND     -3 //no end marker or error found but mb count exceeded
     
     void (*dct_unquantize_mpeg1)(struct MpegEncContext *s, 
-                           DCTELEM *block, int n, int qscale);
+                           DCTELEM *block/*align 16*/, int n, int qscale);
     void (*dct_unquantize_mpeg2)(struct MpegEncContext *s, 
-                           DCTELEM *block, int n, int qscale);
+                           DCTELEM *block/*align 16*/, int n, int qscale);
     void (*dct_unquantize_h263)(struct MpegEncContext *s, 
-                           DCTELEM *block, int n, int qscale);
+                           DCTELEM *block/*align 16*/, int n, int qscale);
     void (*dct_unquantize)(struct MpegEncContext *s, // unquantizer to use (mpeg4 can use both)
-                           DCTELEM *block, int n, int qscale);
-    int (*dct_quantize)(struct MpegEncContext *s, DCTELEM *block, int n, int qscale, int *overflow);
+                           DCTELEM *block/*align 16*/, int n, int qscale);
+    int (*dct_quantize)(struct MpegEncContext *s, DCTELEM *block/*align 16*/, int n, int qscale, int *overflow);
+    int (*fast_dct_quantize)(struct MpegEncContext *s, DCTELEM *block/*align 16*/, int n, int qscale, int *overflow);
     void (*fdct)(DCTELEM *block/* align 16*/);
     void (*idct_put)(UINT8 *dest/*align 8*/, int line_size, DCTELEM *block/*align 16*/);
     void (*idct_add)(UINT8 *dest/*align 8*/, int line_size, DCTELEM *block/*align 16*/);
@@ -596,7 +604,9 @@ void ff_draw_horiz_band(MpegEncContext *s);
 void ff_emulated_edge_mc(MpegEncContext *s, UINT8 *src, int linesize, int block_w, int block_h, 
                                     int src_x, int src_y, int w, int h);
 char ff_get_pict_type_char(int pict_type);
+int ff_combine_frame( MpegEncContext *s, int next, uint8_t **buf, int *buf_size);
 
+extern enum PixelFormat ff_yuv420p_list[2];
 
 extern int ff_bit_exact;
 
@@ -690,7 +700,7 @@ void h263_encode_picture_header(MpegEncContext *s, int picture_number);
 int h263_encode_gob_header(MpegEncContext * s, int mb_line);
 INT16 *h263_pred_motion(MpegEncContext * s, int block, 
                         int *px, int *py);
-void mpeg4_pred_ac(MpegEncContext * s, INT16 *block, int n, 
+void mpeg4_pred_ac(MpegEncContext * s, DCTELEM *block, int n, 
                    int dir);
 void ff_set_mpeg4_time(MpegEncContext * s, int picture_number);
 void mpeg4_encode_picture_header(MpegEncContext *s, int picture_number);
@@ -717,6 +727,7 @@ int ff_mpeg4_get_video_packet_prefix_length(MpegEncContext *s);
 int ff_h263_resync(MpegEncContext *s);
 int ff_h263_get_gob_height(MpegEncContext *s);
 void ff_mpeg4_set_direct_mv(MpegEncContext *s, int mx, int my);
+inline int ff_h263_round_chroma(int x);
 
 
 /* rv10.c */

@@ -1,12 +1,16 @@
 #ifndef AVCODEC_H
 #define AVCODEC_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "common.h"
 
 #define LIBAVCODEC_VERSION_INT 0x000406
 #define LIBAVCODEC_VERSION     "0.4.6"
-#define LIBAVCODEC_BUILD       4652
-#define LIBAVCODEC_BUILD_STR   "4652"
+#define LIBAVCODEC_BUILD       4654
+#define LIBAVCODEC_BUILD_STR   "4654"
 
 enum CodecID {
     CODEC_ID_NONE, 
@@ -62,21 +66,19 @@ enum CodecType {
 enum PixelFormat {
     PIX_FMT_YUV420P,
     PIX_FMT_YUV422,
-    PIX_FMT_RGB24,
-    PIX_FMT_BGR24,
+    PIX_FMT_RGB24,     /* 3 bytes, R is first */
+    PIX_FMT_BGR24,     /* 3 bytes, B is first */
     PIX_FMT_YUV422P,
     PIX_FMT_YUV444P,
-    PIX_FMT_RGBA32,
-    PIX_FMT_BGRA32,
+    PIX_FMT_RGBA32,    /* always stored in cpu endianness */
     PIX_FMT_YUV410P,
     PIX_FMT_YUV411P,
-    PIX_FMT_RGB565,
-    PIX_FMT_RGB555,
-//    PIX_FMT_RGB5551,
-    PIX_FMT_BGR565,
-    PIX_FMT_BGR555,
-//    PIX_FMT_GBR565,
-//    PIX_FMT_GBR555
+    PIX_FMT_RGB565,    /* always stored in cpu endianness */
+    PIX_FMT_RGB555,    /* always stored in cpu endianness, most significant bit to 1 */
+    PIX_FMT_GRAY8,
+    PIX_FMT_MONOWHITE, /* 0 is white */
+    PIX_FMT_MONOBLACK, /* 0 is black */
+    PIX_FMT_NB,
 };
 
 /* currently unused, may be used if 24/32 bits samples ever supported */
@@ -520,6 +522,7 @@ typedef struct AVCodecContext {
 #define FF_BUG_NO_PADDING       16
 #define FF_BUG_AC_VLC           32
 #define FF_BUG_QPEL_CHROMA      64
+#define FF_BUG_STD_QPEL         128
 //#define FF_BUG_FAKE_SCALABILITY 16 //autodetection should work 100%
         
     /**
@@ -924,6 +927,16 @@ typedef struct AVCodecContext {
      */
     int me_subpel_quality;
 
+    /**
+     * callback to negotiate the pixelFormat
+     * @param fmt is the list of formats which are supported by the codec,
+     * its terminated by -1 as 0 is a valid format, the formats are ordered by quality
+     * the first is allways the native one
+     * @return the choosen format
+     * encoding: unused
+     * decoding: set by user, if not set then the native format will always be choosen
+     */
+    enum PixelFormat (*get_format)(struct AVCodecContext *s, enum PixelFormat * fmt);
 } AVCodecContext;
 
 typedef struct AVCodec {
@@ -1048,10 +1061,11 @@ void img_resample(ImgReSampleContext *s,
 
 void img_resample_close(ImgReSampleContext *s);
 
-void avpicture_fill(AVPicture *picture, UINT8 *ptr,
-                    int pix_fmt, int width, int height);
+int avpicture_fill(AVPicture *picture, UINT8 *ptr,
+                   int pix_fmt, int width, int height);
 int avpicture_get_size(int pix_fmt, int width, int height);
-void avcodec_get_chroma_sub_sample(int fmt, int *h_shift, int *v_shift);
+void avcodec_get_chroma_sub_sample(int pix_fmt, int *h_shift, int *v_shift);
+const char *avcodec_get_pix_fmt_name(int pix_fmt);
 
 /* convert among pixel formats */
 int img_convert(AVPicture *dst, int dst_pix_fmt,
@@ -1142,7 +1156,7 @@ typedef struct {
     const char* supported;
 } avc_config_t;
 
-void avcodec_getopt(AVCodecContext* avctx, char* str, avc_config_t** config);
+void avcodec_getopt(AVCodecContext* avctx, const char* str, avc_config_t** config);
 
 /**
  * Interface for 0.5.0 version
@@ -1223,13 +1237,20 @@ int avcodec(void* handle, avc_cmd_t cmd, void* pin, void* pout);
 /* memory */
 void *av_malloc(unsigned int size);
 void *av_mallocz(unsigned int size);
+void *av_realloc(void *ptr, unsigned int size);
 void av_free(void *ptr);
+char *av_strdup(const char *s);
 void __av_freep(void **ptr);
 #define av_freep(p) __av_freep((void **)(p))
+void *av_fast_realloc(void *ptr, int *size, int min_size);
 /* for static data only */
 /* call av_free_static to release all staticaly allocated tables */
 void av_free_static(void);
 void *__av_mallocz_static(void** location, unsigned int size);
 #define av_mallocz_static(p, s) __av_mallocz_static((void **)(p), s)
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* AVCODEC_H */

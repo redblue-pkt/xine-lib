@@ -129,6 +129,7 @@ static int pix_norm1_c(UINT8 * pix, int line_size)
     s = 0;
     for (i = 0; i < 16; i++) {
 	for (j = 0; j < 16; j += 8) {
+#if 0
 	    s += sq[pix[0]];
 	    s += sq[pix[1]];
 	    s += sq[pix[2]];
@@ -137,6 +138,30 @@ static int pix_norm1_c(UINT8 * pix, int line_size)
 	    s += sq[pix[5]];
 	    s += sq[pix[6]];
 	    s += sq[pix[7]];
+#else
+#if LONG_MAX > 2147483647
+	    register uint64_t x=*(uint64_t*)pix;
+	    s += sq[x&0xff];
+	    s += sq[(x>>8)&0xff];
+	    s += sq[(x>>16)&0xff];
+	    s += sq[(x>>24)&0xff];
+            s += sq[(x>>32)&0xff];
+            s += sq[(x>>40)&0xff];
+            s += sq[(x>>48)&0xff];
+            s += sq[(x>>56)&0xff];
+#else
+	    register uint32_t x=*(uint32_t*)pix;
+	    s += sq[x&0xff];
+	    s += sq[(x>>8)&0xff];
+	    s += sq[(x>>16)&0xff];
+	    s += sq[(x>>24)&0xff];
+            x=*(uint32_t*)(pix+4);
+            s += sq[x&0xff];
+            s += sq[(x>>8)&0xff];
+            s += sq[(x>>16)&0xff];
+            s += sq[(x>>24)&0xff];
+#endif
+#endif
 	    pix += 8;
 	}
 	pix += line_size - 16;
@@ -166,27 +191,32 @@ static int sse8_c(void *v, UINT8 * pix1, UINT8 * pix2, int line_size)
     return s;
 }
 
-static int sse16_c(void *v, UINT8 * pix1, UINT8 * pix2, int line_size)
+static int sse16_c(void *v, uint8_t *pix1, uint8_t *pix2, int line_size)
 {
-    int s, i, j;
-    UINT32 *sq = squareTbl + 256;
+    int s, i;
+    uint32_t *sq = squareTbl + 256;
 
     s = 0;
     for (i = 0; i < 16; i++) {
-        for (j = 0; j < 16; j += 8) {
-            s += sq[pix1[0] - pix2[0]];
-            s += sq[pix1[1] - pix2[1]];
-            s += sq[pix1[2] - pix2[2]];
-            s += sq[pix1[3] - pix2[3]];
-            s += sq[pix1[4] - pix2[4]];
-            s += sq[pix1[5] - pix2[5]];
-            s += sq[pix1[6] - pix2[6]];
-            s += sq[pix1[7] - pix2[7]];
-            pix1 += 8;
-            pix2 += 8;
-        }
-        pix1 += line_size - 16;
-        pix2 += line_size - 16;
+        s += sq[pix1[ 0] - pix2[ 0]];
+        s += sq[pix1[ 1] - pix2[ 1]];
+        s += sq[pix1[ 2] - pix2[ 2]];
+        s += sq[pix1[ 3] - pix2[ 3]];
+        s += sq[pix1[ 4] - pix2[ 4]];
+        s += sq[pix1[ 5] - pix2[ 5]];
+        s += sq[pix1[ 6] - pix2[ 6]];
+        s += sq[pix1[ 7] - pix2[ 7]];
+        s += sq[pix1[ 8] - pix2[ 8]];
+        s += sq[pix1[ 9] - pix2[ 9]];
+        s += sq[pix1[10] - pix2[10]];
+        s += sq[pix1[11] - pix2[11]];
+        s += sq[pix1[12] - pix2[12]];
+        s += sq[pix1[13] - pix2[13]];
+        s += sq[pix1[14] - pix2[14]];
+        s += sq[pix1[15] - pix2[15]];
+
+        pix1 += line_size;
+        pix2 += line_size;
     }
     return s;
 }
@@ -801,7 +831,8 @@ static void OPNAME ## mpeg4_qpel8_h_lowpass(UINT8 *dst, UINT8 *src, int dstStrid
     }\
 }\
 \
-static void OPNAME ## mpeg4_qpel8_v_lowpass(UINT8 *dst, UINT8 *src, int dstStride, int srcStride, int w){\
+static void OPNAME ## mpeg4_qpel8_v_lowpass(UINT8 *dst, UINT8 *src, int dstStride, int srcStride){\
+    const int w=8;\
     UINT8 *cm = cropTbl + MAX_NEG_CROP;\
     int i;\
     for(i=0; i<w; i++)\
@@ -923,107 +954,163 @@ static void OPNAME ## qpel8_mc01_c(UINT8 *dst, UINT8 *src, int stride){\
     UINT8 full[16*9];\
     UINT8 half[64];\
     copy_block9(full, src, 16, stride, 9);\
-    put ## RND ## mpeg4_qpel8_v_lowpass(half, full, 8, 16, 8);\
+    put ## RND ## mpeg4_qpel8_v_lowpass(half, full, 8, 16);\
     OPNAME ## pixels8_l2(dst, full, half, stride, 16, 8, 8);\
 }\
 \
 static void OPNAME ## qpel8_mc02_c(UINT8 *dst, UINT8 *src, int stride){\
     UINT8 full[16*9];\
     copy_block9(full, src, 16, stride, 9);\
-    OPNAME ## mpeg4_qpel8_v_lowpass(dst, full, stride, 16, 8);\
+    OPNAME ## mpeg4_qpel8_v_lowpass(dst, full, stride, 16);\
 }\
 \
 static void OPNAME ## qpel8_mc03_c(UINT8 *dst, UINT8 *src, int stride){\
     UINT8 full[16*9];\
     UINT8 half[64];\
     copy_block9(full, src, 16, stride, 9);\
-    put ## RND ## mpeg4_qpel8_v_lowpass(half, full, 8, 16, 8);\
+    put ## RND ## mpeg4_qpel8_v_lowpass(half, full, 8, 16);\
     OPNAME ## pixels8_l2(dst, full+16, half, stride, 16, 8, 8);\
+}\
+void ff_ ## OPNAME ## qpel8_mc11_old_c(UINT8 *dst, UINT8 *src, int stride){\
+    UINT8 full[16*9];\
+    UINT8 halfH[72];\
+    UINT8 halfV[64];\
+    UINT8 halfHV[64];\
+    copy_block9(full, src, 16, stride, 9);\
+    put ## RND ## mpeg4_qpel8_h_lowpass(halfH, full, 8, 16, 9);\
+    put ## RND ## mpeg4_qpel8_v_lowpass(halfV, full, 8, 16);\
+    put ## RND ## mpeg4_qpel8_v_lowpass(halfHV, halfH, 8, 8);\
+    OPNAME ## pixels8_l4(dst, full, halfH, halfV, halfHV, stride, 16, 8, 8, 8, 8);\
 }\
 static void OPNAME ## qpel8_mc11_c(UINT8 *dst, UINT8 *src, int stride){\
     UINT8 full[16*9];\
     UINT8 halfH[72];\
+    UINT8 halfHV[64];\
+    copy_block9(full, src, 16, stride, 9);\
+    put ## RND ## mpeg4_qpel8_h_lowpass(halfH, full, 8, 16, 9);\
+    put ## RND ## pixels8_l2(halfH, halfH, full, 8, 8, 16, 9);\
+    put ## RND ## mpeg4_qpel8_v_lowpass(halfHV, halfH, 8, 8);\
+    OPNAME ## pixels8_l2(dst, halfH, halfHV, stride, 8, 8, 8);\
+}\
+void ff_ ## OPNAME ## qpel8_mc31_old_c(UINT8 *dst, UINT8 *src, int stride){\
+    UINT8 full[16*9];\
+    UINT8 halfH[72];\
     UINT8 halfV[64];\
     UINT8 halfHV[64];\
     copy_block9(full, src, 16, stride, 9);\
     put ## RND ## mpeg4_qpel8_h_lowpass(halfH, full, 8, 16, 9);\
-    put ## RND ## mpeg4_qpel8_v_lowpass(halfV, full, 8, 16, 8);\
-    put ## RND ## mpeg4_qpel8_v_lowpass(halfHV, halfH, 8, 8, 8);\
-    OPNAME ## pixels8_l4(dst, full, halfH, halfV, halfHV, stride, 16, 8, 8, 8, 8);\
+    put ## RND ## mpeg4_qpel8_v_lowpass(halfV, full+1, 8, 16);\
+    put ## RND ## mpeg4_qpel8_v_lowpass(halfHV, halfH, 8, 8);\
+    OPNAME ## pixels8_l4(dst, full+1, halfH, halfV, halfHV, stride, 16, 8, 8, 8, 8);\
 }\
 static void OPNAME ## qpel8_mc31_c(UINT8 *dst, UINT8 *src, int stride){\
     UINT8 full[16*9];\
     UINT8 halfH[72];\
-    UINT8 halfV[64];\
     UINT8 halfHV[64];\
     copy_block9(full, src, 16, stride, 9);\
     put ## RND ## mpeg4_qpel8_h_lowpass(halfH, full, 8, 16, 9);\
-    put ## RND ## mpeg4_qpel8_v_lowpass(halfV, full+1, 8, 16, 8);\
-    put ## RND ## mpeg4_qpel8_v_lowpass(halfHV, halfH, 8, 8, 8);\
-    OPNAME ## pixels8_l4(dst, full+1, halfH, halfV, halfHV, stride, 16, 8, 8, 8, 8);\
+    put ## RND ## pixels8_l2(halfH, halfH, full+1, 8, 8, 16, 9);\
+    put ## RND ## mpeg4_qpel8_v_lowpass(halfHV, halfH, 8, 8);\
+    OPNAME ## pixels8_l2(dst, halfH, halfHV, stride, 8, 8, 8);\
 }\
-static void OPNAME ## qpel8_mc13_c(UINT8 *dst, UINT8 *src, int stride){\
+void ff_ ## OPNAME ## qpel8_mc13_old_c(UINT8 *dst, UINT8 *src, int stride){\
     UINT8 full[16*9];\
     UINT8 halfH[72];\
     UINT8 halfV[64];\
     UINT8 halfHV[64];\
     copy_block9(full, src, 16, stride, 9);\
     put ## RND ## mpeg4_qpel8_h_lowpass(halfH, full, 8, 16, 9);\
-    put ## RND ## mpeg4_qpel8_v_lowpass(halfV, full, 8, 16, 8);\
-    put ## RND ## mpeg4_qpel8_v_lowpass(halfHV, halfH, 8, 8, 8);\
+    put ## RND ## mpeg4_qpel8_v_lowpass(halfV, full, 8, 16);\
+    put ## RND ## mpeg4_qpel8_v_lowpass(halfHV, halfH, 8, 8);\
     OPNAME ## pixels8_l4(dst, full+16, halfH+8, halfV, halfHV, stride, 16, 8, 8, 8, 8);\
 }\
-static void OPNAME ## qpel8_mc33_c(UINT8 *dst, UINT8 *src, int stride){\
+static void OPNAME ## qpel8_mc13_c(UINT8 *dst, UINT8 *src, int stride){\
+    UINT8 full[16*9];\
+    UINT8 halfH[72];\
+    UINT8 halfHV[64];\
+    copy_block9(full, src, 16, stride, 9);\
+    put ## RND ## mpeg4_qpel8_h_lowpass(halfH, full, 8, 16, 9);\
+    put ## RND ## pixels8_l2(halfH, halfH, full, 8, 8, 16, 9);\
+    put ## RND ## mpeg4_qpel8_v_lowpass(halfHV, halfH, 8, 8);\
+    OPNAME ## pixels8_l2(dst, halfH+8, halfHV, stride, 8, 8, 8);\
+}\
+void ff_ ## OPNAME ## qpel8_mc33_old_c(UINT8 *dst, UINT8 *src, int stride){\
     UINT8 full[16*9];\
     UINT8 halfH[72];\
     UINT8 halfV[64];\
     UINT8 halfHV[64];\
     copy_block9(full, src, 16, stride, 9);\
     put ## RND ## mpeg4_qpel8_h_lowpass(halfH, full  , 8, 16, 9);\
-    put ## RND ## mpeg4_qpel8_v_lowpass(halfV, full+1, 8, 16, 8);\
-    put ## RND ## mpeg4_qpel8_v_lowpass(halfHV, halfH, 8, 8, 8);\
+    put ## RND ## mpeg4_qpel8_v_lowpass(halfV, full+1, 8, 16);\
+    put ## RND ## mpeg4_qpel8_v_lowpass(halfHV, halfH, 8, 8);\
     OPNAME ## pixels8_l4(dst, full+17, halfH+8, halfV, halfHV, stride, 16, 8, 8, 8, 8);\
+}\
+static void OPNAME ## qpel8_mc33_c(UINT8 *dst, UINT8 *src, int stride){\
+    UINT8 full[16*9];\
+    UINT8 halfH[72];\
+    UINT8 halfHV[64];\
+    copy_block9(full, src, 16, stride, 9);\
+    put ## RND ## mpeg4_qpel8_h_lowpass(halfH, full, 8, 16, 9);\
+    put ## RND ## pixels8_l2(halfH, halfH, full+1, 8, 8, 16, 9);\
+    put ## RND ## mpeg4_qpel8_v_lowpass(halfHV, halfH, 8, 8);\
+    OPNAME ## pixels8_l2(dst, halfH+8, halfHV, stride, 8, 8, 8);\
 }\
 static void OPNAME ## qpel8_mc21_c(UINT8 *dst, UINT8 *src, int stride){\
     UINT8 halfH[72];\
     UINT8 halfHV[64];\
     put ## RND ## mpeg4_qpel8_h_lowpass(halfH, src, 8, stride, 9);\
-    put ## RND ## mpeg4_qpel8_v_lowpass(halfHV, halfH, 8, 8, 8);\
+    put ## RND ## mpeg4_qpel8_v_lowpass(halfHV, halfH, 8, 8);\
     OPNAME ## pixels8_l2(dst, halfH, halfHV, stride, 8, 8, 8);\
 }\
 static void OPNAME ## qpel8_mc23_c(UINT8 *dst, UINT8 *src, int stride){\
     UINT8 halfH[72];\
     UINT8 halfHV[64];\
     put ## RND ## mpeg4_qpel8_h_lowpass(halfH, src, 8, stride, 9);\
-    put ## RND ## mpeg4_qpel8_v_lowpass(halfHV, halfH, 8, 8, 8);\
+    put ## RND ## mpeg4_qpel8_v_lowpass(halfHV, halfH, 8, 8);\
     OPNAME ## pixels8_l2(dst, halfH+8, halfHV, stride, 8, 8, 8);\
 }\
-static void OPNAME ## qpel8_mc12_c(UINT8 *dst, UINT8 *src, int stride){\
+void ff_ ## OPNAME ## qpel8_mc12_old_c(UINT8 *dst, UINT8 *src, int stride){\
     UINT8 full[16*9];\
     UINT8 halfH[72];\
     UINT8 halfV[64];\
     UINT8 halfHV[64];\
     copy_block9(full, src, 16, stride, 9);\
     put ## RND ## mpeg4_qpel8_h_lowpass(halfH, full, 8, 16, 9);\
-    put ## RND ## mpeg4_qpel8_v_lowpass(halfV, full, 8, 16, 8);\
-    put ## RND ## mpeg4_qpel8_v_lowpass(halfHV, halfH, 8, 8, 8);\
+    put ## RND ## mpeg4_qpel8_v_lowpass(halfV, full, 8, 16);\
+    put ## RND ## mpeg4_qpel8_v_lowpass(halfHV, halfH, 8, 8);\
+    OPNAME ## pixels8_l2(dst, halfV, halfHV, stride, 8, 8, 8);\
+}\
+static void OPNAME ## qpel8_mc12_c(UINT8 *dst, UINT8 *src, int stride){\
+    UINT8 full[16*9];\
+    UINT8 halfH[72];\
+    copy_block9(full, src, 16, stride, 9);\
+    put ## RND ## mpeg4_qpel8_h_lowpass(halfH, full, 8, 16, 9);\
+    put ## RND ## pixels8_l2(halfH, halfH, full, 8, 8, 16, 9);\
+    OPNAME ## mpeg4_qpel8_v_lowpass(dst, halfH, stride, 8);\
+}\
+void ff_ ## OPNAME ## qpel8_mc32_old_c(UINT8 *dst, UINT8 *src, int stride){\
+    UINT8 full[16*9];\
+    UINT8 halfH[72];\
+    UINT8 halfV[64];\
+    UINT8 halfHV[64];\
+    copy_block9(full, src, 16, stride, 9);\
+    put ## RND ## mpeg4_qpel8_h_lowpass(halfH, full, 8, 16, 9);\
+    put ## RND ## mpeg4_qpel8_v_lowpass(halfV, full+1, 8, 16);\
+    put ## RND ## mpeg4_qpel8_v_lowpass(halfHV, halfH, 8, 8);\
     OPNAME ## pixels8_l2(dst, halfV, halfHV, stride, 8, 8, 8);\
 }\
 static void OPNAME ## qpel8_mc32_c(UINT8 *dst, UINT8 *src, int stride){\
     UINT8 full[16*9];\
     UINT8 halfH[72];\
-    UINT8 halfV[64];\
-    UINT8 halfHV[64];\
     copy_block9(full, src, 16, stride, 9);\
     put ## RND ## mpeg4_qpel8_h_lowpass(halfH, full, 8, 16, 9);\
-    put ## RND ## mpeg4_qpel8_v_lowpass(halfV, full+1, 8, 16, 8);\
-    put ## RND ## mpeg4_qpel8_v_lowpass(halfHV, halfH, 8, 8, 8);\
-    OPNAME ## pixels8_l2(dst, halfV, halfHV, stride, 8, 8, 8);\
+    put ## RND ## pixels8_l2(halfH, halfH, full+1, 8, 8, 16, 9);\
+    OPNAME ## mpeg4_qpel8_v_lowpass(dst, halfH, stride, 8);\
 }\
 static void OPNAME ## qpel8_mc22_c(UINT8 *dst, UINT8 *src, int stride){\
     UINT8 halfH[72];\
     put ## RND ## mpeg4_qpel8_h_lowpass(halfH, src, 8, stride, 9);\
-    OPNAME ## mpeg4_qpel8_v_lowpass(dst, halfH, stride, 8, 8);\
+    OPNAME ## mpeg4_qpel8_v_lowpass(dst, halfH, stride, 8);\
 }\
 static void OPNAME ## qpel16_mc00_c (UINT8 *dst, UINT8 *src, int stride){\
     OPNAME ## pixels16_c(dst, src, stride, 16);\
@@ -1066,7 +1153,7 @@ static void OPNAME ## qpel16_mc03_c(UINT8 *dst, UINT8 *src, int stride){\
     put ## RND ## mpeg4_qpel16_v_lowpass(half, full, 16, 24);\
     OPNAME ## pixels16_l2(dst, full+24, half, stride, 24, 16, 16);\
 }\
-static void OPNAME ## qpel16_mc11_c(UINT8 *dst, UINT8 *src, int stride){\
+void ff_ ## OPNAME ## qpel16_mc11_old_c(UINT8 *dst, UINT8 *src, int stride){\
     UINT8 full[24*17];\
     UINT8 halfH[272];\
     UINT8 halfV[256];\
@@ -1077,7 +1164,17 @@ static void OPNAME ## qpel16_mc11_c(UINT8 *dst, UINT8 *src, int stride){\
     put ## RND ## mpeg4_qpel16_v_lowpass(halfHV, halfH, 16, 16);\
     OPNAME ## pixels16_l4(dst, full, halfH, halfV, halfHV, stride, 24, 16, 16, 16, 16);\
 }\
-static void OPNAME ## qpel16_mc31_c(UINT8 *dst, UINT8 *src, int stride){\
+static void OPNAME ## qpel16_mc11_c(UINT8 *dst, UINT8 *src, int stride){\
+    UINT8 full[24*17];\
+    UINT8 halfH[272];\
+    UINT8 halfHV[256];\
+    copy_block17(full, src, 24, stride, 17);\
+    put ## RND ## mpeg4_qpel16_h_lowpass(halfH, full, 16, 24, 17);\
+    put ## RND ## pixels16_l2(halfH, halfH, full, 16, 16, 24, 17);\
+    put ## RND ## mpeg4_qpel16_v_lowpass(halfHV, halfH, 16, 16);\
+    OPNAME ## pixels16_l2(dst, halfH, halfHV, stride, 16, 16, 16);\
+}\
+void ff_ ## OPNAME ## qpel16_mc31_old_c(UINT8 *dst, UINT8 *src, int stride){\
     UINT8 full[24*17];\
     UINT8 halfH[272];\
     UINT8 halfV[256];\
@@ -1088,7 +1185,17 @@ static void OPNAME ## qpel16_mc31_c(UINT8 *dst, UINT8 *src, int stride){\
     put ## RND ## mpeg4_qpel16_v_lowpass(halfHV, halfH, 16, 16);\
     OPNAME ## pixels16_l4(dst, full+1, halfH, halfV, halfHV, stride, 24, 16, 16, 16, 16);\
 }\
-static void OPNAME ## qpel16_mc13_c(UINT8 *dst, UINT8 *src, int stride){\
+static void OPNAME ## qpel16_mc31_c(UINT8 *dst, UINT8 *src, int stride){\
+    UINT8 full[24*17];\
+    UINT8 halfH[272];\
+    UINT8 halfHV[256];\
+    copy_block17(full, src, 24, stride, 17);\
+    put ## RND ## mpeg4_qpel16_h_lowpass(halfH, full, 16, 24, 17);\
+    put ## RND ## pixels16_l2(halfH, halfH, full+1, 16, 16, 24, 17);\
+    put ## RND ## mpeg4_qpel16_v_lowpass(halfHV, halfH, 16, 16);\
+    OPNAME ## pixels16_l2(dst, halfH, halfHV, stride, 16, 16, 16);\
+}\
+void ff_ ## OPNAME ## qpel16_mc13_old_c(UINT8 *dst, UINT8 *src, int stride){\
     UINT8 full[24*17];\
     UINT8 halfH[272];\
     UINT8 halfV[256];\
@@ -1099,7 +1206,17 @@ static void OPNAME ## qpel16_mc13_c(UINT8 *dst, UINT8 *src, int stride){\
     put ## RND ## mpeg4_qpel16_v_lowpass(halfHV, halfH, 16, 16);\
     OPNAME ## pixels16_l4(dst, full+24, halfH+16, halfV, halfHV, stride, 24, 16, 16, 16, 16);\
 }\
-static void OPNAME ## qpel16_mc33_c(UINT8 *dst, UINT8 *src, int stride){\
+static void OPNAME ## qpel16_mc13_c(UINT8 *dst, UINT8 *src, int stride){\
+    UINT8 full[24*17];\
+    UINT8 halfH[272];\
+    UINT8 halfHV[256];\
+    copy_block17(full, src, 24, stride, 17);\
+    put ## RND ## mpeg4_qpel16_h_lowpass(halfH, full, 16, 24, 17);\
+    put ## RND ## pixels16_l2(halfH, halfH, full, 16, 16, 24, 17);\
+    put ## RND ## mpeg4_qpel16_v_lowpass(halfHV, halfH, 16, 16);\
+    OPNAME ## pixels16_l2(dst, halfH+16, halfHV, stride, 16, 16, 16);\
+}\
+void ff_ ## OPNAME ## qpel16_mc33_old_c(UINT8 *dst, UINT8 *src, int stride){\
     UINT8 full[24*17];\
     UINT8 halfH[272];\
     UINT8 halfV[256];\
@@ -1109,6 +1226,16 @@ static void OPNAME ## qpel16_mc33_c(UINT8 *dst, UINT8 *src, int stride){\
     put ## RND ## mpeg4_qpel16_v_lowpass(halfV, full+1, 16, 24);\
     put ## RND ## mpeg4_qpel16_v_lowpass(halfHV, halfH, 16, 16);\
     OPNAME ## pixels16_l4(dst, full+25, halfH+16, halfV, halfHV, stride, 24, 16, 16, 16, 16);\
+}\
+static void OPNAME ## qpel16_mc33_c(UINT8 *dst, UINT8 *src, int stride){\
+    UINT8 full[24*17];\
+    UINT8 halfH[272];\
+    UINT8 halfHV[256];\
+    copy_block17(full, src, 24, stride, 17);\
+    put ## RND ## mpeg4_qpel16_h_lowpass(halfH, full, 16, 24, 17);\
+    put ## RND ## pixels16_l2(halfH, halfH, full+1, 16, 16, 24, 17);\
+    put ## RND ## mpeg4_qpel16_v_lowpass(halfHV, halfH, 16, 16);\
+    OPNAME ## pixels16_l2(dst, halfH+16, halfHV, stride, 16, 16, 16);\
 }\
 static void OPNAME ## qpel16_mc21_c(UINT8 *dst, UINT8 *src, int stride){\
     UINT8 halfH[272];\
@@ -1124,7 +1251,7 @@ static void OPNAME ## qpel16_mc23_c(UINT8 *dst, UINT8 *src, int stride){\
     put ## RND ## mpeg4_qpel16_v_lowpass(halfHV, halfH, 16, 16);\
     OPNAME ## pixels16_l2(dst, halfH+16, halfHV, stride, 16, 16, 16);\
 }\
-static void OPNAME ## qpel16_mc12_c(UINT8 *dst, UINT8 *src, int stride){\
+void ff_ ## OPNAME ## qpel16_mc12_old_c(UINT8 *dst, UINT8 *src, int stride){\
     UINT8 full[24*17];\
     UINT8 halfH[272];\
     UINT8 halfV[256];\
@@ -1135,7 +1262,15 @@ static void OPNAME ## qpel16_mc12_c(UINT8 *dst, UINT8 *src, int stride){\
     put ## RND ## mpeg4_qpel16_v_lowpass(halfHV, halfH, 16, 16);\
     OPNAME ## pixels16_l2(dst, halfV, halfHV, stride, 16, 16, 16);\
 }\
-static void OPNAME ## qpel16_mc32_c(UINT8 *dst, UINT8 *src, int stride){\
+static void OPNAME ## qpel16_mc12_c(UINT8 *dst, UINT8 *src, int stride){\
+    UINT8 full[24*17];\
+    UINT8 halfH[272];\
+    copy_block17(full, src, 24, stride, 17);\
+    put ## RND ## mpeg4_qpel16_h_lowpass(halfH, full, 16, 24, 17);\
+    put ## RND ## pixels16_l2(halfH, halfH, full, 16, 16, 24, 17);\
+    OPNAME ## mpeg4_qpel16_v_lowpass(dst, halfH, stride, 16);\
+}\
+void ff_ ## OPNAME ## qpel16_mc32_old_c(UINT8 *dst, UINT8 *src, int stride){\
     UINT8 full[24*17];\
     UINT8 halfH[272];\
     UINT8 halfV[256];\
@@ -1145,6 +1280,14 @@ static void OPNAME ## qpel16_mc32_c(UINT8 *dst, UINT8 *src, int stride){\
     put ## RND ## mpeg4_qpel16_v_lowpass(halfV, full+1, 16, 24);\
     put ## RND ## mpeg4_qpel16_v_lowpass(halfHV, halfH, 16, 16);\
     OPNAME ## pixels16_l2(dst, halfV, halfHV, stride, 16, 16, 16);\
+}\
+static void OPNAME ## qpel16_mc32_c(UINT8 *dst, UINT8 *src, int stride){\
+    UINT8 full[24*17];\
+    UINT8 halfH[272];\
+    copy_block17(full, src, 24, stride, 17);\
+    put ## RND ## mpeg4_qpel16_h_lowpass(halfH, full, 16, 24, 17);\
+    put ## RND ## pixels16_l2(halfH, halfH, full+1, 16, 16, 24, 17);\
+    OPNAME ## mpeg4_qpel16_v_lowpass(dst, halfH, stride, 16);\
 }\
 static void OPNAME ## qpel16_mc22_c(UINT8 *dst, UINT8 *src, int stride){\
     UINT8 halfH[272];\
@@ -1498,7 +1641,7 @@ static void clear_blocks_c(DCTELEM *blocks)
 
 static void add_bytes_c(uint8_t *dst, uint8_t *src, int w){
     int i;
-    for(i=0; i+7<w; i++){
+    for(i=0; i+7<w; i+=8){
         dst[i+0] += src[i+0];
         dst[i+1] += src[i+1];
         dst[i+2] += src[i+2];
@@ -1514,7 +1657,7 @@ static void add_bytes_c(uint8_t *dst, uint8_t *src, int w){
 
 static void diff_bytes_c(uint8_t *dst, uint8_t *src1, uint8_t *src2, int w){
     int i;
-    for(i=0; i+7<w; i++){
+    for(i=0; i+7<w; i+=8){
         dst[i+0] = src1[i+0]-src2[i+0];
         dst[i+1] = src1[i+1]-src2[i+1];
         dst[i+2] = src1[i+2]-src2[i+2];
@@ -1639,7 +1782,8 @@ static int hadamard8_abs_c(uint8_t *src, int stride, int mean){
 
 static int dct_sad8x8_c(/*MpegEncContext*/ void *c, uint8_t *src1, uint8_t *src2, int stride){
     MpegEncContext * const s= (MpegEncContext *)c;
-    DCTELEM temp[64];
+    uint64_t __align8 aligned_temp[sizeof(DCTELEM)*64/8];
+    DCTELEM * const temp= (DCTELEM*)aligned_temp;
     int sum=0, i;
 
     s->dsp.diff_pixels(temp, src1, src2, stride);
@@ -1651,11 +1795,13 @@ static int dct_sad8x8_c(/*MpegEncContext*/ void *c, uint8_t *src1, uint8_t *src2
     return sum;
 }
 
-void simple_idct(INT16 *block); //FIXME
+void simple_idct(DCTELEM *block); //FIXME
 
 static int quant_psnr8x8_c(/*MpegEncContext*/ void *c, uint8_t *src1, uint8_t *src2, int stride){
     MpegEncContext * const s= (MpegEncContext *)c;
-    DCTELEM temp[64], bak[64];
+    uint64_t __align8 aligned_temp[sizeof(DCTELEM)*64*2/8];
+    DCTELEM * const temp= (DCTELEM*)aligned_temp;
+    DCTELEM * const bak = ((DCTELEM*)aligned_temp)+64;
     int sum=0, i;
 
     s->mb_intra=0;
@@ -1664,7 +1810,7 @@ static int quant_psnr8x8_c(/*MpegEncContext*/ void *c, uint8_t *src1, uint8_t *s
     
     memcpy(bak, temp, 64*sizeof(DCTELEM));
     
-    s->dct_quantize(s, temp, 0/*FIXME*/, s->qscale, &i);
+    s->block_last_index[0/*FIXME*/]= s->fast_dct_quantize(s, temp, 0/*FIXME*/, s->qscale, &i);
     s->dct_unquantize(s, temp, 0, s->qscale);
     simple_idct(temp); //FIXME 
     
@@ -1674,9 +1820,144 @@ static int quant_psnr8x8_c(/*MpegEncContext*/ void *c, uint8_t *src1, uint8_t *s
     return sum;
 }
 
+static int rd8x8_c(/*MpegEncContext*/ void *c, uint8_t *src1, uint8_t *src2, int stride){
+    MpegEncContext * const s= (MpegEncContext *)c;
+    const UINT8 *scantable= s->intra_scantable.permutated;
+    uint64_t __align8 aligned_temp[sizeof(DCTELEM)*64/8];
+    uint64_t __align8 aligned_bak[stride];
+    DCTELEM * const temp= (DCTELEM*)aligned_temp;
+    uint8_t * const bak= (uint8_t*)aligned_bak;
+    int i, last, run, bits, level, distoration, start_i;
+    const int esc_length= s->ac_esc_length;
+    uint8_t * length;
+    uint8_t * last_length;
+    
+    for(i=0; i<8; i++){
+        ((uint32_t*)(bak + i*stride))[0]= ((uint32_t*)(src2 + i*stride))[0];
+        ((uint32_t*)(bak + i*stride))[1]= ((uint32_t*)(src2 + i*stride))[1];
+    }
+
+    s->dsp.diff_pixels(temp, src1, src2, stride);
+
+    s->block_last_index[0/*FIXME*/]= last= s->fast_dct_quantize(s, temp, 0/*FIXME*/, s->qscale, &i);
+
+    bits=0;
+    
+    if (s->mb_intra) {
+        start_i = 1; 
+        length     = s->intra_ac_vlc_length;
+        last_length= s->intra_ac_vlc_last_length;
+        bits+= s->luma_dc_vlc_length[temp[0] + 256]; //FIXME chroma
+    } else {
+        start_i = 0;
+        length     = s->inter_ac_vlc_length;
+        last_length= s->inter_ac_vlc_last_length;
+    }
+    
+    if(last>=start_i){
+        run=0;
+        for(i=start_i; i<last; i++){
+            int j= scantable[i];
+            level= temp[j];
+        
+            if(level){
+                level+=64;
+                if((level&(~127)) == 0){
+                    bits+= length[UNI_AC_ENC_INDEX(run, level)];
+                }else
+                    bits+= esc_length;
+                run=0;
+            }else
+                run++;
+        }
+        i= scantable[last];
+       
+        level= temp[i] + 64;
+
+        assert(level - 64);
+        
+        if((level&(~127)) == 0){
+            bits+= last_length[UNI_AC_ENC_INDEX(run, level)];
+        }else
+            bits+= esc_length;
+    
+    }
+
+    if(last>=0){
+        s->dct_unquantize(s, temp, 0, s->qscale);
+    }
+    
+    s->idct_add(bak, stride, temp);
+    
+    distoration= s->dsp.sse[1](NULL, bak, src1, stride);
+
+    return distoration + ((bits*s->qscale*s->qscale*109 + 64)>>7);
+}
+
+static int bit8x8_c(/*MpegEncContext*/ void *c, uint8_t *src1, uint8_t *src2, int stride){
+    MpegEncContext * const s= (MpegEncContext *)c;
+    const UINT8 *scantable= s->intra_scantable.permutated;
+    uint64_t __align8 aligned_temp[sizeof(DCTELEM)*64/8];
+    DCTELEM * const temp= (DCTELEM*)aligned_temp;
+    int i, last, run, bits, level, start_i;
+    const int esc_length= s->ac_esc_length;
+    uint8_t * length;
+    uint8_t * last_length;
+    
+    s->dsp.diff_pixels(temp, src1, src2, stride);
+
+    s->block_last_index[0/*FIXME*/]= last= s->fast_dct_quantize(s, temp, 0/*FIXME*/, s->qscale, &i);
+
+    bits=0;
+    
+    if (s->mb_intra) {
+        start_i = 1; 
+        length     = s->intra_ac_vlc_length;
+        last_length= s->intra_ac_vlc_last_length;
+        bits+= s->luma_dc_vlc_length[temp[0] + 256]; //FIXME chroma
+    } else {
+        start_i = 0;
+        length     = s->inter_ac_vlc_length;
+        last_length= s->inter_ac_vlc_last_length;
+    }
+    
+    if(last>=start_i){
+        run=0;
+        for(i=start_i; i<last; i++){
+            int j= scantable[i];
+            level= temp[j];
+        
+            if(level){
+                level+=64;
+                if((level&(~127)) == 0){
+                    bits+= length[UNI_AC_ENC_INDEX(run, level)];
+                }else
+                    bits+= esc_length;
+                run=0;
+            }else
+                run++;
+        }
+        i= scantable[last];
+                
+        level= temp[i] + 64;
+        
+        assert(level - 64);
+        
+        if((level&(~127)) == 0){
+            bits+= last_length[UNI_AC_ENC_INDEX(run, level)];
+        }else
+            bits+= esc_length;
+    }
+
+    return bits;
+}
+
+
 WARPER88_1616(hadamard8_diff_c, hadamard8_diff16_c)
 WARPER88_1616(dct_sad8x8_c, dct_sad16x16_c)
 WARPER88_1616(quant_psnr8x8_c, quant_psnr16x16_c)
+WARPER88_1616(rd8x8_c, rd16x16_c)
+WARPER88_1616(bit8x8_c, bit16x16_c)
 
 void dsputil_init(DSPContext* c, unsigned mask)
 {
@@ -1790,7 +2071,13 @@ void dsputil_init(DSPContext* c, unsigned mask)
     
     c->quant_psnr[0]= quant_psnr16x16_c;
     c->quant_psnr[1]= quant_psnr8x8_c;
-    
+
+    c->rd[0]= rd16x16_c;
+    c->rd[1]= rd8x8_c;
+
+    c->bit[0]= bit16x16_c;
+    c->bit[1]= bit8x8_c;
+        
     c->add_bytes= add_bytes_c;
     c->diff_bytes= diff_bytes_c;
 

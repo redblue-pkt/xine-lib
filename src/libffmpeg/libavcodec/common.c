@@ -27,6 +27,17 @@ const UINT8 ff_sqrt_tab[128]={
         9, 9, 9, 9,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,11,11,11,11,11,11,11
 };
 
+const uint8_t ff_log2_tab[256]={
+        0,0,1,1,2,2,2,2,3,3,3,3,3,3,3,3,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,
+        5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,
+        6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,
+        6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,
+        7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,
+        7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,
+        7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,
+        7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7
+};
+
 void init_put_bits(PutBitContext *s, 
                    UINT8 *buffer, int buffer_size,
                    void *opaque,
@@ -99,10 +110,12 @@ void put_string(PutBitContext * pbc, char *s)
 /* bit input functions */
 
 void init_get_bits(GetBitContext *s,
-                   UINT8 *buffer, int buffer_size)
+                   UINT8 *buffer, int bit_size)
 {
+    const int buffer_size= (bit_size+7)>>3;
+
     s->buffer= buffer;
-    s->size= buffer_size;
+    s->size_in_bits= bit_size;
     s->buffer_end= buffer + buffer_size;
 #ifdef ALT_BITSTREAM_READER
     s->index=0;
@@ -169,8 +182,8 @@ static int alloc_table(VLC *vlc, int size)
     vlc->table_size += size;
     if (vlc->table_size > vlc->table_allocated) {
         vlc->table_allocated += (1 << vlc->bits);
-        vlc->table = realloc(vlc->table,
-                             sizeof(VLC_TYPE) * 2 * vlc->table_allocated);
+        vlc->table = av_realloc(vlc->table,
+                                sizeof(VLC_TYPE) * 2 * vlc->table_allocated);
         if (!vlc->table)
             return -1;
     }

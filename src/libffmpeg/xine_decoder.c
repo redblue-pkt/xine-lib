@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.87 2003/01/10 23:33:09 holstsn Exp $
+ * $Id: xine_decoder.c,v 1.88 2003/01/31 18:29:43 miguelfreitas Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -667,7 +667,7 @@ void avcodec_register_all(void)
     register_avcodec(&rv10_decoder);
     register_avcodec(&svq1_decoder);
     register_avcodec(&dvvideo_decoder);
-    //    register_avcodec(&dvaudio_decoder);
+    register_avcodec(&dvaudio_decoder);
     register_avcodec(&mjpeg_decoder);
     register_avcodec(&mjpegb_decoder);
     register_avcodec(&mp2_decoder);
@@ -809,6 +809,16 @@ static void ff_audio_decode_data (audio_decoder_t *this_gen, buf_element_t *buf)
       this->codec = avcodec_find_decoder (CODEC_ID_WMAV2);
       this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] 
 	= strdup ("Windows Media Audio v2 (ffmpeg)");
+      break;
+    case BUF_AUDIO_DV:
+      this->codec = avcodec_find_decoder (CODEC_ID_DVAUDIO);
+      this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] 
+	= strdup ("DV Audio (ffmpeg)");
+      break;
+    case BUF_AUDIO_MPEG:
+      this->codec = avcodec_find_decoder (CODEC_ID_MP3LAME);
+      this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] 
+	= strdup ("MP3 (ffmpeg)");
       break;
     }
 
@@ -1034,14 +1044,14 @@ static uint32_t supported_video_types[] = {
   BUF_VIDEO_MSMPEG4_V2,
   BUF_VIDEO_MSMPEG4_V3, 
   BUF_VIDEO_WMV7, 
-  /*BUF_VIDEO_WMV8,*/
+  /* BUF_VIDEO_WMV8, */
   BUF_VIDEO_MPEG4,
   BUF_VIDEO_XVID, 
   BUF_VIDEO_DIVX5, 
   BUF_VIDEO_MJPEG,
   BUF_VIDEO_H263, 
   BUF_VIDEO_RV10,
-  /* BUF_VIDEO_SORENSON_V1, -- ffmpeg svq1 decoder is segfaulting */ 
+  BUF_VIDEO_SORENSON_V1,
   BUF_VIDEO_JPEG, 
   BUF_VIDEO_MPEG, 
   BUF_VIDEO_DV,
@@ -1051,6 +1061,8 @@ static uint32_t supported_video_types[] = {
 static uint32_t supported_audio_types[] = { 
   BUF_AUDIO_WMAV1,
   BUF_AUDIO_WMAV2,
+  BUF_AUDIO_DV,
+  /* BUF_AUDIO_MPEG, */
   0
 };
 

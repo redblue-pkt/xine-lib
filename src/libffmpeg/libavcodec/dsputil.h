@@ -30,6 +30,7 @@
 #undef DEBUG
 /* dct code */
 typedef short DCTELEM;
+//typedef int DCTELEM;
 
 void fdct_ifast (DCTELEM *data);
 void ff_jpeg_fdct_islow (DCTELEM *data);
@@ -74,7 +75,23 @@ void clear_blocks_c(DCTELEM *blocks);
 typedef void (*op_pixels_func)(UINT8 *block/*align width (8 or 16)*/, const UINT8 *pixels/*align 1*/, int line_size, int h);
 typedef void (*qpel_mc_func)(UINT8 *dst/*align width (8 or 16)*/, UINT8 *src/*align 1*/, int stride);
 
+#define DEF_OLD_QPEL(name)\
+void ff_put_        ## name (UINT8 *dst/*align width (8 or 16)*/, UINT8 *src/*align 1*/, int stride);\
+void ff_put_no_rnd_ ## name (UINT8 *dst/*align width (8 or 16)*/, UINT8 *src/*align 1*/, int stride);\
+void ff_avg_        ## name (UINT8 *dst/*align width (8 or 16)*/, UINT8 *src/*align 1*/, int stride);
 
+DEF_OLD_QPEL(qpel16_mc11_old_c)
+DEF_OLD_QPEL(qpel16_mc31_old_c)
+DEF_OLD_QPEL(qpel16_mc12_old_c)
+DEF_OLD_QPEL(qpel16_mc32_old_c)
+DEF_OLD_QPEL(qpel16_mc13_old_c)
+DEF_OLD_QPEL(qpel16_mc33_old_c)
+DEF_OLD_QPEL(qpel8_mc11_old_c)
+DEF_OLD_QPEL(qpel8_mc31_old_c)
+DEF_OLD_QPEL(qpel8_mc12_old_c)
+DEF_OLD_QPEL(qpel8_mc32_old_c)
+DEF_OLD_QPEL(qpel8_mc13_old_c)
+DEF_OLD_QPEL(qpel8_mc33_old_c)
 
 #define CALL_2X_PIXELS(a, b, n)\
 static void a(uint8_t *block, const uint8_t *pixels, int line_size, int h){\
@@ -105,6 +122,8 @@ typedef struct DSPContext {
     me_cmp_func hadamard8_diff[2];
     me_cmp_func dct_sad[2];
     me_cmp_func quant_psnr[2];
+    me_cmp_func bit[2];
+    me_cmp_func rd[2];
     int (*hadamard8_abs )(uint8_t *src, int stride, int mean);
 
     me_cmp_func me_pre_cmp[11];
@@ -143,9 +162,13 @@ void dsputil_init(DSPContext* p, unsigned mask);
  * permute block according to permuatation.
  * @param last last non zero element in scantable order
  */
-void ff_block_permute(INT16 *block, UINT8 *permutation, const UINT8 *scantable, int last);
+void ff_block_permute(DCTELEM *block, UINT8 *permutation, const UINT8 *scantable, int last);
 
 #define emms_c()
+
+/* should be defined by architectures supporting
+   one or more MultiMedia extension */
+int mm_support(void);
 
 #if defined(HAVE_MMX)
 
@@ -161,7 +184,6 @@ void ff_block_permute(INT16 *block, UINT8 *permutation, const UINT8 *scantable, 
 
 extern int mm_flags;
 
-int mm_support(void);
 void add_pixels_clamped_mmx(const DCTELEM *block, UINT8 *pixels, int line_size);
 void put_pixels_clamped_mmx(const DCTELEM *block, UINT8 *pixels, int line_size);
 
@@ -210,6 +232,10 @@ void dsputil_init_alpha(DSPContext* c, unsigned mask);
 #define MM_ALTIVEC    0x0001 /* standard AltiVec */
 
 extern int mm_flags;
+
+#if defined(HAVE_ALTIVEC) && !defined(CONFIG_DARWIN)
+#include <altivec.h>
+#endif
 
 #define __align8 __attribute__ ((aligned (16)))
 
@@ -314,7 +340,12 @@ static int name16(void /*MpegEncContext*/ *s, uint8_t *dst, uint8_t *src, int st
 /* btw, rintf() is existing on fbsd too -- alex */
 static inline long int lrintf(float x)
 {
+#ifdef CONFIG_WIN32
+    /* XXX: incorrect, but make it compile */
+    return (int)(x);
+#else
     return (int)(rint(x));
+#endif
 }
 #endif
 

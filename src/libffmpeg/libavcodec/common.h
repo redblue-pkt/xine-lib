@@ -88,8 +88,40 @@ typedef INT64 int64_t;
 #    endif
 
 #    define snprintf _snprintf
+#    define vsnprintf _vsnprintf
 
-#else /* CONFIG_WIN32 */
+/* CONFIG_WIN32 end */
+#elif defined (CONFIG_OS2)
+/* OS/2 EMX */
+
+#include <inttypes.h>
+
+typedef unsigned char UINT8;
+typedef unsigned short UINT16;
+typedef unsigned int UINT32;
+typedef unsigned long long UINT64;
+typedef signed char INT8;
+typedef signed short INT16;
+typedef signed int INT32;
+typedef signed long long INT64;
+
+#ifdef HAVE_AV_CONFIG_H
+
+#ifndef INT64_C
+#define INT64_C(c)     (c ## LL)
+#define UINT64_C(c)    (c ## ULL)
+#endif
+
+#ifdef USE_FASTMEMCPY
+#include "fastmemcpy.h"
+#endif
+
+#include <float.h>
+
+#endif /* HAVE_AV_CONFIG_H */
+
+/* CONFIG_OS2 end */
+#else
 
 /* unix */
 
@@ -119,7 +151,7 @@ typedef signed long long INT64;
 #        endif
 #    endif /* HAVE_AV_CONFIG_H */
 
-#endif /* !CONFIG_WIN32 */
+#endif /* !CONFIG_WIN32 && !CONFIG_OS2 */
 
 #ifdef HAVE_AV_CONFIG_H
 
@@ -238,7 +270,7 @@ typedef struct GetBitContext {
     UINT32 cache1;
     int bit_count;
 #endif
-    int size;
+    int size_in_bits;
 } GetBitContext;
 
 static inline int get_bits_count(GetBitContext *s);
@@ -667,6 +699,12 @@ int init_vlc(VLC *vlc, int nb_bits, int nb_codes,
              const void *codes, int codes_wrap, int codes_size);
 void free_vlc(VLC *vlc);
 
+/**
+ *
+ * if the vlc code is invalid and max_depth=1 than no bits will be removed
+ * if the vlc code is invalid and max_depth>1 than the number of bits removed
+ * is undefined
+ */
 #define GET_VLC(code, name, gb, table, bits, max_depth)\
 {\
     int n, index, nb_bits;\
@@ -775,6 +813,7 @@ void print_stats(void);
 #endif
 
 /* misc math functions */
+extern const uint8_t ff_log2_tab[256];
 
 static inline int av_log2(unsigned int v)
 {
@@ -789,19 +828,25 @@ static inline int av_log2(unsigned int v)
         v >>= 8;
         n += 8;
     }
-    if (v & 0xf0) {
-        v >>= 4;
-        n += 4;
-    }
-    if (v & 0xc) {
-        v >>= 2;
-        n += 2;
-    }
-    if (v & 0x2) {
-        n++;
-    }
+    n += ff_log2_tab[v];
+
     return n;
 }
+
+static inline int av_log2_16bit(unsigned int v)
+{
+    int n;
+
+    n = 0;
+    if (v & 0xff00) {
+        v >>= 8;
+        n += 8;
+    }
+    n += ff_log2_tab[v];
+
+    return n;
+}
+
 
 /* median of 3 */
 static inline int mid_pred(int a, int b, int c)
@@ -832,7 +877,7 @@ static inline int clip(int a, int amin, int amax)
 }
 
 /* math */
-extern const UINT8 ff_sqrt_tab[128];
+extern const uint8_t ff_sqrt_tab[128];
 
 int ff_gcd(int a, int b);
 
@@ -901,6 +946,11 @@ if((y)<(x)){\
 #endif
 
 #define CLAMP_TO_8BIT(d) ((d > 0xff) ? 0xff : (d < 0) ? 0 : d)
+
+/* avoid usage of various functions */
+#define malloc please_use_av_malloc
+#define free please_use_av_free
+#define realloc please_use_av_realloc
 
 #endif /* HAVE_AV_CONFIG_H */
 
