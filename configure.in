@@ -1274,6 +1274,3 @@ if test "x$am_cv_have_irixal" = xyes; then
 fi
 echo "---"
 
-echo 
-echo "*** CFLAGS: $CFLAGS"
-echo
