@@ -11,6 +11,7 @@ endif
 noinst_LTLIBRARIES = $(vidix_lib)
 
 libvidix_la_SOURCES = vidixlib.c
+libvidix_la_LIBADD = -ldl
 
 noinst_HEADERS = fourcc.h vidix.h vidixlib.h
 
