@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: overlay.c,v 1.1 2001/07/26 16:03:10 ehasenle Exp $
+ * $Id: overlay.c,v 1.2 2001/10/24 15:53:23 mlampard Exp $
  *
  * Overlay support routines for video_out_dxr3
  */
@@ -237,7 +237,7 @@ int dxr3_overlay_set_signalmode(dxr3_overlay_t *this,int mode)
 
 void dxr3_overlay_buggy_preinit(dxr3_overlay_t *this, int fd)
 {
-	int mode = 0;
+/*	int mode = 0; */
 
 	/* TODO: catch errors */
 	this->fd_control = fd;
@@ -245,10 +245,14 @@ void dxr3_overlay_buggy_preinit(dxr3_overlay_t *this, int fd)
 	dxr3_overlay_set_screen(this);
 	dxr3_overlay_set_window(this, 1,1, 320,240);
 	dxr3_overlay_set_mode(this, EM8300_OVERLAY_MODE_OVERLAY);
-	ioctl(this->fd_control, EM8300_IOCTL_SET_VIDEOMODE, &mode);
-	dxr3_overlay_set_screen(this);
-	dxr3_overlay_set_window(this, 1,1, 320,240);
-	dxr3_overlay_set_attributes(this);
 	dxr3_overlay_set_keycolor(this);
-	dxr3_overlay_set_mode(this, EM8300_OVERLAY_MODE_OVERLAY);
+	
+/* No longer required with em8300 ver 8.2+ ??? 
+ *	ioctl(this->fd_control, EM8300_IOCTL_SET_VIDEOMODE, &mode);
+ *	dxr3_overlay_set_screen(this);
+ *	dxr3_overlay_set_window(this, 1,1, 320,240);
+ *	dxr3_overlay_set_attributes(this);
+ *	dxr3_overlay_set_keycolor(this);
+ *	dxr3_overlay_set_mode(this, EM8300_OVERLAY_MODE_OVERLAY);
+*/
 }

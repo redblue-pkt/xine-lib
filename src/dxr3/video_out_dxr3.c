@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3.c,v 1.14 2001/10/24 13:42:58 mlampard Exp $
+ * $Id: video_out_dxr3.c,v 1.15 2001/10/24 15:53:23 mlampard Exp $
  *
  * Dummy video out plugin for the dxr3. Is responsible for setting
  * tv_mode, bcs values and the aspectratio.
@@ -208,13 +208,13 @@ static void dxr3_update_frame_format (vo_driver_t *this_gen,
 		this->video_width  = width;
 		this->video_height = height;
 		this->video_aspect = ratio_code;
-
+		
 		if (ratio_code < 3 || ratio_code>4)
 		  aspect = ASPECT_FULL;
 		else
 		  aspect = ASPECT_ANAMORPHIC;
 		if(this->aspectratio!=aspect)
-		  dxr3_set_property (this_gen, VO_PROP_ASPECT_RATIO, aspect);
+		  dxr3_set_property ((vo_driver_t*)this, VO_PROP_ASPECT_RATIO, aspect);
 	}
 	else{
 	  /* inform the user that we don't do non-mpeg streams and exit nicely */
@@ -222,7 +222,6 @@ static void dxr3_update_frame_format (vo_driver_t *this_gen,
 	  fprintf(stderr,"Please try xine with -VXv or -VShm for this stream.  Exiting...\n");
 	  exit(1);
 	}
-			  
 }
 
 static void dxr3_display_frame (vo_driver_t *this_gen, vo_frame_t *frame)
@@ -473,7 +472,7 @@ static void gather_screen_vars(dxr3_driver_t *this, x11_visual_t *vis)
 	}
 
 	this->overlay.screen_depth = DisplayPlanes(this->display, scrn);
-	this->request_dest_size = vis->request_dest_size;
+	this->request_dest_size = (void *)vis->request_dest_size;
 	printf("xres %d yres %d depth %d\n", this->overlay.screen_xres, this->overlay.screen_yres, this->overlay.screen_depth);
 }
 
