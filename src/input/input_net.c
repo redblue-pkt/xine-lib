@@ -20,7 +20,7 @@
  * Read from a tcp network stream over a lan (put a tweaked mp1e encoder the
  * other end and you can watch tv anywhere in the house ..)
  *
- * $Id: input_net.c,v 1.61 2005/01/05 21:48:05 dsalt Exp $
+ * $Id: input_net.c,v 1.62 2005/02/03 07:19:06 valtri Exp $
  *
  * how to set up mp1e for use with this plugin:
  * 
@@ -271,7 +271,7 @@ static off_t net_plugin_read (input_plugin_t *this_gen,
   if( (len-total) > 0 ) {
     n = _x_read_abort (this->stream, this->fh, &buf[total], len-total);
 
-    xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "input_net: got %" PRIiMAX " bytes (%" PRIiMAX "/%" PRIiMAX " bytes read)\n", (intmax_t)n, (intmax_t)total, (intmax_t)len);
+    xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "input_net: got %" PRIdMAX " bytes (%" PRIdMAX "/%" PRIdMAX " bytes read)\n", (intmax_t)n, (intmax_t)total, (intmax_t)len);
   
     if (n < 0) {
       _x_message(this->stream, XINE_MSG_READ_ERROR, this->host_port, NULL);
@@ -348,7 +348,7 @@ static off_t net_plugin_seek (input_plugin_t *this_gen, off_t offset, int origin
         this->curpos = offset;
       else
         xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
-                "input_net: cannot seek back! (%" PRIiMAX " > %" PRIiMAX ")\n",
+                "input_net: cannot seek back! (%" PRIdMAX " > %" PRIdMAX ")\n",
                 (intmax_t)this->curpos, (intmax_t)offset);
 
     } else {

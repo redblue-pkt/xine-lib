@@ -1514,7 +1514,20 @@ AC_CHECK_FUNCS([vsscanf sigaction sigset getpwuid_r nanosleep lstat memset strch
 AC_FUNC_FSEEKO
 AC_DEFINE(_GNU_SOURCE)
 AC_CHECK_HEADERS(byteswap.h malloc.h execinfo.h ucontext.h sys/mman.h sys/mixer.h libgen.h netdb.h sys/times.h sys/ioctl.h)
-AC_REPLACE_FUNCS(basename gettimeofday hstrerror setenv strndup strpbrk strsep strtok_r)
+AC_REPLACE_FUNCS(basename gettimeofday setenv strndup strpbrk strsep strtok_r)
+
+AC_LIBSOURCE(hstrerror.c)
+AC_LINK_IFELSE([#include <netdb.h>
+int main(void) {
+  hstrerror(0);
+}], ac_cv_function_system_hstrerror="yes")
+AC_CHECK_LIB([resolv], [hstrerror], [ac_cv_function_system_hstrerror="yes"])
+if test x"$ac_cv_function_system_hstrerror" = "xyes"; then
+  AC_DEFINE(HAVE_HSTRERROR, 1, [Define to 1 if you have 'hstrerror' in <netdb.h>])
+else
+  AC_LIBOBJ(hstrerror)
+fi
+
 AH_BOTTOM([/* include internal system specific header */
 #include "os_internal.h"])
 

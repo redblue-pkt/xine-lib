@@ -1,0 +1,19 @@
+Use xine's inttypes.
+The file config_types.h is generated from config_types.h.in in musepack SVN.
+
+Index: src/libmusepack/musepack/config_types.h
+===================================================================
+RCS file: /home/valtri/CVS/xine-lib/src/libmusepack/musepack/config_types.h,v
+retrieving revision 1.1.1.2
+diff -u -p -u -p -r1.1.1.2 config_types.h
+--- src/libmusepack/musepack/config_types.h	3 Feb 2005 00:19:24 -0000	1.1.1.2
++++ src/libmusepack/musepack/config_types.h	3 Feb 2005 00:21:06 -0000
+@@ -1,7 +1,7 @@
+ #ifndef __CONFIG_TYPES_H__
+ #define __CONFIG_TYPES_H__
+ 
+-#include <stdint.h>
++#include "os_types.h"
+ 
+ #ifdef WORDS_BIGENDIAN
+   #undef MPC_LITTLE_ENDIAN

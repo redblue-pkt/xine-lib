@@ -29,7 +29,7 @@
  * - it's possible speeder saving streams in the xine without playing:
  *     xine stream_mrl#save:file.raw\;noaudio\;novideo
  *
- * $Id: input_rip.c,v 1.27 2004/12/12 22:01:31 mroi Exp $
+ * $Id: input_rip.c,v 1.28 2005/02/03 07:19:07 valtri Exp $
  */
 
 /* TODO:
@@ -157,7 +157,7 @@ static off_t rip_plugin_read(input_plugin_t *this_gen, char *buf, off_t len) {
     if (retlen > nread_orig) {
       nwrite = retlen - nread_orig;
       if (fwrite(buf + this->savepos - this->curpos, nwrite, 1, this->file) != 1) {
-        xine_log(this->stream->xine, XINE_LOG_MSG, _("input_rip: error writing to file %" PRIiMAX " bytes: %s\n"), (intmax_t)(retlen - nread_orig), strerror(errno));
+        xine_log(this->stream->xine, XINE_LOG_MSG, _("input_rip: error writing to file %" PRIdMAX " bytes: %s\n"), (intmax_t)(retlen - nread_orig), strerror(errno));
         return -1;
       }
       this->savepos += nwrite;
@@ -286,7 +286,7 @@ static buf_element_t *rip_plugin_read_block(input_plugin_t *this_gen, fifo_buffe
       nwrite = retlen - nread_orig;
       if (fwrite(buf->content + this->savepos - this->curpos, nwrite, 1, this->file) != 1) {
         xine_log(this->stream->xine, XINE_LOG_MSG, 
-                 _("input_rip: error writing to file %" PRIiMAX " bytes: %s\n"),
+                 _("input_rip: error writing to file %" PRIdMAX " bytes: %s\n"),
                  (intmax_t)(retlen - nread_orig), strerror(errno));
         return NULL;
       }
@@ -392,7 +392,7 @@ static off_t rip_plugin_seek(input_plugin_t *this_gen, off_t offset, int origin)
       if ((pos = rip_seek_original(this, this->savepos)) == -1) return -1;
       if (pos > this->savepos)
         xine_log(this->stream->xine, XINE_LOG_MSG,
-                 _("input_rip: %" PRIiMAX " bytes dropped\n"), 
+                 _("input_rip: %" PRIdMAX " bytes dropped\n"), 
                  (intmax_t)(pos - this->savepos));
     }
   }
@@ -638,7 +638,7 @@ input_plugin_t *_x_rip_plugin_get_instance (xine_stream_t *stream, const char *f
   if (this->preview && this->preview_size) {
     if (fwrite(this->preview, this->preview_size, 1, this->file) != 1) {
       xine_log(this->stream->xine, XINE_LOG_MSG, 
-               _("input_rip: error writing to file %" PRIiMAX " bytes: %s\n"),
+               _("input_rip: error writing to file %" PRIdMAX " bytes: %s\n"),
                (intmax_t)(this->preview_size), strerror(errno));
       fclose(this->file);
       free(this);

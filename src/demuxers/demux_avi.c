@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_avi.c,v 1.216 2005/01/09 20:52:19 tmattern Exp $
+ * $Id: demux_avi.c,v 1.217 2005/02/03 07:19:05 valtri Exp $
  *
  * demultiplexer for avi streams
  *
@@ -639,7 +639,7 @@ static int idx_grow(demux_avi_t *this, int (*stopper)(demux_avi_t *, void *),
       }
     }
     if (!valid_chunk) {
-      xine_log(this->stream->xine, XINE_LOG_MSG, _("demux_avi: invalid avi chunk \"%c%c%c%c\" at pos %" PRIiMAX "\n"), data[0], data[1], data[2], data[3], (intmax_t)chunk_pos);
+      xine_log(this->stream->xine, XINE_LOG_MSG, _("demux_avi: invalid avi chunk \"%c%c%c%c\" at pos %" PRIdMAX "\n"), data[0], data[1], data[2], data[3], (intmax_t)chunk_pos);
     }
     chunk_pos = this->input->seek(this->input, this->idx_grow.nexttagoffset, SEEK_SET);
     if (chunk_pos != this->idx_grow.nexttagoffset) {
@@ -783,7 +783,7 @@ static avi_t *AVI_init(demux_avi_t *this) {
     this->idx_grow.nexttagoffset = this->input->get_current_pos(this->input);
 
     if (this->input->read(this->input, data,8) != 8 ) {
-      xprintf(this->stream->xine, XINE_VERBOSITY_LOG, "failed to read 8 bytes at pos %" PRIiMAX "\n", (intmax_t)this->idx_grow.nexttagoffset);
+      xprintf(this->stream->xine, XINE_VERBOSITY_LOG, "failed to read 8 bytes at pos %" PRIdMAX "\n", (intmax_t)this->idx_grow.nexttagoffset);
       break; /* We assume it's EOF */
     }
 
@@ -847,7 +847,7 @@ static avi_t *AVI_init(demux_avi_t *this) {
       }
     }
     if (next_chunk != this->input->seek(this->input, next_chunk, SEEK_SET)) {
-      xine_log (this->stream->xine, XINE_LOG_MSG, _("demux_avi: failed to seek to the next chunk (pos %" PRIiMAX ")\n"), (intmax_t)next_chunk);
+      xine_log (this->stream->xine, XINE_LOG_MSG, _("demux_avi: failed to seek to the next chunk (pos %" PRIdMAX ")\n"), (intmax_t)next_chunk);
       break;  /* probably slow seek */
     }
   }
@@ -1692,7 +1692,7 @@ static int get_chunk_header(demux_avi_t *this, uint32_t *len, int *audio_stream)
         return AVI_HEADER_AUDIO;
       }
     }
-    xine_log (this->stream->xine, XINE_LOG_MSG, _("demux_avi: invalid avi chunk \"%c%c%c%c\" at pos %" PRIiMAX "\n"), data[0], data[1], data[2], data[3], (intmax_t)this->input->get_current_pos(this->input));
+    xine_log (this->stream->xine, XINE_LOG_MSG, _("demux_avi: invalid avi chunk \"%c%c%c%c\" at pos %" PRIdMAX "\n"), data[0], data[1], data[2], data[3], (intmax_t)this->input->get_current_pos(this->input));
     return AVI_HEADER_UNKNOWN;
   }
   /* unreachable code */
@@ -2084,7 +2084,7 @@ static int demux_avi_seek_internal (demux_avi_t *this) {
    */
 
   xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
-          "start pos is %" PRIiMAX ", start time is %d\n", (intmax_t)start_pos,
+          "start pos is %" PRIdMAX ", start time is %d\n", (intmax_t)start_pos,
           start_time);
 
   /* Seek video.  We do a single idx_grow at the beginning rather than

@@ -606,9 +606,9 @@ msgstr "Obnovuje se index..."
 
 #: src/demuxers/demux_avi.c:642 src/demuxers/demux_avi.c:1700
 #, c-format
-msgid "demux_avi: invalid avi chunk \"%c%c%c%c\" at pos %<PRIiMAX>\n"
+msgid "demux_avi: invalid avi chunk \"%c%c%c%c\" at pos %<PRIdMAX>\n"
 msgstr ""
-"demux:avi: neplatný datový blok avi \"%c%c%c%c\" na pozici %<PRIiMAX>\n"
+"demux:avi: neplatný datový blok avi \"%c%c%c%c\" na pozici %<PRIdMAX>\n"
 
 #: src/demuxers/demux_avi.c:841
 msgid "demux_avi: avi index is broken\n"
@@ -616,9 +616,9 @@ msgstr "demux_avi: index avi je porušen\n"
 
 #: src/demuxers/demux_avi.c:849
 #, c-format
-msgid "demux_avi: failed to seek to the next chunk (pos %<PRIiMAX>)\n"
+msgid "demux_avi: failed to seek to the next chunk (pos %<PRIdMAX>)\n"
 msgstr ""
-"demux_avi: selhalo nastavení pozice na další data (pozice %<PRIiMAX>)\n"
+"demux_avi: selhalo nastavení pozice na další data (pozice %<PRIdMAX>)\n"
 
 #: src/demuxers/demux_film.c:188
 msgid "invalid FILM chunk size\n"
@@ -1694,8 +1694,8 @@ msgstr "input_http: stav http není 2xx: >%d %s<\n"
 
 #: src/input/input_http.c:884
 #, c-format
-msgid "input_http: content length = %<PRIiMAX> bytes\n"
-msgstr "input_http: délka obsahu = %<PRIiMAX> bytů\n"
+msgid "input_http: content length = %<PRIdMAX> bytes\n"
+msgstr "input_http: délka obsahu = %<PRIdMAX> bytů\n"
 
 #: src/input/input_http.c:983
 msgid "http input plugin"
@@ -1918,8 +1918,8 @@ msgstr "vstupní modul rtsp pro streamovaná data"
 
 #: src/input/input_stdin_fifo.c:161
 #, c-format
-msgid "stdin: cannot seek back! (%<PRIiMAX> > %<PRIiMAX>)\n"
-msgstr "stdin: nelze se posunout zpět! (%<PRIiMAX> < %<PRIiMAX>)\n"
+msgid "stdin: cannot seek back! (%<PRIdMAX> > %<PRIdMAX>)\n"
+msgstr "stdin: nelze se posunout zpět! (%<PRIdMAX> < %<PRIdMAX>)\n"
 
 #: src/input/input_stdin_fifo.c:249
 #, c-format
@@ -4630,8 +4630,8 @@ msgstr "input_rip: čtení vstupním modulem selhalo\n"
 #: src/xine-engine/input_rip.c:160 src/xine-engine/input_rip.c:289
 #: src/xine-engine/input_rip.c:641
 #, c-format
-msgid "input_rip: error writing to file %<PRIiMAX> bytes: %s\n"
-msgstr "input_rip: chyba zápisu %<PRIiMAX> bytů do souboru: %s\n"
+msgid "input_rip: error writing to file %<PRIdMAX> bytes: %s\n"
+msgstr "input_rip: chyba zápisu %<PRIdMAX> bytů do souboru: %s\n"
 
 #: src/xine-engine/input_rip.c:181
 msgid "input_rip: open() function should never be called\n"
@@ -4648,8 +4648,8 @@ msgstr "input_rip: selhalo nastavení pozice: %s\n"
 
 #: src/xine-engine/input_rip.c:395
 #, c-format
-msgid "input_rip: %<PRIiMAX> bytes dropped\n"
-msgstr "input_rip: zahozeno %<PRIiMAX> bytů\n"
+msgid "input_rip: %<PRIdMAX> bytes dropped\n"
+msgstr "input_rip: zahozeno %<PRIdMAX> bytů\n"
 
 #: src/xine-engine/input_rip.c:546
 msgid "input_rip: input plugin not defined!\n"

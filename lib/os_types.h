@@ -17,9 +17,10 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id:
+ * $Id: os_types.h,v 1.4 2005/02/03 07:19:03 valtri Exp $ Ext
  *
- * Platform dependent types needed by public xine.h.
+ * Platform dependent types needed by public xine.h. 
+ * Types not needed by xine.h are specified in os_internal.h.
  *
  * Heavily based on os_types.h from OggVorbis (BSD License),
  * not tested on all platforms with xine.
@@ -103,23 +104,15 @@
 #  ifndef __STDC_LIBRARY_SUPPORTED__
 #    define __STDC_LIBRARY_SUPPORTED__
 #  endif /* __STDC_LIBRARY_SUPPORTED__ */
-#  include <inttypes.h>
-
-#elif defined(MINGW32)
 
 #  include <inttypes.h>
-
-   struct timezone {
-     int tz_minuteswest;
-     int tz_dstime;
-   };
 
 #else
 
   /* 
    * CygWin: _WIN32 & __GNUC__
    * BeOS:   __BEOS__
-   * Linux and others
+   * Linux, Solaris and others
    */
 #  include <inttypes.h>
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_matroska.c,v 1.32 2004/12/13 16:07:43 miguelfreitas Exp $
+ * $Id: demux_matroska.c,v 1.33 2005/02/03 07:19:05 valtri Exp $
  *
  * demultiplexer for matroska streams
  *
@@ -1453,7 +1453,7 @@ static int parse_ebml_uint(demux_matroska_t *this, uint8_t *data, uint64_t *num)
   if (size > 8) {
     off_t pos = this->input->get_current_pos(this->input);
     xprintf(this->stream->xine, XINE_VERBOSITY_LOG, 
-            "demux_matroska: Invalid Track Number at position %" PRIiMAX "\n",
+            "demux_matroska: Invalid Track Number at position %" PRIdMAX "\n",
             (intmax_t)pos);
     return 0;
   }
@@ -1507,7 +1507,7 @@ static int read_block_data (demux_matroska_t *this, int len) {
   if (this->input->read(this->input, this->block_data, len) != len) {
     off_t pos = this->input->get_current_pos(this->input);
     xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
-            "demux_matroska: read error at position %" PRIiMAX "\n",
+            "demux_matroska: read error at position %" PRIdMAX "\n",
             (intmax_t)pos);
     return 0;
   }
@@ -1877,7 +1877,7 @@ static int parse_seek_entry(demux_matroska_t *this) {
       this->ebml->level = 1;
       if (this->input->seek(this->input, seek_pos, SEEK_SET) < 0) {
         xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
-                "demux_matroska: failed to seek to pos: %" PRIiMAX "\n",
+                "demux_matroska: failed to seek to pos: %" PRIdMAX "\n",
                 (intmax_t)seek_pos);
         return 0;
       }
@@ -1888,13 +1888,13 @@ static int parse_seek_entry(demux_matroska_t *this) {
       memcpy(this->ebml, &ebml_bak, sizeof(ebml_parser_t));   /* FIXME */
       if (this->input->seek(this->input, current_pos, SEEK_SET) < 0) {
         xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
-                "demux_matroska: failed to seek to pos: %" PRIiMAX "\n",
+                "demux_matroska: failed to seek to pos: %" PRIdMAX "\n",
                 (intmax_t)current_pos);
         return 0;
       }
     } else {
       xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
-              "demux_matroska: out of stream seek pos: %" PRIiMAX "\n",
+              "demux_matroska: out of stream seek pos: %" PRIdMAX "\n",
               (intmax_t)seek_pos);
     }
     return 1;
@@ -2182,7 +2182,7 @@ static void demux_matroska_send_headers (demux_plugin_t *this_gen) {
   next_level = 1;
   if (this->input->seek(this->input, this->segment.start, SEEK_SET) < 0) {
     xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
-            "demux_matroska: failed to seek to pos: %" PRIiMAX "\n",
+            "demux_matroska: failed to seek to pos: %" PRIdMAX "\n",
             (intmax_t)this->segment.start);
     this->status = DEMUX_FINISHED;
     return;
@@ -2202,7 +2202,7 @@ static void demux_matroska_send_headers (demux_plugin_t *this_gen) {
   next_level = 1;
   if (this->input->seek(this->input, this->segment.start, SEEK_SET) < 0) {
     xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
-            "demux_matroska: failed to seek to pos: %" PRIiMAX "\n",
+            "demux_matroska: failed to seek to pos: %" PRIdMAX "\n",
             (intmax_t)this->segment.start);
     this->status = DEMUX_FINISHED;
   }

@@ -19,7 +19,7 @@
  *
  * input plugin for http network streams
  *
- * $Id: input_http.c,v 1.106 2005/01/17 19:27:51 tmattern Exp $
+ * $Id: input_http.c,v 1.107 2005/02/03 07:19:06 valtri Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -544,7 +544,7 @@ static off_t http_plugin_seek(input_plugin_t *this_gen, off_t offset, int origin
         this->curpos = offset;
       else
         xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
-          "http: cannot seek back! (%" PRIiMAX " > %" PRIiMAX ")\n",
+          "http: cannot seek back! (%" PRIdMAX " > %" PRIdMAX ")\n",
           (intmax_t)this->curpos, (intmax_t)offset);
       
     } else {
@@ -829,7 +829,7 @@ static int http_plugin_open (input_plugin_t *this_gen ) {
 	  
 	  if (sscanf(this->buf, "Content-Length: %" SCNdMAX , &contentlength) == 1) {
       	    xine_log (this->stream->xine, XINE_LOG_MSG, 
-              _("input_http: content length = %" PRIiMAX " bytes\n"),
+              _("input_http: content length = %" PRIdMAX " bytes\n"),
               contentlength);
 	    this->contentlength = (off_t)contentlength;
 	  }

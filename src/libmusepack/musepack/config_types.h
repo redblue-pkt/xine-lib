@@ -1,7 +1,7 @@
 #ifndef __CONFIG_TYPES_H__
 #define __CONFIG_TYPES_H__
 
-#include <stdint.h>
+#include "os_types.h"
 
 #ifdef WORDS_BIGENDIAN
   #undef MPC_LITTLE_ENDIAN

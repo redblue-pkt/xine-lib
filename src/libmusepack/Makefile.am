@@ -2,6 +2,8 @@ include $(top_srcdir)/misc/Makefile.common
 
 SUBDIRS = musepack
 
+EXTRA_DIST = diff_against_svn.patch
+
 libdir = $(XINE_PLUGINDIR)
 
 lib_LTLIBRARIES = xineplug_decode_mpc.la

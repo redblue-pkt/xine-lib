@@ -24,7 +24,7 @@
  * For more information on the FLV file format, visit:
  * http://download.macromedia.com/pub/flash/flash_file_format_specification.pdf
  *
- * $Id: demux_flv.c,v 1.4 2004/09/17 19:21:34 valtri Exp $
+ * $Id: demux_flv.c,v 1.5 2005/02/03 07:19:05 valtri Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -99,7 +99,7 @@ static int open_flv_file(demux_flv_t *this) {
 
   first_offset = BE_32(buffer);
   this->input->seek(this->input, first_offset, SEEK_SET);
-  lprintf("  qualified FLV file, repositioned @ offset 0x%" PRIXMAX "\n", 
+  lprintf("  qualified FLV file, repositioned @ offset 0x%" PRIxMAX "\n", 
           (intmax_t)first_offset);
 
   return 1;
