@@ -21,7 +21,7 @@
  * For more information regarding the Real file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_real.c,v 1.9 2002/11/18 03:03:09 guenter Exp $
+ * $Id: demux_real.c,v 1.10 2002/11/19 23:23:47 komadori Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -128,21 +128,21 @@ typedef struct {
 
 typedef struct {
 
-  u_int16_t  object_version;
+  uint16_t  object_version;
 
-  u_int16_t  stream_number;
-  u_int32_t  max_bit_rate;
-  u_int32_t  avg_bit_rate;
-  u_int32_t  max_packet_size;
-  u_int32_t  avg_packet_size;
-  u_int32_t  start_time;
-  u_int32_t  preroll;
-  u_int32_t  duration;
+  uint16_t  stream_number;
+  uint32_t  max_bit_rate;
+  uint32_t  avg_bit_rate;
+  uint32_t  max_packet_size;
+  uint32_t  avg_packet_size;
+  uint32_t  start_time;
+  uint32_t  preroll;
+  uint32_t  duration;
   char       stream_name_size;
   char      *stream_name;
   char       mime_type_size;
   char      *mime_type;
-  u_int32_t  type_specific_len;
+  uint32_t  type_specific_len;
   char      *type_specific_data;
 
 } pnm_mdpr_t;
