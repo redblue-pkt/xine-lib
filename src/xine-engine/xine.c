@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.66 2001/10/07 17:08:23 guenter Exp $
+ * $Id: xine.c,v 1.67 2001/10/09 03:06:24 miguelfreitas Exp $
  *
  * top-level xine functions
  *
@@ -31,6 +31,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <string.h>
+#include <stdlib.h>
 #include <pthread.h>
 #if defined (__linux__)
 #include <endian.h>
@@ -59,13 +60,36 @@
 /* debugging purposes only */
 uint32_t   xine_debug;
 
-void xine_notify_stream_finished (xine_t *this) {
+void * xine_notify_stream_finished_thread (void * this_gen) {
+  xine_t *this = this_gen;
 
   xine_stop (this);
 
   if (this->stream_end_cb)
     this->stream_end_cb (this->status);
 
+  return NULL;
+}
+
+void xine_notify_stream_finished (xine_t *this) {
+  pthread_t finished_thread;
+  int err;
+
+  /* This thread will just execute xine_stop and (possibly) xine_play then die.
+     It might look useless but i need to detach this code from the current
+     thread to make sure that video_decoder and audio_decoder are running and
+     freeing buffers. Free buffers might be needed by the main thread during
+     a xine_play, for example.
+
+     This is not a theorical situation: i was able to trigger it with simple
+     user actions (play,seek,etc). [MF]
+  */
+  if ((err = pthread_create (&finished_thread,
+			     NULL, xine_notify_stream_finished_thread, this)) != 0) {
+    fprintf (stderr, "xine_notify_stream_finished: can't create new thread (%s)\n",
+	     strerror(err));
+    exit (1);
+  }
 }
 
 void xine_stop (xine_t *this) {
