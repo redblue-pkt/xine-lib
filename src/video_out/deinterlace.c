@@ -29,6 +29,7 @@
 #include "xine_internal.h"
 #include "cpu_accel.h"
 #include "deinterlace.h"
+#include "memcpy.h"
 
 
 /*
@@ -36,7 +37,6 @@
    Based on Virtual Dub plugin by Gunnar Thalin
    MMX asm version from dscaler project (deinterlace.sourceforge.net)
    Linux version for Xine player by Miguel Freitas
-   Todo: use a MMX optimized memcpy
 */
 static void deinterlace_bob_yuv_mmx( uint8_t *pdst, uint8_t *psrc[],
     int width, int height )
@@ -71,9 +71,9 @@ static void deinterlace_bob_yuv_mmx( uint8_t *pdst, uint8_t *psrc[],
 
   // copy first even line no matter what, and the first odd line if we're
   // processing an odd field.
-  memcpy(pdst, pEvenLines, LineLength);
+  fast_memcpy(pdst, pEvenLines, LineLength);
   if (IsOdd)
-    memcpy(pdst + LineLength, pOddLines, LineLength);
+    fast_memcpy(pdst + LineLength, pOddLines, LineLength);
 
   height = height / 2;
   for (Line = 0; Line < height - 1; ++Line)
@@ -102,7 +102,7 @@ static void deinterlace_bob_yuv_mmx( uint8_t *pdst, uint8_t *psrc[],
     // half the time this function is called, those words' meanings will invert.
 
     // Copy the odd line to the overlay verbatim.
-    memcpy((char *)Dest + LineLength, YVal3, LineLength);
+    fast_memcpy((char *)Dest + LineLength, YVal3, LineLength);
 
     n = LineLength >> 3;
     while( n-- )
@@ -166,7 +166,7 @@ static void deinterlace_bob_yuv_mmx( uint8_t *pdst, uint8_t *psrc[],
   // Copy last odd line if we're processing an even field.
   if (! IsOdd)
   {
-    memcpy(pdst + (height * 2 - 1) * LineLength,
+    fast_memcpy(pdst + (height * 2 - 1) * LineLength,
                       pOddLines + (height - 1) * SourcePitch,
                       LineLength);
   }
@@ -234,9 +234,9 @@ static int deinterlace_weave_yuv_mmx( uint8_t *pdst, uint8_t *psrc[],
 
   // copy first even line no matter what, and the first odd line if we're
   // processing an even field.
-  memcpy(pdst, pEvenLines, LineLength);
+  fast_memcpy(pdst, pEvenLines, LineLength);
   if (!IsOdd)
-    memcpy(pdst + LineLength, pOddLines, LineLength);
+    fast_memcpy(pdst + LineLength, pOddLines, LineLength);
 
   height = height / 2;
   for (Line = 0; Line < height - 1; ++Line)
@@ -269,7 +269,7 @@ static int deinterlace_weave_yuv_mmx( uint8_t *pdst, uint8_t *psrc[],
     // Copy the even scanline below this one to the overlay buffer, since we'll be
     // adapting the current scanline to the even lines surrounding it.  The scanline
     // above has already been copied by the previous pass through the loop.
-    memcpy((char *)Dest + LineLength, YVal3, LineLength);
+    fast_memcpy((char *)Dest + LineLength, YVal3, LineLength);
 
     n = LineLength >> 3;
     while( n-- )
@@ -352,7 +352,7 @@ static int deinterlace_weave_yuv_mmx( uint8_t *pdst, uint8_t *psrc[],
   // Copy last odd line if we're processing an odd field.
   if (IsOdd)
   {
-    memcpy(pdst + (height * 2 - 1) * LineLength,
+    fast_memcpy(pdst + (height * 2 - 1) * LineLength,
                       pOddLines + (height - 1) * SourcePitch,
                       LineLength);
   }
@@ -417,9 +417,9 @@ static int deinterlace_greedy_yuv_mmx( uint8_t *pdst, uint8_t *psrc[],
 
   // copy first even line no matter what, and the first odd line if we're
   // processing an EVEN field. (note diff from other deint rtns.)
-  memcpy(pdst, pEvenLines, LineLength); //DL0
+  fast_memcpy(pdst, pEvenLines, LineLength); //DL0
   if (!IsOdd)
-    memcpy(pdst + LineLength, pOddLines, LineLength); //DL1
+    fast_memcpy(pdst + LineLength, pOddLines, LineLength); //DL1
 
   height = height / 2;
   for (Line = 0; Line < height - 1; ++Line)
@@ -443,7 +443,7 @@ static int deinterlace_greedy_yuv_mmx( uint8_t *pdst, uint8_t *psrc[],
       Dest = (uint64_t *)(pdst + (Line * 2 + 2) * LineLength);
     }
 
-    memcpy((char *)Dest + LineLength, L3, LineLength);
+    fast_memcpy((char *)Dest + LineLength, L3, LineLength);
 
 // For ease of reading, the comments below assume that we're operating on an odd
 // field (i.e., that info->IsOdd is true).  Assume the obvious for even lines..
@@ -524,7 +524,7 @@ static int deinterlace_greedy_yuv_mmx( uint8_t *pdst, uint8_t *psrc[],
   // Copy last odd line if we're processing an Odd field.
   if (IsOdd)
   {
-    memcpy(pdst + (height * 2 - 1) * LineLength,
+    fast_memcpy(pdst + (height * 2 - 1) * LineLength,
                       pOddLines + (height - 1) * SourcePitch,
                       LineLength);
   }
@@ -561,9 +561,9 @@ static void deinterlace_onefield_yuv_mmx( uint8_t *pdst, uint8_t *psrc[],
 
   // copy first even line no matter what, and the first odd line if we're
   // processing an odd field.
-  memcpy(pdst, pEvenLines, LineLength);
+  fast_memcpy(pdst, pEvenLines, LineLength);
   if (IsOdd)
-    memcpy(pdst + LineLength, pOddLines, LineLength);
+    fast_memcpy(pdst + LineLength, pOddLines, LineLength);
 
   height = height / 2;
   for (Line = 0; Line < height - 1; ++Line)
@@ -582,7 +582,7 @@ static void deinterlace_onefield_yuv_mmx( uint8_t *pdst, uint8_t *psrc[],
     }
 
     // Copy the odd line to the overlay verbatim.
-    memcpy((char *)Dest + LineLength, YVal3, LineLength);
+    fast_memcpy((char *)Dest + LineLength, YVal3, LineLength);
 
     n = LineLength >> 3;
     while( n-- )
@@ -604,7 +604,7 @@ static void deinterlace_onefield_yuv_mmx( uint8_t *pdst, uint8_t *psrc[],
   // Copy last odd line if we're processing an even field.
   if (! IsOdd)
   {
-    memcpy(pdst + (height * 2 - 1) * LineLength,
+    fast_memcpy(pdst + (height * 2 - 1) * LineLength,
                       pOddLines + (height - 1) * SourcePitch,
                       LineLength);
   }
@@ -650,7 +650,7 @@ void deinterlace_yuv( uint8_t *pdst, uint8_t *psrc[],
 {
   switch( method ) {
     case DEINTERLACE_NONE:
-      memcpy(pdst,psrc[0],width*height);
+      fast_memcpy(pdst,psrc[0],width*height);
       break;
     case DEINTERLACE_BOB:
       if( check_for_mmx() )
@@ -662,7 +662,7 @@ void deinterlace_yuv( uint8_t *pdst, uint8_t *psrc[],
       if( check_for_mmx() )
       {
         if( !deinterlace_weave_yuv_mmx(pdst,psrc,width,height) )
-          memcpy(pdst,psrc[0],width*height);
+          fast_memcpy(pdst,psrc[0],width*height);
       }
       else /* FIXME: provide an alternative? */
         abort_mmx_missing();
@@ -671,7 +671,7 @@ void deinterlace_yuv( uint8_t *pdst, uint8_t *psrc[],
       if( check_for_mmx() )
       {
         if( !deinterlace_greedy_yuv_mmx(pdst,psrc,width,height) )
-          memcpy(pdst,psrc[0],width*height);
+          fast_memcpy(pdst,psrc[0],width*height);
       }
       else /* FIXME: provide an alternative? */
         abort_mmx_missing();

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.4 2001/10/17 21:29:21 guenter Exp $
+ * $Id: xine_decoder.c,v 1.5 2001/10/20 22:18:59 miguelfreitas Exp $
  *
  * xine decoder plugin using divx4
  *
@@ -48,6 +48,7 @@
 #include "video_out.h"
 #include "buffer.h"
 #include "metronom.h"
+#include "memcpy.h"
 
 #include "decore-if.h"
 
@@ -206,7 +207,7 @@ static void divx4_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 
   } else if (this->decoder_ok) {
 
-    memcpy (&this->buf[this->size], buf->content, buf->size);
+    fast_memcpy (&this->buf[this->size], buf->content, buf->size);
 
     this->size += buf->size;
 
@@ -259,12 +260,12 @@ static void divx4_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
         int src_offset,dst_offset;
         /* shortcut if stride_y equals width */
         if (pict.stride_y == img->width) {
-          memcpy(img->base[0], pict.y, img->width*img->height);
+          fast_memcpy(img->base[0], pict.y, img->width*img->height);
         }
         else { /* copy line by line */
 	  src_offset=dst_offset = 0;
           for (i=0; i<img->height; i++) {
-            memcpy(img->base[0]+dst_offset, pict.y+src_offset, img->width);
+            fast_memcpy(img->base[0]+dst_offset, pict.y+src_offset, img->width);
             src_offset += pict.stride_y;
             dst_offset += img->width;
           }
@@ -273,14 +274,14 @@ static void divx4_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
            FIXME: Weird... I thought YV12 means order y-v-u, yet base[1] 
            seems to be u and base[2] is v. */
         if (pict.stride_uv == img->width>>1) {
-          memcpy(img->base[1], pict.u, (img->width*img->height)>>2);
-          memcpy(img->base[2], pict.v, (img->width*img->height)>>2);
+          fast_memcpy(img->base[1], pict.u, (img->width*img->height)>>2);
+          fast_memcpy(img->base[2], pict.v, (img->width*img->height)>>2);
         }
         else {
 	  src_offset=dst_offset = 0;
           for (i=0; i<img->height>>1; i++) {
-            memcpy(img->base[1]+dst_offset, pict.u+src_offset, img->width>>1);
-            memcpy(img->base[2]+dst_offset, pict.v+src_offset, img->width>>1);
+            fast_memcpy(img->base[1]+dst_offset, pict.u+src_offset, img->width>>1);
+            fast_memcpy(img->base[2]+dst_offset, pict.v+src_offset, img->width>>1);
             src_offset += pict.stride_uv;
             dst_offset += img->width>>1;
 	  }
