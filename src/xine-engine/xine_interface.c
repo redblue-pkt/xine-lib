@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_interface.c,v 1.55 2003/08/04 02:07:26 miguelfreitas Exp $
+ * $Id: xine_interface.c,v 1.56 2003/08/24 08:31:30 f1rmb Exp $
  *
  * convenience/abstraction layer, functions to implement
  * libxine's public interface
@@ -830,5 +830,5 @@ int xine_message(xine_stream_t *stream, int type, ...) {
 }
 
 int64_t xine_get_current_vpts(xine_stream_t *stream) {
-  stream->xine->clock->get_current_time(stream->xine->clock);
+  return stream->xine->clock->get_current_time(stream->xine->clock);
 }
