@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.c,v 1.22 2003/01/26 23:36:46 f1rmb Exp $
+ * $Id: buffer.c,v 1.23 2003/02/08 13:52:44 tmattern Exp $
  *
  *
  * contents:
@@ -60,7 +60,7 @@ static void buffer_pool_free (buf_element_t *element) {
   pthread_mutex_unlock (&this->buffer_pool_mutex);
 }
 
-/* 
+/*
  * helper function to release buffer pool lock
  * in case demux thread is cancelled
  */
@@ -120,7 +120,7 @@ static buf_element_t *buffer_pool_alloc (fifo_buffer_t *this) {
  */
 
 static buf_element_t *buffer_pool_try_alloc (fifo_buffer_t *this) {
-  
+
   buf_element_t *buf;
 
   pthread_mutex_lock (&this->buffer_pool_mutex);
@@ -163,9 +163,10 @@ static void fifo_buffer_put (fifo_buffer_t *fifo, buf_element_t *element) {
   else 
     fifo->first = element;
 
-  fifo->last  = element;
+  fifo->last = element;
   element->next = NULL;
   fifo->fifo_size++;
+  fifo->fifo_data_size += element->size;
 
   pthread_cond_signal (&fifo->not_empty);
 
@@ -186,6 +187,7 @@ static void fifo_buffer_insert (fifo_buffer_t *fifo, buf_element_t *element) {
     fifo->last = element;
     
   fifo->fifo_size++;
+  fifo->fifo_data_size += element->size;
 
   pthread_cond_signal (&fifo->not_empty);
 
@@ -199,7 +201,7 @@ static void fifo_buffer_insert (fifo_buffer_t *fifo, buf_element_t *element) {
 static buf_element_t *fifo_buffer_get (fifo_buffer_t *fifo) {
 
   buf_element_t *buf;
-  
+
   pthread_mutex_lock (&fifo->mutex);
 
   while (fifo->first==NULL) {
@@ -213,6 +215,7 @@ static buf_element_t *fifo_buffer_get (fifo_buffer_t *fifo) {
     fifo->last = NULL;
 
   fifo->fifo_size--;
+  fifo->fifo_data_size -= buf->size;
 
   pthread_mutex_unlock (&fifo->mutex);
 
@@ -223,7 +226,7 @@ static buf_element_t *fifo_buffer_get (fifo_buffer_t *fifo) {
  * clear buffer (put all contained buffer elements back into buffer pool)
  */
 static void fifo_buffer_clear (fifo_buffer_t *fifo) {
-  
+
   buf_element_t *buf, *next, *prev;
 
   pthread_mutex_lock (&fifo->mutex);
@@ -242,16 +245,16 @@ static void fifo_buffer_clear (fifo_buffer_t *fifo) {
 	prev->next = next;
       else
 	fifo->first = next;
-      
+
       if (!next)
 	fifo->last = prev;
-      
+
       fifo->fifo_size--;
 
       buf->free_buffer(buf);
     } else
       prev = buf;
-    
+
     buf = next;
   }
 
@@ -270,6 +273,19 @@ static int fifo_buffer_size (fifo_buffer_t *this) {
   pthread_mutex_unlock(&this->mutex);
 
   return size;
+}
+
+/*
+ * Return the amount of the data in the fifo buffer
+ */
+static uint32_t fifo_buffer_data_size (fifo_buffer_t *this) {
+  uint32_t data_size;
+
+  pthread_mutex_lock(&this->mutex);
+  data_size = this->fifo_data_size;
+  pthread_mutex_unlock(&this->mutex);
+
+  return data_size;
 }
 
 /*
@@ -293,11 +309,11 @@ static void fifo_buffer_dispose (fifo_buffer_t *this) {
 
     buf = next;
   }
-  
+
   while (received < this->buffer_pool_capacity) {
-  
+
     buf = this->get(this);
-    
+
     free(buf->extra_info);
     free(buf);
     received++;
@@ -331,13 +347,14 @@ fifo_buffer_t *fifo_buffer_new (int num_buffers, uint32_t buf_size) {
   this->get             = fifo_buffer_get;
   this->clear           = fifo_buffer_clear;
   this->size		= fifo_buffer_size;
+  this->data_size	= fifo_buffer_data_size;
   this->dispose		= fifo_buffer_dispose;
 
   pthread_mutex_init (&this->mutex, NULL);
   pthread_cond_init (&this->not_empty, NULL);
 
   /*
-   * init buffer pool, allocate nNumBuffers of buf_size bytes each 
+   * init buffer pool, allocate nNumBuffers of buf_size bytes each
    */
 
 
@@ -345,10 +362,10 @@ fifo_buffer_t *fifo_buffer_new (int num_buffers, uint32_t buf_size) {
     buf_size += alignment - (buf_size % alignment);
 
   /*
-  printf ("Allocating %d buffers of %ld bytes in one chunk (alignment = %d)\n", 
+  printf ("Allocating %d buffers of %ld bytes in one chunk (alignment = %d)\n",
 	  num_buffers, (long int) buf_size, alignment);
 	  */
-  multi_buffer = xine_xmalloc_aligned (alignment, num_buffers * buf_size, 
+  multi_buffer = xine_xmalloc_aligned (alignment, num_buffers * buf_size,
 				       &this->buffer_pool_base);
 
   this->buffer_pool_top = NULL;
@@ -360,7 +377,7 @@ fifo_buffer_t *fifo_buffer_new (int num_buffers, uint32_t buf_size) {
     buf_element_t *buf;
 
     buf = xine_xmalloc (sizeof (buf_element_t));
-    
+
     buf->mem = multi_buffer;
     multi_buffer += buf_size;
 
@@ -368,7 +385,7 @@ fifo_buffer_t *fifo_buffer_new (int num_buffers, uint32_t buf_size) {
     buf->free_buffer = buffer_pool_free;
     buf->source      = this;
     buf->extra_info  = malloc(sizeof(extra_info_t));
-    
+
     buffer_pool_free (buf);
   }
   this->buffer_pool_num_free  = num_buffers;

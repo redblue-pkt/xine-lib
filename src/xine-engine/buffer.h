@@ -7,7 +7,7 @@
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * xine is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.h,v 1.99 2003/01/31 18:29:47 miguelfreitas Exp $
+ * $Id: buffer.h,v 1.100 2003/02/08 13:52:44 tmattern Exp $
  *
  *
  * contents:
@@ -276,7 +276,7 @@ struct buf_element_s {
 
 /* these are the types of special buffers */
 
-/* 
+/*
  * In a BUF_SPECIAL_PALETTE buffer:
  * decoder_info[1] = BUF_SPECIAL_PALETTE
  * decoder_info[2] = number of entries in palette table
@@ -392,7 +392,10 @@ typedef struct fifo_buffer_s fifo_buffer_t;
 struct fifo_buffer_s
 {
   buf_element_t  *first, *last;
+
   int             fifo_size;
+  uint32_t        fifo_data_size;
+  void            *fifo_empty_cb_data;
 
   pthread_mutex_t mutex;
   pthread_cond_t  not_empty;
@@ -402,35 +405,36 @@ struct fifo_buffer_s
    */
 
   void (*put) (fifo_buffer_t *fifo, buf_element_t *buf);
-  
+
   buf_element_t *(*get) (fifo_buffer_t *fifo);
 
   void (*clear) (fifo_buffer_t *fifo) ;
 
   int (*size) (fifo_buffer_t *fifo);
 
+  uint32_t (*data_size) (fifo_buffer_t *fifo);
+
   void (*dispose) (fifo_buffer_t *fifo);
 
-  /* 
-   * alloc buffer for this fifo from global buf pool 
+  /*
+   * alloc buffer for this fifo from global buf pool
    * you don't have to use this function to allocate a buffer,
    * an input plugin can decide to implement it's own
    * buffer allocation functions
    */
 
   buf_element_t *(*buffer_pool_alloc) (fifo_buffer_t *this);
-  
-  
+
+
   /*
    * special functions, not used by demuxers
-   */ 
-  
+   */
+
   /* the same as buffer_pool_alloc but may fail if none is available */
   buf_element_t *(*buffer_pool_try_alloc) (fifo_buffer_t *this);
-  
+
   /* the samme as put but insert at the head of the fifo */
   void (*insert) (fifo_buffer_t *fifo, buf_element_t *buf);
-  
 
   /*
    * private variables for buffer pool management
@@ -448,7 +452,7 @@ struct fifo_buffer_s
 /*
  * allocate and initialize new (empty) fifo buffer,
  * init buffer pool for it:
- * allocate num_buffers of buf_size bytes each 
+ * allocate num_buffers of buf_size bytes each
  */
 
 fifo_buffer_t *fifo_buffer_new (int num_buffers, uint32_t buf_size);
@@ -474,8 +478,8 @@ char * buf_audio_name( uint32_t buf_type );
 /* no attribute packed? let's try with pragma pack as a last resort */
 #pragma pack(2)
 #endif
-/* this is xine version of BITMAPINFOHEADER 
- * - should be safe to compile on 64bits machines 
+/* this is xine version of BITMAPINFOHEADER
+ * - should be safe to compile on 64bits machines
  * - will always use machine endian format, so demuxers reading
  *   stuff from win32 formats must use the function below.
  */
