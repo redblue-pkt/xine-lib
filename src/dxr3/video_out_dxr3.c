@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3.c,v 1.29 2002/06/17 15:55:00 mroi Exp $
+ * $Id: video_out_dxr3.c,v 1.30 2002/06/24 17:40:44 pmhahn Exp $
  */
  
 /* mpeg1 encoding video out plugin for the dxr3.  
@@ -158,7 +158,7 @@ vo_driver_t *init_video_out_plugin(config_values_t *config, void *visual_gen)
   this->enhanced_mode                  = config->register_bool(config,
     "dxr3.enc_alt_play_mode", 1,
     _("dxr3: use alternate play mode for mpeg encoder playback"),
-    _("Enabling this option will utilise a smoother play mode"), dxr3_update_enhanced_mode, this);
+    _("Enabling this option will utilise a smoother play mode."), dxr3_update_enhanced_mode, this);
   
   confstr = config->register_string(config, CONF_LOOKUP, CONF_DEFAULT, CONF_NAME, CONF_HELP, NULL, NULL);
   strncpy(this->devname, confstr, 128);
