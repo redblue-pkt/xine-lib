@@ -142,18 +142,23 @@ d	10024136	Radeon RS100 [IGP320]	0
 d	10024137	Radeon RS200 [IGP330/340/350]	0
 d	10024144	Radeon RV300 [9500 AD]	0
 d	10024145	Radeon RV300 [9500 AE]	0
-d	10024146	Radeon RV300 [9500 AF]	0
+d	10024146	Radeon RV300 [9600TX AF]	0
 d	10024147	Radeon R300  [FireGL Z1/X1]	0
 d	10024148	Radeon R350  [No name AH]	0
 d	10024149	Radeon R350  [No name AI]	0
 d	1002414A	Radeon R350  [No name AJ]	0
 d	1002414B	Radeon R350  [FireGL AK]	0
 d	10024150	Radeon RV350 [9600 AP]	0
-d	10024152	Radeon RV350 [9600Pro AR]	0
+d	10024151	Radeon RV350 [9600SE AQ]	0
+d	10024152	Radeon RV360 [9600XT AR]	0
+d	10024153	Radeon RV350 [9600 AS]		0
+d	10024154	Radeon RV350 [FireGL T2 AT]	0
+d	10024156	Radeon RV360 [FireGL AV]	0
 d	10024158	68800AX [Mach32]	0	
 d	10024237	Radeon RS250 [7000 IGP (A4+)]	0
 d	10024242	Radeon R200 BB [Radeon All in Wonder 8500DV]	0	
 s	10024242100202aa	Radeon 8500 AIW DV Edition	0	
+d	10024243	Radeon R200 BC [Radeon All in Wonder 8500DV]	0	
 d	10024336	Radeon RS100 Mobility [IGP320M (U1)]	0	
 d	10024337	Radeon RS200 Mobility [IGP330M/340M/350M (U2)]	0	
 d	10024354	215CT [Mach64 CT]	0	
@@ -284,11 +289,16 @@ d	10024e44	Radeon R300 ND [Radeon 9700Pro]	0
 d	10024e45	Radeon R300 NE [Radeon 9700]	0	
 d	10024e46	Radeon R300 NF [Radeon 9700]	0	
 d	10024e47	Radeon R300 NG [FireGL X1]	0	
-d	10024e48	Radeon R350 NH [Radeon 9800]	0	
+d	10024e48	Radeon R350 NH [Radeon 9800Pro]	0	
 d	10024e49	Radeon R350 NI [Radeon 9800]	0	
-d	10024e4A	Radeon R350 NJ [Radeon 9800]	0	
-d	10024e4B	Radeon R350 NK [Radeon 9800]	0	
+d	10024e4A	Radeon R360 NJ [Radeon 9800XT]	0	
+d	10024e4B	Radeon R350 NK [FireGL X2]	0	
 d	10024e50	Radeon RV350 NP [Mobility M10]	0	
+d	10024e51	Radeon RV350 NQ [Mobility M10]	0	
+d	10024e52	Radeon RV350 NR [Mobility M11]	0	
+d	10024e53	Radeon RV350 NS [Mobility M10]	0	
+d	10024e54	Radeon RV350 NT [FireGL T2 M10]	0	
+d	10024e56	Radeon RV350 NV [FireGL T2 M10]	0	
 d	10024e64	Radeon R300 [Radeon 9700] (Secondary)	1	
 d	10025041	Rage 128 PA/PRO	0	
 d	10025042	Rage 128 PB/PRO AGP 2x	0	
