@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.24 2003/01/01 20:39:20 guenter Exp $
+ * $Id: xine_decoder.c,v 1.25 2003/01/02 20:02:15 miguelfreitas Exp $
  *
  * thin layer to use real binary-only codecs in xine
  *
@@ -86,6 +86,7 @@ typedef struct realdec_decoder_s {
 
   uint8_t         *frame_buffer;
   int              frame_size;
+  int              decoder_ok;
 
 } realdec_decoder_t;
 
@@ -307,9 +308,9 @@ static void realdec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) 
     /* real_find_sequence_header (&this->real, buf->content, buf->content + buf->size);*/
   } else if (buf->decoder_flags & BUF_FLAG_HEADER) {
 
-    init_codec (this, buf);
+    this->decoder_ok = init_codec (this, buf);
 
-  } else if (this->context) {
+  } else if (this->decoder_ok && this->context) {
 
     if (buf->decoder_flags & BUF_FLAG_FRAME_START) {
 
@@ -452,13 +453,17 @@ static void realdec_flush (video_decoder_t *this_gen) {
 }
 
 static void realdec_reset (video_decoder_t *this_gen) {
-  /* realdec_decoder_t *this = (realdec_decoder_t *) this_gen; */
-
+  realdec_decoder_t *this = (realdec_decoder_t *) this_gen;
+  
+  this->num_chunks        = 0;
 }
 
 static void realdec_discontinuity (video_decoder_t *this_gen) {
-  /* realdec_decoder_t *this = (realdec_decoder_t *) this_gen; */
-
+  realdec_decoder_t *this = (realdec_decoder_t *) this_gen;
+  
+  this->pts        = 0;
+  this->last_pts   = 0;
+  this->num_frames = 0;
 }
 
 static void realdec_dispose (video_decoder_t *this_gen) {
@@ -586,6 +591,9 @@ static void *init_class (xine_t *xine, void *data) {
     if (!stat ("/opt/RealPlayer8/Codecs/drv3.so.6.0", &s)) 
       config->update_string (config, "codec.real_codecs_path", 
 			     "/opt/RealPlayer8/Codecs");
+    if (!stat ("/usr/lib/RealPlayer9/users/Real/Codecs/drv3.so.6.0", &s)) 
+      config->update_string (config, "codec.real_codecs_path", 
+			     "/usr/lib/RealPlayer9/users/Real/Codecs");
   }
 
 #ifdef LOG
