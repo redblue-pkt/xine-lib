@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.2 2001/07/04 20:32:29 uid32519 Exp $
+ * $Id: xine_decoder.c,v 1.3 2001/07/08 18:15:54 guenter Exp $
  *
  * stuff needed to turn libspu into a xine decoder plugin
  */
@@ -73,14 +73,11 @@ int spudec_can_handle (spu_decoder_t *this_gen, int buf_type) {
 void spudec_init (spu_decoder_t *this_gen, vo_instance_t *vo_out) {
 
   spudec_decoder_t *this = (spudec_decoder_t *) this_gen;
-  printf("spudec_init %p\n",&vo_out);
   this->vo_out      = vo_out;
   this->spu_caps    = vo_out->get_capabilities(vo_out);
   this->syncword    = 0;
   this->sync_todo   = 6;
   this->output_open = 0;
-
-//  spu_init ();
 
 }
 
@@ -108,7 +105,7 @@ u_int *overlay_txt (vo_overlay_t *spu, float o1)
       //clr_ptr2 = (u_char *) &spu_clut[*spu_data_ptr&0x0f];
       *clr_ptr2 = *spu_data_ptr&0x0f;
       tmp=*spu_data_ptr;
-      printf("%X%X",tmp&0x0f,((tmp>>4)&0x0f));
+      //printf("%X%X",tmp&0x0f,((tmp>>4)&0x0f));
       spu_data_ptr ++;
       
       //   printf("%d ",(*clr_ptr2++));
@@ -127,9 +124,6 @@ void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
   spudec_decoder_t *this = (spudec_decoder_t *) this_gen;
 
   uint8_t     *current = buf->content;
-  /* uint8_t     *end = buf->content + buf->size; */
-
-  printf ("spudec_decode_data\n");  
 
   if (!this->spu) {
     this->spu = this->vo_out->get_overlay (this->vo_out);
@@ -139,23 +133,23 @@ void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
   if (!this->spu)
     return;
 
+  this->spu->PTS = buf->PTS;
   if (!spuParseHdr (this->spu, current, buf->size)) {
     spuParseData (this->spu);
-    printf("X=%d Y=%d w=%d h=%d\n",
-	   this->spu->x,this->spu->y,
-	   this->spu->width,this->spu->height);
     /* overlay_txt(this->spu,1.0); Just for test purposes */
-    this->spu->PTS = buf->PTS;
+    this->vo_out->queue_overlay (this->vo_out, this->spu);
+    this->spu = NULL;
+  } else {
+    this->spu->data=NULL;
     this->vo_out->queue_overlay (this->vo_out, this->spu);
     this->spu = NULL;
   }
-  
 }
 
 void spudec_close (spu_decoder_t *this_gen) {
 
   /* spudec_decoder_t *this = (spudec_decoder_t *) this_gen;  */
-
+/* FIXME not implemented */
 //  if (this->output_open) 
 //    this->spu_out->close (this->spu_out);
 

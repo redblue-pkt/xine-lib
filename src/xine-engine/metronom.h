@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.h,v 1.6 2001/07/04 17:10:24 uid32519 Exp $
+ * $Id: metronom.h,v 1.7 2001/07/08 18:15:54 guenter Exp $
  *
  * metronom: general pts => virtual calculation/assoc
  *                   
@@ -107,7 +107,7 @@ struct metronom_s {
    *
    */
 
-  uint32_t (*got_spu_packet) (metronom_t *this, uint32_t pts); 
+  uint32_t (*got_spu_packet) (metronom_t *this, uint32_t pts, uint32_t duration); 
 
   /*
    * manually correct audio <-> video sync
@@ -161,6 +161,7 @@ struct metronom_s {
   int32_t         audio_pts_delta;
 
   uint32_t        video_vpts;
+  uint32_t        spu_vpts;
   uint32_t        audio_vpts;
 
   int32_t         video_wrap_offset;

@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: spu_decoder.c,v 1.4 2001/07/04 20:32:29 uid32519 Exp $
+ * $Id: spu_decoder.c,v 1.5 2001/07/08 18:15:54 guenter Exp $
  *
  
  * functions that implement spu decoding
@@ -57,6 +57,7 @@ void *spu_decoder_loop (void *this_gen) {
       this->spu_finished = 0;
       pthread_mutex_unlock (&this->xine_lock);
 
+/* FIXME: I don't think we need spu_track_map. */
       for (i=0 ; i<50; i++)
 	this->spu_track_map[0] = 0;
 
@@ -100,7 +101,6 @@ void *spu_decoder_loop (void *this_gen) {
 	    
 	  int streamtype = (buf->type>>16) & 0xFF;
 	  decoder = this->spu_decoder_plugins [streamtype];
-	  printf("SPU DECODER: %p\n",decoder);	    
 	  if (decoder) {
 	    if (this->cur_spu_decoder_plugin != decoder) {
 		
@@ -112,7 +112,6 @@ void *spu_decoder_loop (void *this_gen) {
 	      this->cur_spu_decoder_plugin->init (this->cur_spu_decoder_plugin, this->video_out);  
 	    }
 	      
-	    printf ("spu_decoder: decoder data sent\n"); 
 	    decoder->decode_data (decoder, buf);
 	  }
 	}

@@ -173,12 +173,10 @@ static struct reassembly_s *_reassembly (uint8_t *pkt_data, u_int pkt_len)
 
     // the whole spu fits into the supplied packet
 	 if (pkt_len >= reassembly.buf_len) {
-	   LOG (LOG_DEBUG, "0)");
 	   reassembly.buf = pkt_data;
 	   reassembly_flag = REASSEMBLY_UNNEEDED;
 	   return &reassembly;
 	 } else {
-	   LOG (LOG_DEBUG, "1)");
 	   if (!(reassembly.buf = malloc (reassembly.buf_len + 1))) {
 	     LOG (LOG_DEBUG, "unable to alloc buffer");
 	     return NULL;
@@ -190,7 +188,6 @@ static struct reassembly_s *_reassembly (uint8_t *pkt_data, u_int pkt_len)
 	   reassembly_flag = REASSEMBLY_MID;
 	 }
   } else {
-    LOG (LOG_DEBUG, "2)");
     if ((reassembly.buf_ptr+pkt_len) > (reassembly.buf+reassembly.buf_len))
       pkt_len = reassembly.buf_len - (reassembly.buf_ptr - reassembly.buf);
 
@@ -204,7 +201,6 @@ static struct reassembly_s *_reassembly (uint8_t *pkt_data, u_int pkt_len)
     }
   }
 	
-  LOG (LOG_DEBUG, "3)");
   return NULL;	
 }
 
@@ -238,8 +234,8 @@ int spuParseHdr (vo_overlay_t *spu, uint8_t *pkt_data, u_int pkt_len)
   while (DCSQ_offset != prev_DCSQ_offset) { /* Display Control Sequences */
     u_int i = DCSQ_offset;
 		
-    spu->duration = /* PTS + */ ((buf[i] << 8) + buf[i+1]) * TIME_UNIT;
-    LOG (LOG_DEBUG, "time = %d ms", spu->duration);
+    spu->duration = /* Frames + */ ((buf[i] << 8) + buf[i+1]) /* * TIME_UNIT */ ;
+    LOG (LOG_DEBUG, "duration = %d frames", spu->duration);
     i += 2;
 		
     prev_DCSQ_offset = DCSQ_offset;
@@ -271,17 +267,12 @@ int spuParseHdr (vo_overlay_t *spu, uint8_t *pkt_data, u_int pkt_len)
 	break;
       }	
       case CMD_SPU_SET_ALPHA:	{	/* transparency palette */
-#ifndef DENT_TEST
 	spu_clut_t *trans = (spu_clut_t *) &buf[i+1];
 	
 	spu->trans[3] = trans->entry0;
 	spu->trans[2] = trans->entry1;
 	spu->trans[1] = trans->entry2;
 	spu->trans[0] = trans->entry3;
-#else
-	spu->trans[0] = 0;
-	spu->trans[1] = spu->trans[2] = spu->trans[3] = 15;
-#endif
 	LOG (LOG_DEBUG, "\ttrans [%d %d %d %d]\n",
 	     spu->trans[0], spu->trans[1], spu->trans[2], spu->trans[3]);
 	i += 3;
@@ -299,7 +290,9 @@ int spuParseHdr (vo_overlay_t *spu, uint8_t *pkt_data, u_int pkt_len)
 	spu->height = (((buf[i+5] & 0x0f) << 8)
 		       | buf[i+6]) - spu->y + 1; /* 1-576 */
 						      
-	spu->data = (uint8_t *) malloc (spu->width * spu->height * sizeof (uint8_t));
+	if (spu->data) spu->data = (uint8_t *) realloc (spu->data,spu->width * spu->height * sizeof (uint8_t));
+	else spu->data = (uint8_t *) malloc (spu->width * spu->height * sizeof (uint8_t));
+
 				/* Private stuff */
 	spu->_x = spu->_y = 0;
 	LOG (LOG_DEBUG, "\tx = %d y = %d width = %d height = %d",
@@ -320,14 +313,6 @@ int spuParseHdr (vo_overlay_t *spu, uint8_t *pkt_data, u_int pkt_len)
 	 * hardcoded menu clut, uncomment this and comment CMD_SPU_SET_PALETTE and
 	 * CMD_SPU_SET_ALPHA to see the menu buttons
 	 */
-#ifdef DENT_TEST
-	spu->clut[0] = 0;
-	spu->clut[1] = 9;
-	spu->clut[2] = 8;
-	spu->clut[3] = 12;
-	spu->trans[0] = 0;
-	spu->trans[1] = spu->trans[2] = spu->trans[3] = 15;
-#endif
 	i++;
 	break;
 	

@@ -29,7 +29,7 @@
    \endverbatim
  */
 /*
- * $Id: xine.h.tmpl.in,v 1.25 2001/07/04 17:10:24 uid32519 Exp $
+ * $Id: xine.h.tmpl.in,v 1.26 2001/07/08 18:15:54 guenter Exp $
  *
  */
 
@@ -153,6 +153,7 @@ struct vo_driver_s {
   void (*display_frame) (vo_driver_t *this, vo_frame_t *vo_img);
 
   /* overlay functions */
+  void (*overlay_blend) (vo_frame_t *vo_img, vo_overlay_t *overlay);
   void (*set_overlay) (vo_driver_t *this,  vo_overlay_t *overlay);
 
   /*

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.30 2001/07/04 20:32:29 uid32519 Exp $
+ * $Id: video_out.c,v 1.31 2001/07/08 18:15:54 guenter Exp $
  *
  */
 
@@ -140,13 +140,14 @@ static void *video_out_loop (void *this_gen) {
   uint32_t           cur_pts;
   int                pts_absdiff, diff, absdiff, pts=0;
   vo_frame_t        *img;
+  vo_overlay_t      *overlay;
+  int count;
   uint32_t           video_step, video_step_new;
   vo_instance_t     *this = (vo_instance_t *) this_gen;
   sigset_t           vo_mask;
   /*
   int                dummysignum;
   */
-  /* struct timespec    ts; */
 
   /* printf ("%d video_out start\n", getpid());  */
   /*
@@ -173,34 +174,26 @@ static void *video_out_loop (void *this_gen) {
 #endif
 
   video_step = this->metronom->get_video_rate (this->metronom);
-
-  /*
-    ts.tv_sec = 0;
-    ts.tv_nsec = video_step * 2000 / 9;
-  */
-
   vo_set_timer (video_step); 
 
 
   while (this->video_loop_running) {
 
     /* sigwait(&vo_mask, &dummysignum); */ /* wait for next timer tick */
-
     pause (); 
-    /* nanosleep (&ts, NULL); */
 
     video_step_new = this->metronom->get_video_rate (this->metronom);
     if (video_step_new != video_step) {
       video_step = video_step_new;
       vo_set_timer (video_step); 
-      /* ts.tv_nsec = video_step * 2000 / 9; */
     }
-
     pts_absdiff = 1000000;
 
     cur_pts = this->metronom->get_current_time (this->metronom);
     
     xprintf (VERBOSE|VIDEO, "video_out : video loop iteration at audio pts %d\n", cur_pts);
+    /*printf ("video_out : video loop iteration at audio pts %d\n", cur_pts);
+    fflush (stdout); */
     
     img = this->display_img_buf_queue->first;
     
@@ -253,6 +246,11 @@ static void *video_out_loop (void *this_gen) {
      * time to display frame 0 ?
      */
 
+    /*
+    printf ("video_out: diff %d\n", diff);
+    fflush(stdout);
+    */
+
     if (diff<0) {
       continue;
     }
@@ -277,7 +275,60 @@ static void *video_out_loop (void *this_gen) {
     pthread_mutex_unlock (&img->mutex);
 
     xprintf (VERBOSE|VIDEO, "video_out : passing to video driver, image with pts = %d\n", pts);
+
+    overlay=this->first_overlay;
+    while (overlay) {
+      if(overlay->state==OVERLAY_SHOWING) {
+        this->driver->overlay_blend (img,overlay);
+      }
+      overlay=overlay->next;
+    }
     this->driver->display_frame (this->driver, img); 
+
+    /* Control Overlay SHOW/HIDE based on PTS */
+    /* FIXME: Not implemented: These all need to be put to FREE state if the slider gets moved or STOP is pressed. */
+    overlay=this->first_overlay;
+    count=1;
+    while (overlay) {
+      count++;
+      switch(overlay->state) {
+      case OVERLAY_FREE:
+	break;
+      case OVERLAY_CREATING:
+	break;
+      case OVERLAY_READY_TO_SHOW:
+	if (cur_pts>overlay->PTS) overlay->state=OVERLAY_SHOWING;
+	if (abs(cur_pts-overlay->PTS) > pts_absdiff ) overlay->state=OVERLAY_READY_TO_FREE;          
+	break;
+      case OVERLAY_SHOWING:
+	/* duration is in frames, Who knows why div 4 ? */
+	if ((cur_pts>overlay->PTS+(overlay->duration*video_step/4))) overlay->state=OVERLAY_READY_TO_FREE;
+	break;
+      case OVERLAY_READY_TO_FREE:
+	/* remove overlay from list */
+	if (overlay->next) {
+	  if (overlay->priv)
+	    overlay->priv->next=overlay->next;
+	  else
+	    this->first_overlay=overlay->next;
+	  overlay->next->priv=overlay->priv;
+	} else { 
+	  overlay->state=OVERLAY_FREE;
+	  break; 
+	} 
+	/* Set status to free */
+	overlay->state=OVERLAY_FREE;
+	/* Insert at end of list */
+	overlay->priv=this->last_overlay;
+	this->last_overlay->next=overlay; 
+	overlay->next=NULL;
+	this->last_overlay=overlay;
+	break;
+      default: 
+	printf("OVERLAY in UNKNOWN state\n"); 
+      }
+      overlay=overlay->next;
+    }
   }
 
   /*
@@ -326,6 +377,7 @@ static vo_frame_t *vo_get_frame (vo_instance_t *this,
   /*
   printf ("video_out: get_frame %d x %d from queue %d\n", 
 	  width, height, this->free_img_buf_queue);
+  fflush(stdout);
   */
 
   if (this->pts_per_frame != duration) {
@@ -416,14 +468,16 @@ static int vo_frame_draw (vo_frame_t *img) {
   int            frames_to_skip;
 
   pic_vpts = this->metronom->got_video_frame (this->metronom, img->PTS);
+
+  /*
+  printf ("video_out: got image %d. vpts for picture is %d (pts was %d)\n", 
+	  img, pic_vpts, img->PTS);
+  */
   img->PTS = pic_vpts;
   this->num_frames_delivered++;
 
   xprintf (VERBOSE|VIDEO,"video_out: got image. vpts for picture is %d\n", pic_vpts);
-  /*
-  printf ("video_out: got image %d. vpts for picture is %d\n", 
-	  img, pic_vpts);
-  */
+  
   cur_vpts = this->metronom->get_current_time(this->metronom);
 
   diff = pic_vpts - cur_vpts;
@@ -489,15 +543,54 @@ static int vo_frame_draw (vo_frame_t *img) {
   return frames_to_skip;
 }
 
+/****************************************************************
+ * Current assumption is that only one thread will call vo_get_overlay at a time 
+ * Also mutex locks have not yet been considered or used 
+ * Also, when one is FREEed, it is moved to the end of the queue, so it will be the first one used 
+ * The design is based around a dynamic buffer size. 
+ * The buffer starts at nothing, then increases as needed. 
+ * If a buffer entry is free, it will be reused. 
+ * If all buffers are full, xmalloc is called. 
+ * FIXME: Can someone make this simpler ? It seems a bit long winded to me. 
+ ***************************************************************/
 static vo_overlay_t *vo_get_overlay (vo_instance_t *this) {
-  /* FIXME: implement */
-  return this->overlay;
+  vo_overlay_t *next_overlay;
+  vo_overlay_t *prev_overlay;
+  int	count_overlay=0;
+  if (this->first_overlay==NULL) {
+    this->first_overlay = this->last_overlay = xmalloc (sizeof (vo_overlay_t)) ;
+    this->first_overlay->data=NULL;
+    this->first_overlay->next=NULL;
+    this->first_overlay->priv=NULL;
+    this->first_overlay->state=OVERLAY_CREATING;
+    count_overlay++;
+    return this->first_overlay;
+  }
+  prev_overlay=this->first_overlay;
+  next_overlay=this->first_overlay->next;
+  while (next_overlay && (prev_overlay->state!=OVERLAY_FREE)) {
+    count_overlay++;
+    prev_overlay=next_overlay;
+    next_overlay=prev_overlay->next;
+  }
+  if (prev_overlay->state==OVERLAY_FREE) {
+    prev_overlay->state=OVERLAY_CREATING;
+    return prev_overlay;
+  }
+  prev_overlay->next = next_overlay = this->last_overlay = xmalloc (sizeof (vo_overlay_t)) ;
+  count_overlay++;
+  next_overlay->data=NULL;
+  next_overlay->next=NULL;
+  next_overlay->priv=prev_overlay;
+  next_overlay->state=OVERLAY_CREATING;
+  return next_overlay;
 }
 
 static void vo_queue_overlay (vo_instance_t *this, vo_overlay_t *overlay) {
   
-  /* FIXME: implement */
-  this->driver->set_overlay (this->driver, overlay);
+  overlay->PTS = this->metronom->got_spu_packet (this->metronom, overlay->PTS,overlay->duration);
+  if (overlay->data==NULL) overlay->state=OVERLAY_FREE;
+  else overlay->state=OVERLAY_READY_TO_SHOW;
 }
 
 vo_instance_t *vo_new_instance (vo_driver_t *driver, metronom_t *metronom) {
@@ -506,8 +599,8 @@ vo_instance_t *vo_new_instance (vo_driver_t *driver, metronom_t *metronom) {
   int            i;
 
   this = xmalloc (sizeof (vo_instance_t)) ;
-  this->overlay  = xmalloc (sizeof (vo_overlay_t)) ;
-
+  this->first_overlay=NULL;
+  this->last_overlay=NULL;
   this->driver                = driver;
   this->metronom              = metronom;
 

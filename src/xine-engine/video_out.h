@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.h,v 1.10 2001/07/04 20:32:29 uid32519 Exp $
+ * $Id: video_out.h,v 1.11 2001/07/08 18:15:54 guenter Exp $
  *
  *
  * xine version of video_out.h 
@@ -125,7 +125,8 @@ struct vo_instance_s {
   /* private stuff */
 
   vo_driver_t       *driver;
-  vo_overlay_t      *overlay;
+  vo_overlay_t      *first_overlay;
+  vo_overlay_t      *last_overlay;
   metronom_t        *metronom;
   
   img_buf_fifo_t    *free_img_buf_queue;
@@ -217,6 +218,7 @@ struct vo_driver_s {
   void (*display_frame) (vo_driver_t *this, vo_frame_t *vo_img);
 
   /* overlay functions */
+  void (*overlay_blend) (vo_frame_t *vo_img, vo_overlay_t *overlay);
   void (*set_overlay) (vo_driver_t *this, vo_overlay_t *overlay);
 
 
@@ -244,6 +246,12 @@ struct vo_driver_s {
 
 };
 
+#define OVERLAY_FREE			0
+#define OVERLAY_CREATING		1
+#define OVERLAY_READY_TO_SHOW		2
+#define OVERLAY_SHOWING			3
+#define OVERLAY_READY_TO_FREE		4
+
 struct vo_overlay_s {
   uint8_t          *data;          /* 7-4: mixer key, 3-0: color index */
   int               x;             /* x start of subpicture area       */
@@ -256,7 +264,9 @@ struct vo_overlay_s {
   
   uint32_t          PTS, duration; /* 1/90000 s                        */
 
-  struct overlay_s *next;          /* optionally more overlays         */
+  vo_overlay_t     *next;          /* optionally more overlays         */
+  vo_overlay_t     *priv;          /* optionally more overlays         */
+  int              state;          /* State:FREE,SHOWING etc.          */
 
   /* private stuff */
   int	_x;		/* current destination x, y */

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.c,v 1.14 2001/07/04 17:10:24 uid32519 Exp $
+ * $Id: metronom.c,v 1.15 2001/07/08 18:15:54 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -281,9 +281,13 @@ static void metronom_set_audio_rate (metronom_t *this, uint32_t pts_per_smpls) {
 
 }
 
-static uint32_t metronom_got_spu_packet (metronom_t *this, uint32_t pts) {
-  /* FIXME: not tested */
-
+static uint32_t metronom_got_spu_packet (metronom_t *this, uint32_t pts,uint32_t duration) {
+  if (pts) {
+    this->spu_vpts=pts;
+  } else {
+    pts=this->spu_vpts;
+    this->spu_vpts=this->spu_vpts;
+  }
   return pts + this->video_wrap_offset;
 }
 

@@ -1,7 +1,7 @@
 //TOAST_SPU will define ALL spu entries - no matter the tranparency
 //#define TOAST_SPU
 /* #define PRIV_CLUT */
-
+/* Currently only blend_yuv(..) works */
 /*
  *
  * Copyright (C) James Courtier-Dutton James@superbug.demon.co.uk - July 2001
@@ -33,6 +33,18 @@
 #include <inttypes.h>
 
 #include "video_out.h"
+
+/* FIXME: CLUT_T should go elsewhere. */
+#ifndef CLUT_T
+#define CLUT_T
+typedef struct {                // CLUT == Color LookUp Table
+        uint8_t:8;
+        uint8_t y:8;
+        uint8_t cr:8;
+        uint8_t cb:8;
+} __attribute__ ((packed)) clut_t;
+#endif
+
 
 #define BLEND_COLOR(dst, src, mask, o) ((((src&mask)*o + ((dst&mask)*(0x0f-o)))/0xf) & mask)
 
@@ -227,7 +239,8 @@ void blend_rgb32 (uint8_t * img, vo_overlay_t * img_overl, int dst_width,
 void blend_yuv (uint8_t * dst_img, vo_overlay_t * img_overl,
 		int dst_width, int dst_height)
 {
-#ifdef PRIV_CLUT
+/* FIXME: my_clut should disappear once I find out how to get the clut from the MPEG2 stream. */
+/* This happens to work with "The Matrix" using 0(black), 8(white) and 9(edges) */
 	clut_t my_clut[] = {
 	      {y: 0x51, cr: 0xef, cb:0x5a},
 	      {y: 0xbf, cr: 0x80, cb:0x80},
@@ -237,8 +250,8 @@ void blend_yuv (uint8_t * dst_img, vo_overlay_t * img_overl,
 	      {y: 0xbf, cr: 0x80, cb:0x80},
 	      {y: 0x36, cr: 0x80, cb:0x80},
 	      {y: 0x28, cr: 0x6d, cb:0xef},
-	      {y: 0x5c, cr: 0x80, cb:0x80},
 	      {y: 0xbf, cr: 0x80, cb:0x80},
+	      {y: 0x5c, cr: 0x80, cb:0x80},
 	      {y: 0x10, cr: 0x80, cb:0x80},
 	      {y: 0x28, cr: 0x6d, cb:0xef},
 	      {y: 0x5c, cr: 0x80, cb:0x80},
@@ -246,7 +259,6 @@ void blend_yuv (uint8_t * dst_img, vo_overlay_t * img_overl,
 	      {y: 0x1c, cr: 0x80, cb:0x80},
 	      {y: 0x28, cr: 0x6d, cb:0xef}
 	};
-#endif
 
 	int src_width = img_overl->width;
 	int src_height = img_overl->height;
@@ -269,30 +281,18 @@ void blend_yuv (uint8_t * dst_img, vo_overlay_t * img_overl,
 			uint8_t clr;
 			uint8_t o;
 
-			clr = img_overl->clut[*src_data & 0x0f];
-			o = img_overl->trans[*src_data & 0x0f];
+			clr = img_overl->clut[*src_data & 0x03];
+			o = img_overl->trans[*src_data & 0x03];
 
-			if (clr)
-// *INDENT-OFF*
-#ifdef PRIV_CLUT
+			if (clr) {
 				*dst_y = BLEND_YUV (*dst_y, my_clut[clr].y, o);
-#else
-				*dst_y = BLEND_YUV (*dst_y, img_overl->clut[clr]/*.y*/, o);
-#endif
-// *INDENT-ON*
+                        }
 			dst_y++;
 
 			if (y & x & 1) {
 				if (clr) {
-// *INDENT-OFF*
-#ifdef PRIV_CLUT
 					*dst_cr = BLEND_YUV (*dst_cr, my_clut[clr].cr, o);
 					*dst_cb = BLEND_YUV (*dst_cb, my_clut[clr].cb, o);
-#else
-					*dst_cr = BLEND_YUV (*dst_cr, img_overl->clut [clr]/*.cr*/, o);
-					*dst_cb = BLEND_YUV (*dst_cb, img_overl->clut [clr]/*.cb*/, o);
-#endif
-// *INDENT-ON*
 				}
 				dst_cr++;
 				dst_cb++;

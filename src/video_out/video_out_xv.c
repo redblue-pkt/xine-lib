@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.49 2001/07/04 20:32:29 uid32519 Exp $
+ * $Id: video_out_xv.c,v 1.50 2001/07/08 18:15:54 guenter Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -539,6 +539,20 @@ static void xv_calc_format (xv_driver_t *this,
 /*
  *
  */
+static void xv_overlay_blend (vo_frame_t *frame_gen, vo_overlay_t *overlay) {
+
+  xv_frame_t   *frame = (xv_frame_t *) frame_gen;
+
+// Alpha Blend here
+// As XV drivers improve to support Hardware overlay, we will change this function.
+   if (overlay->data) {
+        blend_yuv( frame->image->data, overlay, frame->width, frame->height);
+   }
+}
+
+/*
+ *
+ */
 static void xv_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
 
   xv_driver_t  *this = (xv_driver_t *) this_gen;
@@ -880,6 +894,7 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
   this->vo_driver.get_capabilities     = xv_get_capabilities;
   this->vo_driver.alloc_frame          = xv_alloc_frame;
   this->vo_driver.update_frame_format  = xv_update_frame_format;
+  this->vo_driver.overlay_blend        = xv_overlay_blend;
   this->vo_driver.display_frame        = xv_display_frame;
   this->vo_driver.set_overlay          = xv_set_overlay;
   this->vo_driver.get_property         = xv_get_property;
