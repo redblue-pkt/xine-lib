@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.10 2001/07/14 16:55:11 guenter Exp $
+ * $Id: w32codec.c,v 1.11 2001/07/17 19:37:21 guenter Exp $
  *
  * routines for using w32 codecs
  *
@@ -325,21 +325,29 @@ static void w32v_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 	img->bFrameBad = 0;
       
       if (img->copy) {
-#warning: need to check 'dest' stuff for the YUY2 case
 	/* note: dest stuff works with video_out_xshm & YV12 */
 
 	int height = abs(this->o_bih.biHeight);
 	int stride = this->o_bih.biWidth;
-	uint8_t* dest[3];
+	uint8_t* src[3];
 	  
-	dest[0] = img->base[0];
-	dest[2] = dest[0] + height * this->o_bih.biWidth;
-	dest[1] = dest[2] + height * this->o_bih.biWidth / 4;
-	while ((height -= 16) >= 0) {
-	  img->copy(img, dest);
-	  dest[0] += 16 * stride;
-	  dest[1] +=  4 * stride;
-	  dest[2] +=  4 * stride;
+	if (this->outfmt == IMGFMT_YUY2) {
+	  src[0] = img->base[0];
+	  
+	  while ((height -= 16) >= 0) {
+	    img->copy(img, src);
+	    src[0] += 32 * stride;
+	  }
+	} else {
+	  src[0] = img->base[0];
+	  src[2] = src[0] + height * this->o_bih.biWidth;
+	  src[1] = src[2] + height * this->o_bih.biWidth / 4;
+	  while ((height -= 16) >= 0) {
+	    img->copy(img, src);
+	    src[0] += 16 * stride;
+	    src[1] +=  4 * stride;
+	    src[2] +=  4 * stride;
+	  }
 	}
       }
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xshm.c,v 1.18 2001/07/16 09:18:24 jkeil Exp $
+ * $Id: video_out_xshm.c,v 1.19 2001/07/17 19:37:21 guenter Exp $
  * 
  * video_out_xshm.c, X11 shared memory extension interface for xine
  *
@@ -71,9 +71,9 @@ typedef struct xshm_frame_s {
   XImage            *image;
   uint8_t           *rgb_dst;
   int                stripe_inc;
-  int                y_off, uv_off;
   XShmSegmentInfo    shminfo;
 
+  int                format;
 } xshm_frame_t;
 
 typedef struct xshm_driver_s {
@@ -320,7 +320,7 @@ static inline uint64_t rdtsc()
  */
 
 static uint32_t xshm_get_capabilities (vo_driver_t *this_gen) {
-  return VO_CAP_COPIES_IMAGE | VO_CAP_YV12;
+  return VO_CAP_COPIES_IMAGE | VO_CAP_YV12 | VO_CAP_YUY2;
 }
 
 static void xshm_frame_copy (vo_frame_t *vo_img, uint8_t **src) {
@@ -332,11 +332,15 @@ static void xshm_frame_copy (vo_frame_t *vo_img, uint8_t **src) {
   uint32_t cycles;
 #endif
 
-  
-  this->yuv2rgb->yuv2rgb_fun (this->yuv2rgb, frame->rgb_dst,
-			      src[0]+frame->y_off, 
-			      src[1]+frame->uv_off, 
-			      src[2]+frame->uv_off);
+  if (frame->format == IMGFMT_YV12) {
+    this->yuv2rgb->yuv2rgb_fun (this->yuv2rgb, frame->rgb_dst,
+				src[0], src[1], src[2]);
+  } else {
+    
+    this->yuv2rgb->yuy22rgb_fun (this->yuv2rgb, frame->rgb_dst,
+				 src[0]);
+				 
+  }
   
 #ifdef DETAILED_TIMING
   cycles = rdtsc() - tsc;
@@ -347,7 +351,7 @@ static void xshm_frame_copy (vo_frame_t *vo_img, uint8_t **src) {
 }
 
 static void xshm_frame_field (vo_frame_t *vo_img, int which_field) {
-  /* FIXME: implement */
+
   xshm_frame_t  *frame = (xshm_frame_t *) vo_img ;
   xshm_driver_t *this = (xshm_driver_t *) vo_img->instance->driver;
 
@@ -355,8 +359,6 @@ static void xshm_frame_field (vo_frame_t *vo_img, int which_field) {
   case 1:
     frame->rgb_dst    = frame->image->data;
     frame->stripe_inc = 2*this->stripe_height * frame->image->bytes_per_line;
-    frame->y_off      = 0;
-    frame->uv_off     = 0;
     yuv2rgb_setup (this->yuv2rgb,
 		   this->delivered_width,
 		   16,
@@ -370,8 +372,6 @@ static void xshm_frame_field (vo_frame_t *vo_img, int which_field) {
   case 2:
     frame->rgb_dst    = frame->image->data + frame->image->bytes_per_line ;
     frame->stripe_inc = 2*this->stripe_height * frame->image->bytes_per_line;
-    frame->y_off      = 0; /* this->delivered_width;   FIXME ?!*/
-    frame->uv_off     = 0; /* this->delivered_width/2; */
     yuv2rgb_setup (this->yuv2rgb,
 		   this->delivered_width,
 		   16,
@@ -383,8 +383,6 @@ static void xshm_frame_field (vo_frame_t *vo_img, int which_field) {
     break;
   case 3:
     frame->rgb_dst    = frame->image->data;
-    frame->y_off      = 0;
-    frame->uv_off     = 0;
     break;
   }
 }
@@ -555,7 +553,8 @@ static void xshm_update_frame_format (vo_driver_t *this_gen,
       || (frame->rgb_height != this->output_height)
       || (frame->width != width)
       || (frame->height != height)
-      || (frame->ratio_code != ratio_code)) {
+      || (frame->ratio_code != ratio_code)
+      || (frame->format != format)) {
 
     int image_size;
 
@@ -570,7 +569,7 @@ static void xshm_update_frame_format (vo_driver_t *this_gen,
     /*
     printf ("video_out_xshm: updating frame to %d x %d\n",
 	    this->output_width,this->output_height);
-	    */
+    */
 
     XLockDisplay (this->display); 
 
@@ -593,11 +592,17 @@ static void xshm_update_frame_format (vo_driver_t *this_gen,
 
     XUnlockDisplay (this->display); 
 
-    image_size = width * height;
-    frame->vo_frame.base[0] = xmalloc_aligned(16,image_size);
-    frame->vo_frame.base[1] = xmalloc_aligned(16,image_size/4);
-    frame->vo_frame.base[2] = xmalloc_aligned(16,image_size/4);
-
+    if (format == IMGFMT_YV12) {
+      image_size = width * height;
+      frame->vo_frame.base[0] = xmalloc_aligned(16,image_size);
+      frame->vo_frame.base[1] = xmalloc_aligned(16,image_size/4);
+      frame->vo_frame.base[2] = xmalloc_aligned(16,image_size/4);
+    } else {
+      image_size = width * height;
+      frame->vo_frame.base[0] = xmalloc_aligned(16,image_size*2);
+    }
+    
+    frame->format = format;
     frame->width  = width;
     frame->height = height;
 

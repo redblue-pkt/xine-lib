@@ -141,6 +141,60 @@ static void scale_line (uint8_t *source, uint8_t *dest,
   }
 
 }
+
+static void scale_line_2 (uint8_t *source, uint8_t *dest,
+			  int width, int step) {
+  int p1;
+  int p2;
+  int dx;
+
+  p1 = *source; source+=2;
+  p2 = *source; source+=2;
+  dx = 0;
+
+  while (width) {
+
+    *dest = (p1 * (32768 - dx) + p2 * dx) / 32768;
+
+    dx += step;
+    while (dx > 32768) {
+      dx -= 32768;
+      p1 = p2;
+      p2 = *source;
+      source+=2;
+    }
+
+    dest ++;
+    width --;
+  }
+}
+
+static void scale_line_4 (uint8_t *source, uint8_t *dest,
+			  int width, int step) {
+  int p1;
+  int p2;
+  int dx;
+
+  p1 = *source; source+=4;
+  p2 = *source; source+=4;
+  dx = 0;
+
+  while (width) {
+
+    *dest = (p1 * (32768 - dx) + p2 * dx) / 32768;
+
+    dx += step;
+    while (dx > 32768) {
+      dx -= 32768;
+      p1 = p2;
+      p2 = *source;
+      source+=4;
+    }
+
+    dest ++;
+    width --;
+  }
+}
 			
 
 #define RGB(i)							\
@@ -151,7 +205,7 @@ static void scale_line (uint8_t *source, uint8_t *dest,
 	b = this->table_bU[U];
 
 #define DST1(i)					\
-	Y = py_1[2*i];				\
+	Y = py_1[2*i];                          \
 	dst_1[2*i] = r[Y] + g[Y] + b[Y];	\
 	Y = py_1[2*i+1];			\
 	dst_1[2*i+1] = r[Y] + g[Y] + b[Y];
@@ -695,8 +749,8 @@ static int div_round (int dividend, int divisor)
     return -((-dividend + (divisor>>1)) / divisor);
 }
 
-static void yuv2rgb_c_init (yuv2rgb_t *this, int mode)
-{  
+static void yuv2rgb_setup_tables (yuv2rgb_t *this, int mode) 
+{
   int i;
   uint8_t table_Y[1024];
   uint32_t * table_32 = 0;
@@ -721,8 +775,6 @@ static void yuv2rgb_c_init (yuv2rgb_t *this, int mode)
   switch (mode) {
   case MODE_32_RGB:
   case MODE_32_BGR:
-    this->yuv2rgb_fun = yuv2rgb_c_32;
-
     table_32 = malloc ((197 + 2*682 + 256 + 132) * sizeof (uint32_t));
 
     entry_size = sizeof (uint32_t);
@@ -742,8 +794,6 @@ static void yuv2rgb_c_init (yuv2rgb_t *this, int mode)
 
   case MODE_24_RGB:
   case MODE_24_BGR:
-    this->yuv2rgb_fun = (mode==MODE_24_RGB) ? yuv2rgb_c_24_rgb : yuv2rgb_c_24_bgr;
-
     table_8 = malloc ((256 + 2*232) * sizeof (uint8_t));
 
     entry_size = sizeof (uint8_t);
@@ -757,8 +807,6 @@ static void yuv2rgb_c_init (yuv2rgb_t *this, int mode)
   case MODE_16_BGR:
   case MODE_15_RGB:
   case MODE_16_RGB:
-    this->yuv2rgb_fun = yuv2rgb_c_16;
-
     table_16 = malloc ((197 + 2*682 + 256 + 132) * sizeof (uint16_t));
 
     entry_size = sizeof (uint16_t);
@@ -809,6 +857,359 @@ static void yuv2rgb_c_init (yuv2rgb_t *this, int mode)
   }
 }
 
+static void yuv2rgb_c_init (yuv2rgb_t *this, int mode)
+{  
+  switch (mode) {
+  case MODE_32_RGB:
+  case MODE_32_BGR:
+    this->yuv2rgb_fun = yuv2rgb_c_32;
+    break;
+
+  case MODE_24_RGB:
+  case MODE_24_BGR:
+    this->yuv2rgb_fun = (mode==MODE_24_RGB) ? yuv2rgb_c_24_rgb : yuv2rgb_c_24_bgr;
+    break;
+
+  case MODE_15_BGR:
+  case MODE_16_BGR:
+  case MODE_15_RGB:
+  case MODE_16_RGB:
+    this->yuv2rgb_fun = yuv2rgb_c_16;
+    break;
+
+  default:
+    fprintf (stderr, "mode %d not supported by yuv2rgb\n", mode);
+    exit (1);
+  }
+
+}
+
+
+/*
+ * yuy2 stuff
+ */
+
+static void yuy22rgb_c_32 (yuv2rgb_t *this, uint8_t * _dst, uint8_t * _p)
+{
+  int U, V, Y;
+  uint8_t * py_1, * pu, * pv;
+  uint32_t * r, * g, * b;
+  uint32_t * dst_1;
+  int width, height;
+  int dy;
+
+  /* FIXME: implement unscaled version */
+
+  scale_line_4 (_p+1, this->u_buffer,
+		this->dest_width >> 1, this->step_dx);
+  scale_line_4 (_p+3, this->v_buffer,
+		this->dest_width >> 1, this->step_dx);
+  scale_line_2 (_p, this->y_buffer, 
+		this->dest_width, this->step_dx);
+  
+  dy = 0;
+  height = this->source_height;
+  
+  for (;;) {
+    dst_1 = (uint32_t*)_dst;
+    py_1  = this->y_buffer;
+    pu    = this->u_buffer;
+    pv    = this->v_buffer;
+    
+    width = this->dest_width >> 3;
+
+    do {
+
+      RGB(0);
+      DST1(0);
+      
+      RGB(1);
+      DST1(1);
+      
+      RGB(2);
+      DST1(2);
+      
+      RGB(3);
+      DST1(3);
+      
+      pu += 4;
+      pv += 4;
+      py_1 += 8;
+      dst_1 += 8;
+    } while (--width);
+    
+    dy += this->step_dy;
+    _dst += this->rgb_stride;
+    
+    while (dy < 32768) {
+      
+      memcpy (_dst, (uint8_t*)_dst-this->rgb_stride, this->dest_width*4); 
+      
+      dy += this->step_dy;
+      _dst += this->rgb_stride;
+    }
+    
+    if (--height <= 0)
+      break;
+
+    dy -= 32768;
+    _p += this->y_stride*2;
+    
+    scale_line_4 (_p+1, this->u_buffer,
+		  this->dest_width >> 1, this->step_dx);
+    scale_line_4 (_p+3, this->v_buffer,
+		  this->dest_width >> 1, this->step_dx);
+    scale_line_2 (_p, this->y_buffer, 
+		  this->dest_width, this->step_dx);
+  }
+}
+
+static void yuy22rgb_c_24_rgb (yuv2rgb_t *this, uint8_t * _dst, uint8_t * _p)
+{
+  int U, V, Y;
+  uint8_t * py_1, * pu, * pv;
+  uint8_t * r, * g, * b;
+  uint8_t * dst_1;
+  int width, height;
+  int dy;
+
+  /* FIXME: implement unscaled version */
+
+  scale_line_4 (_p+1, this->u_buffer,
+		this->dest_width >> 1, this->step_dx);
+  scale_line_4 (_p+3, this->v_buffer,
+		this->dest_width >> 1, this->step_dx);
+  scale_line_2 (_p, this->y_buffer, 
+		this->dest_width, this->step_dx);
+  
+  dy = 0;
+  height = this->source_height;
+  
+  for (;;) {
+    dst_1 = _dst;
+    py_1  = this->y_buffer;
+    pu    = this->u_buffer;
+    pv    = this->v_buffer;
+    
+    width = this->dest_width >> 3;
+    
+    do {
+      RGB(0);
+      DST1RGB(0);
+      
+      RGB(1);
+      DST1RGB(1);
+      
+      RGB(2);
+      DST1RGB(2);
+      
+      RGB(3);
+      DST1RGB(3);
+      
+      pu += 4;
+      pv += 4;
+      py_1 += 8;
+      dst_1 += 24;
+    } while (--width);
+    
+    dy += this->step_dy;
+    _dst += this->rgb_stride;
+    
+    while (dy < 32768) {
+      
+      memcpy (_dst, (uint8_t*)_dst-this->rgb_stride, this->dest_width*3); 
+      
+      dy += this->step_dy;
+      _dst += this->rgb_stride;
+    }
+    
+    if (--height <= 0)
+      break;
+
+    dy -= 32768;
+    _p += this->y_stride*2;
+    
+    scale_line_4 (_p+1, this->u_buffer,
+		  this->dest_width >> 1, this->step_dx);
+    scale_line_4 (_p+3, this->v_buffer,
+		  this->dest_width >> 1, this->step_dx);
+    scale_line_2 (_p, this->y_buffer, 
+		  this->dest_width, this->step_dx);
+  }
+}
+
+static void yuy22rgb_c_24_bgr (yuv2rgb_t *this, uint8_t * _dst, uint8_t * _p)
+{
+  int U, V, Y;
+  uint8_t * py_1, * pu, * pv;
+  uint8_t * r, * g, * b;
+  uint8_t * dst_1;
+  int width, height;
+  int dy;
+
+  /* FIXME: implement unscaled version */
+
+  scale_line_4 (_p+1, this->u_buffer,
+		this->dest_width >> 1, this->step_dx);
+  scale_line_4 (_p+3, this->v_buffer,
+		this->dest_width >> 1, this->step_dx);
+  scale_line_2 (_p, this->y_buffer, 
+		this->dest_width, this->step_dx);
+  
+  dy = 0;
+  height = this->source_height;
+  
+  for (;;) {
+    dst_1 = _dst;
+    py_1  = this->y_buffer;
+    pu    = this->u_buffer;
+    pv    = this->v_buffer;
+    
+    width = this->dest_width >> 3;
+    
+    do {
+      RGB(0);
+      DST1BGR(0);
+      
+      RGB(1);
+      DST1BGR(1);
+      
+      RGB(2);
+      DST1BGR(2);
+      
+      RGB(3);
+      DST1BGR(3);
+      
+      pu += 4;
+      pv += 4;
+      py_1 += 8;
+      dst_1 += 24;
+    } while (--width);
+    
+    dy += this->step_dy;
+    _dst += this->rgb_stride;
+    
+    while (dy < 32768) {
+      
+      memcpy (_dst, (uint8_t*)_dst-this->rgb_stride, this->dest_width*3); 
+      
+      dy += this->step_dy;
+      _dst += this->rgb_stride;
+    }
+    
+    if (--height <= 0)
+      break;
+
+    dy -= 32768;
+    _p += this->y_stride*2;
+    
+    scale_line_4 (_p+1, this->u_buffer,
+		  this->dest_width >> 1, this->step_dx);
+    scale_line_4 (_p+3, this->v_buffer,
+		  this->dest_width >> 1, this->step_dx);
+    scale_line_2 (_p, this->y_buffer, 
+		  this->dest_width, this->step_dx);
+  }
+}
+
+static void yuy22rgb_c_16 (yuv2rgb_t *this, uint8_t * _dst, uint8_t * _p)
+{
+  int U, V, Y;
+  uint8_t * py_1, * pu, * pv;
+  uint16_t * r, * g, * b;
+  uint16_t * dst_1;
+  int width, height;
+  int dy;
+
+  /* FIXME: implement unscaled version */
+
+  scale_line_4 (_p+1, this->u_buffer,
+		this->dest_width >> 1, this->step_dx);
+  scale_line_4 (_p+3, this->v_buffer,
+		this->dest_width >> 1, this->step_dx);
+  scale_line_2 (_p, this->y_buffer, 
+		this->dest_width, this->step_dx);
+  
+  dy = 0;
+  height = this->source_height;
+  
+  for (;;) {
+    dst_1 = (uint16_t*)_dst;
+    py_1  = this->y_buffer;
+    pu    = this->u_buffer;
+    pv    = this->v_buffer;
+    
+    width = this->dest_width >> 3;
+    
+    do {
+      RGB(0);
+      DST1(0);
+      
+      RGB(1);
+      DST1(1);
+      
+      RGB(2);
+      DST1(2);
+      
+      RGB(3);
+      DST1(3);
+      
+      pu += 4;
+      pv += 4;
+      py_1 += 8;
+      dst_1 += 8;
+    } while (--width);
+    
+    dy += this->step_dy;
+    _dst += this->rgb_stride;
+    
+    while (dy < 32768) {
+      
+      memcpy (_dst, (uint8_t*)_dst-this->rgb_stride, this->dest_width*2); 
+      
+      dy += this->step_dy;
+      _dst += this->rgb_stride;
+    }
+    
+    if (--height <= 0)
+      break;
+
+    dy -= 32768;
+    _p += this->y_stride*2;
+    
+    scale_line_4 (_p+1, this->u_buffer,
+		  this->dest_width >> 1, this->step_dx);
+    scale_line_4 (_p+3, this->v_buffer,
+		  this->dest_width >> 1, this->step_dx);
+    scale_line_2 (_p, this->y_buffer, 
+		  this->dest_width, this->step_dx);
+  }
+}
+
+static void yuy22rgb_c_init (yuv2rgb_t *this, int mode)
+{  
+  switch (mode) {
+  case MODE_32_RGB:
+  case MODE_32_BGR:
+    this->yuy22rgb_fun = yuy22rgb_c_32;
+    break;
+
+  case MODE_24_RGB:
+  case MODE_24_BGR:
+    this->yuv2rgb_fun = (mode==MODE_24_RGB) ? yuy22rgb_c_24_rgb : yuy22rgb_c_24_bgr;
+    break;
+  case MODE_15_BGR:
+  case MODE_16_BGR:
+  case MODE_15_RGB:
+  case MODE_16_RGB:
+    this->yuy22rgb_fun = yuy22rgb_c_16;
+    break;
+
+  default:
+    printf ("yuv2rgb: mode %d not supported for yuy2\n", mode);
+  }
+}
+
 yuv2rgb_t *yuv2rgb_init (int mode) {
 
 #ifdef ARCH_X86
@@ -822,6 +1223,8 @@ yuv2rgb_t *yuv2rgb_init (int mode) {
   this->y_chunk = this->y_buffer = NULL;
   this->y_chunk = this->u_buffer = NULL;
   this->y_chunk = this->v_buffer = NULL;
+
+  yuv2rgb_setup_tables(this, mode);
 
   /*
    * auto-probe for the best yuv2rgb function
@@ -851,5 +1254,13 @@ yuv2rgb_t *yuv2rgb_init (int mode) {
     printf ("yuv2rgb: no accelerated colorspace conversion found\n");
     yuv2rgb_c_init (this, mode);
   }
+
+  /*
+   * auto-probe for the best yuy22rgb function
+   */
+
+  /* FIXME: implement mmx/mlib functions */
+  yuy22rgb_c_init (this, mode);
+
   return this;
 }

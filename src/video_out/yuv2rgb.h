@@ -27,6 +27,11 @@ struct yuv2rgb_s {
   void (*yuv2rgb_fun) (yuv2rgb_t *this, uint8_t * image, uint8_t * py,
 		       uint8_t * pu, uint8_t * pv) ;
 
+  /* 
+   * this is the function to call for the yuy2->rgb and scaling process
+   */
+  void (*yuy22rgb_fun) (yuv2rgb_t *this, uint8_t * image, uint8_t * p);
+
   /* private stuff below */
 
   uint32_t      matrix_coefficients;
