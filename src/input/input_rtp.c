@@ -460,15 +460,15 @@ input_plugin_t *init_input_plugin (int iface, config_values_t *config) {
   }
 
     
-  this = (rtp_input_plugin_t *) malloc (sizeof (rtp_input_plugin_t));
+  this = (rtp_input_plugin_t *) xmalloc(sizeof(rtp_input_plugin_t));
   
   for (bufn = 0; bufn < N_BUFFERS; bufn++) {
-    input_buffer_t *buf = malloc(sizeof(input_buffer_t));
+    input_buffer_t *buf = xmalloc(sizeof(input_buffer_t));
     if (!buf) {
       fprintf(stderr, "unable to allocate input buffer.\n");
       exit(1);
     }
-    buf->buf = malloc(IBUFFER_SIZE);
+    buf->buf = xmalloc(IBUFFER_SIZE);
     if (!buf->buf) {
       fprintf(stderr, "unable to allocate input buffer.\n");
       exit(1);

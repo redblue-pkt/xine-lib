@@ -302,7 +302,7 @@ input_plugin_t *init_input_plugin (int iface, config_values_t *config) {
     return NULL;
   }
 
-  this = (net_input_plugin_t *) malloc (sizeof (net_input_plugin_t));
+  this = (net_input_plugin_t *) xmalloc(sizeof(net_input_plugin_t));
   
   this->input_plugin.interface_version = INPUT_PLUGIN_IFACE_VERSION;
   this->input_plugin.get_capabilities  = net_plugin_get_capabilities;

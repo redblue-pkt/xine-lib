@@ -46,7 +46,7 @@ noinst_HEADERS = yuv2rgb.h video_out_syncfb.h alphablend.h
 include_HEADERS = video_out_x11.h
 
 debug:
-	$(MAKE) CFLAGS="$(DEBUG_CFLAGS) -DXINE_COMPILE"
+	@$(MAKE) CFLAGS="$(DEBUG_CFLAGS) -DXINE_COMPILE"
 
 install-debug: debug
 	@$(MAKE) $(AM_MAKEFLAGS) install-exec-am install-data-am
@@ -63,13 +63,12 @@ install-includeHEADERS: $(include_HEADERS)
 	  $(INSTALL_DATA) $$d$$p $(DESTDIR)$(includedir)/xine/$$p; \
 	done
 
-
 ###
 # Remove them
 #
 uninstall-includeHEADERS:
 	@$(NORMAL_UNINSTALL)
-	list='$(include_HEADERS)'; for p in $$list; do \
+	@list='$(include_HEADERS)'; for p in $$list; do \
 	  rm -f $(DESTDIR)$(includedir)/xine/$$p; \
 	done
 

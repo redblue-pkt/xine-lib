@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_vcd.c,v 1.12 2001/07/01 23:37:04 guenter Exp $
+ * $Id: input_vcd.c,v 1.13 2001/07/10 21:07:55 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -104,8 +104,8 @@ typedef struct {
 
   char                  *filelist[100];
 
-  mrl_t                 *mrls[100];
   int                    mrls_allocated_entries;
+  mrl_t                **mrls;
 
 #if defined(__sun)
   int			 controller_type;
@@ -165,7 +165,7 @@ static int input_vcd_read_toc (vcd_input_plugin_t *this) {
   ntracks = this->tochdr.ending_track 
     - this->tochdr.starting_track + 2;
   this->tocent = (struct cd_toc_entry *)
-    malloc(sizeof(*this->tocent) * ntracks);
+    xmalloc(sizeof(*this->tocent) * ntracks);
   
   te.address_format = CD_LBA_FORMAT;
   te.starting_track = 0;
@@ -929,6 +929,7 @@ static mrl_t **vcd_plugin_get_dir (input_plugin_t *this_gen,
 
   if (filename)
     return NULL;
+
   
   this->fd = open (CDROM, O_RDONLY);
 
@@ -954,16 +955,52 @@ static mrl_t **vcd_plugin_get_dir (input_plugin_t *this_gen,
   /* printf ("%d tracks\n", this->total_tracks); */
 
   for (i=1; i<this->total_tracks; i++) { /* FIXME: check if track 0 contains valid data */
-    sprintf (this->mrls[i-1]->mrl, "vcd://%d",i);
-    this->mrls[i-1]->type = mrl_vcd;
+    char mrl[1024];
+    
+    memset(&mrl, 0, strlen(mrl));
+    sprintf(mrl, "vcd://%d",i);
+    
+    if((i-1) >= this->mrls_allocated_entries
+       || this->mrls_allocated_entries == 0) {
+      this->mrls[(i-1)] = (mrl_t *) xmalloc(sizeof(mrl_t));
+    }
+    else {
+      memset(this->mrls[(i-1)], 0, sizeof(mrl_t));
+    }
+    
+    if(this->mrls[(i-1)]->mrl) {
+      this->mrls[(i-1)]->mrl = (char *)
+	realloc(this->mrls[(i-1)]->mrl, strlen(mrl) + 1);
+    }
+    else {
+      this->mrls[(i-1)]->mrl = (char *) xmalloc(strlen(mrl) + 1);
+    }
+    
+    this->mrls[i-1]->origin = NULL;
+    sprintf(this->mrls[i-1]->mrl, "%s", mrl);
+    this->mrls[i-1]->link = NULL;
+    this->mrls[i-1]->type = (0 | mrl_vcd);
 
     /* hack */
     this->cur_track = i;
     this->mrls[i-1]->size = vcd_plugin_get_length ((input_plugin_t *) this);
   }
 
-  this->mrls[*nEntries] = NULL;
 
+  /*
+   * Freeing exceeded mrls if exists.
+   */
+  if(*nEntries > this->mrls_allocated_entries)
+    this->mrls_allocated_entries = *nEntries;
+  else if(this->mrls_allocated_entries > *nEntries) {
+    while(this->mrls_allocated_entries > *nEntries) {
+      MRL_ZERO(this->mrls[this->mrls_allocated_entries - 1]);
+      free(this->mrls[this->mrls_allocated_entries--]);
+    }
+  }
+
+  this->mrls[*nEntries] = NULL;
+  
   return this->mrls;
 }
 
@@ -1045,18 +1082,12 @@ input_plugin_t *init_input_plugin (int iface, config_values_t *config) {
 	   iface);
     return NULL;
   }
-
     
-  this = (vcd_input_plugin_t *) calloc (1, sizeof (vcd_input_plugin_t));
+  this = (vcd_input_plugin_t *) xmalloc(sizeof(vcd_input_plugin_t));
   
   for (i = 0; i < 100; i++) {
-    this->filelist[i]       = (char *) malloc (256);
-    this->mrls[i]           = (mrl_t *) malloc(sizeof(mrl_t));
-    this->mrls[i]->mrl      = (char *) malloc (256);
-    this->mrls[i]->size     = 0;
+    this->filelist[i]       = (char *) xmalloc (256);
   }
-  
-  this->mrls_allocated_entries = 100;
   
   this->input_plugin.interface_version = INPUT_PLUGIN_IFACE_VERSION;
   this->input_plugin.get_capabilities  = vcd_plugin_get_capabilities;
@@ -1078,6 +1109,10 @@ input_plugin_t *init_input_plugin (int iface, config_values_t *config) {
   this->input_plugin.handle_input_event= NULL;
   this->input_plugin.is_branch_possible= NULL;
   
+
+  this->mrls = (mrl_t **) xmalloc(sizeof(mrl_t));
+  this->mrls_allocated_entries = 0;
+
   this->fd      = -1;
   this->mrl     = NULL;
   this->config  = config;

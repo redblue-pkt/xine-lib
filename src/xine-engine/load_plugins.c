@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.28 2001/07/04 17:10:24 uid32519 Exp $
+ * $Id: load_plugins.c,v 1.29 2001/07/10 21:07:56 f1rmb Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -217,7 +217,7 @@ static char **_xine_get_featured_input_plugin_ids(xine_t *this, int feature) {
   if(!this->num_input_plugins)
     return NULL;
 
-  plugin_ids = xmalloc (this->num_input_plugins * sizeof (char *));
+  plugin_ids = (char **) xmalloc (this->num_input_plugins * sizeof (char *));
 
   for(i = 0; i < this->num_input_plugins; i++) {
 
@@ -402,7 +402,7 @@ char **xine_list_video_output_plugins (int visual_type) {
   int    i,j;
   int    plugin_prios[50];
 
-  plugin_ids = xmalloc (50 * sizeof (char *));
+  plugin_ids = (char **) xmalloc (50 * sizeof (char *));
   plugin_ids[0] = NULL;
 
   dir = opendir (XINE_PLUGINDIR);
@@ -570,7 +570,7 @@ char **xine_list_audio_output_plugins(void) {
   int    num_plugins = 0;
   DIR   *dir;
 
-  plugin_ids = xmalloc (50 * sizeof (char *));
+  plugin_ids = (char **) xmalloc (50 * sizeof (char *));
   plugin_ids[0] = NULL;
 
   dir = opendir (XINE_PLUGINDIR);

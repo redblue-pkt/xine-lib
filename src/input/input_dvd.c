@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.12 2001/07/01 23:37:04 guenter Exp $
+ * $Id: input_dvd.c,v 1.13 2001/07/10 21:07:55 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -87,8 +87,8 @@ typedef struct {
   char             *filelist[MAX_DIR_ENTRIES];
   char             *filelist2[MAX_DIR_ENTRIES];
 
-  mrl_t            *mrls[MAX_DIR_ENTRIES];
   int               mrls_allocated_entries;
+  mrl_t           **mrls;
 
 } dvd_input_plugin_t;
 
@@ -435,7 +435,7 @@ static mrl_t **dvd_plugin_get_dir (input_plugin_t *this_gen,
   
   if((fd = open(DVD, O_RDONLY|O_NONBLOCK)) > -1) {
     int nFiles, nFiles2;
-
+	
     UDFListDir (fd, "/VIDEO_TS", MAX_DIR_ENTRIES, this->filelist, &nFiles);
 
     nFiles2 = 0;
@@ -450,11 +450,30 @@ static mrl_t **dvd_plugin_get_dir (input_plugin_t *this_gen,
       if (!strcasecmp (&this->filelist[i][nLen-4], ".VOB")) {
 	char str[1024];
 
-	sprintf (this->mrls[nFiles2]->mrl,
-		 "dvd://%s", this->filelist[i]); 
-	this->mrls[nFiles2]->type = mrl_dvd;
+	if(nFiles2 >= this->mrls_allocated_entries
+	   || this->mrls_allocated_entries == 0) {
+	  this->mrls[nFiles2] = (mrl_t *) xmalloc(sizeof(mrl_t));
+	}
+	else {
+	  memset(this->mrls[nFiles2], 0, sizeof(mrl_t));
+	}
+	
+	if(this->mrls[nFiles2]->mrl) {
+	  this->mrls[nFiles2]->mrl = (char *)
+	    realloc(this->mrls[nFiles2]->mrl, strlen(this->filelist[i]) + 7);
+	}
+	else {
+	  this->mrls[nFiles2]->mrl = (char *) 
+	    xmalloc(strlen(this->filelist[i]) + 7);
+	}
+
+	this->mrls[nFiles2]->origin = NULL;
+	sprintf(this->mrls[nFiles2]->mrl, "dvd://%s", this->filelist[i]); 
+	this->mrls[nFiles2]->link   = NULL;
+	this->mrls[nFiles2]->type   = (0 | mrl_dvd);
 
 	/* determine size */
+	memset(&str, 0, strlen(str));
 	sprintf (str, "/VIDEO_TS/%s", this->filelist[i]);
 	UDFFindFile(fd, str, &this->mrls[nFiles2]->size);
 
@@ -471,6 +490,21 @@ static mrl_t **dvd_plugin_get_dir (input_plugin_t *this_gen,
   else
     return NULL;
 
+  /*
+   * Freeing exceeded mrls if exists.
+   */
+  if(*nEntries > this->mrls_allocated_entries)
+    this->mrls_allocated_entries = *nEntries;
+  else if(this->mrls_allocated_entries > *nEntries) {
+    while(this->mrls_allocated_entries > *nEntries) {
+      MRL_ZERO(this->mrls[this->mrls_allocated_entries - 1]);
+      free(this->mrls[this->mrls_allocated_entries--]);
+    }
+  }
+  
+  /*
+   * This is useful to let UI know where it should stops ;-).
+   */
   this->mrls[*nEntries] = NULL;
 
   return this->mrls;
@@ -570,16 +604,12 @@ input_plugin_t *init_input_plugin (int iface, config_values_t *config) {
   }
 
   
-  this = (dvd_input_plugin_t *) malloc (sizeof (dvd_input_plugin_t));
+  this = (dvd_input_plugin_t *) xmalloc (sizeof (dvd_input_plugin_t));
   
   for (i = 0; i < MAX_DIR_ENTRIES; i++) {
-    this->filelist[i]       = (char *) malloc (256);
-    this->filelist2[i]      = (char *) malloc (256);
-    this->mrls[i]           = (mrl_t *) malloc(sizeof(mrl_t));
-      this->mrls[i]->mrl      = (char *) malloc (256);
+    this->filelist[i]       = (char *) xmalloc (256);
+    this->filelist2[i]      = (char *) xmalloc (256);
   }
-  
-  this->mrls_allocated_entries = MAX_DIR_ENTRIES;
   
   this->input_plugin.interface_version = INPUT_PLUGIN_IFACE_VERSION;
   this->input_plugin.get_capabilities  = dvd_plugin_get_capabilities;
@@ -600,7 +630,10 @@ input_plugin_t *init_input_plugin (int iface, config_values_t *config) {
   this->input_plugin.get_optional_data = dvd_plugin_get_optional_data;
   this->input_plugin.handle_input_event= NULL;
   this->input_plugin.is_branch_possible= NULL;
-  
+
+  this->mrls = (mrl_t **) xmalloc(sizeof(mrl_t));
+  this->mrls_allocated_entries = 0;
+
   this->mrl     = NULL;
   this->config  = config;
   this->dvd_fd  = -1;

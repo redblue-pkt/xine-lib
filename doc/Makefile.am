@@ -47,6 +47,7 @@ erase-docs:
 
 
 debug:
+install-debug:
 
 mostlyclean-generic:
 	-rm -f *~ \#* .*~ .\#*

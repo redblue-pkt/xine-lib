@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_stdin_fifo.c,v 1.7 2001/07/01 23:37:04 guenter Exp $
+ * $Id: input_stdin_fifo.c,v 1.8 2001/07/10 21:07:55 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -258,7 +258,7 @@ input_plugin_t *init_input_plugin (int iface, config_values_t *config) {
     return NULL;
   }
 
-  this = (stdin_input_plugin_t *) malloc (sizeof (stdin_input_plugin_t));
+  this = (stdin_input_plugin_t *) xmalloc(sizeof(stdin_input_plugin_t));
   
   this->input_plugin.interface_version = INPUT_PLUGIN_IFACE_VERSION;
   this->input_plugin.get_capabilities  = stdin_plugin_get_capabilities;

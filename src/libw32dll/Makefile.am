@@ -24,10 +24,10 @@ xineplug_decode_w32dll_la_LIBADD = $(top_builddir)/src/libw32dll/wine/libwine.la
 noinst_HEADERS = w32codec.h
 
 debug:
-	list='$(SUBDIRS)'; for subdir in $$list; do \
-	  (cd $$subdir && $(MAKE) $@) \
+	@list='$(SUBDIRS)'; for subdir in $$list; do \
+	  (cd $$subdir && $(MAKE) $@) || exit;\
 	done;
-	$(MAKE) CFLAGS="$(DEBUG_CFLAGS)"
+	@$(MAKE) CFLAGS="$(DEBUG_CFLAGS)"
 
 install-debug: debug
 	@$(MAKE) $(AM_MAKEFLAGS) install-exec-am install-data-am

@@ -3,7 +3,7 @@
  *        we need all these tests and checks in our
  *        configure.in
  */
-#if 1
+#if 0
 #include "../../config.h"
 #else
 

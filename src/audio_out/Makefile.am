@@ -62,7 +62,7 @@ noinst_HEADERS = audio_oss_out.h audio_alsa_out.h audio_esd_out.h \
 
 
 debug:
-	$(MAKE) CFLAGS="$(DEBUG_CFLAGS)"
+	@$(MAKE) CFLAGS="$(DEBUG_CFLAGS)"
 
 
 install-debug: debug

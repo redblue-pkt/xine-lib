@@ -34,7 +34,7 @@ stubs.lo: stubs.s
 	$(CC) -c $(top_srcdir)/src/libw32dll/wine/stubs.s -o stubs.lo
 
 debug:
-	$(MAKE) CFLAGS="$(DEBUG_CFLAGS)"
+	@$(MAKE) CFLAGS="$(DEBUG_CFLAGS)"
 
 mostlyclean-generic:
 	-rm -f *~ \#* .*~ .\#*

@@ -3,13 +3,13 @@ SUBDIRS = audio_out video_out input libmpeg2 libspudec demuxers \
 	libac3 libmpg123 libw32dll xine-engine
 
 debug:
-	list='$(SUBDIRS)'; for subdir in $$list; do \
-	  (cd $$subdir && $(MAKE) $@) \
+	@list='$(SUBDIRS)'; for subdir in $$list; do \
+	  (cd $$subdir && $(MAKE) $@) || exit; \
 	done;
 
 install-debug: debug
-	list='$(SUBDIRS)'; for subdir in $$list; do \
-	  (cd $$subdir && $(MAKE) $@) \
+	@list='$(SUBDIRS)'; for subdir in $$list; do \
+	  (cd $$subdir && $(MAKE) $@) || exit; \
 	done;
 
 mostlyclean-generic:

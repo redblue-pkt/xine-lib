@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_plugin.h,v 1.8 2001/07/01 23:37:04 guenter Exp $
+ * $Id: input_plugin.h,v 1.9 2001/07/10 21:07:55 f1rmb Exp $
  */
 
 #ifndef HAVE_INPUT_PLUGIN_H
@@ -25,6 +25,7 @@
 
 #include <inttypes.h>
 #include <sys/types.h>
+#include <assert.h>
 #include "buffer.h"
 #include "configfile.h"
 
@@ -40,29 +41,117 @@ typedef struct {         /* CLUT == Color LookUp Table */
 } __attribute__ ((packed)) clut_t;
 #endif
 
+/*
+ * Return pointer of allocate/cleaned memory size *size*.
+ */
+extern void *xmalloc(size_t);
+
 #define MAX_MRL_ENTRIES 255
 
 /* Types of mrls returned by get_dir() */
-#define mrl_unknown       0x0
-#define mrl_dvd           0x1
-#define mrl_vcd           0x3
-#define mrl_net           0x4
-#define mrl_rtp           0x5
-#define mrl_stdin         0x6
-#define mrl_fifo          0x7
-#define mrl_chardev       0x8
-#define mrl_directory     0x9
-#define mrl_blockdev      0xA
-#define mrl_normal        0xB
-#define mrl_symbolic_link 0xC
-#define mrl_sock          0xD
-/* bit for exec file, should be combinated with mrl_normal type*/
-#define mrl_type_exec          0xFFFF8000 
+#define mrl_unknown        (0 << 0)
+#define mrl_dvd            (1 << 0)
+#define mrl_vcd            (1 << 1)
+#define mrl_net            (1 << 2)
+#define mrl_rtp            (1 << 3)
+#define mrl_stdin          (1 << 4)
+#define mrl_file           (1 << 5)
+#define mrl_file_fifo      (1 << 6)
+#define mrl_file_chardev   (1 << 7)
+#define mrl_file_directory (1 << 8)
+#define mrl_file_blockdev  (1 << 9)
+#define mrl_file_normal    (1 << 10)
+#define mrl_file_symlink   (1 << 11)
+#define mrl_file_sock      (1 << 12)
+#define mrl_file_exec      (1 << 13)
+#define mrl_file_backup    (1 << 14)
+#define mrl_file_hidden    (1 << 15)
+
+/*
+ * Freeing/zeroing all of entries of given mrl.
+ */
+#define MRL_ZERO(m) {                                                         \
+  if((m)) {                                                                   \
+    if((m)->origin)                                                           \
+      free((m)->origin);                                                      \
+    if((m)->mrl)                                                              \
+      free((m)->mrl);                                                         \
+    if((m)->link)                                                             \
+      free((m)->link);                                                        \
+    (m)->origin = NULL;                                                       \
+    (m)->mrl    = NULL;                                                       \
+    (m)->link   = NULL;                                                       \
+    (m)->type   = 0;                                                          \
+    (m)->size   = (off_t) 0;                                                  \
+  }                                                                           \
+}
+
+/*
+ * Duplicate two mrls entries (s = source, d = destination).
+ */
+#define MRL_DUPLICATE(s, d) {                                                 \
+  assert((s) != NULL);                                                        \
+  assert((d) != NULL);                                                        \
+                                                                              \
+  if((s)->origin) {                                                           \
+    if((d)->origin) {                                                         \
+      (d)->origin = (char *) realloc((d)->origin, strlen((s)->origin) + 1);   \
+      sprintf((d)->origin, "%s", (s)->origin);                                \
+    }                                                                         \
+    else                                                                      \
+      (d)->origin = strdup((s)->origin);                                      \
+  }                                                                           \
+  else                                                                        \
+    (d)->origin = NULL;                                                       \
+                                                                              \
+  if((s)->mrl) {                                                              \
+    if((d)->mrl) {                                                            \
+      (d)->mrl = (char *) realloc((d)->mrl, strlen((s)->mrl) + 1);            \
+      sprintf((d)->mrl, "%s", (s)->mrl);                                      \
+    }                                                                         \
+    else                                                                      \
+      (d)->mrl = strdup((s)->mrl);                                            \
+  }                                                                           \
+  else                                                                        \
+    (d)->mrl = NULL;                                                          \
+                                                                              \
+  if((s)->link) {                                                             \
+    if((d)->link) {                                                           \
+      (d)->link = (char *) realloc((d)->link, strlen((s)->link) + 1);         \
+      sprintf((d)->link, "%s", (s)->link);                                    \
+    }                                                                         \
+    else                                                                      \
+      (d)->link = strdup((s)->link);                                          \
+  }                                                                           \
+  else                                                                        \
+    (d)->link = NULL;                                                         \
+                                                                              \
+  (d)->type = (s)->type;                                                      \
+  (d)->size = (s)->size;                                                      \
+}
+
+/*
+ * Duplicate two arrays of mrls (s = source, d = destination).
+ */
+#define MRLS_DUPLICATE(s, d) {                                                \
+  int i = 0;                                                                  \
+                                                                              \
+  assert((s) != NULL);                                                        \
+  assert((d) != NULL);                                                        \
+                                                                              \
+  while((s) != NULL) {                                                        \
+    d[i] = (mrl_t *) malloc(sizeof(mrl_t));                                   \
+    MRL_DUPLICATE(s[i], d[i]);                                                \
+    i++;                                                                      \
+  }                                                                           \
+}
 
 typedef struct {
-  char *mrl;        /* <type>://<location              */
-  int   type;       /* match to mrl_type enum          */
-  off_t size;       /* size of this source, may be 0   */
+  char         *origin;  /* Origin of grabbed mrls (eg: path for file plugin */
+  char         *mrl;     /* <type>://<location>                              */
+  char         *link;    /* name of link, if exist, otherwise NULL           */
+  uint32_t      type;    /* match to mrl_type enum                           */
+  off_t         size;    /* size of this source, may be 0                    */
 } mrl_t;
 
 typedef struct input_plugin_s input_plugin_t;

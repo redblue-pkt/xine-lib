@@ -64,7 +64,7 @@ uninstall-includeHEADERS:
 
 
 debug:
-	$(MAKE) CFLAGS="-D_FILE_OFFSET_BITS=64 -Wall -DDEBUG -g -DXINE_COMPILE"
+	@$(MAKE) CFLAGS="-D_FILE_OFFSET_BITS=64 -Wall -DDEBUG -g -DXINE_COMPILE"
 
 install-debug: debug
 	@$(MAKE) $(AM_MAKEFLAGS) install-exec-am install-data-am
