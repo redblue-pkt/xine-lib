@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer_types.c,v 1.77 2004/05/04 21:49:01 jstembridge Exp $
+ * $Id: buffer_types.c,v 1.78 2004/05/09 19:21:22 jstembridge Exp $
  *
  *
  * contents:
@@ -703,7 +703,7 @@ static audio_db_t audio_db[] = {
 },
 {
   {
-    0
+    0x2001, 0
   },
   BUF_AUDIO_DTS,
   "DTS"
