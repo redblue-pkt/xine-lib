@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.10 2001/09/16 23:13:45 f1rmb Exp $
+ * $Id: xine_decoder.c,v 1.11 2001/09/23 15:19:36 jkeil Exp $
  * 
  * 31-8-2001 Added LPCM rate sensing.
  *   (c) 2001 James Courtier-Dutton James@superbug.demon.co.uk
@@ -92,6 +92,18 @@ void lpcm_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
   }
 
   if (!this->output_open) {      
+    /*
+     * with dvdnav we not get a preview buffer with audio format information
+     * (buf->decoder_info[0] == 0).
+     * grab the audio format from the first audio data buffer, in case
+     * the audio format is not yet known.
+     */
+    if (this->rate == 0 && this->bits_per_sample == 0) {
+      this->rate=buf->decoder_info[1];
+      this->bits_per_sample=buf->decoder_info[2] ; 
+      this->number_of_channels=buf->decoder_info[3] ; 
+      this->ao_cap_mode=(this->number_of_channels == 2) ? AO_CAP_MODE_STEREO : AO_CAP_MODE_MONO; 
+    }
     printf ("liblpcm: opening audio output (%d Hz sampling rate, mode=%d)\n",
 	    this->rate, this->ao_cap_mode);
     this->output_open = this->audio_out->open (this->audio_out, this->bits_per_sample, 
