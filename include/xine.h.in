@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.45 2002/12/14 18:34:57 esnel Exp $
+ * $Id: xine.h.in,v 1.46 2002/12/15 16:04:15 mroi Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -792,13 +792,17 @@ typedef struct {
 
 /* xevent *data */
 #define XINE_GUI_SEND_COMPLETION_EVENT       1
-/* Drawable has changed */
+
+/* Drawable data */
 #define XINE_GUI_SEND_DRAWABLE_CHANGED       2
+
 /* xevent *data */
 #define XINE_GUI_SEND_EXPOSE_EVENT           3
+
 /* x11_rectangle_t *data */
 #define XINE_GUI_SEND_TRANSLATE_GUI_TO_VIDEO 4
-/* int *data */
+
+/* int data */
 #define XINE_GUI_SEND_VIDEOWIN_VISIBLE	     5
 
 /* *data contains chosen visual, select a new one or change it to NULL
