@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: group_games.h,v 1.2 2003/10/06 15:46:20 mroi Exp $
+ * $Id: group_games.h,v 1.3 2004/02/13 13:48:03 tmmm Exp $
  */
 
 #ifndef HAVE_GROUP_GAMES_H
@@ -35,5 +35,6 @@ void *demux_str_init_plugin (xine_t *xine, void *data);
 void *demux_film_init_plugin (xine_t *xine, void *data);
 void *demux_smjpeg_init_plugin (xine_t *xine, void *data);
 void *demux_fourxm_init_plugin (xine_t *xine, void *data);
+void *demux_vmd_init_plugin (xine_t *xine, void *data);
 
 #endif
