@@ -27,6 +27,7 @@ xine-lib (1-rc1)
   * Improve demux of transport streams with PMT stream IDs > 0x80.
   * fix aspect ratio of MPEG1 streams
   * Add support for TITLE= and CHAPTER*= comment in ogm files
+  * fix deadlock/freeze problems in audio output thread
 
 xine-lib (1-rc0a)
   * includes ffmpeg's MPEG encode in dist tarball (fixes DXR3 support)
