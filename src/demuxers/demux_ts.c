@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ts.c,v 1.59 2002/11/01 17:41:28 mroi Exp $
+ * $Id: demux_ts.c,v 1.60 2002/11/07 03:04:31 guenter Exp $
  *
  * Demultiplexer for MPEG2 Transport Streams.
  *
@@ -34,6 +34,9 @@
  *
  * Date        Author
  * ----        ------
+ *
+ * 07-Nov-2992 Howdy Pierce
+ *                  - various bugfixes
  *
  * 30-May-2002 Mauro Borghi
  *                  - dynamic allocation leaks fixes
@@ -112,9 +115,9 @@
 #endif
 
 /*
-#define TS_LOG
-#define TS_PMT_LOG
-#define TS_READ_STATS // activates read statistics generation
+  #define TS_LOG
+  #define TS_PMT_LOG
+  #define TS_READ_STATS // activates read statistics generation
 */
 
 /*
@@ -229,13 +232,13 @@ static void demux_ts_build_crc32_table(demux_ts *this) {
   uint32_t  i, j, k;
 
   for( i = 0 ; i < 256 ; i++ )
-  {
-    k = 0;
-    for (j = (i << 24) | 0x800000 ; j != 0x80000000 ; j <<= 1) {
-      k = (k << 1) ^ (((k ^ j) & 0x80000000) ? 0x04c11db7 : 0);
+    {
+      k = 0;
+      for (j = (i << 24) | 0x800000 ; j != 0x80000000 ; j <<= 1) {
+	k = (k << 1) ^ (((k ^ j) & 0x80000000) ? 0x04c11db7 : 0);
+      }
+      this->crc32_table[i] = k;
     }
-    this->crc32_table[i] = k;
-  }
 }
 
 static uint32_t demux_ts_compute_crc32(demux_ts *this, uint8_t *data, 
@@ -343,7 +346,7 @@ static void demux_ts_parse_pat (demux_ts *this, unsigned char *original_pkt,
   if ((section_number != 0) || (last_section_number != 0)) {
     LOG_MSG (this->xine, _("demux_ts: FIXME: (unsupported) PAT consists of "
                            "multiple (%d) sections\n"),
-                         last_section_number);
+	     last_section_number);
     return;
   }
 
@@ -353,7 +356,7 @@ static void demux_ts_parse_pat (demux_ts *this, unsigned char *original_pkt,
   if (crc32 != calc_crc32) {
     LOG_MSG (this->xine, _("demux_ts: demux error! PAT with invalid CRC32: "
                            "packet_crc32: %.8x calc_crc32: %.8x\n"),
-                         crc32,calc_crc32);
+	     crc32,calc_crc32);
     return;
   }
 
@@ -429,7 +432,7 @@ static int demux_ts_parse_pes_header (demux_ts_media *m,
     printf ("demux_ts: error %02x %02x %02x (should be 0x000001) \n",
             p[0], p[1], p[2]);
     LOG_MSG (xine, _("demux_ts: error %02x %02x %02x (should be 0x000001)\n"),
-                   p[0], p[1], p[2]);
+	     p[0], p[1], p[2]);
     return 0 ;
   }
 
@@ -452,28 +455,33 @@ static int demux_ts_parse_pes_header (demux_ts_media *m,
     pts |= (p[11] & 0xFE) << 14 ;
     pts |=  p[12]         <<  7 ;
     pts |= (p[13] & 0xFE) >>  1 ;
+
   } else
     pts = 0;
 
   /* code works but not used in xine
-  if (p[7] & 0x40) {
+     if (p[7] & 0x40) {
 
-    DTS  = (p[14] & 0x0E) << 29 ;
-    DTS |=  p[15]         << 22 ;
-    DTS |= (p[16] & 0xFE) << 14 ;
-    DTS |=  p[17]         <<  7 ;
-    DTS |= (p[18] & 0xFE) >>  1 ;
+     DTS  = (p[14] & 0x0E) << 29 ;
+     DTS |=  p[15]         << 22 ;
+     DTS |= (p[16] & 0xFE) << 14 ;
+     DTS |=  p[17]         <<  7 ;
+     DTS |= (p[18] & 0xFE) >>  1 ;
 
-  } else
-    DTS = 0;
+     } else
+     DTS = 0;
   */
 
   m->pts       = pts;
-//  buf->input_pos = this->input->get_current_pos(this->input);
-  /* FIXME: not working correctly */
-//  buf->input_time = buf->input_pos / (this->rate * 50);
 
   header_len = p[8];
+
+  /* sometimes corruption on header_len causes segfault in memcpy below */
+  if (header_len + 9 > pkt_len) {
+    printf ("demux_ts: illegal value for PES_header_data_length (0x%x)\n",
+	    header_len);
+    return 0;
+  }
 
   p += header_len + 9;
   packet_len -= header_len + 3;
@@ -484,7 +492,7 @@ static int demux_ts_parse_pes_header (demux_ts_media *m,
       
 #ifdef LOG
     printf ("demux_ts: audio buf = %02X %02X %02X %02X %02X %02X %02X %02X\n",
-	  p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7]);
+	    p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7]);
 #endif
     track = p[0] & 0x0F; /* hack : ac3 track */
     // we check the descriptor tag first because some stations
@@ -578,8 +586,8 @@ static void demux_ts_buffer_pes(demux_ts *this, unsigned char *ts,
      case (i.e. adaptation field only) when it does not get bumped. */
   if (m->counter != INVALID_CC) {
     if ((m->counter & 0x0f) != cc) {
-      LOG_MSG (this->xine, _("demux_ts: unexpected cc %d (expected %d)\n"),
-	       cc, m->counter);
+      printf("demux_ts: PID %d: unexpected cc %d (expected %d)\n",
+	     m->pid, cc, m->counter);
     }
   }
   m->counter = cc;
@@ -601,7 +609,7 @@ static void demux_ts_buffer_pes(demux_ts *this, unsigned char *ts,
 
     if (!demux_ts_parse_pes_header(m, ts, len, this->xine)) {
       m->corrupted_pes = 1;
-      LOG_MSG (this->xine, _("demux_ts: corrupted pes encountered\n"));
+      printf("demux_ts: PID %d: corrupted pes encountered\n", m->pid);
     }
     else {
       check_newpts(this, m->pts);
@@ -773,7 +781,7 @@ static void demux_ts_parse_pmt (demux_ts      *this,
 
   if (!pusi)
     section_length = (this->pmt[program_count][1] << 8
-                     | this->pmt[program_count][2]) & 0x03ff;
+		      | this->pmt[program_count][2]) & 0x03ff;
 
   codedLength = MIN (BODY_SIZE - (pkt - originalPkt) - 1,
                      (section_length+3) - (this->pmt_write_ptr[program_count]
@@ -782,12 +790,12 @@ static void demux_ts_parse_pmt (demux_ts      *this,
   this->pmt_write_ptr[program_count] += codedLength;
 
 #ifdef TS_PMT_LOG
-    printf ("ts_demux: wr_ptr: %p, will be %p when finished\n",
-            this->pmt_write_ptr[program_count],
-            this->pmt[program_count] + section_length);
+  printf ("ts_demux: wr_ptr: %p, will be %p when finished\n",
+	  this->pmt_write_ptr[program_count],
+	  this->pmt[program_count] + section_length);
 #endif
   if (this->pmt_write_ptr[program_count] < this->pmt[program_count]
-                                           + section_length) {
+      + section_length) {
     /* didn't get all TS packets for this section yet */
 #ifdef TS_PMT_LOG
     printf ("ts_demux: didn't get all PMT TS packets yet...\n");
@@ -811,7 +819,7 @@ static void demux_ts_parse_pmt (demux_ts      *this,
   if (crc32 != calc_crc32) {
     LOG_MSG (this->xine, _("demux_ts: demux error! PMT with invalid CRC32: "
                            "packet_crc32: %#.8x calc_crc32: %#.8x\n"),
-                         crc32,calc_crc32); 
+	     crc32,calc_crc32); 
     return;
   }
 
@@ -1068,7 +1076,6 @@ static unsigned char * demux_synchronise(demux_ts * this) {
       this->status = DEMUX_FINISHED;
       return NULL;
     }
-
   }
   return_pointer = &buf[PKT_SIZE * packet_number];
   packet_number++;
@@ -1076,7 +1083,7 @@ static unsigned char * demux_synchronise(demux_ts * this) {
 }
 
 
-static uint32_t 
+static int64_t 
 demux_ts_adaptation_field_parse(uint8_t *data, 
 				uint32_t adaptation_field_length) {
 
@@ -1084,7 +1091,7 @@ demux_ts_adaptation_field_parse(uint8_t *data,
   uint32_t    random_access_indicator=0;
   uint32_t    elementary_stream_priority_indicator=0;
   uint32_t    PCR_flag=0;
-  uint32_t    PCR=0;
+  int64_t     PCR=0;
   uint32_t    EPCR=0;
   uint32_t    OPCR_flag=0;
   uint32_t    OPCR=0;
@@ -1120,14 +1127,15 @@ demux_ts_adaptation_field_parse(uint8_t *data,
   }
 #endif
   if(PCR_flag) {
-    PCR = data[offset] << 25;
-    PCR |= data[offset+1] << 17;
-    PCR |= data[offset+2] << 9;
-    PCR |= data[offset+3] << 1;
-    PCR |= (data[offset+4] >> 7) & 0x01;
+    PCR  = (((int64_t) data[offset]) & 0xFF) << 25;
+    PCR += (int64_t) ((data[offset+1] & 0xFF) << 17);
+    PCR += (int64_t) ((data[offset+2] & 0xFF) << 9);
+    PCR += (int64_t) ((data[offset+3] & 0xFF) << 1);
+    PCR += (int64_t) ((data[offset+4] & 0x80) >> 7);
+
     EPCR = ((data[offset+4] & 0x1) << 8) | data[offset+5];
 #ifdef TS_LOG
-    printf ("demux_ts: PCR: %u, EPCR: %u\n",
+    printf ("demux_ts: PCR: %lld, EPCR: %u\n",
             PCR, EPCR);
 #endif
     offset+=6;
@@ -1152,7 +1160,7 @@ demux_ts_adaptation_field_parse(uint8_t *data,
   }
   if(transport_private_data_flag) {
     printf ("demux_ts: transport_private_data_flag: %d\n",
-      transport_private_data_flag);
+	    transport_private_data_flag);
   }
   if(adaptation_field_extension_flag) {
     printf ("demux_ts: adaptation_field_extension_flag: %d\n",
@@ -1199,7 +1207,7 @@ static void demux_ts_parse_packet (demux_ts *this) {
    */
   if (sync_byte != 0x47) {
     LOG_MSG_STDERR (this->xine, _("demux error! invalid ts sync byte %.2x\n"),
-                                originalPkt[0]);
+		    originalPkt[0]);
     return;
   }
   if (transport_error_indicator) {
@@ -1208,8 +1216,7 @@ static void demux_ts_parse_packet (demux_ts *this) {
   }
   if (transport_scrambling_control) {
     if (this->videoPid == pid) {
-      fprintf(stderr, "demux_ts: selected videoPid is scrambled. Stopping.\n");
-      this->status = DEMUX_FINISHED;
+      fprintf(stderr, "demux_ts: selected videoPid is scrambled; skipping...\n");
     }
     for (i=0; i < this->scrambled_npids; i++) {
       if (this->scrambled_pids[i] == pid) return;
@@ -1222,103 +1229,107 @@ static void demux_ts_parse_packet (demux_ts *this) {
   }
 
   data_offset = 4;
-  if (adaptation_field_control & 0x1) {
-    /*
-     * Has a payload! Calculate & check payload length.
-     */
-    if (adaptation_field_control & 0x2) {
-      uint32_t adaptation_field_length = originalPkt[4];
-      if (adaptation_field_length > 0) {
-        this->PCR = demux_ts_adaptation_field_parse (originalPkt+5,
-                                                     adaptation_field_length);
-        if (this->PCR)  {  
-          int64_t scr_diff = this->PCR - this->last_PCR;
 
-          if ((abs(scr_diff) > 90000) && !this->send_newpts && 
-              !this->ignore_scr_discont ) {
-      
-            buf_element_t *buf;
-
-            buf = this->video_fifo->buffer_pool_alloc(this->video_fifo);
-            buf->type = BUF_CONTROL_DISCONTINUITY;
-            buf->disc_off = scr_diff;
-            this->video_fifo->put (this->video_fifo, buf);
-
-            if (this->audio_fifo) {
-              buf = this->audio_fifo->buffer_pool_alloc(this->audio_fifo);
-	      buf->type = BUF_CONTROL_DISCONTINUITY;
-	      buf->disc_off = scr_diff;
-	      this->audio_fifo->put (this->audio_fifo, buf);
-            }
-          }
-          this->last_PCR = this->PCR;
-          this->ignore_scr_discont = 0;
-        }
+  if( adaptation_field_control & 0x2 ){
+    uint32_t adaptation_field_length = originalPkt[4];
+    if (adaptation_field_length > 0) {
+      this->PCR = demux_ts_adaptation_field_parse (originalPkt+5,
+						   adaptation_field_length,
+						   this);
+      if (this->PCR)  {  
+	int64_t scr_diff = this->PCR - this->last_PCR;
+	
+	/* note: comparing (abs(scr_diff) > 90000) isn't reliable
+         * below because abs() give inconsistent results on int64_t
+         * types */
+	if ( (scr_diff > 90000 || scr_diff < -90000) && !this->send_newpts && 
+	     !this->ignore_scr_discont ) {
+	  
+	  buf_element_t *buf;
+	  
+	  buf = this->video_fifo->buffer_pool_alloc(this->video_fifo);
+	  buf->type = BUF_CONTROL_DISCONTINUITY;
+	  buf->disc_off = scr_diff;
+	  this->video_fifo->put (this->video_fifo, buf);
+	  
+	  if (this->audio_fifo) {
+	    buf = this->audio_fifo->buffer_pool_alloc(this->audio_fifo);
+	    buf->type = BUF_CONTROL_DISCONTINUITY;
+	    buf->disc_off = scr_diff;
+	    this->audio_fifo->put (this->audio_fifo, buf);
+	  }
+	}
+	this->last_PCR = this->PCR;
+	this->ignore_scr_discont = 0;
       }
-      /*
-       * Skip adaptation header.
-       */
-      data_offset += adaptation_field_length + 1;
     }
+    /*
+     * Skip adaptation header.
+     */
+    data_offset += adaptation_field_length + 1;
+  }
+  
+  if (! (adaptation_field_control & 0x1)) {
+    return;
+  }
 
-    data_len = PKT_SIZE - data_offset;
+  data_len = PKT_SIZE - data_offset;
+    
+  if (data_len > PKT_SIZE) {
 
-    if (data_len > PKT_SIZE) {
+    LOG_MSG (this->xine, 
+	     _("demux_ts: demux error! invalid payload size %d\n"),
+	     data_len);
 
-      LOG_MSG (this->xine, 
-	       _("demux_ts: demux error! invalid payload size %d\n"),
-	       data_len);
+  } else {
 
-    } else {
-
-      /*
-       * Do the demuxing in descending order of packet frequency!
-       */
-      if (pid == this->videoPid) {
+    /*
+     * Do the demuxing in descending order of packet frequency!
+     */
+    if (pid == this->videoPid) {
 #ifdef TS_LOG
-        printf ("demux_ts: Video pid: %.4x\n", pid);
+      printf ("demux_ts: Video pid: %.4x\n", pid);
 #endif
-        demux_ts_buffer_pes (this, originalPkt+data_offset, this->videoMedia,
-                             payload_unit_start_indicator, continuity_counter,
-                             data_len);
-        return;
-      }
-      else if (pid == this->audioPid) {
+      demux_ts_buffer_pes (this, originalPkt+data_offset, this->videoMedia,
+			   payload_unit_start_indicator, continuity_counter,
+			   data_len);
+      return;
+    }
+    else if (pid == this->audioPid) {
 #ifdef TS_LOG
-        printf ("demux_ts: Audio pid: %.4x\n", pid);
+      printf ("demux_ts: Audio pid: %.4x\n", pid);
 #endif
-        demux_ts_buffer_pes (this, originalPkt+data_offset, this->audioMedia,
-                             payload_unit_start_indicator, continuity_counter,
-                             data_len);
-        return;
-      }
-      else if (pid == 0) {
-        demux_ts_parse_pat (this, originalPkt, originalPkt+data_offset-4,
-                            payload_unit_start_indicator);
-        return;
-      }
-      else if (pid == NULL_PID) {
+      demux_ts_buffer_pes (this, originalPkt+data_offset, this->audioMedia,
+			   payload_unit_start_indicator, continuity_counter,
+			   data_len);
+      return;
+    }
+    else if (pid == 0) {
+      demux_ts_parse_pat (this, originalPkt, originalPkt+data_offset-4,
+			  payload_unit_start_indicator);
+      return;
+    }
+    else if (pid == NULL_PID) {
 #ifdef TS_LOG
-        printf ("demux_ts: Null Packet\n");
+      printf ("demux_ts: Null Packet\n");
 #endif
-        return;
-      }
-      if ((this->audioPid == INVALID_PID) && (this->videoPid == INVALID_PID)) {
-        program_count = 0;
-        while ((this->program_number[program_count] != INVALID_PROGRAM) ) {
-          if (pid == this->pmt_pid[program_count]) {
+      return;
+    }
+    if ((this->audioPid == INVALID_PID) && (this->videoPid == INVALID_PID)) {
+      program_count = 0;
+      while ((this->program_number[program_count] != INVALID_PROGRAM) ) {
+	if (pid == this->pmt_pid[program_count]) {
 #ifdef TS_LOG
-            printf ("demux_ts: PMT prog: %.4x pid: %.4x\n",
-                    this->program_number[program_count],
-                    this->pmt_pid[program_count]);
+	  printf ("demux_ts: PMT prog: %.4x pid: %.4x\n",
+		  this->program_number[program_count],
+		  this->pmt_pid[program_count]);
 #endif
-            demux_ts_parse_pmt (this, originalPkt, originalPkt+data_offset-4,
-                                payload_unit_start_indicator,
-                                program_count);
-            return;
-          }
-          program_count++;
-        }
+	  demux_ts_parse_pmt (this, originalPkt, originalPkt+data_offset-4,
+			      payload_unit_start_indicator,
+			      program_count);
+	  return;
+	}
+	program_count++;
       }
     }
   }
@@ -1435,21 +1446,37 @@ static int demux_ts_open(demux_plugin_t *this_gen, input_plugin_t *input,
     if((input->get_capabilities(input) & INPUT_CAP_SEEKABLE) != 0) {
       input->seek(input, 0, SEEK_SET);
       /* why is this a restriction ???      
-       if(input->get_blocksize(input))
- 	return DEMUX_CANNOT_HANDLE;
+	 if(input->get_blocksize(input))
+	 return DEMUX_CANNOT_HANDLE;
       */
-      if(input->read(input, buf, 6)) {
 
-       if(buf[0] == 0x47)
-       {
-         this->input = input;
-         return DEMUX_CAN_HANDLE;
-       }
+
+      if(input->read(input, buf, 2069)) {
+	int i, j;
+	int tryAgain;
+
+	for(i = 0; i < 188; i++){
+	  tryAgain = 0;
+	  if( buf[i] == 0x47 ){
+	    for(j = 1; j <= 10; j++){
+	      if( buf[i + j*188] != 0x47 ){
+		tryAgain = 1;
+		break;
+	      }
+	    }
+	    if( tryAgain == 0 ) {
+#ifdef TS_LOG
+	      printf ("demux_ts: found 0x47 pattern at offset %d\n", i);
+#endif
+	      this->input = input;
+	      return DEMUX_CAN_HANDLE;
+	    }
+	  }
+	}
       }
     }
 
     if (input->get_optional_data (input, buf, INPUT_OPTIONAL_DATA_PREVIEW)) {
-
       if(buf[0] == 0x47) {
 	this->input = input;
         this->blockSize = PKT_SIZE;
@@ -1459,7 +1486,7 @@ static int demux_ts_open(demux_plugin_t *this_gen, input_plugin_t *input,
 
     return DEMUX_CANNOT_HANDLE;
   }
-  break;
+    break;
   case STAGE_BY_EXTENSION:
 
     xine_strdupa(valid_mrls, 
@@ -1526,9 +1553,9 @@ static int demux_ts_open(demux_plugin_t *this_gen, input_plugin_t *input,
 }
 
 static int demux_ts_start(demux_plugin_t *this_gen,
-                           fifo_buffer_t *video_fifo,
-                           fifo_buffer_t *audio_fifo,
-                           off_t start_pos, int start_time) {
+			  fifo_buffer_t *video_fifo,
+			  fifo_buffer_t *audio_fifo,
+			  off_t start_pos, int start_time) {
 
   demux_ts *this = (demux_ts *)this_gen;
   int err;
@@ -1593,10 +1620,10 @@ static int demux_ts_start(demux_plugin_t *this_gen,
 }
 
 static int demux_ts_seek (demux_plugin_t *this_gen,
-			     off_t start_pos, int start_time) {
+			  off_t start_pos, int start_time) {
   demux_ts *this = (demux_ts *)this_gen;
 
-	return demux_ts_start (this_gen, this->video_fifo, this->audio_fifo,
+  return demux_ts_start (this_gen, this->video_fifo, this->audio_fifo,
 			 start_pos, start_time);
 }
 

@@ -287,5 +287,6 @@ Mario Brito <mbrito@student.dei.uc.pt>
 
 Howdy Pierce <howdy@cardinalpeak.com>
   pgx64 memory corruption patch, xshm bounds check patch
+  demux_ts bugfixes
 
 (let us know if we've forgotten anyone)
