@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg.c,v 1.32 2001/09/01 14:33:00 guenter Exp $
+ * $Id: demux_mpeg.c,v 1.33 2001/09/02 16:19:44 guenter Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  * reads streams of variable blocksizes
@@ -42,7 +42,7 @@
 #include "demux.h"
 #include "utils.h"
 
-#define NUM_PREVIEW_BUFFERS 250
+#define NUM_PREVIEW_BUFFERS 150
 
 static uint32_t xine_debug;
 
@@ -436,7 +436,6 @@ static void parse_mpeg1_packet (demux_mpeg_t *this, int nID)
 static uint32_t parse_pack(demux_mpeg_t *this)
 {
   uint32_t buf ;
-  char scratch[1024];
   int mpeg_version;
 
   xprintf (VERBOSE|DEMUX, "pack {\n");
@@ -483,7 +482,7 @@ static uint32_t parse_pack(demux_mpeg_t *this)
     buf = read_bytes (this, 2);
     xprintf (VERBOSE|DEMUX, "  system_header (%d +6 bytes)\n",buf);
 
-    this->input->read (this->input, scratch, buf);
+    this->input->read (this->input, this->dummy_space, buf);
 
     buf = read_bytes (this, 4) ;
   }
@@ -503,6 +502,57 @@ static uint32_t parse_pack(demux_mpeg_t *this)
 
     buf = read_bytes (this, 4);
     xprintf (VERBOSE|DEMUX, "  code = %08x\n",buf); 
+  }
+  
+  xprintf (VERBOSE|DEMUX, "}\n");
+
+  return buf;
+
+}
+
+static uint32_t parse_pack_preview (demux_mpeg_t *this, int *num_buffers)
+{
+  uint32_t buf ;
+  int mpeg_version;
+
+  /* system_clock_reference */
+  buf = read_bytes (this, 1);
+  xprintf (VERBOSE|DEMUX|VIDEO, "  mpeg version : %02x",buf>>4);
+
+  if ((buf>>4) == 4) {
+     buf = read_bytes(this, 2);
+     mpeg_version = 2;
+  } else {
+     mpeg_version = 1;
+  }
+
+  buf = read_bytes (this, 4);
+  buf = read_bytes (this, 3) ;
+
+  /* system header */
+
+  buf = read_bytes (this, 4) ;
+
+  if (buf == 0x000001bb) {
+    buf = read_bytes (this, 2);
+    this->input->read (this->input, this->dummy_space, buf);
+    buf = read_bytes (this, 4) ;
+  }
+  
+  while ( ((buf & 0xFFFFFF00) == 0x00000100)
+	  && ((buf & 0xff) != 0xba) 
+	  && (*num_buffers > 0)) {
+
+    if (this->status != DEMUX_OK)
+      return buf;
+
+    if (mpeg_version == 1)
+      parse_mpeg1_packet (this, buf & 0xFF);
+    else
+      parse_mpeg2_packet (this, buf & 0xFF);
+
+    buf = read_bytes (this, 4);
+    *num_buffers = *num_buffers - 1;
   }
   
   xprintf (VERBOSE|DEMUX, "}\n");
@@ -639,7 +689,8 @@ static void demux_mpeg_start (demux_plugin_t *this_gen,
     this->status = DEMUX_OK ;
 
     do {
-      w = parse_pack (this);
+
+      w = parse_pack_preview (this, &num_buffers);
       
       if (w != 0x000001ba)
 	demux_mpeg_resync (this, w);

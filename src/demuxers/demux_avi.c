@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_avi.c,v 1.31 2001/09/01 14:32:59 guenter Exp $
+ * $Id: demux_avi.c,v 1.32 2001/09/02 16:19:44 guenter Exp $
  *
  * demultiplexer for avi streams
  *
@@ -269,6 +269,7 @@ static avi_t *AVI_init(demux_avi_t *this)
 
   /* Read first 12 bytes and check that this is an AVI file */
 
+  this->input->seek(this->input, 0, SEEK_SET);
   if( this->input->read(this->input, data,12) != 12 ) ERR_EXIT(AVI_ERR_READ) ;
 						
   if( strncasecmp(data  ,"RIFF",4) !=0 ||
