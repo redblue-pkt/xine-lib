@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: rtsp_session.c,v 1.5 2002/12/16 23:17:34 holstsn Exp $
+ * $Id: rtsp_session.c,v 1.6 2002/12/16 23:53:50 holstsn Exp $
  *
  * high level interface to rtsp servers.
  */
@@ -80,7 +80,14 @@ connect:
   }
 
   /* looking for server type */
-  server=strdup(rtsp_search_answers(rtsp_session->s,"Server"));
+  if (rtsp_search_answers(rtsp_session->s,"Server"))
+    server=strdup(rtsp_search_answers(rtsp_session->s,"Server"));
+  else {
+    if (rtsp_search_answers(rtsp_session->s,"RealChallenge1"))
+      server=strdup("Real");
+    else
+      server=strdup("unknown");
+  }
 
   if (strstr(server,"Real"))
   {
@@ -114,11 +121,14 @@ connect:
     
   } else
   {
-    printf("non-real rtsp servers not supported yet.\n");
+    printf("rtsp_session: rtsp server type '%s' not supported yet. sorry.\n",server);
     rtsp_close(rtsp_session->s);
+    free(server);
     free(rtsp_session);
     return NULL;
   }
+  free(server);
+  
   return rtsp_session;
 }
 
