@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_vidix.c,v 1.38 2003/04/23 10:46:00 jstembridge Exp $
+ * $Id: video_out_vidix.c,v 1.39 2003/04/23 10:49:48 jstembridge Exp $
  * 
  * video_out_vidix.c
  *
@@ -176,25 +176,25 @@ static void write_frame_YUV422(vidix_driver_t* this, vidix_frame_t* frame)
    uint32_t* dst32 = (uint32_t *)(this->vidix_mem + 
                      this->vidix_play.offsets[this->next_frame] +
                      this->vidix_play.offset.y);
-   int h,w;
+   int h, w, half_width = frame->width / 2;
 
    for(h = 0; h < (frame->height / 2); h++) {
       cbp = cb;
       crp = cr;
       
-      for(w = 0; w < (frame->width / 2); w++) {
+      for(w = 0; w < half_width; w++) {
 	 *dst32++ = (*y) + ((*cb)<<8) + ((*(y+1))<<16) + ((*cr)<<24);
 	 y++; y++; cb++; cr++;
       }
 
-      dst32 += (this->dstrides.y - frame->width) / 2;
+      dst32 += (this->dstrides.y / 4) - half_width;
 
-      for(w=0; w < (frame->width / 2); w++) {
+      for(w=0; w < half_width; w++) {
 	 *dst32++ = (*y) + ((*cbp)<<8) + ((*(y+1))<<16) + ((*crp)<<24);
 	 y++; y++; cbp++; crp++;
       }
       
-      dst32 += (this->dstrides.y - frame->width) / 2;
+      dst32 += (this->dstrides.y / 4) - half_width;
    }
 }
 
