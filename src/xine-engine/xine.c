@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.243 2003/04/17 19:01:24 miguelfreitas Exp $
+ * $Id: xine.c,v 1.244 2003/04/22 23:30:55 tchamp Exp $
  *
  * top-level xine functions
  *
@@ -57,6 +57,11 @@
 
 #include "xineutils.h"
 #include "compat.h"
+
+#ifdef WIN32
+#   include <fcntl.h>
+#   include <winsock.h>
+#endif /* WIN32 */
 
 /*
 #define LOG
@@ -1084,6 +1089,11 @@ void xine_exit (xine_t *this) {
   if(this->config)
     this->config->dispose(this->config);
   
+#if defined(WIN32)
+    WSACleanup();
+#endif
+
+  
   pthread_mutex_destroy(&this->streams_lock);
 
   free (this);
@@ -1093,6 +1103,11 @@ xine_t *xine_new (void) {
 
   xine_t      *this;
   int          i;
+
+#ifdef WIN32
+    WSADATA Data;
+    int i_err;
+#endif /*  WIN32 */
 
   this = xine_xmalloc (sizeof (xine_t));
   if (!this) {
@@ -1120,7 +1135,19 @@ xine_t *xine_new (void) {
 
   for (i = 0; i < XINE_LOG_NUM; i++)
     this->log_buffers[i] = new_scratch_buffer (25);
+ 
   
+#ifdef WIN32
+    /* WinSock Library Init. */
+    i_err = WSAStartup( MAKEWORD( 1, 1 ), &Data );
+
+    if( i_err )
+    {
+        fprintf( stderr, "error: can't initiate WinSocks, error %i\n", i_err );
+    }
+
+#endif /* WIN32 */
+
   /*
    * streams_lock
    */

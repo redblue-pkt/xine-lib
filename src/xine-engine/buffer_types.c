@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer_types.c,v 1.56 2003/03/23 17:12:30 holstsn Exp $
+ * $Id: buffer_types.c,v 1.57 2003/04/22 23:30:53 tchamp Exp $
  *
  *
  * contents:
@@ -832,6 +832,13 @@ static audio_db_t audio_db[] = {
   },
   BUF_AUDIO_DV,
   "DV Audio"
+},
+{
+  {
+    0
+  },
+  BUF_AUDIO_DIRECTX,
+  "Directx Audio"
 },
 { { 0 }, 0, "last entry" }
 };

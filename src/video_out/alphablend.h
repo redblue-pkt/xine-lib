@@ -27,12 +27,35 @@
 
 #include "video_out.h"
 
+/* _MSC_VER port changes */
+#undef ATTRIBUTE_PACKED
+#undef PRAGMA_PACK_BEGIN 
+#undef PRAGMA_PACK_END
+
+#if __GNUC__ > 2 || (__GNUC__ == 2 && __GNUC_MINOR__ >= 95)
+#define ATTRIBUTE_PACKED __attribute__ ((packed))
+#define PRAGMA_PACK 0
+#endif
+
+#if !defined(ATTRIBUTE_PACKED)
+#define ATTRIBUTE_PACKED
+#define PRAGMA_PACK 1
+#endif
+
+#if PRAGMA_PACK
+#pragma pack(8)
+#endif
+
 typedef struct {         /* CLUT == Color LookUp Table */
   uint8_t cb    : 8;
   uint8_t cr    : 8;
   uint8_t y     : 8;
   uint8_t foo   : 8;
-} __attribute__ ((packed)) clut_t;
+} ATTRIBUTE_PACKED clut_t;
+
+#if PRAGMA_PACK
+#pragma pack()
+#endif
 
 void blend_rgb16 (uint8_t * img, vo_overlay_t * img_overl,
 		  int img_width, int img_height,

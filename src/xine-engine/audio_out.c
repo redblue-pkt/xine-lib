@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.123 2003/04/21 00:25:55 jstembridge Exp $
+ * $Id: audio_out.c,v 1.124 2003/04/22 23:30:48 tchamp Exp $
  * 
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -553,7 +553,7 @@ static void audio_filter_equalize (aos_t *this,
   int       index, band, channel;
   int       halflength, length;
   int       out[EQ_CHANNELS], scaledpcm[EQ_CHANNELS];
-  long long l;
+  int64_t l;
   int       num_channels;
 
   num_channels = mode_channels (this->input.mode);
@@ -575,11 +575,11 @@ static void audio_filter_equalize (aos_t *this,
       for (band = 0; band < EQ_BANDS; band++) {
 
 	this->eq_data_history[band][channel].x[this->eq_i] = scaledpcm[channel];
-	l = (long long)iir_cf[band].alpha * (long long)(this->eq_data_history[band][channel].x[this->eq_i] - this->eq_data_history[band][channel].x[this->eq_k])
-	  + (long long)iir_cf[band].gamma * (long long)this->eq_data_history[band][channel].y[this->eq_j]
-	  - (long long)iir_cf[band].beta * (long long)this->eq_data_history[band][channel].y[this->eq_k]; 
+	l = (int64_t)iir_cf[band].alpha * (int64_t)(this->eq_data_history[band][channel].x[this->eq_i] - this->eq_data_history[band][channel].x[this->eq_k])
+	  + (int64_t)iir_cf[band].gamma * (int64_t)this->eq_data_history[band][channel].y[this->eq_j]
+	  - (int64_t)iir_cf[band].beta * (int64_t)this->eq_data_history[band][channel].y[this->eq_k]; 
 	this->eq_data_history[band][channel].y[this->eq_i] = (int)(l >> FP_FRBITS);
-	l = (long long)this->eq_data_history[band][channel].y[this->eq_i] * (long long)this->eq_gain[band];
+	l = (int64_t)this->eq_data_history[band][channel].y[this->eq_i] * (int64_t)this->eq_gain[band];
 	out[channel] +=	(int)(l >> FP_FRBITS);
       } 
 

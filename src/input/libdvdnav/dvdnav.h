@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dvdnav.h,v 1.10 2003/04/07 19:59:09 jcdutton Exp $
+ * $Id: dvdnav.h,v 1.11 2003/04/22 23:30:36 tchamp Exp $
  *
  */
 
@@ -34,8 +34,13 @@ extern "C" {
 #endif
 
 #ifdef HAVE_DVDNAV
+#ifndef _MSC_VER
 #  include <dvdnav/dvdnav_events.h>
 #  include <dvdnav/dvd_types.h>
+#else
+#  include "dvdnav_events.h"
+#  include "dvd_types.h"
+#endif /* _MSC_VER */
 #else
 #  include "dvdnav_events.h"
 #  include "dvd_types.h"

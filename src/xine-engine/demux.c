@@ -35,6 +35,10 @@
 #include "demuxers/demux.h"
 #include "buffer.h"
 
+#ifdef WIN32
+#include <winsock.h>
+#endif
+
 /*
 #define LOG
 */

@@ -1270,7 +1270,7 @@ static void *init_class (xine_t *xine, void *visual_gen) {
 
 static vo_info_t vo_info_win32 = {
   7,                    /* priority    */
-  XINE_VISUAL_TYPE_WIN32  /* visual type */
+  XINE_VISUAL_TYPE_DIRECTX  /* visual type */
 };
 
 /*

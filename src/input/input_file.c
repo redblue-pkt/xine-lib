@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_file.c,v 1.79 2003/04/13 16:02:53 tmattern Exp $
+ * $Id: input_file.c,v 1.80 2003/04/22 23:30:35 tchamp Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -75,6 +75,10 @@ static uint32_t file_plugin_get_capabilities (input_plugin_t *this_gen) {
   if (this->fh <0)
     return 0;
 
+#ifdef _MSC_VER
+    /*return INPUT_CAP_SEEKABLE | INPUT_CAP_GET_DIR;*/
+	return INPUT_CAP_SEEKABLE;
+#else
   if (fstat (this->fh, &buf) == 0) {
     if (S_ISREG(buf.st_mode))
       return INPUT_CAP_SEEKABLE;
@@ -83,6 +87,7 @@ static uint32_t file_plugin_get_capabilities (input_plugin_t *this_gen) {
   } else
     perror ("system call fstat");
   return 0;
+#endif /* _MSC_VER */
 }
 
 
@@ -231,7 +236,15 @@ static int file_plugin_open (input_plugin_t *this_gen ) {
   else
     filename = decode_uri(this->mrl);
 
+#ifdef _MSC_VER
+  /* 
+     added O_BINARY flag, <CTRL>-Z char 
+     is interperated as EOF on win32.
+  */
+  this->fh = open (filename, O_RDONLY|O_BINARY);
+#else
   this->fh = open (filename, O_RDONLY);
+#endif /* _MSC_VER */
 
   if (this->fh == -1) {
     return 0;

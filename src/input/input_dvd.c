@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.152 2003/04/13 16:02:53 tmattern Exp $
+ * $Id: input_dvd.c,v 1.153 2003/04/22 23:30:29 tchamp Exp $
  *
  */
 
@@ -40,10 +40,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stddef.h>
+
+#ifndef _MSC_VER
 #include <dirent.h>
 #include <sys/param.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#endif /* _MSC_VER */
+
 #include <unistd.h>
 #include <fcntl.h>
 #include <time.h>
@@ -51,11 +55,14 @@
 #include <errno.h>
 #include <dlfcn.h>
 
+#ifndef _MSC_VER
 #include <sys/mount.h>
 #include <sys/wait.h>
 
 #include <sys/poll.h>
 #include <sys/ioctl.h>
+#endif /* _MSC_VER */
+
 
 #if defined(__NetBSD__) || defined(__OpenBSD__) || defined(__FreeBSD__)
 #include <sys/dvdio.h>
@@ -65,12 +72,22 @@
 #elif defined(HAVE_SYS_CDIO_H)
 #include <sys/cdio.h>
 #else
+
+#ifdef WIN32
+#include <io.h>                                                 /* read() */
+#else
 #warning "This might not compile due to missing cdrom ioctls"
+#endif /* WIN32 */
+
 #endif
 
 /* DVDNAV includes */
 #ifdef HAVE_DVDNAV
+#ifndef _MSC_VER
 #  include <dvdnav/dvdnav.h>
+#else
+#  include "dvdnav.h"
+#endif /* _MSC_VER */
 #else
 #  define DVDNAV_COMPILE
 #  include "dvdnav.h"
@@ -125,11 +142,11 @@
 #  define trace_print(s, args...) /* Nothing */
 # endif
 #else
-# ifdef INPUT_DEBUG_TRACE
-#  define trace_print(s, ...) printf("input_dvd: " __func__ ": " s, __VA_ARGS_);
-# else
-#  define trace_print(s, ...) /* Nothing */
-# endif
+#  ifndef _MSC_VER
+#    define trace_print(s, ...) /* Nothing */
+#  else
+#    define trace_print printf
+#  endif /* _MSC_VER */
 #endif
 
 /* Array to hold MRLs returned by get_autoplay_list */
@@ -1604,6 +1621,9 @@ static void *init_class (xine_t *xine, void *data) {
 
 /*
  * $Log: input_dvd.c,v $
+ * Revision 1.153  2003/04/22 23:30:29  tchamp
+ * Additional changes for win32/msvc port; This is my first real commit so please be gentle with me; Everything builds except for the win32 ui
+ *
  * Revision 1.152  2003/04/13 16:02:53  tmattern
  * Input plugin api change:
  * old open() function replaced by :

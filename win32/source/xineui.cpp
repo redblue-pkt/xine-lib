@@ -119,7 +119,7 @@ static xine_video_port_t *load_video_out_driver(int driver_number, win32_visual_
       vis = (win32_visual_t *) xine_xmalloc(sizeof(win32_visual_t));
       video_port = xine_open_video_driver(gGui->xine, 
 					  video_driver_ids[driver_num],
-					  XINE_VISUAL_TYPE_WIN32,
+					  XINE_VISUAL_TYPE_DIRECTX,
 					  (void *) vis);
       if (video_port)
 	return video_port;

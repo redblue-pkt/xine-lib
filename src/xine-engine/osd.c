@@ -89,14 +89,14 @@ struct osd_font_s {
   osd_font_t      *next;
 }; 
 
-struct osd_ft2context_s {
 #ifdef HAVE_FT2
+struct osd_ft2context_s {
   int        useme;
   FT_Library library;
   FT_Face    face;
   int        size;
-#endif
 };
+#endif
 
 /*
  * open a new osd object. this will allocated an empty (all zero) drawing

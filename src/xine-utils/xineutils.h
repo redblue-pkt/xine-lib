@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xineutils.h,v 1.48 2003/04/20 21:13:28 guenter Exp $
+ * $Id: xineutils.h,v 1.49 2003/04/22 23:30:58 tchamp Exp $
  *
  */
 #ifndef XINEUTILS_H
@@ -668,7 +668,7 @@ static inline char *_x_strpbrk(const char *s, const char *accept) {
 #define xine_strpbrk _x_strpbrk
 #endif
 
-#ifdef HAVE_STRSEP
+#if defined HAVE_STRSEP && !defined(_MSC_VER)
 #define xine_strsep strsep
 #else
 static inline char *_x_strsep(char **stringp, const char *delim) {
