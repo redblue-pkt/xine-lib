@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_plugin.h,v 1.42 2002/12/21 12:56:47 miguelfreitas Exp $
+ * $Id: input_plugin.h,v 1.43 2002/12/29 16:48:35 mroi Exp $
  */
 
 #ifndef HAVE_INPUT_PLUGIN_H
@@ -253,9 +253,6 @@ struct input_plugin_s {
 
 #define INPUT_OPTIONAL_DATA_AUDIOLANG 2
 #define INPUT_OPTIONAL_DATA_SPULANG   3
-#define INPUT_OPTIONAL_DATA_TEXTSPU0  4
-#define INPUT_OPTIONAL_DATA_TEXTSPU1  5
-#define INPUT_OPTIONAL_DATA_TEXTSPU2  6
 #define INPUT_OPTIONAL_DATA_PREVIEW   7
 
 #define MAX_MRL_ENTRIES 255

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_file.c,v 1.71 2002/12/27 16:47:10 miguelfreitas Exp $
+ * $Id: input_file.c,v 1.72 2002/12/29 16:48:34 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -71,7 +71,7 @@ typedef struct {
 
 static uint32_t file_plugin_get_capabilities (input_plugin_t *this_gen) {
 
-  return INPUT_CAP_SEEKABLE | INPUT_CAP_SPULANG;
+  return INPUT_CAP_SEEKABLE;
 }
 
 
@@ -187,30 +187,6 @@ static int file_plugin_get_optional_data (input_plugin_t *this_gen,
   printf ("input_file: get optional data, type %08x, sub %p\n",
 	  data_type, this->sub);
 #endif
-
-  switch(data_type) {
-  case INPUT_OPTIONAL_DATA_TEXTSPU0:
-    if(this->sub) {
-      FILE **tmp;
-      
-      /* dirty hacks... */
-      tmp = data;
-      *tmp = this->sub;
-      
-      return INPUT_OPTIONAL_SUCCESS;
-    }
-    break;
-    
-  case INPUT_OPTIONAL_DATA_SPULANG:
-    sprintf(data, "%3s", (this->sub) ? "sub" : "none");
-    return INPUT_OPTIONAL_SUCCESS;
-    break;
-    
-  default:
-    return INPUT_OPTIONAL_UNSUPPORTED;
-    break;
-
-  }
 
   return INPUT_OPTIONAL_UNSUPPORTED;
 }

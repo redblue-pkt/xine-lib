@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_avi.c,v 1.141 2002/12/23 21:29:57 miguelfreitas Exp $
+ * $Id: demux_avi.c,v 1.142 2002/12/29 16:48:34 mroi Exp $
  *
  * demultiplexer for avi streams
  *
@@ -183,7 +183,6 @@ typedef struct demux_avi_s {
   int                  status;
 
   int                  no_audio;
-  int                  have_spu;
 
   uint32_t             video_step;
   uint32_t             AVI_errno;
@@ -1129,23 +1128,6 @@ static int demux_avi_next (demux_avi_t *this, int decoder_flags) {
     */
 
     this->video_fifo->put (this->video_fifo, buf);
-
-    /*
-     * send packages to inform & drive text spu decoder
-     */
-
-    if (this->have_spu && (buf->decoder_flags & BUF_FLAG_FRAME_END)) {
-      buf_element_t *buf;
-      buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-
-      buf->decoder_flags = BUF_FLAG_FRAME_END;
-      buf->type          = BUF_SPU_TEXT;
-      buf->pts           = video_pts;
-
-      buf->decoder_info[1] = this->avi->video_posf;
-
-      this->video_fifo->put (this->video_fifo, buf);
-    }
   }
 
   if( buf ) {
@@ -1285,29 +1267,6 @@ static void demux_avi_send_headers (demux_plugin_t *this_gen) {
           this->audio_fifo->put (this->audio_fifo, buf);
         }
       }
-
-      /*
-       * send external spu file pointer, if present
-       */
-
-      if (this->input->get_optional_data (this->input, &sub, INPUT_OPTIONAL_DATA_TEXTSPU0)) {
-        buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-        buf->content = sub;
-
-        buf->type = BUF_SPU_TEXT;
-
-        buf->decoder_flags   = BUF_FLAG_HEADER;
-        buf->decoder_info[1] = this->avi->width;
-        buf->decoder_info[2] = this->avi->height;
-
-        this->video_fifo->put (this->video_fifo, buf);
-
-        this->have_spu = 1;
-
-        printf ("demux_avi: text subtitle file available\n");
-
-      } else
-        this->have_spu = 0;
     }
 
     /*
