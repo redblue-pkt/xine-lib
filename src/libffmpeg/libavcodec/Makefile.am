@@ -88,6 +88,7 @@ noinst_HEADERS = \
 	dsputil.h \
 	dvdata.h \
 	faandct.h \
+	fastmemcpy.h \
 	golomb.h \
 	imgconvert_template.h \
 	indeo3data.h \
