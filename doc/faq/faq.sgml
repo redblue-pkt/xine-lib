@@ -254,7 +254,8 @@
     <para>
      Basically you will only have to issue one command, if you have just
      downloaded a source tarball from our web site:
-     <screen>&nbsp;&nbsp;&nbsp;<command>rpm -ta &lt;THE_NAME_OF_YOUR_SOURCE_TAR_BALL&gt;</command></screen>
+     <screen>&nbsp;&nbsp;&nbsp;<command>rpmbuild -ta &lt;THE_NAME_OF_YOUR_SOURCE_TAR_BALL&gt;</command></screen>
+     (Older versions of RPM use <command>rpm</command> instead of <command>rpmbuild</command>.)
     </para>
     <para>
      This will start the binary and source RPM building. After compiling is
@@ -266,7 +267,7 @@
     <para>
      In case that you have a fresh CVS checkout, you will need to do the
      following first in order to get a tarball release out of it which you
-     can later use with the <command>rpm -ta</command> command above:
+     can later use with the <command>rpmbuild -ta</command> command above:
      <screen>&nbsp;&nbsp;&nbsp;<command>./autogen.sh && make clean && make dist</command></screen>
     </para>
     <para>
