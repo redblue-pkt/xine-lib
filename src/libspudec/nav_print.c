@@ -66,9 +66,9 @@ static void navPrint_PCI_GI(pci_gi_t *pci_gi) {
   printf("nv_pck_lbn    0x%08x\n", pci_gi->nv_pck_lbn);
   printf("vobu_cat      0x%04x\n", pci_gi->vobu_cat);
   printf("vobu_uop_ctl  0x%08x\n", *(uint32_t*)&pci_gi->vobu_uop_ctl);
-  printf("vobu_s_ptm    0x%08x\n", pci_gi->vobu_s_ptm);
-  printf("vobu_e_ptm    0x%08x\n", pci_gi->vobu_e_ptm);
-  printf("vobu_se_e_ptm 0x%08x\n", pci_gi->vobu_se_e_ptm);
+  printf("vobu_s_ptm    %u\n", pci_gi->vobu_s_ptm);
+  printf("vobu_e_ptm    %u\n", pci_gi->vobu_e_ptm);
+  printf("vobu_se_e_ptm %u\n", pci_gi->vobu_se_e_ptm);
   printf("e_eltm        ");
   print_time(&pci_gi->e_eltm);
   printf("\n");
@@ -106,9 +106,9 @@ static void navPrint_HL_GI(hl_gi_t *hl_gi, int *btngr_ns, int *btn_ns) {
   
   printf("hl_gi:\n");
   printf("hli_ss        0x%01x\n", hl_gi->hli_ss & 0x03);
-  printf("hli_s_ptm     0x%08x\n", hl_gi->hli_s_ptm);
-  printf("hli_e_ptm     0x%08x\n", hl_gi->hli_e_ptm);
-  printf("btn_se_e_ptm  0x%08x\n", hl_gi->btn_se_e_ptm);
+  printf("hli_s_ptm     %u\n", hl_gi->hli_s_ptm);
+  printf("hli_e_ptm     %u\n", hl_gi->hli_e_ptm);
+  printf("btn_se_e_ptm  %u\n", hl_gi->btn_se_e_ptm);
 
   *btngr_ns = hl_gi->btngr_ns;
   printf("btngr_ns      %d\n",  hl_gi->btngr_ns);

@@ -183,7 +183,7 @@ typedef struct {
   unsigned int zero1 : 2;
   unsigned int btngr_ns : 2;
   unsigned int zero2 : 1;
-  unsigned int btngr1_dsp_ty : 3;
+  unsigned int btngr1_dsp_ty : 3; /* type=1 for Widescreen, type=4 for Pan/Scan */
   unsigned int zero3 : 1;
   unsigned int btngr2_dsp_ty : 3;
   unsigned int zero4 : 1;

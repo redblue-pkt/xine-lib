@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.71 2002/01/04 00:23:06 jcdutton Exp $
+ * $Id: demux_mpeg_block.c,v 1.72 2002/01/05 18:14:27 jcdutton Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -100,7 +100,7 @@ typedef struct demux_mpeg_block_s {
 static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_mode) {
 
   buf_element_t *buf = NULL;
-  unsigned char *p;
+  uint8_t       *p;
   int            bMpeg1=0;
   uint32_t       header_len;
   uint32_t       PTS;
@@ -283,6 +283,7 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
     printf ("demux_mpeg_block: scr %d last_scr %d diff %d\n",
 	    scr, this->last_scr, scr_diff);
 #endif
+    
 
     if (abs(scr_diff) > 60000) {
       
@@ -309,6 +310,16 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
 
   packet_len = p[4] << 8 | p[5];
   stream_id  = p[3];
+
+  if (stream_id == 0xbf) {  /* NAV Packet */
+    buf->content   = p;
+    buf->size      = packet_len;
+    buf->type      = BUF_SPU_NAV;
+    buf->PTS       = 0;   /* NAV packets do not have PES values */
+    buf->input_pos = this->input->get_current_pos(this->input);
+    this->video_fifo->put (this->video_fifo, buf);
+    return ;
+  }
 
   if (bMpeg1) {
 
@@ -505,15 +516,6 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
       
       return ;
     }
-  } else if (stream_id == 0xbf) {  /* NAV Packet */
-    buf->content   = p-9;
-    buf->size      = packet_len;
-    buf->type      = BUF_SPU_NAV;
-    buf->PTS       = PTS;
-    buf->input_pos = this->input->get_current_pos(this->input);
-    this->video_fifo->put (this->video_fifo, buf);
-    return ;
-
   } else if ((stream_id >= 0xbc) && ((stream_id & 0xf0) == 0xe0)) {
 
 

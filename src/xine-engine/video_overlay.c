@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_overlay.c,v 1.8 2001/12/16 20:46:17 miguelfreitas Exp $
+ * $Id: video_overlay.c,v 1.9 2002/01/05 18:14:27 jcdutton Exp $
  *
  */
 
@@ -341,7 +341,9 @@ static void video_overlay_event( video_overlay_t *this, int vpts ) {
 #ifdef LOG_DEBUG
           video_overlay_print_overlay( this->video_overlay_events[this_event].event->object.overlay ) ;
 #endif
-          internal_video_overlay_free_handle( this, handle );
+          /* This should not happen, the calling routine should do the free */
+          /* FIXME: Need to add new event to free handle */
+/* internal_video_overlay_free_handle( this, handle ); */
           
           this->video_overlay_objects[handle].handle = handle;
           if( this->video_overlay_objects[handle].overlay ) {
@@ -365,7 +367,9 @@ static void video_overlay_event( video_overlay_t *this, int vpts ) {
         free(this->video_overlay_events[this_event].event->object.overlay);
           this->video_overlay_events[this_event].event->object.overlay = NULL; 
         remove_showing_handle( this, handle );
-        internal_video_overlay_free_handle( this, handle );
+        /* This should not happen, the calling routine should do the free */
+        /* FIXME: Need to add new event to free handle */
+        /* internal_video_overlay_free_handle( this, handle ); */
         break;
   
       case EVENT_HIDE_MENU:
@@ -375,7 +379,9 @@ static void video_overlay_event( video_overlay_t *this, int vpts ) {
         free(this->video_overlay_events[this_event].event->object.overlay);
           this->video_overlay_events[this_event].event->object.overlay = NULL; 
         remove_showing_handle( this, handle );
-        internal_video_overlay_free_handle( this, handle );
+        /* This should not happen, the calling routine should do the free */
+        /* FIXME: Need to add new event to free handle */
+        /* internal_video_overlay_free_handle( this, handle ); */
         break;
   
       case EVENT_MENU_SPU:

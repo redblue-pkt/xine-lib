@@ -35,7 +35,7 @@
  * along with this program; see the file COPYING.  If not, write to
  * the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: spu.c,v 1.27 2001/11/30 00:53:51 f1rmb Exp $
+ * $Id: spu.c,v 1.28 2002/01/05 18:14:27 jcdutton Exp $
  *
  */
 
@@ -129,7 +129,7 @@ int spu_next_event(spu_state_t *state, spu_seq_t* seq, int pts)
   return state->next_pts <= pts;
 }
 
-#define CMD_SPU_MENU		0x00
+#define CMD_SPU_FORCE_DISPLAY	0x00
 #define CMD_SPU_SHOW		0x01
 #define CMD_SPU_HIDE		0x02
 #define CMD_SPU_SET_PALETTE	0x03
@@ -187,15 +187,24 @@ void spu_do_commands(spu_state_t *state, spu_seq_t* seq, vo_overlay_t *ovl)
       state->cur_colors[2] = clut->entry1;
       state->cur_colors[1] = clut->entry2;
       state->cur_colors[0] = clut->entry3;
- 
+
 /* This is a bit out of context for now */
       ovl->color[3] = state->clut[clut->entry0]; 
       ovl->color[2] = state->clut[clut->entry1];
       ovl->color[1] = state->clut[clut->entry2];
       ovl->color[0] = state->clut[clut->entry3];
+      if ( (clut->entry0 | clut->entry1 | clut->entry2 | clut->entry3) == 0) {
+        ovl->color[3] = 0x108080; 
+        ovl->color[2] = 0x808080;
+        ovl->color[1] = 0xb08080;
+        ovl->color[0] = 0x108080;
+      }
+
 #ifdef LOG_DEBUG
       printf ("spu: \tclut [%x %x %x %x]\n",
 	      ovl->color[0], ovl->color[1], ovl->color[2], ovl->color[3]);
+      printf ("spu: \tclut base [%x %x %x %x]\n",
+	      clut->entry0, clut->entry1, clut->entry2, clut->entry3);
 #endif
       state->modified = 1;
       buf += 3;
@@ -209,6 +218,13 @@ void spu_do_commands(spu_state_t *state, spu_seq_t* seq, vo_overlay_t *ovl)
       ovl->trans[2] = trans->entry1;
       ovl->trans[1] = trans->entry2;
       ovl->trans[0] = trans->entry3;
+      if ( (trans->entry0 | trans->entry1 | trans->entry2 | trans->entry3) == 0) {
+        ovl->trans[3] = 15;
+        ovl->trans[2] = 15;
+        ovl->trans[1] = 15;
+        ovl->trans[0] = 0;
+      }
+
 #ifdef LOG_DEBUG
       printf ("spu: \ttrans [%d %d %d %d]\n",
 	       ovl->trans[0], ovl->trans[1], ovl->trans[2], ovl->trans[3]);
@@ -253,7 +269,7 @@ void spu_do_commands(spu_state_t *state, spu_seq_t* seq, vo_overlay_t *ovl)
       buf += 5;
       break;
       
-    case CMD_SPU_MENU:
+    case CMD_SPU_FORCE_DISPLAY:
 #ifdef LOG_DEBUG
       printf ("spu: \tForce Display/Menu\n");
 #endif

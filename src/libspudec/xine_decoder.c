@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.49 2002/01/05 10:31:31 jcdutton Exp $
+ * $Id: xine_decoder.c,v 1.50 2002/01/05 18:14:27 jcdutton Exp $
  *
  * stuff needed to turn libspu into a xine decoder plugin
  */
@@ -40,6 +40,7 @@
 #include "spu.h"
 #include "nav_types.h"
 #include "nav_read.h"
+#include "nav_print.h"
 
 /*
 #define LOG_DEBUG 1
@@ -173,7 +174,7 @@ static void spu_process (spudec_decoder_t *this, uint32_t stream_id) {
       }
 
 #ifdef LOG_DEBUG
-      spudec_print_overlay( &this->overlay );
+      /* spudec_print_overlay( &this->overlay ); */
       printf ("spu: forced display:%s\n", this->state.menu ? "Yes" : "No" ); 
 #endif
   
@@ -184,8 +185,19 @@ static void spu_process (spudec_decoder_t *this, uint32_t stream_id) {
       if (this->state.need_clut)
         spu_discover_clut(&this->state, &this->overlay);
       
-      if (this->state.menu == 0) {
+      //if (this->state.menu == 0) {
+      if (1) {
         /* Subtitle */
+        if( this->menu_handle < 0 )
+          this->menu_handle = this->vo_out->overlay_source->get_handle(this->vo_out->overlay_source,1);
+        
+        if( this->menu_handle < 0 ) {
+          printf("libspudec: No video_overlay handles left for menu\n");
+          return;
+        }
+        this->event.object.handle = this->menu_handle;
+
+/******************************* 
         if( this->spu_stream_state[stream_id].overlay_handle < 0 ) {
           this->spu_stream_state[stream_id].overlay_handle = 
                this->vo_out->overlay_source->get_handle(this->vo_out->overlay_source, 0);
@@ -197,11 +209,16 @@ static void spu_process (spudec_decoder_t *this, uint32_t stream_id) {
         }
         
         this->event.object.handle = this->spu_stream_state[stream_id].overlay_handle;
-       
+*********************************/ 
+      
         xine_fast_memcpy(this->event.object.overlay, 
                &this->overlay,
                sizeof(vo_overlay_t));
         this->overlay.rle=NULL;
+        /* For force display menus */
+        if ( !(this->state.visible) ) {
+          this->state.visible = EVENT_SHOW_SPU;
+        }
         
         this->event.event_type = this->state.visible;
         
@@ -231,6 +248,7 @@ static void spu_process (spudec_decoder_t *this, uint32_t stream_id) {
         this->overlay.rle=NULL;
         
         this->event.event_type = EVENT_MENU_SPU;
+        //this->event.event_type = EVENT_SHOW_SPU;
       }
         
       /* if !vpts then we are near a discontinuity but video_out havent detected
@@ -253,14 +271,16 @@ static void spu_process (spudec_decoder_t *this, uint32_t stream_id) {
 }
 
 static void spudec_decode_nav(spudec_decoder_t *this, buf_element_t *buf) {
-  uint8_t *p = buf->content;
+  uint8_t *p;
   uint32_t packet_len;
   uint32_t stream_id;
   uint32_t header_len;
   pci_t *pci;
   dsi_t *dsi;
+
+  p = buf->content;
   if (p[0] || p[1] || (p[2] != 1)) {
-    printf("demux error! %02x %02x %02x (should be 0x000001) \n",p[0],p[1],p[2]);
+    printf("libspudec:spudec_decode_nav:nav demux error! %02x %02x %02x (should be 0x000001) \n",p[0],p[1],p[2]);
     return;
   }
   pci=xine_xmalloc(sizeof(pci_t));
@@ -291,9 +311,15 @@ static void spudec_decode_nav(spudec_decoder_t *this, buf_element_t *buf) {
        pci->hli.hl_gi.hli_e_ptm,
        pci->hli.hl_gi.btn_se_e_ptm,
        buf->PTS);
-      printf("libspudec:nav:btn_sn=%u, btn_ns=%u, fosl_btnn=%u, foac_btnn=%u\n",
+      printf("libspudec:nav:btn_sn/ofn=%u, btn_ns=%u, fosl_btnn=%u, foac_btnn=%u\n",
        pci->hli.hl_gi.btn_ofn, pci->hli.hl_gi.btn_ns,
        pci->hli.hl_gi.fosl_btnn, pci->hli.hl_gi.foac_btnn);
+      printf("btngr_ns      %d\n",  pci->hli.hl_gi.btngr_ns);
+      printf("btngr%d_dsp_ty    0x%02x\n", 1, pci->hli.hl_gi.btngr1_dsp_ty);
+      printf("btngr%d_dsp_ty    0x%02x\n", 2, pci->hli.hl_gi.btngr2_dsp_ty);
+      printf("btngr%d_dsp_ty    0x%02x\n", 3, pci->hli.hl_gi.btngr3_dsp_ty);
+      //navPrint_PCI(pci); 
+
 #endif
     }
 
