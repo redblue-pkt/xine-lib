@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (C) 2000-2001 the xine project
  * 
  * This file is part of xine, a unix video player.
@@ -7,7 +7,7 @@
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * xine is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.21 2001/09/08 00:44:40 guenter Exp $
+ * $Id: input_dvd.c,v 1.22 2001/09/10 00:47:37 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -214,7 +214,7 @@ static off_t dvd_plugin_read (input_plugin_t *this_gen,
   dvd_input_plugin_t *this = (dvd_input_plugin_t *) this_gen;
 
   if (nlen != DVD_VIDEO_LB_LEN) {
-    /* 
+    /*
      * Hide the error reporting now, demuxer try to read 6 bytes
      * at STAGE_BY_CONTENT probe stage
      */
@@ -222,7 +222,7 @@ static off_t dvd_plugin_read (input_plugin_t *this_gen,
              "is not a sector!\n", nlen);
     return 0;
   }
-  
+
   if (this->file_size_left < nlen)
     return 0;
 
@@ -239,41 +239,57 @@ static off_t dvd_plugin_read (input_plugin_t *this_gen,
 }
 
 /*
+ * helper function to release buffer
+ * in case demux thread is cancelled
+ */
+static void pool_release_buffer (void *arg) {
+  buf_element_t *buf = (buf_element_t *) arg;
+  if( buf != NULL )
+    buf->free_buffer(buf);
+}
+
+
+/*
  *
  */
-static buf_element_t *dvd_plugin_read_block (input_plugin_t *this_gen, 
+static buf_element_t *dvd_plugin_read_block (input_plugin_t *this_gen,
 					     fifo_buffer_t *fifo, off_t nlen) {
   dvd_input_plugin_t *this = (dvd_input_plugin_t *) this_gen;
-  buf_element_t      *buf = fifo->buffer_pool_alloc (fifo);
+  buf_element_t      *buf;
 
-  if (nlen != DVD_VIDEO_LB_LEN) {
-    /* 
+  if (nlen != DVD_VIDEO_LB_LEN || this->file_size_left < nlen) {
+    /*
      * Hide the error reporting now, demuxer try to read 6 bytes
      * at STAGE_BY_CONTENT probe stage
      */
-    fprintf (stderr, "ERROR in input_dvd plugin read: %Ld bytes "
+    if(nlen != DVD_VIDEO_LB_LEN)
+      fprintf (stderr, "ERROR in input_dvd plugin read: %Ld bytes "
       	     "is not a sector!\n", nlen);
-    goto read_block_failure;
+    return NULL;
   }
 
-  if (this->file_size_left < nlen)
-    goto read_block_failure;
+  buf = fifo->buffer_pool_alloc (fifo);
+
+  pthread_setcancelstate(PTHREAD_CANCEL_ENABLE,NULL);
+  pthread_cleanup_push( pool_release_buffer, buf );
 
   buf->content = buf->mem;
 
-  if ((buf->size = read (this->raw_fd, buf->mem, DVD_VIDEO_LB_LEN)) > 0) {
+  pthread_testcancel();
+  if ((buf->size = dvd_plugin_read (this_gen, buf->mem, DVD_VIDEO_LB_LEN)) > 0) {
     this->file_lbcur++;
     this->file_size_left -= DVD_VIDEO_LB_LEN;
     buf->type = BUF_DEMUX_BLOCK;
-    return buf;
-  } else
+  } else {
+    buf->free_buffer (buf);
+    buf = NULL;
     fprintf (stderr, "read error in input_dvd plugin\n");
+  }
 
- read_block_failure:
+  pthread_setcancelstate(PTHREAD_CANCEL_DISABLE,NULL);
+  pthread_cleanup_pop(0);
 
-  buf->free_buffer (buf);
-  
-  return NULL;
+  return buf;
 }
 
 /*
@@ -298,7 +314,7 @@ static off_t dvd_plugin_seek (input_plugin_t *this_gen, off_t offset, int origin
       this->file_size_left = this->file_size - 
 	((this->file_lbcur - this->file_lbstart) * DVD_VIDEO_LB_LEN);
     } else {
-      return (this->file_lbcur - this->file_lbstart) * 
+      return (this->file_lbcur - this->file_lbstart) *
 	(off_t) DVD_VIDEO_LB_LEN;
     }
 
@@ -455,7 +471,7 @@ static mrl_t **dvd_plugin_get_dir (input_plugin_t *this_gen,
 
       if (nLen<4) 
 	continue;
-      
+
       if (!strcasecmp (&this->filelist[i][nLen-4], ".VOB")) {
 	char str[1024];
 
@@ -472,7 +488,7 @@ static mrl_t **dvd_plugin_get_dir (input_plugin_t *this_gen,
 	    realloc(this->mrls[nFiles2]->mrl, strlen(this->filelist[i]) + 7);
 	}
 	else {
-	  this->mrls[nFiles2]->mrl = (char *) 
+	  this->mrls[nFiles2]->mrl = (char *)
 	    xmalloc(strlen(this->filelist[i]) + 7);
 	}
 
@@ -542,7 +558,7 @@ static char **dvd_plugin_get_autoplay_list (input_plugin_t *this_gen,
 
       if (nLen<4) 
 	continue;
-      
+
       if (!strcasecmp (&this->filelist[i][nLen-4], ".VOB")) {
 
 	sprintf (this->filelist2[nFiles2], "dvd://%s", this->filelist[i]); 

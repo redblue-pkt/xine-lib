@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (C) 2000 the xine project
  * 
  * This file is part of xine, a unix video player.
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_file.c,v 1.22 2001/09/08 00:44:40 guenter Exp $
+ * $Id: input_file.c,v 1.23 2001/09/10 00:47:37 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -176,7 +176,7 @@ static uint32_t get_file_type(char *filepathname, char *origin) {
   int          mode;
   uint32_t     file_type = 0;
   char         buf[PATH_MAX + NAME_MAX + 1];
-  
+
   if((lstat(filepathname, &pstat)) < 0) {
     sprintf(buf, "%s/%s", origin, filepathname);
     if((lstat(buf, &pstat)) < 0) {
@@ -278,6 +278,16 @@ static off_t file_plugin_read (input_plugin_t *this_gen, char *buf, off_t len) {
 }
 
 /*
+ * helper function to release buffer
+ * in case demux thread is cancelled
+ */
+static void pool_release_buffer (void *arg) {
+  buf_element_t *buf = (buf_element_t *) arg;
+  if( buf != NULL )
+    buf->free_buffer(buf);
+}
+
+/*
  *
  */
 static buf_element_t *file_plugin_read_block (input_plugin_t *this_gen, fifo_buffer_t *fifo, off_t todo) {
@@ -286,20 +296,29 @@ static buf_element_t *file_plugin_read_block (input_plugin_t *this_gen, fifo_buf
   file_input_plugin_t  *this = (file_input_plugin_t *) this_gen;
   buf_element_t        *buf = fifo->buffer_pool_alloc (fifo);
 
+  pthread_setcancelstate(PTHREAD_CANCEL_ENABLE,NULL);
+  pthread_cleanup_push( pool_release_buffer, buf );
+
   buf->content = buf->mem;
   buf->type = BUF_DEMUX_BLOCK;
   total_bytes = 0;
 
   while (total_bytes < todo) {
+    pthread_testcancel();
     num_bytes = read (this->fh, buf->mem + total_bytes, todo-total_bytes);
     total_bytes += num_bytes;
     if (!num_bytes) {
       buf->free_buffer (buf);
-      return NULL;
+      buf = NULL;
+      break;
     }
   }
 
-  buf->size = total_bytes;
+  if( buf != NULL )
+    buf->size = total_bytes;
+
+  pthread_setcancelstate(PTHREAD_CANCEL_DISABLE,NULL);
+  pthread_cleanup_pop(0);
 
   return buf;
 }
@@ -381,7 +400,7 @@ static mrl_t **file_plugin_get_dir (input_plugin_t *this_gen,
    */
   if(!filename) {
     char *pwd;
-    
+
     if((pwd = getenv("PWD")) == NULL)
       snprintf(current_dir, 1, "%s", ".");
     else
@@ -396,7 +415,7 @@ static mrl_t **file_plugin_get_dir (input_plugin_t *this_gen,
     snprintf(current_dir, PATH_MAX, "%s", filename);
     
   }
-  
+
   if(strcasecmp(current_dir, "/"))
     sprintf(current_dir_slashed, "%s/", current_dir);
   else
