@@ -123,7 +123,7 @@ xine -A null
 
 if you have ALSA drivers installed, try
 
-xine -A alsa
+xine -A alsa09
 
 if you run ESD, try
 
