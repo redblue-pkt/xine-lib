@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.h,v 1.2 2001/04/27 10:42:38 f1rmb Exp $
+ * $Id: metronom.h,v 1.3 2001/05/01 21:55:23 guenter Exp $
  *
  * metronom: general pts => virtual calculation/assoc
  *                   
@@ -34,6 +34,7 @@
 
 #include <inttypes.h>
 #include <sys/time.h>
+#include <pthread.h>
 
 typedef struct metronom_s metronom_t ;
 
@@ -158,12 +159,16 @@ struct metronom_s {
   uint32_t        sync_pts;
   uint32_t        sync_vpts;
 
+  uint32_t        video_wrap_offset;
+  uint32_t        audio_wrap_offset;
+
   /* video delta for wrong framerates */
   uint32_t        last_video_pts;
   uint32_t        last_video_vpts;
   int             num_video_vpts_guessed;
   int32_t         video_pts_delta;
 
+  uint32_t        last_audio_pts;
   int             num_audio_samples_guessed;
 
   int32_t         av_offset;
@@ -171,6 +176,8 @@ struct metronom_s {
   struct timeval  start_time;
   uint32_t        start_pts, last_pts;
   int             stopped ;
+
+  pthread_mutex_t lock;
 };
 
 metronom_t *metronom_init ();

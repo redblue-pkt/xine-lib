@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.c,v 1.2 2001/04/19 09:46:57 f1rmb Exp $
+ * $Id: metronom.c,v 1.3 2001/05/01 21:55:23 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -41,6 +41,8 @@
 
 static void metronom_reset (metronom_t *this) {
 
+  pthread_mutex_lock (&this->lock);
+
   this->video_vpts                = 0;
   this->audio_vpts                = 0;
 
@@ -50,17 +52,27 @@ static void metronom_reset (metronom_t *this) {
   this->last_video_pts            = 0;
   this->num_video_vpts_guessed    = 1;
   this->num_audio_samples_guessed = 1;
+  this->last_audio_pts            = 0;
 
   this->sync_pts                  = 0;
   this->sync_vpts                 = 0;
 
+  this->video_wrap_offset         = 0;
+  this->audio_wrap_offset         = 0;
+
   this->av_offset                 = 0;
 
   this->stopped                   = 1;
+
+  pthread_mutex_unlock (&this->lock);
 }
 
 static void metronom_set_video_rate (metronom_t *this, uint32_t pts_per_frame) {
+  pthread_mutex_lock (&this->lock);
+
   this->pts_per_frame = pts_per_frame;
+
+  pthread_mutex_unlock (&this->lock);
 }
 
 static uint32_t metronom_get_video_rate (metronom_t *this) {
@@ -68,7 +80,11 @@ static uint32_t metronom_get_video_rate (metronom_t *this) {
 }
 
 static void metronom_set_audio_rate (metronom_t *this, uint32_t pts_per_smpls) {
+  pthread_mutex_lock (&this->lock);
+
   this->pts_per_smpls = pts_per_smpls;
+
+  pthread_mutex_unlock (&this->lock);
 
   xprintf (METRONOM | VERBOSE, "metronom: %d pts per %d samples\n", pts_per_smpls, AUDIO_SAMPLE_NUM);
 
@@ -84,7 +100,24 @@ static uint32_t metronom_got_video_frame (metronom_t *this, uint32_t pts) {
 
   uint32_t vpts;
 
+  pthread_mutex_lock (&this->lock);
+
   if (pts) {
+
+    /*
+     * did a wrap-around occur?
+     */
+    if ( (pts+this->video_wrap_offset)<this->last_video_pts) {
+
+      this->video_wrap_offset = this->last_video_pts - pts 
+	+ this->num_video_vpts_guessed *(this->pts_per_frame + this->video_pts_delta);
+
+      printf ("metronom: video pts wraparound detected, wrap_offset = %d\n",
+	      this->video_wrap_offset);
+
+    }
+
+    pts += this->video_wrap_offset;
 
     /*
      * calc delta to compensate wrong framerates 
@@ -147,6 +180,8 @@ static uint32_t metronom_got_video_frame (metronom_t *this, uint32_t pts) {
 
   xprintf (METRONOM | VERBOSE, "metronom: video vpts for %10d : %10d\n", pts, vpts);
 
+  pthread_mutex_unlock (&this->lock);
+
   return vpts + this->av_offset;
 }
 
@@ -158,8 +193,26 @@ static uint32_t metronom_got_audio_samples (metronom_t *this, uint32_t pts, uint
   xprintf (METRONOM | VERBOSE, "metronom: got %d audio samples (pts=%d)\n",
 	   nsamples,pts);
 
+  pthread_mutex_lock (&this->lock);
+
   if (pts) {
     int32_t diff;
+
+    /*
+     * did a wrap-around occur?
+     */
+
+    if ((pts+this->audio_wrap_offset)<this->last_audio_pts) {
+
+      this->audio_wrap_offset = this->last_audio_pts - pts
+	+ this->num_audio_samples_guessed *(this->audio_pts_delta + this->pts_per_smpls) / AUDIO_SAMPLE_NUM ;
+
+      printf ("metronom: audio pts wraparound detected, wrap_offset = %d\n",
+	      this->audio_wrap_offset);
+
+    }
+
+    pts += this->audio_wrap_offset;
 
     diff = pts - this->sync_pts;
 
@@ -193,6 +246,7 @@ static uint32_t metronom_got_audio_samples (metronom_t *this, uint32_t pts, uint
     this->sync_pts = pts;
     this->sync_vpts = this->audio_vpts;
     this->num_audio_samples_guessed = 0;
+    this->last_audio_pts = pts;
   }
   
   vpts = this->audio_vpts;
@@ -201,11 +255,19 @@ static uint32_t metronom_got_audio_samples (metronom_t *this, uint32_t pts, uint
 
   xprintf (METRONOM | VERBOSE, "metronom: audio vpts for %10d : %10d\n", pts, vpts);
 
+  pthread_mutex_unlock (&this->lock);
+
   return vpts;
 }
 
 static void metronom_set_av_offset (metronom_t *this, int32_t pts) {
+
+  pthread_mutex_lock (&this->lock);
+
   this->av_offset = pts;
+
+  pthread_mutex_unlock (&this->lock);
+
   printf ("metronom: av_offset=%d pts\n", pts);
 }
 
@@ -223,9 +285,15 @@ static int32_t metronom_get_av_offset (metronom_t *this) {
 
 
 static void metronom_start_clock (metronom_t *this, uint32_t pts) {
+
+  pthread_mutex_lock (&this->lock);
+
   gettimeofday(&this->start_time, NULL);
   this->last_pts = this->start_pts = pts;
   this->stopped  = 0;
+
+  pthread_mutex_unlock (&this->lock);
+
 }
 
 
@@ -233,6 +301,8 @@ static uint32_t metronom_get_current_time (metronom_t *this) {
 
   uint32_t pts;
   struct timeval tv;
+
+  pthread_mutex_lock (&this->lock);
 
   gettimeofday(&tv, NULL);
   pts  = (tv.tv_sec  - this->start_time.tv_sec) * 90000;
@@ -244,13 +314,23 @@ static uint32_t metronom_get_current_time (metronom_t *this) {
     pts = this->last_pts;
   }
 
+  pthread_mutex_unlock (&this->lock);
+
   return pts;
 }
 
 
 static void metronom_stop_clock(metronom_t *this) {
+
+  uint32_t current_time = this->get_current_time(this);
+
+  pthread_mutex_lock (&this->lock);
+
   this->stopped = 1;
-  this->last_pts = this->get_current_time(this);
+  this->last_pts = current_time;
+
+  pthread_mutex_unlock (&this->lock);
+
 }
 
 
@@ -262,13 +342,18 @@ static void metronom_resume_clock(metronom_t *this) {
 
 static void metronom_adjust_clock(metronom_t *this, uint32_t desired_pts)
 {
-  int delta;
+  int      delta;
+  uint32_t current_time = this->get_current_time(this);
+
+  pthread_mutex_lock (&this->lock);
 
   /* FIXME: this should be softer than a brute force warp... */
   delta  = desired_pts;
-  delta -= this->get_current_time(this);
+  delta -= current_time;
   this->start_pts += delta;
   /* printf("adjusting start_pts to %d\n", this->start_pts);  */
+
+  pthread_mutex_unlock (&this->lock);
 }
 
 metronom_t * metronom_init () {
@@ -289,6 +374,8 @@ metronom_t * metronom_init () {
   this->resume_clock      = metronom_resume_clock;
   this->get_current_time  = metronom_get_current_time;
   this->adjust_clock      = metronom_adjust_clock;
+
+  pthread_mutex_init (&this->lock, NULL);
     
   this->reset (this);
 
