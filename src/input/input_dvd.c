@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.195 2004/12/12 22:01:05 mroi Exp $
+ * $Id: input_dvd.c,v 1.196 2005/01/18 21:58:19 mroi Exp $
  *
  */
 
@@ -422,8 +422,8 @@ static void dvd_plugin_dispose (input_plugin_t *this_gen) {
   } else {
     pthread_mutex_unlock(&this->buf_mutex);
     pthread_mutex_destroy(&this->buf_mutex);
-    if (this->mem)
-      free(this->mem);
+    free(this->mem);
+    free(this->mrl);
     free(this);
   }
 }
@@ -528,6 +528,7 @@ static void dvd_plugin_free_buffer(buf_element_t *buf) {
     /* all buffers returned, we can free the plugin now */
     pthread_mutex_destroy(&this->buf_mutex);
     free(this->mem);
+    free(this->mrl);
     free(this);
   }
 }
