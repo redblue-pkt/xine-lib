@@ -28,7 +28,7 @@
  *   
  *   Based on FFmpeg's libav/rm.c.
  *
- * $Id: demux_real.c,v 1.58 2003/06/20 21:22:41 jstembridge Exp $
+ * $Id: demux_real.c,v 1.59 2003/06/22 19:42:31 komadori Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -484,9 +484,9 @@ static void real_parse_headers (demux_real_t *this) {
             int str_len;
 
             str_len = *(mdpr->type_specific_data + 56);
-            fourcc = *(uint32_t *) (mdpr->type_specific_data + 58 + str_len);
+            fourcc = ME_32(mdpr->type_specific_data + 58 + str_len);
           } else if(version == 5) {
-            fourcc = *(uint32_t *) (mdpr->type_specific_data + 66);
+            fourcc = ME_32(mdpr->type_specific_data + 66);
           } else {
             printf("demux_real: unsupported audio header version %d\n", version);
 
