@@ -55,23 +55,30 @@ if [ -d $RPM_BUILD_ROOT ]; then rm -rf $RPM_BUILD_ROOT; fi
 make install-strip prefix=$RPM_BUILD_ROOT%{prefix}
 #cp doc/*.xpm $RPM_BUILD_ROOT/usr/include/X11/pixmaps
 
-#%post
-#/sbin/ldconfig
+%post
+/sbin/ldconfig
 
 %clean
 rm -rf $RPM_BUILD_ROOT
 
 %files
 %defattr(-,root,root)
-%{prefix}/bin/xine
+%{prefix}/bin/xine-config
 %{prefix}/man/man1/xine.*
 %{prefix}/man/fr/man1/xine.*
+%{prefix}/include/xine/*.h
+%{prefix}/include/xine.h
 %{prefix}/lib/xine/plugins/*.la
 %{prefix}/lib/xine/plugins/*.so
+%{prefix}/lib/libxine*.la
+%{prefix}/lib/libxine*.so*
 %{prefix}/share/xine/skins/*
 %{prefix}/share/doc/xine/*
 
 %changelog
+* Sun Jun 10 2001 Matthias Dahl <matthew2k@web.de>
+- fixed filelist
+- re-activated execution of /sbin/ldconfig as post install script
 * Thu Mar 28 2001 Daniel Caujolle-Bert <f1rmb@users.sourceforge.net>
 - add korean summary, patch from Louis JANG <louis@ns.mizi.com>
 * Thu Jan 11 2001 Daniel Caujolle-Bert <f1rmb@users.sourceforge.net>
