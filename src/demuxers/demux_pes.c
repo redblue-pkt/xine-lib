@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_pes.c,v 1.41 2002/11/01 17:41:22 mroi Exp $
+ * $Id: demux_pes.c,v 1.42 2002/11/09 23:22:32 guenter Exp $
  *
  * demultiplexer for mpeg 2 PES (Packetized Elementary Streams)
  * reads streams of variable blocksizes
@@ -624,6 +624,8 @@ static void *init_demuxer_plugin(xine_t *xine, void *data) {
   this->demux_plugin.get_status        = demux_pes_get_status;
   this->demux_plugin.get_identifier    = demux_pes_get_id;
   this->demux_plugin.get_stream_length = demux_pes_get_stream_length;
+  this->demux_plugin.get_video_frame   = NULL;
+  this->demux_plugin.got_video_frame_cb= NULL;
   this->demux_plugin.get_mimetypes     = demux_pes_get_mimetypes;
   
   this->status = DEMUX_FINISHED;

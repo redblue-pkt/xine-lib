@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ts.c,v 1.61 2002/11/07 04:08:14 guenter Exp $
+ * $Id: demux_ts.c,v 1.62 2002/11/09 23:22:32 guenter Exp $
  *
  * Demultiplexer for MPEG2 Transport Streams.
  *
@@ -1414,7 +1414,23 @@ static int demux_ts_get_stream_length (demux_plugin_t *this_gen) {
 
   demux_ts_t*this = (demux_ts_t*)this_gen;
 
-  return this->input->get_length (this->input) / (this->rate * 50);
+  if (this->rate)
+    return this->input->get_length (this->input) / (this->rate * 50);
+  else
+    return 0;
+}
+
+static int demux_ts_get_video_frame (demux_plugin_t *this_gen,
+				     int timestamp, 
+				     int *width, int *height,
+				     int *ratio_code, 
+				     int *duration, 
+				     int *format,
+				     uint8_t *img) {
+
+  /* demux_ts_t *this = (demux_ts_t*)this_gen; */
+
+  return 0;
 }
 
 
@@ -1529,6 +1545,8 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen,
   this->demux_plugin.dispose           = demux_ts_dispose;
   this->demux_plugin.get_status        = demux_ts_get_status;
   this->demux_plugin.get_stream_length = demux_ts_get_stream_length;
+  this->demux_plugin.get_video_frame   = demux_ts_get_video_frame;
+  this->demux_plugin.got_video_frame_cb= NULL;
   this->demux_plugin.demux_class       = class_gen;
   
   /*
@@ -1618,6 +1636,6 @@ static void *init_class (xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_DEMUX, 15, "mpeg-ts", XINE_VERSION_CODE, NULL, init_class },
+  { PLUGIN_DEMUX, 16, "mpeg-ts", XINE_VERSION_CODE, NULL, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

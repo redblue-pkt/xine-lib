@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.h,v 1.76 2002/10/31 05:23:02 tmmm Exp $
+ * $Id: buffer.h,v 1.77 2002/11/09 23:22:33 guenter Exp $
  *
  *
  * contents:
@@ -221,6 +221,8 @@ struct buf_element_s {
 #define BUF_FLAG_SEEK        0x0100
 #define BUF_FLAG_SPECIAL     0x0200
 #define BUF_FLAG_NO_VIDEO    0x0400
+/* do not decode the buffer contents, detect framing only */
+#define BUF_FLAG_FRAMING     0x0800 
 
 /* these are the types of special buffers */
 /* 

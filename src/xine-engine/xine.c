@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.189 2002/11/05 23:29:48 tmattern Exp $
+ * $Id: xine.c,v 1.190 2002/11/09 23:22:33 guenter Exp $
  *
  * top-level xine functions
  *
@@ -1055,6 +1055,33 @@ int xine_get_current_frame (xine_stream_t *stream, int *width, int *height,
   }
 
   return 1;
+}
+
+int xine_get_video_frame (xine_stream_t *stream,
+			  int timestamp, /* msec */
+			  int *width, int *height,
+			  int *ratio_code, 
+			  int *duration, /* msec */
+			  int *format,
+			  uint8_t *img) {
+  int ret;
+
+  pthread_mutex_lock (&stream->frontend_lock);
+
+  if (stream->status != XINE_STATUS_STOP) 
+    xine_stop_internal (stream);
+
+  if (stream->demux_plugin->get_video_frame)
+    ret = stream->demux_plugin->get_video_frame (stream->demux_plugin,
+						 timestamp, width, height,
+						 ratio_code, duration,
+						 format, img);
+  else
+    ret = 0;
+  
+  pthread_mutex_unlock (&stream->frontend_lock);
+
+  return ret;
 }
 
 int xine_get_spu_lang (xine_stream_t *stream, int channel, char *lang) {

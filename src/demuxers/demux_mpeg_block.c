@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.135 2002/11/01 17:41:15 mroi Exp $
+ * $Id: demux_mpeg_block.c,v 1.136 2002/11/09 23:22:32 guenter Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -79,6 +79,9 @@ typedef struct demux_mpeg_block_s {
   int64_t               last_pts[2];
   int                   send_newpts;
   int                   buf_flag_seek;
+
+  /* stream index for get_audio/video_frame */
+  int                   have_index;
 
 } demux_mpeg_block_t ;
 
@@ -927,8 +930,36 @@ static int demux_mpeg_block_get_stream_length (demux_plugin_t *this_gen) {
     return this->input->get_length (this->input) / (this->rate * 50);
   else
     return 0;
+}
+
+static void generate_index (demux_mpeg_block_t *this) {
+
+  /* FIXME: implement */
 
 }
+
+static int demux_mpeg_block_get_video_frame (demux_plugin_t *this_gen,
+					     int timestamp, 
+					     int *width, int *height,
+					     int *ratio_code, 
+					     int *duration, 
+					     int *format,
+					     uint8_t *img) {
+
+  demux_mpeg_block_t *this = (demux_mpeg_block_t*) this_gen; 
+
+  if (!this->have_index) {
+
+    generate_index (this);
+
+    this->have_index = 1;
+  }
+
+
+  return 0;
+}
+
+
 static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *stream,
                                    input_plugin_t *input_gen) {
 
@@ -955,10 +986,13 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   this->demux_plugin.dispose           = demux_mpeg_block_dispose;
   this->demux_plugin.get_status        = demux_mpeg_block_get_status;
   this->demux_plugin.get_stream_length = demux_mpeg_block_get_stream_length;
+  this->demux_plugin.get_video_frame   = demux_mpeg_block_get_video_frame;
+  this->demux_plugin.got_video_frame_cb= NULL;
   this->demux_plugin.demux_class       = class_gen;
 
-  this->scratch = xine_xmalloc_aligned (512, 4096, (void**) &this->scratch_base);
-  this->status = DEMUX_FINISHED;
+  this->scratch    = xine_xmalloc_aligned (512, 4096, (void**) &this->scratch_base);
+  this->status     = DEMUX_FINISHED;
+  this->have_index = 0;
 
 #ifdef LOG
   printf ("demux_mpeg_block:open_plugin:detection_method=%d\n",
@@ -1029,8 +1063,9 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
       free (this);
       return NULL;
     }
-    if( (!strncmp((ending + 3), "mpeg2", 5)) ||
-            (!strncmp((ending + 3), "mpeg1", 5)) ) {
+    if ( (!strncasecmp (ending, ".vob", 4)) ||
+	 (!strncmp((ending + 3), "mpeg2", 5)) ||
+	 (!strncmp((ending + 3), "mpeg1", 5)) ) {
       this->blocksize = 2048;
       demux_mpeg_block_accept_input(this, input);
     } else if(!strncmp(mrl, "vcd", 3)) {
@@ -1118,6 +1153,6 @@ static void *init_plugin (xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_DEMUX, 15, "mpeg_block", XINE_VERSION_CODE, NULL, init_plugin },
+  { PLUGIN_DEMUX, 16, "mpeg_block", XINE_VERSION_CODE, NULL, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

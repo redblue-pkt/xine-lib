@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_eawve.c,v 1.5 2002/11/03 21:08:42 guenter Exp $
+ * $Id: demux_eawve.c,v 1.6 2002/11/09 23:22:32 guenter Exp $
  *
  * demux_eawve.c, Demuxer plugin for Electronic Arts' WVE file format
  *
@@ -390,6 +390,8 @@ static demux_plugin_t* open_plugin (demux_class_t *class_gen, xine_stream_t *str
   this->demux_plugin.dispose           = (void*)demux_eawve_dispose;
   this->demux_plugin.get_status        = (void*)demux_eawve_get_status;
   this->demux_plugin.get_stream_length = (void*)demux_eawve_get_stream_length;
+  this->demux_plugin.get_video_frame   = NULL;
+  this->demux_plugin.got_video_frame_cb= NULL;
   this->demux_plugin.demux_class       = class_gen;
 
   this->status = DEMUX_FINISHED;
@@ -486,6 +488,6 @@ static void *init_plugin (xine_t *xine, void *data)
 }
 
 plugin_info_t xine_plugin_info[] = {
-  { PLUGIN_DEMUX, 15, "wve", XINE_VERSION_CODE, NULL, (void*)init_plugin},
+  { PLUGIN_DEMUX, 16, "wve", XINE_VERSION_CODE, NULL, (void*)init_plugin},
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

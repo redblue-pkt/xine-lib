@@ -54,6 +54,8 @@ opional
 - bring dxr3 video out to work with aaxine (michael)
 - streaming of avi files (e.g. via http)
 - ms audio decoder from ffmpeg
+- dv format support
+- visualization plugins
 
 
 Assigned tasks

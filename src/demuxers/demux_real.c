@@ -21,7 +21,7 @@
  * For more information regarding the Real file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_real.c,v 1.7 2002/11/01 17:41:25 mroi Exp $
+ * $Id: demux_real.c,v 1.8 2002/11/09 23:22:32 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -403,6 +403,8 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   this->demux_plugin.dispose           = demux_real_dispose;
   this->demux_plugin.get_status        = demux_real_get_status;
   this->demux_plugin.get_stream_length = demux_real_get_stream_length;
+  this->demux_plugin.get_video_frame   = NULL;
+  this->demux_plugin.got_video_frame_cb= NULL;
   this->demux_plugin.demux_class       = class_gen;
 
   this->status = DEMUX_FINISHED;
@@ -508,6 +510,6 @@ static void *init_plugin (xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */
-  { PLUGIN_DEMUX, 15, "real", XINE_VERSION_CODE, NULL, init_plugin },
+  { PLUGIN_DEMUX, 16, "real", XINE_VERSION_CODE, NULL, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

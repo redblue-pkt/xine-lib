@@ -17,13 +17,14 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux.h,v 1.23 2002/11/01 17:41:02 mroi Exp $
+ * $Id: demux.h,v 1.24 2002/11/09 23:22:32 guenter Exp $
  */
 
 #ifndef HAVE_DEMUX_H
 #define HAVE_DEMUX_H
 
 #include "buffer.h"
+#include "video_out.h"
 #include "xine_internal.h"
 #if defined(XINE_COMPILE)
 #include "input/input_plugin.h"
@@ -31,7 +32,7 @@
 #include "input_plugin.h"
 #endif
 
-#define DEMUXER_PLUGIN_IFACE_VERSION    15
+#define DEMUXER_PLUGIN_IFACE_VERSION    16
 
 #define DEMUX_OK                   0
 #define DEMUX_FINISHED             1
@@ -148,6 +149,23 @@ struct demux_plugin_s {
 
   int (*get_stream_length) (demux_plugin_t *this);
 
+  /*
+   * get audio/video frames 
+   *
+   * experimental, function pointers can be NULL for now.
+   */
+
+  int (*get_video_frame) (demux_plugin_t *this,
+			  int timestamp, /* msec */
+			  int *width, int *height,
+			  int *ratio_code, 
+			  int *duration, /* msec */
+			  int *format,
+			  uint8_t *img) ;
+
+  /* called by video_out for every frame it receives */
+  void (*got_video_frame_cb) (demux_plugin_t *this,
+			      vo_frame_t *frame);
 
   /*
    * "backwards" link to plugin class

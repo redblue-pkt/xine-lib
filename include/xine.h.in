@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.34 2002/11/03 23:11:21 storri Exp $
+ * $Id: xine.h.in,v 1.35 2002/11/09 23:22:32 guenter Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -261,6 +261,28 @@ int  xine_get_current_frame (xine_stream_t *stream,
 #define XINE_IMGFMT_YV12 (('2'<<24)|('1'<<16)|('V'<<8)|'Y')
 #define XINE_IMGFMT_YUY2 (('2'<<24)|('Y'<<16)|('U'<<8)|'Y')
 
+#ifdef XINE_ENABLE_EXPERIMENTAL_FEATURES
+
+/*
+ * access to decoded audio and video frames from a stream
+ * these functions are intended to provide the basis for
+ * re-encoding and other video processing applications
+ *
+ * warning: experimental
+ *
+ */
+
+int xine_get_video_frame (xine_stream_t *stream,
+			  int timestamp, /* msec */
+			  int *width, int *height,
+			  int *ratio_code, 
+			  int *duration, /* msec */
+			  int *format,
+			  uint8_t *img);
+
+/* TODO: xine_get_audio_frame */
+
+#endif
 
 /*
  * xine log functions
