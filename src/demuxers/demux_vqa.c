@@ -21,7 +21,7 @@
  * For more information regarding the VQA file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_vqa.c,v 1.1 2002/08/12 00:14:58 tmmm Exp $
+ * $Id: demux_vqa.c,v 1.2 2002/09/02 17:27:16 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -63,6 +63,7 @@
 #define VQA_HEADER_SIZE 0x2A
 #define VQA_FRAMERATE 15
 #define VQA_PTS_INC (90000 / VQA_FRAMERATE)
+#define VQA_PREAMBLE_SIZE 8
 
 #define VALID_ENDS "vqa"
 
@@ -91,7 +92,7 @@ typedef struct {
   pthread_mutex_t      mutex;
   int                  send_end_buffers;
 
-  off_t                start;
+  off_t                filesize;
   int                  status;
 
   unsigned int         total_frames;
@@ -115,6 +116,10 @@ static void *demux_vqa_loop (void *this_gen) {
   demux_vqa_t *this = (demux_vqa_t *) this_gen;
   buf_element_t *buf = NULL;
   unsigned int i;
+  unsigned char preamble[VQA_PREAMBLE_SIZE];
+  unsigned int chunk_size;
+  off_t current_file_pos;
+  int skip_byte;
 
   pthread_mutex_lock( &this->mutex );
 
@@ -126,6 +131,8 @@ static void *demux_vqa_loop (void *this_gen) {
       /* someone may want to interrupt us */
       pthread_mutex_unlock( &this->mutex );
       pthread_mutex_lock( &this->mutex );
+
+      current_file_pos = this->input->get_current_pos(this->input);
 
       i = this->current_frame;
       /* if there is an incongruency between last and current sample, it
@@ -143,6 +150,86 @@ static void *demux_vqa_loop (void *this_gen) {
         break;
       }
 
+      /* make sure to position at the current frame */
+      this->input->seek(this->input, this->frame_table[i].frame_offset,
+        SEEK_SET);
+
+      /* load and dispatch the audio portion of the frame */
+      if (this->input->read(this->input, preamble, VQA_PREAMBLE_SIZE) !=
+        VQA_PREAMBLE_SIZE) {
+        this->status = DEMUX_FINISHED;
+        break;
+      }
+
+      chunk_size = BE_32(&preamble[4]);
+      skip_byte = chunk_size & 0x1;
+      while (chunk_size) {
+        buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
+        buf->type = BUF_AUDIO_VQA_IMA;
+        buf->input_pos = current_file_pos;
+        buf->input_length = this->filesize;
+        buf->input_time = this->frame_table[i].audio_pts / 90000;
+        buf->pts = this->frame_table[i].audio_pts;
+
+        if (chunk_size > buf->max_size)
+          buf->size = buf->max_size;
+        else
+          buf->size = chunk_size;
+        chunk_size -= buf->size;
+
+        if (this->input->read(this->input, buf->content, buf->size) !=
+          buf->size) {
+          buf->free_buffer(buf);
+          this->status = DEMUX_FINISHED;
+          break;
+        }
+
+        if (!chunk_size)
+          buf->decoder_flags |= BUF_FLAG_FRAME_END;
+
+        this->audio_fifo->put (this->audio_fifo, buf);
+      }
+      /* stay on 16-bit alignment */
+      if (skip_byte)
+        this->input->seek(this->input, 1, SEEK_CUR);
+
+      /* load and dispatch the video portion of the frame but only if this
+       * is not frame #0 */
+      if (i > 0) {
+        if (this->input->read(this->input, preamble, VQA_PREAMBLE_SIZE) !=
+          VQA_PREAMBLE_SIZE) {
+          this->status = DEMUX_FINISHED;
+          break;
+        }
+
+        chunk_size = BE_32(&preamble[4]);
+        while (chunk_size) {
+          buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
+          buf->type = BUF_VIDEO_VQA;
+          buf->input_pos = current_file_pos;
+          buf->input_length = this->filesize;
+          buf->input_time = this->frame_table[i].video_pts / 90000;
+          buf->pts = this->frame_table[i].video_pts;
+
+          if (chunk_size > buf->max_size)
+            buf->size = buf->max_size;
+          else
+            buf->size = chunk_size;
+          chunk_size -= buf->size;
+
+          if (this->input->read(this->input, buf->content, buf->size) !=
+            buf->size) {
+            buf->free_buffer(buf);
+            this->status = DEMUX_FINISHED;
+            break;
+          }
+
+          if (!chunk_size)
+            buf->decoder_flags |= BUF_FLAG_FRAME_END;
+
+          this->video_fifo->put (this->video_fifo, buf);
+        }
+      }
     }
 
     /* wait before sending end buffers: user might want to do a new seek */
@@ -263,6 +350,9 @@ static int demux_vqa_start (demux_plugin_t *this_gen,
     }
     last_offset = BE_32(&header[0]);
 
+    /* get the actual filesize */
+    this->filesize = this->input->get_length(this->input);
+
     /* skip to the VQA header */
     this->input->seek(this->input, 20, SEEK_SET);
     if (this->input->read(this->input, header, VQA_HEADER_SIZE)
@@ -279,6 +369,7 @@ static int demux_vqa_start (demux_plugin_t *this_gen,
     this->vector_width = header[10];
     this->vector_height = header[11];
     this->audio_sample_rate = LE_16(&header[24]);
+    this->audio_channels = header[26];
 
     /* fetch the chunk table */
     this->input->seek(this->input, 8, SEEK_CUR);  /* skip FINF and length */
@@ -336,9 +427,10 @@ static int demux_vqa_start (demux_plugin_t *this_gen,
       this->total_time / 60,
       this->total_time % 60);
     xine_log (this->xine, XINE_LOG_FORMAT,
-      _("demux_vqa: %dx%d VQA video, %d Hz IMA ADPCM audio\n"),
+      _("demux_vqa: %dx%d VQA video; %d-channel %d Hz IMA ADPCM audio\n"),
       this->video_width,
       this->video_height,
+      this->audio_channels,
       this->audio_sample_rate);
 
     /* send start buffers */
@@ -429,7 +521,11 @@ static void demux_vqa_stop (demux_plugin_t *this_gen) {
   xine_demux_control_end(this->xine, BUF_FLAG_END_USER);
 }
 
-static void demux_vqa_close (demux_plugin_t *this) {
+static void demux_vqa_close (demux_plugin_t *this_gen) {
+
+  demux_vqa_t *this = (demux_vqa_t *) this_gen;
+
+  free(this->frame_table);
   free(this);
 }
 
