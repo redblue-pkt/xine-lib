@@ -26,11 +26,11 @@
  * and credited to this person:
  *   Craig Reese: IDA/Supercomputing Research Center
  *
- * mu-law -> PCM conversion routine lifted from SoX Sound eXchange:
+ * A-law -> PCM conversion routine lifted from SoX Sound eXchange:
  *   http://sox.sourceforge.net/
  * which listed the code as being lifted from Sun Microsystems.
  *
- * $Id: logpcm.c,v 1.1 2002/09/01 04:24:35 tmmm Exp $
+ * $Id: logpcm.c,v 1.2 2002/09/01 04:26:20 tmmm Exp $
  *
  */
 
