@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.h,v 1.140 2004/07/14 01:18:47 miguelfreitas Exp $
+ * $Id: buffer.h,v 1.141 2004/08/27 21:07:31 miguelfreitas Exp $
  *
  *
  * contents:
@@ -426,8 +426,16 @@ struct buf_element_s {
  */
 #define BUF_SPECIAL_LPCM_CONFIG 6
 
-
-/* special buffer type 7 used to be defined but is now available for use */
+/*
+ * In a BUF_SPECIAL_CHARSET_ENCODING buffer:
+ * decoder_info[1] = BUF_SPECIAL_CHARSET_ENCODING
+ * decoder_info[2] = size of charset encoding string
+ * decoder_info_ptr[2] = pointer to charset encoding string
+ * This is used mostly with subtitle buffers when encoding is
+ * known at demuxer level (take precedence over xine config
+ * settings such as misc.spu_src_encoding)
+ */
+#define BUF_SPECIAL_CHARSET_ENCODING 7
 
 
 /*

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.85 2004/07/22 14:21:31 mroi Exp $
+ * $Id: xine_decoder.c,v 1.86 2004/08/27 21:07:31 miguelfreitas Exp $
  *
  */
 
@@ -88,6 +88,7 @@ typedef struct sputext_decoder_s {
   subtitle_size      subtitle_size;   /* size of subtitles */
   int                vertical_offset;
   char               font[FONTNAME_SIZE]; /* subtitle font */
+  char              *buf_encoding;    /* encoding of subtitle buffer */
 
   int                width;          /* frame width                */
   int                height;         /* frame height               */
@@ -198,10 +199,39 @@ static void update_output_size (sputext_decoder_t *this) {
   }
 }
 
+static int parse_utf8_size(unsigned char *c)
+{
+  if ( c[0]<0x80 )
+      return 1;
+  
+  if( c[1]==0 )
+    return 1;
+  if ( (c[0]>=0xC2 && c[0]<=0xDF) && (c[1]>=0x80 && c[1]<=0xBF) )
+    return 2;
+  
+  if( c[2]==0 )
+    return 2;	
+  else if ( c[0]==0xE0 && (c[1]>=0xA0 && c[1]<=0xBF) && (c[2]>=0x80 && c[1]<=0xBF) )
+    return 3;
+  else if ( (c[0]>=0xE1 && c[0]<=0xEC) && (c[1]>=0x80 && c[1]<=0xBF) && (c[2]>=0x80 && c[1]<=0xBF) )
+    return 3;
+  else if ( c[0]==0xED && (c[1]>=0x80 && c[1]<=0x9F) && (c[2]>=0x80 && c[1]<=0xBF) )
+    return 3;
+  else if ( c[0]==0xEF && (c[1]>=0xA4 && c[1]<=0xBF) && (c[2]>=0x80 && c[1]<=0xBF) )
+    return 3;
+  else
+    return 1;
+}
+
 static int ogm_get_width(sputext_decoder_t *this, char* text) {
   int i=0,width=0,w,dummy;
-  char letter[2]={0, 0};
-
+  char letter[5]={0, 0, 0, 0, 0};
+  int shift, isutf8 = 0;
+  char *encoding = (this->buf_encoding)?this->buf_encoding:
+                                        this->class->src_encoding;
+  if( strcmp(encoding, "utf-8") == 0 )
+    isutf8 = 1;
+    
   while (i<=strlen(text)) {
     switch (text[i]) {
     case '<':
@@ -233,10 +263,16 @@ static int ogm_get_width(sputext_decoder_t *this, char* text) {
 	break;
       } 
 default:
-      letter[0]=text[i];
+      if ( isutf8 )
+        shift = parse_utf8_size(&text[i]);
+      else
+        shift = 1;
+      memcpy(letter,&text[i],shift);
+      letter[shift]=0;
+      
       this->renderer->get_text_size(this->osd, letter, &w, &dummy);
       width=width+w;
-      i++;
+      i+=shift;
     }
   }
 
@@ -245,7 +281,12 @@ default:
 
 static void ogm_render_line(sputext_decoder_t *this, int x, int y, char* text) {
   int i=0,w,dummy;
-  char letter[2]={0,0};
+  char letter[5]={0, 0, 0, 0, 0};
+  int shift, isutf8 = 0;
+  char *encoding = (this->buf_encoding)?this->buf_encoding:
+                                        this->class->src_encoding;
+  if( strcmp(encoding, "utf-8") == 0 )
+    isutf8 = 1;
 
   while (i<=strlen(text)) {
     switch (text[i]) {
@@ -278,11 +319,17 @@ static void ogm_render_line(sputext_decoder_t *this, int x, int y, char* text) {
 	break;
       } 
     default:
-      letter[0]=text[i];
+      if ( isutf8 )
+        shift = parse_utf8_size(&text[i]);
+      else
+        shift = 1;
+      memcpy(letter,&text[i],shift);
+      letter[shift]=0;
+      
       this->renderer->render_text(this->osd, x, y, letter, OSD_TEXT1);
       this->renderer->get_text_size(this->osd, letter, &w, &dummy);
       x=x+w;
-      i++;
+      i+=shift;
     }
   }
 }
@@ -302,7 +349,10 @@ static void draw_subtitle(sputext_decoder_t *this, int64_t sub_start, int64_t su
   }
 
   font_size = this->font_size;
-  this->renderer->set_encoding(this->osd, this->class->src_encoding);
+  if (this->buf_encoding)
+    this->renderer->set_encoding(this->osd, this->buf_encoding);
+  else
+    this->renderer->set_encoding(this->osd, this->class->src_encoding);
 
   for (line = 0; line < this->lines; line++) /* first, check lenghts and word-wrap if needed */
   {
@@ -387,7 +437,10 @@ static void draw_subtitle(sputext_decoder_t *this, int64_t sub_start, int64_t su
   }
 
   font_size = this->font_size;
-  this->renderer->set_encoding(this->osd, this->class->src_encoding);
+  if (this->buf_encoding)
+    this->renderer->set_encoding(this->osd, this->buf_encoding);
+  else
+    this->renderer->set_encoding(this->osd, this->class->src_encoding);
 
   for (line = 0; line < this->lines; line++) /* first, check lenghts and word-wrap if needed */
   {
@@ -551,6 +604,12 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
   if ((this->stream->spu_channel & 0x1f) != (buf->type & 0x1f))
     return;
 
+  if ( (buf->decoder_flags & BUF_FLAG_SPECIAL) &&
+       (buf->decoder_info[1] == BUF_SPECIAL_CHARSET_ENCODING) )
+    this->buf_encoding = buf->decoder_info_ptr[2];
+  else
+    this->buf_encoding = NULL;
+    
   if( (buf->type & 0xFFFF0000) == BUF_SPU_OGM ) {
 
     this->ogm = 1;

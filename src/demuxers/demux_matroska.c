@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_matroska.c,v 1.29 2004/07/14 01:18:48 miguelfreitas Exp $
+ * $Id: demux_matroska.c,v 1.30 2004/08/27 21:07:31 miguelfreitas Exp $
  *
  * demultiplexer for matroska streams
  *
@@ -749,7 +749,10 @@ static void handle_sub_ssa (demux_plugin_t *this_gen, matroska_track_t *track,
 
   buf = track->fifo->buffer_pool_alloc(track->fifo);
   buf->type = track->buf_type;
-  buf->decoder_flags = decoder_flags;
+  buf->decoder_flags = decoder_flags | BUF_FLAG_SPECIAL;
+  buf->decoder_info[1] = BUF_SPECIAL_CHARSET_ENCODING;
+  buf->decoder_info_ptr[2] = "utf-8";
+  buf->decoder_info[2] = strlen(buf->decoder_info_ptr[2]);
 
   val = (uint32_t *)buf->content;
   *val++ = data_pts / 90;                    /* start time */
@@ -815,6 +818,11 @@ static void handle_sub_utf8 (demux_plugin_t *this_gen, matroska_track_t *track,
 
     buf->decoder_flags = decoder_flags;
     buf->type = track->buf_type;
+    buf->decoder_flags = decoder_flags | BUF_FLAG_SPECIAL;
+    buf->decoder_info[1] = BUF_SPECIAL_CHARSET_ENCODING;
+    buf->decoder_info_ptr[2] = "utf-8";
+    buf->decoder_info[2] = strlen(buf->decoder_info_ptr[2]);
+    
     val = (uint32_t *)buf->content;
     *val++ = data_pts / 90;                    /* start time */
     *val++ = (data_pts + data_duration) / 90;  /* end time   */
