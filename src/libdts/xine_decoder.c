@@ -17,15 +17,17 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.8 2001/12/09 18:31:02 jcdutton Exp $
+ * $Id: xine_decoder.c,v 1.9 2001/12/10 12:31:09 jkeil Exp $
  *
  * 04-09-2001 DTS passtrough  (C) Joachim Koenig 
  * 09-12-2001 DTS passthrough inprovements (C) James Courtier-Dutton
  *
  */
 
+#ifndef __sun
 /* required for swab() */
 #define _XOPEN_SOURCE 500
+#endif
 
 #include <stdlib.h>
 #include <unistd.h>

@@ -17,14 +17,16 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.15 2001/12/09 23:56:22 jcdutton Exp $
+ * $Id: xine_decoder.c,v 1.16 2001/12/10 12:31:09 jkeil Exp $
  * 
  * 31-8-2001 Added LPCM rate sensing.
  *   (c) 2001 James Courtier-Dutton James@superbug.demon.co.uk
  *
  * stuff needed to turn libac3 into a xine decoder plugin
  */
+#ifndef __sun
 #define _XOPEN_SOURCE 500
+#endif
 
 #include <stdlib.h>
 #include <unistd.h>

@@ -17,13 +17,15 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.13 2001/12/09 18:31:01 jcdutton Exp $
+ * $Id: xine_decoder.c,v 1.14 2001/12/10 12:31:08 jkeil Exp $
  *
  * stuff needed to turn liba52 into a xine decoder plugin
  */
 
+#ifndef __sun
 /* required for swab() */
 #define _XOPEN_SOURCE 500
+#endif
 
 
 #include <stdlib.h>
