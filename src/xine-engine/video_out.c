@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.172 2003/10/06 21:52:45 miguelfreitas Exp $
+ * $Id: video_out.c,v 1.173 2003/10/08 02:32:04 miguelfreitas Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -387,11 +387,6 @@ static int vo_frame_draw (vo_frame_t *img, xine_stream_t *stream) {
   printf ("video_out: delivery diff : %lld, current vpts is %lld, %d frames to skip\n",
 	  diff, cur_vpts, frames_to_skip);
 #endif
-
-  if (img->lock_counter > 1) {
-    printf ("video_out: ALERT! frame is already locked for displaying\n");
-    return frames_to_skip;
-  }
 
   if (!img->bad_frame) {
 
