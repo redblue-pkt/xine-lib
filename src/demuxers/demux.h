@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux.h,v 1.3 2001/04/21 00:14:40 f1rmb Exp $
+ * $Id: demux.h,v 1.4 2001/04/27 10:47:41 f1rmb Exp $
  */
 
 #ifndef HAVE_DEMUX_H
@@ -119,4 +119,3 @@ struct demux_plugin_s
  */
 
 #endif
-
