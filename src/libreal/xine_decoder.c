@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.59 2004/01/10 01:47:14 tmattern Exp $
+ * $Id: xine_decoder.c,v 1.60 2004/01/10 17:56:46 tmattern Exp $
  *
  * thin layer to use real binary-only codecs in xine
  *
@@ -38,7 +38,6 @@
 /*
 #define LOG
 */
-
 #include "bswap.h"
 #include "xine_internal.h"
 #include "video_out.h"
@@ -373,6 +372,7 @@ static void realdec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) 
                                                   XINE_IMGFMT_YV12,
                                                   VO_BOTH_FIELDS);
 
+        img->pts = this->pts;
         img->duration  = this->duration;
         _x_stream_info_set(this->stream, XINE_STREAM_INFO_FRAME_DURATION, this->duration);
         img->bad_frame = 0;
