@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_avi.c,v 1.24 2001/08/12 15:12:54 guenter Exp $
+ * $Id: demux_avi.c,v 1.25 2001/08/25 07:42:30 guenter Exp $
  *
  * demultiplexer for avi streams
  *
@@ -53,6 +53,7 @@ typedef struct
 {
   long pos;
   long len;
+  long flags;
 } video_index_entry_t;
 
 typedef struct
@@ -536,8 +537,9 @@ static avi_t *AVI_init(demux_avi_t *this)
     {
       if(strncasecmp(AVI->idx[i],AVI->video_tag,3) == 0)
 	{
-	  AVI->video_index[nvi].pos = str2ulong(AVI->idx[i]+ 8)+ioff;
-	  AVI->video_index[nvi].len = str2ulong(AVI->idx[i]+12);
+	  AVI->video_index[nvi].pos   = str2ulong(AVI->idx[i]+ 8)+ioff;
+	  AVI->video_index[nvi].len   = str2ulong(AVI->idx[i]+12);
+	  AVI->video_index[nvi].flags = str2ulong(AVI->idx[i]+ 4);
 	  nvi++;
 	}
       if(strncasecmp(AVI->idx[i],AVI->audio_tag,4) == 0)
@@ -907,7 +909,7 @@ static void demux_avi_start (demux_plugin_t *this_gen,
 {
   buf_element_t *buf;
   demux_avi_t *this = (demux_avi_t *) this_gen;
-  uint32_t audio_pts;
+  uint32_t video_pts;
 
   this->audio_fifo   = audio_fifo;
   this->video_fifo   = video_fifo;
@@ -923,8 +925,21 @@ static void demux_avi_start (demux_plugin_t *this_gen,
    * seek
    */
 
+  /* seek video */
+  
+  while ( (this->avi->video_index[this->avi->video_posf].pos < pos)
+	  || !(this->avi->video_index[this->avi->video_posf].flags & AVIIF_KEYFRAME) ) {
+    this->avi->video_posf++;
+    if (this->avi->video_posf>this->avi->video_frames) {
+      this->status = DEMUX_FINISHED;
+      return;
+    }
+  }
+
+  video_pts = get_video_pts (this, this->avi->video_posf); 
+
   /* seek audio */
-  while (this->avi->audio_index[this->avi->audio_posc].pos < pos) {
+  while (get_audio_pts (this, this->avi->audio_posc, 0) < video_pts) {
     this->avi->audio_posc++;
     if (this->avi->audio_posc>this->avi->audio_chunks) {
       this->status = DEMUX_FINISHED;
@@ -932,19 +947,7 @@ static void demux_avi_start (demux_plugin_t *this_gen,
     }
   }
 
-  audio_pts = get_audio_pts (this, this->avi->audio_posc, 0); 
 
-  /* seek video */
-
-  
-  while (get_video_pts (this, this->avi->video_posf) < audio_pts) {
-    this->avi->video_posf++;
-    if (this->avi->video_posf>this->avi->video_frames) {
-      this->status = DEMUX_FINISHED;
-      return;
-    }
-  }
-  
   /* 
    * send start buffers
    */
