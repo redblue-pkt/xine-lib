@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer_types.c,v 1.42 2002/10/04 02:27:00 tmmm Exp $
+ * $Id: buffer_types.c,v 1.43 2002/10/12 19:18:48 tmmm Exp $
  *
  *
  * contents:
@@ -679,6 +679,14 @@ static audio_db_t audio_db[] = {
   },
   BUF_AUDIO_ALAW,
   "A-law logarithmic PCM"
+},
+{
+  {
+    meFOURCC('a', 'g', 's', 'm'),
+    0
+  },
+  BUF_AUDIO_GSM610,
+  "GSM 6.10"
 },
 { { 0 }, 0, "last entry" }
 };

@@ -1107,6 +1107,7 @@ src/libw32dll/wine/Makefile
 src/libw32dll/DirectShow/Makefile
 src/libxinevdec/Makefile
 src/libxineadec/Makefile
+src/libxineadec/gsm610/Makefile
 src/libxvid/Makefile
 src/video_out/Makefile
 src/video_out/libdha/Makefile
@@ -1209,7 +1210,7 @@ echo " * audio decoder plugins:"
 echo "   - a52             - dts"
 echo "   - mad             - adpcm"
 echo "   - linear pcm      - roqaudio"
-echo "   - log pcm"
+echo "   - log pcm         - gsm610"
 if test x"$no_oggvorbis" = "xno"; then
   echo "   - vorbis"
 fi

@@ -46,6 +46,10 @@ xine is using
   FAAD2 - Freeware Advanced Audio Decoder version 2
     Written by M. Bakker <http://www.audiocoding.com/>
 
+  GSM 06.10 Lossy Speech Compression Library
+    Written by Jutta Degener and Carsten Bormann
+    http://kbs.cs.tu-berlin.de/~jutta/toast.html
+
 Contributions 
 
   many thanks to the Linux Video and DVD Project "LiViD"

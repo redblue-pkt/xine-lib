@@ -1,0 +1,267 @@
+/*
+ * Copyright (C) 2000-2002 the xine project
+ *
+ * This file is part of xine, a free video player.
+ *
+ * xine is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * xine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
+ *
+ * GSM 6.10 Audio Decoder
+ * This decoder is based on the GSM 6.10 codec library found at:
+ *   http://kbs.cs.tu-berlin.de/~jutta/toast.html
+ * Additionally, here is an article regarding the software that appeared
+ * in Dr. Dobbs Journal:
+ *   http://www.ddj.com/documents/s=1012/ddj9412b/9412b.htm
+ *
+ * This is the notice that comes with the software:
+ * --------------------------------------------------------------------
+ * Copyright 1992, 1993, 1994 by Jutta Degener and Carsten Bormann,
+ * Technische Universitaet Berlin
+ *
+ * Any use of this software is permitted provided that this notice is not
+ * removed and that neither the authors nor the Technische Universitaet Berlin
+ * are deemed to have made any representations as to the suitability of this
+ * software for any purpose nor are held responsible for any defects of
+ * this software.  THERE IS ABSOLUTELY NO WARRANTY FOR THIS SOFTWARE.
+ * 
+ * As a matter of courtesy, the authors request to be informed about uses
+ * this software has found, about bugs in this software, and about any
+ * improvements that may be of general interest.
+ *
+ * Berlin, 28.11.1994
+ * Jutta Degener
+ * Carsten Bormann
+ * --------------------------------------------------------------------
+ *
+ * $Id: gsm610.c,v 1.1 2002/10/12 19:18:49 tmmm Exp $
+ *
+ */
+
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
+#include <stdlib.h>
+#include <string.h>
+
+#include "xine_internal.h"
+#include "audio_out.h"
+#include "buffer.h"
+#include "xineutils.h"
+#include "bswap.h"
+
+#include "gsm610/private.h"
+#include "gsm610/gsm.h"
+
+#define AUDIOBUFSIZE 128*1024
+
+#define GSM610_SAMPLE_SIZE 16
+#define GSM610_BLOCK_SIZE 160
+
+typedef struct gsm610_decoder_s {
+  audio_decoder_t   audio_decoder;
+
+  int64_t           pts;
+
+  unsigned int      buf_type;
+  ao_instance_t    *audio_out;
+  int               output_open;
+  int               sample_rate;
+
+  unsigned char    *buf;
+  int               bufsize;
+  int               size;
+
+  unsigned short    decode_buffer[GSM610_BLOCK_SIZE];
+  gsm               gsm_state;
+
+} gsm610_decoder_t;
+
+/**************************************************************************
+ * xine audio plugin functions
+ *************************************************************************/
+
+static void gsm610_reset (audio_decoder_t *this_gen) {
+}
+
+static void gsm610_init (audio_decoder_t *this_gen, ao_instance_t *audio_out) {
+
+  gsm610_decoder_t *this = (gsm610_decoder_t *) this_gen;
+
+  this->audio_out       = audio_out;
+  this->output_open     = 0;
+  this->gsm_state       = NULL;
+}
+
+static void gsm610_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
+
+  gsm610_decoder_t *this = (gsm610_decoder_t *) this_gen;
+  audio_buffer_t *audio_buffer;
+  int in_ptr;
+
+  if (buf->decoder_flags & BUF_FLAG_HEADER) {
+    this->sample_rate = buf->decoder_info[1];
+
+    this->buf = xine_xmalloc(AUDIOBUFSIZE);
+    this->bufsize = AUDIOBUFSIZE;
+    this->size = 0;
+
+    return;
+  }
+
+  if (!this->output_open) {
+
+    this->gsm_state = gsm_create();
+    this->buf_type = buf->type;
+
+    this->output_open = this->audio_out->open(this->audio_out,
+      GSM610_SAMPLE_SIZE, this->sample_rate, AO_CAP_MODE_MONO);
+  }
+
+  /* if the audio still isn't open, bail */
+  if (!this->output_open)
+    return;
+
+  if( this->size + buf->size > this->bufsize ) {
+    this->bufsize = this->size + 2 * buf->size;
+    printf("gsm610: increasing source buffer to %d to avoid overflow.\n",
+      this->bufsize);
+    this->buf = realloc( this->buf, this->bufsize );
+  }
+
+  xine_fast_memcpy (&this->buf[this->size], buf->content, buf->size);
+  this->size += buf->size;
+
+  if (buf->decoder_flags & BUF_FLAG_FRAME_END)  { /* time to decode a frame */
+
+    /* handle the Microsoft variant of GSM data */
+    if (this->buf_type == BUF_AUDIO_MSGSM) {
+
+      this->gsm_state->wav_fmt = 1;
+
+      /* the data should line up on a 65-byte boundary */
+      if ((buf->size % 65) != 0) {
+        printf ("gsm610: received MS GSM block that does not line up\n");
+        this->size = 0;
+        return;
+      }
+
+      in_ptr = 0;
+      while (this->size) {
+        gsm_decode(this->gsm_state, &this->buf[in_ptr], this->decode_buffer);
+        if ((in_ptr % 65) == 0) {
+          in_ptr += 33;
+          this->size -= 33;
+        } else {
+          in_ptr += 32;
+          this->size -= 32;
+        }
+
+        /* dispatch the decoded audio; assume that the audio buffer will
+         * always contain at least 160 samples */
+        audio_buffer = this->audio_out->get_buffer (this->audio_out);
+
+        xine_fast_memcpy(audio_buffer->mem, this->decode_buffer,
+          GSM610_BLOCK_SIZE * 2);
+        audio_buffer->num_frames = GSM610_BLOCK_SIZE;
+
+        audio_buffer->vpts = buf->pts;
+        buf->pts = 0;  /* only first buffer gets the real pts */
+        this->audio_out->put_buffer (this->audio_out, audio_buffer);
+      }
+    } else {
+
+      /* handle the other variant, which consists of 33-byte blocks */
+      this->gsm_state->wav_fmt = 0;
+
+      /* the data should line up on a 33-byte boundary */
+      if ((buf->size % 33) != 0) {
+        printf ("gsm610: received GSM block that does not line up\n");
+        this->size = 0;
+        return;
+      }
+
+      in_ptr = 0;
+      while (this->size) {
+        gsm_decode(this->gsm_state, &this->buf[in_ptr], this->decode_buffer);
+        in_ptr += 33;
+        this->size -= 33;
+
+        /* dispatch the decoded audio; assume that the audio buffer will
+         * always contain at least 160 samples */
+        audio_buffer = this->audio_out->get_buffer (this->audio_out);
+
+        xine_fast_memcpy(audio_buffer->mem, this->decode_buffer,
+          GSM610_BLOCK_SIZE * 2);
+        audio_buffer->num_frames = GSM610_BLOCK_SIZE;
+
+        audio_buffer->vpts = buf->pts;
+        buf->pts = 0;  /* only first buffer gets the real pts */
+        this->audio_out->put_buffer (this->audio_out, audio_buffer);
+      }
+    }
+  }
+}
+
+static void gsm610_close (audio_decoder_t *this_gen) {
+  gsm610_decoder_t *this = (gsm610_decoder_t *) this_gen;
+
+  if (this->gsm_state)
+    gsm_destroy(this->gsm_state);
+
+  if (this->output_open)
+    this->audio_out->close (this->audio_out);
+  this->output_open = 0;
+}
+
+static char *gsm610_get_id(void) {
+  return "GSM 6.10";
+}
+
+static void gsm610_dispose (audio_decoder_t *this_gen) {
+  free (this_gen);
+}
+
+static void *init_audio_decoder_plugin (xine_t *xine, void *data) {
+
+  gsm610_decoder_t *this ;
+
+  this = (gsm610_decoder_t *) malloc (sizeof (gsm610_decoder_t));
+
+  this->audio_decoder.init                = gsm610_init;
+  this->audio_decoder.decode_data         = gsm610_decode_data;
+  this->audio_decoder.reset               = gsm610_reset;
+  this->audio_decoder.close               = gsm610_close;
+  this->audio_decoder.get_identifier      = gsm610_get_id;
+  this->audio_decoder.dispose             = gsm610_dispose;
+
+  return (audio_decoder_t *) this;
+}
+
+static uint32_t audio_types[] = { 
+  BUF_AUDIO_MSGSM,
+  BUF_AUDIO_GSM610,
+  0
+};
+
+static decoder_info_t dec_info_audio = {
+  audio_types,         /* supported types */
+  9                    /* priority        */
+};
+
+plugin_info_t xine_plugin_info[] = {
+  /* type, API, "name", version, special_info, init_function */  
+  { PLUGIN_AUDIO_DECODER, 9, "gsm610", XINE_VERSION_CODE, &dec_info_audio, init_audio_decoder_plugin },
+  { PLUGIN_NONE, 0, "", 0, NULL, NULL }
+};
