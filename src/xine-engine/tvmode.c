@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: tvmode.c,v 1.13 2003/05/04 01:35:05 hadess Exp $
+ * $Id: tvmode.c,v 1.14 2003/05/06 20:59:43 mroi Exp $
  *
  * tvmode - TV output selection
  *
@@ -90,10 +90,13 @@ static int scan_mode_ntsc[][2] = {
     { 0 }
 } ;
 
+/* FIXME: needed? */
+#if 0
 /* Overscan sizes to be scaned for - note that we do *not* scan for 'Small' */
 static char *scan_overscan[] = {
     "Interl", "Huge", "Large", "DVD", "Normal", 0
 } ;
+#endif
 
 /* TODO: flexible */
 static double opt_aspect  = 4.0 / 3.0;
@@ -122,7 +125,8 @@ static void tvmode_connect(xine_t *this) {
     if (back_client_avail ()) {
         main_card_list = back_client_init ();
     } else {
-        fprintf (stderr, "tvmode: Nvtvd not detected, make sure nvtvd is running.\n");
+        if (this->verbosity >= XINE_VERBOSITY_LOG)
+          printf ("tvmode: Nvtvd not detected, make sure nvtvd is running.\n");
         /* Handle well in some way... */
         return;
     }
@@ -132,7 +136,8 @@ static void tvmode_connect(xine_t *this) {
     }
     
     if (!main_card_list) {
-        fprintf (stderr, "tvmode: No supported video card found.\n");
+        if (this->verbosity >= XINE_VERBOSITY_LOG)
+          printf ("tvmode: No supported video card found.\n");
         /* Handle well in some way... */
         return;
     }
@@ -141,7 +146,8 @@ static void tvmode_connect(xine_t *this) {
     main_card = main_card_list;
     
     if (!main_card) {
-        fprintf (stderr, "tvmode: No supported video card found at specified address.\n"); 
+        if (this->verbosity >= XINE_VERBOSITY_LOG)
+          printf ("tvmode: No supported video card found at specified address.\n"); 
         /* Handle well in some way... */
         return;
     }
@@ -149,10 +155,12 @@ static void tvmode_connect(xine_t *this) {
     
     if (back_access) {
         back_access->openCard (main_card);
-        fprintf(stderr, "tvmode: Using card %s for tvout\n", main_card->name);
+        if (this->verbosity >= XINE_VERBOSITY_LOG)
+          printf("tvmode: Using card %s for tvout\n", main_card->name);
         was_enabled = 1;
     } else {
-        fprintf(stderr, "tvmode: cannot connect to nvtvd - no TV mode switching available\n");
+        if (this->verbosity >= XINE_VERBOSITY_LOG)
+          printf("tvmode: cannot connect to nvtvd - no TV mode switching available\n");
     }
 
 }
@@ -178,7 +186,8 @@ static void tvmode_restorestate (xine_t *this) {
 /*    back_card->setMode (0, &old_crt, &old_tv); */
 
     back_card->setModeSettings (&old_tvregs,&old_settings); 
-    fprintf(stderr,"tvmode: Old mode saved!");
+    if (this->verbosity >= XINE_VERBOSITY_LOG)
+      printf("tvmode: Old mode saved!");
     current_type = 0;
 }
 
@@ -192,7 +201,6 @@ static void tvmode_settvstate (xine_t *this, int width, int height, double fps) 
     int        found = 0;
     int        *scanm;
     int        tmp_fps;
-    char       **scano;
   
     
     /* TODO: do that at initialization and save possible combinations */
@@ -233,10 +241,12 @@ static void tvmode_settvstate (xine_t *this, int width, int height, double fps) 
 
         back_card->setModeSettings (&mode.regs, &settings);
 
-        printf("tvmode: Trying to use mode %i x %i\n",current_width,current_height);
+        if (this->verbosity >= XINE_VERBOSITY_LOG)
+          printf("tvmode: Trying to use mode %i x %i\n",current_width,current_height);
 	current_type = 1;
     } else {
-	printf("tvmode: cannot find any valid TV mode - TV output disabled\n");
+        if (this->verbosity >= XINE_VERBOSITY_LOG)
+	  printf("tvmode: cannot find any valid TV mode - TV output disabled\n");
 	xine_tvmode_exit (this);
     }
 }
@@ -257,21 +267,24 @@ int xine_tvmode_switch (xine_t *this, int type, int width, int height, double fp
           xine_tvmode_init(this);
       }
     if (back_card) {
-          fprintf(stderr, "tvmode: switching to %s\n", type ? "TV" : "default");
+        if (this->verbosity >= XINE_VERBOSITY_LOG)
+          printf("tvmode: switching to %s\n", type ? "TV" : "default");
 
 	switch (type) {
 	case 0:
 	  tvmode_restorestate (this);
 	  break;
 	case 1:
-	    tvmode_settvstate (this, width, height, fps);
-	    break;
+	  tvmode_settvstate (this, width, height, fps);
+	  break;
 	default:
+          if (this->verbosity >= XINE_VERBOSITY_LOG)
 	    printf("tvmode: illegal type for switching\n");
-	    tvmode_restorestate (this);
+	  tvmode_restorestate (this);
 	}
     } else {
-	printf("tvmode: not connected to nvtvd for switching\n");
+        if (this->verbosity >= XINE_VERBOSITY_LOG)
+	  printf("tvmode: not connected to nvtvd for switching\n");
     }
 
   }
