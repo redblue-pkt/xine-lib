@@ -1,4 +1,5 @@
 xine-lib (1-beta12)
+  * enabled SVQ3 video decoding via ffmpeg
   * playback of theorastreams added
   * updated nvtv support, and bug fixes
   * ac3 pcm-audiotype .wav files now supported via software decode.
