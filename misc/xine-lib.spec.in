@@ -31,7 +31,7 @@
 
 Name:           %{name}
 Summary:        A portable video/audio library for unix-like systems.
-Summary(cs):    Pøenositelná video/audio knihovna pro unixovské systémy
+Summary(cs):    Přenositelná video a audio knihovna pro unixovské systémy
 Summary(de):    Eine portabele Audio-/Video-Bibliothek für unixartige Systeme.
 Summary(fi):    Joustava video- ja ääniohjelmointikirjasto Unix-tyylisille käyttöjärjestelmille.
 Version:        %{version}
@@ -67,15 +67,16 @@ complies to the GPL. More information about GPL-license can be found at
 http://www.gnu.org/licenses/gpl.html
 
 %description -l cs
-libxine je tepající srdce xine (volnì ¹iøitelného videopøehrávaèe pod gpl
-licencí pro unixovské systémy). Mimo jiné poskytuje podporu pro dekódování
-(a pøehrávání) s mnoha dnes dostupnými audio/video kodeky jako jsou
-napø. mpeg-4, mpeg-2 a mpeg-1. Tato knihovna obsahuje a pou¾ívá velký poèet
-procesorovì závislých optimalizací k dosa¾ení plynulého pøehrávání a
-zmen¹ení celkového nároku na výkon procesoru.
+libxine je tepající srdce xine (svobodného videopřehrávače pod licencí GPL pro
+unixovské systémy). Mimo jiné poskytuje podporu pro dekódování (a přehrávání)
+mnoha dnes dostupnými audio a video kodeky jako jsou např. mpeg-4 (DivX),
+mpeg-2 (DVD, SVCD), mpeg-1 (VCD), Quicktime a RealMedia. Tato knihovna používá
+četné procesorově závislé optimalizace k dosažení plynulého přehrávání a
+zmenšení celkového nároku na výkon procesoru.
 
-Dokud to bude ve shodì s GPL, neváhejte pou¾ít libxine ve va¹ich vlastních
-projektech.
+Dokud to bude ve shodě s GPL, neváhejte použít libxine ve vašich vlastních
+projektech. Více informací o GPL licenci můžete nalézt na
+http://www.gnu.org/licenses/gpl.html.
 
 %description -l de
 libxine ist das Herzstück von xine (einem freien, GPL lizensiertem Audio- und
@@ -108,7 +109,7 @@ http://www.gnu.org/licenses/gpl.html
 %if %BUILD_DEVEL
 %package devel
 Summary:        Header files and documentation to develope programs with libxine.
-Summary(cs):    Hlavièkové soubory a dokumentace pro vývoj programù pou¾ívajících libxine.
+Summary(cs):    Hlavičkové soubory a dokumentace pro vývoj programů, které používají libxine
 Summary(de):    Headerdateien und Dokumentationen, um Programme mit libxine entwickeln zu können.
 Summary(fi):    Header-tiedostot ja dokumentaatio, joita tarvitset kehittäessäsi ohjelmia libxine:n kanssa.
 Group:	       Development/Libraries
@@ -134,18 +135,19 @@ complies to the GPL. More information about GPL-license can be found at
 http://www.gnu.org/licenses/gpl.html
 
 %description devel -l cs
-Tento balíèek obsahuje hlavièkové soubory a dokumentaci potøebnou pro vývoj
-programù pou¾ívajících libxine.
+Tento balíček obsahuje hlavičkové soubory a dokumentaci potřebnou pro vývoj
+programů, které používají libxine.
 
-libxine je tepající srdce xine (volnì ¹iøitelného videopøehrávaèe pod gpl
-licencí pro unixovské systémy). Mimo jiné poskytuje podporu pro dekódování
-(a pøehrávání) s mnoha dnes dostupnými audio/video kodeky jako jsou
-napø. mpeg-4, mpeg-2 a mpeg-1. Tato knihovna obsahuje a pou¾ívá velký poèet
-procesorovì závislých optimalizací k dosa¾ení plynulého pøehrávání a
-zmen¹ení celkového nároku na výkon procesoru.
+libxine je tepající srdce xine (svobodného videopřehrávače pod licencí GPL pro
+unixovské systémy). Mimo jiné poskytuje podporu pro dekódování (a přehrávání)
+mnoha dnes dostupnými audio a video kodeky jako jsou např. mpeg-4 (DivX),
+mpeg-2 (DVD, SVCD), mpeg-1 (VCD), Quicktime a RealMedia. Tato knihovna používá
+četné procesorově závislé optimalizace k dosažení plynulého přehrávání a
+zmenšení celkového nároku na výkon procesoru.
 
-Dokud to bude ve shodì s GPL, neváhejte pou¾ít libxine ve va¹ich vlastních
-projektech.
+Dokud to bude ve shodě s GPL, neváhejte použít libxine ve vašich vlastních
+projektech. Více informací o GPL licenci můžete nalézt na
+http://www.gnu.org/licenses/gpl.html.
 
 %description devel -l de
 Dieses Paket enthält die Headerdateien und Dokumentationen, um Programme
@@ -182,6 +184,7 @@ http://www.gnu.org/licenses/gpl.html
 %if %BUILD_ALSA09
 %package alsa09
 Summary:        libxine sound output plugin for alsa >= 0.9
+Summary(cs):    Zvukový výstupní modul libxine pro ALSA >= 0.9
 Summary(de):    libxine Soundausgabeplguin für Alsa >= 0.9
 Summary(fi):    libxine-Ddnilisdke uudelle Linux:n ddniarkkitehtuurille (ALSA >= 0.9)
 Group:          Development/Libraries
@@ -190,6 +193,9 @@ Obsoletes:      libxine0-alsa09
 
 %description alsa09
 libxine sound output plugin for alsa >= 0.9
+
+%description alsa09 -l cs
+Zvukový výstupní modul libxine pro ALSA >= 0.9.
 
 %description alsa09 -l de
 libxine Soundausgabe Plugin für alsa >= 0.9
@@ -201,6 +207,7 @@ libxine-ddnilisdke uudelle Linux:n ddniarkkitehtuurille (ALSA >= 0.9)
 %if %BUILD_ARTS
 %package arts
 Summary:        libxine sound output plugin for arts (KDE-soundserver)
+Summary(cs):    Zvukový výstupní modul libxine pro ARTS (zvukový server KDE)
 Summary(de):    libxine Soundausgabeplugin für arts (KDE-Soundserver)
 Summary(fi):    libxine-Ddnilisdke Arts ddnipalvelimelle (KDE:n ddnipalvelin)
 Group:          Development/Libraries
@@ -209,6 +216,9 @@ Obsoletes:      libxine0-arts
 
 %description arts
 libxine sound output plugin for arts (KDE-soundserver)
+
+%description arts -l cs
+Zvukový výstupní modul libxine pro ARTS (zvukový server KDE).
 
 %description arts -l de
 libxine Soundausgabeplugin für arts (KDE-Soundserver)
@@ -220,6 +230,7 @@ libxine-Ddnilisdke Arts ddnipalvelimelle (KDE:n ddnipalvelin)
 %if %BUILD_ESD
 %package esd
 Summary:        libxine sound output plugin for enlightmend sound daemon
+Summary(cs):    Zvukový výstupní modul libxine pro Enlightmend Sound Daemon
 Summary(de):    libxine Soundausgabeplugin für den Enlightmend Sound Daemon
 Summary(fi):    libxine-ddnilisdke Enlightmend ddnipalvelimelle
 Group:          Development/Libraries
@@ -228,6 +239,9 @@ Obsoletes:      libxine0-esd
 
 %description esd
 libxine sound output plugin for enlightmend sound daemon (Gnome and Enlightment)
+
+%description esd -l cs
+Zvukový výstupní modul libxine pro Enlightmend Sound Daemon.
 
 %description esd -l de
 libxine Soundausgabeplugin für den Enlightmend Sound Daemon (Gnome und Enlightment)
@@ -239,6 +253,7 @@ libxine-ddnilisdke Enlightmend ddnipalvelimelle
 %if %BUILD_SDL
 %package sdl
 Summary:        libxine video output plugin for SDL-library (Simple DirectMedia Layer)
+Summary(cs):    Videovýstupní modul libxine pro knihovnu SDL (Simple DirectMedia Layer)
 Summary(de):    libxine Videoausgabeplguin für SDL-Bibliothek (Simple DirectMedia Layer)
 Summary(fi):    libxine-Videolisdke SDL grafiikkakirjastolle (Simple DirectMedia Layer)
 Group:          Development/Libraries
@@ -247,6 +262,9 @@ Obsoletes:      libxine0-sdl
 
 %description sdl
 libxine video output plugin for SDL-library (Simple DirectMedia Layer)
+
+%description sdl -l cs
+Videovýstupní modul libxine pro knihovnu SDL (Simple DirectMedia Layer).
 
 %description sdl -l de
 libxine Videoausgabeplguin für SDL-Bibliothek (Simple DirectMedia Layer)
@@ -258,6 +276,7 @@ libxine-Videolisdke SDL-grafiikkakirjastolle (Simple DirectMedia Layer)
 %if %BUILD_AA
 %package aa
 Summary:        libxine video output plugin for aa-library (ASCII Art)
+Summary(cs):    Videovýstupní modul libxine pro knihovnu aa (ASCII Art)
 Summary(de):    libxine Videoausgabeplugin für aa-Bibliothek (ASCII Art)
 Summary(fi):    libxine-Videolisdke aa-grafiikkakirjastolle (ASCII Art)
 Group:          Development/Libraries
@@ -269,6 +288,9 @@ Provides:       xine-extra
 %description aa
 libxine video output plugin for aa-library (ASCII Art)
 
+%description aa -l cs
+Videovýstupní modul libxine pro knihovnu aa (ASCII Art).
+
 %description aa -l de
 libxine Videoausgabeplugin für aa-Bibliothek (ASCII Art)
 
@@ -279,6 +301,7 @@ libxine-Videolisdke aa-grafiikkakirjastolle (ASCII Art)
 %if %BUILD_OPENGL
 %package opengl
 Summary:        libxine video output plugin using OpenGL (3D graphic cards)
+Summary(cs):    Videovýstupní modul libxine používající OpenGL (3D grafické karty)
 Summary(de):    libxine Videoausgabeplugin per OpenGL (3D Grafikkarte)
 Group:          Development/Libraries
 Obsoletes:      xine-lib-opengl
@@ -287,6 +310,9 @@ Obsoletes:      libxine0-opengl
 %description opengl
 libxine video output plugin using OpenGL (3D graphic cards)
 
+%description opengl -l cs
+Videovýstupní modul libxine, který používá OpenGL (3D grafické karty).
+
 %description opengl -l de
 libxine Videoausgabeplugin per OpenGL (3D Grafikkarte)
 %endif
@@ -294,6 +320,7 @@ libxine Videoausgabeplugin per OpenGL (3D Grafikkarte)
 %if %BUILD_SYNCFB
 %package syncfb
 Summary:        libxine video output plugin using synchroniced framebuffer (Matrox cards)
+Summary(cs):    Videovýstupní modul libxine používající framebuffer (karty Matrox)
 Summary(de):    libxine Videoausgabeplugin per synchronisiertem Framebuffer (Matrox Karten)
 Summary(fi):    libxine-Videolisdke Matrox-ndyttvkorttien synkronisoitua ndyttvmuistia varten.
 Group:          Development/Libraries
@@ -301,6 +328,10 @@ Obsoletes:      libxine0-syncfb
 
 %description syncfb
 libxine video output plugin using synchroniced framebuffer (Matrox cards)
+
+%description syncfb -l cs
+Videovýstupní modul libxine, který používá synchronizovaný framebuffer (karty
+Matrox).
 
 %description syncfb -l de
 libxine Videoausgabeplugin per synchronisiertem Framebuffer (Matrox Karten)
@@ -312,6 +343,7 @@ libxine-Videolisdke Matrox-ndyttvkorttien synkronisoitua ndyttvmuistia varten.
 %if %BUILD_DVD
 %package dvd
 Summary:        libxine input plugin for playing video-dvd's with dvd-navigation
+Summary(cs):    Vstupní modul libxine na přehrávání VideoDVD s DVD navigací
 Summary(de):    libxine Inputplugin zum abspielen von Video-DVDs mit DVD-Navigation
 Summary(fi):    libxine-Lukulisdke, jolla kdyttdjd voi soittaa DVD-levyjd
 Group:          Development/Libraries
@@ -319,6 +351,9 @@ Obsoletes:      xine-dvdnav
 
 %description dvd
 libxine input plugin for playing video-dvd's with dvd-navigation
+
+%description dvd -l cs
+Vstupní modul libxine na přehrávání VideoDVD s DVD navigací.
 
 %description dvd -l de
 libxine Inputplugin zum abspielen von Video-DVDs mit DVD-Navigation
@@ -330,6 +365,7 @@ libxine-Lukulisdke, jolla kdyttdjd voi soittaa DVD-levyjd
 %if %BUILD_DVB
 %package dvb
 Summary:        libxine input plugin for DigitalTV devices
+Summary(cs):    Vstupní modul libxine pro karty digitální TV
 Summary(de):    libxine Einabeplugin für digitale TV-Karten
 Summary(fi):    libxine-Lukulisdke, jolla kdyttdjd voi katsella DigitalTV-korttien ohjelmia
 Group:          Development/Libraries
@@ -337,6 +373,11 @@ Group:          Development/Libraries
 %description dvb
 libxine input plugin for Digital TV (Digital Video Broadcast - DVB) devices
 e.g. Hauppauge WinTV Nova supported by DVB drivers from Convergence
+
+%description dvb -l cs
+Vstupní modul libxine pro karty digitální televize (Digital Video Broadcast -
+DVB) jako je např. Hauppauge WinTV Nova podporovaná ovladači DVB od
+Convergence.
 
 %description dvb -l de
 libxine Eingabeplugin für digitale TV-Karten (Digital Video Broadcast - DVB)
@@ -350,12 +391,16 @@ Esimerkiksi Haupaugen WinTV kortit ovat tuettuja DVB ajureilla.
 %if %BUILD_GNOME_VFS
 %package gnome-vfs
 Summary:        libxine input plugin for totem (a gnome frontend)
+Summary(cs):    Vstupní modul libxine pro totem (frontend GNOME)
 Summary(de):    libxine Einabeplugin für totem (ein Gnome Frontend)
 Summary(fi):    libxine-Lukulisdke Totem ohjelmaa varten, joka on libxine:n Gnome2 kdyttvliittymd
 Group:          Development/Libraries
 
 %description gnome-vfs
 libxine input plugin for totem (a gnome frontend)
+
+%description gnome-vfs -l cs
+Vstupní modul libxine pro totem (frontend GNOME).
 
 %description gnome-vfs -l de
 libxine Einabeplugin für totem (ein Gnome Frontend)
@@ -367,12 +412,16 @@ libxine-Lukulisdke Totem ohjelmaa varten, joka on libxine Gnome2 kdyttvliittymd
 %if %BUILD_FLAC
 %package flac
 Summary:        libxine sound input plugin for flac-files (Free Lossless Audio Codec)
+Summary(cs):    Zvukový modul libxine pro dekódování souborů FLAC (Free Lossless Audio Codec)
 Summary(de):    libxine Soundeinabeplugin für flac-Dateien (Free Lossless Audio Codec)
 Summary(fi):    libxine-Ddnilisdke flac-tiedostojen toistamiseen (Free Lossless Audio Codec)
 Group:          Development/Libraries
 
 %description flac
 libxine sound input plugin for flac-files (Free Lossless Audio Codec)
+
+%description flac -l cs
+Zvukový modul libxine pro dekódování souborů FLAC (Free Lossless Audio Codec).
 
 %description flac -l de
 libxine Soundeinabeplugin für flac-Dateien (Free Lossless Audio Codec == Freier, verlustfreier Audio-Codec)
@@ -384,6 +433,7 @@ libxine-Ddnilisdke flac-tiedostojen toistamiseen (Free Lossless Audio Codec)
 %if %BUILD_OGG
 %package ogg
 Summary:        libxine sound/video input plugin for ogg/ogm-files
+Summary(cs):    Zvukový modul libxine pro dekódování souborů OGG a OGM
 Summary(de):    libxine Sound-/Videoeinabeplugin für ogg/ogm-Dateien
 Summary(fi):    libxine-Ddni/Videolisdke Ogg/Ogm tiedostojen toistamiseen
 Group:          Development/Libraries
@@ -397,6 +447,9 @@ Provides:       %{libname}-oggtheora
 %description ogg
 libxine sound/video input plugin for ogg/ogm-files
 
+%description ogg -l cs
+Zvukový modul libxine pro dekódování souborů OGG a OGM.
+
 %description ogg -l de
 libxine Sound-/Videoeinabeplugin für ogg/ogm-Dateien
 
@@ -407,11 +460,15 @@ libxine-Ddni/Videolisdke Ogg/Ogm tiedostojen toistamiseen
 %if %BUILD_DIRECTFB
 %package directfb
 Summary:        libxine video output plugin using libdirectfb
+Summary(cs):    Videovýstupní modul libxine používající libdirectfb
 Summary(de):    libxine Videoausgabeplugin per libdirectfb
 Group:          Development/Libraries
 
 %description directfb
 libxine video output plugin using libdirectfb
+
+%description directfb -l cs
+Videovýstupní modul libxine, který používá libdirectfb.
 
 %description directfb -l de
 libxine Videoausgabeplugin per libdirectfb
@@ -420,11 +477,15 @@ libxine Videoausgabeplugin per libdirectfb
 %if %BUILD_STK
 %package stk
 Summary:        libxine video output plugin using libstk
+Summary(cs):    Videovýstupní modul libxine používající libstk
 Summary(de):    libxine Videoausgabeplugin per libstk
 Group:          Development/Libraries
 
 %description stk
 libxine video output plugin using libstk (Set-top Toolkit)
+
+%description stk -l cs
+Videovýstupní modul libxine, který používá libstk.
 
 %description stk -l de
 libxine Videoausgabeplugin per libstk (Set-top Toolkit)
@@ -434,6 +495,7 @@ libxine Videoausgabeplugin per libstk (Set-top Toolkit)
 %ifarch i386 i486 i586 i686 i786 i868 i986 k6 k7 athlon x86_64 amd64 ia32e
 %package dxr3
 Summary:        libxine video output plugin using mpeg2 decoding cards with dxr3 decoder-chip
+Summary(cs):    Videovýstupní modul libxine používající karty s čipem DXR3
 Summary(de):    libxine Videoausgabeplugin, nutzt MPEG2-decoder-Karten mit dxr3 Decoder-Chip
 Summary(fi):    libxine-Videolisdke MPEG2-videopurkukorteille, joissa on DXR3 purkusiru
 Group:          Development/Libraries
@@ -442,6 +504,10 @@ Obsoletes:      libxine0-dxr3
 
 %description dxr3
 libxine video output plugin using mpeg2 decoding cards with dxr3 decoder-chip
+
+%description dxr3 -l cs
+Videovýstupní modul libxine používající karty, které dekódují MPEG2 pomocí čipu
+DXR3.
 
 %description dxr3 -l de
 libxine Videoausgabeplugin, nutzt MPEG2-decoder-Karten mit dxr3 Decoder-Chip
@@ -455,6 +521,7 @@ libxine-Videolisdke MPEG2-videopurkukorteille, joissa on DXR3 purkusiru
 %ifarch i386 i486 i586 i686 i786 i868 i986 k6 k7 athlon x86_64 amd64 ia32e
 %package xvmc
 Summary:        libxine video output plugin using XVideo-extension with motion compensation
+Summary(cs):    Videovýstupní modul libxine používající rozšíření XVideo MC
 Summary(de):    libxine Videoausgabeplugin per XVideo-Erweiterung mit Motion Compensation
 Group:          Development/Libraries
 Obsoletes:      libxine0-xvmc
@@ -462,6 +529,9 @@ Autoreqprov:    Off
 
 %description xvmc
 libxine video output plugin using XVideo-extension with motion compensation
+
+%description xvmc -l cs
+Videovýstupní modul libxine, který používá rozšíření XVideo s kompenzací pohybu.
 
 %description xvmc -l de
 libxine Videoausgabeplugin per XVideo-Erweiterung mit Motion Compensation
@@ -472,6 +542,7 @@ libxine Videoausgabeplugin per XVideo-Erweiterung mit Motion Compensation
 %ifarch i386 i486 i586 i686 i786 i868 i986 k6 k7 athlon
 %package w32dll
 Summary:        libxine decoding plugin using win32 dlls for native not supported formats
+Summary(cs):    Dekódovací modul libxine, který používá DLL knihovny WIN32 
 Summary(de):    libxine Dekodierplugin, nutzt Win32 dlls für natvie nicht unterstützte Formate
 Summary(fi):    libxine-Purkulisdke, joka mahdollistaa Win32 DLL:n kdytvn.
 Group:          Development/Libraries
@@ -483,6 +554,10 @@ libxine decoding plugin using win32 dlls for native not supported formats
 
 %description w32dll -l de
 libxine Dekodierplugin, nutzt Win32 dlls für native nicht unterstützte Formate
+
+%description w32dll -l cs
+Dekódovací modul libxine, který používá DLL knihovny WIN32 pro formáty
+nepodporované přímo.
 
 %description w32dll -l fi
 libxine-Purkulisdke, joka mahdollistaa Win32 DLL:n kdytvn.
@@ -776,6 +851,8 @@ rm ${RPM_BUILD_DIR}/filelist_libxine1_old
 %endif
 
 %changelog
+* Fri Sep 03 2004 František Dvořák <valtri@users.sourceforge.net>
+- Czech translation update
 * Thu Sep 01 2004 Manfred Tremmel <Manfred.Tremmel@iiv.de>
 - konverted to UTF8
 - some fixes for non IA32 systems (especialy Athlon64/Opteron)
