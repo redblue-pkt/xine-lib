@@ -18,7 +18,7 @@ gsm610				1.0.10			Mike Melanson
 liba52				0.7.4
 libcdio				0.64-cvs
 libdvdnav			0.1.9 cvs		Michael Roitzsch
-libfaad				cvs (12/Apr/03)		Miguel Freitas
+libfaad				2.0 RC3 cvs		Miguel Freitas
 libmad				0.14.2b			Miguel Freitas
 libmpeg2			0.2.1 [*]
 libmpg123

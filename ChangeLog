@@ -1,5 +1,6 @@
 xine-lib (1-rc4)
   * fix SDL plugin that was broken in rc3
+  * updated libfaad 2.0 RC3 cvs (fix some raw aac problems, HE support)
 
 xine-lib (1-rc3a)
   * new subtitle formats: jacobsub, subviewer 2.0, subrip 0.9
