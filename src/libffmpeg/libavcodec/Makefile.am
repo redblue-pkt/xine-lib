@@ -60,7 +60,8 @@ noinst_HEADERS = \
 	mpegvideo.h \
 	msmpeg4data.h \
 	simple_idct.h \
-	svq1_cb.h
+	svq1_cb.h \
+	wmadata.h
 
 .s.lo:
 	$(ASCOMPILE) -o $@ `test -f $< || echo '$(srcdir)/'`$<

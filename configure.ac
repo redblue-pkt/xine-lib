@@ -70,7 +70,8 @@ dnl
 AC_CANONICAL_TARGET
 
 dnl
-AM_INIT_AUTOMAKE("xine-lib", $XINE_MAJOR.$XINE_MINOR.$XINE_SUB$XINE_PRE)
+dnl AM_INIT_AUTOMAKE("xine-lib", $XINE_MAJOR.$XINE_MINOR.$XINE_SUB$XINE_PRE)
+AM_INIT_AUTOMAKE("xine-lib", $XINE_MAJOR-$XINE_PRE)
 
 
 dnl ---------------------------------------------
