@@ -25,7 +25,7 @@ libxineutils_la_SOURCES = $(pppc_files) \
 	xmlparser.c \
 	xine_buffer.c 
 
-libxineutils_la_LIBADD = $(THREAD_LIBS) $(XV_LIB) $(X_LIBS)
+libxineutils_la_LIBADD = $(THREAD_LIBS)
 
 include_HEADERS = attributes.h \
 	compat.h \
