@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.74 2004/01/12 17:35:17 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.75 2004/01/22 00:36:50 tmattern Exp $
  *
  */
 
@@ -30,20 +30,18 @@
 #include <fcntl.h>
 #include <ctype.h>
 
-#define LOG_MODULE "sputext_decoder"
+#define LOG_MODULE "libsputext"
 #define LOG_VERBOSE
 /*
 #define LOG
 */
-
 #include "buffer.h"
 #include "xine_internal.h"
 #include "xineutils.h"
 #include "osd.h"
 
-#define SUB_MAX_TEXT  5
-
-#define SUB_BUFSIZE 1024
+#define SUB_MAX_TEXT  5      /* lines */
+#define SUB_BUFSIZE   256    /* chars per line */
 
 
 typedef enum {
@@ -102,7 +100,9 @@ typedef struct sputext_decoder_s {
 
   int64_t            img_duration;
   int64_t            last_subtitle_end; /* no new subtitle before this vpts */
-  int                unscaled; /* use unscaled OSD */
+  int                unscaled;          /* use unscaled OSD */
+  
+  int                last_lines;        /* number of lines of the previous subtitle */
 } sputext_decoder_t;
 
 
@@ -111,27 +111,34 @@ static void update_font_size (sputext_decoder_t *this) {
 
   int  y;
 
-  this->font_size = sizes[this->class->subtitle_size];
+  if ((this->subtitle_size != this->class->subtitle_size) ||
+      (this->vertical_offset != this->class->vertical_offset)) {
   
-  this->line_height = this->font_size + 10;
+    this->subtitle_size = this->class->subtitle_size;
+    this->vertical_offset = this->class->vertical_offset;
+    this->last_lines = 0;
 
-  y = this->height - (SUB_MAX_TEXT * this->line_height) - 5;
-  
-  if(((y - this->class->vertical_offset) >= 0) && ((y - this->class->vertical_offset) <= this->height))
-    y -= this->class->vertical_offset;
-  
-  if( this->osd )
-    this->renderer->free_object (this->osd);
+    this->font_size = sizes[this->class->subtitle_size];
 
-  if(this->renderer) {
-    this->osd = this->renderer->new_object (this->renderer, 
-					    this->width,
-					    SUB_MAX_TEXT * this->line_height);
-    
-    this->renderer->set_font (this->osd, this->class->font, this->font_size);
-    this->renderer->set_position (this->osd, 0, y);
+    this->line_height = this->font_size + 10;
+
+    y = this->height - (SUB_MAX_TEXT * this->line_height) - 5;
+
+    if(((y - this->class->vertical_offset) >= 0) && ((y - this->class->vertical_offset) <= this->height))
+      y -= this->class->vertical_offset;
+
+    if( this->osd )
+      this->renderer->free_object (this->osd);
+
+    if(this->renderer) {
+      this->osd = this->renderer->new_object (this->renderer, 
+                                              this->width,
+                                              SUB_MAX_TEXT * this->line_height);
+
+      this->renderer->set_font (this->osd, this->class->font, this->font_size);
+      this->renderer->set_position (this->osd, 0, y);
+    }
   }
-
 }
 
 static void update_output_size (sputext_decoder_t *this) {
@@ -280,28 +287,26 @@ static void draw_subtitle(sputext_decoder_t *this, int64_t sub_start, int64_t su
   int line, y;
   int font_size;
 
-  /* update settings from class */
-  if( this->subtitle_size != this->class->subtitle_size ||
-      this->vertical_offset != this->class->vertical_offset ) {
-    this->subtitle_size = this->class->subtitle_size;
-    this->vertical_offset = this->class->vertical_offset;
-    update_font_size(this);
-  }
+  update_font_size(this);
+  
   if( strcmp(this->font, this->class->font) ) {
     strcpy(this->font, this->class->font);
     if( this->renderer )
       this->renderer->set_font (this->osd, this->class->font, this->font_size);
   }
   
-  this->renderer->filled_rect (this->osd, 0, 0, this->width-1, this->line_height * SUB_MAX_TEXT - 1, 0);
+  if (this->last_lines)
+    this->renderer->filled_rect (this->osd, 0, this->line_height * (SUB_MAX_TEXT - this->last_lines),
+                                 this->width - 1, this->line_height * SUB_MAX_TEXT - 1, 0);
+  this->last_lines = this->lines;
   
   y = (SUB_MAX_TEXT - this->lines) * this->line_height;
   font_size = this->font_size;
 
   this->renderer->set_encoding(this->osd, this->class->src_encoding);
   
-  for (line=0; line<this->lines; line++) {
-    int w,h,x;
+  for (line = 0; line < this->lines; line++) {
+    int w, h, x;
           
     while(1) {
       if( this->ogm )
@@ -319,11 +324,12 @@ static void draw_subtitle(sputext_decoder_t *this, int64_t sub_start, int64_t su
       }
     }
     
-    if( this->ogm )
+    if( this->ogm ) {
       ogm_render_line(this, x, y + line*this->line_height, this->text[line]);
-    else  
-      this->renderer->render_text (this->osd, x, y + line*this->line_height,
+    } else  {
+      this->renderer->render_text (this->osd, x, y + line * this->line_height,
                                    this->text[line], OSD_TEXT1);
+    }
   }
          
   if( font_size != this->font_size )
@@ -335,10 +341,12 @@ static void draw_subtitle(sputext_decoder_t *this, int64_t sub_start, int64_t su
   this->last_subtitle_end = sub_end;
           
   this->renderer->set_text_palette (this->osd, -1, OSD_TEXT1);
+  
   if (this->unscaled)
     this->renderer->show_unscaled (this->osd, sub_start);
   else
     this->renderer->show (this->osd, sub_start);
+  
   this->renderer->hide (this->osd, sub_end);
   
   lprintf ("scheduling subtitle >%s< at %lld until %lld, current time is %lld\n",
@@ -360,10 +368,14 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
   extra_info_t extra_info;
   int master_status, slave_status;
   int vo_discard;
-  
+
   /* filter unwanted streams */
+  if (buf->decoder_flags & BUF_FLAG_HEADER) {
+    return;
+  }
   if (buf->decoder_flags & BUF_FLAG_PREVIEW)
     return;
+  
   if ((this->stream->spu_channel & 0x1f) != (buf->type & 0x1f))
     return;
 
@@ -376,10 +388,10 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
     end = *val++;
     str = (char *)val;
   
-    this->lines=0;
+    this->lines = 0;
   
-    i=0;
-    while (*str) {
+    i = 0;
+    while (*str && (this->lines < SUB_MAX_TEXT) && (i < SUB_BUFSIZE)) {
       if (*str == '\r' || *str == '\n') {
         if (i) {
           this->text[ this->lines ][i] = 0;
@@ -388,11 +400,14 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
         }
       } else {
         this->text[ this->lines ][i] = *str;
-        if (i<SUB_BUFSIZE-1)
+        if (i < SUB_BUFSIZE-1)
           i++;
       }
       str++;
     }
+    if (i == SUB_BUFSIZE)
+      i--;
+    
     if (i) {
       this->text[ this->lines ][i] = 0;
       this->lines++;
@@ -402,13 +417,15 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
 
     this->ogm = 0;
     val = (uint32_t * )buf->content;
+    
     this->lines = *val++;
     uses_time = *val++;
     start = *val++;
     end = *val++;
     str = (char *)val;
-    for (i = 0; i < this->lines; i++, str+=strlen(str)+1) {
-      strcpy( this->text[i], str );
+    for (i = 0; i < this->lines; i++, str += strlen(str) + 1) {
+      strncpy( this->text[i], str, SUB_BUFSIZE - 1);
+      this->text[i][SUB_BUFSIZE - 1] = '\0';
     }
 
   }
@@ -557,7 +574,7 @@ static void spudec_discontinuity (spu_decoder_t *this_gen) {
 
 static void spudec_dispose (spu_decoder_t *this_gen) {
   sputext_decoder_t *this = (sputext_decoder_t *) this_gen;
-
+  
   if (this->osd) {
     this->renderer->free_object (this->osd);
     this->osd = NULL;
