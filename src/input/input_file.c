@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_file.c,v 1.47 2002/04/24 08:12:13 f1rmb Exp $
+ * $Id: input_file.c,v 1.48 2002/05/05 20:20:10 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -282,8 +282,8 @@ static int file_plugin_open (input_plugin_t *this_gen, char *mrl) {
 
   this->mrl = strdup(mrl);
 
-  if (!strncasecmp (this->mrl, "file:",5))
-    filename = &this->mrl[5];
+  if (!strncasecmp (this->mrl, "file://", 7))
+    filename = &this->mrl[7];
   else
     filename = this->mrl;
 

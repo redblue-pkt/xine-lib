@@ -298,27 +298,27 @@ static int rtp_plugin_open (input_plugin_t *this_gen, char *mrl ) {
 
   this->mrl = mrl;
 
-  if (!strncmp (mrl, "rtp:",4)) {
-       filename = &mrl[4];
-  } else if (!strncmp (mrl, "udp:",4)) {
-       filename = &mrl[4];
-  } else
-       return 0;
+  if ((!strncmp (mrl, "rtp://", 6)) || (!strncmp (mrl, "udp://", 6))) {
+    filename = &mrl[6];
     
-  if(strncmp(filename, "//", 2)==0)
-  	filename+=2;
+    if((!filename) || (strlen(filename) == 0))
+      return 0;
+    
+  }
+  else
+    return 0;
   
   LOG_MSG(this->xine, _("Opening >%s<\n"), filename);
   
   pptr=strrchr(filename, ':');
-  if(pptr)
-  {
-       *pptr++=0;
+  if(pptr) {
+       *pptr++ = 0;
        sscanf(pptr,"%d", &port);
   }
 
   if (this->fh != -1)
       close(this->fh);
+
   this->fh = host_connect(filename, port, this->xine);
 
   if (this->fh == -1) {

@@ -60,12 +60,12 @@ extern int errno;
 
 #ifdef __GNUC__
 #define LOG_MSG(xine, message, args...) {                            \
-    xine_log(xine, XINE_LOG_MSG, message, ##args);                 \
+    xine_log(xine, XINE_LOG_MSG, message, ##args);                   \
     printf(message, ##args);                                         \
   }
 #else
 #define LOG_MSG(xine, ...) {                                         \
-    xine_log(xine, XINE_LOG_MSG, __VA_ARGS__);                     \
+    xine_log(xine, XINE_LOG_MSG, __VA_ARGS__);                       \
     printf(__VA_ARGS__);                                             \
   }
 #endif
@@ -147,18 +147,20 @@ static int net_plugin_open (input_plugin_t *this_gen, char *mrl) {
 
   this->mrl = strdup(mrl); /* FIXME: small memory leak */
 
-  if (!strncasecmp (mrl, "tcp:",4))
-    filename = (char *) &this->mrl[4];
+  if (!strncasecmp (mrl, "tcp://", 6)) {
+    filename = (char *) &this->mrl[6];
+    
+    if((!filename) || (strlen(filename) == 0))
+      return 0;
+    
+  }
   else
     return 0;
     
-  if(strncmp(filename, "//", 2)==0)
-  	filename+=2;
-
   pptr=strrchr(filename, ':');
   if(pptr) {
-  	*pptr++=0;
-  	sscanf(pptr,"%d", &port);
+    *pptr++ = 0;
+    sscanf(pptr,"%d", &port);
   }
 
   this->fh     = host_connect(filename, port, this->xine);

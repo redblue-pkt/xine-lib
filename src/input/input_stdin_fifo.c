@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_stdin_fifo.c,v 1.25 2002/04/24 08:12:13 f1rmb Exp $
+ * $Id: input_stdin_fifo.c,v 1.26 2002/05/05 20:20:11 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -87,7 +87,7 @@ static int stdin_plugin_open(input_plugin_t *this_gen, char *mrl) {
 
   this->mrl = mrl;
 
-  if (!strncasecmp(mrl, "stdin:", 6) 
+  if (!strncasecmp(mrl, "stdin://", 8) 
       || !strncmp(mrl, "-", 1)) {
 #if defined(CONFIG_DEVFS_FS)
     filename = "/dev/vc/stdin";
@@ -95,26 +95,27 @@ static int stdin_plugin_open(input_plugin_t *this_gen, char *mrl) {
     filename = "/dev/stdin";
 #endif
 
-  } else if(!strncasecmp(mrl, "fifo:", 5)) {
+  } else if(!strncasecmp(mrl, "fifo://", 7)) {
 
-    if ((pfn = strrchr((mrl+5), ':')) != NULL) {
+    if ((pfn = strrchr((mrl + 7), ':')) != NULL) {
 
       filename = ++pfn;
 
     } else {
 
-      if (!(strncasecmp(mrl+5, "//mpeg1", 7))
-	  || (!(strncasecmp(mrl+5, "//mpeg2", 7)))) {
+      if (!(strncasecmp(mrl + 7, "mpeg1", 5))
+	  || (!(strncasecmp(mrl + 7, "mpeg2", 5)))) {
 	filename = (char *) &mrl[12];
 
       } else {
-	filename = (char *) &mrl[5];
+	filename = (char *) &mrl[7];
       }
     }
   } else {
     return 0;
   }
   
+  printf("input_stdin_fifo: filename '%s'\n", filename);
   this->fh = open (filename, O_RDONLY);
   
   if(this->fh == -1) {
