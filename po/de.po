@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: xine-lib 0.9.9\n"
-"POT-Creation-Date: 2002-05-13 09:30+0200\n"
+"POT-Creation-Date: 2002-05-23 14:09+0200\n"
 "PO-Revision-Date: 2002-05-13 09:34+0200\n"
 "Last-Translator: Philipp Hahn <pmhahn@users.sf.net>\n"
 "Language-Team: German <de@li.org>\n"
@@ -197,8 +197,12 @@ msgstr "demux_mpeg_block: Unbekannte Blockgröße. Versuche demux_mpeg.\n"
 
 #: src/demuxers/demux_mpgaudio.c:158
 #, c-format
-msgid "mpgaudio: bitrate = %.2fkbps\n"
-msgstr "mpgaudio: Bit-Rate = %.2fkbps\n"
+msgid "demux_mpgaudio: MPEG %s  Layer %d  %ldkbps\n"
+msgstr "demux_mpgaudio: MPEG %s  Layer %d  %ldkbps\n"
+
+#: src/demuxers/demux_mpgaudio.c:406
+msgid "demux_mpgaudio: no audio driver!\n"
+msgstr "demux_mpgaudio: Kein Audio-Treiber!\n"
 
 #: src/demuxers/demux_qt.c:3976
 #, c-format
@@ -1022,6 +1026,9 @@ msgstr "Video-Dekodierungs-Plugin gefunden : %s\n"
 #, c-format
 msgid "audio decoder plugin found : %s\n"
 msgstr "Audio-Dekodierungs-Plugin gefunden : %s\n"
+
+#~ msgid "mpgaudio: bitrate = %.2fkbps\n"
+#~ msgstr "mpgaudio: Bit-Rate = %.2fkbps\n"
 
 #~ msgid "demux_ts: stop...\n"
 #~ msgstr "demux_ts: Stopp...\n"
