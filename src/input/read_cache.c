@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: read_cache.c,v 1.3 2001/09/11 11:30:56 miguelfreitas Exp $
+ * $Id: read_cache.c,v 1.4 2001/10/03 15:09:47 jkeil Exp $
  */
 
 #include <sys/types.h>
@@ -154,7 +154,7 @@ read_cache_t *read_cache_new () {
     
     mbuf = xmalloc (sizeof (macro_buf_t));
 
-    mbuf->data   = multi_buffer;
+    mbuf->data   = (uint8_t *)multi_buffer;
     multi_buffer += 2048*16;
     mbuf->source = this;
 
