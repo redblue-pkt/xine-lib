@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.3 2001/11/13 21:47:58 heikos Exp $
+ * $Id: xine_decoder.c,v 1.4 2001/11/16 20:24:56 jcdutton Exp $
  *
  * 04-09-2001 DTS passtrough  (C) Joachim Koenig 
  *
@@ -71,13 +71,31 @@ void dts_init (audio_decoder_t *this_gen, ao_instance_t *audio_out) {
 void dts_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 
   dts_decoder_t  *this = (dts_decoder_t *) this_gen;
-  int16_t        *sample_buffer=(int16_t *)buf->content;
+  uint8_t        *data=(uint8_t *)buf->content;
   audio_buffer_t *audio_buffer;
+  uint32_t  ac5_type;
+  uint32_t  ac5_length;
+  int i;
 
   if ((this->audio_caps & AO_CAP_MODE_AC5) == 0) {
     return;
   }
-
+  if ((data[0] != 0x7f) || 
+      (data[1] != 0xfe) ||
+      (data[2] != 0x80) ||
+      (data[3] != 0x01)) {
+    printf("DTS Sync bad\n");
+    return;
+  }
+  ac5_type=((data[4] & 0x01) << 6) | ((data[5] >>2) & 0x3f);
+  ac5_length=((data[5] & 0x03) << 12) | ((data[6] & 0xff) << 4) | ((data[7] & 0xf0) >> 4);
+/*  printf("DTS AC5 length=%d\n",ac5_length); */
+  if (ac5_length > 8191) {
+    printf("ac5_length too long\n");
+    return;
+  }
+	
+  
   if (!this->output_open) {      
     this->output_open = (this->audio_out->open (this->audio_out, this->bits_per_sample, 
                                                 this->rate,
@@ -87,10 +105,11 @@ void dts_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
     return;
   
   audio_buffer = this->audio_out->get_buffer (this->audio_out);
+  memcpy (audio_buffer->mem, data, ac5_length);
 
   audio_buffer->vpts       = buf->PTS;
   audio_buffer->scr        = buf->SCR;
-  audio_buffer->num_frames = 1536;
+  audio_buffer->num_frames = ac5_length / 2;
   
   this->audio_out->put_buffer (this->audio_out, audio_buffer);
 

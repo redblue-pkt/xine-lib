@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.26 2001/11/15 00:32:36 miguelfreitas Exp $
+ * $Id: audio_out.c,v 1.27 2001/11/16 20:24:56 jcdutton Exp $
  * 
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -290,6 +290,9 @@ static void *ao_loop (void *this_gen) {
   uint8_t        *data;
   uint32_t        cur_time;
   int             num_output_frames ;
+  uint32_t        ac5_type;
+  uint32_t        ac5_length;
+  uint32_t        i;
 
   this->audio_loop_running = 1;
   
@@ -420,6 +423,55 @@ static void *ao_loop (void *this_gen) {
 	
 	break;
       case AO_CAP_MODE_AC5:
+	memset(this->frame_buffer,0x00,6144);
+	this->frame_buffer[0] = 0xf872;  /* spdif syncword */
+	this->frame_buffer[1] = 0x4e1f;  /* .............  */
+        data = (uint8_t *)&buf->mem[0];
+        
+        if ((data[0] != 0x7f) ||
+            (data[1] != 0xfe) ||
+            (data[2] != 0x80) ||
+            (data[3] != 0x01)) {
+          continue;
+        }
+        ac5_type=((data[4] & 0x01) << 6) | ((data[5] >>2) & 0x3f);
+        /* printf("AC5 type=%d\n",ac5_type); */
+        switch(ac5_type) {
+        case 0x0f:
+          this->frame_buffer[2] = 0x000b;  /* DTS          */
+          break;
+        case 0x1f:
+          this->frame_buffer[2] = 0x000c;  /* DTS          */
+          break;
+        case 0x3f:
+          this->frame_buffer[2] = 0x000d;  /* DTS          */
+          break;
+        default:
+          this->frame_buffer[2] = 0x0000;  /* DTS          */
+          break;
+        }
+
+        ac5_length=((data[5] & 0x03) << 12) |
+                   ((data[6] & 0xff) << 4)  |
+                   ((data[7] & 0xf0) >> 4);
+        /* printf("AC5 length=%d\n",ac5_length); */
+        if (ac5_length > 8191) {
+          break;
+        }
+        ac5_length = ac5_length << 3; /* Convert bytes to bits */
+	this->frame_buffer[3] = ac5_length;
+	
+	/* ac3 seems to be swabbed data */
+	swab(buf->mem,this->frame_buffer+4,  ac5_length );
+	
+        this->driver->write(this->driver, this->frame_buffer, (ac5_length / 2) + 4);
+	
+	break;
+	
+
+
+
+
 	memset(this->frame_buffer,0xff,6144);
 	this->frame_buffer[0] = 0xf872;  /* spdif syncword */
 	this->frame_buffer[1] = 0x4e1f;  /* .............  */
