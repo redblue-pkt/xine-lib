@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.c,v 1.42 2001/12/19 13:40:05 miguelfreitas Exp $
+ * $Id: metronom.c,v 1.43 2001/12/23 13:21:56 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -417,8 +417,15 @@ static uint32_t metronom_got_spu_packet (metronom_t *this, uint32_t pts,
      detected but this->video_wrap_offset not updated (would give
      wrong values too).
   */
-  if (this->video_stream_starting || this->video_discontinuity) {
+  if ( this->video_stream_starting ) {
     vpts = 0;
+  } else if ( this->video_discontinuity ) {
+    /* we can safely use audio_wrap_offset if already updated */
+    if( !this->audio_discontinuity ) {
+      vpts = pts + this->audio_wrap_offset;
+    } else {
+      vpts = 0;      
+    }
   } else {  
     vpts = pts + this->video_wrap_offset;
   }
