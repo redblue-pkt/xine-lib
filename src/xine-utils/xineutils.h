@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xineutils.h,v 1.71 2003/12/07 15:34:31 f1rmb Exp $
+ * $Id: xineutils.h,v 1.72 2003/12/08 12:36:02 f1rmb Exp $
  *
  */
 #ifndef XINEUTILS_H
@@ -844,21 +844,29 @@ void xine_hexdump (const char *buf, int length);
   
 #ifdef NDEBUG
 #define _x_assert(exp) \
-  do {                                                       \
-    if (!(exp))                                              \
-      fprintf(stderr, "%s:%s:%d: Assertion `%s' failed.\n",  \
-              __FILE__, __XINE_FUNCTION__, __LINE__, #exp);  \
+  do {                                                                \
+    if (!(exp))                                                       \
+      fprintf(stderr, "assert: %s:%d: %s: Assertion `%s' failed.\n",  \
+              __FILE__, __LINE__, __XINE_FUNCTION__, #exp);           \
   } while(0)
 #else
 #define _x_assert(exp) \
-  do {                                                       \
-    if (!(exp)) {                                            \
-      fprintf(stderr, "%s:%s:%d: Assertion `%s' failed.\n",  \
-              __FILE__, __XINE_FUNCTION__, __LINE__, #exp);  \
-      abort();                                               \
-    }                                                        \
+  do {                                                                \
+    if (!(exp)) {                                                     \
+      fprintf(stderr, "assert: %s:%d: %s: Assertion `%s' failed.\n",  \
+              __FILE__, __LINE__, __XINE_FUNCTION__, #exp);           \
+      abort();                                                        \
+    }                                                                 \
   } while(0)
 #endif
+
+#define _x_abort()                                                    \
+  do {                                                                \
+    fprintf(stderr, "abort: %s:%d: %s: Aborting.\n",                  \
+            __FILE__, __LINE__, __func__);                            \
+    abort();                                                          \
+  } while(0)
+
 
 /****** logging with xine **********************************/
 
