@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.101 2003/03/14 19:05:40 jstembridge Exp $
+ * $Id: xine_decoder.c,v 1.102 2003/03/15 19:23:50 jstembridge Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -81,9 +81,9 @@ struct ff_video_decoder_s {
   
   int                pp_available;
   int                pp_quality;
+  int                pp_flags;
   pp_context_t      *pp_context;
   pp_mode_t         *pp_mode;
-  uint8_t           *pp_data[3];
 
   /* mpeg sequence header parsing, stolen from libmpeg2 */
 
@@ -186,44 +186,71 @@ static void init_video_codec (ff_video_decoder_t *this, xine_bmiheader *bih) {
     this->output_format = XINE_IMGFMT_YV12;
 }
 
-static void init_postprocess (ff_video_decoder_t *this) {
-  int flags;
-  uint32_t cpu_caps;
-  
-  /* Detect what cpu accel we have */
-  cpu_caps = xine_mm_accel();
-  flags = PP_FORMAT_420;
- 
-  if(cpu_caps & MM_ACCEL_X86_MMX)
-    flags |= PP_CPU_CAPS_MMX;
-    
-  if(cpu_caps & MM_ACCEL_X86_MMXEXT)
-    flags |= PP_CPU_CAPS_MMX2;
-  
-  if(cpu_caps & MM_ACCEL_X86_3DNOW)  
-    flags |= PP_CPU_CAPS_3DNOW;
-   
-  /* Set up post processer */
-  this->pp_context = pp_get_context(this->bih.biWidth, this->bih.biHeight, flags);
-  
-  /* Config mode - using libpostproc default minus autolevels */
-  this->pp_mode = pp_get_mode_by_name_and_quality("hb:a,vb:a,dr:a", 
-                                                  this->pp_quality);
-}
-
 static void pp_quality_cb(void *user_data, xine_cfg_entry_t *entry) {
   ff_video_class_t   *class = (ff_video_class_t *) user_data;
   
   if(class->ip) {
     ff_video_decoder_t *this  = class->ip;
     
-    this->pp_quality = entry->num_value;  
-    if(this->pp_mode && this->pp_quality > 0) {
-      pp_free_mode(this->pp_mode);
-      this->pp_mode = pp_get_mode_by_name_and_quality("hb:a,vb:a,dr:a", 
-                                                      this->pp_quality);
+    if(this->pp_available) {
+      if(entry->num_value) {
+        if(this->pp_quality)
+          pp_free_mode(this->pp_mode);
+        else
+          this->pp_context = pp_get_context(this->bih.biWidth, 
+                                            this->bih.biHeight,
+                                            this->pp_flags);
+          
+        this->pp_mode = pp_get_mode_by_name_and_quality("hb:a,vb:a,dr:a", 
+                                                        entry->num_value);
+      } else if(this->pp_quality) {
+        pp_free_mode(this->pp_mode);
+        pp_free_context(this->pp_context);
+        
+        this->pp_mode = NULL;
+        this->pp_context = NULL;
+      }        
+      
+      this->pp_quality = entry->num_value;
     }
   }
+}
+
+static void init_postprocess (ff_video_decoder_t *this) {
+  uint32_t cpu_caps;
+  xine_cfg_entry_t quality_entry;
+
+  /* Allow post processing on mpeg-4 (based) codecs */
+  switch(this->codec->id) {
+    case CODEC_ID_MPEG4:
+    case CODEC_ID_MSMPEG4V1:
+    case CODEC_ID_MSMPEG4V2:
+    case CODEC_ID_MSMPEG4V3:
+    case CODEC_ID_WMV1:
+    case CODEC_ID_WMV2:
+      this->pp_available = 1;
+      break;
+    default:
+      this->pp_available = 0;
+      break;
+  }
+  
+  /* Detect what cpu accel we have */
+  cpu_caps = xine_mm_accel();
+  this->pp_flags = PP_FORMAT_420;
+ 
+  if(cpu_caps & MM_ACCEL_X86_MMX)
+    this->pp_flags |= PP_CPU_CAPS_MMX;
+    
+  if(cpu_caps & MM_ACCEL_X86_MMXEXT)
+    this->pp_flags |= PP_CPU_CAPS_MMX2;
+  
+  if(cpu_caps & MM_ACCEL_X86_3DNOW)  
+    this->pp_flags |= PP_CPU_CAPS_3DNOW;
+   
+  if(xine_config_lookup_entry(this->class->xine, "codec.ffmpeg_pp_quality",
+     &quality_entry))
+    pp_quality_cb(this->class, &quality_entry);
 }
 
 static void find_sequence_header (ff_video_decoder_t *this,
@@ -482,22 +509,8 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
     }
 
     init_video_codec (this, (xine_bmiheader *)buf->content );
+    init_postprocess (this);
 
-    /* Allow post processing on mpeg-4 (based) codecs */
-    switch(this->codec->id) {
-      case CODEC_ID_MPEG4:
-      case CODEC_ID_MSMPEG4V1:
-      case CODEC_ID_MSMPEG4V2:
-      case CODEC_ID_MSMPEG4V3:
-      case CODEC_ID_WMV1:
-      case CODEC_ID_WMV2:
-	this->pp_available = 1;
-	break;
-      default:
-	this->pp_available = 0;
-	break;
-    }
-  
   } else if (this->decoder_ok) {
 
     if( this->size + buf->size > this->bufsize ) {
@@ -623,36 +636,22 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 	} else {
 	  img->bad_frame = 0;
 	  
-	  dy = img->base[0];
-	  du = img->base[1];
-	  dv = img->base[2];
-	  
-	  if(this->pp_quality > 0 && this->pp_available) {
-	    if(this->pp_context == NULL) {
-	      init_postprocess(this);
-	    
-	      this->pp_data[0] = xine_xmalloc(this->av_frame->linesize[0] * this->bih.biHeight);
-	      this->pp_data[1] = xine_xmalloc(this->av_frame->linesize[1] * this->bih.biHeight / 2);
-	      this->pp_data[2] = xine_xmalloc(this->av_frame->linesize[2] * this->bih.biHeight / 2);
-            }  
-
+	  if(this->pp_available && this->pp_quality)
 	    pp_postprocess(this->av_frame->data, this->av_frame->linesize, 
-			   this->pp_data, this->av_frame->linesize, 
+			   img->base, img->pitches, 
 			   this->bih.biWidth, this->bih.biHeight,
 			   this->av_frame->qscale_table, this->av_frame->qstride,
 			   this->pp_mode, this->pp_context, 
 			   this->av_frame->pict_type);
+	  else {
 
-	    sy = this->pp_data[0];
-	    su = this->pp_data[1];
-	    sv = this->pp_data[2];
+	  dy = img->base[0];
+	  du = img->base[1];
+	  dv = img->base[2];
+	  sy = this->av_frame->data[0];
+	  su = this->av_frame->data[1];
+	  sv = this->av_frame->data[2];
 
-	  } else {
-	    sy = this->av_frame->data[0];
-	    su = this->av_frame->data[1];
-	    sv = this->av_frame->data[2];
-	  }
-	  
           if (this->context->pix_fmt == PIX_FMT_YUV410P) {
 
             yuv9_to_yv12(
@@ -776,6 +775,8 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 	  }
 
 	  }
+
+	  }
 	}
       
 	this->skipframes = img->draw(img, this->stream);
@@ -892,13 +893,6 @@ static void ff_dispose (video_decoder_t *this_gen) {
   if(this->pp_mode)
     pp_free_mode(this->pp_mode);
   
-  if(this->pp_data[0])
-    free(this->pp_data[0]);
-  if(this->pp_data[1])
-    free(this->pp_data[1]);
-  if(this->pp_data[2])
-    free(this->pp_data[2]);
-
   free (this->chunk_buffer);
   free (this_gen);
 }
@@ -906,7 +900,6 @@ static void ff_dispose (video_decoder_t *this_gen) {
 static video_decoder_t *ff_video_open_plugin (video_decoder_class_t *class_gen, xine_stream_t *stream) {
 
   ff_video_decoder_t  *this ;
-  xine_cfg_entry_t     quality_entry;
 
 #ifdef LOG
   printf ("ffmpeg: open_plugin\n");
@@ -938,16 +931,10 @@ static video_decoder_t *ff_video_open_plugin (video_decoder_class_t *class_gen, 
   this->aspect_ratio = 0;
   this->xine_aspect_ratio = XINE_VO_ASPECT_DONT_TOUCH;
 
+  this->pp_quality  = 0;
   this->pp_context  = NULL;
   this->pp_mode     = NULL;
-  this->pp_data[0]  = NULL;
-  this->pp_data[1]  = NULL;
-  this->pp_data[2]  = NULL;
 
-  if(xine_config_lookup_entry(this->class->xine, "codec.ffmpeg_pp_quality",
-     &quality_entry))
-    this->pp_quality = quality_entry.num_value;
-    
   return &this->video_decoder;
 }
 
