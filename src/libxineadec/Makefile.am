@@ -18,6 +18,7 @@ lib_LTLIBRARIES = \
 	xineplug_decode_28k8.la
 
 xineplug_decode_roqaudio_la_SOURCES = roqaudio.c
+xineplug_decode_roqaudio_la_LIBADD = $(XINE_LIB)
 xineplug_decode_roqaudio_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 xineplug_decode_adpcm_la_SOURCES = adpcm.c

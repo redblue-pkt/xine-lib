@@ -59,7 +59,7 @@ xineplug_ao_out_oss_la_SOURCES = audio_oss_out.c
 xineplug_ao_out_oss_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 xineplug_ao_out_alsa_la_SOURCES = audio_alsa_out.c
-xineplug_ao_out_alsa_la_LIBADD = $(ALSA_LIBS)
+xineplug_ao_out_alsa_la_LIBADD = $(ALSA_LIBS) $(XINE_LIB)
 xineplug_ao_out_alsa_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 xineplug_ao_out_esd_la_SOURCES = audio_esd_out.c 

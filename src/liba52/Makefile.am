@@ -1,7 +1,6 @@
 include $(top_srcdir)/misc/Makefile.common
 
 AM_CFLAGS = $(LIBA52_CFLAGS)
-DEBUG_CFLAGS = @DEBUG_CFLAGS@ $(LIBA52_CFLAGS)
 
 libdir = $(XINE_PLUGINDIR)
 

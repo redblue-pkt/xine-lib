@@ -1,5 +1,7 @@
 include $(top_srcdir)/misc/Makefile.common
 
+LIBTOOL = $(SHELL) $(top_builddir)/libtool
+
 EXTRA_DIST = stubs.s wrapper.S
 
 noinst_LTLIBRARIES = $(wine_lib)
