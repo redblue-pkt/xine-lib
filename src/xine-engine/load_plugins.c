@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.117 2002/12/01 15:10:04 mroi Exp $
+ * $Id: load_plugins.c,v 1.118 2002/12/06 21:37:18 miguelfreitas Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -178,9 +178,9 @@ static void _insert_plugin (xine_t *this,
       types[i] = decoder_old->supported_types[i];
     }
     decoder_new->supported_types = types;
-    priority = decoder_new->priority = decoder_old->priority;
+    priority = decoder_old->priority;
 
-    priority = _get_decoder_priority (this, priority, info->id);
+    decoder_new->priority = _get_decoder_priority (this, priority, info->id);
 
     entry->info->special_info = decoder_new;
     break;
