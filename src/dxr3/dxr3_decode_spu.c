@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decode_spu.c,v 1.15 2002/08/17 14:30:09 mroi Exp $
+ * $Id: dxr3_decode_spu.c,v 1.16 2002/08/28 15:46:55 mroi Exp $
  */
  
 /* dxr3 spu decoder plugin.
@@ -553,8 +553,10 @@ static int dxr3_spudec_copy_nav_to_btn(dxr3_spudec_t *this, int32_t mode, em8300
     btn->bottom = button_ptr->y_end;
     if (this->aspect == XINE_ASPECT_RATIO_ANAMORPHIC &&
         this->xine->video_driver->get_property(this->xine->video_driver, VO_PROP_VO_TYPE) ==
-        VO_TYPE_DXR3_LETTERBOXED) {
-      /* modify button areas for anamorphic menus on tv out */
+        VO_TYPE_DXR3_LETTERBOXED && this->xine->spu_channel_user == -1 &&
+	this->xine->spu_channel_letterbox != this->xine->spu_channel &&
+	this->xine->spu_channel_letterbox >= 0) {
+      /* modify button areas for letterboxed anamorphic menus on tv out */
       int top_black_bar = this->height / 8;
       btn->top = btn->top * 3 / 4 + top_black_bar;
       btn->bottom = btn->bottom * 3 / 4 + top_black_bar;
