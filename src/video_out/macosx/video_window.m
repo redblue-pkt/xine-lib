@@ -105,7 +105,11 @@ NSString *XineViewDidResizeNotification = @"XineViewDidResizeNotification";
     [xineView setResizeViewOnVideoSizeChange:YES];
 
     /* receive notifications about window resizing from the xine view */
-    [xineView setDelegate:self];
+    NSNotificationCenter *noticeBoard = [NSNotificationCenter defaultCenter];
+    [noticeBoard addObserver:self
+                    selector:@selector(xineViewDidResize:)
+                        name:XineViewDidResizeNotification
+                      object:xineView];
 
     [self setContentView: xineView];
     [self setTitle: @"xine video output"];
@@ -157,7 +161,7 @@ NSString *XineViewDidResizeNotification = @"XineViewDidResizeNotification";
     return standard_frame;
 }
 
-/* Delegate methods */
+/* Notifications */
 
 - (void) xineViewDidResize:(NSNotification *)note {
   NSRect frame = [self frame];
@@ -206,6 +210,14 @@ NSString *XineViewDidResizeNotification = @"XineViewDidResizeNotification";
         [delegate performSelector:selector
                        withObject:theEvent
                        withObject:self];
+        return;
+    }
+
+    if ([_xineController respondsToSelector:selector]) {
+        [_xineController performSelector:selector
+                              withObject:theEvent
+                              withObject:self];
+        return;
     }
 }
 
@@ -282,14 +294,15 @@ NSString *XineViewDidResizeNotification = @"XineViewDidResizeNotification";
     [currentContext update];
     [mutex unlock];
 
-    i_texture      = 0;
-    initDone       = NO;
-    isFullScreen   = NO;
-    video_width    = frame.size.width;
-    video_height   = frame.size.height;
-    texture_buffer = nil;
-    mutex          = [[NSLock alloc] init];
-    currentCursor  = [NSCursor arrowCursor];
+    i_texture       = 0;
+    initDone        = NO;
+    isFullScreen    = NO;
+    video_width     = frame.size.width;
+    video_height    = frame.size.height;
+    texture_buffer  = nil;
+    mutex           = [[NSLock alloc] init];
+    currentCursor   = [NSCursor arrowCursor];
+    _xineController = nil;
 
     [self initTextures];
 
@@ -727,22 +740,36 @@ NSString *XineViewDidResizeNotification = @"XineViewDidResizeNotification";
         return;
     }
 
+    /* If our controller handles xineViewWillResize:toSize:, send the
+     * message to him first.  Note that the delegate still has a chance
+     * to override the controller's resize preference ... */
+    if ([_xineController respondsToSelector:@selector(xineViewWillResize:toSize:)]) {
+        NSSize oldSize = [self frame].size;
+        newSize = [_xineController xineViewWillResize:oldSize toSize:proposedSize];
+    }
+
     /* If our delegate handles xineViewWillResize:toSize:, send the
      * message to him; otherwise, just resize ourselves */
     if ([delegate respondsToSelector:@selector(xineViewWillResize:toSize:)]) {
         NSSize oldSize = [self frame].size;
         newSize = [delegate xineViewWillResize:oldSize toSize:proposedSize];
     }
-    
+
     [self setFrameSize:newSize];
     [self setBoundsSize:newSize];
 
-    /* Post a notification that we resized and also notify our delegate */
+    /* Post a notification that we resized and also notify our controller */
+    /* and delegate */
     NSNotification *note =
         [NSNotification notificationWithName:XineViewDidResizeNotification
                                       object:self];
     [[NSNotificationCenter defaultCenter] postNotification:note];
-    if ([delegate respondsToSelector:@selector(xineViewDidResize:)]) { 
+
+    if ([_xineController respondsToSelector:@selector(xineViewDidResize:)]) {
+        [_xineController xineViewDidResize:note];
+    }
+
+    if ([delegate respondsToSelector:@selector(xineViewDidResize:)]) {
         [delegate xineViewDidResize:note];
     }
 
@@ -791,6 +818,16 @@ NSString *XineViewDidResizeNotification = @"XineViewDidResizeNotification";
 {
     [self addCursorRect:[self visibleRect] cursor:currentCursor];
     [currentCursor set];
+}
+
+- (void) setXineController:(id)controller
+{
+    _xineController = controller;
+}
+
+- (id) xineController
+{
+    return _xineController;
 }
 
 @end /* XineOpenGLView */

@@ -45,6 +45,7 @@ typedef enum {
     BOOL                           keepsVideoAspectRatio;
     BOOL                           resizeViewOnVideoSizeChange;
     NSCursor                      *currentCursor;
+    id <NSObject, XineOpenGLViewDelegate>  _xineController;
 }
 
 - (void) displayTexture;
@@ -71,6 +72,8 @@ typedef enum {
 - (void) setCurrentCursor:(NSCursor *)cursor;
 - (NSCursor *) currentCursor;
 - (void) resetCursorRectsInMainThread;
+- (void) setXineController:(id)controller;
+- (id) xineController;
 
 /* Delegate methods */
 - (id) delegate;
