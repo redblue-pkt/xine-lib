@@ -20,7 +20,7 @@
  * General description and author credits go here...
  * 
  * Leave the following line intact for when the decoder is committed to CVS:
- * $Id: foovideo.c,v 1.6 2002/09/05 22:19:02 mroi Exp $
+ * $Id: foovideo.c,v 1.7 2002/10/03 03:09:35 tmmm Exp $
  */
 
 #include <stdio.h>
@@ -29,9 +29,9 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#include "xine_internal.h"
 #include "video_out.h"
 #include "buffer.h"
-#include "xine_internal.h"
 #include "xineutils.h"
 #include "bswap.h"
 
@@ -65,35 +65,6 @@ typedef struct foovideo_decoder_s {
 /**************************************************************************
  * xine video plugin functions
  *************************************************************************/
-
-/*
- * FIXME: revise documentation, reflect api changes
- * This function is called by xine to determine which buffer types this
- * decoder knows how to handle. 
- * Parameters:
- *  this_gen: A video decoder object
- *  buf_type: The number of the buffer type that xine is querying for;
- *    these buffer constants are defined in src/xine-engine/buffer.h.
- * Return:
- *  1 if the decoder is capable of handling buf_type
- *  0 if the decoder is not capable of handling buf_type
- */
-static int foovideo_can_handle (video_decoder_t *this_gen, int buf_type) {
-
-  /* this function will usually take the form of:
-
-  return (buf_type == BUF_VIDEO_FOOVIDEO_V1 ||
-          buf_type == BUF_VIDEO_FOOVIDEO_V2);
-
-     where the constants such as BUF_VIDEO_FOOVIDEO_V1 are defined in
-     src/xine-engine/buffer.h.
-
-     But for this example, return 0, indicating that this plugin handles
-     no buffer types.
-  */
-
-  return 0;
-}
 
 /*
  * This function is responsible is called to initialize the video decoder
@@ -169,7 +140,8 @@ static void foovideo_decode_data (video_decoder_t *this_gen,
 
       img = this->video_out->get_frame (this->video_out,
                                         this->width, this->height,
-                                        42, IMGFMT_YUY2, VO_BOTH_FIELDS);
+                                        XINE_VO_ASPECT_DONT_TOUCH,
+                                        XINE_IMGFMT_YUY2, VO_BOTH_FIELDS);
 
       img->duration  = this->video_step;
       img->pts       = buf->pts;
