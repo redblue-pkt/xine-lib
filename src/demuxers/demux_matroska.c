@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_matroska.c,v 1.31 2004/09/17 19:21:34 valtri Exp $
+ * $Id: demux_matroska.c,v 1.32 2004/12/13 16:07:43 miguelfreitas Exp $
  *
  * demultiplexer for matroska streams
  *
@@ -1096,6 +1096,10 @@ static int parse_track_entry(demux_matroska_t *this, matroska_track_t *track) {
     } else if (!strcmp(track->codec_id, MATROSKA_CODEC_ID_A_PCM_INT_LE)) {
     } else if (!strcmp(track->codec_id, MATROSKA_CODEC_ID_A_PCM_FLOAT)) {
     } else if (!strcmp(track->codec_id, MATROSKA_CODEC_ID_A_AC3)) {
+      lprintf("MATROSKA_CODEC_ID_A_AC3\n");
+      track->buf_type = BUF_AUDIO_A52;
+      init_codec = init_codec_audio;
+      
     } else if (!strcmp(track->codec_id, MATROSKA_CODEC_ID_A_DTS)) {
     } else if (!strcmp(track->codec_id, MATROSKA_CODEC_ID_A_VORBIS)) {
 
