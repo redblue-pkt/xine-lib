@@ -1,6 +1,7 @@
 xine-lib (1-beta5)
   * new AV sync strategy (audio resample) for DXR3 users
   * improved fb driver with zero copy
+  * fix the v4l plugin for lower resolution devices (webcam)
 
 xine-lib (1-beta4)
   * http input fixes

@@ -41,12 +41,18 @@
 #include "input_plugin.h"
 
 #define NUM_FRAMES  10
-#define GRAB_WIDTH  768
-#define GRAB_HEIGHT 576
-/*
-#define GRAB_WIDTH  384
-#define GRAB_HEIGHT 288
-*/
+
+#define NUM_RESOLUTIONS 5
+static struct {
+	int width;
+	int height;
+} resolutions[NUM_RESOLUTIONS] = {
+	{ 768, 576 },
+	{ 640, 480 },
+	{ 384, 288 },
+	{ 320, 240 },
+	{ 160, 120 },
+};
 
 /*
 #define LOG
@@ -278,14 +284,15 @@ static input_plugin_t *open_plugin (input_class_t *cls_gen, xine_stream_t *strea
 
   /* v4l_input_class_t  *cls = (v4l_input_class_t *) cls_gen; */
   v4l_input_plugin_t *this;
-  int                 i, ret;
+  int                 i, j, ret, found;
   char               *mrl = strdup(data);
 
 #ifdef LOG
   printf ("input_v4l: trying to open '%s'\n", mrl);
 #endif
+  found = 0;
 
-  if (strncasecmp (mrl, "v4l://", 6)) {
+  if (strncasecmp (mrl, "v4l:", 4)) {
     free (mrl);
     return NULL;
   }
@@ -301,24 +308,6 @@ static input_plugin_t *open_plugin (input_class_t *cls_gen, xine_stream_t *strea
   pthread_mutex_init (&this->frames_lock, NULL);
   pthread_cond_init  (&this->frame_freed, NULL);
   
-  for (i=0; i<NUM_FRAMES; i++) {
-
-    buf_element_t *frame;
-
-    frame = xine_xmalloc (sizeof (buf_element_t));
-
-    frame->decoder_info[0] = GRAB_WIDTH;
-    frame->decoder_info[1] = GRAB_HEIGHT;
-    frame->content         = xine_xmalloc (frame->decoder_info[0] * frame->decoder_info[1] * 3 / 2);
-    frame->type            = BUF_VIDEO_YUV_FRAMES;
-
-    frame->source          = this;
-    frame->free_buffer     = store_frame;
-    frame->extra_info      = xine_xmalloc(sizeof(extra_info_t));
-    
-    store_frame (frame);
-  }
-
   this->video_fd = open("/dev/video0", O_RDWR);
   if (this->video_fd < 0) {
     printf ("input_v4l: cannot open v4l device\n");
@@ -337,6 +326,44 @@ static input_plugin_t *open_plugin (input_class_t *cls_gen, xine_stream_t *strea
     free(this);
     return NULL;
   }
+
+  /* figure out the resolution */
+  for (j=0; j<NUM_RESOLUTIONS; j++)
+  {
+    if (resolutions[j].width < this->video_cap.maxwidth
+      && resolutions[j].height < this->video_cap.maxheight)
+    {
+      found = 1;
+      break;
+    }
+  }
+
+  if (found == 0 || resolutions[j].width < this->video_cap.minwidth
+    || resolutions[j].height < this->video_cap.minheight)
+  {
+    printf ("input_v4l: grab device does not support any preset resolutions");
+    free(this);
+    return NULL;
+  }
+
+  for (i=0; i<NUM_FRAMES; i++) {
+
+    buf_element_t *frame;
+
+    frame = xine_xmalloc (sizeof (buf_element_t));
+
+    frame->decoder_info[0] = resolutions[j].width;
+    frame->decoder_info[1] = resolutions[j].height;
+    frame->content         = xine_xmalloc (frame->decoder_info[0] * frame->decoder_info[1] * 3 / 2);
+    frame->type            = BUF_VIDEO_YUV_FRAMES;
+
+    frame->source          = this;
+    frame->free_buffer     = store_frame;
+    frame->extra_info      = xine_xmalloc(sizeof(extra_info_t));
+
+    store_frame (frame);
+  }
+
   /* unmute audio */
   ioctl(this->video_fd, VIDIOCGAUDIO, &this->audio);
   memcpy(&this->audio_saved, &this->audio, sizeof(this->audio));
@@ -395,18 +422,18 @@ static input_plugin_t *open_plugin (input_class_t *cls_gen, xine_stream_t *strea
       return NULL;
     }
     this->gb_frame = 0;
-        
+  
     /* start to grab the first frame */
     this->gb_buf.frame = (this->gb_frame + 1) % this->gb_buffers.frames;
-    this->gb_buf.height = GRAB_HEIGHT;
-    this->gb_buf.width = GRAB_WIDTH;
+    this->gb_buf.height = resolutions[j].height;
+    this->gb_buf.width = resolutions[j].width;
     this->gb_buf.format = VIDEO_PALETTE_YUV420P;
-        
+
     ret = ioctl(this->video_fd, VIDIOCMCAPTURE, &this->gb_buf);
     if (ret < 0 && errno != EAGAIN) {
       /* try YUV422 */
       this->gb_buf.format = VIDEO_PALETTE_YUV422;
-            
+
       ret = ioctl(this->video_fd, VIDIOCMCAPTURE, &this->gb_buf);
     } else
       printf ("input_v4l: YUV420 should work\n");
@@ -427,13 +454,12 @@ static input_plugin_t *open_plugin (input_class_t *cls_gen, xine_stream_t *strea
 
   switch(this->frame_format) {
   case VIDEO_PALETTE_YUV420P:
-    this->frame_size = ( GRAB_WIDTH *  GRAB_HEIGHT * 3) / 2;
+    this->frame_size = ( resolutions[j].width *  resolutions[j].height * 3) / 2;
     break;
   case VIDEO_PALETTE_YUV422:
-    this->frame_size =  GRAB_WIDTH *  GRAB_HEIGHT * 2;
+    this->frame_size =  resolutions[j].width *  resolutions[j].height * 2;
     break;
   }
-
 
   this->start_time=0;
   
