@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.3 2003/11/15 14:54:31 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.4 2003/11/15 21:48:06 siggi Exp $
  *
  * (ogg/)speex audio decoder plugin (libspeex wrapper) for xine
  */
@@ -184,8 +184,9 @@ void read_metadata (speex_decoder_t *this, char * comments, int length)
 	meta_info = xine_xmalloc (len - keylen);
 	memcpy (meta_info, c + keylen, len - keylen);
 	
-	xine_set_meta_info(this->stream, speex_comment_keys[i].xine_metainfo_index],
-	  meta_info);
+	xine_set_meta_info(this->stream,
+			   speex_comment_keys[i].xine_metainfo_index,
+			   meta_info);
 	free( meta_info );
       }
     }
