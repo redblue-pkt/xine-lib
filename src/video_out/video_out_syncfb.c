@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_syncfb.c,v 1.38 2001/11/06 14:23:31 matt2000 Exp $
+ * $Id: video_out_syncfb.c,v 1.39 2001/11/07 11:56:55 matt2000 Exp $
  * 
  * video_out_syncfb.c, SyncFB (for Matrox G200/G400 cards) interface for xine
  * 
@@ -814,7 +814,6 @@ static int syncfb_gui_data_exchange (vo_driver_t* this_gen, int data_type, void 
     this->gc       = XCreateGC (this->display, this->drawable, 0, NULL);
     break;
 
-  // FIXME: does this actually work - or do we have to modify it for SyncFB?!
   case GUI_DATA_EX_TRANSLATE_GUI_TO_VIDEO: {
     int x1, y1, x2, y2;
     x11_rectangle_t *rect = data;
