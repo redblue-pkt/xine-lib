@@ -23,7 +23,7 @@
  * avoid when implementing a FLI decoder, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  * 
- * $Id: fli.c,v 1.13 2002/12/22 20:36:24 tmmm Exp $
+ * $Id: fli.c,v 1.14 2002/12/22 23:15:17 tmmm Exp $
  */
 
 #include <stdio.h>
@@ -423,7 +423,8 @@ static void fli_decode_data (video_decoder_t *this_gen,
     if(this->buf)
       free(this->buf);
 
-    this->width = LE_16(&buf->content[8]);
+    /* RGB -> YUV converter requires even width */
+    this->width = (LE_16(&buf->content[8]) + 1) & ~0x1;
     this->height = LE_16(&buf->content[10]);
     this->video_step = buf->decoder_info[1];
 
