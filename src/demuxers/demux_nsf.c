@@ -28,7 +28,7 @@
  * For more information regarding the NSF format, visit:
  *   http://www.tripoint.org/kevtris/nes/nsfspec.txt
  *
- * Id$
+ * Id:$
  */
 
 #ifdef HAVE_CONFIG_H
