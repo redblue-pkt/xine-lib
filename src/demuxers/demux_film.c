@@ -21,7 +21,7 @@
  * For more information on the FILM file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_film.c,v 1.55 2003/01/20 05:10:04 tmmm Exp $
+ * $Id: demux_film.c,v 1.56 2003/02/01 19:44:06 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -90,6 +90,7 @@ typedef struct {
   unsigned int         sample_rate;
   unsigned int         audio_bits;
   unsigned int         audio_channels;
+  unsigned char       *interleave_buffer;
 
   /* playback information */
   unsigned int         frequency;
@@ -315,6 +316,12 @@ static int open_film_file(demux_film_t *film) {
        */
       if (chunk_size == film->sample_count * 16)
         i += 16;
+
+      /* allocate enough space in the interleave preload buffer for the 
+       * first chunk (which will be more than enough for successive chunks) */
+      if (film->audio_type)
+        film->interleave_buffer = 
+          xine_xmalloc(film->sample_table[0].sample_size);
       break;
 
     default:
@@ -336,10 +343,11 @@ static int demux_film_send_chunk(demux_plugin_t *this_gen) {
   demux_film_t *this = (demux_film_t *) this_gen;
   buf_element_t *buf = NULL;
   unsigned int cvid_chunk_size;
-  unsigned int i, j;
+  unsigned int i, j, k;
   int fixed_cvid_header;
   unsigned int remaining_sample_bytes;
   int first_buf;
+  int interleave_index;
 
   i = this->current_sample;
 
@@ -497,14 +505,16 @@ static int demux_film_send_chunk(demux_plugin_t *this_gen) {
         buf->size, buf->pts, buf->decoder_info[0]);
       this->video_fifo->put(this->video_fifo, buf);
     }
-  } else if( this->audio_fifo ) {
-    /* load an audio sample and packetize it */
+  } else if(this->audio_fifo && this->audio_channels == 1) {
+
+    /* load an mono audio sample and packetize it */
     remaining_sample_bytes = this->sample_table[i].sample_size;
     this->input->seek(this->input, this->sample_table[i].sample_offset,
       SEEK_SET);
 
     first_buf = 1;
     while (remaining_sample_bytes) {
+
       buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
       buf->type = this->audio_type;
       buf->extra_info->input_pos = 
@@ -550,10 +560,79 @@ static int demux_film_send_chunk(demux_plugin_t *this_gen) {
       if (!remaining_sample_bytes)
         buf->decoder_flags |= BUF_FLAG_FRAME_END;
 
-      debug_film_demux("    sending audio buf with %d bytes, %lld pts, %d duration\n",
+      debug_film_demux("    sending mono audio buf with %d bytes, %lld pts, %d duration\n",
         buf->size, buf->pts, buf->decoder_info[0]);
       this->audio_fifo->put(this->audio_fifo, buf);
 
+    }
+  } else if(this->audio_fifo && this->audio_channels == 2) {
+
+    /* load an entire stereo sample and interleave the channels */
+
+    /* load the whole chunk into the buffer */
+    if (this->input->read(this->input, this->interleave_buffer,
+      this->sample_table[i].sample_size) != this->sample_table[i].sample_size) {
+      this->status = DEMUX_FINISHED;
+      return this->status;
+    }
+
+    /* proceed to de-interleave into individual buffers */
+    remaining_sample_bytes = this->sample_table[i].sample_size / 2;
+    interleave_index = 0;
+    first_buf = 1;
+    while (remaining_sample_bytes) {
+
+      buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
+      buf->type = this->audio_type;
+      buf->extra_info->input_pos = 
+        this->sample_table[i].sample_offset - this->data_start;
+      buf->extra_info->input_length = this->data_size;
+
+      /* special hack to accomodate linear PCM decoder: only the first
+       * buffer gets the real pts */
+      if (first_buf) {
+        buf->pts = this->sample_table[i].pts;
+        first_buf = 0;
+      } else
+        buf->pts = 0;
+      buf->extra_info->input_time = buf->pts / 90;
+
+      if (remaining_sample_bytes > buf->max_size / 2)
+        buf->size = buf->max_size;
+      else
+        buf->size = remaining_sample_bytes * 2;
+      remaining_sample_bytes -= buf->size / 2;
+
+      if (this->audio_bits == 16) {
+        for (j = 0, k = interleave_index; j < buf->size; j += 4, k += 2) {
+          buf->content[j] =     this->interleave_buffer[k];
+          buf->content[j + 1] = this->interleave_buffer[k + 1];
+        }
+        for (j = 2, 
+             k = interleave_index + this->sample_table[i].sample_size / 2; 
+             j < buf->size; j += 4, k += 2) {
+          buf->content[j] =     this->interleave_buffer[k];
+          buf->content[j + 1] = this->interleave_buffer[k + 1];
+        }
+        interleave_index += buf->size / 2;
+      } else {
+        for (j = 0, k = interleave_index; j < buf->size; j += 2, k += 1) {
+          buf->content[j] = this->interleave_buffer[k];
+        }
+        for (j = 1, 
+             k = interleave_index + this->sample_table[i].sample_size / 2; 
+             j < buf->size; j += 2, k += 1) {
+          buf->content[j] = this->interleave_buffer[k];
+        }
+        interleave_index += buf->size / 2;
+      }
+
+      if (!remaining_sample_bytes)
+        buf->decoder_flags |= BUF_FLAG_FRAME_END;
+
+      debug_film_demux("    sending stereo audio buf with %d bytes, %lld pts, %d duration\n",
+        buf->size, buf->pts, buf->decoder_info[0]);
+      this->audio_fifo->put(this->audio_fifo, buf);
     }
   }
   
@@ -690,6 +769,7 @@ static void demux_film_dispose (demux_plugin_t *this_gen) {
 
   if (this->sample_table)
     free(this->sample_table);
+  free(this->interleave_buffer);
   free(this);
 }
 
