@@ -38,7 +38,7 @@
  * usage: 
  *   xine pvr:/<prefix_to_tmp_files>\!<prefix_to_saved_files>\!<max_page_age>
  *
- * $Id: input_pvr.c,v 1.22 2003/05/09 20:49:34 miguelfreitas Exp $
+ * $Id: input_pvr.c,v 1.23 2003/05/15 16:41:57 miguelfreitas Exp $
  */
 
 /**************************************************************************
@@ -972,6 +972,7 @@ static void pvr_event_handler (pvr_input_plugin_t *this) {
     xine_set_v4l2_data_t *v4l2_data = event->data;
     xine_pvr_save_data_t *save_data = event->data;
     xine_pvr_pause_t  *pause_data = event->data;
+    xine_set_mpeg_data_t *mpeg_data = event->data;
 
     switch (event->type) {
 
@@ -1121,7 +1122,29 @@ static void pvr_event_handler (pvr_input_plugin_t *this) {
     case XINE_EVENT_PVR_PAUSE:
       this->pvr_play_paused = pause_data->mode;
       break;
-      
+
+    case XINE_EVENT_SET_MPEG_DATA: {
+#ifdef USE_V4L2
+       struct ivtv_ioctl_codec codec;
+    
+       pthread_mutex_lock(&this->dev_lock);
+       if (ioctl(this->dev_fd, IVTV_IOC_G_CODEC, &codec) < 0) {
+         printf("input_pvr: IVTV_IOC_G_CODEC failed, maybe API changed?\n");
+       } else {
+         codec.bitrate      = mpeg_data->bitrate_mean;
+         codec.bitrate_peak = mpeg_data->bitrate_peak;
+
+         if (ioctl(this->dev_fd, IVTV_IOC_S_CODEC, &codec) < 0) {
+           printf("input_pvr: IVTV_IOC_S_CODEC failed, maybe API changed?\n");
+         }
+       }
+       pthread_mutex_unlock(&this->dev_lock);
+#else
+       printf("input_pvr: mpeg2 settings not supported with old api\n");
+#endif
+      }
+      break;
+        
 #if 0
     default:
       printf ("input_pvr: got an event, type 0x%08x\n", event->type);
