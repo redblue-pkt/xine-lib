@@ -61,7 +61,7 @@
  * instructions), these macros will automatically map to those special
  * instructions.
  *
- * $Id: color.c,v 1.8 2002/09/13 03:05:19 tmmm Exp $
+ * $Id: color.c,v 1.9 2002/11/04 00:03:19 tmmm Exp $
  */
 
 #include "xine_internal.h"
@@ -385,6 +385,7 @@ void yuv444_to_yuy2_mmx(yuv_planes_t *yuv_planes, unsigned char *yuy2_map,
           psrlq_m2r(*shifter, mm1);  /* toss out samples before starting */
 
         } else {
+
           /* normal case */
           movq_m2r(*source_plane, mm1); /* load 8 C samples */
           source_plane += 6;
@@ -400,12 +401,23 @@ void yuv444_to_yuy2_mmx(yuv_planes_t *yuv_planes, unsigned char *yuy2_map,
           paddd_r2r(mm3, mm2);     /* mm2 += mm3 */
           psrlq_i2r(3, mm2);       /* divide by 8 */
 
+          /* load the destination address into ebx */
+          __asm__ __volatile__ ("mov %0, %%ebx"
+                              : /* nothing */
+                              : "X" (dest_plane)
+                              : "ebx" /* clobber list */);
+
           /* move the lower 32 bits of mm2 into eax */
-          movd_r2r(mm2, eax);
+          __asm__ __volatile__ ("movd %%mm2, %%eax"
+                                : /* nothing */
+                                : /* nothing */
+                                : "eax" /* clobber list */ );
+
           /* move al (the final filtered sample) to its spot it memory */
-          __asm__ __volatile__ ("mov %%" "al" ", %0"
-                                : "=X" (*dest_plane)
+          __asm__ __volatile__ ("mov %%al, (%%ebx)"
+                                : /* nothing */
                                 : /* nothing */ );
+
           dest_plane += 4;
 
           psrlq_i2r(16, mm1);      /* toss out 2 C samples and loop again */
