@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_sputext.c,v 1.11 2003/02/14 00:13:00 miguelfreitas Exp $
+ * $Id: demux_sputext.c,v 1.12 2003/02/14 16:58:36 f1rmb Exp $
  *
  * code based on old libsputext/xine_decoder.c
  *
@@ -780,8 +780,7 @@ static subtitle_t *sub_read_file (demux_sputext_t *this) {
 
 static void update_osd_src_encoding(void *this_gen, xine_cfg_entry_t *entry)
 {
-  demux_sputext_t *this = (demux_sputext_t *)this_gen;
-  demux_sputext_class_t *class = (demux_sputext_class_t *)this->demux_plugin.demux_class;
+  demux_sputext_class_t *class = (demux_sputext_class_t *)this_gen;
 
   class->src_encoding = entry->str_value;
   
@@ -790,8 +789,7 @@ static void update_osd_src_encoding(void *this_gen, xine_cfg_entry_t *entry)
 
 static void update_osd_dst_encoding(void *this_gen, xine_cfg_entry_t *entry)
 {
-  demux_sputext_t *this = (demux_sputext_t *)this_gen;
-  demux_sputext_class_t *class = (demux_sputext_class_t *)this->demux_plugin.demux_class;
+  demux_sputext_class_t *class = (demux_sputext_class_t *)this_gen;
 
   class->dst_encoding = entry->str_value;
   
