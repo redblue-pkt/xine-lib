@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_sun_out.c,v 1.8 2001/09/01 17:54:52 jkeil Exp $
+ * $Id: audio_sun_out.c,v 1.9 2001/09/06 12:17:12 jkeil Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -78,6 +78,8 @@ typedef struct sun_driver_s {
       RTSC_ENABLED,
       RTSC_DISABLED
   }		 use_rtsc;
+
+    int		 convert_u8_s8;	       /* Builtin conversion 8-bit UNSIGNED->SIGNED */
 
   int            static_delay;         /* estimated delay for non-realtime drivers   */
 } sun_driver_t;
@@ -208,12 +210,22 @@ error:
 
 /*
  * open the audio device for writing to
+ *
+ * Implicit assumptions about audio format (bits/rate/mode):
+ *
+ * bits == 16: We always get 16-bit samples in native endian format,
+ * 	using signed linear encoding
+ *
+ * bits ==  8: 8-bit samples use unsigned linear encoding,
+ *	other 8-bit formats (uLaw, aLaw, etc) are currently not supported
+ *	by xine
  */
 static int ao_sun_open(ao_driver_t *this_gen,
 		       uint32_t bits, uint32_t rate, int mode)
 {
   sun_driver_t *this = (sun_driver_t *) this_gen;
   audio_info_t info;
+  int ok;
 
   printf ("audio_sun_out: ao_sun_open rate=%d, mode=%d\n", rate, mode);
 
@@ -257,12 +269,33 @@ static int ao_sun_open(ao_driver_t *this_gen,
       ? AUDIO_CHANNELS_STEREO
       : AUDIO_CHANNELS_MONO;
   info.play.precision = bits;
-  info.play.encoding = AUDIO_ENCODING_LINEAR;
+  info.play.encoding = bits == 8
+      ? AUDIO_ENCODING_LINEAR8
+      : AUDIO_ENCODING_LINEAR;
   info.play.sample_rate = this->input_sample_rate;
   info.play.eof = 0;
   info.play.samples = 0;
 
-  ioctl(this->audio_fd, AUDIO_SETINFO, &info);
+  this->convert_u8_s8 = 0;
+  ok = ioctl(this->audio_fd, AUDIO_SETINFO, &info) >= 0;
+  if (!ok && info.play.encoding == AUDIO_ENCODING_LINEAR8) {
+      /*
+       * Unsigned AUDIO_ENCODING_LINEAR8 not supported.
+       * Maybe signed AUDIO_ENCODING_LINEAR works?
+       */
+      info.play.encoding = AUDIO_ENCODING_LINEAR;
+      ok = ioctl(this->audio_fd, AUDIO_SETINFO, &info) >= 0;
+      if (ok) this->convert_u8_s8 = 1;
+  }
+
+  if (!ok) {
+      printf("audio_sun_out: Cannot configure audio device for "
+	     "%dhz, %d channel, %d bits\n",
+	     info.play.sample_rate, info.play.channels,
+	     info.play.precision);
+      close(this->audio_fd);
+      return 0;
+  }
 
   this->output_sample_rate = info.play.sample_rate;
   this->num_channels = info.play.channels;
@@ -321,6 +354,19 @@ static int ao_sun_write(ao_driver_t *this_gen,
 {
   sun_driver_t *this = (sun_driver_t *) this_gen;
   int num_written;
+
+  if (this->convert_u8_s8) {
+      /* 
+       * Audio hardware does not support 8-bit unsigned format,
+       * only 8-bit signed.  Convert to 8-bit unsigned before sending
+       * the data to the audio device.
+       */
+      uint8_t *p = (void *)frame_buffer;
+      int i;
+
+      for (i = num_frames * this->bytes_per_frame; --i >= 0; p++) 
+	  *p ^= 0x80;
+  }
   num_written = write(this->audio_fd, frame_buffer, num_frames * this->bytes_per_frame);
   if (num_written > 0) {
     this->frames_in_buffer += num_written / this->bytes_per_frame;
