@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decoder.c,v 1.59 2002/02/15 11:43:16 guenter Exp $
+ * $Id: dxr3_decoder.c,v 1.60 2002/02/15 11:46:57 guenter Exp $
  *
  * dxr3 video and spu decoder plugin. Accepts the video and spu data
  * from XINE and sends it directly to the corresponding dxr3 devices.
@@ -642,9 +642,9 @@ static void dxr3_decode_data (video_decoder_t *this_gen, buf_element_t *buf)
 		}
 	}
 #if LOG_PTS
-	else if (buf->PTS) {
-		printf("dxr3: skip buf->PTS = %d (no vpts) last_vpts = %d\n", 
-			buf->PTS, this->last_pts);
+	else if (buf->pts) {
+		printf("dxr3: skip buf->PTS = %Lu (no vpts) last_vpts = %d\n", 
+			buf->pts, this->last_pts);
 	}
 #endif
 	/* if the dxr3_alt_play option is used, change the dxr3 playmode */
@@ -913,7 +913,7 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf)
 		vpts = this->spu_decoder.metronom->got_spu_packet
 		 (this->spu_decoder.metronom, buf->pts, 0, buf->scr);
 #if LOG_SPU
-                printf ("dxr3_spu: PTS=%u VPTS=%u\n", buf->PTS, vpts);
+                printf ("dxr3_spu: PTS=%Lu VPTS=%u\n", buf->pts, vpts);
 #endif
 
 		if (ioctl(this->fd_spu, EM8300_IOCTL_SPU_SETPTS, &vpts))
