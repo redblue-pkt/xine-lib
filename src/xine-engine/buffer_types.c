@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer_types.c,v 1.33 2002/07/07 18:48:05 tmmm Exp $
+ * $Id: buffer_types.c,v 1.34 2002/07/09 20:46:34 miguelfreitas Exp $
  *
  *
  * contents:
@@ -585,6 +585,15 @@ static audio_db_t audio_db[] = {
   },
   BUF_AUDIO_QDESIGN2,
   "QDesign Audio v2"
+},
+{
+  {
+    meFOURCC('m', 'p', '4', 'a'),
+    meFOURCC('M', 'P', '4', 'A'),
+    0
+  },
+  BUF_AUDIO_AAC,
+  "Advanced Audio Coding (MPEG-4 AAC)"
 },
 { { 0 }, 0, "last entry" }
 };
