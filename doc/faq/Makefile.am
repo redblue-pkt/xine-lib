@@ -1,6 +1,6 @@
 include $(top_srcdir)/misc/Makefile.common
 
-EXTRA_DIST = $(docs_DOCS) README faq.sgml
+EXTRA_DIST = README faq.sgml
 docs_DOCS = faq.html faq.txt
 
 docdir = $(prefix)/share/doc/xine/faq
@@ -28,12 +28,24 @@ uninstall-local:
 
 docs: $(docs_DOCS)
 
+dist-hook:
+	@make fail_if_missing=yes docs
+	cp $(docs_DOCS) $(distdir)
+
 faq.html: faq.sgml
 	@if test "$(SGMLTOOLS)" != "no"; then \
 	  $(SGMLTOOLS) -b onehtml faq.sgml; \
+	else if test "$(fail_if_missing)" = "yes"; then \
+	    echo "Please install sgmltools-lite."; \
+	    exit 1; \
+	  fi; \
 	fi
 
 faq.txt: faq.sgml
 	@if test "$(SGMLTOOLS)" != "no"; then \
 	  $(SGMLTOOLS) -b txt faq.sgml; \
+	else if test "$(fail_if_missing)" = "yes"; then \
+	    echo "Please install sgmltools-lite."; \
+	    exit 1; \
+	  fi; \
 	fi

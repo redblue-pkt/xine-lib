@@ -10,8 +10,7 @@ hackersguide_sgml = hackersguide.sgml \
 
 docs_DOCS = hackersguide.html architecture.png library.png overlays.png
 
-EXTRA_DIST = README $(hackersguide_sgml) $(docs_DOCS) \
-	architecture.fig library.fig overlays.fig 
+EXTRA_DIST = README $(hackersguide_sgml) architecture.fig library.fig overlays.fig 
 
 docdir = $(prefix)/share/doc/xine/hackersguide
 
@@ -38,12 +37,24 @@ uninstall-local:
 
 docs: $(docs_DOCS)
 
+dist-hook:
+	@make fail_if_missing=yes docs
+	cp $(docs_DOCS) $(distdir)
+
 hackersguide.html: $(hackersguide_sgml)
 	@if test "$(SGMLTOOLS)" != "no"; then \
 	  $(SGMLTOOLS) -b onehtml hackersguide.sgml; \
+	else if test "$(fail_if_missing)" = "yes"; then \
+	    echo "Please install sgmltools-lite."; \
+	    exit 1; \
+	  fi; \
 	fi
 
 %.png: %.fig
 	@if test "$(FIG2DEV)" != "no"; then \
 	  $(FIG2DEV) -L png -S 4 $< $@; \
+	else if test "$(fail_if_missing)" = "yes"; then \
+	    echo "Please install fig2dev."; \
+	    exit 1; \
+	  fi; \
 	fi

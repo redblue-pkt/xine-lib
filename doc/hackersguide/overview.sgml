@@ -12,7 +12,10 @@
    Directories marked with "(imported)" contain
    code that is copied from an external project into xine-lib.
    Everything below such a directory is up to this project. When modifying
-   code there, be sure to send the patches on.
+   code there, be sure to send the patches on. If some xine specific
+   adaptation of the code is absolutely necessary, a patch containing
+   the changes should be stored in CVS to not loose the changes the
+   next time we sync with the external project.
   </para>
   <para>
    <variablelist>
