@@ -78,7 +78,6 @@ Summary(cs): Knihovny nutné pro bìh programù dynamicky linkovaných s %{name}
 Summary(de): Benötigte Bibliotheken, um Programme, die dynamisch gegen %{name} gelinkt sind, benutzen zu können.
 Summary(fi): Tarvittavat kirjastot ohjelman ajamiseen linkitettynä %{name}:n kanssa.
 Group:	   Development/Libraries
-Obsoletes: xine, xine-lib, xine-lib-oss, xine-lib-alsa09, xine-lib-arts, xine-lib-esd, xine-lib-dxr3, xine-lib-xv, xine-lib-sdl, xine-lib-aa, xine-lib-opengl, xine-lib-w32dll, xine-lib-oggvorbis libxine0
 Provides:  %{name} = %{version}-%{release}
 Requires:  zlib
 
