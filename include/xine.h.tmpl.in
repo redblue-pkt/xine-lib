@@ -28,7 +28,7 @@
  \endverbatim
  */
 /*
- * $Id: xine.h.tmpl.in,v 1.102 2002/07/09 12:45:17 f1rmb Exp $
+ * $Id: xine.h.tmpl.in,v 1.103 2002/07/17 21:23:57 f1rmb Exp $
  *
  */
 
@@ -1017,6 +1017,48 @@ int xine_is_stream_seekable (xine_t *self);
 void xine_select_spu_channel (xine_t *self, int channel);
 
          /** @} end of xine_management */
+
+          /** 
+	   * \defgroup input_group Input.
+	   * @{
+	   */
+
+                /**
+		 * 
+		 * \defgroup input_cap input plugin capabilities
+		 * @{
+		 */
+
+/** 
+ * \def INPUT_CAP_*
+ * bits to define various input plugin capabilities
+ * \sa xine_get_input_plugin_capabilities()
+ */
+#define INPUT_CAP_NOCAP       0x00000000
+#define INPUT_CAP_SEEKABLE    0x00000001
+#define INPUT_CAP_BLOCK       0x00000002
+#define INPUT_CAP_AUTOPLAY    0x00000004
+#define INPUT_CAP_GET_DIR     0x00000008
+#define INPUT_CAP_BROWSABLE   0x00000010
+#define INPUT_CAP_CLUT        0x00000020
+#define INPUT_CAP_AUDIOLANG   0x00000040
+#define INPUT_CAP_SPULANG     0x00000080
+#define INPUT_CAP_VARIABLE_BITRATE     0x00000100
+#define INPUT_CAP_PREVIEW     0x00000200  /* Requires INPUT_CAP_SEEKABLE */
+#define INPUT_CAP_CHAPTERS    0x00000400
+
+/**
+ * \fn uint32_t xine_get_input_plugin_capabilities(xine_t *self)
+ * \brief Request input plugin capabilities
+ * \param self Current xine engine configuration ( #see xine_init() )
+ * \return bitwise OR of all available capabilities.
+ *
+ */
+uint32_t xine_get_input_plugin_capabilities(xine_t *self);
+
+               /** @} end of input_cap */
+
+          /** @} end of input_group */
 
          /** 
 	  * \defgroup audio_group Audio.

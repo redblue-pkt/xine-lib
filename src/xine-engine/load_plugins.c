@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.79 2002/07/13 19:01:16 f1rmb Exp $
+ * $Id: load_plugins.c,v 1.80 2002/07/17 21:23:57 f1rmb Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -401,6 +401,14 @@ char *xine_get_input_plugin_description(xine_t *this, char *plugin_id) {
   }
   
   return NULL;
+}
+
+uint32_t xine_get_input_plugin_capabilities(xine_t *this) {
+  
+  if (this && this->cur_input_plugin && this->cur_input_plugin->get_capabilities)
+    return this->cur_input_plugin->get_capabilities(this->cur_input_plugin);
+  
+  return INPUT_CAP_NOCAP;
 }
 
 /** ***************************************************************
