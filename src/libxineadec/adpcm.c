@@ -24,7 +24,7 @@
  * formats can be found here:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: adpcm.c,v 1.4 2002/06/08 19:45:19 tmmm Exp $
+ * $Id: adpcm.c,v 1.5 2002/06/10 06:27:40 tmmm Exp $
  */
 
 #include <stdio.h>
@@ -196,7 +196,7 @@ static void dk3_adpcm_decode_block(adpcm_decoder_t *this, buf_element_t *buf) {
   int sum_index;
   int diff_index;
   int diff_channel;
-  int out_ptr = 0;
+  int out_ptr;
 
   unsigned char last_byte = 0;
   unsigned char nibble;
@@ -226,7 +226,10 @@ static void dk3_adpcm_decode_block(adpcm_decoder_t *this, buf_element_t *buf) {
     sum_index = this->buf[i + 14];
     diff_index = this->buf[i + 15];
 
-    j = i + DK3_ADPCM_PREAMBLE_SIZE;
+    j = DK3_ADPCM_PREAMBLE_SIZE;  /* start past the preamble */
+    out_ptr = 0;
+    last_byte = 0;
+    decode_top_nibble_next = 0;
     while (j < this->in_block_size) {
 
       // process the first predictor of the sum channel
@@ -317,7 +320,7 @@ static void dk3_adpcm_decode_block(adpcm_decoder_t *this, buf_element_t *buf) {
         return;
       }
 
-      /* out_ptr and j are samples counts, mem_size is a byte count */
+      /* out_ptr and j are sample counts, mem_size is a byte count */
       if (((out_ptr - j) * 2) > audio_buffer->mem_size)
         bytes_to_send = audio_buffer->mem_size;
       else
@@ -362,6 +365,8 @@ static void dk4_adpcm_decode_block(adpcm_decoder_t *this, buf_element_t *buf) {
   /* iterate through each block in the in buffer */
   for (i = 0; i < this->size; i += this->in_block_size) {
 
+    out_ptr = 0;
+
     /* the first predictor value goes straight to the output */
     predictor_l = this->decode_buffer[0] = LE_16(&this->buf[i + 0]);
     SE_16BIT(predictor_l);
@@ -396,7 +401,7 @@ static void dk4_adpcm_decode_block(adpcm_decoder_t *this, buf_element_t *buf) {
         return;
       }
 
-      /* out_ptr and j are samples counts, mem_size is a byte count */
+      /* out_ptr and j are sample counts, mem_size is a byte count */
       if (((out_ptr - j) * 2) > audio_buffer->mem_size)
         bytes_to_send = audio_buffer->mem_size;
       else
@@ -445,6 +450,8 @@ static void ms_ima_adpcm_decode_block(adpcm_decoder_t *this,
 
   /* iterate through each block in the in buffer */
   for (i = 0; i < this->size; i += this->in_block_size) {
+
+    out_ptr = 0;
 
     /* initialize algorithm for this block */
     predictor_l = LE_16(&this->buf[i + 0]);
@@ -507,7 +514,7 @@ static void ms_ima_adpcm_decode_block(adpcm_decoder_t *this,
         return;
       }
 
-      /* out_ptr and j are samples counts, mem_size is a byte count */
+      /* out_ptr and j are sample counts, mem_size is a byte count */
       if (((out_ptr - j) * 2) > audio_buffer->mem_size)
         bytes_to_send = audio_buffer->mem_size;
       else
@@ -665,6 +672,9 @@ static void ms_adpcm_decode_block(adpcm_decoder_t *this, buf_element_t *buf) {
 
     // fetch the header information, in stereo if both channels are present
     j = i;
+    upper_nibble = 1;
+    current_channel = 0;
+    out_ptr = 0;
     if (this->buf[j] > 6)
       printf(
         "MS ADPCM: coefficient (%d) out of range (should be [0..6])\n",
@@ -746,7 +756,7 @@ static void ms_adpcm_decode_block(adpcm_decoder_t *this, buf_element_t *buf) {
         return;
       }
 
-      /* out_ptr and j are samples counts, mem_size is a byte count */
+      /* out_ptr and j are sample counts, mem_size is a byte count */
       if (((out_ptr - j) * 2) > audio_buffer->mem_size)
         bytes_to_send = audio_buffer->mem_size;
       else
