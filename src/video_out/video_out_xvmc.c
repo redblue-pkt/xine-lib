@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xvmc.c,v 1.19 2004/11/24 16:11:09 mroi Exp $
+ * $Id: video_out_xvmc.c,v 1.20 2004/12/12 22:01:29 mroi Exp $
  * 
  * video_out_xvmc.c, X11 video motion compensation extension interface for xine
  *
@@ -1501,7 +1501,7 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *vi
 	} else if(!strcmp(attr[k].name, "XV_COLORKEY")) {
 	  xvmc_check_capability (this, VO_PROP_COLORKEY, attr[k],
 				 class->adaptor_info[class->adaptor_num].base_id, "XV_COLORKEY",
-				 "video.xv_colorkey",
+				 "video.device.xv_colorkey",
 				 _("video overlay colour key"),
 			         _("The colour key is used to tell the graphics card where to "
 				   "overlay the video image. Try different values, if you experience "
@@ -1510,19 +1510,19 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *vi
 	} else if(!strcmp(attr[k].name, "XV_AUTOPAINT_COLORKEY")) {
 	  xvmc_check_capability (this, VO_PROP_AUTOPAINT_COLORKEY, attr[k],
 				 class->adaptor_info[class->adaptor_num].base_id, "XV_AUTOPAINT_COLORKEY",
-				 "video.xv_autopaint_colorkey",
+				 "video.device.xv_autopaint_colorkey",
 				 _("autopaint colour key"),
 				 _("Make Xv autopaint its colorkey."));
 
 	} else if(!strcmp(attr[k].name, "XV_DOUBLE_BUFFER")) {
 	  int xvmc_double_buffer;
-	  xvmc_double_buffer = config->register_bool (config, "video.XV_DOUBLE_BUFFER", 1,
+	  xvmc_double_buffer = config->register_bool (config, "video.device.xv_double_buffer", 1,
 	    _("enable double buffering"),
 	    _("Double buffering will synchronize the update of the video image to the "
 	      "repainting of the entire screen (\"vertical retrace\"). This eliminates "
 	      "flickering and tearing artifacts, but will use more graphics memory."),
 	    20, xvmc_update_XV_DOUBLE_BUFFER, this);
-	  config->update_num(config,"video.XV_DOUBLE_BUFFER",xvmc_double_buffer);
+	  config->update_num(config,"video.device.xv_double_buffer",xvmc_double_buffer);
 	}
       }
     }
@@ -1578,7 +1578,7 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *vi
   */
   
   this->deinterlace_method =
-    config->register_enum (config, "video.deinterlace_method", 4,
+    config->register_enum (config, "video.output.xv_deinterlace_method", 4,
 			   deinterlace_methods, 
 			   _("deinterlace method (deprecated)"),
 			   _("This config setting is deprecated. You should use the new deinterlacing "

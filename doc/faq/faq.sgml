@@ -689,7 +689,7 @@
         You have a VideoCD with menu at beginning and can see it using an MRL 
         with P1 at the end, but you want to see it by hitting the "VCD" autoscan button
         as well? Check to see that you have the configuration entry
-        <parameter>vcd.autoplay</parameter> set to <parameter>playlist</parameter>.
+        <parameter>media.vcd.autoplay</parameter> set to <parameter>playlist</parameter>.
        </para>
       </listitem>
      </itemizedlist>
@@ -699,7 +699,7 @@
      <para>
       To facilitate tracking down problems we let you see what's going on dynamically.
       Various debugging settings will cause output to appear on xine's plugin log
-      and/or on standard error output. See the config entry <parameter>vcd.debug</parameter>
+      and/or on standard error output. See the config entry <parameter>media.vcd.debug</parameter>
       for details.
      </para>
      <para>
@@ -738,7 +738,7 @@
      The package is called "essential". Unpack it and move everything you find
      inside to <filename>/usr/lib/win32</filename> (actually you can place them
      anywhere you want, e.g. someplace in your home directory, but then you'll
-     have to set <parameter>codec.win32_path</parameter> in your
+     have to set <parameter>decoder.external.win32_codecs_path</parameter> in your
      xine config file accordingly). Restart xine then and you should be
      able to watch Quicktime trailers.
     </para>       
@@ -762,10 +762,10 @@
      </ulink>.
      The package is called "essential". Unpack it and move everything you
      find inside to <filename>/usr/lib/win32</filename> and set the
-     <parameter>codec.real_codecs_path</parameter> in your xine config file
+     <parameter>decoder.external.real_codecs_path</parameter> in your xine config file
      to <filename>/usr/lib/win32</filename> (actually you can place them
      anywhere you want, e.g. someplace in your home directory, but then you'll
-     have to set <parameter>codec.real_codecs_path</parameter> accordingly).
+     have to set <parameter>decoder.external.real_codecs_path</parameter> accordingly).
      Restart xine then and you should be able to watch Real files/streams.
     </para>
     </sect3>
@@ -802,7 +802,7 @@
      The package is called "essential". Unpack it and move everything you find
      inside to <filename>/usr/lib/win32</filename> (actually you can place them
      anywhere you want, e.g. someplace in your home directory, but then you'll
-     have to set <parameter>codec.win32_path</parameter> in your
+     have to set <parameter>decoder.external.win32_codecs_path</parameter> in your
      xine config file accordingly). Restart xine then and you should be
      able to watch windows media streams.
     </para>
@@ -1051,7 +1051,7 @@
        <para>
          For slow / high-latency dvd drives it might help to increase
          the number of video buffers xine allocates. Try setting
-         <parameter>video.num_buffers:500</parameter>
+         <parameter>engine.buffers.video_num_buffers:500</parameter>
          to a higher value (e.g. 1000 or 2500).
        </para>
       </listitem>	  
@@ -1165,7 +1165,7 @@
        <para>
         If you have a dolby digital (AC3) soundtrack, you can try
         to enable liba52's dynamic range compression setting
-        <parameter>codec.a52_dynrng:1</parameter>
+        <parameter>audio.a52.dynamic_range:1</parameter>
         in your xine config file (or use some gui config dialog).
        </para>
       </listitem>
@@ -1207,9 +1207,9 @@
      the complicated way by editing the config file yourself which is located
      in your home directory in <filename>.gxine</filename> or <filename>.xine</filename>:
      <programlisting>
-&nbsp;&nbsp;&nbsp;audio.speaker_arrangement:Surround 4.0
-&nbsp;&nbsp;&nbsp;audio.speaker_arrangement:Surround 4.1
-&nbsp;&nbsp;&nbsp;audio.speaker_arrangement:Surround 5.1</programlisting>
+&nbsp;&nbsp;&nbsp;audio.output.speaker_arrangement:Surround 4.0
+&nbsp;&nbsp;&nbsp;audio.output.speaker_arrangement:Surround 4.1
+&nbsp;&nbsp;&nbsp;audio.output.speaker_arrangement:Surround 5.1</programlisting>
     </para>
    </sect2>
 
@@ -1220,7 +1220,7 @@
      surround (see above). You can either use the config dialog or edit
      the config file (<filename>~/.xine/config</filename> or <filename>~/.gxine/config</filename>)
      yourself:
-     <programlisting>&nbsp;&nbsp;&nbsp;audio.speaker_arrangement:Pass Through</programlisting>
+     <programlisting>&nbsp;&nbsp;&nbsp;audio.output.speaker_arrangement:Pass Through</programlisting>
     </para>
    </sect2>
 
@@ -1328,7 +1328,7 @@
      <para>
       You can either use the config dialog of your frontend or edit
       the config file (<filename>~/.xine/config</filename>) yourself:
-      <programlisting>&nbsp;&nbsp;&nbsp;audio.speaker_arrangement:Pass Through</programlisting>
+      <programlisting>&nbsp;&nbsp;&nbsp;audio.output.speaker_arrangement:Pass Through</programlisting>
       In case the setting is not in the file you can add it.
      </para>
     </sect3>
@@ -1389,13 +1389,13 @@
      getting out of sync and xine has to compensate. If you see the message
      only from time to time, you might remedy it by using the resampling sync
      method. You can do this by setting the configuration entry
-     <parameter>audio.av_sync_method</parameter> to <parameter>resample</parameter>.
+     <parameter>audio.synchronization.av_sync_method</parameter> to <parameter>resample</parameter>.
     </para>
     <para>
      If you receive the metronom message more often,
      maybe switching to different drivers (alsa to oss or vise-versa)
      can help here. It has also been reported that setting the configuration
-     entry <parameter>audio.force_rate</parameter> to the native sampling
+     entry <parameter>audio.synchronization.force_rate</parameter> to the native sampling
      rate of your soundcard (try 44100 and 48000) helps sometimes.
     </para>
     <para>
@@ -1750,7 +1750,7 @@
      the following settings
      (<filename>~/.xine/config</filename> or <filename>~/.gxine/config</filename>):
      <programlisting>&nbsp;&nbsp;&nbsp;gui.osd_use_unscaled:0</programlisting>
-     <programlisting>&nbsp;&nbsp;&nbsp;misc.spu_use_unscaled_osd:0</programlisting>
+     <programlisting>&nbsp;&nbsp;&nbsp;subtitles.separate.use_unscaled_osd:0</programlisting>
     </para>
    </sect2>
 
@@ -1855,7 +1855,7 @@
     </para>
     <para>
      The font for text subtitles is selected via config option
-     <parameter>misc.spu_font</parameter>. You can specify xine font name
+     <parameter>subtitles.separate.font</parameter>. You can specify xine font name
      (<parameter>sans</parameter>, <parameter>serif</parameter>, ...)
      or file name of the TTF font. The directories
      <filename>$prefix/share/xine/libxine1/fonts</filename> and
@@ -1914,7 +1914,7 @@
     <para>
      The encoding of the external subtitles is expected to be iso-8859-1 by 
      default. You need to set an appropriate encoding in the config option
-     <parameter>misc.spu_src_encoding</parameter>. Note that you also need
+     <parameter>subtitles.separate.src_encoding</parameter>. Note that you also need
      a font which contains all characters from the given encoding.
     </para>
     <para>

@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.195 2004/11/13 02:38:15 athp Exp $
+ * $Id: demux_qt.c,v 1.196 2004/12/12 22:01:03 mroi Exp $
  *
  */
 
@@ -2879,7 +2879,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
 
   /* fetch bandwidth config */
   this->bandwidth = 0x7FFFFFFFFFFFFFFFLL;  /* assume infinite bandwidth */
-  if (xine_config_lookup_entry (stream->xine, "input.mms_network_bandwidth",
+  if (xine_config_lookup_entry (stream->xine, "media.network.bandwidth",
                                 &entry)) {
     if ((entry.num_value >= 0) && (entry.num_value <= 11))
       this->bandwidth = bandwidths[entry.num_value];

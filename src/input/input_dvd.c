@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.194 2004/12/12 13:51:29 valtri Exp $
+ * $Id: input_dvd.c,v 1.195 2004/12/12 22:01:05 mroi Exp $
  *
  */
 
@@ -951,7 +951,7 @@ static void dvd_handle_events(dvd_input_plugin_t *this) {
       break;
     case XINE_EVENT_INPUT_NEXT:
       {
-        cfg_entry_t* entry = config->lookup_entry(config, "input.dvd_skip_behaviour");
+        cfg_entry_t* entry = config->lookup_entry(config, "media.dvd.skip_behaviour");
 	int title = 0, part = 0;
 	switch (entry->num_value) {
 	case 0: /* skip by program */
@@ -970,7 +970,7 @@ static void dvd_handle_events(dvd_input_plugin_t *this) {
       break;
     case XINE_EVENT_INPUT_PREVIOUS:
       {
-        cfg_entry_t *entry = config->lookup_entry(config, "input.dvd_skip_behaviour");
+        cfg_entry_t *entry = config->lookup_entry(config, "media.dvd.skip_behaviour");
 	int title = 0, part = 0;
 	switch (entry->num_value) {
 	case 0: /* skip by program */
@@ -1342,7 +1342,7 @@ static int dvd_parse_try_open(dvd_input_plugin_t *this, const char *locator)
     dvd_input_class_t *class = (dvd_input_class_t*)this->input_plugin.input_class;
     xine_cfg_entry_t raw_device;
     if (xine_config_lookup_entry(this->stream->xine,
-	"input.dvd_raw_device", &raw_device))
+	"media.dvd.raw_device", &raw_device))
       xine_setenv("DVDCSS_RAW_DEVICE", raw_device.str_value, 1);
     intended_dvd_device = class->dvd_device;
   }
@@ -1441,22 +1441,22 @@ static int dvd_plugin_open (input_plugin_t *this_gen) {
   dvdnav_get_title_string(this->dvdnav, &this->dvd_name);
   
   /* Set region code */
-  if (xine_config_lookup_entry (this->stream->xine, "input.dvd_region", 
+  if (xine_config_lookup_entry (this->stream->xine, "media.dvd.region", 
 				&region_entry)) 
     region_changed_cb (class, &region_entry);
   
   /* Set languages */
-  if (xine_config_lookup_entry (this->stream->xine, "input.dvd_language",
+  if (xine_config_lookup_entry (this->stream->xine, "media.dvd.language",
 				&lang_entry)) 
     language_changed_cb (class, &lang_entry);
   
   /* Set cache usage */
-  if (xine_config_lookup_entry(this->stream->xine, "input.dvd_use_readahead",
+  if (xine_config_lookup_entry(this->stream->xine, "media.dvd.readahead",
 			       &cache_entry))
     read_ahead_cb(class, &cache_entry);
   
   /* Set seek mode */
-  if (xine_config_lookup_entry(this->stream->xine, "input.dvd_seek_behaviour",
+  if (xine_config_lookup_entry(this->stream->xine, "media.dvd.seek_behaviour",
 			       &cache_entry))
     seek_mode_cb(class, &cache_entry);  
 
@@ -1692,7 +1692,7 @@ static void *init_class (xine_t *xine, void *data) {
   this->ip                             = NULL;
 
   this->dvd_device = config->register_string(config,
-					     "input.dvd_device",
+					     "media.dvd.device",
 					     DVD_PATH,
 					     _("device used for DVD playback"),
 					     _("The path to the device, usually a "
@@ -1706,7 +1706,7 @@ static void *init_class (xine_t *xine, void *data) {
     char *css_cache_default, *css_cache;
     int mode;
     
-    raw_device = config->register_string(config, "input.dvd_raw_device",
+    raw_device = config->register_string(config, "media.dvd.raw_device",
 					 RDVD_PATH, _("raw device set up for DVD access"),
 					 _("If this points to a raw device connected to your "
 					   "DVD device, xine will use the raw device for playback. "
@@ -1720,7 +1720,7 @@ static void *init_class (xine_t *xine, void *data) {
 					 10, NULL, NULL);
     if (raw_device) xine_setenv("DVDCSS_RAW_DEVICE", raw_device, 0);
     
-    mode = config->register_enum(config, "input.css_decryption_method", 0,
+    mode = config->register_enum(config, "media.dvd.css_decryption_method", 0,
 				 decrypt_modes, _("CSS decryption method"),
 				 _("Selects the decryption method libdvdcss will use to descramble "
 				   "copy protected DVDs. Try the various methods, if you have problems "
@@ -1729,7 +1729,7 @@ static void *init_class (xine_t *xine, void *data) {
     
     css_cache_default = (char *)malloc(strlen(xine_get_homedir()) + 10);
     sprintf(css_cache_default, "%s/.dvdcss/", xine_get_homedir());
-    css_cache = config->register_string(config, "input.css_cache_path", css_cache_default,
+    css_cache = config->register_string(config, "media.dvd.css_cache_path", css_cache_default,
 					_("path to the title key cache"),
 					_("Since cracking the copy protection of scrambled DVDs can "
 					  "be quite time consuming, libdvdcss will cache the cracked "
@@ -1751,28 +1751,28 @@ static void *init_class (xine_t *xine, void *data) {
     dlclose(dvdcss);
   }
   
-  config->register_num(config, "input.dvd_region",
+  config->register_num(config, "media.dvd.region",
 		       1,
 		       _("region the DVD player claims to be in (1 to 8)"),
 		       _("This only needs to be changed if your DVD jumps to a screen "
 		         "complaining about a wrong region code. It has nothing to do with "
 		         "the region code set in DVD drives, this is purely software."),
 		       0, region_changed_cb, this);
-  config->register_string(config, "input.dvd_language",
+  config->register_string(config, "media.dvd.language",
 			  "en",
 			  _("default language for DVD playback"),
 			  _("xine tries to use this language as a default for DVD playback. "
 			    "As far as the DVD supports it, menus and audio tracks will be presented "
 			    "in this language.\nThe value must be a two character ISO639 language code."),
 			  0, language_changed_cb, this);
-  config->register_bool(config, "input.dvd_use_readahead",
+  config->register_bool(config, "media.dvd.readahead",
 			1,
 			_("read-ahead caching"),
 			_("xine can use a read ahead cache for DVD drive access.\n"
 			  "This may lead to jerky playback on slow drives, but it improves the impact "
 			  "of the DVD layer change on faster drives."),
 			10, read_ahead_cb, this);
-  config->register_enum(config, "input.dvd_skip_behaviour", 0,
+  config->register_enum(config, "media.dvd.skip_behaviour", 0,
 			skip_modes,
 			_("unit for the skip action"),
 			_("You can configure the behaviour when issuing a skip command (using the skip "
@@ -1788,7 +1788,7 @@ static void *init_class (xine_t *xine, void *data) {
 			  "will skip a DVD title, which is a structural unit representing entire "
 			  "features on the DVD"),
 			20, NULL, NULL);
-  config->register_enum(config, "input.dvd_seek_behaviour", 0,
+  config->register_enum(config, "media.dvd.seek_behaviour", 0,
 			seek_modes,
 			_("unit for seeking"),
 			_("You can configure the domain spanned by the seek slider. The individual "

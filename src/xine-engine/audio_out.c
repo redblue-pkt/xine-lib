@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.187 2004/11/10 07:45:29 tmattern Exp $
+ * $Id: audio_out.c,v 1.188 2004/12/12 22:01:30 mroi Exp $
  *
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -1549,7 +1549,7 @@ static void ao_exit(xine_audio_port_t *this_gen) {
       prop = AO_PROP_PCM_VOL;
     
     vol = this->driver->get_property(this->driver, prop);
-    this->xine->config->update_num(this->xine->config, "audio.mixer_volume", vol);
+    this->xine->config->update_num(this->xine->config, "audio.volume.mixer_volume", vol);
     if(this->driver_open)
       this->driver->close(this->driver);
     this->driver->exit(this->driver);
@@ -1950,7 +1950,7 @@ xine_audio_port_t *_x_ao_new_port (xine_t *xine, ao_driver_t *driver,
   if (!grab_only)
     this->gap_tolerance          = driver->get_gap_tolerance (this->driver);
 
-  this->av_sync_method_conf = config->register_enum(config, "audio.av_sync_method", 0,
+  this->av_sync_method_conf = config->register_enum(config, "audio.synchronization.av_sync_method", 0,
                                                     av_sync_methods,
                                                     _("method to sync audio and video"),
 						    _("When playing audio and video, there are at least "
@@ -1977,9 +1977,9 @@ xine_audio_port_t *_x_ao_new_port (xine_t *xine, ao_driver_t *driver,
 						      "digital passthrough, where audio data is passed to "
 						      "an external decoder in digital form."),
                                                     20, ao_update_av_sync_method, this);
-  config->update_num(config,"audio.av_sync_method",this->av_sync_method_conf);
+  config->update_num(config,"audio.synchronization.av_sync_method",this->av_sync_method_conf);
   
-  this->resample_conf = config->register_enum (config, "audio.resample_mode", 0,
+  this->resample_conf = config->register_enum (config, "audio.synchronization.resample_mode", 0,
 					       resample_modes,
 					       _("enable resampling"),
 					       _("When the sample rate of the decoded audio does not "
@@ -1988,7 +1988,7 @@ xine_audio_port_t *_x_ao_new_port (xine_t *xine, ao_driver_t *driver,
 						 "can select, whether resampling is enabled, disabled or "
 						 "used automatically when necessary."),
 					       20, NULL, NULL);
-  this->force_rate    = config->register_num (config, "audio.force_rate", 0,
+  this->force_rate    = config->register_num (config, "audio.synchronization.force_rate", 0,
 					      _("always resample to this rate (0 to disable)"),
 					      _("Some audio drivers do not correctly announce the "
 						"capabilities of the audio hardware. By setting a "
@@ -1997,7 +1997,7 @@ xine_audio_port_t *_x_ao_new_port (xine_t *xine, ao_driver_t *driver,
 					      20, NULL, NULL);
 
   this->passthrough_offset = config->register_num (config,
-						   "audio.passthrough_offset",
+						   "audio.synchronization.passthrough_offset",
 						   0,
 						   _("offset for digital passthrough"),
 						   _("If you use an external surround decoder and "
@@ -2069,11 +2069,11 @@ xine_audio_port_t *_x_ao_new_port (xine_t *xine, ao_driver_t *driver,
   if(this->driver){
     int vol;
     
-    vol = config->register_range (config, "audio.mixer_volume", 
+    vol = config->register_range (config, "audio.volume.mixer_volume", 
 				  50, 0, 100, _("startup audio volume"), 
 				  _("The overall audio volume set at xine startup."), 10, NULL, NULL);
     
-    if(config->register_bool (config, "audio.remember_volume", 0,
+    if(config->register_bool (config, "audio.volume.remember_volume", 0,
 			      _("restore volume level at startup"), 
 			      _("If disabled, xine will not modify any mixer settings at startup."),
 			      10, NULL, NULL)) {

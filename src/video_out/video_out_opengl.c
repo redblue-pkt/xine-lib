@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_opengl.c,v 1.44 2004/11/25 03:29:11 dsalt Exp $
+ * $Id: video_out_opengl.c,v 1.45 2004/12/12 22:01:27 mroi Exp $
  * 
  * video_out_opengl.c, OpenGL based interface for xine
  *
@@ -1324,7 +1324,7 @@ static vo_driver_t *opengl_open_plugin (video_driver_class_t *class_gen, const v
   this->vo_driver.dispose              = opengl_dispose;
   this->vo_driver.redraw_needed        = opengl_redraw_needed;
 
-  this->yuv2rgb_brightness = config->register_range (config, "video.opengl_gamma", 0,
+  this->yuv2rgb_brightness = config->register_range (config, "video.output.opengl_gamma", 0,
 						     -128, 127,
 						     _("brightness correction"),
 						     _("The brightness correction can be used to "
@@ -1347,7 +1347,7 @@ static vo_driver_t *opengl_open_plugin (video_driver_class_t *class_gen, const v
                                   this->drawable, X11OSD_SHAPED);
   XUnlockDisplay (this->display);
 
-  this->render_fun_id = config->register_enum (config, "video.opengl_renderer",
+  this->render_fun_id = config->register_enum (config, "video.output.opengl_renderer",
 					       0, opengl_render_fun_names,
 					       _("OpenGL renderer"),
 					       _("The OpenGL plugin provides several render modules:\n\n"
@@ -1364,14 +1364,14 @@ static vo_driver_t *opengl_open_plugin (video_driver_class_t *class_gen, const v
 						 "Show images reflected in a spinning torus. Way cool =)"),
 					       10, opengl_cb_render_fun, this);
   this->render_min_fps = config->register_range (config,
-						 "video.opengl_min_fps",
+						 "video.output.opengl_min_fps",
 						 20, 1, 120,
 						 _("OpenGL minimum framerate"),
 						 _("Minimum framerate for animated render routines.\n"
 						   "Ignored for static render routines.\n"),
 						 20, opengl_cb_default,
 						 &this->render_min_fps);
-  this->render_double_buffer = config->register_bool (config, "video.opengl_double_buffer", 1,
+  this->render_double_buffer = config->register_bool (config, "video.device.opengl_double_buffer", 1,
 						      _("enable double buffering"),
 						      _("For OpenGL double buffering does not only remove tearing artifacts,\n"
 							"it also reduces flickering a lot.\n"

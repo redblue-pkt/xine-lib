@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3.c,v 1.105 2004/11/24 16:11:02 mroi Exp $
+ * $Id: video_out_dxr3.c,v 1.106 2004/12/12 22:01:04 mroi Exp $
  */
  
 /* mpeg1 encoding video out plugin for the dxr3.  
@@ -257,17 +257,17 @@ static vo_driver_t *dxr3_vo_open_plugin(video_driver_class_t *class_gen, const v
   
   this->class                          = class;
   this->swap_fields                    = config->register_bool(config,
-    "dxr3.enc_swap_fields", 0, _("swap odd and even lines"),
+    "dxr3.encoding.swap_fields", 0, _("swap odd and even lines"),
     _("Swaps the even and odd field of the image.\nEnable this option for "
       "non-MPEG material which produces a vertical jitter on screen."),
     10, dxr3_update_swap_fields, this);
   this->add_bars                       = config->register_bool(config,
-    "dxr3.enc_add_bars", 1, _("add black bars to correct aspect ratio"),
+    "dxr3.encoding.add_bars", 1, _("add black bars to correct aspect ratio"),
     _("Adds black bars when the image has an aspect ratio the card cannot "
       "handle natively. This is needed to maintain proper image proportions."),
     20, dxr3_update_add_bars, this);
   this->enhanced_mode                  = config->register_bool(config,
-    "dxr3.enc_alt_play_mode", 1,
+    "dxr3.encoding.alt_play_mode", 1,
     _("use smooth play mode for mpeg encoder playback"),
     _("Enabling this option will utilise a smoother play mode for non-MPEG content."),
     20, dxr3_update_enhanced_mode, this);
@@ -326,7 +326,7 @@ static vo_driver_t *dxr3_vo_open_plugin(video_driver_class_t *class_gen, const v
   printf("none\n");
 #endif
   if (encoder) {
-    encoder = config->register_enum(config, "dxr3.encoder", 0,
+    encoder = config->register_enum(config, "dxr3.encoding.encoder", 0,
       available_encoders, _("encoder for non mpeg content"),
       _("Content other than MPEG has to pass an additional reencoding stage, "
 	"because the dxr3 handles only MPEG.\nDepending on what is supported by your xine, "
@@ -378,7 +378,7 @@ static vo_driver_t *dxr3_vo_open_plugin(video_driver_class_t *class_gen, const v
   dxr3_set_property(&this->vo_driver, VO_PROP_SATURATION, 500);
   
   /* overlay or tvout? */
-  confnum = config->register_enum(config, "dxr3.videoout_mode", 0, videoout_modes,
+  confnum = config->register_enum(config, "dxr3.output.mode", 0, videoout_modes,
     _("video output mode (TV or overlay)"),
     _("The way the DXR3 outputs the final video can be set here. The individual values are:\n\n"
       "letterboxed tv\n"
@@ -426,18 +426,18 @@ static vo_driver_t *dxr3_vo_open_plugin(video_driver_class_t *class_gen, const v
       this->overlay_enabled = 1;
       this->tv_switchable = 1;
       this->widescreen_enabled = confnum - 2;
-      confstr = config->register_string(config, "dxr3.keycolor", "0x80a040",
+      confstr = config->register_string(config, "dxr3.output.keycolor", "0x80a040",
 	_("overlay colorkey value"), _("Hexadecimal RGB value of the key color.\n"
 	"You can try different values, if you experience windows becoming transparent "
 	"when using DXR3 overlay mode."), 20, NULL, NULL);
       sscanf(confstr, "%x", &this->overlay.colorkey);
-      confstr = config->register_string(config, "dxr3.color_interval", "50.0",
+      confstr = config->register_string(config, "dxr3.output.keycolor_interval", "50.0",
 	_("overlay colorkey tolerance"), _("A greater value widens the tolerance for "
 	"the overlay keycolor.\nYou can try lower values, if you experience windows "
 	"becoming transparent when using DXR3 overlay mode, but parts of the image borders may "
 	"disappear when using a too low setting."), 20, NULL, NULL);
       sscanf(confstr, "%f", &this->overlay.color_interval);
-      this->overlay.shrink = config->register_num(config, "dxr3.shrink_overlay_area", 0,
+      this->overlay.shrink = config->register_num(config, "dxr3.output.shrink_overlay_area", 0,
 	_("crop the overlay area at top and bottom"),
         _("Removes one pixel line from the top and bottom of the overlay. Enable this, if "
 	"you see green lines at the top or bottom of the overlay."), 10, NULL, NULL);
@@ -452,7 +452,7 @@ static vo_driver_t *dxr3_vo_open_plugin(video_driver_class_t *class_gen, const v
   }
   
   /* init tvmode */
-  confnum = config->register_enum(config, "dxr3.preferred_tvmode", 3, tv_modes,
+  confnum = config->register_enum(config, "dxr3.output.tvmode", 3, tv_modes,
     _("preferred tv mode"), _("Selects the TV mode to be used by the DXR3. The values mean:\n\n"
     "ntsc: NTSC at 60Hz\npal: PAL at 50Hz\npal60: PAL at 60Hz\ndefault: keep the card's setting"),
     0, NULL, NULL);

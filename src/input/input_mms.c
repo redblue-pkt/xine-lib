@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_mms.c,v 1.53 2004/07/20 00:50:11 rockyb Exp $
+ * $Id: input_mms.c,v 1.54 2004/12/12 22:01:06 mroi Exp $
  *
  * mms input plugin based on work from major mms
  */
@@ -394,7 +394,7 @@ static input_plugin_t *mms_class_get_instance (input_class_t *cls_gen, xine_stre
   this->mrl      = mrl; 
   this->nbc      = nbc_init (this->stream);
 
-  if (xine_config_lookup_entry (stream->xine, "input.mms_network_bandwidth", 
+  if (xine_config_lookup_entry (stream->xine, "media.network.bandwidth", 
                                 &bandwidth_entry)) {
     bandwidth_changed_cb(cls, &bandwidth_entry);
   }
@@ -451,7 +451,7 @@ static void *init_class (xine_t *xine, void *data) {
   this->input_class.dispose            = mms_class_dispose;
   this->input_class.eject_media        = NULL;
 
-  xine->config->register_enum(xine->config, "input.mms_network_bandwidth", 10,
+  xine->config->register_enum(xine->config, "media.network.bandwidth", 10,
 			      (char **)mms_bandwidth_strs,
 			      _("network bandwidth"),
 			      _("Specify the bandwidth of your internet connection here. "
@@ -460,7 +460,7 @@ static void *init_class (xine_t *xine, void *data) {
 			      0, bandwidth_changed_cb, (void*) this);
 
   this->protocol = xine->config->register_enum(xine->config,
-    "input.mms_protocol", 
+    "media.network.mms_protocol", 
     0, 
     (char **)mms_protocol_strs, 
     _("MMS protocol"),

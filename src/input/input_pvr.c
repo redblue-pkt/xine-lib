@@ -29,7 +29,7 @@
  *   - may erase files as they get old
  *
  * requires:
- *   - audio.av_sync_method=resample
+ *   - audio.synchronization.av_sync_method=resample
  *   - ivtv driver (01 Jul 2003 cvs is known to work)
  *
  * MRL: 
@@ -38,7 +38,7 @@
  * usage: 
  *   xine pvr:/<prefix_to_tmp_files>\!<prefix_to_saved_files>\!<max_page_age>
  *
- * $Id: input_pvr.c,v 1.51 2004/10/29 23:11:37 miguelfreitas Exp $
+ * $Id: input_pvr.c,v 1.52 2004/12/12 22:01:06 mroi Exp $
  */
 
 /**************************************************************************
@@ -256,7 +256,7 @@ typedef struct {
  * speed in order to regulate fifo usage, that is,
  * trying to match the rate of generated data.
  *
- * OBS: use with audio.av_sync_method=resample
+ * OBS: use with audio.synchronization.av_sync_method=resample
  * ***************************************************
  */
 
@@ -444,7 +444,7 @@ static off_t pvr_plugin_read (input_plugin_t *this_gen, char *buf, off_t len) {
  * - underrun: buffer gets empty. playback will suffer a pausing effect, also discarding
  *             video frames.
  *
- * OBS: use with audio.av_sync_method=resample
+ * OBS: use with audio.synchronization.av_sync_method=resample
  */
 static void pvr_adjust_realtime_speed(pvr_input_plugin_t *this, fifo_buffer_t *fifo, int speed ) {
   
@@ -1428,7 +1428,7 @@ static int pvr_plugin_open (input_plugin_t *this_gen ) {
   this->event_queue = xine_event_new_queue (this->stream);
     
   /* enable resample method */
-  this->stream->xine->config->update_num(this->stream->xine->config,"audio.av_sync_method",1);
+  this->stream->xine->config->update_num(this->stream->xine->config,"audio.synchronization.av_sync_method",1);
     
   this->pvr_running = 1;
   
@@ -1546,7 +1546,7 @@ static void *init_plugin (xine_t *xine, void *data) {
   this->config = xine->config;
 
   this->devname = this->config->register_string(this->config,
-				    "input.pvr_device",
+				    "media.wintv_pvr.device",
 				    PVR_DEVICE,
 				    _("device used for WinTV-PVR 250/350 (pvr plugin)"),
 				    _("The path to the device of your WinTV card."),

@@ -398,8 +398,8 @@ msgstr ""
 "jméno zvukového zařízení nastaveno na \"auto\"."
 
 #: src/audio_out/audio_oss_out.c:754
-msgid "audio_oss_out: audio.oss_device_name = auto, probing devs\n"
-msgstr "audio_oss_out: audio.oss_device_name = auto, zkouší se zařízení\n"
+msgid "audio_oss_out: audio.device.oss_device_name = auto, probing devs\n"
+msgstr "audio_oss_out: audio.device.oss_device_name = auto, zkouší se zařízení\n"
 
 #: src/audio_out/audio_oss_out.c:757
 msgid "audio_oss_out: Auto probe for audio device failed\n"
@@ -4658,14 +4658,14 @@ msgstr "input_rip: vstupní modul není definován!\n"
 #: src/xine-engine/input_rip.c:552
 msgid ""
 "input_rip: target directory wasn't specified, please fill out the option "
-"'misc.save_dir'\n"
+"'media.capture.save_dir'\n"
 msgstr ""
 "input_rip: cílový adresář nebyl specifikován, prosím vyplňte volbu 'misc."
 "save_dir'\n"
 
 #: src/xine-engine/input_rip.c:554
 msgid ""
-"The stream save feature is disabled until you set misc.save_dir in the "
+"The stream save feature is disabled until you set media.capture.save_dir in the "
 "configuration."
 msgstr ""
 "Vlastnost ukládání dat je zakázána, dokud nenastavíte v konfiguraci 'misc."

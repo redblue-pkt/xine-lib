@@ -29,7 +29,7 @@
  * - it's possible speeder saving streams in the xine without playing:
  *     xine stream_mrl#save:file.raw\;noaudio\;novideo
  *
- * $Id: input_rip.c,v 1.26 2004/10/29 23:11:38 miguelfreitas Exp $
+ * $Id: input_rip.c,v 1.27 2004/12/12 22:01:31 mroi Exp $
  */
 
 /* TODO:
@@ -549,9 +549,9 @@ input_plugin_t *_x_rip_plugin_get_instance (xine_stream_t *stream, const char *f
 
   if (!stream->xine->save_path[0]) {
     xine_log(stream->xine, XINE_LOG_MSG,
-	     _("input_rip: target directory wasn't specified, please fill out the option 'misc.save_dir'\n"));
+	     _("input_rip: target directory wasn't specified, please fill out the option 'media.capture.save_dir'\n"));
     _x_message(stream, XINE_MSG_SECURITY,
-	       _("The stream save feature is disabled until you set misc.save_dir in the configuration."), NULL);
+	       _("The stream save feature is disabled until you set media.capture.save_dir in the configuration."), NULL);
     return NULL;
   }
 

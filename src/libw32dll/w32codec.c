@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.143 2004/06/05 15:59:36 tmattern Exp $
+ * $Id: w32codec.c,v 1.144 2004/12/12 22:01:25 mroi Exp $
  *
  * routines for using w32 codecs
  * DirectShow support by Miguel Freitas (Nov/2001)
@@ -1586,7 +1586,7 @@ static void *init_video_decoder_class (xine_t *xine, void *data) {
   config_values_t *cfg;
 
   cfg = xine->config;
-  win32_def_path = cfg->register_string (cfg, "codec.win32_path", WIN32_PATH,
+  win32_def_path = cfg->register_string (cfg, "decoder.external.win32_codecs_path", WIN32_PATH,
 					 _("path to Win32 codecs"),
 					 _("If you have the Windows or Apple Quicktime codec packs "
 					   "installed, specify the path the codec directory here. "
@@ -1663,7 +1663,7 @@ static void *init_audio_decoder_class (xine_t *xine, void *data) {
   this->decoder_class.dispose         = dispose_class;
 
   cfg = xine->config;
-  win32_def_path = cfg->register_string (cfg, "codec.win32_path", WIN32_PATH,
+  win32_def_path = cfg->register_string (cfg, "decoder.external.win32_codecs_path", WIN32_PATH,
 					 _("path to Win32 codecs"),
 					 _("If you have the Windows or Apple Quicktime codec packs "
 					   "installed, specify the path the codec directory here. "

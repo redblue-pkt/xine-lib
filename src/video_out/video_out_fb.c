@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_fb.c,v 1.39 2004/11/24 16:11:04 mroi Exp $
+ * $Id: video_out_fb.c,v 1.40 2004/12/12 22:01:27 mroi Exp $
  * 
  * video_out_fb.c, frame buffer xine driver by Miguel Freitas
  *
@@ -786,7 +786,7 @@ static void register_callbacks(fb_driver_t *this)
 
 static int open_fb_device(config_values_t *config, xine_t *xine)
 {
-  static char devkey[] = "video.fb_device";   /* Why static? */
+  static char devkey[] = "video.device.fb_device";   /* Why static? */
   char *device_name;
   int fd;
 
@@ -882,7 +882,7 @@ static int setup_yuv2rgb(fb_driver_t *this, config_values_t *config,
 
   this->yuv2rgb_swap  = 0;
   this->yuv2rgb_brightness =
-    config->register_range(config, "video.fb_gamma", 0,
+    config->register_range(config, "video.output.fb_gamma", 0,
 			   -100, 100,
 			   _("brightness correction"),
 			   _("The brightness correction can be used to lighten or darken the image. "

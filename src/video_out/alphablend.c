@@ -1763,7 +1763,7 @@ void _x_alphablend_init(alphablend_t *extra_data, xine_t *xine)
   extra_data->buffer_size = 0;
 
   extra_data->disable_exact_blending =
-    config->register_bool(config, "video.disable_exact_osd_alpha_blending", 0,
+    config->register_bool(config, "video.output.disable_exact_alphablend", 0,
       _("disable exact alpha blending of overlays"),
       _("If you experience a performance impact when an On Screen Display or other "
         "overlays like DVD subtitles are active, then you might want to enable this option.\n"

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.71 2004/11/03 19:30:04 mroi Exp $
+ * $Id: xine_decoder.c,v 1.72 2004/12/12 22:01:08 mroi Exp $
  *
  * stuff needed to turn liba52 into a xine decoder plugin
  */
@@ -775,7 +775,7 @@ static void *init_plugin (xine_t *xine, void *data) {
 
   cfg = this->config = xine->config;
 
-  this->a52_level = (float) cfg->register_range (cfg, "codec.a52_level", 100,
+  this->a52_level = (float) cfg->register_range (cfg, "audio.a52.level", 100,
 						 0, 200,
 						 _("A/52 volume"),
 						 _("With A/52 audio, you can modify the volume "
@@ -785,7 +785,7 @@ static void *init_plugin (xine_t *xine, void *data) {
 						   "channel downmixing will work on an audio stream "
 						   "of the given volume."),
 						 10, a52_level_change_cb, this) / 100.0;
-  this->disable_dynrng_compress = !cfg->register_bool (cfg, "codec.a52_dynrng", 0,
+  this->disable_dynrng_compress = !cfg->register_bool (cfg, "audio.a52.dynamic_range", 0,
 						_("use A/52 dynamic range compression"),
 						_("Dynamic range compression limits the dynamic "
 						  "range of the audio. This means making the loud "
@@ -793,7 +793,7 @@ static void *init_plugin (xine_t *xine, void *data) {
 						  "more easily listen to the audio in a noisy "
 						  "environment without disturbing anyone."),
 						0, dynrng_compress_change_cb, this);
-  this->enable_surround_downmix = cfg->register_bool (cfg, "codec.a52_surround_downmix", 0,
+  this->enable_surround_downmix = cfg->register_bool (cfg, "audio.a52.surround_downmix", 0,
 						_("downmix audio to 2 channel surround stereo"),
 						_("When you want to listen to multichannel surround "
 						  "sound, but you have only two speakers or a "

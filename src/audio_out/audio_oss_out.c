@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_oss_out.c,v 1.112 2004/11/23 14:40:23 mroi Exp $
+ * $Id: audio_oss_out.c,v 1.113 2004/12/12 22:01:02 mroi Exp $
  *
  * 20-8-2001 First implementation of Audio sync and Audio driver separation.
  * Copyright (C) 2001 James Courtier-Dutton James@superbug.demon.co.uk
@@ -731,7 +731,7 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
   xprintf(class->xine, XINE_VERBOSITY_DEBUG, "audio_oss_out: Opening audio device...\n");
 
   /* devname_val is offset used to select auto, /dev/dsp, or /dev/sound/dsp */
-  devname_val = config->register_enum (config, "audio.oss_device_name", 0,
+  devname_val = config->register_enum (config, "audio.device.oss_device_name", 0,
 				       devname_opts,
 				       _("OSS audio device name"),
 				       _("Specifies the base part of the audio device name, "
@@ -740,7 +740,7 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
 					 "auto detect the corret setting."),
 					10, NULL, NULL);
   /* devname_num is the N in '/dev[/sound]/dsp[N]'. Set to -1 for nothing */
-  devname_num = config->register_num(config, "audio.oss_device_number", -1,
+  devname_num = config->register_num(config, "audio.device.oss_device_number", -1,
 				     _("OSS audio device number, -1 for none"),
 				     _("The full audio device name is created by concatenating the "
 				       "OSS device name and the audio device number.\n"
@@ -751,7 +751,7 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
 				     10, NULL, NULL);
   if (devname_val == 0) {
     xprintf(class->xine, XINE_VERBOSITY_LOG,
-	    _("audio_oss_out: audio.oss_device_name = auto, probing devs\n"));
+	    _("audio_oss_out: audio.device.oss_device_name = auto, probing devs\n"));
     if ( ! probe_audio_devices(this)) {  /* Returns zero on fail */
       xprintf(class->xine, XINE_VERBOSITY_LOG, 
 	      _("audio_oss_out: Auto probe for audio device failed\n"));
@@ -914,7 +914,7 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
   }
 
   /* for usability reasons, keep this in sync with audio_alsa_out.c */
-  speakers = config->register_enum(config, "audio.speaker_arrangement", STEREO,
+  speakers = config->register_enum(config, "audio.output.speaker_arrangement", STEREO,
 			speaker_arrangement,
 			_("speaker arrangement"),
 			_("Select how your speakers are arranged, "
@@ -1012,7 +1012,7 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
     int audio_devs;
     char *parse;
     
-    mixer_num = config->register_num(config, "audio.mixer_number", -1,
+    mixer_num = config->register_num(config, "audio.device.oss_mixer_number", -1,
 				     _("OSS audio mixer number, -1 for none"),
 				     _("The full mixer device name is created by taking the "
 				       "OSS device name, replacing \"dsp\" with \"mixer\" and "

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_irixal_out.c,v 1.11 2004/04/10 14:53:43 mroi Exp $
+ * $Id: audio_irixal_out.c,v 1.12 2004/12/12 22:01:02 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -380,7 +380,7 @@ static void *init_audio_out_plugin (config_values_t *config)
   printf ("  capabilities 0x%X\n",this->capabilities);
  
   /* TODO: anything can change during runtime... move check to the right location */
-  this->gap_tolerance = config->register_range (config, "audio.irixal_gap_tolerance",
+  this->gap_tolerance = config->register_range (config, "audio.device.irixal_gap_tolerance",
 					        DEFAULT_GAP_TOLERANCE, 0, 90000,
 						_("irixal audio output maximum gap length"),
 						_("You can specify the maximum offset between audio "

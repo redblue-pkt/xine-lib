@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xshm.c,v 1.137 2004/11/24 16:11:08 mroi Exp $
+ * $Id: video_out_xshm.c,v 1.138 2004/12/12 22:01:29 mroi Exp $
  * 
  * video_out_xshm.c, X11 shared memory extension interface for xine
  *
@@ -1236,7 +1236,7 @@ static vo_driver_t *xshm_open_plugin (video_driver_class_t *class_gen, const voi
   
   this->yuv2rgb_mode  = mode;
   this->yuv2rgb_swap  = swapped;
-  this->yuv2rgb_brightness = config->register_range (config, "video.xshm_gamma", 0,
+  this->yuv2rgb_brightness = config->register_range (config, "video.output.xshm_gamma", 0,
 						     -128, 127,
 						     _("brightness correction"),
 						     _("The brightness correction can be used to "

@@ -209,7 +209,7 @@ typedef struct {
  * speed in order to regulate fifo usage, that is,
  * trying to match the rate of generated data.
  *
- * OBS: use with audio.av_sync_method=resample
+ * OBS: use with audio.synchronization.av_sync_method=resample
  * ***************************************************
  */
 
@@ -757,7 +757,7 @@ static int open_radio_capture_device(v4l_input_plugin_t *this)
   lprintf("open_radio_capture_device\n");
   
   entry = this->stream->xine->config->lookup_entry(this->stream->xine->config,
-                                                   "input.v4l_radio_device_path");
+                                                   "media.video4linux.radio_device");
   
   if((this->radio_fd = open(entry->str_value, O_RDWR)) < 0) {
     xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
@@ -808,7 +808,7 @@ static int open_video_capture_device(v4l_input_plugin_t *this)
   lprintf("open_video_capture_device\n");
   
   entry = this->stream->xine->config->lookup_entry(this->stream->xine->config, 
-                                                   "input.v4l_video_device_path");
+                                                   "media.video4linux.video_device");
 
   /* Try to open the video device */
   if((this->video_fd = open(entry->str_value, O_RDWR)) < 0) {
@@ -1683,7 +1683,7 @@ static int v4l_plugin_video_open (input_plugin_t *this_gen)
   this->scr_tunning   = 0;
   
   /* enable resample method */
-  this->stream->xine->config->update_num(this->stream->xine->config, "audio.av_sync_method", 1);
+  this->stream->xine->config->update_num(this->stream->xine->config, "audio.synchronization.av_sync_method", 1);
   
   this->event_queue = xine_event_new_queue (this->stream);
   
@@ -1771,7 +1771,7 @@ static input_plugin_t *v4l_class_get_video_instance (input_class_t *cls_gen,
     return NULL;
   
   entry = this->stream->xine->config->lookup_entry(this->stream->xine->config, 
-                                                   "input.v4l_video_device_path");
+                                                   "media.video4linux.video_device");
   
   /* Try to open the video device */
   if((this->video_fd = open(entry->str_value, O_RDWR)) < 0) {
@@ -1835,7 +1835,7 @@ static input_plugin_t *v4l_class_get_radio_instance (input_class_t *cls_gen,
     return NULL;
   
   entry = this->stream->xine->config->lookup_entry(this->stream->xine->config, 
-                                                   "input.v4l_radio_device_path");
+                                                   "media.video4linux.radio_device");
   
   if((this->radio_fd = open(entry->str_value, O_RDWR)) < 0) {
     xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
@@ -1905,7 +1905,7 @@ static void *init_video_class (xine_t *xine, void *data)
   this->input_class.dispose            = v4l_class_dispose;
   this->input_class.eject_media        = NULL;
   
-  config->register_string (config, "input.v4l_video_device_path",
+  config->register_string (config, "media.video4linux.video_device",
 			   VIDEO_DEV,
 			   _("v4l video device"),
 			   _("The path to your Video4Linux video device."),
@@ -1931,7 +1931,7 @@ static void *init_radio_class (xine_t *xine, void *data)
   this->input_class.dispose            = v4l_class_dispose;
   this->input_class.eject_media        = NULL;
   
-  config->register_string (config, "input.v4l_radio_device_path",
+  config->register_string (config, "media.video4linux.radio_device",
 			   RADIO_DEV,
 			   _("v4l radio device"),
 			   _("The path to your Video4Linux radio device."),

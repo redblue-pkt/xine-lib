@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_sun_out.c,v 1.39 2004/04/11 15:27:19 mroi Exp $
+ * $Id: audio_sun_out.c,v 1.40 2004/12/12 22:01:02 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -884,7 +884,7 @@ static ao_driver_t *ao_sun_open_plugin (audio_driver_class_t *class_gen, const v
 
   /* This config entry is security critical, is it really necessary? */
   devname = config->register_string(config,
-				    "audio.sun_audio_device",
+				    "audio.device.sun_audio_device",
 				    audiodev && *audiodev ? audiodev : "/dev/audio",
 				    _("Sun audio device name"),
 				    _("Specifies the file name for the Sun audio device "

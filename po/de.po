@@ -408,8 +408,8 @@ msgstr ""
 "falls OSS Audio-Gerätenamen auf \"auto\" steht."
 
 #: src/audio_out/audio_oss_out.c:776
-msgid "audio_oss_out: audio.oss_device_name = auto, probing devs\n"
-msgstr "audio_oss_out: audio.oss_device_name = auto, suche Geräte\n"
+msgid "audio_oss_out: audio.device.oss_device_name = auto, probing devs\n"
+msgstr "audio_oss_out: audio.device.oss_device_name = auto, suche Geräte\n"
 
 #: src/audio_out/audio_oss_out.c:779
 msgid "audio_oss_out: Auto probe for audio device failed\n"
@@ -4571,17 +4571,17 @@ msgstr "input_rip: Input-Plugin nicht definiert!\n"
 #: src/xine-engine/input_rip.c:545
 msgid ""
 "input_rip: target directory wasn't specified, please fill out the option "
-"'misc.save_dir'\n"
+"'media.capture.save_dir'\n"
 msgstr ""
-"input_rip: Zielverzeichnis nicht angegeben, bitte die Option 'misc.save_dir' "
+"input_rip: Zielverzeichnis nicht angegeben, bitte die Option 'media.capture.save_dir' "
 "angeben\n"
 
 #: src/xine-engine/input_rip.c:547
 msgid ""
-"The stream save feature is disabled until you set misc.save_dir in the "
+"The stream save feature is disabled until you set media.capture.save_dir in the "
 "configuration."
 msgstr ""
-"Das Abspeichern von Datenströmen ist solange deaktiviert, bis misc.save_dir "
+"Das Abspeichern von Datenströmen ist solange deaktiviert, bis media.capture.save_dir "
 "in der Konfiguration gesetzt ist."
 
 #: src/xine-engine/input_rip.c:554

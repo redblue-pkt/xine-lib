@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.h,v 1.144 2004/09/26 22:54:52 valtri Exp $
+ * $Id: buffer.h,v 1.145 2004/12/12 22:01:30 mroi Exp $
  *
  *
  * contents:
@@ -436,7 +436,7 @@ struct buf_element_s {
  * decoder_info_ptr[2] = pointer to charset encoding string
  * This is used mostly with subtitle buffers when encoding is
  * known at demuxer level (take precedence over xine config
- * settings such as misc.spu_src_encoding)
+ * settings such as subtitles.separate.src_encoding)
  */
 #define BUF_SPECIAL_CHARSET_ENCODING 7
 

@@ -229,8 +229,8 @@ msgstr ""
 "nastavte na -1 (eg /dev/sound/dsp). Rozsah čísla je -1 alebo 0-15."
 
 #: src/audio_out/audio_oss_out.c:755
-msgid "audio_oss_out: audio.oss_device_name = auto, probing devs\n"
-msgstr "audio_oss_out: audio.oss_device_name = auto, skúšam devs\n"
+msgid "audio_oss_out: audio.device.oss_device_name = auto, probing devs\n"
+msgstr "audio_oss_out: audio.device.oss_device_name = auto, skúšam devs\n"
 
 #: src/audio_out/audio_oss_out.c:758
 msgid "audio_oss_out: Auto probe for audio device failed\n"
@@ -2927,17 +2927,17 @@ msgstr "input_rip: vstupný modul nedefinovaný!\n"
 #: src/xine-engine/input_rip.c:545
 msgid ""
 "input_rip: target directory wasn't specified, please fill out the option "
-"'misc.save_dir'\n"
+"'media.capture.save_dir'\n"
 msgstr ""
 "input_rip: cieľový adresár nebol špecifikovaný, prosím vyplnte voľbu "
-"'misc.save_dir'\n"
+"'media.capture.save_dir'\n"
 
 #: src/xine-engine/input_rip.c:547
 msgid ""
-"The stream save feature is disabled until you set misc.save_dir in the "
+"The stream save feature is disabled until you set media.capture.save_dir in the "
 "configuration."
 msgstr ""
-"Schopnosť ukladania je zakázaná dovtedy kým nenastavíte misc.save_dir "
+"Schopnosť ukladania je zakázaná dovtedy kým nenastavíte media.capture.save_dir "
 "v konfigurácii."
 
 #: src/xine-engine/input_rip.c:554

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_syncfb.c,v 1.99 2004/11/24 16:11:06 mroi Exp $
+ * $Id: video_out_syncfb.c,v 1.100 2004/12/12 22:01:28 mroi Exp $
  * 
  * video_out_syncfb.c, SyncFB (for Matrox G200/G400 cards) interface for xine
  * 
@@ -1003,7 +1003,7 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *vi
             the kernel driver is fixed... */
 #if 0
   this->default_repeat       = config->register_range(config, 
-						      "video.syncfb_default_repeat", 3, 1, 4,
+						      "video.device.syncfb_default_repeat", 3, 1, 4,
 						      _("default number of frame repetitions"),
 						      _("This specifies how many times a single video "
 						        "frame will be displayed consecutively."),
@@ -1069,7 +1069,7 @@ static void *init_class (xine_t *xine, void *visual_gen) {
   char*             device_name;
   int               fd;
 
-  device_name = xine->config->register_string(xine->config, "video.syncfb_device", "/dev/syncfb",
+  device_name = xine->config->register_string(xine->config, "video.device.syncfb_device", "/dev/syncfb",
 					_("SyncFB device name"),
 					_("Specifies the file name for the SyncFB (TeleTux) device "
 					  "to be used.\nThis setting is security critical, "

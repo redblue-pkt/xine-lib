@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: qt_decoder.c,v 1.37 2004/06/06 16:13:30 jstembridge Exp $
+ * $Id: qt_decoder.c,v 1.38 2004/12/12 22:01:25 mroi Exp $
  *
  * quicktime video/audio decoder plugin, using win32 dlls
  * most of this code comes directly from MPlayer
@@ -617,7 +617,7 @@ static void *qta_init_class (xine_t *xine, void *data) {
   this->decoder_class.dispose         = qta_dispose_class;
 
   cfg = xine->config;
-  win32_def_path = cfg->register_string (cfg, "codec.win32_path", WIN32_PATH,
+  win32_def_path = cfg->register_string (cfg, "decoder.external.win32_codecs_path", WIN32_PATH,
 					 _("path to Win32 codecs"),
 					 _("If you have the Windows or Apple Quicktime codec packs "
 					   "installed, specify the path the codec directory here. "
@@ -1137,7 +1137,7 @@ static void *qtv_init_class (xine_t *xine, void *data) {
   qtv_class_t        *this;
   config_values_t    *cfg = xine->config; 
 
-  win32_def_path = cfg->register_string (cfg, "codec.win32_path", WIN32_PATH,
+  win32_def_path = cfg->register_string (cfg, "decoder.external.win32_codecs_path", WIN32_PATH,
 					 _("path to Win32 codecs"),
 					 _("If you have the Windows or Apple Quicktime codec packs "
 					   "installed, specify the path the codec directory here. "

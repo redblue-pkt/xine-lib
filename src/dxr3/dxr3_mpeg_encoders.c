@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_mpeg_encoders.c,v 1.20 2004/07/20 16:37:44 mroi Exp $
+ * $Id: dxr3_mpeg_encoders.c,v 1.21 2004/12/12 22:01:04 mroi Exp $
  */
  
 /* mpeg encoders for the dxr3 video out plugin.
@@ -185,7 +185,7 @@ static int rte_on_update_format(dxr3_driver_t *drv, dxr3_frame_t *frame)
   }
   
   this->rte_bitrate = drv->class->xine->config->register_range(drv->class->xine->config,
-    "dxr3.rte_bitrate", 10000, 1000, 20000,
+    "dxr3.encoding.rte_bitrate", 10000, 1000, 20000,
     _("rte mpeg output bitrate (kbit/s)"), 
     _("The bitrate the mpeg encoder library librte should use for DXR3's encoding mode. "
       "Higher values will increase quality and CPU usage."), 10, NULL, NULL);
@@ -383,7 +383,7 @@ static int fame_on_update_format(dxr3_driver_t *drv, dxr3_frame_t *frame)
 
   this->fp = init_fp;
   this->fp.quality = drv->class->xine->config->register_range(drv->class->xine->config,
-    "dxr3.fame_quality", 90, 10, 100,
+    "dxr3.encoding.fame_quality", 90, 10, 100,
     _("fame mpeg encoding quality"),
     _("The encoding quality of the libfame mpeg encoder library. "
       "Lower is faster but gives noticeable artifacts. Higher is better but slower."),
@@ -550,7 +550,7 @@ int dxr3_lavc_init(dxr3_driver_t *drv, plugin_node_t *node)
   ffmpeg = dlopen(node->filename, RTLD_LAZY);
   if (!ffmpeg) return 0;
   
-  init = dlsym(ffmpeg, "dxr3_encoder_init");
+  init = dlsym(ffmpeg, "dxr3.encoding.encoder_init");
   if (!init) return 0;
   
   result = init(drv);

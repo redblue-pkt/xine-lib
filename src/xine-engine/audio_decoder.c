@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.131 2004/12/11 23:18:02 valtri Exp $
+ * $Id: audio_decoder.c,v 1.132 2004/12/12 22:01:30 mroi Exp $
  *
  *
  * functions that implement audio decoding
@@ -461,7 +461,7 @@ void _x_audio_decoder_init (xine_stream_t *stream) {
      */
     
     num_buffers = stream->xine->config->register_num (stream->xine->config,
-                                                      "audio.num_buffers",
+                                                      "engine.buffers.audio_num_buffers",
                                                       230,
                                                       _("number of audio buffers"),
 						      _("The number of audio buffers (each is 8k in size) "

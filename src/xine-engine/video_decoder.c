@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.153 2004/12/11 23:18:03 valtri Exp $
+ * $Id: video_decoder.c,v 1.154 2004/12/12 22:01:31 mroi Exp $
  *
  */
 
@@ -478,7 +478,7 @@ void _x_video_decoder_init (xine_stream_t *stream) {
      */
   
     num_buffers = stream->xine->config->register_num (stream->xine->config,
-                                                      "video.num_buffers",
+                                                      "engine.buffers.video_num_buffers",
                                                       500,
                                                       _("number of video buffers"),
 						      _("The number of video buffers (each is 8k in size) "

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decode_video.c,v 1.57 2004/07/20 16:37:44 mroi Exp $
+ * $Id: dxr3_decode_video.c,v 1.58 2004/12/12 22:01:04 mroi Exp $
  */
  
 /* dxr3 video decoder plugin.
@@ -273,18 +273,18 @@ static video_decoder_t *dxr3_open_plugin(video_decoder_class_t *class_gen, xine_
   this->last_vpts             = this->class->clock->get_current_time(this->class->clock);
   
   this->sync_every_frame      = cfg->register_bool(cfg,
-    "dxr3.sync_every_frame", 0, _("try to sync video every frame"),
+    "dxr3.playback.sync_every_frame", 0, _("try to sync video every frame"),
     _("Tries to set a synchronization timestamp for every frame. "
       "Normally this is not necessary, because sync is sufficent "
       "even when the timestamp is set only every now and then.\n"
       "This is relevant for progressive video only (most PAL films)."),
     20, dxr3_update_sync_mode, this);
   this->enhanced_mode         = cfg->register_bool(cfg,
-    "dxr3.alt_play_mode", 1, _("use smooth play mode"),
+    "dxr3.playback.alt_play_mode", 1, _("use smooth play mode"),
     _("Enabling this option will utilise a smoother play mode."),
     20, dxr3_update_enhanced_mode, this);
   this->correct_durations     = cfg->register_bool(cfg,
-    "dxr3.correct_durations", 0, _("correct frame durations in broken streams"),
+    "dxr3.playback.correct_durations", 0, _("correct frame durations in broken streams"),
     _("Enables a small logic that corrects the frame durations of "
       "some mpeg streams with wrong framerate codes. Currently a "
       "correction for NTSC streams erroneously labeled as PAL "

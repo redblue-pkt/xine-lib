@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.303 2004/11/24 15:44:15 mroi Exp $
+ * $Id: xine.c,v 1.304 2004/12/12 22:01:32 mroi Exp $
  */
 
 /*
@@ -1463,7 +1463,7 @@ void xine_init (xine_t *this) {
    * content detection strategy
    */
   this->demux_strategy  = this->config->register_enum (
-      this->config, "misc.demux_strategy", 0,
+      this->config, "engine.demux.strategy", 0,
       demux_strategies,
       _("media format detection strategy"),
       _("xine offers various methods to detect the media format of input to play. "
@@ -1483,7 +1483,7 @@ void xine_init (xine_t *this) {
    */
   this->save_path  = this->config->register_string (
       this->config, 
-      "misc.save_dir", "",
+      "media.capture.save_dir", "",
       _("directory for saving streams"),
       _("When using the stream save feature, files will be written only into this directory.\n"
 	"This setting is security critical, because when changed to a different directory, xine "

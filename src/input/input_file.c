@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_file.c,v 1.96 2004/09/02 19:56:42 valtri Exp $
+ * $Id: input_file.c,v 1.97 2004/12/12 22:01:06 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -553,7 +553,7 @@ static xine_mrl_t **file_class_get_dir (input_class_t *this_gen,
   /* Store new origin path */
  __try_again_from_home:
   
-  this->config->update_string(this->config, "input.file_origin_path", current_dir);
+  this->config->update_string(this->config, "media.files.origin_path", current_dir);
 
   if(strcasecmp(current_dir, "/"))
     snprintf(current_dir_slashed, sizeof(current_dir_slashed), "%s/", current_dir);
@@ -867,7 +867,7 @@ static void *init_plugin (xine_t *xine, void *data) {
     if(getcwd(current_dir, sizeof(current_dir)) == NULL)
       strcpy(current_dir, ".");
 
-    this->origin_path = config->register_string(config, "input.file_origin_path",
+    this->origin_path = config->register_string(config, "media.files.origin_path",
 						current_dir, 
 						_("file browsing start location"),
 						_("The browser to select the file to play will "
@@ -876,7 +876,7 @@ static void *init_plugin (xine_t *xine, void *data) {
   }
   
   this->show_hidden_files = config->register_bool(config, 
-						  "input.file_hidden_files", 
+						  "media.files.show_hidden_files", 
 						  0, _("list hidden files"),
 						  _("If enabled, the browser to select the file to "
 						    "play will also show hidden files."),

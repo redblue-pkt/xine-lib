@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_vidix.c,v 1.66 2004/11/24 16:11:07 mroi Exp $
+ * $Id: video_out_vidix.c,v 1.67 2004/12/12 22:01:29 mroi Exp $
  * 
  * video_out_vidix.c
  *
@@ -761,15 +761,15 @@ static void vidix_ckey_callback(vo_driver_t *this_gen, xine_cfg_entry_t *entry) 
 
   vidix_driver_t *this = (vidix_driver_t *) this_gen;  
   
-  if(strcmp(entry->key, "video.vidix_colour_key_red") == 0) {
+  if(strcmp(entry->key, "video.device.vidix_colour_key_red") == 0) {
     this->vidix_grkey.ckey.red = entry->num_value;
   }
   
-  if(strcmp(entry->key, "video.vidix_colour_key_green") == 0) {
+  if(strcmp(entry->key, "video.device.vidix_colour_key_green") == 0) {
     this->vidix_grkey.ckey.green = entry->num_value;
   }
   
-  if(strcmp(entry->key, "video.vidix_colour_key_blue") == 0) {
+  if(strcmp(entry->key, "video.device.vidix_colour_key_blue") == 0) {
     this->vidix_grkey.ckey.blue = entry->num_value;
   }
   
@@ -793,11 +793,11 @@ static void vidix_rgb_callback(vo_driver_t *this_gen, xine_cfg_entry_t *entry) {
   
   this->vidix_eq.cap = VEQ_CAP_RGB_INTENSITY;
   
-  if(!strcmp(entry->key, "video.vidix_red_intensity")) {
+  if(!strcmp(entry->key, "video.output.vidix_red_intensity")) {
     this->vidix_eq.red_intensity = entry->num_value;
-  } else if(!strcmp(entry->key, "video.vidix_green_intensity")) {
+  } else if(!strcmp(entry->key, "video.output.vidix_green_intensity")) {
     this->vidix_eq.green_intensity = entry->num_value;
-  } else if(!strcmp(entry->key, "video.vidix_blue_intensity")) {
+  } else if(!strcmp(entry->key, "video.output.vidix_blue_intensity")) {
     this->vidix_eq.blue_intensity = entry->num_value;
   }  
 
@@ -960,17 +960,17 @@ static vidix_driver_t *open_plugin (video_driver_class_t *class_gen) {
       
       if(this->vidix_eq.cap & VEQ_CAP_RGB_INTENSITY) {
         this->vidix_eq.red_intensity = config->register_range(config,
-          "video.vidix_red_intensity", 0, -1000, 1000, 
+          "video.output.vidix_red_intensity", 0, -1000, 1000, 
           _("red intensity"), _("The intensity of the red colour components."), 10,
           (void*) vidix_rgb_callback, this); 
 
         this->vidix_eq.green_intensity = config->register_range(config,
-          "video.vidix_green_intensity", 0, -1000, 1000, 
+          "video.output.vidix_green_intensity", 0, -1000, 1000, 
           _("green intensity"), _("The intensity of the green colour components."), 10,
           (void*) vidix_rgb_callback, this);
 
         this->vidix_eq.blue_intensity = config->register_range(config,
-          "video.vidix_blue_intensity", 0, -1000, 1000, 
+          "video.output.vidix_blue_intensity", 0, -1000, 1000, 
           _("blue intensity"), _("The intensity of the blue colour components."), 10,
           (void*) vidix_rgb_callback, this);
   
@@ -983,7 +983,7 @@ static vidix_driver_t *open_plugin (video_driver_class_t *class_gen) {
   
   /* Configuration for double buffering */
   this->use_doublebuffer = config->register_bool(config,
-    "video.vidix_use_double_buffer", 1, _("enable double buffering"),
+    "video.device.vidix_double_buffer", 1, _("enable double buffering"),
     _("Double buffering will synchronize the update of the video image to the repainting of the entire "
       "screen (\"vertical retrace\"). This eliminates flickering and tearing artifacts, but will use "
       "more graphics memory."), 20,
@@ -1125,21 +1125,21 @@ static vo_driver_t *vidix_open_plugin (video_driver_class_t *class_gen, const vo
   
   /* Colour key components */
   this->vidix_grkey.ckey.red = config->register_range(config,
-    "video.vidix_colour_key_red", 255, 0, 255, 
+    "video.device.vidix_colour_key_red", 255, 0, 255, 
     _("video overlay colour key red component"),
     _("The colour key is used to tell the graphics card where to overlay the video image. "
       "Try different values, if you experience windows becoming transparent."), 20,
     (void*) vidix_ckey_callback, this); 
   
   this->vidix_grkey.ckey.green = config->register_range(config,
-    "video.vidix_colour_key_green", 0, 0, 255, 
+    "video.device.vidix_colour_key_green", 0, 0, 255, 
     _("video overlay colour key green component"),
     _("The colour key is used to tell the graphics card where to overlay the video image. "
       "Try different values, if you experience windows becoming transparent."), 20,
     (void*) vidix_ckey_callback, this);     
   
   this->vidix_grkey.ckey.blue = config->register_range(config,
-    "video.vidix_colour_key_blue", 255, 0, 255, 
+    "video.device.vidix_colour_key_blue", 255, 0, 255, 
     _("video overlay colour key blue component"),
     _("The colour key is used to tell the graphics card where to overlay the video image. "
       "Try different values, if you experience windows becoming transparent."), 20,
@@ -1206,7 +1206,7 @@ static vo_driver_t *vidixfb_open_plugin (video_driver_class_t *class_gen, const 
   this->visual_type = XINE_VISUAL_TYPE_FB;
   
   /* Register config option for fb device */
-  device = config->register_string(config, "video.vidixfb_device", "/dev/fb0",
+  device = config->register_string(config, "video.device.vidixfb_device", "/dev/fb0",
     _("framebuffer device name"),
     _("Specifies the file name for the framebuffer device to be used.\n"
       "This setting is security critical, because when changed to a different file, xine "

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  *
- * $Id: video_out_pgx64.c,v 1.71 2004/11/24 16:11:05 mroi Exp $
+ * $Id: video_out_pgx64.c,v 1.72 2004/12/12 22:01:27 mroi Exp $
  *
  * video_out_pgx64.c, Sun XVR100/PGX64/PGX24 output plugin for xine
  *
@@ -1318,20 +1318,20 @@ static void pgx64_config_changed(void *user_data, xine_cfg_entry_t *entry)
   vo_driver_t *this_gen = (vo_driver_t *)user_data;
   pgx64_driver_t *this = (pgx64_driver_t *)(void *)user_data;
 
-  if (strcmp(entry->key, "video.pgx64_colour_key") == 0) {
+  if (strcmp(entry->key, "video.device.pgx64_colour_key") == 0) {
     pgx64_set_property(this_gen, VO_PROP_COLORKEY, entry->num_value);
     update_colour_key_rgb(this);
   } 
-  else if (strcmp(entry->key, "video.pgx64_brightness") == 0) {
+  else if (strcmp(entry->key, "video.output.pgx64_brightness") == 0) {
     pgx64_set_property(this_gen, VO_PROP_BRIGHTNESS, entry->num_value);
   }
-  else if (strcmp(entry->key, "video.pgx64_saturation") == 0) {
+  else if (strcmp(entry->key, "video.output.pgx64_saturation") == 0) {
     pgx64_set_property(this_gen, VO_PROP_SATURATION, entry->num_value);
   }
-  else if (strcmp(entry->key, "video.pgx64_overlay_mode") == 0) {
+  else if (strcmp(entry->key, "") == 0) {
     this->chromakey_en = entry->num_value;
   }
-  else if (strcmp(entry->key, "video.pgx64_multibuf_en") == 0) {
+  else if (strcmp(entry->key, "video.device.pgx64_multibuf_en") == 0) {
     this->multibuf_en = entry->num_value;
   }
 }
@@ -1464,25 +1464,25 @@ static vo_driver_t *pgx64_init_driver(video_driver_class_t *class_gen, const voi
       break;
   }
 
-  this->colour_key  = class->config->register_num(this->class->config, "video.pgx64_colour_key", 1,
+  this->colour_key  = class->config->register_num(this->class->config, "video.device.pgx64_colour_key", 1,
     _("video overlay colour key"),
     _("The colour key is used to tell the graphics card where it can overlay the video image. "
       "Try using different values if you see the video showing through other windows."),
     20, pgx64_config_changed, this);
   update_colour_key_rgb(this);
-  this->brightness  = class->config->register_range(this->class->config, "video.pgx64_brightness", 0, -64, 63,
+  this->brightness  = class->config->register_range(this->class->config, "video.output.pgx64_brightness", 0, -64, 63,
     _("video brightness"),
     _("The brightness of the video image."),
     10, pgx64_config_changed, this);
-  this->saturation  = class->config->register_range(this->class->config, "video.pgx64_saturation", 16, 0, 31,
+  this->saturation  = class->config->register_range(this->class->config, "video.output.pgx64_saturation", 16, 0, 31,
     _("video saturation"),
     _("The saturation of the video image."),
     10, pgx64_config_changed, this);
-  this->chromakey_en = class->config->register_bool(this->class->config, "video.pgx64_chromakey_en", 0,
+  this->chromakey_en = class->config->register_bool(this->class->config, "video.device.pgx64_chromakey_en", 0,
     _("enable chroma keying"),
     _("Draw OSD graphics on top of the overlay colour key rather than blend them into each frame."),
     20, pgx64_config_changed, this);
-  this->multibuf_en = class->config->register_bool(this->class->config, "video.pgx64_multibuf_en", 1,
+  this->multibuf_en = class->config->register_bool(this->class->config, "video.device.pgx64_multibuf_en", 1,
     _("enable multi-buffering"),
     _("Multi buffering increases performance at the expense of using more graphics memory."),
     20, pgx64_config_changed, this);

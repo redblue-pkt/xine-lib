@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.213 2004/10/26 20:10:20 miguelfreitas Exp $
+ * $Id: video_out.c,v 1.214 2004/12/12 22:01:32 mroi Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -1735,13 +1735,13 @@ xine_video_port_t *_x_vo_new_port (xine_t *xine, vo_driver_t *driver, int grabon
   }
 
   this->warn_skipped_threshold = 
-    xine->config->register_num (xine->config, "video.warn_skipped_threshold", 10,
+    xine->config->register_num (xine->config, "engine.performance.warn_skipped_threshold", 10,
     _("percentage of skipped frames to tolerate"),
     _("When more than this percentage of frames are not shown, because they "
       "were not decoded in time, xine sends a notification."),
     20, NULL, NULL);
   this->warn_discarded_threshold = 
-    xine->config->register_num (xine->config, "video.warn_discarded_threshold", 10,
+    xine->config->register_num (xine->config, "engine.performance.warn_discarded_threshold", 10,
     _("percentage of discarded frames to tolerate"),
     _("When more than this percentage of frames are not shown, because they "
       "were not scheduled for display in time, xine sends a notification."),

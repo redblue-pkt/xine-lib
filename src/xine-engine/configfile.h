@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: configfile.h,v 1.35 2004/09/26 22:54:52 valtri Exp $
+ * $Id: configfile.h,v 1.36 2004/12/12 22:01:31 mroi Exp $
  *
  * config file management
  *
@@ -38,7 +38,7 @@ extern "C" {
 #  include <xine.h>
 #endif
 
-#define CONFIG_FILE_VERSION 1
+#define CONFIG_FILE_VERSION 2
 
 /*
  * config entries above this experience 

@@ -1,5 +1,5 @@
 /*
-  $Id: xineplug_inp_vcd.c,v 1.25 2004/07/25 17:42:55 mroi Exp $
+  $Id: xineplug_inp_vcd.c,v 1.26 2004/12/12 22:01:07 mroi Exp $
  
   Copyright (C) 2002, 2003, 2004 Rocky Bernstein <rocky@panix.com>
   
@@ -1655,7 +1655,7 @@ vcd_init (xine_t *xine, void *data)
     
     my_vcd.player.default_autoplay = 
       config->register_enum(config, 
-                            "vcd.autoplay",
+                            "media.vcd.autoplay",
                             VCDPLAYER_AUTOPLAY_PBC,
                             (char **) autoplay_modes,
                             _("default type to use on VCD autoplay"),
@@ -1667,7 +1667,7 @@ _("The play unit to use when none is specified in an MRL, e.g. "
     
     class->vcd_device = 
       strdup (config->register_string(config, 
-                              "vcd.default_device",
+                              "media.vcd.device",
                               "",
           _("default CD drive used for VCD when none given"),
 _("What to use if no drive specified. If the setting is empty, xine will scan for CD drives."), 
@@ -1677,7 +1677,7 @@ _("What to use if no drive specified. If the setting is empty, xine will scan fo
 
     my_vcd.player.slider_length =
       config->register_enum(config, 
-                            "vcd.length_reporting",
+                            "media.vcd.length_reporting",
                             VCDPLAYER_SLIDER_LENGTH_AUTO, 
                             (char **) length_reporting_modes,
                             _("position slider range"),
@@ -1698,7 +1698,7 @@ _("The range the stream playback position slider represents when playing."),
 
   my_vcd.player.autoadvance = 
     config->register_bool(config, 
-                        "vcd.autoadvance",
+                        "media.vcd.autoadvance",
                         (int) true,
                         _("automatically advance track/entry"),
 _("If enabled, we should automatically advance to the next entry or track. Used only when playback control (PBC) is disabled."),
@@ -1708,7 +1708,7 @@ _("If enabled, we should automatically advance to the next entry or track. Used 
 
   my_vcd.player.show_rejected = 
     config->register_bool(config, 
-                        "vcd.show_rejected",
+                        "media.vcd.show_rejected",
                         (int) false,
                         _("show 'rejected' LIDs"),
 _("Some playback list IDs (LIDs) are marked not showable, "
@@ -1720,7 +1720,7 @@ _("Some playback list IDs (LIDs) are marked not showable, "
 
   my_vcd.v_config.title_format = 
     strdup(config->register_string(config,
-                          "vcd.title_format",
+                          "media.vcd.title_format",
                           "%F - %I %N%L%S, disk %c of %C - %v %A",
                           _("format string for display banner"),
 _("Format used in the GUI Title. Similar to the Unix date "
@@ -1732,7 +1732,7 @@ _("Format used in the GUI Title. Similar to the Unix date "
 
   my_vcd.v_config.comment_format = 
     strdup(config->register_string(config,
-                          "vcd.comment_format",
+                          "media.vcd.comment_format",
                           "%P - Track %T",
                           _("format string for stream comment field"),
 _("Format used in the GUI Title. Similar to the Unix date "
@@ -1744,7 +1744,7 @@ _("Format used in the GUI Title. Similar to the Unix date "
 
   vcdplayer_debug = 
   config->register_num(config, 
-                       "vcd.debug",
+                       "media.vcd.debug",
                        0,
                        _("debug flag mask"),
                        _("This integer is a debugging mask when interpreted in binary."),

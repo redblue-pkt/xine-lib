@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: vo_scale.c,v 1.35 2004/10/26 20:10:25 miguelfreitas Exp $
+ * $Id: vo_scale.c,v 1.36 2004/12/12 22:01:32 mroi Exp $
  * 
  * Contains common code to calculate video scaling parameters.
  * In short, it will map frame dimensions to screen/window size.
@@ -389,7 +389,7 @@ void _x_vo_scale_init(vo_scale_t *this, int support_zoom, int scaling_disabled,
   this->crop_bottom = 0;
   
   this->output_horizontal_position = 
-    config->register_range(config, "video.horizontal_position", 50, 0, 100,
+    config->register_range(config, "video.output.horizontal_position", 50, 0, 100,
       _("horizontal image position in the output window"),
       _("If the video window's horizontal size is bigger than the actual image "
 	"to show, you can adjust the position where the image will be placed.\n"
@@ -397,7 +397,7 @@ void _x_vo_scale_init(vo_scale_t *this, int support_zoom, int scaling_disabled,
 	"middle\", while 0 means \"at the very left\" and 100 \"at the very right\"."),
       10, vo_scale_horizontal_pos_changed, this) / 100.0;
   this->output_vertical_position =
-    config->register_range(config, "video.vertical_position", 50, 0, 100,
+    config->register_range(config, "video.output.vertical_position", 50, 0, 100,
       _("vertical image position in the output window"),
       _("If the video window's vertical size is bigger than the actual image "
 	"to show, you can adjust the position where the image will be placed.\n"
@@ -405,7 +405,7 @@ void _x_vo_scale_init(vo_scale_t *this, int support_zoom, int scaling_disabled,
 	"middle\", while 0 means \"at the top\" and 100 \"at the bottom\"."),
       10, vo_scale_vertical_pos_changed, this) / 100.0;
   this->scaling_disabled = (scaling_disabled << 1) |
-    config->register_bool(config, "video.disable_scaling", 0,
+    config->register_bool(config, "video.output.disable_scaling", 0,
       _("disable all video scaling"),
       _("If you want the video image to be always shown at its original resolution, "
 	"you can disable all image scaling here.\n"

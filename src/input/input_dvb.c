@@ -1186,7 +1186,7 @@ static void do_eit(dvb_input_plugin_t *this)
 
 	      /* Let's get the EPG data only in the wanted language. */
 	      
-	      xine_config_lookup_entry(this->stream->xine, "input.dvd_language", &language);
+	      xine_config_lookup_entry(this->stream->xine, "media.dvd.language", &language);
 
 	      if (language.str_value && *language.str_value && 
 		  strncmp(language.str_value, &eit[1], 2)) {
@@ -1588,7 +1588,7 @@ static void do_record (dvb_input_plugin_t *this) {
     free(t);
     strftime(dates,63,"%F_%H%M",tma);
     
-    if (xine_config_lookup_entry(this->stream->xine, "misc.save_dir", &savedir)){
+    if (xine_config_lookup_entry(this->stream->xine, "media.capture.save_dir", &savedir)){
       if(strlen(savedir.str_value)>1){
         if(opendir(savedir.str_value)==NULL){
           snprintf (filename, 256, "%s/%s_%s.ts",xine_get_homedir(),this->channels[this->channel].name, dates);
@@ -2283,7 +2283,7 @@ static int dvb_plugin_open(input_plugin_t * this_gen)
     this->stream->osd_renderer->filled_rect(this->background, 1, 1, 1000, 600, 4);
     this->displaying=0;
     /* zoom for 4:3 in a 16:9 window */
-    config->register_bool(config, "input.dvbzoom",
+    config->register_bool(config, "media.dvb.zoom",
 				 0,
 				 _("use DVB 'center cutout' (zoom)"),
 				 _("This will allow fullscreen "
@@ -2291,13 +2291,13 @@ static int dvb_plugin_open(input_plugin_t * this_gen)
 				   "transmitted in a 16:9 frame."),
 				 0, &dvb_zoom_cb, (void *) this);
 
-    if (xine_config_lookup_entry(this->stream->xine, "input.dvbzoom", &zoomdvb))
+    if (xine_config_lookup_entry(this->stream->xine, "media.dvb.zoom", &zoomdvb))
       dvb_zoom_cb((input_plugin_t *) this, &zoomdvb);
 
-    if (xine_config_lookup_entry(this->stream->xine, "input.dvb_last_channel_enable", &lastchannel))
+    if (xine_config_lookup_entry(this->stream->xine, "media.dvb.remember_channel", &lastchannel))
       if (lastchannel.num_value){
       /* Remember last watched channel. never show this entry*/
-        config->update_num(config, "input.dvb_last_channel_watched", this->channel+1);
+        config->update_num(config, "media.dvb.last_channel", this->channel+1);
       }
 
     /*
@@ -2426,10 +2426,10 @@ static char **dvb_class_get_autoplay_list(input_class_t * this_gen,
     }
     fclose (f);
    
-    if (xine_config_lookup_entry(class->xine, "input.dvb_last_channel_enable", &lastchannel_enable))
+    if (xine_config_lookup_entry(class->xine, "media.dvb.remember_channel", &lastchannel_enable))
       if (lastchannel_enable.num_value){
         num_channels++;
-        if (xine_config_lookup_entry(class->xine, "input.dvb_last_channel_watched", &lastchannel))
+        if (xine_config_lookup_entry(class->xine, "media.dvb.last_channel", &lastchannel))
             default_channel = lastchannel.num_value;
       }
 
@@ -2504,7 +2504,7 @@ static void *init_class (xine_t *xine, void *data) {
   xprintf(this->xine,XINE_VERBOSITY_DEBUG,"init class succeeded\n");
 
   /* Enable remembering of last watched channel */
-  config->register_bool(config, "input.dvb_last_channel_enable",
+  config->register_bool(config, "media.dvb.remember_channel",
 			1,
 			_("Remember last DVB channel watched"),
 			_("On autoplay, xine will remember and "
@@ -2512,7 +2512,7 @@ static void *init_class (xine_t *xine, void *data) {
 			0, NULL, NULL);
 
   /* Enable remembering of last watched channel never show this entry*/
-  config->register_num(config, "input.dvb_last_channel_watched",
+  config->register_num(config, "media.dvb.last_channel",
 		       -1,
 		       _("Remember last DVB channel watched"),
 		       _("If enabled, xine will remember and "

@@ -99,7 +99,7 @@ acceleration correctly.<br>
 OSD might be rendered in the wrong color with Nvidia chips. To work
 around this use the xine config option<br>
 <br>
-<span style="font-family: monospace;">video.xvmc_nvidia_color_fix:1<br>
+<span style="font-family: monospace;">video.device.xvmc_nvidia_color_fix:1<br>
 <br>
 </span>This is due to a bug in the Nvidia XvMC drivers, and this bug is
 probably also present in the i810 drivers.<br>
@@ -113,13 +113,13 @@ not too distant future.<br>
 If you are running VLD XvMC on the CLE266 there are some options that
 may affect performance:<br>
 <br>
-<span style="font-family: monospace;">video.unichrome_cpu_save:1</span><br>
+<span style="font-family: monospace;">video.device.unichrome_cpu_save:1</span><br>
 <br>
 Will save a lot of CPU-power if you are running a 2.6 series kernel. It
 does this by sleeping while the hardware decoder works. Otherwise it
 will spend a lot of CPU waiting for decoder completion.<br>
 <br>
-<span style="font-family: monospace;">video.xvmc_more_frames:1</span><br>
+<span style="font-family: monospace;">video.device.xvmc_more_frames:1</span><br>
 <br>
 Will allocate 15 XvMC surfaces instead of 8. This is very useful if you
 are using vdr-xine and want to avoid buffer-underrun stutters in xine.

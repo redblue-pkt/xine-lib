@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xxmc.c,v 1.10 2004/11/24 16:11:10 mroi Exp $
+ * $Id: video_out_xxmc.c,v 1.11 2004/12/12 22:01:30 mroi Exp $
  *
  * video_out_xxmc.c, X11 decoding accelerated video extension interface for xine
  *
@@ -2302,7 +2302,7 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *vi
 	} else if(!strcmp(attr[k].name, "XV_COLORKEY")) {
 	  xxmc_check_capability (this, VO_PROP_COLORKEY, attr[k],
 				 adaptor_info[adaptor_num].base_id, "XV_COLORKEY",
-				 "video.xv_colorkey",
+				 "video.device.xv_colorkey",
 				 _("video overlay colour key"),
 				 _("The colour key is used to tell the graphics card where to "
 				   "overlay the video image. Try different values, if you experience "
@@ -2311,14 +2311,14 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *vi
 	} else if(!strcmp(attr[k].name, "XV_AUTOPAINT_COLORKEY")) {
 	  xxmc_check_capability (this, VO_PROP_AUTOPAINT_COLORKEY, attr[k],
 				 adaptor_info[adaptor_num].base_id, "XV_AUTOPAINT_COLORKEY",
-				 "video.xv_autopaint_colorkey",
+				 "video.device.xv_autopaint_colorkey",
 				 _("autopaint colour key"),
 				 _("Make Xv autopaint its colorkey."));
 
 	} else if(!strcmp(attr[k].name, "XV_FILTER")) {
 	  int xv_filter;
 	  /* This setting is specific to Permedia 2/3 cards. */
-	  xv_filter = config->register_range (config, "video.XV_FILTER", 0,
+	  xv_filter = config->register_range (config, "video.device.xv_filter", 0,
 					      attr[k].min_value, attr[k].max_value,
 					      _("bilinear scaling mode"),
 					      _("Selects the bilinear scaling mode for Permedia cards. "
@@ -2331,17 +2331,17 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *vi
 						"1 - horizontal linear filtering\n"
 						"2 - enable full bilinear filtering"),
 					      20, xxmc_update_XV_FILTER, this);
-	  config->update_num(config,"video.XV_FILTER",xv_filter);
+	  config->update_num(config,"video.device.xv_filter",xv_filter);
 	} else if(!strcmp(attr[k].name, "XV_DOUBLE_BUFFER")) {
 	  int xv_double_buffer;
 	  xv_double_buffer = 
-	    config->register_bool (config, "video.XV_DOUBLE_BUFFER", 1,
+	    config->register_bool (config, "video.device.xv_double_buffer", 1,
 				   _("enable double buffering"),
 				   _("Double buffering will synchronize the update of the video image to the "
 				     "repainting of the entire screen (\"vertical retrace\"). This eliminates "
 				     "flickering and tearing artifacts, but will use more graphics memory."),
 				   20, xxmc_update_XV_DOUBLE_BUFFER, this);
-	  config->update_num(config,"video.XV_DOUBLE_BUFFER",xv_double_buffer);
+	  config->update_num(config,"video.device.xv_double_buffer",xv_double_buffer);
 	}
       }
     }
@@ -2404,27 +2404,27 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *vi
   XUnlockDisplay (this->display);
 
   this->use_pitch_alignment = 
-    config->register_bool (config, "video.xv_pitch_alignment", 0,
+    config->register_bool (config, "video.device.xv_pitch_alignment", 0,
 			   _("pitch alignment workaround"),
 			   _("Some buggy video drivers need a workaround to function properly."),
 			   10, xxmc_update_xv_pitch_alignment, this);
 
   use_more_frames= 
-    config->register_bool (config, "video.xvmc_more_frames", 0,
+    config->register_bool (config, "video.device.xvmc_more_frames", 0,
 			   _("Make XvMC allocate more frames for better buffering."),
 			   _("Some XvMC implementations allow more than 8 frames.\n"
 			     "This option, when turned on, makes the driver try to\n"
 			     "allocate 15 frames. A must for unichrome and live VDR.\n"),
 			   10, NULL, this);
   this->cpu_save_enabled = 
-    config->register_bool (config, "video.unichrome_cpu_save", 0,
+    config->register_bool (config, "video.device.unichrome_cpu_save", 0,
 			   _("Unichrome cpu save"),
 			   _("Saves CPU time by sleeping while decoder works.\n"
 			     "Only for Linux kernel 2.6 series or 2.4 with multimedia patch.\n"
 			     "Experimental.\n"),
 			   10, xxmc_update_cpu_save, this);
   this->reverse_nvidia_palette =
-    config->register_bool (config, "video.xvmc_nvidia_color_fix", 0,
+    config->register_bool (config, "video.device.xvmc_nvidia_color_fix", 0,
 			   _("Fix buggy NVIDIA XvMC subpicture colors"),
 			   _("There's a bug in NVIDIA's XvMC lib that makes red OSD colors\n"
 			     "look blue and vice versa. This option provides a workaround.\n"),

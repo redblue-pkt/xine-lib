@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_vcd.c,v 1.76 2004/10/20 05:04:00 athp Exp $
+ * $Id: input_vcd.c,v 1.77 2004/12/12 22:01:07 mroi Exp $
  *
  */
 
@@ -1090,7 +1090,7 @@ static void *init_class (xine_t *xine, void *data) {
   this->input_class.dispose            = vcd_class_dispose;
   this->input_class.eject_media        = vcd_class_eject_media;
 
-  this->device = config->register_string (config, "input.vcd_device", CDROM,
+  this->device = config->register_string (config, "media.vcd.device", CDROM,
 					  _("device used for VCD playback"),
 					  _("The path to the device, usually a CD or DVD drive, "
 					    "you intend to play your VideoCDs with."),

@@ -384,7 +384,7 @@
    mechanism, so a small drift may occur. As the playback goes on this
    error will accumulate possibly resulting in audio gaps or audio drops. To avoid that
    annoying effect, two countermeasures are available (switchable with xine config
-   option <parameter>audio.av_sync_method</parameter>):
+   option <parameter>audio.synchronization.av_sync_method</parameter>):
    <itemizedlist>
     <listitem>
      <para>

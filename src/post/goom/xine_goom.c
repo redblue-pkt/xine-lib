@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_goom.c,v 1.55 2004/11/21 15:10:40 mroi Exp $
+ * $Id: xine_goom.c,v 1.56 2004/12/12 22:01:26 mroi Exp $
  *
  * GOOM post plugin.
  *
@@ -196,24 +196,24 @@ static void *goom_init_plugin(xine_t *xine, void *data)
   
   cfg = xine->config;
 
-  cfg->register_num (cfg, "post.goom_fps", FPS,
+  cfg->register_num (cfg, "effects.goom.fps", FPS,
                                  _("frames per second to generate"),
                                  _("With more frames per second, the animation will get "
 				   "smoother and faster, but will also require more CPU power."),
 				 10, fps_changed_cb, this);
 
-  cfg->register_num (cfg, "post.goom_width", GOOM_WIDTH,
+  cfg->register_num (cfg, "effects.goom.width", GOOM_WIDTH,
                                    _("goom image width"),
 				   _("The width in pixels of the image to be generated."),
                                    10, width_changed_cb, this);
   
-  cfg->register_num (cfg, "post.goom_height", GOOM_HEIGHT,
+  cfg->register_num (cfg, "effects.goom.height", GOOM_HEIGHT,
                                     _("goom image height"),
 				    _("The height in pixels of the image to be generated."),
                                     10, height_changed_cb, this);
   
 
-  cfg->register_enum (cfg, "post.goom_csc_method", 0,
+  cfg->register_enum (cfg, "effects.goom.csc_method", 0,
                            (char **)goom_csc_methods,
                            _("colorspace conversion method"),
                            _("You can choose the colorspace conversion method used by goom.\n"
@@ -254,19 +254,19 @@ static post_plugin_t *goom_open_plugin(post_class_t *class_gen, int inputs,
 
   lprintf("goom_open_plugin\n");
 
-  if(xine_config_lookup_entry(class->xine, "post.goom_fps",
+  if(xine_config_lookup_entry(class->xine, "effects.goom.fps",
                               &fps_entry)) 
     fps_changed_cb(class, &fps_entry);
 
-  if(xine_config_lookup_entry(class->xine, "post.goom_width",
+  if(xine_config_lookup_entry(class->xine, "effects.goom.width",
                               &width_entry)) 
     width_changed_cb(class, &width_entry);
 
-  if(xine_config_lookup_entry(class->xine, "post.goom_height",
+  if(xine_config_lookup_entry(class->xine, "effects.goom.height",
                               &height_entry)) 
     height_changed_cb(class, &height_entry);
 
-  if(xine_config_lookup_entry(class->xine, "post.goom_csc_method",
+  if(xine_config_lookup_entry(class->xine, "effects.goom.csc_method",
                               &csc_method_entry)) 
     csc_method_changed_cb(class, &csc_method_entry);
 

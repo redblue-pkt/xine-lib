@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_sputext.c,v 1.41 2004/11/03 19:17:54 mroi Exp $
+ * $Id: demux_sputext.c,v 1.42 2004/12/12 22:01:10 mroi Exp $
  *
  * code based on old libsputext/xine_decoder.c
  *
@@ -1501,7 +1501,7 @@ static void *init_sputext_demux_class (xine_t *xine, void *data) {
    * better define timeout of hidding. Setting to zero means "no timeout".
    */
   this->max_timeout = xine->config->register_num(xine->config, 
-                         "misc.sub_timeout", 4, 
+                         "subtitles.separate.timeout", 4, 
 			 _("default duration of subtitle display in seconds"),
 			 _("Some subtitle formats do not explicitly give a duration for each subtitle. "
 			   "For these, you can set a default duration here. Setting to zero will result "

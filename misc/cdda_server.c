@@ -15,7 +15,7 @@
  *   xine cdda://server:3000/1
  *
  * to play the entire cd (using GUI's "CD" button) just change
- * input.cdda_device to the server's mrl.
+ * media.audio_cd.device to the server's mrl.
  *
  * 6 May 2003 - Miguel Freitas
  * This feature was sponsored by 1Control

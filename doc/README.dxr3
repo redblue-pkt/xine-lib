@@ -129,13 +129,13 @@ audio.driver:
 		set to oss. Can also be specified using "-A oss"
 		on the command line.
 
-audio.oss_device_number:
+audio.device.oss_device_number:
 	0-16	Machines with a dxr3 installed often have a usual
 		soundcard too. If audio playback occurs on the
 		wrong device, the demanded device can be set using
 		this option.
 
-dxr3.decoder_priority:
+engine.decoder_priorities.dxr3-mpeg2:
 	10	Priority of the dxr3 video decoder plugin. <5 means
 		that hardware decoding by the card will be disabled
 		and libmpeg2 will be used instead. Therefore all video
@@ -168,7 +168,7 @@ to use the em8300 overlay mechanism. Now, since the xine 0.5 version,
 it is possible to output the em8300 overlay directly in the video
 out window. 
 
-In order to activate it, "dxr3.videoout_mode" must be set to "overlay".
+In order to activate it, "dxr3.output.mode" must be set to "overlay".
 But it won't work until the old dxr3view works too (just a check). Before
 a first use, "autocal" has to be run. This will store the right overlay
 parameters in "~/.overlay". For more information, please consult the
@@ -181,10 +181,10 @@ you can run xine with the -H option to auto-hide the vo window, instead
 of changing the configuration (although you can still do that instead if you 
 prefer, of course).
 
-Have a look at the previous explained configuration options dxr3.keycolor
-and dxr3.color_interval too.
+Have a look at the previous explained configuration options dxr3.output.keycolor
+and dxr3.output.keycolor_interval too.
 
 
 --- 
 version of this file:
- $Id: README.dxr3,v 1.10 2004/05/14 13:29:13 mroi Exp $
+ $Id: README.dxr3,v 1.11 2004/12/12 22:00:47 mroi Exp $

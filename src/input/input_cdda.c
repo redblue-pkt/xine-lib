@@ -20,7 +20,7 @@
  * Compact Disc Digital Audio (CDDA) Input Plugin 
  *   by Mike Melanson (melanson@pcisys.net)
  *
- * $Id: input_cdda.c,v 1.68 2004/12/12 00:41:22 miguelfreitas Exp $
+ * $Id: input_cdda.c,v 1.69 2004/12/12 22:01:05 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -1897,7 +1897,7 @@ static int cdda_open(cdda_input_plugin_t *this_gen,
   if (this_gen->stream) {
     int speed;
     speed = this_gen->stream->xine->config->lookup_entry(this_gen->stream->xine->config,
-      "input.drive_slowdown")->num_value;
+      "media.audio_cd.drive_slowdown")->num_value;
     if (speed && ioctl(fd, CDROM_SELECT_SPEED, speed) != 0)
       xprintf(this_gen->stream->xine, XINE_VERBOSITY_DEBUG,
         "input_cdda: setting drive speed to %d failed\n", speed);
@@ -2063,7 +2063,7 @@ static int cdda_close(cdda_input_plugin_t *this_gen) {
     if (this_gen->stream) {
       int speed;
       speed = this_gen->stream->xine->config->lookup_entry(this_gen->stream->xine->config,
-        "input.drive_slowdown")->num_value;
+        "media.audio_cd.drive_slowdown")->num_value;
       if (speed && ioctl(this_gen->fd, CDROM_SELECT_SPEED, 0) != 0)
         xprintf(this_gen->stream->xine, XINE_VERBOSITY_DEBUG,
           "input_cdda: setting drive speed to normal failed\n");
@@ -2513,19 +2513,19 @@ static input_plugin_t *cdda_class_get_instance (input_class_t *cls_gen, xine_str
   /*
    * Lookup config entries.
    */
-  if(xine_config_lookup_entry(this->stream->xine, "input.cdda_use_cddb", 
+  if(xine_config_lookup_entry(this->stream->xine, "media.audio_cd.use_cddb", 
 			      &enable_entry)) 
     enable_cddb_changed_cb(class, &enable_entry);
 
-  if(xine_config_lookup_entry(this->stream->xine, "input.cdda_cddb_server", 
+  if(xine_config_lookup_entry(this->stream->xine, "media.audio_cd.cddb_server", 
 			      &server_entry)) 
     server_changed_cb(class, &server_entry);
   
-  if(xine_config_lookup_entry(this->stream->xine, "input.cdda_cddb_port", 
+  if(xine_config_lookup_entry(this->stream->xine, "media.audio_cd.cddb_port", 
 			      &port_entry)) 
     port_changed_cb(class, &port_entry);
 
-  if(xine_config_lookup_entry(this->stream->xine, "input.cdda_cddb_cachedir", 
+  if(xine_config_lookup_entry(this->stream->xine, "media.audio_cd.cddb_cachedir", 
 			      &cachedir_entry)) 
     cachedir_changed_cb(class, &cachedir_entry);
 
@@ -2581,7 +2581,7 @@ static void *init_plugin (xine_t *xine, void *data) {
   this->mrls_allocated_entries = 0;
   this->ip = NULL;
   
-  this->cdda_device = config->register_string(config, "input.cdda_device", 
+  this->cdda_device = config->register_string(config, "media.audio_cd.device", 
 					      DEFAULT_CDDA_DEVICE,
 					      _("device used for CD audio"),
 					      _("The path to the device, usually a "
@@ -2589,7 +2589,7 @@ static void *init_plugin (xine_t *xine, void *data) {
 						"for playing audio CDs."),
 					      10, cdda_device_cb, (void *) this);
   
-  config->register_bool(config, "input.cdda_use_cddb", 1,
+  config->register_bool(config, "media.audio_cd.use_cddb", 1,
 			_("query CDDB"), _("Enables CDDB queries, which will give you "
 			"convenient title and track names for your audio CDs.\n"
 			"Keep in mind that, unless you use your own private CDDB, this information "
@@ -2597,7 +2597,7 @@ static void *init_plugin (xine_t *xine, void *data) {
 			"of your listening habits."),
 			10, enable_cddb_changed_cb, (void *) this);
   
-  config->register_string(config, "input.cdda_cddb_server", CDDB_SERVER,
+  config->register_string(config, "media.audio_cd.cddb_server", CDDB_SERVER,
 			  _("CDDB server name"), _("The CDDB server used to retrieve the "
 			  "title and track information from.\nThis setting is security critical, "
 			  "because the sever will receive information about your listening habits "
@@ -2605,12 +2605,12 @@ static void *init_plugin (xine_t *xine, void *data) {
 			  "a server you can trust."), XINE_CONFIG_SECURITY,
 			  server_changed_cb, (void *) this);
   
-  config->register_num(config, "input.cdda_cddb_port", CDDB_PORT,
+  config->register_num(config, "media.audio_cd.cddb_port", CDDB_PORT,
 		       _("CDDB server port"), _("The server port used to retrieve the "
 		       "title and track information from."), XINE_CONFIG_SECURITY,
 		       port_changed_cb, (void *) this);
   
-  config->register_string(config, "input.cdda_cddb_cachedir", 
+  config->register_string(config, "media.audio_cd.cddb_cachedir", 
 			  (_cdda_cddb_get_default_location()),
 			  _("CDDB cache directory"), _("The replies from the CDDB server will be "
 			  "cached in this directory.\nThis setting is security critical, because files "
@@ -2619,7 +2619,7 @@ static void *init_plugin (xine_t *xine, void *data) {
 			  cachedir_changed_cb, (void *) this);
 
 #ifdef CDROM_SELECT_SPEED
-  config->register_num(config, "input.drive_slowdown", 4,
+  config->register_num(config, "media.audio_cd.drive_slowdown", 4,
 		       _("slow down disc drive to this speed factor"),
 		       _("Since some CD or DVD drives make some really "
 			 "loud noises because of the fast disc rotation, "

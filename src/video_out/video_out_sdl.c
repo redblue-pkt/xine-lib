@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_sdl.c,v 1.41 2004/11/24 16:11:06 mroi Exp $
+ * $Id: video_out_sdl.c,v 1.42 2004/12/12 22:01:28 mroi Exp $
  *
  * video_out_sdl.c, Simple DirectMedia Layer
  *
@@ -475,7 +475,7 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *vi
   this->sdlflags = SDL_HWSURFACE | SDL_RESIZABLE;
   
   this->hw_accel = class->config->register_bool(class->config, 
-    "video.sdl_hw_accel", 1,
+    "video.device.sdl_hw_accel", 1,
     _("use hardware acceleration if available"),
     _("When your system supports it, hardware acceleration provided by your "
       "graphics hardware will be used. This might not work, so you can disable it, "
@@ -555,7 +555,7 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *vi
   this->vo_driver.redraw_needed        = sdl_redraw_needed;
 
   xprintf (this->xine, XINE_VERBOSITY_DEBUG, "video_out_sdl: warning, xine's SDL driver is EXPERIMENTAL\n");
-  xprintf (this->xine, XINE_VERBOSITY_DEBUG, "video_out_sdl: in case of trouble, try setting video.sdl_hw_accel=0\n");
+  xprintf (this->xine, XINE_VERBOSITY_DEBUG, "video_out_sdl: in case of trouble, try setting video.device.sdl_hw_accel=0\n");
   xprintf (this->xine, XINE_VERBOSITY_LOG, _("video_out_sdl: fullscreen mode is NOT supported\n"));
   return &this->vo_driver;
 }

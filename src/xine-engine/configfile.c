@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: configfile.c,v 1.68 2004/09/12 19:23:36 mroi Exp $
+ * $Id: configfile.c,v 1.69 2004/12/12 22:01:30 mroi Exp $
  *
  * config object (was: file) management - implementation
  *
@@ -45,16 +45,190 @@
 #include "xineutils.h"
 #include "xine_internal.h"
 
+
+typedef struct {
+  const char *old;
+  const char *new;
+} config_entry_translation_t;
+
+static config_entry_translation_t config_entry_translation[] = {
+  { "audio.a52_pass_through",			"" },
+  { "audio.alsa_a52_device",			"audio.device.alsa_passthrough_device" },
+  { "audio.alsa_default_device",		"audio.device.alsa_default_device" },
+  { "audio.alsa_front_device",			"audio.device.alsa_front_device" },
+  { "audio.alsa_mixer_name",			"audio.device.alsa_mixer_name" },
+  { "audio.alsa_mmap_enable",			"audio.device.alsa_mmap_enable" },
+  { "audio.alsa_surround40_device",		"audio.device.alsa_surround40_device" },
+  { "audio.alsa_surround51_device",		"audio.device.alsa_surround51_device" },
+  { "audio.av_sync_method",			"audio.synchronization.av_sync_method" },
+  { "audio.directx_device",			"" },
+  { "audio.esd_latency",			"audio.device.esd_latency" },
+  { "audio.five_channel",			"" },
+  { "audio.five_lfe_channel",			"" },
+  { "audio.force_rate",				"audio.synchronization.force_rate" },
+  { "audio.four_channel",			"" },
+  { "audio.four_lfe_channel",			"" },
+  { "audio.irixal_gap_tolerance",		"audio.device.irixal_gap_tolerance" },
+  { "audio.mixer_name",				"" },
+  { "audio.mixer_number",			"audio.device.oss_mixer_number" },
+  { "audio.mixer_volume",			"audio.volume.mixer_volume" },
+  { "audio.num_buffers",			"engine.buffers.audio_num_buffers" },
+  { "audio.oss_device_name",			"audio.device.oss_device_name" },
+  { "audio.oss_device_num",			"" },
+  { "audio.oss_device_number",			"audio.device.oss_device_number" },
+  { "audio.oss_pass_through_bug",		"" },
+  { "audio.passthrough_offset",			"audio.synchronization.passthrough_offset" },
+  { "audio.remember_volume",			"audio.volume.remember_volume" },
+  { "audio.resample_mode",			"audio.synchronization.resample_mode" },
+  { "audio.speaker_arrangement",		"audio.output.speaker_arrangement" },
+  { "audio.sun_audio_device",			"audio.device.sun_audio_device" },
+  { "codec.a52_dynrng",				"audio.a52.dynamic_range" },
+  { "codec.a52_level",				"audio.a52.level" },
+  { "codec.a52_surround_downmix",		"audio.a52.surround_downmix" },
+  { "codec.ffmpeg_pp_quality",			"video.processing.ffmpeg_pp_quality" },
+  { "codec.real_codecs_path",			"decoder.external.real_codecs_path" },
+  { "codec.win32_path",				"decoder.external.win32_codecs_path" },
+  { "decoder.%s_priority",			"engine.decoder_priorities.%s" },
+  { "dxr3.alt_play_mode",			"dxr3.playback.alt_play_mode" },
+  { "dxr3.color_interval",			"dxr3.output.keycolor_interval" },
+  { "dxr3.correct_durations",			"dxr3.playback.correct_durations" },
+  { "dxr3.device_number",			"dxr3.device_number" },
+  { "dxr3.devicename",				"" },
+  { "dxr3.enc_add_bars",			"dxr3.encoding.add_bars" },
+  { "dxr3.enc_alt_play_mode",			"dxr3.encoding.alt_play_mode" },
+  { "dxr3.enc_swap_fields",			"dxr3.encoding.swap_fields" },
+  { "dxr3.encoder",				"dxr3.encoding.encoder" },
+  { "dxr3.fame_quality",			"dxr3.encoding.fame_quality" },
+  { "dxr3.keycolor",				"dxr3.output.keycolor" },
+  { "dxr3.lavc_bitrate",			"dxr3.encoding.lavc_bitrate" },
+  { "dxr3.lavc_qmax",				"dxr3.encoding.lavc_qmax" },
+  { "dxr3.lavc_qmin",				"dxr3.encoding.lavc_qmin" },
+  { "dxr3.lavc_quantizer",			"dxr3.encoding.lavc_quantizer" },
+  { "dxr3.preferred_tvmode",			"dxr3.output.tvmode" },
+  { "dxr3.rte_bitrate",				"dxr3.encoding.rte_bitrate" },
+  { "dxr3.scr_priority",			"dxr3.scr_priority" },
+  { "dxr3.shrink_overlay_area",			"dxr3.output.shrink_overlay_area" },
+  { "dxr3.sync_every_frame",			"dxr3.playback.sync_every_frame" },
+  { "dxr3.videoout_mode",			"dxr3.output.mode" },
+  { "input.cdda_cddb_cachedir",			"media.audio_cd.cddb_cachedir" },
+  { "input.cdda_cddb_port",			"media.audio_cd.cddb_port" },
+  { "input.cdda_cddb_server",			"media.audio_cd.cddb_server" },
+  { "input.cdda_device",			"media.audio_cd.device" },
+  { "input.cdda_use_cddb",			"media.audio_cd.use_cddb" },
+  { "input.css_cache_path",			"media.dvd.css_cache_path" },
+  { "input.css_decryption_method",		"media.dvd.css_decryption_method" },
+  { "input.drive_slowdown",			"media.audio_cd.drive_slowdown" },
+  { "input.dvb_last_channel_enable",		"media.dvb.remember_channel" },
+  { "input.dvb_last_channel_watched",		"media.dvb.last_channel" },
+  { "input.dvbdisplaychan",			"media.dvb.display_channel" },
+  { "input.dvbzoom",				"media.dvb.zoom" },
+  { "input.dvd_device",				"media.dvd.device" },
+  { "input.dvd_language",			"media.dvd.language" },
+  { "input.dvd_raw_device",			"media.dvd.raw_device" },
+  { "input.dvd_region",				"media.dvd.region" },
+  { "input.dvd_seek_behaviour",			"media.dvd.seek_behaviour" },
+  { "input.dvd_skip_behaviour",			"media.dvd.skip_behaviour" },
+  { "input.dvd_use_readahead",			"media.dvd.readahead" },
+  { "input.file_hidden_files",			"media.files.show_hidden_files" },
+  { "input.file_origin_path",			"media.files.origin_path" },
+  { "input.http_proxy_host",			"media.network.http_proxy_host" },
+  { "input.http_proxy_password",		"media.network.http_proxy_password" },
+  { "input.http_proxy_port",			"media.network.http_proxy_port" },
+  { "input.http_proxy_user",			"media.network.http_proxy_user" },
+  { "input.mms_network_bandwidth",		"media.network.bandwidth" },
+  { "input.mms_protocol",			"media.network.mms_protocol" },
+  { "input.pvr_device",				"media.wintv_pvr.device" },
+  { "input.v4l_radio_device_path",		"media.video4linux.radio_device" },
+  { "input.v4l_video_device_path",		"media.video4linux.video_device" },
+  { "input.vcd_device",				"media.vcd.device" },
+  { "misc.cc_center",				"subtitles.closedcaption.center" },
+  { "misc.cc_enabled",				"subtitles.closedcaption.enabled" },
+  { "misc.cc_font",				"subtitles.closedcaption.font" },
+  { "misc.cc_font_size",			"subtitles.closedcaption.font_size" },
+  { "misc.cc_italic_font",			"subtitles.closedcaption.italic_font" },
+  { "misc.cc_scheme",				"subtitles.closedcaption.scheme" },
+  { "misc.demux_strategy",			"engine.demux.strategy" },
+  { "misc.memcpy_method",			"engine.performance.memcpy_method" },
+  { "misc.osd_text_palette",			"ui.osd.text_palette" },
+  { "misc.save_dir",				"media.capture.save_dir" },
+  { "misc.spu_font",				"subtitles.separate.font" },
+  { "misc.spu_src_encoding",			"subtitles.separate.src_encoding" },
+  { "misc.spu_subtitle_size",			"subtitles.separate.subtitle_size" },
+  { "misc.spu_use_unscaled_osd",		"subtitles.separate.use_unscaled_osd" },
+  { "misc.spu_vertical_offset",			"subtitles.separate.vertical_offset" },
+  { "misc.sub_timeout",				"subtitles.separate.timeout" },
+  { "post.goom_csc_method",			"effects.goom.csc_method" },
+  { "post.goom_fps",				"effects.goom.fps" },
+  { "post.goom_height",				"effects.goom.height" },
+  { "post.goom_width",				"effects.goom.width" },
+  { "vcd.autoadvance",				"media.vcd.autoadvance" },
+  { "vcd.autoplay",				"media.vcd.autoplay" },
+  { "vcd.comment_format",			"media.vcd.comment_format" },
+  { "vcd.debug",				"media.vcd.debug" },
+  { "vcd.default_device",			"media.vcd.device" },
+  { "vcd.length_reporting",			"media.vcd.length_reporting" },
+  { "vcd.show_rejected",			"media.vcd.show_rejected" },
+  { "vcd.title_format",				"media.vcd.title_format" },
+  { "video.XV_DOUBLE_BUFFER",			"video.device.xv_double_buffer" },
+  { "video.XV_FILTER",				"video.device.xv_filter" },
+  { "video.deinterlace_method",			"video.output.xv_deinterlace_method" },
+  { "video.disable_exact_osd_alpha_blending",	"video.output.disable_exact_alphablend" },
+  { "video.disable_scaling",			"video.output.disable_scaling" },
+  { "video.fb_device",				"video.device.fb_device" },
+  { "video.fb_gamma",				"video.output.fb_gamma" },
+  { "video.horizontal_position",		"video.output.horizontal_position" },
+  { "video.num_buffers",			"engine.buffers.video_num_buffers" },
+  { "video.opengl_double_buffer",		"video.device.opengl_double_buffer" },
+  { "video.opengl_gamma",			"video.output.opengl_gamma" },
+  { "video.opengl_min_fps",			"video.output.opengl_min_fps" },
+  { "video.opengl_renderer",			"video.output.opengl_renderer" },
+  { "video.pgx32_device",			"video.device.pgx32_device" },
+  { "video.pgx64_brightness",			"video.output.pgx64_brightness" },
+  { "video.pgx64_chromakey_en",			"video.device.pgx64_chromakey_en" },
+  { "video.pgx64_colour_key",			"video.device.pgx64_colour_key" },
+  { "video.pgx64_device",			"" },
+  { "video.pgx64_multibuf_en",			"video.device.pgx64_multibuf_en" },
+  { "video.pgx64_overlay_mode",			"" },
+  { "video.pgx64_saturation",			"video.output.pgx64_saturation" },
+  { "video.sdl_hw_accel",			"video.device.sdl_hw_accel" },
+  { "video.syncfb_default_repeat",		"video.device.syncfb_default_repeat" },
+  { "video.syncfb_device",			"video.device.syncfb_device" },
+  { "video.unichrome_cpu_save",			"video.device.unichrome_cpu_save" },
+  { "video.vertical_position",			"video.output.vertical_position" },
+  { "video.vidix_blue_intensity",		"video.output.vidix_blue_intensity" },
+  { "video.vidix_colour_key_blue",		"video.device.vidix_colour_key_blue" },
+  { "video.vidix_colour_key_green",		"video.device.vidix_colour_key_green" },
+  { "video.vidix_colour_key_red",		"video.device.vidix_colour_key_red" },
+  { "video.vidix_green_intensity",		"video.output.vidix_green_intensity" },
+  { "video.vidix_red_intensity",		"video.output.vidix_red_intensity" },
+  { "video.vidix_use_double_buffer",		"video.device.vidix_double_buffer" },
+  { "video.vidixfb_device",			"video.device.vidixfb_device" },
+  { "video.warn_discarded_threshold",		"engine.performance.warn_discarded_threshold" },
+  { "video.warn_skipped_threshold",		"engine.performance.warn_skipped_threshold" },
+  { "video.xshm_gamma",				"video.output.xshm_gamma" },
+  { "video.xv_autopaint_colorkey",		"video.device.xv_autopaint_colorkey" },
+  { "video.xv_colorkey",			"video.device.xv_colorkey" },
+  { "video.xv_pitch_alignment",			"video.device.xv_pitch_alignment" },
+  { "video.xvmc_more_frames",			"video.device.xvmc_more_frames" },
+  { "video.xvmc_nvidia_color_fix",		"video.device.xvmc_nvidia_color_fix" }
+};
+
+
 static int config_section_enum(const char *sect) {
   static char *known_section[] = {
     "gui",
+    "ui",
     "audio",
     "video",
     "dxr3",
     "input",
+    "media",
     "codec",
-    "post",
     "decoder",
+    "subtitles",
+    "post",
+    "effects",
+    "engine",
     "misc",
     NULL
   };
@@ -177,6 +351,16 @@ static void __config_lookup_entry_int (config_values_t *this, const char *key,
   while (*entry && strcmp((*entry)->key, key)) {
     *prev  = *entry;
     *entry = (*entry)->next;
+  }
+  
+  if (!*entry) {
+    /* we did not find a match, maybe this is an old config entry name
+     * trying to translate */
+    unsigned trans;
+    for (trans = 0; !*entry &&
+	 trans < sizeof(config_entry_translation) / sizeof(config_entry_translation[0]); trans++)
+      if (config_entry_translation[trans].new[0] && strcmp(key, config_entry_translation[trans].old) == 0)
+        __config_lookup_entry_int(this, config_entry_translation[trans].new, entry, prev);
   }
 }
 
@@ -696,8 +880,19 @@ void xine_config_load (xine_t *xine, const char *filename) {
 	value++;
 
 	if (!(entry = __config_lookup_entry(this, line))) {
+	  const char *key = line;
 	  pthread_mutex_lock(&this->config_lock);
-	  entry = __config_add (this, line, 50);
+	  if (this->current_version < CONFIG_FILE_VERSION) {
+	    /* old config file -> let's see if we have to rename this one */
+	    unsigned trans;
+	    for (trans = 0;
+		 trans < sizeof(config_entry_translation) / sizeof(config_entry_translation[0]); trans++)
+	      if (strcmp(key, config_entry_translation[trans].old) == 0) {
+		key = config_entry_translation[trans].new;
+		break;
+	      }
+	  }
+	  entry = __config_add (this, key, 50);
 	  entry->unknown_value = strdup(value);
 	  pthread_mutex_unlock(&this->config_lock);
 	} else {
@@ -803,6 +998,10 @@ void xine_config_save (xine_t *xine, const char *filename) {
     entry = this->first;
 
     while (entry) {
+
+      if (!entry->key[0])
+        /* deleted key */
+        continue;
 
       lprintf ("saving key '%s'\n", entry->key);
 

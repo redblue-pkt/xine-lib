@@ -1416,7 +1416,7 @@ osd_renderer_t *_x_osd_renderer_init( xine_stream_t *stream ) {
   osd_preload_fonts (this, str);
 
   this->textpalette = this->stream->xine->config->register_enum (this->stream->xine->config,
-                                             "misc.osd_text_palette", 0,
+                                             "ui.osd.text_palette", 0,
                                              textpalettes_str, 
                                              _("palette (foreground-border-background) to use for subtitles and OSD"),
                                              _("The palette for on-screen-display and some subtitle formats that do "

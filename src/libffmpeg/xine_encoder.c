@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_encoder.c,v 1.19 2004/09/12 19:23:37 mroi Exp $
+ * $Id: xine_encoder.c,v 1.20 2004/12/12 22:01:09 mroi Exp $
  */
  
 /* mpeg encoders for the dxr3 video out plugin. */
@@ -160,7 +160,7 @@ static int lavc_on_update_format(dxr3_driver_t *drv, dxr3_frame_t *frame)
   
   /* put sample parameters */
   this->context->bit_rate = drv->class->xine->config->register_range(drv->class->xine->config,
-    "dxr3.lavc_bitrate", 10000, 1000, 20000,
+    "dxr3.encoding.lavc_bitrate", 10000, 1000, 20000,
     _("libavcodec mpeg output bitrate (kbit/s)"),
     _("The bitrate the libavcodec mpeg encoder should use for DXR3's encoding mode. "
       "Higher values will increase quality and CPU usage.\n"
@@ -168,7 +168,7 @@ static int lavc_on_update_format(dxr3_driver_t *drv, dxr3_frame_t *frame)
     this->context->bit_rate *= 1000; /* config in kbit/s, libavcodec wants bit/s */
     
   use_quantizer = drv->class->xine->config->register_bool(drv->class->xine->config,
-    "dxr3.lavc_quantizer", 1,
+    "dxr3.encoding.lavc_quantizer", 1,
     _("constant quality mode"),
     _("When enabled, libavcodec will use a constant quality mode by dynamically "
       "compressing the images based on their complexity. When disabled, libavcodec "
@@ -176,13 +176,13 @@ static int lavc_on_update_format(dxr3_driver_t *drv, dxr3_frame_t *frame)
 
   if (use_quantizer) {        
     this->context->qmin = drv->class->xine->config->register_range(drv->class->xine->config,
-    "dxr3.lavc_qmin", 1, 1, 10,
+    "dxr3.encoding.lavc_qmin", 1, 1, 10,
     _("minimum compression"),
     _("The minimum compression to apply to an image in constant quality mode."),
     10, NULL, NULL);
      
     this->context->qmax = drv->class->xine->config->register_range(drv->class->xine->config,
-    "dxr3.lavc_qmax", 2, 1, 20,
+    "dxr3.encoding.lavc_qmax", 2, 1, 20,
     _("maximum quantizer"),
     _("The maximum compression to apply to an image in constant quality mode."),
     10, NULL, NULL);  

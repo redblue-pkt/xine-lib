@@ -476,7 +476,7 @@ void xine_probe_fast_memcpy(xine_t *xine)
   
   config_flags = xine_mm_accel();
 
-  best = xine->config->register_enum (xine->config, "misc.memcpy_method", 0,
+  best = xine->config->register_enum (xine->config, "engine.performance.memcpy_method", 0,
 				      memcpy_methods,
 				      _("memcopy method used by xine"),
 				      _("The copying of large memory blocks is one of the most "
@@ -532,7 +532,7 @@ void xine_probe_fast_memcpy(xine_t *xine)
       best = i;
   }
 
-  xine->config->update_num (xine->config, "misc.memcpy_method", best);
+  xine->config->update_num (xine->config, "engine.performance.memcpy_method", best);
 
   free(buf1);
   free(buf2);

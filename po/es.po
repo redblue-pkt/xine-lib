@@ -335,7 +335,7 @@ msgid ""
 msgstr ""
 
 #: src/audio_out/audio_oss_out.c:776
-msgid "audio_oss_out: audio.oss_device_name = auto, probing devs\n"
+msgid "audio_oss_out: audio.device.oss_device_name = auto, probing devs\n"
 msgstr ""
 
 #: src/audio_out/audio_oss_out.c:779
@@ -3780,12 +3780,12 @@ msgstr ""
 #: src/xine-engine/input_rip.c:545
 msgid ""
 "input_rip: target directory wasn't specified, please fill out the option "
-"'misc.save_dir'\n"
+"'media.capture.save_dir'\n"
 msgstr ""
 
 #: src/xine-engine/input_rip.c:547
 msgid ""
-"The stream save feature is disabled until you set misc.save_dir in the "
+"The stream save feature is disabled until you set media.capture.save_dir in the "
 "configuration."
 msgstr ""
 
