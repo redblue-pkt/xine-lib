@@ -22,7 +22,8 @@ libxineutils_la_SOURCES = $(pppc_files) \
 	xine_check.c \
 	xine_mutex.c \
 	xmllexer.c \
-	xine_buffer.c 
+	xine_buffer.c \
+	xmlparser.c
 
 include_HEADERS = \
 	attributes.h \
