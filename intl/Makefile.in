@@ -40,7 +40,7 @@ EXTRA_DIST = ChangeLog.inst libintl.glibc
 INSTALL = @INSTALL@
 INSTALL_DATA = @INSTALL_DATA@
 MKINSTALLDIRS = @MKINSTALLDIRS@
-mkinstalldirs = $(SHELL) `case "$(MKINSTALLDIRS)" in /*) echo "$(MKINSTALLDIRS)" ;; *) echo "$(top_builddir)/$(MKINSTALLDIRS)" ;; esac`
+mkinstalldirs = $(SHELL) `case "$(MKINSTALLDIRS)" in /*) echo "$(MKINSTALLDIRS)" ;; *) echo "$(top_srcdir)/$(MKINSTALLDIRS)" ;; esac`
 
 l = @INTL_LIBTOOL_SUFFIX_PREFIX@
 
