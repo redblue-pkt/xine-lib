@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.c,v 1.38 2001/11/27 00:00:35 jcdutton Exp $
+ * $Id: metronom.c,v 1.39 2001/11/28 23:46:08 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -424,14 +424,16 @@ static void metronom_expect_video_discontinuity (metronom_t *this) {
   this->video_discontinuity_count++;
   pthread_cond_signal (&this->video_discontinuity_reached);
   
-  while ( this->audio_discontinuity_count <
-	  this->video_discontinuity_count ) {
-    pthread_cond_wait (&this->audio_discontinuity_reached, &this->lock);
-  }
+  if( this->have_audio ) {
+    while ( this->audio_discontinuity_count <
+            this->video_discontinuity_count ) {
+      pthread_cond_wait (&this->audio_discontinuity_reached, &this->lock);
+    }
   
-  if ( this->video_vpts < this->audio_vpts ) {
-    this->video_vpts = this->audio_vpts;
-    printf("metronom: video vpts adjusted to %d\n", this->video_vpts);
+    if ( this->video_vpts < this->audio_vpts ) {
+      this->video_vpts = this->audio_vpts;
+      printf("metronom: video vpts adjusted to %d\n", this->video_vpts);
+    }
   }
   
   this->num_video_vpts_guessed = 0;
