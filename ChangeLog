@@ -12,6 +12,7 @@ xine-lib (1-beta11)
   * simple 10-band equalizer
   * fix scaling of video with a pixel aspect ratio not equal to one
   * mms protocols (mmst + mmsh ) bugfixes
+  * new input plugin api
 
 xine-lib (1-beta10)
   * loading and displaying png images (e.g. for logos)
