@@ -32,17 +32,16 @@ required for 1.0
 - input_net (guenter)
 - fix documentation
 
-opional
+optional
 -------
 
 - input_rtp
 - mmsh support
 - theora support
 - come up with a better idea how to specify external subtitle files
-- audio filter plugins
+- audio filter plugins (see also post plugins)
 - detect broken savage drivers in health check, disable Xv in that case
 - dvb support (guenter)
-- icecast metadata (guenter)
 - id3v2 (guenter)
 - syncfb video output plugin
 - vidix video output plugin
@@ -53,8 +52,6 @@ opional
 - reduce memory footprint (e.g. variable fifo buffer sizes...)
 - bring dxr3 video out to work with aaxine (michael)
 - streaming of avi files (e.g. via http)
-- ms audio decoder from ffmpeg
-- dv format support
 - visualization plugins (can be done staightforward with post effect plugins)
 
 
@@ -129,8 +126,7 @@ Open Tasks
 - videolan streaming support
 - support for theora         
 - MAS support (http://www.mediaapplicationserver.net)
-- support for the DV format
-- nonlinear video editing frontend
+- nonlinear video editing and compositing frontend (michael)
 - stream format conversion frontend
 - audio filters (e.g. compressor plugin)
 
