@@ -260,8 +260,8 @@ flac_error_callback (const FLAC__SeekableStreamDecoder *decoder,
     /* This will be called if there is an error when flac is seeking
      * in the stream.
      */
+    demux_flac_t *this = (demux_flac_t *)client_data;
 
-#ifdef LOG
     printf("demux_flac: flac_error_callback\n");
     if (status == FLAC__STREAM_DECODER_ERROR_STATUS_LOST_SYNC)
         printf("demux_flac: Decoder lost synchronization.\n");
@@ -271,7 +271,8 @@ flac_error_callback (const FLAC__SeekableStreamDecoder *decoder,
         printf("demux_flac: Frame's data did not match the CRC in the footer.\n");
     else
         printf("demux_flac: unknown error.\n");
-#endif
+
+    this->status = DEMUX_FINISHED;
 
     return;
 }
@@ -503,8 +504,9 @@ open_plugin (demux_class_t *class_gen,
             if (input->get_capabilities (input) & INPUT_CAP_SEEKABLE) {
       
               input->seek (input, 0, SEEK_SET);
-                if ( (len=input->read (input, buf, 1024)) <= 0)
-                  return NULL;
+              if ( (len=input->read (input, buf, 1024)) <= 0)
+                return NULL;
+              input->seek (input, 0, SEEK_SET);
       
             } else
               return NULL;
