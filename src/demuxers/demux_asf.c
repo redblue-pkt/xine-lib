@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.133 2003/10/13 23:49:01 tmattern Exp $
+ * $Id: demux_asf.c,v 1.134 2003/10/14 06:55:10 valtri Exp $
  *
  * demultiplexer for asf streams
  *
@@ -1880,7 +1880,7 @@ static int demux_asf_seek (demux_plugin_t *this_gen,
     state = 0;
 
     /* no video stream */
-    if (this->video_stream_id == 0) {
+    if (this->video_stream_id == -1) {
 #ifdef LOG
       printf ("demux_asf: demux_asf_seek: no video stream\n");
 #endif
