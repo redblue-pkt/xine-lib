@@ -61,7 +61,16 @@
  * strategy is to maintain a YUV palette rather than an RGB palette and
  * render the image directly in YUV.
  *
- * $Id: color.c,v 1.2 2002/07/14 20:13:23 tmmm Exp $
+ * Some utility macros that you may find useful in your decoder are
+ * UNPACK_RGB15, UNPACK_RGB16, UNPACK_BGR15, and UNPACK_BGR16. All are
+ * located in xineutils.h. All of them take a packed pixel, either in
+ * RGB or BGR format depending on the macro, and unpack them into the
+ * component red, green, and blue bytes. If a CPU has special instructions
+ * to facilitate these operations (such as the PPC AltiVec pixel-unpacking
+ * instructions), these macros will automatically map to those special
+ * instructions.
+ *
+ * $Id: color.c,v 1.3 2002/07/15 00:51:17 tmmm Exp $
  */
 
 #include "xine_internal.h"
@@ -310,6 +319,8 @@ void yuv444_to_yuy2_mmx(yuv_planes_t *yuv_planes, unsigned char *yuy2_map) {
   secondary_samples = width_mod / 2;
   rewind_bytes = 6 - width_mod;
   toss_out_shift = rewind_bytes * 8;
+//printf ("width_mod = %d, secondary_samples = %d, rewind_bytes = %d, toss_out_shift = %d\n",
+//  width_mod, secondary_samples, rewind_bytes, toss_out_shift);
 
   /* set up some MMX registers: mm0 = 0, mm7 = color filter */
   pxor_r2r(mm0, mm0);

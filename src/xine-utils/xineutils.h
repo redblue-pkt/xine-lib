@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xineutils.h,v 1.16 2002/07/14 01:27:03 tmmm Exp $
+ * $Id: xineutils.h,v 1.17 2002/07/15 00:51:17 tmmm Exp $
  *
  */
 #ifndef XINEUTILS_H
@@ -752,6 +752,26 @@ extern void (*yuv444_to_yuy2)
 #define COMPUTE_V(r, g, b) \
   (unsigned char) \
   ((v_r_table[r] + v_g_table[g] + v_b_table[b]) / SCALEFACTOR + CENTERSAMPLE)
+
+#define UNPACK_BGR15(packed_pixel, r, g, b) \
+  b = (packed_pixel & 0x7C00) >> 7; \
+  g = (packed_pixel & 0x03E0) >> 2; \
+  r = (packed_pixel & 0x001F) << 3;
+
+#define UNPACK_BGR16(packed_pixel, r, g, b) \
+  b = (packed_pixel & 0xF800) >> 8; \
+  g = (packed_pixel & 0x07E0) >> 3; \
+  r = (packed_pixel & 0x001F) << 3;
+
+#define UNPACK_RGB15(packed_pixel, r, g, b) \
+  r = (packed_pixel & 0x7C00) >> 7; \
+  g = (packed_pixel & 0x03E0) >> 2; \
+  b = (packed_pixel & 0x001F) << 3;
+
+#define UNPACK_RGB16(packed_pixel, r, g, b) \
+  r = (packed_pixel & 0xF800) >> 8; \
+  g = (packed_pixel & 0x07E0) >> 3; \
+  b = (packed_pixel & 0x001F) << 3;
 
 extern int y_r_table[256];
 extern int y_g_table[256];
