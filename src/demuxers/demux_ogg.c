@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_ogg.c,v 1.122 2003/12/05 15:54:57 f1rmb Exp $
+ * $Id: demux_ogg.c,v 1.123 2003/12/09 23:55:11 hadess Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -615,7 +615,7 @@ static void send_ogg_buf (demux_ogg_t *this,
         if (chapter >= 0) {
           char t_title[256];
 
-          sprintf(t_title, "%s / %s", this->title, this->chapter_info->entries[chapter].name);
+          snprintf(t_title, sizeof (t_title), "%s / %s", this->title, this->chapter_info->entries[chapter].name);
           title = t_title;
         } else {
           title = this->title;
@@ -1585,10 +1585,10 @@ static int demux_ogg_get_optional_data(demux_plugin_t *this_gen,
        for (stream_num=0; stream_num<this->num_streams; stream_num++) {
 	if (this->buf_types[stream_num]==BUF_SPU_OGM+channel) {
 	  if (this->language[stream_num]) {
-	    sprintf(str, "%s", this->language[stream_num]);
+            strncpy (str, this->language[stream_num], XINE_LANG_LABEL_MAX_SIZE);
 	    return DEMUX_OPTIONAL_SUCCESS;
 	  } else {
-	    sprintf(str, "channel %d",channel);
+	    snprintf(str, XINE_LANG_LABEL_MAX_SIZE, "channel %d",channel);
 	    return DEMUX_OPTIONAL_SUCCESS;
 	  }
 	}
@@ -1604,10 +1604,10 @@ static int demux_ogg_get_optional_data(demux_plugin_t *this_gen,
       for (stream_num=0; stream_num<this->num_streams; stream_num++) {
 	if ((this->buf_types[stream_num]&0xFF00001F)==BUF_AUDIO_BASE+channel) {
 	  if (this->language[stream_num]) {
-	    sprintf(str, "%s", this->language[stream_num]);
+            strncpy (str, this->language[stream_num], XINE_LANG_LABEL_MAX_SIZE);
 	    return DEMUX_OPTIONAL_SUCCESS;
 	  } else {
-	    sprintf(str, "channel %d",channel);
+            snprintf(str, XINE_LANG_LABEL_MAX_SIZE, "channel %d",channel);
 	    return DEMUX_OPTIONAL_SUCCESS;
 	  }
 	}
