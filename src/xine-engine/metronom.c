@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.c,v 1.17 2001/08/07 16:00:10 ehasenle Exp $
+ * $Id: metronom.c,v 1.18 2001/08/14 08:21:41 ehasenle Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -356,6 +356,13 @@ static uint32_t metronom_got_spu_packet (metronom_t *this, uint32_t pts,uint32_t
     pts=this->spu_vpts;
     this->spu_vpts=this->spu_vpts;
   }
+
+  /* it happens with the dxr3 that got_spu_packet is called before  *
+   * got_video_frame. Since video_wrap_offset is zero until then,   *
+   * the return value would be wrong. In this case zero is returned */
+  if (this->video_stream_starting)
+    return 0;
+    
   return pts + this->video_wrap_offset;
 }
 
