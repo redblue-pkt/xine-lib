@@ -28,7 +28,7 @@
  \endverbatim
  */
 /*
- * $Id: xine.h.tmpl.in,v 1.83 2002/03/05 20:39:05 jcdutton Exp $
+ * $Id: xine.h.tmpl.in,v 1.84 2002/03/05 22:31:06 jcdutton Exp $
  *
  */
 
@@ -508,11 +508,6 @@ struct vo_driver_s {
    * Leaving video driver.
    */
   void (*exit) (vo_driver_t *self);
-
-  /**
-   * Get driver name etc.
-   */
-  vo_info_t* (*get_info) ();
 
 };
           /** @} end of video_group */

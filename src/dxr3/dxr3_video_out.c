@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_video_out.c,v 1.7 2002/03/05 21:54:31 jcdutton Exp $
+ * $Id: dxr3_video_out.c,v 1.8 2002/03/05 22:31:06 jcdutton Exp $
  *
  * mpeg1 encoding video out plugin for the dxr3.  
  *
@@ -533,7 +533,6 @@ printf("dxr3_video_out:init_plugin\n");
 	this->vo_driver.get_property_min_max = dxr3_get_property_min_max;
 	this->vo_driver.gui_data_exchange    = dxr3_gui_data_exchange;
 	this->vo_driver.exit                 = dxr3_exit;
-	this->vo_driver.get_info             = get_video_out_plugin_info;
 	this->config=config;
 	this->mpeg_source = 0; /* set by update_frame, by checking the flag */
 

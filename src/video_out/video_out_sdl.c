@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_sdl.c,v 1.4 2002/01/24 23:09:53 guenter Exp $
+ * $Id: video_out_sdl.c,v 1.5 2002/03/05 22:31:06 jcdutton Exp $
  * 
  * video_out_sdl.c, Simple DirectMedia Layer
  *
@@ -639,7 +639,6 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
   this->vo_driver.get_property_min_max = sdl_get_property_min_max;
   this->vo_driver.gui_data_exchange    = sdl_gui_data_exchange;
   this->vo_driver.exit                 = sdl_exit;
-  this->vo_driver.get_info             = get_video_out_plugin_info;
 
   printf ("video_out_sdl: warning, xine's SDL driver is EXPERIMENTAL\n");
   printf ("video_out_sdl: fullscreen mode is NOT supported\n");

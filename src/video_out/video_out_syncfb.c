@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_syncfb.c,v 1.53 2002/02/09 07:13:24 guenter Exp $
+ * $Id: video_out_syncfb.c,v 1.54 2002/03/05 22:31:06 jcdutton Exp $
  * 
  * video_out_syncfb.c, SyncFB (for Matrox G200/G400 cards) interface for xine
  * 
@@ -1258,7 +1258,6 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
   this->vo_driver.get_property_min_max = syncfb_get_property_min_max;
   this->vo_driver.gui_data_exchange    = syncfb_gui_data_exchange;
   this->vo_driver.exit                 = syncfb_exit;   
-  this->vo_driver.get_info             = get_video_out_plugin_info;
    
   this->deinterlace_enabled = 0;
 

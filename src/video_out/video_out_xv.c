@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.103 2002/03/01 09:23:21 guenter Exp $
+ * $Id: video_out_xv.c,v 1.104 2002/03/05 22:31:06 jcdutton Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -1310,7 +1310,6 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
   this->vo_driver.get_property_min_max = xv_get_property_min_max;
   this->vo_driver.gui_data_exchange    = xv_gui_data_exchange;
   this->vo_driver.exit                 = xv_exit;
-  this->vo_driver.get_info             = get_video_out_plugin_info;
 
   /*
    * init properties

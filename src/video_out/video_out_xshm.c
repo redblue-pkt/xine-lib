@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xshm.c,v 1.65 2002/03/01 09:29:50 guenter Exp $
+ * $Id: video_out_xshm.c,v 1.66 2002/03/05 22:31:06 jcdutton Exp $
  * 
  * video_out_xshm.c, X11 shared memory extension interface for xine
  *
@@ -1273,7 +1273,6 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
   this->vo_driver.get_property_min_max = xshm_get_property_min_max;
   this->vo_driver.gui_data_exchange    = xshm_gui_data_exchange;
   this->vo_driver.exit                 = xshm_exit;
-  this->vo_driver.get_info             = get_video_out_plugin_info;
 
   XAllocNamedColor (this->display,
 		    DefaultColormap (this->display, this->screen),

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.h,v 1.46 2002/03/05 20:39:05 jcdutton Exp $
+ * $Id: video_out.h,v 1.47 2002/03/05 22:31:06 jcdutton Exp $
  *
  *
  * xine version of video_out.h 
@@ -308,7 +308,6 @@ struct vo_driver_s {
 			    void *data);
 
   void (*exit) (vo_driver_t *this);
-  vo_info_t* (*get_info) ();
 
 };
 

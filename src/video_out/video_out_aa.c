@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_aa.c,v 1.14 2002/01/09 22:33:04 jcdutton Exp $
+ * $Id: video_out_aa.c,v 1.15 2002/03/05 22:31:06 jcdutton Exp $
  *
  * video_out_aa.c, ascii-art output plugin for xine
  *
@@ -289,7 +289,6 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
   this->vo_driver.get_property_min_max = aa_get_property_min_max;
   this->vo_driver.gui_data_exchange    = NULL;
   this->vo_driver.exit                 = aa_exit;
-  this->vo_driver.get_info             = get_video_out_plugin_info;
 
   return (vo_driver_t*) this;
 }    

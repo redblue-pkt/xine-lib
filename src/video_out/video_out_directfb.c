@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_directfb.c,v 1.5 2002/02/25 10:32:53 richwareham Exp $
+ * $Id: video_out_directfb.c,v 1.6 2002/03/05 22:31:06 jcdutton Exp $
  *
  * DirectFB based output plugin.
  * Rich Wareham <richwareham@users.sourceforge.net>
@@ -556,7 +556,6 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
   this->vo_driver.get_property_min_max = directfb_get_property_min_max;
   this->vo_driver.gui_data_exchange    = directfb_gui_data_exchange;
   this->vo_driver.exit                 = directfb_exit;
-  this->vo_driver.get_info             = get_video_out_plugin_info;
 
   this->dfb = visual_info->dfb;
   this->layer = visual_info->video_layer;
