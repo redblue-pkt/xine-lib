@@ -66,9 +66,9 @@
 /********** logging **********/
 #define LOG_MODULE "input_v4l"
 #define LOG_VERBOSE
-/*
+
 #define LOG 
-*/
+
 
 #include "xine_internal.h"
 #include "xineutils.h"
@@ -726,17 +726,24 @@ static void allocate_audio_frames(v4l_input_plugin_t *this)
   }
 }
 
-static void unmute_audio(v4l_input_plugin_t *this, int fd)
+static void unmute_audio(v4l_input_plugin_t *this)
 {
+  int fd;
+
   lprintf("unmute_audio\n");
   
-  ioctl(this->video_fd, VIDIOCGAUDIO, &this->audio);
+  if (this->video_fd > 0)
+    fd = this->video_fd;
+  else
+    fd = this->radio_fd;
+  
+  ioctl(fd, VIDIOCGAUDIO, &this->audio);
   memcpy(&this->audio_saved, &this->audio, sizeof(this->audio));
 
   this->audio.flags  &= ~VIDEO_AUDIO_MUTE;
   this->audio.volume = 0xD000;
 
-  ioctl(this->video_fd, VIDIOCSAUDIO, &this->audio);
+  ioctl(fd, VIDIOCSAUDIO, &this->audio);
 }
   
 static int open_radio_capture_device(v4l_input_plugin_t *this)
@@ -774,7 +781,7 @@ static int open_radio_capture_device(v4l_input_plugin_t *this)
   this->audio_only = 1;
   
   /* Unmute audio off video capture device */
-  unmute_audio(this, this->radio_fd);
+  unmute_audio(this);
   
   set_frequency(this, this->frequency); 
   
@@ -862,7 +869,7 @@ static int open_video_capture_device(v4l_input_plugin_t *this)
   }
   
   /* Unmute audio off video capture device */
-  unmute_audio(this, this->video_fd);
+  unmute_audio(this);
   
   if (strlen(this->tuner_name) > 0) {
     /* Tune into source and given frequency */
