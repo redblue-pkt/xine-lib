@@ -16,15 +16,11 @@ required for 1.0
 - fix streaming if small files (e.g. http) (guenter)
 - implement timeout in input_http, implement it correctly using select()
   (guenter)
-- fix potential overflow in compressor audio filter (guenter)
-- xine health check (stephen)
 - sputext decoder plugin
 - spucc decoder plugin
 - xvid decoder plugin (guenter)
-- faad decoder plugin
-- opengl video output plugin
+- opengl video output plugin (matthias)
 - irix audio output plugin (matthias)
-- null audio plugin (or fix null video out)
 - input_dvd: detect errors, display useful error messages (guenter)
 - prepare architecture for post effect plugins (michael)
 - input_net (guenter)
@@ -32,12 +28,12 @@ required for 1.0
 - avoid file name clashes between libxine1 and libxine0.x.y
 
 optional
--------
+--------
 
 - input_rtp
+- rtsp support
 - mmsh support
 - theora support
-- come up with a better idea how to specify external subtitle files
 - audio filter plugins (see also post plugins)
 - detect broken savage drivers in health check, disable Xv in that case
 - dvb support (guenter)
@@ -58,7 +54,9 @@ optional
 - Move read cache code from libdvdnav into input_dvd.c (jcdutton)
 - Support DVD "Trick" modes. Super Fast forward/reverse (jcdutton)
 - Add user selectable option for resampling audio out instead of current "gap feedback" method. (jcdutton)
-
+- xvid decoder plugin 
+- faad decoder plugin
+- quicktime binary codec support (port from mplayer)
 
 Assigned tasks
 ==============
