@@ -94,11 +94,11 @@ xineplug_dmx_mpeg_ts_la_SOURCES = demux_ts.c
 xineplug_dmx_mpeg_ts_la_LIBADD = $(XINELIB)
 xineplug_dmx_mpeg_ts_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
-xineplug_dmx_qt_la_SOURCES = demux_qt.c qtpalette.h
+xineplug_dmx_qt_la_SOURCES = demux_qt.c
 xineplug_dmx_qt_la_LIBADD = $(XINELIB)
 xineplug_dmx_qt_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
-xineplug_dmx_asf_la_SOURCES = demux_asf.c asfheader.h
+xineplug_dmx_asf_la_SOURCES = demux_asf.c
 xineplug_dmx_asf_la_LIBADD = $(XINELIB)
 xineplug_dmx_asf_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
@@ -167,6 +167,7 @@ xineplug_dmx_eawve_la_LIBADD = $(XINELIB)
 xineplug_dmx_eawve_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 include_HEADERS = demux.h qtpalette.h
+noinst_HEADERS = asfheader.h qtpalette.h
 
 $(XINELIB):
 	@cd $(top_builddir)/src/xine-engine && $(MAKE)
