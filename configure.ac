@@ -361,7 +361,7 @@ case "$host_or_hostalias" in
 	AC_CHECK_HEADER(/usr/local/include/iconv.h,
 			CFLAGS="$CFLAGS -I/usr/local/include"
 			LDFLAGS="$LDFLAGS -L/usr/local/lib"
-	                GICONV_BSD_LIBS="-lgiconv"
+	                GICONV_BSD_LIBS="-liconv"
 		        no_BSDiconv="no", 
                         [ no_BSDiconv="yes"
 	                  echo
