@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpgaudio.c,v 1.115 2003/10/10 22:17:18 f1rmb Exp $
+ * $Id: demux_mpgaudio.c,v 1.116 2003/10/11 15:20:22 tmattern Exp $
  *
  * demultiplexer for mpeg audio (i.e. mp3) streams
  *
@@ -109,6 +109,7 @@ typedef struct {
   int       bitrate;
   int       samplerate;
   int       length;               /* in bytes */
+  double    duration;             /* in 1/90000 s */
 } mpg_audio_frame_t;
 
 typedef struct {
@@ -255,7 +256,7 @@ static int mpg123_parse_frame_header(mpg_audio_frame_t *frame, uint8_t *buf) {
       frame->version_idx = 0;  /* MPEG Version 1 */
   }
 
-  frame->layer          = 4 - ((head >> 17) & 0x3);
+  frame->layer = 4 - ((head >> 17) & 0x3);
   if (frame->layer == 4) {
     lprintf("reserved layer\n");
     return 0;
@@ -290,12 +291,19 @@ static int mpg123_parse_frame_header(mpg_audio_frame_t *frame, uint8_t *buf) {
   frame->samplerate = frequencies[frame->version_idx][frame->freq_idx];
   if (frame->layer == 1) {
     frame->length = (12 * frame->bitrate / frame->samplerate + frame->padding_bit) * 4;
+    frame->duration = 90000.0 * 384.0 / (double)frame->samplerate;
   } else {
-    frame->length = 144 * frame->bitrate / frame->samplerate + frame->padding_bit;
+    int slots_per_frame;
+    slots_per_frame = (frame->layer == 3 && !frame->lsf_bit) ? 72 : 144;
+
+    frame->length = slots_per_frame * frame->bitrate / frame->samplerate +
+                    frame->padding_bit;
+    frame->duration = 90000.0 * slots_per_frame * 8.0 / (double)frame->samplerate;
   }
-  lprintf("bitrate: %d bps\n", frame->bitrate);
-  lprintf("samplerate: %d Hz\n", frame->samplerate);
-  lprintf("length: %d bytes, %d ms\n", frame->length, (1000 * frame->length) / (frame->bitrate / 8));
+
+  lprintf("mpeg %d, layer %d\n", frame->version_idx + 1, frame->layer);
+  lprintf("bitrate: %d bps, samplerate: %d Hz\n", frame->bitrate, frame->samplerate);
+  lprintf("length: %d bytes, %f pts\n", frame->length, frame->duration);
   return 1;
 }
 
@@ -364,7 +372,10 @@ static int mpg123_parse_xing_header(demux_mpgaudio_t *this, uint8_t *buf, int bu
       if (this->cur_frame.layer == 1) {
         frame_duration = 384.0 / (double)this->cur_frame.samplerate;
       } else {
-        frame_duration = 1152.0 / (double)this->cur_frame.samplerate;
+        int slots_per_frame;
+        slots_per_frame = (this->cur_frame.layer == 3 &&
+                           !this->cur_frame.lsf_bit) ? 72 : 144;
+        frame_duration = slots_per_frame * 8.0 / (double)this->cur_frame.samplerate;
       }
       this->abr = ((double)this->xbytes * 8.0) / ((double)this->xframes * frame_duration);
       this->stream_length = (double)this->xframes * frame_duration;
@@ -417,11 +428,8 @@ static int mpg123_parse_frame_payload(demux_mpgaudio_t *this,
     this->check_xing = 0;
   }
 
-  if (this->cur_frame.layer == 1) {
-    this->cur_fpts += 90000.0 * 384.0 / (double)this->cur_frame.samplerate;
-  } else {
-    this->cur_fpts += 90000.0 * 1152.0 / (double)this->cur_frame.samplerate;
-  }
+  this->cur_fpts += this->cur_frame.duration;
+
   pts = (int64_t)this->cur_fpts;
   check_newpts(this, pts);
 
@@ -937,23 +945,19 @@ static int demux_mpgaudio_seek (demux_plugin_t *this_gen,
   demux_mpgaudio_t *this = (demux_mpgaudio_t *) this_gen;
 
   if ((this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) != 0) {
-
     if (!start_pos && start_time && this->stream_length > 0) {
       if (this->is_vbr && (this->xflags & (XING_TOC_FLAG | XING_BYTES_FLAG))) {
         /* vbr  */
         start_pos = xing_get_seek_point(this, start_time);
         lprintf("time seek: vbr: time=%d, pos=%lld\n", start_time, start_pos);
       } else {
-	off_t input_length = this->input->get_length(this->input);
+        /* cbr  */
+        off_t input_length = this->input->get_length(this->input);
 
-	if((input_length > 0) && (this->stream_length > 0)) {
-	  /* cbr  */
-	  start_pos = start_time * input_length / (1000 * this->stream_length);
-	  lprintf("time seek: cbr: time=%d, pos=%lld\n", start_time, start_pos);
-	}
-	else
-	  goto __done;
-	
+        if ((input_length > 0) && (this->stream_length > 0)) {
+          start_pos = start_time * input_length / (1000 * this->stream_length);
+          lprintf("time seek: cbr: time=%d, pos=%lld\n", start_time, start_pos);
+        }
       }
     } else {
       if (this->is_vbr && (this->xflags & (XING_TOC_FLAG | XING_BYTES_FLAG))) {
@@ -961,24 +965,18 @@ static int demux_mpgaudio_seek (demux_plugin_t *this_gen,
         start_time = xing_get_seek_time(this, start_pos);
         lprintf("pos seek: vbr: time=%d, pos=%lld\n", start_time, start_pos);
       } else {
- 	off_t input_length = this->input->get_length(this->input);
-	
- 	if((input_length > 0) && (this->stream_length > 0)) {
- 	  /* cbr  */
- 	  start_time = (1000 * start_pos * this->stream_length) / input_length;
- 	  lprintf("pos seek: cbr\n");
- 	}
- 	else
- 	  goto __done;
+        /* cbr  */
+        off_t input_length = this->input->get_length(this->input);
 
+        if((input_length > 0) && (this->stream_length > 0)) {
+          start_time = (1000 * start_pos * this->stream_length) / input_length;
+          lprintf("pos seek: cbr\n");
+        }
       }
     }
-
-    this->cur_fpts = 90 * start_time;
+    this->cur_fpts = 90.0 * (double)start_time;
     this->input->seek (this->input, start_pos, SEEK_SET);
   }
-
- __done:
 
   this->status = DEMUX_OK;
   this->send_newpts = 1;
