@@ -34,11 +34,28 @@ NSString *XineViewDidResizeNotification = @"XineViewDidResizeNotification";
 
 #define DEFAULT_VIDEO_WINDOW_SIZE (NSMakeSize(320, 200))
 
+/*
+#define LOG
+*/
+#undef  LOG_MOUSE
+
+@protocol XineOpenGLViewDelegate
+
+- (void) mouseMoved:(NSEvent *)theEvent inXineView:(XineOpenGLView *)view;
+- (BOOL) respondsToSelector:(SEL)selector;
+- (NSSize) xineViewWillResize:(NSSize)oldSize toSize:(NSSize)proposedSize;
+- (void) xineViewDidResize:(NSNotification *)note;
+
+@end
+
 @implementation XineVideoWindow
 
 - (void) setContentSize: (NSSize) size {
+#ifdef LOG
+    NSLog(@"setContent called with new size w:%d h:%d", size.width, size.height);
+#endif
     [xineView setViewSizeInMainThread:size];
-   
+
     [super setContentSize: size];
 }
 
@@ -76,6 +93,11 @@ NSString *XineViewDidResizeNotification = @"XineViewDidResizeNotification";
                       backing: bufferingType
                       defer: flag
                       screen: aScreen];
+
+#ifdef LOG
+    NSLog(@"initWithContentRect called with rect x:%d y:%d w:%d h:%d",
+          rect.origin.x, rect.origin.y, rect.size.width, rect.size.height);
+#endif
 
     xineView = [[XineOpenGLView alloc] initWithFrame:rect];
     [xineView setResizeViewOnVideoSizeChange:YES];
@@ -171,6 +193,28 @@ NSString *XineViewDidResizeNotification = @"XineViewDidResizeNotification";
     return YES;
 }
 
+- (void)mouseMoved:(NSEvent *)theEvent
+{
+    NSPoint point = [self convertPoint:[theEvent locationInWindow]
+                              fromView:nil];
+
+    NSRect bounds = [self bounds];
+
+    if (!NSMouseInRect(point, bounds, [self isFlipped])) return;
+
+    /* flip the y axis */
+    point.y = bounds.size.height - point.y;
+#ifdef LOG_MOUSE
+    NSLog(@"XineOpenGLView: mouse at x:%f y:%f", point.x, point.y);
+#endif
+
+    if ([delegate respondsToSelector:@selector(mouseMoved:inXineView:)]) {
+        (void) [delegate mouseMoved:theEvent inXineView:self];
+    }
+
+    [super mouseMoved:theEvent];
+}
+
 - (NSSize)videoSize {
     return NSMakeSize(video_width, video_height);
 }
@@ -224,30 +268,50 @@ NSString *XineViewDidResizeNotification = @"XineViewDidResizeNotification";
 
     /* Black background */
     glClearColor (0.0, 0.0, 0.0, 0.0);
-    
+
+#ifdef LOG
+    NSLog(@"XineOpenGLView: initWithFrame called");
+#endif
+
     return self;
 }
 
 - (id) initWithCoder:(NSCoder *)coder
 {
-    [super initWithCoder:coder];
+#ifdef LOG
+    NSLog(@"XineOpenGLView: initWithCoder called");
+#endif
+
+    self = [super initWithCoder:coder];
 
     self = [self initWithFrame:[self frame]];
 
-    keepsVideoAspectRatio = [coder decodeBoolForKey:@"keepsVideoAspectRatio"];
-    resizeViewOnVideoSizeChange = [coder decodeBoolForKey:
-        @"resizeViewOnVideoSizeChange"];
+    if ([coder allowsKeyedCoding]) {
+        keepsVideoAspectRatio = [coder decodeBoolForKey:@"keepsVideoAspectRatio"];
+        resizeViewOnVideoSizeChange = [coder decodeBoolForKey:
+            @"resizeViewOnVideoSizeChange"];
+    } else {
+        /* Must decode values in the same order as encodeWithCoder: */
+        [coder decodeValueOfObjCType:@encode(BOOL) at:&keepsVideoAspectRatio];
+        [coder decodeValueOfObjCType:@encode(BOOL) at:&resizeViewOnVideoSizeChange];
+    }
 
     return self;
 }
 
 - (void) encodeWithCoder:(NSCoder *)coder
 {
-    [coder encodeBool:keepsVideoAspectRatio forKey:@"keepsVideoAspectRatio"];
-    [coder encodeBool:resizeViewOnVideoSizeChange
-               forKey:@"resizeViewOnVideoSizeChange"];
-
     [super encodeWithCoder:coder];
+
+    if ([coder allowsKeyedCoding]) {
+        [coder encodeBool:keepsVideoAspectRatio forKey:@"keepsVideoAspectRatio"];
+        [coder encodeBool:resizeViewOnVideoSizeChange
+                   forKey:@"resizeViewOnVideoSizeChange"];
+    } else {
+        [coder encodeValueOfObjCType:@encode(BOOL) at:&keepsVideoAspectRatio];
+        [coder encodeValueOfObjCType:@encode(BOOL) at:&resizeViewOnVideoSizeChange];
+    }
+
 }
 
 - (void) dealloc {
@@ -596,6 +660,10 @@ NSString *XineViewDidResizeNotification = @"XineViewDidResizeNotification";
     if (resizeViewOnVideoSizeChange)
 	[self setViewSizeInMainThread:size];
 
+#ifdef LOG
+    NSLog(@"setVideoSize called");
+#endif
+
     [self initTextures];
 }
 
@@ -611,6 +679,10 @@ NSString *XineViewDidResizeNotification = @"XineViewDidResizeNotification";
     [self performSelectorOnMainThread:@selector(setViewSize:)
                            withObject:sizeWrapper
                            waitUntilDone:NO];
+
+#ifdef LOG
+    NSLog(@"setViewSizeInMainThread called");
+#endif
 
     [pool release];
 }
@@ -663,6 +735,10 @@ NSString *XineViewDidResizeNotification = @"XineViewDidResizeNotification";
 
 - (void) setDelegate:(id)aDelegate {
     delegate = aDelegate;
+}
+
+- (BOOL)acceptsFirstResponder {
+    return YES;
 }
 
 @end /* XineOpenGLView */

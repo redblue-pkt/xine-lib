@@ -24,13 +24,15 @@
 
 #import <Cocoa/Cocoa.h>
 
+@protocol XineOpenGLViewDelegate;
+
 typedef enum {
     XINE_FULLSCREEN_OVERSCAN,
     XINE_FULLSCREEN_CROP
 } XineVideoWindowFullScreenMode;
 
 @interface XineOpenGLView : NSOpenGLView {
-    IBOutlet id                    delegate;
+    IBOutlet id <XineOpenGLViewDelegate>  delegate;
     int                            video_width, video_height;
     char                          *texture_buffer;
     unsigned long                  i_texture;
@@ -56,6 +58,7 @@ typedef enum {
 - (char *) getTextureBuffer;
 - (void) setVideoSize:(NSSize)size;
 - (void) setViewSizeInMainThread:(NSSize)size;
+/* TODO: replace set...Size below with setSize:(double)videoSizeMultiplier */
 - (void) setNormalSize;
 - (void) setHalfSize;
 - (void) setDoubleSize;
