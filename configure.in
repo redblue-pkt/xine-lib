@@ -546,7 +546,7 @@ case "$host_or_hostalias" in
   m68k-*)
     GLOBAL_CFLAGS="$GLOBAL_CFLAGS -O2"
     DEBUG_CFLAGS="$DEBUG_CFLAGS -O"
-    AC_DEFINE(FPM_M68K)
+    AC_DEFINE(FPM_DEFAULT)
     ;;
 
   *)

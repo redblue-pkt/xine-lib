@@ -90,6 +90,8 @@
 #undef FPM_PPC
 #undef FPM_SPARC
 #undef FPM_MIPS
+#undef FPM_DEFAULT
+/* this one isn't implemented: */
 #undef FPM_M68K
 
 @BOTTOM@
