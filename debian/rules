@@ -102,10 +102,10 @@ binary-arch: build install
 	# build libxine${major} package by moving files from libxine-dev
 	#
 	dh_movefiles --sourcedir=debian/libxine-dev -plibxine$(major)  \
-	usr/lib/libxine*.so.$(major)        \
-	usr/lib/libxine*.so.$(version)      \
-	usr/lib/xine/plugins/*.so           \
-	usr/share/xine                      \
+	usr/lib/libxine*.so.$(major)                                         \
+	usr/lib/libxine*.so.$(version)                                       \
+	$(shell cd debian/libxine-dev; find usr/lib/xine/plugins -name \*.so) \
+	usr/share/xine                                                       \
 	usr/share/locale
 
 #	dh_installdebconf	
@@ -117,7 +117,7 @@ binary-arch: build install
 	dh_strip
 	dh_compress
 	dh_fixperms
-	dh_makeshlibs -V 'libxine0 (>= 0.9.11)'
+	dh_makeshlibs -V 'libxine1 (>= 1-alpha0)'
 	dh_installdeb
 #	dh_shlibdeps
 	chmod +x debian/shlibdeps.sh

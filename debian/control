@@ -8,7 +8,7 @@ Standards-Version: 3.2.1
 Package: libxine-dev
 Architecture: any
 Section: devel
-Depends: libxine0 (= ${Source-Version}), libc6-dev, xlibs-dev, libz-dev, slang1-dev
+Depends: libxine1 (= ${Source-Version}), libc6-dev, xlibs-dev, libz-dev, slang1-dev
 Conflicts: xine-ui (<< 0.9.10)
 Description: the xine video player library, development packages
  This contains development files (headers, documentation and the like)
@@ -24,7 +24,7 @@ Description: the xine video player library, development packages
  The xine-ui package provides one for your convenience, so you can just
  start watching your VCDs ;-)
 
-Package: libxine0
+Package: libxine1
 Architecture: any
 Depends: ${shlibs:Depends}
 Recommends: ${shlibs:Recommends}

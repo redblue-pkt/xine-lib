@@ -13,9 +13,9 @@ AC_PREREQ(2.53)
 dnl Making releases:
 dnl   XINE_SUB += 1; continue with LT_* values below
 dnl
-XINE_MAJOR=0
-XINE_MINOR=9
-XINE_SUB=14
+XINE_MAJOR=1
+XINE_MINOR=0
+XINE_SUB=0
 
 
 dnl The libtool version numbers (LT_*); Don't even think about faking this!
@@ -41,7 +41,7 @@ dnl for a release tarball do "rm .cvsversion" before "make dist"
 if test -f .cvsversion; then
   XINE_PRE="cvs"
 else
-  XINE_PRE=""
+  XINE_PRE="-alpha0"
 fi
 
 AC_SUBST(XINE_MAJOR)
@@ -58,8 +58,10 @@ AC_SUBST(LT_CURRENT)
 AC_SUBST(LT_REVISION)
 AC_SUBST(LT_AGE)
 
-TAR_NAME="xine-lib-"$XINE_MAJOR.$XINE_MINOR.$XINE_SUB$XINE_PRE
-SPEC_VERSION=$XINE_MAJOR.$XINE_MINOR.$XINE_SUB$XINE_PRE
+#TAR_NAME="xine-lib-"$XINE_MAJOR.$XINE_MINOR.$XINE_SUB$XINE_PRE
+#SPEC_VERSION=$XINE_MAJOR.$XINE_MINOR.$XINE_SUB$XINE_PRE
+TAR_NAME="xine-lib-"$XINE_MAJOR$XINE_PRE
+SPEC_VERSION=$XINE_MAJOR$XINE_PRE
 
 AC_SUBST(TAR_NAME)
 AC_SUBST(SPEC_VERSION)

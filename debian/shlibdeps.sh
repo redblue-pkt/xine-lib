@@ -8,17 +8,18 @@
 
 installdir=debian/$1
 
-OPTIONAL="$installdir/usr/lib/xine/plugins/xineplug_ao_out_alsa.so
-	  $installdir/usr/lib/xine/plugins/xineplug_ao_out_arts.so
-	  $installdir/usr/lib/xine/plugins/xineplug_ao_out_esd.so
-	  $installdir/usr/lib/xine/plugins/xineplug_vo_out_aa.so
-	  $installdir/usr/lib/xine/plugins/xineplug_vo_out_syncfb.so
+ver=`cd $installdir/usr/lib/xine/plugins; ls [0-9]*`
+OPTIONAL="$installdir/usr/lib/xine/plugins/$ver/xineplug_ao_out_alsa.so
+	  $installdir/usr/lib/xine/plugins/$ver/xineplug_ao_out_arts.so
+	  $installdir/usr/lib/xine/plugins/$ver/xineplug_ao_out_esd.so
+	  $installdir/usr/lib/xine/plugins/$ver/xineplug_vo_out_aa.so
+	  $installdir/usr/lib/xine/plugins/$ver/xineplug_vo_out_syncfb.so
 "
 
-RECOMMENDED="$installdir/usr/lib/xine/plugins/xineplug_decode_vorbis.so
-             $installdir/usr/lib/xine/plugins/xineplug_ao_out_oss.so
-	     $installdir/usr/lib/xine/plugins/xineplug_vo_out_xv.so
-	     $installdir/usr/lib/xine/plugins/xineplug_dmx_ogg.so"
+RECOMMENDED="$installdir/usr/lib/xine/plugins/$ver/xineplug_decode_vorbis.so
+             $installdir/usr/lib/xine/plugins/$ver/xineplug_ao_out_oss.so
+	     $installdir/usr/lib/xine/plugins/$ver/xineplug_vo_out_xv.so
+	     $installdir/usr/lib/xine/plugins/$ver/xineplug_dmx_ogg.so"
 
 #start with all executables and shared objects
 REQUIRED=`find $installdir -type f \( -name \*.so -o -perm +111 \)`
