@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.52 2003/05/17 23:02:15 jcdutton Exp $
+ * $Id: xine_decoder.c,v 1.53 2003/05/23 15:10:27 jcdutton Exp $
  *
  * stuff needed to turn liba52 into a xine decoder plugin
  */
@@ -409,8 +409,9 @@ void a52dec_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 
 	    this->sync_state = 1;
 	    this->frame_ptr = this->frame_buffer+2;
-	  } else break;
-          /* Fall through */
+	  }
+          break;
+
     case 1:  /* Looking for enough bytes for sync_info. */
 	  *this->frame_ptr++ = *current++;
           if ((this->frame_ptr - this->frame_buffer) > 16) {
@@ -452,7 +453,8 @@ void a52dec_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
               this->stream->stream_info[XINE_STREAM_INFO_AUDIO_BITRATE] = this->a52_bit_rate;
               this->stream->stream_info[XINE_STREAM_INFO_AUDIO_SAMPLERATE] = this->a52_sample_rate;
             }
-          } else break;
+          }
+          break;
             
     case 2:  /* Filling frame_buffer with sync_info bytes */
 	  *this->frame_ptr++ = *current++;
