@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: x11osd.c,v 1.12 2004/05/09 23:25:07 miguelfreitas Exp $
+ * $Id: x11osd.c,v 1.13 2004/11/13 17:13:41 miguelfreitas Exp $
  *
  * x11osd.c, use X11 Nonrectangular Window Shape Extension to draw xine OSD
  *
@@ -48,6 +48,7 @@
 
 #define LOG_MODULE "x11osd"
 #define LOG_VERBOSE
+
 /*
 #define LOG
 */
@@ -129,6 +130,8 @@ void
 x11osd_resize (x11osd * osd, int width, int height)
 {
   assert (osd);
+  assert (width);
+  assert (height);
   
   lprintf("resize old:%dx%d new:%dx%d\n", osd->width, osd->height, width, height );
 
@@ -187,6 +190,9 @@ x11osd_drawable_changed (x11osd * osd, Window window)
   XGetWindowAttributes (osd->display, osd->window, &getattr);
   osd->width = getattr.width;
   osd->height = getattr.height;
+  
+  assert(osd->width);
+  assert(osd->height);
   
   switch(osd->mode) {
     case X11OSD_SHAPED:
@@ -261,6 +267,9 @@ x11osd_create (xine_t *xine, Display *display, int screen, Window window, enum x
   XGetWindowAttributes (osd->display, osd->window, &getattr);
   osd->width = getattr.width;
   osd->height = getattr.height;
+  
+  assert(osd->width);
+  assert(osd->height);
 
   switch (mode) {
     case X11OSD_SHAPED:
