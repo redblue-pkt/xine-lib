@@ -20,7 +20,7 @@ libavcodec_mmx_src =  fdct_mmx.c \
               simple_idct_mmx.c
 libavcodec_mmx_dummy = libavcodec_mmx_dummy.c
 
-EXTRA_DIST =  $(libavcodec_mmx_src) $(libavcodec_mmx_dummy)
+EXTRA_DIST =  $(libavcodec_mmx_src) $(libavcodec_mmx_dummy) mpegvideo_mmx_template.c
 
 if HAVE_FFMMX
 mmx_modules = $(libavcodec_mmx_src)

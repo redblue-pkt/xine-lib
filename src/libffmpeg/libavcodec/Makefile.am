@@ -28,7 +28,7 @@ libavcodec_la_LDFLAGS = \
 
 noinst_HEADERS = avcodec.h    dsputil.h   mpegvideo.h \
 		 common.h     h263data.h  mpeg4data.h   msmpeg4data.h \
-		 mpeg12data.h simple_idct.h
+		 mpeg12data.h simple_idct.h mangle.h
 
 .s.lo:
 	$(ASCOMPILE) -o $@ `test -f $< || echo '$(srcdir)/'`$<
