@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.231 2003/02/22 14:18:55 mroi Exp $
+ * $Id: xine.c,v 1.232 2003/03/05 23:55:06 siggi Exp $
  *
  * top-level xine functions
  *
@@ -1295,27 +1295,28 @@ int xine_get_current_frame (xine_stream_t *stream, int *width, int *height,
   *ratio_code = frame->ratio;
   *format = frame->format;
 
-  switch (frame->format) {
-
-  case XINE_IMGFMT_YV12:
-    memcpy (img, frame->base[0], frame->width*frame->height);
-    memcpy (img+frame->width*frame->height, frame->base[1], 
-	    frame->width*frame->height/4);
-    memcpy (img+frame->width*frame->height+frame->width*frame->height/4, 
-	    frame->base[2], 
-	    frame->width*frame->height/4);
-    break;
-
-  case XINE_IMGFMT_YUY2:
-    memcpy (img, frame->base[0], frame->width * frame->height * 2);
-    break;
-
-  default:
-    printf ("xine: error, snapshot function not implemented for format 0x%x\n",
-	    frame->format);
-    abort ();
-  }
-
+  if (img){
+    switch (frame->format) {
+      
+    case XINE_IMGFMT_YV12:
+      memcpy (img, frame->base[0], frame->width*frame->height);
+      memcpy (img+frame->width*frame->height, frame->base[1], 
+	      frame->width*frame->height/4);
+      memcpy (img+frame->width*frame->height+frame->width*frame->height/4, 
+	      frame->base[2], 
+	      frame->width*frame->height/4);
+      break;
+      
+    case XINE_IMGFMT_YUY2:
+      memcpy (img, frame->base[0], frame->width * frame->height * 2);
+      break;
+      
+    default:
+      printf ("xine: error, snapshot function not implemented for format 0x%x\n",
+	      frame->format);
+      abort ();
+    }
+  } 
   return 1;
 }
 
