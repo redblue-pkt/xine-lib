@@ -1,28 +1,8 @@
 # Order is important be careful changing SUBDIRS
 #SUBDIRS = \
-#	xine-utils \
-#	xine-engine \
-#	audio_out \
-#	video_out \
-#	dxr3 \
-#	input \
-#	libmpeg2 \
-#	libspudec \
-#	demuxers \
-#	liba52 \
-#	libffmpeg \
-#	liblpcm \
-#	libw32dll \
-#	libmad 
-#	libdts \
-#	libvorbis \
 #	libdivx4 \
 #	libsputext \
-#	libspucc \
-#	libxvid \
-#	libxinevdec \
-#	libxineadec \
-#	libfaad
+#	libxvid
 
 SUBDIRS = \
 	xine-utils \
@@ -36,6 +16,7 @@ SUBDIRS = \
 	libmpeg2 \
 	liba52 \
 	libspudec \
+	libspucc \
 	libdts \
 	libmad \
 	libw32dll \
