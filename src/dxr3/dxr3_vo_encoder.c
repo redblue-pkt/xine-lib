@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_vo_encoder.c,v 1.10 2001/12/02 03:40:27 hrm Exp $
+ * $Id: dxr3_vo_encoder.c,v 1.11 2001/12/02 07:08:59 hrm Exp $
  *
  * mpeg1 encoding video out plugin for the dxr3.  
  *
@@ -116,6 +116,12 @@
  * some support for mp1e encoder. Needs the raw-input patch for mp1e to
  * be functional. I'm sending that patch to the mp1e guys at zapping.sf.net,
  * it might be in the next version...
+ *
+ * (later) A/V sync should now be good; MP1E_DISPLAY_FRAME==1 works.
+ * needs major code cleanup, but that's for later.
+ *
+ * looks like it'll work with mp1e rte API as well, provided it's
+ * stable and all threads don't become a tangled mess.
  */
 
 /* encoder specific config/setup stuff 	*
@@ -127,7 +133,7 @@
 
 /* mp1e should send the data from display_frame (1), not frame_copy (0).
  * 0 is default since 1 doesn't work for mysterious reasons */
-#define MP1E_DISPLAY_FRAME 0
+#define MP1E_DISPLAY_FRAME 1
 
 static uint32_t dxr3_get_capabilities (vo_driver_t *this_gen)
 {
@@ -437,8 +443,7 @@ static void dxr3_update_frame_format (vo_driver_t *this_gen,
 #if USE_MP1E
 static void mp1e_write_yuv(dxr3_frame_t *frame, dxr3_driver_t *this)
 {
-  int size, cnt;
-  static int writing = 0;
+  int size, cnt, it;
  
   /* if we didn't already open mp1e, do so now 
      (see comment in update_frame_format*/
@@ -453,18 +458,22 @@ static void mp1e_write_yuv(dxr3_frame_t *frame, dxr3_driver_t *this)
     exit(1);
   }
   size = frame->width*this->oheight;
-  if (writing) return;
-  writing = 1;
+  /* that (%#)*$#& fwrite doesn't seem to work properly! 
+   * images were arsed up completely */
   if (frame->vo_frame.format == IMGFMT_YV12) {
-    for ( cnt = 0 ; cnt < size ; ) 
-      cnt += fwrite(frame->real_base[0]+cnt, 1, size-cnt, mp1e);
-    for ( cnt = 0 ; cnt < size/4 ; ) 
-      cnt += fwrite(frame->real_base[1]+cnt, 1, size/4-cnt, mp1e);
-    for ( cnt = 0 ; cnt < size/4 ; ) 
-      cnt += fwrite(frame->real_base[2]+cnt, 1, size/4-cnt, mp1e);
+    for ( cnt = 0 ; cnt < size ; ) { 
+      it = write(fileno(mp1e), frame->real_base[0]+cnt, size-cnt);
+      if (it > 0) cnt+=it;
+    }
+    for ( cnt = 0 ; cnt < size/4 ; ) {
+      it = write(fileno(mp1e), frame->real_base[1]+cnt, size/4-cnt);
+      if (it > 0) cnt+=it;
+    }
+    for ( cnt = 0 ; cnt < size/4 ; ) {
+      it = write(fileno(mp1e), frame->real_base[2]+cnt, size/4-cnt);
+      if (it > 0) cnt+=it;
+    }
   }
-  fflush(mp1e);
-  writing = 0;
 }
 #endif
 

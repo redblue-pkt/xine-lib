@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_vo_encoder.h,v 1.7 2001/12/02 03:40:27 hrm Exp $
+ * $Id: dxr3_vo_encoder.h,v 1.8 2001/12/02 07:08:59 hrm Exp $
  *
  */
 
@@ -36,11 +36,11 @@
 #define USE_MAGIC_REGISTER 1
 
 /* select one mpeg encoder out of the three below */
-#define USE_LIBFAME 1
+#define USE_LIBFAME 0
 
 #define USE_FFMPEG 0
 
-#define USE_MP1E 0
+#define USE_MP1E 1
 
 /************************************************************************* 
  * Dxr3 Encoding private stuff below - You shouldn't need to change this *
