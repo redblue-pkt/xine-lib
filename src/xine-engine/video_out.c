@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.114 2002/11/23 13:08:19 mroi Exp $
+ * $Id: video_out.c,v 1.115 2002/12/06 01:38:22 miguelfreitas Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -199,6 +199,38 @@ static void vo_frame_dec_lock (vo_frame_t *img) {
   pthread_mutex_unlock (&img->mutex);
 }
 
+/* call vo_driver->copy method for the entire frame */
+static void vo_frame_driver_copy(vo_frame_t *img)
+{ 
+  if (img->format == XINE_IMGFMT_YV12) {
+    if (img->copy) {
+      int height = img->height;
+      uint8_t* src[3];
+  
+      src[0] = img->base[0];
+      src[1] = img->base[1];
+      src[2] = img->base[2];
+      while ((height -= 16) >= 0) {
+        img->copy(img, src);
+        src[0] += 16 * img->pitches[0];
+        src[1] +=  8 * img->pitches[1];
+        src[2] +=  8 * img->pitches[2];
+      }
+    }
+  } else {
+    if (img->copy) {
+      int height = img->height;
+      uint8_t* src[3];
+      
+      src[0] = img->base[0];
+      
+      while ((height -= 16) >= 0) {
+        img->copy(img, src);
+        src[0] += 16 * img->pitches[0];
+      }
+    }
+  }
+}
 
 /*
  * 
@@ -236,6 +268,7 @@ static vo_frame_t *vo_get_frame (xine_video_port_t *this_gen,
   img->height         = height;
   img->ratio          = ratio;
   img->format         = format;
+  img->copy_called    = 0;
   
   /* let driver ensure this image has the right format */
 
@@ -291,6 +324,10 @@ static int vo_frame_draw (vo_frame_t *img, xine_stream_t *stream) {
 
   if (!img->bad_frame) {
 
+    /* do not call copy() for frames that will be dropped */
+    if( !frames_to_skip && img->copy && !img->copy_called )
+      vo_frame_driver_copy(img);
+    
     /*
      * Wake up xine_play if it's waiting for a frame
      */
@@ -405,34 +442,7 @@ static vo_frame_t * duplicate_frame( vos_t *this, vo_frame_t *img ) {
   dupl->vpts      = 0;
   dupl->duration  = img->duration;
 
-  if (img->format == XINE_IMGFMT_YV12) {
-    if (img->copy) {
-      int height = img->height;
-      uint8_t* src[3];
-  
-      src[0] = dupl->base[0];
-      src[1] = dupl->base[1];
-      src[2] = dupl->base[2];
-      while ((height -= 16) >= 0) {
-        dupl->copy(dupl, src);
-        src[0] += 16 * img->pitches[0];
-        src[1] +=  8 * img->pitches[1];
-        src[2] +=  8 * img->pitches[2];
-      }
-    }
-  } else {
-    if (img->copy) {
-      int height = img->height;
-      uint8_t* src[3];
-      
-      src[0] = dupl->base[0];
-      
-      while ((height -= 16) >= 0) {
-        dupl->copy(dupl, src);
-        src[0] += 16 * img->pitches[0];
-      }
-    }
-  }
+  vo_frame_driver_copy(dupl);
   
   return dupl;
 }
@@ -609,6 +619,13 @@ static void overlay_and_display_frame (vos_t *this,
   printf ("video_out: displaying image with vpts = %lld\n", 
 	  img->vpts);
 #endif
+
+  /* no, this is not were copy() is usually called (eg. rgb conversion).
+   * it's just to catch special cases were a frame that would
+   * be dropped was held for still and later displayed.
+   */
+  if( img->copy && !img->copy_called )
+    vo_frame_driver_copy(img);
 
   if (this->overlay_source) {
     this->overlay_source->multiple_overlay_blend (this->overlay_source, 
