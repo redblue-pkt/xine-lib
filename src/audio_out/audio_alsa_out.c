@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.124 2004/02/21 14:16:48 jcdutton Exp $
+ * $Id: audio_alsa_out.c,v 1.125 2004/03/02 23:51:39 hadess Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -137,6 +137,7 @@ static int ao_alsa_get_percent_from_volume(long val, long min, long max) {
 /*
  * Wait (blocking) till a mixer event happen
  */
+/*
 static void *ao_alsa_handle_event_thread(void *data) {
   alsa_driver_t  *this = (alsa_driver_t *) data;
 
@@ -214,7 +215,7 @@ static void *ao_alsa_handle_event_thread(void *data) {
   
   pthread_exit(NULL);
 }
-
+*/
 /*
  * Convert percent value to volume and set
  */
@@ -817,7 +818,6 @@ static uint32_t ao_alsa_get_capabilities (ao_driver_t *this_gen) {
  */
 static void ao_alsa_exit(ao_driver_t *this_gen) {
   alsa_driver_t *this = (alsa_driver_t *) this_gen;
-  void          *p;
 
   pthread_mutex_destroy(&this->mixer.mutex);
   /*
@@ -828,13 +828,14 @@ static void ao_alsa_exit(ao_driver_t *this_gen) {
    * between closing the handle and spawning the child process
    * (i.e. xscreensaver).
    */
+/*
   if(this->mixer.handle) {
     pthread_cancel(this->mixer.thread);
-    pthread_join(this->mixer.thread, &p);
+    pthread_join(this->mixer.thread, NULL);
     snd_mixer_close(this->mixer.handle);
     this->mixer.handle=0;
   }
-
+*/
   if (this->audio_fd) snd_pcm_close(this->audio_fd);
   this->audio_fd=NULL;
   free (this);
@@ -1235,9 +1236,10 @@ static void ao_alsa_mixer_init(ao_driver_t *this_gen) {
     pthread_attr_getschedparam(&pth_attrs, &pth_params);
     pth_params.sched_priority = sched_get_priority_min(SCHED_OTHER);
     pthread_attr_setschedparam(&pth_attrs, &pth_params);
-    
+/* FIXME pthread_cancel blows chunks, until this is fixed,
+ * we can't use the volume event thread
     pthread_create(&this->mixer.thread, &pth_attrs, ao_alsa_handle_event_thread, (void *) this);
-    
+*/
     pthread_attr_destroy(&pth_attrs);
   }
 
