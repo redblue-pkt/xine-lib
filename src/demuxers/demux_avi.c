@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_avi.c,v 1.179 2003/11/16 23:33:43 f1rmb Exp $
+ * $Id: demux_avi.c,v 1.180 2003/11/23 00:57:06 tmattern Exp $
  *
  * demultiplexer for avi streams
  *
@@ -896,8 +896,8 @@ static avi_t *AVI_init(demux_avi_t *this) {
     ERR_EXIT(AVI_ERR_NO_VIDS);
 
 
-  AVI->video_tag[0] = AVI->video_strn/10 + '0';
-  AVI->video_tag[1] = AVI->video_strn%10 + '0';
+  AVI->video_tag[0] = AVI->video_strn / 10 + '0';
+  AVI->video_tag[1] = AVI->video_strn % 10 + '0';
   /* do not use the two following bytes */
   AVI->video_tag[2] = 'd';
   AVI->video_tag[3] = 'b';
@@ -1040,10 +1040,11 @@ static void AVI_seek_start(avi_t *AVI) {
   }
 }
 
-static long AVI_read_audio(demux_avi_t *this, avi_audio_t *AVI_A, char *audbuf,
-                           uint32_t bytes, int *buf_flags) {
+static int AVI_read_audio(demux_avi_t *this, avi_audio_t *AVI_A, char *audbuf,
+                          uint32_t bytes, int *buf_flags) {
 
-  off_t nr, pos, left, todo;
+  off_t pos;
+  int nr, left, todo;
   audio_index_entry_t *aie = audio_cur_index_entry(this, AVI_A);
 
   if(!aie)  {
@@ -1080,7 +1081,7 @@ static long AVI_read_audio(demux_avi_t *this, avi_audio_t *AVI_A, char *audbuf,
     /* lprintf ("read audio from %lld\n", pos); */
     if (this->input->seek (this->input, pos, SEEK_SET)<0)
       return -1;
-    if (this->input->read(this->input, audbuf + nr,todo) != todo) {
+    if (this->input->read(this->input, audbuf + nr, todo) != todo) {
       this->AVI_errno = AVI_ERR_READ;
       *buf_flags = 0;
       return -1;
@@ -1099,10 +1100,11 @@ static long AVI_read_audio(demux_avi_t *this, avi_audio_t *AVI_A, char *audbuf,
   return nr;
 }
 
-static long AVI_read_video(demux_avi_t *this, avi_t *AVI, char *vidbuf,
-                           uint32_t bytes, int *buf_flags) {
+static int AVI_read_video(demux_avi_t *this, avi_t *AVI, char *vidbuf,
+                          uint32_t bytes, int *buf_flags) {
 
-  off_t nr, pos, left, todo;
+  off_t pos;
+  int nr, left, todo;
   video_index_entry_t *vie = video_cur_index_entry(this);
 
   if (!vie) {
@@ -1138,7 +1140,7 @@ static long AVI_read_video(demux_avi_t *this, avi_t *AVI, char *vidbuf,
     /* lprintf ("read video from %lld\n", pos); */
     if (this->input->seek (this->input, pos, SEEK_SET)<0)
       return -1;
-    if (this->input->read(this->input, vidbuf+nr,todo) != todo) {
+    if (this->input->read(this->input, vidbuf + nr, todo) != todo) {
       this->AVI_errno = AVI_ERR_READ;
       *buf_flags = 0;
       return -1;
@@ -1214,7 +1216,7 @@ static int demux_avi_next (demux_avi_t *this, int decoder_flags) {
       /* read audio */
 
       buf->pts    = audio_pts;
-      buf->size   = AVI_read_audio (this, audio, buf->mem, 2048, &buf->decoder_flags);
+      buf->size   = AVI_read_audio (this, audio, buf->mem, buf->max_size, &buf->decoder_flags);
       buf->decoder_flags |= decoder_flags;
 
       if (buf->size < 0) {
@@ -1238,7 +1240,7 @@ static int demux_avi_next (demux_avi_t *this, int decoder_flags) {
     /* read video */
 
     buf->pts        = video_pts;
-    buf->size       = AVI_read_video (this, this->avi, buf->mem, 2048, &buf->decoder_flags);
+    buf->size       = AVI_read_video (this, this->avi, buf->mem, buf->max_size, &buf->decoder_flags);
     buf->type       = this->avi->video_type;
 
     buf->extra_info->input_time = video_pts / 90;
