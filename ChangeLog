@@ -17,6 +17,7 @@ xine-lib (1-rc6)
   * fix stack overflows in the VCD plugin
   * experimental time stretching plugin: play stream faster or 
     slower than original speed, optionally preserving pitch
+  * another win32 dll crash fix (after playing several files)
                 
 xine-lib (1-rc5)  
   * add support for ejecting removable media on Solaris

@@ -501,5 +501,8 @@ Stefan Kristiansson <stefan@langante.mine.nu>
 
 Ryan Tadlock <pholan-xine-users@midnight.postino.com>
   compensation for the field delay of some deinterlacing algorithms
+
+Casper Boemann <cbr@boemann.dk>
+  reuse stubs for unresolved exports of win32 dlls
     
 (let us know if we've forgotten anyone)
