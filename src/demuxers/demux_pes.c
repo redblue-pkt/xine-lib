@@ -17,12 +17,11 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg.c,v 1.27 2001/07/24 16:09:22 joachim_koenig Exp $
+ * $Id: demux_pes.c,v 1.1 2001/07/24 16:08:51 joachim_koenig Exp $
  *
- * demultiplexer for mpeg 1/2 program streams
+ * demultiplexer for mpeg 2 PES (Packetized Elementary Streams)
  * reads streams of variable blocksizes
  *
- * currently only used for mpeg-1-files
  *
  */
 
@@ -116,7 +115,6 @@ static void parse_mpeg2_packet (demux_mpeg_t *this, int nID) {
 
   nLen = read_bytes(this, 2);
 
-  xprintf (VERBOSE|DEMUX|MPEG, "  mpeg2 packet (len=%d",nLen); 
 
   if (nID==0xbd) {
 
@@ -288,212 +286,19 @@ static void parse_mpeg2_packet (demux_mpeg_t *this, int nID) {
 
 }
 
-static void parse_mpeg1_packet (demux_mpeg_t *this, int nID) 
-{
-  int             nLen;
-  uint32_t        w;
-  int             i;
-  int             pts;
-  buf_element_t  *buf = NULL;
-
-  xprintf (VERBOSE|DEMUX, "  packet (");
-
-  nLen = read_bytes(this, 2);
-
-  xprintf (VERBOSE|DEMUX, "len=%d",nLen);
-
-  pts=0;
-
-  if (nID != 0xbf) {
-
-    w = read_bytes(this, 1); nLen--;
-
-    while ((w & 0x80) == 0x80)   {
-
-      if (this->status != DEMUX_OK)
-	return;
-
-      /* stuffing bytes */
-      w = read_bytes(this, 1); nLen--;
-    }
-
-    if ((w & 0xC0) == 0x40) {
-
-      if (this->status != DEMUX_OK)
-	return;
-
-      /* buffer_scale, buffer size */
-      w = read_bytes(this, 1); nLen--;
-      w = read_bytes(this, 1); nLen--;
-    }
-
-    if ((w & 0xF0) == 0x20) {
-
-      if (this->status != DEMUX_OK)
-	return;
-
-      pts = (w & 0xe) << 29 ;
-      w = read_bytes(this, 2); nLen -= 2;
-
-      pts |= (w & 0xFFFE) << 14;
-
-      w = read_bytes(this, 2); nLen -= 2;
-      pts |= (w & 0xFFFE) >> 1;
-
-      xprintf (VERBOSE|DEMUX|VPTS, ", pts=%d",pts);
-
-      /* pts = 0; */
-
-    } else if ((w & 0xF0) == 0x30) {
-
-      if (this->status != DEMUX_OK)
-	return;
-
-      pts = (w & 0x0e) << 29 ;
-      w = read_bytes(this, 2); nLen -= 2;
-      
-      pts |= (w & 0xFFFE) << 14;
-
-      w = read_bytes(this, 2); nLen -= 2;
-
-      pts |= (w & 0xFFFE) >> 1;
-
-/*       printf ("pts2=%d\n",pts); */
-      xprintf (VERBOSE|DEMUX|VPTS, ", pts2=%d",pts);
-
-      /* Decoding Time Stamp */
-      w = read_bytes(this, 3); nLen -= 3;
-      w = read_bytes(this, 2); nLen -= 2;
-    } else {
-      xprintf (VERBOSE|DEMUX, ", w = %02x",w);
-      if (w != 0x0f)
-	xprintf (VERBOSE|DEMUX, " ERROR w (%02x) != 0x0F ",w);
-    }
-
-  }
-
-  if ((nID & 0xe0) == 0xc0) {
-    int track = nID & 0x1f;
-
-    xprintf (VERBOSE|DEMUX|AUDIO, ", audio #%d", track);
-
-    if(this->audio_fifo) {
-      buf = this->input->read_block (this->input, this->audio_fifo, nLen);
-    } else {
-      this->input->read (this->input, this->dummy_space, nLen);
-      return;
-    }
-
-    if (buf == NULL) {
-      this->status = DEMUX_FINISHED;
-      return ;
-    }
-    buf->type      = BUF_AUDIO_MPEG + track ;
-    buf->PTS       = pts;
-    buf->DTS       = 0;   /* FIXME */
-    if (this->preview_mode)
-      buf->decoder_info[0] = 0;
-    else
-      buf->decoder_info[0] = 1;
-    buf->input_pos = this->input->get_current_pos(this->input);
-
-    if(this->audio_fifo)
-      this->audio_fifo->put (this->audio_fifo, buf);
-
-  } else if ((nID & 0xf0) == 0xe0) {
-
-    xprintf (VERBOSE|DEMUX|VIDEO, ", video #%d", nID & 0x0f);
-
-    if(this->input->read_block)
-      buf = this->input->read_block (this->input, this->video_fifo, nLen);
-
-    if (buf == NULL) {
-      this->status = DEMUX_FINISHED;
-      return ;
-    }
-    buf->type = BUF_VIDEO_MPEG;
-    buf->PTS  = pts;
-    buf->DTS  = 0; /* FIXME */
-    if (this->preview_mode)
-      buf->decoder_info[0] = 0;
-    else
-      buf->decoder_info[0] = 1;
-    buf->input_pos = this->input->get_current_pos(this->input);
-
-    this->video_fifo->put (this->video_fifo, buf);
-
-  } else if (nID == 0xbd) {
-    xprintf (VERBOSE|DEMUX|AC3, ", ac3");
-    i = this->input->read (this->input, this->dummy_space, nLen);
-  } else {
-    xprintf (VERBOSE|DEMUX, ", unknown (nID = %d)",nID);
-    this->input->read (this->input, this->dummy_space, nLen);
-  }
-
-  xprintf (VERBOSE|DEMUX, ")\n");
-}
 
 static uint32_t parse_pack(demux_mpeg_t *this)
 {
   uint32_t buf ;
-  char scratch[1024];
-  int mpeg_version;
 
-  xprintf (VERBOSE|DEMUX, "pack {\n");
+  buf = read_bytes (this, 1) ;
 
-  /* system_clock_reference */
-  buf = read_bytes (this, 1);
-  xprintf (VERBOSE|DEMUX|VIDEO, "  mpeg version : %02x",buf>>4);
-
-  if ((buf>>4) == 4) {
-     xprintf (VERBOSE|DEMUX|VIDEO, "  => mpeg II \n");
-     buf = read_bytes(this, 2);
-     mpeg_version = 2;
-  } else {
-     xprintf (VERBOSE|DEMUX|VIDEO, "  => mpeg I \n");
-     mpeg_version = 1;
-  }
-
-  buf = read_bytes (this, 2);
-  buf = read_bytes (this, 2);
-
-  /* mux_rate */
-
-  buf = read_bytes (this, 3) ;
-
-  /* printf ("  mux_rate = %06x\n",buf); */
-
-  /* system header */
-
-  buf = read_bytes (this, 4) ;
-
-  /* printf ("  code = %08x\n",buf);*/
-
-  if (buf == 0x000001bb) {
-    buf = read_bytes (this, 2);
-    xprintf (VERBOSE|DEMUX, "  system_header (%d +6 bytes)\n",buf);
-
-    this->input->read (this->input, scratch, buf);
-
-    buf = read_bytes (this, 4) ;
-  }
-  
-  /* printf ("  code = %08x\n",buf); */
-
-  while ( ((buf & 0xFFFFFF00) == 0x00000100)
-	  && ((buf & 0xff) != 0xba) ) {
-
-    if (this->status != DEMUX_OK)
+  if (this->status != DEMUX_OK)
       return buf;
 
-    if (mpeg_version == 1)
-      parse_mpeg1_packet (this, buf & 0xFF);
-    else
-      parse_mpeg2_packet (this, buf & 0xFF);
+  parse_mpeg2_packet (this, buf & 0xFF);
 
-    buf = read_bytes (this, 4);
-    xprintf (VERBOSE|DEMUX, "  code = %08x\n",buf); 
-  }
+  buf = read_bytes (this, 3);
   
   xprintf (VERBOSE|DEMUX, "}\n");
 
@@ -503,7 +308,7 @@ static uint32_t parse_pack(demux_mpeg_t *this)
 
 static void demux_mpeg_resync (demux_mpeg_t *this, uint32_t buf) {
 
-  while ((buf !=0x000001ba) && (this->status == DEMUX_OK)) {
+  while ((buf !=0x000001) && (this->status == DEMUX_OK)) {
     xprintf (VERBOSE|DEMUX, "resync : %08x\n",buf);
     buf = (buf << 8) | read_bytes (this, 1);
   }
@@ -518,7 +323,7 @@ static void *demux_mpeg_loop (void *this_gen) {
   do {
     w = parse_pack (this);
 
-    if (w != 0x000001ba)
+    if (w != 0x000001)
       demux_mpeg_resync (this, w);
     
   } while (this->status == DEMUX_OK) ;
@@ -621,14 +426,14 @@ static void demux_mpeg_start (demux_plugin_t *this_gen,
 
     this->preview_mode = 1;
 
-    this->input->seek (this->input, 4, SEEK_SET);
+    this->input->seek (this->input, 3, SEEK_SET);
 
     this->status = DEMUX_OK ;
 
     do {
       w = parse_pack (this);
       
-      if (w != 0x000001ba)
+      if (w != 0x000001)
 	demux_mpeg_resync (this, w);
       
       num_buffers --;
@@ -636,9 +441,9 @@ static void demux_mpeg_start (demux_plugin_t *this_gen,
     } while ( (this->status == DEMUX_OK) && (num_buffers>0)) ;
 
     xprintf (VERBOSE|DEMUX, "=>seek to %Ld\n",pos);
-    this->input->seek (this->input, pos+4, SEEK_SET);
+    this->input->seek (this->input, pos+3, SEEK_SET);
   } else
-    read_bytes(this, 4);
+    read_bytes(this, 3);
 
   this->preview_mode = 0;
   this->send_end_buffers = 1;
@@ -672,30 +477,14 @@ static int demux_mpeg_open(demux_plugin_t *this_gen,
 	
 	switch(buf[3]) {
 	  
-	case 0xba:
-	  if((buf[4] & 0xf0) == 0x20) {
-	    uint32_t pckbuf ;
-	    
-	    pckbuf = read_bytes (this, 1);
-	    if ((pckbuf>>4) != 4) {
-	      this->input = input;
-	      return DEMUX_CAN_HANDLE;
-	    }
-	  }
-	  break;
-#if 0	  
 	case 0xe0:
-	  if((buf[6] & 0xc0) != 0x80) {
-	    uint32_t pckbuf ;
+	case 0xc0:
+	case 0xc1:
+	case 0xbd:
 	    
-	    pckbuf = read_bytes (this, 1);
-	    if ((pckbuf>>4) != 4) {
-	      this->input = input;
-	      return DEMUX_CAN_HANDLE;
-	    }
-	  }
+	  return DEMUX_CAN_HANDLE;
 	  break;
-#endif	  
+	  
 	}
       }
     }
@@ -712,14 +501,10 @@ static int demux_mpeg_open(demux_plugin_t *this_gen,
     if(media) {
       if((!(strncasecmp(MRL, "stdin", 5))) 
 	 || (!(strncasecmp(MRL, "fifo", 4)))) {
-	if(!(strncasecmp(media+3, "mpeg1", 5))) {
+	if(!(strncasecmp(media+3, "pes", 3))) {
 	  this->input = input;
 	  return DEMUX_CAN_HANDLE;
 	}
-	else if(!(strncasecmp((media+3), "mpeg2", 5))) {
-	  return DEMUX_CANNOT_HANDLE;
-	}
-	fprintf(stderr, "You should specify mpeg(mpeg1/mpeg2) stream type.\n");
 	return DEMUX_CANNOT_HANDLE;
       }
       else if(strncasecmp(MRL, "file", 4)) {
@@ -728,14 +513,13 @@ static int demux_mpeg_open(demux_plugin_t *this_gen,
     }
 
     ending = strrchr(MRL, '.');
-    xprintf(VERBOSE|DEMUX, "demux_mpeg_can_handle: ending %s of %s\n", 
+    xprintf(VERBOSE|DEMUX, "demux_pes_can_handle: ending %s of %s\n", 
 	    ending, MRL);
     
     if(!ending)
       return DEMUX_CANNOT_HANDLE;
     
-    if(!strcasecmp(ending, ".mpg") 
-       || (!strcasecmp(ending, ".mpeg"))) {
+    if(!strcasecmp(ending, ".vdr"))  {
       this->input = input;
       return DEMUX_CAN_HANDLE;
     }
@@ -754,7 +538,7 @@ static void demux_mpeg_select_spu_channel (int nChannel) {
 }
 
 static char *demux_mpeg_get_id(void) {
-  return "MPEG";
+  return "MPEG_PES";
 }
 
 static void demux_mpeg_close (demux_plugin_t *this) {
@@ -766,9 +550,9 @@ demux_plugin_t *init_demuxer_plugin(int iface, config_values_t *config) {
   demux_mpeg_t *this;
 
   if (iface != 2) {
-    printf( "demux_mpeg: plugin doesn't support plugin API version %d.\n"
-	    "demux_mpeg: this means there's a version mismatch between xine and this "
-	    "demux_mpeg: demuxer plugin.\nInstalling current input plugins should help.\n",
+    printf( "demux_pes: plugin doesn't support plugin API version %d.\n"
+	    "demux_pes: this means there's a version mismatch between xine and this "
+	    "demux_pes: demuxer plugin.\nInstalling current input plugins should help.\n",
 	    iface);
     return NULL;
   }
