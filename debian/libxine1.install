@@ -4,7 +4,6 @@ debian/tmp/usr/lib/xine/plugins/*/*.so
 debian/tmp/usr/lib/xine/plugins/*/vidix/*.so
 debian/tmp/usr/share/doc/xine/faq
 debian/tmp/usr/share/doc/xine/README
-debian/tmp/usr/share/doc/xine/README.config_en
 debian/tmp/usr/share/doc/xine/README.dvb
 debian/tmp/usr/share/doc/xine/README.dxr3
 debian/tmp/usr/share/doc/xine/README.network_dvd
