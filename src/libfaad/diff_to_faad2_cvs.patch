@@ -1,7 +1,7 @@
-diff -u -p -r1.1.1.1 common.h
---- common.h	26 Jul 2004 15:27:56 -0000	1.1.1.1
-+++ common.h	30 Jul 2004 00:08:55 -0000
-@@ -145,22 +145,6 @@ extern "C" {
+diff -urw /home/thibaut/faad2/libfaad/common.h ./common.h
+--- /home/thibaut/faad2/libfaad/common.h	2004-02-06 13:55:24.000000000 +0100
++++ ./common.h	2004-12-03 01:39:52.000000000 +0100
+@@ -148,24 +148,8 @@
  
  /* END COMPILE TIME DEFINITIONS */
  
@@ -22,9 +22,12 @@ diff -u -p -r1.1.1.1 common.h
 -#else
 -
  #ifdef HAVE_CONFIG_H
- #  include "config.h"
+-#  include "../config.h"
++#  include "config.h"
  #endif
-@@ -189,6 +173,8 @@ typedef float float32_t;
+ 
+ #include <stdio.h>
+@@ -192,6 +176,8 @@
  #if HAVE_STRINGS_H
  # include <strings.h>
  #endif
@@ -33,7 +36,7 @@ diff -u -p -r1.1.1.1 common.h
  #if HAVE_INTTYPES_H
  # include <inttypes.h>
  #else
-@@ -196,6 +182,17 @@ typedef float float32_t;
+@@ -199,6 +185,17 @@
  #  include <stdint.h>
  # else
  /* we need these... */
@@ -51,7 +54,7 @@ diff -u -p -r1.1.1.1 common.h
  typedef unsigned long long uint64_t;
  typedef unsigned long uint32_t;
  typedef unsigned short uint16_t;
-@@ -204,6 +201,7 @@ typedef long long int64_t;
+@@ -207,6 +204,7 @@
  typedef long int32_t;
  typedef short int16_t;
  typedef char int8_t;
@@ -59,16 +62,16 @@ diff -u -p -r1.1.1.1 common.h
  # endif
  #endif
  #if HAVE_UNISTD_H
-@@ -226,8 +224,6 @@ char *strchr(), *strrchr();
- #  define memcpy(d, s, n) bcopy((s), (d), (n))
- #  define memmove(d, s, n) bcopy((s), (d), (n))
+@@ -231,8 +229,6 @@
  # endif
--#endif
--
  #endif
  
+-#endif
+-
  #ifdef WORDS_BIGENDIAN
-@@ -292,6 +290,7 @@
+ #define ARCH_IS_BIG_ENDIAN
+ #endif
+@@ -295,6 +291,7 @@
    }
  
  
@@ -76,18 +79,19 @@ diff -u -p -r1.1.1.1 common.h
    #ifdef _WIN32
      #define HAS_LRINTF
      static INLINE int lrintf(float f)
-@@ -318,6 +317,7 @@
+@@ -321,7 +318,7 @@
          return i;
      }
    #endif
+-
 +#endif
  
- 
    #ifdef __ICL /* only Intel C compiler has fmath ??? */
-diff -u -p -r1.1.1.1 bits.h
---- bits.h	26 Jul 2004 15:27:56 -0000	1.1.1.1
-+++ bits.h	30 Jul 2004 09:35:55 -0000
-@@ -56,9 +56,9 @@ typedef struct _bitfile
+ 
+diff -urw /home/thibaut/faad2/libfaad/bits.h ./bits.h
+--- /home/thibaut/faad2/libfaad/bits.h  2004-02-04 21:07:24.000000000 +0100
++++ ./bits.h    2004-12-03 01:45:15.000000000 +0100
+@@ -56,9 +56,9 @@
  } bitfile;
  
  

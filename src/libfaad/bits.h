@@ -22,7 +22,7 @@
 ** Commercial non-GPL licensing of this software is possible.
 ** For more info contact Ahead Software through Mpeg4AAClicense@nero.com.
 **
-** $Id: bits.h,v 1.8 2004/08/27 19:33:20 valtri Exp $
+** $Id: bits.h,v 1.9 2004/12/03 01:15:29 tmattern Exp $
 **/
 
 #ifndef __BITS_H__
@@ -271,7 +271,7 @@ static uint8_t faad_check_CRC(bitfile *ld, uint16_t len)
 
     faad_rewindbits(ld);
 
-    CRC = ~faad_getbits(ld, 8
+    CRC = (uint8_t) ~faad_getbits(ld, 8
         DEBUGVAR(1,999,"faad_check_CRC(): CRC"));          /* CRC is stored inverted */
 
     for (; len>0; len--)

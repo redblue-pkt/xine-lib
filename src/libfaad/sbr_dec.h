@@ -22,7 +22,7 @@
 ** Commercial non-GPL licensing of this software is possible.
 ** For more info contact Ahead Software through Mpeg4AAClicense@nero.com.
 **
-** $Id: sbr_dec.h,v 1.5 2004/01/26 22:34:11 jstembridge Exp $
+** $Id: sbr_dec.h,v 1.6 2004/12/03 01:15:30 tmattern Exp $
 **/
 
 #ifndef __SBR_DEC_H__
@@ -158,7 +158,9 @@ typedef struct
 	int8_t lcstereo_flag;
 	uint8_t bs_dataextra;
     uint8_t Is_DRM_SBR;
+#ifdef DRM_PS
     drm_ps_info drm_ps;
+#endif
 #endif
 
 	uint8_t numTimeSlotsRate;
@@ -168,6 +170,9 @@ typedef struct
 
 #ifdef PS_DEC
     ps_info ps;
+#endif
+#if (defined(PS_DEC) || defined(DRM_PS))
+    uint8_t ps_used;
 #endif
 
     /* to get it compiling */
@@ -221,6 +226,10 @@ uint8_t sbrDecodeCoupleFrame(sbr_info *sbr, real_t *left_chan, real_t *right_cha
                              const uint8_t just_seeked, const uint8_t upsample_only);
 uint8_t sbrDecodeSingleFrame(sbr_info *sbr, real_t *channel,
                              const uint8_t just_seeked, const uint8_t upsample_only);
+#if (defined(PS_DEC) || defined(DRM_PS))
+uint8_t sbrDecodeSingleFramePS(sbr_info *sbr, real_t *left_channel, real_t *right_channel,
+                               const uint8_t just_seeked, const uint8_t upsample_only);
+#endif
 
 
 #ifdef __cplusplus

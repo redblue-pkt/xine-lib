@@ -22,7 +22,7 @@
 ** Commercial non-GPL licensing of this software is possible.
 ** For more info contact Ahead Software through Mpeg4AAClicense@nero.com.
 **
-** $Id: drc.c,v 1.5 2004/01/26 22:34:10 jstembridge Exp $
+** $Id: drc.c,v 1.6 2004/12/03 01:15:30 tmattern Exp $
 **/
 
 #include "common.h"

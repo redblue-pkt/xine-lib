@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.35 2004/11/29 23:02:31 tmattern Exp $
+ * $Id: xine_decoder.c,v 1.36 2004/12/03 01:15:31 tmattern Exp $
  *
  */
 
@@ -30,7 +30,6 @@
 
 #define LOG_MODULE "libfaad"
 #define LOG_VERBOSE
-
 /*
 #define LOG
 */
@@ -115,6 +114,7 @@ static int faad_open_dec( faad_decoder_t *this ) {
         faacDecSetConfiguration(this->faac_dec, this->faac_cfg);
       }
   
+
       used = faacDecInit(this->faac_dec, this->buf, this->size,
                         &this->rate, &this->num_channels);
         
