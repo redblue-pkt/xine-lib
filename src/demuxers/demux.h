@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux.h,v 1.6 2001/07/14 12:50:34 guenter Exp $
+ * $Id: demux.h,v 1.7 2001/07/14 13:28:31 guenter Exp $
  */
 
 #ifndef HAVE_DEMUX_H
@@ -49,7 +49,6 @@
 
 /* called when xine tries to branch seamlessly to the next mrl */
 typedef char* (*gui_get_next_mrl_cb_t) (void);
-
 /* called when xine branched successfully to the next mrl */
 typedef void (*gui_branched_cb_t) (void);
 

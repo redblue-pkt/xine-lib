@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.33 2001/07/14 12:50:34 guenter Exp $
+ * $Id: xine.c,v 1.34 2001/07/14 13:28:32 guenter Exp $
  *
  * top-level xine functions
  *
@@ -305,10 +305,6 @@ void xine_exit (xine_t *this) {
 
   pthread_mutex_unlock (&this->xine_lock);
 
-  printf ("xine_exit: shutdown spu\n");
-
-  spu_decoder_shutdown (this);
-
   printf ("xine_exit: shutdown audio\n");
 
   audio_decoder_shutdown (this);
@@ -405,11 +401,6 @@ xine_t *xine_init (vo_driver_t *vo,
 
   this->video_out = vo_new_instance (vo, this->metronom);
   video_decoder_init (this);
-  /*
-   * init SPU decoder (must be done before video decoder
-   * so that this->spu_decoder is valid).
-   */
-  spu_decoder_init (this);
 
   if(ao) {
     this->audio_out = ao;

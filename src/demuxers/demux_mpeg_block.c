@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.26 2001/07/14 12:50:34 guenter Exp $
+ * $Id: demux_mpeg_block.c,v 1.27 2001/07/14 13:28:31 guenter Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -81,9 +81,43 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
   buf = this->input->read_block (this->input, this->video_fifo, this->blocksize);
 
   if (buf==NULL) {
+    char *next_mrl;
+
     printf ("demux_mpeg_block: read_block failed\n");
-    this->status = DEMUX_FINISHED;
-    return ;
+
+    /*
+     * check if seamless branching is possible
+     */
+
+    if (this->next_mrl_cb 
+	&& (next_mrl = this->next_mrl_cb () )) {
+      printf ("demux_mpeg_block: checking if we can branch to %s\n", next_mrl);
+
+      if (this->input->is_branch_possible 
+	  && this->input->is_branch_possible (this->input, next_mrl)) {
+
+        printf ("demux_mpeg_block: branching\n");
+
+	this->input->close (this->input);
+        this->input->open (this->input, next_mrl);
+	
+	if (this->branched_cb)
+	  this->branched_cb ();
+
+	buf = this->input->read_block (this->input, this->video_fifo, this->blocksize);
+	if (!buf) {
+	  this->status = DEMUX_FINISHED;
+	  return ;
+        }
+
+      } else {
+	this->status = DEMUX_FINISHED;
+	return ;
+      }
+    } else {
+      this->status = DEMUX_FINISHED;
+      return ;
+    }
   }
 
   p = buf->content; /* len = this->mnBlocksize; */
