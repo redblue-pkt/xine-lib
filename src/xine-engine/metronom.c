@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.c,v 1.127 2003/11/16 12:15:21 mroi Exp $
+ * $Id: metronom.c,v 1.128 2003/11/16 15:44:03 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -34,6 +34,8 @@
 #include <errno.h>
 
 #define LOG_MODULE "metronom"
+
+#define METRONOM_INTERNAL
 
 #include "xine_internal.h"
 #include "metronom.h"

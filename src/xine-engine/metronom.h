@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.h,v 1.54 2003/11/16 12:15:21 mroi Exp $
+ * $Id: metronom.h,v 1.55 2003/11/16 15:44:03 mroi Exp $
  *
  * metronom: general pts => virtual calculation/assoc
  *                   
@@ -176,8 +176,7 @@ struct metronom_s {
   
   void (*exit) (metronom_t *self);
 
-/*#ifdef XINE_ENGINE_INTERNAL*/
-#if 1
+#ifdef METRONOM_INTERNAL
   /*
    * metronom internal stuff
    */
