@@ -11,6 +11,7 @@ xine-lib (next version) [someone fill in stability and urgency]
   * Sun/NeXT SND/AU file demuxer
   * YUV4MPEG2 file demuxer
   * RealMedia & RealAudio file demuxers
+  * Electronic Arts WVE file demuxer
   * Id CIN video decoder
   * QT RLE video decoder
   * QT SMC video decoder
@@ -18,6 +19,7 @@ xine-lib (next version) [someone fill in stability and urgency]
   * Wing Commander III video decoder
   * Logarithmic PCM (mu-law & A-law) audio decoder
   * GSM 6.10 audio decoder
+  * Electronic Arts ADPCM audio decoder
   * time-based seeking in ogg-streams
   * improved support for ogg-streams containing video (so-called ogm streams)
   * spu encoding for full overlay support with dxr3
