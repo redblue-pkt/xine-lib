@@ -251,6 +251,7 @@ rm -rf $RPM_BUILD_ROOT
 %{_bindir}/xine-config
 %{_libdir}/libxine*.so.*
 %{_libdir}/xine/plugins/%{dirversion}/xineplug_*
+%{_libdir}/xine/plugins/%{dirversion}/post/*
 %{_datadir}/xine/fonts/*
 %{_mandir}/man1/*
 %{_datadir}/locale/*
@@ -278,6 +279,7 @@ rm -rf $RPM_BUILD_ROOT
 * Sat Dec 07 2002 Manfred Tremmel <Manfred.Tremmel@iiv.de>
 - added translation for finnish by Tuukka Pasanen <illuusio@mailcity.com>
 - some updates to german and english descriptions
+- added post-directory to file-list
 * Sat Nov 09 2002 Manfred Tremmel <Manfred.Tremmel@iiv.de>
 - Final changes for libxine 1.0alpha1
 * Mon Nov 04 2002 Manfred Tremmel <Manfred.Tremmel@iiv.de>
