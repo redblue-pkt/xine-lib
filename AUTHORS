@@ -120,6 +120,9 @@ Contributions
   Gert Vervoort <Gert.Vervoort@wxs.nl>
     LPCM audio decoder plugin
 
+  Peter Weissgerber <peterw2000@altavista.de>
+    alsa 05 plugin fixes
+
   (let us know if we've forgotten anyone)
 
 
