@@ -20,7 +20,7 @@
  * Compact Disc Digital Audio (CDDA) Input Plugin 
  *   by Mike Melanson (melanson@pcisys.net)
  *
- * $Id: input_cdda.c,v 1.67 2004/12/09 01:34:31 miguelfreitas Exp $
+ * $Id: input_cdda.c,v 1.68 2004/12/12 00:41:22 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -1819,7 +1819,7 @@ static void _cdda_cdindex(cdda_input_plugin_t *this, cdrom_toc *toc) {
   base64 = rfc822_binary(digest, 20, &size);
   base64[size] = 0;
 
-  _x_meta_info_set(this->stream, XINE_META_INFO_CDINDEX_DISCID, base64);
+  _x_meta_info_set_utf8(this->stream, XINE_META_INFO_CDINDEX_DISCID, base64);
 
   free (base64);
 }
@@ -2329,31 +2329,31 @@ static int cdda_plugin_open (input_plugin_t *this_gen ) {
   if(this->cddb.disc_title) {
     lprintf("Disc Title: %s\n", this->cddb.disc_title);
 
-    _x_meta_info_set(this->stream, XINE_META_INFO_ALBUM, this->cddb.disc_title);
+    _x_meta_info_set_utf8(this->stream, XINE_META_INFO_ALBUM, this->cddb.disc_title);
   }
 
   if(this->cddb.track[this->track].title) {
     lprintf("Track %d Title: %s\n", this->track+1, this->cddb.track[this->track].title);
 
-    _x_meta_info_set(this->stream, XINE_META_INFO_TITLE, this->cddb.track[this->track].title);
+    _x_meta_info_set_utf8(this->stream, XINE_META_INFO_TITLE, this->cddb.track[this->track].title);
   }
   
   if(this->cddb.disc_artist) {
     lprintf("Disc Artist: %s\n", this->cddb.disc_artist);
 
-    _x_meta_info_set(this->stream, XINE_META_INFO_ARTIST, this->cddb.disc_artist);
+    _x_meta_info_set_utf8(this->stream, XINE_META_INFO_ARTIST, this->cddb.disc_artist);
   }
   
   if(this->cddb.disc_category) {
     lprintf("Disc Category: %s\n", this->cddb.disc_category);
 
-    _x_meta_info_set(this->stream, XINE_META_INFO_GENRE, this->cddb.disc_category);
+    _x_meta_info_set_utf8(this->stream, XINE_META_INFO_GENRE, this->cddb.disc_category);
   }
 
   if(this->cddb.disc_year) {
     lprintf("Disc Year: %s\n", this->cddb.disc_year);
 
-    _x_meta_info_set(this->stream, XINE_META_INFO_YEAR, this->cddb.disc_year);
+    _x_meta_info_set_utf8(this->stream, XINE_META_INFO_YEAR, this->cddb.disc_year);
   }
 
   free_cdrom_toc(toc);
