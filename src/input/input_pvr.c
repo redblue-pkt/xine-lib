@@ -39,7 +39,7 @@
  * usage: 
  *   xine pvr:<prefix_to_tmp_files>\!<prefix_to_saved_files>\!<max_page_age>
  *
- * $Id: input_pvr.c,v 1.18 2003/05/02 23:41:18 miguelfreitas Exp $
+ * $Id: input_pvr.c,v 1.19 2003/05/05 16:22:09 miguelfreitas Exp $
  */
 
 /**************************************************************************
@@ -186,7 +186,8 @@ typedef struct {
   pthread_t           pvr_thread;
   int                 pvr_running;
   int                 pvr_playing;
-
+  int                 pvr_play_paused;
+  
   int                 preview_buffers;
       
   /* device properties */
@@ -725,6 +726,13 @@ static int pvr_play_file(pvr_input_plugin_t *this, fifo_buffer_t *fifo, uint8_t 
       this->play_blk++;
     }
   }
+
+  /* now we are done on input/demuxer thread, engine may be paused safely */
+  if( this->pvr_play_paused ) {
+    xine_set_speed (this->stream, XINE_SPEED_PAUSE);
+    this->pvr_play_paused = 0;
+  }
+
   return 1;
 }
 
@@ -917,6 +925,7 @@ static void pvr_event_handler (pvr_input_plugin_t *this) {
   while ((event = xine_event_get (this->event_queue))) {
     xine_set_v4l2_data_t *v4l2_data = event->data;
     xine_pvr_save_data_t *save_data = event->data;
+    xine_pvr_pause_t  *pause_data = event->data;
 
     switch (event->type) {
 
@@ -929,6 +938,7 @@ static void pvr_event_handler (pvr_input_plugin_t *this) {
         this->show_time = this->start_time;
         this->session = v4l2_data->session_id;
         this->new_session = 1;
+        this->pvr_play_paused = 0;
         pthread_mutex_unlock(&this->lock);
         xine_demux_flush_engine (this->stream);
       } else {
@@ -1048,6 +1058,10 @@ static void pvr_event_handler (pvr_input_plugin_t *this) {
       }
       break;
 
+    case XINE_EVENT_PVR_PAUSE:
+      this->pvr_play_paused = pause_data->mode;
+      break;
+      
 #if 0
     default:
       printf ("input_pvr: got an event, type 0x%08x\n", event->type);
@@ -1075,7 +1089,10 @@ static buf_element_t *pvr_plugin_read_block (input_plugin_t *this_gen, fifo_buff
     printf("input_pvr: thread died, aborting\n");
     return NULL;  
   }
-  
+
+  if( this->pvr_play_paused )
+    speed = XINE_SPEED_PAUSE;
+      
   if( this->pvr_playing && this->stream->stream_info[XINE_STREAM_INFO_IGNORE_VIDEO] ) {
     /* video decoding has being disabled. avoid tweaking the clock */
     this->pvr_playing = 0;
@@ -1306,11 +1323,13 @@ static input_plugin_t *pvr_class_get_instance (input_class_t *cls_gen, xine_stre
 
   pvr_input_class_t   *cls = (pvr_input_class_t *) cls_gen;
   pvr_input_plugin_t  *this;
-  char                *mrl = strdup(data);
+  char                *mrl;
   char                *aux;
   
-  if (strncasecmp (mrl, "pvr:/", 5)) 
+  if (strncasecmp (data, "pvr:/", 5)) 
     return NULL;
+    
+  mrl = strdup(data);
   aux = &mrl[5];
 
   this = (pvr_input_plugin_t *) xine_xmalloc (sizeof (pvr_input_plugin_t));

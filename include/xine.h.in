@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.80 2003/05/04 01:35:05 hadess Exp $
+ * $Id: xine.h.in,v 1.81 2003/05/05 16:22:08 miguelfreitas Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -1242,6 +1242,7 @@ void xine_config_reset (xine_t *self);
 #define XINE_EVENT_PVR_SAVE             201
 #define XINE_EVENT_PVR_REPORT_NAME      202
 #define XINE_EVENT_PVR_REALTIME         203
+#define XINE_EVENT_PVR_PAUSE            204
 
 /*
  * xine event struct
@@ -1401,6 +1402,14 @@ typedef struct {
    */
   int mode; 
 } xine_pvr_realtime_t;
+
+typedef struct {
+  /* mode values:
+   * 0 = playing
+   * 1 = paused
+   */
+  int mode;
+} xine_pvr_pause_t;
 
 #endif
 
