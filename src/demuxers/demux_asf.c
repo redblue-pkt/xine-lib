@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.99 2003/01/23 16:11:56 miguelfreitas Exp $
+ * $Id: demux_asf.c,v 1.100 2003/01/26 00:12:07 tmattern Exp $
  *
  * demultiplexer for asf streams
  *
@@ -608,7 +608,8 @@ static uint32_t asf_get_packet(demux_asf_t *this) {
 #endif
   
   ecc_flags = get_byte(this); p_hdr_size += 1;
-  p_hdr_size += this->input->read (this->input, buf, ecc_flags & 15);
+  if (ecc_flags & 0x80)
+    p_hdr_size += this->input->read (this->input, buf, ecc_flags & 15);
 #ifdef LOG
   printf("ecc_flags: %d ", ecc_flags);
   for (i = 0; i < (ecc_flags & 15); i++) 
