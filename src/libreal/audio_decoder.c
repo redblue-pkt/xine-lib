@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.11 2002/12/15 21:49:14 guenter Exp $
+ * $Id: audio_decoder.c,v 1.12 2002/12/17 02:17:25 guenter Exp $
  *
  * thin layer to use real binary-only codecs in xine
  *
@@ -43,14 +43,14 @@
 */
 
 typedef struct {
-  video_decoder_class_t   decoder_class;
+  audio_decoder_class_t   decoder_class;
 
   char                   *real_codec_path;
 
 } real_class_t;
 
 typedef struct realdec_decoder_s {
-  video_decoder_t  video_decoder;
+  audio_decoder_t  audio_decoder;
 
   real_class_t    *cls;
 
@@ -131,6 +131,11 @@ static void hexdump (char *buf, int length) {
 
 void *__builtin_new(unsigned long size) {
   return malloc(size);
+}
+
+void __builtin_delete (void *foo) {
+  printf ("libareal: __builtin_delete called\n");
+  free (foo);
 }
 
 static int load_syms_linux (realdec_decoder_t *this, char *codec_name) {
@@ -405,7 +410,7 @@ static unsigned char sipr_swaps[38][2]={
     {42,87},{43,65},{45,59},{48,79},{49,93},{51,89},{55,95},{61,76},{67,83},
     {77,80} };
 
-static void realdec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
+static void realdec_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
   realdec_decoder_t *this = (realdec_decoder_t *) this_gen;
 
 #ifdef LOG
@@ -578,40 +583,52 @@ static void realdec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) 
 #endif
 }
 
-static void realdec_flush (video_decoder_t *this_gen) {
-  /* realdec_decoder_t *this = (realdec_decoder_t *) this_gen; */
-
-#ifdef LOG
-  printf ("libareal: flush\n");
-#endif
-
-}
-
-static void realdec_reset (video_decoder_t *this_gen) {
+static void realdec_reset (audio_decoder_t *this_gen) {
   /* realdec_decoder_t *this = (realdec_decoder_t *) this_gen; */
 
 }
 
-static void realdec_discontinuity (video_decoder_t *this_gen) {
+static void realdec_discontinuity (audio_decoder_t *this_gen) {
   /* realdec_decoder_t *this = (realdec_decoder_t *) this_gen; */
 
 }
 
-static void realdec_dispose (video_decoder_t *this_gen) {
+static void realdec_dispose (audio_decoder_t *this_gen) {
 
   realdec_decoder_t *this = (realdec_decoder_t *) this_gen;
 
 #ifdef LOG
-  printf ("libareal: close\n");
+  printf ("libareal: dispose\n");
+#endif
+
+  if (this->context)
+    this->raCloseCodec (this->context);
+
+#if 0
+  printf ("libareal: FreeDecoder...\n");
+
+  if (this->context)
+    this->raFreeDecoder (this->context);
+#endif
+
+#ifdef LOG
+  printf ("libareal: dlclose...\n");
 #endif
 
   if (this->ra_handle)
     dlclose (this->ra_handle);
 
+  if (this->frame_buffer)
+    free (this->frame_buffer);
+
   free (this);
+
+#ifdef LOG
+  printf ("libareal: dispose done\n");
+#endif
 }
 
-static video_decoder_t *open_plugin (video_decoder_class_t *class_gen, 
+static audio_decoder_t *open_plugin (audio_decoder_class_t *class_gen, 
 				     xine_stream_t *stream) {
 
   real_class_t      *cls = (real_class_t *) class_gen;
@@ -620,30 +637,29 @@ static video_decoder_t *open_plugin (video_decoder_class_t *class_gen,
   this = (realdec_decoder_t *) malloc (sizeof (realdec_decoder_t));
   memset(this, 0, sizeof (realdec_decoder_t));
 
-  this->video_decoder.decode_data         = realdec_decode_data;
-  this->video_decoder.flush               = realdec_flush;
-  this->video_decoder.reset               = realdec_reset;
-  this->video_decoder.discontinuity       = realdec_discontinuity;
-  this->video_decoder.dispose             = realdec_dispose;
+  this->audio_decoder.decode_data         = realdec_decode_data;
+  this->audio_decoder.reset               = realdec_reset;
+  this->audio_decoder.discontinuity       = realdec_discontinuity;
+  this->audio_decoder.dispose             = realdec_dispose;
   this->stream                            = stream;
   this->cls                               = cls;
 
-  return &this->video_decoder;
+  return &this->audio_decoder;
 }
 
 /*
  * real plugin class
  */
 
-static char *get_identifier (video_decoder_class_t *this) {
+static char *get_identifier (audio_decoder_class_t *this) {
   return "realadec";
 }
 
-static char *get_description (video_decoder_class_t *this) {
+static char *get_description (audio_decoder_class_t *this) {
   return "real binary-only codec based audio decoder plugin";
 }
 
-static void dispose_class (video_decoder_class_t *this) {
+static void dispose_class (audio_decoder_class_t *this) {
   free (this);
 }
 

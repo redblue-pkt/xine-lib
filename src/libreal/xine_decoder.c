@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.16 2002/12/16 00:57:35 tmattern Exp $
+ * $Id: xine_decoder.c,v 1.17 2002/12/17 02:17:26 guenter Exp $
  *
  * thin layer to use real binary-only codecs in xine
  *
@@ -173,7 +173,7 @@ static int load_syms_linux (realdec_decoder_t *this, char *codec_name) {
 
 static int init_codec (realdec_decoder_t *this, buf_element_t *buf) {
 
-  unsigned int* extrahdr = (unsigned int*) (buf->content+28);
+  /* unsigned int* extrahdr = (unsigned int*) (buf->content+28); */
   int           result;
   rv_init_t     init_data = {11, 0, 0, 0, 0, 
 			     0, 1, 0}; /* rv30 */
@@ -430,10 +430,22 @@ static void realdec_dispose (video_decoder_t *this_gen) {
   realdec_decoder_t *this = (realdec_decoder_t *) this_gen;
 
 #ifdef LOG
-  printf ("libreal: close\n");
+  printf ("libreal: dispose\n");
 #endif
 
+  if (this->rvyuv_free)
+    this->rvyuv_free (this->context);
+  if (this->rv_handle) 
+    dlclose (this->rv_handle);
+
+  if (this->frame_buffer)
+    free (this->frame_buffer);
+
   free (this);
+
+#ifdef LOG
+  printf ("libreal: dispose done\n");
+#endif
 }
 
 static video_decoder_t *open_plugin (video_decoder_class_t *class_gen, 
@@ -442,7 +454,7 @@ static video_decoder_t *open_plugin (video_decoder_class_t *class_gen,
   real_class_t      *cls = (real_class_t *) class_gen;
   realdec_decoder_t *this ;
 
-  this = (realdec_decoder_t *) malloc (sizeof (realdec_decoder_t));
+  this = (realdec_decoder_t *) xine_xmalloc (sizeof (realdec_decoder_t));
   memset(this, 0, sizeof (realdec_decoder_t));
 
   this->video_decoder.decode_data         = realdec_decode_data;
