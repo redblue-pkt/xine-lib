@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.25 2003/01/08 01:02:30 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.26 2003/04/25 00:23:21 heinchen Exp $
  *
  * (ogg/)vorbis audio decoder plugin (libvorbis wrapper) for xine
  */
@@ -75,7 +75,6 @@ static void vorbis_reset (audio_decoder_t *this_gen) {
 
   vorbis_decoder_t *this = (vorbis_decoder_t *) this_gen;
 
-  vorbis_synthesis_init(&this->vd,&this->vi); 
   vorbis_block_init(&this->vd,&this->vb);     
 }
 
