@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.112 2002/11/15 16:28:35 esnel Exp $
+ * $Id: demux_qt.c,v 1.113 2002/11/18 08:20:36 esnel Exp $
  *
  */
 
@@ -1216,8 +1216,10 @@ static qt_error build_frame_table(qt_sample_table *sample_table,
     }
 
     /* fill in the keyframe information */
-    for (i = 0; i < sample_table->sync_sample_count; i++)
-      sample_table->frames[sample_table->sync_sample_table[i] - 1].keyframe = 1;
+    if (sample_table->sync_sample_table) {
+      for (i = 0; i < sample_table->sync_sample_count; i++)
+        sample_table->frames[sample_table->sync_sample_table[i] - 1].keyframe = 1;
+    }
 
     /* initialize edit list considerations */
     edit_list_index = 0;
