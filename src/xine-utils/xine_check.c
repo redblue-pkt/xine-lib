@@ -62,6 +62,13 @@
 #  endif
 #endif
 
+#ifndef SCSI_BLK_MAJOR
+#define SCSI_BLK_MAJOR(m) \
+  (((m) == SCSI_DISK0_MAJOR || \
+  ((m) >= SCSI_DISK1_MAJOR && (m) <= SCSI_DISK7_MAJOR)) || \
+  ((m) == SCSI_CDROM_MAJOR))
+#endif
+
 #endif  /* !__linux__ */
 
 static void set_hc_result(xine_health_check_t* hc, int state, char *format, ...) {
