@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_avi.c,v 1.43 2001/10/03 17:15:43 jkeil Exp $
+ * $Id: demux_avi.c,v 1.44 2001/10/07 22:11:22 guenter Exp $
  *
  * demultiplexer for avi streams
  *
@@ -210,7 +210,8 @@ static int avi_sampsize(avi_t *AVI)
 {
   int s;
   s = ((AVI->a_bits+7)/8)*AVI->a_chans;
-  if(s==0) s=1; /* avoid possible zero divisions */
+  if (s==0) 
+    s=1; /* avoid possible zero divisions */
   return s;
 }
 
@@ -219,18 +220,16 @@ static int avi_add_index_entry(demux_avi_t *this, avi_t *AVI, unsigned char *tag
 {
   void *ptr;
 
-  if(AVI->n_idx>=AVI->max_idx)
-    {
-      ptr = realloc((void *)AVI->idx,(AVI->max_idx+4096)*16);
-      if(ptr == 0)
-	{
-	  this->AVI_errno = AVI_ERR_NO_MEM;
-	  return -1;
-	}
-      AVI->max_idx += 4096;
-      AVI->idx = (unsigned char((*)[16]) ) ptr;
+  if(AVI->n_idx>=AVI->max_idx) {
+    ptr = realloc((void *)AVI->idx,(AVI->max_idx+4096)*16);
+    if(ptr == 0) {
+      this->AVI_errno = AVI_ERR_NO_MEM;
+      return -1;
     }
-
+    AVI->max_idx += 4096;
+    AVI->idx = (unsigned char((*)[16]) ) ptr;
+  }
+  
   /* Add index entry */
 
   memcpy(AVI->idx[AVI->n_idx],tag,4);
@@ -245,8 +244,8 @@ static int avi_add_index_entry(demux_avi_t *this, avi_t *AVI, unsigned char *tag
   return 0;
 }
 
-static avi_t *AVI_init(demux_avi_t *this) 
-{
+static avi_t *AVI_init(demux_avi_t *this)  {
+
   avi_t *AVI;
   long i, n, idx_type;
   unsigned char *hdrl_data;
@@ -264,11 +263,10 @@ static avi_t *AVI_init(demux_avi_t *this)
   /* Create avi_t structure */
 
   AVI = (avi_t *) xmalloc(sizeof(avi_t));
-  if(AVI==NULL)
-    {
-      this->AVI_errno = AVI_ERR_NO_MEM;
-      return 0;
-    }
+  if(AVI==NULL) {
+    this->AVI_errno = AVI_ERR_NO_MEM;
+    return 0;
+  }
   memset((void *)AVI,0,sizeof(avi_t));
 
   /* Read first 12 bytes and check that this is an AVI file */
@@ -277,7 +275,8 @@ static avi_t *AVI_init(demux_avi_t *this)
   if( this->input->read(this->input, data,12) != 12 ) ERR_EXIT(AVI_ERR_READ) ;
 						
   if( strncasecmp(data  ,"RIFF",4) !=0 ||
-      strncasecmp(data+8,"AVI ",4) !=0 ) ERR_EXIT(AVI_ERR_NO_AVI) ;
+      strncasecmp(data+8,"AVI ",4) !=0 ) 
+    ERR_EXIT(AVI_ERR_NO_AVI) ;
   /* Go through the AVI file and extract the header list,
      the start position of the 'movi' list and an optionally
      present idx1 tag */
@@ -285,42 +284,49 @@ static avi_t *AVI_init(demux_avi_t *this)
   hdrl_data = 0;
   
   while(1) {
-    if (this->input->read(this->input, data,8) != 8 ) break; /* We assume it's EOF */
+
+    if (this->input->read(this->input, data,8) != 8 ) 
+      break; /* We assume it's EOF */
     
     n = str2ulong(data+4);
     n = PAD_EVEN(n);
     
-    if(strncasecmp(data,"LIST",4) == 0)
-      {
-	if( this->input->read(this->input, data,4) != 4 ) ERR_EXIT(AVI_ERR_READ);
-	n -= 4;
-	if(strncasecmp(data,"hdrl",4) == 0)
-	  {
-	    hdrl_len = n;
-	    hdrl_data = (unsigned char *) xmalloc(n);
-	    if(hdrl_data==0) ERR_EXIT(AVI_ERR_NO_MEM);
-	    if( this->input->read(this->input, hdrl_data,n) != n ) ERR_EXIT(AVI_ERR_READ);
-										}
-	else if(strncasecmp(data,"movi",4) == 0)
-	  {
-	    AVI->movi_start = this->input->seek(this->input, 0,SEEK_CUR);
-	    this->input->seek(this->input, n, SEEK_CUR);
-	  }
-	else
+    if(strncasecmp(data,"LIST",4) == 0) {
+      if( this->input->read(this->input, data,4) != 4 ) ERR_EXIT(AVI_ERR_READ);
+      n -= 4;
+
+      if(strncasecmp(data,"hdrl",4) == 0) {
+
+	hdrl_len = n;
+	hdrl_data = (unsigned char *) xmalloc(n);
+	if(hdrl_data==0) 
+	  ERR_EXIT(AVI_ERR_NO_MEM);
+	if (this->input->read(this->input, hdrl_data,n) != n ) 
+	  ERR_EXIT(AVI_ERR_READ);
+
+      } else if(strncasecmp(data,"movi",4) == 0)  {
+
+	AVI->movi_start = this->input->seek(this->input, 0,SEEK_CUR);
+	this->input->seek(this->input, n, SEEK_CUR);
+      }	else
 	  this->input->seek(this->input, n, SEEK_CUR);
-      }
-    else if(strncasecmp(data,"idx1",4) == 0)
-      {
-	/* n must be a multiple of 16, but the reading does not
-	   break if this is not the case */
-	
-	AVI->n_idx = AVI->max_idx = n/16;
-	AVI->idx = (unsigned  char((*)[16]) ) xmalloc(n);
-	if(AVI->idx==0) ERR_EXIT(AVI_ERR_NO_MEM);
-	if( this->input->read(this->input, (char *)AVI->idx, n) != n ) ERR_EXIT(AVI_ERR_READ);
-										  }
-    else
+
+    } else if(strncasecmp(data,"idx1",4) == 0) {
+
+      /* n must be a multiple of 16, but the reading does not
+	 break if this is not the case */
+      
+      AVI->n_idx = AVI->max_idx = n/16;
+      AVI->idx = (unsigned  char((*)[16]) ) xmalloc(n);
+      if (AVI->idx==0) 
+	ERR_EXIT(AVI_ERR_NO_MEM);
+
+      if (this->input->read(this->input, (char *)AVI->idx, n) != n ) 
+	ERR_EXIT(AVI_ERR_READ);
+
+    } else
       this->input->seek(this->input, n, SEEK_CUR);
+
   }
   
   if(!hdrl_data) ERR_EXIT(AVI_ERR_NO_HDRL) ;
@@ -328,93 +334,92 @@ static avi_t *AVI_init(demux_avi_t *this)
 
   /* Interpret the header list */
   
-  for(i=0;i<hdrl_len;)
-    {
-      /* List tags are completly ignored */
+  for (i=0;i<hdrl_len;) {
+    /* List tags are completly ignored */
       
-      if(strncasecmp(hdrl_data+i,"LIST",4)==0) { i+= 12; continue; }
-      
-      n = str2ulong(hdrl_data+i+4);
-      n = PAD_EVEN(n);
-      
-      /* Interpret the tag and its args */
-      
-      if(strncasecmp(hdrl_data+i,"strh",4)==0)
-	{
-	  i += 8;
-	  if(strncasecmp(hdrl_data+i,"vids",4) == 0 && !vids_strh_seen)
-	    {
-	      memcpy(AVI->compressor,hdrl_data+i+4,4);
-	      AVI->compressor[4] = 0;
-	      AVI->dwScale = str2ulong(hdrl_data+i+20);
-	      AVI->dwRate  = str2ulong(hdrl_data+i+24);
-
-	      if(AVI->dwScale!=0)
-		AVI->fps = (double)AVI->dwRate/(double)AVI->dwScale;
-
-	      this->video_step = (long) (90000.0 / AVI->fps);
-	      
-	      AVI->video_frames    = str2ulong(hdrl_data+i+32);
-	      AVI->video_strn = num_stream;
-	      vids_strh_seen = 1;
-	      lasttag = 1; /* vids */
-	    }
-	  else if (strncasecmp (hdrl_data+i,"auds",4) ==0 && ! auds_strh_seen)
-	    {
-	      AVI->audio_bytes   = str2ulong(hdrl_data+i+32)*avi_sampsize(AVI);
-	      AVI->audio_strn    = num_stream;
-	      AVI->dwScale_audio = str2ulong(hdrl_data+i+20);
-	      AVI->dwRate_audio  = str2ulong(hdrl_data+i+24);
-	      AVI->dwSampleSize  = str2ulong(hdrl_data+i+44);
-	      auds_strh_seen = 1;
-	      lasttag = 2; /* auds */
-	    }
-	  else
-	    lasttag = 0;
-	  num_stream++;
-	}
-      else if(strncasecmp(hdrl_data+i,"strf",4)==0)
-	{
-	  i += 8;
-	  if(lasttag == 1) {
-	    /* printf ("size : %d\n",sizeof(AVI->bih)); */
-	    memcpy (&AVI->bih, hdrl_data+i, sizeof(AVI->bih));
-	    /* stream_read(demuxer->stream,(char*) &avi_header.bih,MIN(size2,sizeof(avi_header.bih))); */
-	    AVI->width  = str2ulong(hdrl_data+i+4);
-	    AVI->height = str2ulong(hdrl_data+i+8);
-	    
-	    /*
-	      printf ("size : %d x %d (%d x %d)\n", AVI->width, AVI->height, AVI->bih.biWidth, AVI->bih.biHeight);
-	      printf("  biCompression %d='%.4s'\n", AVI->bih.biCompression, 
-	      &AVI->bih.biCompression);
-	    */
-	    vids_strf_seen = 1;
-	  }
-	  else if(lasttag == 2)
-	    {
-	      memcpy (&AVI->wavex, hdrl_data+i, n);
-
-	      AVI->a_fmt   = str2ushort(hdrl_data+i  );
-	      AVI->a_chans = str2ushort(hdrl_data+i+2);
-	      AVI->a_rate  = str2ulong (hdrl_data+i+4);
-	      AVI->a_bits  = str2ushort(hdrl_data+i+14);
-
-	      auds_strf_seen = 1;
-	    }
-	  lasttag = 0;
-	}
-      else
-	{
-	  i += 8;
-	  lasttag = 0;
-	}
-      
-      i += n;
+    if (strncasecmp(hdrl_data+i,"LIST",4)==0) { 
+      i+= 12; 
+      continue; 
     }
+    
+    n = str2ulong(hdrl_data+i+4);
+    n = PAD_EVEN(n);
+    
+    /* Interpret the tag and its args */
+    
+    if(strncasecmp(hdrl_data+i,"strh",4)==0) {
+
+      i += 8;
+      if(strncasecmp(hdrl_data+i,"vids",4) == 0 && !vids_strh_seen) {
+
+	memcpy(AVI->compressor,hdrl_data+i+4,4);
+	AVI->compressor[4] = 0;
+	AVI->dwScale = str2ulong(hdrl_data+i+20);
+	AVI->dwRate  = str2ulong(hdrl_data+i+24);
+	
+	if(AVI->dwScale!=0)
+	  AVI->fps = (double)AVI->dwRate/(double)AVI->dwScale;
+
+	this->video_step = (long) (90000.0 / AVI->fps);
+	
+	AVI->video_frames    = str2ulong(hdrl_data+i+32);
+	AVI->video_strn = num_stream;
+	vids_strh_seen = 1;
+	lasttag = 1; /* vids */
+      } else if (strncasecmp (hdrl_data+i,"auds",4) ==0 && ! auds_strh_seen) {
+	AVI->audio_bytes   = str2ulong(hdrl_data+i+32)*avi_sampsize(AVI);
+	AVI->audio_strn    = num_stream;
+	AVI->dwScale_audio = str2ulong(hdrl_data+i+20);
+	AVI->dwRate_audio  = str2ulong(hdrl_data+i+24);
+	AVI->dwSampleSize  = str2ulong(hdrl_data+i+44);
+	auds_strh_seen = 1;
+	lasttag = 2; /* auds */
+      } else
+	lasttag = 0;
+      num_stream++;
+    } else if(strncasecmp(hdrl_data+i,"strf",4)==0) {
+      i += 8;
+      if(lasttag == 1) {
+	/* printf ("size : %d\n",sizeof(AVI->bih)); */
+	memcpy (&AVI->bih, hdrl_data+i, sizeof(AVI->bih));
+	/* stream_read(demuxer->stream,(char*) &avi_header.bih,MIN(size2,sizeof(avi_header.bih))); */
+	AVI->width  = str2ulong(hdrl_data+i+4);
+	AVI->height = str2ulong(hdrl_data+i+8);
+	
+	/*
+	  printf ("size : %d x %d (%d x %d)\n", AVI->width, AVI->height, AVI->bih.biWidth, AVI->bih.biHeight);
+	  printf("  biCompression %d='%.4s'\n", AVI->bih.biCompression, 
+	  &AVI->bih.biCompression);
+	*/
+	vids_strf_seen = 1;
+
+      } else if(lasttag == 2) {
+
+	memcpy (&AVI->wavex, hdrl_data+i, n);
+	
+	AVI->a_fmt   = str2ushort(hdrl_data+i  );
+	AVI->a_chans = str2ushort(hdrl_data+i+2);
+	AVI->a_rate  = str2ulong (hdrl_data+i+4);
+	AVI->a_bits  = str2ushort(hdrl_data+i+14);
+	
+	auds_strf_seen = 1;
+      }
+      lasttag = 0;
+    } else {
+      i += 8;
+      lasttag = 0;
+    }
+    
+    i += n;
+  }
   
   free(hdrl_data);
   
-  if(!vids_strh_seen || !vids_strf_seen || AVI->video_frames==0) ERR_EXIT(AVI_ERR_NO_VIDS);
+  /* somehow ffmpeg doesn't specify the number of frames here */
+  /* if (!vids_strh_seen || !vids_strf_seen || AVI->video_frames==0) { */
+  if (!vids_strh_seen || !vids_strf_seen) 
+    ERR_EXIT(AVI_ERR_NO_VIDS); 
+
   
   AVI->video_tag[0] = AVI->video_strn/10 + '0';
   AVI->video_tag[1] = AVI->video_strn%10 + '0';
@@ -436,99 +441,99 @@ static avi_t *AVI_init(demux_avi_t *this)
 
   idx_type = 0;
 
-  if(AVI->idx)
-    {
-      long pos, len;
+  if(AVI->idx) {
+    long pos, len;
 
-      /* Search the first videoframe in the idx1 and look where
-         it is in the file */
-
-      for(i=0;i<AVI->n_idx;i++)
-	if( strncasecmp(AVI->idx[i],AVI->video_tag,3)==0 ) break;
-      if(i>=AVI->n_idx) ERR_EXIT(AVI_ERR_NO_VIDS);
-
-      pos = str2ulong(AVI->idx[i]+ 8);
-      len = str2ulong(AVI->idx[i]+12);
-
-      this->input->seek(this->input, pos, SEEK_SET);
-      if(this->input->read(this->input, data, 8)!=8) ERR_EXIT(AVI_ERR_READ) ;
-      if( strncasecmp(data,AVI->idx[i],4)==0 && str2ulong(data+4)==len )
-	{
-	  idx_type = 1; /* Index from start of file */
-	}
-      else
-	{
-	  this->input->seek(this->input, pos+AVI->movi_start-4, SEEK_SET);
-	  if(this->input->read(this->input, data, 8)!=8) ERR_EXIT(AVI_ERR_READ) ;
-	  if( strncasecmp(data,AVI->idx[i],4)==0 && str2ulong(data+4)==len )
-	    {
-	      idx_type = 2; /* Index from start of movi list */
-	    }
-	}
-      /* idx_type remains 0 if neither of the two tests above succeeds */
+    /* Search the first videoframe in the idx1 and look where
+       it is in the file */
+    
+    for(i=0;i<AVI->n_idx;i++)
+      if( strncasecmp(AVI->idx[i],AVI->video_tag,3)==0 ) break;
+    if (i>=AVI->n_idx) {
+      ERR_EXIT(AVI_ERR_NO_VIDS);
     }
+    
+    pos = str2ulong(AVI->idx[i]+ 8);
+    len = str2ulong(AVI->idx[i]+12);
+    
+    this->input->seek(this->input, pos, SEEK_SET);
+    if(this->input->read(this->input, data, 8)!=8) ERR_EXIT(AVI_ERR_READ) ;
+    
+    if( strncasecmp(data,AVI->idx[i],4)==0 && str2ulong(data+4)==len ) {
+      idx_type = 1; /* Index from start of file */
+      
+    } else {
+      
+      this->input->seek(this->input, pos+AVI->movi_start-4, SEEK_SET);
+      if(this->input->read(this->input, data, 8)!=8) 
+	ERR_EXIT(AVI_ERR_READ) ;
+      if( strncasecmp(data,AVI->idx[i],4)==0 && str2ulong(data+4)==len ) {
+	idx_type = 2; /* Index from start of movi list */
+      }
+    }
+    /* idx_type remains 0 if neither of the two tests above succeeds */
+  }
   
-  if(idx_type == 0)
-    {
-      /* we must search through the file to get the index */
-
-      this->input->seek(this->input, AVI->movi_start, SEEK_SET);
-
-      AVI->n_idx = 0;
-      i=0;
-
-      printf ("demux_avi: reconstructing index");
-
-      while(1)
-	{
-	  if( this->input->read(this->input, data,8) != 8 ) break;
-	  n = str2ulong(data+4);
-
-          i++;
-          if (i>1000) {
-            printf (".");
-            i = 0; fflush (stdout);
-          }
-
-	  /* The movi list may contain sub-lists, ignore them */
-
-	  if(strncasecmp(data,"LIST",4)==0)
-	    {
-	      this->input->seek(this->input, 4,SEEK_CUR);
-	      continue;
-	    }
-
-	  /* Check if we got a tag ##db, ##dc or ##wb */
-
-	  if( ( (data[2]=='d' || data[2]=='D') &&
-		(data[3]=='b' || data[3]=='B' || data[3]=='c' || data[3]=='C') )
-	      || ( (data[2]=='w' || data[2]=='W') &&
-		   (data[3]=='b' || data[3]=='B') ) )
-	    {
-	      avi_add_index_entry(this, AVI, data, AVIIF_KEYFRAME, this->input->seek(this->input, 0, SEEK_CUR)-8, n);
-	    }
-
-	  this->input->seek(this->input, PAD_EVEN(n), SEEK_CUR);
-	}
-        printf ("done\n");
-        idx_type = 1;
+  if(idx_type == 0) {
+    /* we must search through the file to get the index */
+    
+    this->input->seek(this->input, AVI->movi_start, SEEK_SET);
+    
+    AVI->n_idx = 0;
+    i=0;
+    
+    printf ("demux_avi: reconstructing index");
+    
+    while(1) {
+      if( this->input->read(this->input, data,8) != 8 ) 
+	break;
+      n = str2ulong(data+4);
+      
+      i++;
+      if (i>1000) {
+	printf (".");
+	i = 0; fflush (stdout);
+      }
+      
+      /* The movi list may contain sub-lists, ignore them */
+      
+      if(strncasecmp(data,"LIST",4)==0) {
+	this->input->seek(this->input, 4,SEEK_CUR);
+	continue;
+      }
+      
+      /* Check if we got a tag ##db, ##dc or ##wb */
+      
+      if( ( (data[2]=='d' || data[2]=='D') &&
+	    (data[3]=='b' || data[3]=='B' || data[3]=='c' || data[3]=='C') )
+	  || ( (data[2]=='w' || data[2]=='W') &&
+	       (data[3]=='b' || data[3]=='B') ) ) {
+	avi_add_index_entry(this, AVI, data, AVIIF_KEYFRAME, this->input->seek(this->input, 0, SEEK_CUR)-8, n);
+      }
+      
+      this->input->seek(this->input, PAD_EVEN(n), SEEK_CUR);
     }
-
+    printf ("done\n");
+    idx_type = 1;
+  }
+  
   /* Now generate the video index and audio index arrays */
-
+  
   nvi = 0;
   nai = 0;
 
-  for(i=0;i<AVI->n_idx;i++)
-    {
-      if(strncasecmp(AVI->idx[i],AVI->video_tag,3) == 0) nvi++;
-      if(strncasecmp(AVI->idx[i],AVI->audio_tag,4) == 0) nai++;
-    }
+  for(i=0;i<AVI->n_idx;i++) {
+    if(strncasecmp(AVI->idx[i],AVI->video_tag,3) == 0) nvi++;
+    if(strncasecmp(AVI->idx[i],AVI->audio_tag,4) == 0) nai++;
+  }
 
   AVI->video_frames = nvi;
   AVI->audio_chunks = nai;
 
-  if(AVI->video_frames==0) ERR_EXIT(AVI_ERR_NO_VIDS) ;
+  if (AVI->video_frames==0) {
+    ERR_EXIT(AVI_ERR_NO_VIDS) ;
+  }
+    
 
   AVI->video_index = (video_index_entry_t *) xmalloc(nvi*sizeof(video_index_entry_t));
   if(AVI->video_index==0) ERR_EXIT(AVI_ERR_NO_MEM) ;
@@ -543,25 +548,22 @@ static avi_t *AVI_init(demux_avi_t *this)
   tot = 0;
   ioff = idx_type == 1 ? 8 : AVI->movi_start+4;
 
-  for(i=0;i<AVI->n_idx;i++)
-    {
-      if(strncasecmp(AVI->idx[i],AVI->video_tag,3) == 0)
-	{
-	  AVI->video_index[nvi].pos   = str2ulong(AVI->idx[i]+ 8)+ioff;
-	  AVI->video_index[nvi].len   = str2ulong(AVI->idx[i]+12);
-	  AVI->video_index[nvi].flags = str2ulong(AVI->idx[i]+ 4);
-	  nvi++;
-	}
-      if(strncasecmp(AVI->idx[i],AVI->audio_tag,4) == 0)
-	{
-	  AVI->audio_index[nai].pos = str2ulong(AVI->idx[i]+ 8)+ioff;
-	  AVI->audio_index[nai].len = str2ulong(AVI->idx[i]+12);
-	  AVI->audio_index[nai].tot = tot;
-	  tot += AVI->audio_index[nai].len;
-	  nai++;
-	}
+  for(i=0;i<AVI->n_idx;i++) {
+    if(strncasecmp(AVI->idx[i],AVI->video_tag,3) == 0)	{
+      AVI->video_index[nvi].pos   = str2ulong(AVI->idx[i]+ 8)+ioff;
+      AVI->video_index[nvi].len   = str2ulong(AVI->idx[i]+12);
+      AVI->video_index[nvi].flags = str2ulong(AVI->idx[i]+ 4);
+      nvi++;
     }
-
+    if(strncasecmp(AVI->idx[i],AVI->audio_tag,4) == 0) {
+      AVI->audio_index[nai].pos = str2ulong(AVI->idx[i]+ 8)+ioff;
+      AVI->audio_index[nai].len = str2ulong(AVI->idx[i]+12);
+      AVI->audio_index[nai].tot = tot;
+      tot += AVI->audio_index[nai].len;
+      nai++;
+    }
+  }
+  
   AVI->audio_bytes = tot;
 
   /* Reposition the file */
