@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.143 2004/06/03 13:40:12 miguelfreitas Exp $
+ * $Id: audio_alsa_out.c,v 1.144 2004/06/20 15:04:19 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -1267,15 +1267,14 @@ static void ao_alsa_mixer_init(ao_driver_t *this_gen) {
   }
 
   /* Create a thread which wait/handle mixer events */
-  send_events = config->register_num(config, "audio.alsa_hw_mixer", 1,
-		  		     _("notify changes to the hardware mixer"),
-				     _("When the hardware mixer changes, your application will receive "
-				       "a notification so that it can update its graphical representation "
-				       "of the mixer settings on the fly."),
-				     10, NULL, NULL);
+  send_events = config->register_bool(config, "audio.alsa_hw_mixer", 1,
+				      _("notify changes to the hardware mixer"),
+				      _("When the hardware mixer changes, your application will receive "
+				        "a notification so that it can update its graphical representation "
+				        "of the mixer settings on the fly."),
+				      10, NULL, NULL);
 
-  if (send_events == 1 && found)
-  {
+  if (send_events && found) {
     pthread_attr_t       pth_attrs;
     struct sched_param   pth_params;
 
