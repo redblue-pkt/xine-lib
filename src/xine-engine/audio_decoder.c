@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.44 2001/10/05 01:56:57 miguelfreitas Exp $
+ * $Id: audio_decoder.c,v 1.45 2001/10/06 01:02:01 jcdutton Exp $
  *
  *
  * functions that implement audio decoding
@@ -42,7 +42,6 @@ void *audio_decoder_loop (void *this_gen) {
   buf_element_t   *buf;
   xine_t          *this = (xine_t *) this_gen;
   int              running = 1;
-  int              i,j;
   audio_decoder_t *decoder;
   static int	   prof_audio_decode = -1;
 
@@ -86,11 +85,6 @@ void *audio_decoder_loop (void *this_gen) {
       pthread_mutex_lock (&this->finished_lock);
       this->audio_finished = 0;
       pthread_mutex_unlock (&this->finished_lock);
-      
-      for (i=0 ; i<50; i++)
-	this->audio_track_map[0] = 0;
-      
-      this->audio_track_map_entries = 0;
 
       this->metronom->audio_stream_start (this->metronom);
       
@@ -141,33 +135,14 @@ void *audio_decoder_loop (void *this_gen) {
 
       printf ("audio_decoder: switching to streamtype %08x\n",
 	      buf->decoder_info[0]);
-
-      i = 0;
-      while ( (i<this->audio_track_map_entries) && (this->audio_track_map[i]<buf->decoder_info[0]) ) 
-	i++;
-	
-      printf ("audio_decoder: => virtual channel %d\n", i);
-
-      if ( (i==this->audio_track_map_entries) || (this->audio_track_map[i] != buf->decoder_info[0]) ) {
-	  
-	j = this->audio_track_map_entries;
-	while (j>i) {
-	  this->audio_track_map[j] = this->audio_track_map[j-1];
-	  j--;
-	}
-	this->audio_track_map[i] = buf->decoder_info[0];
-	this->audio_track_map_entries++;
-	
-	if (i != this->audio_channel) {
+	if (this->audio_channel != (buf->decoder_info[0] & 0xff) ) {
 	  /* close old audio decoder */
 	  if (this->cur_audio_decoder_plugin) {
 	    this->cur_audio_decoder_plugin->close (this->cur_audio_decoder_plugin);
 	    this->cur_audio_decoder_plugin = NULL;
 	  }
-	  this->audio_channel = i;
 	}
-      }
-
+      this->audio_channel = buf->decoder_info[0] & 0xff;
 
       break;
 
@@ -184,74 +159,31 @@ void *audio_decoder_loop (void *this_gen) {
 
       if ( (buf->type & 0xFF000000) == BUF_AUDIO_BASE ) {
 	
-	/* printf ("audio_loop: got an audio buffer, type %08x\n", buf->type);   */
+	/* printf ("audio_loop: got an audio buffer, type %08x set %08X\n", buf->type, this->audio_channel); */
 	
-	/* update track map */
-	
-	i = 0;
-	while ( (i<this->audio_track_map_entries) && (this->audio_track_map[i]<buf->type) ) 
-	  i++;
-	
-	/*
-	  printf ("audio_loop: got an audio buffer, type %08x, %d map entries, i=%d\n", 
-	  buf->type, this->audio_track_map_entries, i); 
-	*/
-	
-	if ( (i==this->audio_track_map_entries) || (this->audio_track_map[i] != buf->type) ) {
-	  
-	  j = this->audio_track_map_entries;
-	  while (j>i) {
-	    this->audio_track_map[j] = this->audio_track_map[j-1];
-	    j--;
-	  }
-	  this->audio_track_map[i] = buf->type;
-	  this->audio_track_map_entries++;
-	    
-	  if (i<=this->audio_channel) {
-	    /* close old audio decoder */
-	    if (this->cur_audio_decoder_plugin) {
-	      this->cur_audio_decoder_plugin->close (this->cur_audio_decoder_plugin);
-	      this->cur_audio_decoder_plugin = NULL;
-	    }
-	  }
-	    
-	}
-	  
 	/* now, decode this buffer if it's the right track */
 	  
-	if (buf->type == this->audio_track_map[this->audio_channel]) {
+	if (this->audio_channel == (buf->type & 0xFF) ) {
 	    
 	  int streamtype = (buf->type>>16) & 0xFF;
-	    
 	  decoder = this->audio_decoder_plugins [streamtype];
-	    
 	  if (decoder) {
 	    if (this->cur_audio_decoder_plugin != decoder) {
-		
 	      if (this->cur_audio_decoder_plugin) {
 		this->cur_audio_decoder_plugin->close (this->cur_audio_decoder_plugin);
-
 		/* Since we are changing decoders, warn metronom of a possible
 		 * PTS discontinuity */
-
 		this->metronom->expect_audio_discontinuity (this->metronom);
 		this->metronom->expect_video_discontinuity (this->metronom);
 	      }
-		
 	      this->cur_audio_decoder_plugin = decoder;
 	      this->cur_audio_decoder_plugin->init (this->cur_audio_decoder_plugin, this->audio_out);
-
 	      printf ("audio_loop: using decoder >%s< \n",
 		      decoder->get_identifier());
-		
 	    }
-
 	    /* printf ("audio_loop: sending data to decoder\n");  */
-	      
 	    decoder->decode_data (decoder, buf);
-
 	    /* printf ("audio_loop: decoding is done\n");  */
-
 	  }
 	}
       } else
