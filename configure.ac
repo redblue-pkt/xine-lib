@@ -34,8 +34,8 @@ dnl       AGE = 0;
 dnl }
 
 LT_CURRENT=8
-LT_REVISION=1
-LT_AGE=6
+LT_REVISION=0
+LT_AGE=7
 
 dnl for a release tarball do "rm .cvsversion" before "make dist"
 if test -f .cvsversion; then
