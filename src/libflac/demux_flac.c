@@ -38,13 +38,15 @@
 
 #include <FLAC/seekable_stream_decoder.h>
 
+#define LOG_MODULE "demux_flac"
+#define LOG_VERBOSE
+/*
+#define LOG
+*/
+
 #include "xine_internal.h"
 #include "xineutils.h"
 #include "../demuxers/demux.h"
-
-/*
-#define LOG 1
-*/
 
 #include "demux_flac.h"
 
@@ -97,9 +99,7 @@ flac_read_callback (const FLAC__SeekableStreamDecoder *decoder,
     input_plugin_t *input = this->input; 
     off_t offset = *bytes;
 
-#ifdef LOG
-    printf("demux_flac: flac_read_callback\n");
-#endif
+    lprintf("flac_read_callback\n");
     
     /* This should only be called when flac is reading the metadata
      * of the flac stream.
@@ -107,26 +107,22 @@ flac_read_callback (const FLAC__SeekableStreamDecoder *decoder,
     
     offset = input->read (input, buffer, offset);
 
-#ifdef LOG
-    printf("demux_flac: Read %lld / %u bytes into buffer\n", offset, *bytes);
-#endif
+    lprintf("Read %lld / %u bytes into buffer\n", offset, *bytes);
 
     *bytes = offset;
     /* This is the way to detect EOF with xine input plugins */
     if ( (offset != *bytes) && (*bytes != 0) )
     {
-#ifdef LOG
-        printf("demux_flac: Marking EOF\n");
-#endif
-        this->status = DEMUX_FINISHED;
-        return FLAC__SEEKABLE_STREAM_DECODER_READ_STATUS_ERROR;
+      lprintf("Marking EOF\n");
+      
+      this->status = DEMUX_FINISHED;
+      return FLAC__SEEKABLE_STREAM_DECODER_READ_STATUS_ERROR;
     }
     else
     {
-#ifdef LOG
-        printf("demux_flac: Read was perfect\n");
-#endif
-        return FLAC__SEEKABLE_STREAM_DECODER_READ_STATUS_OK;
+      lprintf("Read was perfect\n");
+    
+      return FLAC__SEEKABLE_STREAM_DECODER_READ_STATUS_OK;
     }
 }
 
@@ -138,9 +134,7 @@ flac_seek_callback (const FLAC__SeekableStreamDecoder *decoder,
     input_plugin_t *input = ((demux_flac_t *)client_data)->input;
     off_t offset;
 
-#ifdef LOG
-    printf("demux_flac: flac_seek_callback\n");
-#endif
+    lprintf("flac_seek_callback\n");
 
     offset = input->seek (input, absolute_byte_offset, SEEK_SET);
 
@@ -158,9 +152,8 @@ flac_tell_callback (const FLAC__SeekableStreamDecoder *decoder,
     input_plugin_t *input = ((demux_flac_t *)client_data)->input;
     off_t offset;
 
-#ifdef LOG
-    printf("demux_flac: flac_tell_callback\n");
-#endif
+    lprintf("flac_tell_callback\n");
+
     offset = input->get_current_pos (input);
 
     *absolute_byte_offset = offset;
@@ -176,9 +169,8 @@ flac_length_callback (const FLAC__SeekableStreamDecoder *decoder,
     input_plugin_t *input = ((demux_flac_t *)client_data)->input;
     off_t offset;
 
-#ifdef LOG
-    printf("demux_flac: flac_length_callback\n");
-#endif
+    lprintf("flac_length_callback\n");
+
     offset = input->get_length (input);
 
     /* FIXME, can flac handle -1 as offset ? */
@@ -190,23 +182,20 @@ flac_eof_callback (const FLAC__SeekableStreamDecoder *decoder,
                     void *client_data)
 {
     demux_flac_t *this = (demux_flac_t *)client_data;
-#ifdef LOG
-    printf("demux_flac: flac_eof_callback\n");
-#endif
+
+    lprintf("flac_eof_callback\n");
 
     if (this->status == DEMUX_FINISHED)
     {
-#ifdef LOG
-        printf("demux_flac: flac_eof_callback: True!\n");
-#endif
-        return true;
+      lprintf("flac_eof_callback: True!\n");
+
+      return true;
     }
     else
     {
-#ifdef LOG
-        printf("demux_flac: flac_eof_callback: False!\n");
-#endif
-        return false;
+      lprintf("flac_eof_callback: False!\n");
+
+      return false;
     }
 }
 
@@ -220,11 +209,9 @@ flac_write_callback (const FLAC__SeekableStreamDecoder *decoder,
      * is seeking. We do the decoding in the decoder
      */
     
-#ifdef LOG
-    printf("demux_flac: Error: Write callback was called!\n");
-#endif
+  lprintf("Error: Write callback was called!\n");
 
-    return FLAC__STREAM_DECODER_WRITE_STATUS_ABORT;
+  return FLAC__STREAM_DECODER_WRITE_STATUS_ABORT;
 }
 
 static void 
@@ -234,21 +221,19 @@ flac_metadata_callback (const FLAC__SeekableStreamDecoder *decoder,
 {
     demux_flac_t *this = (demux_flac_t *)client_data;
   
-#ifdef LOG
-    printf("demux_flac: IN: Metadata callback\n");
-#endif
+    lprintf("IN: Metadata callback\n");
+
     /* This should be called when we first look at a flac stream,
      * We get information about the stream here.
      */
      if (metadata->type == FLAC__METADATA_TYPE_STREAMINFO) {
-#ifdef LOG
-        printf("demux_flac: Got METADATA!\n");
-#endif
-        this->total_samples   = metadata->data.stream_info.total_samples;
-        this->bits_per_sample = metadata->data.stream_info.bits_per_sample;
-        this->channels        = metadata->data.stream_info.channels;
-        this->sample_rate     = metadata->data.stream_info.sample_rate;
-        this->length_in_msec  = (this->total_samples * 10 /
+       lprintf("Got METADATA!\n");
+
+       this->total_samples   = metadata->data.stream_info.total_samples;
+       this->bits_per_sample = metadata->data.stream_info.bits_per_sample;
+       this->channels        = metadata->data.stream_info.channels;
+       this->sample_rate     = metadata->data.stream_info.sample_rate;
+       this->length_in_msec  = (this->total_samples * 10 /
                                 (this->sample_rate / 100))/1000;
      }
      return;
@@ -327,12 +312,11 @@ demux_flac_send_chunk (demux_plugin_t *this_gen) {
         remaining_sample_bytes -= buf->size;
 
         if (this->input->read (this->input,buf->content,buf->size)!=buf->size) {
-#ifdef LOG
-            printf("demux_flac: buf->size != input->read()\n");
-#endif
-            buf->free_buffer (buf);
-            this->status = DEMUX_FINISHED;
-            break;
+	  lprintf("buf->size != input->read()\n");
+
+	  buf->free_buffer (buf);
+	  this->status = DEMUX_FINISHED;
+	  break;
         }
 
         /*
@@ -353,9 +337,7 @@ demux_flac_send_headers (demux_plugin_t *this_gen) {
 
     buf_element_t *buf;
 
-#ifdef LOG
-    printf("demux_flac: demux_flac_send_headers\n");
-#endif
+    lprintf("demux_flac_send_headers\n");
 
     this->video_fifo = this->stream->video_fifo;
     this->audio_fifo = this->stream->audio_fifo;
@@ -387,9 +369,8 @@ static void
 demux_flac_dispose (demux_plugin_t *this_gen) {
     demux_flac_t *this = (demux_flac_t *) this_gen;
 
-#ifdef LOG
-    printf("demux_flac: demux_flac_dispose\n");
-#endif
+    lprintf("demux_flac_dispose\n");
+
     if (this->flac_decoder)
         FLAC__seekable_stream_decoder_delete (this->flac_decoder);
 
@@ -401,9 +382,7 @@ static int
 demux_flac_get_status (demux_plugin_t *this_gen) {
     demux_flac_t *this = (demux_flac_t *) this_gen;
 
-#ifdef LOG
-    printf("demux_flac: demux_flac_get_status\n");
-#endif
+    lprintf("demux_flac_get_status\n");
 
     return this->status;
 }
@@ -413,15 +392,12 @@ static int
 demux_flac_seek (demux_plugin_t *this_gen, off_t start_pos, int start_time, int playing) {
     demux_flac_t *this = (demux_flac_t *) this_gen;
 
-#ifdef LOG
-    printf("demux_flac: demux_flac_seek\n");
-#endif
+    lprintf("demux_flac_seek\n");
+
     if (start_pos || !start_time) {
         
         this->input->seek (this->input, start_pos, SEEK_SET);
-#ifdef LOG
-        printf ("Seek to position: %lld\n", start_pos);
-#endif
+        lprintf ("Seek to position: %lld\n", start_pos);
     
     } else {
       
@@ -439,9 +415,7 @@ demux_flac_seek (demux_plugin_t *this_gen, off_t start_pos, int start_time, int 
                                                          target_sample);
 
         if (s) {
-#ifdef LOG
-            printf ("Seek to: %d successfull!\n", start_time);
-#endif
+	  lprintf ("Seek to: %d successfull!\n", start_time);
         } else
             this->status = DEMUX_FINISHED;
     }
@@ -455,9 +429,7 @@ static int
 demux_flac_get_stream_length (demux_plugin_t *this_gen) {
     demux_flac_t *this = (demux_flac_t *) this_gen; 
 
-#ifdef LOG
-    printf("demux_flac: demux_flac_get_stream_length\n");
-#endif
+    lprintf("demux_flac_get_stream_length\n");
 
     if (this->flac_decoder)
         return this->length_in_msec;
@@ -467,18 +439,16 @@ demux_flac_get_stream_length (demux_plugin_t *this_gen) {
 
 static uint32_t 
 demux_flac_get_capabilities (demux_plugin_t *this_gen) {
-#ifdef LOG
-    printf("demux_flac: demux_flac_get_capabilities\n");
-#endif
-    return DEMUX_CAP_NOCAP;
+  lprintf("demux_flac_get_capabilities\n");
+
+  return DEMUX_CAP_NOCAP;
 }
 
 static int 
 demux_flac_get_optional_data (demux_plugin_t *this_gen, void *data, int dtype) {
-#ifdef LOG
-    printf("demux_flac: demux_flac_get_optional_data\n");
-#endif
-    return DEMUX_OPTIONAL_UNSUPPORTED;
+  lprintf("demux_flac_get_optional_data\n");
+
+  return DEMUX_OPTIONAL_UNSUPPORTED;
 }
 
 static demux_plugin_t *
@@ -487,9 +457,7 @@ open_plugin (demux_class_t *class_gen,
              input_plugin_t *input) {
     demux_flac_t *this;
 
-#ifdef LOG
-    printf("demux_flac: open_plugin\n");
-#endif
+    lprintf("open_plugin\n");
 
     switch (stream->content_detection_method) {
         case METHOD_BY_CONTENT:
@@ -565,9 +533,8 @@ open_plugin (demux_class_t *class_gen,
 
     /* Get a new FLAC decoder and hook up callbacks */
     this->flac_decoder = FLAC__seekable_stream_decoder_new();
-#ifdef LOG
-    printf("demux_flac: this->flac_decoder: %p\n", this->flac_decoder);
-#endif
+    lprintf("this->flac_decoder: %p\n", this->flac_decoder);
+
     FLAC__seekable_stream_decoder_set_md5_checking  (this->flac_decoder, false);
     FLAC__seekable_stream_decoder_set_read_callback (this->flac_decoder,
                                                      flac_read_callback);
@@ -599,9 +566,8 @@ open_plugin (demux_class_t *class_gen,
      */
     this->status = DEMUX_OK;
     FLAC__seekable_stream_decoder_process_until_end_of_metadata (this->flac_decoder);
-#ifdef LOG
-    printf("demux_flac: Processed file until end of metadata\n");
-#endif
+    
+    lprintf("Processed file until end of metadata\n");
 
     return &this->demux_plugin;
 }
@@ -633,9 +599,8 @@ static void
 class_dispose (demux_class_t *this_gen) {
     demux_flac_class_t *this = (demux_flac_class_t *) this_gen;
 
-#ifdef LOG
-    printf("demux_flac: class_dispose\n");
-#endif
+    lprintf("class_dispose\n");
+
     free (this);
 }
 
@@ -644,9 +609,8 @@ demux_flac_init_class (xine_t *xine, void *data) {
 
     demux_flac_class_t     *this;
   
-#ifdef LOG
-    printf("demux_flac: demux_flac_init_class\n");
-#endif
+    lprintf("demux_flac_init_class\n");
+
     this         = xine_xmalloc (sizeof (demux_flac_class_t));
     this->config = xine->config;
     this->xine   = xine;

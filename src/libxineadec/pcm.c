@@ -30,6 +30,12 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#define LOG_MODULE "pcm_audio_decoder"
+#define LOG_VERBOSE
+/*
+#define LOG
+*/
+
 #include "xine_internal.h"
 #include "video_out.h"
 #include "audio_out.h"
@@ -69,17 +75,13 @@ static void pcm_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {\
    int	 bytes_left = buf->decoder_info[1];
    int	 bits_per_frame = buf->decoder_info[1] / buf->decoder_info[0];
    
-#ifdef LOG
-   printf(__FILE__ ": decode_data, flags=0x%08x , mem size: %d, frames: %d...\n", 
-	 buf->decoder_flags, buf->decoder_info[1], buf->decoder_info[0]);
-#endif
+   lprintf("decode_data, flags=0x%08x , mem size: %d, frames: %d...\n", 
+	   buf->decoder_flags, buf->decoder_info[1], buf->decoder_info[0]);
 
    if (_x_stream_info_get(this->stream, XINE_STREAM_INFO_AUDIO_MODE) == 0) {
-#ifdef LOG
-      printf(__FILE__ ": Someone changed the audio mode. Closing device\r");
-#endif
-      this->stream->audio_out->close(this->stream->audio_out, this->stream);
-      this->open = 0;
+     lprintf("Someone changed the audio mode. Closing device\r");
+     this->stream->audio_out->close(this->stream->audio_out, this->stream);
+     this->open = 0;
    }
 
    if (!this->open)
@@ -136,9 +138,7 @@ static void pcm_dispose (audio_decoder_t *this_gen)
 {
    pcm_decoder_t *this = (pcm_decoder_t *) this_gen;
 
-#ifdef LOG 
-   printf(__FILE__ ": Cleaning up\n");
-#endif
+   lprintf("Cleaning up\n");
    
    if (this->open)
       this->stream->audio_out->close (this->stream->audio_out, this->stream);

@@ -17,21 +17,23 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: switch.c,v 1.9 2003/11/11 18:44:59 f1rmb Exp $
+ * $Id: switch.c,v 1.10 2003/11/26 19:43:37 f1rmb Exp $
  */
  
 /*
  * simple switch video post plugin
  */
 
+#define LOG_MODULE "switch"
+#define LOG_VERBOSE
+/*
+#define LOG
+*/
+
 #include "xine_internal.h"
 #include "post.h"
 
 #define SWVERSION (5)
-
-/*
-#define LOG
-*/
 
 /* plugin class initialization function */
 static void *switch_init_plugin(xine_t *xine, void *);
@@ -143,9 +145,7 @@ static post_plugin_t *switch_open_plugin(post_class_t *class_gen, int inputs,
     
   if(inputs < 2) return NULL;
 
-#ifdef LOG
-  printf("switch open\n");
-#endif
+  lprintf("switch open\n");
 
   if (!this || !input1 || !output || !video_target || !video_target[0]) {
     free(this);
@@ -340,16 +340,12 @@ static void frame_copy_content(vo_frame_t *to, vo_frame_t *from) {
   int size;
 
   if((to == NULL)||(from == NULL)) {
-#ifdef LOG
-    printf("Something wrong in frame_copy_content\n");
-#endif
+    lprintf("Something wrong in frame_copy_content\n");
     return;
   }
 
   if(to->format != from->format) {
-#ifdef LOG
-    printf("frame_copy_content : buffers have different format\n");
-#endif
+    lprintf("frame_copy_content : buffers have different format\n");
     return;
   }
 

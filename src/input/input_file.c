@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_file.c,v 1.86 2003/11/11 18:44:54 f1rmb Exp $
+ * $Id: input_file.c,v 1.87 2003/11/26 19:43:31 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -33,6 +33,12 @@
 #include <fcntl.h>
 #include <string.h>
 #include <errno.h>
+
+#define LOG_MODULE "input_file"
+#define LOG_VERBOSE
+/*
+#define LOG
+*/
 
 #include "xine_internal.h"
 #include "xineutils.h"
@@ -236,9 +242,8 @@ static int file_plugin_open (input_plugin_t *this_gen ) {
   file_input_plugin_t *this = (file_input_plugin_t *) this_gen;
   char                *filename;
 
-  #ifdef LOG
-  printf("file_plugin_open\n");
-  #endif
+  lprintf("file_plugin_open\n");
+
   if (strncasecmp (this->mrl, "file:", 5) == 0)
     filename = decode_uri(&(this->mrl[5]));
   else
@@ -270,9 +275,7 @@ static input_plugin_t *file_class_get_instance (input_class_t *cls_gen, xine_str
   file_input_plugin_t *this;
   char                *mrl = strdup(data);
 
-  #ifdef LOG
-  printf("file_class_get_instance\n");
-  #endif
+  lprintf("file_class_get_instance\n");
 
   if ((strncasecmp (mrl, "file:", 5)) && strstr (mrl, ":/") && (strstr (mrl, ":/") < strchr(mrl, '/'))) {
     free (mrl);
@@ -426,9 +429,7 @@ static uint32_t get_file_type(char *filepathname, char *origin, xine_t *xine) {
   if((lstat(filepathname, &pstat)) < 0) {
     sprintf(buf, "%s/%s", origin, filepathname);
     if((lstat(buf, &pstat)) < 0) {
-#ifdef LOG
-      printf ("lstat failed for %s{%s}\n", filepathname, origin);
-#endif
+      lprintf ("lstat failed for %s{%s}\n", filepathname, origin);
       file_type |= mrl_unknown;
       return file_type;
     }

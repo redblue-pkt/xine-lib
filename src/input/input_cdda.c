@@ -20,7 +20,7 @@
  * Compact Disc Digital Audio (CDDA) Input Plugin 
  *   by Mike Melanson (melanson@pcisys.net)
  *
- * $Id: input_cdda.c,v 1.38 2003/11/16 23:33:44 f1rmb Exp $
+ * $Id: input_cdda.c,v 1.39 2003/11/26 19:43:31 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -48,6 +48,12 @@
 #include <netinet/in.h>
 #include <sys/socket.h>
 
+#define LOG_MODULE "input_cdda"
+#define LOG_VERBOSE
+/*
+#define LOG
+*/
+
 #include "xine_internal.h"
 #include "xineutils.h"
 #include "input_plugin.h"
@@ -56,10 +62,6 @@
 #ifdef WIN32
 #include <winioctl.h>
 #endif
-
-/*
-#define LOG 1
-*/
 
 #if defined(__sun)
 #define	DEFAULT_CDDA_DEVICE	"/vol/dev/aliases/cdrom0"
@@ -306,54 +308,54 @@ struct SRB_ExecSCSICmd
 
 #ifdef LOG
 static void print_cdrom_toc(cdrom_toc *toc) {
-
-	int i;
-	int time1;
-	int time2;
-	int timediff;
-
-	printf("\ntoc:\n");
-	printf("\tfirst track  = %d\n", toc->first_track);
-	printf("\tlast track   = %d\n", toc->last_track);
-	printf("\ttotal tracks = %d\n", toc->total_tracks);
-	printf("\ntoc entries:\n");
-
-	
-	printf("leadout track: Control: %d MSF: %02d:%02d:%04d, first frame = %d\n",
-		toc->leadout_track.track_mode,
-		toc->leadout_track.first_frame_minute,
-		toc->leadout_track.first_frame_second,
-		toc->leadout_track.first_frame_frame,
-		toc->leadout_track.first_frame);
-
-	/* fetch each toc entry */
-	if (toc->first_track > 0) {		
-		for (i = toc->first_track; i <= toc->last_track; i++) {			
-			printf("\ttrack mode = %d", toc->toc_entries[i-1].track_mode);
-			printf("\ttrack %d, audio, MSF: %02d:%02d:%02d, first frame = %d\n",  
-				i, 
-				toc->toc_entries[i-1].first_frame_minute,
-				toc->toc_entries[i-1].first_frame_second,
-				toc->toc_entries[i-1].first_frame_frame,
-				toc->toc_entries[i-1].first_frame);
-
-			time1 = ((toc->toc_entries[i-1].first_frame_minute * 60) + 
-                      toc->toc_entries[i-1].first_frame_second);
-
-        	if (i == toc->last_track) {
-			  time2 = ((toc->leadout_track.first_frame_minute * 60) +
-				  toc->leadout_track.first_frame_second);
-			}
-			else {
-			  time2 = ((toc->toc_entries[i].first_frame_minute * 60) + 
-                  toc->toc_entries[i].first_frame_second);
-			}
-
-            timediff = time2 - time1;
-
-			printf("\t time: %02d:%02d\n", timediff/60, timediff%60);
-		}
-	}	
+  
+  int i;
+  int time1;
+  int time2;
+  int timediff;
+  
+  printf("\ntoc:\n");
+  printf("\tfirst track  = %d\n", toc->first_track);
+  printf("\tlast track   = %d\n", toc->last_track);
+  printf("\ttotal tracks = %d\n", toc->total_tracks);
+  printf("\ntoc entries:\n");
+  
+  
+  printf("leadout track: Control: %d MSF: %02d:%02d:%04d, first frame = %d\n",
+	 toc->leadout_track.track_mode,
+	 toc->leadout_track.first_frame_minute,
+	 toc->leadout_track.first_frame_second,
+	 toc->leadout_track.first_frame_frame,
+	 toc->leadout_track.first_frame);
+  
+  /* fetch each toc entry */
+  if (toc->first_track > 0) {		
+    for (i = toc->first_track; i <= toc->last_track; i++) {			
+      printf("\ttrack mode = %d", toc->toc_entries[i-1].track_mode);
+      printf("\ttrack %d, audio, MSF: %02d:%02d:%02d, first frame = %d\n",  
+	     i, 
+	     toc->toc_entries[i-1].first_frame_minute,
+	     toc->toc_entries[i-1].first_frame_second,
+	     toc->toc_entries[i-1].first_frame_frame,
+	     toc->toc_entries[i-1].first_frame);
+      
+      time1 = ((toc->toc_entries[i-1].first_frame_minute * 60) + 
+	       toc->toc_entries[i-1].first_frame_second);
+      
+      if (i == toc->last_track) {
+	time2 = ((toc->leadout_track.first_frame_minute * 60) +
+		 toc->leadout_track.first_frame_second);
+      }
+      else {
+	time2 = ((toc->toc_entries[i].first_frame_minute * 60) + 
+		 toc->toc_entries[i].first_frame_second);
+      }
+      
+      timediff = time2 - time1;
+      
+      printf("\t time: %02d:%02d\n", timediff/60, timediff%60);
+    }
+  }	
 }
 #endif
 
@@ -695,33 +697,31 @@ static int read_cdrom_toc(cdda_input_plugin_t *this_gen, cdrom_toc *toc) {
 
   if( this_gen->hASPI )
   {
-	  /* This is for ASPI which obviously isn't supported! */
-#ifdef LOG 
-	  printf("Windows ASPI support is not complete yet!\n");
-#endif
-	  return -1;
-      
+    /* This is for ASPI which obviously isn't supported! */
+    lprintf("Windows ASPI support is not complete yet!\n");
+    return -1;
+    
   }
   else
-  {
-	  DWORD dwBytesReturned;
-	  CDROM_TOC cdrom_toc;
-	  int i;
-
-	  if( DeviceIoControl( this_gen->h_device_handle,
-		  IOCTL_CDROM_READ_TOC,
-		  NULL, 0, &cdrom_toc, sizeof(CDROM_TOC),
-		  &dwBytesReturned, NULL ) == 0 )
-	  {
+    {
+      DWORD dwBytesReturned;
+      CDROM_TOC cdrom_toc;
+      int i;
+      
+      if( DeviceIoControl( this_gen->h_device_handle,
+			   IOCTL_CDROM_READ_TOC,
+			   NULL, 0, &cdrom_toc, sizeof(CDROM_TOC),
+			   &dwBytesReturned, NULL ) == 0 )
+	{
 #ifdef LOG
-        DWORD dw; 
-        printf( "input_cdda: could not read TOCHDR\n" );
-        dw = GetLastError();
-        printf("GetLastError returned %u\n", dw); 
+	  DWORD dw; 
+	  printf( "input_cdda: could not read TOCHDR\n" );
+	  dw = GetLastError();
+	  printf("GetLastError returned %u\n", dw); 
 #endif
-		  return -1;
-	  }
-
+	  return -1;
+	}
+      
       toc->first_track = cdrom_toc.FirstTrack;
       toc->last_track = cdrom_toc.LastTrack;
       toc->total_tracks = toc->last_track - toc->first_track + 1;
@@ -775,46 +775,44 @@ static int read_cdrom_frames(cdda_input_plugin_t *this_gen, int frame, int num_f
   if( this_gen->hASPI )
   {
 	  /* This is for ASPI which obviously isn't supported! */
-#ifdef LOG 
-	  printf("Windows ASPI support is not complete yet!\n");
-#endif
-	  return -1;
-      
+    lprintf("Windows ASPI support is not complete yet!\n");
+    return -1;
+    
   }
   else
-  {
-	  memset(data, 0, CD_RAW_FRAME_SIZE * num_frames);
-
-	  while( num_frames ) {
-		  
+    {
+      memset(data, 0, CD_RAW_FRAME_SIZE * num_frames);
+      
+      while( num_frames ) {
+	
 #ifdef LOG
-		  /*printf("\t Raw read frame %d\n", frame);*/
+	/*printf("\t Raw read frame %d\n", frame);*/
 #endif
-		  raw_read_info.DiskOffset.QuadPart = frame * CD_SECTOR_SIZE;
-		  raw_read_info.SectorCount = 1;
-		  raw_read_info.TrackMode = CDDA;
-		  
-		  /* read a frame */
-		  if( DeviceIoControl( this_gen->h_device_handle,
-			  IOCTL_CDROM_RAW_READ,
-			  &raw_read_info, sizeof(RAW_READ_INFO), data, 
-			  CD_RAW_FRAME_SIZE,
-			  &dwBytesReturned, NULL ) == 0 )
-		  {
+	raw_read_info.DiskOffset.QuadPart = frame * CD_SECTOR_SIZE;
+	raw_read_info.SectorCount = 1;
+	raw_read_info.TrackMode = CDDA;
+	
+	/* read a frame */
+	if( DeviceIoControl( this_gen->h_device_handle,
+			     IOCTL_CDROM_RAW_READ,
+			     &raw_read_info, sizeof(RAW_READ_INFO), data, 
+			     CD_RAW_FRAME_SIZE,
+			     &dwBytesReturned, NULL ) == 0 )
+	  {
 #ifdef LOG
-              DWORD dw; 
-			  printf( "input_cdda: could not read frame\n" );
-              dw = GetLastError();
-              printf("GetLastError returned %u\n", dw); 
+	    DWORD dw; 
+	    printf( "input_cdda: could not read frame\n" );
+	    dw = GetLastError();
+	    printf("GetLastError returned %u\n", dw); 
 #endif
-			  return -1;
-		  }
-		  
-		  data += CD_RAW_FRAME_SIZE;
-		  frame++;
-		  num_frames--;
+	    return -1;
 	  }
-  }
+	
+	data += CD_RAW_FRAME_SIZE;
+	frame++;
+	num_frames--;
+      }
+    }
   return 0;
 }
 
@@ -1997,87 +1995,80 @@ static int cdda_open(cdda_input_plugin_t *this_gen,
    * device and not a file!
    */
   if( WIN_NT )
-  {
-	  char psz_win32_drive[7];
-	  
-#ifdef LOG
-	  printf( "input_cdda: using winNT/2K/XP ioctl layer" );
-#endif
-	  
-	  sprintf( psz_win32_drive, "\\\\.\\%c:", cdda_device[0] );
-	  
-	  this_gen->h_device_handle = CreateFile( psz_win32_drive, GENERIC_READ,
-		  FILE_SHARE_READ | FILE_SHARE_WRITE,
-		  NULL, OPEN_EXISTING,
-		  FILE_FLAG_NO_BUFFERING |
-		  FILE_FLAG_RANDOM_ACCESS, NULL );
-	  return (this_gen->h_device_handle == NULL) ? -1 : 0;
-  }
+    {
+      char psz_win32_drive[7];
+      
+      lprintf( "using winNT/2K/XP ioctl layer" );
+      
+      sprintf( psz_win32_drive, "\\\\.\\%c:", cdda_device[0] );
+      
+      this_gen->h_device_handle = CreateFile( psz_win32_drive, GENERIC_READ,
+					      FILE_SHARE_READ | FILE_SHARE_WRITE,
+					      NULL, OPEN_EXISTING,
+					      FILE_FLAG_NO_BUFFERING |
+					      FILE_FLAG_RANDOM_ACCESS, NULL );
+      return (this_gen->h_device_handle == NULL) ? -1 : 0;
+    }
   else
-  {
-	  HMODULE hASPI = NULL;
-	  long (*lpGetSupport)( void ) = NULL;
-	  long (*lpSendCommand)( void* ) = NULL;
-	  DWORD dwSupportInfo;
-	  int i, j, i_hostadapters;
-	  char c_drive = cdda_device[0];
+    {
+      HMODULE hASPI = NULL;
+      long (*lpGetSupport)( void ) = NULL;
+      long (*lpSendCommand)( void* ) = NULL;
+      DWORD dwSupportInfo;
+      int i, j, i_hostadapters;
+      char c_drive = cdda_device[0];
+      
+      hASPI = LoadLibrary( "wnaspi32.dll" );
+      if( hASPI != NULL )
+	{
+	  (FARPROC) lpGetSupport = GetProcAddress( hASPI,
+						   "GetASPI32SupportInfo" );
+	  (FARPROC) lpSendCommand = GetProcAddress( hASPI,
+						    "SendASPI32Command" );
+	}
+      
+      if( hASPI == NULL || lpGetSupport == NULL || lpSendCommand == NULL )
+	{
+	  lprintf( "unable to load aspi or get aspi function pointers" );
 	  
-	  hASPI = LoadLibrary( "wnaspi32.dll" );
-	  if( hASPI != NULL )
-	  {
-		  (FARPROC) lpGetSupport = GetProcAddress( hASPI,
-			  "GetASPI32SupportInfo" );
-		  (FARPROC) lpSendCommand = GetProcAddress( hASPI,
-			  "SendASPI32Command" );
-	  }
+	  if( hASPI ) FreeLibrary( hASPI );
+	  return -1;
+	}
+      
+      /* ASPI support seems to be there */
+      
+      dwSupportInfo = lpGetSupport();
+      
+      if( HIBYTE( LOWORD ( dwSupportInfo ) ) == SS_NO_ADAPTERS )
+	{
+	  lprintf( "no host adapters found (aspi)" );
+	  FreeLibrary( hASPI );
+	  return -1;
+	}
+      
+      if( HIBYTE( LOWORD ( dwSupportInfo ) ) != SS_COMP )
+	{
+	  lprintf( "unable to initalize aspi layer" );
 	  
-	  if( hASPI == NULL || lpGetSupport == NULL || lpSendCommand == NULL )
-	  {
-#ifdef LOG
-		  printf( "input_cdda: unable to load aspi or get aspi function pointers" );
-#endif
-
-		  if( hASPI ) FreeLibrary( hASPI );
-		  return -1;
-	  }
-	  
-	  /* ASPI support seems to be there */
-	  
-	  dwSupportInfo = lpGetSupport();
-	  
-	  if( HIBYTE( LOWORD ( dwSupportInfo ) ) == SS_NO_ADAPTERS )
-	  {
-#ifdef LOG
-		  printf( "input_cdda: no host adapters found (aspi)" );
-#endif
-		  FreeLibrary( hASPI );
-		  return -1;
-	  }
-	  
-	  if( HIBYTE( LOWORD ( dwSupportInfo ) ) != SS_COMP )
-	  {
-#ifdef LOG
-		  printf( "input_cdda: unable to initalize aspi layer" );
-#endif
-		  FreeLibrary( hASPI );
-		  return -1;
-	  }
-	  
-	  i_hostadapters = LOBYTE( LOWORD( dwSupportInfo ) );
-	  if( i_hostadapters == 0 )
-	  {
-		  FreeLibrary( hASPI );
-		  return -1;
-	  }
-	  
-	  c_drive = c_drive > 'Z' ? c_drive - 'a' : c_drive - 'A';
-	  
-	  for( i = 0; i < i_hostadapters; i++ )
-	  {
+	  FreeLibrary( hASPI );
+	  return -1;
+	}
+      
+      i_hostadapters = LOBYTE( LOWORD( dwSupportInfo ) );
+      if( i_hostadapters == 0 )
+	{
+	  FreeLibrary( hASPI );
+	  return -1;
+	}
+      
+      c_drive = c_drive > 'Z' ? c_drive - 'a' : c_drive - 'A';
+      
+      for( i = 0; i < i_hostadapters; i++ )
+	{
           for( j = 0; j < 15; j++ )
-          {
+	    {
               struct SRB_GetDiskInfo srbDiskInfo;
-			  
+	      
               srbDiskInfo.SRB_Cmd         = SC_GET_DISK_INFO;
               srbDiskInfo.SRB_HaId        = i;
               srbDiskInfo.SRB_Flags       = 0;
@@ -2089,51 +2080,43 @@ static int cdda_open(cdda_input_plugin_t *this_gen,
 			  
               if( (srbDiskInfo.SRB_Status == SS_COMP) &&
                   (srbDiskInfo.SRB_Int13HDriveInfo == c_drive) )
-              {
+		{
                   /* Make sure this is a cdrom device */
                   struct SRB_GDEVBlock   srbGDEVBlock;
-				  
+		  
                   memset( &srbGDEVBlock, 0, sizeof(struct SRB_GDEVBlock) );
                   srbGDEVBlock.SRB_Cmd    = SC_GET_DEV_TYPE;
                   srbGDEVBlock.SRB_HaId   = i;
                   srbGDEVBlock.SRB_Target = j;
-				  
+		  
                   lpSendCommand( (void*) &srbGDEVBlock );
-				  
+		  
                   if( ( srbGDEVBlock.SRB_Status == SS_COMP ) &&
                       ( srbGDEVBlock.SRB_DeviceType == DTYPE_CDROM ) )
-                  {
+		    {
                       this_gen->i_sid = MAKEWORD( i, j );
                       this_gen->hASPI = (long)hASPI;
                       this_gen->lpSendCommand = lpSendCommand;
-
-#ifdef LOG
-                      printf( "input_cdda: using aspi layer" );
-#endif
-					  
+		      
+                      lprintf( "using aspi layer" );
+		      
                       return 0;
-                  }
+		    }
                   else
-                  {
-                      FreeLibrary( hASPI );
-#ifdef LOG
-                      printf( "input_cdda: %s: is not a cdrom drive",
-						  cdda_device[0] );
-#endif
-                      return -1;
-                  }
-              }
-          }
-	  }
-	  
-	  FreeLibrary( hASPI );
-
-#ifdef LOG
-	  printf( "input_cdda: unable to get haid and target (aspi)" );
-#endif
-	  
+		    {
+		      FreeLibrary( hASPI );
+		      lprintf( "%s: is not a cdrom drive", cdda_device[0] );
+		      return -1;
+		    }
+		}
+	    }
+	}
+      
+      FreeLibrary( hASPI );
+      
+      lprintf( "unable to get haid and target (aspi)" );
     }
-	
+  
 #endif /* WIN32 */
 
     return -1;
@@ -2307,9 +2290,7 @@ static int cdda_plugin_open (input_plugin_t *this_gen ) {
   char                *cdda_device;
   int                  err = -1;
     
-#ifdef LOG
-  printf("cdda_plugin_open\n");
-#endif
+  lprintf("cdda_plugin_open\n");
 
   /* get the CD TOC */
   toc = init_cdrom_toc();
@@ -2344,7 +2325,7 @@ static int cdda_plugin_open (input_plugin_t *this_gen ) {
 #endif
 
 #ifdef LOG
-	print_cdrom_toc(toc);
+    print_cdrom_toc(toc);
 #endif
 
   }
@@ -2402,41 +2383,31 @@ static int cdda_plugin_open (input_plugin_t *this_gen ) {
     _cdda_cddb_grab_infos(this);
   
   if(this->cddb.disc_title) {
-#ifdef LOG
-	  printf("Disc Title: %s\n", this->cddb.disc_title);
-#endif
+    lprintf("Disc Title: %s\n", this->cddb.disc_title);
 
     _x_meta_info_set(this->stream, XINE_META_INFO_ALBUM, this->cddb.disc_title);
   }
 
   if(this->cddb.track[this->track].title) {
-#ifdef LOG
-	  printf("Track %d Title: %s\n", this->track+1, this->cddb.track[this->track].title);
-#endif
+    lprintf("Track %d Title: %s\n", this->track+1, this->cddb.track[this->track].title);
 
     _x_meta_info_set(this->stream, XINE_META_INFO_TITLE, this->cddb.track[this->track].title);
   }
   
   if(this->cddb.disc_artist) {
-#ifdef LOG
-	  printf("Disc Artist: %s\n", this->cddb.disc_artist);
-#endif
+    lprintf("Disc Artist: %s\n", this->cddb.disc_artist);
 
     _x_meta_info_set(this->stream, XINE_META_INFO_ARTIST, this->cddb.disc_artist);
   }
   
   if(this->cddb.disc_category) {
-#ifdef LOG
-	  printf("Disc Category: %s\n", this->cddb.disc_category);
-#endif
+    lprintf("Disc Category: %s\n", this->cddb.disc_category);
 
     _x_meta_info_set(this->stream, XINE_META_INFO_GENRE, this->cddb.disc_category);
   }
 
   if(this->cddb.disc_year) {
-#ifdef LOG
-	  printf("Disc Year: %s\n", this->cddb.disc_year);
-#endif
+    lprintf("Disc Year: %s\n", this->cddb.disc_year);
 
     _x_meta_info_set(this->stream, XINE_META_INFO_YEAR, this->cddb.disc_year);
   }
@@ -2498,7 +2469,7 @@ static char ** cdda_class_get_autoplay_list (input_class_t *this_gen,
 #endif /* WIN32 */
 
 #ifdef LOG
-	print_cdrom_toc(toc);
+    print_cdrom_toc(toc);
 #endif
 
   cdda_close(ip);  
@@ -2532,9 +2503,7 @@ static input_plugin_t *cdda_class_get_instance (input_class_t *cls_gen, xine_str
   xine_cfg_entry_t     enable_entry, server_entry, port_entry, cachedir_entry;
   char                *cdda_device = NULL;
 
-#ifdef LOG
-  printf("cdda_class_get_instance\n");
-#endif
+  lprintf("cdda_class_get_instance\n");
 
   /* fetch the CD track to play */
   if (!strncasecmp (mrl, "cdda:/", 6)) {

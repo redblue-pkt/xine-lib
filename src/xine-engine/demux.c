@@ -20,7 +20,7 @@
  * Demuxer helper functions
  * hide some xine engine details from demuxers and reduce code duplication
  *
- * $Id: demux.c,v 1.41 2003/11/20 00:42:14 tmattern Exp $ 
+ * $Id: demux.c,v 1.42 2003/11/26 19:43:38 f1rmb Exp $ 
  */
 
 
@@ -35,6 +35,12 @@
 
 #define XINE_ENGINE_INTERNAL
 
+#define LOG_MODULE "demux"
+#define LOG_VERBOSE
+/*
+#define LOG
+*/
+
 #include "xine_internal.h"
 #include "demuxers/demux.h"
 #include "buffer.h"
@@ -47,10 +53,6 @@
 #undef MIN
 #endif
 #define MIN(a,b) ( (a) < (b) ) ? (a) : (b)
-
-/*
-#define LOG
-*/
 
 /* 
  *  Flush audio and video buffers. It is called from demuxers on
@@ -150,20 +152,20 @@ void _x_demux_control_headers_done (xine_stream_t *stream) {
 	 (stream->header_count_video<header_count_video)) {
     struct timeval tv;
     struct timespec ts;
-#ifdef LOG
-    printf ("xine: waiting for headers. v:%d %d   a:%d %d\n",
-            stream->header_count_video, header_count_video,
-            stream->header_count_audio, header_count_audio); 
-#endif
+
+    lprintf ("waiting for headers. v:%d %d   a:%d %d\n",
+	     stream->header_count_video, header_count_video,
+	     stream->header_count_audio, header_count_audio); 
+
     gettimeofday(&tv, NULL);
     ts.tv_sec  = tv.tv_sec + 1;
     ts.tv_nsec = tv.tv_usec * 1000;
     /* use timedwait to workaround buggy pthread broadcast implementations */
     pthread_cond_timedwait (&stream->counter_changed, &stream->counter_lock, &ts);
   }
-#ifdef LOG
-  printf ("xine: headers processed.\n");
-#endif
+
+  lprintf ("headers processed.\n");
+
   pthread_mutex_unlock (&stream->counter_lock);
 }
 
@@ -215,9 +217,7 @@ static void *demux_loop (void *stream_gen) {
   xine_stream_t *stream = (xine_stream_t *)stream_gen;
   int status;
 
-#ifdef LOG
-  printf ("demux: loop starting...\n");
-#endif
+  lprintf ("loop starting...\n");
 
   pthread_mutex_lock( &stream->demux_lock );
 
@@ -233,17 +233,15 @@ static void *demux_loop (void *stream_gen) {
       /* someone may want to interrupt us */
       if( stream->demux_action_pending ) {
         pthread_mutex_unlock( &stream->demux_lock );
-#ifdef LOG
-        printf ("demux: sched_yield\n");
-#endif
+
+        lprintf ("sched_yield\n");
+
         sched_yield();
         pthread_mutex_lock( &stream->demux_lock );
       }
     }
 
-#ifdef LOG
-    printf ("demux: main demuxer loop finished (status: %d)\n", status);
-#endif
+    lprintf ("main demuxer loop finished (status: %d)\n", status);
 
     /* tell to the net_buf_ctrl that we are at the end of the stream
      * then the net_buf_ctrl will not pause
@@ -263,9 +261,7 @@ static void *demux_loop (void *stream_gen) {
 
   } while( status == DEMUX_OK && stream->demux_thread_running );
 
-#ifdef LOG
-  printf ("demux: loop finished (status: %d)\n", status);
-#endif
+  lprintf ("loop finished (status: %d)\n", status);
 
   /* demux_thread_running is zero if demux loop has being stopped by user */
   if (stream->demux_thread_running) {
@@ -274,9 +270,8 @@ static void *demux_loop (void *stream_gen) {
     _x_demux_control_end(stream, BUF_FLAG_END_USER);
   }
 
-#ifdef LOG
-  printf ("demux: loop finished, end buffer sent\n");
-#endif
+  lprintf ("loop finished, end buffer sent\n");
+
   stream->demux_thread_running = 0;
 
   pthread_mutex_unlock( &stream->demux_lock );
@@ -288,9 +283,7 @@ int _x_demux_start_thread (xine_stream_t *stream) {
 
   int err;
   
-#ifdef LOG
-  printf ("demux: start thread called\n");
-#endif
+  lprintf ("start thread called\n");
   
   stream->demux_action_pending = 1;
   pthread_mutex_lock( &stream->demux_lock );
@@ -315,9 +308,7 @@ int _x_demux_stop_thread (xine_stream_t *stream) {
   
   void *p;
   
-#ifdef LOG
-  printf ("demux: stop thread called\n");
-#endif
+  lprintf ("stop thread called\n");
   
   stream->demux_action_pending = 1;
   pthread_mutex_lock( &stream->demux_lock );
@@ -325,9 +316,7 @@ int _x_demux_stop_thread (xine_stream_t *stream) {
   stream->demux_action_pending = 0;
   pthread_mutex_unlock( &stream->demux_lock );
 
-#ifdef LOG
-  printf ("demux: joining thread %ld\n", stream->demux_thread );
-#endif
+  lprintf ("joining thread %ld\n", stream->demux_thread );
   
   /* FIXME: counter_lock isn't meant to protect demux_thread update.
      however we can't use demux_lock here. should we create a new lock? */

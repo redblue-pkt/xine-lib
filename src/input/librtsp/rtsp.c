@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: rtsp.c,v 1.11 2003/11/11 18:44:54 f1rmb Exp $
+ * $Id: rtsp.c,v 1.12 2003/11/26 19:43:31 f1rmb Exp $
  *
  * a minimalistic implementation of rtsp protocol,
  * *not* RFC 2326 compilant yet.
@@ -38,11 +38,14 @@
 #include <sys/time.h>
 #include <sys/types.h>
 
-#include "rtsp.h"
-
+#define LOG_MODULE "rtsp"
+#define LOG_VERBOSE
 /*
 #define LOG
 */
+
+#include "rtsp.h"
+#include "xineutils.h"
 
 #define BUF_SIZE 4096
 #define HEADER_SIZE 1024
@@ -276,10 +279,7 @@ static char *rtsp_get(rtsp_t *s) {
   memcpy(string,s->buffer,n-1);
   string[n-1]=0;
 
-#ifdef LOG
-  printf("librtsp: << '%s'\n", string);
-#endif
-  
+  lprintf("<< '%s'\n", string);
 
   return string;
 }
@@ -293,9 +293,7 @@ static void rtsp_put(rtsp_t *s, const char *string) {
   int len=strlen(string);
   char *buf=malloc(sizeof(char)*len+2);
 
-#ifdef LOG
-  printf("librtsp: >> '%s'", string);
-#endif
+  lprintf(">> '%s'", string);
 
   memcpy(buf,string,len);
   buf[len]=0x0d;
@@ -303,9 +301,7 @@ static void rtsp_put(rtsp_t *s, const char *string) {
 
   write_stream(s->s, buf, len+2);
   
-#ifdef LOG
-  printf(" done.\n");
-#endif
+  lprintf("done.\n");
 
   free(buf);
 }
@@ -389,9 +385,8 @@ static int rtsp_get_answers(rtsp_t *s) {
     if (!strncmp(answer,"Cseq:",5)) {
       sscanf(answer,"Cseq: %u",&answer_seq);
       if (s->cseq != answer_seq) {
-#ifdef LOG
-        printf("librtsp: warning: Cseq mismatch. got %u, assumed %u", answer_seq, s->cseq);
-#endif
+        lprintf("warning: Cseq mismatch. got %u, assumed %u", answer_seq, s->cseq);
+
         s->cseq=answer_seq;
       }
     }
@@ -411,9 +406,8 @@ static int rtsp_get_answers(rtsp_t *s) {
         }
       } else
       {
-#ifdef LOG
-        printf("rtsp: setting session id to: %s\n", s->buffer);
-#endif
+        lprintf("setting session id to: %s\n", s->buffer);
+
         s->session=strdup(s->buffer);
       }
     }
@@ -556,9 +550,8 @@ int rtsp_read_data(rtsp_t *s, char *buffer, unsigned int size) {
       } while (strlen(rest)!=0);
       free(rest);
       if (seq<0) {
-#ifdef LOG
-        printf("rtsp: warning: cseq not recognized!\n");
-#endif
+        lprintf("warning: cseq not recognized!\n");
+
         seq=1;
       }
       /* lets make the server happy */
@@ -575,9 +568,8 @@ int rtsp_read_data(rtsp_t *s, char *buffer, unsigned int size) {
     }
   } else
     i=read_stream(s, buffer, size);
-#ifdef LOG
-  printf("librtsp: << %d of %d bytes\n", i, size);
-#endif
+
+  lprintf("<< %d of %d bytes\n", i, size);
 
   return i;
 }
@@ -646,9 +638,9 @@ rtsp_t *rtsp_connect(xine_stream_t *stream, const char *mrl, const char *user_ag
     s->buffer[pathbegin-hostend-1]=0;
     s->port=atoi(s->buffer);
   }
-#ifdef LOG
-  printf("got mrl: %s %i %s\n",s->host,s->port,s->path);
-#endif
+
+  lprintf("got mrl: %s %i %s\n",s->host,s->port,s->path);
+
   s->s = host_connect (s->host, s->port);
 
   if (s->s < 0) {

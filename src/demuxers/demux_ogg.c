@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_ogg.c,v 1.116 2003/11/16 23:33:43 f1rmb Exp $
+ * $Id: demux_ogg.c,v 1.117 2003/11/26 19:43:30 f1rmb Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -52,10 +52,11 @@
 #include <theora/theora.h>
 #endif
 
-/********** logging **********/
 #define LOG_MODULE "demux_ogg"
-/* #define LOG_VERBOSE */
-/* #define LOG */
+#define LOG_VERBOSE
+/*
+#define LOG
+*/
 
 #include "xine_internal.h"
 #include "xineutils.h"
@@ -1160,12 +1161,10 @@ static void demux_ogg_send_header (demux_ogg_t *this) {
 		                   ((int64_t) this->t_info.aspect_numerator * 10000) /
 	                           this->t_info.aspect_denominator);
 
-#ifdef LOG
-	    printf ("demux_ogg: decoded theora header \n");
-	    printf ("           frameduration %d\n",this->frame_duration);
-	    printf ("           w:%d h:%d \n",this->t_info.frame_width,this->t_info.frame_height);
-	    printf ("           an:%d ad:%d \n",this->t_info.aspect_numerator,this->t_info.aspect_denominator);
-#endif
+	    lprintf ("decoded theora header \n");
+	    lprintf ("frameduration %d\n",this->frame_duration);
+	    lprintf ("w:%d h:%d \n",this->t_info.frame_width,this->t_info.frame_height);
+	    lprintf ("an:%d ad:%d \n",this->t_info.aspect_numerator,this->t_info.aspect_denominator);
 	  } else {
 	    /*Rejected stream*/
 	    xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
@@ -1283,7 +1282,7 @@ static void demux_ogg_send_content (demux_ogg_t *this) {
 	this->header_granulepos[stream_num]=op.granulepos;
 	lprintf ("header with granulepos, remembering granulepos\n");
       } else {
-	lprintf ("demux_ogg: header => discard\n");
+	lprintf ("header => discard\n");
       }
       continue;
     }

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ts.c,v 1.96 2003/11/16 23:33:43 f1rmb Exp $
+ * $Id: demux_ts.c,v 1.97 2003/11/26 19:43:31 f1rmb Exp $
  *
  * Demultiplexer for MPEG2 Transport Streams.
  *
@@ -136,6 +136,12 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <string.h>
+
+#define LOG_MODULE "demux_ts"
+#define LOG_VERBOSE
+/*
+#define LOG
+*/
 
 #include "xine_internal.h"
 #include "xineutils.h"
@@ -642,10 +648,9 @@ static int demux_ts_parse_pes_header (demux_ts_media *m,
 
     int track, spu_id;
       
-#ifdef LOG
-    printf ("demux_ts: audio buf = %02X %02X %02X %02X %02X %02X %02X %02X\n",
-	    p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7]);
-#endif
+    lprintf ("audio buf = %02X %02X %02X %02X %02X %02X %02X %02X\n",
+	     p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7]);
+
     track = p[0] & 0x0F; /* hack : ac3 track */
     /*
      * we check the descriptor tag first because some stations

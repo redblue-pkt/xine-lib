@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.30 2003/11/16 23:33:47 f1rmb Exp $
+ * $Id: xine_decoder.c,v 1.31 2003/11/26 19:43:36 f1rmb Exp $
  *
  * (ogg/)vorbis audio decoder plugin (libvorbis wrapper) for xine
  */
@@ -29,6 +29,12 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define LOG_MODULE "vorbis_decoder"
+#define LOG_VERBOSE
+/*
+#define LOG
+*/
+
 #include "xine_internal.h"
 #include "audio_out.h"
 #include "buffer.h"
@@ -37,10 +43,6 @@
 #include <vorbis/codec.h>
 
 #define MAX_NUM_SAMPLES 4096
-
-/*
-#define LOG
-*/
 
 typedef struct {
   audio_decoder_class_t   decoder_class;
@@ -107,19 +109,15 @@ static void get_metadata (vorbis_decoder_t *this) {
     char *comment = *ptr;
     int i;
 
-#ifdef LOG
-    printf("libvorbis: %s\n", comment);
-#endif
+    lprintf("%s\n", comment);
 
     for (i = 0; vorbis_comment_keys[i].key != NULL; i++) {
 
       if ( !strncasecmp (vorbis_comment_keys[i].key, comment,
 			 strlen(vorbis_comment_keys[i].key)) ) {
 
-#ifdef LOG
-	printf ("libvorbis: known metadata %d %d\n",
-		i, vorbis_comment_keys[i].xine_metainfo_index);
-#endif
+	lprintf ("known metadata %d %d\n",
+		 i, vorbis_comment_keys[i].xine_metainfo_index);
 
         _x_meta_info_set(this->stream, vorbis_comment_keys[i].xine_metainfo_index,
 	  comment + strlen(vorbis_comment_keys[i].key));
@@ -137,15 +135,12 @@ static void vorbis_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
   vorbis_decoder_t *this = (vorbis_decoder_t *) this_gen;
   ogg_packet *op = (ogg_packet *) buf->content;
 
-#ifdef LOG
-  printf ("libvorbis: decode buf=%08x content=%08x op=%08x packet=%08x flags=%08x\n",
-	  buf, buf->content, op, op->packet, buf->decoder_flags);
-#endif
+  lprintf ("decode buf=%08x content=%08x op=%08x packet=%08x flags=%08x\n",
+	   buf, buf->content, op, op->packet, buf->decoder_flags);
   
   if (buf->decoder_flags & BUF_FLAG_PREVIEW) {
-#ifdef LOG
-    printf ("libvorbis: preview buffer, %d headers to go\n", this->header_count);
-#endif
+    lprintf ("preview buffer, %d headers to go\n", this->header_count);
+
     if (this->header_count) {
 
       if(vorbis_synthesis_headerin(&this->vi,&this->vc,op)<0){ 

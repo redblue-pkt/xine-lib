@@ -45,14 +45,16 @@
 #include "dvb/dmx.h"
 #include "dvb/frontend.h"
 
+#define LOG_MODULE "input_dvb"
+#define LOG_VERBOSE
+/*
+#define LOG
+*/
+
 #include "xine_internal.h"
 #include "xineutils.h"
 #include "input_plugin.h"
 #include "net_buf_ctrl.h"
-
-/*
-#define LOG
-*/
 
 /* comment this out to have audio-only streams in the menu as well */
 /* workaround for xine's unability to handle audio-only ts streams */
@@ -471,9 +473,7 @@ static void dvb_event_handler (dvb_input_plugin_t *this) {
 
   while ((event = xine_event_get (this->event_queue))) {
 
-#ifdef LOG
-    printf ("input_dvb: got event %08x\n", event->type);
-#endif
+    lprintf ("got event %08x\n", event->type);
 
     if (this->fd<0) {
       xine_event_free (event);
@@ -539,9 +539,7 @@ static off_t dvb_plugin_read (input_plugin_t *this_gen,
 
   dvb_event_handler (this);
 
-#ifdef LOG
-  printf ("input_dvb: reading %lld bytes...\n", len);
-#endif
+  lprintf ("reading %lld bytes...\n", len);
 
   nbc_check_buffers (this->nbc);
 
@@ -550,10 +548,7 @@ static off_t dvb_plugin_read (input_plugin_t *this_gen,
   while (total<len){ 
     n = read (this->fd, &buf[total], len-total);
 
-#ifdef LOG
-    printf ("input_dvb: got %lld bytes (%lld/%lld bytes read)\n",
-	    n,total,len);
-#endif
+    lprintf ("got %lld bytes (%lld/%lld bytes read)\n", n,total,len);
   
     if (n > 0){
       this->curpos += n;
@@ -598,10 +593,7 @@ static off_t dvb_plugin_seek (input_plugin_t *this_gen, off_t offset,
 
   dvb_input_plugin_t *this = (dvb_input_plugin_t *) this_gen;
 
-#ifdef LOG
-  printf ("input_dvb: seek %lld bytes, origin %d\n",
-	  offset, origin);
-#endif
+  lprintf ("seek %lld bytes, origin %d\n", offset, origin);
 
   /* only relative forward-seeking is implemented */
 
@@ -867,9 +859,7 @@ static channel_t *load_channels (int *num_ch, fe_type_t fe_type) {
 
     channels[num_channels].apid = strtoul(field, NULL, 0);
 
-#ifdef LOG
-    printf ("input: dvb channel %s loaded\n", channels[num_channels].name);
-#endif
+    lprintf ("dvb channel %s loaded\n", channels[num_channels].name);
 
     num_channels++;
   }
@@ -1048,9 +1038,7 @@ static void *init_class (xine_t *xine, void *data) {
   this->mrls[0] = "dvb://";
   this->mrls[1] = 0;
 
-#ifdef LOG
-  printf ("input_dvb: init class succeeded\n");
-#endif
+  lprintf ("init class succeeded\n");
 
   return this;
 }

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: image.c,v 1.9 2003/11/16 23:33:48 f1rmb Exp $
+ * $Id: image.c,v 1.10 2003/11/26 19:43:37 f1rmb Exp $
  *
  * a image video decoder
  */
@@ -32,14 +32,16 @@
 
 #include <png.h>
 
+#define LOG_MODULE "image_video_decoder"
+#define LOG_VERBOSE
+/*
+#define LOG
+*/
+
 #include "xine_internal.h"
 #include "bswap.h"
 #include "video_out.h"
 #include "buffer.h"
-
-/*
-#define LOG
-*/
 
 typedef struct {
   video_decoder_class_t   decoder_class;
@@ -141,9 +143,7 @@ static void info_callback(png_structp png_ptr, png_infop info_ptr) {
   int i;
   image_decoder_t *this = png_get_progressive_ptr(png_ptr);
 
-#ifdef LOG
-  printf("image: png info cb\n");
-#endif
+  lprintf("png info cb\n");
   png_get_IHDR(png_ptr, info_ptr, &this->width, &this->height,
        &this->bit_depth, &this->color_type, &this->interlace_type,
        &this->compression_type, &this->filter_type);
@@ -221,9 +221,7 @@ static void end_callback(png_structp png_ptr, png_infop info) {
   
   image_decoder_t *this = png_get_progressive_ptr(png_ptr);
   finalize_png_reader(this);
-#ifdef LOG
-  printf("image: png end cb\n");
-#endif
+  lprintf("png end cb\n");
     
   if (this->rows_valid) {
     img = this->stream->video_out->get_frame (this->stream->video_out, this->width,
@@ -286,15 +284,12 @@ static void image_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
     }
   }
   if (!this->video_open) {
-#ifdef LOG
-    printf("image: opening video\n");
-#endif
+    lprintf("opening video\n");
     this->stream->video_out->open(this->stream->video_out, this->stream);
     this->video_open = 1;
   }
-#ifdef LOG
-  printf("image: have to decode data\n");
-#endif
+
+  lprintf("have to decode data\n");
 
   this->pts = buf->pts;
   if (process_data(this, buf->content, buf->size) < 0)
@@ -336,16 +331,13 @@ static void image_dispose (video_decoder_t *this_gen) {
   image_decoder_t *this = (image_decoder_t *) this_gen;
 
   if (this->video_open) {
-#ifdef LOG
-    printf("image: closing video\n");
-#endif
+    lprintf("closing video\n");
+
     this->stream->video_out->close(this->stream->video_out, this->stream);
     this->video_open = 0;
   }
 
-#ifdef LOG
-  printf("image: closed\n");
-#endif
+  lprintf("closed\n");
   free (this);
 }
 
@@ -356,9 +348,7 @@ static video_decoder_t *open_plugin (video_decoder_class_t *class_gen,
   image_class_t   *cls = (image_class_t *) class_gen;
   image_decoder_t *this;
 
-#ifdef LOG
-  printf("image: opened\n");
-#endif
+  lprintf("opened\n");
 
   this = (image_decoder_t *) xine_xmalloc (sizeof (image_decoder_t));
 
@@ -396,9 +386,7 @@ static char *get_description (video_decoder_class_t *this) {
 static void dispose_class (video_decoder_class_t *this_gen) {
   image_class_t   *this = (image_class_t *) this_gen;
 
-#ifdef LOG
-  printf("image: class closed\n");
-#endif
+  lprintf("class closed\n");
   
   free (this);
 }
@@ -419,9 +407,7 @@ static void *init_class (xine_t *xine, void *data) {
    * initialisation of privates
    */
 
-#ifdef LOG
-  printf("image: class opened\n");
-#endif
+  lprintf("class opened\n");
     
   return this;
 }

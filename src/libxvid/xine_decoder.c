@@ -33,17 +33,18 @@
 #include <pthread.h>
 #include <xvid.h>
 
+#define LOG_MODULE "xvid_decoder"
+#define LOG_VERBOSE
+/*
+#define LOG
+*/
+
 #include "bswap.h"
 #include "xine_internal.h"
 #include "buffer.h"
 #include "xine-utils/xineutils.h"
 
 #define	VIDEOBUFSIZE	128 * 1024
-
-/*
-#define LOG
-*/
-
 
 typedef struct xvid_decoder_s {
     video_decoder_t	video_decoder;
@@ -81,10 +82,8 @@ static void xvid_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
     int xerr;
     xvid_decoder_t *this = (xvid_decoder_t *) this_gen;
 
-#ifdef LOG
-    printf ("xvid: processing packet type = %08x, buf: %08x, buf->decoder_flags=%08x\n",
-	    buf->type, buf, buf->decoder_flags);
-#endif
+    lprintf ("processing packet type = %08x, buf: %08x, buf->decoder_flags=%08x\n",
+	     buf->type, buf, buf->decoder_flags);
     
     if (buf->decoder_flags & BUF_FLAG_HEADER) {
 	xine_bmiheader *bih;

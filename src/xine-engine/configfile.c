@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: configfile.c,v 1.56 2003/11/16 23:33:48 f1rmb Exp $
+ * $Id: configfile.c,v 1.57 2003/11/26 19:43:38 f1rmb Exp $
  *
  * config object (was: file) management - implementation
  *
@@ -34,13 +34,15 @@
 #include <stdlib.h>
 #include <string.h>
 #include "configfile.h"
-#include "xineutils.h"
-#include "xine_internal.h"
 
-/* 
+#define LOG_MODULE "configfile"
+#define LOG_VERBOSE
+/*
 #define LOG
 */
 
+#include "xineutils.h"
+#include "xine_internal.h"
 
 static int config_section_enum(const char *sect) {
   static char *known_section[] = {
@@ -159,7 +161,7 @@ static cfg_entry_t *__config_add (config_values_t *this, const char *key, int ex
   
   config_insert(this, entry);
 
-  lprintf ("configfile: add entry key=%s\n", key);
+  lprintf ("add entry key=%s\n", key);
 
   return entry;
 }
@@ -204,7 +206,7 @@ static char *__config_register_string (config_values_t *this,
   XINE_ASSERT(key, "Register key is NULL. This is a required argument.");
   XINE_ASSERT(def_value, "Default value is NULL. This is a required argument.");
 
-  lprintf ("configfile: registering %s\n", key);
+  lprintf ("registering %s\n", key);
 
   /* make sure this entry exists, create it if not */
   pthread_mutex_lock(&this->config_lock);
@@ -266,7 +268,7 @@ static int __config_register_num (config_values_t *this,
   cfg_entry_t *entry, *prev;
   XINE_ASSERT(key, "Register key is NULL. This is a required argument.");
 
-  lprintf ("configfile: registering %s\n", key);
+  lprintf ("registering %s\n", key);
 
   /* make sure this entry exists, create it if not */
   pthread_mutex_lock(&this->config_lock);
@@ -331,7 +333,7 @@ static int __config_register_bool (config_values_t *this,
   cfg_entry_t *entry, *prev;
   XINE_ASSERT(key, "Register key is NULL. This is a required argument.");
 
-  lprintf ("configfile: registering %s\n", key);
+  lprintf ("registering %s\n", key);
 
   /* make sure this entry exists, create it if not */
   pthread_mutex_lock(&this->config_lock);
@@ -397,7 +399,7 @@ static int __config_register_range (config_values_t *this,
   cfg_entry_t *entry, *prev;
   XINE_ASSERT(key, "Register key is NULL. This is a required argument.");
 
-  lprintf ("configfile: registering range %s\n", key);
+  lprintf ("registering range %s\n", key);
 
   /* make sure this entry exists, create it if not */
   pthread_mutex_lock(&this->config_lock);
@@ -462,7 +464,7 @@ static int __config_parse_enum (const char *str, char **values) {
 
   while (*value) {
 
-    lprintf ("configfile: parse enum, >%s< ?= >%s<\n", *value, str);
+    lprintf ("parse enum, >%s< ?= >%s<\n", *value, str);
 
     if (!strcmp (*value, str))
       return i;
@@ -471,7 +473,7 @@ static int __config_parse_enum (const char *str, char **values) {
     i++;
   }
 
-  lprintf ("configfile: warning, >%s< is not a valid enum here, using 0\n", str);
+  lprintf ("warning, >%s< is not a valid enum here, using 0\n", str);
 
   return 0;
 }
@@ -490,7 +492,7 @@ static int __config_register_enum (config_values_t *this,
   XINE_ASSERT(key, "Register key is NULL. This is a required argument.");
   XINE_ASSERT(values, "Argument 'values' is NULL. This is a required argument.");
 
-  lprintf ("configfile: registering enum %s\n", key);
+  lprintf ("registering enum %s\n", key);
 
   /* make sure this entry exists, create it if not */
   pthread_mutex_lock(&this->config_lock);
@@ -570,11 +572,11 @@ static void __config_update_num (config_values_t *this,
 
   entry = this->lookup_entry (this, key);
 
-  lprintf ("configfile: updating %s to %d\n", key, value);
+  lprintf ("updating %s to %d\n", key, value);
 
   if (!entry) {
 
-    lprintf ("configfile: WARNING! tried to update unknown key %s (to %d)\n", key, value);
+    lprintf ("WARNING! tried to update unknown key %s (to %d)\n", key, value);
 
     return;
 
@@ -607,7 +609,7 @@ static void __config_update_string (config_values_t *this,
   cfg_entry_t *entry;
   char *str_free = NULL;
 
-  lprintf ("configfile: updating %s to %s\n", key, value);
+  lprintf ("updating %s to %s\n", key, value);
 
   entry = this->lookup_entry (this, key);
 
@@ -651,7 +653,7 @@ void xine_config_load (xine_t *xine, const char *filename) {
   config_values_t *this = xine->config;
   FILE *f_config;
 
-  lprintf ("configfile: reading from file '%s'\n", filename);
+  lprintf ("reading from file '%s'\n", filename);
 
   f_config = fopen (filename, "r");
 
@@ -731,7 +733,7 @@ void xine_config_save (xine_t *xine, const char *filename) {
   if (stat(temp, &backup_stat) != 0) {
     char line[1024];
     
-    lprintf("configfile: backing up configfile to %s\n", temp);
+    lprintf("backing up configfile to %s\n", temp);
 
     f_backup = fopen(temp, "w");
     f_config = fopen(filename, "r");
@@ -766,7 +768,7 @@ void xine_config_save (xine_t *xine, const char *filename) {
     return;
   }
   
-  lprintf ("configfile: writing config file to %s\n", filename);
+  lprintf ("writing config file to %s\n", filename);
 
   f_config = fopen(filename, "w");
       
@@ -784,7 +786,7 @@ void xine_config_save (xine_t *xine, const char *filename) {
 
     while (entry) {
 
-      lprintf ("configfile: saving key '%s'\n", entry->key);
+      lprintf ("saving key '%s'\n", entry->key);
 
       if (entry->description)
 	fprintf (f_config, "# %s\n", entry->description);
@@ -878,7 +880,7 @@ static void __config_dispose (config_values_t *this) {
   pthread_mutex_lock(&this->config_lock);
   entry = this->first;
 
-  lprintf ("configfile: dispose\n");
+  lprintf ("dispose\n");
 
   while (entry) {
     last = entry;
@@ -958,7 +960,7 @@ int _x_config_change_opt(config_values_t *config, const char *opt) {
   cfg_entry_t *entry;
   int          handled = 0;
 
-  lprintf ("configfile: change_opt '%s'\n", opt);
+  lprintf ("change_opt '%s'\n", opt);
 
   if(config && opt) {
     char *key, *value;

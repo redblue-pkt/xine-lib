@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_sdl.c,v 1.32 2003/11/26 01:03:32 miguelfreitas Exp $
+ * $Id: video_out_sdl.c,v 1.33 2003/11/26 19:43:37 f1rmb Exp $
  *
  * video_out_sdl.c, Simple DirectMedia Layer
  *
@@ -53,6 +53,12 @@
 # include <SDL/SDL.h>
 #endif
 
+#define LOG_MODULE "video_out_sdl"
+#define LOG_VERBOSE
+/*
+#define LOG
+*/
+
 #include "xine.h"
 #include "xine_internal.h"
 #include "video_out.h"
@@ -63,10 +69,6 @@
 #ifdef HAVE_X11
 #include <X11/Xlib.h>
 #endif
-
-/*
-#define SDL_LOG
-*/
 
 typedef struct sdl_driver_s sdl_driver_t;
 
@@ -164,11 +166,9 @@ static void sdl_compute_output_size (sdl_driver_t *this) {
 
   _x_vo_scale_compute_output_size( &this->sc );
 
-#ifdef LOG
-  printf ("video_out_sdl: frame source %d x %d => screen output %d x %d\n",
-	  this->sc.delivered_width, this->sc.delivered_height,
-	  this->sc.output_width, this->sc.output_height);
-#endif
+  lprintf ("frame source %d x %d => screen output %d x %d\n",
+	   this->sc.delivered_width, this->sc.delivered_height,
+	   this->sc.output_width, this->sc.output_height);
 }
 
 
@@ -194,16 +194,12 @@ static void sdl_update_frame_format (vo_driver_t *this_gen,
     }
 
     if( format == XINE_IMGFMT_YV12 ) {
-#ifdef SDL_LOG
-      printf ("video_out_sdl: format YV12 ");
-#endif
+      lprintf ("format YV12 ");
       frame->overlay = SDL_CreateYUVOverlay (width, height, SDL_YV12_OVERLAY,
 					     this->surface);
 
     } else if( format == XINE_IMGFMT_YUY2 ) {
-#ifdef SDL_LOG
-      printf ("video_out_sdl: format YUY2 ");
-#endif
+      lprintf ("format YUY2 ");
       frame->overlay = SDL_CreateYUVOverlay (width, height, SDL_YUY2_OVERLAY,
 					     this->surface);
     }
@@ -404,9 +400,7 @@ static int sdl_gui_data_exchange (vo_driver_t *this_gen,
   switch (data_type) {
 
   case XINE_GUI_SEND_DRAWABLE_CHANGED:
-#ifdef SDL_LOG
-      printf ("video_out_sdl: XINE_GUI_SEND_DRAWABLE_CHANGED\n");
-#endif
+    lprintf ("XINE_GUI_SEND_DRAWABLE_CHANGED\n");
 
     this->drawable = (Drawable) data;
     /* OOPS! Is it possible to change SDL window id? */
@@ -414,9 +408,7 @@ static int sdl_gui_data_exchange (vo_driver_t *this_gen,
     break;
 
   case XINE_GUI_SEND_EXPOSE_EVENT:
-#ifdef SDL_LOG
-      printf ("video_out_sdl: XINE_GUI_SEND_EXPOSE_EVENT\n");
-#endif
+    lprintf ("XINE_GUI_SEND_EXPOSE_EVENT\n");
     break;
 
   case XINE_GUI_SEND_TRANSLATE_GUI_TO_VIDEO:

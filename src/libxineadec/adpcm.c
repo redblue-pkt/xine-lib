@@ -31,7 +31,7 @@
  *   this is also useful for extracting streams from Playstation discs
  *
  *
- * $Id: adpcm.c,v 1.33 2003/11/16 23:33:47 f1rmb Exp $
+ * $Id: adpcm.c,v 1.34 2003/11/26 19:43:37 f1rmb Exp $
  */
 
 #include <stdio.h>
@@ -39,6 +39,12 @@
 #include <string.h>
 #include <sys/types.h>
 #include <unistd.h>
+
+#define LOG_MODULE "adpcm_audio_decoder"
+#define LOG_VERBOSE
+/*
+#define LOG
+*/
 
 #include "xine_internal.h"
 #include "video_out.h"
@@ -275,9 +281,7 @@ static void dk3_adpcm_decode_block(adpcm_decoder_t *this, buf_element_t *buf) {
 
   /* make sure the input size checks out */
   if ((this->size % this->in_block_size) != 0) {
-#ifdef LOG
-    printf ("adpcm: received DK3 ADPCM block that does not line up\n");
-#endif
+    lprintf ("received DK3 ADPCM block that does not line up\n");
     this->size = 0;
     return;
   }
@@ -383,9 +387,7 @@ static void dk3_adpcm_decode_block(adpcm_decoder_t *this, buf_element_t *buf) {
     while (j < out_ptr) {
       audio_buffer = this->stream->audio_out->get_buffer (this->stream->audio_out);
       if (audio_buffer->mem_size == 0) {
-#ifdef LOG
-        printf ("adpcm: Help! Allocated audio buffer with nothing in it!\n");
-#endif
+        lprintf ("Help! Allocated audio buffer with nothing in it!\n");
         return;
       }
 
@@ -426,9 +428,7 @@ static void dk4_adpcm_decode_block(adpcm_decoder_t *this, buf_element_t *buf) {
 
   /* make sure the input size checks out */
   if ((this->size % this->in_block_size) != 0) {
-#ifdef LOG
-    printf ("adpcm: received DK4 ADPCM block that does not line up\n");
-#endif
+    lprintf ("received DK4 ADPCM block that does not line up\n");
     this->size = 0;
     return;
   }
@@ -468,9 +468,7 @@ static void dk4_adpcm_decode_block(adpcm_decoder_t *this, buf_element_t *buf) {
     while (j < out_ptr) {
       audio_buffer = this->stream->audio_out->get_buffer (this->stream->audio_out);
       if (audio_buffer->mem_size == 0) {
-#ifdef LOG
-        printf ("adpcm: Help! Allocated audio buffer with nothing in it!\n");
-#endif
+        lprintf ("Help! Allocated audio buffer with nothing in it!\n");
         return;
       }
 
@@ -515,9 +513,7 @@ static void ms_ima_adpcm_decode_block(adpcm_decoder_t *this,
 
   /* check the size */
   if ((this->size % this->in_block_size) != 0) {
-#ifdef LOG
-    printf ("adpcm: received MS IMA block that does not line up\n");
-#endif
+    lprintf ("received MS IMA block that does not line up\n");
     this->size = 0;
     return;
   }
@@ -582,9 +578,7 @@ static void ms_ima_adpcm_decode_block(adpcm_decoder_t *this,
     while (j < this->out_block_size) {
       audio_buffer = this->stream->audio_out->get_buffer (this->stream->audio_out);
       if (audio_buffer->mem_size == 0) {
-#ifdef LOG
-        printf ("adpcm: Help! Allocated audio buffer with nothing in it!\n");
-#endif
+        lprintf ("Help! Allocated audio buffer with nothing in it!\n");
         return;
       }
 
@@ -627,9 +621,7 @@ static void qt_ima_adpcm_decode_block(adpcm_decoder_t *this,
 
   /* check the size */
   if ((this->size % (QT_IMA_ADPCM_BLOCK_SIZE * this->channels) != 0)) {
-#ifdef LOG
-    printf ("adpcm: received QT IMA block that does not line up\n");
-#endif
+    lprintf ("received QT IMA block that does not line up\n");
     this->size = 0;
     return;
   }
@@ -738,9 +730,7 @@ static void ms_adpcm_decode_block(adpcm_decoder_t *this, buf_element_t *buf) {
 
   /* make sure the input size checks out */
   if ((this->size % this->in_block_size) != 0) {
-#ifdef LOG
-    printf ("adpcm: received MS ADPCM block that does not line up\n");
-#endif
+    lprintf ("received MS ADPCM block that does not line up\n");
     this->size = 0;
     return;
   }
@@ -763,11 +753,8 @@ static void ms_adpcm_decode_block(adpcm_decoder_t *this, buf_element_t *buf) {
     j++;
     if (this->channels == 2) {
       if (this->buf[j] > 6) {
-#ifdef LOG
-        printf(
-               "MS ADPCM: coefficient (%d) out of range (should be [0..6])\n",
-	       this->buf[j]);
-#endif
+        lprintf("MS ADPCM: coefficient (%d) out of range (should be [0..6])\n",
+		this->buf[j]);
       }
       coeff1[1] = ms_adapt_coeff1[this->buf[j]];
       coeff2[1] = ms_adapt_coeff2[this->buf[j]];
@@ -845,9 +832,7 @@ static void ms_adpcm_decode_block(adpcm_decoder_t *this, buf_element_t *buf) {
     while (j < out_ptr) {
       audio_buffer = this->stream->audio_out->get_buffer (this->stream->audio_out);
       if (audio_buffer->mem_size == 0) {
-#ifdef LOG
-        printf ("adpcm: Help! Allocated audio buffer with nothing in it!\n");
-#endif
+        lprintf ("Help! Allocated audio buffer with nothing in it!\n");
         return;
       }
 
@@ -919,9 +904,7 @@ static void smjpeg_adpcm_decode_block(adpcm_decoder_t *this, buf_element_t *buf)
   while (i < out_ptr) {
     audio_buffer = this->stream->audio_out->get_buffer (this->stream->audio_out);
     if (audio_buffer->mem_size == 0) {
-#ifdef LOG
-      printf ("adpcm: Help! Allocated audio buffer with nothing in it!\n");
-#endif
+      lprintf ("Help! Allocated audio buffer with nothing in it!\n");
       return;
     }
 
@@ -994,9 +977,7 @@ static void vqa_adpcm_decode_block(adpcm_decoder_t *this, buf_element_t *buf) {
   while (i < out_ptr) {
     audio_buffer = this->stream->audio_out->get_buffer (this->stream->audio_out);
     if (audio_buffer->mem_size == 0) {
-#ifdef LOG
-      printf ("adpcm: Help! Allocated audio buffer with nothing in it!\n");
-#endif
+      lprintf ("Help! Allocated audio buffer with nothing in it!\n");
       return;
     }
 
@@ -1090,9 +1071,7 @@ static void ea_adpcm_decode_block(adpcm_decoder_t *this, buf_element_t *buf) {
 
     audio_buffer = this->stream->audio_out->get_buffer(this->stream->audio_out);
     if (audio_buffer->mem_size == 0) {
-#ifdef LOG
-      printf ("adpcm: Help! Allocated audio buffer with nothing in it!\n");
-#endif
+      lprintf ("Help! Allocated audio buffer with nothing in it!\n");
       return;
     }
 
@@ -1361,9 +1340,7 @@ static void xa_adpcm_decode_block(adpcm_decoder_t *this, buf_element_t *buf) {
 
     audio_buffer= this->stream->audio_out->get_buffer(this->stream->audio_out);
     if (audio_buffer->mem_size == 0) {
-#ifdef LOG
-      printf ("adpcm: Help! Allocated audio buffer with nothing in it!\n");
-#endif
+      lprintf ("Help! Allocated audio buffer with nothing in it!\n");
       return;
     }
 
@@ -1540,10 +1517,8 @@ static void adpcm_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
   }
 
   if (!this->output_open) {
-#ifdef LOG
-      printf ("adpcm: opening audio output (%d Hz sampling rate, mode=%d)\n",
-              this->rate, this->ao_cap_mode);
-#endif
+    lprintf ("opening audio output (%d Hz sampling rate, mode=%d)\n",
+	     this->rate, this->ao_cap_mode);
     this->output_open = this->stream->audio_out->open (this->stream->audio_out,
       this->stream, this->bits_per_sample, this->rate, this->ao_cap_mode);
   }
@@ -1555,10 +1530,8 @@ static void adpcm_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
   /* accumulate compressed audio data */
   if( this->size + buf->size > this->bufsize ) {
     this->bufsize = this->size + 2 * buf->size;
-#ifdef LOG
-      printf("adpcm: increasing source buffer to %d to avoid overflow.\n",
-        this->bufsize);
-#endif
+    lprintf("increasing source buffer to %d to avoid overflow.\n",
+	    this->bufsize);
     this->buf = realloc( this->buf, this->bufsize );
   }
 

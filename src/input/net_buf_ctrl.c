@@ -98,7 +98,9 @@ static void report_progress (xine_stream_t *stream, int p) {
 }
 
 static void nbc_set_speed_pause (xine_stream_t *stream) {
-  lprintf("\nnet_buf_ctrl: nbc_put_cb: set_speed_pause\n");
+#ifdef LOG
+  printf("\nnet_buf_ctrl: nbc_put_cb: set_speed_pause\n");
+#endif
   stream->xine->clock->set_speed (stream->xine->clock, XINE_SPEED_PAUSE);
   stream->xine->clock->set_option (stream->xine->clock, CLOCK_SCR_ADJUSTABLE, 0);
   if (stream->audio_out)
@@ -106,7 +108,9 @@ static void nbc_set_speed_pause (xine_stream_t *stream) {
 }
 
 static void nbc_set_speed_normal (xine_stream_t *stream) {
-  lprintf("\nnet_buf_ctrl: nbc_put_cb: set_speed_normal\n");
+#ifdef LOG
+  printf("\nnet_buf_ctrl: nbc_put_cb: set_speed_normal\n");
+#endif
   stream->xine->clock->set_speed (stream->xine->clock, XINE_SPEED_NORMAL);
   stream->xine->clock->set_option (stream->xine->clock, CLOCK_SCR_ADJUSTABLE, 1);
   if (stream->audio_out)
@@ -361,10 +365,14 @@ static void nbc_put_cb (fifo_buffer_t *fifo,
         /* discontinuity management */
         if (fifo == this->video_fifo) {
           this->video_in_disc++;
-          lprintf("\nnet_buf_ctrl: nbc_put_cb video disc %d\n", this->video_in_disc);
+#ifdef LOG
+          printf("\nnet_buf_ctrl: nbc_put_cb video disc %d\n", this->video_in_disc);
+#endif
         } else {
           this->audio_in_disc++;
-          lprintf("\nnet_buf_ctrl: nbc_put_cb audio disc %d\n", this->audio_in_disc);
+#ifdef LOG
+          printf("\nnet_buf_ctrl: nbc_put_cb audio disc %d\n", this->audio_in_disc);
+#endif
         }
         break;
     }
@@ -434,10 +442,14 @@ static void nbc_get_cb (fifo_buffer_t *fifo,
     if (buf->type == BUF_CONTROL_NEWPTS) {
       if (fifo == this->video_fifo) {
         this->video_in_disc--;
-        lprintf("\nnet_buf_ctrl: nbc_get_cb video disc %d\n", this->video_in_disc);
+#ifdef LOG
+        printf("\nnet_buf_ctrl: nbc_get_cb video disc %d\n", this->video_in_disc);
+#endif
       } else {
         this->audio_in_disc--;
-        lprintf("\nnet_buf_ctrl: nbc_get_cb audio disc %d\n", this->audio_in_disc);
+#ifdef LOG
+        printf("\nnet_buf_ctrl: nbc_get_cb audio disc %d\n", this->audio_in_disc);
+#endif
       }
     }
 
@@ -459,7 +471,7 @@ nbc_t *nbc_init (xine_stream_t *stream) {
   fifo_buffer_t *video_fifo = stream->video_fifo;
   fifo_buffer_t *audio_fifo = stream->audio_fifo;
 
-  lprintf("net_buf_ctrl: nbc_init\n");
+  lprintf("nbc_init\n");
   pthread_mutex_init (&this->mutex, NULL);
 
   this->stream              = stream;
@@ -504,7 +516,9 @@ void nbc_close (nbc_t *this) {
   fifo_buffer_t *video_fifo = this->stream->video_fifo;
   fifo_buffer_t *audio_fifo = this->stream->audio_fifo;
 
-  lprintf("\nnet_buf_ctrl: nbc_close\n");
+#ifdef LOG
+  printf("\nnet_buf_ctrl: nbc_close\n");
+#endif
 
   video_fifo->unregister_alloc_cb(video_fifo, nbc_alloc_cb);
   video_fifo->unregister_put_cb(video_fifo, nbc_put_cb);
@@ -527,7 +541,9 @@ void nbc_close (nbc_t *this) {
   pthread_mutex_unlock(&this->mutex);
 
   free (this);
-  lprintf("\nnet_buf_ctrl: nbc_close: done\n");
+#ifdef LOG
+  printf("\nnet_buf_ctrl: nbc_close: done\n");
+#endif
 }
 
 

@@ -19,7 +19,7 @@
  *
  * input plugin for http network streams
  *
- * $Id: input_http.c,v 1.75 2003/11/26 08:09:58 tmattern Exp $
+ * $Id: input_http.c,v 1.76 2003/11/26 19:43:31 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -42,15 +42,17 @@
 
 #include <sys/time.h>
 
+#define LOG_MODULE "input_http"
+#define LOG_VERBOSE
+/*
+#define LOG
+*/
+
 #include "xine_internal.h"
 #include "xineutils.h"
 #include "input_plugin.h"
 #include "net_buf_ctrl.h"
 #include "http_helper.h"
-
-/*
-#define LOG
-*/
 
 #define BUFSIZE                 1024
 
@@ -216,14 +218,14 @@ static void http_plugin_read_metainf (input_plugin_t *this_gen) {
   /* get the length of the metadata */
   this_gen->read(this_gen, &len, 1);
 
-  lprintf ("input_http: http_plugin_read_metainf: len=%d\n", len);
+  lprintf ("http_plugin_read_metainf: len=%d\n", len);
   
   if (len > 0) {
     this_gen->read(this_gen, metadata_buf, len * 16);
   
     metadata_buf[len * 16] = '\0';
     
-    lprintf ("input_http: http_plugin_read_metainf: %s\n", metadata_buf);
+    lprintf ("http_plugin_read_metainf: %s\n", metadata_buf);
 
     /* Extract the title of the current song */
     if ((songtitle = strstr(metadata_buf, "StreamTitle='"))) {
@@ -235,7 +237,7 @@ static void http_plugin_read_metainf (input_plugin_t *this_gen) {
              (strcmp(songtitle, this->shoutcast_songtitle))) &&
             (strlen(songtitle) > 0)) {
 	  
-          lprintf ("input_http: http_plugin_read_metainf: songtitle: %s\n", songtitle);
+          lprintf ("http_plugin_read_metainf: songtitle: %s\n", songtitle);
           
           if (this->shoutcast_songtitle)
             free(this->shoutcast_songtitle);
@@ -288,7 +290,7 @@ static off_t http_plugin_read (input_plugin_t *this_gen,
     if (n > (nlen - num_bytes))
       n = nlen - num_bytes;
 
-    lprintf ("input_http: %lld bytes from preview (which has %lld bytes)\n", n, this->preview_size);
+    lprintf ("%lld bytes from preview (which has %lld bytes)\n", n, this->preview_size);
 
     if (this->shoutcast_mode) {
       if ((this->shoutcast_pos + n) >= this->shoutcast_metaint) {
@@ -376,7 +378,7 @@ static int read_shoutcast_header(http_input_plugin_t *this) {
 
       linenum++;
 
-      lprintf ("input_http: shoutcast answer: >%s<\n", this->buf);
+      lprintf ("shoutcast answer: >%s<\n", this->buf);
 
       if (!strncasecmp(this->buf, "icy-name:", 9)) {
         _x_meta_info_set(this->stream, XINE_META_INFO_ALBUM,
@@ -398,7 +400,7 @@ static int read_shoutcast_header(http_input_plugin_t *this) {
 
       /* metadata interval (in byte) */
       if (sscanf(this->buf, "icy-metaint:%d", &this->shoutcast_metaint) == 1) {
-        lprintf("input_http: shoutcast_metaint: %d\n", this->shoutcast_metaint);
+        lprintf("shoutcast_metaint: %d\n", this->shoutcast_metaint);
       }
 
       if (len == -1)
@@ -409,7 +411,7 @@ static int read_shoutcast_header(http_input_plugin_t *this) {
       len ++;
   }
   
-  lprintf ("input_http: end of the shoutcast header\n");
+  lprintf ("end of the shoutcast header\n");
 
   return 0;
 }
@@ -680,7 +682,7 @@ static int http_plugin_open (input_plugin_t *this_gen ) {
     return 0;
   }
 
-  lprintf ("input_http: request sent: >%s<\n", this->buf);
+  lprintf ("request sent: >%s<\n", this->buf);
 
   /* read and parse reply */
   done = 0; len = 0; linenum = 0;
@@ -708,7 +710,7 @@ static int http_plugin_open (input_plugin_t *this_gen ) {
 
       linenum++;
       
-      lprintf ("input_http: answer: >%s<\n", this->buf);
+      lprintf ("answer: >%s<\n", this->buf);
 
       if (linenum == 1) {
         int httpver, httpsub;
@@ -755,7 +757,7 @@ static int http_plugin_open (input_plugin_t *this_gen ) {
 	if (!strncasecmp(this->buf, "Location: ", 10)) {
 	  char *href = (this->buf + 10);
 	  
-	  lprintf ("input_http: trying to open target of redirection: >%s<\n", href);
+	  lprintf ("trying to open target of redirection: >%s<\n", href);
 
           free(this->mrl);
           this->mrl = strdup(href);
@@ -771,7 +773,7 @@ static int http_plugin_open (input_plugin_t *this_gen ) {
       len ++;
   }
 
-  lprintf ("input_http: end of headers\n");
+  lprintf ("end of headers\n");
 
   /*
    * fill preview buffer

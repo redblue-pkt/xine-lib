@@ -30,14 +30,15 @@
 
 #include <FLAC/stream_decoder.h>
 
+#define LOG_MODULE "flac_decoder"
+#define LOG_VERBOSE
+/*
+#define LOG
+*/
 
 #include "xine_internal.h"
 #include "audio_out.h"
 #include "buffer.h"
-
-/*
-#define LOG 1
-*/
 
 #include "demux_flac.h"
 
@@ -82,18 +83,14 @@ flac_read_callback (const FLAC__StreamDecoder *decoder,
     flac_decoder_t *this = (flac_decoder_t *)client_data;
     int number_of_bytes_to_copy;
 
-#ifdef LOG
-    printf("libflac: flac_read_callback: %d\n", *bytes);
-#endif
+    lprintf("flac_read_callback: %d\n", *bytes);
 
     if (this->buf_pos > *bytes)
         number_of_bytes_to_copy = *bytes;
     else
         number_of_bytes_to_copy = this->buf_pos;
 
-#ifdef LOG
-    printf("libflac: number_of_bytes_to_copy: %d\n", number_of_bytes_to_copy);
-#endif
+    lprintf("number_of_bytes_to_copy: %d\n", number_of_bytes_to_copy);
 
     *bytes = number_of_bytes_to_copy;
 
@@ -123,9 +120,7 @@ flac_write_callback (const FLAC__StreamDecoder *decoder,
     int16_t *data16;
     int i,j;
 
-#ifdef LOG
-    printf("libflac: flac_write_callback\n");
-#endif
+    lprintf("flac_write_callback\n");
 
     while( samples_left ) {
      
@@ -168,24 +163,22 @@ flac_metadata_callback (const FLAC__StreamDecoder *decoder,
                         const FLAC__StreamMetadata *metadata,
                         void *client_data)
 {
-    flac_decoder_t *this = (flac_decoder_t *)client_data;
+  /* flac_decoder_t *this = (flac_decoder_t *)client_data; */
+  
+  lprintf("Metadata callback called!\n");
   
 #ifdef LOG
-    printf("libflac: Metadata callback called!\n");
+  if (metadata->type == FLAC__METADATA_TYPE_STREAMINFO) {
+    printf("libflac: min_blocksize = %d\n", metadata->data.stream_info.min_blocksize);
+    printf("libflac: max_blocksize = %d\n", metadata->data.stream_info.max_blocksize);
+    printf("libflac: min_framesize = %d\n", metadata->data.stream_info.min_framesize);
+    printf("libflac: max_framesize = %d\n", metadata->data.stream_info.max_framesize);
+    /* does not work well:
+       this->min_size = 2 * metadata->data.stream_info.max_blocksize; */
+  }
 #endif
-       
-    if (metadata->type == FLAC__METADATA_TYPE_STREAMINFO) {
-#ifdef LOG
-      printf("libflac: min_blocksize = %d\n", metadata->data.stream_info.min_blocksize);
-      printf("libflac: max_blocksize = %d\n", metadata->data.stream_info.max_blocksize);
-      printf("libflac: min_framesize = %d\n", metadata->data.stream_info.min_framesize);
-      printf("libflac: max_framesize = %d\n", metadata->data.stream_info.max_framesize);
-#endif
-      
-      /* does not work well:
-      this->min_size = 2 * metadata->data.stream_info.max_blocksize; */
-    }
-    return;
+
+  return;
 }
 
 static void
@@ -194,17 +187,17 @@ flac_error_callback (const FLAC__StreamDecoder *decoder,
                      void *client_data)
 {
     /* This will be called if there is an error in the flac stream */
+  lprintf("flac_error_callback\n");
+  
 #ifdef LOG
-    printf("libflac: flac_error_callback\n");
-
-    if (status == FLAC__STREAM_DECODER_ERROR_STATUS_LOST_SYNC)
-        printf("libflac: Decoder lost synchronization.\n");
-    else if (status == FLAC__STREAM_DECODER_ERROR_STATUS_BAD_HEADER)
-        printf("libflac: Decoder encounted a corrupted frame header.\n");
-    else if (status == FLAC__STREAM_DECODER_ERROR_STATUS_FRAME_CRC_MISMATCH)
-        printf("libflac: Frame's data did not match the CRC in the footer.\n");
-    else
-        printf("libflac: unknown error.\n");
+  if (status == FLAC__STREAM_DECODER_ERROR_STATUS_LOST_SYNC)
+    printf("libflac: Decoder lost synchronization.\n");
+  else if (status == FLAC__STREAM_DECODER_ERROR_STATUS_BAD_HEADER)
+    printf("libflac: Decoder encounted a corrupted frame header.\n");
+  else if (status == FLAC__STREAM_DECODER_ERROR_STATUS_FRAME_CRC_MISMATCH)
+    printf("libflac: Frame's data did not match the CRC in the footer.\n");
+  else
+    printf("libflac: unknown error.\n");
 #endif
                                                                                 
     return;
@@ -235,9 +228,8 @@ flac_discontinuity (audio_decoder_t *this_gen)
   flac_decoder_t *this = (flac_decoder_t *) this_gen;
 
   this->pts = 0;
-#ifdef LOG
-  printf("libflac: Discontinuity!\n");
-#endif
+  
+  lprintf("Discontinuity!\n");
 }
 
 static void 
@@ -299,9 +291,7 @@ flac_decode_data (audio_decoder_t *this_gen, buf_element_t *buf)
         {
             this->buf_size += 2 * buf->size;
             this->buf = realloc (this->buf, this->buf_size);
-#ifdef LOG
-            printf("libflac: reallocating buffer to %d\n", this->buf_size);
-#endif
+            lprintf("reallocating buffer to %d\n", this->buf_size);
         }
 
         xine_fast_memcpy (&this->buf[this->buf_pos], buf->content, buf->size);
@@ -315,14 +305,11 @@ flac_decode_data (audio_decoder_t *this_gen, buf_element_t *buf)
             
             if( FLAC__stream_decoder_get_state(this->flac_decoder) == 
                 FLAC__STREAM_DECODER_SEARCH_FOR_METADATA ) {
-#ifdef LOG
-              printf("libflac: process_until_end_of_metadata\n");
-#endif
+              lprintf("process_until_end_of_metadata\n");
+
               ret = FLAC__stream_decoder_process_until_end_of_metadata (this->flac_decoder);
             } else {
-#ifdef LOG
-              printf("libflac: process_single\n");
-#endif
+              lprintf("process_single\n");
               ret = FLAC__stream_decoder_process_single (this->flac_decoder);
             }
         }

@@ -23,7 +23,7 @@
  * For more information regarding the NSV file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_nsv.c,v 1.10 2003/11/16 23:33:43 f1rmb Exp $
+ * $Id: demux_nsv.c,v 1.11 2003/11/26 19:43:30 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -36,10 +36,11 @@
 #include <string.h>
 #include <stdlib.h>
 
-/********** logging **********/
 #define LOG_MODULE "demux_nsv"
-/* #define LOG_VERBOSE */
-/* #define LOG */
+#define LOG_VERBOSE
+/*
+#define LOG
+*/
 
 #include "xine_internal.h"
 #include "xineutils.h"

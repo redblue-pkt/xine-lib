@@ -23,7 +23,7 @@
  * For more information on the 4xm file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_4xm.c,v 1.11 2003/11/16 23:33:42 f1rmb Exp $
+ * $Id: demux_4xm.c,v 1.12 2003/11/26 19:43:27 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -36,10 +36,11 @@
 #include <string.h>
 #include <stdlib.h>
 
-/********** logging **********/
 #define LOG_MODULE "demux_4xm"
-/* #define LOG_VERBOSE */
-/* #define LOG */
+#define LOG_VERBOSE
+/*
+#define LOG
+*/
 
 #include "xine_internal.h"
 #include "xineutils.h"

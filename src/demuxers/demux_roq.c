@@ -23,7 +23,7 @@
  * For more information regarding the RoQ file format, visit:
  *   http://www.csse.monash.edu.au/~timf/
  *
- * $Id: demux_roq.c,v 1.47 2003/11/16 23:33:43 f1rmb Exp $
+ * $Id: demux_roq.c,v 1.48 2003/11/26 19:43:30 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -36,10 +36,11 @@
 #include <string.h>
 #include <stdlib.h>
 
-/********** logging **********/
 #define LOG_MODULE "demux_roq"
-/* #define LOG_VERBOSE */
-/* #define LOG */
+#define LOG_VERBOSE
+/*
+#define LOG
+*/
 
 #include "xine_internal.h"
 #include "xineutils.h"

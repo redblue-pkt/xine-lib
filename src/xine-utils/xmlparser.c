@@ -18,7 +18,7 @@
  *  along with this program; if not, write to the Free Software
  *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- *  $Id: xmlparser.c,v 1.10 2003/10/28 13:48:45 valtri Exp $
+ *  $Id: xmlparser.c,v 1.11 2003/11/26 19:43:38 f1rmb Exp $
  *
  */
 
@@ -28,6 +28,14 @@
 #include <string.h>
 #include <stdarg.h>
 #include <ctype.h>
+
+#define LOG_MODULE "xmlparser"
+#define LOG_VERBOSE
+/*
+#define LOG
+*/
+
+#include "xineutils.h"
 #include "xmllexer.h"
 #include "xmlparser.h"
 
@@ -35,10 +43,6 @@
 #define TOKEN_SIZE  4 * 1024
 #define DATA_SIZE   4 * 1024
 #define MAX_RECURSION 10
-
-/*
-#define LOG
-*/
 
 /* private global variables */
 static int xml_parser_mode;
@@ -111,9 +115,8 @@ static void xml_parser_free_props(xml_property_t *current_property) {
 }
 
 static void xml_parser_free_tree_rec(xml_node_t *current_node, int free_next) {
-#ifdef LOG
-  printf("xml_parser: xml_parser_free_tree_rec: %s\n", current_node->name);
-#endif
+  lprintf("xml_parser_free_tree_rec: %s\n", current_node->name);
+
   if (current_node) {
     /* properties */
     if (current_node->props) {
@@ -122,9 +125,7 @@ static void xml_parser_free_tree_rec(xml_node_t *current_node, int free_next) {
 
     /* child nodes */
     if (current_node->child) {
-#ifdef LOG
-      printf("xml_parser: xml_parser_free_tree_rec: child\n");
-#endif
+      lprintf("xml_parser_free_tree_rec: child\n");
       xml_parser_free_tree_rec(current_node->child, 1);
     }
 
@@ -135,9 +136,7 @@ static void xml_parser_free_tree_rec(xml_node_t *current_node, int free_next) {
 
       while (next_node) {
         next_next_node = next_node->next;
-#ifdef LOG
-        printf("xml_parser: xml_parser_free_tree_rec: next\n");
-#endif
+        lprintf("xml_parser_free_tree_rec: next\n");
         xml_parser_free_tree_rec(next_node, 0);
         next_node = next_next_node;
       }
@@ -148,9 +147,7 @@ static void xml_parser_free_tree_rec(xml_node_t *current_node, int free_next) {
 }
 
 void xml_parser_free_tree(xml_node_t *current_node) {
-#ifdef LOG
-   printf("xml_parser: xml_parser_free_tree\n");
-#endif
+  lprintf("xml_parser_free_tree\n");
    xml_parser_free_tree_rec(current_node, 1);
 }
 
@@ -175,9 +172,8 @@ static int xml_parser_get_node (xml_node_t *current_node, char *root_name, int r
 
     while ((bypass_get_token) || (res = lexer_get_token(tok, TOKEN_SIZE)) != T_ERROR) {
       bypass_get_token = 0;
-#ifdef LOG
-      printf("xmlparser: info: %d - %d : '%s'\n", state, res, tok);
-#endif
+      lprintf("info: %d - %d : '%s'\n", state, res, tok);
+
       switch (state) {
       case STATE_IDLE:
 	switch (res) {
@@ -210,9 +206,7 @@ static int xml_parser_get_node (xml_node_t *current_node, char *root_name, int r
 	    free(current_node->data);
 	  }
 	  current_node->data = strdup(tok);
-#ifdef LOG
-	  printf("xmlparser: info: node data : %s\n", current_node->data);
-#endif
+	  lprintf("info: node data : %s\n", current_node->data);
 	  break;
 	default:
 	  printf("xmlparser: error: unexpected token \"%s\", state %d\n", tok, state);
@@ -233,9 +227,7 @@ static int xml_parser_get_node (xml_node_t *current_node, char *root_name, int r
 	  }
 	  strcpy(node_name, tok);
 	  state = 2;
-#ifdef LOG
-	  printf("xmlparser: info: current node name \"%s\"\n", node_name);
-#endif
+	  lprintf("info: current node name \"%s\"\n", node_name);
 	  break;
 	default:
 	  printf("xmlparser: error: unexpected token \"%s\", state %d\n", tok, state);
@@ -258,9 +250,7 @@ static int xml_parser_get_node (xml_node_t *current_node, char *root_name, int r
 
 	  /* set node propertys */
 	  subtree->props = properties;
-#ifdef LOG
-	  printf("xmlparser: info: rec %d new subtree %s\n", rec, node_name);
-#endif
+	  lprintf("info: rec %d new subtree %s\n", rec, node_name);
 	  parse_res = xml_parser_get_node(subtree, node_name, rec + 1);
 	  if (parse_res != 0) {
 	    return parse_res;
@@ -285,9 +275,8 @@ static int xml_parser_get_node (xml_node_t *current_node, char *root_name, int r
 	  /* set node propertys */
 	  subtree->props = properties;
 
-#ifdef LOG
-	  printf("xmlparser: info: rec %d new subtree %s\n", rec, node_name);
-#endif
+	  lprintf("info: rec %d new subtree %s\n", rec, node_name);
+
 	  if (current_subtree == NULL) {
 	    current_node->child = subtree;
 	    current_subtree = subtree;
@@ -304,9 +293,7 @@ static int xml_parser_get_node (xml_node_t *current_node, char *root_name, int r
 	  }
 	  strcpy(property_name, tok);
 	  state = 5;
-#ifdef LOG
-	  printf("xmlparser: info: current property name \"%s\"\n", property_name);
-#endif
+	  lprintf("info: current property name \"%s\"\n", property_name);
 	  break;
 	default:
 	  printf("xmlparser: error: unexpected token \"%s\", state %d\n", tok, state);
@@ -373,9 +360,7 @@ static int xml_parser_get_node (xml_node_t *current_node, char *root_name, int r
 	    current_property = current_property->next;
 	  }
 	  current_property->name = strdup (property_name);
-#ifdef LOG
-	  printf("xmlparser: info: new property %s\n", current_property->name);
-#endif
+	  lprintf("info: new property %s\n", current_property->name);
 	  bypass_get_token = 1; /* jump to state 2 without get a new token */
 	  state = 2;
 	  break;
@@ -405,9 +390,7 @@ static int xml_parser_get_node (xml_node_t *current_node, char *root_name, int r
 	  }
 	  current_property->name = strdup(property_name);
 	  current_property->value = strdup(tok);
-#ifdef LOG
-	  printf("xmlparser: info: new property %s=%s\n", current_property->name, current_property->value);
-#endif
+	  lprintf("info: new property %s=%s\n", current_property->name, current_property->value);
 	  state = 2;
 	  break;
 	default:
@@ -494,14 +477,10 @@ char *xml_parser_get_property (xml_node_t *node, const char *name) {
   prop = node->props;
   while (prop) {
 
-#ifdef LOG
-    printf ("xmlparser: looking for %s in %s\n", name, prop->name);
-#endif
+    lprintf ("looking for %s in %s\n", name, prop->name);
 
     if (!strcasecmp (prop->name, name)) {
-#ifdef LOG
-      printf ("xmlparser: found it. value=%s\n", prop->value);
-#endif
+      lprintf ("found it. value=%s\n", prop->value);
       return prop->value;
     }
 

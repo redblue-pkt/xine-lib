@@ -20,7 +20,7 @@
  */
 
 /*
- * $Id: demux_yuv_frames.c,v 1.12 2003/11/16 23:33:44 f1rmb Exp $
+ * $Id: demux_yuv_frames.c,v 1.13 2003/11/26 19:43:31 f1rmb Exp $
  *
  * dummy demultiplexer for raw yuv frames (delivered by v4l)
  */
@@ -35,10 +35,11 @@
 #include <string.h>
 #include <stdlib.h>
 
-/********** logging **********/
 #define LOG_MODULE "demux_yuv_frames"
-/* #define LOG_VERBOSE */
-/* #define LOG */
+#define LOG_VERBOSE
+/*
+#define LOG
+*/
 
 #include "xine_internal.h"
 #include "xineutils.h"
@@ -184,7 +185,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen,
   default:
     return NULL;
   }
-  lprintf ("demux_yuv_frames: input accepted.\n");
+  lprintf ("input accepted.\n");
 
   /*
    * if we reach this point, the input has been accepted.

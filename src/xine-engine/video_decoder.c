@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.140 2003/11/20 00:42:14 tmattern Exp $
+ * $Id: video_decoder.c,v 1.141 2003/11/26 19:43:38 f1rmb Exp $
  *
  */
 
@@ -31,13 +31,15 @@
 
 #define XINE_ENGINE_INTERNAL
 
-#include "xine_internal.h"
-#include "xineutils.h"
-#include <sched.h>
-
+#define LOG_MODULE "video_decoder"
+#define LOG_VERBOSE
 /*
 #define LOG
 */
+
+#include "xine_internal.h"
+#include "xineutils.h"
+#include <sched.h>
 
 static void update_spu_decoder (xine_stream_t *stream, int type) {
 
@@ -73,17 +75,13 @@ static void *video_decoder_loop (void *stream_gen) {
 
   while (running) {
 
-#ifdef LOG
-    printf ("video_decoder: getting buffer...\n");  
-#endif
+    lprintf ("getting buffer...\n");  
 
     buf = stream->video_fifo->get (stream->video_fifo);
     _x_extra_info_merge( stream->video_decoder_extra_info, buf->extra_info );
     stream->video_decoder_extra_info->seek_count = stream->video_seek_count;
     
-#ifdef LOG
-    printf ("video_decoder: got buffer 0x%08x\n", buf->type);      
-#endif
+    lprintf ("got buffer 0x%08x\n", buf->type);      
     
     /* check for a new port to use */
     if (stream->next_video_port) {
@@ -159,10 +157,8 @@ static void *video_decoder_loop (void *stream_gen) {
 
       stream->finished_count_video++;
 
-#ifdef LOG
-      printf ("video_decoder: reached end marker # %d\n", 
-	      stream->finished_count_video);
-#endif
+      lprintf ("reached end marker # %d\n", 
+	       stream->finished_count_video);
 
       pthread_cond_broadcast (&stream->counter_changed);
 
@@ -226,9 +222,8 @@ static void *video_decoder_loop (void *stream_gen) {
       break;
           
     case BUF_CONTROL_DISCONTINUITY:
-#ifdef LOG
-      printf ("video_decoder: discontinuity ahead\n");
-#endif
+      lprintf ("discontinuity ahead\n");
+
       if (stream->video_decoder_plugin) {
         /* it might be a long time before we get back from a discontinuity, so we better flush
 	 * the decoder before */
@@ -241,9 +236,8 @@ static void *video_decoder_loop (void *stream_gen) {
       break;
     
     case BUF_CONTROL_NEWPTS:
-#ifdef LOG
-      printf ("video_decoder: new pts %lld\n", buf->disc_off);
-#endif
+      lprintf ("new pts %lld\n", buf->disc_off);
+
       if (stream->video_decoder_plugin) {
         /* it might be a long time before we get back from a discontinuity, so we better flush
 	 * the decoder before */
@@ -440,28 +434,25 @@ void _x_video_decoder_shutdown (xine_stream_t *stream) {
   buf_element_t *buf;
   void          *p;
 
-#ifdef LOG
-  printf ("video_decoder: shutdown...\n");
-#endif
+  lprintf ("shutdown...\n");
 
   if (stream->video_thread) {
 
     /* stream->video_fifo->clear(stream->video_fifo); */
 
     buf = stream->video_fifo->buffer_pool_alloc (stream->video_fifo);
-#ifdef LOG
-    printf ("video_decoder: shutdown...2\n");
-#endif
+
+    lprintf ("shutdown...2\n");
+
     buf->type = BUF_CONTROL_QUIT;
     stream->video_fifo->put (stream->video_fifo, buf);
-#ifdef LOG
-  printf ("video_decoder: shutdown...3\n");
-#endif
+
+    lprintf ("shutdown...3\n");
 
     pthread_join (stream->video_thread, &p);
-#ifdef LOG
-    printf ("video_decoder: shutdown...4\n");
-#endif
+
+    lprintf ("shutdown...4\n");
+
   }
   
   stream->video_fifo->dispose (stream->video_fifo);

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: real.c,v 1.8 2003/03/30 17:11:50 holstsn Exp $
+ * $Id: real.c,v 1.9 2003/11/26 19:43:31 f1rmb Exp $
  *
  * special functions for real streams.
  * adopted from joschkas real tools.
@@ -27,14 +27,16 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "real.h"
-#include "asmrp.h"
-#include "sdpplin.h"
-#include <xineutils.h>
-
+#define LOG_MODULE "real"
+#define LOG_VERBOSE
 /*
 #define LOG
 */
+
+#include "real.h"
+#include "asmrp.h"
+#include "sdpplin.h"
+#include "xineutils.h"
 
 const unsigned char xor_table[] = {
     0x05, 0x18, 0x74, 0xd0, 0x0d, 0x09, 0x02, 0x53,
@@ -91,10 +93,10 @@ static void hash(char *field, char *param) {
   memcpy(&b, &field[4], sizeof(uint32_t));
   memcpy(&c, &field[8], sizeof(uint32_t));
   memcpy(&d, &field[12], sizeof(uint32_t));
-
+  
+  lprintf("hash input: %x %x %x %x\n", a, b, c, d);
+  lprintf("hash parameter:\n");
 #ifdef LOG
-  printf("real: hash input: %x %x %x %x\n", a, b, c, d);
-  printf("real: hash parameter:\n");
   hexdump(param, 64);
 #endif
   
@@ -230,9 +232,7 @@ static void hash(char *field, char *param) {
   b = ((~a | c) ^ d)  + *((uint32_t*)(param+0x24)) + b - 0x14792C6F;
   b = ((b << 0x15) | (b >> 0x0b)) + c; 
 
-#ifdef LOG
-  printf("real: hash output: %x %x %x %x\n", a, b, c, d);
-#endif
+  lprintf("hash output: %x %x %x %x\n", a, b, c, d);
   
   *((uint32_t *)(field+0)) += a;
   *((uint32_t *)(field+4)) += b;
@@ -255,9 +255,7 @@ static void call_hash (char *key, char *challenge, int len) {
   
   if (a < (len << 3))
   {
-#ifdef LOG
-    printf("not verified: (len << 3) > a true\n");
-#endif
+    lprintf("not verified: (len << 3) > a true\n");
     ptr2 += 4;
   }
 
@@ -273,10 +271,7 @@ static void call_hash (char *key, char *challenge, int len) {
     d = c + 0x3f;
     
     while ( d < len ) {
-
-#ifdef LOG
-      printf("not verified:  while ( d < len )\n");
-#endif
+      lprintf("not verified:  while ( d < len )\n");
       hash(key, challenge+d-0x3f);
       d += 64;
       c += 64;
@@ -303,9 +298,7 @@ static void calc_response (char *result, char *field) {
   if (i < 56) {
     i = 56 - i;
   } else {
-#ifdef LOG
-    printf("not verified: ! (i < 56)\n");
-#endif
+    lprintf("not verified: ! (i < 56)\n");
     i = 120 - i;
   }
 
@@ -422,9 +415,7 @@ static int select_mlti_data(const char *mlti_chunk, int mlti_size, int selection
       ||(mlti_chunk[2] != 'T')
       ||(mlti_chunk[3] != 'I'))
   {
-#ifdef LOG
-    printf("libreal: MLTI tag not detected, copying data\n");
-#endif
+    lprintf("MLTI tag not detected, copying data\n");
     memcpy(out, mlti_chunk, mlti_size);
     return mlti_size;
   }
@@ -503,9 +494,7 @@ rmff_header_t *real_parse_sdp(char *data, char *stream_rules, uint32_t bandwidth
       desc->abstract);
   header->data=rmff_new_dataheader(0,0);
   header->streams=xine_xmalloc(sizeof(rmff_mdpr_t*)*(desc->stream_count+1));
-#ifdef LOG
-    printf("number of streams: %u\n", desc->stream_count);
-#endif
+  lprintf("number of streams: %u\n", desc->stream_count);
 
   for (i=0; i<desc->stream_count; i++) {
 
@@ -514,14 +503,11 @@ rmff_header_t *real_parse_sdp(char *data, char *stream_rules, uint32_t bandwidth
     char b[64];
     int rulematches[16];
 
-#ifdef LOG
-    printf("calling asmrp_match with:\n%s\n%u\n", desc->stream[i]->asm_rule_book, bandwidth);
-#endif
+    lprintf("calling asmrp_match with:\n%s\n%u\n", desc->stream[i]->asm_rule_book, bandwidth);
+
     n=asmrp_match(desc->stream[i]->asm_rule_book, bandwidth, rulematches);
     for (j=0; j<n; j++) {
-#ifdef LOG
-      printf("asmrp rule match: %u for stream %u\n", rulematches[j], desc->stream[i]->stream_id);
-#endif
+      lprintf("asmrp rule match: %u for stream %u\n", rulematches[j], desc->stream[i]->stream_id);
       sprintf(b,"stream=%u;rule=%u,", desc->stream[i]->stream_id, rulematches[j]);
       strcat(stream_rules, b);
     }
@@ -596,16 +582,14 @@ int real_get_rdt_chunk(rtsp_t *rtsp_session, char *buffer) {
   flags1=header[4];
   if ((flags1!=0x40)&&(flags1!=0x42))
   {
-#ifdef LOG
-    printf("got flags1: 0x%02x\n",flags1);
-#endif
+    lprintf("got flags1: 0x%02x\n",flags1);
     header[0]=header[5];
     header[1]=header[6];
     header[2]=header[7];
     n=rtsp_read_data(rtsp_session, header+3, 5);
     if (n<5) return 0;
+    lprintf("ignoring bytes:\n");
 #ifdef LOG
-    printf("ignoring bytes:\n");
     hexdump(header, 8);
 #endif
     n=rtsp_read_data(rtsp_session, header+4, 4);
@@ -618,10 +602,9 @@ int real_get_rdt_chunk(rtsp_t *rtsp_session, char *buffer) {
   if (n<6) return 0;
   ts=BE_32(header);
   
-#ifdef LOG
-  printf("ts: %u size: %u, flags: 0x%02x, unknown values: %u 0x%02x 0x%02x\n", 
+  lprintf("ts: %u size: %u, flags: 0x%02x, unknown values: %u 0x%02x 0x%02x\n", 
           ts, size, flags1, unknown1, header[4], header[5]);
-#endif
+
   size+=2;
   
   ph.object_version=0;
@@ -653,9 +636,7 @@ rmff_header_t  *real_setup_and_get_header(rtsp_t *rtsp_session, uint32_t bandwid
   
   /* get challenge */
   challenge1=strdup(rtsp_search_answers(rtsp_session,"RealChallenge1"));
-#ifdef LOG
-  printf("real: Challenge1: %s\n", challenge1);
-#endif
+  lprintf("Challenge1: %s\n", challenge1);
   
   /* request stream description */
   rtsp_schedule_field(rtsp_session, "Accept: application/sdp");
@@ -691,9 +672,7 @@ rmff_header_t  *real_setup_and_get_header(rtsp_t *rtsp_session, uint32_t bandwid
   else
     session_id=strdup(rtsp_search_answers(rtsp_session,"ETag"));
     
-#ifdef LOG
-  printf("real: Stream description size: %i\n", size);
-#endif
+  lprintf("Stream description size: %i\n", size);
 
   description=malloc(sizeof(char)*(size+1));
 
@@ -706,10 +685,8 @@ rmff_header_t  *real_setup_and_get_header(rtsp_t *rtsp_session, uint32_t bandwid
   if (!h) return NULL;
   rmff_fix_header(h);
 
-#ifdef LOG
-  printf("Title: %s\nCopyright: %s\nAuthor: %s\nStreams: %i\n",
-    h->cont->title, h->cont->copyright, h->cont->author, h->prop->num_streams);
-#endif
+  lprintf("Title: %s\nCopyright: %s\nAuthor: %s\nStreams: %i\n",
+	  h->cont->title, h->cont->copyright, h->cont->author, h->prop->num_streams);
   
   /* setup our streams */
   real_calc_response_and_checksum (challenge2, checksum, challenge1);

@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_mpeg.c,v 1.130 2003/11/18 04:35:14 tmmm Exp $
+ * $Id: demux_mpeg.c,v 1.131 2003/11/26 19:43:30 f1rmb Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  * reads streams of variable blocksizes
@@ -35,10 +35,11 @@
 #include <unistd.h>
 #include <string.h>
 
-/********** logging **********/
 #define LOG_MODULE "demux_mpeg"
-/* #define LOG_VERBOSE */
-/* #define LOG */
+#define LOG_VERBOSE
+/*
+#define LOG
+*/
 
 #include "xine_internal.h"
 #include "demux.h"

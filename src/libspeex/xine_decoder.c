@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.5 2003/11/16 23:33:46 f1rmb Exp $
+ * $Id: xine_decoder.c,v 1.6 2003/11/26 19:43:36 f1rmb Exp $
  *
  * (ogg/)speex audio decoder plugin (libspeex wrapper) for xine
  */
@@ -28,6 +28,12 @@
 
 #include <stdlib.h>
 #include <string.h>
+
+#define LOG_MODULE "speex_decoder"
+#define LOG_VERBOSE
+/*
+#define LOG
+*/
 
 #include "xine_internal.h"
 #include "audio_out.h"
@@ -40,10 +46,6 @@
 #include <speex_stereo.h>
 
 #define MAX_FRAME_SIZE 2000
-
-/*
-#define LOG
-*/
 
 typedef struct {
   audio_decoder_class_t   decoder_class;
@@ -176,10 +178,8 @@ void read_metadata (speex_decoder_t *this, char * comments, int length)
 	int keylen = strlen(speex_comment_keys[i].key);
 	char meta_info[(len - keylen) + 1];
 	
-#ifdef LOG
-	printf ("libspeex: known metadata %d %d\n",
-		i, speex_comment_keys[i].xine_metainfo_index);
-#endif
+	lprintf ("known metadata %d %d\n",
+		 i, speex_comment_keys[i].xine_metainfo_index);
 	
 	snprintf(meta_info, (len - keylen), "%s", c + keylen);
 	_x_meta_info_set(this->stream, speex_comment_keys[i].xine_metainfo_index, meta_info);
@@ -194,15 +194,11 @@ static void speex_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 
   speex_decoder_t *this = (speex_decoder_t *) this_gen;
 
-#ifdef LOG
-  printf ("libspeex: decode buf=%8p content=%8p flags=%08x\n",
-	  buf, buf->content, buf->decoder_flags);
-#endif
+  lprintf ("decode buf=%8p content=%8p flags=%08x\n",
+	   buf, buf->content, buf->decoder_flags);
 
   if (buf->decoder_flags & BUF_FLAG_PREVIEW) {
-#ifdef LOG
-    printf ("libspeex: preview buffer, %d headers to go\n", this->header_count);
-#endif
+    lprintf ("preview buffer, %d headers to go\n", this->header_count);
 
     if (this->header_count) {
 
@@ -365,10 +361,9 @@ static void speex_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 
     }
   }
-#ifdef LOG
-  else
-    printf ("libspeex: output not open\n");
-#endif
+  else {
+    lprintf ("output not open\n");
+  }
 }
 
 static void speex_dispose (audio_decoder_t *this_gen) {

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: rtsp_session.c,v 1.11 2003/06/02 21:22:00 jstembridge Exp $
+ * $Id: rtsp_session.c,v 1.12 2003/11/26 19:43:31 f1rmb Exp $
  *
  * high level interface to rtsp servers.
  */
@@ -32,15 +32,18 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define LOG_MODULE "rtsp_session"
+#define LOG_VERBOSE
+/*
+#define LOG
+*/
+
 #include "rtsp.h"
 #include "rtsp_session.h"
 #include "real.h"
 #include "rmff.h"
 #include "asmrp.h"
-
-/*
-#define LOG
-*/
+#include "xineutils.h"
 
 #define BUF_SIZE 4096
 #define HEADER_SIZE 4096
@@ -152,9 +155,8 @@ int rtsp_session_read (rtsp_session_t *this, char *data, int len) {
     fill = this->recv_size;
 
     if (this->recv_size == 0) {
-#ifdef LOG
-      printf ("librtsp: %d of %d bytes provided\n", len-to_copy, len);
-#endif
+      lprintf ("%d of %d bytes provided\n", len-to_copy, len);
+
       return len-to_copy;
     }
   }
@@ -162,9 +164,7 @@ int rtsp_session_read (rtsp_session_t *this, char *data, int len) {
   memcpy(dest, source, to_copy);
   this->recv_read += to_copy;
 
-#ifdef LOG
-  printf ("librtsp: %d bytes provided\n", len);
-#endif
+  lprintf ("%d bytes provided\n", len);
 
   return len;
 }

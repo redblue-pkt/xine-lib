@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.54 2003/11/16 23:33:46 f1rmb Exp $
+ * $Id: xine_decoder.c,v 1.55 2003/11/26 19:43:36 f1rmb Exp $
  *
  * thin layer to use real binary-only codecs in xine
  *
@@ -33,16 +33,17 @@
 #include <unistd.h>
 #include <dlfcn.h>
 
+#define LOG_MODULE "read_decoder"
+#define LOG_VERBOSE
+/*
+#define LOG
+*/
+
 #include "bswap.h"
 #include "xine_internal.h"
 #include "video_out.h"
 #include "buffer.h"
 #include "xineutils.h"
-
-/*
-#define LOG
-*/
-
 
 typedef struct {
   video_decoder_class_t   decoder_class;
@@ -124,9 +125,8 @@ static int load_syms_linux (realdec_decoder_t *this, char *codec_name) {
 
   sprintf (path, "%s/%s", entry->str_value, codec_name);
 
-#ifdef LOG
-  printf ("libreal: opening shared obj '%s'\n", path);
-#endif
+  lprintf ("opening shared obj '%s'\n", path);
+
   this->rv_handle = dlopen (path, RTLD_LAZY);
 
   if (!this->rv_handle) {
@@ -190,14 +190,12 @@ static int init_codec (realdec_decoder_t *this, buf_element_t *buf) {
   this->height = (init_data.h + 1) & (~1);
   this->ratio  = (double)this->width/(double)this->height;
 
-#ifdef LOG
-  printf ("libreal: init_data.w=%d(0x%x), init_data.h=%d(0x%x),"
-	  "this->width=%d(0x%x), this->height=%d(0x%x)\n",
-	  init_data.w, init_data.w,
-	  init_data.h, init_data.h,
-	  this->width, this->width, this->height, this->height);
-#endif
-  
+  lprintf ("init_data.w=%d(0x%x), init_data.h=%d(0x%x),"
+	   "this->width=%d(0x%x), this->height=%d(0x%x)\n",
+	   init_data.w, init_data.w,
+	   init_data.h, init_data.h,
+	   this->width, this->width, this->height, this->height);
+
   _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_WIDTH,  this->width);
   _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_HEIGHT, this->height);
 
@@ -210,19 +208,16 @@ static int init_codec (realdec_decoder_t *this, buf_element_t *buf) {
   
   printf ("libreal: buf->content\n");
   xine_hexdump (buf->content, buf->size);
-
-  printf ("libreal: init codec %dx%d... %x %x\n", 
-	  init_data.w, init_data.h,
-	  init_data.subformat, init_data.format );
 #endif  
-
+  lprintf ("init codec %dx%d... %x %x\n", 
+	   init_data.w, init_data.h,
+	   init_data.subformat, init_data.format );
+  
   this->context = NULL;
   
   result = this->rvyuv_init (&init_data, &this->context); 
   
-#ifdef LOG
-  printf ("libreal: init result: %d\n", result);
-#endif
+  lprintf ("init result: %d\n", result);
 
   /* setup rv30 codec (codec sub-type and image dimensions): */
   if ((init_data.format>=0x20200002) && (buf->type != BUF_VIDEO_RV40)) {
@@ -299,10 +294,8 @@ static void realdec_copy_frame (realdec_decoder_t *this, uint8_t *base[3], int p
 static void realdec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
   realdec_decoder_t *this = (realdec_decoder_t *) this_gen;
 
-#ifdef LOG
-  printf ("libreal: decode_data, flags=0x%08x, len=%d, pts=%lld ...\n", 
-	  buf->decoder_flags, buf->size, buf->pts);
-#endif
+  lprintf ("decode_data, flags=0x%08x, len=%d, pts=%lld ...\n", 
+	   buf->decoder_flags, buf->size, buf->pts);
 
   if (buf->decoder_flags & BUF_FLAG_PREVIEW) {
     /* real_find_sequence_header (&this->real, buf->content, buf->content + buf->size);*/
@@ -356,10 +349,9 @@ static void realdec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) 
 					transform_out, 
 					this->context);
 
+	lprintf ("transform result: %08x\n", result);
+	lprintf ("transform_out:\n");
 #ifdef LOG
-	printf ("libreal: transform result: %08x\n", result);
-        
-	printf ("libreal: transform_out:\n");
 	xine_hexdump ((char *) transform_out, 5*4);
 #endif
 
@@ -403,14 +395,12 @@ static void realdec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) 
 	_x_stream_info_set(this->stream, XINE_STREAM_INFO_FRAME_DURATION, this->duration);
 	img->bad_frame = 0;
 	
-#ifdef LOG
-	printf ("libreal: pts %lld %lld diff %lld # %d est. duration %lld\n", 
-		this->pts, 
-		buf->pts,
-		buf->pts - this->pts,
-		this->num_frames,
-		this->duration);
-#endif
+	lprintf ("pts %lld %lld diff %lld # %d est. duration %lld\n", 
+		 this->pts, 
+		 buf->pts,
+		 buf->pts - this->pts,
+		 this->num_frames,
+		 this->duration);
 
 	realdec_copy_frame (this, img->base, img->pitches);
 
@@ -421,9 +411,7 @@ static void realdec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) 
 
       /* new frame starting */
 
-#ifdef LOG
-      printf ("libreal: new frame starting (%d bytes)\n", buf->size);
-#endif
+      lprintf ("new frame starting (%d bytes)\n", buf->size);
 
       memcpy (this->chunk_buffer, buf->content, buf->size);
 
@@ -442,10 +430,7 @@ static void realdec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) 
 
       /* buffer another fragment */
 
-#ifdef LOG
-      printf ("libreal: another fragment (%d chunks in buffer)\n", 
-	      this->num_chunks);
-#endif
+      lprintf ("another fragment (%d chunks in buffer)\n", this->num_chunks);
 
       if (((buf->type != BUF_VIDEO_RV30) && (buf->type != BUF_VIDEO_RV40)) ||
           (buf->content[0] == this->chunk_id)) {
@@ -470,18 +455,13 @@ static void realdec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) 
     }
   }
 
-#ifdef LOG
-  printf ("libreal: decode_data...done\n");
-#endif
+  lprintf ("decode_data...done\n");
 }
 
 static void realdec_flush (video_decoder_t *this_gen) {
   /* realdec_decoder_t *this = (realdec_decoder_t *) this_gen; */
 
-#ifdef LOG
-  printf ("libreal: flush\n");
-#endif
-
+  lprintf ("flush\n");
 }
 
 static void realdec_reset (video_decoder_t *this_gen) {
@@ -502,9 +482,7 @@ static void realdec_dispose (video_decoder_t *this_gen) {
 
   realdec_decoder_t *this = (realdec_decoder_t *) this_gen;
 
-#ifdef LOG
-  printf ("libreal: dispose\n");
-#endif
+  lprintf ("dispose\n");
 
   if (this->context)
     this->stream->video_out->close(this->stream->video_out, this->stream);
@@ -526,9 +504,7 @@ static void realdec_dispose (video_decoder_t *this_gen) {
 
   free (this);
 
-#ifdef LOG
-  printf ("libreal: dispose done\n");
-#endif
+  lprintf ("dispose done\n");
 }
 
 static video_decoder_t *open_plugin (video_decoder_class_t *class_gen, 
@@ -633,9 +609,7 @@ static void *init_class (xine_t *xine, void *data) {
 			     "/usr/lib/win32");
   }
 
-#ifdef LOG
-  printf ("libareal: real codec path : %s\n",  real_codec_path);
-#endif
+  lprintf ("real codec path : %s\n",  real_codec_path);
 
   return this;
 }

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.18 2003/11/16 23:33:44 f1rmb Exp $
+ * $Id: xine_decoder.c,v 1.19 2003/11/26 19:43:32 f1rmb Exp $
  *
  */
 
@@ -28,15 +28,17 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
+#define LOG_MODULE "faad_decoder"
+#define LOG_VERBOSE
+/*
+#define LOG
+*/
+
 #include "xine_internal.h"
 #include "audio_out.h"
 #include "buffer.h"
 #include "xineutils.h"
 #include "faad.h"
-
-/*
-#define LOG
-*/
 
 typedef struct {
   audio_decoder_class_t   decoder_class;
@@ -122,10 +124,8 @@ static void faad_decode_audio ( faad_decoder_t *this, int end_frame ) {
 
     decoded = this->faac_finfo.samples * 2; /* 1 sample = 2 bytes */
     
-#ifdef LOG
-    printf("libfaad: decoded %d/%d output %ld\n",
-           used, this->size, this->faac_finfo.samples );
-#endif
+    lprintf("decoded %d/%d output %ld\n",
+	    used, this->size, this->faac_finfo.samples );
       
     if (sample_buffer == NULL) {
       printf("libfaad: %s\n", faacDecGetErrorMessage(this->faac_finfo.error));
@@ -199,10 +199,8 @@ static void faad_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
       _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_HANDLED, 0);
       return;
     }
-#ifdef LOG
-    printf("libfaad: faacDecInit2 returned rate=%ld channels=%d\n",
+    lprintf("faacDecInit2 returned rate=%ld channels=%d\n",
             this->rate, this->num_channels );
-#endif
   }
 
   /* get audio parameters from file header 
@@ -229,9 +227,7 @@ static void faad_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 
   } else {
 
-#ifdef LOG
-    printf ("faad: decoding %d data bytes...\n", buf->size);
-#endif
+    lprintf ("decoding %d data bytes...\n", buf->size);
 
     if( (int)buf->size <= 0 || this->faac_failed )
       return;
@@ -266,10 +262,8 @@ static void faad_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
         _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_HANDLED, 0);
         return;
       }
-#ifdef LOG
-      printf("libfaad: faacDecInit() returned rate=%ld channels=%d (used=%d)\n",
+      lprintf("faacDecInit() returned rate=%ld channels=%d (used=%d)\n",
               this->rate, this->num_channels, used);
-#endif
                     
       this->size -= used;
       memmove(this->buf, &this->buf[used], this->size);

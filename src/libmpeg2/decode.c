@@ -31,6 +31,12 @@
 #include <stdlib.h>
 #include <inttypes.h>
 
+#define LOG_MODULE "decode"
+#define LOG_VERBOSE
+/*
+#define LOG
+*/
+
 #include "xine_internal.h"
 #include "video_out.h"
 #include "mpeg2.h"
@@ -39,10 +45,6 @@
 
 /*
 #define LOG_PAN_SCAN
-*/
-
-/*
-#define LOG
 */
 
 /* #define BUFFER_SIZE (224 * 1024) */
@@ -316,15 +318,11 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 	  switch (picture->picture_coding_type) {
 	  case B_TYPE:
 	    
-#ifdef LOG
-	    printf ("libmpeg2: B-Frame\n");
-#endif
+	    lprintf ("B-Frame\n");
 
 	    if (mpeg2dec->frames_to_drop>1) {
-#ifdef LOG
-	      printf ("libmpeg2: dropping b-frame because frames_to_drop==%d\n",
-		      mpeg2dec->frames_to_drop);
-#endif
+	      lprintf ("dropping b-frame because frames_to_drop==%d\n",
+		       mpeg2dec->frames_to_drop);
 	      mpeg2dec->drop_frame = 1;
 	    } else if (!picture->forward_reference_frame || picture->forward_reference_frame->bad_frame 
 		       || !picture->backward_reference_frame || picture->backward_reference_frame->bad_frame) {
@@ -343,25 +341,19 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 #endif
 	      mpeg2dec->drop_frame = 1;
 	    } else if (mpeg2dec->is_wait_for_ip_frames > 0) {
-#ifdef LOG
-	      printf("libmpeg2: dropping b-frame because refs are invalid\n");
-#endif
+	      lprintf("dropping b-frame because refs are invalid\n");
 	      mpeg2dec->drop_frame = 1;
 	    }
 	    break;
 	    
 	  case P_TYPE:
 	    
-#ifdef LOG
-	    printf ("libmpeg2: P-Frame\n");
-#endif
+	    lprintf ("P-Frame\n");
 
 	    if (mpeg2dec->frames_to_drop>2) {
 	      mpeg2dec->drop_frame = 1;
-#ifdef LOG
-	      printf ("libmpeg2: dropping p-frame because frames_to_drop==%d\n",
-		      mpeg2dec->frames_to_drop);
-#endif
+	      lprintf ("dropping p-frame because frames_to_drop==%d\n",
+		       mpeg2dec->frames_to_drop);
 	    } else if (!picture->backward_reference_frame || picture->backward_reference_frame->bad_frame) {
 	      mpeg2dec->drop_frame = 1;
 #ifdef LOG
@@ -371,9 +363,7 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 		printf ("libmpeg2: dropping p-frame because ref %d is bad\n", picture->backward_reference_frame->id);
 #endif
 	    } else if (mpeg2dec->is_wait_for_ip_frames > 1) {
-#ifdef LOG
-	      printf("libmpeg2: dropping p-frame because ref is invalid\n");
-#endif
+	      lprintf("dropping p-frame because ref is invalid\n");
 	      mpeg2dec->drop_frame = 1;
 	    } else if (mpeg2dec->is_wait_for_ip_frames)
 	      mpeg2dec->is_wait_for_ip_frames--;
@@ -381,9 +371,7 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 	    break;
 	    
 	  case I_TYPE:
-#ifdef LOG
-	    printf ("libmpeg2: I-Frame\n");
-#endif
+	    lprintf ("I-Frame\n");
 	    /* for the sake of dvd menus, never drop i-frames
 	    if (mpeg2dec->frames_to_drop>4) {
 	      mpeg2dec->drop_frame = 1;
@@ -548,11 +536,9 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
                     break;
                 }
 
-#ifdef LOG
-		printf ("libmpeg2: decoding frame %d, type %s\n",
-			picture->current_frame->id, picture->picture_coding_type == I_TYPE ? "I" :
-			picture->picture_coding_type == P_TYPE ? "P" : "B");
-#endif
+		lprintf ("decoding frame %d, type %s\n",
+			 picture->current_frame->id, picture->picture_coding_type == I_TYPE ? "I" :
+			 picture->picture_coding_type == P_TYPE ? "P" : "B");
 		mpeg2dec->pts = 0;
 	    }
 	}
@@ -572,9 +558,7 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 
 	  if( picture->v_offset > picture->limit_y ) { 
 	    picture->current_frame->bad_frame = 0;
-#ifdef LOG
-	    printf("libmpeg2: frame %d successfuly decoded\n",picture->current_frame->id); 
-#endif
+	    lprintf("frame %d successfuly decoded\n",picture->current_frame->id); 
 	  }
 	}
     }
@@ -729,10 +713,8 @@ void mpeg2_flush (mpeg2dec_t * mpeg2dec) {
   if (picture->current_frame && !picture->current_frame->drawn &&
       !picture->current_frame->bad_frame) {
     
-#ifdef LOG
-    printf ("libmpeg2: blasting out current frame %d on flush\n",
-	    picture->current_frame->id);
-#endif
+    lprintf ("blasting out current frame %d on flush\n",
+	     picture->current_frame->id);
     
     picture->current_frame->drawn = 1;
     get_frame_duration(mpeg2dec, picture->current_frame);
@@ -761,9 +743,7 @@ void mpeg2_close (mpeg2dec_t * mpeg2dec)
  
     if ( picture->current_frame ) {
       if( !picture->current_frame->drawn ) {
-#ifdef LOG
-        printf ("libmpeg2: blasting out current frame on close\n");
-#endif
+        lprintf ("blasting out current frame on close\n");
         picture->current_frame->pts = 0;
         get_frame_duration(mpeg2dec, picture->current_frame);
         picture->current_frame->draw (picture->current_frame, mpeg2dec->stream);
@@ -785,9 +765,7 @@ void mpeg2_close (mpeg2dec_t * mpeg2dec)
     
     if (picture->backward_reference_frame) {
       if( !picture->backward_reference_frame->drawn) {
-#ifdef LOG
-        printf ("libmpeg2: blasting out backward reference frame on close\n");
-#endif
+        lprintf ("blasting out backward reference frame on close\n");
         picture->backward_reference_frame->pts = 0;
         get_frame_duration(mpeg2dec, picture->backward_reference_frame);
         picture->backward_reference_frame->draw (picture->backward_reference_frame, mpeg2dec->stream);

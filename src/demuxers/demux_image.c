@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_image.c,v 1.11 2003/11/16 23:33:43 f1rmb Exp $
+ * $Id: demux_image.c,v 1.12 2003/11/26 19:43:30 f1rmb Exp $
  *
  * image dummy demultiplexer
  */
@@ -34,10 +34,11 @@
 #include <string.h>
 #include <stdlib.h>
 
-/********** logging **********/
 #define LOG_MODULE "demux_image"
-/* #define LOG_VERBOSE */
-/* #define LOG */
+#define LOG_VERBOSE
+/*
+#define LOG
+*/
 
 #include "xine_internal.h"
 #include "xineutils.h"

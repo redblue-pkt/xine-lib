@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_sputext.c,v 1.29 2003/11/16 23:33:47 f1rmb Exp $
+ * $Id: demux_sputext.c,v 1.30 2003/11/26 19:43:36 f1rmb Exp $
  *
  * code based on old libsputext/xine_decoder.c
  *
@@ -43,13 +43,15 @@
 #include <fcntl.h>
 #include <ctype.h>
 
+#define LOG_MODULE "demux_sputext"
+#define LOG_VERBOSE
+/*
+#define LOG
+*/
+
 #include "xine_internal.h"
 #include "xineutils.h"
 #include "../demuxers/demux.h"
-
-/*
-#define LOG 1
-*/
 
 #define ERR           (void *)-1
 #define SUB_MAX_TEXT  5
@@ -871,7 +873,7 @@ static int demux_sputext_seek (demux_plugin_t *this_gen,
                             off_t start_pos, int start_time, int playing) {
   demux_sputext_t *this = (demux_sputext_t*)this_gen;
 
-  lprintf("demux_sputext: seek() called\n");
+  lprintf("seek() called\n");
 
   /* simple seeking approach: just go back to start. 
    * decoder will discard subtitles until the desired position.
@@ -890,7 +892,7 @@ static void demux_sputext_send_headers(demux_plugin_t *this_gen) {
   buf_element_t *buf;
   
 
-  lprintf("demux_sputext: send_headers() called\n");
+  lprintf("send_headers() called\n");
   
   _x_demux_control_start(this->stream);
   _x_stream_info_set(this->stream, XINE_STREAM_INFO_HAS_VIDEO, 0);
@@ -930,7 +932,7 @@ static demux_plugin_t *open_demux_plugin (demux_class_t *class_gen, xine_stream_
   input_plugin_t        *input = (input_plugin_t *) input_gen;
   demux_sputext_t       *this;
 
-  lprintf("demux_sputext: open_plugin() called\n");
+  lprintf("open_plugin() called\n");
   
   this = xine_xmalloc (sizeof (demux_sputext_t));
   this->stream = stream;
@@ -1028,7 +1030,7 @@ static void *init_sputext_demux_class (xine_t *xine, void *data) {
 
   demux_sputext_class_t *this ;
 
-  lprintf("demux_sputext: initializing\n");
+  lprintf("initializing\n");
 
   this = xine_xmalloc (sizeof (demux_sputext_class_t));
 

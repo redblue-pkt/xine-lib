@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.c,v 1.129 2003/11/20 00:42:14 tmattern Exp $
+ * $Id: metronom.c,v 1.130 2003/11/26 19:43:38 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -34,6 +34,7 @@
 #include <errno.h>
 
 #define LOG_MODULE "metronom"
+#define LOG_VERBOSE
 /*
 #define LOG
 #define LOG_AUDIO

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.201 2003/11/16 23:33:43 f1rmb Exp $
+ * $Id: demux_mpeg_block.c,v 1.202 2003/11/26 19:43:30 f1rmb Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  * used with fixed blocksize devices (like dvd/vcd)
@@ -34,13 +34,15 @@
 #include <unistd.h>
 #include <string.h>
 
-#include "xine_internal.h"
-#include "xineutils.h"
-#include "demux.h"
-
+#define LOG_MODULE "demux_mpeg_block"
+#define LOG_VERBOSE
 /*
 #define LOG
 */
+
+#include "xine_internal.h"
+#include "xineutils.h"
+#include "demux.h"
 
 #define NUM_PREVIEW_BUFFERS   250
 #define DISC_TRESHOLD       90000
@@ -157,9 +159,8 @@ static void check_newpts( demux_mpeg_block_t *this, int64_t pts, int video )
     /* check if pts is outside nav pts range. any stream without nav must enter here. */
     if( pts > this->nav_last_end_pts || pts < this->nav_last_start_pts )
     {
-#ifdef LOG
-      printf("demux_mpeg_block: discontinuity detected by pts wrap\n");
-#endif
+      lprintf("discontinuity detected by pts wrap\n");
+
       if (this->buf_flag_seek) {
         _x_demux_control_newpts(this->stream, pts, BUF_FLAG_SEEK);
         this->buf_flag_seek = 0;
@@ -168,9 +169,7 @@ static void check_newpts( demux_mpeg_block_t *this, int64_t pts, int video )
       }
       this->send_newpts = 0;
     } else {
-#ifdef LOG
-      printf("demux_mpeg_block: no wrap detected\n" );
-#endif
+      lprintf("no wrap detected\n" );
     }
     
     this->last_pts[1-video] = 0;
@@ -189,9 +188,7 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
   this->scr = 0;
   this->preview_mode = preview_mode;
 
-#ifdef LOG
-  printf ("demux_mpeg_block: read_block\n");
-#endif
+  lprintf ("read_block\n");
 
   buf = this->input->read_block (this->input, this->video_fifo, this->blocksize);
 
@@ -220,9 +217,7 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
       this->audio_fifo->put (this->audio_fifo, cbuf);
     }
 
-#ifdef LOG
-    printf ("demux_mpeg_block: type %08x != BUF_DEMUX_BLOCK\n", buf->type);
-#endif
+    lprintf ("type %08x != BUF_DEMUX_BLOCK\n", buf->type);
 
     return;
   }
@@ -457,9 +452,7 @@ static int32_t parse_program_stream_pack_header(demux_mpeg_block_t *this, uint8_
     this->scr += ( (p[8] & 0x03 << 7) | (p[9] & 0xFE >> 1) );
     */
 
-#ifdef LOG
-    printf ("demux_mpeg_block: SCR=%lld\n", this->scr);
-#endif
+    lprintf ("SCR=%lld\n", this->scr);
 
     /* mux_rate */
 
@@ -526,16 +519,13 @@ static int32_t parse_private_stream_2(demux_mpeg_block_t *this, uint8_t *p, buf_
     this->last_begin_time = buf->extra_info->input_time;
   }
     
-#ifdef LOG
-  printf ("demux_mpeg_block: NAV packet, start pts = %lld, end_pts = %lld\n",
+  lprintf ("NAV packet, start pts = %lld, end_pts = %lld\n",
            start_pts, end_pts);
-#endif
 
   if (this->nav_last_end_pts != start_pts && !this->preview_mode) {
 
-#ifdef LOG
-    printf("demux_mpeg_block: discontinuity detected by nav packet\n" );
-#endif
+    lprintf("discontinuity detected by nav packet\n" );
+
     if (this->buf_flag_seek) {
       _x_demux_control_newpts(this->stream, start_pts, BUF_FLAG_SEEK);
       this->buf_flag_seek = 0;
@@ -668,9 +658,7 @@ static int32_t parse_pes_for_pts(demux_mpeg_block_t *this, uint8_t *p, buf_eleme
       this->pts |=  p[12]         <<  7 ;
       this->pts |= (p[13] & 0xFE) >>  1 ;
 
-#ifdef LOG
-      printf ("demux_mpeg_block: pts = %lld\n", this->pts);
-#endif
+      lprintf ("pts = %lld\n", this->pts);
 
     } else
       this->pts = 0;
@@ -719,9 +707,7 @@ static int32_t parse_private_stream_1(demux_mpeg_block_t *this, uint8_t *p, buf_
       buf->pts       = this->pts;
       
       this->video_fifo->put (this->video_fifo, buf);    
-#ifdef LOG
-      printf ("demux_mpeg_block: SPU PACK put on fifo\n");
-#endif
+      lprintf ("SPU PACK put on fifo\n");
       
       return -1;
     }
@@ -739,9 +725,7 @@ static int32_t parse_private_stream_1(demux_mpeg_block_t *this, uint8_t *p, buf_
         check_newpts( this, this->pts, PTS_VIDEO );
       */
       this->video_fifo->put (this->video_fifo, buf);    
-#ifdef LOG
-      printf ("demux_mpeg_block: SPU SVCD PACK (%lld, %d) put on fifo\n", this->pts, spu_id);
-#endif
+      lprintf ("SPU SVCD PACK (%lld, %d) put on fifo\n", this->pts, spu_id);
       
       return -1;
     }
@@ -759,9 +743,7 @@ static int32_t parse_private_stream_1(demux_mpeg_block_t *this, uint8_t *p, buf_
         check_newpts( this, this->pts, PTS_VIDEO );
       */      
       this->video_fifo->put (this->video_fifo, buf);    
-#ifdef LOG
-      printf ("demux_mpeg_block: SPU CVD PACK (%lld, %d) put on fifo\n", this->pts, spu_id);
-#endif
+      lprintf ("SPU CVD PACK (%lld, %d) put on fifo\n", this->pts, spu_id);
       
       return -1;
     }
@@ -875,9 +857,8 @@ static int32_t parse_private_stream_1(demux_mpeg_block_t *this, uint8_t *p, buf_
 
       if(this->audio_fifo) {
 	this->audio_fifo->put (this->audio_fifo, buf);
-#ifdef LOG
-        printf ("demux_mpeg_block: A52 PACK put on fifo\n");
-#endif
+        lprintf ("A52 PACK put on fifo\n");
+
         return -1;
       } else {
 	buf->free_buffer(buf);
@@ -942,9 +923,8 @@ static int32_t parse_private_stream_1(demux_mpeg_block_t *this, uint8_t *p, buf_
 
       if(this->audio_fifo) {
 	this->audio_fifo->put (this->audio_fifo, buf);
-#ifdef LOG
-        printf ("demux_mpeg_block: LPCM PACK put on fifo\n");
-#endif
+        lprintf ("LPCM PACK put on fifo\n");
+
         return -1;
       } else {
 	buf->free_buffer(buf);
@@ -977,9 +957,7 @@ static int32_t parse_video_stream(demux_mpeg_block_t *this, uint8_t *p, buf_elem
     check_newpts( this, this->pts, PTS_VIDEO );
 
   this->video_fifo->put (this->video_fifo, buf);
-#ifdef LOG
-  printf ("demux_mpeg_block: MPEG Video PACK put on fifo\n");
-#endif
+  lprintf ("MPEG Video PACK put on fifo\n");
 
   return -1;
 }
@@ -1005,9 +983,8 @@ static int32_t parse_audio_stream(demux_mpeg_block_t *this, uint8_t *p, buf_elem
 
   if(this->audio_fifo) {
     this->audio_fifo->put (this->audio_fifo, buf);
-#ifdef LOG
-    printf ("demux_mpeg_block: MPEG Audio PACK put on fifo\n");
-#endif
+    lprintf ("MPEG Audio PACK put on fifo\n");
+
   } else {
     buf->free_buffer(buf);
   }
@@ -1185,9 +1162,7 @@ static int demux_mpeg_block_estimate_rate (demux_mpeg_block_t *this) {
     buf->free_buffer (buf);
 }
 
-#ifdef LOG
-  printf("demux_mpeg_block:est_rate=%d\n",rate);
-#endif
+  lprintf("est_rate=%d\n",rate);
   return rate;
   
 }
@@ -1347,17 +1322,13 @@ static void demux_mpeg_block_accept_input (demux_mpeg_block_t *this,
 
     strncpy (this->cur_mrl, input->get_mrl(input), 256);
 
-#ifdef LOG
-    printf ("demux_mpeg_block: mrl %s is new\n",
-	    this->cur_mrl);
-#endif
+    lprintf ("mrl %s is new\n", this->cur_mrl);
 
-  } else
-#ifdef LOG    
-    printf ("demux_mpeg_block: mrl %s is known, bitrate: %d\n",
-	    this->cur_mrl, this->rate * 50 * 8)
-#endif
-      ;
+  } 
+  else {
+    lprintf ("mrl %s is known, bitrate: %d\n",
+	     this->cur_mrl, this->rate * 50 * 8);
+  }
 }
 
 static int demux_mpeg_block_get_stream_length (demux_plugin_t *this_gen) {
@@ -1406,10 +1377,8 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   this->scratch    = xine_xmalloc_aligned (512, 4096, (void**) &this->scratch_base);
   this->status     = DEMUX_FINISHED;
 
-#ifdef LOG
-  printf ("demux_mpeg_block:open_plugin:detection_method=%d\n",
-	  stream->content_detection_method);
-#endif
+  lprintf ("open_plugin:detection_method=%d\n",
+	   stream->content_detection_method);
  
   switch (stream->content_detection_method) {
     
@@ -1425,9 +1394,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
     if (((input->get_capabilities(input) & INPUT_CAP_SEEKABLE) != 0) ) {
 
       this->blocksize = input->get_blocksize(input);
-#ifdef LOG
-      printf("demux_mpeg_block:open_plugin:blocksize=%d\n",this->blocksize);
-#endif
+      lprintf("open_plugin:blocksize=%d\n",this->blocksize);
 
       if (!this->blocksize)
         this->blocksize = demux_mpeg_detect_blocksize( this, input );
@@ -1440,15 +1407,12 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
 
       input->seek(input, 0, SEEK_SET);
       if (input->read(input, this->scratch, this->blocksize)) {
-#ifdef LOG
-	printf("demux_mpeg_block:open_plugin:read worked\n");
-#endif
+	lprintf("open_plugin:read worked\n");
 
         if (this->scratch[0] || this->scratch[1]
             || (this->scratch[2] != 0x01) || (this->scratch[3] != 0xba)) {
-#ifdef LOG
-	  printf("demux_mpeg_block:open_plugin:scratch failed\n");
-#endif
+	  lprintf("open_plugin:scratch failed\n");
+
           free (this->scratch_base);
           free (this);
           return NULL;
@@ -1465,9 +1429,9 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
         input->seek(input, 0, SEEK_SET);
 
         demux_mpeg_block_accept_input (this, input);
-#ifdef LOG
-        printf("demux_mpeg_block:open_plugin:Accepting detection_method XINE_DEMUX_CONTENT_STRATEGY blocksize=%d\n",this->blocksize);
-#endif
+        lprintf("open_plugin:Accepting detection_method XINE_DEMUX_CONTENT_STRATEGY blocksize=%d\n",
+                this->blocksize);
+
         break;
       }
     }
@@ -1513,9 +1477,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   case METHOD_EXPLICIT: {
 
     this->blocksize = input->get_blocksize(input);
-#ifdef LOG
-    printf("demux_mpeg_block:open_plugin:blocksize=%d\n",this->blocksize);
-#endif
+    lprintf("open_plugin:blocksize=%d\n",this->blocksize);
 
     if (!this->blocksize &&
 	((input->get_capabilities(input) & INPUT_CAP_SEEKABLE) != 0))

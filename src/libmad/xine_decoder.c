@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.43 2003/11/16 23:33:45 f1rmb Exp $
+ * $Id: xine_decoder.c,v 1.44 2003/11/26 19:43:32 f1rmb Exp $
  *
  * stuff needed to turn libmad into a xine decoder plugin
  */
@@ -25,16 +25,18 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define LOG_MODULE "mad_decoder"
+#define LOG_VERBOSE
+/*
+#define LOG
+*/
+
 #include "xine_internal.h"
 #include "audio_out.h"
 #include "buffer.h"
 #include "frame.h"
 #include "synth.h"
 #include "xineutils.h"
-
-/*
-#define LOG
-*/
 
 #define INPUT_BUF_SIZE  16384
 
@@ -125,9 +127,7 @@ static void mad_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 
   mad_decoder_t *this = (mad_decoder_t *) this_gen;
 
-#ifdef LOG
-  printf ("libmad: decode data, decoder_flags: %d\n", buf->decoder_flags);
-#endif  
+  lprintf ("decode data, decoder_flags: %d\n", buf->decoder_flags);
   
   if (buf->size>(INPUT_BUF_SIZE-this->bytes_in_buffer)) {
     printf ("libmad: ALERT input buffer too small (%d bytes, %d avail)!\n",
@@ -188,11 +188,7 @@ static void mad_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 	    || (this->output_sampling_rate != this->frame.header.samplerate)
 	    || (this->output_mode != mode)) {
 
-#ifdef LOG
-	  printf ("libmad: audio sample rate %d mode %08x\n",
-		  this->frame.header.samplerate,
-		  mode);
-#endif
+	  lprintf ("audio sample rate %d mode %08x\n", this->frame.header.samplerate, mode);
 
 	  _x_stream_info_set(this->xstream, XINE_STREAM_INFO_AUDIO_BITRATE, this->frame.header.bitrate);
 	  switch (this->frame.header.layer) {
@@ -266,9 +262,8 @@ static void mad_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 	  buf->pts = 0;
 
 	}
-#ifdef LOG
-	printf ("libmad: decode worked\n"); 
-#endif
+
+	lprintf ("decode worked\n"); 
       }
     } 
 
@@ -312,9 +307,7 @@ static audio_decoder_t *open_plugin (audio_decoder_class_t *class_gen, xine_stre
   mad_stream_init (&this->stream);
   mad_frame_init  (&this->frame);
 
-#ifdef LOG
-  printf ("libmad: init\n"); 
-#endif
+  lprintf ("init\n"); 
 
   return &this->audio_decoder;
 }

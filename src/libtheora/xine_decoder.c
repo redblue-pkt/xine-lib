@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.14 2003/10/23 20:12:33 mroi Exp $
+ * $Id: xine_decoder.c,v 1.15 2003/11/26 19:43:36 f1rmb Exp $
  *
  * xine decoder plugin using libtheora
  *
@@ -35,15 +35,18 @@
 #include <math.h>
 #include <assert.h>
 #include <theora/theora.h>
+
+#define LOG_MODULE "theora_decoder"
+#define LOG_VERBOSE
+/*
+#define LOG
+*/
+
 #include "xine_internal.h"
 #include "video_out.h"
 #include "buffer.h"
 #include "metronom.h"
 #include "xineutils.h"
-
-/*
-#define LOG
-*/
 
 typedef struct theora_class_s {
   video_decoder_class_t   decoder_class;
@@ -184,16 +187,16 @@ static void theora_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
     if (this->hp_read==3) {
       /*headers are now decoded. initialize the decoder*/
       theora_decode_init (&this->t_state, &this->t_info);
-#ifdef LOG
-      printf("libtheora: theora stream is Theora %dx%d %.02f fps video.\n"
-	     "           frame content is %dx%d with offset (%d,%d).\n"
-	     "           pixel aspect is %d:%d.\n",
-	     this->t_info.width,this->t_info.height,
-	     (double)this->t_info.fps_numerator/this->t_info.fps_denominator,
-	     this->t_info.frame_width, this->t_info.frame_height,
-	     this->t_info.offset_x, this->t_info.offset_y,
-	     this->t_info.aspect_numerator, this->t_info.aspect_denominator);
-#endif
+      
+      lprintf("theora stream is Theora %dx%d %.02f fps video.\n"
+	      "           frame content is %dx%d with offset (%d,%d).\n"
+	      "           pixel aspect is %d:%d.\n",
+	      this->t_info.width,this->t_info.height,
+	      (double)this->t_info.fps_numerator/this->t_info.fps_denominator,
+	      this->t_info.frame_width, this->t_info.frame_height,
+	      this->t_info.offset_x, this->t_info.offset_y,
+	      this->t_info.aspect_numerator, this->t_info.aspect_denominator);
+
       this->frame_duration=((int64_t)90000*this->t_info.fps_denominator)/this->t_info.fps_numerator;
       this->width=this->t_info.frame_width;
       this->height=this->t_info.frame_height;
@@ -284,9 +287,7 @@ static void theora_dispose (video_decoder_t *this_gen) {
 
   theora_decoder_t *this = (theora_decoder_t *) this_gen;
 
-#ifdef LOG
-  printf ("libtheora: dispose \n");
-#endif
+  lprintf ("dispose \n");
 
   theora_clear (&this->t_state);
   theora_comment_clear (&this->t_comment);

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.164 2003/11/26 19:32:27 mroi Exp $
+ * $Id: load_plugins.c,v 1.165 2003/11/26 19:43:38 f1rmb Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -42,7 +42,9 @@
 
 #define LOG_MODULE "load_plugins"
 #define LOG_VERBOSE
-/* #define LOG */
+/*
+#define LOG
+*/
 
 #define XINE_ENABLE_EXPERIMENTAL_FEATURES 1
 #include "xine_internal.h"
@@ -127,7 +129,7 @@ static void map_decoders (xine_t *this) {
   plugin_node_t    *node;
   int               i, pos;
 
-  lprintf ("load_plugins: map_decoders\n");
+  lprintf ("map_decoders\n");
 
   /* clean up */
 
@@ -147,7 +149,7 @@ static void map_decoders (xine_t *this) {
     int *type = ((decoder_info_t *)node->info->special_info)->supported_types;
     int priority = get_decoder_priority(this, node);
 
-    lprintf ("load_plugins: mapping decoder %s\n", node->info->id);
+    lprintf ("mapping decoder %s\n", node->info->id);
 
     while (type && (*type)) {
 
@@ -168,7 +170,7 @@ static void map_decoders (xine_t *this) {
       /* insert new decoder */
       catalog->audio_decoder_map[streamtype][pos] = node;
 
-      lprintf("load_plugins: decoder inserted in decoder map at %d\n", pos);
+      lprintf("decoder inserted in decoder map at %d\n", pos);
 
       type++;
     }
@@ -186,7 +188,7 @@ static void map_decoders (xine_t *this) {
     int *type = ((decoder_info_t *)node->info->special_info)->supported_types;
     int priority = get_decoder_priority(this, node);
 
-    lprintf ("load_plugins: mapping decoder %s\n", node->info->id);
+    lprintf ("mapping decoder %s\n", node->info->id);
 
     while (type && (*type)) {
 
@@ -206,7 +208,7 @@ static void map_decoders (xine_t *this) {
 
       /* insert new decoder */
       catalog->video_decoder_map[streamtype][pos] = node;
-      lprintf("load_plugins: decoder inserted in decoder map at %d\n", pos);
+      lprintf("decoder inserted in decoder map at %d\n", pos);
 
       type++;
     }
@@ -224,7 +226,7 @@ static void map_decoders (xine_t *this) {
     int *type = ((decoder_info_t *)node->info->special_info)->supported_types;
     int priority = get_decoder_priority(this, node);
 
-    lprintf ("load_plugins: mapping decoder %s\n", node->info->id);
+    lprintf ("mapping decoder %s\n", node->info->id);
 
     while (type && (*type)) {
 
@@ -245,7 +247,7 @@ static void map_decoders (xine_t *this) {
       /* insert new decoder */
       catalog->spu_decoder_map[streamtype][pos] = node;
 
-      lprintf("load_plugins: decoder inserted in decoder map at %d\n", pos);
+      lprintf("decoder inserted in decoder map at %d\n", pos);
 
       type++;
     }
@@ -412,7 +414,7 @@ static void collect_plugins(xine_t *this, char *path){
 
   DIR *dir;
 
-  lprintf ("load_plugins: collect_plugins in %s\n", path);
+  lprintf ("collect_plugins in %s\n", path);
 
   dir = opendir(path);
   if (dir) {
@@ -632,7 +634,7 @@ static void _load_required_plugins(xine_t *this, xine_list_t *list) {
     
     if( load && !node->plugin_class ) {
       
-      lprintf("load_plugins: preload plugin %s from %s\n", node->info->id, node->filename);
+      lprintf("preload plugin %s from %s\n", node->info->id, node->filename);
 
       node->plugin_class = _load_plugin_class (this, node->filename, node->info, NULL);
         
@@ -941,7 +943,7 @@ void _x_scan_plugins (xine_t *this) {
   int i,j;
   int lenpluginpath;
   
-  lprintf("load_plugins: _x_scan_plugins()\n");
+  lprintf("_x_scan_plugins()\n");
 
 /* TODO - This needs to be fixed for WIN32 */
 #ifndef WIN32
@@ -1156,7 +1158,7 @@ demux_plugin_t *_x_find_demux_plugin_last_probe(xine_stream_t *stream, const cha
 
     while (node) {
 
-      lprintf ("load_plugins: probing demux '%s'\n", node->info->id);
+      lprintf ("probing demux '%s'\n", node->info->id);
 
       if (strcasecmp(node->info->id, last_demux_name) == 0) {
         last_demux = node;
@@ -1355,7 +1357,7 @@ xine_video_port_t *xine_open_video_driver (xine_t *this,
   pthread_mutex_unlock (&catalog->lock);
 
   if (!driver) {
-    lprintf ("load_plugins: failed to load video output plugin <%s>\n", id);
+    lprintf ("failed to load video output plugin <%s>\n", id);
     return NULL;
   }
 
@@ -1392,7 +1394,7 @@ xine_video_port_t *xine_new_framegrab_video_port (xine_t *this) {
   pthread_mutex_unlock (&catalog->lock);
 
   if (!driver) {
-    lprintf ("load_plugins: failed to load video output plugin <%s>\n", id);
+    lprintf ("failed to load video output plugin <%s>\n", id);
     return NULL;
   }
 
@@ -1434,7 +1436,7 @@ static ao_driver_t *_load_audio_driver (xine_t *this, plugin_node_t *node,
     node->plugin_class = _load_plugin_class (this, node->filename, node->info, data);
 
   if (!node->plugin_class) {
-    lprintf ("load_plugins: failed to load plugin class %s\n", node->info->id);
+    lprintf ("failed to load plugin class %s\n", node->info->id);
     return NULL;
   }
 
@@ -1590,7 +1592,7 @@ video_decoder_t *_x_get_video_decoder (xine_stream_t *stream, uint8_t stream_typ
   int               i, j;
   plugin_catalog_t *catalog = stream->xine->plugin_catalog;
 
-  lprintf ("load_plugins: looking for video decoder for streamtype %02x\n", stream_type);
+  lprintf ("looking for video decoder for streamtype %02x\n", stream_type);
 
   pthread_mutex_lock (&catalog->lock);
 
@@ -1666,7 +1668,7 @@ audio_decoder_t *_x_get_audio_decoder (xine_stream_t *stream, uint8_t stream_typ
   int               i, j;
   plugin_catalog_t *catalog = stream->xine->plugin_catalog;
 
-  lprintf ("load_plugins: looking for audio decoder for streamtype %02x\n", stream_type);
+  lprintf ("looking for audio decoder for streamtype %02x\n", stream_type);
 
   pthread_mutex_lock (&catalog->lock);
 
@@ -1739,7 +1741,7 @@ spu_decoder_t *_x_get_spu_decoder (xine_stream_t *stream, uint8_t stream_type) {
   int               i, j;
   plugin_catalog_t *catalog = stream->xine->plugin_catalog;
 
-  lprintf ("load_plugins: looking for spu decoder for streamtype %02x\n", stream_type);
+  lprintf ("looking for spu decoder for streamtype %02x\n", stream_type);
 
   pthread_mutex_lock (&catalog->lock);
 

@@ -79,27 +79,25 @@
 #include <sys/time.h>
 #include <stdlib.h>
 
+#define LOG_MODULE "input_rtp"
+#define LOG_VERBOSE
+/*
+#define LOG
+*/
+
 #include "xine_internal.h"
 #include "xineutils.h"
 #include "input_plugin.h"
 
 #ifdef __GNUC__
-#define LOG_MSG_STDERR(xine, message, args...) {                     \
-    xine_log(xine, XINE_LOG_MSG, message, ##args);                 \
-    fprintf(stderr, message, ##args);                                \
-  }
-#define LOG_MSG(xine, message, args...) {                            \
-    xine_log(xine, XINE_LOG_MSG, message, ##args);                 \
-    printf(message, ##args);                                         \
+#define LOG_MSG(xine, message, args...) {                         \
+    xine_log(xine, XINE_LOG_MSG, message, ##args);                \
+    lprintf(message, ##args);                                     \
   }
 #else
-#define LOG_MSG_STDERR(xine, ...) {                                  \
-    xine_log(xine, XINE_LOG_MSG, __VA_ARGS__);                     \
-    fprintf(stderr, __VA_ARGS__);                                    \
-  }
-#define LOG_MSG(xine, ...) {                                         \
-    xine_log(xine, XINE_LOG_MSG, __VA_ARGS__);                     \
-    printf(__VA_ARGS__);                                             \
+#define LOG_MSG(xine, ...) {                                      \
+    xine_log(xine, XINE_LOG_MSG, __VA_ARGS__);                    \
+    lprintf(__VA_ARGS__);                                         \
   }
 #endif
 
@@ -164,7 +162,7 @@ static int host_connect_attempt(struct in_addr ia, int port, xine_t *xine) {
   int optval;
   
   if(s == -1) {
-    LOG_MSG_STDERR(xine, _("socket(): %s.\n"), strerror(errno));
+    LOG_MSG(xine, _("socket(): %s.\n"), strerror(errno));
     return -1;
   }
   
@@ -176,13 +174,13 @@ static int host_connect_attempt(struct in_addr ia, int port, xine_t *xine) {
   optval = 1024 * 1024;
   if ((setsockopt(s, SOL_SOCKET, SO_RCVBUF,
 		  &optval, sizeof(optval))) < 0) {
-    LOG_MSG_STDERR(xine, _("setsockopt(SO_RCVBUF): %s.\n"), strerror(errno));
+    LOG_MSG(xine, _("setsockopt(SO_RCVBUF): %s.\n"), strerror(errno));
     return -1;
   }
   
   /* datagram socket */
   if (bind(s, (struct sockaddr *)&sin, sizeof(sin))) {
-    LOG_MSG_STDERR(xine, _("bind(): %s.\n"), strerror(errno));
+    LOG_MSG(xine, _("bind(): %s.\n"), strerror(errno));
     return -1;
   }
   
@@ -201,8 +199,8 @@ static int host_connect_attempt(struct in_addr ia, int port, xine_t *xine) {
     mreqn.imr_interface.s_addr = INADDR_ANY;
 #endif
     if (setsockopt(s, IPPROTO_IP, IP_ADD_MEMBERSHIP,&mreqn,sizeof(mreqn))) {
-      LOG_MSG_STDERR(xine, _("setsockopt(IP_ADD_MEMBERSHIP) failed (multicast kernel?): %s.\n"),
-		     strerror(errno));
+      LOG_MSG(xine, _("setsockopt(IP_ADD_MEMBERSHIP) failed (multicast kernel?): %s.\n"),
+	      strerror(errno));
       return -1;
     }
   }
@@ -221,7 +219,7 @@ static int host_connect(const char *host, int port, xine_t *xine) {
   h=gethostbyname(host);
   if(h==NULL)
     {
-      LOG_MSG_STDERR(xine, _("unable to resolve '%s'.\n"), host);
+      LOG_MSG(xine, _("unable to resolve '%s'.\n"), host);
       return -1;
     }
   
@@ -234,7 +232,7 @@ static int host_connect(const char *host, int port, xine_t *xine) {
       if(s != -1)
 	return s;
     }
-  LOG_MSG_STDERR(xine, _("unable to bind to '%s'.\n"), host);
+  LOG_MSG(xine, _("unable to bind to '%s'.\n"), host);
   return -1;
 }
 
@@ -262,8 +260,7 @@ static void * input_plugin_read_loop(void *arg) {
 	{
 	  if (errno != EINTR)
 	    {
-	      LOG_MSG_STDERR(this->stream->xine,
-			     _("recv(): %s.\n"), strerror(errno));
+	      LOG_MSG(this->stream->xine, _("recv(): %s.\n"), strerror(errno));
 	      return NULL;
 	    }
 	}
@@ -569,9 +566,7 @@ static int rtp_plugin_open (input_plugin_t *this_gen ) {
 
   if ((err = pthread_create(&this->reader_thread, NULL, 
 		            input_plugin_read_loop, (void *)this)) != 0) {
-    LOG_MSG_STDERR(this->stream->xine,
-		   _("input_rtp: can't create new thread (%s)\n"),
-		   strerror(err));
+    LOG_MSG(this->stream->xine, _("input_rtp: can't create new thread (%s)\n"), strerror(err));
     abort();
   }
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_goom.c,v 1.43 2003/11/26 19:30:14 mroi Exp $
+ * $Id: xine_goom.c,v 1.44 2003/11/26 19:43:37 f1rmb Exp $
  *
  * GOOM post plugin.
  *
@@ -28,10 +28,11 @@
 
 #include <stdio.h>
 
-/********** logging **********/
 #define LOG_MODULE "goom"
-/* #define LOG_VERBOSE */
-/* #define LOG */
+#define LOG_VERBOSE
+/*
+#define LOG
+*/
 
 #include "config.h"
 #include "xine_internal.h"
@@ -261,7 +262,7 @@ static post_plugin_t *goom_open_plugin(post_class_t *class_gen, int inputs,
   
   this->metronom = _x_metronom_init(1, 0, class->xine);
 
-  lprintf("goom: goom_open_plugin\n");
+  lprintf("goom_open_plugin\n");
 
   if(xine_config_lookup_entry(class->xine, "post.goom_fps",
                               &fps_entry)) 

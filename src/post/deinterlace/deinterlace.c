@@ -24,9 +24,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "deinterlace.h"
+#define LOG_MODULE "deinterlace"
+#define LOG_VERBOSE
+/*
+#define LOG
+*/
 
-/*#define LOG*/
+#include "deinterlace.h"
+#include "xine_internal.h"
 
 typedef struct methodlist_item_s methodlist_item_t;
 
@@ -109,22 +114,16 @@ void filter_deinterlace_methods( int accel, int fields_available )
 
         if( (cur->method->accelrequired & accel) != cur->method->accelrequired ) {
             /* This method is no good, drop it from the list. */
-#ifdef LOG
-            printf( "deinterlace: %s disabled: required "
-                    "CPU accelleration features unavailable.\n",
-                    cur->method->short_name );
-#endif
-            drop = 1;
+	  lprintf( "%s disabled: required CPU accelleration features unavailable.\n",
+		   cur->method->short_name );
+	  drop = 1;
         }
         if( cur->method->fields_required > fields_available ) {
             /* This method is no good, drop it from the list. */
-#ifdef LOG
-            printf( "deinterlace: %s disabled: requires "
-                    "%d field buffers, only %d available.\n",
-                    cur->method->short_name, cur->method->fields_required,
-                    fields_available );
-#endif
-            drop = 1;
+	  lprintf( "%s disabled: requires %d field buffers, only %d available.\n",
+		   cur->method->short_name, cur->method->fields_required,
+		   fields_available );
+	  drop = 1;
         }
 
         if( drop ) {

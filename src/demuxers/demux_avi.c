@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_avi.c,v 1.181 2003/11/23 23:20:57 valtri Exp $
+ * $Id: demux_avi.c,v 1.182 2003/11/26 19:43:28 f1rmb Exp $
  *
  * demultiplexer for avi streams
  *
@@ -59,12 +59,12 @@
 #include <string.h>
 #include <stdlib.h>
 
-/********** logging **********/
 #define LOG_MODULE "demux_avi"
 #define LOG_VERBOSE
 /*
-#define LOG 
+#define LOG
 */
+
 #include "xine_internal.h"
 #include "xineutils.h"
 #include "demux.h"

@@ -35,16 +35,18 @@
 #include <fcntl.h>
 #include "bswap.h"
 
+#define LOG_MODULE "input_rtsp"
+#define LOG_VERBOSE
+/*
+#define LOG
+*/
+
 #include "xine_internal.h"
 #include "xineutils.h"
 #include "input_plugin.h"
 
 #include "librtsp/rtsp_session.h"
 #include "net_buf_ctrl.h"
-
-/*
-#define LOG
-*/
 
 #define BUFSIZE 1025
 
@@ -83,10 +85,7 @@ static off_t rtsp_plugin_read (input_plugin_t *this_gen,
   rtsp_input_plugin_t *this = (rtsp_input_plugin_t *) this_gen;
   off_t               n;
 
-#ifdef LOG
-  printf ("rtsp_plugin_read: %lld bytes ...\n",
-          len);
-#endif
+  lprintf ("rtsp_plugin_read: %lld bytes ...\n", len);
 
   nbc_check_buffers (this->nbc);
 
@@ -102,10 +101,7 @@ static buf_element_t *rtsp_plugin_read_block (input_plugin_t *this_gen,
   buf_element_t        *buf = fifo->buffer_pool_alloc (fifo);
   int                   total_bytes;
 
-#ifdef LOG
-  printf ("rtsp_plugin_read_block: %lld bytes...\n",
-          todo);
-#endif
+  lprintf ("rtsp_plugin_read_block: %lld bytes...\n", todo);
 
   buf->content = buf->mem;
   buf->type = BUF_DEMUX_BLOCK;
@@ -126,10 +122,7 @@ static off_t rtsp_plugin_seek (input_plugin_t *this_gen, off_t offset, int origi
 
   rtsp_input_plugin_t *this = (rtsp_input_plugin_t *) this_gen;
 
-#ifdef LOG
-  printf ("input_rtsp: seek %lld bytes, origin %d\n",
-	  offset, origin);
-#endif
+  lprintf ("seek %lld bytes, origin %d\n", offset, origin);
 
   /* only realtive forward-seeking is implemented */
 
@@ -221,16 +214,13 @@ static int rtsp_plugin_open (input_plugin_t *this_gen) {
 
   rtsp_session_t      *rtsp;
 
-#ifdef LOG
-  printf ("input_rtsp: trying to open '%s'\n", this->mrl);
-#endif
+  lprintf ("trying to open '%s'\n", this->mrl);
 
   rtsp = rtsp_session_start(this->stream,this->mrl);
 
   if (!rtsp) {
-#ifdef LOG
-    printf ("input_rtsp: returning null.\n");
-#endif
+    lprintf ("returning null.\n");
+
     return 0;
   }
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.131 2003/11/16 23:33:47 f1rmb Exp $
+ * $Id: w32codec.c,v 1.132 2003/11/26 19:43:37 f1rmb Exp $
  *
  * routines for using w32 codecs
  * DirectShow support by Miguel Freitas (Nov/2001)
@@ -47,15 +47,17 @@
 #include "dmo/DMO_AudioDecoder.h"
 #include "dmo/DMO_VideoDecoder.h"
 
+#define LOG_MODULE "w32codec"
+#define LOG_VERBOSE
+/*
+#define LOG
+*/
+
 #include "xine_internal.h"
 #include "video_out.h"
 #include "audio_out.h"
 #include "buffer.h"
 #include "xineutils.h"
-
-/*
-#define LOG
-*/
 
 static GUID CLSID_Voxware =
 {
@@ -494,9 +496,7 @@ static void w32v_init_codec (w32v_decoder_t *this, int buf_type) {
   uint32_t vo_cap;
   int outfmt;
 
-#ifdef LOG
-  printf ("w32codec: init codec...\n");
-#endif
+  lprintf ("init codec...\n");
 
   memset(&this->o_bih, 0, sizeof(BITMAPINFOHEADER));
   this->o_bih.biSize = sizeof(BITMAPINFOHEADER);
@@ -693,11 +693,8 @@ static void w32v_init_ds_dmo_codec (w32v_decoder_t *this, int buf_type) {
 static void w32v_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
   w32v_decoder_t *this = (w32v_decoder_t *) this_gen;
 
-  
-#ifdef LOG
-  printf ("w32codec: processing packet type = %08x, buf->decoder_flags=%08x\n", 
-	  buf->type, buf->decoder_flags);
-#endif
+  lprintf ("processing packet type = %08x, buf->decoder_flags=%08x\n", 
+	   buf->type, buf->decoder_flags);
   
   if (buf->decoder_flags & BUF_FLAG_PREVIEW)
     return;
@@ -706,9 +703,7 @@ static void w32v_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
     if ( buf->type & 0xff )
       return;
     
-#ifdef LOG
-    printf ("w32codec: processing header ...\n"); 
-#endif
+    lprintf ("processing header ...\n"); 
 
     /* init package containing bih */
     if( this->bih )
@@ -723,9 +718,7 @@ static void w32v_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
     _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_HEIGHT,   this->bih->biHeight);
     _x_stream_info_set(this->stream, XINE_STREAM_INFO_FRAME_DURATION, this->video_step);
 
-#ifdef LOG
-    printf ("w32codec: video_step is %lld\n", this->video_step);
-#endif
+    lprintf ("video_step is %lld\n", this->video_step);
 
     pthread_mutex_lock(&win32_codec_mutex);
     win32_codec_name = get_vids_codec_name (this, buf->type);
@@ -751,9 +744,8 @@ static void w32v_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
     
   } else if (this->decoder_ok) {
 
-#ifdef LOG
-    printf ("w32codec: processing packet ...\n"); 
-#endif
+    lprintf ("processing packet ...\n"); 
+
     if( (int) buf->size <= 0 )
         return;
        
@@ -799,9 +791,7 @@ static void w32v_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 
       img->duration = this->video_step;
 
-#ifdef LOG
-	printf ("w32codec: frame duration is %lld\n", this->video_step);
-#endif
+      lprintf ("frame duration is %lld\n", this->video_step);
 
       if (this->outfmt==IMGFMT_YUY2)
          img_buffer = img->base[0];
@@ -899,21 +889,15 @@ static void w32v_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
         if (!this->skipframes)
 	  printf("w32codec: Error decompressing frame, err=%ld\n", (long)ret); 
 	img->bad_frame = 1;
-#ifdef LOG
-	printf ("w32codec: BAD FRAME, duration is %d\n", img->duration);
-#endif
+	lprintf ("BAD FRAME, duration is %d\n", img->duration);
       } else {
 	img->bad_frame = 0;
-#ifdef LOG
-	printf ("w32codec: GOOD FRAME, duration is %d\n\n", img->duration);
-#endif
+	lprintf ("GOOD FRAME, duration is %d\n\n", img->duration);
       }
       
       this->skipframes = img->draw(img, this->stream);
 
-#ifdef LOG
-      printf ("w32codec: skipframes is %d\n", this->skipframes);
-#endif
+      lprintf ("skipframes is %d\n", this->skipframes);
 
       if (this->skipframes < 0)
         this->skipframes = 0;
@@ -1274,10 +1258,9 @@ static void w32a_decode_audio (w32a_decoder_t *this,
   
   xine_fast_memcpy (&this->buf[this->size], data, size);
 
-#ifdef LOG
-  printf("w32codec: w32a_decode_audio: demux pts=%lld, this->size=%d, d=%d, rate=%lf\n",
-         pts, this->size, delay, this->byterate);
-#endif
+  lprintf("w32a_decode_audio: demux pts=%lld, this->size=%d, d=%d, rate=%lf\n",
+	  pts, this->size, delay, this->byterate);
+
   this->size += size;
 
   while (this->size >= this->rec_audio_src_size) {
@@ -1290,12 +1273,10 @@ static void w32a_decode_audio (w32a_decoder_t *this,
     ash.pbDst=this->outbuf;
     ash.cbDstLength=this->outsize;
     
-#ifdef LOG
-    printf ("decoding %d of %d bytes (%02x %02x %02x %02x ... %02x %02x)\n", 
-	    this->rec_audio_src_size, this->size,
-	    this->buf[0], this->buf[1], this->buf[2], this->buf[3],
-	    this->buf[this->rec_audio_src_size-2], this->buf[this->rec_audio_src_size-1]); 
-#endif
+    lprintf ("decoding %d of %d bytes (%02x %02x %02x %02x ... %02x %02x)\n", 
+	     this->rec_audio_src_size, this->size,
+	     this->buf[0], this->buf[1], this->buf[2], this->buf[3],
+	     this->buf[this->rec_audio_src_size-2], this->buf[this->rec_audio_src_size-1]); 
     
     pthread_mutex_lock(&win32_codec_mutex);
     if( this->driver_type == DRIVER_STD ) {
@@ -1330,10 +1311,10 @@ static void w32a_decode_audio (w32a_decoder_t *this,
       int DstLengthUsed, bufsize;
       audio_buffer_t *audio_buffer;
       char *p;
-#ifdef LOG
-      printf ("acmStreamConvert worked, used %d bytes, generated %d bytes\n",
-	      ash.cbSrcLengthUsed, ash.cbDstLengthUsed);
-#endif
+
+      lprintf ("acmStreamConvert worked, used %d bytes, generated %d bytes\n",
+	       ash.cbSrcLengthUsed, ash.cbDstLengthUsed);
+
       DstLengthUsed = ash.cbDstLengthUsed;
       p = this->outbuf;
       
@@ -1354,9 +1335,8 @@ static void w32a_decode_audio (w32a_decoder_t *this,
         else
           audio_buffer->vpts = 0;
 
-#ifdef LOG
-        printf("w32codec: w32a_decode_audio: decoder pts=%lld\n", audio_buffer->vpts);
-#endif
+        lprintf("w32a_decode_audio: decoder pts=%lld\n", audio_buffer->vpts);
+
 	this->stream->audio_out->put_buffer (this->stream->audio_out, audio_buffer, this->stream);
         
 	this->pts = 0;
@@ -1387,17 +1367,12 @@ static void w32a_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
   w32a_decoder_t *this = (w32a_decoder_t *) this_gen;
 
   if (buf->decoder_flags & BUF_FLAG_PREVIEW) {
-#ifdef LOG
-    printf ("w32codec: preview data ignored.\n");
-#endif
+    lprintf ("preview data ignored.\n");
     return;
   }
   
   if (buf->decoder_flags & BUF_FLAG_HEADER) {
-
-#ifdef LOG
-    printf ("w32codec: got audio header\n");
-#endif
+    lprintf ("got audio header\n");
 
     pthread_mutex_lock(&win32_codec_mutex);
     this->decoder_ok = w32a_init_audio (this, buf);
@@ -1411,9 +1386,7 @@ static void w32a_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
     pthread_mutex_unlock(&win32_codec_mutex);
  
   } else if (this->decoder_ok) {
-#ifdef LOG
-    printf ("w32codec: decoding %d data bytes...\n", buf->size);
-#endif
+    lprintf ("decoding %d data bytes...\n", buf->size);
 
     if( (int)buf->size <= 0 )
       return;

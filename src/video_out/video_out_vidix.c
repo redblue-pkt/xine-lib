@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_vidix.c,v 1.53 2003/11/26 18:36:34 miguelfreitas Exp $
+ * $Id: video_out_vidix.c,v 1.54 2003/11/26 19:43:37 f1rmb Exp $
  * 
  * video_out_vidix.c
  *
@@ -53,6 +53,12 @@
 #include "vidixlib.h"
 #include "fourcc.h"
 
+#define LOG_MODULE "video_out_vidix"
+#define LOG_VERBOSE
+/*
+#define LOG
+*/
+
 #include "video_out.h"
 #include "xine_internal.h"
 #include "alphablend.h"
@@ -63,10 +69,6 @@
 #include "x11osd.h"
 #endif
               
-/*
-#define LOG
-*/           
-
 #define NUM_FRAMES 3
 
 typedef struct vidix_driver_s vidix_driver_t;
@@ -436,9 +438,7 @@ static void vidix_config_playback (vidix_driver_t *this) {
   _x_vo_scale_compute_output_size( &this->sc );
   
   if( this->vidix_started > 0 ) {
-#ifdef LOG
-    printf("video_out_vidix: overlay off\n");
-#endif
+    lprintf("video_out_vidix: overlay off\n");
     vdlPlaybackOff(this->vidix_handler);
   }
 
@@ -469,31 +469,29 @@ static void vidix_config_playback (vidix_driver_t *this) {
      return;
   }
 
-#ifdef LOG
-  printf("video_out_vidix: dga_addr = %p frame_size = %d frames = %d\n",
-         this->vidix_play.dga_addr, this->vidix_play.frame_size,
-         this->vidix_play.num_frames );
+  lprintf("video_out_vidix: dga_addr = %p frame_size = %d frames = %d\n",
+	  this->vidix_play.dga_addr, this->vidix_play.frame_size,
+	  this->vidix_play.num_frames );
   
-  printf("video_out_vidix: offsets[0..2] = %d %d %d\n",
-         this->vidix_play.offsets[0], this->vidix_play.offsets[1],
-         this->vidix_play.offsets[2] );
+  lprintf("video_out_vidix: offsets[0..2] = %d %d %d\n",
+	  this->vidix_play.offsets[0], this->vidix_play.offsets[1],
+	  this->vidix_play.offsets[2] );
   
-  printf("video_out_vidix: offset.y/u/v = %d/%d/%d\n",
-         this->vidix_play.offset.y, this->vidix_play.offset.u,
-         this->vidix_play.offset.v );
+  lprintf("video_out_vidix: offset.y/u/v = %d/%d/%d\n",
+	  this->vidix_play.offset.y, this->vidix_play.offset.u,
+	  this->vidix_play.offset.v );
   
-  printf("video_out_vidix: src.x/y/w/h = %d/%d/%d/%d\n",
-         this->vidix_play.src.x, this->vidix_play.src.y,
-         this->vidix_play.src.w, this->vidix_play.src.h );
+  lprintf("video_out_vidix: src.x/y/w/h = %d/%d/%d/%d\n",
+	  this->vidix_play.src.x, this->vidix_play.src.y,
+	  this->vidix_play.src.w, this->vidix_play.src.h );
   
-  printf("video_out_vidix: dest.x/y/w/h = %d/%d/%d/%d\n",
-         this->vidix_play.dest.x, this->vidix_play.dest.y,
-         this->vidix_play.dest.w, this->vidix_play.dest.h );
-
-  printf("video_out_vidix: dest.pitch.y/u/v = %d/%d/%d\n",
-         this->vidix_play.dest.pitch.y, this->vidix_play.dest.pitch.u,
-         this->vidix_play.dest.pitch.v );
-#endif
+  lprintf("video_out_vidix: dest.x/y/w/h = %d/%d/%d/%d\n",
+	  this->vidix_play.dest.x, this->vidix_play.dest.y,
+	  this->vidix_play.dest.w, this->vidix_play.dest.h );
+  
+  lprintf("video_out_vidix: dest.pitch.y/u/v = %d/%d/%d\n",
+	  this->vidix_play.dest.pitch.y, this->vidix_play.dest.pitch.u,
+	  this->vidix_play.dest.pitch.v );
          
   this->vidix_mem = this->vidix_play.dga_addr;
 
@@ -522,9 +520,7 @@ static void vidix_config_playback (vidix_driver_t *this) {
              this->delivered_format);
  }
 
-#ifdef LOG
-  printf("video_out_vidix: overlay on\n");
-#endif  
+  lprintf("video_out_vidix: overlay on\n");
   vdlPlaybackOn(this->vidix_handler);
   this->vidix_started = 1;
 }
@@ -664,17 +660,15 @@ static void vidix_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
 	 || (frame->height != this->sc.delivered_height)
 	 || (frame->ratio != this->sc.delivered_ratio) 
 	 || (frame->format != this->delivered_format ) ) {
-#ifdef LOG
-	 printf("video_out_vidix: change frame format\n");
-#endif
-
-      this->sc.delivered_width  = frame->width;
-      this->sc.delivered_height = frame->height;
-      this->sc.delivered_ratio  = frame->ratio;
-      this->delivered_format    = frame->format;
-
-      vidix_compute_ideal_size( this );
-      this->sc.force_redraw = 1;
+    lprintf("video_out_vidix: change frame format\n");
+    
+    this->sc.delivered_width  = frame->width;
+    this->sc.delivered_height = frame->height;
+    this->sc.delivered_ratio  = frame->ratio;
+    this->delivered_format    = frame->format;
+    
+    vidix_compute_ideal_size( this );
+    this->sc.force_redraw = 1;
   }
     
   /* 
@@ -712,10 +706,8 @@ static int vidix_get_property (vo_driver_t *this_gen, int property) {
       break;
   }
   
-#ifdef LOG  
-  printf ("video_out_vidix: property #%d = %d\n", property,
-	  this->props[property].value);
-#endif
+  lprintf ("video_out_vidix: property #%d = %d\n", property,
+	   this->props[property].value);
 
   return this->props[property].value;
 }
@@ -733,10 +725,8 @@ static int vidix_set_property (vo_driver_t *this_gen,
   this->props[property].value = value;
   
   if ( property == VO_PROP_ASPECT_RATIO) {
-#ifdef LOG
-    printf("video_out_vidix: aspect ratio changed to %s\n",
-	   _x_vo_scale_aspect_ratio_name(value));
-#endif
+    lprintf("video_out_vidix: aspect ratio changed to %s\n",
+	    _x_vo_scale_aspect_ratio_name(value));
     
     if(value == XINE_VO_ASPECT_NUM_RATIOS)
       value = this->props[property].value = XINE_VO_ASPECT_AUTO;
@@ -871,9 +861,7 @@ static int vidix_gui_data_exchange (vo_driver_t *this_gen,
   switch (data_type) {
 
   case XINE_GUI_SEND_DRAWABLE_CHANGED:
-#ifdef LOG
-      printf ("video_out_vidix: GUI_DATA_EX_DRAWABLE_CHANGED\n");
-#endif
+    lprintf ("video_out_vidix: GUI_DATA_EX_DRAWABLE_CHANGED\n");
     
     if(this->visual_type == XINE_VISUAL_TYPE_X11) {
 #ifdef HAVE_X11
@@ -890,9 +878,7 @@ static int vidix_gui_data_exchange (vo_driver_t *this_gen,
     break;
   
   case XINE_GUI_SEND_EXPOSE_EVENT:
-#ifdef LOG
-      printf ("video_out_vidix: GUI_DATA_EX_EXPOSE_EVENT\n");
-#endif
+    lprintf ("video_out_vidix: GUI_DATA_EX_EXPOSE_EVENT\n");
     vidix_clean_output_area(this);
 #ifdef HAVE_X11
     XLockDisplay (this->display);

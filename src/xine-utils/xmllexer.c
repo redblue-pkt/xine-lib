@@ -17,10 +17,17 @@
  *  along with this program; if not, write to the Free Software
  *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- *  $Id: xmllexer.c,v 1.3 2003/09/16 02:12:54 storri Exp $
+ *  $Id: xmllexer.c,v 1.4 2003/11/26 19:43:38 f1rmb Exp $
  *
  */
 
+#define LOG_MODULE "xmllexer"
+#define LOG_VERBOSE
+/*
+#define LOG
+*/
+
+#include "xineutils.h"
 #include "xmllexer.h"
 #include <stdio.h>
 #include <ctype.h>
@@ -29,10 +36,6 @@
 /* private constants*/
 #define NORMAL       0  /* normal lex mode */
 #define DATA         1  /* data lex mode */
-
-/*
-#define LOG
-*/
 
 /* private global variables */
 static char * lexbuf;
@@ -47,9 +50,8 @@ void lexer_init(char * buf, int size) {
   lexbuf_pos  = 0;
   lex_mode    = NORMAL;
   in_comment  = 0;
-#ifdef LOG
-  printf("xmllexer: buffer length %d\n", size);
-#endif
+
+  lprintf("buffer length %d\n", size);
 }
 
 int lexer_get_token(char * tok, int tok_size) {
@@ -60,9 +62,8 @@ int lexer_get_token(char * tok, int tok_size) {
   if (tok) {
     while ((tok_pos < tok_size) && (lexbuf_pos < lexbuf_size)) {
       c = lexbuf[lexbuf_pos];
-#ifdef LOG
-      printf("xmllexer: c=%c, state=%d, in_comment=%d\n", c, state, in_comment);
-#endif
+      lprintf("c=%c, state=%d, in_comment=%d\n", c, state, in_comment);
+
       if (lex_mode == NORMAL) {
 				/* normal mode */
 	switch (state) {
@@ -108,7 +109,7 @@ int lexer_get_token(char * tok, int tok_size) {
 	    tok_pos++;
 	    break;
 
-	  case '\"':
+	  case '\"': /* " */
 	    state = 7;
 	    break;
 
@@ -220,7 +221,7 @@ int lexer_get_token(char * tok, int tok_size) {
 	case 7:
 	  tok[tok_pos] = c;
 	  lexbuf_pos++;
-	  if (c == '\"') {
+	  if (c == '\"') { /* " */
 	    tok[tok_pos] = '\0'; /* FIXME */
 	    return T_STRING;
 	  }
@@ -320,7 +321,7 @@ int lexer_get_token(char * tok, int tok_size) {
 	  case '<':
 	  case '>':
 	  case '\\':
-	  case '\"':
+	  case '\"': /* " */
 	  case ' ':
 	  case '\t':
 	  case '=':
@@ -362,10 +363,9 @@ int lexer_get_token(char * tok, int tok_size) {
 	}
       }
     }
-#ifdef LOG
-    printf ("xmllexer: loop done tok_pos = %d, tok_size=%d, lexbuf_pos=%d, lexbuf_size=%d\n", 
-	    tok_pos, tok_size, lexbuf_pos, lexbuf_size);
-#endif
+    lprintf ("loop done tok_pos = %d, tok_size=%d, lexbuf_pos=%d, lexbuf_size=%d\n", 
+	     tok_pos, tok_size, lexbuf_pos, lexbuf_size);
+
     /* pb */
     if (tok_pos >= tok_size) {
       printf("xmllexer: token buffer is too little\n");

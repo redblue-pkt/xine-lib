@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mms.c,v 1.35 2003/11/11 18:44:54 f1rmb Exp $
+ * $Id: mms.c,v 1.36 2003/11/26 19:43:31 f1rmb Exp $
  *
  * MMS over TCP protocol
  *   based on work from major mms
@@ -54,7 +54,7 @@
 #endif
 
 /********** logging **********/
-#define LOG_MODULE "libmms"
+#define LOG_MODULE "mms"
 #define LOG_VERBOSE
 /*
 #define LOG 
@@ -155,11 +155,12 @@ static int get_guid (unsigned char *buffer, int offset) {
     }
   }
   
-  printf ("libmms: unknown GUID: 0x%x, 0x%x, 0x%x, "
-          "{ 0x%hx, 0x%hx, 0x%hx, 0x%hx, 0x%hx, 0x%hx, 0x%hx, 0x%hx }\n",
-          g.Data1, g.Data2, g.Data3,
-          g.Data4[0], g.Data4[1], g.Data4[2], g.Data4[3], 
-          g.Data4[4], g.Data4[5], g.Data4[6], g.Data4[7]);
+  lprintf ("unknown GUID: 0x%x, 0x%x, 0x%x, "
+	   "{ 0x%hx, 0x%hx, 0x%hx, 0x%hx, 0x%hx, 0x%hx, 0x%hx, 0x%hx }\n",
+	   g.Data1, g.Data2, g.Data3,
+	   g.Data4[0], g.Data4[1], g.Data4[2], g.Data4[3], 
+	   g.Data4[4], g.Data4[5], g.Data4[6], g.Data4[7]);
+
   return GUID_ERROR;
 }
 
@@ -494,13 +495,13 @@ static int get_header (mms_t *this) {
       /* reply to a ping command */
       if (command == 0x1b) {
         if (!send_command (this, 0x1b, 0, 0, 0)) {
-          lprintf("libmms: failed to send command 0x1b\n");
+          lprintf("failed to send command 0x1b\n");
           return 0;
         }
       }
     }
 
-    lprintf ("mms: get header packet succ\n");
+    lprintf ("get header packet succ\n");
   }
 
   return 1;
@@ -715,7 +716,7 @@ static int mms_tcp_connect(mms_t *this) {
   if (res != XIO_READY) {
     return 1;
   }
-  lprintf ("libmms: connected\n");
+  lprintf ("connected\n");
   return 0;
 }
 
@@ -768,7 +769,7 @@ int static mms_choose_best_streams(mms_t *this) {
   if (bandwitdh_left < 0) {
     bandwitdh_left = 0;
   }
-  lprintf("libmms: bandwitdh %d, left %d\n", this->bandwidth, bandwitdh_left);
+  lprintf("bandwitdh %d, left %d\n", this->bandwidth, bandwitdh_left);
 
   min_bw_left = bandwitdh_left;
   for (i = 0; i < this->num_stream_ids; i++) {
@@ -1101,17 +1102,17 @@ static int get_media_packet (mms_t *this) {
 
     len = _x_io_tcp_read (this->stream, this->s, this->buf, packet_len);
     if (len < 0) {
-      lprintf ("\nlibmms: get_media_packet: read error\n");
+      lprintf ("get_media_packet: read error\n");
       return 0;
     } else if (len != packet_len) {
-      lprintf ("\nlibmms: get_media_packet: end of stream\n");
+      lprintf ("get_media_packet: end of stream\n");
       return 0;
     }
 
     if ( (pre_header[7] != 0xb0) || (pre_header[6] != 0x0b) ||
          (pre_header[5] != 0xfa) || (pre_header[4] != 0xce) ) {
 
-      lprintf ("libmms: missing signature\n");
+      lprintf ("missing signature\n");
       return 0;
     }
 
@@ -1130,10 +1131,10 @@ static int get_media_packet (mms_t *this) {
 
     } else if (command == 0x20) {
 
-      lprintf ("libmms: new stream.\n");
+      lprintf ("new stream.\n");
       /* asf header */
       if (!get_header (this)) {
-        lprintf ("libmms: bad header\n");
+        lprintf ("bad header\n");
         return 0;
       }
 
@@ -1184,7 +1185,7 @@ int mms_read (mms_t *this, char *data, int len) {
   while (total < len) {
 
     /* not really usefull, even in debug mode */
-    lprintf ("libmms: read, got %d / %d bytes\n", total, len);
+    lprintf ("read, got %d / %d bytes\n", total, len);
 
     if (this->asf_header_read < this->asf_header_len) {
       int n, bytes_left ;

@@ -21,7 +21,7 @@
  * For more information on the FILM file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_film.c,v 1.71 2003/11/17 05:42:07 tmmm Exp $
+ * $Id: demux_film.c,v 1.72 2003/11/26 19:43:30 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -34,9 +34,12 @@
 #include <string.h>
 #include <stdlib.h>
 
-/********** logging **********/
 #define LOG_MODULE "demux_film"
-/* #define LOG_VERBOSE */
+#define LOG_VERBOSE
+/*
+#define LOG
+*/
+
 
 /* set DEBUG_FILM_LOAD to dump the frame index after the demuxer loads a
  * FILM file */

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: pnm.c,v 1.16 2003/11/11 18:44:54 f1rmb Exp $
+ * $Id: pnm.c,v 1.17 2003/11/26 19:43:31 f1rmb Exp $
  *
  * pnm protocol implementation 
  * based upon code from joschka
@@ -36,15 +36,17 @@
 #include <sys/time.h>
 #include <sys/types.h>
 
+#define LOG_MODULE "pnm"
+#define LOG_VERBOSE
+/*
+#define LOG
+*/
+
 #include "pnm.h"
 #include "libreal/rmff.h"
 #include "bswap.h"
 #include "xineutils.h"
 #include "xine_internal.h"
-
-/*
-#define LOG
-*/
 
 #define BUF_SIZE 4096
 #define HEADER_SIZE 4096
@@ -687,9 +689,8 @@ static int pnm_calc_stream(pnm_t *p) {
       if (p->ts_current < p->ts_last[0])
         return 1;
       /* does not help, we guess type 0     */
-#ifdef LOG
-      printf("guessing stream# 0\n");
-#endif
+      lprintf("guessing stream# 0\n");
+
       p->seq_num[0]=p->seq_current[0]+1;
       p->seq_num[1]=p->seq_current[1]+1;
       return 0;
@@ -730,9 +731,7 @@ static int pnm_get_stream_chunk(pnm_t *p) {
   {
     n = rm_read (p, p->buffer, 8);
     if (n<8) return 0;
-#ifdef LOG
-    printf("input_pnm: had to seek 8 bytes on 0x62\n");
-#endif
+    lprintf("had to seek 8 bytes on 0x62\n");
   }
   
   /* a server message */
@@ -872,9 +871,7 @@ pnm_t *pnm_connect(xine_stream_t *stream, const char *mrl) {
 
   free(mrl_ptr-6);
 
-#ifdef LOG
-  printf("input_pnm: got mrl: %s %i %s\n",p->host,p->port,p->path);
-#endif
+  lprintf("got mrl: %s %i %s\n",p->host,p->port,p->path);
   
   fd = host_connect (p->host, p->port);
 
@@ -927,9 +924,8 @@ int pnm_read (pnm_t *this, char *data, int len) {
     this->recv_read=0;
 
     if (!pnm_get_stream_chunk (this)) {
-#ifdef LOG
-      printf ("input_pnm: %d of %d bytes provided\n", len-to_copy, len);
-#endif
+      lprintf ("%d of %d bytes provided\n", len-to_copy, len);
+
       return len-to_copy;
     }
     source = this->recv;
@@ -939,9 +935,7 @@ int pnm_read (pnm_t *this, char *data, int len) {
   memcpy(dest, source, to_copy);
   this->recv_read += to_copy;
 
-#ifdef LOG
-  printf ("input_pnm: %d bytes provided\n", len);
-#endif
+  lprintf ("%d bytes provided\n", len);
 
   return len;
 }

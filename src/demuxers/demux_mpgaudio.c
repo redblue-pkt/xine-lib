@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpgaudio.c,v 1.127 2003/11/26 19:26:59 mroi Exp $
+ * $Id: demux_mpgaudio.c,v 1.128 2003/11/26 19:43:30 f1rmb Exp $
  *
  * demultiplexer for mpeg audio (i.e. mp3) streams
  *
@@ -36,8 +36,6 @@
 #include <string.h>
 #include <stdlib.h>
 
-
-/********** logging **********/
 #define LOG_MODULE "demux_mpeg_audio"
 #define LOG_VERBOSE
 /*
@@ -1088,7 +1086,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   case METHOD_BY_EXTENSION: {
     char *mrl = input->get_mrl(input);
     
-    lprintf ("demux_mpgaudio: stage by extension %s\n", mrl);
+    lprintf ("stage by extension %s\n", mrl);
     
     if (strncmp (mrl, "ice :/", 6)) {
       char *extensions = class_gen->get_extensions (class_gen);

@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * $Id: yuv2rgb.c,v 1.45 2003/10/20 00:33:29 komadori Exp $
+ * $Id: yuv2rgb.c,v 1.46 2003/11/26 19:43:38 f1rmb Exp $
  */
 
 #include "config.h"
@@ -34,11 +34,14 @@
 #include <inttypes.h>
 
 #include "yuv2rgb.h"
-#include "xineutils.h"
 
+#define LOG_MODULE "yuv2rgb"
+#define LOG_VERBOSE
 /*
-#define	LOG
+#define LOG
 */
+
+#include "xineutils.h"
 
 static int prof_scale_line = -1;
 
@@ -3212,9 +3215,8 @@ yuv2rgb_factory_t* yuv2rgb_factory_init (int mode, int swapped,
   }
 #endif
   if (this->yuv2rgb_fun == NULL) {
-#ifdef LOG
-    printf ("yuv2rgb: no accelerated colorspace conversion found\n");
-#endif
+    lprintf ("no accelerated colorspace conversion found\n");
+
     yuv2rgb_c_init (this);
   }
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_stk.c,v 1.9 2003/11/11 18:45:00 f1rmb Exp $
+ * $Id: video_out_stk.c,v 1.10 2003/11/26 19:43:37 f1rmb Exp $
  *
  * video_out_stk.c, Libstk Surface Video Driver
  * more info on Libstk at http://www.libstk.org
@@ -54,16 +54,18 @@
 
 #include <libstk/stk_c_wrapper.h>
 
+#define LOG_MODULE "video_out_stk"
+#define LOG_VERBOSE
+/*
+#define LOG
+*/
+
 #include "xine.h"
 #include "xine_internal.h"
 #include "video_out.h"
 #include "alphablend.h"
 #include "xineutils.h"
 #include "vo_scale.h"
-
-/*
-#define STK_LOG
-*/
 
 /* Extend the video frame class with stk private data */
 typedef struct stk_frame_s {
@@ -156,11 +158,9 @@ static void stk_compute_output_size (stk_driver_t *this) {
     //printf("video_out_stk: compute_output_size()\n");
     _x_vo_scale_compute_output_size( &this->sc );
 
-#ifdef LOG
-    printf ("video_out_stk: frame source %d x %d => screen output %d x %d\n",
-            this->sc.delivered_width, this->sc.delivered_height,
-            this->sc.output_width, this->sc.output_height);
-#endif
+    lprintf ("frame source %d x %d => screen output %d x %d\n",
+	     this->sc.delivered_width, this->sc.delivered_height,
+	     this->sc.output_width, this->sc.output_height);
 }
 
 
@@ -171,13 +171,11 @@ static void stk_update_frame_format (vo_driver_t *this_gen, vo_frame_t *frame_ge
     //printf("video_out_stk: update_frame_format()\n");
 
     if ((frame->width != width) || (frame->height != height) || (frame->format != format)) {
-#ifdef STK_LOG
-        printf("video_out_stk: update_frame_format - %d=%d, %d=%d, %d=%d\n", 
-                frame->width, width, frame->height, height, frame->format, format);
-        printf("video_out_stk: vo_frame data - width, height, format: %d, %d, %d\n", 
-                frame->vo_frame.width, frame->vo_frame.height, frame->vo_frame.format);
-#endif
-        
+      lprintf("update_frame_format - %d=%d, %d=%d, %d=%d\n", 
+	      frame->width, width, frame->height, height, frame->format, format);
+      lprintf("vo_frame data - width, height, format: %d, %d, %d\n", 
+	     frame->vo_frame.width, frame->vo_frame.height, frame->vo_frame.format);
+       
         /* (re-) allocate image */
         if (frame->overlay) {
             stk_overlay_free(frame->overlay); 
@@ -185,18 +183,14 @@ static void stk_update_frame_format (vo_driver_t *this_gen, vo_frame_t *frame_ge
         }
 
         if (format == XINE_IMGFMT_YV12) {
-#ifdef STK_LOG
-            printf ("video_out_stk: format YV12\n");
-#endif
-            frame->overlay = stk_surface_create_overlay(this->surface, width, height, 
-                    STK_FORMAT_YV12);
+	  lprintf ("format YV12\n");
+	  frame->overlay = stk_surface_create_overlay(this->surface, width, height, 
+						      STK_FORMAT_YV12);
 
         } else if (format == XINE_IMGFMT_YUY2) {
-#ifdef STK_LOG
-            printf("video_out_stk: format YUY2\n");
-#endif
-            frame->overlay = stk_surface_create_overlay(this->surface, width, height, 
-                    STK_FORMAT_YUY2);
+	  lprintf("format YUY2\n");
+	  frame->overlay = stk_surface_create_overlay(this->surface, width, height, 
+						      STK_FORMAT_YUY2);
         }
 
         if (frame->overlay == NULL)

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_oss_out.c,v 1.92 2003/10/19 13:40:32 tmattern Exp $
+ * $Id: audio_oss_out.c,v 1.93 2003/11/26 19:43:26 f1rmb Exp $
  *
  * 20-8-2001 First implementation of Audio sync and Audio driver separation.
  * Copyright (C) 2001 James Courtier-Dutton James@superbug.demon.co.uk
@@ -65,16 +65,18 @@
 #include <sys/ioctl.h>
 #include <inttypes.h>
 
+#define LOG_MODULE "audio_oss_out"
+#define LOG_VERBOSE
+/*
+#define LOG
+*/
+
 #include "xine_internal.h"
 #include "xineutils.h"
 #include "compat.h"
 #include "audio_out.h"
 
 #include <sys/time.h>
-
-/*
-#define LOG
-*/
 
 #ifndef AFMT_S16_NE
 # if defined(sparc) || defined(__sparc__) || defined(PPC)
@@ -412,9 +414,7 @@ static int ao_oss_delay(ao_driver_t *this_gen) {
       perror ("audio_oss_out: SNDCTL_DSP_GETOPTR failed:");
     }
     
-#ifdef LOG
-    printf ("audio_oss_out: %d bytes output\n", info.bytes);
-#endif
+    lprintf ("%d bytes output\n", info.bytes);
 
     if (this->bytes_in_buffer < info.bytes) {
       this->bytes_in_buffer -= this->last_getoptr; /* GETOPTR wrapped */
@@ -434,9 +434,9 @@ static int ao_oss_delay(ao_driver_t *this_gen) {
     }
     if (bytes_left<0)
       bytes_left = 0;
-#ifdef LOG
-    printf ("audio_oss_out: %d bytes left\n", bytes_left);
-#endif
+
+    lprintf ("%d bytes left\n", bytes_left);
+
     break;
   }
 
@@ -454,9 +454,7 @@ static int ao_oss_write(ao_driver_t *this_gen,
   oss_driver_t *this = (oss_driver_t *) this_gen;
   int n;
 
-#ifdef LOG
-  printf ("audio_oss_out: ao_oss_write %d frames\n", num_frames);
-#endif
+  lprintf ("ao_oss_write %d frames\n", num_frames);
 
   if (this->sync_method == OSS_SYNC_SOFTSYNC) {
     int            simulated_bytes_in_buffer, frames ;
@@ -482,9 +480,7 @@ static int ao_oss_write(ao_driver_t *this_gen,
 
   n = write(this->audio_fd, frame_buffer, num_frames * this->bytes_per_frame); 
 
-#ifdef LOG
-  printf ("audio_oss_out: ao_oss_write done\n");
-#endif
+  lprintf ("ao_oss_write done\n");
 
   return (n >= 0 ? n : 0);
 }
@@ -649,9 +645,8 @@ static int ao_oss_ctrl(ao_driver_t *this_gen, int cmd, ...) {
   switch (cmd) {
 
   case AO_CTRL_PLAY_PAUSE:
-#ifdef LOG
-    printf ("audio_oss_out: AO_CTRL_PLAY_PAUSE\n");
-#endif
+    lprintf ("AO_CTRL_PLAY_PAUSE\n");
+
     if (this->sync_method != OSS_SYNC_SOFTSYNC)
       ioctl(this->audio_fd, SNDCTL_DSP_RESET, NULL);
     
@@ -663,15 +658,11 @@ static int ao_oss_ctrl(ao_driver_t *this_gen, int cmd, ...) {
     break;
 
   case AO_CTRL_PLAY_RESUME:
-#ifdef LOG
-    printf ("audio_oss_out: AO_CTRL_PLAY_RESUME\n");
-#endif
+    lprintf ("AO_CTRL_PLAY_RESUME\n");
     break;
 
   case AO_CTRL_FLUSH_BUFFERS:
-#ifdef LOG
-    printf ("audio_oss_out: AO_CTRL_FLUSH_BUFFERS\n");
-#endif
+    lprintf ("AO_CTRL_FLUSH_BUFFERS\n");
     if (this->sync_method != OSS_SYNC_SOFTSYNC)
       ioctl(this->audio_fd, SNDCTL_DSP_RESET, NULL);
     
@@ -679,9 +670,9 @@ static int ao_oss_ctrl(ao_driver_t *this_gen, int cmd, ...) {
       ao_oss_close(this_gen);
       ao_oss_open(this_gen, this->bits_per_sample, this->input_sample_rate, this->mode);
     }
-#ifdef LOG
-    printf ("audio_oss_out: AO_CTRL_FLUSH_BUFFERS done\n");
-#endif
+
+    lprintf ("AO_CTRL_FLUSH_BUFFERS done\n");
+
     break;
   }
 

@@ -20,7 +20,7 @@
  * Read from a tcp network stream over a lan (put a tweaked mp1e encoder the
  * other end and you can watch tv anywhere in the house ..)
  *
- * $Id: input_net.c,v 1.54 2003/11/11 18:44:54 f1rmb Exp $
+ * $Id: input_net.c,v 1.55 2003/11/26 19:43:31 f1rmb Exp $
  *
  * how to set up mp1e for use with this plugin:
  * 
@@ -62,14 +62,16 @@
 #include <errno.h>
 #include <sys/time.h>
 
+#define LOG_MODULE "input_net"
+#define LOG_VERBOSE
+/*
+#define LOG
+*/
+
 #include "xine_internal.h"
 #include "xineutils.h"
 #include "input_plugin.h"
 #include "net_buf_ctrl.h"
-
-/*
-#define LOG
-*/
 
 #define NET_BS_LEN 2324
 #define BUFSIZE                 1024
@@ -213,9 +215,7 @@ static int host_connect(const char *host, int port, xine_t *xine) {
   
   snprintf(strport, sizeof(strport), "%d", port);
 
-#ifdef LOG  
-  printf("Resolving host '%s' at port '%s'\n", host, strport);
-#endif
+  lprintf("Resolving host '%s' at port '%s'\n", host, strport);
 
   error = getaddrinfo(host, strport, &hints, &res);
   
@@ -254,19 +254,15 @@ static off_t net_plugin_read (input_plugin_t *this_gen,
   net_input_plugin_t *this = (net_input_plugin_t *) this_gen;
   off_t n, total;
 
-#ifdef LOG
-  printf ("input_net: reading %d bytes...\n", len);
-#endif
+  lprintf ("reading %d bytes...\n", len);
 
   total=0;
   if (this->curpos < this->preview_size) {
     n = this->preview_size - this->curpos;
     if (n > (len - total))
       n = len - total;
-#ifdef LOG
-    printf ("input_net: %lld bytes from preview (which has %lld bytes)\n",
-            n, this->preview_size);
-#endif
+
+    lprintf ("%lld bytes from preview (which has %lld bytes)\n", n, this->preview_size);
 
     memcpy (&buf[total], &this->preview[this->curpos], n);
     this->curpos += n;
@@ -276,10 +272,7 @@ static off_t net_plugin_read (input_plugin_t *this_gen,
   if( (len-total) > 0 ) {
     n = _x_read_abort (this->stream, this->fh, &buf[total], len-total);
 
-#ifdef LOG
-    printf ("input_net: got %lld bytes (%lld/%lld bytes read)\n",
-	    n,total,len);
-#endif
+    printf ("input_net: got %lld bytes (%lld/%lld bytes read)\n", n,total,len);
   
     if (n < 0) {
       _x_message(this->stream, XINE_MSG_READ_ERROR, this->host_port, NULL);

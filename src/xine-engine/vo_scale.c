@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: vo_scale.c,v 1.26 2003/11/11 18:45:01 f1rmb Exp $
+ * $Id: vo_scale.c,v 1.27 2003/11/26 19:43:38 f1rmb Exp $
  * 
  * Contains common code to calculate video scaling parameters.
  * In short, it will map frame dimensions to screen/window size.
@@ -28,13 +28,15 @@
 #include <string.h>
 #include <math.h>
 
-#include "xine_internal.h"
-#include "video_out.h"
-#include "vo_scale.h"
-
+#define LOG_MODULE "vo_scale"
+#define LOG_VERBOSE
 /*
 #define LOG
 */
+
+#include "xine_internal.h"
+#include "video_out.h"
+#include "vo_scale.h"
 
 /*
  * convert delivered height/width to ideal width/height
@@ -175,13 +177,10 @@ void _x_vo_scale_compute_output_size (vo_scale_t *this) {
   this->displayed_xoffset = (this->delivered_width  - this->displayed_width) / 2;
   this->displayed_yoffset = (this->delivered_height - this->displayed_height) / 2;
 
-#ifdef LOG
-  printf ("vo_scale: frame source %d x %d (%d x %d) => screen output %d x %d\n",
-	  this->delivered_width, this->delivered_height,
-	  this->displayed_width, this->displayed_height,
-	  this->output_width, this->output_height);
-#endif
-
+  lprintf ("frame source %d x %d (%d x %d) => screen output %d x %d\n",
+	   this->delivered_width, this->delivered_height,
+	   this->displayed_width, this->displayed_height,
+	   this->output_width, this->output_height);
 
   /* calculate borders */
   if (this->output_height < this->gui_height) {

@@ -17,18 +17,22 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: rmff.c,v 1.3 2002/12/24 01:30:22 holstsn Exp $
+ * $Id: rmff.c,v 1.4 2003/11/26 19:43:31 f1rmb Exp $
  *
  * functions for real media file format
  * adopted from joschkas real tools
  */
 
 #include <xineutils.h>
-#include "rmff.h"
 
+#define LOG_MODULE "rmff"
+#define LOG_VERBOSE
 /*
 #define LOG
 */
+
+#include "xineutils.h"
+#include "rmff.h"
 
 #define BE_16(x)  ((((uint8_t*)(x))[0] << 8) | ((uint8_t*)(x))[1])
 #define BE_32(x)  ((((uint8_t*)(x))[0] << 24) | \
@@ -777,16 +781,14 @@ void rmff_fix_header(rmff_header_t *h) {
   if (h->prop) {
     if (h->prop->size != 50)
     {
-#ifdef LOG
-      printf("rmff_fix_header: correcting prop.size from %i to %i\n", h->prop->size, 50);
-#endif
+      lprintf("rmff_fix_header: correcting prop.size from %i to %i\n", h->prop->size, 50);
+
       h->prop->size=50;
     }
     if (h->prop->num_streams != num_streams)
     {
-#ifdef LOG
-      printf("rmff_fix_header: correcting prop.num_streams from %i to %i\n", h->prop->num_streams, num_streams);
-#endif
+      lprintf("rmff_fix_header: correcting prop.num_streams from %i to %i\n", h->prop->num_streams, num_streams);
+
       h->prop->num_streams=num_streams;
     }
     num_headers++;
@@ -801,9 +803,8 @@ void rmff_fix_header(rmff_header_t *h) {
     printf("rmff_fix_header: warning: no CONT chunk.\n");
 
   if (!h->data) {
-#ifdef LOG
-    printf("rmff_fix_header: no DATA chunk, creating one\n");
-#endif
+    lprintf("rmff_fix_header: no DATA chunk, creating one\n");
+
     h->data=malloc(sizeof(rmff_data_t));
     h->data->object_id=DATA_TAG;
     h->data->object_version=0;
@@ -815,9 +816,8 @@ void rmff_fix_header(rmff_header_t *h) {
 
   
   if (!h->fileheader) {
-#ifdef LOG
-    printf("rmff_fix_header: no fileheader, creating one");
-#endif
+    lprintf("rmff_fix_header: no fileheader, creating one");
+
     h->fileheader=malloc(sizeof(rmff_fileheader_t));
     h->fileheader->object_id=RMF_TAG;
     h->fileheader->size=34;
@@ -829,36 +829,32 @@ void rmff_fix_header(rmff_header_t *h) {
   num_headers++;
 
   if(h->fileheader->num_headers != num_headers) {
-#ifdef LOG
-    printf("rmff_fix_header: setting num_headers from %i to %i\n", h->fileheader->num_headers, num_headers); 
-#endif
+    lprintf("rmff_fix_header: setting num_headers from %i to %i\n", h->fileheader->num_headers, num_headers); 
+
     h->fileheader->num_headers=num_headers;
   }
 
   if(h->prop) {
     if (h->prop->data_offset != header_size) {
-#ifdef LOG
-      printf("rmff_fix_header: setting prop.data_offset from %i to %i\n", h->prop->data_offset, header_size); 
-#endif
+      lprintf("rmff_fix_header: setting prop.data_offset from %i to %i\n", h->prop->data_offset, header_size); 
+
       h->prop->data_offset=header_size;
     }
     if (h->prop->num_packets == 0) {
       int p=(int)(h->prop->avg_bit_rate/8.0*(h->prop->duration/1000.0)/h->prop->avg_packet_size);
-#ifdef LOG
-      printf("rmff_fix_header: assuming prop.num_packets=%i\n", p); 
-#endif
+
+      lprintf("rmff_fix_header: assuming prop.num_packets=%i\n", p); 
+
       h->prop->num_packets=p;
     }
     if (h->data->num_packets == 0) {
-#ifdef LOG
-      printf("rmff_fix_header: assuming data.num_packets=%i\n", h->prop->num_packets); 
-#endif
+      lprintf("rmff_fix_header: assuming data.num_packets=%i\n", h->prop->num_packets); 
+
       h->data->num_packets=h->prop->num_packets;
     }
     
-#ifdef LOG
-    printf("rmff_fix_header: assuming data.size=%i\n", h->prop->num_packets*h->prop->avg_packet_size); 
-#endif
+    lprintf("rmff_fix_header: assuming data.size=%i\n", h->prop->num_packets*h->prop->avg_packet_size); 
+
     h->data->size=h->prop->num_packets*h->prop->avg_packet_size;
   }
 }

@@ -23,7 +23,7 @@
  * For more information regarding the Interplay MVE file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_ipmovie.c,v 1.19 2003/11/16 23:33:43 f1rmb Exp $
+ * $Id: demux_ipmovie.c,v 1.20 2003/11/26 19:43:30 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -36,10 +36,11 @@
 #include <string.h>
 #include <stdlib.h>
 
-/********** logging **********/
 #define LOG_MODULE "demux_ipmovie"
-/* #define LOG_VERBOSE */
-/* #define LOG */
+#define LOG_VERBOSE
+/*
+#define LOG
+*/
 
 #include "xine_internal.h"
 #include "xineutils.h"
@@ -377,7 +378,7 @@ static int process_ipmovie_chunk(demux_ipmovie_t *this) {
         /* check for the logical maximum palette size 
          * (3 * 256 + 4 bytes) */
         if (opcode_size > 0x304) {
-          lprintf("demux_ipmovie: set_palette opcode too large\n");
+          lprintf("set_palette opcode too large\n");
           chunk_type = CHUNK_BAD;
           break;
         }
@@ -392,7 +393,7 @@ static int process_ipmovie_chunk(demux_ipmovie_t *this) {
         color_count = LE_16(&scratch[2]);
         /* sanity check (since they are 16 bit values) */
         if ((first_color > 0xFF) || (first_color + color_count > 0x100)) {
-          lprintf("demux_ipmovie: set_palette indices out of range (%d -> %d)\n",
+          lprintf("set_palette indices out of range (%d -> %d)\n",
             first_color, first_color + color_count);
           chunk_type = CHUNK_BAD;
           break;

@@ -29,7 +29,7 @@
  * - it's possible speeder saving streams in the xine without playing:
  *     xine stream_mrl#save:file.raw\;noaudio\;novideo
  *
- * $Id: input_rip.c,v 1.17 2003/11/24 22:52:15 valtri Exp $
+ * $Id: input_rip.c,v 1.18 2003/11/26 19:43:38 f1rmb Exp $
  */
 
 /* TODO:
@@ -49,9 +49,12 @@
 #include <string.h>
 #include <errno.h>
 
-/* logging */
-/*#define LOG 1*/
 #define LOG_MODULE "input_rip"
+#define LOG_VERBOSE
+/*
+#define LOG
+*/
+
 #define CLR_FAIL "\e[1;31m"
 #define CLR_RST "\e[0;39m"
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: scratch.c,v 1.10 2003/11/11 18:45:01 f1rmb Exp $
+ * $Id: scratch.c,v 1.11 2003/11/26 19:43:38 f1rmb Exp $
  *
  * top-level xine functions
  *
@@ -31,21 +31,20 @@
 #include <stdarg.h>
 #include <string.h>  /* For memset */
 
-#include "scratch.h"
-#include "xineutils.h"
-
+#define LOG_MODULE "scratch"
+#define LOG_VERBOSE
 /*
 #define LOG
 */
+
+#include "scratch.h"
+#include "xineutils.h"
 
 static void scratch_printf (scratch_buffer_t *this, const char *format, va_list argp) {
 
   vsnprintf (this->lines[this->cur], 1023, format, argp);
 
-#ifdef LOG
-  printf ("scratch: printing format %s to line %d\n",
-	  format, this->cur);
-#endif
+  lprintf ("printing format %s to line %d\n", format, this->cur);
 
   this->cur = (this->cur + 1) % this->num_lines;
 }
@@ -61,9 +60,7 @@ static const char **scratch_get_content (scratch_buffer_t *this) {
 
     this->ordered[i] = this->lines[j];
 
-#ifdef LOG
-    printf ("scratch: line %d contains >%s<\n", i , this->lines[j]);
-#endif
+    lprintf ("line %d contains >%s<\n", i , this->lines[j]);
 
   }
 

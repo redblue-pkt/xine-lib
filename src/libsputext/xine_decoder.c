@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.66 2003/11/26 01:03:32 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.67 2003/11/26 19:43:36 f1rmb Exp $
  *
  */
 
@@ -30,14 +30,16 @@
 #include <fcntl.h>
 #include <ctype.h>
 
+#define LOG_MODULE "sputext_decoder"
+#define LOG_VERBOSE
+/*
+#define LOG
+*/
+
 #include "buffer.h"
 #include "xine_internal.h"
 #include "xineutils.h"
 #include "osd.h"
-
-/*
-#define LOG 1
-*/
 
 #define SUB_MAX_TEXT  5
 
@@ -244,11 +246,9 @@ static void draw_subtitle(sputext_decoder_t *this, int64_t sub_start, int64_t su
     this->renderer->show (this->osd, sub_start);
   this->renderer->hide (this->osd, sub_end);
   
-#ifdef LOG
-  printf ("sputext: scheduling subtitle >%s< at %lld until %lld, current time is %lld\n",
-          this->text[0], sub_start, sub_end, 
-          this->stream->xine->clock->get_current_time (this->stream->xine->clock));
-#endif
+  lprintf ("scheduling subtitle >%s< at %lld until %lld, current time is %lld\n",
+	   this->text[0], sub_start, sub_end, 
+	   this->stream->xine->clock->get_current_time (this->stream->xine->clock));
 }
 
 
@@ -281,16 +281,13 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
     strcpy( this->text[i], str );
   }
   
-#ifdef LOG
-  printf("libsputext: decoder data [%s]\n", this->text[0]);
-  printf("libsputext: mode %d timing %d->%d\n", uses_time, start, end);
-#endif
+  lprintf("decoder data [%s]\n", this->text[0]);
+  lprintf("mode %d timing %d->%d\n", uses_time, start, end);
 
-  if( end <= start ) {
 #ifdef LOG
+  if( end <= start )
     printf("libsputext: discarding subtitle with invalid timing\n");
 #endif
-  }
   
   spu_offset = this->stream->master->metronom->get_option (this->stream->master->metronom,
                                                            METRONOM_SPU_OFFSET);
@@ -316,9 +313,8 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
         
         /* discard old subtitles */
         if( diff < 0 ) {
-#ifdef LOG
-          printf("libsputext: discarding old\n");
-#endif
+          lprintf("discarding old\n");
+
           return;
         }
           
@@ -345,9 +341,8 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
         
         /* discard old subtitles */
         if( diff < 0 ) {
-#ifdef LOG
-          printf("libsputext: discarding old\n");
-#endif
+          lprintf("discarding old\n");
+
           return;
         }
           
@@ -368,9 +363,8 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
    
     if( this->master_started && (status == XINE_STATUS_QUIT || 
                                  status == XINE_STATUS_STOP) ) {
-#ifdef LOG
-      printf("libsputext: master stopped\n");
-#endif
+      lprintf("master stopped\n");
+
       this->width = this->height = 0;
       return;
     }
@@ -381,9 +375,8 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
    
     if( this->slave_started && (status == XINE_STATUS_QUIT || 
                                 status == XINE_STATUS_STOP) ) {
-#ifdef LOG
-      printf("libsputext: slave stopped\n");
-#endif
+      lprintf("slave stopped\n");
+
       this->width = this->height = 0;
       return;
     }
@@ -394,9 +387,8 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
             
     _x_get_current_info (this->stream->master, &extra_info, sizeof(extra_info) );
   }
-#ifdef LOG
-  printf("libsputext: seek_count mismatch\n");
-#endif
+
+  lprintf("seek_count mismatch\n");
 }  
 
 
@@ -500,9 +492,7 @@ static void *init_spu_decoder_plugin (xine_t *xine, void *data) {
   };
   sputext_class_t *this ;
 
-#ifdef LOG
-  printf("libsputext: init class\n");
-#endif
+  lprintf("init class\n");
   
   this = (sputext_class_t *) xine_xmalloc (sizeof (sputext_class_t));
 

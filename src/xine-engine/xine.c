@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.271 2003/11/26 13:33:55 miguelfreitas Exp $
+ * $Id: xine.c,v 1.272 2003/11/26 19:43:38 f1rmb Exp $
  */
 
 /*
@@ -46,10 +46,11 @@
 #include <locale.h>
 #endif
 
-/********** logging **********/
 #define LOG_MODULE "xine"
 #define LOG_VERBOSE
-/* #define LOG */
+/*
+#define LOG
+*/
 
 #define XINE_ENABLE_EXPERIMENTAL_FEATURES
 #define XINE_ENGINE_INTERNAL

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decode_spu.c,v 1.39 2003/11/12 17:52:59 mroi Exp $
+ * $Id: dxr3_decode_spu.c,v 1.40 2003/11/26 19:43:31 f1rmb Exp $
  */
  
 /* dxr3 spu decoder plugin.
@@ -37,6 +37,11 @@
 #include <errno.h>
 
 #define LOG_MODULE "dxr3_decode_spu"
+#define LOG_VERBOSE
+/*
+#define LOG
+*/
+
 #define LOG_PTS 0
 #define LOG_SPU 0
 #define LOG_BTN 0

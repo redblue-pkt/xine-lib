@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.51 2003/10/23 20:12:33 mroi Exp $
+ * $Id: xine_decoder.c,v 1.52 2003/11/26 19:43:34 f1rmb Exp $
  *
  * stuff needed to turn libmpeg2 into a xine decoder plugin
  */
@@ -30,15 +30,17 @@
 #include <fcntl.h>
 #include <unistd.h>
 
+#define LOG_MODULE "mpeg2_decoder"
+#define LOG_VERBOSE
+/*
+#define LOG
+*/
+
 #include "xine_internal.h"
 #include "video_out.h"
 #include "mpeg2.h"
 #include "mpeg2_internal.h"
 #include "buffer.h"
-
-/*
-#define LOG
-*/
 
 typedef struct {
   video_decoder_class_t   decoder_class;
@@ -55,9 +57,7 @@ typedef struct mpeg2dec_decoder_s {
 static void mpeg2dec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
   mpeg2dec_decoder_t *this = (mpeg2dec_decoder_t *) this_gen;
 
-#ifdef LOG
-  printf ("libmpeg2: decode_data, flags=0x%08x ...\n", buf->decoder_flags);
-#endif
+  lprintf ("decode_data, flags=0x%08x ...\n", buf->decoder_flags);
 
   /* handle aspect hints from xine-dvdnav */
   if (buf->decoder_flags & BUF_FLAG_SPECIAL) {
@@ -80,17 +80,13 @@ static void mpeg2dec_decode_data (video_decoder_t *this_gen, buf_element_t *buf)
 		       buf->pts);
   }
 
-#ifdef LOG
-  printf ("libmpeg2: decode_data...done\n");
-#endif
+  lprintf ("decode_data...done\n");
 }
 
 static void mpeg2dec_flush (video_decoder_t *this_gen) {
   mpeg2dec_decoder_t *this = (mpeg2dec_decoder_t *) this_gen;
 
-#ifdef LOG
-  printf ("libmpeg2: flush\n");
-#endif
+  lprintf ("flush\n");
 
   mpeg2_flush (&this->mpeg2);
 }
@@ -111,9 +107,7 @@ static void mpeg2dec_dispose (video_decoder_t *this_gen) {
 
   mpeg2dec_decoder_t *this = (mpeg2dec_decoder_t *) this_gen;
 
-#ifdef LOG
-  printf ("libmpeg2: close\n");
-#endif
+  lprintf ("close\n");
 
   mpeg2_close (&this->mpeg2);
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.45 2003/08/04 03:47:09 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.46 2003/11/26 19:43:31 f1rmb Exp $
  *
  * xine decoder plugin using divx4
  *
@@ -49,6 +49,12 @@
 #include <string.h>
 #include <dlfcn.h>
 
+#define LOG_MODULE "divx4_decoder"
+#define LOG_VERBOSE
+/*
+#define LOG
+*/
+
 #include "xine_internal.h"
 #include "video_out.h"
 #include "buffer.h"
@@ -59,10 +65,6 @@
 
 #if CATCH_SIGSEGV
 #include <signal.h>
-
-/*
-#define LOG 
-*/
 
 /* to be able to restore the old handler */
 void (*old_handler)(int);
@@ -186,9 +188,7 @@ static void divx4_set_pp(divx4_decoder_t *this) {
   DEC_SET setpp;   /* for setting postproc level */
   int ret;
 
-#ifdef LOG
-  printf ("divx4: this->decoder_ok=%d\n", this->decoder_ok);
-#endif
+  lprintf ("this->decoder_ok=%d\n", this->decoder_ok);
 
   if (!this->decoder_ok)
     return;
@@ -221,9 +221,7 @@ static int divx4_init_decoder(divx4_decoder_t *this, buf_element_t *buf) {
   DEC_PARAM param; /* for init                   */
   int ret, codec_type;
 
-#ifdef LOG
-  printf ("divx4: init_decoder\n");
-#endif
+  lprintf ("init_decoder\n");
 
   memcpy ( &this->bih, buf->content, sizeof (xine_bmiheader));
   this->video_step = buf->decoder_info[1];
@@ -334,9 +332,7 @@ static int divx4_can_handle (video_decoder_t *this_gen, int buf_type) {
   divx4_decoder_t *this = (divx4_decoder_t *) this_gen;
   buf_type &= 0xFFFF0000;
 
-#ifdef LOG
-  printf ("divx4: can_handle\n");
-#endif
+  lprintf ("can_handle\n");
 
   /* divx4 currently does not support MSMPEG4 v1/v2 */
   return ( (buf_type == BUF_VIDEO_MSMPEG4_V3 && this->can_handle_311) ||
@@ -350,9 +346,7 @@ static void divx4_init (video_decoder_t *this_gen, vo_instance_t *video_out) {
 
   divx4_decoder_t *this = (divx4_decoder_t *) this_gen;
 
-#ifdef LOG
-  printf ("divx4: divx4_init\n");
-#endif
+  lprintf ("divx4_init\n");
 
   this->video_out  = video_out;
   this->decoder_ok = 0;
@@ -369,9 +363,7 @@ static void divx4_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 
   divx4_decoder_t *this = (divx4_decoder_t *) this_gen;
 
-#ifdef LOG
-  printf ("divx4: decoding buffer %08x, flags = %08x\n", buf, buf->decoder_flags);
-#endif 
+  lprintf ("decoding buffer %08x, flags = %08x\n", buf, buf->decoder_flags);
 
   if (buf->decoder_flags & BUF_FLAG_PREVIEW)
     return;
@@ -379,9 +371,7 @@ static void divx4_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
   if (buf->decoder_flags & BUF_FLAG_HEADER) { /* need to initialize */
     /* only proceed if version is good and initialization succeeded */
 
-#ifdef LOG
-    printf ("divx4: get_version...\n");
-#endif 
+    lprintf ("get_version...\n");
 
     divx4_get_version(this);	
     this->decoder_ok = ( divx4_check_version(this) &&
@@ -490,9 +480,7 @@ static void divx4_update_postproc(void *this_gen, xine_cfg_entry_t *entry) {
 
   divx4_decoder_t *this = (divx4_decoder_t *) this_gen;
 
-#ifdef LOG
-  printf ("divx4: update_postproc this=0x%08x, decoder_ok = %d\n", this, this->decoder_ok);
-#endif
+  lprintf ("update_postproc this=0x%08x, decoder_ok = %d\n", this, this->decoder_ok);
   
   if( this->postproc != entry->num_value) {
     this->postproc = entry->num_value;
@@ -502,29 +490,21 @@ static void divx4_update_postproc(void *this_gen, xine_cfg_entry_t *entry) {
 
 
 static char *divx4_get_id(void) {
-#ifdef LOG
-  printf ("divx4: get_id\n");
-#endif
+  lprintf ("get_id\n");
   return "divx4 video decoder";
 }
 
 static void divx4_flush(video_decoder_t *this_gen) {
-#ifdef LOG
-  printf ("divx4: flush\n");
-#endif
+  lprintf ("flush\n");
 }
 
 static void divx4_reset(video_decoder_t *this_gen) {
   /* seems to handle seeking quite nicelly without any code here */
-#ifdef LOG
-  printf ("divx4: reset\n");
-#endif
+  lprintf ("reset\n");
 }
 
 static void divx4_dispose(video_decoder_t *this_gen) {
-#ifdef LOG
-  printf ("divx4: dispose\n");
-#endif
+  lprintf ("dispose\n");
   free (this_gen);
 }
 
@@ -594,9 +574,7 @@ static void *init_video_decoder_plugin (xine_t *xine, void *data) {
   if (this->postproc > 10) this->postproc=10;
   if (this->postproc < 0) this->postproc=0;
 
-#ifdef LOG
-  printf ("divx4: this=0x%08x, decoder_ok = %d\n", this, this->decoder_ok);
-#endif
+  lprintf ("this=0x%08x, decoder_ok = %d\n", this, this->decoder_ok);
 
   return (video_decoder_t *) this;
 }

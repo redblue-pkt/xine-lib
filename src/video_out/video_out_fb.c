@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_fb.c,v 1.32 2003/11/26 01:03:32 miguelfreitas Exp $
+ * $Id: video_out_fb.c,v 1.33 2003/11/26 19:43:37 f1rmb Exp $
  * 
  * video_out_fb.c, frame buffer xine driver by Miguel Freitas
  *
@@ -74,13 +74,17 @@
 #include <linux/kd.h>
 #include <linux/vt.h>
 
+#define LOG_MODULE "video_out_fb"
+#define LOG_VERBOSE
+/*
+#define LOG
+*/
+
 #include "xine_internal.h"
 #include "alphablend.h"
 #include "yuv2rgb.h"
 #include "xineutils.h"
 #include "vo_scale.h"
-
-#define LOG
 
 typedef struct fb_frame_s
 {
@@ -272,14 +276,12 @@ static void fb_compute_rgb_size(fb_driver_t *this, fb_frame_t *frame)
   if (frame->sc.output_width & 1) 
     frame->sc.output_width++;
 
-#ifdef LOG
-  printf("video_out_fb: frame source %d x %d => screen output %d x %d%s\n",
-	 frame->sc.delivered_width, frame->sc.delivered_height,
-	 frame->sc.output_width, frame->sc.output_height,
-	 (frame->sc.delivered_width != frame->sc.output_width ||
-	  frame->sc.delivered_height != frame->sc.output_height ?
-	  ", software scaling" : ""));
-#endif
+  lprintf("frame source %d x %d => screen output %d x %d%s\n",
+	  frame->sc.delivered_width, frame->sc.delivered_height,
+	  frame->sc.output_width, frame->sc.output_height,
+	  (frame->sc.delivered_width != frame->sc.output_width ||
+	   frame->sc.delivered_height != frame->sc.output_height ?
+	   ", software scaling" : ""));
 }
 
 static void setup_colorspace_converter(fb_frame_t *frame, int flags)
@@ -430,10 +432,7 @@ static void fb_update_frame_format(vo_driver_t *this_gen,
       format != frame->format               ||
       this->sc.user_ratio != frame->sc.user_ratio)
   {
-#ifdef LOG
-    printf("video_out_fb: frame format (from decoder) "
-	   "has changed => adapt\n");
-#endif
+    lprintf("frame format (from decoder) has changed => adapt\n");
 
     frame->sc.delivered_width  = width;
     frame->sc.delivered_height = height;

@@ -91,7 +91,7 @@ static struct {
 #define PLUGIN "input_v4l"
 
 #ifdef LOG
-#define DBGPRINT(args...) printf(PLUGIN ": " args); fflush(stdout)
+#define DBGPRINT(args...) do { printf(PLUGIN ": " args); fflush(stdout); } while(0)
 #else
 #define DBGPRINT(args...) {}
 #endif

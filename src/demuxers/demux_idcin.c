@@ -65,7 +65,7 @@
  *     - if any bytes exceed 63, do not shift the bytes at all before
  *       transmitting them to the video decoder
  *
- * $Id: demux_idcin.c,v 1.48 2003/11/16 23:33:43 f1rmb Exp $
+ * $Id: demux_idcin.c,v 1.49 2003/11/26 19:43:30 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -78,9 +78,8 @@
 #include <string.h>
 #include <stdlib.h>
 
-/********** logging **********/
 #define LOG_MODULE "demux_idcin"
-/* #define LOG_VERBOSE */
+#define LOG_VERBOSE
 
 /* define LOG to output information about the A/V chunks that the
  * demuxer is dispatching to the engine */

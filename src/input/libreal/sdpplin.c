@@ -17,20 +17,22 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: sdpplin.c,v 1.1 2002/12/24 01:30:22 holstsn Exp $
+ * $Id: sdpplin.c,v 1.2 2003/11/26 19:43:31 f1rmb Exp $
  *
  * sdp/sdpplin parser.
  *
  */
  
-#include "rmff.h"
-#include "rtsp.h"
-#include "sdpplin.h"
-#include <xineutils.h>
-
+#define LOG_MODULE "sdpplin"
+#define LOG_VERBOSE
 /*
 #define LOG
 */
+
+#include "rmff.h"
+#include "rtsp.h"
+#include "sdpplin.h"
+#include "xineutils.h"
 
 /*
  * Decodes base64 strings (based upon b64 package)
@@ -195,9 +197,7 @@ static sdpplin_stream_t *sdpplin_parse_stream(char **data) {
       memcpy(desc->mlti_data, decoded, desc->mlti_data_size);
       handled=1;
       *data=nl(*data);
-#ifdef LOG
-      printf("mlti_data_size: %i\n", desc->mlti_data_size);
-#endif
+      lprintf("mlti_data_size: %i\n", desc->mlti_data_size);
     }
     
     if(filter(*data,"a=ASMRuleBook:string;",&buf)) {
@@ -238,9 +238,7 @@ sdpplin_t *sdpplin_parse(char *data) {
     
     if (filter(data, "m=", &buf)) {
       stream=sdpplin_parse_stream(&data);
-#ifdef LOG
-      printf("got data for stream id %u\n", stream->stream_id);
-#endif
+      lprintf("got data for stream id %u\n", stream->stream_id);
       desc->stream[stream->stream_id]=stream;
       continue;
     }

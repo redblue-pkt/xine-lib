@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: yuv_frames.c,v 1.6 2003/10/23 20:12:34 mroi Exp $
+ * $Id: yuv_frames.c,v 1.7 2003/11/26 19:43:37 f1rmb Exp $
  *
  * dummy video decoder for uncompressed video frames as delivered by v4l
  */
@@ -30,13 +30,15 @@
 #include <fcntl.h>
 #include <unistd.h>
 
-#include "xine_internal.h"
-#include "video_out.h"
-#include "buffer.h"
-
+#define LOG_MODULE "yuv_frame_video_decoder"
+#define LOG_VERBOSE
 /*
 #define LOG
 */
+
+#include "xine_internal.h"
+#include "video_out.h"
+#include "buffer.h"
 
 typedef struct {
   video_decoder_class_t   decoder_class;
@@ -54,9 +56,7 @@ static void yuv_frames_decode_data (video_decoder_t *this_gen, buf_element_t *bu
   int                   frame_size;
   vo_frame_t           *img;
 
-#ifdef LOG
-  printf ("yuv_frames: decode_data, flags=0x%08x ...\n", buf->decoder_flags);
-#endif
+  lprintf ("decode_data, flags=0x%08x ...\n", buf->decoder_flags);
 
   img = this->stream->video_out->get_frame (this->stream->video_out,
 					    buf->decoder_info[0],
@@ -77,17 +77,13 @@ static void yuv_frames_decode_data (video_decoder_t *this_gen, buf_element_t *bu
   img->draw (img, this->stream);
   img->free (img);
 
-#ifdef LOG
-  printf ("yuv_frames: decode_data...done\n");
-#endif
+  lprintf ("decode_data...done\n");
 }
 
 static void yuv_frames_flush (video_decoder_t *this_gen) {
   /* yuv_frames_decoder_t *this = (yuv_frames_decoder_t *) this_gen; */
 
-#ifdef LOG
-  printf ("yuv_frames: flush\n");
-#endif
+  lprintf ("flush\n");
 }
 
 static void yuv_frames_reset (video_decoder_t *this_gen) {
@@ -102,9 +98,7 @@ static void yuv_frames_dispose (video_decoder_t *this_gen) {
 
   yuv_frames_decoder_t *this = (yuv_frames_decoder_t *) this_gen;
 
-#ifdef LOG
-  printf ("yuv_frames: close\n");
-#endif
+  lprintf ("close\n");
 
   this->stream->video_out->close(this->stream->video_out, this->stream);
 

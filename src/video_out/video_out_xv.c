@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.183 2003/11/26 18:36:34 miguelfreitas Exp $
+ * $Id: video_out_xv.c,v 1.184 2003/11/26 19:43:37 f1rmb Exp $
  *
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -64,6 +64,12 @@
 #include <X11/extensions/Xv.h>
 #include <X11/extensions/Xvlib.h>
 
+#define LOG_MODULE "vidoe_out_xv"
+#define LOG_VERBOSE
+/*
+#define LOG
+*/
+
 #include "xine.h"
 #include "video_out.h"
 #include "xine_internal.h"
@@ -73,10 +79,6 @@
 #include "xineutils.h"
 #include "vo_scale.h"
 #include "x11osd.h"
-
-/*
-#define LOG
-*/
 
 typedef struct xv_driver_s xv_driver_t;
 
@@ -736,9 +738,7 @@ static void xv_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
   if ( (frame->width != this->sc.delivered_width)
        || (frame->height != this->sc.delivered_height)
        || (frame->ratio != this->sc.delivered_ratio) ) {
-#ifdef LOG
-    printf("video_out_xv: frame format changed\n");
-#endif
+    lprintf("frame format changed\n");
     this->sc.force_redraw = 1;    /* trigger re-calc of output size */
   }
 
@@ -1337,11 +1337,10 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *vi
   this->xv_format_yuy2 = 0;
   
   for(i = 0; i < formats; i++) {
-#ifdef LOG
-    printf ("video_out_xv: Xv image format: 0x%x (%4.4s) %s\n",
-	    fo[i].id, (char*)&fo[i].id,
-	    (fo[i].format == XvPacked) ? "packed" : "planar");
-#endif
+    lprintf ("Xv image format: 0x%x (%4.4s) %s\n",
+	     fo[i].id, (char*)&fo[i].id,
+	     (fo[i].format == XvPacked) ? "packed" : "planar");
+
     if (fo[i].id == XINE_IMGFMT_YV12)  {
       this->xv_format_yv12 = fo[i].id;
       this->capabilities |= VO_CAP_YV12;

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_mms.c,v 1.41 2003/10/22 12:04:42 hadess Exp $
+ * $Id: input_mms.c,v 1.42 2003/11/26 19:43:31 f1rmb Exp $
  *
  * mms input plugin based on work from major mms
  */
@@ -37,6 +37,12 @@
 #include <fcntl.h>
 #include "bswap.h"
 
+#define LOG_MODULE "input_mms"
+#define LOG_VERBOSE
+/*
+#define LOG
+*/
+
 #include "xine_internal.h"
 #include "xineutils.h"
 #include "input_plugin.h"
@@ -44,10 +50,6 @@
 #include "mms.h"
 #include "mmsh.h"
 #include "net_buf_ctrl.h"
-
-/*
-#define LOG
-*/
 
 #define PROTOCOL_UNDEFINED 0
 #define PROTOCOL_MMST      1
@@ -102,10 +104,7 @@ static off_t mms_plugin_read (input_plugin_t *this_gen,
   mms_input_plugin_t *this = (mms_input_plugin_t *) this_gen;
   off_t               n = 0;
 
-#ifdef LOG
-  printf ("input_mms: mms_plugin_read: %lld bytes ...\n",
-          len);
-#endif
+  lprintf ("mms_plugin_read: %lld bytes ...\n", len);
 
   nbc_check_buffers (this->nbc);
 
@@ -129,10 +128,7 @@ static buf_element_t *mms_plugin_read_block (input_plugin_t *this_gen,
   buf_element_t        *buf = fifo->buffer_pool_alloc (fifo);
   int                   total_bytes;
 
-#ifdef LOG
-  printf ("input_mms: mms_plugin_read_block: %lld bytes...\n",
-          todo);
-#endif
+  lprintf ("mms_plugin_read_block: %lld bytes...\n", todo);
 
   buf->content = buf->mem;
   buf->type = BUF_DEMUX_BLOCK;
@@ -153,10 +149,7 @@ static off_t mms_plugin_seek (input_plugin_t *this_gen, off_t offset, int origin
   mms_input_plugin_t   *this = (mms_input_plugin_t *) this_gen; 
   off_t                 dest = this->curpos;
 
-#ifdef LOG
-  printf ("input_mms: mms_plugin_seek: %lld offset, %d origin...\n",
-          offset, origin);
-#endif
+  lprintf ("mms_plugin_seek: %lld offset, %d origin...\n", offset, origin);
 
   switch (origin) {
   case SEEK_SET:
@@ -222,9 +215,7 @@ static off_t mms_plugin_get_length (input_plugin_t *this_gen) {
       break;
   }
 
-#ifdef LOG
-  printf ("input_mms: length is %lld\n", length);
-#endif
+  lprintf ("length is %lld\n", length);
 
   return length;
 
@@ -306,9 +297,8 @@ static int mms_plugin_get_optional_data (input_plugin_t *this_gen,
 static void bandwidth_changed_cb (void *this_gen, xine_cfg_entry_t *entry) {
   mms_input_class_t *class = (mms_input_class_t*) this_gen;
 
-#ifdef LOG
-  printf ("input_mms: bandwidth_changed_cb %d\n", entry->num_value);
-#endif
+  lprintf ("bandwidth_changed_cb %d\n", entry->num_value);
+
   if(!class)
    return;
 
@@ -362,9 +352,7 @@ static input_plugin_t *mms_class_get_instance (input_class_t *cls_gen, xine_stre
   xine_cfg_entry_t    bandwidth_entry;
   int                 protocol;
   
-#ifdef LOG
-  printf ("input_mms: trying to open '%s'\n", mrl);
-#endif
+  lprintf ("trying to open '%s'\n", mrl);
 
   if (!strncasecmp (mrl, "mms://", 6)) {
     protocol = PROTOCOL_UNDEFINED;

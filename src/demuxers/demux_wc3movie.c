@@ -24,7 +24,7 @@
  * For more information on the MVE file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_wc3movie.c,v 1.47 2003/11/16 23:33:44 f1rmb Exp $
+ * $Id: demux_wc3movie.c,v 1.48 2003/11/26 19:43:31 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -39,8 +39,10 @@
 
 /********** logging **********/
 #define LOG_MODULE "demux_wc3movie"
-/* #define LOG_VERBOSE */
-/* #define LOG */
+#define LOG_VERBOSE
+/*
+#define LOG
+*/
 
 #include "xine_internal.h"
 #include "xineutils.h"

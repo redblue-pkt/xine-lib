@@ -43,6 +43,13 @@
 
 #include <stdlib.h>
 #include <string.h>
+
+#define LOG_MODULE "memcpy"
+#define LOG_VERBOSE
+/*
+#define LOG
+*/
+
 #include "xine_internal.h"
 
 void *(* xine_fast_memcpy)(void *to, const void *from, size_t len);
@@ -440,9 +447,7 @@ static void update_fast_memcpy(void *this_gen, xine_cfg_entry_t *entry) {
   if (method != 0
       && (config_flags & memcpy_method[method].cpu_require) ==
       memcpy_method[method].cpu_require ) {
-#ifdef LOG
-    printf("xine: using %s\n", memcpy_method[method].name );
-#endif
+    lprintf("using %s\n", memcpy_method[method].name );
     xine_fast_memcpy = memcpy_method[method].function;
     return;
   } else {
@@ -480,9 +485,7 @@ void xine_probe_fast_memcpy(config_values_t *config)
   if( best != 0 &&
      (config_flags & memcpy_method[best].cpu_require) ==
       memcpy_method[best].cpu_require ) {
-#ifdef LOG
-    printf("xine: using %s\n", memcpy_method[best].name );
-#endif
+    lprintf("using %s\n", memcpy_method[best].name );
     xine_fast_memcpy = memcpy_method[best].function;
     return;
   }

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.180 2003/11/19 12:05:26 mroi Exp $
+ * $Id: video_out.c,v 1.181 2003/11/26 19:43:38 f1rmb Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -39,14 +39,16 @@
 #define XINE_ENABLE_EXPERIMENTAL_FEATURES
 #define XINE_ENGINE_INTERNAL
 
+#define LOG_MODULE "video_out"
+#define LOG_VERBOSE
+/*
+#define LOG
+*/
+
 #include "xine_internal.h"
 #include "video_out.h"
 #include "metronom.h"
 #include "xineutils.h"
-
-/*
-#define LOG
-*/
 
 #define NUM_FRAME_BUFFERS     15
 
@@ -277,15 +279,11 @@ static vo_frame_t *vo_get_frame (xine_video_port_t *this_gen,
   vo_frame_t *img;
   vos_t      *this = (vos_t *) this_gen;
 
-#ifdef LOG
-  printf ("video_out: get_frame (%d x %d)\n", width, height);
-#endif
+  lprintf ("get_frame (%d x %d)\n", width, height);
 
   img = vo_remove_from_img_buf_queue (this->free_img_buf_queue);
 
-#ifdef LOG
-  printf ("video_out: got a frame -> pthread_mutex_lock (&img->mutex)\n");
-#endif
+  lprintf ("got a frame -> pthread_mutex_lock (&img->mutex)\n");
 
   /* some decoders report strange ratios */
   if (ratio <= 0.0)
@@ -313,9 +311,7 @@ static vo_frame_t *vo_get_frame (xine_video_port_t *this_gen,
 
   pthread_mutex_unlock (&img->mutex);
   
-#ifdef LOG
-  printf ("video_out: get_frame (%d x %d) done\n", width, height);
-#endif
+  lprintf ("get_frame (%d x %d) done\n", width, height);
 
   return img;
 }
@@ -346,10 +342,8 @@ static int vo_frame_draw (vo_frame_t *img, xine_stream_t *stream) {
     cur_vpts = this->clock->get_current_time(this->clock);
     this->last_delivery_pts = cur_vpts;
 
-#ifdef LOG
-    printf ("video_out: got image at master vpts %lld. vpts for picture is %lld (pts was %lld)\n",
-	    cur_vpts, pic_vpts, img->pts);
-#endif
+    lprintf ("got image at master vpts %lld. vpts for picture is %lld (pts was %lld)\n",
+	     cur_vpts, pic_vpts, img->pts);
 
     this->num_frames_delivered++;
 
@@ -382,18 +376,15 @@ static int vo_frame_draw (vo_frame_t *img, xine_stream_t *stream) {
     frames_to_skip = 0;
 
     if (this->discard_frames) {
-#ifdef LOG
-      printf ("video_out: i'm in flush mode, not appending this frame to queue\n");
-#endif
+      lprintf ("i'm in flush mode, not appending this frame to queue\n");
+
       return 0;
     }
   }
 
 
-#ifdef LOG
-  printf ("video_out: delivery diff : %lld, current vpts is %lld, %d frames to skip\n",
-	  diff, cur_vpts, frames_to_skip);
-#endif
+  lprintf ("delivery diff : %lld, current vpts is %lld, %d frames to skip\n",
+	   diff, cur_vpts, frames_to_skip);
 
   if (!img->bad_frame) {
 
@@ -405,9 +396,7 @@ static int vo_frame_draw (vo_frame_t *img, xine_stream_t *stream) {
      * put frame into FIFO-Buffer
      */
 
-#ifdef LOG
-    printf ("video_out: frame is ok => appending to display buffer\n");
-#endif
+    lprintf ("frame is ok => appending to display buffer\n");
 
     /*
      * check for first frame after seek and mark it
@@ -420,9 +409,8 @@ static int vo_frame_draw (vo_frame_t *img, xine_stream_t *stream) {
       if (stream->first_frame_flag == 2) {
         stream->first_frame_flag = (this->grab_only)?0:1;
         img->is_first = 1;
-#ifdef LOG
-        printf ("video_out: get_next_video_frame first_frame_reached\n");
-#endif
+
+        lprintf ("get_next_video_frame first_frame_reached\n");
       }
       pthread_mutex_unlock (&stream->first_frame_lock);
     }
@@ -432,9 +420,8 @@ static int vo_frame_draw (vo_frame_t *img, xine_stream_t *stream) {
     vo_append_to_img_buf_queue (this->display_img_buf_queue, img);
 
   } else {
-#ifdef LOG
-    printf ("video_out: bad_frame\n");
-#endif
+    lprintf ("bad_frame\n");
+
     if (stream) {
       pthread_mutex_lock( &stream->current_extra_info_lock );
       _x_extra_info_merge( stream->current_extra_info, img->extra_info );
@@ -608,9 +595,8 @@ static void expire_frames (vos_t *this, int64_t cur_vpts) {
   while (img && (diff > img->duration || this->discard_frames)) {
 
     if (img->is_first) {
-#ifdef LOG
-      printf("video_out: expire_frames: first_frame !\n");
-#endif
+      lprintf("expire_frames: first_frame !\n");
+
       /*
        * before displaying the first frame without
        * "metronom prebuffering" we should make sure it's 
@@ -660,14 +646,12 @@ static void expire_frames (vos_t *this, int64_t cur_vpts) {
         if (!this->display_img_buf_queue->first) {
 	  
 	  if (this->img_backup) {
-#ifdef LOG
-	    printf("video_out: overwriting frame backup\n");
-#endif
+	    lprintf("overwriting frame backup\n");
+
 	    vo_frame_dec_lock( this->img_backup );
 	  }
-#ifdef LOG
-	  printf("video_out: possible still frame (old)\n");
-#endif
+
+	  lprintf("possible still frame (old)\n");
 
 	  this->img_backup = img;
 	
@@ -702,16 +686,12 @@ static vo_frame_t *get_next_frame (vos_t *this, int64_t cur_vpts) {
   if (!img) {
 
     pthread_mutex_unlock(&this->display_img_buf_queue->mutex);
-#ifdef LOG
-    printf ("video_out: no frame\n");
-#endif
+
+    lprintf ("no frame\n");
 
     if (this->img_backup && (this->redraw_needed==1)) {
 
-#ifdef LOG
-      printf("video_out: generating still frame (cur_vpts = %lld) \n",
-	     cur_vpts);
-#endif
+      lprintf("generating still frame (cur_vpts = %lld) \n", cur_vpts);
 
       /* keep playing still frames */
       pthread_mutex_lock( &this->free_img_buf_queue->mutex );
@@ -729,9 +709,8 @@ static vo_frame_t *get_next_frame (vos_t *this, int64_t cur_vpts) {
     
       if( this->redraw_needed )
         this->redraw_needed--;
-#ifdef LOG
-      printf ("video_out: no frame, but no backup frame\n");
-#endif
+
+      lprintf ("no frame, but no backup frame\n");
 
       return NULL;
     }
@@ -745,9 +724,7 @@ static vo_frame_t *get_next_frame (vos_t *this, int64_t cur_vpts) {
      * time to display frame "img" ?
      */
 
-#ifdef LOG
-    printf ("video_out: diff %lld\n", diff);
-#endif
+    lprintf ("diff %lld\n", diff);
 
     if (diff < 0) {
       pthread_mutex_unlock(&this->display_img_buf_queue->mutex);
@@ -755,9 +732,8 @@ static vo_frame_t *get_next_frame (vos_t *this, int64_t cur_vpts) {
     }
 
     if (this->img_backup) {
-#ifdef LOG
-      printf("video_out: freeing frame backup\n");
-#endif
+      lprintf("freeing frame backup\n");
+
       vo_frame_dec_lock( this->img_backup );
       this->img_backup = NULL;
     }
@@ -772,9 +748,8 @@ static vo_frame_t *get_next_frame (vos_t *this, int64_t cur_vpts) {
           _x_stream_info_get(img->stream, XINE_STREAM_INFO_VIDEO_HAS_STILL) ||
           img->stream->video_fifo->size(img->stream->video_fifo) < 10) {
 
-#ifdef LOG
-        printf ("video_out: possible still frame\n");
-#endif
+        lprintf ("possible still frame\n");
+
         this->img_backup = duplicate_frame (this, img);
       }
     }
@@ -795,10 +770,7 @@ static void overlay_and_display_frame (vos_t *this,
 				       vo_frame_t *img, int64_t vpts) {
   xine_stream_t *stream;
 
-#ifdef LOG
-  printf ("video_out: displaying image with vpts = %lld\n", 
-	  img->vpts);
-#endif
+  lprintf ("displaying image with vpts = %lld\n", img->vpts);
 
   /* no, this is not were proc_*() is usually called.
    * it's just to catch special cases like late or duplicated frames.
@@ -942,9 +914,7 @@ static void *video_out_loop (void *this_gen) {
    
   next_frame_vpts = this->clock->get_current_time (this->clock);
 
-#ifdef LOG
-    printf ("video_out: loop starting...\n");
-#endif
+  lprintf ("loop starting...\n");
 
   while ( this->video_loop_running ) {
 
@@ -953,9 +923,9 @@ static void *video_out_loop (void *this_gen) {
      */
 
     vpts = this->clock->get_current_time (this->clock);
-#ifdef LOG
-    printf ("video_out: loop iteration at %lld\n", vpts);
-#endif
+
+    lprintf ("loop iteration at %lld\n", vpts);
+
     expire_frames (this, vpts);
     img = get_next_frame (this, vpts);
 
@@ -964,9 +934,8 @@ static void *video_out_loop (void *this_gen) {
      */
 
     if (img) {
-#ifdef LOG
-      printf ("video_out: displaying frame (id=%d)\n", img->id);
-#endif
+      lprintf ("displaying frame (id=%d)\n", img->id);
+
       overlay_and_display_frame (this, img, vpts);
 
     } else {
@@ -990,9 +959,7 @@ static void *video_out_loop (void *this_gen) {
         if (stream->video_decoder_plugin && stream->video_fifo) {
           buf_element_t *buf;
           
-#ifdef LOG
-	  printf ("video_out: flushing current video decoder plugin\n");
-#endif
+	  lprintf ("flushing current video decoder plugin\n");
           
           buf = stream->video_fifo->buffer_pool_try_alloc (stream->video_fifo);
           if( buf ) {
@@ -1017,9 +984,7 @@ static void *video_out_loop (void *this_gen) {
       next_frame_vpts += 1000;
     }
     
-#ifdef LOG
-    printf ("video_out: next_frame_vpts is %lld\n", next_frame_vpts);
-#endif
+    lprintf ("next_frame_vpts is %lld\n", next_frame_vpts);
  
     do {
       vpts = this->clock->get_current_time (this->clock);
@@ -1029,10 +994,7 @@ static void *video_out_loop (void *this_gen) {
 
       usec_to_sleep = (next_frame_vpts - vpts) * 100 / 9;
 
-#ifdef LOG
-      printf ("video_out: %lld usec to sleep at master vpts %lld\n", 
-	      usec_to_sleep, vpts);
-#endif
+      lprintf ("%lld usec to sleep at master vpts %lld\n", usec_to_sleep, vpts);
       
       if ( (next_frame_vpts - vpts) > 2*90000 )
         printf("video_out: vpts/clock error, next_vpts=%lld cur_vpts=%lld\n",
@@ -1096,11 +1058,9 @@ int xine_get_next_video_frame (xine_video_port_t *this_gen,
 
   /* FIXME: ugly, use conditions and locks instead */
 
-#ifdef LOG
-  printf ("video_out: get_next_video_frame demux status = %d, fifo_size=%d\n",
-	  stream->demux_plugin->get_status (stream->demux_plugin),
-	  stream->video_fifo->fifo_size);
-#endif
+  lprintf ("get_next_video_frame demux status = %d, fifo_size=%d\n",
+	   stream->demux_plugin->get_status (stream->demux_plugin),
+	   stream->video_fifo->fifo_size);
 
   while ( !img && (stream->video_fifo->fifo_size 
 		   || (stream->demux_plugin->get_status (stream->demux_plugin)==DEMUX_OK))) {
@@ -1161,9 +1121,8 @@ static void vo_open (xine_video_port_t *this_gen, xine_stream_t *stream) {
 
   vos_t      *this = (vos_t *) this_gen;
 
-#ifdef LOG
-  printf("video_out: vo_open\n");
-#endif
+  lprintf("vo_open\n");
+
   this->video_opened = 1;
   this->discard_frames = 0;
   this->last_delivery_pts = 0;
@@ -1266,9 +1225,7 @@ static int vo_set_property (xine_video_port_t *this_gen, int property, int value
   
       while ((img = this->display_img_buf_queue->first)) {
   
-#ifdef LOG
-        printf ("video_out: flushing out frame\n");
-#endif
+        lprintf ("flushing out frame\n");
   
         img = vo_remove_from_img_buf_queue_int (this->display_img_buf_queue);
   
@@ -1363,9 +1320,7 @@ static void vo_exit (xine_video_port_t *this_gen) {
 
   vos_t      *this = (vos_t *) this_gen;
 
-#ifdef LOG
-  printf ("video_out: vo_exit...\n");
-#endif
+  lprintf ("vo_exit...\n");
 
   if (this->video_loop_running) {
     void *p;
@@ -1379,9 +1334,7 @@ static void vo_exit (xine_video_port_t *this_gen) {
 
   this->driver->dispose (this->driver);
 
-#ifdef LOG
-  printf ("video_out: vo_exit... done\n");
-#endif
+  lprintf ("vo_exit... done\n");
 
   if (this->overlay_source) {
     this->overlay_source->dispose (this->overlay_source);

@@ -30,7 +30,7 @@
  *   
  *   Based on FFmpeg's libav/rm.c.
  *
- * $Id: demux_real.c,v 1.72 2003/11/16 23:33:43 f1rmb Exp $
+ * $Id: demux_real.c,v 1.73 2003/11/26 19:43:30 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -44,10 +44,11 @@
 #include <stdlib.h>
 #include <ctype.h>
 
-/********** logging **********/
 #define LOG_MODULE "demux_real"
-/* #define LOG_VERBOSE */
-/* #define LOG */
+#define LOG_VERBOSE
+/*
+#define LOG
+*/
 
 #include "xine_internal.h"
 #include "xineutils.h"
@@ -1007,7 +1008,7 @@ static int demux_real_send_chunk(demux_plugin_t *this_gen) {
       this->video_fifo->put (this->video_fifo, buf);
 
       size -= fragment_size;
-      lprintf ("demux_real: size left %d\n", size);
+      lprintf ("size left %d\n", size);
 
       this->fragment_size += fragment_size;
 

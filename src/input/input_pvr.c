@@ -38,7 +38,7 @@
  * usage: 
  *   xine pvr:/<prefix_to_tmp_files>\!<prefix_to_saved_files>\!<max_page_age>
  *
- * $Id: input_pvr.c,v 1.36 2003/11/16 23:33:44 f1rmb Exp $
+ * $Id: input_pvr.c,v 1.37 2003/11/26 19:43:31 f1rmb Exp $
  */
 
 /**************************************************************************
@@ -115,6 +115,12 @@
 
 #define XINE_ENABLE_EXPERIMENTAL_FEATURES
 
+#define LOG_MODULE "input_pvr"
+#define LOG_VERBOSE
+/*
+#define LOG
+*/
+
 #include "xine_internal.h"
 #include "xineutils.h"
 #include "compat.h"
@@ -132,7 +138,6 @@
 
 #define NUM_PREVIEW_BUFFERS   250  /* used in mpeg_block demuxer */
 
-#define LOG 1
 /*
 #define SCRLOG 1
 */
@@ -605,9 +610,7 @@ static int pvr_break_rec_page (pvr_input_plugin_t *this) {
     
   filename = make_temp_name(this, this->rec_page);
      
-#ifdef LOG
-  printf("input_pvr: opening pvr file for writing (%s)\n", filename);
-#endif
+  lprintf("opening pvr file for writing (%s)\n", filename);
      
   this->rec_fd = open(filename, O_RDWR | O_CREAT | O_TRUNC, 0666 );
   if( this->rec_fd == -1 ) {
@@ -624,9 +627,7 @@ static int pvr_break_rec_page (pvr_input_plugin_t *this) {
     
     filename = make_temp_name(this, this->first_page);
 
-#ifdef LOG
-    printf("input_pvr: erasing old pvr file (%s)\n", filename);
-#endif
+    lprintf("erasing old pvr file (%s)\n", filename);
        
     this->first_page++;
     if(this->play_fd != -1 && this->play_page < this->first_page) {
@@ -699,15 +700,12 @@ static int pvr_play_file(pvr_input_plugin_t *this, fifo_buffer_t *fifo, uint8_t 
         close(this->play_fd);  
       this->play_fd = -1;
      
-#ifdef LOG
-      printf("input_pvr: switching back to realtime\n");
-#endif
+      lprintf("switching back to realtime\n");
+
       pvr_report_realtime(this,1);
       
     } else if (this->new_session) {
-#ifdef LOG
-      printf("input_pvr: starting new session in realtime\n");
-#endif
+      lprintf("starting new session in realtime\n");
       pvr_report_realtime(this,1);
     }
     
@@ -730,9 +728,8 @@ static int pvr_play_file(pvr_input_plugin_t *this, fifo_buffer_t *fifo, uint8_t 
         (this->rec_page > this->play_page && this->play_blk >= this->page_block[this->play_page+1]) ) {
       
        if(this->play_fd == -1) {
-#ifdef LOG
-         printf("input_pvr: switching to non-realtime\n");
-#endif
+         lprintf("switching to non-realtime\n");
+
          pvr_report_realtime(this,0);
        }
               
@@ -765,9 +762,7 @@ static int pvr_play_file(pvr_input_plugin_t *this, fifo_buffer_t *fifo, uint8_t 
   
          filename = make_temp_name(this, this->play_page);
 
-#ifdef LOG
-         printf("input_pvr: opening pvr file for reading (%s)\n", filename);
-#endif
+         lprintf("opening pvr file for reading (%s)\n", filename);
          
          this->play_fd = open(filename, O_RDONLY );
          if( this->play_fd == -1 ) {
@@ -852,9 +847,8 @@ static void *pvr_loop (void *this_gen) {
       }
       
       if( this->data[0] || this->data[1] || this->data[2] != 1 || this->data[3] != 0xba ) {
-#ifdef LOG
-        printf("input_pvr: resyncing mpeg stream\n");
-#endif
+	lprintf("resyncing mpeg stream\n");
+
         if( !pvr_mpeg_resync(this->dev_fd) ) {
           this->pvr_running = 0;
         } else {
@@ -900,9 +894,7 @@ static void pvr_finish_recording (pvr_input_plugin_t *this) {
   char *dst_filename;
   uint32_t i;
 
-#ifdef LOG
-  printf("input_pvr: finish_recording\n");
-#endif
+  lprintf("finish_recording\n");
 
   if( this->rec_fd != -1 ) {
     close(this->rec_fd);  
@@ -922,9 +914,8 @@ static void pvr_finish_recording (pvr_input_plugin_t *this) {
       src_filename = make_temp_name(this, i);
       
       if( this->save_page == -1 || i < this->save_page ) {
-#ifdef LOG
-        printf("input_pvr: erasing old pvr file (%s)\n", src_filename);
-#endif
+        lprintf("erasing old pvr file (%s)\n", src_filename);
+
         remove(src_filename);
       } else {
         
@@ -933,9 +924,8 @@ static void pvr_finish_recording (pvr_input_plugin_t *this) {
         else 
           dst_filename = make_save_name(this, this->save_name, i-this->save_page+1);
 
-#ifdef LOG
-        printf("input_pvr: moving (%s) to (%s)\n", src_filename, dst_filename);
-#endif
+        lprintf("moving (%s) to (%s)\n", src_filename, dst_filename);
+
         rename(src_filename,dst_filename);
         free(dst_filename);
       }
@@ -952,9 +942,8 @@ static void pvr_finish_recording (pvr_input_plugin_t *this) {
       show->pages = this->rec_page - this->save_page + 1;
       xine_list_append_content (this->saved_shows, show);
       
-#ifdef LOG
-      printf("input_pvr: sending event with base name [%s]\n", show->base_name);
-#endif
+      lprintf("sending event with base name [%s]\n", show->base_name);
+
       /* tell frontend the name of the saved show */
       event.type        = XINE_EVENT_PVR_REPORT_NAME;
       event.stream      = this->stream;
@@ -1042,12 +1031,11 @@ static void pvr_event_handler (pvr_input_plugin_t *this) {
         this->input = v4l2_data->input;
         this->channel = v4l2_data->channel;
         this->frequency = v4l2_data->frequency;
-#ifdef LOG
-        printf("input_pvr: switching to input:%d chan:%d freq:%.2f\n", 
-               v4l2_data->input, 
-               v4l2_data->channel,
-               (float)v4l2_data->frequency * 62.5);
-#endif
+
+        lprintf("switching to input:%d chan:%d freq:%.2f\n", 
+		v4l2_data->input, 
+		v4l2_data->channel,
+		(float)v4l2_data->frequency * 62.5);
   
         pthread_mutex_lock(&this->dev_lock);
 #ifdef USE_V4L2
@@ -1088,9 +1076,8 @@ static void pvr_event_handler (pvr_input_plugin_t *this) {
       if( this->session != -1 ) {
         switch( save_data->mode ) {
           case 0:
-#ifdef LOG
-            printf("input_pvr: saving from this point\n");
-#endif
+            lprintf("saving from this point\n");
+
             pthread_mutex_lock(&this->lock);
             pvr_break_rec_page(this);
             this->save_page = this->rec_page;
@@ -1098,17 +1085,15 @@ static void pvr_event_handler (pvr_input_plugin_t *this) {
             pthread_mutex_unlock(&this->lock);
             break;
           case 1:
-#ifdef LOG
-            printf("input_pvr: saving from show start\n");
-#endif
+            lprintf("saving from show start\n");
+
             pthread_mutex_lock(&this->lock);
             this->save_page = this->show_page;
             pthread_mutex_unlock(&this->lock);
             break;
           case 2:
-#ifdef LOG
-            printf("input_pvr: saving everything so far\n");
-#endif
+	    lprintf("saving everything so far\n");
+
             pthread_mutex_lock(&this->lock);
             this->save_page = this->first_page;
             pthread_mutex_unlock(&this->lock);
@@ -1142,9 +1127,9 @@ static void pvr_event_handler (pvr_input_plugin_t *this) {
                   
                 src_filename = make_save_name(this, show->base_name, i+1);
                 dst_filename = make_save_name(this, save_data->name, i+1);
-#ifdef LOG
-                printf("input_pvr: moving (%s) to (%s)\n", src_filename, dst_filename);
-#endif
+
+                lprintf("moving (%s) to (%s)\n", src_filename, dst_filename);
+
                 rename(src_filename,dst_filename);
                 free(dst_filename);
                 free(src_filename);
@@ -1366,18 +1351,16 @@ static void pvr_plugin_dispose (input_plugin_t *this_gen ) {
   saved_show_t  *show;
 
   if( this->pvr_running ) {
-#ifdef LOG
-    printf("input_pvr: finishing pvr thread\n");
-#endif
+    lprintf("finishing pvr thread\n");
+
     pthread_mutex_lock(&this->lock);
     this->pvr_running = 0;
     this->want_data = 0;
     pthread_cond_signal (&this->wake_pvr);
     pthread_mutex_unlock(&this->lock);
     pthread_join (this->pvr_thread, &p); 
-#ifdef LOG
-    printf("input_pvr: pvr thread joined\n");
-#endif
+
+    lprintf("pvr thread joined\n");
   }
  
   if (this->scr) {
@@ -1521,11 +1504,9 @@ static input_plugin_t *pvr_class_get_instance (input_class_t *cls_gen, xine_stre
     this->save_prefix=strdup("./");
   }
   
-#ifdef LOG  
-  printf("input_pvr: tmp_prefix=%s\n", this->tmp_prefix);
-  printf("input_pvr: save_prefix=%s\n", this->save_prefix);
-  printf("input_pvr: max_page_age=%d\n", this->max_page_age);
-#endif
+  lprintf("tmp_prefix=%s\n", this->tmp_prefix);
+  lprintf("save_prefix=%s\n", this->save_prefix);
+  lprintf("max_page_age=%d\n", this->max_page_age);
   
   this->input_plugin.open               = pvr_plugin_open;
   this->input_plugin.get_capabilities   = pvr_plugin_get_capabilities;

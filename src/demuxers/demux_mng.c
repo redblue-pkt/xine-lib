@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_mng.c,v 1.15 2003/11/16 23:33:43 f1rmb Exp $
+ * $Id: demux_mng.c,v 1.16 2003/11/26 19:43:30 f1rmb Exp $
  *
  * demux_mng.c, Demuxer plugin for Multiple-image Network Graphics format
  *
@@ -37,10 +37,11 @@
 
 #include <libmng.h>
 
-/********** logging **********/
 #define LOG_MODULE "demux_mng"
-/* #define LOG_VERBOSE */
-/* #define LOG */
+#define LOG_VERBOSE
+/*
+#define LOG
+*/
 
 #include "xine_internal.h"
 #include "xineutils.h"

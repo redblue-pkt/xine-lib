@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xvmc.c,v 1.8 2003/11/26 01:03:32 miguelfreitas Exp $
+ * $Id: video_out_xvmc.c,v 1.9 2003/11/26 19:43:38 f1rmb Exp $
  * 
  * video_out_xvmc.c, X11 video motion compensation extension interface for xine
  *
@@ -61,6 +61,12 @@
 #include <X11/extensions/XvMClib.h>
 #include <X11/extensions/XvMC.h>
 
+#define LOG_MODULE "video_out_xvmc"
+#define LOG_VERBOSE
+/*
+#define LOG
+*/
+
 #include "xine.h"
 #include "video_out.h"
 #include "xine_internal.h"
@@ -72,11 +78,7 @@
 #include "xineutils.h"
 #include "vo_scale.h"
 
-/*
-#define LOG
-*/
 /* #define LOG1 */
-/* #define LOG */
 /* #define DLOG */
 
 /* #define PRINTDATA */
@@ -458,7 +460,7 @@ static void xvmc_proc_macro_block(int x, int y, int mb_type, int motion_type,
 static uint32_t xvmc_get_capabilities (vo_driver_t *this_gen) {
   xvmc_driver_t *this = (xvmc_driver_t *) this_gen;
 
-  lprintf ("video_out_xvmc: xvmc_get_capabilities\n");
+  lprintf ("xvmc_get_capabilities\n");
 
   return this->capabilities;
 }
@@ -466,7 +468,7 @@ static uint32_t xvmc_get_capabilities (vo_driver_t *this_gen) {
 static void xvmc_frame_field (vo_frame_t *vo_img, int which_field) {
   xvmc_driver_t *this = (xvmc_driver_t *) vo_img->driver;
 
-  lprintf ("video_out_xvmc: xvmc_frame_field\n");
+  lprintf ("xvmc_frame_field\n");
 
   this->macroblocks.num_blocks       = 0;
   this->macroblocks.macroblockptr    = this->macroblocks.macroblockbaseptr;
@@ -477,7 +479,7 @@ static void xvmc_frame_dispose (vo_frame_t *vo_img) {
   xvmc_frame_t  *frame = (xvmc_frame_t *) vo_img ;
   xvmc_driver_t *this  = (xvmc_driver_t *) vo_img->driver;
 
-  lprintf ("video_out_xvmc: xvmc_frame_dispose\n");
+  lprintf ("xvmc_frame_dispose\n");
 
   /* 
    * TODO - clean up of images/surfaces and frames
@@ -505,12 +507,12 @@ static void xvmc_render_macro_blocks(vo_frame_t *current_image,
   xvmc_frame_t  *forward_frame  = (xvmc_frame_t *)  forward_ref_image;
   xvmc_frame_t  *backward_frame = (xvmc_frame_t *)  backward_ref_image;
 
-  lprintf ("video_out_xvmc: xvmc_render_macro_blocks\n");
-  lprintf ("                slices %d 0x%08lx 0x%08lx 0x%08lx\n",
+  lprintf ("xvmc_render_macro_blocks\n");
+  lprintf ("slices %d 0x%08lx 0x%08lx 0x%08lx\n",
 	   macroblocks->slices,
 	   (long) current_frame, (long) backward_frame,
 	   (long) forward_frame);
-  /* lprintf ("                        slices %d 0x%08lx 0x%08lx 0x%08lx\n",macroblocks->slices,
+  /* lprintf ("slices %d 0x%08lx 0x%08lx 0x%08lx\n",macroblocks->slices,
 	   (long) current_frame->surface, (long) backward_frame->surface,
 	   (long) forward_frame->surface); 
   */
@@ -559,14 +561,14 @@ static void xvmc_render_macro_blocks(vo_frame_t *current_image,
 
   /* XvMCFlushSurface(this->display, &current_frame->surface); */
 
-  lprintf ("video_out_xvmc: xvmc_render_macro_blocks done\n");
+  lprintf ("xvmc_render_macro_blocks done\n");
 }
 
 static vo_frame_t *xvmc_alloc_frame (vo_driver_t *this_gen) {
   xvmc_frame_t   *frame;
   xvmc_driver_t  *this = (xvmc_driver_t *) this_gen;
 
-  lprintf ("video_out_xvmc: xvmc_alloc_frame\n");
+  lprintf ("xvmc_alloc_frame\n");
 
   frame = (xvmc_frame_t *) malloc (sizeof (xvmc_frame_t));
 
@@ -604,7 +606,7 @@ static cxid_t *xvmc_set_context (xvmc_driver_t *this,
   int                  slices      = 1;
   xvmc_macroblocks_t  *macroblocks = (xvmc_macroblocks_t *) macro_blocks;
 
-  lprintf ("video_out_xvmc: xvmc_set_context %dx%d %04x\n",width,height,format);
+  lprintf ("xvmc_set_context %dx%d %04x\n",width,height,format);
   
   /* initialize block & macro block pointers first time */
   if(macroblocks->blocks == NULL ||  macroblocks->macro_blocks == NULL) {
@@ -613,7 +615,7 @@ static cxid_t *xvmc_set_context (xvmc_driver_t *this,
     memset (macroblocks->blocks, 0, sizeof(XvMCBlockArray));
     memset (macroblocks->macro_blocks, 0, sizeof(XvMCMacroBlockArray));
     
-    lprintf("	macroblocks->blocks %lx ->macro_blocks %lx\n",
+    lprintf("macroblocks->blocks %lx ->macro_blocks %lx\n",
 	    macroblocks->blocks,macroblocks->macro_blocks);
   }
 
@@ -624,7 +626,7 @@ static cxid_t *xvmc_set_context (xvmc_driver_t *this,
      (flags  == this->surface_flags)) {
 
     /* don't need to change  context */
-    lprintf ("video_out_xvmc: didn't change context\n");
+    lprintf ("didn't change context\n");
 
     return(&this->context_id);
 
@@ -636,7 +638,7 @@ static cxid_t *xvmc_set_context (xvmc_driver_t *this,
        * flush any drawing and wait till we are done with the old stuff
        * blow away the old stuff
        */
-      lprintf ("video_out_xvmc: freeing previous context\n");
+      lprintf ("freeing previous context\n");
 
       XvMCDestroyBlocks(this->display, macroblocks->blocks);
       XvMCDestroyMacroBlocks(this->display, macroblocks->macro_blocks);
@@ -721,7 +723,7 @@ static XvImage *create_ximage (xvmc_driver_t *this, XShmSegmentInfo *shminfo,
   unsigned int  xvmc_format;
   XvImage      *image = NULL;
 
-  lprintf ("video_out_xvmc: create_ximage\n");
+  lprintf ("create_ximage\n");
 
   switch (format) {
   case XINE_IMGFMT_YV12:
@@ -768,7 +770,7 @@ static void dispose_ximage (xvmc_driver_t *this,
 			    XShmSegmentInfo *shminfo,
 			    XvImage *myimage) {
   
-  lprintf ("video_out_xvmc: dispose_ximage\n");
+  lprintf ("dispose_ximage\n");
   XFree(myimage);
 }
 
@@ -779,13 +781,13 @@ static void xvmc_update_frame_format (vo_driver_t *this_gen,
   xvmc_driver_t  *this  = (xvmc_driver_t *) this_gen;
   xvmc_frame_t   *frame = (xvmc_frame_t *) frame_gen;
 
-  lprintf ("video_out_xvmc: xvmc_update_frame_format\n");
+  lprintf ("xvmc_update_frame_format\n");
 
   if ((frame->width != width)
       || (frame->height != height)
       || (frame->format != format)) {
 
-    lprintf ("video_out_xvmc: updating frame to %d x %d (ratio=%f, format=%08x)\n",
+    lprintf ("updating frame to %d x %d (ratio=%f, format=%08x)\n",
 	     width, height, ratio, format);
 
     XLockDisplay (this->display);
@@ -828,7 +830,7 @@ static void xvmc_update_frame_format (vo_driver_t *this_gen,
 }
 
 static void xvmc_clean_output_area (xvmc_driver_t *this) {
-  lprintf ("video_out_xvmc: xvmc_clean_output_area\n");
+  lprintf ("xvmc_clean_output_area\n");
 
   XLockDisplay (this->display);
   XSetForeground (this->display, this->gc, this->black.pixel);
@@ -866,7 +868,7 @@ static void xvmc_overlay_blend (vo_driver_t *this_gen,
 				vo_frame_t *frame_gen, vo_overlay_t *overlay) {
   xvmc_frame_t   *frame = (xvmc_frame_t *) frame_gen;
 
-  lprintf ("video_out_xvmc: xvmc_overlay_blend\n");
+  lprintf ("xvmc_overlay_blend\n");
 
   /* Alpha Blend here
    * As XV drivers improve to support Hardware overlay, we will change this function.
@@ -885,7 +887,7 @@ static void xvmc_overlay_blend (vo_driver_t *this_gen,
 static void xvmc_add_recent_frame (xvmc_driver_t *this, xvmc_frame_t *frame) {
   int i;
 
-  lprintf ("video_out_xvmc: xvmc_add_recent_frame\n");
+  lprintf ("xvmc_add_recent_frame\n");
 
   i = VO_NUM_RECENT_FRAMES-1;
   if( this->recent_frames[i] )
@@ -903,7 +905,7 @@ static void xvmc_add_recent_frame (xvmc_driver_t *this, xvmc_frame_t *frame) {
 static void xvmc_flush_recent_frames (xvmc_driver_t *this) {
   int i;
 
-  lprintf ("video_out_xvmc: xvmc_flush_recent_frames\n");
+  lprintf ("xvmc_flush_recent_frames\n");
 
   for( i=0; i < VO_NUM_RECENT_FRAMES; i++ ) {
     if( this->recent_frames[i] )
@@ -943,7 +945,7 @@ static void xvmc_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
   xvmc_frame_t   *frame = (xvmc_frame_t *) frame_gen;
   int             status;
 
-  lprintf ("video_out_xvmc: xvmc_display_frame %d %x\n",frame_gen->id,frame_gen);
+  lprintf ("xvmc_display_frame %d %x\n",frame_gen->id,frame_gen);
 
   /* 
    * queue frames (deinterlacing)
@@ -962,7 +964,7 @@ static void xvmc_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
   if ( (frame->width != this->sc.delivered_width)
        || (frame->height != this->sc.delivered_height)
        || (frame->ratio != this->sc.delivered_ratio) ) {
-    lprintf("video_out_xvmc: frame format changed\n");
+    lprintf("frame format changed\n");
     
     /* 
        this->delivered_width      = frame->width;
@@ -1021,7 +1023,7 @@ static void xvmc_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
 static int xvmc_get_property (vo_driver_t *this_gen, int property) {
   xvmc_driver_t *this = (xvmc_driver_t *) this_gen;
 
-  lprintf ("video_out_xvmc: xvmc_get_property\n");
+  lprintf ("xvmc_get_property\n");
   
   switch (property) {
     case VO_PROP_WINDOW_WIDTH:
@@ -1039,7 +1041,7 @@ static void xvmc_property_callback (void *property_gen, xine_cfg_entry_t *entry)
   xvmc_property_t *property = (xvmc_property_t *) property_gen;
   xvmc_driver_t   *this     = property->this;
 
-  lprintf ("video_out_xvmc: xvmc_property_callback\n");
+  lprintf ("xvmc_property_callback\n");
   
   XLockDisplay(this->display);
   XvSetPortAttribute (this->display, this->xv_port,
@@ -1051,7 +1053,7 @@ static int xvmc_set_property (vo_driver_t *this_gen,
 			    int property, int value) {
   xvmc_driver_t *this = (xvmc_driver_t *) this_gen;
 
-  lprintf ("video_out_xvmc: xvmc_set_property %d value %d\n",property,value);
+  lprintf ("xvmc_set_property %d value %d\n",property,value);
   
   if (this->props[property].atom != None) {
     /* value is out of bound */
@@ -1075,7 +1077,7 @@ static int xvmc_set_property (vo_driver_t *this_gen,
     switch (property) {
     case VO_PROP_INTERLACED:
       this->props[property].value = value;
-      lprintf("video_out_xvmc: VO_PROP_INTERLACED(%d)\n", this->props[property].value);
+      lprintf("VO_PROP_INTERLACED(%d)\n", this->props[property].value);
       this->deinterlace_enabled = value;
 
       if (this->deinterlace_method == DEINTERLACE_ONEFIELDXV) {
@@ -1088,7 +1090,7 @@ static int xvmc_set_property (vo_driver_t *this_gen,
 	value = XINE_VO_ASPECT_AUTO;
 
       this->props[property].value = value;
-      lprintf("video_out_xvmc: VO_PROP_ASPECT_RATIO(%d)\n", this->props[property].value);
+      lprintf("VO_PROP_ASPECT_RATIO(%d)\n", this->props[property].value);
       
       xvmc_compute_ideal_size (this);
       xvmc_compute_output_size (this);
@@ -1129,7 +1131,7 @@ static void xvmc_get_property_min_max (vo_driver_t *this_gen,
 				     int property, int *min, int *max) {
   xvmc_driver_t *this = (xvmc_driver_t *) this_gen;
   
-  lprintf ("video_out_xvmc: xvmc_get_property_min_max\n");
+  lprintf ("xvmc_get_property_min_max\n");
   
   *min = this->props[property].min;
   *max = this->props[property].max;
@@ -1139,14 +1141,14 @@ static int xvmc_gui_data_exchange (vo_driver_t *this_gen,
 				   int data_type, void *data) {
   xvmc_driver_t     *this = (xvmc_driver_t *) this_gen;
 
-  lprintf ("video_out_xvmc: xvmc_gui_data_exchange\n");
+  lprintf ("xvmc_gui_data_exchange\n");
   
   switch (data_type) {
   case XINE_GUI_SEND_EXPOSE_EVENT: {
     /* XExposeEvent * xev = (XExposeEvent *) data; */
 
     /* FIXME : take care of completion events */
-    lprintf ("video_out_xvmc: XINE_GUI_SEND_EXPOSE_EVENT\n");
+    lprintf ("XINE_GUI_SEND_EXPOSE_EVENT\n");
     
     if (this->cur_frame) {
       int i;
@@ -1234,7 +1236,7 @@ static void xvmc_dispose (vo_driver_t *this_gen) {
   xvmc_driver_t *this = (xvmc_driver_t *) this_gen;
   int i;
   
-  lprintf ("video_out_xvmc: xvmc_dispose\n");
+  lprintf ("xvmc_dispose\n");
   
   if (this->deinterlace_frame.image) {
     /* dispose_ximage should be xlocked */
@@ -1260,7 +1262,7 @@ static void xvmc_dispose (vo_driver_t *this_gen) {
 
   XLockDisplay (this->display);
   if(XvUngrabPort (this->display, this->xv_port, CurrentTime) != Success) {
-    lprintf ("video_out_xvmc: xvmc_dispose: XvUngrabPort() failed.\n");
+    lprintf ("xvmc_dispose: XvUngrabPort() failed.\n");
   }
   XUnlockDisplay (this->display);
 
@@ -1331,7 +1333,7 @@ static void xvmc_check_capability (xvmc_driver_t *this,
 static void xvmc_update_deinterlace(void *this_gen, xine_cfg_entry_t *entry) {
   xvmc_driver_t *this = (xvmc_driver_t *) this_gen;
 
-  lprintf ("video_out_xvmc: xvmc_update_deinterlace method = %d\n",entry->num_value);
+  lprintf ("xvmc_update_deinterlace method = %d\n",entry->num_value);
   
   this->deinterlace_method = entry->num_value;
 }
@@ -1349,7 +1351,7 @@ static void xvmc_update_XV_DOUBLE_BUFFER(void *this_gen, xine_cfg_entry_t *entry
   XvSetPortAttribute (this->display, this->xv_port, atom, xvmc_double_buffer);
   XUnlockDisplay(this->display);
 
-  lprintf("video_out_xvmc: double buffering mode = %d\n",xvmc_double_buffer);
+  lprintf("double buffering mode = %d\n",xvmc_double_buffer);
 }
 
 static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *visual_gen) {
@@ -1366,7 +1368,7 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *vi
   XColor                dummy;
   /* XvImage              *myimage; */
   
-  lprintf ("video_out_xvmc: open_plugin\n");
+  lprintf ("open_plugin\n");
   
   display = visual->display;
   
@@ -1518,19 +1520,19 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *vi
   this->xvmc_format_yuy2 = 0;
   
   for(i = 0; i < formats; i++) {
-    lprintf ("video_out_xvmc: XvMC image format: 0x%x (%4.4s) %s\n",
+    lprintf ("XvMC image format: 0x%x (%4.4s) %s\n",
 	     fo[i].id, (char*)&fo[i].id,
 	     (fo[i].format == XvPacked) ? "packed" : "planar");
     
     if (fo[i].id == XINE_IMGFMT_YV12)  {
       this->xvmc_format_yv12 = fo[i].id;
       this->capabilities     |= VO_CAP_YV12;
-      lprintf("video_out_xvmc: this adaptor supports the yv12 format.\n");
+      lprintf("this adaptor supports the yv12 format.\n");
     }
     else if (fo[i].id == XINE_IMGFMT_YUY2) {
       this->xvmc_format_yuy2 = fo[i].id;
       this->capabilities     |= VO_CAP_YUY2;
-      lprintf("video_out_xvmc: this adaptor supports the yuy2 format.\n");
+      lprintf("this adaptor supports the yuy2 format.\n");
     }
   }
 
@@ -1552,7 +1554,7 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *vi
 						    NULL, 10, xvmc_update_deinterlace, this);
 
   this->deinterlace_enabled = 1;  /* default is enabled */
-  lprintf("video_out_xvmc: deinterlace_methods %d ",this->deinterlace_method);
+  lprintf("deinterlace_methods %d ",this->deinterlace_method);
 
   switch(this->deinterlace_method) {
   case DEINTERLACE_NONE: 
@@ -1578,7 +1580,7 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *vi
     break;
   }
 
-  lprintf("video_out_xvmc: initialization of plugin successful\n");
+  lprintf("initialization of plugin successful\n");
   return &this->vo_driver;
 }
 
@@ -1627,7 +1629,7 @@ static void *init_class (xine_t *xine, void *visual_gen) {
   /*
    * check for Xv and  XvMC video support
    */
-  lprintf ("video_out_xvmc: XvMC init_class\n");
+  lprintf ("XvMC init_class\n");
 
   XLockDisplay(display);
   if (Success != XvQueryExtension(display, &ver, &rel, &req, &ev, &err)) {
@@ -1684,13 +1686,13 @@ static void *init_class (xine_t *xine, void *visual_gen) {
 	}
 
 	if(!xv_port) { /* try for just XVMC_MOCOMP  */
-	  lprintf ("video_out_xvmc: didn't find XVMC_IDCT acceleration trying for MC\n");
+	  lprintf ("didn't find XVMC_IDCT acceleration trying for MC\n");
 
 	  for(surface_num  = 0; surface_num < types; surface_num++) {
 	    if((surfaceInfo[surface_num].chroma_format == XVMC_CHROMA_FORMAT_420) &&
 	       ((surfaceInfo[surface_num].mc_type == (XVMC_MOCOMP | XVMC_MPEG_2)))) {
 	      
-	      lprintf ("video_out_xvmc: Found XVMC_MOCOMP\n");
+	      lprintf ("Found XVMC_MOCOMP\n");
 	      max_width = surfaceInfo[surface_num].max_width;
 	      max_height = surfaceInfo[surface_num].max_height;
 
@@ -1710,7 +1712,7 @@ static void *init_class (xine_t *xine, void *visual_gen) {
 	  }
 	}
 	if(xv_port) {
-	  lprintf ("video_out_xvmc: port %ld surface %d\n",xv_port,j);
+	  lprintf ("port %ld surface %d\n",xv_port,j);
 
 	  if(surfaceInfo[j].flags & XVMC_OVERLAID_SURFACE)
 	    useOverlay = 1;
@@ -1782,7 +1784,7 @@ static void *init_class (xine_t *xine, void *visual_gen) {
   this->max_surface_height           = max_height;
   this->acceleration                 = IDCTaccel;
 
-  lprintf("video_out_xvmc: init_class done\n");
+  lprintf("init_class done\n");
 
   return this;
 }

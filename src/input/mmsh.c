@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mmsh.c,v 1.20 2003/11/11 18:44:54 f1rmb Exp $
+ * $Id: mmsh.c,v 1.21 2003/11/26 19:43:31 f1rmb Exp $
  *
  * MMS over HTTP protocol
  *   written by Thibaut Mattern
@@ -48,6 +48,12 @@
 #include <time.h>
 #include <assert.h>
 
+#define LOG_MODULE "mmsh"
+#define LOG_VERBOSE
+/*
+#define LOG
+*/
+
 #include "xine_internal.h"
 #include "xineutils.h"
 
@@ -55,10 +61,6 @@
 #include "io_helper.h"
 #include "mmsh.h"
 #include "../demuxers/asfheader.h"
-
-/*
-#define LOG
-*/
 
 #define USERAGENT "User-Agent: NSPlayer/7.1.0.3055\r\n"
 #define CLIENTGUID "Pragma: xClientGUID={c77e7400-738a-11d2-9add-0020af0a3278}\r\n"
@@ -233,9 +235,8 @@ static int get_guid (unsigned char *buffer, int offset) {
   
   for (i = 1; i < GUID_END; i++) {
     if (!memcmp(&g, &guids[i].guid, sizeof(GUID))) {
-#ifdef LOG
-      printf ("libmmsh: GUID: %s\n", guids[i].name);
-#endif
+      lprintf ("GUID: %s\n", guids[i].name);
+
       return i;
     }
   }
@@ -251,9 +252,8 @@ static int get_guid (unsigned char *buffer, int offset) {
 static int send_command (mmsh_t *this, char *cmd)  {
   int length;
 
-#ifdef LOG
-  printf ("libmmsh: send_command:\n%s\n", cmd);
-#endif
+  lprintf ("send_command:\n%s\n", cmd);
+
   length = strlen(cmd);
   if (_x_io_tcp_write(this->stream, this->s, cmd, length) != length) {
     printf ("libmmsh: send error\n");
@@ -267,9 +267,8 @@ static int get_answer (mmsh_t *this) {
   int done, len, linenum;
   char *features;
 
-#ifdef LOG
-  printf ("libmmsh: get_answer\n");
-#endif
+  lprintf ("get_answer\n");
+
   done = 0; len = 0; linenum = 0;
   this->stream_type = MMSH_UNKNOWN;
 
@@ -292,9 +291,7 @@ static int get_answer (mmsh_t *this) {
 
       linenum++;
       
-#ifdef LOG
-      printf ("libmmsh: answer: >%s<\n", this->buf);
-#endif
+      lprintf ("answer: >%s<\n", this->buf);
 
       if (linenum == 1) {
         int httpver, httpsub, httpcode;
@@ -328,15 +325,11 @@ static int get_answer (mmsh_t *this) {
           features = strstr(this->buf + 7, "features=");
           if (features) {
             if (strstr(features, "seekable")) {
-#ifdef LOG
-              printf("libmmsh: seekable stream\n");
-#endif
+              lprintf("seekable stream\n");
               this->stream_type = MMSH_SEEKABLE;
             } else {
               if (strstr(features, "broadcast")) {
-#ifdef LOG
-                printf("libmmsh: live stream\n");
-#endif
+                lprintf("live stream\n");
                 this->stream_type = MMSH_LIVE;
               }
             }
@@ -364,15 +357,13 @@ static int get_chunk_header (mmsh_t *this) {
   char chunk_header[CHUNK_HEADER_LENGTH];
   int len;
 
-#ifdef LOG
-  printf ("libmmsh: get_chunk\n");
-#endif
+  lprintf ("get_chunk\n");
+
   /* chunk header */
   len = _x_io_tcp_read(this->stream, this->s, chunk_header, CHUNK_HEADER_LENGTH);
   if (len != CHUNK_HEADER_LENGTH) {
-#ifdef LOG
-    printf ("libmmsh: chunk header read failed, %d != %d\n", len, CHUNK_HEADER_LENGTH);
-#endif
+    lprintf ("chunk header read failed, %d != %d\n", len, CHUNK_HEADER_LENGTH);
+
     return 0;
   }
   this->chunk_type       = get_16 (chunk_header, 0);
@@ -402,9 +393,8 @@ static int get_chunk_header (mmsh_t *this) {
 static int get_header (mmsh_t *this) {
   int len = 0;
 
-#ifdef LOG
-  printf("libmmsh: get_header\n");
-#endif
+  lprintf("get_header\n");
+
   this->asf_header_len = 0;
 
   /* read chunk */
@@ -444,9 +434,8 @@ static void interp_header (mmsh_t *this) {
 
   int i;
 
-#ifdef LOG
-  printf ("libmmsh: interp_header\n");
-#endif
+  lprintf ("interp_header\n");
+
   this->packet_length = 0;
 
   /*
@@ -473,10 +462,8 @@ static void interp_header (mmsh_t *this) {
 
         this->packet_length = get_32(this->asf_header, i + 92 - 24);
         this->file_length   = get_32(this->asf_header, i + 40 - 24);
-#ifdef LOG
-        printf ("libmmsh: file object, packet length = %d (%d)\n",
-                this->packet_length, get_32(this->asf_header, i + 96 - 24));
-#endif
+        lprintf ("file object, packet length = %d (%d)\n",
+		 this->packet_length, get_32(this->asf_header, i + 96 - 24));
         break;
 
       case GUID_ASF_STREAM_PROPERTIES:
@@ -506,9 +493,8 @@ static void interp_header (mmsh_t *this) {
 
           stream_id = get_16(this->asf_header, i + 48);
 
-#ifdef LOG
-          printf ("libmmsh: stream object, stream id: %d\n", stream_id);
-#endif
+          lprintf ("stream object, stream id: %d\n", stream_id);
+
           this->stream_types[stream_id] = type;
           this->stream_ids[this->num_stream_ids] = stream_id;
           this->num_stream_ids++;
@@ -522,18 +508,14 @@ static void interp_header (mmsh_t *this) {
           uint16_t stream_id;
           int j;
 
-#ifdef LOG
-          printf ("libmmsh: stream bitrate properties\n");
-#endif
+	  lprintf ("stream bitrate properties\n");
+          lprintf ("streams %d\n", streams);
 
-#ifdef LOG
-          printf ("libmmsh: streams %d\n", streams);
-#endif
           for(j = 0; j < streams; j++) {
             stream_id = get_16(this->asf_header, i + 2 + j * 6);
-#ifdef LOG
-            printf ("libmmsh: stream id %d\n", stream_id);
-#endif
+
+            lprintf ("stream id %d\n", stream_id);
+
             this->bitrates[stream_id] = get_32(this->asf_header, i + 4 + j * 6);
             this->bitrates_pos[stream_id] = i + 4 + j * 6;
             printf ("libmmsh: stream id %d, bitrate %d\n", stream_id,
@@ -543,15 +525,11 @@ static void interp_header (mmsh_t *this) {
         break;
 
       default:
-#ifdef LOG
-        printf ("libmmsh: unknown object\n");
-#endif
+        lprintf ("unknown object\n");
         break;
     }
 
-#ifdef LOG
-    printf ("libmmsh: length    : %lld\n", length);
-#endif
+    lprintf ("length    : %lld\n", length);
 
     if (length > 24) {
       i += length - 24;
@@ -565,9 +543,8 @@ static int mmsh_valid_url (char* url, const char *const * mmsh_url) {
   int i = 0;
   int len;
 
-#ifdef LOG
-  printf("libmmsh: mmsh_valid_url\n");
-#endif
+  lprintf("mmsh_valid_url\n");
+
   if(!url )
     return 0;
 
@@ -608,9 +585,7 @@ static int mmsh_parse_url(mmsh_t *this) {
   char   *_host;
     
   if ((proto_len = mmsh_valid_url(this->url, mmsh_url_s)) <= 0) {
-#ifdef LOG
-    printf ("libmmsh: invalid url\n");
-#endif
+    lprintf ("invalid url\n");
     return 1;
   }
   
@@ -620,9 +595,8 @@ static int mmsh_parse_url(mmsh_t *this) {
   _host = _url;
   
   /* extract hostname */
-#ifdef LOG
-  printf ("libmmsh: extracting host name \n");
-#endif
+  lprintf ("extracting host name \n");
+
   hostend = strchr(_host, '/');
 /*
   if ((!hostend) || (strlen(hostend) <= 1)) {
@@ -631,9 +605,8 @@ static int mmsh_parse_url(mmsh_t *this) {
   }
 */
   if (!hostend) {
-#ifdef LOG
-    printf ("libmmsh: no trailing /\n");
-#endif
+    lprintf ("no trailing /\n");
+
     hostend = _host + strlen(_host);
   } else {
     *hostend++ = '\0';
@@ -660,9 +633,8 @@ static int mmsh_tcp_connect(mmsh_t *this) {
   /* 
    * try to connect 
    */
-#ifdef LOG
-  printf("libmmsh: try to connect to %s on port %d \n", this->host, this->port);
-#endif
+  lprintf("try to connect to %s on port %d \n", this->host, this->port);
+
   this->s = _x_io_tcp_connect (this->stream, this->host, this->port);
 
   if (this->s == -1) {
@@ -680,9 +652,7 @@ static int mmsh_tcp_connect(mmsh_t *this) {
   if (res != XIO_READY) {
     return 1;
   }
-#ifdef LOG
-  printf ("libmmsh: connected\n");
-#endif
+  lprintf ("connected\n");
 
   return 0;
 }
@@ -728,11 +698,9 @@ mmsh_t *mmsh_connect (xine_stream_t *stream, const char *url, int bandwidth) {
     goto fail;
   }
   
-#ifdef LOG
-  printf ("libmmsh: url=%s\nlibmmsh:   host=%s\nlibmmsh:   "
-          "path=%s\nlibmmsh:   file=%s\n", this->url, this->host, this->path,
+  lprintf ("url=%s\nlibmmsh:   host=%s\nlibmmsh:   "
+	   "path=%s\nlibmmsh:   file=%s\n", this->url, this->host, this->path,
            this->file);
-#endif
 
   if (mmsh_tcp_connect(this)) {
     goto fail;
@@ -744,9 +712,7 @@ mmsh_t *mmsh_connect (xine_stream_t *stream, const char *url, int bandwidth) {
    */
 
   /* first request */
-#ifdef LOG
-  printf("libmmsh: first http request\n");
-#endif
+  lprintf("first http request\n");
   
   sprintf (this->str, mmsh_FirstRequest, this->path, this->host, 1);
 
@@ -785,9 +751,7 @@ mmsh_t *mmsh_connect (xine_stream_t *stream, const char *url, int bandwidth) {
   if (bandwitdh_left < 0) {
     bandwitdh_left = 0;
   }
-#ifdef LOG
-  printf("libmmsh: bandwitdh %d, left %d\n", bandwidth, bandwitdh_left);
-#endif
+  lprintf("bandwitdh %d, left %d\n", bandwidth, bandwitdh_left);
 
   min_bw_left = bandwitdh_left;
   for (i = 0; i < this->num_stream_ids; i++) {
@@ -824,15 +788,11 @@ mmsh_t *mmsh_connect (xine_stream_t *stream, const char *url, int bandwidth) {
     }
   }
 
-#ifdef LOG
-  printf("libmmsh: audio stream %d, video stream %d\n", audio_stream, video_stream);
-#endif
-
+  lprintf("audio stream %d, video stream %d\n", audio_stream, video_stream);
   
-    /* second request */
-#ifdef LOG
-  printf("libmmsh: second http request\n");
-#endif
+  /* second request */
+  lprintf("second http request\n");
+
   if (mmsh_tcp_connect(this)) {
     goto fail;
   }
@@ -846,9 +806,7 @@ mmsh_t *mmsh_connect (xine_stream_t *stream, const char *url, int bandwidth) {
         (this->stream_ids[i] == video_stream)) {
       sprintf(stream_selection + i * 9, "ffff:%d:0 ", this->stream_ids[i]);
     } else {
-#ifdef LOG
-      printf("libmmsh: disabling stream %d\n", this->stream_ids[i]);
-#endif
+      lprintf("disabling stream %d\n", this->stream_ids[i]);
       sprintf(stream_selection + i * 9, "ffff:%d:2 ", this->stream_ids[i]);
     }
   }
@@ -869,9 +827,7 @@ mmsh_t *mmsh_connect (xine_stream_t *stream, const char *url, int bandwidth) {
   if (!send_command (this, this->str))
     goto fail;
   
-#ifdef LOG
-  printf("libmmsh: before read \n");
-#endif
+  lprintf("before read \n");
 
   if (!get_answer (this))
     goto fail;
@@ -882,9 +838,8 @@ mmsh_t *mmsh_connect (xine_stream_t *stream, const char *url, int bandwidth) {
   for (i = 0; i < this->num_stream_ids; i++) {
     if ((this->stream_ids[i] != audio_stream) &&
         (this->stream_ids[i] != video_stream)) {
-#ifdef LOG
-      printf("libmmsh: disabling stream %d\n", this->stream_ids[i]);
-#endif
+      lprintf("disabling stream %d\n", this->stream_ids[i]);
+
       /* forces the asf demuxer to not choose this stream */
       this->asf_header[this->bitrates_pos[this->stream_ids[i]]]     = 0;
       this->asf_header[this->bitrates_pos[this->stream_ids[i]] + 1] = 0;
@@ -895,13 +850,12 @@ mmsh_t *mmsh_connect (xine_stream_t *stream, const char *url, int bandwidth) {
 
   report_progress (stream, 100);
 
-#ifdef LOG
-  printf("libmmsh: mmsh_connect: passed\n" );
-#endif
+  lprintf("mmsh_connect: passed\n" );
+
   return this;
 
 fail:
-  printf("libmmsh: mmsh_connect: failed\n" );
+  lprintf("mmsh_connect: failed\n" );
   if (this->s != -1)
     close(this->s);
   if (this->url)
@@ -915,7 +869,7 @@ fail:
 
   free(this);
 
-  printf("libmmsh: mmsh_connect: failed return\n" );
+  lprintf("mmsh_connect: failed return\n" );
   return NULL;
 }
 
@@ -923,9 +877,7 @@ fail:
 static int get_media_packet (mmsh_t *this) {
   int len = 0;
 
-#ifdef LOG
-  printf("libmmsh: get_media_packet: this->packet_length: %d\n", this->packet_length);
-#endif
+  lprintf("get_media_packet: this->packet_length: %d\n", this->packet_length);
 
   if (!this->chunk_eos && get_chunk_header(this)) {
     switch (this->chunk_type) {
@@ -958,9 +910,7 @@ static int get_media_packet (mmsh_t *this) {
 int mmsh_peek_header (mmsh_t *this, char *data, int maxsize) {
   int len;
 
-#ifdef LOG
-  printf("libmmsh: mmsh_peek_header\n");
-#endif
+  lprintf("mmsh_peek_header\n");
 
   len = (this->asf_header_len < maxsize) ? this->asf_header_len : maxsize;
 
@@ -973,9 +923,7 @@ int mmsh_read (mmsh_t *this, char *data, int len) {
 
   total = 0;
 
-#ifdef LOG
-  printf ("libmmsh: mmsh_read: len: %d\n", len);
-#endif
+  lprintf ("mmsh_read: len: %d\n", len);
 
   while (total < len) {
 
@@ -1030,9 +978,7 @@ int mmsh_read (mmsh_t *this, char *data, int len) {
 
 void mmsh_close (mmsh_t *this) {
 
-#ifdef LOG
-  printf("libmmsh: mmsh_close\n");
-#endif
+  lprintf("mmsh_close\n");
 
   if (this->s !=-1)
     close(this->s);

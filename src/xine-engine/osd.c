@@ -22,11 +22,6 @@
 
 #define __OSD_C__
 
-/*
-#define LOG_VERBOSE 1
-#define LOG 1
-*/
-
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -46,6 +41,12 @@
 #ifdef HAVE_LANGINFO_CODESET
 #include <langinfo.h>
 #endif
+
+#define LOG_MODULE "osd"
+#define LOG_VERBOSE
+/*
+#define LOG
+*/
 
 #include "xine_internal.h"
 #include "video_out/alphablend.h"

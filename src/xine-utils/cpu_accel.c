@@ -28,11 +28,13 @@
 #include <setjmp.h>
 #include <dlfcn.h>
 
-#include "xineutils.h"
-
+#define LOG_MODULE "cpu_accel"
+#define LOG_VERBOSE
 /*
-#define	LOG
+#define LOG
 */
+
+#include "xineutils.h"
 
 #if defined(ARCH_X86) || defined(ARCH_X86_64)
 #if defined __x86_64__
@@ -208,9 +210,7 @@ uint32_t xine_mm_accel (void)
       old_sigill_handler = signal (SIGILL, sigill_handler); 
 
       if (setjmp(sigill_return)) {
-#ifdef LOG
-	printf ("cpu_accel: OS doesn't support SSE instructions.\n");
-#endif
+	lprintf ("OS doesn't support SSE instructions.\n");
 	accel &= ~(MM_ACCEL_X86_SSE|MM_ACCEL_X86_SSE2);
       } else {
 	__asm__ volatile ("xorps %xmm0, %xmm0");

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.31 2003/11/16 23:33:46 f1rmb Exp $
+ * $Id: audio_decoder.c,v 1.32 2003/11/26 19:43:35 f1rmb Exp $
  *
  * thin layer to use real binary-only codecs in xine
  *
@@ -33,15 +33,17 @@
 #include <unistd.h>
 #include <dlfcn.h>
 
+#define LOG_MODULE "real_audio_decoder"
+#define LOG_VERBOSE
+/*
+#define LOG
+*/
+
 #include "bswap.h"
 #include "xine_internal.h"
 #include "video_out.h"
 #include "buffer.h"
 #include "xineutils.h"
-
-/*
-#define LOG
-*/
 
 typedef struct {
   audio_decoder_class_t   decoder_class;
@@ -124,10 +126,7 @@ static int load_syms_linux (realdec_decoder_t *this, char *codec_name) {
 
   sprintf (path, "%s/%s", entry->str_value, codec_name);
 
-#ifdef LOG
-  printf ("libareal: (audio) opening shared obj '%s'\n", path);
-
-#endif
+  lprintf ("(audio) opening shared obj '%s'\n", path);
 
   this->ra_handle = dlopen (path, RTLD_LAZY);
 
@@ -171,9 +170,7 @@ static int load_syms_linux (realdec_decoder_t *this, char *codec_name) {
     this->raSetDLLAccessPath(path);
   }
 
-#ifdef LOG
-  printf ("libareal: audio decoder loaded successfully\n");
-#endif
+  lprintf ("audio decoder loaded successfully\n");
 
   return 1;
 }
@@ -193,8 +190,8 @@ static int init_codec (realdec_decoder_t *this, buf_element_t *buf) {
 
   version = BE_16 (buf->content);
 
+  lprintf ("header buffer detected, header version %d\n", version);
 #ifdef LOG
-  printf ("libareal: header buffer detected, header version %d\n", version);
   xine_hexdump (buf->content, buf->size);
 #endif
     
@@ -232,13 +229,11 @@ static int init_codec (realdec_decoder_t *this, buf_element_t *buf) {
 
   this->block_align= coded_frame_size2;
 
-#ifdef LOG
-  printf ("libareal: 0x%04x 0x%04x 0x%04x 0x%04x data_len 0x%04x\n",
-	  subpacket_size, coded_frame_size, codec_data_length, 
-	  coded_frame_size2, data_len);
-  printf ("libareal: %d samples/sec, %d bits/sample, %d channels\n",
-	  samples_per_sec, bits_per_sample, num_channels);
-#endif
+  lprintf ("0x%04x 0x%04x 0x%04x 0x%04x data_len 0x%04x\n",
+	   subpacket_size, coded_frame_size, codec_data_length, 
+	   coded_frame_size2, data_len);
+  lprintf ("%d samples/sec, %d bits/sample, %d channels\n",
+	   samples_per_sec, bits_per_sample, num_channels);
 
   /* load codec, resolv symbols */
 
@@ -322,9 +317,7 @@ static int init_codec (realdec_decoder_t *this, buf_element_t *buf) {
   if (this->raSetPwd){
     /* used by 'SIPR' */
     this->raSetPwd (this->context, "Ardubancel Quazanga"); /* set password... lol. */
-#ifdef LOG    
-    printf ("libareal: password set\n");
-#endif
+    lprintf ("password set\n");
   }
 
   result = this->raSetFlavor (this->context, flavor);
@@ -393,10 +386,8 @@ static unsigned char sipr_swaps[38][2]={
 static void realdec_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
   realdec_decoder_t *this = (realdec_decoder_t *) this_gen;
 
-#ifdef LOG
-  printf ("libareal: decode_data %d bytes, flags=0x%08x, pts=%lld ...\n", 
-	  buf->size, buf->decoder_flags, buf->pts);
-#endif
+  lprintf ("decode_data %d bytes, flags=0x%08x, pts=%lld ...\n", 
+	   buf->size, buf->decoder_flags, buf->pts);
 
   if (buf->decoder_flags & BUF_FLAG_PREVIEW) {
 
@@ -412,9 +403,7 @@ static void realdec_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) 
 
     int size;
 
-#ifdef LOG
-    printf ("libareal: content buffer detected, %d bytes\n", buf->size);
-#endif
+    lprintf ("content buffer detected, %d bytes\n", buf->size);
 
     if (buf->pts && !this->pts)
       this->pts = buf->pts;
@@ -432,9 +421,7 @@ static void realdec_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) 
 	memcpy (this->frame_buffer+this->frame_num_bytes, buf->content, size);
 	this->frame_num_bytes += size;
 
-#ifdef LOG
-	printf ("libareal: buffering %d/%d bytes\n", this->frame_num_bytes, this->frame_size);
-#endif
+	lprintf ("buffering %d/%d bytes\n", this->frame_num_bytes, this->frame_size);
 
 	size = 0;
 
@@ -448,19 +435,15 @@ static void realdec_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) 
 	int h       = this->h;
 	audio_buffer_t *audio_buffer;
 
-#ifdef LOG
-	printf ("libareal: buffering %d bytes\n", needed);
-#endif
+	lprintf ("buffering %d bytes\n", needed);
 
 	memcpy (this->frame_buffer+this->frame_num_bytes, buf->content, needed);
 
 	size -= needed;
 	this->frame_num_bytes = 0;
 
-#ifdef LOG
-	printf ("libareal: frame completed. reordering...\n");
-	printf ("libareal: bs=%d  sps=%d  w=%d h=%d \n",/*sh->wf->nBlockAlign*/-1,sps,w,h);
-#endif
+	lprintf ("frame completed. reordering...\n");
+	lprintf ("bs=%d  sps=%d  w=%d h=%d \n",/*sh->wf->nBlockAlign*/-1,sps,w,h);
 
 	if (!sps) {
 
@@ -508,10 +491,8 @@ static void realdec_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) 
 	    
 	    for (x=0; x<w; x++) {
 	      
-#ifdef LOG
-	      printf ("libareal: x=%d, y=%d, off %d\n",
-		      x, y, sps*(h*x+((h+1)/2)*(y&1)+(y>>1)));
-#endif
+	      lprintf ("x=%d, y=%d, off %d\n",
+		       x, y, sps*(h*x+((h+1)/2)*(y&1)+(y>>1)));
 	      
 	      memcpy (this->frame_reordered+sps*(h*x+((h+1)/2)*(y&1)+(y>>1)),
 		      s, sps);
@@ -541,9 +522,7 @@ static void realdec_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) 
 				   this->block_align,
 				   (char *) audio_buffer->mem, &len, -1);
 
-#ifdef LOG
-	  printf ("libareal: raDecode result %d, len=%d\n", result, len);
-#endif
+	  lprintf ("raDecode result %d, len=%d\n", result, len);
 
 	  audio_buffer->vpts       = this->pts; 
 
@@ -559,10 +538,7 @@ static void realdec_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) 
     }
   }
 
-
-#ifdef LOG
-  printf ("libareal: decode_data...done\n");
-#endif
+  lprintf ("decode_data...done\n");
 }
 
 static void realdec_reset (audio_decoder_t *this_gen) {
@@ -581,9 +557,7 @@ static void realdec_dispose (audio_decoder_t *this_gen) {
 
   realdec_decoder_t *this = (realdec_decoder_t *) this_gen;
 
-#ifdef LOG
-  printf ("libareal: dispose\n");
-#endif
+  lprintf ("dispose\n");
 
   if (this->context)
     this->raCloseCodec (this->context);
@@ -595,9 +569,7 @@ static void realdec_dispose (audio_decoder_t *this_gen) {
     this->raFreeDecoder (this->context);
 #endif
 
-#ifdef LOG
-  printf ("libareal: dlclose...\n");
-#endif
+  lprintf ("dlclose...\n");
 
   if (this->ra_handle)
     dlclose (this->ra_handle);
@@ -610,9 +582,7 @@ static void realdec_dispose (audio_decoder_t *this_gen) {
 
   free (this);
 
-#ifdef LOG
-  printf ("libareal: dispose done\n");
-#endif
+  lprintf ("dispose done\n");
 }
 
 static audio_decoder_t *open_plugin (audio_decoder_class_t *class_gen, 
@@ -714,9 +684,7 @@ static void *init_class (xine_t *xine, void *data) {
 			     "/usr/lib/win32");
   }
 
-#ifdef LOG
-  printf ("libareal: real codec path : %s\n",  real_codec_path);
-#endif
+  lprintf ("real codec path : %s\n",  real_codec_path);
 
   return this;
 }

@@ -21,7 +21,7 @@
  */
 
 /*
- * $Id: demux_slave.c,v 1.9 2003/11/16 23:33:43 f1rmb Exp $
+ * $Id: demux_slave.c,v 1.10 2003/11/26 19:43:30 f1rmb Exp $
  *
  * demuxer for slave "protocol"
  * master xine must be started with XINE_PARAM_BROADCASTER_PORT set, that is,
@@ -38,10 +38,11 @@
 #include <unistd.h>
 #include <string.h>
 
-/********** logging **********/
 #define LOG_MODULE "demux_slave"
-/* #define LOG_VERBOSE */
-/* #define LOG */
+#define LOG_VERBOSE
+/*
+#define LOG
+*/
 
 #include "xine_internal.h"
 #include "xineutils.h"

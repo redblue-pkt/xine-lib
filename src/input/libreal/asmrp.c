@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: asmrp.c,v 1.3 2003/10/12 18:52:55 mroi Exp $
+ * $Id: asmrp.c,v 1.4 2003/11/26 19:43:31 f1rmb Exp $
  *
  * a parser for real's asm rules
  *
@@ -38,11 +38,14 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "asmrp.h"
-
+#define LOG_MODULE "asmrp"
+#define LOG_VERBOSE
 /*
 #define LOG
 */
+
+#include "asmrp.h"
+#include "xineutils.h"
 
 #define ASMRP_SYM_NONE         0
 #define ASMRP_SYM_EOF          1
@@ -120,9 +123,7 @@ static void asmrp_getch (asmrp_t *p) {
   p->ch = p->buf[p->pos];
   p->pos++;
 
-#ifdef LOG
-  printf ("%c\n", p->ch);
-#endif
+  lprintf ("%c\n", p->ch);
 
 }
 
@@ -382,17 +383,13 @@ static int asmrp_set_id (asmrp_t *p, char *s, int v) {
     p->sym_tab_num++;
     p->sym_tab[i].id = strdup (s);
 
-#ifdef LOG
-    printf ("new symbol '%s'\n", s);
-#endif
+    lprintf ("new symbol '%s'\n", s);
 
   }    
 
   p->sym_tab[i].v = v;
  
-#ifdef LOG
-  printf ("symbol '%s' assigned %d\n", s, v);
-#endif
+  lprintf ("symbol '%s' assigned %d\n", s, v);
 
   return i;
 }
@@ -403,9 +400,7 @@ static int asmrp_operand (asmrp_t *p) {
 
   int i, ret;
   
-#ifdef LOG
-  printf ("operand\n");
-#endif
+  lprintf ("operand\n");
 
   ret = 0;
 
@@ -453,9 +448,7 @@ static int asmrp_operand (asmrp_t *p) {
     abort();
   }
 
-#ifdef LOG
-  printf ("operand done, =%d\n", ret);
-#endif
+  lprintf ("operand done, =%d\n", ret);
   
   return ret;
 }
@@ -464,9 +457,7 @@ static int asmrp_comp_expression (asmrp_t *p) {
 
   int a;
 
-#ifdef LOG
-  printf ("comp_expression\n");
-#endif
+  lprintf ("comp_expression\n");
 
   a = asmrp_operand (p);
 
@@ -502,9 +493,8 @@ static int asmrp_comp_expression (asmrp_t *p) {
 
   }
 
-#ifdef LOG
-  printf ("comp_expression done = %d\n", a);
-#endif
+  lprintf ("comp_expression done = %d\n", a);
+
   return a;
 }
 
@@ -512,9 +502,7 @@ static int asmrp_condition (asmrp_t *p) {
   
   int a;
 
-#ifdef LOG
-  printf ("condition\n");
-#endif
+  lprintf ("condition\n");
 
   a = asmrp_comp_expression (p);
 
@@ -537,17 +525,14 @@ static int asmrp_condition (asmrp_t *p) {
     }
   }
 
-#ifdef LOG
-  printf ("condition done = %d\n", a);
-#endif
+  lprintf ("condition done = %d\n", a);
+
   return a;
 }
 
 static void asmrp_assignment (asmrp_t *p) {
 
-#ifdef LOG
-  printf ("assignment\n");
-#endif
+  lprintf ("assignment\n");
 
   if (p->sym != ASMRP_SYM_ID) {
     printf ("error: identifier expected\n");
@@ -568,18 +553,14 @@ static void asmrp_assignment (asmrp_t *p) {
   }
   asmrp_get_sym (p);
 
-#ifdef LOG
-  printf ("assignment done\n");
-#endif
+  lprintf ("assignment done\n");
 }
 
 static int asmrp_rule (asmrp_t *p) {
   
   int ret;
 
-#ifdef LOG
-  printf ("rule\n");
-#endif
+  lprintf ("rule\n");
 
   ret = 1;
   
@@ -606,9 +587,7 @@ static int asmrp_rule (asmrp_t *p) {
     }
   }
 
-#ifdef LOG
-  printf ("rule done = %d\n", ret);
-#endif
+  lprintf ("rule done = %d\n", ret);
 
   if (p->sym != ASMRP_SYM_SEMICOLON) {
     printf ("semicolon expected.\n");
@@ -624,9 +603,7 @@ static int asmrp_eval (asmrp_t *p, int *matches) {
 
   int rule_num, num_matches;
 
-#ifdef LOG
-  printf ("eval\n");
-#endif
+  lprintf ("eval\n");
 
   asmrp_get_sym (p);
 
@@ -634,9 +611,8 @@ static int asmrp_eval (asmrp_t *p, int *matches) {
   while (p->sym != ASMRP_SYM_EOF) {
 
     if (asmrp_rule (p)) {
-#ifdef LOG
-      printf ("rule #%d is true\n", rule_num);
-#endif
+      lprintf ("rule #%d is true\n", rule_num);
+
       matches[num_matches] = rule_num;
       num_matches++;
     }

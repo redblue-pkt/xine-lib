@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_eawve.c,v 1.25 2003/11/16 23:33:43 f1rmb Exp $
+ * $Id: demux_eawve.c,v 1.26 2003/11/26 19:43:29 f1rmb Exp $
  *
  * demux_eawve.c, Demuxer plugin for Electronic Arts' WVE file format
  *
@@ -35,10 +35,11 @@
 #include <fcntl.h>
 #include <unistd.h>
 
-/********** logging **********/
 #define LOG_MODULE "demux_eawve"
-/* #define LOG_VERBOSE */
-/* #define LOG */
+#define LOG_VERBOSE
+/*
+#define LOG
+*/
 
 #include "xine_internal.h"
 #include "xineutils.h"

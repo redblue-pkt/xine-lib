@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.63 2003/11/16 23:33:44 f1rmb Exp $
+ * $Id: xine_decoder.c,v 1.64 2003/11/26 19:43:31 f1rmb Exp $
  *
  * stuff needed to turn liba52 into a xine decoder plugin
  */
@@ -36,17 +36,19 @@
 #include <fcntl.h>
 #include <assert.h>
 
+#define LOG_MODULE "a52_decoder"
+#define LOG_VERBOSE
+/*
+#define LOG
+#define LOG_PTS
+*/
+
 #include "xine_internal.h"
 #include "audio_out.h"
 #include "a52.h"
 #include "a52_internal.h"
 #include "buffer.h"
 #include "xineutils.h"
-
-/*
-#define LOG
-#define LOG_PTS
-*/
 
 #undef DEBUG_A52
 #ifdef DEBUG_A52
@@ -328,9 +330,8 @@ static void a52dec_decode_frame (a52dec_decoder_t *this, int64_t pts, int previe
 	printf ("liba52: help - unsupported mode %08x\n", output_mode);
       }
     }
-#ifdef LOG
-    printf ("liba52: %d frames output\n", buf->num_frames);
-#endif
+
+    lprintf ("%d frames output\n", buf->num_frames);
 
     /*  output decoded samples */
 
@@ -402,11 +403,9 @@ static void a52dec_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
   uint16_t          crc16;
   uint16_t          crc16_result;
 
-#ifdef LOG
-  printf ("liba52: decode data %d bytes of type %08x, pts=%lld\n",
-	  buf->size, buf->type, buf->pts);
-  printf ("liba52: decode data decoder_info=%d, %d\n",buf->decoder_info[1],buf->decoder_info[2]);
-#endif
+  lprintf ("decode data %d bytes of type %08x, pts=%lld\n",
+	   buf->size, buf->type, buf->pts);
+  lprintf ("decode data decoder_info=%d, %d\n",buf->decoder_info[1],buf->decoder_info[2]);
 
   if (buf->decoder_flags & BUF_FLAG_HEADER)
     return;
@@ -414,9 +413,7 @@ static void a52dec_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
   /* swap byte pairs if this is RealAudio DNET data */
   if (buf->type == BUF_AUDIO_DNET) {
 
-#ifdef LOG
-    printf ("liba52: byte-swapping dnet\n");
-#endif
+    lprintf ("byte-swapping dnet\n");
 
     while (current != end) {
       byte = *current++;
@@ -480,9 +477,8 @@ static void a52dec_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
   printf("\n");
 #endif
 
-#ifdef LOG
-    printf ("liba52: processing...state %d\n", this->sync_state);
-#endif
+  lprintf ("processing...state %d\n", this->sync_state);
+
   while (current < end) {
     switch (this->sync_state) {
     case 0:  /* Looking for sync header */
@@ -516,9 +512,9 @@ static void a52dec_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 	      this->sync_state = 0;
 	      break;
 	    }
-#ifdef LOG
-            printf("Frame length = %d\n",this->frame_length);
-#endif
+
+            lprintf("Frame length = %d\n",this->frame_length);
+
 	    this->frame_todo = this->frame_length - 17;
 	    this->sync_state = 2;
 	    if (!_x_meta_info_get(this->stream, XINE_META_INFO_AUDIOCODEC) ||
@@ -625,9 +621,8 @@ static void a52dec_dispose (audio_decoder_t *this_gen) {
 static audio_decoder_t *open_plugin (audio_decoder_class_t *class_gen, xine_stream_t *stream) {
 
   a52dec_decoder_t *this ;
-#ifdef LOG
-  printf ("liba52:open_plugin called\n");
-#endif
+
+  lprintf ("open_plugin called\n");
 
   this = (a52dec_decoder_t *) malloc (sizeof (a52dec_decoder_t));
   memset(this, 0, sizeof (a52dec_decoder_t));
@@ -746,23 +741,17 @@ static audio_decoder_t *open_plugin (audio_decoder_class_t *class_gen, xine_stre
 }
 
 static char *get_identifier (audio_decoder_class_t *this) {
-#ifdef LOG
-  printf ("liba52:get_identifier called\n");
-#endif
+  lprintf ("get_identifier called\n");
   return "a/52dec";
 }
 
 static char *get_description (audio_decoder_class_t *this) {
-#ifdef LOG
-  printf ("liba52:get_description called\n");
-#endif
+  lprintf ("get_description called\n");
   return "liba52 based a52 audio decoder plugin";
 }
 
 static void dispose_class (audio_decoder_class_t *this) {
-#ifdef LOG
-  printf ("liba52:dispose_class called\n");
-#endif
+  lprintf ("dispose_class called\n");
   free (this);
 }
 
@@ -792,9 +781,7 @@ static void *init_plugin (xine_t *xine, void *data) {
 						      NULL, 0, NULL, NULL);
   
   
-#ifdef LOG
-  printf ("liba52:init_plugin called\n");
-#endif
+  lprintf ("init_plugin called\n");
   return this;
 }
 

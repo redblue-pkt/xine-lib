@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.114 2003/11/22 11:58:05 f1rmb Exp $
+ * $Id: audio_decoder.c,v 1.115 2003/11/26 19:43:38 f1rmb Exp $
  *
  *
  * functions that implement audio decoding
@@ -35,12 +35,14 @@
 
 #define XINE_ENGINE_INTERNAL
 
-#include "xine_internal.h"
-#include "xineutils.h"
-
+#define LOG_MODULE "audio_decoder"
+#define LOG_VERBOSE
 /*
 #define LOG
 */
+
+#include "xine_internal.h"
+#include "xineutils.h"
 
 static void *audio_decoder_loop (void *stream_gen) {
 
@@ -55,17 +57,11 @@ static void *audio_decoder_loop (void *stream_gen) {
 
   while (running) {
 
-#ifdef LOG
-    printf ("audio_loop: waiting for package...\n");  
-#endif
+    lprintf ("audio_loop: waiting for package...\n");  
 
     buf = stream->audio_fifo->get (stream->audio_fifo);
 
-    
-#ifdef LOG
-    printf ("audio_loop: got package pts = %lld, type = %08x\n", 
-	    buf->pts, buf->type); 
-#endif    
+    lprintf ("audio_loop: got package pts = %lld, type = %08x\n", buf->pts, buf->type); 
 
     _x_extra_info_merge( stream->audio_decoder_extra_info, buf->extra_info );
     stream->audio_decoder_extra_info->seek_count = stream->video_seek_count;
@@ -99,15 +95,11 @@ static void *audio_decoder_loop (void *stream_gen) {
 
     case BUF_CONTROL_START:
 
-#ifdef LOG
-      printf ("audio_decoder: start\n");
-#endif
+      lprintf ("start\n");
 
       if (stream->audio_decoder_plugin) {
 
-#ifdef LOG
-	printf ("audio_decoder: close old decoder\n");
-#endif	
+	lprintf ("close old decoder\n");
 
 	_x_free_audio_decoder (stream, stream->audio_decoder_plugin);
 	stream->audio_decoder_plugin = NULL;
@@ -127,10 +119,7 @@ static void *audio_decoder_loop (void *stream_gen) {
 
       stream->finished_count_audio++;
     
-#ifdef LOG
-      printf ("audio_decoder: reached end marker # %d\n", 
-        stream->finished_count_audio);
-#endif
+      lprintf ("reached end marker # %d\n", stream->finished_count_audio);
 
       pthread_cond_broadcast (&stream->counter_changed);
 
@@ -169,9 +158,8 @@ static void *audio_decoder_loop (void *stream_gen) {
       break;
 
     case BUF_CONTROL_RESET_DECODER:
-#ifdef LOG
-      printf ("audio_decoder: reset\n");
-#endif
+      lprintf ("reset\n");
+
       _x_extra_info_reset( stream->audio_decoder_extra_info );
       if (stream->audio_decoder_plugin)
         stream->audio_decoder_plugin->reset (stream->audio_decoder_plugin);
@@ -245,11 +233,9 @@ static void *audio_decoder_loop (void *stream_gen) {
 
 	/* find out which audio type to decode */
 
-#ifdef LOG
-	printf ("audio_decoder: audio_channel_user = %d, map[0]=%08x\n",
-		stream->audio_channel_user,
-		stream->audio_track_map[0]);
-#endif
+	lprintf ("audio_channel_user = %d, map[0]=%08x\n",
+		 stream->audio_channel_user,
+		 stream->audio_track_map[0]);
 
 	if (stream->audio_channel_user > -2) {
 
@@ -257,10 +243,7 @@ static void *audio_decoder_loop (void *stream_gen) {
 
 	    /* auto */
 
-#ifdef LOG
-	    printf ("audio_decoder: audio_channel_auto = %d\n",
-		    stream->audio_channel_auto);
-#endif
+	    lprintf ("audio_channel_auto = %d\n", stream->audio_channel_auto);
 
 	    if (stream->audio_channel_auto>=0) {
  

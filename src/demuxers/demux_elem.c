@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_elem.c,v 1.79 2003/11/16 23:33:43 f1rmb Exp $
+ * $Id: demux_elem.c,v 1.80 2003/11/26 19:43:30 f1rmb Exp $
  *
  * demultiplexer for elementary mpeg streams
  */
@@ -34,10 +34,11 @@
 #include <unistd.h>
 #include <string.h>
 
-/********** logging **********/
 #define LOG_MODULE "demux_elem"
-/* #define LOG_VERBOSE */
-/* #define LOG */
+#define LOG_VERBOSE
+/*
+#define LOG
+*/
 
 #include "xine_internal.h"
 #include "xineutils.h"

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.139 2003/11/23 16:55:35 jstembridge Exp $
+ * $Id: xine_decoder.c,v 1.140 2003/11/26 19:43:32 f1rmb Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -35,6 +35,12 @@
 #include <math.h>
 #include <assert.h>
 
+#define LOG_MODULE "ffmpeg_decoder"
+#define LOG_VERBOSE
+/*
+#define LOG
+*/
+
 #include "xine_internal.h"
 #include "video_out.h"
 #include "buffer.h"
@@ -44,10 +50,6 @@
 #include "libavcodec/avcodec.h"
 #include "libavcodec/dsputil.h"
 #include "libavcodec/libpostproc/postprocess.h"
-
-/*
-#define LOG
-*/
 
 #define ENABLE_DIRECT_RENDERING
 
@@ -427,9 +429,7 @@ static void find_sequence_header (ff_video_decoder_t *this,
     if (current == NULL)
       return ;
 
-#ifdef LOG  
-    printf ("ffmpeg: looking for sequence header... %02x\n", code);  
-#endif
+    lprintf ("looking for sequence header... %02x\n", code);  
   
     /* mpeg2_stats (code, this->chunk_buffer); */
     
@@ -437,9 +437,7 @@ static void find_sequence_header (ff_video_decoder_t *this,
 
       int width, height, frame_rate_code;
 
-#ifdef LOG  
-      printf ("ffmpeg: found sequence header !\n");
-#endif
+      lprintf ("found sequence header !\n");
 
       height = (this->chunk_buffer[0] << 16) | (this->chunk_buffer[1] << 8) 
 	| this->chunk_buffer[2];
@@ -737,17 +735,14 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
   ff_video_decoder_t *this = (ff_video_decoder_t *) this_gen;
   int codec_type;
   
-#ifdef LOG
-  printf ("ffmpeg: processing packet type = %08x, buf : %p, buf->decoder_flags=%08x\n", 
-	  buf->type, buf, buf->decoder_flags);
-#endif
+  lprintf ("processing packet type = %08x, buf : %p, buf->decoder_flags=%08x\n", 
+	   buf->type, buf, buf->decoder_flags);
+
   codec_type = buf->type & 0xFFFF0000;
 
   if (buf->decoder_flags & BUF_FLAG_PREVIEW) {
 
-#ifdef LOG
-    printf ("ffmpeg: preview\n");
-#endif
+    lprintf ("preview\n");
 
     if ( (buf->type & 0xFFFF0000) == BUF_VIDEO_MPEG ) {
       find_sequence_header (this, buf->content, buf->content+buf->size);
@@ -757,9 +752,7 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 
   if (buf->decoder_flags & BUF_FLAG_HEADER) {
 
-#ifdef LOG
-    printf ("ffmpeg: header\n");
-#endif
+    lprintf ("header\n");
 
     /* init package containing bih */
 
@@ -1046,9 +1039,7 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 	  return;
 	}
 
-#ifdef LOG	
-	printf ("ffmpeg: got a picture\n");
-#endif
+	lprintf ("got a picture\n");
 
 	this->aspect_ratio = av_q2d(this->context->sample_aspect_ratio) * 
             (double) this->context->width / (double) this->context->height;
@@ -1126,24 +1117,18 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
     }
     
   } else {
-#ifdef LOG
-    printf ("ffmpeg: data but decoder not initialized (headers missing)\n");
-#endif
+    lprintf ("data but decoder not initialized (headers missing)\n");
   }
 }
 
 static void ff_flush (video_decoder_t *this_gen) {
-#ifdef LOG
-  printf ("ffmpeg: ff_flush\n");
-#endif
-
+  lprintf ("ff_flush\n");
 }
 
 static void ff_reset (video_decoder_t *this_gen) {
   ff_video_decoder_t *this = (ff_video_decoder_t *) this_gen;
-#ifdef LOG
-  printf ("ffmpeg: ff_reset\n");
-#endif
+
+  lprintf ("ff_reset\n");
 
   this->size = 0;
   if(this->context)
@@ -1151,9 +1136,8 @@ static void ff_reset (video_decoder_t *this_gen) {
 }
 
 static void ff_discontinuity (video_decoder_t *this_gen) {
-#ifdef LOG
-  printf ("ffmpeg: ff_discontinuity\n");
-#endif
+  
+  lprintf ("ff_discontinuity\n");
 }
 
 void avcodec_register_all(void)
@@ -1221,9 +1205,7 @@ void avcodec_register_all(void)
 static void ff_dispose (video_decoder_t *this_gen) {
   ff_video_decoder_t *this = (ff_video_decoder_t *) this_gen;
 
-#ifdef LOG
-  printf ("ffmpeg: ff_dispose\n");
-#endif
+  lprintf ("ff_dispose\n");
 
   if (this->decoder_ok) {
     avcodec_close (this->context);
@@ -1269,9 +1251,7 @@ static video_decoder_t *ff_video_open_plugin (video_decoder_class_t *class_gen, 
 
   ff_video_decoder_t  *this ;
 
-#ifdef LOG
-  printf ("ffmpeg: open_plugin\n");
-#endif
+  lprintf ("open_plugin\n");
 
   this = (ff_video_decoder_t *) malloc (sizeof (ff_video_decoder_t));
 

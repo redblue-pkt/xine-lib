@@ -35,16 +35,18 @@
 #include <fcntl.h>
 #include "bswap.h"
 
+#define LOG_MODULE "input_pnm"
+#define LOG_VERBOSE
+/*
+#define LOG
+*/
+
 #include "xine_internal.h"
 #include "xineutils.h"
 #include "input_plugin.h"
 
 #include "pnm.h"
 #include "net_buf_ctrl.h"
-
-/*
-#define LOG
-*/
 
 #define BUFSIZE 4096
 
@@ -82,10 +84,7 @@ static off_t pnm_plugin_read (input_plugin_t *this_gen,
   pnm_input_plugin_t *this = (pnm_input_plugin_t *) this_gen;
   off_t               n;
 
-#ifdef LOG
-  printf ("pnm_plugin_read: %lld bytes ...\n",
-          len);
-#endif
+  lprintf ("pnm_plugin_read: %lld bytes ...\n", len);
 
   nbc_check_buffers (this->nbc);
 
@@ -101,10 +100,7 @@ static buf_element_t *pnm_plugin_read_block (input_plugin_t *this_gen,
   buf_element_t        *buf = fifo->buffer_pool_alloc (fifo);
   int                   total_bytes;
 
-#ifdef LOG
-  printf ("pnm_plugin_read_block: %lld bytes...\n",
-          todo);
-#endif
+  lprintf ("pnm_plugin_read_block: %lld bytes...\n", todo);
 
   buf->content = buf->mem;
   buf->type = BUF_DEMUX_BLOCK;
@@ -211,12 +207,9 @@ static int pnm_plugin_get_optional_data (input_plugin_t *this_gen,
 
 static int pnm_plugin_open (input_plugin_t *this_gen) {
   pnm_input_plugin_t *this = (pnm_input_plugin_t *) this_gen;
-
   pnm_t              *pnm;
 
-#ifdef LOG
-  printf ("input_pnm: trying to open '%s'\n", this->mrl);
-#endif
+  lprintf ("trying to open '%s'\n", this->mrl);
 
   pnm = pnm_connect (this->stream, this->mrl);
 

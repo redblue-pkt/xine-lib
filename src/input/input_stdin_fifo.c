@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_stdin_fifo.c,v 1.53 2003/11/11 18:44:54 f1rmb Exp $
+ * $Id: input_stdin_fifo.c,v 1.54 2003/11/26 19:43:31 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -32,14 +32,16 @@
 #include <sys/stat.h>
 #include <errno.h>
 
+#define LOG_MODULE "input_stdin_fifo"
+#define LOG_VERBOSE
+/*
+#define LOG
+*/
+
 #include "xine_internal.h"
 #include "xineutils.h"
 #include "input_plugin.h"
 #include "net_buf_ctrl.h"
-
-/*
-#define LOG
-*/
 
 #define BUFSIZE                 1024
 
@@ -76,19 +78,14 @@ static off_t stdin_plugin_read (input_plugin_t *this_gen,
   stdin_input_plugin_t  *this = (stdin_input_plugin_t *) this_gen;
   off_t n, total;
 
-#ifdef LOG
-  printf ("stdin: reading %lld bytes...\n", len);
-#endif
+  lprintf ("reading %lld bytes...\n", len);
 
   total=0;
   if (this->curpos < this->preview_size) {
     n = this->preview_size - this->curpos;
     if (n > (len - total))
       n = len - total;
-#ifdef LOG
-    printf ("stdin: %lld bytes from preview (which has %lld bytes)\n",
-            n, this->preview_size);
-#endif
+    lprintf ("%lld bytes from preview (which has %lld bytes)\n", n, this->preview_size);
 
     memcpy (&buf[total], &this->preview[this->curpos], n);
     this->curpos += n;
@@ -98,10 +95,7 @@ static off_t stdin_plugin_read (input_plugin_t *this_gen,
   if( (len-total) > 0 ) {
     n = _x_io_file_read (this->stream, this->fh, &buf[total], len - total);
 
-#ifdef LOG
-    printf ("stdin: got %lld bytes (%lld/%lld bytes read)\n",
-	    n,total,len);
-#endif
+    lprintf ("got %lld bytes (%lld/%lld bytes read)\n", n,total,len);
   
     if (n < 0) {
       _x_message(this->stream, XINE_MSG_READ_ERROR, NULL);
@@ -143,10 +137,7 @@ static off_t stdin_plugin_seek (input_plugin_t *this_gen, off_t offset, int orig
 
   stdin_input_plugin_t  *this = (stdin_input_plugin_t *) this_gen;
 
-#ifdef LOG
-  printf ("stdin: seek %lld offset, %d origin...\n",
-	  offset, origin);
-#endif
+  lprintf ("seek %lld offset, %d origin...\n", offset, origin);
 
   if ((origin == SEEK_CUR) && (offset >= 0)) {
 
@@ -241,10 +232,7 @@ static int stdin_plugin_get_optional_data (input_plugin_t *this_gen,
 static int stdin_plugin_open (input_plugin_t *this_gen ) {
   stdin_input_plugin_t *this = (stdin_input_plugin_t *) this_gen;
 
-#ifdef LOG
-  printf ("input_stdin_fifo: trying to open '%s'...\n",
-	  this->mrl);
-#endif
+  lprintf ("trying to open '%s'...\n", this->mrl);
 
   if (this->fh == -1) {
     char *filename;
@@ -252,9 +240,7 @@ static int stdin_plugin_open (input_plugin_t *this_gen ) {
     filename = (char *) &this->mrl[5];
     this->fh = open (filename, O_RDONLY);
 
-#ifdef LOG
-    printf("input_stdin_fifo: filename '%s'\n", filename);
-#endif
+    lprintf("filename '%s'\n", filename);
 
     if (this->fh == -1) {
       printf ("stdin: failed to open '%s'\n",
@@ -301,9 +287,9 @@ static input_plugin_t *stdin_class_get_instance (input_class_t *cls_gen, xine_st
 
     filename = (char *) &mrl[5];
     fh = -1;
-#ifdef LOG
-    printf("input_stdin_fifo: filename '%s'\n", filename);
-#endif
+
+    lprintf("filename '%s'\n", filename);
+
   } else {
     free (mrl);
     return NULL;
