@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.h,v 1.57 2002/07/10 14:01:26 mroi Exp $
+ * $Id: buffer.h,v 1.58 2002/07/13 20:53:02 tmmm Exp $
  *
  *
  * contents:
@@ -119,6 +119,10 @@ extern "C" {
 #define BUF_VIDEO_MSMPEG4_V1	0x02260000
 #define BUF_VIDEO_MSS1		0x02270000
 #define BUF_VIDEO_IDCIN		0x02280000
+#define BUF_VIDEO_PGVV		0x02290000
+#define BUF_VIDEO_ZYGO		0x022A0000
+#define BUF_VIDEO_TSCC		0x022B0000
+#define BUF_VIDEO_YVU9		0x022C0000
 
 /* audio buffer types:  (please keep in sync with buffer_types.c) */
 
@@ -148,6 +152,7 @@ extern "C" {
 #define BUF_AUDIO_MAC6		0x03160000
 #define BUF_AUDIO_QDESIGN1	0x03170000
 #define BUF_AUDIO_QDESIGN2	0x03180000
+#define BUF_AUDIO_QCLP		0x03190000
 
 /* spu buffer types:    */
  

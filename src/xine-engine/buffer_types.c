@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer_types.c,v 1.34 2002/07/09 20:46:34 miguelfreitas Exp $
+ * $Id: buffer_types.c,v 1.35 2002/07/13 20:53:02 tmmm Exp $
  *
  *
  * contents:
@@ -414,6 +414,38 @@ static video_db_t video_db[] = {
   BUF_VIDEO_MSS1,
   "Windows Screen Video"
 },
+{
+  {
+    meFOURCC('P', 'G', 'V', 'V'),
+    0
+  },
+  BUF_VIDEO_PGVV,
+  "Radius Studio Codec"
+},
+{
+  {
+    meFOURCC('Z', 'y', 'G', 'o'),
+    0
+  },
+  BUF_VIDEO_ZYGO,
+  "ZyGo Video"
+},
+{
+  {
+    meFOURCC('t', 's', 'c', 'c'),
+    0
+  },
+  BUF_VIDEO_TSCC,
+  "TechSmith Screen Capture Codec"
+},
+{
+  {
+    meFOURCC('Y', 'V', 'U', '9'),
+    0
+  },
+  BUF_VIDEO_YVU9,
+  "Raw YVU9 Planar Data"
+},
 { { 0 }, 0, "last entry" }
 };
 
@@ -594,6 +626,14 @@ static audio_db_t audio_db[] = {
   },
   BUF_AUDIO_AAC,
   "Advanced Audio Coding (MPEG-4 AAC)"
+},
+{
+  {
+    meFOURCC('Q', 'c', 'l', 'p'),
+    0
+  },
+  BUF_AUDIO_QCLP,
+  "Qualcomm PureVoice"
 },
 { { 0 }, 0, "last entry" }
 };
