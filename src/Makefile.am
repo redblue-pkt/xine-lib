@@ -42,7 +42,8 @@ SUBDIRS = \
 	liblpcm \
 	libxinevdec \
 	libxineadec \
-	libvorbis 
+	libvorbis \
+	libreal
 
 debug:
 	@list='$(SUBDIRS)'; for subdir in $$list; do \

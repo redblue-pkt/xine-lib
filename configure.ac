@@ -1153,6 +1153,7 @@ src/libw32dll/DirectShow/Makefile
 src/libxinevdec/Makefile
 src/libxineadec/Makefile
 src/libxineadec/gsm610/Makefile
+src/libreal/Makefile
 src/video_out/Makefile
 src/video_out/libdha/Makefile
 src/video_out/libdha/bin/Makefile
