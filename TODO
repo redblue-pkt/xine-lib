@@ -35,7 +35,6 @@ optional
   - videolan streaming server support
   - helix streaming server support
 
-- theora alpha api support (andreas)
 - detect broken savage drivers in health check, disable Xv in that case
 - id3v2 (guenter)
 - directfb video output plugin
@@ -63,3 +62,37 @@ Open Tasks
 - MAS support (http://www.mediaapplicationserver.net)
 - nonlinear video editing and compositing frontend (michael) => enix
 - stream format conversion frontend => enix
+
+
+xine's future
+=============
+
+-  Separation of lots of audio and video processing functionality into post
+   plugins:
+  - Separate plugins for software scaling, colour space conversion,
+    postprocessing, deinterlacing, cropping, audio resampling, software
+    volume etc. If it's convenient/efficient plugins can do more than one
+    thing at the same time.
+  - Decoders set flags suggesting what needs to be done, e.g. ffmpeg decoder
+    might suggest postprocessing and cropping.
+  - Output drivers advertise what features are supported natively and what
+    limitations there are, e.g. scaling and maximum frame size for Xv.
+  - Front end informs engine what processing the user requests, e.g. audio
+    equaliser
+  - xine engine automatically inserts a chain of plugins for carrying out the
+    necessary processing.
+  Doing this would:
+  - Simplify decoder and output plugins, and therefore make developing new
+    ones much easier
+  - Reduce common code
+  - Increase flexibility of the engine
+  
+  The api should also allow the automatic insertion to be overridden/controlled
+  for applications such as video processing.
+
+- see what kind of cooperation can be set up with other media player projects
+  - mike will look into moving xine's decoder api closer to the one
+    ffmpeg uses
+  - check out other media players
+  - output, demuxer plugins
+
