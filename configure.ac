@@ -782,7 +782,6 @@ case "$host_or_hostalias" in
 	dnl special check for k7 cpu CC support
         AC_TRY_CFLAGS("$sarchopt=athlon", k7cpu="athlon", k7cpu="i686")
 
-        AC_TRY_CFLAGS("-mmmx",f_mmmx="-mmmx", f_mmmx="")
         AC_TRY_CFLAGS("-msse",f_msse="-msse", f_msse="")
         AC_TRY_CFLAGS("-msse2",f_msse2="-msse2", f_msse2="")
         AC_TRY_CFLAGS("-m3dnow",f_m3dnow="-m3dnow", f_m3dnow="")
@@ -806,7 +805,6 @@ case "$host_or_hostalias" in
                 ;;
 	    pentium-mmx-*)
 		archopt_val="pentium-mmx" 
-		CFLAGS="$CFLAGS $f_mmmx"
 		;;
 	    pentiumpro-* | pentium2-* | i686-*)
 		archopt_val="pentiumpro"
@@ -816,36 +814,34 @@ case "$host_or_hostalias" in
 			case "$modelname" in
 			*Athlon* | *Duron* | *K7*)
 			    archopt_val="$k7cpu"
-			    CFLAGS="$CFLAGS $f_mmmx $f_m3dnow"
+			    CFLAGS="$CFLAGS $f_m3dnow"
 			    ;;
 			esac
 		    fi 
 		fi
-                CFLAGS="$CFLAGS $f_mmmx"
 		;;
 	    k6-2-* | k6-3-*)
 		archopt_val="k6-2"
-		CFLAGS="$CFLAGS $f_mmmx $f_m3dnow"
+		CFLAGS="$CFLAGS $f_m3dnow"
 		;;
 	    k6-*)
 		archopt_val="k6"
-		CFLAGS="$CFLAGS $f_mmmx"
 		;;
 	    pentium3-*)
 		archopt_val="pentium3"
-		CFLAGS="$CFLAGS $f_mmmx $f_msse"
+		CFLAGS="$CFLAGS $f_msse"
 		;;
 	    pentium4-*)
 		archopt_val="pentium4"
-		CFLAGS="$CFLAGS $f_mmmx $f_msse2"
+		CFLAGS="$CFLAGS $f_msse2"
 		;;
 	    athlon-4-* | athlon-xp-* | athlon-mp-*)
 		archopt_val="athlon-4"
-		CFLAGS="$CFLAGS $f_mmmx $f_m3dnow $f_msse"
+		CFLAGS="$CFLAGS $f_m3dnow $f_msse"
 		;;
 	    k7-* | athlon-tbird-* | athlon-*)
 		archopt_val="athlon"
-		CFLAGS="$CFLAGS $f_mmmx $f_m3dnow"
+		CFLAGS="$CFLAGS $f_m3dnow"
 		;;
 	    
 	    esac
