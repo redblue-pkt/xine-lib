@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg.c,v 1.27 2001/07/24 16:09:22 joachim_koenig Exp $
+ * $Id: demux_mpeg.c,v 1.28 2001/08/10 19:49:57 guenter Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  * reads streams of variable blocksizes
@@ -748,9 +748,6 @@ static int demux_mpeg_open(demux_plugin_t *this_gen,
   }
 
   return DEMUX_CANNOT_HANDLE;
-}
-
-static void demux_mpeg_select_spu_channel (int nChannel) {
 }
 
 static char *demux_mpeg_get_id(void) {

@@ -62,6 +62,10 @@ Now you can build and install xine-ui, same procedure as for xine-lib:
 make
 make install
 
+if ./configure complains about not finding xine-lib, again (see above) 
+check that <prefix>/bin is in your path and your linker will find
+libs installed in </prefix>/lib.
+
 
 how can I supply additional CFLAGS for the compilation ?
 --------------------------------------------------------
@@ -381,6 +385,18 @@ cd /dev
 ln -s hdc dvd
 
 should do the job.
+
+
+I seem to have problems setting up my RPC-2 drive for the right region
+----------------------------------------------------------------------
+
+You can download a tool to set the region code of RPC-Drives here:
+
+http://linuxtv.org/download/dvd/dvd_disc_20000215_css.tar.gz
+
+Warning: Please be aware that the number of region code changes in 
+RPC-2 drives is limited (usually about 5 times), after that your drive 
+will stay locked to the region you last set it up for.
 
 
 the aspect ratio is wrong!
