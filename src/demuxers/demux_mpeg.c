@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_mpeg.c,v 1.135 2004/03/03 20:09:11 mroi Exp $
+ * $Id: demux_mpeg.c,v 1.136 2004/04/09 16:07:10 miguelfreitas Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  * reads streams of variable blocksizes
@@ -381,6 +381,14 @@ static void parse_mpeg2_packet (demux_mpeg_t *this, int stream_id, int64_t scr) 
       buf->pts       = pts;
 
       check_newpts( this, pts, PTS_AUDIO );
+
+      if (this->preview_mode)
+        buf->decoder_flags |= BUF_FLAG_PREVIEW;
+
+      buf->extra_info->input_pos = this->input->get_current_pos (this->input);
+      if (this->rate)
+        buf->extra_info->input_time = (int)((int64_t)buf->extra_info->input_pos
+                                              * 1000 / (this->rate * 50));
 
       if(this->audio_fifo)
         this->audio_fifo->put (this->audio_fifo, buf);
