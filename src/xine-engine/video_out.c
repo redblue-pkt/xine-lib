@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.3 2001/05/03 22:20:45 f1rmb Exp $
+ * $Id: video_out.c,v 1.4 2001/05/16 15:32:04 guenter Exp $
  *
  */
 
@@ -28,6 +28,7 @@
 #include <signal.h>
 #include <sys/time.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <unistd.h>
 
 #include "video_out.h"
@@ -249,7 +250,6 @@ static void vo_open (vo_instance_t *this) {
 
   if (!this->video_loop_running) {
     this->video_loop_running = 1;
-    this->driver->set_logo_mode (this->driver, 0);
     pthread_create (&this->video_thread, NULL, video_out_loop, this) ;
   } else
     printf ("video_out: vo_open : warning! video thread already running\n");
@@ -292,8 +292,6 @@ static void vo_close (vo_instance_t *this) {
     this->video_loop_running = 0;
     pthread_join (this->video_thread, &p);
   }
-
-  this->driver->set_logo_mode (this->driver, 1);
 }
 
 static void vo_free_img_buffers (vo_instance_t *this) {
@@ -317,33 +315,6 @@ static void vo_exit (vo_instance_t *this) {
   vo_free_img_buffers (this);
   this->driver->exit (this->driver);
 
-}
-
-static void *vo_get_window(vo_instance_t *this) {
-  return this->driver->get_window (this->driver);
-}
-
-static uint32_t vo_get_capabilities (vo_instance_t *this) {
-  return this->driver->get_capabilities (this->driver);
-}
-
-static int vo_get_property (vo_instance_t *this, int property) {
-  return this->driver->get_property (this->driver, property);
-}
-
-static int vo_set_property (vo_instance_t *this, int property,
-			     int value) {
-  return this->driver->set_property (this->driver, property, value);
-}
-
-static void vo_get_property_min_max (vo_instance_t *this, 
-				     int property, 
-				     int *min, int *max) {
-  this->driver->get_property_min_max (this->driver, property, min, max);
-}
-
-static void vo_handle_event (vo_instance_t *this, void *event) {
-  this->driver->handle_event (this->driver, event);
 }
 
 static void vo_frame_displayed (vo_frame_t *img) {
@@ -445,16 +416,10 @@ vo_instance_t *vo_new_instance (vo_driver_t *driver, metronom_t *metronom) {
   this->driver                = driver;
   this->metronom              = metronom;
 
-  this->get_capabilities      = vo_get_capabilities;
   this->open                  = vo_open;
   this->get_frame             = vo_get_frame;
   this->close                 = vo_close;
   this->exit                  = vo_exit;
-  this->get_window            = vo_get_window;
-  this->get_property          = vo_get_property;
-  this->set_property          = vo_set_property;
-  this->get_property_min_max  = vo_get_property_min_max;
-  this->handle_event          = vo_handle_event;
 
   this->num_frames_delivered  = 0;
   this->num_frames_skipped    = 0;

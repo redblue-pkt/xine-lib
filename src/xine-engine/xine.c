@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.15 2001/05/07 01:31:44 f1rmb Exp $
+ * $Id: xine.c,v 1.16 2001/05/16 15:32:04 guenter Exp $
  *
  * top-level xine functions
  *
@@ -531,89 +531,3 @@ int xine_get_status(xine_t *this) {
   return this->status;
 }
 
-uint32_t xine_get_window_capabilities(xine_t *this) {
-
-  return (this->video_out->get_capabilities(this->video_out));
-}
-/*
- *
- */
-void *xine_get_window_output(xine_t *this) {
-  
-  return (this->video_out->get_window(this->video_out));
-}
-
-/*
- *
- */
-int xine_get_window_property(xine_t *this, int property) {
-
-  return (this->video_out->get_property(this->video_out, property));
-}
-
-/*
- *
- */
-int xine_set_window_property(xine_t *this, int property, int value) {
-
-  return (this->video_out->set_property(this->video_out, property, value));
-}
-
-/*
- *
- */
-void xine_get_window_property_min_max(xine_t *this, 
-				      int property, int *min, int *max) {
-
-  this->video_out->get_property_min_max(this->video_out, property, min, max);
-}
-
-/*
- *
- */
-void xine_window_handle_event(xine_t *this, void *event) {
-
-  this->video_out->handle_event(this->video_out, event);
-}
-
-/*
- *
- */
-void xine_set_window_fullscreen(xine_t *this, int fullscreen) {
-
-  xine_set_window_property(this, VO_PROP_FULLSCREEN, fullscreen);
-}
-
-/*
- *
- */
-int xine_get_window_fullscreen(xine_t *this) {
-
-  return (xine_get_window_property(this, VO_PROP_FULLSCREEN));
-}
-
-/*
- *
- */
-void xine_set_window_visible(xine_t *this, int visible) {
-
-  xine_set_window_property(this, VO_PROP_WINDOW_VISIBLE, visible);
-}
-
-/*
- *
- */
-int xine_get_window_visible(xine_t *this) {
-
-  return (xine_get_window_property(this, VO_PROP_WINDOW_VISIBLE));
-}
-
-void xine_set_display_cursor(xine_t *this, int show) {
-  
-  xine_set_window_property(this, VO_PROP_CURSOR_VISIBLE, show);
-}
-
-int xine_get_display_cursor(xine_t *this) {
-  
-  return (xine_get_window_property(this, VO_PROP_CURSOR_VISIBLE));
-}

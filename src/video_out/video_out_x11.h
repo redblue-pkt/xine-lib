@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_x11.h,v 1.1 2001/05/08 23:00:03 guenter Exp $
+ * $Id: video_out_x11.h,v 1.2 2001/05/16 15:32:03 guenter Exp $
  *
  * structs and defines specific to all x11 related output plugins
  * (any x11 base xine ui should include this)
@@ -25,6 +25,13 @@
 
 #ifndef HAVE_VIDEO_OUT_X11_H
 #define HAVE_VIDEO_OUT_X11_H
+
+typedef struct {
+
+  /* area of that drawable to be used by video */
+  int      x,y,w,h;
+
+} x11_rectangle_t;
 
 /*
  * this is the visual data struct any x11 gui should supply
@@ -43,7 +50,7 @@ typedef struct {
   Drawable d;
   
   /* area of that drawable to be used by video */
-  int      x,y,w,h;
+  x11_rectangle_t dest_area;
 
   /*
    * calc dest size
@@ -70,9 +77,9 @@ typedef struct {
    * preserving aspect ration and stuff). 
    */
 
-  void (*reques_dest_size) (int video_width, int video_height,
-			    int *dest_x, int *dest_y, 
-			    int *dest_height, int *dest_width);
+  void (*request_dest_size) (int video_width, int video_height,
+			     int *dest_x, int *dest_y, 
+			     int *dest_width, int *dest_height);
 
 } x11_visual_t;
 
@@ -80,9 +87,10 @@ typedef struct {
  * constants for gui_data_exhange's data_type parameter
  */
 
+/* x11_rectangle_t *data */
 #define GUI_DATA_EX_DEST_POS_SIZE_CHANGED 0
+/* xevent *data */
 #define GUI_DATA_EX_COMPLETION_EVENT      1
 
 
 #endif
-
