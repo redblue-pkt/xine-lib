@@ -20,6 +20,8 @@
  * Read from a tcp network stream over a lan (put a tweaked mp1e encoder the
  * other end and you can watch tv anywhere in the house ..)
  *
+ * $Id: input_net.c,v 1.38 2002/12/14 23:02:59 holstsn Exp $
+ *
  * how to set up mp1e for use with this plugin:
  * 
  * use mp1 to capture the live stream, e.g.
@@ -70,27 +72,48 @@ extern int errno;
   }
 #endif
 
+/*
+#define LOG
+*/
+
 #define NET_BS_LEN 2324
+#define PREVIEW_SIZE            2200
+#define BUFSIZE                 1024
 
 typedef struct {
   input_plugin_t   input_plugin;
 
-  xine_t          *xine;
+  xine_stream_t          *stream;
   
   int              fh;
   char            *mrl;
-  config_values_t *config;
+
+  char             preview[PREVIEW_SIZE];
+  off_t            preview_size;
+  off_t            preview_pos;
 
   off_t            curpos;
 
   nbc_t           *nbc;
 
+  /* scratch buffer for forward seeking */
+  char             seek_buf[BUFSIZE];
+
+
 } net_input_plugin_t;
+
+typedef struct {
+
+  input_class_t     input_class;
+
+  xine_t           *xine;
+  config_values_t  *config;
+
+} net_input_class_t;
 
 /* **************************************************************** */
 /*                       Private functions                          */
 /* **************************************************************** */
-
 
 static int host_connect_attempt(struct in_addr ia, int port, xine_t *xine) {
 
@@ -139,43 +162,6 @@ static int host_connect(const char *host, int port, xine_t *xine) {
   return -1;
 }
 
-static int net_plugin_open (input_plugin_t *this_gen, const char *mrl) {
-  net_input_plugin_t *this = (net_input_plugin_t *) this_gen;
-  char *filename;
-  char *pptr;
-  int port = 7658;
-
-  free(this->mrl);
-  this->mrl = strdup(mrl);
-
-  if (!strncasecmp (mrl, "tcp://", 6)) {
-    filename = (char *) &this->mrl[6];
-    
-    if((!filename) || (strlen(filename) == 0))
-      return 0;
-    
-  }
-  else
-    return 0;
-    
-  pptr=strrchr(filename, ':');
-  if(pptr) {
-    *pptr++ = 0;
-    sscanf(pptr,"%d", &port);
-  }
-
-  this->fh     = host_connect(filename, port, this->xine);
-  this->curpos = 0;
-
-  if (this->fh == -1) {
-    return 0;
-  }
-
-  this->nbc = nbc_init (this->xine);
-
-  return 1;
-}
-
 #define LOW_WATER_MARK  50
 #define HIGH_WATER_MARK 100
 
@@ -191,8 +177,23 @@ static off_t net_plugin_read (input_plugin_t *this_gen,
   nbc_check_buffers (this->nbc);
 
   total=0;
-  while (total<len){ 
-    n = read (this->fh, &buf[total], len-total);
+  while (total<len){
+
+    if (this->preview_pos < this->preview_size) {
+      n = this->preview_size - this->preview_pos;
+      if (n > (len - total))
+        n = len - total;
+#ifdef LOG
+      printf ("input_net: %lld bytes from preview (which has %lld bytes)\n",
+	      n, this->preview_size);
+#endif
+
+      memcpy (&buf[total], &this->preview[this->preview_pos], n);
+      this->preview_pos += n;
+    } else
+    {
+      n = read (this->fh, &buf[total], len-total);
+    }
 
 #ifdef LOG
     printf ("input_net: got %lld bytes (%lld/%lld bytes read)\n",
@@ -211,10 +212,12 @@ static off_t net_plugin_read (input_plugin_t *this_gen,
 
 static buf_element_t *net_plugin_read_block (input_plugin_t *this_gen, 
 					     fifo_buffer_t *fifo, off_t todo) {
-  /*net_input_plugin_t   *this = (net_input_plugin_t *) this_gen; */
+  net_input_plugin_t   *this = (net_input_plugin_t *) this_gen;
   buf_element_t        *buf = fifo->buffer_pool_alloc (fifo);
-  int total_bytes;
+  off_t                 total_bytes;
 
+  nbc_check_buffers (this->nbc);
+  
   buf->content = buf->mem;
   buf->type = BUF_DEMUX_BLOCK;
   
@@ -230,136 +233,185 @@ static buf_element_t *net_plugin_read_block (input_plugin_t *this_gen,
   return buf;
 }
 
-/*
- *
- */
 static off_t net_plugin_get_length (input_plugin_t *this_gen) {
 
   return 0;
 }
 
-/*
- *
- */
 static uint32_t net_plugin_get_capabilities (input_plugin_t *this_gen) {
 
-  return INPUT_CAP_NOCAP;
+  return INPUT_CAP_PREVIEW;
 }
 
-/*
- *
- */
 static uint32_t net_plugin_get_blocksize (input_plugin_t *this_gen) {
 
   return NET_BS_LEN;
-;
+
 }
 
-/*
- *
- */
 static off_t net_plugin_get_current_pos (input_plugin_t *this_gen){
   net_input_plugin_t *this = (net_input_plugin_t *) this_gen;
 
   return this->curpos;
 }
 
-/*
- *
- */
-static void net_plugin_close (input_plugin_t *this_gen) {
+static off_t net_plugin_seek (input_plugin_t *this_gen, off_t offset, int origin) {
   net_input_plugin_t *this = (net_input_plugin_t *) this_gen;
 
-  close(this->fh);
-  this->fh = -1;
+  printf ("input_net: seek %lld bytes, origin %d\n",
+	  offset, origin);
 
-  if (this->nbc) {
-    nbc_close (this->nbc);
-    this->nbc = NULL;
+  /* only relative forward-seeking is implemented */
+
+  if ((origin == SEEK_CUR) && (offset >= 0)) {
+
+    for (;((int)offset) - BUFSIZE > 0; offset -= BUFSIZE) {
+      this->curpos += net_plugin_read (this_gen, this->seek_buf, BUFSIZE);
+    }
+
+    this->curpos += net_plugin_read (this_gen, this->seek_buf, offset);
   }
+
+  return this->curpos;
 }
 
-/*
- *
- */
-static void net_plugin_stop (input_plugin_t *this_gen) {
 
-  net_plugin_close(this_gen);
-}
-
-/*
- *
- */
-static char *net_plugin_get_description (input_plugin_t *this_gen) {
-	return _("net input plugin as shipped with xine");
-}
-
-/*
- *
- */
-static char *net_plugin_get_identifier (input_plugin_t *this_gen) {
-  return "TCP";
-}
-
-/*
- *
- */
 static char* net_plugin_get_mrl (input_plugin_t *this_gen) {
   net_input_plugin_t *this = (net_input_plugin_t *) this_gen;
 
   return this->mrl;
 }
 
-/*
- *
- */
 static int net_plugin_get_optional_data (input_plugin_t *this_gen, 
 					 void *data, int data_type) {
+  net_input_plugin_t *this = (net_input_plugin_t *) this_gen;
+
+  switch (data_type) {
+  case INPUT_OPTIONAL_DATA_PREVIEW:
+
+    memcpy (data, this->preview, this->preview_size);
+    return this->preview_size;
+
+    break;
+  }
 
   return INPUT_OPTIONAL_UNSUPPORTED;
 }
 
 static void net_plugin_dispose (input_plugin_t *this_gen ) {
   net_input_plugin_t *this = (net_input_plugin_t *) this_gen;
+
+  close(this->fh);
+  this->fh = -1;
+  
   free (this->mrl);
+  
+  if (this->nbc) {
+    nbc_close (this->nbc);
+    this->nbc = NULL;
+  }
+
   free (this_gen);
 }
 
-static void *init_input_plugin (xine_t *xine, void *data) {
 
-  net_input_plugin_t *this;
-  config_values_t    *config;
+static input_plugin_t *net_plugin_open (input_class_t *cls_gen, xine_stream_t *stream, const char *mrl) {
+  /* net_input_plugin_t *this = (net_input_plugin_t *) this_gen; */
+  net_input_plugin_t *this = xine_xmalloc(sizeof(net_input_plugin_t));
+  char *filename;
+  char *pptr;
+  int port = 7658;
 
-  this       = (net_input_plugin_t *) xine_xmalloc(sizeof(net_input_plugin_t));
-  config     = xine->config;
-  this->xine = xine;
+  this->mrl = strdup(mrl);
+  this->stream = stream;
+
+  if (!strncasecmp (mrl, "tcp://", 6)) {
+    filename = (char *) &this->mrl[6];
+    
+    if((!filename) || (strlen(filename) == 0))
+      return NULL;
+    
+  }
+  else
+    return NULL;
+    
+  pptr=strrchr(filename, ':');
+  if(pptr) {
+    *pptr++ = 0;
+    sscanf(pptr,"%d", &port);
+  }
+
+  this->fh     = host_connect(filename, port, this->stream->xine);
+  this->curpos = 0;
+
+  if (this->fh == -1) {
+    return NULL;
+  }
+
+  this->nbc = nbc_init (this->stream);
+
+  /*
+   * fill preview buffer
+   */
+  this->preview_pos  = 0;
+  this->preview_size  = 0;
+
+  this->preview_size = read (this->fh, this->preview, PREVIEW_SIZE);
+  
+  this->preview_pos  = 0;
+  this->curpos  = 0;
 
   this->input_plugin.get_capabilities  = net_plugin_get_capabilities;
-  this->input_plugin.open              = net_plugin_open;
   this->input_plugin.read              = net_plugin_read;
   this->input_plugin.read_block        = net_plugin_read_block;
-  this->input_plugin.seek              = NULL;
+  this->input_plugin.seek              = net_plugin_seek;
   this->input_plugin.get_current_pos   = net_plugin_get_current_pos;
   this->input_plugin.get_length        = net_plugin_get_length;
   this->input_plugin.get_blocksize     = net_plugin_get_blocksize;
-  this->input_plugin.get_dir           = NULL;
-  this->input_plugin.eject_media       = NULL;
   this->input_plugin.get_mrl           = net_plugin_get_mrl;
-  this->input_plugin.close             = net_plugin_close;
-  this->input_plugin.stop              = net_plugin_stop;
-  this->input_plugin.get_description   = net_plugin_get_description;
-  this->input_plugin.get_identifier    = net_plugin_get_identifier;
-  this->input_plugin.get_autoplay_list = NULL;
   this->input_plugin.get_optional_data = net_plugin_get_optional_data;
   this->input_plugin.dispose           = net_plugin_dispose;
-  this->input_plugin.is_branch_possible= NULL;
+  this->input_plugin.input_class       = cls_gen;
 
-  this->fh        = -1;
-  this->mrl       = NULL;
-  this->config    = config;
-  this->curpos    = 0;
-  this->nbc       = NULL;
-  
+
+  return &this->input_plugin;
+}
+
+
+/*
+ *  net plugin class
+ */
+ 
+static char *net_class_get_description (input_class_t *this_gen) {
+	return _("net input plugin as shipped with xine");
+}
+
+static char *net_class_get_identifier (input_class_t *this_gen) {
+  return "TCP";
+}
+
+static void net_class_dispose (input_class_t *this_gen) {
+  net_input_class_t  *this = (net_input_class_t *) this_gen;
+
+  free (this);
+}
+
+static void *init_class (xine_t *xine, void *data) {
+
+  net_input_class_t  *this;
+
+  this         = (net_input_class_t *) xine_xmalloc(sizeof(net_input_class_t));
+  this->config = xine->config;
+  this->xine   = xine;
+
+  this->input_class.open_plugin       = net_plugin_open;
+  this->input_class.get_description   = net_class_get_description;
+  this->input_class.get_identifier    = net_class_get_identifier;
+  this->input_class.get_dir           = NULL;
+  this->input_class.get_autoplay_list = NULL;
+  this->input_class.dispose           = net_class_dispose;
+  this->input_class.eject_media       = NULL;
+
   return this;
 }
 
@@ -369,7 +421,7 @@ static void *init_input_plugin (xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_INPUT, 8, "tcp", XINE_VERSION_CODE, NULL, init_input_plugin },
+  { PLUGIN_INPUT, 10, "tcp", XINE_VERSION_CODE, NULL, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
 
