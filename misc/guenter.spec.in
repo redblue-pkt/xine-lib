@@ -39,7 +39,7 @@ make
 %install
 if [ -d $RPM_BUILD_ROOT ]; then rm -rf $RPM_BUILD_ROOT; fi
 #mkdir -p $RPM_BUILD_ROOT/usr/include/X11/pixmaps
-make install-strip prefix=$RPM_BUILD_ROOT%{prefix}
+make install-strip prefix=$RPM_BUILD_ROOT%{prefix} LIBRARY_PATH=$RPM_BUILD_ROOT%{prefix}/lib
 #cp doc/*.xpm $RPM_BUILD_ROOT/usr/include/X11/pixmaps
 
 %clean

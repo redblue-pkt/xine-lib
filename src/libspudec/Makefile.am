@@ -5,6 +5,7 @@ libdir = $(XINE_PLUGINDIR)
 lib_LTLIBRARIES = xineplug_decode_spu.la
 
 xineplug_decode_spu_la_SOURCES =  spu.c xine_decoder.c nav_read.c nav_print.c
+xineplug_decode_spu_la_LIBADD = $(top_builddir)/src/xine-engine/libxine.la
 xineplug_decode_spu_la_LDFLAGS = -avoid-version -module
 
 noinst_HEADERS = spu.h nav_read.h bswap.h nav_print.h nav_types.h

@@ -23,30 +23,39 @@ lib_LTLIBRARIES = xineplug_inp_file.la $(in_dvd) $(in_vcd) $(in_cda) \
 	xineplug_inp_rtp.la xineplug_inp_http.la xineplug_inp_mms.la
 
 xineplug_inp_file_la_SOURCES = input_file.c
+xineplug_inp_file_la_LIBADD = $(top_builddir)/src/xine-engine/libxine.la
 xineplug_inp_file_la_LDFLAGS = -avoid-version -module
 
 xineplug_inp_dvd_la_SOURCES = input_dvd.c dvd_udf.c read_cache.c
+xineplug_inp_dvd_la_LIBADD = $(top_builddir)/src/xine-engine/libxine.la
 xineplug_inp_dvd_la_LDFLAGS = -avoid-version -module
 
 xineplug_inp_net_la_SOURCES = input_net.c net_buf_ctrl.c
+xineplug_inp_net_la_LIBADD = $(top_builddir)/src/xine-engine/libxine.la
 xineplug_inp_net_la_LDFLAGS = -avoid-version -module
 
 xineplug_inp_mms_la_SOURCES = input_mms.c net_buf_ctrl.c mms.c asxparser.c
+xineplug_inp_mms_la_LIBADD = $(top_builddir)/src/xine-engine/libxine.la
 xineplug_inp_mms_la_LDFLAGS = -avoid-version -module
 
 xineplug_inp_vcd_la_SOURCES = input_vcd.c
+xineplug_inp_vcd_la_LIBADD = $(top_builddir)/src/xine-engine/libxine.la
 xineplug_inp_vcd_la_LDFLAGS = -avoid-version -module
 
 xineplug_inp_stdin_fifo_la_SOURCES = input_stdin_fifo.c net_buf_ctrl.c
+xineplug_inp_stdin_fifo_la_LIBADD = $(top_builddir)/src/xine-engine/libxine.la
 xineplug_inp_stdin_fifo_la_LDFLAGS = -avoid-version -module
 
 xineplug_inp_rtp_la_SOURCES = input_rtp.c
+xineplug_inp_rtp_la_LIBADD = $(top_builddir)/src/xine-engine/libxine.la
 xineplug_inp_rtp_la_LDFLAGS = -avoid-version -module
 
 xineplug_inp_http_la_SOURCES = input_http.c net_buf_ctrl.c
+xineplug_inp_http_la_LIBADD = $(top_builddir)/src/xine-engine/libxine.la
 xineplug_inp_http_la_LDFLAGS = -avoid-version -module
 
 xineplug_inp_cda_la_SOURCES = input_cda.c
+xineplug_inp_cda_la_LIBADD = $(top_builddir)/src/xine-engine/libxine.la
 xineplug_inp_cda_la_LDFLAGS = -avoid-version -module
 
 include_HEADERS = input_plugin.h
