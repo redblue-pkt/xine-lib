@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: configfile.h,v 1.16 2002/09/14 20:11:52 guenter Exp $
+ * $Id: configfile.h,v 1.17 2002/09/15 11:35:09 jcdutton Exp $
  *
  * config file management
  *
@@ -167,6 +167,11 @@ struct config_values_s {
    * unregister callback function
    */
   void (*unregister_callback) (config_values_t *this, const char *key);
+
+  /*
+   * dispose of all config entries in memory
+   */
+  void (*dispose) (config_values_t *this);
 
   /* 
    * config values are stored here:

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: vo_scale.c,v 1.10 2002/09/13 19:57:13 mroi Exp $
+ * $Id: vo_scale.c,v 1.11 2002/09/15 11:35:09 jcdutton Exp $
  * 
  * Contains common code to calculate video scaling parameters.
  * In short, it will map frame dimensions to screen/window size.
@@ -345,7 +345,7 @@ void vo_scale_init(vo_scale_t *this, int support_zoom, int scaling_disabled ) {
   this->scaling_disabled = scaling_disabled;
   this->force_redraw = 1;
   this->zoom_factor_x = 1.0;
-  this->zoom_factor_y = 1.0;
+  this->zoom_factor_y = 1.28;
   this->gui_pixel_aspect = 1.0;
   this->user_ratio = ASPECT_AUTO;
 }                  

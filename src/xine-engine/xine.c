@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.157 2002/09/13 18:25:23 guenter Exp $
+ * $Id: xine.c,v 1.158 2002/09/15 11:35:09 jcdutton Exp $
  *
  * top-level xine functions
  *
@@ -620,8 +620,8 @@ void xine_exit (xine_p this_ro) {
   this->metronom->exit (this->metronom);
 
   dispose_plugins (this);
-
   xine_profiler_print_results ();
+  this->config->dispose(this->config);
 
   pthread_mutex_destroy (&this->logo_lock);
   pthread_mutex_destroy (&this->xine_lock);

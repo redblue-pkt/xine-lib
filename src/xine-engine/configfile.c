@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: configfile.c,v 1.30 2002/09/11 17:41:08 guenter Exp $
+ * $Id: configfile.c,v 1.31 2002/09/15 11:35:09 jcdutton Exp $
  *
  * config object (was: file) management - implementation
  *
@@ -742,6 +742,7 @@ config_values_t *xine_config_init () {
   this->parse_enum      = xine_config_parse_enum;
   this->lookup_entry    = _xine_config_lookup_entry;
   this->unregister_callback = xine_config_unregister_cb;
+  this->dispose         = xine_config_dispose;
 
   return this;
 }
