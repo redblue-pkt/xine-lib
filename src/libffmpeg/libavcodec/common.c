@@ -27,7 +27,7 @@ const UINT8 ff_sqrt_tab[128]={
         9, 9, 9, 9,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,11,11,11,11,11,11,11
 };
 
-void init_put_bits(PutBitContext *s, 
+void init_put_bits(PutBitContext *s,
                    UINT8 *buffer, int buffer_size,
                    void *opaque,
                    void (*write_data)(void *, UINT8 *, int))
@@ -35,14 +35,14 @@ void init_put_bits(PutBitContext *s,
     s->buf = buffer;
     s->buf_end = s->buf + buffer_size;
     s->data_out_size = 0;
-    if(write_data!=NULL) 
+    if(write_data!=NULL)
     {
-    	fprintf(stderr, "write Data callback is not supported\n");
+	fprintf(stderr, "write Data callback is not supported\n");
     }
 #ifdef ALT_BITSTREAM_WRITER
     s->index=0;
     ((uint32_t*)(s->buf))[0]=0;
-//    memset(buffer, 0, buffer_size);
+/*    memset(buffer, 0, buffer_size); */
 #else
     s->buf_ptr = s->buf;
     s->bit_left=32;
@@ -146,7 +146,7 @@ void init_get_bits(GetBitContext *s,
     {
         OPEN_READER(re, s)
         UPDATE_CACHE(re, s)
-//        UPDATE_CACHE(re, s)
+/*      UPDATE_CACHE(re, s) */
         CLOSE_READER(re, s)
     }
 #ifdef A32_BITSTREAM_READER
@@ -170,7 +170,7 @@ int check_marker(GetBitContext *s, char *msg)
 
 /* VLC decoding */
 
-//#define DEBUG_VLC
+/* #define DEBUG_VLC */
 
 #define GET_DATA(v, table, i, wrap, size) \
 {\
@@ -225,8 +225,8 @@ static int build_table(VLC *vlc, int table_nb_bits,
     table = &vlc->table[table_index];
 
     for(i=0;i<table_size;i++) {
-        table[i][1] = 0; //bits
-        table[i][0] = -1; //codes
+        table[i][1] = 0; /* bits */
+        table[i][0] = -1; /* codes */
     }
 
     /* first pass: map codes and compute auxillary table sizes */
@@ -255,8 +255,8 @@ static int build_table(VLC *vlc, int table_nb_bits,
                         fprintf(stderr, "incorrect codes\n");
                         exit(1);
                     }
-                    table[j][1] = n; //bits
-                    table[j][0] = i; //code
+                    table[j][1] = n; /* bits */
+                    table[j][0] = i; /* code */
                     j++;
                 }
             } else {
@@ -267,22 +267,22 @@ static int build_table(VLC *vlc, int table_nb_bits,
                        j, n);
 #endif
                 /* compute table size */
-                n1 = -table[j][1]; //bits
+                n1 = -table[j][1]; /* bits */
                 if (n > n1)
                     n1 = n;
-                table[j][1] = -n1; //bits
+                table[j][1] = -n1; /* bits */
             }
         }
     }
 
     /* second pass : fill auxillary tables recursively */
     for(i=0;i<table_size;i++) {
-        n = table[i][1]; //bits
+        n = table[i][1]; /* bits */
         if (n < 0) {
             n = -n;
             if (n > table_nb_bits) {
                 n = table_nb_bits;
-                table[i][1] = -n; //bits
+                table[i][1] = -n; /* bits */
             }
             index = build_table(vlc, n, nb_codes,
                                 bits, bits_wrap, bits_size,
@@ -293,7 +293,7 @@ static int build_table(VLC *vlc, int table_nb_bits,
                 return -1;
             /* note: realloc has been done, so reload tables */
             table = &vlc->table[table_index];
-            table[i][0] = index; //code
+            table[i][0] = index; /* code */
         }
     }
     return table_index;
@@ -305,7 +305,7 @@ static int build_table(VLC *vlc, int table_nb_bits,
    'nb_bits' set thee decoding table size (2^nb_bits) entries. The
    bigger it is, the faster is the decoding. But it should not be too
    big to save memory and L1 cache. '9' is a good compromise.
-   
+
    'nb_codes' : number of vlcs codes
 
    'bits' : table which gives the size (in bits) of each vlc code.
@@ -319,7 +319,7 @@ static int build_table(VLC *vlc, int table_nb_bits,
    or 'codes' tables.
 
    'wrap' and 'size' allows to use any memory configuration and types
-   (byte/word/long) to store the 'bits' and 'codes' tables.  
+   (byte/word/long) to store the 'bits' and 'codes' tables.
 */
 int init_vlc(VLC *vlc, int nb_bits, int nb_codes,
              const void *bits, int bits_wrap, int bits_size,

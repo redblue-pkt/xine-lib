@@ -43,11 +43,11 @@ typedef struct Parser{
     int stack_index;
     char *s;
     double *const_value;
-    char **const_name;          // NULL terminated
-    double (**func1)(void *, double a); // NULL terminated
-    char **func1_name;          // NULL terminated
-    double (**func2)(void *, double a, double b); // NULL terminated
-    char **func2_name;          // NULL terminated
+    char **const_name;          /* NULL terminated */
+    double (**func1)(void *, double a); /*  NULL terminated */
+    char **func1_name;          /*  NULL terminated */
+    double (**func2)(void *, double a, double b); /*  NULL terminated */
+    char **func2_name;          /*  NULL terminated */
     void *opaque;
 } Parser;
 
@@ -59,7 +59,7 @@ static void push(Parser *p, double d){
         return;
     }
     p->stack[ p->stack_index++ ]= d;
-//printf("push %f\n", d); fflush(stdout);
+/* printf("push %f\n", d); fflush(stdout); */
 }
 
 static double pop(Parser *p){
@@ -67,7 +67,7 @@ static double pop(Parser *p){
         fprintf(stderr, "stack underflow in the parser\n");
         return NAN;
     }
-//printf("pop\n"); fflush(stdout);
+/* printf("pop\n"); fflush(stdout); */
     return p->stack[ --p->stack_index ];
 }
 
@@ -91,7 +91,7 @@ static void evalPrimary(Parser *p){
         p->s= next;
         return;
     }
-    
+
     /* named constants */
     for(i=0; p->const_name[i]; i++){
         if(strmatch(p->s, p->const_name[i])){
@@ -100,22 +100,22 @@ static void evalPrimary(Parser *p){
             return;
         }
     }
-    
+
     p->s= strchr(p->s, '(');
     if(p->s==NULL){
         fprintf(stderr, "Parser: missing ( in \"%s\"\n", next);
         return;
     }
-    p->s++; // "("
+    p->s++; /* "(" */
     evalExpression(p);
     d= pop(p);
-    p->s++; // ")" or ","
+    p->s++; /* ")" or "," */
     if(p->s[-1]== ','){
         evalExpression(p);
         d2= pop(p);
-        p->s++; // ")"
+        p->s++; /* ")" */
     }
-    
+
          if( strmatch(next, "sinh"  ) ) d= sinh(d);
     else if( strmatch(next, "cosh"  ) ) d= cosh(d);
     else if( strmatch(next, "tanh"  ) ) d= tanh(d);
@@ -132,8 +132,8 @@ static void evalPrimary(Parser *p){
     else if( strmatch(next, "gt"    ) ) d= d > d2 ? 1.0 : 0.0;
     else if( strmatch(next, "lt"    ) ) d= d > d2 ? 0.0 : 1.0;
     else if( strmatch(next, "eq"    ) ) d= d == d2 ? 1.0 : 0.0;
-//    else if( strmatch(next, "l1"    ) ) d= 1 + d2*(d - 1);
-//    else if( strmatch(next, "sq01"  ) ) d= (d >= 0.0 && d <=1.0) ? 1.0 : 0.0;
+/*     else if( strmatch(next, "l1"    ) ) d= 1 + d2*(d - 1); */
+/*     else if( strmatch(next, "sq01"  ) ) d= (d >= 0.0 && d <=1.0) ? 1.0 : 0.0; */
     else{
         int error=1;
         for(i=0; p->func1_name && p->func1_name[i]; i++){
@@ -157,23 +157,23 @@ static void evalPrimary(Parser *p){
             return;
         }
     }
-    
+
     if(p->s[-1]!= ')'){
         fprintf(stderr, "Parser: missing ) in \"%s\"\n", next);
         return;
     }
     push(p, d);
-}      
-       
+}
+
 static void evalPow(Parser *p){
     int neg= 0;
     if(p->s[0]=='+') p->s++;
-       
-    if(p->s[0]=='-'){ 
+
+    if(p->s[0]=='-'){
         neg= 1;
         p->s++;
     }
-    
+
     if(p->s[0]=='('){
         p->s++;;
         evalExpression(p);
@@ -184,7 +184,7 @@ static void evalPow(Parser *p){
     }else{
         evalPrimary(p);
     }
-    
+
     if(neg) push(p, -pop(p));
 }
 
@@ -229,11 +229,11 @@ static void evalExpression(Parser *p){
 }
 
 double ff_eval(char *s, double *const_value, char **const_name,
-               double (**func1)(void *, double), char **func1_name, 
+               double (**func1)(void *, double), char **func1_name,
                double (**func2)(void *, double, double), char **func2_name,
                void *opaque){
     Parser p;
-    
+
     p.stack_index=0;
     p.s= s;
     p.const_value= const_value;
@@ -243,7 +243,7 @@ double ff_eval(char *s, double *const_value, char **const_name,
     p.func2      = func2;
     p.func2_name = func2_name;
     p.opaque     = opaque;
-    
+
     evalExpression(&p);
     return pop(&p);
 }
