@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.11 2004/12/09 07:11:10 mlampard Exp $
+ * $Id: xine_decoder.c,v 1.12 2004/12/09 13:19:37 mlampard Exp $
  *
  * DVB Subtitle decoder (ETS 300 743)
  * (c) 2004 Mike Lampard <mlampard@users.sourceforge.net>
@@ -387,8 +387,6 @@ void process_page_composition_segment (dvb_spu_decoder_t * this)
     return;
   }
   else {
-    if(dvbsub->page.page_state==1)
-      draw_subtitles (this);
   }
 
   for (r = 0; r < MAX_REGIONS; r++) {
@@ -581,6 +579,11 @@ void draw_subtitles (dvb_spu_decoder_t * this)
 static void spudec_decode_data (spu_decoder_t * this_gen, buf_element_t * buf)
 {
   dvb_spu_decoder_t *this = (dvb_spu_decoder_t *) this_gen;
+      int new_i;
+      int data_identifier, subtitle_stream_id;
+      int segment_length, segment_type;
+      int PES_header_data_length;
+      int PES_packet_length;
 
   if((buf->type & 0xffff0000)!=BUF_SPU_DVB)
     return;  
@@ -623,16 +626,8 @@ static void spudec_decode_data (spu_decoder_t * this_gen, buf_element_t * buf)
       }
 
   /* process the pes section */
-    if (((this->pes_pkt_wrptr - this->pes_pkt) == this->pes_pkt_size)) {
-      int new_i;
-      int data_identifier, subtitle_stream_id;
-
-      int segment_length, segment_type;
-
-      int PES_header_data_length;
-
-      int PES_packet_length = this->pes_pkt_size;
-
+     
+      PES_packet_length = this->pes_pkt_size;
 
       this->dvbsub->buf = this->pes_pkt;
 
@@ -650,6 +645,10 @@ static void spudec_decode_data (spu_decoder_t * this_gen, buf_element_t * buf)
 	this->dvbsub->page.page_id = (this->dvbsub->buf[this->dvbsub->i] << 8) | this->dvbsub->buf[this->dvbsub->i + 1];
 	segment_length = (this->dvbsub->buf[this->dvbsub->i + 2] << 8) | this->dvbsub->buf[this->dvbsub->i + 3];
 	new_i = this->dvbsub->i + segment_length + 4;
+
+	/* only process complete segments */
+	if(new_i > (this->pes_pkt_wrptr - this->pes_pkt))
+	  break;
 	/* verify we've the right segment */
 	if(this->dvbsub->page.page_id==this->spu_descriptor->comp_page_id){
   	  /* SEGMENT_DATA_FIELD */
@@ -671,12 +670,11 @@ static void spudec_decode_data (spu_decoder_t * this_gen, buf_element_t * buf)
             default:
               break;
           }
+          draw_subtitles(this);
 	}
 	this->dvbsub->i = new_i;
       }
 
-    }
-      
   return;
 }
 
