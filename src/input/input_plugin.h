@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_plugin.h,v 1.33 2002/10/17 17:43:43 mroi Exp $
+ * $Id: input_plugin.h,v 1.34 2002/10/20 22:35:33 guenter Exp $
  */
 
 #ifndef HAVE_INPUT_PLUGIN_H
@@ -156,14 +156,71 @@ struct input_plugin_s {
  * possible capabilites an input plugin can have:
  */
 #define INPUT_CAP_NOCAP                0x00000000
+
+/*
+ * INPUT_CAP_SEEKABLE: 
+ *   seek () works reliably. 
+ *   even for plugins that do not have this flag set
+ *   it is a good idea to implement the seek() function 
+ *   in a "best effort" style anyway, so at least 
+ *   throw away data for network streams when seeking forward
+ */
+
 #define INPUT_CAP_SEEKABLE             0x00000001
+
+/*
+ * INPUT_CAP_BLOCK:
+ *   means more or less that a block device sits behind 
+ *   this input plugin. get_blocksize must be implemented. 
+ *   will be used for fast and efficient demuxing of 
+ *   mpeg streams (demux_mpeg_block).
+ */
+
 #define INPUT_CAP_BLOCK                0x00000002
+
+/* 
+ * INPUT_CAP_CLUT:
+ *   input plugin can provide an spu color lookup table 
+ *   (dvd-specific?)
+ */
+
 #define INPUT_CAP_CLUT                 0x00000004
+
+/*
+ * INPUT_CAP_AUDIOLANG:
+ * INPUT_CAP_SPULANG:
+ *   input plugin knows something about audio/spu languages, 
+ *   e.g. knows that audio stream #0 is english, 
+ *   audio stream #1 is german, ...
+ */
+
 #define INPUT_CAP_AUDIOLANG            0x00000008
 #define INPUT_CAP_SPULANG              0x00000010
+ 
+/*
+ * INPUT_CAP_VARIABLE_BITRATE:
+ *   FIXME: ???
+ */
+
 #define INPUT_CAP_VARIABLE_BITRATE     0x00000020
-/* for non-seekable plugins, allows content detection: */
+
+/* 
+ * INPUT_CAP_PREVIEW:
+ *   get_optional_data can handle INPUT_OPTIONAL_DATA_PREVIEW 
+ *   so a non-seekable stream plugin can povide the first 
+ *   few bytes for demuxers to look at them and decide wheter 
+ *   they can handle the stream or not. the preview data must 
+ *   be buffered and delivered again through subsequent 
+ *   read() calls.
+ */
+
 #define INPUT_CAP_PREVIEW              0x00000040  
+
+/*
+ * INPUT_CAP_CHAPTERS:
+ *   FIXME: ???
+ */
+
 #define INPUT_CAP_CHAPTERS             0x00000080
 
 
