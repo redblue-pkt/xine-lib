@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.47 2001/10/23 11:29:54 f1rmb Exp $
+ * $Id: load_plugins.c,v 1.48 2001/10/23 21:33:41 f1rmb Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -91,7 +91,7 @@ void load_demux_plugins (xine_t *this,
 	
 	sprintf (str, "%s/%s", XINE_PLUGINDIR, pEntry->d_name);
 	
-	if(!(plugin = dlopen (str, RTLD_LAZY | RTLD_GLOBAL))) {
+	if(!(plugin = dlopen (str, RTLD_LAZY))) {
 	  fprintf(stderr, "load_plugins: cannot open demux plugin %s:\n%s\n",
 		  str, dlerror());
 	}
@@ -168,7 +168,7 @@ void load_input_plugins (xine_t *this,
 	
 	sprintf (str, "%s/%s", XINE_PLUGINDIR, pEntry->d_name);
 
-	if(!(plugin = dlopen (str, RTLD_LAZY | RTLD_GLOBAL))) {
+	if(!(plugin = dlopen (str, RTLD_LAZY))) {
 	  printf("load_plugins: cannot open input plugin %s:\n%s\n", 
 		 str, dlerror());
 	} else {
@@ -356,7 +356,7 @@ void load_decoder_plugins (xine_t *this,
 	
 	sprintf (str, "%s/%s", XINE_PLUGINDIR, pEntry->d_name);
 	
-	if(!(plugin = dlopen (str, RTLD_LAZY | RTLD_GLOBAL))) {
+	if(!(plugin = dlopen (str, RTLD_LAZY))) {
 
 	  printf ("load_plugins: failed to load plugin %s:\n%s\n",
 		  str, dlerror());
@@ -496,7 +496,7 @@ char **xine_list_video_output_plugins (int visual_type) {
 	 * and finally if all this went through get it's id
 	 */
 
-	if(!(plugin = dlopen (str, RTLD_LAZY | RTLD_GLOBAL))) {
+	if(!(plugin = dlopen (str, RTLD_LAZY))) {
 
 	  printf("load_plugins: cannot load plugin %s:\n%s\n",
 		 str, dlerror());
@@ -584,7 +584,7 @@ vo_driver_t *xine_load_video_output_plugin(config_values_t *config,
 
 	sprintf (str, "%s/%s", XINE_PLUGINDIR, dir_entry->d_name);
 	
-	if(!(plugin = dlopen (str, RTLD_LAZY | RTLD_GLOBAL))) {
+	if(!(plugin = dlopen (str, RTLD_LAZY))) {
 	  printf("load_plugins: video output plugin %s failed to link:\n%s\n",
 		 str, dlerror());
 	} else {
@@ -650,7 +650,7 @@ char **xine_list_audio_output_plugins(void) {
     
     while ((dir_entry = readdir (dir)) != NULL) {
       char  str[1024];
-      void *plugin;
+   void *plugin;
       int nLen = strlen (dir_entry->d_name);
       
       if ((strncasecmp(dir_entry->d_name,
@@ -669,7 +669,7 @@ char **xine_list_audio_output_plugins(void) {
 	 * and get it's id
 	 */
 
-	if(!(plugin = dlopen (str, RTLD_LAZY | RTLD_GLOBAL))) {
+	if(!(plugin = dlopen (str, RTLD_LAZY))) {
 
 	  /* printf("load_plugins: cannot load plugin %s (%s)\n",
 		 str, dlerror()); */
