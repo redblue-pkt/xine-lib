@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_eawve.c,v 1.11 2002/12/21 12:56:45 miguelfreitas Exp $
+ * $Id: demux_eawve.c,v 1.12 2002/12/21 17:58:37 komadori Exp $
  *
  * demux_eawve.c, Demuxer plugin for Electronic Arts' WVE file format
  *
@@ -53,15 +53,13 @@ typedef struct {
   input_plugin_t *input;
 
   int thread_running;
-
   int status;
-  int send_end_buffers;
   
   int num_channels;
   int compression_type;
   int num_samples;
-
   int sample_counter;
+
   char last_mrl[1024];
 } demux_eawve_t;
 
@@ -360,13 +358,13 @@ static int demux_eawve_get_optional_data(demux_plugin_t *this_gen,
   return DEMUX_OPTIONAL_UNSUPPORTED;
 }
 
-static demux_plugin_t* open_plugin (demux_class_t *class_gen, xine_stream_t *stream, input_plugin_t *input_gen)
+static demux_plugin_t* open_plugin(demux_class_t *class_gen, xine_stream_t *stream, input_plugin_t *input_gen)
 {
 
   input_plugin_t *input = (input_plugin_t *) input_gen;
   demux_eawve_t    *this;
 
-  this         = xine_xmalloc (sizeof (demux_eawve_t));
+  this         = xine_xmalloc(sizeof(demux_eawve_t));
   this->stream = stream;
   this->input  = input;
 
@@ -389,12 +387,12 @@ static demux_plugin_t* open_plugin (demux_class_t *class_gen, xine_stream_t *str
   case METHOD_BY_CONTENT:
   case METHOD_EXPLICIT:
     if ((this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) == 0) {
-      free (this);
+      free(this);
       return NULL;
     }
 
     if (!process_header(this)) {
-      free (this);
+      free(this);
       return NULL;
     }
   break;
@@ -402,66 +400,65 @@ static demux_plugin_t* open_plugin (demux_class_t *class_gen, xine_stream_t *str
   case METHOD_BY_EXTENSION: {
     char *ending, *mrl;
 
-    mrl = input->get_mrl (input);
+    mrl = input->get_mrl(input);
 
     ending = strrchr(mrl, '.');
-
     if (!ending) {
-      free (this);
+      free(this);
       return NULL;
     }
-    if (strncasecmp (ending, ".wve", 4)) {
-      free (this);
+    if (strncasecmp(ending, ".wve", 4)) {
+      free(this);
       return NULL;
     }
 
     if (!process_header(this)) {
-      free (this);
+      free(this);
       return NULL;
     }
   }
   break;
 
   default:
-    free (this);
+    free(this);
     return NULL;
   }
 
-  strncpy (this->last_mrl, input->get_mrl (input), 1024);
+  strncpy(this->last_mrl, input->get_mrl(input), 1024);
 
   return &this->demux_plugin;
 }
 
-static char *get_description (demux_class_t *this_gen)
+static char *get_description(demux_class_t *this_gen)
 {
   return "Electronics Arts WVE format demux plugin";
 }
 
-static char *get_identifier (demux_class_t *this_gen)
+static char *get_identifier(demux_class_t *this_gen)
 {
   return "EA WVE";
 }
 
-static char *get_extensions (demux_class_t *this_gen)
+static char *get_extensions(demux_class_t *this_gen)
 {
   return "wve";
 }
 
-static char *get_mimetypes (demux_class_t *this_gen)
+static char *get_mimetypes(demux_class_t *this_gen)
 {
   return NULL;
 }
 
-static void class_dispose (demux_class_t *this)
+static void class_dispose(demux_class_t *this)
 {
-  free (this);
+  free(this);
 }
 
-static void *init_plugin (xine_t *xine, void *data)
+static void *init_plugin(xine_t *xine, void *data)
 {
   demux_eawve_class_t     *this;
 
-  this         = xine_xmalloc (sizeof (demux_eawve_class_t));
+  this         = xine_xmalloc(sizeof(demux_eawve_class_t));
   this->config = xine->config;
   this->xine   = xine;
 
