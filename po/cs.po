@@ -4,9 +4,9 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: xine-lib 0.9.13\n"
+"Project-Id-Version: xine-lib 0.9.15\n"
 "POT-Creation-Date: 2002-11-21 22:42-0600\n"
-"PO-Revision-Date: 2002-10-30 10:02+0100\n"
+"PO-Revision-Date: 2002-11-25 10:28+0100\n"
 "Last-Translator: Frantisek Dvorak <valtri@atlas.cz>\n"
 "Language-Team: Czech <cs@li.org>\n"
 "MIME-Version: 1.0\n"
@@ -490,9 +490,8 @@ msgid "unable to allocate input buffer.\n"
 msgstr "nelze alokovat vstupní vyrovnávací pamì».\n"
 
 #: src/input/input_stdin_fifo.c:358
-#, fuzzy
 msgid "stdin streaming input plugin"
-msgstr "modul pro vstup ze sítì pomocí http"
+msgstr "modul pro data ze standardního vstupu"
 
 #: src/input/input_file.c:115
 #, c-format
@@ -517,9 +516,8 @@ msgid "list hidden files"
 msgstr "seznam skrytých souborù"
 
 #: src/input/input_vcd.c:902
-#, fuzzy
 msgid "Video CD input plugin"
-msgstr "modul pro vstup ze souboru"
+msgstr "Vstupní modul pro video CD"
 
 #: src/input/input_vcd.c:1132
 msgid "path to your local vcd device file"
@@ -690,7 +688,6 @@ msgid "input_cda: ioctl(CDROMREADTOCENTRY) failed: %s.\n"
 msgstr "input_cda: selhalo ioctl(CDROMREADTOCENTRY): %s.\n"
 
 #: src/input/input_cda.c:1403
-#, fuzzy
 msgid "input_cda: malformed MRL. Use cda:/<track #>\n"
 msgstr "input_cda: neplatné MRL. Pou¾ijte cda://<stopa #>\n"
 
@@ -724,8 +721,8 @@ msgstr "port cddbp serveru"
 msgid "cddbp cache directory"
 msgstr "adresáø se záznamy cddbp"
 
+# (used only ISO8859-1 characters)
 #: src/input/net_buf_ctrl.c:55
-#, fuzzy
 msgid "Buffering..."
 msgstr "Nahrává se..."
 
@@ -765,7 +762,7 @@ msgstr "Klíèová barva pou¾itá pro pøekrývání videa u Xv"
 
 #: src/video_out/video_out_xv.c:1209
 msgid "Make Xv autopaint its colorkey"
-msgstr ""
+msgstr "Pøimìt Xv automaticky kreslit klíèovou barvu"
 
 #: src/video_out/video_out_xv.c:1216
 msgid "bilinear scaling mode (permedia 2/3)"
@@ -778,7 +775,7 @@ msgstr "dvojitý buffer k synchronizaci videa se zpìtným bìhem paprsku"
 #: src/video_out/video_out_xv.c:1269
 msgid "Software deinterlace method (Key I toggles deinterlacer on/off)"
 msgstr ""
-"softwarová metoda korekce prokládání (klávesa I zapíná/vypíná deinterlacer)"
+"softwarová metoda korekce prokládání (klávesa I zapíná a vypíná deinterlacer)"
 
 #: src/video_out/video_out_xv.c:1285
 msgid "xine video output plugin using the MIT X video extension"
@@ -801,9 +798,8 @@ msgid "gamma correction for OpenGL driver"
 msgstr "gama korekce pro ovladaè OpenGL"
 
 #: src/video_out/video_out_opengl.c:961
-#, fuzzy
 msgid "xine video output plugin using OpenGL - TNG"
-msgstr "výstupní modul videa xine pou¾ije OpenGL(tm)"
+msgstr "výstupní modul videa xine pou¾ije OpenGL"
 
 #: src/video_out/video_out_directfb.c:564
 msgid "xine video output plugin using the DirectFB library."
@@ -817,11 +813,13 @@ msgstr "výstupní modul videa xine pou¾ije libvidix"
 msgid "NVidia TV-Out support."
 msgstr "Podpora TV-výstupu NVidia"
 
+# This message should match with FAQ_cs.
 #: src/xine-engine/video_out.c:330
 #, c-format
 msgid "%d frames delivered, %d frames skipped, %d frames discarded\n"
-msgstr "%d rámcù pøedaných, %d rámcù pøeskoèených, %d rámcù zahozených\n"
+msgstr "%d snímkù pøedaných, %d snímkù pøeskoèených, %d snímkù zahozených\n"
 
+# This message should match with FAQ_cs.
 #: src/xine-engine/video_out.c:468
 #, c-format
 msgid ""
@@ -847,9 +845,9 @@ msgid "xine: cannot find input plugin for this MRL\n"
 msgstr "xine: nelze nalézt vstupní modul pro toto MRL\n"
 
 #: src/xine-engine/xine.c:427
-#, fuzzy, c-format
+#, c-format
 msgid "xine: specified demuxer %s failed to start\n"
-msgstr "xine: selhalo spu¹tìní demultiplexoru\n"
+msgstr "xine: selhalo spu¹tìní demultiplexoru %s\n"
 
 #: src/xine-engine/xine.c:584
 #, c-format
@@ -878,7 +876,7 @@ msgstr "modul"
 
 #: src/xine-engine/audio_out.c:1092
 msgid "adjust whether resampling is done or not"
-msgstr "upravit, jestli se má pøevzorkovávat nebo ne"
+msgstr "nastavit, jestli se má pøevzorkovávat nebo ne"
 
 #: src/xine-engine/audio_out.c:1095
 msgid "if !=0 always resample to given rate"
@@ -1272,69 +1270,6 @@ msgstr "MS RLE: koncový rámec dekódován i se zbytkem bytù (%d < %d)\n"
 #~ msgid "demux_ts: can't create new thread (%s)\n"
 #~ msgstr "demux_ts: nelze vytvoøit nové vlákno (%s)\n"
 
-#~ msgid "valid mrls ending for avi demuxer"
-#~ msgstr "platná zakonèení MRL pro demultiplexor AVI"
-
-#~ msgid "valid mrls ending for elementary demuxer"
-#~ msgstr "platná zakonèení MRL pro základní demultiplexor"
-
-#~ msgid "valid mrls for mpeg demuxer"
-#~ msgstr "platná zakonèení pro demultiplexor MPEG"
-
-#~ msgid "demux_mpeg: please specify mpeg(mpeg1/mpeg2) stream type.\n"
-#~ msgstr "demux_mpeg: prosím uveïte typ mpegu (mpeg1/mpeg2).\n"
-
-#~ msgid "valid mrls ending for mpeg demuxer"
-#~ msgstr "platná zakonèení MRL pro demultiplexor MPEG"
-
-#~ msgid "valid mrls ending for mpeg audio demuxer"
-#~ msgstr "platná zakonèení pro zvukový demultiplexor MPEG"
-
-#~ msgid "valid mrls ending for qt demuxer"
-#~ msgstr "platná zakonèení MRL pro demultiplexor QT"
-
-#~ msgid "valid mrls ending for ogg demuxer"
-#~ msgstr "platná zakonèení MRL pro demultiplexor OGG"
-
-#~ msgid "valid mrls ending for asf demuxer"
-#~ msgstr "platná zakonèení MRL pro demultiplexor ASF"
-
-#~ msgid "valid mrls ending for film demuxer"
-#~ msgstr "platná zakonèení MRL pro demultiplexor FILM"
-
-#~ msgid "valid mrls for mpeg block demuxer"
-#~ msgstr "platná MRL pro blokový demultiplexor MPEG"
-
-#~ msgid "valid mrls ending for mpeg block demuxer"
-#~ msgstr "platná zakonèení MRL pro blokový demultiplexor MPEG"
-
-#~ msgid "valid mrls ending for roq demuxer"
-#~ msgstr "platná zakonèení MRL pro demultiplexor ROQ"
-
-#~ msgid "valid mrls ending for idcin demuxer"
-#~ msgstr "platná zakonèení MRL pro demultiplexor IdCIN"
-
-#~ msgid "valid mrls ending for smjpeg demuxer"
-#~ msgstr "platná zakonèení MRL pro demultiplexor SMJPEG"
-
-#~ msgid "valid mrls ending for wav demuxer"
-#~ msgstr "platná zakonèení MRL pro demultiplexor WAV"
-
-#~ msgid "valid mrls ending for aiff demuxer"
-#~ msgstr "platná zakonèení MRL pro demultiplexor AIFF"
-
-#~ msgid "valid mrls ending for snd demuxer"
-#~ msgstr "platná zakonèení MRL pro demultiplexor SND"
-
-#~ msgid "valid mrls ending for voc demuxer"
-#~ msgstr "platná zakonèení MRL pro demultiplexor VOC"
-
-#~ msgid "valid mrls ending for vqa demuxer"
-#~ msgstr "platná zakonèení MRL pro demultiplexor VQA"
-
-#~ msgid "valid mrls ending for mve demuxer"
-#~ msgstr "platná zakonèení MRL pro demultiplexor MVE"
-
 #~ msgid "stdin/fifo input plugin as shipped with xine"
 #~ msgstr "vstupní modul stdin/fifo dodávaný se xine"
 
@@ -1398,11 +1333,71 @@ msgstr "MS RLE: koncový rámec dekódován i se zbytkem bytù (%d < %d)\n"
 #~ msgid "vcd_read_toc failed\n"
 #~ msgstr "selhala funkce vcd_read_toc\n"
 
-#~ msgid "Xv property"
-#~ msgstr "vlastnost Xv"
+#~ msgid "valid mrls ending for elementary demuxer"
+#~ msgstr "platná zakonèení MRL pro základní demultiplexor"
+
+#~ msgid "valid mrls for mpeg demuxer"
+#~ msgstr "platná zakonèení pro demultiplexor MPEG"
+
+#~ msgid "demux_mpeg: please specify mpeg(mpeg1/mpeg2) stream type.\n"
+#~ msgstr "demux_mpeg: prosím uveïte typ mpegu (mpeg1/mpeg2).\n"
+
+#~ msgid "valid mrls ending for mpeg demuxer"
+#~ msgstr "platná zakonèení MRL pro demultiplexor MPEG"
+
+#~ msgid "valid mrls ending for ogg demuxer"
+#~ msgstr "platná zakonèení MRL pro demultiplexor OGG"
+
+#~ msgid "valid mrls for mpeg block demuxer"
+#~ msgstr "platná MRL pro blokový demultiplexor MPEG"
+
+#~ msgid "valid mrls ending for mpeg block demuxer"
+#~ msgstr "platná zakonèení MRL pro blokový demultiplexor MPEG"
+
+#~ msgid "valid mrls ending for smjpeg demuxer"
+#~ msgstr "platná zakonèení MRL pro demultiplexor SMJPEG"
+
+#~ msgid "valid mrls ending for aiff demuxer"
+#~ msgstr "platná zakonèení MRL pro demultiplexor AIFF"
+
+#~ msgid "valid mrls ending for snd demuxer"
+#~ msgstr "platná zakonèení MRL pro demultiplexor SND"
+
+#~ msgid "valid mrls ending for voc demuxer"
+#~ msgstr "platná zakonèení MRL pro demultiplexor VOC"
+
+#~ msgid "valid mrls ending for vqa demuxer"
+#~ msgstr "platná zakonèení MRL pro demultiplexor VQA"
+
+#~ msgid "valid mrls ending for avi demuxer"
+#~ msgstr "platná zakonèení MRL pro demultiplexor AVI"
+
+#~ msgid "valid mrls ending for mpeg audio demuxer"
+#~ msgstr "platná zakonèení pro zvukový demultiplexor MPEG"
+
+#~ msgid "valid mrls ending for qt demuxer"
+#~ msgstr "platná zakonèení MRL pro demultiplexor QT"
+
+#~ msgid "valid mrls ending for asf demuxer"
+#~ msgstr "platná zakonèení MRL pro demultiplexor ASF"
+
+#~ msgid "valid mrls ending for film demuxer"
+#~ msgstr "platná zakonèení MRL pro demultiplexor FILM"
 
 #~ msgid "demux_film: unknown video codec %c%c%c%c\n"
 #~ msgstr "demux_film: neznámý kodek videa %c%c%c%c\n"
+
+#~ msgid "valid mrls ending for roq demuxer"
+#~ msgstr "platná zakonèení MRL pro demultiplexor ROQ"
+
+#~ msgid "valid mrls ending for idcin demuxer"
+#~ msgstr "platná zakonèení MRL pro demultiplexor IdCIN"
+
+#~ msgid "valid mrls ending for wav demuxer"
+#~ msgstr "platná zakonèení MRL pro demultiplexor WAV"
+
+#~ msgid "valid mrls ending for mve demuxer"
+#~ msgstr "platná zakonèení MRL pro demultiplexor MVE"
 
 #~ msgid "lstat failed for %s{%s}\n"
 #~ msgstr "selhalo lstat pro %s{%s}\n"
@@ -1415,6 +1410,9 @@ msgstr "MS RLE: koncový rámec dekódován i se zbytkem bytù (%d < %d)\n"
 
 #~ msgid "input_file: get optional data, type %08x, sub %p\n"
 #~ msgstr "input_file: volitelná data, typ %08x, podtyp %p\n"
+
+#~ msgid "Xv property"
+#~ msgstr "vlastnost Xv"
 
 #~ msgid "xine_notify_stream_finished: can't create new thread (%s)\n"
 #~ msgstr "xine_notify_stream_finished: nelze vytvoøit nové vlákno (%s)\n"
