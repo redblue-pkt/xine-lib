@@ -149,14 +149,14 @@ static inline void get_frame_duration (mpeg2dec_t * mpeg2dec, vo_frame_t *frame)
   {  
     if( frame->repeat_first_field ) {
       if( !mpeg2dec->picture->progressive_sequence &&
-           mpeg2dec->picture->progressive_frame ) {
+           frame->progressive_frame ) {
         /* decoder should output 3 fields, so adjust duration to
            count on this extra field time */
         frame->duration += frame->duration/2;     
       } else if( mpeg2dec->picture->progressive_sequence ) {
         /* for progressive sequences the output should repeat the
            frame 1 or 2 times depending on top_field_first flag. */
-        frame->duration *= (mpeg2dec->picture->top_field_first)?3:2;
+        frame->duration *= (frame->top_field_first)?3:2;
       }
     }
   }
