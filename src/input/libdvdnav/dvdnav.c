@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dvdnav.c,v 1.15 2003/02/24 18:31:15 mroi Exp $
+ * $Id: dvdnav.c,v 1.16 2003/02/24 20:44:26 siggi Exp $
  *
  */
 
@@ -33,7 +33,7 @@
 #include "dvdnav_internal.h"
 #include "read_cache.h"
 
-#include <dvdread/nav_read.h>
+#include "../libdvdread/nav_read.h"
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -957,6 +957,10 @@ uint32_t dvdnav_get_next_still_flag(dvdnav_t *this) {
 
 /*
  * $Log: dvdnav.c,v $
+ * Revision 1.16  2003/02/24 20:44:26  siggi
+ * make it compile again without external libdvdread.
+ * (I guess this is supposed to work somehow differently. Feel free to fix!)
+ *
  * Revision 1.15  2003/02/24 18:31:15  mroi
  * sorry, wrong commit, this time it is: fix seek detection
  *
