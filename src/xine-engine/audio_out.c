@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.55 2002/05/24 12:23:58 miguelfreitas Exp $
+ * $Id: audio_out.c,v 1.56 2002/06/03 09:45:12 f1rmb Exp $
  * 
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -588,10 +588,24 @@ static void ao_close(ao_instance_t *this) {
 }
 
 static void ao_exit(ao_instance_t *this) {
-
+  int vol;
+  int prop = 0;
+  
   audio_buffer_t *buf, *next;
-
+  
   pthread_mutex_lock( &this->driver_lock );
+  
+  if((this->driver->get_capabilities(this->driver)) & AO_CAP_MIXER_VOL)
+    prop = AO_PROP_MIXER_VOL;
+  else if((this->driver->get_capabilities(this->driver)) & AO_CAP_PCM_VOL)
+    prop = AO_PROP_PCM_VOL;
+  
+  vol = this->driver->get_property(this->driver, prop);
+  this->xine->config->update_num(this->xine->config, "audio.mixer_volume", vol);
+
+  /* Save config is needed, otherwise value change will be lost */
+  this->xine->config->save(this->xine->config);
+
   this->driver->exit(this->driver);
   pthread_mutex_unlock( &this->driver_lock );
 
@@ -728,6 +742,30 @@ ao_instance_t *ao_new_instance (ao_driver_t *driver, xine_t *xine) {
     fifo_append (this->free_fifo, buf);
   }
 
-  
+  /*
+   * Set audio volume to latest used one ?
+   */
+  if(this->driver){
+    int vol;
+    
+    vol = config->register_range (config, "audio.mixer_volume", 
+				  50, 0, 100, "Audio volume", 
+				  NULL, NULL, NULL);
+    
+    if(config->register_bool (config, "audio.remember_volume", 0,
+			      "restore volume level at startup", 
+			      "if this not set, xine will not touch any mixer settings at startup",
+			      NULL, NULL)) {
+      int prop = 0;
+
+      if((ao_get_capabilities(this)) & AO_CAP_MIXER_VOL)
+	prop = AO_PROP_MIXER_VOL;
+      else if((ao_get_capabilities(this)) & AO_CAP_PCM_VOL)
+	prop = AO_PROP_PCM_VOL;
+      
+      ao_set_property(this, prop, vol);
+    }
+  }
+
   return this;
 }

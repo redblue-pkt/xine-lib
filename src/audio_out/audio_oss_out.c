@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_oss_out.c,v 1.65 2002/05/28 10:40:16 heikos Exp $
+ * $Id: audio_oss_out.c,v 1.66 2002/06/03 09:45:12 f1rmb Exp $
  *
  * 20-8-2001 First implementation of Audio sync and Audio driver separation.
  * Copyright (C) 2001 James Courtier-Dutton James@superbug.demon.co.uk
@@ -446,10 +446,6 @@ static uint32_t ao_oss_get_capabilities (ao_driver_t *this_gen) {
 static void ao_oss_exit(ao_driver_t *this_gen) {
 
   oss_driver_t    *this   = (oss_driver_t *) this_gen;
-  config_values_t *config = this->config;
-
-
-  config->update_num (config, "audio.mixer_volume", this->mixer.volume);
 
   if (this->audio_fd != -1)
     close(this->audio_fd);
@@ -875,18 +871,7 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
     
     this->mixer.mute = 0;
     this->mixer.volume = ao_oss_get_property (&this->ao_driver, this->mixer.prop);
-    if (config->register_bool (config, "audio.remember_volume", 0,
-			       "restore volume level at startup", 
-			       "if this not set, xine will not touch any mixer settings at startup",
-			       NULL, NULL)) {
-      this->mixer.volume = config->register_range (config,
-						   "audio.oss_mixer_volume",
-						   50, 0, 100, "Audio volume",
-						   NULL, NULL, NULL);
-      (void) ao_oss_set_property(&this->ao_driver,
-				 this->mixer.prop, this->mixer.volume);
-      
-    }
+
   }
   close (audio_fd);
 
