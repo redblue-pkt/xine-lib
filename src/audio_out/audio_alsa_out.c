@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.56 2002/06/12 12:22:26 f1rmb Exp $
+ * $Id: audio_alsa_out.c,v 1.57 2002/06/13 18:39:17 tmattern Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -647,28 +647,20 @@ static int ao_alsa_ctrl(ao_driver_t *this_gen, int cmd, ...) {
 
   case AO_CTRL_PLAY_PAUSE:
     if ((this->has_pause_resume) && (this->audio_fd > 0)) {
-#if 0
       if ((result=snd_pcm_pause(this->audio_fd, 1)) < 0) {
-        printf("Pause call failed err=%d\n",result);
+        printf("audio_alsa_out: Pause call failed, try drop/prepare instead\n");
+        ao_alsa_ctrl(this_gen, AO_CTRL_FLUSH_BUFFERS);
       }
-#else
-      if ((result=snd_pcm_drop(this->audio_fd)) < 0) {
-        printf("Drop call failed err=%d\n",result);
-      }
-      if ((result=snd_pcm_prepare(this->audio_fd)) < 0) {
-        printf("Prepare call failed err=%d\n",result);
-      }
-#endif
+    } else {
+      ao_alsa_ctrl(this_gen, AO_CTRL_FLUSH_BUFFERS);
     }
     break;
 
   case AO_CTRL_PLAY_RESUME:
     if ((this->has_pause_resume) && (this->audio_fd > 0) ) {
-#if 0
       if ((result=snd_pcm_pause(this->audio_fd, 0)) < 0) {
         printf("Resume call failed err=%d\n",result);
       }
-#endif
     }
     break;
 
