@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.181 2003/05/11 11:32:31 jcdutton Exp $
+ * $Id: demux_mpeg_block.c,v 1.182 2003/05/11 14:48:02 tmmm Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  * used with fixed blocksize devices (like dvd/vcd)
@@ -460,10 +460,10 @@ static int32_t parse_program_stream_system_header(demux_mpeg_block_t *this, uint
 
 static int32_t parse_private_stream_2(demux_mpeg_block_t *this, uint8_t *p, buf_element_t *buf) {
 
+  int64_t start_pts, end_pts;
+
   /* NAV Packet */
   this->packet_len = p[4] << 8 | p[5];
-
-  int64_t start_pts, end_pts;
 
   start_pts  = (p[7+12] << 24);
   start_pts |= (p[7+13] << 16);
