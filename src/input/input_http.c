@@ -19,7 +19,7 @@
  *
  * input plugin for http network streams
  *
- * $Id: input_http.c,v 1.92 2004/06/19 19:28:30 mroi Exp $
+ * $Id: input_http.c,v 1.93 2004/07/05 20:47:42 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -728,7 +728,8 @@ static int http_plugin_open (input_plugin_t *this_gen ) {
     printf ("\n");
   }
 
-#endif  
+#endif
+
   if (use_proxy)
     this->fh = _x_io_tcp_connect (this->stream, this_class->proxyhost, proxyport);
   else
@@ -1036,26 +1037,33 @@ static void *init_class (xine_t *xine, void *data) {
    * proxy settings
    */
   this->proxyhost = config->register_string(config, 
-      "input.http_proxy_host", proxy_env ? this->proxyhost_env : "",
-      _("HTTP proxy host"), _("The hostname of the HTTP proxy."), 10,
-      proxy_host_change_cb, (void *) this);
+					    "input.http_proxy_host", proxy_env ? this->proxyhost_env : "",
+					    _("HTTP proxy host"), _("The hostname of the HTTP proxy."), 10,
+					    proxy_host_change_cb, (void *) this);
   this->proxyport = config->register_num(config,
-      "input.http_proxy_port", proxy_env ? this->proxyport_env : DEFAULT_HTTP_PORT,
-      _("HTTP proxy port"), _("The port number of the HTTP proxy."), 10,
-      proxy_port_change_cb, (void *) this);
+					 "input.http_proxy_port", proxy_env ? this->proxyport_env : DEFAULT_HTTP_PORT,
+					 _("HTTP proxy port"), _("The port number of the HTTP proxy."), 10,
+					 proxy_port_change_cb, (void *) this);
+  
+  /* registered entries could be empty. Don't ignore envvar */
+  if(!strlen(this->proxyhost) && (proxy_env && strlen(proxy_env))) {
+    config->update_string(config, "input.http_proxy_host", this->proxyhost_env);
+    config->update_num(config, "input.http_proxy_port", this->proxyport_env);
+  }
+  
   this->proxyuser = config->register_string(config,
-      "input.http_proxy_user", "", _("HTTP proxy username"),
-      _("The user name for the HTTP proxy."), 10,
-      proxy_user_change_cb, (void *) this);
+					    "input.http_proxy_user", "", _("HTTP proxy username"),
+					    _("The user name for the HTTP proxy."), 10,
+					    proxy_user_change_cb, (void *) this);
   this->proxypassword = config->register_string(config,
-      "input.http_proxy_password", "", _("HTTP proxy password"),
-      _("The password for the HTTP proxy."), 10,
-      proxy_password_change_cb, (void *) this);
+						"input.http_proxy_password", "", _("HTTP proxy password"),
+						_("The password for the HTTP proxy."), 10,
+						proxy_password_change_cb, (void *) this);
   this->noproxylist = config->register_string(config,
-      "input.http_no_proxy", "", _("Domains, where to ignore the HTTP proxy"),
-      _("A Comma separated list of domain names, where the proxy is to be ignored."), 10,
-      no_proxy_list_change_cb, (void *) this);
-
+					      "input.http_no_proxy", "", _("Domains, where to ignore the HTTP proxy"),
+					      _("A Comma separated list of domain names, where the proxy is to be ignored."), 10,
+					      no_proxy_list_change_cb, (void *) this);
+  
   return this;
 }
 
