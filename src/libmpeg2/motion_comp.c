@@ -27,7 +27,7 @@
 #include <inttypes.h>
 
 #include "mpeg2_internal.h"
-#include "mm_accel.h"
+#include "xineutils.h"
 
 mpeg2_mc_t mpeg2_mc;
 
