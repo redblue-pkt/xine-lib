@@ -21,7 +21,7 @@
  * This demuxer detects raw AC3 data in a file and shovels AC3 data
  * directly to the AC3 decoder.
  *
- * $Id: demux_ac3.c,v 1.6 2003/03/07 12:51:47 guenter Exp $
+ * $Id: demux_ac3.c,v 1.7 2003/03/31 19:31:54 tmmm Exp $
  *
  */
 
@@ -63,6 +63,10 @@ typedef struct {
   int                  sample_rate;
   int                  frame_size;
   int                  running_time;
+
+  /* This hack indicates that 2 bytes (0x0B77) have already been consumed
+   * from a non-seekable stream during the detection phase. */
+  int                  first_non_seekable_frame;
 
   char                 last_mrl[1024];
 } demux_ac3_t;
@@ -130,16 +134,33 @@ static const struct frmsize_s frmsizecod_tbl[64] =
 static int open_ac3_file(demux_ac3_t *this) {
 
   unsigned char preamble[AC3_PREAMBLE_BYTES];
+  unsigned char preview[MAX_PREVIEW_SIZE];
 
   /* check if the sync mark matches up */
-  this->input->seek(this->input, 0, SEEK_SET);
-  if (this->input->read(this->input, preamble, AC3_PREAMBLE_BYTES) != 
-    AC3_PREAMBLE_BYTES)
-    return 0;
+  if (this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) {
+    this->input->seek(this->input, 0, SEEK_SET);
+    if (this->input->read(this->input, preamble, AC3_PREAMBLE_BYTES) != 
+      AC3_PREAMBLE_BYTES)
+      return 0;
+  } else {
+    this->input->get_optional_data(this->input, preview,
+      INPUT_OPTIONAL_DATA_PREVIEW);
+
+    this->first_non_seekable_frame = 1;
+
+    /* copy over the header bytes for processing */
+    memcpy(preamble, preview, AC3_PREAMBLE_BYTES);
+  }
 
   if ((preamble[0] != 0x0B) ||
       (preamble[1] != 0x77))
     return 0;
+
+  /* file is qualified; if the input was not seekable, skip over the header
+   * bytes in the stream */
+  if ((this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) == 0) {
+    this->input->seek(this->input, AC3_PREAMBLE_BYTES, SEEK_SET);
+  }
 
   this->sample_rate = preamble[4] >> 6;
   if (this->sample_rate > 2)
@@ -168,13 +189,12 @@ static int demux_ac3_send_chunk (demux_plugin_t *this_gen) {
 
   demux_ac3_t *this = (demux_ac3_t *) this_gen;
   buf_element_t *buf = NULL;
-  off_t current_file_pos;
+  off_t current_stream_pos;
   int64_t audio_pts;
-  int bytes_read;
   int frame_number;
 
-  current_file_pos = this->input->get_current_pos(this->input);
-  frame_number = current_file_pos / this->frame_size;
+  current_stream_pos = this->input->get_current_pos(this->input);
+  frame_number = current_stream_pos / this->frame_size;
 
   /* 
    * Each frame represents 256 new audio samples according to the a52 spec.
@@ -198,16 +218,24 @@ static int demux_ac3_send_chunk (demux_plugin_t *this_gen) {
   }
 
   buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
-  buf->type = BUF_AUDIO_A52;
-  bytes_read = this->input->read(this->input, buf->content, this->frame_size);
-  if (bytes_read == 0) {
+  if (this->first_non_seekable_frame) {
+    this->first_non_seekable_frame = 0;
+    buf->content[0] = 0x0B;
+    buf->content[1] = 0x77;
+    buf->size = this->input->read(this->input, &buf->content[2],
+      this->frame_size);
+  } else {
+    buf->size = this->input->read(this->input, buf->content, this->frame_size);
+  }
+
+  if (buf->size == 0) {
     buf->free_buffer(buf);
     this->status = DEMUX_FINISHED;
     return this->status;
   }
-  buf->size = bytes_read;
 
-  buf->extra_info->input_pos = current_file_pos;
+  buf->type = BUF_AUDIO_A52;
+  buf->extra_info->input_pos = current_stream_pos;
   buf->extra_info->input_length = this->input->get_length(this->input);
   buf->extra_info->input_time = audio_pts / 90;
   buf->pts = audio_pts;
@@ -250,15 +278,20 @@ static int demux_ac3_seek (demux_plugin_t *this_gen,
 
   demux_ac3_t *this = (demux_ac3_t *) this_gen;
 
+  this->seek_flag = 1;
+  this->status = DEMUX_OK;
+  xine_demux_flush_engine (this->stream);
+
+  /* if input is non-seekable, do not proceed with the rest of this
+   * seek function */
+  if ((this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) == 0)
+    return this->status;
+
   /* divide the requested offset integer-wise by the frame alignment and
    * multiply by the frame alignment to determine the new starting block */
   start_pos /= this->frame_size;
   start_pos *= this->frame_size;
   this->input->seek(this->input, start_pos, SEEK_SET);
-
-  this->seek_flag = 1;
-  this->status = DEMUX_OK;
-  xine_demux_flush_engine (this->stream);
 
   return this->status;
 }
@@ -297,12 +330,6 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
 
   input_plugin_t *input = (input_plugin_t *) input_gen;
   demux_ac3_t   *this;
-
-  if (! (input->get_capabilities(input) & INPUT_CAP_SEEKABLE)) {
-    if (stream->xine->verbosity >= XINE_VERBOSITY_DEBUG) 
-    printf(_("demux_ac3.c: input not seekable, can not handle!\n"));
-    return NULL;
-  }
 
   this         = xine_xmalloc (sizeof (demux_ac3_t));
   this->stream = stream;

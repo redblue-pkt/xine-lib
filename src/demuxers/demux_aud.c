@@ -32,7 +32,7 @@
  * data. This makes seeking conceptually impossible. Upshot: Random
  * seeking is not supported.
  *
- * $Id: demux_aud.c,v 1.5 2003/03/07 12:51:47 guenter Exp $
+ * $Id: demux_aud.c,v 1.6 2003/03/31 19:31:54 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -101,11 +101,20 @@ typedef struct {
 static int open_aud_file(demux_aud_t *this) {
 
   unsigned char header[AUD_HEADER_SIZE];
+  unsigned char preview[MAX_PREVIEW_SIZE];
 
-  this->input->seek(this->input, 0, SEEK_SET);
-  if (this->input->read(this->input, header, AUD_HEADER_SIZE) !=
-    AUD_HEADER_SIZE)
-    return 0;
+  if (this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) {
+    this->input->seek(this->input, 0, SEEK_SET);
+    if (this->input->read(this->input, header, AUD_HEADER_SIZE) !=
+      AUD_HEADER_SIZE)
+      return 0;
+  } else {
+    this->input->get_optional_data(this->input, preview,
+      INPUT_OPTIONAL_DATA_PREVIEW);
+
+    /* copy over the header bytes for processing */
+    memcpy(header, preview, AUD_HEADER_SIZE);
+  }
 
   /* Probabilistic content detection strategy: There is no file signature
    * so perform sanity checks on various header parameters:
@@ -119,6 +128,12 @@ static int open_aud_file(demux_aud_t *this) {
   this->audio_samplerate = LE_16(&header[0]);
   if ((this->audio_samplerate < 8000) || (this->audio_samplerate > 48000))
     return 0;
+
+  /* file is qualified; if the input was not seekable, skip over the header
+   * bytes in the stream */
+  if ((this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) == 0) {
+    this->input->seek(this->input, AUD_HEADER_SIZE, SEEK_SET);
+  }
 
   if (header[11] == 1)
     this->audio_type = BUF_AUDIO_WESTWOOD;  
@@ -242,17 +257,17 @@ static int demux_aud_seek (demux_plugin_t *this_gen,
 
   demux_aud_t *this = (demux_aud_t *) this_gen;
 
-  /* if thread is not running, initialize demuxer */
-  if( !this->stream->demux_thread_running ) {
+  this->status = DEMUX_OK;
+  xine_demux_flush_engine (this->stream);
 
-    /* send new pts */
-    xine_demux_control_newpts(this->stream, 0, 0);
+  /* if input is non-seekable, do not proceed with the rest of this
+   * seek function */
+  if ((this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) == 0)
+    return this->status;
 
-    this->status = DEMUX_OK;
 
-    /* reposition stream right after headers */
-    this->input->seek(this->input, this->data_start, SEEK_SET);
-  }
+  /* no seeking yet */
+
 
   return this->status;
 }
@@ -287,12 +302,6 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
 
   input_plugin_t *input = (input_plugin_t *) input_gen;
   demux_aud_t    *this;
-
-  if (! (input->get_capabilities(input) & INPUT_CAP_SEEKABLE)) {
-    if (stream->xine->verbosity >= XINE_VERBOSITY_DEBUG) 
-      printf(_("demux_aud.c: input not seekable, can not handle!\n"));
-    return NULL;
-  }
 
   this         = xine_xmalloc (sizeof (demux_aud_t));
   this->stream = stream;
@@ -399,14 +408,3 @@ void *demux_aud_init_plugin (xine_t *xine, void *data) {
 
   return this;
 }
-
-/*
- * exported plugin catalog entry
- */
-#if 0
-plugin_info_t xine_plugin_info[] = {
-  /* type, API, "name", version, special_info, init_function */
-  { PLUGIN_DEMUX, 20, "aud", XINE_VERSION_CODE, NULL, demux_aud_init_plugin },
-  { PLUGIN_NONE, 0, "", 0, NULL, NULL }
-};
-#endif

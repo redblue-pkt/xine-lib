@@ -23,7 +23,7 @@
  * It will only play that block if it is PCM data. More variations will be
  * supported as they are encountered.
  *
- * $Id: demux_voc.c,v 1.28 2003/03/07 12:51:48 guenter Exp $
+ * $Id: demux_voc.c,v 1.29 2003/03/31 19:31:58 tmmm Exp $
  *
  */
 
@@ -96,21 +96,30 @@ static int open_voc_file(demux_voc_t *this) {
   unsigned char preamble[BLOCK_PREAMBLE_SIZE];
   off_t first_block_offset;
   signed char sample_rate_divisor;
+  unsigned char preview[MAX_PREVIEW_SIZE];
 
-  this->input->seek(this->input, 0, SEEK_SET);
-  if (this->input->read(this->input, header, VOC_HEADER_SIZE) != 
-    VOC_HEADER_SIZE)
-    return 0;
+  if (this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) {
+    this->input->seek(this->input, 0, SEEK_SET);
+    if (this->input->read(this->input, header, VOC_HEADER_SIZE) != 
+      VOC_HEADER_SIZE)
+      return 0;
+  } else {
+    this->input->get_optional_data(this->input, preview,
+      INPUT_OPTIONAL_DATA_PREVIEW);
+
+    /* copy over the header bytes for processing */
+    memcpy(header, preview, VOC_HEADER_SIZE);
+  }
 
   /* check the signature */
   if (strncmp(header, VOC_SIGNATURE, strlen(VOC_SIGNATURE)) != 0)
     return 0;
 
-  /* load the header */
-  this->input->seek(this->input, 0, SEEK_SET);
-  if (this->input->read(this->input, header, VOC_HEADER_SIZE) != 
-    VOC_HEADER_SIZE)
-    return 0;
+  /* file is qualified; if the input was not seekable, skip over the header
+   * bytes in the stream */
+  if ((this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) == 0) {
+    this->input->seek(this->input, VOC_HEADER_SIZE, SEEK_SET);
+  }
 
   first_block_offset = LE_16(&header[0x14]);
   this->input->seek(this->input, first_block_offset, SEEK_SET);
@@ -256,6 +265,15 @@ static int demux_voc_seek (demux_plugin_t *this_gen,
 
   demux_voc_t *this = (demux_voc_t *) this_gen;
 
+  this->seek_flag = 1;
+  this->status = DEMUX_OK;
+  xine_demux_flush_engine (this->stream);
+
+  /* if input is non-seekable, do not proceed with the rest of this
+   * seek function */
+  if ((this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) == 0)
+    return this->status;
+
   /* check the boundary offsets */
   if (start_pos < 0)
     this->input->seek(this->input, this->data_start, SEEK_SET);
@@ -274,10 +292,6 @@ static int demux_voc_seek (demux_plugin_t *this_gen,
 
     this->input->seek(this->input, start_pos, SEEK_SET);
   }
-
-  this->seek_flag = 1;
-  this->status = DEMUX_OK;
-  xine_demux_flush_engine (this->stream);
 
   return this->status;
 }
@@ -316,12 +330,6 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
 
   input_plugin_t *input = (input_plugin_t *) input_gen;
   demux_voc_t    *this;
-
-  if (! (input->get_capabilities(input) & INPUT_CAP_SEEKABLE)) {
-    if (stream->xine->verbosity >= XINE_VERBOSITY_DEBUG) 
-      printf(_("demux_voc.c: input not seekable, can not handle!\n"));
-    return NULL;
-  }
 
   this         = xine_xmalloc (sizeof (demux_voc_t));
   this->stream = stream;
@@ -429,15 +437,3 @@ void *demux_voc_init_plugin (xine_t *xine, void *data) {
 
   return this;
 }
-
-/*
- * exported plugin catalog entry
- */
-
-#if 0
-plugin_info_t xine_plugin_info[] = {
-  /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_DEMUX, 20, "voc", XINE_VERSION_CODE, NULL, demux_voc_init_plugin },
-  { PLUGIN_NONE, 0, "", 0, NULL, NULL }
-};
-#endif
