@@ -81,3 +81,9 @@
 /* Define this to cap audio sample rate at 44.1K, some drivers (dmasound) don't handle 48K request correctly */
 #undef FORCE_44K_MAX
 
+/* Define one of these to select libmad fixed point arithmetic implementation */
+#undef FPM_INTEL
+#undef FPM_64BIT
+#undef FPM_PPC
+#undef FPM_SPARC
+#undef FPM_MIPS

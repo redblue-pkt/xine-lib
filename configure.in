@@ -351,6 +351,7 @@ case $host in
     DEBUG_CFLAGS="$X_CFLAGS $DEBUG_CFLAGS $CFLAGS"
     AC_DEFINE(__i386__)
     AC_DEFINE([ARCH_X86],,[x86 architecture])
+    AC_DEFINE(FPM_INTEL)
 
     enable_w32dll="yes"
     enable_ffmmx="yes"
@@ -372,6 +373,7 @@ case $host in
 	
         AC_DEFINE(__i386__)
 	AC_DEFINE([ARCH_X86],,[x86 architecture])
+	AC_DEFINE(FPM_INTEL)
 
 	dnl add x86 specific CFLAGS
 	GLOBAL_CFLAGS="$GLOBAL_CFLAGS -O3 -pipe -fomit-frame-pointer -malign-functions=4 -malign-loops=4 -malign-jumps=4 -malign-functions=4 $m_wm $m_psb -fexpensive-optimizations $f_si $f_nsa -ffast-math -funroll-loops -funroll-all-loops -finline-functions"
@@ -430,25 +432,30 @@ case $host in
     alphaev56-*)
         GLOBAL_CFLAGS="$GLOBAL_CFLAGS -O3 -mcpu=ev56 -mieee"
         DEBUG_CFLAGS="$DEBUG_CFLAGS -O3 -mcpu=ev56 -mieee"
+	AC_DEFINE(FPM_64BIT)
         ;;
     alpha*)
         GLOBAL_CFLAGS="$GLOBAL_CFLAGS -O3 -mieee"
         DEBUG_CFLAGS="$DEBUG_CFLAGS -O3 -mieee"
+	AC_DEFINE(FPM_64BIT)
         ;;
     ppc-*-linux-* | powerpc-*) 
 	GLOBAL_CFLAGS="$GLOBAL_CFLAGS -O3 -pipe -fomit-frame-pointer $m_wm $m_psb -fexpensive-optimizations $f_si $f_nsa -ffast-math -funroll-loops -funroll-all-loops -finline-functions"
        	DEBUG_CFLAGS="$DEBUG_CFLAGS -O3"
 	FORCE_44K_MAX=yes
+	AC_DEFINE(FPM_PPC)
         ;;
     sparc64-*-linux-* | sparc-*)
 	dnl hard code cpu target as sparcv8, hopefully no one wants to watch
 	dnl mpeg videos on his old SPARCstation2 :-)
         GLOBAL_CFLAGS="$GLOBAL_CFLAGS -O3 -mcpu=v8 -mtune=ultrasparc -funroll-loops -funroll-all-loops -finline-functions"
         DEBUG_CFLAGS="$DEBUG_CFLAGS -O -mcpu=v8 -mtune=ultrasparc -funroll-loops -funroll-all-loops -finline-functions"
+	AC_DEFINE(FPM_SPARC)
         ;;
     mips-*)
 	GLOBAL_CFLAGS="$GLOBAL_CFLAGS -O3"
 	DEBUG_CFLAGS="$DEBUG_CFLAGS -O"
+	AC_DEFINE(FPM_MIPS)
 	;;
     *) echo "$host is not currently supported by xine"; exit 1;;
     esac
@@ -580,6 +587,7 @@ src/libffmpeg/Makefile
 src/libffmpeg/libavcodec/Makefile
 src/liblpcm/Makefile
 src/libmpg123/Makefile
+src/libmad/Makefile
 src/libw32dll/Makefile
 src/libw32dll/wine/Makefile
 src/libspudec/Makefile
