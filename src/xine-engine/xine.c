@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.311 2005/02/19 13:11:52 valtri Exp $
+ * $Id: xine.c,v 1.312 2005/03/06 11:08:40 tmattern Exp $
  */
 
 /*
@@ -276,26 +276,23 @@ static void stop_internal (xine_stream_t *stream) {
   if ( stream->status == XINE_STATUS_IDLE ||
        stream->status == XINE_STATUS_STOP ) {
     _x_demux_control_end(stream, 0);
-    lprintf ("ignored\n");
-    return;
+    lprintf("ignored");
+  } else {
+    /* make sure we're not in "paused" state */
+    set_speed_internal (stream, XINE_FINE_SPEED_NORMAL);
+
+    /* Don't change status if we're quitting */
+    if (stream->status != XINE_STATUS_QUIT)
+      stream->status = XINE_STATUS_STOP;
   }
-
-  /* make sure we're not in "paused" state */
-  set_speed_internal (stream, XINE_FINE_SPEED_NORMAL);
-
-  /* Don't change status if we're quitting */
-  if (stream->status != XINE_STATUS_QUIT)
-    stream->status = XINE_STATUS_STOP;
-
   /*
    * stop demux
    */
-  lprintf ("stopping demux\n");
-  if (stream->demux_plugin) {
+  if (stream->demux_plugin && stream->demux_thread) {
+    lprintf ("stopping demux\n");
     _x_demux_stop_thread( stream );
-    lprintf ("stop thread done\n");
+    lprintf ("demux stopped\n");
   }
-  lprintf ("demux stopped\n");
   lprintf ("done\n");
 }
 

@@ -20,7 +20,7 @@
  * Demuxer helper functions
  * hide some xine engine details from demuxers and reduce code duplication
  *
- * $Id: demux.c,v 1.55 2005/02/10 11:33:31 mroi Exp $ 
+ * $Id: demux.c,v 1.56 2005/03/06 11:08:40 tmattern Exp $ 
  */
 
 
@@ -317,7 +317,6 @@ static void *demux_loop (void *stream_gen) {
   pthread_mutex_unlock (&stream->counter_lock);
   
   _x_handle_stream_end(stream, non_user);
-  stream->demux_thread = 0;
   return NULL;
 }
 
@@ -332,7 +331,9 @@ int _x_demux_start_thread (xine_stream_t *stream) {
   stream->demux_action_pending = 0;
   
   if( !stream->demux_thread_running ) {
-    
+
+    _x_assert(stream->demux_thread == 0);
+
     stream->demux_thread_running = 1;
     if ((err = pthread_create (&stream->demux_thread,
 			       NULL, demux_loop, (void *)stream)) != 0) {
@@ -364,8 +365,10 @@ int _x_demux_stop_thread (xine_stream_t *stream) {
 
   lprintf ("joining thread %ld\n", stream->demux_thread );
   
-  if( stream->demux_thread )
+  if( stream->demux_thread ) {
     pthread_join (stream->demux_thread, &p);
+    stream->demux_thread = 0;
+  }
   
   /*
    * Wake up xine_play if it's waiting for a frame
