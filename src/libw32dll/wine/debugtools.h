@@ -12,12 +12,20 @@
 
 struct _GUID;
 
+#ifndef TRACE
 #ifdef LOG
 #  define TRACE __vprintf
-#  define dbg_printf __vprintf
 #else
 #  define TRACE(...)
+#endif
+#endif
+
+#ifndef dbg_printf
+#ifdef LOG
+#  define dbg_printf __vprintf
+#else
 #  define dbg_printf(...)
+#endif
 #endif
 
 /* Internal definitions (do not use these directly) */

@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_ogg.c,v 1.156 2004/12/03 04:11:42 conrad Exp $
+ * $Id: demux_ogg.c,v 1.157 2004/12/12 06:55:58 athp Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -717,7 +717,8 @@ static void send_ogg_buf (demux_ogg_t *this,
 
     buf->size = 12 + op->bytes + 1;
 
-    lprintf ("CMML stream %d: PTS %d: %s\n", stream_num, buf->pts, str);
+    lprintf ("CMML stream %d (bytes=%d): PTS %d: %s\n",
+             stream_num, op->bytes, buf->pts, str);
 
     this->video_fifo->put (this->video_fifo, buf);
 
@@ -818,7 +819,7 @@ static void decode_speex_header (demux_ogg_t *this, const int stream_num, ogg_pa
 
   if (header) {
     int bitrate;
-    mode = speex_mode_list[header->mode];
+    mode = (SpeexMode *) speex_mode_list[header->mode];
 
     st = speex_decoder_init (mode);
 

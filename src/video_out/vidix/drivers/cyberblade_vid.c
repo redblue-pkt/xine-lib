@@ -60,6 +60,7 @@ FILE *logfile=0;
 
 /* Helper functions for reading registers. */
 
+#if 0 /* unused */
 static int CRINW(int reg)
 {
 	int result;
@@ -67,6 +68,7 @@ static int CRINW(int reg)
 	result|=CRINB(reg+1)<<8;
 	return(result);
 }
+#endif
 
 static void CROUTW(int reg,int val)
 {
@@ -74,6 +76,7 @@ static void CROUTW(int reg,int val)
 	CROUTB(reg+1,(val>>8)&255);
 }
 
+#if 0 /* unused */
 static int SRINW(int reg)
 {
 	int result;
@@ -81,6 +84,7 @@ static int SRINW(int reg)
 	result|=SRINB(reg+1)<<8;
 	return(result);
 }
+#endif
 
 static void SROUTW(int reg,int val)
 {
@@ -88,6 +92,7 @@ static void SROUTW(int reg,int val)
 	SROUTB(reg+1,(val>>8)&255);
 }
 
+#if 0 /* unused */
 static void DumpRegisters(void)
 {
 #ifdef DEBUG_LOGFILE
@@ -109,6 +114,7 @@ static void DumpRegisters(void)
 	}
 #endif
 }
+#endif
 
 /* --- */
 

@@ -31,6 +31,7 @@
 #include "sis_regs.h"
 #include "sis_defs.h"
 
+void sis_init_video_bridge(void);
 
 static void sis_ddc2_delay(unsigned short delaytime)
 {
@@ -71,7 +72,9 @@ static void sis_sense_30x()
     unsigned char testvga2_tempbl, testvga2_tempbh;
     unsigned char testvga2_tempcl, testvga2_tempch;
     int myflag, result = 0, i, j, haveresult;
+#if 0
     unsigned short temp;
+#endif
 
     inSISIDXREG(SISPART4, 0x0d, backupP4_0d);
     outSISIDXREG(SISPART4, 0x0d, (backupP4_0d | 0x04));
@@ -394,10 +397,14 @@ static void sis_detect_crt1()
     }
 }
 
-
+#if 0 /* not used yet */
 static void sis_detect_lcd()
 {
-    unsigned char CR32, CR36, CR37;
+    unsigned char CR32;
+#if 0
+    /* not supported yet? */
+    unsigned char CR36, CR37;
+#endif
 
     if (!(sis_vbflags & VB_VIDEOBRIDGE)) {
 	return;
@@ -412,7 +419,7 @@ static void sis_detect_lcd()
 
     /* Get other misc info about LCD - not supported */
 }
-
+#endif
 
 static void sis_detect_tv()
 {
@@ -715,7 +722,7 @@ void sis_init_video_bridge()
     sis_detect_video_bridge();
 
     sis_detect_crt1();
-    //sis_detect_lcd();
+    //sis_detect_lcd(); /* not fully ready probably */
     sis_detect_tv();
     sis_detect_crt2();
 

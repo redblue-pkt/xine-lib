@@ -20,7 +20,7 @@
 ** nes_apu.c
 **
 ** NES APU emulation
-** $Id: nes_apu.c,v 1.2 2003/08/25 21:51:43 f1rmb Exp $
+** $Id: nes_apu.c,v 1.3 2004/12/12 06:55:59 athp Exp $
 */
 
 #include <string.h>
@@ -102,12 +102,12 @@ const int dmc_clocks[16] =
 /* ratios of pos/neg pulse for rectangle waves */
 static const int duty_lut[4] = { 2, 4, 8, 12 };
 
-
+#if 0 /* unused */
 static void apu_setcontext(apu_t *src_apu)
 {
    apu = src_apu;
 }
-
+#endif
 
 /*
 ** Simple queue routines
@@ -1154,6 +1154,9 @@ int32 apu_getcyclerate(void)
 
 /*
 ** $Log: nes_apu.c,v $
+** Revision 1.3  2004/12/12 06:55:59  athp
+** Code cleanups and elimination of some compiler warnings; patch courtesy of AL13N
+**
 ** Revision 1.2  2003/08/25 21:51:43  f1rmb
 ** Reduce GCC verbosity (various prototype declaration fixes). ffmpeg, wine and fft*post are untouched (fft: for now).
 **

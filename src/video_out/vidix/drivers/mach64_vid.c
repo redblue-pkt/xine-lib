@@ -550,8 +550,11 @@ static void restore_regs( void )
 }
 
 static int forced_irq=INT_MAX;
+
+#ifdef MACH64_ENABLE_BM
 static int can_use_irq=0;
 static int irq_installed=0;
+
 static void init_irq(void)
 {
 	irq_installed=1;
@@ -568,6 +571,7 @@ static void init_irq(void)
 				 ,strerror(errno)
 				 ,pci_info.irq,pci_info.ipin,pci_info.gnt,pci_info.lat);
 }
+#endif
 
 int VIDIX_NAME(vixInit)(const char *args)
 {

@@ -25,6 +25,8 @@
 #include <stdio.h>
 #include <inttypes.h>
 
+uint16_t crc16_block(uint8_t *,uint32_t);
+
 static const uint16_t crc_lut[256] = 
 {
 	0x0000,0x8005,0x800f,0x000a,0x801b,0x001e,0x0014,0x8011,

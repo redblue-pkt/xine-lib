@@ -170,13 +170,13 @@ extern void sis_init_video_bridge();
 
 
 static void set_overlay(SISOverlayPtr pOverlay, int index);
-static void close_overlay();
+static void close_overlay(void);
 static void calc_scale_factor(SISOverlayPtr pOverlay,
 			      int index, int iscrt2);
 static void set_line_buf_size(SISOverlayPtr pOverlay);
 static void merge_line_buf(int enable);
 static void set_format(SISOverlayPtr pOverlay);
-static void set_colorkey();
+static void set_colorkey(void);
 
 static void set_brightness(uint8_t brightness);
 static void set_contrast(uint8_t contrast);
@@ -367,7 +367,7 @@ int vixInit(const char *args)
     inSISIDXREG(SISCR, 0x07, cr_data2);
     sis_screen_height =
 	((cr_data & 0xff) | ((uint16_t) (cr_data2 & 0x02) << 7) |
-	 ((uint16_t) (cr_data2 & 0x40) << 3) | ((uint16_t) (sr_data & 0x02)
+	 ((uint16_t) (cr_data2 & 0x40) << 3) | ((uint16_t) (cr_data & 0x02)
 						<< 9)) + 1;
 
     inSISIDXREG(SISSR, 0x0b, sr_data);
