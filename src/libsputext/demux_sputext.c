@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_sputext.c,v 1.2 2002/12/30 11:51:45 mroi Exp $
+ * $Id: demux_sputext.c,v 1.3 2002/12/30 18:07:49 mroi Exp $
  *
  * code based on old libsputext/xine_decoder.c
  *
@@ -808,6 +808,7 @@ static int demux_sputext_next (demux_sputext_t *this_gen) {
     return 0;
   
   buf = this->stream->video_fifo->buffer_pool_alloc(this->stream->video_fifo);
+  buf->type = BUF_SPU_TEXT;
   buf->decoder_info[1] = sub->lines;
   for (line = 0; line < sub->lines; line++)
     strncpy(buf->content + line * SUB_BUFSIZE, sub->text[line], SUB_BUFSIZE);
