@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.4 2001/11/16 20:24:56 jcdutton Exp $
+ * $Id: xine_decoder.c,v 1.5 2001/11/16 21:06:21 jcdutton Exp $
  *
  * 04-09-2001 DTS passtrough  (C) Joachim Koenig 
  *
@@ -89,6 +89,8 @@ void dts_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
   }
   ac5_type=((data[4] & 0x01) << 6) | ((data[5] >>2) & 0x3f);
   ac5_length=((data[5] & 0x03) << 12) | ((data[6] & 0xff) << 4) | ((data[7] & 0xf0) >> 4);
+  ac5_length++;
+
 /*  printf("DTS AC5 length=%d\n",ac5_length); */
   if (ac5_length > 8191) {
     printf("ac5_length too long\n");

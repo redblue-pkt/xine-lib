@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.27 2001/11/16 20:24:56 jcdutton Exp $
+ * $Id: audio_out.c,v 1.28 2001/11/16 21:06:22 jcdutton Exp $
  * 
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -454,6 +454,7 @@ static void *ao_loop (void *this_gen) {
         ac5_length=((data[5] & 0x03) << 12) |
                    ((data[6] & 0xff) << 4)  |
                    ((data[7] & 0xf0) >> 4);
+        ac5_length++;
         /* printf("AC5 length=%d\n",ac5_length); */
         if (ac5_length > 8191) {
           break;
