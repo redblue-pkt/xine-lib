@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_sun_out.c,v 1.16 2001/11/24 16:32:35 jkeil Exp $
+ * $Id: audio_sun_out.c,v 1.17 2002/02/23 17:22:09 jkeil Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -32,6 +32,7 @@
 #include <math.h>
 #include <unistd.h>
 #include <sys/audioio.h>
+#include <sys/uio.h>
 #include <sys/ioctl.h>
 #include <inttypes.h>
 #ifdef	__svr4__
@@ -41,6 +42,10 @@
 #include "xine_internal.h"
 #include "xineutils.h"
 #include "audio_out.h"
+
+#define	CS4231_WORKAROUND	1	/* enable workaround for audiocs play.samples bug */
+#define	SW_SAMPLE_COUNT		1
+
 
 #ifndef	AUDIO_CHANNELS_MONO
 #define	AUDIO_CHANNELS_MONO	1
@@ -80,7 +85,28 @@ typedef struct sun_driver_s {
       RTSC_DISABLED
   }		 use_rtsc;
 
-    int		 convert_u8_s8;	       /* Builtin conversion 8-bit UNSIGNED->SIGNED */
+  int		 convert_u8_s8;	       /* Builtin conversion 8-bit UNSIGNED->SIGNED */
+
+#if	CS4231_WORKAROUND
+  /*
+   * Sun's audiocs driver has problems counting samples when we send
+   * sound data chunks with a length that is not a multiple of 1024.
+   * As a workaround for this problem, we re-block the audio stream,
+   * so that we always send buffers of samples to the driver that have
+   * a size of N*1024 bytes;
+   */
+#define	MIN_WRITE_SIZE	1024
+
+  char		 buffer[MIN_WRITE_SIZE];
+  unsigned	 buf_len;
+#endif
+
+#if	SW_SAMPLE_COUNT
+  struct timeval tv0;
+  uint_t	 sample0;
+#endif
+
+  uint_t	 last_samplecnt;
 } sun_driver_t;
 
 
@@ -157,7 +183,7 @@ static int realtime_samplecounter_available(char *dev)
 	goto error;
     }
     if (info.play.samples < last_samplecnt) {
-	fprintf(stderr, "rtsc: %d > %d?\n", last_samplecnt, info.play.samples);
+	fprintf(stderr, "rtsc: %u > %u?\n", last_samplecnt, info.play.samples);
 	goto error;
     }
 
@@ -298,6 +324,8 @@ static int ao_sun_open(ao_driver_t *this_gen,
       return 0;
   }
 
+  this->last_samplecnt = 0;
+
   this->output_sample_rate = info.play.sample_rate;
   this->num_channels = info.play.channels;
 
@@ -307,13 +335,16 @@ static int ao_sun_open(ao_driver_t *this_gen,
   if (info.play.precision == 16)
     this->bytes_per_frame *= 2;
 
+#if	CS4231_WORKAROUND
+  this->buf_len = 0;
+#endif
+
   /*
   printf ("audio_sun_out: audio rate : %d requested, %d provided by device/sec\n",
 	   this->input_sample_rate, this->output_sample_rate);
   */
 
   printf ("audio_sun_out: %d channels output\n",this->num_channels);
-
   return this->output_sample_rate;
 }
 
@@ -334,10 +365,49 @@ static int ao_sun_delay(ao_driver_t *this_gen)
   sun_driver_t *this = (sun_driver_t *) this_gen;
   audio_info_t info;
 
-  if (ioctl(this->audio_fd, AUDIO_GETINFO, &info) == 0
-      && info.play.samples
-      && this->use_rtsc == RTSC_ENABLED) {
-    return this->frames_in_buffer - info.play.samples;
+  if (ioctl(this->audio_fd, AUDIO_GETINFO, &info) == 0 && info.play.samples) {
+
+    if (info.play.samples < this->last_samplecnt) {
+	printf("*** broken sound driver, sample counter runs backwards, cur %u < prev %u\n",
+	       info.play.samples, this->last_samplecnt);
+    }
+    this->last_samplecnt = info.play.samples;
+
+    if (this->use_rtsc == RTSC_ENABLED)
+      return this->frames_in_buffer - info.play.samples;
+
+#if	SW_SAMPLE_COUNT
+    /* compute "current sample" based on real time */
+    {
+      struct timeval tv1;
+      uint_t cur_sample;
+      uint_t msec;
+
+      gettimeofday(&tv1, NULL);
+
+      msec = (tv1.tv_sec  - this->tv0.tv_sec)  * 1000
+	  +  (tv1.tv_usec - this->tv0.tv_usec) / 1000;
+
+      cur_sample = this->sample0 + this->output_sample_rate * msec / 1000;
+
+      if (info.play.error) {
+	AUDIO_INITINFO(&info);
+	info.play.error = 0;
+	ioctl(this->audio_fd, AUDIO_SETINFO, &info);
+      }
+
+      /*
+       * more than 0.5 seconds difference between HW sample counter and
+       * computed sample counter?  -> re-initialize
+       */
+      if (abs(cur_sample - info.play.samples) > this->output_sample_rate/2) {
+	this->tv0 = tv1;
+	this->sample0 = cur_sample = info.play.samples;
+      }
+
+      return this->frames_in_buffer - cur_sample;
+    }
+#endif
   }
   return NOT_REAL_TIME;
 }
@@ -351,6 +421,73 @@ static int ao_sun_get_gap_tolerance (ao_driver_t *this_gen)
   else
     return GAP_NONRT_TOLERANCE;
 }
+
+
+#if	CS4231_WORKAROUND
+/*
+ * Sun's audiocs driver has problems counting samples when we send
+ * sound data chunks with a length that is not a multiple of 1024.
+ * As a workaround for this problem, we re-block the audio stream,
+ * so that we always send buffers of samples to the driver that have
+ * a size of N*1024 bytes;
+ */
+static int sun_audio_write(sun_driver_t *this, char *buf, unsigned nbytes)
+{
+  unsigned total_bytes, remainder;
+  int num_written;
+  unsigned orig_nbytes = nbytes;
+
+  total_bytes = this->buf_len + nbytes;
+  remainder = total_bytes % MIN_WRITE_SIZE;
+  if ((total_bytes -= remainder) > 0) {
+    struct iovec iov[2];
+    int iovcnt = 0;
+
+    if (this->buf_len > 0) {
+      iov[iovcnt].iov_base = this->buffer;
+      iov[iovcnt].iov_len = this->buf_len;
+      iovcnt++;
+    }
+    iov[iovcnt].iov_base = buf;
+    iov[iovcnt].iov_len = total_bytes - this->buf_len;
+
+    this->buf_len = 0;
+    buf += iov[iovcnt].iov_len;
+    nbytes -= iov[iovcnt].iov_len;
+
+    num_written = writev(this->audio_fd, iov, iovcnt+1);
+    if (num_written != total_bytes)
+      return -1;
+  }
+
+  if (nbytes > 0) {
+    memcpy(this->buffer + this->buf_len, buf, nbytes);
+    this->buf_len += nbytes;
+  }
+
+  return orig_nbytes;
+}
+
+
+static void sun_audio_flush(sun_driver_t *this)
+{
+  if (this->buf_len > 0) {
+    write(this->audio_fd, this->buffer, this->buf_len);
+    this->buf_len = 0;
+  }
+}
+
+#else
+static int sun_audio_write(sun_driver_t *this, char *buf, unsigned nbytes)
+{
+  return write(this->audio_fd, buf, nbytes);
+}
+
+static void sun_audio_flush(sun_driver_t *this)
+{
+}
+#endif
+
 
  /* Write audio samples
   * num_frames is the number of audio frames present
@@ -375,16 +512,17 @@ static int ao_sun_write(ao_driver_t *this_gen,
       for (i = num_frames * this->bytes_per_frame; --i >= 0; p++) 
 	  *p ^= 0x80;
   }
-  num_written = write(this->audio_fd, frame_buffer, num_frames * this->bytes_per_frame);
-  if (num_written > 0) {
+  num_written = sun_audio_write(this, frame_buffer, num_frames * this->bytes_per_frame);
+  if (num_written > 0)
     this->frames_in_buffer += num_written / this->bytes_per_frame;
-  }
+
   return num_written;
 }
 
 static void ao_sun_close(ao_driver_t *this_gen)
 {
   sun_driver_t *this = (sun_driver_t *) this_gen;
+  sun_audio_flush(this);
   close(this->audio_fd);
   this->audio_fd = -1;
 }
