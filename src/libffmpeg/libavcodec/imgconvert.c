@@ -48,50 +48,78 @@ typedef struct PixFmtInfo {
 
 /* this table gives more information about formats */
 static PixFmtInfo pix_fmt_info[PIX_FMT_NB] = {
-    { /*PIX_FMT_YUV420P*/
-        "yuv420p", 3, 1, 0, 0, 0, 0, 1, 1,
+    /* YUV formats */
+    [PIX_FMT_YUV420P] = {
+        .name = "yuv420p",
+        .nb_components = 3, .is_yuv = 1,
+        .x_chroma_shift = 1, .y_chroma_shift = 1, 
     },
-    { /*PIX_FMT_YUV422*/
-        "yuv422", 1, 1, 1, 0, 0, 0, 1, 0,
+    [PIX_FMT_YUV422P] = {
+        .name = "yuv422p",
+        .nb_components = 3, .is_yuv = 1,
+        .x_chroma_shift = 1, .y_chroma_shift = 0, 
     },
-    { /*PIX_FMT_RGB24*/
-        "rgb24", 1, 0, 1, 0, 0, 0, 0, 0,
+    [PIX_FMT_YUV444P] = {
+        .name = "yuv444p",
+        .nb_components = 3, .is_yuv = 1,
+        .x_chroma_shift = 0, .y_chroma_shift = 0, 
     },
-    { /*PIX_FMT_BGR24*/
-        "bgr24", 1, 0, 1, 0, 0, 0, 0, 0,
+    [PIX_FMT_YUV422] = {
+        .name = "yuv422",
+        .nb_components = 1, .is_yuv = 1, .is_packed = 1,
+        .x_chroma_shift = 1, .y_chroma_shift = 0,
     },
-    { /*PIX_FMT_YUV422P*/
-        "yuv422p", 3, 1, 0, 0, 0, 0, 1, 0,
+    [PIX_FMT_YUV410P] = {
+        .name = "yuv410p",
+        .nb_components = 3, .is_yuv = 1,
+        .x_chroma_shift = 2, .y_chroma_shift = 2,
     },
-    { /*PIX_FMT_YUV444P*/
-        "yuv444p", 3, 1, 0, 0, 0, 0, 0, 0,
+    [PIX_FMT_YUV411P] = {
+        .name = "yuv411p",
+        .nb_components = 3, .is_yuv = 1,
+        .x_chroma_shift = 2, .y_chroma_shift = 0,
     },
-    { /*PIX_FMT_RGBA32*/
-        "rgba32", 1, 0, 1, 0, 1, 0, 0, 0,
+
+    /* RGB formats */
+    [PIX_FMT_RGB24] = {
+        .name = "rgb24",
+        .nb_components = 1, .is_packed = 1,
     },
-    { /*PIX_FMT_YUV410P*/
-        "yuv410p", 3, 1, 0, 0, 0, 0, 2, 2,
+    [PIX_FMT_BGR24] = {
+        .name = "bgr24",
+        .nb_components = 1, .is_packed = 1,
     },
-    { /*PIX_FMT_YUV411P*/
-        "yuv411p", 3, 1, 0, 0, 0, 0, 2, 0,
+    [PIX_FMT_RGBA32] = {
+        .name = "rgba32",
+        .nb_components = 1, .is_packed = 1, .is_alpha = 1,
     },
-    { /*PIX_FMT_RGB565*/
-        "rgb565", 1, 0, 1, 0, 0, 0, 0, 0,
+    [PIX_FMT_RGB565] = {
+        .name = "rgb565",
+        .nb_components = 1, .is_packed = 1,
     },
-    { /*PIX_FMT_RGB555*/
-        "rgb555", 1, 0, 1, 0, 1, 0, 0, 0,
+    [PIX_FMT_RGB555] = {
+        .name = "rgb555",
+        .nb_components = 1, .is_packed = 1, .is_alpha = 1,
     },
-    { /*PIX_FMT_GRAY8*/
-        "gray", 1, 0, 0, 0, 0, 1, 0, 0,
+
+    /* gray / mono formats */
+    [PIX_FMT_GRAY8] = {
+        .name = "gray",
+        .nb_components = 1, .is_gray = 1,
     },
-    { /*PIX_FMT_MONOWHITE*/
-        "monow", 1, 0, 1, 0, 0, 1, 0, 0,
+    [PIX_FMT_MONOWHITE] = {
+        .name = "monow",
+        .nb_components = 1, .is_packed = 1, .is_gray = 1,
     },
-    { /*PIX_FMT_MONOBLACK*/
-        "monob", 1, 0, 1, 0, 0, 1, 0, 0,
+    [PIX_FMT_MONOBLACK] = {
+        .name = "monob",
+        .nb_components = 1, .is_packed = 1, .is_gray = 1,
     },
-    { /*PIX_FMT_PAL8*/
-        "pal8", 1, 0, 1, 1, 0, 0, 0, 0,
+
+    /* paletted formats */
+    [PIX_FMT_PAL8] = {
+        .name = "pal8",
+        .nb_components = 1, .is_packed = 1, .is_paletted = 1,
     },
 };
 
@@ -335,6 +363,8 @@ static void conv411(uint8_t *dst, int dst_wrap,
 {
     int w, c;
     uint8_t *s1, *s2, *d;
+
+    width>>=1;
 
     for(;height > 0; height--) {
         s1 = src;
@@ -1064,617 +1094,143 @@ typedef struct ConvertEntry {
    - all non YUV modes must convert at least to and from PIX_FMT_RGB24
 */
 static ConvertEntry convert_table[PIX_FMT_NB][PIX_FMT_NB] = {
-    { /*PIX_FMT_YUV420P*/
-        { /*PIX_FMT_YUV420P*/
-            NULL
+    [PIX_FMT_YUV420P] = {
+        [PIX_FMT_RGB555] = { 
+            .convert = yuv420p_to_rgb555
         },
-        { /*PIX_FMT_YUV422*/
-            NULL
+        [PIX_FMT_RGB565] = { 
+            .convert = yuv420p_to_rgb565
         },
-        { /*PIX_FMT_RGB24*/
-            yuv420p_to_rgb24
+        [PIX_FMT_BGR24] = { 
+            .convert = yuv420p_to_bgr24
         },
-        { /*PIX_FMT_BGR24*/
-            yuv420p_to_bgr24
+        [PIX_FMT_RGB24] = { 
+            .convert = yuv420p_to_rgb24
         },
-        { /*PIX_FMT_YUV422P*/
-            NULL
-        },
-        { /*PIX_FMT_YUV444P*/
-            NULL
-        },
-        { /*PIX_FMT_RGBA32]*/
-            yuv420p_to_rgba32
-        },
-        { /*PIX_FMT_YUV410P*/
-            NULL
-        },
-        { /*PIX_FMT_YUV411P*/
-            NULL
-        },
-        { /*PIX_FMT_RGB565*/
-            yuv420p_to_rgb565
-        },
-        { /*PIX_FMT_RGB555*/
-            yuv420p_to_rgb555
-        },
-        { /*PIX_FMT_GRAY8*/
-            NULL
-        },
-        { /*PIX_FMT_MONOWHITE*/
-            NULL
-        },
-        { /*PIX_FMT_MONOBLACK*/
-            NULL
+        [PIX_FMT_RGBA32] = { 
+            .convert = yuv420p_to_rgba32
         },
     },
-    { /*PIX_FMT_YUV422*/
-        { /*PIX_FMT_YUV420P*/
-            yuv422_to_yuv420p
+    [PIX_FMT_YUV422P] = {
+        [PIX_FMT_RGB555] = { 
+            .convert = yuv422p_to_rgb555
         },
-        { /*PIX_FMT_YUV422*/
-            NULL
+        [PIX_FMT_RGB565] = { 
+            .convert = yuv422p_to_rgb565
         },
-        { /*PIX_FMT_RGB24*/
-            NULL
+        [PIX_FMT_BGR24] = { 
+            .convert = yuv422p_to_bgr24
         },
-        { /*PIX_FMT_BGR24*/
-            NULL
+        [PIX_FMT_RGB24] = { 
+            .convert = yuv422p_to_rgb24
         },
-        { /*PIX_FMT_YUV422P*/
-            NULL
-        },
-        { /*PIX_FMT_YUV444P*/
-            NULL
-        },
-        { /*PIX_FMT_RGBA32*/
-            NULL
-        },
-        { /*PIX_FMT_YUV410P*/
-            NULL
-        },
-        { /*PIX_FMT_YUV411P*/
-            NULL
-        },
-        { /*PIX_FMT_RGB565*/
-            NULL
-        },
-        { /*PIX_FMT_RGB555*/
-            NULL
-        },
-        { /*PIX_FMT_GRAY8*/
-            NULL
-        },
-        { /*PIX_FMT_MONOWHITE*/
-            NULL
-        },
-        { /*PIX_FMT_MONOBLACK*/
-            NULL
+        [PIX_FMT_RGBA32] = { 
+            .convert = yuv422p_to_rgba32
         },
     },
-    { /*PIX_FMT_RGB24*/
-        { /*PIX_FMT_YUV420P*/ 
-            rgb24_to_yuv420p
-        },
-        { /*PIX_FMT_YUV422*/
-            NULL
-        },
-        { /*PIX_FMT_RGB24*/
-            NULL
-        },
-        { /*PIX_FMT_BGR24*/
-            NULL
-        },
-        { /*PIX_FMT_YUV422P*/
-            NULL
-        },
-        { /*PIX_FMT_YUV444P*/
-            NULL
-        },
-        { /*PIX_FMT_RGBA32*/
-            NULL
-        },
-        { /*PIX_FMT_YUV410P*/
-            NULL
-        },
-        { /*PIX_FMT_YUV411P*/
-            NULL
-        },
-        { /*PIX_FMT_RGB565*/
-            rgb24_to_rgb565
-        },
-        { /*PIX_FMT_RGB555*/
-            rgb24_to_rgb555
-        },
-        { /*PIX_FMT_GRAY8*/
-            rgb24_to_gray
-        },
-        { /*PIX_FMT_MONOWHITE*/
-            NULL
-        },
-        { /*PIX_FMT_MONOBLACK*/
-            NULL
-        },
-        { /*PIX_FMT_PAL8*/
-            rgb24_to_pal8
+    [PIX_FMT_YUV422] = { 
+        [PIX_FMT_YUV420P] = { 
+            .convert = yuv422_to_yuv420p,
         },
     },
-    { /*PIX_FMT_BGR24*/
-        { /*PIX_FMT_YUV420P*/ 
-            bgr24_to_yuv420p
+
+    [PIX_FMT_RGB24] = {
+        [PIX_FMT_YUV420P] = { 
+            .convert = rgb24_to_yuv420p
         },
-        { /*PIX_FMT_YUV422*/
-            NULL
+        [PIX_FMT_RGB565] = { 
+            .convert = rgb24_to_rgb565
         },
-        { /*PIX_FMT_RGB24*/
-            NULL
+        [PIX_FMT_RGB555] = { 
+            .convert = rgb24_to_rgb555
         },
-        { /*PIX_FMT_BGR24*/
-            NULL
+        [PIX_FMT_GRAY8] = { 
+            .convert = rgb24_to_gray
         },
-        { /*PIX_FMT_YUV422P*/
-            NULL
-        },
-        { /*PIX_FMT_YUV444P*/
-            NULL
-        },
-        { /*PIX_FMT_RGBA32*/
-            NULL
-        },
-        { /*PIX_FMT_YUV410P*/
-            NULL
-        },
-        { /*PIX_FMT_YUV411P*/
-            NULL
-        },
-        { /*PIX_FMT_RGB565*/
-            NULL
-        },
-        { /*PIX_FMT_RGB555*/
-            NULL
-        },
-        { /*PIX_FMT_GRAY8*/
-            bgr24_to_gray
-        },
-        { /*PIX_FMT_MONOWHITE*/
-            NULL
-        },
-        { /*PIX_FMT_MONOBLACK*/
-            NULL
+        [PIX_FMT_PAL8] = { 
+            .convert = rgb24_to_pal8
         },
     },
-    { /*PIX_FMT_YUV422P*/
-        { /*PIX_FMT_YUV420P*/
-            NULL
+    [PIX_FMT_RGBA32] = {
+        [PIX_FMT_YUV420P] = { 
+            .convert = rgba32_to_yuv420p
         },
-        { /*PIX_FMT_YUV422*/
-            NULL
-        },
-        { /*PIX_FMT_BGR24*/
-            yuv422p_to_bgr24
-        },
-        { /*PIX_FMT_RGB24*/
-            yuv422p_to_rgb24
-        },
-        { /*PIX_FMT_RGBA32*/
-            yuv422p_to_rgba32
-        },
-        { /*PIX_FMT_YUV410P*/
-            NULL
-        },
-        { /*PIX_FMT_YUV411P*/
-            NULL
-        },
-        { /*PIX_FMT_RGB555*/
-            yuv422p_to_rgb555
-        },
-        { /*PIX_FMT_RGB565*/
-            yuv422p_to_rgb565
-        },
-        { /*PIX_FMT_GRAY8*/
-            NULL
-        },
-        { /*PIX_FMT_MONOWHITE*/
-            NULL
-        },
-        { /*PIX_FMT_MONOBLACK*/
-            NULL
+        [PIX_FMT_GRAY8] = { 
+            .convert = rgba32_to_gray
         },
     },
-    { /*PIX_FMT_YUV444P*/
-        { /*PIX_FMT_YUV420P*/
-            NULL
+    [PIX_FMT_BGR24] = {
+        [PIX_FMT_YUV420P] = { 
+            .convert = bgr24_to_yuv420p
         },
-        { /*PIX_FMT_YUV422*/
-            NULL
-        },
-        { /*PIX_FMT_RGB24*/
-            NULL
-        },
-        { /*PIX_FMT_BGR24*/
-            NULL
-        },
-        { /*PIX_FMT_YUV422P*/
-            NULL
-        },
-        { /*PIX_FMT_YUV444P*/
-            NULL
-        },
-        { /*PIX_FMT_RGBA32*/
-            NULL
-        },
-        { /*PIX_FMT_YUV410P*/
-            NULL
-        },
-        { /*PIX_FMT_YUV411P*/
-            NULL
-        },
-        { /*PIX_FMT_RGB565*/
-            NULL
-        },
-        { /*PIX_FMT_RGB555*/
-            NULL
-        },
-        { /*PIX_FMT_GRAY8*/
-            NULL
-        },
-        { /*PIX_FMT_MONOWHITE*/
-            NULL
-        },
-        { /*PIX_FMT_MONOBLACK*/
-            NULL
+        [PIX_FMT_GRAY8] = { 
+            .convert = bgr24_to_gray
         },
     },
-    { /*PIX_FMT_RGBA32*/
-        { /*PIX_FMT_YUV420P*/
-            rgba32_to_yuv420p
+    [PIX_FMT_RGB555] = {
+        [PIX_FMT_YUV420P] = { 
+            .convert = rgb555_to_yuv420p
         },
-        { /*PIX_FMT_YUV422*/
-            NULL
-        },
-        { /*PIX_FMT_RGB24*/
-            NULL
-        },
-        { /*PIX_FMT_BGR24*/
-            NULL
-        },
-        { /*PIX_FMT_YUV422P*/
-            NULL
-        },
-        { /*PIX_FMT_YUV444P*/
-            NULL
-        },
-        { /*PIX_FMT_RGBA32*/
-            NULL
-        },
-        { /*PIX_FMT_YUV410P*/
-            NULL
-        },
-        { /*PIX_FMT_YUV411P*/
-            NULL
-        },
-        { /*PIX_FMT_RGB565*/
-            NULL
-        },
-        { /*PIX_FMT_RGB555*/
-            NULL
-        },
-        { /*PIX_FMT_GRAY8*/ 
-            rgba32_to_gray
-        },
-        { /*PIX_FMT_MONOWHITE*/
-            NULL
-        },
-        { /*PIX_FMT_MONOBLACK*/
-            NULL
+        [PIX_FMT_GRAY8] = { 
+            .convert = rgb555_to_gray
         },
     },
-    { /*PIX_FMT_YUV410P*/
-        { /*PIX_FMT_YUV420P*/
-            NULL
+    [PIX_FMT_RGB565] = {
+        [PIX_FMT_YUV420P] = { 
+            .convert = rgb565_to_yuv420p
         },
-        { /*PIX_FMT_YUV422*/
-            NULL
-        },
-        { /*PIX_FMT_RGB24*/
-            NULL
-        },
-        { /*PIX_FMT_BGR24*/
-            NULL
-        },
-        { /*PIX_FMT_YUV422P*/
-            NULL
-        },
-        { /*PIX_FMT_YUV444P*/
-            NULL
-        },
-        { /*PIX_FMT_RGBA32*/
-            NULL
-        },
-        { /*PIX_FMT_YUV410P*/
-            NULL
-        },
-        { /*PIX_FMT_YUV411P*/
-            NULL
-        },
-        { /*PIX_FMT_RGB565*/
-            NULL
-        },
-        { /*PIX_FMT_RGB555*/
-            NULL
-        },
-        { /*PIX_FMT_GRAY8*/
-            NULL
-        },
-        { /*PIX_FMT_MONOWHITE*/
-            NULL
-        },
-        { /*PIX_FMT_MONOBLACK*/
-            NULL
+        [PIX_FMT_GRAY8] = { 
+            .convert = rgb565_to_gray
         },
     },
-    { /*PIX_FMT_YUV411P*/
-        { /*PIX_FMT_YUV420P*/
-            NULL
+    [PIX_FMT_GRAY8] = {
+        [PIX_FMT_RGB555] = { 
+            .convert = gray_to_rgb555
         },
-        { /*PIX_FMT_YUV422*/
-            NULL
+        [PIX_FMT_RGB565] = { 
+            .convert = gray_to_rgb565
         },
-        { /*PIX_FMT_RGB24*/
-            NULL
+        [PIX_FMT_RGB24] = { 
+            .convert = gray_to_rgb24
         },
-        { /*PIX_FMT_BGR24*/
-            NULL
+        [PIX_FMT_BGR24] = { 
+            .convert = gray_to_bgr24
         },
-        { /*PIX_FMT_YUV422P*/
-            NULL
+        [PIX_FMT_RGBA32] = { 
+            .convert = gray_to_rgba32
         },
-        { /*PIX_FMT_YUV444P*/
-            NULL
+        [PIX_FMT_MONOWHITE] = { 
+            .convert = gray_to_monowhite
         },
-        { /*PIX_FMT_RGBA32*/
-            NULL
-        },
-        { /*PIX_FMT_YUV410P*/
-            NULL
-        },
-        { /*PIX_FMT_YUV411P*/
-            NULL
-        },
-        { /*PIX_FMT_RGB565*/
-            NULL
-        },
-        { /*PIX_FMT_RGB555*/
-            NULL
-        },
-        { /*PIX_FMT_GRAY8*/
-            NULL
-        },
-        { /*PIX_FMT_MONOWHITE*/
-            NULL
-        },
-        { /*PIX_FMT_MONOBLACK*/
-            NULL
+        [PIX_FMT_MONOBLACK] = { 
+            .convert = gray_to_monoblack
         },
     },
-    { /*PIX_FMT_RGB565*/
-        { /*PIX_FMT_YUV420P*/
-            rgb565_to_yuv420p
-        },
-        { /*PIX_FMT_YUV422*/
-            NULL
-        },
-        { /*PIX_FMT_RGB24*/
-            NULL
-        },
-        { /*PIX_FMT_BGR24*/
-            NULL
-        },
-        { /*PIX_FMT_YUV422P*/
-            NULL
-        },
-        { /*PIX_FMT_YUV444P*/
-            NULL
-        },
-        { /*PIX_FMT_RGBA32*/
-            NULL
-        },
-        { /*PIX_FMT_YUV410P*/
-            NULL
-        },
-        { /*PIX_FMT_YUV411P*/
-            NULL
-        },
-        { /*PIX_FMT_RGB565*/
-            NULL
-        },
-        { /*PIX_FMT_RGB555*/
-            NULL
-        },
-        { /*PIX_FMT_GRAY8*/
-            rgb565_to_gray
-        },
-        { /*PIX_FMT_MONOWHITE*/
-            NULL
-        },
-        { /*PIX_FMT_MONOBLACK*/
-            NULL
+    [PIX_FMT_MONOWHITE] = {
+        [PIX_FMT_GRAY8] = { 
+            .convert = monowhite_to_gray
         },
     },
-    { /*PIX_FMT_RGB555*/
-        { /*PIX_FMT_YUV420P*/
-            rgb555_to_yuv420p
-        },
-        { /*PIX_FMT_YUV422*/
-            NULL
-        },
-        { /*PIX_FMT_RGB24*/
-            NULL
-        },
-        { /*PIX_FMT_BGR24*/
-            NULL
-        },
-        { /*PIX_FMT_YUV422P*/
-            NULL
-        },
-        { /*PIX_FMT_YUV444P*/
-            NULL
-        },
-        { /*PIX_FMT_RGBA32*/
-            NULL
-        },
-        { /*PIX_FMT_YUV410P*/
-            NULL
-        },
-        { /*PIX_FMT_YUV411P*/
-            NULL
-        },
-        { /*PIX_FMT_RGB565*/
-            NULL
-        },
-        { /*PIX_FMT_RGB555*/
-            NULL
-        },
-        { /*PIX_FMT_GRAY8*/
-            rgb555_to_gray
-        },
-        { /*PIX_FMT_MONOWHITE*/
-            NULL
-        },
-        { /*PIX_FMT_MONOBLACK*/
-            NULL
+    [PIX_FMT_MONOBLACK] = {
+        [PIX_FMT_GRAY8] = { 
+            .convert = monoblack_to_gray
         },
     },
-    { /*PIX_FMT_GRAY8*/
-        { /*PIX_FMT_YUV420P*/
-            NULL
+    [PIX_FMT_PAL8] = {
+        [PIX_FMT_RGB555] = { 
+            .convert = pal8_to_rgb555
         },
-        { /*PIX_FMT_YUV422*/
-            NULL
+        [PIX_FMT_RGB565] = { 
+            .convert = pal8_to_rgb565
         },
-        { /*PIX_FMT_RGB24*/
-            gray_to_rgb24
+        [PIX_FMT_BGR24] = { 
+            .convert = pal8_to_bgr24
         },
-        { /*PIX_FMT_BGR24*/
-            gray_to_bgr24
+        [PIX_FMT_RGB24] = { 
+            .convert = pal8_to_rgb24
         },
-        { /*PIX_FMT_YUV422P*/
-            NULL
-        },
-        { /*PIX_FMT_YUV444P*/
-            NULL
-        },
-        { /*PIX_FMT_RGBA32*/
-            gray_to_rgba32
-        },
-        { /*PIX_FMT_YUV410P*/
-            NULL
-        },
-        { /*PIX_FMT_YUV411P*/
-            NULL
-        },
-        { /*PIX_FMT_RGB565*/
-            gray_to_rgb565
-        },
-        { /*PIX_FMT_RGB555*/
-            gray_to_rgb555
-        },
-        { /*PIX_FMT_GRAY8*/
-            NULL
-        },
-        { /*PIX_FMT_MONOWHITE*/
-            gray_to_monowhite
-        },
-        { /*PIX_FMT_MONOBLACK*/
-            gray_to_monoblack
-        },
-    },
-    { /*PIX_FMT_MONOWHITE*/
-        { /*PIX_FMT_YUV420P*/
-            NULL
-        },
-        { /*PIX_FMT_YUV422*/
-            NULL
-        },
-        { /*PIX_FMT_RGB24*/
-            NULL
-        },
-        { /*PIX_FMT_BGR24*/
-            NULL
-        },
-        { /*PIX_FMT_YUV422P*/
-            NULL
-        },
-        { /*PIX_FMT_YUV444P*/
-            NULL
-        },
-        { /*PIX_FMT_RGBA32*/
-            NULL
-        },
-        { /*PIX_FMT_YUV410P*/
-            NULL
-        },
-        { /*PIX_FMT_YUV411P*/
-            NULL
-        },
-        { /*PIX_FMT_RGB565*/
-            NULL
-        },
-        { /*PIX_FMT_RGB555*/
-            NULL
-        },
-        { /*PIX_FMT_GRAY8*/
-            monowhite_to_gray
-        },
-        { /*PIX_FMT_MONOWHITE*/
-            NULL
-        },
-        { /*PIX_FMT_MONOBLACK*/
-            NULL
-        },
-    },
-    { /*PIX_FMT_PAL8*/
-        { /*PIX_FMT_YUV420P*/
-            NULL
-        },
-        { /*PIX_FMT_YUV422*/
-            NULL
-        },
-        { /*PIX_FMT_RGB24*/
-            pal8_to_rgb24
-        },
-        { /*PIX_FMT_BGR24*/
-            pal8_to_bgr24
-        },
-        { /*PIX_FMT_YUV422P*/
-            NULL
-        },
-        { /*PIX_FMT_YUV444P*/
-            NULL
-        },
-        { /*PIX_FMT_RGBA32*/
-            pal8_to_rgba32
-        },
-        { /*PIX_FMT_YUV410P*/
-            NULL
-        },
-        { /*PIX_FMT_YUV411P*/
-            NULL
-        },
-        { /*PIX_FMT_RGB565*/
-            pal8_to_rgb565
-        },
-        { /*PIX_FMT_RGB555*/
-            pal8_to_rgb555
-        },
-        { /*PIX_FMT_GRAY8*/
-            NULL
-        },
-        { /*PIX_FMT_MONOWHITE*/
-            NULL
-        },
-        { /*PIX_FMT_MONOBLACK*/
-            NULL
+        [PIX_FMT_RGBA32] = { 
+            .convert = pal8_to_rgba32
         },
     },
 };

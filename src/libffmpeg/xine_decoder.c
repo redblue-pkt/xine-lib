@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.107 2003/04/03 20:48:44 jstembridge Exp $
+ * $Id: xine_decoder.c,v 1.108 2003/04/16 00:18:35 miguelfreitas Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -592,9 +592,6 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 
 	  diff = abs_float( this->context->aspect_ratio - 
 			    (float)this->bih.biWidth/(float)this->bih.biHeight);
-	  /* according to miguel some decoders set aspect_ratio=0,
-	   * stick to XINE_VO_ASPECT_DONT_TOUCH in that case 
-	   */
 	  if ( abs_float (this->context->aspect_ratio) < 0.1 )
 	    diff = 0.0;
 
@@ -640,7 +637,7 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 	  img->bad_frame = 1;
 	} else {
 	  img->bad_frame = 0;
-	  
+
 	  pthread_mutex_lock(&this->pp_lock);
 	  if(this->pp_available && this->pp_quality)
 	    pp_postprocess(this->av_frame->data, this->av_frame->linesize, 
@@ -847,21 +844,24 @@ void avcodec_register_all(void)
     register_avcodec(&msmpeg4v3_decoder);
     register_avcodec(&wmv1_decoder);
     register_avcodec(&wmv2_decoder);
-    register_avcodec(&mpeg_decoder);
     register_avcodec(&h263i_decoder);
     register_avcodec(&rv10_decoder);
     register_avcodec(&svq1_decoder);
+    register_avcodec(&wmav1_decoder);
+    register_avcodec(&wmav2_decoder);
+    register_avcodec(&indeo3_decoder);
+    register_avcodec(&mpeg_decoder);
     register_avcodec(&dvvideo_decoder);
     register_avcodec(&dvaudio_decoder);
     register_avcodec(&mjpeg_decoder);
     register_avcodec(&mjpegb_decoder);
     register_avcodec(&mp2_decoder);
     register_avcodec(&mp3_decoder);
-    register_avcodec(&wmav1_decoder);
-    register_avcodec(&wmav2_decoder);
     register_avcodec(&mace3_decoder);
     register_avcodec(&mace6_decoder);
     register_avcodec(&huffyuv_decoder);
+    register_avcodec(&cyuv_decoder);
+    register_avcodec(&h264_decoder);
 }
 
 static void ff_dispose (video_decoder_t *this_gen) {

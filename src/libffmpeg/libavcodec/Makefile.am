@@ -19,15 +19,19 @@ noinst_LTLIBRARIES = libavcodec.la
 
 libavcodec_la_SOURCES = \
 	common.c \
+	cyuv.c \
 	dsputil.c \
 	dv.c \
 	error_resilience.c \
 	eval.c \
 	fft.c \
+	golomb.c \
 	h263.c \
 	h263dec.c \
+	h264.c \
 	huffyuv.c \
 	imgconvert.c \
+	indeo3.c \
 	jfdctfst.c \
 	jfdctint.c \
 	jrevdct.c \
@@ -61,7 +65,11 @@ noinst_HEADERS = \
 	common.h \
 	dsputil.h \
 	dvdata.h \
+	fastmemcpy.h \
+	golomb.h \
+	indeo3data.h \
 	h263data.h \
+	h264data.h \
 	mangle.h \
 	mpeg4data.h \
 	mpeg12data.h \

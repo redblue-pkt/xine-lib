@@ -53,10 +53,10 @@
 #define AVOPTION_CODEC_INT(name, help, field, minv, maxv, defval) \
     { name, help, offsetof(AVCodecContext, field), FF_OPT_TYPE_INT, minv, maxv, defval }
 #define AVOPTION_CODEC_STRING(name, help, field, str, val) \
-    { name, help, offsetof(AVCodecContext, field), FF_OPT_TYPE_STRING, 0, 0, val, str }
+    { name, help, offsetof(AVCodecContext, field), FF_OPT_TYPE_STRING, .defval = val, .defstr = str }
 #define AVOPTION_CODEC_RCOVERRIDE(name, help, field) \
-    { name, help, offsetof(AVCodecContext, field), FF_OPT_TYPE_RCOVERRIDE, 0, 0, 0, NULL }
-#define AVOPTION_SUB(ptr) { NULL, (const char*)ptr }
+    { name, help, offsetof(AVCodecContext, field), FF_OPT_TYPE_RCOVERRIDE, .defval = 0, .defstr = NULL }
+#define AVOPTION_SUB(ptr) { .name = NULL, .help = (const char*)ptr }
 #define AVOPTION_END() AVOPTION_SUB(NULL)
 
 struct AVOption;
@@ -833,7 +833,11 @@ static inline int get_vlc_trace(GetBitContext *s, VLC_TYPE (*table)[2], int bits
 #define get_vlc(s, vlc)            get_vlc_trace(s, (vlc)->table, (vlc)->bits, 3, __FILE__, __PRETTY_FUNCTION__, __LINE__)
 #define get_vlc2(s, tab, bits, max) get_vlc_trace(s, tab, bits, max, __FILE__, __PRETTY_FUNCTION__, __LINE__)
 
-#endif //TRACE
+#define tprintf printf
+
+#else //TRACE
+#define tprintf(_arg...) {}
+#endif
 
 /* define it to include statistics code (useful only for optimizing
    codec efficiency */
@@ -1002,6 +1006,15 @@ if((y)<(x)){\
 #define malloc please_use_av_malloc
 #define free please_use_av_free
 #define realloc please_use_av_realloc
+
+#define CHECKED_ALLOCZ(p, size)\
+{\
+    p= av_mallocz(size);\
+    if(p==NULL){\
+        perror("malloc");\
+        goto fail;\
+    }\
+}
 
 #endif /* HAVE_AV_CONFIG_H */
 

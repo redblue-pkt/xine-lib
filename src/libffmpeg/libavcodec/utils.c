@@ -181,8 +181,8 @@ int avcodec_default_get_buffer(AVCodecContext *s, AVFrame *pic){
         opaque->last_pic_num= -256*256*256*64;
 
         for(i=0; i<3; i++){
-            int h_shift= i==0 ? 0 : h_chroma_shift;
-            int v_shift= i==0 ? 0 : v_chroma_shift;
+            const int h_shift= i==0 ? 0 : h_chroma_shift;
+            const int v_shift= i==0 ? 0 : v_chroma_shift;
 
             pic->linesize[i]= pixel_size*w>>h_shift;
 
