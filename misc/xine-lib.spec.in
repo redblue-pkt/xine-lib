@@ -166,6 +166,7 @@ fi
 #
 # currently we do not use %%configure as it seems to cause trouble with
 # certain automake produced configure scripts - depending on automake version.
+# Use BUILD_ARGS envvar to pass extra parameters to configure (like --enable-dha-mod/etc...)
 #
 ./configure --build=%{_target_platform} --prefix=%{_prefix} \
 	    --exec-prefix=%{_exec_prefix} --bindir=%{_bindir} \
@@ -174,7 +175,7 @@ fi
 	    --libdir=%{_libdir} --libexecdir=%{_libexecdir} \
 	    --localstatedir=%{_localstatedir} \
 	    --sharedstatedir=%{_sharedstatedir} --mandir=%{_mandir} \
-	    --infodir=%{_infodir}
+	    --infodir=%{_infodir} $BUILD_ARGS
 make
 
 %install
@@ -193,7 +194,8 @@ rm -rf $RPM_BUILD_ROOT
 %{_bindir}/xine-config
 %{_libdir}/libxine*.so.*
 %{_libdir}/xine/plugins/xineplug*.*
-%{_libdir}/xine/plugins/vidix/*_vid.*s
+@HAVE_LINUX_TRUE@@BUILD_DHA_KMOD_TRUE@/lib/modules/%(sh -c 'uname -r')/misc/dhahelper.o
+@HAVE_VIDIX_TRUE@%{_libdir}/xine/plugins/vidix/*_vid.*
 %{_datadir}/xine/skins/*
 %{_datadir}/xine/fonts/*
 %{_mandir}/man1/*
@@ -212,6 +214,8 @@ rm -rf $RPM_BUILD_ROOT
 %{_mandir}/man3/*
 
 %changelog
+* Thu Jun 06 2002 Daniel Caujolle-Bert <f1rmb@users.sourceforge.net>
+- ability to pass args to configure. Fix vidix/dhahelper inclusion.
 * Mon May 27 2002 Matthias Dahl <matthew2k@web.de>
 - added passing of build parameter to configure
 * Sun May 26 2002 Matthias Dahl <matthew2k@web.de>
