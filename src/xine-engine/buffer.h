@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.h,v 1.129 2004/01/10 01:34:50 tmattern Exp $
+ * $Id: buffer.h,v 1.130 2004/01/13 20:44:23 jstembridge Exp $
  *
  *
  * contents:
@@ -444,7 +444,6 @@ struct buf_element_s {
  * decoder_info[1] = BUF_SPECIAL_RV_CHUNK_TABLE
  * decoder_info[2] = number of entries in chunk table
  * decoder_info_ptr[2] = pointer to the chunk table
- * decoder_info[3] = frame duration
  *
  * This buffer transports the chunk table associated to each RealVideo frame.
  */

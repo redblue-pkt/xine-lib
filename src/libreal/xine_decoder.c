@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.63 2004/01/12 23:45:04 jstembridge Exp $
+ * $Id: xine_decoder.c,v 1.64 2004/01/13 20:44:22 jstembridge Exp $
  *
  * thin layer to use real binary-only codecs in xine
  *
@@ -271,6 +271,12 @@ static void realdec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) 
       _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_HANDLED, 0);
 
   } else if (this->decoder_ok && this->context) {
+  
+    /* Frame duration can be passed from demuxer to override value in
+     * real video header */
+
+    if (buf->decoder_flags & BUF_FLAG_FRAMERATE)
+      this->duration = buf->decoder_info[0];
 
     /* Each frame starts with BUF_FLAG_FRAME_START and ends with
      * BUF_FLAG_FRAME_END.
@@ -317,9 +323,6 @@ static void realdec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) 
         uint32_t       transform_in[6];
 
         lprintf ("chunk table\n");
-
-        if(buf->decoder_info[3])
-          this->duration = buf->decoder_info[3];
 
         transform_in[0] = this->chunk_buffer_size; /* length of the packet (sub-packets appended) */
         transform_in[1] = 0;                       /* unknown, seems to be unused  */

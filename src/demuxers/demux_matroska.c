@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_matroska.c,v 1.12 2004/01/12 22:42:54 jstembridge Exp $
+ * $Id: demux_matroska.c,v 1.13 2004/01/13 20:44:22 jstembridge Exp $
  *
  * demultiplexer for matroska streams
  *
@@ -791,11 +791,11 @@ static void handle_realvideo (demux_matroska_t *this, matroska_track_t *track,
 
     buf = track->fifo->buffer_pool_alloc(track->fifo);
 
-    buf->decoder_flags = BUF_FLAG_SPECIAL;
+    buf->decoder_flags = BUF_FLAG_SPECIAL | BUF_FLAG_FRAMERATE;
+    buf->decoder_info[0] = frame_duration;    
     buf->decoder_info[1] = BUF_SPECIAL_RV_CHUNK_TABLE;
     buf->decoder_info[2] = chunks;
     buf->decoder_info_ptr[2] = buf->content;
-    buf->decoder_info[3] = frame_duration;
     buf->size = chunk_tab_size;
     buf->type = track->buf_type;
 
