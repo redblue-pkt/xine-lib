@@ -36,7 +36,7 @@
  * * ANIM (Animations)
  *   - Animation can displayed, but has to be improved
  *
- * $Id: demux_iff.c,v 1.7 2004/02/22 12:36:37 manfredtremmel Exp $
+ * $Id: demux_iff.c,v 1.8 2004/02/25 18:57:35 manfredtremmel Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -473,9 +473,11 @@ static int read_iff_chunk(demux_iff_t *this) {
           this->anhd->interleave        = buffer[18];
           this->anhd->pad0              = buffer[19];
           this->anhd->bits              = BE_32(&buffer[20]);
-          if( this->dpan == NULL )
-            this->video_pts            += this->video_pts_inc * this->anhd->rel_time;
-          else
+          /* Using rel_time deaktivated, seems to be broken in most animations */
+          /*if( this->dpan == NULL )
+            this->video_pts            += this->video_pts_inc *
+                                          ((this->anhd->rel_time > 0) ? this->anhd->rel_time : 1);
+          else*/
             this->video_pts            += this->video_pts_inc;
           xprintf (this->stream->xine, XINE_VERBOSITY_LOG, "anhd->operation             %d\n",
                    this->anhd->operation);

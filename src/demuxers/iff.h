@@ -22,7 +22,7 @@
  * IFF header file by Manfred Tremmel (Manfred.Tremmel@iiv.de)
  * Based on the information of the Amiga Developer CD
  *
- * $Id: iff.h,v 1.1 2004/02/22 12:36:37 manfredtremmel Exp $
+ * $Id: iff.h,v 1.2 2004/02/25 18:57:36 manfredtremmel Exp $
  */
 
 #ifndef IFFP_IFF_H
@@ -268,6 +268,8 @@ typedef struct {
 #define IFF_ANHD_SLDELTA                4
 #define IFF_ANHD_BVDELTA                5
 #define IFF_ANHD_STEREOO5               6
+#define IFF_ANHD_OPT7                   7
+#define IFF_ANHD_OPT8                   8
 #define IFF_ANHD_ASCIIJ                 74
 
 /* ---------- AnimHeader ----------------------------------------------*/
