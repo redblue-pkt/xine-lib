@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xineutils.h,v 1.69 2003/12/06 18:11:55 mroi Exp $
+ * $Id: xineutils.h,v 1.70 2003/12/06 18:15:56 mroi Exp $
  *
  */
 #ifndef XINEUTILS_H
@@ -585,7 +585,7 @@ typedef	union {
    TODO : fix dll linkage problem for xine_fast_memcpy on win32
 
    xine_fast_memcpy dll linkage is screwy here.
-   declairing as dllimport seems to fix the problem
+   declaring as dllimport seems to fix the problem
    but causes compiler warning with libxineutils
 */
 #ifdef _MSC_VER
