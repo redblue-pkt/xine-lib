@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_interface.c,v 1.18 2002/09/19 00:40:02 guenter Exp $
+ * $Id: xine_interface.c,v 1.19 2002/09/21 11:39:45 f1rmb Exp $
  *
  * convenience/abstraction layer, functions to implement
  * libxine's public interface
@@ -220,6 +220,12 @@ int xine_config_get_next_entry (xine_p this, xine_cfg_entry_t *entry) {
   config_values_t *config = this->config;
 
   pthread_mutex_lock(&config->config_lock);
+
+  if (!config->cur) {
+    pthread_mutex_unlock(&config->config_lock);
+    return (xine_config_get_first_entry(this, entry));
+  }
+  
   /* do not hand out unclaimed entries */
   do {
     config->cur = config->cur->next;
