@@ -31,9 +31,10 @@ xineplug_decode_faad_la_LDFLAGS = -avoid-version -module
 xineplug_decode_faad_la_LIBADD = $(top_builddir)/src/libfaad/fftw/libfftw.la \
 	$(top_builddir)/src/xine-utils/libxineutils.la
 
-noinst_HEADERS = analysis.h bits.h data.h decoder.h drc.h error.h \
+noinst_HEADERS = analysis.h bits.h common.h data.h decoder.h drc.h error.h \
 		 filtbank.h huffman.h ic_predict.h is.h kbd_win.h \
 		 lt_predict.h mdct.h mp4.h ms.h output.h pns.h pulse.h \
+		 sbr_dec.h sbr_huff.h sbr_qmf.h sbr_syntax.h \
 		 specrec.h syntax.h tns.h codebook/hcb.h faad.h
 
 
