@@ -22,7 +22,7 @@
  * MS WAV File Demuxer by Mike Melanson (melanson@pcisys.net)
  * based on WAV specs that are available far and wide
  *
- * $Id: demux_wav.c,v 1.44 2003/07/16 00:52:45 andruil Exp $
+ * $Id: demux_wav.c,v 1.45 2003/08/16 20:15:55 jcdutton Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -229,10 +229,8 @@ static int demux_wav_send_chunk(demux_plugin_t *this_gen) {
           buf->content[2] == 0x1f &&
           buf->content[3] == 0x4e ) {
         this->audio_type = BUF_AUDIO_DNET;
-        buf->content+=8;
       }
     } else if (this->audio_type == BUF_AUDIO_DNET) {
-      buf->content+=8;
       buf->pts=0; /* We don't need pts values for only audio streams. */
     }
 #if 0
