@@ -22,7 +22,8 @@ libxineutils_la_SOURCES = $(pppc_files) \
 	xine_check.c \
 	xine_mutex.c \
 	xmllexer.c \
-	xmlparser.c 
+	xmlparser.c \
+	xine_buffer.c 
 
 libxineutils_la_LIBADD = $(THREAD_LIBS) $(XV_LIB) $(X_LIBS)
 
@@ -32,7 +33,8 @@ include_HEADERS = attributes.h \
 	xineutils.h \
 	xine_check.h \
 	xmllexer.h \
-	xmlparser.h
+	xmlparser.h \
+	xine_buffer.h
 
 debug:
 	@$(MAKE) CFLAGS="$(DEBUG_CFLAGS) $(THREAD_CFLAGS)"
