@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.112 2003/04/16 22:03:35 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.113 2003/04/18 20:45:30 tmmm Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -650,60 +650,60 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
     case BUF_VIDEO_MSMPEG4_V1:
       this->codec = avcodec_find_decoder (CODEC_ID_MSMPEG4V1);
       this->stream->meta_info[XINE_META_INFO_VIDEOCODEC] 
-	= strdup ("ms mpeg-4 v1 (ffmpeg)");
+	= strdup ("Microsoft MPEG-4 v1 (ffmpeg)");
       break;
     case BUF_VIDEO_MSMPEG4_V2:
       this->codec = avcodec_find_decoder (CODEC_ID_MSMPEG4V2);
       this->stream->meta_info[XINE_META_INFO_VIDEOCODEC] 
-	= strdup ("ms mpeg-4 v2 (ffmpeg)");
+	= strdup ("Microsoft MPEG-4 v2 (ffmpeg)");
       break;
     case BUF_VIDEO_MSMPEG4_V3:
       this->codec = avcodec_find_decoder (CODEC_ID_MSMPEG4V3);
       this->stream->meta_info[XINE_META_INFO_VIDEOCODEC] 
-	= strdup ("ms mpeg-4 v3 (ffmpeg)");
+	= strdup ("Microsoft MPEG-4 v3 (ffmpeg)");
       break;
     case BUF_VIDEO_WMV7:
       this->codec = avcodec_find_decoder (CODEC_ID_WMV1);
       this->stream->meta_info[XINE_META_INFO_VIDEOCODEC] 
-	= strdup ("ms wmv 7 (ffmpeg)");
+	= strdup ("MS Windows Media Video 7 (ffmpeg)");
       break;
     case BUF_VIDEO_WMV8:
       this->codec = avcodec_find_decoder (CODEC_ID_WMV2);
       this->stream->meta_info[XINE_META_INFO_VIDEOCODEC] 
-	= strdup ("ms wmv 8 (ffmpeg)");
+	= strdup ("MS Windows Media Video 8 (ffmpeg)");
       break;
     case BUF_VIDEO_MPEG4 :
     case BUF_VIDEO_XVID :
     case BUF_VIDEO_DIVX5 :
       this->codec = avcodec_find_decoder (CODEC_ID_MPEG4);
       this->stream->meta_info[XINE_META_INFO_VIDEOCODEC] 
-	= strdup ("mpeg-4 (ffmpeg)");
+	= strdup ("ISO MPEG-4 (ffmpeg)");
       break;
     case BUF_VIDEO_JPEG:
     case BUF_VIDEO_MJPEG:
       this->codec = avcodec_find_decoder (CODEC_ID_MJPEG);
       this->stream->meta_info[XINE_META_INFO_VIDEOCODEC] 
-	= strdup ("mjpeg (ffmpeg)");
+	= strdup ("Motion JPEG (ffmpeg)");
       break;
     case BUF_VIDEO_I263:
       this->codec = avcodec_find_decoder (CODEC_ID_H263I);
       this->stream->meta_info[XINE_META_INFO_VIDEOCODEC] 
-	= strdup ("i263 (ffmpeg)");
+	= strdup ("ITU H.263 (ffmpeg)");
       break;
     case BUF_VIDEO_H263:
       this->codec = avcodec_find_decoder (CODEC_ID_H263);
       this->stream->meta_info[XINE_META_INFO_VIDEOCODEC] 
-	= strdup ("h263 (ffmpeg)");
+	= strdup ("H.263 (ffmpeg)");
       break;
     case BUF_VIDEO_RV10:
       this->codec = avcodec_find_decoder (CODEC_ID_RV10);
       this->stream->meta_info[XINE_META_INFO_VIDEOCODEC] 
-	= strdup ("real video 1.0 (ffmpeg)");
+	= strdup ("Real Video 1.0 (ffmpeg)");
       break;
     case BUF_VIDEO_SORENSON_V1:
       this->codec = avcodec_find_decoder (CODEC_ID_SVQ1);
       this->stream->meta_info[XINE_META_INFO_VIDEOCODEC] 
-	= strdup ("sorenson svq 1 (ffmpeg)");
+	= strdup ("Sorenson Video 1 (ffmpeg)");
       break;
     case BUF_VIDEO_DV:
       this->codec = avcodec_find_decoder (CODEC_ID_DVVIDEO);
@@ -713,7 +713,7 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
     case BUF_VIDEO_HUFFYUV:
       this->codec = avcodec_find_decoder (CODEC_ID_HUFFYUV);
       this->stream->meta_info[XINE_META_INFO_VIDEOCODEC]
-	= strdup ("huffyuv (ffmpeg)");
+	= strdup ("HuffYUV (ffmpeg)");
       break;
     default:
       printf ("ffmpeg: unknown video format (buftype: 0x%08X)\n",
@@ -1116,12 +1116,12 @@ static void ff_audio_decode_data (audio_decoder_t *this_gen, buf_element_t *buf)
     case BUF_AUDIO_WMAV1:
       this->codec = avcodec_find_decoder (CODEC_ID_WMAV1);
       this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] 
-	= strdup ("Windows Media Audio v1 (ffmpeg)");
+	= strdup ("MS Windows Media Audio 1 (ffmpeg)");
       break;
     case BUF_AUDIO_WMAV2:
       this->codec = avcodec_find_decoder (CODEC_ID_WMAV2);
       this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] 
-	= strdup ("Windows Media Audio v2 (ffmpeg)");
+	= strdup ("MS Windows Media Audio 2 (ffmpeg)");
       break;
     case BUF_AUDIO_DV:
       this->codec = avcodec_find_decoder (CODEC_ID_DVAUDIO);
