@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.111 2003/11/16 23:33:48 f1rmb Exp $
+ * $Id: audio_decoder.c,v 1.112 2003/11/17 10:22:57 f1rmb Exp $
  *
  *
  * functions that implement audio decoding
@@ -322,9 +322,8 @@ static void *audio_decoder_loop (void *stream_gen) {
 			"audio_decoder: no plugin available to handle '%s'\n",
 		        _x_buf_audio_name( buf->type ) );
               
-              if( !stream->meta_info[XINE_META_INFO_AUDIOCODEC] )
-                stream->meta_info[XINE_META_INFO_AUDIOCODEC] 
-                  = strdup (_x_buf_audio_name( buf->type ));
+              if( !_x_meta_info_get(stream, XINE_META_INFO_AUDIOCODEC) )
+                _x_meta_info_set(stream, XINE_META_INFO_AUDIOCODEC, _x_buf_audio_name( buf->type ));
                 
 	      buftype_unknown = buf->type;
 
