@@ -20,7 +20,7 @@
  * video_out_directx.c, direct draw video output plugin for xine
  * by Matthew Grooms <elon@altavista.com>
  *
- * $Id: video_out_directx.c,v 1.18 2004/09/02 19:56:42 valtri Exp $
+ * $Id: video_out_directx.c,v 1.19 2004/09/22 20:29:15 miguelfreitas Exp $
  */
 
 typedef unsigned char boolean;
@@ -1253,6 +1253,6 @@ static vo_info_t vo_info_win32 = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */
-  { PLUGIN_VIDEO_OUT, 19, "vo_directx", XINE_VERSION_CODE, &vo_info_win32, init_class },
+  { PLUGIN_VIDEO_OUT, 20, "vo_directx", XINE_VERSION_CODE, &vo_info_win32, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

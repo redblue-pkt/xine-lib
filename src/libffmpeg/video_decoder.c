@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.33 2004/09/20 22:52:04 tmattern Exp $
+ * $Id: video_decoder.c,v 1.34 2004/09/22 20:29:14 miguelfreitas Exp $
  *
  * xine video decoder plugin using ffmpeg
  *
@@ -104,6 +104,7 @@ struct ff_video_decoder_s {
 
   double            aspect_ratio;
   int               frame_flags;
+  int               crop_right, crop_bottom;
   
   int               output_format;
   yuv_planes_t      yuv;
@@ -134,14 +135,27 @@ static int get_buffer(AVCodecContext *context, AVFrame *av_frame){
   
   avcodec_align_dimensions(context, &width, &height);
 
-  if( (this->context->pix_fmt != PIX_FMT_YUV420P) ||
-      (width != this->bih.biWidth) || (height != this->bih.biHeight) ) {
+  if( this->context->pix_fmt != PIX_FMT_YUV420P ) {
     xprintf(this->stream->xine, XINE_VERBOSITY_LOG, 
             _("ffmpeg_video_dec: unsupported frame format, DR1 disabled.\n"));
 
     this->context->get_buffer = avcodec_default_get_buffer;
     this->context->release_buffer = avcodec_default_release_buffer;
     return avcodec_default_get_buffer(context, av_frame);
+  }
+  
+  if((width != context->width) || (height != context->height)) {
+    if(this->stream->video_out->get_capabilities(this->stream->video_out) & VO_CAP_CROP) {
+      this->crop_right = width - context->width;
+      this->crop_bottom = height - context->height;
+    } else {
+      xprintf(this->stream->xine, XINE_VERBOSITY_LOG, 
+              _("ffmpeg_video_dec: unsupported frame dimensions, DR1 disabled.\n"));
+
+      this->context->get_buffer = avcodec_default_get_buffer;
+      this->context->release_buffer = avcodec_default_release_buffer;
+      return avcodec_default_get_buffer(context, av_frame);
+    }
   }
 
   img = this->stream->video_out->get_frame (this->stream->video_out,
@@ -1085,6 +1099,9 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
         else
           img->duration = this->video_step * 3 / 2;
 
+        img->crop_right  = this->crop_right;
+        img->crop_bottom = this->crop_bottom;
+        
         this->skipframes = img->draw(img, this->stream);
         if( this->skipframes < 0 )
           this->skipframes = 0;

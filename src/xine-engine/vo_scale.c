@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: vo_scale.c,v 1.31 2004/05/11 02:21:16 miguelfreitas Exp $
+ * $Id: vo_scale.c,v 1.32 2004/09/22 20:29:17 miguelfreitas Exp $
  * 
  * Contains common code to calculate video scaling parameters.
  * In short, it will map frame dimensions to screen/window size.
@@ -56,7 +56,8 @@ void _x_vo_scale_compute_ideal_size (vo_scale_t *this) {
      * aspect ratio
      */
   
-    image_ratio = (double) this->delivered_width / (double) this->delivered_height;
+    image_ratio = (double) (this->delivered_width - (this->crop_left + this->crop_right)) /
+                  (double) (this->delivered_height - (this->crop_top + this->crop_bottom));
     
     switch (this->user_ratio) {
     case XINE_VO_ASPECT_AUTO:
@@ -105,18 +106,22 @@ void _x_vo_scale_compute_ideal_size (vo_scale_t *this) {
 
 void _x_vo_scale_compute_output_size (vo_scale_t *this) {
   
+  int    cropped_width, cropped_height;
   double x_factor, y_factor, aspect;
     
-  aspect   = this->video_pixel_aspect / this->gui_pixel_aspect;
-  x_factor = (double) this->gui_width  / (double) (this->delivered_width * aspect);
-  y_factor = (double) (this->gui_height * aspect) / (double)  this->delivered_height;
+  cropped_width  = this->delivered_width - (this->crop_left + this->crop_right);
+  cropped_height = this->delivered_height - (this->crop_top + this->crop_bottom); 
 
+  aspect   = this->video_pixel_aspect / this->gui_pixel_aspect;
+  x_factor = (double) this->gui_width  / (double) (cropped_width * aspect);
+  y_factor = (double) (this->gui_height * aspect) / (double) cropped_height;
+  
   if (this->scaling_disabled) {
 
-    this->output_width   = this->delivered_width;
-    this->output_height  = this->delivered_height;
-    this->displayed_width = this->delivered_width;
-    this->displayed_height = this->delivered_height;
+    this->output_width   = cropped_width;
+    this->output_height  = cropped_height;
+    this->displayed_width = cropped_width;
+    this->displayed_height = cropped_height;
 
   } else {
 
@@ -128,44 +133,44 @@ void _x_vo_scale_compute_output_size (vo_scale_t *this) {
        *   black borders to use.
        * - exceding zoom shall be accounted by reducing displayed image.
        */
-      if (((double)this->gui_width - (double)this->delivered_width * y_factor) < ((double)this->gui_height - (double)this->delivered_height * x_factor)) {
+      if (((double)this->gui_width - (double)cropped_width * y_factor) < ((double)this->gui_height - (double)cropped_height * x_factor)) {
         this->output_width = this->gui_width;
-        this->displayed_width = (double)this->delivered_width / this->zoom_factor_x + 0.5;
+        this->displayed_width = (double)cropped_width / this->zoom_factor_x + 0.5;
         
-        this->output_height = (double)this->delivered_height * x_factor + 0.5;
+        this->output_height = (double)cropped_height * x_factor + 0.5;
         if( this->output_height * this->zoom_factor_y <= this->gui_height ) {
-          this->displayed_height = this->delivered_height;
+          this->displayed_height = cropped_height;
           this->output_height = (double)this->output_height * this->zoom_factor_y + 0.5;
         } else {
-          this->displayed_height = (double) this->delivered_height *
+          this->displayed_height = (double)cropped_height *
             this->gui_height / this->output_height / this->zoom_factor_y + 0.5;
           this->output_height = this->gui_height;
         }
       } else {
         this->output_height = this->gui_height;
-        this->displayed_height = (double)this->delivered_height / this->zoom_factor_y + 0.5;
+        this->displayed_height = (double)cropped_height / this->zoom_factor_y + 0.5;
         
-        this->output_width = (double)this->delivered_width * y_factor + 0.5;
+        this->output_width = (double)cropped_width * y_factor + 0.5;
         if( this->output_width * this->zoom_factor_x <= this->gui_width ) {
-          this->displayed_width = this->delivered_width;
+          this->displayed_width = cropped_width;
           this->output_width = (double)this->output_width * this->zoom_factor_x + 0.5;
         } else {
-          this->displayed_width = (double) this->delivered_width *
+          this->displayed_width = (double)cropped_width *
             this->gui_width / this->output_width / this->zoom_factor_x + 0.5;
           this->output_width = this->gui_width;
         }
       }
     
     } else {
-      if (((double)this->gui_width - (double)this->delivered_width * y_factor) < ((double)this->gui_height - (double)this->delivered_height * x_factor)) {
+      if (((double)this->gui_width - (double)cropped_width * y_factor) < ((double)this->gui_height - (double)cropped_height * x_factor)) {
         this->output_width   = (double) this->gui_width;
-        this->output_height  = (double) this->delivered_height * x_factor + 0.5;
+        this->output_height  = (double) cropped_height * x_factor + 0.5;
       } else {
-        this->output_width   = (double) this->delivered_width  * y_factor + 0.5;
+        this->output_width   = (double) cropped_width  * y_factor + 0.5;
         this->output_height  = (double) this->gui_height;
       }
-      this->displayed_width = this->delivered_width;
-      this->displayed_height = this->delivered_height;
+      this->displayed_width = cropped_width;
+      this->displayed_height = cropped_height;
     }
   }  
   
@@ -188,8 +193,8 @@ void _x_vo_scale_compute_output_size (vo_scale_t *this) {
   this->output_yoffset =
     (this->gui_height - this->output_height) * this->output_vertical_position + this->gui_y;
   
-  this->displayed_xoffset = (this->delivered_width  - this->displayed_width) / 2;
-  this->displayed_yoffset = (this->delivered_height - this->displayed_height) / 2;
+  this->displayed_xoffset = ((cropped_width -  this->displayed_width) / 2) + this->crop_left;
+  this->displayed_yoffset = ((cropped_height - this->displayed_height) / 2) + this->crop_top;
 
   lprintf ("frame source %d x %d (%d x %d) => screen output %d x %d\n",
 	   this->delivered_width, this->delivered_height,
@@ -244,7 +249,8 @@ int _x_vo_scale_redraw_needed (vo_scale_t *this) {
   
   if( this->frame_output_cb ) {
     this->frame_output_cb (this->user_data,
-			   this->delivered_width, this->delivered_height, 
+			   this->delivered_width - (this->crop_left + this->crop_right), 
+			   this->delivered_height - (this->crop_top + this->crop_bottom), 
 			   this->video_pixel_aspect,
 			   &gui_x, &gui_y, &gui_width, &gui_height,
 			   &gui_pixel_aspect, &gui_win_x, &gui_win_y );
@@ -364,6 +370,11 @@ void _x_vo_scale_init(vo_scale_t *this, int support_zoom, int scaling_disabled,
   this->gui_pixel_aspect = 1.0;
   this->user_ratio = XINE_VO_ASPECT_AUTO;
   this->delivered_ratio = 0.0;
+  
+  this->crop_left   = 0;
+  this->crop_right  = 0;
+  this->crop_top    = 0;
+  this->crop_bottom = 0;
   
   this->output_horizontal_position = 
     config->register_range(config, "video.horizontal_position", 50, 0, 100,

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_syncfb.c,v 1.97 2004/04/26 17:50:10 mroi Exp $
+ * $Id: video_out_syncfb.c,v 1.98 2004/09/22 20:29:16 miguelfreitas Exp $
  * 
  * video_out_syncfb.c, SyncFB (for Matrox G200/G400 cards) interface for xine
  * 
@@ -597,6 +597,11 @@ static void syncfb_display_frame(vo_driver_t* this_gen, vo_frame_t* frame_gen)
       this->sc.delivered_width  = frame->width;
       this->sc.delivered_height = frame->height;
       this->sc.delivered_ratio  = frame->ratio;
+    
+      this->sc.crop_left        = frame->vo_frame.crop_left;
+      this->sc.crop_right       = frame->vo_frame.crop_right;
+      this->sc.crop_top         = frame->vo_frame.crop_top;
+      this->sc.crop_bottom      = frame->vo_frame.crop_bottom;
 
       syncfb_compute_ideal_size(this);
       
@@ -912,7 +917,7 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *vi
    this->props[VO_PROP_ZOOM_Y].value    = 100;
 
    /* check for formats we need... */
-   this->supported_capabilities = 0;
+   this->supported_capabilities = VO_CAP_CROP;
    this->yuv_format = 0;
 
    /*
@@ -1105,7 +1110,7 @@ static vo_info_t vo_info_syncfb = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */
-  { PLUGIN_VIDEO_OUT, 19, "SyncFB", XINE_VERSION_CODE, &vo_info_syncfb, init_class },
+  { PLUGIN_VIDEO_OUT, 20, "SyncFB", XINE_VERSION_CODE, &vo_info_syncfb, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
 

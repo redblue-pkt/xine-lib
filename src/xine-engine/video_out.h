@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.h,v 1.108 2004/07/06 22:53:23 miguelfreitas Exp $
+ * $Id: video_out.h,v 1.109 2004/09/22 20:29:17 miguelfreitas Exp $
  *
  *
  * xine version of video_out.h 
@@ -146,6 +146,9 @@ struct vo_frame_s {
    */
   int                        progressive_frame;
   int                        picture_coding_type;
+  
+  /* cropping to be done */
+  int                        crop_left, crop_right, crop_top, crop_bottom;
 
   /* extra info coming from input or demuxers */
   extra_info_t              *extra_info;    
@@ -289,6 +292,7 @@ struct xine_video_port_s {
 #define VO_CAP_XVMC_MOCOMP            0x00000004 /* driver can use XvMC motion compensation */
 #define VO_CAP_XVMC_IDCT              0x00000008 /* driver can use XvMC idct acceleration   */
 #define VO_CAP_UNSCALED_OVERLAY       0x00000010 /* driver can blend overlay at output resolution */
+#define VO_CAP_CROP                   0x00000020 /* driver can crop */
 
 /* macroblock modes */
 #define XINE_MACROBLOCK_INTRA 1
@@ -325,7 +329,7 @@ struct xine_video_port_s {
  * from generic vo functions.
  */
 
-#define VIDEO_OUT_DRIVER_IFACE_VERSION  19
+#define VIDEO_OUT_DRIVER_IFACE_VERSION  20
 
 struct vo_driver_s {
 

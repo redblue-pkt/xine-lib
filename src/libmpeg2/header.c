@@ -116,8 +116,11 @@ int mpeg2_header_sequence (picture_t * picture, uint8_t * buffer)
 
     height = (buffer[0] << 16) | (buffer[1] << 8) | buffer[2];
 
-    width = ((height >> 12) + 15) & ~15;
-    height = ((height & 0xfff) + 15) & ~15;
+    picture->display_width = width = (height >> 12);
+    picture->display_height = height = (height & 0xfff);
+    
+    width = (width + 15) & ~15;
+    height = (height + 15) & ~15;
 
     if ((width > 1920) || (height > 1152))
 	return 1;	/* size restrictions for MP@HL */

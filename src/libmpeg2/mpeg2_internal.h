@@ -112,6 +112,9 @@ typedef struct picture_s {
     /* The width and height of the picture snapped to macroblock units */
     int coded_picture_width;
     int coded_picture_height;
+    
+    /* The width and height as it appears on header sequence */
+    unsigned int display_width, display_height;
 
     /* picture header stuff */
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.205 2004/07/19 22:45:48 miguelfreitas Exp $
+ * $Id: video_out.c,v 1.206 2004/09/22 20:29:17 miguelfreitas Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -58,6 +58,8 @@
 /* wait this delay if the first frame is still referenced */
 #define FIRST_FRAME_POLL_DELAY   3000
 #define FIRST_FRAME_MAX_POLL       10    /* poll n times at most */
+
+static vo_frame_t * crop_frame( xine_video_port_t *this_gen, vo_frame_t *img );
 
 typedef struct {
   vo_frame_t        *first;
@@ -329,7 +331,11 @@ static vo_frame_t *vo_get_frame (xine_video_port_t *this_gen,
   img->progressive_frame  = 0;
   img->repeat_first_field = 0;
   img->top_field_first    = 1;
-  img->macroblocks        = NULL;
+  img->crop_left      = 0;
+  img->crop_right     = 0;
+  img->crop_top       = 0;
+  img->crop_bottom    = 0;
+  img->macroblocks    = NULL;
   _x_extra_info_reset ( img->extra_info );
 
   /* let driver ensure this image has the right format */
@@ -425,7 +431,18 @@ static int vo_frame_draw (vo_frame_t *img, xine_stream_t *stream) {
 
 
   if (!img->bad_frame) {
-
+  
+    int dispose_img = 0;
+    
+    /* perform cropping when vo driver does not support it */
+    if( (img->crop_left || img->crop_top || 
+         img->crop_right || img->crop_bottom) &&
+        (this->grab_only ||
+         !(this->driver->get_capabilities (this->driver) & VO_CAP_CROP)) ) {
+      img = crop_frame( img->port, img );
+      dispose_img = 1;
+    }
+    
     /* do not call proc_*() for frames that will be dropped */
     if( !frames_to_skip && !img->proc_called )
       vo_frame_driver_proc(img);
@@ -461,6 +478,9 @@ static int vo_frame_draw (vo_frame_t *img, xine_stream_t *stream) {
 
     vo_frame_inc_lock( img );
     vo_append_to_img_buf_queue (this->display_img_buf_queue, img);
+    
+    if( dispose_img )
+      vo_frame_dec_lock( img );
 
   } else {
     lprintf ("bad_frame\n");
@@ -560,7 +580,6 @@ static int vo_frame_draw (vo_frame_t *img, xine_stream_t *stream) {
 static vo_frame_t * duplicate_frame( vos_t *this, vo_frame_t *img ) {
 
   vo_frame_t *dupl;
-  int         image_size;
 
   if( !this->free_img_buf_queue->first)
     return NULL;
@@ -583,14 +602,19 @@ static vo_frame_t * duplicate_frame( vos_t *this, vo_frame_t *img ) {
   dupl->ratio          = img->ratio;
   dupl->format         = img->format;
   dupl->flags          = img->flags | VO_BOTH_FIELDS;
+  dupl->progressive_frame  = img->progressive_frame;
+  dupl->repeat_first_field = img->repeat_first_field;
+  dupl->top_field_first    = img->top_field_first;
+  dupl->crop_left      = img->crop_left;
+  dupl->crop_right     = img->crop_right;
+  dupl->crop_top       = img->crop_top;
+  dupl->crop_bottom    = img->crop_bottom;
   
   this->driver->update_frame_format (this->driver, dupl, dupl->width, dupl->height, 
 				     dupl->ratio, dupl->format, dupl->flags);
 
   pthread_mutex_unlock (&dupl->mutex);
   
-  image_size = img->pitches[0] * img->height;
-
   switch (img->format) {
   case XINE_IMGFMT_YV12:
     yv12_to_yv12(
@@ -1176,6 +1200,7 @@ int xine_get_next_video_frame (xine_video_port_t *this_gen,
   frame->height       = img->height;
   frame->pos_stream   = img->extra_info->input_normpos;
   frame->pos_time     = img->extra_info->input_time;
+  frame->frame_number = img->extra_info->frame_number;
   frame->aspect_ratio = img->ratio;
   frame->colorspace   = img->format;
   frame->data         = img->base[0];
@@ -1506,6 +1531,69 @@ static void vo_flush (xine_video_port_t *this_gen) {
     this->discard_frames--;
     pthread_mutex_unlock(&this->display_img_buf_queue->mutex);
   }
+}
+
+/* crop_frame() will allocate a new frame to copy in the given image
+ * while cropping. maybe someday this will be an automatic post plugin.
+ */
+static vo_frame_t * crop_frame( xine_video_port_t *this_gen, vo_frame_t *img ) {
+
+  vo_frame_t *dupl;
+
+  dupl = vo_get_frame ( this_gen,
+                        img->width - img->crop_left - img->crop_right, 
+                        img->height - img->crop_top - img->crop_bottom,
+                        img->ratio, img->format, img->flags | VO_BOTH_FIELDS);
+         
+  dupl->progressive_frame  = img->progressive_frame;
+  dupl->repeat_first_field = img->repeat_first_field;
+  dupl->top_field_first    = img->top_field_first;
+  
+  switch (img->format) {
+  case XINE_IMGFMT_YV12:
+    yv12_to_yv12(
+     /* Y */
+      img->base[0] + img->crop_top * img->pitches[0] + 
+        img->crop_left, img->pitches[0],
+      dupl->base[0], dupl->pitches[0],
+     /* U */
+      img->base[1] + img->crop_top/2 * img->pitches[1] + 
+        img->crop_left/2, img->pitches[1],
+      dupl->base[1], dupl->pitches[1],
+     /* V */
+      img->base[2] + img->crop_top/2 * img->pitches[2] + 
+        img->crop_left/2, img->pitches[2],
+      dupl->base[2], dupl->pitches[2],
+     /* width x height */
+      dupl->width, dupl->height);
+    break;
+  case XINE_IMGFMT_YUY2:
+    yuy2_to_yuy2(
+     /* src */
+      img->base[0] + img->crop_top * img->pitches[0] +
+        img->crop_left/2, img->pitches[0],
+     /* dst */
+      dupl->base[0], dupl->pitches[0],
+     /* width x height */
+      dupl->width, dupl->height);
+    break;
+  }
+  
+  dupl->bad_frame   = 0;
+  dupl->pts         = img->pts;
+  dupl->vpts        = img->vpts;
+  dupl->proc_called = 0;
+
+  dupl->duration  = img->duration;
+  dupl->is_first  = img->is_first;
+
+  dupl->stream    = img->stream;
+  memcpy( dupl->extra_info, img->extra_info, sizeof(extra_info_t) );
+  
+  /* delay frame processing for now, we might not even need it (eg. frame will be discarded) */
+  /* vo_frame_driver_proc(dupl); */
+  
+  return dupl;
 }
 
 xine_video_port_t *_x_vo_new_port (xine_t *xine, vo_driver_t *driver, int grabonly) {

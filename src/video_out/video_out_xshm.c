@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xshm.c,v 1.134 2004/09/22 20:16:11 miguelfreitas Exp $
+ * $Id: video_out_xshm.c,v 1.135 2004/09/22 20:29:16 miguelfreitas Exp $
  * 
  * video_out_xshm.c, X11 shared memory extension interface for xine
  *
@@ -315,8 +315,17 @@ static uint32_t xshm_get_capabilities (vo_driver_t *this_gen) {
 static void xshm_frame_proc_slice (vo_frame_t *vo_img, uint8_t **src) {
   xshm_frame_t  *frame = (xshm_frame_t *) vo_img ;
   /*xshm_driver_t *this = (xshm_driver_t *) vo_img->driver; */
-
+  
   vo_img->proc_called = 1;                                    
+  
+  if( frame->vo_frame.crop_left || frame->vo_frame.crop_top || 
+      frame->vo_frame.crop_right || frame->vo_frame.crop_bottom )
+  {
+    /* we don't support crop, so don't even waste cpu cycles.
+     * cropping will be performed by video_out.c
+     */
+    return;
+  }
   
   lprintf ("copy... (format %d)\n", frame->format);
 
@@ -1295,6 +1304,6 @@ static vo_info_t vo_info_xshm = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_VIDEO_OUT, 19, "xshm", XINE_VERSION_CODE, &vo_info_xshm, xshm_init_class },
+  { PLUGIN_VIDEO_OUT, 20, "xshm", XINE_VERSION_CODE, &vo_info_xshm, xshm_init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

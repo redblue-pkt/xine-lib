@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_vidix.c,v 1.64 2004/09/12 19:23:37 mroi Exp $
+ * $Id: video_out_vidix.c,v 1.65 2004/09/22 20:29:16 miguelfreitas Exp $
  * 
  * video_out_vidix.c
  *
@@ -630,6 +630,11 @@ static void vidix_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
     this->sc.delivered_ratio  = frame->ratio;
     this->delivered_format    = frame->format;
     
+    this->sc.crop_left        = frame->vo_frame.crop_left;
+    this->sc.crop_right       = frame->vo_frame.crop_right;
+    this->sc.crop_top         = frame->vo_frame.crop_top;
+    this->sc.crop_bottom      = frame->vo_frame.crop_bottom;
+    
     vidix_compute_ideal_size( this );
     this->sc.force_redraw = 1;
   }
@@ -915,7 +920,7 @@ static vidix_driver_t *open_plugin (video_driver_class_t *class_gen) {
   this->config            = config;
   
   this->got_frame_data    = 0;
-  this->capabilities      = 0;
+  this->capabilities      = VO_CAP_CROP;
 
   /* Find what equalizer flags are supported */
   if(this->vidix_cap.flags & FLAG_EQUALIZER) {
@@ -1273,10 +1278,10 @@ static vo_info_t vo_info_vidixfb = {
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
 #ifdef HAVE_X11
-  { PLUGIN_VIDEO_OUT, 19, "vidix", XINE_VERSION_CODE, &vo_info_vidix, vidix_init_class },
+  { PLUGIN_VIDEO_OUT, 20, "vidix", XINE_VERSION_CODE, &vo_info_vidix, vidix_init_class },
 #endif
 #ifdef HAVE_FB
-  { PLUGIN_VIDEO_OUT, 19, "vidixfb", XINE_VERSION_CODE, &vo_info_vidixfb, vidixfb_init_class },
+  { PLUGIN_VIDEO_OUT, 20, "vidixfb", XINE_VERSION_CODE, &vo_info_vidixfb, vidixfb_init_class },
 #endif
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: vo_scale.h,v 1.12 2004/04/25 14:50:32 komadori Exp $
+ * $Id: vo_scale.h,v 1.13 2004/09/22 20:29:18 miguelfreitas Exp $
  * 
  * vo_scale.h
  *
@@ -65,6 +65,15 @@ struct vo_scale_s {
   int                delivered_width;   
   int                delivered_height;     
   double             delivered_ratio;
+  
+  /*
+   * required cropping:
+   * units: frame pixels
+   */
+  int                crop_left;
+  int                crop_right;
+  int                crop_top;
+  int                crop_bottom;
 
   /* 
    * displayed part of delivered images,

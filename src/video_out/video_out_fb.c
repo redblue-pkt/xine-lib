@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_fb.c,v 1.36 2004/04/26 17:50:09 mroi Exp $
+ * $Id: video_out_fb.c,v 1.37 2004/09/22 20:29:15 miguelfreitas Exp $
  * 
  * video_out_fb.c, frame buffer xine driver by Miguel Freitas
  *
@@ -163,6 +163,16 @@ static void fb_frame_proc_slice(vo_frame_t *vo_img, uint8_t **src)
   fb_frame_t *frame = (fb_frame_t *)vo_img ;
   
   vo_img->proc_called = 1;
+ 
+  if( frame->vo_frame.crop_left || frame->vo_frame.crop_top || 
+      frame->vo_frame.crop_right || frame->vo_frame.crop_bottom )
+  {
+    /* we don't support crop, so don't even waste cpu cycles.
+     * cropping will be performed by video_out.c
+     */
+    return;
+  }
+
   if(frame->format == XINE_IMGFMT_YV12)
     frame->yuv2rgb->yuv2rgb_fun(frame->yuv2rgb, frame->rgb_dst,
 				 src[0], src[1], src[2]);
@@ -1068,6 +1078,6 @@ static vo_info_t vo_info_fb =
 /* exported plugin catalog entry */
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_VIDEO_OUT, 19, "fb", XINE_VERSION_CODE, &vo_info_fb, fb_init_class },
+  { PLUGIN_VIDEO_OUT, 20, "fb", XINE_VERSION_CODE, &vo_info_fb, fb_init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

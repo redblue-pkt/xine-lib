@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xvmc.c,v 1.16 2004/06/26 13:52:20 mroi Exp $
+ * $Id: video_out_xvmc.c,v 1.17 2004/09/22 20:29:17 miguelfreitas Exp $
  * 
  * video_out_xvmc.c, X11 video motion compensation extension interface for xine
  *
@@ -923,6 +923,11 @@ static int xvmc_redraw_needed (vo_driver_t *this_gen) {
     this->sc.delivered_width    = this->cur_frame->width;
     this->sc.delivered_ratio    = this->cur_frame->ratio;
     
+    this->sc.crop_left          = this->cur_frame->vo_frame.crop_left;
+    this->sc.crop_right         = this->cur_frame->vo_frame.crop_right;
+    this->sc.crop_top           = this->cur_frame->vo_frame.crop_top;
+    this->sc.crop_bottom        = this->cur_frame->vo_frame.crop_bottom;
+    
     xvmc_compute_ideal_size(this);
 
     if(_x_vo_scale_redraw_needed(&this->sc)) {
@@ -1393,7 +1398,7 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *vi
   XLockDisplay(this->display);
   this->gc                 = XCreateGC(this->display, this->drawable, 0, NULL);
   XUnlockDisplay(this->display);
-  this->capabilities       = VO_CAP_XVMC_MOCOMP;
+  this->capabilities       = VO_CAP_XVMC_MOCOMP | VO_CAP_CROP;
 
   this->surface_type_id    = class->surface_type_id;
   this->max_surface_width  = class->max_surface_width;
@@ -1839,7 +1844,7 @@ static vo_info_t vo_info_xvmc = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */
-  { PLUGIN_VIDEO_OUT, 19, "xvmc", XINE_VERSION_CODE, &vo_info_xvmc, init_class },
+  { PLUGIN_VIDEO_OUT, 20, "xvmc", XINE_VERSION_CODE, &vo_info_xvmc, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
 

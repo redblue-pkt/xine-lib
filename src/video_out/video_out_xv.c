@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.204 2004/07/19 22:07:41 miguelfreitas Exp $
+ * $Id: video_out_xv.c,v 1.205 2004/09/22 20:29:16 miguelfreitas Exp $
  *
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -712,6 +712,11 @@ static int xv_redraw_needed (vo_driver_t *this_gen) {
     this->sc.delivered_height = this->cur_frame->height;
     this->sc.delivered_width  = this->cur_frame->width;
     this->sc.delivered_ratio  = this->cur_frame->ratio;
+    
+    this->sc.crop_left        = this->cur_frame->vo_frame.crop_left;
+    this->sc.crop_right       = this->cur_frame->vo_frame.crop_right;
+    this->sc.crop_top         = this->cur_frame->vo_frame.crop_top;
+    this->sc.crop_bottom      = this->cur_frame->vo_frame.crop_bottom;
 
     xv_compute_ideal_size(this);
 
@@ -1311,7 +1316,7 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *vi
   XLockDisplay (this->display);
   this->gc                      = XCreateGC (this->display, this->drawable, 0, NULL);
   XUnlockDisplay (this->display);
-  this->capabilities            = 0;
+  this->capabilities            = VO_CAP_CROP;
   this->use_shm                 = 1;
   this->deinterlace_method      = 0;
   this->deinterlace_frame.image = NULL;
@@ -1595,7 +1600,7 @@ static vo_info_t vo_info_xv = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */
-  { PLUGIN_VIDEO_OUT, 19, "xv", XINE_VERSION_CODE, &vo_info_xv, init_class },
+  { PLUGIN_VIDEO_OUT, 20, "xv", XINE_VERSION_CODE, &vo_info_xv, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
 

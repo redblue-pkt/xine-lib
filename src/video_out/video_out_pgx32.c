@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  *
- * $Id: video_out_pgx32.c,v 1.10 2004/07/24 17:26:02 komadori Exp $
+ * $Id: video_out_pgx32.c,v 1.11 2004/09/22 20:29:15 miguelfreitas Exp $
  *
  * video_out_pgx32.c, Sun PGX32 output plugin for xine
  *
@@ -885,6 +885,6 @@ static void *pgx32_init_class(xine_t *xine, void *visual_gen)
 }
 
 plugin_info_t xine_plugin_info[] = {
-  {PLUGIN_VIDEO_OUT, 19, "pgx32", XINE_VERSION_CODE, &vo_info_pgx32, pgx32_init_class},
+  {PLUGIN_VIDEO_OUT, 20, "pgx32", XINE_VERSION_CODE, &vo_info_pgx32, pgx32_init_class},
   {PLUGIN_NONE, 0, "", 0, NULL, NULL}
 };
