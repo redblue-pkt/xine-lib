@@ -30,6 +30,9 @@ xine is using
   libmpg123 - a free MPEG audio decoder
     Written by Michael Hipp <http://www.mpg123.de>
 
+  FFmpeg - Streaming Multimedia System
+    Written by Gerard Lantau <http://ffmpeg.sourceforge.net>
+
 Contributions 
 
   many thanks to the Linux Video and DVD Project "LiViD"
