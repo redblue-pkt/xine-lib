@@ -53,7 +53,7 @@ if HAVE_FIG2DEV
 	$(FIG2DEV) -L png -S 4 $< $@;
 else
 %.png: $(srcdir)/%.fig
-	if test x"$(fail_if_missing)" = x"yes"; then \
+	-if test x"$(fail_if_missing)" = x"yes"; then \
 	  echo "Please install fig2dev."; \
 	  exit 1; \
 	else \
