@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# Copyright (C) 2000-2002 the xine project
+# Copyright (C) 2000-2003 the xine project
 #
 # This file is part of xine, a unix video player.
 # 
@@ -18,7 +18,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
 #
-# $Id: autogen.sh,v 1.12 2003/07/20 08:34:26 mroi Exp $
+# $Id: autogen.sh,v 1.13 2003/10/25 19:26:27 mroi Exp $
 #
 # Maintained by Stephen Torri <storri@users.sourceforge.net>
 #
