@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.76 2002/08/01 04:23:20 miguelfreitas Exp $
+ * $Id: demux_qt.c,v 1.77 2002/08/01 04:28:05 miguelfreitas Exp $
  *
  */
 
@@ -1558,7 +1558,6 @@ static int demux_qt_start (demux_plugin_t *this_gen,
       
     /* send header info to decoder. some mpeg4 streams need this */
     if( this->qt->video_decoder_config ) {
-printf("demux_qt: sending %d bytes of decoder_config\n",this->qt->video_decoder_config_len); 
       buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
       buf->type = this->qt->video_type;
       buf->size = this->qt->video_decoder_config_len;
