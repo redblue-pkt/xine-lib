@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_video_out.c,v 1.11 2002/03/31 14:33:12 mlampard Exp $
+ * $Id: dxr3_video_out.c,v 1.12 2002/04/02 13:31:03 mlampard Exp $
  *
  * mpeg1 encoding video out plugin for the dxr3.  
  *
@@ -210,6 +210,9 @@ static void dxr3_update_frame_format (vo_driver_t *this_gen,
   dxr3_frame_t  *frame = (dxr3_frame_t *) frame_gen; 
   int image_size, oheight; 
 
+  if(this->overlay_enabled)
+  	dxr3_redraw_needed((vo_driver_t *)this);
+
   /* reset the copy calls counter (number of calls to dxr3_frame_copy) */	
   frame->copy_calls = 0;
   frame->vo_frame.driver = this_gen;
@@ -219,7 +222,6 @@ static void dxr3_update_frame_format (vo_driver_t *this_gen,
 
   if (format == IMGFMT_MPEG) { /* talking to dxr3 decoder */
 	int aspect;
-
 	/* a bit of a hack. we must release the em8300_mv fd for
 	 * the dxr3 decoder plugin */
 	if (this->fd_video >= 0) {
@@ -398,14 +400,30 @@ static void dxr3_update_frame_format (vo_driver_t *this_gen,
 
 }
 
-static int dxr3_redraw_needed(vo_driver_t *this_gen)
+int dxr3_redraw_needed(vo_driver_t *this_gen)
 {
 	dxr3_driver_t *this = (dxr3_driver_t *) this_gen;
-	
+	int gui_win_x, gui_win_y, gypos,gxpos,gw,gh; 	
+
+	this->frame_output_cb (this->user_data,
+                   this->video_width, this->video_height,
+                        &gxpos, &gypos, &gw, &gh,
+                             &gui_win_x, &gui_win_y );
+
+	if(this->xpos!=gxpos || this->ypos!=gypos ||
+	   this->width !=gw || this->height!=gh) {
+		this->xpos=gxpos+1;
+		this->ypos=gypos+1;
+		this->width=gw;
+		this->height=gh;
+		dxr3_overlay_adapt_area(this, this->xpos, this->ypos, this->width, this->height, gui_win_x, gui_win_y);
+	}
+
 	if (this->need_redraw) {
 		this->need_redraw = 0;
-		return 1;
+  		return 1;
 	}
+
 	return 0;
 }
 
@@ -421,6 +439,7 @@ static void dxr3_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen)
 {
   dxr3_driver_t *this = (dxr3_driver_t*)this_gen;
   dxr3_frame_t *frame = (dxr3_frame_t*)frame_gen;
+
   if (frame_gen->format != IMGFMT_MPEG && this->enc && this->enc->on_display_frame) {
         this->enc->on_display_frame(this, frame);
   } else {
@@ -614,10 +633,10 @@ printf("dxr3_video_out:init_plugin\n");
 	this->overlay_enabled = 0;
 	this->aspectratio = ASPECT_FULL;
 
+	gather_screen_vars(this, visual_gen);
 	dxr3_read_config(this);
 	
 	if (this->overlay_enabled) {
-		gather_screen_vars(this, visual_gen);
 		dxr3_get_keycolor(this);
 		dxr3_overlay_buggy_preinit(&this->overlay, this->fd_control);
 	}

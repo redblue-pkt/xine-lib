@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_video_out.h,v 1.16 2002/03/31 14:33:12 mlampard Exp $
+ * $Id: dxr3_video_out.h,v 1.17 2002/04/02 13:31:04 mlampard Exp $
  *
  */
 
@@ -134,9 +134,16 @@ typedef struct dxr3_driver_s {
 	
 	char 		*user_data;
 
-	void 		(*frame_output_cb) (char *userdata, int video_width, 
+	void (*frame_output_cb) (void *user_data,
+        	               int video_width, int video_height,
+                	       int *dest_x, int *dest_y,
+                               int *dest_height, int *dest_width,
+                               int *win_x, int *win_u);
+                               
+/*	void 		(*frame_output_cb) (char *userdata, int video_width, 
 				int video_height, int *dest_x,
 		        	int *dest_y, int *dest_height, int *dest_width);
+*/
 } dxr3_driver_t;
 
 typedef struct dxr3_frame_s {
@@ -157,6 +164,8 @@ struct encoder_data_s {
 }; 
 
 /* func definitions */
+int dxr3_redraw_needed(vo_driver_t *this_gen);
+
 /* Overlay functions */
 int dxr3_overlay_set_mode(dxr3_overlay_t *this, int mode);
 int dxr3_overlay_set_attributes(dxr3_overlay_t *this);

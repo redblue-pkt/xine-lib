@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_vo_core.c,v 1.18 2002/03/31 14:33:12 mlampard Exp $
+ * $Id: dxr3_vo_core.c,v 1.19 2002/04/02 13:31:03 mlampard Exp $
  *
  *************************************************************************
  * core functions common to both Standard and RT-Encoding vo plugins     *
@@ -164,7 +164,7 @@ void dxr3_read_config(dxr3_driver_t *this)
 
 
 /******** is this window fullscreen? ************/
-static int is_fullscreen(dxr3_driver_t *this)
+int is_fullscreen(dxr3_driver_t *this)
 {
 	XWindowAttributes a;
 
@@ -309,7 +309,7 @@ int dxr3_set_property (vo_driver_t *this_gen,
 		if (this->overlay_enabled && !fullscreen){
 			int foo;
 			this->frame_output_cb(this->user_data, this->width,
-			 this->width/this->desired_ratio, &foo, &foo, &foo, &foo);
+			 this->width/this->desired_ratio, &foo, &foo, &foo, &foo, &foo, &foo);
 		}
 		break;
 	case VO_PROP_COLORKEY:
@@ -407,6 +407,10 @@ int dxr3_gui_data_exchange (vo_driver_t *this_gen,
 	switch (data_type) {
 /*************************************************************************
  *  FIXME: Removed due to changes in XV by Guenter, but don't know what to replace it with
+ *	Update 2/4/02 - Mike Lampard:
+ *	  This functionality is now incorporated into dxr3_redraw_needed until
+ *        a cleaner way can be found to update window changes.
+	  
 	case GUI_DATA_EX_DEST_POS_SIZE_CHANGED:{
 			x11_rectangle_t *area = (x11_rectangle_t*) data;
 			dxr3_overlay_adapt_area(this, area->x, area->y, area->w, area->h);
@@ -423,6 +427,7 @@ int dxr3_gui_data_exchange (vo_driver_t *this_gen,
 			XFillRectangle(this->display, this->win,
 				 this->gc, 0, 0, this->width, this->height);
 			XUnlockDisplay(this->display);
+			dxr3_redraw_needed((vo_driver_t*)this);
 		}
 		break;
 	case GUI_DATA_EX_DRAWABLE_CHANGED:{
