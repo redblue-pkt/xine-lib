@@ -23,6 +23,7 @@ xine-lib (1-rc4)
     * Lossless Codecs (MSZH & ZLIB)
     * ASV v1/v2
     * ATI VCR1
+    * Real Video 2.0
   
 xine-lib (1-rc3a)
   * new subtitle formats: jacobsub, subviewer 2.0, subrip 0.9
