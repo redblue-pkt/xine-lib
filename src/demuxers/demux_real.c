@@ -28,7 +28,7 @@
  *   
  *   Based on FFmpeg's libav/rm.c.
  *
- * $Id: demux_real.c,v 1.43 2003/02/22 16:46:49 esnel Exp $
+ * $Id: demux_real.c,v 1.44 2003/02/28 15:47:52 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -649,7 +649,6 @@ static int demux_real_parse_references( demux_real_t *this) {
     if( !strncmp(&buf[i],"pnm://",6) || !strncmp(&buf[i],"rtsp://",7) ) {
       for(j=i; buf[j] && buf[j] != '"' && !isspace(buf[j]); j++ )
         ;
-      j--;
       buf[j]='\0';
 
       uevent.type = XINE_EVENT_MRL_REFERENCE;
