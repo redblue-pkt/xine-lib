@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpgaudio.c,v 1.107 2003/08/31 16:37:32 jcdutton Exp $
+ * $Id: demux_mpgaudio.c,v 1.108 2003/09/22 23:16:14 tmattern Exp $
  *
  * demultiplexer for mpeg audio (i.e. mp3) streams
  *
@@ -33,16 +33,19 @@
 #include <string.h>
 #include <stdlib.h>
 
-#include "xine_internal.h"
-#include "xineutils.h"
-#include "compat.h"
-#include "demux.h"
-#include "bswap.h"
-#include "group_audio.h"
 
+/********** logging **********/
+#define LOG_MODULE "demux_mpeg_audio"
+#define LOG_VERBOSE
 /*
 #define LOG
 */
+#include "xine_internal.h"
+#include "xineutils.h"
+#include "demux.h"
+#include "compat.h"
+#include "bswap.h"
+#include "group_audio.h"
 
 #define NUM_PREVIEW_BUFFERS  10
 #define SNIFF_BUFFER_LENGTH 1024
@@ -57,7 +60,7 @@
 #define RIFF_TAG FOURCC_TAG('R', 'I', 'F', 'F')
 #define AVI_TAG FOURCC_TAG('A', 'V', 'I', ' ')
 #define CDXA_TAG FOURCC_TAG('C', 'D', 'X', 'A')
-#define ID3_TAG FOURCC_TAG('I', 'D', '3', 3)
+#define ID3V2_TAG FOURCC_TAG('I', 'D', '3', 0)  /* ID3 v2.x.y tags */
 
 typedef struct {
 
@@ -90,15 +93,17 @@ typedef struct {
 
 } demux_mpgaudio_class_t;
 
-/* bitrate table tabsel_123[mpeg version][layer][bitrate index] */
+/* bitrate table tabsel_123[mpeg version][layer][bitrate index]
+ * values stored in kbps
+ */
 const int tabsel_123[2][3][16] = {
    { {0,32,64,96,128,160,192,224,256,288,320,352,384,416,448,},
      {0,32,48,56, 64, 80, 96,112,128,160,192,224,256,320,384,},
      {0,32,40,48, 56, 64, 80, 96,112,128,160,192,224,256,320,} },
 
    { {0,32,48,56,64,80,96,112,128,144,160,176,192,224,256,},
-     {0,8,16,24,32,40,48,56,64,80,96,112,128,144,160,},
-     {0,8,16,24,32,40,48,56,64,80,96,112,128,144,160,} }
+     {0, 8,16,24,32,40,48, 56, 64, 80, 96,112,128,144,160,},
+     {0, 8,16,24,32,40,48, 56, 64, 80, 96,112,128,144,160,} }
 };
 
 static int frequencies[2][3] = {
@@ -108,8 +113,6 @@ static int frequencies[2][3] = {
 
 
 static int mpg123_head_check(unsigned long head) {
-  if (head == ID3_TAG) 
-    return 1;
   if ((head & 0xffe00000) != 0xffe00000)
     return 0;
   if (!((head >> 17) & 3))
@@ -144,22 +147,6 @@ static int mpg123_xhead_check(unsigned char *buf)
   return 1;
 }
 
-static int extractI4(unsigned char *buf)
-{
-  int x;
-  /* big endian extract */
-
-  x = buf[0];
-  x <<= 8;
-  x |= buf[1];
-  x <<= 8;
-  x |= buf[2];
-  x <<= 8;
-  x |= buf[3];
-
-  return x;
-}
-
 
 /* Return length of an MP3 frame using potential 32-bit header value.  See
  * "http://www.dv.co.yu/mpgscript/mpeghdr.htm" for details on the header
@@ -168,8 +155,7 @@ static int extractI4(unsigned char *buf)
  * NOTE: As an optimization and because they are rare, this returns 0 for
  * version 2.5 or free format MP3s.
  */
-static size_t
-get_mp3_frame_length (unsigned long mp3_header)
+static size_t get_mp3_frame_length (unsigned long mp3_header)
 {
   int ver = 4 - ((mp3_header >> 19) & 3u);
   int br = (mp3_header >> 12) & 0xfu;
@@ -194,21 +180,7 @@ get_mp3_frame_length (unsigned long mp3_header)
   return 0;
 }
 
-static unsigned long
-get_4_byte_value (const unsigned char *bytes)
-{
-  unsigned long value = 0;
-  int count;
-
-  for (count = 0; count < 4; ++count) {
-    value <<= 8;
-    value |= *bytes++;
-  }
-  return value;
-}
-
-static unsigned char *
-demux_mpgaudio_read_buffer_header (input_plugin_t *input)
+static unsigned char * demux_mpgaudio_read_buffer_header (input_plugin_t *input)
 {
   int count;
   uint8_t buf[MAX_PREVIEW_SIZE];
@@ -274,7 +246,7 @@ static int _sniff_buffer_looks_like_mp3 (input_plugin_t *input)
 	return 0;
       }
 
-      mp3_header = get_4_byte_value (&buf[offset]);
+      mp3_header = BE_32(&buf[offset]);
       length = get_mp3_frame_length (mp3_header);
 
       if (length != 0) {
@@ -315,23 +287,17 @@ static void chomp (char *str) {
 
 static void read_id3_tags (demux_mpgaudio_t *this) {
 
-  off_t pos, len;
+  off_t len;
   struct id3v1_tag_s tag;
 
   /* id3v1 */
-
-  pos = this->input->get_length(this->input) - 128;
-  this->input->seek (this->input, pos, SEEK_SET);
-
   len = this->input->read (this->input, (char *)&tag, 128);
 
-  if (len>0) {
+  if (len > 0) {
 
     if ( (tag.tag[0]=='T') && (tag.tag[1]=='A') && (tag.tag[2]=='G') ) {
 
-#ifdef LOG
-      printf ("demux_mpgaudio: id3 tag found\n");
-#endif
+      lprintf("id3v1 tag found\n");
 
       tag.title[29]   = 0;
       tag.artist[29]  = 0;
@@ -351,57 +317,44 @@ static void read_id3_tags (demux_mpgaudio_t *this) {
 	= strdup (tag.album);
       this->stream->meta_info [XINE_META_INFO_COMMENT]
 	= strdup (tag.comment);
-
     }
   }
 }
 
-static void mpg123_decode_header(demux_mpgaudio_t *this,unsigned long newhead) {
+static void mpg123_decode_header(demux_mpgaudio_t *this, unsigned long newhead) {
 
   int lsf, mpeg25;
   int lay, bitrate_index;
-  char * ver;
+  char *ver;
 
   /*
    * lsf==0 && mpeg25==0 : MPEG Version 1 (ISO/IEC 11172-3)
    * lsf==1 && mpeg25==0 : MPEG Version 2 (ISO/IEC 13818-3)
    * lsf==1 && mpeg25==1 : MPEG Version 2.5 (later extension of MPEG 2)
    */
-  if( newhead & (1<<20) ) {
-    lsf = (newhead & (1<<19)) ? 0x0 : 0x1;
-    if (lsf) {
-      ver = "2";
-    } else {
-      ver = "1";
-    }
-    mpeg25 = 0;
-  } else {
-    lsf = 1;
-    mpeg25 = 1;
+
+  mpeg25 = !((newhead >> 20) & 1);              /* mpeg 2.5 ext */
+  lsf    = !((newhead >> 19) & 1);              /* lsf ext */
+
+  if (mpeg25)
     ver = "2.5";
-  }
+  else
+    ver = (lsf) ? "2" : "1";
 
   /* Layer I, II, III */
-  lay = 4-((newhead>>17)&3);
+  lay = 4 - ((newhead >> 17) & 3);
+  bitrate_index = ((newhead >> 12) & 0xf);
 
-  bitrate_index = ((newhead>>12)&0xf);
-  this->bitrate = tabsel_123[lsf][lay - 1][bitrate_index];
+  this->bitrate = tabsel_123[lsf][lay - 1][bitrate_index] * 1000;
   
   if( !this->bitrate ) /* bitrate can't be zero, default to 128 */
-    this->bitrate = 128;
+    this->bitrate = 128000;
 
-  if (!this->stream->meta_info[XINE_META_INFO_AUDIOCODEC]) {
-
-    char *str = malloc (80);
-
-    sprintf (str, "mpeg %s audio layer %d", ver, lay);
-    this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] = str;
-
-    this->stream->stream_info[XINE_STREAM_INFO_BITRATE] = this->bitrate*1024;
-    this->stream->stream_info[XINE_STREAM_INFO_AUDIO_BITRATE] = this->bitrate*1024;
-  }
- 
-  this->stream_length = (int)(this->input->get_length(this->input) / (this->bitrate * 1024 / 8));
+  this->stream->stream_info[XINE_STREAM_INFO_BITRATE] = this->bitrate;
+  lprintf("mpeg %s audio layer %d\n", ver, lay);
+  lprintf("bitrate: %ld\n", this->bitrate);
+  this->stream_length = (int)(this->input->get_length(this->input) / (this->bitrate / 8));
+  lprintf("stream_length: %d s\n", this->stream_length);
 }
 
 static void check_newpts( demux_mpgaudio_t *this, int64_t pts ) {
@@ -450,7 +403,7 @@ static int demux_mpgaudio_next (demux_mpgaudio_t *this, int decoder_flags) {
   }
 
   if (this->bitrate == 0) {
-    int i, ver,srindex,brindex,xbytes,xframes;
+    int i, ver, srindex, brindex, xbytes, xframes;
 
     for( i = 0; i < done-4; i++ ) {
       head = (buf->mem[i+0] << 24) + (buf->mem[i+1] << 16) +
@@ -473,8 +426,8 @@ static int demux_mpgaudio_next (demux_mpgaudio_t *this, int decoder_flags) {
       if (mpg123_xhead_check((unsigned char *)&head)) {
         long long total_bytes, magic1, magic2;
 
-        xframes = extractI4(buf->mem+i+8);
-	xbytes = extractI4(buf->mem+i+12);
+        xframes = BE_32(buf->mem+i+8);
+	xbytes = BE_32(buf->mem+i+12);
 
 	if (xframes <= 0) {
           break;
@@ -483,23 +436,27 @@ static int demux_mpgaudio_next (demux_mpgaudio_t *this, int decoder_flags) {
 	total_bytes = (long long) frequencies[!ver][srindex] * (long long) xbytes;
 	magic1 = total_bytes / (long long) (576 + ver * 576);
 	magic2 = magic1 / (long long) xframes;
-	this->bitrate = (int) ((long long) magic2 / (long long) 125);
 
-	this->stream->stream_info[XINE_STREAM_INFO_BITRATE] = this->bitrate*1024;
-	this->stream->stream_info[XINE_STREAM_INFO_AUDIO_BITRATE] = this->bitrate*1024;
+	/* 1 kbit = 1000 bits ! (and not 1024 bits) */
+	this->bitrate = (int) ((long long) magic2 / (long long) 125) * 1000;
 
-	this->stream_length = (int)(this->input->get_length(this->input) / (this->bitrate * 1024 / 8));
+	this->stream->stream_info[XINE_STREAM_INFO_BITRATE] = this->bitrate;
+
+	this->stream_length = (int)(this->input->get_length(this->input) / (this->bitrate / 8));
 	break;
       }
     }
   }
 
+  buf->pts = 0;
   if (this->bitrate) {
-    pts = (90000 * buffer_pos) / (this->bitrate * 1000 / 8);
+    pts = (90000 * buffer_pos) / (this->bitrate / 8);
     check_newpts(this, pts);
   }
+#if 0
+  buf->pts = pts;
+#endif
 
-  buf->pts             = 0;
   buf->extra_info->input_pos       = this->input->get_current_pos(this->input);
   {
     int len = this->input->get_length(this->input);
@@ -560,23 +517,17 @@ static uint32_t demux_mpgaudio_read_head(input_plugin_t *input, uint8_t *buf) {
     if(input->read(input, buf, bs))
       head = (buf[0] << 24) + (buf[1] << 16) + (buf[2] << 8) + buf[3];
 
-#ifdef LOG
-    printf ("demux_mpgaudio: stream is seekable\n");
-#endif
+    lprintf("stream is seekable\n");
 
   } else if ((input->get_capabilities(input) & INPUT_CAP_PREVIEW) != 0) {
 
-#ifdef LOG
-    printf ("demux_mpgaudio: input plugin provides preview\n");
-#endif
+    lprintf("input plugin provides preview\n");
 
     optional = input->get_optional_data (input, buf, INPUT_OPTIONAL_DATA_PREVIEW);
     optional = optional > 256 ? 256 : optional;
 
-#ifdef LOG
-    printf ("demux_mpgaudio: got preview %02x %02x %02x %02x\n",
+    lprintf("got preview %02x %02x %02x %02x\n",
 	    buf[0], buf[1], buf[2], buf[3]);
-#endif
     
     for(i = 0; i < (optional - 4); i++) {
       head = (buf[i] << 24) + (buf[i + 1] << 16) + (buf[i + 2] << 8) + buf[i + 3];
@@ -587,9 +538,7 @@ static uint32_t demux_mpgaudio_read_head(input_plugin_t *input, uint8_t *buf) {
     head = (buf[0] << 24) + (buf[1] << 16) + (buf[2] << 8) + buf[3];
     
   } else {
-#ifdef LOG
-    printf ("demux_mpgaudio: not seekable, no preview\n");
-#endif
+    lprintf("not seekable, no preview\n");
     return 0;
   }
 
@@ -613,12 +562,15 @@ static void demux_mpgaudio_send_headers (demux_plugin_t *this_gen) {
 
   if ((this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) != 0) {
     uint32_t head;
+    off_t pos;
 
     head = demux_mpgaudio_read_head(this->input, buf);
-
     if (mpg123_head_check(head))
-      mpg123_decode_header(this,head);
+      mpg123_decode_header(this, head);
 
+    /* check ID3 v1 at the end of the stream */
+    pos = this->input->get_length(this->input) - 128;
+    this->input->seek (this->input, pos, SEEK_SET);
     read_id3_tags (this);
   }
 
@@ -632,12 +584,12 @@ static void demux_mpgaudio_send_headers (demux_plugin_t *this_gen) {
   if ((this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) != 0)
     this->input->seek (this->input, 0, SEEK_SET);
 
-  for (i=0; i<NUM_PREVIEW_BUFFERS; i++) {
+  for (i = 0; i < NUM_PREVIEW_BUFFERS; i++) {
     if (!demux_mpgaudio_next (this, BUF_FLAG_PREVIEW)) {
       break;
     }
   }
-  this->status        = DEMUX_OK;
+  this->status = DEMUX_OK;
 }
 
 static int demux_mpgaudio_seek (demux_plugin_t *this_gen,
@@ -690,7 +642,7 @@ static uint32_t demux_mpgaudio_get_capabilities(demux_plugin_t *this_gen) {
 static int demux_mpgaudio_get_optional_data(demux_plugin_t *this_gen,
 					void *data, int data_type) {
   return DEMUX_OPTIONAL_UNSUPPORTED;
-}
+} 
 
 static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *stream,
 				    input_plugin_t *input_gen) {
@@ -702,9 +654,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   int               i;
   uint8_t          *ptr;
 
-#ifdef LOG
-  printf ("demux_mpgaudio: trying to open %s...\n", input->get_mrl(input));
-#endif
+  lprintf("trying to open %s...\n", input->get_mrl(input));
 
   switch (stream->content_detection_method) {
 
@@ -713,16 +663,12 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
 
     head = demux_mpgaudio_read_head (input, buf);
 
-#ifdef LOG
-    printf ("demux_mpgaudio: head is %x\n", head);
-#endif
+    lprintf("head is %x\n", head);
     
     if (head == RIFF_TAG) {
       int ok;
 
-#ifdef LOG
-      printf ("demux_mpgaudio: **** found RIFF tag\n");
-#endif
+      lprintf("**** found RIFF tag\n");
       /* skip the length */
       ptr = buf + 8;
 
@@ -734,9 +680,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
        * marker */
       if ((BE_32(riff_check) == AVI_TAG) ||
           (BE_32(riff_check) == CDXA_TAG)) {
-#ifdef LOG
-        printf ("demux_mpgaudio: **** found AVI or CDXA tag\n");
-#endif
+        lprintf("**** found AVI or CDXA tag\n");
         return NULL;
       }
 
@@ -761,9 +705,9 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
       ok = 0;
       for (i = 0; i < RIFF_CHECK_BYTES - 4; i++) {
         head = BE_32(riff_check + i);
-#ifdef LOG
-	printf ("demux_mpgaudio: **** mpg123: checking %08X\n", head);
-#endif
+
+        lprintf("**** mpg123: checking %08X\n", head);
+
         if (mpg123_head_check(head)
             || _sniff_buffer_looks_like_mp3(input))
 	  ok = 1;
@@ -771,11 +715,12 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
       if (!ok)
 	return NULL;
 
+    } else if ((head & 0xFFFFFF00) == ID3V2_TAG) {
+      lprintf("id3v2 tag detected (but not parsed)\n");
     } else if (!mpg123_head_check(head) &&
 		    !_sniff_buffer_looks_like_mp3 (input)) {
-#ifdef LOG
-      printf ("demux_mpgaudio: head_check failed\n");
-#endif
+
+      lprintf ("head_check failed\n");
       return NULL;
     }
   }
@@ -787,9 +732,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
 
     MRL = input->get_mrl (input);
 
-#ifdef LOG
-    printf ("demux_mpgaudio: stage by extension %s\n", MRL);
-#endif
+    lprintf("demux_mpgaudio: stage by extension %s\n", MRL);
 
     if (strncmp (MRL, "ice :/", 6)) {
     
