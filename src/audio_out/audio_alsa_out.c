@@ -25,7 +25,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.17 2001/08/24 01:05:30 guenter Exp $
+ * $Id: audio_alsa_out.c,v 1.18 2001/08/25 06:48:18 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -130,7 +130,7 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
   err = snd_output_stdio_attach(&jcd_out, stderr, 0);
   if (((mode & AO_CAP_MODE_STEREO) == 0) && ((mode & AO_CAP_MODE_AC3) == 0)) {
     error ("ALSA Driver only supports AC3/stereo output modes at the moment");
-    return -1;
+    return 0;
   } else {
     this->num_channels = 2;
   }
@@ -155,7 +155,7 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
   if(err <0 ) {                                                           
     error("snd_pcm_open() failed: %s", snd_strerror(err));               
     error(">>> Check if another program don't already use PCM <<<");     
-    return -1;                                                          
+    return 0;
   }
 
        if (mode & AO_CAP_MODE_AC3) {
@@ -295,11 +295,11 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
   //  write_pause_burst(this,0);
 
 
-  return 1;
+  return this->output_sample_rate;
 __close:
   snd_pcm_close (this->audio_fd);
   this->audio_fd=NULL;
-  return -1;
+  return 0;
 }
 
 static int ao_alsa_num_channels(ao_driver_t *this_gen)
