@@ -521,7 +521,7 @@
   <title>Object oriented programming in C</title>
   <para>
    xine uses a lot of design principles normally found in 
-   object oriented designs. As xine is written in c, a few
+   object oriented designs. As xine is written in C, a few
    basic principles shall be explained here on how xine
    is object oriented anyway.
   </para>
@@ -568,6 +568,31 @@
 &nbsp;&nbsp;&nbsp;}</programlisting>
   </para>
   <para>
+   The part added to the derived class is private, because when
+   defining the new structure directly in the .c file, where it will
+   be used, outside modules have no way of seeing the definition
+   of the derived class. A public derivation is possible by defining
+   the above structure in a .h file for others to include.
+  </para>
+  <para>
+   Something similar to a protected, package or friend visibility is also
+   possible:
+   <programlisting>
+&nbsp;&nbsp;&nbsp;struct my_stack_s {
+&nbsp;&nbsp;&nbsp;  void (*push)(my_stack_t *this, int i);
+&nbsp;&nbsp;&nbsp;  void (*add)(my_stack_t *this);
+&nbsp;&nbsp;&nbsp;  int  (*pop)(my_stack_t *this);
+&nbsp;&nbsp;&nbsp;
+&nbsp;&nbsp;&nbsp;#ifdef STACK_INTERNAL
+&nbsp;&nbsp;&nbsp;  void (*flush)(my_stack_t *this);
+&nbsp;&nbsp;&nbsp;#endif
+&nbsp;&nbsp;&nbsp;};</programlisting>
+   All modules, who need to access the internal part have to add
+   <programlisting>&nbsp;&nbsp;&nbsp;#define STACK_INTERNAL</programlisting>
+   before including the header with the definition. It is clear that only
+   those friend modules can derive from this class.
+  </para>
+  <para>
    Finally the contructor malloc()s the data struct (private variant)
    and fills in function pointers and default values. Usually the
    constructor is the only public (i.e. non-static) function in the module:
@@ -589,7 +614,28 @@
 &nbsp;&nbsp;&nbsp;  /* return public part */
 &nbsp;&nbsp;&nbsp;  return &amp;this->stack;
 &nbsp;&nbsp;&nbsp;}</programlisting>
-  </para>   
+  </para>
+  <sect2>
+   <title>Why not using C++?</title>
+   <para>
+    After all these considerations about object oriented C, you might
+    ask, why we do not use C++ after all? The easy answer would be: xine wants
+    to be as fast as possible and C++ is simply too slow. But this is only the
+    easy answer and it is not entirely true any more. Thoughtfully applied, you
+    can write very fast C++ code with today's compilers, but these compilers might
+    not be available on all platforms in the necessary quality. Even with
+    a sophisticated compiler, C++ is much harder to optimize than plain C and thus
+    C compiles much faster. Another big problem is that the C++ ABI is not as
+    well-defined as the C ABI. With C, you can easily mix libraries and
+    applications built by different compilers. With C++, this is unlikely to work.
+    But the final argument is that xine does not really need C++. xine's
+    inheritance hierarchy is very flat, mostly one level only and does not need
+    things like multiple or virtual inheritance. Most of the external projects
+    that are used by xine are plain C as well and using more than one language
+    complicates the build system. As we saw above, we can emulate
+    object orientation reduced to our real needs in plain C.
+   </para>
+  </sect2>
  </sect1>
  
  <sect1>
@@ -718,6 +764,22 @@
    <para>
     LOG_VERBOSE can be defined to enable the logging of functionname and linenumbers.
     Then the output will be: "modulename: (function_name:42) message".
+   </para>
+  </sect2>
+  <sect2>
+   <title>_x_assert/_x_abort</title>
+   <para>
+    These are not purely logging functions, but despite their original C library versions,
+    they always output debugging text, which is why usage of these functions is preferred.
+   </para>
+   <para>
+    <function>_x_assert()</function> checks a condition and prints a note,
+    when the condition is false. In addition, a debug build and only a debug build will
+    terminate the application, when the condition is false. Release versions will only
+    print the note, but try to continue.
+   </para>
+   <para>
+    <function>_x_abort()</function> always terminates the application after printing a note.
    </para>
   </sect2>
  </sect1>
