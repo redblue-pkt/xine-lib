@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decoder.c,v 1.57 2002/01/09 22:33:03 jcdutton Exp $
+ * $Id: dxr3_decoder.c,v 1.58 2002/01/10 21:30:10 jcdutton Exp $
  *
  * dxr3 video and spu decoder plugin. Accepts the video and spu data
  * from XINE and sends it directly to the corresponding dxr3 devices.
@@ -626,13 +626,13 @@ static void dxr3_decode_data (video_decoder_t *this_gen, buf_element_t *buf)
 		this->last_pts = vpts;
 		/* SETPTS only if less then one second in the future and
 		 * either buffer has PTS or sync_every_frame is set */
-//		if ((delay > 0) && (delay < 90000) &&
-//		    (this->sync_every_frame || buf->PTS)) {
+		if ((delay > 0) && (delay < 90000) &&
+		    (this->sync_every_frame || buf->PTS)) {
 			/* update the dxr3's current pts value */	
 			if (ioctl(this->fd_video, EM8300_IOCTL_VIDEO_SETPTS, &vpts))
 				printf("dxr3: set video pts failed (%s)\n",
 					 strerror(errno));
-//		}
+		}
 		if (delay >= 90000) {
 			/* frame more than 1 sec ahead */
 			printf("dxr3: WARNING: vpts %d is %.02f seconds ahead of time!\n",

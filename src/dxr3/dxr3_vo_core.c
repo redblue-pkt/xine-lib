@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_vo_core.c,v 1.13 2001/12/24 18:40:13 hrm Exp $
+ * $Id: dxr3_vo_core.c,v 1.14 2002/01/10 21:30:10 jcdutton Exp $
  *
  *************************************************************************
  * core functions common to both Standard and RT-Encoding vo plugins     *
@@ -42,7 +42,9 @@
 #include "dxr3_video_out.h"
 #include <locale.h>
 
-#define OVERLAY_LOG 0
+/*
+#define OVERLAY_LOG 1
+*/
 
 void *malloc_aligned (size_t alignment, size_t size, void **mem) {
   char *aligned;
@@ -116,7 +118,7 @@ void dxr3_read_config(dxr3_driver_t *this)
 	 VO_PROP_ASPECT_RATIO, ASPECT_FULL);
 
 	str = config->register_string(config, "dxr3.videoout_mode", "tv", "Dxr3: videoout mode (tv or overlay)", NULL,NULL,NULL);
-
+        printf("dxr3:overlaymode=%s\n",str);
 	if (!strcasecmp(str, "tv")) {
 		this->overlay_enabled=0;
 		this->tv_switchable=0;  /* don't allow on-the-fly switching */		
