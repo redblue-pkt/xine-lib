@@ -30,6 +30,8 @@ xine-lib (1-rc6)
   * Improved DVD MRL handling.
   * Improved Transport stream handling.
   * Fixed wrong, very bright overlays on some DVDs [bug #1018193]
+  * Fixed WIN32 replacement of gettimeofday [bug #995961]
+  * Removed unistd.h from public header
 
 xine-lib (1-rc5)  
   * add support for ejecting removable media on Solaris

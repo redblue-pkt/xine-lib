@@ -76,6 +76,10 @@ James Stembridge <jstembridge@users.sourceforge.net>
   VIDIX driver, real media and ffmpeg interface fixes and improvements
   mpeg-4 postprocessing, initial software DTS decoding
 
+Frantisek Dvorak <valtri@atlas.cz>
+  czech translations and multilanguage support (xine lib/ui),
+  RIP Input Plugin, WIN32 porting, lots of other improvements and bugfixes
+  
 xine is using
 =============
 
@@ -269,12 +273,6 @@ Andrei Lahun <Uman@editec-lotteries.com>
 Sergiy Kudryk <linux_ua@yahoo.com>
   ukrainian internationalization files (xine ui).
 
-Frantisek Dvorak <valtri@atlas.cz>
-  czech internationalization files (xine lib/ui).
-  unicode support for xinefonts.
-  sputext decoder improvements, RIP Input Plugin
-  lots of other improvements and bugfixes on inputs and demuxers
-  
 Ian Goldberg <ian@cypherpunks.ca>
   streaming AVI support (plays growing files), >2GB AVI files
 
