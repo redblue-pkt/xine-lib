@@ -2168,6 +2168,9 @@ if test x"$enable_vidix" = "xyes"; then
     echo ")"
   fi
 fi
+if test x"$have_directx" = "xyes"; then
+  echo "   - directx (DirectX video driver)"
+fi
 echo ""
 
 dnl Audio plugins
@@ -2191,6 +2194,9 @@ if test x"$have_sunaudio" = "xyes"; then
 fi
 if test "x$am_cv_have_irixal" = xyes; then
   echo "   - irixal (Irix audio library)"
+fi
+if test x"$have_directx" = "xyes"; then
+  echo "   - directx (DirectX audio driver)"
 fi
 echo "---"
 
