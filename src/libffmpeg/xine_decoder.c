@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.12 2001/09/18 11:38:23 jkeil Exp $
+ * $Id: xine_decoder.c,v 1.13 2001/09/18 17:41:47 jkeil Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -100,9 +100,11 @@ static unsigned short str2ushort(void *data)
 static int ff_can_handle (video_decoder_t *this_gen, int buf_type) {
   buf_type &= 0xFFFF0000;
 
-  return ( buf_type == BUF_VIDEO_MSMPEG4 ||
-           buf_type == BUF_VIDEO_MJPEG ||
+  /* ffmpeg currently does not support MSMPEG4 v1/v2 */
+  return ( buf_type == BUF_VIDEO_MSMPEG4_V3 ||
+           /* buf_type == BUF_VIDEO_MSMPEG4_V12 || */
            buf_type == BUF_VIDEO_MPEG4 ||
+           buf_type == BUF_VIDEO_MJPEG ||
 	   buf_type == BUF_VIDEO_I263 ||
 	   buf_type == BUF_VIDEO_RV10 ||
 	   buf_type == BUF_VIDEO_JPEG);
@@ -152,7 +154,8 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
     */
 
     switch (buf->type & 0xFFFF0000) {
-    case BUF_VIDEO_MSMPEG4:
+    case BUF_VIDEO_MSMPEG4_V12:
+    case BUF_VIDEO_MSMPEG4_V3:
       codec = avcodec_find_decoder (CODEC_ID_MSMPEG4);
       break;
     case BUF_VIDEO_MPEG4 :

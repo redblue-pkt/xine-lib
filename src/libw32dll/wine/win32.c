@@ -99,6 +99,7 @@ static void longcount(long long* z)
 }
 #endif
 
+int LOADER_DEBUG=1;
 static void dbgprintf(char* fmt, ...)
 {
 #ifdef DETAILED_OUT
@@ -108,14 +109,21 @@ static void dbgprintf(char* fmt, ...)
     vprintf(fmt, va);
     va_end(va);
 #else
-    va_list va;
-    FILE* f;
-    va_start(va, fmt);
-    f=fopen("./log", "a");
-    if(f==0)return;
-    vfprintf(f, fmt, va);
-    fsync(f);
-    fclose(f);
+    if (LOADER_DEBUG)
+    {
+	FILE* f;
+	va_list va;
+	va_start(va, fmt);
+	vprintf(fmt, va);
+	f=fopen("./log", "a");
+	if(f)
+	{
+	    vfprintf(f, fmt, va);
+	    fsync(fileno(f));
+	    fclose(f);
+	}
+	va_end(va);
+    }
 #endif
 #endif
 }    
@@ -445,7 +453,6 @@ void WINAPI expGetSystemInfo(SYSTEM_INFO* si)
     	/* FIXME: better values for the two entries below... */
 	static int cache = 0;
 	static SYSTEM_INFO cachedsi;
-	HKEY	xhkey=0;
         dbgprintf("GetSystemInfo()\n");
 
 	if (cache) {
@@ -503,7 +510,6 @@ void WINAPI expGetSystemInfo(SYSTEM_INFO* si)
 
 	if (!f)
 		return;
-        xhkey = 0;
 	while (fgets(line,200,f)!=NULL) {
 		char	*s,*value;
 
@@ -1150,6 +1156,27 @@ LPCSTR WINAPI expGetEnvironmentStrings()
     return "\0\0";
 }
 
+void * WINAPI expRtlZeroMemory(void *p, size_t len)
+{
+    void* result=memset(p,0,len);
+    dbgprintf("RtlZeroMemory(0x%x, len %d) => 0x%x\n",p,len,result);
+    return result;
+}
+
+void * WINAPI expRtlMoveMemory(void *dst, void *src, size_t len)
+{
+    void* result=memmove(dst,src,len);
+    dbgprintf("RtlMoveMemory (dest 0x%x, src 0x%x, len %d) => 0x%x\n",dst,src,len,result);
+    return result;
+}
+
+void * WINAPI expRtlFillMemory(void *p, int ch, size_t len)
+{
+    void* result=memset(p,ch,len);
+    dbgprintf("RtlFillMemory(0x%x, char 0x%x, len %d) => 0x%x\n",p,ch,len,result);
+    return result;
+}
+
 int WINAPI expGetStartupInfoA(STARTUPINFOA *s)
 {
   /*    int i;    */
@@ -1474,6 +1501,20 @@ int WINAPI expReleaseDC(int hwnd, int hdc)
     return 0;
 }    
 
+static int cursor[100];
+
+int WINAPI expLoadCursorA(int handle,LPCSTR name)
+{
+    dbgprintf("LoadCursorA(%d, 0x%x='%s') => 0x%x\n", handle, name, (int)&cursor[0]);
+    return (int)&cursor[0];
+}
+
+int WINAPI expSetCursor(void *cursor)
+{
+    dbgprintf("SetCursor(0x%x) => 0x%x\n", cursor, cursor);
+    return (int)cursor;
+}
+
 int WINAPI expGetSystemPaletteEntries(int hdc, int iStartIndex, int nEntries, void* lppe)
 {
     return 0;
@@ -1543,6 +1584,19 @@ int WINAPI expGetEnvironmentVariableA(const char* name, char* field, int size)
     printf("%s %x %x\n", name, *field, size);
     if(field)field[0]=0;
     return 0;
+}
+
+
+int WINAPI expIsRectEmpty(CONST RECT *lprc)
+{
+    dbgprintf("IsRectEmpty(0x%x)");
+    if((!lprc) || (lprc->right==lprc->left) || (lprc->top==lprc->bottom))
+    {
+        dbgprintf(" => TRUE\n");
+        return TRUE;
+    }
+    dbgprintf(" => FALSE\n");
+    return FALSE;
 }
 
 
@@ -1654,6 +1708,9 @@ FF(OutputDebugStringA, -1)
 FF(GetLocalTime, -1)
 FF(GetSystemTime, -1)
 FF(GetEnvironmentVariableA, -1)
+FF(RtlZeroMemory,-1)
+FF(RtlMoveMemory,-1)
+FF(RtlFillMemory,-1)
 };
 
 struct exports exp_msvcrt[]={
@@ -1677,6 +1734,9 @@ FF(wsprintfA, -1)
 FF(GetDC, -1)
 FF(GetDesktopWindow, -1)
 FF(ReleaseDC, -1)
+FF(IsRectEmpty, -1)
+FF(LoadCursorA,-1)
+FF(SetCursor,-1)
 };
 struct exports exp_advapi32[]={
 FF(RegOpenKeyA, -1)

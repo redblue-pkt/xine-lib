@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_avi.c,v 1.41 2001/09/12 16:55:42 guenter Exp $
+ * $Id: demux_avi.c,v 1.42 2001/09/18 17:41:47 jkeil Exp $
  *
  * demultiplexer for avi streams
  *
@@ -985,21 +985,33 @@ static void demux_avi_start (demux_plugin_t *this_gen,
   buf->size = sizeof (this->avi->bih);
 
   switch (str2ulong((void*)&this->avi->bih.biCompression)) {
-    case mmioFOURCC('M', 'P', 'G', '4'):
-    case mmioFOURCC('m', 'p', 'g', '4'):
-    case mmioFOURCC('M', 'P', '4', '1'):
-    case mmioFOURCC('m', 'p', '4', '1'):
-    case mmioFOURCC('M', 'P', '4', '2'):
-    case mmioFOURCC('m', 'p', '4', '2'):
+
     case mmioFOURCC('M', 'P', '4', '3'):
     case mmioFOURCC('m', 'p', '4', '3'):
     case mmioFOURCC('D', 'I', 'V', '3'):
     case mmioFOURCC('d', 'i', 'v', '3'):
     case mmioFOURCC('D', 'I', 'V', '4'):
     case mmioFOURCC('d', 'i', 'v', '4'):
-      /* Video in Microsoft MPEG-4 format */
-      this->avi->video_type     = BUF_VIDEO_MSMPEG4;
+    case mmioFOURCC('D', 'I', 'V', '5'):
+    case mmioFOURCC('d', 'i', 'v', '5'):
+    case mmioFOURCC('D', 'I', 'V', '6'):
+    case mmioFOURCC('d', 'i', 'v', '6'):
+      /* Video in Microsoft MPEG-4 format v3 */
+      this->avi->video_type     = BUF_VIDEO_MSMPEG4_V3;
       break;
+
+    case mmioFOURCC('M', 'P', 'G', '4'):
+    case mmioFOURCC('m', 'p', 'g', '4'):
+    case mmioFOURCC('M', 'P', '4', '1'):
+    case mmioFOURCC('m', 'p', '4', '1'):
+    case mmioFOURCC('M', 'P', '4', '2'):
+    case mmioFOURCC('m', 'p', '4', '2'):
+    case mmioFOURCC('D', 'I', 'V', '2'):
+    case mmioFOURCC('d', 'i', 'v', '2'):
+      /* Video in Microsoft MPEG-4 format v1/v2 */
+      this->avi->video_type     = BUF_VIDEO_MSMPEG4_V12;
+      break;
+
     case mmioFOURCC('D', 'I', 'V', 'X'):
     case mmioFOURCC('d', 'i', 'v', 'x'):
     case mmioFOURCC('D', 'i', 'v', 'x'):
@@ -1007,11 +1019,13 @@ static void demux_avi_start (demux_plugin_t *this_gen,
       /* Video in mpeg4 (opendivx) format */
       this->avi->video_type     = BUF_VIDEO_MPEG4;
       break;
+
     case mmioFOURCC('d', 'm', 'b', '1'):
     case mmioFOURCC('M', 'J', 'P', 'G'):
       /* Video in motion jpeg format */
       this->avi->video_type     = BUF_VIDEO_MJPEG;
       break;
+
     case mmioFOURCC('I', 'V', '5', '0'):
     case mmioFOURCC('i', 'v', '5', '0'):
       /* Video in Indeo Video 5.0 format */

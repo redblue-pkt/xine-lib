@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.24 2001/09/16 23:13:45 f1rmb Exp $
+ * $Id: w32codec.c,v 1.25 2001/09/18 17:41:48 jkeil Exp $
  *
  * routines for using w32 codecs
  *
@@ -81,6 +81,18 @@ static char* get_vids_codec_name(w32v_decoder_t *this,
   this->flipped=0;
 
   switch (buf_type) {
+  case BUF_VIDEO_MSMPEG4_V12:
+    /* Microsoft MPEG-4 v1/v2 */
+    this->yuv_supported=0;
+    this->flipped=1;
+    return "mpg4c32.dll";
+
+  case BUF_VIDEO_MSMPEG4_V3:
+    /* Microsoft MPEG-4 v3 */
+    this->yuv_supported=0;
+    this->flipped=1;
+    return "divxc32.dll";
+
   case BUF_VIDEO_IV50:
     /* Video in Indeo Video 5 format */
     this->yuv_supported=1;   /* YUV pic is upside-down :( */
@@ -148,7 +160,9 @@ static char* get_vids_codec_name(w32v_decoder_t *this,
 static int w32v_can_handle (video_decoder_t *this_gen, int buf_type) {
   buf_type &= 0xFFFF0000;
 
-  return ( buf_type == BUF_VIDEO_IV50 ||
+  return ( buf_type == BUF_VIDEO_MSMPEG4_V12 ||
+	   buf_type == BUF_VIDEO_MSMPEG4_V3 ||
+	   buf_type == BUF_VIDEO_IV50 ||
            buf_type == BUF_VIDEO_IV41 ||
            buf_type == BUF_VIDEO_IV32 ||
            buf_type == BUF_VIDEO_CINEPAK ||
@@ -182,14 +196,19 @@ static void w32v_init_codec (w32v_decoder_t *this, int buf_type) {
 		      ICMODE_FASTDECOMPRESS);
 
   if(!this->hic){
-    printf ("ICOpen failed! unknown codec / wrong parameters?\n");
+    printf ("ICOpen failed! unknown codec %08lx / wrong parameters?\n",
+	    this->bih.biCompression);
     this->decoder_ok = 0;
     return;
   }
 
   ret = ICDecompressGetFormat(this->hic, &this->bih, &this->o_bih);
   if(ret){
-    printf("ICDecompressGetFormat failed: Error %ld\n", (long)ret);
+    printf("ICDecompressGetFormat (%.4s %08lx/%d) failed: Error %ld\n",
+	   (char*)&this->o_bih.biCompression, 
+	   this->bih.biCompression,
+	   this->bih.biBitCount,
+	   (long)ret);
     this->decoder_ok = 0;
     return;
   }
@@ -209,7 +228,7 @@ static void w32v_init_codec (w32v_decoder_t *this, int buf_type) {
     this->o_bih.biBitCount = 16;
   }
 
-  this->o_bih.biSizeImage = this->o_bih.biWidth*this->o_bih.biHeight*this->o_bih.biBitCount/8;
+  this->o_bih.biSizeImage = this->o_bih.biWidth*this->o_bih.biHeight*(this->o_bih.biBitCount+7)/8;
 
   ret = ICDecompressQuery(this->hic, &this->bih, &this->o_bih);
   
@@ -289,20 +308,25 @@ static void w32v_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 			 &this->bih, this->buf,
 			 &this->o_bih, this->img_buffer);
 
-      /* now, convert rgb to yuv */
-
-      {
+      if (this->yuv_supported) {
+	/* already decoded into YUY2 format */
+	memcpy(img->base[0], this->img_buffer, this->bih.biHeight*this->bih.biWidth*2);
+      } else {
+	/* now, convert rgb to yuv (this is to slow) */
 	int row, col;
+
 	for (row=0; row<this->bih.biHeight; row++) {
-	  for (col=0; col<this->o_bih.biWidth; col++) {
+
+	  uint16_t *pixel, *out;
+
+	  pixel = (uint16_t *) ( (uint8_t *)this->img_buffer + 2 * row * this->o_bih.biWidth );
+	  out = (uint16_t *) (img->base[0] + 2 * row * this->o_bih.biWidth );
+
+	  for (col=0; col<this->o_bih.biWidth; col++, pixel++, out++) {
 	    
-	    uint16_t *pixel, *out;
 	    uint8_t   r,g,b;
 	    uint8_t   y,u,v;
 	    
-	    pixel = this->img_buffer + 2 * (row * this->o_bih.biWidth + col);
-	    out = (uint16_t *) img->base[0] + 2 * (row * this->o_bih.biWidth + col);
-	
 	    b = (*pixel & 0x003C) << 3;
 	    g = (*pixel & 0x03E0) >> 5 << 3;
 	    r = (*pixel & 0xF800) >> 10 << 3;

@@ -396,11 +396,13 @@ long RegCreateKeyExA(long key, const char* name, long reserved,
 	{
 		int qw=45708;
 		v=insert_reg_value(key, name, DIR, &qw, 4);
-		*status=REG_CREATED_NEW_KEY;
+		if (status) *status=REG_CREATED_NEW_KEY;
 //		return 0;
 	}
 	else
-		*status=REG_OPENED_EXISTING_KEY;
+	{
+		if (status) *status=REG_OPENED_EXISTING_KEY;
+	}
 
 	t=insert_handle(generate_handle(), fullname);
 	*newkey=t->handle;
