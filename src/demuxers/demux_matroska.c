@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_matroska.c,v 1.1 2004/01/05 00:40:54 tmattern Exp $
+ * $Id: demux_matroska.c,v 1.2 2004/01/05 01:22:11 tmmm Exp $
  *
  * demultiplexer for matroska streams
  *
@@ -1442,10 +1442,11 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
 
   case METHOD_BY_EXTENSION: {
     char *mrl = input->get_mrl(input);
+    char *extensions;
     
     lprintf ("stage by extension %s\n", mrl);
     
-    char *extensions = class_gen->get_extensions (class_gen);
+    extensions = class_gen->get_extensions (class_gen);
     
     if (!_x_demux_check_extension (mrl, extensions))
       return NULL;
