@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.89 2001/12/13 00:52:01 f1rmb Exp $
+ * $Id: xine.c,v 1.90 2001/12/13 18:32:16 miguelfreitas Exp $
  *
  * top-level xine functions
  *
@@ -478,10 +478,11 @@ xine_t *xine_init (vo_driver_t *vo,
   this->video_out = vo_new_instance (vo, this->metronom);
   video_decoder_init (this);
 
-  this->osd_renderer = osd_renderer_init( this->video_out->overlay_source );
+  this->osd_renderer = osd_renderer_init( this->video_out->overlay_source, config );
   
   this->osd = this->osd_renderer->new_object (this->osd_renderer, 300, 100);
   this->osd_renderer->set_font (this->osd, "cetus", 24);
+  this->osd_renderer->set_text_palette (this->osd, TEXTPALETTE_WHITE_BLACK_TRANSPARENT );
   this->osd_renderer->set_position (this->osd, 10,10);
 
   if(ao) 

@@ -20,6 +20,8 @@
  * OSD stuff (text and graphic primitives)
  */
 
+#define __OSD_C__
+ 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -102,6 +104,7 @@ static osd_object_t *osd_new_object (osd_renderer_t *this, int width, int height
      
   osd_object_t *osd;
   
+#if 0
   static clut_t default_color[] = {
     CLUT_Y_CR_CB_INIT(0x00, 0x00, 0x00),
     CLUT_Y_CR_CB_INIT(0x00, 0x80, 0x80),
@@ -120,6 +123,7 @@ static osd_object_t *osd_new_object (osd_renderer_t *this, int width, int height
     */
   };
   static uint8_t default_trans[] = {0, 10, 12, 15, 15, 15, 15};
+#endif
 
   pthread_mutex_lock (&this->osd_mutex);  
   
@@ -137,8 +141,8 @@ static osd_object_t *osd_new_object (osd_renderer_t *this, int width, int height
   osd->x2 = 0;
   osd->y2 = 0;
 
-  memcpy(osd->color, default_color, sizeof(default_color)); 
-  memcpy(osd->trans, default_trans, sizeof(default_trans)); 
+  memcpy(osd->color, textpalettes_color[0], sizeof(textpalettes_color[0])); 
+  memcpy(osd->trans, textpalettes_trans[0], sizeof(textpalettes_trans[0])); 
 
   osd->handle = -1;
     
@@ -397,6 +401,23 @@ static void osd_set_palette(osd_object_t *osd, uint32_t *color, uint8_t *trans )
   memcpy(osd->color, color, sizeof(osd->color));
   memcpy(osd->trans, trans, sizeof(osd->trans));
 }
+
+/*
+ * set on existing text palette 
+ * (-1 to set user specified palette)
+ */
+
+static void osd_set_text_palette(osd_object_t *osd, int palette_number ) {
+
+  if( palette_number < 0 )
+    palette_number = osd->renderer->textpalette;
+    
+  memcpy(osd->color, textpalettes_color[palette_number],
+                     sizeof(textpalettes_color[palette_number])); 
+  memcpy(osd->trans, textpalettes_trans[palette_number], 
+                     sizeof(textpalettes_trans[palette_number])); 
+}
+
 
 /*
  * get palette (color and transparency)
@@ -662,7 +683,7 @@ static int osd_get_text_size(osd_object_t *osd, char *text, int *width, int *hei
   *width = 0;
   *height = 0;  
   
-  while( *text ) {
+  while( font && *text ) {
 
     for( i = 0; i < font->num_fontchars; i++ ) {
       if( font->fontchar[i].code == *text )
@@ -765,17 +786,28 @@ static void osd_renderer_close (osd_renderer_t *this) {
   free(this);
 }
 
+
+static void update_text_palette(void *this_gen, cfg_entry_t *entry)
+{
+  osd_renderer_t *this = (osd_renderer_t *)this_gen;
+
+  this->textpalette = entry->num_value;
+  printf("osd: text palette will be %s\n", textpalettes_str[this->textpalette] );
+}
+
+
 /*
  * initialize the osd rendering engine
  */
 
-osd_renderer_t *osd_renderer_init( video_overlay_instance_t *video_overlay ) {
+osd_renderer_t *osd_renderer_init( video_overlay_instance_t *video_overlay, config_values_t *config ) {
 
   osd_renderer_t *this;
   char str[1024];
 
   this = xine_xmalloc(sizeof(osd_renderer_t)); 
   this->video_overlay = video_overlay;
+  this->config = config;
   this->event.object.overlay = xine_xmalloc( sizeof(vo_overlay_t) );
 
   pthread_mutex_init (&this->osd_mutex, NULL);
@@ -794,24 +826,29 @@ osd_renderer_t *osd_renderer_init( video_overlay_instance_t *video_overlay ) {
 
   osd_load_fonts (this, str);
 
-
+  this->textpalette = config->register_enum (config, "misc.osd_text_palette", 0,
+                                             textpalettes_str, 
+                                             "Palette (foreground-border-background) to use on subtitles",
+                                             NULL, update_text_palette, this);
+  
   /*
    * set up function pointer
    */
 
-  this->new_object    = osd_new_object;
-  this->free_object   = osd_free_object;
-  this->show          = osd_show;
-  this->hide          = osd_hide;
-  this->set_palette   = osd_set_palette;
-  this->get_palette   = osd_get_palette;
-  this->set_position  = osd_set_position;
-  this->set_font      = osd_set_font;
-  this->line          = osd_line;
-  this->filled_rect   = osd_filled_rect;
-  this->render_text   = osd_render_text;
-  this->get_text_size = osd_get_text_size;
-  this->close         = osd_renderer_close;
+  this->new_object         = osd_new_object;
+  this->free_object        = osd_free_object;
+  this->show               = osd_show;
+  this->hide               = osd_hide;
+  this->set_palette        = osd_set_palette;
+  this->set_text_palette   = osd_set_text_palette;
+  this->get_palette        = osd_get_palette;
+  this->set_position       = osd_set_position;
+  this->set_font           = osd_set_font;
+  this->line               = osd_line;
+  this->filled_rect        = osd_filled_rect;
+  this->render_text        = osd_render_text;
+  this->get_text_size      = osd_get_text_size;
+  this->close              = osd_renderer_close;
 
   return this;
 }

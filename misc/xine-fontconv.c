@@ -30,8 +30,7 @@
  *   xine-fontconv font.ttf fontname
  *
  * begin                : Sat Dec 1 2001
- * copyright            : (C) 2001 by miguel
- * email                : miguel@mf
+ * copyright            : (C) 2001 by Miguel Freitas
  */
 
 #include <stdio.h>
@@ -84,7 +83,7 @@ void print_bitmap (FT_Bitmap *bitmap) {
   
   for( y = 0; y < bitmap->rows; y++ ) {
     for( x = 0; x < bitmap->width; x++ ) {
-      if( bitmap->buffer[y*bitmap->width+x] )
+      if( bitmap->buffer[y*bitmap->width+x] > 1 )
         printf("%02x ", bitmap->buffer[y*bitmap->width+x] );
       else
         printf("   ");
@@ -110,73 +109,91 @@ void destroy_bitmap (FT_Bitmap * bitmap) {
 }
  
 
-void add_final_bitmap (FT_Bitmap *dst, FT_Bitmap *src, int left, int top) {
-
+/* 
+   This function is called to blend a slightly deslocated
+   version of the bitmap. This will produce the border effect.
+   Note that the displacement may be smaller than 1 pixel
+   as the bitmap is generated in freetype 1/64 units.
+   This border is antialiased to the background.
+*/
+void add_border_bitmap( FT_Bitmap *dst, FT_Bitmap *src, int left, int top )
+{
   int x,y;
+  int x1, y1;
+  int dstpos, srcpos;
   
-  for (y = 0; y < src->rows; y++) {
-    for ( x = 0; x < src->width; x++) {
-
-      int x1, y1;
-      int dstpos, srcpos;
-      int x2, y2;
-
-
+  for( y = 0; y < src->rows; y++ ) {
+    for( x = 0; x < src->width; x++ ) {
+      srcpos = y * src->width + x;
+      
       x1 = x + left;
-      if (x1 < 0 || x1 >= dst->width)
+      if( x1 < 0 || x1 >= dst->width )
         continue;
         
       y1 = y + top;
-      if (y1 < 0 || y1 >= dst->rows)
+      if( y1 < 0 || y1 >= dst->rows )
         continue;
 
       dstpos = y1 * dst->width + x1;
-
-      x2 = x; y2 = y;
-
-      srcpos = y2 * src->width + x2;
-      if (src->buffer[srcpos])
-        dst->buffer[dstpos] = 3;
-      else {
-	int count;
-	int i,j;
-	count = 0;
-	
-	for (i=-1; i<2; i++) {
-	  for (j=-1; j<2; j++) {
-
-	    x2 = x+i; y2 = y+j;
-	
-	    if ( (x2 >0 ) && (y2 > 0) 
-		 &&(x2 < src->width) 
-		 && (y2 < src->rows)) {
-	      srcpos = y2 * src->width + x2;
-	      if (src->buffer[srcpos])
-		count++;
-	    }
-	  }
-	}
-	if (count)
-	  dst->buffer[dstpos] = 2;
-	  
-      }
+      src->buffer[srcpos] /= 51;
+      if( src->buffer[srcpos] > dst->buffer[dstpos] )
+        dst->buffer[dstpos] = src->buffer[srcpos];
     }
   }
-
-
-  
-  for (y = 0; y < dst->rows; y++) {
-    for (x = 0; x < dst->width; x++) {
-      int dstpos = y * dst->width + x;
-      if (dst->buffer[dstpos]<2)
-	dst->buffer[dstpos]=1;
-    }
-  }
-  
-  
 }
 
-void render_font (FT_Face face, char *fontname, int size) {
+/*
+   Blend the final version of bitmap (the foreground color) over the
+   already generated border. It will be antialiased to the border.
+   
+   Final palette will be:
+   
+   0: not used by font, always transparent
+   1: font background, usually transparent, may be used to implement
+      translucid boxes where the font will be printed.
+   2-5: transition between background and border (usually only alpha
+        value changes).
+   6: font border. if the font is to be displayed without border this
+      will probably be adjusted to font background or near.
+   7-9: transition between border and foreground
+   10: font color (foreground)   
+*/
+void add_final_bitmap( FT_Bitmap *dst, FT_Bitmap *src, int left, int top )
+{
+  int x,y;
+  int x1, y1;
+  int dstpos, srcpos;
+  
+  for( y = 0; y < src->rows; y++ ) {
+    for( x = 0; x < src->width; x++ ) {
+      srcpos = y * src->width + x;
+      
+      x1 = x + left;
+      if( x1 < 0 || x1 >= dst->width )
+        continue;
+        
+      y1 = y + top;
+      if( y1 < 0 || y1 >= dst->rows )
+        continue;
+
+      dstpos = y1 * dst->width + x1;
+      src->buffer[srcpos] /= 52;
+      if( src->buffer[srcpos] )
+        dst->buffer[dstpos] = src->buffer[srcpos] + 5;
+    }
+  }
+  
+  for( y = 0; y < dst->rows; y++ ) {
+    for( x = 0; x < dst->width; x++ ) {
+      dstpos = y * dst->width + x;
+      dst->buffer[dstpos]++;
+    }
+  }
+
+}
+
+
+void render_font (FT_Face face, char *fontname, int size, int thickness) {
 
   char                filename[1024];
   FT_Bitmap          *out_bitmap;
@@ -187,9 +204,14 @@ void render_font (FT_Face face, char *fontname, int size) {
   FT_BitmapGlyph      glyph_bitmap;
   FT_Vector           origin;
   int                 max_bearing_y = 0;        
-  int                 c;
-  int                 thickness;
+  int                 c, i;
 
+  static int border_pos[9][2] = {
+    {-1,0},{1,0},{0,-1},{0,1},
+    {-1,-1},{1,-1},{-1,1},{1,1}, {0,0}
+  };
+
+  
   /* 
    * generate filename, open file
    */
@@ -221,10 +243,12 @@ void render_font (FT_Face face, char *fontname, int size) {
     return;
   }
 
-  thickness = 64;
+  if( !thickness )
+    thickness = size * 64 / 30;
 
   /* 
-   * calc max bearing 
+   * calc max bearing y.
+   * this is needed to align all bitmaps by the upper position.
    */
 
   for (c = 32; c < 256; c++) {
@@ -251,45 +275,51 @@ void render_font (FT_Face face, char *fontname, int size) {
   gzwrite (fp, &font, 40+6);
  
   for (c = 32; c < 256; c++) {
-
-    glyph_index = FT_Get_Char_Index( face, c );
+    for( i=0; i < 9; i++ ) {
+  
+      glyph_index = FT_Get_Char_Index( face, c );
+        
+      if (glyph_index) {
+          
+        error = FT_Load_Glyph( face,          /* handle to face object */
+                               glyph_index,   /* glyph index           */
+                               FT_LOAD_DEFAULT );  /* load flags */
+          
+        if (!error) {
+          error = FT_Get_Glyph( face->glyph, &glyph );
     
-    if (glyph_index) {
-      
-      error = FT_Load_Glyph( face,          /* handle to face object */
-			     glyph_index,   /* glyph index           */
-			     FT_LOAD_DEFAULT );  /* load flags */
-      
-      if (!error) {
-	
-	error = FT_Get_Glyph( face->glyph, &glyph );
+          if( i == 0 ) {
+            out_bitmap = create_bitmap( f266CeilToInt(face->glyph->metrics.horiAdvance),
+                                        f266CeilToInt((max_bearing_y<<6) - face->glyph->metrics.horiBearingY + 
+                                        face->glyph->metrics.height + thickness) );
+          }
 
-	
-	out_bitmap = create_bitmap( f266CeilToInt(face->glyph->metrics.horiAdvance + thickness),
-				    f266CeilToInt((max_bearing_y<<6) - face->glyph->metrics.horiBearingY + 
-						  face->glyph->metrics.height + thickness) );
-	
-	origin.x = thickness;
-	origin.y = thickness;
-	
-	error = FT_Glyph_To_Bitmap( &glyph, ft_render_mode_normal, &origin, 1 );  
-	if (error) {
-	  printf("error generating bitmap [%d]\n",c);
-	  return;
-	}
-	
-	glyph_bitmap = (FT_BitmapGlyph)glyph;
-	
-	
-	add_final_bitmap (out_bitmap, &glyph_bitmap->bitmap, glyph_bitmap->left,
-			  max_bearing_y - glyph_bitmap->top);
-	
-	FT_Done_Glyph( glyph );
+          origin.x = thickness + border_pos[i][0]*thickness;
+          origin.y = thickness + border_pos[i][1]*thickness;
+
+          error = FT_Glyph_To_Bitmap( &glyph, ft_render_mode_normal, &origin, 1 );  
+          if (error) {
+            printf("error generating bitmap [%d]\n",c);
+            return;
+          }
+
+          glyph_bitmap = (FT_BitmapGlyph)glyph;
+
+          if( i < 8 )
+            add_border_bitmap( out_bitmap, &glyph_bitmap->bitmap, glyph_bitmap->left,
+                               max_bearing_y - glyph_bitmap->top );
+          else
+            add_final_bitmap( out_bitmap, &glyph_bitmap->bitmap, glyph_bitmap->left,
+                              max_bearing_y - glyph_bitmap->top );
+
+          FT_Done_Glyph( glyph );
+        }
       }
     }
-    
-    printf("[%d] bitmap width: %d height: %d\n", c, out_bitmap->width, out_bitmap->rows );
-  
+    printf("[%c:%d] bitmap width: %d height: %d\n", c, c, out_bitmap->width, out_bitmap->rows );
+    /* 
+    print_bitmap(out_bitmap);
+    */
     fontchar.code = c;
     fontchar.width = out_bitmap->width;
     fontchar.height = out_bitmap->rows;
@@ -307,6 +337,7 @@ int main(int argc, char *argv[]) {
   int                 len;
   FT_Library          library;
   FT_Face             face;
+  int thickness = 0;
 
   /*
    * command line parsing
@@ -338,16 +369,16 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
-  render_font (face, argv[2], 16);
-  render_font (face, argv[2], 20);
-  render_font (face, argv[2], 24);
-  render_font (face, argv[2], 32);
+  render_font (face, argv[2], 16, thickness);
+  render_font (face, argv[2], 20, thickness);
+  render_font (face, argv[2], 24, thickness);
+  render_font (face, argv[2], 32, thickness);
 
   /*
    * some rgb -> yuv conversion,
    * can be used to calc new palettes
    */
-  
+  /*
   { 
     float f;
     for (f=1.0; f<6.0; f+=1.0) {
@@ -364,7 +395,7 @@ int main(int argc, char *argv[]) {
       printf ("CLUT_Y_CR_CB_INIT(0x%x, 0x%x, 0x%x),\n", (int) Y, (int) Cr, (int) Cb);
     }
   }
-
+  */
   return 0;
 }
 

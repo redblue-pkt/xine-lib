@@ -24,6 +24,7 @@
 #define HAVE_OSD_H
 
 #include "video_overlay.h"
+#include "video_out/alphablend.h"
 
 typedef struct osd_object_s osd_object_t;
 
@@ -78,6 +79,12 @@ struct osd_renderer_s {
   void (*set_palette) (osd_object_t *osd, uint32_t *color, uint8_t *trans );
 
   /*
+   * set on existing text palette 
+   * (-1 to set used specified palette)
+   */
+  void (*set_text_palette) (osd_object_t *osd, int palette_number );
+  
+  /*
    * get palette (color and transparency)
    */
   void (*get_palette) (osd_object_t *osd, uint32_t *color, 
@@ -120,14 +127,130 @@ struct osd_renderer_s {
   pthread_mutex_t             osd_mutex;
   video_overlay_instance_t   *video_overlay;
   video_overlay_event_t       event;
-  osd_object_t               *osds;
-  osd_font_t                 *fonts;
+  osd_object_t               *osds;          /* instances of osd */
+  osd_font_t                 *fonts;         /* loaded fonts */
+  int                        textpalette;    /* default textpalette */
+  
+  config_values_t           *config;
+
 };
 
 /*
  *   initialize the osd rendering engine
  */
-osd_renderer_t *osd_renderer_init( video_overlay_instance_t *video_overlay );
+osd_renderer_t *osd_renderer_init( video_overlay_instance_t *video_overlay, config_values_t *config );
+
+
+
+/* 
+ * Defined palettes for rendering osd text
+ * (more can be added later)
+ */ 
+
+#define NUMBER_OF_TEXT_PALETTES 4
+#define TEXTPALETTE_WHITE_BLACK_TRANSPARENT    0
+#define TEXTPALETTE_WHITE_NONE_TRANSLUCID      1
+#define TEXTPALETTE_WHITE_NONE_TRANSPUCID      2
+#define TEXTPALETTE_YELLOW_BLACK_TRANSPARENT   3
+ 
+#ifdef __OSD_C__
+ 
+/* This text descriptions are used for config screen */
+static char *textpalettes_str[NUMBER_OF_TEXT_PALETTES+1] = {
+  "white-black-transparent",
+  "white-none-transparent",
+  "white-none-translucid",
+  "yellow-black-transparent",    
+  NULL};
+
+
+/* 
+   Palette entries as used by osd fonts:
+
+   0: not used by font, always transparent
+   1: font background, usually transparent, may be used to implement
+      translucid boxes where the font will be printed.
+   2-5: transition between background and border (usually only alpha
+        value changes).
+   6: font border. if the font is to be displayed without border this
+      will probably be adjusted to font background or near.
+   7-9: transition between border and foreground
+   10: font color (foreground)   
+*/
+
+/* 
+    The palettes below were made by hand, ie, i just throw
+    values that seemed to do the transitions i wanted.
+    This can surelly be improved a lot. [Miguel]
+*/
+
+static clut_t textpalettes_color[NUMBER_OF_TEXT_PALETTES][11] = {
+/* white, black border, transparent */
+  {
+    CLUT_Y_CR_CB_INIT(0x00, 0x00, 0x00), //0
+    CLUT_Y_CR_CB_INIT(0x00, 0x80, 0x80), //1
+    CLUT_Y_CR_CB_INIT(0x00, 0x80, 0x80), //2
+    CLUT_Y_CR_CB_INIT(0x00, 0x80, 0x80), //3
+    CLUT_Y_CR_CB_INIT(0x00, 0x80, 0x80), //4
+    CLUT_Y_CR_CB_INIT(0x00, 0x80, 0x80), //5
+    CLUT_Y_CR_CB_INIT(0x00, 0x80, 0x80), //6
+    CLUT_Y_CR_CB_INIT(0x40, 0x80, 0x80), //7
+    CLUT_Y_CR_CB_INIT(0x80, 0x80, 0x80), //8
+    CLUT_Y_CR_CB_INIT(0xc0, 0x80, 0x80), //9
+    CLUT_Y_CR_CB_INIT(0xff, 0x80, 0x80), //10
+  },
+  /* white, no border, transparent */
+  {
+    CLUT_Y_CR_CB_INIT(0x00, 0x00, 0x00), //0
+    CLUT_Y_CR_CB_INIT(0xff, 0x80, 0x80), //1
+    CLUT_Y_CR_CB_INIT(0xff, 0x80, 0x80), //2
+    CLUT_Y_CR_CB_INIT(0xff, 0x80, 0x80), //3
+    CLUT_Y_CR_CB_INIT(0xff, 0x80, 0x80), //4
+    CLUT_Y_CR_CB_INIT(0xff, 0x80, 0x80), //5
+    CLUT_Y_CR_CB_INIT(0xff, 0x80, 0x80), //6
+    CLUT_Y_CR_CB_INIT(0xff, 0x80, 0x80), //7
+    CLUT_Y_CR_CB_INIT(0xff, 0x80, 0x80), //8
+    CLUT_Y_CR_CB_INIT(0xff, 0x80, 0x80), //9
+    CLUT_Y_CR_CB_INIT(0xff, 0x80, 0x80), //10
+  },
+  /* white, no border, translucid */
+  {
+    CLUT_Y_CR_CB_INIT(0x00, 0x00, 0x00), //0
+    CLUT_Y_CR_CB_INIT(0x80, 0x80, 0x80), //1
+    CLUT_Y_CR_CB_INIT(0x80, 0x80, 0x80), //2
+    CLUT_Y_CR_CB_INIT(0x80, 0x80, 0x80), //3
+    CLUT_Y_CR_CB_INIT(0x80, 0x80, 0x80), //4
+    CLUT_Y_CR_CB_INIT(0x80, 0x80, 0x80), //5
+    CLUT_Y_CR_CB_INIT(0x80, 0x80, 0x80), //6
+    CLUT_Y_CR_CB_INIT(0xa0, 0x80, 0x80), //7
+    CLUT_Y_CR_CB_INIT(0xc0, 0x80, 0x80), //8
+    CLUT_Y_CR_CB_INIT(0xe0, 0x80, 0x80), //9
+    CLUT_Y_CR_CB_INIT(0xff, 0x80, 0x80), //10
+  },
+  /* yellow, black border, transparent */
+  {
+    CLUT_Y_CR_CB_INIT(0x00, 0x00, 0x00), //0
+    CLUT_Y_CR_CB_INIT(0x00, 0x80, 0x80), //1
+    CLUT_Y_CR_CB_INIT(0x00, 0x80, 0x80), //2
+    CLUT_Y_CR_CB_INIT(0x00, 0x80, 0x80), //3
+    CLUT_Y_CR_CB_INIT(0x00, 0x80, 0x80), //4
+    CLUT_Y_CR_CB_INIT(0x00, 0x80, 0x80), //5
+    CLUT_Y_CR_CB_INIT(0x00, 0x80, 0x80), //6
+    CLUT_Y_CR_CB_INIT(0x40, 0x84, 0x60), //7
+    CLUT_Y_CR_CB_INIT(0xd0, 0x88, 0x40), //8
+    CLUT_Y_CR_CB_INIT(0xe0, 0x8a, 0x00), //9
+    CLUT_Y_CR_CB_INIT(0xff, 0x90, 0x00), //10
+  },
+};
+
+static uint8_t textpalettes_trans[NUMBER_OF_TEXT_PALETTES][11] = {
+  {0, 0, 3, 6, 8, 10, 12, 14, 15, 15, 15 },
+  {0, 0, 0, 0, 0, 0, 2, 6, 9, 12, 15 },
+  {0, 8, 9, 10, 11, 12, 13, 14, 15, 15, 15 },
+  {0, 0, 3, 6, 8, 10, 12, 14, 15, 15, 15 },
+};
+
+#endif /* __OSD_C__ */
 
 #endif
 

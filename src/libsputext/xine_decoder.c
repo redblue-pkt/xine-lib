@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.7 2001/12/09 00:01:17 guenter Exp $
+ * $Id: xine_decoder.c,v 1.8 2001/12/13 18:32:15 miguelfreitas Exp $
  *
  * code based on mplayer module:
  *
@@ -50,7 +50,6 @@
 #define ERR (void *)-1
 
 #define SUB_MAX_TEXT  5
-#define LINE_HEIGHT  30
 
 typedef struct {
 
@@ -62,7 +61,7 @@ typedef struct {
   char *text[SUB_MAX_TEXT];
 
   osd_object_t *osd;
-
+  
 } subtitle_t;
 
 
@@ -79,6 +78,8 @@ typedef struct sputext_decoder_s {
   float              mpsub_position;  
 
   int                width;          /* frame width                */
+  int                font_size;
+  int                line_height;
   int                uses_time;  
   int                errs;  
   subtitle_t        *subtitles;
@@ -750,14 +751,28 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
 
     this->width = buf->decoder_info[1];
 
+    /* trying to make better sized fonts... 
+       another idea would be changing font size just
+       if we detect the text line wont fit.
+    */
+    this->font_size = 16;
+    if( this->width >= 320 ) 
+      this->font_size = 20;
+    if( this->width >= 384 )
+      this->font_size = 24;
+    if( this->width >= 512 )
+      this->font_size = 32;
+    this->line_height = this->font_size + 10;
+    
     this->renderer = this->xine->osd_renderer;
     this->osd = this->renderer->new_object (this->renderer, 
 					    this->width,
-					    SUB_MAX_TEXT * LINE_HEIGHT);
+					    SUB_MAX_TEXT * this->line_height);
 
-    this->renderer->set_font (this->osd, this->font, 16);
+     
+    this->renderer->set_font (this->osd, this->font, this->font_size);
 
-    y = buf->decoder_info[2] - (SUB_MAX_TEXT * LINE_HEIGHT) - 5;
+    y = buf->decoder_info[2] - (SUB_MAX_TEXT * this->line_height) - 5;
 
     this->renderer->set_position (this->osd, 0, y); 
 
@@ -846,21 +861,22 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
     if (subtitle) {
       int line, y;
 
-      this->renderer->filled_rect (this->osd, 0, 0, this->width-1, LINE_HEIGHT * SUB_MAX_TEXT - 1, 0);
+      this->renderer->filled_rect (this->osd, 0, 0, this->width-1, this->line_height * SUB_MAX_TEXT - 1, 0);
 
-      y = (SUB_MAX_TEXT - subtitle->lines) * LINE_HEIGHT;
+      y = (SUB_MAX_TEXT - subtitle->lines) * this->line_height;
 
       for (line=0; line<subtitle->lines; line++) {
 	int w,h,x;
 
 	this->renderer->get_text_size( this->osd, subtitle->text[line], 
 				       &w, &h);
-
+	
 	x = (this->width - w) / 2;
 
-	this->renderer->render_text (this->osd, x, y + line*20, subtitle->text[line]);
+	this->renderer->render_text (this->osd, x, y + line*this->line_height, subtitle->text[line]);
       }
       
+      this->renderer->set_text_palette (this->osd, -1);
       this->renderer->show (this->osd, pts );
       this->renderer->hide (this->osd, pts_end);
 
@@ -891,6 +907,16 @@ static char *spudec_get_id(void) {
   return "sputext";
 }
 
+static void update_osd_font(void *this_gen, cfg_entry_t *entry)
+{
+  sputext_decoder_t *this = (sputext_decoder_t *)this_gen;
+
+  this->font = entry->str_value;
+  
+  this->renderer->set_font (this->osd, this->font, this->font_size);
+  printf("libsputext: spu_font = %s\n", this->font );
+}
+
 spu_decoder_t *init_spu_decoder_plugin (int iface_version, xine_t *xine) {
 
   sputext_decoder_t *this ;
@@ -904,7 +930,7 @@ spu_decoder_t *init_spu_decoder_plugin (int iface_version, xine_t *xine) {
 
   this = (sputext_decoder_t *) xine_xmalloc (sizeof (sputext_decoder_t));
 
-  this->spu_decoder.interface_version   = 4;
+  this->spu_decoder.interface_version   = iface_version;
   this->spu_decoder.can_handle          = spudec_can_handle;
   this->spu_decoder.init                = spudec_init;
   this->spu_decoder.decode_data         = spudec_decode_data;
@@ -917,7 +943,7 @@ spu_decoder_t *init_spu_decoder_plugin (int iface_version, xine_t *xine) {
 									"codec.spu_font", 
 									"sans", 
 									"font for avi subtitles", 
-									NULL, NULL, NULL);
+									NULL, update_osd_font, this);
 
   return (spu_decoder_t *) this;
 }
