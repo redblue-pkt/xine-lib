@@ -1,3 +1,9 @@
+xine-lib (1-rc7-0) unstable; urgency=low
+
+  * New upstream release
+
+ -- Siggi Langauf <siggi@debian.org>  Sun, 31 Oct 2004 16:58:55 +0100
+
 xine-lib (1-rc6a-1) unstable; urgency=high
 
   * new upstream release (closes: #263418)
