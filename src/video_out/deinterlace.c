@@ -60,8 +60,8 @@ static void deinterlace_bob_yuv_mmx( uint8_t *pdst, uint8_t *psrc[],
   uint64_t qwEdgeDetect;
   uint64_t qwThreshold;
 
-  static uint8_t YMask[] ATTR_ALIGN(8) = {0xff,0,0xff,0,0xff,0,0xff,0};
-  static uint8_t Mask[] ATTR_ALIGN(8) = {0xfe,0xfe,0xfe,0xfe,0xfe,0xfe,0xfe,0xfe};
+  static mmx_t YMask = {ub:{0xff,0,0xff,0,0xff,0,0xff,0}};
+  static mmx_t Mask = {ub:{0xfe,0xfe,0xfe,0xfe,0xfe,0xfe,0xfe,0xfe}};
 
   qwEdgeDetect = EdgeDetect;
   qwEdgeDetect += (qwEdgeDetect << 48) + (qwEdgeDetect << 32) + (qwEdgeDetect << 16);
@@ -113,15 +113,15 @@ static void deinterlace_bob_yuv_mmx( uint8_t *pdst, uint8_t *psrc[],
 
       // get intensities in mm3 - 4
       movq_r2r ( mm0, mm3 );
-      pand_m2r ( *YMask, mm3 );
+      pand_m2r ( YMask, mm3 );
       movq_r2r ( mm1, mm4 );
-      pand_m2r ( *YMask, mm4 );
+      pand_m2r ( YMask, mm4 );
       movq_r2r ( mm2, mm5 );
-      pand_m2r ( *YMask, mm5 );
+      pand_m2r ( YMask, mm5 );
 
       // get average in mm0
-      pand_m2r ( *Mask, mm0 );
-      pand_m2r ( *Mask, mm2 );
+      pand_m2r ( Mask, mm0 );
+      pand_m2r ( Mask, mm2 );
       psrlw_i2r ( 01, mm0 );
       psrlw_i2r ( 01, mm2 );
       paddw_r2r ( mm2, mm0 );
@@ -210,8 +210,8 @@ static int deinterlace_weave_yuv_mmx( uint8_t *pdst, uint8_t *psrc[],
   uint64_t qwTemporalTolerance;
   uint64_t qwThreshold;
 
-  static uint8_t YMask[] ATTR_ALIGN(8) = {0xff,0,0xff,0,0xff,0,0xff,0};
-  static uint8_t Mask[] ATTR_ALIGN(8) = {0xfe,0xfe,0xfe,0xfe,0xfe,0xfe,0xfe,0xfe};
+  static mmx_t YMask = {ub:{0xff,0,0xff,0,0xff,0,0xff,0}};
+  static mmx_t Mask = {ub:{0xfe,0xfe,0xfe,0xfe,0xfe,0xfe,0xfe,0xfe}};
 
 
   // Make sure we have all the data we need.
@@ -282,14 +282,14 @@ static int deinterlace_weave_yuv_mmx( uint8_t *pdst, uint8_t *psrc[],
       movq_r2r ( mm1, mm4 );       // mm4 = intensity(O)
       movq_r2r ( mm2, mm6 );       // mm6 = intensity(E2)
 
-      pand_m2r ( *YMask, mm3 );
-      pand_m2r ( *YMask, mm4 );
-      pand_m2r ( *YMask, mm6 );
+      pand_m2r ( YMask, mm3 );
+      pand_m2r ( YMask, mm4 );
+      pand_m2r ( YMask, mm6 );
 
       // Average E1 and E2 for interpolated bobbing.
       // leave result in mm0
-      pand_m2r ( *Mask, mm0 ); // mm0 = E1 with lower chroma bit stripped off
-      pand_m2r ( *Mask, mm2 ); // mm2 = E2 with lower chroma bit stripped off
+      pand_m2r ( Mask, mm0 ); // mm0 = E1 with lower chroma bit stripped off
+      pand_m2r ( Mask, mm2 ); // mm2 = E2 with lower chroma bit stripped off
       psrlw_i2r ( 01, mm0 );    // mm0 = E1 / 2
       psrlw_i2r ( 01, mm2 );    // mm2 = E2 / 2
       paddb_r2r ( mm2, mm0 );
@@ -325,7 +325,7 @@ static int deinterlace_weave_yuv_mmx( uint8_t *pdst, uint8_t *psrc[],
 
       movq_m2r ( *&qwTemporalTolerance, mm3 );
       movq_m2r ( *YVal4++, mm5 ); // mm5 = Oold
-      pand_m2r ( *YMask, mm5 );
+      pand_m2r ( YMask, mm5 );
       psubsw_r2r ( mm4, mm5 );  // mm5 = Oold - O
       psraw_i2r ( 1, mm5 ); // XXX
       pmullw_r2r ( mm5, mm5 );  // mm5 = (Oold - O) ^ 2
@@ -393,13 +393,13 @@ static int deinterlace_greedy_yuv_mmx( uint8_t *pdst, uint8_t *psrc[],
   uint8_t* pOddLines = psrc[0]+width;
   uint8_t* pPrevLines;
 
-  static uint8_t ShiftMask[] ATTR_ALIGN(8) = {0xfe,0xfe,0xfe,0xfe,0xfe,0xfe,0xfe,0xfe};
+  static mmx_t ShiftMask = {ub:{0xfe,0xfe,0xfe,0xfe,0xfe,0xfe,0xfe,0xfe}};
 
   int LineLength = width;
   int SourcePitch = width * 2;
   int IsOdd = 1;
   long GreedyMaxComb = 15;
-  static uint8_t MaxComb[8] ATTR_ALIGN(8);
+  static mmx_t MaxComb;
   int i;
 
   if ( psrc[0] == NULL || psrc[1] == NULL )
@@ -412,7 +412,7 @@ static int deinterlace_greedy_yuv_mmx( uint8_t *pdst, uint8_t *psrc[],
 
 
   for( i = 0; i < 8; i++ )
-    MaxComb[i] = GreedyMaxComb; // How badly do we let it weave? 0-255
+    MaxComb.ub[i] = GreedyMaxComb; // How badly do we let it weave? 0-255
 
 
   // copy first even line no matter what, and the first odd line if we're
@@ -458,10 +458,10 @@ static int deinterlace_greedy_yuv_mmx( uint8_t *pdst, uint8_t *psrc[],
       // average L1 and L3 leave result in mm4
       movq_r2r ( mm1, mm4 );	// L1
 
-      pand_m2r ( *ShiftMask, mm4 );
+      pand_m2r ( ShiftMask, mm4 );
       psrlw_i2r ( 01, mm4 );
       movq_r2r ( mm3, mm5 );  // L3
-      pand_m2r ( *ShiftMask, mm5 );
+      pand_m2r ( ShiftMask, mm5 );
       psrlw_i2r ( 01, mm5 );
       paddb_r2r ( mm5, mm4 );  // the average, for computing comb
 
@@ -505,8 +505,8 @@ static int deinterlace_greedy_yuv_mmx( uint8_t *pdst, uint8_t *psrc[],
       psubusb_r2r ( mm7, mm3 );				// now = Min(L1,L3)
 
       // allow the value to be above the high or below the low by amt of MaxComb
-      paddusb_m2r ( *MaxComb, mm2 );			// increase max by diff
-      psubusb_m2r ( *MaxComb, mm3 );			// lower min by diff
+      paddusb_m2r ( MaxComb, mm2 );			// increase max by diff
+      psubusb_m2r ( MaxComb, mm3 );			// lower min by diff
 
       psubusb_r2r ( mm3, mm4 );				// best - Min
       paddusb_r2r ( mm3, mm4 );				// now = Max(best,Min(L1,L3)
@@ -557,7 +557,7 @@ static void deinterlace_onefield_yuv_mmx( uint8_t *pdst, uint8_t *psrc[],
 
   int n;
 
-  static uint8_t Mask[] ATTR_ALIGN(8) = {0xfe,0xfe,0xfe,0xfe,0xfe,0xfe,0xfe,0xfe};
+  static mmx_t Mask = {ub:{0xfe,0xfe,0xfe,0xfe,0xfe,0xfe,0xfe,0xfe}};
 
   // copy first even line no matter what, and the first odd line if we're
   // processing an odd field.
@@ -591,8 +591,8 @@ static void deinterlace_onefield_yuv_mmx( uint8_t *pdst, uint8_t *psrc[],
       movq_m2r (*YVal3++, mm2);
 
       // get average in mm0
-      pand_m2r ( *Mask, mm0 );
-      pand_m2r ( *Mask, mm2 );
+      pand_m2r ( Mask, mm0 );
+      pand_m2r ( Mask, mm2 );
       psrlw_i2r ( 01, mm0 );
       psrlw_i2r ( 01, mm2 );
       paddw_r2r ( mm2, mm0 );
