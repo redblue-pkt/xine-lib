@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.128 2003/02/18 18:38:55 mroi Exp $
+ * $Id: video_decoder.c,v 1.129 2003/02/21 01:13:55 guenter Exp $
  *
  */
 
@@ -370,16 +370,25 @@ void video_decoder_init (xine_stream_t *stream) {
   
   pthread_attr_t       pth_attrs;
   struct sched_param   pth_params;
-  int		       err;
+  int		       err, num_buffers;
 
   /* The fifo size is based on dvd playback where buffers are filled
-   * with 2k of data. With 1000 buffers and a typical video data rate
-   * of 8 Mbit/s, the fifo can hold about 2 seconds of video, wich
+   * with 2k of data. With 500 buffers and a typical video data rate
+   * of 8 Mbit/s, the fifo can hold about 1 second of video, wich
    * should be enough to compensate for drive delays.
    * We provide buffers of 8k size instead of 2k for demuxers sending
    * larger chunks.
    */
-  stream->video_fifo = fifo_buffer_new (1000, 8192);
+
+  num_buffers = stream->xine->config->register_num (stream->xine->config,
+						    "video.num_buffers",
+						    500,
+						    "number of video buffers to allocate (higher values mean smoother playback but higher latency)",
+						    NULL, 20,
+						    NULL, NULL);
+
+
+  stream->video_fifo = fifo_buffer_new (num_buffers, 8192);
   stream->spu_track_map_entries = 0;
 
   pthread_attr_init(&pth_attrs);
