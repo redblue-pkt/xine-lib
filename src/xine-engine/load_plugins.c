@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (C) 2000-2001 the xine project
  * 
  * This file is part of xine, a unix video player.
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.41 2001/09/17 11:43:43 jkeil Exp $
+ * $Id: load_plugins.c,v 1.42 2001/10/06 14:56:37 miguelfreitas Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -259,7 +259,7 @@ static int decide_spu_insert(spu_decoder_t *p, int streamtype, int prio) {
 
   if (!p->can_handle (p, (streamtype<<16) | BUF_SPU_BASE))
     return 0;
-  
+
   if (p->priority < prio)
     return 0;
 
@@ -465,22 +465,22 @@ char **xine_list_video_output_plugins (int visual_type) {
   plugin_ids[0] = NULL;
 
   dir = opendir (XINE_PLUGINDIR);
-  
+
   if (dir) {
     struct dirent *dir_entry;
-    
+
     while ((dir_entry = readdir (dir)) != NULL) {
       char  str[1024];
       void *plugin;
       int nLen = strlen (dir_entry->d_name);
-      
+
       if ((strncasecmp(dir_entry->d_name,
- 		       XINE_VIDEO_OUT_PLUGIN_PREFIXNAME, 
+ 		       XINE_VIDEO_OUT_PLUGIN_PREFIXNAME,
 		       XINE_VIDEO_OUT_PLUGIN_PREFIXNAME_LENGTH) == 0) &&
-	  ((dir_entry->d_name[nLen-3]=='.') 
+	  ((dir_entry->d_name[nLen-3]=='.')
 	   && (dir_entry->d_name[nLen-2]=='s')
 	   && (dir_entry->d_name[nLen-1]=='o'))) {
-	
+
 	/*printf ("load_plugins: found a video output plugin: %s\n",
 	  dir_entry->d_name); */
 
@@ -488,14 +488,14 @@ char **xine_list_video_output_plugins (int visual_type) {
 
 	/*
 	 * now, see if we can open this plugin,
-	 * check if it has got the right visual type 
+	 * check if it has got the right visual type
 	 * and finally if all this went through get it's id
 	 */
 
 	if(!(plugin = dlopen (str, RTLD_LAZY))) {
 
 	  printf("load_plugins: cannot load plugin %s:\n%s\n",
-		 str, dlerror()); 
+		 str, dlerror());
 
 	} else {
 
@@ -515,7 +515,7 @@ char **xine_list_video_output_plugins (int visual_type) {
 	      i = 0;
 	      while ( (i<num_plugins) && (vo_info->priority<plugin_prios[i]) )
 		i++;
-	      
+
 	      j = num_plugins;
 	      while (j>i) {
 		plugin_ids[j]   = plugin_ids[j-1];
@@ -544,7 +544,12 @@ char **xine_list_video_output_plugins (int visual_type) {
     fprintf(stderr, "load_plugins: %s - cannot access plugin dir: %s",
 	    __FUNCTION__, strerror(errno));
   }
-  
+
+  if( !num_plugins )
+  {
+    fprintf(stderr, "load_plugins: no video plugins found, make sure you have them "
+            "installed at %s\n", XINE_PLUGINDIR );
+  }
   return plugin_ids;
 }
 
@@ -572,7 +577,7 @@ vo_driver_t *xine_load_video_output_plugin(config_values_t *config,
 	  ((dir_entry->d_name[nLen-3]=='.') 
 	   && (dir_entry->d_name[nLen-2]=='s')
 	   && (dir_entry->d_name[nLen-1]=='o'))) {
-	
+
 	sprintf (str, "%s/%s", XINE_PLUGINDIR, dir_entry->d_name);
 	
 	if(!(plugin = dlopen (str, RTLD_LAZY))) {
