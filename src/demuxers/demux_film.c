@@ -21,7 +21,7 @@
  * For more information on the FILM file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_film.c,v 1.2 2002/05/27 11:01:04 guenter Exp $
+ * $Id: demux_film.c,v 1.3 2002/05/27 14:20:21 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -294,6 +294,7 @@ printf("loading sample #%d\n", i);
         while (remaining_sample_bytes) {
 printf ("loading CVID packet\n");
           buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
+          buf->content = buf->mem;
           buf->type = this->video_type;
           buf->input_pos = this->sample_table[i].sample_offset;
           buf->pts = this->sample_table[i].pts;
@@ -353,6 +354,7 @@ printf ("loading CVID packet\n");
         while (remaining_sample_bytes) {
 printf ("loading video packet\n");
           buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
+          buf->content = buf->mem;
           buf->type = this->video_type;
           buf->input_pos = this->sample_table[i].sample_offset;
           buf->pts = this->sample_table[i].pts;
@@ -385,6 +387,7 @@ printf ("loading video packet\n");
         while (remaining_sample_bytes) {
 printf ("loading audio packet\n");
           buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
+          buf->content = buf->mem;
           buf->type = this->audio_type;
           buf->input_pos = this->sample_table[i].sample_offset;
           buf->pts = this->sample_table[i].pts;
@@ -435,6 +438,9 @@ printf ("loading audio packet\n");
       this->audio_fifo->put (this->audio_fifo, buf);
     }
   }
+      
+  this->thread_running = 0;
+  pthread_mutex_unlock( &this->mutex );
   return NULL;
 }
 
@@ -508,6 +514,7 @@ static int demux_film_start (demux_plugin_t *this_gen,
   demux_film_t *this = (demux_film_t *) this_gen;
   buf_element_t *buf;
   int err;
+  int status;
 
 //printf ("start pos, time = %d, %d\n", start_pos, start_time);
   pthread_mutex_lock(&this->mutex);
@@ -580,7 +587,7 @@ static int demux_film_start (demux_plugin_t *this_gen,
       buf->content = buf->mem;
       buf->decoder_flags = BUF_FLAG_HEADER;
       buf->decoder_info[0] = 0;
-      buf->decoder_info[1] = 0;  /* initial video_step */
+      buf->decoder_info[1] = 3000;  /* initial video_step */
       memcpy(buf->content, &this->bih, sizeof(this->bih));
       buf->size = sizeof(this->bih);
       if (this->video_codec == CVID_TAG)
@@ -611,9 +618,10 @@ static int demux_film_start (demux_plugin_t *this_gen,
     }
   }
 
+  status = this->status;
   pthread_mutex_unlock(&this->mutex);
-
-  return this->status;
+  
+  return status;
 }
 
 static int demux_film_seek (demux_plugin_t *this_gen,
