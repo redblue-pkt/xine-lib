@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: asfheader.h,v 1.1 2002/12/12 22:40:06 tmattern Exp $
+ * $Id: asfheader.h,v 1.2 2003/05/26 17:00:11 tchamp Exp $
  *
  * demultiplexer for asf streams
  *
@@ -98,12 +98,17 @@
 
 #define ASF_MAX_NUM_STREAMS     23
 
-typedef struct {
-  uint32_t v1;
-  uint16_t v2;
-  uint16_t v3;
-  uint8_t  v4[8];
+#ifndef GUID_DEFINED
+#define GUID_DEFINED
+
+typedef struct _GUID {          /* size is 16 */
+  uint32_t Data1;
+  uint16_t Data2;
+  uint16_t Data3;
+  uint8_t  Data4[8];
 } GUID;
+
+#endif /* !GUID_DEFINED */
 
 static const struct
 {

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mmsh.c,v 1.16 2003/04/26 13:26:28 tmattern Exp $
+ * $Id: mmsh.c,v 1.17 2003/05/26 17:00:14 tchamp Exp $
  *
  * MMS over HTTP protocol
  *   written by Thibaut Mattern
@@ -274,11 +274,11 @@ static int get_guid (unsigned char *buffer, int offset) {
   int i;
   GUID g;
   
-  g.v1 = get_32(buffer, offset);
-  g.v2 = get_16(buffer, offset + 4);
-  g.v3 = get_16(buffer, offset + 6);
+  g.Data1 = get_32(buffer, offset);
+  g.Data2 = get_16(buffer, offset + 4);
+  g.Data3 = get_16(buffer, offset + 6);
   for(i = 0; i < 8; i++) {
-    g.v4[i] = buffer[offset + 8 + i];
+    g.Data4[i] = buffer[offset + 8 + i];
   }
   
   for (i = 1; i < GUID_END; i++) {
@@ -292,8 +292,9 @@ static int get_guid (unsigned char *buffer, int offset) {
 
   printf ("libmmsh: unknown GUID: 0x%x, 0x%x, 0x%x, "
           "{ 0x%hx, 0x%hx, 0x%hx, 0x%hx, 0x%hx, 0x%hx, 0x%hx, 0x%hx }\n",
-          g.v1, g.v2, g.v3,
-          g.v4[0], g.v4[1], g.v4[2], g.v4[3], g.v4[4], g.v4[5], g.v4[6], g.v4[7]);
+          g.Data1, g.Data2, g.Data3,
+          g.Data4[0], g.Data4[1], g.Data4[2], g.Data4[3], 
+		  g.Data4[4], g.Data4[5], g.Data4[6], g.Data4[7]);
   return GUID_ERROR;
 }
 
