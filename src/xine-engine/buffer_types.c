@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer_types.c,v 1.61 2003/05/06 15:20:14 esnel Exp $
+ * $Id: buffer_types.c,v 1.62 2003/05/13 05:08:56 tmmm Exp $
  *
  *
  * contents:
@@ -343,6 +343,7 @@ static video_db_t video_db[] = {
 },
 {
   {
+    meFOURCC('V','P','3',' '),
     meFOURCC('V','P','3','0'),
     meFOURCC('v','p','3','0'),
     meFOURCC('V','P','3','1'),
@@ -357,6 +358,7 @@ static video_db_t video_db[] = {
     meFOURCC('H', '2', '6', '3'),
     meFOURCC('h', '2', '6', '3'),
     meFOURCC('U', '2', '6', '3'),
+    meFOURCC('s', '2', '6', '3'),
     0
   },
   BUF_VIDEO_H263,
@@ -468,6 +470,14 @@ static video_db_t video_db[] = {
   },
   BUF_VIDEO_XXAN,
   "Wing Commander IV Video Codec"
+},
+{
+  {
+    meFOURCC('Y', 'V', '1', '2'),
+    0
+  },
+  BUF_VIDEO_YV12,
+  "Raw Planar YV12"
 },
 {
   {
@@ -724,6 +734,7 @@ static audio_db_t audio_db[] = {
 {
   {
     meFOURCC('m', 'a', 'c', '3'),
+    meFOURCC('M', 'A', 'C', '3'),
     0
   },
   BUF_AUDIO_MAC3,
@@ -732,6 +743,7 @@ static audio_db_t audio_db[] = {
 {
   {
     meFOURCC('m', 'a', 'c', '6'),
+    meFOURCC('M', 'A', 'C', '6'),
     0
   },
   BUF_AUDIO_MAC6,
