@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.37 2002/05/13 21:41:43 tmattern Exp $
+ * $Id: demux_asf.c,v 1.38 2002/05/13 22:20:45 tmattern Exp $
  *
  * demultiplexer for asf streams
  *
@@ -1198,7 +1198,7 @@ static void demux_asf_stop (demux_plugin_t *this_gen) {
 
   pthread_mutex_lock( &this->mutex );
 
-  if (this->status != DEMUX_OK) {
+  if (!this->thread_running) {
     printf ("demux_asf: stop...ignored\n");
     pthread_mutex_unlock( &this->mutex );
     return;
@@ -1398,7 +1398,7 @@ static int demux_asf_open(demux_plugin_t *this_gen,
     
     if(!ending)
       return DEMUX_CANNOT_HANDLE;
-    
+
     xine_strdupa(valid_ends, (this->config->register_string(this->config,
 							    "mrl.ends_asf", VALID_ENDS,
 							    "valid mrls ending for asf demuxer",
@@ -1454,7 +1454,7 @@ demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
   (void*) this->config->register_string(this->config,
 					"mrl.ends_asf", VALID_ENDS,
 					"valid mrls ending for asf demuxer",
-					NULL, NULL, NULL);    
+					NULL, NULL, NULL);
   
   this->demux_plugin.interface_version = DEMUXER_PLUGIN_IFACE_VERSION;
   this->demux_plugin.open              = demux_asf_open;
