@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_mpeg.c,v 1.137 2004/04/22 21:30:10 miguelfreitas Exp $
+ * $Id: demux_mpeg.c,v 1.138 2004/04/30 11:40:07 hadess Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  * reads streams of variable blocksizes
@@ -1178,7 +1178,7 @@ static char *get_identifier (demux_class_t *this_gen) {
 }
 
 static char *get_extensions (demux_class_t *this_gen) {
-  return "mpg mpeg";
+  return "mpg mpeg mpe";
 }
 
 static char *get_mimetypes (demux_class_t *this_gen) {
