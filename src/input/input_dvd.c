@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.114 2002/11/15 00:20:32 miguelfreitas Exp $
+ * $Id: input_dvd.c,v 1.115 2002/11/17 16:23:38 mroi Exp $
  *
  */
 
@@ -146,9 +146,6 @@ typedef struct {
   int               mrls_allocated_entries;
   xine_mrl_t      **mrls;
   char		   *dvd_device;	  /* Default DVD device		     */
-  int32_t           read_ahead_flag;
-  int32_t           region;
-  int32_t           language;
 
   char             *filelist2[MAX_DIR_ENTRIES];
 
@@ -167,6 +164,7 @@ typedef struct {
 
   /* Flags */
   int               opened;       /* 1 if the DVD device is already open */
+  int               seekable;     /* are we seekable? */
   
   /* Xine specific variables */
   char             *current_dvd_device; /* DVD device currently open */
@@ -182,6 +180,10 @@ typedef struct {
   char              filelist[MAX_DIR_ENTRIES][MAX_STR_LEN];
   char              ui_title[MAX_STR_LEN + 1];
   
+  int32_t           read_ahead_flag;
+  int32_t           region;
+  int32_t           language;
+
   /* special buffer handling for libdvdnav caching */
   pthread_mutex_t   buf_mutex;
   void             *source;
@@ -203,57 +205,50 @@ static void device_change_cb(void *data, xine_cfg_entry_t *cfg) {
 }
 
 static uint32_t dvd_plugin_get_capabilities (input_plugin_t *this_gen) {
+  dvd_input_plugin_t *this = (dvd_input_plugin_t*)this_gen;
+  
   trace_print("Called\n");
 
   return INPUT_CAP_BLOCK |
 #if CAN_SEEK
-    INPUT_CAP_SEEKABLE | INPUT_CAP_VARIABLE_BITRATE | 
+    (this->seekable ? INPUT_CAP_SEEKABLE : 0) | INPUT_CAP_VARIABLE_BITRATE | 
 #endif
     INPUT_CAP_AUDIOLANG | INPUT_CAP_SPULANG | INPUT_CAP_CHAPTERS; 
 }
 
 void read_ahead_cb(void *this_gen, xine_cfg_entry_t *entry) {
-  dvd_input_class_t *class = (dvd_input_class_t*)this_gen;
+  dvd_input_plugin_t *this = (dvd_input_plugin_t*)this_gen;
 
-  if(!class)
+  if(!this)
    return;
-  class->read_ahead_flag = entry->num_value;
+  this->read_ahead_flag = entry->num_value;
 
-  /*  dvdnav_set_readahead_flag(this->dvdnav, entry->num_value);*/
+  dvdnav_set_readahead_flag(this->dvdnav, entry->num_value);
 }
  
 void region_changed_cb (void *this_gen, xine_cfg_entry_t *entry) {
-  dvd_input_class_t *class = (dvd_input_class_t*)this_gen;
+  dvd_input_plugin_t *this = (dvd_input_plugin_t*)this_gen;
 
-  if(!class)
+  if(!this)
    return;
 
-  class->region = entry->num_value;
+  this->region = entry->num_value;
 
-#if 0
-  if((entry->num_value >= 1) && (entry->num_value <= 8)) {
-    /* FIXME: Remove debug message */
-#ifdef INPUT_DEBUG
-    printf("input_dvd: Setting region code to %i (0x%x)\n",
-	   entry->num_value, 1<<(entry->num_value-1));
-#endif
-//    dvdnav_set_region_mask(this->dvdnav, 1<<(entry->num_value-1));
-  }
-#endif
+  if((entry->num_value >= 1) && (entry->num_value <= 8))
+    dvdnav_set_region_mask(this->dvdnav, 1<<(entry->num_value-1));
 }
 
 void language_changed_cb(void *this_gen, xine_cfg_entry_t *entry) {
-  dvd_input_class_t *class = (dvd_input_class_t*)this_gen;
+  dvd_input_plugin_t *this = (dvd_input_plugin_t*)this_gen;
 
-  if(!class)
+  if(!this)
    return;
 
-  class->language = entry->str_value[0] << 8 | entry->str_value[1];
-#if 0
+  this->language = entry->str_value[0] << 8 | entry->str_value[1];
+  
   dvdnav_menu_language_select(this->dvdnav, entry->str_value);
   dvdnav_audio_language_select(this->dvdnav, entry->str_value);
   dvdnav_spu_language_select(this->dvdnav, entry->str_value);
-#endif
 }
  
 void update_title_display(dvd_input_plugin_t *this) {
@@ -472,6 +467,9 @@ static buf_element_t *dvd_plugin_read_block (input_plugin_t *this_gen,
 	/* Make sure we don't think we are still paused */
 	this->pause_timer = 0;
 	
+	/* we got a block, so we might be seekable here */
+	this->seekable = 1;
+	
 	finished = 1;
        }
       break;
@@ -490,6 +488,9 @@ static buf_element_t *dvd_plugin_read_block (input_plugin_t *this_gen,
          (dvdnav_still_event_t*)(block);
        buf->type = BUF_CONTROL_NOP;
        finished = 1;
+       
+       /* stills are not seekable */
+       this->seekable = 0;
 	
        /* Xine's method of doing still-frames */
        if (this->pause_timer == 0) {
@@ -1208,6 +1209,9 @@ static input_plugin_t *open_plugin (input_class_t *class_gen, xine_stream_t *str
   dvdnav_status_t        ret;
   char                  *intended_dvd_device;
   xine_cfg_entry_t      region_entry, lang_entry, cache_entry;
+  config_values_t       *config = stream->xine->config;
+  static char           *skip_modes[] = {"skip program", "skip part", "skip title", NULL};
+  void                  *dvdcss;
 
   printf("input_dvd.c: open_plugin called.\n");
 
@@ -1231,6 +1235,7 @@ static input_plugin_t *open_plugin (input_class_t *class_gen, xine_stream_t *str
   this->stream = stream;
   this->dvdnav                 = NULL;
   this->opened                 = 0;
+  this->seekable               = 1;
   this->buttonN                = 0;
   this->typed_buttonN          = 0;
   this->dvd_name[0]            = 0;
@@ -1246,9 +1251,6 @@ static input_plugin_t *open_plugin (input_class_t *class_gen, xine_stream_t *str
   this->mem_stack              = 0;
   trace_print("Called\n");
   this->event_queue = xine_event_new_queue (this->stream);
-/* FIXME: extra thread needed?
-  xine_event_create_listener_thread (this->event_queue,
-                                   dvd_event_listener, this); */
   /* printf("input_dvd: open1: dvdnav=%p opened=%d\n",this->dvdnav, this->opened); */
   printf("data=%p\n",data);
   if (data) printf("data=%s\n",data); 
@@ -1360,26 +1362,75 @@ static input_plugin_t *open_plugin (input_class_t *class_gen, xine_stream_t *str
       printf("input_dvd: NAME OPEN FAILED\n");
     }
   }
-/* FIXME: adapt to new api */
-#if 0
-  printf("input_dvd.c:dvd_device=%s\n",this->dvd_device); 
+  
+  if ((dvdcss = dlopen("libdvdcss.so.2", RTLD_LAZY)) != NULL) {
+    /* we have found libdvdcss, enable the specific config options */
+#ifndef HAVE_DVDNAV
+    char *raw_device;
+#endif
+    static char *decrypt_modes[] = { "key", "disc", "title", NULL };
+    int mode;
+    
+#ifndef HAVE_DVDNAV
+    /* only our local copy of libdvdread supports raw device reads,
+     * so we don't provide this option, when we are using a shared version
+     * of libdvdnav/libdvdread */
+    raw_device = config->register_string(config, "input.dvd_raw_device",
+					 RDVD_PATH, "raw device set up for dvd access",
+					 NULL, 10, NULL, NULL);
+    if (raw_device) xine_setenv("DVDCSS_RAW_DEVICE", raw_device, 0);
+#endif
+    
+    mode = config->register_enum(config, "input.css_decryption_method", 0,
+				 decrypt_modes, "the css decryption method libdvdcss should use",
+				 NULL, 10, NULL, NULL);
+    xine_setenv("DVDCSS_METHOD", decrypt_modes[mode], 0);
+    
+    dlclose(dvdcss);
+  }
+  
+  config->register_num(config, "input.dvd_region",
+		       1,
+		       "Region that DVD player claims "
+		       "to be (1 -> 8)",
+		       "This only needs to be changed "
+		       "if your DVD jumps to a screen "
+		       "complaining about region code ",
+		       0, region_changed_cb,
+		       this);
+  config->register_string(config, "input.dvd_language",
+			  "en",
+			  "The default language for dvd",
+			  "The dvdnav plugin tries to use this "
+			  "language as a default. This must be a"
+			  "two character ISO country code.",
+			  0, language_changed_cb, this);
+  config->register_bool(config, "input.dvd_use_readahead",
+			1,
+			"Do we use read-ahead caching?",
+			"This "
+			"may lead to jerky playback on low-end "
+			"machines.",
+			10, read_ahead_cb, this);
+  config->register_enum(config, "input.dvd_skip_behaviour", 0,
+			skip_modes,
+			"Skipping will work on this basis.",
+			NULL, 10, NULL, NULL);
   /* Set region code */
-  if (xine_config_lookup_entry (this->stream, "input.dvd_region", 
+  if (xine_config_lookup_entry (this->stream->xine, "input.dvd_region", 
 				&region_entry)) 
     region_changed_cb (this, &region_entry);
   
   /* Set languages */
-  if (xine_config_lookup_entry (this->stream, "input.dvd_language",
+  if (xine_config_lookup_entry (this->stream->xine, "input.dvd_language",
 				&lang_entry)) 
     language_changed_cb (this, &lang_entry);
   
   /* Set cache usage */
-  if (xine_config_lookup_entry(this->stream, "input.dvd_use_readahead",
+  if (xine_config_lookup_entry(this->stream->xine, "input.dvd_use_readahead",
 			       &cache_entry))
     read_ahead_cb(this, &cache_entry);
-#endif
    
-  dvdnav_set_readahead_flag(this->dvdnav, 1);
   if(this->mode == MODE_TITLE) {
     int tt, i, pr, found;
     int titles;
@@ -1568,8 +1619,6 @@ static int dvd_class_eject_media (input_class_t *this_gen) {
 static void *init_class (xine_t *xine, void *data) {
   dvd_input_class_t *this;
   config_values_t *config = xine->config;
-  static char *skip_modes[] = {"skip program", "skip part", "skip title", NULL};
-  void *dvdcss;
 
   trace_print("Called\n");
 #ifdef INPUT_DEBUG
@@ -1598,75 +1647,13 @@ static void *init_class (xine_t *xine, void *data) {
   this->mem_stack              = 0;
 */
   
-/* FIXME */
-/*  xine_register_event_listener(this->stream, dvd_event_listener, this);*/
   this->dvd_device = config->register_string(config,
 					     "input.dvd_device",
 					     DVD_PATH,
 					     "device used for dvd drive",
 					     NULL,
 					     0, device_change_cb, (void *)this);
-#if 0
-/*  this->current_dvd_device = this->dvd_device; */
-  printf("input_dvd.c:init_class:dvd_device=%s\n",this->dvd_device); 
-#if 0
-  if ((dvdcss = dlopen("libdvdcss.so.2", RTLD_LAZY)) != NULL) {
-    /* we have found libdvdcss, enable the specific config options */
-#ifndef HAVE_DVDNAV
-    char *raw_device;
-#endif
-    static char *decrypt_modes[] = { "key", "disc", "title", NULL };
-    int mode;
-    
-#ifndef HAVE_DVDNAV
-    /* only our local copy of libdvdread supports raw device reads,
-     * so we don't provide this option, when we are using a shared version
-     * of libdvdnav/libdvdread */
-/* FIXME */
-    raw_device = config->register_string(config, "input.dvd_raw_device",
-					 RDVD_PATH, "raw device set up for dvd access",
-					 NULL, 10, NULL, NULL);
-    if (raw_device) xine_setenv("DVDCSS_RAW_DEVICE", raw_device, 0);
-#endif
-    
-    mode = config->register_enum(config, "input.css_decryption_method", 0,
-				 decrypt_modes, "the css decryption method libdvdcss should use",
-				 NULL, 10, NULL, NULL);
-    xine_setenv("DVDCSS_METHOD", decrypt_modes[mode], 0);
-    
-    dlclose(dvdcss);
-  }
-#endif
-  
-  config->register_num(config, "input.dvd_region",
-		       1,
-		       "Region that DVD player claims "
-		       "to be (1 -> 8)",
-		       "This only needs to be changed "
-		       "if your DVD jumps to a screen "
-		       "complaining about region code ",
-		       0, region_changed_cb,
-		       this);
-  config->register_string(config, "input.dvd_language",
-			  "en",
-			  "The default language for dvd",
-			  "The dvdnav plugin tries to use this "
-			  "language as a default. This must be a"
-			  "two character ISO country code.",
-			  0, language_changed_cb, this);
-  config->register_bool(config, "input.dvd_use_readahead",
-			1,
-			"Do we use read-ahead caching?",
-			"This "
-			"may lead to jerky playback on low-end "
-			"machines.",
-			10, read_ahead_cb, this);
-#endif
-  config->register_enum(config, "input.dvd_skip_behaviour", 0,
-			skip_modes,
-			"Skipping will work on this basis.",
-			NULL, 10, NULL, NULL);
-  
+
 #ifdef __sun
   check_solaris_vold_device(this);
 #endif
@@ -1679,6 +1666,10 @@ static void *init_class (xine_t *xine, void *data) {
 
 /*
  * $Log: input_dvd.c,v $
+ * Revision 1.115  2002/11/17 16:23:38  mroi
+ * cleanup: bring config entries back to life
+ * introduce a seekable flag
+ *
  * Revision 1.114  2002/11/15 00:20:32  miguelfreitas
  * cleaning up spu types. now avi subtitles may be enabled again.
  * (+ missed ffmpeg/dv patch)
