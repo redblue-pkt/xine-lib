@@ -4,9 +4,9 @@ libdir = $(XINE_PLUGINDIR)
 
 lib_LTLIBRARIES = xineplug_decode_dts.la
 
-xineplug_decode_dts_la_SOURCES = decoder.c print_info.c xine_decoder.c
+xineplug_decode_dts_la_SOURCES = bitstream.c downmix.c parse.c xine_decoder.c
 xineplug_decode_dts_la_LIBADD = $(XINE_LIB)
-xineplug_decode_dts_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
+xineplug_decode_dts_la_LDFLAGS = -avoid-version -module $(XINE_PLUGIN_MIN_SYMS)
 
-noinst_HEADERS = decoder.h decoder_internal.h dts_debug.h huffman_tables.h \
-	print_info.h
+noinst_HEADERS = bitstream.h dts.h dts_internal.h tables.h tables_adpcm.h \
+	tables_fir.h tables_huffman.h tables_quantization.h tables_vq.h

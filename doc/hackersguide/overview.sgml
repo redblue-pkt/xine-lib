@@ -141,14 +141,11 @@
      </listitem>
     </varlistentry>
     <varlistentry>
-     <term><filename>libdts</filename></term>
+     <term><filename>libdts</filename> (imported)</term>
      <listitem>
       <para>
-       Audio decoder plugin that does currently nothing but passing through
-       DTS (AC5) data to the audio output plugin. This is only usefull
-       when using an external hardware DTS decoder. James has started to
-       work on software DTS decoding, but has not succeeded so far. Anyone
-       giving him a hand?
+       AC5 (aka DTS) audio decoder library and xine plugin, which is capable
+       of software decoding as well as digital passthrough.
       </para>
       <para></para>
      </listitem>

@@ -1,6 +1,0 @@
-Todo list for software dts core (48Khz PCM, not 96Khz PCM) decode.
-1) Enter all the huffman tables.
-2) Get InverseQ to parse the input stream via the huffman tables.
-3) Move over the sync detection and packet joining code from liba52 and modify it to recognise dts.
-4) Get all the parsing code to compile and work correctly. Requires (1) and (2) first.
-

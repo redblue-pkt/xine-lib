@@ -1,3 +1,6 @@
+xine-lib (1-rc4)
+  * experimental DTS software decoder using libdts
+
 xine-lib (1-rc3c)
   * fix the deadlock with non-seekable input plugins
   * guess codeset for OSD if nl_langinfo(CODESET) is missing or not working

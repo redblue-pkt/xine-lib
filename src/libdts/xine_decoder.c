@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2000-2001 the xine project
+ * Copyright (C) 2000-2004 the xine project
  * 
  * This file is part of xine, a unix video player.
  * 
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.47 2004/01/12 17:35:16 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.48 2004/04/09 14:57:26 mroi Exp $
  *
  * 04-09-2001 DTS passtrough  (C) Joachim Koenig 
  * 09-12-2001 DTS passthrough inprovements (C) James Courtier-Dutton
@@ -42,12 +42,30 @@
 #include "xineutils.h"
 #include "audio_out.h"
 #include "buffer.h"
-#include "dts_debug.h"
-#include "decoder.h"
+#include "dts.h"
+
 
 typedef struct {
   audio_decoder_class_t   decoder_class;
 } dts_class_t;
+
+typedef struct {
+  audio_decoder_t  audio_decoder;
+
+  xine_stream_t    *stream;
+  audio_decoder_class_t *class;
+
+  dts_state_t     *dts_state;
+  
+  uint32_t         rate;
+  uint32_t         bits_per_sample;
+  uint32_t         number_of_channels;
+
+  int              output_open;
+  
+  int              bypass_mode;
+  
+} dts_decoder_t;
 
 static void dts_reset (audio_decoder_t *this_gen);
 static void dts_discontinuity (audio_decoder_t *this_gen);
@@ -61,13 +79,31 @@ static void dts_reset (audio_decoder_t *this_gen) {
 static void dts_discontinuity (audio_decoder_t *this_gen) {
 }
 
+static inline int16_t blah (int32_t i) {
+
+  if (i > 0x43c07fff)
+    return 32767;
+  else if (i < 0x43bf8000)
+    return -32768;
+  else
+    return i - 0x43c00000;
+}
+
+static inline void float_to_int (float * _f, int16_t * s16, int num_channels) {
+  int i;
+  int32_t * f = (int32_t *) _f;       /* XXX assumes IEEE float format */
+
+  for (i = 0; i < 256; i++) {
+    s16[num_channels*i] = blah (f[i]);
+  }
+}
+
 static void dts_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 
   dts_decoder_t  *this = (dts_decoder_t *) this_gen;
   uint8_t        *data_in = (uint8_t *)buf->content;
   uint8_t        *data_out;
   audio_buffer_t *audio_buffer;
-  uint32_t  ac5_pcm_samples;
   uint32_t  ac5_spdif_type=0;
   uint32_t  ac5_length=0;
   uint32_t  ac5_pcm_length;
@@ -81,18 +117,6 @@ static void dts_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 #ifdef ENABLE_DTS_PARSE
   dts_parse_data (this, buf);
 #endif
-
-  if ((this->stream->audio_out->get_capabilities(this->stream->audio_out) & AO_CAP_MODE_AC5) == 0) {
-    return;
-  }
-  if (!this->output_open) {      
-    this->output_open = (this->stream->audio_out->open (this->stream->audio_out, this->stream,
-                                                this->bits_per_sample, 
-                                                this->rate,
-                                                AO_CAP_MODE_AC5));
-  }
-  if (!this->output_open) 
-    return;
 
   if (buf->decoder_flags & BUF_FLAG_PREVIEW)
     return;
@@ -110,100 +134,144 @@ static void dts_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
       return;
     }
       
-    if ((data_in[0] != 0x7f) || 
-        (data_in[1] != 0xfe) ||
-        (data_in[2] != 0x80) ||
-        (data_in[3] != 0x01)) {
+    {
+      int flags, sample_rate, bit_rate;
+      
+      ac5_length = dts_syncinfo(this->dts_state, data_in, &flags, &sample_rate, 
+                                &bit_rate, &ac5_pcm_length);
+    }
+    
+    if(!ac5_length) {
       xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "libdts: DTS Sync bad\n");
       return;
     }
     
     audio_buffer = this->stream->audio_out->get_buffer (this->stream->audio_out);
-    audio_buffer->frame_header_count = buf->decoder_info[1]; /* Number of frames */
-    audio_buffer->first_access_unit = buf->decoder_info[2]; /* First access unit */
-
-#ifdef LOG_DEBUG
-    printf("libdts: DTS frame_header_count = %u\n",audio_buffer->frame_header_count);
-    printf("libdts: DTS first access unit = %u\n",audio_buffer->first_access_unit);
-#endif
-
+    
     if (n == first_access_unit) {
       audio_buffer->vpts       = buf->pts;
     } else {
       audio_buffer->vpts       = 0;
     }
- 
-    data_out=(uint8_t *) audio_buffer->mem;
-
-    ac5_pcm_samples=((data_in[4] & 0x01) << 6) | ((data_in[5] >>2) & 0x3f);
-
-
-    ac5_length=((data_in[5] & 0x03) << 12) | (data_in[6] << 4) | ((data_in[7] & 0xf0) >> 4);
-    ac5_length++;
-
-    if (ac5_length > 8191) {
-      xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "libdts: ac5_length too long\n");
-      ac5_pcm_length = 0;
-    } else {
-      ac5_pcm_length = (ac5_pcm_samples + 1) * 32;
-    }
-
-    switch (ac5_pcm_length) {
-    case 512:
-      ac5_spdif_type = 0x0b; /* DTS-1 (512-sample bursts) */
-      break;
-    case 1024:
-      ac5_spdif_type = 0x0c; /* DTS-1 (1024-sample bursts) */
-      break;
-    case 2048:
-      ac5_spdif_type = 0x0d; /* DTS-1 (2048-sample bursts) */
-      break;
-    default:
-      xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
-	      "libdts: DTS %i-sample bursts not supported\n", ac5_pcm_length);
-      return;
-    }
-
-#ifdef LOG_DEBUG
-    {
-    int i;
-    printf("libdts: DTS frame type=%d\n",data_in[4] >> 7);
-    printf("libdts: DTS deficit frame count=%d\n",(data_in[4] & 0x7f) >> 2);
-    printf("libdts: DTS AC5 PCM samples=%d\n",ac5_pcm_samples);
-    printf("libdts: DTS AC5 length=%d\n",ac5_length);
-    printf("libdts: DTS AC5 bitrate=%d\n",((data_in[8] & 0x03) << 4) | (data_in[8] >> 4));
-    printf("libdts: DTS AC5 spdif type=%d\n", ac5_spdif_type);
-
-    printf("libdts: ");
-    for(i=2000;i<2048;i++) {
-      printf("%02x ",data_in[i]);
-    }
-    printf("\n");
-    }
-#endif
-
-
-#ifdef LOG_DEBUG
-    printf("libdts: DTS length=%d loop=%d pts=%lld\n",ac5_pcm_length,n,audio_buffer->vpts);
-#endif
-
-    audio_buffer->num_frames = ac5_pcm_length;
-
-    data_out[0] = 0x72; data_out[1] = 0xf8;	/* spdif syncword    */
-    data_out[2] = 0x1f; data_out[3] = 0x4e;	/* ..............    */
-    data_out[4] = ac5_spdif_type;		/* DTS data          */
-    data_out[5] = 0;		                /* Unknown */
-    data_out[6] = (ac5_length << 3) & 0xff;   /* ac5_length * 8   */
-    data_out[7] = ((ac5_length ) >> 5) & 0xff;
-
-    if( ac5_pcm_length ) {
-      if( ac5_pcm_length % 2) {
-        swab(data_in, &data_out[8], ac5_length );
-      } else {
-        swab(data_in, &data_out[8], ac5_length + 1);
+    
+    if(this->bypass_mode) {
+      if (!this->output_open) {
+        this->output_open = (this->stream->audio_out->open (this->stream->audio_out, this->stream,
+                                                            this->bits_per_sample, 
+                                                            this->rate,
+                                                            AO_CAP_MODE_AC5));
       }
+      
+      if (!this->output_open) 
+        return;
+      
+      audio_buffer->frame_header_count = buf->decoder_info[1]; /* Number of frames */
+      audio_buffer->first_access_unit = buf->decoder_info[2]; /* First access unit */
+
+#ifdef LOG_DEBUG
+      printf("libdts: DTS frame_header_count = %u\n",audio_buffer->frame_header_count);
+      printf("libdts: DTS first access unit = %u\n",audio_buffer->first_access_unit);
+#endif
+
+      data_out=(uint8_t *) audio_buffer->mem;
+
+      if (ac5_length > 8191) {
+        xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "libdts: ac5_length too long\n");
+        ac5_pcm_length = 0;
+      }
+
+      switch (ac5_pcm_length) {
+      case 512:
+        ac5_spdif_type = 0x0b; /* DTS-1 (512-sample bursts) */
+        break;
+      case 1024:
+        ac5_spdif_type = 0x0c; /* DTS-1 (1024-sample bursts) */
+        break;
+      case 2048:
+        ac5_spdif_type = 0x0d; /* DTS-1 (2048-sample bursts) */
+        break;
+      default:
+        xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
+		"libdts: DTS %i-sample bursts not supported\n", ac5_pcm_length);
+        return;
+      }
+
+#ifdef LOG_DEBUG
+      {
+        int i;
+        printf("libdts: DTS frame type=%d\n",data_in[4] >> 7);
+        printf("libdts: DTS deficit frame count=%d\n",(data_in[4] & 0x7f) >> 2);
+        printf("libdts: DTS AC5 PCM samples=%d\n",ac5_pcm_samples);
+        printf("libdts: DTS AC5 length=%d\n",ac5_length);
+        printf("libdts: DTS AC5 bitrate=%d\n",((data_in[8] & 0x03) << 4) | (data_in[8] >> 4));
+        printf("libdts: DTS AC5 spdif type=%d\n", ac5_spdif_type);
+
+        printf("libdts: ");
+        for(i=2000;i<2048;i++) {
+          printf("%02x ",data_in[i]);
+        }
+        printf("\n");
+      }
+#endif
+
+
+#ifdef LOG_DEBUG
+      printf("libdts: DTS length=%d loop=%d pts=%lld\n",ac5_pcm_length,n,audio_buffer->vpts);
+#endif
+
+      audio_buffer->num_frames = ac5_pcm_length;
+
+      data_out[0] = 0x72; data_out[1] = 0xf8;	/* spdif syncword    */
+      data_out[2] = 0x1f; data_out[3] = 0x4e;	/* ..............    */
+      data_out[4] = ac5_spdif_type;		/* DTS data          */
+      data_out[5] = 0;		                /* Unknown */
+      data_out[6] = (ac5_length << 3) & 0xff;   /* ac5_length * 8   */
+      data_out[7] = ((ac5_length ) >> 5) & 0xff;
+
+      if( ac5_pcm_length ) {
+        if( ac5_pcm_length % 2) {
+          swab(data_in, &data_out[8], ac5_length );
+        } else {
+          swab(data_in, &data_out[8], ac5_length + 1);
+        }
+      }
+    } else {
+      int       i, flags = DTS_STEREO;
+      int16_t  *int_samples = audio_buffer->mem;
+      level_t   level = 1.0;
+      sample_t *samples = dts_samples(this->dts_state);
+      
+      if (!this->output_open) {      
+        this->output_open = (this->stream->audio_out->open (this->stream->audio_out, this->stream,
+                                                this->bits_per_sample, 
+                                                this->rate,
+                                                AO_CAP_MODE_STEREO));
+      }
+      
+      if (!this->output_open) 
+        return;
+    
+      if(dts_frame(this->dts_state, data_in, &flags, &level, 384)) {
+        xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "libdts: dts_frame error\n");
+        return;
+      }
+      
+      for(i = 0; i < 2; i++) {
+        if(dts_block(this->dts_state)) {
+          xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
+                  "libdts: dts_block error on audio channel %d\n", i);
+          audio_buffer->num_frames = 0;
+        }
+        
+        float_to_int (&samples[0*256], int_samples+(i*256*2), 2);
+        float_to_int (&samples[1*256], int_samples+(i*256*2)+1, 2);
+      }
+      
+      audio_buffer->num_frames = 256*2;      
     }
+    
     this->stream->audio_out->put_buffer (this->stream->audio_out, audio_buffer, this->stream);
+   
   }
 }
 
@@ -229,6 +297,13 @@ static audio_decoder_t *open_plugin (audio_decoder_class_t *class_gen, xine_stre
   this->audio_decoder.discontinuity       = dts_discontinuity;
   this->audio_decoder.dispose             = dts_dispose;
 
+  this->dts_state = dts_init(0);
+  
+  if(stream->audio_out->get_capabilities(stream->audio_out) & AO_CAP_MODE_AC5)
+    this->bypass_mode = 1;
+  else
+    this->bypass_mode = 0;
+  
   this->stream        = stream;
   this->class         = class_gen;
   this->output_open   = 0;
