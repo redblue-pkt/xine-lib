@@ -48,7 +48,6 @@ lib_LTLIBRARIES = \
 	$(in_vcd) \
 	xineplug_inp_mms.la \
 	xineplug_inp_stdin_fifo.la \
-	xineplug_inp_dvb.la \
 	xineplug_inp_pnm.la \
 	xineplug_inp_rtsp.la \
 	xineplug_inp_net.la
@@ -57,6 +56,7 @@ lib_LTLIBRARIES = \
 #	$(in_cda) \
 #	$(in_dvd) \
 #	$(in_vcd) \
+#	xineplug_inp_dvb.la \
 #	xineplug_inp_file.la \
 #	xineplug_inp_http.la \
 #	xineplug_inp_mms.la \
@@ -105,9 +105,9 @@ xineplug_inp_pnm_la_SOURCES = input_pnm.c net_buf_ctrl.c pnm.c
 xineplug_inp_pnm_la_LIBADD = $(XINE_LIB)
 xineplug_inp_pnm_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
-xineplug_inp_dvb_la_SOURCES = input_dvb.c net_buf_ctrl.c
-xineplug_inp_dvb_la_LIBADD = $(XINE_LIB)
-xineplug_inp_dvb_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
+#xineplug_inp_dvb_la_SOURCES = input_dvb.c net_buf_ctrl.c
+#xineplug_inp_dvb_la_LIBADD = $(XINE_LIB)
+#xineplug_inp_dvb_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 xineplug_inp_rtsp_la_SOURCES = input_rtsp.c net_buf_ctrl.c
 xineplug_inp_rtsp_la_LIBADD = $(XINE_LIB) libreal/libreal.la librtsp/librtsp.la
