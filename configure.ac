@@ -386,28 +386,40 @@ dnl ---------------------------------------------
 dnl Check for OpenGL & [GLut | GLU]
 dnl ---------------------------------------------
 
-AC_CHECK_LIB(GL, glBegin,
-	[AC_CHECK_HEADER(GL/gl.h,
-             [ ac_have_opengl="yes"
-               OPENGL_LIBS="-lGL" 
-	       AC_CHECK_LIB(glut, glutInit, dnl check for glut
-	                    [ ac_have_glut="yes"
-                              GLUT_LIBS="-lglut"
-	                      AC_DEFINE(HAVE_GLUT,1,[Define this if you have GLut support available])
-			      AC_DEFINE(HAVE_OPENGL,1,[Define this if you have OpenGL support available]) ],
-	                    [ ac_have_glut="no" dnl fallback, check for GLU
-	                      AC_CHECK_LIB(GLU, gluPerspective,
-		                           [ ac_have_glu="yes"
-                                             GLU_LIBS="-lGLU -lm" 
-		                             AC_DEFINE(HAVE_GLU,1,[Define this if you have GLU support available])
-					     AC_DEFINE(HAVE_OPENGL,1,[Define this if you have OpenGL support available]) ],
-	                                   [ ac_have_glu="no" ], 
-                                           [$X_LIBS $X_PRE_LIBS $OPENGL_LIBS -lGLU -lm $X_EXTRA_LIBS])], 
-	                    [$X_LIBS $X_PRE_LIBS -lglut $X_EXTRA_LIBS])
-             ],
-	[])],
-   [],
-   [$X_LIBS $X_PRE_LIBS -lGL $X_EXTRA_LIBS])
+case "$host" in
+	*darwin*) dnl Use native interface
+        OPENGL_LIBS="-framework Carbon -framework AGL -framework OpenGL -framework AppKit"
+        OPENGL_CFLAGS="-framework Carbon -framework AGL -framework OpenGL -framework AppKit"
+        AC_SUBST(OPENGL_LIBS)
+        AC_SUBST(OPENGL_CFLAGS)
+        ;;
+        *)
+
+	AC_CHECK_LIB(GL, glBegin,
+		[AC_CHECK_HEADER(GL/gl.h,
+		     [ ac_have_opengl="yes"
+		       OPENGL_LIBS="-lGL" 
+		       AC_CHECK_LIB(glut, glutInit, dnl check for glut
+				    [ ac_have_glut="yes"
+				      GLUT_LIBS="-lglut"
+				      AC_DEFINE(HAVE_GLUT,1,[Define this if you have GLut support available])
+				      AC_DEFINE(HAVE_OPENGL,1,[Define this if you have OpenGL support available]) ],
+				    [ ac_have_glut="no" dnl fallback, check for GLU
+				      AC_CHECK_LIB(GLU, gluPerspective,
+						   [ ac_have_glu="yes"
+						     GLU_LIBS="-lGLU -lm" 
+						     AC_DEFINE(HAVE_GLU,1,[Define this if you have GLU support available])
+						     AC_DEFINE(HAVE_OPENGL,1,[Define this if you have OpenGL support available]) ],
+						   [ ac_have_glu="no" ], 
+						   [$X_LIBS $X_PRE_LIBS $OPENGL_LIBS -lGLU -lm $X_EXTRA_LIBS])], 
+				    [$X_LIBS $X_PRE_LIBS -lglut $X_EXTRA_LIBS])
+		     ],
+		[])],
+	   [],
+	   [$X_LIBS $X_PRE_LIBS -lGL $X_EXTRA_LIBS])
+	;;
+esac
+
 AC_SUBST(OPENGL_LIBS)
 AC_SUBST(GLUT_LIBS)
 AC_SUBST(GLU_LIBS)
@@ -645,6 +657,13 @@ AC_ARG_ENABLE(fb, AC_HELP_STRING([--disable-fb], [do not build linux framebuffer
 	      have_fb=$enableval)
 AM_CONDITIONAL(HAVE_FB, [test x"$have_fb" = "xyes"])
 
+dnl ---------------------------------------------
+dnl Check whether to build MacOSX video output driver
+dnl ---------------------------------------------
+
+AC_ARG_ENABLE(macosx_video, AC_HELP_STRING([--enable-macosx-video], [enable support for MacOSX OpenGL video output]),
+              have_macosx_video=$enableval)
+AM_CONDITIONAL(HAVE_MACOSX_VIDEO, [test x"$have_macosx_video" = "xyes"])
 
 dnl ---------------------------------------------
 dnl Find pkg-config
@@ -1366,39 +1385,6 @@ AC_ARG_ENABLE(fpic, AC_HELP_STRING([--disable-fpic], [disable -fPIC on shared li
 
 
 dnl ---------------------------------------------
-dnl Build xine plugins with only the "xine_plugin_info" symbol exported
-dnl (let the user disable this feature, in case libtool does not offer this
-dnl feature on the target platform)
-dnl ---------------------------------------------
-
-AC_ARG_ENABLE(min-symtab,
-   AC_HELP_STRING([--disable-min-symtab], [export all global symbols from xine plugins]),
-   [
-     if test "x$enableval" = "xno" ; then
-       XINE_PLUGIN_MIN_SYMS=""
-     else
-       XINE_PLUGIN_MIN_SYMS="-export-symbols-regex xine_plugin_info"
-     fi
-   ],
-   XINE_PLUGIN_MIN_SYMS="-export-symbols-regex xine_plugin_info")
-
-if test "$with_gnu_ld" = yes; then
-   dnl
-   dnl -export-symbols-regex in libtool 1.4.X is broken, when GNU ld is
-   dnl used for linking.  libtool / gnu ld does not touch the dynamic
-   dnl symbol table, but removes the unwanted symbols from the
-   dnl symbol table => The debug versions of the the xine-lib plugins
-   dnl cannot be debugged.
-   dnl
-   dnl Don't use libtool's -export-symbols-regex on such a platform for now
-   dnl
-   XINE_PLUGIN_MIN_SYMS=""
-fi
-
-AC_SUBST(XINE_PLUGIN_MIN_SYMS)
-
-
-dnl ---------------------------------------------
 dnl Some extra checks.
 dnl ---------------------------------------------
 
@@ -1620,6 +1606,27 @@ case "$host_or_hostalias" in
     DEBUG_CFLAGS="-O3 -mieee $DEBUG_CFLAGS"
     AC_DEFINE_UNQUOTED(FPM_64BIT,,[Define to select libmad fixed point arithmetic implementation])
     ;;
+  
+  *darwin*)
+    AC_DEFINE_UNQUOTED(HOST_OS_DARWIN, 1, [Define this if built on MacOSX/Darwin])
+#    AM_CONDITIONAL(HOST_OS_DARWIN, 1)
+    CFLAGS="-O3 -pipe -fomit-frame-pointer $m_wm $m_psb -fexpensive-optimizations $f_si $f_nsa -ffast-math -funroll-loops -finline-functions -no-cpp-precomp -D_INTL_REDIRECT_MACROS $CFLAGS"
+    CXXFLAGS="${CXXFLAGS} -no-cpp-precomp -D_INTL_REDIRECT_MACROS"
+    #EBUG_CFLAGS="-O3 $DEBUG_CFLAGS"
+    OBJCFLAGS="${CXXFLAGS} -fconstant-string-class=NSConstantString"
+    AC_SUBST(OBJCFLAGS)
+    dnl avoid ppc compilation crash
+    AS="$CC"
+    AC_DEFINE_UNQUOTED(FPM_PPC,,[Define to select libmad fixed point arithmetic implementation])
+    AC_DEFINE_UNQUOTED(ARCH_PPC,,[Define this if you're running PowerPC architecture])
+	    
+    OBJC='gcc'
+    AC_SUBST(OBJC)
+    OBJCDEPMODE="depmode=gcc3"
+    AC_SUBST(OBJCDEPMODE)
+
+    host_os_darwin="yes"
+    ;;
 
   ppc-*-linux* | powerpc-*) 
     CFLAGS="-O3 -pipe -fomit-frame-pointer $m_wm $m_psb -fexpensive-optimizations $f_si $f_nsa -ffast-math -funroll-loops -finline-functions $CFLAGS"
@@ -1634,13 +1641,6 @@ case "$host_or_hostalias" in
         CFLAGS="-Wa,-m7400 $CFLAGS"
 	DEBUG_CFLAGS="-Wa,-m7400 $DEBUG_CFLAGS"
     fi
-
-    dnl enable darwin (Mac OS X) specific build
-    case "$host_or_hostalias" in
-      *-darwin*)
-        AC_DEFINE_UNQUOTED(HOST_OS_DARWIN, 1, [Define this if built on MacOSX/Darwin])
-      ;;
-    esac
     ;;
 
   sparc*-*-linux*)
@@ -1761,7 +1761,7 @@ case "$host_or_hostalias" in
     AC_DEFINE_UNQUOTED(FPM_ARM,,[Define to select libmad fixed point arithmetic implementation])
     enable_armv4l="yes"
     ;;
-
+  
   *)
     echo
     echo "****************************** WARNING ******************************"
@@ -1794,6 +1794,53 @@ fi
 AC_SUBST(W32DLL_DEP)
 
 AM_CONDITIONAL(HAVE_FFMMX, test x"$enable_ffmmx" = "xyes")
+
+dnl ---------------------------------------------
+dnl Build xine plugins with only the "xine_plugin_info" symbol exported
+dnl (let the user disable this feature, in case libtool does not offer this
+dnl feature on the target platform)
+dnl ---------------------------------------------
+
+AC_ARG_ENABLE(min-symtab,
+   AC_HELP_STRING([--disable-min-symtab], [export all global symbols from xine plugins]),
+   [
+     if test "x$enableval" = "xno" ; then
+       XINE_PLUGIN_MIN_SYMS=""
+     else
+       XINE_PLUGIN_MIN_SYMS="-export-symbols-regex xine_plugin_info"
+     fi
+   ],
+   XINE_PLUGIN_MIN_SYMS="-export-symbols-regex xine_plugin_info")
+
+if test "$with_gnu_ld" = yes; then
+   dnl
+   dnl -export-symbols-regex in libtool 1.4.X is broken, when GNU ld is
+   dnl used for linking.  libtool / gnu ld does not touch the dynamic
+   dnl symbol table, but removes the unwanted symbols from the
+   dnl symbol table => The debug versions of the the xine-lib plugins
+   dnl cannot be debugged.
+   dnl
+   dnl Don't use libtool's -export-symbols-regex on such a platform for now
+   dnl
+   XINE_PLUGIN_MIN_SYMS=""
+fi
+
+if test "$host_os_darwin" = yes; then
+   dnl 
+   dnl Darwins implementation of dlclose() likes to crash badly when trying
+   dnl to close a library that contains objective c code in it.
+   dnl Unfortunately, there is no way to figure out wheter we're dealing
+   dnl with such a file or not, so a dirty hack was made that add a
+   dnl dummy symbol to these called 'plugin_contains_objc_code' and omit
+   dnl closing such an module when this symbol is present.
+   dnl To make it beeing exported, XINE_PLUGIN_SYMS must be unset in this
+   dnl case.
+   dnl
+   XINE_PLUGIN_MIN_SYMS=""
+fi
+
+AC_SUBST(XINE_PLUGIN_MIN_SYMS)
+
 
 
 dnl ---------------------------------------------
@@ -2018,6 +2065,7 @@ src/video_out/libdha/oth/Makefile
 src/video_out/libdha/sysdep/Makefile
 src/video_out/vidix/Makefile
 src/video_out/vidix/drivers/Makefile
+src/video_out/macosx/Makefile
 src/xine-utils/Makefile
 src/xine-engine/Makefile
 src/xine-engine/xineintl.h])
@@ -2310,6 +2358,10 @@ fi
 if test x"$have_directx" = "xyes"; then
   echo "   - directx (DirectX video driver)"
 fi
+if test x"$have_macosx_video" = "xyes"; then
+  echo "   - MacOSX OpenGL"
+fi
+
 echo ""
 
 dnl Audio plugins
