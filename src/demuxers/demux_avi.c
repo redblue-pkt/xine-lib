@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_avi.c,v 1.209 2004/10/13 17:19:26 f1rmb Exp $
+ * $Id: demux_avi.c,v 1.210 2004/10/13 20:14:25 tmattern Exp $
  *
  * demultiplexer for avi streams
  *
@@ -1073,6 +1073,15 @@ static avi_t *AVI_init(demux_avi_t *this) {
       i += 8;
       /* do not reset lasttag */
     } else if(strncasecmp(hdrl_data + i, "strd", 4) == 0) {
+      /* additional header data */
+      i += 8;
+      /* do not reset lasttag */
+    } else if(strncasecmp(hdrl_data + i, "strn", 4) == 0) {
+      /* stream name */
+      i += 8;
+      /* do not reset lasttag */
+    } else if(strncasecmp(hdrl_data + i, "vprp", 4) == 0) {
+      /* video properties header*/
       i += 8;
       /* do not reset lasttag */
     } else {
