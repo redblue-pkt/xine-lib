@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.142 2003/03/06 16:49:32 guenter Exp $
+ * $Id: load_plugins.c,v 1.143 2003/03/12 14:44:08 miguelfreitas Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -575,8 +575,6 @@ static void load_plugin_list(FILE *fp, xine_list_t *plugins) {
   
   node = NULL;
   while (fgets (line, 1023, fp)) {
-    line[strlen(line)-1]= (char) 0; /* eliminate lf */
-
     if (line[0] == '#')
       continue;
       
@@ -587,6 +585,7 @@ static void load_plugin_list(FILE *fp, xine_list_t *plugins) {
       if( node ) {
         xine_list_append_content (plugins, node);
       }
+      line[strlen(line)-1]= (char) 0; /* eliminate lf */
       node                = xine_xmalloc(sizeof(plugin_node_t));
       node->filename      = strdup(line+1);
       node->info          = xine_xmalloc(2*sizeof(plugin_info_t));
@@ -924,6 +923,7 @@ void scan_plugins (xine_t *this) {
   char *plugindir;
   char *pluginpath;
   int i,j;
+  int lenpluginpath;
   
 #ifdef LOG
   printf("load_plugins: scan_plugins()\n");
@@ -943,7 +943,8 @@ void scan_plugins (xine_t *this) {
   }
   plugindir = xine_xmalloc(strlen(pluginpath)+strlen(homedir)+2);
   j=0;
-  for (i=0; i <= strlen(pluginpath); ++i){
+  lenpluginpath = strlen(pluginpath);
+  for (i=0; i <= lenpluginpath; ++i){
     switch (pluginpath[i]){
     case ':':
     case '\0':
