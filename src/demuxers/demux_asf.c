@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.164 2004/12/14 22:55:06 tmattern Exp $
+ * $Id: demux_asf.c,v 1.165 2004/12/17 21:56:16 tmattern Exp $
  *
  * demultiplexer for asf streams
  *
@@ -640,7 +640,7 @@ static int asf_read_header (demux_asf_t *this) {
   return 0;
 }
 
-static int demux_asf_send_headers_common (demux_asf_t *this, int send_ctrl_start) {
+static int demux_asf_send_headers_common (demux_asf_t *this) {
 
   int          i;
   int          stream_id;
@@ -673,9 +673,7 @@ static int demux_asf_send_headers_common (demux_asf_t *this, int send_ctrl_start
     /*
      * send start buffer
      */
-    if (send_ctrl_start) {
-      _x_demux_control_start(this->stream);
-    }
+    _x_demux_control_start(this->stream);
 
     _x_meta_info_set(this->stream, XINE_META_INFO_TITLE, this->title);
     _x_meta_info_set(this->stream, XINE_META_INFO_ARTIST, this->author);
@@ -994,7 +992,8 @@ static int asf_parse_packet_align(demux_asf_t *this) {
       /* check new asf header */
       if (get_guid(this) == GUID_ASF_HEADER) {
         lprintf("new asf header detected\n");
-        if (demux_asf_send_headers_common(this, 0))
+        _x_demux_control_end(this->stream, 0);
+        if (demux_asf_send_headers_common(this))
           return 1;
       } else {
 	lprintf("not an ASF stream or end of stream\n");
@@ -1856,7 +1855,7 @@ static void demux_asf_send_headers (demux_plugin_t *this_gen) {
     return;
   }
 
-  demux_asf_send_headers_common(this, 1);
+  demux_asf_send_headers_common(this);
 
   lprintf ("send header done\n");
 }
