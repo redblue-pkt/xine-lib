@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_irixal_out.c,v 1.1 2001/09/06 17:12:38 mshopf Exp $
+ * $Id: audio_irixal_out.c,v 1.2 2001/09/14 20:44:01 jcdutton Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -64,6 +64,8 @@
 //#  define AFMT_S16_NE AFMT_S16_LE
 //# endif
 //#endif
+
+#define AO_IRIXAL_IFACE_VERSION 2
 
 #define DEFAULT_GAP_TOLERANCE         5000
 
@@ -387,7 +389,7 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config)
 
 static ao_info_t ao_info_irixal =
 {
-  AUDIO_OUT_IFACE_VERSION,
+  AO_IRIXAL_IFACE_VERSION,
   "irixal",
   "xine audio output plugin using IRIX libaudio",
   10

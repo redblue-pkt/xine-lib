@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.h,v 1.16 2001/09/11 14:17:20 jcdutton Exp $
+ * $Id: audio_out.h,v 1.17 2001/09/14 20:44:01 jcdutton Exp $
  */
 #ifndef HAVE_AUDIO_OUT_H
 #define HAVE_AUDIO_OUT_H
@@ -34,7 +34,7 @@ extern "C" {
 #endif
 
 
-#define AUDIO_OUT_IFACE_VERSION  1
+#define AUDIO_OUT_IFACE_VERSION  2
 
 /*
  * ao_driver_s contains the driver every audio output

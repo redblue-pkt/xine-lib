@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_esd_out.c,v 1.9 2001/09/04 20:30:55 guenter Exp $
+ * $Id: audio_esd_out.c,v 1.10 2001/09/14 20:44:01 jcdutton Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -39,7 +39,7 @@
 #include "metronom.h"
 #include "utils.h"
 
-#define AO_OUT_ESD_IFACE_VERSION 1
+#define AO_OUT_ESD_IFACE_VERSION 2
 
 
 typedef struct esd_driver_s {

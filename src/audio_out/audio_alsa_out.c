@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.27 2001/09/12 15:42:28 jcdutton Exp $
+ * $Id: audio_alsa_out.c,v 1.28 2001/09/14 20:44:01 jcdutton Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -531,7 +531,7 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
 }
 
 static ao_info_t ao_info_alsa9 = {
-  AUDIO_OUT_IFACE_VERSION,
+  AO_OUT_ALSA_IFACE_VERSION,
   "alsa09",
   "xine audio output plugin using alsa-compliant audio devices/drivers",
   10

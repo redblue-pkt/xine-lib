@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_sun_out.c,v 1.9 2001/09/06 12:17:12 jkeil Exp $
+ * $Id: audio_sun_out.c,v 1.10 2001/09/14 20:44:01 jcdutton Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -52,6 +52,8 @@
 #define	AUDIO_PRECISION_8	8
 #define	AUDIO_PRECISION_16	16
 #endif
+
+#define AO_SUN_IFACE_VERSION 2
 
 #define GAP_TOLERANCE         5000
 #define MAX_GAP              90000
@@ -540,7 +542,7 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
 }
 
 static ao_info_t ao_info_sun = {
-  AUDIO_OUT_IFACE_VERSION,
+  AO_SUN_IFACE_VERSION,
   "sun",
   "xine audio output plugin using sun-compliant audio devices/drivers",
   10

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_arts_out.c,v 1.4 2001/08/24 01:05:30 guenter Exp $
+ * $Id: audio_arts_out.c,v 1.5 2001/09/14 20:44:01 jcdutton Exp $
  */
 
 /* required for swab() */
@@ -274,7 +274,7 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
 }
 
 static ao_info_t ao_info_arts = {
-  AUDIO_OUT_IFACE_VERSION,
+  AO_OUT_ARTS_IFACE_VERSION,
   "arts",
   "xine audio output plugin using arts-compliant audio devices/drivers",
   5
