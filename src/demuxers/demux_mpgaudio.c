@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpgaudio.c,v 1.128 2003/11/26 19:43:30 f1rmb Exp $
+ * $Id: demux_mpgaudio.c,v 1.129 2003/11/26 22:40:25 tmattern Exp $
  *
  * demultiplexer for mpeg audio (i.e. mp3) streams
  *
@@ -309,14 +309,12 @@ static int mpg123_parse_xing_header(demux_mpgaudio_t *this, uint8_t *buf, int bu
   double frame_duration;
 
   /* offset of the Xing header */
-  if( this->cur_frame.mpeg25_bit ) {
-    /* mpeg1 */
+  if (this->cur_frame.lsf_bit) {
     if( this->cur_frame.channel_mode != 3 )
       ptr += (32 + 4);
     else
       ptr += (17 + 4);
   } else {
-    /* mpeg2 */
     if( this->cur_frame.channel_mode != 3 )
       ptr += (17 + 4);
     else
