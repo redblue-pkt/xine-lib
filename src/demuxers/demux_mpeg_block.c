@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.187 2003/05/18 17:37:33 jcdutton Exp $
+ * $Id: demux_mpeg_block.c,v 1.188 2003/05/18 17:41:37 jcdutton Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  * used with fixed blocksize devices (like dvd/vcd)
@@ -863,6 +863,9 @@ static int32_t parse_private_stream_1(demux_mpeg_block_t *this, uint8_t *p, buf_
       }
       
     }
+    /* Some new streams have been encountered.
+       1) DVD+RW disc recorded with a Philips DVD recorder: -  new unknown sub-stream id of 0xff
+     */
     printf("demux_mpeg_block:Unrecognised private stream 1 0x%02x. Please report this to xine developers.\n", p[0]);
     buf->free_buffer(buf);
     return -1;
