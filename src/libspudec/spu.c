@@ -19,7 +19,7 @@
 * along with this program; see the file COPYING.  If not, write to
 * the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
 *
-* $Id: spu.c,v 1.12 2001/09/18 19:01:27 jcdutton Exp $
+* $Id: spu.c,v 1.13 2001/09/27 02:11:16 miguelfreitas Exp $
 *
 *****/
 
@@ -68,6 +68,7 @@
 #include <fcntl.h>
 
 #include "spu.h"
+#include "video_out/alphablend.h"
 
 #define LOG_DEBUG 1
 
@@ -180,6 +181,10 @@ void spuDoCommands(spu_state_t *state, spu_seq_t* seq, vo_overlay_t *ovl)
     case CMD_SPU_SET_PALETTE: {	/* CLUT */
       spu_clut_t *clut = (spu_clut_t *) (buf+1);
       
+      state->cur_colors[3] = clut->entry0;
+      state->cur_colors[2] = clut->entry1;
+      state->cur_colors[1] = clut->entry2;
+      state->cur_colors[0] = clut->entry3;
       ovl->color[3] = state->clut[clut->entry0];
       ovl->color[2] = state->clut[clut->entry1];
       ovl->color[1] = state->clut[clut->entry2];
@@ -207,10 +212,10 @@ void spuDoCommands(spu_state_t *state, spu_seq_t* seq, vo_overlay_t *ovl)
     case CMD_SPU_SET_SIZE:		/* image coordinates */
       state->o_left  = (buf[1] << 4) | (buf[2] >> 4);
       state->o_right = (((buf[2] & 0x0f) << 8) | buf[3]);
-						 
+
       state->o_top    = (buf[4]  << 4) | (buf[5] >> 4);
       state->o_bottom = (((buf[5] & 0x0f) << 8) | buf[6]);
-						    
+
       LOG (LOG_DEBUG, "\ttop = %d bottom = %d left = %d right = %d",
 	   state->o_left, state->o_right, state->o_top, state->o_bottom);
       state->modified = 1;
@@ -230,7 +235,7 @@ void spuDoCommands(spu_state_t *state, spu_seq_t* seq, vo_overlay_t *ovl)
       state->menu = 1;
       buf++;
       break;
-      
+
     default:
       fprintf(stderr, "libspudec: unknown seqence command (%02x)\n", buf[0]);
       buf++;
@@ -271,7 +276,7 @@ static u_int get_bits (u_int bits)
     }
   }
 
-  return ret;	
+  return ret;
 }
 
 static int spu_next_line (vo_overlay_t *spu)
@@ -326,7 +331,7 @@ void spuDrawPicture (spu_state_t *state, spu_seq_t* seq, vo_overlay_t *ovl)
   while (bit_ptr[1] < seq->buf + seq->cmd_offs) {
     u_int len;
     u_int vlc;
-    
+
     vlc = get_bits (4);
     if (vlc < 0x0004) {
       vlc = (vlc << 4) | get_bits (4);
@@ -337,26 +342,108 @@ void spuDrawPicture (spu_state_t *state, spu_seq_t* seq, vo_overlay_t *ovl)
 	}
       }
     }
-    
+
     len   = vlc >> 2;
-    
+
     /* if len == 0 -> end sequence - fill to end of line */
     if (len == 0)
       len = ovl->width - put_x;
-    
+
     rle->len = len;
     rle->color = vlc & 0x03;
     rle++;
     put_x += len;
-    
+
     if (put_x >= ovl->width) {
       if (spu_next_line (ovl) < 0)
         break;
     }
   }
-  
+
   ovl->num_rle = rle - ovl->rle;
 }
+
+/* Heuristic to discover the colors used by the subtitles
+   and assign a "readable" pallete to them.
+   Currently looks for sequence of border-fg-border or
+   border1-border2-fg-border2-border1.
+   MINFOUND is the number of ocurrences threshold.
+*/
+#define MINFOUND 25
+void spuDiscoverClut(spu_state_t *state, vo_overlay_t *ovl)
+{
+  int bg,c;
+  int seqcolor[10];
+  int n,i;
+  rle_elem_t *rle;
+
+  int found[2][16];
+
+  static clut_t text_clut[] = {
+  CLUT_Y_CR_CB_INIT(0x80, 0x90, 0x80),
+  CLUT_Y_CR_CB_INIT(0x00, 0x90, 0x00),
+  CLUT_Y_CR_CB_INIT(0xff, 0x90, 0x00)
+  };
+
+  memset(found,0,sizeof(found));
+  rle = ovl->rle;
+
+  /* suppose the first and last pixels are bg */
+  if( rle[0].color != rle[ovl->num_rle-1].color )
+    return;
+
+  bg = rle[0].color;
+
+  i = 0;
+  for( n = 0; n < ovl->num_rle; n++ )
+  {
+    c = rle[n].color;
+
+    if( c == bg )
+    {
+      if( i == 3 && seqcolor[1] == seqcolor[3] )
+      {
+        found[0][seqcolor[2]]++;
+        if( found[0][seqcolor[2]] > MINFOUND )
+        {
+           memcpy(&state->clut[state->cur_colors[seqcolor[1]]], &text_clut[1],
+             sizeof(clut_t));
+           memcpy(&state->clut[state->cur_colors[seqcolor[2]]], &text_clut[2],
+             sizeof(clut_t));
+           ovl->color[seqcolor[1]] = state->clut[state->cur_colors[seqcolor[1]]];
+           ovl->color[seqcolor[2]] = state->clut[state->cur_colors[seqcolor[2]]];
+           state->need_clut = 0;
+        }
+      }
+      if( i == 5 && seqcolor[1] == seqcolor[5]
+             && seqcolor[2] == seqcolor[4] )
+      {
+        found[1][seqcolor[3]]++;
+        if( found[1][seqcolor[3]] > MINFOUND )
+        {
+           memcpy(&state->clut[state->cur_colors[seqcolor[1]]], &text_clut[0],
+             sizeof(clut_t));
+           memcpy(&state->clut[state->cur_colors[seqcolor[2]]], &text_clut[1],
+             sizeof(clut_t));
+           memcpy(&state->clut[state->cur_colors[seqcolor[3]]], &text_clut[2],
+             sizeof(clut_t));
+           ovl->color[seqcolor[1]] = state->clut[state->cur_colors[seqcolor[1]]];
+           ovl->color[seqcolor[2]] = state->clut[state->cur_colors[seqcolor[2]]];
+           ovl->color[seqcolor[3]] = state->clut[state->cur_colors[seqcolor[3]]];
+           state->need_clut = 0;
+        }
+      }
+      i = 0;
+      seqcolor[i] = c;
+    }
+    else if ( i < 6 )
+    {
+      i++;
+      seqcolor[i] = c;
+    }
+  }
+}
+
 
 void spuUpdateMenu (spu_state_t *state, vo_overlay_t *ovl) {
 

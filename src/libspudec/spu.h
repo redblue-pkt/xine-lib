@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: spu.h,v 1.4 2001/08/16 12:33:00 ehasenle Exp $
+ * $Id: spu.h,v 1.5 2001/09/27 02:11:16 miguelfreitas Exp $
  *
  * This file was originally part of the OMS program.
  *
@@ -34,6 +34,12 @@
 
 #include <inttypes.h>
 #include "video_out.h"
+
+#ifdef	__GNUC__
+#define CLUT_Y_CR_CB_INIT(_y,_cr,_cb)	{y: (_y), cr: (_cr), cb: (_cb)}
+#else
+#define CLUT_Y_CR_CB_INIT(_y,_cr,_cb)	{ (_cb), (_cr), (_y) }
+#endif
 
 typedef struct spu_clut_struct {
 #ifdef WORDS_BIGENDIAN
@@ -75,6 +81,8 @@ typedef struct {
   int visible;      /* Must the sub-picture be shown? */
   int menu;         /* This overlay is a menu */
   int b_show;       /* is a button shown? */
+  int need_clut;    /* doesn't have the right clut yet */
+  int cur_colors[4];/* current 4 colors been used */
 
   uint32_t clut[16];
 } spu_state_t;
@@ -83,6 +91,7 @@ int spuReassembly (spu_seq_t *seq, int start, uint8_t *pkt_data, u_int pkt_len);
 int spuNextEvent (spu_state_t *state, spu_seq_t* seq, int pts);
 void spuDoCommands (spu_state_t *state, spu_seq_t* seq, vo_overlay_t *ovl);
 void spuDrawPicture (spu_state_t *state, spu_seq_t* seq, vo_overlay_t *ovl);
+void spuDiscoverClut (spu_state_t *state, vo_overlay_t *ovl);
 void spuUpdateMenu (spu_state_t *state, vo_overlay_t *ovl);
 
 #endif

@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (C) 2000-2001 the xine project
  * 
  * Copyright (C) James Courtier-Dutton James@superbug.demon.co.uk - July 2001
@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.12 2001/09/06 18:38:12 jkeil Exp $
+ * $Id: xine_decoder.c,v 1.13 2001/09/27 02:11:16 miguelfreitas Exp $
  *
  * stuff needed to turn libspu into a xine decoder plugin
  */
@@ -42,12 +42,6 @@
 #include "xine_internal.h"
 #include "video_out/alphablend.h"
 #include "xine-engine/bswap.h"
-
-#ifdef	__GNUC__
-#define CLUT_Y_CR_CB_INIT(_y,_cr,_cb)	{y: (_y), cr: (_cr), cb: (_cb)}
-#else
-#define CLUT_Y_CR_CB_INIT(_y,_cr,_cb)	{ (_cb), (_cr), (_y) }
-#endif
 
 static clut_t __default_clut[] = {
   CLUT_Y_CR_CB_INIT(0x00, 0x80, 0x80),
@@ -123,6 +117,7 @@ void spudec_init (spu_decoder_t *this_gen, vo_instance_t *vo_out) {
 
   spudec_reset(this);
   memcpy(this->state.clut, __default_clut, sizeof(this->state.clut));
+  this->state.need_clut = 1;
   vo_out->register_ovl_src(vo_out, &this->ovl_src);
 }
 
@@ -139,6 +134,7 @@ void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
       for (i = 0; i < 16; i++)
         this->state.clut[i] = bswap_32(clut[i]);
     }
+    this->state.need_clut = 0;
     return;
   }
 
@@ -218,6 +214,9 @@ static vo_overlay_t* spudec_get_overlay(ovl_src_t *ovl_src, int pts) {
       spuDrawPicture(&this->state, this->cur_seq, &this->ovl);
     }
 
+    if (this->state.need_clut)
+      spuDiscoverClut(&this->state, &this->ovl);
+
     return &this->ovl;
   }
 
@@ -232,7 +231,7 @@ static void spudec_event(spu_decoder_t *this_gen, spu_event_t *event) {
     {
       spu_button_t *but = event->data;
       if (!this->state.menu) return;
-      
+
       if (but->show) {
 	int i;
 	for (i = 0; i < 4; i++) {
@@ -254,6 +253,7 @@ static void spudec_event(spu_decoder_t *this_gen, spu_event_t *event) {
     {
       spu_cltbl_t *clut = event->data;
       memcpy(this->state.clut, clut->clut, sizeof(int32_t)*16);
+      this->state.need_clut = 0;
     }
     break;
   }
