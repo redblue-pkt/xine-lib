@@ -1621,6 +1621,7 @@ case "$host_or_hostalias" in
     ;;
   
   *darwin*)
+    HOST_OS_DARWIN=1
     AC_DEFINE_UNQUOTED(HOST_OS_DARWIN, 1, [Define this if built on Mac OS X/Darwin])
     CFLAGS="-O3 -pipe -fomit-frame-pointer $m_wm $m_psb -fexpensive-optimizations $f_si $f_nsa -ffast-math -funroll-loops -finline-functions -no-cpp-precomp -D_INTL_REDIRECT_MACROS $CFLAGS"
     DEBUG_CFLAGS="-O3 $DEBUG_CFLAGS"
@@ -1801,6 +1802,7 @@ case "$host_or_hostalias" in
     ;;
 esac
 
+AM_CONDITIONAL(HOST_OS_DARWIN, test x"$HOST_OS_DARWIN" = "x1")
 
 AM_CONDITIONAL(HAVE_W32DLL, test x"$enable_w32dll" = "xyes")
 if test x"$enable_w32dll" = "xyes"; then

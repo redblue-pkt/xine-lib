@@ -6,7 +6,9 @@ noinst_LTLIBRARIES = libxineutils.la
 EXTRA_DIST = ppcasm_string.S ppc_asm.tmpl
 
 if PPC_ARCH
-pppc_files = ppcasm_string.S 
+if !HOST_OS_DARWIN
+pppc_files = ppcasm_string.S
+endif
 endif
 
 AM_CFLAGS = $(X_CFLAGS)

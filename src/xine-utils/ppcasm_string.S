@@ -12,10 +12,6 @@
  * 2 of the License, or (at your option) any later version.
  */
 
-#include "../../config.h"
-
-#if defined (ARCH_PPC) && !defined (HOST_OS_DARWIN)
-
 //#warning Be forewarned - using PowerPC assembly
 
 #include "ppc_asm.tmpl"
@@ -179,4 +175,3 @@ _GLOBFN(ppcasm_memcpy)
 
 _SIZE(ppcasm_memcpy)
 
-#endif /* ARCH_PPC */
