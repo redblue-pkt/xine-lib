@@ -34,6 +34,7 @@ xine-lib (1-rc1)
   * fix some asf demuxer bugs
     seq number handling (helps a lot with mms live video streams)
     frame duration bug with "still" frames
+  * fix colors of YUY2 overlay blending
 
 xine-lib (1-rc0a)
   * includes ffmpeg's MPEG encode in dist tarball (fixes DXR3 support)

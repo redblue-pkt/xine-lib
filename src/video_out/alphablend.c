@@ -1015,7 +1015,7 @@ void blend_yuy2 (uint8_t * dst_img, vo_overlay_t * img_overl,
 
       if (o && mask) {
         l = rlelen>>1;
-        if( x & 1 ) {
+        if( !((x_off+x) & 1) ) {
           *(((uint8_t *)&yuy2) + 0) = my_clut[clr].y;
           *(((uint8_t *)&yuy2) + 1) = my_clut[clr].cb;
           *(((uint8_t *)&yuy2) + 2) = my_clut[clr].y;
