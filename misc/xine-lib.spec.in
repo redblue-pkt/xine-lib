@@ -1,5 +1,6 @@
 %define name 	libxine
 %define version @SPEC_VERSION@
+%define dirversion 1.0.0
 %define release 1
 
 %define major 	1
@@ -15,7 +16,7 @@ License:     GPL
 Group:       Development/Libraries
 Source:      http://xine.sourceforge.net/files/@PACKAGE@-@VERSION@.tar.gz
 URL:         http://xine.sourceforge.net/
-Packager:    Daniel Caujolle-Bert <f1rmb@users.sourceforge.net>
+Packager:    Manfred Tremmel <Manfred.Tremmel@iiv.de>
 BuildPreReq: zlib
 BuildRoot:   %{_tmppath}/%{name}-buildroot
 
@@ -58,7 +59,7 @@ Summary:   Required libs to run programs dynamically linked with %{name}.
 Summary(cs): Knihovny nutné pro bìh programù dynamicky linkovaných s %{name}
 Summary(de): Benötigte Bibliotheken, um Programme, die dynamisch gegen %{name} gelinkt sind, benutzen zu können.
 Group:	   Development/Libraries
-Obsoletes: xine, xine-lib, xine-lib-oss, xine-lib-alsa09, xine-lib-arts, xine-lib-esd, xine-lib-dxr3, xine-lib-xv, xine-lib-sdl, xine-lib-aa, xine-lib-opengl, xine-lib-w32dll, xine-lib-oggvorbis
+Obsoletes: xine, xine-lib, xine-lib-oss, xine-lib-alsa09, xine-lib-arts, xine-lib-esd, xine-lib-dxr3, xine-lib-xv, xine-lib-sdl, xine-lib-aa, xine-lib-opengl, xine-lib-w32dll, xine-lib-oggvorbis libxine0
 Provides:  %{name} = %{version}-%{release}
 Requires:  zlib
 
@@ -108,7 +109,7 @@ Summary:   Header files and documentation to develope programs with %{name}.
 Summary(cs): Hlavièkové soubory a dokumentace pro vývoj programù pou¾ívajících %{name}.
 Summary(de): Headerdateien und Dokumentationen, um Programme mit %{name} entwickeln zu können.
 Group:	   Development/Libraries
-Obsoletes: xine-lib-devel
+Obsoletes: xine-lib-devel libxine0-devel
 Provides:  %{name}-devel = %{version}-%{release}
 Requires:  %{libname} = %{version}-%{release}
 
@@ -159,8 +160,10 @@ hierzu jedoch die in der GPL Lizenz vereinbarten Bestimmungen.
 %setup -q -n @TAR_NAME@
 
 %build
+export CFLAGS="%{optflags}"
+
 if [ ! -f configure ]; then
-   NO_CONFIGURE=1 ./cvscompile.sh
+   NO_CONFIGURE=1 ./autogen.sh
 fi
 
 #
@@ -193,7 +196,7 @@ rm -rf $RPM_BUILD_ROOT
 %doc README TODO AUTHORS COPYING ChangeLog
 %{_bindir}/xine-config
 %{_libdir}/libxine*.so.*
-%{_libdir}/xine/plugins/%{version}/xineplug_*
+%{_libdir}/xine/plugins/%{dirversion}/xineplug_*
 %{_datadir}/xine/fonts/*
 %{_mandir}/man1/*
 %{_datadir}/locale/*
@@ -207,17 +210,21 @@ rm -rf $RPM_BUILD_ROOT
 %{_includedir}/xine/*.h
 %{_datadir}/aclocal/xine.m4
 %{_mandir}/man3/*
-%ifos linux
-@BUILD_DHA_KMOD_TRUE@/lib/modules/%(sh -c 'uname -r')/misc/dhahelper.o
-%endif
+#%ifos linux
+#@BUILD_DHA_KMOD_TRUE@/lib/modules/%(sh -c 'uname -r')/misc/dhahelper.o
+#%endif
 %ifos linux freebsd
-%ifarch i386 i486 i586 i686 k6 k7 athlon
-%{_libdir}/xine/plugins/%{version}/vidix/*_vid.*
+%ifarch i386 i486 i586 i686 i786 i868 i968 k6 k7 athlon
+%{_libdir}/xine/plugins/%{dirversion}/vidix/*_vid.*
 %endif
 %endif
 
 
 %changelog
+* Sat Nov 09 2002 Manfred Tremmel <Manfred.Tremmel@iiv.de>
+- Final changes for libxine 1.0alpha1
+* Mon Nov 04 2002 Manfred Tremmel <Manfred.Tremmel@iiv.de>
+- another change to make it run with next version
 * Sat Nov 02 2002 Manfred Tremmel <Manfred.Tremmel@iiv.de>
 - Changes for next xine version
 * Sun Oct 27 2002 Manfred Tremmel <Manfred.Tremmel@iiv.de>
