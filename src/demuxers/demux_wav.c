@@ -22,7 +22,7 @@
  * MS WAV File Demuxer by Mike Melanson (melanson@pcisys.net)
  * based on WAV specs that are available far and wide
  *
- * $Id: demux_wav.c,v 1.54 2004/01/09 01:26:33 miguelfreitas Exp $
+ * $Id: demux_wav.c,v 1.55 2004/04/10 04:13:37 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -142,6 +142,9 @@ static int open_wav_file(demux_wav_t *this) {
       free (this->wave);
       return 0;
     }
+    /* rewind the amount we just read */
+    this->input->seek(this->input, -6, SEEK_CUR);
+
     if (chunk_preamble[0] == 0x72 &&
         chunk_preamble[1] == 0xf8 &&
         chunk_preamble[2] == 0x1f &&
