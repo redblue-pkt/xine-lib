@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_file.c,v 1.37 2002/01/02 18:16:07 jkeil Exp $
+ * $Id: input_file.c,v 1.38 2002/01/18 22:43:43 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -432,6 +432,7 @@ static mrl_t **file_plugin_get_dir (input_plugin_t *this_gen,
   int                   num_norm_files  = 0;
   int                   num_files       = -1;
   int                 (*func) ()        = _sortfiles_default;
+  int                   already_tried   = 0;
 
   *nFiles = 0;
   memset(current_dir, 0, sizeof(current_dir));
@@ -452,6 +453,8 @@ static mrl_t **file_plugin_get_dir (input_plugin_t *this_gen,
   }
 
   /* Store new origin path */
+ __try_again_from_home:
+  
   this->config->update_string(this->config, "input.file_origin_path", current_dir);
 
   if(strcasecmp(current_dir, "/"))
@@ -462,8 +465,17 @@ static mrl_t **file_plugin_get_dir (input_plugin_t *this_gen,
   /*
    * Ooch!
    */
-  if((pdir = opendir(current_dir)) == NULL)
+  if((pdir = opendir(current_dir)) == NULL) {
+
+    if(!already_tried) {
+      /* Try one more time with user homedir */
+      snprintf(current_dir, XINE_PATH_MAX, "%s", xine_get_homedir());
+      already_tried++;
+      goto __try_again_from_home;
+    }
+
     return NULL;
+  }
   
   dir_files  = (mrl_t *) xine_xmalloc(sizeof(mrl_t) * MAXFILES);
   hide_files = (mrl_t *) xine_xmalloc(sizeof(mrl_t) * MAXFILES);
