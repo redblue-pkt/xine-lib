@@ -24,10 +24,14 @@ src/demuxers/demux_fli.c
 src/demuxers/demux_idcin.c
 src/demuxers/demux_smjpeg.c
 src/demuxers/demux_wav.c
+src/demuxers/demux_aiff.c
+src/demuxers/demux_snd.c
+src/demuxers/demux_voc.c
+src/demuxers/demux_vqa.c
+src/demuxers/demux_wc3movie.c
 src/input/input_net.c
 src/input/input_rtp.c
 src/input/input_stdin_fifo.c
-src/input/input_dvd.c
 src/input/input_file.c
 src/input/input_vcd.c
 src/input/input_http.c
@@ -71,4 +75,7 @@ src/libspucc/xine_decoder.c
 src/libxvid/xine_decoder.c
 src/libxinevdec/cinepak.c
 src/libxinevdec/roqvideo.c
+src/libxinevdec/fli.c
+src/libxinevdec/msrle.c
 src/libxineadec/roqaudio.c
+src/libfaad/xine_decoder.c
