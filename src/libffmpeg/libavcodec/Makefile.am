@@ -4,7 +4,7 @@ SUBDIRS = armv4l i386 mlib alpha ppc libpostproc
 
 ## some files here are #included by others... go figure.
 EXTRA_DIST = fdctref.c motion_est_template.c svq3.c wmv2.c \
-	imgresample.c motion_est.c mdec.c
+	imgresample.c mdec.c
 
 AM_CFLAGS = $(LIBFFMPEG_CFLAGS)
 ASFLAGS =
@@ -45,6 +45,7 @@ libavcodec_la_SOURCES = \
 	mace.c \
 	mem.c \
 	mjpeg.c \
+	motion_est.c \
 	mpeg12.c \
 	mpegaudiodec.c \
 	mpegvideo.c \

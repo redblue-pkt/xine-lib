@@ -1286,12 +1286,14 @@ tend= rdtsc();\
 #define CLAMP_TO_8BIT(d) ((d > 0xff) ? 0xff : (d < 0) ? 0 : d)
 
 /* avoid usage of various functions */
+#if 0
 #define malloc please_use_av_malloc
 #define free please_use_av_free
 #define realloc please_use_av_realloc
 #if !(defined(LIBAVFORMAT_BUILD) || defined(_FRAMEHOOK_H))
 #define printf please_use_av_log
 #define fprintf please_use_av_log
+#endif
 #endif
 
 #define CHECKED_ALLOCZ(p, size)\
