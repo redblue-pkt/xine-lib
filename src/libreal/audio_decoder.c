@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.12 2002/12/17 02:17:25 guenter Exp $
+ * $Id: audio_decoder.c,v 1.13 2002/12/17 02:27:26 guenter Exp $
  *
  * thin layer to use real binary-only codecs in xine
  *
@@ -82,6 +82,8 @@ typedef struct realdec_decoder_s {
   int              sample_size;
 
   uint64_t         pts;
+
+  int              output_open;
 
 } realdec_decoder_t;
 
@@ -398,6 +400,8 @@ static int init_codec (realdec_decoder_t *this, buf_element_t *buf) {
 				samples_per_sec,
 				mode) ;
 
+  this->output_open = 1;
+
   this->sample_size = num_channels * (bits_per_sample>>3);
 
   return 1;
@@ -618,6 +622,9 @@ static void realdec_dispose (audio_decoder_t *this_gen) {
   if (this->ra_handle)
     dlclose (this->ra_handle);
 
+  if (this->output_open)
+     this->stream->audio_out->close (this->stream->audio_out, this->stream);
+
   if (this->frame_buffer)
     free (this->frame_buffer);
 
@@ -643,6 +650,8 @@ static audio_decoder_t *open_plugin (audio_decoder_class_t *class_gen,
   this->audio_decoder.dispose             = realdec_dispose;
   this->stream                            = stream;
   this->cls                               = cls;
+
+  this->output_open = 0;
 
   return &this->audio_decoder;
 }

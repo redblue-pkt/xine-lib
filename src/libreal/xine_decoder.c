@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.17 2002/12/17 02:17:26 guenter Exp $
+ * $Id: xine_decoder.c,v 1.18 2002/12/17 02:27:26 guenter Exp $
  *
  * thin layer to use real binary-only codecs in xine
  *
@@ -433,8 +433,12 @@ static void realdec_dispose (video_decoder_t *this_gen) {
   printf ("libreal: dispose\n");
 #endif
 
-  if (this->rvyuv_free)
+  if (this->context)
+    this->stream->video_out->close(this->stream->video_out, this->stream);
+
+  if (this->rvyuv_free && this->context)
     this->rvyuv_free (this->context);
+
   if (this->rv_handle) 
     dlclose (this->rv_handle);
 
