@@ -1,3 +1,4 @@
+xine-lib (1-rc7)
   * Build system improvements: replacement functions, better work with headers
   * Set the codec name for Real Media even if we can't play the files
   * Fix win32 playback on recent versions of Linux
