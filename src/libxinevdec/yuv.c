@@ -21,7 +21,7 @@
  * Actually, this decoder just reorganizes chunks of raw YUV data in such
  * a way that xine can display them.
  * 
- * $Id: yuv.c,v 1.20 2003/08/04 03:47:10 miguelfreitas Exp $
+ * $Id: yuv.c,v 1.21 2003/08/12 18:45:09 jstembridge Exp $
  */
 
 #include <stdio.h>
@@ -60,6 +60,9 @@ typedef struct yuv_decoder_s {
   int               width;       /* the width of a video frame */
   int               height;      /* the height of a video frame */
   double            ratio;       /* the width to height ratio */
+  
+  int               progressive;
+  int               top_field_first;
 
 } yuv_decoder_t;
 
@@ -92,9 +95,17 @@ static void yuv_decode_data (video_decoder_t *this_gen,
     bih = (xine_bmiheader *) buf->content;
     this->width = (bih->biWidth + 3) & ~0x03;
     this->height = (bih->biHeight + 3) & ~0x03;
-    this->ratio = (double)this->width/(double)this->height;
+
     this->video_step = buf->decoder_info[1];
 
+    this->progressive = buf->decoder_info[0];
+    this->top_field_first = buf->decoder_info[2];    
+            
+    if(buf->decoder_info[3] && buf->decoder_info[4])
+      this->ratio = (double)buf->decoder_info[3]/(double)buf->decoder_info[4];
+    else
+      this->ratio = (double)this->width/(double)this->height;
+    
     if (this->buf)
       free (this->buf);
     this->bufsize = VIDEOBUFSIZE;
@@ -123,6 +134,9 @@ static void yuv_decode_data (video_decoder_t *this_gen,
         break;
 
     }
+    
+    this->stream->stream_info[XINE_STREAM_INFO_FRAME_DURATION] = this->video_step;
+    
     return;
   } else if (this->decoder_ok && !(buf->decoder_flags & BUF_FLAG_SPECIAL)) {
 
