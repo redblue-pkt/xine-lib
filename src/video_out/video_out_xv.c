@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.50 2001/07/08 18:15:54 guenter Exp $
+ * $Id: video_out_xv.c,v 1.51 2001/07/09 16:13:11 guenter Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -578,9 +578,9 @@ static void xv_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
       xv_calc_format (this, frame->width, frame->height, frame->ratio_code);
     }
 // Alpha Blend here
-   if (this->overlay) {
-        blend_yuv( frame->image->data, this->overlay, frame->width, frame->height);
-   }
+//   if (this->overlay) {
+//        blend_yuv( frame->image->data, this->overlay, frame->width, frame->height);
+// }
 
     XLockDisplay (this->display);
     

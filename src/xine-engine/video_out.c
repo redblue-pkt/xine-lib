@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.31 2001/07/08 18:15:54 guenter Exp $
+ * $Id: video_out.c,v 1.32 2001/07/09 16:13:12 guenter Exp $
  *
  */
 
@@ -285,12 +285,12 @@ static void *video_out_loop (void *this_gen) {
     }
     this->driver->display_frame (this->driver, img); 
 
-    /* Control Overlay SHOW/HIDE based on PTS */
-    /* FIXME: Not implemented: These all need to be put to FREE state if the slider gets moved or STOP is pressed. */
+/* Control Overlay SHOW/HIDE based on PTS */
+/* FIXME: Not implemented: These all need to be put to FREE state if the slider gets moved or STOP is pressed. */
     overlay=this->first_overlay;
     count=1;
     while (overlay) {
-      count++;
+//      count++;
       switch(overlay->state) {
       case OVERLAY_FREE:
 	break;
@@ -329,7 +329,11 @@ static void *video_out_loop (void *this_gen) {
       }
       overlay=overlay->next;
     }
+
   }
+
+
+
 
   /*
    * throw away undisplayed frames
@@ -358,9 +362,18 @@ static uint32_t vo_get_capabilities (vo_instance_t *this) {
 }
 
 static void vo_open (vo_instance_t *this) {
-
+  printf("vo_open\n");
   if (!this->video_loop_running) {
     this->video_loop_running = 1;
+    if(this->first_overlay) {
+      vo_overlay_t      *overlay;
+      overlay=this->first_overlay;
+      while (overlay) {
+        overlay->state=OVERLAY_FREE;
+        overlay=overlay->next;
+      }
+    }
+
     pthread_create (&this->video_thread, NULL, video_out_loop, this) ; 
     printf ("video_out: thread created\n");
   } else
