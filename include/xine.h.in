@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.125 2004/07/07 00:25:31 miguelfreitas Exp $
+ * $Id: xine.h.in,v 1.126 2004/07/19 19:53:40 miguelfreitas Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -1413,6 +1413,40 @@ void xine_config_reset (xine_t *self);
 #define XINE_EVENT_PVR_REALTIME         203
 #define XINE_EVENT_PVR_PAUSE            204
 #define XINE_EVENT_SET_MPEG_DATA        205
+
+/* VDR specific event types */
+#define XINE_EVENT_VDR_RED              300
+#define XINE_EVENT_VDR_GREEN            301
+#define XINE_EVENT_VDR_YELLOW           302
+#define XINE_EVENT_VDR_BLUE             303
+#define XINE_EVENT_VDR_PLAY             304
+#define XINE_EVENT_VDR_PAUSE            305
+#define XINE_EVENT_VDR_STOP             306
+#define XINE_EVENT_VDR_RECORD           307
+#define XINE_EVENT_VDR_FASTFWD          308
+#define XINE_EVENT_VDR_FASTREW          309
+#define XINE_EVENT_VDR_POWER            310
+#define XINE_EVENT_VDR_CHANNELPLUS      311
+#define XINE_EVENT_VDR_CHANNELMINUS     312
+#define XINE_EVENT_VDR_SCHEDULE         313
+#define XINE_EVENT_VDR_CHANNELS         314
+#define XINE_EVENT_VDR_TIMERS           315
+#define XINE_EVENT_VDR_RECORDINGS       316
+#define XINE_EVENT_VDR_SETUP            317
+#define XINE_EVENT_VDR_COMMANDS         318
+#define XINE_EVENT_VDR_BACK             319
+#define XINE_EVENT_VDR_USER1            320
+#define XINE_EVENT_VDR_USER2            321
+#define XINE_EVENT_VDR_USER3            322
+#define XINE_EVENT_VDR_USER4            323
+#define XINE_EVENT_VDR_USER5            324
+#define XINE_EVENT_VDR_USER6            325
+#define XINE_EVENT_VDR_USER7            326
+#define XINE_EVENT_VDR_USER8            327
+#define XINE_EVENT_VDR_USER9            328
+#define XINE_EVENT_VDR_VOLPLUS          329
+#define XINE_EVENT_VDR_VOLMINUS         330
+#define XINE_EVENT_VDR_MUTE             331
 
 /*
  * xine event struct

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_pes.c,v 1.25 2004/06/13 21:28:53 miguelfreitas Exp $
+ * $Id: demux_mpeg_pes.c,v 1.26 2004/07/19 19:53:41 miguelfreitas Exp $
  *
  * demultiplexer for mpeg 2 PES (Packetized Elementary Streams)
  * reads streams of variable blocksizes
@@ -169,47 +169,66 @@ static void demux_mpeg_pes_parse_pack (demux_mpeg_pes_t *this, int preview_mode)
   int32_t        result;
   off_t          i;
   int32_t        n;
+  uint8_t        buf6[ 6 ];
+  
   this->scr = 0;
   this->preview_mode = preview_mode;
 
-  /* FIXME: buf must be allocated from somewhere before calling here. */
-  if (this->video_fifo) {
-    buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-  } else if (this->audio_fifo) {
-    buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
-  } else {
-    return;
-  }
-
-  if (preview_mode)
-    buf->decoder_flags = BUF_FLAG_PREVIEW;
-  else
-    buf->decoder_flags = 0;
-    
-  if( this->input->get_length (this->input) )
-    buf->extra_info->input_normpos = (int)( (double) this->input->get_current_pos (this->input) * 
-                                     65535 / this->input->get_length (this->input) );
-  
-  i = this->input->read (this->input, buf->mem, (off_t) 6);
+  /* read first 6 bytes of PES packet into a local buffer. */
+  i = this->input->read (this->input, buf6, (off_t) 6);
   if (i != 6) {
-    buf->free_buffer (buf);
     this->status = DEMUX_FINISHED;
     return;
   }
 
-  p = buf->mem;
+  p = buf6;
 
-  while (p[0] || p[1] || (p[2] != 1)) {
+  while ((p[2] != 1) || p[0] || p[1]) {
     /* resync code */
     for(n=0;n<5;n++) p[n]=p[n+1];
     i = this->input->read (this->input, p+5, (off_t) 1);
     if (i != 1) {
-      buf->free_buffer (buf);
       this->status = DEMUX_FINISHED;
       return;
     }
-
   }
+  
+  /* FIXME: buf must be allocated from somewhere before calling here. */
+  
+  /* these streams should be allocated on the audio_fifo, if available. */
+  if ((0xC0 <= p[ 3 ] && p[ 3 ] <= 0xDF) /* audio_stream */
+      || 0xBD == p[ 3 ])                 /* private_sream_1 */
+  {
+    if (this->audio_fifo)
+      buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
+  }
+
+  if (!buf)  /* still no buffer => try video fifo first. */
+  {
+    if (this->video_fifo) {
+      buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
+    } else if (this->audio_fifo) {
+      buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
+    } else {
+      return;
+    }
+  }
+  
+  p = buf->mem;
+
+  /* copy local buffer to fifo element. */
+  for (n = 0; n < sizeof (buf6); n++)
+    p[ n ] = buf6[ n ];
+  
+  if (preview_mode)
+    buf->decoder_flags = BUF_FLAG_PREVIEW;
+  else
+    buf->decoder_flags = 0;
+  
+  if( this->input->get_length (this->input) )
+    buf->extra_info->input_normpos = (int)( (double) this->input->get_current_pos (this->input) * 
+                                     65535 / this->input->get_length (this->input) );
+
     this->stream_id  = p[3];
     if (this->stream_id == 0xBA) {
       this->wait_for_program_stream_pack_header=0;
@@ -254,6 +273,7 @@ static void demux_mpeg_pes_parse_pack (demux_mpeg_pes_t *this, int preview_mode)
         this->status = DEMUX_FINISHED;
         return;
       }
+      buf->size = buf->max_size;
     }
 
     if (this->stream_id == 0xBB) {
@@ -269,10 +289,10 @@ static void demux_mpeg_pes_parse_pack (demux_mpeg_pes_t *this, int preview_mode)
       return;
       result = parse_private_stream_2(this, p, buf);
     } else if ((this->stream_id >= 0xC0)
-            && (this->stream_id < 0xDF)) {
+            && (this->stream_id <= 0xDF)) {
       result = parse_audio_stream(this, p, buf);
     } else if ((this->stream_id >= 0xE0)
-            && (this->stream_id < 0xEF)) {
+            && (this->stream_id <= 0xEF)) {
       result = parse_video_stream(this, p, buf);
     } else if (this->stream_id == 0xF0) {
       result = parse_ecm_stream(this, p, buf);
@@ -321,9 +341,29 @@ static void demux_mpeg_pes_parse_pack (demux_mpeg_pes_t *this, int preview_mode)
 
 static int32_t parse_padding_stream(demux_mpeg_pes_t *this, uint8_t *p, buf_element_t *buf) {
   /* Just skip padding. */
-  buf->free_buffer (buf);
-  return this->packet_len;
+  int todo = 6 + this->packet_len;
+  int done = buf->size;
+
+  while (done < todo)
+  {
+    /* Handle Jumbo frames from VDR. */
+    int i;
+    
+    int size = buf->max_size;
+    if ((todo - done) < size)
+      size = todo - done;
+    
+    i = this->input->read (this->input, buf->mem, (off_t)size);
+    if (i != size)
+      break;
+
+    done += i;
+  }
+
+  buf->free_buffer(buf);
+  return this->packet_len + 6;
 }
+
 static int32_t parse_program_stream_map(demux_mpeg_pes_t *this, uint8_t *p, buf_element_t *buf) {
   /* FIXME: Implement */
   xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
@@ -844,7 +884,12 @@ static int32_t parse_private_stream_1(demux_mpeg_pes_t *this, uint8_t *p, buf_el
        * 111 => 8 channel
        */
       num_channels = (p[5] & 0x7) + 1;
-      sample_rate = p[5] & 0x10 ? 96000 : 48000;
+      switch ((p[5]>>4) & 3) {
+      case 0: sample_rate = 48000; break;
+      case 1: sample_rate = 96000; break;
+      case 2: sample_rate = 44100; break;
+      case 3: sample_rate = 32000; break;
+      }
       switch ((p[5]>>6) & 3) {
       case 3: /* illegal, use 16-bits? */
       default:
