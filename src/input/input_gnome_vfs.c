@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_gnome_vfs.c,v 1.11 2003/06/24 21:38:31 hadess Exp $
+ * $Id: input_gnome_vfs.c,v 1.12 2003/07/19 16:45:38 komadori Exp $
  */
 
 
@@ -33,8 +33,8 @@
 
 #include <libgnomevfs/gnome-vfs.h>
 
-#define D(x...)
-/* #define D(x...) g_message (x) */
+#define D(...)
+/* #define D(...) g_message (__VA_ARGS__) */
 /* #define LOG */
 
 typedef struct {
