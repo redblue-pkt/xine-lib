@@ -72,6 +72,7 @@ xineplug_vo_out_xv_la_LIBADD = \
 	$(X_LIBS) \
 	-lXext \
 	$(XINE_LIB)
+xineplug_vo_out_xv_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 xineplug_vo_out_xvmc_la_SOURCES = deinterlace.c alphablend.c video_out_xvmc.c
 xineplug_vo_out_xvmc_la_LIBADD = \
@@ -80,9 +81,6 @@ xineplug_vo_out_xvmc_la_LIBADD = \
 	$(X_LIBS) \
 	-lXext \
 	$(XINE_LIB)
-
-xineplug_vo_out_xv_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
-
 xineplug_vo_out_xvmc_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 xineplug_vo_out_xshm_la_SOURCES = yuv2rgb.c yuv2rgb_mmx.c yuv2rgb_mlib.c \
