@@ -117,8 +117,10 @@ static inline void get_frame_duration (mpeg2dec_t * mpeg2dec, vo_frame_t *frame)
                frame->frame_rate_code); */
     frame->duration      = 3000;
   }
-  
-  if( mpeg2dec->picture->repeat_first_field ) {
+ /* FIXME: We should try to recognise patterns in the repeat first field(rff)
+    values. In NTSC mpeg2 streams, a trick is used to convert a 24 fps film into 29.97 fps for NTSC TV. The rff flag is used to make some of the 24 fps fields last for two fields on the TV screen. This is because the TV screen has a fixed frame rate, and cannot be varied. On a computer screen, we can have almost any frame rate we wish, so to get a much smoother picture, we should not repeat any frames, but in fact just play them back at 24 fps instead of playing some frames longer than others. So the comments below tell us how we are currently doing it for both computer screen and any TV out device, but not how we SHOULD try to do it for a computer screen.
+  */ 
+  if( frame->repeat_first_field ) {
     if( !mpeg2dec->picture->progressive_sequence &&
          mpeg2dec->picture->progressive_frame ) {
       /* decoder should output 3 fields, so adjust duration to
