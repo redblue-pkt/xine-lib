@@ -377,9 +377,12 @@ msgstr "demux_qt: '%c%c%c%c' zvuk @ %d Hz, %d bitù, %d %s\n"
 
 #: src/demuxers/demux_qt.c:1544 src/demuxers/demux_smjpeg.c:415
 #: src/demuxers/demux_wav.c:322
+#, fuzzy
 msgid "channel"
 msgid_plural "channels"
 msgstr[0] "kanál"
+msgstr[1] "kanál"
+msgstr[2] "kanál"
 
 #: src/demuxers/demux_qt.c:1758
 #, c-format

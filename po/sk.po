@@ -374,9 +374,12 @@ msgstr "demux_qt: audio kodek >%c%c%c%c< @ %d Hz, %d bits, %d %s\n"
 
 #: src/demuxers/demux_qt.c:1544 src/demuxers/demux_smjpeg.c:415
 #: src/demuxers/demux_wav.c:322
+#, fuzzy
 msgid "channel"
 msgid_plural "channels"
 msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
 
 #: src/demuxers/demux_qt.c:1758
 #, c-format

@@ -379,9 +379,11 @@ msgstr ""
 
 #: src/demuxers/demux_qt.c:1544 src/demuxers/demux_smjpeg.c:415
 #: src/demuxers/demux_wav.c:322
+#, fuzzy
 msgid "channel"
 msgid_plural "channels"
 msgstr[0] ""
+msgstr[1] ""
 
 #: src/demuxers/demux_qt.c:1758
 #, fuzzy, c-format
