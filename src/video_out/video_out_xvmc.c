@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xvmc.c,v 1.20 2004/12/12 22:01:29 mroi Exp $
+ * $Id: video_out_xvmc.c,v 1.21 2005/02/22 18:31:55 totte67 Exp $
  * 
  * video_out_xvmc.c, X11 video motion compensation extension interface for xine
  *
@@ -124,8 +124,6 @@ typedef struct {
   XvMCSurface          surface;
 
   /* temporary Xv only storage */
-  XvImage             *image;
-  XShmSegmentInfo      shminfo;
   xine_xvmc_t          xvmc_data;
 } xvmc_frame_t;
 
@@ -384,9 +382,6 @@ static void xvmc_proc_macro_block(int x, int y, int mb_type, int motion_type,
   mbs->macroblockptr->dct_type = dct_type;
   mbs->macroblockptr->coded_block_pattern = cbp;
 
-  cbp &= 0x3F;
-  mbs->macroblockptr->coded_block_pattern = cbp;
-
   while(cbp) { 
     if(cbp & 1) mbs->macroblockptr->index--;
     cbp >>= 1;
@@ -471,18 +466,11 @@ static uint32_t xvmc_get_capabilities (vo_driver_t *this_gen) {
 }
 
 static void xvmc_frame_field (vo_frame_t *vo_img, int which_field) {
-  xvmc_driver_t *this = (xvmc_driver_t *) vo_img->driver;
-
   lprintf ("xvmc_frame_field\n");
-
-  this->macroblocks.num_blocks       = 0;
-  this->macroblocks.macroblockptr    = this->macroblocks.macroblockbaseptr;
-  this->macroblocks.xine_mc.blockptr = this->macroblocks.xine_mc.blockbaseptr;
 }
 
 static void xvmc_frame_dispose (vo_frame_t *vo_img) {
   xvmc_frame_t  *frame = (xvmc_frame_t *) vo_img ;
-  xvmc_driver_t *this  = (xvmc_driver_t *) vo_img->driver;
 
   lprintf ("xvmc_frame_dispose\n");
 
@@ -492,11 +480,6 @@ static void xvmc_frame_dispose (vo_frame_t *vo_img) {
    * set_context does the work
    */
 
-  if (frame->image) {
-    XLockDisplay (this->display);
-    XFree (frame->image);
-    XUnlockDisplay (this->display);
-  }
   free (frame);
 }
 
@@ -510,6 +493,7 @@ static void xvmc_render_macro_blocks(vo_frame_t *current_image,
   xvmc_frame_t  *current_frame  = (xvmc_frame_t *)  current_image;
   xvmc_frame_t  *forward_frame  = (xvmc_frame_t *)  forward_ref_image;
   xvmc_frame_t  *backward_frame = (xvmc_frame_t *)  backward_ref_image;
+  int           flags;
 
   lprintf ("xvmc_render_macro_blocks\n");
   lprintf ("slices %d 0x%08lx 0x%08lx 0x%08lx\n",
@@ -521,14 +505,15 @@ static void xvmc_render_macro_blocks(vo_frame_t *current_image,
 	   (long) forward_frame->surface); 
   */
   
-  /* XvMCSyncSurface(this->display,&current_frame->surface); */
+  flags = second_field;
+
   if(forward_frame) {
     if(backward_frame) {
       XvMCRenderSurface(this->display, &this->context, picture_structure,
 			&current_frame->surface,
 			&forward_frame->surface,
 			&backward_frame->surface,
-			second_field,
+			flags,
 			macroblocks->slices, 0, macroblocks->macro_blocks,
 			macroblocks->blocks);
     } 
@@ -537,7 +522,7 @@ static void xvmc_render_macro_blocks(vo_frame_t *current_image,
 			&current_frame->surface,
 			&forward_frame->surface,
 			NULL,
-			second_field,
+			flags,
 			macroblocks->slices, 0, macroblocks->macro_blocks,
 			macroblocks->blocks);
     }
@@ -548,7 +533,7 @@ static void xvmc_render_macro_blocks(vo_frame_t *current_image,
 			&current_frame->surface,
 			NULL,
 			&backward_frame->surface,
-			second_field,
+			flags,
 			macroblocks->slices, 0, macroblocks->macro_blocks,
 			macroblocks->blocks);
     } 
@@ -557,13 +542,13 @@ static void xvmc_render_macro_blocks(vo_frame_t *current_image,
 			&current_frame->surface,
 			NULL,
 			NULL,
-			second_field,
+			flags,
 			macroblocks->slices, 0, macroblocks->macro_blocks,
 			macroblocks->blocks);
     }
   }
 
-  /* XvMCFlushSurface(this->display, &current_frame->surface); */
+  XvMCFlushSurface(this->display, &current_frame->surface);
 
   lprintf ("xvmc_render_macro_blocks done\n");
 }
@@ -712,7 +697,6 @@ static cxid_t *xvmc_set_context (xvmc_driver_t *this,
     macroblocks->macroblockptr        = macroblocks->macroblockbaseptr;
     macroblocks->slices               = slices;
     macroblocks->xine_mc.xvmc_accel   = this->acceleration;
-
     return(&this->context_id);
   }
 
@@ -792,45 +776,20 @@ static void xvmc_update_frame_format (vo_driver_t *this_gen,
     lprintf ("updating frame to %d x %d (ratio=%f, format=%08x)\n",
 	     width, height, ratio, format);
 
-    XLockDisplay (this->display);
-
-    /*
-     * (re-) allocate xvimage
-     */
-
-    if (frame->image) {
-      dispose_ximage (this, &frame->shminfo, frame->image);
-      frame->image = NULL;
-    }
-
-    frame->image = create_ximage (this, &frame->shminfo, width, height, format);
-
-    frame->vo_frame.pitches[0] = frame->image->pitches[0];
-    frame->vo_frame.pitches[1] = frame->image->pitches[2];
-    frame->vo_frame.pitches[2] = frame->image->pitches[1];
-    frame->vo_frame.base[0]    = frame->image->data + frame->image->offsets[0];
-    frame->vo_frame.base[1]    = frame->image->data + frame->image->offsets[2];
-    frame->vo_frame.base[2]    = frame->image->data + frame->image->offsets[1];
-    
+    /* Note that since we are rendering in hardware, we do not need to 
+     * allocate any ximage's for the software rendering buffers.
+     */              
     frame->width               = width;
     frame->height              = height;
     frame->format              = format;
-
-    XUnlockDisplay (this->display);
+    frame->ratio               = ratio;
   }
-
-  frame->ratio = ratio;
 
   xvmc->macroblocks = (xine_macroblocks_t *)&this->macroblocks;
   if( flags & VO_NEW_SEQUENCE_FLAG ) {
     xvmc_set_context (this, width, height, ratio, format, flags,
                       xvmc->macroblocks);
   }
-
-  this->macroblocks.num_blocks       = 0;
-  this->macroblocks.macroblockptr    = this->macroblocks.macroblockbaseptr;
-  this->macroblocks.xine_mc.blockptr = this->macroblocks.xine_mc.blockbaseptr;
-
 }
 
 static void xvmc_clean_output_area (xvmc_driver_t *this) {
@@ -955,7 +914,6 @@ static int xvmc_redraw_needed (vo_driver_t *this_gen) {
 static void xvmc_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
   xvmc_driver_t  *this  = (xvmc_driver_t *) this_gen;
   xvmc_frame_t   *frame = (xvmc_frame_t *) frame_gen;
-  int             status;
 
   lprintf ("xvmc_display_frame %d %x\n",frame_gen->id,frame_gen);
 
@@ -998,13 +956,9 @@ static void xvmc_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
   xvmc_redraw_needed (this_gen);
   
   XLockDisplay (this->display);
-  
-  XvMCGetSurfaceStatus(this->display, &this->cur_frame->surface, &status);
-  
-  if(status & XVMC_RENDERING) {
-    lprintf("--------- current frame is still being rendered %x --------\n",status);
-    XvMCSyncSurface(this->display, &this->cur_frame->surface);
-  }
+
+  /* Make sure the surface has finished rendering before we display */  
+  XvMCSyncSurface(this->display, &this->cur_frame->surface);
   
   if (this->deinterlace_enabled &&
       (this->deinterlace_method == DEINTERLACE_ONEFIELD)) {
@@ -1167,15 +1121,6 @@ static int xvmc_gui_data_exchange (vo_driver_t *this_gen,
       
       XLockDisplay (this->display);
       
-      /*
-        XvPutImage(this->display, this->xv_port,
-                   this->drawable, this->gc, this->cur_frame->image,
-                   this->sc.displayed_xoffset, this->sc.displayed_yoffset,
-      	  	   this->sc.displayed_width, this->sc.displayed_height,
-      		   this->sc.output_xoffset, this->sc.output_yoffset,
-      		   this->sc.output_width, this->sc.output_height);
-      */
-      
       XSetForeground (this->display, this->gc, this->black.pixel);
       
       for( i = 0; i < 4; i++ ) {
@@ -1250,15 +1195,6 @@ static void xvmc_dispose (vo_driver_t *this_gen) {
   
   lprintf ("xvmc_dispose\n");
   
-  if (this->deinterlace_frame.image) {
-    /* dispose_ximage should be xlocked */
-    XLockDisplay(this->display);
-    dispose_ximage (this, &this->deinterlace_frame.shminfo,
-		    this->deinterlace_frame.image);
-    XUnlockDisplay(this->display);
-    this->deinterlace_frame.image = NULL;
-  }
-
   if(this->context_id.xid) {
     XLockDisplay(this->display);
     for(i = 0; i < this->num_frame_buffers; i++) {
@@ -1425,7 +1361,6 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *vi
   this->user_data          = visual->user_data;
 
   this->deinterlace_method = 0;
-  this->deinterlace_frame.image = NULL;
   this->use_colorkey       = 0;
   this->colorkey           = 0;
 
@@ -1731,7 +1666,7 @@ static void *init_class (xine_t *xine, void *visual_gen) {
 	      if(Success == XvGrabPort(display, 
 				       adaptor_info[adaptor_num].base_id + j, CurrentTime)) {   
 		xv_port = adaptor_info[adaptor_num].base_id + j;
-		surface_type = surfaceInfo[j].surface_type_id;
+		surface_type = surfaceInfo[surface_num].surface_type_id;
 		break;
 	      }
 	    }
@@ -1757,7 +1692,7 @@ static void *init_class (xine_t *xine, void *visual_gen) {
 		if(Success == XvGrabPort(display, 
 					 adaptor_info[adaptor_num].base_id + j, CurrentTime)) {   
 		  xv_port = adaptor_info[adaptor_num].base_id + j;
-		  surface_type = surfaceInfo[j].surface_type_id;
+		  surface_type = surfaceInfo[surface_num].surface_type_id;
 		  break;
 		}
 	      }
@@ -1770,19 +1705,18 @@ static void *init_class (xine_t *xine, void *visual_gen) {
 	if(xv_port) {
 	  lprintf ("port %ld surface %d\n",xv_port,j);
 
-	  if(surfaceInfo[j].flags & XVMC_OVERLAID_SURFACE)
+          IDCTaccel = 0;            
+	  if(surfaceInfo[surface_num].flags & XVMC_OVERLAID_SURFACE)
 	    useOverlay = 1;
-	  if(surfaceInfo[j].flags & XVMC_INTRA_UNSIGNED)
+	  if(surfaceInfo[surface_num].flags & XVMC_INTRA_UNSIGNED)
 	    unsignedIntra = 1;
-	  if(surfaceInfo[j].mc_type == (XVMC_IDCT | XVMC_MPEG_2))
-	    IDCTaccel = XINE_VO_IDCT_ACCEL + XINE_VO_MOTION_ACCEL;
-	  else if(surfaceInfo[j].mc_type == (XVMC_MOCOMP | XVMC_MPEG_2)) {
-	    IDCTaccel = XINE_VO_MOTION_ACCEL;
+	  if(surfaceInfo[surface_num].mc_type == (XVMC_IDCT | XVMC_MPEG_2))
+	    IDCTaccel |= XINE_VO_IDCT_ACCEL | XINE_VO_MOTION_ACCEL;
+	  else if(surfaceInfo[surface_num].mc_type == (XVMC_MOCOMP | XVMC_MPEG_2)) {
+	    IDCTaccel |= XINE_VO_MOTION_ACCEL;
 	    if(!unsignedIntra)
 	      IDCTaccel |= XINE_VO_SIGNED_INTRA;
 	  }
-	  else 
-	    IDCTaccel = 0;
 	  xprintf (xine, XINE_VERBOSITY_DEBUG, "video_out_xvmc: IDCTaccel %02x\n",IDCTaccel);
 	  break;
 	}

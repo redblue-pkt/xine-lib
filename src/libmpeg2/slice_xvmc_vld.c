@@ -254,12 +254,12 @@ void mpeg2_xxmc_vld_frame_complete(mpeg2dec_t *mpeg2dec, picture_t *picture, int
     *xxmc = (xine_xxmc_t *) frame->accel_data;
   
   if (xxmc->decoded) return;
+  xxmc->proc_xxmc_flush( frame );
+  if (xxmc->result) {
+    mpeg2dec->xvmc_last_slice_code=-1;
+    return;
+  }
   if (mpeg2dec->xvmc_last_slice_code >= 1) {
-    xxmc->proc_xxmc_flush( frame );
-    if (xxmc->result) {
-      mpeg2dec->xvmc_last_slice_code=-1;
-      return;
-    }
     xxmc->decoded = 1;
     if (picture->picture_structure == 3 || picture->second_field) {
       if (xxmc->result == 0) 

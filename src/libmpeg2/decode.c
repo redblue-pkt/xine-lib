@@ -1,4 +1,4 @@
- /*
+/*
  * decode.c
  * Copyright (C) 2000-2002 Michel Lespinasse <walken@zoy.org>
  * Copyright (C) 1999-2000 Aaron Holtzman <aholtzma@ess.engr.uvic.ca>
@@ -64,6 +64,7 @@ void mpeg2_init (mpeg2dec_t * mpeg2dec,
 	mpeg2_cpu_state_init (mm_accel);
 	mpeg2_idct_init (mm_accel);
 	mpeg2_mc_init (mm_accel);
+	xvmc_setup_scan_ptable();
     }
 
     if( !mpeg2dec->chunk_buffer )
@@ -175,6 +176,10 @@ static double get_aspect_ratio(mpeg2dec_t *mpeg2dec)
     1.0, 0.6735, 0.7031, 0.7615, 0.8055, 0.8437, 0.8935, 0.9157,
     0.9815, 1.0255, 1.0695, 1.0950, 1.1575, 1.2015, 1.0 /*reserved*/ };
 
+  /* TODO: For slower machines the value of this function should be computed
+   *       once and cached!
+   */
+
   if( !picture->mpeg1 ) {
     /* these hardcoded values are defined on mpeg2 standard for
      * aspect ratio. other values are reserved or forbidden.  */
@@ -251,6 +256,7 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 {
     picture_t * picture;
     int is_frame_done;
+    double ratio;
     
     /* wait for sequence_header_code */
     if (mpeg2dec->is_sequence_needed) {
@@ -514,6 +520,7 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 		mpeg2dec->drop_frame = 1;		
 	    } else {
 		int flags = picture->picture_structure;
+
 		if (!picture->mpeg1) flags |= VO_INTERLACED_FLAG;
 		if (mpeg2dec->force_pan_scan) flags |= VO_PAN_SCAN_FLAG;
 		if (mpeg2dec->new_sequence) flags |= VO_NEW_SEQUENCE_FLAG;
@@ -524,36 +531,36 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 			picture->current_frame->free (picture->current_frame);
 		}
 		if (picture->picture_coding_type == B_TYPE) {
+                    ratio = get_aspect_ratio(mpeg2dec);
 		    picture->current_frame =
 		        mpeg2dec->stream->video_out->get_frame (mpeg2dec->stream->video_out,
 						     picture->coded_picture_width,
 						     picture->coded_picture_height,
-						     get_aspect_ratio(mpeg2dec),
+						     ratio,
 						     mpeg2dec->frame_format,
 						     flags);
 		    /*
 		     * Move to libmpeg2_accel.c
 		     * int libmpeg2_accel_new_frame(mpeg2dec_t *, picture_t *)
 		     */
-		    mpeg2_xxmc_choose_coding(mpeg2dec, picture, get_aspect_ratio(mpeg2dec),
-					     flags);
+		    mpeg2_xxmc_choose_coding(mpeg2dec, picture, ratio, flags);
 		    /*
 		     * End of new frame accel code.
 		     */
 		} else {
+                    ratio = get_aspect_ratio(mpeg2dec);
 		    picture->current_frame =
 		        mpeg2dec->stream->video_out->get_frame (mpeg2dec->stream->video_out,
 						     picture->coded_picture_width,
 						     picture->coded_picture_height,
-						     get_aspect_ratio(mpeg2dec),
+						     ratio,
 						     mpeg2dec->frame_format,
 						     flags);
 		    /*
 		     * Move to libmpeg2_accel.c
 		     * int libmpeg2_accel_new_frame(mpeg2dec_t *, picture_t *)
 		     */
-		    mpeg2_xxmc_choose_coding(mpeg2dec, picture, 
-					     get_aspect_ratio(mpeg2dec), flags);
+		    mpeg2_xxmc_choose_coding(mpeg2dec, picture, ratio, flags);
 		    /*
 		     * End of new frame accel code.
 		     */
@@ -767,6 +774,21 @@ void mpeg2_discontinuity (mpeg2dec_t * mpeg2dec) {
    * int libmpeg2_accel_discontinuity(mpeg2dec_t *);
    */
   mpeg2dec->xvmc_last_slice_code=-1;
+  if ( !picture->current_frame )
+    return;
+  if (mpeg2dec->frame_format == XINE_IMGFMT_XXMC) {
+    xine_xxmc_t *xxmc = (xine_xxmc_t *) 
+      picture->current_frame->accel_data;
+    switch(xxmc->acceleration) {
+    case XINE_XVMC_ACCEL_VLD:
+    case XINE_XVMC_ACCEL_IDCT:
+    case XINE_XVMC_ACCEL_MOCOMP:
+      xxmc->proc_xxmc_flush( picture->current_frame );
+      break;
+    default:
+      break;
+    }
+  }     
   /*
    * End of discontinuity accel code.
    */

@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_mpeg.c,v 1.146 2005/02/06 15:26:17 tmattern Exp $
+ * $Id: demux_mpeg.c,v 1.147 2005/02/22 18:31:37 totte67 Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  * reads streams of variable blocksizes
@@ -358,8 +358,9 @@ static void parse_mpeg2_packet (demux_mpeg_t *this, int stream_id, int64_t scr) 
             buf->decoder_flags = BUF_FLAG_PREVIEW;
 
           if( this->input->get_length (this->input) )
-            buf->extra_info->input_normpos = (int)( (double) this->input->get_current_pos (this->input) * 
-                                             65535 / this->input->get_length (this->input) );
+            buf->extra_info->input_normpos = 
+	      (int)( ((int64_t)this->input->get_current_pos (this->input) * 
+		      65535) / this->input->get_length (this->input) );
           
           if (this->rate)
             buf->extra_info->input_time = (int)((int64_t)this->input->get_current_pos (this->input)
@@ -390,8 +391,9 @@ static void parse_mpeg2_packet (demux_mpeg_t *this, int stream_id, int64_t scr) 
         buf->decoder_flags |= BUF_FLAG_PREVIEW;
 
       if( this->input->get_length (this->input) )
-        buf->extra_info->input_normpos = (int)( (double) this->input->get_current_pos (this->input) * 
-                                         65535 / this->input->get_length (this->input) );
+        buf->extra_info->input_normpos = 
+	  (int)( ((int64_t)this->input->get_current_pos (this->input) * 
+		  65535) / this->input->get_length (this->input) );
       if (this->rate)
         buf->extra_info->input_time = (int)((int64_t)this->input->get_current_pos (this->input)
                                               * 1000 / (this->rate * 50));
@@ -453,8 +455,9 @@ static void parse_mpeg2_packet (demux_mpeg_t *this, int stream_id, int64_t scr) 
 	  buf->decoder_flags = BUF_FLAG_PREVIEW;
 
         if( this->input->get_length (this->input) )
-          buf->extra_info->input_normpos = (int)( (double) this->input->get_current_pos (this->input) * 
-                                          65535 / this->input->get_length (this->input) );
+          buf->extra_info->input_normpos = 
+	    (int)( ((int64_t)this->input->get_current_pos (this->input) * 
+		    65535) / this->input->get_length (this->input) );
         if (this->rate)
           buf->extra_info->input_time = (int)((int64_t)this->input->get_current_pos (this->input)
                                                 * 1000 / (this->rate * 50));
@@ -525,8 +528,9 @@ static void parse_mpeg2_packet (demux_mpeg_t *this, int stream_id, int64_t scr) 
 	buf->decoder_flags = BUF_FLAG_PREVIEW;
 
       if( this->input->get_length (this->input) )
-        buf->extra_info->input_normpos = (int)( (double) this->input->get_current_pos (this->input) * 
-                                         65535 / this->input->get_length (this->input) );
+        buf->extra_info->input_normpos = 
+	  (int)( ((int64_t)this->input->get_current_pos (this->input) * 
+		  65535) / this->input->get_length (this->input) );
       if (this->rate)
         buf->extra_info->input_time = (int)((int64_t)this->input->get_current_pos (this->input)
                                               * 1000 / (this->rate * 50));
@@ -655,8 +659,9 @@ static void parse_mpeg1_packet (demux_mpeg_t *this, int stream_id, int64_t scr) 
 	  buf->decoder_flags = BUF_FLAG_PREVIEW;
 
         if( this->input->get_length (this->input) )
-          buf->extra_info->input_normpos = (int)( (double) this->input->get_current_pos (this->input) * 
-                                          65535 / this->input->get_length (this->input) );
+          buf->extra_info->input_normpos = 
+	    (int)( ((int64_t)this->input->get_current_pos (this->input) * 
+		    65535) / this->input->get_length (this->input) );
         if (this->rate)
           buf->extra_info->input_time = (int)((int64_t)this->input->get_current_pos (this->input)
                                                 * 1000 / (this->rate * 50));
@@ -689,8 +694,9 @@ static void parse_mpeg1_packet (demux_mpeg_t *this, int stream_id, int64_t scr) 
 	buf->decoder_flags = BUF_FLAG_PREVIEW;
 
       if( this->input->get_length (this->input) )
-        buf->extra_info->input_normpos = (int)( (double) this->input->get_current_pos (this->input) * 
-                                         65535 / this->input->get_length (this->input) );
+        buf->extra_info->input_normpos = 
+	  (int)( ((int64_t)this->input->get_current_pos (this->input) * 
+		  65535) / this->input->get_length (this->input) );
       if (this->rate)
         buf->extra_info->input_time = (int)((int64_t)this->input->get_current_pos (this->input)
                                               * 1000 / (this->rate * 50));
@@ -1002,8 +1008,7 @@ static int demux_mpeg_seek (demux_plugin_t *this_gen,
 
   demux_mpeg_t   *this = (demux_mpeg_t *) this_gen;
   start_time /= 1000;
-  start_pos = (off_t) ( (double) start_pos / 65535 *
-              this->input->get_length (this->input) );
+  start_pos = (off_t) ( ((int64_t)start_pos * this->input->get_length (this->input)) / 65535);
 
   if (INPUT_IS_SEEKABLE(this->input)) {
 

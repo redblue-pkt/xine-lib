@@ -1,6 +1,7 @@
 xine-lib (1.1)
 
 xine-lib (1.0.1)
+  * Big XvMC quality / correctness / cpu-usage fix. [bug #1114517] 
   * fixed builds with Xv or the entire X11 unavailble
   * updated internal copies of VCD libraries to libcdio 0.71 and vcdimager 0.7.21
   * fixed compatibility with new libtool versions [bug #1094262]

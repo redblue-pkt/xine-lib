@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xvmc_mocomp.c,v 1.2 2004/10/03 12:36:15 totte67 Exp $
+ * $Id: xvmc_mocomp.c,v 1.3 2005/02/22 18:31:59 totte67 Exp $
  *
  * XvMC image support by Jack Kelliher
  */
@@ -75,19 +75,22 @@ static void xvmc_render_macro_blocks(vo_frame_t *current_image,
   xxmc_frame_t  *current_frame  = (xxmc_frame_t *)  current_image;
   xxmc_frame_t  *forward_frame  = (xxmc_frame_t *)  forward_ref_image;
   xxmc_frame_t  *backward_frame = (xxmc_frame_t *)  backward_ref_image;
+  int           flags;
 
   lprintf ("xvmc_render_macro_blocks\n");
   lprintf ("slices %d 0x%08lx 0x%08lx 0x%08lx\n",
 	   macroblocks->slices,
 	   (long) current_frame, (long) backward_frame,
 	   (long) forward_frame);
-  
+
+  flags = second_field;
+
   XVMCLOCKDISPLAY( this->display);
   XvMCRenderSurface(this->display, &this->context, picture_structure,
 		    current_frame->xvmc_surf,
 		    forward_frame ? forward_frame->xvmc_surf : NULL,
 		    backward_frame ? backward_frame->xvmc_surf : NULL,
-		    second_field,
+                    flags,
 		    macroblocks->slices, 0, &macroblocks->macro_blocks,
 		    &macroblocks->blocks);
   XVMCUNLOCKDISPLAY( this->display);
@@ -185,7 +188,7 @@ void xxmc_xvmc_proc_macro_block(int x, int y, int mb_type, int motion_type,
 
   mbs->macroblockptr->index = ((unsigned long)mbs->xine_mc.blockptr -
 			       (unsigned long)mbs->xine_mc.blockbaseptr) >> 7;
-
+  
   mbs->macroblockptr->dct_type = dct_type;
   mbs->macroblockptr->coded_block_pattern = cbp;
 

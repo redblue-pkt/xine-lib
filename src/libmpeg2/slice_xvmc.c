@@ -44,8 +44,8 @@
 #define ACCEL          (MOTION_ACCEL | IDCT_ACCEL)
 
 #include "vlc.h"
-
 /* original (non-patched) scan tables */
+
 static uint8_t mpeg2_scan_norm_orig[64] ATTR_ALIGN(16) =
 {
     /* Zig-Zag scan pattern */
@@ -59,7 +59,7 @@ static uint8_t mpeg2_scan_norm_orig[64] ATTR_ALIGN(16) =
     53,60,61,54,47,55,62,63
 };
 
-uint8_t mpeg2_scan_alt_orig[64] ATTR_ALIGN(16) =
+static uint8_t mpeg2_scan_alt_orig[64] ATTR_ALIGN(16) =
 {
     /* Alternate scan pattern */
     0,8,16,24,1,9,2,10,17,25,32,40,48,56,57,49,
@@ -68,10 +68,24 @@ uint8_t mpeg2_scan_alt_orig[64] ATTR_ALIGN(16) =
     53,61,22,30,7,15,23,31,38,46,54,62,39,47,55,63
 };
 
+uint8_t mpeg2_scan_alt_ptable[64] ATTR_ALIGN(16);
+uint8_t mpeg2_scan_norm_ptable[64] ATTR_ALIGN(16);
+uint8_t mpeg2_scan_orig_ptable[64] ATTR_ALIGN(16);
+
+void xvmc_setup_scan_ptable( void )
+{
+    int i;
+    for (i=0; i<64; ++i) {
+	mpeg2_scan_norm_ptable[mpeg2_scan_norm_orig[i]] = mpeg2_scan_norm[i];
+	mpeg2_scan_alt_ptable[mpeg2_scan_alt_orig[i]] = mpeg2_scan_alt[i];
+	mpeg2_scan_orig_ptable[i] = i;
+    }
+}
+    
 
 static int non_linear_quantizer_scale [] = {
-     0,  1,  2,  3,  4,  5,   6,   7,
-     8, 10, 12, 14, 16, 18,  20,  22,
+    0,  1,  2,  3,  4,  5,   6,   7,
+    8, 10, 12, 14, 16, 18,  20,  22,
     24, 28, 32, 36, 40, 44,  48,  52,
     56, 64, 72, 80, 88, 96, 104, 112
 };
@@ -389,8 +403,10 @@ static void get_xvmc_intra_block_B14 (picture_t * picture)
 {
     int i;
     int j;
+    int l;
     int val;
     uint8_t * scan = picture->scan;
+    uint8_t * scan_ptable = mpeg2_scan_orig_ptable;
     uint8_t * quant_matrix = picture->intra_quantizer_matrix;
     int quantizer_scale = picture->quantizer_scale;
     int mismatch;
@@ -401,15 +417,17 @@ static void get_xvmc_intra_block_B14 (picture_t * picture)
     int16_t * dest;
 
     dest = picture->mc->blockptr;
-
-    /* XvMC's IDCT must use non-patched scan tables */
+    
     if( picture->mc->xvmc_accel & IDCT_ACCEL ) {
-      if( scan == mpeg2_scan_norm )
-        scan = mpeg2_scan_norm_orig;
-      else
-        scan = mpeg2_scan_alt_orig;
+	if ( scan == mpeg2_scan_norm ) {
+	    scan =  mpeg2_scan_norm_orig; 
+	    scan_ptable = mpeg2_scan_norm_ptable;
+	} else {
+	    scan = mpeg2_scan_alt_orig;
+	    scan_ptable = mpeg2_scan_alt_ptable;
+	}
     }
-
+	    
     i = 0;
     mismatch = ~dest[0];
 
@@ -429,10 +447,11 @@ static void get_xvmc_intra_block_B14 (picture_t * picture)
 		break;	/* end of block */
 
 	normal_code:
-	    j = scan[i];
+	    l = scan_ptable[j = scan[i]];
+	    
 	    bit_buf <<= tab->len;
 	    bits += tab->len + 1;
-	    val = (tab->level * quantizer_scale * quant_matrix[j]) >> 4;
+	    val = (tab->level * quantizer_scale * quant_matrix[l]) >> 4;
 
 	    /* if (bitstream_get (1)) val = -val; */
 	    val = (val ^ SBITS (bit_buf, 1)) - SBITS (bit_buf, 1);
@@ -460,12 +479,12 @@ static void get_xvmc_intra_block_B14 (picture_t * picture)
 	    if (i >= 64)
 		break;	/* illegal, check needed to avoid buffer overflow */
 
-	    j = scan[i];
+	    l = scan_ptable[j = scan[i]];
 
 	    DUMPBITS (bit_buf, bits, 12);
 	    NEEDBITS (bit_buf, bits, bit_ptr);
 	    val = (SBITS (bit_buf, 12) *
-		   quantizer_scale * quant_matrix[j]) / 16;
+		   quantizer_scale * quant_matrix[l]) / 16;
 
 	    SATURATE (val);
 	    dest[j] = val;
@@ -513,8 +532,10 @@ static void get_xvmc_intra_block_B15 (picture_t * picture)
 {
     int i;
     int j;
+    int l;
     int val;
     uint8_t * scan = picture->scan;
+    uint8_t * scan_ptable = mpeg2_scan_orig_ptable;
     uint8_t * quant_matrix = picture->intra_quantizer_matrix;
     int quantizer_scale = picture->quantizer_scale;
     int mismatch;
@@ -526,14 +547,16 @@ static void get_xvmc_intra_block_B15 (picture_t * picture)
 
     dest = picture->mc->blockptr;
 
-    /* XvMC's IDCT must use non-patched scan tables */
     if( picture->mc->xvmc_accel & IDCT_ACCEL ) {
-      if( scan == mpeg2_scan_norm )
-        scan = mpeg2_scan_norm_orig;
-      else
-        scan = mpeg2_scan_alt_orig;
+	if ( scan == mpeg2_scan_norm ) {
+	    scan =  mpeg2_scan_norm_orig; 
+	    scan_ptable = mpeg2_scan_norm_ptable;
+	} else {
+	    scan = mpeg2_scan_alt_orig;
+	    scan_ptable = mpeg2_scan_alt_ptable;
+	}
     }
-
+	    	    
     i = 0;
     mismatch = ~dest[0];
 
@@ -552,10 +575,10 @@ static void get_xvmc_intra_block_B15 (picture_t * picture)
 	    if (i < 64) {
 
 	    normal_code:
-		j = scan[i];
+		l = scan_ptable[j = scan[i]];
 		bit_buf <<= tab->len;
 		bits += tab->len + 1;
-		val = (tab->level * quantizer_scale * quant_matrix[j]) >> 4;
+		val = (tab->level * quantizer_scale * quant_matrix[l]) >> 4;
 
 		/* if (bitstream_get (1)) val = -val; */
 		val = (val ^ SBITS (bit_buf, 1)) - SBITS (bit_buf, 1);
@@ -578,19 +601,18 @@ static void get_xvmc_intra_block_B15 (picture_t * picture)
 
 		/* escape code */
 
-		i += UBITS (bit_buf << 6, 6) - 64;
+                i += UBITS (bit_buf << 6, 6) - 64;
 		if (i >= 64)
 		    break;	/* illegal, check against buffer overflow */
 
-		j = scan[i];
+		l = scan_ptable[j = scan[i]];
 
 		DUMPBITS (bit_buf, bits, 12);
 		NEEDBITS (bit_buf, bits, bit_ptr);
 		val = (SBITS (bit_buf, 12) *
-		       quantizer_scale * quant_matrix[j]) / 16;
+		       quantizer_scale * quant_matrix[l]) / 16;
 
 		SATURATE (val);
-
 		dest[j] = val;
 		mismatch ^= val;
 
@@ -637,8 +659,10 @@ static void get_xvmc_non_intra_block (picture_t * picture)
 {
     int i;
     int j;
+    int l;
     int val;
     uint8_t * scan = picture->scan;
+    uint8_t * scan_ptable = mpeg2_scan_orig_ptable;
     uint8_t * quant_matrix = picture->non_intra_quantizer_matrix;
     int quantizer_scale = picture->quantizer_scale;
     int mismatch;
@@ -653,14 +677,16 @@ static void get_xvmc_non_intra_block (picture_t * picture)
 
     dest = picture->mc->blockptr;
 
-    /* XvMC's IDCT must use non-patched scan tables */
     if( picture->mc->xvmc_accel & IDCT_ACCEL ) {
-      if( scan == mpeg2_scan_norm )
-        scan = mpeg2_scan_norm_orig;
-      else
-        scan = mpeg2_scan_alt_orig;
+	if ( scan == mpeg2_scan_norm ) {
+	    scan =  mpeg2_scan_norm_orig; 
+	    scan_ptable = mpeg2_scan_norm_ptable;
+	} else {
+	    scan = mpeg2_scan_alt_orig;
+	    scan_ptable = mpeg2_scan_alt_ptable;
+	}
     }
-
+	    
     bit_buf = picture->bitstream_buf;
     bits = picture->bitstream_bits;
     bit_ptr = picture->bitstream_ptr;
@@ -683,10 +709,10 @@ static void get_xvmc_non_intra_block (picture_t * picture)
 		break;	/* end of block */
 
 	normal_code:
-	    j = scan[i];
+	    l = scan_ptable[j = scan[i]];
 	    bit_buf <<= tab->len;
 	    bits += tab->len + 1;
-	    val = ((2*tab->level+1) * quantizer_scale * quant_matrix[j]) >> 5;
+	    val = ((2*tab->level+1) * quantizer_scale * quant_matrix[l]) >> 5;
 
 	    /* if (bitstream_get (1)) val = -val; */
 	    val = (val ^ SBITS (bit_buf, 1)) - SBITS (bit_buf, 1);
@@ -713,16 +739,16 @@ static void get_xvmc_non_intra_block (picture_t * picture)
 
 	    /* escape code */
 
-	    i += UBITS (bit_buf << 6, 6) - 64;
+            i += UBITS (bit_buf << 6, 6) - 64;
 	    if (i >= 64)
 		break;	/* illegal, check needed to avoid buffer overflow */
 
-	    j = scan[i];
+	    l = scan_ptable[j = scan[i]];
 
 	    DUMPBITS (bit_buf, bits, 12);
 	    NEEDBITS (bit_buf, bits, bit_ptr);
 	    val = 2 * (SBITS (bit_buf, 12) + SBITS (bit_buf, 1)) + 1;
-	    val = (val * quantizer_scale * quant_matrix[j]) / 32;
+	    val = (val * quantizer_scale * quant_matrix[l]) / 32;
 
 	    SATURATE (val);
 	    dest[j] = val;
@@ -758,7 +784,6 @@ static void get_xvmc_non_intra_block (picture_t * picture)
 	}
 	break;	/* illegal, check needed to avoid buffer overflow */
     }
-
     dest[63] ^= mismatch & 1;
     DUMPBITS (bit_buf, bits, 2);	/* dump end of block code */
     picture->bitstream_buf = bit_buf;
@@ -770,8 +795,10 @@ static void get_xvmc_mpeg1_intra_block (picture_t * picture)
 {
     int i;
     int j;
+    int l;
     int val;
     uint8_t * scan = picture->scan;
+    uint8_t * scan_ptable = mpeg2_scan_orig_ptable;
     uint8_t * quant_matrix = picture->intra_quantizer_matrix;
     int quantizer_scale = picture->quantizer_scale;
     DCTtab * tab;
@@ -784,14 +811,16 @@ static void get_xvmc_mpeg1_intra_block (picture_t * picture)
 
     dest = picture->mc->blockptr;
 
-    /* XvMC's IDCT must use non-patched scan tables */
     if( picture->mc->xvmc_accel & IDCT_ACCEL ) {
-      if( scan == mpeg2_scan_norm )
-        scan = mpeg2_scan_norm_orig;
-      else
-        scan = mpeg2_scan_alt_orig;
+	if ( scan == mpeg2_scan_norm ) {
+	    scan =  mpeg2_scan_norm_orig; 
+	    scan_ptable = mpeg2_scan_norm_ptable;
+	} else {
+	    scan = mpeg2_scan_alt_orig;
+	    scan_ptable = mpeg2_scan_alt_ptable;
+	}
     }
-
+	    
     bit_buf = picture->bitstream_buf;
     bits = picture->bitstream_bits;
     bit_ptr = picture->bitstream_ptr;
@@ -808,10 +837,10 @@ static void get_xvmc_mpeg1_intra_block (picture_t * picture)
 		break;	/* end of block */
 
 	normal_code:
-	    j = scan[i];
+	    l = scan_ptable[j = scan[i]];
 	    bit_buf <<= tab->len;
 	    bits += tab->len + 1;
-	    val = (tab->level * quantizer_scale * quant_matrix[j]) >> 4;
+	    val = (tab->level * quantizer_scale * quant_matrix[l]) >> 4;
 
 	    /* oddification */
 	    val = (val - 1) | 1;
@@ -837,11 +866,11 @@ static void get_xvmc_mpeg1_intra_block (picture_t * picture)
 
 	    /* escape code */
 
-	    i += UBITS (bit_buf << 6, 6) - 64;
+            i += UBITS (bit_buf << 6, 6) - 64;
 	    if (i >= 64)
 		break;	/* illegal, check needed to avoid buffer overflow */
 
-	    j = scan[i];
+	    l = scan_ptable[j = scan[i]];
 
 	    DUMPBITS (bit_buf, bits, 12);
 	    NEEDBITS (bit_buf, bits, bit_ptr);
@@ -850,7 +879,7 @@ static void get_xvmc_mpeg1_intra_block (picture_t * picture)
 		DUMPBITS (bit_buf, bits, 8);
 		val = UBITS (bit_buf, 8) + 2 * val;
 	    }
-	    val = (val * quantizer_scale * quant_matrix[j]) / 16;
+	    val = (val * quantizer_scale * quant_matrix[l]) / 16;
 
 	    /* oddification */
 	    val = (val + ~SBITS (val, 1)) | 1;
@@ -898,8 +927,10 @@ static void get_xvmc_mpeg1_non_intra_block (picture_t * picture)
 {
     int i;
     int j;
+    int l;
     int val;
     uint8_t * scan = picture->scan;
+    uint8_t * scan_ptable = mpeg2_scan_orig_ptable;
     uint8_t * quant_matrix = picture->non_intra_quantizer_matrix;
     int quantizer_scale = picture->quantizer_scale;
     DCTtab * tab;
@@ -912,14 +943,16 @@ static void get_xvmc_mpeg1_non_intra_block (picture_t * picture)
 
     dest = picture->mc->blockptr;
 
-    /* XvMC's IDCT must use non-patched scan tables */
     if( picture->mc->xvmc_accel & IDCT_ACCEL ) {
-      if( scan == mpeg2_scan_norm )
-        scan = mpeg2_scan_norm_orig;
-      else
-        scan = mpeg2_scan_alt_orig;
+	if ( scan == mpeg2_scan_norm ) {
+	    scan =  mpeg2_scan_norm_orig; 
+	    scan_ptable = mpeg2_scan_norm_ptable;
+	} else {
+	    scan = mpeg2_scan_alt_orig;
+	    scan_ptable = mpeg2_scan_alt_ptable;
+	}
     }
-
+	    
     bit_buf = picture->bitstream_buf;
     bits = picture->bitstream_bits;
     bit_ptr = picture->bitstream_ptr;
@@ -942,10 +975,10 @@ static void get_xvmc_mpeg1_non_intra_block (picture_t * picture)
 		break;	/* end of block */
 
 	normal_code:
-	    j = scan[i];
+	    l = scan_ptable[j = scan[i]];
 	    bit_buf <<= tab->len;
 	    bits += tab->len + 1;
-	    val = ((2*tab->level+1) * quantizer_scale * quant_matrix[j]) >> 5;
+	    val = ((2*tab->level+1) * quantizer_scale * quant_matrix[l]) >> 5;
 
 	    /* oddification */
 	    val = (val - 1) | 1;
@@ -978,7 +1011,7 @@ static void get_xvmc_mpeg1_non_intra_block (picture_t * picture)
 	    if (i >= 64)
 		break;	/* illegal, check needed to avoid buffer overflow */
 
-	    j = scan[i];
+	    l = scan_ptable[j = scan[i]];
 
 	    DUMPBITS (bit_buf, bits, 12);
 	    NEEDBITS (bit_buf, bits, bit_ptr);
@@ -988,7 +1021,7 @@ static void get_xvmc_mpeg1_non_intra_block (picture_t * picture)
 		val = UBITS (bit_buf, 8) + 2 * val;
 	    }
 	    val = 2 * (val + SBITS (val, 1)) + 1;
-	    val = (val * quantizer_scale * quant_matrix[j]) / 32;
+	    val = (val * quantizer_scale * quant_matrix[l]) / 32;
 
 	    /* oddification */
 	    val = (val + ~SBITS (val, 1)) | 1;
@@ -1052,10 +1085,7 @@ static inline void slice_xvmc_intra_DCT (picture_t * picture, int cc,
 
     mpeg2_zero_block(picture->mc->blockptr);
 
-    picture->mc->blockptr[0] =
-	picture->dc_dct_pred[cc] << (3 - picture->intra_dc_precision);
-    //    memset (picture->mc->blockptr + 1, 0, 63 * sizeof (int16_t));
-    // TODO do we need to zero mem here?
+    picture->mc->blockptr[0] = picture->dc_dct_pred[cc] << (3 - picture->intra_dc_precision);
 
     if (picture->mpeg1) {
 	if (picture->picture_coding_type != D_TYPE)
@@ -1078,7 +1108,7 @@ static inline void slice_xvmc_intra_DCT (picture_t * picture, int cc,
 static inline void slice_xvmc_non_intra_DCT (picture_t * picture, uint8_t * dest,
 					int stride)
 {
-    mpeg2_zero_block(picture->mc->blockptr);
+  mpeg2_zero_block(picture->mc->blockptr);
 
     if (picture->mpeg1)
 	get_xvmc_mpeg1_non_intra_block (picture);
@@ -1093,6 +1123,7 @@ static inline void slice_xvmc_non_intra_DCT (picture_t * picture, uint8_t * dest
 }
 
 #define MOTION(table,ref,motion_x,motion_y,size,y)			      \
+  if(!picture->mc->xvmc_accel) {                                              \
     pos_x = 2 * picture->offset + motion_x;				      \
     pos_y = 2 * picture->v_offset + motion_y + 2 * y;			      \
     if ((pos_x > picture->limit_x) || (pos_y > picture->limit_y_ ## size))    \
@@ -1113,7 +1144,8 @@ static inline void slice_xvmc_non_intra_DCT (picture_t * picture, uint8_t * dest
 		      (picture->offset >> 1), ref[2] +			      \
 		      (((picture->offset + motion_x) >> 1) +		      \
 		       ((((picture->v_offset + motion_y) >> 1) + y/2) *	      \
-		        picture->pitches[2])), picture->pitches[2], size/2)   \
+		        picture->pitches[2])), picture->pitches[2], size/2);  \
+    }    
 
 #define MOTION_FIELD(table,ref,motion_x,motion_y,dest_field,op,src_field)     \
 
@@ -1631,7 +1663,7 @@ static inline int slice_xvmc_init (picture_t * picture, int code)
     picture->limit_y = height - 16;
 
     //TODO conversion to signed format signed format
-    if(picture->mc->xvmc_accel == MOTION_ACCEL) {
+    if((picture->mc->xvmc_accel & ACCEL) == MOTION_ACCEL) {
       //Motion Comp only unsigned intra
       // original:
       picture->dc_dct_pred[0] = picture->dc_dct_pred[1] =
@@ -1888,7 +1920,7 @@ void mpeg2_xvmc_slice (mpeg2dec_t *mpeg2dec, picture_t * picture, int code, uint
 					 picture->pitches[2]); // cc2 croma
 	    }
 
-	    if(picture->mc->xvmc_accel == MOTION_ACCEL) {
+            if((picture->mc->xvmc_accel & ACCEL) == MOTION_ACCEL) {
 	        // original:
 	        picture->dc_dct_pred[0] = picture->dc_dct_pred[1] =
 		    picture->dc_dct_pred[2] = 128 << picture->intra_dc_precision;
@@ -1945,7 +1977,7 @@ void mpeg2_xvmc_slice (mpeg2dec_t *mpeg2dec, picture_t * picture, int code, uint
 	mba_inc += mba->mba;
 	if (mba_inc) {
 	    //TODO  conversion to signed format signed format
-	  if(picture->mc->xvmc_accel == MOTION_ACCEL) {
+          if((picture->mc->xvmc_accel & ACCEL) == MOTION_ACCEL) {
 	    // original:
 	    picture->dc_dct_pred[0] = picture->dc_dct_pred[1] =
 	      picture->dc_dct_pred[2] = 128 << picture->intra_dc_precision;
@@ -2011,7 +2043,6 @@ void mpeg2_xvmc_slice (mpeg2dec_t *mpeg2dec, picture_t * picture, int code, uint
 			}
 
 			picture->XvMC_mb_type = macroblock_modes & 0x1E;
-
 			picture->XvMC_x = picture->offset/16;
 			picture->XvMC_y = picture->v_offset/16;
 

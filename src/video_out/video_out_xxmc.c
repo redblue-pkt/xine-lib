@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xxmc.c,v 1.11 2004/12/12 22:01:30 mroi Exp $
+ * $Id: video_out_xxmc.c,v 1.12 2005/02/22 18:31:58 totte67 Exp $
  *
  * video_out_xxmc.c, X11 decoding accelerated video extension interface for xine
  *
@@ -369,7 +369,6 @@ static void xvmc_flush(vo_frame_t *this_gen)
 
   XVMCLOCKDISPLAY( driver->display );
   frame->xxmc_data.result = XvMCFlushSurface( driver->display, frame->xvmc_surf );
-  frame->xxmc_data.result = XvMCSyncSurface( driver->display, frame->xvmc_surf );
   XVMCUNLOCKDISPLAY( driver->display );
 
   xvmc_context_reader_unlock( &driver->xvmc_lock );
@@ -453,17 +452,7 @@ static uint32_t xxmc_get_capabilities (vo_driver_t *this_gen) {
 
 static void xxmc_frame_field (vo_frame_t *vo_img, int which_field) 
 {
-  xxmc_driver_t *this = (xxmc_driver_t *) vo_img->driver;
-
-  
   lprintf ("xvmc_frame_field\n");
-  if (this->xvmc_cap) {
-    if (this->xvmc_accel & (XINE_XVMC_ACCEL_IDCT | XINE_XVMC_ACCEL_MOCOMP)) {
-      this->macroblocks.num_blocks       = 0;
-      this->macroblocks.macroblockptr    = this->macroblocks.macroblockbaseptr;
-      this->macroblocks.xine_mc.blockptr = this->macroblocks.xine_mc.blockbaseptr;
-    }
-  }
 }
 
 static void xxmc_frame_dispose (vo_frame_t *vo_img) {
@@ -1008,26 +997,18 @@ static void xxmc_frame_updates(xxmc_driver_t *driver,
 
   xxmc->acceleration = driver->xvmc_accel;
   xxmc->xvmc.macroblocks = (xine_macroblocks_t *) &driver->macroblocks;
-  xxmc->xvmc.macroblocks->xvmc_accel = (driver->unsigned_intra) ? 
+  xxmc->xvmc.macroblocks->xvmc_accel = (driver->unsigned_intra) ?
     0 : XINE_VO_SIGNED_INTRA;
   switch(driver->xvmc_accel) {
   case XINE_XVMC_ACCEL_IDCT:
     xxmc->xvmc.macroblocks->xvmc_accel |= XINE_VO_IDCT_ACCEL;
     break;
   case XINE_XVMC_ACCEL_MOCOMP:
-    xxmc->xvmc.macroblocks->xvmc_accel |= XINE_VO_MOTION_ACCEL; 
+    xxmc->xvmc.macroblocks->xvmc_accel |= XINE_VO_MOTION_ACCEL;
     break;
   default:
     xxmc->xvmc.macroblocks->xvmc_accel = 0;
   }
-  driver->macroblocks.num_blocks = 0;
-  driver->macroblocks.macroblockptr = driver->macroblocks.macroblockbaseptr;
-  driver->macroblocks.xine_mc.blockptr = 
-    driver->macroblocks.xine_mc.blockbaseptr;
-
-  /*
-   * Accelerated callbacks.
-   */
 
   xxmc->proc_xxmc_flush = xvmc_flush;
   xxmc->xvmc.proc_macro_block = xxmc_xvmc_proc_macro_block;
@@ -1515,6 +1496,7 @@ static void xxmc_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen)
   xxmc_redraw_needed (this_gen);
   if (frame->format == XINE_IMGFMT_XXMC) {
     XVMCLOCKDISPLAY( this->display );
+    XvMCSyncSurface( this->display, frame->xvmc_surf );
     XvMCPutSurface( this->display, frame->xvmc_surf , this->drawable,
 		    this->sc.displayed_xoffset, this->sc.displayed_yoffset,
 		    this->sc.displayed_width, this->sc.displayed_height,
@@ -1711,6 +1693,7 @@ static int xxmc_gui_data_exchange (vo_driver_t *this_gen,
 	xxmc_clean_output_area(this,(frame->format == XINE_IMGFMT_XXMC));
       if (frame->format == XINE_IMGFMT_XXMC) {
 	XVMCLOCKDISPLAY( this->display );
+        XvMCSyncSurface( this->display, frame->xvmc_surf );
 	XvMCPutSurface( this->display, frame->xvmc_surf, this->drawable,
 			this->sc.displayed_xoffset, this->sc.displayed_yoffset,
 			this->sc.displayed_width, this->sc.displayed_height,
@@ -2429,7 +2412,6 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *vi
 			   _("There's a bug in NVIDIA's XvMC lib that makes red OSD colors\n"
 			     "look blue and vice versa. This option provides a workaround.\n"),
 			   10, xxmc_update_nvidia_fix, this);
-
   this->deinterlace_enabled = 0;
 #ifdef HAVE_VLDXVMC
   printf("video_out_xxmc: Unichrome CPU saving is %s.\n",
