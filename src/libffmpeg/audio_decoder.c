@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.4 2004/02/07 18:38:21 jstembridge Exp $
+ * $Id: audio_decoder.c,v 1.5 2004/03/13 19:42:22 jstembridge Exp $
  *
  * xine audio decoder plugin using ffmpeg
  *
@@ -139,7 +139,10 @@ static void ff_audio_decode_data (audio_decoder_t *this_gen, buf_element_t *buf)
     this->context = avcodec_alloc_context();
 
     this->context->sample_rate = this->audio_sample_rate = buf->decoder_info[1];
-    this->audio_bits = buf->decoder_info[2];
+    /* Current ffmpeg audio decoders always use 16 bits/sample 
+     * buf->decoder_info[2] can't be used as it doesn't refer to the output
+     * bits/sample for some codecs (e.g. MS ADPCM) */
+    this->audio_bits = 16;  
     this->context->channels = this->audio_channels = buf->decoder_info[3];
     this->context->block_align = audio_header->nBlockAlign;
     this->context->bit_rate = audio_header->nAvgBytesPerSec * 8;
