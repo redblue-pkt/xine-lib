@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.86 2001/12/14 16:50:57 f1rmb Exp $
+ * $Id: video_out_xv.c,v 1.87 2002/01/05 13:49:30 miguelfreitas Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -1226,6 +1226,21 @@ static void xv_update_XV_FILTER(void *this_gen, cfg_entry_t *entry)
   printf("video_out_xv: bilinear scaling mode (XV_FILTER) = %d\n",xv_filter);
 }
 
+static void xv_update_XV_DOUBLE_BUFFER(void *this_gen, cfg_entry_t *entry)
+{
+  xv_driver_t *this = (xv_driver_t *) this_gen;
+  Atom atom;
+  int xv_double_buffer;
+  
+  xv_double_buffer = entry->num_value;
+  
+  atom = XInternAtom (this->display, "XV_DOUBLE_BUFFER", False);
+
+  XvSetPortAttribute (this->display, this->xv_port, atom, xv_double_buffer);
+  printf("video_out_xv: double buffering mode = %d\n",xv_double_buffer);
+}
+
+
 vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
 
   xv_driver_t          *this;
@@ -1419,6 +1434,12 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
 					    "bilinear scaling mode (permedia 2/3)",
 					    NULL, xv_update_XV_FILTER, this);
 	  config->update_num(config,"video.XV_FILTER",xv_filter);
+	} else if(!strcmp(attr[k].name, "XV_DOUBLE_BUFFER")) {
+	  int xv_double_buffer;
+	  xv_double_buffer = config->register_bool (config, "video.XV_DOUBLE_BUFFER", 1,
+					    "double buffer to sync video to the retrace",
+					    NULL, xv_update_XV_DOUBLE_BUFFER, this);
+	  config->update_num(config,"video.XV_DOUBLE_BUFFER",xv_double_buffer);
 	}
       }
     }
