@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_overlay.c,v 1.2 2001/11/29 16:31:47 miguelfreitas Exp $
+ * $Id: video_overlay.c,v 1.3 2001/11/30 16:19:58 jcdutton Exp $
  *
  */
 
@@ -281,13 +281,17 @@ static int32_t video_overlay_add_event(video_overlay_instance_t *this_gen,  void
       fprintf(stderr,"video_overlay: error: event->object.overlay was not freed!\n");
     }
     
-    this->video_overlay_events[new_event].event->object.overlay = xine_xmalloc (sizeof(vo_overlay_t));
-    memcpy(this->video_overlay_events[new_event].event->object.overlay, 
+    if( event->object.overlay ) {
+      this->video_overlay_events[new_event].event->object.overlay = xine_xmalloc (sizeof(vo_overlay_t));
+      xine_fast_memcpy(this->video_overlay_events[new_event].event->object.overlay, 
            event->object.overlay, sizeof(vo_overlay_t));
     
-    /* We took the callers rle and data, therefore it will be our job to free it */
-    /* clear callers overlay so it will not be freed twice */
-    memset(event->object.overlay,0,sizeof(vo_overlay_t));
+      /* We took the callers rle and data, therefore it will be our job to free it */
+      /* clear callers overlay so it will not be freed twice */
+      memset(event->object.overlay,0,sizeof(vo_overlay_t));
+    } else {
+      this->video_overlay_events[new_event].event->object.overlay = NULL;
+    }
   } else {
     fprintf(stderr, "No spare subtitle event slots\n");
     new_event = -1;

@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.38 2001/11/30 15:39:55 jcdutton Exp $
+ * $Id: xine_decoder.c,v 1.39 2001/11/30 16:19:58 jcdutton Exp $
  *
  * stuff needed to turn libspu into a xine decoder plugin
  */
@@ -350,27 +350,34 @@ static void spudec_event_listener(void *this_gen, xine_event_t *event_gen) {
       video_overlay_event_t *overlay_event = NULL;
       vo_overlay_t        *overlay = NULL;
       spu_button_t        *but = event->data;
+
 #ifdef LOG_DEBUG
       printf ("MALLOC1: overlay_event %p, len=%d\n",
 	      overlay_event,
 	      sizeof(video_overlay_event_t));
 #endif
+
       overlay_event = xine_xmalloc (sizeof(video_overlay_event_t));
+
 #ifdef LOG_DEBUG
       printf("MALLOC2: overlay_event %p, len=%d\n",
 	     overlay_event,
 	     sizeof(video_overlay_event_t));
+#endif
+
+#ifdef LOG_DEBUG
       printf ("MALLOC1: overlay %p, len=%d\n",
 	      overlay,
 	      sizeof(vo_overlay_t));
 #endif
+
       overlay = xine_xmalloc (sizeof(vo_overlay_t));
+
 #ifdef LOG_DEBUG
       printf ("MALLOC2: overlay %p, len=%d\n",
 	      overlay,
 	      sizeof(vo_overlay_t));
 #endif
-      overlay_event->object.overlay=overlay;
 
 #ifdef LOG_DEBUG
       printf ("BUTTON\n");
@@ -383,6 +390,10 @@ static void spudec_event_listener(void *this_gen, xine_event_t *event_gen) {
 	   but->left, but->right, but->top, but->bottom );
 #endif
       if (!this->state.menu) return;
+
+#ifdef LOG_DEBUG
+      printf ("libspudec:xine_decoder.c:spudec_event_listener:this->menu_handle=%u\n",this->menu_handle);
+#endif
       
       if (but->show) {
         overlay_event->object.handle = this->menu_handle;
