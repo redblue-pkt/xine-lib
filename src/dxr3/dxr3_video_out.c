@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_video_out.c,v 1.3 2001/12/24 16:31:57 hrm Exp $
+ * $Id: dxr3_video_out.c,v 1.4 2001/12/24 19:31:13 hrm Exp $
  *
  * mpeg1 encoding video out plugin for the dxr3.  
  *
@@ -250,6 +250,9 @@ static void dxr3_update_frame_format (vo_driver_t *this_gen,
 	}
   }
   else {
+	/* FIXME: Disable reset of mpeg_source 
+	 * video_out.c can call us without the DXR3_VO_UPDATE_FLAG in
+	 * the still frames code. Needs a better fix... */
 	/* this->mpeg_source = 0; */
   }
 
@@ -466,6 +469,8 @@ void dxr3_exit (vo_driver_t *this_gen)
 
 	if (this->enc && this->enc->on_close)
 		this->enc->on_close(this);
+	printf("dxr3: vo exit called\n");
+	this->mpeg_source = 0;
 
 	if(this->overlay_enabled)
 		dxr3_overlay_set_mode(&this->overlay, EM8300_OVERLAY_MODE_OFF);

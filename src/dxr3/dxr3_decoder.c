@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decoder.c,v 1.52 2001/12/24 16:31:57 hrm Exp $
+ * $Id: dxr3_decoder.c,v 1.53 2001/12/24 19:31:13 hrm Exp $
  *
  * dxr3 video and spu decoder plugin. Accepts the video and spu data
  * from XINE and sends it directly to the corresponding dxr3 devices.
@@ -440,8 +440,10 @@ static int get_duration(int framecode, int repeat_first_field)
 static void dxr3_flush (video_decoder_t *this_gen) 
 {
 	dxr3_decoder_t *this = (dxr3_decoder_t *) this_gen;
-	printf("dxr3_decoder: flushing\n");
-	dxr3_mvcommand(this->fd_control, 0x11); 
+	/* Don't flush, causes still images to disappear. We don't seem
+	 * to need it anyway... */
+	printf("dxr3_decoder: flush requested, disabled for the moment.\n");
+	/* dxr3_mvcommand(this->fd_control, 0x11); */
 	this->have_header_info = 0;
 	if (this->fd_video >= 0)
 		fsync(this->fd_video);
