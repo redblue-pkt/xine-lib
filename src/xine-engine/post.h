@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: post.h,v 1.19 2004/04/17 19:54:31 mroi Exp $
+ * $Id: post.h,v 1.20 2004/05/18 03:16:12 miguelfreitas Exp $
  *
  * post plugin definitions
  *
@@ -305,6 +305,9 @@ struct post_audio_port_s {
   uint32_t           bits;
   uint32_t           rate;
   uint32_t           mode;
+  
+  /* ++ for every open, -- for every close */
+  int                open_count;
   
   /* point to a mutex here, if you need some synchronization */
   pthread_mutex_t   *port_lock;

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: post.c,v 1.24 2004/05/18 02:01:39 miguelfreitas Exp $
+ * $Id: post.c,v 1.25 2004/05/18 03:16:12 miguelfreitas Exp $
  */
  
 /*
@@ -619,6 +619,7 @@ static int post_audio_open(xine_audio_port_t *port_gen, xine_stream_t *stream,
   port->bits   = bits;
   port->rate   = rate;
   port->mode   = mode;
+  port->open_count++;
   return result;
 }
 
@@ -649,6 +650,7 @@ static void post_audio_close(xine_audio_port_t *port_gen, xine_stream_t *stream)
   port->original_port->close(port->original_port, stream);
   if (port->port_lock) pthread_mutex_unlock(port->port_lock);
   port->stream = NULL;
+  port->open_count--;
   _x_post_dec_usage(port);
 }
 
@@ -707,10 +709,12 @@ static int post_audio_rewire(xine_post_out_t *output_gen, void *data) {
   
   this->running_ticket->revoke(this->running_ticket, 1);
   
-  new_port->open(new_port, (input_port->stream == POST_NULL_STREAM) ? NULL : input_port->stream,
-    input_port->bits, input_port->rate, input_port->mode);
-  input_port->original_port->close(input_port->original_port,
-    (input_port->stream == POST_NULL_STREAM) ? NULL : input_port->stream);
+  if( input_port->open_count ) {
+    new_port->open(new_port, (input_port->stream == POST_NULL_STREAM) ? NULL : input_port->stream,
+      input_port->bits, input_port->rate, input_port->mode);
+    input_port->original_port->close(input_port->original_port,
+      (input_port->stream == POST_NULL_STREAM) ? NULL : input_port->stream);
+  }
   input_port->original_port = new_port;
   
   this->running_ticket->issue(this->running_ticket, 1);
@@ -764,7 +768,7 @@ post_audio_port_t *_x_post_intercept_audio_port(post_plugin_t *post, xine_audio_
     xine_list_append_content(post->output, *output);
   }
     
-  original->status(original, port->stream, &port->bits, &port->rate, &port->mode);
+  port->open_count = 0;
   
   return port;
 }

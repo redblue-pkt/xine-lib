@@ -23,7 +23,7 @@
  * process. It simply paints the screen a solid color and rotates through
  * colors on each iteration.
  *
- * $Id: fooviz.c,v 1.21 2004/04/17 19:54:32 mroi Exp $
+ * $Id: fooviz.c,v 1.22 2004/05/18 03:17:03 miguelfreitas Exp $
  *
  */
 
@@ -116,6 +116,7 @@ static int fooviz_port_open(xine_audio_port_t *port_gen, xine_stream_t *stream,
   port->bits = bits;
   port->rate = rate;
   port->mode = mode;
+  port->open_count++;
   
   this->ratio = (double)FOO_WIDTH/(double)FOO_HEIGHT;
   this->channels = _x_ao_mode2channels(mode);
@@ -139,6 +140,8 @@ static void fooviz_port_close(xine_audio_port_t *port_gen, xine_stream_t *stream
   this->metronom->set_master(this->metronom, NULL);
  
   port->original_port->close(port->original_port, stream );
+  
+  port->open_count--;
   
   _x_post_dec_usage(port);
 }

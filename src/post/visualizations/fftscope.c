@@ -22,7 +22,7 @@
  *
  * FFT code by Steve Haehnichen, originally licensed under GPL v1
  *
- * $Id: fftscope.c,v 1.25 2004/02/12 18:25:08 mroi Exp $
+ * $Id: fftscope.c,v 1.26 2004/05/18 03:17:03 miguelfreitas Exp $
  *
  */
 
@@ -284,6 +284,7 @@ static int fftscope_port_open(xine_audio_port_t *port_gen, xine_stream_t *stream
   port->bits = bits;
   port->rate = rate;
   port->mode = mode;
+  port->open_count++;
   
   this->ratio = (double)FFT_WIDTH/(double)FFT_HEIGHT;
 
@@ -324,6 +325,8 @@ static void fftscope_port_close(xine_audio_port_t *port_gen, xine_stream_t *stre
   this->metronom->set_master(this->metronom, NULL);
  
   port->original_port->close(port->original_port, stream );
+  
+  port->open_count--;
   
   _x_post_dec_usage(port);
 }

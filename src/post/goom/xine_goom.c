@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_goom.c,v 1.51 2004/04/26 17:50:09 mroi Exp $
+ * $Id: xine_goom.c,v 1.52 2004/05/18 03:17:02 miguelfreitas Exp $
  *
  * GOOM post plugin.
  *
@@ -364,6 +364,7 @@ static int goom_port_open(xine_audio_port_t *port_gen, xine_stream_t *stream,
   port->bits = bits;
   port->rate = rate;
   port->mode = mode;
+  port->open_count++;
   
   this->channels = _x_ao_mode2channels(mode);
   this->sample_rate = rate;
@@ -391,6 +392,8 @@ static void goom_port_close(xine_audio_port_t *port_gen, xine_stream_t *stream )
   this->metronom->set_master(this->metronom, NULL);
  
   port->original_port->close(port->original_port, stream );
+  
+  port->open_count--;
   
   _x_post_dec_usage(port);
 }
