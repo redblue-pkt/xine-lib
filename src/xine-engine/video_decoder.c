@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.76 2002/03/11 12:31:26 guenter Exp $
+ * $Id: video_decoder.c,v 1.77 2002/03/11 19:49:07 jkeil Exp $
  *
  */
 
@@ -155,7 +155,7 @@ void *video_decoder_loop (void *this_gen) {
       pthread_mutex_lock (&this->finished_lock);
       this->spu_finished = 1;
 
-      if (!this->video_finished && (buf->decoder_flags==BUF_FLAG_END_STREAM)) {
+      if (!this->video_finished && (buf->decoder_flags & (BUF_FLAG_END_STREAM | BUF_FLAG_END_USER))) {
 
         this->video_finished = 1;
 
