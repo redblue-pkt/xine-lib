@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xshm.c,v 1.44 2001/10/10 10:06:59 jkeil Exp $
+ * $Id: video_out_xshm.c,v 1.45 2001/10/11 20:32:08 miguelfreitas Exp $
  * 
  * video_out_xshm.c, X11 shared memory extension interface for xine
  *
@@ -450,11 +450,11 @@ static void xshm_calc_output_size (xshm_driver_t *this) {
 
   } else {
 
-    image_ratio = 
+    image_ratio =
 	(double) this->delivered_width / (double) this->delivered_height;
 
-    switch (this->user_ratio) { 
-    case ASPECT_AUTO: 
+    switch (this->user_ratio) {
+    case ASPECT_AUTO:
       switch (this->delivered_ratio_code) {
       case 3:  /* anamorphic     */
 	desired_ratio = 16.0 /9.0;
@@ -469,7 +469,7 @@ static void xshm_calc_output_size (xshm_driver_t *this) {
       case 0: /* forbidden -> 4:3 */
 	fprintf (stderr, "invalid ratio, using 4:3\n");
       default:
-	xprintf (VIDEO, "unknown aspect ratio (%d) in stream => using 4:3\n", 
+	xprintf (VIDEO, "unknown aspect ratio (%d) in stream => using 4:3\n",
 		 this->delivered_ratio_code);
       case 2: /* 4:3             */
 	desired_ratio = 4.0 / 3.0;
@@ -496,7 +496,7 @@ static void xshm_calc_output_size (xshm_driver_t *this) {
      * calc ideal output frame size
      */
 
-    corr_factor = this->ratio_factor / image_ratio ;  
+    corr_factor = this->ratio_factor / image_ratio ;
 
     if (fabs(corr_factor - 1.0) < 0.005) {
       ideal_width  = this->delivered_width;
@@ -523,9 +523,12 @@ static void xshm_calc_output_size (xshm_driver_t *this) {
     }
 
     /* yuv2rgb_mmx prefers "width%8 == 0" */
-    ideal_width &= ~7;
+    /* but don't change if it would introduce scaling */
+    if( ideal_width != this->delivered_width ||
+        ideal_height != this->delivered_height )
+      ideal_width &= ~7;
 
-    this->calc_dest_size (ideal_width, ideal_height, 
+    this->calc_dest_size (ideal_width, ideal_height,
 			  &dest_width, &dest_height);
 
     /*
@@ -534,14 +537,14 @@ static void xshm_calc_output_size (xshm_driver_t *this) {
 
     x_factor = (double) dest_width  / (double) ideal_width;
     y_factor = (double) dest_height / (double) ideal_height;
-  
-    if ( x_factor < y_factor ) { 
+
+    if ( x_factor < y_factor ) {
       this->output_width   = (double) ideal_width  * x_factor ;
       this->output_height  = (double) ideal_height * x_factor ;
     } else {
       this->output_width   = (double) ideal_width  * y_factor ;
       this->output_height  = (double) ideal_height * y_factor ;
-    } 
+    }
 
   }
 
@@ -625,7 +628,7 @@ static void xshm_update_frame_format (vo_driver_t *this_gen,
       frame->image = NULL;
     }
 
-    frame->image = create_ximage (this, &frame->shminfo, 
+    frame->image = create_ximage (this, &frame->shminfo,
 				  this->output_width, this->output_height);
 
     XUnlockDisplay (this->display); 
@@ -772,7 +775,7 @@ static void xshm_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
 
       xprintf (VIDEO, "video_out_xshm: requesting dest size of %d x %d \n",
 	       frame->rgb_width, frame->rgb_height);
-      
+
       this->request_dest_size (frame->rgb_width, frame->rgb_height, 
 			       &this->dest_x, &this->dest_y, 
 			       &this->gui_width, &this->gui_height);
@@ -828,7 +831,7 @@ static void xshm_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
 }
 
 static int xshm_get_property (vo_driver_t *this_gen, int property) {
-  
+
   xshm_driver_t *this = (xshm_driver_t *) this_gen;
 
   if ( property == VO_PROP_ASPECT_RATIO) {
@@ -870,6 +873,9 @@ static int xshm_set_property (vo_driver_t *this_gen,
     this->gui_changed |= GUI_ASPECT_CHANGED;
     printf("video_out_xshm: aspect ratio changed to %s\n",
 	   aspect_ratio_name(value));
+  } else if ( property == VO_PROP_SOFT_DEINTERLACE) {
+    if( value )
+      printf("video_out_xshm: software deinterlace not supported.\n");
   } else {
     printf ("video_out_xshm: tried to set unsupported property %d\n", property);
   }
@@ -989,7 +995,7 @@ static int xshm_gui_data_exchange (vo_driver_t *this_gen,
   case GUI_DATA_EX_COMPLETION_EVENT: {
 
     XShmCompletionEvent *cev = (XShmCompletionEvent *) data;
-    
+
     if (cev->drawable == this->drawable) {
       this->expecting_event = 0;
 
@@ -1020,7 +1026,7 @@ static int xshm_gui_data_exchange (vo_driver_t *this_gen,
       yoffset  = (this->gui_height - this->cur_frame->rgb_height) / 2;
 
       if (this->use_shm) {
-	
+
 	XShmPutImage(this->display,
 		     this->drawable, this->gc, this->cur_frame->image,
 		     0, 0, xoffset, yoffset,
@@ -1094,7 +1100,7 @@ ImlibPaletteLUTGet(xshm_driver_t *this)
   length = 0x7fffffff;
   to_get = XInternAtom(this->display, "_IMLIB_COLORMAP", False);
   XGetWindowProperty(this->display, RootWindow(this->display, this->screen),
-		     to_get, 0, length, False, 
+		     to_get, 0, length, False,
 		     XA_CARDINAL, &type_ret, &format_ret, &num_ret,
 		     &bytes_after, &retval);
   if (retval != 0 && num_ret > 0 && format_ret > 0) {
@@ -1103,7 +1109,7 @@ ImlibPaletteLUTGet(xshm_driver_t *this)
 	  
       num_colors = retval[0];
       j = 1 + num_colors*4;
-      this->fast_rgb = malloc(sizeof(uint8_t) * 32 * 32 * 32);	  
+      this->fast_rgb = malloc(sizeof(uint8_t) * 32 * 32 * 32);
       for (i = 0; i < 32 * 32 * 32 && j < num_ret; i++)
 	this->fast_rgb[i] = retval[1+4*retval[j++]+3];
 
@@ -1211,7 +1217,7 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
    * actually represent the colour.
    *
    * bpp in X11 land means how many bits in the frame buffer per
-   * pixel. 
+   * pixel.
    *
    * ex. 15 bit color is 15 bit depth and 16 bpp. Also 24 bit
    *     color is 24 bit depth, but can be 24 bpp or 32 bpp.
@@ -1221,7 +1227,7 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
   this->visual = attribs.visual;
   this->depth  = attribs.depth;
 
-  if (this->depth>16) 
+  if (this->depth>16)
     printf ("\n\n"
 	    "WARNING: current display depth is %d. For better performance\n"
 	    "a depth of 16 bpp is recommended!\n\n",
@@ -1239,8 +1245,8 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
     this->use_shm = 0;
   }
 
-  /* 
-   * try to create a shared image 
+  /*
+   * try to create a shared image
    * to find out if MIT shm really works
    * and what bpp it uses
    */
