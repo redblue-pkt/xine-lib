@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_interface.c,v 1.14 2002/09/18 00:51:34 guenter Exp $
+ * $Id: xine_interface.c,v 1.15 2002/09/18 12:12:35 guenter Exp $
  *
  * convenience/abstraction layer, functions to implement
  * libxine's public interface
@@ -222,6 +222,10 @@ int  xine_config_get_first_entry (xine_p this, xine_cfg_entry_t *entry) {
 
   config->cur = config->first;
 
+  /* do not hand out unclaimed entries */
+  while (config->cur && config->cur->type == CONFIG_TYPE_UNKNOWN);
+    config->cur = config->cur->next;
+
   return xine_config_get_current_entry (this, entry);
 }
   
@@ -234,7 +238,10 @@ int xine_config_get_next_entry (xine_p this, xine_cfg_entry_t *entry) {
 
   config_values_t *config = this->config;
 
-  config->cur = config->cur->next;
+  /* do not hand out unclaimed entries */
+  do {
+    config->cur = config->cur->next;
+  } while (config->cur && config->cur->type == CONFIG_TYPE_UNKNOWN);
 
   return xine_config_get_current_entry (this, entry);
 } 
@@ -250,6 +257,10 @@ int xine_config_lookup_entry (xine_p this, const char *key,
   config_values_t *config = this->config;
 
   config->cur = config->lookup_entry (config, key);
+
+  /* do not hand out unclaimed entries */
+  if (config->cur && config->cur->type == CONFIG_TYPE_UNKNOWN)
+    config->cur = NULL;
   
   return xine_config_get_current_entry (this, entry);
 }
