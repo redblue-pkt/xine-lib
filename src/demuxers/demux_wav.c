@@ -20,7 +20,7 @@
  * MS WAV File Demuxer by Mike Melanson (melanson@pcisys.net)
  * based on WAV specs that are available far and wide
  *
- * $Id: demux_wav.c,v 1.4 2002/07/14 22:27:25 miguelfreitas Exp $
+ * $Id: demux_wav.c,v 1.5 2002/07/17 18:17:49 miguelfreitas Exp $
  *
  */
 
@@ -140,9 +140,6 @@ static void *demux_wav_loop (void *this_gen) {
         if (!remaining_sample_bytes)
           buf->decoder_flags |= BUF_FLAG_FRAME_END;
 
-        buf->decoder_info[1] = this->wave->nSamplesPerSec;
-        buf->decoder_info[2] = this->wave->wBitsPerSample;
-        buf->decoder_info[3] = this->wave->nChannels;
         this->audio_fifo->put (this->audio_fifo, buf);
       }
     }

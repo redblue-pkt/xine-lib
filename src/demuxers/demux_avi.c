@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_avi.c,v 1.103 2002/07/16 19:41:17 miguelfreitas Exp $
+ * $Id: demux_avi.c,v 1.104 2002/07/17 18:17:48 miguelfreitas Exp $
  *
  * demultiplexer for avi streams
  *
@@ -1068,9 +1068,6 @@ static int demux_avi_next (demux_avi_t *this) {
       buf->input_time = 0;
 
       buf->type = audio->audio_type | i;
-      buf->decoder_info[1] = audio->wavex->nSamplesPerSec; /* audio Rate */
-      buf->decoder_info[2] = audio->wavex->wBitsPerSample; /* audio bits */
-      buf->decoder_info[3] = audio->wavex->nChannels; /* audio channels */
 
       if(this->audio_fifo) {
         this->audio_fifo->put (this->audio_fifo, buf);

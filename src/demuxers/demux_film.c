@@ -21,7 +21,7 @@
  * For more information on the FILM file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_film.c,v 1.18 2002/07/14 22:27:25 miguelfreitas Exp $
+ * $Id: demux_film.c,v 1.19 2002/07/17 18:17:48 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -458,9 +458,6 @@ static void *demux_film_loop (void *this_gen) {
           if (!remaining_sample_bytes)
             buf->decoder_flags |= BUF_FLAG_FRAME_END;
 
-          buf->decoder_info[1] = this->sample_rate;
-          buf->decoder_info[2] = this->audio_bits;
-          buf->decoder_info[3] = this->audio_channels;
           this->audio_fifo->put(this->audio_fifo, buf);
         }
       }

@@ -21,7 +21,7 @@
  * For more information on the SMJPEG file format, visit:
  *   http://www.lokigames.com/development/smjpeg.php3
  *
- * $Id: demux_smjpeg.c,v 1.3 2002/07/14 22:27:25 miguelfreitas Exp $
+ * $Id: demux_smjpeg.c,v 1.4 2002/07/17 18:17:49 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -156,9 +156,6 @@ static void *demux_smjpeg_loop (void *this_gen) {
           if (chunk_tag == sndD_TAG) {
             buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
             buf->type = this->audio_type;
-            buf->decoder_info[1] = this->audio_sample_rate;
-            buf->decoder_info[2] = this->audio_bits;
-            buf->decoder_info[3] = this->audio_channels;
           } else {
             buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
             buf->type = this->video_type;

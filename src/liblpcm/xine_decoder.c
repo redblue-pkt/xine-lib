@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.28 2002/07/05 17:32:03 mroi Exp $
+ * $Id: xine_decoder.c,v 1.29 2002/07/17 18:17:49 miguelfreitas Exp $
  * 
  * 31-8-2001 Added LPCM rate sensing.
  *   (c) 2001 James Courtier-Dutton James@superbug.demon.co.uk
@@ -89,17 +89,11 @@ void lpcm_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
   /* Drop preview data */
   if (buf->decoder_flags & BUF_FLAG_PREVIEW)
     return;
-  if (buf->decoder_info[1]==0 || buf->decoder_info[2]==0 || buf->decoder_info[3]==0) {
-    printf ("liblpcm: decoder_info bad. zeros\n");
-    return;
-  }
+
   /*
    * (re-)open output device
    */
-  if (!this->output_open
-      || (this->rate != buf->decoder_info[1])
-      || (this->bits_per_sample != buf->decoder_info[2])
-      || (this->number_of_channels != buf->decoder_info[3]) ) {
+  if ( buf->decoder_flags & BUF_FLAG_HEADER ) {
 
     if (this->output_open)
         this->audio_out->close (this->audio_out);
