@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: xine-lib 0.9.13\n"
 "POT-Creation-Date: 2002-08-30 16:24+0200\n"
-"PO-Revision-Date: 2002-09-01 21:52+0200\n"
+"PO-Revision-Date: 2002-09-05 08:24+0200\n"
 "Last-Translator: Bart³omiej Muryn <_4ever_@irc.pl>\n"
 "Language-Team: Polski <pl@li.org>\n"
 "MIME-Version: 1.0\n"
@@ -55,7 +55,7 @@ msgstr "urz±dzenie miksera alsa"
 #: src/audio_out/audio_alsa_out.c:1015 src/audio_out/audio_alsa_out.c:1028
 #: src/audio_out/audio_alsa_out.c:1041 src/audio_out/audio_alsa_out.c:1059
 msgid "used to inform xine about what the sound card can do"
-msgstr "u¿ywane do informowania xine o mo¿liwo¶ciach karty d¼wiêkowej"
+msgstr "Informacja dla xine o mo¿liwo¶ciach karty d¼wiêkowej"
 
 # src/audio_out/audio_alsa_out.c:1105
 #: src/audio_out/audio_alsa_out.c:1111
@@ -1230,7 +1230,7 @@ msgstr ""
 # src/input/input_file.c:908
 #: src/input/input_file.c:908
 msgid "origin path to grab file mrls"
-msgstr "¶cie¿ka dostêpu do pli?ów multimedialnych"
+msgstr "¶cie¿ka dostêpu do plików multimedialnych"
 
 # src/input/input_file.c:913
 #: src/input/input_file.c:913
@@ -1737,7 +1737,7 @@ msgstr "tryb skalowania bilinearnego (permedia 2/3)"
 # src/video_out/video_out_xv.c:1414
 #: src/video_out/video_out_xv.c:1247
 msgid "double buffer to sync video to the retrace"
-msgstr "podwójny pufor do synchronizacji obrazu do powrotu plamki"
+msgstr "podwójny bufor do synchronizacji obrazu do powrotu plamki"
 
 # src/video_out/video_out_xv.c:1463
 #: src/video_out/video_out_xv.c:1296
@@ -2327,7 +2327,7 @@ msgstr ""
 # src/libdivx4/xine_decoder.c:569
 #: src/libdivx4/xine_decoder.c:571
 msgid "Relative path to libdivxdecore.so to open"
-msgstr "wzgêdna ¶cie¿ka do otwarcia libdivxdecore.so"
+msgstr "wzglêdna ¶cie¿ka do libdivxdecore.so"
 
 # src/libdivx4/xine_decoder.c:594
 #: src/libdivx4/xine_decoder.c:596
@@ -2577,148 +2577,4 @@ msgstr ""
 "libfaad: oznacza to niezgodno¶æ miêdzy xine a t± wtyczka libmad: "
 "libfaad: demultiplexera.\n"
 "Instalacja najnowszej wersji wtyczki powinna pomóc.\n"
-
-# src/input/input_dvd.c:145 src/input/input_dvd.c:693
-# src/input/input_dvd.c:753
-#~ msgid "input_dvd: unable to open dvd drive (%s): %s\n"
-#~ msgstr "input_dvd: nie mogê otworzyæ napêdu dvd (%s): %s\n"
-
-# src/input/input_dvd.c:242
-#~ msgid "USCSICMD dvd_read_copyright: %s"
-#~ msgstr "USCSICMD dvd_read_copyright: %s"
-
-# src/input/input_dvd.c:246
-#~ msgid "bad status: READ DVD STRUCTURE (copyright)\n"
-#~ msgstr "z³y status: READ DVD STRUCTURE (copyright)\n"
-
-# src/input/input_dvd.c:300
-#~ msgid "input_dvd: cannot open dvd drive >%s<\n"
-#~ msgstr "input_dvd: nie mogê otworzyæ napêdu dvd >%s<\n"
-
-# src/input/input_dvd.c:311 src/input/input_dvd.c:324
-#~ msgid "input_dvd: Could not read Copyright Structure\n"
-#~ msgstr "input_dvd: nie mogê odczytaæ Copyright Structure\n"
-
-# src/input/input_dvd.c:337
-#~ msgid ""
-#~ "input_dvd: Could not read Copyright Structure.\n"
-#~ "           Assuming disk is not encrypted.\n"
-#~ msgstr ""
-#~ "input_dvd: Nie mogê odczytaæ Copyright Structure.\n"
-#~ "           Przyjmujê ¿e dysk nie jest zaszyfrowany.\n"
-
-# src/input/input_dvd.c:346
-#~ msgid ""
-#~ "\n"
-#~ "input_dvd: Sorry, this plugin doesn't play encrypted DVDs. The legal "
-#~ "status\n"
-#~ "           of CSS decryption is unclear and we can't provide such code.\n"
-#~ "           Please check http://dvd.sf.net for more information.\n"
-#~ msgstr ""
-#~ "\n"
-#~ "input_dvd: Przykro mi, ta wtyczka nie odtwarza zaszyfrowanych DVD. Status "
-#~ "prawny szyfrowania CSS\n"
-#~ "           jest niejasny wiêc nie mo¿emy dostarczaæ takiego kodu.\n"
-#~ "           Proszê sprawdziæ http://dvd.sf.net aby dowiedzieæ siê wiêcej.\n"
-
-# src/input/input_dvd.c:355
-#~ msgid "input_dvd: cannot open file >%s<\n"
-#~ msgstr "input_dvd: nie mogê otworzyæ pliku >%s<\n"
-
-# src/input/input_dvd.c:400
-#~ msgid "input_dvd: Unable to find >%s< on dvd.\n"
-#~ msgstr "input_dvd: Nie mogê znale¼æ >%s< na dvd.\n"
-
-# src/input/input_dvd.c:435
-#~ msgid "input_dvd: error read: %Ld bytes is not a sector!\n"
-#~ msgstr "input_dvd: error read: %Ld bajtow to nie sektor!\n"
-
-# src/input/input_dvd.c:452
-#~ msgid "input_dvd: read error in input_dvd plugin (%s)\n"
-#~ msgstr "input_dvd: b³±d odczytu we wtyczce input_dvd (%s)\n"
-
-# src/input/input_dvd.c:456
-#~ msgid "input_dvd: short read in input_dvd (%d != %d)\n"
-#~ msgstr "input_dvd: krótki odczyt we wtyczce input_dvd (%d != %d)\n"
-
-# src/input/input_dvd.c:475
-#~ msgid ""
-#~ "input_dvd: error in input_dvd plugin read: %Ld bytes is not a sector!\n"
-#~ msgstr ""
-#~ "input_dvd: b³±d w odczycie wtyczki input_dvd: %Ld bajtow to nie sektor!\n"
-
-# src/input/input_dvd.c:487
-#~ msgid "input_dvd: read error in input_dvd plugin\n"
-#~ msgstr "input_dvd: b³±d odczytu we wtyczce input_dvd\n"
-
-# src/input/input_dvd.c:520
-#~ msgid "input_dvd: seek: %d is an unknown origin\n"
-#~ msgstr "input_dvd: seek: %d jest nieznanego pochodzenia\n"
-
-# src/input/input_dvd.c:561
-#~ msgid "input_dvd: CDROMCLOSETRAY failed: %s\n"
-#~ msgstr "input_dvd: CDROMCLOSETRAY zawiod³o: %s\n"
-
-# src/input/input_dvd.c:567 src/input/input_dvd.c:584
-#~ msgid "input_dvd: CDROMEJECT failed: %s\n"
-#~ msgstr "input_dvd: CDROMEJECT zawiod³o: %s\n"
-
-# src/input/input_dvd.c:573
-#~ msgid "input_dvd: CDROM_DRIVE_STATUS failed: %s\n"
-#~ msgstr "input_dvd: CDROM_DRIVE_STATUS zawiod³o: %s\n"
-
-# src/input/input_dvd.c:589
-#~ msgid "ioctl(cdromallow): %s"
-#~ msgstr "ioctl(cdromallow): %s"
-
-# src/input/input_dvd.c:592
-#~ msgid "ioctl(cdromeject): %s"
-#~ msgstr "ioctl(cdromeject): %s"
-
-# src/input/input_dvd.c:619
-#~ msgid "dvd device input plugin as shipped with xine"
-#~ msgstr "wtyczka wej¶cia DVD dostarczana z xine"
-
-# src/input/input_dvd.c:814
-#~ msgid ""
-#~ "dvd input plugin doesn't support plugin API version %d.\n"
-#~ "PLUGIN DISABLED.\n"
-#~ "This means there's a version mismatch between xine and this inputplugin.\n"
-#~ "Installing current input plugins should help.\n"
-#~ msgstr ""
-#~ "Wtyczka wej¶cia dvd nie wspiera API w wersji %d.\n"
-#~ "WTYCZKA WY£¡CZONA.\n"
-#~ "oznacza to niezgodno¶æ miedzy xine a t± wtyczk± wej¶cia\n"
-#~ "Instalacja najnowszej wersji wtyczki powinna pomóc.\n"
-
-# src/input/input_dvd.c:857
-#~ msgid "path to your local dvd device file"
-#~ msgstr "¶cie¿ka do twojego lokalnego pliku urz±dzenia dvd"
-
-# src/input/input_dvd.c:860
-#~ msgid "path to a raw device set up for dvd access"
-#~ msgstr "¶cie¿ka to surowego urz±dzenia ustawionego na dostêp do dvd"
-
-# src/demuxers/demux_qt.c:1367 src/demuxers/demux_smjpeg.c:420
-# src/demuxers/demux_wav.c:322
-#~ msgid "channels"
-#~ msgstr "kana³y"
-
-# src/xine-engine/tvmode.c:270
-#~ msgid "Show status on play, pause, ff, ..."
-#~ msgstr "Poka¿ status przy odtwarzaniu, pauzie, ff, ..."
-
-#~ msgid "unable to open %s: %s."
-#~ msgstr "nie mogê otworzyæ %s: %s."
-
-#~ msgid "demux_ts: PUSI set but no PES header (corrupt stream?)\n"
-#~ msgstr ""
-#~ "demux_ts: PUSI ustawione ale brak nag³ówka PES (uszkodzony strumieñ?)\n"
-
-#~ msgid "RE-Sync failed\n"
-#~ msgstr "resynchronizacja zawiod³a\n"
-
-#~ msgid "mpgaudio: bitrate = %.2fkbps\n"
-#~ msgstr "mpgaudio: bitrate = %.2fkbps\n"
-
 
