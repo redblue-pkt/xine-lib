@@ -413,18 +413,17 @@ static inline void yuv420_rgb16 (yuv2rgb_t *this,
 				 uint8_t * py, uint8_t * pu, uint8_t * pv,
 				 int cpu)
 {
-    int i;
+    int i, height, dst_height;
     int rgb_stride = this->rgb_stride;
     int y_stride   = this->y_stride;
     int uv_stride  = this->uv_stride;
     int width      = this->source_width;
-    int height     = this->slice_height;
-    int dst_height = this->next_slice (this, &image);
     uint8_t *img;
 
     width >>= 3;
 
     if (!this->do_scale) {
+      height = this->next_slice (this, &image);
       y_stride -= 8 * width;
       uv_stride -= 4 * width;
 
@@ -463,6 +462,9 @@ static inline void yuv420_rgb16 (yuv2rgb_t *this,
 		  this->dest_width >> 1, this->step_dx);
       scale_line (py, this->y_buffer, 
 		  this->dest_width, this->step_dx);
+
+      dst_height = this->next_slice (this, &image);
+
       for (height = 0;; ) {
 
 	y_buf = this->y_buffer;
@@ -524,18 +526,17 @@ static inline void yuv420_rgb15 (yuv2rgb_t *this,
 				 uint8_t * py, uint8_t * pu, uint8_t * pv,
 				 int cpu)
 {
-    int i;
+    int i, height, dst_height;
     int rgb_stride = this->rgb_stride;
     int y_stride   = this->y_stride;
     int uv_stride  = this->uv_stride;
     int width      = this->source_width;
-    int height     = this->slice_height;
-    int dst_height = this->next_slice (this, &image);
     uint8_t *img;
 
     width >>= 3;
 
     if (!this->do_scale) {
+      height = this->next_slice (this, &image);
       y_stride -= 8 * width;
       uv_stride -= 4 * width;
 
@@ -574,6 +575,9 @@ static inline void yuv420_rgb15 (yuv2rgb_t *this,
 		  this->dest_width >> 1, this->step_dx);
       scale_line (py, this->y_buffer, 
 		  this->dest_width, this->step_dx);
+      
+      dst_height = this->next_slice (this, &image);
+      
       for (height = 0;; ) {
 
 	y_buf = this->y_buffer;
@@ -633,19 +637,18 @@ static inline void yuv420_rgb24 (yuv2rgb_t *this,
 				 uint8_t * image, uint8_t * py,
 				 uint8_t * pu, uint8_t * pv, int cpu)
 {
-    int i;
+    int i, height, dst_height;
     int rgb_stride = this->rgb_stride;
     int y_stride   = this->y_stride;
     int uv_stride  = this->uv_stride;
     int width      = this->source_width;
-    int height     = this->slice_height;
-    int dst_height = this->next_slice (this, &image);
     uint8_t *img;
 
     /* rgb_stride -= 4 * this->dest_width; */
     width >>= 3;
 
     if (!this->do_scale) {
+      height = this->next_slice (this, &image);
       y_stride -= 8 * width;
       uv_stride -= 4 * width;
 
@@ -682,6 +685,8 @@ static inline void yuv420_rgb24 (yuv2rgb_t *this,
 		  this->dest_width >> 1, this->step_dx);
       scale_line (py, this->y_buffer, 
 		  this->dest_width, this->step_dx);
+
+      dst_height = this->next_slice (this, &image);
 
       for (height = 0;; ) {
 
@@ -744,19 +749,18 @@ static inline void yuv420_argb32 (yuv2rgb_t *this,
 				  uint8_t * image, uint8_t * py,
 				  uint8_t * pu, uint8_t * pv, int cpu)
 {
-    int i;
+    int i, height, dst_height;
     int rgb_stride = this->rgb_stride;
     int y_stride   = this->y_stride;
     int uv_stride  = this->uv_stride;
     int width      = this->source_width;
-    int height     = this->slice_height;
-    int dst_height = this->next_slice (this, &image);
     uint8_t *img;
 
     /* rgb_stride -= 4 * this->dest_width; */
     width >>= 3;
 
     if (!this->do_scale) {
+      height = this->next_slice (this, &image);
       y_stride -= 8 * width;
       uv_stride -= 4 * width;
 
@@ -794,6 +798,8 @@ static inline void yuv420_argb32 (yuv2rgb_t *this,
       scale_line (py, this->y_buffer, 
 		  this->dest_width, this->step_dx);
 
+      dst_height = this->next_slice (this, &image);
+      
       for (height = 0;; ) {
 
 	y_buf = this->y_buffer;
@@ -854,19 +860,18 @@ static inline void yuv420_abgr32 (yuv2rgb_t *this,
 				  uint8_t * image, uint8_t * py,
 				  uint8_t * pu, uint8_t * pv, int cpu)
 {
-    int i;
+    int i, height, dst_height;
     int rgb_stride = this->rgb_stride;
     int y_stride   = this->y_stride;
     int uv_stride  = this->uv_stride;
     int width      = this->source_width;
-    int height     = this->slice_height;
-    int dst_height = this->next_slice (this, &image);
     uint8_t *img;
 
     /* rgb_stride -= 4 * this->dest_width; */
     width >>= 3;
 
     if (!this->do_scale) {
+      height = this->next_slice (this, &image);
       y_stride -= 8 * width;
       uv_stride -= 4 * width;
 
@@ -904,6 +909,8 @@ static inline void yuv420_abgr32 (yuv2rgb_t *this,
       scale_line (py, this->y_buffer, 
 		  this->dest_width, this->step_dx);
 
+      dst_height = this->next_slice (this, &image);
+      
       for (height = 0;; ) {
 
 	y_buf = this->y_buffer;
