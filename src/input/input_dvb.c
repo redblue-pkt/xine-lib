@@ -853,7 +853,7 @@ static void parse_pmt(dvb_input_plugin_t *this, const unsigned char *buf, int se
       case 0x02:
         if(!has_video) {
           printf("input_dvb: Adding VIDEO     : PID 0x%04x\n", elementary_pid);
-	  dvb_set_pidfilter(this, VIDFILTER, elementary_pid, DMX_PES_OTHER,DMX_OUT_TS_TAP);
+	  dvb_set_pidfilter(this, VIDFILTER, elementary_pid, DMX_PES_VIDEO, DMX_OUT_TS_TAP);
 	  has_video=1;
 	} 
 	break;
@@ -862,7 +862,7 @@ static void parse_pmt(dvb_input_plugin_t *this, const unsigned char *buf, int se
       case 0x04:
         if(!has_audio) {
 	  printf("input_dvb: Adding AUDIO     : PID 0x%04x\n", elementary_pid);
-	  dvb_set_pidfilter(this, AUDFILTER, elementary_pid, DMX_PES_OTHER,DMX_OUT_TS_TAP);
+	  dvb_set_pidfilter(this, AUDFILTER, elementary_pid, DMX_PES_AUDIO, DMX_OUT_TS_TAP);
 	  has_audio=1;
 	}
         break;
