@@ -152,21 +152,41 @@ void blend_rgb16 (uint8_t * img, vo_overlay_t * img_overl,
     for (x = x1_scaled = 0; x < src_width;) {
       uint8_t clr;
       uint16_t o;
+      int rlelen;
 
       clr = rle->color;
       o   = trans[clr];
+      rlelen = rle->len;
 
-      if (o) if (img_overl->clip_left   > x ||
-		 img_overl->clip_right  < x)
-		   o = 0;
-
-      x2_scaled = SCALED_TO_INT((x + rle->len) * x_scale);
+      if (o && mask) {
+        /* threat cases where clipping border is inside rle->len pixels */
+        if ( img_overl->clip_left > x ) {
+          if( img_overl->clip_left < x + rlelen ) {
+            x1_scaled = SCALED_TO_INT( img_overl->clip_left * x_scale );
+            rlelen -= img_overl->clip_left - x;
+            x += img_overl->clip_left - x;
+          } else {
+            o = 0;
+          }
+        } else if( img_overl->clip_right < x + rlelen ) {
+          if( img_overl->clip_right > x ) {
+            x2_scaled = SCALED_TO_INT( img_overl->clip_right * x_scale);
+            mem_blend16(img_pix+x1_scaled, *((uint16_t *)&clut[clr]), o,
+                        x2_scaled-x1_scaled);
+            o = 0;            
+          } else {
+            o = 0;
+          }
+        } 
+      }
+      
+      x2_scaled = SCALED_TO_INT((x + rlelen) * x_scale);
       if (o && mask) {
 	mem_blend16(img_pix+x1_scaled, *((uint16_t *)&clut[clr]), o, x2_scaled-x1_scaled);
       }
 
       x1_scaled = x2_scaled;
-      x += rle->len;
+      x += rlelen;
       rle++;
       if (rle >= rle_limit) break;
     }
@@ -216,15 +236,36 @@ void blend_rgb24 (uint8_t * img, vo_overlay_t * img_overl,
     for (x = x1_scaled = 0; x < src_width;) {
       uint8_t clr;
       uint16_t o;
+      int rlelen;
 
       clr = rle->color;
       o   = trans[clr];
+      rlelen = rle->len;
 
-      if (o) if (img_overl->clip_left   > x ||
-		 img_overl->clip_right  < x)
-		   o = 0;
-
-      x2_scaled = SCALED_TO_INT((x + rle->len) * x_scale);
+      if (o && mask) {
+        /* threat cases where clipping border is inside rle->len pixels */
+        if ( img_overl->clip_left > x ) {
+          if( img_overl->clip_left < x + rlelen ) {
+            x1_scaled = SCALED_TO_INT( img_overl->clip_left * x_scale );
+            rlelen -= img_overl->clip_left - x;
+            x += img_overl->clip_left - x;
+          } else {
+            o = 0;
+          }
+        } else if( img_overl->clip_right < x + rlelen ) {
+          if( img_overl->clip_right > x ) {
+            x2_scaled = SCALED_TO_INT( img_overl->clip_right * x_scale);
+            mem_blend24(img_pix + x1_scaled*3, clut[clr].cb,
+                    clut[clr].cr, clut[clr].y,
+                    o, x2_scaled-x1_scaled);
+            o = 0;            
+          } else {
+            o = 0;
+          }
+        } 
+      }
+      
+      x2_scaled = SCALED_TO_INT((x + rlelen) * x_scale);
       if (o && mask) {
         mem_blend24(img_pix + x1_scaled*3, clut[clr].cb,
                     clut[clr].cr, clut[clr].y,
@@ -232,7 +273,7 @@ void blend_rgb24 (uint8_t * img, vo_overlay_t * img_overl,
       }
 
       x1_scaled = x2_scaled;
-      x += rle->len;
+      x += rlelen;
       rle++;
       if (rle >= rle_limit) break;
     }
@@ -282,15 +323,36 @@ void blend_rgb32 (uint8_t * img, vo_overlay_t * img_overl,
     for (x = x1_scaled = 0; x < src_width;) {
       uint8_t clr;
       uint16_t o;
+      int rlelen;
 
       clr = rle->color;
       o   = trans[clr];
+      rlelen = rle->len;
 
-      if (o) if (img_overl->clip_left   > x ||
-		 img_overl->clip_right  < x)
-		   o = 0;
+      if (o && mask) {
+        /* threat cases where clipping border is inside rle->len pixels */
+        if ( img_overl->clip_left > x ) {
+          if( img_overl->clip_left < x + rlelen ) {
+            x1_scaled = SCALED_TO_INT( img_overl->clip_left * x_scale );
+            rlelen -= img_overl->clip_left - x;
+            x += img_overl->clip_left - x;
+          } else {
+            o = 0;
+          }
+        } else if( img_overl->clip_right < x + rlelen ) {
+          if( img_overl->clip_right > x ) {
+            x2_scaled = SCALED_TO_INT( img_overl->clip_right * x_scale);
+            mem_blend24_32(img_pix + x1_scaled*4, clut[clr].cb,
+                    clut[clr].cr, clut[clr].y,
+                    o, x2_scaled-x1_scaled);
+            o = 0;            
+          } else {
+            o = 0;
+          }
+        } 
+      }
 
-      x2_scaled = SCALED_TO_INT((x + rle->len) * x_scale);
+      x2_scaled = SCALED_TO_INT((x + rlelen) * x_scale);
       if (o && mask) {
         mem_blend24_32(img_pix + x1_scaled*4, clut[clr].cb,
                     clut[clr].cr, clut[clr].y,
@@ -298,7 +360,7 @@ void blend_rgb32 (uint8_t * img, vo_overlay_t * img_overl,
       }
 
       x1_scaled = x2_scaled;
-      x += rle->len;
+      x += rlelen;
       rle++;
       if (rle >= rle_limit) break;
     }
@@ -357,33 +419,54 @@ void blend_yuv (uint8_t * dst_img, vo_overlay_t * img_overl,
     for (x = 0; x < src_width;) {
       uint8_t clr;
       uint16_t o;
+      int rlelen;
 
       clr = rle->color;
       o   = my_trans[clr];
+      rlelen = rle->len;
 
-      /* These three lines assume that menu buttons are "clean" separated
-       * and do not overlap with the button clip borders */
-      if (o) if (img_overl->clip_left   > x ||
-		 img_overl->clip_right  < x)
-		   o = 0;
+      if (o && mask) {
+        /* threat cases where clipping border is inside rle->len pixels */
+        if ( img_overl->clip_left > x ) {
+          if( img_overl->clip_left < x + rlelen ) {
+            rlelen -= img_overl->clip_left - x;
+            x += img_overl->clip_left - x;
+          } else {
+            o = 0;
+          }
+        } else if( img_overl->clip_right < x + rlelen ) {
+          if( img_overl->clip_right > x ) {
+            mem_blend8(dst_y + x, my_clut[clr].y, o, (img_overl->clip_right-x) );
+            if (y & 1) {
+              mem_blend8(dst_cr + (x >> 1), my_clut[clr].cr, o, 
+                         (img_overl->clip_right-x) >> 1);
+              mem_blend8(dst_cb + (x >> 1), my_clut[clr].cb, o,
+                         (img_overl->clip_right-x) >> 1);
+            } 
+            o = 0;            
+          } else {
+            o = 0;
+          }
+        } 
+      }
 
       if (o && mask) {
 	if (o >= 15) {
-	  memset(dst_y + x, my_clut[clr].y, rle->len);
+	  memset(dst_y + x, my_clut[clr].y, rlelen);
 	  if (y & 1) {
-	    memset(dst_cr + (x >> 1), my_clut[clr].cr, rle->len >> 1);
-	    memset(dst_cb + (x >> 1), my_clut[clr].cb, rle->len >> 1);
+	    memset(dst_cr + (x >> 1), my_clut[clr].cr, rlelen >> 1);
+	    memset(dst_cb + (x >> 1), my_clut[clr].cb, rlelen >> 1);
 	  }
 	} else {
-	  mem_blend8(dst_y + x, my_clut[clr].y, o, rle->len);
+	  mem_blend8(dst_y + x, my_clut[clr].y, o, rlelen);
 	  if (y & 1) {
-	    mem_blend8(dst_cr + (x >> 1), my_clut[clr].cr, o, rle->len >> 1);
-	    mem_blend8(dst_cb + (x >> 1), my_clut[clr].cb, o, rle->len >> 1);
+	    mem_blend8(dst_cr + (x >> 1), my_clut[clr].cr, o, rlelen >> 1);
+	    mem_blend8(dst_cb + (x >> 1), my_clut[clr].cb, o, rlelen >> 1);
 	  }
 	}
       }
 
-      x += rle->len;
+      x += rlelen;
       rle++;
       if (rle >= rle_limit) break;
     }
@@ -397,79 +480,6 @@ void blend_yuv (uint8_t * dst_img, vo_overlay_t * img_overl,
     }
   }
 }
-
-
-/* why this function is needed?? only syncfb uses it and it is 
-   almost the same as blend_yuv!
-*/
-void blend_yuv_vo_frame(vo_frame_t* dst_img, vo_overlay_t* img_overl)
-{
-  clut_t *my_clut;
-  uint8_t *my_trans;
-
-  int src_width = img_overl->width;
-  int src_height = img_overl->height;
-  rle_elem_t *rle = img_overl->rle;
-  rle_elem_t *rle_limit = rle + img_overl->num_rle;
-  int x_off = img_overl->x;
-  int y_off = img_overl->y;
-  int mask;
-  int x, y;
-
-  uint8_t *dst_y = dst_img->base[0] + dst_img->width * y_off + x_off;
-  uint8_t *dst_cb = dst_img->base[1] + (y_off / 2) * (dst_img->width / 2) + (x_off / 2) + 1;
-  uint8_t *dst_cr = dst_img->base[2] + (y_off / 2) * (dst_img->width / 2) + (x_off / 2) + 1;
-   
-  my_clut = (clut_t*) img_overl->color;
-  my_trans = img_overl->trans;
-
-  for (y = 0; y < src_height; y++) {
-    mask = !(img_overl->clip_top > y || img_overl->clip_bottom < y);
-
-    for (x = 0; x < src_width;) {
-      uint8_t clr;
-      uint16_t o;
-
-      clr = rle->color;
-      o   = my_trans[clr];
-
-      /* These three lines assume that menu buttons are "clean" separated
-       * and do not overlap with the button clip borders */
-      if (o) if (img_overl->clip_left   > x ||
-		 img_overl->clip_right  < x)
-		   o = 0;
-
-      if (o && mask) {
-	if (o >= 15) {
-	  memset(dst_y + x, my_clut[clr].y, rle->len);
-	  if (y & 1) {
-	    memset(dst_cr + (x >> 1), my_clut[clr].cr, rle->len >> 1);
-	    memset(dst_cb + (x >> 1), my_clut[clr].cb, rle->len >> 1);
-	  }
-	} else {
-	  mem_blend8(dst_y + x, my_clut[clr].y, o, rle->len);
-	  if (y & 1) {
-	    mem_blend8(dst_cr + (x >> 1), my_clut[clr].cr, o, rle->len >> 1);
-	    mem_blend8(dst_cb + (x >> 1), my_clut[clr].cb, o, rle->len >> 1);
-	  }
-	}
-      }
-
-      x += rle->len;
-      rle++;
-      if (rle >= rle_limit) break;
-    }
-    if (rle >= rle_limit) break;
-
-    dst_y += dst_img->width;
-
-    if (y & 1) {
-      dst_cr += (dst_img->width + 1) / 2;
-      dst_cb += (dst_img->width + 1) / 2;
-    }
-  }
-}
-
 
 void blend_yuy2 (uint8_t * dst_img, vo_overlay_t * img_overl,
                 int dst_width, int dst_height)
@@ -501,18 +511,34 @@ void blend_yuy2 (uint8_t * dst_img, vo_overlay_t * img_overl,
     for (x = 0; x < src_width;) {
       uint8_t clr;
       uint16_t o;
+      int rlelen;
 
       clr = rle->color;
       o   = my_trans[clr];
-
-      /* These three lines assume that menu buttons are "clean" separated
-       * and do not overlap with the button clip borders */
-      if (o) if (img_overl->clip_left   > x ||
-		 img_overl->clip_right  < x)
-		   o = 0;
+      rlelen = rle->len;
 
       if (o && mask) {
-        l = rle->len>>1;
+        /* threat cases where clipping border is inside rle->len pixels */
+        if ( img_overl->clip_left > x ) {
+          if( img_overl->clip_left < x + rlelen ) {
+            rlelen -= img_overl->clip_left - x;
+            x += img_overl->clip_left - x;
+          } else {
+            o = 0;
+          }
+        } else if( img_overl->clip_right < x + rlelen ) {
+          if( img_overl->clip_right > x ) {
+            /* fixme: case not implemented */
+            o = 0;            
+          } else {
+            o = 0;
+          }
+        } 
+      }
+      
+
+      if (o && mask) {
+        l = rlelen>>1;
         if( !(x & 1) ) {
           yuy2 =  my_clut[clr].y + (my_clut[clr].cb << 8) +
                  (my_clut[clr].y << 16) + (my_clut[clr].cr << 24);
@@ -525,7 +551,7 @@ void blend_yuy2 (uint8_t * dst_img, vo_overlay_t * img_overl,
 	  while(l--) {
 	    *((uint32_t *)dst)++ = yuy2;
 	  }
-	  if(rle->len & 1)
+	  if(rlelen & 1)
 	    *((uint16_t *)dst)++ = yuy2 & 0xffff;
 	} else {
 	  if( l ) {
@@ -533,7 +559,7 @@ void blend_yuy2 (uint8_t * dst_img, vo_overlay_t * img_overl,
 	    dst += 4*l;
 	  }
 	  
-	  if(rle->len & 1) {
+	  if(rlelen & 1) {
 	    *dst = BLEND_BYTE(*dst, *((uint8_t *)&yuy2), o);
 	    dst++;
 	    *dst = BLEND_BYTE(*dst, *((uint8_t *)&yuy2+1), o);
@@ -541,10 +567,10 @@ void blend_yuy2 (uint8_t * dst_img, vo_overlay_t * img_overl,
 	  }
 	}
       } else {
-        dst += rle->len*2;
+        dst += rlelen*2;
       }
 
-      x += rle->len;
+      x += rlelen;
       rle++;
       if (rle >= rle_limit) break;
     }

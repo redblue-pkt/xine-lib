@@ -49,8 +49,6 @@ void blend_rgb32 (uint8_t * img, vo_overlay_t * img_overl,
 void blend_yuv (uint8_t * dst_img, vo_overlay_t * img_overl,
                 int dst_width, int dst_height);
 
-void blend_yuv_vo_frame(vo_frame_t* dst_img, vo_overlay_t* img_overl);
-
 void blend_yuy2 (uint8_t * dst_img, vo_overlay_t * img_overl,
                 int dst_width, int dst_height);
 

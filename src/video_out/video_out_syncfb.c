@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_syncfb.c,v 1.47 2001/11/18 03:53:24 guenter Exp $
+ * $Id: video_out_syncfb.c,v 1.48 2001/12/16 17:01:12 miguelfreitas Exp $
  * 
  * video_out_syncfb.c, SyncFB (for Matrox G200/G400 cards) interface for xine
  * 
@@ -855,7 +855,12 @@ static void syncfb_overlay_blend(vo_driver_t* this_gen, vo_frame_t* frame_gen, v
   syncfb_frame_t* frame = (syncfb_frame_t *) frame_gen;
 
   if(overlay->rle) {
-    blend_yuv_vo_frame(&frame->vo_frame, overlay);
+    if( frame->format == IMGFMT_YV12 )
+      blend_yuv( frame->vo_frame.base[0], overlay, frame->vo_frame.width,
+                 frame->vo_frame.height);
+    else
+      blend_yuy2( frame->vo_frame.base[0], overlay, frame->vo_frame.width, 
+                 frame->vo_frame.height);
   }
 }
 
