@@ -20,7 +20,7 @@
  * Demuxer helper functions
  * hide some xine engine details from demuxers and reduce code duplication
  *
- * $Id: demux.c,v 1.52 2004/10/27 16:41:34 miguelfreitas Exp $ 
+ * $Id: demux.c,v 1.53 2004/10/30 12:45:27 miguelfreitas Exp $ 
  */
 
 
@@ -69,13 +69,16 @@ void _x_demux_flush_engine (xine_stream_t *stream) {
   
   stream->xine->port_ticket->acquire(stream->xine->port_ticket, 1);
 
-  if (stream->video_out) {
-    stream->video_out->set_property(stream->video_out, VO_PROP_DISCARD_FRAMES, 1);
+  /* only flush/discard output ports on master streams */
+  if( stream->master == stream ) {
+    if (stream->video_out) {
+      stream->video_out->set_property(stream->video_out, VO_PROP_DISCARD_FRAMES, 1);
+    }
+    if (stream->audio_out) {
+      stream->audio_out->set_property(stream->audio_out, AO_PROP_DISCARD_BUFFERS, 1);
+    }
   }
-  if (stream->audio_out) {
-    stream->audio_out->set_property(stream->audio_out, AO_PROP_DISCARD_BUFFERS, 1);
-  }
-  
+    
   stream->video_fifo->clear(stream->video_fifo);
   stream->audio_fifo->clear(stream->audio_fifo);
   
@@ -97,16 +100,19 @@ void _x_demux_flush_engine (xine_stream_t *stream) {
     ovl->flush_events(ovl);
   }
   
-  if (stream->video_out) {
-    stream->video_out->flush(stream->video_out);
-    stream->video_out->set_property(stream->video_out, VO_PROP_DISCARD_FRAMES, 0);
-  }
+  /* only flush/discard output ports on master streams */
+  if( stream->master == stream ) {
+    if (stream->video_out) {
+      stream->video_out->flush(stream->video_out);
+      stream->video_out->set_property(stream->video_out, VO_PROP_DISCARD_FRAMES, 0);
+    }
 
-  if (stream->audio_out) {
-    stream->audio_out->flush(stream->audio_out);
-    stream->audio_out->set_property(stream->audio_out, AO_PROP_DISCARD_BUFFERS, 0);
+    if (stream->audio_out) {
+      stream->audio_out->flush(stream->audio_out);
+      stream->audio_out->set_property(stream->audio_out, AO_PROP_DISCARD_BUFFERS, 0);
+    }
   }
-
+  
   stream->xine->port_ticket->release(stream->xine->port_ticket, 1);
 }
 

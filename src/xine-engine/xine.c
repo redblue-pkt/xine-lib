@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.300 2004/10/27 13:09:07 miguelfreitas Exp $
+ * $Id: xine.c,v 1.301 2004/10/30 12:45:27 miguelfreitas Exp $
  */
 
 /*
@@ -1101,12 +1101,15 @@ static int __play_internal (xine_stream_t *stream, int start_pos, int start_time
   
   stream->xine->port_ticket->acquire(stream->xine->port_ticket, 1);
   
-  /* discard audio/video buffers to get engine going and take the lock faster */
-  if (stream->audio_out)
-    stream->audio_out->set_property(stream->audio_out, AO_PROP_DISCARD_BUFFERS, 1);
-  if (stream->video_out)
-    stream->video_out->set_property(stream->video_out, VO_PROP_DISCARD_FRAMES, 1);
-
+  /* only flush/discard output ports on master streams */
+  if( stream->master == stream ) {
+    /* discard audio/video buffers to get engine going and take the lock faster */
+    if (stream->audio_out)
+      stream->audio_out->set_property(stream->audio_out, AO_PROP_DISCARD_BUFFERS, 1);
+    if (stream->video_out)
+      stream->video_out->set_property(stream->video_out, VO_PROP_DISCARD_FRAMES, 1);
+  }
+  
   pthread_mutex_lock( &stream->demux_lock );
   /* demux_lock taken. now demuxer is suspended */
   stream->demux_action_pending = 0;
@@ -1127,11 +1130,14 @@ static int __play_internal (xine_stream_t *stream, int start_pos, int start_time
 					     start_pos, start_time, 
 					     stream->demux_thread_running);
 
-  if (stream->audio_out)
-    stream->audio_out->set_property(stream->audio_out, AO_PROP_DISCARD_BUFFERS, 0);
-  if (stream->video_out)
-    stream->video_out->set_property(stream->video_out, VO_PROP_DISCARD_FRAMES, 0);
-
+  /* only flush/discard output ports on master streams */
+  if( stream->master == stream ) {
+    if (stream->audio_out)
+      stream->audio_out->set_property(stream->audio_out, AO_PROP_DISCARD_BUFFERS, 0);
+    if (stream->video_out)
+      stream->video_out->set_property(stream->video_out, VO_PROP_DISCARD_FRAMES, 0);
+  }
+  
   stream->xine->port_ticket->release(stream->xine->port_ticket, 1);
   
   /* before resuming the demuxer, set first_frame_flag */

@@ -39,6 +39,7 @@
     bytes. may be disabled with MRL parameter "#nocache".
   * use monotonic clock where available (eg. linux 2.6) so system clock
     updates won't disturb xine playback. [bug #781532]
+  * fixed seeking unresponsiveness when using external subtitles
         
 xine-lib (1-rc6)
   * Moved win32 frontend into separate module.
