@@ -326,6 +326,13 @@ AC_SUBST(GLU_LIBS)
 AM_CONDITIONAL(HAVE_OPENGL, [ test x$ac_have_opengl = "xyes" -a x$ac_have_glut="xyes" -o x$ac_have_opengl = "xyes" -a x$ac_have_glu="xyes" ] )
 
 
+dnl ----------------------------------------------
+dnl Check for usable video-for-linux (v4l) support
+dnl ----------------------------------------------
+AC_CHECK_HEADER(linux/videodev.h, have_v4l=yes,)
+AM_CONDITIONAL(HAVE_V4L, [test x"$have_v4l" = "xyes"])
+
+
 
 host_or_hostalias="$host"
 if test "$host_or_hostalias" = ""; then

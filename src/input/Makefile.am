@@ -25,6 +25,10 @@ in_vcd = xineplug_inp_vcd.la
 #in_cda = xineplug_inp_cda.la
 endif
 
+if HAVE_V4L
+in_v4l = xineplug_inp_v4l.la
+endif
+
 if HAVE_GNOME_VFS
 in_gnome_vfs = xineplug_inp_gnome_vfs.la
 endif
@@ -50,6 +54,7 @@ lib_LTLIBRARIES = \
 	xineplug_inp_http.la \
 	$(in_dvd) \
 	$(in_vcd) \
+	$(in_v4l) \
 	$(in_gnome_vfs) \
 	xineplug_inp_mms.la \
 	xineplug_inp_stdin_fifo.la \
@@ -57,8 +62,7 @@ lib_LTLIBRARIES = \
 	xineplug_inp_rtsp.la \
 	xineplug_inp_net.la \
 	xineplug_inp_dvb.la \
-	xineplug_inp_cdda.la \
-	xineplug_inp_v4l.la 
+	xineplug_inp_cdda.la
 
 
 #lib_LTLIBRARIES = \
