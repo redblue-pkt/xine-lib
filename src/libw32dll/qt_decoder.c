@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: qt_decoder.c,v 1.38 2004/12/12 22:01:25 mroi Exp $
+ * $Id: qt_decoder.c,v 1.39 2004/12/17 13:39:54 mroi Exp $
  *
  * quicktime video/audio decoder plugin, using win32 dlls
  * most of this code comes directly from MPlayer
@@ -323,17 +323,17 @@ static void qta_init_driver (qta_decoder_t *this, buf_element_t *buf) {
   switch (buf->type) {
   case BUF_AUDIO_QDESIGN1:
     this->InputFormatInfo.format = FOUR_CHAR_CODE('Q','D','M','C');
-    _x_meta_info_set(this->stream, XINE_META_INFO_AUDIOCODEC, 
+    _x_meta_info_set_utf8(this->stream, XINE_META_INFO_AUDIOCODEC, 
       "QDesign Music Codec v1 (QT DLL)");
     break;
   case BUF_AUDIO_QDESIGN2:
     this->InputFormatInfo.format = FOUR_CHAR_CODE('Q','D','M','2');
-    _x_meta_info_set(this->stream, XINE_META_INFO_AUDIOCODEC, 
+    _x_meta_info_set_utf8(this->stream, XINE_META_INFO_AUDIOCODEC, 
       "QDesign Music Codec v2 (QT DLL)");
     break;
   case BUF_AUDIO_QCLP:
     this->InputFormatInfo.format = FOUR_CHAR_CODE('Q','c','l','p');
-    _x_meta_info_set(this->stream, XINE_META_INFO_AUDIOCODEC, 
+    _x_meta_info_set_utf8(this->stream, XINE_META_INFO_AUDIOCODEC, 
       "Qualcomm Purevoice Codec (QT DLL)");
     break;
   default:
@@ -980,7 +980,7 @@ static void qtv_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
     this->ratio = (double)this->bih.biWidth / (double)this->bih.biHeight;
 
     /* video decoder only handles SVQ3 at this point */
-    _x_meta_info_set(this->stream, XINE_META_INFO_VIDEOCODEC, "Sorenson Video 3 (QT DLL)");
+    _x_meta_info_set_utf8(this->stream, XINE_META_INFO_VIDEOCODEC, "Sorenson Video 3 (QT DLL)");
 
   } else if (buf->decoder_flags & BUF_FLAG_SPECIAL) {
     lprintf ("video: special buffer\n");
