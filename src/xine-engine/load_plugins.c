@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.78 2002/06/12 12:22:38 f1rmb Exp $
+ * $Id: load_plugins.c,v 1.79 2002/07/13 19:01:16 f1rmb Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -836,27 +836,33 @@ vo_driver_t *xine_load_video_output_plugin(config_values_t *config,
 	    if (!strcasecmp(id, vo_info->id) ) {
 
 	      if (vo_info->interface_version == VIDEO_OUT_DRIVER_IFACE_VERSION) {
-
-		void *(*initplug) (config_values_t *, void *);
-	    
-		if((initplug = dlsym(plugin, "init_video_out_plugin")) != NULL) {
-		  
-		  vod = (vo_driver_t *) initplug(config, visual);
-		  
-		  if (vod)
-		    printf("load_plugins: video output plugin %s successfully"
-			   " loaded.\n", id);
-		  else
-		    printf("load_plugins: video output plugin %s: "
-			   "init_video_out_plugin failed.\n", str);
-
-		  closedir(dir);
-		  remove_segv_handler();
-		  
-		  return vod;
-		}
-	      } else {
 		
+		if(vo_info->visual_type == visual_type) {
+		  void *(*initplug) (config_values_t *, void *);
+		  
+		  if((initplug = dlsym(plugin, "init_video_out_plugin")) != NULL) {
+		    
+		    vod = (vo_driver_t *) initplug(config, visual);
+		    
+		    if (vod)
+		      printf("load_plugins: video output plugin %s successfully"
+			     " loaded.\n", id);
+		    else
+		      printf("load_plugins: video output plugin %s: "
+			     "init_video_out_plugin failed.\n", str);
+		    
+		    closedir(dir);
+		    remove_segv_handler();
+		    
+		    return vod;
+		  }
+		}
+		else {
+		  printf("load_plugins: video output plugin %s: "
+			 "wrong interface visual type %d.\n", str, vo_info->visual_type);
+		}
+	      } 
+	      else {
 		printf("load_plugins: video output plugin %s: "
 		       "wrong interface version %d.\n", str, vo_info->interface_version);
 	      }
