@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.162 2003/05/14 16:47:20 mroi Exp $
+ * $Id: input_dvd.c,v 1.163 2003/05/16 15:07:36 tchamp Exp $
  *
  */
 
@@ -42,11 +42,12 @@
 #include <stddef.h>
 
 #ifndef _MSC_VER
-#include <dirent.h>
 #include <sys/param.h>
+#endif /* _MSC_VER */
+
 #include <sys/types.h>
 #include <sys/stat.h>
-#endif /* _MSC_VER */
+#include <dirent.h>
 
 #include <unistd.h>
 #include <fcntl.h>
@@ -1628,6 +1629,9 @@ static void *init_class (xine_t *xine, void *data) {
 
 /*
  * $Log: input_dvd.c,v $
+ * Revision 1.163  2003/05/16 15:07:36  tchamp
+ * Fix win32 build and start adding additional plugin support
+ *
  * Revision 1.162  2003/05/14 16:47:20  mroi
  * just to play it safe
  *

@@ -113,6 +113,10 @@ SOURCE="..\src\xine-engine\audio_out.c"
 # End Source File
 # Begin Source File
 
+SOURCE="..\src\xine-engine\broadcaster.c"
+# End Source File
+# Begin Source File
+
 SOURCE="..\src\xine-engine\buffer.c"
 # End Source File
 # Begin Source File

@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: broadcaster.c,v 1.1 2003/05/15 20:23:18 miguelfreitas Exp $
+ * $Id: broadcaster.c,v 1.2 2003/05/16 15:07:37 tchamp Exp $
  * 
  * broadcaster.c - xine network broadcaster
  *
@@ -38,7 +38,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <sys/ioctl.h>
+
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <fcntl.h>
@@ -50,8 +50,13 @@
 #include <sys/time.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+
+#ifndef _MSC_VER
+#include <sys/ioctl.h>
 #include <arpa/inet.h>
 #include <netdb.h>
+#endif /* _MSC_VER */
+
 #include <dlfcn.h>
 #include <pthread.h>
 

@@ -423,6 +423,27 @@ Package=<4>
 
 ###############################################################################
 
+Project: "xineplug_inp_cdda"=".\xineplug_inp_cdda.dsp" - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+    Begin Project Dependency
+    Project_Dep_Name libxine
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libxinesuppt
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libxineutils
+    End Project Dependency
+}}}
+
+###############################################################################
+
 Project: "xineplug_inp_dvd"=".\xineplug_inp_dvd.dsp" - Package Owner=<4>
 
 Package=<5>
