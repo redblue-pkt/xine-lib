@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.65 2002/01/05 21:54:17 miguelfreitas Exp $
+ * $Id: load_plugins.c,v 1.66 2002/01/07 11:33:16 jkeil Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -153,8 +153,10 @@ void load_demux_plugins (xine_t *this,
 	plugin_name = str;
 	
 	if(!(plugin = dlopen (str, RTLD_LAZY))) {
+	  char *dl_error_msg = dlerror();
+
 	  LOG_MSG(this, _("load_plugins: cannot open demux plugin %s:\n%s\n"),
-		  str, dlerror());
+		  str, dl_error_msg);
 
 	} else {
 
@@ -311,8 +313,10 @@ void load_input_plugins (xine_t *this,
 	plugin_name = str;
 	
 	if(!(plugin = dlopen (str, RTLD_LAZY))) {
+	  char *dl_error_msg = dlerror();
+
 	  LOG_MSG(this, _("load_plugins: cannot open input plugin %s:\n%s\n"), 
-		  str, dlerror());
+		  str, dl_error_msg);
 	} else {
 	  void *(*initplug) (int, xine_t *);
 	  
@@ -525,9 +529,10 @@ void load_decoder_plugins (xine_t *this,
 	plugin_name =  str;
 		
 	if(!(plugin = dlopen (str, RTLD_LAZY))) {
+	  char *dl_error_msg = dlerror();
 
 	  LOG_MSG(this, _("load_plugins: failed to load plugin %s:\n%s\n"),
-		  str, dlerror());
+		  str, dl_error_msg);
 
 	} else {
 	  int plugin_prio;
