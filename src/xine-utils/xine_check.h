@@ -8,19 +8,6 @@
 #  include <xine.h>
 #endif
 
-#define XINE_HEALTH_CHECK_OK            0
-#define XINE_HEALTH_CHECK_FAIL          1
-#define XINE_HEALTH_CHECK_UNSUPPORTED   2
-#define XINE_HEALTH_CHECK_NO_SUCH_CHECK 3
-
-#define CHECK_KERNEL    0
-#define CHECK_MTRR      1
-#define CHECK_CDROM     2
-#define CHECK_DVDROM    3
-#define CHECK_DMA       4
-#define CHECK_X         5
-#define CHECK_XV        6
-
 /*
  * Start checking xine setup here
  *
