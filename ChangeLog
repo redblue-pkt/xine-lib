@@ -12,7 +12,10 @@ xine (0.9.11) unstable; urgency=low
   * fixes for transport streams demuxer
   * VIDIX video out driver (experimental)
   * TV fullscreen support using nvtvd
+  * better support for gcc 3.1 (libmpeg2)
 
+ -- Guenter Bartsch <guenter@users.sourceforge.net>
+ 
 xine (0.9.10) unstable; urgency=low
 
   * fixed snapshot: capture current frame with overlays
