@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.292 2004/05/23 18:41:57 tmattern Exp $
+ * $Id: xine.c,v 1.293 2004/05/23 18:47:02 tmattern Exp $
  */
 
 /*
@@ -288,7 +288,6 @@ static void __stop_internal (xine_stream_t *stream) {
   }
 
   /* make sure we're not in "paused" state */
-  stream->ignore_speed_change = 1;
   __set_speed_internal (stream, XINE_SPEED_NORMAL);
 
   /* Don't change status if we're quitting */
@@ -336,7 +335,6 @@ static void __stop_internal (xine_stream_t *stream) {
     pthread_mutex_unlock (&stream->counter_lock);
 #endif
   }
-  stream->ignore_speed_change = 0;
   lprintf ("demux stopped\n");
   lprintf ("done\n");
 }
