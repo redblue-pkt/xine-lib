@@ -100,6 +100,8 @@ print_wave_header(this->m_sVhdr2);
         ALLOCATOR_PROPERTIES props, props1;
         this->m_pDS_Filter = DS_FilterCreate(dllname, guid, &this->m_sOurType, &this->m_sDestType);
 	if( !this->m_pDS_Filter ) {
+           free(this->m_sVhdr);
+           free(this->m_sVhdr2);
            free(this);
            return NULL;
         }
