@@ -1,0 +1,7 @@
+Makefile
+Makefile.in
+SlackBuild
+build_rpms.sh
+relchk.sh
+xine-config
+xine-lib.spec
