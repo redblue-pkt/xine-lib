@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (C) 2000-2002 the xine project
  * 
  * This file is part of xine, a free video player.
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpgaudio.c,v 1.92 2003/02/14 18:50:04 miguelfreitas Exp $
+ * $Id: demux_mpgaudio.c,v 1.93 2003/02/27 23:34:24 tmattern Exp $
  *
  * demultiplexer for mpeg audio (i.e. mp3) streams
  *
@@ -335,9 +335,8 @@ static int demux_mpgaudio_get_status (demux_plugin_t *this_gen) {
   return this->status;
 }
 
-static uint32_t demux_mpgaudio_read_head(input_plugin_t *input) {
+static uint32_t demux_mpgaudio_read_head(input_plugin_t *input, uint8_t *buf) {
 
-  uint8_t buf[MAX_PREVIEW_SIZE];
   uint32_t head=0;
   int bs = 0;
 
@@ -365,7 +364,7 @@ static uint32_t demux_mpgaudio_read_head(input_plugin_t *input) {
 #ifdef LOG
     printf ("demux_mpgaudio: input plugin provides preview\n");
 #endif
-    
+
     input->get_optional_data (input, buf, INPUT_OPTIONAL_DATA_PREVIEW);
     head = (buf[0] << 24) + (buf[1] << 16) + (buf[2] << 8) + buf[3];
 #ifdef LOG
@@ -385,6 +384,7 @@ static uint32_t demux_mpgaudio_read_head(input_plugin_t *input) {
 static void demux_mpgaudio_send_headers (demux_plugin_t *this_gen) {
 
   demux_mpgaudio_t *this = (demux_mpgaudio_t *) this_gen;
+  uint8_t           buf[MAX_PREVIEW_SIZE];
   int i;
 
   this->stream_length = 0;
@@ -398,8 +398,8 @@ static void demux_mpgaudio_send_headers (demux_plugin_t *this_gen) {
 
   if ((this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) != 0) {
     uint32_t head;
-      
-    head = demux_mpgaudio_read_head(this->input);
+
+    head = demux_mpgaudio_read_head(this->input, buf);
 
     if (mpg123_head_check(head))
       mpg123_decode_header(this,head);
@@ -412,9 +412,9 @@ static void demux_mpgaudio_send_headers (demux_plugin_t *this_gen) {
    */
   xine_demux_control_start (this->stream);
 
-  if ((this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) != 0) 
+  if ((this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) != 0)
     this->input->seek (this->input, 0, SEEK_SET);
-    
+
   for (i=0; i<NUM_PREVIEW_BUFFERS; i++) {
     if (!demux_mpgaudio_next (this, BUF_FLAG_PREVIEW)) {
       break;
@@ -447,7 +447,7 @@ static int demux_mpgaudio_seek (demux_plugin_t *this_gen,
     this->buf_flag_seek = 1;
     xine_demux_flush_engine(this->stream);
   }
-  
+
   return this->status;
 }
 
@@ -474,24 +474,26 @@ static int demux_mpgaudio_get_optional_data(demux_plugin_t *this_gen,
   return DEMUX_OPTIONAL_UNSUPPORTED;
 }
 
-static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *stream, 
+static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *stream,
 				    input_plugin_t *input_gen) {
-  
+
   demux_mpgaudio_t *this;
   input_plugin_t   *input = (input_plugin_t *) input_gen;
-  unsigned char     riff_check[RIFF_CHECK_BYTES];
+  uint8_t           buf[MAX_PREVIEW_SIZE];
+  uint8_t          *riff_check;
   int               i;
+  uint8_t          *ptr;
 
 #ifdef LOG
   printf ("demux_mpgaudio: trying to open %s...\n", input->get_mrl(input));
 #endif
-  
+
   switch (stream->content_detection_method) {
-    
+
   case METHOD_BY_CONTENT: {
     uint32_t head;
-    
-    head = demux_mpgaudio_read_head (input);
+
+    head = demux_mpgaudio_read_head (input, buf);
 
 #ifdef LOG
     printf ("demux_mpgaudio: head is %x\n", head);
@@ -504,41 +506,46 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
       printf ("demux_mpgaudio: **** found RIFF tag\n");
 #endif
       /* skip the length */
-      input->seek(input, 4, SEEK_CUR);
+      ptr = buf + 8;
 
-      if (input->read(input, riff_check, 4) != 4)
+      riff_check = ptr; ptr += 4;
+      if ((buf + MAX_PREVIEW_SIZE) < ptr)
         return NULL;
 
       /* disqualify the file if it is, in fact, an AVI file or has a CDXA
        * marker */
-      if ((BE_32(&riff_check[0]) == AVI_TAG) ||
-          (BE_32(&riff_check[0]) == CDXA_TAG))
+      if ((BE_32(riff_check) == AVI_TAG) ||
+          (BE_32(riff_check) == CDXA_TAG))
+#ifdef LOG
+      printf ("demux_mpgaudio: **** found AVI or CDXA tag\n");
+#endif
         return NULL;
 
       /* skip 4 more bytes */
-      input->seek(input, 4, SEEK_CUR);
+      ptr += 4;
 
       /* get the length of the next chunk */
-      if (input->read(input, riff_check, 4) != 4)
+      riff_check = ptr; ptr += 4;
+      if ((buf + MAX_PREVIEW_SIZE) < ptr)
         return NULL;
       /* head gets to be a generic variable in this case */
-      head = LE_32(&riff_check[0]);
+      head = LE_32(riff_check);
       /* skip over the chunk and the 'data' tag and length */
-      input->seek(input, head + 8, SEEK_CUR);
+      ptr += 8;
 
       /* load the next, I don't know...n bytes, and check for a valid
        * MPEG audio header */
-      if (input->read(input, riff_check, RIFF_CHECK_BYTES) !=
-        RIFF_CHECK_BYTES)
+      riff_check = ptr; ptr += RIFF_CHECK_BYTES;
+      if ((buf + MAX_PREVIEW_SIZE) < ptr)
         return NULL;
 
       ok = 0;
       for (i = 0; i < RIFF_CHECK_BYTES - 4; i++) {
-        head = BE_32(&riff_check[i]);
+        head = BE_32(riff_check + i);
 #ifdef LOG
 	printf ("demux_mpgaudio: **** mpg123: checking %08X\n", head);
 #endif
-        if (mpg123_head_check(head)) 
+        if (mpg123_head_check(head))
 	  ok = 1;
       }
       if (!ok)
@@ -552,7 +559,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
     }
   }
   break;
-  
+
   case METHOD_BY_EXTENSION: {
     char *suffix;
     char *MRL;
