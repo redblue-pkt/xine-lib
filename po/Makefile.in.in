@@ -7,6 +7,7 @@
 # Please note that the actual code is *not* freely available.
 
 PACKAGE = @PACKAGE@
+LIBNAME = @LIBNAME@
 VERSION = @VERSION@
 
 # These two variables depend on the location of this directory.
@@ -110,12 +111,12 @@ install-data-yes: all
 	  dir=$(localedir)/$$lang/LC_MESSAGES; \
 	  $(mkinstalldirs) $(DESTDIR)$$dir; \
 	  if test -r $$cat; then \
-	    $(INSTALL_DATA) $$cat $(DESTDIR)$$dir/$(PACKAGE).mo; \
-	    echo "installing $$cat as $(DESTDIR)$$dir/$(PACKAGE).mo"; \
+	    $(INSTALL_DATA) $$cat $(DESTDIR)$$dir/$(LIBNAME).mo; \
+	    echo "installing $$cat as $(DESTDIR)$$dir/$(LIBNAME).mo"; \
 	  elif test -r $(srcdir)/$$cat; then \
-	    $(INSTALL_DATA) $(srcdir)/$$cat $(DESTDIR)$$dir/$(PACKAGE).mo; \
+	    $(INSTALL_DATA) $(srcdir)/$$cat $(DESTDIR)$$dir/$(LIBNAME).mo; \
 	    echo "installing $(srcdir)/$$cat as" \
-		 "$(DESTDIR)$$dir/$(PACKAGE).mo"; \
+		 "$(DESTDIR)$$dir/$(LIBNAME).mo"; \
 	  else \
 	    echo "WARNING: compiled message file $$cat is missing"; \
 	  fi; \

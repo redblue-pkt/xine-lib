@@ -66,6 +66,9 @@ SPEC_VERSION=${XINE_MAJOR}_$XINE_PRE
 AC_SUBST(TAR_NAME)
 AC_SUBST(SPEC_VERSION)
 
+LIBNAME=libxine$XINE_MAJOR
+AC_SUBST(LIBNAME)
+
 dnl
 AC_CANONICAL_TARGET
 
@@ -1029,8 +1032,7 @@ eval XINE_PLUGINPATH=`eval echo "$XINE_PLUGINDIR"`
 AC_DEFINE_UNQUOTED(XINE_PLUGINDIR,"$XINE_PLUGINPATH",[Define this to plugins directory location])
 AC_SUBST(XINE_PLUGINPATH)
 
-
-XINE_FONTDIR="${datadir}/xine/fonts"
+XINE_FONTDIR="${datadir}/xine/libxine$XINE_MAJOR/fonts"
 eval XINE_FONTPATH="$XINE_FONTDIR"
 AC_DEFINE_UNQUOTED(XINE_FONTDIR,"$XINE_FONTPATH",[Define this to osd fonts dir location])
 AC_SUBST(XINE_FONTPATH)
@@ -1177,7 +1179,8 @@ src/video_out/libdha/sysdep/Makefile
 src/video_out/vidix/Makefile
 src/video_out/vidix/drivers/Makefile
 src/xine-utils/Makefile
-src/xine-engine/Makefile])
+src/xine-engine/Makefile
+src/xine-engine/xineintl.h])
 AC_CONFIG_COMMANDS([default],[[chmod +x ./misc/SlackBuild ./misc/build_rpms.sh ./misc/relchk.sh]],[[]])
 AC_OUTPUT
 

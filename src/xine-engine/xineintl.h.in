@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xineintl.h,v 1.7 2002/10/29 17:19:49 jkeil Exp $
+ * $Id: xineintl.h.in,v 1.1 2002/12/11 01:04:01 siggi Exp $
  *
  */
 
@@ -32,7 +32,7 @@ extern "C" {
 
 #ifdef ENABLE_NLS
 #    include <libintl.h>
-#    define _(String) dgettext ("xine-lib", String)
+#    define _(String) dgettext ("@LIBNAME@", String)
 #    ifdef gettext_noop
 #        define N_(String) gettext_noop (String)
 #    else
