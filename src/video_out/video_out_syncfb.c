@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_syncfb.c,v 1.44 2001/11/09 17:43:17 matt2000 Exp $
+ * $Id: video_out_syncfb.c,v 1.45 2001/11/09 19:53:57 joachim_koenig Exp $
  * 
  * video_out_syncfb.c, SyncFB (for Matrox G200/G400 cards) interface for xine
  * 
@@ -108,6 +108,7 @@ typedef struct {
   syncfb_config_t      syncfb_config;
   syncfb_capability_t  capabilities;
   syncfb_buffer_info_t bufinfo;
+  syncfb_param_t       params;
    
   /* size / aspect ratio calculations */
   /* delivered images */
@@ -989,6 +990,46 @@ static int syncfb_set_property(vo_driver_t* this_gen, int property, int value)
 				  this->window_yoffset, this->window_width,
 				  this->window_height);
       break;
+
+    case VO_PROP_CONTRAST:
+      this->props[property].value = value;
+
+      printf("video_out_syncfb: VO_PROP_CONTRAST(%d) \n",
+             this->props[property].value);
+
+      this->params.contrast     = value;
+      this->params.brightness   = this->props[VO_PROP_BRIGHTNESS].value;
+      this->params.image_width  = this->syncfb_config.image_width;       /* FIXME */
+      this->params.image_height = this->syncfb_config.image_height;
+      this->params.image_xorg   = this->syncfb_config.image_xorg;
+      this->params.image_yorg   = this->syncfb_config.image_yorg;
+      
+      if (ioctl(this->fd,SYNCFB_SET_PARAMS,&this->params)) {
+        printf("video_out_syncfb:Failure to set Contrast Value\n");
+      }
+
+      break;
+
+    case VO_PROP_BRIGHTNESS:
+      this->props[property].value = value;
+
+      printf("video_out_syncfb: VO_PROP_BRIGHTNESS(%d) \n",
+             this->props[property].value);
+
+      this->params.brightness   = value;
+      this->params.contrast     = this->props[VO_PROP_CONTRAST].value;
+      this->params.image_width  = this->syncfb_config.image_width;       /* FIXME */
+      this->params.image_height = this->syncfb_config.image_height;
+      this->params.image_xorg   = this->syncfb_config.image_xorg;
+      this->params.image_yorg   = this->syncfb_config.image_yorg;
+    
+      
+      if (ioctl(this->fd,SYNCFB_SET_PARAMS,&this->params)) {
+        printf("video_out_syncfb:Failure to set Brightness Value\n");
+      }
+
+      break;
+
   }
 
   return value;
@@ -1114,6 +1155,17 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen)
       return NULL;
    }
 
+  /*
+   * init properties
+   */
+
+   for(i = 0; i < VO_NUM_PROPERTIES; i++) {
+      this->props[i].value = 0;
+      this->props[i].min   = 0;
+      this->props[i].max   = 0;
+      this->props[i].key   = NULL;
+   }
+
    // mmap whole video memory
    this->video_mem = (char *) mmap(0, this->capabilities.memory_size, PROT_WRITE, MAP_SHARED, this->fd, 0);
      
@@ -1156,6 +1208,24 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen)
       return NULL;
    }
    
+   if (ioctl(this->fd,SYNCFB_GET_PARAMS,&this->params) == 0) {
+      this->props[VO_PROP_CONTRAST].value = this->params.contrast;
+      this->props[VO_PROP_CONTRAST].min   = 0;
+      this->props[VO_PROP_CONTRAST].max   = 255;
+
+      this->props[VO_PROP_BRIGHTNESS].value = this->params.brightness;
+      this->props[VO_PROP_BRIGHTNESS].min   = -128;
+      this->props[VO_PROP_BRIGHTNESS].max   = 127;
+
+      this->supported_capabilities |=  (VO_CAP_CONTRAST | VO_CAP_BRIGHTNESS);
+
+   }
+   else {
+      printf("video_out_syncfb:Brightness and Contrast control not available, please update your syncfb kernel module\n");
+   }
+
+
+
   XGetWindowAttributes(visual->display, DefaultRootWindow(visual->display), &attr);   
    
   this->bufinfo.id            = -1;   
@@ -1207,18 +1277,7 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen)
   this->vo_driver.exit                 = syncfb_exit;   
    
   this->deinterlace_enabled = 0;
-   
-  /*
-   * init properties
-   */
-   
-   for(i = 0; i < VO_NUM_PROPERTIES; i++) {
-      this->props[i].value = 0;
-      this->props[i].min   = 0;
-      this->props[i].max   = 0;
-      this->props[i].key   = NULL;
-   }
-   
+
   return &this->vo_driver;
 }
 
