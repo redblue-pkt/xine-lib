@@ -51,6 +51,13 @@ void RedirectIOToConsole()
     // redirect unbuffered STDOUT to the console
     lStdHandle = (long)GetStdHandle(STD_OUTPUT_HANDLE);
     hConHandle = _open_osfhandle(lStdHandle, _O_TEXT);
+
+	/* This was happening when launched from a Cygwin shell */
+	if (hConHandle == -1) {
+		FreeConsole();
+		return;
+	}
+
     fp = _fdopen( hConHandle, "w" );
     *stdout = *fp;
     setvbuf( stdout, NULL, _IONBF, 0 );
@@ -58,6 +65,12 @@ void RedirectIOToConsole()
     // redirect unbuffered STDIN to the console
     lStdHandle = (long)GetStdHandle(STD_INPUT_HANDLE);
     hConHandle = _open_osfhandle(lStdHandle, _O_TEXT);
+
+	if (hConHandle == -1) {
+		FreeConsole();
+		return;
+	}
+
     fp = _fdopen( hConHandle, "r" );
     *stdin = *fp;
     setvbuf( stdin, NULL, _IONBF, 0 );
@@ -65,6 +78,12 @@ void RedirectIOToConsole()
     // redirect unbuffered STDERR to the console
     lStdHandle = (long)GetStdHandle(STD_ERROR_HANDLE);
     hConHandle = _open_osfhandle(lStdHandle, _O_TEXT);
+
+	if (hConHandle == -1) {
+		FreeConsole();
+		return;
+	}
+
     fp = _fdopen( hConHandle, "w" );
     *stderr = *fp;
     setvbuf( stderr, NULL, _IONBF, 0 );
