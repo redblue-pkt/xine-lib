@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xineutils.h,v 1.46 2003/03/07 19:58:32 miguelfreitas Exp $
+ * $Id: xineutils.h,v 1.47 2003/03/25 21:26:01 heikos Exp $
  *
  */
 #ifndef XINEUTILS_H
@@ -796,36 +796,41 @@ extern int v_b_table[256];
 /* backtrace printout funtion for use in XINE_ASSERT() macro */
 void xine_print_trace(void);
 
+
+#ifdef DEBUG                                                       
+# define XINE_ABORT()                            \
+  abort();
+#else
+# define XINE_ABORT()
+ /* don't abort */
+#endif
+
 /**
  * Provide assert like feature with better description of failure 
  * Thanks to Mark Thomas 
  */ 
-#ifndef NDEBUG
-# if __GNUC__
-#  define XINE_ASSERT(exp, desc, args...)                           \
+#if __GNUC__
+# define XINE_ASSERT(exp, desc, args...)                            \
   do {                                                              \
     if (!(exp)) {                                                   \
       printf("%s:%s:%d: assertion `%s' failed. " desc "\n\n",       \
              __FILE__, __XINE_FUNCTION__, __LINE__, #exp, ##args);  \
       xine_print_trace();                                           \
-      abort();                                                      \
+      XINE_ABORT();                                                 \
     }                                                               \
   } while(0)
-# else /* not GNU C, assume we have a C99 compiler */
-#  define XINE_ASSERT(exp, ...)                                     \
+#else /* not GNU C, assume we have a C99 compiler */
+# define XINE_ASSERT(exp, ...)                                      \
   do {                                                              \
     if (!(exp)) {                                                   \
       printf("%s:%s:%d: assertion `%s' failed. ",                   \
              __FILE__, __XINE_FUNCTION__, __LINE__, #exp);          \
       printf(__VA_ARGS__);                                          \
       printf("\n\n");                                               \
-      xine_print_trace();                                                \
-      abort();                                                      \
+      xine_print_trace();                                           \
+      XINE_ABORT();                                                 \
     }                                                               \
   } while(0)
-# endif
-#else
-# define XINE_ASSERT(...) /**/
 #endif
 
 
