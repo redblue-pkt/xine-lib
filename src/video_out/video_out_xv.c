@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.155 2002/12/21 12:56:51 miguelfreitas Exp $
+ * $Id: video_out_xv.c,v 1.156 2003/01/29 12:37:27 f1rmb Exp $
  *
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -755,7 +755,7 @@ static void xv_property_callback (void *property_gen, xine_cfg_entry_t *entry) {
 
   xv_property_t *property = (xv_property_t *) property_gen;
   xv_driver_t   *this = property->this;
-
+  
   XvSetPortAttribute (this->display, this->xv_port,
 		      property->atom,
 		      entry->num_value);
@@ -768,6 +768,11 @@ static int xv_set_property (vo_driver_t *this_gen,
   xv_driver_t *this = (xv_driver_t *) this_gen;
 
   if (this->props[property].atom != None) {
+
+    /* value is out of bound */
+    if((value < this->props[property].min) || (value > this->props[property].max))
+      value = (this->props[property].min + this->props[property].max) >> 1;
+    
     XvSetPortAttribute (this->display, this->xv_port,
 			this->props[property].atom, value);
     XvGetPortAttribute (this->display, this->xv_port,
@@ -1037,6 +1042,15 @@ static void xv_check_capability (xv_driver_t *this,
     }
 
     entry = this->config->lookup_entry (this->config, config_name);
+
+    if((entry->num_value < this->props[property].min) || 
+       (entry->num_value > this->props[property].max)) {
+
+      this->config->update_num(this->config, config_name, 
+			       ((this->props[property].min + this->props[property].max) >> 1));
+      
+      entry = this->config->lookup_entry (this->config, config_name);
+    }
 
     this->props[property].entry = entry;
 
