@@ -6,14 +6,19 @@ EXPORTS
 xine_init
 xine_exit
 xine_play
-xine_set_speed
-xine_get_speed
 xine_stop
 xine_eject
 
 xine_open
+xine_close
 xine_new
+xine_dispose
 xine_stream_new
+xine_stream_master_slave
+
+xine_trick_mode
+xine_engine_set_param
+xine_engine_get_param
 
 xine_get_status
 xine_get_audio_channel
@@ -27,19 +32,25 @@ xine_get_browsable_input_plugin_ids
 xine_get_browse_mrls
 xine_get_autoplay_input_plugin_ids
 xine_get_autoplay_mrls
+xine_get_file_extensions
+xine_get_mime_types
+xine_get_demux_for_mime_type
+xine_get_input_plugin_description
 xine_list_video_output_plugins
 xine_list_audio_output_plugins
 xine_get_current_frame
-xine_get_osd_renderer
 
 xine_get_meta_info
 
 xine_open_video_driver
 xine_open_audio_driver
+xine_close_audio_driver
+xine_close_video_driver
 
 xine_log
 xine_get_log
 xine_get_error
+xine_port_send_gui_data
 
 xine_get_version_string
 xine_get_version
@@ -47,27 +58,80 @@ xine_check_version
 xine_set_param
 xine_get_param
 
+xine_get_current_frame
+xine_get_current_vpts
 xine_get_current_info
 xine_get_stream_info
 xine_get_pos_length
 
 xine_set_speed
-xine_get_speed
 
-xine_tvmode_init
+xine_post_init
+xine_list_post_plugins
+xine_list_post_plugins_typed
+xine_post_list_inputs
+xine_post_list_outputs
+xine_post_input
+xine_post_output
+xine_post_wire
+xine_post_wire_video_port
+xine_post_wire_audio_port
+xine_get_video_source
+xine_get_audio_source
+xine_post_dispose
+
+xine_get_log_section_count
+xine_get_log_names
+xine_register_log_cb
+
 xine_event_create_listener_thread
 xine_event_new_queue
 xine_event_send
 xine_event_free
 xine_event_get
+xine_event_wait
 xine_event_dispose_queue
+
+xine_osd_new
+xine_osd_draw_point
+xine_osd_draw_line
+xine_osd_draw_rect
+xine_osd_draw_text
+xine_osd_draw_bitmap
+xine_osd_get_text_size
+xine_osd_set_font
+xine_osd_set_encoding
+xine_osd_set_position
+xine_osd_show
+xine_osd_hide
+xine_osd_clear
+xine_osd_set_text_palette
+xine_osd_get_palette
+xine_osd_set_palette
+xine_osd_free
+
+xine_tvmode_init
+xine_tvmode_use
+xine_tvmode_set_tvsystem
+xine_tvmode_switch
+xine_tvmode_size
+xine_tvmode_exit
 
 xine_message
 
-xine_config_lookup_entry
-xine_config_load
-xine_config_update_entry
+xine_config_register_string
+xine_config_register_range
 xine_config_register_enum
+xine_config_register_num
+xine_config_register_bool
+xine_config_get_first_entry
+xine_config_get_next_entry
+xine_config_lookup_entry
+xine_config_update_entry
+xine_config_load
+xine_config_save
+xine_config_reset
+xine_config_update_entry
 
 xine_demux_control_newpts
 xine_demux_control_start
@@ -88,3 +152,13 @@ vo_scale_compute_output_size
 vo_scale_compute_ideal_size
 vo_scale_aspect_ratio_name
 
+xine_set_stream_info
+xine_set_meta_info
+xine_set_metan_info
+
+xio_select
+xio_tcp_connect
+xio_tcp_read
+xio_tcp_write
+xio_file_read
+xio_file_write

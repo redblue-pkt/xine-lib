@@ -142,6 +142,10 @@ SOURCE=..\src\libmpeg2\slice.c
 # End Source File
 # Begin Source File
 
+SOURCE=..\src\libmpeg2\slice_xvmc.c
+# End Source File
+# Begin Source File
+
 SOURCE=..\src\libmpeg2\stats.c
 # End Source File
 # Begin Source File

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.159 2003/10/31 22:08:37 valtri Exp $
+ * $Id: load_plugins.c,v 1.160 2003/11/02 14:12:52 valtri Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -490,7 +490,7 @@ static void _load_required_plugins(xine_t *this, xine_list_t *list) {
       if( !node->plugin_class ) {
 
         xine_list_delete_current (list);
-        node = list->cur->content;
+        node = list->cur ? list->cur->content : NULL;
 
       } else
 	node = xine_list_next_content (list);

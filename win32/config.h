@@ -420,7 +420,7 @@ static char * exec_path_append_subdir( char * string )
 
 		// terminate at first space
 		tmpchar = strchr( tmp_win32_path, ' ' );
-		*tmpchar = 0;
+		if (tmpchar) *tmpchar = 0;
 	}
 
 	// find the last occurance of a back 

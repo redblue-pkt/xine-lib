@@ -29,7 +29,7 @@
  * - it's possible speeder saving streams in the xine without playing:
  *     xine stream_mrl#save:file.raw\;noaudio\;novideo
  *
- * $Id: input_rip.c,v 1.9 2003/10/24 09:34:01 mroi Exp $
+ * $Id: input_rip.c,v 1.10 2003/11/02 14:12:52 valtri Exp $
  */
 
 /* TODO:
@@ -577,6 +577,7 @@ input_plugin_t *rip_plugin_get_instance (xine_stream_t *stream, const char *file
     free(this);
     return NULL;
   }
+#ifndef _MSC_VER
   if (errno != ENOENT && S_ISFIFO(pstat.st_mode)) {
     this->regular = 0;
     mode = "wb";
@@ -584,6 +585,11 @@ input_plugin_t *rip_plugin_get_instance (xine_stream_t *stream, const char *file
     this->regular = 1;
     mode = "wb+";
   }
+#else
+  /* no fifos under MSVC */
+  this->regular = 1;
+  mode = "wb+";
+#endif
   
   if ((this->file = fopen(target, mode)) == NULL) {
     xine_log(this->stream->xine, XINE_LOG_MSG, 

@@ -98,6 +98,10 @@ SOURCE=..\src\liba52\bit_allocate.c
 # End Source File
 # Begin Source File
 
+SOURCE=..\src\liba52\crc.c
+# End Source File
+# Begin Source File
+
 SOURCE=..\src\liba52\bitstream.c
 # End Source File
 # Begin Source File

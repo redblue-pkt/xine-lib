@@ -141,6 +141,10 @@ SOURCE="..\src\xine-engine\info_helper.c"
 # End Source File
 # Begin Source File
 
+SOURCE="..\src\xine-engine\io_helper.c"
+# End Source File
+# Begin Source File
+
 SOURCE="..\src\xine-engine\input_rip.c"
 # End Source File
 # Begin Source File
