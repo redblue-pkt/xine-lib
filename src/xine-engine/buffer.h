@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.h,v 1.8 2001/09/01 14:33:00 guenter Exp $
+ * $Id: buffer.h,v 1.9 2001/09/06 15:23:46 joachim_koenig Exp $
  *
  *
  * contents:
@@ -91,6 +91,7 @@ extern "C" {
 #define BUF_AUDIO_LPCM_BE    0x03020000
 #define BUF_AUDIO_LPCM_LE    0x03030000
 #define BUF_AUDIO_AVI        0x03040000
+#define BUF_AUDIO_DTS        0x03050000
 
 /* spu buffer types:    */
  

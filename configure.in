@@ -641,6 +641,7 @@ src/liba52/Makefile
 src/libffmpeg/Makefile
 src/libffmpeg/libavcodec/Makefile
 src/liblpcm/Makefile
+src/libdts/Makefile
 src/libmad/Makefile
 src/libw32dll/Makefile
 src/libw32dll/wine/Makefile

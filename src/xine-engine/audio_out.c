@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.11 2001/09/06 13:33:20 jkeil Exp $
+ * $Id: audio_out.c,v 1.12 2001/09/06 15:26:07 joachim_koenig Exp $
  * 
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -304,7 +304,7 @@ static int ao_write(ao_instance_t *this,
   if (!bDropPackage) {
     int num_output_frames = (double) num_frames * this->frame_rate_factor;
 
-    if ((!this->do_resample) && (this->mode != AO_CAP_MODE_A52)) {
+    if ((!this->do_resample) && (this->mode != AO_CAP_MODE_A52) && (this->mode != AO_CAP_MODE_AC5)) {
       xprintf (VERBOSE|AUDIO, "audio_out: writing without resampling\n");
       this->driver->write (this->driver, output_frames,
 			   num_output_frames );
@@ -351,6 +351,21 @@ static int ao_write(ao_instance_t *this,
       this->driver->write(this->driver, this->frame_buffer, 1536);
 
       break;
+    case AO_CAP_MODE_AC5:
+      memset(this->frame_buffer,0xff,6144);
+      this->frame_buffer[0] = 0xf872;  /* spdif syncword */
+      this->frame_buffer[1] = 0x4e1f;  /* .............  */
+      this->frame_buffer[2] = 0x0001;  /*                */
+
+      this->frame_buffer[3] = 0x3ee0;
+
+      /* ac3 seems to be swabbed data */
+      swab(output_frames,this->frame_buffer+4,  2014  );
+      
+      this->driver->write(this->driver, this->frame_buffer, 1012);
+      
+      break;
+
     }
 
     xprintf (AUDIO|VERBOSE, "audio_out :audio package written\n");

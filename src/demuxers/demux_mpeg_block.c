@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.38 2001/09/04 16:19:27 guenter Exp $
+ * $Id: demux_mpeg_block.c,v 1.39 2001/09/06 15:24:35 joachim_koenig Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -318,11 +318,14 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
     if ((p[0]&0xF0) == 0x80) {
 
       xprintf (VERBOSE|DEMUX|AC3, "ac3 PES packet, track %02x\n",track);
-      /* printf ( "ac3 PES packet, track %02x\n",track);  */
+      /*  printf ( "ac3 PES packet, track %02x\n",track);  */
 
       buf->content   = p+4;
       buf->size      = packet_len-4;
-      buf->type      = BUF_AUDIO_A52 + track;
+      if (track & 0x8)
+        buf->type      = BUF_AUDIO_DTS + track;
+      else
+        buf->type      = BUF_AUDIO_A52 + track;
       buf->PTS       = PTS;
 
       buf->input_pos = this->input->get_current_pos(this->input);
@@ -360,6 +363,8 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
       
       return ;
     }
+
+
 
   } else if ((stream_id >= 0xbc) && ((stream_id & 0xf0) == 0xe0)) {
 
