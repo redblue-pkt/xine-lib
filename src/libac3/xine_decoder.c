@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.21 2001/07/30 19:21:28 guenter Exp $
+ * $Id: xine_decoder.c,v 1.22 2001/08/02 14:35:58 joachim_koenig Exp $
  *
  * stuff needed to turn libac3 into a xine decoder plugin
  */
@@ -65,7 +65,7 @@ typedef struct ac3dec_decoder_s {
   int              ac3_flags_map[8];
   int              ao_flags_map[8];
 
-  int16_t          int_samples [6 * 256];
+  int16_t          int_samples [6 * 256 * 6];
   sample_t         delay[6*256];
   sample_t         samples[6][256];
 
@@ -269,45 +269,45 @@ static void ac3dec_decode_frame (ac3dec_decoder_t *this, uint32_t pts) {
       
       switch (output_mode) {
       case AO_CAP_MODE_MONO:
-	float_to_int (this->samples[0], this->int_samples, 1);
+	float_to_int (this->samples[0], this->int_samples+(i*256), 1);
 	break;
       case AO_CAP_MODE_STEREO:
-	float_to_int (this->samples[0], this->int_samples, 2);
-	float_to_int (this->samples[1], this->int_samples+1, 2);
+	float_to_int (this->samples[0], this->int_samples+(i*256*2), 2);
+	float_to_int (this->samples[1], this->int_samples+(i*256*2)+1, 2);
 	break;
       case AO_CAP_MODE_4CHANNEL:
-	float_to_int (this->samples[0], this->int_samples,   4); /*  L */
-	float_to_int (this->samples[1], this->int_samples+1, 4); /*  R */
-	float_to_int (this->samples[2], this->int_samples+2, 4); /* RL */
-	float_to_int (this->samples[3], this->int_samples+3, 4); /* RR */
+	float_to_int (this->samples[0], this->int_samples+(i*256*4),   4); /*  L */
+	float_to_int (this->samples[1], this->int_samples+(i*256*4)+1, 4); /*  R */
+	float_to_int (this->samples[2], this->int_samples+(i*256*4)+2, 4); /* RL */
+	float_to_int (this->samples[3], this->int_samples+(i*256*4)+3, 4); /* RR */
 	break;
       case AO_CAP_MODE_5CHANNEL:
-	float_to_int (this->samples[0], this->int_samples+0, 5); /*  L */
-	float_to_int (this->samples[1], this->int_samples+4, 5); /*  C */
-	float_to_int (this->samples[2], this->int_samples+1, 5); /*  R */
-	float_to_int (this->samples[3], this->int_samples+2, 5); /* RL */
-	float_to_int (this->samples[4], this->int_samples+3, 5); /* RR */
+	float_to_int (this->samples[0], this->int_samples+(i*256*5)+0, 5); /*  L */
+	float_to_int (this->samples[1], this->int_samples+(i*256*5)+4, 5); /*  C */
+	float_to_int (this->samples[2], this->int_samples+(i*256*5)+1, 5); /*  R */
+	float_to_int (this->samples[3], this->int_samples+(i*256*5)+2, 5); /* RL */
+	float_to_int (this->samples[4], this->int_samples+(i*256*5)+3, 5); /* RR */
 	break;
       case AO_CAP_MODE_5_1CHANNEL:
-	float_to_int (this->samples[0], this->int_samples+5, 6); /* lfe */
-	float_to_int (this->samples[1], this->int_samples+0, 6); /*   L */
-	float_to_int (this->samples[2], this->int_samples+4, 6); /*   C */
-	float_to_int (this->samples[3], this->int_samples+1, 6); /*   R */
-	float_to_int (this->samples[4], this->int_samples+2, 6); /*  RL */
-	float_to_int (this->samples[5], this->int_samples+3, 6); /*  RR */
+	float_to_int (this->samples[0], this->int_samples+(i*256*6)+5, 6); /* lfe */
+	float_to_int (this->samples[1], this->int_samples+(i*256*6)+0, 6); /*   L */
+	float_to_int (this->samples[2], this->int_samples+(i*256*6)+4, 6); /*   C */
+	float_to_int (this->samples[3], this->int_samples+(i*256*6)+1, 6); /*   R */
+	float_to_int (this->samples[4], this->int_samples+(i*256*6)+2, 6); /*  RL */
+	float_to_int (this->samples[5], this->int_samples+(i*256*6)+3, 6); /*  RR */
 	break;
       default:
 	printf ("libac3: help - unsupported mode %08x\n", output_mode);
       }
-      
-      /*  output decoded samples */
-      
-      this->audio_out->write_audio_data (this->audio_out,
-					 this->int_samples,
-					 256,
-					 pts);
-      pts = 0;
     }
+      
+    /*  output decoded samples */
+      
+    this->audio_out->write_audio_data (this->audio_out,
+					 this->int_samples,
+					 256*6,
+					 pts);
+    pts = 0;
     
   } else {
 
