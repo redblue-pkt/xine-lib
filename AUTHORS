@@ -13,7 +13,7 @@ teletux/syncfb video output module, various bugfixes/reviews, alsa
 
   Joachim Koenig <Joachim.Koenig@gmx.net>
 
-libac3/libmpeg2 developement
+liba52/libmpeg2 developement
 
   Michel Lespinasse <walken@zoy.org>
 
@@ -24,7 +24,7 @@ Debian package, user support
 xine is using
 
   mpeg2dec - a free MPEG-2 video stream decoder
-  libac3   - a free AC3 audio stream decoder
+  liba52   - a free A/52 audio stream decoder
     Written by Aaron Holtzman <aholtzma@ess.engr.uvic.ca>
 
   libmpg123 - a free MPEG audio decoder

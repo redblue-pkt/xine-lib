@@ -277,10 +277,12 @@ used software:
 
 xine uses software from the following free software projects:
 
-- libac3 by Aaron Holtzman
-- libmpeg2 by Aaron Holtzman
+- liba52 by Aaron Holtzman / Michel Lespinasse
+- libmpeg2 by Aaron Holtzman / Michel Lespinasse
 - libmpg123 of the mpg123 project by Michael Hipp
   (see http://www.mpg123.de/)
+- libmad by Robert Leslie
+- various decoders from the ffmpeg project by Gerard Lantau
 
 ...without these great pieces of software xine would of course not
 be where it is now.
@@ -289,8 +291,8 @@ also many thanks to the Linux Video and DVD Project "LiViD"
 (http://www.linuxvideo.org/), where the original ideas for the xine
 video player came from.
 
-developers of xine:
--------------------
+active developers of xine:
+--------------------------
 
   main xine developer:
     Guenter Bartsch
@@ -298,11 +300,11 @@ developers of xine:
   various suggestions, bug and build fixes, alsa plugin, gui
     Daniel Caujolle-Bert 
 
-  audio programming
-    Siegfried Langauf 
-
-  contributes great libmpeg2 and libac3 hacks:
+  contributes great libmpeg2 and liba52 hacks:
     Michael Lespinasse
+
+  solaris port and lots of bugfixes
+    Juergen Keil
   
   ...plus various other contributors, see the AUTHORS file
 
