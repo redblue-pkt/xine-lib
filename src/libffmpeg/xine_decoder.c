@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.108 2003/04/16 00:18:35 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.109 2003/04/16 18:25:58 miguelfreitas Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -33,6 +33,7 @@
 #include <string.h>
 #include <pthread.h>
 #include <math.h>
+#include <assert.h>
 
 #include "xine_internal.h"
 #include "video_out.h"
@@ -47,6 +48,8 @@
 /*
 #define LOG
 */
+
+/* #define ENABLE_DIRECT_RENDERING */
 
 #define SLICE_BUFFER_SIZE (1194 * 1024)
 #define abs_float(x) ( ((x)<0) ? -(x) : (x) )
@@ -100,7 +103,6 @@ struct ff_video_decoder_s {
   
   int               output_format;
   yuv_planes_t      yuv;
-   
 };
 
 typedef struct {
@@ -136,6 +138,63 @@ static pthread_once_t once_control = PTHREAD_ONCE_INIT;
 #define VIDEOBUFSIZE 128*1024
 #define AUDIOBUFSIZE VIDEOBUFSIZE
 
+#ifdef ENABLE_DIRECT_RENDERING
+
+/* called from ffmpeg to do direct rendering method 1 */
+static int get_buffer(AVCodecContext *context, AVFrame *av_frame){
+  ff_video_decoder_t * this = (ff_video_decoder_t *)context->opaque;
+  vo_frame_t *img;
+
+  if( this->context->pix_fmt != PIX_FMT_YUV420P ) {
+    printf("ffmpeg: unsupported frame format, DR1 disabled.\n");
+    this->context->get_buffer = avcodec_default_get_buffer;
+    this->context->release_buffer = avcodec_default_release_buffer;
+    return avcodec_default_get_buffer(context, av_frame);
+  }
+
+  img = this->stream->video_out->get_frame (this->stream->video_out,
+					    this->bih.biWidth,
+					    this->bih.biHeight,
+					    this->xine_aspect_ratio, 
+					    this->output_format,
+					    VO_BOTH_FIELDS);
+
+  av_frame->opaque = img;
+
+  av_frame->data[0]= img->base[0];
+  av_frame->data[1]= img->base[1];
+  av_frame->data[2]= img->base[2];
+
+  av_frame->linesize[0] = img->pitches[0];
+  av_frame->linesize[1] = img->pitches[1];
+  av_frame->linesize[2] = img->pitches[2];
+
+  /* We should really keep track of the ages of xine frames (see
+   * avcodec_default_get_buffer in libavcodec/utils.c)
+   * For the moment tell ffmpeg that every frame is new (age = bignumber) */
+  av_frame->age = 256*256*256*64;
+
+  av_frame->type= FF_BUFFER_TYPE_USER;
+
+  return 0;
+}
+
+static void release_buffer(struct AVCodecContext *context, AVFrame *av_frame){
+  vo_frame_t *img = (vo_frame_t *)av_frame->opaque;
+    
+  assert(av_frame->type == FF_BUFFER_TYPE_USER);
+  assert(av_frame->opaque);  
+  
+  av_frame->data[0]= NULL;
+  av_frame->data[1]= NULL;
+  av_frame->data[2]= NULL;
+  
+  img->free(img);
+
+  av_frame->opaque = NULL;
+}
+
+#endif
 
 static void init_video_codec (ff_video_decoder_t *this, xine_bmiheader *bih) {
 
@@ -146,9 +205,14 @@ static void init_video_codec (ff_video_decoder_t *this, xine_bmiheader *bih) {
 
   this->av_frame = avcodec_alloc_frame();
   this->context = avcodec_alloc_context();
+  this->context->opaque = this;
   this->context->width = this->bih.biWidth;
   this->context->height = this->bih.biHeight;
   this->context->codec_tag = this->stream->stream_info[XINE_STREAM_INFO_VIDEO_FOURCC];
+  /* some decoders (eg. dv) do not know the pix_fmt until they decode the
+   * first frame. setting to -1 avoid enabling DR1 for them.
+   */
+  this->context->pix_fmt = -1;
   
   if( bih && bih->biSize > sizeof(xine_bmiheader) ) {
     this->context->extradata_size = bih->biSize - sizeof(xine_bmiheader);
@@ -183,8 +247,18 @@ static void init_video_codec (ff_video_decoder_t *this, xine_bmiheader *bih) {
   if(this->context->pix_fmt == PIX_FMT_RGBA32) {
     this->output_format = XINE_IMGFMT_YUY2;
     init_yuv_planes(&this->yuv, this->bih.biWidth, this->bih.biHeight);
-  } else
+  } else {
     this->output_format = XINE_IMGFMT_YV12;
+#ifdef ENABLE_DIRECT_RENDERING
+    if( this->context->pix_fmt == PIX_FMT_YUV420P &&
+        this->codec->capabilities & CODEC_CAP_DR1 ) {
+      this->context->flags |= CODEC_FLAG_EMU_EDGE; 
+      this->context->get_buffer = get_buffer;
+      this->context->release_buffer = release_buffer;
+      printf("ffmpeg: direct rendering enabled\n");
+    }
+#endif
+  }
 }
 
 static void pp_quality_cb(void *user_data, xine_cfg_entry_t *entry) {
@@ -391,6 +465,140 @@ static void find_sequence_header (ff_video_decoder_t *this,
   }
 }
 
+static void ff_convert_frame(ff_video_decoder_t *this, vo_frame_t *img) {
+  int         y;
+  uint8_t    *dy, *du, *dv, *sy, *su, *sv;
+
+  dy = img->base[0];
+  du = img->base[1];
+  dv = img->base[2];
+  sy = this->av_frame->data[0];
+  su = this->av_frame->data[1];
+  sv = this->av_frame->data[2];
+
+  if (this->context->pix_fmt == PIX_FMT_YUV410P) {
+
+    yuv9_to_yv12(
+     /* Y */
+      this->av_frame->data[0],
+      this->av_frame->linesize[0],
+      img->base[0],
+      img->pitches[0],
+     /* U */
+      this->av_frame->data[1],
+      this->av_frame->linesize[1],
+      img->base[1],
+      img->pitches[1],
+     /* V */
+      this->av_frame->data[2],
+      this->av_frame->linesize[2],
+      img->base[2],
+      img->pitches[2],
+     /* width x height */
+      this->bih.biWidth,
+      this->bih.biHeight);
+
+  } else if (this->context->pix_fmt == PIX_FMT_YUV411P) {
+
+    yuv411_to_yv12(
+     /* Y */
+      this->av_frame->data[0],
+      this->av_frame->linesize[0],
+      img->base[0],
+      img->pitches[0],
+     /* U */
+      this->av_frame->data[1],
+      this->av_frame->linesize[1],
+      img->base[1],
+      img->pitches[1],
+     /* V */
+      this->av_frame->data[2],
+      this->av_frame->linesize[2],
+      img->base[2],
+      img->pitches[2],
+     /* width x height */
+      this->bih.biWidth,
+      this->bih.biHeight);
+
+  } else if (this->context->pix_fmt == PIX_FMT_RGBA32) {
+          
+    int x, plane_ptr = 0;
+    uint8_t *src;
+            
+    for(y = 0; y < this->bih.biHeight; y++) {
+      src = sy;
+      for(x = 0; x < this->bih.biWidth; x++) {
+        uint8_t r, g, b;
+              
+        /* These probably need to be switched for big endian */
+        b = *src; src++;
+        g = *src; src++;
+        r = *src; src += 2;
+
+        this->yuv.y[plane_ptr] = COMPUTE_Y(r, g, b);
+        this->yuv.u[plane_ptr] = COMPUTE_U(r, g, b);
+        this->yuv.v[plane_ptr] = COMPUTE_V(r, g, b);
+        plane_ptr++;
+      }
+      sy += this->av_frame->linesize[0];
+    }
+            
+    yuv444_to_yuy2(&this->yuv, img->base[0], img->pitches[0]);
+          
+  } else {
+          
+    for (y=0; y<this->bih.biHeight; y++) {
+      xine_fast_memcpy (dy, sy, this->bih.biWidth);
+  
+      dy += img->pitches[0];
+  
+      sy += this->av_frame->linesize[0];
+    }
+
+    for (y=0; y<(this->bih.biHeight/2); y++) {
+      
+      if (this->context->pix_fmt != PIX_FMT_YUV444P) {
+        
+        xine_fast_memcpy (du, su, this->bih.biWidth/2);
+        xine_fast_memcpy (dv, sv, this->bih.biWidth/2);
+        
+      } else {
+        
+        int x;
+        uint8_t *src;
+        uint8_t *dst;
+      
+        /* subsample */
+        
+        src = su; dst = du;
+        for (x=0; x<(this->bih.biWidth/2); x++) {
+          *dst = *src;
+          dst++;
+          src += 2;
+        }
+        src = sv; dst = dv;
+        for (x=0; x<(this->bih.biWidth/2); x++) {
+          *dst = *src;
+          dst++;
+          src += 2;
+        }
+
+      }
+  
+      du += img->pitches[1];
+      dv += img->pitches[2];
+
+      if (this->context->pix_fmt != PIX_FMT_YUV420P) {
+        su += 2*this->av_frame->linesize[1];
+        sv += 2*this->av_frame->linesize[2];
+      } else {
+        su += this->av_frame->linesize[1];
+        sv += this->av_frame->linesize[2];
+      }
+    }
+  }
+}
+
 static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
   ff_video_decoder_t *this = (ff_video_decoder_t *) this_gen;
   int codec_type;
@@ -538,8 +746,8 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 	  || this->is_continous) {
 
       vo_frame_t *img;
-      int         got_picture, len, y;
-      uint8_t    *dy, *du, *dv, *sy, *su, *sv;
+      int         free_img;
+      int         got_picture, len;
       int         offset;
 
       /* decode video frame(s) */
@@ -581,10 +789,6 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 	printf ("ffmpeg: got a picture\n");
 #endif
 
-#ifdef ARCH_X86
-	emms_c ();
-#endif
-
 	if(this->context->aspect_ratio != this->aspect_ratio) {
 	  float diff;
    
@@ -619,18 +823,21 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 	  printf ("ffmpeg: aspect ratio code %d selected for %.2f\n",
 	          this->xine_aspect_ratio, this->aspect_ratio);
 	}
-	
-	img = this->stream->video_out->get_frame (this->stream->video_out,
-						  /* this->av_frame.linesize[0],  */
-						  this->bih.biWidth,
-						  this->bih.biHeight,
-						  this->xine_aspect_ratio, 
-						  this->output_format,
-						  VO_BOTH_FIELDS);
-	
-	img->pts      = buf->pts;
-	buf->pts      = 0;
-	img->duration = this->video_step;
+
+
+	if(this->av_frame->type == FF_BUFFER_TYPE_USER){
+	  img = (vo_frame_t*)this->av_frame->opaque;
+	  free_img = 0;
+	} else {
+	  img = this->stream->video_out->get_frame (this->stream->video_out,
+						    this->bih.biWidth,
+						    this->bih.biHeight,
+						    this->xine_aspect_ratio, 
+						    this->output_format,
+						    VO_BOTH_FIELDS);
+	  free_img = 1;
+	}
+
 	if (len<0 || this->skipframes) {
 	  if( !this->skipframes )
 	    printf ("ffmpeg: error decompressing frame\n");
@@ -639,155 +846,42 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 	  img->bad_frame = 0;
 
 	  pthread_mutex_lock(&this->pp_lock);
-	  if(this->pp_available && this->pp_quality)
+	  if(this->pp_available && this->pp_quality) {
+
+	    if(this->av_frame->type == FF_BUFFER_TYPE_USER) {
+	      img = this->stream->video_out->get_frame (this->stream->video_out,
+						        this->bih.biWidth,
+						        this->bih.biHeight,
+						        this->xine_aspect_ratio, 
+						        this->output_format,
+						        VO_BOTH_FIELDS);
+	      free_img = 1;
+	      img->bad_frame = 0;
+	    }
+
 	    pp_postprocess(this->av_frame->data, this->av_frame->linesize, 
 			   img->base, img->pitches, 
 			   this->bih.biWidth, this->bih.biHeight,
 			   this->av_frame->qscale_table, this->av_frame->qstride,
 			   this->pp_mode, this->pp_context, 
 			   this->av_frame->pict_type);
-	  else {
 
-	  dy = img->base[0];
-	  du = img->base[1];
-	  dv = img->base[2];
-	  sy = this->av_frame->data[0];
-	  su = this->av_frame->data[1];
-	  sv = this->av_frame->data[2];
-
-          if (this->context->pix_fmt == PIX_FMT_YUV410P) {
-
-            yuv9_to_yv12(
-             /* Y */
-              this->av_frame->data[0],
-              this->av_frame->linesize[0],
-              img->base[0],
-              img->pitches[0],
-             /* U */
-              this->av_frame->data[1],
-              this->av_frame->linesize[1],
-              img->base[1],
-              img->pitches[1],
-             /* V */
-              this->av_frame->data[2],
-              this->av_frame->linesize[2],
-              img->base[2],
-              img->pitches[2],
-             /* width x height */
-              this->bih.biWidth,
-              this->bih.biHeight);
-
-          } else if (this->context->pix_fmt == PIX_FMT_YUV411P) {
-
-            yuv411_to_yv12(
-             /* Y */
-              this->av_frame->data[0],
-              this->av_frame->linesize[0],
-              img->base[0],
-              img->pitches[0],
-             /* U */
-              this->av_frame->data[1],
-              this->av_frame->linesize[1],
-              img->base[1],
-              img->pitches[1],
-             /* V */
-              this->av_frame->data[2],
-              this->av_frame->linesize[2],
-              img->base[2],
-              img->pitches[2],
-             /* width x height */
-              this->bih.biWidth,
-              this->bih.biHeight);
-
-          } else if (this->context->pix_fmt == PIX_FMT_RGBA32) {
-          
-            int x, plane_ptr = 0;
-            uint8_t *src;
-            
-            for(y = 0; y < this->bih.biHeight; y++) {
-              src = sy;
-              for(x = 0; x < this->bih.biWidth; x++) {
-                uint8_t r, g, b;
-              
-                /* These probably need to be switched for big endian */
-                b = *src; src++;
-                g = *src; src++;
-                r = *src; src += 2;
-
-                this->yuv.y[plane_ptr] = COMPUTE_Y(r, g, b);
-                this->yuv.u[plane_ptr] = COMPUTE_U(r, g, b);
-                this->yuv.v[plane_ptr] = COMPUTE_V(r, g, b);
-                plane_ptr++;
-	      }
-              sy += this->av_frame->linesize[0];
-            }
-            
-            yuv444_to_yuy2(&this->yuv, img->base[0], img->pitches[0]);
-          
-          } else {
-          
-	  for (y=0; y<this->bih.biHeight; y++) {
-	    
-	    xine_fast_memcpy (dy, sy, this->bih.biWidth);
-	    
-	    dy += img->pitches[0];
-	  
-	    sy += this->av_frame->linesize[0];
-	  }
-	
-          for (y=0; y<(this->bih.biHeight/2); y++) {
-	    
-	    if (this->context->pix_fmt != PIX_FMT_YUV444P) {
-	      
-	      xine_fast_memcpy (du, su, this->bih.biWidth/2);
-	      xine_fast_memcpy (dv, sv, this->bih.biWidth/2);
-	      
-	    } else {
-	      
-	      int x;
-	      uint8_t *src;
-	      uint8_t *dst;
-	    
-	      /* subsample */
-	      
-	      src = su; dst = du;
-	      for (x=0; x<(this->bih.biWidth/2); x++) {
-		*dst = *src;
-		dst++;
-		src += 2;
-	      }
-	      src = sv; dst = dv;
-	      for (x=0; x<(this->bih.biWidth/2); x++) {
-		*dst = *src;
-		dst++;
-		src += 2;
-	      }
-	      
-	    }
-	  
-	    du += img->pitches[1];
-	    dv += img->pitches[2];
-	    
-	    if (this->context->pix_fmt != PIX_FMT_YUV420P) {
-	      su += 2*this->av_frame->linesize[1];
-	      sv += 2*this->av_frame->linesize[2];
-	    } else {
-	      su += this->av_frame->linesize[1];
-	      sv += this->av_frame->linesize[2];
-	    }
-	  }
-
-	  }
-
+	  } else if(this->av_frame->type != FF_BUFFER_TYPE_USER) {
+	    ff_convert_frame(this, img);
 	  }
 	  pthread_mutex_unlock(&this->pp_lock);
 	}
       
+	img->pts      = buf->pts;
+	buf->pts      = 0;
+	img->duration = this->video_step;
+
 	this->skipframes = img->draw(img, this->stream);
 	if( this->skipframes < 0 )
 	  this->skipframes = 0;
-	img->free(img);
-      
+
+	if(free_img)
+	  img->free(img);
       }
     }
 
