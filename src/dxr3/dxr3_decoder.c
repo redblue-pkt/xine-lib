@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decoder.c,v 1.5 2001/07/31 15:31:52 ehasenle Exp $
+ * $Id: dxr3_decoder.c,v 1.6 2001/08/05 08:59:04 ehasenle Exp $
  *
  * dxr3 video and spu decoder plugin. Accepts the video and spu data
  * from XINE and sends it directly to the corresponding dxr3 devices.
@@ -36,6 +36,7 @@
 #include <fcntl.h>
 #include <errno.h>
 
+#include <byteswap.h>
 #include <linux/soundcard.h>
 #include <linux/em8300.h>
 #include "video_out.h"
@@ -130,8 +131,6 @@ static void dxr3_decode_data (video_decoder_t *this_gen, buf_element_t *buf)
 		vpts = this->video_decoder.metronom->got_video_frame
 		 (this->video_decoder.metronom, buf->PTS);
 
-//		fprintf(stderr, "pts %d %d %d\n",vpts,pts,buf->PTS);
-
 		if (vpts > pts && this->last_pts < vpts)
 		{
 			this->last_pts = vpts;
@@ -210,9 +209,11 @@ typedef struct spudec_decoder_s {
 
 static int spudec_can_handle (spu_decoder_t *this_gen, int buf_type)
 {
+	int type = buf_type & 0xFFFF0000;
 	if (!dxr3_tested)
 		dxr3_presence_test();
-	return (dxr3_ok && (buf_type & 0xFFFF0000) == BUF_SPU_PACKAGE);
+	return (dxr3_ok && 
+		(type == BUF_SPU_PACKAGE || type == BUF_SPU_CLUT));
 }
 
 static void spudec_init (spu_decoder_t *this_gen, vo_instance_t *vo_out)
@@ -232,10 +233,24 @@ static void spudec_init (spu_decoder_t *this_gen, vo_instance_t *vo_out)
 
 }
 
+static void swab_clut(int* clut)
+{
+	int i;
+	for (i=0; i<16; i++)
+		clut[i] = bswap_32(clut[i]);
+}
+
 static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf)
 {
 	spudec_decoder_t *this = (spudec_decoder_t *) this_gen;
 	ssize_t written;
+
+	if (buf->type == BUF_SPU_CLUT) {
+		swab_clut((int*)buf->content);
+		if (ioctl(this->fd_spu, EM8300_IOCTL_SPU_SETPALETTE, buf->content))
+			fprintf(stderr, "dxr3: failed to set CLUT (%s)\n", strerror(errno));
+		return;
+	}
 
 	/* Is this also needed for subpicture? */
 	if (buf->decoder_info[0] == 0) return;
@@ -245,7 +260,6 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf)
 		vpts = this->spu_decoder.metronom->got_spu_packet
 		 (this->spu_decoder.metronom, buf->PTS, 0);
 
-//		fprintf(stderr, "spu pts %d %d\n",vpts,buf->PTS);
 		if (ioctl(this->fd_spu, EM8300_IOCTL_SPU_SETPTS, &vpts))
 			fprintf(stderr, "spu write failed\n");
 	}
