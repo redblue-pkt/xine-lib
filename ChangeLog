@@ -1,6 +1,7 @@
   * XShm gamma adjusting (brightness)
   * bugfix: lot skipped frames and low cpu
   * bugfix: dolby 2.0 audio was not correctly played back (mono)
+  * option for constant downmixing to dolby 2.0 added (see README.xinerc)
   * reworked spu/menu decoder
   * new deinterlace method using Xv scaling for slower systems
   * mmx/mmxext/sse optimized memcpy functions
