@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: configfile.c,v 1.38 2002/10/26 03:56:31 storri Exp $
+ * $Id: configfile.c,v 1.39 2002/10/31 10:45:36 mroi Exp $
  *
  * config object (was: file) management - implementation
  *
@@ -643,11 +643,11 @@ void xine_config_save (xine_t *xine_ro, const char *filename) {
       switch (entry->type) {
       case CONFIG_TYPE_UNKNOWN:
 
-#if 0
+/*#if 0*/
 	/* discard unclaimed values */
 	fprintf (f_config, "%s:%s\n",
 		 entry->key, entry->unknown_value);
-#endif
+/*#endif*/
 
 	break;
       case CONFIG_TYPE_RANGE:
