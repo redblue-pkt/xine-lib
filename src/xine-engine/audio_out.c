@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.81 2002/11/12 17:55:48 guenter Exp $
+ * $Id: audio_out.c,v 1.82 2002/11/18 15:53:31 heikos Exp $
  * 
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -1066,7 +1066,7 @@ ao_instance_t *ao_new_instance (xine_ao_driver_t *driver,
 
   this->passthrough_offset = config->register_num (config,
 						   "audio.passthrough_offset",
-						   10000,
+						   0,
 						   _("adjust if audio is offsync"),
 						   NULL, 10, NULL, NULL);
 
