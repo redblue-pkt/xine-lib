@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux.h,v 1.36 2004/01/23 09:24:52 andruil Exp $
+ * $Id: demux.h,v 1.37 2004/02/12 18:05:45 mroi Exp $
  */
 
 #ifndef HAVE_DEMUX_H
@@ -26,12 +26,10 @@
 #ifdef XINE_COMPILE
 #  include "input/input_plugin.h"
 #  include "buffer.h"
-#  include "video_out.h"
 #  include "xine_internal.h"
 #else
 #  include <xine/input_plugin.h>
 #  include <xine/buffer.h>
-#  include <xine/video_out.h>
 #  include <xine/xine_internal.h>
 #endif
 
