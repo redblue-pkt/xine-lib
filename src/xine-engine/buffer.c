@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.c,v 1.23 2003/02/08 13:52:44 tmattern Exp $
+ * $Id: buffer.c,v 1.24 2003/02/22 14:12:45 mroi Exp $
  *
  *
  * contents:
@@ -89,7 +89,9 @@ static buf_element_t *buffer_pool_alloc (fifo_buffer_t *this) {
 
   pthread_mutex_lock (&this->buffer_pool_mutex);
 
-  while (!this->buffer_pool_top) {
+  /* we always keep one free buffer for emergency situations like
+   * decoder flushes that would need a buffer in buffer_pool_try_alloc() */
+  while (this->buffer_pool_num_free < 2) {
     pthread_cond_wait (&this->buffer_pool_cond_not_empty, &this->buffer_pool_mutex);
   }
 
