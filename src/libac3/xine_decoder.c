@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.8 2001/05/31 18:36:41 joachim_koenig Exp $
+ * $Id: xine_decoder.c,v 1.9 2001/05/31 22:54:39 guenter Exp $
  *
  * stuff needed to turn libac3 into a xine decoder plugin
  */
@@ -28,6 +28,11 @@
 
 
 #include <stdlib.h>
+#include <unistd.h>
+#include <string.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 
 #include "audio_out.h"
 #include "ac3.h"
@@ -35,6 +40,8 @@
 #include "xine_internal.h"
 
 #define FRAME_SIZE 4096
+
+/* int ac3file; */
 
 typedef struct ac3dec_decoder_s {
   audio_decoder_t  audio_decoder;
@@ -96,6 +103,9 @@ void ac3dec_init (audio_decoder_t *this_gen, ao_functions_t *audio_out) {
       this->max_num_channels = 1;
     }
   }
+
+  /* ac3file = open ("test.ac3", O_CREAT); */
+
 }
 
 void ac3dec_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
@@ -104,7 +114,7 @@ void ac3dec_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 
   uint8_t     *current = buf->content;
   uint8_t     *end = buf->content + buf->size;
-  ac3_frame_t *ac3_frame;
+  ac3_frame_t *ac3_frame=NULL;
 /*    int          sampling_rate; */
   int          output_mode = AO_CAP_MODE_STEREO;
 
@@ -164,6 +174,8 @@ void ac3dec_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
     if (!this->bypass_mode) {
       
       /* oki, decode this frame in software*/
+
+      /* write (ac3file, this->frame_buffer, this->frame_length); */
 
       ac3_frame = ac3_decode_frame (this->frame_buffer, this->max_num_channels);
 
@@ -245,6 +257,8 @@ void ac3dec_close (audio_decoder_t *this_gen) {
 
   if (this->output_open) 
     this->audio_out->close (this->audio_out);
+
+  /* close (ac3file); */
 }
 
 static char *ac3dec_get_id(void) {

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg.c,v 1.13 2001/05/30 02:09:24 f1rmb Exp $
+ * $Id: demux_mpeg.c,v 1.14 2001/05/31 22:54:39 guenter Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  * reads streams of variable blocksizes
@@ -35,6 +35,7 @@
 #include <unistd.h>
 #include <pthread.h>
 #include <string.h>
+#include <unistd.h>
 
 #include "monitor.h"
 #include "xine_internal.h"
@@ -501,6 +502,8 @@ static void *demux_mpeg_loop (void *this_gen) {
 	  this->status, w);
 
   pthread_exit(NULL);
+
+  return NULL;
 }
 
 static void demux_mpeg_stop (demux_plugin_t *this_gen) {

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.28 2001/05/29 15:55:14 f1rmb Exp $
+ * $Id: video_out_xv.c,v 1.29 2001/05/31 22:54:39 guenter Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -136,9 +136,19 @@ static uint32_t xv_get_capabilities (vo_driver_t *this_gen) {
   return this->capabilities;
 }
 
-/*
- *
- */
+static void xv_frame_field (vo_frame_t *vo_img, int which_field) {
+  /* not needed for Xv */
+}
+
+static void xv_frame_dispose (vo_frame_t *vo_img) {
+
+  xv_frame_t     *frame = (xv_frame_t *) vo_img ;
+
+  /* FIXME: implement */  
+
+}
+
+
 static vo_frame_t *xv_alloc_frame (vo_driver_t *this_gen) {
 
   xv_frame_t     *frame ;
@@ -152,6 +162,14 @@ static vo_frame_t *xv_alloc_frame (vo_driver_t *this_gen) {
 
   pthread_mutex_init (&frame->vo_frame.mutex, NULL);
 
+  /*
+   * supply required functions
+   */
+  
+  frame->vo_frame.copy    = NULL;
+  frame->vo_frame.field   = xv_frame_field; 
+  frame->vo_frame.dispose = xv_frame_dispose;
+  
   return (vo_frame_t *) frame;
 }
 

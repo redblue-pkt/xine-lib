@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.10 2001/05/30 21:48:23 f1rmb Exp $
+ * $Id: demux_mpeg_block.c,v 1.11 2001/05/31 22:54:39 guenter Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -343,6 +343,8 @@ static void *demux_mpeg_block_loop (void *this_gen) {
   }
 
   pthread_exit(NULL);
+
+  return NULL;
 }
 
 static void demux_mpeg_block_stop (demux_plugin_t *this_gen) {

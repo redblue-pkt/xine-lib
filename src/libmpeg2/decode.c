@@ -75,6 +75,8 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
     picture_t * picture;
     int is_frame_done;
 
+    /* printf ("parse_chunk %d\n", code); */
+
     /* wait for sequence_header_code */
     if (mpeg2dec->is_sequence_needed && (code != 0xb3))
 	return 0;
@@ -117,40 +119,40 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 	    exit (1);
 	}
 
-	/* find out if we want to skip this frame */
-	mpeg2dec->drop_frame = 0;
-
-	picture->skip_non_intra_dct = (mpeg2dec->frames_to_drop>0) ;
-
+	if (!picture->second_field) {
+	  /* find out if we want to skip this frame */
+	  mpeg2dec->drop_frame = 0;
+	  
+	  picture->skip_non_intra_dct = (mpeg2dec->frames_to_drop>0) ;
+	  
+	  switch (picture->picture_coding_type) {
+	  case B_TYPE:
 	    
-	switch (picture->picture_coding_type) {
-        case B_TYPE:
-          
-          if (mpeg2dec->frames_to_drop>1) {
-            mpeg2dec->drop_frame = 1;
-          } else if (picture->forward_reference_frame->bFrameBad 
-                     || picture->backward_reference_frame->bFrameBad) {
-            mpeg2dec->drop_frame = 1;
-          }
-	  break;
-
-        case P_TYPE:
-          
-          if (mpeg2dec->frames_to_drop>2) {
-            mpeg2dec->drop_frame = 1;
-          } else if (picture->backward_reference_frame->bFrameBad) {
-            mpeg2dec->drop_frame = 1;
+	    if (mpeg2dec->frames_to_drop>1) {
+	      mpeg2dec->drop_frame = 1;
+	    } else if (picture->forward_reference_frame->bFrameBad 
+		       || picture->backward_reference_frame->bFrameBad) {
+	      mpeg2dec->drop_frame = 1;
+	    }
+	    break;
+	    
+	  case P_TYPE:
+	    
+	    if (mpeg2dec->frames_to_drop>2) {
+	      mpeg2dec->drop_frame = 1;
+	    } else if (picture->backward_reference_frame->bFrameBad) {
+	      mpeg2dec->drop_frame = 1;
+	    }
+	    break;
+	    
+	  case I_TYPE:
+	    
+	    if (mpeg2dec->frames_to_drop>4) {
+	      mpeg2dec->drop_frame = 1;
+	    }
+	    break;
 	  }
-	  break;
-
-        case I_TYPE:
-          
-          if (mpeg2dec->frames_to_drop>4) {
-            mpeg2dec->drop_frame = 1;
-	  }
-	  break;
 	}
-
 	break;
 
     case 0xb3:	/* sequence_header_code */
@@ -197,9 +199,9 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 	if (!(mpeg2dec->in_slice)) {
 	    mpeg2dec->in_slice = 1;
 
-	    if (picture->second_field)
+	    if (picture->second_field) 
 	      picture->current_frame->field(picture->current_frame, 
-					    picture->picture_structure);
+	      			    picture->picture_structure);
 	    else {
 		if (picture->picture_coding_type == B_TYPE)
 		    picture->throwaway_frame = picture->current_frame =
@@ -239,6 +241,7 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 	}
     }
 
+    /* printf ("parse_chunk %d completed\n", code); */
     return is_frame_done;
 }
 
