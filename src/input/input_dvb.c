@@ -942,7 +942,9 @@ static void *init_class (xine_t *xine, void *data) {
   this->mrls[0] = "dvb://";
   this->mrls[1] = 0;
 
+#ifdef LOG
   printf ("input_dvb: init class succeeded\n");
+#endif
 
   return this;
 }
