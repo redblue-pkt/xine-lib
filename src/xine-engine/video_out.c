@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.136 2003/01/13 13:43:46 mroi Exp $
+ * $Id: video_out.c,v 1.137 2003/01/25 12:10:33 mroi Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -299,13 +299,17 @@ static vo_frame_t *vo_get_frame (xine_video_port_t *this_gen,
 static int vo_frame_draw (vo_frame_t *img, xine_stream_t *stream) {
 
   vos_t         *this = (vos_t *) img->port;
+  extra_info_t   empty_info;
   int64_t        diff;
   int64_t        cur_vpts;
   int64_t        pic_vpts ;
   int            frames_to_skip;
 
   img->stream = stream;
-  extra_info_merge( img->extra_info, stream->video_decoder_extra_info );
+  extra_info_reset(&empty_info);
+  if (memcmp(&empty_info, img->extra_info, sizeof(extra_info_t)) == 0)
+    /* the extra info is empty -> set it here */
+    extra_info_merge( img->extra_info, stream->video_decoder_extra_info );
   this->current_width = img->width;
   this->current_height = img->height;
   
@@ -587,8 +591,11 @@ static vo_frame_t *get_next_frame (vos_t *this, int64_t cur_vpts) {
       pthread_mutex_lock( &this->free_img_buf_queue->mutex );
       img = duplicate_frame (this, this->img_backup );
       pthread_mutex_unlock( &this->free_img_buf_queue->mutex );
-      if( img )
+      if( img ) {
         img->vpts = cur_vpts;
+        /* extra info of the backup is thrown away, because it is not up to date */
+        extra_info_reset(img->extra_info);
+      }
         
       return img;
 
@@ -757,6 +764,8 @@ static void paused_loop( vos_t *this, int64_t vpts )
     if( this->redraw_needed && this->img_backup ) {
       img = duplicate_frame (this, this->img_backup );
       if( img ) {
+        /* extra info of the backup is thrown away, because it is not up to date */
+        extra_info_reset(img->extra_info);
         pthread_mutex_unlock( &this->free_img_buf_queue->mutex );
         overlay_and_display_frame (this, img, vpts);
         pthread_mutex_lock( &this->free_img_buf_queue->mutex );
