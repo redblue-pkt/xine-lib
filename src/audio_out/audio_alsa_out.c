@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.134 2004/03/21 03:29:43 jcdutton Exp $
+ * $Id: audio_alsa_out.c,v 1.135 2004/04/10 14:53:42 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -349,56 +349,26 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
   switch (mode) {
   case AO_CAP_MODE_MONO:
     this->num_channels = 1;
-    pcm_device = config->register_string(config,
-                                         "audio.alsa_default_device",
-                                         "default",
-                                         _("device used for mono output"),
-                                         NULL,
-                                         10, NULL,
-                                         NULL);
+    pcm_device = config->lookup_entry(config, "audio.alsa_default_device")->str_value;
     break;
   case AO_CAP_MODE_STEREO:
     this->num_channels = 2;
-    pcm_device = config->register_string(config,
-                                         "audio.alsa_front_device",
-                                         "plug:front",
-                                         _("device used for stereo output"),
-                                         NULL,
-                                         10, NULL,
-                                         NULL);
+    pcm_device = config->lookup_entry(config, "audio.alsa_front_device")->str_value;
     break;
   case AO_CAP_MODE_4CHANNEL:
     this->num_channels = 4;
-    pcm_device = config->register_string(config,
-                                         "audio.alsa_surround40_device",
-                                         "plug:surround40",
-                                         _("device used for 4-channel output"),
-                                         NULL,
-                                         10, NULL,
-                                         NULL);
+    pcm_device = config->lookup_entry(config, "audio.alsa_surround40_device")->str_value;
     break;
   case AO_CAP_MODE_4_1CHANNEL:
   case AO_CAP_MODE_5CHANNEL:
   case AO_CAP_MODE_5_1CHANNEL:
     this->num_channels = 6;
-    pcm_device = config->register_string(config,
-                                         "audio.alsa_surround51_device",
-                                         "plug:surround51",
-                                         _("device used for 5+ channel output"),
-                                         NULL,
-                                         10, NULL,
-                                         NULL);
+    pcm_device = config->lookup_entry(config, "audio.alsa_surround51_device")->str_value;
     break;
   case AO_CAP_MODE_A52:
   case AO_CAP_MODE_AC5:
     this->num_channels = 2;
-    pcm_device = config->register_string(config,
-                                         "audio.alsa_a52_device",
-                                         "iec958:AES0=0x6,AES1=0x82,AES2=0x0,AES3=0x2",
-                                         _("device used for 5.1-channel output"),
-                                         NULL,
-                                         10, NULL,
-                                         NULL);
+    pcm_device = config->lookup_entry(config, "audio.alsa_a52_device")->str_value;
     break;
   default:
     xprintf (this->class->xine, XINE_VERBOSITY_DEBUG, 
@@ -1118,14 +1088,7 @@ static void ao_alsa_mixer_init(ao_driver_t *this_gen) {
 
   this->mixer.elem = 0; 
   snd_ctl_card_info_alloca(&hw_info);
-  pcm_device = config->register_string(config,
-				       "audio.alsa_default_device",
-				       "default",
-				       _("device used for mono output"),
-				       NULL,
-				       10, NULL,
-				       NULL);
-  
+  pcm_device = config->lookup_entry(config, "audio.alsa_default_device")->str_value;
   if ((err = snd_ctl_open (&ctl_handle, pcm_device, 0)) < 0) {
     xprintf (this->class->xine, XINE_VERBOSITY_DEBUG, "audio_alsa_out: snd_ctl_open(): %s\n", snd_strerror(err));
     return;
@@ -1262,13 +1225,7 @@ static void ao_alsa_mixer_init(ao_driver_t *this_gen) {
     config->update_string(config, "audio.alsa_mixer_name", "PCM");
   }
   
-  this->mixer.name = config->register_string(config,
-                                             "audio.alsa_mixer_name",
-                                             "PCM",
-                                             _("alsa mixer device"),
-                                             NULL,
-                                             10, NULL,
-                                             NULL);
+  this->mixer.name = config->lookup_entry(config, "audio.alsa_mixer_name")->str_value;
   
   goto __again;
 
@@ -1292,8 +1249,10 @@ static void ao_alsa_mixer_init(ao_driver_t *this_gen) {
 
   /* Create a thread which wait/handle mixer events */
   send_events = config->register_num(config, "audio.alsa_hw_mixer", 1,
-		  		     _("Whether to generate an event when the hardware mixer values change"),
-				     _("When the hardware mixer changes, an event will be sent to the front-end"),
+		  		     _("notify changes to the hardware mixer"),
+				     _("When the hardware mixer changes, your application will receive "
+				       "a notification so that it can update its graphical representation "
+				       "of the mixer settings on the fly."),
 				     10, NULL, NULL);
 
   if (send_events == 1)
@@ -1348,58 +1307,69 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
     xine_log(this->class->xine, XINE_LOG_MSG, _("snd_lib_error_set_handler() failed: %d"), err); 
   
   snd_pcm_hw_params_alloca(&params);
-  /* Fill the .xinerc file with options */ 
+
   this->mmap = config->register_bool (config,
                                "audio.alsa_mmap_enable",
                                0,
-                               _("used to inform xine about what the sound card can do"),
-                               NULL,
-                               0, NULL,
+                               _("sound card can do mmap"),
+                               _("Enable this, if your sound card and alsa driver "
+                                 "support memory mapped IO.\nYou can try enabling it "
+                                 "and check, if everything works. If it does, this "
+                                 "will increase performance."),
+                               10, NULL,
                                NULL);
   pcm_device = config->register_string(config,
 				       "audio.alsa_default_device",
 				       "default",
 				       _("device used for mono output"),
-				       NULL,
+				       _("xine will use this alsa device to output "
+				         "mono sound.\nSee the alsa documentation "
+				         "for information on alsa devices."),
 				       10, NULL,
 				       NULL);
   pcm_device = config->register_string(config,
 				       "audio.alsa_front_device",
 				       "front",
 				       _("device used for stereo output"),
-				       NULL,
+				       _("xine will use this alsa device to output "
+				         "stereo sound.\nSee the alsa documentation "
+				         "for information on alsa devices."),
 				       10, NULL,
 				       NULL);
   pcm_device = config->register_string(config,
 				       "audio.alsa_surround40_device",
 				       "surround40",
 				       _("device used for 4-channel output"),
-				       NULL,
+				       _("xine will use this alsa device to output "
+				         "4 channel (4.0) surround sound.\nSee the "
+				         "alsa documentation for information on alsa "
+				         "devices."),
 				       10, NULL,
 				       NULL);
   pcm_device = config->register_string(config,
 				       "audio.alsa_surround51_device",
 				       "surround51",
 				       _("device used for 5.1-channel output"),
-				       NULL,
+				       _("xine will use this alsa device to output "
+				         "5 channel plus LFE (5.1) surround sound.\n"
+				         "See the alsa documentation for information "
+				         "on alsa devices."),
                                        10,  NULL,
 				       NULL);
   pcm_device = config->register_string(config,
 				       "audio.alsa_a52_device",
 				       "iec958:AES0=0x6,AES1=0x82,AES2=0x0,AES3=0x2",
 				       _("device used for 5.1-channel output"),
-				       NULL,
+				       _("xine will use this alsa device to output "
+				         "undecoded digital surround sound. This can "
+				         "be used be external surround decoders.\nSee the "
+				         "alsa documentation for information on alsa "
+				         "devices."),
 				       10, NULL,
 				       NULL);
 
   /* Use the default device to open first */
-  pcm_device = config->register_string(config,
-				       "audio.alsa_default_device",
-				       "default",
-				       _("device used for mono output"),
-				       NULL,
-				       10, NULL,
-				       NULL);
+  pcm_device = config->lookup_entry(config, "audio.alsa_default_device")->str_value;
  
   /*
    * find best device driver/channel
@@ -1452,8 +1422,13 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
         config->register_bool (config,
                                "audio.four_channel",
                                0,
-                               _("used to inform xine about what the sound card can do"),
-                               NULL,
+                               _("sound system can handle 4.0 audio"),
+                               _("Enable this, if you want your sound system to "
+                                 "receive four channel surround sound from xine. "
+                                 "This means two front channels (left and right) "
+                                 "and two rear channels (left and right).\n"
+                                 "You need to connect the necessary speakers to "
+                                 "take advantage of this."),
                                0, NULL,
                                NULL) ) {
     this->capabilities |= AO_CAP_MODE_4CHANNEL;
@@ -1466,8 +1441,13 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
         config->register_bool (config,
                                "audio.four_lfe_channel",
                                0,
-                               _("used to inform xine about what the sound card can do"),
-                               NULL,
+                               _("sound system can handle 4.1 audio"),
+                               _("Enable this, if you want your sound system to "
+                                 "receive four channel plus LFE surround sound from "
+                                 "xine. This means two front channels (left and "
+                                 "right), two rear channels (left and right) and a "
+                                 "subwoofer (LFE) channel.\nYou need to connect "
+                                 "the necessary speakers to take advantage of this."),
                                0, NULL,
                                NULL) ) {
     this->capabilities |= AO_CAP_MODE_4_1CHANNEL;
@@ -1480,8 +1460,13 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
         config->register_bool (config,
                                "audio.five_channel",
                                0,
-                               _("used to inform xine about what the sound card can do"),
-                               NULL,
+                               _("sound system can handle 5.0 audio"),
+                               _("Enable this, if you want your sound system to "
+                                 "receive four channel surround sound from xine. "
+                                 "This means three front channels (left, center and "
+                                 "right) and two rear channels (left and right).\n"
+                                 "You need to connect the necessary speakers to "
+                                 "take advantage of this."),
                                0, NULL,
                                NULL) ) {
     this->capabilities |= AO_CAP_MODE_5CHANNEL;
@@ -1494,8 +1479,13 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
         config->register_bool (config,
                                "audio.five_lfe_channel",
                                0,
-                               _("used to inform xine about what the sound card can do"),
-                               NULL,
+                               _("sound system can handle 5.1 audio"),
+                               _("Enable this, if you want your sound system to "
+                                 "receive five channel plus LFE surround sound from "
+                                 "xine. This means three front channels (left, center "
+                                 "and right), two rear channels (left and right) and "
+                                 "a subwoofer (LFE) channel.\nYou need to connect "
+                                 "the necessary speakers to take advantage of this."),
                                0, NULL,
                                NULL) ) {
     this->capabilities |= AO_CAP_MODE_5_1CHANNEL;
@@ -1510,17 +1500,11 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
   snd_pcm_close (this->audio_fd);
   this->audio_fd=NULL;
 
-/* Fallback to "default" if device "front" does not exist */
-/* Needed for some very basic sound cards. */
-  pcm_device = config->register_string(config,
-				       "audio.alsa_front_device",
-				       "front",
-				       _("device used for stereo output"),
-				       NULL,
-				       10, NULL,
-				       NULL);
+  /* Fallback to "default" if device "front" does not exist */
+  /* Needed for some very basic sound cards. */
+  pcm_device = config->lookup_entry(config, "audio.alsa_front_device")->str_value;
   err=snd_pcm_open(&this->audio_fd, pcm_device, SND_PCM_STREAM_PLAYBACK, 1); /* NON-BLOCK mode */
-  if(err <0 ) {
+  if(err < 0) {
     config->update_string(config, "audio.alsa_front_device", "default");
   } else {
     snd_pcm_close (this->audio_fd);
@@ -1531,8 +1515,12 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
   if (config->register_bool (config,
                                "audio.a52_pass_through",
                                0,
-                               _("used to inform xine about what the sound card can do"),
-                               NULL,
+                               _("sound system can handle undecoded digital sound"),
+                               _("Enable this, if you want your sound system to "
+                                 "receive undecoded digital sound from xine.\n"
+                                 "You need to connect a digital surround decoder "
+                                 "capable of decoding the formats you want to play "
+                                 "to your sound card's digital output. "),
                                0, alsa_passthru_cb,
                                this) ) {
     this->capabilities |= AO_CAP_MODE_A52;
@@ -1548,7 +1536,9 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
                                              "audio.alsa_mixer_name",
                                              "PCM",
                                              _("alsa mixer device"),
-                                             NULL,
+                                             _("xine will use this alsa mixer device to change "
+                                               "the volume.\nSee the alsa documentation for "
+                                               "information on alsa devices."),
                                              10, NULL,
                                              NULL);
 

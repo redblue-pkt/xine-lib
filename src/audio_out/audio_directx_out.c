@@ -20,7 +20,7 @@
  * audio_directx_out.c, direct sound audio output plugin for xine
  * by Matthew Grooms <elon@altavista.com>
  *
- * $Id: audio_directx_out.c,v 1.10 2004/01/05 00:51:44 valtri Exp $
+ * $Id: audio_directx_out.c,v 1.11 2004/04/10 14:53:43 mroi Exp $
  */
 
 /*
@@ -109,7 +109,6 @@ typedef struct {
 typedef struct {
   audio_driver_class_t  driver_class;
   config_values_t      *config;
-  char                 *device_name;
   xine_t               *xine;
 } audiox_class_t;
 
@@ -840,15 +839,9 @@ static void dispose_class (audio_driver_class_t *this_gen) {
 
 static void *init_class (xine_t *xine, void *data) {
   audiox_class_t    *audiox;
-  char*              device_name;
 
   lprintf("init_class() Enter\n");
 
-  device_name = xine->config->register_string(xine->config,
-					      "audio.directx_device", "/dev/audio_directx",
-					      _("xine audio output plugin for win32 using directx"), 
-					      NULL, 10, NULL, NULL);
-    
   /*
    * from this point on, nothing should go wrong anymore
    */
@@ -861,7 +854,6 @@ static void *init_class (xine_t *xine, void *data) {
 
   audiox->xine                         = xine;
   audiox->config                       = xine->config;
-  audiox->device_name                  = device_name;
 
   lprintf("init_class() Exit! Returning audiox=%08x\n", audiox);
   

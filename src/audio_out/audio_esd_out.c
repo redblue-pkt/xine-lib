@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_esd_out.c,v 1.29 2003/12/14 22:13:22 siggi Exp $
+ * $Id: audio_esd_out.c,v 1.30 2004/04/10 14:53:43 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -534,7 +534,12 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen,
   this->latency            = config->register_range (config, "audio.esd_latency", 0,
 						     -30000, 90000,
 						     _("esd audio output latency (adjust a/v sync)"),
-						     NULL, 0, NULL, NULL);
+						     _("If you experience audio being not in sync "
+						       "with the video, you can enter a fixed offset "
+						       "here to compensate.\nThe unit of the value "
+						       "is one PTS tick, which is the 90000th part "
+						       "of a second."),
+						     10, NULL, NULL);
 
   this->ao_driver.get_capabilities    = ao_esd_get_capabilities;
   this->ao_driver.get_property        = ao_esd_get_property;

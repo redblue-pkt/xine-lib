@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_oss_out.c,v 1.102 2004/03/18 09:07:00 pmhahn Exp $
+ * $Id: audio_oss_out.c,v 1.103 2004/04/10 14:53:43 mroi Exp $
  *
  * 20-8-2001 First implementation of Audio sync and Audio driver separation.
  * Copyright (C) 2001 James Courtier-Dutton James@superbug.demon.co.uk
@@ -500,6 +500,7 @@ static void ao_oss_exit(ao_driver_t *this_gen) {
   if (this->audio_fd != -1)
     close(this->audio_fd);
 
+  free (this->mixer.name);
   free (this);
 }
 
@@ -737,18 +738,19 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
   devname_val = config->register_enum (config, "audio.oss_device_name", 0,
 				       devname_opts,
 				       _("OSS audio device name"),
-				       _("Specify base part of the audio device name "
-					 "then use oss_device_number to set the device number. "
-					 "Select auto if you want to probe for the device."),
+				       _("Specifies the base part of the audio device name, "
+					 "to which the OSS device number is appended to get the "
+					 "full device name.\nSelect \"auto\" if you want xine to "
+					 "auto detect the corret setting."),
 					10, NULL, NULL);
   /* devname_num is the N in '/dev[/sound]/dsp[N]'. Set to -1 for nothing */
   devname_num = config->register_num(config, "audio.oss_device_number", -1,
-				     _("OSS number N to append to audio device name /dev/dsp[N], -1 for none"),
-				     _("The audio device name is created by concatenating the "
-				       "oss_device_name and the audio device number (eg /dev/sound/dsp2). "
-				       "If you do not need a "
-				       "number, set to -1 (eg /dev/sound/dsp). "
-				       "The range of this variable is -1 or 0-15."),
+				     _("OSS audio device number, -1 for none"),
+				     _("The full audio device name is created by concatenating the "
+				       "OSS device name and the audio device number.\n"
+				       "If you do not need a number because you are happy with "
+				       "your system's default audio device, set this to -1.\n"
+				       "The range of this value is -1 or 0-15."),
 				     10, NULL, NULL);
   if (devname_val == 0) {
     xprintf(class->xine, XINE_VERBOSITY_LOG,
@@ -756,8 +758,8 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
     if ( ! probe_audio_devices(this)) {  /* Returns zero on fail */
       xprintf(class->xine, XINE_VERBOSITY_LOG, 
 	      _("audio_oss_out: Auto probe for audio device failed\n"));
-    free (this);
-    return NULL;
+      free (this);
+      return NULL;
     }
   }
   else {
@@ -798,8 +800,33 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
 
   this->sync_method = config->register_enum (config, "audio.oss_sync_method", OSS_SYNC_AUTO_DETECT,
 					     sync_methods, 
-					     _("A/V sync method to use by OSS, depends on driver/hardware"),
-					     NULL, 20, NULL, NULL);
+					     _("a/v sync method to use by OSS"),
+					     _("xine can use different methods to keep audio and video "
+					       "synchronized. Which setting works best depends on the "
+					       "OSS driver and sound hardware you are using. Try the "
+					       "various methods, if you experience sync problems.\n\n"
+					       "The meaning of the values is as follows:\n\n"
+					       "auto\n"
+					       "xine attempts to automatically detect the optimal setting\n\n"
+					       "getodelay\n"
+					       "uses the SNDCTL_DSP_GETODELAY ioctl to achieve true a/v "
+					       "sync even if the driver claims not to support realtime "
+					       "playback\n\n"
+					       "getoptr\n"
+					       "uses the SNDCTL_DSP_GETOPTR ioctl to achieve true a/v "
+					       "sync even if the driver supports the preferred "
+					       "SNDCTL_DSP_GETODELAY ioctl\n\n"
+					       "softsync\n"
+					       "uses software synchronization with the system clock; audio "
+					       "and video can get severly out of sync if the system clock "
+					       "speed does not precisely match your sound card's playback "
+					       "speed\n\n"
+					       "probebuffer\n"
+					       "probes the sound card buffer size on initialization to "
+					       "calculate the latency for a/v sync; thy this if your "
+					       "system does not support any of the realtime ioctls and "
+					       "you experience sync errors after long playback"),
+					     20, NULL, NULL);
 
   if (this->sync_method == OSS_SYNC_AUTO_DETECT) {
 
@@ -826,6 +853,16 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
 	      "audio_oss_out: ...will use system real-time clock for soft-sync instead\n"
 	      "audio_oss_out: ...there may be audio/video synchronization issues\n"));
     gettimeofday(&this->start_time, NULL);
+    
+    this->latency = config->register_range (config, "audio.oss_latency", 0,
+					    -3000, 3000, 
+					    _("OSS audio output latency (adjust a/v sync)"),
+					    _("If you experience audio being not in sync "
+					      "with the video, you can enter a fixed offset "
+					      "here to compensate.\nThe unit of the value "
+					      "is one PTS tick, which is the 90000th part "
+					      "of a second."),
+					    20, NULL, NULL);
   }
   
   if (this->sync_method == OSS_SYNC_PROBEBUFFER) {
@@ -864,12 +901,6 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
     }
   }
 
-  this->latency = config->register_range (config, "audio.oss_latency", 0,
-					  -3000, 3000, 
-					  _("Adjust a/v sync for OSS softsync"),
-					  _("Use this to manually adjust a/v sync if you're using softsync"),
-					  10, NULL, NULL);
-  
   this->capabilities = 0;
   
   arg = AFMT_U8;
@@ -902,8 +933,14 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
   status = ioctl(audio_fd, SNDCTL_DSP_CHANNELS, &num_channels); 
   if ( (status != -1) && (num_channels==4) ) {
     if (config->register_bool (config, "audio.four_channel", 0,
-			       _("Enable 4.0 channel analog surround output"),
-			       NULL, 0, NULL, NULL)) {
+                               _("sound system can handle 4.0 audio"),
+                               _("Enable this, if you want your sound system to "
+                                 "receive four channel surround sound from xine. "
+                                 "This means two front channels (left and right) "
+                                 "and two rear channels (left and right).\n"
+                                 "You need to connect the necessary speakers to "
+                                 "take advantage of this."),
+			       0, NULL, NULL)) {
       this->capabilities |= AO_CAP_MODE_4CHANNEL;
       xprintf(class->xine, XINE_VERBOSITY_DEBUG, "4-channel ");
     } 
@@ -914,8 +951,14 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
   status = ioctl(audio_fd, SNDCTL_DSP_CHANNELS, &num_channels); 
   if ( (status != -1) && (num_channels==5) ) {
     if (config->register_bool (config, "audio.five_channel", 0,
-			       _("Enable 5.0 channel analog surround output"),
-			       NULL, 0, NULL, NULL)) {
+                               _("sound system can handle 5.0 audio"),
+                               _("Enable this, if you want your sound system to "
+                                 "receive four channel surround sound from xine. "
+                                 "This means three front channels (left, center and "
+                                 "right) and two rear channels (left and right).\n"
+                                 "You need to connect the necessary speakers to "
+                                 "take advantage of this."),
+			       0, NULL, NULL)) {
       this->capabilities |= AO_CAP_MODE_5CHANNEL;
       xprintf(class->xine, XINE_VERBOSITY_DEBUG, "5-channel ");
     }
@@ -926,8 +969,14 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
   status = ioctl(audio_fd, SNDCTL_DSP_CHANNELS, &num_channels); 
   if ( (status != -1) && (num_channels==6) ) {
     if (config->register_bool (config, "audio.five_lfe_channel", 0,
-			       _("Enable 5.1 channel analog surround output"),
-			       NULL, 0, NULL, NULL)) {
+                               _("sound system can handle 5.1 audio"),
+                               _("Enable this, if you want your sound system to "
+                                 "receive five channel plus LFE surround sound from "
+                                 "xine. This means three front channels (left, center "
+                                 "and right), two rear channels (left and right) and "
+                                 "a subwoofer (LFE) channel.\nYou need to connect "
+                                 "the necessary speakers to take advantage of this."),
+			       0, NULL, NULL)) {
       this->capabilities |= AO_CAP_MODE_5_1CHANNEL;
       xprintf(class->xine, XINE_VERBOSITY_DEBUG, "5.1-channel ");
     } 
@@ -937,30 +986,44 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
 
   ioctl(audio_fd,SNDCTL_DSP_GETFMTS,&caps);
 
-  if ((caps & AFMT_AC3) || config->register_bool (config, "audio.oss_pass_through_bug", 0,
-			       _("used to inform xine about what the sound card can do"),
-			       NULL, 20, NULL, NULL)) {
-    if (config->register_bool (config, "audio.a52_pass_through", 0,
-			       _("used to inform xine about what the sound card can do"),
-			       NULL, 0, NULL, NULL)) {
-      this->capabilities |= AO_CAP_MODE_A52;
-      this->capabilities |= AO_CAP_MODE_AC5;
-      xprintf(class->xine, XINE_VERBOSITY_DEBUG, "a/52-pass-through ");
-    } 
-    else 
-      xprintf(class->xine, XINE_VERBOSITY_DEBUG, "(a/52-pass-through not enabled in xine config)");
-  }    
+  /* one would normally check for (caps & AFMT_AC3) before asking about passthrough,
+   * but some buggy OSS drivers do not report this properly, so we ask anyway */
+  if (config->register_bool (config, "audio.a52_pass_through", 0,
+                             _("sound system can handle undecoded digital sound"),
+                             _("Enable this, if you want your sound system to "
+                               "receive undecoded digital sound from xine.\n"
+                               "You need to connect a digital surround decoder "
+                               "capable of decoding the formats you want to play "
+                               "to your sound card's digital output. "),
+			     0, NULL, NULL)) {
+    this->capabilities |= AO_CAP_MODE_A52;
+    this->capabilities |= AO_CAP_MODE_AC5;
+    xprintf(class->xine, XINE_VERBOSITY_DEBUG, "a/52-pass-through ");
+  } 
+  else 
+    xprintf(class->xine, XINE_VERBOSITY_DEBUG, "(a/52-pass-through not enabled in xine config)");
   
   /*
    * mixer initialisation.
    */
-
-  this->mixer.name = config->register_string(config, "audio.mixer_name", "/dev/mixer",
-					     _("OSS mixer device"), NULL, 
-					     10, NULL, NULL);
   {
+    char mixer_name[32];
+    char *mixer_num;
     int mixer_fd;
     int audio_devs;
+    
+    /* get the mixer device name from the audio device name by replacing "dsp" with "mixer" */
+    strcpy(mixer_name, this->audio_dev);
+    if ((mixer_num = strstr(mixer_name, "dsp"))) {
+      mixer_num[0] = '\0';
+      mixer_num += 3;
+      this->mixer.name = (char *)malloc(strlen(mixer_name) + sizeof("mixer") + strlen(mixer_num));
+      sprintf(this->mixer.name, "%smixer%s", mixer_name, mixer_num);
+    } else {
+      this->mixer.name = (char *)malloc(1);
+      this->mixer.name[0] = '\0';
+    }
+    _x_assert(this->mixer.name[0] != '\0');
     
     mixer_fd = open(this->mixer.name, O_RDONLY);
 

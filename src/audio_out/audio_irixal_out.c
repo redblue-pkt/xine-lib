@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_irixal_out.c,v 1.10 2003/12/09 00:02:29 f1rmb Exp $
+ * $Id: audio_irixal_out.c,v 1.11 2004/04/10 14:53:43 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -382,8 +382,12 @@ static void *init_audio_out_plugin (config_values_t *config)
   /* TODO: anything can change during runtime... move check to the right location */
   this->gap_tolerance = config->register_range (config, "audio.irixal_gap_tolerance",
 					        DEFAULT_GAP_TOLERANCE, 0, 90000,
-						_("irixal audio output maximum gap length in 1/90000s"),
-						NULL, NULL, NULL);
+						_("irixal audio output maximum gap length"),
+						_("You can specify the maximum offset between audio "
+						  "and video xine will tolerate before trying to "
+						  "resync them.\nThe unit of this value is one PTS tick, "
+						  "which is the 90000th part of a second."),
+						30, NULL, NULL);
 
   this->ao_driver.get_capabilities    = ao_irixal_get_capabilities;
   this->ao_driver.get_property        = ao_irixal_get_property;

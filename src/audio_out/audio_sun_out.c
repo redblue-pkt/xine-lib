@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_sun_out.c,v 1.35 2004/03/18 09:07:00 pmhahn Exp $
+ * $Id: audio_sun_out.c,v 1.36 2004/04/10 14:53:44 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -882,13 +882,18 @@ static ao_driver_t *ao_sun_open_plugin (audio_driver_class_t *class_gen, const v
 
   audiodev = getenv("AUDIODEV");
 
-  /* Fill the .xinerc file with options */ 
+  /* This config entry is security critical, is it really necessary? */
   devname = config->register_string(config,
 				    "audio.sun_audio_device",
 				    audiodev && *audiodev ? audiodev : "/dev/audio",
-				    _("device used for audio output with the 'Sun' audio plugin"),
-				    NULL,
-				    10, NULL,
+				    _("Sun audio device name"),
+				    _("Specifies the file name for the Sun audio device 
+				      "to be used.\nThis setting is security critical, "
+				      "because when changed to a different file, xine "
+				      "can be used to fill this file with arbitrary content."
+				      "So you should be careful that the value you enter "
+				      "really is a proper Sun audio device."),
+				    XINE_CONFIG_SECURITY, NULL,
 				    NULL);
 
   /*
