@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.17 2001/04/30 23:07:00 guenter Exp $
+ * $Id: load_plugins.c,v 1.18 2001/05/03 00:02:42 f1rmb Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -34,6 +34,7 @@
 #include <dirent.h>
 #include <dlfcn.h>
 #include <string.h>
+#include <errno.h>
 
 #include "xine_internal.h"
 #include "demuxers/demux.h"
@@ -44,7 +45,11 @@
 #include "utils.h"
 #include "monitor.h"
 
+extern int errno;
 
+/** ***************************************************************
+ *  Demuxers plugins section
+ */
 void load_demux_plugins (xine_t *this, 
 			 config_values_t *config, int iface_version) {
   DIR *dir;
@@ -120,7 +125,9 @@ void load_demux_plugins (xine_t *this,
   this->cur_demuxer_plugin = NULL;
 }
 
-
+/** ***************************************************************
+ *  Input plugins section
+ */
 void load_input_plugins (xine_t *this, 
 			 config_values_t *config, int iface_version) {
   DIR *dir;
@@ -199,6 +206,157 @@ void load_input_plugins (xine_t *this,
   
 }
 
+char **xine_get_autoplay_input_plugin_ids(xine_t *this) {
+  char **plugin_ids;
+  int    num_plugins = 0;
+  DIR   *dir;
+
+  plugin_ids = xmalloc (50 * sizeof (char *));
+  plugin_ids[num_plugins] = NULL;
+
+  dir = opendir (XINE_PLUGINDIR);
+  
+  if (dir) {
+    struct dirent *dir_entry;
+    
+    while ((dir_entry = readdir (dir)) != NULL) {
+      char  str[1024];
+      void *plugin;
+      int nLen = strlen (dir_entry->d_name);
+      
+      if ((strncasecmp(dir_entry->d_name,
+ 		       XINE_INPUT_PLUGIN_PREFIXNAME, 
+		       XINE_INPUT_PLUGIN_PREFIXNAME_LENGTH) == 0) &&
+	  ((dir_entry->d_name[nLen-3]=='.') 
+	   && (dir_entry->d_name[nLen-2]=='s')
+	   && (dir_entry->d_name[nLen-1]=='o'))) {
+	
+	sprintf (str, "%s/%s", XINE_PLUGINDIR, dir_entry->d_name);
+
+	/* printf ("load_plugins: trying to load plugin %s\n", str); */
+
+	/*
+	 * now, see if we can open this plugin,
+	 * and get it's id
+	 */
+
+	if(!(plugin = dlopen (str, RTLD_LAZY))) {
+
+	  /* printf("load_plugins: cannot load plugin %s (%s)\n",
+		 str, dlerror()); */
+
+	} else {
+
+	  void *(*initplug) (int, config_values_t *);
+	  
+	  if((initplug = dlsym(plugin, "init_input_plugin")) != NULL) {
+	    input_plugin_t *ip;
+	    
+	    ip = (input_plugin_t *) initplug(INPUT_PLUGIN_IFACE_VERSION, 
+					     this->config);
+
+	    if(((ip->get_capabilities(ip)) & INPUT_CAP_AUTOPLAY)) {
+	      plugin_ids[num_plugins] = (char *) 
+		malloc (strlen(ip->get_identifier(ip)+1));
+	      strcpy (plugin_ids[num_plugins], ip->get_identifier(ip));
+	      num_plugins++;
+	      plugin_ids[num_plugins] = NULL;
+	    }
+
+	    dlclose(plugin);
+
+	  } else {
+	    printf ("load_plugins: %s is no valid input plugin "
+		    "(lacks init_input_plugin() function)\n", str);
+	  }
+	}
+      }
+    }
+  } else {
+    fprintf (stderr, "load_plugins: %s - cannot access plugin dir: %s",
+	     __FUNCTION__, strerror(errno));
+  }
+  
+  return plugin_ids;
+}
+
+char **xine_get_browsable_input_plugin_ids(xine_t *this) {
+  char **plugin_ids;
+  int    num_plugins = 0;
+  DIR   *dir;
+
+  plugin_ids = xmalloc (50 * sizeof (char *));
+  plugin_ids[num_plugins] = NULL;
+
+  dir = opendir (XINE_PLUGINDIR);
+  
+  if (dir) {
+    struct dirent *dir_entry;
+    
+    while ((dir_entry = readdir (dir)) != NULL) {
+      char  str[1024];
+      void *plugin;
+      int nLen = strlen (dir_entry->d_name);
+      
+      if ((strncasecmp(dir_entry->d_name,
+ 		       XINE_INPUT_PLUGIN_PREFIXNAME, 
+		       XINE_INPUT_PLUGIN_PREFIXNAME_LENGTH) == 0) &&
+	  ((dir_entry->d_name[nLen-3]=='.') 
+	   && (dir_entry->d_name[nLen-2]=='s')
+	   && (dir_entry->d_name[nLen-1]=='o'))) {
+	
+	sprintf (str, "%s/%s", XINE_PLUGINDIR, dir_entry->d_name);
+
+	/* printf ("load_plugins: trying to load plugin %s\n", str); */
+
+	/*
+	 * now, see if we can open this plugin,
+	 * and get it's id
+	 */
+
+	if(!(plugin = dlopen (str, RTLD_LAZY))) {
+
+	  /* printf("load_plugins: cannot load plugin %s (%s)\n",
+		 str, dlerror()); */
+
+	} else {
+
+	  void *(*initplug) (int, config_values_t *);
+	  
+	  if((initplug = dlsym(plugin, "init_input_plugin")) != NULL) {
+	    input_plugin_t *ip;
+	    
+	    ip = (input_plugin_t *) initplug(INPUT_PLUGIN_IFACE_VERSION, 
+					     this->config);
+
+	    if(((ip->get_capabilities(ip)) & INPUT_CAP_AUTOPLAY)) {
+	      plugin_ids[num_plugins] = (char *) 
+		malloc (strlen(ip->get_identifier(ip)+1));
+	      strcpy (plugin_ids[num_plugins], ip->get_identifier(ip));
+	      num_plugins++;
+	      plugin_ids[num_plugins] = NULL;
+	    }
+
+	    dlclose(plugin);
+
+	  } else {
+	    printf ("load_plugins: %s is no valid input plugin "
+		    "(lacks init_input_plugin() function)\n", str);
+	  }
+	}
+      }
+    }
+  } else {
+    fprintf (stderr, "load_plugins: %s - cannot access plugin dir: %s", 
+	     __FUNCTION__, strerror(errno));
+  }
+  
+  return plugin_ids;
+}
+
+/** ***************************************************************
+ *  Decoder plugins section
+ */
 /*
  * load audio and video decoder plugins 
  */
@@ -278,7 +436,8 @@ void load_decoder_plugins (xine_t *this,
 	    }
 	    
 	    printf("video decoder plugin found : %s (ID: %s, iface: %d)\n", 
-		   pEntry->d_name, vdp->get_identifier(), vdp->interface_version);
+		   pEntry->d_name, vdp->get_identifier(), 
+		   vdp->interface_version);
 
 	  }
 	  
@@ -299,7 +458,8 @@ void load_decoder_plugins (xine_t *this,
 	    }
 
 	    printf("audio decoder plugin found : %s(ID: %s, iface: %d)\n", 
-		   pEntry->d_name, adp->get_identifier(), adp->interface_version);
+		   pEntry->d_name, adp->get_identifier(), 
+		   adp->interface_version);
 
 	  }
 	  
@@ -312,7 +472,9 @@ void load_decoder_plugins (xine_t *this,
   this->cur_audio_decoder_plugin = NULL;
 }
 
-
+/** ***************************************************************
+ * Video output plugins section
+ */
 char **xine_list_video_output_plugins (int visual_type) {
 
   char **plugin_ids;
@@ -370,14 +532,17 @@ char **xine_list_video_output_plugins (int visual_type) {
 
 	      /* FIXME: sort the list by vo_info->priority */
 
-	      plugin_ids[num_plugins] = (char *) malloc (strlen(vo_info->id)+1);
+	      plugin_ids[num_plugins] = (char *) 
+		malloc (strlen(vo_info->id)+1);
+
 	      strcpy (plugin_ids[num_plugins], vo_info->id);
 	      num_plugins++;
 	      plugin_ids[num_plugins] = NULL;
 	    }
 	  } else {
 
-	    printf("load_plugins: %s seems to be an invalid plugin (lacks get_video_out_plugin_info() function)\n",  str);
+	    printf("load_plugins: %s seems to be an invalid plugin "
+		   "(lacks get_video_out_plugin_info() function)\n",  str);
 
 	  }
 	  dlclose (plugin);
@@ -385,7 +550,8 @@ char **xine_list_video_output_plugins (int visual_type) {
       }
     }
   } else {
-    perror ("load_plugins: get_available_video_output_plugins - cannot access plugin dir:");
+    fprintf(stderr, "load_plugins: %s - cannot access plugin dir: %s",
+	    __FUNCTION__, strerror(errno));
   }
   
   return plugin_ids;
@@ -393,7 +559,8 @@ char **xine_list_video_output_plugins (int visual_type) {
 
 
 vo_driver_t *xine_load_video_output_plugin(config_values_t *config,
-				           char *id,  int visual_type, void *visual) {
+				           char *id, 
+					   int visual_type, void *visual) {
   DIR *dir;
   vo_driver_t *vod;
   
@@ -436,9 +603,11 @@ vo_driver_t *xine_load_video_output_plugin(config_values_t *config,
 		vod = (vo_driver_t *) initplug(config, visual);
 		
 		if (vod)
-		  printf("load_plugins: video output plugin %s sucessfully loaded.\n", str);
+		  printf("load_plugins: video output plugin %s successfully"
+			 " loaded.\n", str);
 		else
-		  printf("load_plugins: video output plugin %s: init_video_out_plugin failed.\n", str);
+		  printf("load_plugins: video output plugin %s: "
+			 "init_video_out_plugin failed.\n", str);
 		
 		return vod;
 	      }
@@ -453,7 +622,10 @@ vo_driver_t *xine_load_video_output_plugin(config_values_t *config,
   return NULL;
 }
 
-char **xine_list_audio_output_plugins() {
+/** ***************************************************************
+ *  Audio output plugins section
+ */
+char **xine_list_audio_output_plugins(void) {
 
   char **plugin_ids;
   int    num_plugins = 0;
@@ -514,7 +686,8 @@ char **xine_list_audio_output_plugins() {
 	    }
 	  } else {
 
-	    printf("load_plugins: %s seems to be an invalid plugin (lacks get_audio_out_plugin_info() function)\n",  str);
+	    printf("load_plugins: %s seems to be an invalid plugin "
+		   "(lacks get_audio_out_plugin_info() function)\n",  str);
 
 	  }
 	  dlclose (plugin);
@@ -522,13 +695,15 @@ char **xine_list_audio_output_plugins() {
       }
     }
   } else {
-    perror ("load_plugins: get_available_audio_output_plugins - cannot access plugin dir:");
+    fprintf (stderr, "load_plugins: %s - cannot access plugin dir: %s",
+	     __FUNCTION__, strerror(errno));
   }
   
   return plugin_ids;
 }
 
-ao_functions_t *xine_load_audio_output_plugin(config_values_t *config, char *id) {
+ao_functions_t *xine_load_audio_output_plugin(config_values_t *config, 
+					      char *id) {
 
   DIR *dir;
   ao_functions_t *aod = NULL;
@@ -574,9 +749,11 @@ ao_functions_t *xine_load_audio_output_plugin(config_values_t *config, char *id)
 		aod = (ao_functions_t *) initplug(config);
 		
 		if (aod)
-		  printf("load_plugins: audio output plugin %s sucessfully loaded.\n", str);
+		  printf("load_plugins: audio output plugin %s successfully"
+			 " loaded.\n", str);
 		else
-		  printf("load_plugins: audio output plugin %s: init_audio_out_plugin failed.\n", str);
+		  printf("load_plugins: audio output plugin %s: "
+			 "init_audio_out_plugin failed.\n", str);
 		
 		return aod;
 	      }
@@ -589,3 +766,92 @@ ao_functions_t *xine_load_audio_output_plugin(config_values_t *config, char *id)
   return NULL;
 }
 
+/** ***************************************************************
+ *  Autoplay featured plugins section
+ */
+char **xine_get_autoplay_mrls (xine_t *this, char *plugin_id) {
+  char **autoplay_mrls = NULL;
+  DIR   *dir;
+
+  if(!this || !plugin_id)
+    return NULL;
+
+  dir = opendir (XINE_PLUGINDIR);
+  
+  if (dir) {
+    struct dirent *dir_entry;
+    
+    while ((dir_entry = readdir (dir)) != NULL) {
+      char  str[1024];
+      void *plugin;
+      int nLen = strlen (dir_entry->d_name);
+      
+      if ((strncasecmp(dir_entry->d_name,
+ 		       XINE_INPUT_PLUGIN_PREFIXNAME, 
+		       XINE_INPUT_PLUGIN_PREFIXNAME_LENGTH) == 0) &&
+	  ((dir_entry->d_name[nLen-3]=='.') 
+	   && (dir_entry->d_name[nLen-2]=='s')
+	   && (dir_entry->d_name[nLen-1]=='o'))) {
+	
+	sprintf (str, "%s/%s", XINE_PLUGINDIR, dir_entry->d_name);
+
+	/* printf ("load_plugins: trying to load plugin %s\n", str); */
+
+	/*
+	 * now, see if we can open this plugin,
+	 * and get it's id
+	 */
+
+	if(!(plugin = dlopen (str, RTLD_LAZY))) {
+
+	  /* printf("load_plugins: cannot load plugin %s (%s)\n",
+		 str, dlerror()); */
+
+	} else {
+
+	  void *(*initplug) (int, config_values_t *);
+	  
+	  if((initplug = dlsym(plugin, "init_input_plugin")) != NULL) {
+	    input_plugin_t *ip;
+	    int n;
+	    
+	    ip = (input_plugin_t *) initplug(INPUT_PLUGIN_IFACE_VERSION, 
+					     this->config);
+	    
+	    if(!strcasecmp((ip->get_identifier(ip)), plugin_id)) {
+	      if(((ip->get_capabilities(ip)) & INPUT_CAP_AUTOPLAY)) {
+		
+		if(ip->get_autoplay_list)
+		  autoplay_mrls = ip->get_autoplay_list(ip, &n);
+
+	      }
+	      goto autoplay_mrls_done;
+	    }
+	    
+	    dlclose(plugin);
+	    
+	  } else {
+	    printf ("load_plugins: %s is no valid input plugin "
+		    "(lacks init_input_plugin() function)\n", str);
+	  }
+	}
+      }
+    }
+  } else {
+    fprintf (stderr, "load_plugins: %s - cannot access plugin dir: %s", 
+	     __FUNCTION__, strerror(errno));
+  }
+
+ autoplay_mrls_done:
+  return autoplay_mrls;
+}
+
+/** ***************************************************************
+ *  Browse featured plugins section
+ */
+char **xine_get_browse_mrls (xine_t *this, char *plugin_id, 
+			     char *start_mrl) {
+
+  printf("%s not implemented yet\n", __FUNCTION__);
+  return NULL;
+}

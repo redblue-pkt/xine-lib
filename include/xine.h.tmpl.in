@@ -29,7 +29,7 @@
    \endverbatim
  */
 /*
- * $Id: xine.h.tmpl.in,v 1.10 2001/04/27 23:51:52 guenter Exp $
+ * $Id: xine.h.tmpl.in,v 1.11 2001/05/03 00:02:42 f1rmb Exp $
  *
  */
 
@@ -378,12 +378,12 @@ vo_driver_t *xine_load_video_output_plugin(config_values_t *config,
 					      char *id, int visual_type, void *visual);
 
 /**
- * \fn char **list_audio_output_plugins ()
+ * \fn char **list_audio_output_plugins (void)
  * \brief generate a list of all available audio output plugins
  * \return a list of available audio output plugins  the list returned is sorted by plugin priority
  */
 
-char **xine_list_audio_output_plugins ();
+char **xine_list_audio_output_plugins (void);
 
 /**
  * \fn ao_functions_t *load_audio_output_plugin(config_values_t *config, char *id)

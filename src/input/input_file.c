@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_file.c,v 1.6 2001/04/30 23:07:00 guenter Exp $
+ * $Id: input_file.c,v 1.7 2001/05/03 00:02:42 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -45,7 +45,8 @@ typedef struct file_input_plugin_s {
 } file_input_plugin_t;
 
 static uint32_t file_plugin_get_capabilities (input_plugin_t *this_gen) {
-  return INPUT_CAP_SEEKABLE;
+#warning "remove AUTOPLAY capability."
+  return INPUT_CAP_SEEKABLE | INPUT_CAP_AUTOPLAY;
 }
 
 static int file_plugin_open (input_plugin_t *this_gen, char *mrl) {
