@@ -20,7 +20,7 @@
  * Compact Disc Digital Audio (CDDA) Input Plugin 
  *   by Mike Melanson (melanson@pcisys.net)
  *
- * $Id: input_cdda.c,v 1.10 2003/02/26 21:02:39 mroi Exp $
+ * $Id: input_cdda.c,v 1.11 2003/03/29 09:37:24 heikos Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -267,6 +267,95 @@ static void read_cdrom_frame(int fd, int frame,
   /* read a frame */
   if(ioctl(fd, CDROMCDDA, &cdda) < 0) {
     perror("CDROMCDDA");
+    return;
+  }
+}
+
+#elif defined(__FreeBSD__)
+
+#include <sys/cdio.h>
+
+static void read_cdrom_toc(int fd, cdrom_toc *toc) {
+
+  struct ioc_toc_header tochdr;
+  struct ioc_read_toc_single_entry tocentry;
+  int i;
+
+  /* fetch the table of contents */
+  if (ioctl(fd, CDIOREADTOCHEADER, &tochdr) == -1) {
+    perror("CDIOREADTOCHEADER");
+    return;
+  }
+
+  toc->first_track = tochdr.starting_track;
+  toc->last_track = tochdr.ending_track;
+  toc->total_tracks = toc->last_track - toc->first_track + 1;
+
+  /* allocate space for the toc entries */
+  toc->toc_entries =
+    (cdrom_toc_entry *)malloc(toc->total_tracks * sizeof(cdrom_toc_entry));
+  if (!toc->toc_entries) {
+    perror("malloc");
+    return;
+  }
+
+  /* fetch each toc entry */
+  for (i = toc->first_track; i <= toc->last_track; i++) {
+
+    memset(&tocentry, 0, sizeof(tocentry));
+
+    tocentry.track = i;
+    tocentry.address_format = CD_MSF_FORMAT;
+    if (ioctl(fd, CDIOREADTOCENTRY, &tocentry) == -1) {
+      perror("CDIOREADTOCENTRY");
+      return;
+    }
+
+    toc->toc_entries[i-1].track_mode = (tocentry.entry.control & 0x04) ? 1 : 0;
+    toc->toc_entries[i-1].first_frame_minute = tocentry.entry.addr.msf.minute;
+    toc->toc_entries[i-1].first_frame_second = tocentry.entry.addr.msf.second;
+    toc->toc_entries[i-1].first_frame_frame = tocentry.entry.addr.msf.frame;
+    toc->toc_entries[i-1].first_frame =
+      (tocentry.entry.addr.msf.minute * CD_SECONDS_PER_MINUTE * CD_FRAMES_PER_SECOND) +
+      (tocentry.entry.addr.msf.second * CD_FRAMES_PER_SECOND) +
+       tocentry.entry.addr.msf.frame;
+  }
+
+  /* fetch the leadout as well */
+  memset(&tocentry, 0, sizeof(tocentry));
+
+  tocentry.track = CD_LEADOUT_TRACK;
+  tocentry.address_format = CD_MSF_FORMAT;
+  if (ioctl(fd, CDIOREADTOCENTRY, &tocentry) == -1) {
+    perror("CDIOREADTOCENTRY");
+    return;
+  }
+
+  toc->leadout_track.track_mode = (tocentry.entry.control & 0x04) ? 1 : 0;
+  toc->leadout_track.first_frame_minute = tocentry.entry.addr.msf.minute;
+  toc->leadout_track.first_frame_second = tocentry.entry.addr.msf.second;
+  toc->leadout_track.first_frame_frame = tocentry.entry.addr.msf.frame;
+  toc->leadout_track.first_frame =
+    (tocentry.entry.addr.msf.minute * CD_SECONDS_PER_MINUTE * CD_FRAMES_PER_SECOND) +
+    (tocentry.entry.addr.msf.second * CD_FRAMES_PER_SECOND) +
+     tocentry.entry.addr.msf.frame;
+}
+
+static void read_cdrom_frame(int fd, int frame,
+  unsigned char data[CD_RAW_FRAME_SIZE]) {
+
+  struct ioc_read_audio cdda;
+
+  cdda.address_format = CD_MSF_FORMAT;
+  cdda.address.msf.minute = frame / CD_SECONDS_PER_MINUTE / CD_FRAMES_PER_SECOND;
+  cdda.address.msf.second = (frame / CD_FRAMES_PER_SECOND) % CD_SECONDS_PER_MINUTE;
+  cdda.address.msf.frame = frame % CD_FRAMES_PER_SECOND;
+  cdda.nframes = 1;
+  cdda.buffer = data;
+
+  /* read a frame */
+  if(ioctl(fd, CDIOCREADAUDIO, &cdda) < 0) {
+    perror("CDIOCREADAUDIO");
     return;
   }
 }
