@@ -1,3 +1,4 @@
+  * metronom bugfixes
   * better looking OSD fonts
   * fix audio pause on discontinuities
   * merged dxr3 and dxr3enc drivers into single dxr3 driver. See README.dxr3 
