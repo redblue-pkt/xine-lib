@@ -2,25 +2,33 @@
 Assigned tasks
 ==============
 
-- xitk-ui 
+- log/info dialog, xitk-gui  
 
-  Daniel
-
-- Alsa
-
-  Peter Weissgerber 
+  Daniel Caujolle-Bert
 
 - a gtk/gnome gui, perhaps by building a bonobo component?
   this should be possible now, xine is a library and can be embedded
   in other applications
 
   Sean Middleditch
+  madcat@e-kolay.net
+  Guenter Bartsch
 
 - navigation support, subtitle decoder
 
   James Courtier-Dutton, 
   Rich Wareham,
-  Siggi Langauf
+
+- still images, metronom
+
+  Miguel Freitas,
+  James Courtier-Dutton,
+  Guenter Bartsch
+
+- avi subtitles
+  
+  Guenter Bartsch
+
 
 - Solaris(SPARC/intel) port
 
@@ -42,17 +50,13 @@ Assigned tasks
  
   Philip Stadermann
 
-- a quicktime demuxer, based on openquicktime
+- mpeg4ip streaming support
 
-  Guenter
+  Fabio Bizzi, Guenter Bartsch
 
-- optimize DVD raw device support by reading data in larger chunks
+- browser plugin
 
-  Guenter
-
-- ogg/vorbis support
-
-  Guenter 
+  Guenter Bartsch
 
 Open Tasks
 ==========
@@ -67,11 +71,9 @@ Open Tasks
 - a decoder plugin that uses xanim's quicktime codec plugins
   (pretty much like the libwin32) this could enable 3ivx support btw
 - port to other OS (Net/OpenBSD, Win32 ...?)
-- deinterlace filters
 - asd support
 - xine hacker's guide
-- MicroDVD support
-- timed script subtitle support (various formats)
+- MicroDVD plugin
 - video output synced to vertical blank
 
 
