@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.67 2002/01/24 23:09:54 guenter Exp $
+ * $Id: video_out.c,v 1.68 2002/01/25 14:56:00 jkeil Exp $
  *
  */
 
@@ -426,10 +426,10 @@ static void *video_out_loop (void *this_gen) {
 	  int stride = this->logo_w;
 	  uint8_t* src[3];
 	  
-	  src[0] = img->base[0];
+	  src[0] = img_backup->base[0];
 	  
 	  while ((height -= 16) >= 0) {
-	    img->copy(img, src);
+	    img_backup->copy(img_backup, src);
 	    src[0] += 32 * stride;
 	  }
 	}
