@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_directfb.c,v 1.1 2002/02/02 17:05:43 richwareham Exp $
+ * $Id: video_out_directfb.c,v 1.2 2002/02/02 23:37:18 richwareham Exp $
  *
  * DirectFB based output plugin.
  * Rich Wareham <richwareham@users.sourceforge.net>
@@ -167,25 +167,29 @@ static void directfb_frame_copy (vo_frame_t *vo_img, uint8_t **src) {
   uint32_t pitch, x,y,frame_offset, src_offset,i,a;
 
   DFBCHECK(frame->surface->Lock(frame->surface, DSLF_WRITE, 
-				&data, &pitch));
+				(void**)&data, &pitch));
   
-  i=0; py = src[0]; pu = src[1]; pv=src[2]; a=0;
-  for(y=frame->line; (y<frame->line+16) && (y<frame->height); y++, i++) {
-    frame_offset = (y * pitch)>>2; src_offset = i * frame->width;
-    a = (i>>1) * ((frame->width)>>1);
-    for(x=0; x<frame->width; x+=2) {
-      if(frame->format == IMGFMT_YV12) {
+  if(frame->format == IMGFMT_YV12) {
+    i=0; py = src[0]; pu = src[1]; pv=src[2]; a=0;
+    for(y=frame->line; (y<frame->line+16) && (y<frame->height); y++, i++) {
+      frame_offset = (y * pitch)>>2; src_offset = i * frame->width;
+      a = (i>>1) * ((frame->width)>>1);
+      for(x=0; x<frame->width; x+=2) {
 	data[frame_offset+(x>>1)] = py[(src_offset+x)] +
 	 ((pu[a])<<8) + ((py[(src_offset+x+1)])<<16) +
 	 ((pv[a])<<24);
 	/* data[frame_offset+(x<<1)+2] = py[(src_offset+x+1)];
-	data[frame_offset+(x<<1)+1] = pu[a]; 
-	data[frame_offset+(x<<1)+3] = pv[a]; */
+	   data[frame_offset+(x<<1)+1] = pu[a]; 
+	   data[frame_offset+(x<<1)+3] = pv[a]; */
 	a++;
       }
     }
+    frame->line=y;
+  } else if(frame->format == IMGFMT_YUY2) {
+    xine_fast_memcpy(&(data[frame->line*pitch]), src[0], frame->width*32);
+    frame->line += 4;
   }
-  frame->line=y;
+  
   DFBCHECK(frame->surface->Unlock(frame->surface));
 }
 
@@ -321,6 +325,9 @@ static void directfb_update_frame_format (vo_driver_t *this_gen,
       dsc.pixelformat = DSPF_RGB16;
       break;
      case IMGFMT_YV12:
+      dsc.pixelformat = DSPF_YUY2;
+      break;
+     case IMGFMT_YUY2:
       dsc.pixelformat = DSPF_YUY2;
       break;
      default:
