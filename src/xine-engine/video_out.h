@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.h,v 1.88 2003/05/31 18:33:32 miguelfreitas Exp $
+ * $Id: video_out.h,v 1.89 2003/06/03 03:33:16 miguelfreitas Exp $
  *
  *
  * xine version of video_out.h 
@@ -115,6 +115,7 @@ struct vo_frame_s {
   /* info that can be used for interlaced output (e.g. tv-out)      */
   int                        top_field_first;
   int                        repeat_first_field;
+  int                        progressive_frame;
 
   /* pan/scan offset */
   int                        pan_scan_x;

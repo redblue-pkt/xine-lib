@@ -487,6 +487,7 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 		picture->current_frame->pts                = mpeg2dec->pts;
                 picture->current_frame->top_field_first    = picture->top_field_first;
                 picture->current_frame->repeat_first_field = picture->repeat_first_field;
+                picture->current_frame->progressive_frame  = picture->progressive_frame;
 
 #ifdef LOG
 		printf ("libmpeg2: decoding frame %d, type %s\n",
