@@ -40,10 +40,12 @@ typedef struct ac3_config_s
 
 typedef struct ac3_frame_s
 {
-    uint32_t sampling_rate;
+    uint32_t  sampling_rate;
     int16_t * audio_data;
+    int       num_channels;
 } ac3_frame_t;
 
 void ac3_init(void);
 int ac3_frame_length(uint8_t * buf);
-ac3_frame_t* ac3_decode_frame(uint8_t * buf);
+int ac3_sampling_rate(uint8_t * buf);
+ac3_frame_t* ac3_decode_frame(uint8_t * buf, int max_num_channels);

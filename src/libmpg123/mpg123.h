@@ -110,9 +110,9 @@ extern unsigned char *mpg123_wordpointer;
 extern int mpg123_bitindex;
 
 extern void make_decode_tables(long scaleval);
-extern void do_layer3(metronom_t *metronom, mpgaudio_t *mp, uint32_t pts);
-extern void do_layer2(metronom_t *metronom, mpgaudio_t *mp, uint32_t pts);
-extern void do_layer1(metronom_t *metronom, mpgaudio_t *mp, uint32_t pts);
+extern void do_layer3(mpgaudio_t *mp);
+extern void do_layer2(mpgaudio_t *mp);
+extern void do_layer1(mpgaudio_t *mp);
 extern int decode_header(struct frame *fr,unsigned long newhead);
 
 

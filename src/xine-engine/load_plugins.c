@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.18 2001/05/03 00:02:42 f1rmb Exp $
+ * $Id: load_plugins.c,v 1.19 2001/05/27 23:48:12 guenter Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -87,8 +87,8 @@ void load_demux_plugins (xine_t *this,
 	sprintf (str, "%s/%s", XINE_PLUGINDIR, pEntry->d_name);
 	
 	if(!(plugin = dlopen (str, RTLD_LAZY))) {
-	  fprintf(stderr, "%s(%d): %s doesn't seem to be installed (%s)\n", 
-		  __FILE__, __LINE__, str, dlerror());
+	  fprintf(stderr, "load_plugins: cannot open demux plugin %s:\n%s\n",
+		  str, dlerror());
 	  exit(1);
 	}
 	else {
@@ -100,10 +100,8 @@ void load_demux_plugins (xine_t *this,
 	    dxp = (demux_plugin_t *) initplug(iface_version, config);
 	    this->demuxer_plugins[this->num_demuxer_plugins] = dxp; 
 	    
-	    printf("demux plugin found : %s(ID: %s, iface: %d)\n", 
-		   str,   
-		   this->demuxer_plugins[this->num_demuxer_plugins]->get_identifier(),
-		   this->demuxer_plugins[this->num_demuxer_plugins]->interface_version);
+	    printf("load_plugins: demux plugin found : %s\n", 
+		   this->demuxer_plugins[this->num_demuxer_plugins]->get_identifier());
 
 	    this->num_demuxer_plugins++;
 	  }
@@ -164,10 +162,8 @@ void load_input_plugins (xine_t *this,
 	
 	sprintf (str, "%s/%s", XINE_PLUGINDIR, pEntry->d_name);
 
-	printf ("load_plugins: trying to load input plugin >%s<\n",str);
-	
 	if(!(plugin = dlopen (str, RTLD_LAZY))) {
-	  printf("load_plugins: cannot open input plugin %s: %s\n", 
+	  printf("load_plugins: cannot open input plugin %s:\n%s\n", 
 		 str, dlerror());
 	} else {
 	  void *(*initplug) (int, config_values_t *);
@@ -178,10 +174,8 @@ void load_input_plugins (xine_t *this,
 	    ip = (input_plugin_t *) initplug(iface_version, config);
 	    this->input_plugins[this->num_input_plugins] = ip; 
 	    
-	    printf("load_plugins: input plugin found : %s(ID: %s, iface: %d)\n", 
-		   str,   
-		   this->input_plugins[this->num_input_plugins]->get_identifier(this->input_plugins[this->num_input_plugins]),
-		   this->input_plugins[this->num_input_plugins]->interface_version);
+	    printf("load_plugins: input plugin found : %s\n", 
+		   this->input_plugins[this->num_input_plugins]->get_identifier(this->input_plugins[this->num_input_plugins]));
 
 	    this->num_input_plugins++;
 	  } else {
@@ -435,9 +429,8 @@ void load_decoder_plugins (xine_t *this,
 		this->video_decoder_plugins[streamtype] = vdp; 
 	    }
 	    
-	    printf("video decoder plugin found : %s (ID: %s, iface: %d)\n", 
-		   pEntry->d_name, vdp->get_identifier(), 
-		   vdp->interface_version);
+	    printf("video decoder plugin found : %s\n", 
+		   vdp->get_identifier());
 
 	  }
 	  
@@ -514,8 +507,8 @@ char **xine_list_video_output_plugins (int visual_type) {
 
 	if(!(plugin = dlopen (str, RTLD_LAZY))) {
 
-	  /* printf("load_plugins: cannot load plugin %s (%s)\n",
-		 str, dlerror()); */
+	  printf("load_plugins: cannot load plugin %s:\n%s\n",
+		 str, dlerror()); 
 
 	} else {
 
@@ -585,7 +578,7 @@ vo_driver_t *xine_load_video_output_plugin(config_values_t *config,
 	sprintf (str, "%s/%s", XINE_PLUGINDIR, dir_entry->d_name);
 	
 	if(!(plugin = dlopen (str, RTLD_LAZY))) {
-	  printf("load_plugins: video output plugin %s failed to link: %s\n",
+	  printf("load_plugins: video output plugin %s failed to link:\n%s\n",
 		 str, dlerror());
 	  return NULL;
 	} else {
@@ -604,7 +597,7 @@ vo_driver_t *xine_load_video_output_plugin(config_values_t *config,
 		
 		if (vod)
 		  printf("load_plugins: video output plugin %s successfully"
-			 " loaded.\n", str);
+			 " loaded.\n", id);
 		else
 		  printf("load_plugins: video output plugin %s: "
 			 "init_video_out_plugin failed.\n", str);
@@ -750,7 +743,7 @@ ao_functions_t *xine_load_audio_output_plugin(config_values_t *config,
 		
 		if (aod)
 		  printf("load_plugins: audio output plugin %s successfully"
-			 " loaded.\n", str);
+			 " loaded.\n", id);
 		else
 		  printf("load_plugins: audio output plugin %s: "
 			 "init_audio_out_plugin failed.\n", str);

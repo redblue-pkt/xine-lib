@@ -11,7 +11,6 @@ libxine_la_SOURCES = xine.c metronom.c configfile.c buffer.c monitor.c \
 	audio_decoder.c video_out.c
 libxine_la_DEPENDENCIES = libsdeps
 libxine_la_LIBADD = \
-	$(top_srcdir)/src/libmpg123/libmpg123.la \
 ##	$(top_srcdir)/src/libspudec/libspudec.la \
 	$(THREAD_LIBS)                           \
 	$(DYNAMIC_LD_LIBS)

@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mpglib.h,v 1.3 2001/05/06 16:56:01 guenter Exp $
+ * $Id: mpglib.h,v 1.4 2001/05/27 23:48:12 guenter Exp $
  */
 
 #ifndef HAVE_MPGLIB_H
@@ -27,7 +27,6 @@
 #include <inttypes.h>
 
 #include "audio_out.h"
-#include "metronom.h"
 
 typedef struct mpstr {
   unsigned char   bsspace[2][MAXFRAMESIZE+512]; /* MAXFRAMESIZE */
@@ -47,6 +46,8 @@ typedef struct mpstr {
   int             sample_rate_device;
   ao_functions_t *ao_output;
   unsigned char   osspace[8192];
+
+  uint32_t        pts;
 } mpgaudio_t;
 
 #ifndef BOOL
@@ -61,9 +62,10 @@ mpgaudio_t  *mpg_audio_init (ao_functions_t *ao_output);
 
 void mpg_audio_reset (mpgaudio_t *mp);
 
-void mpg_audio_decode_data (metronom_t *metronom, 
-			    mpgaudio_t *mp, uint8_t *data, uint8_t *data_end,
+void mpg_audio_decode_data (mpgaudio_t *mp, uint8_t *data, uint8_t *data_end,
 			    uint32_t pts);
+
+void mpg_audio_close (mpgaudio_t *mp);
 
 #ifdef __cplusplus
 }

@@ -53,9 +53,9 @@ static ac3_frame_t frame;
 //the floating point samples for one audblk
 static stream_samples_t samples;
 
-//the integer samples for the entire frame (with enough space for 2 ch out)
+//the integer samples for the entire frame (with enough space for 5 ch out)
 //if this size change, be sure to change the size when muting
-static int16_t s16_samples[2 * 6 * 256];
+static int16_t s16_samples[5 * 6 * 256];
 
 void
 ac3_init(void)
@@ -73,11 +73,20 @@ int ac3_frame_length(uint8_t * buf)
     return parse_syncinfo (buf, &dummy, &dummy);
 }
 
+int ac3_sampling_rate(uint8_t * buf)
+{
+    int dummy, rate;
+
+    parse_syncinfo (buf, &rate, &dummy);
+    return rate;
+}
+
 ac3_frame_t*
-ac3_decode_frame(uint8_t * buf)
+ac3_decode_frame(uint8_t * buf, int max_num_channels)
 {
     uint32_t i;
     int dummy;
+    int num_channels;
 
     if (!parse_syncinfo (buf, &frame.sampling_rate, &dummy))
 	goto error;
@@ -86,6 +95,22 @@ ac3_decode_frame(uint8_t * buf)
 
     if (parse_bsi (&state, buf))
 	goto error;
+
+    switch (state.acmod) {
+    case 7 :
+    case 5 :
+    /* case 3 : FIXME : implement downmix functions*/
+      num_channels = (max_num_channels<5) ? max_num_channels : 5;
+      break;
+    case 4 :
+    case 6 :
+      num_channels = (max_num_channels<4) ? max_num_channels : 4;
+      break;
+    default:
+      num_channels = 2;
+    }
+
+    frame.num_channels = num_channels;
 
     if (!done_banner) {
 	stats_print_banner (&state);
@@ -118,12 +143,14 @@ ac3_decode_frame(uint8_t * buf)
 
 	// Downmix into the requested number of channels
 	// and convert floating point to int16_t
-	downmix(&state,samples,&s16_samples[i * 2 * 256]);
+	downmix(&state,samples,&s16_samples[i * num_channels * 256], 
+		num_channels);
 
 	sanity_check(&state,&audblk);
 	if(error_flag)
 	    goto error;
     }
+
 
     return &frame;	
 

@@ -93,6 +93,8 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 	    picture->current_frame->bFrameBad = mpeg2dec->drop_frame;
 
 	    if (picture->picture_coding_type == B_TYPE) {
+	      if (picture->mpeg1)
+		picture->current_frame->PTS = 0;
 	      mpeg2dec->frames_to_drop = picture->current_frame->draw (picture->current_frame);
 	      picture->current_frame->free (picture->current_frame);
 	      picture->current_frame = NULL;
@@ -223,6 +225,7 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 		}
 		picture->current_frame->PTS = mpeg2dec->pts;
 		mpeg2dec->pts = 0;
+
 	    }
 	}
 

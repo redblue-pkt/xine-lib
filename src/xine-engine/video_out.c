@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.9 2001/05/26 00:48:47 guenter Exp $
+ * $Id: video_out.c,v 1.10 2001/05/27 23:48:12 guenter Exp $
  *
  */
 
@@ -360,7 +360,6 @@ static int vo_frame_draw (vo_frame_t *img) {
 
   xprintf (VERBOSE|VIDEO,"video_out: got image. vpts for picture is %d\n", pic_vpts);
 
-  /* printf ("video_out: got image. vpts for picture is %d\n", pic_vpts); */
 
   cur_vpts = this->metronom->get_current_time(this->metronom);
 

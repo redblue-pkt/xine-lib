@@ -10,8 +10,6 @@
 #include "mpglib.h"
 #include "huffman.h"
 
-#include "metronom.h"
-
 #define MPEG1
 
 
@@ -1448,7 +1446,7 @@ static void III_hybrid(mpgaudio_t *mp,
 /*
  * main layer3 handler
  */
-void do_layer3(metronom_t *metronom, mpgaudio_t *mp, uint32_t pts)
+void do_layer3(mpgaudio_t *mp)
 {
   int gr, ch, ss,clip=0;
   struct frame *fr = &mp->fr;
@@ -1596,6 +1594,8 @@ void do_layer3(metronom_t *metronom, mpgaudio_t *mp, uint32_t pts)
     }
   }
 
+  printf ("audio output...mp3\n");
+
   if ((!mp->is_output_initialized) || (mp->sample_rate_device != fr->sample_rate)) {
 
     if (mp->is_output_initialized) 
@@ -1609,5 +1609,7 @@ void do_layer3(metronom_t *metronom, mpgaudio_t *mp, uint32_t pts)
     printf ("layer3\n");
   }
 
-  mp->ao_output->write_audio_data (mp->ao_output, (int16_t*)mp->osspace, num_bytes/(stereo-1 ? 4:2), pts);
+  mp->ao_output->write_audio_data (mp->ao_output, (int16_t*)mp->osspace, num_bytes/(stereo-1 ? 4:2), 
+				   mp->pts);
+  mp->pts = 0;
 }

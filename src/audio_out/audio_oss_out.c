@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_oss_out.c,v 1.6 2001/05/08 11:31:39 f1rmb Exp $
+ * $Id: audio_oss_out.c,v 1.7 2001/05/27 23:48:12 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -60,6 +60,10 @@
 # endif
 #endif
 
+#ifndef AFMT_AC3
+#       define AFMT_AC3         0x00000400      /* Dolby Digital AC3 */
+#endif
+
 #define AO_OUT_OSS_IFACE_VERSION 1
 
 #define AUDIO_NUM_FRAGMENTS     15
@@ -82,6 +86,8 @@ typedef struct oss_functions_s {
 
   char           audio_dev[20];
   int            audio_fd;
+  int            capabilities;
+  int            mode;
 
   int32_t        output_sample_rate, input_sample_rate;
   int32_t        output_rate_correction;
@@ -111,23 +117,23 @@ static int ao_open(ao_functions_t *this_gen,
 {
   oss_functions_t *this = (oss_functions_t *) this_gen;
   int tmp;
-  int fsize;
 
   printf ("audio_oss_out: ao_open rate=%d, mode=%d\n", rate, mode);
 
-  if (((mode & AO_CAP_MODE_STEREO) == 0) && ((mode & AO_CAP_MODE_MONO) == 0)) {
-    printf ("OSS Driver only supports mono/stereo output modes at the moment\n");
+  if ( (mode & this->capabilities) == 0 ) {
+    printf ("audio_oss_out: unsupported mode %08x\n", mode);
     return -1;
   }
 
   if (this->audio_fd > -1) {
 
-    if (rate == this->input_sample_rate)
+    if ( (mode == this->mode) && (rate == this->input_sample_rate) )
       return 1;
 
     close (this->audio_fd);
   }
-
+  
+  this->mode                   = mode;
   this->input_sample_rate      = rate;
   this->bytes_in_buffer        = 0;
   this->last_vpts              = 0;
@@ -157,8 +163,6 @@ static int ao_open(ao_functions_t *this_gen,
   tmp = (mode & AO_CAP_MODE_STEREO) ? 1 : 0;
   ioctl(this->audio_fd,SNDCTL_DSP_STEREO,&tmp);
 
-  this->num_channels = tmp+1;
-  xprintf (VERBOSE|AUDIO, "audio_oss_out: %d channels\n",this->num_channels);
 
   tmp = bits;
   ioctl(this->audio_fd,SNDCTL_DSP_SAMPLESIZE,&tmp);
@@ -170,12 +174,47 @@ static int ao_open(ao_functions_t *this_gen,
   xprintf (VERBOSE|AUDIO, "audio_oss_out: audio rate : %d requested, %d provided by device/sec\n",
 	   this->input_sample_rate, this->output_sample_rate);
 
+  /*
+   * set number of channels / ac3 throughput
+   */
+
+  switch (mode) {
+  case AO_CAP_MODE_MONO:
+    tmp = 1;
+    ioctl(this->audio_fd, SNDCTL_DSP_CHANNELS, &tmp);
+    this->num_channels = tmp;
+    break;
+  case AO_CAP_MODE_STEREO:
+    tmp = 2;
+    ioctl(this->audio_fd, SNDCTL_DSP_CHANNELS, &tmp);
+    this->num_channels = tmp;
+    break;
+  case AO_CAP_MODE_4CHANNEL:
+    tmp = 4;
+    ioctl(this->audio_fd, SNDCTL_DSP_CHANNELS, &tmp);
+    this->num_channels = tmp;
+    break;
+  case AO_CAP_MODE_5CHANNEL:
+    tmp = 5;
+    ioctl(this->audio_fd, SNDCTL_DSP_CHANNELS, &tmp);
+    this->num_channels = tmp;
+    break;
+  case AO_CAP_MODE_AC3:
+    tmp = AFMT_AC3;
+    ioctl(this->audio_fd,SNDCTL_DSP_SETFMT,&tmp);
+    this->num_channels = 2; /* FIXME: is this correct ? */
+    break;
+  }
+
+  printf ("audio_oss_out : %d channels output\n",this->num_channels);
+
   this->sample_rate_factor = (double) this->output_sample_rate / (double) this->input_sample_rate;
   this->audio_step         = (uint32_t) 90000 * (uint32_t) 32768 
                                  / this->input_sample_rate;
   this->bytes_per_kpts     = this->output_sample_rate * this->num_channels * 2 * 1024 / 90000;
 
   xprintf (VERBOSE|AUDIO, "audio_out : audio_step %d pts per 32768 samples\n", this->audio_step);
+  printf ("audio_out : audio_step %d pts per 32768 samples\n", this->audio_step);
 
   this->metronom->set_audio_rate(this->metronom, this->audio_step);
 
@@ -183,6 +222,7 @@ static int ao_open(ao_functions_t *this_gen,
    * audio buffer size handling
    */
 
+  /* WARNING: let's hope for good defaults here...
   tmp=0 ;
   fsize = AUDIO_FRAGMENT_SIZE;
   while (fsize>0) {
@@ -196,7 +236,7 @@ static int ao_open(ao_functions_t *this_gen,
   xprintf (VERBOSE|AUDIO, "Audio buffer fragment info : %x\n",tmp);
 
   ioctl(this->audio_fd,SNDCTL_DSP_SETFRAGMENT,&tmp); 
-
+  */
 
   return 1;
 }
@@ -231,7 +271,7 @@ static void ao_fill_gap (oss_functions_t *this, uint32_t pts_len) {
 
   int num_bytes = pts_len * this->bytes_per_kpts / 1024;
   
-  num_bytes = (num_bytes / 4) * 4;
+  num_bytes = (num_bytes / (2*this->num_channels)) * (2*this->num_channels);
 
   printf ("audio_oss_out: inserting %d 0-bytes to fill a gap of %d pts\n",num_bytes, pts_len);
   
@@ -263,11 +303,11 @@ static void ao_write_audio_data(ao_functions_t *this_gen,
   int      bDropPackage;
   uint16_t sample_buffer[8192];
 
-  
+
   if (this->audio_fd<0)
     return;
 
-  vpts        = this->metronom->got_audio_samples (this->metronom, pts_, num_samples);
+  vpts = this->metronom->got_audio_samples (this->metronom, pts_, num_samples);
 
   xprintf (VERBOSE|AUDIO, "audio_oss_out: got %d samples, vpts=%d, last_vpts=%d\n",
 	   num_samples, vpts, this->last_vpts);
@@ -306,6 +346,7 @@ static void ao_write_audio_data(ao_functions_t *this_gen,
   printf ("audio_oss_out: audio_vpts=%d <=> master_vpts=%d (diff=%d)\n",
 	  audio_vpts, master_vpts, diff);
   */
+
   /*
    * method 1 : resampling
    */
@@ -349,11 +390,34 @@ static void ao_write_audio_data(ao_functions_t *this_gen,
   if (!bDropPackage) {
     int num_output_samples = num_samples * (this->output_sample_rate + this->output_rate_correction) / this->input_sample_rate;
 
-
-    audio_out_resample_stereo (output_samples, num_samples,
+    switch (this->mode) {
+    case AO_CAP_MODE_MONO:
+      audio_out_resample_mono (output_samples, num_samples,
 			       sample_buffer, num_output_samples);
-    
-    write(this->audio_fd, sample_buffer, num_output_samples * 2 * this->num_channels);
+      write(this->audio_fd, sample_buffer, num_output_samples * 2);
+      break;
+    case AO_CAP_MODE_STEREO:
+      audio_out_resample_stereo (output_samples, num_samples,
+				 sample_buffer, num_output_samples);
+      write(this->audio_fd, sample_buffer, num_output_samples * 4);
+      break;
+    case AO_CAP_MODE_4CHANNEL:
+      audio_out_resample_4channel (output_samples, num_samples,
+				   sample_buffer, num_output_samples);
+      write(this->audio_fd, sample_buffer, num_output_samples * 8);
+      break;
+    case AO_CAP_MODE_5CHANNEL:
+      audio_out_resample_5channel (output_samples, num_samples,
+				   sample_buffer, num_output_samples);
+      write(this->audio_fd, sample_buffer, num_output_samples * 10);
+      break;
+    case AO_CAP_MODE_AC3:
+
+      write(this->audio_fd, sample_buffer, num_output_samples * 2);
+      num_output_samples = num_samples;
+
+      break;
+    }
 
     xprintf (AUDIO|VERBOSE, "audio_oss_out :audio package written\n");
     
@@ -386,8 +450,9 @@ static void ao_close(ao_functions_t *this_gen)
   this->audio_fd = -1;
 }
 
-static uint32_t ao_get_capabilities (ao_functions_t *this) {
-  return AO_CAP_MODE_STEREO | AO_CAP_MODE_MONO;
+static uint32_t ao_get_capabilities (ao_functions_t *this_gen) {
+  oss_functions_t *this = (oss_functions_t *) this_gen;
+  return this->capabilities;
 }
 
 static void ao_connect (ao_functions_t *this_gen, metronom_t *metronom) {
@@ -457,6 +522,7 @@ ao_functions_t *init_audio_out_plugin (config_values_t *config) {
   int              rate ;
   int              devnum;
   int              audio_fd;
+  int              num_channels, status, arg;
 
   this = (oss_functions_t *) malloc (sizeof (oss_functions_t));
 
@@ -505,6 +571,19 @@ ao_functions_t *init_audio_out_plugin (config_values_t *config) {
   } else
     xprintf (VERBOSE|AUDIO, " %s\n", this->audio_dev);
 
+  /*
+   * set up driver to reasonable values for capabilities tests
+   */
+
+  arg = AFMT_S16_NE; 
+  status = ioctl(audio_fd, SOUND_PCM_SETFMT, &arg);
+  arg = 44100;
+  status = ioctl(audio_fd, SOUND_PCM_WRITE_RATE, &arg);
+
+  /*
+   * get capabilities
+   */
+
   ioctl (audio_fd, SNDCTL_DSP_GETCAPS, &caps);
 
   if ((caps & DSP_CAP_REALTIME) > 0) {
@@ -513,13 +592,50 @@ ao_functions_t *init_audio_out_plugin (config_values_t *config) {
     xprintf (VERBOSE|AUDIO, "audio_oss_out : realtime check: *FAILED* :-(((((\n\n");
   }
 
-  /*
-  if ((caps & DSP_CAP_TRIGGER) > 0) {
-    xprintf (VERBOSE|AUDIO, "audio_out   : trigger check : passed :-)\n");
-  } else {
-    xprintf (VERBOSE|AUDIO, "audio_out   : trigger check : *FAILED* :-(((((\n");
+  this->capabilities = 0;
+
+  printf ("audio_oss_out : supported modes are ");
+  num_channels = 1; 
+  status = ioctl(audio_fd, SNDCTL_DSP_CHANNELS, &num_channels); 
+  if ( (status != -1) && (num_channels==1) ) {
+    this->capabilities |= AO_CAP_MODE_MONO;
+    printf ("mono ");
   }
-  */
+  num_channels = 2; 
+  status = ioctl(audio_fd, SNDCTL_DSP_CHANNELS, &num_channels); 
+  if ( (status != -1) && (num_channels==2) ) {
+    this->capabilities |= AO_CAP_MODE_STEREO;
+    printf ("stereo ");
+  }
+  num_channels = 4; 
+  status = ioctl(audio_fd, SNDCTL_DSP_CHANNELS, &num_channels); 
+  if ( (status != -1) && (num_channels==4) ) {
+    if (config->lookup_int (config, "four_channel", 0)) {
+      this->capabilities |= AO_CAP_MODE_4CHANNEL;
+      printf ("4-channel ");
+    } else
+      printf ("(4-channel not enabled in .xinerc) " );
+  }
+  num_channels = 5; 
+  status = ioctl(audio_fd, SNDCTL_DSP_CHANNELS, &num_channels); 
+  if ( (status != -1) && (num_channels==5) ) {
+    if (config->lookup_int (config, "five_channel", 0)) {
+      this->capabilities |= AO_CAP_MODE_5CHANNEL;
+      printf ("5-channel ");
+    } else
+      printf ("(5-channel not enabled in .xinerc) " );
+  }
+
+  ioctl(audio_fd,SNDCTL_DSP_GETFMTS,&caps);
+  if (caps & AFMT_AC3) {
+    if (config->lookup_int (config, "ac3_pass_through", 0)) {
+      this->capabilities |= AO_CAP_MODE_AC3;
+      printf ("ac3-pass-through ");
+    } else 
+      printf ("(ac3-pass-through not enabled in .xinerc)");
+  }    
+
+  printf ("\n");
 
   close (audio_fd);
 

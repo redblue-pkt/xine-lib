@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.c,v 1.5 2001/05/24 21:41:28 guenter Exp $
+ * $Id: metronom.c,v 1.6 2001/05/27 23:48:12 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -36,9 +36,9 @@
 #include "metronom.h"
 #include "utils.h"
 
-#define MAX_PTS_TOLERANCE 5000
-#define MAX_VIDEO_DELTA   1600
-#define AUDIO_SAMPLE_NUM 32768
+#define MAX_PTS_TOLERANCE  5000
+#define MAX_VIDEO_DELTA    1600
+#define AUDIO_SAMPLE_NUM   32768
 #define MAX_WRAP_TOLERANCE 180000
 
 static void metronom_reset (metronom_t *this) {
@@ -106,6 +106,8 @@ static uint32_t metronom_got_video_frame (metronom_t *this, uint32_t pts) {
 
   pthread_mutex_lock (&this->lock);
 
+  /* pts = 0; */
+
   if (pts) {
 
     /*
@@ -142,7 +144,6 @@ static uint32_t metronom_got_video_frame (metronom_t *this, uint32_t pts) {
 	this->video_pts_delta = 0;
 
       this->num_video_vpts_guessed = 0;
-      /* printf ("delta: %d\n", this->video_pts_delta); */
     }
 
     /* 
@@ -163,11 +164,12 @@ static uint32_t metronom_got_video_frame (metronom_t *this, uint32_t pts) {
 	      this->video_vpts, synced_vpts, vpts_diff, this->video_pts_delta);
       
       if (abs(vpts_diff)>MAX_PTS_TOLERANCE) {
-	if (synced_vpts>this->video_vpts) {
+	if ( synced_vpts>this->video_vpts ) {
 	  this->video_vpts = synced_vpts;
 	}
-      } else
+      } else {
 	xprintf (METRONOM | VERBOSE, "metronom: video tolerating diff\n");
+      }
 
     } else
       xprintf (METRONOM | VERBOSE, "metronom: video not synced on this one\n");
@@ -314,7 +316,7 @@ static uint32_t metronom_get_current_time (metronom_t *this) {
   pts += this->start_pts;
   
   if (this->stopped || (this->last_pts > pts)) {
-    //printf("tm_current_pts(): timer STOPPED!\n");
+    /* printf("metronom: get_current_time(): timer STOPPED!\n"); */
     pts = this->last_pts;
   }
 
@@ -355,7 +357,7 @@ static void metronom_adjust_clock(metronom_t *this, uint32_t desired_pts)
   delta  = desired_pts;
   delta -= current_time;
   this->start_pts += delta;
-  /* printf("adjusting start_pts to %d\n", this->start_pts);  */
+  printf("adjusting start_pts to %d\n", this->start_pts);  
 
   pthread_mutex_unlock (&this->lock);
 }

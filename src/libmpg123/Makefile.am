@@ -1,15 +1,40 @@
-CFLAGS = @BUILD_LIB_STATIC@ @GLOBAL_CFLAGS@ 
+CFLAGS = @GLOBAL_CFLAGS@ 
 
-EXTRA_DIST = main.c
+LIBTOOL = $(SHELL) $(top_builddir)/libtool-nofpic
 
-noinst_LTLIBRARIES = libmpg123.la
+libdir = $(XINE_PLUGINDIR)
 
-libmpg123_la_SOURCES = common.c decode_i386.c layer1.c layer3.c tabinit.c \
-	dct64_i386.c interface.c layer2.c
-libmpg123_la_LIBADD = -lm
+lib_LTLIBRARIES = xineplug_decode_mpg123.la
 
+xineplug_decode_mpg123_la_SOURCES = common.c decode_i386.c layer1.c layer3.c tabinit.c \
+	dct64_i386.c interface.c layer2.c xine_decoder.c
+xineplug_decode_mpg123_la_LDFLAGS = -avoid-version -module
 
 noinst_HEADERS = huffman.h mpg123.h mpglib.h l2tables.h
+
+
+##
+## Install header files (default=$includedir/xine)
+##
+install-includeHEADERS: $(include_HEADERS)
+	@$(NORMAL_INSTALL)
+	$(mkinstalldirs) $(DESTDIR)$(includedir)/xine
+	@list='$(include_HEADERS)'; for p in $$list; do \
+	  if test -f "$$p"; then d= ; else d="$(srcdir)/"; fi; \
+	  echo " $(INSTALL_DATA) $$d$$p $(DESTDIR)$(includedir)/xine/$$p"; \
+	  $(INSTALL_DATA) $$d$$p $(DESTDIR)$(includedir)/xine/$$p; \
+	done
+
+
+##
+## Remove them
+##
+uninstall-includeHEADERS:
+	@$(NORMAL_UNINSTALL)
+	list='$(include_HEADERS)'; for p in $$list; do \
+	  rm -f $(DESTDIR)$(includedir)/xine/$$p; \
+	done
+
 
 debug:
 	$(MAKE) CFLAGS="$(DEBUG_CFLAGS)"

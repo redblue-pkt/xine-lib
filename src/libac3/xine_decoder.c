@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.2 2001/05/26 15:07:18 guenter Exp $
+ * $Id: xine_decoder.c,v 1.3 2001/05/27 23:48:12 guenter Exp $
  *
  * stuff needed to turn libac3 into a xine decoder plugin
  */
@@ -48,8 +48,12 @@ typedef struct ac3dec_decoder_s {
   uint16_t         syncword;
 
   ao_functions_t  *audio_out;
+  int              audio_caps;
+  int              bypass_mode;
+  int              max_num_channels;
   int              output_sampling_rate;
   int              output_open;
+  int              output_mode;
 
 } ac3dec_decoder_t;
 
@@ -62,11 +66,36 @@ void ac3dec_init (audio_decoder_t *this_gen, ao_functions_t *audio_out) {
 
   ac3dec_decoder_t *this = (ac3dec_decoder_t *) this_gen;
 
-  this->audio_out = audio_out;
-  ac3_init ();
+  this->audio_out     = audio_out;
+  this->audio_caps    = audio_out->get_capabilities(audio_out);
   this->syncword      = 0;
   this->sync_todo     = 6;
   this->output_open   = 0;
+
+  ac3_init ();
+
+  /*
+   * find out if this driver supports ac3 output
+   * or, if not, how many channels we've got
+   */
+
+  if (this->audio_caps & AO_CAP_MODE_AC3)
+    this->bypass_mode = 1;
+  else {
+    this->bypass_mode = 0;
+
+    /* find best mode */
+    if (this->audio_caps & AO_CAP_MODE_5CHANNEL)
+      this->max_num_channels = 5;
+    else if (this->audio_caps & AO_CAP_MODE_4CHANNEL)
+      this->max_num_channels = 4;
+    else if (this->audio_caps & AO_CAP_MODE_STEREO)
+      this->max_num_channels = 2;
+    else {
+      printf ("HELP! a mono-only audio driver?!\n");
+      this->max_num_channels = 1;
+    }
+  }
 }
 
 void ac3dec_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
@@ -77,6 +106,7 @@ void ac3dec_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
   uint8_t     *end = buf->content + buf->size;
   ac3_frame_t *ac3_frame;
   int          sampling_rate;
+  int          output_mode;
 
   uint8_t byte;
   
@@ -125,30 +155,79 @@ void ac3dec_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 	return ;
     }
 
-    /* now, decode this frame */
+    /* 
+     * do we want to decode this frame in software?
+     */
 
-    ac3_frame = ac3_decode_frame (this->frame_buffer);
-
-    /*  output audio */
-
-    if (!this->output_open 
-	|| (ac3_frame->sampling_rate != this->output_sampling_rate) ) {
+    if (!this->bypass_mode) {
       
-      if (this->output_open)
-	this->audio_out->close (this->audio_out);
+      /* oki, decode this frame in software*/
 
-      this->output_open = (this->audio_out->open (this->audio_out, 16, 
-						  ac3_frame->sampling_rate,
-						  AO_CAP_MODE_STEREO) == 1);
-      this->output_sampling_rate = ac3_frame->sampling_rate;
-    }
+      ac3_frame = ac3_decode_frame (this->frame_buffer, this->max_num_channels);
 
-    if (this->output_open) {
-      this->audio_out->write_audio_data (this->audio_out,
-					 ac3_frame->audio_data,
-					 256*6,
-					 this->pts);
-      this->pts = 0;
+      /* determine output mode */
+      switch (ac3_frame->num_channels) {
+      case 1:
+	output_mode = AO_CAP_MODE_MONO;
+	break;
+      case 2:
+	output_mode = AO_CAP_MODE_STEREO;
+	break;
+      case 4:
+	output_mode = AO_CAP_MODE_4CHANNEL;
+	break;
+      case 5:
+	output_mode = AO_CAP_MODE_5CHANNEL;
+	break;
+      }
+
+      /*  output decoded samples */
+
+      if (!this->output_open 
+	  || (ac3_frame->sampling_rate != this->output_sampling_rate) 
+	  || (output_mode != this->output_mode)) {
+      
+	if (this->output_open)
+	  this->audio_out->close (this->audio_out);
+
+
+	this->output_open = (this->audio_out->open (this->audio_out, 16, 
+						    ac3_frame->sampling_rate,
+						    output_mode) == 1);
+	this->output_sampling_rate = ac3_frame->sampling_rate;
+	this->output_mode = output_mode;
+      }
+
+      if (this->output_open) {
+	this->audio_out->write_audio_data (this->audio_out,
+					   ac3_frame->audio_data,
+					   256*6,
+					   this->pts);
+	this->pts = 0;
+      }
+    } else {
+
+      /*
+       * loop through ac3 data
+       */
+
+      if (!this->output_open) {
+	this->output_open = (this->audio_out->open (this->audio_out, 16, 
+						    ac3_sampling_rate(this->frame_buffer),
+						    AO_CAP_MODE_AC3) == 1);
+	this->output_mode - AO_CAP_MODE_AC3;
+      }
+
+
+      if (this->output_open) {
+	this->audio_out->write_audio_data (this->audio_out,
+					   this->frame_buffer,
+					   this->frame_length,
+					   this->pts);
+	this->pts = 0;
+      }
+
+
     }
 
     /* done with frame, prepare for next one */

@@ -8,8 +8,6 @@
 #include "mpg123.h"
 #include "l2tables.h"
 
-#include "metronom.h"
-
 static int grp_3tab[32 * 3] = { 0, };   /* used: 27 */
 static int grp_5tab[128 * 3] = { 0, };  /* used: 125 */
 static int grp_9tab[1024 * 3] = { 0, }; /* used: 729 */
@@ -249,7 +247,7 @@ static void II_select_table(struct frame *fr)
   fr->II_sblimit = sblim;
 }
 
-void do_layer2(metronom_t *metronom, mpgaudio_t *mp, uint32_t pts)
+void do_layer2(mpgaudio_t *mp)
 {
   int clip=0;
   int i,j;
@@ -295,11 +293,11 @@ void do_layer2(metronom_t *metronom, mpgaudio_t *mp, uint32_t pts)
 			 stereo-1 ? AO_CAP_MODE_STEREO: AO_CAP_MODE_MONO);
     mp->is_output_initialized = 1;
     mp->sample_rate_device = fr->sample_rate;
-
-    printf ("layer2\n");
   }
 
-  mp->ao_output->write_audio_data (mp->ao_output, (int16_t*)mp->osspace, num_bytes/(stereo-1 ? 4:2), pts);
+  mp->ao_output->write_audio_data (mp->ao_output, (int16_t*)mp->osspace, num_bytes/(stereo-1 ? 4:2), 
+				   mp->pts);
+  mp->pts = 0;
 				   
 }
 

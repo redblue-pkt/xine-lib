@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: interface.c,v 1.3 2001/05/06 16:56:01 guenter Exp $
+ * $Id: interface.c,v 1.4 2001/05/27 23:48:12 guenter Exp $
  */
 
 #include <stdlib.h>
@@ -53,7 +53,15 @@ mpgaudio_t *mpg_audio_init (ao_functions_t *ao_output)
 
   mp->ao_output = ao_output;
 
+  mpg_audio_reset (mp);
+
   return mp;
+}
+
+void mpg_audio_close (mpgaudio_t *mpg) {
+
+  free (mpg);
+
 }
 
 int head_check(struct mpstr *mp)
@@ -69,16 +77,10 @@ int head_check(struct mpstr *mp)
   return 1;
 }
 
-void mpg_audio_decode_data (metronom_t *metronom,
-			    mpgaudio_t *mp, uint8_t *data, uint8_t *data_end,
+void mpg_audio_decode_data (mpgaudio_t *mp, uint8_t *data, uint8_t *data_end,
 			    uint32_t pts) 
 {
-  /* printf ("mpg123: decoding package\n"); */
 
-  uint32_t pts_for_package = 0;
-
-  /* pts = 0; */
-  
   while (1) {
     /* sync */
     if(mp->framesize == 0) {
@@ -103,12 +105,10 @@ void mpg_audio_decode_data (metronom_t *metronom,
       mpg123_wordpointer = mp->bsspace[mp->bsnum] + 512;
       mp->bsnum = (mp->bsnum + 1) & 0x1;
       mpg123_bitindex = 0;
-      pts_for_package = pts;
+      mp->pts = pts;
       pts = 0;
     }
   
-
-    /* printf ("mpg123: copying data\n"); */
     /* copy data to bsspace */
     while (mp->bsize<mp->framesize) {
 
@@ -123,23 +123,21 @@ void mpg_audio_decode_data (metronom_t *metronom,
     if(mp->fr.error_protection)
       getbits(16);
     
-    /* printf ("layer : %d\n",mp->fr.lay);  */
     switch(mp->fr.lay) {
     case 1:
-      do_layer1(metronom, mp, pts_for_package);
+      do_layer1(mp);
       break;
     case 2:
-      do_layer2(metronom, mp, pts_for_package);
+      do_layer2(mp);
       break;
     case 3:
-      do_layer3(metronom, mp, pts_for_package);
+      do_layer3(mp);
       break;
     }
 
     mp->framesize_old = mp->framesize;
     mp->framesize = 0;
     mp->header = 0;
-    pts_for_package = 0;
   }
 }
 
