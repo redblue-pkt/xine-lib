@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.115 2003/04/26 20:15:54 guenter Exp $
+ * $Id: demux_asf.c,v 1.116 2003/05/24 14:11:24 tmattern Exp $
  *
  * demultiplexer for asf streams
  *
@@ -1274,13 +1274,15 @@ static void asf_read_packet(demux_asf_t *this) {
  */
 static int demux_asf_parse_http_references( demux_asf_t *this) {
   char           *buf = NULL;
-  char           *ptr;
+  char           *ptr, *end;
   int             buf_size = 0;
   int             buf_used = 0;
   int             len;
   char           *href = NULL;
   xine_mrl_reference_data_t *data;
   xine_event_t    uevent;
+  char           *mrl;
+  int             free_href = 0;
 
   /* read file to memory.
    * warning: dumb code, but hopefuly ok since reference file is small */
@@ -1303,16 +1305,31 @@ static int demux_asf_parse_http_references( demux_asf_t *this) {
 
   ptr = buf;
   if (!strncmp(ptr, "[Reference]", 11)) {
-    ptr += 11;
-    if (*ptr == '\r') ptr ++;
-    if (*ptr == '\n') ptr ++;
-    href = strchr(ptr, '=') + 1;
-    *strchr(ptr, '\r') = '\0';
 
+    mrl = this->input->get_mrl(this->input);
+    if (!strncmp(mrl, "http", 4)) {
+      /* never trust a ms server, reopen the same mrl with the mms input plugin
+       * some servers are badly configured and return a incorrect reference.
+       */
+      href = strdup(mrl);
+      free_href = 1;
+    } else {
+      ptr += 11;
+      if (*ptr == '\r') ptr ++;
+      if (*ptr == '\n') ptr ++;
+      href = strchr(ptr, '=');
+      if (!href) goto __failure;
+      href++;
+      end = strchr(href, '\r');
+      if (!end) goto __failure;
+      *end = '\0';
+    }
+    
     /* replace http by mmsh */
     if (!strncmp(href, "http", 4)) {
       memcpy(href, "mmsh", 4);
     }
+    
     if (this->stream->xine->verbosity >= XINE_VERBOSITY_LOG) 
       printf("demux_asf: http ref: %s\n", href);
     uevent.type = XINE_EVENT_MRL_REFERENCE;
@@ -1324,10 +1341,13 @@ static int demux_asf_parse_http_references( demux_asf_t *this) {
     data->alternative = 0;
     xine_event_send(this->stream, &uevent);
     free(data);
+    
+    if (free_href)
+      free(href);
   }
 
+__failure:
   free (buf);
-
   this->status = DEMUX_FINISHED;
   return this->status;
 }
