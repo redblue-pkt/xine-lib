@@ -2089,7 +2089,7 @@ static int dvb_plugin_open(input_plugin_t * this_gen)
              _("input_dvb: cannot open dvr device '%s'\n"), this->tuner->dvr_device);
       return 0;
     }
-    if(ioctl(this->fd,DMX_SET_BUFFER_SIZE,262144)<0)
+    if(ioctl(this->fd,DMX_SET_BUFFER_SIZE,188*1024)<0)
       xprintf(this->class->xine,XINE_VERBOSITY_DEBUG,"input_dvb: couldn't increase buffer size for DVR: %s \n",strerror(errno)); 
 
     this->curpos = 0;
