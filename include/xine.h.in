@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.65 2003/03/07 19:04:36 holstsn Exp $
+ * $Id: xine.h.in,v 1.66 2003/03/16 21:40:27 f1rmb Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -258,7 +258,15 @@ int  xine_eject (xine_stream_t *stream);
 void xine_dispose (xine_stream_t *stream);
 
 /*
- * set/get xine engine parameters
+ * set/get engine parameters.
+ */
+void xine_engine_set_param(xine_t *self, int param, int value);
+int xine_engine_get_param(xine_t *self, int param);
+  
+#define XINE_ENGINE_PARAM_VERBOSITY        1
+
+/*
+ * set/get xine stream parameters
  * e.g. playback speed, constants see below
  */
 void xine_set_param (xine_stream_t *stream, int param, int value);
@@ -329,9 +337,9 @@ int  xine_get_param (xine_stream_t *stream, int param);
 #define XINE_DEMUX_EXTENSION_STRATEGY      3
 
 /* verbosity settings */
-#define XINE_VERBOSITY_NONE  0
-#define XINE_VERBOSITY_LOG   1
-#define XINE_VERBOSITY_DEBUG 2
+#define XINE_VERBOSITY_NONE                0
+#define XINE_VERBOSITY_LOG                 1
+#define XINE_VERBOSITY_DEBUG               2
 
 /*
  * snapshot function

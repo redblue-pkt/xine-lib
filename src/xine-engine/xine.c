@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.236 2003/03/08 14:16:54 mroi Exp $
+ * $Id: xine.c,v 1.237 2003/03/16 21:40:27 f1rmb Exp $
  *
  * top-level xine functions
  *
@@ -63,7 +63,6 @@
 */
 
 void xine_handle_stream_end (xine_stream_t *stream, int non_user) {
-
 
   if (stream->status == XINE_STATUS_QUIT)
     return;
@@ -906,7 +905,8 @@ static int xine_play_internal (xine_stream_t *stream, int start_pos, int start_t
     len = stream->current_extra_info->input_length;
     pthread_mutex_unlock( &stream->current_extra_info_lock );
     /* FIXME: do we need to protect concurrent access to input plugin here? */
-    if (len == 0) len = stream->input_plugin->get_length (stream->input_plugin);
+    if ((len == 0) && stream->input_plugin) 
+      len = stream->input_plugin->get_length (stream->input_plugin);
     share = (double) start_pos / 65535;
     pos = (off_t) (share * len) ;
   } else
@@ -1066,8 +1066,6 @@ xine_t *xine_new (void) {
     abort();
   }
 
-  this->verbosity = 0;
-
 #ifdef ENABLE_NLS
   /*
    * i18n
@@ -1095,36 +1093,47 @@ xine_t *xine_new (void) {
 
   pthread_mutex_init (&this->streams_lock, NULL);
 
-  /*
-   * verbose setting
-   */
-
-  this->verbosity  = this->config->register_num (this->config, 
-						 "misc.verbosity", 
-						 XINE_VERBOSITY_NONE,
-						 "default verbosity setting",
-						 NULL, 40, NULL, NULL);
+  this->verbosity = XINE_VERBOSITY_NONE;
 
   return this;
 }
 
-void xine_init (xine_t *this) {
+void xine_engine_set_param(xine_t *this, int param, int value) {
 
-  static char *demux_strategies[] = {"default", "reverse", "content",
-				     "extension", NULL};
+  if(this) {
+    switch(param) {
 
-  /*
-   * frontends don't have a chance to set xine parameters at this point
-   * so read verbosity setting from config values
-   */
-  {
-    cfg_entry_t *verbose_entry;
-    verbose_entry = this->config->lookup_entry (this->config, "misc.verbosity");
-    if (verbose_entry) {
-      this->verbosity = verbose_entry->num_value;
+    case XINE_ENGINE_PARAM_VERBOSITY:
+      this->verbosity = value;
+      break;
+      
+    default:
+      printf("Unknown parameter %d\n", param);
+      break;
     }
   }
-  
+}
+
+int xine_engine_get_param(xine_t *this, int param) {
+
+  if(this) {
+    switch(param) {
+
+    case XINE_ENGINE_PARAM_VERBOSITY:
+      return this->verbosity;
+      break;
+
+    default:
+      printf("Unknown parameter %d\n", param);
+      break;
+    }
+  }
+  return -1;
+}
+
+void xine_init (xine_t *this) {
+  static char *demux_strategies[] = {"default", "reverse", "content",
+				     "extension", NULL};
 
   /* initialize color conversion tables and functions */
   init_yuv_conversion();
