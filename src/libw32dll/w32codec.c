@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.85 2002/07/05 20:54:37 miguelfreitas Exp $
+ * $Id: w32codec.c,v 1.86 2002/07/05 21:34:39 uid45177 Exp $
  *
  * routines for using w32 codecs
  * DirectShow support by Miguel Freitas (Nov/2001)
@@ -560,6 +560,10 @@ static void w32v_init_ds_codec (w32v_decoder_t *this, int buf_type) {
 
   this->ldt_fs = Setup_LDT_Keeper();
   
+  /* hack: dvsd is the only fourcc accepted by qdv.dll */
+  if( buf_type ==  BUF_VIDEO_DV )
+    this->bih->biCompression = mmioFOURCC('d','v','s','d');
+
   this->ds_dec = DS_VideoDecoder_Open(win32_codec_name, this->guid,
                                         this->bih, this->flipped, 0);
   
