@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_cda.c,v 1.5 2001/12/09 18:32:20 f1rmb Exp $
+ * $Id: input_cda.c,v 1.6 2001/12/10 00:58:13 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -128,6 +128,7 @@ typedef struct {
     char                *server;
     int                  port;
     int                  fd;
+    char                *cache_dir;
   } cddb;
 
   cdainfo_t             *cda;
@@ -202,6 +203,20 @@ static char *_cda_get_hostname_safe(void) {
 /*
  * ************* CDDB *********************
  */
+
+/*
+ *
+ */
+static char *_cda_cddb_get_default_location(void) {
+  static char buf[PATH_MAX + NAME_MAX + 1];
+  
+  memset(&buf, 0, sizeof(buf));
+  sprintf(buf, "%s/.xine/cddbcache", (xine_get_homedir()));
+  
+  return buf;
+}
+
+
 /*
  * Small sighandler ;-)
  */
@@ -328,15 +343,18 @@ static int _cda_cddb_handle_code(char *buf) {
  * Try to load cached cddb infos
  */
 static int _cda_load_cached_cddb_infos(cda_input_plugin_t *this) {
-  char *cachedir = ".xine/cddbcache";
   char  cdir[PATH_MAX + NAME_MAX + 1];
   DIR  *dir;
 
   if(this == NULL)
     return 0;
   
+  this->cddb.cache_dir = this->config->register_string(this->config, "input.cda_cddb_cachedir", 
+						       (_cda_cddb_get_default_location()),
+						       "cddbp cache directory", NULL, NULL, NULL);
+  
   memset(&cdir, 0, sizeof(cdir));
-  sprintf(cdir, "%s/%s", (xine_get_homedir()), cachedir);
+  sprintf(cdir, "%s", this->cddb.cache_dir);
   
   if((dir = opendir(cdir)) != NULL) {
     struct dirent *pdir;
@@ -394,21 +412,24 @@ static int _cda_load_cached_cddb_infos(cda_input_plugin_t *this) {
  * Save cddb grabbed infos.
  */
 static void _cda_save_cached_cddb_infos(cda_input_plugin_t *this, char *filecontent) {
-  char  *cachedir = ".xine/cddbcache";
   char   cfile[PATH_MAX + NAME_MAX + 1];
   FILE  *fd;
   
   if((this == NULL) || (filecontent == NULL))
     return;
   
+  this->cddb.cache_dir = this->config->register_string(this->config, "input.cda_cddb_cachedir", 
+						       (_cda_cddb_get_default_location()),
+						       "cddbp cache directory", NULL, NULL, NULL);
+  
   memset(&cfile, 0, sizeof(cfile));
 
   /* Ensure "~/.xine/cddbcache" exist */
-  sprintf(cfile, "%s/%s", (xine_get_homedir()), cachedir);
-
+  sprintf(cfile, "%s", this->cddb.cache_dir);
+  
   _cda_mkdir_safe(cfile);
   
-  sprintf(cfile, "%s/%s/%08lx", (xine_get_homedir()), cachedir, this->cda->disc_id);
+  sprintf(cfile, "%s/%08lx", this->cddb.cache_dir, this->cda->disc_id);
   
   if((fd = fopen(cfile, "w")) == NULL) {
     fprintf(stderr, "input_cda: fopen(%s) failed: %s\n", cfile, strerror(errno));
@@ -1593,8 +1614,13 @@ input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
 
   this->cddb.fd = -1;
 
+  this->cddb.cache_dir = config->register_string(config, "input.cda_cddb_cachedir", 
+						 (_cda_cddb_get_default_location()),
+						 "cddbp cache directory", NULL, NULL, NULL);
+
   this->mrls = (mrl_t **) xine_xmalloc(sizeof(mrl_t*));
   this->mrls_allocated_entries = 0;
 
   return (input_plugin_t *) this;
 }
+
