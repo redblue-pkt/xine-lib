@@ -38,7 +38,7 @@
  * usage: 
  *   xine pvr:/<prefix_to_tmp_files>\!<prefix_to_saved_files>\!<max_page_age>
  *
- * $Id: input_pvr.c,v 1.44 2004/04/10 15:45:11 mroi Exp $
+ * $Id: input_pvr.c,v 1.45 2004/05/16 19:32:36 miguelfreitas Exp $
  */
 
 /**************************************************************************
@@ -728,11 +728,11 @@ static int pvr_play_file(pvr_input_plugin_t *this, fifo_buffer_t *fifo, uint8_t 
          this->play_blk = this->page_block[this->play_page];
        }
        
-       /* that should be impossible */
+       /* should be impossible */
        if( this->play_page > this->rec_page ||
-           this->play_blk+1 >= this->rec_blk ) {
+           this->play_blk > this->rec_blk ) {
          this->play_page = this->rec_page;
-         this->play_blk = this->page_block[this->play_page];
+         this->play_blk = this->rec_blk;
        }
 
        /* check if we can reuse the same handle */
