@@ -2,9 +2,9 @@ include $(top_srcdir)/misc/Makefile.common
 
 SUBDIRS = armv4l i386 mlib alpha ppc libpostproc
 
-## we include some unused files
+## some files here are #included by others... go figure.
 EXTRA_DIST = fdctref.c motion_est_template.c svq3.c wmv2.c \
-	imgresample.c motion_est.c
+	imgresample.c motion_est.c mdec.c
 
 AM_CFLAGS = $(LIBFFMPEG_CFLAGS)
 ASFLAGS =
