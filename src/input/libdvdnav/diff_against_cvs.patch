@@ -9,8 +9,8 @@
  #include <assert.h>
  #include "vmcmd.h"
  #include "decoder.h"
---- src/input/libdvdnav/decoder.h	Fri Jul 12 17:49:16 2002
-+++ src/input/libdvdnav/decoder.h	Fri Aug  9 22:00:14 2002
+--- src/input/libdvdnav/decoder.h	Wed Sep  4 12:50:34 2002
++++ src/input/libdvdnav/decoder.h	Wed Sep  4 12:50:42 2002
 @@ -28,7 +28,7 @@
  #include <inttypes.h>
  #include <sys/time.h>
@@ -19,9 +19,9 @@
 +#include "ifo_types.h" /*  vm_cmd_t */
  
  /* Uncomment for tracing */
- /* #define TRACE  */
---- src/input/libdvdnav/dvdnav.c	Fri Aug  9 22:05:04 2002
-+++ src/input/libdvdnav/dvdnav.c	Fri Aug  9 22:00:50 2002
+ /* #define TRACE */
+--- src/input/libdvdnav/dvdnav.c	Wed Sep  4 12:50:34 2002
++++ src/input/libdvdnav/dvdnav.c	Wed Sep  4 12:50:42 2002
 @@ -30,11 +30,11 @@
  */
  
@@ -36,12 +36,12 @@
  
  #include <stdlib.h>
  #include <stdio.h>
-@@ -177,7 +177,7 @@
-   dvdnav_t *this;
+@@ -179,7 +179,7 @@
+   struct timeval time;
    
    /* Create a new structure */
--  fprintf(MSG_OUT, "libdvdnav: Using dvdnav version from http://dvd.sf.net\n");
-+  fprintf(MSG_OUT, "libdvdnav: Using dvdnav version from http://xine.sf.net\n");
+-  fprintf(MSG_OUT, "libdvdnav: Using dvdnav version (devel-ref:jcd1) from http://dvd.sf.net\n");
++  fprintf(MSG_OUT, "libdvdnav: Using dvdnav version (devel-ref:jcd1) from http://xine.sf.net\n");
  
    /* FIXME: We malloc() here, but if an error occurs inside dvdnav_open(),
     * we return but never free() it.
@@ -91,17 +91,8 @@
  
  
  /* Maximum length of an error string */
-@@ -60,7 +61,7 @@
- #endif
- 
- /* where should libdvdnav write its messages (stdout/stderr) */
--#define MSG_OUT stderr
-+#define MSG_OUT stdout
- 
- typedef struct read_cache_s read_cache_t;
- 
---- src/input/libdvdnav/highlight.c	Fri Jul 26 12:58:10 2002
-+++ src/input/libdvdnav/highlight.c	Fri Aug  9 22:02:46 2002
+--- src/input/libdvdnav/highlight.c	Wed Sep  4 12:50:34 2002
++++ src/input/libdvdnav/highlight.c	Wed Sep  4 12:55:44 2002
 @@ -34,10 +34,10 @@
  #include "dvdnav_internal.h"
  
@@ -112,9 +103,9 @@
  #ifdef BUTTON_TESTING
 -#include <dvdread/nav_print.h>
 +#include "nav_print.h"
- #endif
+ #include "vmcmd.h"
  
- /* Highlighting API calls */
+ static void print_time(dvd_time_t *dtime) {
 --- src/input/libdvdnav/searching.c	Fri Jul 26 12:58:10 2002
 +++ src/input/libdvdnav/searching.c	Fri Aug  9 22:03:20 2002
 @@ -25,11 +25,11 @@

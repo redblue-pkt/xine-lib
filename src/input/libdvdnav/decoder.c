@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: decoder.c,v 1.4 2002/08/27 19:24:33 mroi Exp $
+ * $Id: decoder.c,v 1.5 2002/09/04 11:07:47 mroi Exp $
  *
  */
 
@@ -581,14 +581,13 @@ int32_t vmEval_CMD(vm_cmd_t commands[], int32_t num_commands,
   /*  DEBUG */
   fprintf(MSG_OUT, "libdvdnav: Registers before transaction\n");
   vmPrint_registers( registers );
-  int32_t i;
   fprintf(MSG_OUT, "libdvdnav: Full list of commands to execute\n");
   for(i = 0; i < num_commands; i++)
     vmPrint_CMD(i, &commands[i]);
   fprintf(MSG_OUT, "libdvdnav: --------------------------------------------\n");
   fprintf(MSG_OUT, "libdvdnav: Single stepping commands\n");
 #endif
-  
+  i = 0; 
   while(i < num_commands && total < 100000) {
     int32_t line;
     

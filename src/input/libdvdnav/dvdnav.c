@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dvdnav.c,v 1.6 2002/08/31 02:48:13 jcdutton Exp $
+ * $Id: dvdnav.c,v 1.7 2002/09/04 11:07:47 mroi Exp $
  *
  */
 
@@ -38,6 +38,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <sys/time.h>
 
 /*
  * NOTE:
@@ -175,17 +176,20 @@ dvdnav_status_t dvdnav_clear(dvdnav_t * this) {
 
 dvdnav_status_t dvdnav_open(dvdnav_t** dest, char *path) {
   dvdnav_t *this;
+  struct timeval time;
   
   /* Create a new structure */
-  fprintf(MSG_OUT, "libdvdnav: Using dvdnav version from http://xine.sf.net\n");
+  fprintf(MSG_OUT, "libdvdnav: Using dvdnav version (devel-ref:jcd1) from http://xine.sf.net\n");
 
   /* FIXME: We malloc() here, but if an error occurs inside dvdnav_open(),
    * we return but never free() it.
    */
+  (*dest) = NULL;
   this = (dvdnav_t*)malloc(sizeof(dvdnav_t));
   if(!this)
    return S_ERR;
   memset(this, 0, (sizeof(dvdnav_t) ) ); /* Make sure this structure is clean */
+  (*dest) = this;
 
   pthread_mutex_init(&this->vm_lock, NULL);
   /* Initialise the error string */
@@ -212,16 +216,15 @@ dvdnav_status_t dvdnav_open(dvdnav_t** dest, char *path) {
   if (this->file) DVDCloseFile(this->file);
   this->file = NULL;
     
-  //if(!this->started) {
-  //  /* Start the VM */
-  //  vm_start(this->vm);
-  //  this->started = 1;
-  //}
-
   /* Start the read-ahead cache. */
   this->cache = dvdnav_read_cache_new(this);
-  
-  (*dest) = this;
+
+  /* Seed the random numbers. So that the DVD VM Command rand()i
+   * gives a different start value each time a DVD is played.
+   */
+  gettimeofday(&time,NULL);
+  srand(time.tv_usec);
+ 
   return S_OK;
 }
 
@@ -291,14 +294,6 @@ dvdnav_status_t dvdnav_reset(dvdnav_t *this) {
   fprintf(MSG_OUT, "libdvdnav: clearing dvdnav\n");
 #endif
   result=dvdnav_clear(this);
-#ifdef LOG_DEBUG
-  fprintf(MSG_OUT, "libdvdnav: starting vm\n");
-#endif
-//  if(!this->started) {
-//    /* Start the VM */
-//    vm_start(this->vm);
-//    this->started = 1;
-//  }
 #ifdef LOG_DEBUG
   fprintf(MSG_OUT, "libdvdnav: unlocking\n");
 #endif
@@ -1003,6 +998,9 @@ uint32_t dvdnav_get_next_still_flag(dvdnav_t *this) {
 
 /*
  * $Log: dvdnav.c,v $
+ * Revision 1.7  2002/09/04 11:07:47  mroi
+ * sync to libdvdnav cvs
+ *
  * Revision 1.6  2002/08/31 02:48:13  jcdutton
  * Add a printf so we can tell if a user is using xine's libdvdnav or the one from
  * dvd.sf.net.

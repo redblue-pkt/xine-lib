@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: decoder.h,v 1.3 2002/08/09 22:52:14 mroi Exp $
+ * $Id: decoder.h,v 1.4 2002/09/04 11:07:47 mroi Exp $
  *
  */
 
@@ -31,7 +31,7 @@
 #include "ifo_types.h" /*  vm_cmd_t */
 
 /* Uncomment for tracing */
-/* #define TRACE  */
+/* #define TRACE */
 
 typedef enum {
   LinkNoLink  = 0,

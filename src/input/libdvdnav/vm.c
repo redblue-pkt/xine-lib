@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: vm.c,v 1.4 2002/08/27 19:24:33 mroi Exp $
+ * $Id: vm.c,v 1.5 2002/09/04 11:07:47 mroi Exp $
  *
  */
 
@@ -42,9 +42,9 @@
 #include "vm.h"
 #include "dvdnav_internal.h"
 
-/*
+
 #define STRICT
-*/
+
 
 /* Local prototypes */
 
@@ -110,8 +110,9 @@ static void vm_print_current_domain_state(vm_t *vm) {
       fprintf(MSG_OUT, "libdvdnav: Unknown Domain: -\n");
       break;
   }
-  fprintf(MSG_OUT, "libdvdnav: VTS:%d PG:%u CELL:%u BLOCK:%u VTS_TTN:%u TTN:%u TT_PGCN:%u\n", 
+  fprintf(MSG_OUT, "libdvdnav: VTS:%d PGC:%d PG:%u CELL:%u BLOCK:%u VTS_TTN:%u TTN:%u TT_PGCN:%u\n", 
                    (vm->state).vtsN,
+                   get_PGCN(vm),
                    (vm->state).pgN,
                    (vm->state).cellN,
                    (vm->state).blockN,
@@ -437,6 +438,96 @@ int vm_prev_pg(vm_t *vm)
   return vm_top_pg(vm);
 }
 
+/* Get the current title and part from the current playing position. */
+/* returns S_ERR if not in the VTS_DOMAIN */
+/* FIXME: Should we do some locking here ? */
+int vm_get_current_title_part(vm_t *vm, int *title_result, int *part_result)
+{
+  vts_ptt_srpt_t *vts_ptt_srpt;
+  int title=0, part=0;
+  int found = 0;
+  int16_t pgcN, pgN;
+
+  if((!vm) || (!vm->vtsi) )
+    return S_ERR;
+
+  if(!title_result || !part_result) {
+    fprintf(MSG_OUT, "libdvdnav:vm_get_current_title_part: Passed a NULL pointer");
+    return S_ERR;
+  }
+
+  if(!(vm->state.pgc) )
+    return S_ERR;
+  if (vm->state.domain != VTS_DOMAIN)
+    return S_ERR;
+  vts_ptt_srpt = vm->vtsi->vts_ptt_srpt;
+  pgcN = get_PGCN(vm);
+  pgN = vm->state.pgN;
+  printf("VTS_PTT_SRPT - PGC: %3i PG: %3i\n",
+    pgcN, pgN);
+  for(title=0;( (title < vts_ptt_srpt->nr_of_srpts) && (found == 0) );title++) {
+    for(part=0;((part < vts_ptt_srpt->title[title].nr_of_ptts) && (found == 0));part++) {
+      if ( (vts_ptt_srpt->title[title].ptt[part].pgcn == pgcN) &&
+           (vts_ptt_srpt->title[title].ptt[part].pgn == pgN ) ) {
+        found = 1;
+        break;
+      }
+    }
+    if (found != 0) break;
+  }
+  title++;
+  part++;
+  if (found == 1) {
+    fprintf(MSG_OUT, "libdvdnav: ************ this chapter FOUND!\n");
+    printf("VTS_PTT_SRPT - Title %3i part %3i: PGC: %3i PG: %3i\n",
+             title, part,
+             vts_ptt_srpt->title[title-1].ptt[part-1].pgcn ,
+             vts_ptt_srpt->title[title-1].ptt[part-1].pgn );
+  } else {
+    fprintf(MSG_OUT, "libdvdnav: ************ this chapter NOT FOUND!\n");
+    return S_ERR;
+  }
+  *title_result = title;
+  *part_result = part;
+  return 1;
+}
+
+/* Jump to a particlar part of a particlar title on this vts */
+/* returns S_ERR if not in the VTS_DOMAIN */
+/* FIXME: Should we do some locking here ? */
+int vm_jump_title_part(vm_t *vm, int title, int part) {
+  link_t link_values;
+  int vtsN;
+
+  if((!vm) || (!vm->vtsi) || (!vm->vmgi) )
+    return S_ERR;
+
+  if(!(vm->state.pgc) )
+    return S_ERR;
+/*  if ( (title < 1) || (title > vm->vtsi->vts_ptt_srpt->nr_of_srpts) ||
+       (part  < 1) || (part  > vm->vtsi->vts_ptt_srpt->title[title].nr_of_ptts) ) {
+    return S_ERR;
+  }
+ */
+  if( (title < 1) || (title > vm->vmgi->tt_srpt->nr_of_srpts) ) {
+    return S_ERR;
+  }
+  vtsN = vm->vmgi->tt_srpt->title[title - 1].title_set_nr;
+
+  if(set_VTS_PTT(vm, vtsN, title, part) == -1) {
+    return S_ERR;
+  }
+  link_values = play_PGC_PG( vm, (vm->state).pgN ); 
+  link_values = process_command(vm,link_values);
+  assert(link_values.command == PlayThis);
+  (vm->state).blockN = link_values.data1;
+  assert( (vm->state).blockN == 0 );
+  vm->hop_channel++;
+  
+  fprintf(MSG_OUT, "libdvdnav: previous chapter done\n");
+
+  return 1;
+}
 
 static domain_t menuid2domain(DVDMenuID_t menuid)
 {
@@ -854,7 +945,11 @@ static int set_PGN(vm_t *vm) {
       assert(1 == ptt_srpt->title[(vm->state).VTS_TTN_REG - 1].ptt[0].pgn);
 #endif
       (vm->state).PTTN_REG = (vm->state).pgN;
+    } else {
+      /* FIXME: Handle RANDOM or SHUFFLE titles. */
+      fprintf(MSG_OUT, "libdvdnav: RANDOM or SHUFFLE titles are NOT handled yet.\n");
     }
+      
   }
   
   return 0;
@@ -949,10 +1044,10 @@ static link_t play_PG(vm_t *vm)
   assert((vm->state).pgN > 0);
   if((vm->state).pgN > (vm->state).pgc->nr_of_programs) {
 #ifdef TRACE
-    fprintf(MSG_OUT, "libdvdnav: (vm->state).pgN (%i) == pgc->nr_of_programs + 1 (%i)\n", 
-	    (vm->state).pgN, (vm->state).pgc->nr_of_programs + 1);
+    fprintf(MSG_OUT, "libdvdnav: play_PG: (vm->state).pgN (%i) > pgc->nr_of_programs (%i)\n", 
+	    (vm->state).pgN, (vm->state).pgc->nr_of_programs );
 #endif
-    /*assert((vm->state).pgN == (vm->state).pgc->nr_of_programs + 1);*/
+    assert((vm->state).pgN == (vm->state).pgc->nr_of_programs + 1); 
     return play_PGC_post(vm);
   }
   
@@ -971,8 +1066,8 @@ static link_t play_Cell(vm_t *vm)
   assert((vm->state).cellN > 0);
   if((vm->state).cellN > (vm->state).pgc->nr_of_cells) {
 #ifdef TRACE
-    fprintf(MSG_OUT, "libdvdnav: (vm->state).cellN (%i) == pgc->nr_of_cells + 1 (%i)\n", 
-	    (vm->state).cellN, (vm->state).pgc->nr_of_cells + 1);
+    fprintf(MSG_OUT, "libdvdnav: (vm->state).cellN (%i) > pgc->nr_of_cells (%i)\n", 
+	    (vm->state).cellN, (vm->state).pgc->nr_of_cells );
 #endif
     assert((vm->state).cellN == (vm->state).pgc->nr_of_cells + 1); 
     return play_PGC_post(vm);
@@ -1050,10 +1145,15 @@ static link_t play_Cell_post(vm_t *vm)
   if(cell->cell_cmd_nr != 0) {
     link_t link_values;
     
-#ifdef STRICT
-    assert((vm->state).pgc->command_tbl != NULL);
-    assert((vm->state).pgc->command_tbl->nr_of_cell >= cell->cell_cmd_nr);
-#endif
+/*  These asserts are now not needed.
+ *  Some DVDs have no cell commands listed in the PGC,
+ *  but the Cell itself points to a cell command that does not exist.
+ *  For this situation, just ignore the cell command and continue.
+ *
+ *  assert((vm->state).pgc->command_tbl != NULL);
+ *  assert((vm->state).pgc->command_tbl->nr_of_cell >= cell->cell_cmd_nr);
+ */
+
     if ((vm->state).pgc->command_tbl != NULL &&
         (vm->state).pgc->command_tbl->nr_of_cell >= cell->cell_cmd_nr) {
 #ifdef TRACE
@@ -1068,6 +1168,7 @@ static link_t play_Cell_post(vm_t *vm)
       }
     } else {
       fprintf(MSG_OUT, "libdvdnav: Invalid Cell command\n");
+      
     }
   }
   
@@ -1125,7 +1226,8 @@ static link_t play_PGC_post(vm_t *vm)
   fprintf(MSG_OUT, "libdvdnav: play_PGC_post:\n");
 #endif
   
-  assert((vm->state).pgc->still_time == 0); /*  FIXME $$$ */
+  /*  FIXME Implement PGC Stills. Currently only Cell stills work */
+  assert((vm->state).pgc->still_time == 0);
 
   /* eval -> updates the state and returns either 
      - some kind of jump (Jump(TT/SS/VTS_TTN/CallSS/link C/PG/PGC/PTTN)
@@ -1153,17 +1255,18 @@ static link_t process_command(vm_t *vm, link_t link_values)
 {
   /* FIXME $$$ Move this to a separate function? */
   vm->badness_counter++;
-  if (vm->badness_counter > 1) fprintf(MSG_OUT, "libdvdnav: **** process_command re-entered %d*****\n",vm->badness_counter);
+  if (vm->badness_counter > 1) fprintf(MSG_OUT, "libdvdnav: **** WARNING: process_command re-entered %d*****\n",vm->badness_counter);
   while(link_values.command != PlayThis) {
     
 #ifdef TRACE
+    fprintf(MSG_OUT, "libdvdnav: Before printout starts:\n");
     vmPrint_LINK(link_values);
     
     fprintf(MSG_OUT, "libdvdnav: Link values %i %i %i %i\n", link_values.command, 
 	    link_values.data1, link_values.data2, link_values.data3);
      
-    fprintf(MSG_OUT, "libdvdnav: Before:");
     vm_print_current_domain_state(vm);
+    fprintf(MSG_OUT, "libdvdnav: Before printout ends.\n");
 #endif
     
     switch(link_values.command) {
@@ -1381,7 +1484,7 @@ static link_t process_command(vm_t *vm, link_t link_values)
       assert((vm->state).domain == VTSM_DOMAIN || (vm->state).domain == VTS_DOMAIN); /* ?? */
       if(set_VTS_PTT(vm,(vm->state).vtsN, link_values.data1, link_values.data2) == -1)
 	assert(0);
-      link_values = play_PGC_PG(vm, link_values.data2);
+      link_values = play_PGC_PG( vm, (vm->state).pgN ); 
       break;
       
     case JumpSS_FP:
@@ -1495,8 +1598,9 @@ static link_t process_command(vm_t *vm, link_t link_values)
     }
 
 #ifdef TRACE
-  fprintf(MSG_OUT, "libdvdnav: After:");
+  fprintf(MSG_OUT, "libdvdnav: After printout starts:\n");
   vm_print_current_domain_state(vm);
+  fprintf(MSG_OUT, "libdvdnav: After printout ends.\n");
 #endif
     
   }
@@ -1558,8 +1662,10 @@ static int set_VTS_PTT(vm_t *vm, int vtsN, int /* is this really */ vts_ttn, int
   if(vtsN != (vm->state).vtsN)
     ifoOpenNewVTSI(vm, vm->dvd, vtsN); /*  Also sets (vm->state).vtsN */
   
-  assert(vts_ttn <= vm->vtsi->vts_ptt_srpt->nr_of_srpts);
-  assert(part <= vm->vtsi->vts_ptt_srpt->title[vts_ttn - 1].nr_of_ptts);
+  if ((vts_ttn < 1) || (vts_ttn > vm->vtsi->vts_ptt_srpt->nr_of_srpts) ||
+      (part < 1) || (part > vm->vtsi->vts_ptt_srpt->title[vts_ttn - 1].nr_of_ptts) ) {
+    return S_ERR;
+  }
   
   pgcN = vm->vtsi->vts_ptt_srpt->title[vts_ttn - 1].ptt[part - 1].pgcn;
   pgN = vm->vtsi->vts_ptt_srpt->title[vts_ttn - 1].ptt[part - 1].pgn;
@@ -1608,21 +1714,24 @@ static int get_ID(vm_t *vm, int id)
   pgcit = get_PGCIT(vm);
   assert(pgcit != NULL);
   fprintf(MSG_OUT, "libdvdnav: ** Searching for menu (0x%x) entry PGC\n", id);
-  
+
+  /* Force high bit set. */
+  id |=0x80;
   /* Get menu/title */
   for(i = 0; i < pgcit->nr_of_pgci_srp; i++) {
-    if((pgcit->pgci_srp[i].entry_id & 0x7f) == id) {
-      assert((pgcit->pgci_srp[i].entry_id & 0x80) == 0x80);
+    if( (pgcit->pgci_srp[i].entry_id) == id) {
       pgcN = i + 1;
+      fprintf(MSG_OUT, "libdvdnav: Found menu.\n");
       return pgcN;
     }
   }
-  fprintf(MSG_OUT, "libdvdnav: ** No such id/menu (%d) entry PGC\n", id);
+  fprintf(MSG_OUT, "libdvdnav: ** No such id/menu (0x%02x) entry PGC\n", id & 0x7f);
   for(i = 0; i < pgcit->nr_of_pgci_srp; i++) {
-    fprintf(MSG_OUT, "libdvdnav: Available menus: 0x%x\n",
-                     pgcit->pgci_srp[i].entry_id);
+    if ( (pgcit->pgci_srp[i].entry_id & 0x80) == 0x80) {
+      fprintf(MSG_OUT, "libdvdnav: Available menus: 0x%x\n",
+                     pgcit->pgci_srp[i].entry_id & 0x7f);
+    }
   }
-  assert(0); /* Use assert for now, until the error is handled. */
   return -1; /*  error */
 }
 
@@ -1639,7 +1748,6 @@ static int set_PGC(vm_t *vm, int pgcN)
   assert(pgcit != NULL); /*  ?? Make this return -1 instead */
   if(pgcN < 1 || pgcN > pgcit->nr_of_pgci_srp) {
     fprintf(MSG_OUT, "libdvdnav:  ** No such pgcN = %d\n", pgcN);
-    assert(0);
     return -1; /* error */
   }
   
@@ -1669,7 +1777,7 @@ static int get_PGCN(vm_t *vm)
   }
   fprintf(MSG_OUT, "libdvdnav: get_PGCN failed. Trying to find pgcN in domain %d \n", 
          (vm->state).domain);
-  assert(0); 
+  /* assert(0);*/ 
   return -1; /*  error */
 }
 
@@ -1802,6 +1910,7 @@ static pgcit_t* get_PGCIT(vm_t *vm) {
     pgcit = get_MENU_PGCIT(vm, vm->vtsi, (vm->state).registers.SPRM[0]);
     break;
   case VMGM_DOMAIN:
+  case FP_DOMAIN:
     pgcit = get_MENU_PGCIT(vm, vm->vmgi, (vm->state).registers.SPRM[0]);
     break;
   default:
@@ -1817,6 +1926,9 @@ static pgcit_t* get_PGCIT(vm_t *vm) {
 
 /*
  * $Log: vm.c,v $
+ * Revision 1.5  2002/09/04 11:07:47  mroi
+ * sync to libdvdnav cvs
+ *
  * Revision 1.4  2002/08/27 19:24:33  mroi
  * sync to libdvdnav cvs, this should now conform to the way xine outputs
  * its console messages (write to stdout, "libdvdnav: " in front each line)

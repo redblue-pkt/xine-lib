@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: vm.h,v 1.1 2002/08/08 17:49:21 richwareham Exp $
+ * $Id: vm.h,v 1.2 2002/09/04 11:07:47 mroi Exp $
  *
  */
 
@@ -123,6 +123,7 @@ dvd_reader_t *vm_get_dvd_reader(vm_t *vm);
 /* Jumping */
 int vm_start_title(vm_t *vm, int tt);
 int vm_jump_prog(vm_t *vm, int pr);
+int vm_jump_title_part(vm_t *vm, int title, int part);
 
 /* Other calls */
 int vm_reset(vm_t *vm, char *dvdroot); /*  , register_t regs); */
@@ -144,6 +145,8 @@ int vm_get_subp_active_stream(vm_t *vm, int mode);
 void vm_get_angle_info(vm_t *vm, int *num_avail, int *current);
 void vm_get_audio_info(vm_t *vm, int *num_avail, int *current);
 void vm_get_subp_info(vm_t *vm, int *num_avail, int *current);
+int vm_get_current_title_part(vm_t *vm, int *title_result, int *part_result);
+
 subp_attr_t vm_get_subp_attr(vm_t *vm, int streamN);
 audio_attr_t vm_get_audio_attr(vm_t *vm, int streamN);
 void vm_get_video_res(vm_t *vm, int *width, int *height);
