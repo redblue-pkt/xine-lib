@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.199 2005/02/13 16:12:35 tmattern Exp $
+ * $Id: load_plugins.c,v 1.200 2005/02/13 21:21:06 tmattern Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -722,13 +722,12 @@ static void collect_plugins(xine_t *this, char *path){
 static int _load_plugin_class(xine_t *this,
 			      plugin_node_t *node,
 			      void *data) {
-
-  char          *filename = node->file->filename;
-  plugin_info_t *target = node->info;
-  void *lib;
-  plugin_info_t *info;
-
   if (node->file) {
+    char *filename = node->file->filename;
+    plugin_info_t *target = node->info;
+    void *lib;
+    plugin_info_t *info;
+
     /* load the dynamic library if needed */
     if (!node->file->lib_handle) {
       lprintf("dlopen %s\n", filename);
