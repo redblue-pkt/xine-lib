@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_ogg.c,v 1.120 2003/12/02 14:07:27 miguelfreitas Exp $
+ * $Id: demux_ogg.c,v 1.121 2003/12/03 03:07:07 miguelfreitas Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -413,20 +413,8 @@ static void send_ogg_buf (demux_ogg_t *this,
       read_language_comment(this, op, stream_num);
     }
 
-    if ((this->buf_types[stream_num] & 0xFFFF0000) == BUF_AUDIO_VORBIS) {
-      int op_size = sizeof(ogg_packet);
-      ogg_packet *og_ghost;
-      op_size += (4 - (op_size % 4));
-
-      /* nasty hack to pack op as well as (vorbis) content
-	 in one xine buffer */
-      memcpy (buf->content + op_size, op->packet, op->bytes);
-      memcpy (buf->content, op, op_size);
-      og_ghost = (ogg_packet *) buf->content;
-      og_ghost->packet = buf->content + op_size;
-      
-      buf->size   = op->bytes;
-    } else if ((this->buf_types[stream_num] & 0xFFFF0000) == BUF_AUDIO_SPEEX) {
+    if ((this->buf_types[stream_num] & 0xFFFF0000) == BUF_AUDIO_SPEEX || 
+        (this->buf_types[stream_num] & 0xFFFF0000) == BUF_AUDIO_VORBIS) {
       memcpy (buf->content, op->packet, op->bytes);
       buf->size   = op->bytes;      
     } else {

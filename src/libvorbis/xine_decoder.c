@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.33 2003/11/29 14:47:50 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.34 2003/12/03 03:07:08 miguelfreitas Exp $
  *
  * (ogg/)vorbis audio decoder plugin (libvorbis wrapper) for xine
  */
@@ -56,6 +56,8 @@ typedef struct vorbis_decoder_s {
   int               output_sampling_rate;
   int               output_open;
   int               output_mode;
+
+  ogg_packet        op; /* we must use this struct to sent data to libvorbis */
 
   /* vorbis stuff */
   vorbis_info       vi; /* stores static vorbis bitstream settings */
@@ -134,17 +136,20 @@ static void get_metadata (vorbis_decoder_t *this) {
 static void vorbis_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 
   vorbis_decoder_t *this = (vorbis_decoder_t *) this_gen;
-  ogg_packet *op = (ogg_packet *) buf->content;
 
-  lprintf ("decode buf=%p content=%p op=%p packet=%p flags=%08x\n",
-	   buf, buf->content, op, op->packet, buf->decoder_flags);
-  
+  memset( &this->op, 0, sizeof(this->op) );
+  this->op.packet = buf->content;
+  this->op.bytes = buf->size;
+
   if (buf->decoder_flags & BUF_FLAG_PREVIEW) {
     lprintf ("preview buffer, %d headers to go\n", this->header_count);
 
     if (this->header_count) {
 
-      if(vorbis_synthesis_headerin(&this->vi,&this->vc,op)<0){ 
+      if (this->header_count == 3)
+        this->op.b_o_s = 1;
+
+      if(vorbis_synthesis_headerin(&this->vi,&this->vc,&this->op)<0){ 
 	/* error case; not a vorbis header */
 	printf("libvorbis: this bitstream does not contain vorbis audio data.\n");
 	return;
@@ -212,7 +217,7 @@ static void vorbis_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
     float **pcm;
     int samples;
 
-    if(vorbis_synthesis(&this->vb,op)==0) 
+    if(vorbis_synthesis(&this->vb,&this->op)==0) 
       vorbis_synthesis_blockin(&this->vd,&this->vb);
 
     if (buf->pts!=0)
