@@ -20,7 +20,7 @@
  * Compact Disc Digital Audio (CDDA) Input Plugin 
  *   by Mike Melanson (melanson@pcisys.net)
  *
- * $Id: input_cdda.c,v 1.46 2004/04/09 22:18:35 miguelfreitas Exp $
+ * $Id: input_cdda.c,v 1.47 2004/04/10 13:20:16 valtri Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -2221,10 +2221,12 @@ static char ** cdda_class_get_autoplay_list (input_class_t *this_gen,
 
 #ifndef WIN32
   if( strchr(this->cdda_device,':') ) {
+    ip->stream = xine_stream_new(this->xine, NULL, NULL);
     fd = network_connect(ip->stream, this->cdda_device);
     if( fd != -1 ) {
       err = network_read_cdrom_toc(ip->stream, fd, toc);
     }
+    xine_dispose(ip->stream);
   }
 #endif
 
