@@ -27,7 +27,7 @@
 #ifndef CONFIG_WIN32
 
 #ifdef DEBUG
-# if __GNUC_
+# if __GNUC__
 #  define dprintf(fmt,args...) printf(fmt, ## args)
 # else
 #  define dprintf(...)	       printf(__VA_ARGS__)

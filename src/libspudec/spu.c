@@ -19,7 +19,7 @@
 * along with this program; see the file COPYING.  If not, write to
 * the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
 *
-* $Id: spu.c,v 1.11 2001/09/06 18:38:12 jkeil Exp $
+* $Id: spu.c,v 1.12 2001/09/18 19:01:27 jcdutton Exp $
 *
 *****/
 
@@ -81,7 +81,7 @@
 
 #else /* !DEBUG */
 
-# ifdef __GNUC_
+# ifdef __GNUC__
 #  define LOG(lvl, fmt...)
 # else
 #  define LOG(lvl, ...)
