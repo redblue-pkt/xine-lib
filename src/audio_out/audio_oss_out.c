@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_oss_out.c,v 1.95 2003/12/05 15:54:56 f1rmb Exp $
+ * $Id: audio_oss_out.c,v 1.96 2003/12/07 00:25:52 hadess Exp $
  *
  * 20-8-2001 First implementation of Audio sync and Audio driver separation.
  * Copyright (C) 2001 James Courtier-Dutton James@superbug.demon.co.uk
@@ -752,7 +752,7 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
   audio_fd=open(this->audio_dev, O_WRONLY|O_NONBLOCK);
 
   if (audio_fd < 0) {
-    xprintf(this->xine, XINE_VERBOSITY_LOG, 
+    xprintf(class->xine, XINE_VERBOSITY_LOG, 
 	    _("audio_oss_out: opening audio device %s failed:\n%s\n"), this->audio_dev, strerror(errno));
 
     free (this);
@@ -832,7 +832,7 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
 
     if(audio_fd < 0) 
     {
-      xprintf(this->xine, XINE_VERBOSITY_LOG,
+      xprintf(class->xine, XINE_VERBOSITY_LOG,
 	      _("audio_oss_out: opening audio device %s failed:\n%s\n"), this->audio_dev, strerror(errno));
 
       free (this);
@@ -855,7 +855,7 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
   /* switch back to 16bits, because some soundcards otherwise do not report all their capabilities */
   bits = 16;
   if (ioctl(audio_fd, SNDCTL_DSP_SAMPLESIZE, &bits) == -1) {
-    xprintf(this->xine, XINE_VERBOSITY_DEBUG, "audio_oss_out: switching the soundcard to 16 bits mode failed\n");
+    xprintf(class->xine, XINE_VERBOSITY_DEBUG, "audio_oss_out: switching the soundcard to 16 bits mode failed\n");
     free(this);
     return NULL;
   }
