@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_gnome_vfs.c,v 1.5 2003/02/14 14:58:06 guenter Exp $
+ * $Id: input_gnome_vfs.c,v 1.6 2003/02/23 03:56:10 hadess Exp $
  */
 
 
@@ -330,7 +330,9 @@ static void
 	D("init_input_class");
 
 	if (gnome_vfs_initialized () == FALSE)
-		gnome_vfs_init ();
+		if (gnome_vfs_init () == FALSE)
+			return NULL;
+
 	if (!g_thread_supported ())
 		g_thread_init (NULL);
 
