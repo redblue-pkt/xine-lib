@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder_ogm.c,v 1.3 2003/05/03 14:24:09 mroi Exp $
+ * $Id: xine_decoder_ogm.c,v 1.4 2003/08/29 11:44:53 andruil Exp $
  *
  */
 
@@ -222,15 +222,15 @@ static void render_line(spuogm_decoder_t *this, int x, int y, char* text) {
 }
 
 static void draw_subtitle(spuogm_decoder_t *this, int64_t sub_start, int64_t sub_end ) {
-  
+
   int line, y;
   int font_size;
-  
+
   this->renderer->filled_rect (this->osd, 0, 0, this->width-1, this->line_height * SUB_MAX_TEXT - 1, 0);
-  
+
   y = (SUB_MAX_TEXT - this->lines) * this->line_height;
   font_size = this->font_size;
-        
+
   for (line=0; line<this->lines; line++) {
     int w,x;
           
@@ -279,7 +279,7 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
   char *str;
   extra_info_t extra_info;
   int status;
-  
+
   /* filter unwanted streams */
   if (buf->decoder_flags & BUF_FLAG_PREVIEW)
     return;
@@ -294,24 +294,29 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
   this->lines=0;
 
   i=0;
-
-  while (i<strlen(str)+1) {
-    if(str[i]=='\r' || str[i]=='\n') {
-      if(str[i+1]=='\n' && str[i]=='\r') str=str+i+2;
-      else str=str+i+1;
-      this->text[ this->lines ][i]=0;
-      this->lines=this->lines+1;
-      i=0;
-      if(this->lines>=SUB_MAX_TEXT) break;
+  while (*str) {
+    if (*str == '\r' || *str == '\n') {
+      if (i) {
+        this->text[ this->lines ][i] = 0;
+        this->lines++;
+        i = 0;
+      }
     } else {
-      this->text[ this->lines ][i]=str[i];
+      this->text[ this->lines ][i] = *str;
       if (i<SUB_BUFSIZE-1)
-	i++;
+        i++;
     }
+    str++;
   }
-  
+  if (i) {
+    this->text[ this->lines ][i] = 0;
+    this->lines++;
+  }
+
 #ifdef LOG
-  printf("libspuogm: decoder data [%s]\n", this->text[0]);
+  printf("libspuogm: lines %d\n", this->lines);
+  for(i=0;i<this->lines;i++)
+    printf("libspuogm: decoder data [%s]\n", this->text[i]);
   printf("libspuogm: timing %d->%d\n", start, end);
 #endif
 
@@ -461,13 +466,13 @@ static void update_subtitle_size(void *this_gen, xine_cfg_entry_t *entry)
 
 static spu_decoder_t *spuogm_class_open_plugin (spu_decoder_class_t *class_gen, xine_stream_t *stream) {
 
-#ifdef LOG
-  printf ("libspuogm: plugin opened\n");
-#endif
-
   spuogm_class_t *class = (spuogm_class_t *)class_gen;
   spuogm_decoder_t *this ;
   static char *subtitle_size_strings[] = { "small", "normal", "large", NULL };
+
+#ifdef LOG
+  printf ("libspuogm: plugin opened\n");
+#endif
 
   this = (spuogm_decoder_t *) xine_xmalloc (sizeof (spuogm_decoder_t));
 
