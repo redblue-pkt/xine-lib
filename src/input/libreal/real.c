@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: real.c,v 1.7 2003/03/28 22:44:18 holstsn Exp $
+ * $Id: real.c,v 1.8 2003/03/30 17:11:50 holstsn Exp $
  *
  * special functions for real streams.
  * adopted from joschkas real tools.
@@ -526,6 +526,8 @@ rmff_header_t *real_parse_sdp(char *data, char *stream_rules, uint32_t bandwidth
       strcat(stream_rules, b);
     }
 
+    if (!desc->stream[i]->mlti_data) return NULL;
+
     len=select_mlti_data(desc->stream[i]->mlti_data, desc->stream[i]->mlti_data_size, rulematches[0], buf);
     
     header->streams[i]=rmff_new_mdpr(
@@ -701,6 +703,7 @@ rmff_header_t  *real_setup_and_get_header(rtsp_t *rtsp_session, uint32_t bandwid
   /* parse sdp (sdpplin) and create a header and a subscribe string */
   strcpy(subscribe, "Subscribe: ");
   h=real_parse_sdp(description, subscribe+11, bandwidth);
+  if (!h) return NULL;
   rmff_fix_header(h);
 
 #ifdef LOG
