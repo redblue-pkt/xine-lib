@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_elem.c,v 1.64 2002/12/08 21:43:50 miguelfreitas Exp $
+ * $Id: demux_elem.c,v 1.65 2002/12/20 22:57:48 guenter Exp $
  *
  * demultiplexer for elementary mpeg streams
  * 
@@ -37,6 +37,10 @@
 #include "xineutils.h"
 #include "compat.h"
 #include "demux.h"
+
+/*
+#define LOG
+*/
 
 #define NUM_PREVIEW_BUFFERS 50
 
@@ -75,6 +79,9 @@ static int demux_mpeg_elem_next (demux_mpeg_elem_t *this, int preview_mode) {
   buf_element_t *buf;
   int n;
 
+#ifdef LOG
+  printf ("demux_elem: next piece\n");
+#endif
 
   buf = this->video_fifo->buffer_pool_alloc(this->video_fifo);
   buf->content = buf->mem;
@@ -164,6 +171,10 @@ static int demux_mpeg_elem_seek (demux_plugin_t *this_gen,
     /* FIXME: implement time seek */
 
     this->input->seek (this->input, start_pos, SEEK_SET);
+
+#ifdef LOG
+    printf ("demux_elem: seeking to %d\n", start_pos);
+#endif
   }
   
   /*
