@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mosaico.c,v 1.20 2003/12/14 22:13:25 siggi Exp $
+ * $Id: mosaico.c,v 1.21 2004/01/07 19:52:42 mroi Exp $
  */
  
 /*
@@ -33,13 +33,7 @@
 #include "xine_internal.h"
 #include "post.h"
 
-#define MOVERSION (5)
-
-#define DEFAULT_X (50)
-#define DEFAULT_Y (50)
-#define DEFAULT_W (150)
-#define DEFAULT_H (150)
-#define MAXPIP (5)
+/* FIXME: This plugin needs to handle overlays as well. */
 
 /* plugin class initialization function */
 static void *mosaico_init_plugin(xine_t *xine, void *);
@@ -49,34 +43,54 @@ post_info_t mosaico_special_info = { XINE_POST_TYPE_VIDEO_COMPOSE };
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_POST, 7, "mosaico", MOVERSION, &mosaico_special_info, &mosaico_init_plugin },
+  { PLUGIN_POST, 8, "mosaico", XINE_VERSION_CODE, &mosaico_special_info, &mosaico_init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
 
-typedef struct mosaico_stream_s mosaico_stream_t;
-struct mosaico_stream_s {
-  unsigned int x, y, w, h;
-};
+typedef struct mosaico_parameters_s {
+  unsigned int  pip_num;
+  unsigned int  x, y, w, h;
+} mosaico_parameters_t;
 
-/* plugin structure */
-typedef struct post_mosaico_out_s post_mosaico_out_t;
-struct post_mosaico_out_s {
-  xine_post_out_t  xine_out;
-  /* keep the stream for open/close when rewiring */
-  xine_stream_t   *stream; 
-  vo_frame_t *saved_frame;
-  vo_frame_t *saved_frame_2[MAXPIP]; 
-  pthread_mutex_t mut1, mut2;
-  mosaico_stream_t info[MAXPIP];
-  xine_video_port_t *vo_port;
-  unsigned int pip;
-};
+START_PARAM_DESCR(mosaico_parameters_t)
+PARAM_ITEM(POST_PARAM_TYPE_INT, pip_num, NULL, 1, INT_MAX, 1,
+  "which picture slots settings are being edited")
+PARAM_ITEM(POST_PARAM_TYPE_INT, x, NULL, 0, INT_MAX, 50,
+  "x coordinate of the pasted picture")
+PARAM_ITEM(POST_PARAM_TYPE_INT, y, NULL, 0, INT_MAX, 50,
+  "y coordinate of the pasted picture")
+PARAM_ITEM(POST_PARAM_TYPE_INT, w, NULL, 0, INT_MAX, 150,
+  "width of the pasted picture")
+PARAM_ITEM(POST_PARAM_TYPE_INT, h, NULL, 0, INT_MAX, 150,
+  "height of the pasted picture")
+END_PARAM_DESCR(mosaico_param_descr)
 
 typedef struct post_class_mosaico_s post_class_mosaico_t;
+typedef struct post_mosaico_s post_mosaico_t;
+
 struct post_class_mosaico_s {
-  post_class_t class;
-  xine_t *xine;
-  post_mosaico_out_t *ip;
+  post_class_t    class;
+  xine_t         *xine;
+};
+
+/* plugin structures */
+typedef struct mosaico_pip_s mosaico_pip_t;
+struct mosaico_pip_s {
+  unsigned int  x, y, w, h;
+  vo_frame_t   *frame;
+};
+
+struct post_mosaico_s {
+  post_plugin_t    post;  
+  xine_post_in_t   parameter_input;
+  
+  mosaico_pip_t   *pip;
+  int64_t          vpts_limit;
+  pthread_cond_t   vpts_limit_changed;
+  int64_t          skip_vpts;
+  int              skip;
+  pthread_mutex_t  mutex;
+  unsigned int     pip_count;
 };
 
 /* plugin class functions */
@@ -90,70 +104,26 @@ static void           mosaico_class_dispose(post_class_t *class_gen);
 /* plugin instance functions */
 static void           mosaico_dispose(post_plugin_t *this_gen);
 
-/* rewire function */
-static int            mosaico_rewire(xine_post_out_t *output, void *data);
+/* parameter functions */
+static xine_post_api_descr_t *mosaico_get_param_descr(void);
+static int            mosaico_set_parameters(xine_post_t *this_gen, void *param_gen);
+static int            mosaico_get_parameters(xine_post_t *this_gen, void *param_gen);
+static char          *mosaico_get_help(void);
 
-/* replaced video_port functions */
-static void           mosaico_open(xine_video_port_t *port_gen, xine_stream_t *stream);
-static vo_frame_t    *mosaico_get_frame(xine_video_port_t *port_gen, uint32_t width, 
-				       uint32_t height, double ratio, 
-				       int format, int flags);
+/* replaced video port functions */
 static void           mosaico_close(xine_video_port_t *port_gen, xine_stream_t *stream);
-static vo_frame_t    *mosaico_get_frame_2(xine_video_port_t *port_gen, uint32_t width, 
-				       uint32_t height, double ratio, 
-				       int format, int flags);
+
+/* frame intercept check */
+static int            mosaico_intercept_frame(post_video_port_t *port, vo_frame_t *frame);
 
 /* replaced vo_frame functions */
+static int            mosaico_draw_background(vo_frame_t *frame, xine_stream_t *stream);
 static int            mosaico_draw(vo_frame_t *frame, xine_stream_t *stream);
-static int            mosaico_draw_2(vo_frame_t *frame, xine_stream_t *stream);
-
-static void x_changed_cb(void *data, xine_cfg_entry_t *cfg) {
-  post_class_mosaico_t *class = (post_class_mosaico_t *)data;
-  int i;
-  sscanf(cfg->key, "post.mosaico_input%d", &i);
-  if(class->ip) {
-    post_mosaico_out_t *this = class->ip;
-    this->info[i].x = cfg->num_value;
-  }
-}
-
-static void y_changed_cb(void *data, xine_cfg_entry_t *cfg) {
-  post_class_mosaico_t *class = (post_class_mosaico_t *)data;
-  int i;
-  sscanf(cfg->key, "post.mosaico_input%d", &i);
-  if(class->ip) {
-    post_mosaico_out_t *this = class->ip;
-    this->info[i].y = cfg->num_value;
-  }
-}
-
-static void w_changed_cb(void *data, xine_cfg_entry_t *cfg) {
-  post_class_mosaico_t *class = (post_class_mosaico_t *)data;
-  int i;
-  sscanf(cfg->key, "post.mosaico_input%d", &i);
-  if(class->ip) {
-    post_mosaico_out_t *this = class->ip;
-    this->info[i].w = cfg->num_value;
-  }
-}
-
-static void h_changed_cb(void *data, xine_cfg_entry_t *cfg) {
-  post_class_mosaico_t *class = (post_class_mosaico_t *)data;
-  int i;
-  sscanf(cfg->key, "post.mosaico_input%d", &i);
-  if(class->ip) {
-    post_mosaico_out_t *this = class->ip;
-    this->info[i].h = cfg->num_value;
-  }
-}
 
 
 static void *mosaico_init_plugin(xine_t *xine, void *data)
 {
-  post_class_mosaico_t *this = (post_class_mosaico_t *)malloc(sizeof(post_class_mosaico_t));
-  config_values_t *cfg;
-  int i;
-  char string[255];
+  post_class_mosaico_t *this = (post_class_mosaico_t *)xine_xmalloc(sizeof(post_class_mosaico_t));
 
   if (!this)
     return NULL;
@@ -163,19 +133,6 @@ static void *mosaico_init_plugin(xine_t *xine, void *data)
   this->class.get_description = mosaico_get_description;
   this->class.dispose         = mosaico_class_dispose;
   this->xine                  = xine;
-  this->ip  = NULL;
-  cfg = xine->config;
-
-  for(i=1;i<=MAXPIP;i++) {
-    sprintf(string, "post.mosaico_input%d_x", i);
-    cfg->register_num (cfg, string, DEFAULT_X, _("Default x position"), NULL, 10, x_changed_cb, this);
-    sprintf(string, "post.mosaico_input%d_y", i);
-    cfg->register_num (cfg, string, DEFAULT_Y, _("Default y position"), NULL, 10, y_changed_cb, this);
-    sprintf(string, "post.mosaico_input%d_w", i);
-    cfg->register_num (cfg, string, DEFAULT_W, _("Default width"), NULL, 10, w_changed_cb, this);
-    sprintf(string, "post.mosaico_input%d_h", i);
-    cfg->register_num (cfg, string, DEFAULT_H, _("Default height"), NULL, 10, h_changed_cb, this);
-  }
 
   return &this->class;
 }
@@ -184,100 +141,62 @@ static post_plugin_t *mosaico_open_plugin(post_class_t *class_gen, int inputs,
 					 xine_audio_port_t **audio_target,
 					 xine_video_port_t **video_target)
 {
-  post_plugin_t     *this   = (post_plugin_t *)malloc(sizeof(post_plugin_t));
-  xine_post_in_t    *input1  = (xine_post_in_t *)malloc(sizeof(xine_post_in_t));
-  xine_post_in_t    *input2;
-  post_mosaico_out_t *output = (post_mosaico_out_t *)malloc(sizeof(post_mosaico_out_t));
-  post_class_mosaico_t *class = (post_class_mosaico_t *) class_gen;
-  post_video_port_t *port, *port2;
-  xine_cfg_entry_t    x_entry, y_entry, w_entry, h_entry;
+  post_mosaico_t       *this = (post_mosaico_t *)xine_xmalloc(sizeof(post_mosaico_t));
+  post_in_t            *input;
+  xine_post_in_t       *input_api;
+  post_out_t           *output;
+  post_video_port_t    *port;
+  static xine_post_api_t post_api = 
+    { mosaico_set_parameters, mosaico_get_parameters, mosaico_get_param_descr, mosaico_get_help };
   int i;
-  char string[255];
     
-  if(inputs < 2) return NULL;
-
   lprintf("mosaico open\n");
 
-  if (!this || !input1 || !output || !video_target || !video_target[0]) {
+  if (inputs < 2 || !this || !video_target || !video_target[0]) {
     free(this);
-    free(input1);
-    free(output);
     return NULL;
   }
+  
+  _x_post_init(&this->post, 0, inputs);
 
-  class->ip = output;  
+  this->pip       = (mosaico_pip_t *)xine_xmalloc(sizeof(mosaico_pip_t) * (inputs - 1));
+  this->pip_count = inputs - 1;
 
-  this->input = xine_list_new();
-  this->output = xine_list_new();
+  pthread_cond_init(&this->vpts_limit_changed, NULL);
+  pthread_mutex_init(&this->mutex, NULL);
+  
+  /* the port for the background video */
+  port = _x_post_intercept_video_port(&this->post, video_target[0], &input, &output);
+  port->intercept_frame = mosaico_intercept_frame;
+  port->new_frame->draw = mosaico_draw_background;
+  port->port_lock       = &this->mutex;
+  port->frame_lock      = &this->mutex;
+  this->post.xine_post.video_input[0] = &port->new_port;
 
-  output->vo_port = video_target[0];
-
-/* background */
-  port = _x_post_intercept_video_port(this, video_target[0]);
-  port->port.open      = mosaico_open;
-  port->port.get_frame = mosaico_get_frame;
-  port->port.close     = mosaico_close;
-  input1->name = "video in";
-  input1->type = XINE_POST_DATA_VIDEO;
-  input1->data = (xine_video_port_t *)&port->port;
-  output->xine_out.name   = "video out";
-  output->xine_out.type   = XINE_POST_DATA_VIDEO;
-  output->xine_out.data   = (xine_video_port_t **)&port->original_port;
-  output->xine_out.rewire = mosaico_rewire;
-  output->stream          = NULL;
-  output->pip = inputs-1;
-  xine_list_append_content(this->output, output);
- 
-/* init mutex */
-  pthread_mutex_init(&output->mut1, NULL);
-  pthread_mutex_init(&output->mut2, NULL);
-  output->saved_frame = NULL;
-  this->xine_post.audio_input    = (xine_audio_port_t **)malloc(sizeof(xine_audio_port_t *));
-  this->xine_post.audio_input[0] = NULL;
-  this->xine_post.video_input    = (xine_video_port_t **)malloc(sizeof(xine_video_port_t *) * (inputs+1));
-  this->xine_post.video_input[0] = &port->port;
-  xine_list_append_content(this->input, input1);
-
-  for(i=1;i<inputs;i++) {
-    /*registry operations*/
-    input2 = (xine_post_in_t *)malloc(sizeof(xine_post_in_t));
-    output->saved_frame_2[i-1] = NULL;
-    sprintf(string, "post.mosaico_input%d_x", i);
-    if(xine_config_lookup_entry(class->xine, string, &x_entry)) 
-      x_changed_cb(class, &x_entry);
-
-    sprintf(string, "post.mosaico_input%d_y", i);
-    if(xine_config_lookup_entry(class->xine, string, &y_entry)) 
-      y_changed_cb(class, &y_entry);
-
-    sprintf(string, "post.mosaico_input%d_w", i);
-    if(xine_config_lookup_entry(class->xine, string, &w_entry)) 
-      w_changed_cb(class, &w_entry);
-
-    sprintf(string, "post.mosaico_input%d_h", i);
-    if(xine_config_lookup_entry(class->xine, string, &h_entry)) 
-      h_changed_cb(class, &h_entry);
-
-    port2 = _x_post_intercept_video_port(this, video_target[i]);
-
-    /* replace with our own get_frame function */
-    port2->port.open = mosaico_open;
-    port2->port.get_frame = mosaico_get_frame_2;
-    port2->port.close = mosaico_close;
-
-    sprintf(string, "video in %d", i);
-    input2->name = strdup(string);
-    input2->type = XINE_POST_DATA_VIDEO;
-    input2->data = (xine_video_port_t *)&port2->port;
+  for (i = 0; i < inputs - 1; i++) {
+    this->pip[i].x = 50;
+    this->pip[i].y = 50;
+    this->pip[i].w = 150;
+    this->pip[i].h = 150;
     
-    this->xine_post.video_input[i] = &port2->port;
-    xine_list_append_content(this->input, input2);
+    port = _x_post_intercept_video_port(&this->post, video_target[0], &input, NULL);
+    port->new_port.close  = mosaico_close;
+    port->intercept_frame = mosaico_intercept_frame;
+    port->new_frame->draw = mosaico_draw;
+    port->port_lock       = &this->mutex;
+    port->frame_lock      = &this->mutex;
+    this->post.xine_post.video_input[i+1] = &port->new_port;
   }
 
-  this->xine_post.video_input[i+1] = NULL;     
-  this->dispose = mosaico_dispose;
+  input_api       = &this->parameter_input;
+  input_api->name = "parameters";
+  input_api->type = XINE_POST_DATA_PARAMETERS;
+  input_api->data = &post_api;
+  xine_list_append_content(this->post.input, input_api);
 
-  return this;
+  this->post.dispose = mosaico_dispose;
+
+  return &this->post;
 }
 
 static char *mosaico_get_identifier(post_class_t *class_gen)
@@ -296,116 +215,102 @@ static void mosaico_class_dispose(post_class_t *class_gen)
 }
 
 
-static void mosaico_dispose(post_plugin_t *this)
+static void mosaico_dispose(post_plugin_t *this_gen)
 {
-  post_mosaico_out_t *output = (post_mosaico_out_t *)xine_list_first_content(this->output);
-  xine_video_port_t *port = *(xine_video_port_t **)output->xine_out.data;
+  post_mosaico_t *this = (post_mosaico_t *)this_gen;
   
-  if (output->stream)
-    port->close(port, output->stream);
-
-  free(this->xine_post.audio_input);
-  free(this->xine_post.video_input);
-  free(xine_list_first_content(this->input));
-  free(xine_list_first_content(this->output));
-  xine_list_free(this->input);
-  xine_list_free(this->output);
-  free(this);
+  if (_x_post_dispose(this_gen)) {
+    free(this->pip);
+    pthread_cond_destroy(&this->vpts_limit_changed);
+    pthread_mutex_destroy(&this->mutex);
+    free(this);
+  }
 }
 
 
-static int mosaico_rewire(xine_post_out_t *output_gen, void *data)
+static xine_post_api_descr_t *mosaico_get_param_descr(void)
 {
-  post_mosaico_out_t *output = (post_mosaico_out_t *)output_gen;
-  xine_video_port_t *old_port = *(xine_video_port_t **)output_gen->data;
-  /*xine_post_in_t *input = (xine_post_in_t *) data;*/
-  xine_video_port_t *new_port = (xine_video_port_t *)data;  
+  return &mosaico_param_descr;
+}
 
-  if (!data)
-    return 0;
-  if (output->stream) {   
-    /* register our stream at the new output port */
-    old_port->close(old_port, output->stream);
-    new_port->open(new_port, output->stream);
-  }
-  /* reconnect ourselves */
-  *(xine_video_port_t **)output_gen->data = new_port;
+static int mosaico_set_parameters(xine_post_t *this_gen, void *param_gen)
+{
+  post_mosaico_t *this = (post_mosaico_t *)this_gen;
+  mosaico_parameters_t *param = (mosaico_parameters_t *)param_gen;
+  
+  if (param->pip_num > this->pip_count) return 0;
+  this->pip[param->pip_num - 1].x = param->x;
+  this->pip[param->pip_num - 1].y = param->y;
+  this->pip[param->pip_num - 1].w = param->w;
+  this->pip[param->pip_num - 1].h = param->h;
   return 1;
 }
 
-static void mosaico_open(xine_video_port_t *port_gen, xine_stream_t *stream)
+static int mosaico_get_parameters(xine_post_t *this_gen, void *param_gen)
 {
-  post_video_port_t *port = (post_video_port_t *)port_gen;
-  post_mosaico_out_t *output = (post_mosaico_out_t *)xine_list_first_content(port->post->output);
-
-  output->stream = stream;
-  port->original_port->open(port->original_port, stream);
-   
+  post_mosaico_t *this = (post_mosaico_t *)this_gen;
+  mosaico_parameters_t *param = (mosaico_parameters_t *)param_gen;
+  
+  if (param->pip_num > this->pip_count || param->pip_num < 1)
+    param->pip_num = 1;
+  param->x = this->pip[param->pip_num - 1].x;
+  param->y = this->pip[param->pip_num - 1].y;
+  param->w = this->pip[param->pip_num - 1].w;
+  param->h = this->pip[param->pip_num - 1].h;
+  return 1;
 }
 
-static vo_frame_t *mosaico_get_frame(xine_video_port_t *port_gen, uint32_t width, 
-				    uint32_t height, double ratio, 
-				    int format, int flags)
+static char *mosaico_get_help(void)
 {
-  post_video_port_t *port = (post_video_port_t *)port_gen;
-  vo_frame_t        *frame;
-
-  frame = port->original_port->get_frame(port->original_port,
-    width, height, ratio, format, flags);
-  _x_post_intercept_video_frame(frame, port);
-  /* replace with our own draw function */
-  frame->draw = mosaico_draw;
-  /* decoders should not copy the frames, since they won't be displayed */
-  frame->proc_slice = NULL;
-  frame->proc_frame = NULL;
-
-  return frame;
+  return _("Mosaico does simple picture in picture effects.\n"
+	   "\n"
+	   "Parameters\n"
+	   "  pip_num: the number of the picture slot the following settings apply to\n"
+	   "  x: the x coordinate of the left upper corner of the picture\n"
+	   "  y: the y coordinate of the left upper corner of the picture\n"
+	   "  w: the width of the picture\n"
+	   "  h: the height of the picture\n");
 }
 
-static vo_frame_t *mosaico_get_frame_2(xine_video_port_t *port_gen, uint32_t width, 
-				    uint32_t height, double ratio, 
-				    int format, int flags)
-{
-  post_video_port_t *port = (post_video_port_t *)port_gen;
-  vo_frame_t        *frame;
-
-  frame = port->original_port->get_frame(port->original_port,
-    width, height, ratio, format, flags);
-  _x_post_intercept_video_frame(frame, port);
-  /* replace with our own draw function */
-  frame->draw = mosaico_draw_2;
-  /* decoders should not copy the frames, since they won't be displayed */
-  frame->proc_slice = NULL;
-  frame->proc_frame = NULL;
-
-  return frame;
-}
 
 static void mosaico_close(xine_video_port_t *port_gen, xine_stream_t *stream)
 {
   post_video_port_t *port = (post_video_port_t *)port_gen;
-  post_mosaico_out_t *output = (post_mosaico_out_t *)xine_list_first_content(port->post->output);
-  output->stream = NULL;
-  port->original_port->close(port->original_port, stream);
+  post_mosaico_t *this = (post_mosaico_t *)port->post;
+  vo_frame_t *free_frame;
+  int pip_num;
+
+  for (pip_num = 0; pip_num < this->pip_count; pip_num++)
+    if (this->post.xine_post.video_input[pip_num+1] == port_gen) break;
+  
+  pthread_mutex_lock(&this->mutex);
+  free_frame = this->pip[pip_num].frame;
+  this->pip[pip_num].frame = NULL;
+  port->original_port->close(port->original_port, NULL);
+  pthread_mutex_unlock(&this->mutex);
+
+  if (free_frame)
+    free_frame->free(free_frame);
+  port->stream = NULL;
+  _x_post_dec_usage(port);
 }
 
-static void frame_copy_content(vo_frame_t *to, vo_frame_t *from) {
+
+static int mosaico_intercept_frame(post_video_port_t *port, vo_frame_t *frame)
+{
+  /* TODO: only YV12 supported */
+  return (frame->format == XINE_IMGFMT_YV12);
+}
+
+
+static void frame_copy_content(vo_frame_t *to, vo_frame_t *from)
+{
   int size;
-
-  if((to == NULL)||(from == NULL)) {
-    lprintf("Something wrong in frame_copy_content\n");
-    return;
-  }
-
-  if(to->format != from->format) {
-    lprintf("frame_copy_content : buffers have different format\n");
-    return;
-  }
 
   switch (from->format) {
   case XINE_IMGFMT_YUY2:
-    size = to->pitches[0] * to->height;   
-    xine_fast_memcpy(to->base[0], from->base[0], size);
+    /* TODO: implement conversion to YV12 or implement support to paste
+     * frames of different types together */
     break;     
   
   case XINE_IMGFMT_YV12:
@@ -420,193 +325,164 @@ static void frame_copy_content(vo_frame_t *to, vo_frame_t *from) {
     /* V */
     size = to->pitches[2] * ((to->height + 1) / 2);
     xine_fast_memcpy(to->base[2], from->base[2], size);
+  }
+}
+
+static void frame_paste(post_mosaico_t *this, vo_frame_t *background, int pip_num)
+{
+  unsigned long target_width, target_height;
+  unsigned long source_width, source_height;
+  unsigned long background_width;
+  unsigned long scale_x, scale_y;
+  const int shift_x = 3, shift_y = 3;
+  unsigned long pos_x, pos_y, pos;
+  unsigned long target_offset, source_offset;
+  unsigned long i, j;
+
+  if (!this->pip[pip_num].frame) return;
+  
+  target_width  = this->pip[pip_num].w;
+  target_height = this->pip[pip_num].h;
+  background_width = background->width;
+  source_width = this->pip[pip_num].frame->width;
+  source_height = this->pip[pip_num].frame->height;
+  scale_x = (source_width << shift_x) / target_width;
+  scale_y = (source_height << shift_y) / target_height;
+  pos_x = this->pip[pip_num].x;
+  pos_y = this->pip[pip_num].y;
+  pos = pos_y * background_width + pos_x;
+
+  switch (this->pip[pip_num].frame->format) {
+  case XINE_IMGFMT_YUY2:
+    /* TODO: implement YUY2 */
+    break;     
+  
+  case XINE_IMGFMT_YV12:
+    /* Y */
+    target_offset = 0;
+    for (j = 0; j < target_height; j++, target_offset += (background_width - target_width))
+      for (i = 0; i < target_width; i++, target_offset++) {
+	source_offset = ((i * scale_x) >> shift_x) + (((j * scale_y) >> shift_y) * source_width);
+	background->base[0][pos + target_offset] = this->pip[pip_num].frame->base[0][source_offset];
+      }
+
+    background_width = (background_width + 1) / 2;
+    source_width = (source_width + 1) / 2;
+    pos_x = (pos_x + 1) / 2;
+    pos_y = (pos_y + 1) / 2;
+    pos = pos_y * background_width + pos_x;
+    target_width = (target_width + 1) / 2;
+    target_height = (target_height + 1) / 2;
     
+    /* U */
+    target_offset = 0;
+    for (j = 0; j < target_height; j++, target_offset += (background_width - target_width))
+      for (i = 0; i < target_width; i++, target_offset++) {
+	source_offset = ((i * scale_x) >> shift_x) + (((j * scale_y) >> shift_y) * source_width);
+	background->base[1][pos + target_offset] = this->pip[pip_num].frame->base[1][source_offset];
+      }
+    
+    /* V */
+    target_offset = 0;
+    for (j = 0; j < target_height; j++, target_offset += (background_width - target_width))
+      for (i = 0; i < target_width; i++, target_offset++) {
+	source_offset = ((i * scale_x) >> shift_x) + (((j * scale_y) >> shift_y) * source_width);
+	background->base[2][pos + target_offset] = this->pip[pip_num].frame->base[2][source_offset];
+      }
+    
+    break;
   }
 }
 
-static int _mosaico_draw_1(vo_frame_t *frame, post_mosaico_out_t *output) {  
+static int mosaico_draw_background(vo_frame_t *frame, xine_stream_t *stream)
+{
+  post_video_port_t *port = (post_video_port_t *)frame->port;
+  post_mosaico_t *this = (post_mosaico_t *)port->post;
+  vo_frame_t *background;
+  int pip_num, skip;
 
-  post_video_port_t *port;
-
-  if(frame != NULL) {
-    port =  (post_video_port_t *)frame->port;
-    pthread_mutex_lock(&output->mut1);
-    if(output->saved_frame != NULL) output->saved_frame->free(output->saved_frame);
-    output->saved_frame = port->original_port->get_frame(port->original_port,
-      frame->width, frame->height, frame->ratio, frame->format, frame->flags | VO_BOTH_FIELDS);
-    output->saved_frame->pts = frame->pts;
-    output->saved_frame->duration = frame->duration;
-    output->saved_frame->bad_frame = frame->bad_frame;
-    frame_copy_content(output->saved_frame, frame);
-    pthread_mutex_unlock(&output->mut1);
-  }
-  return 0;
-}
-
-static int _mosaico_draw_2(vo_frame_t *frame, post_mosaico_out_t *output, int cont) {
-
-  unsigned long i, j, wx, wy, ciclo;
-  unsigned long zx, zy, wid, wid2, des1, des2, hei;
-  unsigned long scalex, scaley, pos_in_x, pos_in_y, pos_in;
-  post_video_port_t *port;  
-
-  pthread_mutex_lock(&output->mut1);
-  pthread_mutex_lock(&output->mut2);
-
-  if((output->saved_frame_2[cont] == NULL)&&(frame == NULL)) {
-    lprintf("frame_2 NULL\n");
-    pthread_mutex_unlock(&output->mut1);
-    pthread_mutex_unlock(&output->mut2);
-    return 0;
-  }
-
-  if(output->saved_frame == NULL) {
-    lprintf("saved frame NULL\n");
-    pthread_mutex_unlock(&output->mut1);
-    pthread_mutex_unlock(&output->mut2);
-    return 0;
-  }  
- 
-  if(frame != NULL) {
-    port = (post_video_port_t *)frame->port;
-    if(output->saved_frame_2[cont] != NULL) {
-      output->saved_frame_2[cont]->free(output->saved_frame_2[cont]);
-      output->saved_frame_2[cont] = NULL;
-    }
+  pthread_mutex_lock(&this->mutex);
   
-    output->saved_frame_2[cont] = port->original_port->get_frame(port->original_port,
-      frame->width, frame->height, frame->ratio, frame->format, frame->flags | VO_BOTH_FIELDS);
-    output->saved_frame_2[cont]->pts = frame->pts;
-    output->saved_frame_2[cont]->duration = frame->duration;
-    output->saved_frame_2[cont]->bad_frame = frame->bad_frame;
-
-    frame_copy_content(output->saved_frame_2[cont], frame);
+  if (frame->bad_frame) {
+    _x_post_frame_copy_up(frame, frame->next);
+    skip = frame->next->draw(frame->next, stream);
+    _x_post_frame_copy_down(frame, frame->next);
+    
+    this->vpts_limit = frame->vpts + frame->duration;
+    if (skip) {
+      this->skip      = skip;
+      this->skip_vpts = frame->vpts;
+    } else
+      this->skip      = 0;
+    
+    pthread_mutex_unlock(&this->mutex);
+    pthread_cond_broadcast(&this->vpts_limit_changed);
+    
+    return skip;
   }
-
-  for(ciclo=1;ciclo<=output->pip;ciclo++) {
-    if(output->saved_frame_2[ciclo-1] == NULL) continue;
-    /*initialize vars*/
-    wx = output->info[ciclo].w;
-    wy = output->info[ciclo].h;
-    scalex = scaley = 3;
-    wid = output->saved_frame->width ;   
-    wid2 = output->saved_frame_2[ciclo-1]->width ;
-    wid2 <<= scalex;
-    hei = output->saved_frame_2[ciclo-1]->height;
-    hei <<= scaley;
-    zx = wid2 / wx;
-    zy = hei / wy;
-    pos_in_x = output->info[ciclo].x; pos_in_y = output->info[ciclo].y;
-    pos_in = pos_in_y*wid+pos_in_x;
-
-
-    switch (output->saved_frame_2[ciclo-1]->format) {
-    case XINE_IMGFMT_YUY2:
-      lprintf("not supported\n");
-      /*size = new_frame->pitches[0] * new_frame->height;   
-	for (i = 0; i < size; i++)
-	new_frame->base[0][i] = frame->base[0][i];*/
-      break;     
   
-    case XINE_IMGFMT_YV12:
-      /* Y */
-      for(j = 0; j < wy; j++)
-	for (i = 0; i < wx; i++) {
-	  des1 = (i+ j*wid);
-	  des2 = ((i*zx)>>scalex)+(((j*zy)>>scaley) * (wid2>>scalex));
-/*
-	  if(!j) printf("%d %d\n", (i*zx)/scalex, wid2/scalex);
-	  if(!i) printf("%d %d\n", ((j*zy)>>scaley), (hei>>scaley));
-*/
-	  output->saved_frame->base[0][pos_in + des1] = output->saved_frame_2[ciclo-1]->base[0][des2];
-	}
-
-      /* U */
-      wid = (wid+1) / 2;
-      wid2 = (wid2+1) / 2;
-      pos_in_x = (pos_in_x+1)/2;pos_in_y = (pos_in_y+1)/2;
-      pos_in = pos_in_y * wid + pos_in_x;
-      wx = (wx+1)/2; wy = (wy+1)/2; 
-      for(j = 0; j < wy; j++)
-	for (i = 0; i < wx; i++) {
-	  des1 = (i+ j*wid);
-	  des2 = ((i*zx)>>scalex)+(((j*zy)>>scaley) * (wid2>>scalex));
-	  output->saved_frame->base[1][pos_in + des1] = output->saved_frame_2[ciclo-1]->base[1][(des2)];
-	}
-
-      /* V */
-      for(j = 0; j < wy; j++)
-	for (i = 0; i < wx; i++) {
-	  des1 = (i+ j*wid);
-	  des2 = ((i*zx)>>scalex)+(((j*zy)>>scaley) * (wid2>>scalex));
-	  output->saved_frame->base[2][pos_in + des1] = output->saved_frame_2[ciclo-1]->base[2][des2];
-	}
-
-      break;
-    default:    
-      xprintf(output->stream->xine, XINE_VERBOSITY_DEBUG, 
-	      "Mosaico: cannot handle image format %d\n", frame->format);
-      /*new_frame->free(new_frame);
-	_x_post_restore_video_frame(frame, port);
-	return frame->draw(frame, stream);*/
-    }
-  }
-
-  pthread_mutex_unlock(&output->mut1);
-  pthread_mutex_unlock(&output->mut2);
-
-  return 0;
+  background = port->original_port->get_frame(port->original_port,
+    frame->width, frame->height, frame->ratio, frame->format, frame->flags | VO_BOTH_FIELDS);
+  _x_post_frame_copy_up(frame, background);
+  frame_copy_content(background, frame);
+  
+  for (pip_num = 0; pip_num < this->pip_count; pip_num++)
+    frame_paste(this, background, pip_num);
+  
+  skip = background->draw(background, stream);
+  _x_post_frame_copy_down(frame, background);
+  this->vpts_limit = background->vpts + background->duration;
+  background->free(background);
+  
+  if (skip) {
+    this->skip      = skip;
+    this->skip_vpts = frame->vpts;
+  } else
+    this->skip      = 0;
+  
+  pthread_mutex_unlock(&this->mutex);
+  pthread_cond_broadcast(&this->vpts_limit_changed);
+  
+  return skip;
 }
 
 static int mosaico_draw(vo_frame_t *frame, xine_stream_t *stream)
 {
-/*  vo_frame_t *new_frame;*/
-  int skip;
   post_video_port_t *port = (post_video_port_t *)frame->port;
-  post_mosaico_out_t *output = (post_mosaico_out_t *)xine_list_first_content(port->post->output);
+  post_mosaico_t *this = (post_mosaico_t *)port->post;
+  vo_frame_t *free_frame;
+  int pip_num, skip;
 
-  _mosaico_draw_1(frame, output);
-  _mosaico_draw_2(NULL, output, 0);
-  pthread_mutex_lock(&output->mut1);
-  if(output->saved_frame != NULL) {
-    skip = output->saved_frame->draw(output->saved_frame, stream);
-    /*    new_frame->free(new_frame);*/
-    frame->vpts = output->saved_frame->vpts;
-    pthread_mutex_unlock(&output->mut1);
-    _x_post_restore_video_frame(frame, port);
+  for (pip_num = 0; pip_num < this->pip_count; pip_num++)
+    if (this->post.xine_post.video_input[pip_num+1] == frame->port) break;
+  _x_assert(pip_num < this->pip_count);
   
-    return skip;
-  }
-  lprintf("ERROR!! oh oh\n\n");
-  return 0;
-}
+  frame->lock(frame);
+  
+  pthread_mutex_lock(&this->mutex);
+  
+  /* the original output will never see this frame again */
+  _x_post_frame_u_turn(frame, stream);
+  while (frame->vpts > this->vpts_limit || !this->vpts_limit)
+    /* we are too early */
+    pthread_cond_wait(&this->vpts_limit_changed, &this->mutex);
+  free_frame = this->pip[pip_num].frame;
+  if (port->stream)
+    this->pip[pip_num].frame = frame;
+  
+  if (this->skip && frame->vpts <= this->skip_vpts)
+    skip = this->skip;
+  else
+    skip = 0;
+  
+  pthread_mutex_unlock(&this->mutex);
 
-static int mosaico_draw_2(vo_frame_t *frame, xine_stream_t *stream)
-{
-/*  vo_frame_t *new_frame;*/
-  post_video_port_t *port = (post_video_port_t *)frame->port;
-  post_mosaico_out_t *output = (post_mosaico_out_t *)xine_list_first_content(port->post->output);  
-  xine_video_port_t *pt;
-  xine_post_in_t *in;
-  int i = 0;
-
-  in = xine_list_first_content(port->post->input);
-
-  while(in != NULL) {
-    pt = in->data;
-    if(pt == frame->port) {
-      lprintf("trovato %d\n", i);
-      break;
-    }
-    in = xine_list_next_content(port->post->input);
-    i++;
-  }
-
-  _mosaico_draw_1(NULL, output); 
-  _mosaico_draw_2(frame, output, i-1);  
- 
-
-  _x_post_restore_video_frame(frame, port);
-
-  return 0;
+  if (free_frame)
+    free_frame->free(free_frame);
+  if (!port->stream)
+    /* do not keep this frame when no stream is connected to us,
+     * otherwise, this frame might never get freed */
+    frame->free(frame);
+  
+  return skip;
 }

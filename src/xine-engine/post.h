@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: post.h,v 1.16 2003/12/14 22:13:26 siggi Exp $
+ * $Id: post.h,v 1.17 2004/01/07 19:52:43 mroi Exp $
  *
  * post plugin definitions
  *
@@ -30,20 +30,25 @@
 #  include "xine.h"
 #  include "video_out.h"
 #  include "audio_out.h"
+#  include "xine_internal.h"
 #  include "xineutils.h"
 #else
 #  include <xine.h>
 #  include <xine/video_out.h>
 #  include <xine/audio_out.h>
+#  include <xine/xine_internal.h>
 #  include <xine/xineutils.h>
 #endif
 
-#define POST_PLUGIN_IFACE_VERSION 7
+#define POST_PLUGIN_IFACE_VERSION 8
+
+#define POST_NULL_STREAM    (xine_stream_t *)-1
 
 
 typedef struct post_class_s post_class_t;
 typedef struct post_plugin_s post_plugin_t;
-
+typedef struct post_in_s post_in_t;
+typedef struct post_out_s post_out_t;
 
 struct post_class_s {
 
@@ -89,6 +94,9 @@ struct post_plugin_s {
    */
   void (*dispose) (post_plugin_t *this);
   
+  /* has dispose been called */
+  int                 dispose_pending;
+  
   /* plugins don't have to care for the stuff below */
   
   /* used when the user requests a list of all inputs/outputs */
@@ -97,6 +105,33 @@ struct post_plugin_s {
 
   /* used by plugin loader */
   void *node;
+};
+
+/* helper function to initialize a post_plugin_t */
+void _x_post_init(post_plugin_t *post, int num_audio_inputs, int num_video_inputs);
+
+struct post_in_s {
+
+  /* public part of the input */
+  xine_post_in_t   xine_in;
+  
+  /* backward reference so that you have access to the post plugin */
+  post_plugin_t   *post;
+  
+  /* you can fill this to your liking */
+  void            *user_data;
+};
+
+struct post_out_s {
+
+  /* public part of the output */
+  xine_post_out_t  xine_out;
+  
+  /* backward reference so that you have access to the post plugin */
+  post_plugin_t   *post;
+  
+  /* you can fill this to your liking */
+  void            *user_data;
 };
 
 
@@ -117,48 +152,130 @@ typedef struct post_video_port_s post_video_port_t;
 struct post_video_port_s {
 
   /* the new public port with replaced function pointers */
-  xine_video_port_t  port;
+  xine_video_port_t         new_port;
   
   /* the original port to call its functions from inside yours */
-  xine_video_port_t *original_port;
+  xine_video_port_t        *original_port;
   
-  /* here you can keep information about the frames */
-  vo_frame_t         original_frame;
+  /* when we are rewiring, next port points to the new port */
+  xine_video_port_t        *next_port;
   
-  /* backward reference so that you have access to the post plugin
-   * when the call only gives you the port */
-  post_plugin_t     *post;
-};
-
-/* use this to create a new, trivially decorated video port in which
- * port functions can be replaced with own implementations */
-post_video_port_t *_x_post_intercept_video_port(post_plugin_t *post, xine_video_port_t *port);
-
-/* use this to decorate and to undecorate a frame so that its functions
- * can be replaced with own implementations */
-void _x_post_intercept_video_frame(vo_frame_t *frame, post_video_port_t *port);
-void _x_post_restore_video_frame(vo_frame_t *frame, post_video_port_t *port);
-
-
-/* helper structure for intercepting overlay manager calls */
-typedef struct post_overlay_manager_s post_overlay_manager_t;
-struct post_overlay_manager_s {
-
+  /* rewiring synchronization */
+  pthread_mutex_t           next_port_lock;
+  pthread_cond_t            next_port_wire;
+  
+  /* if you want to decide yourself, whether a given frame should
+   * be intercepted, fill in this function; get_frame() acts as
+   * a template method and asks your function; return a boolean;
+   * the default is to intercept all frames */
+  int (*intercept_frame)(post_video_port_t *self, vo_frame_t *frame);
+  
+  /* the new frame function pointers */
+  vo_frame_t               *new_frame;
+  
+  /* if you want to decide yourself, whether the overlay manager should
+   * be intercepted, fill in this function; get_overlay_manager() acts as
+   * a template method and asks your function; return a boolean;
+   * the default is _not_ to intercept the overlay manager */
+  int (*intercept_ovl)(post_video_port_t *self);
+  
   /* the new public overlay manager with replaced function pointers */
-  video_overlay_manager_t   manager;
+  video_overlay_manager_t  *new_manager;
   
   /* the original manager to call its functions from inside yours */
   video_overlay_manager_t  *original_manager;
   
+  /* usage counter: how many objects are floating around that need
+   * these pointers to exist */
+  int                       usage_count;
+  pthread_mutex_t           usage_lock;
+  
+  /* the stream we are being fed by; NULL means no stream is connected,
+   * POST_NULL_STREAM means a NULL stream is connected */
+  xine_stream_t            *stream;
+  
+  /* point to a mutex here, if you need some synchronization */
+  pthread_mutex_t          *port_lock;
+  pthread_mutex_t          *frame_lock;
+  pthread_mutex_t          *manager_lock;
+  
   /* backward reference so that you have access to the post plugin
-   * when the call only gives you the overlay manager */
+   * when the call only gives you the port */
   post_plugin_t            *post;
+  
+  /* you can fill this to your liking */
+  void                     *user_data;
+  
+#ifdef POST_INTERNAL
+  /* some of the above members are to be directly included here, but
+   * adding the structures would mean that post_video_port_t becomes
+   * depended of the sizes of these structs; solution: we add pointers
+   * above and have them point into the memory provided here;
+   * note that the overlay manager needs to be first so that we can
+   * reconstruct the post_video_port_t* from overlay manager calls */
+  
+  /* any change here requires a change in _x_post_ovl_manager_to_port()
+   * below! */
+  
+  video_overlay_manager_t   manager_storage;
+  vo_frame_t                frame_storage;
+  
+  /* this is used to keep a linked list of free vo_frame_t's */
+  vo_frame_t               *free_frame_slots;
+  pthread_mutex_t           free_frames_lock;
+#endif
 };
+
+/* use this to create a new decorated video port in which
+ * port functions will be replaced with own implementations;
+ * for convenience, this can also create a related post_in_t and post_out_t */
+post_video_port_t *_x_post_intercept_video_port(post_plugin_t *post, xine_video_port_t *port,
+						post_in_t **input, post_out_t **output);
+
+/* this will execute pending rewire operations, calling this at the beginning
+ * of decoder-called functions like get_frame() and open() is a good idea
+ * (if you do not intercept get_frame() or open(), this will be done automatically) */
+void _x_post_rewire_video(post_video_port_t *port);
+
+/* use this to decorate and to undecorate a frame so that its functions
+ * can be replaced with own implementations, decoration is usually done in
+ * get_frame(), undecoration in frame->free() */
+vo_frame_t *_x_post_intercept_video_frame(vo_frame_t *frame, post_video_port_t *port);
+vo_frame_t *_x_post_restore_video_frame(vo_frame_t *frame, post_video_port_t *port);
+
+/* when you want to pass a frame call on to the original issuer of the frame,
+ * you need to propagate potential changes up and down the pipe, so the usual
+ * procedure for this situation would be:
+ *
+ *   _x_post_frame_copy_up(frame, frame->next);
+ *   frame->next->function(frame->next);
+ *   _x_post_frame_copy_down(frame, frame->next);
+ */
+void _x_post_frame_copy_up(vo_frame_t *from, vo_frame_t *to);
+void _x_post_frame_copy_down(vo_frame_t *to, vo_frame_t *from);
+
+/* when you shortcut a frames usual draw() travel so that it will never reach
+ * the draw() function of the original issuer, you still have to do some
+ * housekeeping on the frame, before returning control down the pipe */
+void _x_post_frame_u_turn(vo_frame_t *frame, xine_stream_t *stream);
 
 /* use this to create a new, trivially decorated overlay manager in which
  * port functions can be replaced with own implementations */
-post_overlay_manager_t *_x_post_intercept_overlay_manager(post_plugin_t *post,
-							  video_overlay_manager_t *original);
+void _x_post_intercept_overlay_manager(video_overlay_manager_t *manager, post_video_port_t *port);
+
+/* pointer retrieval functions */
+static inline post_video_port_t *_x_post_video_frame_to_port(vo_frame_t *frame) {
+  return (post_video_port_t *)frame->port;
+}
+
+static inline post_video_port_t *_x_post_ovl_manager_to_port(video_overlay_manager_t *manager) {
+#ifdef POST_INTERNAL
+  return (post_video_port_t *)( (uint8_t *)manager -
+    (unsigned)&(((post_video_port_t *)NULL)->manager_storage) );
+#else
+  return (post_video_port_t *)( (uint8_t *)manager - sizeof(post_video_port_t) );
+#endif
+}
 
 
 /* helper structure for intercepting audio port calls */
@@ -166,19 +283,86 @@ typedef struct post_audio_port_s post_audio_port_t;
 struct post_audio_port_s {
 
   /* the new public port with replaced function pointers */
-  xine_audio_port_t  port;
+  xine_audio_port_t  new_port;
   
   /* the original port to call its functions from inside yours */
   xine_audio_port_t *original_port;
   
+  /* when we are rewiring, next port points to the new port */
+  xine_audio_port_t *next_port;
+  
+  /* rewiring synchronization */
+  pthread_mutex_t    next_port_lock;
+  pthread_cond_t     next_port_wire;
+  
+  /* usage counter: how many objects are floating around that need
+   * these pointers to exist */
+  int                usage_count;
+  pthread_mutex_t    usage_lock;
+  
+  /* the stream we are being fed by; NULL means no stream is connected,
+   * POST_NULL_STREAM means a NULL stream is connected */
+  xine_stream_t     *stream;
+  
+  /* some values remembered by port->open() */
+  uint32_t           bits;
+  uint32_t           rate;
+  uint32_t           mode;
+  
+  /* point to a mutex here, if you need some synchronization */
+  pthread_mutex_t   *port_lock;
+  
   /* backward reference so that you have access to the post plugin
    * when the call only gives you the port */
   post_plugin_t     *post;
+  
+  /* you can fill this to your liking */
+  void              *user_data;
 };
 
-/* use this to create a new, trivially decorated audio port in which
- * port functions can be replaced with own implementations */
-post_audio_port_t *_x_post_intercept_audio_port(post_plugin_t *post, xine_audio_port_t *port);
+/* use this to create a new decorated audio port in which
+ * port functions will be replaced with own implementations */
+post_audio_port_t *_x_post_intercept_audio_port(post_plugin_t *post, xine_audio_port_t *port,
+						post_in_t **input, post_out_t **output);
+
+/* this will execute pending rewire operations, calling this at the beginning
+ * of decoder-called functions like get_buffer() and open() is a good idea
+ * (if you do not intercept get_buffer() or open(), this will be done automatically) */
+void _x_post_rewire_audio(post_audio_port_t *port);
+
+
+/* the standard disposal operation; returns 1 if the plugin is really
+ * disposed and you should free everything you malloc()ed yourself */
+int _x_post_dispose(post_plugin_t *post);
+
+
+/* macros to handle usage counter */
+
+/* WARNING!
+ * note that _x_post_dec_usage() can call dispose, so be sure to
+ * not use any potentially already freed memory after this */
+
+#define _x_post_inc_usage(port)                                    \
+do {                                                               \
+  pthread_mutex_lock(&(port)->usage_lock);                         \
+  (port)->usage_count++;                                           \
+  pthread_mutex_unlock(&(port)->usage_lock);                       \
+} while(0)
+
+#define _x_post_dec_usage(port)                                    \
+do {                                                               \
+  pthread_mutex_lock(&(port)->usage_lock);                         \
+  (port)->usage_count--;                                           \
+  if ((port)->usage_count == 0) {                                  \
+    pthread_cond_broadcast(&(port)->next_port_wire);               \
+    if ((port)->post->dispose_pending) {                           \
+      pthread_mutex_unlock(&(port)->usage_lock);                   \
+      (port)->post->dispose((port)->post);                         \
+    } else                                                         \
+      pthread_mutex_unlock(&(port)->usage_lock);                   \
+  } else                                                           \
+    pthread_mutex_unlock(&(port)->usage_lock);                     \
+} while(0)
 
 
 /* macros to create parameter descriptors */ 

@@ -23,7 +23,7 @@
  * process. It simply paints the screen a solid color and rotates through
  * colors on each iteration.
  *
- * $Id: fooviz.c,v 1.18 2003/12/14 22:13:25 siggi Exp $
+ * $Id: fooviz.c,v 1.19 2004/01/07 19:52:42 mroi Exp $
  *
  */
 
@@ -55,7 +55,7 @@ struct post_plugin_fooviz_s {
 
   /* private data */
   xine_video_port_t *vo_port;
-  xine_stream_t     *stream;
+  post_out_t         video_output;
 
   /* private metronom for syncing the video */
   metronom_t        *metronom;
@@ -66,10 +66,7 @@ struct post_plugin_fooviz_s {
   short data [2][NUMSAMPLES];
   audio_buffer_t buf;   /* dummy buffer just to hold a copy of audio data */
 
-  int bits;
-  int mode;
   int channels;
-  int sample_rate;
   int sample_counter;
   int samples_per_frame;
 
@@ -86,47 +83,20 @@ struct post_plugin_fooviz_s {
  * xine video post plugin functions
  *************************************************************************/
 
-typedef struct post_fooviz_out_s post_fooviz_out_t;
-struct post_fooviz_out_s {
-  xine_post_out_t     out;
-  post_plugin_fooviz_t *post;
-};
-
-static int fooviz_rewire_audio(xine_post_out_t *output_gen, void *data)
-{
-  post_fooviz_out_t *output = (post_fooviz_out_t *)output_gen;
-  xine_audio_port_t *old_port = *(xine_audio_port_t **)output_gen->data;
-  xine_audio_port_t *new_port = (xine_audio_port_t *)data;
-  post_plugin_fooviz_t *this = (post_plugin_fooviz_t *)output->post;
-  
-  if (!data)
-    return 0;
-  if (this->stream) {
-    /* register our stream at the new output port */
-    old_port->close(old_port, this->stream);
-    new_port->open(new_port, this->stream, this->bits, this->sample_rate, this->mode);
-  }
-  /* reconnect ourselves */
-  *(xine_audio_port_t **)output_gen->data = new_port;
-  return 1;
-}
-
 static int fooviz_rewire_video(xine_post_out_t *output_gen, void *data)
 {
-  post_fooviz_out_t *output = (post_fooviz_out_t *)output_gen;
+  post_out_t *output = (post_out_t *)output_gen;
   xine_video_port_t *old_port = *(xine_video_port_t **)output_gen->data;
   xine_video_port_t *new_port = (xine_video_port_t *)data;
   post_plugin_fooviz_t *this = (post_plugin_fooviz_t *)output->post;
   
   if (!data)
     return 0;
-  if (this->stream) {
-    /* register our stream at the new output port */
-    old_port->close(old_port, this->stream);
-    new_port->open(new_port, this->stream);
-  }
+  /* register our stream at the new output port */
+  old_port->close(old_port, NULL);
+  new_port->open(new_port, NULL);
   /* reconnect ourselves */
-  *(xine_video_port_t **)output_gen->data = new_port;
+  this->vo_port = new_port;
   return 1;
 }
 
@@ -136,15 +106,23 @@ static int fooviz_port_open(xine_audio_port_t *port_gen, xine_stream_t *stream,
   post_audio_port_t  *port = (post_audio_port_t *)port_gen;
   post_plugin_fooviz_t *this = (post_plugin_fooviz_t *)port->post;
 
+  _x_post_rewire_audio(port);
+  _x_post_inc_usage(port);
+  
+  if (stream)
+    port->stream = stream;
+  else
+    port->stream = POST_NULL_STREAM;
+  port->bits = bits;
+  port->rate = rate;
+  port->mode = mode;
+  
   this->ratio = (double)FOO_WIDTH/(double)FOO_HEIGHT;
-  this->bits = bits;
-  this->mode = mode;
   this->channels = _x_ao_mode2channels(mode);
   this->samples_per_frame = rate / FPS;
-  this->sample_rate = rate; 
-  this->stream = stream;
   this->data_idx = 0;
 
+  this->vo_port->open(this->vo_port, NULL);
   this->metronom->set_master(this->metronom, stream->metronom);
 
   return port->original_port->open(port->original_port, stream, bits, rate, mode );
@@ -155,11 +133,14 @@ static void fooviz_port_close(xine_audio_port_t *port_gen, xine_stream_t *stream
   post_audio_port_t  *port = (post_audio_port_t *)port_gen;
   post_plugin_fooviz_t *this = (post_plugin_fooviz_t *)port->post;
 
-  this->stream = NULL;
+  port->stream = NULL;
  
+  this->vo_port->close(this->vo_port, NULL);
   this->metronom->set_master(this->metronom, NULL);
  
   port->original_port->close(port->original_port, stream );
+  
+  _x_post_dec_usage(port);
 }
 
 static void fooviz_port_put_buffer (xine_audio_port_t *port_gen, 
@@ -180,7 +161,7 @@ static void fooviz_port_put_buffer (xine_audio_port_t *port_gen,
     this->buf.mem_size = buf->mem_size;
   }
   memcpy(this->buf.mem, buf->mem, 
-         buf->num_frames*this->channels*((this->bits == 8)?1:2));
+         buf->num_frames*this->channels*((port->bits == 8)?1:2));
   this->buf.num_frames = buf->num_frames;
   
   /* pass data to original port */
@@ -197,7 +178,7 @@ static void fooviz_port_put_buffer (xine_audio_port_t *port_gen,
 
   do {
     
-    if( this->bits == 8 ) {
+    if( port->bits == 8 ) {
       data8 = (int8_t *)buf->mem;
       data8 += samples_used * this->channels;
   
@@ -229,7 +210,7 @@ static void fooviz_port_put_buffer (xine_audio_port_t *port_gen,
                                         VO_BOTH_FIELDS);
       frame->extra_info->invalid = 1;
       frame->bad_frame = 0;
-      frame->duration = 90000 * this->samples_per_frame / this->sample_rate;
+      frame->duration = 90000 * this->samples_per_frame / port->rate;
       frame->pts = pts;
       this->metronom->got_video_frame(this->metronom, frame);
       
@@ -247,23 +228,15 @@ static void fooviz_port_put_buffer (xine_audio_port_t *port_gen,
 static void fooviz_dispose(post_plugin_t *this_gen)
 {
   post_plugin_fooviz_t *this = (post_plugin_fooviz_t *)this_gen;
-  xine_post_out_t *output = (xine_post_out_t *)xine_list_last_content(this_gen->output);
-  xine_video_port_t *port = *(xine_video_port_t **)output->data;
 
-  this->metronom->exit(this->metronom);
+  if (_x_post_dispose(this_gen)) {
 
-  if (this->stream)
-    port->close(port, this->stream);
-    
-  free(this->post.xine_post.audio_input);
-  free(this->post.xine_post.video_input);
-  free(xine_list_first_content(this->post.input));
-  free(xine_list_first_content(this->post.output));
-  xine_list_free(this->post.input);
-  xine_list_free(this->post.output);
-  if(this->buf.mem)
-    free(this->buf.mem);
-  free(this);
+    this->metronom->exit(this->metronom);
+
+    if(this->buf.mem)
+      free(this->buf.mem);
+    free(this);
+  }
 }
 
 /* plugin class functions */
@@ -271,63 +244,38 @@ static post_plugin_t *fooviz_open_plugin(post_class_t *class_gen, int inputs,
 					 xine_audio_port_t **audio_target,
 					 xine_video_port_t **video_target)
 {
-  post_class_fooviz_t *class = (post_class_fooviz_t *)class_gen;
-  post_plugin_fooviz_t *this   = (post_plugin_fooviz_t *)malloc(sizeof(post_plugin_fooviz_t));
-  xine_post_in_t     *input  = (xine_post_in_t *)malloc(sizeof(xine_post_in_t));
-  post_fooviz_out_t    *output = (post_fooviz_out_t *)malloc(sizeof(post_fooviz_out_t));
-  post_fooviz_out_t    *outputv = (post_fooviz_out_t *)malloc(sizeof(post_fooviz_out_t));
-  post_audio_port_t  *port;
+  post_class_fooviz_t  *class = (post_class_fooviz_t *)class_gen;
+  post_plugin_fooviz_t *this  = (post_plugin_fooviz_t *)xine_xmalloc(sizeof(post_plugin_fooviz_t));
+  post_in_t            *input;
+  post_out_t           *output;
+  post_out_t           *outputv;
+  post_audio_port_t    *port;
   
-  if (!this || !input || !output || !outputv || !video_target || !video_target[0] ||
-      !audio_target || !audio_target[0] ) {
+  if (!this || !video_target || !video_target[0] || !audio_target || !audio_target[0] ) {
     free(this);
-    free(input);
-    free(output);
-    free(outputv);
     return NULL;
   }
   
+  _x_post_init(&this->post, 1, 0);
+  
   this->metronom = _x_metronom_init(1, 0, class->xine);
 
-  this->sample_counter = 0;
-  this->stream  = NULL;
   this->vo_port = video_target[0];
-  this->buf.mem = NULL;
-  this->buf.mem_size = 0;  
 
-  port = _x_post_intercept_audio_port(&this->post, audio_target[0]);
-  port->port.open = fooviz_port_open;
-  port->port.close = fooviz_port_close;
-  port->port.put_buffer = fooviz_port_put_buffer;
+  port = _x_post_intercept_audio_port(&this->post, audio_target[0], &input, &output);
+  port->new_port.open       = fooviz_port_open;
+  port->new_port.close      = fooviz_port_close;
+  port->new_port.put_buffer = fooviz_port_put_buffer;
   
-  input->name = "audio in";
-  input->type = XINE_POST_DATA_AUDIO;
-  input->data = (xine_audio_port_t *)&port->port;
-
-  output->out.name   = "audio out";
-  output->out.type   = XINE_POST_DATA_AUDIO;
-  output->out.data   = (xine_audio_port_t **)&port->original_port;
-  output->out.rewire = fooviz_rewire_audio;
-  output->post       = this;
-  
-  outputv->out.name   = "generated video";
-  outputv->out.type   = XINE_POST_DATA_VIDEO;
-  outputv->out.data   = (xine_video_port_t **)&this->vo_port;
-  outputv->out.rewire = fooviz_rewire_video;
-  outputv->post       = this;
-  
-  this->post.xine_post.audio_input    = (xine_audio_port_t **)malloc(sizeof(xine_audio_port_t *) * 2);
-  this->post.xine_post.audio_input[0] = &port->port;
-  this->post.xine_post.audio_input[1] = NULL;
-  this->post.xine_post.video_input    = (xine_video_port_t **)malloc(sizeof(xine_video_port_t *) * 1);
-  this->post.xine_post.video_input[0] = NULL;
-  
-  this->post.input  = xine_list_new();
-  this->post.output = xine_list_new();
-  
-  xine_list_append_content(this->post.input, input);
-  xine_list_append_content(this->post.output, output);
+  outputv                  = &this->video_output;
+  outputv->xine_out.name   = "generated video";
+  outputv->xine_out.type   = XINE_POST_DATA_VIDEO;
+  outputv->xine_out.data   = (xine_video_port_t **)&this->vo_port;
+  outputv->xine_out.rewire = fooviz_rewire_video;
+  outputv->post            = &this->post;
   xine_list_append_content(this->post.output, outputv);
+  
+  this->post.xine_post.audio_input[0] = &port->new_port;
   
   this->post.dispose = fooviz_dispose;
 
@@ -372,6 +320,6 @@ post_info_t fooviz_special_info = { XINE_POST_TYPE_AUDIO_VISUALIZATION };
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_POST, 7, "fooviz", XINE_VERSION_CODE, &fooviz_special_info, &fooviz_init_plugin },
+  { PLUGIN_POST, 8, "fooviz", XINE_VERSION_CODE, &fooviz_special_info, &fooviz_init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

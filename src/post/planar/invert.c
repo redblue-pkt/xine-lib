@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: invert.c,v 1.18 2003/12/09 00:02:35 f1rmb Exp $
+ * $Id: invert.c,v 1.19 2004/01/07 19:52:42 mroi Exp $
  */
  
 /*
@@ -31,14 +31,6 @@
 /* plugin class initialization function */
 void *invert_init_plugin(xine_t *xine, void *);
 
-/* plugin structure */
-typedef struct post_invert_out_s post_invert_out_t;
-struct post_invert_out_s {
-  xine_post_out_t  xine_out;
-  /* keep the stream for open/close when rewiring */
-  xine_stream_t   *stream;
-};
-
 /* plugin class functions */
 static post_plugin_t *invert_open_plugin(post_class_t *class_gen, int inputs,
 					 xine_audio_port_t **audio_target,
@@ -50,15 +42,8 @@ static void           invert_class_dispose(post_class_t *class_gen);
 /* plugin instance functions */
 static void           invert_dispose(post_plugin_t *this_gen);
 
-/* rewire function */
-static int            invert_rewire(xine_post_out_t *output, void *data);
-
-/* replaced video_port functions */
-static void           invert_open(xine_video_port_t *port_gen, xine_stream_t *stream);
-static vo_frame_t    *invert_get_frame(xine_video_port_t *port_gen, uint32_t width, 
-				       uint32_t height, double ratio, 
-				       int format, int flags);
-static void           invert_close(xine_video_port_t *port_gen, xine_stream_t *stream);
+/* frame intercept check */
+static int            invert_intercept_frame(post_video_port_t *port, vo_frame_t *frame);
 
 /* replaced vo_frame functions */
 static int            invert_draw(vo_frame_t *frame, xine_stream_t *stream);
@@ -84,45 +69,24 @@ static post_plugin_t *invert_open_plugin(post_class_t *class_gen, int inputs,
 					 xine_audio_port_t **audio_target,
 					 xine_video_port_t **video_target)
 {
-  post_plugin_t     *this   = (post_plugin_t *)malloc(sizeof(post_plugin_t));
-  xine_post_in_t    *input  = (xine_post_in_t *)malloc(sizeof(xine_post_in_t));
-  post_invert_out_t *output = (post_invert_out_t *)malloc(sizeof(post_invert_out_t));
+  post_plugin_t *this   = (post_plugin_t *)xine_xmalloc(sizeof(post_plugin_t));
+  post_in_t     *input;
+  post_out_t    *output;
   post_video_port_t *port;
   
-  if (!this || !input || !output || !video_target || !video_target[0]) {
+  if (!this || !video_target || !video_target[0]) {
     free(this);
-    free(input);
-    free(output);
     return NULL;
   }
   
-  port = _x_post_intercept_video_port(this, video_target[0]);
-  /* replace with our own get_frame function */
-  port->port.open      = invert_open;
-  port->port.get_frame = invert_get_frame;
-  port->port.close     = invert_close;
+  _x_post_init(this, 0, 1);
   
-  input->name = "video";
-  input->type = XINE_POST_DATA_VIDEO;
-  input->data = (xine_video_port_t *)&port->port;
-
-  output->xine_out.name   = "inverted video";
-  output->xine_out.type   = XINE_POST_DATA_VIDEO;
-  output->xine_out.data   = (xine_video_port_t **)&port->original_port;
-  output->xine_out.rewire = invert_rewire;
-  output->stream          = NULL;
-  
-  this->xine_post.audio_input    = (xine_audio_port_t **)malloc(sizeof(xine_audio_port_t *));
-  this->xine_post.audio_input[0] = NULL;
-  this->xine_post.video_input    = (xine_video_port_t **)malloc(sizeof(xine_video_port_t *) * 2);
-  this->xine_post.video_input[0] = &port->port;
-  this->xine_post.video_input[1] = NULL;
-  
-  this->input  = xine_list_new();
-  this->output = xine_list_new();
-  
-  xine_list_append_content(this->input, input);
-  xine_list_append_content(this->output, output);
+  port = _x_post_intercept_video_port(this, video_target[0], &input, &output);
+  port->intercept_frame = invert_intercept_frame;
+  port->new_frame->draw = invert_draw;
+  input->xine_in.name   = "video";
+  output->xine_out.name = "inverted video";
+  this->xine_post.video_input[0] = &port->new_port;
   
   this->dispose = invert_dispose;
   
@@ -147,77 +111,14 @@ static void invert_class_dispose(post_class_t *class_gen)
 
 static void invert_dispose(post_plugin_t *this)
 {
-  post_invert_out_t *output = (post_invert_out_t *)xine_list_first_content(this->output);
-  xine_video_port_t *port = *(xine_video_port_t **)output->xine_out.data;
-  
-  if (output->stream)
-    port->close(port, output->stream);
-
-  free(this->xine_post.audio_input);
-  free(this->xine_post.video_input);
-  free(xine_list_first_content(this->input));
-  free(xine_list_first_content(this->output));
-  xine_list_free(this->input);
-  xine_list_free(this->output);
-  free(this);
+  if (_x_post_dispose(this))
+    free(this);
 }
 
 
-static int invert_rewire(xine_post_out_t *output_gen, void *data)
+static int invert_intercept_frame(post_video_port_t *port, vo_frame_t *frame)
 {
-  post_invert_out_t *output = (post_invert_out_t *)output_gen;
-  xine_video_port_t *old_port = *(xine_video_port_t **)output_gen->data;
-  xine_video_port_t *new_port = (xine_video_port_t *)data;
-  
-  if (!data)
-    return 0;
-  if (output->stream) {
-    /* register our stream at the new output port */
-    old_port->close(old_port, output->stream);
-    new_port->open(new_port, output->stream);
-  }
-  /* reconnect ourselves */
-  *(xine_video_port_t **)output_gen->data = new_port;
-  return 1;
-}
-
-
-static void invert_open(xine_video_port_t *port_gen, xine_stream_t *stream)
-{
-  post_video_port_t *port = (post_video_port_t *)port_gen;
-  post_invert_out_t *output = (post_invert_out_t *)xine_list_first_content(port->post->output);
-  output->stream = stream;
-  port->original_port->open(port->original_port, stream);
-}
-
-static vo_frame_t *invert_get_frame(xine_video_port_t *port_gen, uint32_t width, 
-				    uint32_t height, double ratio, 
-				    int format, int flags)
-{
-  post_video_port_t *port = (post_video_port_t *)port_gen;
-  vo_frame_t        *frame;
-
-  frame = port->original_port->get_frame(port->original_port,
-    width, height, ratio, format, flags);
-
-  _x_post_intercept_video_frame(frame, port);
-  if( format == XINE_IMGFMT_YV12 || format == XINE_IMGFMT_YUY2 ) {
-    /* replace with our own draw function */
-    frame->draw = invert_draw;
-    /* decoders should not copy the frames, since they won't be displayed */
-    frame->proc_slice = NULL;
-    frame->proc_frame = NULL;
-  }
-
-  return frame;
-}
-
-static void invert_close(xine_video_port_t *port_gen, xine_stream_t *stream)
-{
-  post_video_port_t *port = (post_video_port_t *)port_gen;
-  post_invert_out_t *output = (post_invert_out_t *)xine_list_first_content(port->post->output);
-  output->stream = NULL;
-  port->original_port->close(port->original_port, stream);
+  return (frame->format == XINE_IMGFMT_YV12 || frame->format == XINE_IMGFMT_YUY2);
 }
 
 
@@ -227,12 +128,16 @@ static int invert_draw(vo_frame_t *frame, xine_stream_t *stream)
   vo_frame_t *inverted_frame;
   int size, i, skip;
   
+  if (frame->bad_frame) {
+    _x_post_frame_copy_up(frame, frame->next);
+    skip = frame->next->draw(frame->next, stream);
+    _x_post_frame_copy_down(frame, frame->next);
+    return skip;
+  }
+  
   inverted_frame = port->original_port->get_frame(port->original_port,
     frame->width, frame->height, frame->ratio, frame->format, frame->flags | VO_BOTH_FIELDS);
-  inverted_frame->pts = frame->pts;
-  inverted_frame->duration = frame->duration;
-  inverted_frame->bad_frame = frame->bad_frame;
-  _x_extra_info_merge(inverted_frame->extra_info, frame->extra_info);
+  _x_post_frame_copy_up(frame, inverted_frame);
     
   switch (inverted_frame->format) {
   case XINE_IMGFMT_YUY2:
@@ -254,17 +159,10 @@ static int invert_draw(vo_frame_t *frame, xine_stream_t *stream)
     for (i = 0; i < size; i++)
       inverted_frame->base[2][i] = 0xff - frame->base[2][i];
     break;
-  default:
-    xprintf(stream->xine, XINE_VERBOSITY_DEBUG, 
-	    "invert: cannot handle image format %d\n", frame->format);
-    inverted_frame->free(inverted_frame);
-    _x_post_restore_video_frame(frame, port);
-    return frame->draw(frame, stream);
   } 
   skip = inverted_frame->draw(inverted_frame, stream);
+  _x_post_frame_copy_down(frame, inverted_frame);
   inverted_frame->free(inverted_frame);
-  frame->vpts = inverted_frame->vpts;
-  _x_post_restore_video_frame(frame, port);
   
   return skip;
 }

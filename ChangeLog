@@ -6,6 +6,7 @@ xine-lib (1-rc4)
   * fixed problem with jumpy visualization especially on ogg files
   * dxr3: fix situation, where the initial menu on some DVDs would have
     the wrong aspect
+  * major refinement of post plugin architecture fixes a lot of races
 
 xine-lib (1-rc3a)
   * new subtitle formats: jacobsub, subviewer 2.0, subrip 0.9

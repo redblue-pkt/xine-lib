@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.h,v 1.65 2003/12/31 23:29:06 jcdutton Exp $
+ * $Id: audio_out.h,v 1.66 2004/01/07 19:52:42 mroi Exp $
  */
 #ifndef HAVE_AUDIO_OUT_H
 #define HAVE_AUDIO_OUT_H
@@ -185,6 +185,8 @@ struct xine_audio_port_s {
   /* open audio driver for audio output 
    * return value: 0:failure, >0:output sample rate
    */
+  /* when you are not a full-blown stream, but still need to open the port
+   * (e.g. you are a post plugin) it is legal to pass a NULL stream */
   int (*open) (xine_audio_port_t *, xine_stream_t *stream,
 	       uint32_t bits, uint32_t rate, int mode);
 
@@ -201,6 +203,8 @@ struct xine_audio_port_s {
   void (*put_buffer) (xine_audio_port_t *, audio_buffer_t *buf, xine_stream_t *stream);
 
   /* audio driver is no longer used by decoder => close */
+  /* when you are not a full-blown stream, but still need to close the port
+   * (e.g. you are a post plugin) it is legal to pass a NULL stream */
   void (*close) (xine_audio_port_t *self, xine_stream_t *stream);
 
   /* called on xine exit */

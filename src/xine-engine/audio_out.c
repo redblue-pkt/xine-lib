@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.161 2004/01/01 14:20:52 mroi Exp $
+ * $Id: audio_out.c,v 1.162 2004/01/07 19:52:42 mroi Exp $
  *
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -99,6 +99,8 @@
 #define AUDIO_BUF_SIZE       32768
 
 #define ZERO_BUF_SIZE         5000
+
+#define NULL_STREAM     (xine_stream_t *)-1
 
 /* By adding gap errors (difference between reported and expected
  * sound card clock) into metronom's vpts_offset we can use its 
@@ -1041,6 +1043,7 @@ static void *ao_loop (void *this_gen) {
 	pthread_mutex_lock(&this->streams_lock);
 	for (stream = xine_list_first_content(this->streams); stream;
 	     stream = xine_list_next_content(this->streams)) {
+	  if (stream == NULL_STREAM) continue;
 	  stream->metronom->set_option(stream->metronom, METRONOM_ADJ_VPTS_OFFSET,
                                        -gap/SYNC_GAP_RATE );
           last_sync_time = cur_time;
@@ -1116,37 +1119,31 @@ int xine_get_next_audio_frame (xine_audio_port_t *this_gen,
 			       xine_audio_frame_t *frame) {
 
   aos_t          *this = (aos_t *) this_gen;
-  audio_buffer_t *in_buf, *out_buf;
-  xine_stream_t  *stream;
+  audio_buffer_t *in_buf = NULL, *out_buf;
+  xine_stream_t  *stream = NULL;
 
   lprintf ("get_next_audio_frame\n");
 
-  do {
+  while (!in_buf || !stream) {
     stream = xine_list_first_content(this->streams);
-    if (!stream)
-      xine_usec_sleep (1000);
-  } while( !stream );
+    if (!stream) {
+      xine_usec_sleep (5000);
+      continue;
+    }
   
-  pthread_mutex_lock (&this->out_fifo->mutex);
-
-  in_buf = this->out_fifo->first;
-
-  /* FIXME: ugly, use conditions and locks instead */
-
-  while (!in_buf
-	 && (stream->demux_plugin->get_status (stream->demux_plugin)==DEMUX_OK)) {
-
-    pthread_mutex_unlock(&this->out_fifo->mutex);
-    xine_usec_sleep (1000);
-    pthread_mutex_lock(&this->out_fifo->mutex);
-
+    /* FIXME: ugly, use conditions and locks instead? */
+    
+    pthread_mutex_lock (&this->out_fifo->mutex);
     in_buf = this->out_fifo->first;
-  }
-
-  if (!in_buf) {
-    pthread_mutex_unlock(&this->out_fifo->mutex);
-    xprintf (this->xine, XINE_VERBOSITY_DEBUG, "audio_audio: EOS\n");
-    return 0;
+    if (!in_buf) {
+      pthread_mutex_unlock(&this->out_fifo->mutex);
+      if (stream != NULL_STREAM && stream->audio_fifo->fifo_size == 0 &&
+	  stream->demux_plugin->get_status(stream->demux_plugin) !=DEMUX_OK)
+        /* no further data can be expected here */
+        return 0;
+      xine_usec_sleep (5000);
+      continue;
+    }
   }
 
   in_buf = fifo_remove_int (this->out_fifo);
@@ -1303,24 +1300,27 @@ static int ao_open(xine_audio_port_t *this_gen, xine_stream_t *stream,
       return 0;
   }
 
+  /* 
+   * set metainfo
+   */
+  if (stream) {
+    channels = _x_ao_mode2channels( mode );
+    if( channels == 0 )
+      channels = 255; /* unknown */
+
+    _x_stream_info_set(stream, XINE_STREAM_INFO_AUDIO_MODE, mode);
+    _x_stream_info_set(stream, XINE_STREAM_INFO_AUDIO_CHANNELS, channels);
+    _x_stream_info_set(stream, XINE_STREAM_INFO_AUDIO_BITS, bits);
+    _x_stream_info_set(stream, XINE_STREAM_INFO_AUDIO_SAMPLERATE, rate);
+
+    stream->metronom->set_audio_rate(stream->metronom, this->audio_step);
+  }
+
+  if (stream == NULL) stream = NULL_STREAM;
   pthread_mutex_lock(&this->streams_lock);
   xine_list_append_content(this->streams, stream);
   pthread_mutex_unlock(&this->streams_lock);
   
-  /* 
-   * set metainfo
-   */
-  channels = _x_ao_mode2channels( mode );
-  if( channels == 0 )
-    channels = 255; /* unknown */
-
-  _x_stream_info_set(stream, XINE_STREAM_INFO_AUDIO_MODE, mode);
-  _x_stream_info_set(stream, XINE_STREAM_INFO_AUDIO_CHANNELS, channels);
-  _x_stream_info_set(stream, XINE_STREAM_INFO_AUDIO_BITS, bits);
-  _x_stream_info_set(stream, XINE_STREAM_INFO_AUDIO_SAMPLERATE, rate);
-
-  stream->metronom->set_audio_rate(stream->metronom, this->audio_step);
-
   return this->output.rate;
 }
 
@@ -1381,6 +1381,7 @@ static void ao_close(xine_audio_port_t *this_gen, xine_stream_t *stream) {
   xprintf (this->xine, XINE_VERBOSITY_DEBUG, "ao_close\n");
 
   /* unregister stream */
+  if (stream == NULL) stream = NULL_STREAM;
   pthread_mutex_lock(&this->streams_lock);
   for (cur = xine_list_first_content(this->streams); cur;
        cur = xine_list_next_content(this->streams))

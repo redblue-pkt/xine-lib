@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: pp.c,v 1.4 2003/12/07 15:33:26 miguelfreitas Exp $
+ * $Id: pp.c,v 1.5 2004/01/07 19:52:42 mroi Exp $
  *
  * plugin for ffmpeg libpostprocess
  */
@@ -61,12 +61,11 @@ struct post_plugin_pp_s {
   post_plugin_t post;
 
   /* private data */
-  xine_video_port_t *vo_port;
-  xine_stream_t     *stream;
   int                frame_width;
   int                frame_height;
 
-  pp_parameters_t params;
+  pp_parameters_t    params;
+  xine_post_in_t     params_input;
 
   /* libpostproc specific stuff */
   int                pp_flags;
@@ -140,12 +139,6 @@ static xine_post_api_t post_api = {
   get_help,
 };
 
-typedef struct post_pp_out_s post_pp_out_t;
-struct post_pp_out_s {
-  xine_post_out_t  xine_out;
-
-  post_plugin_pp_t *plugin;
-};
 
 /* plugin class functions */
 static post_plugin_t *pp_open_plugin(post_class_t *class_gen, int inputs,
@@ -158,15 +151,8 @@ static void           pp_class_dispose(post_class_t *class_gen);
 /* plugin instance functions */
 static void           pp_dispose(post_plugin_t *this_gen);
 
-/* rewire function */
-static int            pp_rewire(xine_post_out_t *output, void *data);
-
-/* replaced video_port functions */
-static void           pp_open(xine_video_port_t *port_gen, xine_stream_t *stream);
-static vo_frame_t    *pp_get_frame(xine_video_port_t *port_gen, uint32_t width, 
-				       uint32_t height, double ratio, 
-				       int format, int flags);
-static void           pp_close(xine_video_port_t *port_gen, xine_stream_t *stream);
+/* frame intercept check */
+static int            pp_intercept_frame(post_video_port_t *port, vo_frame_t *frame);
 
 /* replaced vo_frame functions */
 static int            pp_draw(vo_frame_t *frame, xine_stream_t *stream);
@@ -192,23 +178,20 @@ static post_plugin_t *pp_open_plugin(post_class_t *class_gen, int inputs,
 					 xine_audio_port_t **audio_target,
 					 xine_video_port_t **video_target)
 {
-  post_plugin_pp_t *this = (post_plugin_pp_t *)malloc(sizeof(post_plugin_pp_t));
-  xine_post_in_t            *input = (xine_post_in_t *)malloc(sizeof(xine_post_in_t));
-  xine_post_in_t            *input_api = (xine_post_in_t *)malloc(sizeof(xine_post_in_t));
-  post_pp_out_t    *output = (post_pp_out_t *)malloc(sizeof(post_pp_out_t));
+  post_plugin_pp_t  *this = (post_plugin_pp_t *)xine_xmalloc(sizeof(post_plugin_pp_t));
+  post_in_t         *input;
+  xine_post_in_t    *input_api;
+  post_out_t        *output;
   post_video_port_t *port;
-  uint32_t cpu_caps;
+  uint32_t           cpu_caps;
   
-  if (!this || !input || !input_api || !output || !video_target || !video_target[0]) {
+  if (!this || !video_target || !video_target[0]) {
     free(this);
-    free(input);
-    free(input_api);
-    free(output);
     return NULL;
   }
 
-  this->stream = NULL;
-
+  _x_post_init(&this->post, 0, 1);
+  
   this->params.quality = 3;
   strcpy(this->params.mode, "de");
 
@@ -227,38 +210,20 @@ static post_plugin_t *pp_open_plugin(post_class_t *class_gen, int inputs,
 
   pthread_mutex_init (&this->lock, NULL);
   
-  port = _x_post_intercept_video_port(&this->post, video_target[0]);
-  /* replace with our own get_frame function */
-  port->port.open         = pp_open;
-  port->port.get_frame    = pp_get_frame;
-  port->port.close        = pp_close;
+  port = _x_post_intercept_video_port(&this->post, video_target[0], &input, &output);
+  port->intercept_frame = pp_intercept_frame;
+  port->new_frame->draw = pp_draw;
   
-  input->name = "video";
-  input->type = XINE_POST_DATA_VIDEO;
-  input->data = (xine_video_port_t *)&port->port;
-
+  input_api       = &this->params_input;
   input_api->name = "parameters";
   input_api->type = XINE_POST_DATA_PARAMETERS;
   input_api->data = &post_api;
-
-  output->xine_out.name   = "pped video";
-  output->xine_out.type   = XINE_POST_DATA_VIDEO;
-  output->xine_out.data   = (xine_video_port_t **)&port->original_port;
-  output->xine_out.rewire = pp_rewire;
-  output->plugin          = this;
-  
-  this->post.xine_post.audio_input    = (xine_audio_port_t **)malloc(sizeof(xine_audio_port_t *));
-  this->post.xine_post.audio_input[0] = NULL;
-  this->post.xine_post.video_input    = (xine_video_port_t **)malloc(sizeof(xine_video_port_t *) * 2);
-  this->post.xine_post.video_input[0] = &port->port;
-  this->post.xine_post.video_input[1] = NULL;
-  
-  this->post.input  = xine_list_new();
-  this->post.output = xine_list_new();
-  
-  xine_list_append_content(this->post.input, input);
   xine_list_append_content(this->post.input, input_api);
-  xine_list_append_content(this->post.output, output);
+
+  input->xine_in.name     = "video";
+  output->xine_out.name   = "pped video";
+  
+  this->post.xine_post.video_input[0] = &port->new_port;
   
   this->post.dispose = pp_dispose;
   
@@ -284,91 +249,24 @@ static void pp_class_dispose(post_class_t *class_gen)
 static void pp_dispose(post_plugin_t *this_gen)
 {
   post_plugin_pp_t *this = (post_plugin_pp_t *)this_gen;
-  post_pp_out_t *output = (post_pp_out_t *)xine_list_first_content(this->post.output);
-  xine_video_port_t *port = *(xine_video_port_t **)output->xine_out.data;
 
-  if (this->stream)
-    port->close(port, this->stream);
-
-  if(this->pp_mode) {
-    pp_free_mode(this->pp_mode);
-    this->pp_mode = NULL;
+  if (_x_post_dispose(this_gen)) {
+    if(this->pp_mode) {
+      pp_free_mode(this->pp_mode);
+      this->pp_mode = NULL;
+    }
+    if(this->pp_context) {
+      pp_free_context(this->pp_context);
+      this->pp_context = NULL;
+    }
+    free(this);
   }
-    
-  if(this->pp_context) {
-    pp_free_context(this->pp_context);
-    this->pp_context = NULL;
-  }
-
-  free(this->post.xine_post.audio_input);
-  free(this->post.xine_post.video_input);
-  free(xine_list_first_content(this->post.input));
-  free(xine_list_next_content(this->post.input));
-  free(xine_list_first_content(this->post.output));
-  xine_list_free(this->post.input);
-  xine_list_free(this->post.output);
-  free(this);
 }
 
 
-static int pp_rewire(xine_post_out_t *output_gen, void *data)
+static int pp_intercept_frame(post_video_port_t *port, vo_frame_t *frame)
 {
-  post_pp_out_t *output = (post_pp_out_t *)output_gen;
-  xine_video_port_t *old_port = *(xine_video_port_t **)output_gen->data;
-  xine_video_port_t *new_port = (xine_video_port_t *)data;
-  
-  if (!data)
-    return 0;
-
-  if (output->plugin->stream) {
-    /* register our stream at the new output port */
-    old_port->close(old_port, output->plugin->stream);
-    new_port->open(new_port, output->plugin->stream);
-  }
-  /* reconnect ourselves */
-  *(xine_video_port_t **)output_gen->data = new_port;
-
-  return 1;
-}
-
-static void pp_open(xine_video_port_t *port_gen, xine_stream_t *stream)
-{
-  post_video_port_t *port = (post_video_port_t *)port_gen;
-  post_plugin_pp_t *this = (post_plugin_pp_t *)port->post;
-  this->stream = stream;
-  port->original_port->open(port->original_port, stream);
-}
-
-static vo_frame_t *pp_get_frame(xine_video_port_t *port_gen, uint32_t width, 
-				    uint32_t height, double ratio, 
-				    int format, int flags)
-{
-  post_video_port_t *port = (post_video_port_t *)port_gen;
-  vo_frame_t        *frame;
-
-  frame = port->original_port->get_frame(port->original_port,
-    width, height, ratio, format, flags);
-
-  _x_post_intercept_video_frame(frame, port);
-  if( format == XINE_IMGFMT_YV12 || format == XINE_IMGFMT_YUY2 ) {
-    /* replace with our own draw function */
-    frame->draw = pp_draw;
-    /* decoders should not copy the frames, since they won't be displayed */
-    frame->proc_slice = NULL;
-    frame->proc_frame = NULL;
-  }
-
-  return frame;
-}
-
-static void pp_close(xine_video_port_t *port_gen, xine_stream_t *stream)
-{
-  post_video_port_t *port = (post_video_port_t *)port_gen;
-  post_plugin_pp_t *this = (post_plugin_pp_t *)port->post;
-
-  this->stream = NULL;
-  
-  port->original_port->close(port->original_port, stream);
+  return (frame->format == XINE_IMGFMT_YV12 || frame->format == XINE_IMGFMT_YUY2);
 }
 
 
@@ -381,8 +279,6 @@ static int pp_draw(vo_frame_t *frame, xine_stream_t *stream)
   int skip;
   int pp_flags;
 
-  _x_post_restore_video_frame(frame, port);
-
   if( !frame->bad_frame ) {
 
     /* convert to YV12 if needed */
@@ -391,9 +287,7 @@ static int pp_draw(vo_frame_t *frame, xine_stream_t *stream)
       yv12_frame = port->original_port->get_frame(port->original_port,
         frame->width, frame->height, frame->ratio, XINE_IMGFMT_YV12, frame->flags | VO_BOTH_FIELDS);
   
-      yv12_frame->pts = frame->pts;
-      yv12_frame->duration = frame->duration;
-      _x_extra_info_merge(yv12_frame->extra_info, frame->extra_info);
+      _x_post_frame_copy_up(frame, yv12_frame);
   
       yuy2_to_yv12(frame->base[0], frame->pitches[0],
                    yv12_frame->base[0], yv12_frame->pitches[0],
@@ -409,10 +303,7 @@ static int pp_draw(vo_frame_t *frame, xine_stream_t *stream)
     out_frame = port->original_port->get_frame(port->original_port,
       frame->width, frame->height, frame->ratio, XINE_IMGFMT_YV12, frame->flags | VO_BOTH_FIELDS);
   
-    _x_extra_info_merge(out_frame->extra_info, frame->extra_info);
-  
-    out_frame->pts = frame->pts;
-    out_frame->duration = frame->duration;
+    _x_post_frame_copy_up(frame, out_frame);
 
     pthread_mutex_lock (&this->lock);
 
@@ -451,18 +342,21 @@ static int pp_draw(vo_frame_t *frame, xine_stream_t *stream)
 
     if(this->pp_mode) {
       skip = out_frame->draw(out_frame, stream);
-      frame->vpts = out_frame->vpts;
+      _x_post_frame_copy_down(frame, out_frame);
     } else {
-      skip = frame->draw(frame, stream);
+      _x_post_frame_copy_up(frame, frame->next);
+      skip = frame->next->draw(frame->next, stream);
+      _x_post_frame_copy_down(frame, frame->next);
     }
 
     out_frame->free(out_frame);
     yv12_frame->free(yv12_frame);
 
   } else {
-    skip = frame->draw(frame, stream);
+    _x_post_frame_copy_up(frame, frame->next);
+    skip = frame->next->draw(frame->next, stream);
+    _x_post_frame_copy_down(frame, frame->next);
   }
 
-  
   return skip;
 }

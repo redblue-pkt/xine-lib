@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.h,v 1.104 2003/12/14 22:13:26 siggi Exp $
+ * $Id: video_out.h,v 1.105 2004/01/07 19:52:43 mroi Exp $
  *
  *
  * xine version of video_out.h 
@@ -190,6 +190,8 @@ struct xine_video_port_s {
   uint32_t (*get_capabilities) (xine_video_port_t *self); /* for constants see below */
 
   /* open display driver for video output */
+  /* when you are not a full-blown stream, but still need to open the port
+   * (e.g. you are a post plugin) it is legal to pass a NULL stream */
   void (*open) (xine_video_port_t *self, xine_stream_t *stream);
 
   /* 
@@ -224,11 +226,13 @@ struct xine_video_port_s {
   int (*get_property) (xine_video_port_t *self, int property);
   int (*set_property) (xine_video_port_t *self, int property, int value);
   
-  /* return true if port is opened for this stream */
+  /* return true if port is opened for this stream, stream can be NULL */
   int (*status) (xine_video_port_t *self, xine_stream_t *stream, 
                  int *width, int *height, int64_t *img_duration);
   
   /* video driver is no longer used by decoder => close */
+  /* when you are not a full-blown stream, but still need to close the port
+   * (e.g. you are a post plugin) it is legal to pass a NULL stream */
   void (*close) (xine_video_port_t *self, xine_stream_t *stream);
 
   /* called on xine exit */
