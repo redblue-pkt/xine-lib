@@ -35,6 +35,7 @@ xineplug_decode_roqvideo_la_SOURCES = roqvideo.c
 xineplug_decode_roqvideo_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 xineplug_decode_svq1_la_SOURCES = svq1.c svq1_codebooks.h
+xineplug_decode_svq1_la_LIBADD = $(XINE_LIB)
 xineplug_decode_svq1_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 xineplug_decode_fli_la_SOURCES = fli.c

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: svq1.c,v 1.15 2002/12/06 01:44:06 miguelfreitas Exp $
+ * $Id: svq1.c,v 1.16 2002/12/15 16:15:25 esnel Exp $
  */
 
 #include <stdio.h>
@@ -1265,113 +1265,6 @@ static int svq1_decode_frame (svq1_t *svq1, uint8_t *buffer) {
   return 0;
 }
 
-static void hscale_chroma_line (uint8_t *dst, uint8_t *src, int width) {
-  uint32_t  n1, n2;
-  int	    x;
-
-  n1	   = *src;
-  *(dst++) = n1;
-
-  for (x=0; x < (width - 1); x++) {
-    n2	     = *(++src);
-    *(dst++) = (3*n1 + n2 + 2) >> 2;
-    *(dst++) = (n1 + 3*n2 + 2) >> 2;
-    n1	     = n2;
-  }
-
-  *dst = n1;
-}
-
-static void vscale_chroma_line (uint8_t *dst, int pitch, uint8_t *src1, uint8_t *src2, int width) {
-  uint32_t  t1, t2;
-  uint32_t  n1, n2, n3, n4;
-  uint32_t *dst1, *dst2;
-  int	    x;
-
-  dst1 = (uint32_t *) dst;
-  dst2 = (uint32_t *) (dst + pitch);
-
-  /* process blocks of 4 pixels */
-  for (x=0; x < (width / 4); x++) {
-    n1  = *(((uint32_t *) src1)++);
-    n2  = *(((uint32_t *) src2)++);
-    n3  = (n1 & 0xFF00FF00) >> 8;
-    n4  = (n2 & 0xFF00FF00) >> 8;
-    n1 &= 0x00FF00FF;
-    n2 &= 0x00FF00FF;
-
-    t1 = (2*n1 + 2*n2 + 0x20002);
-    t2 = (n1 - n2);
-    n1 = (t1 + t2);
-    n2 = (t1 - t2);
-    t1 = (2*n3 + 2*n4 + 0x20002);
-    t2 = (n3 - n4);
-    n3 = (t1 + t2);
-    n4 = (t1 - t2);
-
-    *(dst1++) = ((n1 >> 2) & 0x00FF00FF) | ((n3 << 6) & 0xFF00FF00);
-    *(dst2++) = ((n2 >> 2) & 0x00FF00FF) | ((n4 << 6) & 0xFF00FF00);
-  }
-
-  /* process remaining pixels */
-  for (x=(width & ~0x3); x < width; x++) {
-    n1 = src1[x];
-    n2 = src2[x];
-
-    dst[x]	 = (3*n1 + n2 + 2) >> 2;
-    dst[x+pitch] = (n1 + 3*n2 + 2) >> 2;
-  }
-}
-
-static void svq1_copy_frame (svq1_t *svq1, uint8_t *base[3], int pitches[3]) {
-  uint8_t *src;
-  uint8_t *dst;
-  uint8_t *cr1, *cr2, *tmp;
-  int	   y, i;
-
-  src = svq1->base[0];
-  dst = base[0];
-
-  for (y=0; y < svq1->height; y++) {
-    memcpy (dst, src, svq1->width);
-    src += svq1->luma_width;
-    dst += pitches[0];
-  }
-
-  for (i=1; i < 3; i++) {
-    src = svq1->base[i];
-    dst = base[i];
-    cr1 = &dst[pitches[i] * ((svq1->height / 2) - 2)];
-    cr2 = &dst[pitches[i] * ((svq1->height / 2) - 3)];
-
-    /* horizontally upscale first line */
-    hscale_chroma_line (cr1, src, (svq1->width / 4));
-    src += svq1->chroma_width;
-
-    /* store first line */
-    memcpy (dst, cr1, (svq1->width / 2));
-    dst += pitches[i];
-
-    for (y=0; y < (svq1->height / 4) - 1; y++) {
-      hscale_chroma_line (cr2, src, (svq1->width / 4));
-      src += svq1->chroma_width;
-
-      /* interpolate and store two lines */
-      vscale_chroma_line (dst, pitches[i], cr1, cr2, (svq1->width / 2));
-      dst += 2*pitches[i];
-
-      /* swap buffers */
-      tmp = cr2;
-      cr2 = cr1;
-      cr1 = tmp;
-    }
-
-    /* horizontally upscale and store last line */
-    src -= svq1->chroma_width;
-    hscale_chroma_line (dst, src, (svq1->width / 4));
-  }
-}
-
 static void svq1dec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
   svq1dec_decoder_t *this = (svq1dec_decoder_t *) this_gen;
 
@@ -1427,7 +1320,13 @@ static void svq1dec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) 
 	img->bad_frame	= (result != 0);
 
 	if (result == 0) {
-	  svq1_copy_frame (this->svq1, img->base, img->pitches);
+	  yuv9_to_yv12 (this->svq1->base[0], this->svq1->luma_width,
+			img->base[0], img->pitches[0],
+			this->svq1->base[1], this->svq1->chroma_width,
+			img->base[1], img->pitches[1],
+			this->svq1->base[2], this->svq1->chroma_width,
+			img->base[2], img->pitches[2],
+			this->svq1->width, this->svq1->height);
 	}
 
 	img->draw(img, this->stream);
