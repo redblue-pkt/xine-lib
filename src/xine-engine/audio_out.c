@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.189 2004/12/19 20:24:30 miguelfreitas Exp $
+ * $Id: audio_out.c,v 1.190 2005/01/20 11:29:43 holstsn Exp $
  *
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -1679,7 +1679,7 @@ static int ao_get_property (xine_audio_port_t *this_gen, int property) {
   case AO_PROP_EQ_4000HZ:
   case AO_PROP_EQ_8000HZ:
   case AO_PROP_EQ_16000HZ: 
-    ret = (100 * this->eq_gain[property - AO_PROP_EQ_30HZ]) / (1 << FP_FRBITS) ;
+    ret = (100.0 * this->eq_gain[property - AO_PROP_EQ_30HZ]) / (1 << FP_FRBITS) ;
     break;
 
   case AO_PROP_DISCARD_BUFFERS:
@@ -1738,7 +1738,7 @@ static int ao_set_property (xine_audio_port_t *this_gen, int property, int value
       int min_gain, max_gain, i;
 
       this->eq_gain[property - AO_PROP_EQ_30HZ] = EQ_REAL(((float)value / 100.0)) ;
-      
+     
       /* calc pregain, find out if any gain != 0.0 - enable eq if that is the case */
       min_gain = EQ_REAL(0.0);
       max_gain = EQ_REAL(0.0);
