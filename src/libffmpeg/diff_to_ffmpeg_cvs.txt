@@ -1,20 +1,25 @@
 Index: libavcodec/common.h
 ===================================================================
 RCS file: /cvsroot/ffmpeg/ffmpeg/libavcodec/common.h,v
-retrieving revision 1.56
-diff -u -r1.56 common.h
---- libavcodec/common.h	22 Aug 2002 19:41:39 -0000	1.56
-+++ libavcodec/common.h	16 Sep 2002 17:55:53 -0000
-@@ -147,11 +147,19 @@
+retrieving revision 1.63
+diff -u -r1.63 common.h
+--- libavcodec/common.h	10 Nov 2002 11:46:59 -0000	1.63
++++ libavcodec/common.h	11 Nov 2002 13:47:17 -0000
+@@ -145,11 +145,19 @@
  
- #else
+ #    else
  
+-#        ifdef DEBUG
+-#            define dprintf(fmt,args...) printf(fmt, ## args)
+-#        else
+-#            define dprintf(fmt,args...)
+-#        endif
 +#if __GNUC__
- #ifdef DEBUG
- #define dprintf(fmt,args...) printf(fmt, ## args)
- #else
- #define dprintf(fmt,args...)
- #endif
++#ifdef DEBUG
++#define dprintf(fmt,args...) printf(fmt, ## args)
++#else
++#define dprintf(fmt,args...)
++#endif
 +#else
 +#ifdef DEBUG
 +#define dprintf(...) printf(__VA_ARGS__)
@@ -23,45 +28,33 @@ diff -u -r1.56 common.h
 +#endif
 +#endif
  
- #endif /* !CONFIG_WIN32 */
+ #    endif /* !CONFIG_WIN32 */
  
-@@ -922,6 +930,8 @@
-     }
-     return ret;
- }
-+#define RUNTIME_CPUDETECT
-+
- #if __CPU__ >= 686 && !defined(RUNTIME_CPUDETECT)
- #define COPY3_IF_LT(x,y,a,b,c,d)\
- asm volatile (\
 Index: libavcodec/dsputil.h
 ===================================================================
 RCS file: /cvsroot/ffmpeg/ffmpeg/libavcodec/dsputil.h,v
-retrieving revision 1.28
-diff -u -r1.28 dsputil.h
---- libavcodec/dsputil.h	14 Sep 2002 19:00:09 -0000	1.28
-+++ libavcodec/dsputil.h	16 Sep 2002 17:55:53 -0000
-@@ -21,8 +21,9 @@
+retrieving revision 1.39
+diff -u -r1.39 dsputil.h
+--- libavcodec/dsputil.h	11 Nov 2002 09:27:03 -0000	1.39
++++ libavcodec/dsputil.h	11 Nov 2002 13:47:17 -0000
+@@ -21,8 +21,13 @@
  
  #include "common.h"
  #include "avcodec.h"
 +#include "xineutils.h"
  
 -//#define DEBUG
++#if defined(ARCH_X86)
++#define HAVE_MMX 1 
++#endif
++
 +#undef DEBUG
  /* dct code */
  typedef short DCTELEM;
  
-@@ -125,23 +126,32 @@
- }
+@@ -133,11 +138,13 @@
  
- void block_permute(INT16 *block);
-+          
-+#if defined(ARCH_X86)
-+#define HAVE_MMX 1 
-+#endif
- 
- #if defined(HAVE_MMX)
+ #undef emms_c()
  
 +#if 0
  #define MM_MMX    0x0001 /* standard MMX */
@@ -73,9 +66,9 @@ diff -u -r1.28 dsputil.h
  
  extern int mm_flags;
  
--int mm_support(void);
-+/*int mm_support(void);*/
-+#define mm_support() xine_mm_accel()
+@@ -145,10 +152,12 @@
+ void add_pixels_clamped_mmx(const DCTELEM *block, UINT8 *pixels, int line_size);
+ void put_pixels_clamped_mmx(const DCTELEM *block, UINT8 *pixels, int line_size);
  
 +#if 0 
  static inline void emms(void)
@@ -86,54 +79,130 @@ diff -u -r1.28 dsputil.h
  
  #define emms_c() \
  {\
-Index: libavcodec/i386/fdct_mmx.c
+Index: libavcodec/i386/cputest.c
 ===================================================================
-RCS file: /cvsroot/ffmpeg/ffmpeg/libavcodec/i386/fdct_mmx.c,v
-retrieving revision 1.3
-diff -u -r1.3 fdct_mmx.c
---- libavcodec/i386/fdct_mmx.c	1 Sep 2002 16:52:33 -0000	1.3
-+++ libavcodec/i386/fdct_mmx.c	16 Sep 2002 17:55:53 -0000
-@@ -45,8 +45,8 @@
-     23170, 23170, 23170, 23170,	//cos * (2<<15) + 0.5
- };
+RCS file: /cvsroot/ffmpeg/ffmpeg/libavcodec/i386/cputest.c,v
+retrieving revision 1.6
+diff -u -r1.6 cputest.c
+--- libavcodec/i386/cputest.c	25 May 2002 22:45:33 -0000	1.6
++++ libavcodec/i386/cputest.c	11 Nov 2002 13:47:17 -0000
+@@ -1,106 +1,13 @@
+-/* Cpu detection code, extracted from mmx.h ((c)1997-99 by H. Dietz
+-   and R. Fisher). Converted to C and improved by Fabrice Bellard */
++/* dummy file to use xine mm_support function */
  
--const long long  fdct_one_corr ATTR_ALIGN(8) = 0x0001000100010001LL;
--const long fdct_r_row[2] ATTR_ALIGN(8) = {RND_FRW_ROW, RND_FRW_ROW };
-+static const mmx_t fdct_one_corr = {0x0001000100010001LL};
-+static volatile mmx_t fdct_r_row = { d:{RND_FRW_ROW, RND_FRW_ROW} };
+-#include <stdlib.h>
++#include "xineutils.h"
+ #include "../dsputil.h"
  
- const int16_t tab_frw_01234567[] ATTR_ALIGN(8) = {  // forward_dct coeff table
-     //row0
-@@ -242,18 +242,18 @@
-     punpckhdq_r2r(mm6, mm6);
-     movq_m2r(*(table + 20), mm7);
-     pmaddwd_r2r(mm5, mm1);
--    paddd_m2r(*fdct_r_row, mm3);
-+    paddd_m2r(fdct_r_row, mm3);
-     pmaddwd_r2r(mm6, mm7);
-     pmaddwd_m2r(*(table + 12), mm2);
-     paddd_r2r(mm4, mm3);
-     pmaddwd_m2r(*(table + 24), mm5);
-     pmaddwd_m2r(*(table + 28), mm6);
-     paddd_r2r(mm7, mm1);
--    paddd_m2r(*fdct_r_row, mm0);
-+    paddd_m2r(fdct_r_row, mm0);
-     psrad_i2r(SHIFT_FRW_ROW, mm3);
--    paddd_m2r(*fdct_r_row, mm1);
-+    paddd_m2r(fdct_r_row, mm1);
-     paddd_r2r(mm2, mm0);
--    paddd_m2r(*fdct_r_row, mm5);
-+    paddd_m2r(fdct_r_row, mm5);
-     psrad_i2r(SHIFT_FRW_ROW, mm1);
-     paddd_r2r(mm6, mm5);
-     psrad_i2r(SHIFT_FRW_ROW, mm0);
+-/* ebx saving is necessary for PIC. gcc seems unable to see it alone */
+-#define cpuid(index,eax,ebx,ecx,edx)\
+-    __asm __volatile\
+-	("movl %%ebx, %%esi\n\t"\
+-         "cpuid\n\t"\
+-         "xchgl %%ebx, %%esi"\
+-         : "=a" (eax), "=S" (ebx),\
+-           "=c" (ecx), "=d" (edx)\
+-         : "0" (index));
+ 
+ /* Function to test if multimedia instructions are supported...  */
+ int mm_support(void)
+ {
+-    int rval;
+-    int eax, ebx, ecx, edx;
+-    
+-    __asm__ __volatile__ (
+-                          /* See if CPUID instruction is supported ... */
+-                          /* ... Get copies of EFLAGS into eax and ecx */
+-                          "pushf\n\t"
+-                          "popl %0\n\t"
+-                          "movl %0, %1\n\t"
+-                          
+-                          /* ... Toggle the ID bit in one copy and store */
+-                          /*     to the EFLAGS reg */
+-                          "xorl $0x200000, %0\n\t"
+-                          "push %0\n\t"
+-                          "popf\n\t"
+-                          
+-                          /* ... Get the (hopefully modified) EFLAGS */
+-                          "pushf\n\t"
+-                          "popl %0\n\t"
+-                          : "=a" (eax), "=c" (ecx)
+-                          :
+-                          : "cc" 
+-                          );
+-    
+-    if (eax == ecx)
+-        return 0; /* CPUID not supported */
+-    
+-    cpuid(0, eax, ebx, ecx, edx);
+-
+-    if (ebx == 0x756e6547 &&
+-        edx == 0x49656e69 &&
+-        ecx == 0x6c65746e) {
+-        
+-        /* intel */
+-    inteltest:
+-        cpuid(1, eax, ebx, ecx, edx);
+-        if ((edx & 0x00800000) == 0)
+-            return 0;
+-        rval = MM_MMX;
+-        if (edx & 0x02000000) 
+-            rval |= MM_MMXEXT | MM_SSE;
+-        if (edx & 0x04000000) 
+-            rval |= MM_SSE2;
+-        return rval;
+-    } else if (ebx == 0x68747541 &&
+-               edx == 0x69746e65 &&
+-               ecx == 0x444d4163) {
+-        /* AMD */
+-        cpuid(0x80000000, eax, ebx, ecx, edx);
+-        if ((unsigned)eax < 0x80000001)
+-            goto inteltest;
+-        cpuid(0x80000001, eax, ebx, ecx, edx);
+-        if ((edx & 0x00800000) == 0)
+-            return 0;
+-        rval = MM_MMX;
+-        if (edx & 0x80000000)
+-            rval |= MM_3DNOW;
+-        if (edx & 0x00400000)
+-            rval |= MM_MMXEXT;
+-        return rval;
+-    } else if (ebx == 0x69727943 &&
+-               edx == 0x736e4978 &&
+-               ecx == 0x64616574) {
+-        /* Cyrix Section */
+-        /* See if extended CPUID level 80000001 is supported */
+-        /* The value of CPUID/80000001 for the 6x86MX is undefined
+-           according to the Cyrix CPU Detection Guide (Preliminary
+-           Rev. 1.01 table 1), so we'll check the value of eax for
+-           CPUID/0 to see if standard CPUID level 2 is supported.
+-           According to the table, the only CPU which supports level
+-           2 is also the only one which supports extended CPUID levels.
+-        */
+-        if (eax != 2) 
+-            goto inteltest;
+-        cpuid(0x80000001, eax, ebx, ecx, edx);
+-        if ((eax & 0x00800000) == 0)
+-            return 0;
+-        rval = MM_MMX;
+-        if (eax & 0x01000000)
+-            rval |= MM_MMXEXT;
+-        return rval;
+-    } else {
+-        return 0;
+-    }
++  return xine_mm_accel();
+ }
+ 
+ #ifdef __TEST__
 Index: libavcodec/i386/mmx.h
 ===================================================================
 RCS file: /cvsroot/ffmpeg/ffmpeg/libavcodec/i386/mmx.h,v
 retrieving revision 1.3
 diff -u -r1.3 mmx.h
 --- libavcodec/i386/mmx.h	27 May 2002 08:31:54 -0000	1.3
-+++ libavcodec/i386/mmx.h	16 Sep 2002 17:55:53 -0000
++++ libavcodec/i386/mmx.h	11 Nov 2002 13:47:17 -0000
 @@ -1,243 +1 @@
 -/*
 - * mmx.h
@@ -382,10 +451,10 @@ diff -u -r1.3 mmx.h
 Index: libavcodec/i386/mpegvideo_mmx_template.c
 ===================================================================
 RCS file: /cvsroot/ffmpeg/ffmpeg/libavcodec/i386/mpegvideo_mmx_template.c,v
-retrieving revision 1.10
-diff -u -r1.10 mpegvideo_mmx_template.c
---- libavcodec/i386/mpegvideo_mmx_template.c	2 Sep 2002 16:56:29 -0000	1.10
-+++ libavcodec/i386/mpegvideo_mmx_template.c	16 Sep 2002 17:55:53 -0000
+retrieving revision 1.12
+diff -u -r1.12 mpegvideo_mmx_template.c
+--- libavcodec/i386/mpegvideo_mmx_template.c	29 Sep 2002 22:44:22 -0000	1.12
++++ libavcodec/i386/mpegvideo_mmx_template.c	11 Nov 2002 13:47:17 -0000
 @@ -84,16 +84,25 @@
      }
  
