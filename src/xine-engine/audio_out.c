@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.7 2001/08/23 21:40:05 guenter Exp $
+ * $Id: audio_out.c,v 1.8 2001/08/24 01:05:31 guenter Exp $
  * 
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -68,7 +68,6 @@
 
 #define ZERO_BUF_SIZE         5000
 
-#define GAP_TOLERANCE         5000
 #define MAX_GAP              90000
 
 struct frmsize_s
@@ -276,8 +275,13 @@ static int ao_write(ao_instance_t *this,
    */
   
   gap = vpts - buffer_vpts;
-  
-  if (gap>GAP_TOLERANCE) {
+
+  /*
+  printf ("vpts : %d   buffer_vpts : %d  gap %d\n",
+	  vpts, buffer_vpts, gap);
+  */
+
+  if (gap>this->gap_tolerance) {
     ao_fill_gap (this, gap);
     
     /* keep xine responsive */
@@ -285,7 +289,7 @@ static int ao_write(ao_instance_t *this,
     if (gap>MAX_GAP)
       return 0;
       
-  } else if (gap<-GAP_TOLERANCE) {
+  } else if (gap < (-1 * this->gap_tolerance)) {
     bDropPackage = 1;
     xprintf (VERBOSE|AUDIO, "audio_out: audio package (vpts = %d %d)"
 	     "dropped\n", vpts, gap);
@@ -393,6 +397,7 @@ ao_instance_t *ao_new_instance (ao_driver_t *driver, metronom_t *metronom,
   this->audio_loop_running    = 0;
   this->frame_buffer          = xmalloc (40000);
   this->zero_space            = xmalloc (ZERO_BUF_SIZE * 2 * 6);
+  this->gap_tolerance         = driver->get_gap_tolerance (this->driver);
 
   this->resample_conf = config->lookup_int (config, "audio_resample_mode", 0);
 

@@ -25,9 +25,9 @@ alsa_module = xineplug_ao_out_alsa.la
 endif
 endif
 
-#if HAVE_ESD
-#esd_module = xineplug_ao_out_esd.la
-#endif
+if HAVE_ESD
+esd_module = xineplug_ao_out_esd.la
+endif
 
 if HAVE_SUNAUDIO
 sun_module = xineplug_ao_out_sun.la
@@ -50,7 +50,7 @@ endif
 #lib_LTLIBRARIES = $(oss_module) $(alsa05_module) $(alsa_module) $(sun_module) \
 #		  $(arts_module) $(esd_module)
 
-lib_LTLIBRARIES = $(oss_module) $(alsa_module) $(sun_module) $(arts_module)
+lib_LTLIBRARIES = $(oss_module) $(alsa_module) $(esd_module) $(sun_module) $(arts_module)
 
 ## $(irixal_module) 
 
@@ -65,9 +65,9 @@ xineplug_ao_out_alsa_la_SOURCES = audio_alsa_out.c
 xineplug_ao_out_alsa_la_LIBADD = $(ALSA_LIBS)
 xineplug_ao_out_alsa_la_LDFLAGS = -avoid-version -module
 
-#xineplug_ao_out_esd_la_SOURCES = audio_esd_out.c resample.c
-#xineplug_ao_out_esd_la_LIBADD = $(ESD_LIBS)
-#xineplug_ao_out_esd_la_LDFLAGS = -avoid-version -module
+xineplug_ao_out_esd_la_SOURCES = audio_esd_out.c resample.c
+xineplug_ao_out_esd_la_LIBADD = $(ESD_LIBS)
+xineplug_ao_out_esd_la_LDFLAGS = -avoid-version -module
 
 xineplug_ao_out_sun_la_SOURCES = audio_sun_out.c
 xineplug_ao_out_sun_la_LDFLAGS = -avoid-version -module
@@ -101,3 +101,4 @@ maintainer-clean-generic:
 	-@echo "This command is intended for maintainers to use;"
 	-@echo "it deletes files that may require special tools to rebuild."
 	-rm -f Makefile.in
+

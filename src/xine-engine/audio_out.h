@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.h,v 1.10 2001/08/23 21:40:05 guenter Exp $
+ * $Id: audio_out.h,v 1.11 2001/08/24 01:05:31 guenter Exp $
  */
 #ifndef HAVE_AUDIO_OUT_H
 #define HAVE_AUDIO_OUT_H
@@ -75,6 +75,11 @@ struct ao_driver_s {
    * looking at pending samples in the audio output device
    */
   int (*delay)(ao_driver_t *self_gen);
+
+  /* 
+   * return gap tolerance (in pts) needed for this driver
+   */
+  int (*get_gap_tolerance) (ao_driver_t *self_gen);
 
   /*
    * write audio data to output buffer 
@@ -134,7 +139,7 @@ struct ao_instance_s {
    *        call write_audio_data with the _same_ samples again
    */
 
-  int (*write)(ao_driver_t *this,
+  int (*write)(ao_instance_t *this,
 	       int16_t* audio_data, uint32_t num_frames,
 	       uint32_t pts);
 
@@ -162,6 +167,7 @@ struct ao_instance_s {
   int             resample_conf;
   int             do_resample;
   int	 	  mode;
+  int             gap_tolerance;
   uint16_t       *frame_buffer;
   int16_t        *zero_space;
 };

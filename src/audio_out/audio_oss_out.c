@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_oss_out.c,v 1.32 2001/08/23 21:40:05 guenter Exp $
+ * $Id: audio_oss_out.c,v 1.33 2001/08/24 01:05:30 guenter Exp $
  *
  * 20-8-2001 First implementation of Audio sync and Audio driver separation.
  * Copyright (C) 2001 James Courtier-Dutton James@superbug.demon.co.uk
@@ -290,6 +290,11 @@ static int ao_oss_bytes_per_frame(ao_driver_t *this_gen)
 {
   oss_driver_t *this = (oss_driver_t *) this_gen;
   return this->bytes_per_frame;
+}
+
+static int ao_oss_get_gap_tolerance (ao_driver_t *this_gen)
+{
+  return GAP_TOLERANCE;
 }
 
 static int ao_oss_delay(ao_driver_t *this_gen)
@@ -568,6 +573,7 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
   this->ao_driver.write		      = ao_oss_write;
   this->ao_driver.close               = ao_oss_close;
   this->ao_driver.exit                = ao_oss_exit;
+  this->ao_driver.get_gap_tolerance   = ao_oss_get_gap_tolerance;
 
   return &this->ao_driver;
 }

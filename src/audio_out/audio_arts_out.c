@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_arts_out.c,v 1.3 2001/08/23 19:36:41 jcdutton Exp $
+ * $Id: audio_arts_out.c,v 1.4 2001/08/24 01:05:30 guenter Exp $
  */
 
 /* required for swab() */
@@ -81,13 +81,13 @@ static int ao_arts_open(ao_driver_t *this_gen,
 
   if ( (mode & this->capabilities) == 0 ) {
     printf ("audio_arts_out: unsupported mode %08x\n", mode);
-    return -1;
+    return 0;
   }
 
   if (this->audio_stream) {
 
     if ( (mode == this->mode) && (rate == this->sample_rate) )
-      return 1;
+      return this->sample_rate;
 
     arts_close_stream(this->audio_stream);
   }
@@ -121,7 +121,7 @@ static int ao_arts_open(ao_driver_t *this_gen,
 
   printf ("audio_arts_out : latency %d ms\n", this->latency);
 
-  return 1;
+  return this->sample_rate;
 }
 
 
@@ -134,7 +134,12 @@ static int ao_arts_num_channels(ao_driver_t *this_gen)
 static int ao_arts_bytes_per_frame(ao_driver_t *this_gen)
 {
   arts_driver_t *this = (arts_driver_t *) this_gen;
-    return this->bytes_per_frame;
+  return this->bytes_per_frame;
+}
+
+static int ao_arts_get_gap_tolerance (ao_driver_t *this_gen)
+{
+  return GAP_TOLERANCE;
 }
 
 static int ao_arts_write(ao_driver_t *this_gen, int16_t *data,
@@ -157,8 +162,10 @@ static int ao_arts_delay (ao_driver_t *this_gen)
      get the current buffer utilization. This is, at best,
      a very roughly aproximation.
   */
-  return this->latency * this->sample_rate / 1000;
-//  return 0;
+
+  return arts_stream_get (this->audio_stream, ARTS_P_TOTAL_LATENCY) * this->sample_rate / 1000;
+
+/*  return this->latency * this->sample_rate / 1000; */
 }
 
 static void ao_arts_close(ao_driver_t *this_gen)
@@ -261,7 +268,8 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
   this->ao_driver.write               = ao_arts_write;
   this->ao_driver.close               = ao_arts_close;
   this->ao_driver.exit                = ao_arts_exit;
-
+  this->ao_driver.get_gap_tolerance   = ao_arts_get_gap_tolerance;
+  
   return &this->ao_driver;
 }
 

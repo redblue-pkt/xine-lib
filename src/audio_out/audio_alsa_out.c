@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2000 the xine project
+ * Copyright (C) 2000, 2001 the xine project
  * 
  * This file is part of xine, a unix video player.
  * 
@@ -25,7 +25,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.16 2001/08/22 10:51:05 jcdutton Exp $
+ * $Id: audio_alsa_out.c,v 1.17 2001/08/24 01:05:30 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -75,7 +75,7 @@
 
 #define AO_OUT_ALSA_IFACE_VERSION 2
 
-#define GAP_TOLERANCE        15000
+#define GAP_TOLERANCE         5000
 #define MAX_MASTER_CLOCK_DIV  5000
 #define MAX_GAP              90000
 
@@ -104,9 +104,9 @@ typedef struct alsa_driver_s {
 /*
  * open the audio device for writing to
  */
-static int ao_alsa_open(ao_driver_t *self_gen, uint32_t bits, uint32_t rate, int mode)
+static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int mode)
 {
-  alsa_driver_t *self = (alsa_driver_t *) self_gen;
+  alsa_driver_t *this = (alsa_driver_t *) this_gen;
   snd_pcm_stream_t    direction = SND_PCM_STREAM_PLAYBACK; 
   snd_pcm_hw_params_t *params;
   snd_pcm_sw_params_t *swparams;
@@ -132,26 +132,26 @@ static int ao_alsa_open(ao_driver_t *self_gen, uint32_t bits, uint32_t rate, int
     error ("ALSA Driver only supports AC3/stereo output modes at the moment");
     return -1;
   } else {
-    self->num_channels = 2;
+    this->num_channels = 2;
   }
-  if (self->audio_fd != NULL) {
+  if (this->audio_fd != NULL) {
     error ("Already open...WHY!");
-    snd_pcm_close (self->audio_fd);
+    snd_pcm_close (this->audio_fd);
   }
 
-  self->open_mode              = mode;
-  self->input_sample_rate      = rate;
-  self->bits_per_sample        = bits;
-  self->bytes_in_buffer        = 0;
-  self->output_rate_correction = 0;
-  self->audio_started          = 0;
+  this->open_mode              = mode;
+  this->input_sample_rate      = rate;
+  this->bits_per_sample        = bits;
+  this->bytes_in_buffer        = 0;
+  this->output_rate_correction = 0;
+  this->audio_started          = 0;
   /* FIXME: Can use an ALSA function here */
-  self->bytes_per_frame=(self->bits_per_sample*self->num_channels)/8;
+  this->bytes_per_frame=(this->bits_per_sample*this->num_channels)/8;
   /*
    * open audio device
    */
 
-  err=snd_pcm_open(&self->audio_fd, self->audio_dev, direction, open_mode);      
+  err=snd_pcm_open(&this->audio_fd, this->audio_dev, direction, open_mode);      
   if(err <0 ) {                                                           
     error("snd_pcm_open() failed: %s", snd_strerror(err));               
     error(">>> Check if another program don't already use PCM <<<");     
@@ -162,7 +162,7 @@ static int ao_alsa_open(ao_driver_t *self_gen, uint32_t bits, uint32_t rate, int
 
            snd_pcm_info_alloca(&info);
 
-           if ((err = snd_pcm_info(self->audio_fd, info)) < 0) {
+           if ((err = snd_pcm_info(this->audio_fd, info)) < 0) {
              fprintf(stderr, "info: %s\n", snd_strerror(err));
              goto __close;
            }
@@ -207,38 +207,38 @@ static int ao_alsa_open(ao_driver_t *self_gen, uint32_t bits, uint32_t rate, int
 
 
   /* We wanted non blocking open but now put it back to normal */
-  snd_pcm_nonblock(self->audio_fd, 0);
+  snd_pcm_nonblock(this->audio_fd, 0);
   /*
    * configure audio device
    */
-        err = snd_pcm_hw_params_any(self->audio_fd, params);
+        err = snd_pcm_hw_params_any(this->audio_fd, params);
         if (err < 0) {
                 error("Broken configuration for this PCM: no configurations available");
                 goto __close;
         }
         /* set interleaved access */
-        err = snd_pcm_hw_params_set_access(self->audio_fd, params,
+        err = snd_pcm_hw_params_set_access(this->audio_fd, params,
                                            SND_PCM_ACCESS_RW_INTERLEAVED);
         if (err < 0) {
                 error("Access type not available");
                 goto __close;
         }
-        err = snd_pcm_hw_params_set_format(self->audio_fd, params, bits == 16 ? SND_PCM_FORMAT_S16_LE : SND_PCM_FORMAT_U8);
+        err = snd_pcm_hw_params_set_format(this->audio_fd, params, bits == 16 ? SND_PCM_FORMAT_S16_LE : SND_PCM_FORMAT_U8);
         if (err < 0) {
                 error("Sample format non available");
                 goto __close;
         }
-        err = snd_pcm_hw_params_set_channels(self->audio_fd, params, self->num_channels);
+        err = snd_pcm_hw_params_set_channels(this->audio_fd, params, this->num_channels);
         if (err < 0) {
                 error("Channels count non available");
                 goto __close;
         }
-        err = snd_pcm_hw_params_set_rate_near(self->audio_fd, params, rate, 0);
+        err = snd_pcm_hw_params_set_rate_near(this->audio_fd, params, rate, 0);
         if (err < 0) {
                 error("Rate not available");
                 goto __close;
         }
-        buffer_time = snd_pcm_hw_params_set_buffer_time_near(self->audio_fd, params,
+        buffer_time = snd_pcm_hw_params_set_buffer_time_near(this->audio_fd, params,
                                                              500000, 0);
         if (buffer_time < 0) {
                 error("Buffer time not available");
@@ -248,11 +248,11 @@ static int ao_alsa_open(ao_driver_t *self_gen, uint32_t bits, uint32_t rate, int
         period_time = 10000 * 2;
         do {
                 period_time /= 2;
-                tmp = snd_pcm_hw_params_set_period_time_near(self->audio_fd, params,
+                tmp = snd_pcm_hw_params_set_period_time_near(this->audio_fd, params,
                                                              period_time, 0);
                 if (tmp == period_time) {
                         period_time /= 3;
-                        tmp = snd_pcm_hw_params_set_period_time_near(self->audio_fd, params,
+                        tmp = snd_pcm_hw_params_set_period_time_near(this->audio_fd, params,
                                                                      period_time, 0);
                         if (tmp == period_time)
                                 period_time = 10000 * 2;
@@ -266,7 +266,7 @@ static int ao_alsa_open(ao_driver_t *self_gen, uint32_t bits, uint32_t rate, int
                 error("Buffer time and period time match, could not use");
                 goto __close;
         }
-        if ((err = snd_pcm_hw_params(self->audio_fd, params)) < 0) {
+        if ((err = snd_pcm_hw_params(this->audio_fd, params)) < 0) {
                 error("PCM hw_params failed: %s", snd_strerror(err));
                 goto __close;
         }
@@ -274,61 +274,64 @@ static int ao_alsa_open(ao_driver_t *self_gen, uint32_t bits, uint32_t rate, int
 
 
 
-  self->output_sample_rate = self->input_sample_rate;
-  self->sample_rate_factor = (double) self->output_sample_rate / (double) self->input_sample_rate;
+  this->output_sample_rate = this->input_sample_rate;
+  this->sample_rate_factor = (double) this->output_sample_rate / (double) this->input_sample_rate;
   /*
    * audio buffer size handling
    */
   /* Copy current parameters into swparams */
-  snd_pcm_sw_params_current(self->audio_fd, swparams);
-  tmp=snd_pcm_sw_params_set_xfer_align(self->audio_fd, swparams, 4);
-  tmp=snd_pcm_sw_params_set_avail_min(self->audio_fd, swparams, 1);
-  tmp=snd_pcm_sw_params_set_start_threshold(self->audio_fd, swparams, 1);
+  snd_pcm_sw_params_current(this->audio_fd, swparams);
+  tmp=snd_pcm_sw_params_set_xfer_align(this->audio_fd, swparams, 4);
+  tmp=snd_pcm_sw_params_set_avail_min(this->audio_fd, swparams, 1);
+  tmp=snd_pcm_sw_params_set_start_threshold(this->audio_fd, swparams, 1);
 
   /* Install swparams into current parameters */
-  snd_pcm_sw_params(self->audio_fd, swparams);
+  snd_pcm_sw_params(this->audio_fd, swparams);
 
-    snd_pcm_dump_setup(self->audio_fd, jcd_out); 
+    snd_pcm_dump_setup(this->audio_fd, jcd_out); 
     snd_pcm_sw_params_dump(swparams, jcd_out);
       
 
-  //  write_pause_burst(self,0);
+  //  write_pause_burst(this,0);
 
 
   return 1;
 __close:
-  snd_pcm_close (self->audio_fd);
-  self->audio_fd=NULL;
+  snd_pcm_close (this->audio_fd);
+  this->audio_fd=NULL;
   return -1;
 }
 
-static int ao_alsa_num_channels(ao_driver_t *self_gen)
+static int ao_alsa_num_channels(ao_driver_t *this_gen)
 {
-	 alsa_driver_t *self = (alsa_driver_t *) self_gen;
-	    return self->num_channels;
+	 alsa_driver_t *this = (alsa_driver_t *) this_gen;
+	    return this->num_channels;
 }
 
-static int ao_alsa_bytes_per_frame(ao_driver_t *self_gen)
+static int ao_alsa_bytes_per_frame(ao_driver_t *this_gen)
 {
-	  alsa_driver_t *self = (alsa_driver_t *) self_gen;
-	    return self->bytes_per_frame;
+	  alsa_driver_t *this = (alsa_driver_t *) this_gen;
+	    return this->bytes_per_frame;
 }
 
+static int ao_alsa_get_gap_tolerance (ao_driver_t *this_gen)
+{
+  return GAP_TOLERANCE;
+}
 
-
-static int ao_alsa_delay (ao_driver_t *self_gen) 
+static int ao_alsa_delay (ao_driver_t *this_gen) 
 {
   snd_pcm_sframes_t pos ;
   snd_pcm_status_t  *pcm_stat;
   snd_pcm_sframes_t delay;
   int err;
-  alsa_driver_t *self = (alsa_driver_t *) self_gen;
+  alsa_driver_t *this = (alsa_driver_t *) this_gen;
   snd_pcm_status_alloca(&pcm_stat);
-  snd_pcm_status(self->audio_fd, pcm_stat);
+  snd_pcm_status(this->audio_fd, pcm_stat);
   /* Dump ALSA info to stderr */
   /* snd_pcm_status_dump(pcm_stat, jcd_out);  */
-  if (self->audio_started) {
-    err=snd_pcm_delay( self->audio_fd, &delay);
+  if (this->audio_started) {
+    err=snd_pcm_delay( this->audio_fd, &delay);
     if(err < 0) {
       //Hide error report
       error("snd_pcm_delay() failed");
@@ -338,13 +341,13 @@ static int ao_alsa_delay (ao_driver_t *self_gen)
   return delay;
 }
 
-void xrun(alsa_driver_t *self)
+void xrun(alsa_driver_t *this)
 {
         snd_pcm_status_t *status;
         int res;
 
         snd_pcm_status_alloca(&status);
-        if ((res = snd_pcm_status(self->audio_fd, status))<0) {
+        if ((res = snd_pcm_status(this->audio_fd, status))<0) {
             printf("status error: %s", snd_strerror(res));
            return;
          }
@@ -355,7 +358,7 @@ void xrun(alsa_driver_t *self)
             timersub(&now, &tstamp, &diff);
             fprintf(stderr, "xrun!!! (at least %.3f ms long)\n", diff.tv_sec * 1000 + diff.tv_usec / 1000.0);
 
-         if ((res = snd_pcm_prepare(self->audio_fd))<0) {
+         if ((res = snd_pcm_prepare(this->audio_fd))<0) {
                 printf("xrun: prepare error: %s", snd_strerror(res));
                 return;
             }
@@ -363,51 +366,51 @@ void xrun(alsa_driver_t *self)
          }
 }
 
-static int ao_alsa_write(ao_driver_t *self_gen,int16_t *data, uint32_t count)
+static int ao_alsa_write(ao_driver_t *this_gen,int16_t *data, uint32_t count)
 {
     ssize_t r;
-  alsa_driver_t *self = (alsa_driver_t *) self_gen;
+  alsa_driver_t *this = (alsa_driver_t *) this_gen;
 	
    while( count > 0) {
-      r = snd_pcm_writei(self->audio_fd, data, count);
+      r = snd_pcm_writei(this->audio_fd, data, count);
       if (r == -EAGAIN || (r >=0 && r < count)) {
-        snd_pcm_wait(self->audio_fd, 1000);
+        snd_pcm_wait(this->audio_fd, 1000);
       } else if (r == -EPIPE) {
-        xrun(self);
+        xrun(this);
       }
       if (r > 0) {
         count -= r;
 	/* FIXME: maybe not *2 as int16 */
-        data += r * 2 * self->num_channels;
+        data += r * 2 * this->num_channels;
       }
    }
    /* FIXME: What should this really be? */
 return 1;
 }
 
-static void ao_alsa_close(ao_driver_t *self_gen)
+static void ao_alsa_close(ao_driver_t *this_gen)
 {
-  alsa_driver_t *self = (alsa_driver_t *) self_gen;
-  if(self->audio_fd) snd_pcm_close(self->audio_fd);
-  self->audio_fd = NULL;
+  alsa_driver_t *this = (alsa_driver_t *) this_gen;
+  if(this->audio_fd) snd_pcm_close(this->audio_fd);
+  this->audio_fd = NULL;
 }
 
-static uint32_t ao_alsa_get_capabilities (ao_driver_t *self_gen) {
-  alsa_driver_t *self = (alsa_driver_t *) self_gen;
-  return self->capabilities;
+static uint32_t ao_alsa_get_capabilities (ao_driver_t *this_gen) {
+  alsa_driver_t *this = (alsa_driver_t *) this_gen;
+  return this->capabilities;
 }
 
-static void ao_alsa_exit(ao_driver_t *self_gen)
+static void ao_alsa_exit(ao_driver_t *this_gen)
 {
-  alsa_driver_t *self = (alsa_driver_t *) self_gen;
-  if (self->audio_fd) snd_pcm_close(self->audio_fd);
-  free (self);
+  alsa_driver_t *this = (alsa_driver_t *) this_gen;
+  if (this->audio_fd) snd_pcm_close(this->audio_fd);
+  free (this);
 }
 
 /*
  *
  */
-static int ao_alsa_get_property (ao_driver_t *self, int property) {
+static int ao_alsa_get_property (ao_driver_t *this, int property) {
 
   /* FIXME: implement some properties
   switch(property) {
@@ -425,7 +428,7 @@ static int ao_alsa_get_property (ao_driver_t *self, int property) {
 /*
  *
  */
-static int ao_alsa_set_property (ao_driver_t *self, int property, int value) {
+static int ao_alsa_set_property (ao_driver_t *this, int property, int value) {
 
   /* FIXME: Implement property support.
   switch(property) {
@@ -443,20 +446,20 @@ static int ao_alsa_set_property (ao_driver_t *self, int property, int value) {
 
 ao_driver_t *init_audio_out_plugin (config_values_t *config) {
 
-  alsa_driver_t *self;
+  alsa_driver_t *this;
   int              card;
   int              dev;
   int              err;
   char             *pcm_device;
   char             *ac3_device;
 
-  self = (alsa_driver_t *) malloc (sizeof (alsa_driver_t));
+  this = (alsa_driver_t *) malloc (sizeof (alsa_driver_t));
  
   pcm_device = config->lookup_str(config,"alsa_pcm_device", "hw:0,0");
   ac3_device = config->lookup_str(config,"alsa_ac3_device", "hw:0,2");
 
  
-  strcpy(self->audio_dev,pcm_device);
+  strcpy(this->audio_dev,pcm_device);
   
   /*
    * find best device driver/channel
@@ -465,34 +468,35 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
    * open that device
    */
   
-  err=snd_pcm_open(&self->audio_fd, self->audio_dev, SND_PCM_STREAM_PLAYBACK, 0);         
+  err=snd_pcm_open(&this->audio_fd, this->audio_dev, SND_PCM_STREAM_PLAYBACK, 0);         
   if(err <0 ) {                                                                       
     error("snd_pcm_open() failed: %d", err);                           
     error(">>> Check if another program don't already use PCM <<<");                 
     return NULL;                                                                      
   }
-  snd_pcm_close (self->audio_fd);
-  self->audio_fd=NULL;
-  self->output_sample_rate = 0;
-  self->capabilities       = AO_CAP_MODE_STEREO;
+  snd_pcm_close (this->audio_fd);
+  this->audio_fd=NULL;
+  this->output_sample_rate = 0;
+  this->capabilities       = AO_CAP_MODE_STEREO;
   if (config->lookup_int (config, "ac3_pass_through", 0)) {
-    self->capabilities |= AO_CAP_MODE_AC3;
-    strcpy(self->audio_dev,ac3_device);
+    this->capabilities |= AO_CAP_MODE_AC3;
+    strcpy(this->audio_dev,ac3_device);
     printf("AC3 pass through activated\n");
   }
    
-  self->ao_driver.get_capabilities    = ao_alsa_get_capabilities;
-  self->ao_driver.get_property        = ao_alsa_get_property;
-  self->ao_driver.set_property        = ao_alsa_set_property;
-  self->ao_driver.open                = ao_alsa_open;
-  self->ao_driver.num_channels        = ao_alsa_num_channels;
-  self->ao_driver.bytes_per_frame     = ao_alsa_bytes_per_frame;
-  self->ao_driver.delay               = ao_alsa_delay;
-  self->ao_driver.write	 	      = ao_alsa_write;
-  self->ao_driver.close               = ao_alsa_close;
-  self->ao_driver.exit                = ao_alsa_exit;
+  this->ao_driver.get_capabilities    = ao_alsa_get_capabilities;
+  this->ao_driver.get_property        = ao_alsa_get_property;
+  this->ao_driver.set_property        = ao_alsa_set_property;
+  this->ao_driver.open                = ao_alsa_open;
+  this->ao_driver.num_channels        = ao_alsa_num_channels;
+  this->ao_driver.bytes_per_frame     = ao_alsa_bytes_per_frame;
+  this->ao_driver.delay               = ao_alsa_delay;
+  this->ao_driver.write	 	      = ao_alsa_write;
+  this->ao_driver.close               = ao_alsa_close;
+  this->ao_driver.exit                = ao_alsa_exit;
+  this->ao_driver.get_gap_tolerance   = ao_alsa_get_gap_tolerance;
 
-  return &self->ao_driver;
+  return &this->ao_driver;
 }
 
 static ao_info_t ao_info_alsa9 = {
