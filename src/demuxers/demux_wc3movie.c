@@ -22,7 +22,7 @@
  * For more information on the MVE file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_wc3movie.c,v 1.22 2002/10/31 02:22:58 tmmm Exp $
+ * $Id: demux_wc3movie.c,v 1.23 2002/11/01 03:36:24 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -381,10 +381,20 @@ static int open_mve_file(demux_mve_t *this) {
   int i, j;
   unsigned char r, g, b;
   int temp;
+  unsigned char header[16];
 
   /* these are the frame dimensions unless others are found */
   this->video_width = WC3_USUAL_WIDTH;
   this->video_height = WC3_USUAL_HEIGHT;
+
+  this->input->seek(this->input, 0, SEEK_SET);
+  if (this->input->read(this->input, header, 16) != 16)
+    return 0;
+
+  if ((BE_32(&header[0]) != FORM_TAG) ||
+      (BE_32(&header[8]) != MOVE_TAG) ||
+      (BE_32(&header[12]) != PC_TAG))
+    return 0;
 
   /* load the number of palettes, the only interesting piece of information
    * in the _PC_ chunk; take it for granted that it will always appear at
@@ -651,7 +661,6 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
 
   input_plugin_t *input = (input_plugin_t *) input_gen;
   demux_mve_t    *this;
-  unsigned char header[16];
 
   if (! (input->get_capabilities(input) & INPUT_CAP_SEEKABLE)) {
     printf(_("demux_mve.c: input not seekable, can not handle!\n"));
@@ -675,17 +684,6 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   switch (stream->content_detection_method) {
 
   case METHOD_BY_CONTENT:
-
-    input->seek(input, 0, SEEK_SET);
-    if (input->read(input, header, 16) != 16)
-      return DEMUX_CANNOT_HANDLE;
-
-    if ((BE_32(&header[0]) != FORM_TAG) ||
-        (BE_32(&header[8]) != MOVE_TAG) ||
-        (BE_32(&header[12]) != PC_TAG)) {
-      free (this);
-      return NULL;
-    }
 
     if (!open_mve_file(this)) {
       free (this);

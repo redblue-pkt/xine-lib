@@ -21,7 +21,7 @@
  * For more information regarding the RoQ file format, visit:
  *   http://www.csse.monash.edu.au/~timf/
  *
- * $Id: demux_roq.c,v 1.26 2002/10/28 03:24:43 miguelfreitas Exp $
+ * $Id: demux_roq.c,v 1.27 2002/11/01 03:36:24 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -94,11 +94,14 @@ static int open_roq_file(demux_roq_t *this) {
   unsigned int chunk_type;
   unsigned int chunk_size;
 
-  this->status = DEMUX_OK;
-
   this->input->seek(this->input, 0, SEEK_SET);
   if (this->input->read(this->input, preamble, RoQ_CHUNK_PREAMBLE_SIZE) != 
     RoQ_CHUNK_PREAMBLE_SIZE)
+    return 0;
+
+  /* check for the RoQ magic numbers */
+  if ((LE_16(&preamble[0]) != RoQ_MAGIC_NUMBER) ||
+      (LE_32(&preamble[2]) != 0xFFFFFFFF))
     return 0;
 
   this->width = this->height = 0;
@@ -392,7 +395,6 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
 
   input_plugin_t *input = (input_plugin_t *) input_gen;
   demux_roq_t    *this;
-  char preamble[RoQ_CHUNK_PREAMBLE_SIZE];
 
   if (! (input->get_capabilities(input) & INPUT_CAP_SEEKABLE)) {
     printf(_("demux_roq.c: input not seekable, can not handle!\n"));
@@ -416,32 +418,6 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   switch (stream->content_detection_method) {
 
   case METHOD_BY_CONTENT:
-
-    input->seek(input, 0, SEEK_SET);
-    if (input->read(input, preamble, RoQ_CHUNK_PREAMBLE_SIZE) != 
-      RoQ_CHUNK_PREAMBLE_SIZE) {
-      free (this);
-      return NULL;
-    }
-
-#if 0
-    printf ("demux_roq: %02x %02x %02x %02x %02x %02x %02x %02x \n",
-	    preamble[0],
-	    preamble[1],
-	    preamble[2],
-	    preamble[3],
-	    preamble[4],
-	    preamble[5],
-	    preamble[6],
-	    preamble[7]);
-#endif
-
-    /* check for the RoQ magic numbers */
-    if ((LE_16(&preamble[0]) != RoQ_MAGIC_NUMBER) ||
-        (LE_32(&preamble[2]) != 0xFFFFFFFF)) {
-      free (this);
-      return NULL;
-    }
 
     if (!open_roq_file(this)) {
       free (this);

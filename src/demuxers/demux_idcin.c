@@ -63,7 +63,7 @@
  *     - if any bytes exceed 63, do not shift the bytes at all before
  *       transmitting them to the video decoder
  *
- * $Id: demux_idcin.c,v 1.24 2002/10/30 00:29:30 tmmm Exp $
+ * $Id: demux_idcin.c,v 1.25 2002/11/01 03:36:24 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -133,7 +133,6 @@ static int demux_idcin_send_chunk(demux_plugin_t *this_gen) {
   demux_idcin_t *this = (demux_idcin_t *) this_gen;
   buf_element_t *buf = NULL;
   unsigned int command;
-  off_t current_file_pos;
   unsigned char preamble[8];
   unsigned char disk_palette[PALETTE_SIZE * 3];
   palette_entry_t palette[PALETTE_SIZE];
@@ -142,8 +141,6 @@ static int demux_idcin_send_chunk(demux_plugin_t *this_gen) {
   uint64_t pts_counter = 0;
   int current_audio_chunk = 1;
   int scale_bits;
-
-  current_file_pos = this->input->get_current_pos(this->input);
 
   /* figure out what the next data is */
   if (this->input->read(this->input, (unsigned char *)&command, 4) != 4) {
@@ -279,16 +276,49 @@ static int open_idcin_file(demux_idcin_t *this) {
   unsigned char header[IDCIN_HEADER_SIZE];
 
   this->input->seek(this->input, 0, SEEK_SET);
-  if (this->input->read(this->input, header, IDCIN_HEADER_SIZE) !=
+  if (this->input->read(this->input, header, IDCIN_HEADER_SIZE) != 
     IDCIN_HEADER_SIZE)
     return 0;
 
+  /*
+   * This is what you could call a "probabilistic" file check: Id CIN
+   * files don't have a definite file signature. In lieu of such a marker,
+   * perform sanity checks on the 5 header fields:
+   *  width, height: greater than 0, less than or equal to 1024
+   * audio sample rate: greater than or equal to 8000, less than or
+   *  equal to 48000, or 0 for no audio
+   * audio sample width (bytes/sample): 0 for no audio, or 1 or 2
+   * audio channels: 0 for no audio, or 1 or 2
+   */
+
+  /* check the width */
   this->video_width = LE_32(&header[0]);
+  if ((this->video_width == 0) || (this->video_width > 1024))
+    return 0;
+
+  /* check the height */
   this->video_height = LE_32(&header[4]);
+  if ((this->video_height == 0) || (this->video_height > 1024))
+    return 0;
+
+  /* check the audio sample rate */
   this->audio_sample_rate = LE_32(&header[8]);
+  if ((this->audio_sample_rate != 0) && 
+     ((this->audio_sample_rate < 8000) || (this->audio_sample_rate > 48000)))
+    return 0;
+
+  /* check the audio bytes/sample */
   this->audio_bytes_per_sample = LE_32(&header[12]);
+  if (this->audio_bytes_per_sample > 2)
+    return 0;
+
+  /* check the audio channels */
   this->audio_channels = LE_32(&header[16]);
-  this->filesize = this->input->get_length(this->input);
+  if (this->audio_channels > 2)
+    return 0;
+
+  /* if execution got this far, qualify it as a valid Id CIN file 
+   * and continue loading */
 
   /* read the Huffman table */
   if (this->input->read(this->input, this->huffman_table,
@@ -419,8 +449,6 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
 
   input_plugin_t *input = (input_plugin_t *) input_gen;
   demux_idcin_t  *this;
-  char header[IDCIN_HEADER_SIZE];
-  unsigned int current_value;
 
   if (! (input->get_capabilities(input) & INPUT_CAP_SEEKABLE)) {
     printf(_("demux_idcin.c: input not seekable, can not handle!\n"));
@@ -445,59 +473,6 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
 
   case METHOD_BY_CONTENT:
 
-    input->seek(input, 0, SEEK_SET);
-    if (input->read(input, header, IDCIN_HEADER_SIZE) != IDCIN_HEADER_SIZE)
-      return DEMUX_CANNOT_HANDLE;
-
-    /*
-     * This is what you could call a "probabilistic" file check: Id CIN
-     * files don't have a definite file signature. In lieu of such a marker,
-     * perform sanity checks on the 5 header fields:
-     *  width, height: greater than 0, less than or equal to 1024
-     * audio sample rate: greater than or equal to 8000, less than or
-     *  equal to 48000, or 0 for no audio
-     * audio sample width (bytes/sample): 0 for no audio, or 1 or 2
-     * audio channels: 0 for no audio, or 1 or 2
-     */
-
-    /* check the width */
-    current_value = LE_32(&header[0]);
-    if ((current_value == 0) || (current_value > 1024)) {
-      free (this);
-      return NULL;
-    }
-
-    /* check the height */
-    current_value = LE_32(&header[4]);
-    if ((current_value == 0) || (current_value > 1024)) {
-      free (this);
-      return NULL;
-    }
-
-    /* check the audio sample rate */
-    current_value = LE_32(&header[8]);
-    if ((current_value != 0) && 
-       ((current_value < 8000) || (current_value > 48000))) {
-      free (this);
-      return NULL;
-    }
-
-    /* check the audio bytes/sample */
-    current_value = LE_32(&header[12]);
-    if (current_value > 2) {
-      free (this);
-      return NULL;
-    }
-
-    /* check the audio channels */
-    current_value = LE_32(&header[16]);
-    if (current_value > 2) {
-      free (this);
-      return NULL;
-    }
-
-    /* if execution got this far, qualify it as a valid Id CIN file 
-     * and load it */
     if (!open_idcin_file(this)) {
       free (this);
       return NULL;
