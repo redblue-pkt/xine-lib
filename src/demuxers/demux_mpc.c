@@ -24,7 +24,7 @@
  *   APE tag reading
  *   Seeking??
  *
- * $Id: demux_mpc.c,v 1.2 2005/01/14 15:36:04 jstembridge Exp $
+ * $Id: demux_mpc.c,v 1.3 2005/03/06 11:41:00 jstembridge Exp $
  */
  
 #ifdef HAVE_CONFIG_H
@@ -81,22 +81,49 @@ typedef struct {
  * This function is called from the _open() function of this demuxer.
  * It returns 1 if the musepack file was opened successfully. */
 static int open_mpc_file(demux_mpc_t *this) {
-  unsigned char preamble[4];
   unsigned int first_frame_size;
+  unsigned int id3v2_size = 0;
   
-  /* Fetch the file signature */
-  if (_x_demux_read_header(this->input, preamble, 4) != 4)
-    return 0;
-
-  /* Validate signature - We only support SV7 at the moment */
-  if ((preamble[0] != 'M') ||
-      (preamble[1] != 'P') ||
-      (preamble[2] != '+') ||
-      (preamble[3] != 0x07))
-    return 0;
-    
-  /* Read header */
+  /* Read the file header */
   if (_x_demux_read_header(this->input, this->header, HEADER_SIZE) != HEADER_SIZE)
+      return 0;
+
+  /* TODO: non-seeking version */
+  if (INPUT_IS_SEEKABLE(this->input)) {
+    /* Check for id3v2 tag */
+    if ((this->header[0] == 'I') ||
+        (this->header[1] == 'D') ||
+        (this->header[2] == '3')) {
+      
+      lprintf("found id3v2 header\n");
+  
+      /* Read tag size */
+      id3v2_size = (this->header[6] << 21) +
+                   (this->header[7] << 14) +
+                   (this->header[8] <<  7) +
+                   this->header[9] + 10;
+     
+      /* Add footer size if one is present */
+      if (this->header[5] & 0x10)
+        id3v2_size += 10;
+        
+      lprintf("id3v2 size: %u\n", id3v2_size);
+        
+      /* Seek past tag */
+      if (this->input->seek(this->input, id3v2_size, SEEK_SET) < 0)
+        return 0;
+        
+      /* Read musepack header */
+      if (this->input->read(this->input, this->header, HEADER_SIZE) != HEADER_SIZE)
+        return 0;
+    }
+  }
+  
+  /* Validate signature - We only support SV7 at the moment */
+  if ((this->header[0] != 'M') ||
+      (this->header[1] != 'P') ||
+      (this->header[2] != '+') ||
+      (this->header[3] != 0x07))
     return 0;
     
   /* Get frame count */
@@ -133,11 +160,11 @@ static int open_mpc_file(demux_mpc_t *this) {
   lprintf("first frame size: %u\n", first_frame_size);
   
   /* Move input to start of data (to nearest multiple of 4) */
-  this->input->seek(this->input, 28, SEEK_SET);
+  this->input->seek(this->input, 28+id3v2_size, SEEK_SET);
   
   /* Set stream info */
   _x_stream_info_set(this->stream, XINE_STREAM_INFO_HAS_AUDIO, 1);
-  _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_FOURCC, ME_32(preamble));
+  _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_FOURCC, ME_32(this->header));
   
   return 1;
 }
