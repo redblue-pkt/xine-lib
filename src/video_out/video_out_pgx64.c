@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  *
- * $Id: video_out_pgx64.c,v 1.37 2003/10/04 20:29:26 komadori Exp $
+ * $Id: video_out_pgx64.c,v 1.38 2003/10/05 16:22:19 komadori Exp $
  *
  * video_out_pgx64.c, Sun PGX64/PGX24 output plugin for xine
  *
@@ -353,7 +353,7 @@ static void pgx64_update_frame_format(pgx64_driver_t *this, pgx64_frame_t *frame
         frame->vo_frame.pitches[0] = frame->pitch * 2;
         frame->lengths[0] = frame->vo_frame.pitches[0] * height;
         frame->stripe_lengths[0] = frame->vo_frame.pitches[0] * 16;
-        frame->vo_frame.base[0] = (void*)malloc(frame->lengths[0]);
+        frame->vo_frame.base[0] = (void*)memalign(8, frame->lengths[0]);
       break;
 
       case XINE_IMGFMT_YV12:
@@ -364,14 +364,14 @@ static void pgx64_update_frame_format(pgx64_driver_t *this, pgx64_frame_t *frame
         frame->vo_frame.pitches[1] = frame->pitch / 2;
         frame->vo_frame.pitches[2] = frame->pitch / 2;
         frame->lengths[0] = frame->vo_frame.pitches[0] * height;
-        frame->lengths[1] = frame->vo_frame.pitches[1] * (height / 2);
-        frame->lengths[2] = frame->vo_frame.pitches[2] * (height / 2);
+        frame->lengths[1] = frame->vo_frame.pitches[1] * ((height + 1) / 2);
+        frame->lengths[2] = frame->vo_frame.pitches[2] * ((height + 1) / 2);
         frame->stripe_lengths[0] = frame->vo_frame.pitches[0] * 16;
         frame->stripe_lengths[1] = frame->vo_frame.pitches[1] * 8;
         frame->stripe_lengths[2] = frame->vo_frame.pitches[2] * 8;
-        frame->vo_frame.base[0] = (void*)malloc(frame->lengths[0]);
-        frame->vo_frame.base[1] = (void*)malloc(frame->lengths[1]);
-        frame->vo_frame.base[2] = (void*)malloc(frame->lengths[2]);
+        frame->vo_frame.base[0] = (void*)memalign(8, frame->lengths[0]);
+        frame->vo_frame.base[1] = (void*)memalign(8, frame->lengths[1]);
+        frame->vo_frame.base[2] = (void*)memalign(8, frame->lengths[2]);
       break;
     }
   }
