@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.97 2002/10/22 05:03:01 tmmm Exp $
+ * $Id: demux_qt.c,v 1.98 2002/10/23 04:58:15 tmmm Exp $
  *
  */
 
@@ -1860,21 +1860,23 @@ static void demux_qt_stop (demux_plugin_t *this_gen) {
     return;
   }
 
-  this->current_frame = this->last_frame = 0;
-
   this->send_end_buffers = 0;
   this->status = DEMUX_FINISHED;
+
+  xine_demux_flush_engine(this->stream);
 
   pthread_mutex_unlock( &this->mutex );
   pthread_join (this->thread, &p);
 
-  xine_demux_flush_engine(this->stream);
+  this->current_frame = this->last_frame = 0;
 
   xine_demux_control_end(this->stream, BUF_FLAG_END_USER);
 }
 
 static void demux_qt_dispose (demux_plugin_t *this_gen) {
   demux_qt_t *this = (demux_qt_t *) this_gen;
+
+  demux_qt_stop(this_gen);
 
   free_qt_info(this->qt);
   pthread_mutex_destroy (&this->mutex);

@@ -20,7 +20,7 @@
  * MS WAV File Demuxer by Mike Melanson (melanson@pcisys.net)
  * based on WAV specs that are available far and wide
  *
- * $Id: demux_wav.c,v 1.19 2002/10/23 03:46:32 tmmm Exp $
+ * $Id: demux_wav.c,v 1.20 2002/10/23 04:58:16 tmmm Exp $
  *
  */
 
@@ -118,7 +118,6 @@ static int open_wav_file(demux_wav_t *this) {
     return 0;
 
   /* go after the format structure */
-  this->input->seek(this->input, WAV_SIGNATURE_SIZE, SEEK_SET);
   if (this->input->read(this->input,
     (unsigned char *)&this->wave_size, 4) != 4)
     return 0;
@@ -386,6 +385,8 @@ static void demux_wav_stop (demux_plugin_t *this_gen) {
 
 static void demux_wav_dispose (demux_plugin_t *this_gen) {
   demux_wav_t *this = (demux_wav_t *) this_gen;
+
+  demux_wav_stop(this_gen);
 
   pthread_mutex_destroy (&this->mutex);
   free(this);
