@@ -203,8 +203,8 @@ rm -rf $RPM_BUILD_ROOT
 %{prefix}/lib/xine/plugins/xineplug_dmx_mpeg_ts.la
 %{prefix}/lib/xine/plugins/xineplug_dmx_mpeg_ts.so
 # decoder plugins
-%{prefix}/lib/xine/plugins/xineplug_decode_ac3.la
-%{prefix}/lib/xine/plugins/xineplug_decode_ac3.so
+%{prefix}/lib/xine/plugins/xineplug_decode_a52.la
+%{prefix}/lib/xine/plugins/xineplug_decode_a52.so
 %{prefix}/lib/xine/plugins/xineplug_decode_ff.so
 %{prefix}/lib/xine/plugins/xineplug_decode_ff.la
 %{prefix}/lib/xine/plugins/xineplug_decode_lpcm.so
