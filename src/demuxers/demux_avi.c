@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_avi.c,v 1.214 2004/12/25 17:52:10 f1rmb Exp $
+ * $Id: demux_avi.c,v 1.215 2005/01/05 22:14:31 tmattern Exp $
  *
  * demultiplexer for avi streams
  *
@@ -485,7 +485,7 @@ static int start_pos_stopper(demux_avi_t *this, void *data) {
     maxframe--;
   }
   return -1;
-}
+} 
 
 /* Use this one to ensure that a video frame with the given timestamp
  * is in the index. */
@@ -1192,6 +1192,7 @@ static avi_t *AVI_init(demux_avi_t *this) {
         off_t pos = LE_32(AVI->idx[i] + 8) + ioff;
         uint32_t len = LE_32(AVI->idx[i] + 12);
         uint32_t flags = LE_32(AVI->idx[i] + 4);
+
         if (video_index_append(AVI, pos, len, flags) == -1) {
           ERR_EXIT(AVI_ERR_NO_MEM) ;
         }
@@ -1532,6 +1533,8 @@ static int demux_avi_next (demux_avi_t *this, int decoder_flags) {
   buf_element_t *buf = NULL;
   int64_t        audio_pts, video_pts;
   int            do_read_video = (this->avi->n_audio == 0);
+  int            video_sent = 0;
+  int            audio_sent = 0;
 
   lprintf("begin\n");
   
@@ -1540,23 +1543,21 @@ static int demux_avi_next (demux_avi_t *this, int decoder_flags) {
    * the end of the stream. */
   if (this->avi->video_idx.video_frames <= this->avi->video_posf) {
     if (idx_grow(this, video_pos_stopper, NULL) < 0) {
-      lprintf("end: idx_grow video_pos_stopper\n");
-      return 0;
+      lprintf("end of stream\n");
     }
   }
-
+ 
   for (i = 0; i < this->avi->n_audio; i++) {
     avi_audio_t *audio = this->avi->audio[i];
 
     if (!this->no_audio &&
         (audio->audio_idx.audio_chunks <= audio->audio_posc)) {
       if (idx_grow(this, audio_pos_stopper, this->avi->audio[i]) < 0) {
-        lprintf("end: idx_grow audio_pos_stopper\n");
-        return 0;
+        lprintf("end of stream\n");
       }
     }
   }
-
+  
   video_pts = get_video_pts (this, this->avi->video_posf);
 
   for (i=0; i < this->avi->n_audio; i++) {
@@ -1566,8 +1567,8 @@ static int demux_avi_next (demux_avi_t *this, int decoder_flags) {
     /* The tests above mean aie should never be NULL, but just to be
      * safe. */
     if (!aie) {
-      lprintf("end: aie == NULL\n");
-      return 0;
+      lprintf("aie == NULL\n");
+      continue;
     }
 
     audio_pts =
@@ -1588,22 +1589,28 @@ static int demux_avi_next (demux_avi_t *this, int decoder_flags) {
 
       if (buf->size < 0) {
         buf->free_buffer (buf);
-        lprintf("end: audio buf->size < 0\n");
-        return 0;
+        lprintf("audio buf->size < 0\n");
+      } else {
+
+        buf->type = audio->audio_type | i;
+        buf->extra_info->input_time = audio_pts / 90;
+        if( this->input->get_length (this->input) )
+          buf->extra_info->input_normpos = (int)( (double) this->input->get_current_pos (this->input) * 
+                                           65535 / this->input->get_length (this->input) );
+  
+        check_newpts (this, buf->pts, PTS_AUDIO);
+        this->audio_fifo->put (this->audio_fifo, buf);
+        
+        audio_sent++;
       }
-
-      buf->type = audio->audio_type | i;
-      buf->extra_info->input_time = audio_pts / 90;
-      if( this->input->get_length (this->input) )
-        buf->extra_info->input_normpos = (int)( (double) this->input->get_current_pos (this->input) * 
-                                         65535 / this->input->get_length (this->input) );
-
-      check_newpts (this, buf->pts, PTS_AUDIO);
-      this->audio_fifo->put (this->audio_fifo, buf);
     } else
       do_read_video = 1;
   }
 
+  if (audio_sent == 0) {
+    do_read_video = 1;
+  }
+  
   if (do_read_video) {
 
     buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
@@ -1632,19 +1639,25 @@ static int demux_avi_next (demux_avi_t *this, int decoder_flags) {
 
     if (buf->size < 0) {
       buf->free_buffer (buf);
-      lprintf("end: video buf->size < 0\n");
-      return 0;
+      lprintf("video buf->size < 0\n");
+    } else {
+
+      /*
+        lprintf ("adding buf %d to video fifo, decoder_info[0]: %d\n",
+        buf, buf->decoder_info[0]);
+      */
+  
+      check_newpts (this, buf->pts, PTS_VIDEO);
+      this->video_fifo->put (this->video_fifo, buf);
+      video_sent++;
     }
-
-    /*
-      lprintf ("adding buf %d to video fifo, decoder_info[0]: %d\n",
-      buf, buf->decoder_info[0]);
-    */
-
-     check_newpts (this, buf->pts, PTS_VIDEO);
-     this->video_fifo->put (this->video_fifo, buf);
   }
 
+  if (!audio_sent && !video_sent) {
+    xprintf (this->stream->xine, XINE_VERBOSITY_LOG,
+             "demux_avi: video and audio streams are ended\n");
+    return 0;
+  }
   return 1;
 }
 
