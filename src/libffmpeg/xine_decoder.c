@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.43 2002/06/23 23:08:29 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.44 2002/07/01 13:33:12 miguelfreitas Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -202,9 +202,10 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
       int         got_picture, len, y;
       uint8_t    *dy, *du, *dv, *sy, *su, *sv;
 
-      /* decoder video frame */
+      /* decode video frame */
 
-      /* this->bih.biSizeImage = this->size; */
+      /* skip decoding b frames if too late */
+      this->context.hurry_up = (this->skipframes > 2) ? 1:0;
 
       len = avcodec_decode_video (&this->context, &this->av_picture,
 				  &got_picture, this->buf,
@@ -360,6 +361,27 @@ static char *ff_get_id(void) {
   return "ffmpeg video decoder";
 }
 
+void avcodec_register_all(void)
+{
+    static int inited = 0;
+    
+    if (inited != 0)
+	return;
+    inited = 1;
+
+    /* decoders */
+    register_avcodec(&h263_decoder);
+    register_avcodec(&mpeg4_decoder);
+    register_avcodec(&msmpeg4v1_decoder);
+    register_avcodec(&msmpeg4v2_decoder);
+    register_avcodec(&msmpeg4v3_decoder);
+    register_avcodec(&wmv1_decoder);
+    register_avcodec(&wmv2_decoder);
+    register_avcodec(&mpeg_decoder);
+    register_avcodec(&h263i_decoder);
+    register_avcodec(&rv10_decoder);
+    register_avcodec(&mjpeg_decoder);
+}
 
 static void init_routine(void) {
   avcodec_init();

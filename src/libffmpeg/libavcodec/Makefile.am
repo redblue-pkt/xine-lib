@@ -6,9 +6,9 @@ SUBDIRS = armv4l i386 mlib alpha
 
 EXTRA_DIST = fdctref.c imgresample.c
 
-#CFLAGS = -D_FILE_OFFSET_BITS=64 @CFLAGS@ -DCONFIG_DECODERS -DHAVE_AV_CONFIG_H
+#CFLAGS = -D_FILE_OFFSET_BITS=64 @CFLAGS@ -DHAVE_AV_CONFIG_H
 
-CFLAGS = @CFLAGS@ $(LIBFFMPEG_CFLAGS) -DCONFIG_DECODERS -DHAVE_AV_CONFIG_H
+CFLAGS = @CFLAGS@ $(LIBFFMPEG_CFLAGS) -DHAVE_AV_CONFIG_H
 ASFLAGS =
 
 LIBTOOL = $(SHELL) $(top_builddir)/libtool-nofpic
@@ -19,7 +19,7 @@ libavcodec_la_SOURCES = common.c utils.c mpegvideo.c h263.c jrevdct.c jfdctfst.c
 			mjpeg.c dsputil.c \
 			motion_est.c imgconvert.c msmpeg4.c \
 			mpeg12.c h263dec.c rv10.c simple_idct.c \
-			ratecontrol.c
+			ratecontrol.c mem.c
 #imgresample.c
 
 libavcodec_la_LDFLAGS = \
@@ -37,7 +37,7 @@ noinst_HEADERS = avcodec.h    dsputil.h   mpegvideo.h \
 	$(ASCOMPILE) -o $@ `test -f $< || echo '$(srcdir)/'`$<
 
 debug:
-	@$(MAKE) CFLAGS="$(DEBUG_CFLAGS) $(LIBFFMPEG_CFLAGS) -DCONFIG_DECODERS -DHAVE_AV_CONFIG_H"
+	@$(MAKE) CFLAGS="$(DEBUG_CFLAGS) $(LIBFFMPEG_CFLAGS) -DHAVE_AV_CONFIG_H"
 
 install-debug: debug
 	@$(MAKE) $(AM_MAKEFLAGS) install-exec-am install-data-am
