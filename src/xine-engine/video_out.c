@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.18 2001/06/14 10:48:24 guenter Exp $
+ * $Id: video_out.c,v 1.19 2001/06/14 20:17:06 guenter Exp $
  *
  */
 
@@ -119,9 +119,9 @@ static void vo_set_timer (uint32_t video_step) {
   struct itimerval tval;
 
   tval.it_interval.tv_sec  = 0;
-  tval.it_interval.tv_usec = video_step*100000/90000;
+  tval.it_interval.tv_usec = video_step*500000/90000;
   tval.it_value.tv_sec     = 0;
-  tval.it_value.tv_usec    = video_step*100000/90000;
+  tval.it_value.tv_usec    = video_step*500000/90000;
 
   /* printf ("video_out: tval.it_interval.tv_usec = %d\n", tval.it_interval.tv_usec);  */
 
@@ -143,8 +143,8 @@ static void *video_out_loop (void *this_gen) {
   vo_frame_t        *img;
   uint32_t           video_step, video_step_new;
   vo_instance_t     *this = (vo_instance_t *) this_gen;
-  /*
   sigset_t           vo_mask;
+  /*
   int                dummysignum;
   */
 
@@ -154,6 +154,11 @@ static void *video_out_loop (void *this_gen) {
   sigaddset(&vo_mask, SIGALRM);
   pthread_sigmask(SIG_BLOCK, &vo_mask, NULL);
   */
+  sigemptyset(&vo_mask);
+  sigaddset(&vo_mask, SIGALRM);
+  if (sigprocmask (SIG_UNBLOCK,  &vo_mask, NULL)) {
+    printf ("video_out: sigprocmask failed.\n");
+  }
   signal (SIGALRM, video_timer_handler);
 
   video_step = this->metronom->get_video_rate (this->metronom);

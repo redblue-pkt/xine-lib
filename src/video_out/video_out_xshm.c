@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xshm.c,v 1.8 2001/06/14 09:54:13 guenter Exp $
+ * $Id: video_out_xshm.c,v 1.9 2001/06/14 20:17:06 guenter Exp $
  * 
  * video_out_xshm.c, X11 shared memory extension interface for xine
  *
@@ -708,6 +708,7 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
   XWindowAttributes     attribs;
   XImage               *myimage;
   XShmSegmentInfo       myshminfo;
+  int                   mode;
 
   visual = (x11_visual_t *) visual_gen;
   display = visual->display;
@@ -803,7 +804,47 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
   myimage = create_ximage (this, &myshminfo, 100, 100);
   dispose_ximage (this, &myshminfo, myimage);
 
-  this->yuv2rgb = yuv2rgb_init (MODE_16_RGB); /* FIXME mode */
+  mode = 0;
+
+  printf ("video_out_xshm: video mode is %d depth (%d bpp), red: %08x, green: %08x, blue: %08x\n",
+	  this->depth, this->bpp, this->vinfo.red_mask, this->vinfo.green_mask,
+	  this->vinfo.blue_mask);
+
+  switch (this->depth) {
+  case 24:
+    if (this->bpp == 32) {
+      if (this->vinfo.red_mask == 0x00ff0000)
+	mode = MODE_32_RGB;
+      else
+	mode = MODE_32_BGR;
+      break;
+    } else {
+      if (this->vinfo.red_mask == 0x00ff0000)
+	mode = MODE_24_RGB;
+      else
+	mode = MODE_24_BGR;
+    }
+    break;
+  case 16:
+    if (this->vinfo.red_mask == 0xf800)
+      mode = MODE_16_RGB;
+    else
+      mode = MODE_16_BGR;
+    break;
+  case 15:
+    if (this->vinfo.red_mask == 0x7C00)
+      mode = MODE_15_RGB;
+    else
+      mode = MODE_15_BGR;
+    break;
+  }
+
+  if (!mode) {
+    printf ("video_out_xshm: your video mode was not recognized, sorry :-(\n");
+    return NULL;
+  }
+
+  this->yuv2rgb = yuv2rgb_init (mode); 
 
   return &this->vo_driver;
 }
