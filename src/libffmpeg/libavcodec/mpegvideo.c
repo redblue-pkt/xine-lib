@@ -28,11 +28,6 @@
 #include "fastmemcpy.h"
 #endif
 
-/* FIXME */
-#ifdef ARCH_X86
-#define HAVE_MMX
-#endif
-
 static void encode_picture(MpegEncContext *s, int picture_number);
 static void rate_control_init(MpegEncContext *s);
 static int rate_estimate_qscale(MpegEncContext *s);
@@ -1073,6 +1068,10 @@ static int dct_quantize_mmx(MpegEncContext *s,
     const int *qmat;
 
     av_fdct (block);
+    
+    /* we need this permutation so that we correct the IDCT
+       permutation. will be moved into DCT code */
+    block_permute(block);
 
     if (s->mb_intra) {
         if (n < 4)

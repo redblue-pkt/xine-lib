@@ -51,7 +51,7 @@ extern "C" {
 #define MM_SSE2                 0x00000000
 
 uint32_t mm_accel (void) ;
-uint32_t mm_support (void) ;
+/* uint32_t mm_support (void) ; */
 
 #ifdef ARCH_X86
 

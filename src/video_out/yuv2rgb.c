@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * $Id: yuv2rgb.c,v 1.10 2001/07/30 19:37:18 guenter Exp $
+ * $Id: yuv2rgb.c,v 1.11 2001/08/07 23:59:50 guenter Exp $
  */
 
 #include "config.h"
@@ -95,9 +95,24 @@ int yuv2rgb_setup (yuv2rgb_t *this,
     this->v_buffer = this->v_chunk = NULL;
   }
 
-  if ((source_width == dest_width) && (source_height == dest_height)) 
+  if ((source_width == dest_width) && (source_height == dest_height)) {
     this->do_scale = 0;
-  else {
+
+    /*
+     * space for two y-lines (for yuv2rgb_mlib)
+     * u,v subsampled 2:1
+     */
+    this->y_buffer = my_malloc_aligned (16, 2*dest_width, &this->y_chunk);
+    if (!this->y_buffer)
+      return 0;
+    this->u_buffer = my_malloc_aligned (16, (dest_width+1)/2, &this->u_chunk);
+    if (!this->u_buffer)
+      return 0;
+    this->v_buffer = my_malloc_aligned (16, (dest_width+1)/2, &this->v_chunk);
+    if (!this->v_buffer)
+      return 0;
+
+  } else {
     this->do_scale = 1;
     
     this->step_dx = source_width  * 32768 / dest_width;
@@ -1227,8 +1242,8 @@ yuv2rgb_t *yuv2rgb_init (int mode) {
   this->matrix_coefficients = 6;
 
   this->y_chunk = this->y_buffer = NULL;
-  this->y_chunk = this->u_buffer = NULL;
-  this->y_chunk = this->v_buffer = NULL;
+  this->u_chunk = this->u_buffer = NULL;
+  this->v_chunk = this->v_buffer = NULL;
 
   yuv2rgb_setup_tables(this, mode);
 
