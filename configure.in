@@ -573,6 +573,17 @@ else
 fi
 AC_SUBST(W32DLL_DEP)
 
+enable_divx4=yes
+DIVX_LIBS=$LIBS
+LIBS="$DIVX_LIBS -lstdc++"
+AC_CHECK_LIB(divxdecore, decore, , enable_divx4=no)
+AC_CHECK_HEADER(decore.h, , enable_divx4=no)
+if test x$enable_divx4 = xno ; then 
+    AC_MSG_WARN([
+*** Did not find decore.h or libdivxdecore. Not compiling divx4 plugin.  ])
+fi;
+AM_CONDITIONAL(HAVE_DIVXDECORE, test x"$enable_divx4" = "xyes")
+
 AM_CONDITIONAL(HAVE_FFMMX, test x"$enable_ffmmx" = "xyes")
 
 
@@ -706,6 +717,7 @@ src/libw32dll/wine/Makefile
 src/libspudec/Makefile
 src/libvfill/Makefile
 src/libvorbis/Makefile
+src/libdivx4/Makefile
 src/input/Makefile
 src/xine-engine/Makefile
 misc/Makefile
