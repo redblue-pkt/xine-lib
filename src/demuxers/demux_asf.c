@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.119 2003/06/12 23:10:16 tmattern Exp $
+ * $Id: demux_asf.c,v 1.120 2003/06/12 23:18:17 tmattern Exp $
  *
  * demultiplexer for asf streams
  *
@@ -45,9 +45,9 @@
 #include "asfheader.h"
 #include "xmlparser.h"
 
-
+/*
 #define LOG
-
+*/
 
 #define CODEC_TYPE_AUDIO       0
 #define CODEC_TYPE_VIDEO       1
@@ -1123,7 +1123,9 @@ static int asf_parse_packet_payload_single(demux_asf_t *this,
   uint32_t data_length = 0;
   uint32_t data_sent=0;
 
+#ifdef LOG
   printf ("demux_asf: asf_parse_packet_payload_single\n");
+#endif
   *timestamp = frag_offset;
   frag_offset = 0;
   get_byte (this); s_hdr_size += 1;
@@ -1221,7 +1223,9 @@ static int asf_parse_packet_payload_multiple(demux_asf_t *this,
   uint32_t s_hdr_size = 0;
   uint32_t payload_size, frag_len;
 
+#ifdef LOG
  printf ("demux_asf: asf_parse_packet_payload_multiple\n");
+#endif
  if (rlen >= 8) {
     payload_size  = get_le32(this); s_hdr_size += 4;
     *timestamp    = get_le32(this); s_hdr_size += 4;
@@ -1601,19 +1605,6 @@ static int demux_asf_send_chunk (demux_plugin_t *this_gen) {
     default:
     
     
-      printf ("demux_asf: demux_asf_send_chunk, %d, %d\n", ++this->frame, (this->nb_frames & 0x3f));
-    /*
-      if ((++this->frame == (this->nb_frames & 0x3f)) ) {
-        if (!asf_parse_packet_header(this, &raw_id)) {
-          if (this->stream->xine->verbosity >= XINE_VERBOSITY_DEBUG)
-            printf ("demux_asf: get_packet failed\n");
-          this->status = DEMUX_FINISHED;
-          return this->status;
-        }
-      } else {
-        raw_id = get_byte(this); this->packet_size_left -= 1;
-      }
-*/
       if (asf_parse_packet_header(this, &raw_id)) {
         if (this->stream->xine->verbosity >= XINE_VERBOSITY_DEBUG)
           printf ("demux_asf: get_packet failed\n");
@@ -1624,7 +1615,6 @@ static int demux_asf_send_chunk (demux_plugin_t *this_gen) {
       for (this->frame = 0; this->frame < (this->nb_frames & 0x3f); this->frame++) {
         raw_id = get_byte(this); this->packet_size_left -= 1;
 
-        printf ("demux_asf: raw_id = %d\n", raw_id);
         if (asf_parse_packet_payload_common(this, raw_id, &stream, &frag_offset, &rlen, &seq))
           break;
         if (rlen == 1) {
