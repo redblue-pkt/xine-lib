@@ -14,4 +14,4 @@ clean:
 	-$(RM) $(OBJS) *.exe *~
 
 .cpp.o:
-	$(CC) -W -Wall $(CFLAGS) `xine-config --cflags` -I../include -c $<
+	$(CC) -W -Wall $(CFLAGS) `xine-config --cflags` -c $<
