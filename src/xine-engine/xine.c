@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.310 2005/02/13 22:12:50 holstsn Exp $
+ * $Id: xine.c,v 1.311 2005/02/19 13:11:52 valtri Exp $
  */
 
 /*
@@ -1360,7 +1360,7 @@ xine_t *xine_new (void) {
    * i18n
    */
 
-  bindtextdomain("xine-lib", XINE_LOCALEDIR);
+  bindtextdomain(XINE_TEXTDOMAIN, XINE_LOCALEDIR);
 #endif
 
   /*

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2002 the xine project
+ * Copyright (C) 2000-2005 the xine project
  * 
  * This file is part of xine, a free video player.
  * 
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xineintl.h.in,v 1.1 2002/12/11 01:04:01 siggi Exp $
+ * $Id: xineintl.h,v 1.9 2005/02/19 13:11:53 valtri Exp $
  *
  */
 
@@ -32,7 +32,7 @@ extern "C" {
 
 #ifdef ENABLE_NLS
 #    include <libintl.h>
-#    define _(String) dgettext ("@LIBNAME@", String)
+#    define _(String) dgettext (XINE_TEXTDOMAIN, String)
 #    ifdef gettext_noop
 #        define N_(String) gettext_noop (String)
 #    else

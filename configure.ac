@@ -85,6 +85,8 @@ AC_SUBST(SPEC_VERSION)
 LIBNAME=libxine$XINE_MAJOR
 AC_SUBST(LIBNAME)
 
+AC_DEFINE_UNQUOTED(XINE_TEXTDOMAIN, "$LIBNAME", [catalog message text domain])
+
 dnl
 AC_CANONICAL_TARGET
 
@@ -2248,7 +2250,6 @@ src/video_out/vidix/Makefile
 src/video_out/vidix/drivers/Makefile
 src/xine-utils/Makefile
 src/xine-engine/Makefile
-src/xine-engine/xineintl.h
 win32/Makefile
 win32/contrib/Makefile
 win32/contrib/pthreads/Makefile
