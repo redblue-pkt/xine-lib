@@ -1,4 +1,4 @@
-CFLAGS = @CFLAGS@ $(LIBA52_CFLAGS)
+AM_CFLAGS = @CFLAGS@ $(LIBA52_CFLAGS)
 DEBUG_CFLAGS = @DEBUG_CFLAGS@ $(LIBA52_CFLAGS)
 
 
@@ -8,13 +8,21 @@ libdir = $(XINE_PLUGINDIR)
 
 lib_LTLIBRARIES = xineplug_decode_a52.la
 
-xineplug_decode_a52_la_SOURCES =  bitstream.c bit_allocate.c \
-	parse.c downmix.c imdct.c \
+xineplug_decode_a52_la_SOURCES = \
+	bitstream.c \
+	bit_allocate.c \
+	downmix.c \
+	imdct.c \
+	parse.c \
 	xine_decoder.c
+
 xineplug_decode_a52_la_LDFLAGS = -avoid-version -module
 
-noinst_HEADERS = a52.h a52_internal.h \
-	bitstream.h tables.h
+noinst_HEADERS = \
+	a52.h \
+	a52_internal.h \
+	bitstream.h \
+	tables.h
 
 ##
 ## Install header files (default=$includedir/xine)

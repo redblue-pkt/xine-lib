@@ -1,7 +1,10 @@
-CFLAGS = @CFLAGS@ -DXINE_COMPILE $(ALSA_CFLAGS) $(ESD_CFLAGS) $(IRIXAL_CFLAGS) $(ARTS_CFLAGS)
+AM_CFLAGS = @CFLAGS@ -DXINE_COMPILE $(ALSA_CFLAGS) $(ESD_CFLAGS) $(IRIXAL_CFLAGS) $(ARTS_CFLAGS)
 
-EXTRA_DIST = audio_alsa_out.c audio_esd_out.c \
-	     audio_sun_out.c audio_arts_out.c audio_irixal_out.c
+EXTRA_DIST = audio_alsa_out.c \
+	audio_arts_out.c \
+	audio_esd_out.c \
+	audio_irixal_out.c \
+	audio_sun_out.c 
 
 LIBTOOL = $(SHELL) $(top_builddir)/libtool-nofpic
 
@@ -42,8 +45,13 @@ endif
 #lib_LTLIBRARIES = $(oss_module) $(alsa_module) $(sun_module) \
 #		  $(arts_module) $(esd_module)
 
-lib_LTLIBRARIES = $(oss_module) $(alsa_module) $(esd_module) $(sun_module) $(arts_module) \
-		  $(irixal_module) 
+lib_LTLIBRARIES = \
+	$(alsa_module) \
+	$(arts_module) \
+	$(esd_module) \
+	$(irixal_module) \
+	$(oss_module) \
+	$(sun_module) 
 
 xineplug_ao_out_oss_la_SOURCES = audio_oss_out.c
 xineplug_ao_out_oss_la_LDFLAGS = -avoid-version -module
@@ -68,8 +76,13 @@ xineplug_ao_out_arts_la_SOURCES = audio_arts_out.c
 xineplug_ao_out_arts_la_LIBADD = $(ARTS_LIBS)
 xineplug_ao_out_arts_la_LDFLAGS = -avoid-version -module
 
-noinst_HEADERS = audio_oss_out.h audio_alsa_out.h audio_esd_out.h \
-	audio_sun_out.h audio_arts_out.h audio_irixal_out.h
+noinst_HEADERS = \
+	audio_alsa_out.h \
+	audio_arts_out.h \
+	audio_esd_out.h \
+	audio_irixal_out.h \
+	audio_oss_out.h \
+	audio_sun_out.h
 
 debug:
 	@$(MAKE) CFLAGS="$(DEBUG_CFLAGS)"

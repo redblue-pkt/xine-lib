@@ -256,13 +256,13 @@ AC_DEFUN([AM_CHECK_CDROM_IOCTLS],
 dnl AC_CHECK_IP_MREQN
 dnl check for struct ip_mreqn in netinet/in.h
 AC_DEFUN([AC_CHECK_IP_MREQN],
-         [AC_CACHE_CHECK([for ip_mreqn],[ac_cv_have_ip_mreqn],
-            [AC_EGREP_HEADER([ip_mreqn],[netinet/in.h],
-	        ac_cv_have_ip_mreqn=yes,ac_cv_have_ip_mreqn=no)
-          ])
-          have_ip_mreqn=$ac_cv_have_ip_mreqn
-          if test "x$have_ip_mreqn" = xyes ; then
-             AC_DEFINE(HAVE_IP_MREQN)
-          fi
+         [AC_CACHE_CHECK([for ip_mreqn], [ac_cv_have_ip_mreqn],
+		[AC_EGREP_HEADER([ip_mreqn],
+			[netinet/in.h],
+			[ac_cv_have_ip_mreqn=yes],
+			[ac_cv_have_ip_mreqn=no])])
+	  if test $ac_cv_have_ip_mreqn = yes; then
+             AC_DEFINE([HAVE_IP_MREQN],1,[Define this if you have ip_mreqn in netinet/in.h])
+	  fi
 ])
 

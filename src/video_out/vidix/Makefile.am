@@ -14,6 +14,9 @@ libvidix_la_SOURCES = vidixlib.c
 
 noinst_HEADERS = fourcc.h vidix.h vidixlib.h
 
+AM_CPPFLAGS = -I$(top_srcdir)/src/video_out/vidix \
+	-I$(top_srcdir)/src/video_out/libdha
+
 debug:
 	@$(MAKE) CFLAGS="$(DEBUG_CFLAGS) @STATIC@ -DXINE_COMPILE"
 

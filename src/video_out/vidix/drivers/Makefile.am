@@ -4,8 +4,15 @@ LIBTOOL = $(SHELL) $(top_builddir)/libtool-nofpic
 libdir = $(XINE_PLUGINDIR)/vidix
 
 if HAVE_VIDIX
-vidix_drivers = radeon_vid.la rage128_vid.la pm3_vid.la mach64_vid.la nvidia_vid.la \
-	genfb_vid.la mga_vid.la mga_crtc2_vid.la
+vidix_drivers = \
+	genfb_vid.la \
+	mach64_vid.la \
+	mga_crtc2_vid.la \
+	mga_vid.la \
+	nvidia_vid.la \
+	pm3_vid.la \
+	radeon_vid.la \
+	rage128_vid.la
 endif
 
 lib_LTLIBRARIES = $(vidix_drivers)
@@ -73,6 +80,9 @@ mga_crtc2_vid_la_LIBADD = $(top_builddir)/src/video_out/libdha/libdha.la -lm
 mga_crtc2_vid_la_LDFLAGS = -avoid-version -module
 
 noinst_HEADERS = mach64.h nvidia.h pm3_regs.h radeon.h
+
+AM_CPPFLAGS = -I$(top_srcdir)/src/video_out/vidix \
+	-I$(top_srcdir)/src/video_out/libdha
 
 debug:
 	@$(MAKE) CFLAGS="$(DEBUG_CFLAGS) -DXINE_COMPILE"

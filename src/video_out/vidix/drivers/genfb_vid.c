@@ -6,11 +6,11 @@
 #include <inttypes.h>
 #include <fcntl.h>
 
-#include "../vidix.h"
-#include "../fourcc.h"
-#include "../../libdha/libdha.h"
-#include "../../libdha/pci_ids.h"
-#include "../../libdha/pci_names.h"
+#include "vidix.h"
+#include "fourcc.h"
+#include "libdha.h"
+#include "pci_ids.h"
+#include "pci_names.h"
 
 #define DEMO_DRIVER 1
 

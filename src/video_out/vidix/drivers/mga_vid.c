@@ -54,11 +54,11 @@
 #include <math.h>
 #include <inttypes.h>
 
-#include "../vidix.h"
-#include "../fourcc.h"
-#include "../../libdha/libdha.h"
-#include "../../libdha/pci_ids.h"
-#include "../../libdha/pci_names.h"
+#include "vidix.h"
+#include "fourcc.h"
+#include "libdha.h"
+#include "pci_ids.h"
+#include "pci_names.h"
 
 #if    !defined(ENOTSUP) && defined(EOPNOTSUPP)
 #define ENOTSUP EOPNOTSUPP

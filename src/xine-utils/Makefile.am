@@ -2,7 +2,7 @@
 ## Process this file with automake to produce Makefile.in
 ##
 
-lib_LTLIBRARIES = libxineutils.la
+noinst_LTLIBRARIES = libxineutils.la
 
 EXTRA_DIST = ppcasm_string.S ppc_asm.tmpl
 
@@ -12,13 +12,28 @@ endif
 
 CFLAGS = @CFLAGS@ $(THREAD_CFLAGS)
 
-libxineutils_la_SOURCES = $(pppc_files) utils.c memcpy.c monitor.c cpu_accel.c xine_mutex.c xmllexer.c xmlparser.c color.c list.c
+libxineutils_la_SOURCES = $(pppc_files) \
+	cpu_accel.c \
+	color.c \
+	list.c \
+	memcpy.c \
+	monitor.c \
+	utils.c \
+	xine_mutex.c \
+	xmllexer.c \
+	xmlparser.c
+
 libxineutils_la_LIBADD = $(THREAD_LIBS)
 libxineutils_la_LDFLAGS =  \
 	-version-info $(LT_CURRENT):$(LT_REVISION):$(LT_AGE)
 
 
-include_HEADERS = xineutils.h attributes.h compat.h xmllexer.h xmlparser.h ppcasm_string.h
+include_HEADERS = attributes.h \
+	compat.h \
+	ppcasm_string.h \
+	xineutils.h \
+	xmllexer.h \
+	xmlparser.h
 
 debug:
 	@$(MAKE) CFLAGS="$(DEBUG_CFLAGS) $(THREAD_CFLAGS)"

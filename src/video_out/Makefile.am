@@ -1,9 +1,13 @@
 SUBDIRS = libdha vidix
 
-VIDIX_CFLAGS = -I$(top_builddir)/src/video_out/vidix -I$(top_srcdir)/src/video_out/vidix
+VIDIX_CFLAGS = -I$(top_builddir)/src/video_out/vidix \
+	-I$(top_srcdir)/src/video_out/vidix
 
-CFLAGS = @CFLAGS@ $(X_CFLAGS) $(LIBMPEG2_CFLAGS) -DXINE_COMPILE $(SDL_CFLAGS) $(VIDIX_CFLAGS)
-DEBUG_CFLAGS = @DEBUG_CFLAGS@ $(X_CFLAGS) $(LIBMPEG2_CFLAGS) -DXINE_COMPILE $(SDL_CFLAGS) $(VIDIX_CFLAGS)
+CFLAGS = @CFLAGS@ $(X_CFLAGS) $(LIBMPEG2_CFLAGS) \
+	-DXINE_COMPILE $(SDL_CFLAGS) $(VIDIX_CFLAGS)
+
+DEBUG_CFLAGS = @DEBUG_CFLAGS@ $(X_CFLAGS) $(LIBMPEG2_CFLAGS) \
+	-DXINE_COMPILE $(SDL_CFLAGS) $(VIDIX_CFLAGS)
 
 LIBTOOL = $(SHELL) $(top_builddir)/libtool-nofpic
 
@@ -51,24 +55,28 @@ endif
 lib_LTLIBRARIES = $(xshm_module) $(xv_module) $(aa_module)
 
 xineplug_vo_out_xv_la_SOURCES = deinterlace.c alphablend.c video_out_xv.c
-xineplug_vo_out_xv_la_LIBADD =  $(XV_LIB) $(X_LIBS) -lXext \
-	$(top_builddir)/src/xine-utils/libxineutils.la
+xineplug_vo_out_xv_la_LIBADD = \
+	$(XV_LIB) \
+	$(X_LIBS) \
+	-lXext \
+	$(top_builddir)/src/xine-engine/libxine.la
+
 xineplug_vo_out_xv_la_LDFLAGS = -avoid-version -module
 
 xineplug_vo_out_xshm_la_SOURCES = yuv2rgb.c yuv2rgb_mmx.c yuv2rgb_mlib.c \
 	alphablend.c video_out_xshm.c
 xineplug_vo_out_xshm_la_LIBADD =  $(X_LIBS) -lXext \
-	$(top_builddir)/src/xine-utils/libxineutils.la
+	$(top_builddir)/src/xine-engine/libxine.la
 xineplug_vo_out_xshm_la_LDFLAGS = -avoid-version -module
 
 #xineplug_vo_out_opengl_la_SOURCES = yuv2rgb.c yuv2rgb_mmx.c yuv2rgb_mlib.c \
 #	alphablend.c video_out_opengl.c
 #xineplug_vo_out_opengl_la_LIBADD =  $(OPENGL_LIBS) $(GLUT_LIBS) $(GLU_LIBS) $(X_LIBS) \
-#	$(top_builddir)/src/xine-utils/libxineutils.la
+#	$(top_builddir)/src/xine-engine/libxine.la
 #xineplug_vo_out_opengl_la_LDFLAGS = -avoid-version -module
 #
 #xineplug_vo_out_syncfb_la_SOURCES = alphablend.c video_out_syncfb.c 
-#xineplug_vo_out_syncfb_la_LIBADD = $(X_LIBS) $(top_builddir)/src/xine-utils/libxineutils.la
+#xineplug_vo_out_syncfb_la_LIBADD = $(X_LIBS) $(top_builddir)/src/xine-engine/libxine.la
 #xineplug_vo_out_syncfb_la_LDFLAGS = -avoid-version -module
 #
 xineplug_vo_out_aa_la_SOURCES =  video_out_aa.c
@@ -77,7 +85,7 @@ xineplug_vo_out_aa_la_LDFLAGS = -avoid-version -module
 #
 #xineplug_vo_out_fb_la_SOURCES = yuv2rgb.c yuv2rgb_mmx.c yuv2rgb_mlib.c \
 #	alphablend.c video_out_fb.c
-#xineplug_vo_out_fb_la_LIBADD = $(top_builddir)/src/xine-utils/libxineutils.la
+#xineplug_vo_out_fb_la_LIBADD = $(top_builddir)/src/xine-engine/libxine.la
 #xineplug_vo_out_fb_la_LDFLAGS = -avoid-version -module
 #
 #xineplug_vo_out_directfb_la_SOURCES = alphablend.c video_out_directfb.c
@@ -92,7 +100,7 @@ xineplug_vo_out_aa_la_LDFLAGS = -avoid-version -module
 #xineplug_vo_out_vidix_la_LIBADD =  $(X_LIBS) $(top_builddir)/src/video_out/vidix/libvidix.la
 #xineplug_vo_out_vidix_la_LDFLAGS = -avoid-version -module
 
-noinst_HEADERS = yuv2rgb.h video_out_syncfb.h alphablend.h deinterlace.h
+noinst_HEADERS = alphablend.h deinterlace.h video_out_syncfb.h yuv2rgb.h 
 
 debug:
 	@$(MAKE) CFLAGS="$(DEBUG_CFLAGS) -DXINE_COMPILE"

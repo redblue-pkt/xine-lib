@@ -8,30 +8,55 @@ EXTRA_DIST = fdctref.c imgresample.c
 
 #CFLAGS = -D_FILE_OFFSET_BITS=64 @CFLAGS@
 
-CFLAGS = @CFLAGS@ $(LIBFFMPEG_CFLAGS)
+AM_CFLAGS = @CFLAGS@ $(LIBFFMPEG_CFLAGS)
 ASFLAGS =
 
 LIBTOOL = $(SHELL) $(top_builddir)/libtool-nofpic
 
 noinst_LTLIBRARIES = libavcodec.la
 
-libavcodec_la_SOURCES = common.c utils.c mpegvideo.c h263.c jrevdct.c jfdctfst.c \
-			mjpeg.c dsputil.c svq1.c jfdctint.c \
-			motion_est.c imgconvert.c msmpeg4.c \
-			mpeg12.c h263dec.c rv10.c simple_idct.c \
-			ratecontrol.c mem.c eval.c
+libavcodec_la_SOURCES = \
+	common.c \
+	dsputil.c \
+	eval.c \
+	h263.c \
+	h263dec.c \
+	imgconvert.c \
+	jfdctfst.c \
+	jfdctint.c \
+	jrevdct.c \
+	mem.c \
+	mjpeg.c \
+	motion_est.c \
+	mpeg12.c
+	mpegvideo.c \
+	msmpeg4.c \
+	ratecontrol.c \
+	rv10.c \
+	simple_idct.c \
+	svq1.c \
+	utils.c	 
 #imgresample.c
 
 libavcodec_la_LDFLAGS = \
-		$(top_builddir)/src/libffmpeg/libavcodec/armv4l/libavcodec_armv4l.la \
-		$(top_builddir)/src/libffmpeg/libavcodec/i386/libavcodec_mmx.la \
-		$(top_builddir)/src/libffmpeg/libavcodec/mlib/libavcodec_mlib.la \
-		-avoid-version -module
+	$(top_builddir)/src/libffmpeg/libavcodec/armv4l/libavcodec_armv4l.la \
+	$(top_builddir)/src/libffmpeg/libavcodec/i386/libavcodec_mmx.la \
+	$(top_builddir)/src/libffmpeg/libavcodec/mlib/libavcodec_mlib.la \
+	-avoid-version -module
 
 
-noinst_HEADERS = avcodec.h    dsputil.h   mpegvideo.h \
-		 common.h     h263data.h  mpeg4data.h   msmpeg4data.h \
-		 mpeg12data.h simple_idct.h mangle.h svq1_cb.h
+noinst_HEADERS = \
+	avcodec.h \
+	common.h \
+	dsputil.h \
+	h263data.h \
+	mangle.h \
+	mpeg4data.h \
+	mpeg12data.h \
+	mpegvideo.h \
+	msmpeg4data.h \
+	simple_idct.h \
+	svq1_cb.h
 
 .s.lo:
 	$(ASCOMPILE) -o $@ `test -f $< || echo '$(srcdir)/'`$<

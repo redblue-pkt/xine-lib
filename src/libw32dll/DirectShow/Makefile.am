@@ -15,12 +15,27 @@ endif
 
 noinst_LTLIBRARIES = $(ds_filter_lib)
 
-libds_filter_la_SOURCES = guids.c inputpin.c outputpin.c allocator.c \
-	cmediasample.c DS_Filter.c DS_AudioDecoder.c DS_VideoDecoder.c
+libds_filter_la_SOURCES = \
+	allocator.c \
+	cmediasample.c \
+	guids.c \
+	inputpin.c \
+	outputpin.c \
+	DS_Filter.c \
+	DS_AudioDecoder.c \
+	DS_VideoDecoder.c
 
-noinst_HEADERS = DS_Filter.h allocator.h cmediasample.h \
-	guids.h inputpin.h interfaces.h iunk.h outputpin.h \
-	DS_AudioDecoder.h DS_VideoDecoder.h
+noinst_HEADERS = \
+	allocator.h \
+	cmediasample.h \
+	guids.h \
+	inputpin.h \
+	interfaces.h \
+	iunk.h \
+	outputpin.h \
+	DS_AudioDecoder.h \
+	DS_Filter.h \
+	DS_VideoDecoder.h
 
 debug:
 	@$(MAKE) CFLAGS="$(DEBUG_CFLAGS)"

@@ -7,12 +7,19 @@ LIBTOOL = $(SHELL) $(top_builddir)/libtool-nofpic
 
 libdir = $(XINE_PLUGINDIR)
 
-lib_LTLIBRARIES = xineplug_decode_cinepak.la xineplug_decode_cyuv.la \
-	xineplug_decode_msvc.la xineplug_decode_roqvideo.la \
-	xineplug_decode_svq1.la xineplug_decode_fli.la \
-	xineplug_decode_rgb.la xineplug_decode_yuv.la \
-	xineplug_decode_msrle.la xineplug_decode_idcinvideo.la \
-	xineplug_decode_qtsmc.la xineplug_decode_qtrpza.la \
+lib_LTLIBRARIES = \
+	xineplug_decode_cinepak.la \
+	xineplug_decode_cyuv.la \
+	xineplug_decode_fli.la \
+	xineplug_decode_idcinvideo.la \
+	xineplug_decode_msrle.la \
+	xineplug_decode_msvc.la \
+	xineplug_decode_qtsmc.la \
+	xineplug_decode_roqvideo.la \
+	xineplug_decode_rgb.la \
+	xineplug_decode_svq1.la \
+	xineplug_decode_yuv.la \
+	xineplug_decode_qtrpza.la \
 	xineplug_decode_wc3video.la
 
 xineplug_decode_cinepak_la_SOURCES = cinepak.c

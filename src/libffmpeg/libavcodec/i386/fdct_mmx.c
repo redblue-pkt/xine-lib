@@ -10,7 +10,7 @@
 #include "../common.h"
 #include "mmx.h"
 
-#define ATTR_ALIGN(align) __attribute__ ((__aligned__ (align)))
+//#define ATTR_ALIGN(align) __attribute__ ((__aligned__ (align)))
 
 //////////////////////////////////////////////////////////////////////
 //

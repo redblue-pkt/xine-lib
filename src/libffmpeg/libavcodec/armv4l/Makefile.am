@@ -4,14 +4,14 @@
 
 #CFLAGS = @CFLAGS@ @LIBFFMPEG_CFLAGS@
 
-CFLAGS = -O2 $(LIBFFMPEG_CFLAGS)
+AM_CFLAGS = -O2 $(LIBFFMPEG_CFLAGS)
 ASFLAGS =
 
 LIBTOOL = $(SHELL) $(top_builddir)/libtool-nofpic
 
 noinst_LTLIBRARIES = libavcodec_armv4l.la
 
-libavcodec_armv4l_src =  jrevdct_arm.S dsputil_arm.c
+libavcodec_armv4l_src = dsputil_arm.c jrevdct_arm.S 
 libavcodec_armv4l_dummy =  libavcodec_armv4l_dummy.c
 EXTRA_DIST =  $(libavcodec_armv4l_src) $(libavcodec_armv4l_dummy)
 

@@ -6,7 +6,7 @@
 
 # we must not use CFLAGS here, gcc optimizations produce
 # bad code if we do so.
-CFLAGS = -O2 $(LIBFFMPEG_CFLAGS)
+AM_CFLAGS = -O2 $(LIBFFMPEG_CFLAGS)
 
 ASFLAGS =
 
@@ -14,13 +14,20 @@ LIBTOOL = $(SHELL) $(top_builddir)/libtool-nofpic
 
 noinst_LTLIBRARIES = libavcodec_mmx.la
 
-libavcodec_mmx_src =  fdct_mmx.c \
-              dsputil_mmx.c mpegvideo_mmx.c \
-              idct_mmx.c motion_est_mmx.c \
-              simple_idct_mmx.c
+libavcodec_mmx_src = \
+	dsputil_mmx.c \
+	fdct_mmx.c \
+	idct_mmx.c \
+	motion_est_mmx.c \
+        mpegvideo_mmx.c \
+	simple_idct_mmx.c
+
 libavcodec_mmx_dummy = libavcodec_mmx_dummy.c
 
-EXTRA_DIST =  $(libavcodec_mmx_src) $(libavcodec_mmx_dummy) mpegvideo_mmx_template.c
+EXTRA_DIST = \
+	$(libavcodec_mmx_dummy) \
+	$(libavcodec_mmx_src) \
+	mpegvideo_mmx_template.c
 
 if HAVE_FFMMX
 mmx_modules = $(libavcodec_mmx_src)

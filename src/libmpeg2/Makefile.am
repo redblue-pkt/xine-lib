@@ -12,10 +12,22 @@ lib_LTLIBRARIES = xineplug_decode_mpeg2.la
 #libmpeg2_la_SOURCES = slice.c header.c stats.c idct.c motion_comp.c\
 #	decode.c  idct_mmx.c motion_comp_mmx.c
 
-xineplug_decode_mpeg2_la_SOURCES = slice.c header.c stats.c idct.c \
-	motion_comp.c decode.c idct_mmx.c motion_comp_mmx.c \
-	idct_mlib.c motion_comp_mlib.c idct_altivec.c \
-	motion_comp_altivec.c cpu_state.c xine_decoder.c
+xineplug_decode_mpeg2_la_SOURCES = \
+	cpu_state.c \
+	decode.c \
+	header.c \
+	idct.c \
+	idct_altivec.c \
+	idct_mlib.c \
+	idct_mmx.c \
+	motion_comp.c \
+	motion_comp_altivec.c \
+	motion_comp_mmx.c \
+	motion_comp_mlib.c \
+	slice.c \
+	stats.c \
+	xine_decoder.c
+
 xineplug_decode_mpeg2_la_LIBADD = $(top_builddir)/src/xine-engine/libxine.la
 xineplug_decode_mpeg2_la_LDFLAGS = -avoid-version -module
 

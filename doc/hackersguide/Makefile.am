@@ -3,9 +3,6 @@ EXTRA_DIST = README intro.sgml hackersguide.sgml architecture.fig
 
 docdir = $(prefix)/share/doc/xine/hackersguide
 
-
-
-
 mostlyclean-generic:
 	-rm -f *~ \#* .*~ .\#*
 

@@ -1,4 +1,8 @@
-EXTRA_DIST = asm.h dsputil_alpha.c mpegvideo_alpha.c pixops.h motion_est_alpha.c
+EXTRA_DIST = asm.h \
+	dsputil_alpha.c \
+	mpegvideo_alpha.c \
+	pixops.h \
+	motion_est_alpha.c
 
 all:
 debug:

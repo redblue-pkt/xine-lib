@@ -4,8 +4,10 @@
 
 libdir = $(XINE_PLUGINDIR)
 
-lib_LTLIBRARIES = xineplug_decode_roqaudio.la xineplug_decode_adpcm.la \
-	xineplug_decode_logpcm.la
+lib_LTLIBRARIES = \
+	xineplug_decode_adpcm.la \
+	xineplug_decode_logpcm.la \
+	xineplug_decode_roqaudio.la 
 
 xineplug_decode_roqaudio_la_SOURCES = roqaudio.c
 xineplug_decode_roqaudio_la_LDFLAGS = -avoid-version -module

@@ -1,10 +1,15 @@
 SUBDIRS = fonts
 
-EXTRA_DIST = autogen.sh SlackBuild.in SlackBuild build_rpms.sh \
-	xine-lib.spec.in xine-lib.spec xine-fontconv.c \
-	xine_logo.mpv vga.xinefont.gz
+EXTRA_DIST = autogen.sh \
+	build_rpms.sh \
+	SlackBuild.in \
+	SlackBuild \
+	vga.xinefont.gz \
+	xine-fontconv.c \
+	xine-lib.spec.in \
+	xine-lib.spec \
+	xine_logo.mpv
 
-datadir = $(XINE_SKINDIR)
 data_DATA = xine_logo.mpv
 
 bin_SCRIPTS = xine-config
@@ -23,4 +28,4 @@ maintainer-clean-generic:
 	-rm -f Makefile.in
 
 xine-fontconv:	xine-fontconv.c
-	gcc -g -o xine-fontconv xine-fontconv.c -lfreetype -lz -I/usr/include/freetype2
+	$(CC) -g -o xine-fontconv xine-fontconv.c -lfreetype -lz -I/usr/include/freetype2

@@ -2,7 +2,7 @@
 ## Process this file with automake to produce Makefile.in
 ##
 
-CFLAGS = @CFLAGS@ $(VORBIS_CFLAGS)
+AM_CFLAGS = @CFLAGS@ $(VORBIS_CFLAGS)
 
 LIBTOOL = $(SHELL) $(top_builddir)/libtool-nofpic
 
