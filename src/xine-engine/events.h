@@ -62,6 +62,20 @@ extern "C" {
 #define XINE_EVENT_CLOSED_CAPTION       24
 #define XINE_EVENT_INPUT_BUTTON_FORCE   25
 
+#define XINE_EVENT_INPUT_NUMBER_0       30
+#define XINE_EVENT_INPUT_NUMBER_1       31
+#define XINE_EVENT_INPUT_NUMBER_2       32
+#define XINE_EVENT_INPUT_NUMBER_3       33
+#define XINE_EVENT_INPUT_NUMBER_4       34
+#define XINE_EVENT_INPUT_NUMBER_5       35
+#define XINE_EVENT_INPUT_NUMBER_6       36
+#define XINE_EVENT_INPUT_NUMBER_7       37
+#define XINE_EVENT_INPUT_NUMBER_8       38
+#define XINE_EVENT_INPUT_NUMBER_9       39
+#define XINE_EVENT_INPUT_NUMBER_10_ADD  40
+
+
+
 /*
  * generic event type.
  */
