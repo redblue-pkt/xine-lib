@@ -8,6 +8,7 @@ xine (0.9.10) unstable; urgency=low
   * libwin32 compilation fixes
   * dxr3 compilation fixes
   * SyncFB video-out (brightness/contrast control is back, updated doc, ...)
+  * new spec file for rpm package generation
 	
  -- Guenter Bartsch <guenter@users.sourceforge.net> 
 
