@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.8 2001/08/13 12:52:33 ehasenle Exp $
+ * $Id: xine_decoder.c,v 1.9 2001/08/15 09:07:16 ehasenle Exp $
  *
  * stuff needed to turn libspu into a xine decoder plugin
  */
@@ -96,8 +96,9 @@ static void spudec_reset (spudec_decoder_t *this) {
 
   this->state.visible = 0;
 
-  for (i = 0; i < NUM_SEQ_BUFFERS; i++) {
-    this->seq_list[i].finished = 1;
+  this->seq_list[0].finished = 1;   /* mark as cur_seq */
+  for (i = 1; i < NUM_SEQ_BUFFERS; i++) {
+    this->seq_list[i].finished = 2; /* free for reassembly */
   }
   this->ra_complete = 1;
   this->cur_seq = this->ra_seq = this->seq_list;
@@ -140,7 +141,7 @@ void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
     if (tmp_seq >= this->seq_list + NUM_SEQ_BUFFERS)
       tmp_seq = this->seq_list;
     
-    if (tmp_seq->finished) {
+    if (tmp_seq->finished > 1) {
       this->ra_seq = tmp_seq;
       this->ra_seq->PTS = this->buf_pts;
     }
@@ -161,6 +162,7 @@ static void spudec_nextseq(spudec_decoder_t* this) {
     tmp_seq = this->seq_list;
   
   if (!tmp_seq->finished) { /* is the next seq ready for process? */
+    this->cur_seq->finished = 2; /* ready for reassembly */
     this->cur_seq = tmp_seq;
     this->state.cmd_ptr = this->cur_seq->buf + this->cur_seq->cmd_offs;
     this->state.next_pts = -1; /* invalidate timestamp */
