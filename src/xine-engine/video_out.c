@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.97 2002/05/18 12:36:03 miguelfreitas Exp $
+ * $Id: video_out.c,v 1.98 2002/05/21 22:16:14 miguelfreitas Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -344,9 +344,14 @@ static void expire_frames (vos_t *this, int64_t cur_vpts) {
     diff = cur_vpts - pts;
       
     if (diff > img->duration) {
-      xine_log(this->xine, XINE_LOG_MSG,
-	       _("video_out: throwing away image with pts %lld because "
-		 "it's too old (diff : %lld).\n"), pts, diff);
+
+      /* do not print this message in stop/exit (scr is adjusted to force
+       * discarding audio and video frames)
+       */
+      if( diff < 20 * 90000 )
+        xine_log(this->xine, XINE_LOG_MSG,
+	         _("video_out: throwing away image with pts %lld because "
+		   "it's too old (diff : %lld).\n"), pts, diff);
 
       this->num_frames_discarded++;
 
