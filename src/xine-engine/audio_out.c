@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.175 2004/05/16 21:39:55 jcdutton Exp $
+ * $Id: audio_out.c,v 1.176 2004/05/17 21:28:06 jcdutton Exp $
  *
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -1873,7 +1873,7 @@ xine_audio_port_t *_x_ao_new_port (xine_t *xine, ao_driver_t *driver,
   this->grab_only              = grab_only;
   this->flush_audio_driver     = 0;
   this->discard_buffers        = 0;
-  this->zero_space             = xine_xmalloc (ZERO_BUF_SIZE * 2 * 6);
+  this->zero_space             = xine_xmalloc (ZERO_BUF_SIZE * 4 * 6); /* MAX as 32bit, 6 channels. */
   
   pthread_mutex_init( &this->flush_audio_driver_lock, NULL );
   pthread_cond_init( &this->flush_audio_driver_reached, NULL );

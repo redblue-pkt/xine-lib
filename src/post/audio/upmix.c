@@ -23,7 +23,7 @@
  * It simply creates output channels to match the speaker arrangement.
  * E.g. Converts Stereo into Surround 5.1
  *
- * $Id: upmix.c,v 1.9 2004/05/17 16:19:05 jcdutton Exp $
+ * $Id: upmix.c,v 1.10 2004/05/17 21:28:06 jcdutton Exp $
  *
  */
 
@@ -325,7 +325,7 @@ static void upmix_port_put_buffer (xine_audio_port_t *port_gen,
   int num_frames;
   int num_frames_done;
   int num_frames_processed=0;
- 
+
   if ((this->channels==2) && (this->channels_out==6)) {
     while (num_frames_processed < buf->num_frames) {
       this->buf = port->original_port->get_buffer(port->original_port); 
