@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.101 2002/10/24 13:52:57 jcdutton Exp $
+ * $Id: input_dvd.c,v 1.102 2002/10/24 15:06:55 jkeil Exp $
  *
  */
 
@@ -115,10 +115,18 @@
 #define VIDEO_FILL_THROTTLE 5
 
 /* Debugging macros */
-#ifdef INPUT_DEBUG_TRACE
-#define trace_print(s, args...) printf("input_dvd: " __FUNCTION__ ": " s, ##args);
+#ifdef __GNUC__
+# ifdef INPUT_DEBUG_TRACE
+#  define trace_print(s, args...) printf("input_dvd: " __func__ ": " s, ##args);
+# else
+#  define trace_print(s, args...) /* Nothing */
+# endif
 #else
-#define trace_print(s, args...) /* Nothing */
+# ifdef INPUT_DEBUG_TRACE
+#  define trace_print(s, ...) printf("input_dvd: " __func__ ": " s, __VA_ARGS_);
+# else
+#  define trace_print(s, ...) /* Nothing */
+# endif
 #endif
 
 /* Globals */
@@ -1654,6 +1662,9 @@ static void *init_class (xine_t *xine, void *data) {
 
 /*
  * $Log: input_dvd.c,v $
+ * Revision 1.102  2002/10/24 15:06:55  jkeil
+ * C99 version of macro definition with variable number of arguments added
+ *
  * Revision 1.101  2002/10/24 13:52:57  jcdutton
  * Fix some log messages in audio_alsa_out.c
  * Fix input_dvd.c for new config file loading before init_class().

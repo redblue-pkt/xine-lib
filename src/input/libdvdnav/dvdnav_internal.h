@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dvdnav_internal.h,v 1.4 2002/08/27 19:24:33 mroi Exp $
+ * $Id: dvdnav_internal.h,v 1.5 2002/10/24 15:04:41 jkeil Exp $
  *
  */
 
@@ -161,7 +161,11 @@ struct dvdnav_s {
 
 /** USEFUL MACROS **/
 
+#ifdef __GNUC__
 #define printerrf(format, args...) snprintf(this->err_str, MAX_ERR_LEN, format, ## args);
+#else
+#define printerrf(...) snprintf(this->err_str, MAX_ERR_LEN, __VA_ARGS__);
+#endif
 #define printerr(str) strncpy(this->err_str, str, MAX_ERR_LEN);
 /* Save my typing */
 
