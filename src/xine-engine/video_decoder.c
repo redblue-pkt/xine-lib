@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.89 2002/06/10 13:41:55 miguelfreitas Exp $
+ * $Id: video_decoder.c,v 1.90 2002/06/19 23:42:50 tmattern Exp $
  *
  */
 
@@ -212,11 +212,15 @@ void *video_decoder_loop (void *this_gen) {
 
       this->video_in_discontinuity = 1;
 
-      this->metronom->handle_video_discontinuity (this->metronom, DISC_ABSOLUTE, buf->disc_off);
-      
+      if (buf->decoder_flags && BUF_FLAG_SEEK) {
+        this->metronom->handle_video_discontinuity (this->metronom, DISC_STREAMSEEK, buf->disc_off);
+      } else {
+        this->metronom->handle_video_discontinuity (this->metronom, DISC_ABSOLUTE, buf->disc_off);
+      }
+
       this->video_in_discontinuity = 0;
       break;
-    
+
     case BUF_CONTROL_AUDIO_CHANNEL:
       {
 	xine_ui_event_t  ui_event;
