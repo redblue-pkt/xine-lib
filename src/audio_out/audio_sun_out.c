@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_sun_out.c,v 1.5 2001/08/14 01:38:17 guenter Exp $
+ * $Id: audio_sun_out.c,v 1.6 2001/08/23 15:21:07 jkeil Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -34,12 +34,13 @@
 #include <sys/audioio.h>
 #include <sys/ioctl.h>
 #include <inttypes.h>
+#ifdef	__svr4__
+#include <stropts.h>
+#endif
 
 #include "xine_internal.h"
 #include "monitor.h"
 #include "audio_out.h"
-#include "resample.h"
-#include "metronom.h"
 #include "utils.h"
 
 
@@ -56,11 +57,9 @@
 #define MAX_GAP              90000
 
 
-typedef struct sun_functions_s {
+typedef struct sun_driver_s {
 
-  ao_functions_t ao_functions;
-
-  metronom_t    *metronom;
+  ao_driver_t	 ao_driver;
 
   char		*audio_dev;
   int            audio_fd;
@@ -70,61 +69,181 @@ typedef struct sun_functions_s {
   int32_t        output_sample_rate, input_sample_rate;
   double         sample_rate_factor;
   uint32_t       num_channels;
+  int		 bytes_per_frame;
 
-  uint32_t       bytes_in_buffer;      /* number of bytes writen to audio hardware   */
+  uint32_t       frames_in_buffer;     /* number of frames writen to audio hardware   */
 
-  int            audio_step;           /* pts per 32 768 samples (sample = #bytes/2) */
-  int32_t        bytes_per_kpts;       /* bytes per 1024/90000 sec                   */
+  enum {
+      RTSC_UNKNOWN = 0,
+      RTSC_ENABLED,
+      RTSC_DISABLED
+  }		 use_rtsc;
+} sun_driver_t;
 
-  int16_t       *zero_space;
-  
-  int            audio_started;
-  uint32_t       last_audio_vpts;
-} sun_functions_t;
+
+/*
+ * try to figure out, if the soundcard driver provides usable (precise)
+ * sample counter information
+ */
+static int realtime_samplecounter_available(char *dev)
+{
+  int fd = -1;
+  audio_info_t info;
+  int rtsc_ok = RTSC_DISABLED;
+  int len;
+  void *silence = NULL;
+  struct timeval start, end;
+  struct timespec delay;
+  int usec_delay;
+  unsigned last_samplecnt;
+  unsigned increment;
+  unsigned min_increment;
+
+  len = 44100 * 4 / 4;    /* amount of data for 0.25sec of 44.1khz, stereo,
+			   * 16bit.  44kbyte can be sent to all supported
+			   * sun audio devices without blocking in the
+			   * "write" below.
+			   */
+  silence = calloc(1, len);
+  if (silence == NULL)
+    goto error;
+    
+  if ((fd = open(dev, O_WRONLY)) < 0)
+    goto error;
+
+  AUDIO_INITINFO(&info);
+  info.play.sample_rate = 44100;
+  info.play.channels = AUDIO_CHANNELS_STEREO;
+  info.play.precision = AUDIO_PRECISION_16;
+  info.play.encoding = AUDIO_ENCODING_LINEAR;
+  info.play.samples = 0;
+  if (ioctl(fd, AUDIO_SETINFO, &info)) {
+    xprintf(VERBOSE|AUDIO, "rtsc: SETINFO failed\n");
+    goto error;
+  }
+    
+  if (write(fd, silence, len) != len) {
+    xprintf(VERBOSE|AUDIO, "rtsc: write failed\n");
+    goto error;
+  }
+
+  if (ioctl(fd, AUDIO_GETINFO, &info)) {
+    xprintf(VERBOSE|AUDIO, "rtsc: GETINFO1, %s\n", strerror(errno));
+    goto error;
+  }
+
+  last_samplecnt = info.play.samples;
+  min_increment = ~0;
+
+  gettimeofday(&start, NULL);
+  for (;;) {
+    delay.tv_sec = 0;
+    delay.tv_nsec = 10000000;
+    nanosleep(&delay, NULL);
+    gettimeofday(&end, NULL);
+    usec_delay = (end.tv_sec - start.tv_sec) * 1000000
+	+ end.tv_usec - start.tv_usec;
+
+    /* stop monitoring sample counter after 0.2 seconds */
+    if (usec_delay > 200000)
+      break;
+
+    if (ioctl(fd, AUDIO_GETINFO, &info)) {
+	xprintf(VERBOSE|AUDIO, "rtsc: GETINFO2 failed, %s\n", strerror(errno));
+	goto error;
+    }
+    if (info.play.samples < last_samplecnt) {
+	xprintf(VERBOSE|AUDIO, "rtsc: %d > %d?\n", last_samplecnt, info.play.samples);
+	goto error;
+    }
+
+    if ((increment = info.play.samples - last_samplecnt) > 0) {
+	xprintf(VERBOSE|AUDIO, "ao_sun: sample counter increment: %d\n", increment);
+	if (increment < min_increment) {
+	  min_increment = increment;
+	  if (min_increment < 2000)
+	    break;	/* looks good */
+	}
+    }
+    last_samplecnt = info.play.samples;
+  }
+
+  /*
+   * For 44.1kkz, stereo, 16-bit format we would send sound data in 16kbytes
+   * chunks (== 4096 samples) to the audio device.  If we see a minimum
+   * sample counter increment from the soundcard driver of less than
+   * 2000 samples,  we assume that the driver provides a useable realtime
+   * sample counter in the AUDIO_INFO play.samples field.  Timing based
+   * on sample counts should be much more accurate than counting whole 
+   * 16kbyte chunks.
+   */
+  if (min_increment < 2000)
+    rtsc_ok = RTSC_ENABLED;
+
+  xprintf(VERBOSE|AUDIO,
+	  "ao_sun: minimum sample counter increment per 10msec interval: %d\n"
+	  "\t%susing sample counter based timing code\n",
+	  min_increment, rtsc_ok == RTSC_ENABLED ? "" : "not ");
+    
+
+error:
+  if (silence != NULL) free(silence);
+  if (fd >= 0) {
+#ifdef	__svr4__
+    /*
+     * remove the 0 bytes from the above measurement from the
+     * audio driver's STREAMS queue
+     */
+    ioctl(fd, I_FLUSH, FLUSHW);
+#endif
+    close(fd);
+  }
+
+  return rtsc_ok;
+}
+
 
 /*
  * open the audio device for writing to
  */
-static int ao_open(ao_functions_t *this_gen,
-		   uint32_t bits, uint32_t rate, int mode)
+static int ao_sun_open(ao_driver_t *self_gen,
+		       uint32_t bits, uint32_t rate, int mode)
 {
-  sun_functions_t *this = (sun_functions_t *) this_gen;
+  sun_driver_t *self = (sun_driver_t *) self_gen;
   audio_info_t info;
 
-  printf ("audio_sun_out: ao_open rate=%d, mode=%d\n", rate, mode);
+  printf ("audio_sun_out: ao_sun_open rate=%d, mode=%d\n", rate, mode);
 
-  if ( (mode & this->capabilities) == 0 ) {
+  if ( (mode & self->capabilities) == 0 ) {
     printf ("audio_sun_out: unsupported mode %08x\n", mode);
     return -1;
   }
 
-  if (this->audio_fd > -1) {
+  if (self->audio_fd > -1) {
 
-    if ( (mode == this->mode) && (rate == this->input_sample_rate) )
+    if ( (mode == self->mode) && (rate == self->input_sample_rate) )
       return 1;
 
-    close (this->audio_fd);
+    close (self->audio_fd);
   }
   
-  this->mode                   = mode;
-  this->input_sample_rate      = rate;
-  this->bytes_in_buffer        = 0;
-  this->audio_started          = 0;
-  this->last_audio_vpts	       = 0;
+  self->mode			= mode;
+  self->input_sample_rate	= rate;
+  self->frames_in_buffer	= 0;
 
   /*
    * open audio device
    */
 
-  this->audio_fd=open(this->audio_dev,O_WRONLY|O_NDELAY);
-  if(this->audio_fd < 0) {
+  self->audio_fd=open(self->audio_dev,O_WRONLY|O_NDELAY);
+  if(self->audio_fd < 0) {
     printf("audio_sun_out: Opening audio device %s: %s\n",
-	   this->audio_dev, strerror(errno));
+	   self->audio_dev, strerror(errno));
     return -1;
   }
   
   /* We wanted non blocking open but now put it back to normal */
-  fcntl(this->audio_fd, F_SETFL, fcntl(this->audio_fd, F_GETFL)&~O_NDELAY);
+  fcntl(self->audio_fd, F_SETFL, fcntl(self->audio_fd, F_GETFL)&~O_NDELAY);
 
   /*
    * configure audio device
@@ -136,245 +255,111 @@ static int ao_open(ao_functions_t *this_gen,
       : AUDIO_CHANNELS_MONO;
   info.play.precision = bits;
   info.play.encoding = AUDIO_ENCODING_LINEAR;
-  info.play.sample_rate = this->input_sample_rate;
+  info.play.sample_rate = self->input_sample_rate;
   info.play.eof = 0;
   info.play.samples = 0;
 
-  ioctl(this->audio_fd, AUDIO_SETINFO, &info);
+  ioctl(self->audio_fd, AUDIO_SETINFO, &info);
 
-  this->output_sample_rate = info.play.sample_rate;
-  this->num_channels = info.play.channels;
+  self->output_sample_rate = info.play.sample_rate;
+  self->num_channels = info.play.channels;
+
+  self->bytes_per_frame = 1;
+  if (info.play.channels == AUDIO_CHANNELS_STEREO)
+    self->bytes_per_frame *= 2;
+  if (info.play.precision == 16)
+    self->bytes_per_frame *= 2;
 
   xprintf (VERBOSE|AUDIO, "audio_sun_out: audio rate : %d requested, %d provided by device/sec\n",
-	   this->input_sample_rate, this->output_sample_rate);
+	   self->input_sample_rate, self->output_sample_rate);
 
-  printf ("audio_sun_out : %d channels output\n",this->num_channels);
-
-  this->sample_rate_factor = (double) this->output_sample_rate / (double) this->input_sample_rate;
-  this->audio_step         = (uint32_t) 90000 * (uint32_t) 32768 
-                                 / this->input_sample_rate;
-  this->bytes_per_kpts     = this->output_sample_rate * this->num_channels * 2 * 1024 / 90000;
-
-  xprintf (VERBOSE|AUDIO, "audio_out : audio_step %d pts per 32768 samples\n", this->audio_step);
-  printf ("audio_out : audio_step %d pts per 32768 samples\n", this->audio_step);
-
-  this->metronom->set_audio_rate(this->metronom, this->audio_step);
+  printf ("audio_sun_out : %d channels output\n",self->num_channels);
 
   return 1;
 }
 
-static void ao_fill_gap (sun_functions_t *this, uint32_t pts_len) {
-
-  int num_bytes;
-
-  if (pts_len > MAX_GAP)
-    pts_len = MAX_GAP;
-
-  num_bytes = pts_len * this->bytes_per_kpts / 1024;
-  num_bytes = (num_bytes / (2*this->num_channels)) * (2*this->num_channels);
-  if(this->mode == AO_CAP_MODE_AC3) return;
-  printf ("audio_sun_out: inserting %d 0-bytes to fill a gap of %d pts\n",num_bytes, pts_len);
-  
-  this->bytes_in_buffer += num_bytes;
-  
-  while (num_bytes>0) {
-    if (num_bytes>8192) {
-      write(this->audio_fd, this->zero_space, 8192);
-      num_bytes -= 8192;
-    } else {
-      write(this->audio_fd, this->zero_space, num_bytes);
-      num_bytes = 0;
-    }
-  }
+static int ao_sun_num_channels(ao_driver_t *self_gen) 
+{
+  sun_driver_t *self = (sun_driver_t *) self_gen;
+  return self->num_channels;
 }
 
-static int ao_write_audio_data(ao_functions_t *this_gen,
-			       int16_t* output_samples, uint32_t num_samples, 
-			       uint32_t pts_)
+static int ao_sun_bytes_per_frame(ao_driver_t *self_gen)
 {
+  sun_driver_t *self = (sun_driver_t *) self_gen;
+  return self->bytes_per_frame;
+}
 
-  sun_functions_t *this = (sun_functions_t *) this_gen;
-  uint32_t         vpts, buffer_vpts;
-  int32_t          gap;
-  int              bDropPackage;
-  uint16_t         sample_buffer[10000];
-  int              pos;
-  audio_info_t	   info;
+static int ao_sun_delay(ao_driver_t *self_gen)
+{
+  sun_driver_t *self = (sun_driver_t *) self_gen;
+  audio_info_t info;
 
-  if (this->audio_fd<0)
-    return 1;
-
-  vpts = this->metronom->got_audio_samples (this->metronom, pts_, num_samples);
-
-  if (vpts<this->last_audio_vpts) {
-    /* reject this */
-
-    return 1;
+  if (ioctl(self->audio_fd, AUDIO_GETINFO, &info) == 0
+      && info.play.samples
+      && self->use_rtsc == RTSC_ENABLED) {
+    return self->frames_in_buffer - info.play.samples;
   }
+  return 0;
+}
 
-  this->last_audio_vpts = vpts;
-
-  xprintf (VERBOSE|AUDIO, "audio_sun_out: got %d samples, vpts=%d\n",
-	   num_samples, vpts);
-
-  /*
-   * where, in the timeline is the "end" of the audio buffer at the moment?
-   */
-
-  buffer_vpts = this->metronom->get_current_time (this->metronom);
-
-  if (this->audio_started) {
-    ioctl (this->audio_fd, AUDIO_GETINFO, &info);
-    pos = info.play.samples * 2 * this->num_channels;
-  } else
-    pos = 0;
-
-  if (pos>this->bytes_in_buffer) /* buffer ran dry */ 
-    this->bytes_in_buffer = pos;
-
-  buffer_vpts += (this->bytes_in_buffer - pos) * 1024 / this->bytes_per_kpts;
-
-  /*
-  printf ("audio_sun_out: got audio package vpts = %d, buffer_vpts = %d\n",
-	  vpts, buffer_vpts);
+ /* Write audio samples
+  * num_frames is the number of audio frames present
+  * audio frames are equivalent one sample on each channel.
+  * I.E. Stereo 16 bits audio frames are 4 bytes.
   */
-
-  /*
-   * calculate gap:
-   */
-
-  gap = vpts - buffer_vpts;
-
-  bDropPackage = 0;
-  
-  if (gap>GAP_TOLERANCE) {
-    ao_fill_gap (this, gap);
-
-    /* keep xine responsive */
-
-    if (gap>MAX_GAP)
-      return 0;
-
-  } else if (gap<-GAP_TOLERANCE) {
-    bDropPackage = 1;
-  }
-
-  /*
-   * resample and output samples
-   */
-
-  /*
-  if(this->mode == AO_CAP_MODE_AC3) bDropPackage=0;
-  */
-
-  if (!bDropPackage) {
-    int num_output_samples = num_samples * (this->output_sample_rate) / this->input_sample_rate;
-
-    switch (this->mode) {
-    case AO_CAP_MODE_MONO:
-      audio_out_resample_mono (output_samples, num_samples,
-			       sample_buffer, num_output_samples);
-      write(this->audio_fd, sample_buffer, num_output_samples * 2);
-      break;
-    case AO_CAP_MODE_STEREO:
-      audio_out_resample_stereo (output_samples, num_samples,
-				 sample_buffer, num_output_samples);
-      write(this->audio_fd, sample_buffer, num_output_samples * 4);
-      break;
-    /*
-    case AO_CAP_MODE_4CHANNEL:
-      audio_out_resample_4channel (output_samples, num_samples,
-				   sample_buffer, num_output_samples);
-      write(this->audio_fd, sample_buffer, num_output_samples * 8);
-      break;
-    case AO_CAP_MODE_5CHANNEL:
-      audio_out_resample_5channel (output_samples, num_samples,
-				   sample_buffer, num_output_samples);
-      write(this->audio_fd, sample_buffer, num_output_samples * 10);
-      break;
-    case AO_CAP_MODE_AC3:
-      num_output_samples = num_samples+8;
-      sample_buffer[0] = 0xf872;  //spdif syncword
-      sample_buffer[1] = 0x4e1f;  // .............
-      sample_buffer[2] = 0x0001;  // AC3 data
-      sample_buffer[3] = num_samples * 8;
-//      sample_buffer[4] = 0x0b77;  // AC3 syncwork already in output_samples
-
-      // ac3 seems to be swabbed data
-      swab(output_samples,sample_buffer+4,  num_samples  );
-      write(this->audio_fd, sample_buffer, num_output_samples);
-      write(this->audio_fd, this->zero_space, 6144-num_output_samples);
-      num_output_samples=num_output_samples/4;
-      break;
-    */
-    default:
-      fprintf(stderr, "audio_sun_out: unsupported audio mode %d\n", this->mode);
-      break;
-    }
-
-    xprintf (AUDIO|VERBOSE, "audio_sun_out :audio package written\n");
-    
-    /*
-     * step values
-     */
-    
-    this->bytes_in_buffer += num_output_samples * 2 * this->num_channels;
-    this->audio_started    = 1;
-  } else {
-    printf ("audio_sun_out: audio package (vpts = %d) dropped\n", vpts);
-  }
-
-  return 1;
-}
-
-
-static void ao_close(ao_functions_t *this_gen)
+static int ao_sun_write(ao_driver_t *self_gen,
+                               int16_t* frame_buffer, uint32_t num_frames)
 {
-  sun_functions_t *this = (sun_functions_t *) this_gen;
-  close(this->audio_fd);
-  this->audio_fd = -1;
+  sun_driver_t *self = (sun_driver_t *) self_gen;
+  int num_written;
+  num_written = write(self->audio_fd, frame_buffer, num_frames * self->bytes_per_frame);
+  if (num_written > 0) {
+    self->frames_in_buffer += num_written / self->bytes_per_frame;
+  }
+  return num_written;
 }
 
-static uint32_t ao_get_capabilities (ao_functions_t *this_gen) {
-  sun_functions_t *this = (sun_functions_t *) this_gen;
-  return this->capabilities;
-}
-
-static void ao_connect (ao_functions_t *this_gen, metronom_t *metronom) {
-  sun_functions_t *this = (sun_functions_t *) this_gen;
-  
-  this->metronom = metronom;
-}
-
-static void ao_exit(ao_functions_t *this_gen)
+static void ao_sun_close(ao_driver_t *self_gen)
 {
-  sun_functions_t *this = (sun_functions_t *) this_gen;
-  
-  if (this->audio_fd != -1)
-    close(this->audio_fd);
+  sun_driver_t *self = (sun_driver_t *) self_gen;
+  close(self->audio_fd);
+  self->audio_fd = -1;
+}
 
-  free (this->zero_space);
-  free (this);
+static uint32_t ao_sun_get_capabilities (ao_driver_t *self_gen) {
+  sun_driver_t *self = (sun_driver_t *) self_gen;
+  return self->capabilities;
+}
+
+static void ao_sun_exit(ao_driver_t *self_gen)
+{
+  sun_driver_t *self = (sun_driver_t *) self_gen;
+  
+  if (self->audio_fd != -1)
+    close(self->audio_fd);
+
+  free (self);
 }
 
 /*
  * Get a property of audio driver.
  * return 1 in success, 0 on failure. (and the property value?)
  */
-static int ao_get_property (ao_functions_t *this_gen, int property) {
-  sun_functions_t *this = (sun_functions_t *) this_gen;
+static int ao_sun_get_property (ao_driver_t *self_gen, int property) {
+  sun_driver_t *self = (sun_driver_t *) self_gen;
   audio_info_t	info;
 
   switch(property) {
   case AO_PROP_MIXER_VOL:
     break;
   case AO_PROP_PCM_VOL:
-    if (ioctl(this->audio_fd, AUDIO_GETINFO, &info) < 0)
+    if (ioctl(self->audio_fd, AUDIO_GETINFO, &info) < 0)
       return 0;
     return info.play.gain;
 #if !defined(__NetBSD__)    /* audio_info.output_muted is missing on NetBSD */
   case AO_PROP_MUTE_VOL:
-    if (ioctl(this->audio_fd, AUDIO_GETINFO, &info) < 0)
+    if (ioctl(self->audio_fd, AUDIO_GETINFO, &info) < 0)
       return 0;
     return info.output_muted;
 #endif
@@ -387,8 +372,8 @@ static int ao_get_property (ao_functions_t *this_gen, int property) {
  * Set a property of audio driver.
  * return value on success, ~value on failure
  */
-static int ao_set_property (ao_functions_t *this_gen, int property, int value) {
-  sun_functions_t *this = (sun_functions_t *) this_gen;
+static int ao_sun_set_property (ao_driver_t *self_gen, int property, int value) {
+  sun_driver_t *self = (sun_driver_t *) self_gen;
   audio_info_t	info;
 
   AUDIO_INITINFO(&info);
@@ -398,13 +383,13 @@ static int ao_set_property (ao_functions_t *this_gen, int property, int value) {
     break;
   case AO_PROP_PCM_VOL:
     info.play.gain = value;
-    if (ioctl(this->audio_fd, AUDIO_SETINFO, &info) < 0)
+    if (ioctl(self->audio_fd, AUDIO_SETINFO, &info) < 0)
       return ~value;
     return value;
 #if !defined(__NetBSD__)    /* audio_info.output_muted is missing on NetBSD */
   case AO_PROP_MUTE_VOL:
     info.output_muted = value != 0;
-    if (ioctl(this->audio_fd, AUDIO_SETINFO, &info) < 0)
+    if (ioctl(self->audio_fd, AUDIO_SETINFO, &info) < 0)
       return ~value;
     return value;
 #endif
@@ -413,15 +398,15 @@ static int ao_set_property (ao_functions_t *this_gen, int property, int value) {
   return ~value;
 }
 
-ao_functions_t *init_audio_out_plugin (config_values_t *config) {
+ao_driver_t *init_audio_out_plugin (config_values_t *config) {
 
-  sun_functions_t *this;
+  sun_driver_t	  *self;
   char            *devname = "/dev/audio";
   int              audio_fd;
   int              status;
   audio_info_t	   info;
 
-  this = (sun_functions_t *) malloc (sizeof (sun_functions_t));
+  self = (sun_driver_t *) malloc (sizeof (sun_driver_t));
 
   /*
    * find best device driver/channel
@@ -434,14 +419,14 @@ ao_functions_t *init_audio_out_plugin (config_values_t *config) {
    * open the device
    */
 
-  audio_fd=open(this->audio_dev = devname, O_WRONLY|O_NDELAY);
+  audio_fd=open(self->audio_dev = devname, O_WRONLY|O_NDELAY);
 
   if(audio_fd < 0) 
   {
     printf("audio_sun_out: opening audio device %s failed:\n%s\n",
 	   devname, strerror(errno));
 
-    free (this);
+    free (self);
     return NULL;
 
   } else
@@ -461,36 +446,36 @@ ao_functions_t *init_audio_out_plugin (config_values_t *config) {
    * get capabilities
    */
 
-  this->capabilities = 0;
+  self->capabilities = 0;
 
   printf ("audio_sun_out : supported modes are ");
 
-  this->capabilities |= AO_CAP_MODE_MONO;
+  self->capabilities |= AO_CAP_MODE_MONO;
   printf ("mono ");
 
-  this->capabilities |= AO_CAP_MODE_STEREO;
+  self->capabilities |= AO_CAP_MODE_STEREO;
   printf ("stereo ");
 
-  this->capabilities |= AO_CAP_PCM_VOL | AO_CAP_MUTE_VOL;
+  self->capabilities |= AO_CAP_PCM_VOL | AO_CAP_MUTE_VOL;
   printf ("\n");
 
   close (audio_fd);
 
-  this->output_sample_rate = 0;
+  self->use_rtsc = realtime_samplecounter_available(self->audio_dev);
+  self->output_sample_rate = 0;
 
-  this->zero_space = malloc (8192);
-  memset (this->zero_space, 0, 8192);
+  self->ao_driver.get_capabilities	= ao_sun_get_capabilities;
+  self->ao_driver.get_property		= ao_sun_get_property;
+  self->ao_driver.set_property		= ao_sun_set_property;
+  self->ao_driver.open			= ao_sun_open;
+  self->ao_driver.num_channels		= ao_sun_num_channels;
+  self->ao_driver.bytes_per_frame	= ao_sun_bytes_per_frame;
+  self->ao_driver.delay			= ao_sun_delay;
+  self->ao_driver.write			= ao_sun_write;
+  self->ao_driver.close			= ao_sun_close;
+  self->ao_driver.exit			= ao_sun_exit;
 
-  this->ao_functions.get_capabilities    = ao_get_capabilities;
-  this->ao_functions.get_property        = ao_get_property;
-  this->ao_functions.set_property        = ao_set_property;
-  this->ao_functions.connect             = ao_connect;
-  this->ao_functions.open                = ao_open;
-  this->ao_functions.write_audio_data    = ao_write_audio_data;
-  this->ao_functions.close               = ao_close;
-  this->ao_functions.exit                = ao_exit;
-
-  return &this->ao_functions;
+  return &self->ao_driver;
 }
 
 static ao_info_t ao_info_sun = {

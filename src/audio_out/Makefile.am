@@ -29,9 +29,9 @@ endif
 #esd_module = xineplug_ao_out_esd.la
 #endif
 
-#if HAVE_SUNAUDIO
-#sun_module = xineplug_ao_out_sun.la
-#endif
+if HAVE_SUNAUDIO
+sun_module = xineplug_ao_out_sun.la
+endif
 
 ## if HAVE_IRIXAL
 ## irixal_module = xineplug_ao_out_irixal.la
@@ -50,7 +50,7 @@ endif
 #lib_LTLIBRARIES = $(oss_module) $(alsa05_module) $(alsa_module) $(sun_module) \
 #		  $(arts_module) $(esd_module)
 
-lib_LTLIBRARIES = $(oss_module) $(alsa_module)
+lib_LTLIBRARIES = $(oss_module) $(alsa_module) $(sun_module)
 
 ## $(irixal_module) 
 
@@ -69,8 +69,8 @@ xineplug_ao_out_alsa_la_LDFLAGS = -avoid-version -module
 #xineplug_ao_out_esd_la_LIBADD = $(ESD_LIBS)
 #xineplug_ao_out_esd_la_LDFLAGS = -avoid-version -module
 
-#xineplug_ao_out_sun_la_SOURCES = audio_sun_out.c resample.c
-#xineplug_ao_out_sun_la_LDFLAGS = -avoid-version -module
+xineplug_ao_out_sun_la_SOURCES = audio_sun_out.c resample.c
+xineplug_ao_out_sun_la_LDFLAGS = -avoid-version -module
 
 ## xineplug_ao_out_irixal_la_SOURCES = audio_irixal_out.c resample.c
 ## xineplug_ao_out_irixal_la_LIBADD = $(IRIXAL_LIBS)
