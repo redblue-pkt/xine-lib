@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: post.h,v 1.2 2002/12/03 21:59:46 mroi Exp $
+ * $Id: post.h,v 1.3 2002/12/24 13:36:21 miguelfreitas Exp $
  *
  * post plugin definitions
  *
@@ -28,6 +28,7 @@
 
 #include "xine.h"
 #include "video_out.h"
+#include "audio_out.h"
 #include "xineutils.h"
 
 #define POST_PLUGIN_IFACE_VERSION 1
@@ -129,5 +130,24 @@ post_video_port_t *post_intercept_video_port(xine_video_port_t *port);
  * can be replaced with own implementations */
 void post_intercept_video_frame(vo_frame_t *frame, post_video_port_t *port);
 void post_restore_video_frame(vo_frame_t *frame, post_video_port_t *port);
+
+/* helper structure for intercepting audio port calls */
+typedef struct post_audio_port_s post_audio_port_t;
+struct post_audio_port_s {
+
+  /* the new public port with replaced function pointers */
+  xine_audio_port_t  port;
+  
+  /* the original port to call its functions from inside yours */
+  xine_audio_port_t *original_port;
+  
+  /* backward reference so that you have access to the post plugin
+   * when the call only gives you the port */
+  xine_post_t       *post;
+};
+
+/* use this to create a new, trivially decorated audio port in which
+ * port functions can be replaced with own implementations */
+post_audio_port_t *post_intercept_audio_port(xine_audio_port_t *port);
 
 #endif
