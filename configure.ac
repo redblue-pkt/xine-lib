@@ -221,6 +221,11 @@ LIBMPEG2_CFLAGS=""
 LIBA52_CFLAGS=""
 LIBFFMPEG_CFLAGS="-DSIMPLE_IDCT -DHAVE_AV_CONFIG_H -DRUNTIME_CPUDETECT -DUSE_FASTMEMCPY -DCONFIG_RISKY -DCONFIG_ENCODERS"
 
+AC_ARG_ENABLE(ipv6,
+	[  --enable-ipv6           enable use of IPv6],
+		enable_ipv6=yes,
+		enable_ipv6=no)
+
 AC_ARG_ENABLE(altivec,
 	[  --disable-altivec       use assembly codes for Motorola 74xx CPUs],
 		enable_altivec=no, 
@@ -300,6 +305,17 @@ NET_LIBS=""
 AC_CHECK_LIB(socket, socket, NET_LIBS="-lsocket $NET_LIBS",)
 AC_CHECK_LIB(nsl, gethostbyname, NET_LIBS="-lnsl $NET_LIBS",)
 AC_SUBST(NET_LIBS)
+
+dnl ---------------------------------------------
+dnl IPv6
+dnl ---------------------------------------------
+echo -n "IPv6 is "
+if test x$enable_ipv6 = xyes; then
+    CFLAGS="$CFLAGS -DENABLE_IPV6"
+    echo "enabled"
+else
+    echo "disabled"
+fi
 
 
 dnl ---------------------------------------------

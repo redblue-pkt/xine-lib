@@ -45,7 +45,7 @@
 #define XIO_POLLING_INTERVAL  50000  /* usec */
 
 
-int xio_tcp_connect(xine_stream_t *stream, const char *host, int port) {
+int xio_tcp_connect_ipv4(xine_stream_t *stream, const char *host, int port) {
 
   struct hostent *h;
   int             i, s;
@@ -105,6 +105,82 @@ int xio_tcp_connect(xine_stream_t *stream, const char *host, int port) {
     return s;
   }
   return -1;
+}
+
+int xio_tcp_connect(xine_stream_t *stream, const char *host, int port) {
+
+#ifndef ENABLE_IPV6
+    return xio_tcp_connect_ipv4(stream, host, port);
+#else
+  int             s;
+  struct addrinfo hints, *res, *tmpaddr;
+  int error;
+  char strport[16];
+	
+  memset(&hints, 0, sizeof(hints));
+  hints.ai_socktype = SOCK_STREAM;
+  hints.ai_family = PF_UNSPEC; 
+
+  snprintf(strport, sizeof(strport), "%d", port);
+  
+  printf("Resolving host '%s' at port '%s'\n", host, strport);
+
+  error = getaddrinfo(host, strport, &hints, &res);
+
+  if (error) {
+    xine_message(stream, XINE_MSG_UNKNOWN_HOST, 
+		 "unable to resolve", host, NULL);
+    return -1;
+  }
+
+  tmpaddr = res;
+
+  while (tmpaddr) {
+      
+      s = socket(tmpaddr->ai_family, SOCK_STREAM, IPPROTO_TCP);  
+      if (s == -1) {
+	  xine_message(stream, XINE_MSG_CONNECTION_REFUSED, 
+		       "failed to create socket", strerror(errno), NULL);
+	  tmpaddr = tmpaddr->ai_next;
+	  continue;
+      }
+
+      /**
+       * Uncommenting nonblocking features due to IPv6 support.
+       * Need to know if the connect failed, in order to try another
+       * address (if available).  Error will be reported if no address
+       * worked.
+       */
+
+#ifndef WIN32
+
+    if (connect(s, tmpaddr->ai_addr, 
+		tmpaddr->ai_addrlen)==-1 && errno != EINPROGRESS) {
+	
+#else
+    if (connect(s, tmpaddr->ai_addr, 
+		tmpaddr->ai_addrlen)==-1 && 
+	WSAGetLastError() != WSAEWOULDBLOCK) {
+	
+      printf("io_helper: WSAGetLastError() = %d\n", WSAGetLastError());
+#endif /* WIN32 */
+
+      error = errno;
+      close(s);
+      tmpaddr = tmpaddr->ai_next;
+      continue;
+    } else {
+    
+      return s;
+    }
+  
+    tmpaddr = tmpaddr->ai_next;
+  }
+
+  xine_message(stream, XINE_MSG_CONNECTION_REFUSED, strerror(error), NULL);
+  
+  return -1;
+#endif
 }
 
 

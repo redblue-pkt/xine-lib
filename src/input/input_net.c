@@ -20,7 +20,7 @@
  * Read from a tcp network stream over a lan (put a tweaked mp1e encoder the
  * other end and you can watch tv anywhere in the house ..)
  *
- * $Id: input_net.c,v 1.50 2003/06/19 14:48:23 guenter Exp $
+ * $Id: input_net.c,v 1.51 2003/09/25 13:42:19 f1rmb Exp $
  *
  * how to set up mp1e for use with this plugin:
  * 
@@ -48,6 +48,11 @@
 #include <string.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+
+#ifdef ENABLE_IPV6
+#include <sys/types.h>
+#include <netdb.h>
+#endif
 
 #ifndef WIN32
 #include <arpa/inet.h>
@@ -104,7 +109,7 @@ typedef struct {
 /*                       Private functions                          */
 /* **************************************************************** */
 
-static int host_connect_attempt(struct in_addr ia, int port, xine_t *xine) {
+static int host_connect_attempt_ipv4(struct in_addr ia, int port, xine_t *xine) {
 
   int                s;
   struct sockaddr_in sin;
@@ -135,7 +140,33 @@ static int host_connect_attempt(struct in_addr ia, int port, xine_t *xine) {
   return s;
 }
 
-static int host_connect(const char *host, int port, xine_t *xine) {
+static int host_connect_attempt(int family, struct sockaddr* sin, int addrlen, xine_t *xine) {
+
+  int                s;
+  
+  s = socket(family, SOCK_STREAM, IPPROTO_TCP);
+  if (s==-1) {
+    xine_log (xine, XINE_LOG_MSG,
+	      _("input_net: socket(): %s\n"), strerror(errno));
+    return -1;
+  }
+
+#ifndef WIN32
+  if (connect(s, sin, addrlen)==-1 && errno != EINPROGRESS)  
+#else
+  if (connect(s, sin, addrlen)==-1 && WSAGetLastError() != WSAEINPROGRESS) 
+#endif
+  {
+    xine_log (xine, XINE_LOG_MSG,
+	      _("input_net: connect(): %s\n"), strerror(errno));
+    close(s);
+    return -1;
+  }	
+
+  return s;
+}
+
+static int host_connect_ipv4(const char *host, int port, xine_t *xine) {
   struct hostent *h;
   int             i;
   int             s;
@@ -150,7 +181,7 @@ static int host_connect(const char *host, int port, xine_t *xine) {
   for (i=0; h->h_addr_list[i]; i++) {
     struct in_addr ia;
     memcpy (&ia, h->h_addr_list[i],4);
-    s = host_connect_attempt (ia, port, xine);
+    s = host_connect_attempt_ipv4 (ia, port, xine);
     if (s != -1)
       return s;
   }
@@ -158,6 +189,57 @@ static int host_connect(const char *host, int port, xine_t *xine) {
   xine_log (xine, XINE_LOG_MSG,
 	    _("input_net: unable to connect to '%s'.\n"), host);
   return -1;
+}
+
+static int host_connect(const char *host, int port, xine_t *xine) {
+
+#ifndef ENABLE_IPV6
+    return host_connect_ipv4(host, port, xine);
+#else
+
+  struct addrinfo hints, *res, *tmpaddr;
+  int error;
+  char strport[16];
+  int             i;
+  int             s;
+	
+  memset(&hints, 0, sizeof(hints));
+  hints.ai_socktype = SOCK_STREAM;
+  hints.ai_family = PF_UNSPEC; 
+  
+  snprintf(strport, sizeof(strport), "%d", port);
+
+#ifdef LOG  
+  printf("Resolving host '%s' at port '%s'\n", host, strport);
+#endif
+
+  error = getaddrinfo(host, strport, &hints, &res);
+  
+  if (error) {
+      
+    xine_log (xine, XINE_LOG_MSG,
+	      _("input_net: unable to resolve '%s'.\n"), host);
+    return -1;
+  }
+  
+  // We loop over all addresses and try to connect
+  tmpaddr = res;
+  while (tmpaddr) {
+      
+      s = host_connect_attempt (tmpaddr->ai_family, 
+				tmpaddr->ai_addr, tmpaddr->ai_addrlen, xine);
+      if (s != -1)
+	  return s;
+
+      tmpaddr = tmpaddr->ai_next;
+  }
+  
+  xine_log (xine, XINE_LOG_MSG,
+	    _("input_net: unable to connect to '%s'.\n"), host);
+  return -1;
+
+#endif
+
 }
 
 #define LOW_WATER_MARK  50
