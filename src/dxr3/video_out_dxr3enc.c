@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3enc.c,v 1.5 2001/10/29 19:16:26 hrm Exp $
+ * $Id: video_out_dxr3enc.c,v 1.6 2001/10/29 23:33:31 hrm Exp $
  *
  * mpeg1 encoding video out plugin for the dxr3.  
  *
@@ -95,6 +95,24 @@
  * - .xinerc: renamed dxr3_enc_quality to dxr3enc_quality
  * - .xinerc: added dxr3_file for output of mpeg stream to file, for 
  * debugging. set to <none> or delete the entry to send stream to dxr3.
+ *
+ ***** Update 29/10/2001 (later) by Harm
+ *
+ * Added support for encoding using libavcodec from ffmpeg. See the defines
+ * USE_LIBFAME and USE_LIBFFMPEG (mutually exclusive)
+ * These defines are getting quite messy; there's three of them now.
+ * Need to make some decisions soon :-)
+ * 
+ * If using libffmpeg, do not link against libavcodec from xine sources!
+ * There's something wrong with that one, you'll get rubbish output.
+ * Get the ffmpeg cvs, compile, then copy libavcodec.a to /usr/local/lib
+ * or something.
+ *
+ * At the moment libffmpeg's encoder output is pretty crappy, with weird
+ * ghost effects left and right of objects. I don't know
+ * if we can improve that by meddling with the encoder's internal.
+ * The only quality parameter available outside is bit_rate, currently
+ * fixed at 5000 kbit/s. 
  */
  
 #include <sys/types.h>
@@ -126,7 +144,6 @@
 #define DEFAULT_DEV "/dev/em8300"
 static char *devname;
 
-#include <fame.h>
 #include <math.h>
 
 /* buffer size for encoded mpeg1 stream; will hold one intra frame */
@@ -141,11 +158,32 @@ static char *devname;
  * 0: don't write to register */
 #define USE_MAGIC_REGISTER 1
 
+#define USE_LIBFAME 1
+
+#if USE_LIBFAME
+# define USE_LIBFFMPEG 0
+#else
+# define USE_LIBFFMPEG 1
+#endif
+
+#if USE_LIBFAME
+#include <fame.h>
 /* some global stuff for libfame, could use some cleanup :-) */
 fame_parameters_t fp = FAME_PARAMETERS_INITIALIZER;
 fame_object_t *object;
 fame_yuv_t yuv;
 fame_context_t *fc; /* needed for fame calls */
+#endif
+
+#if USE_LIBFFMPEG
+/* use libffmpeg */
+#include "../libffmpeg/libavcodec/avcodec.h"
+AVCodecContext *avc;
+AVPicture avp;
+AVCodec *avcodec;
+#endif
+
+/* mpeg1 buffer, used by both encoders */
 unsigned char *buffer;
 
 typedef struct dxr3_driver_s {
@@ -453,7 +491,8 @@ static void dxr3_update_frame_format (vo_driver_t *this_gen,
   this->video_height = oheight;
   this->video_aspect = ratio_code;
 
-  /* init fame if needed */
+  /* init encoder if needed */
+#if USE_LIBFAME
   if (!fc)
   {
     if (!(fc = fame_open ()))
@@ -487,26 +526,34 @@ static void dxr3_update_frame_format (vo_driver_t *this_gen,
       printf("dxr3enc: trying to set mpeg output framerate to %d Hz\n",
              fp.frame_rate_num);
     }
-#if 0           
-    sfps = this->config->lookup_str(this->config,"dxr3_framerate", "PAL");
-    if (! strcasecmp(sfps, "PAL")) {
-      fp.frame_rate_num = 25; fp.frame_rate_den = 1;
-    } else if (! strcasecmp(sfps, "FILM")) {
-      fp.frame_rate_num = 24; fp.frame_rate_den = 1;
-    } else if (! strcasecmp(sfps, "NTSC")) {
-      fp.frame_rate_num = 30000; fp.frame_rate_den = 1001;
-    } else if (! strcasecmp(sfps, "NTSC-FILM")) {
-      fp.frame_rate_num = 24000; fp.frame_rate_den = 1001;
-    } else {
-      printf("dxr3_vo: unknown framerate \"%s\", using \"PAL\"\n", sfps);
-      fp.frame_rate_num = 25; fp.frame_rate_den = 1;
-    }
-#endif
-	      
     object = fame_get_object (fc, "profile/mpeg1");
     fame_init (fc, &fp, buffer, DEFAULT_BUFFER_SIZE);
     
   }
+#endif
+#if USE_LIBFFMPEG
+  if (!avc)
+  {
+    avc = malloc(sizeof(AVCodecContext));
+    memset(avc, 0, sizeof(AVCodecContext));
+    buffer = (unsigned char *) malloc (DEFAULT_BUFFER_SIZE);
+
+    avc->bit_rate = 5000000;
+    avc->width = width;
+    avc->height = oheight;
+    avc->gop_size = 0; /* only intra */
+    avc->pix_fmt = PIX_FMT_YUV420P;
+
+    /* start guessing the framerate */
+    fps = 90000.0/frame->vo_frame.duration;
+    avc->frame_rate = (int)(fps*FRAME_RATE_BASE + 0.5);
+
+    if (avcodec_open(avc, avcodec)) {
+      printf("dxr3enc: error opening avcodec. Aborting...\n");
+      exit(1); /* can't think of a cleaner way at this point */
+    }
+  }
+#endif
 
   if(this->aspectratio!=aspect)
     dxr3_set_property (this_gen,VO_PROP_ASPECT_RATIO, aspect);
@@ -579,6 +626,7 @@ static void dxr3_frame_copy(vo_frame_t *frame_gen, uint8_t **src)
 
   /* frame complete yet? */
   if (frame->copy_calls == frame->height/16) {
+#if USE_LIBFAME
     yuv.y=y;
     yuv.u=u;
     yuv.v=v;
@@ -589,10 +637,27 @@ static void dxr3_frame_copy(vo_frame_t *frame_gen, uint8_t **src)
       printf("dxr3enc: warning, mpeg buffer too small!\n");
       size = DEFAULT_BUFFER_SIZE;
     }
-#if USE_MPEG_BUFFER
+# if USE_MPEG_BUFFER
+    /* copy mpeg data to frame */
     fast_memcpy(frame->mpeg, buffer, size);
     frame->mpeg_size = size;
-#else
+# endif
+#endif
+#if USE_LIBFFMPEG
+    avp.data[0] = y;
+    avp.data[1] = u;
+    avp.data[2] = v;
+    avp.linesize[0] = frame->width;
+    avp.linesize[1] = avp.linesize[2] = frame->width/2;
+# if USE_MPEG_BUFFER
+    size = avcodec_encode_video(avc, frame->mpeg, DEFAULT_BUFFER_SIZE, &avp);
+    frame->mpeg_size = size;
+# else
+    size = avcodec_encode_video(avc, buffer, DEFAULT_BUFFER_SIZE, &avp);
+# endif    
+#endif
+#if ! USE_MPEG_BUFFER
+    /* write to device now */
     if (write(this->fd_video, buffer, size) < 0)
       perror("dxr3enc: writing to video device");
 #endif
@@ -825,11 +890,20 @@ static int dxr3_gui_data_exchange (vo_driver_t *this_gen,
 static void dxr3_exit (vo_driver_t *this_gen)
 {
   dxr3_driver_t *this = (dxr3_driver_t *) this_gen;
+#if USE_LIBFAME
   if(fc){
     fame_close(fc);
     fc = 0;
     free(buffer);
   }
+#endif
+#if USE_LIBFFMPEG
+  if (avc) {
+    avcodec_close(avc);
+    free(avc);
+    free(buffer);
+  }
+#endif
   if (this->buf[0]) free(this->buf[0]);  
   if (this->buf[1]) free(this->buf[1]);  
   if (this->buf[2]) free(this->buf[2]);
@@ -949,8 +1023,23 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen)
 		dxr3_overlay_buggy_preinit(&this->overlay, this->fd_control);
 	}
 
+#if USE_LIBFAME
 	/* fame context */
 	fc = 0;
+#endif
+#if USE_LIBFFMPEG
+	avc = 0;
+	avcodec_init();
+	/* this register_all() is not really needed, but it gives us a good
+         * way to sniff out bad libavcodecs */
+	avcodec_register_all();
+	avcodec = avcodec_find_encoder(CODEC_ID_MPEG1VIDEO);
+	if (! avcodec) {
+		/* tell tale sign of bad libavcodec */
+        	printf("dxr3enc: can't find mpeg1 encoder! libavcodec is rotten!\n");
+		return 0;
+	}
+#endif
 	return &this->vo_driver;
 }
 

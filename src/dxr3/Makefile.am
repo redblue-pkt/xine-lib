@@ -7,8 +7,13 @@ LIBTOOL = $(SHELL) $(top_builddir)/libtool-nofpic
 libdir = $(XINE_PLUGINDIR)
 
 dxr3enc_module = 
-#uncomment the next line and the lines below to compile the dxr3enc plugin
+#uncomment the next lines and (some of) the lines below for the dxr3enc plugin
 #dxr3enc_module = xineplug_vo_out_dxr3enc.la
+#pick one (or link against both) see defines in video_out_dxr3enc.c file
+#note: don't use libavcodec from xine sources!
+dxr3enc_encoder=-lfame
+#dxr3enc_encoder=-lavcodec
+#dxr3enc_encoder=-lfame -lavcodec
 
 if HAVE_DXR3
 dxr3_modules = xineplug_decode_dxr3.la xineplug_vo_out_dxr3.la $(dxr3enc_module)
@@ -23,7 +28,8 @@ xineplug_vo_out_dxr3_la_SOURCES = video_out_dxr3.c overlay.c
 xineplug_vo_out_dxr3_la_LDFLAGS = -avoid-version -module $(X_LIBS)
 
 #xineplug_vo_out_dxr3enc_la_SOURCES = video_out_dxr3enc.c overlay.c
-#xineplug_vo_out_dxr3enc_la_LDFLAGS = -avoid-version -module -lfame $(X_LIBS)
+#xineplug_vo_out_dxr3enc_la_LDFLAGS = \
+		-avoid-version -module $(dxr3enc_encoder) $(X_LIBS)
 
 include_HEADERS = dxr3_overlay.h
 
