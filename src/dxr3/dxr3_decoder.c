@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decoder.c,v 1.23 2001/10/28 11:14:39 mlampard Exp $
+ * $Id: dxr3_decoder.c,v 1.24 2001/10/28 11:43:58 mlampard Exp $
  *
  * dxr3 video and spu decoder plugin. Accepts the video and spu data
  * from XINE and sends it directly to the corresponding dxr3 devices.
@@ -333,20 +333,6 @@ static void dxr3_decode_data (video_decoder_t *this_gen, buf_element_t *buf)
 	 	img->free(img);
 		return;
 	}
-
-	if(scanning_mode){
-	vo_frame_t *img;
-	    img = this->video_out->get_frame (this->video_out,
-                             this->width,
-                             this->height,
-                             this->aspect,
-                             IMGFMT_YV12,
-                             this->duration,
-                             VO_BOTH_FIELDS);
-
-		img->draw(img);
-	 	img->free(img);
-	}	
 
 	if (buf->PTS) {
 		int vpts;
