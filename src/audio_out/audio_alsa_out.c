@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.26 2001/09/06 15:25:13 joachim_koenig Exp $
+ * $Id: audio_alsa_out.c,v 1.27 2001/09/12 15:42:28 jcdutton Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -452,7 +452,7 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
  
   pcm_device = config->lookup_str(config,"alsa_default_device", "default");
   strcpy(this->audio_default_device,pcm_device);
-  pcm_device = config->lookup_str(config,"alsa_front_device", "front");
+  pcm_device = config->lookup_str(config,"alsa_front_device", "default");
   strcpy(this->audio_front_device,pcm_device);
   pcm_device = config->lookup_str(config,"alsa_surround40_device", "surround40");
   strcpy(this->audio_surround40_device,pcm_device);
