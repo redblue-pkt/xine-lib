@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.48 2004/04/09 14:57:26 mroi Exp $
+ * $Id: xine_decoder.c,v 1.49 2004/05/09 19:37:10 jstembridge Exp $
  *
  * 04-09-2001 DTS passtrough  (C) Joachim Koenig 
  * 09-12-2001 DTS passthrough inprovements (C) James Courtier-Dutton
@@ -35,8 +35,13 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#include <netinet/in.h> /* ntohs */
 #include <assert.h>
+
+#define LOG_MODULE "libdts"
+#define LOG_VERBOSE
+/*
+#define LOG
+*/
 
 #include "xine_internal.h"
 #include "xineutils.h"
@@ -111,12 +116,7 @@ static void dts_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
   uint32_t  first_access_unit;
   int n;
   
-#ifdef LOG_DEBUG
-  printf("libdts: DTS decode_data called.\n");
-#endif
-#ifdef ENABLE_DTS_PARSE
-  dts_parse_data (this, buf);
-#endif
+  lprintf("decode_data\n");
 
   if (buf->decoder_flags & BUF_FLAG_PREVIEW)
     return;
@@ -168,10 +168,8 @@ static void dts_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
       audio_buffer->frame_header_count = buf->decoder_info[1]; /* Number of frames */
       audio_buffer->first_access_unit = buf->decoder_info[2]; /* First access unit */
 
-#ifdef LOG_DEBUG
-      printf("libdts: DTS frame_header_count = %u\n",audio_buffer->frame_header_count);
-      printf("libdts: DTS first access unit = %u\n",audio_buffer->first_access_unit);
-#endif
+      lprintf("frame_header_count = %u\n",audio_buffer->frame_header_count);
+      lprintf("first access unit = %u\n",audio_buffer->first_access_unit);
 
       data_out=(uint8_t *) audio_buffer->mem;
 
@@ -215,9 +213,7 @@ static void dts_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 #endif
 
 
-#ifdef LOG_DEBUG
-      printf("libdts: DTS length=%d loop=%d pts=%lld\n",ac5_pcm_length,n,audio_buffer->vpts);
-#endif
+      lprintf("length=%d loop=%d pts=%lld\n",ac5_pcm_length,n,audio_buffer->vpts);
 
       audio_buffer->num_frames = ac5_pcm_length;
 
@@ -277,18 +273,18 @@ static void dts_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 
 static void dts_dispose (audio_decoder_t *this_gen) {
   dts_decoder_t *this = (dts_decoder_t *) this_gen; 
+  
   if (this->output_open) 
     this->stream->audio_out->close (this->stream->audio_out, this->stream);
   this->output_open = 0;
+  
   free (this);
 }
 
-static audio_decoder_t *open_plugin (audio_decoder_class_t *class_gen, xine_stream_t
-*stream) {
+static audio_decoder_t *open_plugin (audio_decoder_class_t *class_gen, xine_stream_t *stream) {
   dts_decoder_t *this ;
-#ifdef LOG_DEBUG
-  printf("libdts: DTS open_plugin called.\n");
-#endif
+
+  lprintf("open_plugin\n");
 
   this = (dts_decoder_t *) xine_xmalloc (sizeof (dts_decoder_t));
 
@@ -322,18 +318,16 @@ static char *get_description (audio_decoder_class_t *this) {
 }
 
 static void dispose_class (audio_decoder_class_t *this) {
-#ifdef LOG_DEBUG
-  printf("libdts: DTS class dispose called.\n");
-#endif
+  lprintf("dispose_class\n");
+
   free (this);
 }
 
 static void *init_plugin (xine_t *xine, void *data) {
-
   dts_class_t *this ;
-#ifdef LOG_DEBUG
-  printf("DTS class init_plugin called.\n");
-#endif
+
+  lprintf("init_plugin\n");
+
   this = (dts_class_t *) xine_xmalloc (sizeof (dts_class_t));
 
   this->decoder_class.open_plugin     = open_plugin;
