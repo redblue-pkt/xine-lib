@@ -1641,16 +1641,16 @@ void dsputil_init(void)
 #ifdef ARCH_ARMV4L
     dsputil_init_armv4l();
 #endif
-#ifdef HAVE_MLIB
-    dsputil_init_mlib();
-    use_permuted_idct = 0;
-#endif
 #ifdef ARCH_ALPHA
     dsputil_init_alpha();
     use_permuted_idct = 0;
 #endif
 #ifdef ARCH_POWERPC
     dsputil_init_ppc();
+#endif
+#if defined(HAVE_MLIB) && !defined(HAVE_MMX)
+    dsputil_init_mlib();
+    use_permuted_idct = 0;
 #endif
 
 #ifdef SIMPLE_IDCT

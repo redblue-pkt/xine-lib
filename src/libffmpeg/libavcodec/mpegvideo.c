@@ -152,7 +152,7 @@ int MPV_common_init(MpegEncContext *s)
 #ifdef ARCH_ALPHA
     MPV_common_init_axp(s);
 #endif
-#ifdef HAVE_MLIB
+#if defined(HAVE_MLIB) && !defined(HAVE_MMX)
     MPV_common_init_mlib(s);
 #endif
 
