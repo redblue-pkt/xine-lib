@@ -123,7 +123,7 @@ static int Unicodedecode( uint8_t *data, int len, char *target )
 static int UDFDescriptor( uint8_t *data, uint16_t *TagID ) 
 {
     *TagID = GETN2(0);
-    // TODO: check CRC 'n stuff
+    /* TODO: check CRC 'n stuff */
     return 0;
 }
 
@@ -141,7 +141,7 @@ static int UDFShortAD( uint8_t *data, struct AD *ad,
     ad->Flags = ad->Length >> 30;
     ad->Length &= 0x3FFFFFFF;
     ad->Location = GETN4(4);
-    ad->Partition = partition->Number; // use number of current partition
+    ad->Partition = partition->Number; /* use number of current partition */
     return 0;
 }
 
@@ -152,7 +152,7 @@ static int UDFLongAD( uint8_t *data, struct AD *ad )
     ad->Length &= 0x3FFFFFFF;
     ad->Location = GETN4(4);
     ad->Partition = GETN2(8);
-    //GETN(10, 6, Use);
+    /* GETN(10, 6, Use); */
     return 0;
 }
 
@@ -163,7 +163,7 @@ static int UDFExtAD( uint8_t *data, struct AD *ad )
     ad->Length &= 0x3FFFFFFF;
     ad->Location = GETN4(12);
     ad->Partition = GETN2(16);
-    //GETN(10, 6, Use);
+    /* GETN(10, 6, Use); */
     return 0;
 }
 
@@ -194,9 +194,9 @@ static int UDFLogVolume( uint8_t *data, char *VolumeDescriptor )
 {
     uint32_t lbsize, MT_L, N_PM;
     Unicodedecode(&data[84], 128, VolumeDescriptor);
-    lbsize = GETN4(212);  // should be 2048
-    MT_L = GETN4(264);    // should be 6
-    N_PM = GETN4(268);    // should be 1
+    lbsize = GETN4(212);  /* should be 2048 */
+    MT_L = GETN4(264);    /* should be 6 */
+    N_PM = GETN4(268);    /* should be 1 */
     if (lbsize != DVD_VIDEO_LB_LEN) return 1;
     return 0;
 }
@@ -211,10 +211,10 @@ static int UDFFileEntry( uint8_t *data, uint8_t *FileType,
     UDFICB( &data[ 16 ], FileType, &flags );
    
     /* Init ad for an empty file (i.e. there isn't a AD, L_AD == 0 ) */
-    ad->Length = GETN4( 60 ); // Really 8 bytes a 56
+    ad->Length = GETN4( 60 ); /* Really 8 bytes a 56 */
     ad->Flags = 0;
-    ad->Location = 0; // what should we put here? 
-    ad->Partition = partition->Number; // use number of current partition
+    ad->Location = 0; /* what should we put here?  */
+    ad->Partition = partition->Number; /* use number of current partition */
 
     L_EA = GETN4( 168 );
     L_AD = GETN4( 172 );
@@ -466,7 +466,7 @@ uint32_t UDFFindFile( dvd_reader_t *device, char *filename,
         }
 
         /* File Set Descriptor */
-        if( TagID == 256 ) {  // File Set Descriptor
+        if( TagID == 256 ) {  /* File Set Descriptor */
             UDFLongAD( &LogBlock[ 400 ], &RootICB );
         }
     } while( ( lbnum < partition.Start + partition.Length )
