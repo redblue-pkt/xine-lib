@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg.c,v 1.25 2001/07/14 12:50:34 guenter Exp $
+ * $Id: demux_mpeg.c,v 1.26 2001/07/14 13:56:10 guenter Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  * reads streams of variable blocksizes
@@ -555,7 +555,11 @@ static void demux_mpeg_stop (demux_plugin_t *this_gen) {
   printf ("demux_mpeg: stop...\n");
 
   if (this->status != DEMUX_OK) {
-    printf ("demux_mpeg: stop...ignored\n");
+
+    this->video_fifo->clear(this->video_fifo);
+    if(this->audio_fifo) 
+      this->audio_fifo->clear(this->audio_fifo);
+
     return;
   }
 
