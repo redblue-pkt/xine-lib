@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xineintl.h,v 1.2 2002/07/27 23:53:55 f1rmb Exp $
+ * $Id: xineintl.h,v 1.3 2002/07/31 07:06:04 f1rmb Exp $
  *
  */
 
@@ -37,9 +37,6 @@ extern "C" {
 #        define N_(String) gettext_noop (String)
 #    else
 #        define N_(String) (String)
-#    endif
-#    ifndef HAVE_NGETTEXT
-#        define ngettext(Singular, Plural, IsPlural) (Singular)
 #    endif
 #else
 /* Stubs that do something close enough.  */
