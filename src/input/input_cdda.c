@@ -20,7 +20,7 @@
  * Compact Disc Digital Audio (CDDA) Input Plugin 
  *   by Mike Melanson (melanson@pcisys.net)
  *
- * $Id: input_cdda.c,v 1.53 2004/05/05 09:11:39 hadess Exp $
+ * $Id: input_cdda.c,v 1.54 2004/05/05 09:16:59 hadess Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -55,6 +55,7 @@
 */
 
 #include "sha1.h"
+#include "base64.h"
 #include "xine_internal.h"
 #include "xineutils.h"
 #include "input_plugin.h"
@@ -1706,7 +1707,8 @@ static void _cdda_cdindex(cdda_input_plugin_t *this, cdrom_toc *toc) {
   char temp[10];
   SHA_INFO sha;
   unsigned char digest[33], *base64;
-  int i, size;
+  int i;
+  unsigned long size;
 
   sha_init(&sha);
 
@@ -1733,8 +1735,7 @@ static void _cdda_cdindex(cdda_input_plugin_t *this, cdrom_toc *toc) {
   base64 = rfc822_binary(digest, 20, &size);
   base64[size] = 0;
 
-  printf ("disc id: %s\n", base64);
-  //_x_meta_info_set(this->stream, XINE_META_INFO_CDINDEX_DISCID, base64);
+  _x_meta_info_set(this->stream, XINE_META_INFO_CDINDEX_DISCID, base64);
 
   free (base64);
 }
