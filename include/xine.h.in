@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.10 2002/09/09 13:55:18 mroi Exp $
+ * $Id: xine.h.in,v 1.11 2002/09/09 19:24:48 f1rmb Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -80,10 +80,10 @@ xine_p xine_new (void);
  * found ...
  */
 
-xine_ao_driver_p xine_open_audio_driver (xine_p self, const char *id,
+xine_ao_driver_p xine_open_audio_driver (xine_p self, char *id,
 					 void *data);
 
-xine_vo_driver_p xine_open_video_driver (xine_p self, const char *id,
+xine_vo_driver_p xine_open_video_driver (xine_p self, char *id,
 					 int visual, void *data);
 
 /*
@@ -100,7 +100,7 @@ void xine_init (xine_p self, xine_ao_driver_p ao, xine_vo_driver_p vo);
  *
  * returns 1 if OK, 0 on error (use xine_get_error for details)
  */
-int  xine_open (xine_p self, const char *MRL);
+int  xine_open (xine_p self, char *mrl);
 
 /*
  * play a stream from a given position 
@@ -226,7 +226,7 @@ const char *const *xine_get_log (xine_p self, int buf);
 /* log callback will be called whenever something is logged */
 typedef void (*xine_log_cb_t) (void *user_data, int section);
 void   xine_register_log_cb (xine_p self, xine_log_cb_t cb,
-			     const void *const user_data);
+			     void *user_data);
 
 /*
  * codec reporting callback.
@@ -257,7 +257,7 @@ typedef void (*xine_report_codec_cb_t) (void *user_data, int codec_type,
  */
 int xine_register_report_codec_cb(xine_p self, 
 				  xine_report_codec_cb_t report_codec,
-				  const void *const user_data);
+				  void *user_data);
 
 
 /*
@@ -430,17 +430,17 @@ const char *const *xine_get_browsable_input_plugin_ids (xine_p self) ;
  * returns <start_mrl> if <start_mrl> is a valid MRL, not a directory
  * returns NULL if <start_mrl> is an invalid MRL, not even a directory.
  */
-const xine_mrl_t *const *xine_get_browse_mrls (xine_p self, const char *plugin_id, 
-					       const char *start_mrl, int *num_mrls);
+const xine_mrl_t *const *xine_get_browse_mrls (xine_p self, char *plugin_id, 
+					       char *start_mrl, int *num_mrls);
 
 /* get a list of plugins that support the autoplay feature */
 const char *const *xine_get_autoplay_input_plugin_ids (xine_p self);
 
 /* get autoplay MRL list from input plugin named <plugin_id> */
-const char *const *xine_get_autoplay_mrls (xine_p self, const char *plugin_id, int *num_mrls);
+const char *const *xine_get_autoplay_mrls (xine_p self, char *plugin_id, int *num_mrls);
 
 /* get a description string for an input plugin */
-const char *xine_get_input_plugin_description (xine_p self, const char *plugin_id);
+const char *xine_get_input_plugin_description (xine_p self, char *plugin_id);
 
 /* get lists of available audio and video output plugins */
 const char *const *xine_list_audio_output_plugins (xine_p self) ;
@@ -613,7 +613,7 @@ struct xine_cfg_entry_s {
 
   /* callback function and data for live changeable values */
   xine_config_cb_t callback;
-  const void      *callback_data;
+  void            *callback_data;
 
 };
 
@@ -625,7 +625,7 @@ const char *xine_config_register_string (
 				   char *help,
 				   int   exp_level,
 				   xine_config_cb_t changed_cb,
-				   const void *const cb_data);
+				   void *cb_data);
   
 int   xine_config_register_range  (xine_p self,
 				   char *key,
@@ -635,7 +635,7 @@ int   xine_config_register_range  (xine_p self,
 				   char *help,
 				   int   exp_level,
 				   xine_config_cb_t changed_cb,
-				   const void *const cb_data);
+				   void *cb_data);
 
 int   xine_config_register_enum   (xine_p self,
 				   char *key,
@@ -645,7 +645,7 @@ int   xine_config_register_enum   (xine_p self,
 				   char *help,
 				   int   exp_level,
 				   xine_config_cb_t changed_cb,
-				   const void *const cb_data);
+				   void *cb_data);
 
 int   xine_config_register_num    (xine_p self,
 				   char *key,
@@ -654,7 +654,7 @@ int   xine_config_register_num    (xine_p self,
 				   char *help,
 				   int   exp_level,
 				   xine_config_cb_t changed_cb,
-				   const void *const cb_data);
+				   void *cb_data);
 
 int   xine_config_register_bool   (xine_p self,
 				   char *key,
@@ -663,7 +663,7 @@ int   xine_config_register_bool   (xine_p self,
 				   char *help,
 				   int   exp_level,
 				   xine_config_cb_t changed_cb,
-				   const void *const cb_data);
+				   void *cb_data);
 
 /*
  * get first config item 
@@ -680,8 +680,7 @@ xine_cfg_entry_t *xine_config_get_next_entry (xine_p self);
  * search for a config entry by key 
  */
 
-xine_cfg_entry_t *xine_config_lookup_entry (xine_p self, 
-					    const char *key);
+xine_cfg_entry_t *xine_config_lookup_entry (xine_p self, char *key);
 
 /*
  * update a config entry (which was returned from lookup_entry() )
@@ -693,9 +692,9 @@ void              xine_config_update_entry (xine_p self,
  * load/save config data from/to afile (e.g. $HOME/.xine/config)
  */
 void              xine_load_config         (xine_p self,
- 			                    const char *cfg_filename);
+ 			                    char *cfg_filename);
 void              xine_save_config         (xine_p self,
-					    const char *cfg_filename);
+					    char *cfg_filename);
 void              xine_reset_config        (xine_p self);
 
 /*
@@ -858,7 +857,7 @@ typedef void (*xine_event_listener_cb_t) (void *user_data,
 /* register an event listener callback */
 int  xine_register_event_listener (xine_p self, 
 				   xine_event_listener_cb_t listener, 
-				   const void *const user_data);
+				   void *user_data);
 
 int  xine_remove_event_listener   (xine_p self,
 				   xine_event_listener_cb_t listener);

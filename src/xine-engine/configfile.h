@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: configfile.h,v 1.13 2002/09/06 18:13:11 mroi Exp $
+ * $Id: configfile.h,v 1.14 2002/09/09 19:24:48 f1rmb Exp $
  *
  * config file management
  *
@@ -73,7 +73,7 @@ struct cfg_entry_s {
 
   /* callback function and data for live changeable values */
   xine_config_cb_t callback;
-  const void      *callback_data;
+  void            *callback_data;
 };
 
 /*
@@ -105,7 +105,7 @@ struct config_values_s {
 			    char *help,
 			    int exp_level,
 			    xine_config_cb_t changed_cb,
-			    const void *const cb_data);
+			    void *cb_data);
 
   int (*register_range) (config_values_t *this,
 			 char *key,
@@ -115,7 +115,7 @@ struct config_values_s {
 			 char *help,
 			 int exp_level,
 			 xine_config_cb_t changed_cb,
-			 const void *const cb_data);
+			 void *cb_data);
 
   int (*register_enum) (config_values_t *this,
 			char *key,
@@ -125,7 +125,7 @@ struct config_values_s {
 			char *help,
 			int exp_level,
 			xine_config_cb_t changed_cb,
-			const void *const cb_data);
+			void *cb_data);
 
   int (*register_num) (config_values_t *this,
 		       char *key, 
@@ -134,7 +134,7 @@ struct config_values_s {
 		       char *help,
 		       int exp_level,
 		       xine_config_cb_t changed_cb,
-		       const void *const cb_data);
+		       void *cb_data);
 
   int (*register_bool) (config_values_t *this,
 			char *key, 
@@ -143,15 +143,13 @@ struct config_values_s {
 			char *help,
 			int exp_level,
 			xine_config_cb_t changed_cb,
-			const void *const cb_data);
+			void *cb_data);
 
   /* convenience function to update range, enum, num and bool values */
-  void (*update_num) (config_values_t *this,
-		      char *key, int value);
+  void (*update_num) (config_values_t *this, char *key, int value);
 
   /* convenience function to update string values */
-  void (*update_string) (config_values_t *this,
-			 char *key, char *value);
+  void (*update_string) (config_values_t *this, char *key, char *value);
 
   /* small utility function for enum handling */
   int (*parse_enum) (char *str, char **values);
@@ -163,14 +161,12 @@ struct config_values_s {
    * and you changed the value of this item
    */
 
-  cfg_entry_t* (*lookup_entry) (config_values_t *this,
-				const char *key);
+  cfg_entry_t* (*lookup_entry) (config_values_t *this, char *key);
 
   /*
    * unregister callback function
    */
-  void (*unregister_callback) (config_values_t *this,
-			       char *key);
+  void (*unregister_callback) (config_values_t *this, char *key);
 
   /* 
    * config values are stored here:

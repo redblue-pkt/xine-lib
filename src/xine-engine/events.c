@@ -30,8 +30,8 @@
 #include "xine_internal.h"
 
 int xine_register_event_listener (xine_p this_ro, 
-				  const xine_event_listener_cb_t listener,
-				  const void *const user_data) {
+				  xine_event_listener_cb_t listener,
+				  void *user_data) {
   xine_t *this = (xine_t *)this_ro;
   /* Ensure the listener is non-NULL */
   if(listener == NULL) {
@@ -62,7 +62,7 @@ void xine_send_event(xine_p this, xine_event_t *event) {
 }
 
 int xine_remove_event_listener(xine_p this_ro, 
-			       const xine_event_listener_cb_t listener) {
+			       xine_event_listener_cb_t listener) {
   xine_t *this = (xine_t *)this_ro;
   uint16_t i, found;
 

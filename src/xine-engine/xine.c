@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.152 2002/09/06 18:13:12 mroi Exp $
+ * $Id: xine.c,v 1.153 2002/09/09 19:24:48 f1rmb Exp $
  *
  * top-level xine functions
  *
@@ -150,14 +150,14 @@ void xine_report_codec( xine_t *this, int codec_type, uint32_t fourcc, uint32_t 
       if( !buf_type )
         buf_type = fourcc_to_buf_video( fourcc );
 
-      this->report_codec_cb( (void *)this->report_codec_user_data,
+      this->report_codec_cb( this->report_codec_user_data,
                              codec_type, fourcc,
                              buf_video_name( buf_type ), handled );
     } else {
       if( !buf_type )
         buf_type = formattag_to_buf_audio( fourcc );
     
-      this->report_codec_cb( (void *)this->report_codec_user_data,
+      this->report_codec_cb( this->report_codec_user_data,
                              codec_type, fourcc,
                              buf_audio_name( buf_type ), handled );
     }
@@ -165,8 +165,8 @@ void xine_report_codec( xine_t *this, int codec_type, uint32_t fourcc, uint32_t 
 }
 
 int xine_register_report_codec_cb(xine_p this_ro, 
-				  const xine_report_codec_cb_t report_codec,
-				  const void *const user_data) {
+				  xine_report_codec_cb_t report_codec,
+				  void *user_data) {
   xine_t *this = (xine_t *)this_ro;
   
   this->report_codec_cb = report_codec;
@@ -288,7 +288,7 @@ void xine_stop (xine_p this_ro) {
 /*
  * demuxer probing 
  */
-static int probe_demux (xine_t *this, const char *MRL, int stage1, int stage2) {
+static int probe_demux (xine_t *this, int stage1, int stage2) {
 
   int i;
   int stages[3];
@@ -331,31 +331,31 @@ static int probe_demux (xine_t *this, const char *MRL, int stage1, int stage2) {
 }
 
 /*
- * try to find a demuxer which handle the MRL stream
+ * try to find a demuxer which handle current mrl.
  */
-static int find_demuxer(xine_t *this, const char *MRL) {
+static int find_demuxer(xine_t *this) {
 
   this->cur_demuxer_plugin = NULL;
 
   switch (this->demux_strategy) {
 
   case DEMUX_DEFAULT_STRATEGY:
-    if (probe_demux (this, MRL, STAGE_BY_CONTENT, STAGE_BY_EXTENSION))
+    if (probe_demux (this, STAGE_BY_CONTENT, STAGE_BY_EXTENSION))
       return 1;
     break;
 
   case DEMUX_REVERT_STRATEGY:
-    if (probe_demux (this, MRL, STAGE_BY_EXTENSION, STAGE_BY_CONTENT))
+    if (probe_demux (this, STAGE_BY_EXTENSION, STAGE_BY_CONTENT))
       return 1;
     break;
 
   case DEMUX_CONTENT_STRATEGY:
-    if (probe_demux (this, MRL, STAGE_BY_CONTENT, -1))
+    if (probe_demux (this, STAGE_BY_CONTENT, -1))
       return 1;
     break;
 
   case DEMUX_EXTENSION_STRATEGY:
-    if (probe_demux (this, MRL, STAGE_BY_EXTENSION, -1))
+    if (probe_demux (this, STAGE_BY_EXTENSION, -1))
       return 1;
     break;
   }
@@ -363,7 +363,7 @@ static int find_demuxer(xine_t *this, const char *MRL) {
   return 0;
 }
 
-int xine_open_internal (xine_t *this, const char *mrl) {
+int xine_open_internal (xine_t *this, char *mrl) {
 
   printf ("xine_open: mrl '%s'\n", mrl);
 
@@ -454,7 +454,7 @@ int xine_open_internal (xine_t *this, const char *mrl) {
      * find demuxer plugin
      */
 
-    if (!find_demuxer(this, mrl)) {
+    if (!find_demuxer(this)) {
       xine_log (this, XINE_LOG_FORMAT,
 	        _("xine: couldn't find demuxer for >%s<\n"), mrl);
       this->cur_input_plugin->close(this->cur_input_plugin);
@@ -467,6 +467,7 @@ int xine_open_internal (xine_t *this, const char *mrl) {
 	      this->cur_demuxer_plugin->get_identifier());
   }
 
+#warning ?? limited length ???
   strncpy (this->cur_mrl, mrl, 1024);
 
   printf ("xine: xine_open done.\n");
@@ -527,7 +528,7 @@ int xine_play_internal (xine_t *this, int start_pos, int start_time) {
   return 1;
 }             
 
-int xine_open (xine_p this_ro, const char *mrl) {
+int xine_open (xine_p this_ro, char *mrl) {
   xine_t *this = (xine_t *)this_ro;
   int ret;
 
@@ -1098,7 +1099,7 @@ const char *const *xine_get_log (xine_p this_ro, int buf) {
   return this->log_buffers[buf]->get_content (this->log_buffers[buf]);
 }
 
-void xine_register_log_cb (xine_p this_ro, const xine_log_cb_t cb, const void *const user_data) {
+void xine_register_log_cb (xine_p this_ro, xine_log_cb_t cb, void *user_data) {
 
   printf ("xine: xine_register_log_cb: not implemented yet.\n");
   abort();
