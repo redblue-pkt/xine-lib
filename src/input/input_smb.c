@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_smb.c,v 1.3 2004/10/18 18:44:56 miguelfreitas Exp $
+ * $Id: input_smb.c,v 1.4 2005/02/06 15:00:36 tmattern Exp $
  */
 
 
@@ -258,7 +258,7 @@ static input_info_t input_info_smb = {
 };
 
 plugin_info_t xine_plugin_info[] = {
-	{ PLUGIN_INPUT, 15, "smb", XINE_VERSION_CODE, &input_info_smb,
+	{ PLUGIN_INPUT, 16, "smb", XINE_VERSION_CODE, &input_info_smb,
 		init_input_class },
 	{ PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

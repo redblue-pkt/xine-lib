@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_plugin.h,v 1.58 2004/09/26 22:54:52 valtri Exp $
+ * $Id: input_plugin.h,v 1.59 2005/02/06 15:00:34 tmattern Exp $
  */
 
 #ifndef HAVE_INPUT_PLUGIN_H
@@ -37,7 +37,7 @@
 #  include <xine/configfile.h>
 #endif
 
-#define INPUT_PLUGIN_IFACE_VERSION   15
+#define INPUT_PLUGIN_IFACE_VERSION   16
  
 typedef struct input_class_s input_class_t ;
 typedef struct input_plugin_s input_plugin_t;
@@ -200,6 +200,8 @@ struct input_plugin_s {
    */
 
   input_class_t *input_class;
+
+  void *node; /* used by plugin loader */
 
 };
 

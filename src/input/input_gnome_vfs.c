@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_gnome_vfs.c,v 1.23 2004/10/30 16:14:33 hadess Exp $
+ * $Id: input_gnome_vfs.c,v 1.24 2005/02/06 15:00:35 tmattern Exp $
  */
 
 
@@ -356,7 +356,7 @@ static void
 }
 
 plugin_info_t xine_plugin_info[] = {
-	{ PLUGIN_INPUT, 15, "gnomevfs", XINE_VERSION_CODE, NULL,
+	{ PLUGIN_INPUT, 16, "gnomevfs", XINE_VERSION_CODE, NULL,
 		init_input_class },
 	{ PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

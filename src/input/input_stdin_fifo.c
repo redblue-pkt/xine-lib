@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_stdin_fifo.c,v 1.61 2005/02/03 07:19:06 valtri Exp $
+ * $Id: input_stdin_fifo.c,v 1.62 2005/02/06 15:00:36 tmattern Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -377,6 +377,6 @@ static void *init_class (xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */
-  { PLUGIN_INPUT, 15, "stdin", XINE_VERSION_CODE, NULL, init_class },
+  { PLUGIN_INPUT, 16, "stdin", XINE_VERSION_CODE, NULL, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
