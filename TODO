@@ -108,7 +108,6 @@ Open Tasks
 - video output synced to vertical blank
   preferably without requiring
   root privileges (XSync extension? MAS?)
-- direct playback of vcd images
 - resolve issues with ffmpeg's live http streaming server
 - videolan streaming support
 - MAS support (http://www.mediaapplicationserver.net)
