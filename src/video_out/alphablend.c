@@ -30,8 +30,8 @@
 
 /*
 #define LOG_BLEND_YUV
-#define LOG_BLEND_RGB16
 */
+#define LOG_BLEND_RGB16
 
 #include <string.h>
 #include <stdlib.h>
@@ -171,6 +171,9 @@ void blend_rgb16 (uint8_t * img, vo_overlay_t * img_overl,
 #ifdef LOG_BLEND_RGB16
   printf("blend_rgb16: img_height=%i, dst_height=%i\n", img_height, dst_height);
   printf("blend_rgb16: img_width=%i, dst_width=%i\n", img_width, dst_width);
+  if (img_width & 1) { printf("blend_rgb16s: odd\n");}
+  else { printf("blend_rgb16s: even\n");}
+
 #endif
 /* stripe_height is used in yuv2rgb scaling, so use the same scale factor here for overlays. */
   stripe_height = 16 * img_height / dst_height;
@@ -180,7 +183,7 @@ void blend_rgb16 (uint8_t * img, vo_overlay_t * img_overl,
 #ifdef LOG_BLEND_RGB16
   printf("blend_rgb16: dy_step=%i, x_scale=%i\n", dy_step, x_scale);
 #endif
-
+  if (img_width & 1) img_width++;
   img_offset = ( ( (img_overl->y * img_height) / dst_height) * img_width) 
              + ( (img_overl->x * img_width) / dst_width);
 #ifdef LOG_BLEND_RGB16

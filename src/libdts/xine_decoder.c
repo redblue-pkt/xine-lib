@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.26 2002/09/05 22:18:56 mroi Exp $
+ * $Id: xine_decoder.c,v 1.27 2002/10/03 06:04:54 jcdutton Exp $
  *
  * 04-09-2001 DTS passtrough  (C) Joachim Koenig 
  * 09-12-2001 DTS passthrough inprovements (C) James Courtier-Dutton
@@ -41,6 +41,9 @@
 #include "audio_out.h"
 #include "buffer.h"
 
+/*
+#define LOG_DEBUG
+*/
 
 typedef struct dts_decoder_s {
   audio_decoder_t  audio_decoder;
@@ -128,7 +131,10 @@ void dts_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
     audio_buffer->frame_header_count = buf->decoder_info[1]; /* Number of frames */
     audio_buffer->first_access_unit = buf->decoder_info[2]; /* First access unit */
 
-    /* printf("DTS first access unit=%u\n",audio_buffer->first_access_unit); */
+#ifdef LOG_DEBUG
+    printf("DTS first access unit=%u\n",audio_buffer->first_access_unit);
+#endif
+
     if (n == first_access_unit) {
       audio_buffer->vpts       = buf->pts;
     } else {
@@ -155,13 +161,13 @@ void dts_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
       break;
     }
 
-    /* printf("DTS AC5 length=%d\n",ac5_length); */
-    /*
+#ifdef LOG_DEBUG
+    printf("DTS AC5 length=%d\n",ac5_length);
     for(i=2000;i<2048;i++) {
       printf("%02x ",data[i]);
     }
     printf("\n");
-     */ 
+#endif
   
     if (ac5_length > 8191) {
       printf("ac5_length too long\n");
@@ -187,7 +193,10 @@ void dts_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
       }
     }
     
-    /* printf("DTS length=%d loop=%d pts=%u\n",ac5_pcm_length,n,audio_buffer->vpts); */
+#ifdef LOG_DEBUG
+    printf("DTS length=%d loop=%d pts=%u\n",ac5_pcm_length,n,audio_buffer->vpts);
+#endif
+
     audio_buffer->num_frames = ac5_pcm_length;
 
     data_out[0] = 0x72; data_out[1] = 0xf8;	/* spdif syncword    */
