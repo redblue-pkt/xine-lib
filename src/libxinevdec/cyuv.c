@@ -1,6 +1,6 @@
 /* This is the standard xine header: */
 /*
- * Copyright (C) 2000-2001 the xine project
+ * Copyright (C) 2000-2002 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: cyuv.c,v 1.1 2002/04/30 08:28:10 esnel Exp $
+ * $Id: cyuv.c,v 1.2 2002/05/01 19:42:57 guenter Exp $
  */
 
 /* And this is the header that came with the CYUV decoder: */
@@ -228,7 +228,7 @@ video_decoder_t *init_video_decoder_plugin (int iface_version, xine_t *xine) {
 
   cyuv_decoder_t *this ;
 
-  if (iface_version != 7) {
+  if (iface_version != 8) {
     printf( "CYUV: plugin doesn't support plugin API version %d.\n"
       "CYUV: this means there's a version mismatch between xine and this "
       "CYUV: decoder plugin.\nInstalling current plugins should help.\n",

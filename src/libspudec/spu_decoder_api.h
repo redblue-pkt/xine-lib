@@ -24,7 +24,9 @@
 #ifndef HAVE_SPU_API_H
 #define HAVE_SPU_API_H
 
- /*
+#define SPU_DECODER_IFACE_VERSION 7
+
+/*
  * generic xine spu decoder plugin interface
  *
  * for a dynamic plugin make sure you provide this function call:
@@ -53,8 +55,6 @@ struct spu_decoder_s {
   void (*dispose) (spu_decoder_t *this);
 
   int priority;
-
-  metronom_t *metronom;
 
 };
 

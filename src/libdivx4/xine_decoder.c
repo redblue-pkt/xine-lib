@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.32 2002/04/29 23:31:59 jcdutton Exp $
+ * $Id: xine_decoder.c,v 1.33 2002/05/01 19:42:56 guenter Exp $
  *
  * xine decoder plugin using divx4
  *
@@ -60,7 +60,9 @@
 #if CATCH_SIGSEGV
 #include <signal.h>
 
-/* #define LOG */
+/*
+#define LOG 
+*/
 
 /* to be able to restore the old handler */
 void (*old_handler)(int);
@@ -107,6 +109,7 @@ typedef struct divx4_decoder_s {
   int               bufsize;
   
   decoreFunc        decore; /* ptr to decore function in libdivxdecore */
+
   /* version as reported by decore with GET_OPT_VERSION command */
   int		    version;
   /* whether to decode MSMPEG4_V3 format
@@ -203,31 +206,30 @@ static int divx4_check_version(divx4_decoder_t *this)
 static void divx4_set_pp(divx4_decoder_t *this) {
   DEC_SET setpp;   /* for setting postproc level */
   int ret;
+
+#ifdef LOG
+  printf ("divx4: this->decoder_ok=%d\n", this->decoder_ok);
+#endif
+
+  if (!this->decoder_ok)
+    return;
     
   /* multiply postproc level by 10 for internal consumption */
-  printf("divx4: Setting post processing level to %d (see ~/.xinerc)\n"
+  printf("divx4: Setting post processing level to %d (see ~/.xine/options)\n"
          "divx4: Valid range 0-6, reduce if you get frame drop\n", 
          this->postproc); 
-  setpp.postproc_level=this->postproc*10;
-  setpp.deblock_hor_luma = 0;
-  setpp.deblock_ver_luma = 0;
-  setpp.deblock_hor_chr = 0;
-  setpp.deblock_ver_chr = 0;
-  setpp.dering_luma = 0;
-  setpp.dering_chr = 0;
-  setpp.pp_semaphore = 0;
 
+  setpp.postproc_level   = this->postproc*10; 
   setpp.deblock_hor_luma = 0;
   setpp.deblock_ver_luma = 0;
-  setpp.deblock_hor_chr = 0;
-  setpp.deblock_ver_chr = 0;
-  setpp.dering_luma = 0;
-  setpp.dering_chr = 0;
-  setpp.pp_semaphore = 0;
+  setpp.deblock_hor_chr  = 0;
+  setpp.deblock_ver_chr  = 0;
+  setpp.dering_luma      = 0;
+  setpp.dering_chr       = 0;
+  setpp.pp_semaphore     = 0;
 
   ret = this->decore((unsigned long)this, DEC_OPT_SETPP, &setpp, 0);
-  if (ret != DEC_OK)
-  {
+  if (ret != DEC_OK) {
     printf("divx4: decore DEC_OPT_SETPP command returned %s.\n", decore_retval(ret));
     /* perhaps not fatal, so we'll continue */
   }
@@ -235,10 +237,14 @@ static void divx4_set_pp(divx4_decoder_t *this) {
 
 
 /* helper function to initialize decore */
-static int divx4_init_decoder(divx4_decoder_t *this, buf_element_t *buf)
-{
+static int divx4_init_decoder(divx4_decoder_t *this, buf_element_t *buf) {
+
   DEC_PARAM param; /* for init                   */
   int ret, codec_type;
+
+#ifdef LOG
+  printf ("divx4: init_decoder\n");
+#endif
 
   memcpy ( &this->bih, buf->content, sizeof (BITMAPINFOHEADER));
   this->biWidth = str2ulong(&this->bih.biWidth);
@@ -288,6 +294,8 @@ static int divx4_init_decoder(divx4_decoder_t *this, buf_element_t *buf)
     printf("divx4: decore DEC_OPT_INIT command returned %s.\n", decore_retval(ret));
     return 0;
   }
+
+  this->decoder_ok = 1;
 
   divx4_set_pp( this );
   
@@ -363,6 +371,10 @@ static int divx4_can_handle (video_decoder_t *this_gen, int buf_type) {
   divx4_decoder_t *this = (divx4_decoder_t *) this_gen;
   buf_type &= 0xFFFF0000;
 
+#ifdef LOG
+  printf ("divx4: can_handle\n");
+#endif
+
   /* divx4 currently does not support MSMPEG4 v1/v2 */
   return ( (buf_type == BUF_VIDEO_MSMPEG4_V3 && this->can_handle_311) ||
            /* buf_type == BUF_VIDEO_MSMPEG4_V12 || */
@@ -374,6 +386,10 @@ static int divx4_can_handle (video_decoder_t *this_gen, int buf_type) {
 static void divx4_init (video_decoder_t *this_gen, vo_instance_t *video_out) {
 
   divx4_decoder_t *this = (divx4_decoder_t *) this_gen;
+
+#ifdef LOG
+  printf ("divx4: divx4_init\n");
+#endif
 
   this->video_out  = video_out;
   this->decoder_ok = 0;
@@ -406,7 +422,7 @@ static void divx4_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 
     divx4_get_version(this);	
     this->decoder_ok = ( divx4_check_version(this) &&
-                         divx4_init_decoder(this, buf) );
+                         divx4_init_decoder (this, buf) );
     if (this->decoder_ok) {
       this->video_out->open (this->video_out);
     
@@ -490,6 +506,8 @@ static void divx4_close (video_decoder_t *this_gen)  {
 
   divx4_decoder_t *this = (divx4_decoder_t *) this_gen;
 
+  printf ("divx4: close\n");
+
   if (this->decoder_ok) {
     /* FIXME: this segfaults here */
     /* Note: we NEED this; after 0.9.4, xine closes and reopens
@@ -505,9 +523,13 @@ static void divx4_close (video_decoder_t *this_gen)  {
   this->buf = NULL;
 }
 
-static void divx4_update_postproc(void *this_gen, cfg_entry_t *entry)
-{
+static void divx4_update_postproc(void *this_gen, cfg_entry_t *entry) {
+
   divx4_decoder_t *this = (divx4_decoder_t *) this_gen;
+
+#ifdef LOG
+  printf ("divx4: update_postproc this=0x%08x, decoder_ok = %d\n", this, this->decoder_ok);
+#endif
   
   if( this->postproc != entry->num_value ) {
     this->postproc = entry->num_value;
@@ -517,17 +539,29 @@ static void divx4_update_postproc(void *this_gen, cfg_entry_t *entry)
 
 
 static char *divx4_get_id(void) {
+#ifdef LOG
+  printf ("divx4: get_id\n");
+#endif
   return "divx4 video decoder";
 }
 
 static void divx4_flush(video_decoder_t *this_gen) {
+#ifdef LOG
+  printf ("divx4: flush\n");
+#endif
 }
 
 static void divx4_reset(video_decoder_t *this_gen) {
   /* seems to handle seeking quite nicelly without any code here */
+#ifdef LOG
+  printf ("divx4: reset\n");
+#endif
 }
 
 static void divx4_dispose(video_decoder_t *this_gen) {
+#ifdef LOG
+  printf ("divx4: dispose\n");
+#endif
   free (this_gen);
 }
 
@@ -541,7 +575,7 @@ video_decoder_t *init_video_decoder_plugin (int iface_version, xine_t *xine) {
   decoreFunc libdecore_func = 0;
   config_values_t *cfg;
 
-  if (iface_version != 7) {
+  if (iface_version != 8) {
     printf( "divx4: plugin doesn't support plugin API version %d.\n"
 	    "divx4: this means there's a version mismatch between xine and this "
 	    "divx4: decoder plugin.\nInstalling current plugins should help.\n",
@@ -567,6 +601,8 @@ video_decoder_t *init_video_decoder_plugin (int iface_version, xine_t *xine) {
   }
 
   this = (divx4_decoder_t *) malloc (sizeof (divx4_decoder_t));
+
+  this->decoder_ok = 0;
 
   this->video_decoder.interface_version   = iface_version;
   this->video_decoder.can_handle          = divx4_can_handle;
@@ -607,6 +643,10 @@ video_decoder_t *init_video_decoder_plugin (int iface_version, xine_t *xine) {
      between 0 and 100 are valid */
   if (this->postproc > 10) this->postproc=10;
   if (this->postproc < 0) this->postproc=0;
+
+#ifdef LOG
+  printf ("divx4: this=0x%08x, decoder_ok = %d\n", this, this->decoder_ok);
+#endif
 
   return (video_decoder_t *) this;
 }

@@ -1,7 +1,7 @@
 /* 
  * Copyright (C) 2002 the xine project
  * 
- * This file is part of xine, a unix video player.
+ * This file is part of xine, a free video player.
  * 
  * xine is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,7 +22,7 @@
  * based on overview of Microsoft Video-1 algorithm
  * by Mike Melanson: http://www.pcisys.net/~melanson/codecs/video1.txt
  *
- * $Id: msvc.c,v 1.1 2002/04/30 08:28:10 esnel Exp $
+ * $Id: msvc.c,v 1.2 2002/05/01 19:42:57 guenter Exp $
  */
 
 #include <stdlib.h>
@@ -335,7 +335,7 @@ video_decoder_t *init_video_decoder_plugin (int iface_version, xine_t *xine) {
 
   msvc_decoder_t *this ;
 
-  if (iface_version != 7) {
+  if (iface_version != 8) {
     printf( "msvc: plugin doesn't support plugin API version %d.\n"
 	    "msvc: this means there's a version mismatch between xine and this "
 	    "msvc: decoder plugin.\nInstalling current plugins should help.\n",

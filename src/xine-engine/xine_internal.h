@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.79 2002/04/23 15:45:26 esnel Exp $
+ * $Id: xine_internal.h,v 1.80 2002/05/01 19:42:57 guenter Exp $
  *
  */
 
@@ -55,7 +55,8 @@ extern "C" {
 #define INPUT_PLUGIN_MAX       50
 #define DEMUXER_PLUGIN_MAX     50
 #define DECODER_PLUGIN_MAX     256
-#define DECODER_PLUGIN_IFACE_VERSION      7
+#define VIDEO_DECODER_IFACE_VERSION      8
+#define AUDIO_DECODER_IFACE_VERSION      7
 #define AUDIO_OUT_PLUGIN_MAX   50
 #define VIDEO_OUT_PLUGIN_MAX   50
 #define XINE_MAX_EVENT_LISTENERS 50
@@ -65,7 +66,7 @@ extern "C" {
  *
  * for a dynamic plugin make sure you provide this function call:
  * video_decoder_t *init_video_decoder_plugin (int iface_version,  
- *                                             config_values_t *cfg);
+ *                                             xine_t *xine);
  */
 
 typedef struct video_decoder_s video_decoder_t;
@@ -92,8 +93,6 @@ struct video_decoder_s {
 
   int priority;
 
-  metronom_t *metronom;
-
 };
 
 /*
@@ -101,7 +100,7 @@ struct video_decoder_s {
  *
  * for a dynamic plugin make sure you provide this function call:
  * audio_decoder_t *init_audio_decoder_plugin (int iface_version,  
- *                                             config_values_t *cfg);
+ *                                             xine_t *xine);
  */
 
 typedef struct audio_decoder_s audio_decoder_t;
@@ -178,9 +177,10 @@ struct xine_s {
   spu_functions_t           *spu_out;
   pthread_t                  spu_thread;
   spu_decoder_t             *spu_decoder_plugins[DECODER_PLUGIN_MAX];
-  int                        num_spu_decoder_plugins;
   spu_decoder_t             *cur_spu_decoder_plugin;
   int                        spu_finished;
+  spu_decoder_t             *spu_decoders_loaded[DECODER_PLUGIN_MAX];
+  int                        num_spu_decoders_loaded;
 
   /* *_user: -2 => off
              -1 => auto (use *_auto value)
@@ -199,6 +199,8 @@ struct xine_s {
   pthread_t                  video_thread;
   video_decoder_t           *video_decoder_plugins[DECODER_PLUGIN_MAX];
   video_decoder_t           *cur_video_decoder_plugin;
+  video_decoder_t           *video_decoders_loaded[DECODER_PLUGIN_MAX];
+  int                        num_video_decoders_loaded;
   int                        video_finished;
   int                        video_in_discontinuity;
   
@@ -211,8 +213,9 @@ struct xine_s {
   lrb_t                     *audio_temp;
   pthread_t                  audio_thread;
   audio_decoder_t           *audio_decoder_plugins[DECODER_PLUGIN_MAX];
-  int                        num_audio_decoder_plugins;
   audio_decoder_t           *cur_audio_decoder_plugin;
+  audio_decoder_t           *audio_decoders_loaded[DECODER_PLUGIN_MAX];
+  int                        num_audio_decoders_loaded;
   uint32_t                   audio_track_map[50];
   int                        audio_track_map_entries;
   int                        audio_finished;
@@ -475,26 +478,26 @@ void audio_decoder_shutdown (xine_t *this);
  * load all available demuxer plugins
  */
 void load_demux_plugins (xine_t *this, 
-			 config_values_t *config, int iface_version);
+			 config_values_t *config);
                          
 /*
  *  list (open and close) all available demuxer plugins
  */
 void xine_list_demux_plugins (config_values_t *config,
-                          char **identifiers, char **mimetypes);
+			      char **identifiers, char **mimetypes);
                           
 /*
  * load all available input plugins
  */
 
 void load_input_plugins (xine_t *this, 
-			 config_values_t *config, int iface_version);
+			 config_values_t *config);
 
 /*
  * load all available decoder plugins
  */
 void load_decoder_plugins (xine_t *this, 
-			   config_values_t *config, int iface_version);
+			   config_values_t *config);
 
 /*
  * output driver load support functions

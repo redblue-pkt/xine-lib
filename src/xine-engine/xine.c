@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.122 2002/04/29 23:32:00 jcdutton Exp $
+ * $Id: xine.c,v 1.123 2002/05/01 19:42:57 guenter Exp $
  *
  * top-level xine functions
  *
@@ -456,7 +456,7 @@ int xine_eject (xine_t *this) {
 
 void xine_exit (xine_t *this) {
 
-  int i, j;
+  int i;
 
   xine_stop(this);
     
@@ -487,32 +487,14 @@ void xine_exit (xine_t *this) {
   for (i = 0; i < this->num_input_plugins; i++)
     this->input_plugins[i]->dispose (this->input_plugins[i]);
 
-  for (i = 0; i < DECODER_PLUGIN_MAX; i++) {
-    if (this->audio_decoder_plugins[i]) {
-      this->audio_decoder_plugins[i]->dispose (this->audio_decoder_plugins[i]);
+  for (i = 0; i < this->num_audio_decoders_loaded; i++) 
+    this->audio_decoders_loaded[i]->dispose (this->audio_decoders_loaded[i]);
 
-      for (j = i + 1; j < DECODER_PLUGIN_MAX; j++) {
-	if (this->audio_decoder_plugins[j] == this->audio_decoder_plugins[i])
-	  this->audio_decoder_plugins[j] = NULL;
-      }
-    }
-    if (this->video_decoder_plugins[i]) {
-      this->video_decoder_plugins[i]->dispose (this->video_decoder_plugins[i]);
+  for (i = 0; i < this->num_video_decoders_loaded; i++) 
+    this->video_decoders_loaded[i]->dispose (this->video_decoders_loaded[i]);
 
-      for (j = i + 1; j < DECODER_PLUGIN_MAX; j++) {
-	if (this->video_decoder_plugins[j] == this->video_decoder_plugins[i])
-	  this->video_decoder_plugins[j] = NULL;
-      }
-    }
-    if (this->spu_decoder_plugins[i]) {
-      this->spu_decoder_plugins[i]->dispose (this->spu_decoder_plugins[i]);
-
-      for (j = i + 1; j < DECODER_PLUGIN_MAX; j++) {
-	if (this->spu_decoder_plugins[j] == this->spu_decoder_plugins[i])
-	  this->spu_decoder_plugins[j] = NULL;
-      }
-    }
-  }
+  for (i = 0; i < this->num_spu_decoders_loaded; i++) 
+    this->spu_decoders_loaded[i]->dispose (this->spu_decoders_loaded[i]);
 
   xine_profiler_print_results ();
 
@@ -573,13 +555,13 @@ xine_t *xine_init (vo_driver_t *vo,
    * load input and demuxer plugins
    */
 
-  load_input_plugins (this, config, INPUT_PLUGIN_IFACE_VERSION);
+  load_input_plugins (this, config);
 
   this->demux_strategy  = config->register_enum (config, "misc.demux_strategy", 0,
 						 demux_strategies, "demuxer selection strategy",
 						 NULL, NULL, NULL);
 
-  load_demux_plugins(this, config, DEMUXER_PLUGIN_IFACE_VERSION);
+  load_demux_plugins(this, config);
 
   this->spu_channel_auto   = -1;
   this->spu_channel_user   = -1;
@@ -590,7 +572,7 @@ xine_t *xine_init (vo_driver_t *vo,
    * init and start decoder threads
    */
 
-  load_decoder_plugins (this, config, DECODER_PLUGIN_IFACE_VERSION);
+  load_decoder_plugins (this, config);
 
   this->video_out = vo_new_instance (vo, this);
   video_decoder_init (this);

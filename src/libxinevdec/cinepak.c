@@ -1,7 +1,7 @@
 /* 
  * Copyright (C) 2002 the xine project
  * 
- * This file is part of xine, a unix video player.
+ * This file is part of xine, a free video player.
  * 
  * xine is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,7 +22,7 @@
  * based on overview of Cinepak algorithm and example decoder
  * by Tim Ferguson: http://www.csse.monash.edu.au/~timf/
  *
- * $Id: cinepak.c,v 1.2 2002/04/30 20:06:16 esnel Exp $
+ * $Id: cinepak.c,v 1.3 2002/05/01 19:42:57 guenter Exp $
  */
 
 #include <stdlib.h>
@@ -424,7 +424,7 @@ video_decoder_t *init_video_decoder_plugin (int iface_version, xine_t *xine) {
 
   cvid_decoder_t *this ;
 
-  if (iface_version != 7) {
+  if (iface_version != 8) {
     printf( "cinepak: plugin doesn't support plugin API version %d.\n"
 	    "cinepak: this means there's a version mismatch between xine and this "
 	    "cinepak: decoder plugin.\nInstalling current plugins should help.\n",
