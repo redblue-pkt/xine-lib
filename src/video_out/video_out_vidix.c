@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2002 the xine project
+ * Copyright (C) 2000-2003 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_vidix.c,v 1.26 2003/01/31 19:57:32 jstembridge Exp $
+ * $Id: video_out_vidix.c,v 1.27 2003/02/02 17:53:51 jstembridge Exp $
  * 
  * video_out_vidix.c
  *
@@ -37,7 +37,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <inttypes.h>
-#include <math.h>
 
 #include <X11/Xlib.h>
 
@@ -258,10 +257,6 @@ static void write_frame_sfb(vidix_driver_t* this, vidix_frame_t* frame)
   switch(frame->format) {   
     case XINE_IMGFMT_YUY2:
       write_frame_YUY2(this, frame);
-/*
-      else
-	printf("video_out_vidix: error. (YUY2 not supported by your graphic card)\n");	
-*/
       break;
       
     case XINE_IMGFMT_YV12:
@@ -272,24 +267,10 @@ static void write_frame_sfb(vidix_driver_t* this, vidix_frame_t* frame)
           write_frame_YUV420P3(this, frame);
       } else
           write_frame_YUV422(this,frame);
-/*      switch(this->yuv_format) {
-       case VIDEO_PALETTE_YUV422:
-	 write_frame_YUV422(this, frame);
-	 break;
-       case VIDEO_PALETTE_YUV420P2:
-	 write_frame_YUV420P2(this, frame);
-	 break;
-       case VIDEO_PALETTE_YUV420P3:
-	 write_frame_YUV420P3(this, frame);
-	 break;
-       default:
-	 printf("video_out_vidix: error. (YV12 not supported by your graphic card)\n");
-      }	
-*/
       break;
       
     default:
-      printf("video_out_vidix: error. (unknown frame format)\n");
+      printf("video_out_vidix: error. (unknown frame format %04x)\n", frame->format);
       break;
    }
 }
@@ -409,24 +390,15 @@ static void vidix_compute_ideal_size (vidix_driver_t *this) {
 }
 
 /*
- * make ideal width/height "fit" into the gui
+ * Configure vidix device
  */
 
-static void vidix_compute_output_size (vidix_driver_t *this) {
+static void vidix_config_playback (vidix_driver_t *this) {
 
   uint32_t apitch;
   int err,i;
   
-  //  if( !this->sc.ideal_width || !this->sc.ideal_height )
-  //    return;
-
   vo_scale_compute_output_size( &this->sc );
-  
-#ifdef LOG
-  printf ("video_out_vidix: frame source %d x %d => screen output %d x %d\n",
-	  this->sc.delivered_width, this->sc.delivered_height,
-	  this->sc.output_width, this->sc.output_height);
-#endif
   
   if( this->vidix_started ) {
 #ifdef LOG
@@ -473,6 +445,14 @@ static void vidix_compute_output_size (vidix_driver_t *this) {
          this->vidix_play.offset.y, this->vidix_play.offset.u,
          this->vidix_play.offset.v );
   
+  printf("video_out_vidix: src.x/y/w/h = %d/%d/%d/%d\n",
+         this->vidix_play.src.x, this->vidix_play.src.y,
+         this->vidix_play.src.w, this->vidix_play.src.h );
+  
+  printf("video_out_vidix: dest.x/y/w/h = %d/%d/%d/%d\n",
+         this->vidix_play.dest.x, this->vidix_play.dest.y,
+         this->vidix_play.dest.w, this->vidix_play.dest.h );
+
   printf("video_out_vidix: dest.pitch.y/u/v = %d/%d/%d\n",
          this->vidix_play.dest.pitch.y, this->vidix_play.dest.pitch.u,
          this->vidix_play.dest.pitch.v );
@@ -538,7 +518,7 @@ static void vidix_update_frame_format (vo_driver_t *this_gen,
 	 frame->vo_frame.base[2] = NULL;
 	 break;
        default:
-	 printf("video_out_vidix: error. (unable to allocate framedata because of unknown frame format: %04x)\n", format);
+	 printf("video_out_vidix: error. (unknown frame format: %04x)\n", format);
       }
       
       if((format == XINE_IMGFMT_YV12 && (frame->vo_frame.base[0] == NULL || frame->vo_frame.base[1] == NULL || frame->vo_frame.base[2] == NULL))
@@ -566,26 +546,6 @@ static void vidix_overlay_blend (vo_driver_t *this_gen, vo_frame_t *frame_gen, v
     else
       blend_yuy2( frame->vo_frame.base[0], overlay, frame->width, frame->height, frame->vo_frame.pitches[0]);
   }
-}
-
-static void vidix_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen);
-
-static int vidix_redraw_needed (vo_driver_t *this_gen) {
-  vidix_driver_t  *this = (vidix_driver_t *) this_gen;
-  int ret = 0;
-
-
-  if( vo_scale_redraw_needed( &this->sc ) ) {
-
-    if(this->current) {
-      this->sc.force_redraw = 1;
-      vidix_display_frame(this_gen, (vo_frame_t *) this->current);
-    }
-
-    ret = 1;
-  }
-  
-  return ret;
 }
 
 
@@ -618,7 +578,7 @@ static void vidix_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
    * format/window position change
    */
   if(vo_scale_redraw_needed(&this->sc)) {
-    vidix_compute_output_size(this);
+    vidix_config_playback(this);
     vidix_clean_output_area(this);
   }
   
@@ -635,6 +595,26 @@ static void vidix_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
   
   pthread_mutex_unlock(&this->mutex);
 }
+
+
+static int vidix_redraw_needed (vo_driver_t *this_gen) {
+  vidix_driver_t  *this = (vidix_driver_t *) this_gen;
+  int ret = 0;
+
+
+  if( vo_scale_redraw_needed( &this->sc ) ) {
+
+    if(this->current) {
+      this->sc.force_redraw = 1;
+      vidix_display_frame(this_gen, (vo_frame_t *) this->current);
+    }
+
+    ret = 1;
+  }
+  
+  return ret;
+}
+
 
 static int vidix_get_property (vo_driver_t *this_gen, int property) {
 
@@ -1006,8 +986,6 @@ static void dispose_class (video_driver_class_t *this_gen) {
 
 static void *init_class (xine_t *xine, void *visual_gen) {
   vidix_class_t        *this;
-  x11_visual_t         *visual = (x11_visual_t *) visual_gen;
-  XWindowAttributes     window_attributes;
   int                   err;
   
   this = malloc (sizeof (vidix_class_t));
