@@ -17,12 +17,11 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.26 2002/06/12 12:22:36 f1rmb Exp $
+ * $Id: xine_decoder.c,v 1.27 2002/06/16 00:53:39 jcdutton Exp $
  * 
  * 31-8-2001 Added LPCM rate sensing.
  *   (c) 2001 James Courtier-Dutton James@superbug.demon.co.uk
  *
- * stuff needed to turn libac3 into a xine decoder plugin
  */
 #ifndef __sun
 #define _XOPEN_SOURCE 500
@@ -87,35 +86,35 @@ void lpcm_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
   int16_t        *sample_buffer=(int16_t *)buf->content;
   int             stream_be;
   audio_buffer_t *audio_buffer;
-  
-  if (buf->decoder_flags & BUF_FLAG_PREVIEW) {
+  /* Drop preview data */
+  if (buf->decoder_flags & BUF_FLAG_PREVIEW)
+    return;
+  if (buf->decoder_info[1]==0 || buf->decoder_info[2]==0 || buf->decoder_info[3]==0) {
+    printf ("liblpcm: decoder_info bad. zeros\n");
+    return;
+  }
+  /*
+   * (re-)open output device
+   */
+  if (!this->output_open
+      || (this->rate != buf->decoder_info[1])
+      || (this->bits_per_sample != buf->decoder_info[2])
+      || (this->number_of_channels != buf->decoder_info[3]) ) {
+
+    if (this->output_open)
+        this->audio_out->close (this->audio_out);
+
     this->rate=buf->decoder_info[1];
     this->bits_per_sample=buf->decoder_info[2] ; 
     this->number_of_channels=buf->decoder_info[3] ; 
     this->ao_cap_mode=(this->number_of_channels == 2) ? AO_CAP_MODE_STEREO : AO_CAP_MODE_MONO; 
-    return;
+
+    this->output_open = this->audio_out->open (this->audio_out,
+                                               this->bits_per_sample,
+                                               this->rate,
+                                               this->ao_cap_mode) ;
   }
 
-  if (!this->output_open) {      
-    /*
-     * with dvdnav we do not get a preview buffer with audio format
-     * information (buf->decoder_flags & BUF_FLAG_PREVIEW).
-     * grab the audio format from the first audio data buffer, in case
-     * the audio format is not yet known.
-     */
-    if (this->rate == 0 && this->bits_per_sample == 0) {
-      this->rate=buf->decoder_info[1];
-      this->bits_per_sample=buf->decoder_info[2] ; 
-      this->number_of_channels=buf->decoder_info[3] ; 
-      this->ao_cap_mode=(this->number_of_channels == 2) ? AO_CAP_MODE_STEREO : AO_CAP_MODE_MONO; 
-    }
-    printf ("liblpcm: opening audio output (%d Hz sampling rate, mode=%d)\n",
-	    this->rate, this->ao_cap_mode);
-    this->output_open = this->audio_out->open (this->audio_out, 
-						(this->bits_per_sample<=16)?this->bits_per_sample:16, 
-						this->rate,
-						this->ao_cap_mode) ;
-  }
   if (!this->output_open) 
     return;
 
