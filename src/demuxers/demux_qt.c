@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.70 2002/07/17 20:29:03 miguelfreitas Exp $
+ * $Id: demux_qt.c,v 1.71 2002/07/19 03:21:49 miguelfreitas Exp $
  *
  */
 
@@ -407,15 +407,24 @@ static qt_error parse_trak_atom(qt_sample_table *sample_table,
   /* default type */
   sample_table->type = MEDIA_OTHER;
 
+  /* search for media type atoms */
+  for (i = ATOM_PREAMBLE_SIZE; i < trak_atom_size - 4; i++) {
+    current_atom = BE_32(&trak_atom[i]);
+
+    if (current_atom == VMHD_ATOM) {
+      sample_table->type = MEDIA_VIDEO;
+      break;
+    } else if (current_atom == SMHD_ATOM) {
+      sample_table->type = MEDIA_AUDIO;
+      break;
+    }
+  }
+  
   /* search for the useful atoms */
   for (i = ATOM_PREAMBLE_SIZE; i < trak_atom_size - 4; i++) {
     current_atom = BE_32(&trak_atom[i]);
 
-    if (current_atom == VMHD_ATOM)
-      sample_table->type = MEDIA_VIDEO;
-    else if (current_atom == SMHD_ATOM)
-      sample_table->type = MEDIA_AUDIO;
-    else if (current_atom == TKHD_ATOM)
+    if (current_atom == TKHD_ATOM)
       sample_table->flags = BE_16(&trak_atom[i + 6]);
     else if (current_atom == ELST_ATOM) {
 
