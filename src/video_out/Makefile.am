@@ -25,6 +25,9 @@ xv_module = xineplug_vo_out_xv.la
 #if HAVE_OPENGL
 #opengl_module = xineplug_vo_out_opengl.la
 #endif
+if HAVE_SUNFB
+pgx64_module = xineplug_vo_out_pgx64.la
+endif
 #endif
 
 if HAVE_AA
@@ -52,7 +55,7 @@ endif
 
 #lib_LTLIBRARIES = $(xshm_module) $(xv_module) $(directfb_module)  \
 #                  $(syncfb_module) $(fb_module) $(opengl_module) $(sdl_module) $(vidix_module)
-lib_LTLIBRARIES = $(xshm_module) $(xv_module) $(aa_module)
+lib_LTLIBRARIES = $(xshm_module) $(xv_module) $(aa_module) $(pgx64_module)
 
 xineplug_vo_out_xv_la_SOURCES = deinterlace.c alphablend.c video_out_xv.c
 xineplug_vo_out_xv_la_LIBADD = \
@@ -99,6 +102,10 @@ xineplug_vo_out_aa_la_LDFLAGS = -avoid-version -module
 #xineplug_vo_out_vidix_la_SOURCES = alphablend.c video_out_vidix.c
 #xineplug_vo_out_vidix_la_LIBADD =  $(X_LIBS) $(top_builddir)/src/video_out/vidix/libvidix.la
 #xineplug_vo_out_vidix_la_LDFLAGS = -avoid-version -module
+
+xineplug_vo_out_pgx64_la_SOURCES = alphablend.c video_out_pgx64.c
+xineplug_vo_out_pgx64_la_LIBADD = $(X_LIBS)
+xineplug_vo_out_pgx64_la_LDFLAGS = -avoid-version -module
 
 noinst_HEADERS = alphablend.h deinterlace.h video_out_syncfb.h yuv2rgb.h 
 

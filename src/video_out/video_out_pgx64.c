@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  *
- * $Id: video_out_pgx64.c,v 1.3 2002/09/05 20:44:42 mroi Exp $
+ * $Id: video_out_pgx64.c,v 1.4 2002/10/05 04:11:58 komadori Exp $
  *
  * video_out_pgx64.c, Sun PGX64/PGX24 output plugin for xine
  *
@@ -40,11 +40,10 @@
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 
-#include "video_out.h"
-#include "video_out_x11.h"
 #include "xine_internal.h"
-#include "xineutils.h"
 #include "alphablend.h"
+#include "vo_scale.h"
+#include "xineutils.h"
 
 #define ADDRSPACE 8388608
 #define REGBASE   8386560
@@ -98,35 +97,30 @@ static char *deinterlace_methods[] = {"one field",
                                       NULL};
 
 typedef struct {   
-  vo_driver_t vo_driver;
+  xine_vo_driver_t vo_driver;
+  vo_scale_t vo_scale;
+  xine_t *xine;
   config_values_t *config;
   Display *display;
   int screen;
   Window root;
   Drawable drawable;
   GC gc;
-  void *user_data;
-  void (*frame_output_cb) (void *user_data, int video_width, int video_height, int *dest_x, int *dest_y, int *dest_width, int *dest_height, int *win_x, int *win_y);
 
   int fbfd;
   void *fbbase;
   volatile uint32_t *fbregs;
-  uint32_t top, buf_y, buf_u, buf_v;
+  uint32_t top;
 
-  int colour_key, brightness, saturation, ratio_property;
-  int force_update, deinterlace, deinterlace_method;
-  double frame_ratio, image_ratio, unscale_x, unscale_y;
-  int dest_x, dest_y, old_dest_x, old_dest_y;
-  int dest_width, dest_height, old_dest_width, old_dest_height;
-  int win_x, win_y, old_win_x, old_win_y;
-  int display_width, display_height, display_xoffset, display_yoffset;
-  int correct_width, correct_height;
+  int colour_key, brightness, saturation;
+  int deinterlace, deinterlace_method;
 } pgx64_driver_t;
 
 typedef struct {
   vo_frame_t vo_frame;
 
   int lengths[3];  
+  uint32_t buf_y, buf_u, buf_v;
   int width, height, ratio_code, format;
 } pgx64_frame_t;
 
@@ -148,6 +142,24 @@ static void dispose_frame_internals(pgx64_frame_t *frame)
     free(frame->vo_frame.base[2]);
     frame->vo_frame.base[2] = NULL;
   }
+}
+
+/*
+ * Paint the output area with the colour key and black borders
+ */
+
+static void repaint_output_area(pgx64_driver_t *this)
+{
+  XLockDisplay(this->display);
+  XSetForeground(this->display, this->gc, BlackPixel(this->display, this->screen));
+  XFillRectangle(this->display, this->drawable, this->gc, this->vo_scale.gui_x, this->vo_scale.gui_y, this->vo_scale.gui_width, this->vo_scale.output_yoffset - this->vo_scale.gui_y);
+  XFillRectangle(this->display, this->drawable, this->gc, this->vo_scale.gui_x, this->vo_scale.output_yoffset + this->vo_scale.output_height, this->vo_scale.gui_width, this->vo_scale.gui_height - (this->vo_scale.output_yoffset + this->vo_scale.output_height));
+  XFillRectangle(this->display, this->drawable, this->gc, this->vo_scale.gui_x, this->vo_scale.gui_y, this->vo_scale.output_xoffset - this->vo_scale.gui_x, this->vo_scale.gui_height);
+  XFillRectangle(this->display, this->drawable, this->gc, this->vo_scale.output_xoffset + this->vo_scale.output_width, this->vo_scale.gui_y, this->vo_scale.gui_width - (this->vo_scale.output_xoffset + this->vo_scale.output_width), this->vo_scale.gui_height);
+  XSetForeground(this->display, this->gc, this->colour_key);
+  XFillRectangle(this->display, this->drawable, this->gc, this->vo_scale.output_xoffset, this->vo_scale.output_yoffset, this->vo_scale.output_width, this->vo_scale.output_height);
+  XFlush(this->display);
+  XUnlockDisplay(this->display);
 }
 
 /*
@@ -218,7 +230,7 @@ static void pgx64_config_changed(pgx64_driver_t *this, cfg_entry_t *entry)
 {
   if (strcmp(entry->key, "video.pgx64_colour_key") == 0) {
     this->colour_key = entry->num_value;
-    this->force_update = -1;
+    this->vo_scale.force_redraw = 1;
   } else if (strcmp(entry->key, "video.pgx64_brightness") == 0) {
     this->brightness = entry->num_value;
     write_reg(this, SCALER_COLOUR_CNTL, (this->saturation<<16) | (this->saturation<<8) | (this->brightness&0x7F));
@@ -227,7 +239,7 @@ static void pgx64_config_changed(pgx64_driver_t *this, cfg_entry_t *entry)
     write_reg(this, SCALER_COLOUR_CNTL, (this->saturation<<16) | (this->saturation<<8) | (this->brightness&0x7F));
   } else if (strcmp(entry->key, "video.pgx64_deinterlace_method") == 0) {
     this->deinterlace_method = entry->num_value;
-    this->force_update = -1;
+    this->vo_scale.force_redraw = 1;
   }
 }
 
@@ -278,14 +290,14 @@ static void pgx64_update_frame_format(pgx64_driver_t *this, pgx64_frame_t *frame
     dispose_frame_internals(frame);
 
     switch (format) {
-      case IMGFMT_YUY2:
+      case XINE_IMGFMT_YUY2:
         frame->vo_frame.pitches[0] = width * 2;
         frame->lengths[0] = frame->vo_frame.pitches[0] * height;
         frame->vo_frame.base[0] = (void*)memalign(8, frame->lengths[0]);
-        this->buf_y = (this->top - frame->lengths[0]) & ~0x07;
+        frame->buf_y = (this->top - frame->lengths[0]) & ~0x07;
       break;
 
-      case IMGFMT_YV12:
+      case XINE_IMGFMT_YV12:
         frame->vo_frame.pitches[0] = width;
         frame->vo_frame.pitches[1] = width / 2;
         frame->vo_frame.pitches[2] = width / 2;
@@ -295,144 +307,50 @@ static void pgx64_update_frame_format(pgx64_driver_t *this, pgx64_frame_t *frame
         frame->vo_frame.base[0] = (void*)memalign(8, frame->lengths[0]);
         frame->vo_frame.base[1] = (void*)memalign(8, frame->lengths[1]);
         frame->vo_frame.base[2] = (void*)memalign(8, frame->lengths[2]);
-        this->buf_y = (this->top - frame->lengths[0]) & ~0x07;
-        this->buf_u = (this->buf_y - frame->lengths[1]) & ~0x07;
-        this->buf_v = (this->buf_u - frame->lengths[2]) & ~0x07;
-      break;
-    }
-
-    this->image_ratio = (double)width / (double)height;
-    switch (ratio_code) {
-      default:
-      case XINE_ASPECT_RATIO_DONT_TOUCH:
-      case XINE_ASPECT_RATIO_SQUARE:
-        this->frame_ratio = this->image_ratio;
-      break;
-      case XINE_ASPECT_RATIO_4_3:
-        this->frame_ratio = 4.0 / 3.0;
-      break;
-      case XINE_ASPECT_RATIO_ANAMORPHIC:
-        this->frame_ratio = 16.0 / 9.0;
-      break;
-      case XINE_ASPECT_RATIO_211_1:
-        this->frame_ratio = 2.11;
+        frame->buf_y = (this->top - frame->lengths[0]) & ~0x07;
+        frame->buf_u = (frame->buf_y - frame->lengths[1]) & ~0x07;
+        frame->buf_v = (frame->buf_u - frame->lengths[2]) & ~0x07;
       break;
     }
 
     frame->width = width;
     frame->height = height;
     frame->ratio_code = ratio_code;
-    frame->format = format;    
-    this->force_update = -1;
+    frame->format = format;
   }
 }
 
 static void pgx64_display_frame(pgx64_driver_t *this, pgx64_frame_t *frame)
 {
-  if (this->force_update) {
-    double ratio;
+  if ((frame->width != this->vo_scale.delivered_width) ||
+      (frame->height != this->vo_scale.delivered_height) ||
+      (frame->ratio_code != this->vo_scale.delivered_ratio_code)) {
 
-    switch (this->ratio_property) {
-      default:
-      case ASPECT_AUTO:
-        ratio = this->frame_ratio;
-      break;
-      case ASPECT_ANAMORPHIC:
-        ratio = 16.0 / 9.0;
-      break;
-      case ASPECT_FULL:
-        ratio = 4.0 / 3.0;
-      break;
-      case ASPECT_DVB:
-        ratio = 2.0;
-      break;
-      case ASPECT_SQUARE:
-        ratio = this->image_ratio;
-      break;
-    }
-
-    ratio /= this->image_ratio;
-    if (ratio >= 1.0) {
-      this->correct_width = frame->width * ratio;
-      this->correct_height = frame->height;
-    }
-    else {
-      this->correct_width = frame->width;
-      this->correct_height = frame->height / ratio;
-    }
+    this->vo_scale.delivered_width      = frame->width;
+    this->vo_scale.delivered_height     = frame->height;
+    this->vo_scale.delivered_ratio_code = frame->ratio_code;
+    this->vo_scale.force_redraw         = 1;
+    vo_scale_compute_ideal_size(&this->vo_scale);
   }
 
-  this->frame_output_cb(this->user_data, this->correct_width, this->correct_height, &this->dest_x, &this->dest_y, &this->dest_width, &this->dest_height, &this->win_x, &this->win_y);
+  if (vo_scale_redraw_needed(&this->vo_scale)) {  
+    vo_scale_compute_output_size(&this->vo_scale);
+    repaint_output_area(this);
 
-  if ((this->win_x == 0) ||
-      (this->win_y == 0)) {
-    Window temp_window;
-
-    XLockDisplay(this->display);
-    XTranslateCoordinates(this->display, this->drawable, this->root, 0, 0, &this->win_x, &this->win_y, &temp_window);
-    XUnlockDisplay(this->display);
-  }
-
-  if ((this->force_update) ||
-      (this->old_dest_x != this->dest_x) ||
-      (this->old_dest_y != this->dest_y) ||
-      (this->old_dest_width != this->dest_width) ||
-      (this->old_dest_height != this->dest_height) ||
-      (this->old_win_x != this->win_x) ||
-      (this->old_win_y != this->win_y)) {
-    double scale_fitw, scale_fith;
-
-    this->display_width = this->correct_width;
-    this->display_height = this->correct_height;
-    scale_fitw = (double)this->dest_width / (double)this->display_width;
-    scale_fith = (double)this->dest_height / (double)this->display_height;
-    if (scale_fitw < scale_fith) {
-      this->display_width *= scale_fitw;
-      this->display_height *= scale_fitw;
-    }
-    else {
-      this->display_width *= scale_fith;
-      this->display_height *= scale_fith;
-    }
-    this->display_xoffset = (this->dest_width - this->display_width) / 2 + this->dest_x;
-    this->display_yoffset = (this->dest_height - this->display_height) / 2 + this->dest_y;
-
-    XLockDisplay(this->display);
-    XSetForeground(this->display, this->gc, BlackPixel(this->display, this->screen));
-    XFillRectangle(this->display, this->drawable, this->gc, this->dest_x, this->dest_y, this->display_width, this->display_yoffset - this->dest_y);
-    XFillRectangle(this->display, this->drawable, this->gc, this->dest_x, this->display_yoffset + this->display_height, this->dest_width, this->dest_height - (this->display_yoffset + this->display_height));
-    XFillRectangle(this->display, this->drawable, this->gc, this->dest_x, this->dest_y, this->display_xoffset - this->dest_y, this->display_height);
-    XFillRectangle(this->display, this->drawable, this->gc, this->display_xoffset + this->display_width, this->dest_y, this->dest_width - (this->display_xoffset + this->display_width), this->dest_height);
-    XSetForeground(this->display, this->gc, this->colour_key);
-    XFillRectangle(this->display, this->drawable, this->gc, this->display_xoffset, this->display_yoffset, this->display_width, this->display_height);
-    XFlush(this->display);
-    XUnlockDisplay(this->display);
-
-    write_reg(this, VIDEO_FORMAT, (frame->format == IMGFMT_YUY2) ? VIDEO_FORMAT_YUY2 : VIDEO_FORMAT_YUV12);
-    write_reg(this, SCALER_BUF0_OFFSET, this->buf_y);
-    write_reg(this, SCALER_BUF0_OFFSET_U, this->buf_u);
-    write_reg(this, SCALER_BUF0_OFFSET_V, this->buf_v);
+    write_reg(this, VIDEO_FORMAT, (frame->format == XINE_IMGFMT_YUY2) ? VIDEO_FORMAT_YUY2 : VIDEO_FORMAT_YUV12);
+    write_reg(this, SCALER_BUF0_OFFSET, frame->buf_y);
+    write_reg(this, SCALER_BUF0_OFFSET_U, frame->buf_u);
+    write_reg(this, SCALER_BUF0_OFFSET_V, frame->buf_v);
     write_reg(this, SCALER_BUF_PITCH, this->deinterlace && (this->deinterlace_method == DEINTERLACE_ONEFIELD) ? frame->width*2 : frame->width);
-    write_reg(this, OVERLAY_X_Y_START, ((this->win_x + this->display_xoffset) << 16) | (this->win_y + this->display_yoffset) | OVERLAY_X_Y_LOCK);
-    write_reg(this, OVERLAY_X_Y_END, ((this->win_x + this->display_xoffset + this->display_width) << 16) | (this->win_y + this->display_yoffset + this->display_height));
+    write_reg(this, OVERLAY_X_Y_START, ((this->vo_scale.gui_win_x + this->vo_scale.output_xoffset) << 16) | (this->vo_scale.gui_win_y + this->vo_scale.output_yoffset) | OVERLAY_X_Y_LOCK);
+    write_reg(this, OVERLAY_X_Y_END, ((this->vo_scale.gui_win_x + this->vo_scale.output_xoffset + this->vo_scale.output_width) << 16) | (this->vo_scale.gui_win_y + this->vo_scale.output_yoffset + this->vo_scale.output_height));
     write_reg(this, OVERLAY_GRAPHICS_KEY_CLR, this->colour_key);
-    write_reg(this, OVERLAY_SCALE_INC, (((frame->width << 12) / this->display_width) << 16) | (((this->deinterlace && (this->deinterlace_method == DEINTERLACE_ONEFIELD) ? frame->height/2 : frame->height) << 12) / this->display_height));
+    write_reg(this, OVERLAY_SCALE_INC, (((frame->width << 12) / this->vo_scale.output_width) << 16) | (((this->deinterlace && (this->deinterlace_method == DEINTERLACE_ONEFIELD) ? frame->height/2 : frame->height) << 12) / this->vo_scale.output_height));
     write_reg(this, SCALER_HEIGHT_WIDTH, (frame->width << 16) | (this->deinterlace && (this->deinterlace_method == DEINTERLACE_ONEFIELD) ? frame->height/2 : frame->height));
     set_reg_bits(this, OVERLAY_SCALE_CNTL, OVERLAY_EN);
-
-    this->unscale_x = (double)frame->width / (double)this->display_width;
-    this->unscale_y = (double)frame->height / (double)this->display_height;
-
-    this->force_update = 0;
-    this->old_dest_x = this->dest_x;
-    this->old_dest_y = this->dest_y;
-    this->old_dest_width = this->dest_width;
-    this->old_dest_height = this->dest_height;
-    this->old_win_x = this->win_x;
-    this->old_win_y = this->win_y;
   }
 
-  if (this->deinterlace && (frame->format == IMGFMT_YV12)) {
+  if (this->deinterlace && (frame->format == XINE_IMGFMT_YV12)) {
     switch (this->deinterlace_method) {
       case DEINTERLACE_LINEARBLEND: {
         register uint8_t *p = frame->vo_frame.base[0];
@@ -480,10 +398,10 @@ static void pgx64_display_frame(pgx64_driver_t *this, pgx64_frame_t *frame)
     }
   }
 
-  memcpy(this->fbbase+this->buf_y, frame->vo_frame.base[0], frame->lengths[0]);
-  if (frame->format == IMGFMT_YV12) {
-    memcpy(this->fbbase+this->buf_u, frame->vo_frame.base[1], frame->lengths[1]);
-    memcpy(this->fbbase+this->buf_v, frame->vo_frame.base[2], frame->lengths[2]);
+  memcpy(this->fbbase+frame->buf_y, frame->vo_frame.base[0], frame->lengths[0]);
+  if (frame->format == XINE_IMGFMT_YV12) {
+    memcpy(this->fbbase+frame->buf_u, frame->vo_frame.base[1], frame->lengths[1]);
+    memcpy(this->fbbase+frame->buf_v, frame->vo_frame.base[2], frame->lengths[2]);
   }
 
   frame->vo_frame.displayed(&frame->vo_frame);
@@ -492,7 +410,7 @@ static void pgx64_display_frame(pgx64_driver_t *this, pgx64_frame_t *frame)
 static void pgx64_overlay_blend(pgx64_driver_t *this, pgx64_frame_t *frame, vo_overlay_t *overlay)
 {
   if (overlay->rle) {
-    if (frame->format == IMGFMT_YV12) {
+    if (frame->format == XINE_IMGFMT_YV12) {
       blend_yuv(frame->vo_frame.base, overlay, frame->width, frame->height);
     }
     else {
@@ -509,7 +427,7 @@ static int pgx64_get_property(pgx64_driver_t *this, int property)
     break;
 
     case VO_PROP_ASPECT_RATIO:
-      return this->ratio_property;
+      return this->vo_scale.user_ratio;
     break;
 
     case VO_PROP_SATURATION:
@@ -537,7 +455,7 @@ static int pgx64_set_property(pgx64_driver_t *this, int property, int value)
   switch (property) {
     case VO_PROP_INTERLACED: {
       this->deinterlace = value;
-      this->force_update = -1;
+      this->vo_scale.force_redraw = 1;
     }
     break;
 
@@ -545,8 +463,10 @@ static int pgx64_set_property(pgx64_driver_t *this, int property, int value)
       if (value >= NUM_ASPECT_RATIOS) {
         value = ASPECT_AUTO;
       }
-      this->ratio_property = value;
-      this->force_update = -1;    }
+      this->vo_scale.user_ratio = value;
+      this->vo_scale.force_redraw = 1;
+      vo_scale_compute_ideal_size(&this->vo_scale);     
+    }
     break;
 
     case VO_PROP_SATURATION: {
@@ -563,7 +483,7 @@ static int pgx64_set_property(pgx64_driver_t *this, int property, int value)
 
     case VO_PROP_COLORKEY: {
       this->colour_key = value;
-      this->force_update = -1;
+      this->vo_scale.force_redraw = 1;
     }
     break;
   }
@@ -595,7 +515,7 @@ static void pgx64_get_property_min_max(pgx64_driver_t *this, int property, int *
 static int pgx64_gui_data_exchange(pgx64_driver_t *this, int data_type, void *data)
 {
   switch (data_type) {
-    case GUI_DATA_EX_DRAWABLE_CHANGED: {
+    case XINE_GUI_SEND_DRAWABLE_CHANGED: {
       this->drawable = (Drawable)data;
       XLockDisplay(this->display);
       this->gc = XCreateGC(this->display, this->drawable, 0, NULL);
@@ -603,28 +523,22 @@ static int pgx64_gui_data_exchange(pgx64_driver_t *this, int data_type, void *da
     }
     break;
 
-    case GUI_DATA_EX_EXPOSE_EVENT: {
-      this->force_update = -1;
+    case XINE_GUI_SEND_EXPOSE_EVENT: {
+      repaint_output_area(this);
     }
     break;
 
-    case GUI_DATA_EX_TRANSLATE_GUI_TO_VIDEO: {
+    case XINE_GUI_SEND_TRANSLATE_GUI_TO_VIDEO: {
       x11_rectangle_t *rect = data;
+      int x1, y1, x2, y2;
 
-      rect->x = (rect->x - this->display_xoffset) * this->unscale_x;
-      rect->y = (rect->y - this->display_yoffset) * this->unscale_x;
-      rect->w = (rect->w - this->display_xoffset) * this->unscale_y;
-      rect->h = (rect->h - this->display_yoffset) * this->unscale_y;
-    }
-    break;
+      vo_scale_translate_gui2video(&this->vo_scale, rect->x, rect->y, &x1, &y1);
+      vo_scale_translate_gui2video(&this->vo_scale, rect->x + rect->w, rect->y + rect->h, &x2, &y2);
 
-    case GUI_DATA_EX_VIDEOWIN_VISIBLE: {
-      if (!((int *)data)) {
-        clear_reg_bits(this, OVERLAY_SCALE_CNTL, OVERLAY_EN);
-      }
-      else {
-        set_reg_bits(this, OVERLAY_SCALE_CNTL, OVERLAY_EN);
-      }
+      rect->x = x1;
+      rect->y = y1;
+      rect->w = x2 - x1;
+      rect->h = y2 - y1;
     }
     break;
   }
@@ -634,7 +548,14 @@ static int pgx64_gui_data_exchange(pgx64_driver_t *this, int data_type, void *da
 
 static int pgx64_redraw_needed(pgx64_driver_t *this)
 {
-  return -1;
+  if (vo_scale_redraw_needed(&this->vo_scale)) {
+    vo_scale_compute_output_size(&this->vo_scale);
+    repaint_output_area(this);
+
+    return 1;
+  }
+
+  return 0;
 }
 
 static void pgx64_exit(pgx64_driver_t *this)
@@ -645,7 +566,7 @@ static void pgx64_exit(pgx64_driver_t *this)
   close(this->fbfd);
 }
 
-static void* init_video_out_plugin(config_values_t *config, void *visual_gen) {
+static pgx64_driver_t* init_video_out_plugin(xine_t *xine, void *visual_gen) {
   pgx64_driver_t *this;
   char *devname;
   int fbfd;
@@ -654,7 +575,7 @@ static void* init_video_out_plugin(config_values_t *config, void *visual_gen) {
 
   printf("video_out_pgx64: PGX64 video output plugin - By Robin Kay\n");
 
-  devname = config->register_string (config, "video.pgx64_device", "/dev/m640", "name of pgx64 device", NULL, NULL, NULL);
+  devname = xine->config->register_string(xine->config, "video.pgx64_device", "/dev/m640", "name of pgx64 device", NULL, 10, NULL, NULL);
   if ((fbfd = open(devname, O_RDWR)) < 0) {
     printf("video_out_pgx64: can't open framebuffer device (%s)\n", devname);
     return NULL;
@@ -679,10 +600,15 @@ static void* init_video_out_plugin(config_values_t *config, void *visual_gen) {
   }
   memset(this, 0, sizeof(pgx64_driver_t));
 
+  this->xine   = xine;
+  this->config = xine->config;
+
   this->vo_driver.get_capabilities     = (void*)pgx64_get_capabilities;
   this->vo_driver.alloc_frame          = (void*)pgx64_alloc_frame;
   this->vo_driver.update_frame_format  = (void*)pgx64_update_frame_format;
+  this->vo_driver.overlay_begin        = NULL; /* not used */
   this->vo_driver.overlay_blend        = (void*)pgx64_overlay_blend;
+  this->vo_driver.overlay_end          = NULL; /* not used */
   this->vo_driver.display_frame        = (void*)pgx64_display_frame;
   this->vo_driver.get_property         = (void*)pgx64_get_property;
   this->vo_driver.set_property         = (void*)pgx64_set_property;
@@ -691,20 +617,22 @@ static void* init_video_out_plugin(config_values_t *config, void *visual_gen) {
   this->vo_driver.redraw_needed        = (void*)pgx64_redraw_needed;
   this->vo_driver.exit                 = (void*)pgx64_exit;
 
-  this->config = config;
-
   this->display = ((x11_visual_t*)visual_gen)->display;
   this->screen = ((x11_visual_t*)visual_gen)->screen;
   this->root = RootWindow(this->display, this->screen);
   this->drawable = ((x11_visual_t*)visual_gen)->d;
   this->gc = XCreateGC(this->display, this->drawable, 0, NULL);
-  this->user_data = ((x11_visual_t*)visual_gen)->user_data;
-  this->frame_output_cb = ((x11_visual_t*)visual_gen)->frame_output_cb;
 
-  this->colour_key = config->register_num(config, "video.pgx64_colour_key", 1, "video overlay colour key", NULL, (void*)pgx64_config_changed, this);
-  this->brightness = config->register_range(config, "video.pgx64_brightness", 0, -64, 63, "video overlay brightness", NULL, (void*)pgx64_config_changed, this);
-  this->saturation = config->register_range(config, "video.pgx64_saturation", 16, 0, 31, "video overlay saturation", NULL, (void*)pgx64_config_changed, this);
-  this->deinterlace_method = config->register_enum(config, "video.pgx64_deinterlace_method", 0, deinterlace_methods, "video deinterlacing method", NULL, (void*)pgx64_config_changed, this);
+  vo_scale_init(&this->vo_scale, 0, 0);
+  this->vo_scale.user_data         = ((x11_visual_t*)visual_gen)->user_data;
+  this->vo_scale.frame_output_cb   = ((x11_visual_t*)visual_gen)->frame_output_cb;
+  this->vo_scale.dest_size_cb      = ((x11_visual_t*)visual_gen)->dest_size_cb;
+  this->vo_scale.user_ratio        = ASPECT_AUTO;
+
+  this->colour_key = this->config->register_num(this->config, "video.pgx64_colour_key", 1, "video overlay colour key", NULL, 10, (void*)pgx64_config_changed, this);
+  this->brightness = this->config->register_range(this->config, "video.pgx64_brightness", 0, -64, 63, "video overlay brightness", NULL, 10, (void*)pgx64_config_changed, this);
+  this->saturation = this->config->register_range(this->config, "video.pgx64_saturation", 16, 0, 31, "video overlay saturation", NULL, 10, (void*)pgx64_config_changed, this);
+  this->deinterlace_method = this->config->register_enum(this->config, "video.pgx64_deinterlace_method", 0, deinterlace_methods, "video deinterlacing method", NULL, 10, (void*)pgx64_config_changed, this);
 
   this->fbfd = fbfd;
   this->top = attr.sattr.dev_specific[0];
@@ -727,14 +655,17 @@ static void* init_video_out_plugin(config_values_t *config, void *visual_gen) {
 }
 
 static vo_info_t vo_info_pgx64 = {
-  6,
-  "PGX64",
-  "xine video output plugin for Sun PGX6/PGX24 framebuffers",
-  VISUAL_TYPE_X11,
-  10
+  10,
+  "xine video output plugin for Sun PGX64/PGX24 framebuffers",
+  XINE_VISUAL_TYPE_X11
 };
 
 vo_info_t* get_video_out_plugin_info()
 {
   return &vo_info_pgx64;
 }
+
+plugin_info_t xine_plugin_info[] = {
+  {PLUGIN_VIDEO_OUT, 9, "pgx64", XINE_VERSION_CODE, &vo_info_pgx64, init_video_out_plugin},
+  {PLUGIN_NONE, 0, "", 0, NULL, NULL}
+};
