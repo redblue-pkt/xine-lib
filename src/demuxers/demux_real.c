@@ -21,7 +21,7 @@
  * For more information regarding the Real file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_real.c,v 1.13 2002/11/22 16:22:01 guenter Exp $
+ * $Id: demux_real.c,v 1.14 2002/11/22 19:18:59 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -136,11 +136,11 @@ typedef struct {
 
 } pnm_mdpr_t;
 
-void hexdump (char *buf, int length) {
+static void hexdump (char *buf, int length) {
 
   int i;
 
-  printf ("pnm: ascii contents>");
+  printf ("demux_real: ascii contents>");
   for (i = 0; i < length; i++) {
     unsigned char c = buf[i];
 
@@ -151,14 +151,14 @@ void hexdump (char *buf, int length) {
   }
   printf ("\n");
 
-  printf ("pnm: complete hexdump of package follows:\npnm:  ");
+  printf ("demux_real: complete hexdump of package follows:\ndemux_real 0x0000:  ");
   for (i = 0; i < length; i++) {
     unsigned char c = buf[i];
 
     printf ("%02x", c);
 
     if ((i % 16) == 15)
-      printf ("\npnm: ");
+      printf ("\ndemux_real 0x%04x: ", i);
 
     if ((i % 2) == 1)
       printf (" ");
@@ -202,17 +202,17 @@ static pnm_mdpr_t *pnm_parse_mdpr(const char *data) {
   memcpy(mdpr->type_specific_data, 
       &data[38+mdpr->stream_name_size+mdpr->mime_type_size], mdpr->type_specific_len);
   
-  printf("pnm: MDPR: stream number: %i\n", mdpr->stream_number);
-  printf("pnm: MDPR: maximal bit rate: %i\n", mdpr->max_bit_rate);
-  printf("pnm: MDPR: average bit rate: %i\n", mdpr->avg_bit_rate);
-  printf("pnm: MDPR: largest packet size: %i bytes\n", mdpr->max_packet_size);
-  printf("pnm: MDPR: average packet size: %i bytes\n", mdpr->avg_packet_size);
-  printf("pnm: MDPR: start time: %i\n", mdpr->start_time);
-  printf("pnm: MDPR: pre-buffer: %i ms\n", mdpr->preroll);
-  printf("pnm: MDPR: duration of stream: %i ms\n", mdpr->duration);
-  printf("pnm: MDPR: stream name: %s\n", mdpr->stream_name);
-  printf("pnm: MDPR: mime type: %s\n", mdpr->mime_type);
-  printf("pnm: MDPR: type specific data:\n");
+  printf("demux_real: MDPR: stream number: %i\n", mdpr->stream_number);
+  printf("demux_real: MDPR: maximal bit rate: %i\n", mdpr->max_bit_rate);
+  printf("demux_real: MDPR: average bit rate: %i\n", mdpr->avg_bit_rate);
+  printf("demux_real: MDPR: largest packet size: %i bytes\n", mdpr->max_packet_size);
+  printf("demux_real: MDPR: average packet size: %i bytes\n", mdpr->avg_packet_size);
+  printf("demux_real: MDPR: start time: %i\n", mdpr->start_time);
+  printf("demux_real: MDPR: pre-buffer: %i ms\n", mdpr->preroll);
+  printf("demux_real: MDPR: duration of stream: %i ms\n", mdpr->duration);
+  printf("demux_real: MDPR: stream name: %s\n", mdpr->stream_name);
+  printf("demux_real: MDPR: mime type: %s\n", mdpr->mime_type);
+  printf("demux_real: MDPR: type specific data:\n");
   hexdump(mdpr->type_specific_data, mdpr->type_specific_len);
   printf("\n");
 
@@ -334,6 +334,115 @@ static void real_parse_headers (demux_real_t *this) {
 	this->bitrate = mdpr->avg_bit_rate;
 	this->stream->stream_info[XINE_STREAM_INFO_BITRATE] = mdpr->avg_bit_rate;
 
+	printf ("demux_real: parsing type specific data...\n");
+	
+	/* skip unknown stuff - FIXME: find a better/cleaner way */
+	{ 
+	  int off;
+
+	  off = 0;
+
+	  while (off<=(mdpr->type_specific_len-8)) {
+
+	    printf ("demux_real: got %.4s\n", mdpr->type_specific_data+off);
+
+	    if (!strncmp (mdpr->type_specific_data+off, ".ra", 3)) {
+	      int version;
+	      char fourcc[5];
+
+	      off += 4;
+
+	      printf ("demux_real: audio detected %.3s\n", 
+		      mdpr->type_specific_data+off+4);
+
+	      version = BE_16 (mdpr->type_specific_data+off);
+
+	      printf ("demux_real: audio version %d\n", version);
+
+	      if (version==4) {
+		int str_len;
+		int sample_rate;
+
+		sample_rate = BE_16(mdpr->type_specific_data+off+44);
+
+		printf ("demux_real: sample_rate %d\n", sample_rate);
+
+		str_len = *(mdpr->type_specific_data+off+50);
+
+		printf ("demux_real: str_len = %d\n", str_len);
+
+		memcpy (fourcc, mdpr->type_specific_data+off+53+str_len, 4);
+		fourcc[4]=0;
+
+		printf ("demux_real: fourcc == %s\n", fourcc);
+
+	      } else if (version == 5) {
+
+		/* FIXME */
+
+		printf ("demux_real: error, audio data header version %d not implemented\n",
+			version);
+		abort();
+
+	      } else {
+		printf ("demux_real: error, unknown audio data header version %d\n",
+			version);
+		abort();
+	      }
+	      
+	      if (!strncmp (fourcc, "dnet", 4)) 
+		this->audio_buf_type = BUF_AUDIO_DNET;
+	      else if (!strncmp (fourcc, "sipr", 4)) 
+		this->audio_buf_type = BUF_AUDIO_SIPRO;
+	      else if (!strncmp (fourcc, "cook", 4))
+		this->audio_buf_type = BUF_AUDIO_COOK;
+	      else if (!strncmp (fourcc, "atrc", 4))
+		this->audio_buf_type = BUF_AUDIO_ATRK;
+	      else 
+		this->audio_buf_type = 0;
+
+	      printf ("demux_real: audio codec, buf type %08x\n",
+		      this->audio_buf_type);
+
+	      this->audio_stream_num = mdpr->stream_number;
+
+	      if (this->audio_buf_type) {
+		buf_element_t *buf;
+		
+		/* send header */
+
+		buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
+
+		buf->content = buf->mem;
+
+		memcpy (buf->content, mdpr->type_specific_data+off, 
+			mdpr->type_specific_len-off);
+
+		buf->size = mdpr->type_specific_len-off;
+
+		buf->input_pos     = 0 ; 
+		buf->input_time    = 0 ; 
+		buf->type          = this->audio_buf_type;
+		buf->decoder_flags = BUF_FLAG_HEADER;
+    
+		this->audio_fifo->put (this->audio_fifo, buf);  
+		
+	      }
+
+	      this->stream->stream_info[XINE_STREAM_INFO_HAS_AUDIO] = 1;
+ 
+	      break;  /* audio */
+	    } 
+	    if (!strncmp (mdpr->type_specific_data+off, "VIDO", 4)) {
+	      printf ("demux_real: video detected\n");
+	      break;  /* video */
+	    }
+	    off++;
+	  }
+	}
+	
+	
+
 	/* detect streamtype */
 
 	if (!strncmp (mdpr->type_specific_data+4, "VIDORV20", 8)) {
@@ -390,19 +499,9 @@ static void real_parse_headers (demux_real_t *this) {
     
 	  this->video_fifo->put (this->video_fifo, buf);  
 	
-	} else if ((mdpr->type_specific_len>61) 
-		   && (!strncmp (mdpr->type_specific_data+57, "sipr", 4))) {
+	}  else {
 
-	  this->audio_stream_num = mdpr->stream_number;
-	  this->audio_buf_type   = BUF_AUDIO_SIPRO;
-
-	  printf ("demux_real: sipro audio detected\n");
-
-	  this->stream->stream_info[XINE_STREAM_INFO_HAS_AUDIO] = 1;
- 
-	} else {
-
-	  printf ("demux_real: codec not recognized\n");
+	  printf ("demux_real: codec not recognized as video\n");
 
 	}
 
@@ -739,7 +838,31 @@ static int demux_real_send_chunk(demux_plugin_t *this_gen) {
 		   0 );
     */
   } else if (stream == this->audio_stream_num) {
-    this->input->seek(this->input, size, SEEK_CUR);
+    buf_element_t *buf;
+    int            n;
+
+    buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
+
+    buf->content       = buf->mem;
+    buf->pts           = timestamp;
+    buf->input_pos     = 0 ; /* FIXME */
+    buf->input_time    = 0 ; /* FIXME */
+    buf->type          = this->audio_buf_type;
+    buf->decoder_flags = 0;
+    buf->size          = size;
+
+    n = this->input->read (this->input, buf->content, size);
+
+    if (n<size) {
+      buf->free_buffer(buf);
+      this->status = DEMUX_FINISHED;
+      return this->status;
+    }
+
+    this->audio_fifo->put (this->audio_fifo, buf);  
+
+    /* FIXME: dp->flags = (flags & 0x2) ? 0x10 : 0; */
+
   } else {
 
     /* discard */
