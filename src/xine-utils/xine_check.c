@@ -19,7 +19,7 @@ typedef struct {
   char     buf[256];
 } file_info_t;
 
-int xine_health_check()
+int xine_health_check(char* cdrom_dev, char* dvd_dev)
 {
 	int retval = 0;
 
@@ -42,22 +42,20 @@ int xine_health_check()
 	}
 #endif /* ARCH_X86 */
 
-	if (xine_health_check_cdrom() < 0)
+	if (xine_health_check_cdrom(cdrom_dev) < 0)
 	{
 		retval = -1;
 	}
 
-	if (xine_health_check_dvdrom() < 0)
+	if (xine_health_check_dvdrom(dvd_dev) < 0)
 	{
 		retval = -1;
 	}
 
-#if 0
-	if (xine_health_check_dma() < 0)
+	if (xine_health_check_dma(dvd_dev) < 0)
 	{
 		retval = -1;
 	}
-#endif
 
 	if (xine_health_check_x() < 0)
 	{
@@ -120,128 +118,125 @@ int xine_health_check_mtrr(void)
 	return 0;
 }
 
-int xine_health_check_cdrom(void)
+int xine_health_check_cdrom(char* cdrom_dev)
 {
-	char* cdrom_name = "/dev/cdrom";
 	struct stat cdrom_st;
 
 	fprintf(stdout, "xine health_check (CDROM):\n");
 
-	if (stat(cdrom_name,&cdrom_st) < 0)
+	if (stat(cdrom_dev,&cdrom_st) < 0)
 	{
-		fprintf(stdout, "  FAILED - could not cdrom: %s.\n", cdrom_name);
+		fprintf(stdout, "  FAILED - could not cdrom: %s.\n", cdrom_dev);
 		return -1;
 	}
 	else
 	{
-		fprintf(stdout, "  SUCCESS - cdrom link %s is present.\n",cdrom_name);
+		fprintf(stdout, "  SUCCESS - cdrom link %s is present.\n",cdrom_dev);
 	}
 
 	if ((cdrom_st.st_mode & S_IFMT) != S_IFBLK)
 	{
-		fprintf(stdout, "  FAILED - %s is not a block device.\n", cdrom_name);
-		return -1;
-	}
-	else 
-	{
-		fprintf(stdout, "  SUCCESS - %s is a block device.\n", cdrom_name);
-	}
-
-	if ((cdrom_st.st_mode & S_IFMT & S_IRWXU & S_IRWXG & S_IRWXO) != (S_IRUSR & S_IXUSR & S_IRGRP & S_IXGRP & S_IROTH & S_IXOTH))
-	{
-		fprintf(stdout, "  FAILED - %s permissions are not 'rwxrwxrx'.\n",cdrom_name);
-	}
-	else {
-		fprintf(stdout, "  SUCCESS - %s does have proper permission.\n",cdrom_name);
-	}
-	
-	return 0;
-}
-
-int xine_health_check_dvdrom(void)
-{
-	char* dvdrom_name = "/dev/dvd";
-	struct stat dvdrom_st;
-
-	fprintf(stdout, "xine health_check (DVDROM):\n");
-
-	if (stat(dvdrom_name,&dvdrom_st) < 0)
-	{
-		fprintf(stdout, "  FAILED - could not dvdrom: %s.\n", dvdrom_name);
+		fprintf(stdout, "  FAILED - %s is not a block device.\n", cdrom_dev);
 		return -1;
 	}
 	else
 	{
-		fprintf(stdout, "  SUCCESS - dvdrom link %s is present.\n",dvdrom_name);
+		fprintf(stdout, "  SUCCESS - %s is a block device.\n", cdrom_dev);
+	}
+
+	if ((cdrom_st.st_mode & S_IFMT & S_IRWXU & S_IRWXG & S_IRWXO) != (S_IRUSR & S_IXUSR & S_IRGRP & S_IXGRP & S_IROTH & S_IXOTH))
+	{
+		fprintf(stdout, "  FAILED - %s permissions are not 'rwxrwxrx'.\n",cdrom_dev);
+	}
+	else {
+		fprintf(stdout, "  SUCCESS - %s does have proper permission.\n",cdrom_dev);
+	}
+
+	return 0;
+}
+
+int xine_health_check_dvdrom(char* dvd_dev)
+{
+	struct stat dvdrom_st;
+
+	fprintf(stdout, "xine health_check (DVDROM):\n");
+
+	if (stat(dvd_dev,&dvdrom_st) < 0)
+	{
+		fprintf(stdout, "  FAILED - could not dvdrom: %s.\n", dvd_dev);
+		return -1;
+	}
+	else
+	{
+		fprintf(stdout, "  SUCCESS - dvdrom link %s is present.\n",dvd_dev);
 	}
 
 	if ((dvdrom_st.st_mode & S_IFMT) != S_IFBLK)
 	{
-		fprintf(stdout, "  FAILED - %s is not a block device.\n", dvdrom_name);
+		fprintf(stdout, "  FAILED - %s is not a block device.\n", dvd_dev);
 		return -1;
 	}
-	else 
+	else
 	{
-		fprintf(stdout, "  SUCCESS - %s is a block device.\n", dvdrom_name);
+		fprintf(stdout, "  SUCCESS - %s is a block device.\n", dvd_dev);
 	}
 
 	if ((dvdrom_st.st_mode & S_IFMT & S_IRWXU & S_IRWXG & S_IRWXO) != (S_IRUSR & S_IXUSR & S_IRGRP & S_IXGRP & S_IROTH & S_IXOTH))
 	{
-		fprintf(stdout, "  FAILED - %s permissions are not 'rwxrwxrx'.\n",dvdrom_name);
+		fprintf(stdout, "  FAILED - %s permissions are not 'rwxrwxrx'.\n",dvd_dev);
 	}
 	else {
-		fprintf(stdout, "  SUCCESS - %s does have proper permission.\n",dvdrom_name);
+		fprintf(stdout, "  SUCCESS - %s does have proper permission.\n",dvd_dev);
 	}
-	
+
 	return 0;
 }
 
-int xine_health_check_dma(void)
+int xine_health_check_dma(char* dvd_dev)
 {
 	int retval = 0;
 	int is_scsi_dev = 0;
 	int fd = 0;
 	static long param = 0;
-	char* name = "/dev/hdc";
 	struct stat st;
 
 	fprintf(stdout, "xine health_check (DMA):\n");
 
 	/* If /dev/dvd points to /dev/scd0 but the drive is IDE (e.g. /dev/hdc) and not scsi 
-	 * how do we detect the correct one */	
-	if (stat(name, &st)){
-		perror(name);
+	 * how do we detect the correct one */
+	if (stat(dvd_dev, &st)){
+		perror(dvd_dev);
 		exit(errno);
 	}
-	
+
 	if (major(st.st_rdev) == LVM_BLK_MAJOR){
 		is_scsi_dev = 1;
-		fprintf(stdout, "  SKIPPED - Operation not supported on SCSI disks.\n");
+		fprintf(stdout, "  SKIPPED - Operation not supported on SCSI drives or drives that use the ide-scsi module.\n");
 	}
 
 	/* At this time due to the way my system is setup user 'root' must be runnning xine */
-	fd = open(name, O_RDONLY | O_NONBLOCK);
+	fd = open(dvd_dev, O_RDONLY | O_NONBLOCK);
 	if (fd < 0)
 	{
-		perror(name);
+		perror(dvd_dev);
 		exit(errno);
 	}
 
 	if (!is_scsi_dev){
 		if(ioctl(fd, HDIO_GET_DMA, &param))
 		{
-			fprintf(stdout, "  FAILED -  HDIO_GET_DMA failed. Ensure the permissions for %s are 0664.\n", name);
+			fprintf(stdout, "  FAILED -  HDIO_GET_DMA failed. Ensure the permissions for %s are 0664.\n", dvd_dev);
 		}
 		if (param != 1)
 		{
-			fprintf(stdout, "  FAILED - DMA not turned on for %s.\n", name);
+			fprintf(stdout, "  FAILED - DMA not turned on for %s.\n", dvd_dev);
 		}
 		else
 		{
-			fprintf(stdout, "  SUCCESS - DMA turned on for %s.\n", name);
+			fprintf(stdout, "  SUCCESS - DMA turned on for %s.\n", dvd_dev);
 			close(fd);
 		}
-	}	
+	}
 
 	return retval;
 }
