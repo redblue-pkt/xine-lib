@@ -11,7 +11,7 @@ m4data_DATA = xine.m4
 
 EXTRA_DIST = _xine.m4 arts.m4 esd.m4 iconv.m4 lcmessage.m4 progtest.m4 xine.m4 \
 	aa.m4 as.m4 gettext.m4 irixal.m4 libfame.m4 sdl.m4 xvid.m4 \
-	alsa.m4 codeset.m4 glibc21.m4 isc-posix.m4 ogg.m4 vorbis.m4
+	alsa.m4 codeset.m4 glibc21.m4 isc-posix.m4 ogg.m4 vorbis.m4 dvdnav.m4
 
 debug:
 
