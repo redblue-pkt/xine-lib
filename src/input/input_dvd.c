@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.67 2002/08/31 02:48:13 jcdutton Exp $
+ * $Id: input_dvd.c,v 1.68 2002/09/02 03:21:38 jcdutton Exp $
  *
  */
 
@@ -1073,10 +1073,10 @@ static void dvdnav_event_listener (void *this_gen, xine_event_t *event) {
     dvdnav_menu_call(this->dvdnav, DVD_MENU_Part);
     break;
    case XINE_EVENT_INPUT_NEXT:
-    dvdnav_next_pg_search(this->dvdnav);
+    dvdnav_next_part_search(this->dvdnav);
     break;
    case XINE_EVENT_INPUT_PREVIOUS:
-    dvdnav_prev_pg_search(this->dvdnav);
+    dvdnav_prev_part_search(this->dvdnav);
     break;
   case XINE_EVENT_INPUT_ANGLE_NEXT: 
     {
@@ -1463,6 +1463,9 @@ input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
 
 /*
  * $Log: input_dvd.c,v $
+ * Revision 1.68  2002/09/02 03:21:38  jcdutton
+ * Implement proper prev/next chapter.
+ *
  * Revision 1.67  2002/08/31 02:48:13  jcdutton
  * Add a printf so we can tell if a user is using xine's libdvdnav or the one from
  * dvd.sf.net.
