@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.23 2002/04/23 15:45:24 esnel Exp $
+ * $Id: xine_decoder.c,v 1.24 2002/05/10 00:32:05 miguelfreitas Exp $
  * 
  * 31-8-2001 Added LPCM rate sensing.
  *   (c) 2001 James Courtier-Dutton James@superbug.demon.co.uk
@@ -81,14 +81,13 @@ void lpcm_init (audio_decoder_t *this_gen, ao_instance_t *audio_out) {
   this->cpu_be        = ( htons(1) == 1 );
 }
 
-
 void lpcm_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 
   lpcm_decoder_t *this = (lpcm_decoder_t *) this_gen;
   int16_t        *sample_buffer=(int16_t *)buf->content;
   int             stream_be;
   audio_buffer_t *audio_buffer;
-
+  
   if (buf->decoder_flags & BUF_FLAG_PREVIEW) {
     this->rate=buf->decoder_info[1];
     this->bits_per_sample=buf->decoder_info[2] ; 
@@ -112,7 +111,8 @@ void lpcm_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
     }
     printf ("liblpcm: opening audio output (%d Hz sampling rate, mode=%d)\n",
 	    this->rate, this->ao_cap_mode);
-    this->output_open = this->audio_out->open (this->audio_out, this->bits_per_sample, 
+    this->output_open = this->audio_out->open (this->audio_out, 
+						(this->bits_per_sample<=16)?this->bits_per_sample:16, 
 						this->rate,
 						this->ao_cap_mode) ;
   }
@@ -120,15 +120,42 @@ void lpcm_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
     return;
 
   audio_buffer = this->audio_out->get_buffer (this->audio_out);
-
+  
   /* Swap LPCM samples into native byte order, if necessary */
-
+  buf->type &= 0xffff0000;
   stream_be = ( buf->type == BUF_AUDIO_LPCM_BE );
-  if (stream_be != this->cpu_be)
-    swab (sample_buffer, audio_buffer->mem, buf->size);
-  else
+  
+  if( this->bits_per_sample == 16 ){
+    if (stream_be != this->cpu_be)
+      swab (sample_buffer, audio_buffer->mem, buf->size);
+    else
+      memcpy (audio_buffer->mem, sample_buffer, buf->size);
+  }
+  else if( this->bits_per_sample == 20 ) {
+    uint8_t *s = (uint8_t *)sample_buffer;
+    uint8_t *d = (uint8_t *)audio_buffer->mem;
+    int n = buf->size;
+    
+    if (stream_be != this->cpu_be) {
+      while( n >= 0 ) {
+        swab( s, d, 8 );
+        s += 10;
+        d += 8;
+        n -= 10; 
+      }
+    } else {
+      while( n >= 0 ) {
+        memcpy( d, s, 8 );
+        s += 10;
+        d += 8;
+        n -= 10; 
+      }
+    }
+  }
+  else {
     memcpy (audio_buffer->mem, sample_buffer, buf->size);
-
+  }
+  
   audio_buffer->vpts       = buf->pts;
   audio_buffer->num_frames = (((buf->size*8)/this->number_of_channels)/this->bits_per_sample);
 
