@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.26 2002/09/05 22:18:57 mroi Exp $
+ * $Id: xine_decoder.c,v 1.27 2002/10/14 20:50:17 guenter Exp $
  *
  * stuff needed to turn libmad into a xine decoder plugin
  */
@@ -37,6 +37,10 @@
 */
 
 #define INPUT_BUF_SIZE  16384
+
+typedef struct {
+  audio_decoder_class_t   decoder_class;
+} mad_class_t;
 
 typedef struct mad_decoder_s {
   audio_decoder_t   audio_decoder;
@@ -69,24 +73,6 @@ static void mad_reset (audio_decoder_t *this_gen) {
   mad_frame_init  (&this->frame);
 }
 
-
-static void mad_init (audio_decoder_t *this_gen, ao_instance_t *audio_out) {
-
-  mad_decoder_t *this = (mad_decoder_t *) this_gen;
-
-  this->audio_out       = audio_out;
-  this->output_open     = 0;
-  this->bytes_in_buffer = 0;
-
-  mad_synth_init  (&this->synth);
-  mad_stream_init (&this->stream);
-  mad_frame_init  (&this->frame);
-
-#ifdef LOG
-  printf ("libmad: init\n"); 
-#endif
-
-}
 
 /* utility to scale and round samples to 16 bits */
 
@@ -248,7 +234,7 @@ static void mad_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
   }
 }
 
-static void mad_close (audio_decoder_t *this_gen) {
+static void mad_dispose (audio_decoder_t *this_gen) {
 
   mad_decoder_t *this = (mad_decoder_t *) this_gen; 
 
@@ -260,29 +246,63 @@ static void mad_close (audio_decoder_t *this_gen) {
     this->audio_out->close (this->audio_out);
     this->output_open = 0;
   }
-}
 
-static char *mad_get_id(void) {
-  return "mad";
-}
-
-static void mad_dispose (audio_decoder_t *this_gen) {
   free (this_gen);
 }
 
-static void *init_audio_decoder_plugin (xine_t *xine, void *data) {
+void * open_plugin (void *class_gen, xine_stream_t *stream, 
+		    const void *ao_gen) {
 
   mad_decoder_t *this ;
+  ao_instance_t *ao = (ao_instance_t *) ao_gen;
 
   this = (mad_decoder_t *) malloc (sizeof (mad_decoder_t));
 
-  this->audio_decoder.init                = mad_init;
   this->audio_decoder.decode_data         = mad_decode_data;
   this->audio_decoder.reset               = mad_reset;
-  this->audio_decoder.close               = mad_close;
-  this->audio_decoder.get_identifier      = mad_get_id;
   this->audio_decoder.dispose             = mad_dispose;
   
+  this->audio_out       = ao;
+  this->output_open     = 0;
+  this->bytes_in_buffer = 0;
+
+  mad_synth_init  (&this->synth);
+  mad_stream_init (&this->stream);
+  mad_frame_init  (&this->frame);
+
+#ifdef LOG
+  printf ("libmad: init\n"); 
+#endif
+
+  return this;
+}
+
+/*
+ * mad plugin class
+ */
+
+static char *get_identifier (video_decoder_class_t *this) {
+  return "mad";
+}
+
+static char *get_description (video_decoder_class_t *this) {
+  return "libmad based mpeg audio layer 1/2/3 decoder plugin";
+}
+
+static void dispose_class (video_decoder_class_t *this) {
+  free (this);
+}
+
+static void *init_plugin (xine_t *xine, void *data) {
+
+  mad_class_t *this;
+  
+  this = (mad_class_t *) malloc (sizeof (mad_class_t));
+
+  this->decoder_class.get_identifier  = get_identifier;
+  this->decoder_class.get_description = get_description;
+  this->decoder_class.dispose         = dispose_class;
+
   return this;
 }
 
@@ -297,6 +317,7 @@ static decoder_info_t dec_info_audio = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_AUDIO_DECODER, 9, "mad", XINE_VERSION_CODE, &dec_info_audio, init_audio_decoder_plugin },
+  { PLUGIN_AUDIO_DECODER, 9, "mad", XINE_VERSION_CODE, &dec_info_audio, 
+    init_plugin, open_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
