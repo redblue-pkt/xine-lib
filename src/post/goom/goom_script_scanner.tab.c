@@ -102,46 +102,46 @@
     /* SETTER */
     static NodeType *new_set(NodeType *lvalue, NodeType *expression) {
         NodeType *set = new_op("set", OPR_SET, 2);
-        set->opr.op[0] = lvalue;
-        set->opr.op[1] = expression;
+        set->val.opr.op[0] = lvalue;
+        set->val.opr.op[1] = expression;
         return set;
     }
     static void commit_set(NodeType *set) {
-        precommit_node(set->opr.op[1]);
+        precommit_node(set->val.opr.op[1]);
 #ifdef VERBOSE
-        printf("set.f %s %s\n", set->opr.op[0]->str, set->opr.op[1]->str);
+        printf("set.f %s %s\n", set->val.opr.op[0]->str, set->val.opr.op[1]->str);
 #endif
         currentScanner->instr = instr_init(currentScanner, "set.f", INSTR_SETF, 2);
-        commit_node(set->opr.op[0]);
-        commit_node(set->opr.op[1]);
+        commit_node(set->val.opr.op[0]);
+        commit_node(set->val.opr.op[1]);
     }
 
     /* FLOAT */
     static NodeType *new_float_decl(NodeType *name) {
         NodeType *fld = new_op("float", OPR_DECLARE_FLOAT, 1);
-        fld->opr.op[0] = name;
+        fld->val.opr.op[0] = name;
         return fld;
     }
     static void commit_float(NodeType *var) {
 #ifdef VERBOSE
-        printf("float %s\n", var->opr.op[0]->str);
+        printf("float %s\n", var->val.opr.op[0]->str);
 #endif
         currentScanner->instr = instr_init(currentScanner, "float", INSTR_INT, 1);
-        commit_node(var->opr.op[0]);
+        commit_node(var->val.opr.op[0]);
     }
     
     /* INT */
     static NodeType *new_int_decl(NodeType *name) {
         NodeType *intd = new_op("int", OPR_DECLARE_INT, 1);
-        intd->opr.op[0] = name;
+        intd->val.opr.op[0] = name;
         return intd;
     }
     static void commit_int(NodeType *var) {
 #ifdef VERBOSE
-        printf("int %s\n", var->opr.op[0]->str);
+        printf("int %s\n", var->val.opr.op[0]->str);
 #endif
         currentScanner->instr = instr_init(currentScanner, "int", INSTR_INT, 1);
-        commit_node(var->opr.op[0]);
+        commit_node(var->val.opr.op[0]);
     }
 
     /* commodity method for add, mult, ... */
@@ -157,15 +157,15 @@
         int toAdd;
 
         /* compute "left" and "right" */
-        precommit_node(expr->opr.op[0]);
-        precommit_node(expr->opr.op[1]);
+        precommit_node(expr->val.opr.op[0]);
+        precommit_node(expr->val.opr.op[1]);
 
-        if (is_tmp_expr(expr->opr.op[0])) {
-            strcpy(stmp, expr->opr.op[0]->str);
+        if (is_tmp_expr(expr->val.opr.op[0])) {
+            strcpy(stmp, expr->val.opr.op[0]->str);
             toAdd = 1;
         }
-        else if (is_tmp_expr(expr->opr.op[1])) {
-            strcpy(stmp,expr->opr.op[1]->str);
+        else if (is_tmp_expr(expr->val.opr.op[1])) {
+            strcpy(stmp,expr->val.opr.op[1]->str);
             toAdd = 0;
         }
         else {
@@ -173,17 +173,17 @@
             sprintf(stmp,"__tmp%i",allocateTemp());
             commit_node(new_float_decl(new_var(stmp)));
             /* set the float to the value of "op1" */
-            commit_node(new_set(new_var(stmp),expr->opr.op[0]));
+            commit_node(new_set(new_var(stmp),expr->val.opr.op[0]));
             toAdd = 1;
         }
 
         /* add op2 to tmp */
 #ifdef VERBOSE
-        printf("%s %s %s\n", type, stmp, expr->opr.op[toAdd]->str);
+        printf("%s %s %s\n", type, stmp, expr->val.opr.op[toAdd]->str);
 #endif
         currentScanner->instr = instr_init(currentScanner, type, instr_id, 2);
         commit_node(new_var(stmp));
-        commit_node(expr->opr.op[toAdd]);
+        commit_node(expr->val.opr.op[toAdd]);
     
         /* redefine the ADD node now as the computed variable */
         nodeFreeInternals(expr);
@@ -194,8 +194,8 @@
 
     static NodeType *new_expr2(const char *name, int id, NodeType *expr1, NodeType *expr2) {
         NodeType *add = new_op(name, id, 2);
-        add->opr.op[0] = expr1;
-        add->opr.op[1] = expr2;
+        add->val.opr.op[0] = expr1;
+        add->val.opr.op[1] = expr2;
         return add;
     }
 
@@ -234,26 +234,26 @@
     /* IF */
     static NodeType *new_if(NodeType *expression, NodeType *instr) {
         NodeType *node = new_op("if", OPR_IF, 2);
-        node->opr.op[0] = expression;
-        node->opr.op[1] = instr;
+        node->val.opr.op[0] = expression;
+        node->val.opr.op[1] = instr;
         return node;
     }
     static void commit_if(NodeType *node) {
 
         char slab[1024];
-        precommit_node(node->opr.op[0]);
+        precommit_node(node->val.opr.op[0]);
 
         /* jzero.i <expression> <endif> */
         sprintf(slab, "|eif%d|", allocateLabel());
 #ifdef VERBOSE
-        printf("jzero.i %s %s\n", node->opr.op[0]->str, slab);
+        printf("jzero.i %s %s\n", node->val.opr.op[0]->str, slab);
 #endif
         currentScanner->instr = instr_init(currentScanner, "jzero.i", INSTR_JZERO, 2);
-        commit_node(node->opr.op[0]);
+        commit_node(node->val.opr.op[0]);
         instr_add_param(currentScanner->instr, slab, TYPE_LABEL);
 
         /* [... instrs of the if ...] */
-        commit_node(node->opr.op[1]);
+        commit_node(node->val.opr.op[1]);
         /* label <endif> */
 #ifdef VERBOSE
         printf("label %s\n", slab);
@@ -265,12 +265,12 @@
     /* BLOCK */
     static NodeType *new_block(NodeType *lastNode) {
         NodeType *blk = new_op("block", OPR_BLOCK, 2);
-        blk->opr.op[0] = new_nop("start_of_block");
-        blk->opr.op[1] = lastNode;        
+        blk->val.opr.op[0] = new_nop("start_of_block");
+        blk->val.opr.op[1] = lastNode;        
         return blk;
     }
     static void commit_block(NodeType *node) {
-        commit_node(node->opr.op[0]->opr.next);
+        commit_node(node->val.opr.op[0]->val.opr.next);
     }
 
     /** **/
@@ -279,9 +279,9 @@
     static NodeType *lastNode = 0;
     static NodeType *gsl_append(NodeType *curNode) {
         if (lastNode)
-            lastNode->opr.next = curNode;
+            lastNode->val.opr.next = curNode;
         lastNode = curNode;
-        while(lastNode->opr.next) lastNode = lastNode->opr.next;
+        while(lastNode->val.opr.next) lastNode = lastNode->val.opr.next;
         if (rootNode == 0)
             rootNode = curNode;
         return curNode;
@@ -306,7 +306,7 @@
         /* do here stuff for expression.. for exemple */
         switch(node->type) {
             case OPR_NODE:
-                switch(node->opr.type) {
+                switch(node->val.opr.type) {
                     case OPR_ADD: precommit_add(node); break;
                     case OPR_MUL: precommit_mul(node); break;
                     case OPR_EQU: precommit_equ(node); break;
@@ -321,7 +321,7 @@
         
         switch(node->type) {
             case OPR_NODE:
-                switch(node->opr.type) {
+                switch(node->val.opr.type) {
                     case OPR_DECLARE_FLOAT: commit_float(node); break;
                     case OPR_DECLARE_INT:   commit_int(node);   break;
                     case OPR_SET:           commit_set(node); break;
@@ -332,7 +332,7 @@
 #endif
                 }
 
-                commit_node(node->opr.next); /* recursive for the moment, maybe better to do something iterative? */
+                commit_node(node->val.opr.next); /* recursive for the moment, maybe better to do something iterative? */
                 break;
 
             case PARAM_NODE:       instr_add_param(currentScanner->instr, node->str, TYPE_PARAM); break;
@@ -1294,7 +1294,7 @@ yyreduce:
   case 5:
 #line 289 "goom_script_scanner.y"
     { yyval.nPtr = new_float_decl(new_var(yyvsp[-3].strValue));
-                                                      yyval.nPtr->opr.next = new_set(new_var(yyvsp[-3].strValue), yyvsp[-1].nPtr); }
+                                                      yyval.nPtr->val.opr.next = new_set(new_var(yyvsp[-3].strValue), yyvsp[-1].nPtr); }
     break;
 
   case 6:
@@ -1314,7 +1314,7 @@ yyreduce:
 
   case 9:
 #line 294 "goom_script_scanner.y"
-    { lastNode = yyvsp[-2].nPtr->opr.op[1]; yyval.nPtr=yyvsp[-2].nPtr; }
+    { lastNode = yyvsp[-2].nPtr->val.opr.op[1]; yyval.nPtr=yyvsp[-2].nPtr; }
     break;
 
   case 10:
@@ -1324,7 +1324,7 @@ yyreduce:
 
   case 11:
 #line 298 "goom_script_scanner.y"
-    { yyval.nPtr = new_block(lastNode); lastNode = yyval.nPtr->opr.op[0]; }
+    { yyval.nPtr = new_block(lastNode); lastNode = yyval.nPtr->val.opr.op[0]; }
     break;
 
   case 12:
@@ -1602,13 +1602,13 @@ yyreturn:
 
     NodeType *new_constInt(const char *str) {
         NodeType *node = nodeNew(str, CONST_INT_NODE);
-        node->constInt.val = atoi(str);
+        node->val.constInt.val = atoi(str);
         return node;
     }
 
     NodeType *new_constFloat(const char *str) {
         NodeType *node = nodeNew(str, CONST_FLOAT_NODE);
-        node->constFloat.val = atof(str);
+        node->val.constFloat.val = atof(str);
         return node;
     }
 
@@ -1630,15 +1630,13 @@ yyreturn:
     NodeType *new_op(const char *str, int type, int nbOp) {
         int i;
         NodeType *node = nodeNew(str, OPR_NODE);
-        node->opr.next = 0;
-        node->opr.type = type;
-        node->opr.nbOp = nbOp;
-        for (i=0;i<nbOp;++i) node->opr.op[i] = 0;
+        node->val.opr.next = 0;
+        node->val.opr.type = type;
+        node->val.opr.nbOp = nbOp;
+        for (i=0;i<nbOp;++i) node->val.opr.op[i] = 0;
         return node;
     }
 
 void yyerror(char *str) {
     fprintf(stderr, "GSL ERROR: %s\n", str);
 }
-
-

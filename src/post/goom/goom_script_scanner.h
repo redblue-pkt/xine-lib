@@ -64,7 +64,7 @@ typedef struct _NODE_TYPE{
         ConstIntNodeType constInt;
         ConstFloatNodeType constFloat;
         OprNodeType opr;
-    };
+    } val;
 } NodeType;
 
 void gsl_commit_compilation();
