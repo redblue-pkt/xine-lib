@@ -226,7 +226,7 @@ static input_plugin_t *open_plugin (input_class_t *cls_gen, xine_stream_t *strea
     return NULL;
   }
 
-  this = (pnm_input_plugin_t *) malloc (sizeof (pnm_input_plugin_t));
+  this = (pnm_input_plugin_t *) xine_xmalloc (sizeof (pnm_input_plugin_t));
 
   this->pnm    = pnm;
   this->mrl    = mrl; 
