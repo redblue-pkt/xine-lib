@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3.h,v 1.14 2003/01/18 17:25:41 mroi Exp $
+ * $Id: video_out_dxr3.h,v 1.15 2003/02/13 14:32:18 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -64,6 +64,7 @@ typedef struct dxr3_overlay_s {
   int              screen_xres;
   int              screen_yres;
   int              screen_depth;
+  int              shrink;
 
   struct coeff     colcal_upper[3];
   struct coeff     colcal_lower[3];

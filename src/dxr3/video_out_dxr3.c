@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3.c,v 1.71 2003/02/10 17:28:35 mroi Exp $
+ * $Id: video_out_dxr3.c,v 1.72 2003/02/13 14:32:17 mroi Exp $
  */
  
 /* mpeg1 encoding video out plugin for the dxr3.  
@@ -390,6 +390,9 @@ static vo_driver_t *dxr3_vo_open_plugin(video_driver_class_t *class_gen, const v
         _("Dxr3: overlay colorkey range"),
         _("A greater value widens the tolerance for the overlay keycolor"), 10, NULL, NULL);
       sscanf(confstr, "%f", &this->overlay.color_interval);
+      this->overlay.shrink = config->register_num(config, "dxr3.shrink_overlay_area", 0,
+        _("Crops the overlay area from top and bottom to avoid green lines"),
+	NULL, 20, NULL, NULL);
     } else {
       printf("video_out_dxr3: please run autocal, overlay disabled\n");
       this->overlay_enabled = 0;
@@ -1398,8 +1401,8 @@ static void dxr3_overlay_update(dxr3_driver_t *this)
       this->scale.gui_width, this->scale.gui_height);
     XSetForeground(this->display, this->gc, this->key.pixel);
     XFillRectangle(this->display, this->win, this->gc,
-      this->scale.output_xoffset, this->scale.output_yoffset,
-      this->scale.output_width, this->scale.output_height);
+      this->scale.output_xoffset, this->scale.output_yoffset + this->overlay.shrink,
+      this->scale.output_width, this->scale.output_height - 2 * this->overlay.shrink);
     XFlush(this->display);
     XUnlockDisplay(this->display);
       
