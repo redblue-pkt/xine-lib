@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.114 2002/11/20 11:57:49 mroi Exp $
+ * $Id: load_plugins.c,v 1.115 2002/11/23 10:56:23 mroi Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -891,10 +891,12 @@ xine_video_port_t *xine_open_video_driver (xine_t *this,
     node = xine_list_next_content (catalog->vout);
   }
 
-  if (!driver)
-    printf ("load_plugins: failed to load video output plugin <%s>\n", id);
-
   pthread_mutex_unlock (&catalog->lock);
+
+  if (!driver) {
+    printf ("load_plugins: failed to load video output plugin <%s>\n", id);
+    return NULL;
+  }
 
   port = vo_new_port(this, driver);
   
@@ -1031,15 +1033,16 @@ xine_audio_port_t *xine_open_audio_driver (xine_t *this, const char *id,
     node = xine_list_next_content (this->plugin_catalog->aout);
   }
 
+  pthread_mutex_unlock (&catalog->lock);
+  
   if (!driver) {
     if (id)
       printf ("load_plugins: failed to load audio output plugin <%s>\n", id);
     else
       printf ("load_plugins: audio output auto-probing didn't find any usable audio driver.\n");
+    return NULL;
   }
 
-  pthread_mutex_unlock (&catalog->lock);
-  
   port = ao_new_port(this, driver);
 
   return port;
