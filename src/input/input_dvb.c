@@ -362,20 +362,7 @@ static int tuner_set_channel (tuner_t *this,
 
 static void osd_show_channel (dvb_input_plugin_t *this) {
 
-  printf ("input_dvb: channel=%d\n", this->channel);
-
-#if 0 /* FIXME */
   int i, channel ;
-
-  if (!this->osd) {
-    this->osd = this->stream->osd_renderer->new_object (this->stream->osd_renderer, 
-						      410, 410);
-    this->stream->osd_renderer->set_position (this->osd, 20, 20);
-    this->stream->osd_renderer->set_font (this->osd, "cetus", 32);
-    this->stream->osd_renderer->set_text_palette (this->osd,
-						TEXTPALETTE_WHITE_NONE_TRANSLUCID,
-						OSD_TEXT3);
-  }
 
   this->stream->osd_renderer->filled_rect (this->osd, 0, 0, 395, 400, 2); 
 
@@ -396,7 +383,6 @@ static void osd_show_channel (dvb_input_plugin_t *this) {
   this->stream->osd_renderer->line (this->osd, 390, 183, 390, 219, 10);
 
   this->stream->osd_renderer->show (this->osd, 0);
-#endif
 
 }
 
@@ -429,9 +415,7 @@ static void switch_channel (dvb_input_plugin_t *this) {
   
   pthread_mutex_unlock (&this->mutex);
 
-#if 0 /* FIXME */  
   this->stream->osd_renderer->hide (this->osd, 0);
-#endif
 }
 
 static void dvb_event_handler (dvb_input_plugin_t *this) {
@@ -439,6 +423,10 @@ static void dvb_event_handler (dvb_input_plugin_t *this) {
   xine_event_t *event;
 
   while ((event = xine_event_get (this->event_queue))) {
+
+#ifdef LOG
+    printf ("input_dvb: got event %08x\n", event->type);
+#endif
 
     if (this->fd<0) {
       xine_event_free (event);
@@ -477,7 +465,7 @@ static void dvb_event_handler (dvb_input_plugin_t *this) {
       switch_channel (this);
       break;
 
-    case XINE_EVENT_INPUT_MENU3:
+    case XINE_EVENT_INPUT_MENU1:
       this->stream->osd_renderer->hide (this->osd, 0);
       break;
 
@@ -536,18 +524,6 @@ static buf_element_t *dvb_plugin_read_block (input_plugin_t *this_gen,
   buf_element_t        *buf = fifo->buffer_pool_alloc (fifo);
   int                   total_bytes;
 
-
-#if 0
-  if (this->report_pids) {
-
-    printf ("input_dvb: reporting pids %d (video), %d (audio)\n",
-	    this->channels[this->channel].vpid,
-	    this->channels[this->channel].apid);
-
-    this->report_pids = 0;
-
-  }
-#endif
 
   buf->content = buf->mem;
   buf->type    = BUF_DEMUX_BLOCK;
@@ -776,10 +752,6 @@ static input_plugin_t *open_plugin (input_class_t *cls_gen,
   this->input_plugin.input_class       = cls_gen;
   this->cls                            = cls;
 
-  /*
-  xine_register_event_listener (this->stream, dvb_event_listener, this);
-  */
-
   pthread_mutex_init (&this->mutex, NULL);
 
 #if 0
@@ -789,6 +761,14 @@ static input_plugin_t *open_plugin (input_class_t *cls_gen,
 #endif
 
   this->event_queue = xine_event_new_queue (this->stream);
+
+  this->osd = this->stream->osd_renderer->new_object (this->stream->osd_renderer, 
+						      410, 410);
+  this->stream->osd_renderer->set_position (this->osd, 20, 20);
+  this->stream->osd_renderer->set_font (this->osd, "cetus", 32);
+  this->stream->osd_renderer->set_text_palette (this->osd,
+						TEXTPALETTE_WHITE_NONE_TRANSLUCID,
+						OSD_TEXT3);
 
   return (input_plugin_t *) this;
 }

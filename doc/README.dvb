@@ -82,6 +82,12 @@ this writing). then simply start something like
 $ gxine dvb://
 
 you should be able to zap around using the NumPad-8 / NumPad-2 keys.
-An OSD menu for channel selection is currently being implemented.
+
+An OSD menu is available too. Press NumPad-9 / NumPad-3 to scroll 
+through the channels, then press NumPad-Enter to switch to the channel
+you have selected.
+
+HINT: if audio or video is stuttering, pause (space key) shortly
+to give xine a chance to fill up it's buffers.
 
 Have fun.
