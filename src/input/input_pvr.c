@@ -37,7 +37,7 @@
  * usage:
  *   xine pvr:/<path_to_store_files>
  *
- * $Id: input_pvr.c,v 1.1 2003/03/04 21:43:56 miguelfreitas Exp $
+ * $Id: input_pvr.c,v 1.2 2003/03/05 00:27:35 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -62,7 +62,7 @@
 
 #define PVR_DEVICE        "/dev/ivtv0"
 #define PVR_BLOCK_SIZE    2048			/* pvr works with dvd-like data */
-#define BLOCKS_PER_PAGE   102400		/* 200MB per page. each session can have several pages */
+#define BLOCKS_PER_PAGE   10000 //102400		/* 200MB per page. each session can have several pages */
 #define PVR_FILENAME      "%s/%08d-%04d.vob"
 #define PVR_FILENAME_SIZE 1+8+1+4+4+1
 
@@ -533,6 +533,18 @@ static int pvr_play_file(pvr_input_plugin_t *this, fifo_buffer_t *fifo, uint8_t 
 }
 
 
+static int pvr_mpeg_resync (int fd) {
+  uint32_t seq = 0;
+  uint8_t c;
+
+  while (seq != 0x000001ba) {
+    if( read(fd, &c, 1) < 1 )
+      return 0;
+    seq = (seq << 8) | c;
+  }
+  return 1;
+}
+
 /*
  * captures data from mpeg2 encoder card to disk.
  * may wait xine to get data when in realtime mode.
@@ -541,6 +553,7 @@ static void *pvr_loop (void *this_gen) {
 
   pvr_input_plugin_t   *this = (pvr_input_plugin_t *) this_gen;
   off_t                 num_bytes, total_bytes;
+  int                   lost_sync;
 
   while( this->pvr_running ) {
     
@@ -549,17 +562,35 @@ static void *pvr_loop (void *this_gen) {
     pthread_mutex_unlock(&this->lock);
     
     total_bytes = 0;
-    while (total_bytes < PVR_BLOCK_SIZE) {
-      num_bytes = read (this->dev_fd, this->data + total_bytes, PVR_BLOCK_SIZE-total_bytes);
-      if (num_bytes <= 0) {
-        if (num_bytes < 0) 
-          printf ("input_pvr: read error (%s)\n", strerror(errno));
-        this->pvr_running = 0;  
-        break;
+    do {
+      
+      lost_sync = 0;
+      
+      while (total_bytes < PVR_BLOCK_SIZE) {
+        num_bytes = read (this->dev_fd, this->data + total_bytes, PVR_BLOCK_SIZE-total_bytes);
+        if (num_bytes <= 0) {
+          if (num_bytes < 0) 
+            printf ("input_pvr: read error (%s)\n", strerror(errno));
+          this->pvr_running = 0;  
+          break;
+        }
+        total_bytes += num_bytes;
       }
-      total_bytes += num_bytes;
-    }
-        
+      
+      if( this->data[0] || this->data[1] || this->data[2] != 1 || this->data[3] != 0xba ) {
+#ifdef LOG
+        printf("input_pvr: resyncing mpeg stream\n");
+#endif
+        if( !pvr_mpeg_resync(this->dev_fd) ) {
+          this->pvr_running = 0;
+          break;
+        }
+        lost_sync = 1;
+        this->data[0] = 0; this->data[1] = 0; this->data[2] = 1; this->data[3] = 0xba;
+        total_bytes = 4;
+      }      
+    } while( lost_sync );   
+    
     pthread_mutex_lock(&this->lock);
     
     if( !pvr_rec_file(this) ) {
@@ -643,7 +674,7 @@ static off_t pvr_plugin_seek (input_plugin_t *this_gen, off_t offset, int origin
   
   switch( origin ) {
     case SEEK_SET:
-      this->play_blk = offset / PVR_BLOCK_SIZE;
+      this->play_blk = (offset / PVR_BLOCK_SIZE) + (this->first_page * BLOCKS_PER_PAGE);
       break;
     case SEEK_CUR:
       this->play_blk += offset / PVR_BLOCK_SIZE;
@@ -654,20 +685,20 @@ static off_t pvr_plugin_seek (input_plugin_t *this_gen, off_t offset, int origin
   }
   pthread_mutex_unlock(&this->lock);
   
-  return (off_t) this->play_blk * PVR_BLOCK_SIZE;
+  return (off_t) (this->play_blk - this->first_page * BLOCKS_PER_PAGE)  * PVR_BLOCK_SIZE;
 }
 
 static off_t pvr_plugin_get_current_pos (input_plugin_t *this_gen){
   pvr_input_plugin_t *this = (pvr_input_plugin_t *) this_gen;
 
-  return (off_t) this->play_blk * PVR_BLOCK_SIZE;
+  return (off_t) (this->play_blk - this->first_page * BLOCKS_PER_PAGE) * PVR_BLOCK_SIZE;
 }
 
 static off_t pvr_plugin_get_length (input_plugin_t *this_gen) {
 
   pvr_input_plugin_t *this = (pvr_input_plugin_t *) this_gen;
 
-  return (off_t) this->rec_blk * PVR_BLOCK_SIZE;
+  return (off_t) (this->rec_blk - this->first_page * BLOCKS_PER_PAGE) * PVR_BLOCK_SIZE;
 }
 
 static uint32_t pvr_plugin_get_blocksize (input_plugin_t *this_gen) {
