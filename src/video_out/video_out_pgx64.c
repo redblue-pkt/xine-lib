@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  *
- * $Id: video_out_pgx64.c,v 1.19 2002/12/14 18:48:57 komadori Exp $
+ * $Id: video_out_pgx64.c,v 1.20 2002/12/18 21:38:58 komadori Exp $
  *
  * video_out_pgx64.c, Sun PGX64/PGX24 output plugin for xine
  *
@@ -53,13 +53,6 @@
 #define BUS_EXT_REG_EN 0x08000000
 #define FIFO_STAT 0x1C4
 
-#define OVERLAY_SCALE_INC 0x008
-#define SCALER_HEIGHT_WIDTH 0x00A
-#define OVERLAY_GRAPHICS_KEY_CLR 0x004
-#define OVERLAY_GRAPHICS_KEY_MSK 0x005
-#define OVERLAY_KEY_CNTL 0x006
-#define SCALER_COLOUR_CNTL 0x054
-
 #define SCALER_H_COEFF0 0x055
 #define SCALER_H_COEFF0_DEFAULT 0x00002000
 #define SCALER_H_COEFF1 0x056
@@ -70,6 +63,11 @@
 #define SCALER_H_COEFF3_DEFAULT 0x0C0E1A0C
 #define SCALER_H_COEFF4 0x059
 #define SCALER_H_COEFF4_DEFAULT 0x0C14140C
+
+#define OVERLAY_GRAPHICS_KEY_CLR 0x004
+#define OVERLAY_GRAPHICS_KEY_MSK 0x005
+#define OVERLAY_KEY_CNTL 0x006
+#define SCALER_COLOUR_CNTL 0x054
 
 #define SCALER_BUF0_OFFSET 0x00D
 #define SCALER_BUF0_OFFSET_U 0x075
@@ -83,6 +81,11 @@
 #define OVERLAY_X_Y_START 0x000
 #define OVERLAY_X_Y_END 0x001
 #define OVERLAY_X_Y_LOCK 0x80000000
+#define OVERLAY_SCALE_INC 0x008
+#define SCALER_HEIGHT_WIDTH 0x00A
+#define OVERLAY_EXCLUSIVE_HORZ 0x016
+#define OVERLAY_EXCLUSIVE_VERT 0x017
+#define OVERLAY_EXCLUSIVE_EN 0x80000000
 #define OVERLAY_SCALE_CNTL 0x009
 #define OVERLAY_EN 0xC0000000
 
@@ -133,8 +136,7 @@ typedef struct {
   uint32_t top, fb_width, fb_height;
 
   int colour_key, brightness, saturation;
-  int deinterlace, deinterlace_method;
-  int double_pitch_hack, half_height_hack;
+  int deinterlace, deinterlace_method, use_exclusive;
 } pgx64_driver_t;
 
 /*
@@ -344,10 +346,22 @@ static void pgx64_display_frame(pgx64_driver_t *this, pgx64_frame_t *frame)
     write_reg(this, SCALER_BUF0_OFFSET_U, frame->buf_u);
     write_reg(this, SCALER_BUF0_OFFSET_V, frame->buf_v);
     write_reg(this, SCALER_BUF_PITCH, frame->pitch);
-    write_reg(this, OVERLAY_X_Y_START, ((this->vo_scale.gui_win_x + this->vo_scale.output_xoffset) << 16) | (this->vo_scale.gui_win_y + this->vo_scale.output_yoffset) | OVERLAY_X_Y_LOCK);
-    write_reg(this, OVERLAY_X_Y_END, ((this->vo_scale.gui_win_x + this->vo_scale.output_xoffset + this->vo_scale.output_width) << 16) | (this->vo_scale.gui_win_y + this->vo_scale.output_yoffset + this->vo_scale.output_height));
+    write_reg(this, OVERLAY_X_Y_START, ((this->vo_scale.gui_win_x + this->vo_scale.output_xoffset) << 16) | (this->vo_scale.gui_win_y + this->vo_scale.output_yoffset - 1) | OVERLAY_X_Y_LOCK);
+    write_reg(this, OVERLAY_X_Y_END, ((this->vo_scale.gui_win_x + this->vo_scale.output_xoffset + this->vo_scale.output_width) << 16) | (this->vo_scale.gui_win_y + this->vo_scale.output_yoffset + this->vo_scale.output_height - 1));
     write_reg(this, OVERLAY_SCALE_INC, (((frame->width << 12) / this->vo_scale.output_width) << 16) | (((this->deinterlace && (this->deinterlace_method == DEINTERLACE_ONEFIELD) ? frame->height/2 : frame->height) << 12) / this->vo_scale.output_height));
     write_reg(this, SCALER_HEIGHT_WIDTH, (frame->width << 16) | (this->deinterlace && (this->deinterlace_method == DEINTERLACE_ONEFIELD) ? frame->height/2 : frame->height));
+
+    if (this->use_exclusive) {
+      int horz_start = (this->vo_scale.gui_win_x + this->vo_scale.output_xoffset + 7) / 8;
+      int horz_end = (this->vo_scale.gui_win_x + this->vo_scale.output_xoffset + this->vo_scale.output_width) / 8;
+
+      write_reg(this, OVERLAY_EXCLUSIVE_VERT, (this->vo_scale.gui_win_y + this->vo_scale.output_yoffset - 1) | ((this->vo_scale.gui_win_y + this->vo_scale.output_yoffset + this->vo_scale.output_height - 1) << 16));
+      write_reg(this, OVERLAY_EXCLUSIVE_HORZ,  horz_start | (horz_end << 8) | (((this->fb_width/8) - horz_end) << 16) | OVERLAY_EXCLUSIVE_EN);
+    }
+    else {
+      write_reg(this, OVERLAY_EXCLUSIVE_HORZ, 0);
+    }
+
     set_reg_bits(this, OVERLAY_SCALE_CNTL, OVERLAY_EN);
   }
 
@@ -612,6 +626,7 @@ static int pgx64_redraw_needed(pgx64_driver_t *this)
 
 static void pgx64_dispose(pgx64_driver_t *this)
 {
+  write_reg(this, OVERLAY_EXCLUSIVE_HORZ, 0);
   write_reg(this, OVERLAY_SCALE_CNTL, 0);
   clear_reg_bits(this, BUS_CNTL, BUS_EXT_REG_EN);
   munmap(this->fbbase, ADDRSPACE);
@@ -637,6 +652,10 @@ static void pgx64_config_changed(pgx64_driver_t *this, xine_cfg_entry_t *entry)
   }
   else if (strcmp(entry->key, "video.pgx64_deinterlace_method") == 0) {
     this->deinterlace_method = entry->num_value;
+    this->vo_scale.force_redraw = 1;
+  }
+  else if (strcmp(entry->key, "video.pgx64_use_exclusive") == 0) {
+    this->use_exclusive = entry->num_value;
     this->vo_scale.force_redraw = 1;
   }
 }
@@ -709,6 +728,7 @@ static pgx64_driver_t* init_driver(pgx64_driver_class_t *class)
   this->brightness = this->class->config->register_range(this->class->config, "video.pgx64_brightness", 0, -64, 63, "video overlay brightness", NULL, 10, (void*)pgx64_config_changed, this);
   this->saturation = this->class->config->register_range(this->class->config, "video.pgx64_saturation", 16, 0, 31, "video overlay saturation", NULL, 10, (void*)pgx64_config_changed, this);
   this->deinterlace_method = this->class->config->register_enum(this->class->config, "video.pgx64_deinterlace_method", 0, deinterlace_methods, "video deinterlacing method", NULL, 10, (void*)pgx64_config_changed, this);
+  this->use_exclusive = this->class->config->register_bool(this->class->config, "video.pgx64_use_exclusive", 0, "use exclusive video overlays", NULL, 10, (void*)pgx64_config_changed, this);
 
   this->fbfd = fbfd;
   this->top = attr.sattr.dev_specific[0];
