@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: qt_decoder.c,v 1.11 2003/01/11 13:10:13 guenter Exp $
+ * $Id: qt_decoder.c,v 1.12 2003/01/29 17:16:01 miguelfreitas Exp $
  *
  * quicktime video/audio decoder plugin, using win32 dlls
  * most of this code comes directly from MPlayer
@@ -556,15 +556,19 @@ static void qta_dispose (audio_decoder_t *this_gen) {
   int error;
   unsigned long ConvertedFrames=0;
   unsigned long ConvertedBytes=0;
-  error = this->SoundConverterEndConversion (this->myConverter,NULL,
-					     &ConvertedFrames,&ConvertedBytes);
+
+  if( this->codec_initialized ) {
+
+    error = this->SoundConverterEndConversion (this->myConverter,NULL,
+					       &ConvertedFrames,&ConvertedBytes);
 #ifdef LOG
-  printf ("qt_audio: SoundConverterEndConversion:%i\n",error);
+    printf ("qt_audio: SoundConverterEndConversion:%i\n",error);
 #endif
-  error = this->SoundConverterClose (this->myConverter);
+    error = this->SoundConverterClose (this->myConverter);
 #ifdef LOG
-  printf ("qt_audio: SoundConverterClose:%i\n",error);
+    printf ("qt_audio: SoundConverterClose:%i\n",error);
 #endif
+  }
 
   if (this->output_open)
     this->stream->audio_out->close (this->stream->audio_out, this->stream);
