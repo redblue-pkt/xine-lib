@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg.c,v 1.87 2002/10/23 21:22:01 guenter Exp $
+ * $Id: demux_mpeg.c,v 1.88 2002/10/24 23:13:05 tmattern Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  * reads streams of variable blocksizes
@@ -76,6 +76,7 @@ typedef struct demux_mpeg_s {
   int64_t              last_pts[2];
   int                  send_newpts;
   int                  buf_flag_seek;
+  int                  has_pts;
 
 } demux_mpeg_t;
 
@@ -500,6 +501,18 @@ static void parse_mpeg1_packet (demux_mpeg_t *this, int stream_id, int64_t scr) 
 
   }
 
+  if (pts && !this->has_pts) {
+#ifdef LOG
+    printf("demux_mpeg: this stream has pts\n");
+#endif
+    this->has_pts = 1;
+  } else if (scr && !this->has_pts) {
+#ifdef LOG
+    printf("demux_mpeg: use scr\n");
+#endif
+    pts = scr;
+  }
+  
   if ((stream_id & 0xe0) == 0xc0) {
     int track = stream_id & 0x1f;
 
@@ -516,6 +529,7 @@ static void parse_mpeg1_packet (demux_mpeg_t *this, int stream_id, int64_t scr) 
     }
     buf->type      = BUF_AUDIO_MPEG + track ;
     buf->pts       = pts;
+    
     check_newpts( this, pts, PTS_AUDIO );
 
     if (this->preview_mode)
@@ -538,6 +552,7 @@ static void parse_mpeg1_packet (demux_mpeg_t *this, int stream_id, int64_t scr) 
     }
     buf->type = BUF_VIDEO_MPEG;
     buf->pts  = pts;
+    
     check_newpts( this, pts, PTS_VIDEO );
 
     if (this->preview_mode)
@@ -870,7 +885,7 @@ static void demux_mpeg_send_headers (demux_plugin_t *this_gen) {
   this->status = DEMUX_OK ;
     
   do {
-      
+
     w = parse_pack_preview (this, &num_buffers);
       
     if (w != 0x000001ba)
@@ -878,9 +893,9 @@ static void demux_mpeg_send_headers (demux_plugin_t *this_gen) {
       
     num_buffers --;
       
-  } while ( (this->status == DEMUX_OK) && (num_buffers>0)) ;
+  } while ( (this->status == DEMUX_OK) && (num_buffers > 0));
     
-  this->stream->stream_info[XINE_STREAM_INFO_BITRATE] = this->rate*50*8;
+  this->stream->stream_info[XINE_STREAM_INFO_BITRATE] = this->rate * 50 * 8;
 
   xine_demux_control_headers_done (this->stream);
 
@@ -1164,6 +1179,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   this->demux_plugin.demux_class       = class_gen;
 
   this->status = DEMUX_FINISHED;
+  this->has_pts = 0;
 
   pthread_mutex_init( &this->mutex, NULL );
 
