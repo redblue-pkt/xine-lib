@@ -41,11 +41,8 @@ Michael Roitzsch <mroi@users.sourceforge.net>
   several dxr3 fixes, massive engine contributions
 
 Mike Melanson <melanson@pcisys.net>
-  QT, FILM, RoQ, WAV, FLI, SMJPEG, Id CIN, WC3 movie, VOC, VQA, AIFF,
-  SND/AU, YUV4MPEG2, Real, Interplay MVE, PSX STR, AUD, PVA and CDDA 
-  file demuxers; various assorted DPCM and ADPCM audio decoders; raw RGB
-  & YUV support; FLI, MS & QT RLE, QT SMC, and Interplay video decoders;
-  CDDA input source
+  a whole bunch of file demuxers, lots of audio and video decoders,
+  assorted other input sources and utilities
 
 Robin KAY <komadori@myrealbox.com>
   pgx64[fb] video output plugin, WVE demuxer, MNG demuxer, EA ADPCM
