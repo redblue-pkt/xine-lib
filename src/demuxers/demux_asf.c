@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.86 2002/12/06 19:23:29 miguelfreitas Exp $
+ * $Id: demux_asf.c,v 1.87 2002/12/08 21:43:50 miguelfreitas Exp $
  *
  * demultiplexer for asf streams
  *
@@ -1527,14 +1527,14 @@ static void demux_asf_send_headers (demux_plugin_t *this_gen) {
 
   this->frame = 0;
   this->nb_frames = 1;
-  xine_demux_control_headers_done (this->stream);
 }
 
 static int demux_asf_seek (demux_plugin_t *this_gen,
 			    off_t start_pos, int start_time) {
 
   demux_asf_t *this = (demux_asf_t *) this_gen;
-
+  int i;
+  
   this->status = DEMUX_OK;
 
   xine_demux_flush_engine(this->stream);
@@ -1548,6 +1548,12 @@ static int demux_asf_seek (demux_plugin_t *this_gen,
   this->nb_frames                = 1;
   this->packet_size_left         = 0;
   this->keyframe_found           = (this->num_video_streams==0);
+
+  for(i = 0; i < this->num_streams; i++) {
+    this->streams[i].frag_offset = 0;
+    this->streams[i].seq         = 0;
+    this->streams[i].timestamp   = 0;
+  }
 
   if (this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) {
 

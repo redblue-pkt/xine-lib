@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.198 2002/12/06 18:38:46 miguelfreitas Exp $
+ * $Id: xine.c,v 1.199 2002/12/08 21:43:52 miguelfreitas Exp $
  *
  * top-level xine functions
  *
@@ -601,15 +601,6 @@ static int xine_open_internal (xine_stream_t *stream, const char *mrl) {
    * send and decode headers
    */
 
-  pthread_mutex_lock (&stream->counter_lock);
-  if (stream->audio_fifo)
-    header_count_audio = stream->header_count_audio + 1;
-  else
-    header_count_audio = 0;
-
-  header_count_video = stream->header_count_video + 1;
-  pthread_mutex_unlock (&stream->counter_lock);
-  
   stream->demux_plugin->send_headers (stream->demux_plugin);
 
   if (stream->demux_plugin->get_status(stream->demux_plugin) != DEMUX_OK) {
@@ -635,13 +626,23 @@ static int xine_open_internal (xine_stream_t *stream, const char *mrl) {
 
     return 0;
   }
-
+  
   pthread_mutex_lock (&stream->counter_lock);
+  if (stream->audio_fifo)
+    header_count_audio = stream->header_count_audio + 1;
+  else
+    header_count_audio = 0;
+
+  header_count_video = stream->header_count_video + 1;
+  
+  xine_demux_control_headers_done (stream);
+
   while ((stream->header_count_audio<header_count_audio) || 
 	 (stream->header_count_video<header_count_video)) {
     printf ("xine: waiting for headers.\n");
     pthread_cond_wait (&stream->counter_changed, &stream->counter_lock);
   }
+  printf ("xine: headers processed.\n");
   pthread_mutex_unlock (&stream->counter_lock);
 
 #ifdef LOG

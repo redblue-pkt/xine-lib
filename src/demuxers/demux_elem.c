@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_elem.c,v 1.63 2002/11/28 10:21:06 petli Exp $
+ * $Id: demux_elem.c,v 1.64 2002/12/08 21:43:50 miguelfreitas Exp $
  *
  * demultiplexer for elementary mpeg streams
  * 
@@ -147,8 +147,6 @@ static void demux_mpeg_elem_send_headers (demux_plugin_t *this_gen) {
 
   this->stream->stream_info[XINE_STREAM_INFO_HAS_VIDEO] = 1;
   this->stream->stream_info[XINE_STREAM_INFO_HAS_AUDIO] = 0;
-
-  xine_demux_control_headers_done (this->stream);
 }
 
 static int demux_mpeg_elem_seek (demux_plugin_t *this_gen,

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_eawve.c,v 1.9 2002/11/28 10:21:05 petli Exp $
+ * $Id: demux_eawve.c,v 1.10 2002/12/08 21:43:50 miguelfreitas Exp $
  *
  * demux_eawve.c, Demuxer plugin for Electronic Arts' WVE file format
  *
@@ -319,8 +319,6 @@ static void demux_eawve_send_headers(demux_plugin_t *this_gen)
     buf->decoder_info[3] = 2;
     this->audio_fifo->put(this->audio_fifo, buf);
   }
-
-  xine_demux_control_headers_done (this->stream);
 }
 
 static int demux_eawve_seek(demux_eawve_t *this, off_t start_pos, int start_time)

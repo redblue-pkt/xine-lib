@@ -20,7 +20,7 @@
  * MS WAV File Demuxer by Mike Melanson (melanson@pcisys.net)
  * based on WAV specs that are available far and wide
  *
- * $Id: demux_wav.c,v 1.27 2002/11/28 10:21:08 petli Exp $
+ * $Id: demux_wav.c,v 1.28 2002/12/08 21:43:52 miguelfreitas Exp $
  *
  */
 
@@ -237,9 +237,6 @@ static void demux_wav_send_headers(demux_plugin_t *this_gen) {
     buf->size = this->wave_size;
     this->audio_fifo->put (this->audio_fifo, buf);
   }
-
-  xine_demux_control_headers_done (this->stream);
-
 }
 
 static int demux_wav_seek (demux_plugin_t *this_gen,

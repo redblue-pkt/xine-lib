@@ -22,7 +22,7 @@
  * avoid while programming a FLI decoder, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_fli.c,v 1.28 2002/11/28 10:21:06 petli Exp $
+ * $Id: demux_fli.c,v 1.29 2002/12/08 21:43:50 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -228,8 +228,6 @@ static void demux_fli_send_headers(demux_plugin_t *this_gen) {
   buf->size = FLI_HEADER_SIZE;
   buf->type = BUF_VIDEO_FLI;
   this->video_fifo->put (this->video_fifo, buf);
-
-  xine_demux_control_headers_done (this->stream);
 }
 
 static int demux_fli_seek (demux_plugin_t *this_gen,

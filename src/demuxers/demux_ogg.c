@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ogg.c,v 1.54 2002/11/28 10:21:06 petli Exp $
+ * $Id: demux_ogg.c,v 1.55 2002/12/08 21:43:51 miguelfreitas Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -869,8 +869,6 @@ static void demux_ogg_send_headers (demux_plugin_t *this_gen) {
 
   this->stream->stream_info[XINE_STREAM_INFO_HAS_VIDEO] = this->num_video_streams>0;
   this->stream->stream_info[XINE_STREAM_INFO_HAS_AUDIO] = this->num_audio_streams>0;
-
-  xine_demux_control_headers_done (this->stream);
 }
 
 static int demux_ogg_seek (demux_plugin_t *this_gen,

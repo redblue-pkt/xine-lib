@@ -22,7 +22,7 @@
  * tools, visit:
  *   http://mjpeg.sourceforge.net/
  *
- * $Id: demux_yuv4mpeg2.c,v 1.12 2002/11/28 10:21:08 petli Exp $
+ * $Id: demux_yuv4mpeg2.c,v 1.13 2002/12/08 21:43:52 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -258,8 +258,6 @@ static void demux_yuv4mpeg2_send_headers(demux_plugin_t *this_gen) {
   buf->size = sizeof(this->bih);
   buf->type = BUF_VIDEO_YV12;
   this->video_fifo->put (this->video_fifo, buf);
-
-  xine_demux_control_headers_done (this->stream);
 }
 
 static int demux_yuv4mpeg2_seek (demux_plugin_t *this_gen,

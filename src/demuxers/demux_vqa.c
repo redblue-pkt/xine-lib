@@ -27,7 +27,7 @@
  * block needs information from the previous audio block in order to be
  * decoded, thus making random seeking difficult.
  *
- * $Id: demux_vqa.c,v 1.22 2002/11/28 10:21:07 petli Exp $
+ * $Id: demux_vqa.c,v 1.23 2002/12/08 21:43:52 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -303,8 +303,6 @@ static void demux_vqa_send_headers(demux_plugin_t *this_gen) {
     buf->decoder_info[3] = 1;   /* channels */
     this->audio_fifo->put (this->audio_fifo, buf);
   }
-
-  xine_demux_control_headers_done (this->stream);
 }
 
 static int demux_vqa_seek (demux_plugin_t *this_gen,

@@ -22,7 +22,7 @@
  * For more information on the MVE file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_wc3movie.c,v 1.27 2002/11/28 10:21:08 petli Exp $
+ * $Id: demux_wc3movie.c,v 1.28 2002/12/08 21:43:52 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -367,8 +367,6 @@ static void demux_mve_send_headers(demux_plugin_t *this_gen) {
     buf->size = sizeof(this->wave);
     this->audio_fifo->put (this->audio_fifo, buf);
   }
-
-  xine_demux_control_headers_done (this->stream);
 }
 
 /* returns 1 if the MVE file was opened successfully, 0 otherwise */

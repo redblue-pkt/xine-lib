@@ -19,7 +19,7 @@
  *
  * RealAudio File Demuxer by Mike Melanson (melanson@pcisys.net)
  *
- * $Id: demux_realaudio.c,v 1.6 2002/11/28 10:21:07 petli Exp $
+ * $Id: demux_realaudio.c,v 1.7 2002/12/08 21:43:51 miguelfreitas Exp $
  *
  */
 
@@ -205,8 +205,6 @@ static void demux_ra_send_headers(demux_plugin_t *this_gen) {
     buf->size = sizeof(this->wave);
     this->audio_fifo->put (this->audio_fifo, buf);
   }
-
-  xine_demux_control_headers_done (this->stream);
 }
 
 static int demux_ra_seek (demux_plugin_t *this_gen,

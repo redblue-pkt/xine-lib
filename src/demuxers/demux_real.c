@@ -21,7 +21,7 @@
  * For more information regarding the Real file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_real.c,v 1.19 2002/12/06 23:40:26 guenter Exp $
+ * $Id: demux_real.c,v 1.20 2002/12/08 21:43:51 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -974,8 +974,6 @@ static void demux_real_send_headers(demux_plugin_t *this_gen) {
     _("demux_real: Real media file, running time: %d min, %d sec\n"),
     this->duration / 1000 / 60,
     this->duration / 1000 % 60);
-
-  xine_demux_control_headers_done (this->stream);
 }
 
 static int demux_real_seek (demux_plugin_t *this_gen,

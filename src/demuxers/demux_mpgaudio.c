@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpgaudio.c,v 1.83 2002/11/28 18:42:25 tmmm Exp $
+ * $Id: demux_mpgaudio.c,v 1.84 2002/12/08 21:43:51 miguelfreitas Exp $
  *
  * demultiplexer for mpeg audio (i.e. mp3) streams
  *
@@ -411,8 +411,6 @@ static void demux_mpgaudio_send_headers (demux_plugin_t *this_gen) {
       break;
     }
   }
-
-  xine_demux_control_headers_done (this->stream);
 }
 
 static int demux_mpgaudio_seek (demux_plugin_t *this_gen,

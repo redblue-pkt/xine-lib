@@ -19,7 +19,7 @@
  *
  * AIFF File Demuxer by Mike Melanson (melanson@pcisys.net)
  *
- * $Id: demux_aiff.c,v 1.18 2002/11/28 10:21:05 petli Exp $
+ * $Id: demux_aiff.c,v 1.19 2002/12/08 21:43:50 miguelfreitas Exp $
  *
  */
 
@@ -267,8 +267,6 @@ static void demux_aiff_send_headers(demux_plugin_t *this_gen) {
     buf->size = 0;
     this->audio_fifo->put (this->audio_fifo, buf);
   }
-
-  xine_demux_control_headers_done (this->stream);
 }
 
 static int demux_aiff_seek (demux_plugin_t *this_gen,

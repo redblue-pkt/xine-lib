@@ -63,7 +63,7 @@
  *     - if any bytes exceed 63, do not shift the bytes at all before
  *       transmitting them to the video decoder
  *
- * $Id: demux_idcin.c,v 1.29 2002/11/28 10:21:06 petli Exp $
+ * $Id: demux_idcin.c,v 1.30 2002/12/08 21:43:51 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -403,8 +403,6 @@ static void demux_idcin_send_headers(demux_plugin_t *this_gen) {
     buf->decoder_info[3] = this->audio_channels;
     this->audio_fifo->put (this->audio_fifo, buf);
   }
-
-  xine_demux_control_headers_done (this->stream);
 }
 
 static int demux_idcin_seek (demux_plugin_t *this_gen,

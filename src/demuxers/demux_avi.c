@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_avi.c,v 1.135 2002/12/06 01:01:15 miguelfreitas Exp $
+ * $Id: demux_avi.c,v 1.136 2002/12/08 21:43:50 miguelfreitas Exp $
  *
  * demultiplexer for avi streams
  *
@@ -1307,8 +1307,6 @@ static void demux_avi_send_headers (demux_plugin_t *this_gen) {
     }
 
   }
-
-  xine_demux_control_headers_done (this->stream);
 }
 
 static int demux_avi_seek (demux_plugin_t *this_gen,

@@ -19,7 +19,7 @@
  *
  * SND/AU File Demuxer by Mike Melanson (melanson@pcisys.net)
  *
- * $Id: demux_snd.c,v 1.19 2002/11/28 10:21:07 petli Exp $
+ * $Id: demux_snd.c,v 1.20 2002/12/08 21:43:52 miguelfreitas Exp $
  *
  */
 
@@ -250,8 +250,6 @@ static void demux_snd_send_headers(demux_plugin_t *this_gen) {
     buf->size = 0;
     this->audio_fifo->put (this->audio_fifo, buf);
   }
-
-  xine_demux_control_headers_done (this->stream);
 }
 
 static int demux_snd_seek (demux_plugin_t *this_gen,

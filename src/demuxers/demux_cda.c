@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_cda.c,v 1.35 2002/11/28 10:21:05 petli Exp $
+ * $Id: demux_cda.c,v 1.36 2002/12/08 21:43:50 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -141,8 +141,6 @@ static void demux_cda_send_headers(demux_plugin_t *this_gen) {
   this->stream->stream_info[XINE_STREAM_INFO_AUDIO_CHANNELS] = 2;
   this->stream->stream_info[XINE_STREAM_INFO_AUDIO_SAMPLERATE] = 44100;
   this->stream->stream_info[XINE_STREAM_INFO_AUDIO_BITS] = 16;
-
-  xine_demux_control_headers_done (this->stream);
 }
 
 /*
