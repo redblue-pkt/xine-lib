@@ -1,4 +1,5 @@
 xine-lib (1-xxx)
+  * Rewrote OpenGL output plugin.
   * Fixed segfault when seeking with the "xvmc" and "xxmc" plugins playing 
     files with IDCT / mocomp XvMC acceleration. 
   * polypaudio sound server support

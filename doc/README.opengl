@@ -1,10 +1,3 @@
-Please Note:
-
-The 'opengl' output plugin is still in alpha stage.
-Expect crashes and strange behaviour.
-Most times it seems to run fine, though.
-
-
 Startup
 -------
 
@@ -13,32 +6,38 @@ different color depth than you would prefer.  Choose an appropriate visual
 with 'glxinfo' and select it with '-V opengl --visual xyz' in this case.
 
 
-Known Problems
---------------
+Problems you might encounter
+----------------------------
 
-* Sometimes I only see a black screen and no image
-* Sometimes xine crashes when changing the stream or the position in the stream
+* Output is extremely slow
 
-  This seems to relate to some race conditions that are still present
-  in the current code. This will change in time.
+  Run 'glxinfo' and check the third output line saying 'direct rendering:'
+  If it doesn't say 'Yes', you are not running an accelerated OpenGL setup.
+  Check your installation.
+  Image_Pipeline based rendering is typically slower than 2D_Textures.
+  Note that OpenGL output is always slower than XVideo, and often faster
+  than X shared memory.
 
-  Jun. 25, 2002: I think this issue is resolved now.  If you still encounter
-  any problems, please let me know.  Otherwise I will remove this statement
-  in the future.
+* xine complains about a memory leak
 
-* There is a (small) memory leak
-
-  This is known and - unfortunately - cannot be resolved right now.
+  This is known and - unfortunately - cannot be solved without changing
+  the user interface code. This will happen at least for xine-ui in the
+  near future.
   Background: The output plugin does not get notified, when the XWindow
-  is destroyed. But even when it would be notified, this wouldn't help,
-  as the OpenGL context could only be destroyed by the render thread.
+  is destroyed, and the OpenGL context can only be destroyed while the
+  drawable is still accessible.
 
-* Expose events just display a black image when playback is paused.
 
-  This is known and cannot be resolved right now.
-  Background: The OpenGL context can only be used by the render thread and
-  not by the GUI thread. I tried to use a second context within the same
-  drawable, but this destabilized the plugin to an unusable state.
+Known issues
+------------
+
+* GL_BGRA (used on little endian machines, i.e. ix86) needs an extension
+  check. This has not been implemented yet.
+* Big endian machines have not been checked yet.
+* VO_CAP_UNSCALED_OVERLAY reduces performance a lot during the first few
+  frames.
+* Cropping is not yet implemented - this is done by video_out.c
+* XINE_GUI_SEND_WILL_DESTROY_DRAWABLE not yet sent by any GUI, thus untested
 
 
 Matthias Hopf <mat@mshopf.de>

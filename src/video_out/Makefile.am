@@ -112,9 +112,9 @@ xineplug_vo_out_xxmc_la_LIBADD = $(XXMC_LIB) $(XV_LIB) $(X_LIBS) -lXext $(XINE_L
 xineplug_vo_out_xxmc_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 xineplug_vo_out_opengl_la_SOURCES = yuv2rgb.c yuv2rgb_mmx.c yuv2rgb_mlib.c \
-	alphablend.c video_out_opengl.c
+	alphablend.c video_out_opengl.c $(X11OSD)
 xineplug_vo_out_opengl_la_LIBADD = $(MLIB_LIBS) $(OPENGL_LIBS) $(GLUT_LIBS) \
-	$(GLU_LIBS) $(X_LIBS) $(XINE_LIB)
+	$(GLU_LIBS) $(X_LIBS) -lXext $(XINE_LIB)
 xineplug_vo_out_opengl_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 xineplug_vo_out_syncfb_la_SOURCES = alphablend.c video_out_syncfb.c 
