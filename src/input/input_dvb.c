@@ -97,7 +97,7 @@ typedef struct {
 
   xine_t           *xine;
 
-  char             *mrls[2];
+  char             *mrls[5];
 
 } dvb_input_class_t;
 
@@ -123,7 +123,8 @@ typedef struct {
 
   osd_object_t       *osd;
   osd_object_t       *rec_osd;
-
+  osd_object_t	     *name_osd;
+  
   xine_event_queue_t *event_queue;
 
   /* scratch buffer for forward seeking */
@@ -131,6 +132,12 @@ typedef struct {
 
   /* simple vcr-like functionality */
   int                 record_fd;
+
+  /* centre cutout zoom */
+  int 		      zoom_ok;
+  /* display channel name */
+  int                 displaying;
+  int                 displaybydefault;
 } dvb_input_plugin_t;
 
 typedef struct {
@@ -370,6 +377,24 @@ static int tuner_set_channel (tuner_t *this,
   return 1; /* fixme: error handling */
 }
 
+static void show_channelname_osd (dvb_input_plugin_t *this)
+{
+ 
+	  if(this->displaying!=1){
+	  /* Display Channel Name on OSD */
+	      this->stream->osd_renderer->clear(this->name_osd);
+	      this->stream->osd_renderer->render_text (this->name_osd, 10, 10,
+					       this->channels[this->channel].name, OSD_TEXT3); 
+	      this->stream->osd_renderer->show_unscaled (this->name_osd, 0);
+	      this->displaying=1;
+	   }
+	   else{
+	      this->stream->osd_renderer->hide(this->name_osd,0);
+	      this->displaying=0;
+	   }
+}
+
+
 static void osd_show_channel (dvb_input_plugin_t *this) {
 
   int i, channel ;
@@ -381,15 +406,15 @@ static void osd_show_channel (dvb_input_plugin_t *this) {
   for (i=0; i<11; i++) {
 
     if ( (channel >= 0) && (channel < this->num_channels) )
-      this->stream->osd_renderer->render_text (this->osd, 10, 10+i*35,
+      this->stream->osd_renderer->render_text (this->osd, 110, 10+i*35,
 					     this->channels[channel].name,
 					     OSD_TEXT3);
     channel ++;
   }
 
-  this->stream->osd_renderer->line (this->osd,   5, 183, 390, 183, 10);
-  this->stream->osd_renderer->line (this->osd,   5, 183,   5, 219, 10);
-  this->stream->osd_renderer->line (this->osd,   5, 219, 390, 219, 10);
+  this->stream->osd_renderer->line (this->osd, 105, 183, 390, 183, 10);
+  this->stream->osd_renderer->line (this->osd, 105, 183, 105, 219, 10);
+  this->stream->osd_renderer->line (this->osd, 105, 219, 390, 219, 10);
   this->stream->osd_renderer->line (this->osd, 390, 183, 390, 219, 10);
 
   this->stream->osd_renderer->show (this->osd, 0);
@@ -401,6 +426,8 @@ static void switch_channel (dvb_input_plugin_t *this) {
   xine_event_t     event;
   xine_pids_data_t data;
   xine_ui_data_t   ui_data;
+
+  _x_demux_flush_engine(this->stream); 
 
   pthread_mutex_lock (&this->mutex);
   
@@ -441,6 +468,11 @@ static void switch_channel (dvb_input_plugin_t *this) {
   pthread_mutex_unlock (&this->mutex);
 
   this->stream->osd_renderer->hide (this->osd, 0);
+
+  if (this->displaying){
+	  show_channelname_osd (this); /* toggle off */
+	  show_channelname_osd (this); /* and back on again.. */
+  }
 }
 
 static void do_record (dvb_input_plugin_t *this) {
@@ -487,26 +519,26 @@ static void dvb_event_handler (dvb_input_plugin_t *this) {
 
     switch (event->type) {
 
-    case XINE_EVENT_INPUT_NEXT:
+    case XINE_EVENT_INPUT_DOWN:
       if (this->channel < (this->num_channels-1))
 	this->channel++;
       osd_show_channel (this);
       break;
 
-    case XINE_EVENT_INPUT_PREVIOUS:
+    case XINE_EVENT_INPUT_UP:
       if (this->channel>0)
 	this->channel--;
       osd_show_channel (this);
       break;
 
-    case XINE_EVENT_INPUT_DOWN:
+    case XINE_EVENT_INPUT_NEXT:
       if (this->channel < (this->num_channels-1)) {
 	this->channel++;
 	switch_channel (this);
       }
       break;
 
-    case XINE_EVENT_INPUT_UP:
+    case XINE_EVENT_INPUT_PREVIOUS:
       if (this->channel>0) {
 	this->channel--;
 	switch_channel (this);
@@ -524,9 +556,27 @@ static void dvb_event_handler (dvb_input_plugin_t *this) {
     case XINE_EVENT_INPUT_MENU2:
       do_record (this);
       break;
+    case XINE_EVENT_INPUT_MENU3:
+      /* zoom for cropped 4:3 in a 16:9 window */
+      if (!this->zoom_ok) {
+       this->zoom_ok = 1;
+       this->stream->video_out->set_property (this->stream->video_out, VO_PROP_ZOOM_X, 133);
+       this->stream->video_out->set_property (this->stream->video_out, VO_PROP_ZOOM_Y, 133);
+      } else {
+       this->zoom_ok=0;
+       this->stream->video_out->set_property (this->stream->video_out, VO_PROP_ZOOM_X, 100);
+       this->stream->video_out->set_property (this->stream->video_out, VO_PROP_ZOOM_Y, 100);
+      }
+      break;
+
+    case XINE_EVENT_INPUT_MENU7:
+      show_channelname_osd (this);
+      break;
+
+
 
 #if 0
-    default:
+   default:
       printf ("input_dvb: got an event, type 0x%08x\n", event->type);
 #endif
     }
@@ -619,7 +669,7 @@ static off_t dvb_plugin_get_length (input_plugin_t *this_gen) {
 }
 
 static uint32_t dvb_plugin_get_capabilities (input_plugin_t *this_gen) {
-  return 0; /* where did INPUT_CAP_AUTOPLAY go ?!? */
+  return INPUT_CAP_CHAPTERS; /* where did INPUT_CAP_AUTOPLAY go ?!? */
 }
 
 static uint32_t dvb_plugin_get_blocksize (input_plugin_t *this_gen) {
@@ -678,6 +728,143 @@ static int find_param(const Param *list, const char *name)
   return list->value;;
 }
 
+static int extract_channel_from_string(channel_t * channel,char * str,fe_type_t fe_type)
+{
+	/*
+		try to extract channel data from a string in the following format
+		(DVBS) QPSK: <channel name>:<frequency>:<polarisation>:<sat_no>:<sym_rate>:<vpid>:<apid>
+		(DVBC) QAM: <channel name>:<frequency>:<inversion>:<sym_rate>:<fec>:<qam>:<vpid>:<apid>
+		(DVBT) OFDM: <channel name>:<frequency>:<inversion>:
+						<bw>:<fec_hp>:<fec_lp>:<qam>:
+						<transmissionm>:<guardlist>:<hierarchinfo>:<vpid>:<apid>
+		
+		<channel name> = any string not containing ':'
+		<frequency>    = unsigned long
+		<polarisation> = 'v' or 'h'
+		<sat_no>       = unsigned long, usually 0 :D
+		<sym_rate>     = symbol rate in MSyms/sec
+		
+		
+		<inversion>    = INVERSION_ON | INVERSION_OFF | INVERSION_AUTO
+		<fec>          = FEC_1_2, FEC_2_3, FEC_3_4 .... FEC_AUTO ... FEC_NONE
+		<qam>          = QPSK, QAM_128, QAM_16 ...
+
+		<bw>           = BANDWIDTH_6_MHZ, BANDWIDTH_7_MHZ, BANDWIDTH_8_MHZ
+		<fec_hp>       = <fec>
+		<fec_lp>       = <fec>
+		<transmissionm> = TRANSMISSION_MODE_2K, TRANSMISSION_MODE_8K
+		<vpid>         = video program id
+		<apid>         = audio program id
+
+	*/
+	unsigned long freq;
+	char *field, *tmp;
+
+	tmp = str;
+	
+	/* find the channel name */
+	if(!(field = strsep(&tmp,":")))return -1;
+	channel->name = strdup(field);
+
+	/* find the frequency */
+	if(!(field = strsep(&tmp, ":")))return -1;
+	freq = strtoul(field,NULL,0);
+
+	switch(fe_type)
+	{
+		case FE_QPSK:
+			if(freq > 11700)
+			{
+				channel->front_param.frequency = (freq - 10600)*1000;
+				channel->tone = 1;
+			} else {
+				channel->front_param.frequency = (freq - 9750)*1000;
+				channel->tone = 0;
+			}
+			channel->front_param.inversion = INVERSION_OFF;
+	  
+			/* find out the polarisation */ 
+			if(!(field = strsep(&tmp, ":")))return -1;
+			channel->pol = (field[0] == 'h' ? 0 : 1);
+
+			/* satellite number */
+			if(!(field = strsep(&tmp, ":")))return -1;
+			channel->sat_no = strtoul(field, NULL, 0);
+
+			/* symbol rate */
+			if(!(field = strsep(&tmp, ":")))return -1;
+			channel->front_param.u.qpsk.symbol_rate = strtoul(field, NULL, 0) * 1000;
+
+			channel->front_param.u.qpsk.fec_inner = FEC_AUTO;
+		break;
+		case FE_QAM:
+			channel->front_param.frequency = freq;
+			
+			/* find out the inversion */
+			if(!(field = strsep(&tmp, ":")))return -1;
+			channel->front_param.inversion = find_param(inversion_list, field);
+
+			/* find out the symbol rate */
+			if(!(field = strsep(&tmp, ":")))return -1;
+			channel->front_param.u.qam.symbol_rate = strtoul(field, NULL, 0);
+
+			/* find out the fec */
+			if(!(field = strsep(&tmp, ":")))return -1;
+			channel->front_param.u.qam.fec_inner = find_param(fec_list, field);
+
+			/* find out the qam */
+			if(!(field = strsep(&tmp, ":")))return -1;
+			channel->front_param.u.qam.modulation = find_param(qam_list, field);
+		break;
+		case FE_OFDM:
+			channel->front_param.frequency = freq;
+
+			/* find out the inversion */
+			if(!(field = strsep(&tmp, ":")))return -1;
+			channel->front_param.inversion = find_param(inversion_list, field);
+
+			/* find out the bandwidth */
+			if(!(field = strsep(&tmp, ":")))return -1;
+			channel->front_param.u.ofdm.bandwidth = find_param(bw_list, field);
+
+			/* find out the fec_hp */
+			if(!(field = strsep(&tmp, ":")))return -1;
+			channel->front_param.u.ofdm.code_rate_HP = find_param(fec_list, field);
+
+			/* find out the fec_lp */
+			if(!(field = strsep(&tmp, ":")))return -1;
+			channel->front_param.u.ofdm.code_rate_LP = find_param(fec_list, field);
+
+			/* find out the qam */
+			if(!(field = strsep(&tmp, ":")))return -1;
+			channel->front_param.u.ofdm.constellation = find_param(qam_list, field);
+
+			/* find out the transmission mode */
+			if(!(field = strsep(&tmp, ":")))return -1;
+			channel->front_param.u.ofdm.transmission_mode = find_param(transmissionmode_list, field);
+
+			/* guard list */
+			if(!(field = strsep(&tmp, ":")))return -1;
+			channel->front_param.u.ofdm.guard_interval = find_param(guard_list, field);
+
+			if(!(field = strsep(&tmp, ":")))return -1;
+			channel->front_param.u.ofdm.hierarchy_information = find_param(hierarchy_list, field);
+		break;
+	}
+
+	if(!(field = strsep(&tmp, ":")))return -1;
+	channel->vpid = strtoul(field, NULL, 0);
+
+#ifdef FILTER_RADIO_STREAMS
+	if(channel->vpid == 0)return -1; /* only tv channels for now */
+#endif
+
+	if(!(field = strsep(&tmp, ":")))return -1;
+	channel->apid = strtoul(field, NULL, 0);
+
+	return 0;
+}
+
 static channel_t *load_channels (xine_t *xine, int *num_ch, fe_type_t fe_type) {
 
   FILE      *f;
@@ -686,11 +873,11 @@ static channel_t *load_channels (xine_t *xine, int *num_ch, fe_type_t fe_type) {
   channel_t *channels;
   int        num_channels;
 
-  snprintf (filename, BUFSIZE, "%s/.xine/channels.conf", xine_get_homedir());
+  snprintf(filename, BUFSIZE, "%s/.xine/channels.conf", xine_get_homedir());
 
-  f = fopen (filename, "rb");
+  f = fopen(filename, "rb");
   if (!f) {
-    xprintf (xine, XINE_VERBOSITY_LOG, _("input_dvb: failed to open dvb channel file '%s'\n"), filename);
+    xprintf(xine, XINE_VERBOSITY_LOG, _("input_dvb: failed to open dvb channel file '%s'\n"), filename);
     return NULL;
   }
 
@@ -702,8 +889,13 @@ static channel_t *load_channels (xine_t *xine, int *num_ch, fe_type_t fe_type) {
     num_channels++;
   }
   fclose (f);
-  
-  xprintf (xine, XINE_VERBOSITY_DEBUG, "input_dvb: %d channels found.\n", num_channels);
+
+  if(num_channels > 0) 
+    xprintf (xine, XINE_VERBOSITY_DEBUG, "input_dvb: expecting %d channels...\n", num_channels);
+  else {
+    xprintf (xine, XINE_VERBOSITY_DEBUG, "input_dvb: no channels found in the file: giving up.\n");
+    return NULL;
+  }
 
   channels = malloc (sizeof (channel_t) * num_channels);
 
@@ -714,165 +906,48 @@ static channel_t *load_channels (xine_t *xine, int *num_ch, fe_type_t fe_type) {
   f = fopen (filename, "rb");
   num_channels = 0;
   while ( fgets (str, BUFSIZE, f)) {
-
-    unsigned long freq;
-    char *field, *tmp;
-
-    tmp = str;
-    if (!(field = strsep(&tmp, ":")))
-	continue;
-
-    channels[num_channels].name = strdup(field);
-
-    if (!(field = strsep(&tmp, ":")))
-	continue;
-
-    freq = strtoul(field, NULL, 0);
-
-    switch (fe_type)
-    {
-    case FE_QPSK:
-
-      if (freq > 11700) {
-        channels[num_channels].front_param.frequency = (freq - 10600)*1000;
-        channels[num_channels].tone = 1;
-      } else {
-        channels[num_channels].front_param.frequency = (freq - 9750)*1000;
-        channels[num_channels].tone = 0;
-      }
-
-      channels[num_channels].front_param.inversion = INVERSION_OFF;
-      
-      if (!(field = strsep(&tmp, ":")))
-	break;
-
-      channels[num_channels].pol = (field[0] == 'h' ? 0 : 1);
-      
-      if (!(field = strsep(&tmp, ":")))
-	break;
-      
-      channels[num_channels].sat_no = strtoul(field, NULL, 0);
-      
-      if (!(field = strsep(&tmp, ":")))
-	break;
-      
-      channels[num_channels].front_param.u.qpsk.symbol_rate =
-	strtoul(field, NULL, 0) * 1000;
-
-      channels[num_channels].front_param.u.qpsk.fec_inner = FEC_AUTO;
-
-      break;
-
-    case FE_QAM:
-
-      channels[num_channels].front_param.frequency = freq;
-
-      if (!(field = strsep(&tmp, ":")))
-	break;
-
-      channels[num_channels].front_param.inversion =
-	find_param(inversion_list, field);
-
-      if (!(field = strsep(&tmp, ":")))
-	break;
-
-      channels[num_channels].front_param.u.qam.symbol_rate =
-	strtoul(field, NULL, 0);
-
-      if (!(field = strsep(&tmp, ":")))
-	break;
-
-      channels[num_channels].front_param.u.qam.fec_inner =
-	find_param(fec_list, field);
-
-      if (!(field = strsep(&tmp, ":")))
-	break;
-
-      channels[num_channels].front_param.u.qam.modulation =
-	find_param(qam_list, field);
-
-      break;
-
-    case FE_OFDM:
-
-      channels[num_channels].front_param.frequency = freq;
-
-      if (!(field = strsep(&tmp, ":")))
-	break;
-
-      channels[num_channels].front_param.inversion =
-	find_param(inversion_list, field);
-
-      if (!(field = strsep(&tmp, ":")))
-	break;
-
-      channels[num_channels].front_param.u.ofdm.bandwidth =
-	find_param(bw_list, field);
-
-      if (!(field = strsep(&tmp, ":")))
-	break;
-
-      channels[num_channels].front_param.u.ofdm.code_rate_HP =
-	find_param(fec_list, field);
-
-      if (!(field = strsep(&tmp, ":")))
-	break;
-
-      channels[num_channels].front_param.u.ofdm.code_rate_LP =
-	find_param(fec_list, field);
-
-      if (!(field = strsep(&tmp, ":")))
-	break;
-
-      channels[num_channels].front_param.u.ofdm.constellation =
-	find_param(qam_list, field);
-
-
-      if (!(field = strsep(&tmp, ":")))
-	break;
-
-      channels[num_channels].front_param.u.ofdm.transmission_mode =
-	find_param(transmissionmode_list, field);
-
-      if (!(field = strsep(&tmp, ":")))
-	break;
-
-      channels[num_channels].front_param.u.ofdm.guard_interval =
-	find_param(guard_list, field);
-
-      if (!(field = strsep(&tmp, ":")))
-	break;
-
-      channels[num_channels].front_param.u.ofdm.hierarchy_information =
-	find_param(hierarchy_list, field);
-
-      break;
-
-    }
-
-    if (!(field = strsep(&tmp, ":")))
-	continue;
-
-    channels[num_channels].vpid = strtoul(field, NULL, 0);
-
-#ifdef FILTER_RADIO_STREAMS
-    if (channels[num_channels].vpid == 0)
-      continue; /* only tv channels for now */
-#endif
-
-    if (!(field = strsep(&tmp, ":")))
-	continue;
-
-    channels[num_channels].apid = strtoul(field, NULL, 0);
-
-    lprintf ("dvb channel %s loaded\n", channels[num_channels].name);
+    if(extract_channel_from_string(&(channels[num_channels]),str,fe_type) < 0)continue;
 
     num_channels++;
+  }
+
+  if(num_channels > 0) 
+    xprintf (xine, XINE_VERBOSITY_DEBUG, "input_dvb: found %d channels...\n", num_channels);
+  else {
+    xprintf (xine, XINE_VERBOSITY_DEBUG, "input_dvb: no channels found in the file: giving up.\n");
+    free(channels);
+    return NULL;
   }
 
   *num_ch = num_channels;
   return channels;
 }
+
+/* allow center cutout zoom for dvb content */
+static void
+dvb_zoom_cb (input_plugin_t * this_gen, xine_cfg_entry_t * cfg)
+{
+  dvb_input_plugin_t *this = (dvb_input_plugin_t *) this_gen;
+
+  this->zoom_ok = cfg->num_value;
+
+  if (!this)
+    return;
+
+  if (this->zoom_ok)
+    {
+      this->stream->video_out->set_property (this->stream->video_out, VO_PROP_ZOOM_X, 133);
+      this->stream->video_out->set_property (this->stream->video_out, VO_PROP_ZOOM_Y, 133);
+    }
+  else
+    {
+      this->stream->video_out->set_property (this->stream->video_out, VO_PROP_ZOOM_X, 100);
+      this->stream->video_out->set_property (this->stream->video_out, VO_PROP_ZOOM_Y, 100);
+    }
+}
+
+
+
 
 static int dvb_plugin_open (input_plugin_t *this_gen) {
   dvb_input_plugin_t *this = (dvb_input_plugin_t *) this_gen;
@@ -880,24 +955,188 @@ static int dvb_plugin_open (input_plugin_t *this_gen) {
   channel_t          *channels;
   int                 num_channels;
   char                str[256];
-  
+  char               *ptr;
+  xine_cfg_entry_t zoomdvb;
+  xine_cfg_entry_t displaychan;
+
+	config_values_t *config = this->stream->xine->config;
+
   if ( !(tuner = tuner_init(this->class->xine)) ) {
     xprintf (this->class->xine, XINE_VERBOSITY_LOG, _("input_dvb: cannot open dvb device\n"));
     return 0;
   }
 
-  if ( !(channels = load_channels(this->class->xine, &num_channels, tuner->feinfo.type)) ) {
-    tuner_dispose (tuner);
-    return 0;
-  }
+	if(strncasecmp(this->mrl,"dvb://",6) == 0)
+	{
+		/*
+		 * This is either dvb://<number>
+		 * or the "magic" dvb://<channel name>
+		 * We load the channels from ~/.xine/channels.conf
+		 * and assume that its format is valid for our tuner type
+		 */
 
-  this->tuner    = tuner;
-  this->channels = channels;
-  this->num_channels = num_channels;
+		if(!(channels = load_channels(this->class->xine,&num_channels,tuner->feinfo.type)))
+		{
+			/* failed to load the channels */
+			tuner_dispose(tuner);
+			return 0;
+		}
 
-  if ( sscanf (this->mrl, "dvb:/%d", &this->channel) != 1)
-    if ( sscanf (this->mrl, "dvb://%d", &this->channel) != 1)
-      this->channel = 0;
+		if(sscanf(this->mrl,"dvb://%d",&this->channel) == 1)
+		{
+			/* dvb://<number> format: load channels from ~/.xine/channels.conf */
+			if(this->channel >= num_channels)
+			{
+				xprintf (this->class->xine, XINE_VERBOSITY_LOG, 
+					_("input_dvb: channel %d out of range, defaulting to 0\n"),this->channel);
+				this->channel = 0;
+			}
+		} else {
+			/* dvb://<channel name> format ? */
+			char * channame = this->mrl + 6;
+			if(*channame)
+			{
+				/* try to find the specified channel */
+
+				xprintf (this->class->xine, XINE_VERBOSITY_LOG, 
+					_("input_dvb: searching for channel %s\n"),channame);
+
+				int idx = 0;
+				while(idx < num_channels)
+				{
+					if(strcasecmp(channels[idx].name,channame) == 0)break;
+					idx++;
+				}
+
+				if(idx < num_channels)
+				{
+					this->channel = idx;
+				} else {
+					/*
+					 * try a partial match too
+					 * be smart and compare starting from the first char, then from 
+					 * the second etc..
+					 * Yes, this is expensive, but it happens really often
+					 * that the channels have really ugly names, sometimes prefixed
+					 * by numbers...
+					 */
+
+					xprintf (this->class->xine, XINE_VERBOSITY_LOG, 
+							_("input_dvb: exact match for %s not found: trying partial matches\n"),channame);
+
+					int chanlen = strlen(channame);
+					int offset = 0;
+					do {
+						idx = 0;
+						while(idx < num_channels)
+						{
+							if(strlen(channels[idx].name) > offset)
+							{
+								if(strncasecmp(channels[idx].name + offset,channame,chanlen) == 0)
+								{
+									xprintf (this->class->xine, XINE_VERBOSITY_LOG, 
+										_("input_dvb: found matching channel %s\n"),channels[idx].name);
+									break;
+								}
+							}
+							idx++;
+						}
+						offset++;
+						printf("%d,%d,%d\n",offset,idx,num_channels);
+					} while((offset < 6) && (idx == num_channels));
+					
+					if(idx < num_channels)
+					{
+						this->channel = idx;
+					} else {
+						xprintf (this->class->xine, XINE_VERBOSITY_LOG, 
+							_("input_dvb: channel %s not found in channels.conf, defaulting to channel 0\n"),channame);
+						this->channel = 0;
+					}
+				}
+			} else {
+				/* just default to channel 0 */
+				xprintf (this->class->xine, XINE_VERBOSITY_LOG, 
+					_("input_dvb: invalid channel specification, defaulting to channel 0\n"));
+				this->channel = 0;
+			}
+		}
+
+	} else if(strncasecmp(this->mrl,"dvbs://",7) == 0)
+	{
+		/*
+		 * This is dvbs://<channel name>:<qpsk tuning parameters>
+		 */
+		if(tuner->feinfo.type != FE_QPSK)
+		{
+			xprintf (this->class->xine, XINE_VERBOSITY_LOG, 
+				_("input_dvb: dvbs mrl specified but the tuner doesn't appear to be QPSK (DVB-S)\n"));
+			tuner_dispose(tuner);
+			return 0;
+		}
+		ptr = this->mrl;
+		ptr += 7;
+		channels = malloc(sizeof(channel_t));
+		if(extract_channel_from_string(channels,ptr,tuner->feinfo.type) < 0)
+		{
+			free(channels);
+			tuner_dispose(tuner);
+			return 0;
+		}
+		this->channel = 0;
+	} else if(strncasecmp(this->mrl,"dvbt://",7) == 0)
+	{
+		/*
+		 * This is dvbt://<channel name>:<ofdm tuning parameters>
+		 */
+		if(tuner->feinfo.type != FE_OFDM)
+		{
+			xprintf (this->class->xine, XINE_VERBOSITY_LOG, 
+				_("input_dvb: dvbt mrl specified but the tuner doesn't appear to be OFDM (DVB-T)\n"));
+			tuner_dispose(tuner);
+			return 0;
+		}
+		ptr = this->mrl;
+		ptr += 7;
+		channels = malloc(sizeof(channel_t));
+		if(extract_channel_from_string(channels,ptr,tuner->feinfo.type) < 0)
+		{
+			free(channels);
+			tuner_dispose(tuner);
+			return 0;
+		}
+		this->channel = 0;
+	} else if(strncasecmp(this->mrl,"dvbc://",7) == 0)
+	{
+		/*
+		 * This is dvbc://<channel name>:<qam tuning parameters>
+		 */
+		if(tuner->feinfo.type != FE_QAM)
+		{
+			xprintf (this->class->xine, XINE_VERBOSITY_LOG, 
+				_("input_dvb: dvbc mrl specified but the tuner doesn't appear to be QAM (DVB-C)\n"));
+			tuner_dispose(tuner);
+			return 0;
+		}
+		ptr = this->mrl;
+		ptr += 7;
+		channels = malloc(sizeof(channel_t));
+		if(extract_channel_from_string(channels,ptr,tuner->feinfo.type) < 0)
+		{
+			free(channels);
+			tuner_dispose(tuner);
+			return 0;
+		}
+		this->channel = 0;
+	} else {
+		/* not our mrl */
+		tuner_dispose(tuner);
+		return 0;
+	}
+
+	this->tuner    = tuner;
+	this->channels = channels;
+	this->num_channels = num_channels;
 
   if (!tuner_set_channel (this->tuner, &this->channels[this->channel])) {
     xprintf (this->class->xine, XINE_VERBOSITY_LOG, _("input_dvb: tuner_set_channel failed\n"));
@@ -945,6 +1184,48 @@ static int dvb_plugin_open (input_plugin_t *this_gen) {
   this->stream->osd_renderer->set_text_palette (this->rec_osd,
 						TEXTPALETTE_WHITE_NONE_TRANSLUCID,
 						OSD_TEXT3);
+  /* 
+   * this osd is for displaying currently shown channel name 
+   */
+   
+  this->name_osd = this->stream->osd_renderer->new_object (this->stream->osd_renderer,
+  							 301, 61);
+  this->stream->osd_renderer->set_position (this->name_osd, 10, 10);
+  this->stream->osd_renderer->set_font (this->name_osd, "cetus", 40);
+  this->stream->osd_renderer->set_encoding (this->name_osd, NULL);
+  this->stream->osd_renderer->set_text_palette (this->name_osd,
+  						XINE_TEXTPALETTE_YELLOW_BLACK_TRANSPARENT,
+  						OSD_TEXT3);
+
+/* zoom for 4:3 in a 16:9 window */
+  config->register_bool (config, "input.dvbzoom",
+			 0,
+			 "Enable DVB 'center cutout' (zoom)?",
+			 "This "
+			 "will allow fullscreen "
+			 "playback of 4:3 content "
+			 "transmitted in a 16:9 frame",
+			 10, &dvb_zoom_cb, (void *) this);
+
+  if (xine_config_lookup_entry (this->stream->xine,
+				"input.dvbzoom", &zoomdvb))
+                         dvb_zoom_cb ((input_plugin_t *) this, &zoomdvb);
+
+/* dislay channel name in top left of display */ 
+  config->register_bool (config, "input.dvbdisplaychan",
+			 0,
+			 "Enable DVB channel name by default?",
+			 "This "
+			 "will display current "
+			 "channel name on OSD "
+			 "MENU7 button will disable",
+			 10, NULL, NULL);
+
+  if (xine_config_lookup_entry (this->stream->xine,
+				"input.dvbdisplaychan", &displaychan))
+	if(displaychan.num_value)
+	      show_channelname_osd (this);
+
 
   /*
    * init metadata (channel title)
@@ -965,8 +1246,11 @@ static input_plugin_t *dvb_class_get_instance (input_class_t *class_gen,
   dvb_input_plugin_t *this;
   char               *mrl = (char *) data;
 
-  if (strncasecmp (mrl, "dvb:/",5))
-    return NULL;
+  if(strncasecmp (mrl, "dvb://",6))
+    if(strncasecmp(mrl,"dvbs://",7))
+      if(strncasecmp(mrl,"dvbt://",7))
+        if(strncasecmp(mrl,"dvbc://",7))
+          return NULL;
 
   this = (dvb_input_plugin_t *) xine_xmalloc (sizeof(dvb_input_plugin_t));
 
@@ -1043,7 +1327,10 @@ static void *init_class (xine_t *xine, void *data) {
   this->input_class.eject_media        = dvb_class_eject_media;
 
   this->mrls[0] = "dvb://";
-  this->mrls[1] = 0;
+  this->mrls[1] = "dvbs://";
+  this->mrls[2] = "dvbc://";
+  this->mrls[3] = "dvbt://";
+  this->mrls[4] = 0;
 
   lprintf ("init class succeeded\n");
 

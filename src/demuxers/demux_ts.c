@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ts.c,v 1.100 2004/01/27 00:37:30 miguelfreitas Exp $
+ * $Id: demux_ts.c,v 1.101 2004/05/09 22:34:19 miguelfreitas Exp $
  *
  * Demultiplexer for MPEG2 Transport Streams.
  *
@@ -1955,7 +1955,19 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen,
       break;
 
     /* accept dvb streams */
+    /*
+     * Also handle the special dvbs,dvbt and dvbc mrl formats:
+     * the content is exactly the same but the input plugin
+     * uses a different tuning algorithm [Pragma]
+     */
+
     if (!strncasecmp (mrl, "dvb://", 6))
+      break;
+    if (!strncasecmp (mrl, "dvbs://", 7))
+      break;
+    if (!strncasecmp (mrl, "dvbc://", 7))
+      break;
+    if (!strncasecmp (mrl, "dvbt://", 7))
       break;
 
     return NULL;

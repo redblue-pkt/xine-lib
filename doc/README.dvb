@@ -76,11 +76,21 @@ this writing). then simply start something like
 
 $ gxine dvb://
 
-you should be able to zap around using the NumPad-8 / NumPad-2 keys.
+you should be able to zap around using the NumPad-9 / NumPad-3 keys, 
+or using the next/previous chapter buttons in your gui.
 
-An OSD menu is available too. Press NumPad-9 / NumPad-3 to scroll 
+An OSD menu is available too. Press NumPad-8 / NumPad-2 to scroll 
 through the channels, then press NumPad-Enter to switch to the channel
 you have selected.
+
+You can use MENU3 (F2 in xine) to zoom into the centre of a videostream.
+This will allow you to view 4:3 content that has been embedded into a 
+16:9 stream in fullscreen (no more black borders).  Press the key again
+to return to normal viewing.  There is also an option in the xine
+preferences to zoom automatically when using xine to view DVB.
+
+MENU7 (F6 in xine) will toggle viewing of the current channel name on the
+OSD.
 
 HINT: if audio or video is stuttering, pause (space key) shortly
 to give xine a chance to fill up it's buffers.
@@ -90,9 +100,10 @@ recording digital television
 ----------------------------
 
 there is a very simple vcr-like feature built into the xine engine. just press
-MENU2 (that is F2 in gxine for example) to start/stop recording the currently
-displayed program to your local disc. a small osd in the upper left corner of
-your screen will tell you the file name the recorded stream is written to.
+MENU2 (that is F2 in gxine, or F1 in xine for example) to start/stop recording 
+the currently displayed program to your local disc. a small osd in the upper 
+left corner of your screen will tell you the file name the recorded stream is 
+written to.
 
 Have fun.
 
