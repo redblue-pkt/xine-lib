@@ -24,7 +24,7 @@
  * linear PCM "decoder" (which in turn sends them directly to the audio
  * output target; this is a really fancy CD-playing architecture).
  *
- * $Id: demux_cdda.c,v 1.10 2003/07/25 21:02:05 miguelfreitas Exp $
+ * $Id: demux_cdda.c,v 1.11 2003/08/10 16:11:05 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -71,9 +71,12 @@ typedef struct {
 static int demux_cdda_send_chunk (demux_plugin_t *this_gen) {
   demux_cdda_t *this = (demux_cdda_t *) this_gen;
   buf_element_t *buf = NULL;
+  uint32_t blocksize;
 
+  blocksize = this->input->get_blocksize(this->input);
+  if (!blocksize) blocksize = 2352;
   buf = this->input->read_block(this->input, this->audio_fifo,
-    this->input->get_blocksize(this->input));
+    blocksize);
   if (!buf) {
     this->status = DEMUX_FINISHED;
     return this->status;
@@ -108,7 +111,7 @@ static void demux_cdda_send_headers(demux_plugin_t *this_gen) {
   this->status = DEMUX_OK;
 
   /* load stream information */
-  this->stream->stream_info[XINE_STREAM_INFO_SEEKABLE] = 1;
+  this->stream->stream_info[XINE_STREAM_INFO_SEEKABLE] = INPUT_IS_SEEKABLE(this->input);
   this->stream->stream_info[XINE_STREAM_INFO_HAS_VIDEO] = 0;
   this->stream->stream_info[XINE_STREAM_INFO_HAS_AUDIO] = 1;
   this->stream->stream_info[XINE_STREAM_INFO_AUDIO_CHANNELS] = 2;
@@ -181,12 +184,6 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
 
   demux_cdda_t   *this;
 
-  if (!INPUT_IS_SEEKABLE(input)) {
-    xprintf(stream->xine, XINE_VERBOSITY_DEBUG,
-      _("input not seekable, can not handle!\n"));
-    return NULL;
-  }
-
   this         = xine_xmalloc (sizeof (demux_cdda_t));
   this->stream = stream;
   this->input  = input;
@@ -208,13 +205,15 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   switch (stream->content_detection_method) {
 
   case METHOD_BY_CONTENT:
-  case METHOD_EXPLICIT:
   case METHOD_BY_EXTENSION:
     if (strncasecmp (input->get_mrl (input), "cdda:", 5)) {
       free (this);
       return NULL;
     }
 
+  break;
+
+  case METHOD_EXPLICIT:
   break;
 
   default:

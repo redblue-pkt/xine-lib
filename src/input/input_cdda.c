@@ -20,7 +20,7 @@
  * Compact Disc Digital Audio (CDDA) Input Plugin 
  *   by Mike Melanson (melanson@pcisys.net)
  *
- * $Id: input_cdda.c,v 1.30 2003/06/09 09:55:20 tchamp Exp $
+ * $Id: input_cdda.c,v 1.31 2003/08/10 16:11:05 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -2161,7 +2161,7 @@ static buf_element_t *cdda_plugin_read_block (input_plugin_t *this_gen, fifo_buf
   if (nlen != CD_RAW_FRAME_SIZE)
     return NULL;
 
-  if (this->current_frame >= this->last_frame)
+  if (this->current_frame > this->last_frame)
     return NULL;
 
   /* populate frame cache */
