@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ts.c,v 1.113 2004/12/10 12:42:02 miguelfreitas Exp $
+ * $Id: demux_ts.c,v 1.114 2004/12/18 19:56:57 mlampard Exp $
  *
  * Demultiplexer for MPEG2 Transport Streams.
  *
@@ -1793,6 +1793,9 @@ static void demux_ts_event_handler (demux_ts_t *this) {
       this->audioPid    = INVALID_PID;
       this->media_num   = 0;
       this->send_newpts = 1;
+      this->spu_pid     = INVALID_PID;
+      this->spu_media   = 0;
+      this->no_spu_langs= 0;
       _x_demux_control_start (this->stream);
       break;
       
