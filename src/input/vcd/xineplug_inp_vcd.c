@@ -1,5 +1,5 @@
 /*
-  $Id: xineplug_inp_vcd.c,v 1.23 2004/07/20 00:50:11 rockyb Exp $
+  $Id: xineplug_inp_vcd.c,v 1.24 2004/07/22 14:12:20 mroi Exp $
  
   Copyright (C) 2002, 2003, 2004 Rocky Bernstein <rocky@panix.com>
   
@@ -47,7 +47,7 @@
 
 #define SHORT_PLUGIN_NAME "VCD"
 #define MRL_PREFIX "vcd://"
-#define MRL_PREFIX_LEN strlen(MRL_PREFIX)
+#define MRL_PREFIX_LEN (sizeof(MRL_PREFIX) - 1)
 #define MAX_DEVICE_LEN 1024
 
 #define xine_config_entry_t xine_cfg_entry_t
@@ -290,7 +290,7 @@ static bool
 vcd_build_mrl_list(vcd_input_class_t *class, char *vcd_device)
 {
 
-  char mrl[strlen(MRL_PREFIX)+MAX_DEVICE_LEN+strlen("@E")+10];
+  char mrl[MRL_PREFIX_LEN+MAX_DEVICE_LEN+(sizeof("@E")-1)+10];
   vcdplayer_input_t *player;
   unsigned int n, i=0;
   unsigned int num_entries;
