@@ -546,7 +546,7 @@ static int config_flags = -1;
   if (config_flags & MM_ACCEL_X86_MMX)
     return 1;
   return 0;
-#elif
+#else
   return 0;
 #endif
 }
