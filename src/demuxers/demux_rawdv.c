@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_rawdv.c,v 1.24 2005/02/06 15:26:18 tmattern Exp $
+ * $Id: demux_rawdv.c,v 1.25 2005/03/09 22:31:17 tmattern Exp $
  *
  * demultiplexer for raw dv streams
  */
@@ -444,7 +444,7 @@ static void *init_plugin (xine_t *xine, void *data) {
  * exported plugin catalog entry
  */
 demuxer_info_t demux_info_raw_dv = {
-  0                       /* priority */
+  1                       /* priority */
 };
 
 plugin_info_t xine_plugin_info[] = {
