@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xshm.c,v 1.127 2004/03/07 13:27:10 tmattern Exp $
+ * $Id: video_out_xshm.c,v 1.128 2004/04/10 03:34:37 miguelfreitas Exp $
  * 
  * video_out_xshm.c, X11 shared memory extension interface for xine
  *
@@ -878,7 +878,7 @@ static int xshm_gui_data_exchange (vo_driver_t *this_gen,
     if (this->cur_frame) {
       XExposeEvent * xev = (XExposeEvent *) data;
       
-      if (xev->count == 0) {
+      if (xev && xev->count == 0) {
 	int i;
 	
 	XLockDisplay (this->display);
