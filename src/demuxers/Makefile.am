@@ -46,7 +46,8 @@ lib_LTLIBRARIES = $(ogg_module) $(asf_module) $(mng_module) $(image_module) \
 	xineplug_dmx_slave.la \
 	xineplug_dmx_nsv.la \
 	xineplug_dmx_matroska.la \
-	xineplug_dmx_iff.la
+	xineplug_dmx_iff.la \
+	xineplug_dmx_flv.la 
 
 xineplug_dmx_ogg_la_SOURCES = demux_ogg.c
 xineplug_dmx_ogg_la_LIBADD = $(OGG_LIBS) $(VORBIS_LIBS) $(SPEEX_LIBS) $(THEORA_LIBS) $(XINE_LIB)
@@ -147,6 +148,10 @@ xineplug_dmx_matroska_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 xineplug_dmx_iff_la_SOURCES = demux_iff.c
 xineplug_dmx_iff_la_LIBADD = $(XINE_LIB)
 xineplug_dmx_iff_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
+
+xineplug_dmx_flv_la_SOURCES = demux_flv.c
+xineplug_dmx_flv_la_LIBADD = $(XINE_LIB)
+xineplug_dmx_flv_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 include_HEADERS = demux.h
 noinst_HEADERS = asfheader.h qtpalette.h group_games.h group_audio.h id3.h ebml.h matroska.h iff.h

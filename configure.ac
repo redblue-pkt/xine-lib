@@ -2078,7 +2078,7 @@ echo "   - vox           - nsf"
 echo "   - nsv           - 4xm"
 echo "   - ac3           - aac"
 echo "   - iff           - matroska"
-echo "   - vmd"
+echo "   - vmd           - flv"
 if test x"$enable_asf" = "xyes"; then
   echo "   - asf"
 fi

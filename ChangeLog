@@ -28,6 +28,7 @@ xine-lib (1-rc4)
     * ATI VCR1
     * Real Video 2.0
     * Sierra VMD
+    * Flash Video
   * new MOD demuxer
   * new, safer method for on-the-fly rewiring of post plugins
   * add iso-8859-9 and iso-8859-15 codepages into xine fonts
@@ -43,6 +44,7 @@ xine-lib (1-rc4)
   * fix jittering problem with the xshm output plugin
   * fix a playback problem with some mp3 with id3v2 tags
   * asf demuxer fixes
+  * new Flash Video (FLV) demuxer
 
 xine-lib (1-rc3a)
   * new subtitle formats: jacobsub, subviewer 2.0, subrip 0.9
