@@ -257,10 +257,10 @@ int spuParseHdr (vo_overlay_t *spu, uint8_t *pkt_data, u_int pkt_len)
       case CMD_SPU_SET_PALETTE: {	/* CLUT */
 	spu_clut_t *clut = (spu_clut_t *) &buf[i+1];
 	
-	spu->clut[0] = clut->entry0;
-	spu->clut[1] = clut->entry1;
-	spu->clut[2] = clut->entry2;
-	spu->clut[3] = clut->entry3;
+	spu->clut[3] = clut->entry0;
+	spu->clut[2] = clut->entry1;
+	spu->clut[1] = clut->entry2;
+	spu->clut[0] = clut->entry3;
 	LOG (LOG_DEBUG, "\tclut [%d %d %d %d]",
 	     spu->clut[0], spu->clut[1], spu->clut[2], spu->clut[3]);
 	i += 3;

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.27 2001/07/14 13:28:31 guenter Exp $
+ * $Id: demux_mpeg_block.c,v 1.28 2001/08/05 00:59:50 ehasenle Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -501,6 +501,22 @@ static void demux_mpeg_block_start (demux_plugin_t *this_gen,
 
     xprintf (VERBOSE|DEMUX, "=>seek to %Ld\n",pos);
     this->input->seek (this->input, pos, SEEK_SET);
+  }
+
+  /*
+   * query CLUT from the input plugin
+   */
+
+  buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
+
+  if(this->input->get_optional_data(this->input, buf->mem,
+     INPUT_OPTIONAL_DATA_CLUT) == INPUT_OPTIONAL_SUCCESS) {
+    buf->type = BUF_SPU_CLUT;
+    buf->content = buf->mem;
+
+    this->video_fifo->put(this->video_fifo, buf);
+  } else {
+    buf->free_buffer(buf);
   }
 
   /*

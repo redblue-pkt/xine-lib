@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.33 2001/08/02 20:38:42 jcdutton Exp $
+ * $Id: video_decoder.c,v 1.34 2001/08/05 00:59:51 ehasenle Exp $
  *
  */
 
@@ -26,6 +26,23 @@
 #endif
 
 #include "xine_internal.h"
+
+static spu_decoder_t* update_spu_decoder(xine_t *this, int type) {
+  int streamtype = (type>>16) & 0xFF;
+  spu_decoder_t *spu_decoder = this->spu_decoder_plugins [streamtype];
+
+  if (spu_decoder && this->cur_spu_decoder_plugin != spu_decoder) {
+
+    if (this->cur_spu_decoder_plugin)
+      this->cur_spu_decoder_plugin->close (this->cur_spu_decoder_plugin);
+
+    this->cur_spu_decoder_plugin = spu_decoder;
+
+    this->cur_spu_decoder_plugin->init (this->cur_spu_decoder_plugin,
+                                        this->video_out);
+  }
+  return spu_decoder;
+}
 
 void *video_decoder_loop (void *this_gen) {
 
@@ -75,28 +92,22 @@ void *video_decoder_loop (void *this_gen) {
 
       break;
 
+    case BUF_SPU_CLUT:
+      spu_decoder = update_spu_decoder(this, buf->type);
+
+      if (spu_decoder)
+        spu_decoder->decode_data (spu_decoder, buf);
+      break;
+
     case BUF_SPU_PACKAGE:
-        /* now, decode this buffer if it's the right track */
+      /* now, decode this buffer if it's the right track */
+      if ( (buf->type  & 0xFFFF)== this->spu_channel) {
+        spu_decoder = update_spu_decoder (this, buf->type);
 
-        if ( (buf->type  & 0xFFFF)== this->spu_channel) {
-
-          int streamtype = (buf->type>>16) & 0xFF;
-          spu_decoder = this->spu_decoder_plugins [streamtype];
-          if (spu_decoder) {
-            if (this->cur_spu_decoder_plugin != spu_decoder) {
-
-              if (this->cur_spu_decoder_plugin)
-                this->cur_spu_decoder_plugin->close (this->cur_spu_decoder_plugin);
-
-              this->cur_spu_decoder_plugin = spu_decoder;
-
-              this->cur_spu_decoder_plugin->init (this->cur_spu_decoder_plugin, this->video_out);
-            }
-
-            spu_decoder->decode_data (spu_decoder, buf);
-          }
-        }
-
+        if (spu_decoder)
+          spu_decoder->decode_data (spu_decoder, buf);
+      }
+      break;
 
     case BUF_VIDEO_MPEG:
     case BUF_VIDEO_AVI:

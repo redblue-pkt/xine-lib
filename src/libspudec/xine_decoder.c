@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.5 2001/08/01 20:01:48 jcdutton Exp $
+ * $Id: xine_decoder.c,v 1.6 2001/08/05 00:59:51 ehasenle Exp $
  *
  * stuff needed to turn libspu into a xine decoder plugin
  */
@@ -56,6 +56,7 @@ typedef struct spudec_decoder_s {
 
   vo_instance_t   *vo_out;
   vo_overlay_t    *spu;
+  uint32_t        *clut;
   int              spu_caps;
   int              bypass_mode;
   int              max_num_channels;
@@ -66,7 +67,8 @@ typedef struct spudec_decoder_s {
 } spudec_decoder_t;
 
 int spudec_can_handle (spu_decoder_t *this_gen, int buf_type) {
-  return ((buf_type & 0xFFFF0000) == BUF_SPU_PACKAGE) ;
+  int type = buf_type & 0xFFFF0000;
+  return (type == BUF_SPU_PACKAGE || type == BUF_SPU_CLUT) ;
 }
 
 
@@ -125,6 +127,14 @@ void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
 
   uint8_t     *current = buf->content;
 
+  if (buf->type == BUF_SPU_CLUT) {
+    if (this->clut == NULL)
+      this->clut = malloc(sizeof(clut_t)*16);
+
+    memcpy(this->clut, buf->content, sizeof(clut_t)*16);
+    return;
+  }
+  
   if (!this->spu) {
     this->spu = this->vo_out->get_overlay (this->vo_out);
   }
@@ -134,6 +144,9 @@ void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
     return;
 
   this->spu->PTS = buf->PTS;
+  if (this->clut)
+    this->spu->clut_tbl = this->clut;
+  
   if (!spuParseHdr (this->spu, current, buf->size)) {
     spuParseData (this->spu);
     /* overlay_txt(this->spu,1.0); Just for test purposes */
@@ -147,8 +160,11 @@ void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
 }
 
 void spudec_close (spu_decoder_t *this_gen) {
+  spudec_decoder_t *this = (spudec_decoder_t *) this_gen;
 
-  /* spudec_decoder_t *this = (spudec_decoder_t *) this_gen;  */
+  if (this->clut)
+    free(this->clut);
+
 /* FIXME not implemented */
 //  if (this->output_open) 
 //    this->spu_out->close (this->spu_out);
