@@ -1,4 +1,4 @@
-/* 
+ /* 
  * Copyright (C) 2000, 2001 the xine project
  * 
  * This file is part of xine, a unix video player.
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.28 2001/07/04 17:10:24 uid32519 Exp $
+ * $Id: video_out.c,v 1.29 2001/07/04 18:12:12 uid32519 Exp $
  *
  */
 
@@ -489,8 +489,7 @@ static int vo_frame_draw (vo_frame_t *img) {
   return frames_to_skip;
 }
 
-static vo_overlay_t *vo_get_overlay (vo_instance_t *this,
-				     int width, int height) {
+static vo_overlay_t *vo_get_overlay (vo_instance_t *this) {
   /* FIXME: implement */
   return NULL;
 }
