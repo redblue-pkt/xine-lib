@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3.c,v 1.93 2003/11/26 23:44:09 f1rmb Exp $
+ * $Id: video_out_dxr3.c,v 1.94 2003/11/29 19:35:39 mroi Exp $
  */
  
 /* mpeg1 encoding video out plugin for the dxr3.  
@@ -625,7 +625,7 @@ static void dxr3_update_frame_format(vo_driver_t *this_gen, vo_frame_t *frame_ge
     
     /* open the device for the encoder */
     snprintf(tmpstr, sizeof(tmpstr), "%s_mv%s", this->class->devname, this->class->devnum);
-    if ((this->fd_video = open(tmpstr, O_WRONLY | O_NONBLOCK)) < 0)
+    if ((this->fd_video = open(tmpstr, O_WRONLY)) < 0)
       printf("video_out_dxr3: Failed to open video device %s (%s)\n",
 	tmpstr, strerror(errno));
     

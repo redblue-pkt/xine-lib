@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decode_video.c,v 1.46 2003/11/26 23:44:09 f1rmb Exp $
+ * $Id: dxr3_decode_video.c,v 1.47 2003/11/29 19:35:39 mroi Exp $
  */
  
 /* dxr3 video decoder plugin.
@@ -494,7 +494,7 @@ static void dxr3_decode_data(video_decoder_t *this_gen, buf_element_t *buf)
     
     /* open the device for the decoder */
     snprintf (tmpstr, sizeof(tmpstr), "%s_mv%s", this->devname, this->devnum);
-    if ((this->fd_video = open(tmpstr, O_WRONLY | O_NONBLOCK)) < 0) {
+    if ((this->fd_video = open(tmpstr, O_WRONLY)) < 0) {
       printf("dxr3_decode_video: Failed to open video device %s (%s)\n",
         tmpstr, strerror(errno)); 
       return;
