@@ -20,7 +20,7 @@
  * General description and author credits go here...
  * 
  * Leave the following line intact for when the decoder is committed to CVS:
- * $Id: foovideo.c,v 1.3 2002/07/15 21:42:34 esnel Exp $
+ * $Id: foovideo.c,v 1.4 2002/09/01 20:45:50 tmmm Exp $
  */
 
 #include <stdio.h>
@@ -178,23 +178,17 @@ static void foovideo_decode_data (video_decoder_t *this_gen,
         this->width * this->height * 2);
       this->current_yuv_byte += 3;
 
-/*
       if (img->copy) {
-	int height = img->height;
-	uint8_t *src[3];
+        int height = img->height;
+        uint8_t *src[3];
 
-	src[0] = img->base[0];
-	src[1] = img->base[1];
-	src[2] = img->base[2];
+        src[0] = img->base[0];
 
-	while ((height -= 16) >= 0) {
-	  img->copy(img, src);
-	  src[0] += 16 * img->pitches[0];
-	  src[1] +=  8 * img->pitches[1];
-	  src[2] +=  8 * img->pitches[2];
-	}
+        while ((height -= 16) >= 0) {
+          img->copy(img, src);
+          src[0] += 16 * img->pitches[0];
+        }
       }
-*/
 
       img->draw(img);
       img->free(img);
