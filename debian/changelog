@@ -1,4 +1,11 @@
-xine-lib (0.9.9-1) unstable; urgency=medium
+xine-lib (0.9.9-2) unstable; urgency=low
+
+  * using LIBRARY_PATH to complete circular linking during install
+    (closes: #145348)
+
+ -- Siggi Langauf <siggi@debian.org>  Thu,  2 May 2002 05:06:06 +0200
+
+xine-lib (0.9.9-1) unstable; urgency=low
 
   * new upstream release
   * downgraded ogg/vorbis dependancies to recommendations (closes: #130492)
