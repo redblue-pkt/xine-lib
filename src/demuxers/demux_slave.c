@@ -21,7 +21,7 @@
  */
 
 /*
- * $Id: demux_slave.c,v 1.11 2004/01/12 17:35:15 miguelfreitas Exp $
+ * $Id: demux_slave.c,v 1.12 2004/05/16 18:01:44 tmattern Exp $
  *
  * demuxer for slave "protocol"
  * master xine must be started with XINE_PARAM_BROADCASTER_PORT set, that is,
@@ -436,9 +436,12 @@ static void *init_plugin (xine_t *xine, void *data) {
 /*
  * exported plugin catalog entry
  */
+demuxer_info_t demux_info_slave = {
+  10                       /* priority */
+};
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_DEMUX, 24, "slave", XINE_VERSION_CODE, NULL, init_plugin },
+  { PLUGIN_DEMUX, 24, "slave", XINE_VERSION_CODE, &demux_info_slave, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

@@ -19,7 +19,7 @@
  *
  * This file contains plugin entries for several demuxers used in games
  *
- * $Id: group_audio.c,v 1.12 2004/02/11 20:40:00 tmattern Exp $
+ * $Id: group_audio.c,v 1.13 2004/05/16 18:01:44 tmattern Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -35,22 +35,76 @@
  * exported plugin catalog entries
  */
 
+demuxer_info_t demux_info_aac = {
+  0                       /* priority */
+};
+
+demuxer_info_t demux_info_ac3 = {
+  0                       /* priority */
+};
+
+demuxer_info_t demux_info_aud = {
+  10                      /* priority */
+};
+
+demuxer_info_t demux_info_aiff = {
+  10                       /* priority */
+};
+
+demuxer_info_t demux_info_cdda = {
+  10                       /* priority */
+};
+
+demuxer_info_t demux_info_mpgaudio = {
+  0                       /* priority */
+};
+
+demuxer_info_t demux_info_nsf = {
+  10                       /* priority */
+};
+
+demuxer_info_t demux_info_realaudio = {
+  10                       /* priority */
+};
+
+demuxer_info_t demux_info_snd = {
+  10                       /* priority */
+};
+
+demuxer_info_t demux_info_voc = {
+  10                       /* priority */
+};
+
+demuxer_info_t demux_info_vox = {
+  10                       /* priority */
+};
+
+demuxer_info_t demux_info_wav = {
+  10                       /* priority */
+};
+
+#ifdef HAVE_MODPLUG
+demuxer_info_t demux_info_mod = {
+  10                       /* priority */
+};
+#endif
+
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_DEMUX, 24, "aac", XINE_VERSION_CODE, NULL, demux_aac_init_plugin },
-  { PLUGIN_DEMUX, 24, "ac3", XINE_VERSION_CODE, NULL, demux_ac3_init_plugin },
-  { PLUGIN_DEMUX, 24, "aud", XINE_VERSION_CODE, NULL, demux_aud_init_plugin },
-  { PLUGIN_DEMUX, 24, "aiff", XINE_VERSION_CODE, NULL, demux_aiff_init_plugin },
-  { PLUGIN_DEMUX, 24, "cdda", XINE_VERSION_CODE, NULL, demux_cdda_init_plugin },
-  { PLUGIN_DEMUX, 24, "mp3", XINE_VERSION_CODE, NULL, demux_mpgaudio_init_class },
-  { PLUGIN_DEMUX, 24, "nsf", XINE_VERSION_CODE, NULL, demux_nsf_init_plugin },
-  { PLUGIN_DEMUX, 24, "realaudio", XINE_VERSION_CODE, NULL, demux_realaudio_init_plugin },
-  { PLUGIN_DEMUX, 24, "snd", XINE_VERSION_CODE, NULL, demux_snd_init_plugin },
-  { PLUGIN_DEMUX, 24, "voc", XINE_VERSION_CODE, NULL, demux_voc_init_plugin },
-  { PLUGIN_DEMUX, 24, "vox", XINE_VERSION_CODE, NULL, demux_vox_init_plugin },
-  { PLUGIN_DEMUX, 24, "wav", XINE_VERSION_CODE, NULL, demux_wav_init_plugin },
+  { PLUGIN_DEMUX, 24, "aac",       XINE_VERSION_CODE, &demux_info_aac,       demux_aac_init_plugin },
+  { PLUGIN_DEMUX, 24, "ac3",       XINE_VERSION_CODE, &demux_info_ac3,       demux_ac3_init_plugin },
+  { PLUGIN_DEMUX, 24, "aud",       XINE_VERSION_CODE, &demux_info_aud,       demux_aud_init_plugin },
+  { PLUGIN_DEMUX, 24, "aiff",      XINE_VERSION_CODE, &demux_info_aiff,      demux_aiff_init_plugin },
+  { PLUGIN_DEMUX, 24, "cdda",      XINE_VERSION_CODE, &demux_info_cdda,      demux_cdda_init_plugin },
+  { PLUGIN_DEMUX, 24, "mp3",       XINE_VERSION_CODE, &demux_info_mpgaudio,  demux_mpgaudio_init_class },
+  { PLUGIN_DEMUX, 24, "nsf",       XINE_VERSION_CODE, &demux_info_nsf,       demux_nsf_init_plugin },
+  { PLUGIN_DEMUX, 24, "realaudio", XINE_VERSION_CODE, &demux_info_realaudio, demux_realaudio_init_plugin },
+  { PLUGIN_DEMUX, 24, "snd",       XINE_VERSION_CODE, &demux_info_snd,       demux_snd_init_plugin },
+  { PLUGIN_DEMUX, 24, "voc",       XINE_VERSION_CODE, &demux_info_voc,       demux_voc_init_plugin },
+  { PLUGIN_DEMUX, 24, "vox",       XINE_VERSION_CODE, &demux_info_vox,       demux_vox_init_plugin },
+  { PLUGIN_DEMUX, 24, "wav",       XINE_VERSION_CODE, &demux_info_wav,       demux_wav_init_plugin },
 #ifdef HAVE_MODPLUG
-  { PLUGIN_DEMUX, 24, "mod", XINE_VERSION_CODE, NULL, demux_mod_init_plugin },
+  { PLUGIN_DEMUX, 24, "mod",       XINE_VERSION_CODE, &demux_info_mod,       demux_mod_init_plugin },
 #endif
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

@@ -19,7 +19,7 @@
  *
  * This file contains plugin entries for several demuxers used in games
  *
- * $Id: group_games.c,v 1.9 2004/02/13 13:48:03 tmmm Exp $
+ * $Id: group_games.c,v 1.10 2004/05/16 18:01:44 tmattern Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -35,18 +35,62 @@
  * exported plugin catalog entries
  */
 
+demuxer_info_t demux_info_eawve = {
+  10                       /* priority */
+};
+
+demuxer_info_t demux_info_idcin = {
+  10                       /* priority */
+};
+
+demuxer_info_t demux_info_ipmovie = {
+  10                       /* priority */
+};
+
+demuxer_info_t demux_info_vqa = {
+  10                       /* priority */
+};
+
+demuxer_info_t demux_info_wc3movie = {
+  10                       /* priority */
+};
+
+demuxer_info_t demux_info_roq = {
+  10                       /* priority */
+};
+
+demuxer_info_t demux_info_str = {
+  10                       /* priority */
+};
+
+demuxer_info_t demux_info_film = {
+  10                       /* priority */
+};
+
+demuxer_info_t demux_info_smjpeg = {
+  10                       /* priority */
+};
+
+demuxer_info_t demux_info_fourxm = {
+  10                       /* priority */
+};
+
+demuxer_info_t demux_info_vmd = {
+  10                       /* priority */
+};
+
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_DEMUX, 24, "wve", XINE_VERSION_CODE, NULL, demux_eawve_init_plugin},
-  { PLUGIN_DEMUX, 24, "idcin", XINE_VERSION_CODE, NULL, demux_idcin_init_plugin },
-  { PLUGIN_DEMUX, 24, "ipmovie", XINE_VERSION_CODE, NULL, demux_ipmovie_init_plugin },
-  { PLUGIN_DEMUX, 24, "vqa", XINE_VERSION_CODE, NULL, demux_vqa_init_plugin },
-  { PLUGIN_DEMUX, 24, "wc3movie", XINE_VERSION_CODE, NULL, demux_wc3movie_init_plugin },
-  { PLUGIN_DEMUX, 24, "roq", XINE_VERSION_CODE, NULL, demux_roq_init_plugin },
-  { PLUGIN_DEMUX, 24, "str", XINE_VERSION_CODE, NULL, demux_str_init_plugin },
-  { PLUGIN_DEMUX, 24, "film", XINE_VERSION_CODE, NULL, demux_film_init_plugin },
-  { PLUGIN_DEMUX, 24, "smjpeg", XINE_VERSION_CODE, NULL, demux_smjpeg_init_plugin },
-  { PLUGIN_DEMUX, 24, "fourxm", XINE_VERSION_CODE, NULL, demux_fourxm_init_plugin },
-  { PLUGIN_DEMUX, 24, "vmd", XINE_VERSION_CODE, NULL, demux_vmd_init_plugin },
+  { PLUGIN_DEMUX, 24, "wve",      XINE_VERSION_CODE, &demux_info_eawve,    demux_eawve_init_plugin},
+  { PLUGIN_DEMUX, 24, "idcin",    XINE_VERSION_CODE, &demux_info_idcin,    demux_idcin_init_plugin },
+  { PLUGIN_DEMUX, 24, "ipmovie",  XINE_VERSION_CODE, &demux_info_ipmovie,  demux_ipmovie_init_plugin },
+  { PLUGIN_DEMUX, 24, "vqa",      XINE_VERSION_CODE, &demux_info_vqa,      demux_vqa_init_plugin },
+  { PLUGIN_DEMUX, 24, "wc3movie", XINE_VERSION_CODE, &demux_info_wc3movie, demux_wc3movie_init_plugin },
+  { PLUGIN_DEMUX, 24, "roq",      XINE_VERSION_CODE, &demux_info_roq,      demux_roq_init_plugin },
+  { PLUGIN_DEMUX, 24, "str",      XINE_VERSION_CODE, &demux_info_str,      demux_str_init_plugin },
+  { PLUGIN_DEMUX, 24, "film",     XINE_VERSION_CODE, &demux_info_film,     demux_film_init_plugin },
+  { PLUGIN_DEMUX, 24, "smjpeg",   XINE_VERSION_CODE, &demux_info_smjpeg,   demux_smjpeg_init_plugin },
+  { PLUGIN_DEMUX, 24, "fourxm",   XINE_VERSION_CODE, &demux_info_fourxm,   demux_fourxm_init_plugin },
+  { PLUGIN_DEMUX, 24, "vmd",      XINE_VERSION_CODE, &demux_info_vmd,      demux_vmd_init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

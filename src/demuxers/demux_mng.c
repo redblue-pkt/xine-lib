@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_mng.c,v 1.21 2004/02/19 02:50:25 rockyb Exp $
+ * $Id: demux_mng.c,v 1.22 2004/05/16 18:01:43 tmattern Exp $
  *
  * demux_mng.c, Demuxer plugin for Multiple-image Network Graphics format
  *
@@ -370,7 +370,11 @@ static void *init_plugin(xine_t *xine, void *data){
   return this;
 }
 
+demuxer_info_t demux_info_mng = {
+  10                       /* priority */
+};
+
 plugin_info_t xine_plugin_info[] = {
-  { PLUGIN_DEMUX, 24, "mng", XINE_VERSION_CODE, NULL, (void*)init_plugin},
+  { PLUGIN_DEMUX, 24, "mng", XINE_VERSION_CODE, &demux_info_mng, (void*)init_plugin},
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
