@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.c,v 1.71 2002/03/20 23:12:58 guenter Exp $
+ * $Id: metronom.c,v 1.72 2002/03/22 18:20:03 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -295,6 +295,11 @@ static void metronom_handle_video_discontinuity (metronom_t *this, int type,
       pthread_cond_wait (&this->audio_discontinuity_reached, &this->lock);
     }
   
+    if ( this->video_vpts < metronom_get_current_time(this) ) {
+      this->video_vpts = PREBUFFER_PTS_OFFSET + metronom_get_current_time(this);
+      printf ("metronom: video vpts adjusted with prebuffer to %lld\n", this->video_vpts);
+    }
+    
     if (this->video_vpts < this->audio_vpts) {
       this->video_vpts = this->audio_vpts;
       printf ("metronom: video vpts adjusted to %lld\n", this->video_vpts);
@@ -418,11 +423,16 @@ static void metronom_handle_audio_discontinuity (metronom_t *this, int type,
     pthread_cond_wait (&this->video_discontinuity_reached, &this->lock);
   }
   
+  if ( this->audio_vpts < metronom_get_current_time(this) ) {
+    this->audio_vpts = PREBUFFER_PTS_OFFSET + metronom_get_current_time(this);
+    printf ("metronom: audio vpts adjusted with prebuffer to %lld\n", this->audio_vpts);
+  }
+  
   if ( this->audio_vpts < this->video_vpts ) {
     this->audio_vpts = this->video_vpts;
     printf ("metronom: audio vpts adjusted to %lld\n", this->audio_vpts);
   }
-
+    
   /* next_vpts_offset, in_discontinuity is handled in expect_video_discontinuity */
   
   pthread_mutex_unlock (&this->lock);
