@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpgaudio.c,v 1.98 2003/03/18 16:29:44 f1rmb Exp $
+ * $Id: demux_mpgaudio.c,v 1.99 2003/03/19 23:22:17 holstsn Exp $
  *
  * demultiplexer for mpeg audio (i.e. mp3) streams
  *
@@ -187,7 +187,6 @@ demux_mpgaudio_read_buffer_header (input_plugin_t *input)
     count = input->read(input, buf, SNIFF_BUFFER_LENGTH);
     if (count < SNIFF_BUFFER_LENGTH)
     {
-      free (buf);
       return NULL;
     }
   } else if ((input->get_capabilities(input) & INPUT_CAP_PREVIEW) != 0) {
