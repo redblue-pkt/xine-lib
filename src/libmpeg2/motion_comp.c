@@ -50,6 +50,12 @@ void motion_comp_init (void)
 	mc_functions = mc_functions_mlib;
     } else
 #endif
+#ifdef ENABLE_ALTIVEC
+    if (config.flags & MM_ACCEL_PPC_ALTIVEC) {
+	fprintf (stderr, "Using altivec for motion compensation\n");
+	mc_functions = mc_functions_altivec;
+    } else
+#endif
     {
 	fprintf (stderr, "No accelerated motion compensation found\n");
 	mc_functions = mc_functions_c;

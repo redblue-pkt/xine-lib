@@ -177,6 +177,9 @@ LIBMPEG2_CFLAGS="" dnl default include path removed, no more needed.
 LIBA52_CFLAGS=""
 LIBFFMPEG_CFLAGS=""
 
+AC_ARG_ENABLE(altivec, [  --enable-altivec          use assembly codes for Motorola 74xx CPUs],
+    enable_altivec=yes, enable_altivec=no)
+    
 if test x$enable_mlib = x; then
 AC_ARG_ENABLE(mlib,
 	[  --disable-mlib          make a version not using mediaLib],
@@ -561,6 +564,12 @@ case "$host_or_hostalias" in
     GLOBAL_CFLAGS="$GLOBAL_CFLAGS -O3 -pipe -fomit-frame-pointer $m_wm $m_psb -fexpensive-optimizations $f_si $f_nsa -ffast-math -funroll-loops -funroll-all-loops -finline-functions"
     DEBUG_CFLAGS="$DEBUG_CFLAGS -O3"
     AC_DEFINE(FPM_PPC)
+    AC_DEFINE(ARCH_PPC)
+    
+    if test x$enable_altivec = xyes; then
+        AC_DEFINE(ENABLE_ALTIVEC)
+        GLOBAL_CFLAGS="$GLOBAL_CFLAGS -Wa,-m7400"
+    fi
     ;;
 
   sparc*-*-linux*)

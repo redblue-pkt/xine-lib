@@ -84,6 +84,14 @@ void idct_init (void)
 	idct_block_add = idct_block_add_mlib;
     } else
 #endif
+#ifdef ENABLE_ALTIVEC
+	if (config.flags & MM_ACCEL_PPC_ALTIVEC) {
+    fprintf (stderr, "Using altivec for IDCT transform\n");
+	idct_block_copy = idct_block_copy_altivec;
+	idct_block_add = idct_block_add_altivec;
+	idct_altivec_init ();
+    } else
+#endif    
     {
 	int i;
 

@@ -170,6 +170,13 @@ void idct_block_copy_mmx (int16_t *block, uint8_t * dest, int stride);
 void idct_block_add_mmx (int16_t *block, uint8_t * dest, int stride);
 void idct_mmx_init (void);
 
+#ifdef ENABLE_ALTIVEC
+/* idct_altivec.c */
+void idct_block_copy_altivec (int16_t * block, uint8_t * dest, int stride);
+void idct_block_add_altivec (int16_t * block, uint8_t * dest, int stride);
+void idct_altivec_init (void);
+#endif
+
 /* motion_comp.c */
 void motion_comp_init (void);
 
@@ -191,6 +198,9 @@ extern mc_functions_t mc_functions_c;
 extern mc_functions_t mc_functions_mmx;
 extern mc_functions_t mc_functions_mmxext;
 extern mc_functions_t mc_functions_3dnow;
+#ifdef ENABLE_ALTIVEC
+extern mc_functions_t mc_functions_altivec;
+#endif
 extern mc_functions_t mc_functions_mlib;
 
 /* slice.c */

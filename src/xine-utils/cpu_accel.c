@@ -121,33 +121,31 @@ static void sigill_handler (int n) {
 uint32_t xine_mm_accel (void)
 {
 #ifdef ARCH_X86
-  static int got_accel = 0;
   static uint32_t accel;
 
-  if (!got_accel) {
-    got_accel = 1;
-    
-    accel = x86_accel ();
-    
-    /* test OS support for SSE */
-    if( accel & MM_ACCEL_X86_SSE ) {
-      if (setjmp(sigill_return)) {
-        accel &= ~(MM_ACCEL_X86_SSE|MM_ACCEL_X86_SSE2);
-      } else {
-        signal (SIGILL, sigill_handler); 
-        __asm __volatile ("xorps %xmm0, %xmm0");
-        signal (SIGILL, SIG_DFL);
-      }
+  accel = x86_accel ();
+
+  /* test OS support for SSE */
+  if( accel & MM_ACCEL_X86_SSE ) {
+    if (setjmp(sigill_return)) {
+      accel &= ~(MM_ACCEL_X86_SSE|MM_ACCEL_X86_SSE2);
+    } else {
+      signal (SIGILL, sigill_handler); 
+      __asm __volatile ("xorps %xmm0, %xmm0");
+      signal (SIGILL, SIG_DFL);
     }
   }
 
   return accel;
-#else
+#endif
 #ifdef HAVE_MLIB
   return MM_ACCEL_MLIB;
-#else
+#endif
+#ifdef ARCH_PPC
+#ifdef ENABLE_ALTIVEC
+  return MM_ACCEL_PPC_ALTIVEC;
+#endif
+#endif
   return 0;
-#endif
-#endif
 }
 

@@ -6,6 +6,7 @@ xine (0.9.7) unstable; urgency=low
   * OSD (On Screen Display) for rendering text and graphics into overlays
   * reworked spu and overlay manager (multiple overlays supported)
   * support for avi text subtitles (use something like xine stream.avi:foo.sub)
+  * altivec support
 	
  -- Guenter Bartsch <guenter@users.sourceforge.net> Tue Nov 27 01:20:06 CET 2001
 	
