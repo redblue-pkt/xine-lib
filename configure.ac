@@ -1259,13 +1259,13 @@ if test x"$enable_vcd" = "xyes"; then
 
   if test x"$internal_vcdnav" = "xno" && test x"$PKG_CONFIG" != "xno" ; then
     AC_MSG_CHECKING(for libcdio)
-    if $PKG_CONFIG --atleast-version 0.64 libcdio; then
+    if $PKG_CONFIG --atleast-version 0.71 libcdio; then
       AC_MSG_RESULT(found)
       LIBCDIO_CFLAGS=`$PKG_CONFIG --cflags libcdio`
       LIBCDIO_LIBS=`$PKG_CONFIG --libs libcdio`
 
       AC_MSG_CHECKING(for libvcdinfo)
-      if $PKG_CONFIG --atleast-version 0.7.19-cdio libvcdinfo; then
+      if $PKG_CONFIG --atleast-version 0.7.21 libvcdinfo; then
         AC_MSG_RESULT(found)
         LIBVCDINFO_CFLAGS=`$PKG_CONFIG --cflags libvcdinfo`
         LIBVCDINFO_LIBS=`$PKG_CONFIG --libs libvcdinfo`
