@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpgaudio.c,v 1.19 2001/09/05 16:02:29 guenter Exp $
+ * $Id: demux_mpgaudio.c,v 1.20 2001/09/10 13:39:33 jkeil Exp $
  *
  * demultiplexer for mpeg audio (i.e. mp3) streams
  *
@@ -147,7 +147,7 @@ static void mpg123_decode_header(demux_mpgaudio_t *this,unsigned long newhead)
   tpf /= freqs[sampling_frequency] << lsf;
 
   bitrate = (double) framesize / tpf;
-  printf("mpgaudio: bitrate = %.2lfkbps\n", bitrate/1024.0*8.0 );
+  printf("mpgaudio: bitrate = %.2fkbps\n", bitrate/1024.0*8.0 );
   this->stream_length = (int)(this->input->get_length(this->input) / bitrate);
 }
 
