@@ -361,7 +361,7 @@ xine_health_check_xv (xine_health_check_t* hc) {
 
   if((Success != (*xvquery_extension)(dpy, &ver, &rev, &reqB, &eventB, &errorB))) {
     hc->msg = (char*) malloc (sizeof (char) * 80);
-    sprintf(hc->msg, "No X-Video Extension on %s", (disname != NULL) ? disname : XDisplayName(NULL));
+    sprintf(hc->msg, "No X-Video Extension on %s", (disname != NULL) ? disname : xdisplayname(NULL));
     hc->status = XINE_HEALTH_CHECK_FAIL;
   }
   else {
