@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_stdin_fifo.c,v 1.42 2003/01/31 14:06:16 miguelfreitas Exp $
+ * $Id: input_stdin_fifo.c,v 1.43 2003/02/20 05:28:52 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -76,7 +76,7 @@ static off_t stdin_plugin_read (input_plugin_t *this_gen,
 				char *buf, off_t todo) {
 
   stdin_input_plugin_t  *this = (stdin_input_plugin_t *) this_gen;
-  off_t                  num_bytes, total_bytes;
+  off_t                  num_bytes, total_bytes, preview_bytes_sent = 0;
 
   nbc_check_buffers (this->nbc);
 
@@ -92,11 +92,12 @@ static off_t stdin_plugin_read (input_plugin_t *this_gen,
 
       num_bytes = this->preview_size - this->preview_pos;
       if (num_bytes > (todo - total_bytes)) 
-	num_bytes = todo - total_bytes;
+        num_bytes = todo - total_bytes;
+      preview_bytes_sent = num_bytes;
 
 #ifdef LOG
       printf ("stdin: %lld bytes from preview (which has %lld bytes)\n",
-	      num_bytes, this->preview_size);
+        num_bytes, this->preview_size);
 #endif
 
       memcpy (&buf[total_bytes], &this->preview[this->preview_pos], num_bytes);
@@ -107,25 +108,25 @@ static off_t stdin_plugin_read (input_plugin_t *this_gen,
       num_bytes = read (this->fh, &buf[total_bytes], todo - total_bytes);
 #ifdef LOG
       printf ("stdin: %lld bytes from file\n",
-	      num_bytes);
+        num_bytes);
 #endif
     }
 
 
     if(num_bytes < 0) {
 
-      this->curpos += total_bytes;
+      this->curpos += total_bytes - preview_bytes_sent;
       return num_bytes;
 
     } else if (!num_bytes) {
 
-      this->curpos += total_bytes;
+      this->curpos += total_bytes - preview_bytes_sent;
       return total_bytes;
     }
     total_bytes += num_bytes;
   }
 
-  this->curpos += total_bytes;
+  this->curpos += total_bytes - preview_bytes_sent;
 
   return total_bytes;
 }
@@ -152,10 +153,14 @@ static buf_element_t *stdin_plugin_read_block (input_plugin_t *this_gen, fifo_bu
   return buf;
 }
 
+/* forward reference */
+static off_t stdin_plugin_get_current_pos (input_plugin_t *this_gen);
+
 static off_t stdin_plugin_seek (input_plugin_t *this_gen, off_t offset, int origin) {
 
   stdin_input_plugin_t  *this = (stdin_input_plugin_t *) this_gen;
-  off_t dest = this->curpos;
+  off_t dest;
+  off_t actual_curpos = stdin_plugin_get_current_pos(this_gen);
 
 #ifdef LOG
   printf ("stdin: seek %lld offset, %d origin...\n",
@@ -167,38 +172,45 @@ static off_t stdin_plugin_seek (input_plugin_t *this_gen, off_t offset, int orig
     dest = offset;
     break;
   case SEEK_CUR:
-    dest = this->curpos + offset;
+    dest = actual_curpos + offset;
     break;
   case SEEK_END:
     printf ("stdin: SEEK_END not implemented!\n");
     return this->curpos;
   default:
     printf ("stdin: unknown origin in seek!\n");
-    return this->curpos;
+    return actual_curpos;
   }
 
-  if (this->curpos > dest) {
-    printf ("stdin: cannot seek back!\n");
-    return this->curpos;
+  if (actual_curpos > dest) {
+    printf ("stdin: cannot seek back! (%lld > %lld)\n", actual_curpos, dest);
+    return actual_curpos;
   }
 
-  while (this->curpos<dest) {
+  while (actual_curpos < dest) {
 
     off_t n, diff;
 
-    diff = dest - this->curpos;
+    diff = dest - actual_curpos;
 
     if (diff>1024)
       diff = 1024;
 
     n = stdin_plugin_read (this_gen, this->scratch, diff);
 
-    this->curpos += n;
+    actual_curpos += n;
     if (n<diff)
-      return this->curpos;
+      break;
   }
 
-  return this->curpos;
+  if (actual_curpos < this->preview_size)
+    this->preview_pos = actual_curpos;
+  else {
+    this->preview_pos = this->preview_size;
+    this->curpos = actual_curpos;
+  }
+
+  return actual_curpos;
 }
 
 static off_t stdin_plugin_get_length(input_plugin_t *this_gen) {
@@ -219,7 +231,10 @@ static uint32_t stdin_plugin_get_blocksize(input_plugin_t *this_gen) {
 static off_t stdin_plugin_get_current_pos (input_plugin_t *this_gen){
   stdin_input_plugin_t *this = (stdin_input_plugin_t *) this_gen;
 
-  return this->curpos;
+  if (this->preview_pos < this->preview_size)
+    return this->preview_pos;
+  else
+    return this->curpos;
 }
 
 static char* stdin_plugin_get_mrl (input_plugin_t *this_gen) {
