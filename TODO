@@ -19,6 +19,7 @@ required for 1.0
 optional
 --------
 
+- double-check rate estimation in demux_mgeg/mpeg_block
 - log/verbose output macros
 - fix cook audio streaming
 - better dvd error messages
