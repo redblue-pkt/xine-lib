@@ -10,24 +10,60 @@
 # Build separat packages:
 # 1 create a sparate package
 # 0 include files in main package
+%if %{?BUILD_ALSA09:0}%{!?BUILD_ALSA09:1}
 %define BUILD_AA        0
+%endif
+%if %{?BUILD_ALSA09:0}%{!?BUILD_ALSA09:1}
 %define BUILD_ALSA09    0
+%endif
+%if %{?BUILD_ARTS:0}%{!?BUILD_ARTS:1}
 %define BUILD_ARTS      0
+%endif
+%if %{?BUILD_DEVEL:0}%{!?BUILD_DEVEL:1}
 %define BUILD_DEVEL     1
+%endif
+%if %{?BUILD_DVB:0}%{!?BUILD_DVB:1}
 %define BUILD_DVB       0
+%endif
+%if %{?BUILD_DVD:0}%{!?BUILD_DVD:1}
 %define BUILD_DVD       0
+%endif
+%if %{?BUILD_DXR3:0}%{!?BUILD_DXR3:1}
 %define BUILD_DXR3      0
+%endif
+%if %{?BUILD_ESD:0}%{!?BUILD_ESD:1}
 %define BUILD_ESD       0
+%endif
+%if %{?BUILD_FLAC:0}%{!?BUILD_FLAC:1}
 %define BUILD_FLAC      0
+%endif
+%if %{?BUILD_GNOME_VFS:0}%{!?BUILD_GNOME_VFS:1}
 %define BUILD_GNOME_VFS 0
+%endif
+%if %{?BUILD_OGG:0}%{!?BUILD_OGG:1}
 %define BUILD_OGG       0
+%endif
+%if %{?BUILD_OPENGL:0}%{!?BUILD_OPENGL:1}
 %define BUILD_OPENGL    0
+%endif
+%if %{?BUILD_SDL:0}%{!?BUILD_SDL:1}
 %define BUILD_SDL       0
+%endif
+%if %{?BUILD_DIRECTFB:0}%{!?BUILD_DIRECTFB:1}
 %define BUILD_DIRECTFB  0
+%endif
+%if %{?BUILD_SYNCFB:0}%{!?BUILD_SYNCFB:1}
 %define BUILD_SYNCFB    0
+%endif
+%if %{?BUILD_W32DLL:0}%{!?BUILD_W32DLL:1}
 %define BUILD_W32DLL    0
+%endif
+%if %{?BUILD_XVMC:0}%{!?BUILD_XVMC:1}
 %define BUILD_XVMC      0
+%endif
+%if %{?BUILD_STK:0}%{!?BUILD_STK:1}
 %define BUILD_STK       0
+%endif
 
 Name:           %{name}
 Summary:        A portable video/audio library for unix-like systems.
@@ -869,6 +905,10 @@ rm ${RPM_BUILD_DIR}/filelist_libxine1_old
 %endif
 
 %changelog
+* Thu Jan 06 2005 Manfred Tremmel <Manfred.Tremmel@iiv.de>
+- enabled defining build or not to build subpackages at runtime
+  using '--define "BUILD_XYZ 1"', you can find possible BUILD_
+  defines at the top of the spec-file
 * Tue Dec 07 2004 Manfred Tremmel <Manfred.Tremmel@iiv.de>
 - included xxmc video out plugin into xvmc sub-rpm
 * Sat Sep 11 2004 Manfred Tremmel <Manfred.Tremmel@iiv.de>
