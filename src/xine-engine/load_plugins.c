@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.109 2002/11/01 17:48:18 mroi Exp $
+ * $Id: load_plugins.c,v 1.110 2002/11/02 00:36:03 f1rmb Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -1346,34 +1346,43 @@ char *xine_get_file_extensions (xine_t *self) {
 
   /* calc length of output */
 
-  len = 0; node = xine_list_first_content (catalog->demux);
+  len = 0; 
+  node = xine_list_first_content (catalog->demux);
   while (node) {
     demux_class_t *cls = (demux_class_t *)node->plugin_class;
+    char          *exts;
 
-    len += strlen(cls->get_extensions (cls))+1;
+    if((exts = cls->get_extensions(cls)) != NULL)
+      len += strlen(exts) + 1;
 
     node = xine_list_next_content (catalog->demux);
   }
 
   /* create output */
-
-  str = malloc (len+1);
+  str = malloc (len); /* '\0' space is already counted in the previous loop */
   pos = 0;
 
   node = xine_list_first_content (catalog->demux);
   while (node) {
     demux_class_t *cls = (demux_class_t *)node->plugin_class;
-    char *e;
-    int l;
+    char          *e;
+    int            l;
 
-    e = cls->get_extensions (cls);
-    l = strlen(e);
-    memcpy (&str[pos], e, l);
+    if((e = cls->get_extensions (cls)) != NULL) {
+      l = strlen(e);
+      memcpy (&str[pos], e, l);
+      
+      pos += l;
 
+      /* Don't add ' ' char at the end of str */
+      if((pos + 1) < len) {
+	str[pos] = ' ';
+	pos++;
+      }
+
+    }
+    
     node = xine_list_next_content (catalog->demux);
-    pos += l;
-    str[pos] = ' ';
-    pos++;
   }
 
   str[pos] = 0;
