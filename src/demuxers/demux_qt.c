@@ -26,11 +26,11 @@
  *  open_qt_file
  *   parse_moov_atom
  *    parse_mvhd_atom
- *    parse_minf_atom
+ *    parse_trak_atom
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.41 2002/06/04 02:51:19 miguelfreitas Exp $
+ * $Id: demux_qt.c,v 1.42 2002/06/06 05:06:30 tmmm Exp $
  *
  */
 
@@ -74,10 +74,12 @@ typedef unsigned int qt_atom;
 #define CMOV_ATOM QT_ATOM('c', 'm', 'o', 'v')
 
 #define MVHD_ATOM QT_ATOM('m', 'v', 'h', 'd')
-#define MINF_ATOM QT_ATOM('m', 'i', 'n', 'f')
 
 #define VMHD_ATOM QT_ATOM('v', 'm', 'h', 'd')
 #define SMHD_ATOM QT_ATOM('s', 'm', 'h', 'd')
+
+#define TRAK_ATOM QT_ATOM('t', 'r', 'a', 'k')
+#define MDHD_ATOM QT_ATOM('m', 'd', 'h', 'd')
 
 /* atoms in a sample table */
 #define STSD_ATOM QT_ATOM('s', 't', 's', 'd')
@@ -179,6 +181,9 @@ typedef struct {
   /* temporary frame table corresponding to this sample table */
   qt_frame *frames;
   unsigned int frame_count;
+
+  /* trak timescale */
+  unsigned int timescale;
 
 } qt_sample_table;
 
@@ -326,15 +331,14 @@ static void parse_mvhd_atom(qt_info *info, unsigned char *mvhd_atom) {
 }
 
 /*
- * This function traverses through a minf atom searching for the sample
+ * This function traverses through a trak atom searching for the sample
  * table atoms, which it loads into an internal sample table structure.
  */
-static qt_error parse_minf_atom(qt_sample_table *sample_table,
-  unsigned char *minf_atom) {
+static qt_error parse_trak_atom(qt_sample_table *sample_table,
+  unsigned char *trak_atom) {
 
   int i, j;
-  unsigned int minf_atom_size = BE_32(&minf_atom[0]);
-  qt_atom header_atom;
+  unsigned int trak_atom_size = BE_32(&trak_atom[0]);
   qt_atom current_atom;
   qt_error last_error = QT_OK;
 
@@ -345,40 +349,40 @@ static qt_error parse_minf_atom(qt_sample_table *sample_table,
   sample_table->sample_to_chunk_table = NULL;
   sample_table->time_to_sample_table = NULL;
 
-  /* fetch the media type contained in this minf atom */
-  header_atom = BE_32(&minf_atom[0x0C]);
-  if (header_atom == VMHD_ATOM)
-    sample_table->type = MEDIA_VIDEO;
-  else if (header_atom == SMHD_ATOM)
-    sample_table->type = MEDIA_AUDIO;
-  else
-    sample_table->type = MEDIA_OTHER;
+  /* default type */
+  sample_table->type = MEDIA_OTHER;
 
   /* search for the useful atoms */
-  for (i = ATOM_PREAMBLE_SIZE; i < minf_atom_size - 4; i++) {
-    current_atom = BE_32(&minf_atom[i]);
+  for (i = ATOM_PREAMBLE_SIZE; i < trak_atom_size - 4; i++) {
+    current_atom = BE_32(&trak_atom[i]);
 
-    if (current_atom == STSD_ATOM) {
+    if (current_atom == VMHD_ATOM)
+      sample_table->type = MEDIA_VIDEO;
+    else if (current_atom == SMHD_ATOM)
+      sample_table->type = MEDIA_AUDIO;
+    else if (current_atom == MDHD_ATOM)
+      sample_table->timescale = BE_32(&trak_atom[i + 0x10]);
+    else if (current_atom == STSD_ATOM) {
 
       if (sample_table->type == MEDIA_VIDEO) {
 
         /* fetch video parameters */
         sample_table->media_description.video.width =
-          BE_16(&minf_atom[i + 0x2C]);
+          BE_16(&trak_atom[i + 0x2C]);
         sample_table->media_description.video.height =
-          BE_16(&minf_atom[i + 0x2E]);
+          BE_16(&trak_atom[i + 0x2E]);
         sample_table->media_description.video.codec_format =
-          BE_32(&minf_atom[i + 0x10]);
+          BE_32(&trak_atom[i + 0x10]);
 
       } else if (sample_table->type == MEDIA_AUDIO) {
 
         /* fetch audio parameters */
         sample_table->media_description.audio.codec_format =
-          BE_32(&minf_atom[i + 0x10]);
+          BE_32(&trak_atom[i + 0x10]);
         sample_table->media_description.audio.sample_rate =
-          BE_16(&minf_atom[i + 0x2C]);
-        sample_table->media_description.audio.channels = minf_atom[i + 0x25];
-        sample_table->media_description.audio.bits = minf_atom[i + 0x27];
+          BE_16(&trak_atom[i + 0x2C]);
+        sample_table->media_description.audio.channels = trak_atom[i + 0x25];
+        sample_table->media_description.audio.bits = trak_atom[i + 0x27];
 
       }
 
@@ -390,8 +394,8 @@ static qt_error parse_minf_atom(qt_sample_table *sample_table,
         goto free_sample_table;
       }
 
-      sample_table->sample_size = BE_32(&minf_atom[i + 8]);
-      sample_table->sample_size_count = BE_32(&minf_atom[i + 12]);
+      sample_table->sample_size = BE_32(&trak_atom[i + 8]);
+      sample_table->sample_size_count = BE_32(&trak_atom[i + 12]);
 
       /* allocate space and load table only if sample size is 0 */
       if (sample_table->sample_size == 0) {
@@ -405,10 +409,10 @@ static qt_error parse_minf_atom(qt_sample_table *sample_table,
         /* load the sample size table */
         for (j = 0; j < sample_table->sample_size_count; j++)
           sample_table->sample_size_table[j] =
-            BE_32(&minf_atom[i + 16 + j * 4]);
+            BE_32(&trak_atom[i + 16 + j * 4]);
       } else
         /* set the pointer to non-NULL to indicate that the atom type has
-         * already been seen for this minf atom */
+         * already been seen for this trak atom */
         sample_table->sample_size_table = (void *)-1;
 
     } else if (current_atom == STSS_ATOM) {
@@ -419,7 +423,7 @@ static qt_error parse_minf_atom(qt_sample_table *sample_table,
         goto free_sample_table;
       }
 
-      sample_table->sync_sample_count = BE_32(&minf_atom[i + 8]);
+      sample_table->sync_sample_count = BE_32(&trak_atom[i + 8]);
 
       sample_table->sync_sample_table = (unsigned int *)malloc(
         sample_table->sync_sample_count * sizeof(unsigned int));
@@ -431,7 +435,7 @@ static qt_error parse_minf_atom(qt_sample_table *sample_table,
       /* load the sync sample table */
       for (j = 0; j < sample_table->sync_sample_count; j++)
         sample_table->sync_sample_table[j] =
-          BE_32(&minf_atom[i + 12 + j * 4]);
+          BE_32(&trak_atom[i + 12 + j * 4]);
 
     } else if (current_atom == STCO_ATOM) {
 
@@ -441,7 +445,7 @@ static qt_error parse_minf_atom(qt_sample_table *sample_table,
         goto free_sample_table;
       }
 
-      sample_table->chunk_offset_count = BE_32(&minf_atom[i + 8]);
+      sample_table->chunk_offset_count = BE_32(&trak_atom[i + 8]);
 
       sample_table->chunk_offset_table = (int64_t *)malloc(
         sample_table->chunk_offset_count * sizeof(int64_t));
@@ -453,7 +457,7 @@ static qt_error parse_minf_atom(qt_sample_table *sample_table,
       /* load the chunk offset table */
       for (j = 0; j < sample_table->chunk_offset_count; j++)
         sample_table->chunk_offset_table[j] =
-          BE_32(&minf_atom[i + 12 + j * 4]);
+          BE_32(&trak_atom[i + 12 + j * 4]);
 
     } else if (current_atom == CO64_ATOM) {
 
@@ -463,7 +467,7 @@ static qt_error parse_minf_atom(qt_sample_table *sample_table,
         goto free_sample_table;
       }
 
-      sample_table->chunk_offset_count = BE_32(&minf_atom[i + 8]);
+      sample_table->chunk_offset_count = BE_32(&trak_atom[i + 8]);
 
       sample_table->chunk_offset_table = (int64_t *)malloc(
         sample_table->chunk_offset_count * sizeof(int64_t));
@@ -475,10 +479,10 @@ static qt_error parse_minf_atom(qt_sample_table *sample_table,
       /* load the 64-bit chunk offset table */
       for (j = 0; j < sample_table->chunk_offset_count; j++) {
         sample_table->chunk_offset_table[j] =
-          BE_32(&minf_atom[i + 12 + j * 8 + 0]);
+          BE_32(&trak_atom[i + 12 + j * 8 + 0]);
         sample_table->chunk_offset_table[j] <<= 32;
         sample_table->chunk_offset_table[j] |=
-          BE_32(&minf_atom[i + 12 + j * 8 + 4]);
+          BE_32(&trak_atom[i + 12 + j * 8 + 4]);
       }
 
     } else if (current_atom == STSC_ATOM) {
@@ -489,7 +493,7 @@ static qt_error parse_minf_atom(qt_sample_table *sample_table,
         goto free_sample_table;
       }
 
-      sample_table->sample_to_chunk_count = BE_32(&minf_atom[i + 8]);
+      sample_table->sample_to_chunk_count = BE_32(&trak_atom[i + 8]);
 
       sample_table->sample_to_chunk_table = (sample_to_chunk_table_t *)malloc(
         sample_table->sample_to_chunk_count * sizeof(sample_to_chunk_table_t));
@@ -501,9 +505,9 @@ static qt_error parse_minf_atom(qt_sample_table *sample_table,
       /* load the sample to chunk table */
       for (j = 0; j < sample_table->sample_to_chunk_count; j++) {
         sample_table->sample_to_chunk_table[j].first_chunk =
-          BE_32(&minf_atom[i + 12 + j * 12 + 0]);
+          BE_32(&trak_atom[i + 12 + j * 12 + 0]);
         sample_table->sample_to_chunk_table[j].samples_per_chunk =
-          BE_32(&minf_atom[i + 12 + j * 12 + 4]);
+          BE_32(&trak_atom[i + 12 + j * 12 + 4]);
       }
 
     } else if (current_atom == STTS_ATOM) {
@@ -514,7 +518,7 @@ static qt_error parse_minf_atom(qt_sample_table *sample_table,
         goto free_sample_table;
       }
 
-      sample_table->time_to_sample_count = BE_32(&minf_atom[i + 8]);
+      sample_table->time_to_sample_count = BE_32(&trak_atom[i + 8]);
 
       sample_table->time_to_sample_table = (time_to_sample_table_t *)malloc(
         sample_table->time_to_sample_count * sizeof(time_to_sample_table_t));
@@ -526,9 +530,9 @@ static qt_error parse_minf_atom(qt_sample_table *sample_table,
       /* load the time to sample table */
       for (j = 0; j < sample_table->time_to_sample_count; j++) {
         sample_table->time_to_sample_table[j].count =
-          BE_32(&minf_atom[i + 12 + j * 8 + 0]);
+          BE_32(&trak_atom[i + 12 + j * 8 + 0]);
         sample_table->time_to_sample_table[j].duration =
-          BE_32(&minf_atom[i + 12 + j * 8 + 4]);
+          BE_32(&trak_atom[i + 12 + j * 8 + 4]);
       }
     }
   }
@@ -639,6 +643,8 @@ static qt_error build_frame_table(qt_sample_table *sample_table) {
 
           /* figure out the pts situation */
           sample_table->frames[frame_counter].pts = current_pts;
+          sample_table->frames[frame_counter].pts *= 90000;
+          sample_table->frames[frame_counter].pts /= sample_table->timescale;
           current_pts +=
             sample_table->time_to_sample_table[pts_index].duration;
           pts_index_countdown--;
@@ -716,14 +722,14 @@ static void parse_moov_atom(qt_info *info, unsigned char *moov_atom) {
       if (info->last_error != QT_OK)
         return;
       i += BE_32(&moov_atom[i - 4]) - 4;
-    } else if (current_atom == MINF_ATOM) {
+    } else if (current_atom == TRAK_ATOM) {
 
       /* make a new sample temporary sample table */
       sample_table_count++;
       sample_tables = (qt_sample_table *)realloc(sample_tables,
         sample_table_count * sizeof(qt_sample_table));
 
-      parse_minf_atom(&sample_tables[sample_table_count - 1],
+      parse_trak_atom(&sample_tables[sample_table_count - 1],
         &moov_atom[i - 4]);
       if (info->last_error != QT_OK)
         return;
@@ -813,15 +819,10 @@ static void parse_moov_atom(qt_info *info, unsigned char *moov_atom) {
   audio_pts_multiplier /= info->time_scale;
   for (i = 0; i < info->frame_count; i++) {
 
-    if (info->frames[i].type == MEDIA_VIDEO) {
-
-      /* finish the pts calculation for this video frame */
-      info->frames[i].pts *= 90000;
-      info->frames[i].pts /= info->time_scale;
-
-    } else if (info->frames[i].type == MEDIA_AUDIO) {
+    if (info->frames[i].type == MEDIA_AUDIO) {
 
       /* finish the pts calculation for this audio frame */
+      /* .pts currently holds the total nubmer of bytes for the stream */
       total_audio_bytes = info->frames[i].pts;
       info->frames[i].pts = audio_pts_multiplier;
       info->frames[i].pts *= audio_byte_counter;
@@ -941,24 +942,13 @@ static qt_error open_qt_file(qt_info *info, input_plugin_t *input) {
 
         info->compressed_header = 1;
 
-        if (BE_32(&moov_atom[12]) == CMOV_ATOM) {
-          z_state.next_in = &moov_atom[0x28];
-          z_state.avail_in = top_level_atom_size - 0x28;
-          z_state.avail_out = BE_32(&moov_atom[0x24]);
-          unzip_buffer = (unsigned char *)malloc(BE_32(&moov_atom[0x24]));
-          if (!unzip_buffer) {
-            info->last_error = QT_NO_MEMORY;
-            return info->last_error;
-          }
-        } else {
-          z_state.next_in = &moov_atom[ATOM_PREAMBLE_SIZE];
-          z_state.avail_in = top_level_atom_size - ATOM_PREAMBLE_SIZE;
-          z_state.avail_out = 65536;
-          unzip_buffer = (unsigned char *)malloc(65536);
-          if (!unzip_buffer) {
-            info->last_error = QT_NO_MEMORY;
-            return info->last_error;
-          }
+        z_state.next_in = &moov_atom[0x28];
+        z_state.avail_in = top_level_atom_size - 0x28;
+        z_state.avail_out = BE_32(&moov_atom[0x24]);
+        unzip_buffer = (unsigned char *)malloc(BE_32(&moov_atom[0x24]));
+        if (!unzip_buffer) {
+          info->last_error = QT_NO_MEMORY;
+          return info->last_error;
         }
 
         z_state.next_out = unzip_buffer;
@@ -1272,14 +1262,13 @@ static int demux_qt_start (demux_plugin_t *this_gen,
       this->qt->duration / this->qt->time_scale % 60);
     if (this->qt->video_codec)
       xine_log (this->xine, XINE_LOG_FORMAT,
-        _("demux_qt: '%c%c%c%c' video @ %dx%d, %d Hz playback clock\n"),
+        _("demux_qt: '%c%c%c%c' video @ %dx%d\n"),
         (this->qt->video_codec >> 24) & 0xFF,
         (this->qt->video_codec >> 16) & 0xFF,
         (this->qt->video_codec >>  8) & 0xFF,
         (this->qt->video_codec >>  0) & 0xFF,
         this->bih.biWidth,
-        this->bih.biHeight,
-        this->qt->time_scale);
+        this->bih.biHeight);
     if (this->qt->audio_codec)
       xine_log (this->xine, XINE_LOG_FORMAT,
         _("demux_qt: '%c%c%c%c' audio @ %d Hz, %d bits, %d channel%c\n"),
