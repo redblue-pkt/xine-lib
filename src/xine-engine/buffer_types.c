@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer_types.c,v 1.50 2003/01/01 20:39:21 guenter Exp $
+ * $Id: buffer_types.c,v 1.51 2003/01/18 15:29:21 miguelfreitas Exp $
  *
  *
  * contents:
@@ -752,6 +752,13 @@ static audio_db_t audio_db[] = {
   },
   BUF_AUDIO_GSM610,
   "GSM 6.10"
+},
+{
+  {
+    0
+  },
+  BUF_AUDIO_FLAC,
+  "Free Lossless Audio Codec (FLAC)"
 },
 { { 0 }, 0, "last entry" }
 };
