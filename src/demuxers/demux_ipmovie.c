@@ -21,7 +21,7 @@
  * For more information regarding the Interplay MVE file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_ipmovie.c,v 1.1 2002/12/28 18:23:38 tmmm Exp $
+ * $Id: demux_ipmovie.c,v 1.2 2002/12/31 04:01:32 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -411,9 +411,9 @@ this->fps++;  /* above calculation usually yields 14.9; we need 15 */
         }
         j = 4;  /* offset of first palette data */
         for (i = first_color; i <= last_color; i++) {
-          this->palette[i].r = scratch[j++];
-          this->palette[i].g = scratch[j++];
-          this->palette[i].b = scratch[j++];
+          this->palette[i].r = scratch[j++] * 4;
+          this->palette[i].g = scratch[j++] * 4;
+          this->palette[i].b = scratch[j++] * 4;
         }
         break;
 
