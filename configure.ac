@@ -644,6 +644,8 @@ dnl ---------------------------------------------
 dnl Check for Sun DGA
 dnl ---------------------------------------------
 
+saved_LDFLAGS="$LDFLAGS"
+LDFLAGS="$LDFLAGS -L/usr/openwin/lib"
 saved_CPPFLAGS="$CPPFLAGS"
 CPPFLAGS="$CPPFLAGS -I/usr/openwin/include"
 AC_CHECK_LIB(dga, XDgaGrabDrawable, [
@@ -651,8 +653,9 @@ AC_CHECK_LIB(dga, XDgaGrabDrawable, [
 	        SUNDGA_CFLAGS="-I/usr/openwin/include"
 		SUNDGA_LIBS="-L/usr/openwin/lib -R/usr/openwin/lib -ldga"
 		ac_have_sundga=yes
-	], )
-], , "-L/usr/openwin/lib")
+	])
+])
+LDFLAGS="$saved_LDFLAGS"
 CPPFLAGS="$saved_CPPFLAGS"
 AM_CONDITIONAL(HAVE_SUNDGA, [test x"$ac_have_sundga" = "xyes"])
 AC_SUBST(SUNDGA_CFLAGS)

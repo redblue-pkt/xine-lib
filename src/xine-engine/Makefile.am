@@ -14,11 +14,11 @@ if !HAVE_ZLIB
 zlib_lib = $(INTERNAL_ZLIB_LIB)
 endif
 if WIN32
-dirent_lib = $(DIRENT_LIB)
-pthread_lib = $(INTERNAL_PTHREAD_LIB)
-endif
 if !HAVE_SETENV
 setenv_lib = $(SETENV_LIB)
+endif
+dirent_lib = $(DIRENT_LIB)
+pthread_lib = $(INTERNAL_PTHREAD_LIB)
 endif
 
 libxine_la_SOURCES = xine.c metronom.c configfile.c buffer.c \

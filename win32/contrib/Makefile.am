@@ -4,11 +4,10 @@ SUBDIRS = zlib pthreads
 
 noinst_HEADERS = dirent/dirent.h timer/timer.h
 
+if WIN32
 if !HAVE_SETENV
 libsetenv = libsetenv.la
 endif
-
-if WIN32
 win32libs = libtimer.la libdirent.la
 endif
 

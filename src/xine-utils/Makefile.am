@@ -28,7 +28,6 @@ libxineutils_la_SOURCES = $(pppc_files) \
 	xine_check.c \
 	xine_mutex.c \
 	xmllexer.c \
-	xmlparser.c \
 	xine_buffer.c 
 
 libxineutils_la_DEPENDENCIES = $(TIMER_LIB)
