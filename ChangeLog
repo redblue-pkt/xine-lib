@@ -3,7 +3,8 @@ xine-lib (1-beta7)
     by dvdnav being a bit ahead in the stream due to xine's fifos
   * libdvdread updated to 0.9.4
   * streaming of avi files (e.g. via http)
-
+  * experimental TiVo-like functionality using WinTV-PVR cards (pvr plugin)
+  
 xine-lib (1-beta6)
   * inform the width and height for the v4l input plugin
   * ffmpeg aspect ratio detection code fixed
