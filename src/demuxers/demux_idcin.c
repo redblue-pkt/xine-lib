@@ -63,7 +63,7 @@
  *     - if any bytes exceed 63, do not shift the bytes at all before
  *       transmitting them to the video decoder
  *
- * $Id: demux_idcin.c,v 1.35 2003/01/20 05:44:15 tmmm Exp $
+ * $Id: demux_idcin.c,v 1.36 2003/01/20 05:58:04 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -159,7 +159,7 @@ static int demux_idcin_send_chunk(demux_plugin_t *this_gen) {
   }
 
   command = le2me_32(command);
-  debug_idcin("  demux_idcin: command %X: ", command);
+  debug_idcin("  demux_idcin: command %d: ", command);
   if (command == 2) {
     debug_idcin("demux finished\n");
     this->status = DEMUX_FINISHED;
@@ -212,7 +212,7 @@ static int demux_idcin_send_chunk(demux_plugin_t *this_gen) {
   }
   remaining_sample_bytes = LE_32(&preamble[0]) - 4;
 
-  debug_idcin("  demux_idcin: dispatching %X video bytes\n",
+  debug_idcin("  demux_idcin: dispatching %d video bytes\n",
     remaining_sample_bytes);
   while (remaining_sample_bytes) {
     buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
@@ -256,7 +256,7 @@ static int demux_idcin_send_chunk(demux_plugin_t *this_gen) {
       current_audio_chunk = 1;
     }
 
-    debug_idcin("  demux_idcin: dispatching %X audio bytes\n",
+    debug_idcin("  demux_idcin: dispatching %d audio bytes\n",
       remaining_sample_bytes);
     while (remaining_sample_bytes) {
       buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
@@ -423,6 +423,8 @@ static void demux_idcin_send_headers(demux_plugin_t *this_gen) {
         (this->audio_sample_rate / 14) * this->audio_bytes_per_sample *
         this->audio_channels;
     }
+    debug_idcin("  demux_idcin: audio_chunk_size[1,2] = %d, %d\n",
+      this->audio_chunk_size1, this->audio_chunk_size2);
 
     buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
     buf->type = BUF_AUDIO_LPCM_LE;
