@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_avi.c,v 1.213 2004/12/24 17:43:36 hadess Exp $
+ * $Id: demux_avi.c,v 1.214 2004/12/25 17:52:10 f1rmb Exp $
  *
  * demultiplexer for avi streams
  *
@@ -1923,8 +1923,9 @@ static void demux_avi_send_headers (demux_plugin_t *this_gen) {
   _x_stream_info_set(this->stream, XINE_STREAM_INFO_HAS_VIDEO, 1);
   _x_stream_info_set(this->stream, XINE_STREAM_INFO_HAS_AUDIO, !this->no_audio);
   _x_meta_info_set(this->stream, XINE_META_INFO_VIDEOCODEC, _x_buf_video_name(this->avi->video_type));
-  if (!this->no_audio)
-  _x_meta_info_set(this->stream, XINE_META_INFO_AUDIOCODEC, _x_buf_audio_name(this->avi->audio[0]->audio_type));
+
+  if (this->avi->audio[0] && !this->no_audio)
+    _x_meta_info_set(this->stream, XINE_META_INFO_AUDIOCODEC, _x_buf_audio_name(this->avi->audio[0]->audio_type));
 
   /*
    * send start/header buffers
