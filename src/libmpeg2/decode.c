@@ -62,6 +62,8 @@ void mpeg2_init (mpeg2dec_t * mpeg2dec,
 
     /* initialize supstructures */
     header_state_init (mpeg2dec->picture);
+
+    output->open (output);
 }
 
 void decode_free_image_buffers (mpeg2dec_t * mpeg2dec) {
@@ -304,6 +306,8 @@ int mpeg2_decode_data (mpeg2dec_t * mpeg2dec, uint8_t * current, uint8_t * end,
     chunk_ptr = mpeg2dec->chunk_ptr;
     mpeg2dec->pts = pts;
 
+    printf ("mpeg2dec: decode_data...\n");
+
     while (current != end) {
 	while (1) {
 	    byte = *current++;
@@ -334,6 +338,9 @@ int mpeg2_decode_data (mpeg2dec_t * mpeg2dec, uint8_t * current, uint8_t * end,
 	chunk_ptr = mpeg2dec->chunk_buffer;
 	shift = 0xffffff00;
     }
+
+    printf ("mpeg2dec: decode_data finished\n");
+
     mpeg2dec->chunk_ptr = chunk_ptr;
     mpeg2dec->shift = shift;
 #ifdef ARCH_X86
@@ -356,6 +363,7 @@ void mpeg2_close (mpeg2dec_t * mpeg2dec)
 
     free (mpeg2dec->chunk_buffer);
     free (mpeg2dec->picture);
+
 }
 
 void mpeg2_skip_frames (mpeg2dec_t * mpeg2dec, int num_frames)

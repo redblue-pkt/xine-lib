@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.17 2001/05/22 13:26:06 f1rmb Exp $
+ * $Id: video_out_xv.c,v 1.18 2001/05/22 23:07:49 guenter Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -236,6 +236,8 @@ static void xv_update_frame_format (vo_driver_t *this_gen, vo_frame_t *frame_gen
   
     XUnlockDisplay (this->display); 
   }
+
+  printf ("video_out_xv: update format done\n");
 
   frame->ratio_code = ratio_code;
 }

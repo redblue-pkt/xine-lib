@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.4 2001/05/16 15:32:04 guenter Exp $
+ * $Id: video_out.c,v 1.5 2001/05/22 23:07:49 guenter Exp $
  *
  */
 
@@ -251,6 +251,7 @@ static void vo_open (vo_instance_t *this) {
   if (!this->video_loop_running) {
     this->video_loop_running = 1;
     pthread_create (&this->video_thread, NULL, video_out_loop, this) ;
+    printf ("video_out: thread created.\n");
   } else
     printf ("video_out: vo_open : warning! video thread already running\n");
 
@@ -261,6 +262,8 @@ static vo_frame_t *vo_get_frame (vo_instance_t *this,
 				 int ratio, int format, uint32_t duration) {
 
   vo_frame_t *img;
+
+  printf ("video_out: vo_get_frame\n");
 
   if (this->pts_per_frame != duration) {
     this->pts_per_frame = duration;
@@ -281,6 +284,8 @@ static vo_frame_t *vo_get_frame (vo_instance_t *this,
 
   pthread_mutex_unlock (&img->mutex);
   
+  printf ("video_out: vo_get_frame done\n");
+
   return img;
 }
 
