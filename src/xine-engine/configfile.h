@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: configfile.h,v 1.10 2002/04/27 23:00:40 cvogler Exp $
+ * $Id: configfile.h,v 1.11 2002/06/17 07:47:50 f1rmb Exp $
  *
  * config file management
  *
@@ -190,6 +190,7 @@ struct config_values_s {
  * (if it exists)
  */
 config_values_t *xine_config_file_init (char *filename);
+int config_file_change_opt(config_values_t *config, char *opt);
 
 #ifdef __cplusplus
 }
@@ -199,6 +200,10 @@ config_values_t *xine_config_file_init (char *filename);
 
 /*
  * $Log: configfile.h,v $
+ * Revision 1.11  2002/06/17 07:47:50  f1rmb
+ * Add Siggi's idea about option config change on the fly. New "mrl style"
+ * opt:key=value. I hope i haven't introduced races here.
+ *
  * Revision 1.10  2002/04/27 23:00:40  cvogler
  * Add function to unregister configfile callback.
  *

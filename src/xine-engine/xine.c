@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.140 2002/06/12 12:22:38 f1rmb Exp $
+ * $Id: xine.c,v 1.141 2002/06/17 07:47:50 f1rmb Exp $
  *
  * top-level xine functions
  *
@@ -384,6 +384,19 @@ int xine_play_internal (xine_t *this, char *mrl,
     this->status = XINE_STOP;
   }
 
+  /* Is it an 'opt:' mrlstyle ? */ 
+  if(config_file_change_opt(this->config, mrl)) {
+    xine_event_t event;
+    
+    this->status = XINE_STOP;
+    
+    event.type = XINE_EVENT_PLAYBACK_FINISHED;
+    pthread_mutex_unlock (&this->xine_lock);
+    xine_send_event (this, &event);
+    pthread_mutex_lock (&this->xine_lock);
+    return 1;
+  }
+  
   if (this->status == XINE_STOP ) {
     /*
      * find input plugin

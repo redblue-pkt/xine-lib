@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: configfile.c,v 1.22 2002/04/29 23:32:00 jcdutton Exp $
+ * $Id: configfile.c,v 1.23 2002/06/17 07:47:50 f1rmb Exp $
  *
  * config file management - implementation
  *
@@ -665,8 +665,61 @@ config_values_t *xine_config_file_init (char *filename) {
 }
 
 
+int config_file_change_opt(config_values_t *config, char *opt) {
+  cfg_entry_t *entry;
+  int          handled = 0;
+  
+  if(config && opt && (!strncasecmp(opt, "opt:", 4))) {
+    char *optsafe;
+    char *key, *value;
+
+    xine_strdupa(optsafe, opt);
+    key = &optsafe[4];
+    value = strrchr(optsafe, '=');    
+
+    if(key && strlen(key) && value && strlen(value)) {
+      
+      *value++ = '\0';
+
+      entry = config->lookup_entry(config, key);
+      
+      if(entry) {
+
+	switch(entry->type) {
+	  
+	case CONFIG_TYPE_STRING:
+	  config->update_string(config, key, value);
+	  handled = 1;
+	  break;
+	  
+	case CONFIG_TYPE_RANGE:
+	case CONFIG_TYPE_ENUM:
+	case CONFIG_TYPE_NUM:
+	case CONFIG_TYPE_BOOL:
+	  config->update_num(config, key, (atoi(value)));
+	  handled = 1;
+	  break;
+	  
+	case CONFIG_TYPE_UNKNOWN:
+#if LOG
+	  printf("configfile: change_opt() try to update an CONFIG_TYPE_UNKNOWN entry\n");
+#endif
+	  break;
+
+	}
+      }
+    }
+  }
+  
+  return handled;
+}
+
 /*
  * $Log: configfile.c,v $
+ * Revision 1.23  2002/06/17 07:47:50  f1rmb
+ * Add Siggi's idea about option config change on the fly. New "mrl style"
+ * opt:key=value. I hope i haven't introduced races here.
+ *
  * Revision 1.22  2002/04/29 23:32:00  jcdutton
  * Replace all exit(1) with abort().
  * xine-lib should really never do an exit or abort, but instead pass back nice error values to the calling application, but until that happens, use abort() as that is tracable with gdb, whereas exit(1) is not backtraceable.
