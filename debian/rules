@@ -79,6 +79,7 @@ binary-arch: build install
 	dh_makeshlibs
 	dh_installdeb
 #	dh_shlibdeps
+	chmod +x debian/shlibdeps.sh
 	debian/shlibdeps.sh libxine${major}
 	dh_gencontrol
 	dh_md5sums
