@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decoder.c,v 1.31 2001/11/10 19:15:50 mlampard Exp $
+ * $Id: dxr3_decoder.c,v 1.32 2001/11/14 15:17:01 mlampard Exp $
  *
  * dxr3 video and spu decoder plugin. Accepts the video and spu data
  * from XINE and sends it directly to the corresponding dxr3 devices.
@@ -323,6 +323,14 @@ static void find_aspect(dxr3_decoder_t *this, uint8_t * buffer)
 	}
 }
 
+static void dxr3_flush (video_decoder_t *this_gen) 
+{
+	dxr3_decoder_t *this = (dxr3_decoder_t *) this_gen;
+	puts("DXR3 Flushing!!");
+	dxr3_mvcommand(this->fd_control, 0x11);
+
+}
+
 static void dxr3_decode_data (video_decoder_t *this_gen, buf_element_t *buf)
 {
 	dxr3_decoder_t *this = (dxr3_decoder_t *) this_gen;
@@ -401,7 +409,7 @@ video_decoder_t *init_video_decoder_plugin (int iface_version,
 {
 	dxr3_decoder_t *this ;
 
-	if (iface_version != 2) {
+	if (iface_version != 3) {
 		printf( "dxr3: plugin doesn't support plugin API version %d.\n"
 		 "dxr3: this means there's a version mismatch between xine and this\n"
 		 "dxr3: decoder plugin. Installing current plugins should help.\n",
@@ -415,18 +423,19 @@ video_decoder_t *init_video_decoder_plugin (int iface_version,
 
 	this = (dxr3_decoder_t *) malloc (sizeof (dxr3_decoder_t));
 
-	this->video_decoder.interface_version   = 2;
+	this->video_decoder.interface_version   = 3;
 	this->video_decoder.can_handle          = dxr3_can_handle;
 	this->video_decoder.init                = dxr3_init;
 	this->video_decoder.decode_data         = dxr3_decode_data;
 	this->video_decoder.close               = dxr3_close;
 	this->video_decoder.get_identifier      = dxr3_get_id;
+	this->video_decoder.flush		= dxr3_flush;
 	this->video_decoder.priority            = 10;
 
-/* FIXME:	this->scr_prio = cfg->lookup_int(cfg, "dxr3_scr_prio", 10); */
+	this->scr_prio = cfg->lookup_int(cfg, "dxr3_scr_prio", 10); 
 /* temporarily force the dxr3 to be master - otherwise the plugin locks
    whenever there is an audio disconuity... still does sometimes :( */
-        this->scr_prio = 20;
+//FIXME        this->scr_prio = 20;
         
 	this->enhanced_mode = cfg->lookup_int(cfg,"dxr3_buffer_mode", 0);
 	if(this->enhanced_mode)
