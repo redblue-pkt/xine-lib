@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.90 2003/07/12 20:31:49 miguelfreitas Exp $
+ * $Id: xine.h.in,v 1.91 2003/08/04 02:07:26 miguelfreitas Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -371,6 +371,12 @@ int  xine_get_current_frame (xine_stream_t *stream,
 /* xine image formats */
 #define XINE_IMGFMT_YV12 (('2'<<24)|('1'<<16)|('V'<<8)|'Y')
 #define XINE_IMGFMT_YUY2 (('2'<<24)|('Y'<<16)|('U'<<8)|'Y')
+
+/* get current xine's virtual presentation timestamp (1/90000 sec)
+ * note: this is mostly internal data.
+ * one can use vpts with xine_osd_show() and xine_osd_hide().
+ */
+int64_t xine_get_current_vpts(xine_stream_t *stream);
 
 
 /*********************************************************************
