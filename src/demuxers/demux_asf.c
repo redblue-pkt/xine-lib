@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.153 2004/03/28 20:00:46 tmattern Exp $
+ * $Id: demux_asf.c,v 1.154 2004/04/02 06:52:39 tmattern Exp $
  *
  * demultiplexer for asf streams
  *
@@ -977,16 +977,10 @@ static void asf_send_buffer_defrag (demux_asf_t *this, asf_stream_t *stream,
 }
 
 /* return 0 if ok */
-static int asf_parse_packet_header(demux_asf_t *this) {
+static int asf_parse_packet_align(demux_asf_t *this) {
 
-  int64_t   timestamp;
-  int64_t   duration;
-  uint8_t   ecd_flags;
-  uint8_t   buf[16];
-  uint32_t  p_hdr_size;
-  int       invalid_packet;
   uint64_t  current_pos, packet_pos;
-  uint32_t  mod, rsize;
+  uint32_t  mod;
 
   /* seek to the beginning of the next packet */
   current_pos = this->input->get_current_pos (this->input);
@@ -1001,9 +995,20 @@ static int asf_parse_packet_header(demux_asf_t *this) {
     }
   }
   this->packet_size_left = 0;
+  
+  return 0;
+}
+
+/* return 0 if ok */
+static int asf_parse_packet_ecd(demux_asf_t *this, uint32_t  *p_hdr_size) {
+
+  uint8_t   ecd_flags;
+  uint8_t   buf[16];
+  int       invalid_packet;
+  uint32_t  rsize;
 
   do {
-    ecd_flags = get_byte(this); p_hdr_size = 1;
+    ecd_flags = get_byte(this); *p_hdr_size = 1;
     if (this->status == DEMUX_FINISHED)
       return 1;
     invalid_packet = 0;
@@ -1035,18 +1040,27 @@ static int asf_parse_packet_header(demux_asf_t *this) {
           this->status = DEMUX_FINISHED;
           return 1;
         }
-        p_hdr_size += rsize;
+        *p_hdr_size += rsize;
       }
 
       if (ecd_flags & 0x70) {
         /* skip invalid packet */
         lprintf("skip invalid packet: %d\n", ecd_flags);
 
-        this->input->seek (this->input, this->packet_size - p_hdr_size, SEEK_CUR);
+        this->input->seek (this->input, this->packet_size - *p_hdr_size, SEEK_CUR);
         invalid_packet = 1;
       }
     }
   } while (invalid_packet);
+  
+  return 0;
+}
+
+/* return 0 if ok */
+static int asf_parse_packet_payload_header(demux_asf_t *this, uint32_t p_hdr_size) {
+
+  int64_t   timestamp;
+  int64_t   duration;
 
   this->packet_flags = get_byte(this);  p_hdr_size += 1;
   this->segtype = get_byte(this);  p_hdr_size += 1;
@@ -1151,19 +1165,20 @@ static int asf_parse_packet_payload_common(demux_asf_t *this,
       *stream = &this->streams[i];
       break;
     }
-
-#ifdef LOG
-    /* display "control stream" content */
-    if (stream_id == this->control_stream_id) {
-      printf("demux_asf: Control Stream : begin\n");
-      for (i = 0; i < (this->packet_size_left - s_hdr_size); i++){
-        printf("%c", get_byte(this));
-      }
-      printf("\ndemux_asf: Control Stream : end\n");
-      return 1;
-    }
-#endif
   }
+#ifdef LOG
+  /* display "control stream" content */
+  if (stream_id && (stream_id == this->control_stream_id)) {
+    printf("demux_asf: Control Stream : begin\n");
+    for (i = 0; i < (this->packet_size_left - s_hdr_size); i++){
+      printf("%c", get_byte(this));
+    }
+    printf("\ndemux_asf: Control Stream : end\n");
+    return 1;
+  }
+#endif
+  if (*stream == NULL)
+    return 1;
   
   switch ((this->segtype >> 4) & 3){
   case 1:
@@ -1187,9 +1202,9 @@ static int asf_parse_packet_payload_common(demux_asf_t *this,
   }
 
   /* check seq number */
-  lprintf ("stream_id = %d, seq = %d\n", (*stream)->stream_id, *seq);
 
   if (*stream) {
+    lprintf ("stream_id = %d, seq = %d\n", (*stream)->stream_id, *seq);
     if ((*stream)->first_seq || (*stream)->skip) {
       exp_seq = *seq;
       (*stream)->first_seq = 0;
@@ -1199,7 +1214,7 @@ static int asf_parse_packet_payload_common(demux_asf_t *this,
     }
     if (exp_seq != *seq) {
       xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
-	       "demux_asf: bad seq: seq = %d, expected = %d, stream seq = %d!\n", *seq, exp_seq, (*stream)->seq);
+        "demux_asf: bad seq: seq = %d, expected = %d, stream seq = %d!\n", *seq, exp_seq, (*stream)->seq);
 
       /* the stream is corrupted, reset the decoder and restart at a new keyframe */
       if ((*stream)->fifo) {
@@ -1255,17 +1270,15 @@ static int asf_parse_packet_payload_common(demux_asf_t *this,
 }
 
 /* return 0 if ok */
-static int asf_parse_packet_payload_single(demux_asf_t *this,
-                                           asf_stream_t  *stream,
-                                           uint8_t raw_id,
-                                           uint32_t frag_offset,
-                                           uint32_t seq,
-                                           int64_t *timestamp) {
+static int asf_parse_packet_compressed_payload(demux_asf_t *this,
+                                               asf_stream_t  *stream,
+                                               uint8_t raw_id,
+                                               uint32_t frag_offset,
+                                               uint32_t seq,
+                                               int64_t *timestamp) {
   uint32_t s_hdr_size = 0;
   uint32_t data_length = 0;
   uint32_t data_sent = 0;
-
-  lprintf ("asf_parse_packet_payload_single\n");
 
   *timestamp = frag_offset;
   if (*timestamp)
@@ -1288,12 +1301,12 @@ static int asf_parse_packet_payload_single(demux_asf_t *this,
         data_length = get_le16(this); s_hdr_size += 2;
     }
 
-    lprintf ("reading grouping part segment, size = %d\n", data_length);
+    lprintf ("reading multiple payload, size = %d\n", data_length);
 
   } else {
     data_length = this->packet_size_left - s_hdr_size;
 
-    lprintf ("reading grouping single segment, size = %d\n", data_length);
+    lprintf ("reading single payload, size = %d\n", data_length);
   }
 
   if (data_length > this->packet_size_left) {
@@ -1352,28 +1365,25 @@ static int asf_parse_packet_payload_single(demux_asf_t *this,
 }
 
 /* return 0 if ok */
-static int asf_parse_packet_payload_multiple(demux_asf_t *this,
-                                             asf_stream_t *stream,
-                                             uint8_t raw_id,
-                                             uint32_t frag_offset,
-                                             uint32_t rlen,
-                                             uint32_t seq,
-                                             int64_t *timestamp) {
+static int asf_parse_packet_payload(demux_asf_t *this,
+                                    asf_stream_t *stream,
+                                    uint8_t raw_id,
+                                    uint32_t frag_offset,
+                                    uint32_t rlen,
+                                    uint32_t seq,
+                                    int64_t *timestamp) {
   uint32_t s_hdr_size = 0;
   uint32_t payload_size, frag_len;
-
-  lprintf ("asf_parse_packet_payload_multiple\n");
 
   if (rlen >= 8) {
     payload_size  = get_le32(this); s_hdr_size += 4;
     *timestamp    = get_le32(this); s_hdr_size += 4;
     if (*timestamp)
-	    *timestamp -= this->preroll;
-	    
+      *timestamp -= this->preroll;
+    
     if (rlen - 8) this->input->seek (this->input, rlen - 8, SEEK_CUR);
     s_hdr_size += rlen - 8;
   } else {
-    xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "demux_asf: strange rlen %d\n", rlen);
     *timestamp   = 0;
     payload_size = 0;
     if (rlen) this->input->seek (this->input, rlen, SEEK_CUR);
@@ -1394,11 +1404,11 @@ static int asf_parse_packet_payload_multiple(demux_asf_t *this,
         frag_len = get_le16(this); s_hdr_size += 2;
     }
 
-    lprintf ("reading part segment, size = %d\n", frag_len);
+    lprintf ("reading multiple payload, size = %d\n", frag_len);
   } else {
     frag_len = this->packet_size_left - s_hdr_size;
 
-    lprintf ("reading single segment, size = %d\n", frag_len);
+    lprintf ("reading single payload, size = %d\n", frag_len);
   }
 
   if (frag_len > this->packet_size_left) {
@@ -1756,10 +1766,21 @@ static int demux_asf_send_chunk (demux_plugin_t *this_gen) {
       return this->status;
 
     default:
+    {    
+      int header_size = 0;
     
-    
-      if (asf_parse_packet_header(this)) {
-        xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "demux_asf: get_packet failed\n");
+      if (asf_parse_packet_align(this)) {
+        xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "demux_asf: asf_parse_packet_align failed\n");
+        this->status = DEMUX_FINISHED;
+        return this->status;
+      }
+      if (asf_parse_packet_ecd(this, &header_size)) {
+        xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "demux_asf: asf_parse_packet_ecd failed\n");
+        this->status = DEMUX_FINISHED;
+        return this->status;
+      }
+      if (asf_parse_packet_payload_header(this, header_size)) {
+        xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "demux_asf: asf_parse_packet_header failed\n");
         this->status = DEMUX_FINISHED;
         return this->status;
       }
@@ -1770,14 +1791,15 @@ static int demux_asf_send_chunk (demux_plugin_t *this_gen) {
         if (asf_parse_packet_payload_common(this, raw_id, &stream, &frag_offset, &rlen, &seq))
           break;
         if (rlen == 1) {
-          if (asf_parse_packet_payload_single(this, stream, raw_id, frag_offset, seq, &ts))
+          if (asf_parse_packet_compressed_payload(this, stream, raw_id, frag_offset, seq, &ts))
             break;
         } else {
-          if (asf_parse_packet_payload_multiple(this, stream, raw_id, frag_offset, rlen, seq, &ts))
+          if (asf_parse_packet_payload(this, stream, raw_id, frag_offset, rlen, seq, &ts))
             break;
         }
       }
       return this->status;
+    }
   }
 }
 
@@ -1913,7 +1935,9 @@ static int demux_asf_seek (demux_plugin_t *this_gen,
     this->streams[this->audio_stream].resync = 0;
     
     start_pos -= (start_pos - this->first_packet_pos) % this->packet_size;
-    while ((start_pos >= this->first_packet_pos) && (state != 5)){
+    while ((start_pos >= this->first_packet_pos) && (state != 5)) {
+      int header_size;
+    
       /* seek to the beginning of the previous packet */
       lprintf ("demux_asf_seek: seek back\n");
 
@@ -1921,10 +1945,16 @@ static int demux_asf_seek (demux_plugin_t *this_gen,
         xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "demux_asf: demux_asf_seek: seek failed\n");
         goto error;
       }
-  
-      if (asf_parse_packet_header(this)) {
-        xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "demux_asf: demux_asf_seek: get_packet failed\n");
-        goto error;
+      header_size = 0;
+      if (asf_parse_packet_ecd(this, &header_size)) {
+        xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "demux_asf: asf_parse_packet_ecd failed\n");
+        this->status = DEMUX_FINISHED;
+        return this->status;
+      }
+      if (asf_parse_packet_payload_header(this, header_size)) {
+        xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "demux_asf: asf_parse_packet_header failed\n");
+        this->status = DEMUX_FINISHED;
+        return this->status;
       }
       
       for (this->frame = 0; this->frame < (this->nb_frames & 0x3f); this->frame++) {
@@ -1937,10 +1967,10 @@ static int demux_asf_seek (demux_plugin_t *this_gen,
           break;
         
         if (rlen == 1) {
-          if (asf_parse_packet_payload_single(this, stream, raw_id, frag_offset, seq, &ts))
+          if (asf_parse_packet_compressed_payload(this, stream, raw_id, frag_offset, seq, &ts))
             break;
         } else {
-          if (asf_parse_packet_payload_multiple(this, stream, raw_id, frag_offset, rlen, seq, &ts))
+          if (asf_parse_packet_payload(this, stream, raw_id, frag_offset, rlen, seq, &ts))
             break;
         }
         
