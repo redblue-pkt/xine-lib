@@ -37,6 +37,14 @@ Assigned tasks
   James Courtier-Dutton, 
   Rich Wareham
 
+- aalib output
+
+  Heiko, Guenter
+
+- port over from OMS / implement a Mpeg Transport Stream demultiplexer
+
+  Paul Flinders, Chris Atenasio
+
 Open Tasks
 ==========
 
@@ -44,8 +52,6 @@ Open Tasks
 - fix the subtitle decoder
 - a qt/kde gui
 - an OpenDivX decoder plugin (should be very easy)
-- port over from OMS / implement a Mpeg Transport Stream demultiplexer
-- an aalib video output plugin (coolness factor: +10! ;))
 - SDL based video and audio output plugins
   I've seen patches about this before but with the monolitic xine
   this would have ment xine to become SDL-dependant. But now,
@@ -61,4 +67,7 @@ Open Tasks
   (mainly additions) to come
 - port to other OS (Free/Net/OpenBSD, IRIX, Solaris, Win32 ...?)
 - deinterlace filters
+
+
+
 
