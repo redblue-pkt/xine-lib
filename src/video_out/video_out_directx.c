@@ -20,7 +20,7 @@
  * video_out_directx.c, direct draw video output plugin for xine
  * by Matthew Grooms <elon@altavista.com>
  *
- * $Id: video_out_directx.c,v 1.16 2004/01/03 20:23:19 valtri Exp $
+ * $Id: video_out_directx.c,v 1.17 2004/05/02 19:40:47 mroi Exp $
  */
 
 typedef unsigned char boolean;
@@ -122,7 +122,6 @@ typedef struct {
 typedef struct {
   video_driver_class_t     driver_class;
   config_values_t         *config;
-  char                    *device_name;
   xine_t                  *xine;
 } directx_class_t;
 
@@ -1227,26 +1226,7 @@ static void dispose_class (video_driver_class_t *this_gen) {
 static void *init_class (xine_t *xine, void *visual_gen) {
 
   directx_class_t    *directx;
-  char*               device_name;
-#ifdef TC
-  int                 fd;
-#endif
-
-  device_name = xine->config->register_string(xine->config,
-					      "video.directx_device", "/dev/directx",
-					      _("xine video output plugin for win32 using directx"), 
-					      NULL, 10, NULL, NULL);
-
-#ifdef TC
-  /* check for directx device */
-  if((fd = open(device_name, O_RDWR)) < 0) {
-    xprintf(xine, XINE_VERBOSITY_DEBUG, 
-	    "video_out_directx: aborting. (unable to open directx device \"%s\")\n", device_name);
-    return NULL;
-  }
-  close(fd);
-#endif
-    
+  
   /*
    * from this point on, nothing should go wrong anymore
    */
@@ -1259,7 +1239,6 @@ static void *init_class (xine_t *xine, void *visual_gen) {
 
   directx->xine                         = xine;
   directx->config                       = xine->config;
-  directx->device_name                  = device_name;
   
   return directx;
 }
