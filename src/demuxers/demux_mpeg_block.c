@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.96 2002/04/29 23:31:59 jcdutton Exp $
+ * $Id: demux_mpeg_block.c,v 1.97 2002/05/01 13:30:39 miguelfreitas Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -869,6 +869,29 @@ static int demux_mpeg_block_get_status (demux_plugin_t *this_gen) {
   return this->status;
 }
 
+static int demux_mpeg_detect_blocksize(demux_mpeg_block_t *this, 
+				       input_plugin_t *input)
+{
+  input->seek(input, 2048, SEEK_SET);
+  if (!input->read(input, this->scratch, 4))
+    return 0;
+
+  if (this->scratch[0] || this->scratch[1]
+      || (this->scratch[2] != 0x01) || (this->scratch[3] != 0xba)) {
+
+    input->seek(input, 2324, SEEK_SET);
+    if (!input->read(input, this->scratch, 4))
+      return 0;
+    if (this->scratch[0] || this->scratch[1] 
+        || (this->scratch[2] != 0x01) || (this->scratch[3] != 0xba)) 
+      return 0;
+     
+    return 2324;
+  } else
+    return 2048;
+}
+
+
 static void demux_mpeg_block_start (demux_plugin_t *this_gen,
 				    fifo_buffer_t *video_fifo,
 				    fifo_buffer_t *audio_fifo,
@@ -883,97 +906,110 @@ static void demux_mpeg_block_start (demux_plugin_t *this_gen,
   this->video_fifo  = video_fifo;
   this->audio_fifo  = audio_fifo;
 
-  if( this->status != DEMUX_OK ) {
-    /* 
-     * send start buffer
+  if((this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) != 0) {
+    if (!this->blocksize)
+      this->blocksize = demux_mpeg_detect_blocksize( this, this->input );
+  }
+  
+  if( this->blocksize ) {
+  
+    if( this->status != DEMUX_OK ) {
+      /* 
+       * send start buffer
+       */
+
+      buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
+      buf->type    = BUF_CONTROL_START;
+      this->video_fifo->put (this->video_fifo, buf);
+
+      if(this->audio_fifo) {
+        buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
+        buf->type    = BUF_CONTROL_START;
+        this->audio_fifo->put (this->audio_fifo, buf);
+      }
+
+      if (!this->rate)
+        this->rate = demux_mpeg_block_estimate_rate (this);
+
+      this->last_scr         = 0;
+      this->nav_last_end_pts = 0;
+      this->ignore_scr_discont = 0;
+
+      if((this->input->get_capabilities(this->input) & INPUT_CAP_PREVIEW) != 0) {
+
+        int num_buffers = NUM_PREVIEW_BUFFERS;
+
+        this->input->seek (this->input, 0, SEEK_SET);
+
+        this->status = DEMUX_OK ;
+        while ( (num_buffers>0) && (this->status == DEMUX_OK) ) {
+   
+          demux_mpeg_block_parse_pack(this, 1);
+          num_buffers --;
+        }
+      }
+      this->status = DEMUX_FINISHED;
+    }
+  
+    if((this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) != 0) {
+    
+      if (start_pos) {
+        start_pos /= (off_t) this->blocksize;
+        start_pos *= (off_t) this->blocksize;
+  
+        this->input->seek (this->input, start_pos, SEEK_SET);
+      } else if (start_time) {
+        start_pos = start_time * this->rate * 50;
+        start_pos /= (off_t) this->blocksize;
+        start_pos *= (off_t) this->blocksize;
+
+        this->input->seek (this->input, start_pos, SEEK_SET);
+      } else
+        this->input->seek (this->input, 0, SEEK_SET);
+    }
+
+    /*
+     * query CLUT from the input plugin
      */
 
     buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-    buf->type    = BUF_CONTROL_START;
-    this->video_fifo->put (this->video_fifo, buf);
 
-    if(this->audio_fifo) {
-      buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
-      buf->type    = BUF_CONTROL_START;
-      this->audio_fifo->put (this->audio_fifo, buf);
+    if ((this->input->get_capabilities(this->input) & INPUT_CAP_CLUT) &&
+        ((this->input->get_optional_data(this->input, buf->mem, INPUT_OPTIONAL_DATA_CLUT)
+         == INPUT_OPTIONAL_SUCCESS))) {
+      buf->type = BUF_SPU_CLUT;
+      buf->content = buf->mem;
+     
+      this->video_fifo->put(this->video_fifo, buf);
+    } else {
+      buf->free_buffer(buf);
     }
 
-    if (!this->rate)
-      this->rate = demux_mpeg_block_estimate_rate (this);
+    /*
+     * now start demuxing
+     */
+    
+    if( this->status != DEMUX_OK ) {
+    
+      this->status   = DEMUX_OK ;
+      this->last_scr = 0;
+      this->nav_last_end_pts = 0;
+      this->ignore_scr_discont = 0;
 
-    this->last_scr         = 0;
-    this->nav_last_end_pts = 0;
-    this->ignore_scr_discont = 0;
-
-    if((this->input->get_capabilities(this->input) & INPUT_CAP_PREVIEW) != 0) {
-
-      int num_buffers = NUM_PREVIEW_BUFFERS;
-
-      this->input->seek (this->input, 0, SEEK_SET);
-
-      this->status = DEMUX_OK ;
-      while ( (num_buffers>0) && (this->status == DEMUX_OK) ) {
-
-        demux_mpeg_block_parse_pack(this, 1);
-        num_buffers --;
+      if ((err = pthread_create (&this->thread,
+			     NULL, demux_mpeg_block_loop, this)) != 0) {
+        printf ("demux_mpeg_block: can't create new thread (%s)\n",
+	      strerror(err));
+        abort();
       }
     }
-    this->status = DEMUX_FINISHED;
-  }
-  
-  if((this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) != 0) {
-    if (start_pos) {
-      start_pos /= (off_t) this->blocksize;
-      start_pos *= (off_t) this->blocksize;
-
-      this->input->seek (this->input, start_pos, SEEK_SET);
-    } else if (start_time) {
-      start_pos = start_time * this->rate * 50;
-      start_pos /= (off_t) this->blocksize;
-      start_pos *= (off_t) this->blocksize;
-
-      this->input->seek (this->input, start_pos, SEEK_SET);
-    } else
-      this->input->seek (this->input, 0, SEEK_SET);
-  }
-
-  /*
-   * query CLUT from the input plugin
-   */
-
-  buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-
-  if ((this->input->get_capabilities(this->input) & INPUT_CAP_CLUT) &&
-      ((this->input->get_optional_data(this->input, buf->mem, INPUT_OPTIONAL_DATA_CLUT)
-	== INPUT_OPTIONAL_SUCCESS))) {
-    buf->type = BUF_SPU_CLUT;
-    buf->content = buf->mem;
-    
-    this->video_fifo->put(this->video_fifo, buf);
-  } else {
-    buf->free_buffer(buf);
-  }
-
-  /*
-   * now start demuxing
-   */
-
-  if( this->status != DEMUX_OK )
-  {
-    this->status   = DEMUX_OK ;
-    this->last_scr = 0;
-    this->nav_last_end_pts = 0;
-    this->ignore_scr_discont = 0;
-
-    if ((err = pthread_create (&this->thread,
-			     NULL, demux_mpeg_block_loop, this)) != 0) {
-      printf ("demux_mpeg_block: can't create new thread (%s)\n",
-	      strerror(err));
-      abort();
+    else {
+      xine_flush_engine(this->xine);
     }
   }
   else {
-    xine_flush_engine(this->xine);
+    printf("demux_mpeg_block: unknown block size. try using demux_mpeg.\n");
+    this->status   = DEMUX_FINISHED ;
   }
   pthread_mutex_unlock( &this->mutex );
 }
@@ -1020,27 +1056,11 @@ static int demux_mpeg_block_open(demux_plugin_t *this_gen,
 
       this->blocksize = input->get_blocksize(input);
 
-      if (!this->blocksize) {
+      if (!this->blocksize)
+        this->blocksize = demux_mpeg_detect_blocksize( this, input );
 
-	/* detect blocksize */
-	input->seek(input, 2048, SEEK_SET);
-	if (!input->read(input, this->scratch, 4))
-	  return DEMUX_CANNOT_HANDLE;
-
-	if (this->scratch[0] || this->scratch[1]
-	    || (this->scratch[2] != 0x01) || (this->scratch[3] != 0xba)) {
-
-	  input->seek(input, 2324, SEEK_SET);
-	  if (!input->read(input, this->scratch, 4))
-	    return DEMUX_CANNOT_HANDLE;
-	  if (this->scratch[0] || this->scratch[1] 
-	      || (this->scratch[2] != 0x01) || (this->scratch[3] != 0xba)) 
-	    return DEMUX_CANNOT_HANDLE;
-	  this->blocksize = 2324;
-	  
-	} else
-	  this->blocksize = 2048;
-      }
+      if (!this->blocksize)
+        return DEMUX_CANNOT_HANDLE;
 
       input->seek(input, 0, SEEK_SET);
       if (input->read(input, this->scratch, this->blocksize)) {
@@ -1118,7 +1138,7 @@ static int demux_mpeg_block_open(demux_plugin_t *this_gen,
       while(*m == ' ' || *m == '\t') m++;
 
       if(!strcasecmp((ending + 1), m)) {
-	this->blocksize = 2048;
+	this->blocksize = 0;
 	demux_mpeg_block_accept_input (this, input);	  
 	return DEMUX_CAN_HANDLE;
       }
