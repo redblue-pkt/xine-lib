@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_elem.c,v 1.69 2003/04/26 20:16:00 guenter Exp $
+ * $Id: demux_elem.c,v 1.70 2003/05/19 20:24:14 tmattern Exp $
  *
  * demultiplexer for elementary mpeg streams
  * 
@@ -84,30 +84,28 @@ static int demux_mpeg_elem_next (demux_mpeg_elem_t *this, int preview_mode) {
   printf ("demux_elem: next piece\n");
 #endif
 
-  buf = this->video_fifo->buffer_pool_alloc(this->video_fifo);
-  buf->content = buf->mem;
-  buf->type = BUF_DEMUX_BLOCK;
+  buf = this->input->read_block(this->input, this->video_fifo, this->blocksize);
+  n = buf->size;
 
-  n = this->input->read (this->input, buf->mem, this->blocksize);
-
-  if (n<=0) {
+#ifdef LOG
+  printf ("demux_elem: n = %d\n", n);
+#endif
+  if (!buf || (n <= 0)) {
     buf->free_buffer (buf);
     this->status = DEMUX_FINISHED;
     return 0;
   }
 
-  buf->size = n;
-
-  buf->pts             = 0;
-  buf->extra_info->input_pos       = this->input->get_current_pos(this->input);
-  buf->type            = BUF_VIDEO_MPEG;
+  buf->pts                   = 0;
+  buf->extra_info->input_pos = this->input->get_current_pos(this->input);
+  buf->type                  = BUF_VIDEO_MPEG;
 
   if (preview_mode)
     buf->decoder_flags = BUF_FLAG_PREVIEW;
 
   this->video_fifo->put(this->video_fifo, buf);
   
-  return buf->size>0;
+  return (buf->size > 0);
 }
 
 static int demux_mpeg_elem_send_chunk (demux_plugin_t *this_gen) {
@@ -168,13 +166,16 @@ static int demux_mpeg_elem_seek (demux_plugin_t *this_gen,
     xine_demux_flush_engine(this->stream);
   
   if ((this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) != 0) {
-  
+	  
     /* FIXME: implement time seek */
 
-    this->input->seek (this->input, start_pos, SEEK_SET);
+    if (start_pos != this->input->seek (this->input, start_pos, SEEK_SET)) {
+      this->status = DEMUX_FINISHED;
+      return this->status;
+	}
 
 #ifdef LOG
-    printf ("demux_elem: seeking to %d\n", start_pos);
+    printf ("demux_elem: seeking to %lld\n", start_pos);
 #endif
   }
   
@@ -210,6 +211,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   input_plugin_t *input = (input_plugin_t *) input_gen;
   demux_mpeg_elem_t *this;
 
+  assert(input);
   this         = xine_xmalloc (sizeof (demux_mpeg_elem_t));
   this->stream = stream;
   this->input  = input;
@@ -231,44 +233,18 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   switch (stream->content_detection_method) {
 
   case METHOD_BY_CONTENT: {
-    int got_sample;
-    int bs = 4;
-    
-    if(!input) {
-      free (this);
+    uint8_t *scratch = this->scratch;
+
+    if (!xine_demux_read_header(this->input, scratch, 4))
       return NULL;
-    }
-
-    got_sample = 0;
-  
-    if ((input->get_capabilities(input) & INPUT_CAP_SEEKABLE) != 0) {
-      input->seek(input, 0, SEEK_SET);
-
-      bs = input->get_blocksize(input);
-
-      if (bs<4)
-	bs = 4;
-
-      if (input->read(input, this->scratch, bs) == bs) 
-	got_sample = 1;
-    } else if ((input->get_capabilities(input) & INPUT_CAP_PREVIEW) != 0) {
-      input->get_optional_data (input, this->scratch, INPUT_OPTIONAL_DATA_PREVIEW);
-      got_sample = 1;
-    }
-
-    if (!got_sample) {
-      free (this);
-      return NULL;
-    }
-
+		
 #ifdef LOG	
-    printf ("demux_elem: %02x %02x %02x %02x (bs=%d)\n",
-	    this->scratch[0], this->scratch[1], 
-	    this->scratch[2], this->scratch[3], bs);
+    printf ("demux_elem: %02x %02x %02x %02x\n",
+            scratch[0], scratch[1], 
+            scratch[2], scratch[3]);
 #endif
 	
-    if (this->scratch[0] || this->scratch[1] 
-	|| (this->scratch[2] != 0x01) || (this->scratch[3] != 0xb3)) {
+    if (scratch[0] || scratch[1] || (scratch[2] != 0x01) || (scratch[3] != 0xb3)) {
       free (this);
       return NULL;
     }
