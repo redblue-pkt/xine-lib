@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.13 2004/04/19 21:03:02 jstembridge Exp $
+ * $Id: video_decoder.c,v 1.14 2004/04/19 21:18:01 jstembridge Exp $
  *
  * xine video decoder plugin using ffmpeg
  *
@@ -61,7 +61,8 @@ typedef struct ff_video_decoder_s ff_video_decoder_t;
 typedef struct ff_video_class_s {
   video_decoder_class_t   decoder_class;
 
-  ff_video_decoder_t     *ip;
+  int                     pp_quality;
+  
   xine_t                 *xine;
 } ff_video_class_t;
 
@@ -88,7 +89,6 @@ struct ff_video_decoder_s {
   
   int                pp_available;
   int                pp_quality;
-  int                pp_quality_changed;
   int                pp_flags;
   pp_context_t      *pp_context;
   pp_mode_t         *pp_mode;
@@ -263,17 +263,12 @@ static void init_video_codec (ff_video_decoder_t *this, xine_bmiheader *bih) {
 static void pp_quality_cb(void *user_data, xine_cfg_entry_t *entry) {
   ff_video_class_t   *class = (ff_video_class_t *) user_data;
   
-  if(class->ip) {
-    ff_video_decoder_t *this  = class->ip;
-    
-    if(this->pp_available) {
-      this->pp_quality = entry->num_value;
-      this->pp_quality_changed = 1;
-    }
-  }
+  class->pp_quality = entry->num_value;
 }
 
 static void pp_change_quality (ff_video_decoder_t *this) {
+  this->pp_quality = this->class->pp_quality;
+
   if(this->pp_available && this->pp_quality) {
     if(!this->pp_context)
       this->pp_context = pp_get_context(this->context->width, this->context->height,
@@ -294,21 +289,11 @@ static void pp_change_quality (ff_video_decoder_t *this) {
       this->pp_context = NULL;
     }
   }
-  
-  this->pp_quality_changed = 0;
 }
 
 static void init_postprocess (ff_video_decoder_t *this) {
   uint32_t cpu_caps;
-  xine_cfg_entry_t quality_entry;
 
-  /* Read quality from config */
-  if(xine_config_lookup_entry(this->class->xine, "codec.ffmpeg_pp_quality",
-                              &quality_entry))
-    this->pp_quality = quality_entry.num_value;
-  else
-    this->pp_quality = 0;
-  
   /* Allow post processing on mpeg-4 (based) codecs */
   switch(this->codec->id) {
     case CODEC_ID_MPEG4:
@@ -1043,7 +1028,7 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
         } else {
           img->bad_frame = 0;
 
-          if(this->pp_quality_changed)
+          if(this->pp_quality != this->class->pp_quality)
             pp_change_quality(this);
 
           if(this->pp_available && this->pp_quality) {
@@ -1168,7 +1153,6 @@ static video_decoder_t *ff_video_open_plugin (video_decoder_class_t *class_gen, 
 
   this->stream                            = stream;
   this->class                             = (ff_video_class_t *) class_gen;
-  this->class->ip                         = this;
 
   this->av_frame        = avcodec_alloc_frame();
   this->context         = avcodec_alloc_context();
@@ -1216,7 +1200,6 @@ void *init_video_plugin (xine_t *xine, void *data) {
   this->decoder_class.get_identifier  = ff_video_get_identifier;
   this->decoder_class.get_description = ff_video_get_description;
   this->decoder_class.dispose         = ff_video_dispose_class;
-  this->ip                            = NULL;
   this->xine                          = xine;
 
   pthread_once( &once_control, init_once_routine );
@@ -1224,7 +1207,8 @@ void *init_video_plugin (xine_t *xine, void *data) {
   /* Configuration for post processing quality - default to mid (3) for the
    * moment */
   config = xine->config;
-  xine->config->register_range(config, "codec.ffmpeg_pp_quality", 3, 
+  
+  this->pp_quality = xine->config->register_range(config, "codec.ffmpeg_pp_quality", 3, 
     0, PP_QUALITY_MAX,  _("ffmpeg mpeg-4 postprocessing quality"), NULL,
     10, pp_quality_cb, this);  
   
