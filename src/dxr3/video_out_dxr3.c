@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3.c,v 1.70 2003/01/25 12:07:34 mroi Exp $
+ * $Id: video_out_dxr3.c,v 1.71 2003/02/10 17:28:35 mroi Exp $
  */
  
 /* mpeg1 encoding video out plugin for the dxr3.  
@@ -581,33 +581,39 @@ static void dxr3_update_frame_format(vo_driver_t *this_gen, vo_frame_t *frame_ge
 
   if ((this->video_width != width) || (this->video_iheight != height) ||
       (this->video_ratio != ratio_code)) {
+    double video_aspect;
+    
     /* check aspect ratio, see if we need to add black borders */
     switch (ratio_code) {
     case XINE_VO_ASPECT_4_3:
-      frame->aspect = ASPECT_FULL;
-      oheight = height;
+      video_aspect = 4.0 / 3.0;
       break;
     case XINE_VO_ASPECT_ANAMORPHIC:
     case XINE_VO_ASPECT_PAN_SCAN:
-      frame->aspect = ASPECT_ANAMORPHIC;
-      oheight = height;
+      video_aspect = 16.0 / 9.0;
       break;
     case XINE_VO_ASPECT_DVB:
-      frame->aspect = ASPECT_ANAMORPHIC;
-      oheight = height * 2.11 * 9.0 / 16.0;
+      video_aspect = 2.11;
       break;
     default: /* assume square pixel */
-      frame->aspect = ASPECT_ANAMORPHIC;
-      oheight = (int)(width * 9./16.);
-      if (oheight < height) { /* frame too high, try 4:3 */
-        frame->aspect = ASPECT_FULL;
-        oheight = (int)(width * 3./4.);
-      }
+      video_aspect = (double)width / (double)height;
     }
     
-    /* find closest multiple of 16 */
-    oheight = 16 * (int)(oheight / 16. + 0.5);
-    if (oheight < height) oheight += 16;
+    /* try anamorphic */
+    frame->aspect = ASPECT_ANAMORPHIC;
+    oheight = height * (video_aspect / (16.0 / 9.0));
+    if (oheight < height) {
+      /* frame too high, try 4:3 */
+      frame->aspect = ASPECT_FULL;
+      oheight = height * (video_aspect / (4.0 / 3.0));
+    }
+    if (oheight < height) {
+      /* still too high, use full height */
+      oheight = height;
+    }
+    
+    /* use next multiple of 16 */
+    oheight = ((oheight - 1) | 15) + 1;
 
     /* Tell the viewers about the aspect ratio stuff. */
     if (oheight - height > 0)
