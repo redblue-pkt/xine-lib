@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3.c,v 1.98 2004/02/20 18:16:52 mroi Exp $
+ * $Id: video_out_dxr3.c,v 1.99 2004/03/31 16:18:55 mroi Exp $
  */
  
 /* mpeg1 encoding video out plugin for the dxr3.  
@@ -892,19 +892,32 @@ static void dxr3_display_frame(vo_driver_t *this_gen, vo_frame_t *frame_gen)
   dxr3_driver_t *this = (dxr3_driver_t *)this_gen;
   dxr3_frame_t *frame = (dxr3_frame_t *)frame_gen;
 
-  if ((this->widescreen_enabled ? XINE_VO_ASPECT_4_3 : frame->aspect) != this->aspect)
-    this->aspect = dxr3_set_property(this_gen, VO_PROP_ASPECT_RATIO,
-      (this->widescreen_enabled ? XINE_VO_ASPECT_4_3 : frame->aspect));
-  if (frame->pan_scan && !this->pan_scan) {
-    /* the card needs a break before enabling zoom mode, otherwise it fails
-     * sometimes (like in the initial menu of "Breakfast at Tiffany's" RC2) */
-    xine_usec_sleep(50000);
-    dxr3_set_property(this_gen, VO_PROP_ZOOM_X, 1);
-    this->pan_scan = 1;
-  }
-  if (!frame->pan_scan && this->pan_scan) {
-    this->pan_scan = 0;
-    dxr3_set_property(this_gen, VO_PROP_ZOOM_X, -1);
+  /* widescreen display does not need any aspect handling */
+  if (!this->widescreen_enabled) {
+    if (frame->aspect != this->aspect)
+      this->aspect = dxr3_set_property(this_gen, VO_PROP_ASPECT_RATIO, frame->aspect);
+    if (frame->pan_scan && !this->pan_scan) {
+#if 0
+      /* the real pan&scan mode does not work, since when placed here, it
+       * arrives too late for stills */
+      em8300_register_t reg;
+      reg.microcode_register = 1;
+      reg.reg = 64;
+      reg.val = 8;  /* pan&scan mode */
+      if (!this->overlay_enabled) reg.val |= 1;  /* interlaced :( */
+      ioctl(this->fd_control, EM8300_IOCTL_WRITEREG, &reg);
+#else
+      /* the card needs a break before enabling zoom mode, otherwise it fails
+       * sometimes (like in the initial menu of "Breakfast at Tiffany's" RC2) */
+      xine_usec_sleep(50000);
+      dxr3_set_property(this_gen, VO_PROP_ZOOM_X, 1);
+#endif
+      this->pan_scan = 1;
+    }
+    if (!frame->pan_scan && this->pan_scan) {
+      this->pan_scan = 0;
+      dxr3_set_property(this_gen, VO_PROP_ASPECT_RATIO, this->aspect);
+    }
   }
 
 #ifdef HAVE_X11
@@ -1042,11 +1055,10 @@ static int dxr3_set_property(vo_driver_t *this_gen, int property, int value)
     /* xine-ui increments the value, so we make
      * just a two value "loop" */
     if (this->pan_scan) break;
-    if (this->widescreen_enabled) {
-      /* FIXME: We should send an anamorphic hint to widescreen tvs, so they
-       * can switch to 16:9 mode. I don't know if the dxr3 can do this. */
+    if (this->widescreen_enabled)
+      /* We should send an anamorphic hint to widescreen tvs, so they
+       * can switch to 16:9 mode. But the dxr3 cannot do this. */
       break;
-    }
     
     switch(value) {
     case XINE_VO_ASPECT_SQUARE:
@@ -1078,27 +1090,22 @@ static int dxr3_set_property(vo_driver_t *this_gen, int property, int value)
     this->overlay.colorkey = value;
     break;
   case VO_PROP_ZOOM_X:
-    if(!this->overlay_enabled) {  /* TV-out only */
-      if (value == 1) {
+    if (value == 1) {
 #if LOG_VID
-        printf("video_out_dxr3: enabling 16:9 zoom\n");
+      printf("video_out_dxr3: enabling 16:9 zoom\n");
 #endif
-        if (!this->widescreen_enabled) {
-          val = EM8300_ASPECTRATIO_4_3;
-          if (ioctl(this->fd_control, EM8300_IOCTL_SET_ASPECTRATIO, &val))
-            xprintf(this->class->xine, XINE_VERBOSITY_DEBUG, 
-		    "video_out_dxr3: failed to set aspect ratio (%s)\n", strerror(errno));
-          dxr3_zoomTV(this);
-        } else {
-          /* FIXME: We should send an anamorphic hint to widescreen tvs, so they
-           * can switch to 16:9 mode. I don't know if the dxr3 can do this. */
-        }
-      } else if (value == -1) {
-#if LOG_VID
-        printf("video_out_dxr3: disabling 16:9 zoom\n");
-#endif
-        dxr3_set_property(this_gen, VO_PROP_ASPECT_RATIO, this->aspect);
+      if (!this->widescreen_enabled) {
+	dxr3_set_property(this_gen, VO_PROP_ASPECT_RATIO, XINE_VO_ASPECT_4_3);
+	if (!this->overlay_enabled) dxr3_zoomTV(this);
+      } else {
+	/* We should send an anamorphic hint to widescreen tvs, so they
+	 * can switch to 16:9 mode. But the dxr3 cannot do this. */
       }
+    } else if (value == -1) {
+#if LOG_VID
+      printf("video_out_dxr3: disabling 16:9 zoom\n");
+#endif
+      dxr3_set_property(this_gen, VO_PROP_ASPECT_RATIO, this->aspect);
     }
     break;
   case VO_PROP_TVMODE:
@@ -1188,6 +1195,7 @@ static int dxr3_gui_data_exchange(vo_driver_t *this_gen, int data_type, void *da
       }
       ioctl(this->fd_control, EM8300_IOCTL_OVERLAY_SETMODE, &val);
       this->aspect = dxr3_set_property(this_gen, VO_PROP_ASPECT_RATIO, this->aspect);
+      if (this->pan_scan) dxr3_set_property(this_gen, VO_PROP_ZOOM_X, 1);
     }
     break;
   default:
@@ -1494,11 +1502,17 @@ static void dxr3_overlay_update(dxr3_driver_t *this)
       this->scale.output_width, this->scale.output_height - 2 * this->overlay.shrink);
     XFlush(this->display);
     XUnlockDisplay(this->display);
-      
+    
     win.xpos   = this->scale.output_xoffset + this->scale.gui_win_x;
     win.ypos   = this->scale.output_yoffset + this->scale.gui_win_y;
     win.width  = this->scale.output_width;
     win.height = this->scale.output_height;
+    
+    if (this->pan_scan) {
+      win.xpos  -= win.width / 6;
+      win.width *= 4;
+      win.width /= 3;
+    }
     
     /* is some part of the picture visible? */
     if (win.xpos + win.width  < 0) return;
