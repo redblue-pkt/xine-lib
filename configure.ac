@@ -18,6 +18,11 @@ XINE_MAJOR=1
 XINE_MINOR=0
 XINE_SUB=0
 
+if [ $XINE_SUB -eq 0 ]; then
+  XINE_SUBPART="";
+else
+  XINE_SUBPART=".$XINE_SUB"
+fi
 
 dnl The libtool version numbers (LT_*); Don't even think about faking this!
 dnl 
@@ -45,14 +50,14 @@ dnl  * in Linux, the library will be named
 dnl    libname.so.(LT_CURRENT - LT_AGE).LT_AGE.LT_REVISION
 
 LT_CURRENT=12
-LT_REVISION=0
+LT_REVISION=1
 LT_AGE=11
 
 dnl for a release tarball do "rm .cvsversion" before "make dist"
 if test -f .cvsversion; then
   XINE_PRE="cvs"
 else
-  XINE_PRE="rc8"
+  XINE_PRE=""
 fi
 
 AC_SUBST(XINE_MAJOR)
@@ -69,10 +74,10 @@ AC_SUBST(LT_CURRENT)
 AC_SUBST(LT_REVISION)
 AC_SUBST(LT_AGE)
 
-dnl TAR_NAME="xine-lib-"$XINE_MAJOR.$XINE_MINOR.$XINE_SUB$XINE_PRE
-dnl SPEC_VERSION=$XINE_MAJOR.$XINE_MINOR.$XINE_SUB$XINE_PRE
-TAR_NAME="xine-lib-"$XINE_MAJOR-$XINE_PRE
-SPEC_VERSION=${XINE_MAJOR}_$XINE_PRE
+TAR_NAME="xine-lib-"$XINE_MAJOR.$XINE_MINOR${XINE_SUBPART}$XINE_PRE
+SPEC_VERSION=$XINE_MAJOR.$XINE_MINOR${XINE_SUBPART}$XINE_PRE
+dnl TAR_NAME="xine-lib-"$XINE_MAJOR-$XINE_PRE
+dnl SPEC_VERSION=${XINE_MAJOR}_$XINE_PRE
 
 AC_SUBST(TAR_NAME)
 AC_SUBST(SPEC_VERSION)
