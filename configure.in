@@ -690,10 +690,16 @@ eval XINE_SKINPATH="$XINE_SKINDIR"
 AC_DEFINE_UNQUOTED(XINE_SKINDIR,"$XINE_SKINPATH")
 AC_SUBST(XINE_SKINPATH)
 
+XINE_FONTDIR="${datadir}/xine/fonts"
+eval XINE_FONTPATH="$XINE_FONTDIR"
+AC_DEFINE_UNQUOTED(XINE_FONTDIR,"$XINE_FONTPATH")
+AC_SUBST(XINE_FONTPATH)
+
 
 AC_SUBST(XINE_PLUGINDIR)
 AC_SUBST(XINE_DEMUXDIR)
 AC_SUBST(XINE_SKINDIR)
+AC_SUBST(XINE_FONTDIR)
 
 
 dnl Where scripts will/should be installed.
@@ -800,7 +806,8 @@ misc/xine-lib.spec
 misc/guenter.spec
 misc/SlackBuild
 misc/guenter_rpms.sh
-misc/build_rpms.sh],
+misc/build_rpms.sh
+misc/fonts/Makefile],
 [chmod +x ./misc/SlackBuild ./misc/build_rpms.sh ./misc/guenter_rpms.sh; rm -f include/xine.h; echo '/* !! DO NO EDIT THIS FILE, it is automatically generated */' > include/xine.h && cat include/xine.h.tmpl >> include/xine.h])
 
 dnl

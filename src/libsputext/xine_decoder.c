@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.5 2001/12/02 21:59:33 guenter Exp $
+ * $Id: xine_decoder.c,v 1.6 2001/12/08 00:37:38 guenter Exp $
  *
  * code based on mplayer module:
  *
@@ -50,7 +50,7 @@
 #define ERR (void *)-1
 
 #define SUB_MAX_TEXT  5
-#define LINE_HEIGHT  20
+#define LINE_HEIGHT  30
 
 typedef struct {
 
@@ -87,6 +87,7 @@ typedef struct sputext_decoder_s {
   int                format;         /* constants see below        */     
   subtitle_t        *previous_aqt_sub ;
 
+  osd_renderer_t    *renderer;
   osd_object_t      *osd;
   char              *font;
 
@@ -749,20 +750,20 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
 
     this->width = buf->decoder_info[1];
 
-    this->osd = osd_open (this->xine->osd_renderer, 
-			  this->width,
-			  SUB_MAX_TEXT * LINE_HEIGHT);
+    this->renderer = this->xine->osd_renderer;
+    this->osd = this->renderer->new_object (this->renderer, 
+					    this->width,
+					    SUB_MAX_TEXT * LINE_HEIGHT);
 
-    osd_renderer_load_font (this->xine->osd_renderer, this->font);
-    osd_set_font (this->osd, this->font);
+    this->renderer->set_font (this->osd, this->font, 16);
 
     y = buf->decoder_info[2] - (SUB_MAX_TEXT * LINE_HEIGHT) - 5;
 
-    osd_set_position (this->osd, 0, y); 
+    this->renderer->set_position (this->osd, 0, y); 
 
-    osd_render_text (this->osd, 0, 0, "sputext decoder");
-    osd_show (this->osd, 0);
-    osd_hide (this->osd, 300000);      
+    this->renderer->render_text (this->osd, 0, 0, "sputext decoder");
+    this->renderer->show (this->osd, 0);
+    this->renderer->hide (this->osd, 300000);      
 
     this->fd = (FILE *) buf->content;
   
@@ -839,23 +840,23 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
     if (subtitle) {
       int line, y;
 
-      osd_filled_rect (this->osd, 0, 0, this->width-1, LINE_HEIGHT * SUB_MAX_TEXT - 1, 0);
+      this->renderer->filled_rect (this->osd, 0, 0, this->width-1, LINE_HEIGHT * SUB_MAX_TEXT - 1, 0);
 
       y = (SUB_MAX_TEXT - subtitle->lines) * LINE_HEIGHT;
 
       for (line=0; line<subtitle->lines; line++) {
 	int w,h,x;
 
-	osd_get_text_size( this->osd, subtitle->text[line], 
-			   & w, &h);
+	this->renderer->get_text_size( this->osd, subtitle->text[line], 
+				       &w, &h);
 
 	x = (this->width - w) / 2;
 
-	osd_render_text (this->osd, x, y + line*20, subtitle->text[line]);
+	this->renderer->render_text (this->osd, x, y + line*20, subtitle->text[line]);
       }
       
-      osd_show (this->osd, pts );
-      osd_hide (this->osd, pts_end);
+      this->renderer->show (this->osd, pts );
+      this->renderer->hide (this->osd, pts_end);
 
     }
 
@@ -868,7 +869,7 @@ static void spudec_close (spu_decoder_t *this_gen) {
   sputext_decoder_t *this = (sputext_decoder_t *) this_gen;
 
   if (this->osd) {
-    osd_close (this->osd);
+    this->renderer->free_object (this->osd);
     this->osd = NULL;
   }
 
@@ -900,10 +901,9 @@ spu_decoder_t *init_spu_decoder_plugin (int iface_version, xine_t *xine) {
   this->spu_decoder.priority            = 1;
 
   this->xine                            = xine;
-
   this->font                            = xine->config->register_string(xine->config, 
 									"codec.spu_font", 
-									"vga", 
+									"sans", 
 									"font for avi subtitles", 
 									NULL, NULL, NULL);
 

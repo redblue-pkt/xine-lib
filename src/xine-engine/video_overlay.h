@@ -17,9 +17,12 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_overlay.h,v 1.1 2001/11/28 22:19:11 miguelfreitas Exp $
+ * $Id: video_overlay.h,v 1.2 2001/12/08 00:37:38 guenter Exp $
  *
  */
+
+#ifndef HAVE_VIDEO_OVERLAY_H
+#define HAVE_VIDEO_OVERLAY_H
 
 #include "xine_internal.h"
 #include "video_out/alphablend.h"
@@ -64,3 +67,4 @@ typedef struct video_overlay_event_s {
   video_overlay_object_t   object; /* The image data. */
 } video_overlay_event_t;
 
+#endif

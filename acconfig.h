@@ -48,6 +48,9 @@
 /* Define this to skins directory location */
 #undef XINE_SKINDIR
 
+/* Define this to osd fonts dir location*/
+#undef XINE_FONTDIR
+
 /* Define this if you have X11R6 installed */
 #undef HAVE_X11
 
