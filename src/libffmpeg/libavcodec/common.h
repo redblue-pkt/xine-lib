@@ -22,7 +22,11 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#ifndef __BEOS__
 #include <errno.h>
+#else
+#include "berrno.h"
+#endif
 #include <math.h>
 
 #ifndef ENODATA
@@ -104,10 +108,6 @@ typedef signed int INT32;
 typedef signed long long INT64;
 
 #ifdef HAVE_AV_CONFIG_H
-
-#ifdef __FreeBSD__
-#include <sys/param.h>
-#endif
 
 #ifndef INT64_C
 #define INT64_C(c)     (c ## LL)

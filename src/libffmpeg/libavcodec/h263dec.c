@@ -88,7 +88,6 @@ static int h263_decode_init(AVCodecContext *avctx)
         return -1;
     }
     s->codec_id= avctx->codec->id;
-    avctx->mbskip_table= s->mbskip_table;
 
     /* for h263, we allocate the images after having read the header */
     if (avctx->codec->id != CODEC_ID_H263 && avctx->codec->id != CODEC_ID_MPEG4)
@@ -155,7 +154,13 @@ uint64_t time= rdtsc();
         ret = h263_decode_picture_header(s);
     }
     avctx->has_b_frames= s->has_b_frames;
-
+#if 0 // dump bits per frame / qp / complexity
+{
+    static FILE *f=NULL;
+    if(!f) f=fopen("rate_qp_cplx.txt", "w");
+    fprintf(f, "%d %d %f\n", buf_size, s->qscale, buf_size*(double)s->qscale);
+}
+#endif
        
         /* After H263 & mpeg4 header decode we have the height, width,*/
         /* and other parameters. So then we could init the picture   */

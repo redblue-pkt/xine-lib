@@ -130,6 +130,7 @@ typedef struct MpegEncContext {
     int picture_in_gop_number; /* 0-> first pic in gop, ... */
     int b_frames_since_non_b;  /* used for encoding, relative to not yet reordered input */
     int mb_width, mb_height;   /* number of MBs horizontally & vertically */
+    int h_edge_pos, v_edge_pos;/* horizontal / vertical position of the right/bottom edge (pixel replicateion)*/
     int mb_num;                /* number of MBs of a picture */
     int linesize;              /* line size, in bytes, may be different from width */
     int uvlinesize;            /* line size, for chroma in bytes, may be different from width */
@@ -360,6 +361,8 @@ typedef struct MpegEncContext {
 #define PB_BUFFER_SIZE 1024*256
     uint8_t *tex_pb_buffer;          
     uint8_t *pb2_buffer;
+    int mpeg_quant;
+    INT8 *non_b_mv4_table;
 
     /* divx specific, used to workaround (many) bugs in divx5 */
     int divx_version;
@@ -518,6 +521,9 @@ static inline int get_rl_index(const RLTable *rl, int last, int run, int level)
 
 extern UINT8 ff_mpeg4_y_dc_scale_table[32];
 extern UINT8 ff_mpeg4_c_dc_scale_table[32];
+extern INT16 ff_mpeg4_default_intra_matrix[64];
+extern INT16 ff_mpeg4_default_non_intra_matrix[64];
+
 void h263_encode_mb(MpegEncContext *s, 
                     DCTELEM block[6][64],
                     int motion_x, int motion_y);
