@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decode_spu.c,v 1.22 2002/10/26 16:14:27 mroi Exp $
+ * $Id: dxr3_decode_spu.c,v 1.23 2002/10/26 20:12:59 mroi Exp $
  */
  
 /* dxr3 spu decoder plugin.
@@ -551,23 +551,23 @@ static void dxr3_spudec_handle_event(dxr3_spudec_t *this)
 {
   xine_event_t *event;
   
-  if (!(event = xine_event_get(this->event_queue))) return;
-
+  while ((event = xine_event_get(this->event_queue))) {
 #if LOG_SPU
   printf("dxr3_decode_spu: event caught: SPU_FD = %i\n",this->fd_spu);
 #endif
   
-  switch (event->type) {
-  case XINE_EVENT_FRAME_FORMAT_CHANGE:
-    this->height = ((xine_format_change_data_t *)event->data)->height;
-    this->aspect = ((xine_format_change_data_t *)event->data)->aspect;
+    switch (event->type) {
+    case XINE_EVENT_FRAME_FORMAT_CHANGE:
+      this->height = ((xine_format_change_data_t *)event->data)->height;
+      this->aspect = ((xine_format_change_data_t *)event->data)->aspect;
 #if LOG_BTN
-    printf("dxr3_decode_spu: aspect changed to %d\n", this->aspect);
+      printf("dxr3_decode_spu: aspect changed to %d\n", this->aspect);
 #endif
-    break;
-  }
+      break;
+    }
   
   xine_event_free(event);
+  }
 }
 
 static int dxr3_spudec_copy_nav_to_btn(dxr3_spudec_t *this, int32_t mode, em8300_button_t *btn)
