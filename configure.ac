@@ -2054,6 +2054,7 @@ src/libmad/Makefile
 src/libmpeg2/Makefile
 src/libspudec/Makefile
 src/libspucc/Makefile
+src/libspucmml/Makefile
 src/libsputext/Makefile
 src/libvorbis/Makefile
 src/libtheora/Makefile
@@ -2281,7 +2282,7 @@ echo ""
 dnl spu decoders
 echo " * subtitle decoder plugins:"
 echo "   - spu             - spucc"
-echo "   - sputext"
+echo "   - spucmml         - sputext"
 if test x"$have_dxr3" = "xyes"; then
   echo "   - dxr3_spu"
 fi
