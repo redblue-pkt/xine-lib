@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_qt.c,v 1.13 2001/11/17 19:40:27 miguelfreitas Exp $
+ * $Id: demux_qt.c,v 1.14 2001/11/18 03:53:23 guenter Exp $
  *
  * demultiplexer for quicktime streams, based on:
  *
@@ -53,8 +53,6 @@
 #include "libw32dll/wine/windef.h"
 #include "libw32dll/wine/vfw.h"
 #include "libw32dll/wine/mmreg.h"
-
-static uint32_t xine_debug;
 
 /* OpenQuicktime Codec Parameter Types */
 #define QUICKTIME_UNKNOWN_PARAMETER         -1
@@ -4378,7 +4376,6 @@ demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
 
   this        = xine_xmalloc (sizeof (demux_qt_t));
   config      = xine->config;
-  xine_debug  = config->lookup_int (config, "xine_debug", 0);
 
   this->demux_plugin.interface_version = DEMUXER_PLUGIN_IFACE_VERSION;
   this->demux_plugin.open              = demux_qt_open;

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.61 2001/11/17 14:26:37 f1rmb Exp $
+ * $Id: demux_mpeg_block.c,v 1.62 2001/11/18 03:53:23 guenter Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -39,8 +39,6 @@
 #include "demux.h"
 
 #define NUM_PREVIEW_BUFFERS 250
-
-static uint32_t xine_debug;
 
 typedef struct demux_mpeg_block_s {
   demux_plugin_t        demux_plugin;
@@ -162,8 +160,6 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
   if (p[3] == 0xBA) { /* program stream pack header */
 
 
-    xprintf (VERBOSE|DEMUX, "program stream pack header\n");
-
     bMpeg1 = (p[4] & 0x40) == 0;
 
     if (bMpeg1) {
@@ -229,8 +225,6 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
 
     int header_len;
 
-    xprintf (VERBOSE|DEMUX, "program stream system header\n");
-
     header_len = (p[4] << 8) | p[5];
 
     p    += 6 + header_len;
@@ -276,8 +270,6 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
 
   packet_len = p[4] << 8 | p[5];
   stream_id  = p[3];
-
-  xprintf (VERBOSE|DEMUX, "packet id = %02x len = %d\n",stream_id, packet_len);
 
   if (bMpeg1) {
 
@@ -379,8 +371,6 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
     if((p[0] & 0xE0) == 0x20) {
       spu_id = (p[0] & 0x1f);
 
-      xprintf(VERBOSE|DEMUX, "SPU PES packet, id 0x%03x\n",p[0] & 0x1f);
-
       buf->content   = p+1;
       buf->size      = packet_len-1;
       buf->type      = BUF_SPU_PACKAGE + spu_id;
@@ -394,7 +384,6 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
 
     if ((p[0]&0xF0) == 0x80) {
 
-      xprintf (VERBOSE|DEMUX|AC3, "ac3 PES packet, track %02x\n",track);
       /*  printf ( "ac3 PES packet, track %02x\n",track);  */
 
       buf->content   = p+4;
@@ -424,7 +413,6 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
       int num_channels;
       int dynamic_range;
 
-      xprintf (VERBOSE|DEMUX,"LPCM packet, len : %d %02x\n",packet_len-4, p[0]);  
       /*
        * found in http://members.freemail.absa.co.za/ginggs/dvd/mpeg2_lpcm.txt
        * appears to be correct.
@@ -455,9 +443,6 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
       }
       dynamic_range = p[6];
 
-      xprintf(VERBOSE|DEMUX, "LPCM audio format: %dkHz, %d bit, %d channel\n",
-	      sample_rate/1000, bits_per_sample, num_channels);
-
       buf->decoder_info[1] = sample_rate;
       buf->decoder_info[2] = bits_per_sample;
       buf->decoder_info[3] = num_channels;
@@ -483,7 +468,6 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
 
   } else if ((stream_id >= 0xbc) && ((stream_id & 0xf0) == 0xe0)) {
 
-    xprintf (VERBOSE|DEMUX, "video %d\n", stream_id);
 
     buf->content   = p;
     buf->size      = packet_len;
@@ -501,8 +485,6 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
 
     track = stream_id & 0x1f;
 
-    xprintf (VERBOSE|DEMUX|MPEG, "mpg audio #%d", track);
-
     buf->content   = p;
     buf->size      = packet_len;
     buf->type      = BUF_AUDIO_MPEG + track;
@@ -517,9 +499,7 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
 
     return ;
 
-  } else {
-    xprintf (VERBOSE | DEMUX, "unknown packet, id = %x\n",stream_id);
-  }
+  } 
 
   buf->free_buffer (buf);
 
@@ -948,9 +928,6 @@ static int demux_mpeg_block_open(demux_plugin_t *this_gen,
     
     ending = strrchr(MRL, '.');
     
-    xprintf(VERBOSE|DEMUX, "demux_mpeg_block_can_handle: ending %s of %s\n",
-	    ending ? ending :"(none)", MRL);
-    
     if(!ending)
       return DEMUX_CANNOT_HANDLE;
     
@@ -1005,7 +982,6 @@ demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
   this        = xine_xmalloc (sizeof (demux_mpeg_block_t));
   this->xine  = xine;
   config      = xine->config;
-  xine_debug  = config->lookup_int (config, "xine_debug", 0);
 
   this->demux_plugin.interface_version = DEMUXER_PLUGIN_IFACE_VERSION;
   this->demux_plugin.open              = demux_mpeg_block_open;

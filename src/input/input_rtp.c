@@ -86,8 +86,6 @@
 
 #define RTP_BLOCKSIZE 2048
 
-static uint32_t xine_debug;
-
 typedef struct _input_buffer {
   struct _input_buffer *next;
   unsigned char        *buf;
@@ -473,7 +471,6 @@ input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
     
   this       = (rtp_input_plugin_t *) xine_xmalloc(sizeof(rtp_input_plugin_t));
   config     = xine->config;
-  xine_debug = config->lookup_int (config, "xine_debug", 0);
   
   for (bufn = 0; bufn < N_BUFFERS; bufn++) {
     input_buffer_t *buf = xine_xmalloc(sizeof(input_buffer_t));

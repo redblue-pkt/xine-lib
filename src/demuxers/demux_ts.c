@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ts.c,v 1.28 2001/11/17 14:26:37 f1rmb Exp $
+ * $Id: demux_ts.c,v 1.29 2001/11/18 03:53:23 guenter Exp $
  *
  * Demultiplexer for MPEG2 Transport Streams.
  *
@@ -67,6 +67,10 @@
 #include "xine_internal.h"
 #include "xineutils.h"
 #include "demux.h"
+
+/*
+#define TS_LOG
+*/
 
 /*
  * The maximum number of PIDs we are prepared to handle in a single program is the
@@ -146,8 +150,6 @@ typedef struct {
   unsigned int     videoMedia;
   unsigned int     audioMedia;
 } demux_ts;
-
-static uint32_t xine_debug;
 
 static void demux_ts_build_crc32_table(demux_ts *this) {
   uint32_t  i, j, k;
@@ -230,6 +232,7 @@ static void demux_ts_parse_pat (demux_ts *this, unsigned char *original_pkt,
   crc32 |= (uint32_t)pkt[6+section_length] << 8;
   crc32 |= (uint32_t)pkt[7+section_length] ;
 
+#ifdef TS_LOG
   xprintf (VERBOSE|DEMUX,"PAT table_id=%d\n",
            table_id);
   xprintf (VERBOSE|DEMUX,"\tsection_syntax=%d\n",
@@ -246,6 +249,7 @@ static void demux_ts_parse_pat (demux_ts *this, unsigned char *original_pkt,
            section_number);
   xprintf (VERBOSE|DEMUX,"\tlast_section_number=%d\n",
            last_section_number);
+#endif
   
   if (!(current_next_indicator)) {
     /*
@@ -298,10 +302,12 @@ static void demux_ts_parse_pat (demux_ts *this, unsigned char *original_pkt,
      */
     program_count = 0;
     while ((this->program_number[program_count] != INVALID_PROGRAM) ) {
+#ifdef TS_LOG
       xprintf(VERBOSE|DEMUX, "PAT acquiring count=%d programNumber=0x%04x pmtPid=0x%04x\n",
 	 program_count,
          this->program_number[program_count],
          this->pmt_pid[program_count]);
+#endif
       program_count++;
     }
   }
@@ -330,9 +336,10 @@ static int demux_ts_parse_pes_header (demux_ts_media *m, uint8_t *buf, int packe
   if (packet_len==0)
     return 0;
 
+#ifdef TS_LOG
   xprintf(VERBOSE|DEMUX, "packet stream id = %02x len = %d\n",
 	  stream_id, packet_len);
-
+#endif
 
   if (p[7] & 0x80) { /* PTS avail */
 
@@ -425,7 +432,9 @@ static int demux_ts_parse_pes_header (demux_ts_media *m, uint8_t *buf, int packe
     return 1;
 
   } else {
+#ifdef TS_LOG
     xprintf(VERBOSE | DEMUX, "unknown packet, id = %x\n",stream_id);
+#endif
   }
 
   return 0 ;
@@ -608,6 +617,7 @@ static void demux_ts_parse_pmt(demux_ts *this,
   crc32 |= (uint32_t)pkt[6+section_length] << 8;
   crc32 |= (uint32_t)pkt[7+section_length] ;
 
+#ifdef TS_LOG
   xprintf (VERBOSE|DEMUX,"PMT table_id=%d\n",
            table_id);
   xprintf (VERBOSE|DEMUX,"\tsection_syntax_indicator=%d\n",
@@ -624,6 +634,7 @@ static void demux_ts_parse_pmt(demux_ts *this,
            section_number);
   xprintf (VERBOSE|DEMUX,"\tlast_section_number=%d\n",
            last_section_number);
+#endif
 
   if (!(current_next_indicator)) {
     /*
@@ -687,7 +698,9 @@ static void demux_ts_parse_pmt(demux_ts *this,
     case ISO_11172_VIDEO:
     case ISO_13818_VIDEO:
       if (this->videoPid == INVALID_PID) {
+#ifdef TS_LOG
 	xprintf(VERBOSE|DEMUX, "PMT video pid 0x%04x\n", pid);
+#endif
 	demux_ts_pes_new(this, mediaIndex, pid, this->fifoVideo);
       }
       this->videoPid = pid;
@@ -696,36 +709,48 @@ static void demux_ts_parse_pmt(demux_ts *this,
     case ISO_11172_AUDIO:
     case ISO_13818_AUDIO:
       if (this->audioPid == INVALID_PID) {
+#ifdef TS_LOG
 	xprintf(VERBOSE|DEMUX, "PMT audio pid 0x%04x\n", pid);
+#endif
 	demux_ts_pes_new(this, mediaIndex, pid, this->fifoAudio);
       }
       this->audioPid = pid;
       this->audioMedia = mediaIndex;
       break;
     case ISO_13818_PRIVATE:
+#ifdef TS_LOG
       for(i=0;i<20;i++) {
 	xprintf(VERBOSE|DEMUX, "%02x ", stream[i]);
       }
       xprintf(VERBOSE|DEMUX, "\n");
+#endif
       break;
     case PRIVATE_A52:
+#ifdef TS_LOG
       for(i=0;i<20;i++) {
 	xprintf(VERBOSE|DEMUX, "%02x ", stream[i]);
       }
       xprintf(VERBOSE|DEMUX, "\n");
+#endif
       if (this->audioPid == INVALID_PID) {
+#ifdef TS_LOG
 	xprintf(VERBOSE|DEMUX, "PMT audio pid 0x%04x\n", pid);
+#endif
 	demux_ts_pes_new(this, mediaIndex, pid, this->fifoAudio);
       }
       this->audioPid = pid;
       this->audioMedia = mediaIndex;
       break;
     default:
+#ifdef TS_LOG
       xprintf(VERBOSE|DEMUX, "PMT stream_type unknown 0x%02x pid 0x%04x\n", stream[0], pid);
+
       for(i=0;i<20;i++) {
 	xprintf(VERBOSE|DEMUX, "%02x ", stream[i]);
       }
       xprintf(VERBOSE|DEMUX, "\n");
+
+#endif
       break;
     }
     mediaIndex++;
@@ -739,11 +764,14 @@ static void demux_ts_parse_pmt(demux_ts *this,
   pid = (((unsigned int)pkt[13] & 0x1f) << 8) |
     pkt[14];
   if (this->pcrPid != pid) {
+#ifdef TS_LOG
+
     if (this->pcrPid == INVALID_PID) {
       xprintf(VERBOSE|DEMUX, "PMT pcr pid 0x%04x\n", pid);
     } else {
       xprintf(VERBOSE|DEMUX, "PMT pcr pid changed 0x%04x\n", pid);
     }
+#endif
     this->pcrPid = pid;
   }
 }
@@ -818,6 +846,7 @@ static uint32_t demux_ts_adaptation_field_parse( uint8_t *data, uint32_t adaptat
   transport_private_data_flag = ((data[0] >> 1) & 0x01);
   adaptation_field_extension_flag = (data[0] & 0x01);
   
+#ifdef TS_LOG
   xprintf(VERBOSE|DEMUX, "ADAPTATION FIELD length=%d\n", 
     adaptation_field_length);
   if(discontinuity_indicator) {
@@ -832,6 +861,7 @@ static uint32_t demux_ts_adaptation_field_parse( uint8_t *data, uint32_t adaptat
     xprintf(VERBOSE|DEMUX, "\tElementary_stream_priority_indicator=%d\n",
       elementary_stream_priority_indicator);
   }
+#endif
   if(PCR_flag) {
     PCR = data[offset] << 25;
     PCR |= data[offset+1] << 17;
@@ -839,8 +869,10 @@ static uint32_t demux_ts_adaptation_field_parse( uint8_t *data, uint32_t adaptat
     PCR |= data[offset+3] << 1;
     PCR |= (data[offset+4] >> 7) & 0x01;
     EPCR = ((data[offset+4] & 0x1) << 8) | data[offset+5];
+#ifdef TS_LOG
     xprintf(VERBOSE|DEMUX, "\tPCR=%u, EPCR=%u\n",
        PCR,EPCR);
+#endif
     offset+=6;
   }
   if(OPCR_flag) {
@@ -850,10 +882,13 @@ static uint32_t demux_ts_adaptation_field_parse( uint8_t *data, uint32_t adaptat
     OPCR |= data[offset+3] << 1;
     OPCR |= (data[offset+4] >> 7) & 0x01;
     EOPCR = ((data[offset+4] & 0x1) << 8) | data[offset+5];
+#ifdef TS_LOG
     xprintf(VERBOSE|DEMUX, "\tOPCR=%u,EOPCR=%u\n",
        OPCR,EOPCR);
+#endif
     offset+=6;
   }
+#ifdef TS_LOG
   if(slicing_point_flag) {
     xprintf(VERBOSE|DEMUX, "\tslicing_point_flag=%d\n",
       slicing_point_flag);
@@ -866,6 +901,7 @@ static uint32_t demux_ts_adaptation_field_parse( uint8_t *data, uint32_t adaptat
     xprintf(VERBOSE|DEMUX, "\tadaptation_field_extension_flag=%d\n",
       adaptation_field_extension_flag);
   }
+#endif
   return PCR;
 }
 /* transport stream packet layer */
@@ -939,12 +975,16 @@ static void demux_ts_parse_packet (demux_ts *this) {
        * Do the demuxing in descending order of packet frequency!
        */
       if (pid == this->videoPid ) {
+#ifdef TS_LOG
         xprintf(VERBOSE|DEMUX, "Video pid = 0x%04x\n",pid);
+#endif
 	demux_ts_buffer_pes (this, originalPkt+data_offset, this->videoMedia, 
 			     payload_unit_start_indicator, continuity_counter, data_len);
         return;
       } else if (pid == this->audioPid) {
+#ifdef TS_LOG
         xprintf(VERBOSE|DEMUX, "Audio pid = 0x%04x\n",pid);
+#endif
 	demux_ts_buffer_pes (this, originalPkt+data_offset, this->audioMedia, 
 			     payload_unit_start_indicator, continuity_counter, data_len);
         return;
@@ -952,16 +992,20 @@ static void demux_ts_parse_packet (demux_ts *this) {
 	demux_ts_parse_pat (this, originalPkt, originalPkt+data_offset-4, payload_unit_start_indicator);
         return;
       } else if (pid == 0x1fff) {
+#ifdef TS_LOG
 	xprintf(VERBOSE|DEMUX,"Null Packet\n"); 
+#endif
         return;
       }
       if ((this->audioPid == INVALID_PID) && (this->videoPid == INVALID_PID)) { 
         program_count = 0;
         while ((this->program_number[program_count] != INVALID_PROGRAM) ) {
           if ( pid == this->pmt_pid[program_count] ) {
+#ifdef TS_LOG
 	    xprintf(VERBOSE|DEMUX,"PMT prog 0x%04x pid 0x%04x\n",
               this->program_number[program_count],
               this->pmt_pid[program_count]);
+#endif
 	    demux_ts_parse_pmt (this, originalPkt, originalPkt+data_offset-4, payload_unit_start_indicator);
             return;
           }
@@ -984,7 +1028,9 @@ static void *demux_ts_loop(void *gen_this) {
     demux_ts_parse_packet(this);
   } while (this->status == DEMUX_OK) ;
   
+#ifdef TS_LOG
   xprintf(VERBOSE|DEMUX, "demux loop finished (status: %d)\n", this->status);
+#endif
   
   this->status = DEMUX_FINISHED;
   buf = this->fifoVideo->buffer_pool_alloc(this->fifoVideo);
@@ -1048,7 +1094,9 @@ static int demux_ts_open(demux_plugin_t *this_gen, input_plugin_t *input,
     }
     ending = strrchr(mrl, '.');
     if (ending) {
+#ifdef TS_LOG
       xprintf(VERBOSE|DEMUX, "demux_ts_open: ending %s of %s\n", ending, mrl);
+#endif
       if ((!strcasecmp(ending, ".m2t")) ||
           (!strcasecmp(ending, ".ts"))  ||
           (!strcasecmp(ending, ".trp")) ) {
@@ -1176,7 +1224,7 @@ demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
    */
   this = xine_xmalloc(sizeof(*this));
   config = xine->config;
-  xine_debug = config->lookup_int(config, "xine_debug", 0);
+
   this->plugin.interface_version = DEMUXER_PLUGIN_IFACE_VERSION;
   this->plugin.open              = demux_ts_open;
   this->plugin.start             = demux_ts_start;

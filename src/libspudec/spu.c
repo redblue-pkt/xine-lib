@@ -35,7 +35,7 @@
  * along with this program; see the file COPYING.  If not, write to
  * the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: spu.c,v 1.22 2001/11/17 14:26:39 f1rmb Exp $
+ * $Id: spu.c,v 1.23 2001/11/18 03:53:24 guenter Exp $
  *
  */
 
@@ -77,8 +77,10 @@
 /* Return value: reassembly complete = 1 */
 int spu_reassembly (spu_seq_t *seq, int start, uint8_t *pkt_data, u_int pkt_len)
 {
-  xprintf (VERBOSE|SPU, "pkt_len: %d\n", pkt_len);
-  xprintf (VERBOSE|SPU, "Reassembly: start=%d seq=%p\n", start,seq);
+#ifdef LOG_DEBUG
+  printf ("spu: pkt_len: %d\n", pkt_len);
+  printf ("spu: Reassembly: start=%d seq=%p\n", start,seq);
+#endif
 
   if (start) {
     seq->seq_len = (((u_int)pkt_data[0])<<8) | pkt_data[1];
@@ -86,22 +88,32 @@ int spu_reassembly (spu_seq_t *seq, int start, uint8_t *pkt_data, u_int pkt_len)
 
     if (seq->buf_len < seq->seq_len) {
       if (seq->buf) {
-        xprintf (VERBOSE|SPU, "FREE1: seq->buf %p\n", seq->buf);
+#ifdef LOG_DEBUG
+        printf ("spu: FREE1: seq->buf %p\n", seq->buf);
+#endif
         free(seq->buf);
         seq->buf = NULL;
-        xprintf (VERBOSE|SPU, "FREE2: seq->buf %p\n", seq->buf);
+#ifdef LOG_DEBUG
+        printf ("spu: FREE2: seq->buf %p\n", seq->buf);
+#endif
       }
 
       seq->buf_len = seq->seq_len;
-      xprintf (VERBOSE|SPU, "MALLOC1: seq->buf %p, len=%d\n", seq->buf,seq->buf_len);
+#ifdef LOG_DEBUG
+      printf ("spu: MALLOC1: seq->buf %p, len=%d\n", seq->buf,seq->buf_len);
+#endif
       seq->buf = malloc(seq->buf_len);
-      xprintf (VERBOSE|SPU, "MALLOC2: seq->buf %p, len=%d\n", seq->buf,seq->buf_len);
+#ifdef LOG_DEBUG
+      printf ("spu: MALLOC2: seq->buf %p, len=%d\n", seq->buf,seq->buf_len);
+#endif
 
     }
     seq->ra_offs = 0;
     
-    xprintf (VERBOSE|SPU, "buf_len: %d\n", seq->buf_len);
-    xprintf (VERBOSE|SPU, "cmd_off: %d\n", seq->cmd_offs);
+#ifdef LOG_DEBUG
+    printf ("spu: buf_len: %d\n", seq->buf_len);
+    printf ("spu: cmd_off: %d\n", seq->cmd_offs);
+#endif
   }
 
   if (seq->ra_offs < seq->buf_len) {
@@ -148,10 +160,14 @@ void spu_do_commands(spu_state_t *state, spu_seq_t* seq, vo_overlay_t *ovl)
   uint8_t *buf = state->cmd_ptr;
   uint8_t *next_seq;
 
-  xprintf (VERBOSE|SPU, "SPU EVENT\n");
+#ifdef LOG_DEBUG
+  printf ("spu: SPU EVENT\n");
+#endif
   
   state->delay = (buf[0] << 8) + buf[1];
-  xprintf (VERBOSE|SPU, "\tdelay=%d\n",state->delay);
+#ifdef LOG_DEBUG
+  printf ("spu: \tdelay=%d\n",state->delay);
+#endif
   next_seq = seq->buf + (buf[2] << 8) + buf[3];
   buf += 4;
 
@@ -165,13 +181,17 @@ void spu_do_commands(spu_state_t *state, spu_seq_t* seq, vo_overlay_t *ovl)
   while (buf < next_seq && *buf != CMD_SPU_EOF) {
     switch (*buf) {
     case CMD_SPU_SHOW:		/* show subpicture */
-      xprintf (VERBOSE|SPU, "\tshow subpicture\n");
+#ifdef LOG_DEBUG
+      printf ("spu: \tshow subpicture\n");
+#endif
       state->visible = 1;
       buf++;
       break;
       
     case CMD_SPU_HIDE:		/* hide subpicture */
-      xprintf (VERBOSE|SPU, "\thide subpicture\n");
+#ifdef LOG_DEBUG
+      printf ("spu: \thide subpicture\n");
+#endif
       state->visible = 2;
       buf++;
       break;
@@ -189,8 +209,10 @@ void spu_do_commands(spu_state_t *state, spu_seq_t* seq, vo_overlay_t *ovl)
       ovl->color[2] = state->clut[clut->entry1];
       ovl->color[1] = state->clut[clut->entry2];
       ovl->color[0] = state->clut[clut->entry3];
-      xprintf (VERBOSE|SPU, "\tclut [%x %x %x %x]\n",
-	   ovl->color[0], ovl->color[1], ovl->color[2], ovl->color[3]);
+#ifdef LOG_DEBUG
+      printf ("spu: \tclut [%x %x %x %x]\n",
+	      ovl->color[0], ovl->color[1], ovl->color[2], ovl->color[3]);
+#endif
       state->modified = 1;
       buf += 3;
       break;
@@ -203,8 +225,10 @@ void spu_do_commands(spu_state_t *state, spu_seq_t* seq, vo_overlay_t *ovl)
       ovl->trans[2] = trans->entry1;
       ovl->trans[1] = trans->entry2;
       ovl->trans[0] = trans->entry3;
-      xprintf (VERBOSE|SPU, "\ttrans [%d %d %d %d]\n",
-	   ovl->trans[0], ovl->trans[1], ovl->trans[2], ovl->trans[3]);
+#ifdef LOG_DEBUG
+      printf ("spu: \ttrans [%d %d %d %d]\n",
+	       ovl->trans[0], ovl->trans[1], ovl->trans[2], ovl->trans[3]);
+#endif
       state->modified = 1;
       buf += 3;
       break;
@@ -226,8 +250,10 @@ void spu_do_commands(spu_state_t *state, spu_seq_t* seq, vo_overlay_t *ovl)
       ovl->clip_left   = 0;
       ovl->clip_right  = ovl->width - 1;
 
-      xprintf (VERBOSE|SPU, "\tx = %d y = %d width = %d height = %d\n",
-	   ovl->x, ovl->y, ovl->width, ovl->height );
+#ifdef LOG_DEBUG
+      printf ("spu: \tx = %d y = %d width = %d height = %d\n",
+	      ovl->x, ovl->y, ovl->width, ovl->height );
+#endif
       state->modified = 1;
       buf += 7;
       break;
@@ -235,20 +261,24 @@ void spu_do_commands(spu_state_t *state, spu_seq_t* seq, vo_overlay_t *ovl)
     case CMD_SPU_SET_PXD_OFFSET:	/* image top[0] field / image bottom[1] field*/
       state->field_offs[0] = (((u_int)buf[1]) << 8) | buf[2];
       state->field_offs[1] = (((u_int)buf[3]) << 8) | buf[4];
-      xprintf (VERBOSE|SPU, "\toffset[0] = %d offset[1] = %d\n",
-	   state->field_offs[0], state->field_offs[1]);
+#ifdef LOG_DEBUG
+      printf ("spu: \toffset[0] = %d offset[1] = %d\n",
+	       state->field_offs[0], state->field_offs[1]);
+#endif
       state->modified = 1;
       buf += 5;
       break;
       
     case CMD_SPU_MENU:
-      xprintf (VERBOSE|SPU, "\tForce Display/Menu\n");
+#ifdef LOG_DEBUG
+      printf ("spu: \tForce Display/Menu\n");
+#endif
       state->menu = 1;
       buf++;
       break;
 
     default:
-      fprintf(stderr, "libspudec: unknown seqence command (%02x)\n", buf[0]);
+      printf("libspudec: unknown seqence command (%02x)\n", buf[0]);
       buf++;
       break;
     }
@@ -305,7 +335,9 @@ static int spu_next_line (vo_overlay_t *spu)
   field ^= 1; // Toggle fields
 	
   if (put_y >= spu->height) {
-    xprintf (VERBOSE|SPU, "put_y >= spu->height\n");
+#ifdef LOG_DEBUG
+    printf ("spu: put_y >= spu->height\n");
+#endif
     return -1;
   }
   return 0;
@@ -339,14 +371,20 @@ void spu_draw_picture (spu_state_t *state, spu_seq_t* seq, vo_overlay_t *ovl)
 //    if (ovl->rle)
 //      free(ovl->rle);
     ovl->data_size = seq->cmd_offs * 2 * sizeof(rle_elem_t);
-    xprintf (VERBOSE|SPU, "MALLOC1: ovl->rle %p, len=%d\n", ovl->rle,ovl->data_size);
+#ifdef LOG_DEBUG
+    printf ("spu: MALLOC1: ovl->rle %p, len=%d\n", ovl->rle,ovl->data_size);
+#endif
     ovl->rle = malloc(ovl->data_size);
-    xprintf (VERBOSE|SPU, "MALLOC2: ovl->rle %p, len=%d\n", ovl->rle,ovl->data_size);
+#ifdef LOG_DEBUG
+    printf ("spu: MALLOC2: ovl->rle %p, len=%d\n", ovl->rle,ovl->data_size);
+#endif
 //  }
 
   state->modified = 0; /* mark as already processed */
   rle = ovl->rle;
-  xprintf (VERBOSE|SPU, "Draw RLE=%p\n",rle);
+#ifdef LOG_DEBUG
+  printf ("spu: Draw RLE=%p\n",rle);
+#endif
 
   while (bit_ptr[1] < seq->buf + seq->cmd_offs) {
     u_int len;
@@ -382,9 +420,11 @@ void spu_draw_picture (spu_state_t *state, spu_seq_t* seq, vo_overlay_t *ovl)
 
   ovl->num_rle = rle - ovl->rle;
   ovl->rgb_clut = 0;
-  xprintf (VERBOSE|SPU, "Num RLE=%d\n",ovl->num_rle);
-  xprintf (VERBOSE|SPU, "Date size=%d\n",ovl->data_size);
-  xprintf (VERBOSE|SPU, "sizeof RLE=%d\n",sizeof(rle_elem_t));
+#ifdef LOG_DEBUG
+  printf ("spu: Num RLE=%d\n",ovl->num_rle);
+  printf ("spu: Date size=%d\n",ovl->data_size);
+  printf ("spu: sizeof RLE=%d\n",sizeof(rle_elem_t));
+#endif
 }
 
 /* Heuristic to discover the colors used by the subtitles

@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.34 2001/11/17 14:26:39 f1rmb Exp $
+ * $Id: xine_decoder.c,v 1.35 2001/11/18 03:53:24 guenter Exp $
  *
  * stuff needed to turn libspu into a xine decoder plugin
  */
@@ -41,7 +41,9 @@
 
 static void spudec_print_overlay( vo_overlay_t *ovl );
 
+/*
 #define LOG_DEBUG 1
+*/
 
 #ifdef DEBUG
 
@@ -189,15 +191,19 @@ static void spudec_reset (spudec_decoder_t *this) {
 
   for (i=0; i < MAX_EVENTS; i++) {
     if (this->spu_events[i].event == NULL) {
-      xprintf (VERBOSE|SPU, "MALLOC1: this->spu_events[%d].event %p, len=%d\n",
-               i,
-               this->spu_events[i].event,
-               sizeof(spu_overlay_event_t));
+#ifdef LOG_DEBUG
+      printf ("spu: MALLOC1: this->spu_events[%d].event %p, len=%d\n",
+	      i,
+	      this->spu_events[i].event,
+	      sizeof(spu_overlay_event_t));
+#endif
       this->spu_events[i].event = xine_xmalloc (sizeof(spu_overlay_event_t));
-      xprintf (VERBOSE|SPU, "MALLOC2: this->spu_events[%d].event %p, len=%d\n",
-               i,
-               this->spu_events[i].event,
-               sizeof(spu_overlay_event_t));
+#ifdef LOG_DEBUG
+      printf ("spu: MALLOC2: this->spu_events[%d].event %p, len=%d\n",
+	      i,
+	      this->spu_events[i].event,
+	      sizeof(spu_overlay_event_t));
+#endif
       this->spu_events[i].event->event_type = 0;  /* Empty slot */
     }
   }
@@ -208,11 +214,15 @@ static void spudec_reset (spudec_decoder_t *this) {
   this->spu_objects[1].handle=1;
   this->spu_objects[1].object_type=1;
   this->spu_objects[1].pts=0;
-  xprintf (VERBOSE|SPU, "MALLOC1: this->spu_objects[1].overlay %p, len=%d\n",
-            this->spu_objects[1].overlay, sizeof(vo_overlay_t));
+#ifdef LOG_DEBUG
+  printf ("spu: MALLOC1: this->spu_objects[1].overlay %p, len=%d\n",
+	  this->spu_objects[1].overlay, sizeof(vo_overlay_t));
+#endif
   this->spu_objects[1].overlay = xine_xmalloc (sizeof(vo_overlay_t));
-  xprintf (VERBOSE|SPU, "MALLOC2: this->spu_objects[1].overlay %p, len=%d\n",
-            this->spu_objects[1].overlay, sizeof(vo_overlay_t));
+#ifdef LOG_DEBUG
+  printf ("spu: MALLOC2: this->spu_objects[1].overlay %p, len=%d\n",
+	  this->spu_objects[1].overlay, sizeof(vo_overlay_t));
+#endif
 /* xine_xmalloc does memset */
 /*  memset(this->spu_objects[1].overlay,0,sizeof(vo_overlay_t));
  */
@@ -281,9 +291,13 @@ static int32_t spu_add_event(spudec_decoder_t *this,  spu_overlay_event_t *event
   new_event=0;
   /* We skip the 0 entry because that is used as a pointer to the first event.*/
   /* Find a free event slot */
-  xprintf (VERBOSE|SPU, "284MUTEX1:spu_events lock");
+#ifdef LOG_DEBUG
+  printf ("spu: 284MUTEX1:spu_events lock");
+#endif
   pthread_mutex_lock (&this->spu_events_mutex);
-  xprintf (VERBOSE|SPU, "->ok\n");
+#ifdef LOG_DEBUG
+  printf ("spu:->ok\n");
+#endif
   do {
     new_event++;
   } while ((new_event<MAX_EVENTS) && (this->spu_events[new_event].event->event_type > 0));
@@ -302,7 +316,9 @@ static int32_t spu_add_event(spudec_decoder_t *this,  spu_overlay_event_t *event
       found=1;
       break;
     }
-    xprintf (VERBOSE|SPU, "this_event=%d vpts %d\n",this_event, this->spu_events[this_event].event->vpts);
+#ifdef LOG_DEBUG
+    printf ("spu:this_event=%d vpts %d\n",this_event, this->spu_events[this_event].event->vpts);
+#endif
     if (this->spu_events[this_event].event->vpts > event->vpts ) {
       found=2;
       break;
@@ -322,15 +338,19 @@ static int32_t spu_add_event(spudec_decoder_t *this,  spu_overlay_event_t *event
   this->spu_events[new_event].event->event_type=event->event_type;
   this->spu_events[new_event].event->vpts=event->vpts;
   this->spu_events[new_event].event->object.handle=event->object.handle;
-  xprintf (VERBOSE|SPU, "323MALLOC1: this->spu_events[new_event=%d].event->object.overlay %p, len=%d\n",
-            new_event,
-            this->spu_events[new_event].event->object.overlay,
-            sizeof(vo_overlay_t));
+#ifdef LOG_DEBUG
+  printf ("spu: 323MALLOC1: this->spu_events[new_event=%d].event->object.overlay %p, len=%d\n",
+	  new_event,
+	  this->spu_events[new_event].event->object.overlay,
+	  sizeof(vo_overlay_t));
+#endif
   this->spu_events[new_event].event->object.overlay = xine_xmalloc (sizeof(vo_overlay_t));
-  xprintf (VERBOSE|SPU, "328MALLOC2: this->spu_events[new_event=%d].event->object.overlay %p, len=%d\n",
-            new_event,
-            this->spu_events[new_event].event->object.overlay,
-            sizeof(vo_overlay_t));
+#ifdef LOG_DEBUG
+  printf ("spu: 328MALLOC2: this->spu_events[new_event=%d].event->object.overlay %p, len=%d\n",
+	  new_event,
+	  this->spu_events[new_event].event->object.overlay,
+	  sizeof(vo_overlay_t));
+#endif
   memcpy(this->spu_events[new_event].event->object.overlay, 
     event->object.overlay, sizeof(vo_overlay_t));
   memset(event->object.overlay,0,sizeof(vo_overlay_t));
@@ -360,9 +380,11 @@ static void spu_process (spudec_decoder_t *this, uint32_t stream_id) {
 /* FIXME:Get Handle after we have found if "Forced display" is set or not. 
  */
     
-  xprintf (VERBOSE|SPU, "Found SPU from stream %d pts=%d vpts=%d\n",stream_id, 
+#ifdef LOG_DEBUG
+  printf ("spu: Found SPU from stream %d pts=%d vpts=%d\n",stream_id, 
           this->spu_stream_state[stream_id].pts,
           this->spu_stream_state[stream_id].vpts); 
+#endif
   this->state.cmd_ptr = this->cur_seq->buf + this->cur_seq->cmd_offs;
   this->state.next_pts = -1; /* invalidate timestamp */
   this->state.modified = 1; /* Only draw picture if = 1 on first event of SPU */
@@ -389,7 +411,9 @@ static void spu_process (spudec_decoder_t *this, uint32_t stream_id) {
 
       if ((this->xine->spu_channel != stream_id) &&
            (this->state.menu == 0) ) {
-        xprintf (VERBOSE|SPU, "Dropping SPU channel %d\n", stream_id);
+#ifdef LOG_DEBUG
+        printf ("spu: Dropping SPU channel %d\n", stream_id);
+#endif
         spu_free_handle(this, handle);
         return;
       }
@@ -404,15 +428,19 @@ static void spu_process (spudec_decoder_t *this, uint32_t stream_id) {
         /* Subtitle */
         this->event.object.handle = handle;
         /* FIXME: memcpy maybe. */
-        xprintf (VERBOSE|SPU, "403MALLOC: this->event.object.overlay=%p\n",
-                  this->event.object.overlay);
+#ifdef LOG_DEBUG
+        printf ("spu: 403MALLOC: this->event.object.overlay=%p\n",
+		this->event.object.overlay);
+#endif
         this->event.object.overlay = malloc(sizeof(vo_overlay_t));
         memcpy(this->event.object.overlay, 
                &this->overlay,
                sizeof(vo_overlay_t));
         this->overlay.rle=NULL;
-        xprintf (VERBOSE|SPU, "409MALLOC: this->event.object.overlay=%p\n",
-                  this->event.object.overlay);
+#ifdef LOG_DEBUG
+        printf ("spu: 409MALLOC: this->event.object.overlay=%p\n",
+		this->event.object.overlay);
+#endif
         this->event.event_type = this->state.visible;
         this->event.vpts = this->spu_stream_state[stream_id].vpts+(this->state.delay*1000); 
       } else {
@@ -420,15 +448,19 @@ static void spu_process (spudec_decoder_t *this, uint32_t stream_id) {
         spu_free_handle(this, handle);
         this->event.object.handle = spu_get_menu_handle(this);
         /* FIXME: memcpy maybe. */
-        xprintf (VERBOSE|SPU, "418MALLOC: this->event.object.overlay=%p\n",
-                  this->event.object.overlay);
+#ifdef LOG_DEBUG
+        printf ("spu:418MALLOC: this->event.object.overlay=%p\n",
+		this->event.object.overlay);
+#endif
         this->event.object.overlay = malloc(sizeof(vo_overlay_t));
         memcpy(this->event.object.overlay, 
                &this->overlay,
                sizeof(vo_overlay_t));
         this->overlay.rle=NULL;
-        xprintf (VERBOSE|SPU, "424MALLOC: this->event.object.overlay=%p\n",
-                  this->event.object.overlay);
+#ifdef LOG_DEBUG
+        printf ("spu: 424MALLOC: this->event.object.overlay=%p\n",
+		this->event.object.overlay);
+#endif
         this->event.event_type = EVENT_MENU_SPU;
         this->event.vpts = this->spu_stream_state[stream_id].vpts+(this->state.delay*1000); 
       }
@@ -536,15 +568,17 @@ static void spudec_nextseq(spudec_decoder_t* this) {
 }
 
 static void spudec_print_overlay( vo_overlay_t *ovl ) {
-  xprintf (VERBOSE|SPU, "OVERLAY to show\n");
-  xprintf (VERBOSE|SPU, "\tx = %d y = %d width = %d height = %d\n",
-	   ovl->x, ovl->y, ovl->width, ovl->height );
-  xprintf (VERBOSE|SPU, "\tclut [%x %x %x %x]\n",
-	   ovl->color[0], ovl->color[1], ovl->color[2], ovl->color[3]);
-  xprintf (VERBOSE|SPU, "\ttrans [%d %d %d %d]\n",
-	   ovl->trans[0], ovl->trans[1], ovl->trans[2], ovl->trans[3]);
-  xprintf (VERBOSE|SPU, "\tclip top=%d bottom=%d left=%d right=%d\n",
-	   ovl->clip_top, ovl->clip_bottom, ovl->clip_left, ovl->clip_right);
+#ifdef LOG_DEBUG
+  printf ("spu: OVERLAY to show\n");
+  printf ("spu: \tx = %d y = %d width = %d height = %d\n",
+	  ovl->x, ovl->y, ovl->width, ovl->height );
+  printf ("spu: \tclut [%x %x %x %x]\n",
+	  ovl->color[0], ovl->color[1], ovl->color[2], ovl->color[3]);
+  printf ("spu: \ttrans [%d %d %d %d]\n",
+	  ovl->trans[0], ovl->trans[1], ovl->trans[2], ovl->trans[3]);
+  printf ("spu: \tclip top=%d bottom=%d left=%d right=%d\n",
+	  ovl->clip_top, ovl->clip_bottom, ovl->clip_left, ovl->clip_right);
+#endif
   return;
 } 
 
@@ -556,9 +590,13 @@ static void spu_process_event( spudec_decoder_t *this, int vpts ) {
 //  uint32_t     pts;
 //  int i;
 //  vo_overlay_t overlay;
-  xprintf (VERBOSE|SPU, "557MUTEX1:spu_events lock");
+#ifdef LOG_DEBUG
+  printf ("spu: 557MUTEX1:spu_events lock");
+#endif
   pthread_mutex_lock (&this->spu_events_mutex);
-  xprintf (VERBOSE|SPU, " -> ok.\n");
+#ifdef LOG_DEBUG
+  printf ("spu: -> ok.\n");
+#endif
   this_event=this->spu_events[0].next_event;
   if ((!this_event) || (vpts < this->spu_events[this_event].event->vpts) ) {
     pthread_mutex_unlock (&this->spu_events_mutex);
@@ -568,60 +606,84 @@ static void spu_process_event( spudec_decoder_t *this, int vpts ) {
   handle=this->spu_events[this_event].event->object.handle;
   switch( this->spu_events[this_event].event->event_type ) {
     case EVENT_SHOW_SPU:
-      xprintf (VERBOSE|SPU, "SHOW SPU NOW\n");
+#ifdef LOG_DEBUG
+      printf ("spu: SHOW SPU NOW\n");
+#endif
       if (this->spu_events[this_event].event->object.overlay != NULL) {
         this->spu_objects[handle].handle = handle;
-        xprintf (VERBOSE|SPU, "POINTER1: this->spu_objects[handle=%d].overlay=%p\n",
-                  handle,
-                  this->spu_objects[handle].overlay);
+#ifdef LOG_DEBUG
+        printf ("spu: POINTER1: this->spu_objects[handle=%d].overlay=%p\n",
+		handle,
+		this->spu_objects[handle].overlay);
+#endif
         this->spu_objects[handle].overlay = this->spu_events[this_event].event->object.overlay;
-        xprintf (VERBOSE|SPU, "POINTER2: this->spu_objects[handle=%d].overlay=%p\n",
-                  handle,
-                  this->spu_objects[handle].overlay);
+#ifdef LOG_DEBUG
+        printf ("spu: POINTER2: this->spu_objects[handle=%d].overlay=%p\n",
+		handle,
+		this->spu_objects[handle].overlay);
+#endif
         this->spu_events[this_event].event->object.overlay = NULL;
       }
       this->spu_showing[1].handle = handle;
       break;
 
     case EVENT_HIDE_SPU:
-      xprintf (VERBOSE|SPU, "HIDE SPU NOW\n");
+#ifdef LOG_DEBUG
+      printf ("spu: HIDE SPU NOW\n");
+#endif
       this->spu_showing[1].handle = -1;
       if(this->spu_objects[handle].overlay->rle) {
-        xprintf (VERBOSE|SPU, "FREE1: this->spu_objects[%d].overlay->rle %p\n",
-          handle,
-          this->spu_objects[handle].overlay->rle);
+#ifdef LOG_DEBUG
+        printf ("spu: FREE1: this->spu_objects[%d].overlay->rle %p\n",
+		handle,
+		this->spu_objects[handle].overlay->rle);
+#endif
         free(this->spu_objects[handle].overlay->rle);
         this->spu_objects[handle].overlay->rle = NULL;
-        xprintf (VERBOSE|SPU, "FREE2: this->spu_objects[%d].overlay->rle %p\n",
-          handle,
-          this->spu_objects[handle].overlay->rle);
+#ifdef LOG_DEBUG
+        printf ("spu: FREE2: this->spu_objects[%d].overlay->rle %p\n",
+		handle,
+		this->spu_objects[handle].overlay->rle);
+#endif
       }
-      xprintf (VERBOSE|SPU, "RLE clear=%08X\n",(uint32_t)this->spu_objects[handle].overlay->rle);
+#ifdef LOG_DEBUG
+      printf ("spu: RLE clear=%08X\n",(uint32_t)this->spu_objects[handle].overlay->rle);
+#endif
       if (this->spu_objects[handle].overlay) {
-        xprintf (VERBOSE|SPU, "FREE1: this->spu_objects[%d].overlay %p\n",
-          handle,
-          this->spu_objects[handle].overlay);
+#ifdef LOG_DEBUG
+        printf ("spu: FREE1: this->spu_objects[%d].overlay %p\n",
+		handle,
+		this->spu_objects[handle].overlay);
+#endif
         free(this->spu_objects[handle].overlay);
         this->spu_objects[handle].overlay = NULL;
-        xprintf (VERBOSE|SPU, "FREE2: this->spu_objects[%d].overlay %p\n",
-          handle,
-          this->spu_objects[handle].overlay);
+#ifdef LOG_DEBUG
+        printf ("spu: FREE2: this->spu_objects[%d].overlay %p\n",
+		handle,
+		this->spu_objects[handle].overlay);
+#endif
       }
       spu_free_handle( this, handle );
       break;
 
     case EVENT_HIDE_MENU:
-      xprintf (VERBOSE|SPU, "HIDE MENU NOW %d\n",handle);
+#ifdef LOG_DEBUG
+      printf ("spu: HIDE MENU NOW %d\n",handle);
+#endif
       this->spu_showing[1].handle = -1;
       if(this->spu_objects[handle].overlay->rle) {
+#ifdef LOG_DEBUG
         xprintf (VERBOSE|SPU, "FREE1: this->spu_objects[%d].overlay->rle %p\n",
-          handle,
-          this->spu_objects[handle].overlay->rle);
+		 handle,
+		 this->spu_objects[handle].overlay->rle);
+#endif
         free(this->spu_objects[handle].overlay->rle);
         this->spu_objects[handle].overlay->rle = NULL;
+#ifdef LOG_DEBUG
         xprintf (VERBOSE|SPU, "FREE2: this->spu_objects[%d].overlay->rle %p\n",
-          handle,
-          this->spu_objects[handle].overlay->rle);
+		 handle,
+		 this->spu_objects[handle].overlay->rle);
+#endif
       }
       
       /* FIXME: maybe free something here */
@@ -629,24 +691,34 @@ static void spu_process_event( spudec_decoder_t *this, int vpts ) {
       break;
 
     case EVENT_MENU_SPU:
+#ifdef LOG_DEBUG
       xprintf (VERBOSE|SPU, "MENU SPU NOW\n");
+#endif
       if (this->spu_events[this_event].event->object.overlay != NULL) {
         vo_overlay_t *overlay = this->spu_objects[handle].overlay;
         vo_overlay_t *event_overlay = this->spu_events[this_event].event->object.overlay;
+#ifdef LOG_DEBUG
         xprintf (VERBOSE|SPU, "event_overlay\n");
+#endif
         spudec_print_overlay(event_overlay);
+#ifdef LOG_DEBUG
         xprintf (VERBOSE|SPU, "overlay\n");
+#endif
         spudec_print_overlay(overlay);
 
         this->spu_objects[handle].handle = handle; /* This should not change for menus */
         /* If rle is not empty, free it first */
         if(overlay && overlay->rle) {
+#ifdef LOG_DEBUG
           xprintf (VERBOSE|SPU, "FREE1: overlay->rle %p\n",
-            overlay->rle);
+		   overlay->rle);
+#endif
           free (overlay->rle);
           overlay->rle = NULL;
+#ifdef LOG_DEBUG
           xprintf (VERBOSE|SPU, "FREE2: overlay->rle %p\n",
-            overlay->rle);
+		   overlay->rle);
+#endif
         }
 	overlay->rle = event_overlay->rle;
 	overlay->data_size = event_overlay->data_size;
@@ -660,7 +732,9 @@ static void spu_process_event( spudec_decoder_t *this, int vpts ) {
             event_overlay->color[1] +
             event_overlay->color[2] +
             event_overlay->color[3]) > 0 ) {
+#ifdef LOG_DEBUG
           xprintf (VERBOSE|SPU, "mixing clut\n");
+#endif
           overlay->color[0] = event_overlay->color[0];
           overlay->color[1] = event_overlay->color[1];
           overlay->color[2] = event_overlay->color[2];
@@ -670,33 +744,47 @@ static void spu_process_event( spudec_decoder_t *this, int vpts ) {
             event_overlay->trans[1] +
             event_overlay->trans[2] +
             event_overlay->trans[3]) > 0 ) {
+#ifdef LOG_DEBUG
           xprintf (VERBOSE|SPU, "mixing trans\n");
+#endif
           overlay->trans[0] = event_overlay->trans[0];
           overlay->trans[1] = event_overlay->trans[1];
           overlay->trans[2] = event_overlay->trans[2];
           overlay->trans[3] = event_overlay->trans[3];
         }
         this->spu_showing[1].handle = handle;
+#ifdef LOG_DEBUG
         xprintf (VERBOSE|SPU, "overlay after\n");
+#endif
         spudec_print_overlay(overlay);
+#ifdef LOG_DEBUG
         xprintf (VERBOSE|SPU, "FREE1: event_overlay %p\n",
           this->spu_events[this_event].event->object.overlay = NULL);
+#endif
         /* The null test was done at the start of this case statement */
         free (this->spu_events[this_event].event->object.overlay);
         this->spu_events[this_event].event->object.overlay = NULL;
+#ifdef LOG_DEBUG
         xprintf (VERBOSE|SPU, "FREE2: event_ovlerlay %p\n",
           this->spu_events[this_event].event->object.overlay);
+#endif
       }
       break;
 
     case EVENT_MENU_BUTTON:
+#ifdef LOG_DEBUG
       xprintf (VERBOSE|SPU, "MENU BUTTON NOW\n");
+#endif
       if (this->spu_events[this_event].event->object.overlay != NULL) {
         vo_overlay_t *overlay = this->spu_objects[handle].overlay;
         vo_overlay_t *event_overlay = this->spu_events[this_event].event->object.overlay;
+#ifdef LOG_DEBUG
         xprintf (VERBOSE|SPU, "event_overlay\n");
+#endif
         spudec_print_overlay(event_overlay);
+#ifdef LOG_DEBUG
         xprintf (VERBOSE|SPU, "overlay\n");
+#endif
         spudec_print_overlay(overlay);
         this->spu_objects[handle].handle = handle; /* This should not change for menus */
         overlay->clip_top = event_overlay->clip_top;
@@ -708,7 +796,9 @@ static void spu_process_event( spudec_decoder_t *this, int vpts ) {
             event_overlay->color[1] +
             event_overlay->color[2] +
             event_overlay->color[3]) > 0 ) {
+#ifdef LOG_DEBUG
           xprintf (VERBOSE|SPU, "mixing clut\n");
+#endif
           overlay->color[0] = event_overlay->color[0];
           overlay->color[1] = event_overlay->color[1];
           overlay->color[2] = event_overlay->color[2];
@@ -718,27 +808,37 @@ static void spu_process_event( spudec_decoder_t *this, int vpts ) {
             event_overlay->trans[1] +
             event_overlay->trans[2] +
             event_overlay->trans[3]) > 0 ) {
+#ifdef LOG_DEBUG
           xprintf (VERBOSE|SPU, "mixing trans\n");
+#endif
           overlay->trans[0] = event_overlay->trans[0];
           overlay->trans[1] = event_overlay->trans[1];
           overlay->trans[2] = event_overlay->trans[2];
           overlay->trans[3] = event_overlay->trans[3];
         }
         this->spu_showing[1].handle = handle;
+#ifdef LOG_DEBUG
         xprintf (VERBOSE|SPU, "overlay after\n");
+#endif
         spudec_print_overlay(overlay);
+#ifdef LOG_DEBUG
         xprintf (VERBOSE|SPU, "FREE1: event_overlay %p\n",
           this->spu_events[this_event].event->object.overlay = NULL);
+#endif
         /* The null test was done at the start of this case statement */
         free (this->spu_events[this_event].event->object.overlay);
         this->spu_events[this_event].event->object.overlay = NULL;
+#ifdef LOG_DEBUG
         xprintf (VERBOSE|SPU, "FREE2: event_ovlerlay %p\n",
           this->spu_events[this_event].event->object.overlay);
+#endif
       }
       break;
 
     default:
+#ifdef LOG_DEBUG
       xprintf (VERBOSE|SPU, "Unhandled event type\n");
+#endif
       break;
 
   }
@@ -793,22 +893,29 @@ static void spudec_event_listener(void *this_gen, xine_event_t *event_gen) {
       spu_overlay_event_t *overlay_event = NULL;
       vo_overlay_t        *overlay = NULL;
       spu_button_t        *but = event->data;
+#ifdef LOG_DEBUG
       xprintf (VERBOSE|SPU, "MALLOC1: overlay_event %p, len=%d\n",
                overlay_event,
                sizeof(spu_overlay_event_t));
+#endif
       overlay_event = xine_xmalloc (sizeof(spu_overlay_event_t));
+#ifdef LOG_DEBUG
       xprintf (VERBOSE|SPU, "MALLOC2: overlay_event %p, len=%d\n",
                overlay_event,
                sizeof(spu_overlay_event_t));
       xprintf (VERBOSE|SPU, "MALLOC1: overlay %p, len=%d\n",
                overlay,
                sizeof(vo_overlay_t));
+#endif
       overlay = xine_xmalloc (sizeof(vo_overlay_t));
+#ifdef LOG_DEBUG
       xprintf (VERBOSE|SPU, "MALLOC2: overlay %p, len=%d\n",
                overlay,
                sizeof(vo_overlay_t));
+#endif
       overlay_event->object.overlay=overlay;
 
+#ifdef LOG_DEBUG
       xprintf (VERBOSE|SPU, "BUTTON\n");
       xprintf (VERBOSE|SPU, "\tshow=%d\n",but->show);
       xprintf (VERBOSE|SPU, "\tclut [%x %x %x %x]\n",
@@ -817,6 +924,7 @@ static void spudec_event_listener(void *this_gen, xine_event_t *event_gen) {
 	   but->trans[0], but->trans[1], but->trans[2], but->trans[3]);
       xprintf (VERBOSE|SPU, "\tleft = %d right = %d top = %d bottom = %d\n",
 	   but->left, but->right, but->top, but->bottom );
+#endif
       if (!this->state.menu) return;
       
       if (but->show) {
@@ -882,10 +990,9 @@ spu_decoder_t *init_spu_decoder_plugin (int iface_version, xine_t *xine) {
   spudec_decoder_t *this ;
 
   if (iface_version != 4) {
-    fprintf(stderr,
-     "libspudec: Doesn't support plugin API version %d.\n"
-     "libspudec: This means there is a version mismatch between XINE and\n"
-     "libspudec: this plugin.\n", iface_version);
+    printf("libspudec: Doesn't support plugin API version %d.\n"
+	   "libspudec: This means there is a version mismatch between XINE and\n"
+	   "libspudec: this plugin.\n", iface_version);
     return NULL;
   }
 

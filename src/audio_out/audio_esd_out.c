@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_esd_out.c,v 1.13 2001/11/17 14:26:37 f1rmb Exp $
+ * $Id: audio_esd_out.c,v 1.14 2001/11/18 03:53:23 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -293,7 +293,10 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
   this->output_sample_rate = 0;
   this->audio_fd           = -1;
   this->capabilities       = AO_CAP_MODE_MONO | AO_CAP_MODE_STEREO;
-  this->latency            = config->lookup_int (config, "esd_latency", 30000);
+  this->latency            = config->register_range (config, "audio.esd_latency", 30000,
+						     -30000, 90000,
+						     "esd audio output latency (adjust a/v sync)",
+						     NULL, NULL, NULL);
 
   this->ao_driver.get_capabilities    = ao_esd_get_capabilities;
   this->ao_driver.get_property        = ao_esd_get_property;

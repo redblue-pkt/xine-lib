@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: configfile.c,v 1.5 2001/11/17 14:26:39 f1rmb Exp $
+ * $Id: configfile.c,v 1.6 2001/11/18 03:53:25 guenter Exp $
  *
  * config file management - implementation
  *
@@ -27,49 +27,64 @@
 #include "config.h"
 #endif
 
+#include <sys/stat.h>
+#include <sys/types.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 #include "configfile.h"
 #include "xineutils.h"
 
-/*
+
+/* 
  * internal utility functions
- *******************************/
+ */
 
-void config_file_add (config_values_t *this, char *key, char *value) {
+static char *copy_string (char *str) {
 
-  cfg_entry_t *entry;
-  int          len;
+  char *cpy;
+  int   len;
 
-  entry = (cfg_entry_t *) xine_xmalloc (sizeof (cfg_entry_t));
+  len = strlen (str);
 
-  len = strlen (key);
-  entry->key = (char *) xine_xmalloc (len+2);
-  strncpy (entry->key, key, len+1);
+  cpy = xine_xmalloc (len+256);
 
-  len = strlen (value);
-  entry->value = (char *) xine_xmalloc (len+21);
-  strncpy (entry->value, value, len+1);
+  strncpy (cpy, str, len);
 
-  entry->next = NULL;
-
-  if (this->data->gConfigLast) 
-    this->data->gConfigLast->next = entry;
-  else
-    this->data->gConfig = entry;
-  
-  this->data->gConfigLast = entry;
-
+  return cpy;
 }
 
+static cfg_entry_t *config_file_add (config_values_t *this, char *key) {
 
-
-
-cfg_entry_t *config_file_search (config_values_t *this, char *key) {
   cfg_entry_t *entry;
 
-  entry = this->data->gConfig;
+  entry = (cfg_entry_t *) xine_xmalloc (sizeof (cfg_entry_t));
+  entry->key           = copy_string (key);
+  entry->type          = CONFIG_TYPE_UNKNOWN;
+
+  entry->next          = NULL;
+
+  if (this->last) 
+    this->last->next = entry;
+  else
+    this->first = entry;
+  
+  this->last = entry;
+
+  printf ("configfile: add entry key=%s\n", key);
+
+  return entry;
+}
+
+/*
+ * external interface
+ */
+
+cfg_entry_t *config_file_lookup_entry (config_values_t *this, char *key) {
+  cfg_entry_t *entry;
+
+  entry = this->first;
 
   while (entry && strcmp (entry->key, key))
     entry = entry->next;
@@ -77,118 +92,314 @@ cfg_entry_t *config_file_search (config_values_t *this, char *key) {
   return entry;
 }
 
-
-
-/*
- * external interface
- ***********************/
-
-static char *config_file_lookup_str (config_values_t *this,
-				     char *key, char*str_default) {
-  cfg_entry_t *entry;
-
-  if(key == NULL)
-    return ((str_default != NULL) ? str_default : NULL);
-  
-  entry = config_file_search (this, key);
-
-  if (entry)
-    return entry->value;
-
-  if(str_default)
-    config_file_add (this, key, str_default);
-
-  return str_default;
-}
-
-
-
-
-static int config_file_lookup_int (config_values_t *this,
-				   char *key, int n_default) {
+static char *config_file_register_string (config_values_t *this,
+					  char *key, char *def_value,
+					  char *description, 
+					  char *help,
+					  config_cb_t changed_cb,
+					  void *cb_data) {
 
   cfg_entry_t *entry;
-  char str[25];
 
-  if(key == NULL)
-    return n_default;
+  assert (key);
+  assert (def_value);
+  assert (description);
 
-  entry = config_file_search (this, key);
+  printf ("configfile: registering %s\n", key);
 
-  if (entry) {
-    int n;
+  /* make sure this entry exists, create it if not */
 
-    if (sscanf (entry->value, "%d", &n) == 1) 
-      return n;
+  entry = config_file_lookup_entry (this, key);
+
+  if (!entry) {
+    entry = config_file_add (this, key);
+    entry->unknown_value = copy_string(def_value);
+  }
+    
+  /* convert entry to string type if necessary */
+
+  if (entry->type != CONFIG_TYPE_STRING) {
+    entry->type      = CONFIG_TYPE_STRING;
+    entry->str_value = entry->unknown_value;
   }
 
-  sprintf (str, "%d", n_default);
+  /* fill out rest of struct */
 
-  config_file_add (this, key, str);
+  entry->str_default    = copy_string(def_value);
+  entry->description    = description;
+  entry->help           = help;       
+  entry->callback       = changed_cb; 
+  entry->callback_data  = cb_data;   
 
-  return n_default; 
+  return entry->str_value;
 }
 
+static int config_file_register_num (config_values_t *this,
+				     char *key, int def_value,
+				     char *description, 
+				     char *help,
+				     config_cb_t changed_cb,
+				     void *cb_data) {
 
-
-
-static void config_file_set_int (config_values_t *this,
-				 char *key, int value) {
-  
   cfg_entry_t *entry;
 
-  if(key == NULL)
+  assert (key);
+  assert (description);
+
+  printf ("configfile: registering %s\n", key);
+
+  /* make sure this entry exists, create it if not */
+
+  entry = config_file_lookup_entry (this, key);
+
+  if (!entry) {
+    entry = config_file_add (this, key);
+    entry->unknown_value = NULL;
+  }
+    
+  /* convert entry to num type if necessary */
+
+  if (entry->type != CONFIG_TYPE_NUM) {
+    entry->type      = CONFIG_TYPE_NUM;
+
+    if (entry->unknown_value)
+      sscanf (entry->unknown_value, "%d", &entry->num_value);
+    else
+      entry->num_value = def_value;
+  }
+
+    
+  /* fill out rest of struct */
+
+  entry->num_default    = def_value;
+  entry->description    = description;
+  entry->help           = help;       
+  entry->callback       = changed_cb; 
+  entry->callback_data  = cb_data;   
+
+  return entry->num_value;
+}
+
+static int config_file_register_bool (config_values_t *this,
+				      char *key, int def_value,
+				      char *description, 
+				      char *help,
+				      config_cb_t changed_cb,
+				      void *cb_data) {
+
+  cfg_entry_t *entry;
+
+  assert (key);
+  assert (description);
+
+  printf ("configfile: registering %s\n", key);
+
+  /* make sure this entry exists, create it if not */
+
+  entry = config_file_lookup_entry (this, key);
+
+  if (!entry) {
+    entry = config_file_add (this, key);
+    entry->unknown_value = NULL;
+  }
+    
+  /* convert entry to bool type if necessary */
+
+  if (entry->type != CONFIG_TYPE_BOOL) {
+    entry->type      = CONFIG_TYPE_BOOL;
+
+    if (entry->unknown_value)
+      sscanf (entry->unknown_value, "%d", &entry->num_value);
+    else
+      entry->num_value = def_value;
+  }
+
+    
+  /* fill out rest of struct */
+
+  entry->num_default    = def_value;
+  entry->description    = description;
+  entry->help           = help;       
+  entry->callback       = changed_cb; 
+  entry->callback_data  = cb_data;   
+
+  return entry->num_value;
+}
+
+static int config_file_register_range (config_values_t *this,
+				       char *key, int def_value,
+				       int min, int max,
+				       char *description, 
+				       char *help,
+				       config_cb_t changed_cb,
+				       void *cb_data) {
+
+  cfg_entry_t *entry;
+
+  assert (key);
+  assert (description);
+
+  printf ("configfile: registering %s\n", key);
+
+  /* make sure this entry exists, create it if not */
+
+  entry = config_file_lookup_entry (this, key);
+  if (!entry) {
+    entry = config_file_add (this, key);
+    entry->unknown_value = NULL;
+  }
+    
+  /* convert entry to range type if necessary */
+
+  if (entry->type != CONFIG_TYPE_RANGE) {
+    entry->type      = CONFIG_TYPE_RANGE;
+
+    if (entry->unknown_value)
+      sscanf (entry->unknown_value, "%d", &entry->num_value);
+    else
+      entry->num_value = def_value;
+  }
+
+  /* fill out rest of struct */
+
+  entry->num_default   = def_value;
+  entry->range_min     = min;
+  entry->range_max     = max;
+  entry->description   = description;
+  entry->help          = help;       
+  entry->callback      = changed_cb; 
+  entry->callback_data = cb_data;   
+
+  return entry->num_value;
+}
+
+static int config_file_parse_enum (char *str, char **values) {
+
+  char **value;
+  int    i;
+  
+  
+  value = values;
+  i = 0;
+
+  while (*value) {
+
+    printf ("configfile: parse enum, >%s< ?= >%s<\n",
+	    *value, str);
+
+    if (!strcmp (*value, str))
+      return i;
+
+    value++;
+    i++;
+  }
+
+  printf ("configfile: warning, >%s< is not a valid enum here, using 0\n",
+	  str);
+
+  return 0;
+}
+
+static int config_file_register_enum (config_values_t *this,
+				      char *key, int def_value,
+				      char **values,
+				      char *description, 
+				      char *help,
+				      config_cb_t changed_cb,
+				      void *cb_data) {
+
+  cfg_entry_t *entry;
+
+  assert (key);
+  assert (values);
+  assert (description);
+
+  printf ("configfile: registering %s\n", key);
+
+  /* make sure this entry exists, create it if not */
+
+  entry = config_file_lookup_entry (this, key);
+  if (!entry) {
+    entry = config_file_add (this, key);
+    entry->unknown_value = NULL;
+  }
+    
+  /* convert entry to enum type if necessary */
+
+  if (entry->type != CONFIG_TYPE_ENUM) {
+    entry->type      = CONFIG_TYPE_ENUM;
+
+    if (entry->unknown_value)
+      entry->num_value = config_file_parse_enum (entry->unknown_value, values);
+    else
+      entry->num_value = def_value;
+
+  }
+
+  /* fill out rest of struct */
+
+  entry->num_default   = def_value;
+  entry->enum_values   = values;
+  entry->description   = description;
+  entry->help          = help;       
+  entry->callback      = changed_cb; 
+  entry->callback_data = cb_data;   
+
+  return entry->num_value;
+}
+
+static void config_file_update_num (config_values_t *this,
+				    char *key, int value) {
+
+  cfg_entry_t *entry;
+
+  entry = this->lookup_entry (this, key);
+
+  if (!entry) {
+
+    printf ("configfile: WARNING! tried to update unknown key %s (to %d)\n",
+	    key, value);
     return;
 
-  entry = config_file_search (this, key);
-
-  if (entry) {
-    sprintf (entry->value, "%d", value);
   }
-  else {
-    char str[25];
-    sprintf (str, "%d", value);
 
-    config_file_add (this, key, str);
-  }
+  entry->num_value = value;
+
+  if (entry->callback) 
+    entry->callback (entry->callback_data, entry);
 }
 
-
-
-
-static void config_file_set_str (config_values_t *this,
-				 char *key, char *value) {
+static void config_file_update_string (config_values_t *this,
+				       char *key, char *value) {
 
   cfg_entry_t *entry;
 
-  if(key == NULL || value == NULL)
+  entry = this->lookup_entry (this, key);
+
+  if (!entry) {
+
+    printf ("configfile: WARNING! tried to update unknown key %s (to %s)\n",
+	    key, value);
     return;
 
-  entry = config_file_search (this, key);
-
-  if (entry) {
-    int len;
-
-    free (entry->value);
-
-    len = strlen (value);
-    entry->value = (char *) xine_xmalloc (len+20);
-    strncpy (entry->value, value, len);
-
   }
-  else {
-    config_file_add (this, key, value);
-  }
+
+  entry->str_value = copy_string (value);
+
+  if (entry->callback) 
+    entry->callback (entry->callback_data, entry);
 }
-
-
-
 
 static void config_file_save (config_values_t *this) {
   FILE *f_config;
   char filename[1024];
 
-  sprintf (filename, "%s/.xinerc", xine_get_homedir());
+  sprintf (filename, "%s/.xine", xine_get_homedir());
+  mkdir (filename, 0755);
+
+  sprintf (filename, "%s/.xine/config", xine_get_homedir());
+
+  printf ("writing config file to %s\n", filename);
 
   f_config = fopen (filename, "w");
 
@@ -196,21 +407,75 @@ static void config_file_save (config_values_t *this) {
     
     cfg_entry_t *entry;
 
-    fprintf (f_config, "#\n# xine config file\n#\n");
+    fprintf (f_config, "#\n# xine config file\n#\n\n");
 
-    entry = this->data->gConfig;
+    entry = this->first;
 
     while (entry) {
-      fprintf (f_config, "%s:%s\n",entry->key,entry->value);
-      entry = entry->next;
-    }
+      fprintf (f_config, "# %s\n", entry->description);
+      switch (entry->type) {
+      case CONFIG_TYPE_UNKNOWN:
 
+	fprintf (f_config, "%s:%s\n", 
+		 entry->key, entry->unknown_value);
+
+	break;
+      case CONFIG_TYPE_RANGE:
+	fprintf (f_config, "# [%d..%d], default: %d\n",
+		 entry->range_min, entry->range_max, entry->num_default);
+	fprintf (f_config, "%s:%d\n", entry->key, entry->num_value);
+	fprintf (f_config, "\n");
+	break;
+      case CONFIG_TYPE_STRING:
+	fprintf (f_config, "# string, default: %s\n",
+		 entry->str_default);
+	fprintf (f_config, "%s:%s\n", entry->key, entry->str_value);
+	fprintf (f_config, "\n");
+	break;
+      case CONFIG_TYPE_ENUM: {
+	int i;
+	char **value;
+	
+	fprintf (f_config, "# {");
+	value = entry->enum_values;
+	while (*value) {
+	  fprintf (f_config, " %s ", *value);
+	  value++;
+	}
+	
+	fprintf (f_config, "}, default: %d\n",
+		 entry->num_default);
+	fprintf (f_config, "%s:", entry->key);
+	
+	i = 0; value = entry->enum_values;
+	while (i< (entry->num_value-1)) {
+	  i++;
+	  value++;
+	}
+	  
+	fprintf (f_config, "%s\n", *value);
+	fprintf (f_config, "\n");
+	break;
+      }
+      case CONFIG_TYPE_NUM:
+	fprintf (f_config, "# numeric, default: %d\n",
+		 entry->num_default);
+	fprintf (f_config, "%s:%d\n", entry->key, entry->num_value);
+	fprintf (f_config, "\n");
+	break;
+      case CONFIG_TYPE_BOOL:
+	fprintf (f_config, "# bool, default: %d\n",
+		 entry->num_default);
+	fprintf (f_config, "%s:%d\n", entry->key, entry->num_value);
+	fprintf (f_config, "\n");
+	break;
+      }
+      
+      entry = entry->next;
+    }    
     fclose (f_config);
   }  
 }
-
-
-
 
 static void config_file_read (config_values_t *this, char *filename){
 
@@ -222,56 +487,56 @@ static void config_file_read (config_values_t *this, char *filename){
     
     char line[1024];
     char *value;
-    
+
     while (fgets (line, 1023, f_config)) {
       line[strlen(line)-1]= (char) 0; /* eliminate lf */
       
       if (line[0] == '#')
 	continue;
-      
+
       if ((value = strchr (line, ':'))) {
+
+	cfg_entry_t *entry;
+
 	*value = (char) 0;
-	  value++;
-	  
-	  config_file_add (this, line, value);
+	value++;
+	
+	entry = config_file_add (this, line);
+	entry->unknown_value = copy_string (value);
       }
-      
     }
     
     fclose (f_config);
   }
 }
 
-
-
-
 config_values_t *config_file_init (char *filename) {
 
   config_values_t *this;
-  cfg_data_t *data;
 
   if ( (this = xine_xmalloc(sizeof(config_values_t))) ) {
-    if ( (data = xine_xmalloc(sizeof(cfg_data_t))) ) {
-      data->gConfig = NULL;
-      data->gConfigLast = NULL;
-      this->data = data;
-      config_file_read (this, filename);
 
-    }
-    else {
-      fprintf (stderr, "WARNING: could not allocate config data\n");
-    }
-  }
-  else {
-    fprintf (stderr, "WARNING: could not allocate config values list\n");
+    this->first = NULL;
+    this->last  = NULL;
+
+    config_file_read (this, filename);
+    
+  } else {
+    printf ("configfile: could not allocate config object\n");
+    exit (1);
   }
 
-  this->lookup_str = config_file_lookup_str;
-  this->lookup_int = config_file_lookup_int;
-  this->set_str    = config_file_set_str;
-  this->set_int    = config_file_set_int;
-  this->save       = config_file_save;
-  this->read       = config_file_read;
+  this->register_string = config_file_register_string;
+  this->register_range  = config_file_register_range;
+  this->register_enum   = config_file_register_enum;
+  this->register_num    = config_file_register_num;
+  this->register_bool   = config_file_register_bool;
+  this->update_num      = config_file_update_num;
+  this->update_string   = config_file_update_string;
+  this->parse_enum      = config_file_parse_enum;
+  this->lookup_entry    = config_file_lookup_entry;
+  this->save            = config_file_save;
+  this->read            = config_file_read;
 
   return this;
 }
@@ -279,6 +544,9 @@ config_values_t *config_file_init (char *filename) {
 
 /*
  * $Log: configfile.c,v $
+ * Revision 1.6  2001/11/18 03:53:25  guenter
+ * new configfile interface, code cleanup, xprintf is gone
+ *
  * Revision 1.5  2001/11/17 14:26:39  f1rmb
  * Add 'xine_' prefix to all of xine-utils functions (what about cpu
  * acceleration?). Merge xine-utils header files to a new one "xineutils.h".

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_pes.c,v 1.13 2001/11/17 14:26:37 f1rmb Exp $
+ * $Id: demux_pes.c,v 1.14 2001/11/18 03:53:23 guenter Exp $
  *
  * demultiplexer for mpeg 2 PES (Packetized Elementary Streams)
  * reads streams of variable blocksizes
@@ -42,8 +42,6 @@
 #include "xineutils.h"
 
 #define NUM_PREVIEW_BUFFERS 400
-
-static uint32_t xine_debug;
 
 typedef struct demux_pes_s {
 
@@ -80,7 +78,6 @@ static uint32_t read_bytes (demux_pes_t *this, int n) {
     
     this->status = DEMUX_FINISHED;
 
-    xprintf (VERBOSE|DEMUX, "Unexpected end of stream\n");
   }
   
 
@@ -120,8 +117,6 @@ static void parse_mpeg2_packet (demux_pes_t *this, int nID) {
 
     int track;
 
-    xprintf (VERBOSE|DEMUX|AC3, ",ac3");
-
     w = read_bytes(this, 1);
     flags = read_bytes(this, 1);
     header_len = read_bytes(this, 1);
@@ -139,8 +134,6 @@ static void parse_mpeg2_packet (demux_pes_t *this, int nID) {
       w = read_bytes(this, 2); 
       pts |= (w & 0xFFFE) >> 1;
 
-      xprintf (VERBOSE|DEMUX|VPTS, ", pts=%d",pts);
-
       header_len -= 5 ;
     }
 
@@ -149,8 +142,6 @@ static void parse_mpeg2_packet (demux_pes_t *this, int nID) {
 
 //    track = this->dummy_space[0] & 0x0F ;
     track = 0;
-
-    xprintf (VERBOSE|DEMUX, ", track=%02x", track);
 
     /* contents */
 
@@ -181,8 +172,6 @@ static void parse_mpeg2_packet (demux_pes_t *this, int nID) {
   } else if ((nID & 0xe0) == 0xc0) {
     int track = nID & 0x1f;
 
-    xprintf (VERBOSE|DEMUX|AUDIO, ", audio #%d", track);
-
     w = read_bytes(this, 1);
     flags = read_bytes(this, 1);
     header_len = read_bytes(this, 1);
@@ -199,8 +188,6 @@ static void parse_mpeg2_packet (demux_pes_t *this, int nID) {
       pts |= (w & 0xFFFE) << 14;
       w = read_bytes(this, 2); 
       pts |= (w & 0xFFFE) >> 1;
-
-      xprintf (VERBOSE|DEMUX|VPTS, ", pts=%d",pts);
 
       header_len -= 5 ;
     }
@@ -229,8 +216,6 @@ static void parse_mpeg2_packet (demux_pes_t *this, int nID) {
 
   } else if ((nID >= 0xbc) && ((nID & 0xf0) == 0xe0)) {
 
-    xprintf (VERBOSE|DEMUX|VIDEO, ",video");
-
     w = read_bytes(this, 1);
     flags = read_bytes(this, 1);
     header_len = read_bytes(this, 1);
@@ -247,8 +232,6 @@ static void parse_mpeg2_packet (demux_pes_t *this, int nID) {
       pts |= (w & 0xFFFE) << 14;
       w = read_bytes(this, 2); 
       pts |= (w & 0xFFFE) >> 1;
-
-      xprintf (VERBOSE|DEMUX|VPTS, ", pts=%d",pts);
 
       header_len -= 5 ;
     }
@@ -277,13 +260,10 @@ static void parse_mpeg2_packet (demux_pes_t *this, int nID) {
     this->video_fifo->put (this->video_fifo, buf);
 
   } else {
-    xprintf (VERBOSE|DEMUX, ",unknown stream - skipped");
 
     i = this->input->read (this->input, this->dummy_space, nLen); 
     /* (*this->input->seek) (nLen,SEEK_CUR); */
   }
-
-  xprintf (VERBOSE|DEMUX, ")\n");
 
 }
 
@@ -301,8 +281,6 @@ static uint32_t parse_pack(demux_pes_t *this)
 
   buf = read_bytes (this, 3);
   
-  xprintf (VERBOSE|DEMUX, "}\n");
-
   return buf;
 
 }
@@ -310,7 +288,6 @@ static uint32_t parse_pack(demux_pes_t *this)
 static void demux_pes_resync (demux_pes_t *this, uint32_t buf) {
 
   while ((buf !=0x000001) && (this->status == DEMUX_OK)) {
-    xprintf (VERBOSE|DEMUX, "resync : %08x\n",buf);
     buf = (buf << 8) | read_bytes (this, 1);
   }
 }
@@ -343,8 +320,6 @@ static void *demux_pes_loop (void *this_gen) {
     }
   }
 
-  xprintf (VERBOSE|DEMUX, "demux loop finished (status: %d, buf:%x)\n",
-	   this->status, w);
   printf ("demux loop finished (status: %d, buf:%x)\n",
 	  this->status, w);
 
@@ -442,7 +417,6 @@ static void demux_pes_start (demux_plugin_t *this_gen,
 
     } while ( (this->status == DEMUX_OK) && (num_buffers>0)) ;
 
-    xprintf (VERBOSE|DEMUX, "=>seek to %Ld\n",start_pos);
     this->input->seek (this->input, start_pos+3, SEEK_SET);
 
     /* FIXME: implement time seek */
@@ -523,8 +497,6 @@ static int demux_pes_open(demux_plugin_t *this_gen,
     }
 
     ending = strrchr(MRL, '.');
-    xprintf(VERBOSE|DEMUX, "demux_pes_can_handle: ending %s of %s\n", 
-	    ending, MRL);
     
     if(!ending)
       return DEMUX_CANNOT_HANDLE;
@@ -578,7 +550,6 @@ demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
 
   this        = xine_xmalloc (sizeof (demux_pes_t));
   config      = xine->config;
-  xine_debug  = config->lookup_int (config, "xine_debug", 0);
 
   this->demux_plugin.interface_version = DEMUXER_PLUGIN_IFACE_VERSION;
   this->demux_plugin.open              = demux_pes_open;

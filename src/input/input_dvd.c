@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.35 2001/11/17 14:26:38 f1rmb Exp $
+ * $Id: input_dvd.c,v 1.36 2001/11/18 03:53:23 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -51,8 +51,6 @@
 #include "input_plugin.h"
 #include "dvd_udf.h"
 #include "read_cache.h"
-
-static uint32_t xine_debug;
 
 #if defined(__sun)
 #define RDVD    "/vol/dev/aliases/cdrom0"
@@ -259,8 +257,6 @@ static int openDVDFile (dvd_input_plugin_t *this,
   int   lbnum;
   int   encrypted=0;
 
-  xprintf (VERBOSE|INPUT, "input_dvd : openDVDFile >%s<\n", filename);
-
   if (openDrive(this) < 0) {
     printf ("input_dvd: cannot open dvd drive >%s<\n", this->device);
     return 0;
@@ -314,8 +310,6 @@ static int openDVDFile (dvd_input_plugin_t *this,
 
   snprintf (str, sizeof(str), "/VIDEO_TS/%s", filename);
 
-  xprintf (VERBOSE|INPUT, "UDFFindFile %s\n", str);
-
   if (!(lbnum = UDFFindFile(this->dvd_fd, str, size))) {
     printf ("input_dvd: cannot open file >%s<\n", filename);
 
@@ -348,8 +342,6 @@ static int dvd_plugin_open (input_plugin_t *this_gen, char *mrl) {
 
   this->mrl = mrl;
 
-  xprintf (VERBOSE|INPUT, "input dvd : input_plugin_open >%s<\n", mrl);
-
   /*
    * do we handle this kind of MRL ?
    */
@@ -358,16 +350,13 @@ static int dvd_plugin_open (input_plugin_t *this_gen, char *mrl) {
 
   filename = (char *) &mrl[6];
 
-  xprintf (VERBOSE|INPUT, "input dvd : dvd_plugin_open media type correct."
-	   " file name is %s\n", filename);
-
   sscanf (filename, "VTS_%d_%d.VOB", &this->gVTSMajor, &this->gVTSMinor);
 
   this->file_lbstart = openDVDFile (this, filename, &this->file_size) ;
   this->file_lbcur = this->file_lbstart;
 
   if (!this->file_lbstart) {
-    fprintf (stderr, "Unable to find >%s< on dvd.\n", filename);
+    printf ("input_dvd: Unable to find >%s< on dvd.\n", filename);
     return 0;
   }
 
@@ -401,11 +390,11 @@ static off_t dvd_plugin_read (input_plugin_t *this_gen,
 
     return DVD_VIDEO_LB_LEN;
   } else if (bytes_read < 0)
-    fprintf (stderr, "read error in input_dvd plugin (%s)\n",
-	     strerror (errno));
+    printf ("input_dvd: read error in input_dvd plugin (%s)\n",
+	    strerror (errno));
   else
-    fprintf (stderr, "short read in input_dvd (%d != %d)\n",
-	     bytes_read, DVD_VIDEO_LB_LEN);
+    printf ("input_dvd: short read in input_dvd (%d != %d)\n",
+	    bytes_read, DVD_VIDEO_LB_LEN);
   return 0;
 }
 
@@ -507,19 +496,19 @@ static int dvd_plugin_eject_media (input_plugin_t *this_gen) {
       switch(status) {
       case CDS_TRAY_OPEN:
 	if((ret = ioctl(fd, CDROMCLOSETRAY)) != 0) {
-	  xprintf(VERBOSE|INPUT, "CDROMCLOSETRAY failed: %s\n", 
+	  printf ("input_dvd: CDROMCLOSETRAY failed: %s\n", 
 		  strerror(errno));  
 	}
 	break;
       case CDS_DISC_OK:
 	if((ret = ioctl(fd, CDROMEJECT)) != 0) {
-	  xprintf(VERBOSE|INPUT, "CDROMEJECT failed: %s\n", strerror(errno));  
+	  printf ("input_dvd: CDROMEJECT failed: %s\n", strerror(errno));  
 	}
 	break;
       }
     }
     else {
-      xprintf(VERBOSE|INPUT, "CDROM_DRIVE_STATUS failed: %s\n", 
+      printf ("input_dvd: CDROM_DRIVE_STATUS failed: %s\n", 
 	      strerror(errno));
       close(fd);
       return 0;
@@ -530,7 +519,7 @@ static int dvd_plugin_eject_media (input_plugin_t *this_gen) {
 # if defined (__sun)
     status = 0;
     if ((ret = ioctl(fd, CDROMEJECT)) != 0) {
-      xprintf(VERBOSE|INPUT, "CDROMEJECT failed: %s\n", strerror(errno));
+      printf("input_dvd: CDROMEJECT failed: %s\n", strerror(errno));
     }
 
 # else
@@ -749,7 +738,6 @@ input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
   
   this       = (dvd_input_plugin_t *) xine_xmalloc (sizeof (dvd_input_plugin_t));
   config     = xine->config;
-  xine_debug = config->lookup_int (config, "xine_debug", 0);
   
   for (i = 0; i < MAX_DIR_ENTRIES; i++) {
     this->filelist[i]       = (char *) xine_xmalloc (256);
@@ -776,8 +764,12 @@ input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
   this->input_plugin.get_optional_data = dvd_plugin_get_optional_data;
   this->input_plugin.is_branch_possible= NULL;
 
-  this->device = config->lookup_str(config, "dvd_device", DVD);
-  this->raw_device = config->lookup_str(config, "dvd_raw_device", RDVD);
+  this->device = config->register_string(config, "input.dvd_device", DVD,
+					 "path to your local dvd device file",
+					 NULL, NULL, NULL);
+  this->raw_device = config->register_string(config, "input.dvd_raw_device", RDVD,
+					     "path to a raw device set up for dvd access",
+					     NULL, NULL, NULL);
 #ifdef __sun
   check_solaris_vold_device(this);
 #endif

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: configfile.h,v 1.3 2001/07/26 11:12:26 f1rmb Exp $
+ * $Id: configfile.h,v 1.4 2001/11/18 03:53:25 guenter Exp $
  *
  * config file management
  *
@@ -32,54 +32,143 @@ extern "C" {
 
 #include <inttypes.h>
 
-typedef struct cfg_entry_s {
-  struct cfg_entry_s  *next;
-  char                *key;
-  char                *value;
-} cfg_entry_t;
+typedef struct cfg_entry_s cfg_entry_t;
+typedef void (*config_cb_t) (void *, cfg_entry_t *);
 
-typedef struct {
-  cfg_entry_t         *gConfig;
-  cfg_entry_t         *gConfigLast;
-} cfg_data_t;
+struct cfg_entry_s {
+  cfg_entry_t     *next;
+
+  char            *key;
+  int              type;
+
+  /* type unknown */
+  char            *unknown_value;
+
+  /* type string */
+  char            *str_value;
+  char            *str_default;
+
+  /* common to range, enum, num, bool: */
+
+  int              num_value;
+  int              num_default;
+
+  /* type range specific: */
+  int              range_min;
+  int              range_max;
+
+  /* type enum specific: */
+  char           **enum_values;
+
+  /* help info for the user */
+  char            *description;
+  char            *help;
+
+  /* callback function and data for live changeable values */
+  config_cb_t      callback;
+  void            *callback_data;
+};
+
+/*
+ * config entry data types
+ */
+
+#define CONFIG_TYPE_UNKNOWN 0
+#define CONFIG_TYPE_RANGE   1
+#define CONFIG_TYPE_STRING  2
+#define CONFIG_TYPE_ENUM    3
+#define CONFIG_TYPE_NUM     4
+#define CONFIG_TYPE_BOOL    5
 
 typedef struct config_values_s config_values_t;
 struct config_values_s {
+
   /*
-   * lookup config values
+   * register config values
+   *
+   * these functions return the current value of the
+   * registered item, i.e. the default value if it was
+   * not found in the config file or the current value
+   * from the config file otherwise
    */
-  char* (*lookup_str) (config_values_t *this,
-		       char *key, char *str_default);
-  
-  int (*lookup_int) (config_values_t *this,
-		     char *key, int n_default);
-  
+
+  char* (*register_string) (config_values_t *this,
+			    char *key, 
+			    char *def_value,
+			    char *description, 
+			    char *help,
+			    config_cb_t changed_cb,
+			    void *cb_data);
+
+  int (*register_range) (config_values_t *this,
+			 char *key,
+			 int def_value,
+			 int min, int max,
+			 char *description, 
+			 char *help,
+			 config_cb_t changed_cb,
+			 void *cb_data);
+
+  int (*register_enum) (config_values_t *this,
+			char *key,
+			int def_value,
+			char **values,
+			char *description, 
+			char *help,
+			config_cb_t changed_cb,
+			void *cb_data);
+
+  int (*register_num) (config_values_t *this,
+		       char *key, 
+		       int def_value,
+		       char *description, 
+		       char *help,
+		       config_cb_t changed_cb,
+		       void *cb_data);
+
+  int (*register_bool) (config_values_t *this,
+			char *key, 
+			int def_value,
+			char *description, 
+			char *help,
+			config_cb_t changed_cb,
+			void *cb_data);
+
+  /* convenience function to update range, enum, num and bool values */
+  void (*update_num) (config_values_t *this,
+		      char *key, int value);
+
+  /* convenience function to update string values */
+  void (*update_string) (config_values_t *this,
+			 char *key, char *value);
+
+  /* small utility function for enum handling */
+  int (*parse_enum) (char *str, char **values);
+
   /*
-   * set config values
+   * lookup config entries
+   * 
+   * remember to call the changed_cb if it exists
+   * and you changed the value of this item
    */
-  
-  void (*set_str) (config_values_t *this,
-		   char *key, char *value) ;
-  
-  void (*set_int) (config_values_t *this,
-		   char *key, int value) ;
-  
+
+  cfg_entry_t* (*lookup_entry) (config_values_t *this,
+				char *key);
+
   /*
    * write config file to disk
    */
   void (*save) (config_values_t *this);
 
   /*
-   * read config file from disk, ovverriding values in memory
-   * if you also want to clear values that are not in the file,
-   * use _init instead!
+   * read config file from disk, overriding values in memory
    */
   void (*read) (config_values_t *this, char *filename);
 
   /* 
-   * contains private data of this config file
+   * config values are stored here:
    */
-  cfg_data_t *data;
+  cfg_entry_t         *first, *last;
 };
 
 /*
@@ -96,6 +185,9 @@ config_values_t *config_file_init (char *filename);
 
 /*
  * $Log: configfile.h,v $
+ * Revision 1.4  2001/11/18 03:53:25  guenter
+ * new configfile interface, code cleanup, xprintf is gone
+ *
  * Revision 1.3  2001/07/26 11:12:26  f1rmb
  * Updated doxy sections in xine.h.tmpl.in. Added man3. Removed french man page. Added API doc in html. Add new rpm package (doc). Fixes some little bugs in
  * proto decl, etc...

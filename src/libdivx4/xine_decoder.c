@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.10 2001/11/17 14:26:38 f1rmb Exp $
+ * $Id: xine_decoder.c,v 1.11 2001/11/18 03:53:24 guenter Exp $
  *
  * xine decoder plugin using divx4
  *
@@ -382,7 +382,11 @@ video_decoder_t *init_video_decoder_plugin (int iface_version, config_values_t *
   /* Try to dlopen libdivxdecore, then look for decore function 
      if it fails, print a message and return 0 so that xine ignores
      us from then on. */
-  libdecore_name = cfg->lookup_str(cfg, "divx4_libdivxdecore", "libdivxdecore.so");  
+
+  libdecore_name = cfg->register_string (cfg, "codec.divx4_libdivxdecore", "libdivxdecore.so",
+					 "Relative path to libdivxdecore.so to open",
+					 NULL, NULL, NULL);  
+
   libdecore_handle = dlopen(libdecore_name, RTLD_LAZY);
   if (libdecore_handle)
     libdecore_func = dlsym(libdecore_handle, "decore"); 
@@ -397,7 +401,9 @@ video_decoder_t *init_video_decoder_plugin (int iface_version, config_values_t *
   }
 
   /* allow override of version checking by user */
-  version = cfg->lookup_int(cfg, "divx4_forceversion", 0);
+  version = cfg->register_num(cfg, "codec.divx4_forceversion", 0,
+			      "Divx version to check for (set to 0 (default) if unsure)",
+			      NULL, NULL, NULL);
   if (version) {
     /* this dangerous stuff warrants an extra warning */
     printf("divx4: assuming libdivxdecore version is %d\n", version);
@@ -444,10 +450,17 @@ video_decoder_t *init_video_decoder_plugin (int iface_version, config_values_t *
   this->video_decoder.decode_data         = divx4_decode_data;
   this->video_decoder.close               = divx4_close;
   this->video_decoder.get_identifier      = divx4_get_id;
-  this->video_decoder.priority            = cfg->lookup_int(cfg, "divx4_priority", 4); 
+  this->video_decoder.priority            = cfg->register_num (cfg, "codec.divx4_priority", 4,
+							       "priority of the divx4 plugin (>5 => enable)",
+							       NULL, NULL, NULL); 
   this->decore = libdecore_func;
-  this->postproc 			  = cfg->lookup_int(cfg, "divx4_postproc", 3);
-  this->can_handle_311			  = cfg->lookup_int(cfg, "divx4_msmpeg4v3", 1);
+  this->postproc 			  = cfg->register_range (cfg, "codec.divx4_postproc", 3,
+								 0, 6,
+								 "the postprocessing level, 0 = none and fast, 6 = all and slow",
+								 NULL, NULL, NULL);
+  this->can_handle_311			  = cfg->register_bool (cfg, "codec.divx4_msmpeg4v3", 1,
+								"use divx4 plugin for msmpeg4v3 streams",
+								NULL, NULL, NULL);
   this->size				  = 0;
   this->version				  = version;
 

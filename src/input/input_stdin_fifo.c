@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_stdin_fifo.c,v 1.16 2001/11/17 14:26:38 f1rmb Exp $
+ * $Id: input_stdin_fifo.c,v 1.17 2001/11/18 03:53:23 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -39,8 +39,6 @@
 #include "xine_internal.h"
 #include "xineutils.h"
 #include "input_plugin.h"
-
-static uint32_t xine_debug;
 
 typedef struct {
   input_plugin_t   input_plugin;
@@ -89,8 +87,6 @@ static int stdin_plugin_open(input_plugin_t *this_gen, char *mrl) {
     return 0;
   }
   
-  xprintf (VERBOSE|INPUT, "Opening >%s<\n",filename);
-
   this->fh = open (filename, O_RDONLY);
   this->curpos = 0;
   
@@ -267,7 +263,6 @@ input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
 
   this       = (stdin_input_plugin_t *) xine_xmalloc(sizeof(stdin_input_plugin_t));
   config     = xine->config;
-  xine_debug = config->lookup_int (config, "xine_debug", 0);
 
   this->input_plugin.interface_version = INPUT_PLUGIN_IFACE_VERSION;
   this->input_plugin.get_capabilities  = stdin_plugin_get_capabilities;

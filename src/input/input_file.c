@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_file.c,v 1.28 2001/11/17 14:26:38 f1rmb Exp $
+ * $Id: input_file.c,v 1.29 2001/11/18 03:53:23 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -40,8 +40,6 @@
 #include "input_plugin.h"
 
 extern int errno;
-
-static uint32_t xine_debug;
 
 #ifndef	__GNUC__
 #define	__FUNCTION__	__func__
@@ -256,8 +254,6 @@ static int file_plugin_open (input_plugin_t *this_gen, char *mrl) {
     filename = &mrl[5];
   else
     filename = mrl;
-
-  xprintf (VERBOSE|INPUT, "Opening >%s<\n",filename);
 
   this->fh = open (filename, O_RDONLY);
 
@@ -694,8 +690,6 @@ static char* file_plugin_get_mrl (input_plugin_t *this_gen) {
 static void file_plugin_close (input_plugin_t *this_gen) {
   file_input_plugin_t *this = (file_input_plugin_t *) this_gen;
 
-  xprintf (VERBOSE|INPUT, "closing input\n");
-
   close(this->fh);
   this->fh = -1;
 }
@@ -705,7 +699,6 @@ static void file_plugin_close (input_plugin_t *this_gen) {
  */
 static void file_plugin_stop (input_plugin_t *this_gen) {
 
-  xprintf (VERBOSE|INPUT, "stopping input\n");
   file_plugin_close(this_gen);
 }
 
@@ -751,7 +744,6 @@ input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
 
   this       = (file_input_plugin_t *) xine_xmalloc (sizeof (file_input_plugin_t));
   config     = xine->config;
-  xine_debug = config->lookup_int (config, "xine_debug", 0);
 
   this->input_plugin.interface_version  = INPUT_PLUGIN_IFACE_VERSION;
   this->input_plugin.get_capabilities   = file_plugin_get_capabilities;

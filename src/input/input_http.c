@@ -44,8 +44,6 @@
 
 #define DEFAULT_HTTP_PORT 80
 
-static uint32_t xine_debug;
-
 typedef struct {
   input_plugin_t   input_plugin;
   
@@ -607,7 +605,6 @@ input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
 
   this       = (http_input_plugin_t *) xine_xmalloc(sizeof(http_input_plugin_t));
   config     = xine->config;
-  xine_debug = config->lookup_int (config, "xine_debug", 0);
 
   this->input_plugin.interface_version = INPUT_PLUGIN_IFACE_VERSION;
   this->input_plugin.get_capabilities  = http_plugin_get_capabilities;

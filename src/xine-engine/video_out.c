@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.55 2001/11/17 14:26:39 f1rmb Exp $
+ * $Id: video_out.c,v 1.56 2001/11/18 03:53:25 guenter Exp $
  *
  */
 
@@ -203,8 +203,6 @@ static void *video_out_loop (void *this_gen) {
 
     cur_pts = this->metronom->get_current_time (this->metronom);
     
-    xprintf (VERBOSE|VIDEO, "video_out : video loop iteration at audio pts %d\n", cur_pts);
-    
 #ifdef VIDEO_OUT_LOG
     printf ("video_out : video loop iteration at audio pts %d\n", cur_pts);
 #endif
@@ -227,10 +225,6 @@ static void *video_out_loop (void *this_gen) {
       
       if (diff >this->pts_per_half_frame) {
     
-	xprintf (VERBOSE|VIDEO, "video_out : throwing away image with pts %d because "
-		 "it's too old (diff : %d > %d).\n",pts,diff,
-		 this->pts_per_half_frame);
-	
 	printf ( "video_out : throwing away image with pts %d because "
 		 "it's too old (diff : %d > %d).\n",pts,diff,
 		 this->pts_per_half_frame);
@@ -286,8 +280,12 @@ static void *video_out_loop (void *this_gen) {
 
     pthread_mutex_lock (&img->mutex);
     img->driver_locked = 1;
+
+#ifdef VIDEO_OUT_LOG
     if (!img->display_locked)
-      xprintf (VERBOSE|VIDEO, "video_out: ALERT! frame was not locked for display queue\n");
+      printf ("video_out: ALERT! frame was not locked for display queue\n");
+#endif
+
     img->display_locked = 0;
     pthread_mutex_unlock (&img->mutex);
 
@@ -485,17 +483,17 @@ static int vo_frame_draw (vo_frame_t *img) {
   img->PTS = pic_vpts;
   this->num_frames_delivered++;
 
-  xprintf (VERBOSE|VIDEO,"video_out: got image. vpts for picture is %d\n", pic_vpts);
-
   cur_vpts = this->metronom->get_current_time(this->metronom);
 
   diff = pic_vpts - cur_vpts;
   frames_to_skip = ((-1 * diff) / this->pts_per_frame + 3) * 2;
 
-  xprintf (VERBOSE|VIDEO,"video_out:: delivery diff : %d\n",diff);
 
-  if( img->display_locked )
-  {
+#ifdef VIDEO_OUT_LOG
+  printf ("video_out: delivery diff : %d\n",diff);
+#endif
+
+  if (img->display_locked) {
     printf ("video_out: ALERT! frame is already locked for displaying\n");
     return frames_to_skip;
   }
@@ -505,7 +503,9 @@ static int vo_frame_draw (vo_frame_t *img) {
     if (diff<(-1 * this->pts_per_half_frame)) {
 
       this->num_frames_discarded++;
-      xprintf (VERBOSE|VIDEO, "vo_frame_draw: rejected, %d frames to skip\n", frames_to_skip);
+#ifdef VIDEO_OUT_LOG
+      printf ("video_out: frame rejected, %d frames to skip\n", frames_to_skip);
+#endif
 
       /* printf ("vo_frame_draw: rejected, %d frames to skip\n", frames_to_skip); */
 
@@ -527,7 +527,9 @@ static int vo_frame_draw (vo_frame_t *img) {
      * put frame into FIFO-Buffer
      */
 
-    xprintf (VERBOSE|VIDEO, "frame is ok => appending to display buffer\n");
+#ifdef VIDEO_OUT_LOG
+    printf ("video_out: frame is ok => appending to display buffer\n");
+#endif
 
     this->last_frame = img;
 

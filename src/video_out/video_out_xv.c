@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.75 2001/11/17 14:26:39 f1rmb Exp $
+ * $Id: video_out_xv.c,v 1.76 2001/11/18 03:53:24 guenter Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -58,14 +58,17 @@
 #include "deinterlace.h"
 #include "xineutils.h"
 
-uint32_t xine_debug;
+/*
+#define XV_LOG
+*/
 
 typedef struct {
   int                value;
   int                min;
   int                max;
   Atom               atom;
-  char              *key;
+
+  cfg_entry_t       *entry;
 
 } xv_property_t;
 
@@ -153,6 +156,8 @@ typedef struct {
 					 int video_width, int video_height,
 					 int *dest_x, int *dest_y,
 					 int *dest_height, int *dest_width);
+
+  char               scratch[256];
 
 } xv_driver_t;
 
@@ -680,9 +685,11 @@ static void xv_calc_format (xv_driver_t *this,
   image_ratio =
     (double) this->delivered_width / (double) this->delivered_height;
 
-  xprintf (VERBOSE | VIDEO, "display_ratio : %f\n", this->display_ratio);
-  xprintf (VERBOSE | VIDEO, "stream aspect ratio : %f , code : %d\n",
-	   image_ratio, ratio_code);
+#ifdef XV_LOG
+  printf ("video_out_xv: display_ratio : %f\n", this->display_ratio);
+  printf ("video_out_xv: stream aspect ratio : %f , code : %d\n",
+	  image_ratio, ratio_code);
+#endif
 
   switch (this->props[VO_PROP_ASPECT_RATIO].value) {
   case ASPECT_AUTO:
@@ -700,8 +707,8 @@ static void xv_calc_format (xv_driver_t *this,
     case 0:                              /* forbidden       */
       fprintf (stderr, "invalid ratio, using 4:3\n");
     default:
-      xprintf (VIDEO, "unknown aspect ratio (%d) in stream => using 4:3\n",
-	       ratio_code);
+      printf ("video_out_xv: unknown aspect ratio (%d) in stream => using 4:3\n",
+	      ratio_code);
     case XINE_ASPECT_RATIO_4_3:          /* 4:3             */
       desired_ratio = 4.0 / 3.0;
       break;
@@ -885,8 +892,7 @@ static int xv_set_property (vo_driver_t *this_gen,
 			this->props[property].atom,
 			&this->props[property].value);
 
-    this->config->set_int (this->config, this->props[property].key,
-			   this->props[property].value);
+    this->props[property].entry->num_value = this->props[property].value;
 
     return this->props[property].value;
   } else {
@@ -1116,19 +1122,27 @@ static void xv_check_capability (xv_driver_t *this,
 				 int property, XvAttribute attr,
 				 int base_id, char *str_prop) {
 
-  int          nDefault;
+  int          int_default;
+  cfg_entry_t *entry;
 
   this->capabilities |= capability;
   this->props[property].min  = attr.min_value;
   this->props[property].max  = attr.max_value;
   this->props[property].atom = XInternAtom (this->display, str_prop, False);
-  this->props[property].key  = str_prop;
 
   XvGetPortAttribute (this->display, this->xv_port,
-		      this->props[property].atom, &nDefault);
+		      this->props[property].atom, &int_default);
 
-  xv_set_property (&this->vo_driver, property,
-		   this->config->lookup_int (this->config, str_prop, nDefault));
+  sprintf (this->scratch, "video.%s", str_prop);
+
+  this->config->register_num (this->config, this->scratch, int_default,
+			      "Xv property", NULL, NULL, NULL);
+
+  entry = this->config->lookup_entry (this->config, this->scratch);
+
+  this->props[property].entry = entry;
+
+  xv_set_property (&this->vo_driver, property, entry->num_value);
 }
 
 vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
@@ -1146,9 +1160,10 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
   XColor                dummy;
   XvImage              *myimage;
   XShmSegmentInfo       myshminfo;
+  static char          *deinterlace_methods[] = {"none", "bob", "weave", "greedy", "onefield",
+						 "onefieldxy", NULL};
 
   display = visual->display;
-  xine_debug  = config->lookup_int (config, "xine_debug", 0);
 
   /*
    * check for Xvideo support
@@ -1266,7 +1281,7 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
     this->props[i].min   = 0;
     this->props[i].max   = 0;
     this->props[i].atom  = None;
-    this->props[i].key   = NULL;
+    this->props[i].entry = NULL;
   }
 
   this->props[VO_PROP_INTERLACED].value     = 0;
@@ -1317,7 +1332,9 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
 	  int xv_filter;
 	  /* This setting is specific to Permedia 2/3 cards. */
 	  atom = XInternAtom (this->display, attr[k].name, False);
-	  xv_filter = config->lookup_int (config, "XV_FILTER", 0);
+	  xv_filter = config->register_num (config, "video.XV_FILTER", 0,
+					    "bilinear scaling mode (permedia 2/3)",
+					    NULL, NULL, NULL);
 	  XvSetPortAttribute (this->display, this->xv_port, atom, xv_filter);
 	  printf("video_out_xv: bilinear scaling mode (XV_FILTER) = %d\n",
 		 xv_filter);
@@ -1343,9 +1360,11 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
   this->xv_format_rgb  = 0;
   
   for(i = 0; i < formats; i++) {
-    xprintf(VERBOSE|VIDEO, "video_out_xv: Xv image format: 0x%x (%4.4s) %s\n",
+#ifdef XV_LOG
+    printf ("video_out_xv: Xv image format: 0x%x (%4.4s) %s\n",
 	    fo[i].id, (char*)&fo[i].id,
 	    (fo[i].format == XvPacked) ? "packed" : "planar");
+#endif
     if (fo[i].id == IMGFMT_YV12)  {
       this->xv_format_yv12 = fo[i].id;
       this->capabilities |= VO_CAP_YV12;
@@ -1369,7 +1388,10 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
   myimage = create_ximage (this, &myshminfo, 100, 100, IMGFMT_YV12);
   dispose_ximage (this, &myshminfo, myimage);
 
-  this->deinterlace_method = config->lookup_int (config, "deinterlace_method", 4);
+  this->deinterlace_method = config->register_enum (config, "video.deinterlace_method", 4,
+						    deinterlace_methods, 
+						    "Software deinterlace method (Key I toggles deinterlacer on/off",
+						    NULL, NULL, NULL);
   this->deinterlace_enabled = 0;
 
   return &this->vo_driver;

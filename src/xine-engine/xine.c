@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.75 2001/11/17 22:40:01 miguelfreitas Exp $
+ * $Id: xine.c,v 1.76 2001/11/18 03:53:25 guenter Exp $
  *
  * top-level xine functions
  *
@@ -56,9 +56,6 @@
 #ifndef	__GNUC__
 #define	__FUNCTION__	__func__
 #endif
-
-/* debugging purposes only */
-uint32_t   xine_debug;
 
 void * xine_notify_stream_finished_thread (void * this_gen) {
   xine_t *this = this_gen;
@@ -386,11 +383,12 @@ xine_t *xine_init (vo_driver_t *vo,
 		   config_values_t *config) {
 
   xine_t *this = xine_xmalloc (sizeof (xine_t));
+  static char *demux_strategies[] = {"default", "reverse", "content",
+				     "extension", NULL};
+
   printf("xine_init entered\n");
 
   this->config          = config;
-  xine_debug            = config->lookup_int (config, "xine_debug", 0);
-
   /* probe for optimized memcpy or config setting */
   xine_probe_fast_memcpy(config);
   
@@ -425,7 +423,9 @@ xine_t *xine_init (vo_driver_t *vo,
 
   load_input_plugins (this, config, INPUT_PLUGIN_IFACE_VERSION);
 
-  this->demux_strategy  = config->lookup_int (config, "demux_strategy", 0);
+  this->demux_strategy  = config->register_enum (config, "misc.demux_strategy", 0,
+						 demux_strategies, "demuxer selection strategy",
+						 NULL, NULL, NULL);
 
   load_demux_plugins(this, config, DEMUXER_PLUGIN_IFACE_VERSION);
 
@@ -487,7 +487,7 @@ int xine_get_current_position (xine_t *this) {
   pthread_mutex_lock (&this->xine_lock);
 
   if (!this->cur_input_plugin) {
-    xprintf (VERBOSE|INPUT, "xine_get_current_position: no input source\n");
+    printf ("xine: xine_get_current_position: no input source\n");
     pthread_mutex_unlock (&this->xine_lock);
     return 0;
   }

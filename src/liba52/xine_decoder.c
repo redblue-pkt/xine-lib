@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.10 2001/11/17 22:40:01 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.11 2001/11/18 03:53:24 guenter Exp $
  *
  * stuff needed to turn liba52 into a xine decoder plugin
  */
@@ -495,9 +495,16 @@ audio_decoder_t *init_audio_decoder_plugin (int iface_version, config_values_t *
   this->audio_decoder.priority            = 2;
   
 
-  this->a52_level = (float) cfg->lookup_int (cfg, "a52_level", 100) / 100.0;
-  this->disable_dynrng = !cfg->lookup_int (cfg, "a52_dynrng", 0);
-  this->enable_surround_downmix = cfg->lookup_int(cfg, "a52_surround_downmix", 0);
+  this->a52_level = (float) cfg->register_range (cfg, "audio.a52_level", 100,
+						 0, 200,
+						 "a/52 volume control",
+						 NULL, NULL, NULL) / 100.0;
+  this->disable_dynrng = !cfg->register_bool (cfg, "audio.a52_dynrng", 0,
+					      "enable a/52 dynamic range compensation",
+					      NULL, NULL, NULL);
+  this->enable_surround_downmix = cfg->register_bool (cfg, "audio.a52_surround_downmix", 0,
+						      "enable audio downmixing to 2.0 surround stereo",
+						      NULL, NULL, NULL);
 
   return (audio_decoder_t *) this;
 }

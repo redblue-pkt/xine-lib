@@ -46,8 +46,6 @@
 #endif
 
 
-static uint32_t xine_debug;
-
 #define NET_BS_LEN 2324
 
 typedef struct {
@@ -167,11 +165,8 @@ static int net_plugin_open (input_plugin_t *this_gen, char *mrl) {
   if(strncmp(filename, "//", 2)==0)
   	filename+=2;
 
-  xprintf (VERBOSE|INPUT, "Opening >%s<\n", filename);
-  
   pptr=strrchr(filename, ':');
-  if(pptr)
-  {
+  if(pptr) {
   	*pptr++=0;
   	sscanf(pptr,"%d", &port);
   }
@@ -312,7 +307,6 @@ input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
 
   this       = (net_input_plugin_t *) xine_xmalloc(sizeof(net_input_plugin_t));
   config     = xine->config;
-  xine_debug = config->lookup_int (config, "xine_debug", 0);
 
   this->input_plugin.interface_version = INPUT_PLUGIN_IFACE_VERSION;
   this->input_plugin.get_capabilities  = net_plugin_get_capabilities;

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.54 2001/11/17 14:26:39 f1rmb Exp $
+ * $Id: load_plugins.c,v 1.55 2001/11/18 03:53:25 guenter Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -179,7 +179,7 @@ void load_demux_plugins (xine_t *this,
 }
 
 void xine_list_demux_plugins (config_values_t *config,
-                          char **identifiers, char **mimetypes) {
+			      char **identifiers, char **mimetypes) {
   DIR *dir;
   xine_t *this;
   int sizeid, sizemime;
@@ -193,7 +193,6 @@ void xine_list_demux_plugins (config_values_t *config,
   *mimetypes = xine_xmalloc (sizemime);
     
   this->config          = config;
-  xine_debug            = config->lookup_int (config, "xine_debug", 0);
 
   install_segv_handler();
   
@@ -223,10 +222,9 @@ void xine_list_demux_plugins (config_values_t *config,
 	plugin_name = str;
 	
 	if(!(plugin = dlopen (str, RTLD_LAZY))) {
-	  fprintf(stderr, "load_plugins: cannot open demux plugin %s:\n%s\n",
+	  printf ("load_plugins: cannot open demux plugin %s:\n%s\n",
 		  str, dlerror());
-	}
-	else {
+	} else {
 	  void *(*initplug) (int, xine_t *);
 	  
 	  if((initplug = dlsym(plugin, "init_demuxer_plugin")) != NULL) {

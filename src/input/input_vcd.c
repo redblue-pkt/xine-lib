@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_vcd.c,v 1.30 2001/11/17 14:26:38 f1rmb Exp $
+ * $Id: input_vcd.c,v 1.31 2001/11/18 03:53:23 guenter Exp $
  *
  */
 
@@ -50,8 +50,6 @@
 #include "xine_internal.h"
 #include "xineutils.h"
 #include "input_plugin.h"
-
-static uint32_t xine_debug;
 
 #if defined(__sun)
 #define	CDROM	       "/vol/dev/aliases/cdrom0"
@@ -331,8 +329,6 @@ static int vcd_plugin_open (input_plugin_t *this_gen, char *mrl) {
   }
 
   filename = (char *) &mrl[6];
-
-  xprintf (VERBOSE|INPUT, "Opening >%s<\n",filename);
 
   if (sscanf (filename, "%d", &this->cur_track) != 1) {
     fprintf (stderr, "input_vcd: malformed MRL. Use vcd://<track #>\n");
@@ -853,18 +849,18 @@ static int vcd_plugin_eject_media (input_plugin_t *this_gen) {
       switch(status) {
       case CDS_TRAY_OPEN:
 	if((ret = ioctl(this->fd, CDROMCLOSETRAY)) != 0) {
-	  xprintf(VERBOSE|INPUT, "CDROMCLOSETRAY failed: %s\n", strerror(errno));  
+	  printf ("input_vcd: CDROMCLOSETRAY failed: %s\n", strerror(errno));  
 	}
 	break;
       case CDS_DISC_OK:
 	if((ret = ioctl(this->fd, CDROMEJECT)) != 0) {
-	  xprintf(VERBOSE|INPUT, "CDROMEJECT failed: %s\n", strerror(errno));  
+	  printf ("input_vcd: CDROMEJECT failed: %s\n", strerror(errno));  
 	}
 	break;
       }
     }
     else {
-      xprintf(VERBOSE|INPUT, "CDROM_DRIVE_STATUS failed: %s\n", 
+      printf ("input_vcd: CDROM_DRIVE_STATUS failed: %s\n", 
 	      strerror(errno));
       close(this->fd);
       return 0;
@@ -900,7 +896,7 @@ static int vcd_plugin_eject_media (input_plugin_t *this_gen) {
 
   if ((fd = open(this->device, O_RDONLY|O_NONBLOCK)) > -1) {
     if ((ret = ioctl(fd, CDROMEJECT)) != 0) {
-      xprintf(VERBOSE|INPUT, "CDROMEJECT failed: %s\n", strerror(errno));  
+      printf ("input_vcd: CDROMEJECT failed: %s\n", strerror(errno));  
     }
     close(fd);
   }
@@ -914,8 +910,6 @@ static int vcd_plugin_eject_media (input_plugin_t *this_gen) {
  */
 static void vcd_plugin_close (input_plugin_t *this_gen) {
   vcd_input_plugin_t *this = (vcd_input_plugin_t *) this_gen;
-
-  xprintf (VERBOSE|INPUT, "closing input\n");
 
   close(this->fd);
   this->fd = -1;
@@ -1110,7 +1104,6 @@ input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
     
   this       = (vcd_input_plugin_t *) xine_xmalloc(sizeof(vcd_input_plugin_t));
   config     = xine->config;
-  xine_debug = config->lookup_int (config, "xine_debug", 0);
   
   for (i = 0; i < 100; i++) {
     this->filelist[i]       = (char *) xine_xmalloc (256);
@@ -1136,7 +1129,9 @@ input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
   this->input_plugin.get_optional_data = vcd_plugin_get_optional_data;
   this->input_plugin.is_branch_possible= NULL;
   
-  this->device = config->lookup_str(config, "vcd_device", CDROM);
+  this->device = config->register_string(config, "input.vcd_device", CDROM,
+					 "path to your local vcd device file",
+					 NULL, NULL, NULL);
 
   this->mrls = (mrl_t **) xine_xmalloc(sizeof(mrl_t*));
   this->mrls_allocated_entries = 0;

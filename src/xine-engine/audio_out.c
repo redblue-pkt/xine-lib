@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.30 2001/11/17 17:29:39 jcdutton Exp $
+ * $Id: audio_out.c,v 1.31 2001/11/18 03:53:25 guenter Exp $
  * 
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -350,8 +350,10 @@ static void *ao_loop (void *this_gen) {
 
       /* drop package */
 
-      xprintf (VERBOSE|AUDIO, "audio_out: audio package (vpts = %d %d) dropped\n", 
-	       buf->vpts, gap);
+#ifdef AUDIO_OUT_LOG
+      printf ("audio_out: audio package (vpts = %d %d) dropped\n", 
+	      buf->vpts, gap);
+#endif
 
     } else {
 
@@ -464,6 +466,7 @@ static void *ao_loop (void *this_gen) {
 	
 	/* ac3 seems to be swabbed data */
 	swab(buf->mem,this->frame_buffer+4,  ac5_length );
+
         if (ac5_length <= 248) {
           ac5_pcm_length = 64;
         } else if (ac5_length <= 504) {
@@ -479,6 +482,24 @@ static void *ao_loop (void *this_gen) {
           break; 
         } 
         this->driver->write(this->driver, this->frame_buffer, ac5_pcm_length);
+	
+	break;
+	
+
+
+
+
+	memset(this->frame_buffer,0xff,6144);
+	this->frame_buffer[0] = 0xf872;  /* spdif syncword */
+	this->frame_buffer[1] = 0x4e1f;  /* .............  */
+	this->frame_buffer[2] = 0x0001;  /*                */
+	
+	this->frame_buffer[3] = 0x3ee0;
+	
+	/* ac3 seems to be swabbed data */
+	swab(buf->mem,this->frame_buffer+4,  2014  );
+	
+	this->driver->write(this->driver, this->frame_buffer, 1024);
 	
 	break;
 	
@@ -541,7 +562,9 @@ static int ao_open(ao_instance_t *this,
   this->frame_rate_factor = (double) this->output_frame_rate / (double) this->input_frame_rate; 
   this->audio_step        = (uint32_t) 90000 * (uint32_t) 32768 / this->input_frame_rate;
   this->frames_per_kpts   = this->output_frame_rate * 1024 / 90000;
-  xprintf (VERBOSE|AUDIO, "audio_out : audio_step %d pts per 32768 frames\n", this->audio_step);
+#ifdef AUDIO_OUT_LOG
+  printf ("audio_out : audio_step %d pts per 32768 frames\n", this->audio_step);
+#endif
 
   this->metronom->set_audio_rate(this->metronom, this->audio_step);
 
@@ -644,6 +667,7 @@ ao_instance_t *ao_new_instance (ao_driver_t *driver, metronom_t *metronom,
 
   ao_instance_t *this;
   int            i;
+  static         char *resample_modes[] = {"auto", "off", "on", NULL};
 
   this = xine_xmalloc (sizeof (ao_instance_t)) ;
 
@@ -664,8 +688,12 @@ ao_instance_t *ao_new_instance (ao_driver_t *driver, metronom_t *metronom,
   this->zero_space            = xine_xmalloc (ZERO_BUF_SIZE * 2 * 6);
   this->gap_tolerance         = driver->get_gap_tolerance (this->driver);
 
-  this->resample_conf = config->lookup_int (config, "audio_resample_mode", 0);
-  this->force_rate    = config->lookup_int (config, "audio_force_rate", 0);
+  this->resample_conf = config->register_enum (config, "audio.resample_mode", 0,
+					       resample_modes, "adjust whether resampling is done or not",
+					       NULL, NULL, NULL);
+  this->force_rate    = config->register_range (config, "audio.force_rate", 0,
+						0, 96000, "if !=0 always resample to given rate",
+						NULL, NULL, NULL);
 
   /*
    * pre-allocate memory for samples
@@ -688,4 +716,3 @@ ao_instance_t *ao_new_instance (ao_driver_t *driver, metronom_t *metronom,
   
   return this;
 }
-

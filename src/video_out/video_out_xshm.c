@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xshm.c,v 1.50 2001/11/17 14:26:39 f1rmb Exp $
+ * $Id: video_out_xshm.c,v 1.51 2001/11/18 03:53:24 guenter Exp $
  * 
  * video_out_xshm.c, X11 shared memory extension interface for xine
  *
@@ -58,8 +58,6 @@
 #include "alphablend.h"
 #include "yuv2rgb.h"
 #include "xineutils.h"
-
-uint32_t xine_debug;
 
 extern int XShmGetEventBase(Display *);
 
@@ -471,10 +469,10 @@ static void xshm_calc_output_size (xshm_driver_t *this) {
 	desired_ratio = image_ratio;
 	break;
       case 0:                             /* forbidden -> 4:3 */
-	fprintf (stderr, "invalid ratio, using 4:3\n");
+	printf ("video_out_xshm: invalid ratio, using 4:3\n");
       default:
-	xprintf (VIDEO, "unknown aspect ratio (%d) in stream => using 4:3\n",
-		 this->delivered_ratio_code);
+	printf ("video_out_xshm: unknown aspect ratio (%d) in stream => using 4:3\n",
+		this->delivered_ratio_code);
       case XINE_ASPECT_RATIO_4_3:         /* 4:3             */
 	desired_ratio = 4.0 / 3.0;
 	break;
@@ -778,8 +776,10 @@ static void xshm_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
 	 || (frame->rgb_height != this->last_frame_rgb_height)
 	 || (frame->drawable_ref != this->last_frame_drawable_ref) ) {
 
+      /*
       xprintf (VIDEO, "video_out_xshm: requesting dest size of %d x %d \n",
 	       frame->rgb_width, frame->rgb_height);
+      */
 
       this->request_dest_size (this->user_data,
 			       frame->rgb_width, frame->rgb_height, 
@@ -883,7 +883,7 @@ static int xshm_set_property (vo_driver_t *this_gen,
 	   aspect_ratio_name(value));
   } else if ( property == VO_PROP_BRIGHTNESS) {
     yuv2rgb_set_gamma(this->yuv2rgb,value);
-    this->config->set_int (this->config, "xshm_gamma", value);
+
     printf("video_out_xshm: gamma changed to %d\n",value);
   } else {
     printf ("video_out_xshm: tried to set unsupported property %d\n", property);
@@ -1169,7 +1169,6 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
 
   visual = (x11_visual_t *) visual_gen;
   display = visual->display;
-  xine_debug  = config->lookup_int (config, "xine_debug", 0);
 
   /*
    * allocate plugin struct
@@ -1196,7 +1195,9 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
   this->output_scale_factor = 1.0;
   this->gui_width	    = 0;
   this->gui_height	    = 0;
-  this->zoom_mpeg1	    = config->lookup_int (config, "zoom_mpeg1", 1);
+  this->zoom_mpeg1	    = config->register_bool (config, "video.zoom_mpeg1", 1,
+						     "Zoom small video formats to double size",
+						     NULL, NULL, NULL);
   /*
    * FIXME: replace getenv() with config->lookup_int, merge with zoom_mpeg1?
    *
@@ -1339,7 +1340,9 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
   }
 
   this->yuv2rgb = yuv2rgb_init (mode, swapped, this->fast_rgb);
-  yuv2rgb_set_gamma(this->yuv2rgb, config->lookup_int (config, "xshm_gamma", 0));
+  yuv2rgb_set_gamma(this->yuv2rgb, config->register_range (config, "video.xshm_gamma", 0,
+							   -100, 100, "gamma correction for XShm driver",
+							   NULL, NULL, NULL));
 
   return &this->vo_driver;
 }

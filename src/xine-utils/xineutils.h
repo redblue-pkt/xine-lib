@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xineutils.h,v 1.2 2001/11/17 22:40:01 miguelfreitas Exp $
+ * $Id: xineutils.h,v 1.3 2001/11/18 03:53:25 guenter Exp $
  *
  */
 #ifndef XINEUTILS_H
@@ -540,22 +540,6 @@ void xine_probe_fast_memcpy(config_values_t *config);
 
 		      /* Debugging/Monitoring */
 
-extern uint32_t xine_debug;
-
-#define VERBOSE        (xine_debug & 0x8000>>1)   // 16384
-#define METRONOM       (xine_debug & 0x8000>>2)   //  8192
-#define AUDIO          (xine_debug & 0x8000>>3)   //  4096
-#define DEMUX          (xine_debug & 0x8000>>4)   //  2048
-#define INPUT          (xine_debug & 0x8000>>5)   //  1024
-#define VIDEO          (xine_debug & 0x8000>>6)   //   512
-#define VPTS           (xine_debug & 0x8000>>7)   //   256
-#define MPEG           (xine_debug & 0x8000>>8)   //   128
-#define VAVI           (xine_debug & 0x8000>>9)   //    64
-#define AC3            (xine_debug & 0x8000>>10)  //    32
-#define LOOP           (xine_debug & 0x8000>>11)  //    16
-#define GUI            (xine_debug & 0x8000>>12)  //     8
-#define SPU            (xine_debug & 0x8000>>13)  //     4
-
 #ifdef	__GNUC__
 #define perr(FMT,ARGS...) {fprintf(stderr, FMT, ##ARGS);fflush(stderr);}
 #else	/* C99 version: */
@@ -566,19 +550,6 @@ extern uint32_t xine_debug;
 /*
  * Debug stuff
  */
-#ifdef	__GNUC__
-#define xprintf(LVL, FMT, ARGS...) {                                          \
-                                     if(LVL) {                                \
-                                       printf(FMT, ##ARGS);          	      \
-                                     }                                        \
-                                   }
-#else	/* C99 version: */
-#define xprintf(LVL, ...) {						      \
-                                     if(LVL) {                                \
-                                       printf(__VA_ARGS__);       	      \
-                                     }                                        \
-                                   }
-#endif /* __GNUC__ */
 
 /*
  * profiling
@@ -590,12 +561,6 @@ void xine_profiler_stop_count (int id);
 void xine_profiler_print_results (void);
 
 #else /* no DEBUG, release version */
-
-#ifdef	__GNUC__
-#define xprintf(LVL, FMT, ARGS...) 
-#else	/* C99 version: */
-#define xprintf(LVL, ...) 
-#endif
 
 #define xine_profiler_init()
 #define xine_profiler_allocate_slot(label)	(-1)

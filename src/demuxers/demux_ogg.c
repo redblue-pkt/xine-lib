@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ogg.c,v 1.9 2001/11/17 14:26:37 f1rmb Exp $
+ * $Id: demux_ogg.c,v 1.10 2001/11/18 03:53:23 guenter Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -43,8 +43,6 @@
 #define CHUNKSIZE 8500
 
 #define MAX_STREAMS 16
-
-static uint32_t xine_debug;
 
 typedef struct demux_ogg_s {
   demux_plugin_t        demux_plugin;
@@ -407,7 +405,6 @@ demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
 
   this        = xine_xmalloc (sizeof (demux_ogg_t));
   config      = xine->config;
-  xine_debug  = config->lookup_int (config, "xine_debug", 0);
 
   this->demux_plugin.interface_version = DEMUXER_PLUGIN_IFACE_VERSION;
   this->demux_plugin.open              = demux_ogg_open;

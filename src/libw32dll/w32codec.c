@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.47 2001/11/17 19:41:09 miguelfreitas Exp $
+ * $Id: w32codec.c,v 1.48 2001/11/18 03:53:24 guenter Exp $
  *
  * routines for using w32 codecs
  * DirectShow support by Miguel Freitas (Nov/2001)
@@ -1114,7 +1114,9 @@ video_decoder_t *init_video_decoder_plugin (int iface_version, config_values_t *
     return NULL;
   }
 
-  win32_def_path = cfg->lookup_str (cfg, "win32_path", "/usr/lib/win32");
+  win32_def_path = cfg->register_string (cfg, "codec.win32_path", "/usr/lib/win32",
+					 "path to win32 codec dlls",
+					 NULL, NULL, NULL);
 
   this = (w32v_decoder_t *) xine_xmalloc (sizeof (w32v_decoder_t));
 
@@ -1147,7 +1149,9 @@ audio_decoder_t *init_audio_decoder_plugin (int iface_version, config_values_t *
     return NULL;
   }
 
-  win32_def_path = cfg->lookup_str (cfg, "win32_path", "/usr/lib/win32");
+  win32_def_path = cfg->register_string (cfg, "codec.win32_path", "/usr/lib/win32",
+					 "path to win32 codec dlls",
+					 NULL, NULL, NULL);
 
   this = (w32a_decoder_t *) xine_xmalloc (sizeof (w32a_decoder_t));
   

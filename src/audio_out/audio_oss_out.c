@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_oss_out.c,v 1.49 2001/11/17 14:26:37 f1rmb Exp $
+ * $Id: audio_oss_out.c,v 1.50 2001/11/18 03:53:23 guenter Exp $
  *
  * 20-8-2001 First implementation of Audio sync and Audio driver separation.
  * Copyright (C) 2001 James Courtier-Dutton James@superbug.demon.co.uk
@@ -200,8 +200,8 @@ static int ao_oss_open(ao_driver_t *this_gen,
     }
     this->output_sample_rate = tmp;
     this->output_sample_k_rate = this->output_sample_rate / 1000;
-    xprintf (VERBOSE|AUDIO, "audio_oss_out: audio rate : %d requested, %d provided by device/sec\n",
-	     this->input_sample_rate, this->output_sample_rate);
+    printf ("audio_oss_out: audio rate : %d requested, %d provided by device/sec\n",
+	    this->input_sample_rate, this->output_sample_rate);
   }
   /*
    * set number of channels / a52 passthrough
@@ -265,7 +265,7 @@ static int ao_oss_open(ao_driver_t *this_gen,
 
   tmp = (AUDIO_NUM_FRAGMENTS << 16) | tmp ;
 
-  xprintf (VERBOSE|AUDIO, "Audio buffer fragment info : %x\n",tmp);
+  printf ("audio_oss_out: audio buffer fragment info : %x\n",tmp);
 
   ioctl(this->audio_fd,SNDCTL_DSP_SETFRAGMENT,&tmp); 
   */
@@ -393,9 +393,9 @@ static void ao_oss_exit(ao_driver_t *this_gen) {
   oss_driver_t    *this   = (oss_driver_t *) this_gen;
   config_values_t *config = this->config;
 
-  config->set_int (config, "mixer_volume", this->mixer.volume);
-  config->save(config);
-  
+
+  config->update_num (config, "audio.mixer_volume", this->mixer.volume);
+
   if (this->audio_fd != -1)
     close(this->audio_fd);
 
@@ -544,6 +544,7 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
   int              devnum;
   int              audio_fd;
   int              num_channels, status, arg;
+  static char     *sync_methods[] = {"auto", "getodelay", "getoptr", "softsync", NULL};
   
   this = (oss_driver_t *) malloc (sizeof (oss_driver_t));
 
@@ -552,10 +553,11 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
    */
 
   printf ("audio_oss_out: Opening audio device...\n");
-  xprintf (VERBOSE|AUDIO, "audio_oss_out: Opening audio device...");
 
   best_rate = 0;
-  devnum = config->lookup_int (config, "oss_device_num", -1);
+  devnum = config->register_num (config, "audio.oss_device_num", -1,
+				 "/dev/dsp# device to use for oss output, -1 => auto_detect",
+				 NULL, NULL, NULL);
 
   if (devnum >= 0) {
     sprintf (this->audio_dev, DSP_TEMPLATE, devnum);
@@ -596,17 +598,14 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
 
   audio_fd=open(this->audio_dev, O_WRONLY|O_NONBLOCK);
 
-  if(audio_fd < 0) 
-  {
+  if(audio_fd < 0) {
     printf("audio_oss_out: opening audio device %s failed:\n%s\n",
 	   this->audio_dev, strerror(errno));
 
     free (this);
     return NULL;
 
-  } else
-    xprintf (VERBOSE|AUDIO, " %s\n", this->audio_dev);
-
+  } 
   /*
    * set up driver to reasonable values for capabilities tests
    */
@@ -620,8 +619,10 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
    * find out which sync method to use
    */
 
-  this->sync_method = config->lookup_int (config, "oss_audio_sync",
-					  OSS_SYNC_AUTO_DETECT);
+  this->sync_method = config->register_enum (config, "audio.oss_sync_method", OSS_SYNC_AUTO_DETECT,
+					     sync_methods, 
+					     "A/V sync method to use by OSS, depends on driver/hardware",
+					     NULL, NULL, NULL);
 
   if (this->sync_method == OSS_SYNC_AUTO_DETECT) {
 
@@ -658,14 +659,11 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
     gettimeofday(&this->start_time, NULL);
   }
 
-  this->latency = config->lookup_int (config, "oss_latency", 0);
-  
-  if( this->latency > 3000 ) {
-    /* this fixes the 0.9.2 default of 50000 */
-    this->latency = 0;
-    config->set_int (config, "oss_latency", 0);
-    printf ("audio_oss_out: oss_latency too high -> setting to zero.\n");
-  }
+  this->latency = config->register_range (config, "audio.oss_latency", 0,
+					  -3000, 3000, 
+					  "Adjust a/v sync for OSS softsync",
+					  "Use this to manually adjust a/v sync if you're using softsync",
+					  NULL, NULL);
   
   this->capabilities = 0;
 
@@ -685,48 +683,57 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
   num_channels = 4; 
   status = ioctl(audio_fd, SNDCTL_DSP_CHANNELS, &num_channels); 
   if ( (status != -1) && (num_channels==4) ) {
-    if (config->lookup_int (config, "four_channel", 0)) {
+    if (config->register_bool (config, "audio.four_channel", 0,
+			       "Enable 4.0 channel analog surround output",
+			       NULL, NULL, NULL)) {
       this->capabilities |= AO_CAP_MODE_4CHANNEL;
       printf ("4-channel ");
     } else
-      printf ("(4-channel not enabled in .xinerc) " );
+      printf ("(4-channel not enabled in xine config) " );
   }
   num_channels = 5; 
   status = ioctl(audio_fd, SNDCTL_DSP_CHANNELS, &num_channels); 
   if ( (status != -1) && (num_channels==5) ) {
-    if (config->lookup_int (config, "five_channel", 0)) {
+    if (config->register_bool (config, "audio.five_channel", 0,
+			       "Enable 5.0 channel analog surround output",
+			       NULL, NULL, NULL)) {
       this->capabilities |= AO_CAP_MODE_5CHANNEL;
       printf ("5-channel ");
     } else
-      printf ("(5-channel not enabled in .xinerc) " );
+      printf ("(5-channel not enabled in xine config) " );
   }
   num_channels = 6; 
   status = ioctl(audio_fd, SNDCTL_DSP_CHANNELS, &num_channels); 
   if ( (status != -1) && (num_channels==6) ) {
-    if (config->lookup_int (config, "five_lfe_channel", 0)) {
+    if (config->register_bool (config, "audio.five_lfe_channel", 0,
+			       "Enable 5.1 channel analog surround output",
+			       NULL, NULL, NULL)) {
       this->capabilities |= AO_CAP_MODE_5_1CHANNEL;
       printf ("5.1-channel ");
     } else
-      printf ("(5.1-channel not enabled in .xinerc) " );
+      printf ("(5.1-channel not enabled in xine config) " );
   }
 
   ioctl(audio_fd,SNDCTL_DSP_GETFMTS,&caps);
   if (caps & AFMT_AC3) {
-    if (config->lookup_int (config, "a52_pass_through", 0)) {
+    if (config->register_bool (config, "audio.a52_pass_through", 0,
+			       "Enable A52 / AC5 digital audio output via spdif",
+			       NULL, NULL, NULL)) {
       this->capabilities |= AO_CAP_MODE_A52;
       this->capabilities |= AO_CAP_MODE_AC5;
       printf ("a/52-pass-through ");
     } else 
-      printf ("(a/52-pass-through not enabled in .xinerc)");
+      printf ("(a/52-pass-through not enabled in xine config)");
   }    
 
   printf ("\n");
   
   /*
-   * Mixer initialisation.
+   * mixer initialisation.
    */
- __again:
-  this->mixer.name = config->lookup_str(config, "mixer_name", "/dev/mixer");
+
+  this->mixer.name = config->register_string(config, "audio.mixer_name", "/dev/mixer",
+					     "oss mixer device", NULL, NULL, NULL);
   {
     int mixer_fd;
     int audio_devs;
@@ -759,19 +766,14 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
       
       close(mixer_fd);
 
-    } else {
-      if(strcmp(this->mixer.name, "/dev/mixer")) {
-	config->set_str(config, "mixer_name", "/dev/mixer");
-	config->save(config);
-	goto __again;
-      } else
-	printf ("audio_oss_out: open() mixer %s failed: %s\n", 
-		this->mixer.name, strerror(errno));
-    }
+    } else 
+      printf ("audio_oss_out: open() mixer %s failed: %s\n", 
+	      this->mixer.name, strerror(errno));
     
     this->mixer.mute = 0;
     this->mixer.volume = ao_oss_get_property (&this->ao_driver, this->mixer.prop);
-    this->mixer.volume = config->lookup_int (config, "mixer_volume", 50);
+    this->mixer.volume = config->register_range (config, "audio.oss_mixer_volume", 50,
+						 0, 100, "Audio volume", NULL, NULL, NULL);
     
     (void) ao_oss_set_property(&this->ao_driver, this->mixer.prop, this->mixer.volume);
     

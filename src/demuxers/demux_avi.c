@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_avi.c,v 1.52 2001/11/17 14:26:37 f1rmb Exp $
+ * $Id: demux_avi.c,v 1.53 2001/11/18 03:53:23 guenter Exp $
  *
  * demultiplexer for avi streams
  *
@@ -47,8 +47,6 @@
 #include "libw32dll/wine/vfw.h"
 
 /* The following variable indicates the kind of error */
-
-static uint32_t xine_debug;
 
 typedef struct
 {
@@ -720,7 +718,6 @@ static int demux_avi_next (demux_avi_t *this) {
   if (!this->no_audio && (audio_pts < video_pts)) {
 
     /* read audio */
-    xprintf (VERBOSE|DEMUX|VAVI, "demux_avi: audio \n");
 
     buf->PTS    = audio_pts;
     buf->SCR    = audio_pts;
@@ -747,7 +744,6 @@ static int demux_avi_next (demux_avi_t *this) {
 
   } else {
     /* read video */
-    xprintf (VERBOSE|DEMUX|VAVI, "demux_avi: video \n");
 
     buf->PTS        = video_pts;
     buf->SCR        = video_pts;
@@ -771,7 +767,6 @@ static int demux_avi_next (demux_avi_t *this) {
     this->video_fifo->put (this->video_fifo, buf);
   }
 
-  xprintf (VERBOSE|DEMUX|VAVI, "size : %d\n",buf->size);
 
   return (buf->size>0);
 }
@@ -1045,8 +1040,6 @@ static int demux_avi_open(demux_plugin_t *this_gen,
     mrl = input->get_mrl (input);
     
     ending = strrchr(mrl, '.');
-    xprintf(VERBOSE|DEMUX, "demux_avi_can_handle: ending %s of %s\n", 
-	    ending, mrl);
     
     if(ending) {
       if(!strcasecmp(ending, ".avi")) {
@@ -1115,7 +1108,6 @@ demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
 
   this        = xine_xmalloc (sizeof (demux_avi_t));
   config      = xine->config;
-  xine_debug  = config->lookup_int (config, "xine_debug", 0);
 
   this->demux_plugin.interface_version = DEMUXER_PLUGIN_IFACE_VERSION;
   this->demux_plugin.open              = demux_avi_open;

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.c,v 1.36 2001/11/17 14:26:39 f1rmb Exp $
+ * $Id: metronom.c,v 1.37 2001/11/18 03:53:25 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -389,7 +389,9 @@ static void metronom_set_audio_rate (metronom_t *this, uint32_t pts_per_smpls) {
 
   pthread_mutex_unlock (&this->lock);
 
-  xprintf (METRONOM | VERBOSE, "metronom: %d pts per %d samples\n", pts_per_smpls, AUDIO_SAMPLE_NUM);
+#ifdef METRONOM_LOG
+  printf ("metronom: %d pts per %d samples\n", pts_per_smpls, AUDIO_SAMPLE_NUM);
+#endif
 
 }
 
@@ -613,9 +615,11 @@ static uint32_t metronom_got_audio_samples (metronom_t *this, uint32_t pts,
 					    uint32_t nsamples, uint32_t scr) {
 
   uint32_t vpts;
-  
-  xprintf (METRONOM | VERBOSE, "metronom: got %d audio samples (pts=%d)\n",
-	   nsamples,pts);
+
+#ifdef METRONOM_LOG  
+  printf ("metronom: got %d audio samples (pts=%d)\n",
+	  nsamples,pts);
+#endif
 
   pthread_mutex_lock (&this->lock);
 

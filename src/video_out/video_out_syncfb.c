@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_syncfb.c,v 1.46 2001/11/17 14:26:39 f1rmb Exp $
+ * $Id: video_out_syncfb.c,v 1.47 2001/11/18 03:53:24 guenter Exp $
  * 
  * video_out_syncfb.c, SyncFB (for Matrox G200/G400 cards) interface for xine
  * 
@@ -60,8 +60,6 @@
 #include "alphablend.h"
 #include "xineutils.h"
 
-uint32_t xine_debug;
-
 typedef struct {
   int                value;
   int                min;
@@ -96,12 +94,12 @@ typedef struct {
 
   vo_overlay_t      *overlay;
 
-  // syncfb module related stuff
-  int               fd;              // file descriptor of the syncfb device
-  int               yuv_format;      // either YUV420P3, YUV420P2 or YUV422
-  int               overlay_state;   // 0 = off, 1 = on
-  uint8_t*          video_mem;       // mmapped video memory
-  int               default_repeat;  // how many times a frame will be repeatedly displayed
+  /* syncfb module related stuff */
+  int               fd;              /* file descriptor of the syncfb device */
+  int               yuv_format;      /* either YUV420P3, YUV420P2 or YUV422  */
+  int               overlay_state;   /* 0 = off, 1 = on                      */
+  uint8_t*          video_mem;       /* mmapped video memory                 */
+  int               default_repeat;  /* how many times a frame will be repeatedly displayed */
   uint32_t          supported_capabilities;
 
   syncfb_config_t      syncfb_config;
@@ -160,13 +158,13 @@ typedef struct {
 
 int gX11Fail;
 
-//
-// internal video_out_syncfb functions
-// 
+/*
+ * internal video_out_syncfb functions
+ */
 
-// returns boolean value (1 success, 0 failure)
-int syncfb_overlay_on(syncfb_driver_t* this)
-{  
+/* returns boolean value (1 success, 0 failure) */
+int syncfb_overlay_on(syncfb_driver_t* this) {
+  
    if(ioctl(this->fd, SYNCFB_ON)) {	
       printf("video_out_syncfb: error. (on ioctl failed)\n");
       return 0;
@@ -176,9 +174,8 @@ int syncfb_overlay_on(syncfb_driver_t* this)
    }
 }
 
-// returns boolean value (1 success, 0 failure)
-int syncfb_overlay_off(syncfb_driver_t* this)
-{  
+/* returns boolean value (1 success, 0 failure) */
+int syncfb_overlay_off(syncfb_driver_t* this) {  
    if(ioctl(this->fd, SYNCFB_OFF)) {
       printf("video_out_syncfb: error. (off ioctl failed)\n");
       return 0;
@@ -188,8 +185,7 @@ int syncfb_overlay_off(syncfb_driver_t* this)
    }
 }
 
-static void write_frame_YUV422(syncfb_driver_t* this, syncfb_frame_t* frame)
-{
+static void write_frame_YUV422(syncfb_driver_t* this, syncfb_frame_t* frame) {
    uint_8*  y  = (uint_8 *)frame->vo_frame.base[0];
    uint_8*  cb = (uint_8 *)frame->vo_frame.base[1];
    uint_8*  cr = (uint_8 *)frame->vo_frame.base[2];
@@ -498,9 +494,10 @@ static void syncfb_adapt_to_output_area(syncfb_driver_t* this,
    this->output_width  = (this->output_width + 1) & 0xfffe;   /* Round to even */
    this->output_height = (this->output_height + 1) & 0xfffe;   /* Round to even */
 
-   // try to minimize our config ioctls by checking if anything really has
-   // changed, otherwise leave things untouched because every config ioctl
-   // also turns off and on the SyncFB module.
+   /* try to minimize our config ioctls by checking if anything really has
+    * changed, otherwise leave things untouched because every config ioctl
+    * also turns off and on the SyncFB module.
+    */
    if(prev_output_width      != this->output_width         ||
       prev_output_height     != this->output_height        ||
       prev_output_xoffset    != this->output_xoffset       ||
@@ -525,13 +522,14 @@ static void syncfb_adapt_to_output_area(syncfb_driver_t* this,
       prev_v_w_visibility    = this->video_win_visibility;
       prev_logo_visibility   = this->logo_visibility;
 	
-      //
-      // configuring SyncFB module from this point on.
-      //
+      /*
+       * configuring SyncFB module from this point on.
+       */
       syncfb_overlay_off(this);
 
-      // sanity checking - certain situations *may* crash the SyncFB module, so
-      // take care that we always have valid numbers.
+      /* sanity checking - certain situations *may* crash the SyncFB module, so
+       * take care that we always have valid numbers.
+       */
       if(posx >= 0 && posy >= 0 && this->frame_width > 0 && this->frame_height > 0 && this->output_width > 0 && this->output_height > 0 && this->frame_format > 0) {
 	 if(ioctl(this->fd, SYNCFB_GET_CONFIG, &this->syncfb_config))
 	   printf("video_out_syncfb: error. (get_config ioctl failed)\n");
@@ -612,10 +610,6 @@ static void syncfb_calc_format(syncfb_driver_t* this,
   image_ratio =
     (double) this->delivered_width / (double) this->delivered_height;
 
-  xprintf (VERBOSE | VIDEO, "display_ratio : %f\n", this->display_ratio);
-  xprintf (VERBOSE | VIDEO, "stream aspect ratio : %f , code : %d\n",
-	   image_ratio, ratio_code);
-
   switch (this->props[VO_PROP_ASPECT_RATIO].value) {
   case ASPECT_AUTO:
     switch (ratio_code) {
@@ -630,10 +624,10 @@ static void syncfb_calc_format(syncfb_driver_t* this,
       desired_ratio = image_ratio;
       break;
     case 0:                              /* forbidden       */
-      fprintf (stderr, "invalid ratio, using 4:3\n");
+      printf ("video_out_syncfb: invalid ratio, using 4:3\n");
     default:
-      xprintf (VIDEO, "unknown aspect ratio (%d) in stream => using 4:3\n",
-	       ratio_code);
+      printf ("video_out_syncfb: unknown aspect ratio (%d) in stream => using 4:3\n",
+	      ratio_code);
     case XINE_ASPECT_RATIO_4_3:          /* 4:3             */
       desired_ratio = 4.0 / 3.0;
       break;
@@ -721,11 +715,11 @@ static void syncfb_translate_gui2video(syncfb_driver_t* this,
 }
 
 
-//
-// X error handler functions
-// (even though the syncfb plugin doesn't check for gX11Fail yet, it is
-//  probably a good idea to leave this in place for future use)
-//
+/*
+ * X error handler functions
+ * (even though the syncfb plugin doesn't check for gX11Fail yet, it is
+ *  probably a good idea to leave this in place for future use)
+ */
 int HandleXError(Display* display, XErrorEvent* xevent) {
 
   char str [1024];
@@ -738,24 +732,25 @@ int HandleXError(Display* display, XErrorEvent* xevent) {
   return 0;
 }
 
-static void x11_InstallXErrorHandler(syncfb_driver_t* this)
-{
+static void x11_InstallXErrorHandler(syncfb_driver_t* this) {
+
   XSetErrorHandler (HandleXError);
   XFlush (this->display);
 }
 
-static void x11_DeInstallXErrorHandler(syncfb_driver_t* this)
-{
+static void x11_DeInstallXErrorHandler(syncfb_driver_t* this) {
+
   XSetErrorHandler (NULL);
   XFlush (this->display);
 }
 
-//
-// video_out_syncfb functions available to the outside world :)
-// 
+/*
+ * video_out_syncfb functions available to the outside world :)
+ */ 
 static uint32_t syncfb_get_capabilities(vo_driver_t* this_gen) {
-  // FIXME: VO_CAP_CONTRAST and VO_CAP_BRIGHTNESS unsupported at the moment,
-  //        because they seem to be disabled in the syncfb module anyway. :(
+  /* FIXME: VO_CAP_CONTRAST and VO_CAP_BRIGHTNESS unsupported at the moment,
+   *        because they seem to be disabled in the syncfb module anyway. :(
+   */
   syncfb_driver_t* this = (syncfb_driver_t *) this_gen;
   
   return this->supported_capabilities;
@@ -765,8 +760,8 @@ static void syncfb_frame_field (vo_frame_t *vo_img, int which_field) {
   /* not needed for Xv */
 }
 
-static void syncfb_frame_dispose(vo_frame_t* vo_img)
-{
+static void syncfb_frame_dispose(vo_frame_t* vo_img) {
+
   syncfb_frame_t*  frame = (syncfb_frame_t *) vo_img ;
    
    if(frame->vo_frame.base[0]) {
@@ -778,8 +773,8 @@ static void syncfb_frame_dispose(vo_frame_t* vo_img)
   free (frame);
 }
 
-static vo_frame_t* syncfb_alloc_frame(vo_driver_t* this_gen)
-{
+static vo_frame_t* syncfb_alloc_frame(vo_driver_t* this_gen) {
+
    syncfb_frame_t*  frame;
 
    frame = (syncfb_frame_t *) malloc(sizeof (syncfb_frame_t));
@@ -805,8 +800,8 @@ static vo_frame_t* syncfb_alloc_frame(vo_driver_t* this_gen)
 static void syncfb_update_frame_format(vo_driver_t* this_gen,
 				       vo_frame_t* frame_gen,
 				       uint32_t width, uint32_t height,
-				       int ratio_code, int format, int flags)
-{
+				       int ratio_code, int format, int flags) {
+
    syncfb_frame_t* frame = (syncfb_frame_t *) frame_gen;
    
    if((frame->width != width)
@@ -823,8 +818,10 @@ static void syncfb_update_frame_format(vo_driver_t* this_gen,
       frame->height = height;
       frame->format = format;
       
-      // we only know how to do 4:2:0 planar yuv right now.
-      // we prepare for YUY2 sizes
+      /*
+       * we only know how to do 4:2:0 planar yuv right now.
+       * we prepare for YUY2 sizes
+       */
       frame->id = shmget(IPC_PRIVATE, frame->width * frame->height * 2, IPC_CREAT | 0777);
       
       if(frame->id < 0 ) {
@@ -853,8 +850,8 @@ static void syncfb_update_frame_format(vo_driver_t* this_gen,
    frame->ratio_code = ratio_code;
 }
 
-static void syncfb_overlay_blend(vo_driver_t* this_gen, vo_frame_t* frame_gen, vo_overlay_t* overlay)
-{
+static void syncfb_overlay_blend(vo_driver_t* this_gen, vo_frame_t* frame_gen, vo_overlay_t* overlay) {
+
   syncfb_frame_t* frame = (syncfb_frame_t *) frame_gen;
 
   if(overlay->rle) {
@@ -862,8 +859,8 @@ static void syncfb_overlay_blend(vo_driver_t* this_gen, vo_frame_t* frame_gen, v
   }
 }
 
-static void syncfb_display_frame(vo_driver_t* this_gen, vo_frame_t* frame_gen)
-{
+static void syncfb_display_frame(vo_driver_t* this_gen, vo_frame_t* frame_gen) {
+
    syncfb_driver_t* this = (syncfb_driver_t *) this_gen;
    syncfb_frame_t* frame = (syncfb_frame_t *) frame_gen;
 
@@ -879,7 +876,7 @@ static void syncfb_display_frame(vo_driver_t* this_gen, vo_frame_t* frame_gen)
       syncfb_calc_format(this, frame->width, frame->height, frame->ratio_code);
    }
    
-   // the rest is only successful and safe, if the overlay is really on
+   /* the rest is only successful and safe, if the overlay is really on */
    if(this->overlay_state) {
       if(this->bufinfo.id != -1) {
 	 printf("video_out_syncfb: error. (invalid syncfb image buffer state)\n");
@@ -906,15 +903,15 @@ static void syncfb_display_frame(vo_driver_t* this_gen, vo_frame_t* frame_gen)
    this->bufinfo.id = -1;  
 }
 
-static int syncfb_get_property(vo_driver_t* this_gen, int property)
-{
+static int syncfb_get_property(vo_driver_t* this_gen, int property) {
+
   syncfb_driver_t* this = (syncfb_driver_t *) this_gen;
   
   return this->props[property].value;
 }
 
-static int syncfb_set_property(vo_driver_t* this_gen, int property, int value)
-{
+static int syncfb_set_property(vo_driver_t* this_gen, int property, int value) {
+
   syncfb_driver_t* this = (syncfb_driver_t *) this_gen;
   
   switch (property) {
@@ -1034,16 +1031,16 @@ static int syncfb_set_property(vo_driver_t* this_gen, int property, int value)
   return value;
 }
 
-static void syncfb_get_property_min_max (vo_driver_t *this_gen, int property, int *min, int *max)
-{
+static void syncfb_get_property_min_max (vo_driver_t *this_gen, int property, int *min, int *max) {
+
   syncfb_driver_t *this = (syncfb_driver_t *) this_gen;
 
   *min = this->props[property].min;
   *max = this->props[property].max;
 }
 
-static int syncfb_gui_data_exchange (vo_driver_t* this_gen, int data_type, void *data)
-{
+static int syncfb_gui_data_exchange (vo_driver_t* this_gen, int data_type, void *data) {
+
   syncfb_driver_t* this = (syncfb_driver_t *) this_gen;
   x11_rectangle_t* area;
 
@@ -1055,7 +1052,7 @@ static int syncfb_gui_data_exchange (vo_driver_t* this_gen, int data_type, void 
    }     
      break;
 
-  // FIXME: consider if this is of use for us...
+  /* FIXME: consider if this is of use for us... */
   case GUI_DATA_EX_EXPOSE_EVENT:
      break;
 
@@ -1104,21 +1101,21 @@ static int syncfb_gui_data_exchange (vo_driver_t* this_gen, int data_type, void 
   return 0;
 }
 
-static void syncfb_exit (vo_driver_t* this_gen)
-{
+static void syncfb_exit (vo_driver_t* this_gen) {
+
    syncfb_driver_t *this = (syncfb_driver_t *) this_gen;
 
-   // get it off the screen - I wanna see my desktop again :-)
+   /* get it off the screen - I wanna see my desktop again :-) */
    syncfb_overlay_off(this);
    
-   // don't know if it is necessary are even right, but anyway...?!
+   /* don't know if it is necessary are even right, but anyway...?! */
    munmap(0, this->capabilities.memory_size);   
    
    close(this->fd);
 }
 
-vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen)
-{
+vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
+
    XWindowAttributes attr;
    XColor dummy;
    
@@ -1128,8 +1125,8 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen)
    int               i = 0;
    char*             device_name;
    
-   device_name = config->lookup_str(config, "syncfb_device", "/dev/syncfb");
-   xine_debug  = config->lookup_int(config, "xine_debug", 0);
+   device_name = config->register_string (config, "video.syncfb_device", "/dev/syncfb",
+					  "syncfb (teletux) device node", NULL, NULL, NULL);
    
    if(!(this = malloc (sizeof (syncfb_driver_t)))) {
       printf("video_out_syncfb: aborting. (malloc failed)\n");
@@ -1137,14 +1134,14 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen)
    }
    memset(this, 0, sizeof(syncfb_driver_t));
  
-   // check for syncfb device
+   /* check for syncfb device */
    if((this->fd = open(device_name, O_RDWR)) < 0) {
       printf("video_out_syncfb: aborting. (unable to open device \"%s\")\n", device_name);
       free(this);
       return NULL;
    }
    
-   // get capabilities from the syncfb module
+   /* get capabilities from the syncfb module */
    if(ioctl(this->fd, SYNCFB_GET_CAPS, &this->capabilities)) {
       printf("video_out_syncfb: aborting. (syncfb_get_caps ioctl failed)\n");
       
@@ -1165,15 +1162,17 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen)
       this->props[i].key   = NULL;
    }
 
-   // mmap whole video memory
+   /* mmap whole video memory */
    this->video_mem = (char *) mmap(0, this->capabilities.memory_size, PROT_WRITE, MAP_SHARED, this->fd, 0);
      
-   // check for formats we need...
+   /* check for formats we need... */
    this->supported_capabilities = 0;
    this->yuv_format = 0;
 
-   // simple fallback mechanism - we want YUV 4:2:0 (3 plane) but we can also
-   // convert YV12 material to YUV 4:2:0 (2 plane) and YUV 4:2:2 ...
+   /*
+    * simple fallback mechanism - we want YUV 4:2:0 (3 plane) but we can also
+    * convert YV12 material to YUV 4:2:0 (2 plane) and YUV 4:2:2 ...
+    */
    if(this->capabilities.palettes & (1<<VIDEO_PALETTE_YUV420P3)) {
       this->supported_capabilities |= VO_CAP_YV12;
       this->yuv_format = VIDEO_PALETTE_YUV420P3;
@@ -1193,8 +1192,9 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen)
       printf("video_out_syncfb: SyncFB module supports YUY2.\n");
    }
    if(this->capabilities.palettes & (1<<VIDEO_PALETTE_RGB565)) {
-// FIXME: no RGB support yet
-//      this->supported_capabilities |= VO_CAP_RGB;
+     /* FIXME: no RGB support yet
+      *      this->supported_capabilities |= VO_CAP_RGB;
+      */
       printf("video_out_syncfb: SyncFB module supports RGB565.\n");
    }
    
@@ -1229,7 +1229,9 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen)
    
   this->bufinfo.id            = -1;   
   this->config                = config;
-  this->default_repeat        = config->lookup_int(config, "syncfb_default_repeat", 3);
+  this->default_repeat        = config->register_num (config, "video.syncfb_default_repeat", 3,
+						      "Specifies how many times a frame is repeated",
+						      NULL, NULL, NULL);
   this->display               = visual->display;
   this->display_ratio         = visual->display_ratio;
   this->displayed_height      = 0;

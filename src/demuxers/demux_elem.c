@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_elem.c,v 1.28 2001/11/17 14:26:37 f1rmb Exp $
+ * $Id: demux_elem.c,v 1.29 2001/11/18 03:53:23 guenter Exp $
  *
  * demultiplexer for elementary mpeg streams
  * 
@@ -65,7 +65,6 @@ typedef struct {
   uint8_t          scratch[4096];
 } demux_mpeg_elem_t ;
 
-static uint32_t xine_debug;
 
 /*
  *
@@ -111,8 +110,6 @@ static void *demux_mpeg_elem_loop (void *this_gen) {
       this->status = DEMUX_FINISHED;
 
   } while (this->status == DEMUX_OK) ;
-
-  xprintf (VERBOSE|DEMUX, "demux loop finished (status: %d)\n", this->status);
 
   this->status = DEMUX_FINISHED;
 
@@ -217,7 +214,6 @@ static void demux_mpeg_elem_start (demux_plugin_t *this_gen,
 
     /* FIXME: implement time seek */
 
-    xprintf (VERBOSE|DEMUX, "=>seek to %Ld\n",start_pos);
     this->input->seek (this->input, start_pos, SEEK_SET);
   }
 
@@ -284,7 +280,6 @@ static int demux_mpeg_elem_open(demux_plugin_t *this_gen,
     MRL = input->get_mrl (input);
 
     suffix = strrchr(MRL, '.');
-    xprintf(VERBOSE|DEMUX, "%s: suffix %s of %s\n", __FUNCTION__, suffix, MRL);
     
     if(suffix) {
       if(!strcasecmp(suffix, ".mpv")) {
@@ -341,7 +336,6 @@ demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
 
   this        = malloc (sizeof (demux_mpeg_elem_t));
   config      = xine->config;
-  xine_debug  = config->lookup_int (config, "xine_debug", 0);
 
   this->demux_plugin.interface_version = DEMUX_MPEG_ELEM_IFACE_VERSION;
   this->demux_plugin.open              = demux_mpeg_elem_open;
