@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.140 2003/02/06 00:09:20 miguelfreitas Exp $
+ * $Id: video_out.c,v 1.141 2003/02/06 10:59:02 miguelfreitas Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -1089,10 +1089,36 @@ static int vo_get_property (xine_video_port_t *this_gen, int property) {
   case VO_PROP_DISCARD_FRAMES:
     ret = this->discard_frames;
     break;
+    
+  /*
+   * handle XINE_PARAM_xxx properties (convert from driver's range)
+   */
+  case XINE_PARAM_VO_HUE:
+  case XINE_PARAM_VO_SATURATION:
+  case XINE_PARAM_VO_CONTRAST:
+  case XINE_PARAM_VO_BRIGHTNESS: {
+    int v, min_v, max_v, range_v;
 
+    pthread_mutex_lock( &this->driver_lock );
+    this->driver->get_property_min_max (this->driver,
+					property & 0xffffff,
+					&min_v, &max_v);
+
+    v = this->driver->get_property (this->driver, property & 0xffffff);
+
+    range_v = max_v - min_v;
+
+    if (range_v > 0)
+      ret = (v-min_v) * 65535 / range_v;
+    else 
+      ret = 0;
+    pthread_mutex_unlock( &this->driver_lock );
+  }
+    break;
+  
   default:
     pthread_mutex_lock( &this->driver_lock );
-    ret = this->driver->get_property(this->driver, property);
+    ret = this->driver->get_property(this->driver, property & 0xffffff);
     pthread_mutex_unlock( &this->driver_lock );
   }
   return ret;
@@ -1134,10 +1160,38 @@ static int vo_set_property (xine_video_port_t *this_gen, int property, int value
     }
     break;
 
+  /*
+   * handle XINE_PARAM_xxx properties (convert to driver's range)
+   */
+  case XINE_PARAM_VO_HUE:
+  case XINE_PARAM_VO_SATURATION:
+  case XINE_PARAM_VO_CONTRAST:
+  case XINE_PARAM_VO_BRIGHTNESS:
+    if (!this->grab_only) {
+      int v, min_v, max_v, range_v;
+  
+      pthread_mutex_lock( &this->driver_lock );
+      
+      this->driver->get_property_min_max (this->driver,
+  					property & 0xffffff,
+  					&min_v, &max_v);
+  
+      range_v = max_v - min_v;
+  
+      v = (value * range_v) / 65535 + min_v;
+  
+      this->driver->set_property(this->driver, property & 0xffffff, v);
+      pthread_mutex_unlock( &this->driver_lock );
+      ret = value;
+    } else
+      ret = 0;
+    break;
+    
+    
   default:
     if (!this->grab_only) {
       pthread_mutex_lock( &this->driver_lock );
-      ret =  this->driver->set_property(this->driver, property, value);
+      ret =  this->driver->set_property(this->driver, property & 0xffffff, value);
       pthread_mutex_unlock( &this->driver_lock );
     } else
       ret = 0;

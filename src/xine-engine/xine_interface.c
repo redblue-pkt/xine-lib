@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_interface.c,v 1.38 2003/01/13 02:15:07 miguelfreitas Exp $
+ * $Id: xine_interface.c,v 1.39 2003/02/06 10:59:02 miguelfreitas Exp $
  *
  * convenience/abstraction layer, functions to implement
  * libxine's public interface
@@ -368,29 +368,14 @@ void xine_set_param (xine_stream_t *stream, int param, int value) {
   case XINE_PARAM_VO_HUE:
   case XINE_PARAM_VO_SATURATION:
   case XINE_PARAM_VO_CONTRAST:
-  case XINE_PARAM_VO_BRIGHTNESS: {
-    int v, min_v, max_v, range_v;
-
-
-    stream->video_driver->get_property_min_max (stream->video_driver,
-						param & 0xffffff,
-						&min_v, &max_v);
-
-    range_v = max_v - min_v;
-
-    v = (value * range_v) / 65535 + min_v;
-
-    stream->video_driver->set_property(stream->video_driver, param & 0xffffff, v);
-  }
-    break;
-
+  case XINE_PARAM_VO_BRIGHTNESS:
   case XINE_PARAM_VO_DEINTERLACE:
   case XINE_PARAM_VO_ASPECT_RATIO:
   case XINE_PARAM_VO_ZOOM_X:
   case XINE_PARAM_VO_ZOOM_Y:
   case XINE_PARAM_VO_PAN_SCAN:
   case XINE_PARAM_VO_TVMODE:
-    stream->video_driver->set_property(stream->video_driver, param & 0xffffff, value);
+    stream->video_out->set_property(stream->video_out, param, value);
     break;
     
   default:
@@ -440,35 +425,14 @@ int  xine_get_param (xine_stream_t *stream, int param) {
   case XINE_PARAM_VO_HUE:
   case XINE_PARAM_VO_SATURATION:
   case XINE_PARAM_VO_CONTRAST:
-  case XINE_PARAM_VO_BRIGHTNESS: {
-    int v, min_v, max_v, range_v;
-
-
-    stream->video_driver->get_property_min_max (stream->video_driver,
-						param & 0xffffff,
-						&min_v, &max_v);
-
-    v = stream->video_driver->get_property (stream->video_driver, param & 0xffffff);
-
-    range_v = max_v - min_v;
-
-    /* printf ("xine_interface: %d [%d %d]\n", v, min_v, max_v); */
-
-    if (range_v > 0)
-      return (v-min_v) * 65535 / range_v;
-    else 
-      return 0;
-  }
-    break;
-
-
+  case XINE_PARAM_VO_BRIGHTNESS:
   case XINE_PARAM_VO_DEINTERLACE:
   case XINE_PARAM_VO_ASPECT_RATIO:
   case XINE_PARAM_VO_ZOOM_X:
   case XINE_PARAM_VO_ZOOM_Y:
   case XINE_PARAM_VO_PAN_SCAN:
   case XINE_PARAM_VO_TVMODE:
-    return stream->video_driver->get_property(stream->video_driver, param & 0xffffff);
+    return stream->video_out->get_property(stream->video_out, param);
     break;
 
   default:
