@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.68 2002/07/02 00:11:56 jcdutton Exp $
+ * $Id: audio_alsa_out.c,v 1.69 2002/07/02 05:44:02 pmhahn Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -302,7 +302,7 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
     goto __close;
   }
   buffer_size = snd_pcm_hw_params_get_buffer_size(params);
-  /* set the period time [us] (interrupt very x us|y samples ...) */
+  /* set the period time [us] (interrupt every x us|y samples ...) */
 #warning "FIXME: 256 samples div 48kHz are less than 5ms. When ALSA resamples->BOOM"
   for (period_size = 256; period_size < buffer_size; period_size *= 2) {
     dir=0;
