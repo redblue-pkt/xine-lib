@@ -53,7 +53,7 @@
  * color palette, apparently. Some creation tools specify red, green, and
  * blue palette components in terms of 6-bit VGA color DAC values which
  * range from 0..63. Other tools specify the RGB components as full 8-bit
- * values that range from 0..63. Since there are no markers in the file to
+ * values that range from 0..255. Since there are no markers in the file to
  * differentiate between the two variants, this demuxer uses the following
  * heuristic:
  *   - load the 768 palette bytes from disk
@@ -63,7 +63,7 @@
  *     - if any bytes exceed 63, do not shift the bytes at all before
  *       transmitting them to the video decoder
  *
- * $Id: demux_idcin.c,v 1.5 2002/09/01 06:43:26 tmmm Exp $
+ * $Id: demux_idcin.c,v 1.6 2002/09/01 14:06:23 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
