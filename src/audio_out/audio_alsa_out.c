@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.47 2002/03/11 19:58:00 jkeil Exp $
+ * $Id: audio_alsa_out.c,v 1.48 2002/03/21 00:34:35 jcdutton Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -990,8 +990,8 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
     printf ("(5.1-channel not enabled in xine config) " );
   }
  
-  this->has_pause_resume = ( snd_pcm_hw_params_can_pause (this->audio_fd)
-			    && snd_pcm_hw_params_can_resume (this->audio_fd) );
+  this->has_pause_resume = ( snd_pcm_hw_params_can_pause (params)
+			    && snd_pcm_hw_params_can_resume (params) );
 
   snd_pcm_close (this->audio_fd);
   this->audio_fd=NULL;
