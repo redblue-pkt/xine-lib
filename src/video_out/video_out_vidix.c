@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_vidix.c,v 1.21 2003/01/16 09:51:34 jstembridge Exp $
+ * $Id: video_out_vidix.c,v 1.22 2003/01/31 16:26:04 jstembridge Exp $
  * 
  * video_out_vidix.c
  *
@@ -262,13 +262,13 @@ static void write_frame_YUY2(vidix_driver_t* this, vidix_frame_t* frame)
    uint8_t* dst8 = (uint8_t *)(this->vidix_mem + 
                      this->vidix_play.offsets[this->next_frame] +
                      this->vidix_play.offset.y);
-   int h, double_width = (frame->width * 2);
+   int h;
                      
    for(h = 0; h < frame->height; h++) {
-      xine_fast_memcpy(dst8, src8, double_width);
+      xine_fast_memcpy(dst8, src8, frame->vo_frame.pitches[0]);
 
       dst8 += (this->dstrides.y * 2);
-      src8 += double_width;
+      src8 += frame->vo_frame.pitches[0];
    }
 }
 
