@@ -86,6 +86,28 @@
           <para></para>
          </listitem>
         </varlistentry>
+        <varlistentry>
+         <term><filename>vcd</filename></term>
+         <listitem>
+          <para>
+           The enhanced VCD input plugin which also handles VCD navigation.
+          </para>
+          <para>
+           <variablelist>
+            <varlistentry>
+             <term><filename>libcdio</filename>, <filename>libvcd</filename> (imported)</term>
+             <listitem>
+              <para>
+               Libraries used by the enhanced VCD plugin.
+              </para>
+              <para></para>
+             </listitem>
+            </varlistentry>
+           </variablelist>
+          </para>
+          <para></para>
+         </listitem>
+        </varlistentry>
        </variablelist>
       </para>
       <para></para>
