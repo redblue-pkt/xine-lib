@@ -31,7 +31,7 @@
  *   
  *   Based on FFmpeg's libav/rm.c.
  *
- * $Id: demux_real.c,v 1.102 2004/08/17 19:49:51 jstembridge Exp $
+ * $Id: demux_real.c,v 1.103 2004/08/19 19:59:14 jstembridge Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -1442,11 +1442,12 @@ static int demux_real_seek (demux_plugin_t *this_gen,
         other_index = this->video_stream->index;
     }
 
+    /* FIXME: binary search would be quicker */
     if(start_pos) {
-      while((index[i+1].offset < start_pos) && (i < entries - 1))
+      while((i < entries - 1) && (index[i+1].offset < start_pos))
         i++;
     } else if(start_time) {
-      while((index[i+1].timestamp < start_time) && (i < entries - 1))
+      while((i < entries - 1) && (index[i+1].timestamp < start_time))
         i++;
     }
 
