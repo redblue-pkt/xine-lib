@@ -9,6 +9,7 @@ xine-lib (next version) [someone fill in stability and urgency]
   * AIFF file demuxer
   * Sun/NeXT SND/AU file demuxer
   * Id CIN video decoder
+  * spu encoding for full overlay support with dxr3
 
 xine-lib (0.9.13) unstable; urgency=low
 
