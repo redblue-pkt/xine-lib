@@ -31,7 +31,6 @@ required for 1.0
 - prepare architecture for post effect plugins (michael)
 - input_net (guenter)
 - fix documentation
-- implement the osd functions declared in xine.h
 
 optional
 -------
