@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.165 2002/10/14 15:47:43 guenter Exp $
+ * $Id: xine.c,v 1.166 2002/10/14 18:24:59 guenter Exp $
  *
  * top-level xine functions
  *
@@ -318,7 +318,7 @@ static int xine_open_internal (xine_stream_t *stream, const char *mrl) {
   }
 
   stream->meta_info[XINE_META_INFO_SYSTEMLAYER] 
-    = strdup (stream->demux_plugin->demux_class->get_identifier());
+    = strdup (stream->demux_plugin->demux_class->get_identifier(stream->demux_plugin->demux_class));
 
   /*
    * start metronom clock
