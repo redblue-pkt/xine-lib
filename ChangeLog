@@ -10,7 +10,8 @@
   * quicktime binary-only codec support (highly experimental)
   * dmo wmv9 binary codec support
   * MNG demuxer added
-
+  * raw dv demuxer added
+  
 xine-lib (1-beta0)
   * fix decoder priority configuration
   * cache available plugins for faster xine loading
