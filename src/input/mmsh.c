@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mmsh.c,v 1.28 2004/04/06 00:25:29 tmattern Exp $
+ * $Id: mmsh.c,v 1.29 2004/04/06 06:43:06 tmattern Exp $
  *
  * MMS over HTTP protocol
  *   written by Thibaut Mattern
@@ -860,7 +860,7 @@ static int get_media_packet (mmsh_t *this) {
         }
         break;
       case CHUNK_TYPE_DATA:
-        this->current_pos = this->asf_header_len + this->chunk_seq_number * this->packet_length;
+        this->current_pos = (off_t)this->asf_header_len + (off_t)this->chunk_seq_number * (off_t)this->packet_length;
         break;
       default:
         xprintf (this->stream->xine, XINE_VERBOSITY_LOG,

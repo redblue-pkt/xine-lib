@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mms.c,v 1.44 2004/04/06 00:25:29 tmattern Exp $
+ * $Id: mms.c,v 1.45 2004/04/06 06:43:05 tmattern Exp $
  *
  * MMS over TCP protocol
  *   based on work from major mms
@@ -56,9 +56,9 @@
 /********** logging **********/
 #define LOG_MODULE "mms"
 #define LOG_VERBOSE
-/*
+
 #define LOG 
-*/
+
 
 #include "xine_internal.h"
 #include "xineutils.h"
@@ -1019,7 +1019,7 @@ static int get_media_packet (mms_t *this) {
     lprintf ("sequence=%d\n", sequence);
     
     /* simulate a seek */
-    this->current_pos = this->asf_header_len +  sequence * this->packet_length;
+    this->current_pos = (off_t)this->asf_header_len + (off_t)sequence * (off_t)this->packet_length;
     
     lprintf ("asf media packet detected, len=%d\n", packet_len);
     if (packet_len > (BUF_SIZE)) {
