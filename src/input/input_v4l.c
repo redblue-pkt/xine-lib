@@ -748,11 +748,11 @@ static int open_radio_capture_device(v4l_input_plugin_t *this)
    if (set_input_source(this, this->tuner_name) > 0)
       tuner_found = 1;
  
-   xine_set_stream_info(this->stream, XINE_STREAM_INFO_AUDIO_CHANNELS, periods);
-   xine_set_stream_info(this->stream, XINE_STREAM_INFO_AUDIO_BITS, bits);
-   xine_set_stream_info(this->stream, XINE_STREAM_INFO_AUDIO_SAMPLERATE, rate);
-   xine_set_stream_info(this->stream, XINE_STREAM_INFO_HAS_AUDIO, 1);
-   xine_set_stream_info(this->stream, XINE_STREAM_INFO_HAS_VIDEO, 0);
+   _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_CHANNELS, periods);
+   _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_BITS, bits);
+   _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_SAMPLERATE, rate);
+   _x_stream_info_set(this->stream, XINE_STREAM_INFO_HAS_AUDIO, 1);
+   _x_stream_info_set(this->stream, XINE_STREAM_INFO_HAS_VIDEO, 0);
  
    /* 
     * Pre allocate some frames for audio and video. This way this hasn't to be
@@ -861,13 +861,13 @@ static int open_video_capture_device(v4l_input_plugin_t *this)
       return 0;
    }
   
-   xine_set_stream_info(this->stream, XINE_STREAM_INFO_VIDEO_WIDTH, resolutions[j].width);
-   xine_set_stream_info(this->stream, XINE_STREAM_INFO_VIDEO_HEIGHT, resolutions[j].height);
-   xine_set_stream_info(this->stream, XINE_STREAM_INFO_AUDIO_CHANNELS, periods);
-   xine_set_stream_info(this->stream, XINE_STREAM_INFO_AUDIO_BITS, bits);
-   xine_set_stream_info(this->stream, XINE_STREAM_INFO_AUDIO_SAMPLERATE, rate);
-   xine_set_stream_info(this->stream, XINE_STREAM_INFO_HAS_AUDIO, 1);
-   xine_set_stream_info(this->stream, XINE_STREAM_INFO_HAS_VIDEO, 1);
+   _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_WIDTH, resolutions[j].width);
+   _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_HEIGHT, resolutions[j].height);
+   _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_CHANNELS, periods);
+   _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_BITS, bits);
+   _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_SAMPLERATE, rate);
+   _x_stream_info_set(this->stream, XINE_STREAM_INFO_HAS_AUDIO, 1);
+   _x_stream_info_set(this->stream, XINE_STREAM_INFO_HAS_VIDEO, 1);
    
    /* 
     * Pre allocate some frames for audio and video. This way this hasn't to be
@@ -1013,8 +1013,8 @@ static int open_video_capture_device(v4l_input_plugin_t *this)
    }
    
    /* Save dimensions */
-   xine_set_stream_info(this->stream, XINE_STREAM_INFO_VIDEO_WIDTH, resolutions[j].width);
-   xine_set_stream_info(this->stream, XINE_STREAM_INFO_VIDEO_HEIGHT, resolutions[j].height);
+   _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_WIDTH, resolutions[j].width);
+   _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_HEIGHT, resolutions[j].height);
  
    /* Using deinterlaceing is highly recommended. Setting to true */
    this->old_interlace = 

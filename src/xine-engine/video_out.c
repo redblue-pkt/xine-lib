@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.178 2003/11/16 15:41:15 mroi Exp $
+ * $Id: video_out.c,v 1.179 2003/11/16 23:33:48 f1rmb Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -469,10 +469,10 @@ static int vo_frame_draw (vo_frame_t *img, xine_stream_t *stream) {
     pthread_mutex_lock(&this->streams_lock);
     for (stream = xine_list_first_content(this->streams); stream;
          stream = xine_list_next_content(this->streams)) {
-      stream->stream_info[XINE_STREAM_INFO_SKIPPED_FRAMES] =
-        1000 * this->num_frames_skipped / this->num_frames_delivered;
-      stream->stream_info[XINE_STREAM_INFO_DISCARDED_FRAMES] =
-        1000 * this->num_frames_discarded / this->num_frames_delivered;
+      _x_stream_info_set(stream, XINE_STREAM_INFO_SKIPPED_FRAMES, 
+			 1000 * this->num_frames_skipped / this->num_frames_delivered);
+      _x_stream_info_set(stream, XINE_STREAM_INFO_DISCARDED_FRAMES,
+			 1000 * this->num_frames_discarded / this->num_frames_delivered);
 
       /* we send XINE_EVENT_DROPPED_FRAMES to frontend to warn that
        * number of skipped or discarded frames is too high.
@@ -485,9 +485,9 @@ static int vo_frame_draw (vo_frame_t *img, xine_stream_t *stream) {
          event.stream      = stream;
          event.data        = &data;
          event.data_length = sizeof(data);
-         data.skipped_frames = stream->stream_info[XINE_STREAM_INFO_SKIPPED_FRAMES];
+         data.skipped_frames = _x_stream_info_get(stream, XINE_STREAM_INFO_SKIPPED_FRAMES);
          data.skipped_threshold = this->warn_skipped_threshold * 10;
-         data.discarded_frames = stream->stream_info[XINE_STREAM_INFO_DISCARDED_FRAMES];
+         data.discarded_frames = _x_stream_info_get(stream, XINE_STREAM_INFO_DISCARDED_FRAMES);
          data.discarded_threshold = this->warn_discarded_threshold * 10;
          xine_event_send(stream, &event);
       }
@@ -769,7 +769,7 @@ static vo_frame_t *get_next_frame (vos_t *this, int64_t cur_vpts) {
     if (img && !img->next) {
       
       if (!img->stream ||
-          img->stream->stream_info[XINE_STREAM_INFO_VIDEO_HAS_STILL] ||
+          _x_stream_info_get(img->stream, XINE_STREAM_INFO_VIDEO_HAS_STILL) ||
           img->stream->video_fifo->size(img->stream->video_fifo) < 10) {
 
 #ifdef LOG

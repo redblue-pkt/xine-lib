@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.30 2003/11/15 14:54:31 miguelfreitas Exp $
+ * $Id: audio_decoder.c,v 1.31 2003/11/16 23:33:46 f1rmb Exp $
  *
  * thin layer to use real binary-only codecs in xine
  *
@@ -247,33 +247,33 @@ static int init_codec (realdec_decoder_t *this, buf_element_t *buf) {
     if (!load_syms_linux (this, "cook.so.6.0"))
       return 0;
 
-    xine_set_meta_info(this->stream, XINE_META_INFO_AUDIOCODEC, "Cook");
+    _x_meta_info_set(this->stream, XINE_META_INFO_AUDIOCODEC, "Cook");
     break;
     
   case BUF_AUDIO_ATRK:
     if (!load_syms_linux (this, "atrc.so.6.0"))
       return 0;
     this->block_align = 384;
-    xine_set_meta_info(this->stream, XINE_META_INFO_AUDIOCODEC, "Atrac");
+    _x_meta_info_set(this->stream, XINE_META_INFO_AUDIOCODEC, "Atrac");
     break;
 
   case BUF_AUDIO_14_4:
     if (!load_syms_linux (this, "14_4.so.6.0"))
       return 0;
-    xine_set_meta_info(this->stream, XINE_META_INFO_AUDIOCODEC, "Real 14.4");
+    _x_meta_info_set(this->stream, XINE_META_INFO_AUDIOCODEC, "Real 14.4");
     break;
 
   case BUF_AUDIO_28_8:
     if (!load_syms_linux (this, "28_8.so.6.0"))
       return 0;
-    xine_set_meta_info(this->stream, XINE_META_INFO_AUDIOCODEC, "Real 28.8");
+    _x_meta_info_set(this->stream, XINE_META_INFO_AUDIOCODEC, "Real 28.8");
     break;
 
   case BUF_AUDIO_SIPRO:
     if (!load_syms_linux (this, "sipr.so.6.0"))
       return 0;
     /* this->block_align = 19; */
-    xine_set_meta_info(this->stream, XINE_META_INFO_AUDIOCODEC, "Sipro");
+    _x_meta_info_set(this->stream, XINE_META_INFO_AUDIOCODEC, "Sipro");
     break;
 
   default:
@@ -406,7 +406,7 @@ static void realdec_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) 
 
     this->decoder_ok = init_codec (this, buf) ;
     if( !this->decoder_ok )
-      xine_set_stream_info(this->stream, XINE_STREAM_INFO_AUDIO_HANDLED, 0);
+      _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_HANDLED, 0);
 
   } else if( this->decoder_ok ) {
 

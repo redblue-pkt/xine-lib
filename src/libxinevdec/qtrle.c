@@ -21,7 +21,7 @@
  * For more information on the QT RLE format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  * 
- * $Id: qtrle.c,v 1.15 2003/11/15 13:01:25 miguelfreitas Exp $
+ * $Id: qtrle.c,v 1.16 2003/11/16 23:33:48 f1rmb Exp $
  */
 
 #include <stdio.h>
@@ -862,7 +862,7 @@ static void qtrle_decode_data (video_decoder_t *this_gen,
 
     /* load the stream/meta info */
     sprintf(codec_name, "%d bpp Quicktime Animation (RLE)", this->depth & 0x1F);
-    xine_set_meta_info(this->stream, XINE_META_INFO_VIDEOCODEC, codec_name);
+    _x_meta_info_set(this->stream, XINE_META_INFO_VIDEOCODEC, codec_name);
 
     return;
   } else if (this->decoder_ok) {

@@ -21,7 +21,7 @@
  * Actually, this decoder just reorganizes chunks of raw YUV data in such
  * a way that xine can display them.
  * 
- * $Id: yuv.c,v 1.24 2003/11/15 13:01:27 miguelfreitas Exp $
+ * $Id: yuv.c,v 1.25 2003/11/16 23:33:48 f1rmb Exp $
  */
 
 #include <stdio.h>
@@ -118,24 +118,24 @@ static void yuv_decode_data (video_decoder_t *this_gen,
     switch (buf->type) {
 
       case BUF_VIDEO_YV12:
-        xine_set_meta_info(this->stream, XINE_META_INFO_VIDEOCODEC, "Raw YV12");
+        _x_meta_info_set(this->stream, XINE_META_INFO_VIDEOCODEC, "Raw YV12");
         break;
 
       case BUF_VIDEO_YVU9:
-        xine_set_meta_info(this->stream, XINE_META_INFO_VIDEOCODEC, "Raw YVU9");
+        _x_meta_info_set(this->stream, XINE_META_INFO_VIDEOCODEC, "Raw YVU9");
         break;
 
       case BUF_VIDEO_GREY:
-        xine_set_meta_info(this->stream, XINE_META_INFO_VIDEOCODEC, "Greyscale YUV");
+        _x_meta_info_set(this->stream, XINE_META_INFO_VIDEOCODEC, "Greyscale YUV");
         break;
         
       case BUF_VIDEO_I420:
-        xine_set_meta_info(this->stream, XINE_META_INFO_VIDEOCODEC, "Raw I420");
+        _x_meta_info_set(this->stream, XINE_META_INFO_VIDEOCODEC, "Raw I420");
         break;
 
     }
     
-    xine_set_stream_info(this->stream, XINE_STREAM_INFO_FRAME_DURATION, this->video_step);
+    _x_stream_info_set(this->stream, XINE_STREAM_INFO_FRAME_DURATION, this->video_step);
     
     return;
   } else if (this->decoder_ok && !(buf->decoder_flags & BUF_FLAG_SPECIAL)) {

@@ -30,7 +30,7 @@
  * For more information regarding the NSF format, visit:
  *   http://www.tripoint.org/kevtris/nes/nsfspec.txt
  *
- * $Id: demux_nsf.c,v 1.18 2003/11/15 14:00:53 miguelfreitas Exp $
+ * $Id: demux_nsf.c,v 1.19 2003/11/16 23:33:43 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -163,7 +163,7 @@ static int demux_nsf_send_chunk(demux_plugin_t *this_gen) {
       sprintf(title, "%s, song %d/%d",
         this->title, this->current_song, this->total_songs);
 
-      xine_set_meta_info(this->stream, XINE_META_INFO_TITLE, title);
+      _x_meta_info_set(this->stream, XINE_META_INFO_TITLE, title);
 
       _x_demux_control_newpts(this->stream, this->current_pts, 0);
 
@@ -195,19 +195,19 @@ static void demux_nsf_send_headers(demux_plugin_t *this_gen) {
   this->status = DEMUX_OK;
 
   /* load stream information */
-  xine_set_stream_info(this->stream, XINE_STREAM_INFO_HAS_VIDEO, 0);
-  xine_set_stream_info(this->stream, XINE_STREAM_INFO_HAS_AUDIO, 1);
-  xine_set_stream_info(this->stream, XINE_STREAM_INFO_AUDIO_CHANNELS,
+  _x_stream_info_set(this->stream, XINE_STREAM_INFO_HAS_VIDEO, 0);
+  _x_stream_info_set(this->stream, XINE_STREAM_INFO_HAS_AUDIO, 1);
+  _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_CHANNELS,
     NSF_CHANNELS);
-  xine_set_stream_info(this->stream, XINE_STREAM_INFO_AUDIO_SAMPLERATE,
+  _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_SAMPLERATE,
     NSF_SAMPLERATE);
-  xine_set_stream_info(this->stream, XINE_STREAM_INFO_AUDIO_BITS,
+  _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_BITS,
     NSF_BITS);
 
-  xine_set_meta_info(this->stream, XINE_META_INFO_TITLE, this->title);
-  xine_set_meta_info(this->stream, XINE_META_INFO_ARTIST, this->artist);
+  _x_meta_info_set(this->stream, XINE_META_INFO_TITLE, this->title);
+  _x_meta_info_set(this->stream, XINE_META_INFO_ARTIST, this->artist);
   sprintf(copyright, "(C) %s", this->copyright);
-  xine_set_meta_info(this->stream, XINE_META_INFO_COMMENT, copyright);
+  _x_meta_info_set(this->stream, XINE_META_INFO_COMMENT, copyright);
 
   /* send start buffers */
   _x_demux_control_start(this->stream);

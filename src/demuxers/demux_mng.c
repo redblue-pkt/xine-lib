@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_mng.c,v 1.14 2003/11/15 14:00:48 miguelfreitas Exp $
+ * $Id: demux_mng.c,v 1.15 2003/11/16 23:33:43 f1rmb Exp $
  *
  * demux_mng.c, Demuxer plugin for Multiple-image Network Graphics format
  *
@@ -200,10 +200,10 @@ static void demux_mng_send_headers(demux_mng_t *this){
   this->status = DEMUX_OK;
 
   /* load stream information */
-  xine_set_stream_info(this->stream, XINE_STREAM_INFO_HAS_VIDEO, 1);
-  xine_set_stream_info(this->stream, XINE_STREAM_INFO_HAS_AUDIO, 0);
-  xine_set_stream_info(this->stream, XINE_STREAM_INFO_VIDEO_WIDTH, this->bih.biWidth);
-  xine_set_stream_info(this->stream, XINE_STREAM_INFO_VIDEO_HEIGHT, this->bih.biHeight);
+  _x_stream_info_set(this->stream, XINE_STREAM_INFO_HAS_VIDEO, 1);
+  _x_stream_info_set(this->stream, XINE_STREAM_INFO_HAS_AUDIO, 0);
+  _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_WIDTH, this->bih.biWidth);
+  _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_HEIGHT, this->bih.biHeight);
 
   /* send start buffers */
   _x_demux_control_start(this->stream);

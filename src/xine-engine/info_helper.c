@@ -20,23 +20,114 @@
  * stream metainfo helper functions
  * hide some xine engine details from demuxers and reduce code duplication
  *
- * $id$ 
+ * $Id: info_helper.c,v 1.6 2003/11/16 23:33:48 f1rmb Exp $ 
  */
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
 
+#include <stdio.h>
 #include <string.h>
 
 #define XINE_ENGINE_INTERNAL
 
 #include "info_helper.h"
 
-/* Remove trailing separator chars (\n,\r,\t, space,...)
+/* *******************  Stream Info  *************************** */
+
+/*
+ * Compare stream_info, private and public values, 
+ * return 1 if it's identical, otherwirse 0.
+ */
+static int __stream_info_is_identical(xine_stream_t *stream, int info) {
+
+  if(stream->stream_info_public[info] == stream->stream_info[info])
+    return 1;
+
+  return 0;
+}
+
+/*
+ * Check if 'info' is in bounds.
+ */
+static int __info_valid(int info) {
+  if ((info >= 0) && (info < XINE_STREAM_INFO_MAX))
+    return 1;
+  else {
+    fprintf(stderr, "Error: invalid STREAM_INFO %d. Ignored.\n", info);
+    return 0;
+  }
+}
+
+static void __stream_info_set_unlocked(xine_stream_t *stream, int info, int value) {
+  if(__info_valid(info))
+    stream->stream_info[info] = value;
+}
+
+/*
+ * Reset private info.
+ */
+void _x_stream_info_reset(xine_stream_t *stream, int info) {
+  pthread_mutex_lock(&stream->info_mutex);
+  __stream_info_set_unlocked(stream, info, 0);
+  pthread_mutex_unlock(&stream->info_mutex);
+}
+
+/*
+ * Reset public info value.
+ */
+void _x_stream_info_public_reset(xine_stream_t *stream, int info) {
+  pthread_mutex_lock(&stream->info_mutex);
+  if(__info_valid(info))
+    stream->stream_info_public[info] = 0;
+  pthread_mutex_unlock(&stream->info_mutex);
+}
+
+/*
+ * Set private info value.
+ */
+void _x_stream_info_set(xine_stream_t *stream, int info, int value) {
+  pthread_mutex_lock(&stream->info_mutex);
+  __stream_info_set_unlocked(stream, info, value);
+  pthread_mutex_unlock(&stream->info_mutex);
+}
+
+/*
+ * Retrieve private info value.
+ */
+uint32_t _x_stream_info_get(xine_stream_t *stream, int info) {
+  uint32_t stream_info = 0;
+
+  pthread_mutex_lock(&stream->info_mutex);
+  stream_info = stream->stream_info[info];
+  pthread_mutex_unlock(&stream->info_mutex);
+  
+  return stream_info;
+}
+
+/*
+ * Retrieve public info value
+ */
+uint32_t _x_stream_info_get_public(xine_stream_t *stream, int info) {
+  uint32_t stream_info = 0;
+
+  pthread_mutex_lock(&stream->info_mutex);
+  stream_info = stream->stream_info_public[info];
+  if(__info_valid(info) && (!__stream_info_is_identical(stream, info)))
+    stream_info = stream->stream_info_public[info] = stream->stream_info[info];
+  pthread_mutex_unlock(&stream->info_mutex);
+  
+  return stream_info;
+}
+
+/* ****************  Meta Info  *********************** */
+
+/*
+ * Remove trailing separator chars (\n,\r,\t, space,...)
  * at the end of the string
  */
-static void chomp (char *str) {
+static void __chomp(char *str) {
   int i, len;
 
   len = strlen(str);
@@ -50,58 +141,127 @@ static void chomp (char *str) {
   }
 }
 
-static int info_valid(int info) {
-  if ((info >= 0) && (info < XINE_STREAM_INFO_MAX)) {
-    return 1;
-  } else {
-    fprintf(stderr, "Error: invalid STREAM_INFO %d. Ignored.\n", info);
+/*
+ * Compare stream_info, public and private values, 
+ * return 1 if it's identical, otherwise 0.
+ */
+static int __meta_info_is_identical(xine_stream_t *stream, int info) {
+  
+  if((!(stream->meta_info_public[info] && stream->meta_info[info])) ||
+     ((stream->meta_info_public[info] && stream->meta_info[info]) && 
+      strcmp(stream->meta_info_public[info], stream->meta_info[info])))
     return 0;
-  }
+
+  return 1;
 }
 
-static int meta_valid(int info) {
-  if ((info >= 0) && (info < XINE_STREAM_INFO_MAX)) {
+/*
+ * Check if 'info' is in bounds.
+ */
+static int __meta_valid(int info) {
+  if ((info >= 0) && (info < XINE_STREAM_INFO_MAX))
     return 1;
-  } else {
+  else {
     fprintf(stderr, "Error: invalid META_INFO %d. Ignored.\n", info);
     return 0;
   }
 }
 
-void xine_set_stream_info(xine_stream_t *stream, int info, int value) {
-  if(info_valid(info))
-    stream->stream_info [info] = value;
-}
-
-void xine_clear_meta_info(xine_stream_t *stream, int info) {
-  if(meta_valid(info) && stream->meta_info [info]) {
-    free(stream->meta_info [info]);
-    stream->meta_info [info] = NULL;
-  }
-}
-
-void xine_set_meta_info(xine_stream_t *stream, int info, const char *str) {
-  if(str && meta_valid(info)) {
-    xine_clear_meta_info(stream, info);
-    stream->meta_info [info] = strdup(str);
-    chomp(stream->meta_info [info]);
-  }
-}
-
-void xine_set_metan_info(xine_stream_t *stream, int info, const char *buf,
-                         int len) {
-  if(meta_valid(info)) {
-    char *tmp;
+/*
+ * Set private meta info to value (can be NULL).
+ */
+static void __meta_info_set_unlocked(xine_stream_t *stream, int info, const char *value) {
+  if(__meta_valid(info)) {
     
-    xine_clear_meta_info(stream, info);
-    
-    if(len) {
-      tmp = malloc(len + 1);
-      xine_fast_memcpy(tmp, buf, len);
-      tmp[len] = '\0';
-      
-      stream->meta_info [info] = tmp;
-      chomp(stream->meta_info [info]);
-    }
+    if(stream->meta_info[info])
+      free(stream->meta_info[info]);
+
+    stream->meta_info[info] = (value) ? strdup(value) : NULL;
+
+    if(stream->meta_info[info] && strlen(stream->meta_info[info]))
+      __chomp(stream->meta_info[info]);
   }
+}
+
+/*
+ * Reset (nullify) private info value.
+ */
+void _x_meta_info_reset(xine_stream_t *stream, int info) {
+  pthread_mutex_lock(&stream->meta_mutex);
+  __meta_info_set_unlocked(stream, info, NULL);
+  pthread_mutex_unlock(&stream->meta_mutex);
+}
+
+/*
+ * Reset (nullify) public info value.
+ */
+static void __meta_info_public_reset_unlocked(xine_stream_t *stream, int info) {
+  if(__meta_valid(info)) {
+    if(stream->meta_info_public[info])
+      free(stream->meta_info_public[info]);
+    stream->meta_info_public[info] = NULL;
+  }
+}
+void _x_meta_info_public_reset(xine_stream_t *stream, int info) {
+  pthread_mutex_lock(&stream->meta_mutex);
+  __meta_info_public_reset_unlocked(stream, info);
+  pthread_mutex_unlock(&stream->meta_mutex);
+}
+
+/*
+ * Set private meta info value.
+ */
+void _x_meta_info_set(xine_stream_t *stream, int info, const char *str) {
+  pthread_mutex_lock(&stream->meta_mutex);
+  if(str)
+    __meta_info_set_unlocked(stream, info, str);
+  pthread_mutex_unlock(&stream->meta_mutex);
+}
+
+/*
+ * Set private meta info from buf, 'len' bytes long.
+ */
+void _x_meta_info_n_set(xine_stream_t *stream, int info, const char *buf, int len) {
+  pthread_mutex_lock(&stream->meta_mutex);
+  if(__meta_valid(info) && len) {
+    char str[len + 1];
+    
+    snprintf(str, len + 1 , "%s", buf);
+    __meta_info_set_unlocked(stream, info, (const char *) &str[0]);
+  }
+  pthread_mutex_unlock(&stream->meta_mutex);
+}
+
+/*
+ * Retrieve private info value.
+ */
+const char *_x_meta_info_get(xine_stream_t *stream, int info) {
+  const char *meta_info = NULL;
+  
+  pthread_mutex_lock(&stream->meta_mutex);
+  meta_info = stream->meta_info[info];
+  pthread_mutex_unlock(&stream->meta_mutex);
+  
+  return meta_info;
+}
+
+/*
+ * Retrieve public info value.
+ */
+const char *_x_meta_info_get_public(xine_stream_t *stream, int info) {
+  const char *meta_info = NULL;
+
+  pthread_mutex_lock(&stream->meta_mutex);
+  meta_info = stream->meta_info_public[info];
+  if(__meta_valid(info) && (!__meta_info_is_identical(stream, info))) {
+    __meta_info_public_reset_unlocked(stream, info);
+    
+    if(stream->meta_info[info])
+      stream->meta_info_public[info] = strdup(stream->meta_info[info]);
+
+    meta_info = stream->meta_info_public[info];
+  }
+  pthread_mutex_unlock(&stream->meta_mutex);
+  
+  return meta_info;
 }

@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.151 2003/11/16 15:41:15 mroi Exp $
+ * $Id: audio_out.c,v 1.152 2003/11/16 23:33:48 f1rmb Exp $
  *
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -1276,30 +1276,30 @@ static int ao_open(xine_audio_port_t *this_gen, xine_stream_t *stream,
   /* 
    * set metainfo
    */
-  stream->stream_info[XINE_STREAM_INFO_AUDIO_MODE] = mode;
+  _x_stream_info_set(stream, XINE_STREAM_INFO_AUDIO_MODE, mode);
   switch (mode) {
   case AO_CAP_MODE_MONO:
-    stream->stream_info[XINE_STREAM_INFO_AUDIO_CHANNELS] = 1;
+    _x_stream_info_set(stream, XINE_STREAM_INFO_AUDIO_CHANNELS, 1);
     break;
   case AO_CAP_MODE_STEREO:
-    stream->stream_info[XINE_STREAM_INFO_AUDIO_CHANNELS] = 2;
+    _x_stream_info_set(stream, XINE_STREAM_INFO_AUDIO_CHANNELS, 2);
     break;
   case AO_CAP_MODE_4CHANNEL:
-    stream->stream_info[XINE_STREAM_INFO_AUDIO_CHANNELS] = 4;
+    _x_stream_info_set(stream, XINE_STREAM_INFO_AUDIO_CHANNELS, 4);
     break;
   case AO_CAP_MODE_4_1CHANNEL:
   case AO_CAP_MODE_5CHANNEL:
   case AO_CAP_MODE_5_1CHANNEL:
-    stream->stream_info[XINE_STREAM_INFO_AUDIO_CHANNELS] = 6;
+    _x_stream_info_set(stream, XINE_STREAM_INFO_AUDIO_CHANNELS, 6);
     break;
   case AO_CAP_MODE_A52:
   case AO_CAP_MODE_AC5:
   default:
-    stream->stream_info[XINE_STREAM_INFO_AUDIO_CHANNELS] = 255; /* unknown */
+    _x_stream_info_set(stream, XINE_STREAM_INFO_AUDIO_CHANNELS, 255); /* unknown */
   }
   
-  stream->stream_info[XINE_STREAM_INFO_AUDIO_BITS]       = bits;
-  stream->stream_info[XINE_STREAM_INFO_AUDIO_SAMPLERATE] = rate;
+  _x_stream_info_set(stream, XINE_STREAM_INFO_AUDIO_BITS, bits);
+  _x_stream_info_set(stream, XINE_STREAM_INFO_AUDIO_SAMPLERATE, rate);
 
   stream->metronom->set_audio_rate(stream->metronom, this->audio_step);
 
@@ -1333,9 +1333,9 @@ static void ao_put_buffer (xine_audio_port_t *this_gen,
   pts = buf->vpts;
   
   if (stream) {
-    buf->format.bits = stream->stream_info[XINE_STREAM_INFO_AUDIO_BITS];
-    buf->format.rate = stream->stream_info[XINE_STREAM_INFO_AUDIO_SAMPLERATE];
-    buf->format.mode = stream->stream_info[XINE_STREAM_INFO_AUDIO_MODE];
+    buf->format.bits = _x_stream_info_get(stream, XINE_STREAM_INFO_AUDIO_BITS);
+    buf->format.rate = _x_stream_info_get(stream, XINE_STREAM_INFO_AUDIO_SAMPLERATE);
+    buf->format.mode = _x_stream_info_get(stream, XINE_STREAM_INFO_AUDIO_MODE);
     _x_extra_info_merge( buf->extra_info, stream->audio_decoder_extra_info );
     buf->vpts = stream->metronom->got_audio_samples(stream->metronom, pts, buf->num_frames);
   }

@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_ogg.c,v 1.115 2003/11/15 20:38:27 mroi Exp $
+ * $Id: demux_ogg.c,v 1.116 2003/11/16 23:33:43 f1rmb Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -232,7 +232,7 @@ static void get_stream_length (demux_ogg_t *this) {
       while (!done) {
 	if (!read_ogg_packet (this)) {
 	  if (this->time_length) {
-	    xine_set_stream_info(this->stream, XINE_STREAM_INFO_BITRATE,
+	    _x_stream_info_set(this->stream, XINE_STREAM_INFO_BITRATE,
 	                         ((int64_t) 8000*filelength)/this->time_length);
 	    /*this is a fine place to compute avg_bitrate*/
 	    this->avg_bitrate= 8000*filelength/this->time_length;
@@ -515,7 +515,7 @@ static void send_ogg_buf (demux_ogg_t *this,
           comment=*ptr;
           if ( !strncasecmp ("TITLE=", comment,6) ) {
             this->title = strdup (comment + strlen ("TITLE=") );
-            xine_set_meta_info(this->stream, XINE_META_INFO_TITLE, this->title);
+            _x_meta_info_set(this->stream, XINE_META_INFO_TITLE, this->title);
           }
           if ( !chapter_time && strlen(comment) == 22 &&
               !strncasecmp ("CHAPTER" , comment, 7) &&
@@ -631,7 +631,7 @@ static void send_ogg_buf (demux_ogg_t *this,
         } else {
           title = this->title;
         }
-        xine_set_meta_info(this->stream, XINE_META_INFO_TITLE, title);
+        _x_meta_info_set(this->stream, XINE_META_INFO_TITLE, title);
         lprintf("new TITLE: %s\n", title);
 
         uevent.type = XINE_EVENT_UI_SET_TITLE;
@@ -752,9 +752,9 @@ static void demux_ogg_send_header (demux_ogg_t *this) {
 	  vorbis_comment_init(&vc);
 	  if (vorbis_synthesis_headerin(&vi, &vc, &op) >= 0) {
 
-	    xine_set_stream_info(this->stream, XINE_STREAM_INFO_AUDIO_BITRATE,
+	    _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_BITRATE,
 	                         vi.bitrate_nominal);
-	    xine_set_stream_info(this->stream, XINE_STREAM_INFO_AUDIO_SAMPLERATE,
+	    _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_SAMPLERATE,
 	                         vi.rate);
 
 	    this->factor[stream_num] = 90000;
@@ -800,7 +800,7 @@ static void demux_ogg_send_header (demux_ogg_t *this) {
 	    if (bitrate <= 1)
 	      bitrate = 16000; /* assume 16 kbit */
 
-	    xine_set_stream_info(this->stream, XINE_STREAM_INFO_AUDIO_BITRATE,
+	    _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_BITRATE,
 	                         bitrate);
 
 	    this->factor[stream_num] = 90000;
@@ -811,7 +811,7 @@ static void demux_ogg_send_header (demux_ogg_t *this) {
 	    lprintf ("detected Speex stream,\trate %d\tbitrate %d\n",
 		     header->rate, bitrate);
 
-	    xine_set_stream_info(this->stream, XINE_STREAM_INFO_AUDIO_SAMPLERATE,
+	    _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_SAMPLERATE,
 	                         header->rate);
 
 	    this->preview_buffers[stream_num] += header->extra_headers;
@@ -892,11 +892,11 @@ static void demux_ogg_send_header (demux_ogg_t *this) {
 	   * video metadata
 	   */
 
-	  xine_set_stream_info(this->stream, XINE_STREAM_INFO_VIDEO_WIDTH,
+	  _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_WIDTH,
 	                       locwidth);
-	  xine_set_stream_info(this->stream, XINE_STREAM_INFO_VIDEO_HEIGHT,
+	  _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_HEIGHT,
 	                       locheight);
-	  xine_set_stream_info(this->stream, XINE_STREAM_INFO_FRAME_DURATION,
+	  _x_stream_info_set(this->stream, XINE_STREAM_INFO_FRAME_DURATION,
 	                       this->frame_duration);
 
 	  this->avg_bitrate += 500000; /* FIXME */
@@ -988,13 +988,13 @@ static void demux_ogg_send_header (demux_ogg_t *this) {
 	     * audio metadata
 	     */
 
-	    xine_set_stream_info(this->stream, XINE_STREAM_INFO_AUDIO_CHANNELS,
+	    _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_CHANNELS,
 	                         locchannels);
-	    xine_set_stream_info(this->stream, XINE_STREAM_INFO_AUDIO_BITS,
+	    _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_BITS,
 	                         locbits_per_sample);
-	    xine_set_stream_info(this->stream, XINE_STREAM_INFO_AUDIO_SAMPLERATE,
+	    _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_SAMPLERATE,
 	                         locsamples_per_unit);
-	    xine_set_stream_info(this->stream, XINE_STREAM_INFO_AUDIO_BITRATE,
+	    _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_BITRATE,
 	                         locavgbytespersec * 8);
 
 	  } else /* no audio_fifo there */
@@ -1062,11 +1062,11 @@ static void demux_ogg_send_header (demux_ogg_t *this) {
 	     * video metadata
 	     */
 
-	    xine_set_stream_info(this->stream, XINE_STREAM_INFO_VIDEO_WIDTH,
+	    _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_WIDTH,
 	                         bih.biWidth);
-	    xine_set_stream_info(this->stream, XINE_STREAM_INFO_VIDEO_HEIGHT,
+	    _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_HEIGHT,
 	                         bih.biHeight);
-	    xine_set_stream_info(this->stream, XINE_STREAM_INFO_FRAME_DURATION,
+	    _x_stream_info_set(this->stream, XINE_STREAM_INFO_FRAME_DURATION,
 	                         this->frame_duration);
 
 	    this->avg_bitrate += 500000; /* FIXME */
@@ -1145,18 +1145,18 @@ static void demux_ogg_send_header (demux_ogg_t *this) {
 	    this->preview_buffers[stream_num]=3;
 	    this->buf_types[stream_num] = BUF_VIDEO_THEORA;
 
-	    xine_set_meta_info(this->stream, XINE_META_INFO_VIDEOCODEC, "theora");
-	    xine_set_stream_info(this->stream, XINE_STREAM_INFO_VIDEO_WIDTH,
+	    _x_meta_info_set(this->stream, XINE_META_INFO_VIDEOCODEC, "theora");
+	    _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_WIDTH,
 	                         this->t_info.frame_width);
-	    xine_set_stream_info(this->stream, XINE_STREAM_INFO_VIDEO_HEIGHT,
+	    _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_HEIGHT,
 	                         this->t_info.frame_height);
-	    xine_set_stream_info(this->stream, XINE_STREAM_INFO_FRAME_DURATION,
+	    _x_stream_info_set(this->stream, XINE_STREAM_INFO_FRAME_DURATION,
 	                         ((int64_t) 90000 * this->t_info.fps_denominator) /
 	                         this->t_info.fps_numerator);
 
 	    /*currently aspect_nominator and -denumerator are 0?*/
 	    if (this->t_info.aspect_denominator)
-	      xine_set_stream_info(this->stream, XINE_STREAM_INFO_VIDEO_RATIO,
+	      _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_RATIO,
 		                   ((int64_t) this->t_info.aspect_numerator * 10000) /
 	                           this->t_info.aspect_denominator);
 
@@ -1175,7 +1175,7 @@ static void demux_ogg_send_header (demux_ogg_t *this) {
 	  }
 #else
 	  this->buf_types[stream_num] = BUF_VIDEO_THEORA;
-	  xine_set_meta_info(this->stream, XINE_META_INFO_VIDEOCODEC, "theora");
+	  _x_meta_info_set(this->stream, XINE_META_INFO_VIDEOCODEC, "theora");
 #endif
 
 	} else {
@@ -1433,11 +1433,11 @@ static void demux_ogg_send_headers (demux_plugin_t *this_gen) {
     lprintf ("headers sent, avg bitrate is %lld\n", this->avg_bitrate);
   }
 
-  xine_set_stream_info(this->stream, XINE_STREAM_INFO_HAS_VIDEO,
+  _x_stream_info_set(this->stream, XINE_STREAM_INFO_HAS_VIDEO,
                        this->num_video_streams > 0);
-  xine_set_stream_info(this->stream, XINE_STREAM_INFO_HAS_AUDIO,
+  _x_stream_info_set(this->stream, XINE_STREAM_INFO_HAS_AUDIO,
                        this->num_audio_streams > 0);
-  xine_set_stream_info(this->stream, XINE_STREAM_INFO_MAX_SPU_CHANNEL,
+  _x_stream_info_set(this->stream, XINE_STREAM_INFO_MAX_SPU_CHANNEL,
                        this->num_spu_streams);
 }
 

@@ -23,7 +23,7 @@
  * For more information on the 4xm file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_4xm.c,v 1.10 2003/11/16 14:34:09 tmmm Exp $
+ * $Id: demux_4xm.c,v 1.11 2003/11/16 23:33:42 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -380,19 +380,19 @@ static void demux_fourxm_send_headers(demux_plugin_t *this_gen) {
   this->status = DEMUX_OK;
 
   /* load stream information */
-  xine_set_stream_info(this->stream, XINE_STREAM_INFO_HAS_VIDEO, 1);
-  xine_set_stream_info(this->stream, XINE_STREAM_INFO_HAS_AUDIO,
+  _x_stream_info_set(this->stream, XINE_STREAM_INFO_HAS_VIDEO, 1);
+  _x_stream_info_set(this->stream, XINE_STREAM_INFO_HAS_AUDIO,
                        (this->track_count > 0) ? 1 : 0);
-  xine_set_stream_info(this->stream, XINE_STREAM_INFO_VIDEO_WIDTH,
+  _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_WIDTH,
                        this->bih.biWidth);
-  xine_set_stream_info(this->stream, XINE_STREAM_INFO_VIDEO_HEIGHT,
+  _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_HEIGHT,
                        this->bih.biHeight);
   if (this->track_count > 0) {
-    xine_set_stream_info(this->stream, XINE_STREAM_INFO_AUDIO_CHANNELS,
+    _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_CHANNELS,
                          this->tracks[0].channels);
-    xine_set_stream_info(this->stream, XINE_STREAM_INFO_AUDIO_SAMPLERATE,
+    _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_SAMPLERATE,
                          this->tracks[0].sample_rate);
-    xine_set_stream_info(this->stream, XINE_STREAM_INFO_AUDIO_BITS,
+    _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_BITS,
                          this->tracks[0].bits);
   }
 

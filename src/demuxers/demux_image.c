@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_image.c,v 1.10 2003/11/15 14:00:47 miguelfreitas Exp $
+ * $Id: demux_image.c,v 1.11 2003/11/16 23:33:43 f1rmb Exp $
  *
  * image dummy demultiplexer
  */
@@ -90,8 +90,8 @@ static void demux_image_send_headers (demux_plugin_t *this_gen) {
 
   this->status = DEMUX_OK;
 
-  xine_set_stream_info(this->stream, XINE_STREAM_INFO_HAS_VIDEO, 1);
-  xine_set_stream_info(this->stream, XINE_STREAM_INFO_HAS_AUDIO, 0);
+  _x_stream_info_set(this->stream, XINE_STREAM_INFO_HAS_VIDEO, 1);
+  _x_stream_info_set(this->stream, XINE_STREAM_INFO_HAS_AUDIO, 0);
   
   this->input->seek (this->input, 0, SEEK_SET);
 }

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.4 2003/11/15 21:48:06 siggi Exp $
+ * $Id: xine_decoder.c,v 1.5 2003/11/16 23:33:46 f1rmb Exp $
  *
  * (ogg/)speex audio decoder plugin (libspeex wrapper) for xine
  */
@@ -117,7 +117,7 @@ void read_metadata (speex_decoder_t *this, char * comments, int length)
   int len, i, nb_fields;
   char * end;
 
-  xine_set_meta_info(this->stream, XINE_META_INFO_AUDIOCODEC, "speex");
+  _x_meta_info_set(this->stream, XINE_META_INFO_AUDIOCODEC, "speex");
 
   if (length < 8) {
     printf ("libspeex: invalid/corrupted comments\n");
@@ -174,20 +174,15 @@ void read_metadata (speex_decoder_t *this, char * comments, int length)
       if ( !strncasecmp (speex_comment_keys[i].key, c,
 			 strlen(speex_comment_keys[i].key)) ) {
 	int keylen = strlen(speex_comment_keys[i].key);
-	char * meta_info;
+	char meta_info[(len - keylen) + 1];
 	
 #ifdef LOG
 	printf ("libspeex: known metadata %d %d\n",
 		i, speex_comment_keys[i].xine_metainfo_index);
 #endif
 	
-	meta_info = xine_xmalloc (len - keylen);
-	memcpy (meta_info, c + keylen, len - keylen);
-	
-	xine_set_meta_info(this->stream,
-			   speex_comment_keys[i].xine_metainfo_index,
-			   meta_info);
-	free( meta_info );
+	snprintf(meta_info, (len - keylen), "%s", c + keylen);
+	_x_meta_info_set(this->stream, speex_comment_keys[i].xine_metainfo_index, meta_info);
       }
     }
 
@@ -242,7 +237,7 @@ static void speex_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 
 	this->rate = spx_header->rate;
 	speex_decoder_ctl (this->st, SPEEX_SET_SAMPLING_RATE, &this->rate);
-	xine_set_stream_info(this->stream, XINE_STREAM_INFO_AUDIO_SAMPLERATE,
+	_x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_SAMPLERATE,
 	  this->rate);
 
 	this->channels = spx_header->nb_channels;
@@ -262,7 +257,7 @@ static void speex_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 
 	speex_decoder_ctl (this->st, SPEEX_GET_BITRATE, &bitrate);
 	if (bitrate <= 1) bitrate = 16000; /* assume 16 kbit */
-	xine_set_stream_info(this->stream, XINE_STREAM_INFO_AUDIO_BITRATE, bitrate);
+	_x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_BITRATE, bitrate);
 
 	this->header_count += spx_header->extra_headers;
 	this->expect_metadata = 1;
@@ -344,7 +339,7 @@ static void speex_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 
       speex_decoder_ctl (this->st, SPEEX_GET_BITRATE, &bitrate);
       if (bitrate <= 1) bitrate = 16000; /* assume 16 kbit */
-      xine_set_stream_info(this->stream, XINE_STREAM_INFO_AUDIO_BITRATE, bitrate);
+      _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_BITRATE, bitrate);
 
       /*PCM saturation (just in case)*/
       for (i=0; i < this->frame_size * this->channels; i++)

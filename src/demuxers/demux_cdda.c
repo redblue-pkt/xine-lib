@@ -24,7 +24,7 @@
  * linear PCM "decoder" (which in turn sends them directly to the audio
  * output target; this is a really fancy CD-playing architecture).
  *
- * $Id: demux_cdda.c,v 1.16 2003/11/15 14:00:42 miguelfreitas Exp $
+ * $Id: demux_cdda.c,v 1.17 2003/11/16 23:33:43 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -112,13 +112,13 @@ static void demux_cdda_send_headers(demux_plugin_t *this_gen) {
   this->status = DEMUX_OK;
 
   /* load stream information */
-  xine_set_stream_info(this->stream, XINE_STREAM_INFO_SEEKABLE,
+  _x_stream_info_set(this->stream, XINE_STREAM_INFO_SEEKABLE,
                        INPUT_IS_SEEKABLE(this->input));
-  xine_set_stream_info(this->stream, XINE_STREAM_INFO_HAS_VIDEO, 0);
-  xine_set_stream_info(this->stream, XINE_STREAM_INFO_HAS_AUDIO, 1);
-  xine_set_stream_info(this->stream, XINE_STREAM_INFO_AUDIO_CHANNELS, 2);
-  xine_set_stream_info(this->stream, XINE_STREAM_INFO_AUDIO_SAMPLERATE, 44100);
-  xine_set_stream_info(this->stream, XINE_STREAM_INFO_AUDIO_BITS, 16);
+  _x_stream_info_set(this->stream, XINE_STREAM_INFO_HAS_VIDEO, 0);
+  _x_stream_info_set(this->stream, XINE_STREAM_INFO_HAS_AUDIO, 1);
+  _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_CHANNELS, 2);
+  _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_SAMPLERATE, 44100);
+  _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_BITS, 16);
 
   /* send start buffers */
   _x_demux_control_start(this->stream);

@@ -22,7 +22,7 @@
  * based on overview of Cinepak algorithm and example decoder
  * by Tim Ferguson: http://www.csse.monash.edu.au/~timf/
  *
- * $Id: cinepak.c,v 1.32 2003/11/15 13:01:22 miguelfreitas Exp $
+ * $Id: cinepak.c,v 1.33 2003/11/16 23:33:47 f1rmb Exp $
  */
 
 #include <stdlib.h>
@@ -421,7 +421,7 @@ static void cvid_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
     this->decoder_ok = 1;
 
     /* stream/meta info */
-    xine_set_meta_info(this->stream, XINE_META_INFO_VIDEOCODEC, "Cinepak");
+    _x_meta_info_set(this->stream, XINE_META_INFO_VIDEOCODEC, "Cinepak");
 
   } else if (this->decoder_ok) {
     

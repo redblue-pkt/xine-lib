@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.53 2003/11/15 14:54:31 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.54 2003/11/16 23:33:46 f1rmb Exp $
  *
  * thin layer to use real binary-only codecs in xine
  *
@@ -165,17 +165,17 @@ static int init_codec (realdec_decoder_t *this, buf_element_t *buf) {
   case BUF_VIDEO_RV20:
     if (!load_syms_linux (this, "drv2.so.6.0"))
       return 0;
-    xine_set_meta_info(this->stream, XINE_META_INFO_VIDEOCODEC, "Real Video 2.0");
+    _x_meta_info_set(this->stream, XINE_META_INFO_VIDEOCODEC, "Real Video 2.0");
     break;
   case BUF_VIDEO_RV30:
     if (!load_syms_linux (this, "drv3.so.6.0"))
       return 0;
-    xine_set_meta_info(this->stream, XINE_META_INFO_VIDEOCODEC, "Real Video 3.0");
+    _x_meta_info_set(this->stream, XINE_META_INFO_VIDEOCODEC, "Real Video 3.0");
     break;
   case BUF_VIDEO_RV40:
     if (!load_syms_linux(this, "drv4.so.6.0"))
       return 0;
-    xine_set_meta_info(this->stream, XINE_META_INFO_VIDEOCODEC, "Real Video 4.0");
+    _x_meta_info_set(this->stream, XINE_META_INFO_VIDEOCODEC, "Real Video 4.0");
     break;
   default:
     printf ("libreal: error, i don't handle buf type 0x%08x\n",
@@ -198,8 +198,8 @@ static int init_codec (realdec_decoder_t *this, buf_element_t *buf) {
 	  this->width, this->width, this->height, this->height);
 #endif
   
-  xine_set_stream_info(this->stream, XINE_STREAM_INFO_VIDEO_WIDTH,  this->width);
-  xine_set_stream_info(this->stream, XINE_STREAM_INFO_VIDEO_HEIGHT, this->height);
+  _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_WIDTH,  this->width);
+  _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_HEIGHT, this->height);
 
   init_data.subformat = BE_32(&buf->content[26]);
   init_data.format    = BE_32(&buf->content[30]);
@@ -310,7 +310,7 @@ static void realdec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) 
 
     this->decoder_ok = init_codec (this, buf);
     if( !this->decoder_ok )
-      xine_set_stream_info(this->stream, XINE_STREAM_INFO_VIDEO_HANDLED, 0);
+      _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_HANDLED, 0);
 
   } else if (this->decoder_ok && this->context) {
 
@@ -372,8 +372,8 @@ static void realdec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) 
 
 	  this->frame_size = this->width * this->height;
           
-	  xine_set_stream_info(this->stream, XINE_STREAM_INFO_VIDEO_WIDTH, this->width);
-	  xine_set_stream_info(this->stream, XINE_STREAM_INFO_VIDEO_HEIGHT, this->height);
+	  _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_WIDTH, this->width);
+	  _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_HEIGHT, this->height);
 	}
         
 	img = this->stream->video_out->get_frame (this->stream->video_out,
@@ -400,7 +400,7 @@ static void realdec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) 
 	  this->last_pts = this->pts;
 
 	img->duration  = this->duration; 
-	xine_set_stream_info(this->stream, XINE_STREAM_INFO_FRAME_DURATION, this->duration);
+	_x_stream_info_set(this->stream, XINE_STREAM_INFO_FRAME_DURATION, this->duration);
 	img->bad_frame = 0;
 	
 #ifdef LOG

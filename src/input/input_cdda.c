@@ -20,7 +20,7 @@
  * Compact Disc Digital Audio (CDDA) Input Plugin 
  *   by Mike Melanson (melanson@pcisys.net)
  *
- * $Id: input_cdda.c,v 1.37 2003/11/15 13:01:04 miguelfreitas Exp $
+ * $Id: input_cdda.c,v 1.38 2003/11/16 23:33:44 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -2406,7 +2406,7 @@ static int cdda_plugin_open (input_plugin_t *this_gen ) {
 	  printf("Disc Title: %s\n", this->cddb.disc_title);
 #endif
 
-    xine_set_meta_info(this->stream, XINE_META_INFO_ALBUM, this->cddb.disc_title);
+    _x_meta_info_set(this->stream, XINE_META_INFO_ALBUM, this->cddb.disc_title);
   }
 
   if(this->cddb.track[this->track].title) {
@@ -2414,7 +2414,7 @@ static int cdda_plugin_open (input_plugin_t *this_gen ) {
 	  printf("Track %d Title: %s\n", this->track+1, this->cddb.track[this->track].title);
 #endif
 
-    xine_set_meta_info(this->stream, XINE_META_INFO_TITLE, this->cddb.track[this->track].title);
+    _x_meta_info_set(this->stream, XINE_META_INFO_TITLE, this->cddb.track[this->track].title);
   }
   
   if(this->cddb.disc_artist) {
@@ -2422,7 +2422,7 @@ static int cdda_plugin_open (input_plugin_t *this_gen ) {
 	  printf("Disc Artist: %s\n", this->cddb.disc_artist);
 #endif
 
-    xine_set_meta_info(this->stream, XINE_META_INFO_ARTIST, this->cddb.disc_artist);
+    _x_meta_info_set(this->stream, XINE_META_INFO_ARTIST, this->cddb.disc_artist);
   }
   
   if(this->cddb.disc_category) {
@@ -2430,7 +2430,7 @@ static int cdda_plugin_open (input_plugin_t *this_gen ) {
 	  printf("Disc Category: %s\n", this->cddb.disc_category);
 #endif
 
-    xine_set_meta_info(this->stream, XINE_META_INFO_GENRE, this->cddb.disc_category);
+    _x_meta_info_set(this->stream, XINE_META_INFO_GENRE, this->cddb.disc_category);
   }
 
   if(this->cddb.disc_year) {
@@ -2438,7 +2438,7 @@ static int cdda_plugin_open (input_plugin_t *this_gen ) {
 	  printf("Disc Year: %s\n", this->cddb.disc_year);
 #endif
 
-    xine_set_meta_info(this->stream, XINE_META_INFO_YEAR, this->cddb.disc_year);
+    _x_meta_info_set(this->stream, XINE_META_INFO_YEAR, this->cddb.disc_year);
   }
 
   free_cdrom_toc(toc);

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.29 2003/11/15 20:38:30 mroi Exp $
+ * $Id: xine_decoder.c,v 1.30 2003/11/16 23:33:47 f1rmb Exp $
  *
  * (ogg/)vorbis audio decoder plugin (libvorbis wrapper) for xine
  */
@@ -121,7 +121,7 @@ static void get_metadata (vorbis_decoder_t *this) {
 		i, vorbis_comment_keys[i].xine_metainfo_index);
 #endif
 
-        xine_set_meta_info(this->stream, vorbis_comment_keys[i].xine_metainfo_index,
+        _x_meta_info_set(this->stream, vorbis_comment_keys[i].xine_metainfo_index,
 	  comment + strlen(vorbis_comment_keys[i].key));
 
       }
@@ -129,7 +129,7 @@ static void get_metadata (vorbis_decoder_t *this) {
     ++ptr;
   }
 
-  xine_set_meta_info(this->stream, XINE_META_INFO_AUDIOCODEC, "vorbis");
+  _x_meta_info_set(this->stream, XINE_META_INFO_AUDIOCODEC, "vorbis");
 }
 
 static void vorbis_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
@@ -194,7 +194,7 @@ static void vorbis_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 						    this->vi.rate,
 						    mode) ;
 
-	  xine_set_stream_info(this->stream, XINE_STREAM_INFO_AUDIO_BITRATE, 
+	  _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_BITRATE, 
 	    this->vi.bitrate_nominal);
 
 	}

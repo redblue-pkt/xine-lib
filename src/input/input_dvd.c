@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.172 2003/11/15 13:01:07 miguelfreitas Exp $
+ * $Id: input_dvd.c,v 1.173 2003/11/16 23:33:44 f1rmb Exp $
  *
  */
 
@@ -861,7 +861,7 @@ static void xine_dvd_send_button_update(dvd_input_plugin_t *this, int mode) {
   int32_t button;
   int32_t show;
 
-  if (!this || !this->stream || xine_get_stream_info(this->stream,XINE_STREAM_INFO_IGNORE_SPU))
+  if (!this || !this->stream || _x_stream_info_get(this->stream,XINE_STREAM_INFO_IGNORE_SPU))
     return;
   
   if (!this->stream->spu_decoder_plugin ||
@@ -1527,7 +1527,7 @@ static input_plugin_t *dvd_class_get_instance (input_class_t *class_gen, xine_st
   this->input_plugin.input_class        = class_gen;
 
   this->stream = stream;
-  xine_set_stream_info(this->stream, XINE_STREAM_INFO_VIDEO_HAS_STILL, 1);
+  _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_HAS_STILL, 1);
 
   this->dvdnav                 = NULL;
   this->opened                 = 0;
@@ -1727,6 +1727,13 @@ static void *init_class (xine_t *xine, void *data) {
 
 /*
  * $Log: input_dvd.c,v $
+ * Revision 1.173  2003/11/16 23:33:44  f1rmb
+ * New stream/meta info (safe) stuff.
+ * BIG NOTE: use helpers to access to these informations (get/set/reset):
+ *     _x_{stream,meta}_info_{get,set,reset}()
+ *   are for internal use, don't use *_public() ones from inside the beast ;-)
+ * Some wrongly names "xine_" fonction renaming.
+ *
  * Revision 1.172  2003/11/15 13:01:07  miguelfreitas
  * more helper functions cleanup (stream info, meta info)
  *

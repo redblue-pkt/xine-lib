@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpgaudio.c,v 1.124 2003/11/15 14:00:52 miguelfreitas Exp $
+ * $Id: demux_mpgaudio.c,v 1.125 2003/11/16 23:33:43 f1rmb Exp $
  *
  * demultiplexer for mpeg audio (i.e. mp3) streams
  *
@@ -528,10 +528,10 @@ static void read_id3_tags (demux_mpgaudio_t *this) {
     if ( (tag.tag[0]=='T') && (tag.tag[1]=='A') && (tag.tag[2]=='G') ) {
 
       lprintf("id3v1 tag found\n");
-      xine_set_metan_info(this->stream, XINE_META_INFO_TITLE, tag.title, 30);
-      xine_set_metan_info(this->stream, XINE_META_INFO_ARTIST, tag.artist, 30);
-      xine_set_metan_info(this->stream, XINE_META_INFO_ALBUM, tag.album, 30);
-      xine_set_metan_info(this->stream, XINE_META_INFO_COMMENT, tag.comment, 30);
+      _x_meta_info_n_set(this->stream, XINE_META_INFO_TITLE, tag.title, 30);
+      _x_meta_info_n_set(this->stream, XINE_META_INFO_ARTIST, tag.artist, 30);
+      _x_meta_info_n_set(this->stream, XINE_META_INFO_ALBUM, tag.album, 30);
+      _x_meta_info_n_set(this->stream, XINE_META_INFO_COMMENT, tag.comment, 30);
     }
   }
 }
@@ -592,27 +592,27 @@ static int id3v22_interp_frame(demux_mpgaudio_t *this,
 
     switch (frame_header->id) {
       case (FOURCC_TAG(0, 'T', 'T', '1')):
-        xine_set_meta_info(this->stream, XINE_META_INFO_GENRE, buf + 1);
+        _x_meta_info_set(this->stream, XINE_META_INFO_GENRE, buf + 1);
         break;
 
       case (FOURCC_TAG(0, 'T', 'T', '2')):
-        xine_set_meta_info(this->stream, XINE_META_INFO_TITLE, buf + 1);
+        _x_meta_info_set(this->stream, XINE_META_INFO_TITLE, buf + 1);
         break;
 
       case (FOURCC_TAG(0, 'T', 'P', '1')):
-        xine_set_meta_info(this->stream, XINE_META_INFO_ARTIST, buf + 1);
+        _x_meta_info_set(this->stream, XINE_META_INFO_ARTIST, buf + 1);
         break;
 
       case (FOURCC_TAG(0, 'T', 'A', 'L')):
-        xine_set_meta_info(this->stream, XINE_META_INFO_ALBUM, buf + 1);
+        _x_meta_info_set(this->stream, XINE_META_INFO_ALBUM, buf + 1);
         break;
 
       case (FOURCC_TAG(0, 'T', 'Y', 'E')):
-        xine_set_meta_info(this->stream, XINE_META_INFO_YEAR, buf + 1);
+        _x_meta_info_set(this->stream, XINE_META_INFO_YEAR, buf + 1);
         break;
 
       case (FOURCC_TAG(0, 'C', 'O', 'M')):
-        xine_set_meta_info(this->stream, XINE_META_INFO_COMMENT, buf + 1 + 3);
+        _x_meta_info_set(this->stream, XINE_META_INFO_COMMENT, buf + 1 + 3);
         break;
 
       default:
@@ -805,8 +805,8 @@ static void demux_mpgaudio_send_headers (demux_plugin_t *this_gen) {
   this->status        = DEMUX_OK;
   this->check_xing    = 1;
 
-  xine_set_stream_info(this->stream, XINE_STREAM_INFO_HAS_VIDEO, 0);
-  xine_set_stream_info(this->stream, XINE_STREAM_INFO_HAS_AUDIO, 1);
+  _x_stream_info_set(this->stream, XINE_STREAM_INFO_HAS_VIDEO, 0);
+  _x_stream_info_set(this->stream, XINE_STREAM_INFO_HAS_AUDIO, 1);
 
   /* read id3 info only from inputs with seeking and without "live" flag */
   if ((this->input->get_capabilities(this->input) & (INPUT_CAP_SEEKABLE | INPUT_CAP_SLOW_SEEK)) == INPUT_CAP_SEEKABLE) {
@@ -835,16 +835,16 @@ static void demux_mpgaudio_send_headers (demux_plugin_t *this_gen) {
   }
 
   if (this->is_vbr)
-    xine_set_stream_info(this->stream, XINE_STREAM_INFO_BITRATE, this->abr);
+    _x_stream_info_set(this->stream, XINE_STREAM_INFO_BITRATE, this->abr);
   else
-    xine_set_stream_info(this->stream, XINE_STREAM_INFO_BITRATE, this->br);
+    _x_stream_info_set(this->stream, XINE_STREAM_INFO_BITRATE, this->br);
 
   if (this->cur_frame.samplerate) {
     if (this->cur_frame.layer == 1)
-      xine_set_stream_info(this->stream, XINE_STREAM_INFO_FRAME_DURATION,
+      _x_stream_info_set(this->stream, XINE_STREAM_INFO_FRAME_DURATION,
         384000 / this->cur_frame.samplerate);
     else
-      xine_set_stream_info(this->stream, XINE_STREAM_INFO_FRAME_DURATION,
+      _x_stream_info_set(this->stream, XINE_STREAM_INFO_FRAME_DURATION,
         1152000 / this->cur_frame.samplerate);
   }
   this->status = DEMUX_OK;

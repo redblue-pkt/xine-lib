@@ -24,7 +24,7 @@
  * For more information on the MVE file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_wc3movie.c,v 1.46 2003/11/15 14:01:05 miguelfreitas Exp $
+ * $Id: demux_wc3movie.c,v 1.47 2003/11/16 23:33:44 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -290,19 +290,19 @@ static void demux_mve_send_headers(demux_plugin_t *this_gen) {
   this->status = DEMUX_OK;
 
   /* load stream information */
-  xine_set_stream_info(this->stream, XINE_STREAM_INFO_HAS_VIDEO, 1);
+  _x_stream_info_set(this->stream, XINE_STREAM_INFO_HAS_VIDEO, 1);
   /* this is not strictly correct-- some WC3 MVE files do not contain 
    * audio, but I'm too lazy to check if that is the case */
-  xine_set_stream_info(this->stream, XINE_STREAM_INFO_HAS_AUDIO, 1);
-  xine_set_stream_info(this->stream, XINE_STREAM_INFO_VIDEO_WIDTH,
+  _x_stream_info_set(this->stream, XINE_STREAM_INFO_HAS_AUDIO, 1);
+  _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_WIDTH,
                        this->bih.biWidth);
-  xine_set_stream_info(this->stream, XINE_STREAM_INFO_VIDEO_HEIGHT,
+  _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_HEIGHT,
                        this->bih.biHeight);
-  xine_set_stream_info(this->stream, XINE_STREAM_INFO_AUDIO_CHANNELS,
+  _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_CHANNELS,
                        this->wave.nChannels);
-  xine_set_stream_info(this->stream, XINE_STREAM_INFO_AUDIO_SAMPLERATE,
+  _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_SAMPLERATE,
                        this->wave.nSamplesPerSec);
-  xine_set_stream_info(this->stream, XINE_STREAM_INFO_AUDIO_BITS,
+  _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_BITS,
                        this->wave.wBitsPerSample);
 
   /* send start buffers */
@@ -503,7 +503,7 @@ static int open_mve_file(demux_mve_t *this) {
   this->data_size  = this->input->get_length(this->input) - this->data_start;
   this->video_pts  = 0;
 
-  xine_set_meta_info(this->stream, XINE_META_INFO_TITLE, title);
+  _x_meta_info_set(this->stream, XINE_META_INFO_TITLE, title);
 
   return 1;
 }

@@ -37,7 +37,47 @@
  *   value         the value to assign
  *
  */
-void xine_set_stream_info(xine_stream_t *stream, int info, int value);
+void _x_stream_info_set(xine_stream_t *stream, int info, int value);
+
+/*
+ * reset a stream info (internal ones only)
+ *
+ * params :
+ *  *stream        the xine stream
+ *   info          meta info id (see xine.h, XINE_STREAM_INFO_*)
+ *
+ */
+void _x_stream_info_reset(xine_stream_t *stream, int info);
+
+/*
+ * reset a stream info (public ones only)
+ *
+ * params :
+ *  *stream        the xine stream
+ *   info          meta info id (see xine.h, XINE_STREAM_INFO_*)
+ *
+ */
+void _x_stream_info_public_reset(xine_stream_t *stream, int info);
+
+/*
+ * retrieve stream info (internal ones only)
+ *
+ * params :
+ *  *stream        the xine stream
+ *   info          meta info id (see xine.h, XINE_STREAM_INFO_*)
+ *
+ */
+uint32_t _x_stream_info_get(xine_stream_t *stream, int info);
+
+/*
+ * retrieve stream info (public ones only)
+ *
+ * params :
+ *  *stream        the xine stream
+ *   info          meta info id (see xine.h, XINE_STREAM_INFO_*)
+ *
+ */
+uint32_t _x_stream_info_get_public(xine_stream_t *stream, int info);
 
 /*
  * set a stream meta info
@@ -48,7 +88,7 @@ void xine_set_stream_info(xine_stream_t *stream, int info, int value);
  *  *str           null-terminated string
  *
  */
-void xine_set_meta_info(xine_stream_t *stream, int info, const char *str);
+void _x_meta_info_set(xine_stream_t *stream, int info, const char *str);
 
 /*
  * set a stream meta info
@@ -60,16 +100,46 @@ void xine_set_meta_info(xine_stream_t *stream, int info, const char *str);
  *   len           length of the metainfo
  *
  */
-void xine_set_metan_info(xine_stream_t *stream, int info, const char *buf, int len);
+void _x_meta_info_n_set(xine_stream_t *stream, int info, const char *buf, int len);
 
 /*
- * clear a stream meta info
+ * reset a stream meta info (internal ones only)
  *
  * params :
  *  *stream        the xine stream
  *   info          meta info id (see xine.h, XINE_META_INFO_*)
  *
  */
-void xine_clear_meta_info(xine_stream_t *stream, int info);
+void _x_meta_info_reset(xine_stream_t *stream, int info);
+
+/*
+ * reset a stream meta info (public ones only)
+ *
+ * params :
+ *  *stream        the xine stream
+ *   info          meta info id (see xine.h, XINE_META_INFO_*)
+ *
+ */
+void _x_meta_info_public_reset(xine_stream_t *stream, int info);
+
+/*
+ * retrieve stream meta info (internal ones only)
+ *
+ * params :
+ *  *stream        the xine stream
+ *   info          meta info id (see xine.h, XINE_META_INFO_*)
+ *
+ */
+const char *_x_meta_info_get(xine_stream_t *stream, int info);
+
+/*
+ * retrieve stream meta info (public ones only)
+ *
+ * params :
+ *  *stream        the xine stream
+ *   info          meta info id (see xine.h, XINE_META_INFO_*)
+ *
+ */
+const char *_x_meta_info_get_public(xine_stream_t *stream, int info);
 
 #endif /* INFO_HELPER_H */

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_pes.c,v 1.16 2003/11/16 15:31:51 mroi Exp $
+ * $Id: demux_mpeg_pes.c,v 1.17 2003/11/16 23:33:43 f1rmb Exp $
  *
  * demultiplexer for mpeg 2 PES (Packetized Elementary Streams)
  * reads streams of variable blocksizes
@@ -1233,9 +1233,9 @@ static void demux_mpeg_pes_send_headers (demux_plugin_t *this_gen) {
 
   this->status = DEMUX_OK;
 
-  xine_set_stream_info(this->stream, XINE_STREAM_INFO_HAS_VIDEO, 1);
-  xine_set_stream_info(this->stream, XINE_STREAM_INFO_HAS_AUDIO, 1);
-  xine_set_stream_info(this->stream, XINE_STREAM_INFO_BITRATE, this->rate * 50 * 8);
+  _x_stream_info_set(this->stream, XINE_STREAM_INFO_HAS_VIDEO, 1);
+  _x_stream_info_set(this->stream, XINE_STREAM_INFO_HAS_AUDIO, 1);
+  _x_stream_info_set(this->stream, XINE_STREAM_INFO_BITRATE, this->rate * 50 * 8);
 }
 
 

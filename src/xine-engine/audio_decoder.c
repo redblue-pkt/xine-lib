@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.110 2003/11/16 15:41:15 mroi Exp $
+ * $Id: audio_decoder.c,v 1.111 2003/11/16 23:33:48 f1rmb Exp $
  *
  *
  * functions that implement audio decoding
@@ -200,7 +200,7 @@ static void *audio_decoder_loop (void *stream_gen) {
 
     default:
 
-      if (stream->stream_info[XINE_STREAM_INFO_IGNORE_AUDIO])
+      if (_x_stream_info_get(stream, XINE_STREAM_INFO_IGNORE_AUDIO))
         break;
 
       xine_profiler_start_count (prof_audio_decode);
@@ -294,8 +294,8 @@ static void *audio_decoder_loop (void *stream_gen) {
               stream->audio_decoder_streamtype = streamtype;
               stream->audio_decoder_plugin = _x_get_audio_decoder (stream, streamtype);
               
-              stream->stream_info[XINE_STREAM_INFO_AUDIO_HANDLED] = 
-                (stream->audio_decoder_plugin != NULL);
+              _x_stream_info_set(stream, XINE_STREAM_INFO_AUDIO_HANDLED,
+				 (stream->audio_decoder_plugin != NULL));
             }
 	    
 	    if (audio_type != stream->audio_type) {
@@ -317,7 +317,7 @@ static void *audio_decoder_loop (void *stream_gen) {
 	      stream->audio_decoder_plugin->decode_data (stream->audio_decoder_plugin, buf);
        
 	    if (buf->type != buftype_unknown && 
-	        !stream->stream_info[XINE_STREAM_INFO_AUDIO_HANDLED]) {
+	        !_x_stream_info_get(stream, XINE_STREAM_INFO_AUDIO_HANDLED)) {
 	      xine_log (stream->xine, XINE_LOG_MSG, 
 			"audio_decoder: no plugin available to handle '%s'\n",
 		        _x_buf_audio_name( buf->type ) );

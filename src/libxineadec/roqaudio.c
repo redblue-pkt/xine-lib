@@ -21,7 +21,7 @@
  * For more information regarding the RoQ file format, visit:
  *   http://www.csse.monash.edu.au/~timf/
  *
- * $Id: roqaudio.c,v 1.16 2003/11/15 13:01:22 miguelfreitas Exp $
+ * $Id: roqaudio.c,v 1.17 2003/11/16 23:33:47 f1rmb Exp $
  *
  */
 
@@ -83,7 +83,7 @@ static void roqaudio_decode_data (audio_decoder_t *this_gen, buf_element_t *buf)
     this->size = 0;
 
     /* stream/meta info */
-    xine_set_meta_info(this->stream, XINE_META_INFO_AUDIOCODEC,
+    _x_meta_info_set(this->stream, XINE_META_INFO_AUDIOCODEC,
       "RoQ DPCM Audio");
 
     return;

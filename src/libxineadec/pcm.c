@@ -74,7 +74,7 @@ static void pcm_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {\
 	 buf->decoder_flags, buf->decoder_info[1], buf->decoder_info[0]);
 #endif
 
-   if (xine_get_stream_info(this->stream, XINE_STREAM_INFO_AUDIO_MODE) == 0) {
+   if (_x_stream_info_get(this->stream, XINE_STREAM_INFO_AUDIO_MODE) == 0) {
 #ifdef LOG
       printf(__FILE__ ": Someone changed the audio mode. Closing device\r");
 #endif

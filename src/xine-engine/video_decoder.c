@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.138 2003/11/16 15:41:15 mroi Exp $
+ * $Id: video_decoder.c,v 1.139 2003/11/16 23:33:48 f1rmb Exp $
  *
  */
 
@@ -277,7 +277,7 @@ static void *video_decoder_loop (void *stream_gen) {
 
       if ( (buf->type & 0xFF000000) == BUF_VIDEO_BASE ) {
 
-        if (stream->stream_info[XINE_STREAM_INFO_IGNORE_VIDEO])
+        if (_x_stream_info_get(stream, XINE_STREAM_INFO_IGNORE_VIDEO))
           break;
 
         xine_profiler_start_count (prof_video_decode);
@@ -300,22 +300,20 @@ static void *video_decoder_loop (void *stream_gen) {
           stream->video_decoder_streamtype = streamtype;
           stream->video_decoder_plugin = _x_get_video_decoder (stream, streamtype);
     
-          stream->stream_info[XINE_STREAM_INFO_VIDEO_HANDLED] = 
-            (stream->video_decoder_plugin != NULL);
+          _x_stream_info_set(stream, XINE_STREAM_INFO_VIDEO_HANDLED, (stream->video_decoder_plugin != NULL));
         }
 
         if (stream->video_decoder_plugin)
           stream->video_decoder_plugin->decode_data (stream->video_decoder_plugin, buf);  
  
         if (buf->type != buftype_unknown &&  
-            !stream->stream_info[XINE_STREAM_INFO_VIDEO_HANDLED]) {
+            !_x_stream_info_get(stream, XINE_STREAM_INFO_VIDEO_HANDLED)) {
           xine_log (stream->xine, XINE_LOG_MSG, 
                     "video_decoder: no plugin available to handle '%s'\n",
                     _x_buf_video_name( buf->type ) );
           
-          if( !stream->meta_info[XINE_META_INFO_VIDEOCODEC] )
-            stream->meta_info[XINE_META_INFO_VIDEOCODEC] 
-              = strdup (_x_buf_video_name( buf->type ));
+          if( !_x_meta_info_get(stream, XINE_META_INFO_VIDEOCODEC))
+	    _x_meta_info_set(stream, XINE_META_INFO_VIDEOCODEC, _x_buf_video_name( buf->type ));
           
           buftype_unknown = buf->type;
           
@@ -332,7 +330,7 @@ static void *video_decoder_loop (void *stream_gen) {
 
         int      i,j;
 
-        if (stream->stream_info[XINE_STREAM_INFO_IGNORE_SPU])
+        if (_x_stream_info_get(stream, XINE_STREAM_INFO_IGNORE_SPU))
           break;
 
         xine_profiler_start_count (prof_spu_decode);

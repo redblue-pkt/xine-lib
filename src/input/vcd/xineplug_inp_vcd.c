@@ -1,5 +1,5 @@
 /*
-  $Id: xineplug_inp_vcd.c,v 1.8 2003/11/15 13:01:10 miguelfreitas Exp $
+  $Id: xineplug_inp_vcd.c,v 1.9 2003/11/16 23:33:44 f1rmb Exp $
  
   Copyright (C) 2002,2003 Rocky Bernstein <rocky@panix.com>
   
@@ -181,12 +181,12 @@ meta_info_assign(int field, xine_stream_t *stream, const char * info)
 {
   if (NULL != info) {
     dbg_print(INPUT_DBG_META, "meta[%d]: %s\n", field, info);
-    xine_set_meta_info(stream, field, info);
+    _x_meta_info_set(stream, field, info);
   }
 }
 
 #define stream_info_assign(field, stream, info) \
-  xine_set_stream_info(stream, field, info);
+  _x_stream_info_set(stream, field, info);
 
 /* Set stream information. */
 static void

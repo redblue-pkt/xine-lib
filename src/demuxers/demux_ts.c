@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ts.c,v 1.95 2003/11/16 15:31:51 mroi Exp $
+ * $Id: demux_ts.c,v 1.96 2003/11/16 23:33:43 f1rmb Exp $
  *
  * Demultiplexer for MPEG2 Transport Streams.
  *
@@ -1774,8 +1774,8 @@ static void demux_ts_send_headers (demux_plugin_t *this_gen) {
   this->current_spu_channel = this->stream->spu_channel;
   
   /* FIXME ? */
-  xine_set_stream_info(this->stream, XINE_STREAM_INFO_HAS_VIDEO, 1);
-  xine_set_stream_info(this->stream, XINE_STREAM_INFO_HAS_AUDIO, 1);
+  _x_stream_info_set(this->stream, XINE_STREAM_INFO_HAS_VIDEO, 1);
+  _x_stream_info_set(this->stream, XINE_STREAM_INFO_HAS_AUDIO, 1);
 }
 
 static int demux_ts_seek (demux_plugin_t *this_gen,

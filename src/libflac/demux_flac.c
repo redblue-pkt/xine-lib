@@ -362,11 +362,11 @@ demux_flac_send_headers (demux_plugin_t *this_gen) {
 
     this->status = DEMUX_OK;
 
-    xine_set_stream_info(this->stream, XINE_STREAM_INFO_HAS_VIDEO, 0);
-    xine_set_stream_info(this->stream, XINE_STREAM_INFO_HAS_AUDIO, 1);
-    xine_set_stream_info(this->stream, XINE_STREAM_INFO_AUDIO_CHANNELS, this->channels);
-    xine_set_stream_info(this->stream, XINE_STREAM_INFO_AUDIO_SAMPLERATE, this->sample_rate);
-    xine_set_stream_info(this->stream, XINE_STREAM_INFO_AUDIO_BITS, this->bits_per_sample);
+    _x_stream_info_set(this->stream, XINE_STREAM_INFO_HAS_VIDEO, 0);
+    _x_stream_info_set(this->stream, XINE_STREAM_INFO_HAS_AUDIO, 1);
+    _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_CHANNELS, this->channels);
+    _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_SAMPLERATE, this->sample_rate);
+    _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_BITS, this->bits_per_sample);
 
     _x_demux_control_start (this->stream);
 

@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_mpeg.c,v 1.128 2003/11/15 14:00:48 miguelfreitas Exp $
+ * $Id: demux_mpeg.c,v 1.129 2003/11/16 23:33:43 f1rmb Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  * reads streams of variable blocksizes
@@ -890,8 +890,8 @@ static void demux_mpeg_send_headers (demux_plugin_t *this_gen) {
    * send preview buffers for stream/meta_info
    */
   
-  xine_set_stream_info(this->stream, XINE_STREAM_INFO_HAS_VIDEO, 1);
-  xine_set_stream_info(this->stream, XINE_STREAM_INFO_HAS_AUDIO, 1);
+  _x_stream_info_set(this->stream, XINE_STREAM_INFO_HAS_VIDEO, 1);
+  _x_stream_info_set(this->stream, XINE_STREAM_INFO_HAS_AUDIO, 1);
 
   this->preview_mode = 1;
     
@@ -912,7 +912,7 @@ static void demux_mpeg_send_headers (demux_plugin_t *this_gen) {
     
   this->status = DEMUX_OK ;
 
-  xine_set_stream_info(this->stream, XINE_STREAM_INFO_BITRATE, this->rate * 50 * 8);
+  _x_stream_info_set(this->stream, XINE_STREAM_INFO_BITRATE, this->rate * 50 * 8);
 }
 
 static int demux_mpeg_seek (demux_plugin_t *this_gen,

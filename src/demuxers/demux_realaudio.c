@@ -22,7 +22,7 @@
  * RealAudio File Demuxer by Mike Melanson (melanson@pcisys.net)
  *     improved by James Stembridge (jstembridge@users.sourceforge.net)
  *
- * $Id: demux_realaudio.c,v 1.26 2003/11/15 14:01:02 miguelfreitas Exp $
+ * $Id: demux_realaudio.c,v 1.27 2003/11/16 23:33:43 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -159,7 +159,7 @@ static int open_ra_file(demux_ra_t *this) {
   /* Read title */
   len = audio_header[offset];
   if(len && ((offset+len+2) < hdr_size)) {
-    xine_set_metan_info(this->stream, XINE_META_INFO_TITLE,
+    _x_meta_info_n_set(this->stream, XINE_META_INFO_TITLE,
                         &audio_header[offset+1], len);
     offset += len+1;
   } else
@@ -168,7 +168,7 @@ static int open_ra_file(demux_ra_t *this) {
   /* Author */
   len = audio_header[offset];
   if(len && ((offset+len+1) < hdr_size)) {
-    xine_set_metan_info(this->stream, XINE_META_INFO_ARTIST,
+    _x_meta_info_n_set(this->stream, XINE_META_INFO_ARTIST,
                         &audio_header[offset+1], len);
     offset += len+1;
   } else
@@ -177,7 +177,7 @@ static int open_ra_file(demux_ra_t *this) {
   /* Copyright/Date */
   len = audio_header[offset];
   if(len && ((offset+len) <= hdr_size)) {
-    xine_set_metan_info(this->stream, XINE_META_INFO_YEAR,
+    _x_meta_info_n_set(this->stream, XINE_META_INFO_YEAR,
                         &audio_header[offset+1], len);
     offset += len+1;
   } else
@@ -194,7 +194,7 @@ static int open_ra_file(demux_ra_t *this) {
     }
   }
   
-  xine_set_stream_info(this->stream, XINE_STREAM_INFO_AUDIO_FOURCC, audio_fourcc);
+  _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_FOURCC, audio_fourcc);
   this->audio_type = _x_formattag_to_buf_audio(audio_fourcc);
 
   /* seek to start of data */
@@ -275,13 +275,13 @@ static void demux_ra_send_headers(demux_plugin_t *this_gen) {
   this->status = DEMUX_OK;
 
   /* load stream information */
-  xine_set_stream_info(this->stream, XINE_STREAM_INFO_HAS_VIDEO, 0);
-  xine_set_stream_info(this->stream, XINE_STREAM_INFO_HAS_AUDIO, 1);
-  xine_set_stream_info(this->stream, XINE_STREAM_INFO_AUDIO_CHANNELS,
+  _x_stream_info_set(this->stream, XINE_STREAM_INFO_HAS_VIDEO, 0);
+  _x_stream_info_set(this->stream, XINE_STREAM_INFO_HAS_AUDIO, 1);
+  _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_CHANNELS,
                        this->wave.nChannels);
-  xine_set_stream_info(this->stream, XINE_STREAM_INFO_AUDIO_SAMPLERATE,
+  _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_SAMPLERATE,
                        this->wave.nSamplesPerSec);
-  xine_set_stream_info(this->stream, XINE_STREAM_INFO_AUDIO_BITS,
+  _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_BITS,
                        this->wave.wBitsPerSample);
 
   /* send start buffers */

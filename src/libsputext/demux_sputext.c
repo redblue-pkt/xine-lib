@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_sputext.c,v 1.28 2003/11/15 14:54:31 miguelfreitas Exp $
+ * $Id: demux_sputext.c,v 1.29 2003/11/16 23:33:47 f1rmb Exp $
  *
  * code based on old libsputext/xine_decoder.c
  *
@@ -893,8 +893,8 @@ static void demux_sputext_send_headers(demux_plugin_t *this_gen) {
   lprintf("demux_sputext: send_headers() called\n");
   
   _x_demux_control_start(this->stream);
-  xine_set_stream_info(this->stream, XINE_STREAM_INFO_HAS_VIDEO, 0);
-  xine_set_stream_info(this->stream, XINE_STREAM_INFO_HAS_AUDIO, 0);
+  _x_stream_info_set(this->stream, XINE_STREAM_INFO_HAS_VIDEO, 0);
+  _x_stream_info_set(this->stream, XINE_STREAM_INFO_HAS_AUDIO, 0);
 
   /* enable the SPU channel */
   buf = this->stream->video_fifo->buffer_pool_alloc(this->stream->video_fifo);

@@ -30,7 +30,7 @@
  *   
  *   Based on FFmpeg's libav/rm.c.
  *
- * $Id: demux_real.c,v 1.71 2003/11/15 14:01:01 miguelfreitas Exp $
+ * $Id: demux_real.c,v 1.72 2003/11/16 23:33:43 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -389,7 +389,7 @@ static void real_parse_headers (demux_real_t *this) {
 	if (this->avg_bitrate<1)
 	  this->avg_bitrate = 1;
 
-	xine_set_stream_info(this->stream, XINE_STREAM_INFO_BITRATE,
+	_x_stream_info_set(this->stream, XINE_STREAM_INFO_BITRATE,
                              this->avg_bitrate);
 
       } else if (chunk_type == MDPR_TAG) {
@@ -469,28 +469,28 @@ unknown:
         /* load the title string */
         field_size = BE_16(&chunk_buffer[stream_ptr]);
         stream_ptr += 2;
-        xine_set_metan_info(this->stream, XINE_META_INFO_TITLE,
+        _x_meta_info_n_set(this->stream, XINE_META_INFO_TITLE,
                             &chunk_buffer[stream_ptr], field_size);
         stream_ptr += field_size;
 
         /* load the author string */
         field_size = BE_16(&chunk_buffer[stream_ptr]);
         stream_ptr += 2;
-        xine_set_metan_info(this->stream, XINE_META_INFO_ARTIST,
+        _x_meta_info_n_set(this->stream, XINE_META_INFO_ARTIST,
                             &chunk_buffer[stream_ptr], field_size);
         stream_ptr += field_size;
 
         /* load the copyright string as the year */
         field_size = BE_16(&chunk_buffer[stream_ptr]);
         stream_ptr += 2;
-        xine_set_metan_info(this->stream, XINE_META_INFO_YEAR,
+        _x_meta_info_n_set(this->stream, XINE_META_INFO_YEAR,
                             &chunk_buffer[stream_ptr], field_size);
         stream_ptr += field_size;
 
         /* load the comment string */
         field_size = BE_16(&chunk_buffer[stream_ptr]);
         stream_ptr += 2;
-        xine_set_metan_info(this->stream, XINE_META_INFO_COMMENT,
+        _x_meta_info_n_set(this->stream, XINE_META_INFO_COMMENT,
                             &chunk_buffer[stream_ptr], field_size);
         stream_ptr += field_size;
       }
@@ -652,10 +652,10 @@ unknown:
     this->video_fifo->put (this->video_fifo, buf);
 
     /* Set meta info */
-    xine_set_stream_info(this->stream, XINE_STREAM_INFO_HAS_VIDEO, 1);
-    xine_set_stream_info(this->stream, XINE_STREAM_INFO_VIDEO_FOURCC,
+    _x_stream_info_set(this->stream, XINE_STREAM_INFO_HAS_VIDEO, 1);
+    _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_FOURCC,
                          this->video_stream->fourcc);
-    xine_set_stream_info(this->stream, XINE_STREAM_INFO_VIDEO_BITRATE,
+    _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_BITRATE,
                          this->video_stream->mdpr->avg_bit_rate);
   }
 
@@ -682,10 +682,10 @@ unknown:
     }
 
     /* Set meta info */
-    xine_set_stream_info(this->stream, XINE_STREAM_INFO_HAS_AUDIO, 1);
-    xine_set_stream_info(this->stream, XINE_STREAM_INFO_AUDIO_FOURCC,
+    _x_stream_info_set(this->stream, XINE_STREAM_INFO_HAS_AUDIO, 1);
+    _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_FOURCC,
                          this->audio_stream->fourcc);
-    xine_set_stream_info(this->stream, XINE_STREAM_INFO_AUDIO_BITRATE,
+    _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_BITRATE,
                          this->audio_stream->mdpr->avg_bit_rate);
   }
 }
@@ -1145,8 +1145,8 @@ static void demux_real_send_headers(demux_plugin_t *this_gen) {
 
   this->input->seek (this->input, 0, SEEK_SET);
 
-  xine_set_stream_info(this->stream, XINE_STREAM_INFO_HAS_VIDEO, 0);
-  xine_set_stream_info(this->stream, XINE_STREAM_INFO_HAS_AUDIO, 0);
+  _x_stream_info_set(this->stream, XINE_STREAM_INFO_HAS_VIDEO, 0);
+  _x_stream_info_set(this->stream, XINE_STREAM_INFO_HAS_AUDIO, 0);
 
   if( !this->reference_mode ) {
     real_parse_headers (this);

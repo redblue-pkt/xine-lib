@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.172 2003/11/15 14:00:56 miguelfreitas Exp $
+ * $Id: demux_qt.c,v 1.173 2003/11/16 23:33:43 f1rmb Exp $
  *
  */
 
@@ -2162,7 +2162,7 @@ static int demux_qt_send_chunk(demux_plugin_t *this_gen) {
       video_trak->properties->video.edit_list_compensation = 0;
     }
 
-    xine_set_stream_info(this->stream, XINE_STREAM_INFO_FRAME_DURATION,
+    _x_stream_info_set(this->stream, XINE_STREAM_INFO_FRAME_DURATION,
                          frame_duration);
 
     debug_video_demux("  qt: sending off video frame %d from offset 0x%llX, %d bytes, media id %d, %lld pts\n",
@@ -2351,22 +2351,22 @@ static void demux_qt_send_headers(demux_plugin_t *this_gen) {
          video_trak->properties->video.codec_fourcc )
       video_trak->properties->video.codec_buftype = BUF_VIDEO_UNKNOWN;
 
-    xine_set_stream_info(this->stream, XINE_STREAM_INFO_HAS_VIDEO, 1);
-    xine_set_stream_info(this->stream, XINE_STREAM_INFO_VIDEO_WIDTH, 
+    _x_stream_info_set(this->stream, XINE_STREAM_INFO_HAS_VIDEO, 1);
+    _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_WIDTH, 
                          this->bih.biWidth);
-    xine_set_stream_info(this->stream, XINE_STREAM_INFO_VIDEO_HEIGHT,
+    _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_HEIGHT,
                          this->bih.biHeight);
-    xine_set_stream_info(this->stream, XINE_STREAM_INFO_VIDEO_FOURCC,
+    _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_FOURCC,
                          video_trak->properties->video.codec_fourcc);
 
   } else {
 
     memset(&this->bih, 0, sizeof(this->bih));
     this->bih.biSize = sizeof(this->bih);
-    xine_set_stream_info(this->stream, XINE_STREAM_INFO_HAS_VIDEO, 0);
-    xine_set_stream_info(this->stream, XINE_STREAM_INFO_VIDEO_WIDTH, 0);
-    xine_set_stream_info(this->stream, XINE_STREAM_INFO_VIDEO_HEIGHT, 0);
-    xine_set_stream_info(this->stream, XINE_STREAM_INFO_VIDEO_FOURCC, 0);
+    _x_stream_info_set(this->stream, XINE_STREAM_INFO_HAS_VIDEO, 0);
+    _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_WIDTH, 0);
+    _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_HEIGHT, 0);
+    _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_FOURCC, 0);
 
   }
 
@@ -2379,35 +2379,35 @@ static void demux_qt_send_headers(demux_plugin_t *this_gen) {
          audio_trak->properties->audio.codec_fourcc )
       audio_trak->properties->audio.codec_buftype = BUF_AUDIO_UNKNOWN;
 
-    xine_set_stream_info(this->stream, XINE_STREAM_INFO_HAS_AUDIO, 1);
-    xine_set_stream_info(this->stream, XINE_STREAM_INFO_AUDIO_CHANNELS,
+    _x_stream_info_set(this->stream, XINE_STREAM_INFO_HAS_AUDIO, 1);
+    _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_CHANNELS,
       audio_trak->properties->audio.channels);
-    xine_set_stream_info(this->stream, XINE_STREAM_INFO_AUDIO_SAMPLERATE,
+    _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_SAMPLERATE,
       audio_trak->properties->audio.sample_rate);
-    xine_set_stream_info(this->stream, XINE_STREAM_INFO_AUDIO_BITS,
+    _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_BITS,
       audio_trak->properties->audio.bits);
-    xine_set_stream_info(this->stream, XINE_STREAM_INFO_AUDIO_FOURCC, 
+    _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_FOURCC, 
       audio_trak->properties->audio.codec_fourcc);
 
   } else {
 
-    xine_set_stream_info(this->stream, XINE_STREAM_INFO_HAS_AUDIO, 0);
-    xine_set_stream_info(this->stream, XINE_STREAM_INFO_AUDIO_CHANNELS, 0);
-    xine_set_stream_info(this->stream, XINE_STREAM_INFO_AUDIO_SAMPLERATE, 0);
-    xine_set_stream_info(this->stream, XINE_STREAM_INFO_AUDIO_BITS, 0);
-    xine_set_stream_info(this->stream, XINE_STREAM_INFO_AUDIO_FOURCC, 0);
+    _x_stream_info_set(this->stream, XINE_STREAM_INFO_HAS_AUDIO, 0);
+    _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_CHANNELS, 0);
+    _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_SAMPLERATE, 0);
+    _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_BITS, 0);
+    _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_FOURCC, 0);
 
   }
 
   /* copy over the meta information like artist and title */
   if (this->qt->copyright)
-    xine_set_meta_info(this->stream, XINE_META_INFO_ARTIST, this->qt->copyright);
+    _x_meta_info_set(this->stream, XINE_META_INFO_ARTIST, this->qt->copyright);
   if (this->qt->name)
-    xine_set_meta_info(this->stream, XINE_META_INFO_TITLE, this->qt->name);
+    _x_meta_info_set(this->stream, XINE_META_INFO_TITLE, this->qt->name);
   else if (this->qt->description)
-    xine_set_meta_info(this->stream, XINE_META_INFO_TITLE, this->qt->description);
+    _x_meta_info_set(this->stream, XINE_META_INFO_TITLE, this->qt->description);
   if (this->qt->comment)
-    xine_set_meta_info(this->stream, XINE_META_INFO_COMMENT, this->qt->comment);
+    _x_meta_info_set(this->stream, XINE_META_INFO_COMMENT, this->qt->comment);
 
   /* send start buffers */
   _x_demux_control_start(this->stream);

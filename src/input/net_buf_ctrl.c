@@ -154,10 +154,10 @@ static void nbc_compute_fifo_length(nbc_t *this,
   int64_t video_br, audio_br;
   int has_video, has_audio;
 
-  has_video = xine_get_stream_info(this->stream, XINE_STREAM_INFO_HAS_VIDEO);
-  has_audio = xine_get_stream_info(this->stream, XINE_STREAM_INFO_HAS_AUDIO);
-  video_br  = xine_get_stream_info(this->stream, XINE_STREAM_INFO_VIDEO_BITRATE);
-  audio_br  = xine_get_stream_info(this->stream, XINE_STREAM_INFO_AUDIO_BITRATE);
+  has_video = _x_stream_info_get(this->stream, XINE_STREAM_INFO_HAS_VIDEO);
+  has_audio = _x_stream_info_get(this->stream, XINE_STREAM_INFO_HAS_AUDIO);
+  video_br  = _x_stream_info_get(this->stream, XINE_STREAM_INFO_VIDEO_BITRATE);
+  audio_br  = _x_stream_info_get(this->stream, XINE_STREAM_INFO_AUDIO_BITRATE);
 
   fifo_free = fifo->buffer_pool_num_free;
   fifo_fill = fifo->fifo_size;
@@ -277,8 +277,8 @@ static void nbc_put_cb (fifo_buffer_t *fifo,
 
     if (this->buffering) {
 
-      has_video = xine_get_stream_info(this->stream, XINE_STREAM_INFO_HAS_VIDEO);
-      has_audio = xine_get_stream_info(this->stream, XINE_STREAM_INFO_HAS_AUDIO);
+      has_video = _x_stream_info_get(this->stream, XINE_STREAM_INFO_HAS_VIDEO);
+      has_audio = _x_stream_info_get(this->stream, XINE_STREAM_INFO_HAS_AUDIO);
       /* restart playing if high_water_mark is reached by all fifos
        * do not restart if has_video and has_audio are false to avoid
        * a yoyo effect at the beginning of the stream when these values
@@ -399,8 +399,8 @@ static void nbc_get_cb (fifo_buffer_t *fifo,
       if (!this->buffering) {
         /* start buffering if one fifo is empty
          */
-        int has_video = xine_get_stream_info(this->stream, XINE_STREAM_INFO_HAS_VIDEO);
-        int has_audio = xine_get_stream_info(this->stream, XINE_STREAM_INFO_HAS_AUDIO);
+        int has_video = _x_stream_info_get(this->stream, XINE_STREAM_INFO_HAS_VIDEO);
+        int has_audio = _x_stream_info_get(this->stream, XINE_STREAM_INFO_HAS_AUDIO);
         if (fifo->fifo_size == 0 && 
             (((fifo == this->video_fifo) && has_video) ||
              ((fifo == this->audio_fifo) && has_audio))) {

@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_elem.c,v 1.78 2003/11/15 14:00:43 miguelfreitas Exp $
+ * $Id: demux_elem.c,v 1.79 2003/11/16 23:33:43 f1rmb Exp $
  *
  * demultiplexer for elementary mpeg streams
  */
@@ -132,8 +132,8 @@ static void demux_mpeg_elem_send_headers (demux_plugin_t *this_gen) {
 
   this->status = DEMUX_OK;
 
-  xine_set_stream_info(this->stream, XINE_STREAM_INFO_HAS_VIDEO, 1);
-  xine_set_stream_info(this->stream, XINE_STREAM_INFO_HAS_AUDIO, 0);
+  _x_stream_info_set(this->stream, XINE_STREAM_INFO_HAS_VIDEO, 1);
+  _x_stream_info_set(this->stream, XINE_STREAM_INFO_HAS_AUDIO, 0);
 }
 
 static int demux_mpeg_elem_seek (demux_plugin_t *this_gen,

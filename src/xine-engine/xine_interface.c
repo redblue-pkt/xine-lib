@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_interface.c,v 1.66 2003/11/16 15:41:15 mroi Exp $
+ * $Id: xine_interface.c,v 1.67 2003/11/16 23:33:49 f1rmb Exp $
  *
  * convenience/abstraction layer, functions to implement
  * libxine's public interface
@@ -166,8 +166,7 @@ int xine_config_register_bool (xine_t *self,
  * and return status
  */
 
-static int xine_config_get_current_entry (xine_t *this, 
-					  xine_cfg_entry_t *entry) {
+static int __config_get_current_entry (xine_t *this, xine_cfg_entry_t *entry) {
 
   config_values_t *config = this->config;
 
@@ -206,7 +205,7 @@ int  xine_config_get_first_entry (xine_t *this, xine_cfg_entry_t *entry) {
   /* do not hand out unclaimed entries */
   while (config->cur && config->cur->type == CONFIG_TYPE_UNKNOWN)
     config->cur = config->cur->next;
-  result = xine_config_get_current_entry (this, entry);
+  result = __config_get_current_entry (this, entry);
   pthread_mutex_unlock(&config->config_lock);
 
   return result;
@@ -232,7 +231,7 @@ int xine_config_get_next_entry (xine_t *this, xine_cfg_entry_t *entry) {
   do {
     config->cur = config->cur->next;
   } while (config->cur && config->cur->type == CONFIG_TYPE_UNKNOWN);
-  result = xine_config_get_current_entry (this, entry);
+  result = __config_get_current_entry (this, entry);
   pthread_mutex_unlock(&config->config_lock);
 
   return result;
@@ -253,7 +252,7 @@ int xine_config_lookup_entry (xine_t *this, const char *key,
   /* do not hand out unclaimed entries */
   if (config->cur && config->cur->type == CONFIG_TYPE_UNKNOWN)
     config->cur = NULL;
-  result = xine_config_get_current_entry (this, entry);
+  result = __config_get_current_entry (this, entry);
   pthread_mutex_unlock(&config->config_lock);
 
   return result;
@@ -305,13 +304,15 @@ void xine_config_reset (xine_t *this) {
   config->last = NULL;
   pthread_mutex_unlock(&config->config_lock);
 }
-  
+
+#ifndef XINE_DISABLE_DEPRECATED_FEATURES
 int xine_gui_send_vo_data (xine_stream_t *stream,
 			   int type, void *data) {
 
   return stream->video_driver->gui_data_exchange (stream->video_driver, 
 						  type, data);
 }
+#endif
 
 int xine_port_send_gui_data (xine_video_port_t *vo,
 			   int type, void *data) {
@@ -413,15 +414,15 @@ void xine_set_param (xine_stream_t *stream, int param, int value) {
     break;
 
   case XINE_PARAM_IGNORE_VIDEO:
-    stream->stream_info[XINE_STREAM_INFO_IGNORE_VIDEO] = value;
+    _x_stream_info_set(stream, XINE_STREAM_INFO_IGNORE_VIDEO, value);
     break;
     
   case XINE_PARAM_IGNORE_AUDIO:
-    stream->stream_info[XINE_STREAM_INFO_IGNORE_AUDIO] = value;
+    _x_stream_info_set(stream, XINE_STREAM_INFO_IGNORE_AUDIO, value);
     break;
   
   case XINE_PARAM_IGNORE_SPU:
-    stream->stream_info[XINE_STREAM_INFO_IGNORE_SPU] = value;
+    _x_stream_info_set(stream, XINE_STREAM_INFO_IGNORE_SPU, value);
     break;
   
   case XINE_PARAM_METRONOM_PREBUFFER:
@@ -442,7 +443,7 @@ void xine_set_param (xine_stream_t *stream, int param, int value) {
   }
 }
 
-int  xine_get_param (xine_stream_t *stream, int param) {
+int xine_get_param (xine_stream_t *stream, int param) {
 
   switch (param) {
   case XINE_PARAM_SPEED:
@@ -502,7 +503,7 @@ int  xine_get_param (xine_stream_t *stream, int param) {
 
   case XINE_PARAM_VERBOSITY:
     return stream->xine->verbosity;
-    
+
   case XINE_PARAM_VO_HUE:
   case XINE_PARAM_VO_SATURATION:
   case XINE_PARAM_VO_CONTRAST:
@@ -516,13 +517,13 @@ int  xine_get_param (xine_stream_t *stream, int param) {
     return stream->video_out->get_property(stream->video_out, param);
   
   case XINE_PARAM_IGNORE_VIDEO:
-    return stream->stream_info[XINE_STREAM_INFO_IGNORE_VIDEO];
+    return _x_stream_info_get_public(stream, XINE_STREAM_INFO_IGNORE_VIDEO);
     
   case XINE_PARAM_IGNORE_AUDIO:
-    return stream->stream_info[XINE_STREAM_INFO_IGNORE_AUDIO];
+    return _x_stream_info_get_public(stream, XINE_STREAM_INFO_IGNORE_AUDIO);
   
   case XINE_PARAM_IGNORE_SPU:
-    return stream->stream_info[XINE_STREAM_INFO_IGNORE_SPU];
+    return _x_stream_info_get_public(stream, XINE_STREAM_INFO_IGNORE_SPU);
 
   case XINE_PARAM_METRONOM_PREBUFFER:
     return stream->metronom->get_option(stream->metronom, METRONOM_PREBUFFER);
@@ -577,7 +578,7 @@ uint32_t xine_get_stream_info (xine_stream_t *stream, int info) {
   case XINE_STREAM_INFO_IGNORE_AUDIO:
   case XINE_STREAM_INFO_IGNORE_SPU:
   case XINE_STREAM_INFO_VIDEO_HAS_STILL:
-    return stream->stream_info[info];
+    return _x_stream_info_get_public(stream, info);
 
   case XINE_STREAM_INFO_MAX_AUDIO_CHANNEL:
     return stream->audio_track_map_entries;
@@ -586,15 +587,13 @@ uint32_t xine_get_stream_info (xine_stream_t *stream, int info) {
     return stream->spu_track_map_entries;
   
   default:
-    printf ("xine_interface: error, unknown stream info (%d) requested\n",
-	    info);
+    fprintf (stderr, "xine_interface: error, unknown stream info (%d) requested\n", info);
   }
   return 0;
 }
 
 const char *xine_get_meta_info (xine_stream_t *stream, int info) {
-
-  return stream->meta_info[info];
+  return _x_meta_info_get_public(stream, info);
 }
 
 xine_osd_t *xine_osd_new(xine_stream_t *stream, int x, int y, int width, int height) {

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: image.c,v 1.8 2003/11/15 13:01:23 miguelfreitas Exp $
+ * $Id: image.c,v 1.9 2003/11/16 23:33:48 f1rmb Exp $
  *
  * a image video decoder
  */
@@ -266,7 +266,7 @@ static void end_callback(png_structp png_ptr, png_infop info) {
 	*out = le2me_16(*out);
       }
     }
-    xine_set_stream_info(this->stream, XINE_STREAM_INFO_FRAME_DURATION, img->duration);
+    _x_stream_info_set(this->stream, XINE_STREAM_INFO_FRAME_DURATION, img->duration);
     img->draw(img, this->stream);
     img->free(img);
   }

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.148 2003/11/15 20:43:12 mroi Exp $
+ * $Id: xine_internal.h,v 1.149 2003/11/16 23:33:49 f1rmb Exp $
  *
  */
 
@@ -220,8 +220,13 @@ struct xine_stream_s {
   pthread_mutex_t            frontend_lock;
 
   /* stream meta information */
+  /* NEVER access directly, use helpers (see info_helper.c) */
+  pthread_mutex_t            info_mutex;
+  int                        stream_info_public[XINE_STREAM_INFO_MAX];
   int                        stream_info[XINE_STREAM_INFO_MAX];
-  char                      *meta_info  [XINE_STREAM_INFO_MAX];
+  pthread_mutex_t            meta_mutex;
+  char                      *meta_info_public[XINE_STREAM_INFO_MAX];
+  char                      *meta_info[XINE_STREAM_INFO_MAX];
 
   /* seeking slowdown */
   int                        first_frame_flag;

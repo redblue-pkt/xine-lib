@@ -201,43 +201,43 @@ static void remember_metainfo (mpeg2dec_t *mpeg2dec) {
 
   picture_t * picture = mpeg2dec->picture;
 
-  xine_set_stream_info(mpeg2dec->stream, XINE_STREAM_INFO_VIDEO_WIDTH, picture->frame_width);
-  xine_set_stream_info(mpeg2dec->stream, XINE_STREAM_INFO_VIDEO_HEIGHT, picture->frame_height);
-  xine_set_stream_info(mpeg2dec->stream, XINE_STREAM_INFO_VIDEO_RATIO,
+  _x_stream_info_set(mpeg2dec->stream, XINE_STREAM_INFO_VIDEO_WIDTH, picture->frame_width);
+  _x_stream_info_set(mpeg2dec->stream, XINE_STREAM_INFO_VIDEO_HEIGHT, picture->frame_height);
+  _x_stream_info_set(mpeg2dec->stream, XINE_STREAM_INFO_VIDEO_RATIO,
     ((double)10000 * get_aspect_ratio(mpeg2dec)));
 
   switch (mpeg2dec->picture->frame_rate_code) {
   case 1: /* 23.976 fps */
-    xine_set_stream_info(mpeg2dec->stream, XINE_STREAM_INFO_FRAME_DURATION, 3913);
+    _x_stream_info_set(mpeg2dec->stream, XINE_STREAM_INFO_FRAME_DURATION, 3913);
     break;
   case 2: /* 24 fps */
-    xine_set_stream_info(mpeg2dec->stream, XINE_STREAM_INFO_FRAME_DURATION, 3750);
+    _x_stream_info_set(mpeg2dec->stream, XINE_STREAM_INFO_FRAME_DURATION, 3750);
     break;
   case 3: /* 25 fps */
-    xine_set_stream_info(mpeg2dec->stream, XINE_STREAM_INFO_FRAME_DURATION, 3600);
+    _x_stream_info_set(mpeg2dec->stream, XINE_STREAM_INFO_FRAME_DURATION, 3600);
     break;
   case 4: /* 29.97 fps */
-    xine_set_stream_info(mpeg2dec->stream, XINE_STREAM_INFO_FRAME_DURATION, 3003);
+    _x_stream_info_set(mpeg2dec->stream, XINE_STREAM_INFO_FRAME_DURATION, 3003);
     break;
   case 5: /* 30 fps */
-    xine_set_stream_info(mpeg2dec->stream, XINE_STREAM_INFO_FRAME_DURATION, 3000);
+    _x_stream_info_set(mpeg2dec->stream, XINE_STREAM_INFO_FRAME_DURATION, 3000);
     break;
   case 6: /* 50 fps */
-    xine_set_stream_info(mpeg2dec->stream, XINE_STREAM_INFO_FRAME_DURATION, 1800);
+    _x_stream_info_set(mpeg2dec->stream, XINE_STREAM_INFO_FRAME_DURATION, 1800);
     break;
   case 7: /* 59.94 fps */
-    xine_set_stream_info(mpeg2dec->stream, XINE_STREAM_INFO_FRAME_DURATION, 1525);
+    _x_stream_info_set(mpeg2dec->stream, XINE_STREAM_INFO_FRAME_DURATION, 1525);
     break;
   case 8: /* 60 fps */
-    xine_set_stream_info(mpeg2dec->stream, XINE_STREAM_INFO_FRAME_DURATION, 1509);
+    _x_stream_info_set(mpeg2dec->stream, XINE_STREAM_INFO_FRAME_DURATION, 1509);
     break;
   default:
        /* printf ("invalid/unknown frame rate code : %d \n",
                frame->frame_rate_code); */
-    xine_set_stream_info(mpeg2dec->stream, XINE_STREAM_INFO_FRAME_DURATION, 3000);
+    _x_stream_info_set(mpeg2dec->stream, XINE_STREAM_INFO_FRAME_DURATION, 3000);
   }
 
-  xine_set_meta_info(mpeg2dec->stream, XINE_META_INFO_VIDEOCODEC, "MPEG");
+  _x_meta_info_set(mpeg2dec->stream, XINE_META_INFO_VIDEOCODEC, "MPEG");
 }
 
 
@@ -432,9 +432,9 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 	    data.pan_scan = mpeg2dec->force_pan_scan;
 	    xine_event_send(mpeg2dec->stream, &event);
 
-            xine_set_stream_info(mpeg2dec->stream,XINE_STREAM_INFO_VIDEO_WIDTH,
+            _x_stream_info_set(mpeg2dec->stream,XINE_STREAM_INFO_VIDEO_WIDTH,
               picture->coded_picture_width);
-	    xine_set_stream_info(mpeg2dec->stream,XINE_STREAM_INFO_VIDEO_HEIGHT,
+	    _x_stream_info_set(mpeg2dec->stream,XINE_STREAM_INFO_VIDEO_HEIGHT,
               picture->coded_picture_height);
 
 	    if (picture->forward_reference_frame &&
@@ -861,9 +861,9 @@ void mpeg2_find_sequence_header (mpeg2dec_t * mpeg2dec,
 	data.pan_scan = mpeg2dec->force_pan_scan;
 	xine_event_send(mpeg2dec->stream, &event);
 
-	xine_set_stream_info(mpeg2dec->stream, XINE_STREAM_INFO_VIDEO_WIDTH,
+	_x_stream_info_set(mpeg2dec->stream, XINE_STREAM_INFO_VIDEO_WIDTH,
           picture->coded_picture_width);
-	xine_set_stream_info(mpeg2dec->stream, XINE_STREAM_INFO_VIDEO_HEIGHT,
+	_x_stream_info_set(mpeg2dec->stream, XINE_STREAM_INFO_VIDEO_HEIGHT,
           picture->coded_picture_height);
       }
     } else if (code == 0xb5) {	/* extension_start_code */
@@ -910,9 +910,9 @@ static void process_userdata(mpeg2dec_t *mpeg2dec, uint8_t *buffer)
       data.pan_scan = mpeg2dec->force_pan_scan;
       xine_event_send(mpeg2dec->stream, &event);
 
-      xine_set_stream_info(mpeg2dec->stream, XINE_STREAM_INFO_VIDEO_WIDTH,
+      _x_stream_info_set(mpeg2dec->stream, XINE_STREAM_INFO_VIDEO_WIDTH,
         mpeg2dec->picture->coded_picture_width);
-      xine_set_stream_info(mpeg2dec->stream, XINE_STREAM_INFO_VIDEO_HEIGHT,
+      _x_stream_info_set(mpeg2dec->stream, XINE_STREAM_INFO_VIDEO_HEIGHT,
         mpeg2dec->picture->coded_picture_height);
     }
     

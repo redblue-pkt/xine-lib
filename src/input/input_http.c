@@ -19,7 +19,7 @@
  *
  * input plugin for http network streams
  *
- * $Id: input_http.c,v 1.73 2003/11/16 15:32:10 mroi Exp $
+ * $Id: input_http.c,v 1.74 2003/11/16 23:33:44 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -358,10 +358,10 @@ static void http_plugin_read_metainf (input_plugin_t *this_gen) {
             free(this->shoutcast_songtitle);
           this->shoutcast_songtitle = strdup(songtitle);
 
-          xine_set_meta_info(this->stream, XINE_META_INFO_TITLE, songtitle);
+          _x_meta_info_set(this->stream, XINE_META_INFO_TITLE, songtitle);
 
           /* prepares the event */
-          radio = xine_get_meta_info(this->stream, XINE_META_INFO_ALBUM);
+          radio = _x_meta_info_get(this->stream, XINE_META_INFO_ALBUM);
           
           if (radio) {
             strcpy(data.str, radio); /* WARNING: the data.str is char[256] */
@@ -496,20 +496,20 @@ static int read_shoutcast_header(http_input_plugin_t *this) {
       lprintf ("input_http: shoutcast answer: >%s<\n", this->buf);
 
       if (!strncasecmp(this->buf, "icy-name:", 9)) {
-        xine_set_meta_info(this->stream, XINE_META_INFO_ALBUM,
+        _x_meta_info_set(this->stream, XINE_META_INFO_ALBUM,
 			   (this->buf + 9 + (*(this->buf + 9) == ' ')));
-        xine_set_meta_info(this->stream, XINE_META_INFO_TITLE,
+        _x_meta_info_set(this->stream, XINE_META_INFO_TITLE,
 			   (this->buf + 9 + (*(this->buf + 9) == ' ')));
       }
       
       if (!strncasecmp(this->buf, "icy-genre:", 10)) {
-        xine_set_meta_info(this->stream, XINE_META_INFO_GENRE,
+        _x_meta_info_set(this->stream, XINE_META_INFO_GENRE,
 			   (this->buf + 10 + (*(this->buf + 10) == ' ')));
       }
       
       /* icy-notice1 is always the same */
       if (!strncasecmp(this->buf, "icy-notice2:", 12)) {
-        xine_set_meta_info(this->stream, XINE_META_INFO_COMMENT,
+        _x_meta_info_set(this->stream, XINE_META_INFO_COMMENT,
 			   (this->buf + 12 + (*(this->buf + 12) == ' ')));
       }
 
