@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.46 2001/09/06 14:09:37 jkeil Exp $
+ * $Id: video_decoder.c,v 1.47 2001/09/09 15:39:47 jkeil Exp $
  *
  */
 
@@ -245,6 +245,7 @@ void video_decoder_init (xine_t *this) {
   pthread_attr_getschedparam(&pth_attrs, &pth_params);
   pth_params.sched_priority = sched_get_priority_min(SCHED_OTHER);
   pthread_attr_setschedparam(&pth_attrs, &pth_params);
+  pthread_attr_setscope(&pth_attrs, PTHREAD_SCOPE_SYSTEM);
   
   pthread_create (&this->video_thread, &pth_attrs, video_decoder_loop, this) ;
 }

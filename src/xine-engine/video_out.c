@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.41 2001/09/06 14:09:37 jkeil Exp $
+ * $Id: video_out.c,v 1.42 2001/09/09 15:39:47 jkeil Exp $
  *
  */
 
@@ -327,10 +327,15 @@ static uint32_t vo_get_capabilities (vo_instance_t *this) {
 
 static void vo_open (vo_instance_t *this) {
 
+  pthread_attr_t       pth_attrs;
+
   if (!this->video_loop_running) {
     this->video_loop_running = 1;
 
-    pthread_create (&this->video_thread, NULL, video_out_loop, this) ; 
+    pthread_attr_init(&pth_attrs);
+    pthread_attr_setscope(&pth_attrs, PTHREAD_SCOPE_SYSTEM);
+
+    pthread_create (&this->video_thread, &pth_attrs, video_out_loop, this) ; 
     printf ("video_out: thread created\n");
   } else
     printf ("video_out: vo_open : warning! video thread already running\n");
