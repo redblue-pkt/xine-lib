@@ -782,6 +782,7 @@ case "$host_or_hostalias" in
   ppc-*-linux* | powerpc-*) 
     CFLAGS="$CFLAGS -O3 -pipe -fomit-frame-pointer $m_wm $m_psb -fexpensive-optimizations $f_si $f_nsa -ffast-math -funroll-loops -funroll-all-loops -finline-functions"
     DEBUG_CFLAGS="$DEBUG_CFLAGS -O3"
+    ASFLAGS="" dnl avoid ppc compilation crash
     AC_DEFINE(FPM_PPC)
     AC_DEFINE(ARCH_PPC)
     
