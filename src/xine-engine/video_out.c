@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.124 2002/12/22 23:30:29 miguelfreitas Exp $
+ * $Id: video_out.c,v 1.125 2002/12/23 21:04:02 miguelfreitas Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -361,6 +361,7 @@ static int vo_frame_draw (vo_frame_t *img, xine_stream_t *stream) {
 #ifdef LOG
     printf ("video_out: bad_frame\n");
 #endif
+    extra_info_merge( stream->current_extra_info, img->extra_info );
 
     this->num_frames_skipped++;
   }
