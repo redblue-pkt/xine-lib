@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ogg.c,v 1.21 2002/04/14 00:45:46 guenter Exp $
+ * $Id: demux_ogg.c,v 1.22 2002/04/14 03:31:44 guenter Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -106,6 +106,8 @@ typedef struct demux_ogg_s {
   int                   status;
   
   int                   send_end_buffers;
+
+  int                   frame_duration;
 
   ogg_sync_state        oy;
   ogg_stream_state      os;
@@ -262,7 +264,8 @@ static void demux_ogg_send_package (demux_ogg_t *this) {
 	  buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
 	  buf->content = buf->mem;
 	  buf->decoder_flags = BUF_FLAG_HEADER;
-	  buf->decoder_info[1] = oggh->time_unit * 9 / 1000;
+	  this->frame_duration = oggh->time_unit * 9 / 1000;
+	  buf->decoder_info[1] = this->frame_duration;
 	  memcpy (buf->content, &bih, sizeof (BITMAPINFOHEADER));
 	  buf->size = sizeof (BITMAPINFOHEADER);	  
 	  buf->type = this->buf_types[stream_num];
@@ -317,28 +320,52 @@ static void demux_ogg_send_package (demux_ogg_t *this) {
 	this->audio_fifo->put (this->audio_fifo, buf);
       } else if ((this->buf_types[stream_num] & 0xFF000000) == BUF_VIDEO_BASE) {
 	buf_element_t *buf;
+	int todo, done;
 
 #ifdef LOG
 	printf ("demux_ogg: video buffer, type=%08x\n", this->buf_types[stream_num]);
 #endif
 
-	buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-	
-	buf->content = buf->mem;
+	todo = op.bytes;
+	done = 0;
+	while (done<todo) {
 
-	/* FIXME: split up package if it is too big for one bufffer! */
-
-	memcpy (buf->content, op.packet, op.bytes);
-	buf->size = op.bytes;
-	buf->pts  = 0; /* FIXME */
-	buf->decoder_flags = BUF_FLAG_FRAME_END;
-
-	buf->input_pos  = this->input->get_current_pos (this->input);
-	buf->input_time = 0;
+	  buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
 	
-	buf->type = this->buf_types[stream_num];
+	  buf->content = buf->mem;
+
+	  if ( (todo-done)>(buf->max_size-1)) {
+	    buf->size  = buf->max_size-1;
+	    buf->decoder_flags = 0;
+	  } else {
+	    buf->size = todo-done;
+	    buf->decoder_flags = BUF_FLAG_FRAME_END;
+	  }
+	  
+	  /*
+	    printf ("demux_ogg: done %d todo %d doing %d\n", done, todo, buf->size);
+	  */
+	  memcpy (buf->content, op.packet+done, buf->size);
+
+	  if (op.granulepos>0)
+	    buf->pts  = op.granulepos * this->frame_duration;  
+	  else
+	    buf->pts  = 0;
+#ifdef LOG
+	  printf ("demux_ogg: granulepos %d\n", op.granulepos);
+#endif
+	  /* buf->pts = 0; */
+	  
+	  buf->input_pos  = this->input->get_current_pos (this->input);
+	  buf->input_time = 0;
 	
-	this->video_fifo->put (this->video_fifo, buf);
+	  buf->type = this->buf_types[stream_num];
+	
+	  done += buf->size;
+
+	  this->video_fifo->put (this->video_fifo, buf);
+
+	}
       }
     }
   }
