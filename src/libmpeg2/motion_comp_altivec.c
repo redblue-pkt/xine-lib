@@ -1069,6 +1069,8 @@ MPEG2_MC_EXTERN (altivec)
 
 #else	/* HOST_OS_DARWIN */
 
+#ifdef ENABLE_ALTIVEC
+
 #include "mpeg2_internal.h"
 
 #define vector_s16_t vector signed short
@@ -2022,6 +2024,8 @@ void MC_avg_xy_8_altivec (unsigned char * dest, unsigned char * ref,
 }
 
 MPEG2_MC_EXTERN (altivec)
+
+#endif /* ENABLE_ALTIVEC */
 
 #endif	/* HOST_OS_DARWIN */
 
