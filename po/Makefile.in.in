@@ -112,10 +112,12 @@ install-data-yes: all
 	  if test -r $$cat; then \
 	    $(INSTALL_DATA) $$cat $(DESTDIR)$$dir/$(PACKAGE).mo; \
 	    echo "installing $$cat as $(DESTDIR)$$dir/$(PACKAGE).mo"; \
-	  else \
+	  elif test -r $(srcdir)/$$cat; then \
 	    $(INSTALL_DATA) $(srcdir)/$$cat $(DESTDIR)$$dir/$(PACKAGE).mo; \
 	    echo "installing $(srcdir)/$$cat as" \
 		 "$(DESTDIR)$$dir/$(PACKAGE).mo"; \
+	  else \
+	    echo "WARNING: compiled message file $$cat is missing"; \
 	  fi; \
 	done
 
