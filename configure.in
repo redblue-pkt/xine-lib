@@ -819,6 +819,9 @@ src/libmpeg2/Makefile
 src/liba52/Makefile
 src/libffmpeg/Makefile
 src/libffmpeg/libavcodec/Makefile
+src/libffmpeg/libavcodec/armv4l/Makefile
+src/libffmpeg/libavcodec/i386/Makefile
+src/libffmpeg/libavcodec/mlib/Makefile
 src/liblpcm/Makefile
 src/libdts/Makefile
 src/libmad/Makefile
