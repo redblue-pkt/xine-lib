@@ -1,4 +1,5 @@
-  * SDL video out driver
+  * better playing support for ffmpeg/win32 codecs on slow machines
+  * SDL video out driver (experimental)
  
 xine (0.9.8) unstable; urgency=low
 
