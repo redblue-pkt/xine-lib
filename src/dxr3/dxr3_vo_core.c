@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_vo_core.c,v 1.2 2001/11/07 12:48:58 mlampard Exp $
+ * $Id: dxr3_vo_core.c,v 1.3 2001/11/07 13:03:21 mlampard Exp $
  *
  *************************************************************************
  * core functions common to both Standard and RT-Encoding vo plugins     *
@@ -137,8 +137,6 @@ void dxr3_read_config(dxr3_driver_t *this)
 	} else {
 		this->tv_mode = EM8300_VIDEOMODE_DEFAULT;
 	}
-	if(!this->overlay_enabled)
-		this->zoom_enabled=config->lookup_int(config, "dxr3_zoom16_9", 0);
 		
 	if (this->tv_mode != EM8300_VIDEOMODE_DEFAULT)
 		if (ioctl(this->fd_control, EM8300_IOCTL_SET_VIDEOMODE, &this->tv_mode))
@@ -206,7 +204,7 @@ static void dxr3_zoomTV(dxr3_driver_t *this)
 int dxr3_get_property (vo_driver_t *this_gen, int property)
 {
 	dxr3_driver_t *this = (dxr3_driver_t *) this_gen;
-	int val;
+	int val=0;
 
 	switch (property) {
 	case VO_PROP_SATURATION:
@@ -228,6 +226,10 @@ int dxr3_get_property (vo_driver_t *this_gen, int property)
 	case VO_PROP_COLORKEY:
 		val = this->overlay.colorkey;
 		break;
+	case VO_PROP_ZOOM_X:
+	case VO_PROP_ZOOM_Y:
+		break;
+
 	default:
 		val = 0;
 		fprintf(stderr, "dxr3_vo: property %d not implemented!\n", property);
@@ -278,14 +280,6 @@ int dxr3_set_property (vo_driver_t *this_gen,
 			this->desired_ratio = 4.0/3.0;
 		}
 
-		if(val==EM8300_ASPECTRATIO_16_9 && this->zoom_enabled && !this->overlay_enabled){
-			fprintf(stderr, "dxr3_vo: enabling 16:9 zoom\n");
-			val=EM8300_ASPECTRATIO_4_3;
-			if (ioctl(this->fd_control, EM8300_IOCTL_SET_ASPECTRATIO, &val))
-				fprintf(stderr, "dxr3_vo: failed to set aspect ratio (%s)\n",
-				 strerror(errno));
-			dxr3_zoomTV(this);		
-		}else
 		if (ioctl(this->fd_control, EM8300_IOCTL_SET_ASPECTRATIO, &val))
 			fprintf(stderr, "dxr3_vo: failed to set aspect ratio (%s)\n",
 			 strerror(errno));
@@ -299,6 +293,23 @@ int dxr3_set_property (vo_driver_t *this_gen,
 	case VO_PROP_COLORKEY:
 		fprintf(stderr, "dxr3_vo: VO_PROP_COLORKEY not implemented!");
 		this->overlay.colorkey = val;
+		break;
+	case VO_PROP_ZOOM_X: 
+		if(!this->overlay_enabled){  /* TV-out only */
+		  if(value>0){
+			fprintf(stderr, "dxr3_vo: enabling 16:9 zoom\n");
+			val=EM8300_ASPECTRATIO_4_3;
+			if (ioctl(this->fd_control, EM8300_IOCTL_SET_ASPECTRATIO, &val))
+				fprintf(stderr, "dxr3_vo: failed to set aspect ratio (%s)\n",
+				 strerror(errno));
+			dxr3_zoomTV(this);
+		  }else{
+			fprintf(stderr, "dxr3_vo: disabling 16:9 zoom\n");		
+			if (ioctl(this->fd_control, EM8300_IOCTL_SET_ASPECTRATIO, &this->aspectratio))
+				fprintf(stderr, "dxr3_vo: failed to set aspect ratio (%s)\n",
+				 strerror(errno));
+		  }
+		}
 		break;
 	}
 
