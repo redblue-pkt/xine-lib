@@ -270,6 +270,7 @@ dnl
 dnl Check for OpenGL & [GLut | GLU]
 dnl
 AC_CHECK_LIB(GL, glBegin,
+	[AC_CHECK_HEADER(GL/GL.h,
              [ ac_have_opengl="yes"
                OPENGL_LIBS="-lGL" 
 	       AC_CHECK_LIB(glut, glutInit, dnl check for glut
@@ -287,8 +288,9 @@ AC_CHECK_LIB(GL, glBegin,
                                            [$X_LIBS $X_PRE_LIBS $OPENGL_LIBS -lGLU -lm $X_EXTRA_LIBS])], 
 	                    [$X_LIBS $X_PRE_LIBS -lglut $X_EXTRA_LIBS])
              ],
-	     [],
-             [$X_LIBS $X_PRE_LIBS -lGL $X_EXTRA_LIBS])
+	[])],
+   [],
+   [$X_LIBS $X_PRE_LIBS -lGL $X_EXTRA_LIBS])
 AC_SUBST(OPENGL_LIBS)
 AC_SUBST(GLUT_LIBS)
 AC_SUBST(GLU_LIBS)
