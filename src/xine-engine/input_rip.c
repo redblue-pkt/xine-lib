@@ -29,12 +29,16 @@
  * - it's possible speeder saving streams in the xine without playing:
  *     xine stream_mrl#rip:file.raw;noaudio;novideo
  *
- * $Id: input_rip.c,v 1.2 2003/08/22 14:27:30 miguelfreitas Exp $
+ * $Id: input_rip.c,v 1.3 2003/09/13 15:34:59 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
+
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 #include <stdio.h>
 #include <string.h>
@@ -59,70 +63,99 @@ typedef struct {
 
   xine_stream_t    *stream;
   FILE             *file;              /* destination file */
+  int               regular;           /* permit reading from the file */
 
   char             *preview;           /* preview data */
   off_t             preview_size;      /* size of read preview data */
   off_t             curpos;            /* current position */
+  off_t             savepos;           /* amount of already saved data */
 } rip_input_plugin_t;
 
+
+static off_t min_off(off_t a, off_t b) {
+  return a <= b ? a : b;
+}
 
 /* 
  * read data from input plugin and write it into file
  */
 static off_t rip_plugin_read(input_plugin_t *this_gen, char *buf, off_t len) {
   rip_input_plugin_t *this = (rip_input_plugin_t *)this_gen;
-  off_t retlen, nreal, npreview;
+  off_t retlen, npreview, nread, nwrite, nread_orig, nread_file;
 
-  lprintf("reading %lld bytes\n", len);
+  lprintf("reading %lld bytes (curpos = %lld, savepos = %lld)\n", len, this->curpos, this->savepos);
 
+  /* compute sizes and copy data from preview */
   if (this->curpos < this->preview_size && this->preview) {
-  /* get some data from preview */
     npreview = this->preview_size - this->curpos;
-    if (npreview > len) npreview = len;
+    if (npreview > len) {
+      npreview = len;
+      nread = 0;
+    } else {
+      nread = min_off(this->savepos - this->preview_size, len - npreview);
+    }
 
     lprintf(" => get %lld bytes from preview (%lld bytes)\n", npreview, this->preview_size);
 
     memcpy(buf, &this->preview[this->curpos], npreview);
   } else {
-  /* no data from preview */
     npreview = 0;
+    nread = min_off(this->savepos - this->curpos, len);
+  }
+  
+  /* size to write into file */
+  nwrite = len - npreview - nread;
+  /* size to read from file */
+  nread_file = this->regular ? nread : 0;
+  /* size to read from original input plugin */
+  nread_orig = this->regular ? 0 : nread;
+
+  /* re-reading from file */
+  if (nread_file) {
+    lprintf(" => read %lld bytes from file\n", nread_file);
+    if (fread(&buf[npreview], nread_file, 1, this->file) != 1) {
+      xine_log(this->stream->xine, XINE_LOG_MSG,
+        _("input_rip: reading of saved data failed: %s\n"), strerror(errno));
+      return -1;
+    }
   }
 
   /* really to read/catch */
-  nreal = len - npreview;
-  if (nreal) {
-    lprintf(" => read %lld bytes from input plugin\n", nreal);
-    
+  if (nread_orig + nwrite) {
+    lprintf(" => read %lld bytes from input plugin\n", nread_orig + nwrite);
+
     /* read from main input plugin */
-    retlen = this->main_input_plugin->read(this->main_input_plugin, &buf[npreview], nreal);
-    lprintf("%s => returned %lld\e" CLR_RST "\n", retlen == nreal ? "" : CLR_FAIL, retlen);
+    retlen = this->main_input_plugin->read(this->main_input_plugin, &buf[npreview + nread_file], nread_orig + nwrite);
+    lprintf("%s => returned %lld" CLR_RST "\n", retlen == nread_orig + nwrite ? "" : CLR_FAIL, retlen);
 
     if (retlen < 0) {
-        xine_log(this->stream->xine, XINE_LOG_MSG, 
-          _("input_rip: reading by input plugin failed\n"));
-	return -1;
+      xine_log(this->stream->xine, XINE_LOG_MSG, 
+        _("input_rip: reading by input plugin failed\n"));
+      return -1;
     }
-    
-    /* write to file */
-    if (retlen && this->file) {
-      if (fwrite(buf + npreview, retlen, 1, this->file) != 1) {
+
+    /* write to file (only successfully read data) */
+    if (retlen > nread_orig) {
+      nwrite = retlen - nread_orig;
+      if (fwrite(buf + this->savepos - this->curpos, nwrite, 1, this->file) != 1) {
         xine_log(this->stream->xine, XINE_LOG_MSG, 
           _("input_rip: error writing to file %lld bytes: %s\n"), 
-          retlen, strerror(errno));
-        return 0;
+          retlen - nread_orig, strerror(errno));
+        return -1;
       }
-    }
-  } else {
-    retlen = 0;
+      this->savepos += nwrite;
+      lprintf(" => saved %lld bytes\n", nwrite);
+    } else 
+      nwrite = 0;
   }
+  
+  this->curpos += (npreview + nread + nwrite);
 
-  this->curpos += (npreview + retlen);
-
-  return npreview + retlen;
+  return npreview + nread + nwrite;
 }
 
 /*
- * open catching file and slave input plugin
+ * open should never be called
  */
 static int rip_plugin_open(input_plugin_t *this_gen) {
   rip_input_plugin_t *this = (rip_input_plugin_t *)this_gen;
@@ -133,96 +166,85 @@ static int rip_plugin_open(input_plugin_t *this_gen) {
 }
 
 /*
- * delete seeking from capabilities,
- * set preview cap (implemented by original plugin or rip plugin)
- *
- * preview capability can be deleted after opening with some special inputs
+ * set preview and/or seek capability when it's implemented by RIP
  */
 static uint32_t rip_plugin_get_capabilities(input_plugin_t *this_gen) {
   rip_input_plugin_t *this = (rip_input_plugin_t *)this_gen;
   uint32_t caps;
 
   caps = this->main_input_plugin->get_capabilities(this->main_input_plugin);
-  return (caps & (~INPUT_CAP_SEEKABLE)) | (this->preview ? INPUT_CAP_PREVIEW : 0);
+  if (this->regular) caps |= INPUT_CAP_SEEKABLE;
+  if (this->preview) caps |= INPUT_CAP_PREVIEW;
+  return caps;
 }
 
 /* 
  * read a block of data from input plugin and write it into file
  *
  * This rip plugin returns block unchanged from main input plugin. But special
- * case is reading over preview - it returns own allocated block.
+ * cases are reading over preview or reading already saved data - it returns 
+ * own allocated block.
  */
 static buf_element_t *rip_plugin_read_block(input_plugin_t *this_gen, fifo_buffer_t *fifo, off_t todo) {
   rip_input_plugin_t *this = (rip_input_plugin_t *)this_gen;
   buf_element_t *buf;
-  off_t npreview, nreal, retval;
 
-  lprintf("read %lld bytes (block)\n", todo);
-
-  if (!todo) return NULL;
-  
-  /* number of bytes from preview */
-  if (this->preview && this->curpos < this->preview_size) {
-    npreview = this->preview_size - this->curpos;
-    if (npreview > todo) npreview = todo;
-  } else {
-    npreview = 0;
-  }
-  /* really read & catched bytes */
-  nreal = todo - npreview;
-
-  if (npreview) {
-    /* new block created by rip input plugin  */
+  lprintf("reading %lld bytes (curpos = %lld, savepos = %lld) (block)\n", todo, this->curpos, this->savepos);
+  if (this->curpos < this->savepos) {
+  /* reading via rip_plugin_read() */
+    lprintf(" => read %lld bytes by rip plugin (block)\n", todo);
+    
     buf = fifo->buffer_pool_alloc(fifo);
     buf->content = buf->mem;
     buf->type = BUF_DEMUX_BLOCK;
-    buf->size = npreview;
-    memcpy(buf->content, &this->preview[this->curpos], npreview);
-
-    lprintf(" => read %lld bytes by rip plugin (block)\n", nreal + npreview);
-    retval = this->main_input_plugin->read(this->main_input_plugin, &buf->content[npreview], nreal);
-    if (retval != nreal) {
-        buf->free_buffer(buf);
-        return NULL;
+    buf->size = rip_plugin_read(this_gen, buf->content, todo);
+    if (buf->size != todo) {
+      buf->free_buffer(buf);
+      return NULL;
     }
-
-    buf->size += retval;
   } else {
-    /* all data go as block from input plugin */
-    lprintf(" => reading %lld bytes from input plugin (block)\n", nreal);
-    
-    buf = this->main_input_plugin->read_block(this->main_input_plugin, fifo, nreal);
+  /* normal block reading from original input plugin */
+    lprintf(" => read %lld bytes from original plugin (block)\n", todo);
+    buf = this->main_input_plugin->read_block(this->main_input_plugin, fifo, todo);
     if (!buf) {
       lprintf(CLR_FAIL " => reading failed (block)" CLR_RST "\n");
       return NULL;
     }
-  }
+#ifdef DEBUG
+    /* check assertion */
+    if (buf->size != todo) {
+      printf(CLR_FAIL " => size of block %" PRIi32 "differs from %lld!" CLR_RST "\n", buf->size, todo);
+      buf->free_buffer(buf);
+      return NULL;
+    }
+#endif
+    this->curpos += buf->size;
 
-  this->curpos += buf->size;
-
-  /* write the block */    
-  if (buf && this->file && buf->type == BUF_DEMUX_BLOCK) {
-    if (nreal > 0 && fwrite(&buf->content[npreview], nreal, 1, this->file) != 1) {
+    if (fwrite(buf->content, buf->size, 1, this->file) != 1) {
       xine_log(this->stream->xine, XINE_LOG_MSG, 
         _("input_rip: error writing to file: %s\n"), strerror(errno));
       buf->free_buffer(buf);
       return NULL;
     }
+    this->savepos += buf->size;
   }
 
   return buf;
 }
 
 /*
- * enabled only forward seeking
+ * seek in RIP
+ * 
+ * If we are seeking back and we can read from saved file, 
+ * position of original input plugin isn't changed.
  */
 static off_t rip_plugin_seek(input_plugin_t *this_gen, off_t offset, int origin) {
   char buffer[SCRATCH_SIZE];
   rip_input_plugin_t *this = (rip_input_plugin_t *)this_gen;
   uint32_t blocksize;
-  off_t newpos, toread;
+  off_t newpos, toread, pos;
 
-  lprintf("seek, offset %lld, origin %d (curpos %lld)\n", offset, origin, this->curpos);
+  lprintf("seek, offset %lld, origin %d (curpos %lld, savepos %lld)\n", offset, origin, this->curpos, this->savepos);
   
   switch (origin) {
     case SEEK_SET: newpos = offset; break;
@@ -230,18 +252,55 @@ static off_t rip_plugin_seek(input_plugin_t *this_gen, off_t offset, int origin)
     default: newpos = this->curpos;
   }
 
-  if (newpos < this->curpos) {
-    xprintf(this->stream->xine, XINE_VERBOSITY_LOG, 
-      "cannot seek back (yet)\n");
-    return -1;
-  }
-
-  if( this_gen->get_capabilities(this_gen) & INPUT_CAP_BLOCK )
+  /* align the new position down to block sizes */
+  if( this_gen->get_capabilities(this_gen) & INPUT_CAP_BLOCK ) {
     blocksize = this_gen->get_blocksize(this_gen);
-  else
+    newpos = (newpos / blocksize) * blocksize;
+  } else
     blocksize = 0;
 
-  /* read/catch by sizeof(buffer) bytes  */
+  if (newpos < this->savepos) {
+    lprintf(" => virtual seeking from %lld to %lld\n", this->curpos, newpos);
+
+    /* don't seek into preview area */
+    if (this->preview && newpos < this->preview_size) {
+      pos = this->preview_size;
+    } else  {
+      pos = newpos;
+    }
+
+    if (this->regular) {
+      if (pos != this->savepos) {
+        lprintf(" => seeking file to %lld\n", pos);
+        if (fseek(this->file, pos, SEEK_SET) != 0) {
+          xine_log(this->stream->xine, XINE_LOG_MSG, 
+            _("input_rip: seeking failed: %s\n"), strerror(errno));
+          return -1;
+        }
+      }
+      this->curpos = newpos;
+    } else {
+      lprintf(" => seeking original input plugin to %lld\n", pos);
+      this->curpos = this->main_input_plugin->seek(this->main_input_plugin, pos, SEEK_SET);
+#ifdef LOG
+      if (this->curpos != pos) lprintf(CLR_FAIL " => requested position %lld differs from result position %lld" CLR_RST "\n", pos, this->curpos);
+#endif
+    }
+    
+    return this->curpos;
+  }
+
+  if (this->curpos != this->savepos) {
+    lprintf(" => seeking file to end: %lld\n", this->savepos);
+    if (fseek(this->file, this->savepos, SEEK_SET) != 0) {
+      xine_log(this->stream->xine, XINE_LOG_MSG, 
+        _("input_rip: seeking failed: %s\n"), strerror(errno));
+      return -1;
+    }
+    this->curpos = this->savepos;
+  }
+
+  /* read and catch remaining data after this->savepos */
   while (this->curpos < newpos) {
     if( blocksize ) {
       buf_element_t *buf;
@@ -264,7 +323,7 @@ static off_t rip_plugin_seek(input_plugin_t *this_gen, off_t offset, int origin)
     }
   }
 
-  lprintf(" => newpos %lld\n", this->curpos);
+  lprintf(" => new position %lld\n", this->curpos);
   
   return this->curpos;
 }
@@ -280,7 +339,7 @@ static off_t rip_plugin_get_current_pos(input_plugin_t *this_gen) {
 
   pos = this->main_input_plugin->get_current_pos(this->main_input_plugin);
   if (pos != this->curpos) {
-    lprintf("position: computed = %lld, input plugin = %lld\n", this->curpos, pos);
+    lprintf(CLR_FAIL "position: computed = %lld, input plugin = %lld" CLR_RST "\n", this->curpos, pos);
   }
 #endif
   
@@ -289,8 +348,13 @@ static off_t rip_plugin_get_current_pos(input_plugin_t *this_gen) {
 
 static off_t rip_plugin_get_length (input_plugin_t *this_gen) {
   rip_input_plugin_t *this = (rip_input_plugin_t *)this_gen;
+  off_t length;
 
-  return this->main_input_plugin->get_length(this->main_input_plugin);
+  length = this->main_input_plugin->get_length(this->main_input_plugin);
+  if(length <= 0)
+    length = this->savepos;
+
+  return length;
 }
 
 static uint32_t rip_plugin_get_blocksize(input_plugin_t *this_gen) {
@@ -327,7 +391,7 @@ static void rip_plugin_dispose(input_plugin_t *this_gen) {
   lprintf("rip_plugin_dispose\n");
 
   this->main_input_plugin->dispose(this->main_input_plugin);
-  if (this->file) fclose(this->file);
+  fclose(this->file);
   if (this->preview) free(this->preview);
   free(this);
 }
@@ -339,6 +403,8 @@ static void rip_plugin_dispose(input_plugin_t *this_gen) {
 input_plugin_t *rip_plugin_get_instance (xine_stream_t *stream, const char *filename) {
   rip_input_plugin_t *this;
   input_plugin_t *main_plugin = stream->input_plugin;
+  struct stat pstat;
+  const char *mode;
 
   lprintf("rip_plugin_get_instance(catch file = %s)\n", filename ? filename : "(null)");
 
@@ -364,9 +430,24 @@ input_plugin_t *rip_plugin_get_instance (xine_stream_t *stream, const char *file
   this = (rip_input_plugin_t *)xine_xmalloc(sizeof(rip_input_plugin_t));
   this->main_input_plugin = main_plugin;
   this->stream            = stream;
-  this->curpos = 0;
+  this->curpos  = 0;
+  this->savepos = 0;
 
-  if ((this->file = fopen(filename, "wb")) == NULL) {
+  /* find out type of file */
+  if (stat(filename, &pstat) < 0 && errno != ENOENT) {
+    xine_log(this->stream->xine, XINE_LOG_MSG,
+      _("input_rip: stat on the file %s failed: %s\n"), 
+      filename, strerror(errno));
+  }
+  if (errno != ENOENT && S_ISFIFO(pstat.st_mode)) {
+    this->regular = 0;
+    mode = "wb";
+  } else {
+    this->regular = 1;
+    mode = "wb+";
+  }
+  
+  if ((this->file = fopen(filename, mode)) == NULL) {
     xine_log(this->stream->xine, XINE_LOG_MSG, 
       _("input_rip: error opening file %s: %s\n"), 
       filename, strerror(errno));
@@ -375,24 +456,28 @@ input_plugin_t *rip_plugin_get_instance (xine_stream_t *stream, const char *file
   }
 
   /* fill preview memory */
-  if ( main_plugin->get_capabilities(main_plugin) & INPUT_CAP_BLOCK ) {
-    buf_element_t *buf;
-    uint32_t blocksize;
+  if ( (main_plugin->get_capabilities(main_plugin) & INPUT_CAP_SEEKABLE) == 0) {
+    if ( main_plugin->get_capabilities(main_plugin) & INPUT_CAP_BLOCK ) {
+      buf_element_t *buf;
+      uint32_t blocksize;
 
-    blocksize = main_plugin->get_blocksize(main_plugin);
-    buf = main_plugin->read_block(main_plugin, stream->video_fifo, blocksize);
+      blocksize = main_plugin->get_blocksize(main_plugin);
+      buf = main_plugin->read_block(main_plugin, stream->video_fifo, blocksize);
 
-    this->preview_size = buf->size;
-    this->preview = malloc(this->preview_size);
-    memcpy(this->preview, buf->content, this->preview_size);
+      this->preview_size = buf->size;
+      this->preview = malloc(this->preview_size);
+      memcpy(this->preview, buf->content, this->preview_size);
     
-    buf->free_buffer(buf);
+      buf->free_buffer(buf);
+    } else {
+      this->preview = malloc(MAX_PREVIEW_SIZE);
+      this->preview_size = main_plugin->read(main_plugin, this->preview, MAX_PREVIEW_SIZE);
+    }
   } else {
-    this->preview = malloc(MAX_PREVIEW_SIZE);
-    this->preview_size = main_plugin->read(main_plugin, this->preview, MAX_PREVIEW_SIZE);
+    this->preview = NULL;
   }
 
-  if (this->file && this->preview && this->preview_size) {
+  if (this->preview && this->preview_size) {
     if (fwrite(this->preview, this->preview_size, 1, this->file) != 1) {
       xine_log(this->stream->xine, XINE_LOG_MSG, 
         _("input_rip: error writing to file %lld bytes: %s\n"), 
@@ -401,8 +486,9 @@ input_plugin_t *rip_plugin_get_instance (xine_stream_t *stream, const char *file
       free(this);
       return NULL;
     }
+    lprintf(" => saved %lld bytes (preview)\n", this->preview_size);
+    this->savepos = this->preview_size;
   }
-
 
   this->input_plugin.open                = rip_plugin_open;
   this->input_plugin.get_capabilities    = rip_plugin_get_capabilities;
