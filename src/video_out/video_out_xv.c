@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.36 2001/06/09 17:07:21 guenter Exp $
+ * $Id: video_out_xv.c,v 1.37 2001/06/09 22:08:29 guenter Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -519,10 +519,8 @@ static int xv_set_property (vo_driver_t *this_gen,
       printf("video_out_xv: VO_PROP_ASPECT_RATIO(%d)\n", 
 	     this->props[property].value);
 
-      if(this->cur_frame) {
-	xv_calc_format (this, this->delivered_width, this->delivered_height, 
-			this->delivered_ratio_code) ;
-      }
+      xv_calc_format (this, this->delivered_width, this->delivered_height, 
+		      this->delivered_ratio_code) ;
       break;
     }
   }
