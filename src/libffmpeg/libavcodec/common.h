@@ -173,7 +173,9 @@ typedef signed __int64 int64_t;
 /* debug stuff */
 
 #    ifndef DEBUG
+#      ifndef NDEBUG
 #        define NDEBUG
+#      endif
 #    endif
 #    include <assert.h>
 

@@ -48,7 +48,17 @@
  {
 --- libavcodec/common.h	2003-11-01 18:43:19.000000000 +0100
 +++ libavcodec/common.h	2003-10-27 19:42:02.000000000 +0100
-@@ -184,11 +184,19 @@
+@@ -173,7 +173,9 @@
+ /* debug stuff */
+ 
+ #    ifndef DEBUG
++#      ifndef NDEBUG
+ #        define NDEBUG
++#      endif
+ #    endif
+ #    include <assert.h>
+ 
+@@ -184,11 +186,19 @@
  
  #    else
  
