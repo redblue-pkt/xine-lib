@@ -20,11 +20,11 @@ libxine_la_SOURCES = xine.c metronom.c configfile.c buffer.c \
 if HAVE_NVTV
 libxine_la_DEPENDENCIES = @INTLLIBS@ $(XINEUTILS_LIB) $(NVTVCLIENT_LIB)
 libxine_la_LIBADD = $(THREAD_LIBS) $(DYNAMIC_LD_LIBS) @INTLLIBS@ $(ZLIB_LIBS) \
-		-lm $(XINEUTILS_LIB) $(NVTVCLIENT_LIB)
+		-lm $(XINEUTILS_LIB) $(NVTVCLIENT_LIB) $(GICONV_BSD_LIBS)
 else
 libxine_la_DEPENDENCIES = @INTLLIBS@ $(XINEUTILS_LIB)
 libxine_la_LIBADD = $(THREAD_LIBS) $(DYNAMIC_LD_LIBS) @INTLLIBS@ $(ZLIB_LIBS) \
-		-lm $(XINEUTILS_LIB)
+		-lm $(XINEUTILS_LIB) $(GICONV_BSD_LIBS)
 endif
 
 libxine_la_LDFLAGS =  \
