@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpgaudio.c,v 1.56 2002/08/24 21:28:01 guenter Exp $
+ * $Id: demux_mpgaudio.c,v 1.57 2002/08/25 11:15:10 tmattern Exp $
  *
  * demultiplexer for mpeg audio (i.e. mp3) streams
  *
@@ -81,6 +81,7 @@ typedef struct {
   long                 bitrate;
   int64_t              last_pts;
   int                  send_newpts;
+  int                  buf_flag_seek;
 
 } demux_mpgaudio_t ;
 
@@ -242,8 +243,12 @@ static void check_newpts( demux_mpgaudio_t *this, int64_t pts ) {
 
   if( pts &&
       (this->send_newpts || (this->last_pts && abs(diff)>WRAP_THRESHOLD) ) ) {
-
-    xine_demux_control_newpts(this->xine, pts, 0);
+    if (this->buf_flag_seek) {
+      xine_demux_control_newpts(this->xine, pts, BUF_FLAG_SEEK);
+      this->buf_flag_seek = 0;
+    } else {
+      xine_demux_control_newpts(this->xine, pts, 0);
+    }
     this->send_newpts = 0;
   }
 
@@ -480,6 +485,7 @@ static int demux_mpgaudio_start (demux_plugin_t *this_gen,
 
     this->send_end_buffers = 1;
     this->thread_running = 1;
+    this->buf_flag_seek = 0;
     if ((err = pthread_create (&this->thread,
 			     NULL, demux_mpgaudio_loop, this)) != 0) {
       printf ("demux_mpgaudio: can't create new thread (%s)\n",
@@ -488,6 +494,7 @@ static int demux_mpgaudio_start (demux_plugin_t *this_gen,
     }
   }
   else {
+    this->buf_flag_seek = 1;
     xine_demux_flush_engine(this->xine);
   }
   /* this->status is saved because we can be interrupted between
