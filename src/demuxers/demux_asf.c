@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.63 2002/10/20 13:50:41 guenter Exp $
+ * $Id: demux_asf.c,v 1.64 2002/10/20 16:18:06 guenter Exp $
  *
  * demultiplexer for asf streams
  *
@@ -348,9 +348,7 @@ static void asf_send_audio_header (demux_asf_t *this, int stream) {
   buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
   memcpy (buf->content, this->wavex, this->wavex_size);
 
-  this->stream->stream_info[XINE_STREAM_INFO_HAS_AUDIO] = 1;
   this->stream->stream_info[XINE_STREAM_INFO_AUDIO_FOURCC] = wavex->wFormatTag;
-  
 
 #ifdef LOG
   printf ("demux_asf: wavex header is %d bytes long\n", this->wavex_size);
@@ -379,7 +377,6 @@ static void asf_send_video_header (demux_asf_t *this, int stream) {
   buf_element_t    *buf;
   xine_bmiheader   *bih = (xine_bmiheader *) this->bih;
 
-  this->stream->stream_info[XINE_STREAM_INFO_HAS_VIDEO]  = 1;
   this->stream->stream_info[XINE_STREAM_INFO_VIDEO_FOURCC] = bih->biCompression;
 
   if( !this->streams[stream].buf_type ) {
@@ -1223,7 +1220,7 @@ static void demux_asf_send_headers (demux_plugin_t *this_gen) {
   demux_asf_t *this = (demux_asf_t *) this_gen;
   int      i;
   int      stream_id;
-  uint32_t buf_type, bitrate, max_vrate, max_arate;
+  uint32_t buf_type, bitrate, max_vrate, max_arate, sum_rate;
 
   pthread_mutex_lock (&this->mutex);
 
@@ -1237,7 +1234,7 @@ static void demux_asf_send_headers (demux_plugin_t *this_gen) {
    */
   xine_demux_control_start(this->stream);
   
-  /* will get overridden later by send_audio/video_header */
+  /* will get overridden later */
   this->stream->stream_info[XINE_STREAM_INFO_HAS_VIDEO] = 0;
   this->stream->stream_info[XINE_STREAM_INFO_HAS_AUDIO] = 0;
 
@@ -1281,15 +1278,19 @@ static void demux_asf_send_headers (demux_plugin_t *this_gen) {
      */
     max_vrate = 0;
     max_arate = 0;
-    for(i = 0; i < this->num_streams; i++) {
+    sum_rate = 0;
+    for (i = 0; i < this->num_streams; i++) {
       buf_type   = (this->streams[i].buf_type & BUF_MAJOR_MASK);
       stream_id  = this->streams[i].stream_id;
       bitrate    = this->bitrates[stream_id];
       
+      sum_rate += bitrate;
+
       printf("demux_asf: stream: %d, bitrate %d bps, ", stream_id, bitrate);
       if ((buf_type == BUF_VIDEO_BASE) &&
 	  (bitrate > max_vrate || this->video_stream_id == 0)) {
 
+	this->stream->stream_info[XINE_STREAM_INFO_HAS_VIDEO]  = 1;
 	this->stream->stream_info[XINE_STREAM_INFO_VIDEO_BITRATE] = bitrate;
 
 	max_vrate = bitrate;
@@ -1298,13 +1299,17 @@ static void demux_asf_send_headers (demux_plugin_t *this_gen) {
       } else if ((buf_type == BUF_AUDIO_BASE) &&
 		 (bitrate > max_arate || this->audio_stream_id == 0)) {
 
-	this->stream->stream_info[XINE_STREAM_INFO_VIDEO_BITRATE] = bitrate;
+	this->stream->stream_info[XINE_STREAM_INFO_HAS_AUDIO]  = 1;
+	this->stream->stream_info[XINE_STREAM_INFO_AUDIO_BITRATE] = bitrate;
 
 	max_arate = bitrate;
 	this->audio_stream    = i;
 	this->audio_stream_id = stream_id;
       }
     }
+
+    this->stream->stream_info[XINE_STREAM_INFO_BITRATE] = bitrate;
+
     printf("demux_asf: video stream_id: %d, audio stream_id: %d\n",
 	   this->video_stream_id, this->audio_stream_id);
     
