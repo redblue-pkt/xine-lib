@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: scratch.c,v 1.3 2001/12/10 22:53:23 guenter Exp $
+ * $Id: scratch.c,v 1.4 2001/12/11 23:59:00 f1rmb Exp $
  *
  * top-level xine functions
  *
@@ -39,7 +39,7 @@
 
 static void scratch_printf (scratch_buffer_t *this, const char *format, va_list argp) {
 
-  vsprintf (this->lines[this->cur], format, argp);
+  vsnprintf (this->lines[this->cur], 1023, format, argp);
 
 #ifdef LOG
   printf ("scratch: printing format %s to line %d\n",
@@ -47,18 +47,21 @@ static void scratch_printf (scratch_buffer_t *this, const char *format, va_list 
 #endif
 
   this->cur = (this->cur + 1) % this->num_lines;
-
 }
 
 static char **scratch_get_content (scratch_buffer_t *this) {
 
-  int i;
+  int i, j;
 
-  for (i=0; i<this->num_lines; i++) {
-    this->ordered[i] = this->lines[(this->cur + i + 1) % this->num_lines];
+  for(i = 0, j = (this->cur - 1); i < this->num_lines; i++, j--) {
+
+    if(j < 0)
+      j = (this->num_lines - 1);
+
+    this->ordered[i] = this->lines[j];
 
 #ifdef LOG
-    printf ("scratch: line %d contains >%s<\n",i,this->lines[i]);
+    printf ("scratch: line %d contains >%s<\n", i , this->lines[j]);
 #endif
 
   }
@@ -74,10 +77,11 @@ scratch_buffer_t *new_scratch_buffer (int num_lines) {
 
   this = xine_xmalloc (sizeof (scratch_buffer_t));
 
-  this->lines   = xine_xmalloc (sizeof (char *) * (num_lines+1));
-  this->ordered = xine_xmalloc (sizeof (char *) * (num_lines+1));
+  this->lines   = xine_xmalloc (sizeof (char *) * (num_lines + 1));
+  this->ordered = xine_xmalloc (sizeof (char *) * (num_lines + 1));
   for (i=0; i<num_lines; i++) {
-    this->lines[i]   = xine_xmalloc (1024);
+    this->lines[i]   = (char *) xine_xmalloc (sizeof(char) * 1024);
+    memset(this->lines[i], 0, sizeof(this->lines[i]));
   }
 
   this->ordered[i]  = NULL;
