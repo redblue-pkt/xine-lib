@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_rawdv.c,v 1.9 2003/07/16 00:52:45 andruil Exp $
+ * $Id: demux_rawdv.c,v 1.10 2003/07/19 11:57:29 mroi Exp $
  *
  * demultiplexer for raw dv streams
  */
@@ -349,11 +349,6 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   this->demux_plugin.get_optional_data = demux_raw_dv_get_optional_data;
   this->demux_plugin.demux_class       = class_gen;
 
-  if (!INPUT_IS_SEEKABLE(this->input)) {
-    /* "live" DV streams require more prebuffering */
-    this->stream->metronom_prebuffer = 90000;
-  }
-
   this->status = DEMUX_FINISHED;
 
   switch (stream->content_detection_method) {
@@ -377,6 +372,11 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   default:
     free (this);
     return NULL;
+  }
+
+  if (!INPUT_IS_SEEKABLE(this->input)) {
+    /* "live" DV streams require more prebuffering */
+    this->stream->metronom_prebuffer = 90000;
   }
 
   return &this->demux_plugin;
