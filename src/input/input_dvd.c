@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.79 2002/09/14 19:04:07 guenter Exp $
+ * $Id: input_dvd.c,v 1.80 2002/09/15 14:05:37 mroi Exp $
  *
  */
 
@@ -1256,7 +1256,7 @@ static int dvdnav_plugin_get_optional_data (input_plugin_t *this_gen,
     if(this && this->xine && this->dvdnav) {
 
       if(!(dvdnav_is_domain_vts(this->dvdnav))) {
-	sprintf(data, "%3s", "off");
+	sprintf(data, "%3s", "none");
 	goto __spu_success;
       }
 
@@ -1280,7 +1280,7 @@ static int dvdnav_plugin_get_optional_data (input_plugin_t *this_gen,
       else {
 	channel = xine_get_spu_channel(this->xine);
 	if(channel == -1)
-	  sprintf(data, "%3s", "off");
+	  sprintf(data, "%3s", "none");
 	else
 	  sprintf(data, "%3i", channel);
       }
@@ -1483,6 +1483,12 @@ static void *init_input_plugin (xine_t *xine, void *data) {
 
 /*
  * $Log: input_dvd.c,v $
+ * Revision 1.80  2002/09/15 14:05:37  mroi
+ * be more distinct with UI info texts for
+ * "no subtitles because user switched it off"
+ * and
+ * "no subtitles because none are available"
+ *
  * Revision 1.79  2002/09/14 19:04:07  guenter
  * latest xine_config api changes as proposed by james
  *

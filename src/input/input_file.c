@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_file.c,v 1.57 2002/09/06 18:13:11 mroi Exp $
+ * $Id: input_file.c,v 1.58 2002/09/15 14:05:37 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -823,7 +823,7 @@ static int file_plugin_get_optional_data (input_plugin_t *this_gen,
     break;
     
   case INPUT_OPTIONAL_DATA_SPULANG:
-    sprintf(data, "%3s", (this->sub) ? "on" : "off");
+    sprintf(data, "%3s", (this->sub) ? "sub" : "none");
     return INPUT_OPTIONAL_SUCCESS;
     break;
     
