@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.h,v 1.37 2002/10/16 22:54:48 guenter Exp $
+ * $Id: audio_out.h,v 1.38 2002/10/17 17:43:44 mroi Exp $
  */
 #ifndef HAVE_AUDIO_OUT_H
 #define HAVE_AUDIO_OUT_H
@@ -201,7 +201,7 @@ struct ao_instance_s {
    */
   int (*control) (ao_instance_t *this, int cmd, /* arg */ ...);
 
-
+  
   /* private stuff */
 
   xine_ao_driver_t    *driver;
@@ -238,6 +238,11 @@ typedef struct audio_driver_class_s audio_driver_class_t;
 
 struct audio_driver_class_s {
 
+  /*
+   * open a new instance of this plugin class
+   */
+  xine_ao_driver_t* (*open_plugin) (audio_driver_class_t *this, const void *data);
+  
   /*
    * return short, human readable identifier for this plugin class
    */

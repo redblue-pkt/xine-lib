@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux.h,v 1.20 2002/10/14 15:47:12 guenter Exp $
+ * $Id: demux.h,v 1.21 2002/10/17 17:43:42 mroi Exp $
  */
 
 #ifndef HAVE_DEMUX_H
@@ -43,8 +43,14 @@
 #define METHOD_BY_EXTENSION        2
 
 typedef struct demux_class_s demux_class_t ;
+typedef struct demux_plugin_s demux_plugin_t;
 
 struct demux_class_s {
+
+  /*
+   * open a new instance of this plugin class
+   */
+  demux_plugin_t* (*open_plugin) (demux_class_t *this, xine_stream_t *stream, input_plugin_t *input);
 
   /*
    * return human readable (verbose = 1 line) description for this plugin
@@ -82,8 +88,6 @@ struct demux_class_s {
 /*
  * any demux plugin must implement these functions
  */
-
-typedef struct demux_plugin_s demux_plugin_t;
 
 struct demux_plugin_s {
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.101 2002/10/16 22:54:48 guenter Exp $
+ * $Id: load_plugins.c,v 1.102 2002/10/17 17:43:44 mroi Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -354,7 +354,6 @@ static void *_load_plugin_class(xine_t *this,
 	    && !strcasecmp(info->id, target->id)
 	    && info->version == target->version){
 
-	  target->open = info->open;
 	  return info->init(this, data);
 	}
 	info++;
@@ -613,7 +612,7 @@ input_plugin_t *find_input_plugin (xine_stream_t *stream, const char *mrl) {
   while (node) {
     input_plugin_t   *plugin;
 
-    if ((plugin = node->info->open (node->plugin_class, stream, mrl))) {
+    if ((plugin = ((input_class_t *)node->plugin_class)->open_plugin(node->plugin_class, stream, mrl))) {
       pthread_mutex_unlock (&catalog->lock);
       return plugin;
     }
@@ -657,7 +656,7 @@ static demux_plugin_t *probe_demux (xine_stream_t *stream, int method1, int meth
     while (node) {
       demux_plugin_t *plugin;
 
-      if ((plugin = node->info->open (node->plugin_class, stream, input))) {
+      if ((plugin = ((demux_class_t *)node->plugin_class)->open_plugin(node->plugin_class, stream, input))) {
 	pthread_mutex_unlock (&catalog->lock);
 	return plugin;
       }
@@ -799,7 +798,7 @@ static xine_vo_driver_t *_load_video_driver (xine_t *this, plugin_node_t *node,
   if (!node->plugin_class)
     return NULL;
 
-  driver = (xine_vo_driver_t *) node->info->open (node->plugin_class, NULL, data);
+  driver = ((video_driver_class_t *)node->plugin_class)->open_plugin(node->plugin_class, data);
 
   if (driver) {
     driver->node = node;
@@ -941,7 +940,7 @@ static xine_ao_driver_t *_load_audio_driver (xine_t *this, plugin_node_t *node,
   if (!node->plugin_class)
     return NULL;
 
-  driver = (xine_ao_driver_t *) node->info->open (node->plugin_class, NULL, data);
+  driver = ((audio_driver_class_t *)node->plugin_class)->open_plugin(node->plugin_class, data);
 
   if (driver) {
     driver->node = node;
@@ -1114,7 +1113,7 @@ video_decoder_t *get_video_decoder (xine_stream_t *stream, uint8_t stream_type) 
       return NULL;
     }
 
-    vd = (video_decoder_t *) node->info->open (node->plugin_class, stream, NULL);
+    vd = ((video_decoder_class_t *)node->plugin_class)->open_plugin(node->plugin_class, stream);
 
     if (vd) {
       vd->node = node;
@@ -1183,7 +1182,7 @@ audio_decoder_t *get_audio_decoder (xine_stream_t *stream, uint8_t stream_type) 
       return NULL;
     }
 
-    ad = (audio_decoder_t *) node->info->open (node->plugin_class, stream, NULL);
+    ad = ((audio_decoder_class_t *)node->plugin_class)->open_plugin(node->plugin_class, stream);
 
     if (ad) {
       ad->node = node;
@@ -1251,7 +1250,7 @@ spu_decoder_t *get_spu_decoder (xine_stream_t *stream, uint8_t stream_type) {
       return NULL;
     }
 
-    sd = (spu_decoder_t *) node->info->open (node->plugin_class, stream, NULL);
+    sd = ((spu_decoder_class_t *)node->plugin_class)->open_plugin(node->plugin_class, stream);
 
     if (sd) {
       sd->node = node;

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_oss_out.c,v 1.74 2002/10/16 22:54:47 guenter Exp $
+ * $Id: audio_oss_out.c,v 1.75 2002/10/17 17:43:41 mroi Exp $
  *
  * 20-8-2001 First implementation of Audio sync and Audio driver separation.
  * Copyright (C) 2001 James Courtier-Dutton James@superbug.demon.co.uk
@@ -617,8 +617,7 @@ static int ao_oss_ctrl(xine_ao_driver_t *this_gen, int cmd, ...) {
   return 0;
 }
 
-static void *open_plugin (void *class_gen, xine_stream_t *stream, 
-			  const void *data) {
+static xine_ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *data) {
 
   oss_class_t     *class = (oss_class_t *) class_gen;
   config_values_t *config = class->config;
@@ -919,7 +918,7 @@ static void *open_plugin (void *class_gen, xine_stream_t *stream,
   this->ao_driver.get_gap_tolerance   = ao_oss_get_gap_tolerance;
   this->ao_driver.control	      = ao_oss_ctrl;
 
-  return this;
+  return &this->ao_driver;
 }
 
 /*
@@ -947,6 +946,7 @@ static void *init_class (xine_t *xine, void *data) {
 
   this = (oss_class_t *) malloc (sizeof (oss_class_t));
 
+  this->driver_class.open_plugin     = open_plugin;
   this->driver_class.get_identifier  = get_identifier;
   this->driver_class.get_description = get_description;
   this->driver_class.dispose         = dispose_class;
@@ -966,7 +966,6 @@ static ao_info_t ao_info_oss = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_AUDIO_OUT, AO_OUT_OSS_IFACE_VERSION, "oss", XINE_VERSION_CODE, &ao_info_oss, 
-    init_class, open_plugin },
+  { PLUGIN_AUDIO_OUT, AO_OUT_OSS_IFACE_VERSION, "oss", XINE_VERSION_CODE, &ao_info_oss, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.h,v 1.4 2002/10/14 20:50:17 guenter Exp $
+ * $Id: audio_decoder.h,v 1.5 2002/10/17 17:43:44 mroi Exp $
  *
  * xine audio decoder plugin interface
  *
@@ -36,9 +36,15 @@
  */
 
 typedef struct audio_decoder_class_s audio_decoder_class_t;
+typedef struct audio_decoder_s audio_decoder_t;
 
 struct audio_decoder_class_s {
 
+  /*
+   * open a new instance of this plugin class
+   */
+  audio_decoder_t* (*open_plugin) (audio_decoder_class_t *this, xine_stream_t *stream);
+  
   /*
    * return short, human readable identifier for this plugin class
    */
@@ -54,11 +60,9 @@ struct audio_decoder_class_s {
    * free all class-related resources
    */
 
-  void (*dispose) (video_decoder_class_t *this);
+  void (*dispose) (audio_decoder_class_t *this);
 };
 
-
-typedef struct audio_decoder_s audio_decoder_t;
 
 struct audio_decoder_s {
 

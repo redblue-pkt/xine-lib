@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_plugin.h,v 1.32 2002/10/14 15:47:19 guenter Exp $
+ * $Id: input_plugin.h,v 1.33 2002/10/17 17:43:43 mroi Exp $
  */
 
 #ifndef HAVE_INPUT_PLUGIN_H
@@ -32,8 +32,14 @@
 #define INPUT_PLUGIN_IFACE_VERSION   9
  
 typedef struct input_class_s input_class_t ;
+typedef struct input_plugin_s input_plugin_t;
 
 struct input_class_s {
+
+  /*
+   * open a new instance of this plugin class
+   */
+  input_plugin_t* (*open_plugin) (input_class_t *this, xine_stream_t *stream, const char *mrl);
 
   /*
    * return short, human readable identifier for this plugin class
@@ -70,8 +76,6 @@ struct input_class_s {
    */
   int (*eject_media) (input_class_t *this);
 };
-
-typedef struct input_plugin_s input_plugin_t;
 
 struct input_plugin_s {
 

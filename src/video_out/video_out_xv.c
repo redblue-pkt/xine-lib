@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.140 2002/10/16 22:54:47 guenter Exp $
+ * $Id: video_out_xv.c,v 1.141 2002/10/17 17:43:43 mroi Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -1074,8 +1074,7 @@ static void xv_update_XV_DOUBLE_BUFFER(void *this_gen, xine_cfg_entry_t *entry) 
 }
 
 
-static void *open_plugin (void *class_gen, xine_stream_t *stream, 
-			  const void *visual_gen) {
+static xine_vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *visual_gen) {
 
   xv_class_t           *class = (xv_class_t *) class_gen;
   config_values_t      *config = class->config;
@@ -1365,6 +1364,7 @@ static void *init_class (xine_t *xine, void *visual_gen) {
    */
   this = (xv_class_t *) malloc (sizeof (xv_class_t));
 
+  this->driver_class.open_plugin     = open_plugin;
   this->driver_class.get_identifier  = get_identifier;
   this->driver_class.get_description = get_description;
   this->driver_class.dispose         = dispose_class;
@@ -1388,7 +1388,7 @@ static vo_info_t vo_info_xv = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_VIDEO_OUT, 10, "xv", XINE_VERSION_CODE, &vo_info_xv, init_class, open_plugin },
+  { PLUGIN_VIDEO_OUT, 10, "xv", XINE_VERSION_CODE, &vo_info_xv, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
 

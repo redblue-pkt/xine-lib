@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_avi.c,v 1.115 2002/10/16 14:09:12 guenter Exp $
+ * $Id: demux_avi.c,v 1.116 2002/10/17 17:43:42 mroi Exp $
  *
  * demultiplexer for avi streams
  *
@@ -1508,8 +1508,8 @@ static int demux_avi_get_stream_length (demux_plugin_t *this_gen) {
   return 0;
 }
 
-static void* open_plugin (void *class_gen, xine_stream_t *stream, 
-			  const void *input_gen) {
+static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *stream, 
+				    input_plugin_t *input_gen) {
   
   input_plugin_t *input = (input_plugin_t *) input_gen;
   demux_avi_t    *this;
@@ -1593,7 +1593,7 @@ static void* open_plugin (void *class_gen, xine_stream_t *stream,
 
   printf ("demux_avi: %ld frames\n", this->avi->video_idx.video_frames);
 
-  return this;
+  return &this->demux_plugin;
 }
 
 static char *get_description (demux_class_t *this_gen) {
@@ -1628,6 +1628,7 @@ static void *init_plugin (xine_t *xine, void *data) {
   this->config = xine->config;
   this->xine   = xine;
 
+  this->demux_class.open_plugin     = open_plugin;
   this->demux_class.get_description = get_description;
   this->demux_class.get_identifier  = get_identifier;
   this->demux_class.get_mimetypes   = get_mimetypes;
@@ -1643,6 +1644,6 @@ static void *init_plugin (xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_DEMUX, 14, "avi", XINE_VERSION_CODE, NULL, init_plugin, open_plugin },
-  { PLUGIN_NONE, 0, "", 0, NULL, NULL, NULL }
+  { PLUGIN_DEMUX, 14, "avi", XINE_VERSION_CODE, NULL, init_plugin },
+  { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

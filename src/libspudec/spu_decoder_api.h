@@ -31,14 +31,36 @@
 
 /*
  * generic xine spu decoder plugin interface
- *
- * for a dynamic plugin make sure you provide this function call:
- * spu_decoder_t *init_spu_decoder_plugin (int iface_version,
- *                                             xine_t *xine);
  */
 
+typedef struct spu_decoder_class_s spu_decoder_class_t;
 typedef struct spu_decoder_s spu_decoder_t;
 
+struct spu_decoder_class_s {
+
+  /*
+   * open a new instance of this plugin class
+   */
+  spu_decoder_t* (*open_plugin) (spu_decoder_class_t *this, xine_stream_t *stream);
+  
+  /*
+   * return short, human readable identifier for this plugin class
+   */
+  char* (*get_identifier) (spu_decoder_class_t *this);
+
+  /*
+   * return human readable (verbose = 1 line) description for 
+   * this plugin class
+   */
+  char* (*get_description) (spu_decoder_class_t *this);
+  
+  /*
+   * free all class-related resources
+   */
+  void (*dispose) (spu_decoder_class_t *this);
+};
+  
+ 
 struct spu_decoder_s {
 
   void (*init) (spu_decoder_t *this, vo_instance_t *video_out);
@@ -48,8 +70,6 @@ struct spu_decoder_s {
   void (*reset) (spu_decoder_t *this);
     
   void (*close) (spu_decoder_t *this);
-
-  char* (*get_identifier) (void);
 
   void (*dispose) (spu_decoder_t *this);
 

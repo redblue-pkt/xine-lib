@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.h,v 1.66 2002/10/16 22:54:48 guenter Exp $
+ * $Id: video_out.h,v 1.67 2002/10/17 17:43:44 mroi Exp $
  *
  *
  * xine version of video_out.h 
@@ -314,6 +314,11 @@ typedef struct video_driver_class_s video_driver_class_t;
 
 struct video_driver_class_s {
 
+  /*
+   * open a new instance of this plugin class
+   */
+  xine_vo_driver_t* (*open_plugin) (video_driver_class_t *this, const void *visual);
+  
   /*
    * return short, human readable identifier for this plugin class
    */

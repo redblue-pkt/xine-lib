@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_plugin.h,v 1.5 2002/10/16 22:54:48 guenter Exp $
+ * $Id: xine_plugin.h,v 1.6 2002/10/17 17:43:44 mroi Exp $
  *
  * generic plugin definitions
  *
@@ -43,7 +43,6 @@ typedef struct {
   uint32_t    version;            /* version number, increased every release */
   void       *special_info;       /* plugin-type specific, see structs below */
   void       *(*init)(xine_t *, void *); /* init the plugin class            */
-  void       *(*open)(void *, xine_stream_t *, const void *); /* create an instance*/
 } plugin_info_t;
 
 

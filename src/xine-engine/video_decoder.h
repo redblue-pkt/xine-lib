@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.h,v 1.4 2002/10/14 19:29:20 guenter Exp $
+ * $Id: video_decoder.h,v 1.5 2002/10/17 17:43:44 mroi Exp $
  *
  * xine video decoder plugin interface
  *
@@ -36,9 +36,15 @@
  */
 
 typedef struct video_decoder_class_s video_decoder_class_t;
+typedef struct video_decoder_s video_decoder_t;
 
 struct video_decoder_class_s {
 
+  /*
+   * open a new instance of this plugin class
+   */
+  video_decoder_t* (*open_plugin) (video_decoder_class_t *this, xine_stream_t *stream);
+  
   /*
    * return short, human readable identifier for this plugin class
    */
@@ -57,8 +63,6 @@ struct video_decoder_class_s {
   void (*dispose) (video_decoder_class_t *this);
 };
 
-
-typedef struct video_decoder_s video_decoder_t;
 
 struct video_decoder_s {
 

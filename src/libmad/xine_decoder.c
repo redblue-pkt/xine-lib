@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.28 2002/10/16 23:13:19 guenter Exp $
+ * $Id: xine_decoder.c,v 1.29 2002/10/17 17:43:43 mroi Exp $
  *
  * stuff needed to turn libmad into a xine decoder plugin
  */
@@ -250,11 +250,9 @@ static void mad_dispose (audio_decoder_t *this_gen) {
   free (this_gen);
 }
 
-void * open_plugin (void *class_gen, xine_stream_t *stream, 
-		    const void *ao_gen) {
+static audio_decoder_t *open_plugin (audio_decoder_class_t *class_gen, xine_stream_t *stream) {
 
   mad_decoder_t *this ;
-  ao_instance_t *ao = (ao_instance_t *) ao_gen;
 
   this = (mad_decoder_t *) malloc (sizeof (mad_decoder_t));
 
@@ -262,7 +260,6 @@ void * open_plugin (void *class_gen, xine_stream_t *stream,
   this->audio_decoder.reset               = mad_reset;
   this->audio_decoder.dispose             = mad_dispose;
   
-  this->audio_out       = ao;
   this->output_open     = 0;
   this->bytes_in_buffer = 0;
 
@@ -274,22 +271,22 @@ void * open_plugin (void *class_gen, xine_stream_t *stream,
   printf ("libmad: init\n"); 
 #endif
 
-  return this;
+  return &this->audio_decoder;
 }
 
 /*
  * mad plugin class
  */
 
-static char *get_identifier (video_decoder_class_t *this) {
+static char *get_identifier (audio_decoder_class_t *this) {
   return "mad";
 }
 
-static char *get_description (video_decoder_class_t *this) {
+static char *get_description (audio_decoder_class_t *this) {
   return "libmad based mpeg audio layer 1/2/3 decoder plugin";
 }
 
-static void dispose_class (video_decoder_class_t *this) {
+static void dispose_class (audio_decoder_class_t *this) {
   free (this);
 }
 
@@ -299,6 +296,7 @@ static void *init_plugin (xine_t *xine, void *data) {
   
   this = (mad_class_t *) malloc (sizeof (mad_class_t));
 
+  this->decoder_class.open_plugin     = open_plugin;
   this->decoder_class.get_identifier  = get_identifier;
   this->decoder_class.get_description = get_description;
   this->decoder_class.dispose         = dispose_class;
@@ -317,7 +315,6 @@ static decoder_info_t dec_info_audio = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_AUDIO_DECODER, 10, "mad", XINE_VERSION_CODE, &dec_info_audio, 
-    init_plugin, open_plugin },
+  { PLUGIN_AUDIO_DECODER, 10, "mad", XINE_VERSION_CODE, &dec_info_audio, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_file.c,v 1.62 2002/10/16 14:09:13 guenter Exp $
+ * $Id: input_file.c,v 1.63 2002/10/17 17:43:43 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -234,13 +234,13 @@ static void file_plugin_dispose (input_plugin_t *this_gen ) {
   free (this);
 }
 
-static void *open_plugin (void *cls_gen, xine_stream_t *stream, 
-			  const void *data) {
+static input_plugin_t *open_plugin (input_class_t *cls_gen, xine_stream_t *stream, 
+				    const char *data) {
 
   file_input_class_t  *cls = (file_input_class_t *) cls_gen;
   file_input_plugin_t *this;
-  char                *mrl = strdup ((char *) data);
   FILE                *sub;
+  char                *mrl = strdup(data);
   char                *filename, *subtitle;
   int                  fh;
 
@@ -288,7 +288,7 @@ static void *open_plugin (void *cls_gen, xine_stream_t *stream,
   this->input_plugin.get_optional_data  = file_plugin_get_optional_data;
   this->input_plugin.dispose            = file_plugin_dispose;
 
-  return this;
+  return &this->input_plugin;
 }
 
 
@@ -808,6 +808,7 @@ static void *init_plugin (xine_t *xine, void *data) {
   this->config = xine->config;
   config       = xine->config;
 
+  this->input_class.open_plugin        = open_plugin;
   this->input_class.get_dir            = file_class_get_dir;
   this->input_class.get_description    = file_class_get_description;
   this->input_class.get_autoplay_list  = NULL;
@@ -844,7 +845,7 @@ static void *init_plugin (xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_INPUT, 9, "file", XINE_VERSION_CODE, NULL, init_plugin, open_plugin },
+  { PLUGIN_INPUT, 9, "file", XINE_VERSION_CODE, NULL, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
 
