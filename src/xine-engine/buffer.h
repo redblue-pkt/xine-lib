@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.h,v 1.49 2002/06/08 19:45:19 tmmm Exp $
+ * $Id: buffer.h,v 1.50 2002/06/19 22:37:54 miguelfreitas Exp $
  *
  *
  * contents:
@@ -267,7 +267,7 @@ char * buf_audio_name( uint32_t buf_type );
  * - will always use machine endian format, so demuxers reading
  *   stuff from win32 formats must use the function below.
  */
-typedef struct {
+typedef struct __attribute__((__packed__)) {
     int32_t        biSize;
     int32_t        biWidth;
     int32_t        biHeight;
@@ -287,7 +287,7 @@ void xine_bmiheader_le2me( xine_bmiheader *bih );
 /* this is xine version of WAVEFORMATEX 
  * (the same comments from xine_bmiheader)
  */
-typedef struct {
+typedef struct __attribute__((__packed__)) {
   int16_t   wFormatTag;
   int16_t   nChannels;
   int32_t   nSamplesPerSec;
