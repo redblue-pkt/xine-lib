@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpgaudio.c,v 1.130 2003/12/05 15:54:57 f1rmb Exp $
+ * $Id: demux_mpgaudio.c,v 1.131 2003/12/06 19:06:31 tmattern Exp $
  *
  * demultiplexer for mpeg audio (i.e. mp3) streams
  *
@@ -58,6 +58,8 @@
 #define RIFF_TAG FOURCC_TAG('R', 'I', 'F', 'F')
 #define AVI_TAG FOURCC_TAG('A', 'V', 'I', ' ')
 #define CDXA_TAG FOURCC_TAG('C', 'D', 'X', 'A')
+#define MPEG_MARKER FOURCC_TAG( 0x00, 0x00, 0x01, 0xBA )
+
 
 /* Xing header stuff */
 #define XING_TAG FOURCC_TAG('X', 'i', 'n', 'g')
@@ -158,6 +160,7 @@ typedef struct {
   mpg_audio_frame_t    cur_frame;
   double               cur_fpts;
   int                  is_vbr;
+  int                  meta_info_flag;
 
   /* Xing header */
   int                  check_xing;
@@ -410,15 +413,35 @@ static int mpg123_parse_frame_payload(demux_mpgaudio_t *this,
 
   /*
    * compute stream length (in s)
-   * use the Xing header if there is one (VBR)
-   * otherwise use CBR formula
+   * use the Xing header if there is one (VBR) otherwise use CBR formula
+   * set stream_info before sending any buffer to the decoder
    */
   if (this->check_xing) {
     mpg123_parse_xing_header(this, buf->mem, len + 4);
     if (!this->is_vbr) {
       this->stream_length = this->input->get_length(this->input) / (this->br / 8);
+      _x_stream_info_set(this->stream, XINE_STREAM_INFO_BITRATE, this->br);
+      _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_BITRATE, this->br);
+    } else {
+      _x_stream_info_set(this->stream, XINE_STREAM_INFO_BITRATE, this->abr);
+      _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_BITRATE, this->abr);
     }
     this->check_xing = 0;
+  }
+  
+  /* set codec infos here
+   * the decoder doesn't know if the stream is VBR
+   */
+  if (!this->meta_info_flag) {
+    char scratch_buf[256];
+    char *mpeg_ver[3] = {"1", "2", "2.5"};
+    
+    snprintf(scratch_buf, 256, "MPEG %s Layer %1d%s",
+             mpeg_ver[this->cur_frame.version_idx], this->cur_frame.layer,
+             (this->is_vbr)? " VBR" : " CBR" );
+    _x_meta_info_set(this->stream, XINE_META_INFO_AUDIOCODEC, scratch_buf);
+    
+    this->meta_info_flag = 1;
   }
 
   this->cur_fpts += this->cur_frame.duration;
@@ -482,10 +505,9 @@ static int sniff_buffer_looks_like_mp3 (input_plugin_t *input)
     return 0;
 
   for (offset = 0; offset + 4 < SNIFF_BUFFER_LENGTH; offset++) {
-    size_t length;
 
     if (mpg123_parse_frame_header(&frame, buf + offset)) {
-      length = frame.length;
+      size_t length = frame.length;
 
       /* Since one frame is available, is there another frame
        * just to be sure this is more likely to be a real MP3
@@ -697,12 +719,11 @@ static int demux_mpgaudio_next (demux_mpgaudio_t *this, int decoder_flags) {
     if (mpg123_read_frame_header(this, header_buf, bytes)) {
 
       if (mpg123_parse_frame_header(&this->cur_frame, header_buf)) {
-
         if (!this->br) {
           this->br = this->cur_frame.bitrate;
         }
         return mpg123_parse_frame_payload(this, header_buf, decoder_flags);
-
+        
       } else if ((BE_32(header_buf)) == ID3V22_TAG) {
         lprintf("ID3V2.2 tag\n");
         if (!id3v22_parse_tag(this, header_buf)) {
@@ -829,11 +850,6 @@ static void demux_mpgaudio_send_headers (demux_plugin_t *this_gen) {
     }
   }
 
-  if (this->is_vbr)
-    _x_stream_info_set(this->stream, XINE_STREAM_INFO_BITRATE, this->abr);
-  else
-    _x_stream_info_set(this->stream, XINE_STREAM_INFO_BITRATE, this->br);
-
   if (this->cur_frame.samplerate) {
     if (this->cur_frame.layer == 1)
       _x_stream_info_set(this->stream, XINE_STREAM_INFO_FRAME_DURATION,
@@ -842,6 +858,7 @@ static void demux_mpgaudio_send_headers (demux_plugin_t *this_gen) {
       _x_stream_info_set(this->stream, XINE_STREAM_INFO_FRAME_DURATION,
         1152000 / this->cur_frame.samplerate);
   }
+  
   this->status = DEMUX_OK;
 }
 
@@ -1073,6 +1090,9 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
         return NULL;
       }
 
+    } else if (head == MPEG_MARKER) {
+      lprintf ("discard mpeg video\n");
+      return NULL;
     } else if (!sniff_buffer_looks_like_mp3 (input)) {
       lprintf ("sniff_buffer_looks_like_mp3 failed\n");
       return NULL;
