@@ -26,6 +26,8 @@ dnl AM_PATH_AALIB([MINIMUM-VERSION, [ACTION-IF-FOUND [,ACTION-IF-NOT-FOUND ]]])
 dnl Test for AALIB, and define AALIB_CFLAGS and AALIB_LIBS, AALIB_STATIC_LIBS.
 dnl
 dnl ***********************
+dnl 17/09/2001
+dnl   * use both aalib-config, and *last chance* aainfo for guessing.
 dnl 19/08/2001
 dnl   * use aalib-config instead of aainfo now.
 dnl 17/06/2001 
@@ -62,11 +64,123 @@ AC_ARG_ENABLE(aalib-test,
     AC_MSG_CHECKING(for AALIB version >= $min_aalib_version)
   else
     AC_PATH_PROG(AALIB_CONFIG, aalib-config, no)
-    AC_MSG_CHECKING(for AALIB version >= $min_aalib_version)
-    no_aalib=""
+
     if test "$AALIB_CONFIG" = "no" ; then
-      no_aalib=yes
+
+dnl
+dnl Add aainfo stuff here.
+dnl
+dnl aalib-config missed, check for old aainfo
+
+      AALIB_LIBS="$AALIB_LIBS -laa"
+      if test x$aalib_config_exec_prefix != x ; then
+        AALIB_CFLAGS="-I$aalib_config_exec_prefix/include"
+        AALIB_LIBS="-L$aalib_config_exec_prefix/lib -laa"
+        if test x${AAINFO+set} != xset ; then
+          AAINFO=$aalib_config_exec_prefix/bin/aainfo
+        fi
+      fi
+
+      if test x$aalib_config_prefix != x ; then
+        AALIB_CFLAGS="-I$aalib_config_prefix/include"
+        AALIB_LIBS="-L$aalib_config_prefix/lib -laa"
+        if test x${AAINFO+set} != xset ; then
+          AAINFO=$aalib_config_prefix/bin/aainfo
+        fi
+      fi
+
+      if test x"$aalib_config_prefix" = "x"; then
+        AC_PATH_PROG(AAINFO, aainfo, no)
+      else
+        AC_MSG_CHECKING(for $AAINFO)
+        if test -x $AAINFO; then 
+          AC_MSG_RESULT(yes)
+        else 
+          AAINFO="no"
+          AC_MSG_RESULT(no)
+        fi
+      fi
+
+      AC_MSG_CHECKING(for AALIB version >= $min_aalib_version)
+      no_aalib=""
+
+      if test x"$AAINFO" = "xno"; then
+        no_aalib=yes
+      else
+        aalib_drivers="`$AAINFO --help | grep drivers | sed -e 's/available//g;s/drivers//g;s/\://g'`"
+        for drv in $aalib_drivers; do
+          if test $drv = "X11" -a x$x11dep = "x"; then
+            AALIB_CFLAGS="$AALIB_CFLAGS `echo $X_CFLAGS|sed -e 's/\-I/\-L/g;s/include/lib/g'`"
+            x11dep="yes"
+          fi
+dnl          if test $drv = "slang" -a x$slangdep = "x"; then 
+dnl            slangdep="yes"
+dnl          fi
+dnl          if test $drv = "gpm" -a x$gmpdep = "x"; then 
+dnl            gpmdep="yes"
+dnl          fi
+        done
+
+        ac_save_CFLAGS="$CFLAGS"
+        ac_save_LIBS="$LIBS"
+        CFLAGS="$AALIB_CFLAGS $CFLAGS"
+        LIBS="$AALIB_LIBS $LIBS"
+
+dnl
+dnl Now check if the installed AALIB is sufficiently new. (Also sanity
+dnl checks the results of xine-config to some extent
+dnl
+        AC_LANG_SAVE()
+        AC_LANG_C()
+        rm -f conf.xinetest
+        AC_TRY_RUN([
+#include <stdio.h>
+#include <stdlib.h>
+#include <aalib.h>
+
+int main () {
+  int major, minor;
+   char *tmp_version;
+
+  system ("touch conf.xinetest");
+
+  /* HP/UX 9 (%@#!) writes to sscanf strings */
+  tmp_version = (char *) strdup("$min_aalib_version");
+  if (sscanf(tmp_version, "%d.%d", &major, &minor) != 2) {
+     printf("%s, bad version string\n", "$min_aalib_version");
+     exit(1);
+  }
+
+  if ((AA_LIB_VERSION > major) || ((AA_LIB_VERSION == major) && 
+#ifdef AA_LIB_MINNOR
+     (AA_LIB_MINNOR >= minor)
+#else
+     (AA_LIB_MINOR >= minor)
+#endif
+     )) {
+     return 0;
+  }
+  else {
+#ifdef AA_LIB_MINNOR
+     printf("\n*** An old version of AALIB (%d.%d) was found.\n", AA_LIB_VERSION, AA_LIB_MINNOR);
+#else
+printf("\n*** An old version of AALIB (%d.%d) was found.\n", AA_LIB_VERSION, AA_LIB_MINOR);
+#endif
+     printf("*** You need a version of AALIB newer than %d.%d. The latest version of\n", major, minor);
+     printf("*** AALIB is always available from:\n");
+     printf("***        http://www.ta.jcu.cz://aa\n");
+     printf("***\n");
+  }
+  return 1;
+}
+],, no_aalib=yes,[echo $ac_n "cross compiling; assumed OK... $ac_c"])
+        CFLAGS="$ac_save_CFLAGS"
+        LIBS="$ac_save_LIBS"
+      fi
+
     else
+      AC_MSG_CHECKING(for AALIB version >= $min_aalib_version)
+      no_aalib=""
       AALIB_CFLAGS=`$AALIB_CONFIG $aalib_config_args --cflags`
       AALIB_LIBS=`$AALIB_CONFIG $aalib_config_args --libs`
       aalib_config_major_version=`$AALIB_CONFIG $aalib_config_args --version | \
@@ -132,10 +246,11 @@ printf("\n*** An old version of AALIB (%d.%d) was found.\n", AA_LIB_VERSION, AA_
        CFLAGS="$ac_save_CFLAGS"
        LIBS="$ac_save_LIBS"
      fi
-    fi
+    fi dnl AALIB_CONFIG
+
     if test "x$no_aalib" = x; then
-       AC_MSG_RESULT(yes)
-       ifelse([$2], , :, [$2])     
+      AC_MSG_RESULT(yes)
+      ifelse([$2], , :, [$2])     
     else
       AC_MSG_RESULT(no)
       if test "$AALIB_CONFIG" = "no"; then
@@ -178,10 +293,10 @@ printf("\n*** An old version of AALIB (%d.%d) was found.\n", AA_LIB_VERSION, AA_
           LIBS="$ac_save_LIBS"
         fi
       fi
-    AALIB_CFLAGS=""
-    AALIB_LIBS=""
-    ifelse([$3], , :, [$3])
-  fi
+      AALIB_CFLAGS=""
+      AALIB_LIBS=""
+      ifelse([$3], , :, [$3])
+    fi
   AC_SUBST(AALIB_CFLAGS)
   AC_SUBST(AALIB_LIBS)
   AC_LANG_RESTORE()
