@@ -739,7 +739,7 @@
 &nbsp;&nbsp;&nbsp;&lt;stream_option&gt; ::= (&lt;configoption&gt;|&lt;engine_option&gt;|novideo|noaudio|nospu)
 &nbsp;&nbsp;&nbsp;&lt;configoption&gt;  ::= &lt;configentry&gt;:&lt;configvalue&gt;
 &nbsp;&nbsp;&nbsp;&lt;configentry&gt;   ::= &lt;unreserved&gt;{&lt;unreserved&gt;}
-&nbsp;&nbsp;&nbsp;&lt;configvalue&gt;   ::= &lt;conf_char&gt;{&lt;conf_char&gt;}
+&nbsp;&nbsp;&nbsp;&lt;configvalue&gt;   ::= &lt;stream_char&gt;{&lt;stream_char&gt;}
 &nbsp;&nbsp;&nbsp;&lt;engine_option&gt; ::= &lt;unreserved&gt;{&lt;unreserved&gt;}:&lt;stream_char&gt;{&lt;stream_char&gt;}
 &nbsp;&nbsp;&nbsp;&lt;stream_char&gt;   ::= (&lt;unreserved&gt;|&lt;escaped&gt;|:|@|&amp;|=|+|$|,)
 &nbsp;&nbsp;&nbsp;&lt;mrl_char&gt;      ::= (&lt;reserved&gt;|&lt;unreserved&gt;|&lt;escaped&gt;)
