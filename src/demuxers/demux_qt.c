@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.86 2002/09/22 17:07:52 tmmm Exp $
+ * $Id: demux_qt.c,v 1.87 2002/09/23 03:34:03 tmmm Exp $
  *
  */
 
@@ -95,6 +95,8 @@ typedef unsigned int qt_atom;
 #define CO64_ATOM QT_ATOM('c', 'o', '6', '4')
 
 #define ESDS_ATOM QT_ATOM('e', 's', 'd', 's')
+
+#define IMA4_FOURCC QT_ATOM('i', 'm', 'a', '4')
 
 /* placeholder for cutting and pasting */
 #define _ATOM QT_ATOM('', '', '', '')
@@ -212,6 +214,13 @@ typedef struct {
   void *decoder_config;
   int decoder_config_len;
 
+  /* special audio parameters */
+  unsigned int samples_per_packet;
+  unsigned int bytes_per_packet;
+  unsigned int bytes_per_frame;
+  unsigned int bytes_per_sample;
+  unsigned int samples_per_frame;
+
 } qt_sample_table;
 
 typedef struct {
@@ -220,7 +229,7 @@ typedef struct {
 
   unsigned int creation_time;  /* in ms since Jan-01-1904 */
   unsigned int modification_time;
-  unsigned int time_scale;  /* base clock frequency is Hz */
+  unsigned int timescale;  /* base clock frequency is Hz */
   unsigned int duration;
   off_t input_length;
         
@@ -360,7 +369,7 @@ qt_info *create_qt_info(void) {
 
   info->creation_time = 0;
   info->modification_time = 0;
-  info->time_scale = 0;
+  info->timescale = 0;
   info->duration = 0;
   info->input_length = 0;
 
@@ -424,7 +433,7 @@ static void parse_mvhd_atom(qt_info *info, unsigned char *mvhd_atom) {
 
   info->creation_time = BE_32(&mvhd_atom[0x0C]);
   info->modification_time = BE_32(&mvhd_atom[0x10]);
-  info->time_scale = BE_32(&mvhd_atom[0x14]);
+  info->timescale = BE_32(&mvhd_atom[0x14]);
   info->duration = BE_32(&mvhd_atom[0x18]);
 
 }
@@ -632,6 +641,63 @@ static qt_error parse_trak_atom(qt_sample_table *sample_table,
           BE_16(&trak_atom[i + 0x2C]);
         sample_table->media_description.audio.channels = trak_atom[i + 0x25];
         sample_table->media_description.audio.bits = trak_atom[i + 0x27];
+
+        /* assume uncompressed audio parameters */
+        sample_table->bytes_per_sample =
+          sample_table->media_description.audio.bits / 8;
+        sample_table->samples_per_frame =
+          sample_table->media_description.audio.channels;
+        sample_table->bytes_per_frame = 
+          sample_table->bytes_per_sample * sample_table->samples_per_frame;
+        sample_table->samples_per_packet = sample_table->samples_per_frame;
+        sample_table->bytes_per_packet = sample_table->bytes_per_sample;
+
+        /* special case time: some ima4-encoded files don't have the
+         * extra header; compensate */
+        if (BE_32(&trak_atom[i + 0x10]) == IMA4_FOURCC) {
+          sample_table->samples_per_packet = 64;
+          sample_table->bytes_per_packet = 34;
+          sample_table->bytes_per_frame = 34 * 
+            sample_table->media_description.audio.channels;
+          sample_table->bytes_per_sample = 2;
+          sample_table->samples_per_frame = 64 *
+            sample_table->media_description.audio.channels;
+        }
+
+        /* it's time to dig a little deeper to determine the real audio
+         * properties; if a the stsd compressor atom has 0x24 bytes, it
+         * appears to be a handler for uncompressed data; if there are an
+         * extra 0x10 bytes, there are some more useful decoding params */
+        if (BE_32(&trak_atom[i + 0x0C]) > 0x24) {
+
+          if (BE_32(&trak_atom[i + 0x30]))
+            sample_table->samples_per_packet = BE_32(&trak_atom[i + 0x30]);
+          if (BE_32(&trak_atom[i + 0x34]))
+            sample_table->bytes_per_packet = BE_32(&trak_atom[i + 0x34]);
+          if (BE_32(&trak_atom[i + 0x38]))
+            sample_table->bytes_per_frame = BE_32(&trak_atom[i + 0x38]);
+          if (BE_32(&trak_atom[i + 0x3C]))
+            sample_table->bytes_per_sample = BE_32(&trak_atom[i + 0x3C]);
+          sample_table->samples_per_frame =
+            (sample_table->bytes_per_frame / sample_table->bytes_per_packet) *
+            sample_table->samples_per_packet;
+
+        }
+
+/*
+printf("*** audio: %d bits, %d channels, %d Hz\n" \
+    "  %d samples/packet, %d bytes/packet, %d bytes/frame, %d bytes/sample, %d samples/frame\n",
+  sample_table->media_description.audio.bits,
+  sample_table->media_description.audio.channels,
+  sample_table->media_description.audio.sample_rate,
+  sample_table->samples_per_packet,
+  sample_table->bytes_per_packet,
+  sample_table->bytes_per_frame,
+  sample_table->bytes_per_sample,
+  sample_table->samples_per_frame
+);
+*/
+
       }
 
     } else if (current_atom == ESDS_ATOM) {
@@ -815,7 +881,9 @@ static qt_error parse_trak_atom(qt_sample_table *sample_table,
 free_sample_table:
   free(sample_table->edit_list_table);
   free(sample_table->chunk_offset_table);
-  free(sample_table->sample_size_table);
+  /* this pointer might have been set to -1 as a special case */
+  if (sample_table->sample_size_table != (void *)-1)
+    free(sample_table->sample_size_table);
   free(sample_table->sync_sample_table);
   free(sample_table->sample_to_chunk_table);
   free(sample_table->time_to_sample_table);
@@ -824,19 +892,23 @@ free_sample_table:
   return last_error;
 }
 
-static qt_error build_frame_table(qt_sample_table *sample_table) {
+static qt_error build_frame_table(qt_sample_table *sample_table,
+  unsigned int global_timescale) {
 
   int i, j;
   unsigned int frame_counter;
-  unsigned int next_keyframe;
-  unsigned int keyframe_index;
   unsigned int chunk_start, chunk_end;
   unsigned int samples_per_chunk;
   uint64_t current_offset;
   int64_t current_pts;
   unsigned int pts_index;
   unsigned int pts_index_countdown;
-  unsigned int official_audio_byte_counter = 0;
+  unsigned int audio_frame_counter = 0;
+  unsigned int edit_list_media_time;
+  int64_t edit_list_duration;
+  int64_t frame_duration = 0;
+  unsigned int edit_list_index;
+  unsigned int edit_list_pts_counter;
 
   /* AUDIO and OTHER frame types follow the same rules; VIDEO follows a
    * different set */
@@ -849,14 +921,6 @@ static qt_error build_frame_table(qt_sample_table *sample_table) {
       sample_table->frame_count * sizeof(qt_frame));
     if (!sample_table->frames)
       return QT_NO_MEMORY;
-
-    /* initialize keyframe management */
-    keyframe_index = 0;
-    if (sample_table->sync_sample_table) {
-      next_keyframe = sample_table->sync_sample_table[keyframe_index++] - 1;
-    } else {
-      next_keyframe = 0xFFFFFFFF;  /* this means all frames are key */
-    }
 
     /* initialize more accounting variables */
     frame_counter = 0;
@@ -900,26 +964,15 @@ static qt_error build_frame_table(qt_sample_table *sample_table) {
               sample_table->sample_size_table[frame_counter];
           }
 
-          /* figure out the keyframe situation for this frame */
-          /* if the next_keyframe is all F's, every frame is a keyframe */
-          if (next_keyframe == 0xFFFFFFFF)
-            sample_table->frames[frame_counter].keyframe = 1;
-          else if (next_keyframe == frame_counter) {
-            sample_table->frames[frame_counter].keyframe = 1;
-            if (keyframe_index < sample_table->sync_sample_count)
-              next_keyframe =
-                sample_table->sync_sample_table[keyframe_index++] - 1;
-            else
-              /* this frame number will hopefully never be reached */
-              next_keyframe = 0xFFFFFFFE;
-          }
-          else
+          /* if there is no stss (sample sync) table, make all of the frames
+           * keyframes; otherwise, clear the keyframe bits for now */
+          if (sample_table->sync_sample_table)
             sample_table->frames[frame_counter].keyframe = 0;
+          else
+            sample_table->frames[frame_counter].keyframe = 1;
 
           /* figure out the pts situation */
           sample_table->frames[frame_counter].pts = current_pts;
-          sample_table->frames[frame_counter].pts *= 90000;
-          sample_table->frames[frame_counter].pts /= sample_table->timescale;
           current_pts +=
             sample_table->time_to_sample_table[pts_index].duration;
           pts_index_countdown--;
@@ -934,6 +987,93 @@ static qt_error build_frame_table(qt_sample_table *sample_table) {
           frame_counter++;
         }
       }
+    }
+
+    /* fill in the keyframe information */
+    for (i = 0; i < sample_table->sync_sample_count; i++)
+      sample_table->frames[sample_table->sync_sample_table[i] - 1].keyframe = 1;
+
+    /* initialize edit list considerations */
+    edit_list_index = 0;
+    if (sample_table->edit_list_table) {
+      edit_list_media_time = 
+        sample_table->edit_list_table[edit_list_index].media_time;
+      edit_list_duration = 
+        sample_table->edit_list_table[edit_list_index].track_duration;
+
+      /* duration is in global timescale units; convert to trak timescale */
+      edit_list_duration *= sample_table->timescale;
+      edit_list_duration /= global_timescale;
+
+      edit_list_index++;
+      /* if this is the last edit list entry, don't let the duration
+       * expire (so set it to an absurdly large value) */
+      if (edit_list_index == sample_table->edit_list_count)
+        edit_list_duration = 0xFFFFFFFF;
+//printf ("edit list table exists, initial = %d, %lld\n", edit_list_media_time, edit_list_duration);
+    } else {
+      edit_list_media_time = 0;
+      edit_list_duration = 0xFFFFFFFF;
+//printf ("no edit list table, initial = %d, %lld\n", edit_list_media_time, edit_list_duration);
+    }
+
+    /* fix up pts information w.r.t. the edit list table */
+    edit_list_pts_counter = 0;
+    for (i = 0; i < sample_table->frame_count; i++) {
+
+//printf ("%d: (before) pts = %lld...", i, sample_table->frames[i].pts);
+
+      if (sample_table->frames[i].pts < edit_list_media_time)
+        sample_table->frames[i].pts = edit_list_pts_counter;
+      else {
+        /* this is not strictly correct but seems to work well enough */
+        if (i < sample_table->frame_count)
+          frame_duration = 
+            (sample_table->frames[i + 1].pts - sample_table->frames[i].pts);
+
+//printf ("frame duration = %lld...", frame_duration);
+        sample_table->frames[i].pts = edit_list_pts_counter;
+        edit_list_pts_counter += frame_duration;
+        edit_list_duration -= frame_duration;
+      }
+
+//printf ("(fixup) pts = %lld...", sample_table->frames[i].pts);
+
+      /* reload media time and duration */
+      if (edit_list_duration <= 0) {
+        if ((sample_table->edit_list_table) &&
+            (edit_list_index < sample_table->edit_list_count)) {
+//printf ("edit list index = %d\n", edit_list_index);
+          edit_list_media_time = 
+            sample_table->edit_list_table[edit_list_index].media_time;
+          edit_list_duration = 
+            sample_table->edit_list_table[edit_list_index].track_duration;
+
+          /* duration is in global timescale units; convert to trak timescale */
+          edit_list_duration *= sample_table->timescale;
+          edit_list_duration /= global_timescale;
+
+          edit_list_index++;
+          /* if this is the last edit list entry, don't let the duration
+           * expire (so set it to an absurdly large value) */
+          if (edit_list_index == sample_table->edit_list_count)
+            edit_list_duration = 0xFFFFFFFF;
+//printf ("edit list table exists: %d, %lld\n", edit_list_media_time, edit_list_duration);
+        } else {
+          edit_list_media_time = 0;
+          edit_list_duration = 0xFFFFFFFF;
+//printf ("no edit list table (or expired): %d, %lld\n", edit_list_media_time, edit_list_duration);
+        }
+      }
+
+//printf ("(after) pts = %lld...\n", sample_table->frames[i].pts);
+    }
+
+    /* compute final pts values */
+    for (i = 0; i < sample_table->frame_count; i++) {
+      sample_table->frames[i].pts *= 90000;
+      sample_table->frames[i].pts /= sample_table->timescale;
+//printf (" final pts for sample %d = %lld\n", i, sample_table->frames[i].pts);
     }
 
   } else {
@@ -960,25 +1100,46 @@ static qt_error build_frame_table(qt_sample_table *sample_table) {
              final chunk number (the number of offsets in stco table) */
           chunk_end = sample_table->chunk_offset_count + 1;
 
-        /* iterate through each sample in a chunk */
+        /* iterate through each sample in a chunk and fill in size and
+         * pts information */
         for (j = chunk_start - 1; j < chunk_end - 1; j++) {
-          sample_table->frames[j].official_byte_count =
-            official_audio_byte_counter;
-          official_audio_byte_counter +=
+
+          /* figure out the pts for this chunk */
+          sample_table->frames[j].pts = audio_frame_counter;
+          sample_table->frames[j].pts *= 90000;
+          sample_table->frames[j].pts /= sample_table->timescale;
+
+          /* fetch the alleged chunk size according to the QT header */
+          sample_table->frames[j].size =
             sample_table->sample_to_chunk_table[i].samples_per_chunk;
+
+          /* the chunk size is actually the audio frame count */
+          audio_frame_counter += sample_table->frames[j].size;
+
+          /* compute the actual chunk size */
+          sample_table->frames[j].size =
+            (sample_table->frames[j].size * 
+             sample_table->media_description.audio.channels) /
+             sample_table->samples_per_frame *
+             sample_table->bytes_per_frame;
+
+/*
+printf ("bits = %d, channels = %d, audio_frame_counter = %d, pts = %lld\n",
+  sample_table->media_description.audio.bits,
+  sample_table->media_description.audio.channels,
+  audio_frame_counter, sample_table->frames[j].pts);
+*/
+
         }
       }
     }
 
+    /* fill in the rest of the information for the audio samples */
     for (i = 0; i < sample_table->frame_count; i++) {
       sample_table->frames[i].type = sample_table->type;
       sample_table->frames[i].offset = sample_table->chunk_offset_table[i];
-      sample_table->frames[i].size = 0;  /* temporary, of course */
       sample_table->frames[i].keyframe = 0;
-      if (sample_table->type == MEDIA_AUDIO)
-        sample_table->frames[i].pts =
-        sample_table->sample_size_count;   /* stash away for audio pts calc */
-      else
+      if (sample_table->type != MEDIA_AUDIO)
         sample_table->frames[i].pts = 0;
     }
   }
@@ -1002,9 +1163,6 @@ static void parse_moov_atom(qt_info *info, unsigned char *moov_atom) {
   unsigned int *sample_table_indices;
   unsigned int min_offset_table;
   int64_t min_offset;
-  unsigned int audio_byte_counter;
-  unsigned int total_audio_bytes;
-  int64_t audio_pts_multiplier;
 
   /* make sure this is actually a moov atom */
   if (BE_32(&moov_atom[4]) != MOOV_ATOM) {
@@ -1040,7 +1198,7 @@ static void parse_moov_atom(qt_info *info, unsigned char *moov_atom) {
   info->frame_count = 0;
   for (i = 0; i < sample_table_count; i++) {
 
-    build_frame_table(&sample_tables[i]);
+    build_frame_table(&sample_tables[i], info->timescale);
     info->frame_count += sample_tables[i].frame_count;
 
     /* while traversing tables, look for A/V information */
@@ -1130,35 +1288,6 @@ static void parse_moov_atom(qt_info *info, unsigned char *moov_atom) {
     if (sample_table_indices[min_offset_table] >=
       sample_tables[min_offset_table].frame_count)
         sample_table_indices[min_offset_table] = info->frame_count;
-  }
-
-  /* fill in the missing and incomplete information (pts and frame sizes) */
-  audio_byte_counter = 0;
-  audio_pts_multiplier = 90000;
-  audio_pts_multiplier *= info->duration;
-  audio_pts_multiplier /= info->time_scale;
-  for (i = 0; i < info->frame_count; i++) {
-
-    if (info->frames[i].type == MEDIA_AUDIO) {
-
-      /* finish the pts calculation for this audio frame */
-      /* .pts currently holds the total nubmer of bytes for the stream */
-      total_audio_bytes = info->frames[i].pts;
-      info->frames[i].pts = audio_pts_multiplier;
-      info->frames[i].pts *= info->frames[i].official_byte_count;
-      info->frames[i].pts /= total_audio_bytes;
-
-      /* figure out the audio frame size */
-      if (i < info->frame_count - 1)
-        info->frames[i].size =
-          info->frames[i + 1].offset - info->frames[i].offset;
-      else
-        info->frames[i].size =
-          info->moov_last_offset - info->frames[i].offset;
-
-      audio_byte_counter += info->frames[i].size;
-
-    }
   }
 
   /* free the temporary tables on the way out */
@@ -1321,6 +1450,8 @@ static void *demux_qt_loop (void *this_gen) {
   int64_t last_frame_pts = 0;
   unsigned int i;
   unsigned int remaining_sample_bytes;
+  int edit_list_compensation = 0;
+  int frame_duration;
 
   pthread_mutex_lock( &this->mutex );
 
@@ -1370,6 +1501,19 @@ static void *demux_qt_loop (void *this_gen) {
         this->input->seek(this->input, this->qt->frames[i].offset,
           SEEK_SET);
 
+        /* Due to the edit lists, some successive frames have the same pts
+         * which would ordinarily cause frame_duration to be 0 which can
+         * cause DIV-by-0 errors in the engine. Perform this little trick
+         * to compensate. */
+        frame_duration = this->qt->frames[i].pts - last_frame_pts;
+        if (!frame_duration) {
+          frame_duration = 1;
+          edit_list_compensation++;
+        } else {
+          frame_duration -= edit_list_compensation;
+          edit_list_compensation = 0;
+        }
+
         while (remaining_sample_bytes) {
           buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
           buf->type = this->qt->video_type;
@@ -1380,7 +1524,7 @@ static void *demux_qt_loop (void *this_gen) {
 
           if (last_frame_pts) {
             buf->decoder_flags |= BUF_FLAG_FRAMERATE;
-            buf->decoder_info[0] = buf->pts - last_frame_pts;
+            buf->decoder_info[0] = frame_duration;
           }
 
           if (remaining_sample_bytes > buf->max_size)
@@ -1606,8 +1750,8 @@ static int demux_qt_start (demux_plugin_t *this_gen,
     xine_log (this->xine, XINE_LOG_MSG,
       _("demux_qt: Apple Quicktime file, %srunning time: %d min, %d sec\n"),
       (this->qt->compressed_header) ? "compressed header, " : "",
-      this->qt->duration / this->qt->time_scale / 60,
-      this->qt->duration / this->qt->time_scale % 60);
+      this->qt->duration / this->qt->timescale / 60,
+      this->qt->duration / this->qt->timescale % 60);
     if (this->qt->video_codec)
       xine_log (this->xine, XINE_LOG_MSG,
         _("demux_qt: '%c%c%c%c' video @ %dx%d\n"),
@@ -1833,7 +1977,7 @@ static int demux_qt_get_stream_length (demux_plugin_t *this_gen) {
 
   demux_qt_t *this = (demux_qt_t *) this_gen;
 
-  return this->qt->duration / this->qt->time_scale;
+  return this->qt->duration / this->qt->timescale;
 }
 
 static void *init_demuxer_plugin (xine_t *xine, void *data) {
