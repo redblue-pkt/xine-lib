@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: image.c,v 1.3 2003/04/21 13:26:29 hadess Exp $
+ * $Id: image.c,v 1.4 2003/05/11 22:00:09 holstsn Exp $
  *
  * a image video decoder
  */
@@ -113,6 +113,15 @@ int initialize_png_reader(image_decoder_t *this) {
   return 0;
 }
 
+int finalize_png_reader(image_decoder_t *this) {
+
+  png_destroy_read_struct(&this->png_ptr, &this->info_ptr,
+	 (png_infopp)NULL);
+  this->png_ptr = NULL;
+  this->info_ptr = NULL;
+
+}
+
 int process_data(image_decoder_t *this, png_bytep buffer, png_uint_32 length) {
    
   if (setjmp(this->jmpbuf)) {
@@ -203,12 +212,14 @@ void end_callback(png_structp png_ptr, png_infop info) {
 
   vo_frame_t *img; /* video out frame */
   int row, col;
+  int i;
 
   /*
    * libpng has read end of image, now convert rows into a video frame
    */
   
   image_decoder_t *this = png_get_progressive_ptr(png_ptr);
+  finalize_png_reader(this);
 #ifdef LOG
   printf("image: png end cb\n");
 #endif
@@ -268,6 +279,11 @@ void end_callback(png_structp png_ptr, png_infop info) {
 static void image_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
   image_decoder_t *this = (image_decoder_t *) this_gen;
 
+  if (!this->png_ptr) {
+    if (initialize_png_reader(this) < 0) {
+      printf("image: failed to init png reader\n");
+    }
+  }
   if (!this->video_open) {
 #ifdef LOG
     printf("image: opening video\n");
