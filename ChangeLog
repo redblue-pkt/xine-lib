@@ -4,6 +4,7 @@ xine-lib (1.0.1)
   * fixed compatibility with new libtool versions [bug #1094262]
   * renamed input.http_no_proxy to media.network.http_no_proxy
   * tightened no-proxy domain matching & added exact host match ('=' prefix)
+  * assume that front ends can handle tabs (ffmpeg pp plugin help text)
 
 xine-lib (1.0)
   * unbreak DXR3 plugin

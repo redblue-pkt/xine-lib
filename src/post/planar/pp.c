@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: pp.c,v 1.6 2004/04/17 19:54:32 mroi Exp $
+ * $Id: pp.c,v 1.7 2005/01/10 18:03:41 dsalt Exp $
  *
  * plugin for ffmpeg libpostprocess
  */
@@ -123,11 +123,6 @@ static char * get_help (void) {
     strcpy(help, help1);
     strcat(help, pp_help);
     strcat(help, help2);
-    
-    /* tab is not correctly displayed in xine-ui */
-    for( s = help; *s; s++ )
-      if( *s == '\t' )
-        *s = ' ';
   }
   return help;
 }
