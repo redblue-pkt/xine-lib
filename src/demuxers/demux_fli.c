@@ -22,7 +22,7 @@
  * avoid while programming a FLI decoder, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_fli.c,v 1.10 2002/09/10 15:07:14 mroi Exp $
+ * $Id: demux_fli.c,v 1.11 2002/09/21 19:47:11 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -76,6 +76,7 @@ typedef struct {
   /* video information */
   unsigned int         width;
   unsigned int         height;
+  unsigned char        fli_header[FLI_HEADER_SIZE];
 
   /* playback info */
   unsigned int         magic_number;
@@ -183,6 +184,64 @@ static void *demux_fli_loop (void *this_gen) {
   return NULL;
 }
 
+static int load_fli_and_send_headers(demux_fli_t *this) {
+
+  pthread_mutex_lock(&this->mutex);
+
+  this->video_fifo  = this->xine->video_fifo;
+  /* video-only format, don't worry about audio_fifo */
+
+  this->status = DEMUX_OK;
+
+  /* read the whole header */
+  this->input->seek(this->input, 0, SEEK_SET);
+  if (this->input->read(this->input, this->fli_header, FLI_HEADER_SIZE) !=
+    FLI_HEADER_SIZE) {
+    this->status = DEMUX_FINISHED;
+    pthread_mutex_unlock (&this->mutex);
+    return DEMUX_CANNOT_HANDLE;
+  }
+
+  this->magic_number = LE_16(&this->fli_header[4]);
+  this->frame_count = LE_16(&this->fli_header[6]);
+  this->width = LE_16(&this->fli_header[8]);
+  this->height = LE_16(&this->fli_header[10]);
+  this->speed = LE_32(&this->fli_header[16]);
+  if (this->magic_number == 0xAF11) {
+    /* 
+     * in this case, the speed (n) is number of 1/70s ticks between frames:
+     *
+     *  xine pts     n * frame #
+     *  --------  =  -----------  => xine pts = n * (90000/70) * frame #
+     *   90000           70
+     *
+     *  therefore, the frame pts increment = n * 1285.7
+     */
+     this->frame_pts_inc = this->speed * 1285.7;
+  } else {
+    /* 
+     * in this case, the speed (n) is number of milliseconds between frames:
+     *
+     *  xine pts     n * frame #
+     *  --------  =  -----------  => xine pts = n * 90 * frame #
+     *   90000          1000
+     *
+     *  therefore, the frame pts increment = n * 90
+     */
+     this->frame_pts_inc = this->speed * 90;
+  }
+
+  /* load stream information */
+  this->xine->stream_info[XINE_STREAM_INFO_VIDEO_WIDTH] = this->width;
+  this->xine->stream_info[XINE_STREAM_INFO_VIDEO_HEIGHT] = this->height;
+
+  xine_demux_control_headers_done (this->xine);
+
+  pthread_mutex_unlock (&this->mutex);
+
+  return DEMUX_CAN_HANDLE;
+}
+
 static int demux_fli_open(demux_plugin_t *this_gen, input_plugin_t *input,
                           int stage) {
 
@@ -204,7 +263,7 @@ static int demux_fli_open(demux_plugin_t *this_gen, input_plugin_t *input,
     magic_number = LE_16(&sig[0]);
     if ((magic_number == FLI_FILE_MAGIC_1) || 
         (magic_number == FLI_FILE_MAGIC_2))
-      return DEMUX_CAN_HANDLE;
+      return load_fli_and_send_headers(this);
 
     return DEMUX_CANNOT_HANDLE;
   }
@@ -230,10 +289,8 @@ static int demux_fli_open(demux_plugin_t *this_gen, input_plugin_t *input,
 
       while(*m == ' ' || *m == '\t') m++;
 
-      if(!strcasecmp((suffix + 1), m)) {
-        this->input = input;
-        return DEMUX_CAN_HANDLE;
-      }
+      if(!strcasecmp((suffix + 1), m))
+        return load_fli_and_send_headers(this);
     }
     return DEMUX_CANNOT_HANDLE;
   }
@@ -249,66 +306,26 @@ static int demux_fli_open(demux_plugin_t *this_gen, input_plugin_t *input,
 }
 
 static int demux_fli_start (demux_plugin_t *this_gen,
-                             fifo_buffer_t *video_fifo,
-                             fifo_buffer_t *audio_fifo,
                              off_t start_pos, int start_time) {
 
   demux_fli_t *this = (demux_fli_t *) this_gen;
   buf_element_t *buf;
   int err;
-  unsigned char fli_header[FLI_HEADER_SIZE];
 
   pthread_mutex_lock(&this->mutex);
 
   /* if thread is not running, initialize demuxer */
   if (!this->thread_running) {
-    this->video_fifo = video_fifo;
-
-    /* read the whole header */
-    this->input->seek(this->input, 0, SEEK_SET);
-    if (this->input->read(this->input, fli_header, FLI_HEADER_SIZE) !=
-      FLI_HEADER_SIZE) {
-      return DEMUX_FINISHED;
-    }
-
-    this->magic_number = LE_16(&fli_header[4]);
-    this->frame_count = LE_16(&fli_header[6]);
-    this->width = LE_16(&fli_header[8]);
-    this->height = LE_16(&fli_header[10]);
-    this->speed = LE_32(&fli_header[16]);
-    if (this->magic_number == 0xAF11) {
-      /* 
-       * in this case, the speed (n) is number of 1/70s ticks between frames:
-       *
-       *  xine pts     n * frame #
-       *  --------  =  -----------  => xine pts = n * (90000/70) * frame #
-       *   90000           70
-       *
-       *  therefore, the frame pts increment = n * 1285.7
-       */
-       this->frame_pts_inc = this->speed * 1285.7;
-    } else {
-      /* 
-       * in this case, the speed (n) is number of milliseconds between frames:
-       *
-       *  xine pts     n * frame #
-       *  --------  =  -----------  => xine pts = n * 90 * frame #
-       *   90000          1000
-       *
-       *  therefore, the frame pts increment = n * 90
-       */
-       this->frame_pts_inc = this->speed * 90;
-    }
 
     /* print vital stats */
-    xine_log (this->xine, XINE_LOG_FORMAT,
+    xine_log (this->xine, XINE_LOG_MSG,
       _("demux_fli: FLI type: %04X, speed: %d/%d\n"),
       this->magic_number, this->speed,
       (this->magic_number == FLI_FILE_MAGIC_1) ? 70 : 1000);
-    xine_log (this->xine, XINE_LOG_FORMAT,
+    xine_log (this->xine, XINE_LOG_MSG,
       _("demux_fli: %d frames, %dx%d\n"), 
       this->frame_count, this->width, this->height);
-    xine_log (this->xine, XINE_LOG_FORMAT,
+    xine_log (this->xine, XINE_LOG_MSG,
       _("demux_fli: running time: %d min, %d sec\n"), 
       this->frame_count * this->frame_pts_inc / 90000 / 60,
       this->frame_count * this->frame_pts_inc / 90000 % 60);
@@ -325,7 +342,7 @@ static int demux_fli_start (demux_plugin_t *this_gen,
     buf->decoder_info[0] = 0;
     buf->decoder_info[1] = this->frame_pts_inc;  /* initial video_step */
     /* be a rebel and send the FLI header instead of the bih */
-    memcpy(buf->content, fli_header, FLI_HEADER_SIZE);
+    memcpy(buf->content, this->fli_header, FLI_HEADER_SIZE);
     buf->size = FLI_HEADER_SIZE;
     buf->type = BUF_VIDEO_FLI;
     this->video_fifo->put (this->video_fifo, buf);
@@ -378,7 +395,7 @@ static void demux_fli_stop (demux_plugin_t *this_gen) {
   xine_demux_control_end(this->xine, BUF_FLAG_END_USER);
 }
 
-static void demux_fli_close (demux_plugin_t *this) {
+static void demux_fli_dispose (demux_plugin_t *this) {
   free(this);
 }
 
@@ -417,7 +434,7 @@ static void *init_demuxer_plugin(xine_t *xine, void *data) {
   this->demux_plugin.start             = demux_fli_start;
   this->demux_plugin.seek              = demux_fli_seek;
   this->demux_plugin.stop              = demux_fli_stop;
-  this->demux_plugin.close             = demux_fli_close;
+  this->demux_plugin.dispose           = demux_fli_dispose;
   this->demux_plugin.get_status        = demux_fli_get_status;
   this->demux_plugin.get_identifier    = demux_fli_get_id;
   this->demux_plugin.get_stream_length = demux_fli_get_stream_length;
@@ -432,6 +449,6 @@ static void *init_demuxer_plugin(xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_DEMUX, 10, "fli", XINE_VERSION_CODE, NULL, init_demuxer_plugin },
+  { PLUGIN_DEMUX, 11, "fli", XINE_VERSION_CODE, NULL, init_demuxer_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

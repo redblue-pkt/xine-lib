@@ -21,7 +21,7 @@
  * For more information regarding the RoQ file format, visit:
  *   http://www.csse.monash.edu.au/~timf/
  *
- * $Id: demux_roq.c,v 1.14 2002/09/10 15:07:14 mroi Exp $
+ * $Id: demux_roq.c,v 1.15 2002/09/21 19:47:11 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -124,7 +124,6 @@ static void *demux_roq_loop (void *this_gen) {
         /* adjust the chunk size */
         chunk_size += RoQ_CHUNK_PREAMBLE_SIZE;
 
-
         if( this->audio_fifo ) {
         
           /* do this calculation carefully because I can't trust the
@@ -158,7 +157,6 @@ static void *demux_roq_loop (void *this_gen) {
             if (!chunk_size)
               buf->decoder_flags |= BUF_FLAG_FRAME_END;
             this->audio_fifo->put(this->audio_fifo, buf);
-//printf ("audio packet pts = %lld\n", buf->pts);
           }
         } else {
           /* no audio -> skip chunk */
@@ -191,7 +189,6 @@ static void *demux_roq_loop (void *this_gen) {
         }
 
         /* packetize the video chunk and route it to the video fifo */
-//printf ("total video chunk size = %X\n", chunk_size);
         while (chunk_size) {
           buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
           buf->type = BUF_VIDEO_ROQ;
@@ -213,8 +210,6 @@ static void *demux_roq_loop (void *this_gen) {
           if (!chunk_size)
             buf->decoder_flags |= BUF_FLAG_FRAME_END;
           this->video_fifo->put(this->video_fifo, buf);
-//printf ("loaded video packet with %X bytes, pts = %lld\n",
-//  buf->size, buf->pts);
         }
         video_pts_counter += this->frame_pts_inc;
       } else {
@@ -250,6 +245,113 @@ static void *demux_roq_loop (void *this_gen) {
   return NULL;
 }
 
+static int load_roq_and_send_headers(demux_roq_t *this) {
+
+  char preamble[RoQ_CHUNK_PREAMBLE_SIZE];
+  int i;
+  unsigned int chunk_type;
+  unsigned int chunk_size;
+
+  pthread_mutex_lock(&this->mutex);
+
+  this->video_fifo  = this->xine->video_fifo;
+  this->audio_fifo  = this->xine->audio_fifo;
+
+  this->status = DEMUX_OK;
+
+  this->input->seek(this->input, 0, SEEK_SET);
+  if (this->input->read(this->input, preamble, RoQ_CHUNK_PREAMBLE_SIZE) != 
+    RoQ_CHUNK_PREAMBLE_SIZE) {
+    this->status = DEMUX_FINISHED;
+    pthread_mutex_unlock(&this->mutex);
+    return DEMUX_CANNOT_HANDLE;
+  }
+
+  this->width = this->height = 0;
+  this->audio_channels = 0;  /* assume no audio at first */
+
+  /*
+   * RoQ files enjoy a constant framerate; pts calculation:
+   *
+   *   xine pts     frame #
+   *   --------  =  -------  =>  xine pts = 90000 * frame # / fps
+   *    90000         fps
+   *
+   * therefore, the frame pts increment is 90000 / fps
+   */
+  this->fps = LE_16(&preamble[6]);
+  this->frame_pts_inc = 90000 / this->fps;
+
+  /* iterate through the first 2 seconds worth of chunks searching for
+   * the RoQ_INFO chunk and an audio chunk */
+  i = this->fps * 2;
+  while (i-- > 0) {
+    /* if this read fails, then maybe it's just a really small RoQ file
+     * (even less than 2 seconds) */
+    if (this->input->read(this->input, preamble, RoQ_CHUNK_PREAMBLE_SIZE) != 
+      RoQ_CHUNK_PREAMBLE_SIZE)
+      break;
+    chunk_type = LE_16(&preamble[0]);
+    chunk_size = LE_32(&preamble[2]);
+
+    if (chunk_type == RoQ_INFO) {
+      /* fetch the width and height; reuse the preamble bytes */
+      if (this->input->read(this->input, preamble, 8) != 8)
+        break;
+
+      this->width = LE_16(&preamble[0]);
+      this->height = LE_16(&preamble[2]);
+
+      /* if an audio chunk was already found, search is done */
+      if (this->audio_channels)
+        break;
+
+      /* prep the size for a seek */
+      chunk_size -= 8;
+    } else {
+      /* if it was an audio chunk and the info chunk has already been
+       * found (as indicated by width and height) then break */
+      if (chunk_type == RoQ_SOUND_MONO) {
+        this->audio_channels = 1;
+        if (this->width && this->height)
+          break;
+      } else if (chunk_type == RoQ_SOUND_STEREO) {
+        this->audio_channels = 2;
+        if (this->width && this->height)
+          break;
+      }
+    }
+
+    /* skip the rest of the chunk */
+    this->input->seek(this->input, chunk_size, SEEK_CUR);
+  }
+
+  /* after all is said and done, if there is a width and a height,
+   * regard it as being a valid file and reset to the first chunk */
+  if (this->width && this->height) {
+    this->input->seek(this->input, 8, SEEK_SET);
+  } else {
+    this->status = DEMUX_FINISHED;
+    pthread_mutex_unlock(&this->mutex);
+    return DEMUX_CANNOT_HANDLE;
+  }
+
+  /* load stream information */
+  this->xine->stream_info[XINE_STREAM_INFO_VIDEO_WIDTH] = this->width;
+  this->xine->stream_info[XINE_STREAM_INFO_VIDEO_HEIGHT] = this->height;
+  this->xine->stream_info[XINE_STREAM_INFO_AUDIO_CHANNELS] =
+    this->audio_channels;
+  this->xine->stream_info[XINE_STREAM_INFO_AUDIO_SAMPLERATE] =
+    RoQ_AUDIO_SAMPLE_RATE;
+  this->xine->stream_info[XINE_STREAM_INFO_AUDIO_BITS] = 16;
+
+  xine_demux_control_headers_done (this->xine);
+
+  pthread_mutex_unlock (&this->mutex);
+
+  return DEMUX_CAN_HANDLE;
+}
+
 static int demux_roq_open(demux_plugin_t *this_gen, input_plugin_t *input,
                           int stage) {
   demux_roq_t *this = (demux_roq_t *) this_gen;
@@ -270,7 +372,7 @@ static int demux_roq_open(demux_plugin_t *this_gen, input_plugin_t *input,
     /* check for the RoQ magic numbers */
     if ((LE_16(&preamble[0]) == RoQ_MAGIC_NUMBER) &&
         (LE_32(&preamble[2]) == 0xFFFFFFFF))
-      return DEMUX_CAN_HANDLE;
+      return load_roq_and_send_headers(this);
 
     return DEMUX_CANNOT_HANDLE;
   }
@@ -296,10 +398,8 @@ static int demux_roq_open(demux_plugin_t *this_gen, input_plugin_t *input,
 
       while(*m == ' ' || *m == '\t') m++;
 
-      if(!strcasecmp((suffix + 1), m)) {
-        this->input = input;
-        return DEMUX_CAN_HANDLE;
-      }
+      if(!strcasecmp((suffix + 1), m))
+        return load_roq_and_send_headers(this);
     }
     return DEMUX_CANNOT_HANDLE;
   }
@@ -315,108 +415,23 @@ static int demux_roq_open(demux_plugin_t *this_gen, input_plugin_t *input,
 }
 
 static int demux_roq_start (demux_plugin_t *this_gen,
-                             fifo_buffer_t *video_fifo,
-                             fifo_buffer_t *audio_fifo,
                              off_t start_pos, int start_time) {
 
   demux_roq_t *this = (demux_roq_t *) this_gen;
   buf_element_t *buf;
   int err;
-  char preamble[RoQ_CHUNK_PREAMBLE_SIZE];
-  int i;
-  unsigned int chunk_type;
-  unsigned int chunk_size;
 
   pthread_mutex_lock(&this->mutex);
 
   /* if thread is not running, initialize demuxer */
   if (!this->thread_running) {
-    this->video_fifo = video_fifo;
-    this->audio_fifo = audio_fifo;
-
-    this->input->seek(this->input, 0, SEEK_SET);
-    if (this->input->read(this->input, preamble, RoQ_CHUNK_PREAMBLE_SIZE) != 
-      RoQ_CHUNK_PREAMBLE_SIZE) {
-      this->status = DEMUX_FINISHED;
-      pthread_mutex_unlock(&this->mutex);
-      return this->status;
-    }
-
-    this->width = this->height = 0;
-    this->audio_channels = 0;  /* assume no audio at first */
-
-    /*
-     * RoQ files enjoy a constant framerate; pts calculation:
-     *
-     *   xine pts     frame #
-     *   --------  =  -------  =>  xine pts = 90000 * frame # / fps
-     *    90000         fps
-     *
-     * therefore, the frame pts increment is 90000 / fps
-     */
-    this->fps = LE_16(&preamble[6]);
-    this->frame_pts_inc = 90000 / this->fps;
-
-    /* iterate through the first 2 seconds worth of chunks searching for
-     * the RoQ_INFO chunk and an audio chunk */
-    i = this->fps * 2;
-    while (i-- > 0) {
-      /* if this read fails, then maybe it's just a really small RoQ file
-       * (even less than 2 seconds) */
-      if (this->input->read(this->input, preamble, RoQ_CHUNK_PREAMBLE_SIZE) != 
-        RoQ_CHUNK_PREAMBLE_SIZE)
-        break;
-      chunk_type = LE_16(&preamble[0]);
-      chunk_size = LE_32(&preamble[2]);
-
-      if (chunk_type == RoQ_INFO) {
-        /* fetch the width and height; reuse the preamble bytes */
-        if (this->input->read(this->input, preamble, 8) != 8)
-          break;
-
-        this->width = LE_16(&preamble[0]);
-        this->height = LE_16(&preamble[2]);
-
-        /* if an audio chunk was already found, search is done */
-        if (this->audio_channels)
-          break;
-
-        /* prep the size for a seek */
-        chunk_size -= 8;
-      } else {
-        /* if it was an audio chunk and the info chunk has already been
-         * found (as indicated by width and height) then break */
-        if (chunk_type == RoQ_SOUND_MONO) {
-          this->audio_channels = 1;
-          if (this->width && this->height)
-            break;
-        } else if (chunk_type == RoQ_SOUND_STEREO) {
-          this->audio_channels = 2;
-          if (this->width && this->height)
-            break;
-        }
-      }
-
-      /* skip the rest of the chunk */
-      this->input->seek(this->input, chunk_size, SEEK_CUR);
-    }
-
-    /* after all is said and done, if there is a width and a height,
-     * regard it as being a valid file and reset to the first chunk */
-    if (this->width && this->height) {
-      this->input->seek(this->input, 8, SEEK_SET);
-    } else {
-      this->status = DEMUX_FINISHED;
-      pthread_mutex_unlock(&this->mutex);
-      return this->status;
-    }
 
     /* print vital stats */
-    xine_log (this->xine, XINE_LOG_FORMAT,
+    xine_log (this->xine, XINE_LOG_MSG,
       _("demux_roq: RoQ file, video is %dx%d, %d frames/sec\n"),
       this->width, this->height, this->fps);
     if (this->audio_channels)
-      xine_log (this->xine, XINE_LOG_FORMAT,
+      xine_log (this->xine, XINE_LOG_MSG,
         _("demux_roq: 16-bit, 22050 Hz %s RoQ DPCM audio\n"),
         (this->audio_channels == 1) ? "monaural" : "stereo");
 
@@ -500,7 +515,7 @@ static void demux_roq_stop (demux_plugin_t *this_gen) {
   xine_demux_control_end(this->xine, BUF_FLAG_END_USER);
 }
 
-static void demux_roq_close (demux_plugin_t *this) {
+static void demux_roq_dispose (demux_plugin_t *this) {
   free(this);
 }
 
@@ -540,7 +555,7 @@ static void *init_demuxer_plugin(xine_t *xine, void *data) {
   this->demux_plugin.start             = demux_roq_start;
   this->demux_plugin.seek              = demux_roq_seek;
   this->demux_plugin.stop              = demux_roq_stop;
-  this->demux_plugin.close             = demux_roq_close;
+  this->demux_plugin.dispose           = demux_roq_dispose;
   this->demux_plugin.get_status        = demux_roq_get_status;
   this->demux_plugin.get_identifier    = demux_roq_get_id;
   this->demux_plugin.get_stream_length = demux_roq_get_stream_length;
@@ -558,6 +573,6 @@ static void *init_demuxer_plugin(xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_DEMUX, 10, "roq", XINE_VERSION_CODE, NULL, init_demuxer_plugin },
+  { PLUGIN_DEMUX, 11, "roq", XINE_VERSION_CODE, NULL, init_demuxer_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
