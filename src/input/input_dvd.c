@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.61 2002/08/19 17:27:11 mroi Exp $
+ * $Id: input_dvd.c,v 1.62 2002/08/21 15:10:09 mroi Exp $
  *
  */
 
@@ -1365,11 +1365,16 @@ input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
       char *raw_device;
       static char *decrypt_modes[] = { "key", "disc", "title", NULL };
       int mode;
-     
+      
+#ifndef HAVE_DVDNAV
+      /* only our local copy of libdvdread supports raw device reads,
+       * so we don't provide this option, when we are using a shared version
+       * of libdvdnav/libdvdread */
       raw_device = config->register_string(config, "input.dvd_raw_device",
                            RDVD_PATH, "raw device set up for dvd access",
                            NULL, NULL, NULL);
       if (raw_device) setenv("DVDCSS_RAW_DEVICE", raw_device, 0);
+#endif
       
       mode = config->register_enum(config, "input.css_decryption_method", 0,
                            decrypt_modes, "the css decryption method libdvdcss should use",
@@ -1422,6 +1427,9 @@ input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
 
 /*
  * $Log: input_dvd.c,v $
+ * Revision 1.62  2002/08/21 15:10:09  mroi
+ * use raw devices only with our patched local copy of libdvdread
+ *
  * Revision 1.61  2002/08/19 17:27:11  mroi
  * add config entries for raw device and css decryption method
  *
