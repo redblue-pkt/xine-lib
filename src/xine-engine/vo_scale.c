@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: vo_scale.c,v 1.32 2004/09/22 20:29:17 miguelfreitas Exp $
+ * $Id: vo_scale.c,v 1.33 2004/10/08 20:54:36 mroi Exp $
  * 
  * Contains common code to calculate video scaling parameters.
  * In short, it will map frame dimensions to screen/window size.
@@ -353,6 +353,13 @@ static void vo_scale_vertical_pos_changed(void *data, xine_cfg_entry_t *entry) {
   this->force_redraw = 1;
 }
 
+static void vo_scale_disable_scaling_changed(void *data, xine_cfg_entry_t *entry) {
+  vo_scale_t *this = (vo_scale_t *)data;
+  
+  this->scaling_disabled = entry->num_value;
+  this->force_redraw = 1;
+}
+
 
 /* 
  * initialize rescaling struct
@@ -363,7 +370,6 @@ void _x_vo_scale_init(vo_scale_t *this, int support_zoom, int scaling_disabled,
   
   memset( this, 0, sizeof(vo_scale_t) );
   this->support_zoom = support_zoom;
-  this->scaling_disabled = scaling_disabled;
   this->force_redraw = 1;
   this->zoom_factor_x = 1.0;
   this->zoom_factor_y = 1.0;
@@ -378,10 +384,29 @@ void _x_vo_scale_init(vo_scale_t *this, int support_zoom, int scaling_disabled,
   
   this->output_horizontal_position = 
     config->register_range(config, "video.horizontal_position", 50, 0, 100,
-      _("horizontal image position in the output window"), NULL, 10,
-      vo_scale_horizontal_pos_changed, this) / 100.0;
+      _("horizontal image position in the output window"),
+      _("If the video window's horizontal size is bigger than the actual image "
+	"to show, you can adjust the position where the image will be placed.\n"
+	"The position is given as a percentage, so a value of 50 means \"in the "
+	"middle\", while 0 means \"at the very left\" and 100 \"at the very right\"."),
+      10, vo_scale_horizontal_pos_changed, this) / 100.0;
   this->output_vertical_position =
     config->register_range(config, "video.vertical_position", 50, 0, 100,
-      _("vertical image position in the output window"), NULL, 10,
-      vo_scale_vertical_pos_changed, this) / 100.0;
+      _("vertical image position in the output window"),
+      _("If the video window's vertical size is bigger than the actual image "
+	"to show, you can adjust the position where the image will be placed.\n"
+	"The position is given as a percentage, so a value of 50 means \"in the "
+	"middle\", while 0 means \"at the top\" and 100 \"at the bottom\"."),
+      10, vo_scale_vertical_pos_changed, this) / 100.0;
+  this->scaling_disabled = scaling_disabled ||
+    config->register_bool(config, "video.disable_scaling", 0,
+      _("disable all video scaling"),
+      _("If you want the video image to be always shown at its original resolution, "
+	"you can disable all image scaling here.\n"
+	"This of course means that the image will no longer adapt to the size of the "
+	"video window and that videos with a pixel aspect ratio other than 1:1, like "
+	"anamorphic DVDs, will be shown distorted. But on the other hand, with some "
+	"video output drivers like XShm, where the image scaling is not hardware "
+	"accelerated, this can dramatically reduce CPU usage."),
+      10, vo_scale_disable_scaling_changed, this);
 }
