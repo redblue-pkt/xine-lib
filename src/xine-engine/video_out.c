@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.120 2002/12/21 12:56:52 miguelfreitas Exp $
+ * $Id: video_out.c,v 1.121 2002/12/21 19:20:09 miguelfreitas Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -447,6 +447,8 @@ static vo_frame_t * duplicate_frame( vos_t *this, vo_frame_t *img ) {
   dupl->bad_frame = 0;
   dupl->pts       = 0;
   dupl->vpts      = 0;
+  dupl->copy_called    = 0;
+
   dupl->duration  = img->duration;
 
   dupl->stream    = img->stream;
