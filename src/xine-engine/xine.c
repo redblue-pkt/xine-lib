@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.138 2002/06/10 00:26:10 miguelfreitas Exp $
+ * $Id: xine.c,v 1.139 2002/06/10 13:41:55 miguelfreitas Exp $
  *
  * top-level xine functions
  *
@@ -58,6 +58,16 @@
 
 #define LOGO_DELAY 500000 /* usec */
 
+static void play_logo_internal(xine_t *this) {
+  pthread_mutex_lock (&this->logo_lock);
+  this->playing_logo = 1;
+  if( !xine_play_internal(this, this->logo_mrl, 0, 0) )
+    this->playing_logo = 0;
+  else
+    this->status = XINE_LOGO;
+  pthread_mutex_unlock (&this->logo_lock);
+}
+
 /* config callback for logo mrl changing */
 static void _logo_change_cb(void *data, cfg_entry_t *cfg) {
   xine_t            *this = (xine_t *) data;
@@ -75,10 +85,7 @@ static void _logo_change_cb(void *data, cfg_entry_t *cfg) {
     xine_stop_internal(this);  
     this->metronom->adjust_clock(this->metronom,
 				 this->metronom->get_current_time(this->metronom) + 30 * 90000 );
-    pthread_mutex_lock (&this->logo_lock);
-    xine_play_internal(this, this->logo_mrl, 0, 0);
-    this->status = XINE_LOGO;
-    pthread_mutex_unlock (&this->logo_lock);
+    play_logo_internal(this);
   }
   pthread_mutex_unlock (&this->xine_lock);
 }
@@ -91,22 +98,16 @@ void * xine_notify_stream_finished_thread (void * this_gen) {
   xine_stop_internal (this);
   pthread_mutex_unlock (&this->xine_lock);
 
-  pthread_mutex_lock (&this->logo_lock);
-  if (strcmp(this->cur_mrl, this->logo_mrl)) {
+  event.type = XINE_EVENT_PLAYBACK_FINISHED;
+  xine_send_event (this, &event);
 
-    event.type = XINE_EVENT_PLAYBACK_FINISHED;
-    xine_send_event (this, &event);
-
-    xine_usec_sleep (LOGO_DELAY);
+  xine_usec_sleep (LOGO_DELAY);
   
-    pthread_mutex_lock (&this->xine_lock);
-    if (this->status == XINE_STOP) {
-      xine_play_internal(this, this->logo_mrl, 0, 0);
-      this->status = XINE_LOGO; 
-    }
-    pthread_mutex_unlock (&this->xine_lock);
+  pthread_mutex_lock (&this->xine_lock);
+  if (this->status == XINE_STOP) {
+    play_logo_internal(this);
   }
-  pthread_mutex_unlock (&this->logo_lock);
+  pthread_mutex_unlock (&this->xine_lock);
 
   return NULL;
 }
@@ -270,10 +271,7 @@ void xine_stop (xine_t *this) {
 			       this->metronom->get_current_time(this->metronom) + 30 * 90000 );
   
   if(this->status == XINE_STOP) {
-    pthread_mutex_lock (&this->logo_lock);
-    xine_play_internal(this, this->logo_mrl,0,0);
-    this->status = XINE_LOGO;
-    pthread_mutex_unlock (&this->logo_lock);
+    play_logo_internal(this);
   }
   pthread_mutex_unlock (&this->xine_lock);
 }
@@ -695,10 +693,7 @@ xine_t *xine_init (vo_driver_t *vo,
     this->osd_renderer->hide (this->osd, 300000);
   }
 
-  pthread_mutex_lock (&this->logo_lock);
-  xine_play(this, this->logo_mrl,0,0);
-  this->status = XINE_LOGO;
-  pthread_mutex_unlock (&this->logo_lock);
+  play_logo_internal(this);
 
   return this;
 }
@@ -755,8 +750,12 @@ int xine_get_current_position (xine_t *this) {
 }
 
 int xine_get_status(xine_t *this) {
+  int status;
 
-  return this->status;
+  status = this->status;
+  if( status == XINE_LOGO )
+    status = XINE_STOP;
+  return status;
 }
 
 /* ***

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.76 2002/06/09 10:59:33 miguelfreitas Exp $
+ * $Id: audio_decoder.c,v 1.77 2002/06/10 13:41:55 miguelfreitas Exp $
  *
  *
  * functions that implement audio decoding
@@ -99,11 +99,16 @@ void *audio_decoder_loop (void *this_gen) {
       
       pthread_mutex_lock (&this->finished_lock);
 
-      if (!this->audio_finished && (buf->decoder_flags & BUF_FLAG_END_STREAM)) {
+      if (!this->audio_finished ) {
         this->audio_finished = 1;
-
+        
         if (this->video_finished) {
-          xine_notify_stream_finished (this);
+          if( this->playing_logo )
+            buf->decoder_flags = 0;
+          this->playing_logo = 0;
+          
+          if( buf->decoder_flags & BUF_FLAG_END_STREAM )
+            xine_notify_stream_finished (this);
         }
       }
 

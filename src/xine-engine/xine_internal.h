@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.87 2002/06/07 04:15:46 miguelfreitas Exp $
+ * $Id: xine_internal.h,v 1.88 2002/06/10 13:41:55 miguelfreitas Exp $
  *
  */
 
@@ -259,6 +259,8 @@ struct xine_s {
   
   xine_report_codec_t        report_codec_cb;
   void                      *report_codec_user_data;
+  
+  int                        playing_logo;
 };
 
 /*
