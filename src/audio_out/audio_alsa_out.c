@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.41 2001/12/10 15:33:24 jcdutton Exp $
+ * $Id: audio_alsa_out.c,v 1.42 2001/12/10 20:03:00 jcdutton Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -852,10 +852,15 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
     return NULL;
   }
   this->capabilities = 0;
-  if (!(snd_pcm_hw_params_test_channels(this->audio_fd, params, 1))) 
+  printf ("audio_alsa_out : supported modes are ");
+  if (!(snd_pcm_hw_params_test_channels(this->audio_fd, params, 1))) {
     this->capabilities |= AO_CAP_MODE_MONO;
-  if (!(snd_pcm_hw_params_test_channels(this->audio_fd, params, 2))) 
+    printf ("mono ");
+  }
+  if (!(snd_pcm_hw_params_test_channels(this->audio_fd, params, 2))) {
     this->capabilities |= AO_CAP_MODE_STEREO;
+    printf ("stereo ");
+  }
   if (!(snd_pcm_hw_params_test_channels(this->audio_fd, params, 4)) &&
         config->register_bool (config,
                                "audio.four_channel",
@@ -863,8 +868,12 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
                                "used to inform xine about what the sound card can do",
                                NULL,
                                NULL,
-                               NULL) )
+                               NULL) ) {
     this->capabilities |= AO_CAP_MODE_4CHANNEL;
+    printf ("4-channel ");
+  } else {
+    printf ("(4-channel not enabled in xine config) " );
+  }
   if (!(snd_pcm_hw_params_test_channels(this->audio_fd, params, 5)) && 
         config->register_bool (config,
                                "audio.five_channel",
@@ -872,8 +881,12 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
                                "used to inform xine about what the sound card can do",
                                NULL,
                                NULL,
-                               NULL) )
+                               NULL) ) {
     this->capabilities |= AO_CAP_MODE_5CHANNEL;
+    printf ("5-channel ");
+  } else {
+    printf ("(5-channel not enabled in xine config) " );
+  }
   if (!(snd_pcm_hw_params_test_channels(this->audio_fd, params, 6)) && 
         config->register_bool (config,
                                "audio.five_lfe_channel",
@@ -881,8 +894,12 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
                                "used to inform xine about what the sound card can do",
                                NULL,
                                NULL,
-                               NULL) )
+                               NULL) ) {
     this->capabilities |= AO_CAP_MODE_5_1CHANNEL;
+    printf ("5.1-channel ");
+    } else {
+    printf ("(5.1-channel not enabled in xine config) " );
+  }
  
   snd_pcm_close (this->audio_fd);
   this->audio_fd=NULL;
@@ -896,8 +913,13 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
                                NULL) ) {
     this->capabilities |= AO_CAP_MODE_A52;
     this->capabilities |= AO_CAP_MODE_AC5;
+    printf ("a/52 and DTS pass-through ");
+  } else {
+    printf ("(a/52 and DTS pass-through not enabled in xine config)");
   }
-  printf("audio_alsa_out: capabilities 0x%X\n",this->capabilities);
+  printf ("\n");
+
+  /* printf("audio_alsa_out: capabilities 0x%X\n",this->capabilities); */
 
   this->config                        = config;
 
