@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.116 2003/04/28 19:10:01 esnel Exp $
+ * $Id: xine_decoder.c,v 1.117 2003/05/01 02:01:58 tmmm Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -747,6 +747,14 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
     init_video_codec (this, (xine_bmiheader *)buf->content );
     init_postprocess (this);
 
+  } else if ((buf->decoder_flags & BUF_FLAG_SPECIAL) &&
+             (buf->decoder_info[1] == BUF_SPECIAL_STSD_ATOM)) {
+
+    this->context->extradata_size = buf->decoder_info[2];
+    this->context->extradata = xine_xmalloc(buf->decoder_info[2]);
+    memcpy(this->context->extradata, buf->decoder_info_ptr[2],
+      buf->decoder_info[2]);
+
   } else if (this->decoder_ok) {
 
     if( this->size + buf->size > this->bufsize ) {
@@ -1199,6 +1207,15 @@ static void ff_audio_decode_data (audio_decoder_t *this_gen, buf_element_t *buf)
     this->decoder_ok = 1;
 
     return;
+
+  } else if ((buf->decoder_flags & BUF_FLAG_SPECIAL) &&
+             (buf->decoder_info[1] == BUF_SPECIAL_STSD_ATOM)) {
+
+    this->context->extradata_size = buf->decoder_info[2];
+    this->context->extradata = xine_xmalloc(buf->decoder_info[2]);
+    memcpy(this->context->extradata, buf->decoder_info_ptr[2],
+      buf->decoder_info[2]);
+
   } else if (this->decoder_ok && !(buf->decoder_flags & BUF_FLAG_SPECIAL)) {
 
     if (!this->output_open) {
