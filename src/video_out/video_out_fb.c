@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_fb.c,v 1.1 2002/01/11 19:07:53 miguelfreitas Exp $
+ * $Id: video_out_fb.c,v 1.2 2002/01/11 19:45:47 miguelfreitas Exp $
  * 
  * video_out_fb.c, frame buffer xine driver by Miguel Freitas
  *
@@ -801,7 +801,7 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
   
   if( fix.visual != FB_VISUAL_TRUECOLOR || fix.type != FB_TYPE_PACKED_PIXELS ) {
     printf("video_out_fb: only packed truecolor is supported.\n");
-    printf("              check 'fbset -i'\n");
+    printf("              check 'fbset -i' or try 'fbset -depth 16'\n");
     free(this);
     return NULL;
   }
