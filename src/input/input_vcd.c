@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_vcd.c,v 1.26 2001/10/07 22:31:20 guenter Exp $
+ * $Id: input_vcd.c,v 1.27 2001/10/08 18:06:34 jkeil Exp $
  *
  */
 
@@ -987,8 +987,10 @@ static mrl_t **vcd_plugin_get_dir (input_plugin_t *this_gen,
     memset(&mrl, 0, sizeof (mrl));
     sprintf(mrl, "vcd://%d",i);
     
-    if((i-1) >= this->mrls_allocated_entries
-       || this->mrls_allocated_entries == 0) {
+    if((i-1) >= this->mrls_allocated_entries) {
+      ++this->mrls_allocated_entries;
+      /* note: 1 extra pointer for terminating NULL */
+      this->mrls = realloc(this->mrls, (this->mrls_allocated_entries+1) * sizeof(mrl_t*));
       this->mrls[(i-1)] = (mrl_t *) xmalloc(sizeof(mrl_t));
     }
     else {
@@ -1017,13 +1019,9 @@ static mrl_t **vcd_plugin_get_dir (input_plugin_t *this_gen,
   /*
    * Freeing exceeded mrls if exists.
    */
-  if(*nEntries > this->mrls_allocated_entries)
-    this->mrls_allocated_entries = *nEntries;
-  else if(this->mrls_allocated_entries > *nEntries) {
-    while(this->mrls_allocated_entries > *nEntries) {
-      MRL_ZERO(this->mrls[this->mrls_allocated_entries - 1]);
-      free(this->mrls[this->mrls_allocated_entries--]);
-    }
+  while(this->mrls_allocated_entries > *nEntries) {
+    MRL_ZERO(this->mrls[this->mrls_allocated_entries - 1]);
+    free(this->mrls[this->mrls_allocated_entries--]);
   }
 
   this->mrls[*nEntries] = NULL;
@@ -1140,7 +1138,7 @@ input_plugin_t *init_input_plugin (int iface, config_values_t *config) {
   
   this->device = config->lookup_str(config, "vcd_device", CDROM);
 
-  this->mrls = (mrl_t **) xmalloc(sizeof(mrl_t));
+  this->mrls = (mrl_t **) xmalloc(sizeof(mrl_t*));
   this->mrls_allocated_entries = 0;
 
   this->fd      = -1;
