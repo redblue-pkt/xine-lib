@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.108 2002/03/21 18:33:28 guenter Exp $
+ * $Id: video_out_xv.c,v 1.109 2002/03/27 15:31:36 miguelfreitas Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -801,9 +801,9 @@ static void xv_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
 
     frame->vo_frame.displayed (&frame->vo_frame);
     this->expecting_event--;
-
+#ifdef LOG
     printf ("video_out_xv: xv_display_frame... not displayed, waiting for completion event\n");
-
+#endif
   } else {
 
     /* 
@@ -1015,7 +1015,7 @@ static int xv_gui_data_exchange (vo_driver_t *this_gen,
 
   case GUI_DATA_EX_EXPOSE_EVENT: {
 
-    XExposeEvent * xev = (XExposeEvent *) data;
+    /* XExposeEvent * xev = (XExposeEvent *) data; */
     
     /* FIXME : take care of completion events */
     
