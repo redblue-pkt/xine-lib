@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xshm.c,v 1.6 2001/06/10 09:30:59 guenter Exp $
+ * $Id: video_out_xshm.c,v 1.7 2001/06/14 09:19:44 guenter Exp $
  * 
  * video_out_xshm.c, X11 shared memory extension interface for xine
  *
@@ -304,12 +304,6 @@ static void xshm_frame_copy (vo_frame_t *vo_img, uint8_t **src) {
   xshm_frame_t  *frame = (xshm_frame_t *) vo_img ;
   xshm_driver_t *this = (xshm_driver_t *) vo_img->instance->driver;
 
-  if (! frame->stripe_inc) {
-    printf ("ALARM 1\n");
-  }
-  if (! frame->image) {
-    printf ("ALARM 2\n");
-  }
   this->yuv2rgb->yuv2rgb_fun (this->yuv2rgb, frame->rgb_dst,
 			      src[0], src[1], src[2]);
 
@@ -527,7 +521,6 @@ static void xshm_update_frame_format (vo_driver_t *this_gen,
 		   this->stripe_height,
 		   frame->image->bytes_per_line);
 
-    printf ("alloc image done\n");
   }
 
   if (frame->image) {
@@ -541,11 +534,14 @@ static void xshm_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
   xshm_driver_t  *this = (xshm_driver_t *) this_gen;
   xshm_frame_t   *frame = (xshm_frame_t *) frame_gen;
   
+  /* printf ("video_out_xshm: display frame %d\n", frame); */
+
   if (this->expecting_event) {
+
     frame->vo_frame.displayed (&frame->vo_frame);
     
   } else {
-    
+
     if ( (frame->rgb_width != this->dest_width)
 	 || (frame->rgb_height != this->dest_height) ) {
       
@@ -561,6 +557,8 @@ static void xshm_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
     
     XLockDisplay (this->display);
 
+    this->cur_frame = frame;
+
     if (this->use_shm) {
     
       XShmPutImage(this->display, 
@@ -575,13 +573,13 @@ static void xshm_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
 		this->drawable, this->gc, frame->image,
 		0, 0,  0, 0,
 		frame->rgb_width, frame->rgb_height);
+      frame->vo_frame.displayed (&frame->vo_frame);
     }
     
     XFlush(this->display); 
     
     XUnlockDisplay (this->display);
     
-    this->cur_frame = frame;
   }
 }
 

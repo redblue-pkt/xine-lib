@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.39 2001/06/10 09:30:59 guenter Exp $
+ * $Id: video_out_xv.c,v 1.40 2001/06/14 09:19:44 guenter Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -458,6 +458,7 @@ static void xv_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
     
     XLockDisplay (this->display);
     
+    this->cur_frame = frame;
     XvShmPutImage(this->display, this->xv_port, 
 		  this->drawable, this->gc, frame->image,
 		  0, 0,  frame->width, frame->height-5,
@@ -470,7 +471,6 @@ static void xv_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
     
     XUnlockDisplay (this->display);
     
-    this->cur_frame = frame;
   }
 }
 
@@ -564,7 +564,6 @@ static int xv_gui_data_exchange (vo_driver_t *this_gen,
     if (cev->drawable == this->drawable) {
       this->expecting_event = 0;
 
-      /* FIXME: this should be done using the completion event */
       if (this->cur_frame) {
 	this->cur_frame->vo_frame.displayed (&this->cur_frame->vo_frame);
 	this->cur_frame = NULL;

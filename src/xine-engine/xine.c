@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.22 2001/06/04 17:13:36 guenter Exp $
+ * $Id: xine.c,v 1.23 2001/06/14 09:19:44 guenter Exp $
  *
  * top-level xine functions
  *
@@ -317,22 +317,31 @@ void xine_exit (xine_t *this) {
    * stop decoder threads
    */
 
+  printf ("xine_exit: stopping demuxer\n");
+
   if(this->cur_demuxer_plugin) {
     this->cur_demuxer_plugin->stop (this->cur_demuxer_plugin);
     this->cur_demuxer_plugin = NULL;
   }
+
+  printf ("xine_exit: closing input plugin\n");
 
   if(this->cur_input_plugin) {
     this->cur_input_plugin->close(this->cur_input_plugin);
     this->cur_input_plugin = NULL;
   }
 
+  printf ("xine_exit: shutdown audio\n");
+
   audio_decoder_shutdown (this);
+
+  printf ("xine_exit: shutdown video\n");
+
   video_decoder_shutdown (this);
 
   this->status = XINE_QUIT;
 
-  this->config->save (this->config);
+  printf ("xine_exit: bye!\n");
 }
 
 /*

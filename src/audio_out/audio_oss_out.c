@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_oss_out.c,v 1.11 2001/06/11 10:40:09 guenter Exp $
+ * $Id: audio_oss_out.c,v 1.12 2001/06/14 09:19:44 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -455,10 +455,12 @@ ao_functions_t *init_audio_out_plugin (config_values_t *config) {
    * find best device driver/channel
    */
 
+  printf ("audio_oss_out: Opening audio device...\n");
   xprintf (VERBOSE|AUDIO, "audio_oss_out: Opening audio device...");
   devnum = 0;
   best_rate = 0;
   while (devnum<16) {
+
     audio_fd=open(devname,O_WRONLY|O_NDELAY);
 
     if (audio_fd>0) {
@@ -473,7 +475,10 @@ ao_functions_t *init_audio_out_plugin (config_values_t *config) {
       }
       
       close (audio_fd);
-    }
+    } /*else
+      printf("audio_oss_out: opening audio device %s failed:\n%s\n",
+	     this->audio_dev, strerror(errno));
+	     */
 
     sprintf(devname, DSP_TEMPLATE, devnum);
     devnum++;
@@ -487,8 +492,8 @@ ao_functions_t *init_audio_out_plugin (config_values_t *config) {
 
   if(audio_fd < 0) 
   {
-    xprintf(VERBOSE|AUDIO, "audio_oss_out: %s: Opening audio device %s\n",
-	   strerror(errno), this->audio_dev);
+    printf("audio_oss_out: opening audio device %s failed:\n%s\n",
+	   this->audio_dev, strerror(errno));
 
     free (this);
     return NULL;

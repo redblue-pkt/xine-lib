@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.16 2001/06/11 01:27:03 heikos Exp $
+ * $Id: video_out.c,v 1.17 2001/06/14 09:19:44 guenter Exp $
  *
  */
 
@@ -130,6 +130,12 @@ static void vo_set_timer (uint32_t video_step) {
   }
 }
 
+void video_timer_handler (int hubba) {
+
+  signal (SIGALRM, video_timer_handler);
+
+}
+
 static void *video_out_loop (void *this_gen) {
 
   uint32_t           cur_pts;
@@ -137,21 +143,26 @@ static void *video_out_loop (void *this_gen) {
   vo_frame_t        *img;
   uint32_t           video_step, video_step_new;
   vo_instance_t     *this = (vo_instance_t *) this_gen;
+  /*
   sigset_t           vo_mask;
   int                dummysignum;
+  */
 
   /* printf ("%d video_out start\n", getpid());  */
-
+  /*
   sigemptyset(&vo_mask);
   sigaddset(&vo_mask, SIGALRM);
   pthread_sigmask(SIG_BLOCK, &vo_mask, NULL);
+  */
+  signal (SIGALRM, video_timer_handler);
 
   video_step = this->metronom->get_video_rate (this->metronom);
   vo_set_timer (video_step);
 
   while (this->video_loop_running) {
 
-    sigwait(&vo_mask, &dummysignum); /* wait for next timer tick */
+    /* sigwait(&vo_mask, &dummysignum); */ /* wait for next timer tick */
+    pause ();
 
     video_step_new = this->metronom->get_video_rate (this->metronom);
     if (video_step_new != video_step) {
@@ -167,8 +178,9 @@ static void *video_out_loop (void *this_gen) {
     
     img = this->display_img_buf_queue->first;
     
-    if (!img)
+    if (!img) {
       continue;
+    }
     
     /*
      * throw away expired frames
@@ -214,8 +226,9 @@ static void *video_out_loop (void *this_gen) {
      * time to display frame 0 ?
      */
 
-    if (diff<0)
+    if (diff<0) {
       continue;
+    }
 
 
     /*
@@ -310,8 +323,6 @@ static vo_frame_t *vo_get_frame (vo_instance_t *this,
 
 static void vo_close (vo_instance_t *this) {
 
-  printf ("vo_close\n");
-
   if (this->video_loop_running) {
     void *p;
 
@@ -335,8 +346,6 @@ static void vo_free_img_buffers (vo_instance_t *this) {
 }
 
 static void vo_exit (vo_instance_t *this) {
-
-  printf ("vo_exit\n");
 
   vo_free_img_buffers (this);
 
