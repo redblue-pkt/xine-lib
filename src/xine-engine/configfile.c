@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: configfile.c,v 1.27 2002/09/09 19:24:48 f1rmb Exp $
+ * $Id: configfile.c,v 1.28 2002/09/09 20:40:27 uid86226 Exp $
  *
  * config object (was: file) management - implementation
  *
@@ -70,6 +70,7 @@ static cfg_entry_t *xine_config_add (config_values_t *this, char *key) {
   entry->type          = CONFIG_TYPE_UNKNOWN;
   entry->unknown_value = NULL;
   entry->str_sticky    = NULL;
+  entry->str_value     = NULL;
 
   entry->next          = NULL;
 
@@ -227,7 +228,7 @@ static int _xine_config_register_bool (config_values_t *this,
 				       char *help,
 				       int exp_level,
 				       xine_config_cb_t changed_cb,
-				       void *const cb_data) {
+				       void *cb_data) {
 
   cfg_entry_t *entry;
 
@@ -420,6 +421,26 @@ static int _xine_config_register_enum (config_values_t *this,
   return entry->num_value;
 }
 
+static void xine_config_shallow_copy(xine_cfg_entry_t *dest, cfg_entry_t *src)
+{
+  dest->key           = src->key;
+  dest->type          = src->type;
+  dest->unknown_value = src->unknown_value;
+  dest->str_value     = src->str_value;
+  dest->str_default   = src->str_default;
+  dest->str_sticky    = src->str_sticky;
+  dest->num_value     = src->num_value;
+  dest->num_default   = src->num_default;
+  dest->range_min     = src->range_min;
+  dest->range_max     = src->range_max;
+  dest->enum_values   = src->enum_values;
+  dest->description   = src->description;
+  dest->help          = src->help;
+  dest->exp_level     = src->exp_level;
+  dest->callback      = src->callback;
+  dest->callback_data = src->callback_data;
+}
+
 static void xine_config_update_num (config_values_t *this,
 				    char *key, int value) {
 
@@ -451,10 +472,11 @@ static void xine_config_update_num (config_values_t *this,
 
   entry->num_value = value;
 
-  /* FIXME
-  if (entry->callback) 
-    entry->callback (entry->callback_data, entry);
-  */
+  if (entry->callback) {
+    xine_cfg_entry_t cb_entry;
+    xine_config_shallow_copy(&cb_entry, entry);
+    entry->callback (entry->callback_data, &cb_entry);
+  }
 }
 
 static void xine_config_update_string (config_values_t *this,
@@ -489,10 +511,11 @@ static void xine_config_update_string (config_values_t *this,
     entry->str_value = copy_string (value);
   }
 
-  /* FIXME
-  if (entry->callback) 
-    entry->callback (entry->callback_data, entry);
-  */
+  if (entry->callback) {
+    xine_cfg_entry_t cb_entry;
+    xine_config_shallow_copy(&cb_entry, entry);
+    entry->callback (entry->callback_data, &cb_entry);
+  }
 }
 
 /*
@@ -537,10 +560,10 @@ void xine_load_config (xine_p xine_ro, char *filename) {
           case XINE_CONFIG_TYPE_ENUM:
           case XINE_CONFIG_TYPE_NUM:
           case XINE_CONFIG_TYPE_BOOL:
-            xine_config_update_num (this, entry->key, entry->num_value);
+            xine_config_update_num (this, entry->key, atoi(value));
             break;
           case XINE_CONFIG_TYPE_STRING:
-            xine_config_update_string (this, entry->key, entry->str_value);
+            xine_config_update_string (this, entry->key, value);
             break;
           case CONFIG_TYPE_UNKNOWN:
 	    free(entry->unknown_value);
