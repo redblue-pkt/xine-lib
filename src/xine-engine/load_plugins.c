@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.52 2001/10/30 09:42:26 guenter Exp $
+ * $Id: load_plugins.c,v 1.53 2001/11/06 00:23:14 miguelfreitas Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -36,6 +36,7 @@
 #include <string.h>
 #include <errno.h>
 #include <stdlib.h>
+#include <signal.h>
 
 #include "xine_internal.h"
 #include "demuxers/demux.h"
@@ -52,6 +53,51 @@
 
 extern int errno;
 
+static char *plugin_name;
+
+#if DONT_CATCH_SIGSEGV
+
+#define install_segv_handler()
+#define remove_segv_handler()
+
+#else
+
+#if HAVE_SIGACTION
+struct sigaction old_sig_act;
+#else
+void (*old_segv_handler)(int);
+#endif
+ 
+static void segv_handler (int hubba) {
+  fprintf(stderr,"\nInitialization of plugin '%s' failed (segmentation fault).\n",plugin_name);
+  fprintf(stderr,"You probably need to remove the offending file.\n");
+  fprintf(stderr,"(This error is usually due an incorrect plugin version)\n"); 
+  exit(1);
+}
+
+static void install_segv_handler(void){
+#if HAVE_SIGACTION
+  {
+    struct sigaction   sig_act;
+    memset (&sig_act, 0, sizeof(sig_act));
+    sig_act.sa_handler = segv_handler;
+    sigaction (SIGSEGV, &sig_act, &old_sig_act);
+  }
+#else
+  old_segv_handler = signal (SIGSEGV, segv_handler);
+#endif
+}
+
+static void remove_segv_handler(void){
+#if HAVE_SIGACTION
+  sigaction (SIGSEGV, &old_sig_act, NULL );
+#else
+  signal (SIGSEGV, old_segv_handler );
+#endif
+}
+
+#endif
+
 /** ***************************************************************
  *  Demuxers plugins section
  */
@@ -67,6 +113,8 @@ void load_demux_plugins (xine_t *this,
 
   this->num_demuxer_plugins = 0;
 
+  install_segv_handler();
+  
   dir = opendir (XINE_PLUGINDIR) ;
   
   if (dir) {
@@ -90,6 +138,7 @@ void load_demux_plugins (xine_t *this,
 	 */
 	
 	sprintf (str, "%s/%s", XINE_PLUGINDIR, pEntry->d_name);
+	plugin_name = str;
 	
 	if(!(plugin = dlopen (str, RTLD_LAZY))) {
 	  fprintf(stderr, "load_plugins: cannot open demux plugin %s:\n%s\n",
@@ -122,6 +171,7 @@ void load_demux_plugins (xine_t *this,
     }
   }
   
+  remove_segv_handler();
   /*
    * init demuxer
    */
@@ -146,6 +196,8 @@ void xine_list_demux_plugins (config_values_t *config,
   this->config          = config;
   xine_debug            = config->lookup_int (config, "xine_debug", 0);
 
+  install_segv_handler();
+  
   dir = opendir (XINE_PLUGINDIR) ;
   
   if (dir) {
@@ -169,6 +221,7 @@ void xine_list_demux_plugins (config_values_t *config,
 	 */
 	
 	sprintf (str, "%s/%s", XINE_PLUGINDIR, pEntry->d_name);
+	plugin_name = str;
 	
 	if(!(plugin = dlopen (str, RTLD_LAZY))) {
 	  fprintf(stderr, "load_plugins: cannot open demux plugin %s:\n%s\n",
@@ -204,6 +257,7 @@ void xine_list_demux_plugins (config_values_t *config,
       }
     }
   }
+  remove_segv_handler();
   
   free(this);
 }
@@ -223,6 +277,8 @@ void load_input_plugins (xine_t *this,
 
   this->num_input_plugins = 0;
   
+  install_segv_handler();
+
   dir = opendir (XINE_PLUGINDIR) ;
   
   if (dir) {
@@ -246,7 +302,8 @@ void load_input_plugins (xine_t *this,
 	 */
 	
 	sprintf (str, "%s/%s", XINE_PLUGINDIR, pEntry->d_name);
-
+	plugin_name = str;
+	
 	if(!(plugin = dlopen (str, RTLD_LAZY))) {
 	  printf("load_plugins: cannot open input plugin %s:\n%s\n", 
 		 str, dlerror());
@@ -279,8 +336,10 @@ void load_input_plugins (xine_t *this,
     }
   }
   
+  remove_segv_handler();
+  
   if (this->num_input_plugins == 0) {
-    printf ("load_plugins: no input plugins found in %s! - "
+    fprintf (stderr, "load_plugins: no input plugins found in %s! - "
 	    "Did you install xine correctly??\n", XINE_PLUGINDIR);
     exit (1);
   }
@@ -411,6 +470,9 @@ void load_decoder_plugins (xine_t *this,
    * now scan for decoder plugins
    */
 
+   
+  install_segv_handler();
+    
   dir = opendir (XINE_PLUGINDIR) ;
   
   if (dir) {
@@ -434,7 +496,8 @@ void load_decoder_plugins (xine_t *this,
 	 */
 	
 	sprintf (str, "%s/%s", XINE_PLUGINDIR, pEntry->d_name);
-	
+	plugin_name =  str;
+		
 	if(!(plugin = dlopen (str, RTLD_LAZY))) {
 
 	  printf ("load_plugins: failed to load plugin %s:\n%s\n",
@@ -527,6 +590,7 @@ void load_decoder_plugins (xine_t *this,
       }
     }
   }
+  remove_segv_handler();
 
   this->cur_spu_decoder_plugin = NULL;
   this->cur_video_decoder_plugin = NULL;
@@ -547,6 +611,8 @@ char **xine_list_video_output_plugins (int visual_type) {
   plugin_ids = (char **) xmalloc (50 * sizeof (char *));
   plugin_ids[0] = NULL;
 
+  install_segv_handler();
+  
   dir = opendir (XINE_PLUGINDIR);
 
   if (dir) {
@@ -568,7 +634,8 @@ char **xine_list_video_output_plugins (int visual_type) {
 	  dir_entry->d_name); */
 
 	sprintf (str, "%s/%s", XINE_PLUGINDIR, dir_entry->d_name);
-
+	plugin_name = str;
+	
 	/*
 	 * now, see if we can open this plugin,
 	 * check if it has got the right visual type
@@ -627,6 +694,8 @@ char **xine_list_video_output_plugins (int visual_type) {
     fprintf(stderr, "load_plugins: %s - cannot access plugin dir: %s",
 	    __FUNCTION__, strerror(errno));
   }
+  
+  remove_segv_handler();
 
   if( !num_plugins )
   {
@@ -642,7 +711,7 @@ vo_driver_t *xine_load_video_output_plugin(config_values_t *config,
 					   int visual_type, void *visual) {
   DIR *dir;
   vo_driver_t *vod;
-  
+    
   dir = opendir (XINE_PLUGINDIR);
   
   if (dir) {
@@ -662,7 +731,7 @@ vo_driver_t *xine_load_video_output_plugin(config_values_t *config,
 	   && (dir_entry->d_name[nLen-1]=='o'))) {
 
 	sprintf (str, "%s/%s", XINE_PLUGINDIR, dir_entry->d_name);
-	
+		
 	if(!(plugin = dlopen (str, RTLD_LAZY))) {
 	  printf("load_plugins: video output plugin %s failed to link:\n%s\n",
 		 str, dlerror());
@@ -722,6 +791,8 @@ char **xine_list_audio_output_plugins(void) {
   plugin_ids = (char **) xmalloc (50 * sizeof (char *));
   plugin_ids[0] = NULL;
 
+  install_segv_handler();
+  
   dir = opendir (XINE_PLUGINDIR);
   
   if (dir) {
@@ -729,18 +800,19 @@ char **xine_list_audio_output_plugins(void) {
     
     while ((dir_entry = readdir (dir)) != NULL) {
       char  str[1024];
-   void *plugin;
+      void *plugin;
       int nLen = strlen (dir_entry->d_name);
       
       if ((strncasecmp(dir_entry->d_name,
- 		       XINE_AUDIO_OUT_PLUGIN_PREFIXNAME, 
+		       XINE_AUDIO_OUT_PLUGIN_PREFIXNAME, 
 		       XINE_AUDIO_OUT_PLUGIN_PREFIXNAME_LENGTH) == 0) &&
 	  ((dir_entry->d_name[nLen-3]=='.') 
 	   && (dir_entry->d_name[nLen-2]=='s')
 	   && (dir_entry->d_name[nLen-1]=='o'))) {
 	
 	sprintf (str, "%s/%s", XINE_PLUGINDIR, dir_entry->d_name);
-
+	plugin_name = str;
+	
 	/* printf ("load_plugins: trying to load plugin %s\n", str); */
 
 	/*
@@ -801,6 +873,8 @@ char **xine_list_audio_output_plugins(void) {
     fprintf (stderr, "load_plugins: %s - cannot access plugin dir: %s",
 	     __FUNCTION__, strerror(errno));
   }
+  
+  remove_segv_handler();
   
   return plugin_ids;
 }
