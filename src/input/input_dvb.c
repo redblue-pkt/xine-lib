@@ -401,9 +401,11 @@ static void print_error(const char* estring) {
     printf("input_dvb: ERROR: %s\n", estring);
 }
 
+#ifdef DEBUG_EPG
 static void print_info(const char* estring) {
     printf("input_dvb: %s\n", estring);
 }
+#endif
 
 static void ts_build_crc32_table(dvb_input_plugin_t *this) {
   uint32_t  i, j, k;
