@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.2 2004/02/01 06:00:56 tmmm Exp $
+ * $Id: audio_decoder.c,v 1.3 2004/02/03 04:27:18 tmmm Exp $
  *
  * xine audio decoder plugin using ffmpeg
  *
@@ -88,8 +88,10 @@ static const ff_codec_t ff_audio_lookup[] = {
   {BUF_AUDIO_DK3ADPCM,   CODEC_ID_ADPCM_IMA_DK3,  "Duck DK3 ADPCM (ffmpeg)"},
   {BUF_AUDIO_DK4ADPCM,   CODEC_ID_ADPCM_IMA_DK4,  "Duck DK4 ADPCM (ffmpeg)"},
   {BUF_AUDIO_VQA_IMA,    CODEC_ID_ADPCM_IMA_WS,   "Westwood Studios IMA (ffmpeg)"},
+  {BUF_AUDIO_SMJPEG_IMA, CODEC_ID_ADPCM_IMA_SMJPEG, "SMJPEG IMA (ffmpeg)"},
   {BUF_AUDIO_XA_ADPCM,   CODEC_ID_ADPCM_XA,       "CD-ROM/XA ADPCM (ffmpeg)"},
   {BUF_AUDIO_4X_ADPCM,   CODEC_ID_ADPCM_4XM,      "4X ADPCM (ffmpeg)"},
+  {BUF_AUDIO_EA_ADPCM,   CODEC_ID_ADPCM_EA,       "Electronic Arts ADPCM (ffmpeg)"},
   {BUF_AUDIO_MULAW,      CODEC_ID_PCM_MULAW,      "mu-law logarithmic PCM (ffmpeg)"},
   {BUF_AUDIO_ALAW,       CODEC_ID_PCM_ALAW,       "A-law logarithmic PCM (ffmpeg)"},
   {BUF_AUDIO_ROQ,        CODEC_ID_ROQ_DPCM,       "RoQ DPCM (ffmpeg)"},
@@ -367,6 +369,8 @@ static uint32_t supported_audio_types[] = {
   BUF_AUDIO_MAC6,
   BUF_AUDIO_XAN_DPCM,
   BUF_AUDIO_VMD,
+  BUF_AUDIO_EA_ADPCM,
+  BUF_AUDIO_SMJPEG_IMA,
   /* BUF_AUDIO_MPEG, */
   0
 };
