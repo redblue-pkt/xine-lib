@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.78 2002/08/01 19:32:28 miguelfreitas Exp $
+ * $Id: demux_qt.c,v 1.79 2002/08/02 12:31:28 mroi Exp $
  *
  */
 
@@ -775,7 +775,7 @@ static qt_error build_frame_table(qt_sample_table *sample_table) {
   unsigned int keyframe_index;
   unsigned int chunk_start, chunk_end;
   unsigned int samples_per_chunk;
-  unsigned int current_offset;
+  uint64_t current_offset;
   int64_t current_pts;
   unsigned int pts_index;
   unsigned int pts_index_countdown;
