@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.41 2001/09/08 00:44:40 guenter Exp $
+ * $Id: demux_mpeg_block.c,v 1.42 2001/09/08 15:41:20 guenter Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -82,13 +82,6 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
 
   buf = this->input->read_block (this->input, this->video_fifo, this->blocksize);
 
-  /* If this is not a block for the demuxer, pass it
-   * straight through. */
-  if(buf->type != BUF_DEMUX_BLOCK) {
-    this->video_fifo->put (this->video_fifo, buf);
-    return;
-  }
-
   if (buf==NULL) {
     char *next_mrl;
 
@@ -127,6 +120,13 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
       this->status = DEMUX_FINISHED;
       return ;
     }
+  }
+
+  /* If this is not a block for the demuxer, pass it
+   * straight through. */
+  if(buf->type != BUF_DEMUX_BLOCK) {
+    this->video_fifo->put (this->video_fifo, buf);
+    return;
   }
 
   p = buf->content; /* len = this->mnBlocksize; */

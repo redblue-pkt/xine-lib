@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_avi.c,v 1.36 2001/09/05 17:49:20 guenter Exp $
+ * $Id: demux_avi.c,v 1.37 2001/09/08 15:41:20 guenter Exp $
  *
  * demultiplexer for avi streams
  *
@@ -886,8 +886,19 @@ static void demux_avi_start (demux_plugin_t *this_gen,
   case 0x55:
     this->avi->audio_type     = BUF_AUDIO_MPEG;
     break;
+  case 0x160:
   case 0x161:
-    this->avi->audio_type     = BUF_AUDIO_AVI;
+    this->avi->audio_type     = BUF_AUDIO_DIVXA;
+    break;
+  case 0x02:
+    this->avi->audio_type     = BUF_AUDIO_MSADPCM;
+    break;
+  case 0x11:
+    this->avi->audio_type     = BUF_AUDIO_IMAADPCM;
+    break;
+  case 0x31:
+  case 0x32:
+    this->avi->audio_type     = BUF_AUDIO_MSGSM;
     break;
   default:
     printf ("demux_avi: unknown audio type 0x%lx\n", this->avi->a_fmt);
@@ -1001,6 +1012,7 @@ static void demux_avi_start (demux_plugin_t *this_gen,
     case mmioFOURCC('i', 'v', '5', '0'):
       /* Video in Indeo Video 5.0 format */
       this->avi->video_type     = BUF_VIDEO_IV50;
+      break;
 
     case mmioFOURCC('I', 'V', '4', '1'):
     case mmioFOURCC('i', 'v', '4', '1'):
@@ -1011,6 +1023,12 @@ static void demux_avi_start (demux_plugin_t *this_gen,
     case mmioFOURCC('i', 'v', '3', '2'):
       /* Video in Indeo Video 3.2 format */
       this->avi->video_type     = BUF_VIDEO_IV32;
+      break;
+
+    case mmioFOURCC('I', 'V', '3', '1'):
+    case mmioFOURCC('i', 'v', '3', '1'):
+      /* Video in Indeo Video 3.1 format */
+      this->avi->video_type     = BUF_VIDEO_IV31;
       break;
 
     case mmioFOURCC('c', 'v', 'i', 'd'):
@@ -1031,8 +1049,11 @@ static void demux_avi_start (demux_plugin_t *this_gen,
       this->avi->video_type     = BUF_VIDEO_I263;
       break;
     default:
-      this->avi->video_type     = BUF_VIDEO_AVI;
-      break;
+      printf ("demux_avi: unknown avi format %.4s\n",
+	      (char*)&this->avi->bih.biCompression);
+
+      this->status = DEMUX_FINISHED;
+      return;
   }
   buf->type = this->avi->video_type;
 
