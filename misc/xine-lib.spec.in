@@ -10,7 +10,7 @@
 # Build separat packages:
 # 1 create a sparate package
 # 0 include files in main package
-%if %{?BUILD_ALSA09:0}%{!?BUILD_ALSA09:1}
+%if %{?BUILD_AA:0}%{!?BUILD_AA:1}
 %define BUILD_AA        0
 %endif
 %if %{?BUILD_ALSA09:0}%{!?BUILD_ALSA09:1}
