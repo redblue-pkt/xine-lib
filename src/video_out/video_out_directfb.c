@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_directfb.c,v 1.3 2002/02/04 17:25:56 richwareham Exp $
+ * $Id: video_out_directfb.c,v 1.4 2002/02/10 12:42:49 richwareham Exp $
  *
  * DirectFB based output plugin.
  * Rich Wareham <richwareham@users.sourceforge.net>
@@ -267,10 +267,6 @@ static void directfb_update_frame_format (vo_driver_t *this_gen,
     frame->height = height;
        
     switch(frame->format) {
-     case IMGFMT_RGB:
-      s_dsc.pixelformat = DSPF_RGB16;
-      l_dsc.pixelformat = DSPF_RGB16;
-      break;
      case IMGFMT_YV12:
       s_dsc.pixelformat = DSPF_YV12;
       l_dsc.pixelformat = DSPF_YV12;
@@ -311,11 +307,6 @@ static void directfb_update_frame_format (vo_driver_t *this_gen,
 
     frame->locked = 1;
     switch(frame->format) {
-     case IMGFMT_RGB:
-      frame->vo_frame.base[0] = data;
-      frame->vo_frame.base[1] = data;
-      frame->vo_frame.base[2] = data;
-      break;
      case IMGFMT_YV12:
       frame->vo_frame.base[0] = data;
       frame->vo_frame.base[1] = data + pitch*height;
