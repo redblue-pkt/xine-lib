@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.100 2003/03/14 17:46:05 jstembridge Exp $
+ * $Id: xine_decoder.c,v 1.101 2003/03/14 19:05:40 jstembridge Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -218,7 +218,7 @@ static void pp_quality_cb(void *user_data, xine_cfg_entry_t *entry) {
     ff_video_decoder_t *this  = class->ip;
     
     this->pp_quality = entry->num_value;  
-    if(this->pp_mode) {
+    if(this->pp_mode && this->pp_quality > 0) {
       pp_free_mode(this->pp_mode);
       this->pp_mode = pp_get_mode_by_name_and_quality("hb:a,vb:a,dr:a", 
                                                       this->pp_quality);
