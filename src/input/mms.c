@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mms.c,v 1.39 2003/12/09 00:02:29 f1rmb Exp $
+ * $Id: mms.c,v 1.40 2003/12/11 01:15:53 tmattern Exp $
  *
  * MMS over TCP protocol
  *   based on work from major mms
@@ -167,28 +167,31 @@ static int get_guid (unsigned char *buffer, int offset) {
   return GUID_ERROR;
 }
 
-static int send_command (mms_t *this, int command, uint32_t switches, 
-			 uint32_t extra, int length) {
-  int        len8;
-  off_t      n;
+static int send_command (mms_t *this, int command,
+                         uint32_t prefix1, uint32_t prefix2,
+                         int length) {
+  int    len8;
+  off_t  n;
 
-  len8 = (length + (length % 8)) / 8;
+  len8 = (length + 7) / 8;
 
   this->scmd_len = 0;
 
-  put_32 (this, 0x00000001); /* start sequence */
-  put_32 (this, 0xB00BFACE); /* #-)) */
+  put_32 (this, 0x00000001);   /* start sequence */
+  put_32 (this, 0xB00BFACE);   /* #-)) */
   put_32 (this, length + 32);
-  put_32 (this, 0x20534d4d); /* protocol type "MMS " */
+  put_32 (this, 0x20534d4d);   /* protocol type "MMS " */
   put_32 (this, len8 + 4);
   put_32 (this, this->seq_num);
   this->seq_num++;
-  put_32 (this, 0x0);        /* unknown */
+  put_32 (this, 0x0);          /* timestamp */
   put_32 (this, 0x0);
   put_32 (this, len8+2);
   put_32 (this, 0x00030000 | command); /* dir | command */
-  put_32 (this, switches);
-  put_32 (this, extra);
+  /* end of the 40 byte command header */
+  
+  put_32 (this, prefix1);
+  put_32 (this, prefix2);
 
   /* memcpy (&cmd->buf[48], data, length); */
 
