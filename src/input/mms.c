@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mms.c,v 1.32 2003/10/11 20:42:38 tmattern Exp $
+ * $Id: mms.c,v 1.33 2003/10/12 14:28:37 komadori Exp $
  *
  * MMS over TCP protocol
  *   based on work from major mms
@@ -269,18 +269,32 @@ static iconv_t string_utf16_open() {
 }
 
 static void string_utf16_close(iconv_t url_conv) {
-    iconv_close(url_conv);
+    if (url_conv != (iconv_t)-1) {
+      iconv_close(url_conv);
+    }
 }
 
 static void string_utf16(iconv_t url_conv, char *dest, char *src, int len) {
-    size_t len1, len2;
-    char *ip, *op;
-
     memset(dest, 0, 1000);
-    len1 = len; len2 = 1000;
-    ip = src; op = dest;
 
-    iconv(url_conv, &ip, &len1, &op, &len2);
+    if (url_conv == (iconv_t)-1) {
+      int i;
+
+      for (i = 0; i < len; i++) {
+        dest[i * 2] = src[i];
+        dest[i * 2 + 1] = 0;
+      }
+      dest[i * 2] = 0;
+      dest[i * 2 + 1] = 0;
+    }
+    else {
+      size_t len1, len2;
+      char *ip, *op;
+
+      len1 = len; len2 = 1000;
+      ip = src; op = dest;
+      iconv(url_conv, &ip, &len1, &op, &len2);
+    }
 }
 
 #else
