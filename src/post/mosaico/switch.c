@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: switch.c,v 1.1 2003/03/14 16:14:23 skaboy Exp $
+ * $Id: switch.c,v 1.2 2003/03/15 14:10:44 skaboy Exp $
  */
  
 /*
@@ -82,10 +82,14 @@ static void           switch_open(xine_video_port_t *port_gen, xine_stream_t *st
 static vo_frame_t    *switch_get_frame(xine_video_port_t *port_gen, uint32_t width, 
 				       uint32_t height, int ratio_code, 
 				       int format, int flags);
+static vo_frame_t    *switch_get_frame_2(xine_video_port_t *port_gen, uint32_t width, 
+				       uint32_t height, int ratio_code, 
+				       int format, int flags);
 static void           switch_close(xine_video_port_t *port_gen, xine_stream_t *stream);
 
 /* replaced vo_frame functions */
 static int            switch_draw(vo_frame_t *frame, xine_stream_t *stream);
+static int            switch_draw_2(vo_frame_t *frame, xine_stream_t *stream);
 
 static void source_changed_cb(void *data, xine_cfg_entry_t *cfg) {
   post_class_switch_t *class = (post_class_switch_t *)data; 
@@ -131,8 +135,8 @@ static post_plugin_t *switch_open_plugin(post_class_t *class_gen, int inputs,
   xine_post_in_t    *input2;
   post_switch_out_t *output = (post_switch_out_t *)malloc(sizeof(post_switch_out_t));
   post_class_switch_t *class = (post_class_switch_t *) class_gen;
-  post_video_port_t *port = NULL, *port2;
-  int i;
+  post_video_port_t *port = NULL;/*, *port2;*/
+  /* int i; */
   char string[255];
   xine_cfg_entry_t    entry;
  
@@ -159,27 +163,43 @@ static post_plugin_t *switch_open_plugin(post_class_t *class_gen, int inputs,
   this->xine_post.audio_input[0] = NULL;
   this->xine_post.video_input    = (xine_video_port_t **)malloc(sizeof(xine_video_port_t *) * (inputs+1));
 
-  for(i=0; i<inputs; i++) {
-    /*registry operations*/
-    input2 = (xine_post_in_t *)malloc(sizeof(xine_post_in_t));
+  /* for(i=0; i<inputs; i++) { */
 
-    port2 = post_intercept_video_port(this, video_target[i]);
-    if(!i) port = port2;
+  /* first input */
+  input2 = (xine_post_in_t *)malloc(sizeof(xine_post_in_t));
 
-    /* replace with our own get_frame function */
-    port2->port.open = switch_open;
-    port2->port.get_frame = switch_get_frame;
-    port2->port.close = switch_close;
+  port = post_intercept_video_port(this, video_target[0]);
+  /* replace with our own get_frame function */
+  port->port.open = switch_open;
+  port->port.get_frame = switch_get_frame;
+  port->port.close = switch_close;
 
-    sprintf(string, "video in %d", i);
-    input2->name = strdup(string);
-    input2->type = XINE_POST_DATA_VIDEO;
-    input2->data = (xine_video_port_t *)&port2->port;
+  sprintf(string, "video in 0");
+  input2->name = strdup(string);
+  input2->type = XINE_POST_DATA_VIDEO;
+  input2->data = (xine_video_port_t *)&port->port;
     
-    this->xine_post.video_input[i] = &port2->port;
-    xine_list_append_content(this->input, input2);
-  }
+  this->xine_post.video_input[0] = &port->port;
+  xine_list_append_content(this->input, input2);
 
+  /* second input */
+  input2 = (xine_post_in_t *)malloc(sizeof(xine_post_in_t));
+
+  port = post_intercept_video_port(this, video_target[1]);
+  /* replace with our own get_frame function */
+  port->port.open = switch_open;
+  port->port.get_frame = switch_get_frame_2;
+  port->port.close = switch_close;
+
+  sprintf(string, "video in 1");
+  input2->name = strdup(string);
+  input2->type = XINE_POST_DATA_VIDEO;
+  input2->data = (xine_video_port_t *)&port->port;
+    
+  this->xine_post.video_input[1] = &port->port;
+  xine_list_append_content(this->input, input2);
+  
+  /* output */
   output->xine_out.name   = "video out";
   output->xine_out.type   = XINE_POST_DATA_VIDEO;
   output->xine_out.data   = (xine_video_port_t **)&port->original_port;
@@ -192,7 +212,7 @@ static post_plugin_t *switch_open_plugin(post_class_t *class_gen, int inputs,
   if(xine_config_lookup_entry(class->xine, "post.switch_active", &entry)) 
     source_changed_cb(class, &entry);
 
-  this->xine_post.video_input[i+1] = NULL;     
+  this->xine_post.video_input[2] = NULL;
   this->dispose = switch_dispose;
 
   return this;
@@ -255,7 +275,7 @@ static void switch_open(xine_video_port_t *port_gen, xine_stream_t *stream)
 {
   post_video_port_t *port = (post_video_port_t *)port_gen;
   post_switch_out_t *output = (post_switch_out_t *)xine_list_first_content(port->post->output);
-
+ 
   output->stream = stream;
   port->original_port->open(port->original_port, stream);
    
@@ -267,14 +287,40 @@ static vo_frame_t *switch_get_frame(xine_video_port_t *port_gen, uint32_t width,
 {
   post_video_port_t *port = (post_video_port_t *)port_gen;
   vo_frame_t        *frame;
+  post_switch_out_t *output = (post_switch_out_t *)xine_list_first_content(port->post->output);
 
+  pthread_mutex_lock(&output->mut1); 
   frame = port->original_port->get_frame(port->original_port,
-    width, height, ratio_code, format, flags);
+					 width, height , ratio_code, format, flags);
+
   post_intercept_video_frame(frame, port);
   /* replace with our own draw function */
   frame->draw = switch_draw;
   /* decoders should not copy the frames, since they won't be displayed */
   frame->copy = NULL;
+  pthread_mutex_unlock(&output->mut1); 
+  return frame;
+}
+
+static vo_frame_t *switch_get_frame_2(xine_video_port_t *port_gen, uint32_t width, 
+				    uint32_t height, int ratio_code, 
+				    int format, int flags)
+{
+  post_video_port_t *port = (post_video_port_t *)port_gen;
+  vo_frame_t        *frame;
+  post_switch_out_t *output = (post_switch_out_t *)xine_list_first_content(port->post->output);
+
+  pthread_mutex_lock(&output->mut1); 
+
+  frame = port->original_port->get_frame(port->original_port,
+					 width, height , ratio_code, format, flags);
+
+  post_intercept_video_frame(frame, port);
+  /* replace with our own draw function */
+  frame->draw = switch_draw_2;
+  /* decoders should not copy the frames, since they won't be displayed */
+  frame->copy = NULL;
+  pthread_mutex_unlock(&output->mut1); 
   return frame;
 }
 
@@ -325,38 +371,61 @@ static void frame_copy_content(vo_frame_t *to, vo_frame_t *from) {
   }
 }
 
+static int switch_draw_2(vo_frame_t *frame, xine_stream_t *stream)
+{
+  int skip;
+  post_video_port_t *port = (post_video_port_t *)frame->port;
+  post_switch_out_t *output = (post_switch_out_t *)xine_list_first_content(port->post->output);
+  vo_frame_t *res_frame;
+
+  pthread_mutex_lock(&output->mut1); 
+
+  if(!output->selected_source) {
+    /* printf("draw_2 quitting\n"); */
+    post_restore_video_frame(frame, port); 
+    pthread_mutex_unlock(&output->mut1); 
+    return 0;
+  }
+  /* printf("draw_2\n"); */
+ 
+  res_frame = port->original_port->get_frame(port->original_port,
+						  frame->width, frame->height, frame->ratio, frame->format, VO_BOTH_FIELDS);
+  res_frame->pts = frame->pts;
+  res_frame->duration = frame->duration;
+  res_frame->bad_frame = frame->bad_frame;
+  extra_info_merge(res_frame->extra_info, frame->extra_info);
+ 
+
+  frame_copy_content(res_frame, frame);
+
+  skip = res_frame->draw(res_frame, stream);
+  
+  res_frame->free(res_frame);
+  frame->vpts = res_frame->vpts;
+
+  post_restore_video_frame(frame, port);
+
+  pthread_mutex_unlock(&output->mut1); 
+
+  return skip;
+}
+
 static int switch_draw(vo_frame_t *frame, xine_stream_t *stream)
 {
   int skip;
   post_video_port_t *port = (post_video_port_t *)frame->port;
   post_switch_out_t *output = (post_switch_out_t *)xine_list_first_content(port->post->output);
-  xine_video_port_t *pt;
-  xine_post_in_t *in;
-  int i = 0;
   vo_frame_t *res_frame;
 
   pthread_mutex_lock(&output->mut1); 
 
-  in = xine_list_first_content(port->post->input);
-
-  while(in != NULL) {
-    pt = in->data;
-    if(pt == frame->port) {
-
-      /* printf("trovato %d\n", i); */
-
-      break;
-    }
-    in = xine_list_next_content(port->post->input);
-    i++;
-  }
-
-  /* printf("%d %d\n", i, output->selected_source); */
-  if(i != output->selected_source) {
-    post_restore_video_frame(frame, port);
+  if(output->selected_source) {
+    /* printf("draw_1 quitting\n"); */
+    post_restore_video_frame(frame, port); 
     pthread_mutex_unlock(&output->mut1); 
     return 0;
   }
+  /* printf("draw_1\n"); */
 
   res_frame = port->original_port->get_frame(port->original_port,
 						  frame->width, frame->height, frame->ratio, frame->format, VO_BOTH_FIELDS);
