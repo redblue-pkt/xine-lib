@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_interface.c,v 1.84 2004/10/26 20:10:24 miguelfreitas Exp $
+ * $Id: xine_interface.c,v 1.85 2004/12/19 10:50:18 f1rmb Exp $
  *
  * convenience/abstraction layer, functions to implement
  * libxine's public interface
@@ -430,7 +430,8 @@ void xine_set_param (xine_stream_t *stream, int param, int value) {
 
   case XINE_PARAM_VERBOSITY:
     stream->xine->verbosity = value;
-    
+    break;
+
   case XINE_PARAM_VO_HUE:
   case XINE_PARAM_VO_SATURATION:
   case XINE_PARAM_VO_CONTRAST:
