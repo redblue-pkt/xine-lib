@@ -1,14 +1,14 @@
-/* 
- * Copyright (C) 2000-2001 major mms
+/*
+ * Copyright (C) 2002 the xine project
  * 
- * This file is part of xine-mms
+ * This file is part of xine, a free video player.
  * 
- * xine-mms is free software; you can redistribute it and/or modify
+ * xine is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  * 
- * xine-mms is distributed in the hope that it will be useful,
+ * xine is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
@@ -17,7 +17,9 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * input plugin for mms network streams
+ * $Id: input_mms.c,v 1.11 2002/04/28 15:33:06 guenter Exp $
+ *
+ * mms input plugin based on work from major mms
  */
 
 #ifdef HAVE_CONFIG_H
@@ -50,9 +52,6 @@ extern int errno;
 #define	FNDELAY	O_NDELAY
 #endif
 
-#define DEFAULT_LOW_WATER_MARK  1
-#define DEFAULT_HIGH_WATER_MARK 5
-
 typedef struct {
   input_plugin_t   input_plugin;
 
@@ -71,51 +70,19 @@ typedef struct {
 
 } mms_input_plugin_t;
 
-extern char  *mms_url_s[];
-extern char  *mms_url_e[];
 
 static int mms_plugin_open (input_plugin_t *this_gen, char *mrl) {
 
-  char* nmrl=NULL;
-  char* uptr;
-  int error_id;
-
   mms_input_plugin_t *this = (mms_input_plugin_t *) this_gen;
-  
-  if (strncmp (mrl, "mms://", 6)) {
-    error_id=asx_parse(mrl,&nmrl);
-  
-    if(error_id)
-      return 0;
-  }
 
-  if(!nmrl)
-    nmrl=mrl;
+  printf ("input_mms: trying to open '%s'\n", mrl);
 
-  printf("mms_plugin_open: using mrl <%s> \n", nmrl);
-  
-  uptr=strdup(nmrl);
-  if (!mms_url_is(nmrl,mms_url_s)){
-    
+  this->mms = mms_connect (mrl);
+
+  if (!this->mms)
     return 0;
-  }
   
- 
-  this->mrl = strdup(nmrl); /* FIXME: small memory leak */
-
-  this->xine->osd_renderer->filled_rect (this->xine->osd, 0, 0, 299, 99, 0);
-  this->xine->osd_renderer->render_text (this->xine->osd, 5, 30, "mms: contacting...", OSD_TEXT1);
-  this->xine->osd_renderer->show (this->xine->osd, 0);
-
-  this->mms = mms_connect (nmrl);
-
-  this->xine->osd_renderer->hide (this->xine->osd, 0);
-
-  if (!this->mms){
-   
-    return 0;
-  }
- 
+  this->mrl    = strdup(mrl); /* FIXME: small memory leak */
   this->curpos = 0;
   this->nbc    = nbc_init (this->xine);
   return 1;

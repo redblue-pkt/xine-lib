@@ -1,14 +1,14 @@
-/* 
- * Copyright (C) 2000-2001 major mms
+/*
+ * Copyright (C) 2002 the xine project
  * 
- * This file is part of libmms
+ * This file is part of xine, a free video player.
  * 
- * libmms is free software; you can redistribute it and/or modify
+ * xine is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  * 
- * libmms is distributed in the hope that it will be useful,
+ * xine is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
@@ -17,6 +17,9 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
+ * $Id: mms.c,v 1.5 2002/04/28 15:33:06 guenter Exp $
+ *
+ * based on work from major mms
  * utility functions to handle communication with an mms server
  */
 
@@ -54,9 +57,6 @@
 
 #define CMD_HEADER_LEN   48
 #define CMD_BODY_LEN   1024
-
-char *mms_url_s[]={"MMS://","MMSU://","MMST://","HTTP://", "HREF",NULL};
-char *mms_url_e[]={"ASF","WMF","WMV","WMA",NULL};
 
 struct mms_s {
 
@@ -510,12 +510,12 @@ static void interp_header (mms_t *this) {
   }
 }
 
+char *mms_url_s[]={"MMS://","MMSU://","MMST://", NULL};
 
-int mms_url_is(char* url, char** mms_url) {
+static int mms_valid_url (char* url, char** mms_url) {
   int i=0;
   int len;
     
-  printf("libmms: mms_url_is l=%d \n",strlen(mms_url[0]));
   if(!url )
     return 0;
 
@@ -529,28 +529,6 @@ int mms_url_is(char* url, char** mms_url) {
   return 0;
 } 
 
-int mms_start_where(char* url) {
-  int i=0;
-  int delta;
-  char *p;
-  char* uptr;
-    
-  if (!url)
-    return -1;
-  uptr=strdup(url);
-  uptr=strupr(uptr);
-  while(mms_url_s[i]){
-    if((p=strstr(uptr,mms_url_s[i]))){
-      delta=p-uptr;
-      free(uptr);
-      return delta;
-    }
-    i++;
-  }
-  free(uptr);
-  return -1;
-} 
-
 char* mms_connect_common(int *s, int port, char *url, char **host, char** hostend,
 			 char  **path, char **file) {
  
@@ -558,14 +536,12 @@ char* mms_connect_common(int *s, int port, char *url, char **host, char** hosten
   int    proto_len;
   char   *forport;
     
-  if(!(proto_len=mms_url_is(url,mms_url_s))){
+  if (!(proto_len=mms_valid_url(url,mms_url_s))){
 
-    printf ("libmms: invalid url >%s< (should be mms:// http:// - style)\n", url);
+    printf ("libmms: invalid url >%s< (should be mms:// - style)\n", url);
     return NULL;
   
   }
-
- 
 
   /* extract hostname */
   

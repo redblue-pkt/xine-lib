@@ -1,14 +1,14 @@
-/* 
- * Copyright (C) 2000-2001 major mms
+/*
+ * Copyright (C) 2002 the xine project
  * 
- * This file is part of libmms
+ * This file is part of xine, a free video player.
  * 
- * xine-mms is free software; you can redistribute it and/or modify
+ * xine is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  * 
- * xine-mms is distributed in the hope that it will be useful,
+ * xine is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
@@ -16,6 +16,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
+ *
+ * $Id: mms.h,v 1.4 2002/04/28 15:33:06 guenter Exp $
  *
  * libmms public header
  */
@@ -27,19 +29,16 @@
 
 typedef struct mms_s mms_t;
 
-char *strupr(char *string);
-int asx_parse (char* fname, char** rname);
-int mms_start_where(char* url);
-int mms_url_is(char* url, char** mms_url);
-char* mms_connect_common(int *s ,int port,char *url, char **host , char** hostend,
-			 char  **path,char **file);
-mms_t *mms_connect (char *url);
+char*    strupr(char *string);
+char*    mms_connect_common(int *s ,int port,char *url, char **host , char** hostend,
+			    char  **path,char **file);
+mms_t*   mms_connect (char *url);
 
-int mms_read (mms_t *this, char *data, int len);
+int      mms_read (mms_t *this, char *data, int len);
 uint32_t mms_get_length (mms_t *this);
-void mms_close (mms_t *this);
+void     mms_close (mms_t *this);
 
-int mms_peek_header (mms_t *this, char *data);
+int      mms_peek_header (mms_t *this, char *data);
 
 #endif
 
