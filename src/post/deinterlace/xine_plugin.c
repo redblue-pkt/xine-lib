@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_plugin.c,v 1.7 2003/06/21 11:28:04 mroi Exp $
+ * $Id: xine_plugin.c,v 1.8 2003/06/22 15:42:07 miguelfreitas Exp $
  *
  * advanced video deinterlacer plugin
  * Jun/2003 by Miguel Freitas
@@ -298,7 +298,7 @@ static post_plugin_t *deinterlace_open_plugin(post_class_t *class_gen, int input
   this->framerate_mode = 0;
   this->judder_correction = 1;
   this->use_progressive_frame_flag = 1;
-  this->chroma_filter = 1;
+  this->chroma_filter = 0;
   this->framecounter = 0;
   memset( &this->recent_frame, 0, sizeof(this->recent_frame) );
 
