@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: svq1.c,v 1.21 2003/01/01 15:20:14 esnel Exp $
+ * $Id: svq1.c,v 1.22 2003/01/01 15:25:15 esnel Exp $
  */
 
 #include <stdio.h>
@@ -611,11 +611,23 @@ static uint32_t get_bits (bit_buffer_t *bitbuf, int count) {
 static uint32_t get_bit_cache(bit_buffer_t *bitbuf) {
   uint32_t result;
 
-  /* load 32 bits of data (byte-aligned) */
-  result   = BE_32 (&bitbuf->buffer[bitbuf->bitpos >> 3]);
+  /* avoid buffer overflow */
+  if ((bitbuf->bitpos + 24) >= bitbuf->length) {
+    int i;
 
-  /* compensate for sub-byte offset */
-  result <<= (bitbuf->bitpos & 0x7);
+    /* load upto 24 bits of data on sub-byte offset */
+    result = 0;
+
+    for (i=(bitbuf->bitpos & ~0x7); i < bitbuf->length; i+=8) {
+      result |= bitbuf->buffer[i >> 3] << (24 + (bitbuf->bitpos - i));
+    }
+  } else {
+    /* load 32 bits of data (byte-aligned) */
+    result   = BE_32 (&bitbuf->buffer[bitbuf->bitpos >> 3]);
+
+    /* compensate for sub-byte offset */
+    result <<= (bitbuf->bitpos & 0x7);
+  }
 
   return result;
 }
