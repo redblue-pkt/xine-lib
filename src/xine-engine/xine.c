@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.200 2002/12/21 12:56:52 miguelfreitas Exp $
+ * $Id: xine.c,v 1.201 2002/12/21 16:13:43 miguelfreitas Exp $
  *
  * top-level xine functions
  *
@@ -115,6 +115,9 @@ void extra_info_merge( extra_info_t *dst, extra_info_t *src ) {
     
   if( src->frame_number )
     dst->frame_number = src->frame_number;
+    
+  if( src->seek_count )
+    dst->seek_count = src->seek_count;
 }
 
 static void xine_set_speed_internal (xine_stream_t *stream, int speed) {
@@ -288,9 +291,12 @@ xine_stream_t *xine_stream_new (xine_t *this,
   pthread_mutex_lock (&this->streams_lock);
   
   stream = (xine_stream_t *) xine_xmalloc (sizeof (xine_stream_t)) ;
-  stream->current_extra_info       = xine_xmalloc( sizeof( extra_info_t ) );
-  stream->audio_decoder_extra_info = xine_xmalloc( sizeof( extra_info_t ) );
-  stream->video_decoder_extra_info = xine_xmalloc( sizeof( extra_info_t ) );
+  stream->current_extra_info       = malloc( sizeof( extra_info_t ) );
+  stream->audio_decoder_extra_info = malloc( sizeof( extra_info_t ) );
+  stream->video_decoder_extra_info = malloc( sizeof( extra_info_t ) );
+  extra_info_reset( stream->current_extra_info );
+  extra_info_reset( stream->video_decoder_extra_info );
+  extra_info_reset( stream->audio_decoder_extra_info );
 
   stream->xine                   = this;
   stream->status                 = XINE_STATUS_STOP;
@@ -754,6 +760,7 @@ static int xine_play_internal (xine_stream_t *stream, int start_pos, int start_t
   pthread_mutex_lock (&stream->first_frame_lock);
   stream->first_frame_flag = 1;
   pthread_mutex_unlock (&stream->first_frame_lock);
+  extra_info_reset( stream->current_extra_info );
 
   printf ("xine: xine_play_internal ...done\n");
 
@@ -965,15 +972,19 @@ static int xine_get_current_position (xine_stream_t *stream) {
   if (!stream->input_plugin) {
     printf ("xine: xine_get_current_position: no input source\n");
     pthread_mutex_unlock (&stream->frontend_lock);
-    return 0;
+    return -1;
   }
-      
-  if ( (!stream->video_decoder_plugin && !stream->audio_decoder_plugin) ||
-        !stream->first_frame_flag ) {
+
+  if ( (!stream->video_decoder_plugin && !stream->audio_decoder_plugin) ) {
     if( stream->stream_info[XINE_STREAM_INFO_HAS_VIDEO] )
       extra_info_merge( stream->current_extra_info, stream->video_decoder_extra_info );
     else    
       extra_info_merge( stream->current_extra_info, stream->audio_decoder_extra_info );
+  }
+  
+  if ( stream->current_extra_info->seek_count != stream->video_seek_count ) {
+    pthread_mutex_unlock (&stream->frontend_lock);
+    return -1; /* position not yet known */  
   }
   
   len = stream->current_extra_info->input_length;
@@ -1036,10 +1047,13 @@ static int xine_get_stream_length (xine_stream_t *stream) {
 int xine_get_pos_length (xine_stream_t *stream, int *pos_stream, 
 			 int *pos_time, int *length_time) {
   
-  xine_get_current_position (stream); /* force updating extra_info */
+  int pos = xine_get_current_position (stream); /* force updating extra_info */
+  
+  if (pos == -1)
+    return 0;
   
   if (pos_stream)
-    *pos_stream  = xine_get_current_position (stream); 
+    *pos_stream  = pos; 
   if (pos_time)
     *pos_time    = stream->current_extra_info->input_time * 1000;
   if (length_time)

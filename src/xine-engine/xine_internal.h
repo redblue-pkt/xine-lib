@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.115 2002/12/21 12:56:52 miguelfreitas Exp $
+ * $Id: xine_internal.h,v 1.116 2002/12/21 16:13:43 miguelfreitas Exp $
  *
  */
 
@@ -130,6 +130,7 @@ struct extra_info_s {
   off_t                 input_length; /* remember the length of the input source */
   int                   input_time;/* time offset in seconds from beginning of stream       */
   uint32_t              frame_number; /* number of current frame if known */
+  int                   seek_count; /* internal engine use */
 };
 
 /*
@@ -233,6 +234,7 @@ struct xine_stream_s {
   int                        demux_action_pending;
 
   extra_info_t              *current_extra_info;
+  int                        video_seek_count;
 
   int                        err;
 };

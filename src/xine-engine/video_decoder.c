@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.114 2002/12/21 12:56:52 miguelfreitas Exp $
+ * $Id: video_decoder.c,v 1.115 2002/12/21 16:13:43 miguelfreitas Exp $
  *
  */
 
@@ -77,6 +77,7 @@ void *video_decoder_loop (void *stream_gen) {
 
     buf = stream->video_fifo->get (stream->video_fifo);
     extra_info_merge( stream->video_decoder_extra_info, buf->extra_info );
+    stream->video_decoder_extra_info->seek_count = stream->video_seek_count;
     
 #ifdef LOG
     printf ("video_decoder: got buffer 0x%08x\n", buf->type);      
@@ -183,6 +184,8 @@ void *video_decoder_loop (void *stream_gen) {
 
     case BUF_CONTROL_RESET_DECODER:
       extra_info_reset( stream->video_decoder_extra_info );
+      stream->video_seek_count++;
+
       if (stream->video_decoder_plugin) {
         stream->video_decoder_plugin->reset (stream->video_decoder_plugin);
       }

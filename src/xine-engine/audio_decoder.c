@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.93 2002/12/21 12:56:51 miguelfreitas Exp $
+ * $Id: audio_decoder.c,v 1.94 2002/12/21 16:13:43 miguelfreitas Exp $
  *
  *
  * functions that implement audio decoding
@@ -66,6 +66,7 @@ void *audio_decoder_loop (void *stream_gen) {
 #endif    
 
     extra_info_merge( stream->audio_decoder_extra_info, buf->extra_info );
+    stream->audio_decoder_extra_info->seek_count = stream->video_seek_count;
       
     switch (buf->type) {
       
