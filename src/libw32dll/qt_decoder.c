@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: qt_decoder.c,v 1.19 2003/05/09 23:55:40 tmmm Exp $
+ * $Id: qt_decoder.c,v 1.20 2003/05/10 04:26:18 tmmm Exp $
  *
  * quicktime video/audio decoder plugin, using win32 dlls
  * most of this code comes directly from MPlayer
@@ -366,10 +366,10 @@ static void qta_init_driver (qta_decoder_t *this, buf_element_t *buf) {
     return;
   }
 
-  if ((buf->decoder_info[2] > 0x48) && (buf->decoder_info[2] != 0x74)) {
+  if ((buf->decoder_info[2] > 0x38) && (buf->decoder_info[2] != 0x64)) {
     error = this->SoundConverterSetInfo (this->myConverter,
 					 FOUR_CHAR_CODE('w','a','v','e'),
-					 ((unsigned char *)buf->decoder_info_ptr[2]) + 0x48);
+					 ((unsigned char *)buf->decoder_info_ptr[2]) + 0x38);
 #ifdef LOG
     printf ("qt_audio: SoundConverterSetInfo:%i\n",error);
 #endif
@@ -913,28 +913,28 @@ static void qtv_init_driver (qtv_decoder_t *this, buf_element_t *buf) {
 #endif
 
   {
-    uint8_t *stdata = ((unsigned char *)buf->decoder_info_ptr[2]) + 20;
-    int      stdata_len = buf->decoder_info[2] - 24;
+    uint8_t *stdata = ((unsigned char *)buf->decoder_info_ptr[2]);
+    int      stdata_len = buf->decoder_info[2];
 
     id=malloc (8+stdata_len) ; /* trak->stdata_len); */
-    id->idSize          = 8+stdata_len;
+    id->idSize          = 4+stdata_len;
     id->cType           = FOUR_CHAR_CODE('S','V','Q','3');
-    id->version         = BE_16 (stdata+ 8);
-    id->revisionLevel   = BE_16 (stdata+10);
-    id->vendor          = BE_32 (stdata+12);
-    id->temporalQuality = BE_32 (stdata+16);
-    id->spatialQuality  = BE_32 (stdata+20);
-    id->width           = BE_16 (stdata+24);
-    id->height          = BE_16 (stdata+26);
-    id->hRes            = BE_32 (stdata+28);
-    id->vRes            = BE_32 (stdata+32);
-    id->dataSize        = BE_32 (stdata+36);
-    id->frameCount      = BE_16 (stdata+40);
-    memcpy(&id->name,stdata+42,32);
-    id->depth           = BE_16 (stdata+74);
-    id->clutID          = BE_16 (stdata+76);
-    if (stdata_len>78)	
-      memcpy (((char*)&id->clutID)+2, stdata+78, stdata_len-78);
+    id->version         = BE_16 (stdata+0x08);
+    id->revisionLevel   = BE_16 (stdata+0x0C);
+    id->vendor          = BE_32 (stdata+0x10);
+    id->temporalQuality = BE_32 (stdata+0x14);
+    id->spatialQuality  = BE_32 (stdata+0x18);
+    id->width           = BE_16 (stdata+0x1C);
+    id->height          = BE_16 (stdata+0x1E);
+    id->hRes            = BE_32 (stdata+0x20);
+    id->vRes            = BE_32 (stdata+0x24);
+    id->dataSize        = BE_32 (stdata+0x28);
+    id->frameCount      = BE_16 (stdata+0x2C);
+    memcpy(&id->name,stdata+0x2D,32);
+    id->depth           = BE_16 (stdata+0x4E);
+    id->clutID          = BE_16 (stdata+0x50);
+    if (stdata_len>0x56)	
+      memcpy (((char*)&id->clutID)+2, stdata+0x52, stdata_len-0x52);
 
 #ifdef LOG
     printf ("qt_video: id (%d bytes)\n", stdata_len);

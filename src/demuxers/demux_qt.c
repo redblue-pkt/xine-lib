@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.158 2003/05/07 01:19:03 tmmm Exp $
+ * $Id: demux_qt.c,v 1.159 2003/05/10 04:26:17 tmmm Exp $
  *
  */
 
@@ -194,6 +194,9 @@ typedef union {
     palette_entry_t palette[PALETTE_COUNT];
     int depth;
     int edit_list_compensation;  /* special trick for edit lists */
+
+    unsigned char *properties_atom;
+    unsigned int properties_atom_size;
   } video;
 
   struct {
@@ -218,6 +221,9 @@ typedef union {
     unsigned int bytes_per_frame;
     unsigned int bytes_per_sample;
     unsigned int samples_per_frame;
+
+    unsigned char *properties_atom;
+    unsigned int properties_atom_size;
   } audio;
 
 } properties_t;
@@ -248,10 +254,6 @@ typedef struct {
   /* decoder data pass information to the AAC decoder */
   void *decoder_config;
   int decoder_config_len;
-
-  /* verbatim copy of the stsd atom */
-  int             stsd_size;
-  unsigned char  *stsd;
 
   /****************************************/
   /* temporary tables for loading a chunk */
@@ -603,7 +605,7 @@ qt_info *create_qt_info(void) {
 /* release a qt_info structure and associated data */
 void free_qt_info(qt_info *info) {
 
-  int i;
+  int i, j;
 
   if(info) {
     if(info->traks) {
@@ -618,7 +620,9 @@ void free_qt_info(qt_info *info) {
         free(info->traks[i].sample_to_chunk_table);
         free(info->traks[i].time_to_sample_table);
         free(info->traks[i].decoder_config);
-        free(info->traks[i].stsd);
+        for (j = 0; j < info->traks[i].stsd_atoms_count; j++)
+          free(info->traks[i].stsd_atoms[j].video.properties_atom);
+        free(info->traks[i].stsd_atoms);
       }
       free(info->traks);
     }
@@ -752,8 +756,6 @@ static qt_error parse_trak_atom (qt_trak *trak,
   trak->flags = 0;
   trak->decoder_config = NULL;
   trak->decoder_config_len = 0;
-  trak->stsd = NULL;
-  trak->stsd_size = 0;
   trak->stsd_atoms_count = 0;
   trak->stsd_atoms = NULL;
 
@@ -838,12 +840,6 @@ static qt_error parse_trak_atom (qt_trak *trak,
       hexdump (&trak_atom[i], current_atom_size);
 #endif
 
-      /* copy whole stsd atom so it can later be sent to the decoder */
-      trak->stsd_size = current_atom_size;
-      trak->stsd = xine_xmalloc(current_atom_size);
-      memset (trak->stsd, 0, current_atom_size);
-      memcpy (trak->stsd, &trak_atom[i], current_atom_size);
-
       /* allocate space for each of the properties unions */
       trak->stsd_atoms_count = BE_32(&trak_atom[i + 8]);
       trak->stsd_atoms = xine_xmalloc(trak->stsd_atoms_count * sizeof(properties_t));
@@ -858,10 +854,18 @@ static qt_error parse_trak_atom (qt_trak *trak,
       for (k = 0; k < trak->stsd_atoms_count; k++) {
 
         current_stsd_atom_size = BE_32(&trak_atom[atom_pos - 4]);      
+
         if (trak->type == MEDIA_VIDEO) {
 
           trak->stsd_atoms[k].video.media_id = k + 1;
           trak->stsd_atoms[k].video.properties_offset = properties_offset;
+
+          /* copy the properties atom */
+          trak->stsd_atoms[k].video.properties_atom_size = current_stsd_atom_size - 4;
+          trak->stsd_atoms[k].video.properties_atom = 
+            xine_xmalloc(trak->stsd_atoms[k].video.properties_atom_size);
+          memcpy(trak->stsd_atoms[k].video.properties_atom, &trak_atom[atom_pos],
+            trak->stsd_atoms[k].video.properties_atom_size);
 
           /* initialize to sane values */
           trak->stsd_atoms[k].video.width = 0;
@@ -994,6 +998,13 @@ static qt_error parse_trak_atom (qt_trak *trak,
 
           trak->stsd_atoms[k].audio.media_id = k + 1;
           trak->stsd_atoms[k].audio.properties_offset = properties_offset;
+
+          /* copy the properties atom */
+          trak->stsd_atoms[k].audio.properties_atom_size = current_stsd_atom_size - 4;
+          trak->stsd_atoms[k].audio.properties_atom = 
+            xine_xmalloc(trak->stsd_atoms[k].audio.properties_atom_size);
+          memcpy(trak->stsd_atoms[k].audio.properties_atom, &trak_atom[atom_pos],
+            trak->stsd_atoms[k].audio.properties_atom_size);
 
           /* fetch audio parameters */
           trak->stsd_atoms[k].audio.codec_fourcc =
@@ -1345,7 +1356,8 @@ free_trak:
   free(trak->sample_to_chunk_table);
   free(trak->time_to_sample_table);
   free(trak->decoder_config);
-  free(trak->stsd);
+  for (i = 0; i < trak->stsd_atoms_count; i++)
+    free(trak->stsd_atoms[i].video.properties_atom);
   free(trak->stsd_atoms);
 
   return last_error;
@@ -1646,11 +1658,6 @@ static qt_error build_frame_table(qt_trak *trak,
       if (media_id_counts[i] > media_id_counts[i - 1])
         atom_to_use = i;
     trak->properties = &trak->stsd_atoms[atom_to_use];
-
-    /* adjust the stsd atom as needed */
-    memcpy(trak->stsd + 12,
-      &trak->stsd[trak->properties->video.properties_offset],
-      BE_32(&trak->stsd[trak->properties->video.properties_offset]));
 
     free(media_id_counts);
 
@@ -2458,8 +2465,8 @@ static void demux_qt_send_headers(demux_plugin_t *this_gen) {
     buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
     buf->decoder_flags = BUF_FLAG_SPECIAL;
     buf->decoder_info[1] = BUF_SPECIAL_STSD_ATOM;
-    buf->decoder_info[2] = video_trak->stsd_size;
-    buf->decoder_info_ptr[2] = video_trak->stsd;
+    buf->decoder_info[2] = video_trak->properties->video.properties_atom_size;
+    buf->decoder_info_ptr[2] = video_trak->properties->video.properties_atom;
     buf->size = 0;
     buf->type = video_trak->properties->video.codec_buftype;
     this->video_fifo->put (this->video_fifo, buf);
@@ -2495,8 +2502,8 @@ static void demux_qt_send_headers(demux_plugin_t *this_gen) {
     buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
     buf->decoder_flags = BUF_FLAG_SPECIAL;
     buf->decoder_info[1] = BUF_SPECIAL_STSD_ATOM;
-    buf->decoder_info[2] = audio_trak->stsd_size;
-    buf->decoder_info_ptr[2] = audio_trak->stsd;
+    buf->decoder_info[2] = audio_trak->properties->audio.properties_atom_size;
+    buf->decoder_info_ptr[2] = audio_trak->properties->audio.properties_atom;
     buf->size = 0;
     buf->type = audio_trak->properties->audio.codec_buftype;
     this->audio_fifo->put (this->audio_fifo, buf);

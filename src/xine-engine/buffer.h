@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.h,v 1.110 2003/04/30 08:49:40 heinchen Exp $
+ * $Id: buffer.h,v 1.111 2003/05/10 04:26:18 tmmm Exp $
  *
  *
  * contents:
@@ -335,9 +335,14 @@ struct buf_element_s {
 /*
  * In a BUF_SPECIAL_STSD_ATOM buffer:
  * decoder_info[1] = BUF_SPECIAL_STSD_ATOM
- * decoder_info[2] = size of the stsd atom
- * decoder_info_ptr[2] = pointer to stsd atom
- * binary-only quicktime decoders need this, sent by qt demuxer
+ * decoder_info[2] = size of the ImageDescription atom, minus the
+ *   four length bytes at the beginning
+ * decoder_info_ptr[2] = pointer to ImageDescription atom, starting with
+ *   the codec fourcc
+ * Some Quicktime decoders need information contained within the 
+ * ImageDescription atom inside a Quicktime file's stsd atom. This
+ * special buffer carries the ImageDescription atom from the QT demuxer
+ * to an A/V decoder.
  */
 #define BUF_SPECIAL_STSD_ATOM  5
 
