@@ -265,7 +265,6 @@ rm -rf $RPM_BUILD_ROOT
 %{_includedir}/xine.h
 %{_includedir}/xine/*.h
 %{_datadir}/aclocal/xine.m4
-%{_mandir}/man3/*
 #%ifos linux
 #@BUILD_DHA_KMOD_TRUE@/lib/modules/%(sh -c 'uname -r')/misc/dhahelper.o
 #%endif
@@ -277,6 +276,8 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Wed Jan 15 2003 Manfred Tremmel <Manfred.Tremmel@iiv.de>
+- removed man3 manpages in devel-filelist
 * Tue Dec 24 2002 Manfred Tremmel <Manfred.Tremmel@iiv.de>
 - Update for libxine 1.0beta1 added pkgconfig-directory
 * Wed Dec 11 2002 Manfred Tremmel <Manfred.Tremmel@iiv.de>
