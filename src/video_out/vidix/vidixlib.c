@@ -202,7 +202,7 @@ static int vdl_find_driver(VDL_HANDLE stream,const char *path,unsigned cap,int v
     name = readdir(dstream);
     if(name)
     {
-      if(name->d_name[0] != '.')
+      if(name->d_name[0] != '.' && strstr(name->d_name, ".so"))
 	if(vdl_probe_driver(stream,path,name->d_name,cap,verbose)) break;
     }
     else done = 1;
