@@ -19,7 +19,7 @@
  *
  * input plugin for http network streams
  *
- * $Id: input_http.c,v 1.65 2003/09/25 13:47:17 f1rmb Exp $
+ * $Id: input_http.c,v 1.66 2003/11/08 22:20:36 tmattern Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -355,9 +355,7 @@ static void http_plugin_read_metainf (input_plugin_t *this_gen) {
             free(this->shoutcast_songtitle);
           this->shoutcast_songtitle = strdup(songtitle);
 
-          if (this->stream->meta_info [XINE_META_INFO_TITLE])
-            free(this->stream->meta_info [XINE_META_INFO_TITLE]);
-          this->stream->meta_info [XINE_META_INFO_TITLE] = strdup (songtitle);
+          xine_set_meta_info(this->stream, XINE_META_INFO_TITLE, songtitle);
 
           /* prepares the event */
           radio = this->stream->meta_info [XINE_META_INFO_ALBUM];
@@ -500,21 +498,21 @@ static int read_shoutcast_header(http_input_plugin_t *this) {
 #endif
 
       if (!strncasecmp(this->buf, "icy-name:", 9)) {
-        this->stream->meta_info [XINE_META_INFO_ALBUM]
-          = strdup (this->buf + 9 + (*(this->buf + 9) == ' '));
-        this->stream->meta_info [XINE_META_INFO_TITLE]
-          = strdup (this->buf + 9 + (*(this->buf + 9) == ' '));
+        xine_set_meta_info(this->stream, XINE_META_INFO_ALBUM,
+			   (this->buf + 9 + (*(this->buf + 9) == ' ')));
+        xine_set_meta_info(this->stream, XINE_META_INFO_TITLE,
+			   (this->buf + 9 + (*(this->buf + 9) == ' ')));
       }
-
+      
       if (!strncasecmp(this->buf, "icy-genre:", 10)) {
-        this->stream->meta_info [XINE_META_INFO_GENRE]
-          = strdup (this->buf + 10 + (*(this->buf + 10) == ' '));
+        xine_set_meta_info(this->stream, XINE_META_INFO_GENRE,
+			   (this->buf + 10 + (*(this->buf + 10) == ' ')));
       }
-
+      
       /* icy-notice1 is always the same */
       if (!strncasecmp(this->buf, "icy-notice2:", 12)) {
-        this->stream->meta_info [XINE_META_INFO_COMMENT]
-          = strdup (this->buf + 12 + (*(this->buf + 12) == ' '));
+        xine_set_meta_info(this->stream, XINE_META_INFO_COMMENT,
+			   (this->buf + 12 + (*(this->buf + 12) == ' ')));
       }
 
       /* metadata interval (in byte) */
@@ -1020,4 +1018,3 @@ plugin_info_t xine_plugin_info[] = {
   { PLUGIN_INPUT, 13, "http", XINE_VERSION_CODE, NULL, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
-

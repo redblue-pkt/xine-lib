@@ -419,9 +419,7 @@ static void switch_channel (dvb_input_plugin_t *this) {
       	    this->channels[this->channel].name);
   ui_data.str_len = strlen (ui_data.str);
 
-  if (this->stream->meta_info [XINE_META_INFO_TITLE])
-    free(this->stream->meta_info [XINE_META_INFO_TITLE]);
-  this->stream->meta_info [XINE_META_INFO_TITLE] = strdup (ui_data.str);
+  xine_set_meta_info(this->stream, XINE_META_INFO_TITLE, ui_data.str);
 
   event.type        = XINE_EVENT_UI_SET_TITLE;
   event.stream      = this->stream;
@@ -957,9 +955,7 @@ static int dvb_plugin_open (input_plugin_t *this_gen) {
   snprintf (str, 256, "%04d - %s", this->channel, 
       	    this->channels[this->channel].name);
 
-  if (this->stream->meta_info [XINE_META_INFO_TITLE])
-    free(this->stream->meta_info [XINE_META_INFO_TITLE]);
-  this->stream->meta_info [XINE_META_INFO_TITLE] = strdup (str);
+  xine_set_meta_info(this->stream, XINE_META_INFO_TITLE, str);
   
   return 1;
 }
