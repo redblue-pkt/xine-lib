@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.203 2003/12/05 15:54:57 f1rmb Exp $
+ * $Id: demux_mpeg_block.c,v 1.204 2004/01/04 17:33:32 mroi Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  * used with fixed blocksize devices (like dvd/vcd)
@@ -69,8 +69,6 @@ typedef struct demux_mpeg_block_s {
   
   int                   blocksize;
   int                   rate;
-
-  int                   warned; /* encryption warning */
 
   char                  cur_mrl[256];
 
@@ -244,15 +242,6 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
        * Because we would like to handle these two cases differently.
        */
       buf->free_buffer (buf);
-#if 0
-      this->warned++;
-      if (this->warned > 5) {
-        xine_log (this->stream->xine, XINE_LOG_MSG,
-                 _("demux_mpeg_block: too many errors, stopping playback. Maybe this stream is scrambled?\n"));
-        this->status = DEMUX_FINISHED;
-      }
-#endif
-
       return;
     }
 
