@@ -12,11 +12,13 @@ libxine_la_SOURCES = xine.c metronom.c configfile.c buffer.c monitor.c \
 	utils.c load_plugins.c video_decoder.c \
 	audio_decoder.c video_out.c audio_out.c resample.c events.c
 libxine_la_LIBADD = cpu_accel.lo \
-	$(THREAD_LIBS)                           \
-	$(DYNAMIC_LD_LIBS)		\
+	$(THREAD_LIBS) \
+	$(DYNAMIC_LD_LIBS) \
 	-lm 
 
-libxine_la_LDFLAGS =  -version-info 5:0:5
+libxine_la_LDFLAGS =  \
+	-version-info $(LT_CURRENT):$(LT_REVISION):$(LT_AGE) \
+	-release $(LT_RELEASE)
 
 include_HEADERS  = buffer.h metronom.h configfile.h \
 	monitor.h cpu_accel.h attributes.h utils.h \
