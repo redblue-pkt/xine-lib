@@ -42,6 +42,7 @@ DEBUG_CFLAGS = @DEBUG_CFLAGS@ $(DVD_CFLAGS)
 
 lib_LTLIBRARIES = \
 	xineplug_inp_file.la \
+	xineplug_inp_http.la \
 	xineplug_inp_mms.la 
 
 #lib_LTLIBRARIES = \
@@ -84,9 +85,9 @@ xineplug_inp_mms_la_LDFLAGS = -avoid-version -module
 #xineplug_inp_rtp_la_LIBADD = $(top_builddir)/src/xine-engine/libxine.la
 #xineplug_inp_rtp_la_LDFLAGS = -avoid-version -module
 
-#xineplug_inp_http_la_SOURCES = input_http.c net_buf_ctrl.c
-#xineplug_inp_http_la_LIBADD = $(top_builddir)/src/xine-engine/libxine.la
-#xineplug_inp_http_la_LDFLAGS = -avoid-version -module
+xineplug_inp_http_la_SOURCES = input_http.c net_buf_ctrl.c
+xineplug_inp_http_la_LIBADD = $(top_builddir)/src/xine-engine/libxine.la
+xineplug_inp_http_la_LDFLAGS = -avoid-version -module
 
 #xineplug_inp_cda_la_SOURCES = input_cda.c
 #xineplug_inp_cda_la_LIBADD = $(top_builddir)/src/xine-engine/libxine.la
