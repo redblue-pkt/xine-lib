@@ -9,7 +9,7 @@ include_HEADERS  = xine.h
 CONFIG_CLEAN_FILES = xine.h
 
 debug:
-
+	@$(MAKE) CFLAGS="$(DEBUG_CFLAGS)"
 
 install-debug: install
 
