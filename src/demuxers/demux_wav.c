@@ -20,7 +20,7 @@
  * MS WAV File Demuxer by Mike Melanson (melanson@pcisys.net)
  * based on WAV specs that are available far and wide
  *
- * $Id: demux_wav.c,v 1.14 2002/10/03 00:08:47 tmmm Exp $
+ * $Id: demux_wav.c,v 1.15 2002/10/05 14:39:25 komadori Exp $
  *
  */
 
@@ -42,8 +42,8 @@
 #include "buffer.h"
 #include "bswap.h"
 
-#define LE_16(x) (le2me_16(*(uint16_t *)(x)))
-#define LE_32(x) (le2me_32(*(uint32_t *)(x)))
+#define LE_16(x) (le2me_16((uint16_t)(x)))
+#define LE_32(x) (le2me_32((uint32_t)(x)))
 
 #define VALID_ENDS "wav"
 #define WAV_SIGNATURE_SIZE 16
@@ -219,8 +219,8 @@ static int load_wav_and_send_headers(demux_wav_t *this) {
       pthread_mutex_unlock(&this->mutex);
       return DEMUX_CANNOT_HANDLE;
     }
-    chunk_tag = LE_32(&chunk_preamble[0]);      
-    chunk_size = LE_32(&chunk_preamble[4]);
+    chunk_tag = LE_32(chunk_preamble[0]);      
+    chunk_size = LE_32(chunk_preamble[4]);
 
     if (chunk_tag == data_TAG) {
       this->data_start = this->input->get_current_pos(this->input);

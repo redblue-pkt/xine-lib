@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg.c,v 1.77 2002/09/18 22:12:16 guenter Exp $
+ * $Id: demux_mpeg.c,v 1.78 2002/10/05 14:39:24 komadori Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  * reads streams of variable blocksizes
@@ -89,8 +89,8 @@ typedef struct demux_mpeg_s {
  */
 #include "bswap.h"
 
-#define BE_16(x) (be2me_16(*(uint16_t *)(x)))
-#define BE_32(x) (be2me_32(*(uint32_t *)(x)))
+#define BE_16(x) (be2me_16((uint16_t)(x)))
+#define BE_32(x) (be2me_32((uint32_t)(x)))
 #define QT_ATOM( ch0, ch1, ch2, ch3 )                                \
         ( (long)(unsigned char)(ch3) | ( (long)(unsigned char)(ch2) << 8 ) | \
         ( (long)(unsigned char)(ch1) << 16 ) | ( (long)(unsigned char)(ch0) << 24 ) )
@@ -152,8 +152,8 @@ static void find_mdat_atom(input_plugin_t *input, off_t *mdat_offset,
       ATOM_PREAMBLE_SIZE)
       break;
 
-    atom_size = BE_32(&atom_preamble[0]);
-    atom = BE_32(&atom_preamble[4]);
+    atom_size = BE_32(atom_preamble[0]);
+    atom = BE_32(atom_preamble[4]);
 
     if (atom == MDAT_ATOM) {
       *mdat_offset = input->get_current_pos(input) - ATOM_PREAMBLE_SIZE;
@@ -177,9 +177,9 @@ static void find_mdat_atom(input_plugin_t *input, off_t *mdat_offset,
         ATOM_PREAMBLE_SIZE)
         break;
 
-      atom_size = BE_32(&atom_preamble[0]);
+      atom_size = BE_32(atom_preamble[0]);
       atom_size <<= 32;
-      atom_size |= BE_32(&atom_preamble[4]);
+      atom_size |= BE_32(atom_preamble[4]);
       atom_size -= ATOM_PREAMBLE_SIZE * 2;
     } else
       atom_size -= ATOM_PREAMBLE_SIZE;
@@ -1023,9 +1023,9 @@ static int demux_mpeg_open(demux_plugin_t *this_gen,
         }
 
         /* special case for MPEG streams with a RIFF header */
-        fourcc_tag = BE_32(&buf[0]);
+        fourcc_tag = BE_32(buf[0]);
         if (fourcc_tag == RIFF_TAG) {
-          fourcc_tag = BE_32(&buf[8]);
+          fourcc_tag = BE_32(buf[8]);
           /* disregard the RIFF file if it is certainly a better known
            * format like AVI or WAVE */
           if ((fourcc_tag == WAVE_TAG) ||
@@ -1043,7 +1043,7 @@ static int demux_mpeg_open(demux_plugin_t *this_gen,
               return DEMUX_CANNOT_HANDLE;
 
             for (j = 0; j < 1024 - 4; j++) {
-              if (BE_32(&buf[j]) == MPEG_MARKER) {
+              if (BE_32(buf[j]) == MPEG_MARKER) {
                 this->input = input;
                 return demux_mpeg_send_headers (this);
               }

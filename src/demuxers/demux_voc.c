@@ -23,7 +23,7 @@
  * It will only play that block if it is PCM data. More variations will be
  * supported as they are encountered.
  *
- * $Id: demux_voc.c,v 1.8 2002/10/03 00:08:47 tmmm Exp $
+ * $Id: demux_voc.c,v 1.9 2002/10/05 14:39:24 komadori Exp $
  *
  */
 
@@ -45,8 +45,8 @@
 #include "buffer.h"
 #include "bswap.h"
 
-#define LE_16(x) (le2me_16(*(uint16_t *)(x)))
-#define LE_32(x) (le2me_32(*(uint32_t *)(x)))
+#define LE_16(x) (le2me_16((uint16_t)(x)))
+#define LE_32(x) (le2me_32((uint32_t)(x)))
 
 #define VALID_ENDS "voc"
 #define PCM_BLOCK_ALIGN 1024
@@ -201,7 +201,7 @@ static int load_voc_and_send_headers(demux_voc_t *this) {
     return DEMUX_CANNOT_HANDLE;
   }
 
-  first_block_offset = LE_16(&header[0x14]);
+  first_block_offset = LE_16(header[0x14]);
   this->input->seek(this->input, first_block_offset, SEEK_SET);
 
   /* load the block preamble */

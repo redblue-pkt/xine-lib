@@ -21,7 +21,7 @@
  * For more information on the SMJPEG file format, visit:
  *   http://www.lokigames.com/development/smjpeg.php3
  *
- * $Id: demux_smjpeg.c,v 1.15 2002/09/21 20:27:02 tmmm Exp $
+ * $Id: demux_smjpeg.c,v 1.16 2002/10/05 14:39:24 komadori Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -41,8 +41,8 @@
 #include "demux.h"
 #include "bswap.h"
 
-#define BE_16(x) (be2me_16(*(unsigned short *)(x)))
-#define BE_32(x) (be2me_32(*(unsigned int *)(x)))
+#define BE_16(x) (be2me_16((uint16_t)(x)))
+#define BE_32(x) (be2me_32((uint32_t)(x)))
 
 #define FOURCC_TAG( ch0, ch1, ch2, ch3 )                                \
         ( (long)(unsigned char)(ch3) | ( (long)(unsigned char)(ch2) << 8 ) | \
@@ -136,8 +136,8 @@ static void *demux_smjpeg_loop (void *this_gen) {
         continue;  /* skip to next while() iteration to bail out */
       }
 
-      chunk_tag = BE_32(&preamble[0]);
-      remaining_sample_bytes = BE_32(&preamble[8]);
+      chunk_tag = BE_32(preamble[0]);
+      remaining_sample_bytes = BE_32(preamble[8]);
 
       /*
        * Each sample has an absolute timestamp in millisecond units:
@@ -164,7 +164,7 @@ static void *demux_smjpeg_loop (void *this_gen) {
         pts /= (this->audio_sample_rate * this->audio_channels);
         audio_frame_count += ((remaining_sample_bytes - 4) * 2);
       } else {
-        pts = BE_32(&preamble[4]);
+        pts = BE_32(preamble[4]);
         pts *= 90;
       }
 
@@ -272,7 +272,7 @@ static int load_smjpeg_and_send_headers(demux_smjpeg_t *this) {
     pthread_mutex_unlock(&this->mutex);
     return DEMUX_CANNOT_HANDLE;
   }
-  this->duration = BE_32(&header_chunk[0]);
+  this->duration = BE_32(header_chunk[0]);
 
   /* traverse the header chunks until the HEND tag is found */
   chunk_tag = 0;
@@ -283,7 +283,7 @@ static int load_smjpeg_and_send_headers(demux_smjpeg_t *this) {
       pthread_mutex_unlock(&this->mutex);
       return DEMUX_FINISHED;
     }
-    chunk_tag = BE_32(&header_chunk[0]);
+    chunk_tag = BE_32(header_chunk[0]);
 
     switch(chunk_tag) {
 
@@ -300,8 +300,8 @@ static int load_smjpeg_and_send_headers(demux_smjpeg_t *this) {
         return DEMUX_CANNOT_HANDLE;
       }
 
-      this->bih.biWidth = BE_16(&header_chunk[8]);
-      this->bih.biHeight = BE_16(&header_chunk[10]);
+      this->bih.biWidth = BE_16(header_chunk[8]);
+      this->bih.biHeight = BE_16(header_chunk[10]);
       this->bih.biCompression = *(uint32_t *)&header_chunk[12];
       this->video_type = fourcc_to_buf_video(this->bih.biCompression);
       break;
@@ -314,13 +314,13 @@ static int load_smjpeg_and_send_headers(demux_smjpeg_t *this) {
         return DEMUX_CANNOT_HANDLE;
       }
 
-      this->audio_sample_rate = BE_16(&header_chunk[4]);
+      this->audio_sample_rate = BE_16(header_chunk[4]);
       this->audio_bits = header_chunk[6];
       this->audio_channels = header_chunk[7];
       /* ADPCM in these files is ID'd by 'APCM' which is used in other
        * files to denote a slightly different format; thus, use the
        * following special case */
-      if (BE_32(&header_chunk[8]) == APCM_TAG) {
+      if (BE_32(header_chunk[8]) == APCM_TAG) {
         this->audio_codec = be2me_32(APCM_TAG);
         this->audio_type = BUF_AUDIO_SMJPEG_IMA;
       } else {
@@ -337,7 +337,7 @@ static int load_smjpeg_and_send_headers(demux_smjpeg_t *this) {
         pthread_mutex_unlock(&this->mutex);
         return DEMUX_CANNOT_HANDLE;
       }
-      this->input->seek(this->input, BE_32(&header_chunk[0]), SEEK_CUR);
+      this->input->seek(this->input, BE_32(header_chunk[0]), SEEK_CUR);
       break;
     }
   }

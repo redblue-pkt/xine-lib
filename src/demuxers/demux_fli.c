@@ -22,7 +22,7 @@
  * avoid while programming a FLI decoder, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_fli.c,v 1.11 2002/09/21 19:47:11 tmmm Exp $
+ * $Id: demux_fli.c,v 1.12 2002/10/05 14:39:24 komadori Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -42,8 +42,8 @@
 #include "demux.h"
 #include "bswap.h"
 
-#define LE_16(x) (le2me_16(*(unsigned short *)(x)))
-#define LE_32(x) (le2me_32(*(unsigned int *)(x)))
+#define LE_16(x) (le2me_16((uint16_t)(x)))
+#define LE_32(x) (le2me_32((uint32_t)(x)))
 
 #define VALID_ENDS   "fli,flc"
 
@@ -120,8 +120,8 @@ static void *demux_fli_loop (void *this_gen) {
         this->status = DEMUX_FINISHED;
         break;
       }
-      chunk_size = LE_32(&fli_buf[0]);
-      chunk_magic = LE_16(&fli_buf[4]);
+      chunk_size = LE_32(fli_buf[0]);
+      chunk_magic = LE_16(fli_buf[4]);
 
       /* rewind over the size and packetize the chunk */
       this->input->seek(this->input, -6, SEEK_CUR);
@@ -202,11 +202,11 @@ static int load_fli_and_send_headers(demux_fli_t *this) {
     return DEMUX_CANNOT_HANDLE;
   }
 
-  this->magic_number = LE_16(&this->fli_header[4]);
-  this->frame_count = LE_16(&this->fli_header[6]);
-  this->width = LE_16(&this->fli_header[8]);
-  this->height = LE_16(&this->fli_header[10]);
-  this->speed = LE_32(&this->fli_header[16]);
+  this->magic_number = LE_16(this->fli_header[4]);
+  this->frame_count = LE_16(this->fli_header[6]);
+  this->width = LE_16(this->fli_header[8]);
+  this->height = LE_16(this->fli_header[10]);
+  this->speed = LE_32(this->fli_header[16]);
   if (this->magic_number == 0xAF11) {
     /* 
      * in this case, the speed (n) is number of 1/70s ticks between frames:
@@ -260,7 +260,7 @@ static int demux_fli_open(demux_plugin_t *this_gen, input_plugin_t *input,
     if (input->read(input, sig, 2) != 2) {
       return DEMUX_CANNOT_HANDLE;
     }
-    magic_number = LE_16(&sig[0]);
+    magic_number = LE_16(sig[0]);
     if ((magic_number == FLI_FILE_MAGIC_1) || 
         (magic_number == FLI_FILE_MAGIC_2))
       return load_fli_and_send_headers(this);

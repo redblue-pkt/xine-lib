@@ -22,7 +22,7 @@
  * For more information on the MVE file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_wc3movie.c,v 1.13 2002/10/02 15:54:52 mroi Exp $
+ * $Id: demux_wc3movie.c,v 1.14 2002/10/05 14:39:25 komadori Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -42,10 +42,10 @@
 #include "demux.h"
 #include "bswap.h"
 
-#define BE_16(x) (be2me_16(*(unsigned short *)(x)))
-#define BE_32(x) (be2me_32(*(unsigned int *)(x)))
-#define LE_16(x) (le2me_16(*(unsigned short *)(x)))
-#define LE_32(x) (le2me_32(*(unsigned int *)(x)))
+#define BE_16(x) (be2me_16((uint16_t)(x)))
+#define BE_32(x) (be2me_32((uint32_t)(x)))
+#define LE_16(x) (le2me_16((uint16_t)(x)))
+#define LE_32(x) (le2me_32((uint32_t)(x)))
 
 #define FOURCC_TAG( ch0, ch1, ch2, ch3 ) \
         ( (long)(unsigned char)(ch3) | \
@@ -185,9 +185,9 @@ static void *demux_mve_loop (void *this_gen) {
         PREAMBLE_SIZE)
         this->status = DEMUX_FINISHED;
       else {
-        chunk_tag = BE_32(&preamble[0]);
+        chunk_tag = BE_32(preamble[0]);
         /* round up to the nearest even size */
-        chunk_size = (BE_32(&preamble[4]) + 1) & (~1);
+        chunk_size = (BE_32(preamble[4]) + 1) & (~1);
 
         if (chunk_tag == BRCH_TAG) {
 
@@ -216,7 +216,7 @@ static void *demux_mve_loop (void *this_gen) {
             this->status = DEMUX_FINISHED;
             break;
           }
-          palette_number = LE_32(&preamble[0]);
+          palette_number = LE_32(preamble[0]);
 
           if (palette_number >= this->number_of_shots) {
             xine_log(this->xine, XINE_LOG_MSG,
@@ -375,7 +375,7 @@ static int load_mve_and_send_headers(demux_mve_t *this) {
     pthread_mutex_unlock(&this->mutex);
     return DEMUX_CANNOT_HANDLE;
   }
-  this->number_of_shots = LE_32(&preamble[0]);
+  this->number_of_shots = LE_32(preamble[0]);
 
   /* allocate space for the shot offset index and set offsets to 0 */
   this->shot_offsets = xine_xmalloc(this->number_of_shots * sizeof(off_t));
@@ -398,8 +398,8 @@ static int load_mve_and_send_headers(demux_mve_t *this) {
       return DEMUX_CANNOT_HANDLE;
     }
 
-    if ((BE_32(&preamble[0]) != PALT_TAG) || 
-        (BE_32(&preamble[4]) != PALETTE_CHUNK_SIZE)) {
+    if ((BE_32(preamble[0]) != PALT_TAG) || 
+        (BE_32(preamble[4]) != PALETTE_CHUNK_SIZE)) {
       xine_log(this->xine, XINE_LOG_MSG,
         _("demux_wc3movie: There was a problem while loading palette chunks\n"));
       this->status = DEMUX_FINISHED;
@@ -446,9 +446,9 @@ static int load_mve_and_send_headers(demux_mve_t *this) {
       return DEMUX_CANNOT_HANDLE;
     }
 
-    chunk_tag = BE_32(&preamble[0]);
+    chunk_tag = BE_32(preamble[0]);
     /* round up to the nearest even size */
-    chunk_size = (BE_32(&preamble[4]) + 1) & (~1);
+    chunk_size = (BE_32(preamble[4]) + 1) & (~1);
 
     switch (chunk_tag) {
 
@@ -477,8 +477,8 @@ static int load_mve_and_send_headers(demux_mve_t *this) {
           pthread_mutex_unlock(&this->mutex);
           return DEMUX_CANNOT_HANDLE;
         }
-        this->video_width = BE_32(&preamble[0]);
-        this->video_height = BE_32(&preamble[4]);
+        this->video_width = BE_32(preamble[0]);
+        this->video_height = BE_32(preamble[4]);
         break;
 
       case INDX_TAG:
@@ -537,9 +537,9 @@ static int demux_mve_open(demux_plugin_t *this_gen, input_plugin_t *input,
     if (input->read(input, header, 16) != 16)
       return DEMUX_CANNOT_HANDLE;
 
-    if ((BE_32(&header[0]) == FORM_TAG) &&
-        (BE_32(&header[8]) == MOVE_TAG) &&
-        (BE_32(&header[12]) == PC_TAG))
+    if ((BE_32(header[0]) == FORM_TAG) &&
+        (BE_32(header[8]) == MOVE_TAG) &&
+        (BE_32(header[12]) == PC_TAG))
       return load_mve_and_send_headers(this);
 
     return DEMUX_CANNOT_HANDLE;
@@ -688,9 +688,9 @@ static int demux_mve_seek (demux_plugin_t *this_gen,
         return 1;
       }
 
-      chunk_tag = BE_32(&preamble[0]);
+      chunk_tag = BE_32(preamble[0]);
       /* round up to the nearest even size */
-      chunk_size = (BE_32(&preamble[4]) + 1) & (~1);
+      chunk_size = (BE_32(preamble[4]) + 1) & (~1);
 
       if (chunk_tag == SHOT_TAG) {
         this->shot_offsets[0] = 
@@ -721,9 +721,9 @@ static int demux_mve_seek (demux_plugin_t *this_gen,
           return 1;
         }
 
-        chunk_tag = BE_32(&preamble[0]);
+        chunk_tag = BE_32(preamble[0]);
         /* round up to the nearest even size */
-        chunk_size = (BE_32(&preamble[4]) + 1) & (~1);
+        chunk_size = (BE_32(preamble[4]) + 1) & (~1);
 
         if (chunk_tag == SHOT_TAG) {
           this->shot_offsets[i + 1] = 

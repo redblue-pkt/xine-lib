@@ -19,7 +19,7 @@
  *
  * SND/AU File Demuxer by Mike Melanson (melanson@pcisys.net)
  *
- * $Id: demux_snd.c,v 1.8 2002/10/03 00:08:47 tmmm Exp $
+ * $Id: demux_snd.c,v 1.9 2002/10/05 14:39:24 komadori Exp $
  *
  */
 
@@ -41,8 +41,8 @@
 #include "buffer.h"
 #include "bswap.h"
 
-#define BE_16(x) (be2me_16(*(unsigned short *)(x)))
-#define BE_32(x) (be2me_32(*(unsigned int *)(x)))
+#define BE_16(x) (be2me_16((uint16_t)(x)))
+#define BE_32(x) (be2me_32((uint32_t)(x)))
 
 #define SND_HEADER_SIZE 24
 #define PCM_BLOCK_ALIGN 1024
@@ -196,11 +196,11 @@ static int load_snd_and_send_headers(demux_snd_t *this) {
     return DEMUX_CANNOT_HANDLE;
   }
 
-  this->data_start = BE_32(&header[0x04]);
-  this->data_size = BE_32(&header[0x08]);
-  encoding = BE_32(&header[0x0C]);
-  this->audio_sample_rate = BE_32(&header[0x10]);
-  this->audio_channels = BE_32(&header[0x14]);
+  this->data_start = BE_32(header[0x04]);
+  this->data_size = BE_32(header[0x08]);
+  encoding = BE_32(header[0x0C]);
+  this->audio_sample_rate = BE_32(header[0x10]);
+  this->audio_channels = BE_32(header[0x14]);
 
   /* basic sanity checks on the loaded audio parameters */
   if ((!this->audio_sample_rate) ||
@@ -285,7 +285,7 @@ static int demux_snd_open(demux_plugin_t *this_gen,
       return DEMUX_CANNOT_HANDLE;
 
     /* check the signature */
-    if (BE_32(&header[0]) == snd_TAG)
+    if (BE_32(header[0]) == snd_TAG)
       return load_snd_and_send_headers(this);
 
     return DEMUX_CANNOT_HANDLE;
