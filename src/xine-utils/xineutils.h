@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xineutils.h,v 1.36 2003/02/28 22:34:24 storri Exp $
+ * $Id: xineutils.h,v 1.37 2003/03/01 14:35:54 jkeil Exp $
  *
  */
 #ifndef XINEUTILS_H
@@ -44,6 +44,9 @@ extern "C" {
 #include <string.h>
 #if HAVE_EXECINFO_H
 #include <execinfo.h>
+#endif
+#if HAVE_UCONTEXT_H
+#include <ucontext.h>
 #endif
 
 #ifdef __SUNPRO_C
@@ -793,12 +796,12 @@ extern int v_g_table[256];
 extern int v_b_table[256];
 
 
-  /* Code Taken from GNU C Library manual */
 /* Obtain a backtrace and print it to stdout. */
 static void
 print_trace (void)
 {
 #if HAVE_BACKTRACE
+  /* Code Taken from GNU C Library manual */
   void *array[10];
   size_t size;
   char **strings;
@@ -824,6 +827,7 @@ print_trace (void)
  * Provide assert like feature with better description of failure 
  * Thanks to Mark Thomas 
  */ 
+#if     __GNUC__ + 0 >= 3
 #define XINE_ASSERT(exp, desc, args...)                             \
   do {                                                              \
     if (!(exp)) {                                                   \
@@ -833,6 +837,37 @@ print_trace (void)
       abort();                                                      \
     }                                                               \
   } while(0)
+#elif   __GNUC__ + 0 >= 2
+/*
+ * gcc 2.95.3 has serious trouble with the above macro definition,
+ * it mangles the ", __LINE__, ##args" part. 
+ * Special version of the same macro, for gcc 2.95.x
+ */
+#define XINE_ASSERT(exp, desc, args...)                             \
+  do {                                                              \
+    if (!(exp)) {                                                   \
+      printf("%s:%s:%d: assertion `" #exp "' failed. ",             \
+             __FILE__, __XINE_FUNCTION__, __LINE__);                \
+      printf(desc, ##args);                                         \
+      printf("\n\n");                                               \
+      print_trace();                                                \
+      abort();                                                      \
+    }								    \
+  } while(0)
+#else
+/* And a C99 version */
+#define XINE_ASSERT(exp, ...)                                       \
+  do {                                                              \
+    if (!(exp)) {                                                   \
+      printf("%s:%s:%d: assertion `" #exp "' failed. ",             \
+             __FILE__, __XINE_FUNCTION__, __LINE__);                \
+      printf(__VA_ARGS__);                                          \
+      printf("\n\n");                                               \
+      print_trace();                                                \
+      abort();                                                      \
+    }								    \
+  } while(0)
+#endif
 
 
 /******** double chained lists with builtin iterator *******/
