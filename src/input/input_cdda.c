@@ -20,7 +20,7 @@
  * Compact Disc Digital Audio (CDDA) Input Plugin 
  *   by Mike Melanson (melanson@pcisys.net)
  *
- * $Id: input_cdda.c,v 1.57 2004/05/12 17:50:09 komadori Exp $
+ * $Id: input_cdda.c,v 1.58 2004/05/20 18:43:32 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -838,7 +838,7 @@ static int read_cdrom_frames(cdda_input_plugin_t *this_gen, int frame, int num_f
 
 
 static int read_cdrom_toc(int fd, cdrom_toc *toc) {
-  xine_log(this->stream->xine, XINE_LOG_MSG, _("read_cdrom_toc is not supported on this platform\n"));
+  /* read_cdrom_toc is not supported on other platforms */
   return -1;
 }
 
