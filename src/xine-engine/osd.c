@@ -615,6 +615,7 @@ static int osd_render_text (osd_object_t *osd, int x1, int y1, char *text) {
   osd_font_t *font;
   int i, y;
   uint8_t *dst, *src;
+  int c;
 
 #ifdef LOG_DEBUG  
   printf("osd_render_text %p (%d,%d) \"%s\"\n", osd, x1, y1, text);
@@ -628,14 +629,15 @@ static int osd_render_text (osd_object_t *osd, int x1, int y1, char *text) {
   if( y1 < osd->y1 ) osd->y1 = y1;
 
   while( font && *text ) {
-
+    c = *text & 0xff;
+    
     for( i = 0; i < font->num_fontchars; i++ ) {
-      if( font->fontchar[i].code == (*text & 0xff) )
+      if( font->fontchar[i].code == c )
         break;
     }
 
 #ifdef LOG_DEBUG  
-    printf("font %s [%d] %dx%d -> %d,%d\n",font->name, *text, 
+    printf("font %s [%c:%d] %dx%d -> %d,%d\n",font->name, c, font->fontchar[i].code, 
     font->fontchar[i].width, font->fontchar[i].height,
     x1,y1);
 #endif
@@ -670,7 +672,7 @@ static int osd_get_text_size(osd_object_t *osd, char *text, int *width, int *hei
 
   osd_renderer_t *this = osd->renderer;
   osd_font_t *font;
-  int i;
+  int i, c;
 
 #ifdef LOG_DEBUG  
   printf("osd_get_text_size %p \"%s\"\n", osd, text);
@@ -684,9 +686,10 @@ static int osd_get_text_size(osd_object_t *osd, char *text, int *width, int *hei
   *height = 0;  
   
   while( font && *text ) {
-
+    c = *text & 0xff;
+  
     for( i = 0; i < font->num_fontchars; i++ ) {
-      if( font->fontchar[i].code == *text )
+      if( font->fontchar[i].code == c )
         break;
     }
 
