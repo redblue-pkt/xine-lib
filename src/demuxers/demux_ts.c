@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ts.c,v 1.30 2001/11/30 00:53:51 f1rmb Exp $
+ * $Id: demux_ts.c,v 1.31 2001/12/09 00:59:23 guenter Exp $
  *
  * Demultiplexer for MPEG2 Transport Streams.
  *
@@ -1083,6 +1083,27 @@ static int demux_ts_open(demux_plugin_t *this_gen, input_plugin_t *input,
   char     *m, *valid_mrls, *valid_ends;
 
   switch (stage) {
+  case STAGE_BY_CONTENT: {
+    uint8_t buf[4096];
+    
+    if((input->get_capabilities(input) & INPUT_CAP_SEEKABLE) != 0) {
+      input->seek(input, 0, SEEK_SET);
+      
+      if(input->get_blocksize(input))
+       return DEMUX_CANNOT_HANDLE;
+      
+      if(input->read(input, buf, 6)) {
+       
+       if(buf[0] == 0x47)
+       {
+         this->input = input;
+         return DEMUX_CAN_HANDLE;
+       }
+      }
+    }
+    return DEMUX_CANNOT_HANDLE;
+  }
+  break;
   case STAGE_BY_EXTENSION:
 
     xine_strdupa(valid_mrls, (this->config->register_string(this->config,
