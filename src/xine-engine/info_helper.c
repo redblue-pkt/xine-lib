@@ -20,7 +20,7 @@
  * stream metainfo helper functions
  * hide some xine engine details from demuxers and reduce code duplication
  *
- * $Id: info_helper.c,v 1.9 2003/12/14 00:33:36 f1rmb Exp $ 
+ * $Id: info_helper.c,v 1.10 2004/08/17 22:17:30 jstembridge Exp $ 
  */
 
 #ifdef HAVE_CONFIG_H
@@ -136,7 +136,7 @@ static void __chomp(char *str) {
     return;
   i = len - 1;
   
-  while (((unsigned char)str[i] <= 32) && (i >= 0)) {
+  while ((i >= 0) && ((unsigned char)str[i] <= 32)) {
     str[i] = 0;
     i--;
   }
