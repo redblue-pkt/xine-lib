@@ -1,0 +1,165 @@
+.\" -*-Nroff-*-
+.\""
+.TH XINE 1x 2000-11-19 "Le projet xine"
+.SH NOM
+xine \- Lecteur audio/vidéo MPEG2/MPEG1.
+.SH SYNOPSIS
+.B xine
+.I "[options] [MRL] ..."
+.SH DESCRIPTION
+Cette page de manuel documente brièvement le lecteur audio/vidéo \fBxine\fP.
+.PP
+\fBxine\fP lis les flux système MPEG, synchronise les flux audio et vidèo.
+Il peux lire les flux a partir de fichiers, CD Vidéo, DVD et d'autres sources.
+.SH OPTIONS
+Ce programme suis la syntaxe de ligne de commande GNU, avec les longues
+options commençant par deux tirets ('-').
+Une list de ces options est incluse plus bas.
+Pour une description complète, lisez les fichiers README et FAQ 
+dans @prefix@/share/doc/xine ou sur la homepage.
+.TP
+.B \-h, \-\-help
+Affiche la liste des options.
+.TP
+.B \-s, \-\-shared\-memory
+utilise l'extension 'X Shared Memory' pour la sortie.
+.br
+Cela peut être utile si vous rencontrez des problèmes en utilisant
+l'extension 'Xv', Xv est utilisée par defaut, si elle est disponible.
+Comme Xv est accélérée materiellement, elle offre plus de fonctionnalitées
+et de meilleurs performances.
+.TP
+.B \-a, \-\-audio\-channel <num>
+Sélectionne le canal audio spécifié. <num> est le numéro du canal, la valeur
+par defaut est '0'.
+.br
+Pour les flux MPEG2, les flux audio AC3 sont numérotés de 0 à 7, tandis 
+que les flux MPEG sont numérotés de 8 à 39 (si il y a plusieurs sous 
+flux audio, bien entendu)
+.TP
+.B \-A, \-\-audio\-driver <drv>
+Sélectionne le pilote audio. Les pilotes valides sont "oss" (defaut), 
+"alsa", "esd" ou "null".
+Par defaut ESD est utilisé si la variable d'environnement "ESPEAKER"
+est positionnée, sinon ALSA si présent, ou alors OSS. Le pilote "null" 
+peut être utilisé pour supprimer la sortie audio, par exemple, si il y 
+a des problemes avec la carte son.
+.TP
+.B \-u, \-\-spu\-channel <num>
+Sélectionne le canal de subpicture (sous-titres). <num> est le numéro
+du canal de subpicture, par défaut il n'y a pas de sous-titre (\-1)
+.TP
+.B \-S, \-\-spdif
+Met en fonction la sortie AC3 via SPDIF. Ne fonctionne qu'avec
+certains pilotes ALSA supportant la fonctionnalité AC3 taversante.
+.TP
+.B \-p[f][h][q][d][v], 
+Démarre la lecture immédiatement apres l'execution. Peut être suivi
+par 'f' pour passer en mode plein écran, et/ou par 'h' pour
+masquer le panneau de contrôle, et/ou par 'q' pour quitter
+à la fin de la lecture. Il est possible d'obtenir automatiquement
+les listes de lecture à partir d'un DVD 'd', ou d'un VCD 'v'.
+.TP
+.B MRL (media resource locator)
+.br
+Les MRLs sont similaires aux URLs de votre navigateur internet. Elles
+définissent le média à utiliser comme source de lecture.
+Les MRLs valides peuvent être les noms de fichiers ou un de ceux qui suis:
+.br
+.BR file://<chemin>
+.br
+.BR fifo://<chemin>
+.br
+.BR stdin://mpeg1
+or
+.BR "stdin://mpeg2"
+.br
+.BR dvd://VTS_xx_y.VOB
+.br
+.BR "vcd://<numéro piste>"
+.br
+.BR "net://???"
+.LP
+Plusieurs MRLs peuvent être spécifiées pour lire un nombre consecutif
+de flux.
+.LP
+Si vous ne spécifiez aucune MRL, vous pourrez sélectionner un fichier
+par glisser-lacher.
+Glisser des fichiers depuis GNOME Midnight Commander (gmc) est connu
+pour fonctionner.
+.SH "VOIR AUSSI"
+Le programme est complement documenté sur la homepage de xine:
+.IR "http://xine.sourceforge.net/"
+.SH TOUCHES DE CONTROLE
+Beaucoup de fonctions peuvent êtres contrôlées en pressant certaines touches.
+La liste de ces touches sont:
+.LP
+.BR ENTREE :
+Lecture
+.br
+.BR ESPACE
+ou 
+.BR P :
+Pause
+.br
+.BR F :
+Bascule plein écran (Xv seulement).
+.br
+.BR G :
+Affiche/masque le panneau de contrôle.
+.br
+.BR H :
+Affiche/masque la fenêtre de sortie.
+.br
+.BR A :
+Bascule du ratio d'aspect (AUTO/16:9/4:3/DVB) 
+.br
+.BR C :
+Affiche/masque la fenêtre des réglages vidéo.
+.br
+.BR E :
+Ejecte le média courant.
+.br
+.BR 0 :
+Saute au début du flux courant.
+.br
+.BR 1..9 :
+Saute à 10%..90% du flux courant.
+.br
+.BR PgUp :
+Saute au flux precédent dans la liste de lecture.
+.br
+.BR PgDown :
+Saute au flux suivant dans la liste de lecture.
+.br
+.BR + :
+Sélectionne le canal audio suivant (peux prendre quelques secondes
+avant effet).
+.br
+.BR - :
+Sélectionne le canal audio precédent.
+.br
+.BR Ctrl
+Affiche/masque le pointeur de souris (uniquement quand le panneau de
+contrôle est masqué).
+.br
+.BR >
+ou
+.BR . :
+Sélectionne le canal de sous-titres suivant.
+.br
+.BR <
+ou
+.BR , :
+Sélectionne le canal de sous-titres precédant.
+.br
+.BR Gauche :
+Change négativement la synchronisation A/V.
+.br
+.BR Droit :
+Change positivement la synchronisation A/V.
+.br
+.BR Début :
+Remise à zéro de la synchronisation A/V.
+.SH AUTEURS
+Cette page de manuel a été écrite par Siggi Langauf <siggi@users.sourceforge.net>, traduite par Daniel Caujolle-Bert <f1rmb@users.sourceforge.net>, pour le projet xine.

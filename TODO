@@ -1,0 +1,19 @@
+- skip packages if CPU very slow
+
+- MPEG-4 support in source
+
+- 4-channel surround sound
+
+- sp/div direct ac3 output
+
+- use docbook for FAQ/manpage/README...
+
+- ability to play back video over remote X11 connection
+
+- BUG: avi demuxer segfaults if frames are big
+
+- check XLock/Thread support
+
+- check GOP timestamp decoding for mpeg-2
+
+- BUG: xshm video output crashes if aspect ratio is changed while playing

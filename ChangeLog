@@ -1,0 +1,145 @@
+xine (0.4.0) unstable; urgency=low
+
+  * new multithreaded architecture - xine becomes idle
+  * notable performance improvements
+  * lots of portability patches (alpha, powerpc...)
+  * dynamic loading of demuxers
+	
+  * added support for ESD audio output
+  * new CORBA interface (optional)
+
+ -- Siggi Langauf <siggi@debian.org>  Sat,  3 Mar 2001 01:36:39 +0100
+
+xine (0.3.7) unstable; urgency=low
+
+  * subpicture/subtitle support
+  * experimental AC3 digital output with some ALSA drivers 
+  * restricted Debian build architecture to i386
+    (closes:Bug#83138,Bug#83541,Bug#83373)
+  * added Setup dialog for brightness and contrast controls
+
+ -- Siggi Langauf <siggi@debian.org>  Sun,  4 Feb 2001 14:44:23 +0100
+
+xine (0.3.6) unstable; urgency=low
+
+  * support for field pictures
+  * added autoprobing for audio driver
+  * fixed autoconf paths for architecture independant files
+  * VCD support for FreeBSD
+  * raw device support fixed
+  * libmpg123 update and bugfixes
+  * mpeg audio (mp3) demuxer
+  * video window resizing for Xv available
+  * updated Debian control and copyright (closes:Bug#82817,Bug#83044,Bug#83047)
+	
+ -- Siggi Langauf <siggi@debian.org>  Mon, 22 Jan 2001 02:06:08 +0100
+
+xine (0.3.5) unstable; urgency=low
+
+  * (hopefully) fixed autoconf for Athlon processors
+  * fixed aspect ratio calculation (=> SVCD support)
+  * fixed demuxer bug (xine crashed aftera few minutes w/ some streams)
+  * teletux support for YUY2 video format
+
+  * added fixed build architecture for Debian package
+  * Debian packages are now using /usr/lib/win32 for Windows Codecs
+  * using English man page instead of French one, both to come...
+
+ -- Siggi Langauf <siggi@users.sourceforge.net>  Wed, 10 Jan 2001 11:10:57 +0100
+
+xine (0.3.4) unstable; urgency=low
+
+  * re-debianized package using debhelper (much cleaner debian packages)
+
+  * rudimentary support for win32 codecs
+  * added Teletux support patch from Joachim Koenig
+  * 3Dnow! support
+  * build improvements on K6/K7 processors  
+
+ -- Siggi Langauf <siggi@users.sourceforge.net>  Mon,  8 Jan 2001 04:03:11 +0100
+
+
+xine (0.3.3) unstable; urgency=low
+
+  * playlist, autoplay function
+  * seamless branching
+  * lpcm support
+  * sigint handling
+  * fixed shared memory release
+  * fixed NTSC aspect ratio
+
+ -- Siggi Langauf <siggi@users.sourceforge.net>  Thu, 04 Jan 2001 01:37:42 +0100
+
+
+xine (0.3.2) unstable; urgency=low
+  
+  * audio rate up/downsampling
+  * new yuv2rgb routines
+  * anamorphic scaling for Xshm output
+  * gui improvements (audio channel selection, fullscreen,
+	  skinfiles, slider, transparency, a new theme)
+  * ac3dec performance improved 
+  * improved debugging/logging functions
+  * improved dabian packages
+  * RedHat 7 / gcc "2.96" build fixes
+
+   -- Siggi Langauf <siggi@users.sourceforge.net>  Wed, 13 Dec 2000 02:44:18 +0100
+
+
+xine (0.3.1p1) unstable; urgency=high
+
+  * Bugfix for Debian package: 0.3.1 always segfaulted. This release should
+    work... 
+
+ -- Siggi Langauf <siggi@users.sourceforge.net>  Tue, 21 Nov 2000 21:43:18 +0100
+
+
+xine (0.3.1) unstable; urgency=low
+
+  * Initial release of Debian package.
+
+  * xine should run on kde now
+  * better audio driver detection
+  * fixed aspect ratio bug
+  * fixed pause function (restart pos)
+  * fixed playlist-next bug  
+
+ -- Siggi Langauf <siggi@users.sourceforge.net>  Sun, 19 Nov 2000 15:33:28 +0100
+
+xine (0.3.0+older) unstable; urgency=low
+  
+  0.3.0
+        - NULL audio driver (ability to run without sound card) 
+        - ALSA audio driver
+	- pause function
+	- simple playlist function
+	- massive performance improvements for xshm
+ 	  through subslice output
+	- gui/skin improvements
+	- improved build process
+	- improved internal architecture
+	- many minor updates/bugfixes
+
+  0.2.4
+	this is a maintenance/bugfix
+	release, just wanted to release all the small little changes
+	before we go for the next big architecture update that will
+	be in the 0.3.x series
+
+	
+  0.2.3
+	- included patches by Alan Cox:
+	  net_plugin, bug fixes (i.e. VCD ...)
+	- xshm video output module fixed for bpp>16
+	  (but don't use that for speed reasons!)
+	- new iDCT_mmx code from walken 
+	  => picture quality massively improved :))
+	- FAQ update
+	- speed improvements due to new compiler switches
+	- minor Makefile fixes for FreeBSD ports 
+  
+ -- Siggi Langauf <siggi@users.sourceforge.net>  Sun,  7 Jan 2001 23:59:12 +0100
+
+Local variables:
+mode: debian-changelog
+End:

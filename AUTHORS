@@ -1,0 +1,86 @@
+xine programming
+
+  Guenter Bartsch <guenter@users.sourceforge.net>
+
+various suggestions, bug and build fixes, alsa plugin, gui 
+
+  Daniel Caujolle-Bert <f1rmb@users.sourceforge.net>
+
+Debian package, audio programming
+
+  Siegfried Langauf <siggi@users.sourceforge.net>
+
+xine is using
+
+  mpeg2dec - a free MPEG-2 video stream decoder
+  libac3   - a free AC3 audio stream decoder
+    Written by Aaron Holtzman <aholtzma@ess.engr.uvic.ca>
+
+  libmpg123 - a free MPEG audio decoder
+    Written by Michael Hipp <http://www.mpg123.de>
+
+Contributions 
+
+  many thanks to the Linux Video and DVD Project "LiViD"
+  (http://www.linuxvideo.org/), where the original ideas for the xine
+  video player came from.
+
+  Michael Lespinasse
+    great libmpeg2 hacks
+
+  Alan Cox
+    bug fixes, net-input-plugin
+
+  many thanks for those great skins to
+  Alexander G. Rubio <rubio@c2i.net>
+
+  Steffen Lorscheider <loli@users.sourceforge.net>
+    gui programming
+
+  Heiko Schaefer <heikos@users.sourceforge.net>
+    FreeBSD support, project administration, testing, ideas   
+
+  Marc Bufe <nylon@users.sourceforge.net>
+    web design
+
+  Paul Flinders <paul@dawa.demon.co.uk>
+    stdin/net plugin testing/bugfixes, audio downsampling
+
+  Hugo Trippaers <spark@ision.nl>
+    Xinerama support
+
+  Roland Barmettler <roli@freestone.net>
+    NTSC aspect ratio patches
+
+  nakamura <pdf30044@biglobe.ne.jp>
+    Liner PCM patch
+
+  Joachim Koenig <Joachim.Koenig@gmx.net>
+    teletux/syncfb video output module, various bugfixes/reviews, alsa
+
+  w32codec support is based on work from:
+  MPlayer http://banki1.banki.hu/~arpi/MPlayer.html
+  wine    http://www.winehq.com
+
+  Christian Bauer <cbauer@student.physik.uni-mainz.de>
+    gui bugfixes (wm support, clean exit)
+
+  Bruno Schwander <bruno.schwander@technologist.com> and
+  Soren Schmidt <sos@freebsd.dk>
+    input_vcd code for FreeBSD
+
+  Rich Wareham <richwareham@users.sourceforge.net>
+    subtitle support
+
+  Christoph Pittracher <pitt@gmx.at>
+    pitt skin
+
+  Dave Gilbert <gilbertd@treblig.org>
+    alpha support
+
+  Bastien Nocera <hadess@hadess.net>
+    powerpc patch
+
+  (let us know if we've forgotten anyone)
+
+

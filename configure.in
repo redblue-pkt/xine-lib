@@ -1,0 +1,381 @@
+dnl
+dnl Configure.in for xine
+dnl
+
+AC_INIT(src/xine-engine/xine.c)
+
+dnl
+dnl Required Autoconf Version 2.13
+dnl
+AC_PREREQ(2.13)
+
+
+XINE_MAJOR=0
+XINE_MINOR=5
+XINE_SUB=0
+XINE_PRE=".alpha1"
+TAR_NAME="xine-lib-"$XINE_MAJOR.$XINE_MINOR.$XINE_SUB$XINE_PRE
+SPEC_VERSION=$XINE_MAJOR.$XINE_MINOR.$XINE_SUB$XINE_PRE
+AC_SUBST(XINE_MAJOR)
+AC_SUBST(XINE_MINOR)
+AC_SUBST(XINE_SUB)
+AC_SUBST(TAR_NAME)
+AC_SUBST(SPEC_VERSION)
+
+AM_INIT_AUTOMAKE("xine-lib", $XINE_MAJOR.$XINE_MINOR.$XINE_SUB$XINE_PRE)
+
+
+dnl
+dnl Made possible to build for another arch.
+dnl
+if test x$XINE_BUILD != "x"; then
+  AC_MSG_RESULT(*** build forced to $XINE_BUILD ***)
+  build=$XINE_BUILD
+  host=$XINE_BUILD
+else
+  check_athlon=yes
+fi
+
+AC_CANONICAL_HOST
+AM_CONFIG_HEADER(config.h)
+
+
+dnl
+dnl Check for programs.
+dnl
+AC_ISC_POSIX
+AC_PROG_CC
+AC_STDC_HEADERS
+AC_PROG_MAKE_SET
+AC_PROG_INSTALL
+dnl obsolete AC_PROG_RANLIB
+AC_PROG_LN_S
+
+
+dnl
+dnl Libtool
+dnl
+AC_LIBTOOL_DLOPEN
+AM_DISABLE_STATIC
+AM_PROG_LIBTOOL
+AC_SUBST(LIBTOOL_DEPS)
+if ${CONFIG_SHELL} ./libtool --features | grep "enable static" >/dev/null; then
+  STATIC="-static"
+else
+  STATIC=
+fi
+AC_SUBST(STATIC)
+
+
+dnl
+dnl Build all libs as static
+dnl
+BUILD_LIB_STATIC="-static"
+AC_SUBST(BUILD_LIB_STATIC)
+
+
+dnl
+dnl Checks for typedefs, structures, and compiler characteristics.
+dnl
+AC_C_CONST
+AC_C_INLINE
+AC_TYPE_OFF_T
+AC_TYPE_SIZE_T
+AM_TYPE_PTRDIFF_T
+dnl AC_C_BIGENDIAN
+
+AC_SUBST(DEBUG_CFLAGS)
+AC_SUBST(GLOBAL_CFLAGS)
+
+
+dnl
+dnl threads
+dnl
+case $host in
+  *-*-freebsd*)
+    THREAD_LIBS="-pthread"
+    ;;
+  *)
+    AC_CHECK_LIB(pthread, pthread_create,
+  	     THREAD_LIBS="-lpthread",
+ 	     AC_MSG_ERROR(pthread needed))
+    ;;
+esac
+AC_SUBST(THREAD_LIBS)
+
+
+dnl
+dnl dynamic linker
+dnl
+AC_CHECK_LIB(c, dlopen,
+	     DYNAMIC_LD_LIBS="",
+	     AC_CHECK_LIB(dl, dlopen,
+             	          DYNAMIC_LD_LIBS="-ldl",
+	                  AC_MSG_ERROR(dynamic linker needed)))
+AC_SUBST(DYNAMIC_LD_LIBS)
+
+
+dnl
+dnl mpeg2lib stuff
+dnl
+AC_SUBST(LIBMPEG2_CFLAGS)
+AC_SUBST(LIBMPEG2_CONFIG_OBJS)
+
+LIBMPEG2_CFLAGS="" dnl default include path removed, no more needed.
+
+if test x$enable_mlib = x; then
+AC_ARG_ENABLE(mlib,
+  [  --disable-mlib          make a version not using mediaLib],
+  enable_mlib=no, enable_mlib=yes)
+fi
+if test x$enable_mlib = xyes; then
+  AC_CHECK_LIB(mlib, main, 
+               [ LIBS="$LIBS -L/opt/SUNWmlib/lib -lmlib" 
+                 LIBMPEG2_CONFIG_OBJS="$LIBMPEG2_CONFIG_OBJS idct_mlib.lo motion_comp_mlib.lo" 
+                 LIBMPEG2_CFLAGS="$LIBMPEG2_CFLAGS -I/opt/SUNWmlib/include" 
+                 AC_DEFINE(HAVE_MLIB)
+                 AC_DEFINE(LIBMPEG2_MLIB)],
+               , -L/opt/SUNWmlib/lib)
+fi
+
+
+dnl
+dnl
+dnl
+AC_CHECK_FUNC(getpwuid_r,AC_DEFINE(HAVE_GETPWUID_R))
+
+
+dnl
+dnl check cflags not supported by all gcc versions
+dnl eg: -mpreferred-stack-boundary=2 and 2.91.66,
+dnl and gcc-2.7.2.3 support a bit less options
+dnl
+AC_TRY_CFLAGS("-mpreferred-stack-boundary=2", 
+	m_psb="-mpreferred-stack-boundary=2", m_psb="")
+AC_TRY_CFLAGS("-fno-strict-aliasing", f_nsa="-fno-strict-aliasing", f_nsa="")
+AC_TRY_CFLAGS("-fschedule-insns2", f_si="-fschedule-insns2", f_si="")
+AC_TRY_CFLAGS("-mwide-multiply", m_wm="-mwide-multiply", m_wm="")
+
+dnl Common cflags for all platforms
+COMMON_CFLAGS="-Wall -D_FILE_OFFSET_BITS=64 -DXINE_COMPILE"
+
+enable_w32dll="no"
+
+case $host in
+  i386-*-freebsd*)
+    GLOBAL_CFLAGS="$GLOBAL_CFLAGS -pipe -fomit-frame-pointer -malign-functions=4 -malign-loops=4 -malign-jumps=4 -malign-functions=4 $m_wm $m_psb -fexpensive-optimizations $f_si $f_nsa -ffast-math -funroll-loops -finline-functions"
+    GLOBAL_CFLAGS="$GLOBAL_CFLAGS $CFLAGS $COMMON_CFLAGS $ALSA_CFLAGS $ESD_CFLAGS -D_REENTRANT"
+    DEBUG_CFLAGS="$X_CFLAGS $DEBUG_CFLAGS $CFLAGS $COMMON_CFLAGS $ALSA_CFLAGS $ESD_CFLAGS -D_REENTRANT -DDEBUG"
+    AC_DEFINE(__i386__)
+    AC_DEFINE([ARCH_X86],,[x86 architecture])
+
+    enable_w32dll="yes"
+    ;;
+  *)
+    dnl Set the appropriate architecture define
+    case "$host_alias" in
+    i?86-* | k?-* | athlon-*) dnl catch i386,i486,i586,i686,k6,k7
+
+        dnl Check for gcc cpu optimization support
+        AC_TRY_CFLAGS("-mcpu=i386", 
+           sarchopt="-mcpu",
+	   AC_TRY_CFLAGS("-march=i386", 
+              sarchopt="-march",
+	      [ AC_MSG_RESULT(** no cpu optimization supports **)
+	        sarchopt=no ]))
+	dnl special check for k7 cpu CC support
+        AC_TRY_CFLAGS("$sarchopt=k7", k7cpu="k7", k7cpu="i686")
+	
+        AC_DEFINE(__i386__)
+	AC_DEFINE([ARCH_X86],,[x86 architecture])
+
+	dnl add x86 specific CFLAGS
+	GLOBAL_CFLAGS="$GLOBAL_CFLAGS -O3 -pipe -fomit-frame-pointer -malign-functions=4 -malign-loops=4 -malign-jumps=4 -malign-functions=4 $m_wm $m_psb -fexpensive-optimizations $f_si $f_nsa -ffast-math -funroll-loops -funroll-all-loops -finline-functions"
+	DEBUG_CFLAGS="$DEBUG_CFLAGS -O3"
+	
+        dnl enable x86 specific parts of the code
+        enable_w32dll="yes"
+
+	if test x"$sarchopt" != "xno"; then
+	    [case "$host_alias" in
+		    i386-*) dnl *BSD return this even on a P III #-))
+                      GLOBAL_CFLAGS="$GLOBAL_CFLAGS $sarchopt=i386"
+                      DEBUG_CFLAGS="$DEBUG_CFLAGS $sarchopt=i386"
+                      ;;
+		    i486-*) dnl oh dear!
+                      GLOBAL_CFLAGS="$GLOBAL_CFLAGS $sarchopt=i486"
+                      DEBUG_CFLAGS="$DEBUG_CFLAGS $sarchopt=i486"
+                      ;;
+		    i586-*)
+                      GLOBAL_CFLAGS="$GLOBAL_CFLAGS $sarchopt=pentium"
+                      DEBUG_CFLAGS="$DEBUG_CFLAGS $sarchopt=pentium"
+                      ;;
+		    i686-*)
+                      if test x"$check_athlon" = "xyes"; then
+                        if test -f /proc/cpuinfo; then
+                          modelname=`cat /proc/cpuinfo | grep "model\ name\	:" | sed -e 's/ //g' | cut -d':' -f2`
+                          case $modelname in
+                            *Athlon* | *Duron* | *K7*)
+                              GLOBAL_CFLAGS="$GLOBAL_CFLAGS $sarchopt=$k7cpu"
+                              DEBUG_CFLAGS="$DEBUG_CFLAGS $sarchopt=$k7cpu"
+                            ;;
+                            *)
+                             GLOBAL_CFLAGS="$GLOBAL_CFLAGS $sarchopt=pentiumpro"
+                             DEBUG_CFLAGS="$DEBUG_CFLAGS $X_CFLAGS $sarchopt=pentiumpro"
+                            ;;
+                          esac
+                        fi 
+                      else
+                        GLOBAL_CFLAGS="$GLOBAL_CFLAGS $sarchopt=pentiumpro"
+                        DEBUG_CFLAGS="$DEBUG_CFLAGS $sarchopt=pentiumpro"
+                      fi
+                      ;;
+		    k6-*)
+                      GLOBAL_CFLAGS="$GLOBAL_CFLAGS $sarchopt=k6"
+                      DEBUG_CFLAGS="$DEBUG_CFLAGS $sarchopt=k6"		
+                      ;;
+		    k7-* | athlon-*)
+                      GLOBAL_CFLAGS="$GLOBAL_CFLAGS $sarchopt=k7"
+                      DEBUG_CFLAGS="$DEBUG_CFLAGS $sarchopt=k7"
+	    esac]
+	fi
+        ;;
+
+    alphaev56-*)
+        GLOBAL_CFLAGS="$GLOBAL_CFLAGS -O3 -mcpu=ev56 -mieee"
+        DEBUG_CFLAGS="$DEBUG_CFLAGS -O3 -mcpu=ev56 -mieee"
+        ;;
+    alpha*)
+        GLOBAL_CFLAGS="$GLOBAL_CFLAGS -O3 -mieee"
+        DEBUG_CFLAGS="$DEBUG_CFLAGS -O3 -mieee"
+        ;;
+    powerpc-*) 
+	GLOBAL_CFLAGS="$GLOBAL_CFLAGS -O3 -pipe -fomit-frame-pointer $m_wm $m_psb -fexpensive-optimizations $f_si $f_nsa -ffast-math -funroll-loops -funroll-all-loops -finline-functions"
+       	DEBUG_CFLAGS="$DEBUG_CFLAGS -O3"
+        ;;
+    sparc-*)
+        GLOBAL_CFLAGS="$GLOBAL_CFLAGS -O3"
+        DEBUG_CFLAGS="$DEBUG_CFLAGS -O3"
+        ;;
+    *) echo "$host is not currently supported by xine"; exit 1;;
+    esac
+
+    GLOBAL_CFLAGS="$GLOBAL_CFLAGS $COMMON_CFLAGS $ALSA_CFLAGS $ESD_CFLAGS"
+    DEBUG_CFLAGS="$DEBUG_CFLAGS $COMMON_CFLAGS $ALSA_CFLAGS $ESD_CFLAGS -g -DDEBUG"
+    ;;
+esac
+
+AM_CONDITIONAL(HAVE_W32DLL, test x"$enable_w32dll" = "xyes")
+if test x"$enable_w32dll" = "xyes"; then
+   W32DLL_DEP=""
+else 
+   W32DLL_DEP="#"
+fi
+AC_SUBST(W32DLL_DEP)
+
+
+dnl
+dnl gcc __attribute__ ((aligned ()))
+dnl
+AC_C_ATTRIBUTE_ALIGNED
+
+
+dnl
+dnl XINE_ROOTDIR does not work if architecture independent files are 
+dnl installed to another place than architecture dependent files !!!
+dnl
+if test "x$prefix" = xNONE; then
+   prefix="${ac_default_prefix}"
+fi
+if test "x$exec_prefix" = xNONE; then
+   exec_prefix='${prefix}'
+fi
+XINE_PLUGINDIR="$libdir/xine/plugins"
+eval XINE_PLUGINPATH=`eval echo "$XINE_PLUGINDIR"`
+AC_DEFINE_UNQUOTED(XINE_PLUGINDIR,"$XINE_PLUGINPATH")
+
+
+XINE_DEMUXDIR="$libdir/xine/plugins"
+eval XINE_DEMUXPATH=`eval echo "$XINE_DEMUXDIR"`
+AC_DEFINE_UNQUOTED(XINE_DEMUXDIR,"$XINE_DEMUXPATH")
+
+XINE_SKINDIR="${datadir}/xine/skins"
+eval XINE_SKINPATH="$XINE_SKINDIR"
+AC_DEFINE_UNQUOTED(XINE_SKINDIR,"$XINE_SKINPATH")
+
+AC_SUBST(XINE_PLUGINDIR)
+AC_SUBST(XINE_DEMUXDIR)
+AC_SUBST(XINE_SKINDIR)
+
+
+dnl
+dnl For win32 libraries location, needed by libw32dll.
+dnl
+AC_ARG_WITH(w32-path,[  --with-w32-path=path    Location of WIN32 libraries],
+            w32_path="$withval", w32_path="/usr/lib/win32")
+AC_SUBST(w32_path)
+
+
+dnl
+dnl Some include paths ( !!! DO NOT REMOVE !!! )
+dnl
+INCLUDES='-I$(top_srcdir) -I$(top_builddir) -I$(top_srcdir)/src -I$(top_builddir)/src -I$(top_srcdir)/src/xine-engine -I$(top_builddir)/src/xine-engine -I$(top_srcdir)/include -I$(top_builddir/)/include'
+AC_SUBST(INCLUDES)
+
+
+dnl
+dnl Get where .m4 should be installed.
+dnl
+AC_MSG_CHECKING(for aclocal directory)
+if(aclocal --version) < /dev/null > /dev/null 2>&1; then
+  ACLOCAL_DIR=`$ACLOCAL --print-ac-dir`
+  AC_MSG_RESULT($ACLOCAL_DIR)
+else
+  ACLOCAL_DIR="/usr/local/share/aclocal"
+  AC_MSG_RESULT(none - will be installed in $ACLOCAL_DIR)
+fi
+AC_SUBST(ACLOCAL_DIR)
+
+
+dnl
+dnl Output configuration files
+dnl
+AC_OUTPUT([
+Makefile
+include/Makefile
+include/xine.h.tmpl
+src/Makefile
+src/demuxers/Makefile
+src/libmpeg2/Makefile
+src/libac3/Makefile
+src/libmpg123/Makefile
+src/libw32dll/Makefile
+src/libw32dll/wine/Makefile
+src/libspudec/Makefile
+src/input/Makefile
+src/xine-engine/Makefile
+misc/Makefile
+misc/xine-config
+m4/Makefile
+doc/Makefile
+doc/FAQ
+doc/man/Makefile
+doc/man/en/Makefile
+doc/man/en/xine.1
+doc/man/fr/Makefile
+doc/man/fr/xine.1
+misc/xine-lib.spec
+misc/SlackBuild
+misc/build_rpms.sh],
+[rm -f include/xine.h; echo '/* !! DO NO EDIT THIS FILE, it is automatically generated */' > include/xine.h && cat include/xine.h.tmpl >> include/xine.h])
+
+dnl
+dnl Change attribute.
+dnl
+chmod +x ./misc/SlackBuild ./misc/build_rpms.sh
+
+dnl
+dnl Hack the libtool script.
+dnl
+cat libtool | sed -e 's/^pic_flag=/#pic_flag=/' > libtool-nofpic
+chmod +x libtool-nofpic

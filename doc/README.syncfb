@@ -1,0 +1,144 @@
+
+  =====                                                            =====
+       XINE video output plugin for MATROX G400 / G200 cards *only*
+  =====                                                            =====
+
+
+
+* WHAT IS THIS PLUGIN ABOUT and WHY SHOULD I EVEN CONSIDER TO USE IT? :)
+  
+  This XINE video output plugin uses the so called Teletux  driver which
+  provides special hardware features of the Matrox G400 and  G200  cards
+  like deinterlacing, scaling and YUV data to RGB conversion --- just to
+  name a few.  The plugin makes all those features available to XINE and
+  because all this tasks are done by the graphics card there  is no need
+  for XINE to do them in software -- so you save precious CPU time which
+  you may gonna need for other things. :-)
+  
+  Another feature of this plugin is the  synchronisation  of  the  video
+  picture with the refresh of your screen.  Before you ask why you would
+  need that - here the explanation... :)
+  
+  In order to have an optimal DVD playback the update of the image needs
+  to be syncronized with the refresh of the screen.   Otherwise you will
+  sometimes see part of frame n and part of frame n+1 during an refresh.
+  This results in tearing artefacts on moving objects.
+  
+  When using this plugin the update of the screen is done in the  V-SYNC
+  phase of your screen - and the tearing artefacts are gone forever.
+
+
+* AND HOW DOES IT WORK?
+  
+  The Teletux driver is a module you will  have  to  load  that  makes a
+  special device (/dev/syncfb) available  which is opened by  the plugin
+  and controlled with certain ioctl calls. Quite easy, isn't it? ;)
+
+  That module is based on the mga_vid driver from Aaron Holzmann and was
+  advanced (and reworked) by Matthias Oelmann.
+
+
+* OK I HEARD ENOUGH - HOW DO I INSTALL and USE IT? :)
+
+  First of all you will need to get the Teletux driver itself.      It's
+  available at http://teletux.sourceforge.net.   Once you downloaded it,
+  unpack it to some directory of your choice, please read the README and
+  compile it (a normal "make" should work out-of-the-box). Now there are
+  only a few things left for you to do...
+  
+  1) Become root. Hey now you can take over the world *evil laugh* :-)))
+  2) Create a device called /dev/syncfb  ===>  mknod /dev/syncfb c 178 0
+  3) Copy the file "syncfb.o" to your modules directory (usually this is
+     /lib/modules/YOUR_KERNEL_VERSION/) and do a "depmod -a".
+  
+  This should be it. In order to use the Teletux driver you will have to
+  load it with the command "insmod syncfb.o" - please note that you will
+  have to load it every time you reboot if you wanna use the driver.
+
+  XINE autodetects the driver and automaticly uses this plugin.
+
+  It  is  possible now  that the image during video playback is jerking.
+  This could be caused by the syncronisiation of the  video  image  with
+  your screen refresh. You can easily fix that by switching your monitor
+  to the appropriate refresh rates (50 Hz for PAL, 60 Hz for NTSC).  You
+  will need to add so called modelines to your XFree86  config  to  make
+  those 50 Hz/60 Hz modes available.
+  
+  Here is is a short listing of some sample modelines. Please  add  only
+  those two lines (for NTSC and PAL) which exactly  fit  the  screensize
+  you are running your X Server with. You need to add those lines to the
+  monitor section of your XF86Config file as well as include their names
+  in the screen section  (subsection display of the color depth your are
+  using).
+ 
+  USE THE FOLLOWING MODELINES AT YOUR OWN RISK.   THEY COULD DAMAGE YOUR
+  MONITOR PERMANTELY - PLEASE TAKE CAUTION AND DON'T BLAME US.  YOU HAVE
+  BEEN WARNED.
+
+  So much for the standard disclaimer. :)
+
+  Note: If you want to be on the  safe  side,  generate  your  very  own
+        modelines with an application like kvideogen or  use  a  service
+	like http://zaph.com/Modeline/ on the web.
+	
+	Also the modelines may need some fine tuning for your setup. You
+	can use xvidtune (comes with XFree86) to do that.
+  
+  # 1024x768
+  
+    Modeline "1024x768pal"  64.94 1024 1040 1216 1328 768 768 775 802
+    Modeline "1024x768ntsc" 54.32 1024 1040 1216 1328 768 768 774 802  
+  
+  # 1152x864
+ 
+    Modeline "1152x864pal"  68.82 1152 1168 1384 1496 864 864 871 902
+    Modeline "1152x864ntsc" 80.93 1152 1168 1384 1496 864 864 872 902    
+
+  # 1280x1024
+    
+    none yet - will be added soon
+
+  So before you run XINE please turn to the appropriate refresh rate and
+  the jerking should be gone.
+
+
+* WHAT SCREENSIZE SHOULD I PREFER?
+  
+  Well. It is important that the screensize  you choose for DVD playback
+  is exactly the same screensize  you're starting up your X Server with.
+  So you shouldn't switch down to 1024x768 if you are  running 1280x1024
+  because that  gives  you  a  virtual  screensize  of  1280x1024  in  a
+  resolution of 1024x768 - and the plugin cannot handle that yet.
+
+  Now back to the question. A screensize of 1024x768 should be it. A DVD
+  is always 720x576 for pal and 720x480 for ntsc. If you've an anamorphe
+  DVD the image only has to be horizontally scaled to get  back  to  the
+  original geometry of 16:9 which is easier to be done.
+
+
+* WHERE IS THE WINDOW A VIDEO IS USUALLY DISPLAYED IN?
+
+  The Teletux driver is writing directly to the video memory of the G400
+  or G200 card and bypasses your X server.   Getting that overlay into a
+  real window isn't as easy as you might think.
+  
+  For now a borderless window is being used which lays under the overlay
+  so you can click on the overlay (for the panel to appear) or issue any
+  command XINE supports by keyboard while you're over the  overlay  with
+  your mouse cursor.
+  
+
+* WHAT IS ON THE TODO LIST?
+  
+  The plugin does not yet activate the hardware deinterlacing.
+  The mouse cursor doesn't disappear yet when it should be disappearing.
+  Prevent the panel from hidding behind the overlay by moving it out of range.
+  Bug fixes, new features and optimizations. :-)
+  
+
+* CONTACTS and FEEDBACK
+  
+  Joachim Koening <joachim.koenig@gmx.net>
+    Matthias Dahl <matthew2k@web.de>
+  
+  or use the XINE User Mailinglist. (more infos see the general README)

@@ -1,0 +1,13 @@
+    MRL - Media Resource Locator
+    ============================
+
+
+File : path/foo.vob
+       /path/foo.vob
+       file://path/foo.vob
+
+DVD  : dvd://VTS_01_2.VOB
+
+VCD  : vcd://1
+
+ 

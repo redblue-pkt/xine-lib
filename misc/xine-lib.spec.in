@@ -1,0 +1,80 @@
+# Note that this is NOT a relocatable package
+%define ver     @SPEC_VERSION@
+%define rel     0
+%define prefix  @prefix@
+%define name    @PACKAGE@
+
+Name:        %{name}
+Summary:     A Free Video Player.
+Summary(ko): °ø°³ µ¿¿µ»ó ÇÃ·¹ÀÌ¾î
+Version:     %{ver}
+Release:     %{rel}
+Copyright:   GPL
+Group:       Applications/X11
+Source:      http://xine.sourceforge.net/files/@PACKAGE@_@VERSION@.tar.gz
+URL:         http://xine.sourceforge.net
+Packager:    Daniel Caujolle-Bert <f1rmb@users.sourceforge.net>
+BuildRoot:   /tmp/%{name}-root
+
+%description
+xine is a free gpl-licensed video player for unix-like systems.
+We support mpeg-2 and mpeg-1 system (audio + video multiplexed) streams,
+eventually mpeg-4 and other formats might be added.
+
+xine plays the video and audio data of mpeg-2 videos and synchronizes
+the playback of both. Depending on the properties of the mpeg stream,
+playback will need more or less processor power, 100% frame rate
+has been seen on a 400 MHz P II system.
+
+%description -l fr
+xine est un lecteur vidéo libre sous license GPL pour les systèmes de
+type unix. Nous supportons les flux mpeg-2 et mpeg-1 (audio + vidéo 
+multiplexés), éventuellement le mpeg-4 et d'autres formats peuvent
+êtres ajoutés.
+
+xine joue les données vidéo et audio de vidéo mpeg-2 et synchronise
+la lecture des deux. En fonction des propriétes du flux mpeg,
+la lecture aura besoin de plus ou moins de puissance du processeur, 
+100% de restitution de trame a été vus sur un système PII 400MHz.
+
+%description -l ko
+xine ´Â GPL¶óÀÌ¼±½º¸¦ µû¸£´Â UNIX¿ë °ø°³ µ¿¿µ»ó ÇÃ·¹ÀÌ¾îÀÔ´Ï´Ù. ÀÌ
+ÇÃ·¹ÀÌ¾î´Â mpeg-2 ¿Í mpeg 1 ½ºÆ®¸²À» Áö¿øÇÏ¸ç, ÇöÀç´Â Áö¿øÇÏÁö
+¾ÊÁö¸¸ ³ªÁß¿¡´Â mpeg-4 ¿Í ´Ù¸¥ Çü½ÄÀÇ µ¿¿µ»óµµ Áö¿øÇÒ ¿¹Á¤ÀÔ´Ï´Ù.
+
+%prep
+%setup -n @TAR_NAME@
+
+%build
+./configure --prefix=%{prefix}
+make
+
+%install
+if [ -d $RPM_BUILD_ROOT ]; then rm -rf $RPM_BUILD_ROOT; fi
+#mkdir -p $RPM_BUILD_ROOT/usr/include/X11/pixmaps
+make install-strip prefix=$RPM_BUILD_ROOT%{prefix}
+#cp doc/*.xpm $RPM_BUILD_ROOT/usr/include/X11/pixmaps
+
+#%post
+#/sbin/ldconfig
+
+%clean
+rm -rf $RPM_BUILD_ROOT
+
+%files
+%defattr(-,root,root)
+%{prefix}/bin/xine
+%{prefix}/man/man1/xine.*
+%{prefix}/man/fr/man1/xine.*
+%{prefix}/lib/xine/plugins/*.la
+%{prefix}/lib/xine/plugins/*.so
+%{prefix}/share/xine/skins/*
+%{prefix}/share/doc/xine/*
+
+%changelog
+* Thu Mar 28 2001 Daniel Caujolle-Bert <f1rmb@users.sourceforge.net>
+- add korean summary, patch from Louis JANG <louis@ns.mizi.com>
+* Thu Jan 11 2001 Daniel Caujolle-Bert <f1rmb@users.sourceforge.net>
+- patch from Sung-Hyun Nam <namsh@lgic.co.kr> applied.
+* Fri Oct 17 2000 Daniel Caujolle-Bert <f1rmb@users.sourceforge.net>
+- first spec file.

@@ -1,0 +1,450 @@
+
+   ----------------------
+          xine FAQ
+   ----------------------
+
+
+how do I build this beast?
+--------------------------
+
+first make sure you use a stable, official release of gcc to compile.
+You can try patched gcc versions, but these are not supported and will 
+probably not work (pgcc for example is known to make libmpeg break).
+
+./autogen.sh  <--- only neccessary if you checked xine out of CVS
+./configure
+make
+make install
+
+
+how can I supply additional CFLAGS for the compilation ?
+--------------------------------------------------------
+
+you can do so by setting the GLOBAL_CFLAGS variable and then run 
+configure again.
+
+This can be usefull to specify additional include paths or library 
+paths to the compiler. Example:
+
+export GLOBAL_CFLAGS="-I/usr/include -L/home/guenter/xine_libs"
+
+
+Are there binaries for my K7 available? Can I build them?
+---------------------------------------------------------
+
+At the moment we do not provide K7 binaries, since the latest
+stable gcc version (2.92.2 at the time of this writing) doesn't
+have K7 support. Use the 686 binaries instead. These binaries 
+should run ok and will use 3DNow!
+
+If you have a newer gcc you can try to compile "more" k7 support
+in (esp. better instruction sheduling). If the configure script
+should fail to detect your processor/gcc correctly, try setting the 
+XINE_BUILD envvar explicitly to a valid description string for 
+your configuration, e.g.
+
+export XINE_BUILD=k7-pc-linux-gnu
+rm -f config.cache
+./autogen.sh
+make
+make install
+
+
+xine fails with "no video port found"
+-------------------------------------
+
+you got the Xv extension, but your video card driver doesn't 
+support it. First try to find a driver that does support Xv on
+your hardware (check your graphics card vendor). If your driver
+has Xv support but you can't get it working, try at a lower
+resultion (1024x768 is still enough even for anamorphic mpeg-2).
+
+If all that fails, supply the "-s" option so xine will be forced
+to use Xshm output (remember to switch to 16bpp for speed)
+
+xine -s foo.vob
+
+
+xine fails complaining about audio drivers/devices
+--------------------------------------------------
+
+You can select the audio driver using the -A option. So try
+
+xine -A null
+
+If you have ALSA drivers installed, try
+
+xine -A alsa
+
+If you run ESD, try
+
+xine -A esd
+
+
+xine displays it's logo but I don't see my video?
+-------------------------------------------------
+
+use the play button of the gui or press RETURN for PLAY.
+
+
+xine plays audio but I don't see a picture
+------------------------------------------
+
+If you see lot's of "rejected" messages, your hardware isn't
+set up right for xine. It might be your sound card doesn't
+support the "realtime" feature (xine tests that on startup
+so you might want to look at the messages again). Try to
+find better drivers then.
+
+Perhaps your hardware is simply to slow - see "xine drops a
+lot of frames" below for speed tips.
+
+If you're using Xv and the video output stays blank, try
+moving the window around or toggling fullscreen ("F" key).
+There is a bug in overlay setup [FIXME].
+
+
+Where should I put the windows codec dlls for xine?
+---------------------------------------------------
+
+store them in
+
+@w32_path@
+
+
+xine crashes when I try to play AVI files
+-----------------------------------------
+
+win32codec support is still experimental. It should work ok if 
+your system meets these requirements:
+
+- Xv driver is working
+- the AVI file contains mpeg audio
+- you've got the right codecs installed correctly in
+  @w32_path@
+
+
+I get this message: demux error! 00 00 00 (should be 0x000001)
+--------------------------------------------------------------
+
+Probably xine can't access your input source. Most commonly this happens
+when you're trying to play locked/encrypted DVDs. Remember that xine
+can't play such DVDs out-of-the box (for legal reasons). 
+
+You could use an css-enabled DVD input plugin to avoid this.
+
+Another reason could be that your (RPC-2) DVD drive isn't set up
+for the right region.
+
+
+I get messages such as "Ouch! lastPTS : 100657583 current pts : 100652798"
+--------------------------------------------------------------------------
+
+Looks like your sond card / driver fails to provide exact timing 
+information. Try to find better drivers (oss <-> alsa). 
+
+If you're using alsa, make sure xine is using the native alsa API and
+_not_ the oss emulation. Use
+
+xine -A alsa
+
+I get lots of "200 frames delivered, 200 frames skipped, 0 frames discarded"
+----------------------------------------------------------------------------
+
+looks like you've selected the wrong audio channel or you're trying to
+play a stream that uses features xine doesn't support (yet).
+
+
+when I play this stream, xine shows some pictures but there's no audio
+----------------------------------------------------------------------
+
+Try another audio channel:
+
+xine -a channel stream.vob
+
+some .vob files have audio on strange channels (e.g. 3, 7, 10)
+
+
+can xine play SVCDs ?
+---------------------
+
+Yes, but you'll have to experiment with the audio channels
+
+xine -a channel VCD://<track number>
+
+Normally, you should find an audio track #8 and, for bilingual SVCDs #9, so
+
+xine -a 8 
+
+shoud allow you to press the "vcd" button and play your SVCDs
+
+
+xine drops a lot of frames
+--------------------------
+
+Your hardware is too slow for xine. Make sure you turn on all
+speed optimizing options. A few point you should check:
+
+- use a recent kernel optimized for your hardware
+
+- use the latest gas/gcc
+
+- close other applications (use a tool like "top" to find out
+  what applications are using up CPU power)
+
+- if you are not using Xv, make sure your display is set up
+  to 16bpp, not 24 or higher (reduces memory bandwith)
+
+- make sure the hard drive which supplies the video data
+  is in DMA mode (if supported) 
+  Under linux, you can use hdparm to check this, for example
+
+  hdparm /dev/hda
+
+  =>
+  ...
+   using_dma    =  1 (on)
+
+  more information about this may be found here:
+
+  http://oreilly.linux.com/pub/a/linux/2000/06/29/hdparm.html
+
+- xine needs high speed memory access which depends on your chip set.
+  Make sure you enable all speed-improving options. 
+
+  especially the via apollo pro chipset is known to be quite weird,
+  (most of all on my gigabyte board). If you can't configure the ram
+  access thoroughly using the bios you might want to try some really
+  nasty tricks, as explained on (for example)
+         http://www.overclockers.com/tips105/index03.asp
+  this website centers around a windows-tool to tweak the chipset,
+  you can do the same on FreeBSD with pciconf. On some linux
+  distributions there are similar tools.
+
+  please contact heiko if you have any problems or tips about via
+  apollo pro chipset tweaking.
+
+- a nice performance tuning tool can be found here:
+
+  http://powertweak.sourceforge.net
+
+- enable MTRR support in your kernel. If you are still using XFree 3.x,
+  you'll have to tell the kernel yourself where the graphics memory is.
+  You'll find details about that in the linux dvd howto.
+
+  If you're using XFree 4.x enabling MTRR support should be enough.
+
+  Try a cat /proc/mtrr - if the file exists and you find an entry
+  corresponding to the amount of graphics memory you have, everything
+  should be fine.
+
+- set up and use raw devices for dvd access
+
+  raw devices should be available in linux kernel 2.4.x and there
+  are patches for older kernels available from
+
+  ftp://ftp.kernel.org/pub/linux/kernel/people/sct/raw-io/
+
+  to use raw devices, first connect a free raw device to your dvd
+  device, use something like
+
+  raw /dev/raw1 /dev/hdc
+
+  then create a link named "rdvd" pointing to that raw device
+
+  ln -s /dev/raw1 /dev/rdvd
+
+
+Now how do I get this Xv extension to work?
+-------------------------------------------
+
+First you need to install/use XFree 4.x. Once you got that you have to
+make sure the XFree drivers you're using are supporting Xv on your
+hardware. Here are some locations to look for suitable drivers:
+
+g200/g400    : xfree 4.x supports these out-of-the-box
+nvidia cards : www.nvidia.com (the've got binary drivers)
+ATI cards    : GATOS www.linuxvideo.org/gatos/
+i815         : the latest xfree 4.x code supports these
+3dfx (voodoo): the latest xfree 4.x code supports these
+
+
+The AC3 via S/PDIF does not work with my soundcard
+---------------------------------------------------
+
+The AC3 via S/PDIF is supported by ALSA only for soundcards
+with Trident 4DWaveNX and YMF chips. So if you have a
+soundcard with one of these chips use
+
+xine -S -A alsa 
+
+The -S switch disables the internal AC3 decoder. For very 
+slow machines you could improve video playback (without
+sound) when you start xine as
+
+xine -S -A null
+
+
+
+where and how do I get the latest development version?
+------------------------------------------------------
+
+check it out of our CVS:
+
+cvs -d :pserver:anonymous@cvs.xine.sourceforge.net:/cvsroot/xine login
+
+<empty password>
+
+cvs -d :pserver:anonymous@cvs.xine.sourceforge.net:/cvsroot/xine co xine
+
+
+
+How do I use the dvd plugin?
+----------------------------
+
+First of all:
+The dvd plugin delivered with xine currently does not support playback 
+of locked and/or encrypted dvds. You will need external programs
+or something like an "improved" xine_dvd_plugin to view these
+DVDs with xine directly. Of course you could
+play back the decrypted mpeg2 stream (technically speaking) that is the
+movie on the dvd with xine with the help of additional programs.
+Due to the uncertain legal situation regarding css encryption we do
+not include anything of that nature in the xine distribution, nor do
+we generally endorse the use of such software (you should check if
+the use of such software is legal where you live).
+We hope that this situation will change soon.
+
+For unlocked/unencrypted dvds it is a good idea first to check what
+files are on the dvd by mounting it. The files are called something
+like .../VIDEO_TS/VTS_xx_x.VOB, where x are numbers.
+If you look for the big .VOB files on a dvd these are probably where the
+movie is in. Currently we don't support seamless playback of complete
+movies - you will have to play back all of its individual parts.
+
+To play that VOB file use something like
+
+xine dvd://VTS_xx_x.VOB
+
+make sure you do not supply any path name (no VIDEO_TS/) and use
+capital letters for the file name.
+
+xine tries to open the dvd using /dev/cdrom. On freebsd this will only
+work if you create a symlink to your dvd-devicenode for the time being.
+
+
+unable to open dvd drive (/dev/dvd) 
+-----------------------------------
+
+You probalby don't have /dev/dvd (check that). If so, simply
+create a link /dev/dvd that points to your DVD device. 
+Something like 
+
+cd /dev
+ln -s hdc dvd
+
+should do the job.
+
+
+The aspect ratio is wrong!
+--------------------------
+
+Try pressing "A" (preferable when xine is stopped, otherwise
+you may experience a segfault).
+
+
+How do I play streams from STDIN ?
+----------------------------------
+
+use something like
+
+cat stream.mpg | xine stdin://mpeg1
+
+or, if you've got an mpeg-2 stream use
+
+cat stream.vob | xine stdin://mpeg2
+
+
+How do I change the skin?
+-------------------------
+
+Run xine at least once - it should write it's config file
+.xinerc to your home directory. Now edit that file and change
+the line "skin:default" to mach the skin you would like to use.
+
+
+How can I change color/brightness/contrast?
+-------------------------------------------
+
+At the moment this is only supported on some Xv drivers. You'll find
+three entries like these in our ~/.xinerc:
+
+brightness:0
+saturation:0
+contrast:128
+ 
+the values and possible ranges depend on your Xv driver so you'll have 
+to experiment a bit to get a good picture.
+
+
+Some parts of my X Desktop get transparent when xine plays the video!
+---------------------------------------------------------------------
+
+Looks like some colors on your GUI match the colorkey Xv uses. You can
+change the colorkey value to avoid this. There should be a line like
+
+colorkey:2110
+
+to your ~/.xinerc where you can change the color that's used by xine 
+for the video overlay.
+
+
+I get no sound, but "audio driver 'oss' failed, using null driver instead."
+---------------------------------------------------------------------------
+
+First of all, make sure that your OSS Audio drivers are working (ie you can
+play music with other software).
+
+The most common reason for this is that some other program is accesing your
+audio device. If you're using linux, the command "fuser /dev/dsp" should give
+you the PID of the process.
+
+If you are using GNOME, chances are, that this is caused by ESD. Now you
+have two possibilities. Either deactivate ESD (temporarily) by right
+clicking on the sound monitor applet and selecting "Place Esound in
+standby". Then xine will use OSS audio output. The other method is to make
+xine use ESD for audio output with
+
+xine -A esd
+
+This may result in more jerkier playback, so the first method is the
+preferred one.
+
+
+after running xine several times it fail's to allocated shared memory!
+----------------------------------------------------------------------
+
+This should be fixed in xine 0.3.3 or later. However, this can only work if
+you exit xine the "correct" way (e.g. using the panel or pressing "q").
+Do _not_ simply close the video output window using your window manager - 
+xine won't release shared memory in this case (!).
+
+
+i have problems when using xine on FreeBSD
+------------------------------------------
+
+check if you find what you are looking for in the file README.freebsd
+
+
+I think I found a bug!
+----------------------
+
+xine is in it's early developement stages. Please be patient.
+If you got time, please contact us and send us a full bug report.
+Please include all xine console output and some details about
+your hardware and operating system.
+
+You can reach us via email:
+
+  Xine Mailing List <xine-user@lists.sourceforge.net>
+

@@ -1,0 +1,25 @@
+xine (0.4.0-2) unstable; urgency=low
+
+  * added upstream ChangeLog (closes: Bug#88402)
+
+ -- Siggi Langauf <siggi@debian.org>  Sun,  4 Mar 2001 13:04:42 +0100
+
+xine (0.4.0-1) unstable; urgency=low
+
+  * new upstream version with totally new architecture (refer to ChangeLog)
+  
+  * now using seperate binary packages for input plugins
+  * switched to non-native package format 
+  * separate binary package for DVD plugin
+
+
+ -- Siggi Langauf <siggi@debian.org>  Sat,  3 Mar 2001 01:35:01 +0100
+
+
+(old changelog entries are in upstream ChangeLog)
+  
+  
+  
+Local variables:
+mode: debian-changelog
+End:

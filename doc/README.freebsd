@@ -1,0 +1,66 @@
+xine fails when allocating images
+---------------------------------
+
+Make sure you have enough shared memory enabled. This is very
+limited by default.
+
+Edit your /etc/sysctl.conf:
+
+kern.ipc.shmmax=67108864
+kern.ipc.shmall=32768
+
+
+
+playing video cd on freebsd
+---------------------------
+
+currently (because of issues with the freebsd kernel) xine can only
+play video cd from atapi cdrom drives. not for scsi drives!
+
+currently (Jan 2001), FreeBSD-stable (and thus the current releases also)
+needs a patch to the kernel sources to make video cd work (please check
+the freebsd documentation if you are unsure on how to build a custom
+kernel with this patch included).
+
+the file you have to patch is /sys/dev/ata/atapi-cd.c:
+
+*** atapi-cd.c.orig     Sun Jan 21 14:42:57 2001
+--- atapi-cd.c  Sun Jan 21 14:47:13 2001
+***************
+*** 1163,1174 ****
+                return;
+            }
+        }
+!       if (blocksize == 2048)
+!           ccb[0] = ATAPI_READ_BIG;
+!       else {
+!           ccb[0] = ATAPI_READ_CD;
+!           ccb[9] = 0x10;
+!       }
+      }
+      else
+        ccb[0] = ATAPI_WRITE_BIG;
+--- 1163,1182 ----
+                return;
+            }
+        }
+!         switch (blocksize) {
+!         case 2048:
+!             ccb[0] = ATAPI_READ_BIG;
+!             break;
+! 
+!         case 2352: 
+!             ccb[0] = ATAPI_READ_CD;
+!             ccb[9] = 0xf8;
+!             break;
+! 
+!         default:
+!             ccb[0] = ATAPI_READ_CD;
+!             ccb[9] = 0x10;
+!         }
+      }
+      else
+        ccb[0] = ATAPI_WRITE_BIG;
+
+------------------------------------------------------------------------
+

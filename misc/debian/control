@@ -1,0 +1,52 @@
+Source: xine
+Section: graphics
+Priority: optional
+Maintainer: Siggi Langauf <siggi@debian.org>
+Build-Depends: debhelper (>>2.0.0), imlib-dev (>=1.9.8.1), libasound1-dev (>=0.5.9), liborbit-dev (>=0.5.6-1)
+Standards-Version: 3.1.1
+
+Package: xine
+Architecture: i386
+Depends: ${shlibs:Depends}
+Suggests: xserver-xfree86 (>> 4.0)
+Description: MPEG, VCD, DVD audio/video player for X11
+ Xine plays MPEG system streams (ie. MPEG videos with sound). In contrast
+ to many other players, it does its best to synchronize audio and video.
+ .
+ MPEG streams can be read from plain files, pipes, network sockets, Video CDs
+ or DVDs.
+ .
+ For DVD playback, an input plugin is required. You can use xine-dvd, the
+ original plugin that comes with xine. If you want to play region locked or
+ encrypted DVDs, you'll need an enhanced DVD plugin, like xine-dvd-css.
+ .
+ Xine currently _cannot_ play pure MPEG video streams (without audio).
+ You will need another Player (like smpeg-xmms or the old  smpeg-gtv)
+ for this. 
+ .
+ For optimal performance (and full screen support), the Xvideo extension (Xv)
+ is reqired. Xv is supported by some XFree4 drivers. Of course, xine will also
+ run with XFree 3.x, using the MIT-shm extension, but you might experience
+ performance problems. For windows codecs, Xv is required.
+ (See the README for more info)
+ .
+ Rudimentary support for AVI files (DivX;-) is known to work) is included.
+ However, you'll need windows codec DLLs for that. Of course, xine will
+ happily work without those DLLs, playing only MPEG streams.
+
+Package: xine-dvd
+Architecture: i386
+Depends: xine (>=0.4.0), ${shlibs:Depends}
+Conflicts: xine (<<0.4.0)
+Provides: xine-input-plugin
+Description: DVD (non-CSS) input plugin for xine
+ This input plugin enables xine to play unencrypted, region-free
+ DVDs. It does NOT contain CSS decryption or IFO parsing, so most
+ DVDs will look quite poor: Chapters, subtitle colors, names for
+ subtitle or audio channels, multi-angle support are not supported by
+ this plugin.
+ .
+ This is the "official" DVD plugin from the xine project. There are some
+ unofficial plugins which support CSS descrambling or IFO parsing. However,
+ the legal status of these features is unclear...
+

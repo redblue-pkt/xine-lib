@@ -1,0 +1,173 @@
+.\" -*-Nroff-*-
+.\""
+.TH XINE 1x 2000-11-19 "The xine project"
+.\" NAME should be all caps, SECTION should be 1-8, maybe w/ subsection
+.\" other parms are allowed: see man(7), man(1)
+.\""
+.SH NAME
+xine \- MPEG2/MPEG1 audio/video player
+.SH SYNOPSIS
+.B xine
+.I "[options] [MRL] ..."
+.SH "DESCRIPTION"
+This manual page documents briefly the
+.BR xine
+audio/video player.
+.PP
+.B xine
+plays MPEG system streams, synchronizing audio and video substreams. It
+can play streams from files, Video CDs, DVDs and other sources.
+.SH OPTIONS
+The programs follow the usual GNU command line syntax, with long
+options starting with two dashes (`-').
+A summary of options are included below.
+For a complete description, see the README and FAQ in @prefix@/share/doc/xine
+or on the xine home page.
+.TP
+.B \-h, \-\-help
+Show summary of options.
+.TP
+.B \-s, \-\-shared\-memory
+Use X shared memory extension for output.
+.br
+This may be useful if you experience
+problems using the Xv extension. Xv is used as default, if it is available.
+Since Xv is hardware accelerated, it usually provides more features and
+better performance.
+.TP
+.B \-a, \-\-audio\-channel <num>
+Select the given audio channel. <num> is the audio channel number, default
+is "0".
+.br
+For MPEG2-Streams, AC3 audio streams are numbered from 0 to 7, while MPEG
+audio streams are numbered from 8 to 15 and lpcm audio streams are
+numbered 16 to 23 (provided that there are this many audio substreams, 
+of course). Finding the right audio stream might needs some experimenting,
+as some mp2-streams contain audio in strange tracks (track 0 and 1 may
+be empty but track 2 contains valid audio, for example).
+.TP
+.B \-A, \-\-audio\-driver <drv>
+Select audio driver. Valid drivers are "oss", "alsa", "esd" or "null". The
+default is to use ESD when the "ESPEAKER" environment variable is set,
+otherwise ALSA if present, otherwise OSS. The "null" driver may be used to
+disable audio output, eg. if there are problems with your sound card.
+.TP
+.B \-u, \-\-spu\-channel <num>
+Select subpicture (subtitle) channel. <num> is the subpicture channel
+id, default is no subtitle (-1).
+.TP
+.B \-S, \-\-spdif
+Enable AC3 output via SPDIF. Works only on some ALSA drivers that support
+the AC3 passthrough feature.
+.TP
+.B \-p[f][h][q][d][v]
+Start playing immediately after start. Can be followed by "f" to turn
+on fullscreen mode and/or "h" to hide GUI, and/or by "q" for quitting 
+at the end. It is also possible to request the playlist from DVD 'd',
+or VCD 'v'.
+.TP
+.B MRL (media resource locator)
+.br
+MRLs are similar to URLs in your web browser. They describe the media
+to read from. valid MRLs may be plain file names or one of the following:
+.BR file://<path>
+.br
+.BR fifo://<path>
+.br
+.BR stdin://mpeg1
+or
+.BR "stdin://mpeg2"
+.br
+.BR dvd://VTS_xx_y.VOB
+.br
+.BR "vcd://<track number>"
+.br
+.BR "net://???"
+.LP
+Several MRLs may be specified in order to play a number of consecutive
+streams.
+.LP
+If you don't specify any MRL, you'll have to select  a file by drag'n-drop.
+Dragging files from the GNOME Midnight Commander (gmc) is known to work.
+.SH "SEE ALSO"
+The programs are documented fully on the xine home page:
+.IR "http://xine.sourceforge.net/"
+.SH CONTROL KEYS
+Many features can be controlled by pressing control keys. The Key bindings are:
+.LP
+.BR RETURN :
+Play
+.br
+.BR SPACE
+or
+.BR P :
+Pause
+.br
+.BR F :
+Toggle fullscreen mode (Xv only)
+.br
+.BR G :
+Hide/show the gui.
+.br
+.BR H :
+Hide/show the video output window.
+.br
+.BR A :
+Toggle aspect ratio (AUTO/16:9/4:3/DVB) 
+.br
+.BR C :
+Show/hide the video settings window.
+.br
+.BR E :
+Eject the current media.
+.br
+.BR 0 :
+Jump to start of current stream
+.br
+.BR 1..9 :
+Jump to 10%..90% of current stream
+.br
+.BR PgUp :
+Jump to previous stream in playlist
+.br
+.BR PgDown :
+Jump to next stream in playlist
+.br
+.BR + :
+Select next audio channel (may take up to a few seconds to take effect)
+.br
+.BR - :
+Select prev audio channel
+.br
+.BR Ctrl
+Show/hide mouse cursor (only when the GUI is hide)
+.br
+.BR >
+or
+.BR . :
+Select next sub-title channel.
+.br
+.BR <
+or
+.BR , :
+Select previous sub-title channel.
+.br
+.SH Synchronization fine tuning
+Some streams have bad timestamps, so synchronization fails. This can be
+tweaked using arrow keys:
+.br
+.BR Left :
+press if video runs ahead of audio
+.br
+.BR Right :
+press if video lags behind audio
+.br
+.BR Home :
+press to reset audio/video offset to 0, so stream timestamps are unchanged.
+
+.SH AUTHOR
+This manual page was written by Siggi Langauf <siggi@debian.org>,
+for the xine project. Lots of additions by
+Guenter Bartsch <guenter@users.sourceforge.net> and
+Daniel Caujolle-Bert <f1rmb@users.sourceforge.net>
+

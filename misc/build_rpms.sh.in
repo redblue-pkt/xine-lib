@@ -1,0 +1,93 @@
+#!/bin/sh
+
+#if [ $# -ne 1 ] ; then
+#   echo "usage: $0 version number"
+#   exit 1
+#fi
+
+# Some rpm checks
+RPMVERSION=`rpm --version | tr [A-Z] [a-z] | sed -e 's/[a-z]//g' -e 's/\.//g' -e 's/ //g'`
+
+# rpm version 4 return 40
+if [ `expr $RPMVERSION` -lt 100 ]; then
+  RPMVERSION=`expr $RPMVERSION \* 10`
+fi
+
+if [ `expr $RPMVERSION` -lt 400 ]; then
+  RPM_BA="rpm -ba -ta ./@PACKAGE@_@VERSION@.tar.gz"
+  RPM_BB="rpm -bb -ta ./@PACKAGE@_@VERSION@.tar.gz"
+else
+  RPM_BA="rpm -ta ./@PACKAGE@_@VERSION@.tar.gz -ba"
+  RPM_BB="rpm -ta ./@PACKAGE@_@VERSION@.tar.gz -bb"
+fi
+
+##VERSION="@XINE_MAJOR@.@XINE_MINOR@.@XINE_SUB@"
+
+echo "Creating tarball..."
+rm -f config.cache && ./autogen.sh && make dist
+mv -f @TAR_NAME@.tar.gz  @PACKAGE@_@VERSION@.tar.gz
+rm -rf rpms
+mkdir rpms
+
+echo "*****************************************************"
+echo
+echo "building rpm for @PACKAGE@ @VERSION@"
+echo 
+echo "current architecture:pentiumpro"
+echo "rpms will be copied to ./rpms directory"
+echo
+echo "*****************************************************"
+
+export XINE_BUILD=i686-pc-linux-gnu
+
+eval $RPM_BA
+
+cp '/usr/src/redhat/SRPMS/@PACKAGE@-@SPEC_VERSION@-0.src.rpm' ./rpms/
+mv '/usr/src/redhat/RPMS/i386/@PACKAGE@-@SPEC_VERSION@-0.i386.rpm' './rpms/@PACKAGE@-@SPEC_VERSION@-0.i686.rpm'
+
+echo "*****************************************************"
+echo
+echo "building rpm for @PACKAGE@ @VERSION@"
+echo 
+echo "current architecture:k6"
+echo "rpms will be copied to ./rpms directory"
+echo
+echo "*****************************************************"
+
+export XINE_BUILD=k6-pc-linux-gnu
+
+eval $RPM_BB
+
+mv '/usr/src/redhat/RPMS/i386/@PACKAGE@-@SPEC_VERSION@-0.i386.rpm' './rpms/@PACKAGE@-@SPEC_VERSION@-0.k6.rpm'
+
+echo "*****************************************************"
+echo
+echo "building rpm for @PACKAGE@ @VERSION@"
+echo 
+echo "current architecture:pentium"
+echo "rpms will be copied to ./rpms directory"
+echo
+echo "*****************************************************"
+
+export XINE_BUILD=i586-pc-linux-gnu
+
+eval $RPM_BB
+
+mv '/usr/src/redhat/RPMS/i386/@PACKAGE@-@SPEC_VERSION@-0.i386.rpm' './rpms/@PACKAGE@-@SPEC_VERSION@-0.i586.rpm'
+
+echo "*****************************************************"
+echo
+echo "building rpm for @PACKAGE@ @VERSION@"
+echo 
+echo "current architecture:k7"
+echo "rpms will be copied to ./rpms directory"
+echo
+echo "*****************************************************"
+
+export XINE_BUILD=athlon-pc-linux-gnu
+
+eval $RPM_BB
+
+mv '/usr/src/redhat/RPMS/i386/@PACKAGE@-@SPEC_VERSION@-0.i386.rpm' './rpms/@PACKAGE@-@SPEC_VERSION@-0.k7.rpm'
+
+echo "Done."
