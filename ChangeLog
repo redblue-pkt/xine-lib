@@ -1,5 +1,6 @@
 xine-lib (1-rc2)
   * XvMC support for hardware accelerated mpeg2 playback (-V xvmc)
+  * Fix some errors in sound state when exiting xine and using alsa.
 
 xine-lib (1-rc1)
   * fix incorrect colours when blending frame with a big-endian RGB pixel format

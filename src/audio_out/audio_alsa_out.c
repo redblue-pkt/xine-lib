@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.113 2003/10/06 15:27:10 mroi Exp $
+ * $Id: audio_alsa_out.c,v 1.114 2003/10/07 17:25:10 jcdutton Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -999,6 +999,7 @@ static void ao_alsa_mixer_init(ao_driver_t *this_gen) {
   int                   found;
   int                   sw;
 
+  this->mixer.elem = 0; 
   snd_ctl_card_info_alloca(&hw_info);
   pcm_device = config->register_string(config,
 				       "audio.alsa_default_device",
@@ -1067,10 +1068,10 @@ static void ao_alsa_mixer_init(ao_driver_t *this_gen) {
     
     snd_mixer_selem_get_id(elem, sid);
     mixer_n_selems++;
-    
+
     if(!strcmp((snd_mixer_selem_get_name(elem)), this->mixer.name)) {
       
-      //      printf("found %s\n", snd_mixer_selem_get_name(elem));
+      /* printf("found %s\n", snd_mixer_selem_get_name(elem)); */
       
       this->mixer.elem = elem;
       
@@ -1200,6 +1201,8 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
   snd_pcm_hw_params_t *params;
 
   this = (alsa_driver_t *) malloc (sizeof (alsa_driver_t));
+  memset( this, 0, sizeof( alsa_driver_t ) ); /* Set all those pointers to 0 (NULL) */
+
   this->class = class;
 
   err = snd_lib_error_set_handler(error_callback);
