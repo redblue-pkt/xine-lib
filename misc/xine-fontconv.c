@@ -414,7 +414,7 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
-  if (argc=3) {
+  if (argc==3) {
     encoding=argv[3];
   } else {
     encoding="UNICODE"; //default tagret charset - no conv
