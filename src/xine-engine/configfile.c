@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: configfile.c,v 1.66 2004/06/19 19:54:59 mroi Exp $
+ * $Id: configfile.c,v 1.67 2004/07/22 14:26:24 mroi Exp $
  *
  * config object (was: file) management - implementation
  *
@@ -736,7 +736,7 @@ void xine_config_save (xine_t *xine, const char *filename) {
   struct stat      backup_stat, config_stat;
   FILE            *f_config, *f_backup;
 
-  sprintf(temp, "%s~", filename);
+  snprintf(temp, XINE_PATH_MAX, "%s~", filename);
   unlink (temp);
 
   if (stat(temp, &backup_stat) != 0) {
