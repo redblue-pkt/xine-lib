@@ -151,10 +151,10 @@ static int osd_show (osd_object_t *osd, int64_t vpts ) {
  
     this->event.object.overlay->clip_top    = -1;
     this->event.object.overlay->clip_bottom = this->event.object.overlay->height +
-                                              osd->display_x;
+                                              osd->display_y;
     this->event.object.overlay->clip_left   = 0;
     this->event.object.overlay->clip_right  = this->event.object.overlay->width +
-                                              osd->display_y;
+                                              osd->display_x;
    
     spare = osd->y2 - osd->y1;
     this->event.object.overlay->num_rle = 0;
@@ -421,6 +421,10 @@ static void osd_get_palette (osd_object_t *osd, uint32_t *color, uint8_t *trans)
 
 static void osd_set_position (osd_object_t *osd, int x, int y) {
 
+  if( x < 0 || x > 0x10000 )
+    x = 0;
+  if( y < 0 || y > 0x10000 )
+    y = 0;
   osd->display_x = x;
   osd->display_y = y;
 }
