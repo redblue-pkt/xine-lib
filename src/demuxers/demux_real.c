@@ -31,7 +31,7 @@
  *   
  *   Based on FFmpeg's libav/rm.c.
  *
- * $Id: demux_real.c,v 1.79 2004/01/12 17:35:15 miguelfreitas Exp $
+ * $Id: demux_real.c,v 1.80 2004/01/12 23:43:39 jstembridge Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -714,16 +714,28 @@ unknown:
       buf_element_t *buf;
 
       buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
-      buf->content = buf->mem;
 
-      memcpy(buf->content,
-             this->audio_stream->mdpr->type_specific_data + 4,
-             this->audio_stream->mdpr->type_specific_len - 4);
+      buf->type           = this->audio_stream->buf_type;
+      buf->decoder_flags  = BUF_FLAG_HEADER|BUF_FLAG_FRAME_END;
+      
+      if(buf->type == BUF_AUDIO_AAC) {
+        buf->decoder_info[1] = BE_16(this->audio_stream->mdpr->type_specific_data + 54);
+        buf->decoder_info[2] = BE_16(this->audio_stream->mdpr->type_specific_data + 58);
+        buf->decoder_info[3] = BE_16(this->audio_stream->mdpr->type_specific_data + 60);
 
-      buf->size = this->audio_stream->mdpr->type_specific_len - 4;
+        buf->decoder_flags |= BUF_FLAG_STDHEADER;
+        
+        buf->content = NULL;
+        buf->size    = 0;      
+      } else {
+        memcpy(buf->content,
+               this->audio_stream->mdpr->type_specific_data + 4,
+               this->audio_stream->mdpr->type_specific_len - 4);
 
-      buf->type                   = this->audio_stream->buf_type;
-      buf->decoder_flags          = BUF_FLAG_HEADER|BUF_FLAG_FRAME_END;
+        buf->content = buf->mem;
+        buf->size    = this->audio_stream->mdpr->type_specific_len - 4;
+      }
+
       buf->extra_info->input_pos  = 0;
       buf->extra_info->input_time = 0;
 
@@ -1140,6 +1152,19 @@ static int demux_real_send_chunk(demux_plugin_t *this_gen) {
       input_length = 0;
           
     check_newpts (this, pts, PTS_AUDIO, 0);
+    
+    /* Each packet of AAC is made up of several AAC frames preceded by a
+     * list of the sizes of these frames - just read through the list of
+     * sizes as faad doesn't need it and then send all the AAC frames
+     * together */
+    if(this->audio_stream->buf_type == BUF_AUDIO_AAC) {
+      int n = 0, max = size;
+      
+      while(n < max) {
+        n    += stream_read_word(this);
+        size -= 2;
+      }
+    }
         
     if(_x_demux_read_send_data(this->audio_fifo, this->input, size, pts, 
          this->audio_stream->buf_type, 0, this->input->get_current_pos(this->input), 
