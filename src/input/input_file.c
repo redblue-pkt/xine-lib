@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_file.c,v 1.92 2004/06/13 21:28:56 miguelfreitas Exp $
+ * $Id: input_file.c,v 1.93 2004/06/22 14:31:40 athp Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -245,7 +245,14 @@ static int file_plugin_open (input_plugin_t *this_gen ) {
   lprintf("file_plugin_open\n");
 
   if (strncasecmp (this->mrl, "file:", 5) == 0)
-    filename = decode_uri(&(this->mrl[5]));
+  {
+    if (strncasecmp (this->mrl, "file://localhost/", 16) == 0)
+      filename = decode_uri(&(this->mrl[16]));
+    else if (strncasecmp (this->mrl, "file://127.0.0.1/", 16) == 0)
+      filename = decode_uri(&(this->mrl[16]));
+    else
+      filename = decode_uri(&(this->mrl[5]));
+  }
   else
     filename = decode_uri(this->mrl);
 
@@ -257,7 +264,14 @@ static int file_plugin_open (input_plugin_t *this_gen ) {
     /* try again without unescaping; such MRLs might be invalid,
      * but we are a nice software */
     if (strncasecmp (this->mrl, "file:", 5) == 0)
-      this->fh = open(&this->mrl[5], O_RDONLY|O_BINARY);
+    {
+      if (strncasecmp (this->mrl, "file://localhost/", 16) == 0)
+        this->fh = open(&this->mrl[16], O_RDONLY|O_BINARY);
+      else if (strncasecmp (this->mrl, "file://127.0.0.1/", 16) == 0)
+        this->fh = open(&this->mrl[16], O_RDONLY|O_BINARY);
+      else
+        this->fh = open(&this->mrl[5], O_RDONLY|O_BINARY);
+    }
     else
       this->fh = open(this->mrl, O_RDONLY|O_BINARY);
     
