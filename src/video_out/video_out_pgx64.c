@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  *
- * $Id: video_out_pgx64.c,v 1.49 2003/12/18 00:30:19 komadori Exp $
+ * $Id: video_out_pgx64.c,v 1.50 2003/12/20 01:45:11 komadori Exp $
  *
  * video_out_pgx64.c, Sun PGX64/PGX24 output plugin for xine
  *
@@ -612,6 +612,7 @@ static void pgx64_overlay_key_begin(vo_driver_t *this_gen, vo_frame_t *frame_gen
       ovl = next_ovl;
     }
     this->first_overlay = NULL;
+    XFreeColors(this->display, this->cmap, NULL, 0, ~0);
     XUnlockDisplay(this->display);
   }
 }
@@ -703,9 +704,9 @@ static void pgx64_overlay_key_blend(vo_driver_t *this_gen, vo_frame_t *frame_gen
               g = y + (-13 * v) / 16 + (-25 * u) / 64 + 136;
               b = y + 2 * u - 274;
 
-              col.red = (r & 0xff) << 8;
-              col.green = (g & 0xff) << 8;
-              col.blue = (b & 0xff) << 8;
+              col.red = saturate(r, 0, 255) << 8;
+              col.green = saturate(g, 0, 255) << 8;
+              col.blue = saturate(b, 0, 255) << 8;
               if (XAllocColor(this->display, this->cmap, &col)) {
                 palette[use_clip_palette][j] = col.pixel;
               }
@@ -876,6 +877,7 @@ static int pgx64_gui_data_exchange(vo_driver_t *this_gen, int data_type, void *d
       this->visual = win_attrs.visual;
       XFreeColormap(this->display, this->cmap);
       this->cmap = XCreateColormap(this->display, this->drawable, this->visual, AllocNone);
+      XSetWindowColormap(this->display, this->drawable, this->cmap);
       XFreeGC(this->display, this->gc);
       this->gc = XCreateGC(this->display, this->drawable, 0, NULL);
       XUnlockDisplay(this->display);
@@ -926,6 +928,7 @@ static void pgx64_dispose(vo_driver_t *this_gen)
   this->vregs[OVERLAY_SCALE_CNTL] = 0;
 
   XLockDisplay (this->display);
+  XFreeColormap(this->display, this->cmap);
   XFreeGC(this->display, this->gc);
   XUnlockDisplay (this->display);
 
@@ -1075,6 +1078,7 @@ static vo_driver_t* pgx64_init_driver(video_driver_class_t *class_gen, const voi
   this->depth  = win_attrs.depth;
   this->visual = win_attrs.visual;
   this->cmap   = XCreateColormap(this->display, this->drawable, this->visual, AllocNone);
+  XSetWindowColormap(this->display, this->drawable, this->cmap);
 
   this->fbfd = fbfd;
   this->vram = (uint8_t*)baseaddr;
