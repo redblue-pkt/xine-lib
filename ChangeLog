@@ -7,6 +7,8 @@
   * oss softsync fixes
   * EXPERIMENTAL mpeg1 encoding driver for displaying non-mpeg streams on dxr3
   * version checking of external libdivxdecore.so in divx4 decoder plugin
+  * dxr3 still-menu/audio sync fixes / menu buttons now auto-display
+  * dxr3 now keeps BCS values in .xinerc / Aspect ratio autodetection
   
 xine (0.9.2) unstable; urgency=low
 
