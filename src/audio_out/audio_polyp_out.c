@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_polyp_out.c,v 1.1 2004/11/15 03:58:55 miguelfreitas Exp $
+ * $Id: audio_polyp_out.c,v 1.2 2004/11/17 01:03:28 miguelfreitas Exp $
  *
  * ao plugin for polypaudio:
  * http://0pointer.de/lennart/projects/polypaudio/
@@ -217,6 +217,9 @@ static int ao_polyp_open(ao_driver_t *this_gen,
              pa_strerror(pa_context_errno(this->context)));
     goto fail;
   }
+  wait_for_operation(this,
+    pa_context_set_sink_input_volume(this->context, pa_stream_get_index(this->stream),
+    this->volume, NULL, NULL));
   pthread_mutex_unlock(&this->lock);
 
   this->frames_written = 0;
@@ -395,10 +398,11 @@ static int ao_polyp_set_property (ao_driver_t *this_gen, int property, int value
   case AO_PROP_PCM_VOL:
   case AO_PROP_MIXER_VOL:
     pthread_mutex_lock(&this->lock);
+    this->volume = pa_volume_from_user((double)value/100);
     if( this->stream && this->context )
       wait_for_operation(this,
         pa_context_set_sink_input_volume(this->context, pa_stream_get_index(this->stream),
-        pa_volume_from_user((double)value/100), NULL, NULL));
+        this->volume, NULL, NULL));
     pthread_mutex_unlock(&this->lock);
     break;
   case AO_PROP_MUTE_VOL:
