@@ -24,8 +24,11 @@
  * for the SPDIF AC3 sync part
  * (c) 2000 Andy Lo A Foe <andy@alsaplayer.org>
  *
- * $Id: audio_alsa05_out.c,v 1.1 2001/06/06 16:41:35 joachim_koenig Exp $
+ * $Id: audio_alsa05_out.c,v 1.2 2001/06/06 19:34:23 f1rmb Exp $
  */
+
+/* required for swab() */
+#define _XOPEN_SOURCE 500
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -36,13 +39,12 @@
 #include <signal.h>
 #include <string.h>
 #include <errno.h>
-
-#include <sys/asoundlib.h>
-//#include <linux/asound.h>
-//#include <linux/asequencer.h>
-//#include <linux/asoundid.h>
-
 #include <inttypes.h>
+#include <unistd.h>
+#include <sys/asoundlib.h>
+
+#if (SND_LIB_MAJOR == 0) && (SND_LIB_MINOR <= 5)
+
 #include "xine_internal.h"
 #include "monitor.h"
 #include "audio_out.h"
@@ -917,3 +919,5 @@ ao_functions_t *init_audio_out_plugin(config_values_t *config) {
 
   return &audio_alsaout;
 }
+
+#endif

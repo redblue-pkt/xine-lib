@@ -1,6 +1,6 @@
 CFLAGS = @GLOBAL_CFLAGS@ -DXINE_COMPILE $(ALSA_CFLAGS) $(ESD_CFLAGS)
 
-EXTRA_DIST = audio_alsa_out.c audio_esd_out.c
+EXTRA_DIST = audio_alsa_out.c audio_alsa05_out.c audio_esd_out.c
 
 LIBTOOL = $(SHELL) $(top_builddir)/libtool-nofpic
 
@@ -30,7 +30,8 @@ lib_LTLIBRARIES = xineplug_ao_out_oss.la $(alsa_module)
 xineplug_ao_out_oss_la_SOURCES = audio_oss_out.c resample.c
 xineplug_ao_out_oss_la_LDFLAGS = -avoid-version -module
 
-xineplug_ao_out_alsa_la_SOURCES = audio_alsa_out.c resample.c
+xineplug_ao_out_alsa_la_SOURCES = audio_alsa_out.c audio_alsa05_out.c \
+	resample.c
 xineplug_ao_out_alsa_la_LIBADD = $(ALSA_LIBS)
 xineplug_ao_out_alsa_la_LDFLAGS = -avoid-version -module
 
