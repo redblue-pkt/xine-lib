@@ -200,6 +200,52 @@ static inline void mmx_unpack_16rgb (uint8_t * image, int cpu)
     movntq (mm5, *(image+8));
 }
 
+static inline void mmx_unpack_15rgb (uint8_t * image, int cpu)
+{
+    static mmx_t mmx_bluemask = {0xf8f8f8f8f8f8f8f8};
+    static mmx_t mmx_greenmask = {0xf8f8f8f8f8f8f8f8};
+    static mmx_t mmx_redmask = {0xf8f8f8f8f8f8f8f8};
+
+    /*
+     * convert RGB plane to RGB 15 bits
+     * mm0 -> B, mm1 -> R, mm2 -> G
+     * mm4 -> GB, mm5 -> AR pixel 4-7
+     * mm6 -> GB, mm7 -> AR pixel 0-3
+     */
+
+    pand_m2r (mmx_bluemask, mm0);	// mm0 = b7b6b5b4b3______
+    pxor_r2r (mm4, mm4);		// mm4 = 0
+
+    pand_m2r (mmx_greenmask, mm2);	// mm2 = g7g6g5g4g3g2____
+    psrlq_i2r (3, mm0);			// mm0 = ______b7b6b5b4b3
+
+    movq_r2r (mm2, mm7);		// mm7 = g7g6g5g4g3g2____
+    movq_r2r (mm0, mm5);		// mm5 = ______b7b6b5b4b3
+
+    pand_m2r (mmx_redmask, mm1);	// mm1 = r7r6r5r4r3______
+    punpcklbw_r2r (mm4, mm2);
+
+    psrlq_i2r (1, mm1);
+    punpcklbw_r2r (mm1, mm0);
+
+    psllq_i2r (2, mm2);
+
+    punpckhbw_r2r (mm4, mm7);
+    por_r2r (mm2, mm0);
+
+    psllq_i2r (2, mm7);
+
+    movntq (mm0, *image);
+    punpckhbw_r2r (mm1, mm5);
+
+    por_r2r (mm7, mm5);
+
+    // U
+    // V
+
+    movntq (mm5, *(image+8));
+}
+
 static inline void mmx_unpack_32rgb (uint8_t * image, int cpu)
 {
     /*
@@ -378,28 +424,243 @@ static inline void yuv420_rgb16 (yuv2rgb_t *this,
 	dy += this->step_dy;
 	image += rgb_stride;
 
-	if (dy>32768) {
-	  dy -= 32768;
+	while (dy <= 32768) {
 
-	  py += y_stride;
+	  memcpy (image, image-rgb_stride, this->dest_width*2); 
 
-	  scale_line (py, this->y_buffer, 
-		      this->dest_width, this->step_dx);
+	  dy += this->step_dy;
+	  image += rgb_stride;
+	}
 
-	  if (height & 1) {
-	    pu += uv_stride;
-	    pv += uv_stride;
-	    
-	    scale_line (pu, this->u_buffer,
-			this->dest_width >> 1, this->step_dx);
-	    scale_line (pv, this->v_buffer,
-			this->dest_width >> 1, this->step_dx);
-	    
-	  }
-	  height--;
-	} 
+	dy -= 32768;
+
+	py += y_stride;
+
+	scale_line (py, this->y_buffer, 
+		    this->dest_width, this->step_dx);
+
+	if (height & 1) {
+	  pu += uv_stride;
+	  pv += uv_stride;
+	  
+	  scale_line (pu, this->u_buffer,
+		      this->dest_width >> 1, this->step_dx);
+	  scale_line (pv, this->v_buffer,
+		      this->dest_width >> 1, this->step_dx);
+	  
+	}
+	height--;
       } while (height>0);
     } 
+}
+
+static inline void yuv420_rgb15 (yuv2rgb_t *this,
+				 uint8_t * image,
+				 uint8_t * py, uint8_t * pu, uint8_t * pv,
+				 int cpu)
+{
+    int i;
+    int rgb_stride = this->rgb_stride;
+    int y_stride   = this->y_stride;
+    int uv_stride  = this->uv_stride;
+    int width      = this->source_width;
+    int height     = this->source_height;
+    uint8_t *img;
+
+    width >>= 3;
+
+    if (!this->do_scale) {
+      y_stride -= width;
+      uv_stride -= width >> 1;
+
+      do {
+
+	i = width; img = image;
+	do {
+	  mmx_yuv2rgb (py, pu, pv); 
+	  mmx_unpack_15rgb (img, cpu); 
+	  py += 8;
+	  pu += 4;
+	  pv += 4;
+	  img += 16;
+	} while (--i);
+	
+	py += y_stride;
+	image += rgb_stride;
+	if (height & 1) {
+	  pu += uv_stride;
+	  pv += uv_stride;
+	} else {
+	  pu -= 4 * width;
+	  pv -= 4 * width;
+	}
+      } while (--height);
+
+    } else {
+
+      uint8_t *y_buf, *u_buf, *v_buf;
+      int      dy = 0;
+
+      scale_line (pu, this->u_buffer,
+		  this->dest_width >> 1, this->step_dx);
+      scale_line (pv, this->v_buffer,
+		  this->dest_width >> 1, this->step_dx);
+      scale_line (py, this->y_buffer, 
+		  this->dest_width, this->step_dx);
+      do {
+
+	y_buf = this->y_buffer;
+	u_buf = this->u_buffer;
+	v_buf = this->v_buffer;
+
+	i = this->dest_width >> 3; img = image;
+	do {
+	  /* printf ("i : %d\n",i); */
+
+	  mmx_yuv2rgb (y_buf, u_buf, v_buf); 
+	  mmx_unpack_16rgb (img, cpu); 
+	  y_buf += 8;
+	  u_buf += 4;
+	  v_buf += 4;
+	  img += 16;
+	} while (--i);
+	
+	dy += this->step_dy;
+	image += rgb_stride;
+
+	while (dy <= 32768) {
+
+	  memcpy (image, image-rgb_stride, this->dest_width*2); 
+
+	  dy += this->step_dy;
+	  image += rgb_stride;
+	}
+
+	dy -= 32768;
+
+	py += y_stride;
+
+	scale_line (py, this->y_buffer, 
+		    this->dest_width, this->step_dx);
+
+	if (height & 1) {
+	  pu += uv_stride;
+	  pv += uv_stride;
+	  
+	  scale_line (pu, this->u_buffer,
+		      this->dest_width >> 1, this->step_dx);
+	  scale_line (pv, this->v_buffer,
+		      this->dest_width >> 1, this->step_dx);
+	  
+	}
+	height--;
+      } while (height>0);
+    } 
+}
+
+static inline void yuv420_rgb24 (yuv2rgb_t *this,
+				 uint8_t * image, uint8_t * py,
+				 uint8_t * pu, uint8_t * pv, int cpu)
+{
+    int i;
+    int rgb_stride = this->rgb_stride;
+    int y_stride   = this->y_stride;
+    int uv_stride  = this->uv_stride;
+    int width      = this->source_width;
+    int height     = this->source_height;
+    uint8_t *img;
+
+    /* rgb_stride -= 4 * this->dest_width; */
+    width >>= 3;
+
+    if (!this->do_scale) {
+      y_stride -= width;
+      uv_stride -= width >> 1;
+
+      do {
+	i = width; img = image;
+	do {
+	  mmx_yuv2rgb (py, pu, pv);
+	  mmx_unpack_24rgb (img, cpu);
+	  py += 8;
+	  pu += 4;
+	  pv += 4;
+	  img += 24;
+	} while (--i);
+
+	py += y_stride;
+	image += rgb_stride;
+	if (height & 1) {
+	  pu += uv_stride;
+	  pv += uv_stride;
+	} else {
+	  pu -= 4 * width;
+	  pv -= 4 * width;
+	}
+      } while (--height);
+    } else {
+      uint8_t *y_buf, *u_buf, *v_buf;
+      int      dy = 0;
+
+      scale_line (pu, this->u_buffer,
+		  this->dest_width >> 1, this->step_dx);
+      scale_line (pv, this->v_buffer,
+		  this->dest_width >> 1, this->step_dx);
+      scale_line (py, this->y_buffer, 
+		  this->dest_width, this->step_dx);
+
+      do {
+
+	y_buf = this->y_buffer;
+	u_buf = this->u_buffer;
+	v_buf = this->v_buffer;
+
+
+	i = this->dest_width >> 3; img=image;
+	do {
+	  /* printf ("i : %d\n",i); */
+
+	  mmx_yuv2rgb (y_buf, u_buf, v_buf); 
+	  mmx_unpack_32rgb (img, cpu); 
+	  y_buf += 8;
+	  u_buf += 4;
+	  v_buf += 4;
+	  img += 24;
+	} while (--i);
+	
+	dy += this->step_dy;
+	image += rgb_stride;
+
+	while (dy <= 32768) {
+
+	  memcpy (image, image-rgb_stride, this->dest_width*4); 
+
+	  dy += this->step_dy;
+	  image += rgb_stride;
+	}
+
+
+	dy -= 32768;
+
+	py += y_stride;
+	
+	scale_line (py, this->y_buffer, 
+		    this->dest_width, this->step_dx);
+
+	if (height & 1) {
+	  pu += uv_stride;
+	  pv += uv_stride;
+	  
+	  scale_line (pu, this->u_buffer,
+		      this->dest_width >> 1, this->step_dx);
+	  scale_line (pv, this->v_buffer,
+		      this->dest_width >> 1, this->step_dx);
+	}
+	height--;
+
+      } while (height>0);
+      
+    }
 }
 
 static inline void yuv420_argb32 (yuv2rgb_t *this,
@@ -475,29 +736,42 @@ static inline void yuv420_argb32 (yuv2rgb_t *this,
 	dy += this->step_dy;
 	image += rgb_stride;
 
-	if (dy>32768) {
-	  dy -= 32768;
+	while (dy <= 32768) {
 
-	  py += y_stride;
+	  memcpy (image, image-rgb_stride, this->dest_width*4); 
 
-	  scale_line (py, this->y_buffer, 
-		      this->dest_width, this->step_dx);
-
-	  if (height & 1) {
-	    pu += uv_stride;
-	    pv += uv_stride;
-	    
-	    scale_line (pu, this->u_buffer,
-			this->dest_width >> 1, this->step_dx);
-	    scale_line (pv, this->v_buffer,
-			this->dest_width >> 1, this->step_dx);
-	  }
-	  height--;
+	  dy += this->step_dy;
+	  image += rgb_stride;
 	}
+
+
+	dy -= 32768;
+
+	py += y_stride;
+	
+	scale_line (py, this->y_buffer, 
+		    this->dest_width, this->step_dx);
+
+	if (height & 1) {
+	  pu += uv_stride;
+	  pv += uv_stride;
+	  
+	  scale_line (pu, this->u_buffer,
+		      this->dest_width >> 1, this->step_dx);
+	  scale_line (pv, this->v_buffer,
+		      this->dest_width >> 1, this->step_dx);
+	}
+	height--;
 
       } while (height>0);
       
     }
+}
+
+static void mmxext_rgb15 (yuv2rgb_t *this, uint8_t * image,
+			  uint8_t * py, uint8_t * pu, uint8_t * pv)
+{
+    yuv420_rgb15 (this, image, py, pu, pv, CPU_MMXEXT);
 }
 
 static void mmxext_rgb16 (yuv2rgb_t *this, uint8_t * image,
@@ -506,16 +780,34 @@ static void mmxext_rgb16 (yuv2rgb_t *this, uint8_t * image,
     yuv420_rgb16 (this, image, py, pu, pv, CPU_MMXEXT);
 }
 
+static void mmxext_rgb24 (yuv2rgb_t *this, uint8_t * image,
+			   uint8_t * py, uint8_t * pu, uint8_t * pv)
+{
+    yuv420_rgb24 (this, image, py, pu, pv, CPU_MMXEXT);
+}
+
 static void mmxext_argb32 (yuv2rgb_t *this, uint8_t * image,
 			   uint8_t * py, uint8_t * pu, uint8_t * pv)
 {
     yuv420_argb32 (this, image, py, pu, pv, CPU_MMXEXT);
 }
 
+static void mmx_rgb15 (yuv2rgb_t *this, uint8_t * image,
+		       uint8_t * py, uint8_t * pu, uint8_t * pv)
+{
+    yuv420_rgb15 (this, image, py, pu, pv, CPU_MMX);
+}
+
 static void mmx_rgb16 (yuv2rgb_t *this, uint8_t * image,
 		       uint8_t * py, uint8_t * pu, uint8_t * pv)
 {
     yuv420_rgb16 (this, image, py, pu, pv, CPU_MMX);
+}
+
+static void mmx_rgb24 (yuv2rgb_t *this, uint8_t * image,
+		       uint8_t * py, uint8_t * pu, uint8_t * pv)
+{
+    yuv420_rgb24 (this, image, py, pu, pv, CPU_MMX);
 }
 
 static void mmx_argb32 (yuv2rgb_t *this, uint8_t * image,
@@ -527,8 +819,14 @@ static void mmx_argb32 (yuv2rgb_t *this, uint8_t * image,
 void yuv2rgb_init_mmxext (yuv2rgb_t *this, int mode)
 {
   switch (mode) {
+  case MODE_15_RGB:
+    this->yuv2rgb_fun = mmxext_rgb15;
+    break;
   case MODE_16_RGB:
     this->yuv2rgb_fun = mmxext_rgb16;
+    break;
+  case MODE_24_RGB:
+    this->yuv2rgb_fun = mmxext_rgb24;
     break;
   case MODE_32_RGB:
     this->yuv2rgb_fun = mmxext_argb32;
@@ -539,8 +837,14 @@ void yuv2rgb_init_mmxext (yuv2rgb_t *this, int mode)
 void yuv2rgb_init_mmx (yuv2rgb_t *this, int mode)
 {
   switch (mode) {
+  case MODE_15_RGB:
+    this->yuv2rgb_fun = mmx_rgb15;
+    break;
   case MODE_16_RGB:
     this->yuv2rgb_fun = mmx_rgb16;
+    break;
+  case MODE_24_RGB:
+    this->yuv2rgb_fun = mmx_rgb24;
     break;
   case MODE_32_RGB:
     this->yuv2rgb_fun = mmx_argb32;
@@ -550,5 +854,3 @@ void yuv2rgb_init_mmx (yuv2rgb_t *this, int mode)
 
 
 #endif
-
-
