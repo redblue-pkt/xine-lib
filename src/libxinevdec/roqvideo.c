@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: roqvideo.c,v 1.11 2002/10/05 22:16:08 tmmm Exp $
+ * $Id: roqvideo.c,v 1.12 2002/10/23 02:55:01 tmmm Exp $
  */
 
 /* And this is the header that came with the RoQ video decoder: */
@@ -82,10 +82,17 @@ typedef struct {
   int idx[4];
 } roq_qcell;
 
+typedef struct {
+  video_decoder_class_t   decoder_class;
+} roqvideo_class_t;
+
 typedef struct roq_decoder_s {
   video_decoder_t   video_decoder;
 
-  vo_instance_t    *video_out;
+  roqvideo_class_t *class;
+  xine_stream_t    *stream;
+
+
   int               video_step;
   int               skipframes;
   unsigned char    *buf;
@@ -110,13 +117,13 @@ typedef struct roq_decoder_s {
    * same for u and v */
   int               current_planes;
 
-} roq_decoder_t;
+} roqvideo_decoder_t;
 
 /**************************************************************************
  * RoQ video specific decode functions
  *************************************************************************/
 
-static void apply_vector_2x2(roq_decoder_t *ri, int x, int y, roq_cell *cell) {
+static void apply_vector_2x2(roqvideo_decoder_t *ri, int x, int y, roq_cell *cell) {
   unsigned char *yptr;
 
   yptr = ri->cur_y + (y * ri->width) + x;
@@ -129,7 +136,7 @@ static void apply_vector_2x2(roq_decoder_t *ri, int x, int y, roq_cell *cell) {
   ri->cur_v[(y/2) * (ri->width/2) + x/2] = cell->v;
 }
 
-static void apply_vector_4x4(roq_decoder_t *ri, int x, int y, roq_cell *cell) {
+static void apply_vector_4x4(roqvideo_decoder_t *ri, int x, int y, roq_cell *cell) {
   unsigned long row_inc, c_row_inc;
   register unsigned char y0, y1, u, v;
   unsigned char *yptr, *uptr, *vptr;
@@ -167,7 +174,7 @@ static void apply_vector_4x4(roq_decoder_t *ri, int x, int y, roq_cell *cell) {
   *yptr++ = y1;
 }
 
-static void apply_motion_4x4(roq_decoder_t *ri, int x, int y, unsigned char mv,
+static void apply_motion_4x4(roqvideo_decoder_t *ri, int x, int y, unsigned char mv,
   char mean_x, char mean_y)
 {
   int i, mx, my;
@@ -206,7 +213,7 @@ static void apply_motion_4x4(roq_decoder_t *ri, int x, int y, unsigned char mv,
   }
 }
 
-static void apply_motion_8x8(roq_decoder_t *ri, int x, int y, 
+static void apply_motion_8x8(roqvideo_decoder_t *ri, int x, int y, 
   unsigned char mv, char mean_x, char mean_y) {
 
   int mx, my, i;
@@ -253,7 +260,7 @@ static void apply_motion_8x8(roq_decoder_t *ri, int x, int y,
   }
 }
 
-static void roq_decode_frame(roq_decoder_t *ri) {
+static void roqvideo_decode_frame(roqvideo_decoder_t *ri) {
   unsigned int chunk_id = 0, chunk_arg = 0;
   unsigned long chunk_size = 0;
   int i, j, k, nv1, nv2, vqflg = 0, vqflg_pos = -1;
@@ -374,24 +381,17 @@ static void roq_decode_frame(roq_decoder_t *ri) {
  * xine video plugin functions
  *************************************************************************/
 
-static void roq_init (video_decoder_t *this_gen, vo_instance_t *video_out) {
-  roq_decoder_t *this = (roq_decoder_t *) this_gen;
-
-  this->video_out = video_out;
-  this->buf = NULL;
-}
-
-static void roq_decode_data (video_decoder_t *this_gen,
+static void roqvideo_decode_data (video_decoder_t *this_gen,
   buf_element_t *buf) {
 
-  roq_decoder_t *this = (roq_decoder_t *) this_gen;
+  roqvideo_decoder_t *this = (roqvideo_decoder_t *) this_gen;
   vo_frame_t *img; /* video out frame */
 
   if (buf->decoder_flags & BUF_FLAG_PREVIEW)
     return;
 
   if (buf->decoder_flags & BUF_FLAG_HEADER) { /* need to initialize */
-    this->video_out->open (this->video_out);
+    this->stream->video_out->open (this->stream->video_out);
 
     if(this->buf)
       free(this->buf);
@@ -440,8 +440,8 @@ static void roq_decode_data (video_decoder_t *this_gen,
     this->video_step = buf->decoder_info[0];
 
   if (buf->decoder_flags & BUF_FLAG_FRAME_END)  { /* time to decode a frame */
-    img = this->video_out->get_frame (this->video_out, this->width,
-      this->height, XINE_VO_ASPECT_SQUARE, XINE_IMGFMT_YV12,
+    img = this->stream->video_out->get_frame (this->stream->video_out, 
+      this->width, this->height, XINE_VO_ASPECT_SQUARE, XINE_IMGFMT_YV12,
       VO_BOTH_FIELDS);
 
     img->pts = buf->pts;
@@ -464,7 +464,7 @@ static void roq_decode_data (video_decoder_t *this_gen,
       this->prev_v = this->v[0];
       this->current_planes = 0;
     }
-    roq_decode_frame(this);
+    roqvideo_decode_frame(this);
     xine_fast_memcpy(img->base[0], this->cur_y, this->y_size);
     xine_fast_memcpy(img->base[1], this->cur_u, this->c_size);
     xine_fast_memcpy(img->base[2], this->cur_v, this->c_size);
@@ -494,17 +494,17 @@ static void roq_decode_data (video_decoder_t *this_gen,
   }
 }
 
-static void roq_flush (video_decoder_t *this_gen) {
+static void roqvideo_flush (video_decoder_t *this_gen) {
 }
 
-static void roq_reset (video_decoder_t *this_gen) {
+static void roqvideo_reset (video_decoder_t *this_gen) {
 }
 
-static void roq_close (video_decoder_t *this_gen) {
+static void roqvideo_dispose (video_decoder_t *this_gen) {
 
-  roq_decoder_t *this = (roq_decoder_t *) this_gen;
+  roqvideo_decoder_t *this = (roqvideo_decoder_t *) this_gen;
 
-  this->video_out->close(this->video_out);
+  this->stream->video_out->close(this->stream->video_out);
 
   free(this->y[0]);
   free(this->y[1]);
@@ -512,29 +512,52 @@ static void roq_close (video_decoder_t *this_gen) {
   free(this->u[1]);
   free(this->v[0]);
   free(this->v[1]);
-}
 
-static char *roq_get_id(void) {
-  return "RoQ Video";
-}
-
-static void roq_dispose (video_decoder_t *this_gen) {
   free (this_gen);
 }
 
-static void *init_video_decoder_plugin (xine_t *xine, void *data) {
+static video_decoder_t *open_plugin (video_decoder_class_t *class_gen, xine_stream_t *stream) {
 
-  roq_decoder_t *this ;
+  roqvideo_decoder_t  *this ;
 
-  this = (roq_decoder_t *) malloc (sizeof (roq_decoder_t));
+  this = (roqvideo_decoder_t *) xine_xmalloc (sizeof (roqvideo_decoder_t));
 
-  this->video_decoder.init                = roq_init;
-  this->video_decoder.decode_data         = roq_decode_data;
-  this->video_decoder.flush               = roq_flush;
-  this->video_decoder.reset               = roq_reset;
-  this->video_decoder.close               = roq_close;
-  this->video_decoder.get_identifier      = roq_get_id;
-  this->video_decoder.dispose             = roq_dispose;
+  this->video_decoder.decode_data         = roqvideo_decode_data;
+  this->video_decoder.flush               = roqvideo_flush;
+  this->video_decoder.reset               = roqvideo_reset;
+  this->video_decoder.dispose             = roqvideo_dispose;
+  this->size                              = 0;
+
+  this->stream                            = stream;
+  this->class                             = (roqvideo_class_t *) class_gen;
+
+  this->buf           = NULL;
+
+  return &this->video_decoder;
+}
+
+static char *get_identifier (video_decoder_class_t *this) {
+  return "RoQ Video";
+}
+
+static char *get_description (video_decoder_class_t *this) {
+  return "Id RoQ video decoder plugin";
+}
+
+static void dispose_class (video_decoder_class_t *this) {
+  free (this);
+}
+
+static void *init_plugin (xine_t *xine, void *data) {
+
+  roqvideo_class_t *this;
+
+  this = (roqvideo_class_t *) xine_xmalloc (sizeof (roqvideo_class_t));
+
+  this->decoder_class.open_plugin     = open_plugin;
+  this->decoder_class.get_identifier  = get_identifier;
+  this->decoder_class.get_description = get_description;
+  this->decoder_class.dispose         = dispose_class;
 
   return this;
 }
@@ -555,6 +578,6 @@ static decoder_info_t dec_info_video = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_VIDEO_DECODER, 10, "roq", XINE_VERSION_CODE, &dec_info_video, init_video_decoder_plugin },
+  { PLUGIN_VIDEO_DECODER, 11, "roq", XINE_VERSION_CODE, &dec_info_video, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

@@ -21,7 +21,7 @@
  * For more information regarding the RoQ file format, visit:
  *   http://www.csse.monash.edu.au/~timf/
  *
- * $Id: roqaudio.c,v 1.8 2002/10/06 03:48:13 komadori Exp $
+ * $Id: roqaudio.c,v 1.9 2002/10/23 02:55:01 tmmm Exp $
  *
  */
 
@@ -47,12 +47,17 @@
   else if (x > 32767) x = 32767;
 #define SE_16BIT(x)  if (x & 0x8000) x -= 0x10000;
 
+typedef struct {
+  audio_decoder_class_t   decoder_class;
+} roqaudio_class_t;
+
 typedef struct roqaudio_decoder_s {
   audio_decoder_t   audio_decoder;
 
+  xine_stream_t    *stream;
+
   int64_t           pts;
 
-  ao_instance_t    *audio_out;
   int               output_open;
   int               output_channels;
 
@@ -62,26 +67,6 @@ typedef struct roqaudio_decoder_s {
 
   short             square_array[256];
 } roqaudio_decoder_t;
-
-static void roqaudio_reset (audio_decoder_t *this_gen) {
-}
-
-static void roqaudio_init (audio_decoder_t *this_gen, ao_instance_t *audio_out) {
-
-  roqaudio_decoder_t *this = (roqaudio_decoder_t *) this_gen;
-  int i;
-  short square;
-
-  this->audio_out       = audio_out;
-  this->output_open     = 0;
-
-  /* initialize tables of squares */
-  for (i = 0; i < 128; i++) {
-    square = i * i;
-    this->square_array[i] = square;
-    this->square_array[i + 128] = -square;
-  }
-}
 
 static void roqaudio_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
   roqaudio_decoder_t *this = (roqaudio_decoder_t *) this_gen;
@@ -101,7 +86,7 @@ static void roqaudio_decode_data (audio_decoder_t *this_gen, buf_element_t *buf)
   }
 
   if (!this->output_open) {
-    this->output_open = this->audio_out->open(this->audio_out,
+    this->output_open = this->stream->audio_out->open(this->stream->audio_out,
       RoQ_AUDIO_BITS_PER_SAMPLE, RoQ_AUDIO_SAMPLE_RATE, 
       (this->output_channels == 2) ? AO_CAP_MODE_STEREO : AO_CAP_MODE_MONO);
   }
@@ -109,9 +94,6 @@ static void roqaudio_decode_data (audio_decoder_t *this_gen, buf_element_t *buf)
   /* if the audio still isn't open, bail */
   if (!this->output_open)
     return;
-
-//printf ("received audio packet: %d bytes, pts = %lld, flags = %X\n",
-//  buf->size, buf->pts, buf->decoder_flags);
 
   if( this->size + buf->size > this->bufsize ) {
     this->bufsize = this->size + 2 * buf->size;
@@ -124,11 +106,11 @@ static void roqaudio_decode_data (audio_decoder_t *this_gen, buf_element_t *buf)
   this->size += buf->size;
 
   if (buf->decoder_flags & BUF_FLAG_FRAME_END)  { /* time to decode a frame */
-    audio_buffer = this->audio_out->get_buffer (this->audio_out);
+    audio_buffer = this->stream->audio_out->get_buffer (this->stream->audio_out);
 
     out = 0;
 
-    // prepare the initial predictors
+    /* prepare the initial predictors */
     if (this->output_channels == 1)
       predictor[0] = LE_16(&this->buf[6]);
     else
@@ -146,7 +128,7 @@ static void roqaudio_decode_data (audio_decoder_t *this_gen, buf_element_t *buf)
       CLAMP_S16(predictor[channel_number]);
       audio_buffer->mem[out++] = predictor[channel_number];
 
-      // toggle channel
+      /* toggle channel */
       channel_number ^= this->output_channels - 1;
     }
 
@@ -154,45 +136,79 @@ static void roqaudio_decode_data (audio_decoder_t *this_gen, buf_element_t *buf)
     audio_buffer->num_frames = 
       (buf->size - 8) / this->output_channels;
 
-//printf ("  audio buffer size = %d, buf size = %d, chan = %d, # of frames sent = %d\n",
-//  audio_buffer->mem_size, this->size, 
-//  this->output_channels, audio_buffer->num_frames);
-    this->audio_out->put_buffer (this->audio_out, audio_buffer);
+    this->stream->audio_out->put_buffer (this->stream->audio_out, audio_buffer);
 
     this->size = 0;
   }
 }
 
-static void roqaudio_close (audio_decoder_t *this_gen) {
-  roqaudio_decoder_t *this = (roqaudio_decoder_t *) this_gen;
-
-  if (this->output_open)
-    this->audio_out->close (this->audio_out);
-  this->output_open = 0;
-}
-
-static char *roqaudio_get_id(void) {
-  return "RoQ Audio";
+static void roqaudio_reset (audio_decoder_t *this_gen) {
 }
 
 static void roqaudio_dispose (audio_decoder_t *this_gen) {
+
+  roqaudio_decoder_t *this = (roqaudio_decoder_t *) this_gen;
+
+  if (this->output_open)
+    this->stream->audio_out->close (this->stream->audio_out);
+  this->output_open = 0;
+
   free (this_gen);
 }
 
-static void *init_audio_decoder_plugin (xine_t *xine, void *data) {
+static audio_decoder_t *open_plugin (audio_decoder_class_t *class_gen, xine_stream_t *stream) {
 
-  roqaudio_decoder_t *this ;
+  roqaudio_decoder_t  *this;
+  int i;
+  short square;
 
-  this = (roqaudio_decoder_t *) malloc (sizeof (roqaudio_decoder_t));
+  this = (roqaudio_decoder_t *) xine_xmalloc (sizeof (roqaudio_decoder_t));
 
-  this->audio_decoder.init                = roqaudio_init;
   this->audio_decoder.decode_data         = roqaudio_decode_data;
   this->audio_decoder.reset               = roqaudio_reset;
-  this->audio_decoder.close               = roqaudio_close;
-  this->audio_decoder.get_identifier      = roqaudio_get_id;
   this->audio_decoder.dispose             = roqaudio_dispose;
+  this->size                              = 0;
 
-  return (audio_decoder_t *) this;
+  this->stream                            = stream;
+
+  this->buf              = NULL;
+  this->output_open      = 0;
+  this->output_channels  = 0;
+
+  /* initialize tables of squares */
+  for (i = 0; i < 128; i++) {
+    square = i * i;
+    this->square_array[i] = square;
+    this->square_array[i + 128] = -square;
+  }
+
+  return &this->audio_decoder;
+}
+
+static char *get_identifier (audio_decoder_class_t *this) {
+  return "RoQ Audio";
+}
+
+static char *get_description (audio_decoder_class_t *this) {
+  return "Id Roq audio decoder plugin";
+}
+
+static void dispose_class (audio_decoder_class_t *this) {
+  free (this);
+}
+
+static void *init_plugin (xine_t *xine, void *data) {
+
+  roqaudio_class_t *this;
+
+  this = (roqaudio_class_t *) xine_xmalloc (sizeof (roqaudio_class_t));
+
+  this->decoder_class.open_plugin     = open_plugin;
+  this->decoder_class.get_identifier  = get_identifier;
+  this->decoder_class.get_description = get_description;
+  this->decoder_class.dispose         = dispose_class;
+
+  return this;
 }
 
 static uint32_t audio_types[] = { 
@@ -206,6 +222,6 @@ static decoder_info_t dec_info_audio = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_AUDIO_DECODER, 9, "roq", XINE_VERSION_CODE, &dec_info_audio, init_audio_decoder_plugin },
+  { PLUGIN_AUDIO_DECODER, 10, "roqaudio", XINE_VERSION_CODE, &dec_info_audio, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
