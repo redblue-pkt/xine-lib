@@ -24,7 +24,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.12 2001/07/18 21:38:16 f1rmb Exp $
+ * $Id: audio_alsa_out.c,v 1.13 2001/08/01 18:17:40 joachim_koenig Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -98,15 +98,14 @@ typedef struct alsa_functions_s {
  * For this plugin, we will use frames instead of bytes for everything.
  * The term sample is also equil to frames
   */
-  snd_pcm_sframes_t   frames_in_buffer;      /* number of frames writen to audio hardware   */
-  uint32_t            last_vpts;            /* vpts at which last written package ends    */
+  uint32_t            bytes_in_buffer;      /* number of bytes writen to audio hardware   */
 
-  uint32_t            sync_vpts;            /* this syncpoint is used as a starting point */
-  snd_pcm_sframes_t   sync_frames_in_buffer; /* for vpts <-> samplecount assoc             */
 
   int                 audio_step;           /* pts per 32 768 frames (frame = #bytes/2(16 bits)/channels) */
 /* frames = pts * rate / pts_per_second */
 /* pts    = frame * pts_per_second / rate  */
+  int32_t        bytes_per_kpts;       /* bytes per 1024/90000 sec                   */
+
 
   snd_pcm_sframes_t   pts_per_second;       /* pts per second                 */
                                             
@@ -120,6 +119,7 @@ typedef struct alsa_functions_s {
 } alsa_functions_t;
 
 void write_pause_burst(alsa_functions_t *,int );
+void write_burst(alsa_functions_t *,u_char *, size_t );
 
   static snd_output_t *jcd_out;
 /*
@@ -160,11 +160,8 @@ static int ao_open(ao_functions_t *this_gen, uint32_t bits, uint32_t rate, int m
     snd_pcm_close (this->audio_fd);
   }
   this->input_sample_rate      = rate;
-  this->frames_in_buffer       = 0;
-  this->last_vpts              = 0;
+  this->bytes_in_buffer       = 0;
   this->output_rate_correction = 0;
-  this->sync_vpts              = 0;
-  this->sync_frames_in_buffer  = 0;
   this->audio_started          = 0;
   this->open_mode              = mode;
   this->last_audio_vpts        = 0;
@@ -297,9 +294,10 @@ static int ao_open(ao_functions_t *this_gen, uint32_t bits, uint32_t rate, int m
 
   this->output_sample_rate = this->input_sample_rate;
   this->sample_rate_factor = (double) this->output_sample_rate / (double) this->input_sample_rate;
-  this->audio_step         = (double) 90000 * (double) 32768 
+  this->audio_step         = (uint32_t) 90000 * (uint32_t) 32768 
                                  / this->input_sample_rate;
-  this->pts_per_second     = 90000;
+  this->bytes_per_kpts     = this->output_sample_rate * this->num_channels * 2 * 1024 / 90000;
+
   this->metronom->set_audio_rate(this->metronom, this->audio_step);
   /*
    * audio buffer size handling
@@ -307,6 +305,8 @@ static int ao_open(ao_functions_t *this_gen, uint32_t bits, uint32_t rate, int m
   /* Copy current parameters into swparams */
   snd_pcm_sw_params_current(this->audio_fd, swparams);
   tmp=snd_pcm_sw_params_set_xfer_align(this->audio_fd, swparams, 4);
+  tmp=snd_pcm_sw_params_set_avail_min(this->audio_fd, swparams, 1);
+  tmp=snd_pcm_sw_params_set_start_threshold(this->audio_fd, swparams, 1);
 
   /* Install swparams into current parameters */
   snd_pcm_sw_params(this->audio_fd, swparams);
@@ -315,7 +315,7 @@ static int ao_open(ao_functions_t *this_gen, uint32_t bits, uint32_t rate, int m
     snd_pcm_sw_params_dump(swparams, jcd_out);
       
 
-  write_pause_burst(this,0);
+  //  write_pause_burst(this,0);
 
 
   return 1;
@@ -325,13 +325,13 @@ __close:
   return -1;
 }
 
-static uint32_t ao_get_current_vpts (alsa_functions_t *this) 
+static uint32_t ao_get_current_pos (alsa_functions_t *this) 
 {
   snd_pcm_sframes_t pos ;
   snd_pcm_status_t  *pcm_stat;
   snd_pcm_sframes_t delay;
   int err;
-  uint32_t vpts ;
+  
   snd_pcm_status_alloca(&pcm_stat);
   snd_pcm_status(this->audio_fd, pcm_stat);
   /* Dump ALSA info to stderr */
@@ -341,49 +341,51 @@ static uint32_t ao_get_current_vpts (alsa_functions_t *this)
     if(err < 0) {
       //Hide error report
       error("snd_pcm_delay() failed");
-      return 0;
+      return this->bytes_in_buffer;
     }
-    /* Correction factor, bigger -, sound earlier
-     *                    bigger +, sound later
-     * current setting for SB Live
-     */    
-    pos = this->frames_in_buffer - delay + 1500;  
+    pos =  delay * 2 * this->num_channels;  
   } else {
-    pos=0;
+    pos=this->bytes_in_buffer;
   }
-  vpts =  ((double)pos * (double)this->pts_per_second / (double)this->input_sample_rate);
-  return vpts;
+  return pos;
 }
 
-static void ao_fill_gap (alsa_functions_t *this, uint32_t pts_len)
-{
-  snd_pcm_sframes_t res; 
-  int num_frames;
+static void ao_fill_gap (alsa_functions_t *this, uint32_t pts_len) {
+
+  int num_bytes ;
 
   if (pts_len > MAX_GAP)
     pts_len = MAX_GAP;
+  num_bytes = pts_len * this->bytes_per_kpts / 1024;
+  num_bytes = (num_bytes / (2*this->num_channels)) * (2*this->num_channels);
 
-  num_frames = (double)pts_len * (double)this->input_sample_rate / (double)this->pts_per_second;
-  num_frames = (num_frames / 4) * 4;
-  this->frames_in_buffer += num_frames;
-  while (num_frames>0) {
-    if (num_frames>2048) {
-      res=snd_pcm_writei(this->audio_fd, this->zero_space, 2048 );
-      num_frames -= 2048;
+  if(this->open_mode == AO_CAP_MODE_AC3) {
+    write_pause_burst(this,0);
+printf("audio_alsa_out: SPDIF write pause\n");
+    return; 
+  }
+
+  printf ("audio_alsa_out: inserting %d 0-bytes to fill a gap of %d pts\n",num_bytes, pts_len);
+
+  this->bytes_in_buffer += num_bytes;
+
+  while (num_bytes>0) {
+    if (num_bytes>8192) {
+      write_burst(this, (unsigned char *)this->zero_space, 8192 / (2 * this->num_channels));
+      num_bytes -= 8192;
     } else {
-      res=snd_pcm_writei(this->audio_fd, this->zero_space, num_frames );
-      num_frames = 0;
+      write_burst(this, (unsigned char *)this->zero_space, num_bytes / (2 * this->num_channels));
+      num_bytes = 0;
     }
   }
-  this->last_vpts += pts_len;
 }
 
 
 
 void xrun(alsa_functions_t *this)
 {
-         snd_pcm_status_t *status;
-         int res;
+        snd_pcm_status_t *status;
+        int res;
 
         snd_pcm_status_alloca(&status);
         if ((res = snd_pcm_status(this->audio_fd, status))<0) {
@@ -395,10 +397,9 @@ void xrun(alsa_functions_t *this)
             gettimeofday(&now, 0);
             snd_pcm_status_get_trigger_tstamp(status, &tstamp);
             timersub(&now, &tstamp, &diff);
-            fprintf(stderr, "xrun!!! (at least %.3f ms long)\n",
-diff.tv_sec * 1000 + diff.tv_usec / 1000.0);
+            fprintf(stderr, "xrun!!! (at least %.3f ms long)\n", diff.tv_sec * 1000 + diff.tv_usec / 1000.0);
 
- if ((res = snd_pcm_prepare(this->audio_fd))<0) {
+         if ((res = snd_pcm_prepare(this->audio_fd))<0) {
                 printf("xrun: prepare error: %s", snd_strerror(res));
                 return;
             }
@@ -407,9 +408,10 @@ diff.tv_sec * 1000 + diff.tv_usec / 1000.0);
 }
 
 void write_burst(alsa_functions_t *this,u_char *data, size_t count)
- {
+{
     ssize_t r;
-    while(count > 0) {
+
+   while( count > 0) {
       r = snd_pcm_writei(this->audio_fd, data, count);
       if (r == -EAGAIN || (r >=0 && r < count)) {
         snd_pcm_wait(this->audio_fd, 1000);
@@ -418,9 +420,10 @@ void write_burst(alsa_functions_t *this,u_char *data, size_t count)
       }
       if (r > 0) {
         count -= r;
-        data += r * 4;
+        data += r * 2 * this->num_channels;
       }
    }
+
 }
 
 void write_pause_burst(alsa_functions_t *this,int error)
@@ -458,9 +461,9 @@ static int ao_write_audio_data(ao_functions_t *this_gen,
 
   alsa_functions_t *this = (alsa_functions_t *) this_gen;
   uint32_t vpts,
-           audio_vpts,
-           master_vpts;
-  int32_t  diff, gap;
+           pos,
+           buffer_vpts;
+  int32_t  gap;
   int      bDropPackage;
   uint16_t sample_buffer[8192];
   int      num_output_samples;
@@ -468,10 +471,15 @@ static int ao_write_audio_data(ao_functions_t *this_gen,
 
   if (this->audio_fd == NULL) {
     error("Nothing open");
-    return;
+    return 1;
   }
 
-  vpts        = this->metronom->got_audio_samples (this->metronom, pts_, num_samples);
+  if(this->open_mode == AO_CAP_MODE_AC3) 
+    num_samples = 1536;  /* FIXME */
+
+  vpts = this->metronom->got_audio_samples (this->metronom, pts_, num_samples);
+
+
 
   if (vpts<this->last_audio_vpts) {
     /* reject this */
@@ -479,15 +487,24 @@ static int ao_write_audio_data(ao_functions_t *this_gen,
     return 1;
   }
   this->last_audio_vpts = vpts;
-
-
-  /*
-   * check if these samples "fit" in the audio output buffer
-   * or do we have an audio "gap" here?
-   */
-  gap = vpts - this->last_vpts ;
   bDropPackage = 0;
-#if 0  
+
+  pos  = ao_get_current_pos (this) ;
+
+//  if (pos>this->bytes_in_buffer) /* buffer ran dry */
+//    this->bytes_in_buffer = pos;
+
+//printf("samples %d pos %d bytes_in_buffer %d ",num_samples,pos,this->bytes_in_buffer);
+  buffer_vpts = this->metronom->get_current_time (this->metronom);
+//printf("buffer_vpts %d vpts %d ",buffer_vpts,vpts);
+  buffer_vpts += (this->bytes_in_buffer - pos) * 1024 / this->bytes_per_kpts;
+  this->bytes_in_buffer -= (this->bytes_in_buffer - pos);
+
+  gap = vpts - buffer_vpts;
+
+//printf("gap %d \n",gap);
+
+
   if (gap>GAP_TOLERANCE) {
     ao_fill_gap (this, gap);
 
@@ -498,50 +515,21 @@ static int ao_write_audio_data(ao_functions_t *this_gen,
 
   } else if (gap<-GAP_TOLERANCE) {
     bDropPackage = 1;
-  }
-#endif
-  /*
-   * sync on master clock
-   */
-  audio_vpts  = ao_get_current_vpts (this) ;
-  master_vpts = this->metronom->get_current_time (this->metronom);
-  diff        = audio_vpts - master_vpts;
-  /*
-   * method 1 : resampling
-   */
-
-  if (abs(diff)>5000) {
-    if (diff>5000) {
-      error("Fill Gap");
-      if ((this->open_mode & AO_CAP_MODE_AC3) == 0)
-        ao_fill_gap (this,diff);
-    } else if (diff<-5000) {
-      error("Drop");
-      bDropPackage = 1;
-    }
-  } else if (abs(diff)>1000) {
-    this->output_rate_correction = diff/10 ; 
-    error("diff = %d => rate correction : %d", diff, this->output_rate_correction);  
-    if ( this->output_rate_correction < -500)
-      this->output_rate_correction = -500;
-    else if ( this->output_rate_correction > 500)
-      this->output_rate_correction = 500;
+//printf("audio_alsa_out: drop package\n");
   }
 
-  /*
-   * method 2: adjust master clock
-   */
-  if (abs(diff)>MAX_MASTER_CLOCK_DIV) {
-    error ("master clock adjust time %d -> %d (diff: %d)", master_vpts, audio_vpts, diff); 
-    this->metronom->adjust_clock (this->metronom, audio_vpts); 
-  }
+
+
   /*
    * resample and output samples
    */
+
+  if(this->open_mode == AO_CAP_MODE_AC3) bDropPackage=0;
+
+
   if (!bDropPackage) {
     if ((this->open_mode & AO_CAP_MODE_AC3) == 0) {
-      /* Multiples of xfer_align eg:- 4 */
-      num_output_samples = ((num_samples * (this->output_sample_rate + this->output_rate_correction) / this->input_sample_rate / 4) * 4)+4; 
+      num_output_samples = num_samples * (this->output_sample_rate) / this->input_sample_rate;
       audio_out_resample_stereo (output_samples, num_samples,
 			       sample_buffer, num_output_samples);
       do {
@@ -566,29 +554,14 @@ static int ao_write_audio_data(ao_functions_t *this_gen,
      * A Frame is one sample for all channels, so here a Stereo 16 bits frame is 4 bytes.
      */
 
-//    res=snd_pcm_writei(this->audio_fd, sample_buffer, num_output_samples);    
-    write_burst(this, sample_buffer, num_output_samples);    
-    res = num_output_samples;
-
-    if(res != num_output_samples) error("BUFFER MAYBE FULL!!!!!!!!!!!!");
-    if (res < 0)                                                   
-             error("writei returned error: %s", snd_strerror(res));                    
-    /*
-     * remember vpts
-     */
-    this->sync_vpts            = vpts;
-    this->sync_frames_in_buffer = this->frames_in_buffer;
+    write_burst(this, (unsigned char *)sample_buffer, num_output_samples);    
     /*
      * step values
      */
-    this->frames_in_buffer += num_samples ;
+    this->bytes_in_buffer += num_samples * 2 * this->num_channels ;
     this->audio_started    = 1;
-  } else {
-    this->sync_vpts            = vpts;
   }
   
-  this->last_vpts        = vpts + num_samples * this->pts_per_second / this->input_sample_rate ; 
-
   return 1;
 }
 
