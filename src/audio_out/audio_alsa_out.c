@@ -24,7 +24,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.10 2001/06/23 19:45:47 guenter Exp $
+ * $Id: audio_alsa_out.c,v 1.11 2001/06/30 23:09:25 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -118,6 +118,7 @@ typedef struct alsa_functions_s {
 
   int                capabilities;
 
+  uint32_t           last_audio_vpts;
 } alsa_functions_t;
 
 void write_pause_burst(alsa_functions_t *,int );
@@ -168,6 +169,7 @@ static int ao_open(ao_functions_t *this_gen, uint32_t bits, uint32_t rate, int m
   this->sync_frames_in_buffer  = 0;
   this->audio_started          = 0;
   this->open_mode              = mode;
+  this->last_audio_vpts        = 0;
   /*
    * open audio device
    */
@@ -478,6 +480,8 @@ static int ao_write_audio_data(ao_functions_t *this_gen,
 
     return 1;
   }
+  this->last_audio_vpts = vpts;
+
 
   /*
    * check if these samples "fit" in the audio output buffer
