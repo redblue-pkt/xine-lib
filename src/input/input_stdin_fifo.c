@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_stdin_fifo.c,v 1.51 2003/05/02 15:02:11 miguelfreitas Exp $
+ * $Id: input_stdin_fifo.c,v 1.52 2003/11/08 22:21:48 tmattern Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -96,7 +96,7 @@ static off_t stdin_plugin_read (input_plugin_t *this_gen,
   }
 
   if( (len-total) > 0 ) {
-    n = xine_read_abort (this->stream, this->fh, &buf[total], len-total);
+    n = xio_file_read (this->stream, this->fh, &buf[total], len - total);
 
 #ifdef LOG
     printf ("stdin: got %lld bytes (%lld/%lld bytes read)\n",
