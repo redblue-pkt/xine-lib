@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xineutils.h,v 1.38 2003/03/02 17:13:03 f1rmb Exp $
+ * $Id: xineutils.h,v 1.39 2003/03/02 17:23:03 f1rmb Exp $
  *
  */
 #ifndef XINEUTILS_H
@@ -797,9 +797,7 @@ extern int v_b_table[256];
 
 
 /* Obtain a backtrace and print it to stdout. */
-static void
-print_trace (void)
-{
+void print_trace (void) {
 #if HAVE_BACKTRACE
   /* Code Taken from GNU C Library manual */
   void *array[10];
@@ -831,7 +829,7 @@ print_trace (void)
 #define XINE_ASSERT(exp, desc, args...)                             \
   do {                                                              \
     if (!(exp)) {                                                   \
-      printf("%s:%s:%d: assertion `" #exp "' failed. " desc "\n\n", \
+      printf("%s:%s:%d: assertion failed. " desc "\n\n",            \
             __FILE__, __XINE_FUNCTION__, __LINE__, ##args);         \
       print_trace();                                                \
       abort();                                                      \
@@ -846,7 +844,7 @@ print_trace (void)
 #define XINE_ASSERT(exp, desc, args...)                             \
   do {                                                              \
     if (!(exp)) {                                                   \
-      printf("%s:%s:%d: assertion `" #exp "' failed. ",             \
+      printf("%s:%s:%d: assertion failed. ",                        \
              __FILE__, __XINE_FUNCTION__, __LINE__);                \
       printf(desc, ##args);                                         \
       printf("\n\n");                                               \
@@ -859,7 +857,7 @@ print_trace (void)
 #define XINE_ASSERT(exp, ...)                                       \
   do {                                                              \
     if (!(exp)) {                                                   \
-      printf("%s:%s:%d: assertion `" #exp "' failed. ",             \
+      printf("%s:%s:%d: assertion failed. ",                        \
              __FILE__, __XINE_FUNCTION__, __LINE__);                \
       printf(__VA_ARGS__);                                          \
       printf("\n\n");                                               \
