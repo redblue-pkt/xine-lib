@@ -16,7 +16,7 @@
 ** along with this program; if not, write to the Free Software
 ** Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 **
-** $Id: common.h,v 1.7 2003/04/12 14:58:46 miguelfreitas Exp $
+** $Id: common.h,v 1.8 2003/05/26 23:23:26 miguelfreitas Exp $
 **/
 
 #ifndef __COMMON_H__
@@ -129,7 +129,9 @@ typedef float float32_t;
 # if HAVE_STDINT_H
 #  include <stdint.h>
 # else
+#  if !defined(__int8_t_defined)
 /* we need these... */
+#define __int8_t_defined
 typedef unsigned long long uint64_t;
 typedef unsigned long uint32_t;
 typedef unsigned short uint16_t;
@@ -138,6 +140,7 @@ typedef long long int64_t;
 typedef long int32_t;
 typedef short int16_t;
 typedef char int8_t;
+#  endif
 # endif
 #endif
 #if HAVE_UNISTD_H
