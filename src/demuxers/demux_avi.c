@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_avi.c,v 1.61 2002/01/17 14:32:08 mshopf Exp $
+ * $Id: demux_avi.c,v 1.62 2002/01/24 22:55:51 guenter Exp $
  *
  * demultiplexer for avi streams
  *
@@ -923,6 +923,8 @@ static void demux_avi_start (demux_plugin_t *this_gen,
 
   LOG_MSG(this->xine, _("demux_avi: video format = %s, audio format = 0x%lx\n"),
 	  this->avi->compressor, this->avi->a_fmt);
+  LOG_MSG(this->xine, _("demux_avi: video frame size %d x %d\n"),
+	  this->avi->width, this->avi->height);
   this->no_audio = 0;
   
   this->avi->audio_type = formattag_to_buf_audio (this->avi->a_fmt);
