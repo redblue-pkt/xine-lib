@@ -29,6 +29,7 @@ libavcodec_la_SOURCES = \
 	error_resilience.c \
 	eval.c \
 	faandct.c \
+	flac.c \
 	flicvideo.c \
 	fft.c \
 	golomb.c \

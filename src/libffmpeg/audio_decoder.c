@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.10 2004/06/06 16:13:30 jstembridge Exp $
+ * $Id: audio_decoder.c,v 1.11 2004/06/10 04:46:18 tmmm Exp $
  *
  * xine audio decoder plugin using ffmpeg
  *
@@ -98,7 +98,8 @@ static const ff_codec_t ff_audio_lookup[] = {
   {BUF_AUDIO_MAC3,       CODEC_ID_MACE3,          "MACE 3:1 (ffmpeg)"},
   {BUF_AUDIO_MAC6,       CODEC_ID_MACE6,          "MACE 6:1 (ffmpeg)"},
   {BUF_AUDIO_XAN_DPCM,   CODEC_ID_XAN_DPCM,       "Origin Xan DPCM (ffmpeg)"},
-  {BUF_AUDIO_VMD,        CODEC_ID_VMDAUDIO,       "Sierra VMD Audio (ffmpeg)"} };
+  {BUF_AUDIO_VMD,        CODEC_ID_VMDAUDIO,       "Sierra VMD Audio (ffmpeg)"},
+  {BUF_AUDIO_FLAC,       CODEC_ID_FLAC,           "FLAC (ffmpeg)"} };
 
 
  static void ff_audio_ensure_buffer_size(ff_audio_decoder_t *this, int size) {
@@ -428,6 +429,7 @@ static uint32_t supported_audio_types[] = {
   BUF_AUDIO_VMD,
   BUF_AUDIO_EA_ADPCM,
   BUF_AUDIO_SMJPEG_IMA,
+  BUF_AUDIO_FLAC,
   /* BUF_AUDIO_MPEG, */
   0
 };
