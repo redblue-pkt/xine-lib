@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_oss_out.c,v 1.57 2002/02/11 13:00:46 richwareham Exp $
+ * $Id: audio_oss_out.c,v 1.58 2002/03/11 09:01:37 f1rmb Exp $
  *
  * 20-8-2001 First implementation of Audio sync and Audio driver separation.
  * Copyright (C) 2001 James Courtier-Dutton James@superbug.demon.co.uk
@@ -442,29 +442,30 @@ static int ao_oss_get_property (ao_driver_t *this_gen, int property) {
   switch(property) {
   case AO_PROP_PCM_VOL:
   case AO_PROP_MIXER_VOL:
-    mixer_fd = open(this->mixer.name, O_RDONLY);
-    if(mixer_fd != -1) {
-      int cmd = 0;
-      int v;
-      
-      ioctl(mixer_fd, SOUND_MIXER_READ_DEVMASK, &audio_devs);
-      
-      if(audio_devs & SOUND_MASK_PCM)
-	cmd = SOUND_MIXER_READ_PCM;
-      else if(audio_devs & SOUND_MASK_VOLUME)
-	cmd = SOUND_MIXER_READ_VOLUME;
-      else {
+    if(!this->mixer.mute) {
+      mixer_fd = open(this->mixer.name, O_RDONLY);
+      if(mixer_fd != -1) {
+	int cmd = 0;
+	int v;
+	
+	ioctl(mixer_fd, SOUND_MIXER_READ_DEVMASK, &audio_devs);
+	
+	if(audio_devs & SOUND_MASK_PCM)
+	  cmd = SOUND_MIXER_READ_PCM;
+	else if(audio_devs & SOUND_MASK_VOLUME)
+	  cmd = SOUND_MIXER_READ_VOLUME;
+	else {
+	  close(mixer_fd);
+	  return 0;
+	}
+	ioctl(mixer_fd, cmd, &v);
+	this->mixer.volume = (((v & 0xFF00) >> 8) + (v & 0x00FF)) / 2;
 	close(mixer_fd);
-	return 0;
       }
-      ioctl(mixer_fd, cmd, &v);
-      this->mixer.volume = (((v & 0xFF00) >> 8) + (v & 0x00FF)) / 2;
-      close(mixer_fd);
+      else
+	printf("%s(): open() %s failed: %s\n", 
+	       __XINE_FUNCTION__, this->mixer.name, strerror(errno));
     }
-    else
-      printf("%s(): open() %s failed: %s\n", 
-	     __XINE_FUNCTION__, this->mixer.name, strerror(errno));
-    
     return this->mixer.volume;
     break;
 
@@ -486,7 +487,6 @@ static int ao_oss_set_property (ao_driver_t *this_gen, int property, int value) 
   case AO_PROP_PCM_VOL:
   case AO_PROP_MIXER_VOL:
     if(!this->mixer.mute) {
-
       mixer_fd = open(this->mixer.name, O_RDONLY);
 
       if(mixer_fd != -1) {
