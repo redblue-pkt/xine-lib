@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_cda.c,v 1.26 2002/06/17 21:17:32 f1rmb Exp $
+ * $Id: input_cda.c,v 1.27 2002/06/19 22:22:30 esnel Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -1836,6 +1836,7 @@ input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
   this->cda->xine      = xine;
   this->cda->cur_track = -1;
   this->cda->cur_pos   = -1;
+  this->cda->fd        = -1;
   
   this->cda->device_name = config->register_string(config, "input.cda_device", CDROM,
 						   _("path to your local cd audio device file"),
