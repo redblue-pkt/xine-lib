@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.83 2002/11/20 11:57:49 mroi Exp $
+ * $Id: audio_out.c,v 1.84 2002/11/27 23:13:09 heikos Exp $
  * 
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -79,32 +79,6 @@
 #define AUDIO_BUF_SIZE       32768
 
 #define ZERO_BUF_SIZE         5000
-
-/* By adding gap errors (difference between reported and expected
- * sound card clock) into metronom's vpts_offset we can use its 
- * smoothing algorithms to correct sound card clock drifts.
- * obs: previously this error was added to xine scr.
- *
- * audio buf ---> metronom --> audio fifo --> (buf->vpts - hw_vpts)
- *           (vpts_offset + error)                     gap
- *                    <---------- control --------------|
- *
- * Unfortunately audio fifo adds a large delay to our closed loop.
- *
- * These are designed to avoid updating the metronom too fast.
- * - it will only be updated 1 time per second (so it has a chance of
- *   distributing the error for several frames).
- * - it will only be updated 2 times for the whole audio fifo size
- *   length (so the control will wait to see the feedback effect)
- * - each update will be of gap/SYNC_GAP_RATE.
- *
- * Sound card clock correction can only provide smooth playback for
- * errors < 1% nominal rate. For bigger errors (bad streams) audio
- * buffers may be dropped or gaps filled with silence.
- */
-#define SYNC_TIME_INVERVAL  (1 * 90000)
-#define SYNC_BUF_INTERVAL   NUM_AUDIO_BUFFERS / 2
-#define SYNC_GAP_RATE       4
 
 struct audio_fifo_s {
   audio_buffer_t    *first;
@@ -592,7 +566,7 @@ static void *ao_loop (void *this_gen) {
     gap = in_buf->vpts - hw_vpts;
 #ifdef LOG
     printf ("audio_out: hw_vpts : %lld   buffer_vpts : %lld   gap : %lld\n",
-	    hw_vpts, buf->vpts, gap);
+	    hw_vpts, in_buf->vpts, gap);
 #endif
 
     /*
@@ -607,20 +581,24 @@ static void *ao_loop (void *this_gen) {
       printf ("audio_out:loop: next fifo\n");
 #endif
       fifo_append (this->free_fifo, in_buf);
-      in_buf = NULL;
 
 #ifdef LOG
       printf ("audio_out: audio package (vpts = %lld, gap = %lld) dropped\n", 
-	      buf->vpts, gap);
+	      in_buf->vpts, gap);
 #endif
 
+      in_buf = NULL;
+
       
-      /* for small gaps ( tolerance < abs(gap) < AO_MAX_GAP ) 
-       * feedback them into metronom's vpts_offset. 
+      /*
+       * for small gaps ( tolerance < abs(gap) < AO_MAX_GAP ) the metronom's
+       * clock is set to compensate.
+       *
+       * hopefully this will guarantee smooth audio playback - at the possible
+       * expense of the video running a little bit faster or slower than it is
+       * supposed to.
        */
-    } else if ( abs(gap) < AO_MAX_GAP && abs(gap) > this->gap_tolerance &&
-           cur_time > (last_sync_time + SYNC_TIME_INVERVAL) && 
-           bufs_since_sync >= SYNC_BUF_INTERVAL ) {
+    } else if ( (abs(gap) < AO_MAX_GAP) && (abs(gap) > this->gap_tolerance) ) {
 	xine_stream_t *stream;
 #ifdef LOG
         printf ("audio_out: audio_loop: ADJ_VPTS\n"); 
@@ -628,8 +606,9 @@ static void *ao_loop (void *this_gen) {
 	pthread_mutex_lock(&this->streams_lock);
 	for (stream = xine_list_first_content(this->streams); stream;
 	     stream = xine_list_next_content(this->streams)) {
-	  stream->metronom->set_option(stream->metronom, METRONOM_ADJ_VPTS_OFFSET,
-                                       -gap/SYNC_GAP_RATE );
+	  int64_t curtime = stream->metronom->clock->get_current_time(stream->metronom->clock);
+	  stream->metronom->clock->adjust_clock(stream->metronom->clock,
+						curtime + gap);
           last_sync_time = cur_time;
           bufs_since_sync = 0;
 	}
