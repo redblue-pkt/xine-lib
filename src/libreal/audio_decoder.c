@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.7 2002/12/07 01:55:36 guenter Exp $
+ * $Id: audio_decoder.c,v 1.8 2002/12/10 16:26:05 holstsn Exp $
  *
  * thin layer to use real binary-only codecs in xine
  *
@@ -418,7 +418,7 @@ static void realdec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) 
     printf ("libareal: content buffer detected, %d bytes\n", buf->size);
 #endif
 
-    if (buf->pts)
+    if (buf->pts && !this->pts)
       this->pts = buf->pts;
 
     size = buf->size;
