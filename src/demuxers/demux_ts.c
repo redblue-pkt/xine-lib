@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ts.c,v 1.13 2001/09/10 00:55:48 jcdutton Exp $
+ * $Id: demux_ts.c,v 1.14 2001/09/10 17:36:26 jcdutton Exp $
  *
  * Demultiplexer for MPEG2 Transport Streams.
  *
@@ -95,12 +95,16 @@
 typedef struct {
   unsigned int     pid;
   fifo_buffer_t   *fifo;
-  int              type;
+  uint8_t         *content;
+  uint32_t         size;
+  uint32_t         type;
+  uint32_t         PTS;
   buf_element_t   *buf;
   int              pes_buf_next;
   int              pes_len;
   int              pes_len_zero;
   unsigned int     counter;
+  int              broken_pes;
   
 } demux_ts_media;
 
@@ -119,9 +123,6 @@ typedef struct {
   
   int              status;
   
-  int              broken_pes;
-  int              buf_type;
-  
   int              blockSize;
   int              rate;
   demux_ts_media   media[MAX_PIDS];
@@ -133,6 +134,7 @@ typedef struct {
   unsigned int     programNumber;
   unsigned int     pmtPid;
   unsigned int     pcrPid;
+  unsigned int     pid;
   unsigned int     videoPid;
   unsigned int     audioPid;
   unsigned int     videoMedia;
@@ -234,14 +236,14 @@ static void demux_ts_parse_pat (demux_ts *this, unsigned char *originalPkt,
   }
 }
 
-static int demux_ts_parse_pes_header (demux_ts *this, buf_element_t *buf, int packet_len) {
+static int demux_ts_parse_pes_header (demux_ts_media *m, uint8_t *buf, int packet_len) {
 
   unsigned char *p;
   uint32_t       header_len;
   uint32_t       PTS;
   uint32_t       stream_id;
 
-  p = buf->mem; 
+  p = buf; 
 
   /* we should have a PES packet here */
 
@@ -285,10 +287,10 @@ static int demux_ts_parse_pes_header (demux_ts *this, buf_element_t *buf, int pa
     DTS = 0;
   */
   
-  buf->PTS       = PTS;
-  buf->input_pos = this->input->get_current_pos(this->input);
+  m->PTS       = PTS;
+//  buf->input_pos = this->input->get_current_pos(this->input);
   /* FIXME: not working correctly */
-  buf->input_time = buf->input_pos / (this->rate * 50);
+//  buf->input_time = buf->input_pos / (this->rate * 50);
   
   header_len = p[8];
 
@@ -305,21 +307,15 @@ static int demux_ts_parse_pes_header (demux_ts *this, buf_element_t *buf, int pa
 
       spu_id = (p[0] & 0x1f);
 
-      buf->content   = p+1;
-      buf->size      = packet_len-1;
-      buf->type      = BUF_SPU_PACKAGE + spu_id;
-
-      this->buf_type = BUF_SPU_PACKAGE + spu_id;
-
+      m->content   = p+1;
+      m->size      = packet_len-1;
+      m->type      = BUF_SPU_PACKAGE + spu_id;
       return 1;
     } else if ((p[0] & 0xF0) == 0x80) {
 
-      buf->content   = p+4;
-      buf->size      = packet_len - 4;
-      buf->type      = BUF_AUDIO_A52 + track;
-
-      this->buf_type = BUF_AUDIO_A52 + track;
-
+      m->content   = p+4;
+      m->size      = packet_len - 4;
+      m->type      = BUF_AUDIO_A52 + track;
       return 1;
 
     } else if ((p[0]&0xf0) == 0xa0) {
@@ -333,22 +329,17 @@ static int demux_ts_parse_pes_header (demux_ts *this, buf_element_t *buf, int pa
 	}
       }
   
-      buf->content   = p+pcm_offset;
-      buf->size      = packet_len-pcm_offset;
-      buf->type      = BUF_AUDIO_LPCM_BE + track;
-
-      this->buf_type = BUF_AUDIO_LPCM_BE + track;
-      
+      m->content   = p+pcm_offset;
+      m->size      = packet_len-pcm_offset;
+      m->type      = BUF_AUDIO_LPCM_BE + track;
       return 1;
     }
 
   } else if ((stream_id >= 0xbc) && ((stream_id & 0xf0) == 0xe0)) {
 
-    buf->content   = p;
-    buf->size      = packet_len;
-    buf->type      = BUF_VIDEO_MPEG;
-    this->buf_type = BUF_VIDEO_MPEG;
-
+    m->content   = p;
+    m->size      = packet_len;
+    m->type      = BUF_VIDEO_MPEG;
     return 1;
 
   } else if ((stream_id & 0xe0) == 0xc0) {
@@ -357,11 +348,9 @@ static int demux_ts_parse_pes_header (demux_ts *this, buf_element_t *buf, int pa
 
     track = stream_id & 0x1f;
 
-    buf->content   = p;
-    buf->size      = packet_len;
-    buf->type      = BUF_AUDIO_MPEG + track;
-    this->buf_type = BUF_AUDIO_MPEG + track;
-
+    m->content   = p;
+    m->size      = packet_len;
+    m->type      = BUF_AUDIO_MPEG + track;
     return 1;
 
   } else {
@@ -420,35 +409,30 @@ static void demux_ts_buffer_pes(demux_ts *this, unsigned char *ts,
       return;
     }
     
-    buf = m->fifo->buffer_pool_alloc(m->fifo);
-
-    memcpy (buf->mem, ts, len); /* FIXME: reconstruct parser to do without memcpys */
-    
-    if (!demux_ts_parse_pes_header(this, buf, len)) {
-      buf->free_buffer(buf);
-      this->broken_pes = 1;
+    if (!demux_ts_parse_pes_header(m, ts, len)) {
+      m->broken_pes = 1;
       printf ("demux_ts: broken pes encountered\n");
     } else {
-      this->broken_pes = 0;
-
+      m->broken_pes = 0;
+      buf = m->fifo->buffer_pool_alloc(m->fifo);
+      memcpy (buf->mem, ts+len-m->size, m->size); /* FIXME: reconstruct parser to do without memcpys */
+      buf->content         = buf->mem;
+      buf->size            = m->size;
+      buf->type            = m->type;
+      buf->PTS             = m->PTS;
       buf->decoder_info[0] = 1;
-
       m->fifo->put (m->fifo, buf);
     }
 
-  } else if (!this->broken_pes) {
-
+  } else if (!m->broken_pes) {
     buf = m->fifo->buffer_pool_alloc(m->fifo);
-
     memcpy (buf->mem, ts, len); /* FIXME: reconstruct parser to do without memcpys */
-    
     buf->content         = buf->mem;
     buf->size            = len;
-    buf->type            = this->buf_type;
+    buf->type            = m->type;
     buf->PTS             = 0;
     buf->input_pos       = this->input->get_current_pos(this->input);
     buf->decoder_info[0] = 1;
-
     m->fifo->put (m->fifo, buf);
   }    
 }
@@ -470,6 +454,7 @@ static void demux_ts_pes_new(demux_ts *this,
   m->pes_buf_next = 0;
   m->pes_len = 0;
   m->counter = INVALID_CC;
+  m->broken_pes = 1;
 }
 
 /*
@@ -734,9 +719,11 @@ static void demux_ts_parse_packet (demux_ts *this) {
        * Do the demuxing in descending order of packet frequency!
        */
       if (pid == this->videoPid ) {
+        xprintf(VERBOSE|DEMUX, "Video pid = %04x\n",pid);
 	demux_ts_buffer_pes (this, originalPkt+data_offset, this->videoMedia, 
 			     payload_unit_start_indicator, continuity_counter, data_len);
       } else if (pid == this->audioPid) {
+        xprintf(VERBOSE|DEMUX, "Audio pid = %04x\n",pid);
 	demux_ts_buffer_pes (this, originalPkt+data_offset, this->audioMedia, 
 			     payload_unit_start_indicator, continuity_counter, data_len);
       } else if (pid == this->pmtPid) {
@@ -864,7 +851,6 @@ static void demux_ts_start(demux_plugin_t *this_gen,
   }
   
   this->status = DEMUX_OK ;
-  this->broken_pes = 1;
 
   
   if ((this->input->get_capabilities (this->input) & INPUT_CAP_SEEKABLE) != 0 ) {
