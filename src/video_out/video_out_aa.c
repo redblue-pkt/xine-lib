@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_aa.c,v 1.12 2001/09/26 17:19:49 jkeil Exp $
+ * $Id: video_out_aa.c,v 1.13 2001/10/03 15:14:03 jkeil Exp $
  *
  * video_out_aa.c, ascii-art output plugin for xine
  *
@@ -82,7 +82,7 @@ static uint32_t aa_get_capabilities (vo_driver_t *this) {
 }
 
 static void *malloc_aligned (size_t alignment, size_t size, void **mem) {
-  void *aligned;
+  char *aligned;
 
   aligned = malloc (size+alignment);
   *mem = aligned;

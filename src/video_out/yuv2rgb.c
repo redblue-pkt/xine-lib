@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * $Id: yuv2rgb.c,v 1.22 2001/09/28 19:39:25 jkeil Exp $
+ * $Id: yuv2rgb.c,v 1.23 2001/10/03 15:14:03 jkeil Exp $
  */
 
 #include "config.h"
@@ -58,7 +58,7 @@ const int32_t Inverse_Table_6_9[8][4] = {
 
 static void *my_malloc_aligned (size_t alignment, size_t size, void **chunk) {
 
-  void *pMem;
+  char *pMem;
 
   pMem = xmalloc (size+alignment);
 

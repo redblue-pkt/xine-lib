@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xshm.c,v 1.40 2001/09/26 17:19:49 jkeil Exp $
+ * $Id: video_out_xshm.c,v 1.41 2001/10/03 15:14:03 jkeil Exp $
  * 
  * video_out_xshm.c, X11 shared memory extension interface for xine
  *
@@ -186,7 +186,7 @@ static void x11_DeInstallXErrorHandler (xshm_driver_t *this)
 
 static void *my_malloc_aligned (size_t alignment, size_t size, uint8_t **chunk) {
 
-  void *pMem;
+  uint8_t *pMem;
 
   pMem = xmalloc (size+alignment);
 
@@ -373,15 +373,15 @@ static void xshm_frame_field (vo_frame_t *vo_img, int which_field) {
 
   switch (which_field) {
   case VO_TOP_FIELD:
-    frame->rgb_dst    = frame->image->data;
+    frame->rgb_dst    = (uint8_t *)frame->image->data;
     frame->stripe_inc = 2*this->stripe_height * frame->image->bytes_per_line;
     break;
   case VO_BOTTOM_FIELD:
-    frame->rgb_dst    = frame->image->data + frame->image->bytes_per_line ;
+    frame->rgb_dst    = (uint8_t *)frame->image->data + frame->image->bytes_per_line ;
     frame->stripe_inc = 2*this->stripe_height * frame->image->bytes_per_line;
     break;
   case VO_BOTH_FIELDS:
-    frame->rgb_dst    = frame->image->data;
+    frame->rgb_dst    = (uint8_t *)frame->image->data;
     break;
   }
 }
@@ -651,18 +651,18 @@ static void xshm_update_frame_format (vo_driver_t *this_gen,
   if (frame->image) {
     this->stripe_height = 16 * this->output_height / this->delivered_height;
 
-    frame->rgb_dst    = frame->image->data;
+    frame->rgb_dst    = (uint8_t *)frame->image->data;
     switch (flags) {
     case VO_TOP_FIELD:
-      frame->rgb_dst    = frame->image->data;
+      frame->rgb_dst    = (uint8_t *)frame->image->data;
       frame->stripe_inc = 2 * this->stripe_height * frame->image->bytes_per_line;
       break;
     case VO_BOTTOM_FIELD:
-      frame->rgb_dst    = frame->image->data + frame->image->bytes_per_line ;
+      frame->rgb_dst    = (uint8_t *)frame->image->data + frame->image->bytes_per_line ;
       frame->stripe_inc = 2 * this->stripe_height * frame->image->bytes_per_line;
       break;
     case VO_BOTH_FIELDS:
-      frame->rgb_dst    = frame->image->data;
+      frame->rgb_dst    = (uint8_t *)frame->image->data;
       frame->stripe_inc = this->stripe_height * frame->image->bytes_per_line;
       break;
     }
@@ -717,13 +717,13 @@ static void xshm_overlay_blend (vo_driver_t *this_gen, vo_frame_t *frame_gen, vo
    if (overlay->rle) {
      switch(this->bpp) {
        case 16:
-        blend_rgb16( frame->image->data, overlay, frame->rgb_width, frame->rgb_height);
+        blend_rgb16( (uint8_t *)frame->image->data, overlay, frame->rgb_width, frame->rgb_height);
         break;
        case 24:
-        blend_rgb24( frame->image->data, overlay, frame->rgb_width, frame->rgb_height);
+        blend_rgb24( (uint8_t *)frame->image->data, overlay, frame->rgb_width, frame->rgb_height);
         break;
        case 32:
-        blend_rgb32( frame->image->data, overlay, frame->rgb_width, frame->rgb_height);
+        blend_rgb32( (uint8_t *)frame->image->data, overlay, frame->rgb_width, frame->rgb_height);
         break;
        default:
 	/* It should never get here */
@@ -818,6 +818,24 @@ static int xshm_get_property (vo_driver_t *this_gen, int property) {
   return 0;
 }
 
+static char *aspect_ratio_name(int a)
+{
+  switch (a) {
+  case ASPECT_AUTO:
+    return "auto";
+  case ASPECT_SQUARE:
+    return "square";
+  case ASPECT_FULL:
+    return "4:3";
+  case ASPECT_ANAMORPHIC:
+    return "16:9";
+  case ASPECT_DVB:
+    return "2:1";
+  default:
+    return "unknown";
+  }
+}
+
 static int xshm_set_property (vo_driver_t *this_gen, 
 			      int property, int value) {
 
@@ -828,7 +846,8 @@ static int xshm_set_property (vo_driver_t *this_gen,
       value = ASPECT_AUTO;
     this->user_ratio = value;
     this->gui_changed |= GUI_ASPECT_CHANGED;
-
+    printf("video_out_xshm: aspect ratio changed to %s\n",
+	   aspect_ratio_name(value));
   } else {
     printf ("video_out_xshm: tried to set unsupported property %d\n", property);
   }
