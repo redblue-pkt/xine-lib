@@ -336,17 +336,17 @@ HREF="#AEN348"
 ></DT
 ><DT
 ><A
-HREF="#AEN356"
+HREF="#AEN382"
 >Some parts of my X Desktop get transparent when xine plays the video!</A
 ></DT
 ><DT
 ><A
-HREF="#AEN361"
+HREF="#AEN387"
 >The aspect ratio of the video is wrong!</A
 ></DT
 ><DT
 ><A
-HREF="#AEN364"
+HREF="#AEN390"
 >What is the difference between discarded and skipped frames?</A
 ></DT
 ></DL
@@ -360,47 +360,47 @@ HREF="#ERRORS"
 ><DL
 ><DT
 ><A
-HREF="#AEN374"
+HREF="#AEN400"
 >Starting xine fails with complains about audio drivers/devices!</A
 ></DT
 ><DT
 ><A
-HREF="#AEN381"
+HREF="#AEN407"
 >"no video port found"</A
 ></DT
 ><DT
 ><A
-HREF="#AEN386"
+HREF="#AEN412"
 >"Unable to open dvd drive (/dev/dvd)"</A
 ></DT
 ><DT
 ><A
-HREF="#AEN390"
+HREF="#AEN416"
 >"demux error! 00 00 00 (should be 0x000001)"</A
 ></DT
 ><DT
 ><A
-HREF="#AEN395"
+HREF="#AEN421"
 >"audio driver 'oss' failed, using null driver instead"</A
 ></DT
 ><DT
 ><A
-HREF="#AEN406"
+HREF="#AEN432"
 >"video_out: throwing away image with pts xxx because it's too old"</A
 ></DT
 ><DT
 ><A
-HREF="#AEN409"
+HREF="#AEN435"
 >"No video plugin available to decode 'xxxxxx'."</A
 ></DT
 ><DT
 ><A
-HREF="#AEN413"
+HREF="#AEN439"
 >"w32codec: decoder failed to start. Is 'xxxxxx' installed?"</A
 ></DT
 ><DT
 ><A
-HREF="#AEN416"
+HREF="#AEN442"
 >xine just crashed on me - i didn't get any error message</A
 ></DT
 ></DL
@@ -2209,32 +2209,103 @@ CLASS="PROGRAMLISTING"
 ><P
 >      First you need to install/use XFree 4.x. Once you got that you have to
       make sure the XFree drivers you're using are supporting Xv on your
-      hardware. Here are some locations to look for suitable drivers:
-      <TABLE
-BORDER="0"
-BGCOLOR="#E0E0E0"
-WIDTH="100%"
-><TR
-><TD
-><PRE
-CLASS="PROGRAMLISTING"
->       CARDS WITH OUT-OF-THE-BOX XV SUPPORT IN XFREE86 4.x:
-       
-         3dfx (voodoo)     (URL: ?)
-         i815              (URL: ?)
-         Matrox G200/G400  (URL: www.matrox.com)
-         NVidia            (URL: www.nvidia.com)
-         Permedia 2/3      (URL: ?)
-       
-       CARDS WITH YET UNKNOWN STATUS:
-       
-         ATI cards         (take a look at GATOS: www.linuxvideo.org/gatos/)
-         Savage            (URL: www.probo.com/timr/savage40.html)
-      </PRE
-></TD
-></TR
-></TABLE
->      
+      hardware. Here are some hints for individual gfx chips:
+      <P
+></P
+><UL
+><LI
+><P
+> 
+	    3Dfx: if all you get is a solid black window, upgrade at least to
+	    XFree 4.1.0
+	  </P
+></LI
+><LI
+><P
+> 
+	    ATI: if you only get "half a picture", try lowering your resolution
+	    or bit depth, disable DRI (looks like you ran out of video RAM)	    
+	  </P
+></LI
+><LI
+><P
+> 
+	    Trident card: If you see vertical bands jumbled, upgrade to the latest
+	    xfree/experimental trident drivers
+	  </P
+></LI
+><LI
+><P
+> 
+	    nvidia: With newer GeForce cards, Xv should work with XFree 4.2.0 or
+	    newer, for older RivaTNT cards use the binary drivers from nvidia
+	    (of course the binary drivers work as well for GeForce cards)
+	  </P
+></LI
+><LI
+><P
+> 
+	    Mach64/Rage3D (not Rage128/Radeon) cards/chips get no XVideo with
+	    standard drivers, try 
+	    <A
+HREF="http://gatos.sourceforge.net/"
+TARGET="_top"
+>GATOS drivers
+	    </A
+> instead
+	  </P
+></LI
+><LI
+><P
+> 
+	    intel: i815 has Xv support in XFree 4.x, others unknown	    
+	  </P
+></LI
+><LI
+><P
+> 
+	    Permedia 2/3 has Xv support in XFree 4.x
+	  </P
+></LI
+><LI
+><P
+> 
+	    Savage: at least some older drivers tend to lock up the whole machine,
+	      try the drivers available from 
+	      <A
+HREF="http://www.probo.com/timr/savage40.html"
+TARGET="_top"
+>	      www.probo.com/timr/savage40.html
+	      </A
+>.
+	  </P
+></LI
+><LI
+><P
+> 
+	    SIS: certain controllers (more info needed!) have Xv support in XFree 4.x
+	  </P
+></LI
+><LI
+><P
+> 
+	    Chips and Tech 6555x, 68554, 69000, 69030 have Xv support in XFree 4.x
+	  </P
+></LI
+><LI
+><P
+> 
+	    NeoMagic: certain controllers (more info needed!) have Xv support in Xfree 4.x
+	  </P
+></LI
+><LI
+><P
+> 
+	    SiliconMotion: certain controllers (more info needed!) have Xv support in Xfree 4.x
+	  </P
+></LI
+></UL
+>
   </P
 ></DIV
 ><DIV
@@ -2242,7 +2313,7 @@ CLASS="SECT1"
 ><HR><H2
 CLASS="SECT1"
 ><A
-NAME="AEN356"
+NAME="AEN382"
 ></A
 >Some parts of my X Desktop get transparent when xine plays the video!</H2
 ><P
@@ -2274,7 +2345,7 @@ CLASS="SECT1"
 ><HR><H2
 CLASS="SECT1"
 ><A
-NAME="AEN361"
+NAME="AEN387"
 ></A
 >The aspect ratio of the video is wrong!</H2
 ><P
@@ -2286,7 +2357,7 @@ CLASS="SECT1"
 ><HR><H2
 CLASS="SECT1"
 ><A
-NAME="AEN364"
+NAME="AEN390"
 ></A
 >What is the difference between discarded and skipped frames?</H2
 ><P
@@ -2345,7 +2416,7 @@ CLASS="SECT1"
 ><H2
 CLASS="SECT1"
 ><A
-NAME="AEN374"
+NAME="AEN400"
 ></A
 >Starting xine fails with complains about audio drivers/devices!</H2
 ><P
@@ -2416,7 +2487,7 @@ CLASS="SECT1"
 ><HR><H2
 CLASS="SECT1"
 ><A
-NAME="AEN381"
+NAME="AEN407"
 ></A
 >"no video port found"</H2
 ><P
@@ -2449,7 +2520,7 @@ CLASS="SECT1"
 ><HR><H2
 CLASS="SECT1"
 ><A
-NAME="AEN386"
+NAME="AEN412"
 ></A
 >"Unable to open dvd drive (/dev/dvd)"</H2
 ><P
@@ -2479,7 +2550,7 @@ CLASS="SECT1"
 ><HR><H2
 CLASS="SECT1"
 ><A
-NAME="AEN390"
+NAME="AEN416"
 ></A
 >"demux error! 00 00 00 (should be 0x000001)"</H2
 ><P
@@ -2502,7 +2573,7 @@ CLASS="SECT1"
 ><HR><H2
 CLASS="SECT1"
 ><A
-NAME="AEN395"
+NAME="AEN421"
 ></A
 >"audio driver 'oss' failed, using null driver instead"</H2
 ><P
@@ -2579,7 +2650,7 @@ CLASS="SECT1"
 ><HR><H2
 CLASS="SECT1"
 ><A
-NAME="AEN406"
+NAME="AEN432"
 ></A
 >"video_out: throwing away image with pts xxx because it's too old"</H2
 ><P
@@ -2595,7 +2666,7 @@ CLASS="SECT1"
 ><HR><H2
 CLASS="SECT1"
 ><A
-NAME="AEN409"
+NAME="AEN435"
 ></A
 >"No video plugin available to decode 'xxxxxx'."</H2
 ><P
@@ -2614,7 +2685,7 @@ CLASS="SECT1"
 ><HR><H2
 CLASS="SECT1"
 ><A
-NAME="AEN413"
+NAME="AEN439"
 ></A
 >"w32codec: decoder failed to start. Is 'xxxxxx' installed?"</H2
 ><P
@@ -2626,7 +2697,7 @@ CLASS="SECT1"
 ><HR><H2
 CLASS="SECT1"
 ><A
-NAME="AEN416"
+NAME="AEN442"
 ></A
 >xine just crashed on me - i didn't get any error message</H2
 ><P

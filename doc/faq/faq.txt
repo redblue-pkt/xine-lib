@@ -858,21 +858,41 @@ system.
 
 First you need to install/use XFree 4.x. Once you got that you have to make
 sure the XFree drivers you're using are supporting Xv on your hardware. Here
-are some locations to look for suitable drivers:
-       CARDS WITH OUT-OF-THE-BOX XV SUPPORT IN XFREE86 4.x:
-       
-         3dfx (voodoo)     (URL: ?)
-         i815              (URL: ?)
-         Matrox G200/G400  (URL: www.matrox.com)
-         NVidia            (URL: www.nvidia.com)
-         Permedia 2/3      (URL: ?)
-       
-       CARDS WITH YET UNKNOWN STATUS:
-       
-         ATI cards         (take a look at GATOS: www.linuxvideo.org/gatos/)
-         Savage            (URL: www.probo.com/timr/savage40.html)
-      
+are some hints for individual gfx chips:
 
+  * 3Dfx: if all you get is a solid black window, upgrade at least to XFree
+    4.1.0
+   
+  * ATI: if you only get "half a picture", try lowering your resolution or bit
+    depth, disable DRI (looks like you ran out of video RAM)
+   
+  * Trident card: If you see vertical bands jumbled, upgrade to the latest
+    xfree/experimental trident drivers
+   
+  * nvidia: With newer GeForce cards, Xv should work with XFree 4.2.0 or newer,
+    for older RivaTNT cards use the binary drivers from nvidia (of course the
+    binary drivers work as well for GeForce cards)
+   
+  * Mach64/Rage3D (not Rage128/Radeon) cards/chips get no XVideo with standard
+    drivers, try GATOS drivers instead
+   
+  * intel: i815 has Xv support in XFree 4.x, others unknown
+   
+  * Permedia 2/3 has Xv support in XFree 4.x
+   
+  * Savage: at least some older drivers tend to lock up the whole machine, try
+    the drivers available from www.probo.com/timr/savage40.html .
+   
+  * SIS: certain controllers (more info needed!) have Xv support in XFree 4.x
+   
+  * Chips and Tech 6555x, 68554, 69000, 69030 have Xv support in XFree 4.x
+   
+  * NeoMagic: certain controllers (more info needed!) have Xv support in Xfree
+    4.x
+   
+  * SiliconMotion: certain controllers (more info needed!) have Xv support in
+    Xfree 4.x
+   
 -------------------------------------------------------------------------------
 
 Some parts of my X Desktop get transparent when xine plays the video!
