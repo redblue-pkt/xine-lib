@@ -21,6 +21,7 @@
 
 #include "config.h"
 
+#include <stdio.h>  /* For printf debugging */
 #include <inttypes.h>
 
 #include "mpeg2_internal.h"
@@ -66,6 +67,33 @@ uint8_t scan_alt[64] ATTR_ALIGN(16) =
     51,59,20,28,5,13,6,14,21,29,36,44,52,60,37,45,
     53,61,22,30,7,15,23,31,38,46,54,62,39,47,55,63
 };
+
+/* count must be between 1 and 32 */
+static uint32_t get_bits(uint8_t *buffer, uint32_t count, uint32_t *bit_position) {
+  uint32_t byte_offset;
+  uint32_t bit_offset;
+  uint32_t bit_mask;
+  uint32_t bit_bite;
+  uint32_t result=0;
+  if (count == 0) return 0; 
+  do {
+    byte_offset = *bit_position >> 3;  /* Div 8 */
+    bit_offset = 8 - (*bit_position & 0x7); /* Bits got 87654321 */
+    bit_mask = ((1 << (bit_offset)) - 1);
+    bit_bite = bit_offset;
+    if (count < bit_offset) {
+      bit_mask ^=  ((1 << (bit_offset-count)) - 1);
+      bit_bite -= count;
+    }
+    printf("Bitmask=0x%04x byte_offset=%u bit_offset=%u\n",bit_mask, byte_offset, bit_offset);
+    result = (result << bit_bite) | ((buffer[byte_offset] & bit_mask) >> (bit_offset-bit_bite));
+    *bit_position+=bit_bite;
+    count-=bit_bite;
+  } while (count > 0); 
+  return result;
+}
+
+
 
 void header_state_init (picture_t * picture)
 {
@@ -239,56 +267,93 @@ static int header_process_picture_coding_extension (picture_t * picture, uint8_t
     return 0;
 }
 
+static int header_process_sequence_display_extension (picture_t * picture, uint8_t * buffer) {
+  /* FIXME: implement. */
+  return 0;
+}
+
+static int header_process_picture_display_extension (picture_t * picture, uint8_t * buffer) {
+  /* FIXME: implement. */
+  uint32_t bit_position;
+  uint32_t padding;
+  padding = get_bits(buffer, 4, &bit_position);
+  picture->frame_centre_horizontal_offset = get_bits(buffer, 16, &bit_position);
+  padding = get_bits(buffer, 1, &bit_position);
+  picture->frame_centre_vertical_offset = get_bits(buffer, 16, &bit_position);
+  padding = get_bits(buffer, 1, &bit_position);
+
+  printf("Pan & Scan centre (x,y) = (%u, %u)\n",  
+    picture->frame_centre_horizontal_offset,
+    picture->frame_centre_vertical_offset);
+
+  return 0;
+}
+
 int header_process_extension (picture_t * picture, uint8_t * buffer)
 {
     switch (buffer[0] & 0xf0) {
     case 0x00:	/* reserved */
+    //printf("Extension=0x%02x\n",buffer[0] & 0xf0);
         return 0;
 
     case 0x10:	/* sequence extension */
 	return header_process_sequence_extension (picture, buffer);
 
     case 0x20:	/* sequence display extension for Pan & Scan */
-        return 0;
+        printf("Extension=0x%02x\n",buffer[0] & 0xf0);
+	return header_process_sequence_display_extension (picture, buffer);
 
     case 0x30:	/* quant matrix extension */
+    //printf("Extension=0x%02x\n",buffer[0] & 0xf0);
 	return header_process_quant_matrix_extension (picture, buffer);
 
     case 0x40:	/* copyright extension */
+    //printf("Extension=0x%02x\n",buffer[0] & 0xf0);
         return 0;
 
     case 0x50:	/* sequence scalable extension */
+    //printf("Extension=0x%02x\n",buffer[0] & 0xf0);
         return 0;
 
     case 0x60:	/* reserved */
+    //printf("Extension=0x%02x\n",buffer[0] & 0xf0);
         return 0;
 
     case 0x70:	/* picture display extension for Pan & Scan */
-        return 0;
+    //printf("Extension=0x%02x\n",buffer[0] & 0xf0);
+	return header_process_picture_display_extension (picture, buffer);
 
     case 0x80:	/* picture coding extension */
 	return header_process_picture_coding_extension (picture, buffer);
-    }
+
     case 0x90:	/* picture spacial scalable extension */
+    //printf("Extension=0x%02x\n",buffer[0] & 0xf0);
         return 0;
 
     case 0xA0:	/* picture temporal scalable extension */
+    //printf("Extension=0x%02x\n",buffer[0] & 0xf0);
         return 0;
 
     case 0xB0:	/* camera parameters extension */
+    //printf("Extension=0x%02x\n",buffer[0] & 0xf0);
         return 0;
 
     case 0xC0:	/* ITU-T extension */
+    //printf("Extension=0x%02x\n",buffer[0] & 0xf0);
         return 0;
 
     case 0xD0:	/* reserved */
+    //printf("Extension=0x%02x\n",buffer[0] & 0xf0);
         return 0;
 
     case 0xE0:	/* reserved */
+    //printf("Extension=0x%02x\n",buffer[0] & 0xf0);
         return 0;
 
     case 0xF0:	/* reserved */
+    //printf("Extension=0x%02x\n",buffer[0] & 0xf0);
         return 0;
+    }
 
     return 0;
 }

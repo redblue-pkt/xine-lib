@@ -27,8 +27,8 @@
 
 #include "mpeg2_internal.h"
 
-//static int debug_level = -1;
-static int debug_level = 1;
+static int debug_level = -1;
+//static int debug_level = 1;
 
 /* Determine is debug output is required. */
 /* We could potentially have multiple levels of debug info */

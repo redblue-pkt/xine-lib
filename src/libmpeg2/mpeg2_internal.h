@@ -137,6 +137,9 @@ typedef struct picture_s {
     int repeat_first_field;
     int progressive_frame;
     int bitrate;
+    uint32_t frame_centre_horizontal_offset;
+    uint32_t frame_centre_vertical_offset;
+
 } picture_t;
 
 typedef struct mpeg2_config_s {
