@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.121 2002/12/13 21:31:38 guenter Exp $
+ * $Id: load_plugins.c,v 1.122 2002/12/16 01:50:52 guenter Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -305,8 +305,14 @@ static void collect_plugins(xine_t *this, char *path){
 	      printf ("load_plugins: cannot open plugin lib %s:\n%s\n",
 		      str, dl_error_msg);
 	    }
-	  }
-	  else {
+#ifdef LOG
+	    {
+	      char *dl_error_msg = dlerror();
+	      printf ("load_plugins: cannot open plugin lib %s:\n%s\n",
+		      str, dl_error_msg);
+	    }
+#endif
+	  } else {
 
 	    if (info || (info = dlsym(lib, "xine_plugin_info"))) {
        
