@@ -20,7 +20,7 @@
  * Compact Disc Digital Audio (CDDA) Input Plugin 
  *   by Mike Melanson (melanson@pcisys.net)
  *
- * $Id: input_cdda.c,v 1.1 2003/01/05 06:46:11 tmmm Exp $
+ * $Id: input_cdda.c,v 1.2 2003/01/07 22:53:25 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -393,9 +393,7 @@ static xine_mrl_t **cdda_class_get_dir (input_class_t *this_gen,
 
   cdda_input_class_t   *this = (cdda_input_class_t *) this_gen;
 
-
-
-
+  *nFiles = 0; /* Unsupported */
   return this->mrls;
 }
 
