@@ -374,6 +374,8 @@ HMODULE WINAPI LoadLibraryExA(LPCSTR libname, HANDLE hfile, DWORD flags)
 
 	while (wm == 0 && listpath[++i])
 	{
+	    memset (&path, 0, sizeof (path));
+
 	    if (i < 2)
 	    {
 		if (i == 0)

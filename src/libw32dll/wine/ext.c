@@ -456,13 +456,30 @@ static virt_alloc* vm=0;
 LPVOID WINAPI VirtualAlloc(LPVOID address, DWORD size, DWORD type,  DWORD protection)
 {
     void* answer;
-    int fd=open("/dev/zero", O_RDWR);
+    int fd;
+    long pgsz;
+
+    if ((type&(MEM_RESERVE|MEM_COMMIT)) == 0) return NULL;
+
+    fd=open("/dev/zero", O_RDWR);
     if(fd<0){
         perror( "Cannot open /dev/zero for READ+WRITE. Check permissions! error: " );
 	return NULL;
     }
-    size=(size+0xffff)&(~0xffff);
-    //printf("VirtualAlloc(0x%08X, %d)\n", address, size);
+
+    if (type&MEM_RESERVE && (unsigned)address&0xffff) {
+       size += (unsigned)address&0xffff;
+       (unsigned)address &= ~0xffff;
+    }
+    pgsz = sysconf(_SC_PAGESIZE);
+    if (type&MEM_COMMIT && (unsigned)address%pgsz) {
+       size += (unsigned)address%pgsz;
+       address -= (unsigned)address%pgsz;
+    }
+
+    if (type&MEM_RESERVE && size<0x10000) size = 0x10000;
+    if (size%pgsz) size += pgsz - size%pgsz;
+
     if(address!=0)
     {
     //check whether we can allow to allocate this
@@ -474,7 +491,7 @@ LPVOID WINAPI VirtualAlloc(LPVOID address, DWORD size, DWORD type,  DWORD protec
 		str=str->prev;
 		continue;
 	    }
-	    if((unsigned)address+size<(unsigned)str->address)
+	    if((unsigned)address+size<=(unsigned)str->address)
 	    {
 		str=str->prev;
 		continue;
@@ -482,29 +499,34 @@ LPVOID WINAPI VirtualAlloc(LPVOID address, DWORD size, DWORD type,  DWORD protec
 	    if(str->state==0)
 	    {
 #warning FIXME
-		if(((unsigned)address+size<(unsigned)str->address+str->mapping_size) && (type & MEM_COMMIT))
+               if(   ((unsigned)address >= (unsigned)str->address)
+                  && ((unsigned)address+size<=(unsigned)str->address+str->mapping_size)
+		   && (type & MEM_COMMIT))
 		{
 		    close(fd);
 		    return address; //returning previously reserved memory
 		}
-		return NULL;
 	    }
 	    close(fd);
 	    return NULL;
 	}
-	answer=mmap(address, size, PROT_READ | PROT_WRITE | PROT_EXEC,
-		    MAP_FIXED | MAP_PRIVATE, fd, 0);
     }
-    else
-	answer=mmap(address, size, PROT_READ | PROT_WRITE | PROT_EXEC,
-		    MAP_PRIVATE, fd, 0);
+
+    answer=mmap(address, size, PROT_READ | PROT_WRITE | PROT_EXEC,
+		MAP_PRIVATE, fd, 0);
 //    answer=FILE_dommap(-1, address, 0, size, 0, 0,
 //	PROT_READ | PROT_WRITE | PROT_EXEC, MAP_PRIVATE);
     close(fd);
+    if (answer != (void *)-1 && address && answer != address) {
+       /* It is dangerous to try mmap() with MAP_FIXED since it does not
+	  always detect conflicts or non-allocation and chaos ensues after
+	  a successful call but an overlapping or non-allocated region.  */
+       munmap(answer, size);
+       answer = (void *) -1;
+       errno = EINVAL;
+    }
     if(answer==(void*)-1)
     {
-	printf("Error no %d\n", errno);
-	printf("VirtualAlloc(0x%p, %ld) failed\n", address, size);
 	return NULL;
     }
     else

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: ldt_keeper.c,v 1.12 2004/06/12 23:19:56 miguelfreitas Exp $
+ * $Id: ldt_keeper.c,v 1.13 2004/09/21 19:35:57 hadess Exp $
  *
  *
  * contents:
@@ -258,7 +258,8 @@ ldt_fs_t* Setup_LDT_Keeper(void)
     {
         unsigned char *ldt = malloc((TEB_SEL_IDX+1)*8);
         unsigned int limit;
-        
+
+        memset (ldt, 0, (TEB_SEL_IDX+1)*8);
         modify_ldt(0, ldt, (TEB_SEL_IDX+1)*8);
 /*        
         printf("ldt_keeper: old LDT entry = [%x] [%x]\n",
@@ -305,6 +306,7 @@ ldt_fs_t* Setup_LDT_Keeper(void)
 	    return NULL;
         }
         *(void**)((char*)ldt_fs->fs_seg+0x18) = ldt_fs->fs_seg;
+        memset (&array, 0, sizeof (array));
         array.base_addr=(int)ldt_fs->fs_seg;
         array.entry_number=TEB_SEL_IDX;
         array.limit=getpagesize()-1;
