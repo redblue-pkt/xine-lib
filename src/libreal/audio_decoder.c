@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.36 2004/02/03 21:20:04 jstembridge Exp $
+ * $Id: audio_decoder.c,v 1.37 2004/02/04 22:13:12 jstembridge Exp $
  *
  * thin layer to use real binary-only codecs in xine
  *
@@ -215,7 +215,7 @@ static int init_codec (realdec_decoder_t *this, buf_element_t *buf) {
       
       xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, 
 	       "libareal: audio header version 4 for COOK audio not supported.\n");
-      abort();
+      return 0;
     }
     data_len        = 0; /* FIXME: COOK audio needs this */
     extras          = buf->content+71;
@@ -275,7 +275,7 @@ static int init_codec (realdec_decoder_t *this, buf_element_t *buf) {
   default:
     xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, 
 	     "libareal: error, i don't handle buf type 0x%08x\n", buf->type);
-    abort();
+    return 0;
   }
 
   /*
@@ -362,7 +362,7 @@ static int init_codec (realdec_decoder_t *this, buf_element_t *buf) {
   default:
     xprintf (this->stream->xine, XINE_VERBOSITY_LOG,
 	     _("libareal: oups, real can do more than 2 channels ?\n"));
-    abort();
+    return 0;
   }
 
   this->stream->audio_out->open(this->stream->audio_out, 
