@@ -42,6 +42,9 @@ installation for audio cds
   xine-lib/misc$ make cdda_server
   gcc -W -Wall -g -o cdda_server cdda_server.c -ldl
 
+  Your xine-lib source tree needs to be configured for that, so please
+  run ./configure in the toplevel sourcedir on a fresh tree.
+
 - start cdda_server at the machine that has the cdrom drive:
 
   xine-lib/misc$ ./cdda_server /dev/cdrom 3000
@@ -135,4 +138,4 @@ dvd commands:
 
 ---
 version of this file:
- $Id: README.network_dvd,v 1.1 2003/05/07 18:45:01 miguelfreitas Exp $
+ $Id: README.network_dvd,v 1.2 2004/08/02 12:32:30 mroi Exp $
