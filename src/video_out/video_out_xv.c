@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.135 2002/09/16 21:49:35 miguelfreitas Exp $
+ * $Id: video_out_xv.c,v 1.136 2002/09/18 11:13:51 miguelfreitas Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -445,6 +445,7 @@ static void xv_deinterlace_frame (xv_driver_t *this) {
     this->deinterlace_frame.width  = frame->width;
     this->deinterlace_frame.height = frame->height / xvscaling;
     this->deinterlace_frame.format = frame->format;
+    this->deinterlace_frame.ratio_code = frame->ratio_code;
 
     XUnlockDisplay (this->display);
   }
