@@ -405,8 +405,19 @@ demux_flac_seek (demux_plugin_t *this_gen, off_t start_pos, int start_time, int 
 
     lprintf("demux_flac_seek\n");
 
+    if (!start_pos && start_time) {
+        double distance = (double)start_time;
+
+        if (this->length_in_msec != 0)
+        {
+            distance /= (double)this->length_in_msec;
+        }
+        start_pos = (uint64_t)(distance * (this->data_size - this->data_start));
+    }
+    
     if (start_pos || !start_time) {
         
+        start_pos += this->data_start;
         this->input->seek (this->input, start_pos, SEEK_SET);
         lprintf ("Seek to position: %lld\n", start_pos);
     
