@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.41 2001/12/27 14:30:30 f1rmb Exp $
+ * $Id: input_dvd.c,v 1.42 2002/01/02 18:16:07 jkeil Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -65,11 +65,11 @@ extern int errno;
   }
 #else
 #define LOG_MSG_STDERR(xine, ...) {                                  \
-    xine_log(xine, XINE_LOG_INPUT, __VAR_ARGS__);                    \
+    xine_log(xine, XINE_LOG_INPUT, __VA_ARGS__);                     \
     fprintf(stderr, __VA_ARGS__);                                    \
   }
 #define LOG_MSG(xine, ...) {                                         \
-    xine_log(xine, XINE_LOG_INPUT, __VAR_ARGS__);                    \
+    xine_log(xine, XINE_LOG_INPUT, __VA_ARGS__);                     \
     printf(__VA_ARGS__);                                             \
   }
 #endif
@@ -215,7 +215,7 @@ typedef union {
  * Read DVD "Copyright Structure" from DVD Drive
  */
 static int
-dvd_read_copyright(int fd, dvd_struct *s)
+dvd_read_copyright(dvd_input_plugin_t *this, dvd_struct *s)
 {
   struct uscsi_cmd sc;
   union scsi_cdb rs_cdb;
@@ -238,7 +238,7 @@ dvd_read_copyright(int fd, dvd_struct *s)
   
   memset(buf, 0, sizeof(buf));
 
-  if (ioctl(fd, USCSICMD, &sc)) {
+  if (ioctl(this->raw_fd, USCSICMD, &sc)) {
     LOG_MSG(this->xine, _("USCSICMD dvd_read_copyright: %s"), strerror(errno));
     return -1;
   }
@@ -333,10 +333,10 @@ static int openDVDFile (dvd_input_plugin_t *this,
 
     dvd.copyright.type      = DVD_STRUCT_COPYRIGHT;
     dvd.copyright.layer_num = 0;
-    if (dvd_read_copyright(this->raw_fd, &dvd) < 0)
+    if (dvd_read_copyright(this, &dvd) < 0) {
       LOG_MSG(this->xine, _("input_dvd: Could not read Copyright Structure.\n"
 			    "           Assuming disk is not encrypted.\n"));
-    else
+    } else 
       encrypted = (dvd.copyright.cpst != 0);
   }
 #endif

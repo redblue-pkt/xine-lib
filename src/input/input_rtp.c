@@ -97,11 +97,11 @@ extern int errno;
   }
 #else
 #define LOG_MSG_STDERR(xine, ...) {                                  \
-    xine_log(xine, XINE_LOG_INPUT, __VAR_ARGS__);                    \
+    xine_log(xine, XINE_LOG_INPUT, __VA_ARGS__);                     \
     fprintf(stderr, __VA_ARGS__);                                    \
   }
 #define LOG_MSG(xine, ...) {                                         \
-    xine_log(xine, XINE_LOG_INPUT, __VAR_ARGS__);                    \
+    xine_log(xine, XINE_LOG_INPUT, __VA_ARGS__);                     \
     printf(__VA_ARGS__);                                             \
   }
 #endif

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xineutils.h,v 1.5 2001/12/05 15:12:03 guenter Exp $
+ * $Id: xineutils.h,v 1.6 2002/01/02 18:16:08 jkeil Exp $
  *
  */
 #ifndef XINEUTILS_H
@@ -549,7 +549,7 @@ void xine_probe_fast_memcpy(config_values_t *config);
 #define perr(...)	  {fprintf(stderr, __VA_ARGS__);fflush(stderr);}
 #endif
 
-#if __GNUC__ > 2 || (__GNUC__ == 2 && __GNUC_MINOR__ >= 95)
+#if __GNUC__ > 2 || (__GNUC__ == 2 && __GNUC_MINOR__ >= 95) || !defined(__GNUC__) 
 #define xlerror(...) do {                                                     \
         printf("XINE lib %s:%d:(%s) ", __FILE__, __LINE__, __XINE_FUNCTION__);   \
         printf(__VA_ARGS__);                                                     \

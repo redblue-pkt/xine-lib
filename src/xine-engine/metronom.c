@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.c,v 1.46 2001/12/27 14:30:30 f1rmb Exp $
+ * $Id: metronom.c,v 1.47 2002/01/02 18:16:08 jkeil Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -60,11 +60,11 @@
   }
 #else
 #define LOG_MSG_STDERR(xine, ...) {                                  \
-    xine_log((xine_t*)xine, XINE_LOG_METRONOM, __VAR_ARGS__);        \
+    xine_log((xine_t*)xine, XINE_LOG_METRONOM, __VA_ARGS__);         \
     fprintf(stderr, __VA_ARGS__);                                    \
   }
 #define LOG_MSG(xine, ...) {                                         \
-    xine_log((xine_t*)xine, XINE_LOG_METRONOM, __VAR_ARGS__);        \
+    xine_log((xine_t*)xine, XINE_LOG_METRONOM, __VA_ARGS__);         \
     printf(__VA_ARGS__);                                             \
   }
 #endif
