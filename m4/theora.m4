@@ -29,7 +29,6 @@ AC_ARG_ENABLE(theoratest, [  --disable-theoratest       Do not try to compile an
     ac_save_CFLAGS="$CFLAGS"
     ac_save_LIBS="$LIBS"
     CFLAGS="$CFLAGS $THEORA_CFLAGS"
-    echo "these are your cflags $CFLAGS"
     LIBS="$LIBS $THEORA_LIBS $OGG_LIBS"
 dnl
 dnl Now check if the installed Theora is sufficiently new.
