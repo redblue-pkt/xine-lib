@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.129 2003/06/02 16:52:20 mroi Exp $
+ * $Id: audio_out.c,v 1.130 2003/06/17 18:53:14 tmattern Exp $
  * 
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -234,6 +234,8 @@ typedef struct {
 
   int64_t         passthrough_offset;
   int             flush_audio_driver;
+  pthread_mutex_t flush_audio_driver_lock;
+  pthread_cond_t  flush_audio_driver_reached;
   int             discard_buffers;
 
   /* some built-in audio filters */
@@ -901,19 +903,21 @@ static void *ao_loop (void *this_gen) {
 #endif
     }
 
-    if (this->discard_buffers) {
-      fifo_append (this->free_fifo, in_buf);
-      in_buf = NULL;
-        
-      if( !this->flush_audio_driver )
-        continue;
-    }
-    
+    pthread_mutex_lock(&this->flush_audio_driver_lock);
     if (this->flush_audio_driver) {
       this->ao.control(&this->ao, AO_CTRL_FLUSH_BUFFERS);
       this->flush_audio_driver = 0;
+      pthread_cond_signal(&this->flush_audio_driver_reached);
+    }
+
+    if (this->discard_buffers) {
+      fifo_append (this->free_fifo, in_buf);
+      in_buf = NULL;
+      pthread_mutex_unlock(&this->flush_audio_driver_lock);
       continue;
     }
+    pthread_mutex_unlock(&this->flush_audio_driver_lock);
+    
 
     /* 
      * wait until user unpauses stream
@@ -1688,18 +1692,22 @@ static void ao_flush (xine_audio_port_t *this_gen) {
     printf ("audio_out: ao_flush (loop running: %d)\n", this->audio_loop_running);
 
   if( this->audio_loop_running ) {
+    pthread_mutex_lock(&this->flush_audio_driver_lock);
     this->discard_buffers++;
     this->flush_audio_driver = 1;
     
-    buf = fifo_remove (this->free_fifo);
-    buf->num_frames = 0;
-    buf->stream = NULL;
-    fifo_append (this->out_fifo, buf);
-  
     /* do not try this in paused mode */
-    while( this->flush_audio_driver )
-      xine_usec_sleep (20000); /* pthread_cond_t could be used here */
+    while( this->flush_audio_driver ) {
+      buf = fifo_remove (this->free_fifo);
+      buf->num_frames = 0;
+      buf->stream = NULL;
+      fifo_append (this->out_fifo, buf);
+      pthread_cond_wait(&this->flush_audio_driver_reached, &this->flush_audio_driver_lock);
+    }
     this->discard_buffers--;
+
+    pthread_mutex_unlock(&this->flush_audio_driver_lock);
+    fifo_wait_empty(this->out_fifo);
   }
 }
 
@@ -1785,6 +1793,10 @@ xine_audio_port_t *ao_new_port (xine_t *xine, ao_driver_t *driver,
   this->flush_audio_driver     = 0;
   this->discard_buffers        = 0;
   this->zero_space             = xine_xmalloc (ZERO_BUF_SIZE * 2 * 6);
+  
+  pthread_mutex_init( &this->flush_audio_driver_lock, NULL );
+  pthread_cond_init( &this->flush_audio_driver_reached, NULL );
+
   if (!grab_only)
     this->gap_tolerance          = driver->get_gap_tolerance (this->driver);
 
