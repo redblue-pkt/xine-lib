@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_interface.c,v 1.68 2003/11/26 13:33:55 miguelfreitas Exp $
+ * $Id: xine_interface.c,v 1.69 2003/11/26 14:00:06 miguelfreitas Exp $
  *
  * convenience/abstraction layer, functions to implement
  * libxine's public interface
@@ -634,8 +634,8 @@ void xine_osd_get_text_size(xine_osd_t *this, const char *text, int *width, int 
   this->osd.renderer->get_text_size(&this->osd, text, width, height);
 }
 
-void xine_osd_set_font(xine_osd_t *this, const char *fontname, int size) {
-  this->osd.renderer->set_font(&this->osd, fontname, size);
+int xine_osd_set_font(xine_osd_t *this, const char *fontname, int size) {
+  return this->osd.renderer->set_font(&this->osd, fontname, size);
 }
 
 void xine_osd_set_encoding(xine_osd_t *this, const char *encoding) {

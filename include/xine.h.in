@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.106 2003/11/26 13:33:54 miguelfreitas Exp $
+ * $Id: xine.h.in,v 1.107 2003/11/26 14:00:05 miguelfreitas Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -1699,7 +1699,7 @@ void        xine_osd_get_text_size (xine_osd_t *self, const char *text,
 				    int *width, int *height);
 /* with freetype2 support compiled in, you can also specify a font file
    as 'fontname' here */
-void        xine_osd_set_font      (xine_osd_t *self, const char *fontname,
+int         xine_osd_set_font      (xine_osd_t *self, const char *fontname,
 				    int size);
 /* 
  * specifying encoding of texts
