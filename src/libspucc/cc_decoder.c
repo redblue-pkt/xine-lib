@@ -20,7 +20,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: cc_decoder.c,v 1.2 2002/01/07 19:30:09 cvogler Exp $
+ * $Id: cc_decoder.c,v 1.3 2002/01/07 23:09:38 cvogler Exp $
  *
  * stuff needed to provide closed captioning decoding and display
  *
@@ -547,6 +547,7 @@ static void ccbuf_tab(cc_buffer_t *this, int tabsize)
 #ifdef LOG_DEBUG
     printf("cc_decoder: ccbuf_tab: row buffer overflow\n");
 #endif
+    rowbuf->pos = CC_COLUMNS;
     return;
   }
   /* tabs have no effect on pending PAC attribute changes */
