@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.123 2003/07/04 14:23:37 jcdutton Exp $
+ * $Id: w32codec.c,v 1.124 2003/07/16 00:25:38 tmattern Exp $
  *
  * routines for using w32 codecs
  * DirectShow support by Miguel Freitas (Nov/2001)
@@ -177,11 +177,12 @@ typedef struct w32a_decoder_s {
   int               decoder_ok;
 
   unsigned char    *buf;
-  int               size;   
+  int               size;
   int64_t           pts;
   
   /* these are used for pts estimation */
   int64_t           lastpts, sumpts, sumsize;
+  double            byterate;
 
   unsigned char    *outbuf;
   int               outsize;
@@ -1224,10 +1225,36 @@ static void w32a_decode_audio (w32a_decoder_t *this,
   static ACMSTREAMHEADER ash;
   HRESULT hr = 0;
   int size_read, size_written;
+  int delay;
   /* DWORD srcsize=0; */
+
+  /* This code needs more testing */
+  /* bitrate computing (byterate: byte per pts) */
+  if (pts && (pts != this->lastpts)) {
+    this->pts = pts;
+    if (!this->lastpts) {
+      this->byterate = 0.0;
+    } else {
+      this->sumpts = pts - this->lastpts;
+      if (this->byterate == 0.0) {
+        this->byterate = (double)this->sumsize / (double)this->sumpts;
+      } else {
+        /* smooth the bitrate */
+        this->byterate = (9 * this->byterate +
+                         (double)this->sumsize / (double)this->sumpts) / 10;
+      }
+    }
+    this->lastpts = pts;
+    this->sumsize = 0;
+  }
+  /* output_buf->pts = this->pts - delay */
+  if (this->byterate)
+    delay = (int)((double)this->size / this->byterate);
+  else
+    delay = 0;
   
-  this->pts=pts;
-  
+  this->sumsize += size;
+
   if( this->size + size > this->max_audio_src_size ) {
     this->max_audio_src_size = this->size + 2 * size;
     printf("w32codec: increasing source buffer to %d to avoid overflow.\n", 
@@ -1236,7 +1263,11 @@ static void w32a_decode_audio (w32a_decoder_t *this,
   }
   
   xine_fast_memcpy (&this->buf[this->size], data, size);
-       
+
+#ifdef LOG
+  printf("w32codec: w32a_decode_audio: demux pts=%lld, this->size=%d, d=%d, rate=%lf\n",
+         pts, this->size, delay, this->byterate);
+#endif
   this->size += size;
 
   while (this->size >= this->rec_audio_src_size) {
@@ -1304,12 +1335,18 @@ static void w32a_decode_audio (w32a_decoder_t *this,
 	  bufsize = DstLengthUsed;
 	else
 	  bufsize = audio_buffer->mem_size;
-      
+
         xine_fast_memcpy( audio_buffer->mem, p, bufsize );
 	
 	audio_buffer->num_frames = bufsize / (this->num_channels*2);
-	audio_buffer->vpts       = this->pts;
+        if (this->pts)
+          audio_buffer->vpts = this->pts - delay;
+        else
+          audio_buffer->vpts = 0;
 
+#ifdef LOG
+        printf("w32codec: w32a_decode_audio: decoder pts=%lld\n", audio_buffer->vpts);
+#endif
 	this->stream->audio_out->put_buffer (this->stream->audio_out, audio_buffer, this->stream);
         
 	this->pts = 0;
