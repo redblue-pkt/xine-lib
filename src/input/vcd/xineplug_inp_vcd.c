@@ -1,5 +1,5 @@
 /*
-  $Id: xineplug_inp_vcd.c,v 1.1 2003/10/13 11:47:11 f1rmb Exp $
+  $Id: xineplug_inp_vcd.c,v 1.2 2003/10/19 14:34:36 siggi Exp $
  
   Copyright (C) 2002,2003 Rocky Bernstein <rocky@panix.com>
   
@@ -45,8 +45,8 @@
 #include <errno.h>
 #include <ctype.h>
 
-#define SHORT_PLUGIN_NAME "VCDX"
-#define MRL_PREFIX "vcdx://"
+#define SHORT_PLUGIN_NAME "VCD"
+#define MRL_PREFIX "vcd://"
 #define MRL_PREFIX_LEN strlen(MRL_PREFIX)
 
 #define xine_config_entry_t xine_cfg_entry_t
@@ -421,26 +421,26 @@ vcd_build_mrl_list(vcd_input_class_t *class, char *vcd_device)
 /*!
   parses a MRL which has the format
  
-  vcdx://[vcd_path][@[EPTS]?number]\*?
+  vcd://[vcd_path][@[EPTS]?number]\*?
  
   Examples
-    vcdx://                    - Play (navigate) default device: /dev/cdrom
-    vcdx://@                   - same as above
-    vcdx:///dev/cdrom          - probably same as above
-    vcdx:///dev/cdrom2         - Play (navigate) /dev/cdrom2
-    vcdx:///dev/cdrom2@        - same as above
-    vcdx:///dev/cdrom2@T1      - Play Track 1 from /dev/cdrom2
-    vcdx:///dev/cdrom@S1       - Play selection id 1 from /dev/cdrom
-    vcdx://dev/cdrom@E0        - Play Entry id 0 from default device
-    vcdx://@P1                 - probably same as above.
+    vcd://                    - Play (navigate) default device: /dev/cdrom
+    vcd://@                   - same as above
+    vcd:///dev/cdrom          - probably same as above
+    vcd:///dev/cdrom2         - Play (navigate) /dev/cdrom2
+    vcd:///dev/cdrom2@        - same as above
+    vcd:///dev/cdrom2@T1      - Play Track 1 from /dev/cdrom2
+    vcd:///dev/cdrom@S1       - Play selection id 1 from /dev/cdrom
+    vcd://dev/cdrom@E0        - Play Entry id 0 from default device
+    vcd://@P1                 - probably same as above.
                                  If there is no playback control, MRL will
-  			         get converted into vcdx://@E0
-    vcdx://@P1*                - probably same as above.
-    vcdx://@S0                 - Play segment 0 from default device
-    vcdx://@3                  - Play track 3 from default device
-    vcdx:///dev/cdrom2@1       - Play track 1 from /dev/cdrom2
-    vcdx:///tmp/ntsc.bin@      - Play default item from /tmp/ntsc.bin
-    vcdx:///tmp/ntsc.bin/@E0   - Play entry 0 of /tmp/ntsc.bin
+  			         get converted into vcd://@E0
+    vcd://@P1*                - probably same as above.
+    vcd://@S0                 - Play segment 0 from default device
+    vcd://@3                  - Play track 3 from default device
+    vcd:///dev/cdrom2@1       - Play track 1 from /dev/cdrom2
+    vcd:///tmp/ntsc.bin@      - Play default item from /tmp/ntsc.bin
+    vcd:///tmp/ntsc.bin/@E0   - Play entry 0 of /tmp/ntsc.bin
 
 parameters: 
   mrl               : mrl to parse
@@ -1340,7 +1340,7 @@ uninit_log_handler (vcd_log_level_t level, const char message[])
 }
 
 /*!
-  Things that need to be done the vcdx plugin is closed. 
+  Things that need to be done the vcd plugin is closed. 
 */
 static void 
 vcd_class_dispose (input_class_t *this_gen) {
@@ -1639,7 +1639,7 @@ vcd_init (xine_t *xine, void *data)
                             (char **) autoplay_modes,
                             _("default type to use on VCD autoplay"),
 _("What play unit to use when none is specified in an MRL, e.g. "
-                            "vcdx:// or vcdx:///dev/dvd:"),
+                            "vcd:// or vcd:///dev/dvd:"),
                             0, 
                             vcd_default_autoplay_cb, class);
     
