@@ -37,7 +37,7 @@
  * usage:
  *   xine pvr:/<path_to_store_files>
  *
- * $Id: input_pvr.c,v 1.3 2003/03/05 03:01:59 tmmm Exp $
+ * $Id: input_pvr.c,v 1.4 2003/03/05 14:00:14 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -62,7 +62,7 @@
 
 #define PVR_DEVICE        "/dev/ivtv0"
 #define PVR_BLOCK_SIZE    2048			/* pvr works with dvd-like data */
-#define BLOCKS_PER_PAGE   10000                 /* 200MB per page. each session can have several pages */
+#define BLOCKS_PER_PAGE   102400		/* 200MB per page. each session can have several pages */
 #define PVR_FILENAME      "%s/%08d-%04d.vob"
 #define PVR_FILENAME_SIZE 1+8+1+4+4+1
 
