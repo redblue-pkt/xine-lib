@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpgaudio.c,v 1.103 2003/07/25 21:02:05 miguelfreitas Exp $
+ * $Id: demux_mpgaudio.c,v 1.104 2003/08/05 18:23:56 hadess Exp $
  *
  * demultiplexer for mpeg audio (i.e. mp3) streams
  *
@@ -125,6 +125,37 @@ static int mpg123_head_check(unsigned long head) {
   return 1;
 }
 
+static int mpg123_xhead_check(unsigned char *buf)
+{
+  if (buf[3] != 'X')
+    return 0;
+  if (buf[2] != 'i')
+    return 0;
+  if (buf[1] != 'n')
+    return 0;
+  if (buf[0] != 'g')
+    return 0;
+
+  return 1;
+}
+
+static int extractI4(unsigned char *buf)
+{
+  int x;
+  /* big endian extract */
+
+  x = buf[0];
+  x <<= 8;
+  x |= buf[1];
+  x <<= 8;
+  x |= buf[2];
+  x <<= 8;
+  x |= buf[3];
+
+  return x;
+}
+
+
 /* Return length of an MP3 frame using potential 32-bit header value.  See
  * "http://www.dv.co.yu/mpgscript/mpeghdr.htm" for details on the header
  * format.
@@ -228,6 +259,9 @@ static int _sniff_buffer_looks_like_mp3 (input_plugin_t *input)
        * just to be sure this is more likely to be a real MP3
        * buffer? */
       offset += 1 + length;
+
+      if(((mp3_header >> 16) & 1) == 1)
+        offset -= 2;
 
       if (offset + 4 > SNIFF_BUFFER_LENGTH)
       {
@@ -358,10 +392,11 @@ static void mpg123_decode_header(demux_mpgaudio_t *this,unsigned long newhead) {
     sprintf (str, "mpeg %s audio layer %d", ver, lay);
     this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] = str;
 
-    this->stream->stream_info[XINE_STREAM_INFO_BITRATE] = this->bitrate*1000;
+    this->stream->stream_info[XINE_STREAM_INFO_BITRATE] = this->bitrate*1024;
+    this->stream->stream_info[XINE_STREAM_INFO_AUDIO_BITRATE] = this->bitrate*1024;
   }
-    
-  this->stream_length = (int)(this->input->get_length(this->input) / (this->bitrate * 1000 / 8));
+ 
+  this->stream_length = (int)(this->input->get_length(this->input) / (this->bitrate * 1024 / 8));
 }
 
 static void check_newpts( demux_mpgaudio_t *this, int64_t pts ) {
@@ -404,7 +439,8 @@ static int demux_mpgaudio_next (demux_mpgaudio_t *this, int decoder_flags) {
   }
 
   if (this->bitrate == 0) {
-    int i;
+    int i, ver,srindex,brindex,xbytes,xframes;
+
     for( i = 0; i < buf->size-4; i++ ) {
       head = (buf->mem[i+0] << 24) + (buf->mem[i+1] << 16) +
              (buf->mem[i+2] << 8) + buf->mem[i+3];
@@ -414,7 +450,38 @@ static int demux_mpgaudio_next (demux_mpgaudio_t *this, int decoder_flags) {
          break;
       }
     }
-  } 
+    /* Now check for the Xing header to get the correct bitrate */
+    ver = (buf->mem[i+1] & 0x08) >> 3;
+    brindex = (buf->mem[i+2] & 0xf0) >> 4;
+    srindex = (buf->mem[i+2] & 0x0c) >> 2;
+
+    for( i = 0; i < buf->size-16; i++ ) {
+      head = (buf->mem[i+0] << 24) + (buf->mem[i+1] << 16) +
+             (buf->mem[i+2] << 8) + buf->mem[i+3];
+
+      if (mpg123_xhead_check((unsigned char *)&head)) {
+        long long total_bytes, magic1, magic2;
+
+        xframes = extractI4(buf->mem+i+8);
+	xbytes = extractI4(buf->mem+i+12);
+
+	if (xframes <= 0) {
+          break;
+	}
+
+	total_bytes = (long long) frequencies[!ver][srindex] * (long long) xbytes;
+	magic1 = total_bytes / (long long) (576 + ver * 576);
+	magic2 = magic1 / (long long) xframes;
+	this->bitrate = (int) ((long long) magic2 / (long long) 125);
+
+	this->stream->stream_info[XINE_STREAM_INFO_BITRATE] = this->bitrate*1024;
+	this->stream->stream_info[XINE_STREAM_INFO_AUDIO_BITRATE] = this->bitrate*1024;
+
+	this->stream_length = (int)(this->input->get_length(this->input) / (this->bitrate * 1024 / 8));
+	break;
+      }
+    }
+  }
 
   if (this->bitrate) {
     pts = (90000 * buffer_pos) / (this->bitrate * 1000 / 8);
