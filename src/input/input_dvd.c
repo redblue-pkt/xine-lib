@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.121 2002/11/23 12:41:04 mroi Exp $
+ * $Id: input_dvd.c,v 1.122 2002/12/06 18:44:40 miguelfreitas Exp $
  *
  */
 
@@ -778,6 +778,7 @@ static char* dvd_plugin_get_mrl (input_plugin_t *this_gen) {
 static void flush_buffers(dvd_input_plugin_t *this) {
   /*
    * This code comes from xine_demux_flush_engine
+   * ---> so why do it here again??
    */
   xine_stream_t *stream = this->stream;  
   buf_element_t *buf;
@@ -1226,9 +1227,14 @@ static input_plugin_t *open_plugin (input_class_t *class_gen, xine_stream_t *str
   char                  *intended_dvd_device;
   xine_cfg_entry_t      region_entry, lang_entry, cache_entry;
   xine_event_t           event;
+  static char *handled_mrl = "dvd:/";
+
+  /* Check we can handle this MRL */
+  if (strncasecmp (data, handled_mrl, strlen(handled_mrl) ) != 0)
+    return NULL;
 
   printf("input_dvd.c: open_plugin called.\n");
-
+  
   this = (dvd_input_plugin_t *) xine_xmalloc (sizeof (dvd_input_plugin_t));
   if (this == NULL) {
     printf("input_dvd.c: xine_xmalloc failed!!!! You have run out of memory\n");
@@ -1248,6 +1254,8 @@ static input_plugin_t *open_plugin (input_class_t *class_gen, xine_stream_t *str
   this->input_plugin.input_class        = class_gen;
 
   this->stream = stream;
+  this->stream->stream_info[XINE_STREAM_INFO_VIDEO_HAS_STILL] = 1;
+
   this->dvdnav                 = NULL;
   this->opened                 = 0;
   this->seekable               = 0;
@@ -1266,22 +1274,18 @@ static input_plugin_t *open_plugin (input_class_t *class_gen, xine_stream_t *str
   trace_print("Called\n");
   this->event_queue = xine_event_new_queue (this->stream);
   /* printf("input_dvd: open1: dvdnav=%p opened=%d\n",this->dvdnav, this->opened); */
-  printf("data=%p\n",data);
-  if (data) printf("data=%s\n",data); 
+  /* printf("data=%p\n",data);
+  if (data) printf("data=%s\n",data); */
   this->mrl = strdup(data);
   this->pause_timer            = 0;
   this->dvd_name[0]            = 0;
   this->dvd_name_length        = 0;
 
-  /* Check we can handle this MRL */
-  if (!strncasecmp (this->mrl, "dvd:/",5)) {
-    locator = &this->mrl[5];
-    while (*locator == '/') locator++;
-    /* we skipped at least one slash, get it back */
-    locator--;
-  } else {
-    return 0;
-  }
+  /* we already checked the "dvd:/" MRL above */
+  locator = &this->mrl[strlen(handled_mrl)];
+  while (*locator == '/') locator++;
+  /* we skipped at least one slash, get it back */
+  locator--;
 
   /* Attempt to parse MRL */
   last_slash = strlen(locator);
@@ -1674,6 +1678,11 @@ static void *init_class (xine_t *xine, void *data) {
 
 /*
  * $Log: input_dvd.c,v $
+ * Revision 1.122  2002/12/06 18:44:40  miguelfreitas
+ * - add still frame hint (untested - i don't have dvd here)
+ * - check mrl before allocating plugin context, so it doesn't get initialized for
+ * non-dvd streams
+ *
  * Revision 1.121  2002/11/23 12:41:04  mroi
  * DVD input fixes and cleanup:
  * * revert my removing of the clock adjustment; although this is bad, it seems
