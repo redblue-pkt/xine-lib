@@ -48,7 +48,13 @@ for DLL to know too much about its environment.
 #endif
 
 #if HAVE_VSSCANF
+# ifndef __sun
+/*
+ * On solaris, remove the prototype for now; it's incompatible with the one
+ * from solaris9 stdio.h
+ */
 int vsscanf( const char *str, const char *format, va_list ap);
+# endif
 #else
 /* system has no vsscanf.  try to provide one */
 static int vsscanf( const char *str, const char *format, va_list ap)
