@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mms.c,v 1.26 2003/04/26 16:36:42 tmattern Exp $
+ * $Id: mms.c,v 1.27 2003/04/26 17:53:16 tmattern Exp $
  *
  * MMS over TCP protocol
  *   based on work from major mms
@@ -68,6 +68,7 @@
 #define CMD_HEADER_LEN   48
 #define CMD_BODY_LEN   1024
 
+#define ASF_HEADER_LEN 8192
 
 struct mms_s {
 
@@ -92,7 +93,7 @@ struct mms_s {
   int           buf_size;
   int           buf_read;
 
-  uint8_t       asf_header[8192];
+  uint8_t       asf_header[ASF_HEADER_LEN];
   uint32_t      asf_header_len;
   uint32_t      asf_header_read;
   int           seq_num;
@@ -384,19 +385,21 @@ static void print_answer (char *data, int len) {
 
 /*
  * TODO: error messages (READ ERROR)
- *       support xine_read_abort() return codes
  */
 static int get_answer (mms_t *this) {
  
   int   command = 0x1b;
 
   while (command == 0x1b) {
-    int len;
+    off_t len;
     uint32_t length;
 
     len = xine_read_abort (this->stream, this->s, this->buf, 12);
-    if (len != 12) {
-      printf ("\nlibmms: get_answer: alert! eof\n");
+    if (len < 0) {
+      printf ("\nlibmms: get_answer: read error\n");
+      return 0;
+    } else if (len != 12) {
+      printf ("\nlibmms: get_answer: end of stream\n");
       return 0;
     }
 
@@ -411,68 +414,61 @@ static int get_answer (mms_t *this) {
     }
     
     len = xine_read_abort (this->stream, this->s, this->buf+12, length+4) ;
-    if (len<=0) {
-      printf ("libmms: get_answer: alert! eof\n");
+    if (len < 0) {
+      printf ("\nlibmms: get_answer: read error\n");
+      return 0;
+    } else if (len != (length + 4)) {
+      printf ("\nlibmms: get_answer: end of stream\n");
       return 0;
     }
     
     len += 12;
-
     print_answer (this->buf, len);
 
     command = get_32 (this->buf, 36) & 0xFFFF;
 
-    if (command == 0x1b) 
-      send_command (this, 0x1b, 0, 0, 0);
+    /* reply to a ping command */
+    if (command == 0x1b) {
+      if (!send_command (this, 0x1b, 0, 0, 0)) {
+        printf("libmms: failed to send command 0x1b\n");
+        return 0;
+      }
+    }
   }
 
   return command;
 }
 
-/*
- * TODO: suppress this function
- */
-static int receive (xine_stream_t *stream, int s, char *buf, size_t count) {
-
-  ssize_t  len;
-
-  len = xine_read_abort (stream, s, buf, count);
-  if (len < 0) {
-    perror ("read error:");
-    return 0;
-  }
-
-  return len;
-}
-
-/*
- * TODO: check packet length !
- */
 static int get_header (mms_t *this) {
 
-  unsigned char  pre_header[8];
-
+  uint8_t pre_header[8];
+  off_t len;
+  
   this->asf_header_len = 0;
 
   while (1) {
 
-    if (!receive (this->stream, this->s, pre_header, 8)) {
-      printf ("libmms: pre-header read failed\n");
+    len = xine_read_abort (this->stream, this->s, pre_header, 8) ;
+    if (len < 0) {
+      printf ("\nlibmms: get_header: read error\n");
+      return 0;
+    } else if (len != 8) {
+      printf ("\nlibmms: get_header: end of stream\n");
       return 0;
     }
 
 #ifdef LOG    
     {
       int i;
-    for (i = 0; i < 8; i++)
-      printf ("libmms: pre_header[%d] = %02x (%d)\n",
-	      i, pre_header[i], pre_header[i]);
+      for (i = 0; i < 8; i++)
+        printf ("libmms: pre_header[%d] = %02x (%d)\n",
+                i, pre_header[i], pre_header[i]);
     }
 #endif    
 
     if (pre_header[4] == 0x02) {
       
-      int packet_len;
+      uint32_t packet_len;
       
       packet_len = (pre_header[7] << 8 | pre_header[6]) - 8;
 
@@ -480,56 +476,77 @@ static int get_header (mms_t *this) {
       printf ("libmms: asf header packet detected, len=%d\n",
 	      packet_len);
 #endif
-
-      if (!receive (this->stream, this->s, &this->asf_header[this->asf_header_len], packet_len)) {
-	printf ("libmms: header data read failed\n");
-	return 0;
+      if (packet_len > (ASF_HEADER_LEN - this->asf_header_len)) {
+        printf ("libmms: get_header: invalid packet length: %d\n", packet_len);
+        return 0;
+      }
+      
+      len = xine_read_abort (this->stream, this->s, &this->asf_header[this->asf_header_len], packet_len);
+      if (len < 0) {
+        printf ("\nlibmms: get_header: read error\n");
+        return 0;
+      } else if (len != packet_len) {
+        printf ("\nlibmms: get_header: end of stream\n");
+        return 0;
       }
 
       this->asf_header_len += packet_len;
 
       if ( (this->asf_header[this->asf_header_len - 1] == 1) 
-	   && (this->asf_header[this->asf_header_len - 2] == 1)) {
+           && (this->asf_header[this->asf_header_len - 2] == 1)) {
 
 #ifdef LOG
-	printf ("libmms: get header packet finished\n");
+        printf ("libmms: get header packet finished\n");
 #endif
-
-	return 1;
-
+        return 1;
       } 
 
     } else {
 
-      int packet_len, command;
+      uint32_t packet_len;
+      int command;
 
-      if (!receive (this->stream, this->s, (char *) &packet_len, 4)) {
-	printf ("packet_len read failed\n");
-	return 0;
+      len = xine_read_abort (this->stream, this->s, (uint8_t *) &packet_len, 4);
+      if (len < 0) {
+        printf ("\nlibmms: get_header: read error\n");
+        return 0;
+      } else if (len != 4) {
+        printf ("\nlibmms: get_header: end of stream\n");
+        return 0;
       }
       
-      packet_len = get_32 ((char *)&packet_len, 0) + 4;
+      packet_len = get_32 ((uint8_t *)&packet_len, 0) + 4;
       
 #ifdef LOG    
       printf ("command packet detected, len=%d\n",
 	      packet_len);
 #endif
+      if (packet_len > (BUF_SIZE)) {
+        printf ("libmms: get_header: invalid packet length: %d\n", packet_len);
+        return 0;
+      }
       
-      if (!receive (this->stream, this->s, this->buf, packet_len)) {
-	printf ("command data read failed\n");
-	return 0 ;
+      len = xine_read_abort (this->stream, this->s, this->buf, packet_len);
+      if (len < 0) {
+        printf ("\nlibmms: get_header: read error\n");
+        return 0;
+      } else if (len != packet_len) {
+        printf ("\nlibmms: get_header: end of stream\n");
+        return 0;
       }
       
       command = get_32 (this->buf, 24) & 0xFFFF;
-      
 #ifdef LOG    
       printf ("command: %02x\n", command);
 #endif
       
-      if (command == 0x1b) 
-	if (!send_command (this, 0x1b, 0, 0, 0))
-	  return 0;
-      
+      /* reply to a ping command */
+      if (command == 0x1b) {
+        if (!send_command (this, 0x1b, 0, 0, 0)) {
+          printf("libmms: failed to send command 0x1b\n");
+          return 0;
+        }
+      }
     }
 
 #ifdef LOG
@@ -852,7 +869,7 @@ mms_t *mms_connect (xine_stream_t *stream, const char *url_, int bandwidth) {
   }
   
   if ((res = get_answer (this)) != 0x01) {
-    printf("libmms: unexpected response: %d (0x01)\n", res);
+    printf("libmms: unexpected response: %02x (0x01)\n", res);
     goto fail;
   }
   
@@ -876,7 +893,7 @@ mms_t *mms_connect (xine_stream_t *stream, const char *url_, int bandwidth) {
       goto fail;
       break;
     default:
-      printf("libmms: unexpected response: %d (0x02 or 0x03)\n", res);
+      printf("libmms: unexpected response: %02x (0x02 or 0x03)\n", res);
       goto fail;
   }
 
@@ -898,7 +915,7 @@ mms_t *mms_connect (xine_stream_t *stream, const char *url_, int bandwidth) {
       goto fail;
       break;
     default:
-      printf("libmms: unexpected response: %d (0x06 or 0x1A)\n", res);
+      printf("libmms: unexpected response: %02x (0x06 or 0x1A)\n", res);
       goto fail;
   }
 
@@ -914,7 +931,7 @@ mms_t *mms_connect (xine_stream_t *stream, const char *url_, int bandwidth) {
   }
 
   if ((res = get_answer (this)) != 0x11) {
-    printf("libmms: unexpected response: %d (0x11)\n", res);
+    printf("libmms: unexpected response: %02x (0x11)\n", res);
     goto fail;
   }
 
@@ -1020,7 +1037,7 @@ mms_t *mms_connect (xine_stream_t *stream, const char *url_, int bandwidth) {
   }
 
   if ((res = get_answer (this)) != 0x21) {
-    printf("libmms: unexpected response: %d (0x21)\n", res);
+    printf("libmms: unexpected response: %02x (0x21)\n", res);
     goto fail;
   }
 
@@ -1056,14 +1073,16 @@ mms_t *mms_connect (xine_stream_t *stream, const char *url_, int bandwidth) {
   return NULL;
 }
 
-/*
- * TODO: replace receive call
- */
 static int get_media_packet (mms_t *this) {
   unsigned char  pre_header[8];
-
-  if (!receive (this->stream, this->s, pre_header, 8)) {
-    printf ("pre-header read failed\n");
+  off_t len;
+  
+  len = xine_read_abort (this->stream, this->s, pre_header, 8) ;
+  if (len < 0) {
+    printf ("\nlibmms: get_media_packet: read error\n");
+    return 0;
+  } else if (len != 8) {
+    printf ("\nlibmms: get_media_packet: end of stream\n");
     return 0;
   }
 
@@ -1078,7 +1097,7 @@ static int get_media_packet (mms_t *this) {
 
   if (pre_header[4] == 0x04) {
 
-    int packet_len;
+    uint32_t packet_len;
 
     packet_len = (pre_header[7] << 8 | pre_header[6]) - 8;
 
@@ -1086,9 +1105,17 @@ static int get_media_packet (mms_t *this) {
     printf ("asf media packet detected, len=%d\n",
 	    packet_len);
 #endif
+    if (packet_len > (BUF_SIZE)) {
+      printf ("libmms: get_media_packet: invalid packet length: %d\n", packet_len);
+      return 0;
+    }
 
-    if (!receive (this->stream, this->s, this->buf, packet_len)) {
-      printf ("media data read failed\n");
+    len = xine_read_abort (this->stream, this->s, this->buf, packet_len);
+    if (len < 0) {
+      printf ("\nlibmms: get_media_packet: read error\n");
+      return 0;
+    } else if (len != packet_len) {
+      printf ("\nlibmms: get_media_packet: end of stream\n");
       return 0;
     }
 
@@ -1098,22 +1125,35 @@ static int get_media_packet (mms_t *this) {
 
   } else {
 
-    int packet_len, command;
+    uint32_t packet_len;
+    int command;
 
-    if (!receive (this->stream, this->s, (char *)&packet_len, 4)) {
-      printf ("packet_len read failed\n");
+    len = xine_read_abort (this->stream, this->s, (uint8_t *)&packet_len, 4);
+    if (len < 0) {
+      printf ("\nlibmms: get_media_packet: read error\n");
+      return 0;
+    } else if (len != 4) {
+      printf ("\nlibmms: get_media_packet: end of stream\n");
       return 0;
     }
 
-    packet_len = get_32 ((char *)&packet_len, 0) + 4;
+    packet_len = get_32 ((uint8_t *)&packet_len, 0) + 4;
 
 #ifdef LOG
     printf ("command packet detected, len=%d\n",
 	    packet_len);
 #endif
+    if (packet_len > (BUF_SIZE)) {
+      printf ("libmms: get_media_packet: invalid packet length: %d\n", packet_len);
+      return 0;
+    }
 
-    if (!receive (this->stream, this->s, this->buf, packet_len)) {
-      printf ("command data read failed\n");
+    len = xine_read_abort (this->stream, this->s, this->buf, packet_len);
+    if (len < 0) {
+      printf ("\nlibmms: get_media_packet: read error\n");
+      return 0;
+    } else if (len != packet_len) {
+      printf ("\nlibmms: get_media_packet: end of stream\n");
       return 0;
     }
 
