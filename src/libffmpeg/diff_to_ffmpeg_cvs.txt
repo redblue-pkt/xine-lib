@@ -1,39 +1,7 @@
-Only in ../../xine-lib/src/libffmpeg/libavcodec/: .deps
-Only in ../../xine-lib/src/libffmpeg/libavcodec/: CVS
-Only in .: Makefile
-Only in ../../xine-lib/src/libffmpeg/libavcodec/: Makefile.am
-Only in ../../xine-lib/src/libffmpeg/libavcodec/: Makefile.in
-Only in .: ac3dec.c
-Only in .: ac3enc.c
-Only in .: ac3enc.h
-Only in .: ac3tab.h
-Only in .: apiexample.c
-Only in ../../xine-lib/src/libffmpeg/libavcodec/armv4l: CVS
-Only in ../../xine-lib/src/libffmpeg/libavcodec/armv4l: Makefile.am
-Only in ../../xine-lib/src/libffmpeg/libavcodec/armv4l: Makefile.in
-diff -ur ./avcodec.h ../../xine-lib/src/libffmpeg/libavcodec/avcodec.h
---- ./avcodec.h	Sat Dec 29 23:59:50 2001
-+++ ../../xine-lib/src/libffmpeg/libavcodec/avcodec.h	Sat Dec 29 01:13:29 2001
-@@ -161,6 +161,7 @@
- extern AVCodec h263i_decoder;
- extern AVCodec rv10_decoder;
- extern AVCodec mjpeg_decoder;
-+#ifdef FF_AUDIO_CODECS
- extern AVCodec mp3_decoder;
- 
- /* pcm codecs */
-@@ -178,6 +179,7 @@
- PCM_CODEC(CODEC_ID_PCM_MULAW, pcm_mulaw);
- 
- #undef PCM_CODEC
-+#endif
- 
- /* dummy raw video codec */
- extern AVCodec rawvideo_codec;
 diff -ur ./common.c ../../xine-lib/src/libffmpeg/libavcodec/common.c
---- ./common.c	Sat Dec 29 23:59:50 2001
-+++ ../../xine-lib/src/libffmpeg/libavcodec/common.c	Sat Dec 29 01:13:30 2001
-@@ -212,7 +212,7 @@
+--- ./common.c	Sun Jun  2 09:13:09 2002
++++ ../../xine-lib/src/libffmpeg/libavcodec/common.c	Sun Jun  9 20:23:23 2002
+@@ -166,7 +166,7 @@
          buf_ptr += 4;
          /* handle common case: we can read everything */
          if (buf_ptr <= s->buf_end) {
@@ -43,81 +11,78 @@ diff -ur ./common.c ../../xine-lib/src/libffmpeg/libavcodec/common.c
  #else
  	    bit_buf = (buf_ptr[-4] << 24) |
 diff -ur ./common.h ../../xine-lib/src/libffmpeg/libavcodec/common.h
---- ./common.h	Sat Dec 29 23:59:50 2001
-+++ ../../xine-lib/src/libffmpeg/libavcodec/common.h	Wed Jan  2 22:27:05 2002
-@@ -3,6 +3,9 @@
- 
- #define FFMPEG_VERSION_INT 0x000406
- #define FFMPEG_VERSION     "0.4.6"
-+/* CVS version as 26-12-2001 */
+--- ./common.h	Sun Jun  2 09:11:44 2002
++++ ../../xine-lib/src/libffmpeg/libavcodec/common.h	Sun Jun  9 20:28:19 2002
+@@ -913,6 +913,8 @@
+     }
+     return ret;
+ }
++#define RUNTIME_CPUDETECT
 +
-+#undef DEBUG
- 
- #if defined(WIN32) && !defined(__MINGW32__)
- #define CONFIG_WIN32
-@@ -114,7 +117,7 @@
- #define UINT64_C(c)    (c ## ULL)
+ #if __CPU__ >= 686 && !defined(RUNTIME_CPUDETECT)
+ #define COPY3_IF_LT(x,y,a,b,c,d)\
+ asm volatile (\
+diff -ur ./dsputil.c ../../xine-lib/src/libffmpeg/libavcodec/dsputil.c
+--- ./dsputil.c	Wed Jun  5 15:48:07 2002
++++ ../../xine-lib/src/libffmpeg/libavcodec/dsputil.c	Mon Jun 10 11:19:40 2002
+@@ -1314,7 +1314,7 @@
+     use_permuted_idct = 0;
  #endif
  
--#include "../bswap.h"
-+#include "xine-engine/bswap.h"
+-#ifdef SIMPLE_IDCT
++//#ifdef SIMPLE_IDCT
+     if (ff_idct == NULL) {
+         ff_idct_put = simple_idct_put;
+         ff_idct_add = simple_idct_add;
+@@ -1323,7 +1323,7 @@
+         ff_idct_put = gen_idct_put;
+         ff_idct_add = gen_idct_add;
+     }
+-#endif
++//#endif
  
- #ifdef USE_FASTMEMCPY
- #include "fastmemcpy.h"
-@@ -139,10 +142,18 @@
- 
- #else
- 
-+#ifdef __GNUC__
- #ifdef DEBUG
- #define dprintf(fmt,args...) printf(fmt, ## args)
- #else
- #define dprintf(fmt,args...)
-+#endif
-+#else
-+#ifdef DEBUG
-+#define dprintf(fmt,...) printf(fmt, __VA_ARGS__)
-+#else
-+#define dprintf(fmt,...)
-+#endif
- #endif
- 
- #endif /* !CONFIG_WIN32 */
-Only in .: dct-test.c
+     if(use_permuted_idct)
+ #ifdef SIMPLE_IDCT
 diff -ur ./dsputil.h ../../xine-lib/src/libffmpeg/libavcodec/dsputil.h
---- ./dsputil.h	Sat Dec 29 23:59:50 2001
-+++ ../../xine-lib/src/libffmpeg/libavcodec/dsputil.h	Sat Dec 29 01:13:32 2001
-@@ -67,7 +67,7 @@
- int pix_abs16x16_y2_c(UINT8 *blk1, UINT8 *blk2, int lx, int h);
- int pix_abs16x16_xy2_c(UINT8 *blk1, UINT8 *blk2, int lx, int h);
+--- ./dsputil.h	Wed Jun  5 15:48:07 2002
++++ ../../xine-lib/src/libffmpeg/libavcodec/dsputil.h	Mon Jun 10 10:56:24 2002
+@@ -21,8 +21,9 @@
  
--#if defined (SIMPLE_IDCT) && defined (HAVE_MMX)
-+#if defined (SIMPLE_IDCT) && defined (ARCH_X86)
- static inline int block_permute_op(int j)
- {
- static const int table[64]={
-@@ -97,22 +97,22 @@
+ #include "common.h"
+ #include "avcodec.h"
++#include "xineutils.h"
+ 
+-//#define DEBUG
++#undef DEBUG
+ /* dct code */
+ typedef short DCTELEM;
+ 
+@@ -105,23 +106,32 @@
+ }
  
  void block_permute(INT16 *block);
- 
--#if defined(HAVE_MMX)
++          
 +#if defined(ARCH_X86)
++#define HAVE_MMX 1 
++#endif
  
--#define MM_MMX    0x0001 /* standard MMX */
--#define MM_3DNOW  0x0004 /* AMD 3DNOW */
--#define MM_MMXEXT 0x0002 /* SSE integer functions or AMD MMX ext */
--#define MM_SSE    0x0008 /* SSE functions */
--#define MM_SSE2   0x0010 /* PIV SSE2 functions */
-+#define HAVE_MMX 1
-+
-+#include "xineutils.h"
+ #if defined(HAVE_MMX)
+ 
++#if 0
+ #define MM_MMX    0x0001 /* standard MMX */
+ #define MM_3DNOW  0x0004 /* AMD 3DNOW */
+ #define MM_MMXEXT 0x0002 /* SSE integer functions or AMD MMX ext */
+ #define MM_SSE    0x0008 /* SSE functions */
+ #define MM_SSE2   0x0010 /* PIV SSE2 functions */
++#endif
  
  extern int mm_flags;
  
 -int mm_support(void);
++/*int mm_support(void);*/
 +#define mm_support() xine_mm_accel()
  
-+#if 0
++#if 0 
  static inline void emms(void)
  {
      __asm __volatile ("emms;":::"memory");
@@ -126,24 +91,9 @@ diff -ur ./dsputil.h ../../xine-lib/src/libffmpeg/libavcodec/dsputil.h
  
  #define emms_c() \
  {\
-Only in .: fastmemcpy.h
-Only in ../../xine-lib/src/libffmpeg/libavcodec/i386: .deps
-Only in ../../xine-lib/src/libffmpeg/libavcodec/i386: CVS
-Only in ../../xine-lib/src/libffmpeg/libavcodec/i386: Makefile.am
-Only in ../../xine-lib/src/libffmpeg/libavcodec/i386: Makefile.in
-Only in ./i386: cputest.c
 diff -ur ./i386/fdct_mmx.c ../../xine-lib/src/libffmpeg/libavcodec/i386/fdct_mmx.c
---- ./i386/fdct_mmx.c	Wed Aug 15 19:25:32 2001
-+++ ../../xine-lib/src/libffmpeg/libavcodec/i386/fdct_mmx.c	Sun Dec 30 12:00:11 2001
-@@ -10,7 +10,7 @@
- #include "../common.h"
- #include "mmx.h"
- 
--#define ATTR_ALIGN(align) __attribute__ ((__aligned__ (align)))
-+//#define ATTR_ALIGN(align) __attribute__ ((__aligned__ (align)))
- 
- //////////////////////////////////////////////////////////////////////
- //
+--- ./i386/fdct_mmx.c	Sat May 25 19:45:33 2002
++++ ../../xine-lib/src/libffmpeg/libavcodec/i386/fdct_mmx.c	Sun Jun  9 20:32:35 2002
 @@ -45,8 +45,8 @@
      23170, 23170, 23170, 23170,	//cos * (2<<15) + 0.5
  };
@@ -179,13 +129,15 @@ diff -ur ./i386/fdct_mmx.c ../../xine-lib/src/libffmpeg/libavcodec/i386/fdct_mmx
      paddd_r2r(mm6, mm5);
      psrad_i2r(SHIFT_FRW_ROW, mm0);
 diff -ur ./i386/mmx.h ../../xine-lib/src/libffmpeg/libavcodec/i386/mmx.h
---- ./i386/mmx.h	Tue Aug  7 19:40:52 2001
+--- ./i386/mmx.h	Mon May 27 05:31:54 2002
 +++ ../../xine-lib/src/libffmpeg/libavcodec/i386/mmx.h	Thu Dec 27 18:02:23 2001
-@@ -1,239 +1 @@
+@@ -1,243 +1 @@
 -/*
 - * mmx.h
 - * Copyright (C) 1997-2001 H. Dietz and R. Fisher
 - */
+-#ifndef AVCODEC_I386MMX_H
+-#define AVCODEC_I386MMX_H
 -
 -/*
 - * The type of an value that fits in an MMX register (note that long
@@ -421,46 +373,39 @@ diff -ur ./i386/mmx.h ../../xine-lib/src/libffmpeg/libavcodec/i386/mmx.h
 -#define	pshufw_r2r(regs,regd,imm)	mmx_r2ri(pshufw, regs, regd, imm)
 -
 -#define	sfence() __asm__ __volatile__ ("sfence\n\t")
+-
+-#endif /* AVCODEC_I386MMX_H */
 +#include "xineutils.h"
-Only in .: libac3
-Only in .: libavcodec.dsp
-Only in ../../xine-lib/src/libffmpeg/libavcodec/mlib: .deps
-Only in ../../xine-lib/src/libffmpeg/libavcodec/mlib: CVS
-Only in ../../xine-lib/src/libffmpeg/libavcodec/mlib: Makefile.am
-Only in ../../xine-lib/src/libffmpeg/libavcodec/mlib: Makefile.in
-Only in .: motion_test.c
-Only in .: mpegaudio.c
-Only in .: mpegaudio.h
-Only in .: mpegaudiodec.c
-Only in .: mpegaudiodectab.h
-Only in .: mpegaudiotab.h
-Only in .: mpglib
-Only in .: pcm.c
-Only in .: resample.c
 diff -ur ./utils.c ../../xine-lib/src/libffmpeg/libavcodec/utils.c
---- ./utils.c	Sat Dec 29 23:59:55 2001
-+++ ../../xine-lib/src/libffmpeg/libavcodec/utils.c	Sat Dec 29 01:13:58 2001
-@@ -413,12 +413,15 @@
+--- ./utils.c	Mon May 27 13:42:14 2002
++++ ../../xine-lib/src/libffmpeg/libavcodec/utils.c	Sun Jun  9 20:36:59 2002
+@@ -485,29 +485,11 @@
      register_avcodec(&h263i_decoder);
      register_avcodec(&rv10_decoder);
      register_avcodec(&mjpeg_decoder);
-+#ifdef FF_AUDIO_CODECS
-     register_avcodec(&mp3_decoder);
+-    register_avcodec(&mp2_decoder);
+-    register_avcodec(&mp3_decoder);
  #ifdef CONFIG_AC3
      register_avcodec(&ac3_decoder);
  #endif
-+#endif
  #endif /* CONFIG_DECODERS */
  
-+#ifdef FF_AUDIO_CODECS
-     /* pcm codecs */
- 
- #define PCM_CODEC(id, name) \
-@@ -435,6 +438,7 @@
- PCM_CODEC(CODEC_ID_PCM_MULAW, pcm_mulaw);
- 
- #undef PCM_CODEC
-+#endif
+-    /* pcm codecs */
+-
+-#define PCM_CODEC(id, name) \
+-    register_avcodec(& name ## _encoder); \
+-    register_avcodec(& name ## _decoder); \
+-
+-PCM_CODEC(CODEC_ID_PCM_S16LE, pcm_s16le);
+-PCM_CODEC(CODEC_ID_PCM_S16BE, pcm_s16be);
+-PCM_CODEC(CODEC_ID_PCM_U16LE, pcm_u16le);
+-PCM_CODEC(CODEC_ID_PCM_U16BE, pcm_u16be);
+-PCM_CODEC(CODEC_ID_PCM_S8, pcm_s8);
+-PCM_CODEC(CODEC_ID_PCM_U8, pcm_u8);
+-PCM_CODEC(CODEC_ID_PCM_ALAW, pcm_alaw);
+-PCM_CODEC(CODEC_ID_PCM_MULAW, pcm_mulaw);
+-
+-#undef PCM_CODEC
  }
  
- static int encode_init(AVCodecContext *s)
+ /* this should be called after seeking and before trying to decode the next frame */
