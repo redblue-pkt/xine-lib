@@ -13,16 +13,20 @@ if HAVE_ZLIB
 qt_modules = xineplug_dmx_qt.la
 endif
 
+if BUILD_ASF
+asf_module = xineplug_dmx_asf.la 
+endif
+
 ##
 # IMPORTANT:
 # ---------
 # All of xine demuxer plugins should be named like the scheme "xineplug_dmx_"
 #
-lib_LTLIBRARIES = $(ogg_module) $(qt_modules) xineplug_dmx_avi.la \
+lib_LTLIBRARIES = $(ogg_module) $(qt_modules) $(asf_module) xineplug_dmx_avi.la \
 	xineplug_dmx_mpeg_block.la xineplug_dmx_mpeg.la \
 	xineplug_dmx_mpeg_elem.la xineplug_dmx_mpeg_audio.la \
 	xineplug_dmx_mpeg_pes.la xineplug_dmx_mpeg_ts.la \
-	xineplug_dmx_asf.la xineplug_dmx_cda.la
+	xineplug_dmx_cda.la
 
 xineplug_dmx_ogg_la_SOURCES = demux_ogg.c
 xineplug_dmx_ogg_la_LIBADD = @OGG_LIBS@

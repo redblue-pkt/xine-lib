@@ -216,8 +216,8 @@ rm -rf $RPM_BUILD_ROOT
 %{prefix}/lib/xine/plugins/xineplug_inp_cda.la
 %{prefix}/lib/xine/plugins/xineplug_inp_cda.so
 # demuxer plugins
-%{prefix}/lib/xine/plugins/xineplug_dmx_asf.la
-%{prefix}/lib/xine/plugins/xineplug_dmx_asf.so
+@BUILD_ASF_TRUE@%{prefix}/lib/xine/plugins/xineplug_dmx_asf.la
+@BUILD_ASF_TRUE@%{prefix}/lib/xine/plugins/xineplug_dmx_asf.so
 %{prefix}/lib/xine/plugins/xineplug_dmx_avi.la
 %{prefix}/lib/xine/plugins/xineplug_dmx_avi.so
 %{prefix}/lib/xine/plugins/xineplug_dmx_mpeg.la
@@ -331,6 +331,8 @@ rm -rf $RPM_BUILD_ROOT
 %{prefix}/share/doc/xine/xine-lib-API/*
 
 %changelog
+* Sat Dec 8 2001 Daniel Caujolle-Bert <f1rmb@users.sourceforge.net>
+- ASF plugin is optional.
 * Thu Dec 6 2001 Daniel Caujolle-Bert <f1rmb@users.sourceforge.net>
 - Add cda plugins.
 * Wed Nov 14 2001 Daniel Caujolle-Bert <f1rmb@users.sourceforge.net>
