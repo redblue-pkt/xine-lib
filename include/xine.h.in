@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.124 2004/07/02 19:32:25 mroi Exp $
+ * $Id: xine.h.in,v 1.125 2004/07/07 00:25:31 miguelfreitas Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -1518,8 +1518,19 @@ typedef struct {
  *
  * mrl references should be played in the same order they are received, just
  * after the current stream finishes.
- * alternative playlists may be provided and should be used in case of
- * failure of the primary playlist.
+ * alternative entries may be provided and should be used in case of
+ * failure of the primary stream (the one with alternative=0).
+ *
+ * sample playlist:
+ *   1) http://something/something.ram
+ *     1a) rtsp://something/realsomething1.rm (alternative=0)
+ *     1b) pnm://something/realsomething1.rm (alternative=1)
+ *   2) http://another/another.avi
+ *
+ * 1 and 2 are the original items on this playlist. 1a and 1b were received
+ * by events (they are the mrl references enclosed in 1). 1a is played after 
+ * receiving the finished event from 1. note: 1b is usually ignored, it should
+ * only be used in case 1a fails to open.
  */
 typedef struct {
   int                 alternative; /* alternative playlist number, usually 0 */
