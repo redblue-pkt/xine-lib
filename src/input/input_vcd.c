@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_vcd.c,v 1.57 2002/11/08 11:49:02 guenter Exp $
+ * $Id: input_vcd.c,v 1.58 2002/11/08 15:49:03 komadori Exp $
  *
  */
 
@@ -920,7 +920,6 @@ static void vcd_class_dispose (input_class_t *this_gen) {
 
 #if defined (__linux__)
 static int vcd_class_eject_media (input_class_t *this_gen) {
-
   vcd_input_class_t *this = (vcd_input_class_t *) this_gen;
   int ret, status, fd;
 
@@ -952,7 +951,7 @@ static int vcd_class_eject_media (input_class_t *this_gen) {
   return 1;
 }
 #elif defined (__FreeBSD__)
-static int vcd_plugin_eject_media (input_class_t *this_gen) {
+static int vcd_class_eject_media (input_class_t *this_gen) {
   vcd_input_class_t *this = (vcd_input_class_t *) this_gen;
   int          fd;
 
@@ -970,8 +969,7 @@ static int vcd_plugin_eject_media (input_class_t *this_gen) {
   return 1;
 }
 #elif defined (__sun)
-static int vcd_plugin_eject_media (vcd_input_class_t *this) {
-
+static int vcd_class_eject_media (input_class_t *this_gen) {
   vcd_input_class_t *this = (vcd_input_class_t *) this_gen;
   int          fd, ret;
 
