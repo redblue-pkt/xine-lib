@@ -41,6 +41,8 @@ xine is using
   libmad - MPEG audio decoder
     Written by Robert Leslie <http://www.mars.org/home/rob/proj/mpeg/>
 
+  avifile (Win32 codecs and DirectShow support) <http://avifile.sf.net>
+    Written by Eugene Kuznetsov and Zdenek Kabelac
 
 Contributions 
 
@@ -79,6 +81,7 @@ Contributions
     teletux/syncfb video output module, various bugfixes/reviews, alsa
 
   w32codec support is based on work from:
+  avifile http://avifile.sf.net
   MPlayer http://banki1.banki.hu/~arpi/MPlayer.html
   wine    http://www.winehq.com
 
@@ -138,7 +141,7 @@ Contributions
     xine about movie
 
   Harm van der Heijden <hrm@users.sourceforge.net>
-    libdivx4 plugin
+    libdivx4 plugin, dxr3 support and encoding
 
   Chris Rankin <rankinc@pacbell.net>
     configurable VCD device patch
@@ -173,4 +176,7 @@ Contributions
   Jeffrey W. Baker <jwbaker@acm.org>
     altivec support for libmpeg2
 
+  Gurer Ozen <madcat@users.sourceforge.net>
+    gtk+ frontend
+  
   (let us know if we've forgotten anyone)
