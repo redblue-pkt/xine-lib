@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.11 2002/12/06 23:40:26 guenter Exp $
+ * $Id: xine_decoder.c,v 1.12 2002/12/07 00:27:18 guenter Exp $
  *
  * thin layer to use real binary-only codecs in xine
  *
@@ -250,8 +250,8 @@ static void realdec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) 
   realdec_decoder_t *this = (realdec_decoder_t *) this_gen;
 
 #ifdef LOG
-  printf ("libreal: decode_data, flags=0x%08x, len=%d ...\n", 
-	  buf->decoder_flags, buf->size);
+  printf ("libreal: decode_data, flags=0x%08x, len=%d, pts=%lld ...\n", 
+	  buf->decoder_flags, buf->size, buf->pts);
 #endif
 
   if (buf->decoder_flags & BUF_FLAG_PREVIEW) {
@@ -292,21 +292,27 @@ static void realdec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) 
 						  XINE_IMGFMT_YV12,
 						  VO_BOTH_FIELDS);
 	
-	if (this->pts != this->last_pts) {
+	if ( this->last_pts && (this->pts != this->last_pts)) {
 	  int64_t new_duration;
 
 	  img->pts         = this->pts * 90;
 	  new_duration     = (this->pts - this->last_pts) * 90 / (this->num_frames+1);
 	  this->duration   = (this->duration * 9 + new_duration)/10;
 	  this->num_frames = 0;
-	  this->last_pts   = this->pts;
 	} else {
 	  img->pts       = 0;
 	  this->num_frames++;
 	}
+
+	if (this->pts)
+	  this->last_pts = this->pts;
+
 	img->duration  = this->duration; 
 	img->bad_frame = 0;
 	
+	printf ("libreal: img->pts=%lld img->duration=%d\n", 
+		img->pts, img->duration);
+
 #ifdef LOG
 	printf ("libreal: pts %lld %lld diff %lld # %d est. duration %lld\n", 
 		this->pts*90, 
