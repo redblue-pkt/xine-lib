@@ -4,7 +4,7 @@ SUBDIRS = man hackersguide faq
 
 docs_DATA = README README.dvb README.dxr3 \
 	    README.freebsd README.irix README.network_dvd README.opengl \
-	    README.solaris README.syncfb
+	    README.solaris README.syncfb README_xxmc.html
 
 EXTRA_DIST = $(docs_DATA)
 
