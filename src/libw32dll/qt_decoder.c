@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: qt_decoder.c,v 1.8 2003/01/08 01:02:30 miguelfreitas Exp $
+ * $Id: qt_decoder.c,v 1.9 2003/01/11 04:57:50 guenter Exp $
  *
  * quicktime video/audio decoder plugin, using win32 dlls
  * most of this code comes directly from MPlayer
@@ -41,6 +41,19 @@
 #include "qtx/qtxsdk/components.h"
 #include "wine/windef.h"
 #include "wine/ldt_keeper.h"
+
+/*
+ * This version of the macro avoids compiler warnings about
+ * multiple-character constants. It also does NOT assume
+ * that an unsigned long is 32 bits wide.
+ */
+#ifdef FOUR_CHAR_CODE
+#  undef FOUR_CHAR_CODE
+#endif
+#define FOUR_CHAR_CODE(a,b,c,d)  (uint32_t)( ((unsigned char)(a)<<24) | \
+                                             ((unsigned char)(b)<<16) | \
+                                             ((unsigned char)(c)<<8) | \
+                                             (unsigned char)(d) )
 
 /*
 #define LOG
@@ -125,7 +138,6 @@ typedef int (__cdecl* LPFUNC8)(SoundConverter sc,
 			       unsigned long *outputBytes);
 typedef int (__cdecl* LPFUNC9)(SoundConverter sc) ;        
 
-#define siDecompressionParams 2002876005 /* siDecompressionParams = FOUR_CHAR_CODE('wave') */
 
 typedef struct {
   audio_decoder_class_t   decoder_class;
@@ -159,7 +171,7 @@ typedef struct qta_decoder_s {
 
   int                 InFrameSize;
   int                 OutFrameSize;
-  int                 FramesToGet;
+  long                FramesToGet;
 
   int                 frame_size;
 
@@ -309,17 +321,17 @@ static void qta_init_driver (qta_decoder_t *this, buf_element_t *buf) {
 
   switch (buf->type) {
   case BUF_AUDIO_QDESIGN1:
-    this->InputFormatInfo.format = FOUR_CHAR_CODE('QDM1');
+    this->InputFormatInfo.format = FOUR_CHAR_CODE('Q','D','M','1');
     break;
   case BUF_AUDIO_QDESIGN2:
-    this->InputFormatInfo.format = FOUR_CHAR_CODE('QDM2');
+    this->InputFormatInfo.format = FOUR_CHAR_CODE('Q','D','M','2');
     break;
   default:
     printf ("qt_audio: fourcc for buftype %08x ?\n", buf->type);
     abort ();
   }
 
-  this->OutputFormatInfo.format      = 1313820229; /* FOUR_CHAR_CODE('NONE'); */
+  this->OutputFormatInfo.format = FOUR_CHAR_CODE('N','O','N','E');
 
 #ifdef LOG
   printf ("qt_audio: input format:\n");
@@ -343,7 +355,7 @@ static void qta_init_driver (qta_decoder_t *this, buf_element_t *buf) {
 
   if (buf->decoder_info[2] > 0x48) {
     error = this->SoundConverterSetInfo (this->myConverter,
-					 siDecompressionParams,
+					 FOUR_CHAR_CODE('w','a','v','e'),
 					 ((unsigned char *)buf->decoder_info_ptr[2]) + 0x48);
 #ifdef LOG
     printf ("qt_audio: SoundConverterSetInfo:%i\n",error);
@@ -470,10 +482,10 @@ static void qta_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
     memcpy (&this->data[this->data_len], buf->content, buf->size);
     this->data_len += buf->size;
 
-    if (this->data_len> this->InFrameSize) {
+    if ((this->InFrameSize != 0) && (this->data_len > this->InFrameSize)) {
 
       int num_frames = this->data_len / this->InFrameSize;
-      int out_frames, out_bytes;
+      long out_frames, out_bytes;
       int error, frames_left, bytes_sent;
 
       pthread_mutex_lock(&win32_codec_mutex);
@@ -813,15 +825,8 @@ static void qtv_init_driver (qtv_decoder_t *this, buf_element_t *buf) {
   /*    printf("EnterMovies->%d\n",result); */
 
   memset(&desc,0,sizeof(desc));
-  desc.componentType= (((unsigned char)'i')<<24)|
-    (((unsigned char)'m')<<16)|
-    (((unsigned char)'d')<<8)|
-    (((unsigned char)'c'));
-  desc.componentSubType= 
-    (((unsigned char)'S'<<24))|
-    (((unsigned char)'V')<<16)|
-    (((unsigned char)'Q')<<8)|
-    (((unsigned char)'3'));
+  desc.componentType = FOUR_CHAR_CODE('i','m','d','c');
+  desc.componentSubType = FOUR_CHAR_CODE('S','V','Q','3');
 
   desc.componentManufacturer=0;
   desc.componentFlags=0;
@@ -881,10 +886,7 @@ static void qtv_init_driver (qtv_decoder_t *this, buf_element_t *buf) {
 
     id=malloc (8+stdata_len) ; /* trak->stdata_len); */
     id->idSize          = 8+stdata_len;
-    id->cType           = (((unsigned char)'S'<<24))|
-      (((unsigned char)'V')<<16)|
-      (((unsigned char)'Q')<<8)|
-      (((unsigned char)'3')); /* bswap_32(trak->fourcc); */
+    id->cType           = FOUR_CHAR_CODE('S','V','Q','3');
     id->version         = BE_16 (stdata+ 8);
     id->revisionLevel   = BE_16 (stdata+10);
     id->vendor          = BE_32 (stdata+12);
