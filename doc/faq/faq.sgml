@@ -1299,7 +1299,8 @@
         cd /dev
         ln -s hdc dvd
       </programlisting>
-       ...should do the job.
+       ...should do the job. Also make sure you have read access on
+       the device the symlink points to.
     </para>
   </sect1>
   <sect1>
