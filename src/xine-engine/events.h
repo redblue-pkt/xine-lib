@@ -96,6 +96,10 @@ typedef struct ui_event_s {
 #define XINE_UI_GET_SPU_LANG 0x0002
 /* As above but for audio streams */
 #define XINE_UI_GET_AUDIO_LANG 0x0003
+/* Change the title label to the contents of the NULL-terminated
+ * array of chars pointed to by data.
+ */
+#define XINE_UI_SET_TITLE 0x0004
 
 /* EOF UI sub-types */
 
