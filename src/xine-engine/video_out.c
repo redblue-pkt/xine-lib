@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.118 2002/12/16 18:57:49 miguelfreitas Exp $
+ * $Id: video_out.c,v 1.119 2002/12/20 18:14:34 jkeil Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -784,6 +784,19 @@ static void *video_out_loop (void *this_gen) {
     if (diff > 30000 && !this->display_img_buf_queue->first) {
       xine_stream_t *stream;
       
+#if	XINE_DEADLOCK_ON_QUIT
+      /*
+       * this flush code often deadlocks when a BUF_CONTROL_QUIT is
+       * sent to the video_decoder thread (that is, on xine exit):
+       *
+       * - we're detecting a "stall" here, this code locks
+       * streams_lock, and then video decoder's lock in the
+       * ...->flush() call
+       *
+       * - video_decoder performs actions for BUF_CONTROL_QUIT: it
+       * locks and disposes the video_decoder, which calls vo_close()
+       * and vo_close() tries to lock the streams_lock.
+       */
       pthread_mutex_lock(&this->streams_lock);
       for (stream = xine_list_first_content(this->streams); stream;
            stream = xine_list_next_content(this->streams)) {
@@ -799,6 +812,39 @@ static void *video_out_loop (void *this_gen) {
         }
       }
       pthread_mutex_unlock(&this->streams_lock);
+#else
+      /*
+       * Ugly hack to avoid the above mentioned deadlock: try to
+       * release the streams_lock as soon as possible, when we know
+       * that the current stream is the last one.
+       *
+       * This hack only works when the stream with video_decorder_plugin
+       * is the last one in the streams list!
+       */
+      pthread_mutex_lock(&this->streams_lock);
+      if ((stream = xine_list_first_content(this->streams)) != NULL) {
+	xine_stream_t *stream_next;
+
+	for (; stream; stream = stream_next) {
+	  stream_next = xine_list_next_content(this->streams);
+	  if (!stream_next)
+	    pthread_mutex_unlock(&this->streams_lock); 
+
+	  if (stream->video_decoder_plugin) {
+
+#ifdef LOG
+	    printf ("video_out: flushing current video decoder plugin (%d %d)\n", 
+		    this->display_img_buf_queue->num_buffers,
+		    this->free_img_buf_queue->num_buffers);
+#endif
+	
+	    stream->video_decoder_plugin->flush(stream->video_decoder_plugin);
+	  }
+	}
+      } else
+	pthread_mutex_unlock(&this->streams_lock);
+#endif
+
       this->last_delivery_pts = vpts;
     }
 
