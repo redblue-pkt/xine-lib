@@ -1002,7 +1002,7 @@ dnl AC_ARG_ENABLE(vcdo,[  --disable-vcdo         Do not compile old VCD plugin],
 dnl
 enable_vcdo="yes"
 
-AC_ARG_WITH(internal-vcdnav,[  --with-internal-vcdnav  Use internal libcdio/libvcd libraries ],
+AC_ARG_WITH(internal-vcdnav,[  --with-internal-vcdlibs  Force using internal libcdio/libvcd/libvcdinfo ],
             [external_vcdnav="no"], [external_vcdnav="yes"])
 
 if test x"$enable_vcd" = "xyes"; then
@@ -1029,10 +1029,7 @@ if test x"$enable_vcd" = "xyes"; then
   fi
   dnl empty_array_size
 
-  external_vcdnav="no"
-  no_vcdnav="yes"
-
-  if test x"$PKG_CONFIG" != "xno" ; then
+  if test x"$external_vcdnav" = "xyes" && test x"$PKG_CONFIG" != "xno" ; then
     AC_MSG_CHECKING(for libcdio)
     if $PKG_CONFIG --atleast-version 0.64 libcdio; then
       AC_MSG_RESULT(found)
@@ -1045,15 +1042,18 @@ if test x"$enable_vcd" = "xyes"; then
         LIBVCDINFO_CFLAGS=`$PKG_CONFIG --cflags libvcdinfo`
         LIBVCDINFO_LIBS=`$PKG_CONFIG --libs libvcdinfo`
 	  AC_DEFINE(HAVE_VCDNAV,1,[Define this if you have a suitable version of libcdio/libvcd])
-        external_vcdnav="yes"
-        no_vcdnav="no"
       else
         AC_MSG_RESULT([Use included libcdio/libvcdinfo support])
+	external_vcdnav="no"
       fi
 
     else
       AC_MSG_RESULT([Use included libcdio/libvcdinfo support])
+      external_vcdnav="no"
     fi
+  else
+    AC_MSG_RESULT([Use included libcdio/libvcdinfo support])
+    external_vcdnav="no"
   fi
 
   dnl check twice, fallback is internal copy
@@ -1205,7 +1205,7 @@ AC_SUBST(LIBISO9660_LIBS)
 AC_SUBST(LIBVCD_CFLAGS)
 AC_SUBST(LIBVCD_LIBS)
 AC_SUBST(LIBVCDINFO_LIBS)
-AM_CONDITIONAL(HAVE_VCDNAV, [test x"$no_vcdnav" != "xyes"])
+AM_CONDITIONAL(HAVE_VCDNAV, [test x"$external_vcdnav" = "xyes"])
 AM_CONDITIONAL(ENABLE_VCD, [test x"$enable_vcd" = "xyes"])
 
 
