@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.68 2002/09/02 03:21:38 jcdutton Exp $
+ * $Id: input_dvd.c,v 1.69 2002/09/02 12:25:49 jcdutton Exp $
  *
  */
 
@@ -765,7 +765,7 @@ static buf_element_t *dvdnav_plugin_read_block (input_plugin_t *this_gen,
       break;
      case DVDNAV_HOP_CHANNEL:
        {
-       flush_buffers(this);
+       //flush_buffers(this);
        break;
        }
      case DVDNAV_NAV_PACKET:
@@ -1463,6 +1463,11 @@ input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
 
 /*
  * $Log: input_dvd.c,v $
+ * Revision 1.69  2002/09/02 12:25:49  jcdutton
+ * This might slow things down a bit, but I need to do it to test a problem with DVD menus
+ * not appearing.
+ * I think the reason they are not appearing is that they are getting flushed too early.
+ *
  * Revision 1.68  2002/09/02 03:21:38  jcdutton
  * Implement proper prev/next chapter.
  *
