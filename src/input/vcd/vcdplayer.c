@@ -1,5 +1,5 @@
 /* 
-  $Id: vcdplayer.c,v 1.11 2005/01/01 02:43:57 rockyb Exp $
+  $Id: vcdplayer.c,v 1.12 2005/01/02 02:51:39 rockyb Exp $
  
   Copyright (C) 2002, 2003, 2004 Rocky Bernstein <rocky@panix.com>
   
@@ -998,66 +998,6 @@ vcdplayer_send_button_update(vcdplayer_t *p_vcdplayer, const int mode)
   /* dbg_print(INPUT_DBG_CALL, "Called\n"); */
   return;
 }
-
-#ifndef LIBVCD_VERSION
-/* Older version of vcdimager. You really should consider using 0.7.21
-   or later as that has bug and memory leak fixes. */
-lid_t
-vcdplayer_selection2lid (vcdplayer_t *p_vcdplayer, int entry_num) 
-{
-  /* FIXME: Some of p_vcdplayer probably gets moved to vcdinfo. */
-  /* Convert selection number to lid and then entry number...*/
-  unsigned int offset;
-  unsigned int bsn=vcdinf_get_bsn(p_vcdplayer->pxd.psd);
-  vcdinfo_obj_t *p_vcdinfo = p_vcdplayer->vcd;
-
-  dbg_print( (INPUT_DBG_CALL|INPUT_DBG_PBC), 
-            "Called lid %u, entry_num %d bsn %d\n", p_vcdplayer->i_lid, 
-             entry_num, bsn);
-
-  if ( (entry_num - bsn + 1) > 0) {
-    offset = vcdinfo_lid_get_offset(p_vcdinfo, p_vcdplayer->i_lid, 
-                                    entry_num-bsn+1);
-  } else {
-    LOG_ERR(p_vcdplayer, "Selection number %u too small. bsn %u\n", 
-            entry_num, bsn);
-    return VCDINFO_INVALID_LID;
-  }
-  
-  if (offset != VCDINFO_INVALID_OFFSET) {
-    vcdinfo_offset_t *ofs;
-    int old = entry_num;
-    
-    switch (offset) {
-    case PSD_OFS_DISABLED:
-      LOG_ERR(p_vcdplayer, "Selection %u disabled\n", entry_num);
-      return VCDINFO_INVALID_LID;
-    case PSD_OFS_MULTI_DEF:
-      LOG_ERR(p_vcdplayer, "Selection %u multi_def\n", entry_num);
-      return VCDINFO_INVALID_LID;
-    case PSD_OFS_MULTI_DEF_NO_NUM:
-      LOG_ERR(p_vcdplayer, "Selection %u multi_def_no_num\n", entry_num);
-      return VCDINFO_INVALID_LID;
-    default: ;
-    }
-    
-    ofs = vcdinfo_get_offset_t(p_vcdinfo, offset);
-
-    if (NULL == ofs) {
-      LOG_ERR(p_vcdplayer, "error in vcdinfo_get_offset\n");
-      return -1;
-    }
-    dbg_print(INPUT_DBG_PBC,
-              "entry %u turned into selection lid %u\n", 
-              old, ofs->lid);
-    return ofs->lid;
-    
-  } else {
-    LOG_ERR(p_vcdplayer, "invalid or unset entry %u\n", entry_num);
-    return VCDINFO_INVALID_LID;
-  }
-}
-#endif /* LIBVCD_VERSION */
 
 /* 
  * Local variables:

@@ -1,5 +1,5 @@
 /*
-  $Id: xineplug_inp_vcd.c,v 1.29 2005/01/01 02:43:57 rockyb Exp $
+  $Id: xineplug_inp_vcd.c,v 1.30 2005/01/02 02:51:39 rockyb Exp $
  
   Copyright (C) 2002, 2003, 2004 Rocky Bernstein <rocky@panix.com>
   
@@ -140,6 +140,12 @@ struct vcd_input_plugin_tag {
   xine_event_queue_t *event_queue;
 
   time_t	      pause_end_time;
+  int                 i_old_still; /* Value of player-i_still before next read.
+                                      See also i_still in vcdplayer structure.
+                                    */
+  int                 i_old_deinterlace; /* value of deinterlace before
+                                            entering a still. */
+
   vcd_input_class_t  *class;
   vcd_config_t        v_config;    /* Config stuff initially inherited   */
   bool                jumped;      /* True if we changed tracks or any
@@ -292,7 +298,7 @@ vcd_build_mrl_list(vcd_input_class_t *class, char *vcd_device)
 {
 
   char mrl[MRL_PREFIX_LEN+MAX_DEVICE_LEN+(sizeof("@E")-1)+12];
-  vcdplayer_t *player;
+  vcdplayer_t *vcdplayer;
   unsigned int n, i=0;
   unsigned int i_entries;
   vcdinfo_obj_t *p_vcdinfo;
@@ -302,10 +308,10 @@ vcd_build_mrl_list(vcd_input_class_t *class, char *vcd_device)
     return false;
   }
 
-  player = &(my_vcd.player);
+  vcdplayer = &(my_vcd.player);
 
   /* If VCD already open, we gotta close and stop it. */
-  if (player->opened) {
+  if (vcdplayer->opened) {
     vcd_close(class);
   }
 
@@ -314,16 +320,16 @@ vcd_build_mrl_list(vcd_input_class_t *class, char *vcd_device)
     vcd_device = class->vcd_device;
   }
   
-  if (!vcdio_open(player, vcd_device)) {
+  if (!vcdio_open(vcdplayer, vcd_device)) {
     /* Error should have been logged  in vcdio_open. If not do the below:
-    LOG_ERR(player, "%s: %s.\n", _("unable to open"), 
+    LOG_ERR(vcdplayer, "%s: %s.\n", _("unable to open"), 
             class->vcd_device, strerror(errno));
     */
     return false;
   }
   
-  p_vcdinfo               = player->vcd;
-  i_entries               = player->i_entries;
+  p_vcdinfo               = vcdplayer->vcd;
+  i_entries               = vcdplayer->i_entries;
   class->mrl_track_offset = -1;
 
   xine_free_mrls(&(class->num_mrls), class->mrls);
@@ -332,13 +338,13 @@ vcd_build_mrl_list(vcd_input_class_t *class, char *vcd_device)
      didn't have to possibly remove rejected LIDs from list done in the
      loop below.
    */
-  class->num_mrls = player->i_tracks + player->i_entries 
-    + player->i_segments + player->i_lids;
+  class->num_mrls = vcdplayer->i_tracks + vcdplayer->i_entries 
+    + vcdplayer->i_segments + vcdplayer->i_lids;
 
-  if (!player->show_rejected && vcdinfo_get_lot(player->vcd)) {
+  if (!vcdplayer->show_rejected && vcdinfo_get_lot(vcdplayer->vcd)) {
     /* Remove rejected LIDs from count. */
-    for (n=0; n<player->i_lids; n++) {
-      if ( vcdinf_get_lot_offset(vcdinfo_get_lot(player->vcd), n) 
+    for (n=0; n<vcdplayer->i_lids; n++) {
+      if ( vcdinf_get_lot_offset(vcdinfo_get_lot(vcdplayer->vcd), n) 
            == PSD_OFS_DISABLED )
         class->num_mrls--;
     }
@@ -352,13 +358,13 @@ vcd_build_mrl_list(vcd_input_class_t *class, char *vcd_device)
   }
 
   /* Record MRL's for tracks */
-  for (n=1; n<=player->i_tracks; n++) { 
+  for (n=1; n<=vcdplayer->i_tracks; n++) { 
     memset(&mrl, 0, sizeof (mrl));
     snprintf(mrl, sizeof(mrl), "%s%s@T%u", MRL_PREFIX, vcd_device, n);
-    vcd_add_mrl_slot(class, mrl, player->track[n-1].size, &i);
+    vcd_add_mrl_slot(class, mrl, vcdplayer->track[n-1].size, &i);
   }
     
-  class->mrl_entry_offset = player->i_tracks;
+  class->mrl_entry_offset = vcdplayer->i_tracks;
   class->mrl_play_offset  = class->mrl_entry_offset + i_entries - 1;
 
   /* Record MRL's for entries */
@@ -366,16 +372,16 @@ vcd_build_mrl_list(vcd_input_class_t *class, char *vcd_device)
     for (n=0; n<i_entries; n++) { 
       memset(&mrl, 0, sizeof (mrl));
       snprintf(mrl, sizeof(mrl), "%s%s@E%u", MRL_PREFIX, vcd_device, n);
-      vcd_add_mrl_slot(class, mrl, player->entry[n].size, &i);
+      vcd_add_mrl_slot(class, mrl, vcdplayer->entry[n].size, &i);
     }
   }
   
   /* Record MRL's for LID entries or selection entries*/
   class->mrl_segment_offset = class->mrl_play_offset;
-  if (vcdinfo_get_lot(player->vcd)) {
-    for (n=0; n<player->i_lids; n++) {
-      uint16_t ofs = vcdinf_get_lot_offset(vcdinfo_get_lot(player->vcd), n);
-      if (ofs != PSD_OFS_DISABLED || player->show_rejected) {
+  if (vcdinfo_get_lot(vcdplayer->vcd)) {
+    for (n=0; n<vcdplayer->i_lids; n++) {
+      uint16_t ofs = vcdinf_get_lot_offset(vcdinfo_get_lot(vcdplayer->vcd), n);
+      if (ofs != PSD_OFS_DISABLED || vcdplayer->show_rejected) {
         memset(&mrl, 0, sizeof (mrl));
         snprintf(mrl, sizeof(mrl), "%s%s@P%u%s", MRL_PREFIX, vcd_device, n+1, 
                 ofs == PSD_OFS_DISABLED ? "*" : "");
@@ -387,7 +393,7 @@ vcd_build_mrl_list(vcd_input_class_t *class, char *vcd_device)
 
   /* Record MRL's for segments */
   {
-    segnum_t i_segments = player->i_segments;
+    segnum_t i_segments = vcdplayer->i_segments;
     for (n=0; n<i_segments; n++) {
       vcdinfo_video_segment_type_t segtype 
         = vcdinfo_get_video_type(p_vcdinfo, n);
@@ -410,7 +416,7 @@ vcd_build_mrl_list(vcd_input_class_t *class, char *vcd_device)
 
       memset(&mrl, 0, sizeof (mrl));
       snprintf(mrl, sizeof(mrl), "%s%s@%c%u", MRL_PREFIX, vcd_device, c, n);
-      vcd_add_mrl_slot(class, mrl, player->segment[n].size, &i);
+      vcd_add_mrl_slot(class, mrl, vcdplayer->segment[n].size, &i);
     }
   }
   
@@ -625,7 +631,7 @@ static buf_element_t *
 vcd_plugin_read_block (input_plugin_t *this_gen, fifo_buffer_t *fifo, 
 			  const off_t nlen) 
 {
-  vcdplayer_t        *this = &my_vcd.player;
+  vcdplayer_t        *vcdplayer = &my_vcd.player;
   buf_element_t      *buf;
   uint8_t            data[M2F2_SECTOR_SIZE];
 
@@ -639,7 +645,7 @@ vcd_plugin_read_block (input_plugin_t *this_gen, fifo_buffer_t *fifo,
   /* Should we change this to <= instead of !=? */
   if (nlen != M2F2_SECTOR_SIZE) return NULL;
 
-  switch (vcdplayer_read(this, data, nlen)) {
+  switch (vcdplayer_read(vcdplayer, data, nlen)) {
   case READ_END:
     /* End reached. Return NULL to indicated this. */
     return NULL;
@@ -663,6 +669,23 @@ vcd_plugin_read_block (input_plugin_t *this_gen, fifo_buffer_t *fifo,
   
   buf->content = buf->mem;
 
+  if (vcdplayer->i_still != my_vcd.i_old_still) {
+    if (vcdplayer->i_still) {
+      my_vcd.i_old_deinterlace = xine_get_param(my_vcd.stream, 
+                                                XINE_PARAM_VO_DEINTERLACE);
+      xine_set_param(my_vcd.stream, XINE_PARAM_VO_DEINTERLACE, 0);
+      dbg_print(INPUT_DBG_STILL, "going into still, saving deinterlace %d\n", 
+                my_vcd.i_old_deinterlace);
+    } else {
+      dbg_print(INPUT_DBG_STILL, 
+                "going out of still, restoring deinterlace\n");
+      xine_set_param(my_vcd.stream, XINE_PARAM_VO_DEINTERLACE,
+                     my_vcd.i_old_deinterlace);
+    }
+    
+  }
+  my_vcd.i_old_still = vcdplayer->i_still;
+  
   /* Ideally this should probably be nlen.  */
   memcpy (buf->mem, data, M2F2_SECTOR_SIZE);
 
@@ -700,27 +723,27 @@ static off_t
 vcd_plugin_get_length (input_plugin_t *this_gen) {
 
   vcd_input_plugin_t *ip= (vcd_input_plugin_t *) this_gen;
-  vcdplayer_t        *this = &(ip->player);
+  vcdplayer_t        *vcdplayer = &(ip->player);
 
-  int n = this->play_item.num;
+  int n = vcdplayer->play_item.num;
 
-  if (this->play_item.num == old_play_item.num
-      && this->play_item.type == old_play_item.type 
-      && this->slider_length == old_slider_length)
+  if (vcdplayer->play_item.num == old_play_item.num
+      && vcdplayer->play_item.type == old_play_item.type 
+      && vcdplayer->slider_length == old_slider_length)
     return old_get_length;
 
-  old_slider_length = this->slider_length;
-  old_play_item     = this->play_item;
+  old_slider_length = vcdplayer->slider_length;
+  old_play_item     = vcdplayer->play_item;
 
-  switch (this->play_item.type) {
+  switch (vcdplayer->play_item.type) {
   case VCDINFO_ITEM_TYPE_ENTRY:
-    switch (this->slider_length) {
+    switch (vcdplayer->slider_length) {
     case VCDPLAYER_SLIDER_LENGTH_AUTO:
     case VCDPLAYER_SLIDER_LENGTH_ENTRY:
       n += ip->class->mrl_entry_offset;
       break;
     case VCDPLAYER_SLIDER_LENGTH_TRACK:
-      n = vcdinfo_get_track(this->vcd, n) + ip->class->mrl_track_offset;
+      n = vcdinfo_get_track(vcdplayer->vcd, n) + ip->class->mrl_track_offset;
       break;
     default:
       /* FIXME? */
@@ -737,7 +760,7 @@ vcd_plugin_get_length (input_plugin_t *this_gen) {
     /* This is the only situation where the size of the current play item
        is not static. It depends what the current play-item is.
      */
-    old_get_length = (this->end_lsn - this->origin_lsn) * 
+    old_get_length = (vcdplayer->end_lsn - vcdplayer->origin_lsn) * 
       M2F2_SECTOR_SIZE;
     return old_get_length;
     break;
@@ -751,7 +774,7 @@ vcd_plugin_get_length (input_plugin_t *this_gen) {
   if (n >= 0 && n < ip->class->num_mrls) {
     old_get_length = ip->class->mrls[n]->size;
     dbg_print(INPUT_DBG_MRL, "item: %u, slot %u, size %ld\n", 
-              this->play_item.num, 
+              vcdplayer->play_item.num, 
               (unsigned int) n,  (long int) old_get_length);
   }
   return old_get_length;
@@ -796,7 +819,7 @@ vcd_class_get_dir (input_class_t *this_gen, const char *filename,
   vcdinfo_itemid_t itemid;
 
   vcd_input_class_t *class = (vcd_input_class_t *) this_gen;
-  vcdplayer_t       *player= &my_vcd.player;
+  vcdplayer_t       *vcdplayer= &my_vcd.player;
 
   bool used_default;
 
@@ -805,7 +828,7 @@ vcd_class_get_dir (input_class_t *this_gen, const char *filename,
               "called with NULL\n");
     if ( class->mrls != NULL && NULL != class->mrls[0] ) goto have_mrls;
 
-    if ( !vcd_build_mrl_list(class, player->psz_source) ) {
+    if ( !vcd_build_mrl_list(class, vcdplayer->psz_source) ) {
       goto no_mrls;
     }
   } else {
@@ -815,7 +838,7 @@ vcd_class_get_dir (input_class_t *this_gen, const char *filename,
     if (!vcd_get_default_device(class, true)) goto no_mrls;
     if (!vcd_parse_mrl(class->vcd_device, mrl, 
                        intended_vcd_device, &itemid, 
-                       player->default_autoplay, &used_default)) { 
+                       vcdplayer->default_autoplay, &used_default)) { 
       free (mrl);
       goto no_mrls;
     }
@@ -871,24 +894,24 @@ vcd_class_eject_media (input_class_t *this_gen)
 static char * 
 vcd_plugin_get_mrl (input_plugin_t *this_gen) 
 {
-  vcd_input_plugin_t *t    = (vcd_input_plugin_t *) this_gen;
-  vcdplayer_t        *this = &my_vcd.player;
+  vcd_input_plugin_t *t         = (vcd_input_plugin_t *) this_gen;
+  vcdplayer_t        *vcdplayer = &my_vcd.player;
   unsigned int n;
   int size; /* need something to feed get_mrl_type_offset */
   int offset;
 
-  if (vcdplayer_pbc_is_on(this)) {
-    n = this->i_lid;
+  if (vcdplayer_pbc_is_on(vcdplayer)) {
+    n = vcdplayer->i_lid;
     offset = vcd_get_mrl_type_offset(t, VCDINFO_ITEM_TYPE_LID, &size);
   } else {
-    n = this->play_item.num;
-    offset = vcd_get_mrl_type_offset(t, this->play_item.type, &size);
+    n = vcdplayer->play_item.num;
+    offset = vcd_get_mrl_type_offset(t, vcdplayer->play_item.type, &size);
   }
 
   if (-2 == offset) {
     /* Bad type. */
     LOG_ERR("%s %d", _("Invalid current entry type"), 
-                  this->play_item.type);
+                  vcdplayer->play_item.type);
     return strdup("");
   } else {
     n += offset;
@@ -1402,7 +1425,7 @@ vcd_update_title(void)
 }
 
 /* 
-   No special initialization needed here. All of the initialization 
+   Not much special initialization needed here. All of the initialization 
    is either done in the class or when we have an actual MRL we want
    to deal with.
 */
@@ -1415,7 +1438,8 @@ vcd_plugin_open (input_plugin_t *this_gen ) {
 
   /* actually, this is also done by class initialization. But just in 
      case... */
-  class->ip                  = &my_vcd; 
+  class->ip          = &my_vcd; 
+  my_vcd.i_old_still = 0;
 
   return 1;
 }

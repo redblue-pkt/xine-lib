@@ -1,5 +1,5 @@
 /*
-  $Id: vcdio.c,v 1.4 2004/12/29 09:23:56 rockyb Exp $
+  $Id: vcdio.c,v 1.5 2005/01/02 02:51:38 rockyb Exp $
  
   Copyright (C) 2002, 2003, 2004 Rocky Bernstein <rocky@panix.com>
   
@@ -113,6 +113,7 @@ vcdio_open(vcdplayer_t *p_vcdplayer, char *intended_vcd_device)
   p_vcdplayer->psz_source = strdup(intended_vcd_device);
   p_vcdplayer->opened     = true;
   p_vcdplayer->i_lids     = vcdinfo_get_num_LIDs(p_vcdinfo);
+  p_vcdplayer->i_still    = 0;
 
   if (vcdinfo_read_psd (p_vcdinfo)) {
 
