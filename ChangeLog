@@ -27,6 +27,8 @@ xine-lib (1-rc4)
     * ATI VCR1
     * Real Video 2.0
     * Sierra VMD
+  * new MOD demuxer
+  * new, safer method for on-the-fly rewiring of post plugins
 
 xine-lib (1-rc3a)
   * new subtitle formats: jacobsub, subviewer 2.0, subrip 0.9
