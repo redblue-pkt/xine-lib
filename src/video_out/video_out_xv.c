@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.2 2001/04/26 11:31:35 f1rmb Exp $
+ * $Id: video_out_xv.c,v 1.3 2001/04/26 11:36:12 f1rmb Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -667,8 +667,8 @@ static char *xv_get_identifier(void) {
   return "X11_XV";
 }
 
-vo_driver_t *init_video_out_xv (int iface, config_values_t *config, 
-				void *visual, int visual_type) {
+vo_driver_t *init_video_out_plugin (int iface, config_values_t *config, 
+				    void *visual, int visual_type) {
 
   xv_driver_t          *this;
   Display              *display = NULL;
@@ -940,4 +940,3 @@ vo_driver_t *init_video_out_xv (int iface, config_values_t *config,
 }
 
 #endif
-
