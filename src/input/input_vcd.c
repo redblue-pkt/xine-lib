@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_vcd.c,v 1.75 2004/07/20 00:50:11 rockyb Exp $
+ * $Id: input_vcd.c,v 1.76 2004/10/20 05:04:00 athp Exp $
  *
  */
 
@@ -636,7 +636,7 @@ static void vcd_offset_to_time (off_t offset, uint8_t *min, uint8_t *sec,
 
 }
 
-#if defined (__linux__) || defined(__sun)
+#if defined (__linux__) || defined(__sun) || defined(HOST_OS_DARWIN)
 static off_t vcd_plugin_seek (input_plugin_t *this_gen, 
 			      off_t offset, int origin) {
 
