@@ -474,20 +474,24 @@ void mpeg2_flush (mpeg2dec_t * mpeg2dec) {
 
   if (!picture)
     return;
-
-  if (picture->backward_reference_frame && !picture->backward_reference_frame->drawn
-      && !picture->backward_reference_frame->bad_frame) {
+  
+  /* we use drawn = 2 here as a special case: the frame can be flushed
+   * more than once (thus fixing the problem of blasting unfinished
+   * frames). 
+   */
+  if (picture->current_frame && picture->current_frame->drawn != 1
+      && !picture->current_frame->bad_frame) {
 
     vo_frame_t *img;
     
-    printf ("libmpeg2: blasting out backward reference frame %d on flush\n",
-	    picture->backward_reference_frame->id);
+    printf ("libmpeg2: blasting out current frame %d on flush\n",
+	    picture->current_frame->id);
     
-    picture->backward_reference_frame->drawn = 1;
+    picture->current_frame->drawn = 2;
     
     /* output a copy instead of the frame used by decoder */
-    img = picture->backward_reference_frame->instance->duplicate_frame(picture->backward_reference_frame->instance, 
-								       picture->backward_reference_frame);
+    img = picture->current_frame->instance->duplicate_frame(picture->current_frame->instance, 
+								       picture->current_frame);
     img->pts = 0;
     img->bad_frame = 0;
     img->drawn = 1; 
