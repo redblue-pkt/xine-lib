@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: qt_decoder.c,v 1.4 2002/12/28 09:50:49 esnel Exp $
+ * $Id: qt_decoder.c,v 1.5 2002/12/30 05:09:53 tmmm Exp $
  *
  * quicktime video/audio decoder plugin, using win32 dlls
  * most of this code comes directly from MPlayer
@@ -505,8 +505,8 @@ static void qta_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 
 	memcpy (audio_buffer->mem, this->out_buf+bytes_sent, nframes * this->frame_size);
 
-	/* audio_buffer->vpts       = buf->pts; */
-	audio_buffer->vpts = 0;
+	audio_buffer->vpts = buf->pts;
+	buf->pts = 0;  /* only the first buffer gets the real pts */
 	audio_buffer->num_frames = nframes;
 
 #ifdef LOG
