@@ -22,7 +22,7 @@
  * avoid while programming a FLI decoder, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_fli.c,v 1.40 2003/04/26 20:16:02 guenter Exp $
+ * $Id: demux_fli.c,v 1.41 2003/05/31 02:04:17 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -96,11 +96,20 @@ typedef struct {
 /* returns 1 if the FLI file was opened successfully, 0 otherwise */
 static int open_fli_file(demux_fli_t *this) {
 
-  /* read the whole header */
-  this->input->seek(this->input, 0, SEEK_SET);
-  if (this->input->read(this->input, this->fli_header, FLI_HEADER_SIZE) !=
-    FLI_HEADER_SIZE)
-    return 0;
+  unsigned char preview[MAX_PREVIEW_SIZE];
+
+  if (this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) {
+    this->input->seek(this->input, 0, SEEK_SET);
+    if (this->input->read(this->input, this->fli_header, FLI_HEADER_SIZE) !=
+      FLI_HEADER_SIZE)
+      return 0;
+  } else {
+    this->input->get_optional_data(this->input, preview,
+      INPUT_OPTIONAL_DATA_PREVIEW);
+
+    /* copy over the header bytes for processing */
+    memcpy(this->fli_header, preview, FLI_HEADER_SIZE);
+  }
 
   /* validate the file */
   this->magic_number = LE_16(&this->fli_header[4]);
@@ -108,8 +117,22 @@ static int open_fli_file(demux_fli_t *this) {
       (this->magic_number != FLI_FILE_MAGIC_2))
     return 0;
 
+  /* file is qualified; if the input was not seekable, skip over the
+   * signature bytes in the stream */
+  if ((this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) == 0) {
+    this->input->seek(this->input, FLI_HEADER_SIZE, SEEK_SET);
+  }
+
   /* check if this is a special FLI file from Magic Carpet game */
   if (LE_16(&this->fli_header[16]) == FLI_CHUNK_MAGIC_1) {
+    /* if the input is non-seekable, do not bother with playing the
+     * special file type */
+    if (this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) {
+      this->input->seek(this->input, FLI_HEADER_SIZE_MC, SEEK_SET);
+    } else {
+      return 0;
+    }
+
     /* use a contrived internal FLI type, 0xAF13 */
     this->magic_number = FLI_FILE_MAGIC_3;
     this->fli_header[4] = 0x13;  /* make sure to communicate this to decoder */
@@ -174,11 +197,22 @@ static int demux_fli_send_chunk(demux_plugin_t *this_gen) {
   chunk_size = LE_32(&fli_buf[0]);
   chunk_magic = LE_16(&fli_buf[4]);
   
-  /* rewind over the size and packetize the chunk */
-  this->input->seek(this->input, -6, SEEK_CUR);
-  
   if ((chunk_magic == FLI_CHUNK_MAGIC_1) || 
       (chunk_magic == FLI_CHUNK_MAGIC_2)) {
+
+    /* send a buffer with only the chunk header */
+    buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
+    buf->type = BUF_VIDEO_FLI;
+    buf->extra_info->input_pos = current_file_pos;
+    buf->extra_info->input_time = this->pts_counter / 90;
+    buf->extra_info->input_length = this->stream_len;
+    buf->pts = this->pts_counter;
+    buf->size = 6;
+    memcpy(buf->content, fli_buf, 6);
+    this->video_fifo->put(this->video_fifo, buf);
+
+    chunk_size -= 6;
+
     while (chunk_size) {
       buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
       buf->type = BUF_VIDEO_FLI;
@@ -257,11 +291,6 @@ static int demux_fli_seek (demux_plugin_t *this_gen,
 
     this->status = DEMUX_OK;
   
-    /* make sure to start just after the header */
-    if (this->magic_number == FLI_FILE_MAGIC_3)
-      this->input->seek(this->input, FLI_HEADER_SIZE_MC, SEEK_SET);
-    else
-      this->input->seek(this->input, FLI_HEADER_SIZE, SEEK_SET);
     this->stream_len = this->input->get_length(this->input);
 
     this->pts_counter = 0;
@@ -300,12 +329,6 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
 
   input_plugin_t *input = (input_plugin_t *) input_gen;
   demux_fli_t    *this;
-
-  if (! (input->get_capabilities(input) & INPUT_CAP_SEEKABLE)) {
-    if (stream->xine->verbosity >= XINE_VERBOSITY_DEBUG) 
-      printf(_("demux_fli.c: input not seekable, can not handle!\n"));
-    return NULL;
-  }
 
   this         = xine_xmalloc (sizeof (demux_fli_t));
   this->stream = stream;
