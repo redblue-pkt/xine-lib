@@ -441,9 +441,9 @@ static int my_release(void* memory)
 
     alccnt--;
 
-    if (last_alloc)
-	pthread_mutex_unlock(&memmut);
-    else
+    /* xine: mutex must be unlocked on entrance of pthread_mutex_destroy */
+    pthread_mutex_unlock(&memmut);
+    if (!last_alloc)
 	pthread_mutex_destroy(&memmut);
 
     //if (alccnt < 40000) printf("MY_RELEASE: %p\t%ld    (%d)\n", header, header->size, alccnt);
@@ -1355,8 +1355,12 @@ static void WINAPI expEnterCriticalSection(CRITICAL_SECTION* c)
 	printf("wine/win32: Win32 Warning: Accessed uninitialized Critical Section (%p)!\n", c);
     }
     if(cs->locked)
+	/* xine: recursive locking */
 	if(cs->id==pthread_self())
+	{
+	    cs->locked++;
 	    return;
+	}
     pthread_mutex_lock(&(cs->mutex));
     cs->locked=1;
     cs->id=pthread_self();
@@ -1376,8 +1380,14 @@ static void WINAPI expLeaveCriticalSection(CRITICAL_SECTION* c)
 	printf("Win32 Warning: Leaving uninitialized Critical Section %p!!\n", c);
 	return;
     }
-    cs->locked=0;
-    pthread_mutex_unlock(&(cs->mutex));
+    
+    /* xine: recursive unlocking */
+    if( cs->locked )
+    {
+	cs->locked--;
+	if( !cs->locked )
+	    pthread_mutex_unlock(&(cs->mutex));
+    }
     return;
 }
 static void WINAPI expDeleteCriticalSection(CRITICAL_SECTION *c)
@@ -1391,6 +1401,10 @@ static void WINAPI expDeleteCriticalSection(CRITICAL_SECTION *c)
     dbgprintf("DeleteCriticalSection(0x%x)\n",c);
 
 #ifndef GARBAGE
+
+    /* xine: mutex must be unlocked on entrance of pthread_mutex_destroy */
+    if( cs->locked )
+	pthread_mutex_unlock(&(cs->mutex));
     pthread_mutex_destroy(&(cs->mutex));
     // released by GarbageCollector in my_relase otherwise
 #endif
@@ -5072,6 +5086,15 @@ static void* add_stub(void)
     {
       if(strcmp(export_names[pos], export_names[i])==0)
         return extcode+i*0x30; /* return existing stub */
+    }
+
+    /* xine: side effect of the stub fix. we must not
+     * allocate a stub for this function otherwise QT dll
+     * will try to call it.
+     */      
+    if( strcmp(export_names[pos], "AllocateAndInitializeSid") == 0 )
+    {
+      return 0;
     }
       
 #if 0
