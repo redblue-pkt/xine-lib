@@ -40,10 +40,24 @@ AC_DEFINE_UNQUOTED(XINE_MAJOR, $XINE_MAJOR)
 AC_DEFINE_UNQUOTED(XINE_MINOR, $XINE_MINOR)
 AC_DEFINE_UNQUOTED(XINE_SUB, $XINE_SUB)
 
-LT_RELEASE=$XINE_MAJOR.$XINE_MINOR
-LT_CURRENT=`expr $XINE_SUB - $XINE_IFACE_AGE`
-LT_REVISION=$XINE_IFACE_AGE
-LT_AGE=`expr $XINE_BIN_AGE - $XINE_IFACE_AGE`
+## this is only for pre-1.0 releases (ie with unstable interface)
+LT_RELEASE=$XINE_MAJOR.$XINE_MINOR.$XINE_SUB
+LT_CURRENT=0
+LT_REVISION=0
+LT_AGE=0
+
+## non-devel releases should not use LT_RELEASE but something like this:
+##
+## LT_REVISION=$XINE_SUB
+## LT_CURRENT=`expr $XINE_MAJOR + $XINE_MINOR`
+## LT_AGE=$XINE_MINOR
+##
+## !! This only works if subminor releases don't have any interface changes,
+## !! minor releases _only add_ interfaces and major releases remove at least
+## !! one interface
+## otherwise, the LT_* variables must be set according to
+## <info:(libtool)Updating version info>
+
 AC_SUBST(LT_RELEASE)
 AC_SUBST(LT_CURRENT)
 AC_SUBST(LT_REVISION)
