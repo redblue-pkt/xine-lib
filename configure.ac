@@ -381,7 +381,16 @@ AC_CHECK_LIB(Xv, XvShmCreateImage,
 	         echo
                fi ],, [$X_LIBS $X_PRE_LIBS -lXext $X_EXTRA_LIBS])
 AM_CONDITIONAL(HAVE_XV, test x$ac_have_xv = "xyes")
+dnl
+dnl xine_check use Xv functions API.
+dnl
+if test x$ac_have_xv = "xyes"; then
+  EXTRA_X_LIBS="$XV_LIBS -lXext"
+  EXTRA_X_CFLAGS="-L$xv_path"
+fi
 AC_SUBST(XV_LIB)
+AC_SUBST(EXTRA_X_LIBS)
+AC_SUBST(EXTRA_X_CFLAGS)
 
 dnl ---------------------------------------------
 dnl Checks for Xinerama extension
