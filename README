@@ -50,6 +50,7 @@ supported platforms / requirements:
   details.
 - for audio playback OSS, ALSA, ESD and ARTSD are supported.
 - to build xine fairly recent gmake, gcc and binutils are required
+- xine-ui requires libpng and zlib
 
 xine has so far been sucessfully used on the following systems:
 
