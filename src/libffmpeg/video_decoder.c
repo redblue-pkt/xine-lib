@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.16 2004/05/09 14:22:54 tmattern Exp $
+ * $Id: video_decoder.c,v 1.17 2004/05/12 07:41:43 tmattern Exp $
  *
  * xine video decoder plugin using ffmpeg
  *
@@ -98,8 +98,9 @@ struct ff_video_decoder_s {
   uint32_t          shift;
   uint8_t          *chunk_buffer;
   uint8_t          *chunk_ptr;
+  int               chunk_size;
   uint8_t           code;
-
+  
   int               is_continous;
 
   double            aspect_ratio;
@@ -220,6 +221,7 @@ static void init_video_codec (ff_video_decoder_t *this, xine_bmiheader *bih) {
     return;
   }
 
+  
   this->decoder_ok = 1;
   
   this->aspect_ratio = (double)this->bih.biWidth / (double)this->bih.biHeight;
@@ -326,8 +328,70 @@ static void init_postprocess (ff_video_decoder_t *this) {
   pp_change_quality(this);    
 }
 
-static void find_sequence_header (ff_video_decoder_t *this,
-                                  uint8_t * current, uint8_t * end){
+
+/* code adapted from libmpeg2 */
+static inline uint8_t *ff_mpeg_copy_chunk (ff_video_decoder_t *this,
+                                           uint8_t *current, uint8_t *end) {
+  uint32_t  shift;
+  uint8_t  *chunk_ptr;
+  uint8_t  *limit;
+  uint8_t   byte;
+
+  shift = this->shift;
+  chunk_ptr = this->chunk_ptr;
+  limit = current + (this->chunk_buffer + SLICE_BUFFER_SIZE - chunk_ptr);
+  if (limit > end)
+    limit = end;
+
+  while (1) {
+
+    byte = *current++;
+    if (shift == 0x00000100) {
+      
+      if (byte == 0x00) {
+        lprintf("start code found\n");
+        this->chunk_size = chunk_ptr - this->chunk_buffer - 3;
+        this->chunk_buffer[0] = 0x00;
+        this->chunk_buffer[1] = 0x00;
+        this->chunk_buffer[2] = 0x01;
+        this->chunk_buffer[3] = this->code;
+        this->chunk_ptr = this->chunk_buffer + 4;
+        this->shift = 0xffffff00;
+    
+        this->code = byte;
+        return current;
+      }
+    }
+    shift = (shift | byte) << 8;
+    *chunk_ptr++ = byte;
+    if (current < limit)
+      continue;
+    if (current == end) {
+      lprintf("need more bytes\n");
+      this->chunk_ptr = chunk_ptr;
+      this->shift = shift;
+      return NULL;
+    } else {
+      lprintf("buffer full\n");
+
+      this->chunk_size = this->chunk_ptr - this->chunk_buffer;
+      
+      /* we filled the chunk buffer without finding a start code */
+      this->chunk_buffer[0] = 0x00;
+      this->chunk_buffer[1] = 0x00;
+      this->chunk_buffer[2] = 0x01;
+      this->chunk_buffer[3] = this->code;
+        
+      this->chunk_ptr = this->chunk_buffer + 4;
+      this->code = 0xb4; /* sequence_error_code */
+      return current;
+    }
+  }
+}
+
+
+static void ff_find_sequence_header (ff_video_decoder_t *this,
+                                     uint8_t * current, uint8_t * end) {
 
   uint8_t code;
 
@@ -797,8 +861,8 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
   int i, codec_type;
   uint8_t *ffbuf = NULL;
 
-  lprintf ("processing packet type = %08x, buf : %p, buf->decoder_flags=%08x\n", 
-           buf->type, buf, buf->decoder_flags);
+  lprintf ("processing packet type = %08x, len = %d, decoder_flags=%08x\n", 
+           buf->type, buf->size, buf->decoder_flags);
 
   codec_type = buf->type & 0xFFFF0000;
 
@@ -807,7 +871,7 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
     lprintf ("preview\n");
 
     if ( (buf->type & 0xFFFF0000) == BUF_VIDEO_MPEG ) {
-      find_sequence_header (this, buf->content, buf->content+buf->size);
+      ff_find_sequence_header (this, buf->content, buf->content + buf->size);
     }
     return;
   }
@@ -919,7 +983,8 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 
   } else {
 
-    if ((this->size == 0) && (buf->decoder_flags & BUF_FLAG_FRAME_END)) {
+    if (((this->size == 0) && (buf->decoder_flags & BUF_FLAG_FRAME_END)) ||
+        (this->is_continous)) {
       /* buf contains a full frame */
       /* no memcpy needed */
       ffbuf = buf->content;
@@ -980,16 +1045,38 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
       this->context->hurry_up = (this->skipframes > 2) ? 1:0;
 
       offset = 0;
-      while (this->size>0) {
+      while (this->size > 0) {
         
         /* DV frames can be completely skipped */
         if( codec_type == BUF_VIDEO_DV && this->skipframes ) {
           len = this->size;
           got_picture = 1;
-        } else
-          len = avcodec_decode_video (this->context, this->av_frame,
-                                      &got_picture, &ffbuf[offset],
-                                      this->size);
+        } else {
+  
+          if (this->is_continous) {
+            uint8_t *current;
+
+            got_picture = 0;
+            current = ff_mpeg_copy_chunk (this, ffbuf + offset, ffbuf + offset + this->size);
+            if (current == NULL) {
+              lprintf("current == NULL\n");
+              len = this->size;
+            }  else {
+              lprintf("avcodec_decode_video: size=%d\n", this->chunk_size);
+              len = avcodec_decode_video (this->context, this->av_frame,
+                                          &got_picture, this->chunk_buffer,
+                                          this->chunk_size);
+              lprintf("avcodec_decode_video: decoded_size=%d\n", len);
+              len = current - ffbuf - offset;
+              lprintf("avcodec_decode_video: consumed_size=%d\n", len);
+            }
+          } else {
+
+            len = avcodec_decode_video (this->context, this->av_frame,
+                                        &got_picture, &ffbuf[offset],
+                                        this->size);
+          }
+        }
         if (len < 0) {
           xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, 
                    "ffmpeg_video_dec: error decompressing frame\n");
@@ -1005,12 +1092,16 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
                   "ffmpeg_video_dec: didn't get a picture, %d bytes left\n", 
                   this->size);
 
-          if (this->size > 0) {
-	    ff_check_bufsize(this, offset + this->size);
-	    memmove (this->buf, &ffbuf[offset], this->size);
-	    ffbuf = this->buf;
-	  }
-          return;
+          if (!this->is_continous) {
+            if (this->size > 0) {
+              ff_check_bufsize(this, offset + this->size);
+              memmove (this->buf, &ffbuf[offset], this->size);
+              ffbuf = this->buf;
+            }
+            return;
+          } else {
+            continue;
+          }
         }
 
         lprintf ("got a picture\n");
