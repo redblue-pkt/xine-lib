@@ -2,18 +2,13 @@ dnl
 dnl Configure.in for xine
 dnl
 
-AC_INIT(src/xine-engine/xine.c)
+AC_INIT
+AC_CONFIG_SRCDIR([src/xine-engine/xine.c])
 
 dnl
-dnl Require autoconf version 2.13
+dnl Require autoconf version 2.52
 dnl
-AC_PREREQ(2.13)
-
-dnl
-dnl Require libtool minimum version 1.4.0
-dnl
-dnl AC_PREREQ_LIBTOOL(1.4.0,,AC_MSG_ERROR(*** You should have libtool >= 1.4 installed ***))
-
+AC_PREREQ(2.53)
 
 dnl Making releases:
 dnl   XINE_SUB += 1; continue with LT_* values below
@@ -55,9 +50,9 @@ AC_SUBST(XINE_SUB)
 AC_SUBST(XINE_IFACE_AGE)
 AC_SUBST(XINE_BIN_AGE)
 
-AC_DEFINE_UNQUOTED(XINE_MAJOR, $XINE_MAJOR)
-AC_DEFINE_UNQUOTED(XINE_MINOR, $XINE_MINOR)
-AC_DEFINE_UNQUOTED(XINE_SUB, $XINE_SUB)
+AC_DEFINE_UNQUOTED(XINE_MAJOR, $XINE_MAJOR,[Xine major version number])
+AC_DEFINE_UNQUOTED(XINE_MINOR, $XINE_MINOR,[Xine minor version number])
+AC_DEFINE_UNQUOTED(XINE_SUB, $XINE_SUB, [Xine sub version number])
 
 AC_SUBST(LT_CURRENT)
 AC_SUBST(LT_REVISION)
@@ -70,17 +65,15 @@ AC_SUBST(TAR_NAME)
 AC_SUBST(SPEC_VERSION)
 
 dnl
-AC_CANONICAL_SYSTEM
-dnl AC_CANONICAL_HOST
-
+AC_CANONICAL_TARGET
 
 dnl
 AM_INIT_AUTOMAKE("xine-lib", $XINE_MAJOR.$XINE_MINOR.$XINE_SUB$XINE_PRE)
 
 
-dnl
+dnl ---------------------------------------------
 dnl Made possible to build for another arch.
-dnl
+dnl ---------------------------------------------
 if test x$XINE_BUILD != "x"; then
   AC_MSG_RESULT([*** build forced to $XINE_BUILD ***])
   build=$XINE_BUILD
@@ -92,28 +85,30 @@ fi
 AM_CONFIG_HEADER(config.h)
 
 
-dnl
+dnl ---------------------------------------------
 dnl Check for programs.
-dnl
+dnl ---------------------------------------------
 dnl Save CFLAGS, AC_ISC_POSIX set some unwanted default CFLAGS
 saved_CFLAGS="$CFLAGS"
 AC_ISC_POSIX
 CFLAGS="$saved_CFLAGS"
 AC_PROG_CC
-AC_STDC_HEADERS
+AC_HEADER_STDC
 AC_PROG_MAKE_SET
 AC_PROG_INSTALL
-dnl obsolete AC_PROG_RANLIB
 AC_PROG_LN_S
 AC_PROG_AWK
 
+dnl ---------------------------------------------
+dnl Check for assembler (ffmpeg need it), don't call this before LIBTOOL
+dnl ---------------------------------------------
+AM_PROG_AS
 
-
-dnl
+dnl ---------------------------------------------
 dnl Libtool
-dnl
+dnl ---------------------------------------------
 AC_LIBTOOL_DLOPEN
-AM_DISABLE_STATIC
+dnl AM_DISABLE_STATIC
 AM_PROG_LIBTOOL
 AC_SUBST(LIBTOOL_DEPS)
 if ${CONFIG_SHELL} ./libtool --features | grep "enable static" >/dev/null; then
@@ -124,29 +119,25 @@ fi
 AC_SUBST(STATIC)
 
 
-dnl
+dnl ---------------------------------------------
 dnl NLS Support
-dnl
+dnl ---------------------------------------------
+
 dnl ALL_LINGUAS="cs da de el en@quot en@boldquot es et fr gl id it ja ko nl nn no pl pt pt_BR ru sl sv tr zh"
 ALL_LINGUAS="fr pt_BR de sk es pl_PL cs"
 AM_GNU_GETTEXT(use-libtool)
-AC_LINK_FILES($nls_cv_header_libgt, $nls_cv_header_intl)
+AC_CONFIG_LINKS($nls_cv_header_libgt, $nls_cv_header_intl)
 AM_CONDITIONAL(INCLUDED_INTL, test x$USE_INCLUDED_LIBINTL = "xyes")
 if test x"$USE_INCLUDED_LIBINTL" = x"yes"; then
    INTLDIR="-I\$(top_builddir)/intl -I\$(top_srcdir)/intl"
-fi
+		fi
 AC_SUBST(INTLDIR)
 
 
-dnl
-dnl Check for assembler (ffmpeg need it), don't call this before LIBTOOL
-dnl
-AM_PROG_AS
 
-
-dnl
+dnl ---------------------------------------------
 dnl Checks for typedefs, structures, and compiler characteristics.
-dnl
+dnl ---------------------------------------------
 AC_C_BIGENDIAN
 dnl AC_C_BIGENDIAN triggers an AC_TRY_RUN warning; we can't cross compile
 dnl xine (oh, well)
@@ -154,24 +145,25 @@ AC_C_CONST
 AC_C_ALWAYS_INLINE
 AC_TYPE_OFF_T
 AC_TYPE_SIZE_T
-dnl AM_TYPE_PTRDIFF_T
+dnl AC_CHECK_TYPES([ptrdiff_t])
 
-dnl
+dnl ---------------------------------------------
 dnl debug cflags
-dnl
+dnl ---------------------------------------------
 AC_SUBST(DEBUG_CFLAGS)
-DEBUG_CFLAGS="$CFLAGS -g -DDEBUG"
+DEBUG_CFLAGS="$CFLAGS -g -O -DDEBUG"
 
-dnl
+dnl ---------------------------------------------
 dnl threads
-dnl
+dnl ---------------------------------------------
 case "$host" in
   *-*-freebsd*)
     THREAD_LIBS="-L/usr/local/lib -pthread"
     THREAD_CFLAGS="-I/usr/local/include -D_THREAD_SAFE"
+
     CFLAGS="$CFLAGS $THREAD_CFLAGS"
-    DEBUG_CFLAGS="$DEBUG_CFLAGS -L/usr/local/lib -I/usr/local/include -D_THREAD_SAFE"
-    CPPFLAGS="$CPPFLAGS -I/usr/local/include -L/usr/local/lib"
+    DEBUG_CFLAGS="$DEBUG_CFLAGS"
+
     ;;
   *)
     AC_CHECK_LIB(pthread, pthread_create,
@@ -184,9 +176,9 @@ dnl needed for xine-config
 AC_SUBST(THREAD_CFLAGS)
 
 
-dnl
+dnl ---------------------------------------------
 dnl dynamic linker
-dnl
+dnl ---------------------------------------------
 AC_CHECK_LIB(c, dlopen,
 	     DYNAMIC_LD_LIBS="",
 	     AC_CHECK_LIB(dl, dlopen,
@@ -195,9 +187,9 @@ AC_CHECK_LIB(c, dlopen,
 AC_SUBST(DYNAMIC_LD_LIBS)
 
 
-dnl
+dnl ---------------------------------------------
 dnl mpeg2lib stuff
-dnl
+dnl ---------------------------------------------
 AC_SUBST(LIBMPEG2_CONFIG_OBJS)
 AC_SUBST(LIBMPEG2_CFLAGS)
 AC_SUBST(LIBA52_CFLAGS)
@@ -207,16 +199,21 @@ LIBMPEG2_CFLAGS="" dnl default include path removed, no more needed.
 LIBA52_CFLAGS=""
 LIBFFMPEG_CFLAGS="-DSIMPLE_IDCT -DHAVE_AV_CONFIG_H"
 
-AC_ARG_ENABLE(altivec, [  --disable-altivec       use assembly codes for Motorola 74xx CPUs],
-	      enable_altivec=no, enable_altivec=yes)
+AC_ARG_ENABLE(altivec, i
+	[  --disable-altivec       use assembly codes for Motorola 74xx CPUs],
+		enable_altivec=no, 
+		enable_altivec=yes)
 
-AC_ARG_ENABLE(vis, [  --enable-vis            use assembly codes for Sun UltraSPARC cpus],
-              enable_vis=yes, enable_vis=no)
+AC_ARG_ENABLE(vis, 
+	[  --enable-vis            use assembly codes for Sun UltraSPARC cpus],
+         	enable_vis=yes,
+		enable_vis=no)
 
 if test x$enable_mlib = x; then
 AC_ARG_ENABLE(mlib,
 	[  --disable-mlib          make a version not using mediaLib],
-	enable_mlib=no, enable_mlib=yes)
+		enable_mlib=no,
+		enable_mlib=yes)
 fi
 if test x$enable_mlib = xyes; then
     if test x"$MLIBHOME" = x; then
@@ -231,28 +228,28 @@ if test x$enable_mlib = xyes; then
                  LIBMPEG2_CFLAGS="$LIBMPEG2_CFLAGS -I$mlibhome/include" 
                  LIBA52_CFLAGS="$LIBA52_CFLAGS -I$mlibhome/include" 
                  LIBFFMPEG_CFLAGS="$LIBFFMPEG_CFLAGS -I$mlibhome/include" 
-		 AC_DEFINE(HAVE_MLIB)
-                 AC_DEFINE(LIBMPEG2_MLIB)
-		 AC_DEFINE(LIBA52_MLIB)
+		 AC_DEFINE(HAVE_MLIB,1,[Define this if you have mlib installed])
+                 AC_DEFINE(LIBMPEG2_MLIB,1,[Define this if you have mlib installed])
+		 AC_DEFINE(LIBA52_MLIB,1,[Define this if you have mlib installed])
 		 ac_have_mlib=yes],
                , -L/opt/SUNWmlib/lib)
     AM_CONDITIONAL(HAVE_MLIB, test x$ac_have_mlib = "xyes")
 fi
 
 
-dnl
+dnl ---------------------------------------------
 dnl Checks for X11
-dnl
+dnl ---------------------------------------------
 AC_PATH_XTRA
 if test x"$no_x" != "xyes"; then
-    AC_DEFINE(HAVE_X11)
+    AC_DEFINE(HAVE_X11,1,[Define this if you have X11R6 installed])
 fi
 AM_CONDITIONAL(HAVE_X11, [test x"$no_x" != "xyes"])
 
 
-dnl
+dnl ---------------------------------------------
 dnl zlib
-dnl
+dnl ---------------------------------------------
 dnl Test for libz
 AC_CHECK_LIB(z, gzsetparams,
 	[ AC_CHECK_HEADER(zlib.h,
@@ -263,18 +260,18 @@ AM_CONDITIONAL(HAVE_ZLIB, [test x"$have_zlib" = "xyes"])
 AC_SUBST(ZLIB_LIBS)
 
 
-dnl
+dnl ---------------------------------------------
 dnl Checks for Xv extension
-dnl
+dnl ---------------------------------------------
 dnl static linking with libXv is preferred!
 dnl but only dynamic linking is possible when using libtool < 1.4.0
 
 AC_PREREQ_LIBTOOL(1.4.0, xv_lib="libXv.a", xv_lib="libXv.so")
 
 
-dnl
+dnl ---------------------------------------------
 dnl Check for OpenGL & [GLut | GLU]
-dnl
+dnl ---------------------------------------------
 AC_CHECK_LIB(GL, glBegin,
 	[AC_CHECK_HEADER(GL/GL.h,
              [ ac_have_opengl="yes"
@@ -282,14 +279,14 @@ AC_CHECK_LIB(GL, glBegin,
 	       AC_CHECK_LIB(glut, glutInit, dnl check for glut
 	                    [ ac_have_glut="yes"
                               GLUT_LIBS="-lglut"
-	                      AC_DEFINE(HAVE_GLUT)
-			      AC_DEFINE(HAVE_OPENGL) ],
+	                      AC_DEFINE(HAVE_GLUT,1,[Define this if you have GLut support available])
+			      AC_DEFINE(HAVE_OPENGL,1,[Define this if you have OpenGL support available]) ],
 	                    [ ac_have_glut="no" dnl fallback, check for GLU
 	                      AC_CHECK_LIB(GLU, gluPerspective,
 		                           [ ac_have_glu="yes"
                                              GLU_LIBS="-lGLU -lm" 
-		                             AC_DEFINE(HAVE_GLU)
-					     AC_DEFINE(HAVE_OPENGL) ],
+		                             AC_DEFINE(HAVE_GLU,1,[Define this if you have GLU support available])
+					     AC_DEFINE(HAVE_OPENGL,1,[Define this if you have OpenGL support available]) ],
 	                                   [ ac_have_glu="no" ], 
                                            [$X_LIBS $X_PRE_LIBS $OPENGL_LIBS -lGLU -lm $X_EXTRA_LIBS])], 
 	                    [$X_LIBS $X_PRE_LIBS -lglut $X_EXTRA_LIBS])
@@ -362,7 +359,7 @@ AC_CHECK_LIB(Xv, XvShmCreateImage,
                if test -f "$xv_path/$xv_lib"; then
                  AC_MSG_RESULT(found in $xv_path)
                  XV_LIB="-lXv"
-	         AC_DEFINE(HAVE_XV)
+	         AC_DEFINE(HAVE_XV,1,[Define this if you have libXv installed])
 	         ac_have_xv="yes"
                else
                  AC_MSG_RESULT(not found in $xv_path)
@@ -379,48 +376,49 @@ AC_CHECK_LIB(Xv, XvShmCreateImage,
 AM_CONDITIONAL(HAVE_XV, test x$ac_have_xv = "xyes")
 AC_SUBST(XV_LIB)
 
-dnl
+
+dnl ---------------------------------------------
 dnl Checks for Xinerama extension
-dnl
+dnl ---------------------------------------------
 
 AC_CHECK_LIB(Xinerama, XineramaQueryExtension, 
              [X_LIBS="$X_LIBS -lXinerama"
-              AC_DEFINE(HAVE_XINERAMA)
+              AC_DEFINE(HAVE_XINERAMA,1,[Define this if you have libXinerama installed])
               ac_have_xinerama="yes"],,
              [$X_LIBS $X_PRE_LIBS -lXext $X_EXTRA_LIBS])
 AM_CONDITIONAL(HAVE_XINERAMA, test x$ac_have_xinerama = "xyes")
 
  
-dnl
+dnl ---------------------------------------------
 dnl Checks for Ascii-Art library
-dnl
+dnl ---------------------------------------------
 AM_PATH_AALIB(1.2,, AC_MSG_RESULT([*** All of AALIB dependent parts will be disabled ***]))
 AM_CONDITIONAL(HAVE_AA, test x$no_aalib != "xyes")
 
-dnl
+dnl ---------------------------------------------
 dnl Check solaris framebuffer device support
-dnl
+dnl ---------------------------------------------
 AC_CHECK_HEADER(sys/fbio.h, ac_have_sunfb=yes,)
 AM_CONDITIONAL(HAVE_SUNFB, [test x"$ac_have_sunfb" = "xyes"])
 
-dnl
+dnl ---------------------------------------------
 dnl Check linux framebuffer device support
-dnl
+dnl ---------------------------------------------
 AC_CHECK_HEADER(linux/fb.h, have_fb=yes,)
 AM_CONDITIONAL(HAVE_FB, [test x"$have_fb" = "xyes"])
 
-dnl
+dnl ---------------------------------------------
 dnl Find pkg-config
-dnl
+dnl ---------------------------------------------
 AC_PATH_PROG(PKG_CONFIG, pkg-config, no)
 if test x$PKG_CONFIG = xno ; then
   echo "*** pkg-config not found. See http://pkgconfig.sourceforge.net"
   echo "*** All of DIRECTFB dependent parts will be disabled"
 else
 
-dnl
+dnl ---------------------------------------------
 dnl Check for DirectFB
-dnl
+dnl ---------------------------------------------
   DIRECTFB_REQUIRED_VERSION=0.9.9
 
   AC_MSG_CHECKING(for DirectFB)
@@ -439,29 +437,34 @@ AC_SUBST(DIRECTFB_CFLAGS)
 AC_SUBST(DIRECTFB_LIBS)
 AM_CONDITIONAL(HAVE_DIRECTFB, test x$have_directfb = "xyes" )
 
-dnl
+dnl ---------------------------------------------
 dnl check for SDL
-dnl
-AM_PATH_SDL(1.1.5, AC_DEFINE(HAVE_SDL),[])
+dnl ---------------------------------------------
+AM_PATH_SDL(1.1.5, 
+	AC_DEFINE(HAVE_SDL,1,[Define this if you have SDL library installed]),
+	[])
 AM_CONDITIONAL(HAVE_SDL, [test x"$no_sdl" != x"yes"])
 
 
-dnl
+dnl ---------------------------------------------
 dnl dxr3 / hollywood plus card
-dnl
+dnl ---------------------------------------------
+AC_DEFINE_UNQUOTED(HAVE_LIBRTE,,[Define this if you have librte mpeg encoder installed (zapping.sf.net)])
+AC_DEFINE_UNQUOTED(HAVE_LIBFAME,,[Define this if you have libfame mpeg encoder installed (fame.sf.net)])
 AC_CHECK_DXR3()
 AM_CONDITIONAL(HAVE_DXR3, test x"$have_dxr3" = "xyes")
 AM_CONDITIONAL(HAVE_LIBFAME, test x"$have_libfame" = "xyes")
 if test x"$have_libfame" = "xyes" ; then
-  AM_PATH_LIBFAME(0.8.10, AC_DEFINE(HAVE_NEW_LIBFAME))
+  AM_PATH_LIBFAME(0.8.10, 
+    AC_DEFINE(HAVE_NEW_LIBFAME,1,[Define this if you have libfame 0.8.10 or above]))
 fi
 AM_CONDITIONAL(HAVE_LIBRTE, test x"$have_librte" = "xyes")
 AM_CONDITIONAL(HAVE_ENCODER, test x"$have_encoder" = "xyes")
 
 
-dnl
+dnl ---------------------------------------------
 dnl Vidix/libdha
-dnl
+dnl ---------------------------------------------
 AC_LINUX_PATH(/usr/src/linux)
 AC_SUBST([LINUX_INCLUDE])
 
@@ -504,16 +507,16 @@ AM_CONDITIONAL(BUILD_DHA_KMOD, test x"$enable_dha_kmod" = "xyes")
 AC_CHECK_PROG(MKNOD, mknod, mknod, no)
 AC_CHECK_PROG(DEPMOD, depmod, depmod, no)
 
-dnl
+dnl ---------------------------------------------
 dnl Check for divx4
-dnl
+dnl ---------------------------------------------
 dnl AC_CHECK_DIVX4(, AC_MSG_RESULT(*** All of DIVX4 dependent parts will be disabled ***))
 dnl AM_CONDITIONAL(HAVE_DIVX4, test x"$no_divx4" != "xyes")
 
 
-dnl
+dnl ---------------------------------------------
 dnl Ogg/Vorbis libs.
-dnl
+dnl ---------------------------------------------
 AM_PATH_OGG(
            [ AM_PATH_VORBIS([], 
 	                    AC_MSG_RESULT([*** All of OGG/VORBIS dependent parts will be disabled ***])) 
@@ -522,16 +525,16 @@ AM_PATH_OGG(
 AM_CONDITIONAL(HAVE_VORBIS, [test x"$no_ogg" != "xyes" -a x"$no_vorbis" != "xyes"])
 
 
-dnl
+dnl ---------------------------------------------
 dnl XviD libs.
-dnl
+dnl ---------------------------------------------
 AM_PATH_XVID([], AC_MSG_RESULT([*** All of XviD dependent parts will be disabled ***]))
 AM_CONDITIONAL(HAVE_XVID, [test x"$no_xvid" != "xyes"])	
 
 
-dnl
+dnl ---------------------------------------------
 dnl OSS style audio interface
-dnl
+dnl ---------------------------------------------
 AC_MSG_CHECKING(for OSS audio support)
 have_ossaudio=no
 AC_TRY_COMPILE([
@@ -549,13 +552,13 @@ AC_MSG_RESULT($have_ossaudio)
 AM_CONDITIONAL(HAVE_OSS, test x"$have_ossaudio" = "xyes")
 
 
-dnl
+dnl ---------------------------------------------
 dnl Alsa support
-dnl
+dnl ---------------------------------------------
 AM_PATH_ALSA(0.9.0, 
-        [ AC_DEFINE(HAVE_ALSA)
+        [ AC_DEFINE(HAVE_ALSA,1,[Define this if you have Alsa (libasound) installed])
           if test x"$have_alsa09" = "xyes"; then
-            AC_DEFINE(HAVE_ALSA09)
+            AC_DEFINE(HAVE_ALSA09,1,[Define this if you have alsa 0.9.x and more installed])
           fi
         ],
 	AC_MSG_RESULT(*** All of ALSA dependent parts will be disabled ***))
@@ -563,25 +566,25 @@ AM_CONDITIONAL(HAVE_ALSA, test x"$no_alsa" != "xyes")
 AM_CONDITIONAL(HAVE_ALSA09, test x"$have_alsa09" = "xyes")
 
 
-dnl
+dnl ---------------------------------------------
 dnl ESD support
-dnl
+dnl ---------------------------------------------
 AM_PATH_ESD(0.2.8,
-        AC_DEFINE(HAVE_ESD),
+        AC_DEFINE(HAVE_ESD,1,[Define this if you have ESD (libesd) installed]),
         AC_MSG_RESULT(*** All of ESD dependent parts will be disabled ***))
 AM_CONDITIONAL(HAVE_ESD, test x"$no_esd" != "xyes")
 
-dnl
+dnl ---------------------------------------------
 dnl ARTS support
-dnl
+dnl ---------------------------------------------
 AM_PATH_ARTS(0.9.5,
-        AC_DEFINE(HAVE_ARTS),
+        AC_DEFINE(HAVE_ARTS,1,[Define this if you have ARTS (libartsc) installed]),
         AC_MSG_RESULT(*** All of ARTS dependent parts will be disabled ***))
 AM_CONDITIONAL(HAVE_ARTS, test x"$no_arts" != "xyes")
 
-dnl
+dnl ---------------------------------------------
 dnl SUN style audio interface
-dnl
+dnl ---------------------------------------------
 AC_MSG_CHECKING(for Sun audio support)
 have_sunaudio=no
 AC_TRY_COMPILE([
@@ -596,72 +599,74 @@ AC_TRY_COMPILE([
 AC_MSG_RESULT($have_sunaudio)
 AM_CONDITIONAL(HAVE_SUNAUDIO, test x"$have_sunaudio" = "xyes")
 
-dnl
+dnl ---------------------------------------------
 dnl IRIX style audio interface
-dnl
-AM_CHECK_IRIXAL([AC_DEFINE(HAVE_IRIXAL)],
+dnl ---------------------------------------------
+AM_CHECK_IRIXAL([AC_DEFINE(HAVE_IRIXAL,1,
+			[Define this if you have a usable IRIX al interface available])],
 	[AC_MSG_RESULT([*** All of IRIX AL dependent parts will be disabled ***])])
 AM_CONDITIONAL(HAVE_IRIXAL, [test "x$am_cv_have_irixal" = xyes])
 
-dnl
+dnl ---------------------------------------------
 dnl Solaris kstat kernel statistics
-dnl
+dnl ---------------------------------------------
 AC_CHECK_LIB(kstat, kstat_open,
 	[KSTAT_LIBS=-lkstat
-	 AC_DEFINE([HAVE_KSTAT])])
+	 AC_DEFINE(HAVE_KSTAT,1,[Define this if you have kernel statistics available via kstat interface])])
 AC_SUBST(KSTAT_LIBS)
 
-dnl
+dnl ---------------------------------------------
 dnl cdrom ioctls
-dnl
+dnl ---------------------------------------------
 AC_CHECK_HEADERS(sys/cdio.h linux/cdrom.h)
-AM_CHECK_CDROM_IOCTLS([AC_DEFINE([HAVE_CDROM_IOCTLS])],
+AM_CHECK_CDROM_IOCTLS(
+	[AC_DEFINE(HAVE_CDROM_IOCTLS,1,[Define this if you have CDROM ioctls])],
 	[AC_MSG_RESULT([*** DVD and (S)VCD support will be disabled ***])])
 AM_CONDITIONAL(HAVE_CDROM_IOCTLS, [test x"$have_cdrom_ioctls" = "xyes"])
 
-dnl
+dnl ---------------------------------------------
 dnl check for a usable version of libdvdnav
-dnl
-AM_PATH_DVDNAV(0.1.4,
-	AC_DEFINE(HAVE_DVDNAV),
+dnl ---------------------------------------------
+AM_PATH_DVDNAV(0.1.3,
+	AC_DEFINE(HAVE_DVDNAV,1,[Define this if you have a suitable version of libdvdnav]),
 	[AC_MSG_RESULT([*** no usable version of libdvdnav found, using internal copy ***])])
 AM_CONDITIONAL(HAVE_DVDNAV, [test x"$no_dvdnav" != "xyes"])
 
 
-dnl
+dnl ---------------------------------------------
 dnl ASF build can be optional
-dnl
+dnl ---------------------------------------------
 AC_ARG_ENABLE(asf, [  --disable-asf           Do not build ASF demuxer],
 	      enable_asf=no, enable_asf=yes)
 AM_CONDITIONAL(BUILD_ASF, test x"$enable_asf" = "xyes")
 
-dnl
+dnl ---------------------------------------------
 dnl FAAD build can be optional
-dnl
+dnl ---------------------------------------------
 AC_ARG_ENABLE(faad, [  --disable-faad          Do not build FAAD decoder],
 	      enable_faad=no, enable_faad=yes)
 AM_CONDITIONAL(BUILD_FAAD, test x"$enable_faad" = "xyes")
 
 
-dnl
+dnl ---------------------------------------------
 dnl ip_mreqn
-dnl
+dnl ---------------------------------------------
 AC_CHECK_IP_MREQN
 
 
-dnl
+dnl ---------------------------------------------
 dnl Using or not using -fPIC (override default behavior - system dependent)
-dnl
+dnl ---------------------------------------------
 AC_ARG_ENABLE(fpic,
    [  --disable-fpic          Disable -fPIC on shared libs (default on x86)],
    no_fpic=yes, no_fpic=no)
 
 
-dnl
+dnl ---------------------------------------------
 dnl Some extra checks.
-dnl
+dnl ---------------------------------------------
 AC_CHECK_LIB(posix4, sched_get_priority_min)
-AC_HAVE_FUNCS(sigaction sigset getpwuid_r nanosleep strsep strpbrk setenv)
+AC_CHECK_FUNCS([sigaction sigset getpwuid_r nanosleep strsep strpbrk setenv])
 AC_CHECK_HEADERS(byteswap.h malloc.h sys/mman.h)
 
 
@@ -702,9 +707,9 @@ case "$host_or_hostalias" in
   i386-*-freebsd*)
     CFLAGS="$CFLAGS -pipe -fomit-frame-pointer $f_af $f_al $f_aj $m_wm $m_psb -fexpensive-optimizations $f_si $f_nsa -ffast-math -funroll-loops -finline-functions"
     DEBUG_CFLAGS="$X_CFLAGS $DEBUG_CFLAGS"
-    AC_DEFINE(__i386__)
-    AC_DEFINE([ARCH_X86],,[x86 architecture])
-    AC_DEFINE(FPM_INTEL)
+    AC_DEFINE(__i386__,1,[Define this if you're running x86 architecture])
+    AC_DEFINE_UNQUOTED(ARCH_X86,,[Define this if you're running x86 architecture])
+    AC_DEFINE_UNQUOTED(FPM_INTEL,,[Define to select libmad fixed point arithmetic implementation])
 
     enable_w32dll="yes"
     enable_ffmmx="yes"
@@ -728,7 +733,7 @@ case "$host_or_hostalias" in
 	dnl add x86 specific gcc CFLAGS
 	CFLAGS="$CFLAGS -O3 -pipe -fomit-frame-pointer $f_af $f_al $f_aj $m_wm $m_psb -fexpensive-optimizations $f_si $f_nsa -ffast-math -funroll-loops -finline-functions"
 
-	DEBUG_CFLAGS="$DEBUG_CFLAGS -O3"
+	DEBUG_CFLAGS="$DEBUG_CFLAGS"
 
 	if test x"$sarchopt" != "xno"; then
 	    [
@@ -774,31 +779,31 @@ case "$host_or_hostalias" in
 	dnl like the extended asm() or __attribute(__cdecl__), or other direct
 	dnl mmx/sse/3dnow assembler instructions. 
 	dnl
-	AC_DEFINE([ARCH_X86],,[x86 architecture])
-	AC_DEFINE(FPM_INTEL)
+    	AC_DEFINE_UNQUOTED(ARCH_X86,,[Define this if you're running x86 architecture])
+	AC_DEFINE(FPM_INTEL,1,[Define to select libmad fixed point arithmetic implementation])
 	enable_w32dll="yes"
     	enable_ffmmx="yes"
     else
 	dnl add x86 specific cc CFLAGS
 	CFLAGS="$CFLAGS -O"
 	DEBUG_CFLAGS="$DEBUG_CFLAGS -O"
-    	AC_DEFINE(FPM_64BIT)
+    	AC_DEFINE_UNQUOTED(FPM_64BIT,,[Define to select libmad fixed point arithmetic implementation])
     fi
 
     no_fpic="yes"
-    AC_DEFINE(__i386__)
+    AC_DEFINE(__i386__,1,[Define this if you're running x86 architecture])
     ;;
 
   alphaev56-*)
     CFLAGS="$CFLAGS -O3 -mcpu=ev56 -mieee"
     DEBUG_CFLAGS="$DEBUG_CFLAGS -O3 -mcpu=ev56 -mieee"
-    AC_DEFINE(FPM_64BIT)
+    AC_DEFINE_UNQUOTED(FPM_64BIT,,[Define to select libmad fixed point arithmetic implementation])
     ;;
 
   alpha*)
     CFLAGS="$CFLAGS -O3 -mieee"
     DEBUG_CFLAGS="$DEBUG_CFLAGS -O3 -mieee"
-    AC_DEFINE(FPM_64BIT)
+    AC_DEFINE_UNQUOTED(FPM_64BIT,,[Define to select libmad fixed point arithmetic implementation])
     ;;
 
   ppc-*-linux* | powerpc-*) 
@@ -806,11 +811,11 @@ case "$host_or_hostalias" in
     DEBUG_CFLAGS="$DEBUG_CFLAGS -O3"
     dnl avoid ppc compilation crash
     AS="$CC"
-    AC_DEFINE(FPM_PPC)
-    AC_DEFINE(ARCH_PPC)
+    AC_DEFINE_UNQUOTED(FPM_PPC,,[Define to select libmad fixed point arithmetic implementation])
+    AC_DEFINE_UNQUOTED(ARCH_PPC,,[Define this if you're running PowerPC architecture])
     
     if test x$enable_altivec = xyes; then
-        AC_DEFINE(ENABLE_ALTIVEC)
+        AC_DEFINE_UNQUOTED(ENABLE_ALTIVEC,,[Define this if you have a Motorola 74xx CPU])
         CFLAGS="$CFLAGS -Wa,-m7400"
 	DEBUG_CFLAGS="$DEBUG_CFLAGS -Wa,-m7400"
     fi
@@ -823,14 +828,14 @@ case "$host_or_hostalias" in
     esac
 
     if test x$enable_vis = xyes; then
-        AC_DEFINE(ENABLE_VIS)
+        AC_DEFINE_UNQUOTED(ENABLE_VIS,,[Define this if you have Sun UltraSPARC CPU])
         cpu_cflags="-mcpu=ultrasparc"
     fi
 
     CFLAGS="$CFLAGS -O3 $cpu_cflags -funroll-loops -funroll-all-loops -finline-functions"
     DEBUG_CFLAGS="$DEBUG_CFLAGS -O $cpu_cflags -funroll-loops -funroll-all-loops -finline-functions"
 
-    AC_DEFINE(FPM_SPARC)
+    AC_DEFINE_UNQUOTED(FPM_SPARC,,[Define to select libmad fixed point arithmetic implementation])
     ;;
 
   sparc-*-solaris*)
@@ -843,17 +848,17 @@ case "$host_or_hostalias" in
 	esac
 
         if test x$enable_vis = xyes; then
-            AC_DEFINE(ENABLE_VIS)
+	    AC_DEFINE_UNQUOTED(ENABLE_VIS,,[Define this if you have Sun UltraSPARC CPU])
             cpu_cflags="-mcpu=ultrasparc"
         fi
 
 	cc_optimize_cflags="-O3 $cpu_cflags -funroll-loops -funroll-all-loops -finline-functions"
 	cc_debug_cflags="-O $cpu_cflags -funroll-loops -funroll-all-loops -finline-functions"
-        AC_DEFINE(FPM_SPARC)		dnl uses gnu c asm extensions
+        AC_DEFINE_UNQUOTED(FPM_SPARC,,[Define to select libmad fixed point arithmetic implementation])		dnl uses gnu c asm extensions
     else
 	cc_optimize_cflags="-O"
 	cc_debug_cflags="-O"
-    	AC_DEFINE(FPM_64BIT)		dnl use portable version with non-gcc
+    	AC_DEFINE_UNQUOTED(FPM_64BIT,,[Define to select libmad fixed point arithmetic implementation])		dnl use portable version with non-gcc
     fi
     CFLAGS="$CFLAGS $cc_optimize_cflags"
     DEBUG_CFLAGS="$DEBUG_CFLAGS $cc_debug_cflags"
@@ -862,7 +867,7 @@ case "$host_or_hostalias" in
   mips-*)
     CFLAGS="$CFLAGS -O3"
     DEBUG_CFLAGS="$DEBUG_CFLAGS -O"
-    AC_DEFINE(FPM_MIPS)
+    AC_DEFINE_UNQUOTED(FPM_MIPS,,[Define to select libmad fixed point arithmetic implementation])
     ;;
 
   m68k-*)
@@ -870,19 +875,19 @@ case "$host_or_hostalias" in
     # see http://bugs.debian.org/146006 for more info
     CFLAGS="$CFLAGS -O"
     DEBUG_CFLAGS="$DEBUG_CFLAGS -O"
-    AC_DEFINE(FPM_DEFAULT)
+    AC_DEFINE_UNQUOTED(FPM_DEFAULT,,[Define to select libmad fixed point arithmetic implementation])
     ;;
 
   ia64-*)
     CFLAGS="$CFLAGS -O3"
     DEBUG_CFLAGS="$DEBUG_CFLAGS -O3"
-    AC_DEFINE(FPM_64BIT)
+    AC_DEFINE_UNQUOTED(FPM_64BIT,,[Define to select libmad fixed point arithmetic implementation])
     ;;
 
   s390-*)
     CFLAGS="$CFLAGS -O3"
     DEBUG_CFLAGS="$DEBUG_CFLAGS -O3"
-    AC_DEFINE(FPM_DEFAULT)
+    AC_DEFINE_UNQUOTED(FPM_DEFAULT,,[Define to select libmad fixed point arithmetic implementation])
     ;;
 
   *)
@@ -903,7 +908,7 @@ case "$host_or_hostalias" in
 
     CFLAGS="$CFLAGS -O3"
     DEBUG_CFLAGS="$DEBUG_CFLAGS -O"
-    AC_DEFINE(FPM_DEFAULT)
+    AC_DEFINE_UNQUOTED(FPM_DEFAULT,,[Define to select libmad fixed point arithmetic implementation])
     ;;
 esac
 
@@ -921,46 +926,40 @@ AC_SUBST(W32DLL_DEP)
 
 AM_CONDITIONAL(HAVE_FFMMX, test x"$enable_ffmmx" = "xyes")
 
-dnl
+dnl ---------------------------------------------
 dnl gcc __attribute__ ((aligned ()))
-dnl
+dnl ---------------------------------------------
 AC_C_ATTRIBUTE_ALIGNED
 
 
-dnl
+dnl ---------------------------------------------
 dnl XINE_ROOTDIR does not work if architecture independent files are 
 dnl installed to another place than architecture dependent files !!!
-dnl
+dnl ---------------------------------------------
 if test "x$prefix" = xNONE; then
    prefix="${ac_default_prefix}"
 fi
 if test "x$exec_prefix" = xNONE; then
    exec_prefix='${prefix}'
 fi
-XINE_PLUGINDIR="$libdir/xine/plugins"
+XINE_PLUGINDIR="$libdir/xine/plugins/$XINE_MAJOR.$XINE_MINOR.$XINE_SUB"
 eval XINE_PLUGINPATH=`eval echo "$XINE_PLUGINDIR"`
-AC_DEFINE_UNQUOTED(XINE_PLUGINDIR,"$XINE_PLUGINPATH")
+AC_DEFINE_UNQUOTED(XINE_PLUGINDIR,"$XINE_PLUGINPATH",[Define this to plugins directory location])
 AC_SUBST(XINE_PLUGINPATH)
 
 
-XINE_SKINDIR="${datadir}/xine/skins"
-eval XINE_SKINPATH="$XINE_SKINDIR"
-AC_DEFINE_UNQUOTED(XINE_SKINDIR,"$XINE_SKINPATH")
-AC_SUBST(XINE_SKINPATH)
-
 XINE_FONTDIR="${datadir}/xine/fonts"
 eval XINE_FONTPATH="$XINE_FONTDIR"
-AC_DEFINE_UNQUOTED(XINE_FONTDIR,"$XINE_FONTPATH")
+AC_DEFINE_UNQUOTED(XINE_FONTDIR,"$XINE_FONTPATH",[Define this to osd fonts dir location])
 AC_SUBST(XINE_FONTPATH)
 
 XINE_LOCALEDIR="${datadir}/locale"
 eval XINE_LOCALEPATH="$XINE_LOCALEDIR"
-AC_DEFINE_UNQUOTED(XINE_LOCALEDIR, "$XINE_LOCALEPATH")
+AC_DEFINE_UNQUOTED(XINE_LOCALEDIR, "$XINE_LOCALEPATH",[Path where catalog files will be.])
 AC_SUBST(XINE_LOCALEPATH)
 
 AC_SUBST(XINE_PLUGINDIR)
 AC_SUBST(XINE_DEMUXDIR)
-AC_SUBST(XINE_SKINDIR)
 AC_SUBST(XINE_FONTDIR)
 AC_SUBST(XINE_LOCALEDIR)
 
@@ -974,9 +973,9 @@ eval XINE_DESKTOPPATH="${datadir}/xine/desktop"
 AC_SUBST(XINE_DESKTOPPATH)
 
 
-dnl
+dnl ---------------------------------------------
 dnl Some informations about xine-lib compilation
-dnl
+dnl ---------------------------------------------
 XINE_BUILD_CC="`$CC -v 2>&1 | tail -1`"
 XINE_BUILD_OS="`uname -s -r -m`"
 XINE_BUILD_DATE="`date \"+%a %d %b %Y %T\"`"
@@ -984,24 +983,24 @@ AC_SUBST(XINE_BUILD_CC)
 AC_SUBST(XINE_BUILD_OS)
 AC_SUBST(XINE_BUILD_DATE)
 
-dnl
+dnl ---------------------------------------------
 dnl For win32 libraries location, needed by libw32dll.
-dnl
+dnl ---------------------------------------------
 AC_ARG_WITH(w32-path,[  --with-w32-path=path    Location of WIN32 libraries],
             w32_path="$withval", w32_path="/usr/lib/win32")
 AC_SUBST(w32_path)
 
 
-dnl
+dnl ---------------------------------------------
 dnl some include paths ( !!! DO NOT REMOVE !!! )
 dnl
 INCLUDES='-I$(top_srcdir) -I$(top_builddir)/include -I$(top_srcdir)/include -I$(top_srcdir)/src -I$(top_srcdir)/src/xine-engine -I$(top_srcdir)/src/xine-utils $(INTLDIR)'
 AC_SUBST(INCLUDES)
 
 
-dnl
+dnl ---------------------------------------------
 dnl Get where .m4 should be installed.
-dnl
+dnl ---------------------------------------------
 if test x"${ACLOCAL_DIR+set}" != xset; then
   case "`id`" in
     uid=0\(* )
@@ -1022,23 +1021,67 @@ AC_SUBST(ACLOCAL_DIR)
 AM_CONDITIONAL(INSTALL_M4, test x"$ACLOCAL_DIR" != "x")
 
 
-dnl
+dnl ---------------------------------------------
 dnl It seems automake 1.5 don't take care about this script
-dnl
+dnl ---------------------------------------------
 if test ! -z "$am_depcomp"; then
 	DEPCOMP="depcomp"
 fi
 AC_SUBST(DEPCOMP)
 
-dnl
+dnl ---------------------------------------------
 dnl Output configuration files
-dnl
-AC_OUTPUT([
+dnl ---------------------------------------------
+AC_CONFIG_FILES([
 Makefile
+doc/Makefile
+doc/man/Makefile
+doc/man/en/Makefile
+doc/man/en/man3/Makefile
+doc/hackersguide/Makefile
 include/Makefile
 include/xine.h
+intl/Makefile
+m4/Makefile
+misc/Makefile
+misc/SlackBuild
+misc/build_rpms.sh
+misc/fonts/Makefile
+misc/relchk.sh
+misc/xine-config
+misc/xine-lib.spec
+po/Makefile.in
 src/Makefile
 src/audio_out/Makefile
+src/demuxers/Makefile
+src/dxr3/Makefile
+src/input/Makefile
+src/input/libdvdnav/Makefile
+src/input/libdvdread/Makefile
+src/libfaad/Makefile
+src/libfaad/codebook/Makefile
+src/liba52/Makefile
+src/libdivx4/Makefile
+src/libdts/Makefile
+src/libffmpeg/Makefile
+src/libffmpeg/libavcodec/Makefile
+src/libffmpeg/libavcodec/armv4l/Makefile
+src/libffmpeg/libavcodec/i386/Makefile
+src/libffmpeg/libavcodec/mlib/Makefile
+src/libffmpeg/libavcodec/alpha/Makefile
+src/liblpcm/Makefile
+src/libmad/Makefile
+src/libmpeg2/Makefile
+src/libspucc/Makefile
+src/libspudec/Makefile
+src/libsputext/Makefile
+src/libvorbis/Makefile
+src/libw32dll/Makefile
+src/libw32dll/wine/Makefile
+src/libw32dll/DirectShow/Makefile
+src/libxinevdec/Makefile
+src/libxineadec/Makefile
+src/libxvid/Makefile
 src/video_out/Makefile
 src/video_out/libdha/Makefile
 src/video_out/libdha/bin/Makefile
@@ -1047,58 +1090,16 @@ src/video_out/libdha/oth/Makefile
 src/video_out/libdha/sysdep/Makefile
 src/video_out/vidix/Makefile
 src/video_out/vidix/drivers/Makefile
-src/demuxers/Makefile
-src/dxr3/Makefile
-src/libmpeg2/Makefile
-src/liba52/Makefile
-src/libffmpeg/Makefile
-src/libffmpeg/libavcodec/Makefile
-src/libffmpeg/libavcodec/armv4l/Makefile
-src/libffmpeg/libavcodec/i386/Makefile
-src/libffmpeg/libavcodec/mlib/Makefile
-src/libffmpeg/libavcodec/alpha/Makefile
-src/liblpcm/Makefile
-src/libdts/Makefile
-src/libmad/Makefile
-src/libfaad/Makefile
-src/libfaad/codebook/Makefile
-src/libw32dll/Makefile
-src/libw32dll/wine/Makefile
-src/libw32dll/DirectShow/Makefile
-src/libspudec/Makefile
-src/libsputext/Makefile
-src/libspucc/Makefile
-src/libvorbis/Makefile
-src/libxvid/Makefile
-src/libdivx4/Makefile
-src/libxinevdec/Makefile
-src/libxineadec/Makefile
 src/xine-utils/Makefile
-src/input/Makefile
-src/input/libdvdread/Makefile
-src/input/libdvdnav/Makefile
-src/xine-engine/Makefile
-misc/Makefile
-misc/xine-config
-m4/Makefile
-doc/Makefile
-doc/man/Makefile
-doc/man/en/Makefile
-doc/man/en/man3/Makefile
-doc/hackersguide/Makefile
-misc/xine-lib.spec
-misc/SlackBuild
-misc/build_rpms.sh
-misc/relchk.sh
-misc/fonts/Makefile
-intl/Makefile
-po/Makefile.in],
-[chmod +x ./misc/SlackBuild ./misc/build_rpms.sh ./misc/relchk.sh])
+src/xine-engine/Makefile])
+AC_CONFIG_COMMANDS([default],[[chmod +x ./misc/SlackBuild ./misc/build_rpms.sh ./misc/relchk.sh]],[[]])
+AC_OUTPUT
 
-dnl
+dnl ---------------------------------------------
 dnl Hack the libtool script (if required).
 dnl
 dnl If user intentionnaly overrided detection, use wish.
+dnl ---------------------------------------------
 if test x"$enable_fpic" != x; then
    case "${enable_fpic}" in
      yes)
@@ -1117,9 +1118,9 @@ fi
 
 chmod +x libtool-nofpic
 
-dnl
+dnl ---------------------------------------------
 dnl Some infos:
-dnl
+dnl ---------------------------------------------
 echo "xine-lib summary:"
 echo "----------------"
 
