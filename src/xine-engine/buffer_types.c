@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer_types.c,v 1.62 2003/05/13 05:08:56 tmmm Exp $
+ * $Id: buffer_types.c,v 1.63 2003/05/19 21:49:57 tmmm Exp $
  *
  *
  * contents:
@@ -579,6 +579,7 @@ static audio_db_t audio_db[] = {
     0x50, 0x55,
     meFOURCC('.','m','p','3'),
     meFOURCC('m', 's', 0, 0x55),
+    meFOURCC('M','P','3',' '),
     0
   },
   BUF_AUDIO_MPEG,
