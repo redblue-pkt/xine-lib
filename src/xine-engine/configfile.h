@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: configfile.h,v 1.22 2003/05/20 13:50:56 mroi Exp $
+ * $Id: configfile.h,v 1.23 2003/06/27 13:40:51 mroi Exp $
  *
  * config file management
  *
@@ -192,7 +192,7 @@ struct config_values_s {
 /*
  * allocate and init a new xine config object
  */
-config_values_t *xine_config_init ();
+config_values_t *xine_config_init (void);
 
 /*
  * hack: intepret "opt:"-style mrls for config value changes

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.h,v 1.91 2003/06/11 23:08:55 miguelfreitas Exp $
+ * $Id: video_out.h,v 1.92 2003/06/27 13:40:51 mroi Exp $
  *
  *
  * xine version of video_out.h 
@@ -441,7 +441,7 @@ struct video_overlay_instance_s {
                                   vo_driver_t *output, vo_frame_t *vo_img, int enabled);
 };
 
-video_overlay_instance_t *video_overlay_new_instance ();
+video_overlay_instance_t *video_overlay_new_instance (void);
 
 
 /*
