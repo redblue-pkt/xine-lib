@@ -18,9 +18,36 @@ gsm610				1.0.10
 liba52				0.7.4
 libdvdnav			0.1.6 cvs		Michael Roitzsch
 libdvdread			0.9.4			Michael Roitzsch
-libfaad							Miguel Freitas
-libmad
-libmpeg2
+libfaad				cvs (12/Apr/03)		Miguel Freitas
+libmad				0.14.2b			Miguel Freitas
+libmpeg2			0.2.1 [*]
 libmpg123
 vidix				MPlayerXP 0.1.10cvs	James Stembridge
 nosefart                        1.92                    Mike Melanson
+
+-----------------------------------------------------------------------
+
+
+[*] common question: lastest version of libmpeg2 is 0.3.1, why don't
+you update?
+
+the answer is not so simple. 
+
+quoting libmpeg2.sf.net: "The old API [0.2.x] was not flexible enough for
+most users, as a result various projects (xine, mplayer etc...) ended up
+rewriting their own versions of decode.c."
+
+this is indeed true: in order to support a lot of dvd features, menus with
+still frames, closed caption decoding and better buffer management for
+xine it was needed to patch our libmpeg2 copy. of course we should always
+try not to "fork" external projects, but in the libmpeg2/xine case it is
+easy to see (from CVS logs) how long did it took to reach the stability
+point we have now.
+
+so, while targeting a stable libxine release, there is no hurry in
+updating libmpeg2 and this is not the trivial task as it might sound.
+
+note that we have also backported some fixes/improvements from libmpeg2
+cvs (eg. motion vector clipping for broken streams). if you need any
+specific change or fix feel free to send us a patch or discuss the issue
+at xine-devel.
