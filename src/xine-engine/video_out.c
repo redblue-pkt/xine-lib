@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.100 2002/07/15 21:42:34 esnel Exp $
+ * $Id: video_out.c,v 1.101 2002/07/30 00:26:45 miguelfreitas Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -87,6 +87,7 @@ struct img_buf_fifo_s {
   vo_frame_t        *last;
   int                num_buffers;
 
+  int                locked_for_read;
   pthread_mutex_t    mutex;
   pthread_cond_t     not_empty;
 } ;
@@ -100,6 +101,7 @@ static img_buf_fifo_t *vo_new_img_buf_queue () {
     queue->first       = NULL;
     queue->last        = NULL;
     queue->num_buffers = 0;
+    queue->locked_for_read = 0;
     pthread_mutex_init (&queue->mutex, NULL);
     pthread_cond_init  (&queue->not_empty, NULL);
   }
@@ -137,7 +139,7 @@ static vo_frame_t *vo_remove_from_img_buf_queue (img_buf_fifo_t *queue) {
 
   pthread_mutex_lock (&queue->mutex);
 
-  while (!queue->first) {
+  while (!queue->first || queue->locked_for_read) {
     pthread_cond_wait (&queue->not_empty, &queue->mutex);
   }
 
@@ -149,10 +151,6 @@ static vo_frame_t *vo_remove_from_img_buf_queue (img_buf_fifo_t *queue) {
     if (!queue->first) {
       queue->last = NULL;
       queue->num_buffers = 0;
-      /* I think this is a (pretty long-standing) bug
-	 guenter 21/03/2002
-	 pthread_cond_init  (&queue->not_empty, NULL);
-      */
     }
     else {
       queue->num_buffers--;
@@ -323,6 +321,99 @@ static int vo_frame_draw (vo_frame_t *img) {
  *
  */
 
+/* duplicate_frame(): this function is used to keep playing frames 
+ * while video is still or player paused. 
+ * 
+ * frame allocation inside vo loop is dangerous:
+ * we must never wait for a free frame -> deadlock condition.
+ * to avoid deadlocks we don't use vo_remove_from_img_buf_queue()
+ * and reimplement a slightly modified version here.
+ * free_img_buf_queue->mutex must be grabbed prior entering it.
+ * (must assure that free frames won't be exhausted by decoder thread).
+ */
+static vo_frame_t * duplicate_frame( vos_t *this, vo_frame_t *img ) {
+
+  vo_frame_t *dupl;
+  int         image_size;
+
+  if( !this->free_img_buf_queue->first)
+    return NULL;
+
+  dupl = this->free_img_buf_queue->first;
+  this->free_img_buf_queue->first = dupl->next;
+  dupl->next = NULL;
+  if (!this->free_img_buf_queue->first) {
+    this->free_img_buf_queue->last = NULL;
+    this->free_img_buf_queue->num_buffers = 0;
+  }
+  else {
+    this->free_img_buf_queue->num_buffers--;
+  }
+      
+  pthread_mutex_lock (&dupl->mutex);
+  dupl->lock_counter   = 1;
+  dupl->width          = img->width;
+  dupl->height         = img->height;
+  dupl->ratio          = img->ratio;
+  dupl->format         = img->format;
+  
+  this->driver->update_frame_format (this->driver, dupl, dupl->width, dupl->height, 
+				     dupl->ratio, dupl->format, VO_BOTH_FIELDS);
+
+  pthread_mutex_unlock (&dupl->mutex);
+  
+  image_size = img->pitches[0] * img->height;
+
+  if (img->format == IMGFMT_YV12) {
+    if (img->base[0])
+      xine_fast_memcpy(dupl->base[0], img->base[0], image_size);
+    if (img->base[1])
+      xine_fast_memcpy(dupl->base[1], img->base[1], img->pitches[1] * ((img->height+1)/2));
+    if (img->base[2])
+      xine_fast_memcpy(dupl->base[2], img->base[2], img->pitches[2] * ((img->height+1)/2));
+  } else {
+    if (img->base[0])
+      xine_fast_memcpy(dupl->base[0], img->base[0], image_size);
+  }  
+  
+  dupl->bad_frame = 0;
+  dupl->pts       = 0;
+  dupl->vpts      = 0;
+  dupl->duration  = img->duration;
+
+  if (img->format == IMGFMT_YV12) {
+    if (img->copy) {
+      int height = img->height;
+      uint8_t* src[3];
+  
+      src[0] = dupl->base[0];
+      src[1] = dupl->base[1];
+      src[2] = dupl->base[2];
+      while ((height -= 16) >= 0) {
+        dupl->copy(dupl, src);
+        src[0] += 16 * img->pitches[0];
+        src[1] +=  8 * img->pitches[1];
+        src[2] +=  8 * img->pitches[2];
+      }
+    }
+  } else {
+    if (img->copy) {
+      int height = img->height;
+      uint8_t* src[3];
+      
+      src[0] = dupl->base[0];
+      
+      while ((height -= 16) >= 0) {
+        dupl->copy(dupl, src);
+        src[0] += 16 * img->pitches[0];
+      }
+    }
+  }
+  
+  return dupl;
+}
+
+
 static void expire_frames (vos_t *this, int64_t cur_vpts) {
 
   int64_t       pts;
@@ -409,11 +500,14 @@ static vo_frame_t *get_next_frame (vos_t *this, int64_t cur_vpts) {
       printf("video_out: generating still frame (cur_vpts = %lld) \n",
 	     cur_vpts);
 #endif
-	
+
       /* keep playing still frames */
-      img = this->vo.duplicate_frame (&this->vo, this->img_backup );
-      img->vpts = cur_vpts;
-      
+      pthread_mutex_lock( &this->free_img_buf_queue->mutex );
+      img = duplicate_frame (this, this->img_backup );
+      pthread_mutex_unlock( &this->free_img_buf_queue->mutex );
+      if( img )
+        img->vpts = cur_vpts;
+        
       return img;
 
     } else {
@@ -453,6 +547,7 @@ static vo_frame_t *get_next_frame (vos_t *this, int64_t cur_vpts) {
     /* 
      * last frame? make backup for possible still image 
      */
+    pthread_mutex_lock( &this->free_img_buf_queue->mutex );
     if (img && !img->next &&
 	(this->xine->video_fifo->size(this->xine->video_fifo) < 10 
 	 || this->xine->video_in_discontinuity) ) {
@@ -460,8 +555,9 @@ static vo_frame_t *get_next_frame (vos_t *this, int64_t cur_vpts) {
       printf ("video_out: possible still frame (fifosize = %d)\n",
 	      this->xine->video_fifo->size(this->xine->video_fifo));
         
-      this->img_backup = this->vo.duplicate_frame (&this->vo, img);
+      this->img_backup = duplicate_frame (this, img);
     }
+    pthread_mutex_unlock( &this->free_img_buf_queue->mutex );
 
     /*
      * remove frame from display queue and show it
@@ -474,7 +570,7 @@ static vo_frame_t *get_next_frame (vos_t *this, int64_t cur_vpts) {
 }
 
 static void overlay_and_display_frame (vos_t *this, 
-				       vo_frame_t *img) {
+				       vo_frame_t *img, int64_t vpts) {
 
 #ifdef LOG
   printf ("video_out: displaying image with vpts = %lld\n", 
@@ -482,11 +578,8 @@ static void overlay_and_display_frame (vos_t *this,
 #endif
   
   if (this->overlay_source) {
-    /* This is the only way for the overlay manager to get pts values
-     * for flushing its buffers. So don't remove it! */
-    
     this->overlay_source->multiple_overlay_blend (this->overlay_source, 
-						  img->vpts, 
+						  vpts, 
 						  this->driver, img,
 						  this->video_loop_running && this->overlay_enabled);
   }
@@ -506,9 +599,6 @@ static void overlay_and_display_frame (vos_t *this,
 static void check_redraw_needed (vos_t *this, int64_t vpts) {
 
   if (this->overlay_source) {
-    /* This is the only way for the overlay manager to get pts values
-     * for flushing its buffers. So don't remove it! */
-    
     if( this->overlay_source->redraw_needed (this->overlay_source, vpts) )
       this->redraw_needed = 1; 
   }
@@ -517,6 +607,57 @@ static void check_redraw_needed (vos_t *this, int64_t vpts) {
     this->redraw_needed = 1;
 }
 
+/* special loop for paused mode
+ * needed to update screen due overlay changes, resize, window
+ * movement, brightness adjusting etc.
+ */                   
+static void paused_loop( vos_t *this, int64_t vpts )
+{
+  vo_frame_t   *img;
+  
+  pthread_mutex_lock( &this->free_img_buf_queue->mutex );
+  /* prevent decoder thread from allocating new frames */
+  this->free_img_buf_queue->locked_for_read = 1;
+  
+  while( this->xine->speed == SPEED_PAUSE ) {
+  
+    /* we need at least one free frame to keep going */
+    if( this->display_img_buf_queue->first &&
+       !this->free_img_buf_queue->first ) {
+    
+      img = vo_remove_from_img_buf_queue (this->display_img_buf_queue);
+      img->next = NULL;
+      this->free_img_buf_queue->first = img;
+      this->free_img_buf_queue->last  = img;
+      this->free_img_buf_queue->num_buffers = 1;
+    }
+    
+    /* set img_backup to play the same frame several times */
+    if( this->display_img_buf_queue->first && !this->img_backup ) {
+      this->img_backup = vo_remove_from_img_buf_queue (this->display_img_buf_queue);
+      this->redraw_needed = 1;
+    }
+    
+    check_redraw_needed( this, vpts );
+    
+    if( this->redraw_needed && this->img_backup ) {
+      img = duplicate_frame (this, this->img_backup );
+      if( img ) {
+        pthread_mutex_unlock( &this->free_img_buf_queue->mutex );
+        overlay_and_display_frame (this, img, vpts);
+        pthread_mutex_lock( &this->free_img_buf_queue->mutex );
+      }  
+    }
+    
+    xine_usec_sleep (20000);
+  } 
+  
+  this->free_img_buf_queue->locked_for_read = 0;
+   
+  if( this->free_img_buf_queue->first )
+    pthread_cond_signal (&this->free_img_buf_queue->not_empty);
+  pthread_mutex_unlock( &this->free_img_buf_queue->mutex );
+}
 
 static void *video_out_loop (void *this_gen) {
 
@@ -559,7 +700,7 @@ static void *video_out_loop (void *this_gen) {
 #ifdef LOG
       printf ("video_out: displaying frame (id=%d)\n", img->id);
 #endif
-      overlay_and_display_frame (this, img);
+      overlay_and_display_frame (this, img, vpts);
     }
     else
     {
@@ -604,6 +745,9 @@ static void *video_out_loop (void *this_gen) {
  
     do {
       vpts = this->metronom->get_current_time (this->metronom);
+  
+      if( this->xine->speed == SPEED_PAUSE )
+        paused_loop( this, vpts );
 
       usec_to_sleep = (next_frame_vpts - vpts) * 100 / 9;
 
@@ -651,70 +795,6 @@ static void *video_out_loop (void *this_gen) {
 static uint32_t vo_get_capabilities (vo_instance_t *this_gen) {
   vos_t      *this = (vos_t *) this_gen;
   return this->driver->get_capabilities (this->driver);
-}
-
-static vo_frame_t * vo_duplicate_frame( vo_instance_t *this_gen, vo_frame_t *img ) {
-
-  vo_frame_t *dupl;
-  /* vos_t      *this = (vos_t *) this_gen; */
-  int         image_size;
-    
-  dupl = vo_get_frame (this_gen, img->width, img->height, img->ratio,
-		       img->format, VO_BOTH_FIELDS );
-  
-  image_size = img->pitches[0] * img->height;
-
-  if (img->format == IMGFMT_YV12) {
-    /* The dxr3 video out plugin does not allocate memory for the dxr3
-     * decoder, so we must check for NULL */
-    if (img->base[0])
-      xine_fast_memcpy(dupl->base[0], img->base[0], image_size);
-    if (img->base[1])
-      xine_fast_memcpy(dupl->base[1], img->base[1], img->pitches[1] * ((img->height+1)/2));
-    if (img->base[2])
-      xine_fast_memcpy(dupl->base[2], img->base[2], img->pitches[2] * ((img->height+1)/2));
-  } else {
-    if (img->base[0])
-      xine_fast_memcpy(dupl->base[0], img->base[0], image_size);
-  }  
-  
-  dupl->bad_frame = 0;
-  dupl->pts       = 0;
-  dupl->vpts      = 0;
-  dupl->duration  = img->duration;
-
-  /* Support copy; Dangerous, since some decoders may use a source that's
-   * not dupl->base. It's up to the copy implementation to check for NULL */ 
-  if (img->format == IMGFMT_YV12) {
-    if (img->copy) {
-      int height = img->height;
-      uint8_t* src[3];
-  
-      src[0] = dupl->base[0];
-      src[1] = dupl->base[1];
-      src[2] = dupl->base[2];
-      while ((height -= 16) >= 0) {
-        dupl->copy(dupl, src);
-        src[0] += 16 * img->pitches[0];
-        src[1] +=  8 * img->pitches[1];
-        src[2] +=  8 * img->pitches[2];
-      }
-    }
-  } else {
-    if (img->copy) {
-      int height = img->height;
-      uint8_t* src[3];
-      
-      src[0] = dupl->base[0];
-      
-      while ((height -= 16) >= 0) {
-        dupl->copy(dupl, src);
-        src[0] += 16 * img->pitches[0];
-      }
-    }
-  }
-  
-  return dupl;
 }
 
 static void vo_open (vo_instance_t *this_gen) {
@@ -822,7 +902,7 @@ vo_instance_t *vo_new_instance (vo_driver_t *driver, xine_t *xine) {
 
   this->vo.open                  = vo_open;
   this->vo.get_frame             = vo_get_frame;
-  this->vo.duplicate_frame       = vo_duplicate_frame;
+  this->vo.duplicate_frame       = NULL; /* deprecated */
   this->vo.get_last_frame        = vo_get_last_frame;
   this->vo.close                 = vo_close;
   this->vo.exit                  = vo_exit;

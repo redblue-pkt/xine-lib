@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xshm.c,v 1.81 2002/07/20 21:46:05 esnel Exp $
+ * $Id: video_out_xshm.c,v 1.82 2002/07/30 00:26:45 miguelfreitas Exp $
  * 
  * video_out_xshm.c, X11 shared memory extension interface for xine
  *
@@ -74,7 +74,7 @@ typedef struct xshm_frame_s {
   int                format;
   int                flags;
 
-  int                user_ratio;
+  int                user_ratio; 
 
   /* 
    * "ideal" size of this frame :
@@ -136,6 +136,9 @@ typedef struct xshm_driver_s {
   uint8_t           *yuv2rgb_cmap;
   yuv2rgb_factory_t *yuv2rgb_factory;
   int                user_ratio;
+  
+  /* force update screen if gamma changes */
+  int                force_redraw;
 
   /* speed tradeoffs */
   int		     scaling_disabled;
@@ -809,8 +812,8 @@ static int xshm_redraw_needed (vo_driver_t *this_gen) {
   int gui_x, gui_y, gui_width, gui_height, gui_win_x, gui_win_y;
   int ret = 0;
 
-  if( this->cur_frame )
-  {
+  if( this->cur_frame ) {
+  
     this->frame_output_cb (this->user_data,
 			   this->cur_frame->ideal_width, this->cur_frame->ideal_height, 
 			   &gui_x, &gui_y, &gui_width, &gui_height,
@@ -834,10 +837,11 @@ static int xshm_redraw_needed (vo_driver_t *this_gen) {
     }
   } 
   else
-  {
     ret = 1;
-  }
-  
+
+  if( this->force_redraw )
+    ret = 1;
+      
   return ret;
 }
 
@@ -904,7 +908,8 @@ static void xshm_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
     }
 
     this->cur_frame = frame;
-
+    this->force_redraw = 0;
+    
     xoffset  = (this->gui_width - frame->output_width) / 2 + this->gui_x;
     yoffset  = (this->gui_height - frame->output_height) / 2 + this->gui_y;
 
@@ -1005,7 +1010,10 @@ static int xshm_set_property (vo_driver_t *this_gen,
     this->yuv2rgb_gamma = value;
     this->yuv2rgb_factory->set_gamma (this->yuv2rgb_factory, value);
 
+    this->force_redraw = 1;
+#ifdef LOG
     printf ("video_out_xshm: gamma changed to %d\n",value);
+#endif
   } else {
     printf ("video_out_xshm: tried to set unsupported property %d\n", property);
   }

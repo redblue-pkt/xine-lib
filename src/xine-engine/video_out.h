@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.h,v 1.55 2002/07/15 21:42:34 esnel Exp $
+ * $Id: video_out.h,v 1.56 2002/07/30 00:26:45 miguelfreitas Exp $
  *
  *
  * xine version of video_out.h 
@@ -154,8 +154,9 @@ struct vo_instance_s {
   vo_frame_t* (*get_last_frame) (vo_instance_t *this);
   
   /* 
-   * duplicate_frame - allocate an image buffer from display driver
-   * and copy the frame into it.
+   * duplicate_frame is deprecated and should be removed 
+   * on the next api change.
+   * (will remain as an internal function only)
    */
   vo_frame_t* (*duplicate_frame) (vo_instance_t *this, vo_frame_t *img );
     

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.145 2002/07/14 20:55:17 miguelfreitas Exp $
+ * $Id: xine.c,v 1.146 2002/07/30 00:26:45 miguelfreitas Exp $
  *
  * top-level xine functions
  *
@@ -859,7 +859,7 @@ void xine_set_speed (xine_t *this, int speed) {
   pthread_mutex_lock (&this->osd_lock);
   switch (speed) {
   case SPEED_PAUSE:
-    xine_internal_osd (this, "<", 10000);
+    xine_internal_osd (this, "<", 90000);
     break;
   case SPEED_SLOW_4:
     xine_internal_osd (this, "<>", 20000 * speed);
@@ -879,9 +879,6 @@ void xine_set_speed (xine_t *this, int speed) {
   } 
   pthread_mutex_unlock (&this->osd_lock);
     
-  /* make sure osd can be displayed */
-  xine_usec_sleep(100000);
-
   printf ("xine: set_speed %d\n", speed);
   xine_set_speed_internal (this, speed);
 
