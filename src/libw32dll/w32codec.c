@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.100 2002/11/12 18:40:52 miguelfreitas Exp $
+ * $Id: w32codec.c,v 1.101 2002/11/13 00:23:29 tmattern Exp $
  *
  * routines for using w32 codecs
  * DirectShow support by Miguel Freitas (Nov/2001)
@@ -1292,7 +1292,7 @@ static void w32a_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 }
 
 
-static void w32a_close (audio_decoder_t *this_gen) {
+static void w32a_dispose (audio_decoder_t *this_gen) {
 
   w32a_decoder_t *this = (w32a_decoder_t *) this_gen;
   
@@ -1322,11 +1322,13 @@ static void w32a_close (audio_decoder_t *this_gen) {
   }
   
   this->decoder_ok = 0;
-  
+
   if (this->output_open) {
     this->stream->audio_out->close (this->stream->audio_out);
     this->output_open = 0;
   }
+
+  free (this);
 }
 
 static video_decoder_t *open_video_decoder_plugin (video_decoder_class_t *class_gen, 
@@ -1398,10 +1400,6 @@ static void *init_video_decoder_class (xine_t *xine, void *data) {
 /********************************************************
  * audio part
  */
-
-static void w32a_dispose (audio_decoder_t *this_gen) {
-  free (this_gen);
-}
 
 static audio_decoder_t *open_audio_decoder_plugin (audio_decoder_class_t *class_gen, 
 						   xine_stream_t *stream) {
