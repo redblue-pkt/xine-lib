@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_avi.c,v 1.201 2004/05/16 18:01:27 tmattern Exp $
+ * $Id: demux_avi.c,v 1.202 2004/05/27 11:10:11 miguelfreitas Exp $
  *
  * demultiplexer for avi streams
  *
@@ -879,7 +879,7 @@ static avi_t *AVI_init(demux_avi_t *this) {
               hdrl_data[i], hdrl_data[i+1], hdrl_data[i+2], hdrl_data[i+3]);
       if(strncasecmp(hdrl_data + i, "vids", 4) == 0 && !vids_strh_seen) {
 
-        AVI->compressor = *(uint32_t *) hdrl_data + i + 4;
+        AVI->compressor = *(uint32_t *) (hdrl_data + i + 4);
         AVI->dwInitialFrames = LE_32(hdrl_data + i + 16);
         AVI->dwScale         = LE_32(hdrl_data + i + 20);
         AVI->dwRate          = LE_32(hdrl_data + i + 24);
@@ -1880,6 +1880,17 @@ static void demux_avi_send_headers (demux_plugin_t *this_gen) {
                (int)this->avi->audio[i]->wavex->wFormatTag);
   }
 
+  /*
+   * I don't know who should we trust more, if avi->compressor or bih->biCompression.
+   * however, at least for this case (compressor: xvid biCompression: DIVX), the
+   * xvid fourcc must prevail as it is used by ffmpeg to detect encoder bugs. [MF]
+   */
+  if( _x_fourcc_to_buf_video(this->avi->compressor) == BUF_VIDEO_XVID &&
+      _x_fourcc_to_buf_video(this->avi->bih->biCompression) == BUF_VIDEO_MPEG4 ) {
+    this->avi->bih->biCompression = this->avi->compressor;
+    this->avi->video_type = BUF_VIDEO_XVID;
+  }
+  
   _x_stream_info_set(this->stream, XINE_STREAM_INFO_HAS_VIDEO, 1);
   _x_stream_info_set(this->stream, XINE_STREAM_INFO_HAS_AUDIO, !this->no_audio);
 
