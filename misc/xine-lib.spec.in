@@ -8,6 +8,7 @@
 Name:        %{name}
 Summary:     A portable video/audio library for unix-like systems.
 Summary(cs): Pøenositelná video/audio knihovna pro unixovské systémy
+Summary(de): Eine portabele Audio-/Video-Bibliothek für Unix-basierende Systeme.
 Version:     %{version}
 Release:     %{release}
 License:     GPL
@@ -30,19 +31,32 @@ Don't hesitate to use %{name} in your own projects as long as your usage
 complies to the GPL.
 
 %description -l cs
-%{name} je tepající srdce xine (volnì ¹iøitelného videopøehrávaèe pod gpl 
-licencí pro unixovské systémy). Mimo jiné poskytuje podporu pro dekódování 
-(a pøehrávání) s mnoha dnes dostupnými audio/video kodeky jako jsou 
-napø. mpeg-4, mpeg-2 a mpeg-1. Tato knihovna obsahuje a pou¾ívá velký poèet 
-procesorovì závislých optimalizací k dosa¾ení plynulého pøehrávání a 
+%{name} je tepající srdce xine (volnì ¹iøitelného videopøehrávaèe pod gpl
+licencí pro unixovské systémy). Mimo jiné poskytuje podporu pro dekódování
+(a pøehrávání) s mnoha dnes dostupnými audio/video kodeky jako jsou
+napø. mpeg-4, mpeg-2 a mpeg-1. Tato knihovna obsahuje a pou¾ívá velký poèet
+procesorovì závislých optimalizací k dosa¾ení plynulého pøehrávání a
 zmen¹ení celkového nároku na výkon procesoru.
 
-Dokud to bude ve shodì s GPL, neváhejte pou¾ít %{name} ve va¹ich vlastních 
+Dokud to bude ve shodì s GPL, neváhejte pou¾ít %{name} ve va¹ich vlastních
 projektech.
+
+%description -l de
+%{name} ist das Herzstueck von xine (einem freien, GPL lizensiertem
+Audio/Video-Abspielprogramm für Unix-basierende Systeme). %{name} stellt die
+Funktionen zur Dekodierung und Wiedergabe vieler aktueller Audio- und Video-
+codecs zur Verfügung, wie z.B. MPEG-4, MPEG-2 und MPEG-1, um nur einige zu
+nennen. Die Bibliothek enthaelt und benutzt eine Vielzahl von prozessor-
+spezifischen Optimierungen, um eine fluessige Wiedergabe mit minimaler
+Prozessorbelastung gewaehrleisten zu koennnen.
+
+Zoegern Sie nicht %{name} in Ihren eigenen Projekten zu nutzen. Beachten Sie
+hierzu jedoch die in der GPL Lizenz vereinbarten Bestimmungen.
 
 %package -n %{libname}
 Summary:   Required libs to run programs dynamically linked with %{name}.
 Summary(cs): Knihovny nutné pro bìh programù dynamicky linkovaných s %{name}
+Summary(de): Benoetigte Bibliotheken, um Programme, die dynamisch gegen %{name} gelinkt sind, benutzen zu koennen.
 Group:	   Development/Libraries
 Obsoletes: xine, xine-lib, xine-lib-oss, xine-lib-alsa09, xine-lib-arts, xine-lib-esd, xine-lib-dxr3, xine-lib-xv, xine-lib-sdl, xine-lib-aa, xine-lib-opengl, xine-lib-w32dll, xine-lib-oggvorbis
 Provides:  %{name} = %{version}-%{release}
@@ -64,19 +78,35 @@ complies to the GPL.
 %description -n %{libname} -l cs
 Tento balíèek je nutný pro bìh programù dynamicky linkovaných s %{name}.
 
-%{name} je tepající srdce xine (volnì ¹iøitelného videopøehrávaèe pod gpl 
-licencí pro unixovské systémy). Mimo jiné poskytuje podporu pro dekódování 
-(a pøehrávání) s mnoha dnes dostupnými audio/video kodeky jako jsou 
-napø. mpeg-4, mpeg-2 a mpeg-1. Tato knihovna obsahuje a pou¾ívá velký poèet 
-procesorovì závislých optimalizací k dosa¾ení plynulého pøehrávání a 
+%{name} je tepající srdce xine (volnì ¹iøitelného videopøehrávaèe pod gpl
+licencí pro unixovské systémy). Mimo jiné poskytuje podporu pro dekódování
+(a pøehrávání) s mnoha dnes dostupnými audio/video kodeky jako jsou
+napø. mpeg-4, mpeg-2 a mpeg-1. Tato knihovna obsahuje a pou¾ívá velký poèet
+procesorovì závislých optimalizací k dosa¾ení plynulého pøehrávání a
 zmen¹ení celkového nároku na výkon procesoru.
 
-Dokud to bude ve shodì s GPL, neváhejte pou¾ít %{name} ve va¹ich vlastních 
+Dokud to bude ve shodì s GPL, neváhejte pou¾ít %{name} ve va¹ich vlastních
 projektech.
+
+%description -n %{libname} -l de
+Dieses Paket wird benoetigt, um Programme, die dynamisch gegen %{name}
+gelinkt sind, benutzen zu koennen.
+
+%{name} ist das Herzstueck von xine (einem freien, GPL lizensiertem
+Audio/Video-Abspielprogramm für Unix-basierende Systeme). %{name} stellt die
+Funktionen zur Dekodierung und Wiedergabe vieler aktueller Audio- und Video-
+codecs zur Verfügung, wie z.B. MPEG-4, MPEG-2 und MPEG-1, um nur einige zu
+nennen. Die Bibliothek enthaelt und benutzt eine Vielzahl von prozessor-
+spezifischen Optimierungen, um eine fluessige Wiedergabe mit minimaler
+Prozessorbelastung gewaehrleisten zu koennnen.
+
+Zoegern Sie nicht %{name} in Ihren eigenen Projekten zu nutzen. Beachten Sie
+hierzu jedoch die in der GPL Lizenz vereinbarten Bestimmungen.
 
 %package -n %{libname}-devel
 Summary:   Header files and documentation to develope programs with %{name}.
 Summary(cs): Hlavièkové soubory a dokumentace pro vývoj programù pou¾ívajících %{name}.
+Summary(de): Headerdateien und Dokumentationen, um Programme mit %{name} entwickeln zu koennen.
 Group:	   Development/Libraries
 Obsoletes: xine-lib-devel
 Provides:  %{name}-devel = %{version}-%{release}
@@ -96,19 +126,34 @@ the overall demand of CPU power.
 Don't hesitate to use %{name} in your own projects as long as your usage
 complies to the GPL.
 
-%description -n %{libname}-devel
+%description -n %{libname}-devel -l cs
 Tento balíèek obsahuje hlavièkové soubory a dokumentaci potøebnou pro vývoj
 programù pou¾ívajících %{name}.
 
-%{name} je tepající srdce xine (volnì ¹iøitelného videopøehrávaèe pod gpl 
-licencí pro unixovské systémy). Mimo jiné poskytuje podporu pro dekódování 
-(a pøehrávání) s mnoha dnes dostupnými audio/video kodeky jako jsou 
-napø. mpeg-4, mpeg-2 a mpeg-1. Tato knihovna obsahuje a pou¾ívá velký poèet 
-procesorovì závislých optimalizací k dosa¾ení plynulého pøehrávání a 
+%{name} je tepající srdce xine (volnì ¹iøitelného videopøehrávaèe pod gpl
+licencí pro unixovské systémy). Mimo jiné poskytuje podporu pro dekódování
+(a pøehrávání) s mnoha dnes dostupnými audio/video kodeky jako jsou
+napø. mpeg-4, mpeg-2 a mpeg-1. Tato knihovna obsahuje a pou¾ívá velký poèet
+procesorovì závislých optimalizací k dosa¾ení plynulého pøehrávání a
 zmen¹ení celkového nároku na výkon procesoru.
 
-Dokud to bude ve shodì s GPL, neváhejte pou¾ít %{name} ve va¹ich vlastních 
+Dokud to bude ve shodì s GPL, neváhejte pou¾ít %{name} ve va¹ich vlastních
 projektech.
+
+%description -n %{libname}-devel -l de
+Dieses Paket enthaelt die Headerdateien und Dokumentationen, um Programme
+mit %{name} entwickeln zu koennen.
+
+%{name} ist das Herzstueck von xine (einem freien, GPL lizensiertem
+Audio/Video-Abspielprogramm für Unix-basierende Systeme). %{name} stellt die
+Funktionen zur Dekodierung und Wiedergabe vieler aktueller Audio- und Video-
+codecs zur Verfügung, wie z.B. MPEG-4, MPEG-2 und MPEG-1, um nur einige zu
+nennen. Die Bibliothek enthaelt und benutzt eine Vielzahl von prozessor-
+spezifischen Optimierungen, um eine fluessige Wiedergabe mit minimaler
+Prozessorbelastung gewaehrleisten zu koennnen.
+
+Zoegern Sie nicht %{name} in Ihren eigenen Projekten zu nutzen. Beachten Sie
+hierzu jedoch die in der GPL Lizenz vereinbarten Bestimmungen.
 
 %prep
 %setup -q -n @TAR_NAME@
@@ -165,8 +210,11 @@ rm -rf $RPM_BUILD_ROOT
 %{_mandir}/man3/*
 
 %changelog
+* Sun May 26 2002 Matthias Dahl <matthew2k@web.de>
+- added german translations by Manfred Tremmel <Manfred.Tremmel@iiv.de>
+- added fixes (missing -l cs) by Manfred Tremmel <Manfred.Tremmel@iiv.de>
 * Sat May 18 2002 Matthias Dahl <matthew2k@web.de>
-- adding czech translations by valtri@atlas.cz
+- added czech translations by valtri@atlas.cz
 * Thu May 16 2002 Matthias Dahl <matthew2k@web.de>
 - replaced %configure because it was causing trouble on certain configurations
 * Sat May 11 2002 Matthias Dahl <matthew2k@web.de>
