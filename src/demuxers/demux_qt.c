@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.159 2003/05/10 04:26:17 tmmm Exp $
+ * $Id: demux_qt.c,v 1.160 2003/05/13 03:13:00 tmmm Exp $
  *
  */
 
@@ -545,6 +545,9 @@ static void find_moov_atom(input_plugin_t *input, off_t *moov_offset,
         (atom != FTYP_ATOM))
       break;
 
+    /* 0 special case-- just skip the atom */
+    if (atom_size == 0)
+      atom_size = 8;
     /* 64-bit length special case */
     if (atom_size == 1) {
       if (input->read(input, atom_preamble, ATOM_PREAMBLE_SIZE) !=
