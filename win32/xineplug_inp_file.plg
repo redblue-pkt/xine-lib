@@ -1,0 +1,46 @@
+<html>
+<body>
+<pre>
+<h1>Build Log</h1>
+<h3>
+--------------------Configuration: xineplug_inp_file - Win32 Debug--------------------
+</h3>
+<h3>Command Lines</h3>
+Creating temporary file "C:\DOCUME~1\TCHAMP~2.AME\LOCALS~1\Temp\RSP104.tmp" with contents
+[
+/nologo /MDd /W3 /Gm /GX /ZI /Od /I ".." /I "include" /I "../include" /I "../src" /I "../src/xine-engine" /I "../src/xine-utils" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "XINEPLUG_INP_FILE_EXPORTS" /D "XINE_COMPILE" /FR"Debug/xineplug_inp_file/" /Fp"Debug/xineplug_inp_file/xineplug_inp_file.pch" /YX /Fo"Debug/xineplug_inp_file/" /Fd"Debug/xineplug_inp_file/" /FD /GZ /c 
+"C:\PCChamp\Projects\Xine\xine-lib-1-beta10\src\input\input_file.c"
+]
+Creating command line "cl.exe @C:\DOCUME~1\TCHAMP~2.AME\LOCALS~1\Temp\RSP104.tmp" 
+Creating temporary file "C:\DOCUME~1\TCHAMP~2.AME\LOCALS~1\Temp\RSP105.tmp" with contents
+[
+/nologo /dll /incremental:yes /pdb:"Debug/xineplug_inp_file/xineplug_inp_file.pdb" /debug /machine:I386 /def:".\xineplug_inp.def" /out:"Debug/bin/plugins/xineplug_inp_file.so" /implib:"Debug/xineplug_inp_file/xineplug_inp_file.lib" /pdbtype:sept 
+".\Debug\xineplug_inp_file\input_file.obj"
+".\Debug\libxinesuppt\libxinesuppt.lib"
+".\Debug\libxine\libxine.lib"
+".\Debug\libxineutils\libxineutils.lib"
+]
+Creating command line "link.exe @C:\DOCUME~1\TCHAMP~2.AME\LOCALS~1\Temp\RSP105.tmp"
+<h3>Output Window</h3>
+Compiling...
+input_file.c
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\input\input_file.c(72) : warning C4101: 'buf' : unreferenced local variable
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\input\input_file.c(97) : warning C4013: 'read' undefined; assuming extern returning int
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\input\input_file.c(135) : warning C4013: 'lseek' undefined; assuming extern returning int
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\input\input_file.c(192) : warning C4013: 'close' undefined; assuming extern returning int
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\input\input_file.c(245) : warning C4013: 'open' undefined; assuming extern returning int
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\input\input_file.c(665) : warning C4113: 'int (__cdecl *)()' differs in parameter lists from 'int (__cdecl *)(const void *,const void *)'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\input\input_file.c(668) : warning C4113: 'int (__cdecl *)()' differs in parameter lists from 'int (__cdecl *)(const void *,const void *)'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\input\input_file.c(671) : warning C4113: 'int (__cdecl *)()' differs in parameter lists from 'int (__cdecl *)(const void *,const void *)'
+Linking...
+Creating command line "bscmake.exe /nologo /o"Debug/xineplug_inp_file/xineplug_inp_file.bsc"  ".\Debug\xineplug_inp_file\input_file.sbr""
+Creating browse info file...
+<h3>Output Window</h3>
+
+
+
+<h3>Results</h3>
+xineplug_inp_file.so - 0 error(s), 8 warning(s)
+</pre>
+</body>
+</html>

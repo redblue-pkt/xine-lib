@@ -1,0 +1,41 @@
+<html>
+<body>
+<pre>
+<h1>Build Log</h1>
+<h3>
+--------------------Configuration: xineplug_decode_sputext - Win32 Debug--------------------
+</h3>
+<h3>Command Lines</h3>
+Creating temporary file "C:\DOCUME~1\TCHAMP~2.AME\LOCALS~1\Temp\RSPD1.tmp" with contents
+[
+/nologo /MDd /W3 /Gm /GX /ZI /Od /I ".." /I "include" /I "../include" /I "../src" /I "../src/xine-engine" /I "../src/xine-utils" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "XINEPLUG_DECODE_SPUTEXT_EXPORTS" /D "XINE_COMPILE" /Fp"Debug/xineplug_decode_sputext/xineplug_decode_sputext.pch" /YX /Fo"Debug/xineplug_decode_sputext/" /Fd"Debug/xineplug_decode_sputext/" /FD /GZ /c 
+"C:\PCChamp\Projects\Xine\xine-lib-1-beta10\src\libsputext\xine_decoder.c"
+]
+Creating command line "cl.exe @C:\DOCUME~1\TCHAMP~2.AME\LOCALS~1\Temp\RSPD1.tmp" 
+Creating temporary file "C:\DOCUME~1\TCHAMP~2.AME\LOCALS~1\Temp\RSPD2.tmp" with contents
+[
+/nologo /dll /incremental:yes /pdb:"Debug/xineplug_decode_sputext/xineplug_decode_sputext.pdb" /debug /machine:I386 /def:".\xineplug_decode_spu.def" /out:"Debug/bin/plugins/xineplug_decode_sputext.so" /implib:"Debug/xineplug_decode_sputext/xineplug_decode_sputext.lib" /pdbtype:sept 
+".\Debug\xineplug_decode_sputext\xine_decoder.obj"
+".\Debug\libxine\libxine.lib"
+".\Debug\libxinesuppt\libxinesuppt.lib"
+".\Debug\libxineutils\libxineutils.lib"
+]
+Creating command line "link.exe @C:\DOCUME~1\TCHAMP~2.AME\LOCALS~1\Temp\RSPD2.tmp"
+<h3>Output Window</h3>
+Compiling...
+xine_decoder.c
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libsputext\xine_decoder.c(202) : warning C4018: '!=' : signed/unsigned mismatch
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libsputext\xine_decoder.c(228) : warning C4244: '+=' : conversion from '__int64 ' to 'long ', possible loss of data
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libsputext\xine_decoder.c(229) : warning C4244: '+=' : conversion from '__int64 ' to 'long ', possible loss of data
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libsputext\xine_decoder.c(282) : warning C4244: '=' : conversion from '__int64 ' to 'long ', possible loss of data
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libsputext\xine_decoder.c(283) : warning C4244: '=' : conversion from '__int64 ' to 'long ', possible loss of data
+Linking...
+   Creating library Debug/xineplug_decode_sputext/xineplug_decode_sputext.lib and object Debug/xineplug_decode_sputext/xineplug_decode_sputext.exp
+
+
+
+<h3>Results</h3>
+xineplug_decode_sputext.so - 0 error(s), 5 warning(s)
+</pre>
+</body>
+</html>

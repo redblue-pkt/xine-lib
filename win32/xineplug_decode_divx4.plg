@@ -1,0 +1,111 @@
+<html>
+<body>
+<pre>
+<h1>Build Log</h1>
+<h3>
+--------------------Configuration: xineplug_decode_divx4 - Win32 Debug--------------------
+</h3>
+<h3>Command Lines</h3>
+Creating temporary file "C:\DOCUME~1\TCHAMP~2.AME\LOCALS~1\Temp\RSPA8.tmp" with contents
+[
+/nologo /MDd /W3 /Gm /GX /ZI /Od /I ".." /I "include" /I "../include" /I "../src" /I "../src/xine-engine" /I "../src/xine-utils" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "XINEPLUG_DECODE_DIVX4_EXPORTS" /D "XINE_COMPILE" /FR"Debug/xineplug_decode_divx4/" /Fp"Debug/xineplug_decode_divx4/xineplug_decode_divx4.pch" /YX /Fo"Debug/xineplug_decode_divx4/" /Fd"Debug/xineplug_decode_divx4/" /FD /GZ /c 
+"C:\PCChamp\Projects\Xine\xine-lib-1-beta10\src\libdivx4\xine_decoder.c"
+]
+Creating command line "cl.exe @C:\DOCUME~1\TCHAMP~2.AME\LOCALS~1\Temp\RSPA8.tmp" 
+Creating temporary file "C:\DOCUME~1\TCHAMP~2.AME\LOCALS~1\Temp\RSPA9.tmp" with contents
+[
+/nologo /dll /incremental:yes /pdb:"Debug/xineplug_decode_divx4/xineplug_decode_divx4.pdb" /debug /machine:I386 /def:".\xineplug_decode_vo.def" /out:"Debug/bin/plugins/xineplug_decode_divx4.so" /implib:"Debug/xineplug_decode_divx4/xineplug_decode_divx4.lib" /pdbtype:sept 
+".\Debug\xineplug_decode_divx4\xine_decoder.obj"
+".\Debug\libxinesuppt\libxinesuppt.lib"
+".\Debug\libxineutils\libxineutils.lib"
+]
+Creating command line "link.exe @C:\DOCUME~1\TCHAMP~2.AME\LOCALS~1\Temp\RSPA9.tmp"
+<h3>Output Window</h3>
+Compiling...
+xine_decoder.c
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libdivx4\xine_decoder.c(100) : error C2061: syntax error : identifier 'vo_instance_t'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libdivx4\xine_decoder.c(111) : error C2372: 'decore' : redefinition; different types of indirection
+        c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libdivx4\decore-if.h(165) : see declaration of 'decore'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libdivx4\xine_decoder.c(126) : error C2059: syntax error : '}'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libdivx4\xine_decoder.c(152) : error C2143: syntax error : missing ')' before '*'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libdivx4\xine_decoder.c(152) : error C2143: syntax error : missing '{' before '*'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libdivx4\xine_decoder.c(152) : error C2059: syntax error : ')'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libdivx4\xine_decoder.c(153) : error C2054: expected '(' to follow 'this'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libdivx4\xine_decoder.c(191) : error C2143: syntax error : missing ')' before '*'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libdivx4\xine_decoder.c(191) : error C2143: syntax error : missing '{' before '*'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libdivx4\xine_decoder.c(191) : error C2059: syntax error : ')'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libdivx4\xine_decoder.c(192) : error C2054: expected '(' to follow 'this'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libdivx4\xine_decoder.c(206) : error C2143: syntax error : missing ')' before '*'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libdivx4\xine_decoder.c(206) : error C2143: syntax error : missing '{' before '*'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libdivx4\xine_decoder.c(206) : error C2059: syntax error : ')'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libdivx4\xine_decoder.c(206) : error C2054: expected '(' to follow 'this'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libdivx4\xine_decoder.c(226) : error C2143: syntax error : missing ')' before '*'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libdivx4\xine_decoder.c(226) : error C2143: syntax error : missing '{' before '*'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libdivx4\xine_decoder.c(226) : error C2371: 'buf_element_t' : redefinition; different basic types
+        c:\pcchamp\projects\xine\xine-lib-1-beta10\src\xine-engine\buffer.h(225) : see declaration of 'buf_element_t'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libdivx4\xine_decoder.c(226) : error C2143: syntax error : missing ';' before '*'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libdivx4\xine_decoder.c(226) : error C2059: syntax error : ')'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libdivx4\xine_decoder.c(227) : error C2371: 'buf' : redefinition; different basic types
+        c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libdivx4\xine_decoder.c(107) : see declaration of 'buf'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libdivx4\xine_decoder.c(227) : error C2054: expected '(' to follow 'buf'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libdivx4\xine_decoder.c(271) : error C2143: syntax error : missing ')' before '*'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libdivx4\xine_decoder.c(271) : error C2143: syntax error : missing '{' before '*'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libdivx4\xine_decoder.c(271) : error C2371: 'vo_frame_t' : redefinition; different basic types
+        c:\pcchamp\projects\xine\xine-lib-1-beta10\src\xine-engine\video_out.h(54) : see declaration of 'vo_frame_t'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libdivx4\xine_decoder.c(271) : error C2143: syntax error : missing ';' before '*'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libdivx4\xine_decoder.c(272) : error C2371: 'DEC_PICTURE' : redefinition; different basic types
+        c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libdivx4\decore-if.h(161) : see declaration of 'DEC_PICTURE'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libdivx4\xine_decoder.c(272) : error C2146: syntax error : missing ';' before identifier 'pict'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libdivx4\xine_decoder.c(272) : error C2059: syntax error : ')'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libdivx4\xine_decoder.c(273) : error C2054: expected '(' to follow 'pict'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libdivx4\xine_decoder.c(336) : error C2065: 'divx4_decoder_t' : undeclared identifier
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libdivx4\xine_decoder.c(336) : error C2297: '*' : illegal, right operand has type 'int *'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libdivx4\xine_decoder.c(336) : error C2059: syntax error : ')'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libdivx4\xine_decoder.c(340) : error C2223: left of '->can_handle_311' must point to struct/union
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libdivx4\xine_decoder.c(342) : warning C4033: 'divx4_can_handle' must return a value
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libdivx4\xine_decoder.c(346) : error C2143: syntax error : missing ')' before '*'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libdivx4\xine_decoder.c(346) : error C2081: 'vo_instance_t' : name in formal parameter list illegal
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libdivx4\xine_decoder.c(346) : error C2143: syntax error : missing '{' before '*'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libdivx4\xine_decoder.c(346) : error C2059: syntax error : ')'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libdivx4\xine_decoder.c(346) : error C2054: expected '(' to follow 'video_out'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libdivx4\xine_decoder.c(363) : error C2297: '*' : illegal, right operand has type 'int *'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libdivx4\xine_decoder.c(363) : error C2059: syntax error : ')'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libdivx4\xine_decoder.c(367) : warning C4013: 'divx4_get_version' undefined; assuming extern returning int
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libdivx4\xine_decoder.c(368) : error C2223: left of '->decoder_ok' must point to struct/union
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libdivx4\xine_decoder.c(368) : warning C4013: 'divx4_check_version' undefined; assuming extern returning int
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libdivx4\xine_decoder.c(369) : warning C4013: 'divx4_init_decoder' undefined; assuming extern returning int
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libdivx4\xine_decoder.c(370) : error C2223: left of '->decoder_ok' must point to struct/union
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libdivx4\xine_decoder.c(371) : error C2223: left of '->video_out' must point to struct/union
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libdivx4\xine_decoder.c(371) : error C2223: left of '->video_out' must point to struct/union
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libdivx4\xine_decoder.c(373) : error C2223: left of '->buf' must point to struct/union
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libdivx4\xine_decoder.c(374) : error C2223: left of '->buf' must point to struct/union
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libdivx4\xine_decoder.c(374) : error C2198: 'free' : too few actual parameters
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libdivx4\xine_decoder.c(376) : error C2223: left of '->buf' must point to struct/union
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libdivx4\xine_decoder.c(377) : error C2223: left of '->bufsize' must point to struct/union
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libdivx4\xine_decoder.c(382) : error C2223: left of '->decoder_ok' must point to struct/union
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libdivx4\xine_decoder.c(390) : error C2223: left of '->size' must point to struct/union
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libdivx4\xine_decoder.c(390) : error C2223: left of '->bufsize' must point to struct/union
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libdivx4\xine_decoder.c(391) : error C2223: left of '->bufsize' must point to struct/union
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libdivx4\xine_decoder.c(391) : error C2223: left of '->size' must point to struct/union
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libdivx4\xine_decoder.c(393) : error C2223: left of '->bufsize' must point to struct/union
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libdivx4\xine_decoder.c(394) : error C2223: left of '->buf' must point to struct/union
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libdivx4\xine_decoder.c(394) : error C2223: left of '->buf' must point to struct/union
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libdivx4\xine_decoder.c(394) : error C2223: left of '->bufsize' must point to struct/union
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libdivx4\xine_decoder.c(394) : error C2198: 'realloc' : too few actual parameters
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libdivx4\xine_decoder.c(397) : error C2223: left of '->buf' must point to struct/union
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libdivx4\xine_decoder.c(397) : error C2223: left of '->size' must point to struct/union
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libdivx4\xine_decoder.c(397) : fatal error C1903: unable to recover from previous error(s); stopping compilation
+Error executing cl.exe.
+Creating command line "bscmake.exe /nologo /o"Debug/xineplug_decode_divx4/xineplug_decode_divx4.bsc"  ".\Debug\xineplug_decode_divx4\xine_decoder.sbr""
+Creating browse info file...
+BSCMAKE: error BK1506 : cannot open file '.\Debug\xineplug_decode_divx4\xine_decoder.sbr': No such file or directory
+Error executing bscmake.exe.
+<h3>Output Window</h3>
+
+
+
+<h3>Results</h3>
+xineplug_decode_divx4.so - 64 error(s), 4 warning(s)
+</pre>
+</body>
+</html>

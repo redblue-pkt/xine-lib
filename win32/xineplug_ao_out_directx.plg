@@ -1,0 +1,38 @@
+<html>
+<body>
+<pre>
+<h1>Build Log</h1>
+<h3>
+--------------------Configuration: xineplug_ao_out_directx - Win32 Debug--------------------
+</h3>
+<h3>Command Lines</h3>
+Creating temporary file "C:\DOCUME~1\TCHAMP~2.AME\LOCALS~1\Temp\RSP1FA.tmp" with contents
+[
+/nologo /MDd /W3 /Gm /GX /ZI /Od /I ".." /I "include" /I "../include" /I "../src" /I "../src/xine-engine" /I "../src/xine-utils" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "XINEPLUG_AO_OUT_DIRECTX_EXPORTS" /D "XINE_COMPILE" /FR"Debug/xineplug_ao_out_directx/" /Fp"Debug/xineplug_ao_out_directx/xineplug_ao_out_directx.pch" /YX /Fo"Debug/xineplug_ao_out_directx/" /Fd"Debug/xineplug_ao_out_directx/" /FD /GZ /c 
+"C:\PCChamp\Projects\Xine\xine-lib-1-beta10\src\audio_out\audio_directx_out.c"
+]
+Creating command line "cl.exe @C:\DOCUME~1\TCHAMP~2.AME\LOCALS~1\Temp\RSP1FA.tmp" 
+Creating temporary file "C:\DOCUME~1\TCHAMP~2.AME\LOCALS~1\Temp\RSP1FB.tmp" with contents
+[
+kernel32.lib user32.lib gdi32.lib dsound.lib dxguid.lib /nologo /dll /incremental:yes /pdb:"Debug/xineplug_ao_out_directx/xineplug_ao_out_directx.pdb" /debug /machine:I386 /def:".\xineplug_ao_out.def" /out:"Debug/bin/plugins/xineplug_ao_out_directx.so" /implib:"Debug/xineplug_ao_out_directx/xineplug_ao_out_directx.lib" /pdbtype:sept 
+".\Debug\xineplug_ao_out_directx\audio_directx_out.obj"
+]
+Creating command line "link.exe @C:\DOCUME~1\TCHAMP~2.AME\LOCALS~1\Temp\RSP1FB.tmp"
+<h3>Output Window</h3>
+Compiling...
+audio_directx_out.c
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\audio_out\audio_directx_out.c(637) : warning C4018: '>' : signed/unsigned mismatch
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\audio_out\audio_directx_out.c(910) : warning C4028: formal parameter 1 different from declaration
+Linking...
+   Creating library Debug/xineplug_ao_out_directx/xineplug_ao_out_directx.lib and object Debug/xineplug_ao_out_directx/xineplug_ao_out_directx.exp
+Creating command line "bscmake.exe /nologo /o"Debug/xineplug_ao_out_directx/xineplug_ao_out_directx.bsc"  ".\Debug\xineplug_ao_out_directx\audio_directx_out.sbr""
+Creating browse info file...
+<h3>Output Window</h3>
+
+
+
+<h3>Results</h3>
+xineplug_ao_out_directx.so - 0 error(s), 2 warning(s)
+</pre>
+</body>
+</html>

@@ -1,0 +1,6 @@
+;------------------------------------------------------------
+; XINEPLUG_INP DLL DEFINITIONS FILE
+
+EXPORTS
+
+xine_plugin_info

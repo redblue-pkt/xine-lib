@@ -1,0 +1,7 @@
+;------------------------------------------------------------
+; XINEPLUG_AO_OUT DLL DEFINITIONS FILE
+
+EXPORTS
+
+xine_plugin_info
+get_audio_out_plugin_info

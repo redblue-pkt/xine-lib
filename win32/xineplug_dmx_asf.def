@@ -1,0 +1,6 @@
+;------------------------------------------------------------
+; XINEPLUG_DMX_ASF DLL DEFINITIONS FILE
+
+EXPORTS
+
+xine_plugin_info

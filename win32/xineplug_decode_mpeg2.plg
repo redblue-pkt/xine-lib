@@ -1,0 +1,160 @@
+<html>
+<body>
+<pre>
+<h1>Build Log</h1>
+<h3>
+--------------------Configuration: xineplug_decode_mpeg2 - Win32 Debug--------------------
+</h3>
+<h3>Command Lines</h3>
+Creating temporary file "C:\DOCUME~1\TCHAMP~2.AME\LOCALS~1\Temp\RSPC7.tmp" with contents
+[
+/nologo /MDd /W3 /Gm /GX /ZI /Od /I ".." /I "include" /I "../include" /I "../src" /I "../src/xine-engine" /I "../src/xine-utils" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "XINEPLUG_DECODE_MPEG2_EXPORTS" /D "XINE_COMPILE" /Fp"Debug/xineplug_decode_mpeg2/xineplug_decode_mpeg2.pch" /YX /Fo"Debug/xineplug_decode_mpeg2/" /Fd"Debug/xineplug_decode_mpeg2/" /FD /GZ /c 
+"C:\PCChamp\Projects\Xine\xine-lib-1-beta10\src\libmpeg2\cpu_state.c"
+"C:\PCChamp\Projects\Xine\xine-lib-1-beta10\src\libmpeg2\decode.c"
+"C:\PCChamp\Projects\Xine\xine-lib-1-beta10\src\libmpeg2\idct.c"
+"C:\PCChamp\Projects\Xine\xine-lib-1-beta10\src\libmpeg2\motion_comp.c"
+"C:\PCChamp\Projects\Xine\xine-lib-1-beta10\src\libmpeg2\slice.c"
+"C:\PCChamp\Projects\Xine\xine-lib-1-beta10\src\libmpeg2\xine_decoder.c"
+]
+Creating command line "cl.exe @C:\DOCUME~1\TCHAMP~2.AME\LOCALS~1\Temp\RSPC7.tmp" 
+Creating temporary file "C:\DOCUME~1\TCHAMP~2.AME\LOCALS~1\Temp\RSPC8.tmp" with contents
+[
+/nologo /dll /incremental:yes /pdb:"Debug/xineplug_decode_mpeg2/xineplug_decode_mpeg2.pdb" /debug /machine:I386 /def:".\xineplug_decode_vo.def" /out:"Debug/bin/plugins/xineplug_decode_mpeg2.so" /implib:"Debug/xineplug_decode_mpeg2/xineplug_decode_mpeg2.lib" /pdbtype:sept 
+".\Debug\xineplug_decode_mpeg2\cpu_state.obj"
+".\Debug\xineplug_decode_mpeg2\decode.obj"
+".\Debug\xineplug_decode_mpeg2\header.obj"
+".\Debug\xineplug_decode_mpeg2\idct.obj"
+".\Debug\xineplug_decode_mpeg2\idct_altivec.obj"
+".\Debug\xineplug_decode_mpeg2\idct_mlib.obj"
+".\Debug\xineplug_decode_mpeg2\idct_mmx.obj"
+".\Debug\xineplug_decode_mpeg2\motion_comp.obj"
+".\Debug\xineplug_decode_mpeg2\motion_comp_altivec.obj"
+".\Debug\xineplug_decode_mpeg2\motion_comp_mlib.obj"
+".\Debug\xineplug_decode_mpeg2\motion_comp_mmx.obj"
+".\Debug\xineplug_decode_mpeg2\slice.obj"
+".\Debug\xineplug_decode_mpeg2\stats.obj"
+".\Debug\xineplug_decode_mpeg2\xine_decoder.obj"
+".\Debug\libxinesuppt\libxinesuppt.lib"
+".\Debug\libxine\libxine.lib"
+".\Debug\libxineutils\libxineutils.lib"
+]
+Creating command line "link.exe @C:\DOCUME~1\TCHAMP~2.AME\LOCALS~1\Temp\RSPC8.tmp"
+<h3>Output Window</h3>
+Compiling...
+cpu_state.c
+decode.c
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libmpeg2\decode.c(166) : warning C4244: '=' : conversion from 'const double ' to 'int ', possible loss of data
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libmpeg2\decode.c(169) : warning C4244: '=' : conversion from 'const double ' to 'int ', possible loss of data
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libmpeg2\decode.c(175) : warning C4244: '=' : conversion from 'const double ' to 'int ', possible loss of data
+idct.c
+motion_comp.c
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libmpeg2\motion_comp.c(145) : warning C4028: formal parameter 3 different from declaration
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libmpeg2\motion_comp.c(145) : warning C4028: formal parameter 4 different from declaration
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libmpeg2\motion_comp.c(145) : warning C4028: formal parameter 3 different from declaration
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libmpeg2\motion_comp.c(145) : warning C4028: formal parameter 4 different from declaration
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libmpeg2\motion_comp.c(145) : warning C4028: formal parameter 3 different from declaration
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libmpeg2\motion_comp.c(145) : warning C4028: formal parameter 4 different from declaration
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libmpeg2\motion_comp.c(145) : warning C4028: formal parameter 3 different from declaration
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libmpeg2\motion_comp.c(145) : warning C4028: formal parameter 4 different from declaration
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libmpeg2\motion_comp.c(145) : warning C4028: formal parameter 3 different from declaration
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libmpeg2\motion_comp.c(145) : warning C4028: formal parameter 4 different from declaration
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libmpeg2\motion_comp.c(145) : warning C4028: formal parameter 3 different from declaration
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libmpeg2\motion_comp.c(145) : warning C4028: formal parameter 4 different from declaration
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libmpeg2\motion_comp.c(145) : warning C4028: formal parameter 3 different from declaration
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libmpeg2\motion_comp.c(145) : warning C4028: formal parameter 4 different from declaration
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libmpeg2\motion_comp.c(145) : warning C4028: formal parameter 3 different from declaration
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libmpeg2\motion_comp.c(145) : warning C4028: formal parameter 4 different from declaration
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libmpeg2\motion_comp.c(145) : warning C4028: formal parameter 3 different from declaration
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libmpeg2\motion_comp.c(145) : warning C4028: formal parameter 4 different from declaration
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libmpeg2\motion_comp.c(145) : warning C4028: formal parameter 3 different from declaration
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libmpeg2\motion_comp.c(145) : warning C4028: formal parameter 4 different from declaration
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libmpeg2\motion_comp.c(145) : warning C4028: formal parameter 3 different from declaration
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libmpeg2\motion_comp.c(145) : warning C4028: formal parameter 4 different from declaration
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libmpeg2\motion_comp.c(145) : warning C4028: formal parameter 3 different from declaration
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libmpeg2\motion_comp.c(145) : warning C4028: formal parameter 4 different from declaration
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libmpeg2\motion_comp.c(145) : warning C4028: formal parameter 3 different from declaration
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libmpeg2\motion_comp.c(145) : warning C4028: formal parameter 4 different from declaration
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libmpeg2\motion_comp.c(145) : warning C4028: formal parameter 3 different from declaration
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libmpeg2\motion_comp.c(145) : warning C4028: formal parameter 4 different from declaration
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libmpeg2\motion_comp.c(145) : warning C4028: formal parameter 3 different from declaration
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libmpeg2\motion_comp.c(145) : warning C4028: formal parameter 4 different from declaration
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libmpeg2\motion_comp.c(145) : warning C4028: formal parameter 3 different from declaration
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libmpeg2\motion_comp.c(145) : warning C4028: formal parameter 4 different from declaration
+slice.c
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libmpeg2\slice.c(1700) : warning C4028: formal parameter 3 different from declaration
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libmpeg2\slice.c(1700) : warning C4028: formal parameter 4 different from declaration
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libmpeg2\slice.c(1700) : warning C4024: 'motion_mp1' : different types for formal and actual parameter 3
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libmpeg2\slice.c(1700) : warning C4028: formal parameter 3 different from declaration
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libmpeg2\slice.c(1700) : warning C4028: formal parameter 4 different from declaration
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libmpeg2\slice.c(1700) : warning C4024: 'motion_mp1' : different types for formal and actual parameter 3
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libmpeg2\slice.c(1702) : warning C4028: formal parameter 3 different from declaration
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libmpeg2\slice.c(1702) : warning C4028: formal parameter 4 different from declaration
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libmpeg2\slice.c(1702) : warning C4024: 'motion_fr_frame' : different types for formal and actual parameter 3
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libmpeg2\slice.c(1702) : warning C4028: formal parameter 3 different from declaration
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libmpeg2\slice.c(1702) : warning C4028: formal parameter 4 different from declaration
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libmpeg2\slice.c(1702) : warning C4024: 'motion_fr_frame' : different types for formal and actual parameter 3
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libmpeg2\slice.c(1706) : warning C4028: formal parameter 3 different from declaration
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libmpeg2\slice.c(1706) : warning C4028: formal parameter 4 different from declaration
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libmpeg2\slice.c(1706) : warning C4024: 'motion_fr_field' : different types for formal and actual parameter 3
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libmpeg2\slice.c(1706) : warning C4028: formal parameter 3 different from declaration
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libmpeg2\slice.c(1706) : warning C4028: formal parameter 4 different from declaration
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libmpeg2\slice.c(1706) : warning C4024: 'motion_fr_field' : different types for formal and actual parameter 3
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libmpeg2\slice.c(1710) : warning C4028: formal parameter 3 different from declaration
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libmpeg2\slice.c(1710) : warning C4028: formal parameter 4 different from declaration
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libmpeg2\slice.c(1710) : warning C4024: 'motion_fr_dmv' : different types for formal and actual parameter 3
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libmpeg2\slice.c(1710) : warning C4028: formal parameter 3 different from declaration
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libmpeg2\slice.c(1710) : warning C4028: formal parameter 4 different from declaration
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libmpeg2\slice.c(1710) : warning C4024: 'motion_fr_dmv' : different types for formal and actual parameter 3
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libmpeg2\slice.c(1719) : warning C4028: formal parameter 3 different from declaration
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libmpeg2\slice.c(1719) : warning C4028: formal parameter 4 different from declaration
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libmpeg2\slice.c(1719) : warning C4024: 'motion_zero' : different types for formal and actual parameter 3
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libmpeg2\slice.c(1719) : warning C4028: formal parameter 3 different from declaration
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libmpeg2\slice.c(1719) : warning C4028: formal parameter 4 different from declaration
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libmpeg2\slice.c(1719) : warning C4024: 'motion_zero' : different types for formal and actual parameter 3
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libmpeg2\slice.c(1725) : warning C4028: formal parameter 3 different from declaration
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libmpeg2\slice.c(1725) : warning C4028: formal parameter 4 different from declaration
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libmpeg2\slice.c(1725) : warning C4024: 'motion_fi_field' : different types for formal and actual parameter 3
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libmpeg2\slice.c(1725) : warning C4028: formal parameter 3 different from declaration
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libmpeg2\slice.c(1725) : warning C4028: formal parameter 4 different from declaration
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libmpeg2\slice.c(1725) : warning C4024: 'motion_fi_field' : different types for formal and actual parameter 3
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libmpeg2\slice.c(1729) : warning C4028: formal parameter 3 different from declaration
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libmpeg2\slice.c(1729) : warning C4028: formal parameter 4 different from declaration
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libmpeg2\slice.c(1729) : warning C4024: 'motion_fi_16x8' : different types for formal and actual parameter 3
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libmpeg2\slice.c(1729) : warning C4028: formal parameter 3 different from declaration
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libmpeg2\slice.c(1729) : warning C4028: formal parameter 4 different from declaration
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libmpeg2\slice.c(1729) : warning C4024: 'motion_fi_16x8' : different types for formal and actual parameter 3
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libmpeg2\slice.c(1733) : warning C4028: formal parameter 3 different from declaration
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libmpeg2\slice.c(1733) : warning C4028: formal parameter 4 different from declaration
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libmpeg2\slice.c(1733) : warning C4024: 'motion_fi_dmv' : different types for formal and actual parameter 3
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libmpeg2\slice.c(1733) : warning C4028: formal parameter 3 different from declaration
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libmpeg2\slice.c(1733) : warning C4028: formal parameter 4 different from declaration
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libmpeg2\slice.c(1733) : warning C4024: 'motion_fi_dmv' : different types for formal and actual parameter 3
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libmpeg2\slice.c(1742) : warning C4028: formal parameter 3 different from declaration
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libmpeg2\slice.c(1742) : warning C4028: formal parameter 4 different from declaration
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libmpeg2\slice.c(1742) : warning C4024: 'motion_zero' : different types for formal and actual parameter 3
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libmpeg2\slice.c(1742) : warning C4028: formal parameter 3 different from declaration
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libmpeg2\slice.c(1742) : warning C4028: formal parameter 4 different from declaration
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libmpeg2\slice.c(1742) : warning C4024: 'motion_zero' : different types for formal and actual parameter 3
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libmpeg2\slice.c(1825) : warning C4028: formal parameter 3 different from declaration
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libmpeg2\slice.c(1825) : warning C4028: formal parameter 4 different from declaration
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libmpeg2\slice.c(1825) : warning C4024: 'motion_zero' : different types for formal and actual parameter 3
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libmpeg2\slice.c(1825) : warning C4028: formal parameter 3 different from declaration
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libmpeg2\slice.c(1825) : warning C4028: formal parameter 4 different from declaration
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libmpeg2\slice.c(1825) : warning C4024: 'motion_zero' : different types for formal and actual parameter 3
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libmpeg2\slice.c(1830) : warning C4028: formal parameter 3 different from declaration
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libmpeg2\slice.c(1830) : warning C4028: formal parameter 4 different from declaration
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libmpeg2\slice.c(1830) : warning C4024: 'motion_reuse' : different types for formal and actual parameter 3
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libmpeg2\slice.c(1830) : warning C4028: formal parameter 3 different from declaration
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libmpeg2\slice.c(1830) : warning C4028: formal parameter 4 different from declaration
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libmpeg2\slice.c(1830) : warning C4024: 'motion_reuse' : different types for formal and actual parameter 3
+xine_decoder.c
+Linking...
+   Creating library Debug/xineplug_decode_mpeg2/xineplug_decode_mpeg2.lib and object Debug/xineplug_decode_mpeg2/xineplug_decode_mpeg2.exp
+
+
+
+<h3>Results</h3>
+xineplug_decode_mpeg2.so - 0 error(s), 101 warning(s)
+</pre>
+</body>
+</html>

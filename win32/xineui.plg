@@ -1,0 +1,44 @@
+<html>
+<body>
+<pre>
+<h1>Build Log</h1>
+<h3>
+--------------------Configuration: xineui - Win32 Debug--------------------
+</h3>
+<h3>Command Lines</h3>
+Creating temporary file "C:\DOCUME~1\TCHAMP~2.AME\LOCALS~1\Temp\RSP106.tmp" with contents
+[
+/nologo /MDd /W3 /Gm /GX /ZI /Od /I "source" /I "include" /I "../include" /I ".." /I "../src/video_out" /I "../src/xine-utils" /I "../src/xine-engine" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /D "XINE_COMPILE" /FR"Debug/xineui/" /Fp"Debug/xineui/xineui.pch" /YX /Fo"Debug/xineui/" /Fd"Debug/xineui/" /FD /GZ /c 
+"C:\PCChamp\Projects\Xine\xine-lib-1-beta10\win32\source\main.cpp"
+]
+Creating command line "cl.exe @C:\DOCUME~1\TCHAMP~2.AME\LOCALS~1\Temp\RSP106.tmp" 
+Creating temporary file "C:\DOCUME~1\TCHAMP~2.AME\LOCALS~1\Temp\RSP107.tmp" with contents
+[
+kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib uuid.lib comctl32.lib /nologo /subsystem:windows /incremental:yes /pdb:"Debug/xineui/xineui.pdb" /debug /machine:I386 /out:"Debug/bin/xineui.exe" /pdbtype:sept 
+".\Debug\xineui\main.obj"
+".\Debug\xineui\wnd.ctrl.obj"
+".\Debug\xineui\wnd.panel.obj"
+".\Debug\xineui\wnd.playlist.obj"
+".\Debug\xineui\wnd.video.obj"
+".\Debug\xineui\xineui.obj"
+".\Debug\xineui\resource.res"
+".\Debug\libxine\libxine.lib"
+".\Debug\libxinesuppt\libxinesuppt.lib"
+".\Debug\libxineutils\libxineutils.lib"
+]
+Creating command line "link.exe @C:\DOCUME~1\TCHAMP~2.AME\LOCALS~1\Temp\RSP107.tmp"
+<h3>Output Window</h3>
+Compiling...
+main.cpp
+Linking...
+Creating command line "bscmake.exe /nologo /o"Debug/xineui/xineui.bsc"  ".\Debug\xineui\main.sbr" ".\Debug\xineui\wnd.ctrl.sbr" ".\Debug\xineui\wnd.panel.sbr" ".\Debug\xineui\wnd.playlist.sbr" ".\Debug\xineui\wnd.video.sbr" ".\Debug\xineui\xineui.sbr""
+Creating browse info file...
+<h3>Output Window</h3>
+
+
+
+<h3>Results</h3>
+xineui.exe - 0 error(s), 0 warning(s)
+</pre>
+</body>
+</html>

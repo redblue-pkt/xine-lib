@@ -1,0 +1,140 @@
+<html>
+<body>
+<pre>
+<h1>Build Log</h1>
+<h3>
+--------------------Configuration: libxine - Win32 Debug--------------------
+</h3>
+<h3>Command Lines</h3>
+Creating temporary file "C:\DOCUME~1\TCHAMP~2.AME\LOCALS~1\Temp\RSP254.tmp" with contents
+[
+/nologo /MDd /W3 /Gm /GX /ZI /Od /I "include" /I "../include" /I ".." /I "../intl" /I "../src" /I "../src/xine-engine" /I "../src/xine-utils" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "LIBXINE_EXPORTS" /D "XINE_COMPILE" /D "HAVE_CONFIG_H" /D "__WINE_WINDEF_H" /D "__WINE_WINGDI_H" /D "__WINE_VFW_H" /FR"Debug/libxine/" /Fp"Debug/libxine/libxine.pch" /YX /Fo"Debug/libxine/" /Fd"Debug/libxine/" /FD /GZ /c 
+"C:\PCChamp\Projects\Xine\xine-lib-1-beta10\src\xine-engine\buffer_types.c"
+]
+Creating command line "cl.exe @C:\DOCUME~1\TCHAMP~2.AME\LOCALS~1\Temp\RSP254.tmp" 
+Creating temporary file "C:\DOCUME~1\TCHAMP~2.AME\LOCALS~1\Temp\RSP255.tmp" with contents
+[
+kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib uuid.lib comctl32.lib /nologo /dll /incremental:yes /pdb:"Debug/libxine/libxine.pdb" /debug /machine:I386 /def:".\libxine.def" /out:"Debug/bin/libxine.dll" /implib:"Debug/libxine/libxine.lib" /pdbtype:sept 
+".\Debug\libxine\audio_decoder.obj"
+".\Debug\libxine\audio_out.obj"
+".\Debug\libxine\buffer.obj"
+".\Debug\libxine\buffer_types.obj"
+".\Debug\libxine\configfile.obj"
+".\Debug\libxine\demux.obj"
+".\Debug\libxine\events.obj"
+".\Debug\libxine\load_plugins.obj"
+".\Debug\libxine\locale.obj"
+".\Debug\libxine\lrb.obj"
+".\Debug\libxine\metronom.obj"
+".\Debug\libxine\osd.obj"
+".\Debug\libxine\post.obj"
+".\Debug\libxine\resample.obj"
+".\Debug\libxine\scratch.obj"
+".\Debug\libxine\tvmode.obj"
+".\Debug\libxine\video_decoder.obj"
+".\Debug\libxine\video_out.obj"
+".\Debug\libxine\video_overlay.obj"
+".\Debug\libxine\vo_scale.obj"
+".\Debug\libxine\xine.obj"
+".\Debug\libxine\xine_interface.obj"
+".\Debug\libxinesuppt\libxinesuppt.lib"
+".\Debug\libxineutils\libxineutils.lib"
+]
+Creating command line "link.exe @C:\DOCUME~1\TCHAMP~2.AME\LOCALS~1\Temp\RSP255.tmp"
+<h3>Output Window</h3>
+Compiling...
+buffer_types.c
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\xine-engine\buffer_types.c(899) : warning C4244: '=' : conversion from 'unsigned long ' to 'unsigned short ', possible loss of data
+Linking...
+   Creating library Debug/libxine/libxine.lib and object Debug/libxine/libxine.exp
+Creating temporary file "C:\DOCUME~1\TCHAMP~2.AME\LOCALS~1\Temp\RSP259.tmp" with contents
+[
+/nologo /o"Debug/libxine/libxine.bsc" 
+".\Debug\libxine\audio_decoder.sbr"
+".\Debug\libxine\audio_out.sbr"
+".\Debug\libxine\buffer.sbr"
+".\Debug\libxine\buffer_types.sbr"
+".\Debug\libxine\configfile.sbr"
+".\Debug\libxine\demux.sbr"
+".\Debug\libxine\events.sbr"
+".\Debug\libxine\load_plugins.sbr"
+".\Debug\libxine\locale.sbr"
+".\Debug\libxine\lrb.sbr"
+".\Debug\libxine\metronom.sbr"
+".\Debug\libxine\osd.sbr"
+".\Debug\libxine\post.sbr"
+".\Debug\libxine\resample.sbr"
+".\Debug\libxine\scratch.sbr"
+".\Debug\libxine\tvmode.sbr"
+".\Debug\libxine\video_decoder.sbr"
+".\Debug\libxine\video_out.sbr"
+".\Debug\libxine\video_overlay.sbr"
+".\Debug\libxine\vo_scale.sbr"
+".\Debug\libxine\xine.sbr"
+".\Debug\libxine\xine_interface.sbr"]
+Creating command line "bscmake.exe @C:\DOCUME~1\TCHAMP~2.AME\LOCALS~1\Temp\RSP259.tmp"
+Creating browse info file...
+<h3>Output Window</h3>
+Creating temporary file "C:\DOCUME~1\TCHAMP~2.AME\LOCALS~1\Temp\RSP25A.bat" with contents
+[
+@echo off
+scripts\move_xine_deps.bat Debug
+]
+Creating command line "C:\DOCUME~1\TCHAMP~2.AME\LOCALS~1\Temp\RSP25A.bat"
+Moving Xine Dependencies
+mkdir source\xine ...
+include\xine, Are you sure (Y/N)? 
+A subdirectory or file include\xine already exists.
+includes ...
+..\include\xine.h
+1 File(s) copied
+xine-engine ...
+File not found - events.h
+0 File(s) copied
+xine-utils ...
+..\src\xine-utils\attributes.h
+1 File(s) copied
+..\src\xine-utils\compat.h
+1 File(s) copied
+..\src\xine-utils\xineutils.h
+1 File(s) copied
+mkdir Debug\bin\fonts ...
+A subdirectory or file Debug\bin\fonts already exists.
+fonts ...
+..\misc\fonts\cc-16.xinefont.gz
+..\misc\fonts\cc-20.xinefont.gz
+..\misc\fonts\cc-24.xinefont.gz
+..\misc\fonts\cc-32.xinefont.gz
+..\misc\fonts\cci-16.xinefont.gz
+..\misc\fonts\cci-20.xinefont.gz
+..\misc\fonts\cci-24.xinefont.gz
+..\misc\fonts\cci-32.xinefont.gz
+..\misc\fonts\cetus-16.xinefont.gz
+..\misc\fonts\cetus-20.xinefont.gz
+..\misc\fonts\cetus-24.xinefont.gz
+..\misc\fonts\cetus-32.xinefont.gz
+..\misc\fonts\mono-16.xinefont.gz
+..\misc\fonts\mono-20.xinefont.gz
+..\misc\fonts\mono-24.xinefont.gz
+..\misc\fonts\mono-32.xinefont.gz
+..\misc\fonts\sans-16.xinefont.gz
+..\misc\fonts\sans-20.xinefont.gz
+..\misc\fonts\sans-24.xinefont.gz
+..\misc\fonts\sans-32.xinefont.gz
+..\misc\fonts\sanshu-16.xinefont.gz
+..\misc\fonts\sanshu-20.xinefont.gz
+..\misc\fonts\sanshu-24.xinefont.gz
+..\misc\fonts\sanshu-32.xinefont.gz
+..\misc\fonts\serif-16.xinefont.gz
+..\misc\fonts\serif-20.xinefont.gz
+..\misc\fonts\serif-24.xinefont.gz
+..\misc\fonts\serif-32.xinefont.gz
+28 File(s) copied
+
+
+
+<h3>Results</h3>
+libxine.dll - 0 error(s), 1 warning(s)
+</pre>
+</body>
+</html>

@@ -1,0 +1,99 @@
+//Microsoft Developer Studio generated resource script.
+//
+#include "resource.h"
+
+#define APSTUDIO_READONLY_SYMBOLS
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 2 resource.
+//
+#include "afxres.h"
+
+/////////////////////////////////////////////////////////////////////////////
+#undef APSTUDIO_READONLY_SYMBOLS
+
+/////////////////////////////////////////////////////////////////////////////
+// English (U.S.) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
+#ifdef _WIN32
+LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
+#pragma code_page(1252)
+#endif //_WIN32
+
+#ifdef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// TEXTINCLUDE
+//
+
+1 TEXTINCLUDE DISCARDABLE 
+BEGIN
+    "resource.h\0"
+END
+
+2 TEXTINCLUDE DISCARDABLE 
+BEGIN
+    "#include ""afxres.h""\r\n"
+    "\0"
+END
+
+3 TEXTINCLUDE DISCARDABLE 
+BEGIN
+    "\r\n"
+    "\0"
+END
+
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Bitmap
+//
+
+bmp_xine_logo           BITMAP  DISCARDABLE     "xine_logo.bmp"
+bmp_play_button         BITMAP  DISCARDABLE     "bitmap1.bmp"
+bmp_pause_button        BITMAP  DISCARDABLE     "bmp_play.bmp"
+bmp_stop_button         BITMAP  DISCARDABLE     "bmp00001.bmp"
+bmp_prev_button         BITMAP  DISCARDABLE     "bmp00002.bmp"
+bmp_next_button         BITMAP  DISCARDABLE     "bmp_prev.bmp"
+bmp_fforward_button     BITMAP  DISCARDABLE     "bmp_next.bmp"
+bmp_rwind_button        BITMAP  DISCARDABLE     "bmp_ffor.bmp"
+bmp_eject_button        BITMAP  DISCARDABLE     "bmp00003.bmp"
+bmp_volume_on_button    BITMAP  DISCARDABLE     "bmp00004.bmp"
+bmp_volume_off_button   BITMAP  DISCARDABLE     "bmp_volu.bmp"
+bmp_arrow_up_normal     BITMAP  DISCARDABLE     "bmp00005.bmp"
+bmp_arrow_down_selected BITMAP  DISCARDABLE     "bmp00006.bmp"
+bmp_arrow_up_selected   BITMAP  DISCARDABLE     "bmp_arro.bmp"
+bmp_arrow_down_normal   BITMAP  DISCARDABLE     "bmp00007.bmp"
+bmp_fullscreen_off_normal BITMAP  DISCARDABLE     "bmp_full.bmp"
+bmp_fullscreen_off_selected BITMAP  DISCARDABLE     "bmp00008.bmp"
+bmp_fullscreen_on_normal BITMAP  DISCARDABLE     "bmp00009.bmp"
+bmp_fullscreen_on_selected BITMAP  DISCARDABLE     "bmp00010.bmp"
+bmp_configure_normal    BITMAP  DISCARDABLE     "bmp_conf.bmp"
+bmp_configure_selected  BITMAP  DISCARDABLE     "bmp00011.bmp"
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Icon
+//
+
+// Icon with lowest ID value placed first to ensure application icon
+// remains consistent on all systems.
+ico_xine_logo           ICON    DISCARDABLE     "icon1.ico"
+#endif    // English (U.S.) resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+
+#ifndef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 3 resource.
+//
+
+
+/////////////////////////////////////////////////////////////////////////////
+#endif    // not APSTUDIO_INVOKED
+

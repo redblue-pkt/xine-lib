@@ -1,0 +1,7 @@
+;------------------------------------------------------------
+; XINEPLUG_VO_OUT DLL DEFINITIONS FILE
+
+EXPORTS
+
+xine_plugin_info
+get_video_out_plugin_info

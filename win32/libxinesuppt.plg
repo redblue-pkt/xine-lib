@@ -1,0 +1,169 @@
+<html>
+<body>
+<pre>
+<h1>Build Log</h1>
+<h3>
+--------------------Configuration: libxinesuppt - Win32 Debug--------------------
+</h3>
+<h3>Command Lines</h3>
+Creating temporary file "C:\DOCUME~1\TCHAMP~2.AME\LOCALS~1\Temp\RSP1BD.tmp" with contents
+[
+/nologo /MDd /W3 /Gm /GX /ZI /Od /I "contrib/dirent" /I "contrib/pthreads" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "LIBXINESUPPT_EXPORTS" /D "__CLEANUP_C" /Fp"Debug/libxinesuppt/libxinesuppt.pch" /YX /Fo"Debug/libxinesuppt/" /Fd"Debug/libxinesuppt/" /FD /GZ /c 
+"C:\PCChamp\Projects\Xine\xine-lib-1-beta10\win32\contrib\dirent\dirent.c"
+"C:\PCChamp\Projects\Xine\xine-lib-1-beta10\win32\contrib\pthreads\attr.c"
+"C:\PCChamp\Projects\Xine\xine-lib-1-beta10\win32\contrib\pthreads\barrier.c"
+"C:\PCChamp\Projects\Xine\xine-lib-1-beta10\win32\contrib\pthreads\cancel.c"
+"C:\PCChamp\Projects\Xine\xine-lib-1-beta10\win32\contrib\pthreads\cleanup.c"
+"C:\PCChamp\Projects\Xine\xine-lib-1-beta10\win32\contrib\pthreads\condvar.c"
+"C:\PCChamp\Projects\Xine\xine-lib-1-beta10\win32\contrib\pthreads\create.c"
+"C:\PCChamp\Projects\Xine\xine-lib-1-beta10\win32\contrib\pthreads\dll.c"
+"C:\PCChamp\Projects\Xine\xine-lib-1-beta10\win32\contrib\pthreads\errno.c"
+"C:\PCChamp\Projects\Xine\xine-lib-1-beta10\win32\contrib\pthreads\exit.c"
+"C:\PCChamp\Projects\Xine\xine-lib-1-beta10\win32\contrib\pthreads\fork.c"
+"C:\PCChamp\Projects\Xine\xine-lib-1-beta10\win32\contrib\pthreads\global.c"
+"C:\PCChamp\Projects\Xine\xine-lib-1-beta10\win32\contrib\pthreads\misc.c"
+"C:\PCChamp\Projects\Xine\xine-lib-1-beta10\win32\contrib\pthreads\mutex.c"
+"C:\PCChamp\Projects\Xine\xine-lib-1-beta10\win32\contrib\pthreads\nonportable.c"
+"C:\PCChamp\Projects\Xine\xine-lib-1-beta10\win32\contrib\pthreads\private.c"
+"C:\PCChamp\Projects\Xine\xine-lib-1-beta10\win32\contrib\pthreads\rwlock.c"
+"C:\PCChamp\Projects\Xine\xine-lib-1-beta10\win32\contrib\pthreads\sched.c"
+"C:\PCChamp\Projects\Xine\xine-lib-1-beta10\win32\contrib\pthreads\semaphore.c"
+"C:\PCChamp\Projects\Xine\xine-lib-1-beta10\win32\contrib\pthreads\signal.c"
+"C:\PCChamp\Projects\Xine\xine-lib-1-beta10\win32\contrib\pthreads\spin.c"
+"C:\PCChamp\Projects\Xine\xine-lib-1-beta10\win32\contrib\pthreads\sync.c"
+"C:\PCChamp\Projects\Xine\xine-lib-1-beta10\win32\contrib\pthreads\tsd.c"
+"C:\PCChamp\Projects\Xine\xine-lib-1-beta10\win32\contrib\zlib\adler32.c"
+"C:\PCChamp\Projects\Xine\xine-lib-1-beta10\win32\contrib\zlib\compress.c"
+"C:\PCChamp\Projects\Xine\xine-lib-1-beta10\win32\contrib\zlib\crc32.c"
+"C:\PCChamp\Projects\Xine\xine-lib-1-beta10\win32\contrib\zlib\deflate.c"
+"C:\PCChamp\Projects\Xine\xine-lib-1-beta10\win32\contrib\zlib\gzio.c"
+"C:\PCChamp\Projects\Xine\xine-lib-1-beta10\win32\contrib\zlib\infblock.c"
+"C:\PCChamp\Projects\Xine\xine-lib-1-beta10\win32\contrib\zlib\infcodes.c"
+"C:\PCChamp\Projects\Xine\xine-lib-1-beta10\win32\contrib\zlib\inffast.c"
+"C:\PCChamp\Projects\Xine\xine-lib-1-beta10\win32\contrib\zlib\inflate.c"
+"C:\PCChamp\Projects\Xine\xine-lib-1-beta10\win32\contrib\zlib\inftrees.c"
+"C:\PCChamp\Projects\Xine\xine-lib-1-beta10\win32\contrib\zlib\infutil.c"
+"C:\PCChamp\Projects\Xine\xine-lib-1-beta10\win32\contrib\zlib\trees.c"
+"C:\PCChamp\Projects\Xine\xine-lib-1-beta10\win32\contrib\zlib\uncompr.c"
+"C:\PCChamp\Projects\Xine\xine-lib-1-beta10\win32\contrib\zlib\zutil.c"
+"C:\PCChamp\Projects\Xine\xine-lib-1-beta10\win32\contrib\timer\timer.c"
+]
+Creating command line "cl.exe @C:\DOCUME~1\TCHAMP~2.AME\LOCALS~1\Temp\RSP1BD.tmp" 
+Creating temporary file "C:\DOCUME~1\TCHAMP~2.AME\LOCALS~1\Temp\RSP1BE.tmp" with contents
+[
+winmm.lib /nologo /dll /incremental:yes /pdb:"Debug/libxinesuppt/libxinesuppt.pdb" /debug /machine:I386 /def:".\libxinesupport.def" /out:"Debug/bin/libxinesuppt.dll" /implib:"Debug/libxinesuppt/libxinesuppt.lib" /pdbtype:sept 
+".\Debug\libxinesuppt\dirent.obj"
+".\Debug\libxinesuppt\attr.obj"
+".\Debug\libxinesuppt\barrier.obj"
+".\Debug\libxinesuppt\cancel.obj"
+".\Debug\libxinesuppt\cleanup.obj"
+".\Debug\libxinesuppt\condvar.obj"
+".\Debug\libxinesuppt\create.obj"
+".\Debug\libxinesuppt\dll.obj"
+".\Debug\libxinesuppt\errno.obj"
+".\Debug\libxinesuppt\exit.obj"
+".\Debug\libxinesuppt\fork.obj"
+".\Debug\libxinesuppt\global.obj"
+".\Debug\libxinesuppt\misc.obj"
+".\Debug\libxinesuppt\mutex.obj"
+".\Debug\libxinesuppt\nonportable.obj"
+".\Debug\libxinesuppt\private.obj"
+".\Debug\libxinesuppt\rwlock.obj"
+".\Debug\libxinesuppt\sched.obj"
+".\Debug\libxinesuppt\semaphore.obj"
+".\Debug\libxinesuppt\signal.obj"
+".\Debug\libxinesuppt\spin.obj"
+".\Debug\libxinesuppt\sync.obj"
+".\Debug\libxinesuppt\tsd.obj"
+".\Debug\libxinesuppt\adler32.obj"
+".\Debug\libxinesuppt\compress.obj"
+".\Debug\libxinesuppt\crc32.obj"
+".\Debug\libxinesuppt\deflate.obj"
+".\Debug\libxinesuppt\gzio.obj"
+".\Debug\libxinesuppt\infblock.obj"
+".\Debug\libxinesuppt\infcodes.obj"
+".\Debug\libxinesuppt\inffast.obj"
+".\Debug\libxinesuppt\inflate.obj"
+".\Debug\libxinesuppt\inftrees.obj"
+".\Debug\libxinesuppt\infutil.obj"
+".\Debug\libxinesuppt\trees.obj"
+".\Debug\libxinesuppt\uncompr.obj"
+".\Debug\libxinesuppt\zutil.obj"
+".\Debug\libxinesuppt\timer.obj"
+]
+Creating command line "link.exe @C:\DOCUME~1\TCHAMP~2.AME\LOCALS~1\Temp\RSP1BE.tmp"
+<h3>Output Window</h3>
+Compiling...
+dirent.c
+attr.c
+barrier.c
+cancel.c
+cleanup.c
+condvar.c
+create.c
+dll.c
+errno.c
+exit.c
+fork.c
+global.c
+misc.c
+mutex.c
+nonportable.c
+private.c
+rwlock.c
+sched.c
+semaphore.c
+signal.c
+spin.c
+sync.c
+tsd.c
+adler32.c
+compress.c
+crc32.c
+deflate.c
+gzio.c
+infblock.c
+infcodes.c
+inffast.c
+inflate.c
+inftrees.c
+infutil.c
+trees.c
+uncompr.c
+zutil.c
+timer.c
+Linking...
+   Creating library Debug/libxinesuppt/libxinesuppt.lib and object Debug/libxinesuppt/libxinesuppt.exp
+Creating temporary file "C:\DOCUME~1\TCHAMP~2.AME\LOCALS~1\Temp\RSP1C2.bat" with contents
+[
+@echo off
+scripts\move_contrib_deps.bat
+]
+Creating command line "C:\DOCUME~1\TCHAMP~2.AME\LOCALS~1\Temp\RSP1C2.bat"
+Moving Contrib Dependencies
+dirent ...
+contrib\dirent\dirent.h
+1 File(s) copied
+pthreads ...
+contrib\pthreads\pthread.h
+1 File(s) copied
+contrib\pthreads\sched.h
+1 File(s) copied
+contrib\pthreads\semaphore.h
+1 File(s) copied
+zlib ...
+contrib\zlib\zlib.h
+1 File(s) copied
+contrib\zlib\zconf.h
+1 File(s) copied
+timer ...
+contrib\timer\timer.h
+1 File(s) copied
+
+
+
+<h3>Results</h3>
+libxinesuppt.dll - 0 error(s), 0 warning(s)
+</pre>
+</body>
+</html>

@@ -1,0 +1,6 @@
+;------------------------------------------------------------
+; XINEPLUG_DECODE_VO DLL DEFINITIONS FILE
+
+EXPORTS
+
+xine_plugin_info

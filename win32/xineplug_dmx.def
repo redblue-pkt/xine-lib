@@ -1,0 +1,6 @@
+;------------------------------------------------------------
+; XINEPLUG_DMX DLL DEFINITIONS FILE
+
+EXPORTS
+
+xine_plugin_info

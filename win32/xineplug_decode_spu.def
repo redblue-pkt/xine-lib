@@ -1,0 +1,6 @@
+;------------------------------------------------------------
+; XINEPLUG_DECODE_SPU DLL DEFINITIONS FILE
+
+EXPORTS
+
+xine_plugin_info

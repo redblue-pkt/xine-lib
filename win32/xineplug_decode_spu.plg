@@ -1,0 +1,46 @@
+<html>
+<body>
+<pre>
+<h1>Build Log</h1>
+<h3>
+--------------------Configuration: xineplug_decode_spu - Win32 Debug--------------------
+</h3>
+<h3>Command Lines</h3>
+Creating temporary file "C:\DOCUME~1\TCHAMP~2.AME\LOCALS~1\Temp\RSPCC.tmp" with contents
+[
+/nologo /MDd /W3 /Gm /GX /ZI /Od /I ".." /I "include" /I "../include" /I "../src" /I "../src/xine-engine" /I "../src/xine-utils" /I "../src/input/libdvdread" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "XINEPLUG_DECODE_SPU_EXPORTS" /D "XINE_COMPILE" /Fp"Debug/xineplug_decode_spu/xineplug_decode_spu.pch" /YX /Fo"Debug/xineplug_decode_spu/" /Fd"Debug/xineplug_decode_spu/" /FD /GZ /c 
+"C:\PCChamp\Projects\Xine\xine-lib-1-beta10\src\libspudec\nav_read.c"
+"C:\PCChamp\Projects\Xine\xine-lib-1-beta10\src\libspudec\spu.c"
+"C:\PCChamp\Projects\Xine\xine-lib-1-beta10\src\libspudec\xine_decoder.c"
+]
+Creating command line "cl.exe @C:\DOCUME~1\TCHAMP~2.AME\LOCALS~1\Temp\RSPCC.tmp" 
+Creating temporary file "C:\DOCUME~1\TCHAMP~2.AME\LOCALS~1\Temp\RSPCD.tmp" with contents
+[
+/nologo /dll /incremental:yes /pdb:"Debug/xineplug_decode_spu/xineplug_decode_spu.pdb" /debug /machine:I386 /def:".\xineplug_decode_spu.def" /out:"Debug/bin/plugins/xineplug_decode_spu.so" /implib:"Debug/xineplug_decode_spu/xineplug_decode_spu.lib" /pdbtype:sept 
+".\Debug\xineplug_decode_spu\nav_read.obj"
+".\Debug\xineplug_decode_spu\spu.obj"
+".\Debug\xineplug_decode_spu\xine_decoder.obj"
+".\Debug\libxinesuppt\libxinesuppt.lib"
+".\Debug\libxine\libxine.lib"
+".\Debug\libxineutils\libxineutils.lib"
+]
+Creating command line "link.exe @C:\DOCUME~1\TCHAMP~2.AME\LOCALS~1\Temp\RSPCD.tmp"
+<h3>Output Window</h3>
+Compiling...
+nav_read.c
+spu.c
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libspudec\spu.c(323) : warning C4018: '!=' : signed/unsigned mismatch
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libspudec\spu.c(580) : warning C4018: '>=' : signed/unsigned mismatch
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libspudec\spu.c(581) : warning C4018: '>=' : signed/unsigned mismatch
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libspudec\spu.c(886) : warning C4244: '=' : conversion from 'unsigned long ' to 'unsigned char ', possible loss of data
+xine_decoder.c
+Linking...
+   Creating library Debug/xineplug_decode_spu/xineplug_decode_spu.lib and object Debug/xineplug_decode_spu/xineplug_decode_spu.exp
+
+
+
+<h3>Results</h3>
+xineplug_decode_spu.so - 0 error(s), 4 warning(s)
+</pre>
+</body>
+</html>

@@ -1,0 +1,54 @@
+<html>
+<body>
+<pre>
+<h1>Build Log</h1>
+<h3>
+--------------------Configuration: xineplug_dmx_mpeg_pes - Win32 Debug--------------------
+</h3>
+<h3>Command Lines</h3>
+Creating temporary file "C:\DOCUME~1\TCHAMP~2.AME\LOCALS~1\Temp\RSPFC.tmp" with contents
+[
+/nologo /MDd /W3 /Gm /GX /ZI /Od /I ".." /I "include" /I "../include" /I "../src" /I "../src/xine-engine" /I "../src/xine-utils" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "XINEPLUG_DMX_MPEG_PES_EXPORTS" /D "XINE_COMPILE" /Fp"Debug/xineplug_dmx_mpeg_pes/xineplug_dmx_mpeg_pes.pch" /YX /Fo"Debug/xineplug_dmx_mpeg_pes/" /Fd"Debug/xineplug_dmx_mpeg_pes/" /FD /GZ /c 
+"C:\PCChamp\Projects\Xine\xine-lib-1-beta10\src\demuxers\demux_pes.c"
+]
+Creating command line "cl.exe @C:\DOCUME~1\TCHAMP~2.AME\LOCALS~1\Temp\RSPFC.tmp" 
+Creating temporary file "C:\DOCUME~1\TCHAMP~2.AME\LOCALS~1\Temp\RSPFD.tmp" with contents
+[
+/nologo /dll /incremental:yes /pdb:"Debug/xineplug_dmx_mpeg_pes/xineplug_dmx_mpeg_pes.pdb" /debug /machine:I386 /def:".\xineplug_dmx.def" /out:"Debug/bin/plugins/xineplug_dmx_mpeg_pes.so" /implib:"Debug/xineplug_dmx_mpeg_pes/xineplug_dmx_mpeg_pes.lib" /pdbtype:sept 
+".\Debug\xineplug_dmx_mpeg_pes\demux_pes.obj"
+".\Debug\libxinesuppt\libxinesuppt.lib"
+".\Debug\libxine\libxine.lib"
+".\Debug\libxineutils\libxineutils.lib"
+]
+Creating command line "link.exe @C:\DOCUME~1\TCHAMP~2.AME\LOCALS~1\Temp\RSPFD.tmp"
+<h3>Output Window</h3>
+Compiling...
+demux_pes.c
+C:\PCChamp\Projects\Xine\xine-lib-1-beta10\src\demuxers\demux_pes.c(89) : warning C4018: '!=' : signed/unsigned mismatch
+C:\PCChamp\Projects\Xine\xine-lib-1-beta10\src\demuxers\demux_pes.c(120) : warning C4133: 'function' : incompatible types - from 'struct xine_s *' to 'struct xine_stream_s *'
+C:\PCChamp\Projects\Xine\xine-lib-1-beta10\src\demuxers\demux_pes.c(347) : warning C4133: 'function' : incompatible types - from 'struct xine_s *' to 'struct xine_stream_s *'
+C:\PCChamp\Projects\Xine\xine-lib-1-beta10\src\demuxers\demux_pes.c(383) : warning C4133: 'function' : incompatible types - from 'struct xine_s *' to 'struct xine_stream_s *'
+C:\PCChamp\Projects\Xine\xine-lib-1-beta10\src\demuxers\demux_pes.c(385) : warning C4133: 'function' : incompatible types - from 'struct xine_s *' to 'struct xine_stream_s *'
+C:\PCChamp\Projects\Xine\xine-lib-1-beta10\src\demuxers\demux_pes.c(413) : warning C4133: 'function' : incompatible types - from 'struct xine_s *' to 'struct xine_stream_s *'
+C:\PCChamp\Projects\Xine\xine-lib-1-beta10\src\demuxers\demux_pes.c(466) : warning C4133: 'function' : incompatible types - from 'struct xine_s *' to 'struct xine_stream_s *'
+C:\PCChamp\Projects\Xine\xine-lib-1-beta10\src\demuxers\demux_pes.c(623) : error C2039: 'open' : is not a member of 'demux_plugin_s'
+        c:\pcchamp\projects\xine\xine-lib-1-beta10\src\demuxers\demux.h(94) : see declaration of 'demux_plugin_s'
+C:\PCChamp\Projects\Xine\xine-lib-1-beta10\src\demuxers\demux_pes.c(624) : error C2039: 'start' : is not a member of 'demux_plugin_s'
+        c:\pcchamp\projects\xine\xine-lib-1-beta10\src\demuxers\demux.h(94) : see declaration of 'demux_plugin_s'
+C:\PCChamp\Projects\Xine\xine-lib-1-beta10\src\demuxers\demux_pes.c(626) : error C2039: 'stop' : is not a member of 'demux_plugin_s'
+        c:\pcchamp\projects\xine\xine-lib-1-beta10\src\demuxers\demux.h(94) : see declaration of 'demux_plugin_s'
+C:\PCChamp\Projects\Xine\xine-lib-1-beta10\src\demuxers\demux_pes.c(627) : error C2039: 'close' : is not a member of 'demux_plugin_s'
+        c:\pcchamp\projects\xine\xine-lib-1-beta10\src\demuxers\demux.h(94) : see declaration of 'demux_plugin_s'
+C:\PCChamp\Projects\Xine\xine-lib-1-beta10\src\demuxers\demux_pes.c(629) : error C2039: 'get_identifier' : is not a member of 'demux_plugin_s'
+        c:\pcchamp\projects\xine\xine-lib-1-beta10\src\demuxers\demux.h(94) : see declaration of 'demux_plugin_s'
+C:\PCChamp\Projects\Xine\xine-lib-1-beta10\src\demuxers\demux_pes.c(633) : error C2039: 'get_mimetypes' : is not a member of 'demux_plugin_s'
+        c:\pcchamp\projects\xine\xine-lib-1-beta10\src\demuxers\demux.h(94) : see declaration of 'demux_plugin_s'
+Error executing cl.exe.
+
+
+
+<h3>Results</h3>
+xineplug_dmx_mpeg_pes.so - 6 error(s), 7 warning(s)
+</pre>
+</body>
+</html>

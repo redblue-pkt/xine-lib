@@ -1,0 +1,259 @@
+<html>
+<body>
+<pre>
+<h1>Build Log</h1>
+<h3>
+--------------------Configuration: xineplug_decode_ff - Win32 Debug--------------------
+</h3>
+<h3>Command Lines</h3>
+Creating temporary file "C:\DOCUME~1\TCHAMP~2.AME\LOCALS~1\Temp\RSPC1.tmp" with contents
+[
+/nologo /MDd /W3 /Gm /GX /ZI /Od /I "include" /I "../include" /I "../src" /I "../src/xine-engine" /I "../src/xine-utils" /I ".." /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "XINEPLUG_DECODE_FF_EXPORTS" /D "XINE_COMPILE" /Fp"Debug/xineplug_decode_ff/xineplug_decode_ff.pch" /YX /Fo"Debug/xineplug_decode_ff/" /Fd"Debug/xineplug_decode_ff/" /FD /GZ /c 
+"C:\PCChamp\Projects\Xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\huffyuv.c"
+"C:\PCChamp\Projects\Xine\xine-lib-1-beta10\src\libffmpeg\xine_decoder.c"
+]
+Creating command line "cl.exe @C:\DOCUME~1\TCHAMP~2.AME\LOCALS~1\Temp\RSPC1.tmp" 
+Creating temporary file "C:\DOCUME~1\TCHAMP~2.AME\LOCALS~1\Temp\RSPC2.tmp" with contents
+[
+/nologo /dll /incremental:yes /pdb:"Debug/xineplug_decode_ff/xineplug_decode_ff.pdb" /debug /machine:I386 /out:"Debug/bin/plugins/xineplug_decode_ff.so" /implib:"Debug/xineplug_decode_ff/xineplug_decode_ff.lib" /pdbtype:sept 
+".\Debug\xineplug_decode_ff\huffyuv.obj"
+".\Debug\xineplug_decode_ff\xine_decoder.obj"
+".\Debug\libxinesuppt\libxinesuppt.lib"
+".\Debug\libxineutils\libxineutils.lib"
+]
+Creating command line "link.exe @C:\DOCUME~1\TCHAMP~2.AME\LOCALS~1\Temp\RSPC2.tmp"
+<h3>Output Window</h3>
+Compiling...
+huffyuv.c
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(227) : error C2014: preprocessor command must start as first nonwhite space
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(228) : error C2632: 'long' followed by 'long' is illegal
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(228) : error C2371: 'pts' : redefinition; different basic types
+        c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(226) : see declaration of 'pts'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(229) : error C2014: preprocessor command must start as first nonwhite space
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(329) : error C2121: '#' : invalid character : possibly the result of a macro expansion
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(329) : error C2061: syntax error : identifier 'ifdef'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(639) : error C2143: syntax error : missing ')' before '*'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(639) : error C2081: 'AVFrame' : name in formal parameter list illegal
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(639) : error C2143: syntax error : missing ';' before '*'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(639) : error C2059: syntax error : '*'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(639) : error C2059: syntax error : ')'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(648) : error C2143: syntax error : missing ')' before '*'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(648) : error C2081: 'AVFrame' : name in formal parameter list illegal
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(648) : error C2143: syntax error : missing '{' before '*'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(648) : error C2059: syntax error : ')'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(894) : error C2143: syntax error : missing '{' before '*'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1066) : error C2059: syntax error : '}'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1121) : error C2143: syntax error : missing ')' before '*'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1121) : error C2143: syntax error : missing ';' before '*'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1121) : error C2059: syntax error : '*'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1121) : error C2059: syntax error : ')'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1122) : error C2143: syntax error : missing ')' before '*'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1122) : error C2143: syntax error : missing '{' before '*'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1122) : error C2059: syntax error : ','
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1122) : error C2059: syntax error : ')'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1123) : error C2143: syntax error : missing ')' before '*'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1123) : error C2143: syntax error : missing '{' before '*'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1123) : error C2059: syntax error : ')'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1123) : error C2059: syntax error : ';'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1124) : error C2143: syntax error : missing ')' before '*'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1124) : error C2143: syntax error : missing '{' before '*'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1124) : error C2059: syntax error : ','
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1125) : error C2059: syntax error : ')'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1129) : error C2059: syntax error : '}'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1140) : error C2061: syntax error : identifier 'ac3_encoder'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1140) : error C2059: syntax error : ';'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1141) : error C2061: syntax error : identifier 'mp2_encoder'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1141) : error C2059: syntax error : ';'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1142) : error C2061: syntax error : identifier 'mp3lame_encoder'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1142) : error C2059: syntax error : ';'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1143) : error C2061: syntax error : identifier 'oggvorbis_encoder'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1143) : error C2059: syntax error : ';'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1144) : error C2061: syntax error : identifier 'mpeg1video_encoder'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1144) : error C2059: syntax error : ';'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1145) : error C2061: syntax error : identifier 'h263_encoder'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1145) : error C2059: syntax error : ';'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1146) : error C2061: syntax error : identifier 'h263p_encoder'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1146) : error C2059: syntax error : ';'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1147) : error C2061: syntax error : identifier 'rv10_encoder'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1147) : error C2059: syntax error : ';'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1148) : error C2061: syntax error : identifier 'mjpeg_encoder'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1148) : error C2059: syntax error : ';'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1149) : error C2061: syntax error : identifier 'mpeg4_encoder'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1149) : error C2059: syntax error : ';'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1150) : error C2061: syntax error : identifier 'msmpeg4v1_encoder'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1150) : error C2059: syntax error : ';'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1151) : error C2061: syntax error : identifier 'msmpeg4v2_encoder'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1151) : error C2059: syntax error : ';'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1152) : error C2061: syntax error : identifier 'msmpeg4v3_encoder'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1152) : error C2059: syntax error : ';'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1153) : error C2061: syntax error : identifier 'wmv1_encoder'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1153) : error C2059: syntax error : ';'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1154) : error C2061: syntax error : identifier 'wmv2_encoder'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1154) : error C2059: syntax error : ';'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1155) : error C2061: syntax error : identifier 'huffyuv_encoder'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1155) : error C2059: syntax error : ';'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1157) : error C2061: syntax error : identifier 'h263_decoder'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1157) : error C2059: syntax error : ';'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1158) : error C2061: syntax error : identifier 'mpeg4_decoder'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1158) : error C2059: syntax error : ';'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1159) : error C2061: syntax error : identifier 'msmpeg4v1_decoder'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1159) : error C2059: syntax error : ';'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1160) : error C2061: syntax error : identifier 'msmpeg4v2_decoder'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1160) : error C2059: syntax error : ';'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1161) : error C2061: syntax error : identifier 'msmpeg4v3_decoder'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1161) : error C2059: syntax error : ';'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1162) : error C2061: syntax error : identifier 'wmv1_decoder'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1162) : error C2059: syntax error : ';'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1163) : error C2061: syntax error : identifier 'wmv2_decoder'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1163) : error C2059: syntax error : ';'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1164) : error C2061: syntax error : identifier 'mpeg_decoder'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1164) : error C2059: syntax error : ';'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1165) : error C2061: syntax error : identifier 'h263i_decoder'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1165) : error C2059: syntax error : ';'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1166) : error C2061: syntax error : identifier 'rv10_decoder'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1166) : error C2059: syntax error : ';'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1167) : error C2061: syntax error : identifier 'svq1_decoder'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1167) : error C2059: syntax error : ';'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1168) : error C2061: syntax error : identifier 'dvvideo_decoder'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1168) : error C2059: syntax error : ';'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1169) : error C2061: syntax error : identifier 'dvaudio_decoder'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1169) : error C2059: syntax error : ';'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1170) : error C2061: syntax error : identifier 'wmav1_decoder'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1170) : error C2059: syntax error : ';'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1171) : error C2061: syntax error : identifier 'wmav2_decoder'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1171) : error C2059: syntax error : ';'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1172) : error C2061: syntax error : identifier 'mjpeg_decoder'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1172) : error C2059: syntax error : ';'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1173) : error C2061: syntax error : identifier 'mjpegb_decoder'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1173) : error C2059: syntax error : ';'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1174) : error C2061: syntax error : identifier 'mp2_decoder'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1174) : fatal error C1003: error count exceeds 100; stopping compilation
+xine_decoder.c
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\common.h(87) : warning C4114: same type qualifier used more than once
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\common.h(87) : error C2632: 'short' followed by 'short' is illegal
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\common.h(87) : warning C4091: 'typedef ' : ignored on left of 'unsigned short ' when no variable is declared
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\common.h(88) : warning C4114: same type qualifier used more than once
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\common.h(88) : error C2632: 'short' followed by 'short' is illegal
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\common.h(88) : warning C4091: 'typedef ' : ignored on left of 'short ' when no variable is declared
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\common.h(89) : warning C4114: same type qualifier used more than once
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\common.h(89) : error C2632: 'char' followed by 'char' is illegal
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\common.h(89) : warning C4091: 'typedef ' : ignored on left of 'unsigned char ' when no variable is declared
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\common.h(90) : warning C4114: same type qualifier used more than once
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\common.h(90) : warning C4091: 'typedef ' : ignored on left of 'unsigned long ' when no variable is declared
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\common.h(91) : warning C4114: same type qualifier used more than once
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\common.h(91) : error C2632: '__int64' followed by '__int64' is illegal
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\common.h(91) : warning C4091: 'typedef ' : ignored on left of 'unsigned __int64 ' when no variable is declared
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\common.h(92) : warning C4114: same type qualifier used more than once
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\common.h(92) : error C2632: 'char' followed by 'char' is illegal
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\common.h(92) : warning C4091: 'typedef ' : ignored on left of 'char ' when no variable is declared
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\common.h(93) : warning C4114: same type qualifier used more than once
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\common.h(93) : warning C4091: 'typedef ' : ignored on left of 'long ' when no variable is declared
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\common.h(94) : warning C4114: same type qualifier used more than once
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\common.h(94) : error C2632: '__int64' followed by '__int64' is illegal
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\common.h(94) : warning C4091: 'typedef ' : ignored on left of '__int64 ' when no variable is declared
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(227) : error C2014: preprocessor command must start as first nonwhite space
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(228) : error C2632: 'long' followed by 'long' is illegal
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(228) : error C2371: 'pts' : redefinition; different basic types
+        c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(226) : see declaration of 'pts'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(229) : error C2014: preprocessor command must start as first nonwhite space
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(329) : error C2121: '#' : invalid character : possibly the result of a macro expansion
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(329) : error C2061: syntax error : identifier 'ifdef'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(639) : error C2143: syntax error : missing ')' before '*'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(639) : error C2081: 'AVFrame' : name in formal parameter list illegal
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(639) : error C2143: syntax error : missing ';' before '*'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(639) : error C2059: syntax error : '*'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(639) : error C2059: syntax error : ')'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(648) : error C2143: syntax error : missing ')' before '*'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(648) : error C2081: 'AVFrame' : name in formal parameter list illegal
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(648) : error C2143: syntax error : missing '{' before '*'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(648) : error C2059: syntax error : ')'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(894) : error C2143: syntax error : missing '{' before '*'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1066) : error C2059: syntax error : '}'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1121) : error C2143: syntax error : missing ')' before '*'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1121) : error C2143: syntax error : missing ';' before '*'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1121) : error C2059: syntax error : '*'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1121) : error C2059: syntax error : ')'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1122) : error C2143: syntax error : missing ')' before '*'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1122) : error C2143: syntax error : missing '{' before '*'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1122) : error C2059: syntax error : ','
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1122) : error C2059: syntax error : ')'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1123) : error C2143: syntax error : missing ')' before '*'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1123) : error C2143: syntax error : missing '{' before '*'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1123) : error C2059: syntax error : ')'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1123) : error C2059: syntax error : ';'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1124) : error C2143: syntax error : missing ')' before '*'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1124) : error C2143: syntax error : missing '{' before '*'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1124) : error C2059: syntax error : ','
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1125) : error C2059: syntax error : ')'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1129) : error C2059: syntax error : '}'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1140) : error C2061: syntax error : identifier 'ac3_encoder'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1140) : error C2059: syntax error : ';'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1141) : error C2061: syntax error : identifier 'mp2_encoder'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1141) : error C2059: syntax error : ';'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1142) : error C2061: syntax error : identifier 'mp3lame_encoder'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1142) : error C2059: syntax error : ';'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1143) : error C2061: syntax error : identifier 'oggvorbis_encoder'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1143) : error C2059: syntax error : ';'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1144) : error C2061: syntax error : identifier 'mpeg1video_encoder'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1144) : error C2059: syntax error : ';'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1145) : error C2061: syntax error : identifier 'h263_encoder'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1145) : error C2059: syntax error : ';'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1146) : error C2061: syntax error : identifier 'h263p_encoder'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1146) : error C2059: syntax error : ';'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1147) : error C2061: syntax error : identifier 'rv10_encoder'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1147) : error C2059: syntax error : ';'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1148) : error C2061: syntax error : identifier 'mjpeg_encoder'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1148) : error C2059: syntax error : ';'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1149) : error C2061: syntax error : identifier 'mpeg4_encoder'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1149) : error C2059: syntax error : ';'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1150) : error C2061: syntax error : identifier 'msmpeg4v1_encoder'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1150) : error C2059: syntax error : ';'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1151) : error C2061: syntax error : identifier 'msmpeg4v2_encoder'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1151) : error C2059: syntax error : ';'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1152) : error C2061: syntax error : identifier 'msmpeg4v3_encoder'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1152) : error C2059: syntax error : ';'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1153) : error C2061: syntax error : identifier 'wmv1_encoder'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1153) : error C2059: syntax error : ';'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1154) : error C2061: syntax error : identifier 'wmv2_encoder'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1154) : error C2059: syntax error : ';'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1155) : error C2061: syntax error : identifier 'huffyuv_encoder'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1155) : error C2059: syntax error : ';'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1157) : error C2061: syntax error : identifier 'h263_decoder'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1157) : error C2059: syntax error : ';'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1158) : error C2061: syntax error : identifier 'mpeg4_decoder'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1158) : error C2059: syntax error : ';'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1159) : error C2061: syntax error : identifier 'msmpeg4v1_decoder'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1159) : error C2059: syntax error : ';'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1160) : error C2061: syntax error : identifier 'msmpeg4v2_decoder'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1160) : error C2059: syntax error : ';'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1161) : error C2061: syntax error : identifier 'msmpeg4v3_decoder'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1161) : error C2059: syntax error : ';'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1162) : error C2061: syntax error : identifier 'wmv1_decoder'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1162) : error C2059: syntax error : ';'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1163) : error C2061: syntax error : identifier 'wmv2_decoder'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1163) : error C2059: syntax error : ';'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1164) : error C2061: syntax error : identifier 'mpeg_decoder'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1164) : error C2059: syntax error : ';'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1165) : error C2061: syntax error : identifier 'h263i_decoder'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1165) : error C2059: syntax error : ';'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1166) : error C2061: syntax error : identifier 'rv10_decoder'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1166) : error C2059: syntax error : ';'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1167) : error C2061: syntax error : identifier 'svq1_decoder'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1167) : error C2059: syntax error : ';'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1168) : error C2061: syntax error : identifier 'dvvideo_decoder'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1168) : error C2059: syntax error : ';'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1169) : error C2061: syntax error : identifier 'dvaudio_decoder'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1169) : error C2059: syntax error : ';'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1170) : error C2061: syntax error : identifier 'wmav1_decoder'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1170) : error C2059: syntax error : ';'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1171) : error C2061: syntax error : identifier 'wmav2_decoder'
+c:\pcchamp\projects\xine\xine-lib-1-beta10\src\libffmpeg\libavcodec\avcodec.h(1171) : fatal error C1003: error count exceeds 100; stopping compilation
+Error executing cl.exe.
+
+
+
+<h3>Results</h3>
+xineplug_decode_ff.so - 204 error(s), 16 warning(s)
+</pre>
+</body>
+</html>
