@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xshm.c,v 1.88 2002/09/05 20:44:42 mroi Exp $
+ * $Id: video_out_xshm.c,v 1.89 2002/09/08 22:10:29 mroi Exp $
  * 
  * video_out_xshm.c, X11 shared memory extension interface for xine
  *
@@ -92,7 +92,7 @@ typedef struct xshm_driver_s {
 
   xine_vo_driver_t   vo_driver;
 
-  config_values_t   *config;
+  xine_t            *xine;
 
   /* X11 / XShm related stuff */
   Display           *display;
@@ -431,6 +431,7 @@ static void xshm_update_frame_format (xine_vo_driver_t *this_gen,
   xshm_frame_t   *frame = (xshm_frame_t *) frame_gen;
   int             do_adapt;
   int             gui_width, gui_height;
+  double          gui_pixel_aspect;
 
   flags &= VO_BOTH_FIELDS;
 
@@ -463,15 +464,17 @@ static void xshm_update_frame_format (xine_vo_driver_t *this_gen,
 
   /* ask gui what output size we'll have for this frame*/
 
-  this->sc.dest_size_cb (this->sc.user_data, frame->sc.ideal_width, frame->sc.ideal_height,
-		      &gui_width, &gui_height);
+  this->sc.dest_size_cb (this->sc.user_data, frame->sc.delivered_width, frame->sc.delivered_height,
+			 frame->sc.video_pixel_aspect, &gui_width, &gui_height, &gui_pixel_aspect);
 
   if ((frame->sc.gui_width != gui_width) || (frame->sc.gui_height != gui_height) 
+      || (frame->sc.gui_pixel_aspect != gui_pixel_aspect)
       || do_adapt) {
 
     do_adapt = 1;
     frame->sc.gui_width  = gui_width;
     frame->sc.gui_height = gui_height;
+    frame->sc.gui_pixel_aspect = gui_pixel_aspect;
 
     xshm_compute_rgb_size (this, frame);
  
@@ -655,8 +658,9 @@ static int xshm_redraw_needed (xine_vo_driver_t *this_gen) {
 
   if( this->cur_frame ) {
     
-    this->sc.ideal_width = this->cur_frame->sc.ideal_width;
-    this->sc.ideal_height = this->cur_frame->sc.ideal_height;
+    this->sc.delivered_height   = this->cur_frame->sc.delivered_height;
+    this->sc.delivered_width    = this->cur_frame->sc.delivered_width;
+    this->sc.video_pixel_aspect = this->cur_frame->sc.video_pixel_aspect;
     if( vo_scale_redraw_needed( &this->sc ) ) {  
 
       clean_output_area (this, this->cur_frame);
@@ -696,9 +700,10 @@ static void xshm_display_frame (xine_vo_driver_t *this_gen, vo_frame_t *frame_ge
      * tell gui that we are about to display a frame,
      * ask for offset
      */
-
-    this->sc.ideal_width = frame->sc.ideal_width;
-    this->sc.ideal_height = frame->sc.ideal_height;
+    
+    this->sc.delivered_height   = frame->sc.delivered_height;
+    this->sc.delivered_width    = frame->sc.delivered_width;
+    this->sc.video_pixel_aspect = frame->sc.video_pixel_aspect;
     if( vo_scale_redraw_needed( &this->sc ) ) {  
 
       clean_output_area (this, frame);
@@ -778,7 +783,7 @@ static int xshm_get_property (xine_vo_driver_t *this_gen, int property) {
   return 0;
 }
 
-static int xshm_set_property (vo_driver_t *this_gen, 
+static int xshm_set_property (xine_vo_driver_t *this_gen, 
 			      int property, int value) {
 
   xshm_driver_t *this = (xshm_driver_t *) this_gen;
@@ -820,7 +825,7 @@ static void xshm_get_property_min_max (xine_vo_driver_t *this_gen,
   }
 }
 
-static int xshm_gui_data_exchange (vo_driver_t *this_gen, 
+static int xshm_gui_data_exchange (xine_vo_driver_t *this_gen, 
 				   int data_type, void *data) {
 
   xshm_driver_t   *this = (xshm_driver_t *) this_gen;
@@ -996,7 +1001,7 @@ static char *visual_class_name(Visual *visual) {
   }
 }
 
-static void *init_video_out_plugin (config_values_t *config, void *visual_gen) {
+static void *init_video_out_plugin (xine_t *xine, void *visual_gen) {
 
   xshm_driver_t        *this;
   x11_visual_t         *visual = (x11_visual_t *) visual_gen;
@@ -1025,18 +1030,18 @@ static void *init_video_out_plugin (config_values_t *config, void *visual_gen) {
 
   memset (this, 0, sizeof(xshm_driver_t));
 
-  this->config		    = config;
+  this->xine		    = xine;
   this->display		    = visual->display;
   this->screen		    = visual->screen;
 
-  vo_scale_init( &this->sc, visual->display_ratio, 0, 0 );
+  vo_scale_init( &this->sc, 0, 0 );
   this->sc.frame_output_cb   = visual->frame_output_cb;
   this->sc.dest_size_cb      = visual->dest_size_cb;
   this->sc.user_data         = visual->user_data;
   
   this->sc.user_ratio        = ASPECT_AUTO;
   
-  this->sc.scaling_disabled  = config->register_bool (config, "video.disable_scaling", 0,
+  this->sc.scaling_disabled  = xine_config_register_bool (xine, "video.disable_scaling", 0,
 						     _("disable all video scaling (faster!)"),
 						     NULL, 10, NULL, NULL);
   this->drawable	    = visual->d;
@@ -1182,7 +1187,7 @@ static void *init_video_out_plugin (config_values_t *config, void *visual_gen) {
 
   this->yuv2rgb_mode  = mode;
   this->yuv2rgb_swap  = swapped;
-  this->yuv2rgb_gamma = config->register_range (config, "video.xshm_gamma", 0,
+  this->yuv2rgb_gamma = xine_config_register_range (xine, "video.xshm_gamma", 0,
 						-100, 100, 
 						_("gamma correction for XShm driver"),
 						NULL, 0, NULL, NULL);
@@ -1194,17 +1199,23 @@ static void *init_video_out_plugin (config_values_t *config, void *visual_gen) {
   return &this->vo_driver;
 }
 
-static vo_info_t vo_info_shm = {
-  6,                /* interface version */
-  "XShm",           /* id                */
-  NULL,
-  XINE_VISUAL_TYPE_X11,  /* visual_type       */
-  6
+static vo_info_t vo_info_xshm = {
+  6,                    /* priority    */
+  "xine video output plugin using the MIT X shared memory extension", /* description */
+  XINE_VISUAL_TYPE_X11  /* visual type */
 };
 
 vo_info_t *get_video_out_plugin_info() {
-  vo_info_shm.description = _("xine video output plugin using the MIT X shared memory extension");
-  return &vo_info_shm;
+  vo_info_xshm.description = _("xine video output plugin using the MIT X shared memory extension");
+  return &vo_info_xshm;
 }
 
+/*
+ * exported plugin catalog entry
+ */
 
+plugin_info_t xine_plugin_info[] = {
+  /* type, API, "name", version, special_info, init_function */  
+  { PLUGIN_VIDEO_OUT, 9, "xshm", XINE_VERSION_CODE, &vo_info_xshm, init_video_out_plugin },
+  { PLUGIN_NONE, 0, "", 0, NULL, NULL }
+};
