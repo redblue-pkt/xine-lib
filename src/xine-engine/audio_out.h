@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.h,v 1.67 2004/02/12 18:09:19 mroi Exp $
+ * $Id: audio_out.h,v 1.68 2004/05/15 20:27:51 jcdutton Exp $
  */
 #ifndef HAVE_AUDIO_OUT_H
 #define HAVE_AUDIO_OUT_H
@@ -298,6 +298,9 @@ int _x_ao_mode2channels( int mode );
 #define AO_CAP_PCM_VOL          0x00000200 /* driver supports pcm control   */
 #define AO_CAP_MUTE_VOL         0x00000400 /* driver can mute volume        */
 #define AO_CAP_8BITS            0x00000800 /* driver support 8-bit samples  */
+#define AO_CAP_16BITS           0x00001000 /* driver support 16-bit samples  */
+#define AO_CAP_24BITS           0x00002000 /* driver support 24-bit samples  */
+#define AO_CAP_32BITS           0x00004000 /* driver support 32-bit samples. i.e. Floats  */
 
 /* properties supported by get/set_property() */
 #define AO_PROP_MIXER_VOL       0

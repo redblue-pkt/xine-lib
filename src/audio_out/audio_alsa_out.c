@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.139 2004/05/07 13:37:00 mroi Exp $
+ * $Id: audio_alsa_out.c,v 1.140 2004/05/15 20:27:50 jcdutton Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -333,6 +333,7 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
   snd_pcm_uframes_t     period_size_max; 
   snd_pcm_uframes_t     buffer_size_min;
   snd_pcm_uframes_t     buffer_size_max;
+  snd_pcm_format_t      format;
 #if 0
   uint32_t              periods;
 #endif
@@ -441,14 +442,28 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
 	     "audio_alsa_out: access type not available: %s\n", snd_strerror(err));
     goto __close;
   }
-  /* set the sample format ([SU]{8,16{LE,BE}})*/
-  err = snd_pcm_hw_params_set_format(this->audio_fd, params, (bits == 16) ?
-#ifdef WORDS_BIGENDIAN
-		  SND_PCM_FORMAT_S16_BE
-#else
-		  SND_PCM_FORMAT_S16_LE
-#endif
-		  : SND_PCM_FORMAT_U8);
+  /* set the sample format ([SU]{8,16,24,FLOAT}) */
+  /* ALSA automatically appends _LE or _BE depending on the CPU */
+  switch (bits>>3) {
+  case 1:
+    format = SND_PCM_FORMAT_U8;
+    break;
+  case 2:
+    format = SND_PCM_FORMAT_S16;
+    break;
+  case 3:
+    format = SND_PCM_FORMAT_S24;
+    break;
+  case 4:
+    format = SND_PCM_FORMAT_FLOAT;
+    break;
+  default: 
+    format = SND_PCM_FORMAT_S16;
+    xprintf (this->class->xine, XINE_VERBOSITY_DEBUG, 
+	     "audio_alsa_out: pcm format bits=%d unknown. failed: %s\n", bits, snd_strerror(err));
+    break;
+  }
+  err = snd_pcm_hw_params_set_format(this->audio_fd, params, format );
   if (err < 0) {
     xprintf (this->class->xine, XINE_VERBOSITY_DEBUG, 
 	     "audio_alsa_out: sample format non available: %s\n", snd_strerror(err));
@@ -1450,6 +1465,19 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
   if (!(snd_pcm_hw_params_test_format(this->audio_fd, params, SND_PCM_FORMAT_U8))) {
     this->capabilities |= AO_CAP_8BITS;
     xprintf(class->xine, XINE_VERBOSITY_LOG, _("8bit "));
+  }
+  /* ALSA automatically appends _LE or _BE depending on the CPU */
+  if (!(snd_pcm_hw_params_test_format(this->audio_fd, params, SND_PCM_FORMAT_S16))) {
+    this->capabilities |= AO_CAP_16BITS;
+    xprintf(class->xine, XINE_VERBOSITY_LOG, _("16bit "));
+  }
+  if (!(snd_pcm_hw_params_test_format(this->audio_fd, params, SND_PCM_FORMAT_S24))) {
+    this->capabilities |= AO_CAP_24BITS;
+    xprintf(class->xine, XINE_VERBOSITY_LOG, _("24bit "));
+  }
+  if (!(snd_pcm_hw_params_test_format(this->audio_fd, params, SND_PCM_FORMAT_FLOAT))) {
+    this->capabilities |= AO_CAP_32BITS;
+    xprintf(class->xine, XINE_VERBOSITY_LOG, _("32bit "));
   }
   if (!(snd_pcm_hw_params_test_channels(this->audio_fd, params, 1))) {
     this->capabilities |= AO_CAP_MODE_MONO;
