@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.30 2004/09/12 16:07:57 mroi Exp $
+ * $Id: video_decoder.c,v 1.31 2004/09/14 02:22:30 hadess Exp $
  *
  * xine video decoder plugin using ffmpeg
  *
@@ -654,8 +654,9 @@ static const ff_codec_t ff_video_lookup[] = {
   {BUF_VIDEO_WMV7,        CODEC_ID_WMV1,      "MS Windows Media Video 7 (ffmpeg)"},
   {BUF_VIDEO_WMV8,        CODEC_ID_WMV2,      "MS Windows Media Video 8 (ffmpeg)"},
   {BUF_VIDEO_MPEG4,       CODEC_ID_MPEG4,     "ISO MPEG-4 (ffmpeg)"},
-  {BUF_VIDEO_XVID,        CODEC_ID_MPEG4,     "ISO MPEG-4 (ffmpeg)"},
-  {BUF_VIDEO_DIVX5,       CODEC_ID_MPEG4,     "ISO MPEG-4 (ffmpeg)"},
+  {BUF_VIDEO_XVID,        CODEC_ID_MPEG4,     "ISO MPEG-4 (XviD, ffmpeg)"},
+  {BUF_VIDEO_DIVX5,       CODEC_ID_MPEG4,     "ISO MPEG-4 (DivX5, ffmpeg)"},
+  {BUF_VIDEO_3IVX,        CODEC_ID_MPEG4,     "ISO MPEG-4 (3ivx, ffmpeg)"},
   {BUF_VIDEO_JPEG,        CODEC_ID_MJPEG,     "Motion JPEG (ffmpeg)"},
   {BUF_VIDEO_MJPEG,       CODEC_ID_MJPEG,     "Motion JPEG (ffmpeg)"},
   {BUF_VIDEO_I263,        CODEC_ID_H263I,     "ITU H.263 (ffmpeg)"},
@@ -1256,6 +1257,7 @@ static uint32_t supported_video_types[] = {
   BUF_VIDEO_MPEG4,
   BUF_VIDEO_XVID, 
   BUF_VIDEO_DIVX5, 
+  BUF_VIDEO_3IVX,
   BUF_VIDEO_MJPEG,
   BUF_VIDEO_H263,
   BUF_VIDEO_RV10,

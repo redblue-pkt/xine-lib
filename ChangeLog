@@ -32,7 +32,7 @@ xine-lib (1-rc6)
   * Fixed wrong, very bright overlays on some DVDs [bug #1018193]
   * Fixed WIN32 replacement of gettimeofday [bug #995961]
   * Removed unistd.h from public header
-  * Added support for H.264/AVC video
+  * Added support for H.264/AVC video, and 3ivx video
 
 xine-lib (1-rc5)  
   * add support for ejecting removable media on Solaris
