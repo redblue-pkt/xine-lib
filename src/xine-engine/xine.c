@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.167 2002/10/15 16:10:18 guenter Exp $
+ * $Id: xine.c,v 1.168 2002/10/16 21:23:59 guenter Exp $
  *
  * top-level xine functions
  *
@@ -251,6 +251,12 @@ xine_stream_t *xine_stream_new (xine_t *this,
   pthread_mutex_init (&stream->osd_lock, NULL);
   pthread_mutex_init (&stream->counter_lock, NULL);
   pthread_cond_init  (&stream->counter_changed, NULL);
+
+  /*
+   * event queues
+   */
+
+  stream->event_queues = xine_list_new ();
 
   /*
    * create a metronom
