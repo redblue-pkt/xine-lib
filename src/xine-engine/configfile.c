@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: configfile.c,v 1.62 2004/03/03 20:09:16 mroi Exp $
+ * $Id: configfile.c,v 1.63 2004/03/16 20:50:08 mroi Exp $
  *
  * config object (was: file) management - implementation
  *
@@ -969,6 +969,15 @@ int _x_config_change_opt(config_values_t *config, const char *opt) {
   int          handled = 0;
 
   lprintf ("change_opt '%s'\n", opt);
+  
+  if ((entry = config->lookup_entry(config, "misc.implicit_config")) &&
+      entry->type == CONFIG_TYPE_BOOL) {
+    if (!entry->num_value)
+      /* changing config entries implicitly is denied */
+      return -1;
+  } else
+    /* someone messed with the config entry */
+    return -1;
 
   if(config && opt) {
     char *key, *value;

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.284 2004/03/03 20:09:18 mroi Exp $
+ * $Id: xine.c,v 1.285 2004/03/16 20:50:09 mroi Exp $
  */
 
 /*
@@ -1429,6 +1429,21 @@ void xine_init (xine_t *this) {
       _("Path for saving streams"),
       _("Streams will be saved only into this directory"),
       XINE_CONFIG_SECURITY, __config_save_cb, this);
+  
+  /*
+   * implicit configuration changes
+   */
+  this->config->register_bool(this->config,
+      "misc.implicit_config", 0,
+      _("allow implicit changes to the configuration (e.g. by MRL)"),
+      _("If enabled, you allow xine to change your configuration without "
+	"explicit actions from your side. For example configuration changes "
+	"demanded by MRLs or embedded into playlist will be executed.\n"
+	"This setting is security critcal, because xine can receive MRLs or "
+	"playlists from untrusted remote sources. If you allow them to "
+	"arbitrarily change your configuration, you might end with a totally "
+	"messed up xine."),
+      XINE_CONFIG_SECURITY, NULL, this);
 
   /*
    * keep track of all opened streams

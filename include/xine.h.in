@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.116 2004/02/28 19:56:41 valtri Exp $
+ * $Id: xine.h.in,v 1.117 2004/03/16 20:50:08 mroi Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -1239,6 +1239,11 @@ struct xine_cfg_entry_s {
 			        20 => expert */
 
   /* callback function and data for live changeable values */
+  /* some config entries will take effect immediately, although they
+   * do not have a callback registered; such values will have some
+   * non-NULL dummy value in callback_data; so if you want to check,
+   * if a config change will require restarting xine, check for
+   * callback_data == NULL */
   xine_config_cb_t callback;
   void            *callback_data;
 
