@@ -1,5 +1,9 @@
   * handle avi files produced by dvgrab
-
+  * real media demuxer should handle most files now 
+  * real media rv20/rv30 video and cook/sipro/dnet audio should work 
+    (except dnet x86 only)
+  * real media rtsp protocol streaming support
+	
 xine-lib (1-beta0)
   * fix decoder priority configuration
   * cache available plugins for faster xine loading
