@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ts.c,v 1.47 2002/05/29 20:57:29 miguelfreitas Exp $
+ * $Id: demux_ts.c,v 1.48 2002/05/30 18:20:30 miguelfreitas Exp $
  *
  * Demultiplexer for MPEG2 Transport Streams.
  *
@@ -35,7 +35,11 @@
  * Date        Author
  * ----        ------
  *
+ * 30-May-2002 Mauro Borghi
+ *                  - dynamic allocation leaks fixes
+ *
  * 27-May-2002 Giovanni Baronetti and Mauro Borghi <mauro.borghi@tilab.com>
+ *                  - fill buffers before putting them in fifos 
  *                  - force PMT reparsing when PMT PID changes
  *                  - accept non seekable input plugins -- FIX?
  *                  - accept dvb as input plugin
@@ -43,25 +47,27 @@
  *                  - modified resync code
  *
  * 16-May-2002 Thibaut Mattern <tmattern@noos.fr>
- *                              Fix demux loop
- * 07-Jan-2002 Andr Draszik <andid@gmx.net>
- *                              - added support for single-section PMTs
- *                                spanning multiple TS packets.
- * 10-Sep-2001 James Courtier-Dutton <jcdutton>
- *                              Re-wrote sync code so that it now does not loose any data.
- * 27-Aug-2001 Hubert Matthews  Reviewed by: n/a
- *                              Added in synchronisation code.
+ *                  - fix demux loop
  *
- *  1-Aug-2001 James Courtier-Dutton <jcdutton>
- *                              Reviewed by: n/a
- *                              TS Streams with zero PES lenght should now work.
+ * 07-Jan-2002 Andr Draszik <andid@gmx.net>
+ *                  - added support for single-section PMTs
+ *                    spanning multiple TS packets
+ *
+ * 10-Sep-2001 James Courtier-Dutton <jcdutton>
+ *                  - re-wrote sync code so that it now does not loose any data
+ *
+ * 27-Aug-2001 Hubert Matthews  Reviewed by: n/a
+ *                  - added in synchronisation code
+ *
+ *  1-Aug-2001 James Courtier-Dutton <jcdutton>  Reviewed by: n/a
+ *                  - TS Streams with zero PES lenght should now work
  *
  * 30-Jul-2001 shaheedhaque     Reviewed by: n/a
- *                              PATs and PMTs seem to work.
+ *                  - PATs and PMTs seem to work
  *
  * 29-Jul-2001 shaheedhaque     Reviewed by: n/a
- *                              Compiles!
-
+ *                  - Compiles!
+ *
  *
  * TODO: do without memcpys, preview buffers
  */
@@ -228,7 +234,8 @@ static void demux_ts_build_crc32_table(demux_ts *this) {
   }
 }
 
-static uint32_t demux_ts_compute_crc32(demux_ts *this, uint8_t *data, uint32_t length, uint32_t crc32) {
+static uint32_t demux_ts_compute_crc32(demux_ts *this, uint8_t *data, 
+				       uint32_t length, uint32_t crc32) {
   uint32_t i;
 
   for(i = 0; i < length; i++) {
@@ -395,8 +402,11 @@ static void demux_ts_parse_pat (demux_ts *this, unsigned char *original_pkt,
     }
 
     this->pmt_pid[program_count] = pmt_pid;
-    this->pmt[program_count]                     = NULL;
-    this->pmt_write_ptr[program_count]           = NULL;
+    if (this->pmt[program_count] != NULL) {
+      free(this->pmt[program_count]);
+      this->pmt[program_count] = NULL;
+      this->pmt_write_ptr[program_count] = NULL;
+    }
 #ifdef TS_LOG
     if (this->program_number[program_count] != INVALID_PROGRAM)
       printf ("demux_ts: PAT acquired count=%d programNumber=0x%04x "
@@ -580,6 +590,7 @@ static void demux_ts_buffer_pes(demux_ts *this, unsigned char *ts,
       m->buf->input_pos = this->input->get_current_pos(this->input);
       m->fifo->put(m->fifo, m->buf);
       m->buffered_bytes = 0;
+      m->buf = NULL; /* forget about buf -- not our responsibility anymore */
     }
 
     if (!demux_ts_parse_pes_header(m, ts, len, this->xine)) {
@@ -696,9 +707,8 @@ static void demux_ts_parse_pmt (demux_ts      *this,
    * to copy the complete section into one chunk.
    */
   if (pusi) {
-    free (this->pmt[program_count]);
-    this->pmt[program_count] =
-      (uint8_t *) calloc (1024, sizeof (unsigned char));
+    if (this->pmt[program_count] != NULL) free(this->pmt[program_count]);
+    this->pmt[program_count] = (uint8_t *) calloc(1024, sizeof(unsigned char));
     this->pmt_write_ptr[program_count] = this->pmt[program_count];
 
     table_id                  =  pkt[5] ;
@@ -1060,7 +1070,10 @@ static unsigned char * demux_synchronise(demux_ts * this) {
 }
 
 
-static uint32_t demux_ts_adaptation_field_parse( uint8_t *data, uint32_t adaptation_field_length) {
+static uint32_t 
+demux_ts_adaptation_field_parse(uint8_t *data, 
+				uint32_t adaptation_field_length) {
+
   uint32_t    discontinuity_indicator=0;
   uint32_t    random_access_indicator=0;
   uint32_t    elementary_stream_priority_indicator=0;
@@ -1169,7 +1182,8 @@ static void demux_ts_parse_packet (demux_ts *this) {
   transport_error_indicator      = (originalPkt[1]  >> 7) & 0x01;
   payload_unit_start_indicator   = (originalPkt[1] >> 6) & 0x01;
   transport_priority             = (originalPkt[1] >> 5) & 0x01;
-  pid                            = ((originalPkt[1] << 8) | originalPkt[2]) & 0x1fff;
+  pid                            = ((originalPkt[1] << 8) | 
+				    originalPkt[2]) & 0x1fff;
   transport_scrambling_control   = (originalPkt[3] >> 6)  & 0x03;
   adaptation_field_control       = (originalPkt[3] >> 4) & 0x03;
   continuity_counter             = originalPkt[3] & 0x0f;
@@ -1245,8 +1259,9 @@ static void demux_ts_parse_packet (demux_ts *this) {
 
     if (data_len > PKT_SIZE) {
 
-      LOG_MSG (this->xine, _("demux_ts: demux error! invalid payload size %d\n"),
-                           data_len);
+      LOG_MSG (this->xine, 
+	       _("demux_ts: demux error! invalid payload size %d\n"),
+	       data_len);
 
     } else {
 
@@ -1370,8 +1385,18 @@ static void *demux_ts_loop(void *gen_this) {
   return NULL;
 }
 
-static void demux_ts_close(demux_plugin_t *gen_this) {
-  free(gen_this);
+static void demux_ts_close(demux_plugin_t *this_gen) {
+  int i;
+  demux_ts *this = (demux_ts *)this_gen;
+
+  for (i=0; i < MAX_PMTS; i++) {
+    if (this->pmt[i] != NULL) free(this->pmt[i]);
+  }
+  for (i=0; i < MAX_PIDS; i++) {
+    if (this->media[i].buf != NULL) 
+      this->media[i].buf->free_buffer(this->media[i].buf);
+  }
+  free(this_gen);
 }
 
 static char *demux_ts_get_id(void) {
@@ -1438,10 +1463,11 @@ static int demux_ts_open(demux_plugin_t *this_gen, input_plugin_t *input,
   break;
   case STAGE_BY_EXTENSION:
 
-    xine_strdupa(valid_mrls, (this->config->register_string(this->config,
-                                                            "mrl.mrls_ts", VALID_MRLS,
-                                                            "valid mrls for ts demuxer",
-                                                            NULL, NULL, NULL)));
+    xine_strdupa(valid_mrls, 
+		 (this->config->register_string(this->config,
+						"mrl.mrls_ts", VALID_MRLS,
+						"valid mrls for ts demuxer",
+						NULL, NULL, NULL)));
 
     mrl = input->get_mrl(input);
     media = strstr(mrl, "://");
@@ -1472,10 +1498,12 @@ static int demux_ts_open(demux_plugin_t *this_gen, input_plugin_t *input,
       LOG_MSG(this->xine, "demux_ts_open: ending %s of %s\n", ending, mrl);
 #endif
 
-      xine_strdupa(valid_ends, (this->config->register_string(this->config,
-                                                              "mrl.ends_ts", VALID_ENDS,
-                                                              "valid mrls ending for ts demuxer",
-                                                              NULL, NULL, NULL)));
+      xine_strdupa(valid_ends, 
+		   (this->config->register_string(this->config,
+						  "mrl.ends_ts", VALID_ENDS,
+						  "valid mrls ending for ts " 
+						  "demuxer",
+						  NULL, NULL, NULL)));
       while((m = xine_strsep(&valid_ends, ",")) != NULL) {
 
         while(*m == ' ' || *m == '\t') m++;
@@ -1531,9 +1559,9 @@ static int demux_ts_start(demux_plugin_t *this_gen,
     }
   }
   
-  if ((this->input->get_capabilities (this->input) & INPUT_CAP_SEEKABLE) != 0 ) {
+  if (this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) {
 
-    if ( (!start_pos) && (start_time))
+    if ((!start_pos) && (start_time))
       start_pos = start_time * this->rate * 50;
 
     this->input->seek (this->input, start_pos, SEEK_SET);
@@ -1554,8 +1582,10 @@ static int demux_ts_start(demux_plugin_t *this_gen,
     this->thread_running = 1;
     this->scrambled_npids = 0;
   
-    if ((err = pthread_create(&this->thread, NULL, demux_ts_loop, this)) != 0) {
-      LOG_MSG_STDERR(this->xine, _("demux_ts: can't create new thread (%s)\n"), strerror(err));
+    if (err = pthread_create(&this->thread, NULL, demux_ts_loop, this)) {
+      LOG_MSG_STDERR(this->xine, 
+		     _("demux_ts: can't create new thread (%s)\n"), 
+		     strerror(err));
       abort();
     }
   }
@@ -1655,8 +1685,9 @@ demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
   if (iface != 8) {
     LOG_MSG (xine,
              _("demux_ts: plugin doesn't support plugin API version %d.\n"
-               "          this means there's a version mismatch between xine and this "
-               "          demuxer plugin.\nInstalling current demux plugins should help.\n"),
+               "          This means there's a version mismatch between xine "
+	       "and this demuxer plugin.\n"
+               "          Installing current demux plugins should help.\n"),
              iface);
     return NULL;
   }
@@ -1668,7 +1699,8 @@ demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
   this->config = xine->config;
   this->xine   = xine;
 
-  (void*) this->config->register_string(this->config, "mrl.mrls_ts", VALID_MRLS,
+  (void*) this->config->register_string(this->config, "mrl.mrls_ts", 
+					VALID_MRLS,
                                         "valid mrls for ts demuxer",
                                         NULL, NULL, NULL);
   (void*) this->config->register_string(this->config,
@@ -1722,6 +1754,3 @@ demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
 
   return (demux_plugin_t *)this;
 }
-
-
-
