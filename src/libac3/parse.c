@@ -22,17 +22,15 @@
  *
  */
 
+#include "config.h"
+
 #include <inttypes.h>
 #include <string.h>
 
 #include "ac3.h"
 #include "ac3_internal.h"
-
 #include "bitstream.h"
 #include "tables.h"
-
-extern stream_samples_t samples;	// FIXME
-static float delay[6][256];
 
 void ac3_init (void)
 {
@@ -62,8 +60,8 @@ int ac3_syncinfo (uint8_t * buf, int * flags,
 
     // acmod, dsurmod and lfeon
     acmod = buf[6] >> 5;
-    *flags = (((buf[6] & 0xf8) == 0x50) ? AC3_DOLBY : acmod) |
-	      ((buf[6] & lfeon[acmod]) ? AC3_LFE : 0);
+    *flags = ((((buf[6] & 0xf8) == 0x50) ? AC3_DOLBY : acmod) |
+	      ((buf[6] & lfeon[acmod]) ? AC3_LFE : 0));
 
     frmsizecod = buf[4] & 63;
     if (frmsizecod >= 38)
@@ -86,11 +84,11 @@ int ac3_syncinfo (uint8_t * buf, int * flags,
     }
 }
 
-int ac3_frame (ac3_state_t * state, uint8_t * buf, int * flags, float * level,
-	       float bias)
+int ac3_frame (ac3_state_t * state, uint8_t * buf, int * flags,
+	       sample_t * level, sample_t bias, sample_t * delay)
 {
-    static float clev[4] = {LEVEL_3DB, LEVEL_45DB, LEVEL_6DB, LEVEL_45DB};
-    static float slev[4] = {LEVEL_3DB, LEVEL_6DB, 0, LEVEL_6DB};
+    static sample_t clev[4] = {LEVEL_3DB, LEVEL_45DB, LEVEL_6DB, LEVEL_45DB};
+    static sample_t slev[4] = {LEVEL_3DB, LEVEL_6DB, 0, LEVEL_6DB};
     int chaninfo;
     int acmod;
 
@@ -114,12 +112,16 @@ int ac3_frame (ac3_state_t * state, uint8_t * buf, int * flags, float * level,
 
     state->output = downmix_init (acmod, *flags, level,
 				  state->clev, state->slev);
-    if (state->output < 0) {
+    if (state->output < 0)
 	return 1;
+    if (state->lfeon && (*flags & AC3_LFE)) {
+	state->output |= AC3_LFE;
+	delay += 256;
     }
     *flags = state->output;
     state->level = *level;
     state->bias = bias;
+    state->delay = delay;
 
     chaninfo = !acmod;
     do {
@@ -242,9 +244,9 @@ static inline int zero_snr_offsets (int nfchans, ac3_state_t * state)
     return 1;
 }
 
-static float q_1[2];
-static float q_2[2];
-static float q_4;
+static sample_t q_1[2];
+static sample_t q_2[2];
+static sample_t q_4;
 static int q_1_pointer;
 static int q_2_pointer;
 static int q_4_pointer;
@@ -333,7 +335,7 @@ static inline int16_t dither_gen(void)
     return ((state * (int) (LEVEL_3DB * 256)) >> 8);
 }
 
-static void coeff_get (float * coeff, uint8_t * exp, int8_t * bap,
+static void coeff_get (sample_t * coeff, uint8_t * exp, int8_t * bap,
 		       int dither, int end)
 {
     int i;
@@ -360,7 +362,7 @@ static void coeff_get (float * coeff, uint8_t * exp, int8_t * bap,
     i++;								\
     continue;
 
-int ac3_block (ac3_state_t * state)
+int ac3_block (ac3_state_t * state, sample_t samples[][256])
 {
     static const uint8_t nfchans_tbl[8] = {2, 1, 2, 3, 3, 4, 4, 5};
     static int rematrix_band[4] = {25, 37, 61, 253};
@@ -585,6 +587,9 @@ int ac3_block (ac3_state_t * state)
 	    bitstream_get (8);
     }
 
+    if (state->output & AC3_LFE)
+	samples++;	// shift for LFE channel
+
     q_1_pointer = q_2_pointer = q_4_pointer = -1;
     done_cpl = 0;
 
@@ -597,7 +602,7 @@ int ac3_block (ac3_state_t * state)
 	if (state->cplinu && state->chincpl[i]) {
 	    if (!done_cpl) {
 		int i, i_end, bnd, sub_bnd, ch;
-		float cplcoeff;
+		sample_t cplcoeff;
 
 		done_cpl = 1;
 
@@ -649,7 +654,7 @@ int ac3_block (ac3_state_t * state)
 	    if (band > end)
 		band = end;
 	    do {
-		float tmp0, tmp1;
+		sample_t tmp0, tmp1;
 
 		tmp0 = samples[0][j];
 		tmp1 = samples[1][j];
@@ -660,23 +665,19 @@ int ac3_block (ac3_state_t * state)
     }
 
     if (state->lfeon) {
-	coeff_get (samples[5], state->lfe_exp, state->lfe_bap, 0, 7);
-#if 0
-	for (i = 7; i < 256; i++)
-	    samples[5][i] = 0;
-#endif
+	coeff_get (samples[-1], state->lfe_exp, state->lfe_bap, 0, 7);
+	if (state->output & AC3_LFE) {
+	    for (i = 7; i < 256; i++)
+		samples[-1][i] = 0;
+	    imdct_512 (samples[-1], state->delay - 256);
+	}
     }
 
     for (i = 0; i < nfchans; i++)
 	if (blksw[i])
-            imdct_256 (samples[i], delay[i]);
+            imdct_256 (samples[i], state->delay + i * 256);
         else 
-            imdct_512 (samples[i], delay[i]);
-
-#if 0
-    if (state->lfeon)
-	imdct_512 (samples[5], delay[5]);
-#endif
+            imdct_512 (samples[i], state->delay + i * 256);
 
     downmix (*samples, state->acmod, state->output, state->level, state->bias,
 	     state->clev, state->slev);

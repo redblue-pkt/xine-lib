@@ -25,19 +25,17 @@
 #include "config.h"
 
 #include <inttypes.h>
-#include <stdlib.h>
-#include <stdio.h>
 #include <math.h>
+
 #include "ac3.h"
 #include "ac3_internal.h"
 
-void (* imdct_256) (float data[], float delay[]);
-void (* imdct_512) (float data[], float delay[]);
+void (* imdct_256) (sample_t data[], sample_t delay[]);
+void (* imdct_512) (sample_t data[], sample_t delay[]);
 
-typedef struct complex_s
-{
-    float real;
-    float imag;
+typedef struct complex_s {
+    sample_t real;
+    sample_t imag;
 } complex_t;
 
 
@@ -83,13 +81,13 @@ static complex_t w_64[64];
 static complex_t * w[7] = {w_1, w_2, w_4, w_8, w_16, w_32, w_64};
 
 /* Twiddle factors for IMDCT */
-static float xcos1[128];
-static float xsin1[128];
-static float xcos2[64];
-static float xsin2[64];
+static sample_t xcos1[128];
+static sample_t xsin1[128];
+static sample_t xcos2[64];
+static sample_t xsin2[64];
 
 /* Windowing function for Modified DCT - Thank you acroread */
-float imdct_window[] = {
+sample_t imdct_window[] = {
 	0.00014, 0.00024, 0.00037, 0.00051, 0.00067, 0.00086, 0.00107, 0.00130,
 	0.00157, 0.00187, 0.00220, 0.00256, 0.00297, 0.00341, 0.00390, 0.00443,
 	0.00501, 0.00564, 0.00632, 0.00706, 0.00785, 0.00871, 0.00962, 0.01061,
@@ -146,7 +144,7 @@ static inline complex_t cmplx_mult(complex_t a, complex_t b)
 }
 
 void
-imdct_do_512(float data[],float delay[])
+imdct_do_512(sample_t data[],sample_t delay[])
 {
     int i,k;
     int p,q;
@@ -154,14 +152,14 @@ imdct_do_512(float data[],float delay[])
     int two_m;
     int two_m_plus_one;
 
-    float tmp_a_i;
-    float tmp_a_r;
-    float tmp_b_i;
-    float tmp_b_r;
+    sample_t tmp_a_i;
+    sample_t tmp_a_r;
+    sample_t tmp_b_i;
+    sample_t tmp_b_r;
 
-    float *data_ptr;
-    float *delay_ptr;
-    float *window_ptr;
+    sample_t *data_ptr;
+    sample_t *delay_ptr;
+    sample_t *window_ptr;
 	
     //
     // 512 IMDCT with source and dest data in 'data'
@@ -245,7 +243,7 @@ imdct_do_512(float data[],float delay[])
 }
 
 void
-imdct_do_256(float data[],float delay[])
+imdct_do_256(sample_t data[],sample_t delay[])
 {
     int i,k;
     int p,q;
@@ -253,14 +251,14 @@ imdct_do_256(float data[],float delay[])
     int two_m;
     int two_m_plus_one;
 
-    float tmp_a_i;
-    float tmp_a_r;
-    float tmp_b_i;
-    float tmp_b_r;
+    sample_t tmp_a_i;
+    sample_t tmp_a_r;
+    sample_t tmp_b_i;
+    sample_t tmp_b_r;
 
-    float *data_ptr;
-    float *delay_ptr;
-    float *window_ptr;
+    sample_t *data_ptr;
+    sample_t *delay_ptr;
+    sample_t *window_ptr;
 
     complex_t *buf_1, *buf_2;
 
@@ -375,9 +373,6 @@ imdct_do_256(float data[],float delay[])
 void imdct_init (void)
 {
 #ifdef LIBAC3_MLIB
-    void imdct_do_256_mlib(float data[],float delay[]);
-    void imdct_do_512_mlib(float data[],float delay[]);
-
     imdct_512 = imdct_do_512_mlib;
     imdct_256 = imdct_do_256_mlib;
 #else

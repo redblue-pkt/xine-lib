@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_oss_out.c,v 1.20 2001/07/14 17:45:06 jcdutton Exp $
+ * $Id: audio_oss_out.c,v 1.21 2001/07/20 22:37:56 guenter Exp $
  */
 
 /* required for swab() */
@@ -195,6 +195,11 @@ static int ao_open(ao_functions_t *this_gen,
     break;
   case AO_CAP_MODE_5CHANNEL:
     tmp = 5;
+    ioctl(this->audio_fd, SNDCTL_DSP_CHANNELS, &tmp);
+    this->num_channels = tmp;
+    break;
+  case AO_CAP_MODE_5_1CHANNEL:
+    tmp = 6;
     ioctl(this->audio_fd, SNDCTL_DSP_CHANNELS, &tmp);
     this->num_channels = tmp;
     break;
@@ -585,6 +590,15 @@ ao_functions_t *init_audio_out_plugin (config_values_t *config) {
       printf ("5-channel ");
     } else
       printf ("(5-channel not enabled in .xinerc) " );
+  }
+  num_channels = 6; 
+  status = ioctl(audio_fd, SNDCTL_DSP_CHANNELS, &num_channels); 
+  if ( (status != -1) && (num_channels==6) ) {
+    if (config->lookup_int (config, "five_lfe_channel", 0)) {
+      this->capabilities |= AO_CAP_MODE_5_1CHANNEL;
+      printf ("5.1-channel ");
+    } else
+      printf ("(5.1-channel not enabled in .xinerc) " );
   }
 
   ioctl(audio_fd,SNDCTL_DSP_GETFMTS,&caps);

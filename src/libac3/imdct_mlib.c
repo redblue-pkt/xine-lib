@@ -24,29 +24,28 @@
 
 #ifdef LIBAC3_MLIB
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <math.h>
-
+#include <inttypes.h>
 #include <mlib_types.h>
 #include <mlib_status.h>
 #include <mlib_signal.h>
 
+#include "ac3.h"
+#include "ac3_internal.h"
 
-extern float imdct_window[];
+extern sample_t imdct_window[];
 
 void
-imdct_do_512_mlib(float data[], float delay[])
+imdct_do_512_mlib(sample_t data[], sample_t delay[])
 {
-	float *buf_real;
-	float *buf_imag;
-	float *data_ptr;
-	float *delay_ptr;
-	float *window_ptr;
-	float tmp[256] __attribute__ ((__aligned__ (16)));
+	sample_t *buf_real;
+	sample_t *buf_imag;
+	sample_t *data_ptr;
+	sample_t *delay_ptr;
+	sample_t *window_ptr;
+	sample_t tmp[256] __attribute__ ((__aligned__ (16)));
 	int i;
 	
-	memcpy(tmp, data, 256 * sizeof(float));
+	memcpy(tmp, data, 256 * sizeof(sample_t));
 	if(mlib_SignalIMDCT_F32(tmp) != MLIB_SUCCESS) {
 	  fprintf(stderr, "mediaLib failure\n");
 	  exit(-1);
@@ -88,17 +87,17 @@ imdct_do_512_mlib(float data[], float delay[])
 }
 
 void
-imdct_do_256_mlib(float data[], float delay[])
+imdct_do_256_mlib(sample_t data[], sample_t delay[])
 {
-	float *buf1_real, *buf1_imag;
-	float *buf2_real, *buf2_imag;
-	float *data_ptr;
-	float *delay_ptr;
-	float *window_ptr;
-	float tmp[256] __attribute__ ((__aligned__ (16)));
+	sample_t *buf1_real, *buf1_imag;
+	sample_t *buf2_real, *buf2_imag;
+	sample_t *data_ptr;
+	sample_t *delay_ptr;
+	sample_t *window_ptr;
+	sample_t tmp[256] __attribute__ ((__aligned__ (16)));
 	int i;
 	
-	memcpy(tmp, data, 256 * sizeof(float));
+	memcpy(tmp, data, 256 * sizeof(sample_t));
 	if(mlib_SignalIMDCT_F32(tmp) != MLIB_SUCCESS) {
 	  fprintf(stderr, "mediaLib failure\n");
 	  exit(-1);

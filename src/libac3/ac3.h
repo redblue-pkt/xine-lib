@@ -22,24 +22,28 @@
  *
  */
 
+typedef float sample_t;
+
 typedef struct ac3_ba_s {
-    uint16_t fsnroffst;	// fine SNR offset
-    uint16_t fgaincod;	// fast gain
-    uint16_t deltbae;	// delta bit allocation exists
-    int8_t deltba[50];	// per-band delta bit allocation
+    uint16_t fsnroffst;		// fine SNR offset
+    uint16_t fgaincod;		// fast gain
+    uint16_t deltbae;		// delta bit allocation exists
+    int8_t deltba[50];		// per-band delta bit allocation
 } ac3_ba_t;
 
 typedef struct ac3_state_s {
+    sample_t * delay;		// delay samples for imdct
+
     uint8_t fscod;		// sample rate
     uint8_t halfrate;		// halfrate factor
     uint8_t acmod;		// coded channels
-    float clev;			// centre channel mix level
-    float slev;			// surround channels mix level
+    sample_t clev;		// centre channel mix level
+    sample_t slev;		// surround channels mix level
     uint8_t lfeon;		// coded lfe channel
 
     int output;			// type of output
-    float level;		// output level
-    float bias;			// output bias
+    sample_t level;		// output level
+    sample_t bias;		// output bias
 
     uint16_t cplinu;		// coupling in use
     uint16_t chincpl[5];	// channel coupled
@@ -47,7 +51,7 @@ typedef struct ac3_state_s {
     uint16_t cplbndstrc[18];	// coupling band structure
     uint16_t cplstrtmant;	// coupling channel start mantissa
     uint16_t cplendmant;	// coupling channel end mantissa
-    float cplco[5][18];		// coupling coordinates
+    sample_t cplco[5][18];	// coupling coordinates
 
     // derived information
     uint16_t cplstrtbnd;	// coupling start band (for bit allocation)
@@ -101,5 +105,5 @@ void ac3_init (void);
 int ac3_syncinfo (uint8_t * buf, int * flags,
 		  int * sample_rate, int * bit_rate);
 int ac3_frame (ac3_state_t * state, uint8_t * buf, int * flags,
-	       float * level, float bias);
-int ac3_block (ac3_state_t * state);
+	       sample_t * level, sample_t bias, sample_t * delay);
+int ac3_block (ac3_state_t * state, sample_t samples[][256]);

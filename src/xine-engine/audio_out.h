@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.h,v 1.7 2001/07/18 21:38:17 f1rmb Exp $
+ * $Id: audio_out.h,v 1.8 2001/07/20 22:37:56 guenter Exp $
  */
 #ifndef HAVE_AUDIO_OUT_H
 #define HAVE_AUDIO_OUT_H
@@ -132,17 +132,19 @@ struct ao_functions_s {
 #define AO_CAP_NOCAP            0x00000000 /* driver has no capabilities    */
 #define AO_CAP_MODE_AC3         0x00000001 /* driver supports AC3 output    */
 #define AO_CAP_MODE_AC5         0x00000002 /* driver supports AC5 output    */
-/* 1 sample ==  2 bytes */
+/* 1 sample ==  2 bytes (C)               */
 #define AO_CAP_MODE_MONO        0x00000004 /* driver supports mono output   */
- /* 1 sample ==  4 bytes */
+/* 1 sample ==  4 bytes (L,R)             */
 #define AO_CAP_MODE_STEREO      0x00000008 /* driver supports stereo output */
- /* 1 sample ==  8 bytes */
+/* 1 sample ==  8 bytes (L,R,LR,RR)       */
 #define AO_CAP_MODE_4CHANNEL    0x00000010 /* driver supports 4 channels    */
-/* 1 sample == 10 bytes */
+/* 1 sample == 10 bytes (L,R,LR,RR,C)     */
 #define AO_CAP_MODE_5CHANNEL    0x00000020 /* driver supports 5 channels    */
-#define AO_CAP_MIXER_VOL        0x00000040 /* driver supports mixer control */
-#define AO_CAP_PCM_VOL          0x00000080 /* driver supports pcm control   */
-#define AO_CAP_MUTE_VOL         0x00000100 /* driver can mute volume        */
+/* 1 sample == 12 bytes (L,R,LR,RR,C,LFE) */
+#define AO_CAP_MODE_5_1CHANNEL  0x00000040 /* driver supports 5.1 channels  */
+#define AO_CAP_MIXER_VOL        0x00000080 /* driver supports mixer control */
+#define AO_CAP_PCM_VOL          0x00000100 /* driver supports pcm control   */
+#define AO_CAP_MUTE_VOL         0x00000200 /* driver can mute volume        */
 
 /* properties supported by get/set_property() */
 #define AO_PROP_MIXER_VOL       0

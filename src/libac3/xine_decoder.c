@@ -17,13 +17,9 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.15 2001/07/17 15:22:20 jkeil Exp $
+ * $Id: xine_decoder.c,v 1.16 2001/07/20 22:37:56 guenter Exp $
  *
  * stuff needed to turn libac3 into a xine decoder plugin
- */
-
-/*
- * FIXME: libac3 uses global variables (that are written to)
  */
 
 
@@ -42,9 +38,7 @@
 
 #define FRAME_SIZE 4096
 
-stream_samples_t samples;	
-
-/* int ac3file; */
+int ac3file; 
 
 typedef struct ac3dec_decoder_s {
   audio_decoder_t  audio_decoder;
@@ -63,11 +57,14 @@ typedef struct ac3dec_decoder_s {
   int              ac3_bit_rate;
   int              ac3_sample_rate;
   float            ac3_level;
+  int              have_lfe;
 
   int              ac3_flags_map[8];
   int              ao_flags_map[8];
 
-  int16_t          samples [6 * 256];
+  int16_t          int_samples [6 * 256];
+  sample_t         delay[6*256];
+  sample_t         samples[6][256];
 
   ao_functions_t  *audio_out;
   int              audio_caps;
@@ -125,7 +122,14 @@ void ac3dec_init (audio_decoder_t *this_gen, ao_functions_t *audio_out) {
     this->ao_flags_map[AC3_3F2R]    = AO_CAP_MODE_STEREO;
 
     /* find best mode */
-    if (this->audio_caps & AO_CAP_MODE_5CHANNEL) {
+    if (this->audio_caps & AO_CAP_MODE_5_1CHANNEL) {
+
+      this->ac3_flags_map[AC3_2F2R]   = AC3_2F2R;
+      this->ac3_flags_map[AC3_3F2R]   = AC3_3F2R | AC3_LFE;
+      this->ao_flags_map[AC3_2F2R]    = AO_CAP_MODE_4CHANNEL;
+      this->ao_flags_map[AC3_3F2R]    = AO_CAP_MODE_5CHANNEL;
+
+    } else if (this->audio_caps & AO_CAP_MODE_5CHANNEL) {
 
       this->ac3_flags_map[AC3_2F2R]   = AC3_2F2R;
       this->ac3_flags_map[AC3_3F2R]   = AC3_3F2R;
@@ -167,7 +171,7 @@ void ac3dec_init (audio_decoder_t *this_gen, ao_functions_t *audio_out) {
   for (i = 0; i<8; i++)
     this->ac3_flags_map[i] |= AC3_ADJUST_LEVEL;
 */
-  /* ac3file = open ("test.ac3", O_CREAT); */
+  ac3file = open ("test.ac3", O_CREAT | O_WRONLY | O_TRUNC, 0644); 
 
 }
 
@@ -214,12 +218,16 @@ static void ac3dec_decode_frame (ac3dec_decoder_t *this, uint32_t pts) {
     if (ac3_frame (&this->ac3_state, 
 		   this->frame_buffer, 
 		   &ac3_output_flags,
-		   &level, 384)) {
+		   &level, 384, this->delay)) {
       printf ("libac3: ac3_frame error\n");
       return;
     }
     
-    output_mode = this->ao_flags_map[ac3_output_flags];
+    this->have_lfe = ac3_output_flags & AC3_LFE;
+    if (this->have_lfe)
+      output_mode = AO_CAP_MODE_5_1CHANNEL;
+    else
+      output_mode = this->ao_flags_map[ac3_output_flags];
     
     /*
      * (re-)open output device
@@ -250,31 +258,39 @@ static void ac3dec_decode_frame (ac3dec_decoder_t *this, uint32_t pts) {
      */
 
     for (i = 0; i < 6; i++) {
-      if (ac3_block (&this->ac3_state)) {
+      if (ac3_block (&this->ac3_state, this->samples)) {
 	printf ("libac3: ac3_block error\n");
-	return;
+	return; 
       }
       
       switch (output_mode) {
       case AO_CAP_MODE_MONO:
-	float_to_int (*samples, this->samples, 1);
+	float_to_int (this->samples[0], this->int_samples, 1);
 	break;
       case AO_CAP_MODE_STEREO:
-	float_to_int (samples[0], this->samples, 2);
-	float_to_int (samples[1], this->samples+1, 2);
+	float_to_int (this->samples[0], this->int_samples, 2);
+	float_to_int (this->samples[1], this->int_samples+1, 2);
 	break;
       case AO_CAP_MODE_4CHANNEL:
-	float_to_int (samples[0], this->samples,   4);
-	float_to_int (samples[1], this->samples+1, 4);
-	float_to_int (samples[2], this->samples+2, 4);
-	float_to_int (samples[3], this->samples+3, 4);
+	float_to_int (this->samples[0], this->int_samples,   4);
+	float_to_int (this->samples[1], this->int_samples+1, 4);
+	float_to_int (this->samples[2], this->int_samples+2, 4);
+	float_to_int (this->samples[3], this->int_samples+3, 4);
 	break;
       case AO_CAP_MODE_5CHANNEL:
-	float_to_int (samples[0], this->samples,   5);
-	float_to_int (samples[1], this->samples+1, 5);
-	float_to_int (samples[2], this->samples+2, 5);
-	float_to_int (samples[3], this->samples+3, 5);
-	float_to_int (samples[4], this->samples+4, 5);
+	float_to_int (this->samples[0], this->int_samples,   5);
+	float_to_int (this->samples[1], this->int_samples+1, 5);
+	float_to_int (this->samples[2], this->int_samples+2, 5);
+	float_to_int (this->samples[3], this->int_samples+3, 5);
+	float_to_int (this->samples[4], this->int_samples+4, 5);
+	break;
+      case AO_CAP_MODE_5_1CHANNEL:
+	float_to_int (this->samples[0], this->int_samples,   6);
+	float_to_int (this->samples[1], this->int_samples+1, 6);
+	float_to_int (this->samples[2], this->int_samples+2, 6);
+	float_to_int (this->samples[3], this->int_samples+3, 6);
+	float_to_int (this->samples[4], this->int_samples+4, 6);
+	float_to_int (this->samples[5], this->int_samples+5, 6);
 	break;
       default:
 	printf ("libac3: help - unsupported mode %08x\n", output_mode);
@@ -283,7 +299,7 @@ static void ac3dec_decode_frame (ac3dec_decoder_t *this, uint32_t pts) {
       /*  output decoded samples */
       
       this->audio_out->write_audio_data (this->audio_out,
-					 this->samples,
+					 this->int_samples,
 					 256,
 					 pts);
       pts = 0;
@@ -341,6 +357,7 @@ void ac3dec_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 
     if ( (this->sync_todo == 0) && (this->frame_todo == 0) ) {
       ac3dec_decode_frame (this, this->pts);
+      write (ac3file, this->frame_buffer, this->frame_length);
       this->pts = 0;
       this->sync_todo = 7;
       this->syncword  = 0;
@@ -374,7 +391,13 @@ void ac3dec_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 					       &this->ac3_flags,
 					       &this->ac3_sample_rate,
 					       &this->ac3_bit_rate);
-	    this->frame_todo = this->frame_length - 7;
+	    if (this->frame_length) {
+	      this->frame_todo = this->frame_length - 7;
+	    } else {
+	      this->sync_todo = 7;
+	      this->syncword  = 0;
+	      printf ("libac3: skip frame of zero length\n");
+	    }
 
 	  }
 
@@ -406,7 +429,7 @@ void ac3dec_close (audio_decoder_t *this_gen) {
 
   this->output_open = 0;
 
-  /* close (ac3file); */
+  close (ac3file); 
 }
 
 static char *ac3dec_get_id(void) {
