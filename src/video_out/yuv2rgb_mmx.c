@@ -284,6 +284,43 @@ static inline void mmx_unpack_32rgb (uint8_t * image, int cpu)
     movntq (mm4, *(image+24));
 }
 
+static inline void mmx_unpack_32bgr (uint8_t * image, int cpu)
+{
+    /*
+     * convert RGB plane to RGB packed format,
+     * mm0 -> B, mm1 -> R, mm2 -> G, mm3 -> 0,
+     * mm4 -> GB, mm5 -> AR pixel 4-7,
+     * mm6 -> GB, mm7 -> AR pixel 0-3
+     */
+
+    pxor_r2r (mm3, mm3);
+    movq_r2r (mm1, mm6);
+
+    punpcklbw_r2r (mm2, mm6);
+    movq_r2r (mm0, mm7);
+
+    punpcklbw_r2r (mm3, mm7);
+    movq_r2r (mm1, mm4);
+
+    punpcklwd_r2r (mm7, mm6);
+    movq_r2r (mm0, mm5);
+
+    /* scheduling: this is hopeless */
+    movntq (mm6, *image);
+    movq_r2r (mm0, mm6);
+    punpcklbw_r2r (mm2, mm6);
+    punpckhwd_r2r (mm7, mm6);
+    movntq (mm6, *(image+8));
+    punpckhbw_r2r (mm2, mm4);
+    punpckhbw_r2r (mm3, mm5);
+    punpcklwd_r2r (mm5, mm4);
+    movntq (mm4, *(image+16));
+    movq_r2r (mm0, mm4);
+    punpckhbw_r2r (mm2, mm4);
+    punpckhwd_r2r (mm5, mm4);
+    movntq (mm4, *(image+24));
+}
+
 static inline void mmx_unpack_24rgb (uint8_t * image, int cpu)
 {
     /*
@@ -772,6 +809,111 @@ static inline void yuv420_argb32 (yuv2rgb_t *this,
     }
 }
 
+static inline void yuv420_abgr32 (yuv2rgb_t *this,
+				  uint8_t * image, uint8_t * py,
+				  uint8_t * pu, uint8_t * pv, int cpu)
+{
+    int i;
+    int rgb_stride = this->rgb_stride;
+    int y_stride   = this->y_stride;
+    int uv_stride  = this->uv_stride;
+    int width      = this->source_width;
+    int height     = this->source_height;
+    uint8_t *img;
+
+    /* rgb_stride -= 4 * this->dest_width; */
+    width >>= 3;
+
+    if (!this->do_scale) {
+      y_stride -= 8 * width;
+      uv_stride -= 4 * width;
+
+      do {
+	i = width; img = image;
+	do {
+	  mmx_yuv2rgb (py, pu, pv);
+	  mmx_unpack_32bgr (img, cpu);
+	  py += 8;
+	  pu += 4;
+	  pv += 4;
+	  img += 32;
+	} while (--i);
+
+	py += y_stride;
+	image += rgb_stride;
+	if (height & 1) {
+	  pu += uv_stride;
+	  pv += uv_stride;
+	} else {
+	  pu -= 4 * width;
+	  pv -= 4 * width;
+	}
+      } while (--height);
+    } else {
+      uint8_t *y_buf, *u_buf, *v_buf;
+      int      dy = 0;
+
+      scale_line (pu, this->u_buffer,
+		  this->dest_width >> 1, this->step_dx);
+      scale_line (pv, this->v_buffer,
+		  this->dest_width >> 1, this->step_dx);
+      scale_line (py, this->y_buffer, 
+		  this->dest_width, this->step_dx);
+
+      for (;;) {
+
+	y_buf = this->y_buffer;
+	u_buf = this->u_buffer;
+	v_buf = this->v_buffer;
+
+
+	i = this->dest_width >> 3; img=image;
+	do {
+	  /* printf ("i : %d\n",i); */
+
+	  mmx_yuv2rgb (y_buf, u_buf, v_buf); 
+	  mmx_unpack_32bgr (img, cpu); 
+	  y_buf += 8;
+	  u_buf += 4;
+	  v_buf += 4;
+	  img += 32;
+	} while (--i);
+	
+	dy += this->step_dy;
+	image += rgb_stride;
+
+	while (dy < 32768) {
+
+	  memcpy (image, image-rgb_stride, this->dest_width*4); 
+
+	  dy += this->step_dy;
+	  image += rgb_stride;
+	}
+
+	if (--height <= 0)
+	  break;
+
+	dy -= 32768;
+	py += y_stride;
+	
+	scale_line (py, this->y_buffer, 
+		    this->dest_width, this->step_dx);
+
+	if (!(height & 1)) {
+	  pu += uv_stride;
+	  pv += uv_stride;
+	  
+	  scale_line (pu, this->u_buffer,
+		      this->dest_width >> 1, this->step_dx);
+	  scale_line (pv, this->v_buffer,
+		      this->dest_width >> 1, this->step_dx);
+	}
+
+      }
+      
+    }
+}
+
 static void mmxext_rgb15 (yuv2rgb_t *this, uint8_t * image,
 			  uint8_t * py, uint8_t * pu, uint8_t * pv)
 {
@@ -797,6 +939,13 @@ static void mmxext_argb32 (yuv2rgb_t *this, uint8_t * image,
 			   uint8_t * py, uint8_t * pu, uint8_t * pv)
 {
     yuv420_argb32 (this, image, py, pu, pv, CPU_MMXEXT);
+    emms();	/* re-initialize x86 FPU after MMX use */
+}
+
+static void mmxext_abgr32 (yuv2rgb_t *this, uint8_t * image,
+			   uint8_t * py, uint8_t * pu, uint8_t * pv)
+{
+    yuv420_abgr32 (this, image, py, pu, pv, CPU_MMXEXT);
     emms();	/* re-initialize x86 FPU after MMX use */
 }
 
@@ -828,6 +977,13 @@ static void mmx_argb32 (yuv2rgb_t *this, uint8_t * image,
     emms();	/* re-initialize x86 FPU after MMX use */
 }
 
+static void mmx_abgr32 (yuv2rgb_t *this, uint8_t * image,
+			uint8_t * py, uint8_t * pu, uint8_t * pv)
+{
+    yuv420_abgr32 (this, image, py, pu, pv, CPU_MMX);
+    emms();	/* re-initialize x86 FPU after MMX use */
+}
+
 void yuv2rgb_init_mmxext (yuv2rgb_t *this, int mode)
 {
   switch (mode) {
@@ -842,6 +998,9 @@ void yuv2rgb_init_mmxext (yuv2rgb_t *this, int mode)
     break;
   case MODE_32_RGB:
     this->yuv2rgb_fun = mmxext_argb32;
+    break;
+  case MODE_32_BGR:
+    this->yuv2rgb_fun = mmxext_abgr32;
     break;
   }
 }
@@ -860,6 +1019,9 @@ void yuv2rgb_init_mmx (yuv2rgb_t *this, int mode)
     break;
   case MODE_32_RGB:
     this->yuv2rgb_fun = mmx_argb32;
+    break;
+  case MODE_32_BGR:
+    this->yuv2rgb_fun = mmx_abgr32;
     break;
   }
 }
