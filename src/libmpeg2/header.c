@@ -177,6 +177,7 @@ static int sequence_extension (picture_t * picture, uint8_t * buffer)
 	picture->coded_picture_height =
 	    (picture->coded_picture_height + 31) & ~31;
     
+    
     /* printf ("libmpeg2: low_delay : %d\n", picture->low_delay); */
 
 /*
@@ -184,6 +185,9 @@ static int sequence_extension (picture_t * picture, uint8_t * buffer)
 	    buffer[5], buffer[5] % 0x80);
  */
 
+    picture->frame_rate_ext_n = buffer[5] & 0x31;
+    picture->frame_rate_ext_d = (buffer[5] >> 2) & 0x03;
+    
     /* MPEG1 - for testing only */
     picture->mpeg1 = 0;
 

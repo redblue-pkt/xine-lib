@@ -167,6 +167,9 @@ typedef struct picture_s {
     uint32_t broken_link;
 
     int bitrate;
+    int frame_rate_ext_n;
+    int frame_rate_ext_d;
+
 } picture_t;
 
 typedef struct cpu_state_s {

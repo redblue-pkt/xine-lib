@@ -120,6 +120,10 @@ static inline void get_frame_duration (mpeg2dec_t * mpeg2dec, vo_frame_t *frame)
     frame->duration      = 0;
   }
   
+  frame->duration = frame->duration *
+    ((mpeg2dec->picture->frame_rate_ext_n + 1) /
+     (mpeg2dec->picture->frame_rate_ext_d + 1));
+ 
   /* this should be used to detect any special rff pattern */
   mpeg2dec->rff_pattern = mpeg2dec->rff_pattern << 1;
   mpeg2dec->rff_pattern |= !!frame->repeat_first_field;
