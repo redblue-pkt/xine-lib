@@ -198,10 +198,17 @@ static uint32_t arch_accel (void)
   }
 
   canjump = 1;
+#ifndef HOST_OS_DARWIN
   __asm__ volatile ("mtspr 256, %0\n\t"
                     "vand %%v0, %%v0, %%v0"
                     :
                     : "r" (-1));
+#else
+  __asm__ volatile ("mtspr 256, r0\n\t"
+                    "vand v0, v0, v0"
+                    :
+                    : "r" (-1));
+#endif
 
   signal (SIGILL, SIG_DFL);
   return flags|MM_ACCEL_PPC_ALTIVEC;
