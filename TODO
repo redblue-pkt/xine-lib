@@ -8,17 +8,16 @@ required for 1.0
 - make sure all decoder config options get always registered
 - use report_codec function again so uis can display error messages if
   codecs are missing
-- fix rate estimation in demux_mpeg/demux_mpeg_block (guenter)
-- fix streaming of small files (e.g. http) (guenter)
-- implement timeout in input_http, implement it correctly using select()
-  (guenter)
+- fix rate estimation in demux_mpeg/demux_mpeg_block 
 - sputext decoder plugin (zoltan & michael)
-- input_dvd: detect errors, display useful error messages (guenter)
-- fix documentation
+- input_dvd: detect errors, display useful error messages
+- fix/update documentation
 
 optional
 --------
 
+- fix streaming of small files (e.g. http) 
+- implement timeout in input_http, implement it correctly using select()
 - audio CD input plugin (a cdparanoia based one would be goom compatible ;-)
 - input_rtp
 - rtsp support
