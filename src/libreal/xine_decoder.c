@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.41 2003/07/11 18:42:40 hadess Exp $
+ * $Id: xine_decoder.c,v 1.42 2003/07/16 20:28:03 jstembridge Exp $
  *
  * thin layer to use real binary-only codecs in xine
  *
@@ -76,7 +76,8 @@ typedef struct realdec_decoder_s {
   int              chunk_buffer_max;
 
   int              num_chunks;
-  uint32_t         chunk_tab[CHUNK_TAB_SIZE];
+  uint32_t        *chunk_tab;
+  int              chunk_tab_max;
 
   uint8_t          chunk_id;
   
@@ -291,6 +292,9 @@ static int init_codec (realdec_decoder_t *this, buf_element_t *buf) {
   
   this->chunk_buffer = xine_xmalloc (BUF_SIZE);
   this->chunk_buffer_max = BUF_SIZE;
+  
+  this->chunk_tab = (uint32_t *) xine_xmalloc(CHUNK_TAB_SIZE * sizeof(uint32_t));
+  this->chunk_tab_max = CHUNK_TAB_SIZE;
 
   return 1;
 }
@@ -480,6 +484,12 @@ static void realdec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) 
 
 	memcpy (this->chunk_buffer+this->chunk_buffer_size, buf->content, buf->size);
 
+	if(2*this->num_chunks+1 >= this->chunk_tab_max) {
+	  this->chunk_tab_max += CHUNK_TAB_SIZE;
+	  this->chunk_tab = realloc (this->chunk_tab, 
+				     this->chunk_tab_max * sizeof(uint32_t));
+	}
+
 	this->chunk_tab[2*this->num_chunks]    = 1;
 	this->chunk_tab[2*this->num_chunks+1]  = this->chunk_buffer_size; 
 	this->num_chunks++;
@@ -542,6 +552,9 @@ static void realdec_dispose (video_decoder_t *this_gen) {
     
   if (this->chunk_buffer)
     free (this->chunk_buffer);
+    
+  if (this->chunk_tab)
+    free (this->chunk_tab);
 
   free (this);
 
