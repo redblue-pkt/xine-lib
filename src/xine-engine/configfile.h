@@ -17,13 +17,10 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: configfile.h,v 1.20 2003/04/20 21:13:22 guenter Exp $
+ * $Id: configfile.h,v 1.21 2003/04/25 15:34:45 mroi Exp $
  *
  * config file management
  *
- */
-/* For the _MSC_VER (Win32) port the "this" variable
- * was removed from all prototypes.and changed to "cfg"
  */
 
 #ifndef HAVE_CONFIGFILE_H
@@ -102,7 +99,7 @@ struct config_values_s {
    * from the config file otherwise
    */
 
-  char* (*register_string) (config_values_t *,
+  char* (*register_string) (config_values_t *self,
 			    const char *key,
 			    const char *def_value,
 			    const char *description,
@@ -111,7 +108,7 @@ struct config_values_s {
 			    xine_config_cb_t changed_cb,
 			    void *cb_data);
 
-  int (*register_range) (config_values_t *,
+  int (*register_range) (config_values_t *self,
 			 const char *key,
 			 int def_value,
 			 int min, int max,
@@ -121,7 +118,7 @@ struct config_values_s {
 			 xine_config_cb_t changed_cb,
 			 void *cb_data);
 
-  int (*register_enum) (config_values_t *,
+  int (*register_enum) (config_values_t *self,
 			const char *key,
 			int def_value,
 			char **values,
@@ -131,7 +128,7 @@ struct config_values_s {
 			xine_config_cb_t changed_cb,
 			void *cb_data);
 
-  int (*register_num) (config_values_t *,
+  int (*register_num) (config_values_t *self,
 		       const char *key,
 		       int def_value,
 		       const char *description,
@@ -140,7 +137,7 @@ struct config_values_s {
 		       xine_config_cb_t changed_cb,
 		       void *cb_data);
 
-  int (*register_bool) (config_values_t *,
+  int (*register_bool) (config_values_t *self,
 			const char *key,
 			int def_value,
 			const char *description,
@@ -150,10 +147,10 @@ struct config_values_s {
 			void *cb_data);
 
   /* convenience function to update range, enum, num and bool values */
-  void (*update_num) (config_values_t *, const char *key, int value);
+  void (*update_num) (config_values_t *self, const char *key, int value);
 
   /* convenience function to update string values */
-  void (*update_string) (config_values_t *, const char *key, const char *value);
+  void (*update_string) (config_values_t *self, const char *key, const char *value);
 
   /* small utility function for enum handling */
   int (*parse_enum) (const char *str, char **values);
@@ -165,17 +162,17 @@ struct config_values_s {
    * and you changed the value of this item
    */
 
-  cfg_entry_t* (*lookup_entry) (config_values_t *, const char *key);
+  cfg_entry_t* (*lookup_entry) (config_values_t *self, const char *key);
 
   /*
    * unregister callback function
    */
-  void (*unregister_callback) (config_values_t *, const char *key);
+  void (*unregister_callback) (config_values_t *self, const char *key);
 
   /*
    * dispose of all config entries in memory
    */
-  void (*dispose) (config_values_t *);
+  void (*dispose) (config_values_t *self);
 
   /*
    * config values are stored here:

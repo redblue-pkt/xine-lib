@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.78 2003/04/23 00:28:04 tchamp Exp $
+ * $Id: xine.h.in,v 1.79 2003/04/25 15:34:44 mroi Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -143,6 +143,7 @@ void xine_close_video_driver (xine_t *self, xine_video_port_t  *driver);
 #define XINE_VISUAL_TYPE_DFB               5
 #define XINE_VISUAL_TYPE_PM                6 /* used by the OS/2 port */
 #define XINE_VISUAL_TYPE_DIRECTX           7 /* used by the win32/msvc port */
+
 /*
  * free all resources, close all plugins, close engine.
  * self pointer is no longer valid after this call.
