@@ -24,7 +24,7 @@
  * formats can be found here:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: adpcm.c,v 1.9 2002/07/15 03:48:03 tmmm Exp $
+ * $Id: adpcm.c,v 1.10 2002/08/05 00:20:35 tmmm Exp $
  */
 
 #include <stdio.h>
@@ -437,7 +437,6 @@ static void ms_ima_adpcm_decode_block(adpcm_decoder_t *this,
   int channel_index_r;
 
   int i, j;
-  unsigned int out_ptr = 0;
   audio_buffer_t *audio_buffer;
   int bytes_to_send;
 
@@ -451,10 +450,8 @@ static void ms_ima_adpcm_decode_block(adpcm_decoder_t *this,
   /* iterate through each block in the in buffer */
   for (i = 0; i < this->size; i += this->in_block_size) {
 
-    out_ptr = 0;
-
     /* initialize algorithm for this block */
-    predictor_l = LE_16(&this->buf[i + 0]);
+    predictor_l = LE_16(&this->buf[i]);
     SE_16BIT(predictor_l);
     index_l = this->buf[i + 2];
     if (this->channels == 2) {
@@ -507,18 +504,18 @@ static void ms_ima_adpcm_decode_block(adpcm_decoder_t *this,
 
     /* dispatch the decoded audio */
     j = 0;
-    while (j < out_ptr) {
+    while (j < this->out_block_size) {
       audio_buffer = this->audio_out->get_buffer (this->audio_out);
       if (audio_buffer->mem_size == 0) {
         printf ("adpcm: Help! Allocated audio buffer with nothing in it!\n");
         return;
       }
 
-      /* out_ptr and j are sample counts, mem_size is a byte count */
-      if (((out_ptr - j) * 2) > audio_buffer->mem_size)
+      /* out_block_size and j are sample counts, mem_size is a byte count */
+      if (((this->out_block_size - j) * 2) > audio_buffer->mem_size)
         bytes_to_send = audio_buffer->mem_size;
       else
-        bytes_to_send = (out_ptr - j) * 2;
+        bytes_to_send = (this->out_block_size - j) * 2;
 
       xine_fast_memcpy(audio_buffer->mem, &this->decode_buffer[j],
         bytes_to_send);
@@ -790,6 +787,74 @@ static void ms_adpcm_decode_block(adpcm_decoder_t *this, buf_element_t *buf) {
   this->size = 0;
 }
 
+static void smjpeg_adpcm_decode_block(adpcm_decoder_t *this, buf_element_t *buf) {
+
+  unsigned int block_size;
+  int predictor = 0;
+  int index = 0;
+
+  int i;
+  unsigned int out_ptr = 0;
+  audio_buffer_t *audio_buffer;
+  int bytes_to_send;
+
+  /* fetch the size for this block and check if the decode buffer needs
+   * to increase */
+  block_size = buf->size - 4;  /* compensate for preamble */
+  block_size *= 2;  /* 2 samples / byte */
+  if (block_size > this->out_block_size) {
+    this->out_block_size = block_size;
+    this->decode_buffer = xine_xmalloc(this->out_block_size * 2);
+  }
+
+  out_ptr = 0;
+  predictor = BE_16(&this->buf[0]);
+  index = this->buf[2];
+
+  /* break apart the ADPCM nibbles (iterate through each byte in block) */
+  for (i = 0; i < block_size / 2; i++) {
+    this->decode_buffer[out_ptr++] = this->buf[i + 4] & 0x0F;
+    this->decode_buffer[out_ptr++] = this->buf[i + 4] >> 4;
+  }
+
+  /* process the nibbles */
+  decode_ima_nibbles(this->decode_buffer,
+    out_ptr,
+    1,
+    predictor, index,
+    0, 0);
+
+  /* dispatch the decoded audio */
+  i = 0;
+  while (i < out_ptr) {
+    audio_buffer = this->audio_out->get_buffer (this->audio_out);
+    if (audio_buffer->mem_size == 0) {
+      printf ("adpcm: Help! Allocated audio buffer with nothing in it!\n");
+      return;
+    }
+
+    /* out_ptr and i are sample counts, mem_size is a byte count */
+    if (((out_ptr - i) * 2) > audio_buffer->mem_size)
+      bytes_to_send = audio_buffer->mem_size;
+    else
+      bytes_to_send = (out_ptr - i) * 2;
+
+    xine_fast_memcpy(audio_buffer->mem, &this->decode_buffer[i],
+      bytes_to_send);
+    /* byte count / 2 (bytes / sample) / channels */
+    audio_buffer->num_frames = bytes_to_send / 2 / this->channels;
+
+    audio_buffer->vpts = buf->pts;
+    buf->pts = 0;  /* only first buffer gets the real pts */
+    this->audio_out->put_buffer (this->audio_out, audio_buffer);
+
+    i += bytes_to_send / 2;  /* 2 bytes per sample */
+  }
+
+  /* reset buffer */
+  this->size = 0;
+}
+
 static int adpcm_can_handle (audio_decoder_t *this_gen, int buf_type) {
   buf_type &= 0xFFFF0000;
 
@@ -797,7 +862,8 @@ static int adpcm_can_handle (audio_decoder_t *this_gen, int buf_type) {
            buf_type == BUF_AUDIO_MSIMAADPCM ||
            buf_type == BUF_AUDIO_QTIMAADPCM ||
            buf_type == BUF_AUDIO_DK3ADPCM ||
-           buf_type == BUF_AUDIO_DK4ADPCM );
+           buf_type == BUF_AUDIO_DK4ADPCM ||
+           buf_type == BUF_AUDIO_SMJPEG_IMA );
 }
 
 static void adpcm_reset (audio_decoder_t *this_gen) {
@@ -875,6 +941,13 @@ static void adpcm_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
       this->decode_buffer = xine_xmalloc(this->out_block_size * 2);
     }
 
+    /* the decoder will not know the size of the output buffer until
+     * an audio packet comes through */
+    if (buf->type == BUF_AUDIO_SMJPEG_IMA) {
+      this->in_block_size = this->out_block_size = 0;
+      this->decode_buffer = NULL;
+    }
+
     return;
   }
 
@@ -902,7 +975,6 @@ static void adpcm_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 
   /* time to decode a frame */
   if (buf->decoder_flags & BUF_FLAG_FRAME_END)  {
-//printf ("received buffer with %d bytes and pts %lld\n", this->size, buf->pts);
 
     switch(buf->type) {
 
@@ -926,6 +998,9 @@ static void adpcm_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
         dk4_adpcm_decode_block(this, buf);
         break;
 
+      case BUF_AUDIO_SMJPEG_IMA:
+        smjpeg_adpcm_decode_block(this, buf);
+        break;
     }
   }
 }
@@ -971,7 +1046,7 @@ audio_decoder_t *init_audio_decoder_plugin (int iface_version, xine_t *xine) {
   this->audio_decoder.close               = adpcm_close;
   this->audio_decoder.get_identifier      = adpcm_get_id;
   this->audio_decoder.dispose             = adpcm_dispose;
-  this->audio_decoder.priority            = 1;
+  this->audio_decoder.priority            = 9;
 
   return (audio_decoder_t *) this;
 }
