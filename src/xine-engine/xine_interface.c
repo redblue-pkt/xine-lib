@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_interface.c,v 1.50 2003/04/06 23:58:18 miguelfreitas Exp $
+ * $Id: xine_interface.c,v 1.51 2003/04/08 18:10:47 miguelfreitas Exp $
  *
  * convenience/abstraction layer, functions to implement
  * libxine's public interface
@@ -721,7 +721,8 @@ int xine_message(xine_stream_t *stream, int type, ...) {
     "Connection refused:",
     "File not found:",
     "Read error from:",
-    "Error loading library:"
+    "Error loading library:",
+    "Encrypted media stream detected",
   };
 
   if( type >= 0 && type <= sizeof(std_explanation)/

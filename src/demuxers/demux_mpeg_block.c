@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.168 2003/04/08 14:24:27 hadess Exp $
+ * $Id: demux_mpeg_block.c,v 1.169 2003/04/08 18:10:45 miguelfreitas Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -454,7 +454,7 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
         xine_log (this->stream->xine, XINE_LOG_MSG,
 		_("demux_mpeg_block: too many errors, stopping playback. Maybe this stream is scrambled?\n"));
         this->status = DEMUX_FINISHED;
-        xine_message(this->stream, XINE_MSG_ENCRYPTED_SOURCE, "Encrypted media stream.\nPlayback aborted.\nMaybe libdvdcss is missing.", NULL);
+        xine_message(this->stream, XINE_MSG_ENCRYPTED_SOURCE, "Playback aborted", NULL);
       }
 
     }
