@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.33 2001/11/19 18:58:04 miguelfreitas Exp $
+ * $Id: audio_out.c,v 1.34 2001/11/19 19:10:41 miguelfreitas Exp $
  * 
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -342,8 +342,7 @@ static void *ao_loop (void *this_gen) {
      * output audio data synced to master clock
      */
   
-    if (gap < (-1 * this->gap_tolerance) || !this->audio_loop_running
-        || !buf->num_frames) {
+    if (gap < (-1 * this->gap_tolerance) || !buf->num_frames) {
 
       /* drop package */
 
