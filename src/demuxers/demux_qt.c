@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.104 2002/10/27 15:51:53 tmmm Exp $
+ * $Id: demux_qt.c,v 1.105 2002/10/27 17:28:24 tmmm Exp $
  *
  */
 
@@ -1909,7 +1909,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
     return NULL;
   }
 
-  if (! (input->get_capabilities(input) & INPUT_CAP_BLOCK)) {
+  if ((input->get_capabilities(input) & INPUT_CAP_BLOCK)) {
     printf(_("demux_qt.c: input is block organized, can not handle!\n"));
     return NULL;
   }
