@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_avi.c,v 1.189 2004/02/01 06:06:05 tmmm Exp $
+ * $Id: demux_avi.c,v 1.190 2004/02/01 15:34:59 tmmm Exp $
  *
  * demultiplexer for avi streams
  *
@@ -1847,6 +1847,12 @@ static void demux_avi_send_headers (demux_plugin_t *this_gen) {
   for(i=0; i < this->avi->n_audio; i++) {
     this->avi->audio[i]->audio_type = _x_formattag_to_buf_audio (this->avi->audio[i]->wavex->wFormatTag);
 
+    /* special case time: An AVI file encoded with Xan video will have Xan
+     * DPCM audio marked as PCM; hack around this */
+    if (_x_fourcc_to_buf_video(this->avi->bih->biCompression) == 
+      BUF_VIDEO_XXAN)
+        this->avi->audio[i]->audio_type = BUF_AUDIO_XAN_DPCM;
+
     if( !this->avi->audio[i]->audio_type ) {
       xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "unknown audio type 0x%x\n",
 	       this->avi->audio[i]->wavex->wFormatTag);
@@ -1856,11 +1862,6 @@ static void demux_avi_send_headers (demux_plugin_t *this_gen) {
       xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "demux_avi: audio type %s (wFormatTag 0x%x)\n",
                _x_buf_audio_name(this->avi->audio[i]->audio_type),
                (int)this->avi->audio[i]->wavex->wFormatTag);
-
-    /* special case time: An AVI file encoded with Xan video will have Xan
-     * DPCM audio marked as PCM; hack around this */
-    if (this->avi->video_type == BUF_VIDEO_XXAN)
-        this->avi->audio[i]->audio_type = BUF_AUDIO_XAN_DPCM;
   }
 
   _x_stream_info_set(this->stream, XINE_STREAM_INFO_HAS_VIDEO, 1);
