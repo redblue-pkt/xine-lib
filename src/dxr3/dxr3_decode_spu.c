@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decode_spu.c,v 1.18 2002/09/05 22:18:54 mroi Exp $
+ * $Id: dxr3_decode_spu.c,v 1.19 2002/09/18 15:42:10 mroi Exp $
  */
  
 /* dxr3 spu decoder plugin.
@@ -75,6 +75,7 @@ plugin_info_t xine_plugin_info[] = {
 static char   *dxr3_spudec_get_id(void);
 static void    dxr3_spudec_init(spu_decoder_t *this_gen, vo_instance_t *vo_out);
 static void    dxr3_spudec_decode_data(spu_decoder_t *this_gen, buf_element_t *buf);
+static int     dxr3_spudec_get_nav_pci(spu_decoder_t *this_gen, pci_t *pci);
 static void    dxr3_spudec_reset(spu_decoder_t *this_gen);
 static void    dxr3_spudec_close(spu_decoder_t *this_gen);
 static void    dxr3_spudec_dispose(spu_decoder_t *this_gen);
@@ -104,6 +105,7 @@ typedef struct dxr3_spudec_s {
   int                      menu;         /* are we in a menu? */
   int                      button_filter;
   pci_t                    pci;
+  pthread_mutex_t          pci_lock;
   uint32_t                 buttonN;      /* currently highlighted button */
   
   int                      aspect;       /* this is needed for correct highlight placement */
@@ -146,6 +148,7 @@ static void *dxr3_spudec_init_plugin(xine_t *xine, void* data)
   this->spu_decoder.get_identifier    = dxr3_spudec_get_id;
   this->spu_decoder.init              = dxr3_spudec_init;
   this->spu_decoder.decode_data       = dxr3_spudec_decode_data;
+  this->spu_decoder.get_nav_pci       = dxr3_spudec_get_nav_pci;
   this->spu_decoder.reset             = dxr3_spudec_reset;
   this->spu_decoder.close             = dxr3_spudec_close;
   this->spu_decoder.dispose           = dxr3_spudec_dispose;
@@ -161,6 +164,8 @@ static void *dxr3_spudec_init_plugin(xine_t *xine, void* data)
   this->buttonN                       = 1;
   
   this->aspect                        = XINE_VO_ASPECT_4_3;
+  
+  pthread_mutex_init(&this->pci_lock, NULL);
   
   xine_register_event_listener(xine, dxr3_spudec_event_listener, this);
     
@@ -233,10 +238,12 @@ static void dxr3_spudec_decode_data(spu_decoder_t *this_gen, buf_element_t *buf)
     return;
   }
   if(buf->type == BUF_SPU_NAV) {
+    uint8_t *p = buf->content;
+    
 #if LOG_BTN
     printf("dxr3_decode_spu: got NAV packet\n");
 #endif
-    uint8_t *p = buf->content;
+    pthread_mutex_lock(&this->pci_lock);
     
     /* just watch out for menus */
     if (p[3] == 0xbf && p[6] == 0x00) { /* Private stream 2 */
@@ -291,6 +298,7 @@ static void dxr3_spudec_decode_data(spu_decoder_t *this_gen, buf_element_t *buf)
 	pthread_mutex_unlock(&this->dxr3_vo->spu_device_lock);
       }
     }
+    pthread_mutex_unlock(&this->pci_lock);
     return;
   }
   
@@ -410,6 +418,16 @@ static void dxr3_spudec_decode_data(spu_decoder_t *this_gen, buf_element_t *buf)
   pthread_mutex_unlock(&this->dxr3_vo->spu_device_lock);
 }
 
+static int dxr3_spudec_get_nav_pci(spu_decoder_t *this_gen, pci_t *pci)
+{
+  dxr3_spudec_t *this = (dxr3_spudec_t *)this_gen;
+  
+  pthread_mutex_lock(&this->pci_lock);
+  memcpy(pci, &this->pci, sizeof(pci_t) );
+  pthread_mutex_unlock(&this->pci_lock);
+  return 1;
+}
+
 static void dxr3_spudec_reset(spu_decoder_t *this_gen)
 {
   dxr3_spudec_t *this = (dxr3_spudec_t *)this_gen;
@@ -437,6 +455,7 @@ static void dxr3_spudec_dispose(spu_decoder_t *this_gen)
   dxr3_spudec_t *this = (dxr3_spudec_t *)this_gen;
   
   xine_remove_event_listener(this->xine, dxr3_spudec_event_listener);
+  pthread_mutex_destroy(&this->pci_lock);
   free (this);
 }
 
@@ -473,6 +492,7 @@ static void dxr3_spudec_event_listener(void *this_gen, xine_event_t *event_gen)
 #if LOG_BTN
       printf("dxr3_decode_spu: got SPU_BUTTON\n");
 #endif
+      pthread_mutex_lock(&this->pci_lock);
       this->buttonN = but->buttonN;
       if ((but->show > 0) && !this->button_filter &&
           (dxr3_spudec_copy_nav_to_btn(this, but->show - 1, &btn) > 0)) {
@@ -482,6 +502,7 @@ static void dxr3_spudec_event_listener(void *this_gen, xine_event_t *event_gen)
             strerror(errno));
 	pthread_mutex_unlock(&this->dxr3_vo->spu_device_lock);
       }
+      pthread_mutex_unlock(&this->pci_lock);
       if (but->show == 2) this->button_filter = 1;
 #if LOG_BTN
       printf("dxr3_decode_spu: buttonN = %u\n",but->buttonN);
