@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_vo_encoder.c,v 1.9 2001/12/01 19:36:30 hrm Exp $
+ * $Id: dxr3_vo_encoder.c,v 1.10 2001/12/02 03:40:27 hrm Exp $
  *
  * mpeg1 encoding video out plugin for the dxr3.  
  *
@@ -125,6 +125,9 @@
 /* dxr3 vo globals 			*/
 #include "dxr3_video_out.h"
 
+/* mp1e should send the data from display_frame (1), not frame_copy (0).
+ * 0 is default since 1 doesn't work for mysterious reasons */
+#define MP1E_DISPLAY_FRAME 0
 
 static uint32_t dxr3_get_capabilities (vo_driver_t *this_gen)
 {
@@ -373,10 +376,17 @@ static void dxr3_update_frame_format (vo_driver_t *this_gen,
   }
 #endif
 #if USE_MP1E
-  if (! mp1e) {
+  if (*mp1e_cmd == 0) {
     int frame_rate_num, frame_rate_den;
-    char cmd[256], line[128];
+    char line[128];
 
+    if (format != IMGFMT_YV12) {
+      /* not supported yet; I need to fix the black bar stuff for YUYV
+         buffers first... can't use the internal yuyv->yuv420 translation
+         if sending data from display_frame... */
+      printf("dxr3enc: format not supported yet with mp1e encoder.\n");
+      exit(1);
+    }
     /* start guessing the framerate */
     fps = 90000.0/frame->vo_frame.duration;
     if (fabs(fps - 25) < 0.01) { /* PAL */
@@ -400,17 +410,18 @@ static void dxr3_update_frame_format (vo_driver_t *this_gen,
       printf("dxr3enc: trying to set mpeg output framerate to %d Hz\n",
              frame_rate_num);
     }
-    sprintf(line, "-s %dx%d -c raw:yuv420-%d-%d-%d-%d", width, oheight, 
+    sprintf(line, "-s %dx%d -c raw:%s-%d-%d-%d-%d", 
+	width, oheight, (format == IMGFMT_YV12 ? "yuv420" : "yuyv"),
 	width, oheight, frame_rate_num, frame_rate_den);
-    //sprintf(line, "-c raw:yuv420-%d-%d-%d-%d",  
-//	width, oheight, frame_rate_num, frame_rate_den);
-    sprintf(cmd, mp1e_command, line);
-    printf("dxr3enc: running command \"%s\"\n", cmd);
-    mp1e = popen(cmd, "w");	
-    if (! mp1e) {
-	printf("dxr3enc: could not start '%s'\n", cmd);
-	perror("dxr3enc:");
-	exit(1);
+    sprintf(mp1e_cmd, mp1e_command, line);
+    printf("dxr3enc: running command \"%s\"\n", mp1e_cmd);
+    /* we can call popen here or on first call to mp1e_yuv_write.
+       here seems to work better, no clue why */
+    mp1e = popen(mp1e_cmd, "w");
+    if (mp1e == 0) {	
+      printf("dxr3enc: could not start '%s'\n", mp1e_cmd);
+      perror("dxr3enc:");
+      exit(1);
     }
   }
 #endif
@@ -422,6 +433,40 @@ static void dxr3_update_frame_format (vo_driver_t *this_gen,
   frame->mpeg_size = 0;
 #endif
 }
+
+#if USE_MP1E
+static void mp1e_write_yuv(dxr3_frame_t *frame, dxr3_driver_t *this)
+{
+  int size, cnt;
+  static int writing = 0;
+ 
+  /* if we didn't already open mp1e, do so now 
+     (see comment in update_frame_format*/
+  if (mp1e == 0) {
+    printf("dxr3enc: running command \"%s\"\n", mp1e_cmd);
+    fflush(stdout);
+    mp1e = popen(mp1e_cmd, "w");
+  }
+  if (mp1e == 0) {	
+    printf("dxr3enc: could not start '%s'\n", mp1e_cmd);
+    perror("dxr3enc:");
+    exit(1);
+  }
+  size = frame->width*this->oheight;
+  if (writing) return;
+  writing = 1;
+  if (frame->vo_frame.format == IMGFMT_YV12) {
+    for ( cnt = 0 ; cnt < size ; ) 
+      cnt += fwrite(frame->real_base[0]+cnt, 1, size-cnt, mp1e);
+    for ( cnt = 0 ; cnt < size/4 ; ) 
+      cnt += fwrite(frame->real_base[1]+cnt, 1, size/4-cnt, mp1e);
+    for ( cnt = 0 ; cnt < size/4 ; ) 
+      cnt += fwrite(frame->real_base[2]+cnt, 1, size/4-cnt, mp1e);
+  }
+  fflush(mp1e);
+  writing = 0;
+}
+#endif
 
 static void dxr3_frame_copy(vo_frame_t *frame_gen, uint8_t **src)
 {
@@ -515,13 +560,10 @@ static void dxr3_frame_copy(vo_frame_t *frame_gen, uint8_t **src)
     size = avcodec_encode_video(avc, buffer, DEFAULT_BUFFER_SIZE, &avp);
 # endif    
 #endif
-#if USE_MP1E
-   size = frame->width*this->oheight;
-   fwrite(y, size, 1, mp1e);
-   fwrite(u, size/4, 1, mp1e);
-   fwrite(v, size/4, 1, mp1e);
+#if USE_MP1E && (! MP1E_DISPLAY_FRAME)
+  mp1e_write_yuv(frame, this);
 #endif
-#if ! (USE_MPEG_BUFFER || USE_MP1E)
+#if (!USE_MPEG_BUFFER) && (!USE_MP1E)
     /* write to device now */
     if (write(this->fd_video, buffer, size) < 0)
       perror("dxr3enc: writing to video device");
@@ -543,6 +585,9 @@ static void dxr3_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen)
   regs.reg = MV_COMMAND;
   regs.val=6; /* Mike's mystery number :-) */
   ioctl(this->fd_control, EM8300_IOCTL_WRITEREG, &regs);
+#endif
+#if USE_MP1E && MP1E_DISPLAY_FRAME
+  mp1e_write_yuv(frame, this);
 #endif
 #if USE_MPEG_BUFFER
   if (this->fd_video < 0) {
@@ -570,6 +615,10 @@ void dxr3_exit (vo_driver_t *this_gen)
 	if(this->overlay_enabled)
 		dxr3_overlay_set_mode(&this->overlay, EM8300_OVERLAY_MODE_OFF );
 	close(this->fd_control);
+#if USE_MP1E
+	if (mp1e)
+		pclose(mp1e);
+#endif
 }
 
 vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen)
@@ -672,6 +721,7 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen)
 	mp1e_command = config->register_string(config, "dxr3enc.mp1e", 
 		"mp1e -v -m 1 -g I -b 5 %s > /dev/em8300_mv", 
 		"Dxr3enc: mp1e command line (must contain %s)",NULL,NULL,NULL);
+	*mp1e_cmd = 0;
 #endif
 	return &this->vo_driver;
 }
