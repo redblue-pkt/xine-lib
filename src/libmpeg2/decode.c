@@ -203,6 +203,13 @@ static void remember_metainfo (mpeg2dec_t *mpeg2dec) {
                frame->frame_rate_code); */
     mpeg2dec->stream->stream_info[XINE_STREAM_INFO_FRAME_DURATION]      = 3000;
   }
+
+  if (mpeg2dec->picture->mpeg1) 
+    mpeg2dec->stream->meta_info[XINE_META_INFO_VIDEOCODEC] 
+      = strdup ("MPEG-1");
+  else
+    mpeg2dec->stream->meta_info[XINE_META_INFO_VIDEOCODEC] 
+      = strdup ("MPEG-2");
 }
 
 
