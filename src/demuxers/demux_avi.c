@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_avi.c,v 1.166 2003/07/25 21:02:05 miguelfreitas Exp $
+ * $Id: demux_avi.c,v 1.167 2003/09/10 23:11:53 tmattern Exp $
  *
  * demultiplexer for avi streams
  *
@@ -62,8 +62,9 @@
 /********** logging **********/
 #define LOG_MODULE "demux_avi"
 #define LOG_VERBOSE
-/* #define LOG */
-
+/*
+#define LOG 
+*/
 #include "xine_internal.h"
 #include "xineutils.h"
 #include "demux.h"
@@ -81,15 +82,16 @@
 /* The following variable indicates the kind of error */
 
 typedef struct{
-  off_t pos;
-  long len;
-  long flags;
+  off_t  pos;
+  long   len;
+  long   flags;
 } video_index_entry_t;
 
 typedef struct{
-  off_t pos;
-  long len;
-  off_t tot;
+  off_t  pos;
+  long   len;
+  off_t  tot;
+  long   block_no;          /* block number, used compute pts in audio VBR streams */
 } audio_index_entry_t;
 
 /* These next three are the video and audio structures that can grow
@@ -114,8 +116,13 @@ typedef struct{
 
 
 typedef struct{
-  long   dwScale_audio, dwRate_audio;
+  long   dwInitialFrames;
+  long   dwScale;
+  long   dwRate;
+  long   dwStart;
   long   dwSampleSize;
+
+  long   block_no;
 
   uint32_t audio_type;      /* BUF_AUDIO_xxx type */
 
@@ -123,6 +130,7 @@ typedef struct{
   char   audio_tag[4];      /* Tag of audio data */
   long   audio_posc;        /* Audio position: chunk */
   long   audio_posb;        /* Audio position: byte within chunk */
+
 
   xine_waveformatex *wavex;
   int    wavex_len;
@@ -136,7 +144,10 @@ typedef struct{
 typedef struct{
   long   width;             /* Width  of a video frame */
   long   height;            /* Height of a video frame */
-  long   dwScale, dwRate;
+  long   dwInitialFrames;
+  long   dwScale;
+  long   dwRate;
+  long   dwStart;
   double fps;               /* Frames per second */
 
   uint32_t compressor;      /* Type of compressor */
@@ -261,7 +272,7 @@ static int video_index_append(avi_t *AVI, off_t pos, long len, long flags) {
 
 /* Append an index entry for a newly-found audio frame */
 static int audio_index_append(avi_t *AVI, int stream, off_t pos, long len,
-    off_t tot) {
+                              off_t tot, long block_no) {
   audio_index_t *ait = &(AVI->audio[stream]->audio_idx);
 
   /* Make sure there's room */
@@ -275,9 +286,10 @@ static int audio_index_append(avi_t *AVI, int stream, off_t pos, long len,
   }
 
   /* Set the new index entry */
-  ait->aindex[ait->audio_chunks].pos = pos;
-  ait->aindex[ait->audio_chunks].len = len;
-  ait->aindex[ait->audio_chunks].tot = tot;
+  ait->aindex[ait->audio_chunks].pos      = pos;
+  ait->aindex[ait->audio_chunks].len      = len;
+  ait->aindex[ait->audio_chunks].tot      = tot;
+  ait->aindex[ait->audio_chunks].block_no = block_no;
   ait->audio_chunks += 1;
 
   return 0;
@@ -307,35 +319,28 @@ static int64_t get_audio_pts (demux_avi_t *this, int track, long posc,
 
   lprintf("get_audio_pts: track=%d, posc=%ld, postot=%lld, posb=%ld\n", track, posc, postot, posb);
 
-  if (at->dwSampleSize==0) {
+  if ((at->dwSampleSize == 0) && (at->dwScale > 1)) {
     /* variable bitrate */
-    if (at->dwScale_audio > 1) {
-      /* normal case */
-      return (int64_t)(90000.0 * (double)(posc) *
-        (double)at->dwScale_audio / (double)at->dwRate_audio);
-    } else {
-      /* not really variable bitrate */
-      if( at->wavex && at->wavex->nBlockAlign ) {
-        return (int64_t)((double)(postot + posb) / (double)at->wavex->nBlockAlign *
-          (double)at->dwScale_audio / (double)at->dwRate_audio * 90000.0);
-      } else {
-        return (int64_t)((double)(postot + posb) *
-         (double)at->dwScale_audio / (double)at->dwRate_audio * 90000.0);
-      }
-    }
+    lprintf("get_audio_pts: VBR: dwScale=%ld, dwRate=%ld\n", at->dwScale, at->dwRate);
+    return (int64_t)(90000.0 * (double)(posc) *
+      (double)at->dwScale / (double)at->dwRate);
   } else {
     /* constant bitrate */
+    lprintf("get_audio_pts: CBR: nBlockAlign=%d, dwSampleSize=%ld\n",
+            at->wavex->nBlockAlign, at->dwSampleSize);
     if( at->wavex && at->wavex->nBlockAlign ) {
       return (int64_t)((double)(postot + posb) / (double)at->wavex->nBlockAlign *
-       (double)at->dwScale_audio / (double)at->dwRate_audio * 90000.0);
+        (double)at->dwScale / (double)at->dwRate * 90000.0);
     } else {
       return (int64_t)((double)(postot + posb) / (double)at->dwSampleSize *
-       (double)at->dwScale_audio / (double)at->dwRate_audio * 90000.0);
+        (double)at->dwScale / (double)at->dwRate * 90000.0);
     }
   }
 }
 
 static int64_t get_video_pts (demux_avi_t *this, long pos) {
+  lprintf("get_video_pts: dwScale=%ld, dwRate=%ld, pos=%ld\n",
+         this->avi->dwScale, this->avi->dwRate, pos);
   return (int64_t)(90000.0 * (double)pos *
     (double)this->avi->dwScale / (double)this->avi->dwRate);
 }
@@ -492,12 +497,22 @@ static long idx_grow(demux_avi_t *this, long (*stopper)(demux_avi_t *, void *),
       }
     }
     for(i=0; i < this->avi->n_audio; ++i) {
-      if ((data[0] == this->avi->audio[i]->audio_tag[0]) &&
-          (data[1] == this->avi->audio[i]->audio_tag[1])) {
+      avi_audio_t *audio = this->avi->audio[i];
+
+      if ((data[0] == audio->audio_tag[0]) &&
+          (data[1] == audio->audio_tag[1])) {
         off_t pos = curtagoffset + ioff;
         long len = n;
-        if (audio_index_append(this->avi, i, pos, len,
-                               this->avi->audio[i]->audio_tot) == -1) {
+
+        /* VBR streams (hack from mplayer) */
+        if (audio->wavex && audio->wavex->nBlockAlign) {
+          audio->block_no += (len + audio->wavex->nBlockAlign - 1) / audio->wavex->nBlockAlign;
+        } else {
+          audio->block_no += 1;
+        }
+
+        if (audio_index_append(this->avi, i, pos, len, audio->audio_tot,
+                               audio->block_no) == -1) {
           /* As above. */
         }
         this->avi->audio[i]->audio_tot += len;
@@ -726,9 +741,11 @@ static avi_t *AVI_init(demux_avi_t *this) {
               hdrl_data[i], hdrl_data[i+1], hdrl_data[i+2], hdrl_data[i+3]);
       if(strncasecmp(hdrl_data+i,"vids",4) == 0 && !vids_strh_seen) {
 
-        AVI->compressor = *(uint32_t *) hdrl_data+i+4;
-        AVI->dwScale = str2ulong(hdrl_data+i+20);
-        AVI->dwRate  = str2ulong(hdrl_data+i+24);
+        AVI->compressor = *(uint32_t *) hdrl_data + i + 4;
+        AVI->dwInitialFrames = str2ulong(hdrl_data + i + 16);
+        AVI->dwScale         = str2ulong(hdrl_data + i + 20);
+        AVI->dwRate          = str2ulong(hdrl_data + i + 24);
+        AVI->dwStart         = str2ulong(hdrl_data + i + 28);
 
         if(AVI->dwScale!=0)
           AVI->fps = (double)AVI->dwRate/(double)AVI->dwScale;
@@ -739,6 +756,8 @@ static avi_t *AVI_init(demux_avi_t *this) {
         vids_strh_seen = 1;
         lprintf("video stream header\n");
         lasttag = 1; /* vids */
+        lprintf("dwScale=%ld, dwRate=%ld, dwInitialFrames=%ld, dwStart=%ld, num_stream=%d\n",
+                AVI->dwScale, AVI->dwRate, AVI->dwInitialFrames, AVI->dwStart, num_stream);
       } else if (strncasecmp (hdrl_data+i,"auds",4) ==0 /* && ! auds_strh_seen*/) {
         if(AVI->n_audio < MAX_AUDIO_STREAMS) {
           avi_audio_t *a = (avi_audio_t *) xine_xmalloc(sizeof(avi_audio_t));
@@ -749,11 +768,14 @@ static avi_t *AVI_init(demux_avi_t *this) {
           memset((void *)a,0,sizeof(avi_audio_t));
           AVI->audio[AVI->n_audio] = a;
 
-          a->audio_strn    = num_stream;
-          a->dwScale_audio = str2ulong(hdrl_data+i+20);
-          a->dwRate_audio  = str2ulong(hdrl_data+i+24);
+          a->audio_strn      = num_stream;
+          a->dwInitialFrames = str2ulong(hdrl_data + i + 16);
+          a->dwScale         = str2ulong(hdrl_data + i + 20);
+          a->dwRate          = str2ulong(hdrl_data + i + 24);
+          a->dwStart         = str2ulong(hdrl_data + i + 28);
           
-          lprintf("dwScale=%d, dwRate=%d, num_stream=%d\n", a->dwScale_audio, a->dwRate_audio, num_stream);
+          lprintf("dwScale=%ld, dwRate=%ld, dwInitialFrames=%ld, dwStart=%ld, num_stream=%d\n",
+                  a->dwScale, a->dwRate, a->dwInitialFrames, a->dwStart, num_stream);
           
           a->dwSampleSize  = str2ulong(hdrl_data+i+44);
 	  a->audio_tot     = 0;
@@ -926,11 +948,22 @@ static avi_t *AVI_init(demux_avi_t *this) {
 	}
       }
       for(n = 0; n < AVI->n_audio; n++) {
+	avi_audio_t *audio = AVI->audio[n];
+
 	if((AVI->idx[i][0] == AVI->audio[n]->audio_tag[0]) &&
            (AVI->idx[i][1] == AVI->audio[n]->audio_tag[1])) {
 	  off_t pos = str2ulong(AVI->idx[i]+ 8)+ioff;
 	  long len = str2ulong(AVI->idx[i]+12);
-	  if (audio_index_append(AVI, n, pos, len, AVI->audio[n]->audio_tot) == -1) {
+
+	  /* VBR streams (hack from mplayer) */
+	  if (audio->wavex && audio->wavex->nBlockAlign) {
+	    audio->block_no += (len + audio->wavex->nBlockAlign - 1) / audio->wavex->nBlockAlign;
+	  } else {
+	    audio->block_no += 1;
+	  }
+
+	  if (audio_index_append(AVI, n, pos, len, audio->audio_tot,
+	                         audio->block_no) == -1) {
 	    ERR_EXIT(AVI_ERR_NO_MEM) ;
 	  }
 	  AVI->audio[n]->audio_tot += len;
@@ -1121,7 +1154,7 @@ static int demux_avi_next (demux_avi_t *this, int decoder_flags) {
     }
 
     audio_pts =
-      get_audio_pts (this, i, audio->audio_posc, aie->tot, audio->audio_posb);
+      get_audio_pts (this, i, aie->block_no, aie->tot, audio->audio_posb);
 
     lprintf ("video_pts %lld audio_pts %lld\n", video_pts, audio_pts);
 
@@ -1232,6 +1265,7 @@ static int get_chunk_header(demux_avi_t *this, uint32_t *len, int *audio_stream)
      */
     if ((data[0] == this->avi->video_tag[0]) &&
         (data[1] == this->avi->video_tag[1])) {
+      lprintf("video header: %c %c %c %c\n", data[0], data[1], data[2], data[3]);
       return AVI_HEADER_VIDEO;
     }
 
@@ -1243,6 +1277,7 @@ static int get_chunk_header(demux_avi_t *this, uint32_t *len, int *audio_stream)
           (data[1] == this->avi->audio[i]->audio_tag[1])) {
         *audio_stream = i;
         this->avi->audio[i]->audio_tot += *len;
+        lprintf("audio header: %c %c %c %c\n", data[0], data[1], data[2], data[3]);
         return AVI_HEADER_AUDIO;
       }
     }
@@ -1273,14 +1308,14 @@ static int demux_avi_next_streaming (demux_avi_t *this, int decoder_flags) {
 
   switch (header) {
     case AVI_HEADER_AUDIO:
-      lprintf("AVI_HEADER_AUDIO\n");
-
       audio = this->avi->audio[audio_stream];
       left = chunk_len;
 
+      lprintf("AVI_HEADER_AUDIO: chunk %ld, len=%d\n", audio->audio_posc, chunk_len);
+
       while (left > 0) {
         audio_pts =
-          get_audio_pts (this, audio_stream, audio->audio_posc, this->avi->audio[audio_stream]->audio_tot - chunk_len, chunk_len - left);
+          get_audio_pts (this, audio_stream, audio->block_no, this->avi->audio[audio_stream]->audio_tot - chunk_len, chunk_len - left);
 
         if (this->audio_fifo) {
           buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
@@ -1289,7 +1324,7 @@ static int demux_avi_next_streaming (demux_avi_t *this, int decoder_flags) {
         }
 
         /* read audio */
-        buf->pts    = audio_pts;
+        buf->pts = audio_pts;
         if (left > 2048) {
           buf->size = 2048;
           buf->decoder_flags = 0;
@@ -1315,12 +1350,19 @@ static int demux_avi_next_streaming (demux_avi_t *this, int decoder_flags) {
       }
       audio->audio_posc++;
 
+      /* VBR streams (hack from mplayer) */
+      if (audio->wavex && audio->wavex->nBlockAlign) {
+        audio->block_no += (chunk_len + audio->wavex->nBlockAlign - 1) / audio->wavex->nBlockAlign;
+      } else {
+        audio->block_no += 1;
+      }
+
       break;
 
 
     case AVI_HEADER_VIDEO:
-      lprintf("AVI_HEADER_VIDEO\n");
       left = chunk_len;
+      lprintf("AVI_HEADER_VIDEO: chunk %ld, len=%d\n", this->avi->video_posf, chunk_len);
 
       while (left > 0) {
         video_pts = get_video_pts (this, this->avi->video_posf);
@@ -1351,11 +1393,12 @@ static int demux_avi_next_streaming (demux_avi_t *this, int decoder_flags) {
 
         this->video_fifo->put (this->video_fifo, buf);
       }
+
       this->avi->video_posf++;
       break;
 
     case AVI_HEADER_UNKNOWN:
-      lprintf("AVI_HEADER_UNKNOWN\n");
+      lprintf("AVI_HEADER_UNKNOWN: len=%d\n", chunk_len);
       current_pos = this->input->get_current_pos(this->input);
       if (this->input->seek(this->input, chunk_len, SEEK_CUR) != (current_pos + chunk_len)) {
         return 0;
@@ -1634,7 +1677,7 @@ static int demux_avi_seek (demux_plugin_t *this_gen,
         if (cur_pos == min_pos) break;
         aie = audio_cur_index_entry(this, this->avi->audio[i]);
         if (aie) {
-          if ( (audio_pts=get_audio_pts(this, i, cur_pos, aie->tot, 0)) >= video_pts) {
+          if ( (audio_pts=get_audio_pts(this, i, aie->block_no, aie->tot, 0)) >= video_pts) {
             max_pos = cur_pos;
           } else {
             min_pos = cur_pos;
@@ -1665,7 +1708,8 @@ static int demux_avi_seek (demux_plugin_t *this_gen,
       aie = audio_cur_index_entry(this, this->avi->audio[i]);
       if (aie) {
 	while ((this->avi->audio[i]->audio_posb<aie->len)
-	       && ((audio_pts=get_audio_pts(this, i, this->avi->audio[i]->audio_posc , aie->tot, this->avi->audio[i]->audio_posb)) < video_pts))
+	       && ((audio_pts=get_audio_pts(this, i, aie->block_no, aie->tot,
+                                            this->avi->audio[i]->audio_posb)) < video_pts))
 	  this->avi->audio[i]->audio_posb++;
       }
     }
