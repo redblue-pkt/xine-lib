@@ -5,9 +5,13 @@ xine-lib (0.9.13) unstable; urgency=low
   * enable ffmpeg's native msmpeg4 v1/v2 decoder
   * correct highlight placement for anamorphic and pan&scan menus with DXR3
   * WAV file demuxer
-  * FLI file demuxer
   * SMJPEG file demuxer
   * Id CIN file demuxer
+  * FLI file demuxer
+  * FLI video decoder
+  * Raw RGB video support
+  * Raw YUV video support
+  * Microsoft RLE decoder
 
 xine-lib (0.9.12) unstable; urgency=low
 

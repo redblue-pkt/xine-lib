@@ -231,7 +231,8 @@ Contributions
 
   Mike Melanson <melanson@pcisys.net>
     QT, FILM, RoQ, WAV, FLI, SMJPEG, and Id CIN file demuxers, RoQ audio
-    decoder, various ADPCM audio decoders
+    decoder, various ADPCM audio decoders, raw RGB & YUV support, FLI &
+    MS RLE video decoders
 
   Tim Ferguson <timf@mail.csse.monash.edu.au>
     CYUV and RoQ video decoders
