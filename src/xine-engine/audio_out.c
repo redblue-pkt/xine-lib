@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.77 2002/11/07 22:39:55 heikos Exp $
+ * $Id: audio_out.c,v 1.78 2002/11/11 23:41:25 tmattern Exp $
  * 
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -981,7 +981,7 @@ static void ao_flush (ao_instance_t *this) {
   num_buffers = this->out_fifo->num_buffers;
   printf ("audio_out: flush fifo (%d buffers)\n", num_buffers);
 
-  for (i = 0; i < this->out_fifo->num_buffers; i++) {
+  for (i = 0; i < num_buffers; i++) {
     buf = fifo_remove_int (this->out_fifo);
     fifo_append_int (this->free_fifo, buf);
   }
