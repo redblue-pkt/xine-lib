@@ -20,7 +20,7 @@
  * Compact Disc Digital Audio (CDDA) Input Plugin 
  *   by Mike Melanson (melanson@pcisys.net)
  *
- * $Id: input_cdda.c,v 1.2 2003/01/07 22:53:25 f1rmb Exp $
+ * $Id: input_cdda.c,v 1.3 2003/01/07 23:54:35 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -326,14 +326,10 @@ static input_plugin_t *open_plugin (input_class_t *cls_gen, xine_stream_t *strea
   int track;
 
   /* fetch the CD track to play */
-  if (!strncasecmp (data, "cdda:", 5)) {
-    if (data[5] != '/')
-      track = atoi(&data[5]);
-    else
-      track = atoi(&data[7]);
-  } else
+  if((strncasecmp (data, "cdda:", 5)) || 
+     (((sscanf(data, "cdda:/%d", &track)) != 1) && ((sscanf(data, "cdda:%d", &track)) != 1)))
     return NULL;
-
+  
   /* get the CD TOC */
   init_cdrom_toc(&toc);
   fd = open ("/dev/cdrom", O_RDONLY);
