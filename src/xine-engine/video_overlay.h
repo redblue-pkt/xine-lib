@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_overlay.h,v 1.3 2001/12/08 18:43:44 hrm Exp $
+ * $Id: video_overlay.h,v 1.4 2002/01/05 19:09:55 jcdutton Exp $
  *
  */
 
@@ -44,6 +44,7 @@
 #define EVENT_MENU_BUTTON 5
 #define EVENT_DELETE_RESOURCE 6 /* Maybe release handle will do this */
 #define EVENT_SHOW_OSD 7 /* Not yet implemented */
+#define EVENT_FREE_HANDLE 8 /* Frees a handle, previous allocated via get_handle */
 
 typedef struct video_overlay_object_s {
   int32_t	 handle; /* Used to match Show and Hide events. */

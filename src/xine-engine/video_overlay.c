@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_overlay.c,v 1.9 2002/01/05 18:14:27 jcdutton Exp $
+ * $Id: video_overlay.c,v 1.10 2002/01/05 19:09:55 jcdutton Exp $
  *
  */
 
@@ -355,6 +355,17 @@ static void video_overlay_event( video_overlay_t *this, int vpts ) {
         
           add_showing_handle( this, handle );
         }
+        break;
+
+      case EVENT_FREE_HANDLE:
+#ifdef LOG_DEBUG
+        printf ("video_overlay: HIDE SPU NOW\n");
+#endif
+        free(this->video_overlay_events[this_event].event->object.overlay);
+          this->video_overlay_events[this_event].event->object.overlay = NULL; 
+        remove_showing_handle(this,handle);
+        remove_events_handle(this,handle);
+        internal_video_overlay_free_handle( this, handle );
         break;
 
       /* implementation for HIDE_SPU and HIDE_MENU is the same.
