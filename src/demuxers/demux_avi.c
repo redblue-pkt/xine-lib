@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_avi.c,v 1.57 2001/12/02 21:19:21 guenter Exp $
+ * $Id: demux_avi.c,v 1.58 2001/12/09 19:32:11 guenter Exp $
  *
  * demultiplexer for avi streams
  *
@@ -944,6 +944,9 @@ static void demux_avi_start (demux_plugin_t *this_gen,
 	return;
       }
     }
+
+    video_pts = get_video_pts (this, this->avi->video_posf);
+
   }
 
   /* seek audio */
