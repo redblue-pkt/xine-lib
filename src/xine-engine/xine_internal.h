@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.95 2002/09/05 22:19:04 mroi Exp $
+ * $Id: xine_internal.h,v 1.96 2002/09/06 18:13:12 mroi Exp $
  *
  */
 
@@ -149,7 +149,7 @@ struct xine_s {
   config_values_t           *config;
 
   /* MRL of displayed logo */
-  char                      *logo_mrl;
+  const char                *logo_mrl;
   /* Logo manipulation mutex */
   pthread_mutex_t            logo_lock;
 
@@ -218,7 +218,7 @@ struct xine_s {
 
   /* Array of event handlers. */
   xine_event_listener_cb_t   event_listeners[XINE_MAX_EVENT_LISTENERS];
-  void                      *event_listener_user_data[XINE_MAX_EVENT_LISTENERS];
+  const void                *event_listener_user_data[XINE_MAX_EVENT_LISTENERS];
   uint16_t                   num_event_listeners;
 
   /* scratch string buffer */
@@ -233,7 +233,7 @@ struct xine_s {
   int                        finished_thread_running;
   
   xine_report_codec_cb_t     report_codec_cb;
-  void                      *report_codec_user_data;
+  const void                *report_codec_user_data;
   
   int                        playing_logo;
   int                        curtime_needed_for_osd;
@@ -244,7 +244,7 @@ struct xine_s {
  * private function prototypes:
  */
 
-int  xine_open_internal          (xine_t *this, char *MRL);
+int  xine_open_internal          (xine_t *this, const char *MRL);
 int  xine_play_internal          (xine_t *this,
 				  int start_pos, int start_time);
 void xine_stop_internal          (xine_t *this);
@@ -311,8 +311,6 @@ xine_ao_driver_t *xine_load_audio_output_plugin (xine_t *self, char *id);
 
 
 void xine_set_speed (xine_t *this, int speed) ;
-
-int  xine_get_spu_lang (xine_t *this, int channel, char *str) ;
 
 void xine_select_spu_channel (xine_t *this, int channel) ;
 

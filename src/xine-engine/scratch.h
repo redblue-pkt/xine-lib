@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: scratch.h,v 1.3 2002/03/01 09:29:50 guenter Exp $
+ * $Id: scratch.h,v 1.4 2002/09/06 18:13:12 mroi Exp $
  *
  * scratch buffer for log output
  *
@@ -32,17 +32,17 @@ typedef struct scratch_buffer_s scratch_buffer_t;
 
 struct scratch_buffer_s {
 
-  void (*scratch_printf) (scratch_buffer_t *this, const char *format, va_list ap);
+  void         (*scratch_printf) (scratch_buffer_t *this, const char *format, va_list ap);
 
-  char **(*get_content) (scratch_buffer_t *this);
+  const char **(*get_content) (scratch_buffer_t *this);
 
-  void (*dispose) (scratch_buffer_t *this);
+  void         (*dispose) (scratch_buffer_t *this);
 
-  char **lines;
-  char **ordered;
+  char         **lines;
+  const char   **ordered;
 
-  int    num_lines;
-  int    cur;
+  int            num_lines;
+  int            cur;
 
 };
 

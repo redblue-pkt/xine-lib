@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_mms.c,v 1.18 2002/09/05 22:18:55 mroi Exp $
+ * $Id: input_mms.c,v 1.19 2002/09/06 18:13:11 mroi Exp $
  *
  * mms input plugin based on work from major mms
  */
@@ -71,7 +71,7 @@ typedef struct {
 } mms_input_plugin_t;
 
 
-static int mms_plugin_open (input_plugin_t *this_gen, char *mrl) {
+static int mms_plugin_open (input_plugin_t *this_gen, const char *mrl) {
   mms_input_plugin_t *this = (mms_input_plugin_t *) this_gen;
 
 #ifdef LOG

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_cda.c,v 1.32 2002/09/05 22:18:54 mroi Exp $
+ * $Id: input_cda.c,v 1.33 2002/09/06 18:13:10 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -1370,15 +1370,16 @@ static void _cda_update_ui_title(cda_input_plugin_t *this) {
 /*
  *
  */
-static int cda_plugin_open (input_plugin_t *this_gen, char *mrl) {
+static int cda_plugin_open (input_plugin_t *this_gen, const char *mrl) {
   cda_input_plugin_t *this = (cda_input_plugin_t *) this_gen;
   char               *filename;
   
   _ENTER_FUNC();
 
-  this->mrl = mrl;
+  free(this->mrl);
+  this->mrl = strdup(mrl);
 
-  if(strncasecmp (mrl, "cda://", 6))
+  if(strncasecmp (this->mrl, "cda://", 6))
     return 0;
   
   if(!_cda_open_cd(this->cda)) {
@@ -1395,7 +1396,7 @@ static int cda_plugin_open (input_plugin_t *this_gen, char *mrl) {
     _cda_cbbd_grab_infos(this);
   }
 
-  filename = (char *) &mrl[6];
+  filename = (char *) &this->mrl[6];
   
   if(sscanf(filename, "%d", &this->cda->cur_track) != 1) {
     LOG_MSG_STDERR(this->xine, _("input_cda: malformed MRL. Use cda://<track #>\n"));
@@ -1618,8 +1619,8 @@ static char *cda_plugin_get_identifier (input_plugin_t *this_gen) {
 /*
  * Get dir.
  */
-static xine_mrl_t **cda_plugin_get_dir (input_plugin_t *this_gen, 
-				   char *filename, int *nEntries) {
+static const xine_mrl_t *const *cda_plugin_get_dir (input_plugin_t *this_gen, 
+						    const char *filename, int *nEntries) {
   cda_input_plugin_t *this = (cda_input_plugin_t *) this_gen;
   int                 i;
     
@@ -1694,13 +1695,13 @@ static xine_mrl_t **cda_plugin_get_dir (input_plugin_t *this_gen,
   
   _LEAVE_FUNC();
 
-  return this->mrls;
+  return (const xine_mrl_t *const *)this->mrls;
 }
 
 /*
  * Get autoplay.
  */
-static char **cda_plugin_get_autoplay_list (input_plugin_t *this_gen, int *nFiles) {
+static const char *const *cda_plugin_get_autoplay_list (input_plugin_t *this_gen, int *nFiles) {
   cda_input_plugin_t *this = (cda_input_plugin_t *) this_gen;
   int                 i;
 
@@ -1742,7 +1743,7 @@ static char **cda_plugin_get_autoplay_list (input_plugin_t *this_gen, int *nFile
   
   _LEAVE_FUNC();
 
-  return this->filelist;
+  return (const char *const *)this->filelist;
 }
 
 /*
@@ -1775,6 +1776,7 @@ static void cda_plugin_dispose (input_plugin_t *this_gen ) {
 
   _cda_free_cda(this->cda);
   free (this->cda);
+  free (this->mrl);
   free (this->mrls);
   free (this);
 }

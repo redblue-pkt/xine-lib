@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.76 2002/09/05 22:18:54 mroi Exp $
+ * $Id: input_dvd.c,v 1.77 2002/09/06 18:13:10 mroi Exp $
  *
  */
 
@@ -379,7 +379,7 @@ static void dvdnav_build_mrl_list(dvdnav_input_plugin_t *this) {
  *   dvd:///dev/dvd2:1         - Play Title 1 from /dev/dvd2
  *   dvd://:1.3                - Play Title 1, program 3 from /dev/dvd
  */
-static int dvdnav_plugin_open (input_plugin_t *this_gen, char *mrl) {
+static int dvdnav_plugin_open (input_plugin_t *this_gen, const char *mrl) {
   char                  *locator;
   int                    colon_point;
   dvdnav_input_plugin_t *this = (dvdnav_input_plugin_t *) this_gen;
@@ -390,14 +390,15 @@ static int dvdnav_plugin_open (input_plugin_t *this_gen, char *mrl) {
   trace_print("Called\n");
   /* printf("input_dvd: open1: dvdnav=%p opened=%d\n",this->dvdnav, this->opened); */
  
-  this->mrl                    = mrl;
+  free(this->mrl);
+  this->mrl = strdup(mrl);
   this->pause_timer            = 0;
   this->dvd_name[0]            = 0;
   this->dvd_name_length        = 0;
 
   /* Check we can handle this MRL */
-  if (!strncasecmp (mrl, "dvd://",6))
-    locator = &mrl[6];
+  if (!strncasecmp (this->mrl, "dvd://",6))
+    locator = &this->mrl[6];
   else {
     return 0;
   }
@@ -882,8 +883,8 @@ static uint32_t dvdnav_plugin_get_blocksize (input_plugin_t *this_gen) {
   return DVD_BLOCK_SIZE;
 }
 
-static xine_mrl_t **dvdnav_plugin_get_dir (input_plugin_t *this_gen, 
-					   char *filename, int *nFiles) {
+static const xine_mrl_t *const *dvdnav_plugin_get_dir (input_plugin_t *this_gen, 
+						       const char *filename, int *nFiles) {
   dvdnav_input_plugin_t *this = (dvdnav_input_plugin_t*)this_gen;
 
   trace_print("Called\n");
@@ -891,7 +892,7 @@ static xine_mrl_t **dvdnav_plugin_get_dir (input_plugin_t *this_gen,
 
   dvdnav_build_mrl_list((dvdnav_input_plugin_t *) this_gen);
   *nFiles = this->num_mrls;
-  return this->mrls;
+  return (const xine_mrl_t *const *)this->mrls;
 }
 
 static int dvdnav_umount_media(char *device)
@@ -1304,8 +1305,8 @@ static int dvdnav_plugin_get_optional_data (input_plugin_t *this_gen,
   return INPUT_OPTIONAL_UNSUPPORTED;
 }
 
-static char **dvdnav_plugin_get_autoplay_list (input_plugin_t *this_gen, 
-					       int *nFiles) {
+static const char *const *dvdnav_plugin_get_autoplay_list (input_plugin_t *this_gen, 
+							   int *nFiles) {
   dvdnav_input_plugin_t *this = (dvdnav_input_plugin_t *) this_gen;
   dvdnav_status_t res;
   int titles, i;
@@ -1343,12 +1344,13 @@ static char **dvdnav_plugin_get_autoplay_list (input_plugin_t *this_gen,
   printf("input_dvd: get_autoplay_list exiting opened=%d dvdnav=%p\n",this->opened, this->dvdnav); 
 #endif
 
-  return filelist2;
+  return (const char *const *)filelist2;
 }
 
 void dvdnav_plugin_dispose(input_plugin_t *this_gen) {
   dvdnav_input_plugin_t *this = (dvdnav_input_plugin_t*)this_gen;
   pthread_mutex_destroy(&this->buf_mutex);
+  free(this->mrl);  this->mrl  = NULL;
   free(this->mrls); this->mrls = NULL;
 }
 
@@ -1421,6 +1423,7 @@ static void *init_input_plugin (xine_t *xine, void *data) {
   this->typed_buttonN          = 0;
   this->dvd_name[0]            = 0;
   this->dvd_name_length        = 0;
+  this->mrl                    = NULL;
   this->mrls                   = NULL;
   this->num_mrls               = 0;
   
@@ -1496,6 +1499,10 @@ static void *init_input_plugin (xine_t *xine, void *data) {
 
 /*
  * $Log: input_dvd.c,v $
+ * Revision 1.77  2002/09/06 18:13:10  mroi
+ * introduce "const"
+ * fix some input plugins that would not copy the mrl on open
+ *
  * Revision 1.76  2002/09/05 22:18:54  mroi
  * remove plugin's private priority and interface members
  * adapt some more decoders

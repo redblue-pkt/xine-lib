@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_vcd.c,v 1.50 2002/09/05 22:18:55 mroi Exp $
+ * $Id: input_vcd.c,v 1.51 2002/09/06 18:13:11 mroi Exp $
  *
  */
 
@@ -341,13 +341,14 @@ static int sun_vcd_read(vcd_input_plugin_t *this, long lba, cdsector_t *data)
 /*
  *
  */
-static int vcd_plugin_open (input_plugin_t *this_gen, char *mrl) {
+static int vcd_plugin_open (input_plugin_t *this_gen, const char *mrl) {
   vcd_input_plugin_t *this = (vcd_input_plugin_t *) this_gen;
   char *filename;
 
-  this->mrl = mrl;
+  free(this->mrl);
+  this->mrl = strdup(mrl);
 
-  if (strncasecmp (mrl, "vcd://",6))
+  if (strncasecmp (this->mrl, "vcd://",6))
     return 0;
     
   this->fd = open (this->device, O_RDONLY);
@@ -362,7 +363,7 @@ static int vcd_plugin_open (input_plugin_t *this_gen, char *mrl) {
     return 0;
   }
 
-  filename = (char *) &mrl[6];
+  filename = (char *) &this->mrl[6];
 
   if (sscanf (filename, "%d", &this->cur_track) != 1) {
     LOG_MSG_STDERR(this->xine, _("input_vcd: malformed MRL. Use vcd://<track #>\n"));
@@ -973,8 +974,8 @@ static char *vcd_plugin_get_identifier (input_plugin_t *this_gen) {
 /*
  *
  */
-static xine_mrl_t **vcd_plugin_get_dir (input_plugin_t *this_gen, 
-				   char *filename, int *nEntries) {
+static const xine_mrl_t *const *vcd_plugin_get_dir (input_plugin_t *this_gen, 
+						    const char *filename, int *nEntries) {
 
   vcd_input_plugin_t *this = (vcd_input_plugin_t *) this_gen;
   int i;
@@ -1053,14 +1054,14 @@ static xine_mrl_t **vcd_plugin_get_dir (input_plugin_t *this_gen,
 
   this->mrls[*nEntries] = NULL;
   
-  return this->mrls;
+  return (const xine_mrl_t *const *)this->mrls;
 }
 
 /*
  *
  */
-static char **vcd_plugin_get_autoplay_list (input_plugin_t *this_gen, 
-					    int *nFiles) {
+static const char *const *vcd_plugin_get_autoplay_list (input_plugin_t *this_gen, 
+							int *nFiles) {
 
   vcd_input_plugin_t *this = (vcd_input_plugin_t *) this_gen;
   int i;
@@ -1100,7 +1101,7 @@ static char **vcd_plugin_get_autoplay_list (input_plugin_t *this_gen,
   this->filelist[i - 1] = (char *) realloc(this->filelist[i-1], sizeof(char *));
   this->filelist[i - 1] = NULL;
 
-  return this->filelist;
+  return (const char *const *)this->filelist;
 }
 
 /*
@@ -1129,6 +1130,7 @@ static void vcd_plugin_dispose (input_plugin_t *this_gen ) {
     free (this->filelist[i]);
 
   free (this->mrls);
+  free (this->mrl);
   free (this);
 }
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mms.h,v 1.5 2002/05/06 21:40:02 f1rmb Exp $
+ * $Id: mms.h,v 1.6 2002/09/06 18:13:11 mroi Exp $
  *
  * libmms public header
  */
@@ -30,7 +30,7 @@
 typedef struct mms_s mms_t;
 
 char*    mms_connect_common(int *s ,int *port, char *url, char **host, char **path, char **file);
-mms_t*   mms_connect (char *url);
+mms_t*   mms_connect (const char *url);
 
 int      mms_read (mms_t *this, char *data, int len);
 uint32_t mms_get_length (mms_t *this);

@@ -288,7 +288,7 @@ static void * input_plugin_read_loop(void *arg) {
 /*
  *
  */
-static int rtp_plugin_open (input_plugin_t *this_gen, char *mrl ) {
+static int rtp_plugin_open (input_plugin_t *this_gen, const char *mrl ) {
   rtp_input_plugin_t *this = (rtp_input_plugin_t *) this_gen;
   char               *filename;
   char               *pptr;
@@ -296,10 +296,11 @@ static int rtp_plugin_open (input_plugin_t *this_gen, char *mrl ) {
   pthread_attr_t      thread_attrs;
   int                 err;
 
-  this->mrl = mrl;
+  free(this->mrl);
+  this->mrl = strdup(mrl);
 
-  if ((!strncmp (mrl, "rtp://", 6)) || (!strncmp (mrl, "udp://", 6))) {
-    filename = &mrl[6];
+  if ((!strncmp (this->mrl, "rtp://", 6)) || (!strncmp (this->mrl, "udp://", 6))) {
+    filename = &this->mrl[6];
     
     if((!filename) || (strlen(filename) == 0))
       return 0;
@@ -497,6 +498,7 @@ static void rtp_plugin_dispose (input_plugin_t *this_gen ) {
     free (buf);
   }
 
+  free (this->mrl);
   free (this);
 }
 

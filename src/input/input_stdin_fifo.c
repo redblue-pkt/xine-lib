@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_stdin_fifo.c,v 1.31 2002/09/05 22:18:55 mroi Exp $
+ * $Id: input_stdin_fifo.c,v 1.32 2002/09/06 18:13:11 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -75,7 +75,7 @@ typedef struct {
 static off_t stdin_plugin_read (input_plugin_t *this_gen, 
 				char *buf, off_t todo) ;
 
-static int stdin_plugin_open(input_plugin_t *this_gen, char *mrl) {
+static int stdin_plugin_open(input_plugin_t *this_gen, const char *mrl) {
   stdin_input_plugin_t *this = (stdin_input_plugin_t *) this_gen;
   char *filename;
   char *pfn;
@@ -85,30 +85,31 @@ static int stdin_plugin_open(input_plugin_t *this_gen, char *mrl) {
 	  mrl);
 #endif
 
-  this->mrl = mrl;
+  free(this->mrl);
+  this->mrl = strdup(mrl);
 
-  if (!strncasecmp(mrl, "stdin://", 8) 
-      || !strncmp(mrl, "-", 1)) {
+  if (!strncasecmp(this->mrl, "stdin://", 8) 
+      || !strncmp(this->mrl, "-", 1)) {
 #if defined(CONFIG_DEVFS_FS)
     filename = "/dev/vc/stdin";
 #else
     filename = "/dev/stdin";
 #endif
 
-  } else if(!strncasecmp(mrl, "fifo://", 7)) {
+  } else if(!strncasecmp(this->mrl, "fifo://", 7)) {
 
-    if ((pfn = strrchr((mrl + 7), ':')) != NULL) {
+    if ((pfn = strrchr((this->mrl + 7), ':')) != NULL) {
 
       filename = ++pfn;
 
     } else {
 
-      if (!(strncasecmp(mrl + 7, "mpeg1", 5))
-	  || (!(strncasecmp(mrl + 7, "mpeg2", 5)))) {
-	filename = (char *) &mrl[12];
+      if (!(strncasecmp(this->mrl + 7, "mpeg1", 5))
+	  || (!(strncasecmp(this->mrl + 7, "mpeg2", 5)))) {
+	filename = (char *) &this->mrl[12];
 
       } else {
-	filename = (char *) &mrl[7];
+	filename = (char *) &this->mrl[7];
       }
     }
   } else {
@@ -343,7 +344,10 @@ static int stdin_plugin_get_optional_data (input_plugin_t *this_gen,
 }
 
 static void stdin_plugin_dispose (input_plugin_t *this_gen ) {
-  free (this_gen);
+  stdin_input_plugin_t *this = (stdin_input_plugin_t *) this_gen;
+  
+  free (this->mrl);
+  free (this);
 }
 
 

@@ -17,7 +17,7 @@
  *  along with this program; if not, write to the Free Software
  *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- *  $Id: xmlparser.c,v 1.1 2002/05/01 19:41:55 guenter Exp $
+ *  $Id: xmlparser.c,v 1.2 2002/09/06 18:13:12 mroi Exp $
  *
  */
 
@@ -125,7 +125,7 @@ int xml_parser_get_node(xml_node_t *current_node, char *root_name, int rec) {
   char property_name[TOKEN_SIZE];
   char node_name[TOKEN_SIZE];
   int state = 0;
-  int res;
+  int res = 0;
   int parse_res;
   int bypass_get_token = 0;
   xml_node_t *subtree = NULL;

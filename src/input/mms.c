@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mms.c,v 1.9 2002/06/07 07:00:59 tmattern Exp $
+ * $Id: mms.c,v 1.10 2002/09/06 18:13:11 mroi Exp $
  *
  * based on work from major mms
  * utility functions to handle communication with an mms server
@@ -616,7 +616,7 @@ void mms_gen_guid(char guid[]) {
   guid[36] = '\0';
 }
 
-mms_t *mms_connect (char *url_) {
+mms_t *mms_connect (const char *url_) {
   mms_t *this;
   char  *url     = NULL;
   char  *url1    = NULL;

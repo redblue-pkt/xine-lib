@@ -139,13 +139,14 @@ static int host_connect(const char *host, int port, xine_t *xine) {
   return -1;
 }
 
-static int net_plugin_open (input_plugin_t *this_gen, char *mrl) {
+static int net_plugin_open (input_plugin_t *this_gen, const char *mrl) {
   net_input_plugin_t *this = (net_input_plugin_t *) this_gen;
   char *filename;
   char *pptr;
   int port = 7658;
 
-  this->mrl = strdup(mrl); /* FIXME: small memory leak */
+  free(this->mrl);
+  this->mrl = strdup(mrl);
 
   if (!strncasecmp (mrl, "tcp://", 6)) {
     filename = (char *) &this->mrl[6];
@@ -169,8 +170,6 @@ static int net_plugin_open (input_plugin_t *this_gen, char *mrl) {
   if (this->fh == -1) {
     return 0;
   }
-
-  this->mrl = strdup(mrl); /* FIXME: small memory leak */
 
   this->nbc = nbc_init (this->xine);
 
@@ -328,6 +327,8 @@ static int net_plugin_get_optional_data (input_plugin_t *this_gen,
 }
 
 static void net_plugin_dispose (input_plugin_t *this_gen ) {
+  net_input_plugin_t *this = (net_input_plugin_t *) this_gen;
+  free (this->mrl);
   free (this_gen);
 }
 

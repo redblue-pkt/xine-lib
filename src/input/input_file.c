@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_file.c,v 1.56 2002/09/05 22:18:54 mroi Exp $
+ * $Id: input_file.c,v 1.57 2002/09/06 18:13:11 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -98,7 +98,7 @@ typedef struct {
   config_values_t  *config;
 
   int               mrls_allocated_entries;
-  xine_mrl_t       **mrls;
+  xine_mrl_t      **mrls;
   
 } file_input_plugin_t;
 
@@ -272,7 +272,7 @@ static uint32_t file_plugin_get_capabilities (input_plugin_t *this_gen) {
 /*
  *
  */
-static int file_plugin_open (input_plugin_t *this_gen, char *mrl) {
+static int file_plugin_open (input_plugin_t *this_gen, const char *mrl) {
 
   char                *filename, *subtitle;
   file_input_plugin_t *this = (file_input_plugin_t *) this_gen;
@@ -427,12 +427,12 @@ static int is_a_dir(char *filepathname) {
 /*
  *
  */
-static xine_mrl_t **file_plugin_get_dir (input_plugin_t *this_gen, 
-				    char *filename, int *nFiles) {
+static const xine_mrl_t *const *file_plugin_get_dir (input_plugin_t *this_gen, 
+						     const char *filename, int *nFiles) {
   file_input_plugin_t  *this = (file_input_plugin_t *) this_gen;
   struct dirent        *pdirent;
   DIR                  *pdir;
-  xine_mrl_t                *hide_files, *dir_files, *norm_files;
+  xine_mrl_t           *hide_files, *dir_files, *norm_files;
   char                  current_dir[XINE_PATH_MAX + 1];
   char                  current_dir_slashed[XINE_PATH_MAX + 1];
   char                  fullfilename[XINE_PATH_MAX + XINE_NAME_MAX + 1];
@@ -453,12 +453,11 @@ static xine_mrl_t **file_plugin_get_dir (input_plugin_t *this_gen,
     snprintf(current_dir, XINE_PATH_MAX, "%s", this->origin_path);
   }
   else {
-    /* Remove exceed '/' */
-    while((filename[strlen(filename) - 1] == '/') && strlen(filename) > 1)
-      filename[strlen(filename) - 1] = '\0';
-    
     snprintf(current_dir, XINE_PATH_MAX, "%s", filename);
     
+    /* Remove exceed '/' */
+    while((current_dir[strlen(current_dir) - 1] == '/') && strlen(current_dir) > 1)
+      current_dir[strlen(current_dir) - 1] = '\0';
   }
 
   /* Store new origin path */
@@ -741,7 +740,7 @@ static xine_mrl_t **file_plugin_get_dir (input_plugin_t *this_gen,
   }
   */
 
-  return this->mrls;
+  return (const xine_mrl_t *const *)this->mrls;
 }
 
 /*

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: scratch.c,v 1.7 2002/03/01 09:29:50 guenter Exp $
+ * $Id: scratch.c,v 1.8 2002/09/06 18:13:12 mroi Exp $
  *
  * top-level xine functions
  *
@@ -50,7 +50,7 @@ static void scratch_printf (scratch_buffer_t *this, const char *format, va_list 
   this->cur = (this->cur + 1) % this->num_lines;
 }
 
-static char **scratch_get_content (scratch_buffer_t *this) {
+static const char **scratch_get_content (scratch_buffer_t *this) {
 
   int i, j;
 

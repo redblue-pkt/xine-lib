@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: configfile.h,v 1.12 2002/09/04 23:31:13 guenter Exp $
+ * $Id: configfile.h,v 1.13 2002/09/06 18:13:11 mroi Exp $
  *
  * config file management
  *
@@ -73,7 +73,7 @@ struct cfg_entry_s {
 
   /* callback function and data for live changeable values */
   xine_config_cb_t callback;
-  void            *callback_data;
+  const void      *callback_data;
 };
 
 /*
@@ -105,7 +105,7 @@ struct config_values_s {
 			    char *help,
 			    int exp_level,
 			    xine_config_cb_t changed_cb,
-			    void *cb_data);
+			    const void *const cb_data);
 
   int (*register_range) (config_values_t *this,
 			 char *key,
@@ -115,7 +115,7 @@ struct config_values_s {
 			 char *help,
 			 int exp_level,
 			 xine_config_cb_t changed_cb,
-			 void *cb_data);
+			 const void *const cb_data);
 
   int (*register_enum) (config_values_t *this,
 			char *key,
@@ -125,7 +125,7 @@ struct config_values_s {
 			char *help,
 			int exp_level,
 			xine_config_cb_t changed_cb,
-			void *cb_data);
+			const void *const cb_data);
 
   int (*register_num) (config_values_t *this,
 		       char *key, 
@@ -134,7 +134,7 @@ struct config_values_s {
 		       char *help,
 		       int exp_level,
 		       xine_config_cb_t changed_cb,
-		       void *cb_data);
+		       const void *const cb_data);
 
   int (*register_bool) (config_values_t *this,
 			char *key, 
@@ -143,7 +143,7 @@ struct config_values_s {
 			char *help,
 			int exp_level,
 			xine_config_cb_t changed_cb,
-			void *cb_data);
+			const void *const cb_data);
 
   /* convenience function to update range, enum, num and bool values */
   void (*update_num) (config_values_t *this,
@@ -164,7 +164,7 @@ struct config_values_s {
    */
 
   cfg_entry_t* (*lookup_entry) (config_values_t *this,
-				char *key);
+				const char *key);
 
   /*
    * unregister callback function
@@ -188,7 +188,7 @@ config_values_t *xine_config_init ();
  * hack: intepret "opt:"-style mrls for config value changes
  */
 
-int xine_config_change_opt(config_values_t *config, char *opt) ;
+int xine_config_change_opt(config_values_t *config, const char *opt) ;
 
 
 #ifdef __cplusplus

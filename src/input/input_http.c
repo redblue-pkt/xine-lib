@@ -290,7 +290,7 @@ static int http_plugin_basicauth (const char *user, const char *password,
 static off_t http_plugin_read (input_plugin_t *this_gen, 
 			       char *buf, off_t nlen) ;
 
-static int http_plugin_open (input_plugin_t *this_gen, char *mrl) {
+static int http_plugin_open (input_plugin_t *this_gen, const char *mrl) {
 
   http_input_plugin_t *this = (http_input_plugin_t *) this_gen;
   char	 *proxy;
