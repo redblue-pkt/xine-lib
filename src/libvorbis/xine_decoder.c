@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.14 2002/07/05 17:32:04 mroi Exp $
+ * $Id: xine_decoder.c,v 1.15 2002/08/19 22:12:54 guenter Exp $
  *
  * (ogg/)vorbis audio decoder plugin (libvorbis wrapper) for xine
  */
@@ -37,6 +37,10 @@
 #include <vorbis/codec.h>
 
 #define MAX_NUM_SAMPLES 4096
+
+/*
+#define LOG
+*/
 
 typedef struct vorbis_decoder_s {
   audio_decoder_t   audio_decoder;
@@ -86,8 +90,9 @@ static void vorbis_init (audio_decoder_t *this_gen, ao_instance_t *audio_out) {
   vorbis_info_init(&this->vi);
   vorbis_comment_init(&this->vc);
 
-
+#ifdef LOG
   printf ("libvorbis: init\n"); 
+#endif
 
 }
 
@@ -96,83 +101,80 @@ static void vorbis_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
   vorbis_decoder_t *this = (vorbis_decoder_t *) this_gen;
   ogg_packet *op = (ogg_packet *) buf->content;
 
-  /*
-  printf ("vorbisdecoder: before buf=%08x content=%08x op=%08x packet=%08x\n",
-	  buf, buf->content, op, op->packet);
-  */
+#ifdef LOG
+  printf ("libvorbis: decode buf=%08x content=%08x op=%08x packet=%08x flags=%08x\n",
+	  buf, buf->content, op, op->packet, buf->decoder_flags);
+#endif
   
-  if (buf->decoder_flags & BUF_FLAG_PREVIEW)
-    return;
+  if (buf->decoder_flags & BUF_FLAG_PREVIEW) {
+#ifdef LOG
+    printf ("libvorbis: preview buffer\n");
+#endif
+    if (this->header_count) {
 
-  /* if (buf->decoder_info[0] >0) { */
+      if(vorbis_synthesis_headerin(&this->vi,&this->vc,op)<0){ 
+	/* error case; not a vorbis header */
+	printf("libvorbis: this bitstream does not contain vorbis audio data.\n");
+	return;
+      }
 
+      this->header_count--;
 
-  if (this->header_count) {
-
-    if(vorbis_synthesis_headerin(&this->vi,&this->vc,op)<0){ 
-      /* error case; not a vorbis header */
-      printf("libvorbis: this bitstream does not contain Vorbis "
-	      "audio data.\n");
-      /* FIXME: handle error */
-    }
-
-    this->header_count--;
-
-    if (!this->header_count) {
+      if (!this->header_count) {
       
-      int mode = AO_CAP_MODE_MONO;
-
-      {
-	char **ptr=this->vc.user_comments;
-	while(*ptr){
-	  printf("libvorbis: %s\n",*ptr);
-	  ++ptr;
+	int mode = AO_CAP_MODE_MONO;
+	
+	{
+	  char **ptr=this->vc.user_comments;
+	  while(*ptr){
+	    printf("libvorbis: %s\n",*ptr);
+	    ++ptr;
+	  }
+	  printf ("\nlibvorbis: bitstream is %d channel(s), %ldHz\n",
+		  this->vi.channels, this->vi.rate);
+	  printf("libvorbis: encoded by: %s\n\n",this->vc.vendor);
 	}
-	printf ("\nlibvorbis: bitstream is %d channel, %ldHz\n",
-		this->vi.channels, this->vi.rate);
-	printf("libvorbis: encoded by: %s\n\n",this->vc.vendor);
+	
+	switch (this->vi.channels) {
+	case 1: 
+	  mode = AO_CAP_MODE_MONO;
+	  break;
+	case 2: 
+	  mode = AO_CAP_MODE_STEREO;
+	  break;
+	case 4: 
+	  mode = AO_CAP_MODE_4CHANNEL;
+	  break;
+	case 5: 
+	  mode = AO_CAP_MODE_5CHANNEL;
+	  break;
+	case 6: 
+	  mode = AO_CAP_MODE_5_1CHANNEL;
+	  break;
+	default:
+	  printf ("libvorbis: help, %d channels ?!\n",
+		  this->vi.channels);
+	  /* FIXME: handle error */
+	}
+	
+	this->convsize=MAX_NUM_SAMPLES/this->vi.channels;
+
+	if (!this->output_open) {
+	  this->output_open = this->audio_out->open(this->audio_out, 
+						    16,
+						    this->vi.rate,
+						    mode) ;
+	}
+	
+	vorbis_synthesis_init(&this->vd,&this->vi); 
+	vorbis_block_init(&this->vd,&this->vb);     
       }
-
-      switch (this->vi.channels) {
-      case 1: 
-	mode = AO_CAP_MODE_MONO;
-	break;
-      case 2: 
-	mode = AO_CAP_MODE_STEREO;
-	break;
-      case 4: 
-	mode = AO_CAP_MODE_4CHANNEL;
-	break;
-      case 5: 
-	mode = AO_CAP_MODE_5CHANNEL;
-	break;
-      case 6: 
-	mode = AO_CAP_MODE_5_1CHANNEL;
-	break;
-      default:
-	printf ("libvorbis: help, %d channels ?!\n",
-		this->vi.channels);
-	/* FIXME: handle error */
-      }
-
-      this->convsize=MAX_NUM_SAMPLES/this->vi.channels;
-
-      if (!this->output_open) {
-	this->output_open = this->audio_out->open(this->audio_out, 
-						  16,
-						  this->vi.rate,
-						  mode) ;
-      }
-
-      vorbis_synthesis_init(&this->vd,&this->vi); 
-      vorbis_block_init(&this->vd,&this->vb);     
-
     }
+ 
   } else if (this->output_open) {
 
     float **pcm;
     int samples;
-
 
     if(vorbis_synthesis(&this->vb,op)==0) 
       vorbis_synthesis_blockin(&this->vd,&this->vb);
