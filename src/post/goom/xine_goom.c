@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_goom.c,v 1.31 2003/05/31 18:33:28 miguelfreitas Exp $
+ * $Id: xine_goom.c,v 1.32 2003/07/26 17:13:00 tmattern Exp $
  *
  * GOOM post plugin.
  *
@@ -28,6 +28,11 @@
 
 #include <stdio.h>
 
+/********** logging **********/
+#define LOG_MODULE "goom"
+/* #define LOG_VERBOSE */
+/* #define LOG */
+
 #include "config.h"
 #include "xine_internal.h"
 #include "xineutils.h"
@@ -36,9 +41,6 @@
 #include "goom_config.h"
 #include "goom_core.h"
 
-/*
-#define LOG
-*/
 #define NUMSAMPLES  512
 #define FPS          10
 
@@ -88,7 +90,8 @@ struct post_plugin_goom_s {
   int use_asm;
   int csc_method;
 
-  yuv_planes_t yuv;  
+  yuv_planes_t yuv;
+  int frame_to_skip;
 };
 
 typedef struct post_goom_out_s post_goom_out_t;
@@ -269,9 +272,7 @@ static post_plugin_t *goom_open_plugin(post_class_t *class_gen, int inputs,
   this->class = class;
   class->ip   = this;
 
-#ifdef LOG
-  printf("goom: goom_open_plugin\n");
-#endif
+  lprintf("goom: goom_open_plugin\n");
 
   if(xine_config_lookup_entry(class->xine, "post.goom_fps",
                               &fps_entry)) 
@@ -338,7 +339,8 @@ static post_plugin_t *goom_open_plugin(post_class_t *class_gen, int inputs,
   xine_list_append_content(this->post.output, outputv);
   
   this->post.dispose = goom_dispose;
-  
+
+  this->frame_to_skip = 0;
   return &this->post;
 }
 
@@ -483,6 +485,14 @@ static void goom_port_put_buffer (xine_audio_port_t *port_gen,
   uint8_t *dest_ptr;
   int width, height;
   
+  /* HACK: compute a pts using metronom internals */
+  if (!vpts) {
+    metronom_t *metronom = this->stream->metronom;
+    pthread_mutex_lock(&metronom->lock);
+    vpts = metronom->audio_vpts - metronom->vpts_offset;
+    pthread_mutex_unlock(&metronom->lock);
+  }
+                               
   /* make a copy of buf data for private use */
   if( this->buf.mem_size < buf->mem_size ) {
     this->buf.mem = realloc(this->buf.mem, buf->mem_size);
@@ -529,11 +539,8 @@ static void goom_port_put_buffer (xine_audio_port_t *port_gen,
   
     if( this->sample_counter >= this->samples_per_frame &&
         this->data_idx == NUMSAMPLES ) {
-  
       this->data_idx = 0;
       samples_used += this->samples_per_frame;
-
-      goom_frame = (uint8_t *)goom_update (this->data, 0, 0, NULL, NULL);
 
       frame = this->vo_port->get_frame (this->vo_port, this->width_back, this->height_back,
                                         XINE_VO_ASPECT_SQUARE, XINE_IMGFMT_YUY2,
@@ -546,76 +553,85 @@ static void goom_port_put_buffer (xine_audio_port_t *port_gen,
       frame->duration = 90000 * this->samples_per_frame / this->sample_rate;
       this->sample_counter -= this->samples_per_frame;
   
-      /* Try to be fast */
-      dest_ptr = frame -> base[0];
-      goom_frame_end = goom_frame + 4 * (this->width_back * this->height_back);
+        /* Try to be fast */
+      if (!this->frame_to_skip) {
+        goom_frame = (uint8_t *)goom_update (this->data, 0, 0, NULL, NULL);
+        dest_ptr = frame -> base[0];
+        goom_frame_end = goom_frame + 4 * (this->width_back * this->height_back);
 
-      if ((this->csc_method == 1) && 
-          (xine_mm_accel() & MM_ACCEL_X86_MMX)) {
-        int plane_ptr = 0;
+        if ((this->csc_method == 1) && 
+            (xine_mm_accel() & MM_ACCEL_X86_MMX)) {
+          int plane_ptr = 0;
 
-        while (goom_frame < goom_frame_end) {
-          uint8_t r, g, b;
+          while (goom_frame < goom_frame_end) {
+            uint8_t r, g, b;
       
-          /* don't take endianness into account since MMX is only available
-           * on Intel processors */
-          b = *goom_frame; goom_frame++;
-          g = *goom_frame; goom_frame++;
-          r = *goom_frame; goom_frame += 2;
+            /* don't take endianness into account since MMX is only available
+             * on Intel processors */
+            b = *goom_frame; goom_frame++;
+            g = *goom_frame; goom_frame++;
+            r = *goom_frame; goom_frame += 2;
 
-          this->yuv.y[plane_ptr] = COMPUTE_Y(r, g, b);
-          this->yuv.u[plane_ptr] = COMPUTE_U(r, g, b);
-          this->yuv.v[plane_ptr] = COMPUTE_V(r, g, b);
-          plane_ptr++;
-        }
+            this->yuv.y[plane_ptr] = COMPUTE_Y(r, g, b);
+            this->yuv.u[plane_ptr] = COMPUTE_U(r, g, b);
+            this->yuv.v[plane_ptr] = COMPUTE_V(r, g, b);
+            plane_ptr++;
+          }
 
-        yuv444_to_yuy2(&this->yuv, frame->base[0], frame->pitches[0]);
+          yuv444_to_yuy2(&this->yuv, frame->base[0], frame->pitches[0]);
 
-      } else {
+        } else {
 
-        while (goom_frame < goom_frame_end) {
-          uint8_t r1, g1, b1, r2, g2, b2;
+          while (goom_frame < goom_frame_end) {
+            uint8_t r1, g1, b1, r2, g2, b2;
       
 #ifdef __BIG_ENDIAN__
-          goom_frame ++;
-          r1 = *goom_frame; goom_frame++;
-          g1 = *goom_frame; goom_frame++;
-          b1 = *goom_frame; goom_frame += 2;
-          r2 = *goom_frame; goom_frame++;
-          g2 = *goom_frame; goom_frame++;
-          b2 = *goom_frame; goom_frame++;
+            goom_frame ++;
+            r1 = *goom_frame; goom_frame++;
+            g1 = *goom_frame; goom_frame++;
+            b1 = *goom_frame; goom_frame += 2;
+            r2 = *goom_frame; goom_frame++;
+            g2 = *goom_frame; goom_frame++;
+            b2 = *goom_frame; goom_frame++;
 #else
-          b1 = *goom_frame; goom_frame++;
-          g1 = *goom_frame; goom_frame++;
-          r1 = *goom_frame; goom_frame += 2;
-          b2 = *goom_frame; goom_frame++;
-          g2 = *goom_frame; goom_frame++;
-          r2 = *goom_frame; goom_frame += 2;
+            b1 = *goom_frame; goom_frame++;
+            g1 = *goom_frame; goom_frame++;
+            r1 = *goom_frame; goom_frame += 2;
+            b2 = *goom_frame; goom_frame++;
+            g2 = *goom_frame; goom_frame++;
+            r2 = *goom_frame; goom_frame += 2;
 #endif
       
-          *dest_ptr = COMPUTE_Y(r1, g1, b1);
-          dest_ptr++;
-          *dest_ptr = COMPUTE_U(r1, g1, b1);
-          dest_ptr++;
-          *dest_ptr = COMPUTE_Y(r2, g2, b2);
-          dest_ptr++;
-          *dest_ptr = COMPUTE_V(r2, g2, b2);
-          dest_ptr++;
+            *dest_ptr = COMPUTE_Y(r1, g1, b1);
+            dest_ptr++;
+            *dest_ptr = COMPUTE_U(r1, g1, b1);
+            dest_ptr++;
+            *dest_ptr = COMPUTE_Y(r2, g2, b2);
+            dest_ptr++;
+            *dest_ptr = COMPUTE_V(r2, g2, b2);
+            dest_ptr++;
+          }
         }
-      }
 
-      frame->draw(frame, stream);
+        this->frame_to_skip = frame->draw(frame, stream);
+        if (this->frame_to_skip) {
+          lprintf("xine_goom: skip %d frames\n", this->frame_to_skip);
+        }
+      } else {
+        this->frame_to_skip--;
+        frame->bad_frame = 1;
+        frame->draw(frame, stream);
+      }
       frame->free(frame);
       
       width  = this->width;
       height = this->height;
       if ((width != this->width_back) || (height != this->height_back)) {
-        goom_close();
-        goom_init (this->width, this->height, 0);
-        this->width_back = width;
-        this->height_back = height;
-      }
-      
+          goom_close();
+          goom_init (this->width, this->height, 0);
+          this->width_back = width;
+          this->height_back = height;
+        }
     }
   } while( this->sample_counter >= this->samples_per_frame );
 }
