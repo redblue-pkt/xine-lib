@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.90 2003/03/17 15:17:08 mroi Exp $
+ * $Id: audio_alsa_out.c,v 1.91 2003/04/17 17:04:12 siggi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -178,8 +178,8 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
   snd_pcm_sframes_t     buffer_size;
   snd_pcm_sframes_t     period_size;
   int                   err, dir;
- // int                 open_mode=1; //NONBLOCK
-  int                   open_mode=0; //BLOCK
+  int                 open_mode=1; /* NONBLOCK */
+  /* int                   open_mode=0;  BLOCK */
 
   snd_pcm_hw_params_alloca(&params);
   snd_pcm_sw_params_alloca(&swparams);
