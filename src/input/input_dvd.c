@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.146 2003/04/06 13:19:59 mroi Exp $
+ * $Id: input_dvd.c,v 1.147 2003/04/06 23:44:59 guenter Exp $
  *
  */
 
@@ -1290,7 +1290,10 @@ static input_plugin_t *open_plugin (input_class_t *class_gen, xine_stream_t *str
       this->opened = 0; 
       ret = dvdnav_open(&this->dvdnav, intended_dvd_device);
       if(ret == DVDNAV_STATUS_ERR) {
-        printf("input_dvd: Error opening DVD device\n");
+	if (this->stream->xine->verbosity >= XINE_VERBOSITY_LOG) 
+	  printf("input_dvd: Error opening DVD device\n");
+	xine_message (this->stream, XINE_MSG_READ_ERROR,
+		      intended_dvd_device, NULL);
         return 0;
       }
       this->opened=1;
@@ -1299,7 +1302,10 @@ static input_plugin_t *open_plugin (input_class_t *class_gen, xine_stream_t *str
   } else {
     ret = dvdnav_open(&this->dvdnav, intended_dvd_device);
     if(ret == DVDNAV_STATUS_ERR) {
-      printf("input_dvd: Error opening DVD device\n");
+      if (this->stream->xine->verbosity >= XINE_VERBOSITY_LOG) 
+	printf("input_dvd: Error opening DVD device\n");
+      xine_message (this->stream, XINE_MSG_READ_ERROR,
+		    intended_dvd_device, NULL);
       return 0;
     }
     this->opened=1;
@@ -1570,6 +1576,9 @@ static void *init_class (xine_t *xine, void *data) {
 
 /*
  * $Log: input_dvd.c,v $
+ * Revision 1.147  2003/04/06 23:44:59  guenter
+ * some more dvd error reporting
+ *
  * Revision 1.146  2003/04/06 13:19:59  mroi
  * * fix input_time reporting for PG based seeking
  *   (with more than one cell per PG, only the first cell starts at 0; for the others,
