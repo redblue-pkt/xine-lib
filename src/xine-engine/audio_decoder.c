@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.51 2001/11/10 13:48:03 guenter Exp $
+ * $Id: audio_decoder.c,v 1.52 2001/11/13 21:47:59 heikos Exp $
  *
  *
  * functions that implement audio decoding
@@ -52,14 +52,17 @@ void *audio_decoder_loop (void *this_gen) {
 
   while (running) {
 
-    /* printf ("audio_loop: waiting for package...\n");  */
+#ifdef AUDIO_DECODER_LOG
+    printf ("audio_loop: waiting for package...\n");  
+#endif
 
     buf = this->audio_fifo->get (this->audio_fifo);
 
-    /*
+    
+#ifdef AUDIO_DECODER_LOG
     printf ("audio_loop: got package pts = %d, type = %08x\n", 
 	    buf->PTS, buf->type); 
-    */
+#endif    
 
     if (buf->input_pos)
       this->cur_input_pos = buf->input_pos;
@@ -140,6 +143,7 @@ void *audio_decoder_loop (void *this_gen) {
       if (this->cur_audio_decoder_plugin) {
 	this->cur_audio_decoder_plugin->close (this->cur_audio_decoder_plugin);
 	this->cur_audio_decoder_plugin = NULL;
+	this->audio_type = 0;
       }
 
       this->metronom->expect_audio_discontinuity (this->metronom);
@@ -274,7 +278,7 @@ void audio_decoder_init (xine_t *this) {
     return;
   }
   
-  this->audio_fifo = fifo_buffer_new (1500, 8192);
+  this->audio_fifo = fifo_buffer_new (20, 8192);
   this->audio_channel = -1;
   this->audio_channel_suggested = -1;
   this->audio_type = 0;

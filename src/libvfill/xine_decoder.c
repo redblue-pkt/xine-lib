@@ -107,6 +107,9 @@ static void videofill_decode_data (video_decoder_t *this_gen, buf_element_t *buf
   /* printf ("\n"); */
 }
 
+static void videofill_flush (video_decoder_t *this_gen) {
+}
+
 static void videofill_close (video_decoder_t *this_gen) {
 
   videofill_decoder_t *this = (videofill_decoder_t *) this_gen;
@@ -122,7 +125,7 @@ video_decoder_t *init_video_decoder_plugin (int iface_version, config_values_t *
 
   videofill_decoder_t *this ;
 
-  if (iface_version != 2) {
+  if (iface_version != 3) {
     printf( "videofill: plugin doesn't support plugin API version %d.\n"
 	    "videofill: this means there's a version mismatch between xine and this "
 	    "videofill: decoder plugin.\nInstalling current plugins should help.\n",
@@ -132,10 +135,11 @@ video_decoder_t *init_video_decoder_plugin (int iface_version, config_values_t *
 
   this = (videofill_decoder_t *) malloc (sizeof (videofill_decoder_t));
 
-  this->video_decoder.interface_version   = 2;
+  this->video_decoder.interface_version   = 3;
   this->video_decoder.can_handle          = videofill_can_handle;
   this->video_decoder.init                = videofill_init;
   this->video_decoder.decode_data         = videofill_decode_data;
+  this->video_decoder.flush               = videofill_flush;
   this->video_decoder.close               = videofill_close;
   this->video_decoder.get_identifier      = videofill_get_id;
   this->video_decoder.priority            = 2;

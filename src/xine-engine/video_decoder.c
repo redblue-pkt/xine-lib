@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.62 2001/11/10 13:48:03 guenter Exp $
+ * $Id: video_decoder.c,v 1.63 2001/11/13 21:47:59 heikos Exp $
  *
  */
 
@@ -32,6 +32,10 @@
 #include "xine_internal.h"
 #include "monitor.h"
 #include <sched.h>
+
+/*
+#define VIDEO_DECODER_LOG
+*/
 
 static spu_decoder_t* update_spu_decoder(xine_t *this, int type) {
   int streamtype = (type>>16) & 0xFF;
@@ -68,15 +72,41 @@ void *video_decoder_loop (void *this_gen) {
 
   while (running) {
 
-    /* printf ("video_decoder: getting buffer...\n");  */
+#ifdef VIDEO_DECODER_LOG
+    printf ("video_decoder: getting buffer...\n");  
+#endif
+
+    /*
+
+      I dont know if this will ever work - highly experimental,
+      let xine itself detect when to insert still images
+
+    if (!this->video_fifo->first) {
+
+#ifdef VIDEO_DECODER_LOG
+      printf ("video_decoder: ... inserting still ...\n");  
+#endif
+
+      buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
+
+      buf->type = BUF_VIDEO_FILL ;
+      buf->PTS  = 0;
+      buf->SCR  = 0;
+      this->cur_input_pos = 0;
+      this->cur_input_time = 0;
+
+    } else */
 
     buf = this->video_fifo->get (this->video_fifo);
+
     if (buf->input_pos)
       this->cur_input_pos = buf->input_pos;
     if (buf->input_time)
       this->cur_input_time = buf->input_time;
 
-    /* printf ("video_decoder: got buffer 0x%08x\n", buf->type);      */
+#ifdef VIDEO_DECODER_LOG
+    printf ("video_decoder: got buffer 0x%08x\n", buf->type);      
+#endif
 
     switch (buf->type & 0xffff0000) {
     case BUF_CONTROL_START:
@@ -166,11 +196,8 @@ void *video_decoder_loop (void *this_gen) {
     case BUF_CONTROL_AVSYNC_RESET:
       printf ("video_decoder: discontinuity ahead\n");
 
-      /* fixme ? */
-      if (this->cur_video_decoder_plugin) {
-	this->cur_video_decoder_plugin->close (this->cur_video_decoder_plugin);
-	this->cur_video_decoder_plugin = NULL;
-      }
+      if (this->cur_video_decoder_plugin) 
+	this->cur_video_decoder_plugin->flush (this->cur_video_decoder_plugin);
 
       this->metronom->expect_video_discontinuity (this->metronom);
       break;

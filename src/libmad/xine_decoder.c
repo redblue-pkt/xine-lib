@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.8 2001/11/10 13:48:02 guenter Exp $
+ * $Id: xine_decoder.c,v 1.9 2001/11/13 21:47:58 heikos Exp $
  *
  * stuff needed to turn libmad into a xine decoder plugin
  */
@@ -246,7 +246,7 @@ audio_decoder_t *init_audio_decoder_plugin (int iface_version, config_values_t *
 
   mad_decoder_t *this ;
 
-  if (iface_version != 2) {
+  if (iface_version != 3) {
     printf( "libmad: plugin doesn't support plugin API version %d.\n"
 	    "libmad: this means there's a version mismatch between xine and this "
 	    "libmad: decoder plugin.\nInstalling current plugins should help.\n",
@@ -257,7 +257,7 @@ audio_decoder_t *init_audio_decoder_plugin (int iface_version, config_values_t *
 
   this = (mad_decoder_t *) malloc (sizeof (mad_decoder_t));
 
-  this->audio_decoder.interface_version   = 2;
+  this->audio_decoder.interface_version   = 3;
   this->audio_decoder.can_handle          = mad_can_handle;
   this->audio_decoder.init                = mad_init;
   this->audio_decoder.decode_data         = mad_decode_data;

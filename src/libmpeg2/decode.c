@@ -119,8 +119,9 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 	      picture->current_frame->free (picture->current_frame);
 	      picture->current_frame = NULL;
 	      picture->throwaway_frame = NULL;
-	    } else if (picture->forward_reference_frame) {
+	    } else if (picture->forward_reference_frame && !picture->forward_reference_frame->drawn) {
 	      mpeg2dec->frames_to_drop = picture->forward_reference_frame->draw (picture->forward_reference_frame);
+	      picture->forward_reference_frame->drawn = 1;
 	    }
 
 #ifdef ARCH_X86
@@ -256,6 +257,7 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 		    picture->backward_reference_frame = picture->current_frame;
 		}
 		picture->current_frame->bad_frame = 0;
+		picture->current_frame->drawn = 0;
 		picture->current_frame->PTS = mpeg2dec->pts;
 		picture->current_frame->SCR = mpeg2dec->scr;
 		mpeg2dec->pts = 0;
@@ -354,6 +356,21 @@ int mpeg2_decode_data (mpeg2dec_t * mpeg2dec, uint8_t * current, uint8_t * end,
     return ret;
 }
 
+void mpeg2_flush (mpeg2dec_t * mpeg2dec) {
+
+    picture_t *picture = mpeg2dec->picture;
+
+    if (picture->backward_reference_frame && !picture->backward_reference_frame->drawn) {
+      printf ("libmpeg2: blasting out backward reference frame on flush\n");
+      picture->backward_reference_frame->PTS = 0;
+      picture->backward_reference_frame->SCR = mpeg2dec->scr;
+      picture->backward_reference_frame->bad_frame = 0;
+      picture->backward_reference_frame->drawn = 1;
+      picture->backward_reference_frame->draw (picture->backward_reference_frame);
+    }
+
+}
+
 void mpeg2_close (mpeg2dec_t * mpeg2dec)
 {
     picture_t *picture = mpeg2dec->picture;
@@ -389,7 +406,7 @@ void mpeg2_close (mpeg2dec_t * mpeg2dec)
       picture->throwaway_frame->free (picture->throwaway_frame);
     }
 
-    if (picture->backward_reference_frame) {
+    if (picture->backward_reference_frame && !picture->backward_reference_frame->drawn) {
       printf ("libmpeg2: blasting out backward reference frame on close\n");
       picture->backward_reference_frame->PTS = 0;
       picture->backward_reference_frame->SCR = mpeg2dec->scr;

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg.c,v 1.42 2001/11/10 13:48:02 guenter Exp $
+ * $Id: demux_mpeg.c,v 1.43 2001/11/13 21:47:57 heikos Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  * reads streams of variable blocksizes
@@ -518,6 +518,29 @@ static uint32_t parse_pack(demux_mpeg_t *this) {
      } else
        buf = read_bytes (this, 3) ;
   }
+
+  /* discontinuity ? */
+  {  
+    int32_t scr_diff = scr - this->last_scr;
+    if (abs(scr_diff) > 60000) {
+      
+      buf_element_t *buf;
+
+      buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
+      buf->type = BUF_CONTROL_AVSYNC_RESET;
+      buf->SCR  = scr;
+      this->video_fifo->put (this->video_fifo, buf);
+
+      if (this->audio_fifo) {
+	buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
+	buf->type = BUF_CONTROL_AVSYNC_RESET;
+	buf->SCR  = scr;
+	this->audio_fifo->put (this->audio_fifo, buf);
+      }
+    }
+    this->last_scr = scr;
+  }
+
 
   /* system header */
 

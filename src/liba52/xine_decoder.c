@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.7 2001/11/10 13:48:02 guenter Exp $
+ * $Id: xine_decoder.c,v 1.8 2001/11/13 21:47:58 heikos Exp $
  *
  * stuff needed to turn liba52 into a xine decoder plugin
  */
@@ -469,7 +469,7 @@ audio_decoder_t *init_audio_decoder_plugin (int iface_version, config_values_t *
 
   a52dec_decoder_t *this ;
 
-  if (iface_version != 2) {
+  if (iface_version != 3) {
     printf( "liba52: plugin doesn't support plugin API version %d.\n"
 	    "liba52: this means there's a version mismatch between xine and this "
 	    "liba52: decoder plugin.\nInstalling current plugins should help.\n",
@@ -480,7 +480,7 @@ audio_decoder_t *init_audio_decoder_plugin (int iface_version, config_values_t *
   this = (a52dec_decoder_t *) malloc (sizeof (a52dec_decoder_t));
   memset(this, 0, sizeof (a52dec_decoder_t));
 
-  this->audio_decoder.interface_version   = 2;
+  this->audio_decoder.interface_version   = 3;
   this->audio_decoder.can_handle          = a52dec_can_handle;
   this->audio_decoder.init                = a52dec_init;
   this->audio_decoder.decode_data         = a52dec_decode_data;

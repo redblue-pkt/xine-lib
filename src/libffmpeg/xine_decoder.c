@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.17 2001/11/07 21:35:01 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.18 2001/11/13 21:47:58 heikos Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -318,6 +318,10 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
   }
 }
 
+static void ff_flush (video_decoder_t *this_gen) {
+
+}
+
 static void ff_close (video_decoder_t *this_gen) {
 
   ff_decoder_t *this = (ff_decoder_t *) this_gen;
@@ -339,7 +343,7 @@ video_decoder_t *init_video_decoder_plugin (int iface_version, config_values_t *
 
   ff_decoder_t *this ;
 
-  if (iface_version != 2) {
+  if (iface_version != 3) {
     printf( "ffmpeg: plugin doesn't support plugin API version %d.\n"
 	    "ffmpeg: this means there's a version mismatch between xine and this "
 	    "ffmpeg: decoder plugin.\nInstalling current plugins should help.\n",
@@ -350,10 +354,11 @@ video_decoder_t *init_video_decoder_plugin (int iface_version, config_values_t *
 
   this = (ff_decoder_t *) malloc (sizeof (ff_decoder_t));
 
-  this->video_decoder.interface_version   = 2;
+  this->video_decoder.interface_version   = 3;
   this->video_decoder.can_handle          = ff_can_handle;
   this->video_decoder.init                = ff_init;
   this->video_decoder.decode_data         = ff_decode_data;
+  this->video_decoder.flush               = ff_flush;
   this->video_decoder.close               = ff_close;
   this->video_decoder.get_identifier      = ff_get_id;
   this->video_decoder.priority            = 5;

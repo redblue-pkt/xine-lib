@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.52 2001/11/10 13:48:03 guenter Exp $
+ * $Id: video_out.c,v 1.53 2001/11/13 21:47:59 heikos Exp $
  *
  */
 
@@ -35,6 +35,10 @@
 #include "video_out.h"
 #include "utils.h"
 #include "monitor.h"
+
+/*
+#define VIDEO_OUT_LOG
+*/
 
 #define NUM_FRAME_BUFFERS     15
 
@@ -201,8 +205,10 @@ static void *video_out_loop (void *this_gen) {
     cur_pts = this->metronom->get_current_time (this->metronom);
     
     xprintf (VERBOSE|VIDEO, "video_out : video loop iteration at audio pts %d\n", cur_pts);
-    /*printf ("video_out : video loop iteration at audio pts %d\n", cur_pts);
-    fflush (stdout); */
+    
+#ifdef VIDEO_OUT_LOG
+    printf ("video_out : video loop iteration at audio pts %d\n", cur_pts);
+#endif
     
     img = this->display_img_buf_queue->first;
     
@@ -226,12 +232,9 @@ static void *video_out_loop (void *this_gen) {
 		 "it's too old (diff : %d > %d).\n",pts,diff,
 		 this->pts_per_half_frame);
 	
-	/*
-	fprintf (stderr,
-		 "video_out : throwing away image with pts %d because "
+	printf ( "video_out : throwing away image with pts %d because "
 		 "it's too old (diff : %d > %d).\n",pts,diff,
 		 this->pts_per_half_frame);
-		 */
 
 	this->num_frames_discarded++;
 
@@ -256,10 +259,9 @@ static void *video_out_loop (void *this_gen) {
      * time to display frame 0 ?
      */
 
-    /*
+#ifdef VIDEO_OUT_LOG
     printf ("video_out: diff %d\n", diff);
-    fflush(stdout);
-    */
+#endif
 
     if (diff<0) {
       profiler_stop_count (prof_video_out);
@@ -271,9 +273,12 @@ static void *video_out_loop (void *this_gen) {
      * remove frame from display queue and show it
      */
     
-    xprintf (VERBOSE|VIDEO, "video_out : displaying image with pts = %d (diff=%d)\n", pts, diff);
+#ifdef VIDEO_OUT_LOG
+    printf ("video_out : displaying image with pts = %d (diff=%d)\n", pts, diff);
+#endif
     
     img = vo_remove_from_img_buf_queue (this->display_img_buf_queue);
+
 
     if (!img) {
       profiler_stop_count (prof_video_out);
@@ -287,7 +292,9 @@ static void *video_out_loop (void *this_gen) {
     img->display_locked = 0;
     pthread_mutex_unlock (&img->mutex);
 
-    xprintf (VERBOSE|VIDEO, "video_out : passing to video driver, image with pts = %d\n", pts);
+#ifdef VIDEO_OUT_LOG
+    printf ("video_out : passing to video driver, image with pts = %d\n", pts);
+#endif
 
     if (this->overlay_source) {
       /* This is the only way for the spu decoder to get pts values
@@ -471,10 +478,10 @@ static int vo_frame_draw (vo_frame_t *img) {
 
   pic_vpts = this->metronom->got_video_frame (this->metronom, img->PTS, img->SCR);
 
-  /*
+#ifdef VIDEO_OUT_LOG
   printf ("video_out: got image %d. vpts for picture is %d (pts was %d)\n",
 	  img, pic_vpts, img->PTS);
-  */
+#endif
 
   img->PTS = pic_vpts;
   this->num_frames_delivered++;

@@ -66,3 +66,4 @@ void mpeg2_find_sequence_header (mpeg2dec_t * mpeg2dec,
 				 uint8_t * data_start, uint8_t * data_end);
 
 
+void mpeg2_flush (mpeg2dec_t * mpeg2dec);

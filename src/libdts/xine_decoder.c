@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.2 2001/11/10 13:48:02 guenter Exp $
+ * $Id: xine_decoder.c,v 1.3 2001/11/13 21:47:58 heikos Exp $
  *
  * 04-09-2001 DTS passtrough  (C) Joachim Koenig 
  *
@@ -113,7 +113,7 @@ audio_decoder_t *init_audio_decoder_plugin (int iface_version, config_values_t *
 
   dts_decoder_t *this ;
 
-  if (iface_version != 2) {
+  if (iface_version != 3) {
     printf( "libdts: plugin doesn't support plugin API version %d.\n"
 	    "libdts: this means there's a version mismatch between xine and this "
 	    "libdts: decoder plugin.\nInstalling current plugins should help.\n",
@@ -123,7 +123,7 @@ audio_decoder_t *init_audio_decoder_plugin (int iface_version, config_values_t *
 
   this = (dts_decoder_t *) malloc (sizeof (dts_decoder_t));
 
-  this->audio_decoder.interface_version   = 2;
+  this->audio_decoder.interface_version   = 3;
   this->audio_decoder.can_handle          = dts_can_handle;
   this->audio_decoder.init                = dts_init;
   this->audio_decoder.decode_data         = dts_decode_data;

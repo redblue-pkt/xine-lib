@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.40 2001/11/10 13:48:03 guenter Exp $
+ * $Id: w32codec.c,v 1.41 2001/11/13 21:47:59 heikos Exp $
  *
  * routines for using w32 codecs
  *
@@ -533,6 +533,9 @@ static void w32v_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
   }
 }
 
+static void w32v_flush (video_decoder_t *this_gen) {
+}
+
 static void w32v_close (video_decoder_t *this_gen) {
 
   w32v_decoder_t *this = (w32v_decoder_t *) this_gen;
@@ -803,7 +806,7 @@ video_decoder_t *init_video_decoder_plugin (int iface_version, config_values_t *
 
   w32v_decoder_t *this ;
 
-  if (iface_version != 2) {
+  if (iface_version != 3) {
     printf( "w32codec: plugin doesn't support plugin API version %d.\n"
 	    "w32codec: this means there's a version mismatch between xine and this "
 	    "w32codec: decoder plugin.\nInstalling current input plugins should help.\n",
@@ -816,10 +819,11 @@ video_decoder_t *init_video_decoder_plugin (int iface_version, config_values_t *
 
   this = (w32v_decoder_t *) malloc (sizeof (w32v_decoder_t));
 
-  this->video_decoder.interface_version   = 2;
+  this->video_decoder.interface_version   = 3;
   this->video_decoder.can_handle          = w32v_can_handle;
   this->video_decoder.init                = w32v_init;
   this->video_decoder.decode_data         = w32v_decode_data;
+  this->video_decoder.flush               = w32v_flush;
   this->video_decoder.close               = w32v_close;
   this->video_decoder.get_identifier      = w32v_get_id;
   this->video_decoder.priority            = 1;
@@ -835,7 +839,7 @@ audio_decoder_t *init_audio_decoder_plugin (int iface_version, config_values_t *
   w32a_decoder_t *this ;
 
   
-  if (iface_version != 2) {
+  if (iface_version != 3) {
     printf( "w32codec: plugin doesn't support plugin API version %d.\n"
 	    "w32codec: this means there's a version mismatch between xine and this "
 	    "w32codec: decoder plugin.\nInstalling current input plugins should help.\n",
@@ -848,7 +852,7 @@ audio_decoder_t *init_audio_decoder_plugin (int iface_version, config_values_t *
 
   this = (w32a_decoder_t *) malloc (sizeof (w32a_decoder_t));
 
-  this->audio_decoder.interface_version   = 2;
+  this->audio_decoder.interface_version   = 3;
   this->audio_decoder.can_handle          = w32a_can_handle;
   this->audio_decoder.init                = w32a_init;
   this->audio_decoder.decode_data         = w32a_decode_data;
