@@ -1216,9 +1216,9 @@
      the complicated way by editing the config file yourself which is located
      in your home directory in <filename>.gxine</filename> or <filename>.xine</filename>:
      <programlisting>
-&nbsp;&nbsp;&nbsp;audio.four_channel:1
-&nbsp;&nbsp;&nbsp;audio.five_channel:1
-&nbsp;&nbsp;&nbsp;audio.five_lfe_channel:0</programlisting>
+&nbsp;&nbsp;&nbsp;audio.speaker_arrangement:4
+&nbsp;&nbsp;&nbsp;audio.speaker_arrangement:4.1
+&nbsp;&nbsp;&nbsp;audio.speaker_arrangement:5.1</programlisting>
     </para>
    </sect2>
 
@@ -1229,7 +1229,7 @@
      surround (see above). You can either use the config dialog or edit
      the config file (<filename>~/.xine/config</filename> or <filename>~/.gxine/config</filename>)
      yourself:
-     <programlisting>&nbsp;&nbsp;&nbsp;audio.a52_pass_through:1</programlisting>
+     <programlisting>&nbsp;&nbsp;&nbsp;audio.speaker_arrangement:A52_Passthru</programlisting>
     </para>
    </sect2>
 

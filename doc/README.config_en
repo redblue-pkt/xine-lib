@@ -61,11 +61,12 @@ audio.esd_latency               latency between time of audio sample
                                 use this to manually adjust a/v sync
                                 for esd output
 
-audio.five_lfe_channel          1/0 : enable 5.1-channel playback
-
-audio.five_channel              1/0 : enable 5-channel playback
-
-audio.four_channel              1/0 : enable 4-channel playback
+audio.speaker_arrangement       audio speaker arrangement.
+                                (e.g. Mono, Stereo, Headphones, A52_Passthru, Surround21,
+                                 Surround3, Surround4, Surround41, Surround5, Surround51,
+                                 Surround6, Surround61, Surround71.)
+                                Not supported yet: Headphones, Surround21, Surround3,
+                                                   Surround6, Surround61, Surround71.
 
 audio.mixer_name                Name of mixer device.
 
@@ -129,8 +130,6 @@ codec.a52_dynrng                1/0: enable a/52 dynamic range compression
                                 (normalize audio - flatten dynamics)
 
 codec.a52_level                 0..~200% : a/52 volume control
-
-codec.a52_pass_through          1/0 : enable a/52 output via spdif port
 
 codec.a52_surround_downmix      Enable audio downmixing to 2.0 surround stereo.
                                 (0) off [default]
@@ -278,4 +277,4 @@ video.num_buffers               Number of video buffers (8k each) xine
 
 --- 
 version of this file:
- $Id: README.config_en,v 1.4 2003/10/12 19:07:40 mroi Exp $
+ $Id: README.config_en,v 1.5 2004/04/30 13:15:51 jcdutton Exp $
