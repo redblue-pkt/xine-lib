@@ -24,15 +24,22 @@ AC_DEFUN([AC_TEST_LIBXV],
         [Define this if you have libXv installed])
 
      ac_have_xv="yes"
-     if test x$XV_LIB = "xlibXv.a" ; then
-     
+     case x$XV_LIB in
+      x*.a)
         AC_DEFINE(HAVE_XV_STATIC,
                 1,
                 [Define this if you have libXv.a])
         ac_have_xv_static="yes"
         XV_LIB="$xv_path/$XV_LIB"
-        
-  fi],
+        ;;
+      x*.so)
+        XV_LIB=`echo $XV_LIB | sed 's/^lib/-l/; s/\.so$//'`
+        ;;
+      *)
+        AC_MSG_ERROR([sorry, I don't know about $XV_LIB])
+        ;;
+     esac
+    ],
      ,
   [$X_LIBS $X_PRE_LIBS -lXext $X_EXTRA_LIBS])
 
