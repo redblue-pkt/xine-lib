@@ -340,6 +340,16 @@ dnl but only dynamic linking is possible when using libtool < 1.4.0
 
 AC_PREREQ_LIBTOOL(1.4.0, xv_lib="libXv.a", xv_lib="libXv.so")
 
+dnl ---------------------------------------------
+dnl Checks for XvMC extension
+dnl ---------------------------------------------
+dnl static linking with libXvMC is preferred!
+dnl but only dynamic linking is possible when using libtool < 1.4.0
+
+AC_PREREQ_LIBTOOL(1.4.0, xvmc_lib="libXvMC.a", xvmc_lib="libXvMC.so")
+
+AC_PREREQ_LIBTOOL(1.4.0, xvmc_lib_nv="libXvMCNVIDIA.a", xv_lib_nv="libXvMCNVIDIA_dynamic.so.1")
+
 
 dnl ---------------------------------------------
 dnl Check for OpenGL & [GLut | GLU]
@@ -398,6 +408,14 @@ case "$host_or_hostalias" in
 	if test "$xv_lib" = "libXv.a"; then
 	  echo "warning: hppa linker - disabling static libXv"
 	  xv_lib="libXv.so"
+	fi
+	if test "$xvmc_lib" = "libXvMC.a"; then
+	  echo "warning: hppa linker - disabling static libXvMC"
+	  xvmc_lib="libXvMC.so"
+	fi
+	if test "$xvmc_lib_nv" = "libXvMCNVIDIA.a"; then
+	  echo "warning: hppa linker - disabling static libXvMCNVIDIA"
+	  xvmc_lib_nv="libXvMCNVIDIA_dynamic.so.1"
 	fi
 	;;
 
@@ -470,6 +488,44 @@ AC_SUBST(XV_LIB)
 AC_SUBST(EXTRA_X_LIBS)
 AC_SUBST(EXTRA_X_CFLAGS)
 
+AC_ARG_WITH(xvmc-path,[  --with-xvmc-path=path     Where $xvmc_lib is installed],
+            xvmc_path="$withval", xvmc_path="/usr/X11R6/lib")
+
+AC_CHECK_LIB(XvMC, XvMCQueryExtension, 
+             [ AC_MSG_CHECKING(for $xvmc_lib location)
+               if test -f "$xvmc_path/$xvmc_lib_nv"; then
+               if test -f "$xvmc_path/$xvmc_lib"; then
+                 AC_MSG_RESULT(found in $xvmc_path)
+                 XVMC_LIB="-L$xvmc_path -lXvMC -lXvMCNVIDIA"
+	         AC_DEFINE(HAVE_XVMC,1,[Define this if you have libXvMC installed])
+	         ac_have_xvmc="yes"
+		 if test x$xvmc_lib = "xlibXvMC.a" ; then
+		   AC_DEFINE(HAVE_XVMC_STATIC,1,[Define this if you have libXvMC.a])
+		 fi
+               else
+                 AC_MSG_RESULT(not found in $xvmc_path)
+	         echo
+                 echo "****************************************************************"
+		 echo "* if you don't have a libXvMC.so on your system, use:          *"
+		 echo "* ld --whole-archive -shared -o libXvMC.so.1 libXvMC.a         *"
+		 echo "* then: ln -s libXvMC.so.1 libXvMC.so                          *"
+	         echo "* to create it or try to use --with-xvmc-path to set the       *"
+                 echo "* location of libXvMC.so                                         *"
+                 echo "****************************************************************"
+	         echo
+		 fi
+               fi ],, [$X_LIBS $X_PRE_LIBS -lXext $X_EXTRA_LIBS])
+	   
+AM_CONDITIONAL(HAVE_XVMC, test x$ac_have_xvmc = "xyes")
+AM_CONDITIONAL(HAVE_XVMC_STATIC, test x$ac_have_xvmc = "xyes" -a x$xvmc_lib = "xlibXvMC.a")
+dnl
+dnl xine_check use XvMC functions API.
+dnl
+if test x$ac_have_xvmc = "xyes"; then
+  EXTRA_X_LIBS="-L$xvmc_path $XVMC_LIBS -lXext"
+  EXTRA_X_CFLAGS=""
+fi
+AC_SUBST(XVMC_LIB)
 
 dnl ---------------------------------------------
 dnl Checks for Xinerama extension
@@ -1726,6 +1782,22 @@ if test x"$no_x" != "xyes"; then
       echo "   - Xv (XVideo *static*)"
     else
       echo "   - Xv (XVideo *shared*)"
+    fi
+  fi
+  dnl XvMC
+  if test x$ac_have_xvmc = "xyes"; then
+    if test x$xvmc_lib="xlibXvMC.a"; then
+      echo "   - XvMC (XVideo *static*)"
+    else
+      echo "   - XvMC (XVideo *shared*)"
+    fi
+  fi
+  dnl XvMCNVIDIA
+  if test x$ac_have_xvmc = "xyes"; then
+    if test x$xvmc_lib="xlibXvMCNVIDIA.a"; then
+      echo "   - XvMCNVIDIA (XVideo *static*)"
+    else
+      echo "   - XvMCNVIDIA (XVideo *shared*)"
     fi
   fi
   if test x$ac_have_opengl = "xyes" -a x$ac_have_glut="xyes" -o \
