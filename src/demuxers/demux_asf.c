@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.166 2004/12/20 21:22:19 mroi Exp $
+ * $Id: demux_asf.c,v 1.167 2004/12/24 17:43:38 hadess Exp $
  *
  * demultiplexer for asf streams
  *
@@ -510,6 +510,8 @@ static int asf_read_header (demux_asf_t *this) {
               asf_stream->buf_type = BUF_AUDIO_UNKNOWN;
             }
 
+	    _x_meta_info_set(this->stream, XINE_META_INFO_AUDIOCODEC, _x_buf_audio_name(asf_stream->buf_type));
+
             this->streams[this->num_streams].fifo        = this->audio_fifo;
             this->streams[this->num_streams].stream_id   = stream_id;
             this->streams[this->num_streams].frag_offset = 0;
@@ -551,6 +553,10 @@ static int asf_read_header (demux_asf_t *this) {
 
                 asf_stream->buf_type = BUF_VIDEO_UNKNOWN;
               }
+
+	      _x_meta_info_set(this->stream, XINE_META_INFO_VIDEOCODEC, _x_buf_video_name(asf_stream->buf_type));
+	      _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_WIDTH, width);
+	      _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_HEIGHT, height);
 
               this->streams[this->num_streams].fifo         = this->video_fifo;
               this->streams[this->num_streams].stream_id    = stream_id;
