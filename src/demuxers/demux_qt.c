@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.84 2002/09/21 18:35:10 tmmm Exp $
+ * $Id: demux_qt.c,v 1.85 2002/09/22 04:23:24 tmmm Exp $
  *
  */
 
@@ -161,6 +161,7 @@ typedef struct {
       unsigned int height;
       int palette_count;
       palette_entry_t palette[PALETTE_COUNT];
+      int depth;
     } video;
 
     struct {
@@ -239,6 +240,7 @@ typedef struct {
   unsigned int video_type;
   unsigned int video_width;
   unsigned int video_height;
+  unsigned int video_depth;
   void *video_decoder_config;
   int video_decoder_config_len;
 
@@ -458,7 +460,6 @@ static qt_error parse_trak_atom(qt_sample_table *sample_table,
 
   /* for palette traversal */
   int color_depth;
-  int color_greyscale;
   int color_flag;
   int color_start;
   int color_count;
@@ -479,9 +480,13 @@ static qt_error parse_trak_atom(qt_sample_table *sample_table,
   /* default type */
   sample_table->type = MEDIA_OTHER;
 
-  /* video size not yet known */
+  /* video size and depth not yet known */
   sample_table->media_description.video.width = 0;
   sample_table->media_description.video.height = 0;
+  sample_table->media_description.video.depth = 0;
+
+  /* assume no palette at first */
+  sample_table->media_description.video.palette_count = 0;
 
   /* search for media type atoms */
   for (i = ATOM_PREAMBLE_SIZE; i < trak_atom_size - 4; i++) {
@@ -557,7 +562,7 @@ static qt_error parse_trak_atom(qt_sample_table *sample_table,
 
         /* figure out the palette situation */
         color_depth = trak_atom[i + 0x5F];
-        color_greyscale = color_depth & 0x20;
+        sample_table->media_description.video.depth = color_depth;
         color_depth &= 0x1F;
 
         /* if the depth is 2, 4, or 8 bpp, file is palettized */
@@ -1045,6 +1050,7 @@ static void parse_moov_atom(qt_info *info, unsigned char *moov_atom) {
 
       info->video_width = sample_tables[i].media_description.video.width;
       info->video_height = sample_tables[i].media_description.video.height;
+      info->video_depth = sample_tables[i].media_description.video.depth;
       info->video_codec =
         sample_tables[i].media_description.video.codec_format;
       
@@ -1493,6 +1499,7 @@ static int demux_qt_send_headers (demux_qt_t *this) {
 
   this->bih.biWidth = this->qt->video_width;
   this->bih.biHeight = this->qt->video_height;
+  this->bih.biBitCount = this->qt->video_depth;
 
   this->bih.biCompression = this->qt->video_codec;
   this->qt->video_type = fourcc_to_buf_video(this->bih.biCompression);
