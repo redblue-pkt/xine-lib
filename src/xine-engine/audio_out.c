@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.109 2003/02/28 02:51:51 storri Exp $
+ * $Id: audio_out.c,v 1.110 2003/03/06 23:30:36 hadess Exp $
  * 
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -194,7 +194,7 @@ struct audio_fifo_s {
 };
 
 
-static audio_fifo_t *fifo_new () {
+static audio_fifo_t *fifo_new (void) {
 
   audio_fifo_t *fifo;
 
@@ -327,8 +327,9 @@ static void ao_fill_gap (aos_t *this, int64_t pts_len) {
 
   num_frames = pts_len * this->frames_per_kpts / 1024;
 
-  printf ("audio_out: inserting %d 0-frames to fill a gap of %lld pts\n",
-	  num_frames, pts_len);
+  if (this->xine->verbosity >= XINE_VERBOSITY_LOG)
+    printf ("audio_out: inserting %d 0-frames to fill a gap of %lld pts\n",
+	    num_frames, pts_len);
 
   if ((this->output.mode == AO_CAP_MODE_A52) || (this->output.mode == AO_CAP_MODE_AC5)) {
     write_pause_burst(this,num_frames);
@@ -1047,20 +1048,23 @@ static int ao_open(xine_audio_port_t *this_gen, xine_stream_t *stream,
     /* not all drivers/cards support 8 bits */
     if( this->input.bits == 8 && 
 	!(this->driver->get_capabilities(this->driver) & AO_CAP_8BITS) ) {
-      bits = 16;      
-      printf("audio_out: 8 bits not supported by driver, converting to 16 bits.\n");
+      bits = 16;
+      if (this->xine->verbosity >= XINE_VERBOSITY_LOG)
+        printf("audio_out: 8 bits not supported by driver, converting to 16 bits.\n");
     }
     
     /* provide mono->stereo and stereo->mono conversions */
     if( this->input.mode == AO_CAP_MODE_MONO && 
 	!(this->driver->get_capabilities(this->driver) & AO_CAP_MODE_MONO) ) {
       mode = AO_CAP_MODE_STEREO;
-      printf("audio_out: mono not supported by driver, converting to stereo.\n");
+      if (this->xine->verbosity >= XINE_VERBOSITY_LOG)
+        printf("audio_out: mono not supported by driver, converting to stereo.\n");
     }
     if( this->input.mode == AO_CAP_MODE_STEREO && 
 	!(this->driver->get_capabilities(this->driver) & AO_CAP_MODE_STEREO) ) {
       mode = AO_CAP_MODE_MONO;
-      printf("audio_out: stereo not supported by driver, converting to mono.\n");
+      if (this->xine->verbosity >= XINE_VERBOSITY_LOG)
+        printf("audio_out: stereo not supported by driver, converting to mono.\n");
     }
  
     pthread_mutex_lock( &this->driver_lock );
@@ -1070,11 +1074,13 @@ static int ao_open(xine_audio_port_t *this_gen, xine_stream_t *stream,
     output_sample_rate = this->input.rate;
 
   if ( output_sample_rate == 0) {
-    printf("audio_out: open failed!\n");
+    if (this->xine->verbosity >= XINE_VERBOSITY_LOG)
+      printf("audio_out: open failed!\n");
     return 0;
   }; 
 
-  printf("audio_out: output sample rate %d\n", output_sample_rate);
+  if (this->xine->verbosity >= XINE_VERBOSITY_LOG)
+    printf("audio_out: output sample rate %d\n", output_sample_rate);
 
   this->last_audio_vpts       = 0;
   this->output.mode           = mode;
@@ -1105,7 +1111,7 @@ static int ao_open(xine_audio_port_t *this_gen, xine_stream_t *stream,
     this->do_resample = this->output.rate != this->input.rate;
   }
 
-  if (this->do_resample) 
+  if (this->do_resample && this->xine->verbosity >= XINE_VERBOSITY_DEBUG)
     printf("audio_out: will resample audio from %d to %d\n",
 	   this->input.rate, this->output.rate);
 
@@ -1128,7 +1134,7 @@ static int ao_open(xine_audio_port_t *this_gen, xine_stream_t *stream,
      * start output thread
      */
 
-    if( this->audio_thread ) {
+    if( this->audio_thread && this->xine->verbosity >= XINE_VERBOSITY_LOG) {
       printf("audio_out: pthread already running!\n");
     }
     
@@ -1147,7 +1153,8 @@ static int ao_open(xine_audio_port_t *this_gen, xine_stream_t *stream,
       abort();
       
     } else
-      printf ("audio_out: thread created\n");
+      if (this->xine->verbosity >= XINE_VERBOSITY_DEBUG)
+        printf ("audio_out: thread created\n");
   }
 
   return this->output.rate;
@@ -1207,12 +1214,14 @@ static void ao_close(xine_audio_port_t *this_gen, xine_stream_t *stream) {
   audio_buffer_t *audio_buffer;
   xine_stream_t *cur;
 
-  printf ("audio_out: ao_close \n");
+  if (this->xine->verbosity >= XINE_VERBOSITY_DEBUG)
+    printf ("audio_out: ao_close \n");
 
   if (this->audio_loop_running) {
     void *p;
 
-    printf ("audio_out: loop running \n");
+    if (this->xine->verbosity >= XINE_VERBOSITY_DEBUG)
+      printf ("audio_out: loop running \n");
 
     this->audio_loop_running = 0;
     this->audio_paused = 0;
@@ -1432,7 +1441,8 @@ static void ao_flush (xine_audio_port_t *this_gen) {
   aos_t *this = (aos_t *) this_gen;
   audio_buffer_t *buf;
 
-  printf ("audio_out: ao_flush (loop running: %d)\n", this->audio_loop_running);
+  if (this->xine->verbosity >= XINE_VERBOSITY_DEBUG)
+    printf ("audio_out: ao_flush (loop running: %d)\n", this->audio_loop_running);
 
   if( this->audio_loop_running ) {
     this->discard_buffers++;

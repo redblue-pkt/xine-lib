@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.129 2003/02/21 01:13:55 guenter Exp $
+ * $Id: video_decoder.c,v 1.130 2003/03/06 23:30:36 hadess Exp $
  *
  */
 
@@ -410,17 +410,25 @@ void video_decoder_shutdown (xine_stream_t *stream) {
   buf_element_t *buf;
   void          *p;
 
+#ifdef LOG
   printf ("video_decoder: shutdown...\n");
+#endif
 
   /* stream->video_fifo->clear(stream->video_fifo); */
 
   buf = stream->video_fifo->buffer_pool_alloc (stream->video_fifo);
+#ifdef LOG
   printf ("video_decoder: shutdown...2\n");
+#endif
   buf->type = BUF_CONTROL_QUIT;
   stream->video_fifo->put (stream->video_fifo, buf);
+#ifdef LOG
   printf ("video_decoder: shutdown...3\n");
+#endif
 
   pthread_join (stream->video_thread, &p);
+#ifdef LOG
   printf ("video_decoder: shutdown...4\n");
+#endif
 }
 
