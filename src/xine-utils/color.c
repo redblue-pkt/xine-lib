@@ -61,7 +61,7 @@
  * instructions), these macros will automatically map to those special
  * instructions.
  *
- * $Id: color.c,v 1.13 2003/01/01 19:32:28 tmmm Exp $
+ * $Id: color.c,v 1.14 2003/02/02 06:07:20 tmmm Exp $
  */
 
 #include "xine_internal.h"
@@ -133,6 +133,11 @@ int v_b_table[256];
 
 void (*yuv444_to_yuy2) (yuv_planes_t *yuv_planes, unsigned char *yuy2_map, int pitch);
 void (*yuv9_to_yv12)
+  (unsigned char *y_src, int y_src_pitch, unsigned char *y_dest, int y_dest_pitch,
+   unsigned char *u_src, int u_src_pitch, unsigned char *u_dest, int u_dest_pitch,
+   unsigned char *v_src, int v_src_pitch, unsigned char *v_dest, int v_dest_pitch,
+   int width, int height);
+void (*yuv411_to_yv12)
   (unsigned char *y_src, int y_src_pitch, unsigned char *y_dest, int y_dest_pitch,
    unsigned char *u_src, int u_src_pitch, unsigned char *u_dest, int u_dest_pitch,
    unsigned char *v_src, int v_src_pitch, unsigned char *v_dest, int v_dest_pitch,
@@ -579,6 +584,70 @@ void yuv9_to_yv12_c
 }
 
 /*
+ * yuv411_to_yv12_c
+ *
+ */
+void yuv411_to_yv12_c
+  (unsigned char *y_src, int y_src_pitch, unsigned char *y_dest, int y_dest_pitch,
+   unsigned char *u_src, int u_src_pitch, unsigned char *u_dest, int u_dest_pitch,
+   unsigned char *v_src, int v_src_pitch, unsigned char *v_dest, int v_dest_pitch,
+   int width, int height) {
+
+  int y;
+  int c_src_row, c_src_pixel;
+  int c_dest_row, c_dest_pixel;
+  unsigned char c_sample;
+
+  /* Y plane */
+  for (y=0; y < height; y++) {
+    xine_fast_memcpy (y_dest, y_src, width);
+    y_src += y_src_pitch;
+    y_dest += y_dest_pitch;
+  }
+
+  /* naive approach: downsample vertically, upsample horizontally */
+
+  /* U plane */
+  for (c_src_row = 0, c_dest_row = 0;
+       c_src_row < u_src_pitch * height;
+       c_src_row += u_src_pitch * 2, c_dest_row += u_dest_pitch) {
+
+    for (c_src_pixel = c_src_row, c_dest_pixel = c_dest_row;
+         c_dest_pixel < c_dest_row + u_dest_pitch;
+         c_src_pixel++) {
+
+      /* downsample by averaging the samples from 2 rows */
+      c_sample = 
+        (u_src[c_src_pixel] + u_src[c_src_pixel + u_src_pitch] + 1) / 2;
+      /* upsample by outputting the sample twice on the YV12 row */
+      u_dest[c_dest_pixel++] = c_sample;
+      u_dest[c_dest_pixel++] = c_sample;
+
+    }
+  }
+
+  /* V plane */
+  for (c_src_row = 0, c_dest_row = 0;
+       c_src_row < v_src_pitch * height;
+       c_src_row += v_src_pitch * 2, c_dest_row += v_dest_pitch) {
+
+    for (c_src_pixel = c_src_row, c_dest_pixel = c_dest_row;
+         c_dest_pixel < c_dest_row + v_dest_pitch;
+         c_src_pixel++) {
+
+      /* downsample by averaging the samples from 2 rows */
+      c_sample = 
+        (v_src[c_src_pixel] + v_src[c_src_pixel + v_src_pitch] + 1 ) / 2;
+      /* upsample by outputting the sample twice on the YV12 row */
+      v_dest[c_dest_pixel++] = c_sample;
+      v_dest[c_dest_pixel++] = c_sample;
+
+    }
+  }
+
+}
+
+/*
  * init_yuv_conversion
  *
  * This function precalculates all of the tables used for converting RGB
@@ -614,5 +683,9 @@ void init_yuv_conversion(void) {
   /* determine best YUV9 -> YV12 converter to use (only the portable C
    * version is available so far) */
   yuv9_to_yv12 = yuv9_to_yv12_c;
+
+  /* determine best YUV411 -> YV12 converter to use (only the portable C
+   * version is available so far) */
+  yuv411_to_yv12 = yuv411_to_yv12_c;
 
 }
