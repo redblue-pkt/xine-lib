@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.h,v 1.75 2002/10/29 02:07:45 komadori Exp $
+ * $Id: buffer.h,v 1.76 2002/10/31 05:23:02 tmmm Exp $
  *
  *
  * contents:
@@ -139,7 +139,7 @@ extern "C" {
 #define BUF_AUDIO_MPEG		0x03010000
 #define BUF_AUDIO_LPCM_BE	0x03020000
 #define BUF_AUDIO_LPCM_LE	0x03030000
-#define BUF_AUDIO_DIVXA		0x03040000
+#define BUF_AUDIO_WMAV1		0x03040000
 #define BUF_AUDIO_DTS		0x03050000
 #define BUF_AUDIO_MSADPCM	0x03060000
 #define BUF_AUDIO_MSIMAADPCM	0x03070000
@@ -167,6 +167,7 @@ extern "C" {
 #define BUF_AUDIO_ALAW		0x031D0000
 #define BUF_AUDIO_GSM610	0x031E0000
 #define BUF_AUDIO_EA_ADPCM      0x031F0000
+#define BUF_AUDIO_WMAV2		0x03200000
 
 /* spu buffer types:    */
  

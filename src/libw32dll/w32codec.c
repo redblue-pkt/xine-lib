@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.98 2002/10/20 19:12:24 guenter Exp $
+ * $Id: w32codec.c,v 1.99 2002/10/31 05:23:02 tmmm Exp $
  *
  * routines for using w32 codecs
  * DirectShow support by Miguel Freitas (Nov/2001)
@@ -410,12 +410,12 @@ static char* get_vids_codec_name(w32v_decoder_t *this,
       = strdup ("Windows Screen Video");
     return "msscds32.ax";    
 
-  case BUF_VIDEO_XXAN:
+  case BUF_VIDEO_TSCC:
     this->flipped=1;
     this->yuv_supported=0;
     this->stream->meta_info[XINE_META_INFO_VIDEOCODEC] 
-      = strdup ("Wing Commander IV Video");
-    return "xanlib.dll";    
+      = strdup ("TechSmith Screen Capture Codec");
+    return "tsccvid.dll";    
     
   }
 
@@ -924,9 +924,13 @@ static char* get_auds_codec_name(w32a_decoder_t *this, int buf_type) {
   this->ds_driver=0;
 
   switch (buf_type) {
-  case BUF_AUDIO_DIVXA:
+  case BUF_AUDIO_WMAV1:
     this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] 
-      = strdup ("DivX audio (WMA)");
+      = strdup ("Windows Media Audio v1");
+    return "divxa32.acm";
+  case BUF_AUDIO_WMAV2:
+    this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] 
+      = strdup ("Windows Media Audio v2");
     return "divxa32.acm";
   case BUF_AUDIO_MSADPCM:
     this->stream->meta_info[XINE_META_INFO_AUDIOCODEC] 
@@ -1464,7 +1468,7 @@ static uint32_t video_types[] = {
   BUF_VIDEO_CINEPAK, /* BUF_VIDEO_ATIVCR1, */
   BUF_VIDEO_ATIVCR2, BUF_VIDEO_I263, BUF_VIDEO_MSVC,
   BUF_VIDEO_DV, BUF_VIDEO_WMV7, BUF_VIDEO_WMV8,
-  BUF_VIDEO_VP31, BUF_VIDEO_MSS1, BUF_VIDEO_XXAN,
+  BUF_VIDEO_VP31, BUF_VIDEO_MSS1, BUF_VIDEO_TSCC,
   0
  };
 
@@ -1474,7 +1478,7 @@ static decoder_info_t dec_info_video = {
 };
 
 static uint32_t audio_types[] = { 
-  BUF_AUDIO_DIVXA, BUF_AUDIO_MSADPCM, BUF_AUDIO_MSIMAADPCM,
+  BUF_AUDIO_WMAV1, BUF_AUDIO_WMAV2, BUF_AUDIO_MSADPCM, BUF_AUDIO_MSIMAADPCM,
   BUF_AUDIO_MSGSM, BUF_AUDIO_IMC, BUF_AUDIO_LH,
   BUF_AUDIO_VOXWARE, BUF_AUDIO_ACELPNET, BUF_AUDIO_VIVOG723,
   0

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer_types.c,v 1.45 2002/10/27 18:31:58 tmmm Exp $
+ * $Id: buffer_types.c,v 1.46 2002/10/31 05:23:02 tmmm Exp $
  *
  *
  * contents:
@@ -516,10 +516,17 @@ static audio_db_t audio_db[] = {
 },
 {
   {
-    0x160, 0x161, 0
+    0x160, 0
   },
-  BUF_AUDIO_DIVXA,
-  "DivX audio (WMA)"
+  BUF_AUDIO_WMAV1,
+  "Windows Media Audio v1"
+},
+{
+  {
+    0x161, 0
+  },
+  BUF_AUDIO_WMAV2,
+  "Windows Media Audio v2"
 },
 {
   {
