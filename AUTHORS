@@ -290,4 +290,7 @@ Howdy Pierce <howdy@cardinalpeak.com>
   pgx64 memory corruption patch, xshm bounds check patch
   demux_ts bugfixes
 
+James Slorach  <jrs47@janx.org>
+  fix for wrong abs() macro, deinterlacing fix
+
 (let us know if we've forgotten anyone)
