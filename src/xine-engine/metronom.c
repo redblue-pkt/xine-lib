@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.c,v 1.98 2002/11/08 18:47:19 tmattern Exp $
+ * $Id: metronom.c,v 1.99 2002/11/10 13:33:16 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -51,7 +51,7 @@
 
 /* redefine abs as macro to handle 64-bit diffs.
    i guess llabs may not be available everywhere */
-#define abs(x) ( (x<0) ? (-x) : (x) )
+#define abs(x) ( ((x)<0) ? -(x) : (x) )
 
 /*
 #define LOG

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.136 2002/11/09 23:22:32 guenter Exp $
+ * $Id: demux_mpeg_block.c,v 1.137 2002/11/10 13:33:14 mroi Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -52,7 +52,7 @@
 
 /* redefine abs as macro to handle 64-bit diffs.
    i guess llabs may not be available everywhere */
-#define abs(x) ( (x<0) ? (-x) : (x) )
+#define abs(x) ( ((x)<0) ? -(x) : (x) )
 
 typedef struct demux_mpeg_block_s {
   demux_plugin_t        demux_plugin;

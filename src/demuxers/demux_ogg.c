@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ogg.c,v 1.51 2002/11/09 23:22:32 guenter Exp $
+ * $Id: demux_ogg.c,v 1.52 2002/11/10 13:33:15 mroi Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -157,7 +157,7 @@ static void hex_dump (uint8_t *p, int length) {
 
 /* redefine abs as macro to handle 64-bit diffs.
    i guess llabs may not be available everywhere */
-#define abs(x) ( (x<0) ? (-x) : (x) )
+#define abs(x) ( ((x)<0) ? -(x) : (x) )
 
 static void check_newpts (demux_ogg_t *this, int64_t pts, int video, int preview) {
   int64_t diff;
