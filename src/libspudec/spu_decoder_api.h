@@ -24,7 +24,7 @@
 #ifndef HAVE_SPU_API_H
 #define HAVE_SPU_API_H
 
-#define SPU_DECODER_IFACE_VERSION 10
+#define SPU_DECODER_IFACE_VERSION 11
 /* FIXME: Needed for spu_button_t */
 /* But will not be on all users's systems. (From the libspudec directory or libdvdread). */
 /*#include "nav_types.h" */
@@ -69,7 +69,7 @@ struct spu_decoder_s {
 
   void (*reset) (spu_decoder_t *this);
     
-/*  void (*close) (spu_decoder_t *this); */
+  void (*discontinuity) (spu_decoder_t *this);
 
   void (*dispose) (spu_decoder_t *this);
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_overlay.h,v 1.11 2002/10/23 17:12:35 guenter Exp $
+ * $Id: video_overlay.h,v 1.12 2002/11/19 00:45:42 miguelfreitas Exp $
  *
  */
 
@@ -36,15 +36,11 @@
 #define MAX_EVENTS    50
 #define MAX_SHOWING    5
 
-#define EVENT_NULL             0
-#define EVENT_SHOW_SPU         1
-#define EVENT_HIDE_SPU         2
-#define EVENT_SHOW_MENU        3
-#define EVENT_HIDE_MENU        4
-#define EVENT_MENU_BUTTON      5
-#define EVENT_DELETE_RESOURCE  6 /* Maybe release handle will do this */
-#define EVENT_SHOW_OSD         7 /* Not yet implemented */
-#define EVENT_FREE_HANDLE      8 /* Frees a handle, previous allocated via get_handle */
+#define OVERLAY_EVENT_NULL             0
+#define OVERLAY_EVENT_SHOW             1
+#define OVERLAY_EVENT_HIDE             2
+#define OVERLAY_EVENT_MENU_BUTTON      3
+#define OVERLAY_EVENT_FREE_HANDLE      8 /* Frees a handle, previous allocated via get_handle */
 
 /* number of colors in the overlay palette. Currently limited to 256
    at most, because some alphablend functions use an 8-bit index into

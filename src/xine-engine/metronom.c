@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.c,v 1.100 2002/11/12 18:40:54 miguelfreitas Exp $
+ * $Id: metronom.c,v 1.101 2002/11/19 00:45:42 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -264,13 +264,14 @@ static int64_t metronom_got_spu_packet (metronom_t *this, int64_t pts) {
 
   pthread_mutex_lock (&this->lock);
 
-  if (pts >= 0 ) {
-    vpts = pts + this->vpts_offset;
-  } else {
-    /* pts < 0 */
-    vpts = this->vpts_offset;
-  }
-
+  vpts = pts + this->vpts_offset;
+  
+  /* no vpts going backwards please */
+  if( vpts < this->spu_vpts )
+    vpts = this->spu_vpts;
+  
+  this->spu_vpts = vpts;
+  
   pthread_mutex_unlock (&this->lock);
   return vpts;
 }

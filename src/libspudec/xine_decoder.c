@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.86 2002/11/17 16:18:33 mroi Exp $
+ * $Id: xine_decoder.c,v 1.87 2002/11/19 00:45:41 miguelfreitas Exp $
  *
  * stuff needed to turn libspu into a xine decoder plugin
  */
@@ -83,7 +83,9 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
     return;
 
   if ( buf->decoder_info[2] == SPU_DVD_SUBTYPE_CLUT ) {
+#ifdef LOG_DEBUG
     printf("libspudec: SPU CLUT\n");
+#endif
     if (buf->content[0]) { /* cheap endianess detection */
       xine_fast_memcpy(this->state.clut, buf->content, sizeof(uint32_t)*16);
     } else {
@@ -140,6 +142,10 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
 
 static void spudec_reset (spu_decoder_t *this_gen) {
 }
+
+static void spudec_discontinuity (spu_decoder_t *this_gen) {
+}
+
 
 static void spudec_dispose (spu_decoder_t *this_gen) {
 
@@ -224,7 +230,7 @@ static void spudec_set_button (spu_decoder_t *this_gen, int32_t button, int32_t 
     overlay_event->object.handle = this->menu_handle;
     overlay_event->object.pts = this->pci.hli.hl_gi.hli_s_ptm;
     overlay_event->object.overlay=overlay;
-    overlay_event->event_type = EVENT_MENU_BUTTON;
+    overlay_event->event_type = OVERLAY_EVENT_MENU_BUTTON;
 #ifdef LOG_BUTTON
     fprintf(stderr, "libspudec:Button Overlay\n");
 #endif
@@ -235,7 +241,7 @@ static void spudec_set_button (spu_decoder_t *this_gen, int32_t button, int32_t 
   fprintf (stderr,"libspudec:xine_decoder.c:spudec_event_listener:HIDE ????\n");
   assert(0);
   overlay_event->object.handle = this->menu_handle;
-  overlay_event->event_type = EVENT_HIDE_MENU;
+  overlay_event->event_type = OVERLAY_EVENT_HIDE;
   }
   overlay_event->vpts = 0;
   if (this->vo_out) {
@@ -265,6 +271,7 @@ static spu_decoder_t *open_plugin (spu_decoder_class_t *class_gen, xine_stream_t
 
   this->spu_decoder.decode_data         = spudec_decode_data;
   this->spu_decoder.reset               = spudec_reset;
+  this->spu_decoder.discontinuity       = spudec_discontinuity;
   this->spu_decoder.dispose             = spudec_dispose;
   this->spu_decoder.get_nav_pci         = spudec_get_nav_pci;
   this->spu_decoder.set_button          = spudec_set_button;
@@ -295,17 +302,23 @@ static spu_decoder_t *open_plugin (spu_decoder_class_t *class_gen, xine_stream_t
 }
 
 static char *get_identifier (spu_decoder_class_t *this) {
+#ifdef LOG_DEBUG
   printf ("libspudec:get_identifier called\n");
+#endif
   return "spudec";
 }
 
 static char *get_description (spu_decoder_class_t *this) {
+#ifdef LOG_DEBUG
   printf ("libspudec:get_description called\n");
+#endif
   return "DVD/VOB SPU decoder plugin";
 }
 
 static void dispose_class (spu_decoder_class_t *this) {
+#ifdef LOG_DEBUG
   printf ("libspudec:dispose_class called\n");
+#endif
   free (this);
 }
 
@@ -335,6 +348,6 @@ static decoder_info_t dec_info_data = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_SPU_DECODER, 10, "spudec", XINE_VERSION_CODE, &dec_info_data, &init_plugin },
+  { PLUGIN_SPU_DECODER, 11, "spudec", XINE_VERSION_CODE, &dec_info_data, &init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

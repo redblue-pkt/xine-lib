@@ -216,7 +216,7 @@ static int osd_show (osd_object_t *osd, int64_t vpts ) {
     memcpy(this->event.object.overlay->clip_color, osd->color, sizeof(osd->color)); 
     memcpy(this->event.object.overlay->clip_trans, osd->trans, sizeof(osd->trans)); 
   
-    this->event.event_type = EVENT_SHOW_SPU;
+    this->event.event_type = OVERLAY_EVENT_SHOW;
     this->event.vpts = vpts;
     this->video_overlay->add_event(this->video_overlay,(void *)&this->event);
   }
@@ -247,7 +247,7 @@ static int osd_hide (osd_object_t *osd, int64_t vpts) {
   /* not really needed this, but good pratice to clean it up */
   memset( this->event.object.overlay, 0, sizeof(this->event.object.overlay) );
    
-  this->event.event_type = EVENT_HIDE_SPU;
+  this->event.event_type = OVERLAY_EVENT_HIDE;
   this->event.vpts = vpts;
   this->video_overlay->add_event(this->video_overlay,(void *)&this->event);
 
@@ -784,7 +784,7 @@ static void osd_free_object (osd_object_t *osd_to_close) {
   
     /* not really needed this, but good pratice to clean it up */
     memset( this->event.object.overlay, 0, sizeof(this->event.object.overlay) );
-    this->event.event_type = EVENT_FREE_HANDLE;
+    this->event.event_type = OVERLAY_EVENT_FREE_HANDLE;
     this->event.vpts = 0;
     this->video_overlay->add_event(this->video_overlay,(void *)&this->event);
   

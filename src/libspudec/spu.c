@@ -35,7 +35,7 @@
  * along with this program; see the file COPYING.  If not, write to
  * the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: spu.c,v 1.52 2002/11/18 13:42:50 mroi Exp $
+ * $Id: spu.c,v 1.53 2002/11/19 00:45:41 miguelfreitas Exp $
  *
  */
 
@@ -163,7 +163,7 @@ void spudec_decode_nav(spudec_decoder_t *this, buf_element_t *buf) {
         }
         if( this->menu_handle >= 0 ) {
           this->event.object.handle = this->menu_handle;
-          this->event.event_type = EVENT_HIDE_MENU;
+          this->event.event_type = OVERLAY_EVENT_HIDE;
 	  /* hide menu right now */
 	  this->event.vpts = 0;
           ovl_instance->add_event(ovl_instance, (void *)&this->event);
@@ -287,7 +287,7 @@ void spudec_process (spudec_decoder_t *this, uint32_t stream_id) {
 #endif
   this->state.cmd_ptr = cur_seq->buf + cur_seq->cmd_offs;
   this->state.modified = 1; /* Only draw picture if = 1 on first event of SPU */
-  this->state.visible = EVENT_SHOW_MENU; /* 0 - No value, 1 - Show, 2 - Hide. */
+  this->state.visible = OVERLAY_EVENT_SHOW;
   this->state.forced_display = 0; /* 0 - No value, 1 - Forced Display. */
   this->state.delay = 0;
   cur_seq->finished=0;
@@ -322,7 +322,7 @@ void spudec_process (spudec_decoder_t *this, uint32_t stream_id) {
 #endif
       pthread_mutex_lock(&this->nav_pci_lock);
       if (this->pci.hli.hl_gi.hli_s_ptm == this->spudec_stream_state[stream_id].pts) {
-        if (this->state.visible == EVENT_HIDE_MENU) {
+        if (this->state.visible == OVERLAY_EVENT_HIDE) {
           /* menus are hidden via nav packet decoding, not here */
 	  /* FIXME: James is not sure about this solution and may want to look this over.
 	   *        I'm commiting it, because I haven't found a disc it breaks, but it fixes
@@ -386,7 +386,7 @@ void spudec_process (spudec_decoder_t *this, uint32_t stream_id) {
       this->overlay.rle=NULL;
       /* For force display menus */
       //if ( !(this->state.visible) ) {
-      //  this->state.visible = EVENT_SHOW_MENU;
+      //  this->state.visible = OVERLAY_EVENT_SHOW;
       //}
      
       this->event.event_type = this->state.visible;
@@ -461,7 +461,7 @@ static void spudec_do_commands(spudec_state_t *state, spudec_seq_t* seq, vo_over
 #ifdef LOG_DEBUG
       printf ("spu: \tshow subpicture\n");
 #endif
-      state->visible = EVENT_SHOW_MENU;
+      state->visible = OVERLAY_EVENT_SHOW;
       buf++;
       break;
       
@@ -469,7 +469,7 @@ static void spudec_do_commands(spudec_state_t *state, spudec_seq_t* seq, vo_over
 #ifdef LOG_DEBUG
       printf ("spu: \thide subpicture\n");
 #endif
-      state->visible = EVENT_HIDE_MENU;
+      state->visible = OVERLAY_EVENT_HIDE;
       buf++;
       break;
       
@@ -574,7 +574,7 @@ static void spudec_do_commands(spudec_state_t *state, spudec_seq_t* seq, vo_over
       
     case CMD_SPU_WIPE:
 #ifdef LOG_DEBUG
-      printf ("spu: \tSPU_WIPE not implemented yet\n");
+      printf ("libspudec: \tSPU_WIPE not implemented yet\n");
 #endif
       param_length = (buf[1] << 8) | (buf[2]);
       buf += 1 + param_length; 
@@ -582,7 +582,7 @@ static void spudec_do_commands(spudec_state_t *state, spudec_seq_t* seq, vo_over
 
     case CMD_SPU_FORCE_DISPLAY:
 #ifdef LOG_DEBUG
-      printf ("spu: \tForce Display/Menu\n");
+      printf ("libspudec: \tForce Display/Menu\n");
 #endif
       state->forced_display = 1;
       buf++;
@@ -674,23 +674,18 @@ static void spudec_draw_picture (spudec_state_t *state, spudec_seq_t* seq, vo_ov
 
 
   ovl->data_size = seq->cmd_offs * 2 * sizeof(rle_elem_t);
-#ifdef LOG_DEBUG
-  printf ("spu: MALLOC1: ovl->rle %p, len=%d\n", ovl->rle,ovl->data_size);
-#endif
+
   if (ovl->rle) {
     printf ("libspudec: spudec_draw_picture: ovl->rle is not empty!!!! It should be!!! You should never see this message.\n");
     free(ovl->rle);
     ovl->rle=NULL;
   }
   ovl->rle = malloc(ovl->data_size);
-#ifdef LOG_DEBUG
-  printf ("spu: MALLOC2: ovl->rle %p, len=%d\n", ovl->rle,ovl->data_size);
-#endif
 
   state->modified = 0; /* mark as already processed */
   rle = ovl->rle;
 #ifdef LOG_DEBUG
-  printf ("spu: Draw RLE=%p\n",rle);
+  printf ("libspudec: Draw RLE=%p\n",rle);
 #endif
 
   while (bit_ptr[1] < seq->buf + seq->cmd_offs) {
