@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_elem.c,v 1.5 2001/04/29 23:22:32 f1rmb Exp $
+ * $Id: demux_elem.c,v 1.6 2001/05/24 23:15:40 f1rmb Exp $
  *
  * demultiplexer for elementary mpeg streams
  * 
@@ -109,7 +109,7 @@ static void *demux_mpeg_elem_loop (void *this_gen) {
   buf->type    = BUF_CONTROL_END;
   this->audio_fifo->put (this->audio_fifo, buf);
 
-  return NULL;
+  pthread_exit(NULL);
 }
 
 /*

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg.c,v 1.10 2001/05/24 15:31:30 guenter Exp $
+ * $Id: demux_mpeg.c,v 1.11 2001/05/24 23:15:40 f1rmb Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  * reads streams of variable blocksizes
@@ -147,6 +147,10 @@ static void parse_mpeg2_packet (demux_mpeg_t *this, int nID) {
 
     buf = this->input->read_block (this->input, this->audio_fifo, nLen-4);
     
+    if (buf == NULL) {
+      this->status = DEMUX_FINISHED;
+      return ;
+    }
     buf->type      = BUF_AUDIO_AC3 + track;
     buf->PTS       = pts;
     buf->DTS       = 0 ; /* FIXME */
@@ -186,6 +190,10 @@ static void parse_mpeg2_packet (demux_mpeg_t *this, int nID) {
 
     buf = this->input->read_block (this->input, this->audio_fifo, nLen);
 
+    if (buf == NULL) {
+      this->status = DEMUX_FINISHED;
+      return ;
+    }
     buf->type      = BUF_AUDIO_MPEG + track;
     buf->PTS       = pts;
     buf->DTS       = 0;   /* FIXME */
@@ -226,6 +234,10 @@ static void parse_mpeg2_packet (demux_mpeg_t *this, int nID) {
 
     buf = this->input->read_block (this->input, this->audio_fifo, nLen);
 
+    if (buf == NULL) {
+      this->status = DEMUX_FINISHED;
+      return ;
+    }
     buf->type = BUF_VIDEO_MPEG;
     buf->PTS  = pts;
     buf->DTS  = 0;
@@ -334,6 +346,10 @@ static void parse_mpeg1_packet (demux_mpeg_t *this, int nID)
 
     buf = this->input->read_block (this->input, this->audio_fifo, nLen);
 
+    if (buf == NULL) {
+      this->status = DEMUX_FINISHED;
+      return ;
+    }
     buf->type      = BUF_AUDIO_MPEG + track ;
     buf->PTS       = pts;
     buf->DTS       = 0;   /* FIXME */
@@ -347,6 +363,10 @@ static void parse_mpeg1_packet (demux_mpeg_t *this, int nID)
 
     buf = this->input->read_block (this->input, this->video_fifo, nLen);
 
+    if (buf == NULL) {
+      this->status = DEMUX_FINISHED;
+      return ;
+    }
     buf->type = BUF_VIDEO_MPEG;
     buf->PTS  = pts;
     buf->DTS  = 0; /* FIXME */
@@ -464,7 +484,7 @@ static void *demux_mpeg_loop (void *this_gen) {
   xprintf (VERBOSE|DEMUX, "demux loop finished (status: %d, buf:%x)\n",
 	   this->status, w);
 
-  return NULL;
+  pthread_exit(NULL);
 }
 
 static void demux_mpeg_stop (demux_plugin_t *this_gen) {
@@ -537,15 +557,27 @@ static int demux_mpeg_open(demux_plugin_t *this_gen,
 	switch(buf[3]) {
 	  
 	case 0xba:
-	  if((buf[4] & 0xf0) == 0x20)
-	    this->input = input;
-	    return DEMUX_CAN_HANDLE;
+	  if((buf[4] & 0xf0) == 0x20) {
+	    uint32_t pckbuf ;
+	    
+	    pckbuf = read_bytes (this, 1);
+	    if ((pckbuf>>4) != 4) {
+	      this->input = input;
+	      return DEMUX_CAN_HANDLE;
+	    }
+	  }
 	  break;
 	  
 	case 0xe0:
-	  if((buf[6] & 0xc0) != 0x80)
-	    this->input = input;
-	    return DEMUX_CAN_HANDLE;
+	  if((buf[6] & 0xc0) != 0x80) {
+	    uint32_t pckbuf ;
+	    
+	    pckbuf = read_bytes (this, 1);
+	    if ((pckbuf>>4) != 4) {
+	      this->input = input;
+	      return DEMUX_CAN_HANDLE;
+	    }
+	  }
 	  break;
 	  
 	}

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.8 2001/05/24 15:31:31 guenter Exp $
+ * $Id: audio_decoder.c,v 1.9 2001/05/24 23:15:40 f1rmb Exp $
  *
  *
  * functions that implement audio decoding
@@ -158,7 +158,7 @@ void *audio_decoder_loop (void *this_gen) {
     buf->free_buffer (buf);
   }
 
-  return NULL;
+  pthread_exit(NULL);
 }
 
 void audio_decoder_init (xine_t *this) {

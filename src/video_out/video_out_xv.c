@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.19 2001/05/24 21:41:28 guenter Exp $
+ * $Id: video_out_xv.c,v 1.20 2001/05/24 23:15:40 f1rmb Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -445,6 +445,10 @@ static int xv_gui_data_exchange (vo_driver_t *this_gen, int data_type, void *dat
     
     /* FIXME : implement */
 
+    break;
+
+  case GUI_DATA_EX_DRAWABLE_CHANGED:
+    this->drawable = (Drawable) data;
     break;
   }
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.7 2001/05/24 21:41:28 guenter Exp $
+ * $Id: video_out.c,v 1.8 2001/05/24 23:15:40 f1rmb Exp $
  *
  */
 
@@ -241,7 +241,7 @@ static void *video_out_loop (void *this_gen) {
     xprintf (VERBOSE|VIDEO, "video_out : passing to video driver, image with pts = %d\n", pts);
     this->driver->display_frame (this->driver, img); 
   }
-  return NULL;
+  pthread_exit(NULL);
 }
 
 

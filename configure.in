@@ -214,7 +214,7 @@ AC_TRY_CFLAGS("-fschedule-insns2", f_si="-fschedule-insns2", f_si="")
 AC_TRY_CFLAGS("-mwide-multiply", m_wm="-mwide-multiply", m_wm="")
 
 dnl Common cflags for all platforms
-COMMON_CFLAGS="-Wall -D_FILE_OFFSET_BITS=64 -DXINE_COMPILE"
+COMMON_CFLAGS="-Wall -D_REENTRANT -D_FILE_OFFSET_BITS=64 -DXINE_COMPILE"
 
 enable_w32dll="no"
 
