@@ -115,6 +115,22 @@
 
 #define MAX_SUBTITLES 4
 
+/* Mouse button codes. */
+#define MOUSE_BUTTON_LEFT   1
+#define MOUSE_BUTTON_MIDDLE 2
+#define MOUSE_BUTTON_RIGHT  3
+#define MOUSE_WHEEL_UP      4
+#define MOUSE_WHEEL_DOWN    5
+
+/* The "thumb button" of my Intellimouse. */
+#define MOUSE_SIDE_LEFT     6
+#define MOUSE_SIDE_RIGHT    7
+
+/* EPG settings. */
+
+/* How many chars (max) of the program name to display. */
+#define MAX_PROGRAM_NAME_LENGTH 32
+
 #define bcdtoint(i) ((((i & 0xf0) >> 4) * 10) + (i & 0x0f))
 
 typedef struct {
@@ -787,6 +803,7 @@ static int tuner_set_diseqc(tuner_t *this, channel_t *c)
    return 1;
 }
 
+
 /* Tune to the requested freq. etc, wait for frontend to lock for a few seconds.
  * if frontend can't lock, retire. */
 static int tuner_tune_it (tuner_t *this, struct dvb_frontend_parameters
@@ -968,10 +985,12 @@ static void dvb_parse_si(dvb_input_plugin_t *this) {
   bufptr = tmpbuffer;
 
   pfd.fd=tuner->fd_pidfilter[INTERNAL_FILTER];
-  pfd.events = POLLIN;
+  pfd.events = POLLPRI;
 
   xprintf(this->stream->xine,XINE_VERBOSITY_DEBUG,"input_dvb: Setting up Internal PAT filter\n");
 
+  xine_usec_sleep(500000);
+   
   /* first - the PAT. retrieve the entire section...*/  
   dvb_set_sectfilter(this, INTERNAL_FILTER, 0, DMX_PES_OTHER, 0, 0xff);
 
@@ -1076,7 +1095,8 @@ static void do_eit(dvb_input_plugin_t *this)
   char *buffer;
   int loops;
   int current_channel;    
-  foo=xine_xmalloc(8192);
+
+  foo = xine_xmalloc(8192);
 
   fd.fd = this->tuner->fd_pidfilter[EITFILTER];
   fd.events = POLLPRI;
@@ -1103,6 +1123,7 @@ static void do_eit(dvb_input_plugin_t *this)
 
   for(loops=0;loops<=this->num_streams_in_this_ts*2;loops++){
     eit=foo;
+
     if (poll(&fd,1,2000)<1) {
        xprintf(this->stream->xine,XINE_VERBOSITY_LOG,"(TImeout in EPG loop!! Quitting\n");
        return;  
@@ -1121,6 +1142,7 @@ static void do_eit(dvb_input_plugin_t *this)
     current_next=getbits(foo,47,1);
   
     if(section_len>15){
+
     /* do we have information about the current program, or the next? */
 
       if(getbits(foo,192,3) > 2){
@@ -1144,7 +1166,7 @@ static void do_eit(dvb_input_plugin_t *this)
          no point in cluttering up the OSD... */
       if(bcdtoint(eit[21])+bcdtoint(eit[22])+bcdtoint(eit[23])>0){
           strftime(this->channels[current_channel].eit[running_status].starttime,21,"%a %l:%M%p",dvb_mjdtime(eit+16));
-          snprintf(this->channels[current_channel].eit[running_status].duration,21,"%ihr%imin",(char)bcdtoint(eit[21] & 0xff),(char)bcdtoint(eit[22] & 0xff));
+          snprintf(this->channels[current_channel].eit[running_status].duration,21,"%i:%02i",(char)bcdtoint(eit[21] & 0xff),(char)bcdtoint(eit[22] & 0xff));
       }
       descriptor_id=eit[26];
       eit+=27;	
@@ -1159,14 +1181,27 @@ static void do_eit(dvb_input_plugin_t *this)
           case 0x4D: { /* simple program info descriptor */
               int name_len;
               int desc_len;
-              desc_len=getbits(eit,0,8);
-              /*  printf("LANG Code : %C%C%C\n",eit[1],eit[2],eit[3]); */
+              desc_len = getbits(eit, 0, 8);
+
+	      /* Let's get the EPG data only in the wanted language. */
+	      xine_cfg_entry_t language;
+	      xine_config_lookup_entry(this->stream->xine, "input.dvd_language", &language);
+
+	      if (language.str_value && *language.str_value && 
+		  strncmp(language.str_value, &eit[1], 2)) {
+		  /*printf("### Skipping language: %C%C%C\n",eit[1],eit[2],eit[3]);  */
+		break;
+	      }
+
               /* program name */
-              name_len=(unsigned char)eit[4];
-              memcpy(this->channels[current_channel].eit[running_status].progname,eit+5,name_len);
+              name_len = (unsigned char)eit[4];
+              memcpy(this->channels[current_channel].eit[running_status].progname,
+		     eit + 5, name_len);
+
               /* detailed program information (max 256 chars)*/      
-              text_len=(unsigned char)eit[5+name_len];
-              memcpy(this->channels[current_channel].eit[running_status].description,eit+6+name_len,text_len);
+              text_len = (unsigned char)eit[5+name_len];
+              memcpy(this->channels[current_channel].eit[running_status].description,
+		     eit + 6 + name_len, text_len);
             }
             break;
           case 0x4E: {
@@ -1207,8 +1242,13 @@ static void do_eit(dvb_input_plugin_t *this)
             break;
           case 0x54: {  /* Content Descriptor, riveting stuff */
               int content_bits=getbits(eit,8,4);
-              char *content[]={"UNKNOWN","MOVIE","NEWS","ENTERTAINMENT","SPORT","CHILDRENS","MUSIC","ARTS/CULTURE","CURRENT AFFAIRS","EDUCATIONAL","INFOTAINMENT","SPECIAL","COMEDY","DRAMA","DOCUMENTARY","UNK"};
-              snprintf(this->channels[current_channel].eit[running_status].content,40,content[content_bits]);
+              char *content[] = {
+		  "UNKNOWN","MOVIE","NEWS","ENTERTAINMENT","SPORT",
+		  "CHILDRENS","MUSIC","ARTS/CULTURE","CURRENT AFFAIRS",
+		  "EDUCATIONAL","INFOTAINMENT","SPECIAL","COMEDY","DRAMA",
+		  "DOCUMENTARY","UNK"};
+              snprintf(this->channels[current_channel].eit[running_status].content, 40,
+		       content[content_bits]);
             }
             break;
           case 0x55: {  /* Parental Rating descriptor describes minimum recommened age -3 */ 
@@ -1216,7 +1256,13 @@ static void do_eit(dvb_input_plugin_t *this)
               printf("descriptor Len: %i\n",getbits(eit,0,8));
               printf("Country Code: %C%C%C\n",eit[1],eit[2],eit[3]);
              */
-             this->channels[current_channel].eit[running_status].rating=eit[4]+3;
+	      /* A rating value of 0 means that there is no rating defined. Ratings
+		 greater than 0xF are "defined by broadcaster", which is not supported
+		 for now. */
+	      if (eit[4] > 0 && eit[4] <= 0xF)
+		  this->channels[current_channel].eit[running_status].rating = eit[4] + 3;
+	      else
+		  this->channels[current_channel].eit[running_status].rating = 0;
             }
             break; 
           case 0x57: /* telephone descriptor not used */
@@ -1279,22 +1325,31 @@ static void show_eit(dvb_input_plugin_t *this) {
     if(this->channels[this->channel].eit[0].progname!=NULL)
     {  
       this->stream->osd_renderer->set_font(this->proginfo_osd, "sans", 32);
-      /* we trim the program name down to 23 chars so it'll fit although with kerning you just don't know */
-      snprintf(line,28,"%s",this->channels[this->channel].eit[0].progname);
+      /* we trim the program name down to 23 chars so it'll fit although with kerning you 
+	 just don't know */
+      snprintf(line, MAX_PROGRAM_NAME_LENGTH, "%s",
+	       this->channels[this->channel].eit[0].progname);
       this->stream->osd_renderer->render_text (this->proginfo_osd, 100, 46, line,OSD_TEXT4);
       this->stream->osd_renderer->set_font(this->proginfo_osd, "sans", 24);
 
       /*start time and duration */
       y=0;
       if(strlen(this->channels[this->channel].eit[0].starttime)>3){
-        snprintf(line,100,"%s(%s)",this->channels[this->channel].eit[0].starttime, this->channels[this->channel].eit[0].duration);
+        snprintf(line,100,"%s (%s)",this->channels[this->channel].eit[0].starttime, this->channels[this->channel].eit[0].duration);
         if(strlen(this->channels[this->channel].eit[0].content)>3)
           y=15; /* offset vertically */
         this->stream->osd_renderer->render_text (this->proginfo_osd, 670, 50+y, line,OSD_TEXT3);
       }
       /*Content Type and Rating if any*/
       if(strlen(this->channels[this->channel].eit[0].content)>3){
-        snprintf(line,100,"%s(%i+)",this->channels[this->channel].eit[0].content, this->channels[this->channel].eit[0].rating);
+
+	snprintf(line, 94, "%s", this->channels[this->channel].eit[0].content);
+
+	const int prog_rating = this->channels[this->channel].eit[0].rating;
+	if (prog_rating > 0) {
+	    snprintf(line + strlen(line), 7, " (%i+)", prog_rating);
+	}
+	
         this->stream->osd_renderer->render_text (this->proginfo_osd, 670, 20+y, line,OSD_TEXT3);
       }
       /* some quick'n'dirty formatting to keep words whole */  
@@ -1314,8 +1369,9 @@ static void show_eit(dvb_input_plugin_t *this) {
       }
     } else {
       this->stream->osd_renderer->set_font(this->proginfo_osd, "sans", 32);
-      /* we trim the program name down to 23 chars so it'll fit although with kerning you just don't know */
-      snprintf(line,28,"%s","No Information Available");
+      /* we trim the program name down so it'll fit although with kerning you just 
+	 don't know */
+      snprintf(line, MAX_PROGRAM_NAME_LENGTH, "%s", "No Information Available");
       this->stream->osd_renderer->render_text (this->proginfo_osd, 100, 46, line,OSD_TEXT4);
       this->stream->osd_renderer->set_font(this->proginfo_osd, "sans", 24);
     }
@@ -1323,21 +1379,30 @@ static void show_eit(dvb_input_plugin_t *this) {
     if(this->channels[this->channel].eit[1].progname!=NULL)
     {  
       /* and now the next program */ 
-      snprintf(line,28,"%s",this->channels[this->channel].eit[1].progname);
+      snprintf(line, MAX_PROGRAM_NAME_LENGTH, "%s", 
+	       this->channels[this->channel].eit[1].progname);
       this->stream->osd_renderer->set_font(this->proginfo_osd, "sans", 32);
       this->stream->osd_renderer->render_text (this->proginfo_osd, 100, 296, line,OSD_TEXT4);
       this->stream->osd_renderer->set_font(this->proginfo_osd, "sans", 24);
 
       y=0;	
       if(strlen(this->channels[this->channel].eit[1].starttime)>3){
-        snprintf(line,100,"%s(%s)",this->channels[this->channel].eit[1].starttime, this->channels[this->channel].eit[1].duration);
+        snprintf(line,100,"%s (%s)",this->channels[this->channel].eit[1].starttime, this->channels[this->channel].eit[1].duration);
         if(strlen(this->channels[this->channel].eit[1].content)>3)
           y=15; /* offset vertically */
         this->stream->osd_renderer->render_text (this->proginfo_osd, 670, 300+y, line,OSD_TEXT3);
       }
       /*Content Type and Rating if any*/
       if(strlen(this->channels[this->channel].eit[1].content)>3){
-        snprintf(line,100,"%s(%i+)",this->channels[this->channel].eit[1].content, this->channels[this->channel].eit[1].rating);
+
+	snprintf(line, 94, "%s", this->channels[this->channel].eit[1].content);
+
+	const int prog_rating = this->channels[this->channel].eit[1].rating;
+	if (prog_rating > 0) {
+	    snprintf(line + strlen(line), 7, " (%i+)", prog_rating);
+	}
+	
+
         this->stream->osd_renderer->render_text (this->proginfo_osd, 670, 270+y, line,OSD_TEXT3);
       }
       /* some quick'n'dirty formatting to keep words whole */  
@@ -1395,9 +1460,6 @@ static int tuner_set_channel (dvb_input_plugin_t *this,
 
   if (!tuner_tune_it (tuner, &c->front_param))
     return 0;
-
-  /* now read the pat,find all accociated PIDs and add them to the stream */
-  dvb_parse_si(this);
   
   return 1; /* fixme: error handling */
 }
@@ -1489,6 +1551,9 @@ static void switch_channel (dvb_input_plugin_t *this) {
 
   pthread_mutex_unlock (&this->mutex);
   
+  /* now read the pat,find all accociated PIDs and add them to the stream */
+  dvb_parse_si(this);
+
   this->stream->osd_renderer->hide(this->channel_osd,0);
   /* show eit for this channel if necessary */
   if(this->displaying==1){
@@ -1561,6 +1626,7 @@ static void do_record (dvb_input_plugin_t *this) {
 static void dvb_event_handler (dvb_input_plugin_t *this) {
 
   xine_event_t *event;
+  static int channel_menu_visible = 0;
 
   while ((event = xine_event_get (this->event_queue))) {
 
@@ -1573,21 +1639,75 @@ static void dvb_event_handler (dvb_input_plugin_t *this) {
 
     switch (event->type) {
 
+    case XINE_EVENT_INPUT_MOUSE_BUTTON: {
+      xine_input_data_t *input = (xine_input_data_t*)event->data;
+      switch (input->button) {
+
+      case MOUSE_BUTTON_LEFT:
+	if (channel_menu_visible) {
+	  channel_menu_visible = 0;
+	  switch_channel (this);
+	} else {
+	  show_eit(this);
+	}
+	break;
+
+      case MOUSE_WHEEL_UP:
+	if (this->channel>0)
+	    this->channel--;
+	channel_menu_visible = 1;
+	osd_show_channel (this);
+
+	break;
+
+      case MOUSE_WHEEL_DOWN:
+	if (this->channel < (this->num_channels-1))
+	    this->channel++;
+	channel_menu_visible = 1;
+	osd_show_channel (this);
+	break;
+
+      case MOUSE_SIDE_LEFT:
+	if (this->channel > 0) {
+	  this->channel--;
+	  channel_menu_visible = 0;
+	  switch_channel (this);
+	}
+	break;
+
+      case MOUSE_SIDE_RIGHT:
+	if (this->channel < (this->num_channels-1)) {
+	  this->channel++;
+	  channel_menu_visible = 0;
+	  switch_channel (this);
+	}
+	break;
+
+      default:
+	  printf("Unknown mouse button number: %d.\n", input->button);
+	  /* Unknown mouse event. */
+      }
+      break;
+    }
+
     case XINE_EVENT_INPUT_DOWN:
       if (this->channel < (this->num_channels-1))
 	this->channel++;
+      channel_menu_visible = 1;
       osd_show_channel (this);
       break;
 
     case XINE_EVENT_INPUT_UP:
       if (this->channel>0)
 	this->channel--;
+      channel_menu_visible = 1;
       osd_show_channel (this);
       break;
 
     case XINE_EVENT_INPUT_NEXT:
       if (this->channel < (this->num_channels-1)) {
 	this->channel++;
+	channel_menu_visible = 0;
 	switch_channel (this);
       }
       break;
@@ -1595,16 +1715,19 @@ static void dvb_event_handler (dvb_input_plugin_t *this) {
     case XINE_EVENT_INPUT_PREVIOUS:
       if (this->channel>0) {
 	this->channel--;
+	channel_menu_visible = 0;
 	switch_channel (this);
       }
       break;
 
     case XINE_EVENT_INPUT_SELECT:
+      channel_menu_visible = 0;
       switch_channel (this);
       break;
 
     case XINE_EVENT_INPUT_MENU1:
       this->stream->osd_renderer->hide (this->osd, 0);
+      channel_menu_visible = 0;
       break;
 
     case XINE_EVENT_INPUT_MENU2:
@@ -1635,9 +1758,9 @@ static void dvb_event_handler (dvb_input_plugin_t *this) {
       break;
 
     case XINE_EVENT_INPUT_MENU7:
+	 channel_menu_visible = 0;
          show_eit(this);
         break;
-
 
 #if 0
    default:
@@ -2089,8 +2212,9 @@ static int dvb_plugin_open(input_plugin_t * this_gen)
              _("input_dvb: cannot open dvr device '%s'\n"), this->tuner->dvr_device);
       return 0;
     }
-    if(ioctl(this->fd,DMX_SET_BUFFER_SIZE,188*1024)<0)
-      xprintf(this->class->xine,XINE_VERBOSITY_DEBUG,"input_dvb: couldn't increase buffer size for DVR: %s \n",strerror(errno)); 
+    
+    /* now read the pat,find all accociated PIDs and add them to the stream */
+    dvb_parse_si(this);
 
     this->curpos = 0;
     this->osd = NULL;
@@ -2376,39 +2500,39 @@ static void *init_class (xine_t *xine, void *data) {
   xprintf(this->xine,XINE_VERBOSITY_DEBUG,"init class succeeded\n");
 
 
-    /* dislay channel name in top left of display */
-   config->register_bool(config, "input.dvbdisplaychan",
-				 0,
-				 _("display DVB channel name"),
-				 _("This will display the current "
-				   "channel name in xine's on-screen-display. "
-				   "Menu button 7 will disable this temporarily."),
-				 0, NULL, NULL);
+  /* dislay channel name in top left of display */
+  config->register_bool(config, "input.dvbdisplaychan",
+			0,
+			_("display DVB channel name"),
+			_("This will display the current "
+			  "channel name in xine's on-screen-display. "
+			  "Menu button 7 will disable this temporarily."),
+			0, NULL, NULL);
 
-    /* Enable remembering of last watched channel */
-   config->register_bool(config, "input.dvb_last_channel_enable",
-				 1,
-				 _("Remember last DVB channel watched"),
-				 _("On autoplay, xine will remember and "
-				   "switch to this channel. "),
-				 0, NULL, NULL);
+  /* Enable remembering of last watched channel */
+  config->register_bool(config, "input.dvb_last_channel_enable",
+			1,
+			_("Remember last DVB channel watched"),
+			_("On autoplay, xine will remember and "
+			  "switch to this channel. "),
+			0, NULL, NULL);
+
+  /* Enable remembering of last watched channel never show this entry*/
+  config->register_num(config, "input.dvb_last_channel_watched",
+		       -1,
+		       _("Remember last DVB channel watched"),
+		       _("If enabled, xine will remember and "
+			 "switch to this channel. "),
+		       11, NULL, NULL);
 
 
-    /* Enable remembering of last watched channel never show this entry*/
-   config->register_num(config, "input.dvb_last_channel_watched",
-				 -1,
-				 _("Remember last DVB channel watched"),
-				 _("If enabled, xine will remember and "
-				   "switch to this channel. "),
-				 11, NULL, NULL);
-
-    config->register_num(config, "input.dvb_adapternum",
-				 0,
-				 _("Number of dvb card to use."),
-				 _("Leave this at zero unless you "
-				   "really have more than 1 card "
-				   "in your system."),
-				 0, NULL, (void *) this);
+  config->register_num(config, "input.dvb_adapternum",
+		       0,
+		       _("Number of dvb card to use."),
+		       _("Leave this at zero unless you "
+			 "really have more than 1 card "
+			 "in your system."),
+		       0, NULL, (void *) this);
     
 
   return this;
