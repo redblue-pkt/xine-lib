@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (C) 2001-2002 the xine project
  * 
  * This file is part of xine, a free video player.
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_qt.c,v 1.28 2002/04/29 23:31:59 jcdutton Exp $
+ * $Id: demux_qt.c,v 1.29 2002/05/14 21:32:06 tmattern Exp $
  *
  * demultiplexer for mpeg-4 system (aka quicktime) streams, based on:
  *
@@ -550,6 +550,7 @@ typedef struct demux_qt_s {
   input_plugin_t       *input;
 
   pthread_t             thread;
+  int                   thread_running;
   pthread_mutex_t       mutex;
 
   int                   status;
@@ -559,17 +560,17 @@ typedef struct demux_qt_s {
   qt_idx_t              index[MAX_QT_INDEX];
   int                   num_index_entries;
 
-  int			has_audio;	 /* 1 if this qt stream has audio */
+  int                   has_audio;       /* 1 if this qt stream has audio */
 
-  int                   video_step; /* in PTS */
+  int                   video_step;      /* in PTS */
   double                audio_factor;
-  
+
   uint32_t              video_type;      /* BUF_VIDEO_xxx type */
   uint32_t              audio_type;      /* BUF_AUDIO_xxx type */
 
   WAVEFORMATEX          wavex;
   BITMAPINFOHEADER      bih;
-  
+
   uint8_t               scratch[64*1024];
 
   int                   send_newpts;
@@ -579,9 +580,9 @@ typedef struct demux_qt_s {
 static void check_newpts( demux_qt_t *this, int64_t pts )
 {
   if( this->send_newpts && pts ) {
-    
+
     buf_element_t *buf;
-  
+
     buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
     buf->type = BUF_CONTROL_NEWPTS;
     buf->disc_off = pts;
@@ -3480,7 +3481,7 @@ static int quicktime_channel_location(quicktime_t *file, int *quicktime_track,
 static int quicktime_video_tracks(quicktime_t *file) {
   int i, result = 0;
   for(i = 0; i < file->moov.total_tracks; i++) {
-    if(file->moov.trak[i]->mdia.minf.is_video) 
+    if(file->moov.trak[i]->mdia.minf.is_video)
       result++;
   }
   return result;
@@ -3773,20 +3774,21 @@ static void *demux_qt_loop (void *this_gen) {
   fifo_buffer_t *fifo;
   int64_t        pts;
   uint32_t       flags;
+  int            is_audio;
+  int            sample_num;
 
 #ifdef LOG
-  printf ("demux_qt: demux loop starting...\n"); 
+  printf ("demux_qt: demux loop starting...\n");
 #endif
 
   idx = 0;
 
-  while(1) {
-    int is_audio, sample_num;
-    
-    pthread_mutex_lock( &this->mutex );
-    
-    if( this->status != DEMUX_OK)
-      break;
+  pthread_mutex_lock( &this->mutex );
+  /* do-while needed to seek after demux finished */
+  do {
+
+    /* main demuxer loop */
+    while(this->status == DEMUX_OK) {
 
     if (idx >= this->num_index_entries)
       break;
@@ -3802,13 +3804,13 @@ static void *demux_qt_loop (void *this_gen) {
     pts    = this->index[idx].pts;
 
     check_newpts( this, pts );
-    
+
     for (sample_num = this->index[idx].first_sample; sample_num <= this->index[idx].last_sample; sample_num++) {
 
       todo = demux_qt_get_sample_size (this->index[idx].track, sample_num);
 
 #ifdef LOG
-      printf ("demux_qt: [idx:%04d type:%08x len:%08lld ] ---------------------------\n", 
+      printf ("demux_qt: [idx:%04d type:%08x len:%08lld ] ---------------------------\n",
 	      idx, this->index[idx].type, todo);
 #endif
 
@@ -3824,12 +3826,12 @@ static void *demux_qt_loop (void *this_gen) {
 	todo -= size;
 
 	quicktime_set_position (this->qt, offset);
-    
+
 	buf->size          = this->qt->quicktime_read_data (this->qt, buf->mem, size);
 #ifdef LOG
 	printf ("demux_qt: generated buffer of %d bytes \n", buf->size);
 #endif
-    
+
 	buf->content       = buf->mem;
 
 #ifdef DBG_QT
@@ -3855,10 +3857,22 @@ static void *demux_qt_loop (void *this_gen) {
 
     }
     idx++;
-    
-    pthread_mutex_unlock( &this->mutex );
 
-  }
+
+      /* someone may want to interrupt us */
+      pthread_mutex_unlock( &this->mutex );
+      pthread_mutex_lock( &this->mutex );
+    }
+
+    /* wait before sending end buffers: user might want to do a new seek */
+    while(this->send_end_buffers && this->video_fifo->size(this->video_fifo) &&
+          this->status != DEMUX_OK){
+      pthread_mutex_unlock( &this->mutex );
+      xine_usec_sleep(100000);
+      pthread_mutex_lock( &this->mutex );
+    }
+
+  } while( this->status == DEMUX_OK );
 
   printf ("demux_qt: demux loop finished (status: %d)\n",
 	  this->status);
@@ -3870,7 +3884,7 @@ static void *demux_qt_loop (void *this_gen) {
     buf->type            = BUF_CONTROL_END;
     buf->decoder_flags   = BUF_FLAG_END_STREAM; /* stream finished */
     this->video_fifo->put (this->video_fifo, buf);
-    
+
     if(this->audio_fifo) {
       buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
       buf->type            = BUF_CONTROL_END;
@@ -3879,7 +3893,8 @@ static void *demux_qt_loop (void *this_gen) {
     }
 
   }
-    
+
+  this->thread_running = 0;
   pthread_mutex_unlock( &this->mutex );
 
   pthread_exit(NULL);
@@ -3899,7 +3914,7 @@ static void demux_qt_close (demux_plugin_t *this_gen) {
 
 #ifdef DBG_QT
   close (debug_fh);
-#endif  
+#endif
 
 }
 
@@ -3910,8 +3925,8 @@ static void demux_qt_stop (demux_plugin_t *this_gen) {
   void *p;
 
   pthread_mutex_lock( &this->mutex );
-  
-  if (this->status != DEMUX_OK) {
+
+  if (!this->thread_running) {
     printf ("demux_qt: stop...ignored\n");
     pthread_mutex_unlock( &this->mutex );
     return;
@@ -3919,7 +3934,7 @@ static void demux_qt_stop (demux_plugin_t *this_gen) {
 
   this->send_end_buffers = 0;
   this->status = DEMUX_FINISHED;
-  
+
   pthread_mutex_unlock( &this->mutex );
   pthread_join (this->thread, &p);
 
@@ -3941,7 +3956,7 @@ static void demux_qt_stop (demux_plugin_t *this_gen) {
 static int demux_qt_get_status (demux_plugin_t *this_gen) {
   demux_qt_t *this = (demux_qt_t *) this_gen;
 
-  return this->status;
+  return (this->thread_running?DEMUX_OK:DEMUX_FINISHED);
 }
 
 static int demux_qt_detect_compressors (demux_qt_t *this) {
@@ -3965,18 +3980,18 @@ static int demux_qt_detect_compressors (demux_qt_t *this) {
   this->video_step = 90000.0 / quicktime_frame_rate (this->qt, 0);
 
   this->video_type = fourcc_to_buf_video( video );
-  
+
   /* FIXME: do we really need to set biCompression again here? */
   if (this->video_type == BUF_VIDEO_CINEPAK) {
     this->bih.biCompression=mmioFOURCC('c', 'v', 'i', 'd');
   }
-    
+
   if (!this->video_type) {
     xine_log (this->xine, XINE_LOG_FORMAT,
 	      _("demux_qt: unknown video codec '%s'\n"), video);
     return 0;
   }
-  
+
   printf ("demux_qt: video codec is '%s'\n", video);
 
   this->wavex.nChannels       = quicktime_track_channels (this->qt, 0);
@@ -4010,7 +4025,7 @@ static int demux_qt_detect_compressors (demux_qt_t *this) {
   return 1;
 }
 
-static void demux_qt_add_index_entry (demux_qt_t *this, off_t offset, 
+static void demux_qt_add_index_entry (demux_qt_t *this, off_t offset,
 				      int first_sample, int last_sample,
 				      int64_t pts, int32_t type,
 				      quicktime_trak_t *track) {
@@ -4018,7 +4033,7 @@ static void demux_qt_add_index_entry (demux_qt_t *this, off_t offset,
   int i,j;
 
   /*
-   * insertion sort 
+   * insertion sort
    */
 
   for (i=0; i<this->num_index_entries; i++) {
@@ -4026,9 +4041,9 @@ static void demux_qt_add_index_entry (demux_qt_t *this, off_t offset,
       break;
   }
 
-  for (j=this->num_index_entries; j>i; j--) 
+  for (j=this->num_index_entries; j>i; j--)
     this->index[j] = this->index[j-1];
-  
+
   this->index[i].pts          = pts;
   this->index[i].offset       = offset;
   this->index[i].first_sample = first_sample;
@@ -4062,35 +4077,35 @@ static void demux_qt_index_trak (demux_qt_t *this, quicktime_trak_t *trak, uint3
   /*
    * generate one entry per chunk
    */
-  
+
   /* chunk-tracking */
 
   stsc_entry        = 0;
-  stsc_first        = stsc->table[stsc_entry].chunk; 
+  stsc_first        = stsc->table[stsc_entry].chunk;
   stsc_cur          = stsc_first;
 
   if (stsc->total_entries>(stsc_entry+1))
     stsc_next       = stsc->table[stsc_entry+1].chunk;
   else
     stsc_next       = 1000000;
-  
+
   stsc_samples      = stsc->table[stsc_entry].samples;
   stsc_last_sample  = stsc_samples-1;
   stsc_first_sample = 0;
-  
+
   /* time-to-sample tracking */
-  
+
   stts_entry        = 0;
   stts_first_sample = 0;
   stts_last_sample  = stts->table[stts_entry].sample_count-1;
   stts_duration     = stts->table[stts_entry].sample_duration * 90000 / time_scale;
   stts_pts          = 0;
-  
+
   while (stsc_cur < stco->total_entries) {
-#ifdef LOG    
+#ifdef LOG
     printf ("demux_qt: chunk # is %d...\n", stsc_cur);
 #endif
-    
+
     chunk_offset = stco->table[stsc_cur-1].offset;
 
     /*
@@ -4114,20 +4129,20 @@ static void demux_qt_index_trak (demux_qt_t *this, quicktime_trak_t *trak, uint3
     /*
      * offset of chunk / sample
      */
-    
+
     while (stsc_cur >= stsc_next) {
-      
+
       stsc_entry++;
-      
-      stsc_first = stsc->table[stsc_entry].chunk; 
+
+      stsc_first = stsc->table[stsc_entry].chunk;
 
       if (stsc->total_entries>(stsc_entry+1))
 	stsc_next = stsc->table[stsc_entry+1].chunk;
       else
 	stsc_next = 1000000;
-	
+
       stsc_samples      = stsc->table[stsc_entry].samples;
-    }      
+    }
 
     stsc_first_sample  = stsc_last_sample + 1;
     stsc_last_sample   = stsc_first_sample + stsc_samples - 1;
@@ -4136,7 +4151,7 @@ static void demux_qt_index_trak (demux_qt_t *this, quicktime_trak_t *trak, uint3
     printf ("demux_qt: chunk offset is %lld...\n", chunk_offset);
 #endif
 
-    /* 
+    /*
      * find out about pts of sample
      */
 
@@ -4187,7 +4202,7 @@ static void demux_qt_create_index (demux_qt_t *this) {
 }
 
 static void demux_qt_start (demux_plugin_t *this_gen,
-			    fifo_buffer_t *video_fifo, 
+			    fifo_buffer_t *video_fifo,
 			    fifo_buffer_t *audio_fifo,
 			    off_t start_pos, int start_time) {
 
@@ -4197,7 +4212,7 @@ static void demux_qt_start (demux_plugin_t *this_gen,
 
   pthread_mutex_lock( &this->mutex );
 
-  if( this->status != DEMUX_OK ) {
+  if( !this->thread_running ) {
     this->video_fifo  = video_fifo;
     this->audio_fifo  = audio_fifo;
 
@@ -4216,7 +4231,7 @@ static void demux_qt_start (demux_plugin_t *this_gen,
       pthread_mutex_unlock( &this->mutex );
       return;
     }
-  
+
     xine_log (this->xine, XINE_LOG_FORMAT,
 	    _("demux_qt: video codec %s (%f fps), audio codec %s (%ld Hz, %d bits)\n"),
 	    quicktime_video_compressor (this->qt,0),
@@ -4237,7 +4252,7 @@ static void demux_qt_start (demux_plugin_t *this_gen,
 
     demux_qt_create_index (this);
 
-    /* 
+    /*
      * send start buffer
      */
 
@@ -4251,14 +4266,14 @@ static void demux_qt_start (demux_plugin_t *this_gen,
       this->audio_fifo->put (this->audio_fifo, buf);
     }
   }
-  
+
   /*
    * seek to start pos/time
    */
   if (start_pos) {
 
     double f = (double) start_pos / (double) this->input->get_length (this->input) ;
-    
+
 
     quicktime_set_audio_position (this->qt,
 				  quicktime_audio_length (this->qt, 0) * f, 0);
@@ -4268,8 +4283,8 @@ static void demux_qt_start (demux_plugin_t *this_gen,
 
   }
   this->send_newpts = 1;
-  
-  if( this->status != DEMUX_OK ) {
+
+  if( !this->thread_running ) {
     /*
      * send init info to decoders
      */
@@ -4289,14 +4304,14 @@ static void demux_qt_start (demux_plugin_t *this_gen,
     if(this->audio_fifo) {
       buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
       buf->content = buf->mem;
-      memcpy (buf->content, &this->wavex, 
+      memcpy (buf->content, &this->wavex,
 	      sizeof (this->wavex));
       buf->size = sizeof (this->wavex);
       buf->type = this->audio_type;
       buf->decoder_flags   = BUF_FLAG_HEADER;
       buf->decoder_info[0] = 0; /* first package, containing wavex */
       buf->decoder_info[1] = quicktime_sample_rate (this->qt, 0);
-      buf->decoder_info[2] = quicktime_audio_bits (this->qt, 0); 
+      buf->decoder_info[2] = quicktime_audio_bits (this->qt, 0);
       buf->decoder_info[3] = quicktime_track_channels (this->qt, 0);
       this->audio_fifo->put (this->audio_fifo, buf);
     }
@@ -4307,6 +4322,7 @@ static void demux_qt_start (demux_plugin_t *this_gen,
 
     this->status = DEMUX_OK ;
     this->send_end_buffers = 1;
+    this->thread_running = 1;
 
     if ((err = pthread_create (&this->thread, NULL, demux_qt_loop, this)) != 0) {
       printf ("demux_qt: can't create new thread (%s)\n", strerror(err));
@@ -4337,12 +4353,12 @@ static int demux_qt_open(demux_plugin_t *this_gen,
   switch(stage) {
 
   case STAGE_BY_CONTENT: {
-    
-    if ((input->get_capabilities(input) & INPUT_CAP_SEEKABLE) == 0) 
+
+    if ((input->get_capabilities(input) & INPUT_CAP_SEEKABLE) == 0)
       return DEMUX_CANNOT_HANDLE;
     if ((input->get_capabilities(input) & INPUT_CAP_BLOCK) != 0)
       return DEMUX_CANNOT_HANDLE;
-      
+
     if (quicktime_check_sig (input)) {
       this->input = input;
       return DEMUX_CAN_HANDLE;
@@ -4357,29 +4373,29 @@ static int demux_qt_open(demux_plugin_t *this_gen,
     char *suffix;
     char *MRL;
     char *m, *valid_ends;
-    
+
     MRL = input->get_mrl (input);
-    
+
     suffix = strrchr(MRL, '.');
-    
+
     if(!suffix)
       return DEMUX_CANNOT_HANDLE;
-    
+
     xine_strdupa(valid_ends, (this->config->register_string(this->config,
 							    "mrl.ends_qt", VALID_ENDS,
 							    "valid mrls ending for qt demuxer",
 							    NULL, NULL, NULL)));
-    while((m = xine_strsep(&valid_ends, ",")) != NULL) { 
-      
+    while((m = xine_strsep(&valid_ends, ",")) != NULL) {
+
       while(*m == ' ' || *m == '\t') m++;
-      
+
       if(!strcasecmp((suffix + 1), m)) {
 	this->input = input;
 	return DEMUX_CAN_HANDLE;
       }
     }
     return DEMUX_CANNOT_HANDLE;
-    
+
   }
   break;
 
