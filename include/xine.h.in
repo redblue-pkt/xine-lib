@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.114 2004/01/03 20:23:19 valtri Exp $
+ * $Id: xine.h.in,v 1.115 2004/01/11 15:31:53 mroi Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -599,10 +599,10 @@ const char *const *xine_post_list_inputs(xine_post_t *self);
 const char *const *xine_post_list_outputs(xine_post_t *self);
 
 /* retrieve one specific input of a post plugin */
-xine_post_in_t *xine_post_input(xine_post_t *self, char *name);
+xine_post_in_t *xine_post_input(xine_post_t *self, const char *name);
 
 /* retrieve one specific output of a post plugin */
-xine_post_out_t *xine_post_output(xine_post_t *self, char *name);
+xine_post_out_t *xine_post_output(xine_post_t *self, const char *name);
 
 /*
  * wire an input to an output
@@ -630,7 +630,7 @@ int xine_post_wire_video_port(xine_post_out_t *source, xine_video_port_t *vo);
  *
  * returns 1 on success, 0 on failure
  */
-int xine_post_wire_audio_port(xine_post_out_t *source, xine_audio_port_t *vo);
+int xine_post_wire_audio_port(xine_post_out_t *source, xine_audio_port_t *ao);
 
 /*
  * Extracts an output for a stream. Use this to rewire the outputs of streams.

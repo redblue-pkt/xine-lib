@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_interface.c,v 1.75 2003/12/31 23:29:06 jcdutton Exp $
+ * $Id: xine_interface.c,v 1.76 2004/01/11 15:31:53 mroi Exp $
  *
  * convenience/abstraction layer, functions to implement
  * libxine's public interface
@@ -709,7 +709,7 @@ const char *const *xine_post_list_outputs(xine_post_t *this_gen) {
   return this->output_ids;
 }
 
-xine_post_in_t *xine_post_input(xine_post_t *this_gen, char *name) {
+xine_post_in_t *xine_post_input(xine_post_t *this_gen, const char *name) {
   post_plugin_t  *this = (post_plugin_t *)this_gen;
   xine_post_in_t *input;
   
@@ -722,7 +722,7 @@ xine_post_in_t *xine_post_input(xine_post_t *this_gen, char *name) {
   return NULL;
 }
 
-xine_post_out_t *xine_post_output(xine_post_t *this_gen, char *name) {
+xine_post_out_t *xine_post_output(xine_post_t *this_gen, const char *name) {
   post_plugin_t   *this = (post_plugin_t *)this_gen;
   xine_post_out_t *output;
   
