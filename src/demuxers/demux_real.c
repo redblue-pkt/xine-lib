@@ -28,7 +28,7 @@
  *   
  *   Based on FFmpeg's libav/rm.c.
  *
- * $Id: demux_real.c,v 1.50 2003/04/26 20:16:23 guenter Exp $
+ * $Id: demux_real.c,v 1.51 2003/05/25 14:53:27 jstembridge Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -69,6 +69,8 @@
 #define REAL_SIGNATURE_SIZE 4
 #define DATA_CHUNK_HEADER_SIZE 10
 #define DATA_PACKET_HEADER_SIZE 12
+#define INDEX_CHUNK_HEADER_SIZE 20
+#define INDEX_RECORD_SIZE 14
 
 #define PN_KEYFRAME_FLAG 0x0002
 
@@ -83,6 +85,12 @@ typedef struct {
 } real_packet;
 
 typedef struct {
+  int   timestamp;
+  int   offset;
+  int   packetno;
+} real_index_entry_t;
+
+typedef struct {
 
   demux_plugin_t       demux_plugin;
 
@@ -95,6 +103,7 @@ typedef struct {
 
   input_plugin_t      *input;
 
+  off_t                index_start;
   off_t                data_start;
   off_t                data_size;
   int                  status;
@@ -103,8 +112,13 @@ typedef struct {
 
   int                  video_stream_num;
   uint32_t             video_buf_type;
+  real_index_entry_t  *video_index;
+  int                  video_index_entries;
+
   int                  audio_stream_num;
   uint32_t             audio_buf_type;
+  real_index_entry_t  *audio_index;
+  int                  audio_index_entries;
 
   unsigned int         current_data_chunk_packet_count;
   unsigned int         next_data_chunk_offset;
@@ -188,6 +202,88 @@ static void hexdump (char *buf, int length) {
   printf ("\n");
 }
 #endif
+
+static void real_parse_index(demux_real_t *this) {
+
+  off_t                next_index_chunk = this->index_start;
+  off_t                original_pos     = this->input->get_current_pos(this->input);
+  unsigned char        index_chunk_header[INDEX_CHUNK_HEADER_SIZE];
+  unsigned char        index_record[INDEX_RECORD_SIZE];
+  int                  i, entries, stream_num;
+  real_index_entry_t **index;
+  
+  while(next_index_chunk) {
+#ifdef LOG
+    printf("demux_real: reading index chunk at %lld\n", next_index_chunk);
+#endif
+    
+    /* Seek to index chunk */  
+    this->input->seek(this->input, next_index_chunk, SEEK_SET);
+    
+    /* Read index chunk header */
+    this->input->read(this->input, index_chunk_header, INDEX_CHUNK_HEADER_SIZE);
+    
+    /* Check chunk is actually an index chunk */
+    if(BE_32(&index_chunk_header[0]) == INDX_TAG) {
+    
+      /* Check version */
+      if(BE_16(&index_chunk_header[8]) != 0) {
+        printf("demux_real: unknown index chunk version %d\n",
+               BE_16(&index_chunk_header[8]));
+        break;
+      }
+      
+      /* Read data from header */
+      entries          = BE_32(&index_chunk_header[10]);
+      stream_num       = BE_16(&index_chunk_header[14]);
+      next_index_chunk = BE_32(&index_chunk_header[16]);
+      
+      /* Find which stream this index is for */
+      if(stream_num == this->video_stream_num) {
+        index = &this->video_index;
+        this->video_index_entries = entries;
+#ifdef LOG
+        printf("demux_real: found index chunk with %d entries for video stream\n",
+               entries);
+#endif
+      } else if(stream_num == this->audio_stream_num) {
+        index = &this->audio_index;
+        this->audio_index_entries = entries;
+#ifdef LOG
+        printf("demux_real: found index chunk with %d entries for audio stream\n",
+               entries);
+#endif
+      } else {
+        index = NULL;
+#ifdef LOG
+        printf("demux_real: found index chunk for unused stream number %d\n",
+               stream_num);
+#endif
+      }
+      
+      if(index && entries) {
+        /* Allocate memory for index */
+        *index = xine_xmalloc(entries * sizeof(real_index_entry_t));
+        
+        /* Read index */
+        for(i = 0; i < entries; i++) {
+          this->input->read(this->input, index_record, INDEX_RECORD_SIZE);
+          
+          (*index)[i].timestamp = BE_32(&index_record[2]);
+          (*index)[i].offset    = BE_32(&index_record[6]);
+          (*index)[i].packetno  = BE_32(&index_record[10]);
+        }
+      }
+    } else {
+      printf("demux_real: expected index chunk found chunk type: %.4s\n",
+             &index_chunk_header[0]);
+      break;
+    }
+  }
+  
+  /* Seek back to position before index reading */
+  this->input->seek(this->input, original_pos, SEEK_SET);
+}
 
 static pnm_mdpr_t *pnm_parse_mdpr(const char *data) {
 
@@ -323,6 +419,7 @@ static void real_parse_headers (demux_real_t *this) {
 
         this->packet_count  = BE_32(&chunk_buffer[18]);
         this->duration      = BE_32(&chunk_buffer[22]);
+        this->index_start   = BE_32(&chunk_buffer[30]);
         this->data_start    = BE_32(&chunk_buffer[34]);
 	this->avg_bitrate   = BE_32(&chunk_buffer[6]); 
 
@@ -599,6 +696,10 @@ static void real_parse_headers (demux_real_t *this) {
 
     }
   }
+#if 0
+  if((this->input->get_capabilities (this->input) & INPUT_CAP_SEEKABLE) != 0)
+    real_parse_index(this);
+#endif
 }
 
 
@@ -1081,6 +1182,11 @@ static int demux_real_seek (demux_plugin_t *this_gen,
 static void demux_real_dispose (demux_plugin_t *this_gen) {
 
   demux_real_t *this = (demux_real_t *) this_gen;
+  
+  if(this->video_index)
+    free(this->video_index);
+  if(this->audio_index)
+    free(this->audio_index);
 
   free(this);
 }
