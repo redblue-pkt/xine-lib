@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mosaico.c,v 1.9 2003/03/14 12:07:14 skaboy Exp $
+ * $Id: mosaico.c,v 1.10 2003/03/14 16:14:24 skaboy Exp $
  */
  
 /*
@@ -35,9 +35,9 @@
 #define DEFAULT_H (150)
 #define MAXPIP (5)
 
-
+/*
 #define LOG
-
+*/
 
 /* plugin class initialization function */
 static void *mosaico_init_plugin(xine_t *xine, void *);
@@ -594,10 +594,6 @@ static int mosaico_draw_2(vo_frame_t *frame, xine_stream_t *stream)
   xine_video_port_t *pt;
   xine_post_in_t *in;
   int i = 0;
-#if 0
-  int skip;
-  vo_frame_t *newframe;
-#endif
 
   in = xine_list_first_content(port->post->input);
 
@@ -617,56 +613,7 @@ static int mosaico_draw_2(vo_frame_t *frame, xine_stream_t *stream)
   _mosaico_draw_2(frame, output, i-1);  
  
 
-#if 0
-
-  pthread_mutex_lock(&output->mut1);
-  pthread_mutex_lock(&output->mut2);
-
-  if(output->saved_frame != NULL) {    
-
-    /*printf("get\n");*/
-    newframe = output->vo_port->get_frame(output->vo_port, output->saved_frame->width, output->saved_frame->height,
-					  output->saved_frame->ratio, output->saved_frame->format,
-					  VO_BOTH_FIELDS);
-    /*printf("got\n");*/
-    newframe->extra_info->invalid = 1; 
-    newframe->pts = frame->pts;
-    newframe->duration = output->saved_frame->duration;
-    newframe->bad_frame = output->saved_frame->bad_frame;
-    /*newframe->vpts = frame->vpts;*/
-    /*vpts = 0;
-      frame->duration = 90000 * this->samples_per_frame / this->sample_rate;
-      this->sample_counter -= this->samples_per_frame;
-    */
-    frame_copy_content(newframe, output->saved_frame);
-    
-    /*memset(frame->base[0], this->current_yuv_byte, FOO_WIDTH * FOO_HEIGHT * 2);
-      this->current_yuv_byte += 3;
-
-      frame->draw(frame, stream);*/
-    
-    /*printf("dis\n");*/
-    if(newframe->draw) 
-      skip = newframe->draw(newframe, output->saved_frame->stream);
-    else {
-      skip = 0;
-      printf("salta..\n");
-    }
-    newframe->free(newframe); 
-    /*printf("draw2 %d\n", skip);*/ 
-    /*frame->vpts = output->saved_frame->vpts;*/
-    post_restore_video_frame(frame, port);
-    
-    pthread_mutex_unlock(&output->mut1);
-    pthread_mutex_unlock(&output->mut2);
-
-    return skip;
-  }
-  /*pthread_mutex_unlock(&output->mut1);
-    pthread_mutex_unlock(&output->mut2);*/
-#else 
   post_restore_video_frame(frame, port);
-#endif
 
   return 0;
 }
