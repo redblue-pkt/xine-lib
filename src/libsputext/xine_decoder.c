@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.62 2003/09/18 18:14:50 valtri Exp $
+ * $Id: xine_decoder.c,v 1.63 2003/09/18 18:17:12 valtri Exp $
  *
  */
 
@@ -45,7 +45,8 @@
 
 
 typedef enum {
-  SUBTITLE_SIZE_SMALL = 0,
+  SUBTITLE_SIZE_TINY = 0,
+  SUBTITLE_SIZE_SMALL,
   SUBTITLE_SIZE_NORMAL,
   SUBTITLE_SIZE_LARGE,
 
@@ -100,23 +101,11 @@ typedef struct sputext_decoder_s {
 
 
 static void update_font_size (sputext_decoder_t *this) {
-  static int sizes[SUBTITLE_SIZE_NUM][4] = {
-    { 16, 16, 16, 20 }, /* SUBTITLE_SIZE_SMALL  */
-    { 16, 16, 20, 24 }, /* SUBTITLE_SIZE_NORMAL */
-    { 16, 20, 24, 32 }, /* SUBTITLE_SIZE_LARGE  */
-  };
+  static int sizes[SUBTITLE_SIZE_NUM] = { 16, 20, 24, 32 };
 
-  int *vec = sizes[this->class->subtitle_size];
   int  y;
 
-  if( this->width >= 512 )
-    this->font_size = vec[3];
-  else if( this->width >= 384 )
-    this->font_size = vec[2];
-  else if( this->width >= 320 )
-    this->font_size = vec[1];
-  else
-    this->font_size = vec[0];
+  this->font_size = sizes[this->class->subtitle_size];
   
   this->line_height = this->font_size + 10;
 
@@ -452,7 +441,9 @@ static void update_src_encoding(void *class_gen, xine_cfg_entry_t *entry)
 
 static void *init_spu_decoder_plugin (xine_t *xine, void *data) {
 
-  static char *subtitle_size_strings[] = { "small", "normal", "large", NULL };
+  static char *subtitle_size_strings[] = { 
+    "tiny", "small", "normal", "large", NULL 
+  };
   sputext_class_t *this ;
 
 #ifdef LOG
