@@ -1,5 +1,8 @@
 xine-lib (next version) [someone fill in stability and urgency]
 
+  * fix segfault on exit for w32codecs
+  * fix yuy2 on xshm bug (affects w32codecs and msvc)
+  * reimplemented x/y zoom
   * Wing Commander III MVE movie file demuxer
   * Creative Voice (VOC) file demuxer
   * Westwood Studios VQA file demuxer
