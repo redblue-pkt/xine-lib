@@ -1,10 +1,5 @@
-Index: avcodec.h
-===================================================================
-RCS file: /cvsroot/ffmpeg/ffmpeg/libavcodec/avcodec.h,v
-retrieving revision 1.290
-diff -u -r1.290 avcodec.h
---- avcodec.h	14 Mar 2004 04:03:12 -0000	1.290
-+++ avcodec.h	14 Mar 2004 21:02:15 -0000
+--- avcodec.h	2004-05-12 18:40:32.000000000 +0200
++++ avcodec.h	2004-05-10 01:31:59.000000000 +0200
 @@ -15,6 +15,13 @@
  #include "rational.h"
  #include <sys/types.h> /* size_t */
@@ -18,56 +13,23 @@ diff -u -r1.290 avcodec.h
 +
  #define FFMPEG_VERSION_INT     0x000408
  #define FFMPEG_VERSION         "0.4.8"
- #define LIBAVCODEC_BUILD       4707
-Index: common.h
-===================================================================
-RCS file: /cvsroot/ffmpeg/ffmpeg/libavcodec/common.h,v
-retrieving revision 1.122
-diff -u -r1.122 common.h
---- common.h	12 Mar 2004 23:39:38 -0000	1.122
-+++ common.h	14 Mar 2004 21:02:18 -0000
-@@ -205,7 +205,9 @@
- /* debug stuff */
+ #define LIBAVCODEC_BUILD       4713
+--- common.h	2004-05-12 18:37:00.000000000 +0200
++++ common.h	2004-05-10 01:31:59.000000000 +0200
+@@ -6,6 +6,11 @@
+ #ifndef COMMON_H
+ #define COMMON_H
  
- #    ifndef DEBUG
-+#      ifndef NDEBUG
- #        define NDEBUG
-+#      endif
- #    endif
- #    include <assert.h>
- 
-@@ -216,11 +218,19 @@
- 
- #    else
- 
--#        ifdef DEBUG
--#            define dprintf(fmt,...) printf(fmt, __VA_ARGS__)
--#        else
--#            define dprintf(fmt,...)
--#        endif
-+#if __GNUC__
++/* xine: disable DEBUG for ffmpeg (too noisy) */
 +#ifdef DEBUG
-+#define dprintf(fmt,args...) printf(fmt, ## args)
-+#else
-+#define dprintf(fmt,args...)
++#undef DEBUG
 +#endif
-+#else
-+#ifdef DEBUG
-+#define dprintf(...) printf(__VA_ARGS__)
-+#else
-+#define dprintf(...)
-+#endif
-+#endif
- 
- #    endif /* !CONFIG_WIN32 */
- 
-Index: dsputil.h
-===================================================================
-RCS file: /cvsroot/ffmpeg/ffmpeg/libavcodec/dsputil.h,v
-retrieving revision 1.90
-diff -u -r1.90 dsputil.h
---- dsputil.h	13 Mar 2004 21:43:23 -0000	1.90
-+++ dsputil.h	14 Mar 2004 21:02:20 -0000
++
+ #if defined(WIN32) && !defined(__MINGW32__) && !defined(__CYGWIN__)
+ #    define CONFIG_WIN32
+ #endif
+--- dsputil.h	2004-04-27 05:58:06.000000000 +0200
++++ dsputil.h	2004-05-10 01:32:00.000000000 +0200
 @@ -31,6 +31,9 @@
  #include "common.h"
  #include "avcodec.h"
@@ -78,26 +40,46 @@ diff -u -r1.90 dsputil.h
  
  //#define DEBUG
  /* dct code */
-Index: fastmemcpy.h
-===================================================================
-RCS file: /cvsroot/ffmpeg/ffmpeg/libavcodec/Attic/fastmemcpy.h,v
-retrieving revision 1.1
-diff -u -r1.1 fastmemcpy.h
---- fastmemcpy.h	2 Aug 2001 08:29:38 -0000	1.1
-+++ fastmemcpy.h	14 Mar 2004 21:02:20 -0000
-@@ -1 +1,4 @@
--#include "../libvo/fastmemcpy.h"
-+#if 0
-+extern void *xine_fast_memcpy(void *to, const void *from, size_t len);
-+#define memcpy(a,b,c) xine_fast_memcpy(a,b,c)
-+#endif
-Index: mpeg12.c
-===================================================================
-RCS file: /cvsroot/ffmpeg/ffmpeg/libavcodec/mpeg12.c,v
-retrieving revision 1.188
-diff -u -r1.188 mpeg12.c
---- mpeg12.c	13 Mar 2004 22:01:32 -0000	1.188
-+++ mpeg12.c	14 Mar 2004 21:02:27 -0000
+--- mlib/dsputil_mlib.c	2004-03-15 02:21:01.000000000 +0100
++++ mlib/dsputil_mlib.c	2004-03-15 02:22:22.000000000 +0100
+@@ -20,6 +20,8 @@
+ #include "../dsputil.h"
+ #include "../mpegvideo.h"
+ 
++#include "../../../xine-utils/xineutils.h"
++
+ #include <mlib_types.h>
+ #include <mlib_status.h>
+ #include <mlib_sys.h>
+@@ -419,6 +421,7 @@
+ 
+ void dsputil_init_mlib(DSPContext* c, AVCodecContext *avctx)
+ {
++  if (xine_mm_accel() & MM_ACCEL_MLIB) {
+     c->get_pixels  = get_pixels_mlib;
+     c->diff_pixels = diff_pixels_mlib;
+     c->add_pixels_clamped = add_pixels_clamped_mlib;
+@@ -445,10 +448,12 @@
+     c->put_no_rnd_pixels_tab[1][0] = put_pixels8_mlib;
+ 
+     c->bswap_buf = bswap_buf_mlib;
++  }
+ }
+ 
+ void MPV_common_init_mlib(MpegEncContext *s)
+ {
++  if (xine_mm_accel() & MM_ACCEL_MLIB) {
+     if(s->avctx->dct_algo==FF_DCT_AUTO || s->avctx->dct_algo==FF_DCT_MLIB){
+ 	s->dsp.fdct = ff_fdct_mlib;
+     }
+@@ -459,4 +464,5 @@
+         s->dsp.idct    = ff_idct_mlib;
+         s->dsp.idct_permutation_type= FF_NO_IDCT_PERM;
+     }
++  }
+ }
+--- mpeg12.c	2004-04-30 15:44:29.000000000 +0200
++++ mpeg12.c	2004-05-10 01:32:01.000000000 +0200
 @@ -34,6 +34,13 @@
  //#include <assert.h>
  
@@ -112,13 +94,8 @@ diff -u -r1.188 mpeg12.c
  /* Start codes. */
  #define SEQ_END_CODE		0x000001b7
  #define SEQ_START_CODE		0x000001b3
-Index: mpegvideo.c
-===================================================================
-RCS file: /cvsroot/ffmpeg/ffmpeg/libavcodec/mpegvideo.c,v
-retrieving revision 1.389
-diff -u -r1.389 mpegvideo.c
---- mpegvideo.c	14 Mar 2004 17:55:50 -0000	1.389
-+++ mpegvideo.c	14 Mar 2004 21:02:42 -0000
+--- mpegvideo.c	2004-05-12 18:37:00.000000000 +0200
++++ mpegvideo.c	2004-05-10 01:32:01.000000000 +0200
 @@ -39,6 +39,14 @@
  //#undef NDEBUG
  //#include <assert.h>
@@ -134,7 +111,7 @@ diff -u -r1.389 mpegvideo.c
  #ifdef CONFIG_ENCODERS
  static void encode_picture(MpegEncContext *s, int picture_number);
  #endif //CONFIG_ENCODERS
-@@ -945,6 +953,8 @@
+@@ -1033,6 +1041,8 @@
          s->low_delay= 0; //s->max_b_frames ? 0 : 1;
          avctx->delay= s->low_delay ? 0 : (s->max_b_frames + 1);
          break;
@@ -143,7 +120,7 @@ diff -u -r1.389 mpegvideo.c
      case CODEC_ID_MPEG2VIDEO:
          s->out_format = FMT_MPEG1;
          s->low_delay= 0; //s->max_b_frames ? 0 : 1;
-@@ -1066,6 +1076,7 @@
+@@ -1154,6 +1164,7 @@
          s->low_delay=1;
          break;
  #endif
@@ -151,34 +128,30 @@ diff -u -r1.389 mpegvideo.c
      default:
          return -1;
      }
-@@ -1106,8 +1117,13 @@
+@@ -1172,13 +1183,22 @@
      
      ff_set_cmp(&s->dsp, s->dsp.ildct_cmp, s->avctx->ildct_cmp);
      
 +/* xine: do not need this for decode or MPEG-1 encoding modes */
 +#if 0
-     ff_init_me(s);
++    ff_init_me(s);
 +#endif /* #if 0 */
- 
++
+ #ifdef CONFIG_ENCODERS
 +/* xine: do not need this for decode or MPEG-1 encoding modes */
 +#if 0
- #ifdef CONFIG_ENCODERS
  #ifdef CONFIG_RISKY
      if (s->out_format == FMT_H263)
-@@ -1115,9 +1131,11 @@
+         h263_encode_init(s);
      if(s->msmpeg4_version)
          ff_msmpeg4_encode_init(s);
  #endif
-+#endif
 +#endif /* #if 0 */
 +/* xine: we do want this for MPEG-1 encoding */
      if (s->out_format == FMT_MPEG1)
          ff_mpeg1_encode_init(s);
--#endif
- 
-     /* init default q matrix */
-     for(i=0;i<64;i++) {
-@@ -1173,9 +1191,12 @@
+ #endif
+@@ -1230,9 +1250,12 @@
  
      ff_rate_control_uninit(s);
  
@@ -191,7 +164,7 @@ diff -u -r1.389 mpegvideo.c
  
      av_freep(&avctx->extradata);
        
-@@ -2063,8 +2084,11 @@
+@@ -2136,8 +2159,11 @@
  
          MPV_frame_end(s);
  
@@ -203,7 +176,7 @@ diff -u -r1.389 mpegvideo.c
          
          if(s->flags&CODEC_FLAG_PASS1)
              ff_write_pass1_stats(s);
-@@ -3593,6 +3617,8 @@
+@@ -3674,6 +3700,8 @@
      case CODEC_ID_MPEG1VIDEO:
      case CODEC_ID_MPEG2VIDEO:
          mpeg1_encode_mb(s, s->block, motion_x, motion_y); break;
@@ -212,7 +185,7 @@ diff -u -r1.389 mpegvideo.c
  #ifdef CONFIG_RISKY
      case CODEC_ID_MPEG4:
          mpeg4_encode_mb(s, s->block, motion_x, motion_y); break;
-@@ -3610,6 +3636,7 @@
+@@ -3691,6 +3719,7 @@
  #endif
      case CODEC_ID_MJPEG:
          mjpeg_encode_mb(s, s->block); break;
@@ -220,7 +193,7 @@ diff -u -r1.389 mpegvideo.c
      default:
          assert(0);
      }
-@@ -3942,6 +3969,8 @@
+@@ -3965,6 +3994,8 @@
  }
  
  static void write_slice_end(MpegEncContext *s){
@@ -229,7 +202,7 @@ diff -u -r1.389 mpegvideo.c
      if(s->codec_id==CODEC_ID_MPEG4){
          if(s->partitioned_frame){
              ff_mpeg4_merge_partitions(s);
-@@ -3951,6 +3980,7 @@
+@@ -3974,6 +4005,7 @@
      }else if(s->out_format == FMT_MJPEG){
          ff_mjpeg_stuffing(&s->pb);
      }
@@ -237,7 +210,7 @@ diff -u -r1.389 mpegvideo.c
  
      align_put_bits(&s->pb);
      flush_put_bits(&s->pb);
-@@ -4002,10 +4032,13 @@
+@@ -4025,10 +4057,13 @@
      case CODEC_ID_FLV1:
          s->gob_index = ff_h263_get_gob_height(s);
          break;
@@ -251,16 +224,7 @@ diff -u -r1.389 mpegvideo.c
      }
  #endif
  
-@@ -4032,6 +4065,8 @@
-             ff_update_block_index(s);
- 
-             /* write gob / video packet header  */
-+/* xine: do not need this for decode or MPEG-1 encoding modes */
-+#if 0
- #ifdef CONFIG_RISKY
-             if(s->rtp_mode){
-                 int current_packet_size, is_gob_start;
-@@ -4059,9 +4094,12 @@
+@@ -4082,9 +4117,12 @@
                      if(s->start_mb_y != mb_y || mb_x!=0){
                          write_slice_end(s);
  
@@ -273,16 +237,33 @@ diff -u -r1.389 mpegvideo.c
                      }
                  
                      assert((put_bits_count(&s->pb)&7) == 0);
-@@ -4111,6 +4149,8 @@
-                 }
-             }
- #endif
+@@ -4106,19 +4144,25 @@
+                         s->avctx->rtp_callback(s->ptr_lastgob, current_packet_size, 0);
+                     
+                     switch(s->codec_id){
++/* xine: do not need this for decode or MPEG-1 encoding modes */
++#if 0
+                     case CODEC_ID_MPEG4:
+                         ff_mpeg4_encode_video_packet_header(s);
+                         ff_mpeg4_clean_buffers(s);
+                     break;
 +#endif /* #if 0 */
-+
+                     case CODEC_ID_MPEG1VIDEO:
+                     case CODEC_ID_MPEG2VIDEO:
+                         ff_mpeg1_encode_slice_header(s);
+                         ff_mpeg1_clean_buffers(s);
+                     break;
++/* xine: do not need this for decode or MPEG-1 encoding modes */
++#if 0
+                     case CODEC_ID_H263:
+                     case CODEC_ID_H263P:
+                         h263_encode_gob_header(s, mb_y);                       
+                     break;
++#endif /* #if 0 */
+                     }
  
-             if(  (s->resync_mb_x   == s->mb_x)
-                && s->resync_mb_y+1 == s->mb_y){
-@@ -4209,9 +4249,12 @@
+                     if(s->flags&CODEC_FLAG_PASS1){
+@@ -4232,9 +4276,12 @@
                      
                      s->mv_dir = MV_DIR_FORWARD | MV_DIR_BACKWARD | MV_DIRECT;
                      s->mb_intra= 0;
@@ -295,7 +276,7 @@ diff -u -r1.389 mpegvideo.c
                      encode_mb_hq(s, &backup_s, &best_s, CANDIDATE_MB_TYPE_DIRECT, pb, pb2, tex_pb, 
                                   &dmin, &next_block, mx, my);
                  }
-@@ -4399,9 +4442,12 @@
+@@ -4422,9 +4469,12 @@
                      s->mb_intra= 0;
                      motion_x=s->b_direct_mv_table[xy][0];
                      motion_y=s->b_direct_mv_table[xy][1];
@@ -308,7 +289,7 @@ diff -u -r1.389 mpegvideo.c
                      break;
                  case CANDIDATE_MB_TYPE_BIDIR:
                      s->mv_dir = MV_DIR_FORWARD | MV_DIR_BACKWARD;
-@@ -4508,11 +4554,14 @@
+@@ -4531,11 +4581,14 @@
          }
      }
  
@@ -323,7 +304,7 @@ diff -u -r1.389 mpegvideo.c
  
      write_slice_end(s);
  
-@@ -4576,12 +4625,15 @@
+@@ -4598,12 +4651,15 @@
      s->mb_var_sum_temp    =
      s->mc_mb_var_sum_temp = 0;
  
@@ -339,24 +320,7 @@ diff -u -r1.389 mpegvideo.c
          
      s->scene_change_score=0;
      
-@@ -4602,6 +4654,8 @@
-     
-     /* Estimate motion for every MB */
-     if(s->pict_type != I_TYPE){
-+/* xine: do not need this for decode or MPEG-1 encoding modes */
-+#if 0
-         if(s->pict_type != B_TYPE){
-             if((s->avctx->pre_me && s->last_non_b_pict_type==I_TYPE) || s->avctx->pre_me==2){
-                 s->avctx->execute(s->avctx, pre_estimate_motion_thread, (void**)&(s->thread_context[0]), NULL, s->avctx->thread_count);
-@@ -4609,6 +4663,7 @@
-         }
- 
-         s->avctx->execute(s->avctx, estimate_motion_thread, (void**)&(s->thread_context[0]), NULL, s->avctx->thread_count);
-+#endif /* #if 0 */
-     }else /* if(s->pict_type == I_TYPE) */{
-         /* I-Frame */
-         for(i=0; i<s->mb_stride*s->mb_height; i++)
-@@ -4633,6 +4688,8 @@
+@@ -4657,6 +4713,8 @@
  //printf("Scene change detected, encoding as I Frame %d %d\n", s->current_picture.mb_var_sum, s->current_picture.mc_mb_var_sum);
      }
  
@@ -365,7 +329,7 @@ diff -u -r1.389 mpegvideo.c
      if(!s->umvplus){
          if(s->pict_type==P_TYPE || s->pict_type==S_TYPE) {
              s->f_code= ff_get_best_fcode(s, s->p_mv_table, CANDIDATE_MB_TYPE_INTER);
-@@ -4685,11 +4742,14 @@
+@@ -4709,11 +4767,14 @@
              }
          }
      }
@@ -380,7 +344,7 @@ diff -u -r1.389 mpegvideo.c
  #ifdef CONFIG_RISKY
          switch(s->codec_id){
          case CODEC_ID_MPEG4:
-@@ -4702,6 +4762,7 @@
+@@ -4726,6 +4787,7 @@
              break;
          }
  #endif
@@ -388,7 +352,7 @@ diff -u -r1.389 mpegvideo.c
  
          s->lambda= s->lambda_table[0];
          //FIXME broken
-@@ -4735,6 +4796,8 @@
+@@ -4759,6 +4821,8 @@
  
      s->last_bits= put_bits_count(&s->pb);
      switch(s->out_format) {
@@ -397,7 +361,7 @@ diff -u -r1.389 mpegvideo.c
      case FMT_MJPEG:
          mjpeg_picture_header(s);
          break;
-@@ -4754,11 +4817,15 @@
+@@ -4778,11 +4842,15 @@
              h263_encode_picture_header(s, picture_number);
          break;
  #endif
@@ -413,37 +377,3 @@ diff -u -r1.389 mpegvideo.c
      default:
          assert(0);
      }
-Index: mlib/dsputil_mlib.c
-===================================================================
-RCS file: /cvsroot/ffmpeg/ffmpeg/libavcodec/mlib/dsputil_mlib.c,v
-retrieving revision 1.14
-diff -u -r1.14 dsputil_mlib.c
---- mlib/dsputil_mlib.c	11 Oct 2003 16:43:51 -0000	1.14
-+++ mlib/dsputil_mlib.c	14 Mar 2004 21:02:44 -0000
-@@ -419,6 +419,7 @@
- 
- void dsputil_init_mlib(DSPContext* c, AVCodecContext *avctx)
- {
-+  if (xine_mm_accel() & MM_ACCEL_MLIB) {
-     c->get_pixels  = get_pixels_mlib;
-     c->diff_pixels = diff_pixels_mlib;
-     c->add_pixels_clamped = add_pixels_clamped_mlib;
-@@ -445,10 +446,12 @@
-     c->put_no_rnd_pixels_tab[1][0] = put_pixels8_mlib;
- 
-     c->bswap_buf = bswap_buf_mlib;
-+  }
- }
- 
- void MPV_common_init_mlib(MpegEncContext *s)
- {
-+  if (xine_mm_accel() & MM_ACCEL_MLIB) {
-     if(s->avctx->dct_algo==FF_DCT_AUTO || s->avctx->dct_algo==FF_DCT_MLIB){
- 	s->dsp.fdct = ff_fdct_mlib;
-     }
-@@ -459,4 +462,5 @@
-         s->dsp.idct    = ff_idct_mlib;
-         s->dsp.idct_permutation_type= FF_NO_IDCT_PERM;
-     }
-+  }
- }
