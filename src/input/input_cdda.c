@@ -20,7 +20,7 @@
  * Compact Disc Digital Audio (CDDA) Input Plugin 
  *   by Mike Melanson (melanson@pcisys.net)
  *
- * $Id: input_cdda.c,v 1.45 2004/04/06 18:40:32 valtri Exp $
+ * $Id: input_cdda.c,v 1.46 2004/04/09 22:18:35 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -878,76 +878,6 @@ static int parse_url (char *urlbuf, char** host, int *port) {
   return 0;
 }
 
-#if 0
-static int sock_check_opened(int socket) {
-  fd_set   readfds, writefds, exceptfds;
-  int      retval;
-  struct   timeval timeout;
-
-  for(;;) {
-    FD_ZERO(&readfds);
-    FD_ZERO(&writefds);
-    FD_ZERO(&exceptfds);
-    FD_SET(socket, &exceptfds);
-
-    timeout.tv_sec  = 0;
-    timeout.tv_usec = 0;
-
-    retval = select(socket + 1, &readfds, &writefds, &exceptfds, &timeout);
-
-    if(retval == -1 && (errno != EAGAIN && errno != EINTR))
-      return 0;
-
-    if (retval != -1)
-      return 1;
-  }
-
-  return 0;
-}
-
-/*
- * read a line (\n-terminated) from socket
- */
-static int sock_string_read(int socket, char *buf, int len) {
-  char    *pbuf;
-  int      r, rr;
-  void    *nl;
-
-  if((socket < 0) || (buf == NULL))
-    return -1;
-
-  if(!sock_check_opened(socket))
-    return -1;
-
-  if (--len < 1)
-    return(-1);
-
-  pbuf = buf;
-
-  do {
-
-    if((r = recv(socket, pbuf, len, MSG_PEEK)) <= 0)
-      return -1;
-
-    if((nl = memchr(pbuf, '\n', r)) != NULL)
-      r = ((char *) nl) - pbuf + 1;
-
-    if((rr = read(socket, pbuf, r)) < 0)
-      return -1;
-
-    pbuf += rr;
-    len -= rr;
-
-  } while((nl == NULL) && len);
-
-  if (pbuf > buf && *(pbuf-1) == '\n'){
-    *(pbuf-1) = '\0';
-  }
-  *pbuf = '\0';
-  return (pbuf - buf);
-}
-#endif
-
 static int network_command( xine_stream_t *stream, int socket, char *data_buf, char *msg, ...)
 {
   char     buf[_BUFSIZ];
@@ -959,8 +889,8 @@ static int network_command( xine_stream_t *stream, int socket, char *data_buf, c
   va_end(args);
 
   /* Each line sent is '\n' terminated */
-  if((buf[strlen(buf)] == '\0') && (buf[strlen(buf) - 1] != '\n'))
-    sprintf(buf, "%s%c", buf, '\n');
+  if( buf[strlen(buf) - 1] != '\n' )
+    strcat(buf, "\n");
 
   if( _x_io_tcp_write(stream, socket, buf, strlen(buf)) < (int)strlen(buf) )
   {
@@ -968,8 +898,7 @@ static int network_command( xine_stream_t *stream, int socket, char *data_buf, c
     return -1;
   }
 
-/*  if( sock_string_read(socket, buf, _BUFSIZ) <= 0 )*/
-  if (_x_io_tcp_read_line(stream, socket, buf, _BUFSIZ))
+  if (_x_io_tcp_read_line(stream, socket, buf, _BUFSIZ) <= 0)
   {
     xprintf(stream->xine, XINE_VERBOSITY_DEBUG, "input_cdda: error reading from socket.\n");
     return -1;
