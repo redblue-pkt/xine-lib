@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer_types.c,v 1.46 2002/10/31 05:23:02 tmmm Exp $
+ * $Id: buffer_types.c,v 1.47 2002/11/28 18:49:10 tmmm Exp $
  *
  *
  * contents:
@@ -173,6 +173,7 @@ static video_db_t video_db[] = {
     meFOURCC('d', 'i', 'v', '6'),
     meFOURCC('A', 'P', '4', '1'),
     meFOURCC('M', 'P', 'G', '3'),
+    meFOURCC('C', 'O', 'L', '1'),
     0
   },
   BUF_VIDEO_MSMPEG4_V3,
@@ -473,6 +474,15 @@ static video_db_t video_db[] = {
   },
   BUF_VIDEO_SEGA,
   "Cinepak for Sega"
+},
+{
+  {
+    meFOURCC('m', 'v', 'i', '2'),
+    meFOURCC('M', 'V', 'I', '2'),
+    0
+  },
+  BUF_VIDEO_MVI2,
+  "Motion Pixels"
 },
 { { 0 }, 0, "last entry" }
 };
