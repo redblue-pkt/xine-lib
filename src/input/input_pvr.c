@@ -39,7 +39,7 @@
  * usage: 
  *   xine pvr:<prefix_to_tmp_files>\!<prefix_to_saved_files>\!<max_page_age>
  *
- * $Id: input_pvr.c,v 1.12 2003/03/21 17:54:53 miguelfreitas Exp $
+ * $Id: input_pvr.c,v 1.13 2003/03/21 21:54:18 miguelfreitas Exp $
  */
 
 /**************************************************************************
@@ -814,7 +814,6 @@ static void pvr_finish_recording (pvr_input_plugin_t *this) {
   printf("input_pvr: finish_recording\n");
 #endif
 
-  pthread_mutex_lock(&this->lock);
   if( this->rec_fd != -1 ) {
     close(this->rec_fd);  
     
@@ -891,8 +890,6 @@ static void pvr_finish_recording (pvr_input_plugin_t *this) {
   if( this->save_name )
     free( this->save_name );
   this->save_name = NULL;
-  
-  pthread_mutex_unlock(&this->lock);
 }
 
 /*
@@ -913,10 +910,12 @@ static void pvr_event_handler (pvr_input_plugin_t *this) {
     case XINE_EVENT_SET_V4L2:
       if( v4l2_data->session_id != this->session ) {
         /* if session changes -> closes the old one */
+        pthread_mutex_lock(&this->lock);
         pvr_finish_recording(this);
         time(&this->start_time);
         this->show_time = this->start_time;
         this->session = v4l2_data->session_id;
+        pthread_mutex_unlock(&this->lock);
       } else {
         /* no session change, break the page and store a new show_time */
         pthread_mutex_lock(&this->dev_lock);
