@@ -1153,7 +1153,11 @@ void* WINAPI expTlsAlloc()
 	g_tls=g_tls->next;
     }
     dbgprintf("TlsAlloc() => 0x%x\n", g_tls);
-    g_tls->value=0; /* XXX For Divx.dll */
+    if( g_tls )
+      g_tls->value=0; /* XXX For Divx.dll */
+    else
+      printf("WIN32: g_tls is null!!!\n");
+     
     return g_tls;
 }
 
@@ -2580,7 +2584,9 @@ long CoCreateInstance(GUID* rclsid, struct IUnknown* pUnkOuter,
     return expCoCreateInstance(rclsid, pUnkOuter, dwClsContext, riid, ppv);
 }
 
-int WINAPI expIsRectEmpty(CONST RECT *lprc)
+int WINAPI
+ expIsRectEmpty(
+CONST RECT *lprc)
 {
     dbgprintf("IsRectEmpty(0x%x)");
     if((!lprc) || (lprc->right==lprc->left) || (lprc->top==lprc->bottom))
@@ -2767,7 +2773,9 @@ HDRVR WINAPI expOpenDriver(LPCSTR szDriverName, LPCSTR szSectionName,
 }
 
 
-WIN_BOOL WINAPI expGetProcessAffinityMask(
+WIN_BOOL
+ WINAPI
+ expGetProcessAffinityMask(
     HANDLE hProcess,
     LPDWORD lpProcessAffinityMask,
     LPDWORD lpSystemAffinityMask
