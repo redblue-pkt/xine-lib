@@ -253,5 +253,8 @@ Contributions
       
   Claire Griffin <claire@comedia.com>
     demux_ts fixes for ATSC streams
+
+  Dennis Bjorklund <db@zigo.dhs.org>
+    patch to fix flashing subtitles in libsputext
     
     (let us know if we've forgotten anyone)
