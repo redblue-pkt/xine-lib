@@ -17,12 +17,18 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_spu_encoder.c,v 1.6 2004/03/03 20:09:12 mroi Exp $
+ * $Id: dxr3_spu_encoder.c,v 1.7 2004/03/04 14:40:04 mroi Exp $
  */
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <float.h>
+
+#define LOG_MODULE "dxr3_spu_encoder"
+/*
+#define LOG_VERBOSE
+#define LOG
+*/
 
 #include "video_out_dxr3.h"
 
@@ -46,7 +52,6 @@
  */
 #define DIST_COEFF 1024.0
 
-#define LOG_ENC 1
 
 /* spu encoder function */
 spu_encoder_t *dxr3_spu_encoder_init(void);
@@ -72,27 +77,21 @@ spu_encoder_t *dxr3_spu_encoder_init(void)
   this->target        = NULL;
   this->need_reencode = 0;
   this->malloc_size   = 0;
-#if LOG_ENC
-  printf("dxr3_spu_encoder: initialized\n");
-#endif
+  lprintf("initialized\n");
   return this;
 }
 
 void dxr3_spu_encode(spu_encoder_t *this)
 {
   if (!this->need_reencode || !this->overlay) return;
-#if LOG_ENC
-  printf("dxr3_spu_encoder: overlay for encoding arrived.\n");
-#endif
+  lprintf("overlay for encoding arrived.\n");
   convert_palette(this);
   create_histogram(this);
   generate_clut(this);
   map_colors(this);
   convert_clut(this);
   convert_overlay(this);
-#if LOG_ENC
-  printf("dxr3_spu_encoder: overlay encoding completed\n");
-#endif
+  lprintf("overlay encoding completed\n");
 }
 
 
@@ -169,14 +168,14 @@ static void create_histogram(spu_encoder_t *this)
       y++;
     }
   }
-#if LOG_ENC
+#ifdef LOG
   for (i = 0; i < OVL_PALETTE_SIZE; i++)
     if (this->map[i])
-      printf("dxr3_spu_encoder: histogram: color #%d 0x%.8x appears %d times\n",
+      lprintf("histogram: color #%d 0x%.8x appears %d times\n",
 	     i, this->overlay->color[i], this->map[i]);
   for (i = 0; i < OVL_PALETTE_SIZE; i++)
     if (this->clip_map[i])
-      printf("dxr3_spu_encoder: histogram: clip color #%d 0x%.8x appears %d times\n",
+      lprintf("histogram: clip color #%d 0x%.8x appears %d times\n",
         i, this->overlay->clip_color[i], this->clip_map[i]);
 #endif
 }
@@ -212,9 +211,9 @@ static void generate_clut(spu_encoder_t *this)
     this->color[spu_color] = this->overlay->color[max];
     this->trans[spu_color] = this->overlay->trans[max];
   }
-#if LOG_ENC
+#ifdef LOG
   for (spu_color = 0; spu_color < 4; spu_color++)
-    printf("dxr3_spu_encoder: spu color %d: 0x%.8x, trans: %d\n", spu_color,
+    lprintf("spu color %d: 0x%.8x, trans: %d\n", spu_color,
       this->color[spu_color], this->trans[spu_color]);
 #endif
 
@@ -246,9 +245,9 @@ static void generate_clut(spu_encoder_t *this)
     this->clip_color[spu_color] = this->overlay->clip_color[max];
     this->clip_trans[spu_color] = this->overlay->clip_trans[max];
   }
-#if LOG_ENC
+#ifdef LOG
   for (spu_color = 0; spu_color < 4; spu_color++)
-    printf("dxr3_spu_encoder: spu clip color %d: 0x%.8x, trans: %d\n", spu_color,
+    lprintf("spu clip color %d: 0x%.8x, trans: %d\n", spu_color,
       this->clip_color[spu_color], this->clip_trans[spu_color]);
 #endif
 }
@@ -347,9 +346,7 @@ static void convert_overlay(spu_encoder_t *this)
   for (field = 0; field < 2; field++) {
     write_byte(this, &offset, 0x00);
     write_byte(this, &offset, 0x00);
-#if LOG_ENC
-    printf("dxr3_spu_encoder: encoding field %d\n", field);
-#endif
+    lprintf("encoding field %d\n", field);
     field_start[field] = offset;
     x = y = 0;
     for (i = 0, rle = this->overlay->rle; i < this->overlay->num_rle; i++, rle++) {
@@ -405,10 +402,8 @@ static void convert_overlay(spu_encoder_t *this)
   write_nibble(this, &offset, &higher_nibble, this->trans[1] & 0xf);
   write_nibble(this, &offset, &higher_nibble, this->trans[0] & 0xf);
   /* on screen position */
-#if LOG_ENC
-  printf("dxr3_spu_encoder: overlay position: x %d, y %d, width %d, height %d\n",
+  lprintf("overlay position: x %d, y %d, width %d, height %d\n",
     this->overlay->x, this->overlay->y, this->overlay->width, this->overlay->height);
-#endif
   write_byte(this, &offset, 0x05);
   write_byte(this, &offset, this->overlay->x >> 4);
   write_nibble(this, &offset, &higher_nibble, this->overlay->x & 0xf);
