@@ -2,42 +2,17 @@
 ## Process this file with automake to produce Makefile.in
 ##
 
-CFLAGS = @GLOBAL_CFLAGS@ @THREAD_CFLAGS@ -DXINEUTILS_COMPILE
-
-
-EXTRA_DIST = cpu_accel.c
+CFLAGS = @GLOBAL_CFLAGS@ 
 
 lib_LTLIBRARIES = libxineutils.la
 
-libxineutils_la_SOURCES = utils.c memcpy.c monitor.c
-libxineutils_la_LIBADD = cpu_accel.lo \
-	$(THREAD_LIBS) \
-	$(DYNAMIC_LD_LIBS) \
-	-lm 
+libxineutils_la_SOURCES = utils.c memcpy.c monitor.c cpu_accel.c
 
 libxineutils_la_LDFLAGS =  \
 	-version-info $(LT_CURRENT):$(LT_REVISION):$(LT_AGE) \
 	-release $(LT_RELEASE)
 
 include_HEADERS = xineutils.h attributes.h
-
-###
-# Hardcoded rule: 
-#  gcc failed to compile this with -fPIC flag
-#  hackish: [X] yes   [ ] no
-#
-LIBTOOLNOFPIC = $(SHELL) $(top_builddir)/libtool-nofpic
-LTCOMPILENOFPIC = $(LIBTOOLNOFPIC) --mode=compile $(CC) $(DEFS) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
-cpu_accel.lo: cpu_accel.c
-	@mkdir -p .deps; touch .deps/cpu_accel.pp; \
-	echo '$(LTCOMPILENOFPIC) -c $<'; \
-		$(LTCOMPILENOFPIC) -Wp,-MD,.deps/$(*F).pp -c $<
-	@-sed -e 's/^\([^:]*\)\.o[ 	]*:/\1.lo \1.o :/' \
-	  < .deps/$(*F).pp > .deps/$(*F).P; \
-	tr ' ' '\012' < .deps/$(*F).pp \
-	  | sed -e 's/^\\$$//' -e '/^$$/ d' -e '/:$$/ d' -e 's/$$/ :/' \
-	    >> .deps/$(*F).P; \
-	rm -f .deps/$(*F).pp
 
 
 debug:
