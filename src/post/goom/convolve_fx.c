@@ -1,13 +1,14 @@
 #include "goom_fx.h"
 #include "goom_plugin_info.h"
-#include "goom_script_scanner.h"
+#include "goomsl.h"
 #include "goom_config.h"
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-static const char DEF_SCRIPT[] =
+static const char DEF_SCRIPT[] = "\n\n";
+#if 0
 "-> config;\n"
 "-> main;\n"
 "\n"
@@ -21,6 +22,7 @@ static const char DEF_SCRIPT[] =
 "\n"
 "  Bright_Flash.Factor = Bright_Flash.Factor * DECAY_RATE;\n"
 "\n";
+#endif
 
 #define MAX 2.0f
 
@@ -36,7 +38,7 @@ typedef struct _CONV_DATA{
     PluginParam compile_p;
 	PluginParameters params;
 
-    GoomScriptScanner *script;
+    GoomSL *script;
     
 } ConvData;
 
@@ -50,9 +52,9 @@ static void convolve_init(VisualFX *_this) {
 	data->light.param.fval.value = 100.0f;
 
 	data->factor_adj_p = secure_f_param("Flash Intensity");
-	data->factor_adj_p.param.fval.max = 200.0f;
+	data->factor_adj_p.param.fval.max = 100.0f;
 	data->factor_adj_p.param.fval.step = 1.0f;
-	data->factor_adj_p.param.fval.value = 100.0f;
+	data->factor_adj_p.param.fval.value = 50.0f;
 
 	data->factor_p = secure_f_feedback("Factor");
 /*	FVAL(data->factor_p) = data->factor / MAX;*/
@@ -70,7 +72,7 @@ static void convolve_init(VisualFX *_this) {
 	data->params.params[5] = &data->script_p;
 	data->params.params[6] = &data->compile_p;
 
-    data->script = goom_script_scanner_new();
+    data->script = gsl_new();
 
 	_this->params = &data->params;
 	_this->fx_data = (void*)data;
@@ -112,21 +114,21 @@ static void convolve_apply(VisualFX *_this, Pixel *src, Pixel *dest, PluginInfo 
 	ff = (FVAL(data->factor_p) * FVAL(data->factor_adj_p) + FVAL(data->light) ) / 100.0f;
 	iff = (unsigned int)(ff * 256);
 
-    if (!goom_script_scanner_is_compiled(data->script)) {
+    if (!gsl_is_compiled(data->script)) {
 #ifdef VERBOSE
         printf("setting default script for dynamic brightness\n");
 #endif
-        goom_script_scanner_compile(data->script, info, DEF_SCRIPT);
+        gsl_compile(data->script, DEF_SCRIPT);
     }
     
     if (BVAL(data->compile_p)) { /* le bouton du pauvre ... */
-        goom_script_scanner_compile(data->script, info, SVAL(data->script_p));
+        gsl_compile(data->script, SVAL(data->script_p));
         BVAL(data->compile_p) = 0;
         data->compile_p.change_listener(&data->compile_p);
     }
 
-    if (goom_script_scanner_is_compiled(data->script)) {
-        goom_script_scanner_execute(data->script);
+    if (gsl_is_compiled(data->script)) {
+        gsl_execute(data->script);
     }
 
 	info->methods.create_output_with_brightness(src,dest,info->screen.size,iff);

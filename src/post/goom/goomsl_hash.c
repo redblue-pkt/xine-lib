@@ -1,4 +1,4 @@
-#include "goom_hash.h"
+#include "goomsl_hash.h"
 #include <string.h>
 #include <stdlib.h>
 
@@ -76,6 +76,7 @@ void goom_hash_put(GoomHash *_this, const char *key, HashValue value) {
 }
 
 HashValue *goom_hash_get(GoomHash *_this, const char *key) {
+  if (_this == NULL) return NULL;
 	return entry_get(_this->root,key);
 }
 

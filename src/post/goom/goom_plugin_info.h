@@ -10,7 +10,7 @@
 #include "goom_visual_fx.h"
 #include "goom_filters.h"
 #include "goom_tools.h"
-#include "goom_script_scanner.h"
+#include "goomsl.h"
 
 typedef struct {
 	char drawIFS;
@@ -163,8 +163,8 @@ struct _PLUGIN_INFO {
 	
 	GoomRandom *gRandom;
     
-    GoomScriptScanner *scanner;
-    GoomScriptScanner *main_scanner;
+    GoomSL *scanner;
+    GoomSL *main_scanner;
     const char *main_script_str;
 };
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_goom.c,v 1.54 2004/06/27 11:58:47 mroi Exp $
+ * $Id: xine_goom.c,v 1.55 2004/11/21 15:10:40 mroi Exp $
  *
  * GOOM post plugin.
  *
@@ -27,6 +27,8 @@
  */
 
 #include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
 
 #define LOG_MODULE "goom"
 #define LOG_VERBOSE
@@ -271,6 +273,7 @@ static post_plugin_t *goom_open_plugin(post_class_t *class_gen, int inputs,
   this->width_back  = this->width;
   this->height_back = this->height;
 
+  srand((unsigned int)time((time_t *)NULL));
   this->goom = goom_init (this->width_back, this->height_back);
 
   this->ratio = (double)this->width_back/(double)this->height_back;

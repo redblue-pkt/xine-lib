@@ -1,0 +1,45 @@
+--- goom_tools.c	2004-09-10 17:10:39.000000000 +0200
++++ goom_tools.c	2004-11-21 15:28:12.000000000 +0100
+@@ -3,7 +3,6 @@
+ 
+ GoomRandom *goom_random_init(int i) {
+ 	GoomRandom *grandom = (GoomRandom*)malloc(sizeof(GoomRandom));
+-	srand (i);
+ 	grandom->pos = 1;
+ 	goom_random_update_array(grandom, GOOM_NB_RAND);
+ 	return grandom;
+--- convolve_fx.c	2004-09-10 17:10:38.000000000 +0200
++++ convolve_fx.c	2004-11-21 15:48:24.729326912 +0100
+@@ -52,9 +52,9 @@
+ 	data->light.param.fval.value = 100.0f;
+ 
+ 	data->factor_adj_p = secure_f_param("Flash Intensity");
+-	data->factor_adj_p.param.fval.max = 200.0f;
++	data->factor_adj_p.param.fval.max = 100.0f;
+ 	data->factor_adj_p.param.fval.step = 1.0f;
+-	data->factor_adj_p.param.fval.value = 100.0f;
++	data->factor_adj_p.param.fval.value = 50.0f;
+ 
+ 	data->factor_p = secure_f_feedback("Factor");
+ /*	FVAL(data->factor_p) = data->factor / MAX;*/
+--- filters.c	2004-09-10 17:10:39.000000000 +0200
++++ filters.c	2004-11-21 15:37:55.000000000 +0100
+@@ -705,7 +705,7 @@
+     
+     data->general_speed = 0.0f;
+     data->reverse = 0;
+-    data->theMode = AMULETTE_MODE;
++    data->theMode = rand() % 10;
+     data->waveEffect = 0;
+     data->hypercosEffect = 0;
+     data->vPlaneEffect = 0;
+--- goomsl_lex.c	2004-09-10 17:10:39.000000000 +0200
++++ goomsl_lex.c	2004-11-21 15:42:50.306166960 +0100
+@@ -624,6 +624,7 @@
+ 				(yytext[yyleng - 1] == '\n'); \
+ 	YY_USER_ACTION
+ 
++YY_DECL;
+ YY_DECL
+ 	{
+ 	register yy_state_type yy_current_state;

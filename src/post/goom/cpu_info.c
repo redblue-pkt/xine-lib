@@ -9,10 +9,14 @@
 
 #include "cpu_info.h"
 
-#ifdef HAVE_MMX
+#ifdef CPU_X86
 #include "mmx.h"
 #endif
 
+#ifdef CPU_POWERPC
+#include <sys/types.h>
+#include <stdlib.h>
+#endif
 
 static unsigned int CPU_FLAVOUR = 0;
 static unsigned int CPU_NUMBER = 1;

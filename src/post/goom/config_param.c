@@ -11,10 +11,12 @@
 #include "goom_config_param.h"
 #include <string.h>
 
+/* TODO: Ajouter goom_ devant ces fonctions */
+
 static void empty_fct(PluginParam *dummy) {
 }
 
-PluginParam secure_param() {
+PluginParam goom_secure_param() {
   PluginParam p;
   p.changed = empty_fct;
   p.change_listener = empty_fct;
@@ -24,7 +26,7 @@ PluginParam secure_param() {
   return p;
 }
 
-PluginParam secure_f_param(char *name) {
+PluginParam goom_secure_f_param(char *name) {
   PluginParam p = secure_param();
   p.name = name;
   p.type = PARAM_FLOATVAL;
@@ -35,13 +37,13 @@ PluginParam secure_f_param(char *name) {
   return p;
 }
 
-PluginParam secure_f_feedback(char *name) {
+PluginParam goom_secure_f_feedback(char *name) {
   PluginParam p = secure_f_param(name);
   p.rw = 0;
   return p;
 }
 
-PluginParam secure_s_param(char *name) {
+PluginParam goom_secure_s_param(char *name) {
     PluginParam p = secure_param();
     p.name = name;
     p.type = PARAM_STRVAL;
@@ -49,7 +51,7 @@ PluginParam secure_s_param(char *name) {
     return p;
 }
 
-PluginParam secure_b_param(char *name, int value) {
+PluginParam goom_secure_b_param(char *name, int value) {
   PluginParam p = secure_param();
   p.name = name;
   p.type = PARAM_BOOLVAL;
@@ -57,7 +59,7 @@ PluginParam secure_b_param(char *name, int value) {
   return p;
 }
 
-PluginParam secure_i_param(char *name) {
+PluginParam goom_secure_i_param(char *name) {
   PluginParam p = secure_param();
   p.name = name;
   p.type = PARAM_INTVAL;
@@ -68,13 +70,13 @@ PluginParam secure_i_param(char *name) {
   return p;
 }
 
-PluginParam secure_i_feedback(char *name) {
+PluginParam goom_secure_i_feedback(char *name) {
   PluginParam p = secure_i_param(name);
   p.rw = 0;
   return p;
 }
 
-PluginParameters plugin_parameters(const char *name, int nb) {
+PluginParameters goom_plugin_parameters(const char *name, int nb) {
   PluginParameters p;
   p.name = (char *)name;
   p.desc = "";
@@ -85,7 +87,7 @@ PluginParameters plugin_parameters(const char *name, int nb) {
 
 /*---------------------------------------------------------------------------*/
 
-void set_str_param_value(PluginParam *p, const char *str) {
+void goom_set_str_param_value(PluginParam *p, const char *str) {
     int len = strlen(str);
     if (SVAL(*p))
         SVAL(*p) = (char*)realloc(SVAL(*p), len+1);
@@ -94,7 +96,7 @@ void set_str_param_value(PluginParam *p, const char *str) {
     memcpy(SVAL(*p), str, len+1);
 }
 
-void set_list_param_value(PluginParam *p, const char *str) {
+void goom_set_list_param_value(PluginParam *p, const char *str) {
     int len = strlen(str);
 #ifdef VERBOSE
     printf("%s: %d\n", str, len);

@@ -11,7 +11,9 @@
  */
 
 #ifdef HAVE_MMX
+#ifndef CPU_X86
 #define CPU_X86
+#endif
 #endif
 
 /* Returns the CPU flavour described with the constants below */

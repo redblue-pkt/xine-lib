@@ -9,6 +9,8 @@ xine-lib (1-xxx)
     accelerated decoding occured while software surfaces still needed to be 
     duplicated.
   * fixed plugin catalog cache (faster xine startup)
+  * updated internal goom to 2k4-dev21; randomized and improved look of 
+    initial effect (hopefully no more white screens any more)
         
 xine-lib (1-rc7)
   * Build system improvements: replacement functions, better work with headers

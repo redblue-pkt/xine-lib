@@ -6,7 +6,7 @@
 ; 30 May 2003 : File creation
 
 ; Section definition : We use a read only code section for the whole file
-.text
+.section __TEXT,__text,regular,pure_instructions
 
 
 ; --------------------------------------------------------------------------------------
@@ -150,7 +150,7 @@ _DRAW_LINE_PPC:
 ; **************************************************************************************
 
 
-.const_data
+.const
 .align 4
 vectorZERO:
     .long 0,0,0,0
@@ -160,7 +160,7 @@ vectorZERO:
     .long 0x1010100C, 0x1010100D, 0x1010100E, 0x1010100F
 
 
-.text
+.section __TEXT,__text,regular,pure_instructions
 
 .globl _ppc_brightness_G4
 .align 3
@@ -176,8 +176,14 @@ _ppc_brightness_G4:
     lis     r12,0xCFFC
     mtspr   256,r12
 
-    lis     r9,ha16(vectorZERO)
-    addi    r9,r9,lo16(vectorZERO)
+        mflr r0
+        bcl 20,31,"L00000000001$pb"
+"L00000000001$pb":
+        mflr r10
+        mtlr r0
+
+    addis   r9,r10,ha16(vectorZERO-"L00000000001$pb")
+    addi    r9,r9,lo16(vectorZERO-"L00000000001$pb")
     
     vxor    v0,v0,v0 ;; V0 = NULL vector
 
@@ -190,8 +196,8 @@ _ppc_brightness_G4:
     addi    r9,r9,16
     lvx     v13,0,r9
 
-    lis     r9,ha16(vectortmpwork)
-    addi    r9,r9,lo16(vectortmpwork)
+    addis   r9,r10,ha16(vectortmpwork-"L00000000001$pb")
+    addi    r9,r9,lo16(vectortmpwork-"L00000000001$pb")
     stw     r6,0(r9)
     li      r6,8
     stw     r6,4(r9)
@@ -203,14 +209,14 @@ _ppc_brightness_G4:
 ;; elt counter
     li      r9,0
     lis     r7,0x0F01
-    b L6
+    b L7
 .align 4
 L7:
     lvx     v1,r9,r3
 
     vperm   v4,v1,v0,v10
     ;*********************
-    add r10,r9,r3
+     add r10,r9,r3
     ;*********************
     vperm   v5,v1,v0,v11
     vperm   v6,v1,v0,v12
@@ -218,7 +224,7 @@ L7:
 
     vmulouh  v4,v4,v8
     ;*********************
-    dst     r10,r7,0
+     dst     r10,r7,3
     ;*********************
     vmulouh  v5,v5,v8
     vmulouh  v6,v6,v8
@@ -245,7 +251,6 @@ L7:
 .align 3
 _ppc_brightness_G5:
 
-
 ;; PowerPC Altivec G5 code
     srwi    r5,r5,2
     mtctr   r5
@@ -255,8 +260,14 @@ _ppc_brightness_G5:
     lis     r12,0xCFFC
     mtspr   256,r12
 
-    lis     r9,ha16(vectorZERO)
-    addi    r9,r9,lo16(vectorZERO)
+        mflr r0
+        bcl 20,31,"L00000000002$pb"
+"L00000000002$pb":
+        mflr r10
+        mtlr r0
+
+    addis   r9,r10,ha16(vectorZERO-"L00000000002$pb")
+    addi    r9,r9,lo16(vectorZERO-"L00000000002$pb")
     
     vxor    v0,v0,v0 ;; V0 = NULL vector
 
@@ -269,8 +280,8 @@ _ppc_brightness_G5:
     addi    r9,r9,16
     lvx     v13,0,r9
 
-    lis     r9,ha16(vectortmpwork)
-    addi    r9,r9,lo16(vectortmpwork)
+    addis   r9,r10,ha16(vectortmpwork-"L00000000002$pb")
+    addi    r9,r9,lo16(vectortmpwork-"L00000000002$pb")
     stw     r6,0(r9)
     li      r6,8
     stw     r6,4(r9)

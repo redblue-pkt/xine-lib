@@ -24,7 +24,7 @@
 #include "sound_tester.h"
 #include "goom_plugin_info.h"
 #include "goom_fx.h"
-#include "goom_script.h"
+#include "goomsl.h"
 
 /* #define VERBOSE */
 
@@ -101,7 +101,7 @@ PluginInfo *goom_init (guint32 resx, guint32 resy)
     
     gfont_load ();
  
-    goom_set_main_script(goomInfo, goomInfo->main_script_str);
+    /* goom_set_main_script(goomInfo, goomInfo->main_script_str); */
     
     return goomInfo;
 }
@@ -152,7 +152,7 @@ guint32 *goom_update (PluginInfo *goomInfo, gint16 data[2][512],
     /* ! etude du signal ... */
     evaluate_sound (data, &(goomInfo->sound));
     
-    goom_execute_main_script(goomInfo);
+    /* goom_execute_main_script(goomInfo); */
     
     /* ! calcul du deplacement des petits points ... */
     largfactor = goomInfo->sound.speedvar / 150.0f + goomInfo->sound.volume / 1.5f;

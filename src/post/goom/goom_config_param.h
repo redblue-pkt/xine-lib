@@ -79,18 +79,18 @@ typedef struct _PARAM {
 #define IMAX(p) ((p).param.ival.max)
 #define ISTEP(p) ((p).param.ival.step)
 
-PluginParam secure_param(void);
+PluginParam goom_secure_param(void);
 
-PluginParam secure_f_param(char *name);
-PluginParam secure_i_param(char *name);
-PluginParam secure_b_param(char *name, int value);
-PluginParam secure_s_param(char *name);
+PluginParam goom_secure_f_param(char *name);
+PluginParam goom_secure_i_param(char *name);
+PluginParam goom_secure_b_param(char *name, int value);
+PluginParam goom_secure_s_param(char *name);
 
-PluginParam secure_f_feedback(char *name);
-PluginParam secure_i_feedback(char *name);
+PluginParam goom_secure_f_feedback(char *name);
+PluginParam goom_secure_i_feedback(char *name);
 
-void set_str_param_value(PluginParam *p, const char *str);
-void set_list_param_value(PluginParam *p, const char *str);
+void goom_set_str_param_value(PluginParam *p, const char *str);
+void goom_set_list_param_value(PluginParam *p, const char *str);
     
 typedef struct _PARAMETERS {
   char *name;
@@ -99,6 +99,17 @@ typedef struct _PARAMETERS {
   PluginParam **params;
 } PluginParameters;
 
-PluginParameters plugin_parameters(const char *name, int nb);
+PluginParameters goom_plugin_parameters(const char *name, int nb);
+
+#define secure_param goom_secure_param
+#define secure_f_param goom_secure_f_param
+#define secure_i_param goom_secure_i_param
+#define secure_b_param goom_secure_b_param
+#define secure_s_param goom_secure_s_param
+#define secure_f_feedback goom_secure_f_feedback
+#define secure_i_feedback goom_secure_i_feedback
+#define set_list_param_value goom_set_list_param_value
+#define set_str_param_value goom_set_str_param_value
+#define plugin_parameters goom_plugin_parameters
 
 #endif

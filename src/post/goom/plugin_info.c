@@ -53,11 +53,11 @@ static void setOptimizedMethods(PluginInfo *p) {
 	
 #ifdef CPU_POWERPC
 
-        if (cpuFlavour & CPU_OPTION_64_BITS) {
+        if ((cpuFlavour & CPU_OPTION_64_BITS) != 0) {
             p->methods.create_output_with_brightness = ppc_brightness_G5;        
             p->methods.zoom_filter = ppc_zoom_generic;
         }
-        else if (cpuFlavour & CPU_OPTION_ALTIVEC) {
+        else if ((cpuFlavour & CPU_OPTION_ALTIVEC) != 0) {
             p->methods.create_output_with_brightness = ppc_brightness_G4;        
             p->methods.zoom_filter = ppc_zoom_G4;
         }
@@ -171,8 +171,8 @@ void plugin_info_init(PluginInfo *pp, int nbVisuals) {
 	
 	setOptimizedMethods(pp);
 	
-    pp->scanner = goom_script_scanner_new();
-    pp->main_scanner = goom_script_scanner_new();
+    pp->scanner = gsl_new();
+    pp->main_scanner = gsl_new();
     pp->main_script_str = GOOM_MAIN_SCRIPT;
 	
 	for (i = 0; i < 0xffff; i++) {

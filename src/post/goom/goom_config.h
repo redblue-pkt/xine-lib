@@ -1,15 +1,15 @@
-
-//#define VERSION "1.9.2"
-//#define _DEBUG
-
+#if WORDS_BIGENDIAN
+#define COLOR_ARGB
+#else
 #define COLOR_BGRA
-//#define COLOR_ARGB
+#endif
 
-#ifdef COLOR_BGRA
+#if 1
+/* ndef COLOR_BGRA */
 /** position des composantes **/
-    #define ROUGE 2
     #define BLEU 0
     #define VERT 1
+    #define ROUGE 2
     #define ALPHA 3
 #else
     #define ROUGE 1
@@ -17,17 +17,6 @@
     #define VERT 2
     #define ALPHA 0
 #endif
-		
-
-// target
-//#define XMMS_PLUGIN
-#define STANDALONE
-
-//#define POWERPC
-
-#define HAVE_ATHLON
-
-//#define VERBOSE
 
 #ifndef guint32
 #define guint8 unsigned char

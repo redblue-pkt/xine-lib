@@ -705,7 +705,7 @@ static void zoomFilterVisualFXWrapper_init (struct _VISUAL_FX *_this)
     
     data->general_speed = 0.0f;
     data->reverse = 0;
-    data->theMode = AMULETTE_MODE;
+    data->theMode = rand() % 10;
     data->waveEffect = 0;
     data->hypercosEffect = 0;
     data->vPlaneEffect = 0;

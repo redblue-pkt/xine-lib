@@ -3,7 +3,7 @@
 
 #include "goom_config.h"
 #include "goom_plugin_info.h"
-#include "goom_script.h"
+#include "goomsl.h"
 
 #define NB_FX 10
 

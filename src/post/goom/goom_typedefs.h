@@ -7,6 +7,5 @@ typedef struct _GMLINE GMLine;
 typedef struct _GMUNITPOINTER GMUnitPointer;
 typedef struct _ZOOM_FILTER_DATA ZoomFilterData;
 typedef struct _VISUAL_FX VisualFX;
-typedef struct _GoomScriptScanner GoomScriptScanner;
 
 #endif
