@@ -16,7 +16,7 @@ lib_LTLIBRARIES = $(vorbis_module)
 
 xineplug_decode_vorbis_la_SOURCES = xine_decoder.c
 xineplug_decode_vorbis_la_LIBADD = $(VORBIS_LIBS)
-xineplug_decode_vorbis_la_LDFLAGS = -avoid-version -module
+xineplug_decode_vorbis_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 debug:
 #	@$(MAKE) CFLAGS="$(DEBUG_CFLAGS) $(OGG_CFLAGS) $(VORBIS_CFLAGS)"

@@ -52,7 +52,7 @@ xineplug_decode_faad_la_SOURCES = \
 	tns.c \
 	xine_decoder.c
 
-xineplug_decode_faad_la_LDFLAGS = -avoid-version -module
+xineplug_decode_faad_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 xineplug_decode_faad_la_LIBADD = $(top_builddir)/src/xine-engine/libxine.la
 
 noinst_HEADERS = \

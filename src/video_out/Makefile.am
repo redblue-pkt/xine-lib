@@ -66,48 +66,48 @@ xineplug_vo_out_xv_la_LIBADD = \
 	-lXext \
 	$(top_builddir)/src/xine-engine/libxine.la
 
-xineplug_vo_out_xv_la_LDFLAGS = -avoid-version -module
+xineplug_vo_out_xv_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 xineplug_vo_out_xshm_la_SOURCES = yuv2rgb.c yuv2rgb_mmx.c yuv2rgb_mlib.c \
 	alphablend.c video_out_xshm.c
 xineplug_vo_out_xshm_la_LIBADD =  $(X_LIBS) -lXext \
 	$(top_builddir)/src/xine-engine/libxine.la
-xineplug_vo_out_xshm_la_LDFLAGS = -avoid-version -module
+xineplug_vo_out_xshm_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 #xineplug_vo_out_opengl_la_SOURCES = yuv2rgb.c yuv2rgb_mmx.c yuv2rgb_mlib.c \
 #	alphablend.c video_out_opengl.c
 #xineplug_vo_out_opengl_la_LIBADD =  $(OPENGL_LIBS) $(GLUT_LIBS) $(GLU_LIBS) $(X_LIBS) \
 #	$(top_builddir)/src/xine-engine/libxine.la
-#xineplug_vo_out_opengl_la_LDFLAGS = -avoid-version -module
+#xineplug_vo_out_opengl_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 #xineplug_vo_out_syncfb_la_SOURCES = alphablend.c video_out_syncfb.c 
 #xineplug_vo_out_syncfb_la_LIBADD = $(X_LIBS) $(top_builddir)/src/xine-engine/libxine.la
-#xineplug_vo_out_syncfb_la_LDFLAGS = -avoid-version -module
+#xineplug_vo_out_syncfb_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 xineplug_vo_out_aa_la_SOURCES =  video_out_aa.c
 xineplug_vo_out_aa_la_LIBADD = $(AALIB_LIBS)
-xineplug_vo_out_aa_la_LDFLAGS = -avoid-version -module
+xineplug_vo_out_aa_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 #xineplug_vo_out_fb_la_SOURCES = yuv2rgb.c yuv2rgb_mmx.c yuv2rgb_mlib.c \
 #	alphablend.c video_out_fb.c
 #xineplug_vo_out_fb_la_LIBADD = $(top_builddir)/src/xine-engine/libxine.la
-#xineplug_vo_out_fb_la_LDFLAGS = -avoid-version -module
+#xineplug_vo_out_fb_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 #xineplug_vo_out_directfb_la_SOURCES = alphablend.c video_out_directfb.c
 #xineplug_vo_out_directfb_la_LIBADD = $(DIRECTFB_LIBS)
-#xineplug_vo_out_directfb_la_LDFLAGS = -avoid-version -module
+#xineplug_vo_out_directfb_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 #xineplug_vo_out_sdl_la_SOURCES = alphablend.c video_out_sdl.c
 #xineplug_vo_out_sdl_la_LIBADD = $(SDL_LIBS)
-#xineplug_vo_out_sdl_la_LDFLAGS = -avoid-version -module
+#xineplug_vo_out_sdl_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 #xineplug_vo_out_vidix_la_SOURCES = alphablend.c video_out_vidix.c
 #xineplug_vo_out_vidix_la_LIBADD =  $(X_LIBS) $(top_builddir)/src/video_out/vidix/libvidix.la
-#xineplug_vo_out_vidix_la_LDFLAGS = -avoid-version -module
+#xineplug_vo_out_vidix_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 #xineplug_vo_out_pgx64_la_SOURCES = alphablend.c video_out_pgx64.c
 #xineplug_vo_out_pgx64_la_LIBADD = $(X_LIBS)
-#xineplug_vo_out_pgx64_la_LDFLAGS = -avoid-version -module
+#xineplug_vo_out_pgx64_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 noinst_HEADERS = alphablend.h deinterlace.h video_out_syncfb.h yuv2rgb.h 
 

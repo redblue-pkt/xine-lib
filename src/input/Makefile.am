@@ -60,39 +60,39 @@ lib_LTLIBRARIES = \
 
 xineplug_inp_file_la_SOURCES = input_file.c
 xineplug_inp_file_la_LIBADD = $(top_builddir)/src/xine-engine/libxine.la
-xineplug_inp_file_la_LDFLAGS = -avoid-version -module
+xineplug_inp_file_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 xineplug_inp_dvd_la_SOURCES = input_dvd.c 
 xineplug_inp_dvd_la_LIBADD = $(top_builddir)/src/xine-engine/libxine.la $(link_dvdnav)
-xineplug_inp_dvd_la_LDFLAGS = -avoid-version -module
+xineplug_inp_dvd_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 #xineplug_inp_net_la_SOURCES = input_net.c net_buf_ctrl.c
 #xineplug_inp_net_la_LIBADD = $(top_builddir)/src/xine-engine/libxine.la
-#xineplug_inp_net_la_LDFLAGS = -avoid-version -module
+#xineplug_inp_net_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 xineplug_inp_mms_la_SOURCES = input_mms.c net_buf_ctrl.c mms.c 
 xineplug_inp_mms_la_LIBADD = $(top_builddir)/src/xine-engine/libxine.la
-xineplug_inp_mms_la_LDFLAGS = -avoid-version -module
+xineplug_inp_mms_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 #xineplug_inp_vcd_la_SOURCES = input_vcd.c
 #xineplug_inp_vcd_la_LIBADD = $(top_builddir)/src/xine-engine/libxine.la
-#xineplug_inp_vcd_la_LDFLAGS = -avoid-version -module
+#xineplug_inp_vcd_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 #xineplug_inp_stdin_fifo_la_SOURCES = input_stdin_fifo.c net_buf_ctrl.c
 #xineplug_inp_stdin_fifo_la_LIBADD = $(top_builddir)/src/xine-engine/libxine.la
-#xineplug_inp_stdin_fifo_la_LDFLAGS = -avoid-version -module
+#xineplug_inp_stdin_fifo_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 #xineplug_inp_rtp_la_SOURCES = input_rtp.c
 #xineplug_inp_rtp_la_LIBADD = $(top_builddir)/src/xine-engine/libxine.la
-#xineplug_inp_rtp_la_LDFLAGS = -avoid-version -module
+#xineplug_inp_rtp_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 xineplug_inp_http_la_SOURCES = input_http.c net_buf_ctrl.c
 xineplug_inp_http_la_LIBADD = $(top_builddir)/src/xine-engine/libxine.la
-xineplug_inp_http_la_LDFLAGS = -avoid-version -module
+xineplug_inp_http_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 #xineplug_inp_cda_la_SOURCES = input_cda.c
 #xineplug_inp_cda_la_LIBADD = $(top_builddir)/src/xine-engine/libxine.la
-#xineplug_inp_cda_la_LDFLAGS = -avoid-version -module
+#xineplug_inp_cda_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 include_HEADERS = input_plugin.h
 noinst_HEADERS = net_buf_ctrl.h mms.h

@@ -15,7 +15,7 @@ xineplug_decode_mpg123_la_SOURCES = \
 	tabinit.c \
 	xine_decoder.c
 
-xineplug_decode_mpg123_la_LDFLAGS = -avoid-version -module
+xineplug_decode_mpg123_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 noinst_HEADERS = huffman.h mpg123.h mpglib.h l2tables.h
 

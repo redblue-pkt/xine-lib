@@ -20,7 +20,7 @@ libdir = $(XINE_PLUGINDIR)
 lib_LTLIBRARIES = $(w32dll_codec)
 
 xineplug_decode_w32dll_la_SOURCES = w32codec.c
-xineplug_decode_w32dll_la_LDFLAGS = -avoid-version -module
+xineplug_decode_w32dll_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 xineplug_decode_w32dll_la_LIBADD = \
 	$(top_builddir)/src/libw32dll/wine/libwine.la \
         $(top_builddir)/src/xine-engine/libxine.la \

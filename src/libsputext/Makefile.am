@@ -9,7 +9,7 @@ endif
 lib_LTLIBRARIES = $(sputext_decoder)
 
 xineplug_decode_sputext_la_SOURCES = xine_decoder.c 
-xineplug_decode_sputext_la_LDFLAGS = -avoid-version -module
+xineplug_decode_sputext_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 ## libgiconv is only needed with FreeBSD
 xineplug_decode_sputext_la_LIBADD  = $(GICONV_BSD_LIBS)
 

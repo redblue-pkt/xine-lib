@@ -13,7 +13,7 @@ lib_LTLIBRARIES = $(xvid_modules)
 
 xineplug_decode_xvid_la_SOURCES = xine_decoder.c
 xineplug_decode_xvid_la_LIBADD = @XVID_LIBS@
-xineplug_decode_xvid_la_LDFLAGS = -avoid-version -module
+xineplug_decode_xvid_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 debug:
 	@$(MAKE) CFLAGS="$(DEBUG_CFLAGS)"

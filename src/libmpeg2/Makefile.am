@@ -29,7 +29,7 @@ xineplug_decode_mpeg2_la_SOURCES = \
 	xine_decoder.c
 
 xineplug_decode_mpeg2_la_LIBADD = $(top_builddir)/src/xine-engine/libxine.la
-xineplug_decode_mpeg2_la_LDFLAGS = -avoid-version -module
+xineplug_decode_mpeg2_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 noinst_HEADERS = vlc.h mpeg2.h mpeg2_internal.h 
 
