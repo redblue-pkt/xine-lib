@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.30 2002/10/19 18:08:01 guenter Exp $
+ * $Id: xine_decoder.c,v 1.31 2002/10/20 18:23:33 guenter Exp $
  *
  * stuff needed to turn libmad into a xine decoder plugin
  */
@@ -45,13 +45,14 @@ typedef struct {
 typedef struct mad_decoder_s {
   audio_decoder_t   audio_decoder;
 
+  xine_stream_t    *xstream;
+
   int64_t           pts;
 
   struct mad_synth  synth; 
   struct mad_stream stream;
   struct mad_frame  frame;
 
-  ao_instance_t    *audio_out;
   int               output_sampling_rate;
   int               output_open;
   int               output_mode;
@@ -115,9 +116,6 @@ static void mad_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
   printf ("libmad: decode data, decoder_info[0]: %d\n", buf->decoder_info[0]);
 #endif  
 
-  if ( buf->decoder_flags & BUF_FLAG_PREVIEW )
-    return;
-
   if (buf->size>(INPUT_BUF_SIZE-this->bytes_in_buffer)) {
     printf ("libmad: ALERT input buffer too small (%d bytes, %d avail)!\n",
 	    buf->size, INPUT_BUF_SIZE-this->bytes_in_buffer);
@@ -174,12 +172,31 @@ static void mad_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 		  mode);
 #endif
 
+	  this->xstream->stream_info[XINE_STREAM_INFO_AUDIO_BITRATE] = this->frame.header.bitrate;
+	  switch (this->frame.header.layer) {
+	  case MAD_LAYER_I:
+	    this->xstream->meta_info[XINE_META_INFO_AUDIOCODEC] 
+	      = strdup ("MPEG audio layer 1");
+	    break;
+	  case MAD_LAYER_II:
+	    this->xstream->meta_info[XINE_META_INFO_AUDIOCODEC] 
+	      = strdup ("MPEG audio layer 2");
+	    break;
+	  case MAD_LAYER_III:
+	    this->xstream->meta_info[XINE_META_INFO_AUDIOCODEC] 
+	      = strdup ("MPEG audio layer 3");
+	    break;
+	  default:
+	    this->xstream->meta_info[XINE_META_INFO_AUDIOCODEC] 
+	      = strdup ("MPEG audio");
+	  }
+
 	  if (this->output_open) {
-	    this->audio_out->close (this->audio_out);
+	    this->xstream->audio_out->close (this->xstream->audio_out);
 	    this->output_open = 0;
           }
           if (!this->output_open) {
-	    this->output_open = this->audio_out->open(this->audio_out, 16,
+	    this->output_open = this->xstream->audio_out->open(this->xstream->audio_out, 16,
 				   this->frame.header.samplerate, 
 			           mode) ;
           }
@@ -192,6 +209,10 @@ static void mad_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 
 	mad_synth_frame (&this->synth, &this->frame);
 
+	if ( buf->decoder_flags & BUF_FLAG_PREVIEW )
+	  return;
+
+
 	{
 	  unsigned int         nchannels, nsamples;
 	  mad_fixed_t const   *left_ch, *right_ch;
@@ -199,7 +220,7 @@ static void mad_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 	  audio_buffer_t      *audio_buffer;
 	  uint16_t            *output;
 
-	  audio_buffer = this->audio_out->get_buffer (this->audio_out);
+	  audio_buffer = this->xstream->audio_out->get_buffer (this->xstream->audio_out);
 	  output = audio_buffer->mem;
 
 	  nchannels = pcm->channels;
@@ -220,7 +241,7 @@ static void mad_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 	  audio_buffer->num_frames = pcm->length;
 	  audio_buffer->vpts       = buf->pts;
 
-	  this->audio_out->put_buffer (this->audio_out, audio_buffer);
+	  this->xstream->audio_out->put_buffer (this->xstream->audio_out, audio_buffer);
 
 	  buf->pts = 0;
 
@@ -243,7 +264,7 @@ static void mad_dispose (audio_decoder_t *this_gen) {
   mad_stream_finish(&this->stream);
 
   if (this->output_open) { 
-    this->audio_out->close (this->audio_out);
+    this->xstream->audio_out->close (this->xstream->audio_out);
     this->output_open = 0;
   }
 
@@ -260,9 +281,10 @@ static audio_decoder_t *open_plugin (audio_decoder_class_t *class_gen, xine_stre
   this->audio_decoder.reset               = mad_reset;
   this->audio_decoder.dispose             = mad_dispose;
 
-  this->audio_out       = stream->audio_out;
   this->output_open     = 0;
   this->bytes_in_buffer = 0;
+
+  this->xstream         = stream;
 
   mad_synth_init  (&this->synth);
   mad_stream_init (&this->stream);

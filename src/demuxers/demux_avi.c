@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_avi.c,v 1.122 2002/10/20 13:50:41 guenter Exp $
+ * $Id: demux_avi.c,v 1.123 2002/10/20 18:23:33 guenter Exp $
  *
  * demultiplexer for avi streams
  *
@@ -74,6 +74,8 @@
 */
 
 #define MAX_AUDIO_STREAMS 8
+
+#define NUM_PREVIEW_BUFFERS 10
 
 /* The following variable indicates the kind of error */
 
@@ -1012,7 +1014,7 @@ static long AVI_read_video(demux_avi_t *this, avi_t *AVI, char *vidbuf,
 }
 
 
-static int demux_avi_next (demux_avi_t *this) {
+static int demux_avi_next (demux_avi_t *this, int decoder_flags) {
 
   int            i;
   buf_element_t *buf = NULL;
@@ -1074,6 +1076,7 @@ static int demux_avi_next (demux_avi_t *this) {
 
       buf->pts    = audio_pts; 
       buf->size   = AVI_read_audio (this, audio, buf->mem, 2048, &buf->decoder_flags);
+      buf->decoder_flags |= decoder_flags;
 
       if (buf->size<0) {
         buf->free_buffer (buf);
@@ -1106,6 +1109,7 @@ static int demux_avi_next (demux_avi_t *this) {
 
     buf->input_time = video_pts / 90000;
     buf->input_pos  = this->input->get_current_pos(this->input);
+    buf->decoder_flags |= decoder_flags;
 
     if (buf->size<0) {
       buf->free_buffer (buf);
@@ -1154,7 +1158,7 @@ static void *demux_avi_loop (void *this_gen) {
     /* main demuxer loop */
     while(this->status == DEMUX_OK) {
 
-      if (!demux_avi_next(this)) {
+      if (!demux_avi_next (this, 0)) {
         this->status = DEMUX_FINISHED;
       }
 
@@ -1278,6 +1282,7 @@ static void demux_avi_send_headers (demux_plugin_t *this_gen) {
   if (!this->thread_running)  {
 
     buf_element_t  *buf;
+    int             i;
 
     xine_demux_control_start (this->stream);
 
@@ -1364,6 +1369,18 @@ static void demux_avi_send_headers (demux_plugin_t *this_gen) {
 
       this->send_end_buffers = 1;
     }
+
+    /*
+     * send preview buffers
+     */
+
+    AVI_seek_start (this->avi);
+    
+    for (i=0; i<NUM_PREVIEW_BUFFERS; i++) {
+      if (!demux_avi_next(this, BUF_FLAG_PREVIEW)) 
+	break;
+    }
+
   }
 
   xine_demux_control_headers_done (this->stream);
