@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3.c,v 1.59 2002/10/26 16:14:29 mroi Exp $
+ * $Id: video_out_dxr3.c,v 1.60 2002/10/29 15:19:44 mroi Exp $
  */
  
 /* mpeg1 encoding video out plugin for the dxr3.  
@@ -695,9 +695,11 @@ static void dxr3_overlay_blend(xine_vo_driver_t *this_gen, vo_frame_t *frame_gen
     
     if (overlay->rle) {
       if (frame_gen->format == XINE_IMGFMT_YV12)
-        blend_yuv(frame->vo_frame.base, overlay, frame->vo_frame.width, frame->vo_frame.height);
+        blend_yuv(frame->vo_frame.base, overlay,
+	  frame->vo_frame.width, frame->vo_frame.height, frame->vo_frame.pitches);
       else
-        blend_yuy2(frame->vo_frame.base[0], overlay, frame->vo_frame.width, frame->vo_frame.height);
+        blend_yuy2(frame->vo_frame.base[0], overlay,
+	  frame->vo_frame.width, frame->vo_frame.height, frame->vo_frame.pitches[0]);
     }
   } else { /* XINE_IMGFMT_DXR3 */
     dxr3_driver_t *this = (dxr3_driver_t *)this_gen;
