@@ -23,7 +23,7 @@ dhahelper.o:
 	$(KCOMPILE) -c `test -f $*.c || echo '$(srcdir)/'`$*.c
 
 nodes:
-	$(MKNOD) -m 666 /dev/dhahelper c 180 0
+	$(MKNOD) -m 666 /dev/dhahelper c 252 0
 
 all: $(KERNEL_MODULE)
 
