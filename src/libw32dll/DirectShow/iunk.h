@@ -4,9 +4,6 @@
 #include "guids.h"
 
 #define DECLARE_IUNKNOWN(CLASSNAME) \
-    long STDCALL (*QueryInterface)(IUnknown * This, GUID* riid, void **ppvObject); \
-    long STDCALL (*AddRef) (IUnknown * This); \
-    long STDCALL (*Release) (IUnknown * This); \
     int refcount; 
 
 #define INHERIT_IUNKNOWN() \

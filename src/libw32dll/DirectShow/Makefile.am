@@ -3,12 +3,10 @@ noinst_LTLIBRARIES = libds_filter.la
 
 noinst_HEADERS = DS_Filter.h allocator.h cmediasample.h \
     guids.h inputpin.h interfaces.h iunk.h outputpin.h \
-    DS_AudioDecoder.h 
-# DS_VideoDecoder.h
+    DS_AudioDecoder.h DS_VideoDecoder.h
 
 libds_filter_la_SOURCES = guids.c inputpin.c outputpin.c allocator.c \
-    cmediasample.c DS_Filter.c DS_AudioDecoder.c
-# DS_VideoDecoder.c
+    cmediasample.c DS_Filter.c DS_AudioDecoder.c DS_VideoDecoder.c
 
 ##
 ##

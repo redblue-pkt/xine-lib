@@ -102,10 +102,8 @@ CEnumPins * CEnumPins_Create(IPin* p, IPin* pp)
     
     this->vt=malloc(sizeof(IEnumPins_vt));
     
-    this->pin1 = malloc(sizeof(IPin));
-    memcpy(this->pin1,p,sizeof(IPin));
-    this->pin2 = malloc(sizeof(IPin));
-    memcpy(this->pin2,pp,sizeof(IPin));
+    this->pin1 = p;
+    this->pin2 = pp;
     this->counter = 0;
     this->refcount = 1;
     
@@ -248,6 +246,8 @@ CInputPin * CInputPin_Create(CBaseFilter* p, const AM_MEDIA_TYPE *vh)
 {
     CInputPin *this;
     this = malloc(sizeof(CInputPin));
+    
+    Debug printf("CInputPin_Create %p\n", this );
 
     memcpy(&this->type,vh,sizeof(AM_MEDIA_TYPE));
     this->refcount = 1;

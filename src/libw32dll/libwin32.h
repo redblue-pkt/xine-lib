@@ -39,13 +39,13 @@ typedef struct _CImage // public  your_libvo_mem
 {
     char* ptr;
     
-    char* (*Data)();
-    /*{
+    /*char* (*Data)();
+    {
 	return 0;
 	// pointer to memory block
     }*/
-    int (*Supported)(fourcc_t csp, int bits);
-    /*{
+    /*int (*Supported)(fourcc_t csp, int bits);
+    {
 	return true;
 	// if you support such surface 
     }*/
@@ -134,6 +134,7 @@ typedef struct _IVideoDecoder
     BITMAPINFOHEADER* m_bh;	// format of input data (might be larger - e.g. huffyuv)
     BITMAPINFOHEADER m_decoder;	// format of decoder output
     BITMAPINFOHEADER m_obh;		// format of returned frames
+    int colors[3];
 }IVideoDecoder;
 
 /*

@@ -17,10 +17,10 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.42 2001/11/15 00:41:28 miguelfreitas Exp $
+ * $Id: w32codec.c,v 1.43 2001/11/15 14:28:18 miguelfreitas Exp $
  *
  * routines for using w32 codecs
- * DirectShow support by Miguel Freitas
+ * DirectShow support by Miguel Freitas (Nov/2001)
  *
  */
 
@@ -39,7 +39,7 @@
 #define NOAVIFILE_HEADERS
 #include "DirectShow/guids.h"
 #include "DirectShow/DS_AudioDecoder.h"
-//#include "DirectShow/DS_VideoDecoder.h"
+#include "DirectShow/DS_VideoDecoder.h"
 //#include "dshow_cpp/DS_AudioDec.h"
 
 #include "video_out.h"
@@ -76,6 +76,8 @@ static GUID wmv2_clsid =
 extern char*   win32_codec_name; 
 extern char*   win32_def_path;
 
+#define VIDEOBUFSIZE 128*1024
+
 typedef struct w32v_decoder_s {
   video_decoder_t   video_decoder;
 
@@ -88,7 +90,8 @@ typedef struct w32v_decoder_s {
   int               yuv_supported ;
   int		    yuv_hack_needed ;
   int               flipped ;
-  unsigned char     buf[128*1024];
+  unsigned char    *buf;
+  int               bufsize;
   void             *img_buffer;
   int               size;
   long		    outfmt;
@@ -98,7 +101,7 @@ typedef struct w32v_decoder_s {
 
   int               ds_driver;
   GUID             *guid;
-  //DS_VideoDecoder  *ds_dec;
+  DS_VideoDecoder  *ds_dec;
 
     
   LDT_FS *ldt_fs;
@@ -308,6 +311,12 @@ static char* get_vids_codec_name(w32v_decoder_t *this,
     this->ds_driver = 1;
     this->guid=&wmv1_clsid;
     return "wmvds32.ax";    
+  
+  case BUF_VIDEO_WMV8:
+    this->yuv_supported=1;
+    this->ds_driver = 1;
+    this->guid=&wmv2_clsid;
+    return "wmv8ds32.ax";    
 
   }
 
@@ -341,8 +350,9 @@ static int w32v_can_handle (video_decoder_t *this_gen, int buf_type) {
            buf_type == BUF_VIDEO_ATIVCR2 ||
 	   buf_type == BUF_VIDEO_I263 ||
 	   buf_type == BUF_VIDEO_MSVC ||
-	   buf_type == BUF_VIDEO_DV );
-           //buf_type == BUF_VIDEO_WMV7 );
+	   buf_type == BUF_VIDEO_DV ||
+           buf_type == BUF_VIDEO_WMV7 ||
+           buf_type == BUF_VIDEO_WMV8 );
 }
 
 static void w32v_init (video_decoder_t *this_gen, vo_instance_t *video_out) {
@@ -438,7 +448,14 @@ static void w32v_init_codec (w32v_decoder_t *this, int buf_type) {
 
   this->size = 0;
 
+  if ( this->img_buffer )
+    free (this->img_buffer);
   this->img_buffer = malloc (this->o_bih.biSizeImage);
+  
+  if ( this->buf )
+    free (this->buf);
+  this->bufsize = VIDEOBUFSIZE;
+  this->buf = malloc(this->bufsize);
 
   this->video_out->open (this->video_out);
 
@@ -447,12 +464,11 @@ static void w32v_init_codec (w32v_decoder_t *this, int buf_type) {
 }
 
 static void w32v_init_ds_codec (w32v_decoder_t *this, int buf_type) {
-  /*HRESULT  ret;
   uint32_t vo_cap;
   int outfmt;
   CodecInfo ci;
 
-  printf ("w32codec: init DS codec...\n");
+  printf ("w32codec: init Direct Show video codec...\n");
   
   memset(&this->o_bih, 0, sizeof(BITMAPINFOHEADER));
   this->o_bih.biSize = sizeof(BITMAPINFOHEADER);
@@ -461,14 +477,22 @@ static void w32v_init_ds_codec (w32v_decoder_t *this, int buf_type) {
   
   outfmt = IMGFMT_15RGB;
   if (this->yuv_supported) {
+    vo_cap = this->video_out->get_capabilities (this->video_out);
+    if (vo_cap & VO_CAP_YUY2)
       outfmt = IMGFMT_YUY2;
   }
-
 
   ci.dll=win32_codec_name;
   memcpy(&ci.guid,this->guid,sizeof(ci.guid));
 
   this->ds_dec = DS_VideoDecoder_Create(&ci, &this->bih, this->flipped, 0);
+  
+  if(!this->ds_dec){
+    printf ("w32codec: DS_VideoDecoder failed! unknown codec %08lx / wrong parameters?\n",
+	    this->bih.biCompression);
+    this->decoder_ok = 0;
+    return;
+  }
     
 
   if(outfmt==IMGFMT_YUY2 || outfmt==IMGFMT_15RGB)
@@ -476,6 +500,9 @@ static void w32v_init_ds_codec (w32v_decoder_t *this, int buf_type) {
   else
     this->o_bih.biBitCount=outfmt&0xFF;
 
+  this->o_bih.biWidth = this->bih.biWidth;
+  this->o_bih.biHeight = this->bih.biHeight;
+  
   this->o_bih.biSizeImage = this->o_bih.biWidth * this->o_bih.biHeight
       * this->o_bih.biBitCount / 8;
 
@@ -487,22 +514,28 @@ static void w32v_init_ds_codec (w32v_decoder_t *this, int buf_type) {
   else 
     this->o_bih.biCompression = 0;
       
+  DS_VideoDecoder_SetDestFmt(this->ds_dec, this->o_bih.biBitCount, this->o_bih.biCompression);
 
   if (outfmt==IMGFMT_YUY2 && this->yuv_hack_needed)
     this->o_bih.biCompression = mmioFOURCC('Y','U','Y','2'); 
-
-  DS_VideoDecoder_SetDestFmt(this->ds_dec, this->o_bih.biBitCount,this->o_bih.biCompression);
   
   DS_VideoDecoder_StartInternal(this->ds_dec);  
   
   this->size = 0;
 
+  if ( this->img_buffer )
+    free (this->img_buffer);
   this->img_buffer = malloc (this->o_bih.biSizeImage);
-
+  
+  if ( this->buf )
+    free (this->buf);
+  this->bufsize = VIDEOBUFSIZE;
+  this->buf = malloc(this->bufsize);
+  
   this->video_out->open (this->video_out);
 
   this->outfmt = outfmt;
-  this->decoder_ok = 1;*/
+  this->decoder_ok = 1;
 }
 
 
@@ -533,6 +566,13 @@ static void w32v_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 
     /* printf ("w32codec: processing packet ...\n"); */
 
+    if( this->size + buf->size > this->bufsize ) {
+      this->bufsize = this->size + buf->size;
+      printf("w32codec: increasing source buffer to %d to avoid overflow.\n", 
+        this->bufsize);
+      this->buf = realloc( this->buf, this->bufsize );
+    }
+    
     fast_memcpy (&this->buf[this->size], buf->content, buf->size);
 
     this->size += buf->size;
@@ -564,10 +604,10 @@ static void w32v_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 			 &this->bih, this->buf,
 			 &this->o_bih, this->img_buffer);
       else {
-      /*  CImage image;
+        CImage image;
         image.ptr=this->img_buffer;
         ret = DS_VideoDecoder_DecodeInternal(this->ds_dec, this->buf, 
-                         this->size, 0, &image);*/
+                         this->size, 0, &image);
       }
                          
       if (this->outfmt==IMGFMT_YUY2) {
@@ -666,8 +706,16 @@ static void w32v_close (video_decoder_t *this_gen) {
 
   w32v_decoder_t *this = (w32v_decoder_t *) this_gen;
 
-  free (this->img_buffer);
-
+  if ( this->img_buffer ) {
+    free (this->img_buffer);
+    this->img_buffer = NULL;
+  }
+  
+  if ( this->buf ) {
+    free (this->buf);
+    this->buf = NULL;
+  }
+  
   this->video_out->close(this->video_out);
   
   Restore_LDT_Keeper( this->ldt_fs );
@@ -1058,7 +1106,7 @@ video_decoder_t *init_video_decoder_plugin (int iface_version, config_values_t *
 
   win32_def_path = cfg->lookup_str (cfg, "win32_path", "/usr/lib/win32");
 
-  this = (w32v_decoder_t *) malloc (sizeof (w32v_decoder_t));
+  this = (w32v_decoder_t *) xmalloc (sizeof (w32v_decoder_t));
 
   this->video_decoder.interface_version   = 3;
   this->video_decoder.can_handle          = w32v_can_handle;
@@ -1091,8 +1139,8 @@ audio_decoder_t *init_audio_decoder_plugin (int iface_version, config_values_t *
 
   win32_def_path = cfg->lookup_str (cfg, "win32_path", "/usr/lib/win32");
 
-  this = (w32a_decoder_t *) malloc (sizeof (w32a_decoder_t));
-
+  this = (w32a_decoder_t *) xmalloc (sizeof (w32a_decoder_t));
+  
   this->audio_decoder.interface_version   = 3;
   this->audio_decoder.can_handle          = w32a_can_handle;
   this->audio_decoder.init                = w32a_init;
