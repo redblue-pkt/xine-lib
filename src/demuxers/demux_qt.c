@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.69 2002/07/17 18:49:49 miguelfreitas Exp $
+ * $Id: demux_qt.c,v 1.70 2002/07/17 20:29:03 miguelfreitas Exp $
  *
  */
 
@@ -228,6 +228,7 @@ typedef struct {
   unsigned int audio_bits;
   void *audio_decoder_config;
   int audio_decoder_config_len;
+  unsigned int *audio_sample_size_table;
 
   qt_atom video_codec;
   unsigned int video_type;
@@ -401,6 +402,7 @@ static qt_error parse_trak_atom(qt_sample_table *sample_table,
   sample_table->sample_to_chunk_table = NULL;
   sample_table->time_to_sample_table = NULL;
   sample_table->decoder_config = NULL;
+  sample_table->sample_size_table = NULL;
 
   /* default type */
   sample_table->type = MEDIA_OTHER;
@@ -903,6 +905,8 @@ static void parse_moov_atom(qt_info *info, unsigned char *moov_atom) {
 
       info->audio_decoder_config = sample_tables[i].decoder_config;
       info->audio_decoder_config_len = sample_tables[i].decoder_config_len;
+
+      info->audio_sample_size_table = sample_tables[i].sample_size_table;
     }
   }
 
@@ -1254,8 +1258,16 @@ static void *demux_qt_loop (void *this_gen) {
             break;
           }
 
-          if (!remaining_sample_bytes)
+          if (!remaining_sample_bytes) {
             buf->decoder_flags |= BUF_FLAG_FRAME_END;
+
+            if( this->qt->audio_sample_size_table ) {
+              buf->decoder_flags |= BUF_FLAG_SPECIAL;
+              buf->decoder_info[1] = BUF_SPECIAL_SAMPLE_SIZE_TABLE;
+              buf->decoder_info[3] = (uint32_t)
+                &this->qt->audio_sample_size_table[this->qt->frames[i].official_byte_count];
+            }
+          }
 
           this->audio_fifo->put(this->audio_fifo, buf);
         }

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.4 2002/07/17 15:21:46 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.5 2002/07/17 20:29:04 miguelfreitas Exp $
  *
  */
 
@@ -33,7 +33,7 @@
 #include "xineutils.h"
 #include "faad.h"
 
-#define LOG
+/* #define LOG */
 
 typedef struct faad_decoder_s {
   audio_decoder_t  audio_decoder;
@@ -119,13 +119,24 @@ static int faad_open_dec( faad_decoder_t *this ) {
 static void faad_decode_audio ( faad_decoder_t *this, int end_frame ) {
   int used, decoded, outsize;
   uint8_t *sample_buffer;
+  uint8_t *inbuf;
   audio_buffer_t *audio_buffer;
     
-  while( this->faac_dec && this->size >= this->rec_audio_src_size) {
+  if( !this->faac_dec )
+    return;
+
+  inbuf = this->buf;
+  while( (this->mp4_mode && end_frame && this->size >= 10) ||
+         (!this->mp4_mode && this->size >= this->rec_audio_src_size) ) {
       
     sample_buffer = faacDecDecode(this->faac_dec, 
-                                  &this->faac_finfo, this->buf);
-    used = this->faac_finfo.bytesconsumed;
+                                  &this->faac_finfo, inbuf);
+ 
+    if( this->mp4_mode && this->sample_size_table  )
+      used = *this->sample_size_table++;
+    else
+      used = this->faac_finfo.bytesconsumed;
+
     decoded = this->faac_finfo.samples * 2; /* 1 sample = 2 bytes */
     
 #ifdef LOG
@@ -149,7 +160,7 @@ static void faad_decode_audio ( faad_decoder_t *this, int end_frame ) {
         xine_fast_memcpy( audio_buffer->mem, sample_buffer, outsize );
 
         audio_buffer->num_frames = outsize / (this->num_channels*2);
-        audio_buffer->vpts       = this->pts;
+        audio_buffer->vpts = this->pts;
 
         this->audio_out->put_buffer (this->audio_out, audio_buffer);
         
@@ -163,9 +174,16 @@ static void faad_decode_audio ( faad_decoder_t *this, int end_frame ) {
       this->size = 0;
     } else {
       this->size -= used;
-      memmove( this->buf, &this->buf[used], this->size);
+      inbuf += used;
     }
-  }   
+  }
+
+  if( this->mp4_mode && this->sample_size_table )
+    this->size = 0;   
+  else if( this->size )
+    memmove( this->buf, inbuf, this->size);
+
+  this->sample_size_table = NULL;
 }
 
 static void faad_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
@@ -176,6 +194,8 @@ static void faad_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
   if (buf->decoder_flags & BUF_FLAG_PREVIEW)
     return;
 
+
+  /* initialize libfaad with with config information from ESDS mp4/qt atom */
   if( !this->faac_dec && (buf->decoder_flags & BUF_FLAG_SPECIAL) &&
       buf->decoder_info[1] == BUF_SPECIAL_DECODER_CONFIG ) {
 
@@ -203,7 +223,20 @@ static void faad_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
             this->rate, this->num_channels );
 #endif
   }
-  
+
+  /* get sample sizes table. this is needed since sample size 
+     might differ from faac_finfo.bytesconsumed */
+  if( (buf->decoder_flags & BUF_FLAG_SPECIAL) &&
+      buf->decoder_info[1] == BUF_SPECIAL_SAMPLE_SIZE_TABLE ) {
+#ifdef LOG
+     printf("libfaad: sample_size_table received\n");
+#endif
+     this->sample_size_table = (unsigned int *)buf->decoder_info[3];
+  }
+
+
+  /* get audio parameters from file header 
+     (may be overwritten by libfaad returned parameters) */  
   if (buf->decoder_flags & BUF_FLAG_HEADER) {
     
     this->rate=buf->decoder_info[1];
@@ -269,6 +302,7 @@ static void faad_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 
     } else {
 
+      /* open audio device as needed */
       if (!this->output_open) {
         switch( this->num_channels ) {
           case 1:
