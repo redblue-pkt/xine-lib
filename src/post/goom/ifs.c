@@ -539,10 +539,11 @@ draw_ifs ( /* ModeInfo * mi */ int *nbpt)
 void
 release_ifs (void)
 {
-	if (Root != NULL) {
-		(void) free ((void *) Root);
-		Root = (FRACTAL *) NULL;
-	}
+  if (Root != NULL) {
+	free_ifs(Root);
+	(void) free ((void *) Root);
+	Root = (FRACTAL *) NULL;
+  }
 }
 
 //#endif /* MODE_ifs */
