@@ -136,7 +136,7 @@ static inline void get_frame_duration (mpeg2dec_t * mpeg2dec, vo_frame_t *frame)
     }
   }
   
-  printf("mpeg2dec: rff=%u\n",frame->repeat_first_field);
+  /*printf("mpeg2dec: rff=%u\n",frame->repeat_first_field);*/
 } 
 
 static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
