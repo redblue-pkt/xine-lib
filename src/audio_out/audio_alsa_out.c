@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.141 2004/05/15 23:44:25 jcdutton Exp $
+ * $Id: audio_alsa_out.c,v 1.142 2004/05/23 16:20:57 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -1480,7 +1480,7 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
     xprintf(class->xine, XINE_VERBOSITY_LOG, _("24bit "));
   }
   if (!(snd_pcm_hw_params_test_format(this->audio_fd, params, SND_PCM_FORMAT_FLOAT))) {
-    this->capabilities |= AO_CAP_32BITS;
+    this->capabilities |= AO_CAP_FLOAT32;
     xprintf(class->xine, XINE_VERBOSITY_LOG, _("32bit "));
   }
   if (!(snd_pcm_hw_params_test_channels(this->audio_fd, params, 1))) {

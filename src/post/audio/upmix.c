@@ -23,7 +23,7 @@
  * It simply creates output channels to match the speaker arrangement.
  * E.g. Converts Stereo into Surround 5.1
  *
- * $Id: upmix.c,v 1.12 2004/05/18 03:17:02 miguelfreitas Exp $
+ * $Id: upmix.c,v 1.13 2004/05/23 16:20:56 mroi Exp $
  *
  */
 
@@ -190,7 +190,7 @@ static int upmix_port_open(xine_audio_port_t *port_gen, xine_stream_t *stream,
   this->ratio = (double)FOO_WIDTH/(double)FOO_HEIGHT;
   this->channels = _x_ao_mode2channels(mode);
   /* FIXME: Handle all desired output formats */
-  if ((capabilities & AO_CAP_MODE_5_1CHANNEL) && (capabilities & AO_CAP_32BITS)) {
+  if ((capabilities & AO_CAP_MODE_5_1CHANNEL) && (capabilities & AO_CAP_FLOAT32)) {
     this->channels_out=6;
     mode = AO_CAP_MODE_5_1CHANNEL;
     bits = 32; /* Upmix to Floats */
