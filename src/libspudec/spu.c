@@ -35,7 +35,7 @@
  * along with this program; see the file COPYING.  If not, write to
  * the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: spu.c,v 1.36 2002/04/23 22:42:17 jcdutton Exp $
+ * $Id: spu.c,v 1.37 2002/04/23 23:46:23 jcdutton Exp $
  *
  */
 
@@ -276,6 +276,15 @@ void spudec_process (spudec_decoder_t *this, uint32_t stream_id) {
       printf ("spu: forced display:%s\n", this->state.forced_display ? "Yes" : "No" ); 
 #endif
       if (this->pci.hli.hl_gi.hli_s_ptm == this->spudec_stream_state[stream_id].pts) {
+        if ( this->pci.hli.hl_gi.fosl_btnn > 0) {
+          spu_button_t spu_button;
+          xine_spu_event_t spu_event;
+          this->buttonN = this->pci.hli.hl_gi.fosl_btnn ;
+          spu_event.event.type = XINE_EVENT_INPUT_BUTTON_FORCE;
+          spu_event.data = &spu_button;
+          spu_button.buttonN  = this->buttonN;
+          xine_send_event(this->xine, &spu_event.event);
+        }
         spudec_copy_nav_to_overlay(&this->pci, this->state.clut, this->buttonN, 0, &this->overlay );
       } else {
       /* Subtitle and not a menu button */

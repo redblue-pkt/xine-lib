@@ -60,6 +60,7 @@ extern "C" {
 #define XINE_EVENT_SPU_FORCEDISPLAY	22
 #define XINE_EVENT_FRAME_CHANGE         23
 #define XINE_EVENT_CLOSED_CAPTION       24
+#define XINE_EVENT_INPUT_BUTTON_FORCE   25
 
 /*
  * generic event type.
