@@ -6,7 +6,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2002-01-14 22:43+0100\n"
+"POT-Creation-Date: 2002-01-20 14:05+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -121,75 +121,79 @@ msgid ""
 "Installing current demux plugins should help.\n"
 msgstr ""
 
-#: src/demuxers/demux_avi.c:509
+#: src/demuxers/demux_avi.c:350
+msgid "demux_avi: avi index is broken\n"
+msgstr ""
+
+#: src/demuxers/demux_avi.c:515
 msgid "demux_avi: reconstructing index"
 msgstr ""
 
-#: src/demuxers/demux_avi.c:540
+#: src/demuxers/demux_avi.c:546
 msgid "done\n"
 msgstr ""
 
-#: src/demuxers/demux_avi.c:846
+#: src/demuxers/demux_avi.c:852
 msgid "demux_avi: demux loop finished.\n"
 msgstr ""
 
-#: src/demuxers/demux_avi.c:860
+#: src/demuxers/demux_avi.c:866
 msgid "demux_avi: stop...ignored\n"
 msgstr ""
 
-#: src/demuxers/demux_avi.c:918
+#: src/demuxers/demux_avi.c:924
 #, c-format
 msgid "demux_avi: video format = %s, audio format = 0x%lx\n"
 msgstr ""
 
-#: src/demuxers/demux_avi.c:925
+#: src/demuxers/demux_avi.c:931
 #, c-format
 msgid "demux_avi: unknown audio type 0x%lx\n"
 msgstr ""
 
-#: src/demuxers/demux_avi.c:930
+#: src/demuxers/demux_avi.c:936
 #, c-format
 msgid "demux_avi: audio type %s (wFormatTag 0x%x)\n"
 msgstr ""
 
-#: src/demuxers/demux_avi.c:948 src/demuxers/demux_avi.c:965
+#: src/demuxers/demux_avi.c:954 src/demuxers/demux_avi.c:971
 msgid "demux_avi: video seek to start failed\n"
 msgstr ""
 
-#: src/demuxers/demux_avi.c:982
+#: src/demuxers/demux_avi.c:988
 msgid "demux_avi: audio seek to start failed\n"
 msgstr ""
 
-#: src/demuxers/demux_avi.c:1013
+#: src/demuxers/demux_avi.c:1019
 #, c-format
 msgid "demux_avi: unknown avi format %.4s\n"
 msgstr ""
 
-#: src/demuxers/demux_avi.c:1020
+#: src/demuxers/demux_avi.c:1026
 #, c-format
 msgid "demux_avi: video codec >%s<\n"
 msgstr ""
 
-#: src/demuxers/demux_avi.c:1057
+#: src/demuxers/demux_avi.c:1063
 msgid "demux_avi: text subtitle file available\n"
 msgstr ""
 
-#: src/demuxers/demux_avi.c:1063
+#: src/demuxers/demux_avi.c:1069
 #, c-format
 msgid "demux_avi: can't create new thread (%s)\n"
 msgstr ""
 
-#: src/demuxers/demux_avi.c:1095
+#: src/demuxers/demux_avi.c:1101
 #, c-format
 msgid "demux_avi: %ld frames\n"
 msgstr ""
 
-#: src/demuxers/demux_avi.c:1101 src/demuxers/demux_avi.c:1138
+#: src/demuxers/demux_avi.c:1107 src/demuxers/demux_avi.c:1144
 #, c-format
 msgid "demux_avi: AVI_init failed (AVI_errno: %d)\n"
 msgstr ""
 
-#: src/demuxers/demux_avi.c:1183
+#: src/demuxers/demux_avi.c:1189
 #, c-format
 msgid ""
 "demux_avi: this plugin doesn't support plugin API version %d.\n"
@@ -244,25 +248,25 @@ msgid ""
 "Installing current demux plugins should help.\n"
 msgstr ""
 
-#: src/demuxers/demux_mpeg_block.c:116
+#: src/demuxers/demux_mpeg_block.c:117
 msgid "demux_mpeg_block: read_block failed\n"
 msgstr ""
 
-#: src/demuxers/demux_mpeg_block.c:130
+#: src/demuxers/demux_mpeg_block.c:131
 #, c-format
 msgid "demux_mpeg_block: checking if we can branch to %s\n"
 msgstr ""
 
-#: src/demuxers/demux_mpeg_block.c:135
+#: src/demuxers/demux_mpeg_block.c:136
 msgid "demux_mpeg_block: branching\n"
 msgstr ""
 
-#: src/demuxers/demux_mpeg_block.c:265
+#: src/demuxers/demux_mpeg_block.c:266
 #, c-format
 msgid "demux_mpeg_block: error! %02x %02x %02x (should be 0x000001) \n"
 msgstr ""
 
-#: src/demuxers/demux_mpeg_block.c:271
+#: src/demuxers/demux_mpeg_block.c:272
 msgid ""
 "demux_mpeg_block: too many errors, stopping playback. Maybe this stream is "
 "scrambled?\n"
@@ -381,32 +385,32 @@ msgstr ""
 msgid "demux_qt: stop...ignored\n"
 msgstr ""
 
-#: src/demuxers/demux_qt.c:4195
+#: src/demuxers/demux_qt.c:4196
 #, c-format
 msgid "demux_qt: unknown video codec >%s<\n"
 msgstr ""
 
-#: src/demuxers/demux_qt.c:4199
+#: src/demuxers/demux_qt.c:4200
 #, c-format
 msgid "demux_qt: video codec >%s<\n"
 msgstr ""
 
-#: src/demuxers/demux_qt.c:4220
+#: src/demuxers/demux_qt.c:4221
 #, c-format
 msgid "demux_qt: unknown audio codec >%s<\n"
 msgstr ""
 
-#: src/demuxers/demux_qt.c:4252
+#: src/demuxers/demux_qt.c:4253
 #, c-format
 msgid "demux_qt: video codec %s (%f fps), audio codec %s (%ld Hz, %d bits)\n"
 msgstr ""
 
-#: src/demuxers/demux_qt.c:4331
+#: src/demuxers/demux_qt.c:4332
 #, c-format
 msgid "demux_qt: can't create new thread (%s)\n"
 msgstr ""
 
-#: src/demuxers/demux_qt.c:4420
+#: src/demuxers/demux_qt.c:4421
 #, c-format
 msgid ""
 "demux_qt: plugin doesn't support plugin API version %d.\n"
@@ -807,22 +811,22 @@ msgstr ""
 msgid "input_file: read error (%s)\n"
 msgstr ""
 
-#: src/input/input_file.c:506 src/input/input_file.c:545
-#: src/input/input_file.c:581
+#: src/input/input_file.c:518 src/input/input_file.c:557
+#: src/input/input_file.c:593
 #, c-format
 msgid "%s(%d): readlink() failed: %s\n"
 msgstr ""
 
-#: src/input/input_file.c:769 src/input/input_vcd.c:963
+#: src/input/input_file.c:781
 msgid "plain file input plugin as shipped with xine"
 msgstr ""
 
-#: src/input/input_file.c:787
+#: src/input/input_file.c:799
 #, c-format
 msgid "input_file: get optional data, type %08x, sub %p\n"
 msgstr ""
 
-#: src/input/input_file.c:817
+#: src/input/input_file.c:829
 #, c-format
 msgid ""
 "file input plugin doesn't support plugin API version %d.\n"
@@ -907,6 +911,10 @@ msgstr ""
 #: src/input/input_vcd.c:897
 #, c-format
 msgid "input_vcd: CDROM_DRIVE_STATUS failed: %s\n"
+msgstr ""
+
+#: src/input/input_vcd.c:963
+msgid "vcd device input plugin as shipped with xine"
 msgstr ""
 
 #: src/input/input_vcd.c:991
@@ -1018,121 +1026,121 @@ msgid ""
 "Installing current input plugins should help.\n"
 msgstr ""
 
-#: src/input/input_cda.c:461 src/input/input_cda.c:519
+#: src/input/input_cda.c:467 src/input/input_cda.c:525
 #, c-format
 msgid "input_cda: fopen(%s) failed: %s\n"
 msgstr ""
 
-#: src/input/input_cda.c:609
+#: src/input/input_cda.c:615
 #, c-format
 msgid "input_cda: server '%s:%d' successfuly connected.\n"
 msgstr ""
 
-#: src/input/input_cda.c:614
+#: src/input/input_cda.c:620
 #, c-format
 msgid "input_cda: opening server '%s:%d' failed: %s\n"
 msgstr ""
 
-#: src/input/input_cda.c:783
+#: src/input/input_cda.c:789
 #, c-format
 msgid "input_cda: ioctl(CDROM_MEDIA_CHANGED) failed: %s.\n"
 msgstr ""
 
-#: src/input/input_cda.c:850
+#: src/input/input_cda.c:856
 #, c-format
 msgid "input_cda: ioctl(CDROMSUBCHNL) failed: %s.\n"
 msgstr ""
 
-#: src/input/input_cda.c:985
+#: src/input/input_cda.c:991
 #, c-format
 msgid "input_cda: ioctl(CDIOCSTART) failed: %s.\n"
 msgstr ""
 
-#: src/input/input_cda.c:991
+#: src/input/input_cda.c:997
 #, c-format
 msgid "input_cda: ioctl(CDROMSTART) failed: %s.\n"
 msgstr ""
 
-#: src/input/input_cda.c:997
+#: src/input/input_cda.c:1003
 #, c-format
 msgid "input_cda: ioctl(CDIOCPLAYMSF) failed: %s.\n"
 msgstr ""
 
-#: src/input/input_cda.c:1003
+#: src/input/input_cda.c:1009
 #, c-format
 msgid "input_cda: ioctl(CDROMPLAYMSF) failed: %s.\n"
 msgstr ""
 
-#: src/input/input_cda.c:1024
+#: src/input/input_cda.c:1030
 #, c-format
 msgid "input_cda: No rights to open %s.\n"
 msgstr ""
 
-#: src/input/input_cda.c:1027
+#: src/input/input_cda.c:1033
 #, c-format
 msgid "input_cda: open(%s) failed: %s.\n"
 msgstr ""
 
-#: src/input/input_cda.c:1121
+#: src/input/input_cda.c:1127
 #, c-format
 msgid "input_cda: ioctl(CDROMCLOSETRAY) failed: %s\n"
 msgstr ""
 
-#: src/input/input_cda.c:1126 src/input/input_cda.c:1142
-#: src/input/input_cda.c:1147
+#: src/input/input_cda.c:1132 src/input/input_cda.c:1148
+#: src/input/input_cda.c:1153
 #, c-format
 msgid "input_cda: ioctl(CDROMEJECT) failed: %s\n"
 msgstr ""
 
-#: src/input/input_cda.c:1132
+#: src/input/input_cda.c:1138
 #, c-format
 msgid "input_cda: ioctl(CDROM_DRIVE_STATUS) failed: %s\n"
 msgstr ""
 
-#: src/input/input_cda.c:1138
+#: src/input/input_cda.c:1144
 #, c-format
 msgid "input_cda: ioctl(CDROMALLOW) failed: %s\n"
 msgstr ""
 
-#: src/input/input_cda.c:1178
+#: src/input/input_cda.c:1184
 #, c-format
 msgid "input_cda: ioctl(CDIOREADTOCHEADER) failed: %s.\n"
 msgstr ""
 
-#: src/input/input_cda.c:1186
+#: src/input/input_cda.c:1192
 #, c-format
 msgid "input_cda: ioctl(CDROMREADTOCHDR) failed: %s.\n"
 msgstr ""
 
-#: src/input/input_cda.c:1223
+#: src/input/input_cda.c:1229
 #, c-format
 msgid "input_cda: ioctl(CDIOREADTOCENTRYS) failed: %s.\n"
 msgstr ""
 
-#: src/input/input_cda.c:1246
+#: src/input/input_cda.c:1252
 #, c-format
 msgid "input_cda: ioctl(CDROMREADTOCENTRY) failed: %s.\n"
 msgstr ""
 
-#: src/input/input_cda.c:1429
+#: src/input/input_cda.c:1435
 msgid "input_cda: malformed MRL. Use cda://<track #>\n"
 msgstr ""
 
-#: src/input/input_cda.c:1435
+#: src/input/input_cda.c:1441
 #, c-format
 msgid "input_cda: invalid track %d (valid range: 1 .. %d)\n"
 msgstr ""
 
-#: src/input/input_cda.c:1518
+#: src/input/input_cda.c:1524
 #, c-format
 msgid "input_cda: error seek to origin %d not implemented!\n"
 msgstr ""
 
-#: src/input/input_cda.c:1634
+#: src/input/input_cda.c:1640
 msgid "cd audio plugin as shipped with xine"
 msgstr ""
 
-#: src/input/input_cda.c:1809
+#: src/input/input_cda.c:1815
 #, c-format
 msgid ""
 "cda input plugin doesn't support plugin API version %d.\n"
@@ -1193,85 +1201,85 @@ msgstr ""
 msgid "metronom: waiting for video to end...\n"
 msgstr ""
 
-#: src/xine-engine/metronom.c:479
+#: src/xine-engine/metronom.c:481
 #, c-format
 msgid "metronom: video discontinuity #%d\n"
 msgstr ""
 
-#: src/xine-engine/metronom.c:486
+#: src/xine-engine/metronom.c:488
 #, c-format
 msgid "metronom: waiting for audio discontinuity #%d\n"
 msgstr ""
 
-#: src/xine-engine/metronom.c:494
+#: src/xine-engine/metronom.c:496
 #, c-format
 msgid "metronom: video vpts adjusted to %d\n"
 msgstr ""
 
-#: src/xine-engine/metronom.c:525 src/xine-engine/metronom.c:740
+#: src/xine-engine/metronom.c:527 src/xine-engine/metronom.c:742
 #, c-format
 msgid "metronom: audio/video vpts too old, adjusted to %d\n"
 msgstr ""
 
-#: src/xine-engine/metronom.c:564
+#: src/xine-engine/metronom.c:566
 #, c-format
 msgid ""
 "metronom: video pts discontinuity/start, pts is %d, wrap_offset is %d, vpts "
 "is %d\n"
 msgstr ""
 
-#: src/xine-engine/metronom.c:579 src/xine-engine/metronom.c:782
+#: src/xine-engine/metronom.c:581 src/xine-engine/metronom.c:784
 #, c-format
 msgid "metronom: forcing video_wrap (%d) and audio wrap (%d)"
 msgstr ""
 
-#: src/xine-engine/metronom.c:587
+#: src/xine-engine/metronom.c:589
 #, c-format
 msgid " to %d\n"
 msgstr ""
 
-#: src/xine-engine/metronom.c:651
+#: src/xine-engine/metronom.c:653
 #, c-format
 msgid "metronom: delta too big, setting vpts to %d\n"
 msgstr ""
 
-#: src/xine-engine/metronom.c:694
+#: src/xine-engine/metronom.c:696
 #, c-format
 msgid "metronom: audio discontinuity #%d\n"
 msgstr ""
 
-#: src/xine-engine/metronom.c:700
+#: src/xine-engine/metronom.c:702
 #, c-format
 msgid "metronom: waiting for video_discontinuity #%d\n"
 msgstr ""
 
-#: src/xine-engine/metronom.c:708
+#: src/xine-engine/metronom.c:710
 #, c-format
 msgid "metronom: audio vpts adjusted to %d\n"
 msgstr ""
 
-#: src/xine-engine/metronom.c:765
+#: src/xine-engine/metronom.c:767
 #, c-format
 msgid ""
 "metronom: audio pts discontinuity/start, pts is %d, wrap_offset is %d, vpts "
 "is %d\n"
 msgstr ""
 
-#: src/xine-engine/metronom.c:790
+#: src/xine-engine/metronom.c:792
 #, c-format
 msgid "to %d\n"
 msgstr ""
 
-#: src/xine-engine/metronom.c:840
+#: src/xine-engine/metronom.c:842
 #, c-format
 msgid "metronom: av_offset=%d pts\n"
 msgstr ""
 
-#: src/xine-engine/metronom.c:860
+#: src/xine-engine/metronom.c:862
 msgid "metronom: panic - no scr provider found!\n"
 msgstr ""
 
-#: src/xine-engine/metronom.c:945
+#: src/xine-engine/metronom.c:947
 #, c-format
 msgid "metronom: cannot create sync thread (%s)\n"
 msgstr ""
@@ -1287,34 +1295,34 @@ msgid ""
 "> %d).\n"
 msgstr ""
 
-#: src/xine-engine/video_out.c:536
+#: src/xine-engine/video_out.c:537
 #, c-format
 msgid "video_out : can't create thread (%s)\n"
 msgstr ""
 
 #. FIXME: how does this happen ?
-#: src/xine-engine/video_out.c:538
+#: src/xine-engine/video_out.c:539
 msgid "video_out : sorry, this should not happen. please restart xine.\n"
 msgstr ""
 
-#: src/xine-engine/video_out.c:542
+#: src/xine-engine/video_out.c:543
 msgid "video_out : thread created\n"
 msgstr ""
 
-#: src/xine-engine/video_out.c:544
+#: src/xine-engine/video_out.c:545
 msgid "video_out : vo_open : warning! video thread already running\n"
 msgstr ""
 
-#: src/xine-engine/video_out.c:758
+#: src/xine-engine/video_out.c:759
 msgid "video_out : ALERT! frame is already locked for displaying\n"
 msgstr ""
 
-#: src/xine-engine/video_out.c:771
+#: src/xine-engine/video_out.c:772
 #, c-format
 msgid "video_out: rejected, %d frames to skip\n"
 msgstr ""
 
-#: src/xine-engine/video_out.c:819
+#: src/xine-engine/video_out.c:820
 #, c-format
 msgid "%d frames delivered, %d frames skipped, %d frames discarded\n"
 msgstr ""
