@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.h,v 1.71 2002/10/12 19:18:48 tmmm Exp $
+ * $Id: buffer.h,v 1.72 2002/10/24 16:02:44 jkeil Exp $
  *
  *
  * contents:
@@ -46,6 +46,7 @@ extern "C" {
 #include <pthread.h>
 #include <inttypes.h>
 #include <sys/types.h>
+#include "attributes.h"
 
 /*
  * buffer types
@@ -377,6 +378,10 @@ uint32_t formattag_to_buf_audio( uint32_t formattag );
 char * buf_audio_name( uint32_t buf_type );
 
 
+#ifndef ATTRIBUTE_PACKED
+/* no attribute packed? let's try with pragma pack as a last resort */
+#pragma pack(2)
+#endif
 /* this is xine version of BITMAPINFOHEADER 
  * - should be safe to compile on 64bits machines 
  * - will always use machine endian format, so demuxers reading
@@ -396,9 +401,6 @@ typedef struct __attribute__((__packed__)) {
     int32_t        biClrImportant;
 } xine_bmiheader;
 
-/* convert xine_bmiheader struct from little endian */
-void xine_bmiheader_le2me( xine_bmiheader *bih );
-
 /* this is xine version of WAVEFORMATEX 
  * (the same comments from xine_bmiheader)
  */
@@ -411,6 +413,12 @@ typedef struct __attribute__((__packed__)) {
   int16_t   wBitsPerSample;
   int16_t   cbSize;
 } xine_waveformatex;
+#ifndef ATTRIBUTE_PACKED
+#pragma pack()
+#endif
+
+/* convert xine_bmiheader struct from little endian */
+void xine_bmiheader_le2me( xine_bmiheader *bih );
 
 /* convert xine_waveformatex struct from little endian */
 void xine_waveformatex_le2me( xine_waveformatex *wavex );

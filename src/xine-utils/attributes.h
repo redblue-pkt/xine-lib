@@ -26,3 +26,11 @@
 #else
 #define ATTR_ALIGN(align)
 #endif
+
+/* disable GNU __attribute__ extension, when not compiling with GNU C */
+#if defined(__GNUC__)
+#define	ATTRIBUTE_PACKED 1
+#else
+#undef	ATTRIBUTE_PACKED
+#define	__attribute__(x)	/**/
+#endif
