@@ -248,8 +248,12 @@ static void *demux_loop (void *stream_gen) {
     printf ("demux: main demuxer loop finished (status: %d)\n", status);
 #endif
 
-    /* wait before sending end buffers: user might want to do a new seek */
+    /* tell to the net_buf_ctrl that we are at the end of the stream
+     * then the net_buf_ctrl will not pause
+     */
     xine_demux_control_nop(stream, BUF_FLAG_END_STREAM);
+
+    /* wait before sending end buffers: user might want to do a new seek */
     while(stream->demux_thread_running &&
           ((!stream->video_fifo || stream->video_fifo->size(stream->video_fifo)) ||
            (stream->audio_out
