@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_vo_core.c,v 1.6 2001/11/09 07:20:44 mlampard Exp $
+ * $Id: dxr3_vo_core.c,v 1.7 2001/11/10 06:20:39 mlampard Exp $
  *
  *************************************************************************
  * core functions common to both Standard and RT-Encoding vo plugins     *
@@ -237,6 +237,7 @@ int dxr3_get_property (vo_driver_t *this_gen, int property)
 		break;
 	case VO_PROP_ZOOM_X:
 	case VO_PROP_ZOOM_Y:
+	case VO_PROP_TVMODE:
 		break;
 
 	default:
@@ -317,7 +318,12 @@ int dxr3_set_property (vo_driver_t *this_gen,
 			if (ioctl(this->fd_control, EM8300_IOCTL_SET_ASPECTRATIO, &this->aspectratio))
 				fprintf(stderr, "dxr3_vo: failed to set aspect ratio (%s)\n",
 				 strerror(errno));
-		  }else if(value==0){	/* Use meta-z to cycle TV formats */
+		  }
+		}
+		break;
+		
+	case VO_PROP_TVMODE: {
+		  	/* Use meta-v to cycle TV formats */
 		  	static int newmode;
 		  	newmode++;
 		  	if (newmode>EM8300_VIDEOMODE_LAST)
@@ -331,8 +337,9 @@ int dxr3_set_property (vo_driver_t *this_gen,
 					fprintf(stderr, "NTSC\n");
 		  	if (ioctl(this->fd_control, EM8300_IOCTL_SET_VIDEOMODE, &newmode))
 			fprintf(stderr, "dxr3_vo: setting video mode failed.");
-		  }
 		}
+		break;
+	default:
 		break;
 	}
 
