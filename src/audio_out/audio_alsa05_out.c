@@ -1,7 +1,7 @@
 /* 
- * Copyright (C) 2000 the xine project
+ * Copyright (C) 2000, 2001 the xine project
  * 
- * This file is part of xine, a unix video player.
+ * This file is part of xine, a free video player.
  * 
  * xine is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,7 +24,7 @@
  * for the SPDIF AC3 sync part
  * (c) 2000 Andy Lo A Foe <andy@alsaplayer.org>
  *
- * $Id: audio_alsa05_out.c,v 1.6 2001/08/13 14:03:00 guenter Exp $
+ * $Id: audio_alsa05_out.c,v 1.7 2001/08/25 04:33:33 guenter Exp $
  */
 
 /* required for swab() */
@@ -50,17 +50,21 @@
 #include "resample.h"
 #include "utils.h"
 
-#define AUDIO_NUM_FRAGMENTS    15
-#define AUDIO_FRAGMENT_SIZE  8192
+#define AUDIO_NUM_FRAGMENTS     6
+#define AUDIO_FRAGMENT_SIZE  1536
 
-#define GAP_TOLERANCE        15000
-#define MAX_MASTER_CLOCK_DIV  5000
+#define ZERO_BUF_SIZE        15360 /* has to be a multiplier of 3 and 5 (??)*/
+
+#define GAP_TOLERANCE        5000
+
 #define MAX_GAP              90000
 
 extern uint32_t xine_debug;
 
 
 typedef struct _audio_alsa_globals {
+
+  ao_functions_t ao_functions;
 
   snd_pcm_t *front_handle;
 
@@ -80,6 +84,7 @@ typedef struct _audio_alsa_globals {
 
   int16_t   *zero_space;
 
+  int        do_resample;      /* resampling if output and input sample rate are different */
   int        audio_started;
   int        pcm_default_card;
   int        pcm_default_device;
@@ -98,19 +103,17 @@ typedef struct _audio_alsa_globals {
   int        ao_mode;
   metronom_t *metronom;
   int        capabilities;
+  uint16_t   *sample_buffer;     
+
 
 } audio_alsa_globals_t;
-
-/* FIXME : global variables are not allowed in plugins */
-
-static audio_alsa_globals_t gAudioALSA;
 
 
 /* ------------------------------------------------------------------------- */
 /*
  *
  */
-static void alsa_set_frag(int fragment_size, int fragment_count) {
+static void alsa_set_frag(audio_alsa_globals_t *this, int fragment_size, int fragment_count) {
   snd_pcm_channel_params_t  params;
   snd_pcm_channel_setup_t   setup;
   snd_pcm_format_t          format;
@@ -118,61 +121,63 @@ static void alsa_set_frag(int fragment_size, int fragment_count) {
 
   memset(&params, 0, sizeof(params));
   
-  params.mode = gAudioALSA.mode;
-  params.channel = gAudioALSA.direction;
-  params.start_mode = gAudioALSA.start_mode;
-  params.stop_mode = gAudioALSA.stop_mode;
+  params.mode = this->mode;
+  params.channel = this->direction;
+  params.start_mode = this->start_mode;
+  params.stop_mode = this->stop_mode;
   params.buf.block.frag_size = fragment_size;
   params.buf.block.frags_max = fragment_count;
   params.buf.block.frags_min = 1;
   
   memset(&format, 0, sizeof(format));
-  format.format =  gAudioALSA.format;
-  format.rate = gAudioALSA.rate;
-  format.voices = gAudioALSA.voices;
-  format.interleave = gAudioALSA.interleave;
+  format.format =  this->format;
+  format.rate = this->rate;
+  format.voices = this->voices;
+  format.interleave = this->interleave;
   memcpy(&params.format, &format, sizeof(format));
   
-  snd_pcm_playback_flush(gAudioALSA.front_handle);
+  snd_pcm_playback_flush(this->front_handle);
   
-  if((err = snd_pcm_channel_params(gAudioALSA.front_handle, &params)) < 0) {
+  if((err = snd_pcm_channel_params(this->front_handle, &params)) < 0) {
     perr("snd_pcm_channel_params() failed: %s\n", snd_strerror(err));
     return;
   }
-  if((err = snd_pcm_playback_prepare(gAudioALSA.front_handle)) < 0) {
+  if((err = snd_pcm_playback_prepare(this->front_handle)) < 0) {
     perr("snd_pcm_channel_prepare() failed: %s\n", snd_strerror(err));
     return;
   }
 
   memset(&setup, 0, sizeof(setup));
-  setup.mode = gAudioALSA.mode;
-  setup.channel = gAudioALSA.direction;
-  if((err = snd_pcm_channel_setup(gAudioALSA.front_handle, &setup)) < 0) {
+  setup.mode = this->mode;
+  setup.channel = this->direction;
+  if((err = snd_pcm_channel_setup(this->front_handle, &setup)) < 0) {
     perr("snd_pcm_channel_setup() failed: %s\n", snd_strerror(err));
     return;
   }      
   
-  gAudioALSA.frag_size = fragment_size;
-  gAudioALSA.frag_count = fragment_count;
+  this->frag_size = fragment_size;
+  this->frag_count = fragment_count;
   
-  gAudioALSA.pcm_len = fragment_size * 
-    (snd_pcm_format_width(gAudioALSA.format) / 8) * 
-    gAudioALSA.voices;
+  /* this->pcm_len = fragment_size * 
+    (snd_pcm_format_width(this->format) / 8) * 
+    this->voices;
 
-  //  perr("PCM len = %d\n", gAudioALSA.pcm_len);
-  if(gAudioALSA.zero_space)
-    free(gAudioALSA.zero_space);
+    perr("PCM len = %d\n", this->pcm_len);
+   if(this->zero_space)
+    free(this->zero_space);
   
-  gAudioALSA.zero_space = (int16_t *) malloc(gAudioALSA.frag_size);
-  memset(gAudioALSA.zero_space, 
-	 (int16_t) snd_pcm_format_silence(gAudioALSA.format), 
-	 gAudioALSA.frag_size);
+   this->zero_space = (int16_t *) malloc(this->frag_size);
+    memset(this->zero_space, 
+  	 (int16_t) snd_pcm_format_silence(this->format), 
+  	 this->frag_size);
+  */
 }
+
 /* ------------------------------------------------------------------------- */
 /*
  * open the audio device for writing to
  */
-static int ao_open(ao_functions_t *this,uint32_t bits, uint32_t rate, int ao_mode) {
+static int ao_open(ao_functions_t *this_gen,uint32_t bits, uint32_t rate, int ao_mode) {
   int                       channels;
   int                       subdevice = 0;
   int                       direction = SND_PCM_OPEN_PLAYBACK;  
@@ -182,7 +187,7 @@ static int ao_open(ao_functions_t *this,uint32_t bits, uint32_t rate, int ao_mod
   snd_pcm_channel_info_t    pcm_chan_info;
   int                       err;
   int                       mode;
-
+  audio_alsa_globals_t *this = (audio_alsa_globals_t *) this_gen;
 
   switch (ao_mode) {
 
@@ -203,39 +208,40 @@ static int ao_open(ao_functions_t *this,uint32_t bits, uint32_t rate, int ao_mod
   xprintf (VERBOSE|AUDIO, "bits = %d, rate = %d, channels = %d\n", 
 	   bits, rate, channels);
 
+ 
   if(!rate)
     return 0;
  
-  if(gAudioALSA.front_handle != NULL) {
+  if(this->front_handle != NULL) {
 
-    if(rate == gAudioALSA.input_sample_rate)
+    if(rate == this->input_sample_rate)
       return 1;
     
-    snd_pcm_close(gAudioALSA.front_handle);
+    snd_pcm_close(this->front_handle);
   }
 
-  gAudioALSA.input_sample_rate      = rate;
-  gAudioALSA.bytes_in_buffer        = 0;
-  gAudioALSA.last_vpts              = 0;
-  gAudioALSA.sync_vpts              = 0;
-  gAudioALSA.sync_bytes_in_buffer   = 0;
-  gAudioALSA.audio_started          = 0;
-  gAudioALSA.direction              = SND_PCM_CHANNEL_PLAYBACK;
-  gAudioALSA.last_audio_vpts        = 0;
+  this->input_sample_rate      = rate;
+  this->bytes_in_buffer        = 0;
+  this->last_vpts              = 0;
+  this->sync_vpts              = 0;
+  this->sync_bytes_in_buffer   = 0;
+  this->audio_started          = 0;
+  this->direction              = SND_PCM_CHANNEL_PLAYBACK;
+  this->last_audio_vpts        = 0;
 
   if (ao_mode == AO_CAP_MODE_AC3) {
-    gAudioALSA.pcm_default_device = 2;
+    this->pcm_default_device = 2;
     mode = SND_PCM_MODE_BLOCK;
   }
   else {
     mode = SND_PCM_MODE_BLOCK;
   }
 
-  gAudioALSA.mode = mode;
+  this->mode = mode;
   
-  if((err = snd_pcm_open_subdevice(&gAudioALSA.front_handle, 
-				   gAudioALSA.pcm_default_card, 
-				   gAudioALSA.pcm_default_device, 
+  if((err = snd_pcm_open_subdevice(&this->front_handle, 
+				   this->pcm_default_card, 
+				   this->pcm_default_device, 
 				   subdevice, direction
 				   /*				   | SND_PCM_OPEN_NONBLOCK)) < 0) { */
 				   )) < 0) {
@@ -244,7 +250,7 @@ static int ao_open(ao_functions_t *this,uint32_t bits, uint32_t rate, int ao_mod
   }
 
   memset(&pcm_chan_info, 0, sizeof(snd_pcm_channel_info_t));
-  if((err = snd_pcm_channel_info(gAudioALSA.front_handle, 
+  if((err = snd_pcm_channel_info(this->front_handle, 
 				 &pcm_chan_info)) < 0) {
     perr("snd_pcm_channel_info() failed: %s\n", snd_strerror(err));
     return 0;
@@ -274,44 +280,53 @@ static int ao_open(ao_functions_t *this,uint32_t bits, uint32_t rate, int ao_mod
     perr("sample format %d unsupported\n", bits);
     break;
   }
-  gAudioALSA.format = pcm_format.format;
+  this->format = pcm_format.format;
 
   xprintf (VERBOSE|AUDIO, "format name = '%s'\n", 
        snd_pcm_get_format_name(pcm_format.format));
 
   
-  pcm_format.voices = gAudioALSA.voices = channels;
-  pcm_format.rate = gAudioALSA.rate = rate;
-  pcm_format.interleave = gAudioALSA.interleave = 1;
+  pcm_format.voices = this->voices = channels;
+  pcm_format.rate = this->rate = rate;
+  pcm_format.interleave = this->interleave = 1;
 
-  gAudioALSA.num_channels = channels;
+  this->num_channels = channels;
 
   xprintf (VERBOSE|AUDIO, "audio channels = %d ao_mode = %d\n", 
-	   gAudioALSA.num_channels,ao_mode);
+	   this->num_channels,ao_mode);
   
   if(rate > pcm_chan_info.max_rate)
-    gAudioALSA.output_sample_rate = pcm_chan_info.max_rate;
+    this->output_sample_rate = pcm_chan_info.max_rate;
   else
-    gAudioALSA.output_sample_rate = gAudioALSA.input_sample_rate;
+    this->output_sample_rate = this->input_sample_rate;
 
-  gAudioALSA.audio_step           = (uint32_t) 90000 
-    * (uint32_t) 32768 / gAudioALSA.input_sample_rate;
+  // is there a need to resample?
+  if ((this->input_sample_rate) != (this->output_sample_rate)) {
+    this->do_resample=1;
+    printf("audio_alsa05_out: resampling from %d to %d.\n",
+	   this->input_sample_rate,this->output_sample_rate);
+  }
+  else 
+    this->do_resample=0;
+  
+  this->audio_step           = (uint32_t) 90000 
+    * (uint32_t) 32768 / this->input_sample_rate;
 
-  gAudioALSA.bytes_per_kpts       = gAudioALSA.output_sample_rate 
-    * gAudioALSA.num_channels * 2 * 1024 / 90000;
+  this->bytes_per_kpts       = this->output_sample_rate 
+    * this->num_channels * 2 * 1024 / 90000;
 
 
   xprintf (VERBOSE|AUDIO, "%d input samples/sec %d output samples/sec\n", 
-	   rate, gAudioALSA.output_sample_rate);
+	   rate, this->output_sample_rate);
   xprintf (VERBOSE|AUDIO, "audio_out : audio_step %d pts per 32768 samples\n",
-	   gAudioALSA.audio_step);
+	   this->audio_step);
 
-  gAudioALSA.metronom->set_audio_rate (gAudioALSA.metronom,gAudioALSA.audio_step);
+  this->metronom->set_audio_rate (this->metronom,this->audio_step);
 
   memcpy(&pcm_chan_params.format, &pcm_format, sizeof(snd_pcm_format_t));
 
   pcm_chan_params.mode           = mode;
-  pcm_chan_params.channel        = gAudioALSA.direction;
+  pcm_chan_params.channel        = this->direction;
 
   pcm_chan_params.start_mode     = SND_PCM_START_FULL;
   /*
@@ -320,9 +335,9 @@ static int ao_open(ao_functions_t *this,uint32_t bits, uint32_t rate, int ao_mod
   */
   pcm_chan_params.stop_mode      = SND_PCM_STOP_ROLLOVER;
   
-  gAudioALSA.start_mode = pcm_chan_params.start_mode;
-  gAudioALSA.stop_mode = pcm_chan_params.stop_mode;
-  gAudioALSA.ao_mode = ao_mode;
+  this->start_mode = pcm_chan_params.start_mode;
+  this->stop_mode = pcm_chan_params.stop_mode;
+  this->ao_mode = ao_mode;
 
   if (ao_mode == AO_CAP_MODE_AC3) {
         pcm_chan_params.digital.dig_valid      = 1;
@@ -332,21 +347,21 @@ static int ao_open(ao_functions_t *this,uint32_t bits, uint32_t rate, int ao_mod
         pcm_chan_params.digital.dig_status[3]  = SND_PCM_DIG3_CON_FS_48000;
   }
 
-  snd_pcm_playback_flush(gAudioALSA.front_handle);
-  if((err = snd_pcm_channel_params(gAudioALSA.front_handle, 
+  snd_pcm_playback_flush(this->front_handle);
+  if((err = snd_pcm_channel_params(this->front_handle, 
 				   &pcm_chan_params)) < 0) {
     perr("snd_pcm_channel_params() failed: %s\n", snd_strerror(err));
     return 0;
   } 
-  if((err = snd_pcm_playback_prepare(gAudioALSA.front_handle)) < 0) {
+  if((err = snd_pcm_playback_prepare(this->front_handle)) < 0) {
     perr("snd_pcm_channel_prepare() failed: %s\n", snd_strerror(err));
     return 0;
   }
 
   pcm_chan_setup.mode    = mode;
-  pcm_chan_setup.channel = gAudioALSA.direction;
+  pcm_chan_setup.channel = this->direction;
 
-  if((err = snd_pcm_channel_setup(gAudioALSA.front_handle, 
+  if((err = snd_pcm_channel_setup(this->front_handle, 
 				  &pcm_chan_setup)) < 0) {
     perr("snd_pcm_channel_setup() failed: %s\n", snd_strerror(err));
     return 0;
@@ -354,9 +369,10 @@ static int ao_open(ao_functions_t *this,uint32_t bits, uint32_t rate, int ao_mod
 
   printf ("actual rate: %d\n", pcm_chan_setup.format.rate);
 
-  alsa_set_frag(1536, 6);
+  alsa_set_frag(this, 1536, 6);
+  alsa_set_frag(this,AUDIO_FRAGMENT_SIZE, AUDIO_NUM_FRAGMENTS);
 
-  gAudioALSA.bytes_in_buffer = 0;
+  this->bytes_in_buffer = 0;
 
   return 1;
 }
@@ -365,332 +381,207 @@ static int ao_open(ao_functions_t *this,uint32_t bits, uint32_t rate, int ao_mod
 /*
  *
  */
-static void ao_fill_gap (uint32_t pts_len) {
+static void ao_fill_gap (audio_alsa_globals_t *this, uint32_t pts_len) {
   int num_bytes;
 
   if (pts_len > MAX_GAP)
     pts_len = MAX_GAP;
 
-  num_bytes = pts_len * gAudioALSA.bytes_per_kpts / 1024;
-  num_bytes = (num_bytes / 4) * 4;
+  num_bytes = pts_len * this->bytes_per_kpts / 1024;
+  num_bytes = (num_bytes / (2*this->num_channels)) * (2*this->num_channels);
   
-  gAudioALSA.bytes_in_buffer += num_bytes;
+  this->bytes_in_buffer += num_bytes;
   
-  printf ("audio_alsa_out: inserting %d 0-bytes to fill a gap of %d pts\n",
+  printf ("audio_alsa05_out: inserting %d 0-bytes to fill a gap of %d pts\n",
 	  num_bytes, pts_len);
 
   while (num_bytes>0) {
-    if (num_bytes>gAudioALSA.frag_size) {
-      snd_pcm_write(gAudioALSA.front_handle, gAudioALSA.zero_space, 
-     		    gAudioALSA.frag_size);
-      num_bytes -= gAudioALSA.frag_size;
+    if (num_bytes> ZERO_BUF_SIZE) {
+      snd_pcm_write(this->front_handle, this->zero_space, 
+     		    ZERO_BUF_SIZE);
+      num_bytes -= ZERO_BUF_SIZE;
     } else {
-      int old_frag_size = gAudioALSA.frag_size;
-
-      alsa_set_frag(num_bytes, 6);
-
-      snd_pcm_write(gAudioALSA.front_handle, gAudioALSA.zero_space, num_bytes);
-
-      alsa_set_frag(old_frag_size, 6);
-
+      snd_pcm_write(this->front_handle, this->zero_space, num_bytes);
       num_bytes = 0;
     }
   } 
-
-  gAudioALSA.last_vpts += pts_len ;
 }
 
 /* ------------------------------------------------------------------------- */
 /*
  *
  */
-static uint32_t ao_get_current_vpts (void) {
-  int                       pos;
+static uint32_t ao_get_current_pos (audio_alsa_globals_t *this) {
+  uint32_t                  pos;
   snd_pcm_channel_status_t  pcm_stat;
   int                       err;
-  int32_t                   diff;
-  uint32_t                  vpts;
-
+  
      
-  if (gAudioALSA.audio_started) { 
+  if (this->audio_started) { 
     memset(&pcm_stat, 0, sizeof(snd_pcm_channel_status_t));
     pcm_stat.channel = SND_PCM_CHANNEL_PLAYBACK;
-    if((err = snd_pcm_channel_status(gAudioALSA.front_handle, 
+    if((err = snd_pcm_channel_status(this->front_handle, 
 				     &pcm_stat)) < 0) {
       //Hide error report
       perr("snd_pcm_channel_status() failed: %s\n", snd_strerror(err));
       return 0;
     }
-    pos = pcm_stat.scount;
+    pos = pcm_stat.scount; 
   }
   else {
-    pos = 0;
+    pos = this->bytes_in_buffer;
   }
 
-
-  diff = gAudioALSA.sync_bytes_in_buffer - pos;
-  vpts = gAudioALSA.sync_vpts - diff * 1024 / gAudioALSA.bytes_per_kpts;
-  
-  xprintf (AUDIO|VERBOSE,"audio_alsa_out: get_current_vpts pos=%d diff=%d "
-	   "vpts=%d sync_vpts=%d sync_bytes_in_buffer %d\n", pos, diff, 
-	   vpts, gAudioALSA.sync_vpts,gAudioALSA.sync_bytes_in_buffer);
-
-  return vpts;
+  return pos;
 }
 
-void audio_put_bytes(uint8_t *samples, uint32_t len)
-{
-static int old_bytes = 0;
-static char buffer[8000];
-int i;
-if (old_bytes) {
-  if (old_bytes + len < gAudioALSA.frag_size) {
-    memcpy(&buffer[old_bytes],samples,len);
-    old_bytes += len;
-    return;
-  }
-  i = gAudioALSA.frag_size-old_bytes;
-  memcpy(&buffer[old_bytes],samples,i);
-  snd_pcm_write(gAudioALSA.front_handle, (void*)buffer,gAudioALSA.frag_size);
-  len -= i;
-  samples += i;
-  old_bytes = 0;
-}
-while(len >= gAudioALSA.frag_size) {
-  snd_pcm_write(gAudioALSA.front_handle, (void*)samples,gAudioALSA.frag_size);
-  len -= gAudioALSA.frag_size;
-  samples += gAudioALSA.frag_size;
-}
-if (len) {
-  memcpy(buffer,samples,len);
-  old_bytes = len;
-}
-return;
-
-}
 
 
 /* ------------------------------------------------------------------------- */
 /*
  *
  */
-static int ao_put_samples(ao_functions_t *this,int16_t* output_samples, 
-			  uint32_t num_samples, uint32_t pts_) {
-  uint32_t                  vpts;
-  uint32_t                  audio_vpts;
-  uint32_t                  master_vpts;
-  int32_t                   diff, gap;
-  int                       bDropPackage = 0;
-  snd_pcm_channel_status_t  status_front;
-  int                       err;
-  uint16_t                  sample_buffer[gAudioALSA.frag_size*gAudioALSA.frag_count+6];
+static int ao_write_audio_data(ao_functions_t *this_gen,
+			       int16_t* output_samples, 
+			       uint32_t num_samples, uint32_t pts_) {
+  uint32_t                  vpts, buffer_vpts;
+  int32_t                   gap;
+  int                       bDropPackage;
+  uint32_t                    pos;
+  audio_alsa_globals_t *this = (audio_alsa_globals_t *) this_gen;
 
   
   xprintf(VERBOSE|AUDIO, "Audio : play %d samples at pts %d pos %d \n",
-	  num_samples, pts_, gAudioALSA.bytes_in_buffer);   
+	  num_samples, pts_, this->bytes_in_buffer);   
 
-  if (gAudioALSA.front_handle == NULL)
+  if (this->front_handle == NULL) // no output device
     return 1;
+   
+  // what's the last delivered sample?
+  vpts = this->metronom->got_audio_samples (this->metronom,pts_, num_samples);
 
-  //  if(gAudioALSA.frag_size != num_samples) {
-  //    alsa_set_frag(num_samples, 6);
-  //  }
-  
-  vpts = gAudioALSA.metronom->got_audio_samples (gAudioALSA.metronom,pts_, num_samples);
-
-  if (vpts<gAudioALSA.last_audio_vpts) {
+  if (vpts<this->last_audio_vpts) {
     /* reject this */
 
     return 1;
   }
 
-  gAudioALSA.last_audio_vpts = vpts;
+  this->last_audio_vpts = vpts;
+  bDropPackage = 0;
 
-  /*
-   * check if these samples "fit" in the audio output buffer
-   * or do we have an audio "gap" here?
-   */
+  // get the sample that should be played NOW
+  buffer_vpts = this->metronom->get_current_time (this->metronom);
+    
+  if (this->audio_started) {
+    pos  = ao_get_current_pos (this); 
+  }
+  else pos=0;
+  
 
-  gap = vpts - gAudioALSA.last_vpts;
+  if (pos>this->bytes_in_buffer) { /* buffer ran dry */ 
+    printf("Buffer ran dry.\n");
+    this->bytes_in_buffer = pos;
+  }
 
-  xprintf (VERBOSE|AUDIO, "audio_alsa_out: got %d samples, vpts=%d, "
-	   "last_vpts=%d\n", num_samples, vpts, gAudioALSA.last_vpts);
+  buffer_vpts += (this->bytes_in_buffer - pos) * 1024 / this->bytes_per_kpts;
+  // alternative to this command:
+  // vpts = vpts - (this->bytes_in_buffer - pos) * 1024 / this->bytes_per_kpts;
+  
+  gap = vpts - buffer_vpts;
+
+  // activate this for debugging output
+  /* 
+     printf("pos: %d -- buffer_vpts: %d -- vpts: %d -- gap: %d -- bib: %d\n"
+            ,pos,buffer_vpts, vpts, gap,this->bytes_in_buffer);
+  */
+
+  xprintf (VERBOSE|AUDIO, "audio_alsa05_out: got %d samples, vpts=%d, "
+	   "last_vpts=%d\n", num_samples, vpts, this->last_vpts);
 
   if (gap > GAP_TOLERANCE) {
 
-    /* FIXME : sync wont work without this
-       ao_fill_gap (gap);
-       */
+    ao_fill_gap (this, gap);
+       
     /* keep xine responsive */
-    /*
+    
     if (gap>MAX_GAP)
       return 0;
-      */
-
   } 
   else if (gap < -GAP_TOLERANCE) {
     bDropPackage = 1;
   }
   
-  /*
-   * sync on master clock
-   */
-
-  audio_vpts  = ao_get_current_vpts () ;
-  master_vpts = gAudioALSA.metronom->get_current_time (gAudioALSA.metronom);
-  diff        = audio_vpts - master_vpts;
-//printf("diff %d\n",diff);
-  if (abs(diff) > 5000) {  /* this is a big jump, so check again */
-    audio_vpts  = ao_get_current_vpts () ;
-    diff        = audio_vpts - master_vpts;
-    printf("double check is %d\n",abs(diff));
-  }
-
-  xprintf (VERBOSE|AUDIO,"audio_alsa_out: syncing on master clock: "
-	   "audio_vpts=%d master_vpts=%d\n", audio_vpts, master_vpts);
-
-  /*
-   * method 1 : resampling
-   */
-
-  /*
-  */
-
-  /*
-   * method 2: adjust master clock
-   */
-   if (gAudioALSA.ao_mode == AO_CAP_MODE_AC3) {   /* additional corrections for SPDIF speed */
-     if (diff > 1)
-       num_samples++;
-     if (diff < -1)
-       num_samples--;
-   }
-   if (gAudioALSA.ao_mode == AO_CAP_MODE_STEREO) {  /* fine tuning  */
-     if (diff > 1) {
-       /*memcpy(&output_samples[num_samples*4],&output_samples[num_samples*4]-4,4); */
-       /* duplicate last sample */
-       /*num_samples++;*/
-     }
-     if (diff < -1)
-       num_samples--;
-   }
-
-  if (abs(diff) > MAX_MASTER_CLOCK_DIV) {
-    printf ("master clock adjust time %d -> %d\n", master_vpts, audio_vpts);
-    gAudioALSA.metronom->adjust_clock (gAudioALSA.metronom,audio_vpts);
-  }
-
-  /*
-   * resample and output samples
-   */
   if (!bDropPackage) {
-    int num_output_samples = 
-      num_samples 
-      * gAudioALSA.output_sample_rate
-      / gAudioALSA.input_sample_rate;
+    int num_output_samples = num_samples * (this->output_sample_rate) / this->input_sample_rate;
+
+    if (!this->do_resample) {
+      snd_pcm_write(this->front_handle, output_samples,
+            num_output_samples * this->num_channels * 2);
+    } else 
+      switch (this->ao_mode) {
+      case AO_CAP_MODE_MONO:
+	audio_out_resample_mono (output_samples, num_samples,
+	                        this->sample_buffer, num_output_samples);
+	snd_pcm_write(this->front_handle, output_samples, num_output_samples * 2);
+	break;
+      case AO_CAP_MODE_STEREO:
+	audio_out_resample_stereo (output_samples, num_samples,
+				   this->sample_buffer, num_output_samples);
+	snd_pcm_write(this->front_handle, this->sample_buffer, num_output_samples * 4);
+	break;
+      case AO_CAP_MODE_AC3:
+	// I hope this works. I cannot test because I don't have a SPDIF out
+	num_output_samples = num_samples+8;
+	this->sample_buffer[0] = 0xf872;  //spdif syncword
+	this->sample_buffer[1] = 0x4e1f;  // .............
+	this->sample_buffer[2] = 0x0001;  // AC3 data
+	this->sample_buffer[3] = num_samples * 8;
+	//      this->sample_buffer[4] = 0x0b77;  // AC3 syncwork already in output_samples
 	
-//    if(num_output_samples != gAudioALSA.frag_size)
-//      alsa_set_frag(num_output_samples, 6);
-
-    if (gAudioALSA.ao_mode & AO_CAP_MODE_AC3) { 
-       num_output_samples = num_samples;
-       sample_buffer[0] = 0xf872;  //spdif syncword
-       sample_buffer[1] = 0x4e1f;  // .............
-       sample_buffer[2] = 0x0001;  // AC3 data
-       sample_buffer[3] = 1536 * 16;
-       sample_buffer[4] = 0x0b77;  // AC3 syncwork
-
-       // ac3 seems to be swabbed data
-       swab(&output_samples[1],&sample_buffer[5],  1536 * 2  );
-       audio_put_bytes((uint8_t*) sample_buffer,
-                    num_samples * 2 * gAudioALSA.num_channels);
-
-
-    } else if (num_output_samples != num_samples ) {
-      audio_out_resample_stereo (output_samples, num_samples,
-				 sample_buffer, num_output_samples);
-      audio_put_bytes((uint8_t*)sample_buffer, 
-		    num_output_samples * 2 * gAudioALSA.num_channels);
-    } else {
-//    snd_pcm_write(gAudioALSA.front_handle, (void*)output_samples, 
-//		    num_samples * 2 * gAudioALSA.num_channels);
-      audio_put_bytes((uint8_t*)output_samples, 
-		    num_samples * 2 * gAudioALSA.num_channels);
-    }
-
-    memset(&status_front, 0, sizeof(snd_pcm_channel_status_t));
-    if((err = snd_pcm_channel_status(gAudioALSA.front_handle, 
-				     &status_front)) < 0) {
-      perr("snd_pcm_channel_status() failed: %s\n", snd_strerror(err));
-    }
-	
-    /* Hummm, this seems made mistakes (flushing isnt good here). */
-    /*
-      if(status_front.underrun) {
-      perr("underrun, resetting front channel\n");
-      snd_pcm_channel_flush(gAudioALSA.front_handle, channel);
-      snd_pcm_playback_prepare(gAudioALSA.front_handle);
-      snd_pcm_write(gAudioALSA.front_handle, output_samples, num_samples<<1);
-      if((err = snd_pcm_channel_status(gAudioALSA.front_handle, 
-                                       &status_front)) < 0) {
-      perr("snd_pcm_channel_status() failed: %s", snd_strerror(err));
+	// ac3 seems to be swabbed data
+	swab(output_samples,this->sample_buffer+4,  num_samples  );
+	snd_pcm_write(this->front_handle, output_samples, num_output_samples);
+	snd_pcm_write(this->front_handle, output_samples, 6144-num_output_samples);
+	num_output_samples=num_output_samples/4;
+	break;
       }
-      if(status_front.underrun) {
-      perr("front write error, giving up\n");
-      }
-      }
-    */
     
-    /*
-     * remember vpts
-     */
-    
-    gAudioALSA.sync_vpts            = vpts;
-    gAudioALSA.sync_bytes_in_buffer = gAudioALSA.bytes_in_buffer;
-    
-    /*
-     * step values
-     */
-    gAudioALSA.bytes_in_buffer += 
-      num_output_samples * 2 * gAudioALSA.num_channels;
-
-    gAudioALSA.audio_started = 1;
-  } 
-  else {
-    printf ("audio_alsa_out: audio package (vpts = %d) dropped\n", vpts);
-    gAudioALSA.sync_vpts = vpts;
+    // step values
+    this->bytes_in_buffer += num_output_samples * this->num_channels * 2;
+    this->audio_started    = 1;
   }
-  
-  gAudioALSA.last_vpts = 
-    vpts + num_samples * 90000 / gAudioALSA.input_sample_rate ;
-
-
   return 1;
 }
+
+
+
+
 
 /* ------------------------------------------------------------------------- */
 /*
  *
  */
-static void ao_close(ao_functions_t *this) {
+static void ao_close(ao_functions_t *this_gen) {
   int err;
+  audio_alsa_globals_t *this = (audio_alsa_globals_t *) this_gen;
 
-  if(gAudioALSA.front_handle) {
-    if((err = snd_pcm_playback_flush(gAudioALSA.front_handle)) < 0) {
+  if(this->front_handle) {
+    if((err = snd_pcm_playback_flush(this->front_handle)) < 0) {
       perr("snd_pcm_channel_flush() failed: %s\n", snd_strerror(err));
     }
     
-  if((err = snd_pcm_close(gAudioALSA.front_handle)) < 0) {
+  if((err = snd_pcm_close(this->front_handle)) < 0) {
     perr("snd_pcm_close() failed: %s\n", snd_strerror(err));
   }
   
-  gAudioALSA.front_handle = NULL;
+  this->front_handle = NULL;
   }
 }
 
-static int ao_get_property (ao_functions_t *this, int property) {
+static int ao_get_property (ao_functions_t *this_gen, int property) {
+  // audio_alsa_globals_t *this = (audio_alsa_globals_t *) this_gen;
 
-  /* FIXME: implement some properties
+  /* FIXME: implement some properties 
   switch(property) {
   case AO_PROP_MIXER_VOL:
     break;
@@ -706,7 +597,8 @@ static int ao_get_property (ao_functions_t *this, int property) {
 /*
  *
  */
-static int ao_set_property (ao_functions_t *this, int property, int value) {
+static int ao_set_property (ao_functions_t *this_gen, int property, int value) {
+  // audio_alsa_globals_t *this = (audio_alsa_globals_t *) this_gen;
 
   /* FIXME: Implement property support.
   switch(property) {
@@ -723,11 +615,13 @@ static int ao_set_property (ao_functions_t *this, int property, int value) {
 }
 
 static void ao_connect (ao_functions_t *this_gen, metronom_t *metronom) {
-  gAudioALSA.metronom = metronom;
+  audio_alsa_globals_t *this = (audio_alsa_globals_t *) this_gen;
+  this->metronom = metronom;
 }
 
 static uint32_t ao_get_capabilities (ao_functions_t *this_gen) {
-  return gAudioALSA.capabilities;
+  audio_alsa_globals_t *this = (audio_alsa_globals_t *) this_gen;
+  return this->capabilities;
 }
 
 
@@ -751,6 +645,9 @@ static int ao_is_mode_supported (int mode) {
 
 static void ao_exit(ao_functions_t *this_gen)
 {
+  audio_alsa_globals_t *this = (audio_alsa_globals_t *) this_gen;
+  free(this->sample_buffer);
+  free(this->zero_space);
 }
 
 
@@ -760,9 +657,6 @@ static void ao_exit(ao_functions_t *this_gen)
 /*
  *
  */
-
-static ao_functions_t audio_alsaout;
-
 
 static ao_info_t ao_info_alsa = {
   AUDIO_OUT_IFACE_VERSION,
@@ -788,6 +682,7 @@ static void sighandler(int signum) {
  *
  */
 ao_functions_t *init_audio_out_plugin(config_values_t *config) {
+  audio_alsa_globals_t     *this;
   int                      best_rate;
   int                      devnum;
   int                      err;
@@ -799,7 +694,8 @@ ao_functions_t *init_audio_out_plugin(config_values_t *config) {
   snd_pcm_channel_info_t   pcm_chan_info;
   struct sigaction         action;
 
-  
+  this = (audio_alsa_globals_t *) malloc (sizeof (audio_alsa_globals_t));
+
   /* Check if, at least, one card is installed */
   if((devnum = snd_cards()) == 0) {
     return NULL;
@@ -829,39 +725,42 @@ ao_functions_t *init_audio_out_plugin(config_values_t *config) {
   
   xprintf (VERBOSE|AUDIO, "Opening audio device...");
 
-  if((gAudioALSA.pcm_default_card = snd_defaults_pcm_card()) < 0) {
+  if((this->pcm_default_card = snd_defaults_pcm_card()) < 0) {
     perr("There is no default pcm card.\n");
     exit(1);
   }
   xprintf (VERBOSE|AUDIO, "snd_defaults_pcm_card() return %d\n", 
-	   gAudioALSA.pcm_default_card);
+	   this->pcm_default_card);
 
-  if((gAudioALSA.pcm_default_device = snd_defaults_pcm_device()) < 0) {
+  if((this->pcm_default_device = snd_defaults_pcm_device()) < 0) {
     perr("There is no default pcm device.\n");
     exit(1);
   }
   xprintf (VERBOSE|AUDIO, "snd_defaults_pcm_device() return %d\n", 
-	   gAudioALSA.pcm_default_device);
+	   this->pcm_default_device);
 
-  gAudioALSA.capabilities = AO_CAP_MODE_STEREO;
+  this->capabilities = AO_CAP_MODE_STEREO;
   if (config->lookup_int (config, "ac3_pass_through", 0)) 
-    gAudioALSA.capabilities |= AO_CAP_MODE_AC3;
+    this->capabilities |= AO_CAP_MODE_AC3;
 
 
 
-  audio_alsaout.get_capabilities = ao_get_capabilities;
-  audio_alsaout.get_property     = ao_get_property;
-  audio_alsaout.set_property     = ao_set_property;
-  audio_alsaout.connect          = ao_connect;
-  audio_alsaout.open             = ao_open;
-  audio_alsaout.write_audio_data = ao_put_samples;
-  audio_alsaout.close            = ao_close;
-  audio_alsaout.exit             = ao_exit;
+  this->ao_functions.get_capabilities = ao_get_capabilities;
+  this->ao_functions.get_property     = ao_get_property;
+  this->ao_functions.set_property     = ao_set_property;
+  this->ao_functions.connect          = ao_connect;
+  this->ao_functions.open             = ao_open;
+  this->ao_functions.write_audio_data = ao_write_audio_data;
+  this->ao_functions.close            = ao_close;
+  this->ao_functions.exit             = ao_exit;
 
 
 
+  this->sample_buffer = malloc (40000);
+  memset (this->sample_buffer, 0, 40000);
+  this->zero_space = malloc (ZERO_BUF_SIZE);
+  memset (this->zero_space, 0, ZERO_BUF_SIZE);
 
-  
   action.sa_handler = sighandler;
   sigemptyset(&(action.sa_mask));
   action.sa_flags = 0;
@@ -870,15 +769,15 @@ ao_functions_t *init_audio_out_plugin(config_values_t *config) {
   }
   alarm(2);
 
-  if((err = snd_pcm_open(&gAudioALSA.front_handle, gAudioALSA.pcm_default_card,
-			 gAudioALSA.pcm_default_device, direction)) < 0) {
+  if((err = snd_pcm_open(&this->front_handle, this->pcm_default_card,
+			 this->pcm_default_device, direction)) < 0) {
     perr("snd_pcm_open() failed: %s\n", snd_strerror(err));
     perr(">>> Check if another program don't already use PCM <<<\n");
     return NULL;
   }
   
   memset(&pcm_info, 0, sizeof(snd_pcm_info_t));
-  if((err = snd_pcm_info(gAudioALSA.front_handle, &pcm_info)) < 0) {
+  if((err = snd_pcm_info(this->front_handle, &pcm_info)) < 0) {
     perr("snd_pcm_info() failed: %s\n", snd_strerror(err));
     exit(1);
   }
@@ -894,7 +793,7 @@ ao_functions_t *init_audio_out_plugin(config_values_t *config) {
   
   memset(&pcm_chan_info, 0, sizeof(snd_pcm_channel_info_t));
   pcm_chan_info.channel = SND_PCM_CHANNEL_PLAYBACK;
-  if((err = snd_pcm_channel_info(gAudioALSA.front_handle, 
+  if((err = snd_pcm_channel_info(this->front_handle, 
 				 &pcm_chan_info)) < 0) {
     perr("snd_pcm_channel_info() failed: %s\n", snd_strerror(err));
     exit(1);
@@ -944,8 +843,8 @@ ao_functions_t *init_audio_out_plugin(config_values_t *config) {
   xprintf (VERBOSE|AUDIO, "mixer_device        = %d\n",
 	   pcm_chan_info.mixer_device);
   
-  snd_pcm_close (gAudioALSA.front_handle);
-  gAudioALSA.front_handle = NULL;
+  snd_pcm_close (this->front_handle);
+  this->front_handle = NULL;
 
-  return &audio_alsaout;
+  return &this->ao_functions; 
 }
