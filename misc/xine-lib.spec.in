@@ -200,13 +200,21 @@ rm -rf $RPM_BUILD_ROOT
 %{prefix}/lib/xine/plugins/xineplug_dmx_mpeg_elem.so
 %{prefix}/lib/xine/plugins/xineplug_dmx_mpeg_pes.la
 %{prefix}/lib/xine/plugins/xineplug_dmx_mpeg_pes.so
+%{prefix}/lib/xine/plugins/xineplug_dmx_mpeg_ts.la
+%{prefix}/lib/xine/plugins/xineplug_dmx_mpeg_ts.so
 # decoder plugins
 %{prefix}/lib/xine/plugins/xineplug_decode_ac3.la
 %{prefix}/lib/xine/plugins/xineplug_decode_ac3.so
+%{prefix}/lib/xine/plugins/xineplug_decode_ff.so
+%{prefix}/lib/xine/plugins/xineplug_decode_ff.la
+%{prefix}/lib/xine/plugins/xineplug_decode_lpcm.so
+%{prefix}/lib/xine/plugins/xineplug_decode_lpcm.la
+%{prefix}/lib/xine/plugins/xineplug_decode_mad.so
+%{prefix}/lib/xine/plugins/xineplug_decode_mad.la
 %{prefix}/lib/xine/plugins/xineplug_decode_mpeg2.la
 %{prefix}/lib/xine/plugins/xineplug_decode_mpeg2.so
-%{prefix}/lib/xine/plugins/xineplug_decode_mpg123.la
-%{prefix}/lib/xine/plugins/xineplug_decode_mpg123.so
+#%{prefix}/lib/xine/plugins/xineplug_decode_mpg123.la
+#%{prefix}/lib/xine/plugins/xineplug_decode_mpg123.so
 %{prefix}/lib/xine/plugins/xineplug_decode_spu.la
 %{prefix}/lib/xine/plugins/xineplug_decode_spu.so
 # audio driver plugins
@@ -247,6 +255,7 @@ rm -rf $RPM_BUILD_ROOT
 @HAVE_DXR3_TRUE@%{prefix}/lib/xine/plugins/xineplug_decode_dxr3.so
 @HAVE_DXR3_TRUE@%{prefix}/lib/xine/plugins/xineplug_vo_out_dxr3.la
 @HAVE_DXR3_TRUE@%{prefix}/lib/xine/plugins/xineplug_vo_out_dxr3.so
+@HAVE_DXR3_TRUE@%{prefix}/include/dxr3_overlay.h
 
 @HAVE_XV_TRUE@%files xv
 @HAVE_XV_TRUE@%{prefix}/lib/xine/plugins/xineplug_vo_out_xv.la
@@ -264,6 +273,10 @@ rm -rf $RPM_BUILD_ROOT
 %{prefix}/share/doc/xine/xine-lib-API/*
 
 %changelog
+* Sun Aug 19 2001 Matthias Dahl <matthew2k@web.de>
+- The usual update to the filelist :)
+- temporarily removed mpg123 decoder plugin from filelist cause it is not
+  built with the recent CVS tree
 * Thu Jul 26 2001 Daniel Caujolle-Bert <f1rmb@users.sourceforge.net>
 - Made oss, aa, xv, esd, w32dll, documentation as separate packages.
 * Thu Jul 26 2001 Matthias Dahl <matthew2k@web.de>
