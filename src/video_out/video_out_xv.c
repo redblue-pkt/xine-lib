@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.64 2001/09/27 02:08:18 miguelfreitas Exp $
+ * $Id: video_out_xv.c,v 1.65 2001/10/03 14:01:03 miguelfreitas Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -1037,7 +1037,7 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
     int k;
 
     for(k = 0; k < nattr; k++) {
-      if(attr[k].flags & XvSettable) {
+      if((attr[k].flags & XvSettable) && (attr[k].flags & XvGettable)) {
 	if(!strcmp(attr[k].name, "XV_HUE")) {
 	  xv_check_capability (this, VO_CAP_HUE,
 			       VO_PROP_HUE, attr[k],
