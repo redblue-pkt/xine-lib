@@ -573,13 +573,13 @@ case "$host_or_hostalias" in
     AC_DEFINE(FPM_DEFAULT)
     ;;
 
-  ia64*)
+  ia64-*)
     GLOBAL_CFLAGS="$GLOBAL_CFLAGS -O3"
     DEBUG_CFLAGS="$DEBUG_CFLAGS -O3"
     AC_DEFINE(FPM_64BIT)
     ;;
 
-  s390*)
+  s390-*)
     GLOBAL_CFLAGS="$GLOBAL_CFLAGS -O3"
     DEBUG_CFLAGS="$DEBUG_CFLAGS -O3"
     AC_DEFINE(FPM_DEFAULT)
