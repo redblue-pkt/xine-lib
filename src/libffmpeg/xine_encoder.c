@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_encoder.c,v 1.11 2004/03/03 20:20:39 mroi Exp $
+ * $Id: xine_encoder.c,v 1.12 2004/04/15 15:49:56 mroi Exp $
  */
  
 /* mpeg encoders for the dxr3 video out plugin. */
@@ -50,12 +50,12 @@ static int lavc_on_unneeded(dxr3_driver_t *drv);
 /*encoder structure*/
 typedef struct lavc_data_s {
   encoder_data_t     encoder_data;
-  AVCodecContext     *context;       	/* handle for encoding */
-  int                width, height;  	/* width and height of the video frame */
-  uint8_t            *ffmpeg_buffer;    /* lavc buffer */
-  AVFrame            *picture;       	/* picture to be encoded */
-  uint8_t            *out[3];  			/* aligned buffer for YV12 data */
-  uint8_t            *buf;     			/* unaligned YV12 buffer */
+  AVCodecContext     *context;         /* handle for encoding */
+  int                width, height;    /* width and height of the video frame */
+  uint8_t            *ffmpeg_buffer;   /* lavc buffer */
+  AVFrame            *picture;         /* picture to be encoded */
+  uint8_t            *out[3];          /* aligned buffer for YV12 data */
+  uint8_t            *buf;             /* unaligned YV12 buffer */
 } lavc_data_t;
 
 
@@ -102,7 +102,7 @@ static int lavc_on_update_format(dxr3_driver_t *drv, dxr3_frame_t *frame)
   /* if YUY2 and dimensions changed, we need to re-allocate the
    * internal YV12 buffer */
   if (frame->vo_frame.format == XINE_IMGFMT_YUY2) {
-    int image_size = frame->vo_frame.width * frame->oheight;
+    int image_size = frame->vo_frame.pitches[0] * frame->oheight;
 
     this->out[0] = xine_xmalloc_aligned(16, image_size * 3/2, 
       (void *)&this->buf);
@@ -117,7 +117,6 @@ static int lavc_on_update_format(dxr3_driver_t *drv, dxr3_frame_t *frame)
     printf("dxr3_mpeg_encoder: Using YUY2->YV12 conversion\n");  
 #endif
   }
-  
   
   /* resolution must be a multiple of two */
   if ((frame->vo_frame.pitches[0] % 2 != 0) || (frame->oheight % 2 != 0)) {
@@ -134,7 +133,8 @@ static int lavc_on_update_format(dxr3_driver_t *drv, dxr3_frame_t *frame)
 #if LOG_ENC
   printf("dxr3_mpeg_encoder: lavc MPEG1 encoder found.\n");
 #endif
-  this->width = frame->vo_frame.pitches[0];
+
+  this->width  = frame->vo_frame.pitches[0];
   this->height = frame->oheight;
 
   this->context = avcodec_alloc_context();
@@ -172,9 +172,9 @@ static int lavc_on_update_format(dxr3_driver_t *drv, dxr3_frame_t *frame)
 
 #if LOG_ENC
   printf("dxr3_mpeg_encoder: lavc -> bitrate %d  \n", this->context->bit_rate);
-#endif 
-  
-  this->context->width  = frame->vo_frame.width;
+#endif
+
+  this->context->width  = frame->vo_frame.pitches[0];
   this->context->height = frame->oheight;
 
   this->context->gop_size = 0; /*intra frames only */
@@ -218,7 +218,7 @@ static int lavc_on_display_frame(dxr3_driver_t *drv, dxr3_frame_t *frame)
 	
   if (frame->vo_frame.bad_frame) return 1;
     /* ignore old frames */
-  if ((frame->vo_frame.width != this->context->width) || (frame->oheight != this->context->height)) {
+  if ((frame->vo_frame.pitches[0] != this->context->width) || (frame->oheight != this->context->height)) {
 	frame->vo_frame.free(&frame->vo_frame);
     printf("LAVC ignoring frame !!!\n");
     return 1;
@@ -264,7 +264,7 @@ static int lavc_prepare_frame(lavc_data_t *this, dxr3_driver_t *drv, dxr3_frame_
 {
   int i, j, w2;
   uint8_t *yuy2;
-
+	
   if (frame->vo_frame.bad_frame) return 1;
 
   if (frame->vo_frame.format == XINE_IMGFMT_YUY2) {
@@ -273,11 +273,11 @@ static int lavc_prepare_frame(lavc_data_t *this, dxr3_driver_t *drv, dxr3_frame_
       printf("dxr3_mpeg_encoder: Internal YV12 buffer not created.\n");
       return 0;
     }
-    this->picture->data[0] = this->out[0] +  frame->vo_frame.width      *  drv->top_bar;		/* y */
-    this->picture->data[1] = this->out[1] + (frame->vo_frame.width / 2) * (drv->top_bar / 2);	/* u */
-    this->picture->data[2] = this->out[2] + (frame->vo_frame.width / 2) * (drv->top_bar / 2);	/* v */
+    this->picture->data[0] = this->out[0] +  frame->vo_frame.pitches[0]      *  drv->top_bar;		/* y */
+    this->picture->data[1] = this->out[1] + (frame->vo_frame.pitches[0] / 2) * (drv->top_bar / 2);	/* u */
+    this->picture->data[2] = this->out[2] + (frame->vo_frame.pitches[0] / 2) * (drv->top_bar / 2);	/* v */
     yuy2 = frame->vo_frame.base[0];
-    w2 = frame->vo_frame.width / 2;
+    w2 = frame->vo_frame.pitches[0] / 2;
     for (i = 0; i < frame->vo_frame.height; i += 2) {
       for (j = 0; j < w2; j++) {
         /* packed YUV 422 is: Y[i] U[i] Y[i+1] V[i] */
