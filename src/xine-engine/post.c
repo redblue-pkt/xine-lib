@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: post.c,v 1.27 2004/09/28 18:49:40 miguelfreitas Exp $
+ * $Id: post.c,v 1.28 2004/10/17 19:14:30 mroi Exp $
  */
  
 /*
@@ -429,7 +429,6 @@ void _x_post_frame_copy_up(vo_frame_t *to, vo_frame_t *from) {
   /* propagate changes upwards (from video out to decoders) */
   to->vpts     = from->vpts;
   to->duration = from->duration;
-  to->stream   = from->stream;
   
   if (to->extra_info != from->extra_info)
     _x_extra_info_merge(to->extra_info, from->extra_info);
