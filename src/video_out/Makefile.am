@@ -9,7 +9,7 @@ VIDIX_CFLAGS = -I$(top_builddir)/src/video_out/vidix \
 
 AM_CFLAGS = $(X_CFLAGS) \
 	-DXINE_COMPILE $(SDL_CFLAGS) $(VIDIX_CFLAGS) \
-	$(AALIB_CFLAGS) $(MLIB_CFLAGS)
+	$(AALIB_CFLAGS) $(MLIB_CFLAGS) $(LIBSTK_CFLAGS)
 
 libdir = $(XINE_PLUGINDIR)
 
@@ -48,7 +48,9 @@ if HAVE_SDL
 sdl_module = xineplug_vo_out_sdl.la
 endif
 
-
+if HAVE_STK
+stk_module = xineplug_vo_out_stk.la
+endif
 
 # important:
 # 
@@ -59,7 +61,7 @@ endif
 #                  $(syncfb_module) $(fb_module) $(opengl_module) $(sdl_module) $(vidix_module)
 lib_LTLIBRARIES = $(xshm_module) $(xv_module) $(aa_module) $(pgx64_module) \
 	$(vidix_module) $(fb_module) $(sdl_module) $(syncfb_module) \
-	xineplug_vo_out_none.la
+	$(stk_module) xineplug_vo_out_none.la
 
 xineplug_vo_out_xv_la_SOURCES = deinterlace.c alphablend.c video_out_xv.c
 xineplug_vo_out_xv_la_LIBADD = \
@@ -115,5 +117,9 @@ xineplug_vo_out_pgx64_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 xineplug_vo_out_none_la_SOURCES =  video_out_none.c
 xineplug_vo_out_none_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
+
+xineplug_vo_out_stk_la_SOURCES = alphablend.c video_out_stk.c 
+xineplug_vo_out_stk_la_LIBADD = $(LIBSTK_LIBS) 
+xineplug_vo_out_stk_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 noinst_HEADERS = alphablend.h deinterlace.h video_out_syncfb.h yuv2rgb.h 

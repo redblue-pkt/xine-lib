@@ -1,5 +1,6 @@
 xine-lib (1-rc1)
   * libdvdnav: fix some undetected stills (fixes "Red Dragon" RC2 scene selection)
+  * video output plugin for libstk
 
 xine-lib (1-rc0a)
   * includes ffmpeg's MPEG encode in dist tarball (fixes DXR3 support)

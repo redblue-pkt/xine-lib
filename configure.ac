@@ -523,6 +523,29 @@ AM_CONDITIONAL(HAVE_SDL, [test x"$no_sdl" != x"yes"])
 
 
 dnl ---------------------------------------------
+dnl check for Libstk
+dnl ---------------------------------------------
+AC_MSG_CHECKING(for Libstk)
+dnl do some actual testing here
+if test x$PKG_CONFIG = xno ; then
+  echo "*** pkg-config not found. See http://pkgconfig.sourceforge.net"
+  echo "*** All of LIBSTK dependent parts will be disabled"
+else
+    LIBSTK_REQUIRED_VERSION=0.2.0
+    if $PKG_CONFIG --atleast-version $LIBSTK_REQUIRED_VERSION libstk ; then
+        LIBSTK_CFLAGS=`$PKG_CONFIG --cflags libstk`
+        LIBSTK_LIBS=`$PKG_CONFIG --libs libstk`
+        have_stk="yes"
+    else
+        AC_MSG_RESULT([*** All of Libstk dependent parts will be disabled ***])
+    fi
+fi
+AC_SUBST(LIBSTK_CFLAGS)
+AC_SUBST(LIBSTK_LIBS)
+AM_CONDITIONAL(HAVE_STK, [test x"$have_stk" = x"yes"])
+
+
+dnl ---------------------------------------------
 dnl dxr3 / hollywood plus card
 dnl ---------------------------------------------
 case "$host_or_hostalias" in
@@ -1624,6 +1647,9 @@ if test x$have_fb = "xyes"; then
 fi
 if test x"$no_sdl" != x"yes"; then
   echo "   - sdl (Simple DirectMedia Layer)"
+fi
+if test x"$have_stk" = "xyes"; then
+  echo "   - stk (Libstk Set-top Toolkit)"
 fi
 if test x"$have_directfb" = "xyes"; then
   echo "   - directfb (DirectFB driver)"

@@ -397,4 +397,7 @@ Dirk Meyer <dmeyer@tzi.de
   stdctl patches for xine-ui and fbxine.
   post filter support for fbxine.
 
+Darren Vincent Hart <dvhart@byu.edu>
+  libstk video out plugin
+
 (let us know if we've forgotten anyone)
