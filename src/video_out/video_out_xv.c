@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.159 2003/02/28 02:51:51 storri Exp $
+ * $Id: video_out_xv.c,v 1.160 2003/03/05 22:12:48 esnel Exp $
  *
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -118,6 +118,7 @@ struct xv_driver_s {
   int                expecting_event; /* completion event handling */
   int                completion_event;
   int                use_shm;
+  int                use_pitch_alignment;
   xv_property_t      props[VO_NUM_PROPERTIES];
   uint32_t           capabilities;
 
@@ -243,6 +244,10 @@ static XvImage *create_ximage (xv_driver_t *this, XShmSegmentInfo *shminfo,
 
   unsigned int  xv_format;
   XvImage      *image=NULL;
+
+  if (this->use_pitch_alignment) {
+    width = (width + 7) & ~0x7;
+  }
 
   switch (format) {
   case XINE_IMGFMT_YV12:
@@ -393,6 +398,10 @@ static void xv_update_frame_format (vo_driver_t *this_gen,
 
   xv_driver_t  *this = (xv_driver_t *) this_gen;
   xv_frame_t   *frame = (xv_frame_t *) frame_gen;
+
+  if (this->use_pitch_alignment) {
+    width = (width + 7) & ~0x7;
+  }
 
   if ((frame->width != width)
       || (frame->height != height)
@@ -1118,6 +1127,12 @@ static void xv_update_XV_DOUBLE_BUFFER(void *this_gen, xine_cfg_entry_t *entry) 
   printf("video_out_xv: double buffering mode = %d\n",xv_double_buffer);
 }
 
+static void xv_update_xv_pitch_alignment(void *this_gen, xine_cfg_entry_t *entry) {
+  xv_driver_t *this = (xv_driver_t *) this_gen;
+
+  this->use_pitch_alignment = entry->num_value;
+}
+
 
 static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *visual_gen) {
 
@@ -1313,6 +1328,10 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *vi
     this->completion_event = XShmGetEventBase(display) + ShmCompletion;
   else
     this->completion_event = -1;
+
+  this->use_pitch_alignment = config->register_bool (config, "video.xv_pitch_alignment", 0,
+						    _("workaround for some (buggy) XVideo drivers"),
+						    NULL, 10, xv_update_xv_pitch_alignment, this);
 
   this->deinterlace_method = config->register_enum (config, "video.deinterlace_method", 4,
 						    deinterlace_methods,
