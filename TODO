@@ -55,7 +55,7 @@ opional
 - streaming of avi files (e.g. via http)
 - ms audio decoder from ffmpeg
 - dv format support
-- visualization plugins
+- visualization plugins (can be done staightforward with post effect plugins)
 
 
 Assigned tasks
