@@ -20,7 +20,7 @@
  * Demuxer helper functions
  * hide some xine engine details from demuxers and reduce code duplication
  *
- * $Id: demux.c,v 1.45 2004/01/11 15:54:23 jstembridge Exp $ 
+ * $Id: demux.c,v 1.46 2004/02/12 18:19:44 mroi Exp $ 
  */
 
 
@@ -66,6 +66,8 @@
 void _x_demux_flush_engine (xine_stream_t *stream) {
 
   buf_element_t *buf;
+  
+  stream->xine->port_ticket->acquire(stream->xine->port_ticket, 1);
 
   if (stream->video_out) {
     stream->video_out->set_property(stream->video_out, VO_PROP_DISCARD_FRAMES, 1);
@@ -99,6 +101,8 @@ void _x_demux_flush_engine (xine_stream_t *stream) {
     stream->audio_out->flush(stream->audio_out);
     stream->audio_out->set_property(stream->audio_out, AO_PROP_DISCARD_BUFFERS, 0);
   }
+
+  stream->xine->port_ticket->release(stream->xine->port_ticket, 1);
 }
 
 
