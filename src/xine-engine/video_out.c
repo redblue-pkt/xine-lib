@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.96 2002/05/02 01:44:44 siggi Exp $
+ * $Id: video_out.c,v 1.97 2002/05/18 12:36:03 miguelfreitas Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -409,13 +409,8 @@ static vo_frame_t *get_next_frame (vos_t *this, int64_t cur_vpts) {
 	
       /* keep playing still frames */
       img = this->vo.duplicate_frame (&this->vo, this->img_backup );
-  
-      do {
-	/* always restore duration so drift correction shouldn't cause any trouble */
-	img->duration = this->img_backup->duration;
-	this->metronom->got_video_frame(this->metronom, img);
-      } while (img->vpts < (cur_vpts - img->duration/2) );
-
+      img->vpts = cur_vpts;
+      
       return img;
 
     } else {
