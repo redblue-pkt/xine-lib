@@ -2,7 +2,7 @@ Source: xine-lib
 Section: libs
 Priority: optional
 Maintainer: Siggi Langauf <siggi@debian.org>
-Build-Depends: debhelper (>> 2.0.0), aalib1-dev (>= 1.4p5-2), libasound1-dev (0.5.10-1), xlibs-dev (>> 4.1), libesd0-dev
+Build-Depends: debhelper (>> 2.0.0), aalib1-dev (>= 1.4p5-2), libasound1-dev (0.5.10-1), xlibs-dev (>> 4.1), libesd0-dev, zlib1g-dev (>= 1:1.1.3)
 Standards-Version: 3.2.1
 
 Package: libxine-dev
@@ -26,10 +26,11 @@ Depends: ${shlibs:Depends}
 Conflicts: xine (<< 0.5.0), xine-dvd (<< 0.5.0), xine-dvd-css (<< 0.5.0)
 Replaces: xine-dvd
 Description: the xine video player library, binary files
- This contains the xine library (libxine). Libxine provides the complete
+ This is the xine library (libxine). Libxine provides the complete
  infrastructure for a video/media player.
- It supports MPEG 1/2 and (with suitable W*ndows DLLs) AVI/DivX videos
- out of the box, so you can use it to play DVDs, (S)VCDs and most video
- files out there. Building a GUI (or text based) frontend around this should
+ It supports MPEG 1/2 and AVI/DivX videos (some codecs need special windows
+ DLLs, but MPEG4 video and variants thereof have native support).
+ So you can use it to play DVDs, (S)VCDs and most video files out there.
+ Building a GUI (or text based) frontend around this should
  be quite easy. The xine-ui package provides one for your convenience,
  so you can just start watching your VCDs ;-)

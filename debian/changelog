@@ -1,3 +1,13 @@
+xine-lib (0.9.0-2) unstable; urgency=low
+
+  * bugfix release of the package
+  * added build-depends for zlib1g-dev (closes: #112270)
+  * using default FPM routines on m68k, as nobody seems able to write native
+    ones. Performance will be poor and it might not even work, but should
+    compile... (closes: #112257)
+
+ -- Siggi Langauf <siggi@debian.org>  Sun, 16 Sep 2001 11:08:46 +0200
+
 xine-lib (0.9.0-1) unstable; urgency=low
 
   * new upstream release features generic menu support, see ChangeLog for more
