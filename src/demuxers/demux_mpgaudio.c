@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpgaudio.c,v 1.126 2003/11/23 23:20:57 valtri Exp $
+ * $Id: demux_mpgaudio.c,v 1.127 2003/11/26 19:26:59 mroi Exp $
  *
  * demultiplexer for mpeg audio (i.e. mp3) streams
  *
@@ -809,7 +809,7 @@ static void demux_mpgaudio_send_headers (demux_plugin_t *this_gen) {
   _x_stream_info_set(this->stream, XINE_STREAM_INFO_HAS_AUDIO, 1);
 
   /* read id3 info only from inputs with seeking and without "live" flag */
-  if (this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE != 0) {
+  if (this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) {
     off_t pos;
 
     /* check ID3 v1 at the end of the stream */
