@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_cda.c,v 1.6 2001/12/10 00:58:13 f1rmb Exp $
+ * $Id: input_cda.c,v 1.7 2001/12/10 01:43:30 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -166,6 +166,30 @@ static void _cda_mkdir_safe(char *path) {
     /* Check of found file is a directory file */
     if(!S_ISDIR(pstat.st_mode)) {
       fprintf(stderr, "input_cda: %s is not a directory.\n", path);
+    }
+  }
+}
+
+/*
+ *
+ */
+static void _cda_mkdir_recursive_safe(char *path) {
+  char *p, *pp;
+  char buf[PATH_MAX + NAME_MAX + 1];
+  char buf2[PATH_MAX + NAME_MAX + 1];
+
+  if(path == NULL)
+    return;
+
+  memset(&buf, 0, sizeof(buf));
+  memset(&buf2, 0, sizeof(buf2));
+
+  sprintf(buf, "%s", path);
+  pp = buf;
+  while((p = xine_strsep(&pp, "/")) != NULL) {
+    if(p && strlen(p)) {
+      sprintf(buf2, "%s/%s", buf2, p);
+      _cda_mkdir_safe(buf2);
     }
   }
 }
@@ -427,7 +451,7 @@ static void _cda_save_cached_cddb_infos(cda_input_plugin_t *this, char *filecont
   /* Ensure "~/.xine/cddbcache" exist */
   sprintf(cfile, "%s", this->cddb.cache_dir);
   
-  _cda_mkdir_safe(cfile);
+  _cda_mkdir_recursive_safe(cfile);
   
   sprintf(cfile, "%s/%08lx", this->cddb.cache_dir, this->cda->disc_id);
   
