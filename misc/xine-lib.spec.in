@@ -9,7 +9,7 @@
 
 # Build separat packages:
 # 1 create a sparate package
-# 0 nclude files in main package
+# 0 include files in main package
 %define BUILD_AA        0
 %define BUILD_ALSA09    0
 %define BUILD_ARTS      0
@@ -20,8 +20,7 @@
 %define BUILD_ESD       0
 %define BUILD_FLAC      0
 %define BUILD_GNOME_VFS 0
-%define BUILD_OGGTHEORA 0
-%define BUILD_OGGVORBIS 0
+%define BUILD_OGG       0
 #%define BUILD_OPENGL    0
 %define BUILD_SDL       0
 %define BUILD_SYNCFB    0
@@ -220,24 +219,6 @@ libxine Soundausgabeplugin für den Enlightmend Sound Daemon (Gnome und Enlightme
 libxine-ddnilisdke Enlightmend ddnipalvelimelle
 %endif
 
-%if %BUILD_DXR3
-%package dxr3
-Summary:     libxine video output plugin using mpeg2 decoding cards with dxr3 decoder-chip
-Summary(de): libxine Videoausgabeplugin, nutzt MPEG2-decoder-Karten mit dxr3 Decoder-Chip
-Summary(fi): libxine-Videolisdke MPEG2-videopurkukorteille, joissa on DXR3 purkusiru
-Group:       Development/Libraries
-Obsoletes:   xine-lib-dxr3, libxine0-dxr3
-
-%description dxr3
-libxine video output plugin using mpeg2 decoding cards with dxr3 decoder-chip
-
-%description dxr3 -l de
-libxine Videoausgabeplugin, nutzt MPEG2-decoder-Karten mit dxr3 Decoder-Chip
-
-%description dxr3 -l fi
-libxine-Videolisdke MPEG2-videopurkukorteille, joissa on DXR3 purkusiru
-%endif
-
 %if %BUILD_SDL
 %package sdl
 Summary:        libxine video output plugin for SDL-library (Simple DirectMedia Layer)
@@ -378,35 +359,42 @@ libxine Soundeinabeplugin für flac-Dateien (Free Lossless Audio Codec == Freier,
 libxine-Ddnilisdke flac-tiedostojen toistamiseen (Free Lossless Audio Codec)
 %endif
 
-%if %BUILD_OGGVORBIS
-%package oggvorbis
+%if %BUILD_OGG
+%package ogg
 Summary:        libxine sound/video input plugin for ogg/ogm-files
 Summary(de):    libxine Sound-/Videoeinabeplugin für ogg/ogm-Dateien
 Summary(fi):    libxine-Ddni/Videolisdke Ogg/Ogm tiedostojen toistamiseen
 Group:          Development/Libraries
-Obsoletes:      xine-lib-oggvorbis
+Obsoletes:      xine-lib-oggvorbis, %{libname}-oggvorbis, %{libname}-oggtheora
 
-%description oggvorbis
+%description ogg
 libxine sound/video input plugin for ogg/ogm-files
 
-%description oggvorbis -l de
+%description ogg -l de
 libxine Sound-/Videoeinabeplugin für ogg/ogm-Dateien
 
-%description oggvorbis -l fi
+%description ogg -l fi
 libxine-Ddni/Videolisdke Ogg/Ogm tiedostojen toistamiseen
 %endif
 
-%if %BUILD_OGGTHEORA
-%package oggtheora
-Summary:        libxine sound/video input plugin for ogg/theora-files
-Summary(de):    libxine Sound-/Videoeinabeplugin für ogg/theora-Dateien
-Group:          Development/Libraries
+%if %BUILD_DXR3
+%ifarch i386 i486 i586 i686 i786 i868 i986 k6 k7 athlon
+%package dxr3
+Summary:     libxine video output plugin using mpeg2 decoding cards with dxr3 decoder-chip
+Summary(de): libxine Videoausgabeplugin, nutzt MPEG2-decoder-Karten mit dxr3 Decoder-Chip
+Summary(fi): libxine-Videolisdke MPEG2-videopurkukorteille, joissa on DXR3 purkusiru
+Group:       Development/Libraries
+Obsoletes:   xine-lib-dxr3, libxine0-dxr3
 
-%description oggtheora
-libxine sound/video input plugin for ogg/theora-files
+%description dxr3
+libxine video output plugin using mpeg2 decoding cards with dxr3 decoder-chip
 
-%description oggtheora -l de
-libxine Sound-/Videoeinabeplugin für ogg/theora-Dateien
+%description dxr3 -l de
+libxine Videoausgabeplugin, nutzt MPEG2-decoder-Karten mit dxr3 Decoder-Chip
+
+%description dxr3 -l fi
+libxine-Videolisdke MPEG2-videopurkukorteille, joissa on DXR3 purkusiru
+%endif
 %endif
 
 #%if %BUILD_XVMC
@@ -618,19 +606,11 @@ grep -v "xineplug_flac\." ${RPM_BUILD_DIR}/filelist_libxine1_old | cat - > ${RPM
 rm ${RPM_BUILD_DIR}/filelist_libxine1_old
 %endif
 
-%if %BUILD_OGGVORBIS
-echo "%defattr(-,root,root)" > ${RPM_BUILD_DIR}/filelist_libxine1_oggvorbis
+%if %BUILD_OGG
+echo "%defattr(-,root,root)" > ${RPM_BUILD_DIR}/filelist_libxine1_ogg
 mv ${RPM_BUILD_DIR}/filelist_libxine1 ${RPM_BUILD_DIR}/filelist_libxine1_old
-grep -E "xineplug_decode_vorbis\.|xineplug_dmx_ogg\." ${RPM_BUILD_DIR}/filelist_libxine1_old | cat - >> ${RPM_BUILD_DIR}/filelist_libxine1_oggvorbis
-grep -v -E "xineplug_decode_vorbis\.|xineplug_dmx_ogg\." ${RPM_BUILD_DIR}/filelist_libxine1_old | cat - > ${RPM_BUILD_DIR}/filelist_libxine1
-rm ${RPM_BUILD_DIR}/filelist_libxine1_old
-%endif
-
-%if %BUILD_OGGTHEORA
-echo "%defattr(-,root,root)" > ${RPM_BUILD_DIR}/filelist_libxine1_oggtheora
-mv ${RPM_BUILD_DIR}/filelist_libxine1 ${RPM_BUILD_DIR}/filelist_libxine1_old
-grep "xineplug_decode_theora\." ${RPM_BUILD_DIR}/filelist_libxine1_old | cat - >> ${RPM_BUILD_DIR}/filelist_libxine1_oggtheora
-grep -v "xineplug_decode_theora\." ${RPM_BUILD_DIR}/filelist_libxine1_old | cat - > ${RPM_BUILD_DIR}/filelist_libxine1
+grep -E "xineplug_decode_vorbis\.|xineplug_dmx_ogg\.|xineplug_decode_theora\.|xineplug_decode_speex\." ${RPM_BUILD_DIR}/filelist_libxine1_old | cat - >> ${RPM_BUILD_DIR}/filelist_libxine1_ogg
+grep -v -E "xineplug_decode_vorbis\.|xineplug_dmx_ogg\.|xineplug_decode_theora\.|xineplug_decode_speex\." ${RPM_BUILD_DIR}/filelist_libxine1_old | cat - > ${RPM_BUILD_DIR}/filelist_libxine1
 rm ${RPM_BUILD_DIR}/filelist_libxine1_old
 %endif
 
@@ -659,7 +639,9 @@ rm -rf ${RPM_BUILD_ROOT}
 %endif
 
 %if %BUILD_DXR3
+%ifarch i386 i486 i586 i686 i786 i868 i986 k6 k7 athlon
 %files dxr3 -f ../filelist_libxine1_dxr3
+%endif
 %endif
 
 %if %BUILD_SDL
@@ -706,15 +688,14 @@ rm -rf ${RPM_BUILD_ROOT}
 %files flac -f ../filelist_libxine1_flac
 %endif
 
-%if %BUILD_OGGVORBIS
-%files oggvorbis -f ../filelist_libxine1_oggvorbis
-%endif
-
-%if %BUILD_OGGTHEORA
-%files oggtheora -f ../filelist_libxine1_oggtheora
+%if %BUILD_OGG
+%files ogg -f ../filelist_libxine1_ogg
 %endif
 
 %changelog
+* Sun Jul 20 2003 Manfred Tremmel <Manfred.Tremmel@iiv.de>
+- made ogg-package out of oggvorbis, oggtheora and the new
+  oggspeex xine-plugins
 * Sat May 24 2003 Manfred Tremmel <Manfred.Tremmel@iiv.de>
 - complete rework of the specfile
 * Wed May 14 2003 Manfred Tremmel <Manfred.Tremmel@iiv.de>
