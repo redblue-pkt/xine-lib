@@ -17,21 +17,6 @@ building xine on solaris
 Known Problems
 --------------
 
-* gcc 2.95.2 produces buggy code when compiling xine-lib/src/libac3/imdct.c
-  with -O3.  Playback of mpeg files with AC3 sound crashes in
-  imdct_do_512.  The stack backtrace for this problem looks like this:
-
-  fdfa807c imdct_do_512 (10, 0, fdfc43c0, fdcfe923, fdcfe923, fdfc43c4) + 2fc
-  fdfa8df0 imdct    (fdfbef90, fdfbdea4, fdfbefc0, 40000, fdfbd800, fdfbef90) + f0
-  fdfa6454 ac3_decode_frame (fdfc07c0, 2, fdfbec00, fdfc0400, 4d58, d1728) + 1b4
-  fdfac668 ac3dec_decode_data (188e18, 1044, 5d0800, 1048, 1024, 1044) + 148
-  ff368bfc audio_decoder_loop (5f5d0, 13a8, 1000, 1, 12cc, 1394) + 4bc
-  feebbb98 _thread_start (5f5d0, 0, 0, 0, 0, 0) + 40
-
-  Workaround:  Compile the complete package with gcc-3.0, or compile
-  imdct.c with gcc-2.95.2 and -O.
-
-
 * Can't use MIT shared memory for local video display
 
   The default value for the maximum allowed shared memory segment size
