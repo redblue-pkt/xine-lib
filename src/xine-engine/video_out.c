@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.141 2003/02/06 10:59:02 miguelfreitas Exp $
+ * $Id: video_out.c,v 1.142 2003/02/18 18:36:30 mroi Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -866,7 +866,7 @@ static void *video_out_loop (void *this_gen) {
           buf = stream->video_fifo->buffer_pool_try_alloc (stream->video_fifo);
           if( buf ) {
             buf->type = BUF_CONTROL_FLUSH_DECODER;
-            stream->video_fifo->put(stream->video_fifo, buf);
+            stream->video_fifo->insert(stream->video_fifo, buf);
           }
         }
       }
