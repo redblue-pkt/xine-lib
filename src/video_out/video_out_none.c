@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2002 the xine project
+ * Copyright (C) 2000-2003 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -17,9 +17,10 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_none.c,v 1.6 2002/12/21 12:56:49 miguelfreitas Exp $
+ * $Id: video_out_none.c,v 1.7 2003/01/11 05:28:28 guenter Exp $
  *
  * Was originally part of toxine frontend.
+ * ...but has now been adapted to xine coding style standards ;)
  */
 
 #ifdef HAVE_CONFIG_H
@@ -65,15 +66,8 @@ static void free_framedata(none_frame_t* frame) {
     frame->vo_frame.base[0] = NULL;
   }
   
-  if(frame->vo_frame.base[1]) {
-    free(frame->vo_frame.base[1]);
-    frame->vo_frame.base[1] = NULL;
-  }
-  
-  if(frame->vo_frame.base[2]) {
-    free(frame->vo_frame.base[2]);
-    frame->vo_frame.base[2] = NULL;
-  }
+  frame->vo_frame.base[1] = NULL;
+  frame->vo_frame.base[2] = NULL;
 }
 
 static void none_frame_dispose(vo_frame_t *vo_frame) {
@@ -97,7 +91,7 @@ static vo_frame_t *none_alloc_frame(vo_driver_t *vo_driver) {
   memset(frame, 0, sizeof(none_frame_t));
   
   if(frame == NULL) {
-    printf ("%s()@%d: out of memory\n", __XINE_FUNCTION__, __LINE__);
+    printf ("video_out_none: out of memory in none_alloc_frame\n");
     abort();
   }
   
@@ -118,7 +112,7 @@ static void none_update_frame_format(vo_driver_t *vo_driver, vo_frame_t *vo_fram
 				     int ratio_code, int format, int flags) {
   none_frame_t  *frame = (none_frame_t *)vo_frame;
   uint32_t      frame_size = (width * height);
-  
+
   if((frame->width != width) || (frame->height != height) || (frame->format != format)) {
     free_framedata(frame);
     
@@ -129,19 +123,23 @@ static void none_update_frame_format(vo_driver_t *vo_driver, vo_frame_t *vo_fram
     switch(format) {
 
     case XINE_IMGFMT_YV12:
-      frame->vo_frame.base[0] = malloc(frame_size);
-      frame->vo_frame.base[1] = malloc((frame_size / 4));
-      frame->vo_frame.base[2] = malloc((frame_size / 4));
+      frame->vo_frame.pitches[0] = 8*((width + 7) / 8);
+      frame->vo_frame.pitches[1] = 8*((width + 15) / 16);
+      frame->vo_frame.pitches[2] = 8*((width + 15) / 16);
+      frame->vo_frame.base[0] = malloc(frame_size * 3/2);
+      frame->vo_frame.base[2] = frame->vo_frame.base[0]+frame_size;
+      frame->vo_frame.base[1] = frame->vo_frame.base[0]+frame_size*5/4;
       break;
 
     case XINE_IMGFMT_YUY2:
+      frame->vo_frame.pitches[0] = 8*((width + 3) / 4);
       frame->vo_frame.base[0] = malloc((frame_size * 2));
       frame->vo_frame.base[1] = NULL;
       frame->vo_frame.base[2] = NULL;
       break;
 
     default:
-      printf("%s()@%d: unknown frame format %04x)\n", __XINE_FUNCTION__, __LINE__, format);
+      printf ("video_out_none: unknown frame format %04x)\n", format);
       break;
 
     }
@@ -151,8 +149,7 @@ static void none_update_frame_format(vo_driver_t *vo_driver, vo_frame_t *vo_fram
 	    || frame->vo_frame.base[1] == NULL 
 	    || frame->vo_frame.base[2] == NULL))
        || (format == XINE_IMGFMT_YUY2 && frame->vo_frame.base[0] == NULL)) {
-      printf("%s()@%d: error. (framedata allocation failed: out of memory)\n", 
-	     __XINE_FUNCTION__, __LINE__);
+      printf ("video_out_none: error. (framedata allocation failed: out of memory)\n"); 
       free_framedata(frame);
     }
   }
@@ -266,7 +263,7 @@ static char* get_identifier (video_driver_class_t *driver_class) {
 }
 
 static char* get_description (video_driver_class_t *driver_class) {
-  return _("xine video output plugin which display nothing");
+  return _("xine video output plugin which displays nothing");
 }
 
 static void dispose_class (video_driver_class_t *driver_class) {
