@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * $Id: yuv2rgb.c,v 1.31 2002/05/28 12:44:02 siggi Exp $
+ * $Id: yuv2rgb.c,v 1.32 2002/08/14 12:23:33 esnel Exp $
  */
 
 #include "config.h"
@@ -2566,7 +2566,7 @@ static void yuy22rgb_c_32 (yuv2rgb_t *this, uint8_t * _dst, uint8_t * _p)
     if (height <= 0)
       break;
 
-    _p += this->y_stride*2*(dy>>15);
+    _p += this->y_stride*(dy>>15);
     dy &= 32767;
     /*
       dy -= 32768;
@@ -2644,7 +2644,7 @@ static void yuy22rgb_c_24_rgb (yuv2rgb_t *this, uint8_t * _dst, uint8_t * _p)
     if (height <= 0)
       break;
 
-    _p += this->y_stride*2*(dy>>15);
+    _p += this->y_stride*(dy>>15);
     dy &= 32767;
     /*
       dy -= 32768;
@@ -2722,7 +2722,7 @@ static void yuy22rgb_c_24_bgr (yuv2rgb_t *this, uint8_t * _dst, uint8_t * _p)
     if (height <= 0)
       break;
 
-    _p += this->y_stride*2*(dy>>15);
+    _p += this->y_stride*(dy>>15);
     dy &= 32767;
 
     scale_line_4 (_p+1, this->u_buffer,
@@ -2796,7 +2796,7 @@ static void yuy22rgb_c_16 (yuv2rgb_t *this, uint8_t * _dst, uint8_t * _p)
     if (height <= 0)
       break;
 
-    _p += this->y_stride*2*(dy>>15);
+    _p += this->y_stride*(dy>>15);
     dy &= 32767;
     
     scale_line_4 (_p+1, this->u_buffer,
@@ -2870,7 +2870,7 @@ static void yuy22rgb_c_8 (yuv2rgb_t *this, uint8_t * _dst, uint8_t * _p)
     if (height <= 0)
       break;
 
-    _p += this->y_stride*2*(dy>>15);
+    _p += this->y_stride*(dy>>15);
     dy &= 32767;
     
     scale_line_4 (_p+1, this->u_buffer,
@@ -2910,7 +2910,7 @@ static void yuy22rgb_c_gray (yuv2rgb_t *this, uint8_t * _dst, uint8_t * _p)
       if (height <= 0)
 	break;
 
-      _p += this->y_stride*2*(dy>>15);
+      _p += this->y_stride*(dy>>15);
       dy &= 32767;
     }
   } else {
@@ -2922,7 +2922,7 @@ static void yuy22rgb_c_gray (yuv2rgb_t *this, uint8_t * _dst, uint8_t * _p)
 	y += 2;
       }
       _dst += this->rgb_stride;
-      _p += this->y_stride*2;
+      _p += this->y_stride;
     }
   }
 }
@@ -2987,7 +2987,7 @@ static void yuy22rgb_c_palette (yuv2rgb_t *this, uint8_t * _dst, uint8_t * _p)
     if (height <= 0)
       break;
 
-    _p += this->y_stride*2*(dy>>15);
+    _p += this->y_stride*(dy>>15);
     dy &= 32767;
 
     scale_line_4 (_p+1, this->u_buffer,
