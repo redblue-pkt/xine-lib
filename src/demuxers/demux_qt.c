@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.154 2003/03/28 14:56:00 miguelfreitas Exp $
+ * $Id: demux_qt.c,v 1.155 2003/04/07 21:28:33 guenter Exp $
  *
  */
 
@@ -2678,7 +2678,7 @@ static char *get_extensions (demux_class_t *this_gen) {
 static char *get_mimetypes (demux_class_t *this_gen) {
   return "video/quicktime: mov,qt: Quicktime animation;"
          "video/x-quicktime: mov,qt: Quicktime animation;"
-         "application/x-quicktimeplayer: qtl: Quicktime list";
+         "application/x-quicktimeplayer: qtl: Quicktime list;";
 }
 
 static void class_dispose (demux_class_t *this_gen) {
