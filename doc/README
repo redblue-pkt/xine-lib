@@ -72,6 +72,9 @@ xine has so far been sucessfully used on the following systems:
   using XFree86 4.0.2 on a Riva TNT 16Mb 
   (Xv is working on this configuration with closed-sources drivers
   version 0.9.5 from NVidia).
+- Linux on a Amd K6-2@475
+  using XFree86 4.1.0 on a 3dfx voodoo3 2000 PCI 16Mb 
+  (Xv is working on this configuration)
 
 Work for non-Intel platforms has started but has not yet reached a 
 working state. 
@@ -332,4 +335,4 @@ contacting the xine project:
   Daniel Caujolle-Bert <f1rmb@users.sourceforge.net>
   Siegfried Langauf <siggi@users.sourceforge.net>
 
-  $Id: README,v 1.1 2001/04/18 22:36:13 f1rmb Exp $
+  $Id: README,v 1.2 2001/06/17 01:22:08 guenter Exp $
