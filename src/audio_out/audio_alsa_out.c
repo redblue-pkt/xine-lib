@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.58 2002/06/15 10:24:48 tmattern Exp $
+ * $Id: audio_alsa_out.c,v 1.59 2002/06/17 16:59:43 tmattern Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -646,22 +646,35 @@ static int ao_alsa_ctrl(ao_driver_t *this_gen, int cmd, ...) {
   switch (cmd) {
 
   case AO_CTRL_PLAY_PAUSE:
-    if ((this->has_pause_resume) && (this->audio_fd > 0)) {
-      if ((result=snd_pcm_pause(this->audio_fd, 1)) < 0) {
-        printf("audio_alsa_out: Pause call failed err=%d\n", result);
-        this->has_pause_resume = 0;
-        ao_alsa_ctrl(this_gen, AO_CTRL_FLUSH_BUFFERS);
+    if (this->audio_fd > 0) {
+      if (this->has_pause_resume) {
+        if ((result=snd_pcm_pause(this->audio_fd, 1)) < 0) {
+          printf("audio_alsa_out: Pause call failed err=%d\n", result);
+          this->has_pause_resume = 0;
+          ao_alsa_ctrl(this_gen, AO_CTRL_PLAY_PAUSE);
+        }
+      } else {
+        if ((result=snd_pcm_reset(this->audio_fd)) < 0) {
+          printf("audio_alsa_out: Reset call failed err=%d\n",result);
+        }
+        if ((result=snd_pcm_drain(this->audio_fd)) < 0) {
+          printf("audio_alsa_out: Drain call failed err=%d\n",result);
+        }
+        if ((result=snd_pcm_prepare(this->audio_fd)) < 0) {
+          printf("audio_alsa_out: Prepare call failed err=%d\n",result);
+        }
       }
-    } else {
-      ao_alsa_ctrl(this_gen, AO_CTRL_FLUSH_BUFFERS);
     }
     break;
 
   case AO_CTRL_PLAY_RESUME:
-    if ((this->has_pause_resume) && (this->audio_fd > 0) ) {
-      if ((result=snd_pcm_pause(this->audio_fd, 0)) < 0) {
-        printf("audio_alsa_out: Resume call failed err=%d\n",result);
-        this->has_pause_resume = 0;
+    if (this->audio_fd > 0) {
+      if (this->has_pause_resume) {
+        if ((result=snd_pcm_pause(this->audio_fd, 0)) < 0) {
+          printf("audio_alsa_out: Resume call failed err=%d\n",result);
+          this->has_pause_resume = 0;
+          ao_alsa_ctrl(this_gen, AO_CTRL_PLAY_RESUME);
+        }
       }
     }
     break;
@@ -669,8 +682,11 @@ static int ao_alsa_ctrl(ao_driver_t *this_gen, int cmd, ...) {
   case AO_CTRL_FLUSH_BUFFERS:
     if (this->audio_fd > 0) {
       printf("audio_alsa_out: flush buffer\n");
-      if ((result=snd_pcm_drop(this->audio_fd)) < 0) {
-        printf("audio_alsa_out: Drop call failed err=%d\n",result);
+      if ((result=snd_pcm_reset(this->audio_fd)) < 0) {
+        printf("audio_alsa_out: Reset call failed err=%d\n",result);
+      }
+      if ((result=snd_pcm_drain(this->audio_fd)) < 0) {
+        printf("audio_alsa_out: Drain call failed err=%d\n",result);
       }
       if ((result=snd_pcm_prepare(this->audio_fd)) < 0) {
         printf("audio_alsa_out: Prepare call failed err=%d\n",result);
