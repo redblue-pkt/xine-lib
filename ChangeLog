@@ -11,6 +11,8 @@ xine-lib (1-rc2)
   * net buffer controler cleanup and fixes
   * mms command 0x20 support, bugfixes
   * concatenated asf streams support
+  * fix performance issue with wav demuxer and compressed data
+  * fix mpeg 2 audio frame parsing (mpeg_audio demuxer)
            
 xine-lib (1-rc1)
   * fix incorrect colours when blending frame with a big-endian RGB pixel format
