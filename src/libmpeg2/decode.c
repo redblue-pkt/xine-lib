@@ -373,6 +373,7 @@ void mpeg2_close (mpeg2dec_t * mpeg2dec)
       picture->forward_reference_frame->bad_frame = 0;
       picture->forward_reference_frame->draw (picture->forward_reference_frame); 
       */
+      picture->forward_reference_frame->displayed (picture->forward_reference_frame);
       picture->forward_reference_frame->free (picture->forward_reference_frame);
     }
     
