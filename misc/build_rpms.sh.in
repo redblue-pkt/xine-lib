@@ -24,7 +24,7 @@ fi
 ##VERSION="@XINE_MAJOR@.@XINE_MINOR@.@XINE_SUB@"
 
 echo "Creating tarball..."
-rm -f config.cache && ./autogen.sh && make dist
+rm -f config.cache && ./cvscompile.sh && make dist
 mv -f @TAR_NAME@.tar.gz  @PACKAGE@_@VERSION@.tar.gz
 rm -rf rpms
 mkdir rpms

@@ -14,6 +14,15 @@ TMPBUILD=$CWD/tmpbuild
 #DOINSTDIR=/install
 
 #
+# Create the post-install script
+#
+do_install_sh() {
+cat > doinst.sh <<EOF
+/sbin/ldconfig
+EOF
+}
+
+#
 # Create package description for pkgtool.
 #
 do_descr() {
@@ -39,9 +48,11 @@ do_build() {
   rm -rf $TMPBUILD
   mkdir -p $TMPBUILD
   cd $TMPBUILD && tar -xzf $CWD/@TAR_NAME@.tar.gz
+  do_install_sh;
   cd @TAR_NAME@
   DIE=1
   ./configure --prefix=$PREFIX && make && make install-strip prefix=$PKG/$PREFIX && \
+  mkdir -p $PKG/install && cp $TMPBUILD/doinst.sh $PKG/install && \
   cd $PKG && \
   echo "n" | makepkg $PACKAGE && \
   mv $PACKAGE $SLCK && \
@@ -149,7 +160,7 @@ build_k7() {
 main() {
   rm -rf $SLCK
   mkdir -p $SLCK
-  rm -f config.cache && ./autogen.sh && make dist
+  rm -f config.cache && ./cvscompile.sh && make dist
   build_pentiumpro
   build_pentium
   build_k6
@@ -164,7 +175,7 @@ main() {
 build_arch() {
       rm -rf $SLCK
       mkdir -p $SLCK
-      rm -f config.cache && ./autogen.sh && make dist
+      rm -f config.cache && ./cvscompile.sh && make dist
       $barch
       mv -f $CWD/@TAR_NAME@.tar.gz $SLCK
 }

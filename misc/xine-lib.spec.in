@@ -64,8 +64,8 @@ rm -rf $RPM_BUILD_ROOT
 %files
 %defattr(-,root,root)
 %{prefix}/bin/xine-config
-%{prefix}/man/man1/xine.*
-%{prefix}/man/fr/man1/xine.*
+%{prefix}/man/man3/xine-lib.*
+%{prefix}/man/fr/man3/xine-lib.*
 %{prefix}/include/xine/*.h
 %{prefix}/include/xine.h
 %{prefix}/lib/xine/plugins/*.la
