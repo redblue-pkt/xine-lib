@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.34 2002/04/12 01:39:07 miguelfreitas Exp $
+ * $Id: demux_asf.c,v 1.35 2002/04/19 22:57:07 miguelfreitas Exp $
  *
  * demultiplexer for asf streams
  *
@@ -745,7 +745,7 @@ static void asf_send_buffer_nodefrag (demux_asf_t *this, asf_stream_t *stream,
 
     buf->pts        = timestamp * 90;
 
-    if (buf->pts && this->send_discontinuity) {
+    if (buf->pts && this->send_discontinuity && this->keyframe_found) {
       this->send_discontinuity--;
       if( !this->send_discontinuity )
         asf_send_discontinuity (this, buf->pts);
@@ -783,6 +783,9 @@ static void asf_send_buffer_nodefrag (demux_asf_t *this, asf_stream_t *stream,
     } else 
       buf->decoder_flags   = 0;
 
+    if( !this->keyframe_found )
+      buf->decoder_flags   |= BUF_FLAG_PREVIEW;
+    
     stream->fifo->put (stream->fifo, buf);
   }
 }
@@ -858,6 +861,9 @@ static void asf_send_buffer_defrag (demux_asf_t *this, asf_stream_t *stream,
 	    else 
 	      buf->decoder_flags = 0;
 	  
+	    if( !this->keyframe_found )
+	      buf->decoder_flags   |= BUF_FLAG_PREVIEW;
+	      
 	    stream->fifo->put (stream->fifo, buf);
 	  }
 	}
@@ -956,12 +962,16 @@ static void asf_read_packet(demux_asf_t *this) {
 #endif
     for (i=0; i<this->num_streams; i++){
       if (this->streams[i].stream_id == stream_id && (stream_id==1
-       ||  stream_id==id))
+       ||  stream_id==id)) {
 	stream = &this->streams[i];
 	nb_p_c++;
-     }
-    this->keyframe_found = 1;
+	
+	if( raw_id & 0x80 )
+	  this->keyframe_found = 1;
+      }
+    }
   }
+   
 
   seq           = get_byte(this);
   switch (this->segtype){
@@ -1262,7 +1272,7 @@ static void demux_asf_start (demux_plugin_t *this_gen,
   
     if (this->input->get_capabilities (this->input) & INPUT_CAP_SEEKABLE)
       this->input->seek (this->input, 0, SEEK_SET);
-
+                                       
     if (!asf_read_header (this)) {
     
       this->status = DEMUX_FINISHED;
@@ -1283,12 +1293,13 @@ static void demux_asf_start (demux_plugin_t *this_gen,
     xine_flush_engine(this->xine);
   }
   
-  if( this->status == DEMUX_OK )
+  if( this->status == DEMUX_OK ) {
     /*
      * seek to start position
      */
     this->send_discontinuity       = 2;
     this->last_video_pts           = 0;
+    this->keyframe_found           = 0;
 
     if (this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) {
 
@@ -1305,14 +1316,13 @@ static void demux_asf_start (demux_plugin_t *this_gen,
      * now start demuxing
      */
 
-    this->keyframe_found = 0;
-
     if( starting ) {
       if ((err = pthread_create (&this->thread,
 			       NULL, demux_asf_loop, this)) != 0) {
-      printf ("demux_asf: can't create new thread (%s)\n",
+        printf ("demux_asf: can't create new thread (%s)\n",
 	      strerror(err));
-      exit (1);
+        exit (1);
+      }
     }
   }
   
