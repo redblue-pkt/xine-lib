@@ -29,7 +29,7 @@
    \endverbatim
  */
 /*
- * $Id: xine.h.tmpl.in,v 1.30 2001/07/18 21:38:16 f1rmb Exp $
+ * $Id: xine.h.tmpl.in,v 1.31 2001/07/22 17:50:37 guenter Exp $
  *
  */
 
@@ -74,33 +74,33 @@ struct config_values_s {
   /*
    * lookup config values
    */
-  char* (*lookup_str) (config_values_t *this,
+  char* (*lookup_str) (config_values_t *self,
 		       char *key, char *str_default);
   
-  int (*lookup_int) (config_values_t *this,
+  int (*lookup_int) (config_values_t *self,
 		     char *key, int n_default);
   
   /*
    * set config values
    */
   
-  void (*set_str) (config_values_t *this,
+  void (*set_str) (config_values_t *self,
 		   char *key, char *value) ;
   
-  void (*set_int) (config_values_t *this,
+  void (*set_int) (config_values_t *self,
 		   char *key, int value) ;
   
   /*
    * write config file to disk
    */
-  void (*save) (config_values_t *this);
+  void (*save) (config_values_t *self);
 
   /*
    * read config file from disk, ovverriding values in memory
    * if you also want to clear values that are not in the file,
    * use _init instead!
    */
-  void (*read) (config_values_t *this, char *filename);
+  void (*read) (config_values_t *self, char *filename);
 };
 
 /*
@@ -138,37 +138,37 @@ typedef void vo_overlay_t;
 
 struct vo_driver_s {
 
-  uint32_t (*get_capabilities) (vo_driver_t *this); /* for constants see above */
+  uint32_t (*get_capabilities) (vo_driver_t *self); /* for constants see above */
 
   /* 
    * allocate an vo_frame_t struct,
    * the driver must supply the copy, field and dispose functions
    */
-  vo_frame_t* (*alloc_frame) (vo_driver_t *this);
+  vo_frame_t* (*alloc_frame) (vo_driver_t *self);
 
 
   /* 
    * check if the given image fullfills the format specified
    * (re-)allocate memory if necessary
    */
-  void (*update_frame_format) (vo_driver_t *this, vo_frame_t *img,
+  void (*update_frame_format) (vo_driver_t *self, vo_frame_t *img,
 			       uint32_t width, uint32_t height, 
 			       int ratio_code, int format);
 
   /* display a given frame */
-  void (*display_frame) (vo_driver_t *this, vo_frame_t *vo_img);
+  void (*display_frame) (vo_driver_t *self, vo_frame_t *vo_img);
 
   /* overlay functions */
-  void (*overlay_blend) (vo_driver_t *this, vo_frame_t *vo_img, vo_overlay_t *overlay);
+  void (*overlay_blend) (vo_driver_t *self, vo_frame_t *vo_img, vo_overlay_t *overlay);
 
   /*
    * these can be used by the gui directly:
    */
   
-  int (*get_property) (vo_driver_t *this, int property);
-  int (*set_property) (vo_driver_t *this, 
+  int (*get_property) (vo_driver_t *self, int property);
+  int (*set_property) (vo_driver_t *self, 
 		       int property, int value);
-  void (*get_property_min_max) (vo_driver_t *this,
+  void (*get_property_min_max) (vo_driver_t *self,
 				int property, int *min, int *max);
 
   /*
@@ -178,10 +178,10 @@ struct vo_driver_s {
    * etc. to the driver
    */
 
-  int (*gui_data_exchange) (vo_driver_t *this, int data_type,
+  int (*gui_data_exchange) (vo_driver_t *self, int data_type,
 			    void *data);
 
-  void (*exit) (vo_driver_t *this);
+  void (*exit) (vo_driver_t *self);
 
 };
 
@@ -321,14 +321,14 @@ xine_t *xine_init (vo_driver_t *vo,
 		   gui_branched_cb_t branched_cb);
 
 /**
- * \fn void xine_exit (xine_t *this)
+ * \fn void xine_exit (xine_t *self)
  * \brief De-initialisation of xine
- * \param this Current xine engine configuration ( #see xine_init() )
+ * \param self Current xine engine configuration ( #see xine_init() )
  * \return Nothing
  *
  * De init xine engine.
  */
-void xine_exit (xine_t *this);
+void xine_exit (xine_t *self);
 
 /** @} end of xine_init_api */
 
@@ -338,9 +338,9 @@ void xine_exit (xine_t *this);
  * @{
  */
 /**
- * \fn void xine_play (xine_t *this, char *MRL, int pos)
+ * \fn void xine_play (xine_t *self, char *MRL, int pos)
  * \brief Start to play a stream
- * \param this Current xine engine configuration ( #see xine_init() )
+ * \param self Current xine engine configuration ( #see xine_init() )
  * \param MRL Media Resource Location to open
  * \param pos Start from position (0..65535)
  * \return Nothing
@@ -348,99 +348,99 @@ void xine_exit (xine_t *this);
  * Open a stream and play it
  *
  */
-void xine_play (xine_t *this, char *MRL, int pos);
+void xine_play (xine_t *self, char *MRL, int pos);
 
 
 /**
- * \fn void xine_pause (xine_t *this)
+ * \fn void xine_pause (xine_t *self)
  * \brief Pause toggle
- * \param this Current xine engine configuration ( #see xine_init() )
+ * \param self Current xine engine configuration ( #see xine_init() )
  * \return Nothing
  *
  * Toggle pause mode.
  */
-void xine_pause (xine_t *this);
+void xine_pause (xine_t *self);
 
 
 /**
- * \fn void xine_stop (xine_t *this)
+ * \fn void xine_stop (xine_t *self)
  * \brief Stop playing
- * \param this Current xine engine configuration ( #see xine_init() )
+ * \param self Current xine engine configuration ( #see xine_init() )
  * \return Nothing
  *
  * Stop the playback.
  */
-void xine_stop (xine_t *this);
+void xine_stop (xine_t *self);
 
 /**
- * \fn int xine_eject(xine_t *this)
+ * \fn int xine_eject(xine_t *self)
  * \brief Eject media
- * \param this Current xine engine configuration ( #see xine_init() )
+ * \param self Current xine engine configuration ( #see xine_init() )
  * \return 1 on success, 0 on failure.
  *
  * Tell current input plugin to eject media.
  */
-int xine_eject(xine_t *this);
+int xine_eject(xine_t *self);
 
 /**
- * \fn int xine_get_status (xine_t *this)
+ * \fn int xine_get_status (xine_t *self)
  * \brief Get current xine status
- * \param this Current xine engine configuration ( #see xine_init() )
+ * \param self Current xine engine configuration ( #see xine_init() )
  * \return Current status ( #see @ref statgroup )
  *
  * Return the current state of xine engine.
  */
-int xine_get_status (xine_t *this);
+int xine_get_status (xine_t *self);
 
 /**
- * \fn int xine_get_current_position (xine_t *this)
+ * \fn int xine_get_current_position (xine_t *self)
  * \brief Get current position
- * \param this Current xine engine configuration ( #see xine_init() )
+ * \param self Current xine engine configuration ( #see xine_init() )
  * \return Current position ( 0..65535 )
  *
  * Get current position in stream.
  */
-int xine_get_current_position (xine_t *this);
+int xine_get_current_position (xine_t *self);
 
 /**
- * \fn int xine_get_audio_channel (xine_t *this)
+ * \fn int xine_get_audio_channel (xine_t *self)
  * \brief Get current audio channel
- * \param this Current xine engine configuration ( #see xine_init() )
+ * \param self Current xine engine configuration ( #see xine_init() )
  * \return Current audio chennel
  *
  * Get current audio channel.
  */
-int xine_get_audio_channel (xine_t *this);
+int xine_get_audio_channel (xine_t *self);
 
 /**
- * \fn void xine_select_audio_channel (xine_t *this, int channel)
+ * \fn void xine_select_audio_channel (xine_t *self, int channel)
  * \brief Set audio channel
- * \param this Current xine engine configuration ( #see xine_init() )
+ * \param self Current xine engine configuration ( #see xine_init() )
  * \return Nothing
  *
  * Set desired audio channel.
  */
-void xine_select_audio_channel (xine_t *this, int channel);
+void xine_select_audio_channel (xine_t *self, int channel);
 
 /**
- * \fn int xine_get_spu_channel (xine_t *this)
+ * \fn int xine_get_spu_channel (xine_t *self)
  * \brief Get current sub-title channel.
- * \param this Current xine engine configuration ( #see xine_init() )
+ * \param self Current xine engine configuration ( #see xine_init() )
  * \return Current sub-title channel
  *
  * Get current sub-title channel.
  */
-int xine_get_spu_channel (xine_t *this);
+int xine_get_spu_channel (xine_t *self);
 
 /**
- * \fn void xine_select_spu_channel (xine_t *this, int channel)
+ * \fn void xine_select_spu_channel (xine_t *self, int channel)
  * \brief Set sub-title channel
- * \param this Current xine engine configuration ( #see xine_init() )
+ * \param self Current xine engine configuration ( #see xine_init() )
  * \return Nothing
  *
  * Set desired sub-title channel.
  */
-void xine_select_spu_channel (xine_t *this, int channel);
+void xine_select_spu_channel (xine_t *self, int channel);
 
 
 /**
@@ -449,15 +449,15 @@ void xine_select_spu_channel (xine_t *this, int channel);
  * @{
  */
 /**
- * \fn char **xine_get_browsable_input_plugin_ids (xine_t *this)
+ * \fn char **xine_get_browsable_input_plugin_ids (xine_t *self)
  * \brief Request list of browsable featured plugins
- * \param this Current xine engine configuration ( #see xine_init() )
+ * \param self Current xine engine configuration ( #see xine_init() )
  * \return List of plugins
  *
  * Some input plugins are browseable, 
  * get the list of ids of these plugins.
  */
-char **xine_get_browsable_input_plugin_ids (xine_t *this) ;
+char **xine_get_browsable_input_plugin_ids (xine_t *self) ;
 
 /* Types of mrls returned by get_dir() */
 #define mrl_unknown        (0 << 0)
@@ -566,9 +566,9 @@ typedef struct {
 } mrl_t;
 
 /**
- * \fn mrl_t **xine_get_browse_mrls (xine_t *this, char *plugin_id, char *start_mrl)
+ * \fn mrl_t **xine_get_browse_mrls (xine_t *self, char *plugin_id, char *start_mrl)
  *  \brief Request available MRLs from plugins
- * \param this Current xine engine configuration ( #see xine_init() )
+ * \param self Current xine engine configuration ( #see xine_init() )
  * \param plugin_id Plugin name ( #see xine_get_browsable_input_plugin_ids() )
  * \param start_mrl MRL
  * \return start_mrl on success, NULL on failure.
@@ -581,7 +581,7 @@ typedef struct {
  * returns NULL if <start_mrl> is an invalid MRL, not even a directory.
  */
 
-mrl_t **xine_get_browse_mrls (xine_t *this, char *plugin_id, char *start_mrl);
+mrl_t **xine_get_browse_mrls (xine_t *self, char *plugin_id, char *start_mrl);
 
 /** @} end of browsegroup*/
 
@@ -590,26 +590,26 @@ mrl_t **xine_get_browse_mrls (xine_t *this, char *plugin_id, char *start_mrl);
  * @{
  */
 /**
- * \fn char **xine_get_autoplay_input_plugin_ids (xine_t *this)
+ * \fn char **xine_get_autoplay_input_plugin_ids (xine_t *self)
  * \brief Request playlist from plugin
- * \param this Current xine engine configuration ( #see xine_init() )
+ * \param self Current xine engine configuration ( #see xine_init() )
  * \return Playlist.
  *
  * Some input plugins can generate autoplay lists
  * returns a list of ids of these plugins.
  */
-char **xine_get_autoplay_input_plugin_ids (xine_t *this) ;
+char **xine_get_autoplay_input_plugin_ids (xine_t *self) ;
 
 /**
- * \fn char **xine_get_autoplay_mrls (xine_t *this, char *plugin_id)
+ * \fn char **xine_get_autoplay_mrls (xine_t *self, char *plugin_id)
  * \brief Request MRL list from plugin
- * \param this Current xine engine configuration ( #see xine_init() )
+ * \param self Current xine engine configuration ( #see xine_init() )
  * \param plugin_id Plugin name ( #see xine_get_autoplay_input_plugin_ids() )
  * \return MRL list.
  *
  * Get autoplay MRL list for input plugin named <plugin_id>.
  */
-char **xine_get_autoplay_mrls (xine_t *this, char *plugin_id);
+char **xine_get_autoplay_mrls (xine_t *self, char *plugin_id);
 
 /** @} end of autoplaygroup */
 
@@ -677,7 +677,7 @@ typedef void (*event_listener_t) (xine_t *xine, event_t *event, void *data);
  * \return 0 if the listener was registerd, non-zero if it could not.
  */
 
-int xine_register_event_listener(xine_t *this, event_listener_t *listener);
+int xine_register_event_listener(xine_t *self, event_listener_t *listener);
 
 /**
  * \fn xine_remove_event_listener(event_listener_t *listener)
@@ -685,14 +685,14 @@ int xine_register_event_listener(xine_t *this, event_listener_t *listener);
  * \return 0 if the listener was removes, non-zero if it wasn't (e.g. not found).
  */
 
-int xine_remove_event_listener(xine_t *this, event_listener_t *listener);
+int xine_remove_event_listener(xine_t *self, event_listener_t *listener);
 
 /**
  * \fn xine_send_event(event_t *event)
  * \brief sends an event to all listeners.
  */
 
-void xine_send_event(xine_t *this, event_t *event, void *data);
+void xine_send_event(xine_t *self, event_t *event, void *data);
 
 /** @} end of eventgroup */
 
