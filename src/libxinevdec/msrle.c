@@ -21,7 +21,7 @@
  * For more information on the MS RLE format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  * 
- * $Id: msrle.c,v 1.7 2002/09/05 22:19:03 mroi Exp $
+ * $Id: msrle.c,v 1.8 2002/10/20 18:01:01 tmmm Exp $
  */
 
 #include <stdio.h>
@@ -38,11 +38,17 @@
 
 #define VIDEOBUFSIZE 128*1024
 
+typedef struct {
+  video_decoder_class_t   decoder_class;
+} msrle_class_t;
+
 typedef struct msrle_decoder_s {
   video_decoder_t   video_decoder;  /* parent video decoder structure */
 
+  msrle_class_t    *class;
+  xine_stream_t    *stream;
+
   /* these are traditional variables in a video decoder object */
-  vo_instance_t    *video_out;   /* object that will receive frames */
   uint64_t          video_step;  /* frame duration in pts units */
   int               decoder_ok;  /* current decoder status */
   int               skipframes;
@@ -166,22 +172,6 @@ void decode_msrle8(msrle_decoder_t *this) {
  *************************************************************************/
 
 /*
- * This function is responsible is called to initialize the video decoder
- * for use. Initialization usually involves setting up the fields in your
- * private video decoder object.
- */
-static void msrle_init (video_decoder_t *this_gen, 
-  vo_instance_t *video_out) {
-  msrle_decoder_t *this = (msrle_decoder_t *) this_gen;
-
-  /* set our own video_out object to the one that xine gives us */
-  this->video_out  = video_out;
-
-  /* indicate that the decoder is not quite ready yet */
-  this->decoder_ok = 0;
-}
-
-/*
  * This function receives a buffer of data from the demuxer layer and
  * figures out how to handle it based on its header flags.
  */
@@ -213,7 +203,7 @@ static void msrle_decode_data (video_decoder_t *this_gen,
   }
 
   if (buf->decoder_flags & BUF_FLAG_HEADER) { /* need to initialize */
-    this->video_out->open (this->video_out);
+    this->stream->video_out->open (this->stream->video_out);
 
     if(this->buf)
       free(this->buf);
@@ -229,7 +219,7 @@ static void msrle_decode_data (video_decoder_t *this_gen,
     this->buf = malloc(this->bufsize);
     this->size = 0;
 
-    this->video_out->open (this->video_out);
+    this->stream->video_out->open (this->stream->video_out);
     this->decoder_ok = 1;
 
     init_yuv_planes(&this->yuv_planes, this->width, this->height);
@@ -251,7 +241,7 @@ static void msrle_decode_data (video_decoder_t *this_gen,
 
     if (buf->decoder_flags & BUF_FLAG_FRAME_END) {
 
-      img = this->video_out->get_frame (this->video_out,
+      img = this->stream->video_out->get_frame (this->stream->video_out,
                                         this->width, this->height,
                                         XINE_VO_ASPECT_DONT_TOUCH, XINE_IMGFMT_YUY2, VO_BOTH_FIELDS);
 
@@ -299,11 +289,9 @@ static void msrle_reset (video_decoder_t *this_gen) {
 }
 
 /*
- * This function is called when xine shuts down the decoder. It should
- * free any memory and release any other resources allocated during the
- * execution of the decoder.
+ * This function frees the video decoder instance allocated to the decoder.
  */
-static void msrle_close (video_decoder_t *this_gen) {
+static void msrle_dispose (video_decoder_t *this_gen) {
   msrle_decoder_t *this = (msrle_decoder_t *) this_gen;
 
   if (this->buf) {
@@ -313,44 +301,55 @@ static void msrle_close (video_decoder_t *this_gen) {
 
   if (this->decoder_ok) {
     this->decoder_ok = 0;
-    this->video_out->close(this->video_out);
+    this->stream->video_out->close(this->stream->video_out);
   }
-}
 
-/*
- * This function returns the human-readable ID string to identify 
- * this decoder.
- */
-static char *msrle_get_id(void) {
-  return "Microsoft RLE";
-}
-
-/*
- * This function frees the video decoder instance allocated to the decoder.
- */
-static void msrle_dispose (video_decoder_t *this_gen) {
   free (this_gen);
 }
 
-/*
- * This function should be the plugin's only advertised function to the
- * outside world. It allows xine to query the plugin module for the addresses
- * to the necessary functions in the video decoder object.
- */
-static void *init_video_decoder_plugin (xine_t *xine, void *data) {
+static video_decoder_t *open_plugin (video_decoder_class_t *class_gen, xine_stream_t *stream) {
 
-  msrle_decoder_t *this ;
+  msrle_decoder_t  *this ;
 
-  this = (msrle_decoder_t *) malloc (sizeof (msrle_decoder_t));
-  memset(this, 0, sizeof (msrle_decoder_t));
+  this = (msrle_decoder_t *) xine_xmalloc (sizeof (msrle_decoder_t));
 
-  this->video_decoder.init                = msrle_init;
   this->video_decoder.decode_data         = msrle_decode_data;
   this->video_decoder.flush               = msrle_flush;
   this->video_decoder.reset               = msrle_reset;
-  this->video_decoder.close               = msrle_close;
-  this->video_decoder.get_identifier      = msrle_get_id;
   this->video_decoder.dispose             = msrle_dispose;
+  this->size                              = 0;
+
+  this->stream                            = stream;
+  this->class                             = (msrle_class_t *) class_gen;
+
+  this->decoder_ok    = 0;
+  this->buf           = NULL;
+
+  return &this->video_decoder;
+}
+
+static char *get_identifier (video_decoder_class_t *this) {
+  return "MS RLE";
+}
+
+static char *get_description (video_decoder_class_t *this) {
+  return "Microsoft RLE video decoder plugin";
+}
+
+static void dispose_class (video_decoder_class_t *this) {
+  free (this);
+}
+
+static void *init_plugin (xine_t *xine, void *data) {
+
+  msrle_class_t *this;
+
+  this = (msrle_class_t *) xine_xmalloc (sizeof (msrle_class_t));
+
+  this->decoder_class.open_plugin     = open_plugin;
+  this->decoder_class.get_identifier  = get_identifier;
+  this->decoder_class.get_description = get_description;
+  this->decoder_class.dispose         = dispose_class;
 
   return this;
 }
@@ -371,6 +370,6 @@ static decoder_info_t dec_info_video = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_VIDEO_DECODER, 10, "msrle", XINE_VERSION_CODE, &dec_info_video, init_video_decoder_plugin },
+  { PLUGIN_VIDEO_DECODER, 11, "msrle", XINE_VERSION_CODE, &dec_info_video, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
