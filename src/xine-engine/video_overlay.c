@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_overlay.c,v 1.16 2002/03/14 13:57:15 miguelfreitas Exp $
+ * $Id: video_overlay.c,v 1.17 2002/03/21 16:21:03 miguelfreitas Exp $
  *
  */
 
@@ -328,16 +328,19 @@ static void video_overlay_print_overlay( vo_overlay_t *ovl ) {
 /*
    process overlay events
    if vpts == 0 will process everything now (used in flush)
+   return true if something has been processed
 */
-static void video_overlay_event( video_overlay_t *this, int64_t vpts ) {
+static int video_overlay_event( video_overlay_t *this, int64_t vpts ) {
   int32_t      handle;
   uint32_t     this_event;
+  int          processed = 0;
   
   pthread_mutex_lock (&this->video_overlay_events_mutex);
   
   this_event=this->video_overlay_events[0].next_event;
   while ( this_event && (vpts > this->video_overlay_events[this_event].event->vpts ||
           vpts == 0) ) {
+    processed++;
     handle=this->video_overlay_events[this_event].event->object.handle;
     switch( this->video_overlay_events[this_event].event->event_type ) {
       case EVENT_SHOW_SPU:
@@ -597,6 +600,8 @@ static void video_overlay_event( video_overlay_t *this, int64_t vpts ) {
   }
   
   pthread_mutex_unlock (&this->video_overlay_events_mutex);
+
+  return processed;
 }
   
 /* This is called from video_out.c 
@@ -636,6 +641,17 @@ static void video_overlay_flush_events(video_overlay_instance_t *this_gen )
   video_overlay_event( this, 0 );
 }
 
+/* this is called from video_out.c on still frames to check 
+   if a redraw is needed.
+*/
+static int video_overlay_redraw_needed(video_overlay_instance_t *this_gen, int64_t vpts )
+{
+  video_overlay_t *this = (video_overlay_t *) this_gen;
+  
+  return video_overlay_event( this, vpts );
+}
+
+
 static void video_overlay_dispose(video_overlay_instance_t *this_gen) {
 
   video_overlay_t *this = (video_overlay_t *) this_gen;
@@ -663,6 +679,7 @@ video_overlay_instance_t *video_overlay_new_instance () {
   this->video_overlay.free_handle         = video_overlay_free_handle;
   this->video_overlay.add_event           = video_overlay_add_event;
   this->video_overlay.flush_events        = video_overlay_flush_events;
+  this->video_overlay.redraw_needed       = video_overlay_redraw_needed;
   this->video_overlay.multiple_overlay_blend = video_overlay_multiple_overlay_blend;
 
   return (video_overlay_instance_t *) &this->video_overlay;

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.82 2002/03/21 12:58:20 miguelfreitas Exp $
+ * $Id: video_out.c,v 1.83 2002/03/21 16:21:02 miguelfreitas Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -60,7 +60,8 @@ typedef struct {
   vo_frame_t               *last_frame;
   vo_frame_t               *img_backup;
   int                       backup_is_logo;
-
+  int                       redraw_needed;
+  
   int                       video_loop_running;
   int                       video_opened;
   pthread_t                 video_thread;
@@ -453,15 +454,16 @@ static vo_frame_t *get_next_frame (vos_t *this, int64_t cur_vpts) {
       this->img_backup->decoder_locked = 0;
       this->img_backup->display_locked = 1;
       this->img_backup->driver_locked  = 0;
-      this->img_backup->duration       = 10000;
+      this->img_backup->duration       = 3000;
 
       xine_fast_memcpy(this->img_backup->base[0], this->logo_yuy2,
 		       this->logo_w*this->logo_h*2);
 
       this->backup_is_logo = 1;
+      this->redraw_needed = 1;
     }
 
-    if (this->img_backup) {
+    if (this->img_backup && this->redraw_needed) {
 
 #ifdef LOG
       printf("video_out: generating still frame (cur_vpts = %lld) \n",
@@ -576,8 +578,25 @@ static void overlay_and_display_frame (vos_t *this,
 						  this->video_loop_running && this->overlay_enabled);
   }
   
-  this->driver->display_frame (this->driver, img); 
+  this->driver->display_frame (this->driver, img);
+  
+  this->redraw_needed = 0; 
 }
+
+static void check_redraw_needed (vos_t *this, int64_t vpts) {
+
+  if (this->overlay_source) {
+    /* This is the only way for the overlay manager to get pts values
+     * for flushing its buffers. So don't remove it! */
+    
+    if( this->overlay_source->redraw_needed (this->overlay_source, vpts) )
+      this->redraw_needed = 1; 
+  }
+  
+  if( this->driver->redraw_needed (this->driver) )
+    this->redraw_needed = 1;
+}
+
 
 static void *video_out_loop (void *this_gen) {
 
@@ -621,6 +640,10 @@ static void *video_out_loop (void *this_gen) {
       printf ("video_out: displaying frame (id=%d)\n", img->id);
 #endif
       overlay_and_display_frame (this, img);
+    }
+    else
+    {
+      check_redraw_needed( this, vpts );
     }
 
     /*
@@ -666,15 +689,6 @@ static void *video_out_loop (void *this_gen) {
 	      usec_to_sleep, vpts);
 #endif
       
-      /*
-      if( usec_to_sleep > 1000000 )
-      {
-        printf ("video_out: master clock changed\n"); 
-        next_frame_vpts = vpts;
-        usec_to_sleep = 0;
-      }
-      */
-
       if (usec_to_sleep>0) 
 	xine_usec_sleep (usec_to_sleep);
 

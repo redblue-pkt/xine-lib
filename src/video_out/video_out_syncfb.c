@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_syncfb.c,v 1.56 2002/03/18 11:01:07 richwareham Exp $
+ * $Id: video_out_syncfb.c,v 1.57 2002/03/21 16:21:01 miguelfreitas Exp $
  * 
  * video_out_syncfb.c, SyncFB (for Matrox G200/G400 cards) interface for xine
  * 
@@ -746,6 +746,32 @@ static void syncfb_flush_recent_frames (syncfb_driver_t *this) {
 }
 #endif
 
+static int syncfb_redraw_needed (vo_driver_t *this_gen) {
+  syncfb_driver_t  *this = (syncfb_driver_t *) this_gen;
+  int gui_x, gui_y, gui_width, gui_height;
+  int ret = 0;
+  
+  this->frame_output_cb (this->user_data,
+			 this->ideal_width, this->ideal_height, 
+			 &gui_x, &gui_y, &gui_width, &gui_height);
+
+  if ( (gui_x != this->gui_x) || (gui_y != this->gui_y)
+      || (gui_width != this->gui_width) || (gui_height != this->gui_height) ) {
+
+    this->gui_x      = gui_x;
+    this->gui_y      = gui_y;
+    this->gui_width  = gui_width;
+    this->gui_height = gui_height;
+      
+    syncfb_compute_output_size (this);
+
+    syncfb_clean_output_area (this);
+    
+    ret = 1;
+  }
+  
+  return ret;
+}
 
 static void syncfb_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
 
@@ -760,7 +786,6 @@ static void syncfb_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) 
     printf ("video_out_xv: xv_display_frame... not displayed, waiting for completion event\n");
 
   } else {
-  int gui_x, gui_y, gui_width, gui_height;
 
     /* 
      * queue frames (deinterlacing)
@@ -797,25 +822,9 @@ static void syncfb_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) 
      * ask for offset and output size
      */
 
-    this->frame_output_cb (this->user_data,
-			   this->ideal_width, this->ideal_height, 
-			   &gui_x, &gui_y, &gui_width, &gui_height);
-
-    if ( (gui_x != this->gui_x) || (gui_y != this->gui_y)
-	 || (gui_width != this->gui_width) || (gui_height != this->gui_height) ) {
-
-      this->gui_x      = gui_x;
-      this->gui_y      = gui_y;
-      this->gui_width  = gui_width;
-      this->gui_height = gui_height;
-
-      syncfb_compute_output_size (this);
-
-      syncfb_clean_output_area (this);
-    }
-
+    syncfb_redraw_needed( this_gen );
     
-   /* the rest is only successful and safe, if the overlay is really on */
+    /* the rest is only successful and safe, if the overlay is really on */
     if(this->overlay_state) {
       if(this->bufinfo.id != -1) {
 	printf("video_out_syncfb: error. (invalid syncfb image buffer state)\n");
@@ -838,7 +847,6 @@ static void syncfb_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) 
        printf("video_out_syncfb: error. (commit ioctl failed)\n");
     }
     
-    frame->vo_frame.displayed(&frame->vo_frame);
     this->bufinfo.id = -1;   
   }
 }
@@ -1200,6 +1208,7 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
   this->vo_driver.get_property_min_max = syncfb_get_property_min_max;
   this->vo_driver.gui_data_exchange    = syncfb_gui_data_exchange;
   this->vo_driver.exit                 = syncfb_exit;
+  this->vo_driver.redraw_needed        = syncfb_redraw_needed;
 
   /*
    * init properties
@@ -1221,7 +1230,7 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
 }
 
 static vo_info_t vo_info_syncfb = {
-  4,
+  5,
   "SyncFB",
   "xine video output plugin using the SyncFB module for Matrox G200/G400 cards",
   VISUAL_TYPE_X11,

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.h,v 1.50 2002/03/14 13:57:15 miguelfreitas Exp $
+ * $Id: video_out.h,v 1.51 2002/03/21 16:21:02 miguelfreitas Exp $
  *
  *
  * xine version of video_out.h 
@@ -259,7 +259,7 @@ struct vo_instance_s {
  * from generic vo functions.
  */
 
-#define VIDEO_OUT_DRIVER_IFACE_VERSION 4
+#define VIDEO_OUT_DRIVER_IFACE_VERSION 5
 
 struct vo_driver_s {
 
@@ -307,6 +307,12 @@ struct vo_driver_s {
 			    void *data);
 
   void (*exit) (vo_driver_t *this);
+  
+  /* check if a redraw is needed (due to resize)
+   * this is only used for still frames, normal video playback 
+   * must call that inside display_frame() function.
+   */
+  int (*redraw_needed) (vo_driver_t *this);
 
 };
 
@@ -353,6 +359,8 @@ struct video_overlay_instance_s {
   int32_t (*add_event) (video_overlay_instance_t *this_gen, void *event);
   
   void (*flush_events) (video_overlay_instance_t *this_gen );
+  
+  int (*redraw_needed) (video_overlay_instance_t *this_gen, int64_t vpts );
   
   void (*multiple_overlay_blend) (video_overlay_instance_t *this_gen, int64_t vpts, 
                                   vo_driver_t *output, vo_frame_t *vo_img, int enabled);
