@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.57 2001/11/20 14:00:36 miguelfreitas Exp $
+ * $Id: load_plugins.c,v 1.58 2001/11/25 13:31:24 miguelfreitas Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -717,7 +717,7 @@ vo_driver_t *xine_load_video_output_plugin(config_values_t *config,
 	  if ((getinfo = dlsym(plugin, "get_video_out_plugin_info")) != NULL) {
 	    vo_info = getinfo();
 
-	    if (!strcmp(id, vo_info->id) ) {
+	    if (!strcasecmp(id, vo_info->id) ) {
 
 	      if (vo_info->interface_version == VIDEO_OUT_IFACE_VERSION) {
 
@@ -904,7 +904,7 @@ ao_driver_t *xine_load_audio_output_plugin(config_values_t *config,
 	  if ((getinfo = dlsym(plugin, "get_audio_out_plugin_info")) != NULL) {
 	    ao_info = getinfo();
 	  
-	    if (!strcmp(id, ao_info->id)) {
+	    if (!strcasecmp(id, ao_info->id)) {
 	    
 	      if((initplug = dlsym(plugin, "init_audio_out_plugin")) != NULL) {
 		
