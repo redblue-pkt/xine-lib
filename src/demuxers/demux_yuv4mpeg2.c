@@ -22,7 +22,7 @@
  * tools, visit:
  *   http://mjpeg.sourceforge.net/
  *
- * $Id: demux_yuv4mpeg2.c,v 1.14 2002/12/21 12:56:46 miguelfreitas Exp $
+ * $Id: demux_yuv4mpeg2.c,v 1.15 2002/12/23 04:29:56 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -218,6 +218,7 @@ static int demux_yuv4mpeg2_send_chunk(demux_plugin_t *this_gen) {
 
     if (this->input->read(this->input, buf->content, buf->size) !=
       buf->size) {
+      buf->free_buffer(buf);
       this->status = DEMUX_FINISHED;
       break;
     }

@@ -21,7 +21,7 @@
  * For more information regarding the RoQ file format, visit:
  *   http://www.csse.monash.edu.au/~timf/
  *
- * $Id: demux_roq.c,v 1.33 2002/12/21 12:56:45 miguelfreitas Exp $
+ * $Id: demux_roq.c,v 1.34 2002/12/23 04:29:56 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -229,6 +229,7 @@ static int demux_roq_send_chunk(demux_plugin_t *this_gen) {
 
         if (this->input->read(this->input, buf->content, buf->size) !=
           buf->size) {
+          buf->free_buffer(buf);
           this->status = DEMUX_FINISHED;
           break;
         }
@@ -282,6 +283,7 @@ static int demux_roq_send_chunk(demux_plugin_t *this_gen) {
 
       if (this->input->read(this->input, buf->content, buf->size) !=
         buf->size) {
+        buf->free_buffer(buf);
         this->status = DEMUX_FINISHED;
         break;
       }
