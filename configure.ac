@@ -661,10 +661,13 @@ dnl		AC_MSG_RESULT([*** image decoder will be disabled ***]))],
 dnl	AC_MSG_RESULT([*** image decoder will be disabled ***]))
 dnl AM_CONDITIONAL(HAVE_LIBPNG, test x"$have_libpng" = "xyes")
 dnl AC_SUBST(PNG_LIBS)
-  
+
 AC_PATH_PROG(LIBPNG_CONFIG, libpng-config, no)
 if test "$LIBPNG_CONFIG" = "no" ; then
-  AC_MSG_RESULT([*** libpng-config not found, png support disabled ***])
+  AC_CHECK_LIB(png, png_create_read_struct,
+		  have_libpng=yes
+		  PNG_LIBS="-lpng",
+  AC_MSG_RESULT([*** All libpng dependent parts will be disabled ***]))
 else
   PNG_CFLAGS=`$LIBPNG_CONFIG --cflags`
   PNG_LIBS=`$LIBPNG_CONFIG --libs`
