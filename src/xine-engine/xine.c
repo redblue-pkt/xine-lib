@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.131 2002/05/21 14:35:52 f1rmb Exp $
+ * $Id: xine.c,v 1.132 2002/05/24 11:34:51 miguelfreitas Exp $
  *
  * top-level xine functions
  *
@@ -182,7 +182,7 @@ static void xine_internal_osd (xine_t *this, char *str,
              (seconds % (60*60)) / 60,
              seconds % 60);
     
-    this->osd_renderer->render_text (this->osd, 70, 5, tstr, OSD_TEXT1);
+    this->osd_renderer->render_text (this->osd, 45, 5, tstr, OSD_TEXT1);
   
     this->osd_renderer->show (this->osd, start_time);
     this->osd_renderer->hide (this->osd, start_time+duration);
