@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.27 2002/03/17 14:34:06 guenter Exp $
+ * $Id: demux_asf.c,v 1.28 2002/03/17 19:11:09 guenter Exp $
  *
  * demultiplexer for asf streams
  *
@@ -444,8 +444,7 @@ static int asf_read_header (demux_asf_t *this) {
       end_time =  get_le64 (this); 
       
       this->length = get_le64(this) / 10000000; 
-      if ( (this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE)
-	   && (this->length) )
+      if (this->length)
 	this->rate = this->input->get_length (this->input) / this->length;
       else
 	this->rate = 0;
@@ -725,6 +724,13 @@ static void asf_send_buffer_nodefrag (demux_asf_t *this, asf_stream_t *stream,
       buf->input_pos  = 0 ;
       buf->input_time = 0 ;
     }
+
+#ifdef LOG
+    printf ("demux_asf: input pos is %lld, input time is %d\n",
+	    buf->input_pos,
+	    buf->input_time);
+#endif
+
     buf->pts        = timestamp * 90;
 
     if (buf->pts && this->send_discontinuity) {
@@ -745,7 +751,7 @@ static void asf_send_buffer_nodefrag (demux_asf_t *this, asf_stream_t *stream,
       if ( (buf->type & BUF_MAJOR_MASK) == BUF_VIDEO_BASE) {
 	if (buf->pts && this->last_video_pts) 
 	  this->frame_duration = (3*this->frame_duration + (buf->pts - this->last_video_pts)) / 4;
-	
+
 	/*
 	printf ("demux_asf: frame_duration is %d\n", this->frame_duration);
 	*/
