@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ogg.c,v 1.43 2002/09/18 22:12:17 guenter Exp $
+ * $Id: demux_ogg.c,v 1.44 2002/09/19 02:00:26 guenter Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -59,7 +59,7 @@
 #define PTS_AUDIO                0
 #define PTS_VIDEO                1
 
-#define WRAP_THRESHOLD           120000
+#define WRAP_THRESHOLD           220000
 
 #define VALID_ENDS               "ogg,ogm"
 
@@ -165,6 +165,8 @@ static void check_newpts (demux_ogg_t *this, int64_t pts, int video, int preview
 
   if (!preview && pts &&
       (this->send_newpts || (this->last_pts[video] && abs(diff)>WRAP_THRESHOLD) ) ) {
+
+    printf ("demux_ogg: diff=%lld\n", diff);
 
     if (this->buf_flag_seek) {
       xine_demux_control_newpts(this->xine, pts, BUF_FLAG_SEEK);
