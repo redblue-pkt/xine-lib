@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.162 2003/03/18 23:41:48 hadess Exp $
+ * $Id: video_out_xv.c,v 1.163 2003/04/16 11:30:17 miguelfreitas Exp $
  *
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -66,10 +66,6 @@
 #include "xineutils.h"
 #include "vo_scale.h"
 
-#ifndef XShmGetEventBase
-extern int XShmGetEventBase(Display *);
-#endif
-
 /*
 #define LOG
 */
@@ -115,8 +111,7 @@ struct xv_driver_s {
   GC                 gc;
   XvPortID           xv_port;
   XColor             black;
-  int                expecting_event; /* completion event handling */
-  int                completion_event;
+
   int                use_shm;
   int                use_pitch_alignment;
   xv_property_t      props[VO_NUM_PROPERTIES];
@@ -690,95 +685,66 @@ static void xv_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
   printf ("video_out_xv: xv_display_frame...\n");
   */
   
-  if (this->expecting_event) {
-    XEvent event;
-    int received;
-    
-    /*
-     * fallback mechanism: try to get the event directly in case frontend has
-     * not forwarded it to us (yet).
-     */
-    XLockDisplay (this->display);
-    received = XCheckTypedEvent(this->display, this->completion_event, &event);
-    XUnlockDisplay (this->display);
+  /*
+   * queue frames (deinterlacing)
+   * free old frames
+   */
 
-    if(received)
-      this->expecting_event = 0;     
-  }  
-  
-  if (this->expecting_event) {
-    
-    frame->vo_frame.displayed (&frame->vo_frame);
-    this->expecting_event--;
+  xv_add_recent_frame (this, frame); /* deinterlacing */
+
+  this->cur_frame = frame;
+
+  /*
+   * let's see if this frame is different in size / aspect
+   * ratio from the previous one
+   */
+  if ( (frame->width != this->sc.delivered_width)
+       || (frame->height != this->sc.delivered_height)
+       || (frame->ratio_code != this->sc.delivered_ratio_code) ) {
 #ifdef LOG
-    printf ("video_out_xv: xv_display_frame... not displayed, waiting for completion event\n");
+    printf("video_out_xv: frame format changed\n");
 #endif
-  } else {
-
-    /*
-     * queue frames (deinterlacing)
-     * free old frames
-     */
-
-    xv_add_recent_frame (this, frame); /* deinterlacing */
-
-    this->cur_frame = frame;
-
-
-
-    /*
-     * let's see if this frame is different in size / aspect
-     * ratio from the previous one
-     */
-    if ( (frame->width != this->sc.delivered_width)
-         || (frame->height != this->sc.delivered_height)
-         || (frame->ratio_code != this->sc.delivered_ratio_code) ) {
-#ifdef LOG
-      printf("video_out_xv: frame format changed\n");
-#endif
-      this->sc.force_redraw = 1;    /* trigger re-calc of output size */
-    }
-
-    /*
-     * deinterlace frame if necessary
-     * (currently only working for YUV images)
-     */
-
-    if (this->deinterlace_enabled && this->deinterlace_method
-        && frame->format == XINE_IMGFMT_YV12)
-      xv_deinterlace_frame (this);
-
-    /*
-     * tell gui that we are about to display a frame,
-     * ask for offset and output size
-     */
-    xv_redraw_needed (this_gen);
-
-    XLockDisplay (this->display);
-
-    if (this->use_shm) {
-      XvShmPutImage(this->display, this->xv_port,
-		    this->drawable, this->gc, this->cur_frame->image,
-		    this->sc.displayed_xoffset, this->sc.displayed_yoffset,
-		    this->sc.displayed_width, this->sc.displayed_height,
-		    this->sc.output_xoffset, this->sc.output_yoffset,
-		    this->sc.output_width, this->sc.output_height, True);
-
-      this->expecting_event = 10;
-    } else {
-      XvPutImage(this->display, this->xv_port,
-		    this->drawable, this->gc, this->cur_frame->image,
-		    this->sc.displayed_xoffset, this->sc.displayed_yoffset,
-		    this->sc.displayed_width, this->sc.displayed_height,
-		    this->sc.output_xoffset, this->sc.output_yoffset,
-		    this->sc.output_width, this->sc.output_height);
-    }
-
-    XFlush(this->display);
-
-    XUnlockDisplay (this->display);
-
+    this->sc.force_redraw = 1;    /* trigger re-calc of output size */
   }
+
+  /*
+   * deinterlace frame if necessary
+   * (currently only working for YUV images)
+   */
+
+  if (this->deinterlace_enabled && this->deinterlace_method
+      && frame->format == XINE_IMGFMT_YV12)
+    xv_deinterlace_frame (this);
+
+  /*
+   * tell gui that we are about to display a frame,
+   * ask for offset and output size
+   */
+  xv_redraw_needed (this_gen);
+
+  XLockDisplay (this->display);
+
+  if (this->use_shm) {
+    XvShmPutImage(this->display, this->xv_port,
+                  this->drawable, this->gc, this->cur_frame->image,
+                  this->sc.displayed_xoffset, this->sc.displayed_yoffset,
+                  this->sc.displayed_width, this->sc.displayed_height,
+                  this->sc.output_xoffset, this->sc.output_yoffset,
+                  this->sc.output_width, this->sc.output_height, True);
+
+  } else {
+    XvPutImage(this->display, this->xv_port,
+               this->drawable, this->gc, this->cur_frame->image,
+               this->sc.displayed_xoffset, this->sc.displayed_yoffset,
+               this->sc.displayed_width, this->sc.displayed_height,
+               this->sc.output_xoffset, this->sc.output_yoffset,
+               this->sc.output_width, this->sc.output_height);
+  }
+
+  XSync(this->display, False);
+
+  XUnlockDisplay (this->display);
+
   /*
   printf ("video_out_xv: xv_display_frame... done\n");
   */
@@ -909,23 +875,12 @@ static int xv_gui_data_exchange (vo_driver_t *this_gen,
   xv_driver_t     *this = (xv_driver_t *) this_gen;
 
   switch (data_type) {
-  case XINE_GUI_SEND_COMPLETION_EVENT: {
-
-    XShmCompletionEvent *cev = (XShmCompletionEvent *) data;
-
-    if (cev->drawable == this->drawable) {
-      this->expecting_event = 0;
-
-    }
-
-  }
-  break;
+  case XINE_GUI_SEND_COMPLETION_EVENT:
+    break;
 
   case XINE_GUI_SEND_EXPOSE_EVENT: {
 
     /* XExposeEvent * xev = (XExposeEvent *) data; */
-
-    /* FIXME : take care of completion events */
 
     if (this->cur_frame) {
       int i;
@@ -957,7 +912,7 @@ static int xv_gui_data_exchange (vo_driver_t *this_gen,
                          this->sc.border[i].w, this->sc.border[i].h);
       }
 
-      XFlush(this->display);
+      XSync(this->display, False);
 
       XUnlockDisplay (this->display);
     }
@@ -1201,7 +1156,6 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *vi
   this->gc                      = XCreateGC (this->display, this->drawable, 0, NULL);
   XUnlockDisplay (this->display);
   this->capabilities            = 0;
-  this->expecting_event         = 0;
   this->use_shm                 = 1;
   this->deinterlace_method      = 0;
   this->deinterlace_frame.image = NULL;
@@ -1357,11 +1311,6 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *vi
 			   (this->xv_format_yv12 != 0) ? XINE_IMGFMT_YV12 : XINE_IMGFMT_YUY2);
   dispose_ximage (this, &myshminfo, myimage);
   
-  if(this->use_shm)
-    this->completion_event = XShmGetEventBase(display) + ShmCompletion;
-  else
-    this->completion_event = -1;
-
   XUnlockDisplay (this->display);
 
   this->use_pitch_alignment = config->register_bool (config, "video.xv_pitch_alignment", 0,

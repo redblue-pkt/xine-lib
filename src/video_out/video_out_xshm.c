@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xshm.c,v 1.108 2003/03/06 16:49:32 guenter Exp $
+ * $Id: video_out_xshm.c,v 1.109 2003/04/16 11:30:13 miguelfreitas Exp $
  * 
  * video_out_xshm.c, X11 shared memory extension interface for xine
  *
@@ -59,10 +59,6 @@
 #include "yuv2rgb.h"
 #include "xineutils.h"
 #include "vo_scale.h"
-
-#ifndef XShmGetEventBase
-extern int XShmGetEventBase(Display *);
-#endif
 
 /*
 #define LOG
@@ -115,10 +111,7 @@ typedef struct xshm_driver_s {
 
   vo_scale_t         sc;
   
-  int                expecting_event; /* completion event */
-  int                completion_event;
-  
-  xshm_frame_t      *cur_frame; /* for completion event handling */
+  xshm_frame_t      *cur_frame;
   vo_overlay_t      *overlay;
 
   int (*x11_old_error_handler)  (Display *, XErrorEvent *);
@@ -715,98 +708,67 @@ static void xshm_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
   printf ("video_out_xshm: display frame...\n");
 #endif
   
-  if (this->expecting_event) {
-    XEvent event;
-    int received;
-    
-    /*
-     * fallback mechanism: try to get the event directly in case frontend has
-     * not forwarded it to us (yet).
-     */
-    XLockDisplay (this->display);
-    received = XCheckTypedEvent(this->display, this->completion_event, &event);
-    XUnlockDisplay (this->display);
-
-    if(received)
-      this->expecting_event = 0;     
-  }  
-
-  if (this->expecting_event) {
 #ifdef LOG
-    printf ("video_out_xshm: display frame...expecting event (%d)\n",
-	    this->expecting_event);
+  printf ("video_out_xshm: about to draw frame %d x %d...\n",
+          frame->sc.output_width, frame->sc.output_height);
 #endif
-    this->expecting_event--;
-    frame->vo_frame.displayed (&frame->vo_frame);
+
+  /* 
+   * tell gui that we are about to display a frame,
+   * ask for offset
+   */
+    
+  this->sc.delivered_height   = frame->sc.delivered_height;
+  this->sc.delivered_width    = frame->sc.delivered_width;
+  this->sc.video_pixel_aspect = frame->sc.video_pixel_aspect;
+  if( vo_scale_redraw_needed( &this->sc ) ) {  
+
+    clean_output_area (this, frame);
+  }
+    
+  if (this->cur_frame) {
+
+    if ( (this->cur_frame->sc.output_width != frame->sc.output_width) 
+         || (this->cur_frame->sc.output_height != frame->sc.output_height)
+         || (this->cur_frame->sc.output_xoffset != frame->sc.output_xoffset)
+         || (this->cur_frame->sc.output_yoffset != frame->sc.output_yoffset) )
+      clean_output_area (this, frame);
+
+    this->cur_frame->vo_frame.displayed (&this->cur_frame->vo_frame);
+  }
+
+  this->cur_frame = frame;
+    
+  XLockDisplay (this->display);
+#ifdef LOG
+  printf ("video_out_xshm: display locked...\n");
+#endif
+
+  if (this->use_shm) {
+
+#ifdef LOG
+    printf ("video_out_xshm: put image (shm)\n");
+#endif
+    XShmPutImage(this->display,
+                 this->drawable, this->gc, frame->image,
+                 0, 0, frame->sc.output_xoffset, frame->sc.output_yoffset,
+                 frame->sc.output_width, frame->sc.output_height, True);
+
   } else {
 
 #ifdef LOG
-    printf ("video_out_xshm: about to draw frame %d x %d...\n",
-	    frame->sc.output_width, frame->sc.output_height);
+    printf ("video_out_xshm: put image (plain/remote)\n");
 #endif
 
-    /* 
-     * tell gui that we are about to display a frame,
-     * ask for offset
-     */
-    
-    this->sc.delivered_height   = frame->sc.delivered_height;
-    this->sc.delivered_width    = frame->sc.delivered_width;
-    this->sc.video_pixel_aspect = frame->sc.video_pixel_aspect;
-    if( vo_scale_redraw_needed( &this->sc ) ) {  
-
-      clean_output_area (this, frame);
-    }
-    
-    if (this->cur_frame) {
-
-      if ( (this->cur_frame->sc.output_width != frame->sc.output_width) 
-	   || (this->cur_frame->sc.output_height != frame->sc.output_height)
-	   || (this->cur_frame->sc.output_xoffset != frame->sc.output_xoffset)
-	   || (this->cur_frame->sc.output_yoffset != frame->sc.output_yoffset) )
-	clean_output_area (this, frame);
-
-      this->cur_frame->vo_frame.displayed (&this->cur_frame->vo_frame);
-    }
-
-    this->cur_frame = frame;
-    
-    XLockDisplay (this->display);
-#ifdef LOG
-    printf ("video_out_xshm: display locked...\n");
-#endif
-
-    if (this->use_shm) {
-
-#ifdef LOG
-      printf ("video_out_xshm: put image (shm)\n");
-#endif
-      XShmPutImage(this->display,
-		   this->drawable, this->gc, frame->image,
-		   0, 0, frame->sc.output_xoffset, frame->sc.output_yoffset,
-		   frame->sc.output_width, frame->sc.output_height, True);
-
-      this->expecting_event = 10;
-
-      XFlush(this->display);
-
-    } else {
-
-#ifdef LOG
-      printf ("video_out_xshm: put image (plain/remote)\n");
-#endif
-
-      XPutImage(this->display,
-		this->drawable, this->gc, frame->image,
-		0, 0, frame->sc.output_xoffset, frame->sc.output_yoffset,
-		frame->sc.output_width, frame->sc.output_height);
-
-      XFlush(this->display);
-    }
-
-    XUnlockDisplay (this->display);
+    XPutImage(this->display,
+              this->drawable, this->gc, frame->image,
+              0, 0, frame->sc.output_xoffset, frame->sc.output_yoffset,
+              frame->sc.output_width, frame->sc.output_height);
 
   }
+  XSync(this->display, False);
+
+  XUnlockDisplay (this->display);
 
 #ifdef LOG
   printf ("video_out_xshm: display frame done\n");
@@ -913,27 +875,11 @@ static int xshm_gui_data_exchange (vo_driver_t *this_gen,
   xshm_driver_t   *this = (xshm_driver_t *) this_gen;
 
   switch (data_type) {
-  case XINE_GUI_SEND_COMPLETION_EVENT: {
-
-    XShmCompletionEvent *cev = (XShmCompletionEvent *) data;
-
-    if (cev->drawable == this->drawable) {
-      this->expecting_event = 0;
-
-      /*
-      if (this->cur_frame) {
-	this->cur_frame->vo_frame.displayed (&this->cur_frame->vo_frame);
-	this->cur_frame = NULL; 
-      }
-      */
-    }
-
-  }
-  break;
+  case XINE_GUI_SEND_COMPLETION_EVENT:
+    break;
 
   case XINE_GUI_SEND_EXPOSE_EVENT:
     
-  /* FIXME : take care of completion events */
 #ifdef LOG
     printf ("video_out_xshm: expose event\n");
 #endif
@@ -972,7 +918,7 @@ static int xshm_gui_data_exchange (vo_driver_t *this_gen,
 			   this->sc.border[i].w, this->sc.border[i].h);
 	}
 
-	XFlush (this->display);
+	XSync(this->display, False);
 	
 	XUnlockDisplay (this->display);
       }
@@ -1132,7 +1078,6 @@ static vo_driver_t *xshm_open_plugin (video_driver_class_t *class_gen, const voi
 						     _("disable all video scaling (faster!)"),
 						     NULL, 10, NULL, NULL);
   this->drawable	    = visual->d;
-  this->expecting_event	    = 0;
   this->cur_frame           = NULL;
   this->gc		    = XCreateGC (this->display, this->drawable,
 					 0, NULL);
@@ -1203,11 +1148,6 @@ static vo_driver_t *xshm_open_plugin (video_driver_class_t *class_gen, const voi
 
   myimage = create_ximage (this, &myshminfo, 100, 100);
   dispose_ximage (this, &myshminfo, myimage);
-
-  if(this->use_shm)
-    this->completion_event = XShmGetEventBase(display) + ShmCompletion;
-  else
-    this->completion_event = -1;
 
   /*
    * Is the same byte order in use on the X11 client and server?
