@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.301 2004/10/30 12:45:27 miguelfreitas Exp $
+ * $Id: xine.c,v 1.302 2004/11/17 01:38:41 miguelfreitas Exp $
  */
 
 /*
@@ -274,6 +274,7 @@ static void __stop_internal (xine_stream_t *stream) {
   lprintf ("status before = %d\n", stream->status);
 
   if (stream->status == XINE_STATUS_STOP) {
+    _x_demux_control_end(stream, 0);
     lprintf ("ignored\n");
     return;
   }
