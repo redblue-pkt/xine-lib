@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_oss_out.c,v 1.75 2002/10/17 17:43:41 mroi Exp $
+ * $Id: audio_oss_out.c,v 1.76 2002/10/19 23:38:15 guenter Exp $
  *
  * 20-8-2001 First implementation of Audio sync and Audio driver separation.
  * Copyright (C) 2001 James Courtier-Dutton James@superbug.demon.co.uk
@@ -69,6 +69,10 @@
 #include "audio_out.h"
 
 #include <sys/time.h>
+
+/*
+#define LOG
+*/
 
 #ifndef AFMT_S16_NE
 # if defined(sparc) || defined(__sparc__) || defined(PPC)
@@ -136,6 +140,9 @@ typedef struct oss_driver_s {
   } mixer;
 
   struct timeval   start_time;
+
+  pthread_mutex_t  lock;
+
 } oss_driver_t;
 
 typedef struct {
@@ -408,8 +415,12 @@ static int ao_oss_write(xine_ao_driver_t *this_gen,
 			int16_t* frame_buffer, uint32_t num_frames) {
 
   oss_driver_t *this = (oss_driver_t *) this_gen;
+  int n;
 
-  //printf ("audio_oss_out: ao_oss_write()\n");
+#ifdef LOG
+  printf ("audio_oss_out: ao_oss_write %d frames\n", num_frames);
+#endif
+
   if (this->sync_method == OSS_SYNC_SOFTSYNC) {
     int            simulated_bytes_in_buffer, frames ;
     struct timeval tv;
@@ -432,7 +443,15 @@ static int ao_oss_write(xine_ao_driver_t *this_gen,
 
   this->bytes_in_buffer += num_frames * this->bytes_per_frame;
 
-  return write(this->audio_fd, frame_buffer, num_frames * this->bytes_per_frame); 
+  pthread_mutex_lock (&this->lock);
+  n = write(this->audio_fd, frame_buffer, num_frames * this->bytes_per_frame); 
+
+#ifdef LOG
+  printf ("audio_oss_out: ao_oss_write done\n");
+#endif
+  pthread_mutex_unlock (&this->lock);
+
+  return n;
 }
 
 static void ao_oss_close(xine_ao_driver_t *this_gen) {
@@ -594,7 +613,9 @@ static int ao_oss_ctrl(xine_ao_driver_t *this_gen, int cmd, ...) {
   switch (cmd) {
 
   case AO_CTRL_PLAY_PAUSE:
+#ifdef LOG
     printf ("audio_oss_out: AO_CTRL_PLAY_PAUSE\n");
+#endif
     if (this->sync_method != OSS_SYNC_SOFTSYNC)
       ioctl(this->audio_fd, SNDCTL_DSP_RESET, NULL);
     /*  Uncomment the following lines if RESET causes problems
@@ -604,13 +625,22 @@ static int ao_oss_ctrl(xine_ao_driver_t *this_gen, int cmd, ...) {
     break;
 
   case AO_CTRL_PLAY_RESUME:
+#ifdef LOG
     printf ("audio_oss_out: AO_CTRL_PLAY_RESUME\n");
+#endif
     break;
 
   case AO_CTRL_FLUSH_BUFFERS:
+#ifdef LOG
     printf ("audio_oss_out: AO_CTRL_FLUSH_BUFFERS\n");
+#endif
+    pthread_mutex_lock (&this->lock);
     if (this->sync_method != OSS_SYNC_SOFTSYNC)
       ioctl(this->audio_fd, SNDCTL_DSP_RESET, NULL);
+#ifdef LOG
+    printf ("audio_oss_out: AO_CTRL_FLUSH_BUFFERS done\n");
+#endif
+    pthread_mutex_unlock (&this->lock);
     break;
   }
 
@@ -917,6 +947,8 @@ static xine_ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const voi
   this->ao_driver.exit                = ao_oss_exit;
   this->ao_driver.get_gap_tolerance   = ao_oss_get_gap_tolerance;
   this->ao_driver.control	      = ao_oss_ctrl;
+
+  pthread_mutex_init (&this->lock, NULL);
 
   return &this->ao_driver;
 }
