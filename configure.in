@@ -1040,7 +1040,6 @@ src/liblpcm/Makefile
 src/libdts/Makefile
 src/libmad/Makefile
 src/libfaad/Makefile
-src/libfaad/fftw/Makefile
 src/libfaad/codebook/Makefile
 src/libw32dll/Makefile
 src/libw32dll/wine/Makefile
