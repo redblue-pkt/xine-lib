@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.149 2003/04/07 18:13:19 mroi Exp $
+ * $Id: input_dvd.c,v 1.150 2003/04/08 13:58:11 mroi Exp $
  *
  */
 
@@ -72,6 +72,7 @@
 #ifdef HAVE_DVDNAV
 #  include <dvdnav/dvdnav.h>
 #else
+#  define DVDNAV_COMPILE
 #  include "dvdnav.h"
 #endif
 
@@ -1579,6 +1580,9 @@ static void *init_class (xine_t *xine, void *data) {
 
 /*
  * $Log: input_dvd.c,v $
+ * Revision 1.150  2003/04/08 13:58:11  mroi
+ * fix compilation problems
+ *
  * Revision 1.149  2003/04/07 18:13:19  mroi
  * support the new menu resume feature
  *
