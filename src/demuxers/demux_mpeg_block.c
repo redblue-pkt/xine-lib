@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.158 2003/01/26 15:56:21 tmmm Exp $
+ * $Id: demux_mpeg_block.c,v 1.159 2003/02/13 23:54:25 miguelfreitas Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -1011,13 +1011,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
                                    input_plugin_t *input_gen) {
 
   input_plugin_t     *input = (input_plugin_t *) input_gen;
-  static int          count = 0;
   demux_mpeg_block_t *this;
-
-  count++;
-  printf ("demux_mpeg_block:open_plugin:input ID=%s count = %d\n",
-	  input->input_class->get_identifier(input->input_class), count );
-  /*  if (count > 1) assert (0); */
 
   this         = xine_xmalloc (sizeof (demux_mpeg_block_t));
   this->stream = stream;
