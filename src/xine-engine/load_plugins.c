@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.10 2001/04/27 11:32:39 f1rmb Exp $
+ * $Id: load_plugins.c,v 1.11 2001/04/27 23:51:52 guenter Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -41,11 +41,10 @@
 #include "video_out.h"
 #include "metronom.h"
 #include "configfile.h"
+#include "utils.h"
 #include "monitor.h"
 
-/*
- *
- */
+
 void load_demux_plugins (xine_t *this, 
 			 config_values_t *config, int iface_version) {
   DIR *dir;
@@ -121,9 +120,7 @@ void load_demux_plugins (xine_t *this,
   this->cur_demuxer_plugin = NULL;
 }
 
-/*
- *
- */
+
 void load_input_plugins (xine_t *this, 
 			 config_values_t *config, int iface_version) {
   DIR *dir;
@@ -323,105 +320,131 @@ void load_decoder_plugins (xine_t *this,
 }
 
 
-void load_video_out_plugins (xine_t *this, 
-			     config_values_t *config, int iface_version) {
+char **xine_list_video_output_plugins (int visual_type) {
 
-  if(this == NULL || config == NULL) {
-    printf("%s(%s@%d): parameter should be non null, exiting\n",
-	   __FILE__, __FUNCTION__, __LINE__);
-    exit(1);
+  char **plugin_ids;
+  int    num_plugins = 0;
+  DIR   *dir;
+
+  plugin_ids = xmalloc (50 * sizeof (char *));
+  plugin_ids[0] = NULL;
+
+  dir = opendir (XINE_PLUGINDIR);
+  
+  if (dir) {
+    struct dirent *dir_entry;
+    
+    while ((dir_entry = readdir (dir)) != NULL) {
+      char  str[1024];
+      void *plugin;
+      int nLen = strlen (dir_entry->d_name);
+      
+      if ((strncasecmp(dir_entry->d_name,
+ 		       XINE_VIDEO_OUT_PLUGIN_PREFIXNAME, 
+		       XINE_VIDEO_OUT_PLUGIN_PREFIXNAME_LENGTH) == 0) &&
+	  ((dir_entry->d_name[nLen-3]=='.') 
+	   && (dir_entry->d_name[nLen-2]=='s')
+	   && (dir_entry->d_name[nLen-1]=='o'))) {
+	
+	/*printf ("load_plugins: found a video output plugin: %s\n",
+	  dir_entry->d_name); */
+
+	sprintf (str, "%s/%s", XINE_PLUGINDIR, dir_entry->d_name);
+
+	/*
+	 * now, see if we can open this plugin,
+	 * check if it has got the right visual type 
+	 * and finally if all this went through get it's id
+	 */
+
+	if(!(plugin = dlopen (str, RTLD_LAZY))) {
+
+	  /* printf("load_plugins: cannot load plugin %s (%s)\n",
+		 str, dlerror()); */
+
+	} else {
+
+	  vo_info_t* (*getinfo) ();
+	  vo_info_t   *vo_info;
+
+	  if ((getinfo = dlsym(plugin, "get_video_out_plugin_info")) != NULL) {
+	    vo_info = getinfo();
+
+	    if ( (vo_info->visual_type == visual_type)
+		 && (vo_info->interface_version == VIDEO_OUT_IFACE_VERSION) ) {
+	      /* printf("video output plugin found : %s (%s)\n",
+		     vo_info->id, vo_info->description); */
+
+	      /* FIXME: sort the list by vo_info->priority */
+
+	      plugin_ids[num_plugins] = vo_info->id;
+	      num_plugins++;
+	      plugin_ids[num_plugins] = NULL;
+	    }
+	  } else {
+
+	    printf("load_plugins: %s seems to be an invalid plugin (lacks get_video_out_plugin_info() function)\n",  str);
+
+	  }
+	}
+      }
+    }
+  } else {
+    perror ("load_plugins: get_available_video_output_plugins - cannot access plugin dir:");
   }
-
+  
+  return plugin_ids;
 }
 
-void load_audio_out_plugins (xine_t *this, 
-			     config_values_t *config, int iface_version) {
-
-  if(this == NULL || config == NULL) {
-    printf("%s(%s@%d): parameter should be non null, exiting\n",
-	   __FILE__, __FUNCTION__, __LINE__);
-    exit(1);
-  }
-
-}
 
 vo_driver_t *xine_load_video_output_plugin(config_values_t *config,
-				      char *filename, char *id, 
-				      int visual_type, void *visual) {
+				           char *id,  int visual_type, void *visual) {
   DIR *dir;
-  vo_driver_t *vod = NULL;
-  
-  if((filename == NULL && id == NULL) || visual == NULL || config == NULL) {
-    printf("%s(%s@%d): parameter(s) should be non null.\n",
-	   __FILE__, __FUNCTION__, __LINE__);
-    return NULL;
-  }
+  vo_driver_t *vod;
   
   dir = opendir (XINE_PLUGINDIR);
   
   if (dir) {
-    struct dirent *pEntry;
+    struct dirent *dir_entry;
     
-    while ((pEntry = readdir (dir)) != NULL) {
+    while ((dir_entry = readdir (dir)) != NULL) {
       char str[1024];
       void *plugin;
-      int nLen = strlen (pEntry->d_name);
       
-      vod = NULL;
-      memset(&str, 0, 1024);
-
-      if ((strncasecmp(pEntry->d_name,
+      int nLen = strlen (dir_entry->d_name);
+      
+      if ((strncasecmp(dir_entry->d_name,
  		       XINE_VIDEO_OUT_PLUGIN_PREFIXNAME, 
 		       XINE_VIDEO_OUT_PLUGIN_PREFIXNAME_LENGTH) == 0) &&
-	  ((pEntry->d_name[nLen-3]=='.') 
-
-	   && (pEntry->d_name[nLen-2]=='s')
-	   && (pEntry->d_name[nLen-1]=='o'))) {
+	  ((dir_entry->d_name[nLen-3]=='.') 
+	   && (dir_entry->d_name[nLen-2]=='s')
+	   && (dir_entry->d_name[nLen-1]=='o'))) {
 	
-	sprintf (str, "%s/%s", XINE_PLUGINDIR, pEntry->d_name);
+	sprintf (str, "%s/%s", XINE_PLUGINDIR, dir_entry->d_name);
+	
+	if(!(plugin = dlopen (str, RTLD_LAZY))) {
+	  printf("load_plugins: video output plugin %s failed to link: %s\n",
+		 str, dlerror());
+	  return NULL;
+	} else {
+	  void *(*initplug) (config_values_t *, void *);
+	  vo_info_t* (*getinfo) ();
+	  vo_info_t   *vo_info;
 
-       	if(filename) { /* load by name */
-	  if(!strncasecmp(filename, pEntry->d_name, strlen(pEntry->d_name))) {
+	  if ((getinfo = dlsym(plugin, "get_video_out_plugin_info")) != NULL) {
+	    vo_info = getinfo();
+	  
+	    if (!strcmp(id, vo_info->id)) {
 	    
-	    if(!(plugin = dlopen (str, RTLD_LAZY))) {
-	      fprintf(stderr, "%s(%d): %s doesn't seem to be installed (%s)\n",
-		      __FILE__, __LINE__, str, dlerror());
-	      exit(1);
-	    }
-	    else {
-	      void *(*initplug) (int, config_values_t *, void *, int);
-	      
 	      if((initplug = dlsym(plugin, "init_video_out_plugin")) != NULL) {
 		
-		vod = (vo_driver_t *) initplug(VIDEO_OUT_PLUGIN_IFACE_VERSION,
-					       config, visual, visual_type);
+		vod = (vo_driver_t *) initplug(config, visual);
 		
-		printf("video output plugin found : %s(ID: %s, iface: %d)\n",
-		       str, vod->get_identifier(), vod->interface_version);
+		if (vod)
+		  printf("load_plugins: video output plugin %s sucessfully loaded.\n", str);
+		else
+		  printf("load_plugins: video output plugin %s: init_video_out_plugin failed.\n", str);
 		
-		return vod;
-	      } 
-	    }   
-	  }
-	}
-	else { /* load by ID */
-	  if(!(plugin = dlopen (str, RTLD_LAZY))) {
-	    fprintf(stderr, "%s(%d): %s doesn't seem to be installed (%s)\n",
-		    __FILE__, __LINE__, str, dlerror());
-	    exit(1);
-	  }
-	  else {
-	    void *(*initplug) (int, config_values_t *, void *, int);
-	    
-	    if((initplug = dlsym(plugin, "init_video_out_plugin")) != NULL) {
-	      
-	      vod = (vo_driver_t *) initplug(VIDEO_OUT_PLUGIN_IFACE_VERSION,
-					     config, visual, visual_type);
-	      
-	      printf("video output plugin found : %s(ID: %s, iface: %d)\n",
-		     str, vod->get_identifier(), vod->interface_version);
-	      
-	      if(!strcasecmp(id, vod->get_identifier())) {
 		return vod;
 	      }
 	    }
@@ -430,24 +453,15 @@ vo_driver_t *xine_load_video_output_plugin(config_values_t *config,
       }
     }
   }
-  return NULL;
-}
- 
-char **enum_video_output_plugins(int visual_type) {
-  // Not implemented
+
+  printf ("load_plugins: failed to find video output plugin <%s>\n", id);
   return NULL;
 }
 
 ao_functions_t *xine_load_audio_output_plugin(config_values_t *config,
-					      char *filename, char *id) {
+					      char *id) {
   DIR *dir;
   ao_functions_t *aod = NULL;
-  
-  if(filename == NULL && id == NULL) {
-    printf("%s(%s@%d): parameter(s) should be non null.\n",
-	   __FILE__, __FUNCTION__, __LINE__);
-    return NULL;
-  }
   
   dir = opendir (XINE_PLUGINDIR);
   
@@ -471,49 +485,24 @@ ao_functions_t *xine_load_audio_output_plugin(config_values_t *config,
 	
 	sprintf (str, "%s/%s", XINE_PLUGINDIR, pEntry->d_name);
 	
-	if(filename) { /* load by name */
-	  if(!strncasecmp(filename, pEntry->d_name, strlen(pEntry->d_name))) {
-	    
-	    if(!(plugin = dlopen (str, RTLD_LAZY))) {
-	      fprintf(stderr, "%s(%d): %s doesn't seem to be installed (%s)\n",
-		      __FILE__, __LINE__, str, dlerror());
-	      exit(1);
-	    }
-	    else {
-	      void *(*initplug) (int, config_values_t *);
-	      
-	      if((initplug = dlsym(plugin, "init_audio_out_plugin")) != NULL) {
-		
-		aod = (ao_functions_t *) initplug(AUDIO_OUT_PLUGIN_IFACE_VERSION, config);
-		
-		printf("audio output plugin found : %s(ID: %s, iface: %d)\n",
-		       str, aod->get_identifier(), aod->interface_version);
-		
-		return aod;
-	      } 
-	    }   
-	  }
+	if(!(plugin = dlopen (str, RTLD_LAZY))) {
+	  fprintf(stderr, "%s(%d): %s doesn't seem to be installed (%s)\n",
+		  __FILE__, __LINE__, str, dlerror());
+	  exit(1);
 	}
-	else { /* load by ID */
-	  if(!(plugin = dlopen (str, RTLD_LAZY))) {
-	    fprintf(stderr, "%s(%d): %s doesn't seem to be installed (%s)\n",
-		    __FILE__, __LINE__, str, dlerror());
-	    exit(1);
-	  }
-	  else {
-	    void *(*initplug) (int, config_values_t *);
+	else {
+	  void *(*initplug) (int, config_values_t *);
+	  
+	  if((initplug = dlsym(plugin, "init_audio_out_plugin")) != NULL) {
 	    
-	    if((initplug = dlsym(plugin, "init_audio_out_plugin")) != NULL) {
-	      
-	      aod = (ao_functions_t *) initplug(AUDIO_OUT_PLUGIN_IFACE_VERSION,
-						config);
-	      
-	      printf("audio output plugin found : %s(ID: %s, iface: %d)\n",
-		     str, aod->get_identifier(), aod->interface_version);
-	      
-	      if(!strcasecmp(id, aod->get_identifier())) {
-		return aod;
-	      }
+	    aod = (ao_functions_t *) initplug(AUDIO_OUT_PLUGIN_IFACE_VERSION,
+					      config);
+	    
+	    printf("audio output plugin found : %s(ID: %s, iface: %d)\n",
+		   str, aod->get_identifier(), aod->interface_version);
+	    
+	    if(!strcasecmp(id, aod->get_identifier())) {
+	      return aod;
 	    }
 	  }
 	}
@@ -523,9 +512,9 @@ ao_functions_t *xine_load_audio_output_plugin(config_values_t *config,
   return NULL;
 }
 
-char **enum_audio_output_plugins(int output_type) {
+char **xine_list_audio_output_plugins() {
 
-  // Not implemented
+  printf ("load_plugins: FIXME: list_audio_output_plugins not implemented yet\n");
 
   return NULL;
 }

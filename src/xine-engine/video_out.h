@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.h,v 1.2 2001/04/26 11:31:36 f1rmb Exp $
+ * $Id: video_out.h,v 1.3 2001/04/27 23:51:52 guenter Exp $
  *
  *
  * xine version of video_out.h 
@@ -213,15 +213,11 @@ struct vo_instance_s {
  * from generic vo functions.
  */
 
+#define VIDEO_OUT_IFACE_VERSION 1
 
 struct vo_driver_s {
 
-  /*
-   * plugin interface version, lower versions _may_ be supported
-   */
-  int interface_version;
-
-  uint32_t (*get_capabilities) (vo_driver_t *this); /* for constants see below */
+  uint32_t (*get_capabilities) (vo_driver_t *this); /* for constants see above */
 
   /* 
    * allocate an vo_frame_t struct,
@@ -255,10 +251,6 @@ struct vo_driver_s {
 
   void (*exit) (vo_driver_t *this);
 
-  /*
-   * return human readable identifier for this plugin
-   */
-  char* (*get_identifier) (void);
 };
 
 
@@ -270,14 +262,40 @@ struct vo_driver_s {
 vo_instance_t *vo_new_instance (vo_driver_t *driver, metronom_t *metronom) ;
 
 /*
- * init a video driver. The driver is selected either
- * by auto-detection or (if given) by the driver_name
+ * to build a dynamic video output plugin
+ * you have to implement these functions:
+ *
+ *
+ * init_video_out_plugin init and set up driver so it is fully operational
+ * 
+ * parameters: config      - config object pointer
+ *             visual      - driver specific info (e.g. Display*)
+ *
+ * return value: video_driver_t* in case of success,
+ *               NULL            on failure (e.g. wrong interface version, wrong visual type...)
+ *
+ * vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual);
+ *
+ *
+ * get_video_out_plugin_info
+ *
+ * peek at some (static) information about the plugin without initializing it
+ *
+ * parameters: none
+ *
+ * return value: vo_info_t* : some information about the plugin
+ * vo_info_t *get_video_out_plugin_info ();
  */
 
-vo_instance_t *vo_init (char *driver_name);
+typedef struct vo_info_s {
+   
+  int    interface_version; /* plugin interface version                  */
+  char  *id;                /* id of this plugin                         */
+  char  *description;       /* human-readable description of this plugin */
+  int    visual_type;       /* visual type supported by this plugin      */
+  int    priority;          /* priority of this plugin for auto-probing  */
 
-/* returns a list of available drivers */
-
-char *vo_get_available_drivers ();
+} vo_info_t;
 
 #endif
+

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.12 2001/04/27 10:42:38 f1rmb Exp $
+ * $Id: xine_internal.h,v 1.13 2001/04/27 23:51:52 guenter Exp $
  *
  */
 
@@ -315,7 +315,8 @@ void audio_decoder_shutdown (xine_t *this);
 /* 
  * Load input/demux/audio_out/video_out plugins
  */
-/* plugin names scheme */
+
+/* plugin naming scheme */
 #define XINE_INPUT_PLUGIN_PREFIXNAME            "xineplug_inp_"
 #define XINE_INPUT_PLUGIN_PREFIXNAME_LENGTH     13
 
@@ -331,31 +332,73 @@ void audio_decoder_shutdown (xine_t *this);
 #define XINE_DECODER_PLUGIN_PREFIXNAME          "xineplug_decode_"
 #define XINE_DECODER_PLUGIN_PREFIXNAME_LENGTH   16
 
-/* prototypes of load_plugins.c functions. */
+/*
+ * load all available demuxer plugins
+ */
 void load_demux_plugins (xine_t *this, 
 			 config_values_t *config, int iface_version);
+
+/*
+ * load all available input plugins
+ */
+
 void load_input_plugins (xine_t *this, 
 			 config_values_t *config, int iface_version);
-void load_video_out_plugins (xine_t *this, 
-			     config_values_t *config, int iface_version);
-void load_audio_out_plugins (xine_t *this, 
-			     config_values_t *config, int iface_version);
+
+/*
+ * load all available decoder plugins
+ */
 void load_decoder_plugins (xine_t *this, 
 			   config_values_t *config, int iface_version);
-/* visual_type (see bellow) */
-#define VIDEO_OUTPUT_TYPE_GETID 0
-#define VIDEO_OUTPUT_TYPE_PROBE 1
-#define VIDEO_OUTPUT_TYPE_X11   2
-#define VIDEO_OUTPUT_TYPE_FB    3
-vo_driver_t *xine_load_video_output_plugin(config_values_t *config,
-					   char *filename, char *id, 
-					   int visual_type, void *visual);
-#define AUDIO_OUTPUT_TYPE_GETID    0
-#define AUDIO_OUTPUT_TYPE_PROBE    1
-#define AUDIO_OUTPUT_TYPE_OSS      2
-#define AUDIO_OUTPUT_TYPE_ALSA     3
-#define AUDIO_OUTPUT_TYPE_ESD      4
-ao_functions_t *xine_load_audio_output_plugin(config_values_t *config,
-					      char *filename, char *id);
-#endif
 
+/*
+ * output driver load support functions
+ */
+
+/* video */
+
+#define VISUAL_TYPE_X11   1
+#define VISUAL_TYPE_FB    2
+#define VISUAL_TYPE_GTK   3
+
+/*
+ * list_video_output_plugins
+ *
+ * returns a list of available video output plugins for
+ * the specified visual type - the list is sorted by plugin
+ * priority
+ */
+
+char **xine_list_video_output_plugins (int visual_type);
+
+/*
+ * load_video_output_plugin
+ *
+ * load a specific video output plugin
+ */
+
+vo_driver_t *xine_load_video_output_plugin(config_values_t *config,
+					   char *id, int visual_type, void *visual);
+
+/*
+ * audio output plugin dynamic loading stuff
+ */
+
+/*
+ * list_audio_output_plugins
+ *
+ * returns a list of available audio output plugins 
+ * the list returned is sorted by plugin priority
+ */
+
+char **xine_list_audio_output_plugins ();
+
+/*
+ * load_audio_output_plugin
+ *
+ * load a specific audio output plugin
+ */
+
+ao_functions_t *xine_load_audio_output_plugin(config_values_t *config, char *id);
+
+#endif

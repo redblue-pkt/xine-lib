@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_avi.c,v 1.4 2001/04/24 17:42:26 guenter Exp $
+ * $Id: demux_avi.c,v 1.5 2001/04/27 23:51:52 guenter Exp $
  *
  * demultiplexer for avi streams
  *
@@ -968,10 +968,12 @@ demux_plugin_t *init_demux_plugin(int iface, config_values_t *config) {
 
   demux_avi_t *this = xmalloc (sizeof (demux_avi_t));
 
+  xine_debug  = config->lookup_int (config, "xine_debug", 0);
+
   switch (iface) {
 
   case 1:
-    //FIXME  xine_debug = xd;
+
     this->demux_plugin.interface_version = DEMUXER_PLUGIN_IFACE_VERSION;
     this->demux_plugin.open              = demux_avi_open;
     this->demux_plugin.start             = demux_avi_start;
