@@ -65,7 +65,8 @@ prune-cache:
 	-rm -f config.cache
 
 
-release-check: misc/relchk.sh
+release-check:
+	@./config.status misc/relchk.sh
 	@mv -f .cvsversion .cvsversion.tmp
 	@./autogen.sh noconfig && $(SHELL) misc/relchk.sh
 	@mv -f .cvsversion.tmp .cvsversion
