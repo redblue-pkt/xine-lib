@@ -14,7 +14,7 @@ xine-lib (1-beta8-1) unstable; urgency=low
 xine-lib (1-beta6-1) unstable; urgency=low
 
   * new upstream release
-  * updated artsc build dependancy
+  * updated artsc build dependancy (closes: #182137)
   * removed obsolete dh_testversion call
 
  -- Siggi Langauf <siggi@debian.org>  Sun, 23 Feb 2003 00:53:19 +0100
