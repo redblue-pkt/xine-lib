@@ -7,6 +7,9 @@
 #
 CWD=`pwd`
 PACKAGE=@PACKAGE@.tgz
+@HAVE_ALSA05_TRUE@alsa05PACKAGE=@PACKAGE@-alsa05.tgz
+@HAVE_ALSA09_TRUE@alsa09PACKAGE=@PACKAGE@-alsa09.tgz
+@HAVE_DXR3_TRUE@dxr3PACKAGE=@PACKAGE@-dxr3.tgz
 SLCK=$CWD/slack
 PREFIX=@prefix@
 PKG=$CWD/slktmp
@@ -38,6 +41,61 @@ cat > package_descriptions << EOF
 @PACKAGE@: playback will need more or less processor power, 100% frame rate
 @PACKAGE@: has been seen on a 400 MHz P II system.
 EOF
+
+@HAVE_ALSA05_TRUE@cat > package_descriptions_alsa05 << EOF
+@HAVE_ALSA05_TRUE@@PACKAGE@-alsa05: @PACKAGE@-alsa05 @SPEC_VERSION@.
+@HAVE_ALSA05_TRUE@@PACKAGE@-alsa05:
+@HAVE_ALSA05_TRUE@@PACKAGE@-alsa05: audio plugin with alsa 0.5.x support.
+@HAVE_ALSA05_TRUE@EOF
+
+@HAVE_ALSA09_TRUE@cat > package_descriptions_alsa09 << EOF
+@HAVE_ALSA09_TRUE@@PACKAGE@-alsa09: @PACKAGE@-alsa09 @SPEC_VERSION@.
+@HAVE_ALSA09_TRUE@@PACKAGE@-alsa09:
+@HAVE_ALSA09_TRUE@@PACKAGE@-alsa09: audio plugin with alsa >= 0.9.x support.
+@HAVE_ALSA09_TRUE@EOF
+
+@HAVE_DXR3_TRUE@cat > package_descriptions_drx3 << EOF
+@HAVE_DXR3_TRUE@@PACKAGE@-dxr3: @PACKAGE@-dxr3 @SPEC_VERSION@.
+@HAVE_DXR3_TRUE@@PACKAGE@-dxr3:
+@HAVE_DXR3_TRUE@@PACKAGE@-dxr3: video/decoder plugins for DXR3 card support.
+@HAVE_DXR3_TRUE@EOF
+
+}
+
+#
+# Create extra packages (alsa05, alsa09 and dxr3)
+#
+do_extra_packages() {
+    cwd=`pwd`
+
+## Alsa 0.5 plugin
+@HAVE_ALSA05_TRUE@    mkdir -p alsa05$PREFIX/lib/xine/plugins && \
+@HAVE_ALSA05_TRUE@    cp $PKG/$PREFIX/lib/xine/plugins/xineplug_ao_out_alsa05.la $PKG/$PREFIX/lib/xine/plugins/xineplug_ao_out_alsa05.so alsa05$PREFIX/lib/xine/plugins && \
+@HAVE_ALSA05_TRUE@    (cd alsa05 && \
+@HAVE_ALSA05_TRUE@    echo "n" | makepkg $alsa05PACKAGE && \
+@HAVE_ALSA05_TRUE@    echo "move $alsa05PACKAGE to $SLCK" && mv $alsa05PACKAGE $SLCK) && \
+@HAVE_ALSA05_TRUE@    rm -rf alsa05 && \
+@HAVE_ALSA05_TRUE@    rm -f $PKG/$PREFIX/lib/xine/plugins/xineplug_ao_out_alsa05.la $PKG/$PREFIX/lib/xine/plugins/xineplug_ao_out_alsa05.so
+
+## Alsa 0.9 plugin
+@HAVE_ALSA09_TRUE@    mkdir -p alsa09$PREFIX/lib/xine/plugins && \
+@HAVE_ALSA09_TRUE@    cp $PKG/$PREFIX/lib/xine/plugins/xineplug_ao_out_alsa.la $PKG/$PREFIX/lib/xine/plugins/xineplug_ao_out_alsa.so alsa09$PREFIX/lib/xine/plugins && \
+@HAVE_ALSA09_TRUE@    (cd alsa09 && \
+@HAVE_ALSA09_TRUE@    echo "n" | makepkg $alsa09PACKAGE && \
+@HAVE_ALSA09_TRUE@    echo "move $alsa09PACKAGE to $SLCK" && mv $alsa09PACKAGE $SLCK) && \
+@HAVE_ALSA09_TRUE@    rm -rf alsa09 && \
+@HAVE_ALSA09_TRUE@    rm -f $PKG/$PREFIX/lib/xine/plugins/xineplug_ao_out_alsa.la $PKG/$PREFIX/lib/xine/plugins/xineplug_ao_out_alsa.so
+
+## DXR3 plugins
+@HAVE_DXR3_TRUE@    mkdir -p dxr3$PREFIX/lib/xine/plugins && \
+@HAVE_DXR3_TRUE@    cp $PKG/$PREFIX/lib/xine/plugins/xineplug_decode_dxr3.la $PKG/$PREFIX/lib/xine/plugins/xineplug_decode_dxr3.so $PKG/$PREFIX/lib/xine/plugins/xineplug_vo_out_dxr3.la $PKG/$PREFIX/lib/xine/plugins/xineplug_vo_out_dxr3.so dxr3$PREFIX/lib/xine/plugins && \
+@HAVE_DXR3_TRUE@    (cd dxr3 && \
+@HAVE_DXR3_TRUE@    echo "n" | makepkg $dxr3PACKAGE && \
+@HAVE_DXR3_TRUE@    echo "move $dxr3PACKAGE to $SLCK" && mv $dxr3PACKAGE $SLCK) && \
+@HAVE_DXR3_TRUE@    rm -rf dxr3 && \
+@HAVE_DXR3_TRUE@    rm -f $PKG/$PREFIX/lib/xine/plugins/xineplug_decode_dxr3.la $PKG/$PREFIX/lib/xine/plugins/xineplug_decode_dxr3.so $PKG/$PREFIX/lib/xine/plugins/xineplug_vo_out_dxr3.la $PKG/$PREFIX/lib/xine/plugins/xineplug_vo_out_dxr3.so
+
+    cd $cwd
 }
 
 #
@@ -53,6 +111,7 @@ do_build() {
   DIE=1
   ./configure --prefix=$PREFIX && make && make install-strip prefix=$PKG/$PREFIX && \
   mkdir -p $PKG/install && cp $TMPBUILD/doinst.sh $PKG/install && \
+  do_extra_packages && \
   cd $PKG && \
   echo "n" | makepkg $PACKAGE && \
   mv $PACKAGE $SLCK && \
@@ -66,6 +125,9 @@ do_build() {
 do_clean() {
   rm -rf $TMPBUILD
   rm -f $PACKAGE package_descriptions
+@HAVE_ALSA05_TRUE@   rm -f $alsa05PACKAGE
+@HAVE_ALSA09_TRUE@   rm -f $alsa09PACKAGE
+@HAVE_DXR3_TRUE@   rm -f $dxr3PACKAGE
   rm -rf $PKG
   cd $CWD
 }
@@ -87,6 +149,15 @@ build_pentiumpro() {
   do_build
   if test "$DIE" -eq 0; then 
     tar -czvf @PACKAGE@-@VERSION@-i686.tar.gz $PACKAGE package_descriptions
+@HAVE_ALSA05_TRUE@    rm -f package_descriptions
+@HAVE_ALSA05_TRUE@    mv package_descriptions_alsa05 package_descriptions && \
+@HAVE_ALSA05_TRUE@    tar -czvf @PACKAGE@-@VERSION@-alsa05-i686.tar.gz $alsa05PACKAGE package_descriptions
+@HAVE_ALSA09_TRUE@    rm -f package_descriptions
+@HAVE_ALSA09_TRUE@    mv package_descriptions_alsa09 package_descriptions && \
+@HAVE_ALSA09_TRUE@    tar -czvf @PACKAGE@-@VERSION@-alsa09-i686.tar.gz $alsa09PACKAGE package_descriptions
+@HAVE_DXR3_TRUE@    rm -f package_descriptions
+@HAVE_DXR3_TRUE@    mv package_descriptions_dxr3 package_descriptions && \
+@HAVE_DXR3_TRUE@    tar -czvf @PACKAGE@-@VERSION@-dxr3-i686.tar.gz $dxr3PACKAGE package_descriptions
   fi
   do_clean
 }
@@ -108,6 +179,15 @@ build_pentium() {
   do_build
   if test "$DIE" -eq 0; then 
     tar -czvf @PACKAGE@-@VERSION@-i586.tar.gz $PACKAGE package_descriptions
+@HAVE_ALSA05_TRUE@    rm -f package_descriptions
+@HAVE_ALSA05_TRUE@    mv package_descriptions_alsa05 package_descriptions && \
+@HAVE_ALSA05_TRUE@    tar -czvf @PACKAGE@-@VERSION@-alsa05-i586.tar.gz $alsa05PACKAGE package_descriptions
+@HAVE_ALSA09_TRUE@    rm -f package_descriptions
+@HAVE_ALSA09_TRUE@    mv package_descriptions_alsa09 package_descriptions && \
+@HAVE_ALSA09_TRUE@    tar -czvf @PACKAGE@-@VERSION@-alsa09-i586.tar.gz $alsa09PACKAGE package_descriptions
+@HAVE_DXR3_TRUE@    rm -f package_descriptions
+@HAVE_DXR3_TRUE@    mv package_descriptions_dxr3 package_descriptions && \
+@HAVE_DXR3_TRUE@    tar -czvf @PACKAGE@-@VERSION@-dxr3-i586.tar.gz $dxr3PACKAGE package_descriptions
   fi
   do_clean
 }
@@ -129,6 +209,15 @@ build_k6() {
   do_build
   if test "$DIE" -eq 0; then 
     tar -czvf @PACKAGE@-@VERSION@-k6.tar.gz $PACKAGE package_descriptions
+@HAVE_ALSA05_TRUE@    rm -f package_descriptions
+@HAVE_ALSA05_TRUE@    mv package_descriptions_alsa05 package_descriptions && \
+@HAVE_ALSA05_TRUE@    tar -czvf @PACKAGE@-@VERSION@-alsa05-k6.tar.gz $alsa05PACKAGE package_descriptions
+@HAVE_ALSA09_TRUE@    rm -f package_descriptions
+@HAVE_ALSA09_TRUE@    mv package_descriptions_alsa09 package_descriptions && \
+@HAVE_ALSA09_TRUE@    tar -czvf @PACKAGE@-@VERSION@-alsa09-k6.tar.gz $alsa09PACKAGE package_descriptions
+@HAVE_DXR3_TRUE@    rm -f package_descriptions
+@HAVE_DXR3_TRUE@    mv package_descriptions_dxr3 package_descriptions && \
+@HAVE_DXR3_TRUE@    tar -czvf @PACKAGE@-@VERSION@-dxr3-k6.tar.gz $dxr3PACKAGE package_descriptions
   fi
   do_clean
 }
@@ -150,6 +239,15 @@ build_k7() {
   do_build
   if test "$DIE" -eq 0; then 
     tar -czvf @PACKAGE@-@VERSION@-k7.tar.gz $PACKAGE package_descriptions
+@HAVE_ALSA05_TRUE@    rm -f package_descriptions
+@HAVE_ALSA05_TRUE@    mv package_descriptions_alsa05 package_descriptions && \
+@HAVE_ALSA05_TRUE@    tar -czvf @PACKAGE@-@VERSION@-alsa05-k7.tar.gz $alsa05PACKAGE package_descriptions
+@HAVE_ALSA09_TRUE@    rm -f package_descriptions
+@HAVE_ALSA09_TRUE@    mv package_descriptions_alsa09 package_descriptions && \
+@HAVE_ALSA09_TRUE@    tar -czvf @PACKAGE@-@VERSION@-alsa09-k7.tar.gz $alsa09PACKAGE package_descriptions
+@HAVE_DXR3_TRUE@    rm -f package_descriptions
+@HAVE_DXR3_TRUE@    mv package_descriptions_dxr3 package_descriptions && \
+@HAVE_DXR3_TRUE@    tar -czvf @PACKAGE@-@VERSION@-dxr3-ik7.tar.gz $dxr3PACKAGE package_descriptions
   fi
   do_clean
 }
