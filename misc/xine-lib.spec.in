@@ -212,6 +212,8 @@ rm -rf $RPM_BUILD_ROOT
 %{prefix}/lib/xine/plugins/xineplug_inp_vcd.la
 %{prefix}/lib/xine/plugins/xineplug_inp_vcd.so
 # demuxer plugins
+%{prefix}/lib/xine/plugins/xineplug_dmx_asf.la
+%{prefix}/lib/xine/plugins/xineplug_dmx_asf.so
 %{prefix}/lib/xine/plugins/xineplug_dmx_avi.la
 %{prefix}/lib/xine/plugins/xineplug_dmx_avi.so
 %{prefix}/lib/xine/plugins/xineplug_dmx_mpeg.la
@@ -322,6 +324,8 @@ rm -rf $RPM_BUILD_ROOT
 %{prefix}/share/doc/xine/xine-lib-API/*
 
 %changelog
+* Thu Oct 18 2001 Matthias Dahl <matthew2k@web.de>
+- added asf demuxer plugin
 * Sun Oct 14 2001 Daniel Caujolle-Bert <f1rmb@users.sourceforge.net>
 - move vorbis in separate package. Add DivX4 decoder plugin.
 * Wed Oct 10 2001 Matthias Dahl <matthew2k@web.de>
