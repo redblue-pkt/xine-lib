@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_overlay.c,v 1.13 2002/01/07 16:57:48 jcdutton Exp $
+ * $Id: video_overlay.c,v 1.14 2002/01/15 20:22:44 jcdutton Exp $
  *
  */
 
@@ -37,7 +37,7 @@
 #include "video_overlay.h"
 
 /*
-#define LOG_DEBUG 1
+#define LOG_DEBUG
 */
 
 typedef struct video_overlay_events_s {
@@ -278,7 +278,7 @@ static int32_t video_overlay_add_event(video_overlay_instance_t *this_gen,  void
     this->video_overlay_events[new_event].event->object.pts=event->object.pts;
 
     if ( this->video_overlay_events[new_event].event->object.overlay ) {
-      fprintf(stderr,"video_overlay: error: event->object.overlay was not freed!\n");
+      fprintf(stderr,"video_overlay: add_event: event->object.overlay was not freed!\n");
     }
     
     if( event->object.overlay ) {
@@ -315,6 +315,10 @@ static void video_overlay_print_overlay( vo_overlay_t *ovl ) {
 	  ovl->trans[0], ovl->trans[1], ovl->trans[2], ovl->trans[3]);
   printf ("video_overlay: \tclip top=%d bottom=%d left=%d right=%d\n",
 	  ovl->clip_top, ovl->clip_bottom, ovl->clip_left, ovl->clip_right);
+  printf ("video_overlay: \tclip_clut [%x %x %x %x]\n",
+	  ovl->clip_color[0], ovl->clip_color[1], ovl->clip_color[2], ovl->clip_color[3]);
+  printf ("video_overlay: \tclip_trans [%d %d %d %d]\n",
+	  ovl->clip_trans[0], ovl->clip_trans[1], ovl->clip_trans[2], ovl->clip_trans[3]);
 #endif
   return;
 } 
@@ -401,12 +405,13 @@ static void video_overlay_event( video_overlay_t *this, int vpts ) {
       case EVENT_MENU_SPU:
         /* mixes palette and copy rle */
 #ifdef LOG_DEBUG
-        printf ("video_overlay.c:MENU SPU NOW\n");
+        printf ("video_overlay:MENU SPU NOW\n");
 #endif
         if (this->video_overlay_events[this_event].event->object.overlay != NULL) {
           vo_overlay_t *event_overlay = this->video_overlay_events[this_event].event->object.overlay;
           vo_overlay_t *overlay;
           int menu_changed = 0;
+          printf ("video_overlay:overlay present\n");
 #ifdef LOG_DEBUG
           video_overlay_print_overlay( this->video_overlay_events[this_event].event->object.overlay ) ;
 #endif
@@ -435,8 +440,9 @@ static void video_overlay_event( video_overlay_t *this, int vpts ) {
               overlay->width != event_overlay->width || 
               overlay->height != event_overlay->height ||
               overlay->x != event_overlay->x ||
-              overlay->y != event_overlay->y )
+              overlay->y != event_overlay->y ) {
             menu_changed = 1;
+          }
 
           overlay->rle = event_overlay->rle;
           
@@ -469,6 +475,9 @@ static void video_overlay_event( video_overlay_t *this, int vpts ) {
               overlay->trans[3] = event_overlay->trans[3];
             }
           }
+#ifdef LOG_DEBUG
+          video_overlay_print_overlay( this->video_overlay_events[this_event].event->object.overlay ) ;
+#endif
                     
           /* let EVENT_MENU_BUTTON set the correct clipping box */
           if( menu_changed ) {
@@ -483,13 +492,15 @@ static void video_overlay_event( video_overlay_t *this, int vpts ) {
           /* The null test was done at the start of this case statement */
           free (this->video_overlay_events[this_event].event->object.overlay);
           this->video_overlay_events[this_event].event->object.overlay = NULL;
+        } else {
+          printf ("video_overlay:overlay present\n");
         }
         break;
   
       case EVENT_MENU_BUTTON:
         /* mixes palette and copy clip coords */
 #ifdef LOG_DEBUG
-        printf ("MENU BUTTON NOW\n");
+        printf ("video_overlay:MENU BUTTON NOW\n");
 #endif
         if ( (this->video_overlay_events[this_event].event->object.overlay != NULL) &&
              (this->video_overlay_objects[handle].overlay) &&
@@ -497,12 +508,22 @@ static void video_overlay_event( video_overlay_t *this, int vpts ) {
                 this->video_overlay_objects[handle].pts) ) {
           vo_overlay_t *overlay = this->video_overlay_objects[handle].overlay;
           vo_overlay_t *event_overlay = this->video_overlay_events[this_event].event->object.overlay;
+          printf ("video_overlay:overlay present\n");
           this->video_overlay_objects[handle].handle = handle;
           overlay->clip_top = event_overlay->clip_top;
           overlay->clip_bottom = event_overlay->clip_bottom;
           overlay->clip_left = event_overlay->clip_left;
           overlay->clip_right = event_overlay->clip_right;
-          
+          overlay->clip_color[0] = event_overlay->clip_color[0];
+          overlay->clip_color[1] = event_overlay->clip_color[1];
+          overlay->clip_color[2] = event_overlay->clip_color[2];
+          overlay->clip_color[3] = event_overlay->clip_color[3];
+          overlay->clip_trans[0] = event_overlay->clip_trans[0];
+          overlay->clip_trans[1] = event_overlay->clip_trans[1];
+          overlay->clip_trans[2] = event_overlay->clip_trans[2];
+          overlay->clip_trans[3] = event_overlay->clip_trans[3];
+          overlay->clip_rgb_clut = event_overlay->clip_rgb_clut;
+/***********************************
           if((event_overlay->color[0] +
               event_overlay->color[1] +
               event_overlay->color[2] +
@@ -523,7 +544,13 @@ static void video_overlay_event( video_overlay_t *this, int vpts ) {
             overlay->trans[2] = event_overlay->trans[2];
             overlay->trans[3] = event_overlay->trans[3];
           }
+***********************************/
+#ifdef LOG_DEBUG
+          video_overlay_print_overlay( this->video_overlay_events[this_event].event->object.overlay ) ;
+#endif
           add_showing_handle( this, handle );
+        } else {
+          printf ("video_overlay:overlay not present\n");
         }
         if ( (this->video_overlay_events[this_event].event->object.pts != 
                 this->video_overlay_objects[handle].pts) ) {

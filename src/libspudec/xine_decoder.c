@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.54 2002/01/06 19:48:16 jcdutton Exp $
+ * $Id: xine_decoder.c,v 1.55 2002/01/15 20:22:43 jcdutton Exp $
  *
  * stuff needed to turn libspu into a xine decoder plugin
  */
@@ -150,9 +150,16 @@ static void spudec_copy_nav_to_spu(spudec_decoder_t *this) {
   this->overlay.clip_bottom = button_ptr->y_end;
   if(button_ptr->btn_coln != 0) {
     for (i = 0;i < 4; i++) {
-      this->overlay.color[i] = this->state.clut[0xf & (this->pci.hli.btn_colit.btn_coli[button_ptr->btn_coln-1][0] >> (16 + 4*i))];
-      this->overlay.trans[i] = 0xf & (this->pci.hli.btn_colit.btn_coli[button_ptr->btn_coln-1][0] >> (4*i));
+      this->overlay.clip_color[i] = this->state.clut[0xf & (this->pci.hli.btn_colit.btn_coli[button_ptr->btn_coln-1][0] >> (16 + 4*i))];
+      this->overlay.clip_trans[i] = 0xf & (this->pci.hli.btn_colit.btn_coli[button_ptr->btn_coln-1][0] >> (4*i));
     }
+  } else {
+    for (i = 0;i < 4; i++) {
+      printf("libspudec:btn_coln = 0, clip_color = color\n");
+      this->overlay.clip_color[i] = this->overlay.color[i];
+      this->overlay.clip_trans[i] = this->overlay.trans[i];
+    }
+  }
 /*************************
     printf("libspudec:xine_decode.c:color3=%08x\n",this->overlay.color[3]); 
     printf("libspudec:xine_decode.c:color2=%08x\n",this->overlay.color[2]); 
@@ -163,9 +170,6 @@ static void spudec_copy_nav_to_spu(spudec_decoder_t *this) {
     printf("libspudec:xine_decode.c:trans1=%08x\n",this->overlay.trans[1]); 
     printf("libspudec:xine_decode.c:trans0=%08x\n",this->overlay.trans[0]); 
 *************************/
-  } else {
-    /* No colours present in the NAV packet */
-  }
 
   printf("libspudec:xine_decoder.c:NAV to SPU pts match!\n");
   
@@ -225,8 +229,17 @@ static void spu_process (spudec_decoder_t *this, uint32_t stream_id) {
 #endif
       if (this->pci.hli.hl_gi.hli_s_ptm == this->spu_stream_state[stream_id].pts) {
         spudec_copy_nav_to_spu(this);
+      } else {
+      /* Subtitle and not a menu button */
+        int i;
+        for (i = 0;i < 4; i++) {
+          this->overlay.clip_color[i] = this->overlay.color[i];
+          this->overlay.clip_trans[i] = this->overlay.trans[i];
+        }
       }
-      if ( !(this->overlay.trans[0] | this->overlay.trans[1] | this->overlay.trans[2] | this->overlay.trans[3]) ) {
+
+      if ( !(this->overlay.trans[0] | this->overlay.trans[1] | this->overlay.trans[2] | this->overlay.trans[3] |
+        this->overlay.clip_trans[0] | this->overlay.clip_trans[1] | this->overlay.clip_trans[2] | this->overlay.clip_trans[3]) ) {
         /* SPU is transparent so why bother displaying it. */
         printf ("spu: transparent spu found, discarding it.\n" ); 
         return;
@@ -348,8 +361,8 @@ static void spudec_decode_nav(spudec_decoder_t *this, buf_element_t *buf) {
   p += header_len;
 
   if (stream_id == 0xbf) { /* Private stream 2 */
-    int i;
-/*     for(i=0;i<80;i++) {
+/*   int i;
+ *   for(i=0;i<80;i++) {
  *     printf("%02x ",p[i]);
  *   }
  *   printf("\n p[0]=0x%02x\n",p[0]);
@@ -623,14 +636,15 @@ static void spudec_event_listener(void *this_gen, xine_event_t *event_gen) {
         overlay->clip_bottom = but->bottom;
         overlay->clip_left = but->left;
         overlay->clip_right = but->right;
-        overlay->color[0] = this->state.clut[but->color[0]];
-        overlay->color[1] = this->state.clut[but->color[1]];
-        overlay->color[2] = this->state.clut[but->color[2]];
-        overlay->color[3] = this->state.clut[but->color[3]];
-        overlay->trans[0] = but->trans[0];
-        overlay->trans[1] = but->trans[1];
-        overlay->trans[2] = but->trans[2];
-        overlay->trans[3] = but->trans[3];
+        overlay->clip_color[0] = this->state.clut[but->color[0]];
+        overlay->clip_color[1] = this->state.clut[but->color[1]];
+        overlay->clip_color[2] = this->state.clut[but->color[2]];
+        overlay->clip_color[3] = this->state.clut[but->color[3]];
+        overlay->clip_trans[0] = but->trans[0];
+        overlay->clip_trans[1] = but->trans[1];
+        overlay->clip_trans[2] = but->trans[2];
+        overlay->clip_trans[3] = but->trans[3];
+        overlay->clip_rgb_clut = 0;
       } else {
         overlay_event->object.handle = this->menu_handle;
         overlay_event->event_type = EVENT_HIDE_MENU;

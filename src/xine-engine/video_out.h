@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.h,v 1.37 2002/01/14 00:34:22 guenter Exp $
+ * $Id: video_out.h,v 1.38 2002/01/15 20:22:44 jcdutton Exp $
  *
  *
  * xine version of video_out.h 
@@ -340,6 +340,9 @@ struct vo_overlay_s {
   int               clip_bottom;
   int               clip_left;
   int               clip_right;
+  uint32_t          clip_color[OVL_PALETTE_SIZE];
+  uint8_t           clip_trans[OVL_PALETTE_SIZE];
+  int               clip_rgb_clut;      /* true if clut was converted to rgb*/
 
 };
 

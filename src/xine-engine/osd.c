@@ -240,8 +240,8 @@ static int osd_show (osd_object_t *osd, uint32_t vpts ) {
     printf("osd_show num_rle = %d\n", this->event.object.overlay->num_rle);
 #endif
   
-    memcpy(this->event.object.overlay->color, osd->color, sizeof(osd->color)); 
-    memcpy(this->event.object.overlay->trans, osd->trans, sizeof(osd->trans)); 
+    memcpy(this->event.object.overlay->clip_color, osd->color, sizeof(osd->color)); 
+    memcpy(this->event.object.overlay->clip_trans, osd->trans, sizeof(osd->trans)); 
   
     this->event.event_type = EVENT_SHOW_SPU;
     this->event.vpts = vpts;

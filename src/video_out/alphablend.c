@@ -126,7 +126,7 @@ void blend_rgb16 (uint8_t * img, vo_overlay_t * img_overl,
 		  int dst_width, int dst_height)
 {
   uint8_t *trans;
-  clut_t* clut = (clut_t*) img_overl->color;
+  clut_t* clut = (clut_t*) img_overl->clip_color;
 
   int src_width = img_overl->width;
   int src_height = img_overl->height;
@@ -143,7 +143,7 @@ void blend_rgb16 (uint8_t * img, vo_overlay_t * img_overl,
       + (img_overl->y * img_height / dst_height) * img_width
       + (img_overl->x * img_width / dst_width);
 
-  trans = img_overl->trans;
+  trans = img_overl->clip_trans;
 
   for (y = dy = 0; y < src_height && rle < rle_limit;) {
     int mask = !(img_overl->clip_top > y || img_overl->clip_bottom < y);
@@ -211,7 +211,7 @@ void blend_rgb24 (uint8_t * img, vo_overlay_t * img_overl,
 		  int img_width, int img_height,
 		  int dst_width, int dst_height)
 {
-  clut_t* clut = (clut_t*) img_overl->color;
+  clut_t* clut = (clut_t*) img_overl->clip_color;
   uint8_t *trans;
   int src_width = img_overl->width;
   int src_height = img_overl->height;
@@ -227,7 +227,7 @@ void blend_rgb24 (uint8_t * img, vo_overlay_t * img_overl,
   img_pix = img + 3 * (  (img_overl->y * img_height / dst_height) * img_width
 		       + (img_overl->x * img_width  / dst_width));
 
-  trans = img_overl->trans;
+  trans = img_overl->clip_trans;
 
   for (dy = y = 0; y < src_height && rle < rle_limit; ) {
     int mask = !(img_overl->clip_top > y || img_overl->clip_bottom < y);
@@ -298,7 +298,7 @@ void blend_rgb32 (uint8_t * img, vo_overlay_t * img_overl,
 		  int img_width, int img_height,
 		  int dst_width, int dst_height)
 {
-  clut_t* clut = (clut_t*) img_overl->color;
+  clut_t* clut = (clut_t*) img_overl->clip_color;
   uint8_t *trans;
   int src_width = img_overl->width;
   int src_height = img_overl->height;
@@ -314,7 +314,7 @@ void blend_rgb32 (uint8_t * img, vo_overlay_t * img_overl,
   img_pix = img + 4 * (  (img_overl->y * img_height / dst_height) * img_width
 		       + (img_overl->x * img_width / dst_width));
 
-  trans = img_overl->trans;
+  trans = img_overl->clip_trans;
 
   for (y = dy = 0; y < src_height && rle < rle_limit; ) {
     int mask = !(img_overl->clip_top > y || img_overl->clip_bottom < y);
@@ -395,6 +395,7 @@ void blend_yuv (uint8_t * dst_img, vo_overlay_t * img_overl,
 {
   clut_t *my_clut;
   uint8_t *my_trans;
+  int i;
 
   int src_width = img_overl->width;
   int src_height = img_overl->height;
@@ -410,9 +411,12 @@ void blend_yuv (uint8_t * dst_img, vo_overlay_t * img_overl,
     (y_off / 2) * (dst_width / 2) + (x_off / 2) + 1;
   uint8_t *dst_cb = dst_cr + (dst_width * dst_height) / 4;
 
-  my_clut = (clut_t*) img_overl->color;
-  my_trans = img_overl->trans;
+  my_clut = (clut_t*) img_overl->clip_color;
+  my_trans = img_overl->clip_trans;
 
+  for(i=0;i<4;i++) {
+//    printf("video_out:[%d] clut=0x%04x trans=0x%02x\n",i, img_overl->clip_color[i],my_trans[i]);
+  }
   for (y = 0; y < src_height; y++) {
     mask = !(img_overl->clip_top > y || img_overl->clip_bottom < y);
 
@@ -439,9 +443,9 @@ void blend_yuv (uint8_t * dst_img, vo_overlay_t * img_overl,
             mem_blend8(dst_y + x, my_clut[clr].y, o, (img_overl->clip_right-x) );
             if (y & 1) {
               mem_blend8(dst_cr + (x >> 1), my_clut[clr].cr, o, 
-                         (img_overl->clip_right-x) >> 1);
+                         (img_overl->clip_right-x+1) >> 1);
               mem_blend8(dst_cb + (x >> 1), my_clut[clr].cb, o,
-                         (img_overl->clip_right-x) >> 1);
+                         (img_overl->clip_right-x+1) >> 1);
             } 
             o = 0;            
           } else {
@@ -454,14 +458,14 @@ void blend_yuv (uint8_t * dst_img, vo_overlay_t * img_overl,
 	if (o >= 15) {
 	  memset(dst_y + x, my_clut[clr].y, rlelen);
 	  if (y & 1) {
-	    memset(dst_cr + (x >> 1), my_clut[clr].cr, rlelen >> 1);
-	    memset(dst_cb + (x >> 1), my_clut[clr].cb, rlelen >> 1);
+	    memset(dst_cr + (x >> 1), my_clut[clr].cr, (rlelen+1) >> 1);
+	    memset(dst_cb + (x >> 1), my_clut[clr].cb, (rlelen+1) >> 1);
 	  }
 	} else {
 	  mem_blend8(dst_y + x, my_clut[clr].y, o, rlelen);
 	  if (y & 1) {
-	    mem_blend8(dst_cr + (x >> 1), my_clut[clr].cr, o, rlelen >> 1);
-	    mem_blend8(dst_cb + (x >> 1), my_clut[clr].cb, o, rlelen >> 1);
+	    mem_blend8(dst_cr + (x >> 1), my_clut[clr].cr, o, (rlelen+1) >> 1);
+	    mem_blend8(dst_cb + (x >> 1), my_clut[clr].cb, o, (rlelen+1) >> 1);
 	  }
 	}
       }
@@ -501,8 +505,8 @@ void blend_yuy2 (uint8_t * dst_img, vo_overlay_t * img_overl,
   uint8_t *dst_y = dst_img + 2 * (dst_width * y_off + x_off);
   uint8_t *dst;
 
-  my_clut = (clut_t*) img_overl->color;
-  my_trans = img_overl->trans;
+  my_clut = (clut_t*) img_overl->clip_color;
+  my_trans = img_overl->clip_trans;
 
   for (y = 0; y < src_height; y++) {
     mask = !(img_overl->clip_top > y || img_overl->clip_bottom < y);
