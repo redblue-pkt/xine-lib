@@ -22,7 +22,7 @@
  * based on overview of Cinepak algorithm and example decoder
  * by Tim Ferguson: http://www.csse.monash.edu.au/~timf/
  *
- * $Id: cinepak.c,v 1.10 2002/07/15 21:42:34 esnel Exp $
+ * $Id: cinepak.c,v 1.11 2002/07/18 20:08:00 esnel Exp $
  */
 
 #include <stdlib.h>
@@ -318,7 +318,7 @@ static void cvid_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 
     if (this->img_buffer)
       free (this->img_buffer);
-    this->img_buffer = malloc((this->biWidth * this->biHeight * 3) >> 1);
+    this->img_buffer = malloc((this->biWidth * this->biHeight * 3) / 2);
 
     if (this->buf)
       free (this->buf);
@@ -346,23 +346,44 @@ static void cvid_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
     if (buf->decoder_flags & BUF_FLAG_FRAME_END) {
 
       vo_frame_t *img;
-      int         n = (this->biWidth * this->biHeight);
+      uint8_t    *dy, *du, *dv, *sy, *su, *sv;
+      int	  y;
 
       cinepak_decode_frame (this, this->buf, this->size);
 
       img = this->video_out->get_frame (this->video_out,
 					this->biWidth, this->biHeight,
-					42, IMGFMT_YV12, VO_BOTH_FIELDS);
+					XINE_ASPECT_RATIO_SQUARE,
+					IMGFMT_YV12, VO_BOTH_FIELDS);
 
       img->duration  = this->video_step;
       img->pts	     = buf->pts;
       img->bad_frame = 0;
 
-      /* FIXME: use img->pitches[3] */
-      xine_fast_memcpy (img->base[0], this->img_buffer, n);
-      xine_fast_memcpy (img->base[1], this->img_buffer + n, (n >> 2));
-      xine_fast_memcpy (img->base[2], this->img_buffer + n + (n >> 2), (n >> 2));
+      dy = img->base[0];
+      du = img->base[1];
+      dv = img->base[2];
+      sy = this->img_buffer;
+      su = this->img_buffer + (this->biWidth * this->biHeight);
+      sv = this->img_buffer + ((this->biWidth * this->biHeight * 5) / 4);
 
+      for (y=0; y < this->biHeight; y++) {
+	xine_fast_memcpy (dy, sy, this->biWidth);
+	  
+	dy += img->pitches[0];  
+	sy += this->biWidth;
+      }
+
+      for (y=0; y < (this->biHeight/2); y++) {
+	xine_fast_memcpy (du, su, this->biWidth/2);
+	xine_fast_memcpy (dv, sv, this->biWidth/2);
+
+	du += img->pitches[1];
+	dv += img->pitches[2];
+	su += this->biWidth/2;
+	sv += this->biWidth/2;
+      }
+	
       if (img->copy) {
 	int height = img->height;
 	uint8_t *src[3];
