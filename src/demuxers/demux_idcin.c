@@ -63,7 +63,7 @@
  *     - if any bytes exceed 63, do not shift the bytes at all before
  *       transmitting them to the video decoder
  *
- * $Id: demux_idcin.c,v 1.9 2002/09/05 22:18:51 mroi Exp $
+ * $Id: demux_idcin.c,v 1.10 2002/09/10 15:07:14 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -587,16 +587,8 @@ static char *demux_idcin_get_mimetypes(void) {
   return NULL;
 }
 
-static void *init_demuxer_plugin(int iface, xine_t *xine) {
+static void *init_demuxer_plugin(xine_t *xine, void *data) {
   demux_idcin_t *this;
-
-  if (iface != 10) {
-    printf (_("demux_idcin: plugin doesn't support plugin API version %d.\n"
-              "             this means there's a version mismatch between xine and this "
-              "             demuxer plugin.\nInstalling current demux plugins should help.\n"),
-            iface);
-    return NULL;
-  }
 
   this         = (demux_idcin_t *) xine_xmalloc(sizeof(demux_idcin_t));
   this->config = xine->config;
@@ -622,3 +614,13 @@ static void *init_demuxer_plugin(int iface, xine_t *xine) {
 
   return &this->demux_plugin;
 }
+
+/*
+ * exported plugin catalog entry
+ */
+
+plugin_info_t xine_plugin_info[] = {
+  /* type, API, "name", version, special_info, init_function */  
+  { PLUGIN_DEMUX, 10, "idcin", XINE_VERSION_CODE, NULL, init_demuxer_plugin },
+  { PLUGIN_NONE, 0, "", 0, NULL, NULL }
+};

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ts.c,v 1.55 2002/09/05 22:18:53 mroi Exp $
+ * $Id: demux_ts.c,v 1.56 2002/09/10 15:07:14 mroi Exp $
  *
  * Demultiplexer for MPEG2 Transport Streams.
  *
@@ -1652,21 +1652,11 @@ static int demux_ts_get_stream_length (demux_plugin_t *this_gen) {
 }
 
 
-static void *init_demuxer_plugin(int iface, xine_t *xine) {
+static void *init_demuxer_plugin(xine_t *xine, void *data) {
 
   demux_ts        *this;
   int              i;
 
-  if (iface != 10) {
-    LOG_MSG (xine,
-             _("demux_ts: plugin doesn't support plugin API version %d.\n"
-               "          This means there's a version mismatch between xine "
-	       "and this demuxer plugin.\n"
-               "          Installing current demux plugins should help.\n"),
-             iface);
-    return NULL;
-  }
-  
   /*
    * Initialise the generic plugin.
    */
@@ -1728,3 +1718,13 @@ static void *init_demuxer_plugin(int iface, xine_t *xine) {
 
   return (demux_plugin_t *)this;
 }
+
+/*
+ * exported plugin catalog entry
+ */
+
+plugin_info_t xine_plugin_info[] = {
+  /* type, API, "name", version, special_info, init_function */  
+  { PLUGIN_DEMUX, 10, "mpeg-ts", XINE_VERSION_CODE, NULL, init_demuxer_plugin },
+  { PLUGIN_NONE, 0, "", 0, NULL, NULL }
+};

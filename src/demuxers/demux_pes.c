@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_pes.c,v 1.37 2002/09/05 22:18:52 mroi Exp $
+ * $Id: demux_pes.c,v 1.38 2002/09/10 15:07:14 mroi Exp $
  *
  * demultiplexer for mpeg 2 PES (Packetized Elementary Streams)
  * reads streams of variable blocksizes
@@ -594,17 +594,9 @@ static int demux_pes_get_stream_length (demux_plugin_t *this_gen) {
   return 0; /* FIXME: implement */
 }
 
-static void *init_demuxer_plugin(int iface, xine_t *xine) {
+static void *init_demuxer_plugin(xine_t *xine, void *data) {
 
   demux_pes_t     *this;
-
-  if (iface != 10) {
-    printf (_("demux_pes: plugin doesn't support plugin API version %d.\n"
-	      "           this means there's a version mismatch between xine and this "
-	      "           demuxer plugin.\nInstalling current demux plugins should help.\n"),
-	    iface);
-    return NULL;
-  }
 
   this         = xine_xmalloc (sizeof (demux_pes_t));
   this->config = xine->config;
@@ -633,3 +625,13 @@ static void *init_demuxer_plugin(int iface, xine_t *xine) {
   
   return (demux_plugin_t *) this;
 }
+
+/*
+ * exported plugin catalog entry
+ */
+
+plugin_info_t xine_plugin_info[] = {
+  /* type, API, "name", version, special_info, init_function */  
+  { PLUGIN_DEMUX, 10, "mpeg-pes", XINE_VERSION_CODE, NULL, init_demuxer_plugin },
+  { PLUGIN_NONE, 0, "", 0, NULL, NULL }
+};

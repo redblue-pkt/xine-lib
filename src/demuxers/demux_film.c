@@ -21,7 +21,7 @@
  * For more information on the FILM file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_film.c,v 1.24 2002/09/05 22:18:51 mroi Exp $
+ * $Id: demux_film.c,v 1.25 2002/09/10 15:07:14 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -784,16 +784,8 @@ static char *demux_film_get_mimetypes(void) {
 }
 
 
-static void *init_demuxer_plugin(int iface, xine_t *xine) {
+static void *init_demuxer_plugin(xine_t *xine, void* data) {
   demux_film_t *this;
-
-  if (iface != 10) {
-    printf (_("demux_film: plugin doesn't support plugin API version %d.\n"
-	      "            this means there's a version mismatch between xine and this "
-	      "            demuxer plugin. Installing current demux plugins should help.\n"),
-            iface);
-    return NULL;
-  }
 
   this         = (demux_film_t *) xine_xmalloc(sizeof(demux_film_t));
   this->config = xine->config;
@@ -819,3 +811,13 @@ static void *init_demuxer_plugin(int iface, xine_t *xine) {
 
   return &this->demux_plugin;
 }
+
+/*
+ * exported plugin catalog entry
+ */
+
+plugin_info_t xine_plugin_info[] = {
+  /* type, API, "name", version, special_info, init_function */  
+  { PLUGIN_DEMUX, 10, "film", XINE_VERSION_CODE, NULL, init_demuxer_plugin },
+  { PLUGIN_NONE, 0, "", 0, NULL, NULL }
+};
