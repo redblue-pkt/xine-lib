@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_file.c,v 1.32 2001/12/14 14:49:08 f1rmb Exp $
+ * $Id: input_file.c,v 1.33 2001/12/14 15:26:47 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -78,6 +78,7 @@ typedef struct {
   
   int               fh;
   int               show_hidden_files;
+  char             *origin_path;
   FILE             *sub;
   char             *mrl;
   config_values_t  *config;
@@ -99,6 +100,11 @@ static void hidden_bool_cb(void *data, cfg_entry_t *cfg) {
   file_input_plugin_t *this = (file_input_plugin_t *) data;
   
   this->show_hidden_files = cfg->num_value;
+}
+static void origin_change_cb(void *data, cfg_entry_t *cfg) {
+  file_input_plugin_t *this = (file_input_plugin_t *) data;
+  
+  this->origin_path = cfg->str_value;
 }
 
 /*
@@ -420,15 +426,9 @@ static mrl_t **file_plugin_get_dir (input_plugin_t *this_gen,
    * No origin location, so got the content of the current directory
    */
   if(!filename) {
-    char *pwd;
-
-    if((pwd = getenv("PWD")) == NULL)
-      snprintf(current_dir, 1, "%s", ".");
-    else
-      snprintf(current_dir, PATH_MAX, "%s", pwd);
+    snprintf(current_dir, PATH_MAX, "%s", this->origin_path);
   }
   else {
-
     /* Remove exceed '/' */
     while((filename[strlen(filename) - 1] == '/') && strlen(filename) > 1)
       filename[strlen(filename) - 1] = '\0';
@@ -436,6 +436,9 @@ static mrl_t **file_plugin_get_dir (input_plugin_t *this_gen,
     snprintf(current_dir, PATH_MAX, "%s", filename);
     
   }
+
+  /* Store new origin path */
+  this->config->update_string(this->config, "input.file_origin_path", current_dir);
 
   if(strcasecmp(current_dir, "/"))
     sprintf(current_dir_slashed, "%s/", current_dir);
@@ -835,8 +838,22 @@ input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
   this->mrls = (mrl_t **) xine_xmalloc(sizeof(mrl_t*));
   this->mrls_allocated_entries = 0;
 
-  this->show_hidden_files = this->config->register_bool(this->config, "input.hidden_files", 1,
-							"hidden files displaying.",
+  {
+    char *pwd;
+    char current_dir[PATH_MAX + 1];
+    
+    if((pwd = getenv("PWD")) == NULL)
+      snprintf(current_dir, 1, "%s", ".");
+    else
+      snprintf(current_dir, PATH_MAX, "%s", pwd);
+
+    this->origin_path = config->register_string(this->config, "input.file_origin_path",
+						current_dir, "origin path to grab file mrls",
+						NULL, origin_change_cb, (void *) this);
+  }
+  
+  this->show_hidden_files = this->config->register_bool(this->config, "input.file_hidden_files", 
+							1, "hidden files displaying.",
 							NULL, hidden_bool_cb, (void *) this);
   
   return (input_plugin_t *) this;
