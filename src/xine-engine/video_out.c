@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.192 2004/05/07 22:49:24 f1rmb Exp $
+ * $Id: video_out.c,v 1.193 2004/05/13 21:38:49 jstembridge Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -350,6 +350,7 @@ static int vo_frame_draw (vo_frame_t *img, xine_stream_t *stream) {
   int64_t        cur_vpts;
   int64_t        pic_vpts ;
   int            frames_to_skip;
+  int            duration;
 
   img->stream = stream;
   this->current_width = img->width;
@@ -378,7 +379,9 @@ static int vo_frame_draw (vo_frame_t *img, xine_stream_t *stream) {
     
     /* avoid division by zero */
     if( img->duration <= 0 )
-      img->duration = DEFAULT_FRAME_DURATION;
+      duration = DEFAULT_FRAME_DURATION;
+    else
+      duration = img->duration;
     
     /* Frame dropping slow start:
      *   The engine starts to drop frames if there is less than frame_drop_limit
@@ -396,7 +399,7 @@ static int vo_frame_draw (vo_frame_t *img, xine_stream_t *stream) {
       this->frame_drop_limit = 3 - (this->frame_drop_cpt / 2);
       this->frame_drop_cpt--;
     }
-    frames_to_skip = ((-1 * diff) / img->duration + this->frame_drop_limit) * 2;
+    frames_to_skip = ((-1 * diff) / duration + this->frame_drop_limit) * 2;
 
     if (frames_to_skip<0)
       frames_to_skip = 0;
