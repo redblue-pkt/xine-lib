@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_vcd.c,v 1.16 2001/07/25 08:42:05 f1rmb Exp $
+ * $Id: input_vcd.c,v 1.17 2001/07/27 15:50:04 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -57,7 +57,7 @@ static uint32_t xine_debug;
 #define	CDROM	       "/vol/dev/aliases/cdrom0"
 #else
 /* for FreeBSD make a link to the right devnode, like /dev/acd0c */
-#ifdef CONFIG_DEVFS_FS
+#if defined(CONFIG_DEVFS_FS) && defined (CONFIG_DEVFS_MOUNT)
 #define CDROM          "/dev/cdroms/cdrom"
 #else
 #define CDROM          "/dev/cdrom"

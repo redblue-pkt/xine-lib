@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.15 2001/07/17 13:28:10 jkeil Exp $
+ * $Id: input_dvd.c,v 1.16 2001/07/27 15:50:04 f1rmb Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -56,7 +56,7 @@ static uint32_t xine_debug;
 #define RDVD    "/vol/dev/aliases/cdrom0"
 #define DVD     RDVD
 #else
-#ifdef CONFIG_DEVFS_FS
+#if defined(CONFIG_DEVFS_FS) && defined(CONFIG_DEVFS_MOUNT)
 #define DVD     "/dev/cdroms/dvd"
 #define RDVD    "/dev/cdroms/rdvd"
 #else
@@ -101,7 +101,7 @@ typedef struct {
 /* ***************************************************************** */
 static int openDrive (dvd_input_plugin_t *this) {
   
-  this->dvd_fd = open(DVD, O_RDONLY | O_NONBLOCK);
+  this->dvd_fd = open(DVD, O_RDONLY /* | O_NONBLOCK */ );
 
   if (this->dvd_fd < 0) {
     printf ("input_dvd: unable to open dvd drive (%s): %s\n", DVD,
@@ -109,7 +109,7 @@ static int openDrive (dvd_input_plugin_t *this) {
     return -1;
   }
 
-  this->raw_fd = open(RDVD, O_RDONLY | O_NONBLOCK);
+  this->raw_fd = open(RDVD, O_RDONLY /* | O_NONBLOCK */ );
   if (this->raw_fd < 0) {
     this->raw_fd = this->dvd_fd;
   }
@@ -436,7 +436,7 @@ static mrl_t **dvd_plugin_get_dir (input_plugin_t *this_gen,
   if (filename)
     return NULL;
   
-  if((fd = open(DVD, O_RDONLY|O_NONBLOCK)) > -1) {
+  if((fd = open(DVD, O_RDONLY /* | O_NONBLOCK */ )) > -1) {
     int nFiles, nFiles2;
 	
     UDFListDir (fd, "/VIDEO_TS", MAX_DIR_ENTRIES, this->filelist, &nFiles);
@@ -490,9 +490,11 @@ static mrl_t **dvd_plugin_get_dir (input_plugin_t *this_gen,
     close (fd);
 
   }
-  else
+  else {
+    printf ("input_dvd: unable to open dvd drive (%s): %s\n", DVD,
+	    strerror(errno));
     return NULL;
-
+  }
   /*
    * Freeing exceeded mrls if exists.
    */
@@ -521,9 +523,9 @@ static char **dvd_plugin_get_autoplay_list (input_plugin_t *this_gen,
   dvd_input_plugin_t *this = (dvd_input_plugin_t *) this_gen;
   int i, fd;
   
-  if((fd = open(DVD, O_RDONLY|O_NONBLOCK)) > -1) {
+  if((fd = open(DVD, O_RDONLY /* | O_NONBLOCK */ )) > -1) {
     int    nFiles3, nFiles2;
-    
+
     UDFListDir (fd, "/VIDEO_TS", MAX_DIR_ENTRIES, this->filelist, &nFiles3);
     
     nFiles2 = 0;
@@ -550,6 +552,8 @@ static char **dvd_plugin_get_autoplay_list (input_plugin_t *this_gen,
     close (fd);
 
   } else {
+    printf ("input_dvd: unable to open dvd drive (%s): %s\n", DVD,
+	    strerror(errno));
     *nFiles = 0;
     return NULL;
   }
