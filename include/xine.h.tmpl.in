@@ -28,7 +28,7 @@
  \endverbatim
  */
 /*
- * $Id: xine.h.tmpl.in,v 1.86 2002/03/14 13:57:15 miguelfreitas Exp $
+ * $Id: xine.h.tmpl.in,v 1.87 2002/03/16 13:33:47 esnel Exp $
  *
  */
 
@@ -668,6 +668,11 @@ struct config_values_s {
    * read config file from disk, overriding values in memory
    */
   void (*read) (config_values_t *self, char *filename);
+
+  /*
+   * free memory resources
+   */
+  void (*dispose) (config_values_t *self);
 
   /* 
    * config values are stored here:

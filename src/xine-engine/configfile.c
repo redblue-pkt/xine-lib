@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: configfile.c,v 1.18 2002/02/06 10:57:15 f1rmb Exp $
+ * $Id: configfile.c,v 1.19 2002/03/16 13:33:47 esnel Exp $
  *
  * config file management - implementation
  *
@@ -146,9 +146,10 @@ static char *config_file_register_string (config_values_t *this,
       sprintf(entry->str_value, "%s%s", entry->unknown_value, entry->str_sticky);
     }
     else
-      entry->str_value = entry->unknown_value;
+      entry->str_value = strdup(entry->unknown_value);
     
-  }
+  } else
+    free (entry->str_default);
   
   /* fill out rest of struct */
   
@@ -188,6 +189,12 @@ static int config_file_register_num (config_values_t *this,
   /* convert entry to num type if necessary */
 
   if (entry->type != CONFIG_TYPE_NUM) {
+
+    if (entry->type == CONFIG_TYPE_STRING) {
+      free (entry->str_value);
+      free (entry->str_default);
+    }
+
     entry->type      = CONFIG_TYPE_NUM;
 
     if (entry->unknown_value)
@@ -235,6 +242,12 @@ static int config_file_register_bool (config_values_t *this,
   /* convert entry to bool type if necessary */
 
   if (entry->type != CONFIG_TYPE_BOOL) {
+
+    if (entry->type == CONFIG_TYPE_STRING) {
+      free (entry->str_value);
+      free (entry->str_default);
+    }
+
     entry->type      = CONFIG_TYPE_BOOL;
 
     if (entry->unknown_value)
@@ -282,6 +295,12 @@ static int config_file_register_range (config_values_t *this,
   /* convert entry to range type if necessary */
 
   if (entry->type != CONFIG_TYPE_RANGE) {
+
+    if (entry->type == CONFIG_TYPE_STRING) {
+      free (entry->str_value);
+      free (entry->str_default);
+    }
+
     entry->type      = CONFIG_TYPE_RANGE;
 
     if (entry->unknown_value)
@@ -362,6 +381,12 @@ static int config_file_register_enum (config_values_t *this,
   /* convert entry to enum type if necessary */
 
   if (entry->type != CONFIG_TYPE_ENUM) {
+
+    if (entry->type == CONFIG_TYPE_STRING) {
+      free (entry->str_value);
+      free (entry->str_default);
+    }
+
     entry->type      = CONFIG_TYPE_ENUM;
 
     if (entry->unknown_value)
@@ -433,6 +458,8 @@ static void config_file_update_string (config_values_t *this,
 	    entry->type, entry->key, value);
     return;
   }
+
+  free (entry->str_default);
 
   entry->str_value = copy_string (value);
 
@@ -557,6 +584,31 @@ static void config_file_read (config_values_t *this, char *filename){
   }
 }
 
+static void config_file_dispose (config_values_t *this)
+{
+  cfg_entry_t *entry, *last;
+
+  entry = this->first;
+
+  while (entry) {
+    last = entry;
+    entry = entry->next;
+
+    if (last->key)
+      free (last->key);
+    if (last->unknown_value)
+      free (last->unknown_value);
+
+    if (last->type == CONFIG_TYPE_STRING) {
+      free (last->str_value);
+      free (last->str_default);
+    }
+
+    free (last);
+  }
+  free (this);
+}
+
 config_values_t *xine_config_file_init (char *filename) {
 
 #ifdef HAVE_IRIXAL
@@ -587,6 +639,7 @@ config_values_t *xine_config_file_init (char *filename) {
   this->lookup_entry    = config_file_lookup_entry;
   this->save            = config_file_save;
   this->read            = config_file_read;
+  this->dispose         = config_file_dispose;
 
   return this;
 }
@@ -594,6 +647,9 @@ config_values_t *xine_config_file_init (char *filename) {
 
 /*
  * $Log: configfile.c,v $
+ * Revision 1.19  2002/03/16 13:33:47  esnel
+ * fix memory leak, add dispose() function to config_values_s
+ *
  * Revision 1.18  2002/02/06 10:57:15  f1rmb
  * rename config_file_init to xine_config_file_init.
  *

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: configfile.h,v 1.8 2002/02/06 10:57:15 f1rmb Exp $
+ * $Id: configfile.h,v 1.9 2002/03/16 13:33:47 esnel Exp $
  *
  * config file management
  *
@@ -168,6 +168,11 @@ struct config_values_s {
    */
   void (*read) (config_values_t *this, char *filename);
 
+  /*
+   * free memory resources
+   */
+  void (*dispose) (config_values_t *this);
+
   /* 
    * config values are stored here:
    */
@@ -188,6 +193,9 @@ config_values_t *xine_config_file_init (char *filename);
 
 /*
  * $Log: configfile.h,v $
+ * Revision 1.9  2002/03/16 13:33:47  esnel
+ * fix memory leak, add dispose() function to config_values_s
+ *
  * Revision 1.8  2002/02/06 10:57:15  f1rmb
  * rename config_file_init to xine_config_file_init.
  *
