@@ -831,6 +831,7 @@ static void osd_renderer_close (osd_renderer_t *this) {
   while( this->fonts )
     osd_renderer_unload_font( this, this->fonts->name );
 
+  free(this->event.object.overlay);
   free(this);
 }
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.h,v 1.33 2002/02/09 07:13:24 guenter Exp $
+ * $Id: buffer.h,v 1.34 2002/03/01 09:29:50 guenter Exp $
  *
  *
  * contents:
@@ -177,6 +177,8 @@ struct fifo_buffer_s
   void (*clear) (fifo_buffer_t *fifo) ;
 
   int (*size) (fifo_buffer_t *fifo);
+
+  void (*dispose) (fifo_buffer_t *fifo);
 
   /* 
    * alloc buffer for this fifo from global buf pool 

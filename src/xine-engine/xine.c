@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.104 2002/02/17 17:32:51 guenter Exp $
+ * $Id: xine.c,v 1.105 2002/03/01 09:29:50 guenter Exp $
  *
  * top-level xine functions
  *
@@ -85,6 +85,8 @@ void * xine_notify_stream_finished_thread (void * this_gen) {
   event.type = XINE_EVENT_PLAYBACK_FINISHED;
 
   xine_send_event (this, &event);
+
+  pthread_detach( pthread_self() );
 
   return NULL;
 }
@@ -413,6 +415,8 @@ int xine_eject (xine_t *this) {
 
 void xine_exit (xine_t *this) {
 
+  int i;
+
   xine_stop(this);
     
   LOG_MSG(this, _("xine_exit: shutdown audio\n"));
@@ -423,11 +427,20 @@ void xine_exit (xine_t *this) {
 
   video_decoder_shutdown (this);
 
+  this->osd_renderer->close( this->osd_renderer );
+
   this->status = XINE_QUIT;
 
   LOG_MSG(this, _("xine_exit: bye!\n"));
 
+  for (i = 0; i < XINE_LOG_NUM; i++)
+    this->log_buffers[i]->dispose (this->log_buffers[i]);
+
+  this->metronom->exit (this->metronom);
+
   xine_profiler_print_results ();
+
+  free (this);
 
 }
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.h,v 1.17 2002/02/09 07:13:24 guenter Exp $
+ * $Id: metronom.h,v 1.18 2002/03/01 09:29:50 guenter Exp $
  *
  * metronom: general pts => virtual calculation/assoc
  *                   
@@ -195,6 +195,8 @@ struct metronom_s {
   int    (*register_scr) (metronom_t *this, scr_plugin_t *scr);
   void (*unregister_scr) (metronom_t *this, scr_plugin_t *scr);
 
+  void (*exit) (metronom_t *this);
+
   /*
    * metronom internal stuff
    */
@@ -231,6 +233,7 @@ struct metronom_s {
   int             audio_discontinuity_count;
   pthread_cond_t  video_discontinuity_reached;
   pthread_cond_t  audio_discontinuity_reached;
+  pthread_cond_t  cancel;
 
 };
 
@@ -260,6 +263,8 @@ struct scr_plugin_s
   void (*start) (scr_plugin_t *this, int64_t start_vpts);
 
   int64_t (*get_current) (scr_plugin_t *this);
+
+  void (*exit) (scr_plugin_t *this);
 
   metronom_t *metronom;
 };

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.c,v 1.12 2001/11/17 14:26:39 f1rmb Exp $
+ * $Id: buffer.c,v 1.13 2002/03/01 09:29:50 guenter Exp $
  *
  *
  * contents:
@@ -220,6 +220,33 @@ static int fifo_buffer_size (fifo_buffer_t *this) {
 }
 
 /*
+ * Destroy the buffer
+ */
+static void fifo_buffer_dispose (fifo_buffer_t *this) {
+
+  buf_element_t *buf, *next;
+  char          *mem = NULL;
+
+  this->clear( this );
+  buf = this->buffer_pool_top;
+
+  while (buf != NULL) {
+
+    next = buf->next;
+
+    if (mem == NULL || buf->mem < mem)
+      mem = buf->mem;
+
+    free (buf);
+
+    buf = next;
+  }
+
+  xine_free_aligned (mem);
+  free (this);
+}
+
+/*
  * allocate and initialize new (empty) fifo buffer
  */
 fifo_buffer_t *fifo_buffer_new (int num_buffers, uint32_t buf_size) {
@@ -238,6 +265,7 @@ fifo_buffer_t *fifo_buffer_new (int num_buffers, uint32_t buf_size) {
   this->get             = fifo_buffer_get;
   this->clear           = fifo_buffer_clear;
   this->size		= fifo_buffer_size;
+  this->dispose		= fifo_buffer_dispose;
 
   pthread_mutex_init (&this->mutex, NULL);
   pthread_cond_init (&this->not_empty, NULL);

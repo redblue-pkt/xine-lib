@@ -188,7 +188,7 @@ Contributions
     'cloudy' skin.
   
   Ewald Snel <ewald@rambo.its.tudelft.nl>
-    metronom sync loop fix, safe ffmpeg multithread init
+    metronom sync loop fix, safe ffmpeg multithread init, memleak fixes
 
   Bruno Pinaud <bpinaud@wanadoo.fr>
     french translation updates/fixes.

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xshm.c,v 1.64 2002/02/25 01:23:41 guenter Exp $
+ * $Id: video_out_xshm.c,v 1.65 2002/03/01 09:29:50 guenter Exp $
  * 
  * video_out_xshm.c, X11 shared memory extension interface for xine
  *
@@ -1138,8 +1138,12 @@ static int xshm_gui_data_exchange (vo_driver_t *this_gen,
 
 static void xshm_exit (vo_driver_t *this_gen) {
 
-  /* xshm_driver_t *this = (xshm_driver_t *) this_gen; */
+  xshm_driver_t *this = (xshm_driver_t *) this_gen;
+  
+  if (this->cur_frame)
+    this->cur_frame->vo_frame.dispose (&this->cur_frame->vo_frame);
 
+  free (this);
 }
 
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: scratch.c,v 1.6 2002/01/16 17:35:34 miguelfreitas Exp $
+ * $Id: scratch.c,v 1.7 2002/03/01 09:29:50 guenter Exp $
  *
  * top-level xine functions
  *
@@ -71,6 +71,20 @@ static char **scratch_get_content (scratch_buffer_t *this) {
 
 }
 
+static void scratch_dispose (scratch_buffer_t *this) {
+
+  int i;
+
+  for(i = 0; i < this->num_lines; i++ ) {
+    free (this->lines[i]);
+  }
+
+  free (this->lines);
+  free (this->ordered);
+  free (this);
+
+}
+
 scratch_buffer_t *new_scratch_buffer (int num_lines) {
 
   scratch_buffer_t *this;
@@ -90,6 +104,7 @@ scratch_buffer_t *new_scratch_buffer (int num_lines) {
 
   this->scratch_printf = scratch_printf;
   this->get_content = scratch_get_content;
+  this->dispose = scratch_dispose;
 
   this->num_lines   = num_lines;
   this->cur         = 0;

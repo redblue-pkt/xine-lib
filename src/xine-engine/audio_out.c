@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.42 2002/02/18 15:55:44 guenter Exp $
+ * $Id: audio_out.c,v 1.43 2002/03/01 09:29:50 guenter Exp $
  * 
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -523,7 +523,29 @@ static void ao_close(ao_instance_t *this) {
 }
 
 static void ao_exit(ao_instance_t *this) {
+
+  audio_buffer_t *buf, *next;
+
   this->driver->exit(this->driver);
+
+  free (this->frame_buffer);
+  free (this->zero_space);
+
+  buf = this->free_fifo->first;
+
+  while (buf != NULL) {
+
+    next = buf->next;
+
+    free (buf->mem);
+    free (buf);
+
+    buf = next;
+  }
+
+  free (this->free_fifo);
+  free (this->out_fifo);
+  free (this);
 }
 
 static uint32_t ao_get_capabilities (ao_instance_t *this) {

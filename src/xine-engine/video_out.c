@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.77 2002/02/18 17:30:40 guenter Exp $
+ * $Id: video_out.c,v 1.78 2002/03/01 09:29:50 guenter Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -862,6 +862,11 @@ static void vo_exit (vo_instance_t *this_gen) {
 #ifdef LOG
   printf ("video_out: vo_exit... done\n");
 #endif
+
+  free (this->free_img_buf_queue);
+  free (this->display_img_buf_queue);
+  free (this->logo_yuy2);
+  free (this);
 }
 
 static vo_frame_t *vo_get_last_frame (vo_instance_t *this_gen) {

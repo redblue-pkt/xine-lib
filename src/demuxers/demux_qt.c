@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2001 the xine project
+ * Copyright (C) 2001-2002 the xine project
  * 
  * This file is part of xine, a free video player.
  * 
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_qt.c,v 1.21 2002/02/17 17:32:50 guenter Exp $
+ * $Id: demux_qt.c,v 1.22 2002/03/01 09:29:50 guenter Exp $
  *
  * demultiplexer for quicktime streams, based on:
  *
@@ -3115,22 +3115,25 @@ static int quicktime_trak_shift_offsets(quicktime_trak_t *trak, longest offset)
 
 /* moov.c */
 
-static int quicktime_moov_init(quicktime_moov_t *moov)
-{
+static int quicktime_moov_init(quicktime_moov_t *moov) {
+
   int i;
   
   moov->total_tracks = 0;
-  for(i = 0 ; i < MAXTRACKS; i++) moov->trak[i] = 0;
+  for (i = 0 ; i < MAXTRACKS; i++) 
+    moov->trak[i] = 0;
   quicktime_mvhd_init(&(moov->mvhd));
   quicktime_udta_init(&(moov->udta));
   quicktime_ctab_init(&(moov->ctab));
   return 0;
 }
 
-static int quicktime_moov_delete(quicktime_moov_t *moov)
-{
+static int quicktime_moov_delete(quicktime_moov_t *moov) {
+
   /* int i; */
-  while(moov->total_tracks) quicktime_delete_trak(moov);
+  while(moov->total_tracks) 
+    quicktime_delete_trak(moov);
+
   quicktime_mvhd_delete(&(moov->mvhd));
   quicktime_udta_delete(&(moov->udta));
   quicktime_ctab_delete(&(moov->ctab));
@@ -4367,7 +4370,7 @@ static int demux_qt_open(demux_plugin_t *this_gen,
 	return DEMUX_CAN_HANDLE;
       }
     }
-      return DEMUX_CANNOT_HANDLE;
+    return DEMUX_CANNOT_HANDLE;
     
   }
   break;
