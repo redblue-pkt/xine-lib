@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.h,v 1.46 2002/12/26 21:53:42 miguelfreitas Exp $
+ * $Id: audio_out.h,v 1.47 2002/12/27 02:03:06 miguelfreitas Exp $
  */
 #ifndef HAVE_AUDIO_OUT_H
 #define HAVE_AUDIO_OUT_H
@@ -133,8 +133,9 @@ struct ao_driver_s {
 };
 
 /* to access extra_info_t contents one have to include xine_internal.h */
-#ifndef extra_info_t
-#define extra_info_t void
+#ifndef EXTRA_INFO
+#define EXTRA_INFO
+typedef struct extra_info_s extra_info_t;
 #endif
 
 typedef struct audio_fifo_s audio_fifo_t;

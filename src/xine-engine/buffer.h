@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.h,v 1.87 2002/12/22 15:02:06 miguelfreitas Exp $
+ * $Id: buffer.h,v 1.88 2002/12/27 02:03:06 miguelfreitas Exp $
  *
  *
  * contents:
@@ -195,8 +195,9 @@ extern "C" {
 #define BUF_DEMUX_BLOCK		0x05000000
 
 /* to access extra_info_t contents one have to include xine_internal.h */
-#ifndef extra_info_t
-#define extra_info_t void
+#ifndef EXTRA_INFO
+#define EXTRA_INFO
+typedef struct extra_info_s extra_info_t;
 #endif
 
 typedef struct buf_element_s buf_element_t;
