@@ -19,7 +19,7 @@
  *
  * This file contains plugin entries for several demuxers used in games
  *
- * $Id: group_audio.c,v 1.2 2003/01/05 14:30:14 miguelfreitas Exp $
+ * $Id: group_audio.c,v 1.3 2003/01/07 06:29:16 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -37,6 +37,7 @@ void *demux_mpgaudio_init_class (xine_t *xine, void *data);
 void *demux_realaudio_init_plugin (xine_t *xine, void *data);
 void *demux_snd_init_plugin (xine_t *xine, void *data);
 void *demux_voc_init_plugin (xine_t *xine, void *data);
+void *demux_vox_init_plugin (xine_t *xine, void *data);
 void *demux_wav_init_plugin (xine_t *xine, void *data);
 
 /*
@@ -52,6 +53,7 @@ plugin_info_t xine_plugin_info[] = {
   { PLUGIN_DEMUX, 20, "realaudio", XINE_VERSION_CODE, NULL, demux_realaudio_init_plugin },
   { PLUGIN_DEMUX, 20, "snd", XINE_VERSION_CODE, NULL, demux_snd_init_plugin },
   { PLUGIN_DEMUX, 20, "voc", XINE_VERSION_CODE, NULL, demux_voc_init_plugin },
+  { PLUGIN_DEMUX, 20, "vox", XINE_VERSION_CODE, NULL, demux_vox_init_plugin },
   { PLUGIN_DEMUX, 20, "wav", XINE_VERSION_CODE, NULL, demux_wav_init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
