@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.297 2004/08/30 07:37:42 f1rmb Exp $
+ * $Id: xine.c,v 1.298 2004/10/14 23:25:24 tmattern Exp $
  */
 
 /*
@@ -48,9 +48,9 @@
 
 #define LOG_MODULE "xine"
 #define LOG_VERBOSE
-/*
+
 #define LOG
-*/
+
 
 #define XINE_ENABLE_EXPERIMENTAL_FEATURES
 #define XINE_ENGINE_INTERNAL
@@ -82,9 +82,6 @@ void _x_handle_stream_end (xine_stream_t *stream, int non_user) {
   if (stream->status == XINE_STATUS_QUIT)
     return;
   stream->status = XINE_STATUS_STOP;
-
-  /* join thread if needed to fix resource leaks */
-  _x_demux_stop_thread( stream );
 
   if (non_user) {
     /* frontends will not be interested in receiving this event
@@ -274,9 +271,6 @@ static void __set_speed_internal (xine_stream_t *stream, int speed) {
 /* stream->ignore_speed_change must be set, when entering this function */
 static void __stop_internal (xine_stream_t *stream) {
 
-  int finished_count_audio = 0;
-  int finished_count_video = 0;
-
   lprintf ("status before = %d\n", stream->status);
 
   if (stream->status == XINE_STATUS_STOP) {
@@ -294,43 +288,10 @@ static void __stop_internal (xine_stream_t *stream) {
   /*
    * stop demux
    */
-
-  pthread_mutex_lock (&stream->counter_lock);
-  if (stream->audio_thread)
-    finished_count_audio = stream->finished_count_audio + 1;
-  else
-    finished_count_audio = 0;
-
-  if (stream->video_thread)
-    finished_count_video = stream->finished_count_video + 1;
-  else
-    finished_count_video = 0;
-    
-  pthread_mutex_unlock (&stream->counter_lock);
-
   lprintf ("stopping demux\n");
   if (stream->demux_plugin) {
-    
     _x_demux_stop_thread( stream );
     lprintf ("stop thread done\n");
-  
-    _x_demux_flush_engine( stream );
-    lprintf ("flush engine done\n");
-
-    /*
-     * wait until engine has really stopped
-     */
-
-#if 0
-    pthread_mutex_lock (&stream->counter_lock);
-    while ((stream->finished_count_audio<finished_count_audio) || 
-           (stream->finished_count_video<finished_count_video)) {
-      
-      lprintf ("waiting for finisheds.\n");
-      pthread_cond_wait (&stream->counter_changed, &stream->counter_lock);
-    }
-    pthread_mutex_unlock (&stream->counter_lock);
-#endif
   }
   lprintf ("demux stopped\n");
   lprintf ("done\n");
@@ -379,7 +340,21 @@ static void __close_internal (xine_stream_t *stream) {
   }
 
   stream->ignore_speed_change = 1;
+  stream->xine->port_ticket->acquire(stream->xine->port_ticket, 1);
+
+  if (stream->audio_out)
+    stream->audio_out->set_property(stream->audio_out, AO_PROP_DISCARD_BUFFERS, 1);
+  if (stream->video_out)
+    stream->video_out->set_property(stream->video_out, VO_PROP_DISCARD_FRAMES, 1);
+
   __stop_internal( stream );
+  
+  if (stream->video_out)
+    stream->video_out->set_property(stream->video_out, VO_PROP_DISCARD_FRAMES, 0);  
+  if (stream->audio_out)
+    stream->audio_out->set_property(stream->audio_out, AO_PROP_DISCARD_BUFFERS, 0);
+
+  stream->xine->port_ticket->release(stream->xine->port_ticket, 1);
   stream->ignore_speed_change = 0;
   
   lprintf ("disposing demux\n");
@@ -466,6 +441,7 @@ static int __stream_rewire_video(xine_post_out_t *output, void *data)
   return 1;
 }
 
+void __xine_dispose_internal (xine_stream_t *stream);
 
 xine_stream_t *xine_stream_new (xine_t *this,
 				xine_audio_port_t *ao, xine_video_port_t *vo) {
@@ -581,6 +557,11 @@ xine_stream_t *xine_stream_new (xine_t *this,
     stream->osd_renderer = _x_osd_renderer_init(stream);
   else
     stream->osd_renderer = NULL;
+
+  /*
+   * create a reference counter
+   */
+  stream->refcounter = _x_new_refcounter(stream, (refcounter_destructor)__xine_dispose_internal);
   
   /*
    * register stream
@@ -1212,35 +1193,11 @@ int xine_eject (xine_stream_t *stream) {
   return status;
 }
 
-void xine_dispose (xine_stream_t *stream) {
+void __xine_dispose_internal (xine_stream_t *stream) {
 
   xine_stream_t *s;
 
-  xprintf (stream->xine, XINE_VERBOSITY_DEBUG, "xine_dispose\n");
-
-  stream->status = XINE_STATUS_QUIT;
-
-  xine_close(stream);
-
-  if( stream->master != stream ) {
-    stream->master->slave = NULL;  
-  }
-  if( stream->slave && stream->slave->master == stream ) {
-    stream->slave->master = NULL;
-  }
-
-  if(stream->broadcaster)
-    _x_close_broadcaster(stream->broadcaster);
-  
-  xprintf (stream->xine, XINE_VERBOSITY_DEBUG, "shutdown audio\n");
-  _x_audio_decoder_shutdown (stream);
-
-  xprintf (stream->xine, XINE_VERBOSITY_DEBUG, "shutdown video\n");
-  _x_video_decoder_shutdown (stream);
-
-  if (stream->osd_renderer)
-    stream->osd_renderer->close( stream->osd_renderer );
-
+  lprintf("stream: %p\n", stream);
   pthread_mutex_destroy (&stream->info_mutex);
   pthread_mutex_destroy (&stream->meta_mutex);
   pthread_mutex_destroy (&stream->frontend_lock);
@@ -1264,10 +1221,45 @@ void xine_dispose (xine_stream_t *stream) {
   }
   pthread_mutex_unlock(&stream->xine->streams_lock);
 
+  _x_refcounter_dispose(stream->refcounter);
+  
   free (stream->current_extra_info);
   free (stream->video_decoder_extra_info);
   free (stream->audio_decoder_extra_info);
   free (stream);
+}
+
+void xine_dispose (xine_stream_t *stream) {
+  /* decrease the reference counter
+   * if there is no more reference on this stream, the __xine_dispose_internal
+   * function is called
+   */
+  xprintf (stream->xine, XINE_VERBOSITY_DEBUG, "xine_dispose\n");
+  stream->status = XINE_STATUS_QUIT;
+
+  xine_close(stream);
+
+  if( stream->master != stream ) {
+    stream->master->slave = NULL;  
+  }
+  if( stream->slave && stream->slave->master == stream ) {
+    stream->slave->master = NULL;
+  }
+
+  if(stream->broadcaster)
+    _x_close_broadcaster(stream->broadcaster);
+  
+  xprintf (stream->xine, XINE_VERBOSITY_DEBUG, "shutdown audio\n");
+  _x_audio_decoder_shutdown (stream);
+
+  xprintf (stream->xine, XINE_VERBOSITY_DEBUG, "shutdown video\n");
+  _x_video_decoder_shutdown (stream);
+
+  if (stream->osd_renderer)
+    stream->osd_renderer->close( stream->osd_renderer );
+
+
+  _x_refcounter_dec(stream->refcounter);
 }
 
 void xine_exit (xine_t *this) {

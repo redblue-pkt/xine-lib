@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.160 2004/09/26 22:54:52 valtri Exp $
+ * $Id: xine_internal.h,v 1.161 2004/10/14 23:25:24 tmattern Exp $
  *
  */
 
@@ -34,6 +34,7 @@ extern "C" {
 
 #ifdef XINE_COMPILE
 #  include "xine.h"
+#  include "refcounter.h"
 #  include "input/input_plugin.h"
 #  include "demuxers/demux.h"
 #  include "video_out.h"
@@ -51,6 +52,7 @@ extern "C" {
 #  include "info_helper.h"
 #else
 #  include <xine.h>
+#  include <xine/refcounter.h>
 #  include <xine/input_plugin.h>
 #  include <xine/demux.h>
 #  include <xine/video_out.h>
@@ -322,6 +324,8 @@ struct xine_stream_s {
   int                        err;
   
   broadcaster_t             *broadcaster;
+  
+  refcounter_t              *refcounter;
 #endif
 };
 

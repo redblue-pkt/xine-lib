@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.129 2004/07/06 22:53:22 miguelfreitas Exp $
+ * $Id: audio_decoder.c,v 1.130 2004/10/14 23:25:24 tmattern Exp $
  *
  *
  * functions that implement audio decoding
@@ -162,11 +162,6 @@ static void *audio_decoder_loop (void *stream_gen) {
       pthread_mutex_unlock (&stream->counter_lock);
       stream->audio_channel_auto = -1;
 
-      if (!stream->video_thread) {
-        /* set engine status, send frontend notification event */
-        _x_handle_stream_end (stream, buf->decoder_flags & BUF_FLAG_END_STREAM);
-      }
-      
       break;
       
     case BUF_CONTROL_QUIT:

@@ -20,7 +20,7 @@
  * Demuxer helper functions
  * hide some xine engine details from demuxers and reduce code duplication
  *
- * $Id: demux.c,v 1.50 2004/06/13 21:28:57 miguelfreitas Exp $ 
+ * $Id: demux.c,v 1.51 2004/10/14 23:25:24 tmattern Exp $ 
  */
 
 
@@ -160,8 +160,8 @@ void _x_demux_control_headers_done (xine_stream_t *stream) {
   buf->type = BUF_CONTROL_HEADERS_DONE;
   stream->audio_fifo->put (stream->audio_fifo, buf);
 
-  while ((stream->header_count_audio<header_count_audio) || 
-	 (stream->header_count_video<header_count_video)) {
+  while ((stream->header_count_audio < header_count_audio) || 
+         (stream->header_count_video < header_count_video)) {
     struct timeval tv;
     struct timespec ts;
 
@@ -230,6 +230,9 @@ static void *demux_loop (void *stream_gen) {
 
   xine_stream_t *stream = (xine_stream_t *)stream_gen;
   int status;
+  int finished_count_audio = 0;
+  int finished_count_video = 0;
+  int non_user;
 
   lprintf ("loop starting...\n");
 
@@ -277,19 +280,32 @@ static void *demux_loop (void *stream_gen) {
 
   lprintf ("loop finished (status: %d)\n", status);
 
-  /* demux_thread_running is zero if demux loop has being stopped by user */
-  if (stream->demux_thread_running) {
-    _x_demux_control_end(stream, BUF_FLAG_END_STREAM);
-  } else {
-    _x_demux_control_end(stream, BUF_FLAG_END_USER);
-  }
+  pthread_mutex_lock (&stream->counter_lock);
+  if (stream->audio_thread)
+    finished_count_audio = stream->finished_count_audio + 1;
+  if (stream->video_thread)
+    finished_count_video = stream->finished_count_video + 1;
+  pthread_mutex_unlock (&stream->counter_lock);
+
+  _x_demux_control_end(stream, 0);
 
   lprintf ("loop finished, end buffer sent\n");
 
+  /* demux_thread_running is zero if demux loop has being stopped by user */
+  non_user = stream->demux_thread_running;
   stream->demux_thread_running = 0;
-
   pthread_mutex_unlock( &stream->demux_lock );
 
+  pthread_mutex_lock (&stream->counter_lock);
+  while ((stream->finished_count_audio < finished_count_audio) || 
+         (stream->finished_count_video < finished_count_video)) {
+    lprintf ("waiting for finisheds.\n");
+    pthread_cond_wait (&stream->counter_changed, &stream->counter_lock);
+  }
+  pthread_mutex_unlock (&stream->counter_lock);
+  
+  _x_handle_stream_end(stream, non_user);
+  stream->demux_thread = 0;
   return NULL;
 }
 
@@ -327,21 +343,18 @@ int _x_demux_stop_thread (xine_stream_t *stream) {
   pthread_mutex_lock( &stream->demux_lock );
   stream->demux_thread_running = 0;
   stream->demux_action_pending = 0;
+
+  /* At that point, the demuxer has sent the last audio/video buffer,
+   * so it's a safe place to flush the engine.
+   */
+  _x_demux_flush_engine( stream );
   pthread_mutex_unlock( &stream->demux_lock );
 
   lprintf ("joining thread %ld\n", stream->demux_thread );
   
-  /* FIXME: counter_lock isn't meant to protect demux_thread update.
-     however we can't use demux_lock here. should we create a new lock? */
-  pthread_mutex_lock (&stream->counter_lock);
-  
-  /* <join; demux_thread = 0;> must be atomic */
   if( stream->demux_thread )
     pthread_join (stream->demux_thread, &p);
-  stream->demux_thread = 0;
   
-  pthread_mutex_unlock (&stream->counter_lock);
-
   /*
    * Wake up xine_play if it's waiting for a frame
    */

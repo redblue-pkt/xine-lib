@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.150 2004/07/06 22:53:23 miguelfreitas Exp $
+ * $Id: video_decoder.c,v 1.151 2004/10/14 23:25:24 tmattern Exp $
  *
  */
 
@@ -234,9 +234,6 @@ static void *video_decoder_loop (void *stream_gen) {
         pthread_cond_broadcast(&stream->first_frame_reached);
       }
       pthread_mutex_unlock (&stream->first_frame_lock);
-      
-      /* set engine status, send frontend notification event */
-      _x_handle_stream_end (stream, buf->decoder_flags & BUF_FLAG_END_STREAM);
       break;
 
     case BUF_CONTROL_QUIT:

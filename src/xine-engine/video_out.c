@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.209 2004/10/09 06:44:21 mroi Exp $
+ * $Id: video_out.c,v 1.210 2004/10/14 23:25:24 tmattern Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -246,6 +246,8 @@ static void vo_frame_dec_lock (vo_frame_t *img) {
   img->lock_counter--;
   if (!img->lock_counter) {    
     vos_t *this = (vos_t *) img->port;
+    if (img->stream)
+      _x_refcounter_dec(img->stream->refcounter);
     vo_append_to_img_buf_queue (this->free_img_buf_queue, img);
   }
 
@@ -335,6 +337,7 @@ static vo_frame_t *vo_get_frame (xine_video_port_t *this_gen,
   img->crop_right     = 0;
   img->crop_top       = 0;
   img->crop_bottom    = 0;
+  img->stream         = NULL;
 
   _x_extra_info_reset ( img->extra_info );
 
@@ -367,6 +370,7 @@ static int vo_frame_draw (vo_frame_t *img, xine_stream_t *stream) {
   this->current_height = img->height;
   
   if (stream) {
+    _x_refcounter_inc(stream->refcounter);
     _x_extra_info_merge( img->extra_info, stream->video_decoder_extra_info );
     stream->metronom->got_video_frame (stream->metronom, img);
   }
@@ -660,7 +664,7 @@ static vo_frame_t * duplicate_frame( vos_t *this, vo_frame_t *img ) {
   dupl->duration  = img->duration;
   dupl->is_first  = img->is_first;
 
-  dupl->stream    = img->stream;
+  dupl->stream    = NULL;
   memcpy( dupl->extra_info, img->extra_info, sizeof(extra_info_t) );
   
   /* delay frame processing for now, we might not even need it (eg. frame will be discarded) */
@@ -1599,6 +1603,7 @@ static vo_frame_t * crop_frame( xine_video_port_t *this_gen, vo_frame_t *img ) {
   dupl->is_first  = img->is_first;
 
   dupl->stream    = img->stream;
+  _x_refcounter_inc(img->stream->refcounter);
   memcpy( dupl->extra_info, img->extra_info, sizeof(extra_info_t) );
   
   /* delay frame processing for now, we might not even need it (eg. frame will be discarded) */
