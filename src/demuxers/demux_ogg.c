@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_ogg.c,v 1.162 2005/02/14 05:56:56 conrad Exp $
+ * $Id: demux_ogg.c,v 1.163 2005/02/14 06:25:59 conrad Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -219,17 +219,8 @@ static int64_t get_pts (demux_ogg_t *this, int stream_num , int64_t granulepos )
       return 1;
     } else
       return 0;
-
-#ifdef HAVE_THEORA
-  } else  if (this->si[stream_num]->buf_types == BUF_VIDEO_THEORA) {
-    int64_t iframe,pframe;
-    int keyframe_granule_shift;
-    keyframe_granule_shift=intlog(this->t_info.keyframe_frequency_force-1);
-    iframe=granulepos>>keyframe_granule_shift;
-    pframe=granulepos-(iframe<<keyframe_granule_shift);
-    return 1+((iframe + pframe)*this->frame_duration);
-#endif
-  } else if ((this->si[stream_num]->buf_types & 0xFFFF0000) == BUF_SPU_CMML) {
+  } else if (this->si[stream_num]->buf_types == BUF_VIDEO_THEORA ||
+	     (this->si[stream_num]->buf_types & 0xFFFF0000) == BUF_SPU_CMML) {
     int64_t iframe, pframe;
     int granuleshift;
     granuleshift = this->si[stream_num]->granuleshift;
@@ -1152,6 +1143,8 @@ static void decode_theora_header (demux_ogg_t *this, const int stream_num, ogg_p
 
     this->frame_duration = ((int64_t) 90000*this->t_info.fps_denominator)/this->t_info.fps_numerator;
 
+    this->si[stream_num]->granuleshift = intlog(this->t_info.keyframe_frequency_force-1);
+
     this->si[stream_num]->headers=3;
     this->si[stream_num]->buf_types = BUF_VIDEO_THEORA;
 
@@ -1478,7 +1471,7 @@ static int demux_ogg_send_chunk (demux_plugin_t *this_gen) {
         int keyframe_granule_shift;
         int64_t pframe=-1,iframe=-1;
 
-        keyframe_granule_shift=intlog(this->t_info.keyframe_frequency_force-1);
+	keyframe_granule_shift = this->si[stream_num]->granuleshift;
 
         if(op.granulepos>=0){
           iframe=op.granulepos>>keyframe_granule_shift;
