@@ -1,5 +1,5 @@
-active developers
-=================
+developers
+==========
 
 Guenter Bartsch <guenter@users.sourceforge.net>
   project lead, main xine programming
@@ -17,8 +17,11 @@ Miguel Freitas <miguel@cetuc.puc-rio.br>
 Heiko Schaefer <heikos@users.sourceforge.net>
   FreeBSD support, testing, ideas
 
-Rich Wareham <richwareham@users.sourceforge.net>
+Rich Wareham ~/<richwareham@removethis.users.sourceforge.net>
   subtitle support, navigation
+
+Rocky Bernstein ~/<rocky@removethis.panix.com>
+  Enhanced VCD support
 
 James Courtier-Dutton <James@superbug.demon.co.uk>
   AC3 direct out via spdif on oss, subtitle interface, audio_output
