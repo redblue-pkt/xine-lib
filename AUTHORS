@@ -15,7 +15,7 @@ teletux/syncfb video output module, various bugfixes/reviews, alsa
 
 libac3/libmpeg2 developement
 
-  Michael Lespinasse <walken@zoy.org>
+  Michel Lespinasse <walken@zoy.org>
 
 Debian package, user support
 
