@@ -1,3 +1,6 @@
+  
+xine (0.9.3) unstable; urgency=low
+
   * XShm gamma adjusting (brightness)
   * bugfix: lot skipped frames and low cpu
   * bugfix: dolby 2.0 audio was not correctly played back (mono)
