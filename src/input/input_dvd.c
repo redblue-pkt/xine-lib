@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.57 2002/08/09 22:13:08 mroi Exp $
+ * $Id: input_dvd.c,v 1.58 2002/08/09 22:33:10 mroi Exp $
  *
  */
 
@@ -97,10 +97,8 @@
 /* The default DVD device on Solaris is not /dev/dvd */
 #if defined(__sun)
 #define DVD_PATH "/vol/dev/aliases/cdrom0"
-#define RDVD_PATH NULL
 #else
 #define DVD_PATH "/dev/dvd"
-#define RDVD_PATH "/dev/rdvd"
 #endif 
 
 /* Some misc. defines */
@@ -1306,7 +1304,6 @@ check_solaris_vold_device(dvdnav_input_plugin_t *this)
 input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
   dvdnav_input_plugin_t *this;
   config_values_t *config = xine->config;
-  char *raw_device;
 
   trace_print("Called\n");
 
@@ -1357,11 +1354,6 @@ input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
 					       device_change_cb, (void *)this);
     this->current_dvd_device = this->dvd_device;
 
-    raw_device = config->register_string(config, "input.dvd_raw_device",
-                         RDVD_PATH, "raw device set up for dvd access",
-                         NULL, NULL, NULL);
-    if (raw_device) setenv("DVDCSS_RAW_DEVICE", raw_device, 0);
-
     config->register_num(config, "input.dvd_region",
 		      	 1,
 			 "Region that DVD player claims "
@@ -1405,6 +1397,10 @@ input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
 
 /*
  * $Log: input_dvd.c,v $
+ * Revision 1.58  2002/08/09 22:33:10  mroi
+ * sorry, my raw device patch was not meant to be committed
+ * It only works with a patched version of libdvdcss
+ *
  * Revision 1.57  2002/08/09 22:13:08  mroi
  * make developers life easier: add possibility to use an existing  shared
  * version of libdvdnav
