@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.51 2002/04/27 14:04:53 f1rmb Exp $
+ * $Id: audio_alsa_out.c,v 1.52 2002/04/27 22:11:12 matt2000 Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -46,6 +46,8 @@
 #include <alsa/asoundlib.h>
 #elif HAVE_SYS_ASOUNDLIB_H
 #include <sys/asoundlib.h>
+#else
+#error "required asoundlib.h neither in sys/ nor alsa/ - unable to compile."
 #endif
 
 #include <sys/ioctl.h>
