@@ -23,7 +23,7 @@
  *   32bit float output
  *   Seeking??
  *
- * $Id:
+ * $Id: xine_decoder.c,v 1.2 2005/01/14 15:36:04 jstembridge Exp $
  */
 
 #include <stdio.h>

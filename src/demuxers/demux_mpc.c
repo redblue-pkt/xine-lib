@@ -24,7 +24,7 @@
  *   APE tag reading
  *   Seeking??
  *
- * $Id: 
+ * $Id: demux_mpc.c,v 1.2 2005/01/14 15:36:04 jstembridge Exp $
  */
  
 #ifdef HAVE_CONFIG_H
