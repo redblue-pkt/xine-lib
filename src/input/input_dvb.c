@@ -72,6 +72,7 @@
 #include <sys/poll.h>
 #include <time.h>
 #include <dirent.h>
+#include <ctype.h>
 
 /* These will eventually be #include <linux/dvb/...> */
 #include "dvb/dmx.h"
@@ -1883,7 +1884,7 @@ static int dvb_plugin_open(input_plugin_t * this_gen)
     char str[256];
     char *ptr;
     int x;
-    char dummy;
+    char dummy=0;
     xine_cfg_entry_t zoomdvb;
     config_values_t *config = this->stream->xine->config;
     xine_cfg_entry_t lastchannel;
