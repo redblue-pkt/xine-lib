@@ -22,7 +22,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * $Id: yuv2rgb.c,v 1.23 2001/10/03 15:14:03 jkeil Exp $
+ * $Id: yuv2rgb.c,v 1.24 2001/10/09 22:20:11 miguelfreitas Exp $
  */
 
 #include "config.h"
@@ -1221,7 +1221,7 @@ static void scale_line_4 (uint8_t *source, uint8_t *dest,
     width --;
   }
 }
-			
+
 
 #define RGB(i)							\
 	U = pu[i];						\
@@ -1589,7 +1589,7 @@ static void yuv2rgb_c_24_bgr (yuv2rgb_t *this, uint8_t * _dst,
 
       while (--dst_height > 0 && dy < 32768) {
 
-	memcpy (_dst, _dst-this->rgb_stride, this->dest_width*3); 
+	memcpy (_dst, _dst-this->rgb_stride, this->dest_width*3);
 
 	dy += this->step_dy;
 	_dst += this->rgb_stride;
@@ -1975,7 +1975,7 @@ static void yuv2rgb_c_palette (yuv2rgb_t *this, uint8_t * _dst,
 		this->dest_width >> 1, this->step_dx);
     scale_line (_pv, this->v_buffer,
 		this->dest_width >> 1, this->step_dx);
-    scale_line (_py, this->y_buffer, 
+    scale_line (_py, this->y_buffer,
 		this->dest_width, this->step_dx);
 
     dy = 0;
@@ -2025,7 +2025,7 @@ static void yuv2rgb_c_palette (yuv2rgb_t *this, uint8_t * _dst,
       dy -= 32768;
       _py += this->y_stride;
 
-      scale_line (_py, this->y_buffer, 
+      scale_line (_py, this->y_buffer,
 		  this->dest_width, this->step_dx);
 
       if (height & 1) {
@@ -2238,7 +2238,7 @@ static void yuv2rgb_setup_tables (yuv2rgb_t *this, int mode, int swapped)
     for (i = -197; i < 256+197; i++)
       ((uint16_t *)table_r)[i] = (table_Y[i+384] >> 3) << 10;
 
-    for (i = -132; i < 256+132; i++) 
+    for (i = -132; i < 256+132; i++)
       ((uint16_t *)table_g)[i] = (table_Y[i+384] >> 3) << 5;
 
     for (i = -232; i < 256+232; i++)
@@ -2263,8 +2263,84 @@ static void yuv2rgb_setup_tables (yuv2rgb_t *this, int mode, int swapped)
   }
 }
 
+static uint32_t yuv2rgb_single_pixel_32 (yuv2rgb_t *this, uint8_t y, uint8_t u, uint8_t v)
+{
+  uint32_t * r, * g, * b;
+
+  r = this->table_rV[v];
+  g = (void *) (((uint8_t *)this->table_gU[u]) + this->table_gV[v]);
+  b = this->table_bU[u];
+
+  return r[y] + g[y] + b[y];
+}
+
+static uint32_t yuv2rgb_single_pixel_24_rgb (yuv2rgb_t *this, uint8_t y, uint8_t u, uint8_t v)
+{
+  uint8_t * r, * g, * b;
+
+  r = this->table_rV[v];
+  g = (void *) (((uint8_t *)this->table_gU[u]) + this->table_gV[v]);
+  b = this->table_bU[u];
+
+  return (uint32_t) r[y] +
+          ((uint32_t) g[y] << 8) +
+          ((uint32_t) b[y] << 16);
+}
+
+static uint32_t yuv2rgb_single_pixel_24_bgr (yuv2rgb_t *this, uint8_t y, uint8_t u, uint8_t v)
+{
+  uint8_t * r, * g, * b;
+
+  r = this->table_rV[v];
+  g = (void *) (((uint8_t *)this->table_gU[u]) + this->table_gV[v]);
+  b = this->table_bU[u];
+
+  return (uint32_t) b[y] +
+          ((uint32_t) g[y] << 8) +
+          ((uint32_t) r[y] << 16);
+}
+
+static uint32_t yuv2rgb_single_pixel_16 (yuv2rgb_t *this, uint8_t y, uint8_t u, uint8_t v)
+{
+  uint16_t * r, * g, * b;
+
+  r = this->table_rV[v];
+  g = (void *) (((uint8_t *)this->table_gU[u]) + this->table_gV[v]);
+  b = this->table_bU[u];
+
+  return r[y] + g[y] + b[y];
+}
+
+static uint32_t yuv2rgb_single_pixel_8 (yuv2rgb_t *this, uint8_t y, uint8_t u, uint8_t v)
+{
+  uint8_t * r, * g, * b;
+
+  r = this->table_rV[v];
+  g = (void *) (((uint8_t *)this->table_gU[u]) + this->table_gV[v]);
+  b = this->table_bU[u];
+
+  return r[y] + g[y] + b[y];
+}
+
+static uint32_t yuv2rgb_single_pixel_gray (yuv2rgb_t *this, uint8_t y, uint8_t u, uint8_t v)
+{
+  return y;
+}
+
+static uint32_t yuv2rgb_single_pixel_palette (yuv2rgb_t *this, uint8_t y, uint8_t u, uint8_t v)
+{
+  uint16_t * r, * g, * b;
+
+  r = this->table_rV[v];
+  g = (void *) (((uint8_t *)this->table_gU[u]) + this->table_gV[v]);
+  b = this->table_bU[u];
+
+  return this->fast_rgb[r[y] + g[y] + b[y]];
+}
+
+
 static void yuv2rgb_c_init (yuv2rgb_t *this, int mode, int swapped)
-{  
+{
   switch (mode) {
   case MODE_32_RGB:
   case MODE_32_BGR:
@@ -2274,7 +2350,7 @@ static void yuv2rgb_c_init (yuv2rgb_t *this, int mode, int swapped)
   case MODE_24_RGB:
   case MODE_24_BGR:
     this->yuv2rgb_fun =
-	(mode==MODE_24_RGB && !swapped) || (mode==MODE_24_BGR && swapped) 
+	(mode==MODE_24_RGB && !swapped) || (mode==MODE_24_BGR && swapped)
 	    ? yuv2rgb_c_24_rgb
 	    : yuv2rgb_c_24_bgr;
     break;
@@ -2306,6 +2382,48 @@ static void yuv2rgb_c_init (yuv2rgb_t *this, int mode, int swapped)
 
 }
 
+static void yuv2rgb_single_pixel_init (yuv2rgb_t *this, int mode, int swapped)
+{
+  switch (mode) {
+  case MODE_32_RGB:
+  case MODE_32_BGR:
+    this->yuv2rgb_single_pixel_fun = yuv2rgb_single_pixel_32;
+    break;
+
+  case MODE_24_RGB:
+  case MODE_24_BGR:
+    this->yuv2rgb_single_pixel_fun =
+	(mode==MODE_24_RGB && !swapped) || (mode==MODE_24_BGR && swapped)
+	    ? yuv2rgb_single_pixel_24_rgb
+	    : yuv2rgb_single_pixel_24_bgr;
+    break;
+
+  case MODE_15_BGR:
+  case MODE_16_BGR:
+  case MODE_15_RGB:
+  case MODE_16_RGB:
+    this->yuv2rgb_single_pixel_fun = yuv2rgb_single_pixel_16;
+    break;
+
+  case MODE_8_RGB:
+  case MODE_8_BGR:
+    this->yuv2rgb_single_pixel_fun = yuv2rgb_single_pixel_8;
+    break;
+
+  case MODE_8_GRAY:
+    this->yuv2rgb_single_pixel_fun = yuv2rgb_single_pixel_gray;
+    break;
+
+  case MODE_PALETTE:
+    this->yuv2rgb_single_pixel_fun = yuv2rgb_single_pixel_palette;
+    break;
+
+  default:
+    fprintf (stderr, "mode %d not supported by yuv2rgb\n", mode);
+    exit (1);
+  }
+}
+
 
 /*
  * yuy2 stuff
@@ -2326,7 +2444,7 @@ static void yuy22rgb_c_32 (yuv2rgb_t *this, uint8_t * _dst, uint8_t * _p)
 		this->dest_width >> 1, this->step_dx);
   scale_line_4 (_p+3, this->v_buffer,
 		this->dest_width >> 1, this->step_dx);
-  scale_line_2 (_p, this->y_buffer, 
+  scale_line_2 (_p, this->y_buffer,
 		this->dest_width, this->step_dx);
   
   dy = 0;
@@ -2337,14 +2455,14 @@ static void yuy22rgb_c_32 (yuv2rgb_t *this, uint8_t * _dst, uint8_t * _p)
     py_1  = this->y_buffer;
     pu    = this->u_buffer;
     pv    = this->v_buffer;
-    
+
     width = this->dest_width >> 3;
 
     do {
 
       RGB(0);
       DST1(0);
-      
+
       RGB(1);
       DST1(1);
       
@@ -2353,7 +2471,7 @@ static void yuy22rgb_c_32 (yuv2rgb_t *this, uint8_t * _dst, uint8_t * _p)
       
       RGB(3);
       DST1(3);
-      
+
       pu += 4;
       pv += 4;
       py_1 += 8;
@@ -2365,7 +2483,7 @@ static void yuy22rgb_c_32 (yuv2rgb_t *this, uint8_t * _dst, uint8_t * _p)
     
     while (--height > 0 && dy < 32768) {
       
-      memcpy (_dst, (uint8_t*)_dst-this->rgb_stride, this->dest_width*4); 
+      memcpy (_dst, (uint8_t*)_dst-this->rgb_stride, this->dest_width*4);
       
       dy += this->step_dy;
       _dst += this->rgb_stride;
@@ -2403,7 +2521,7 @@ static void yuy22rgb_c_24_rgb (yuv2rgb_t *this, uint8_t * _dst, uint8_t * _p)
 		this->dest_width >> 1, this->step_dx);
   scale_line_2 (_p, this->y_buffer, 
 		this->dest_width, this->step_dx);
-  
+
   dy = 0;
   height = this->dest_height;
   
@@ -2427,19 +2545,19 @@ static void yuy22rgb_c_24_rgb (yuv2rgb_t *this, uint8_t * _dst, uint8_t * _p)
       
       RGB(3);
       DST1RGB(3);
-      
+
       pu += 4;
       pv += 4;
       py_1 += 8;
       dst_1 += 24;
     } while (--width);
-    
+
     dy += this->step_dy;
     _dst += this->rgb_stride;
     
     while (--height > 0 && dy < 32768) {
-      
-      memcpy (_dst, (uint8_t*)_dst-this->rgb_stride, this->dest_width*3); 
+
+      memcpy (_dst, (uint8_t*)_dst-this->rgb_stride, this->dest_width*3);
       
       dy += this->step_dy;
       _dst += this->rgb_stride;
@@ -2455,7 +2573,7 @@ static void yuy22rgb_c_24_rgb (yuv2rgb_t *this, uint8_t * _dst, uint8_t * _p)
 		  this->dest_width >> 1, this->step_dx);
     scale_line_4 (_p+3, this->v_buffer,
 		  this->dest_width >> 1, this->step_dx);
-    scale_line_2 (_p, this->y_buffer, 
+    scale_line_2 (_p, this->y_buffer,
 		  this->dest_width, this->step_dx);
   }
 }
@@ -2477,7 +2595,7 @@ static void yuy22rgb_c_24_bgr (yuv2rgb_t *this, uint8_t * _dst, uint8_t * _p)
 		this->dest_width >> 1, this->step_dx);
   scale_line_2 (_p, this->y_buffer, 
 		this->dest_width, this->step_dx);
-  
+
   dy = 0;
   height = this->dest_height;
   
@@ -2498,7 +2616,7 @@ static void yuy22rgb_c_24_bgr (yuv2rgb_t *this, uint8_t * _dst, uint8_t * _p)
       
       RGB(2);
       DST1BGR(2);
-      
+
       RGB(3);
       DST1BGR(3);
       
@@ -2512,8 +2630,8 @@ static void yuy22rgb_c_24_bgr (yuv2rgb_t *this, uint8_t * _dst, uint8_t * _p)
     _dst += this->rgb_stride;
     
     while (--height > 0 && dy < 32768) {
-      
-      memcpy (_dst, (uint8_t*)_dst-this->rgb_stride, this->dest_width*3); 
+
+      memcpy (_dst, (uint8_t*)_dst-this->rgb_stride, this->dest_width*3);
       
       dy += this->step_dy;
       _dst += this->rgb_stride;
@@ -2524,12 +2642,12 @@ static void yuy22rgb_c_24_bgr (yuv2rgb_t *this, uint8_t * _dst, uint8_t * _p)
 
     dy -= 32768;
     _p += this->y_stride*2;
-    
+
     scale_line_4 (_p+1, this->u_buffer,
 		  this->dest_width >> 1, this->step_dx);
     scale_line_4 (_p+3, this->v_buffer,
 		  this->dest_width >> 1, this->step_dx);
-    scale_line_2 (_p, this->y_buffer, 
+    scale_line_2 (_p, this->y_buffer,
 		  this->dest_width, this->step_dx);
   }
 }
@@ -2554,7 +2672,7 @@ static void yuy22rgb_c_16 (yuv2rgb_t *this, uint8_t * _dst, uint8_t * _p)
   
   dy = 0;
   height = this->dest_height;
-  
+
   for (;;) {
     dst_1 = (uint16_t*)_dst;
     py_1  = this->y_buffer;
@@ -2566,7 +2684,7 @@ static void yuy22rgb_c_16 (yuv2rgb_t *this, uint8_t * _dst, uint8_t * _p)
     do {
       RGB(0);
       DST1(0);
-      
+
       RGB(1);
       DST1(1);
       
@@ -2575,7 +2693,7 @@ static void yuy22rgb_c_16 (yuv2rgb_t *this, uint8_t * _dst, uint8_t * _p)
       
       RGB(3);
       DST1(3);
-      
+
       pu += 4;
       pv += 4;
       py_1 += 8;
@@ -2584,11 +2702,11 @@ static void yuy22rgb_c_16 (yuv2rgb_t *this, uint8_t * _dst, uint8_t * _p)
     
     dy += this->step_dy;
     _dst += this->rgb_stride;
-    
+
     while (--height > 0 && dy < 32768) {
       
       memcpy (_dst, (uint8_t*)_dst-this->rgb_stride, this->dest_width*2); 
-      
+
       dy += this->step_dy;
       _dst += this->rgb_stride;
     }
@@ -2603,7 +2721,7 @@ static void yuy22rgb_c_16 (yuv2rgb_t *this, uint8_t * _dst, uint8_t * _p)
 		  this->dest_width >> 1, this->step_dx);
     scale_line_4 (_p+3, this->v_buffer,
 		  this->dest_width >> 1, this->step_dx);
-    scale_line_2 (_p, this->y_buffer, 
+    scale_line_2 (_p, this->y_buffer,
 		  this->dest_width, this->step_dx);
   }
 }
@@ -2623,7 +2741,7 @@ static void yuy22rgb_c_8 (yuv2rgb_t *this, uint8_t * _dst, uint8_t * _p)
 		this->dest_width >> 1, this->step_dx);
   scale_line_4 (_p+3, this->v_buffer,
 		this->dest_width >> 1, this->step_dx);
-  scale_line_2 (_p, this->y_buffer, 
+  scale_line_2 (_p, this->y_buffer,
 		this->dest_width, this->step_dx);
   
   dy = 0;
@@ -2643,13 +2761,13 @@ static void yuy22rgb_c_8 (yuv2rgb_t *this, uint8_t * _dst, uint8_t * _p)
       
       RGB(1);
       DST1(1);
-      
+
       RGB(2);
       DST1(2);
       
       RGB(3);
       DST1(3);
-      
+
       pu += 4;
       pv += 4;
       py_1 += 8;
@@ -2688,7 +2806,7 @@ static void yuy22rgb_c_gray (yuv2rgb_t *this, uint8_t * _dst, uint8_t * _p)
   int dy;
   uint8_t * dst;
   uint8_t * y;
-  
+
   if (this->do_scale) {
     dy = 0;
     height = this->dest_height;
@@ -2757,13 +2875,13 @@ static void yuy22rgb_c_palette (yuv2rgb_t *this, uint8_t * _dst, uint8_t * _p)
     do {
       RGB(0);
       DST1CMAP(0);
-      
+
       RGB(1);
       DST1CMAP(1);
-      
+
       RGB(2);
       DST1CMAP(2);
-      
+
       RGB(3);
       DST1CMAP(3);
 
@@ -2772,35 +2890,35 @@ static void yuy22rgb_c_palette (yuv2rgb_t *this, uint8_t * _dst, uint8_t * _p)
       py_1 += 8;
       dst_1 += 8;
     } while (--width);
-    
+
     dy += this->step_dy;
     _dst += this->rgb_stride;
-    
+
     while (--height > 0 && dy < 32768) {
-      
-      memcpy (_dst, (uint8_t*)_dst-this->rgb_stride, this->dest_width); 
-      
+
+      memcpy (_dst, (uint8_t*)_dst-this->rgb_stride, this->dest_width);
+
       dy += this->step_dy;
       _dst += this->rgb_stride;
     }
-    
+
     if (height <= 0)
       break;
 
     dy -= 32768;
     _p += this->y_stride*2;
-    
+
     scale_line_4 (_p+1, this->u_buffer,
 		  this->dest_width >> 1, this->step_dx);
     scale_line_4 (_p+3, this->v_buffer,
 		  this->dest_width >> 1, this->step_dx);
-    scale_line_2 (_p, this->y_buffer, 
+    scale_line_2 (_p, this->y_buffer,
 		  this->dest_width, this->step_dx);
   }
 }
 
 static void yuy22rgb_c_init (yuv2rgb_t *this, int mode, int swapped)
-{  
+{
   switch (mode) {
   case MODE_32_RGB:
   case MODE_32_BGR:
@@ -2811,7 +2929,7 @@ static void yuy22rgb_c_init (yuv2rgb_t *this, int mode, int swapped)
   case MODE_24_BGR:
     this->yuy22rgb_fun =
 	(mode==MODE_24_RGB && !swapped) || (mode==MODE_24_BGR && swapped)
-	    ? yuy22rgb_c_24_rgb 
+	    ? yuy22rgb_c_24_rgb
 	    : yuy22rgb_c_24_bgr;
     break;
   case MODE_15_BGR:
@@ -2859,7 +2977,7 @@ yuv2rgb_t *yuv2rgb_init (int mode, int swapped, uint8_t *colormap) {
   /*
    * auto-probe for the best yuv2rgb function
    */
-  
+
   this->yuv2rgb_fun = NULL;
 #ifdef ARCH_X86
   if ((this->yuv2rgb_fun == NULL) && (mm & MM_ACCEL_X86_MMXEXT)) {
@@ -2870,20 +2988,22 @@ yuv2rgb_t *yuv2rgb_init (int mode, int swapped, uint8_t *colormap) {
   if ((this->yuv2rgb_fun == NULL) && (mm & MM_ACCEL_X86_MMX)) {
     yuv2rgb_init_mmx (this, mode, swapped);
     if (this->yuv2rgb_fun != NULL)
-      printf ("yuv2rgb: using MMX for colorspace transform\n"); 
+      printf ("yuv2rgb: using MMX for colorspace transform\n");
   }
 #endif
 #if HAVE_MLIB
   if (this->yuv2rgb_fun == NULL) {
     yuv2rgb_init_mlib (this, mode, swapped);
     if (this->yuv2rgb_fun != NULL)
-      printf ("yuv2rgb: using medialib for colorspace transform\n"); 
+      printf ("yuv2rgb: using medialib for colorspace transform\n");
   }
 #endif
   if (this->yuv2rgb_fun == NULL) {
     printf ("yuv2rgb: no accelerated colorspace conversion found\n");
     yuv2rgb_c_init (this, mode, swapped);
   }
+
+  yuv2rgb_single_pixel_init (this, mode, swapped);
 
   /*
    * auto-probe for the best yuy22rgb function
@@ -2894,3 +3014,4 @@ yuv2rgb_t *yuv2rgb_init (int mode, int swapped, uint8_t *colormap) {
 
   return this;
 }
+

@@ -12,12 +12,12 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xshm.c,v 1.42 2001/10/09 09:50:22 jkeil Exp $
+ * $Id: video_out_xshm.c,v 1.43 2001/10/09 22:20:11 miguelfreitas Exp $
  * 
  * video_out_xshm.c, X11 shared memory extension interface for xine
  *
@@ -57,8 +57,8 @@
 #include "monitor.h"
 #include "utils.h"
 #include "video_out_x11.h"
-#include "yuv2rgb.h"
 #include "alphablend.h"
+#include "yuv2rgb.h"
 
 uint32_t xine_debug;
 
@@ -709,15 +709,31 @@ static void xshm_update_frame_format (vo_driver_t *this_gen,
   }
 }
 
+static void xshm_overlay_clut_yuv2rgb(xshm_driver_t  *this, vo_overlay_t *overlay)
+{
+  int i;
+  clut_t* clut = (clut_t*) overlay->color;
+
+  for (i = 0; i < 4; i++) {
+    *((uint32_t *)&clut[i]) =
+                 this->yuv2rgb->yuv2rgb_single_pixel_fun(this->yuv2rgb,
+                 clut[i].y, clut[i].cb, clut[i].cr);
+  }
+  overlay->rgb_clut++;
+}
+
 static void xshm_overlay_blend (vo_driver_t *this_gen, vo_frame_t *frame_gen, vo_overlay_t *overlay) {
   xshm_driver_t  *this = (xshm_driver_t *) this_gen;
   xshm_frame_t   *frame = (xshm_frame_t *) frame_gen;
 
   /* Alpha Blend here */
    if (overlay->rle) {
+     if( !overlay->rgb_clut )
+       xshm_overlay_clut_yuv2rgb(this,overlay);
+
      switch(this->bpp) {
        case 16:
-        blend_rgb16( (uint8_t *)frame->image->data, overlay, 
+        blend_rgb16( (uint8_t *)frame->image->data, overlay,
 		     frame->rgb_width, frame->rgb_height,
 		     this->delivered_width, this->delivered_height);
         break;

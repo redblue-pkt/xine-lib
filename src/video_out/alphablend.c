@@ -78,7 +78,7 @@ static void mem_blend32(uint8_t *mem, uint8_t r, uint8_t g, uint8_t b,
 }
 
 
-/* 
+/*
  * Some macros for fixed point arithmetic.
  *
  * The blend_rgb* routines perform rle image scaling using
@@ -107,13 +107,11 @@ rle_img_advance_line(rle_elem_t *rle, rle_elem_t *rle_limit, int w)
 }
 
 
-/* TODO: RGB color clut, only b/w now */
 void blend_rgb16 (uint8_t * img, vo_overlay_t * img_overl,
 		  int img_width, int img_height,
 		  int dst_width, int dst_height)
 {
-  uint8_t *my_trans;
-  uint16_t my_clut[4];
+  uint8_t *trans;
   clut_t* clut = (clut_t*) img_overl->color;
 
   int src_width = img_overl->width;
@@ -131,11 +129,7 @@ void blend_rgb16 (uint8_t * img, vo_overlay_t * img_overl,
       + (img_overl->y * img_height / dst_height) * img_width
       + (img_overl->x * img_width / dst_width);
 
-  for (x = 0; x < 4; x++) {
-    uint16_t clr = clut[x].y >> 2;
-    my_clut[x] = (clr & 0xfe) << 10 | clr << 5 | (clr >> 1);
-  }
-  my_trans = img_overl->trans;
+  trans = img_overl->trans;
 
   for (y = dy = 0; y < src_height && rle < rle_limit;) {
     int mask = !(img_overl->clip_top > y || img_overl->clip_bottom < y);
@@ -146,7 +140,7 @@ void blend_rgb16 (uint8_t * img, vo_overlay_t * img_overl,
       uint16_t o;
 
       clr = rle->color;
-      o   = my_trans[clr];
+      o   = trans[clr];
 
       if (o) if (img_overl->clip_left   > x ||
 		 img_overl->clip_right  < x)
@@ -154,7 +148,7 @@ void blend_rgb16 (uint8_t * img, vo_overlay_t * img_overl,
 
       x2_scaled = SCALED_TO_INT((x + rle->len) * x_scale);
       if (o && mask) {
-	mem_blend16(img_pix+x1_scaled, my_clut[clr], o, x2_scaled-x1_scaled);
+	mem_blend16(img_pix+x1_scaled, *((uint16_t *)&clut[clr]), o, x2_scaled-x1_scaled);
       }
 
       x1_scaled = x2_scaled;
@@ -179,13 +173,12 @@ void blend_rgb16 (uint8_t * img, vo_overlay_t * img_overl,
   }
 }
 
-/* TODO: RGB color clut, only b/w now */
 void blend_rgb24 (uint8_t * img, vo_overlay_t * img_overl,
 		  int img_width, int img_height,
 		  int dst_width, int dst_height)
 {
-  clut_t *my_clut;
-  uint8_t *my_trans;
+  clut_t* clut = (clut_t*) img_overl->color;
+  uint8_t *trans;
   int src_width = img_overl->width;
   int src_height = img_overl->height;
   rle_elem_t *rle = img_overl->rle;
@@ -200,8 +193,7 @@ void blend_rgb24 (uint8_t * img, vo_overlay_t * img_overl,
   img_pix = img + 3 * (  (img_overl->y * img_height / dst_height) * img_width
 		       + (img_overl->x * img_width  / dst_width));
 
-  my_clut = (clut_t*) img_overl->color;
-  my_trans = img_overl->trans;
+  trans = img_overl->trans;
 
   for (dy = y = 0; y < src_height && rle < rle_limit; ) {
     int mask = !(img_overl->clip_top > y || img_overl->clip_bottom < y);
@@ -212,7 +204,7 @@ void blend_rgb24 (uint8_t * img, vo_overlay_t * img_overl,
       uint16_t o;
 
       clr = rle->color;
-      o   = my_trans[clr];
+      o   = trans[clr];
 
       if (o) if (img_overl->clip_left   > x ||
 		 img_overl->clip_right  < x)
@@ -220,8 +212,9 @@ void blend_rgb24 (uint8_t * img, vo_overlay_t * img_overl,
 
       x2_scaled = SCALED_TO_INT((x + rle->len) * x_scale);
       if (o && mask) {
-        uint8_t v = my_clut[clr].y;
-	mem_blend24(img_pix + x1_scaled*3, v, v, v, o, x2_scaled-x1_scaled);
+        mem_blend24(img_pix + x1_scaled*3, clut[clr].cb,
+                    clut[clr].cr, clut[clr].y,
+                    o, x2_scaled-x1_scaled);
       }
 
       x1_scaled = x2_scaled;
@@ -246,13 +239,12 @@ void blend_rgb24 (uint8_t * img, vo_overlay_t * img_overl,
   }
 }
 
-/* TODO: RGB color clut, only b/w now */
-void blend_rgb32 (uint8_t * img, vo_overlay_t * img_overl, 
+void blend_rgb32 (uint8_t * img, vo_overlay_t * img_overl,
 		  int img_width, int img_height,
 		  int dst_width, int dst_height)
 {
-  clut_t *my_clut;
-  uint8_t *my_trans;
+  clut_t* clut = (clut_t*) img_overl->color;
+  uint8_t *trans;
   int src_width = img_overl->width;
   int src_height = img_overl->height;
   rle_elem_t *rle = img_overl->rle;
@@ -267,8 +259,7 @@ void blend_rgb32 (uint8_t * img, vo_overlay_t * img_overl,
   img_pix = img + 4 * (  (img_overl->y * img_height / dst_height) * img_width
 		       + (img_overl->x * img_width / dst_width));
 
-  my_clut = (clut_t*) img_overl->color;
-  my_trans = img_overl->trans;
+  trans = img_overl->trans;
 
   for (y = dy = 0; y < src_height && rle < rle_limit; ) {
     int mask = !(img_overl->clip_top > y || img_overl->clip_bottom < y);
@@ -279,7 +270,7 @@ void blend_rgb32 (uint8_t * img, vo_overlay_t * img_overl,
       uint16_t o;
 
       clr = rle->color;
-      o   = my_trans[clr];
+      o   = trans[clr];
 
       if (o) if (img_overl->clip_left   > x ||
 		 img_overl->clip_right  < x)
@@ -287,8 +278,9 @@ void blend_rgb32 (uint8_t * img, vo_overlay_t * img_overl,
 
       x2_scaled = SCALED_TO_INT((x + rle->len) * x_scale);
       if (o && mask) {
-        uint8_t v = my_clut[clr].y;
-	mem_blend32(img_pix + x1_scaled*4, v, v, v, o, x2_scaled-x1_scaled);
+        mem_blend32(img_pix + x1_scaled*4, clut[clr].cb,
+                    clut[clr].cr, clut[clr].y,
+                    o, x2_scaled-x1_scaled);
       }
 
       x1_scaled = x2_scaled;

@@ -19,7 +19,7 @@
 * along with this program; see the file COPYING.  If not, write to
 * the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
 *
-* $Id: spu.c,v 1.14 2001/10/04 23:22:21 miguelfreitas Exp $
+* $Id: spu.c,v 1.15 2001/10/09 22:20:11 miguelfreitas Exp $
 *
 *****/
 
@@ -361,6 +361,7 @@ void spuDrawPicture (spu_state_t *state, spu_seq_t* seq, vo_overlay_t *ovl)
   }
 
   ovl->num_rle = rle - ovl->rle;
+  ovl->rgb_clut = 0;
 }
 
 /* Heuristic to discover the colors used by the subtitles

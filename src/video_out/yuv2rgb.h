@@ -31,16 +31,23 @@ typedef struct yuv2rgb_s yuv2rgb_t;
 
 struct yuv2rgb_s {
 
-  /* 
+  /*
    * this is the function to call for the yuv2rgb and scaling process
    */
   void (*yuv2rgb_fun) (yuv2rgb_t *this, uint8_t * image, uint8_t * py,
 		       uint8_t * pu, uint8_t * pv) ;
 
-  /* 
+  /*
    * this is the function to call for the yuy2->rgb and scaling process
    */
   void (*yuy22rgb_fun) (yuv2rgb_t *this, uint8_t * image, uint8_t * p);
+
+  /*
+   * this is the function to call for the yuv2rgb for a single pixel
+   * (used for converting clut colors)
+   */
+  uint32_t (*yuv2rgb_single_pixel_fun) (yuv2rgb_t *this, uint8_t y,
+                                        uint8_t u, uint8_t v);
 
   /* private stuff below */
 
@@ -75,7 +82,7 @@ yuv2rgb_t *yuv2rgb_init (int mode, int swapped, uint8_t *colormap);
  * set up yuv2rgb function, determine scaling parameters if necessary
  * returns 0 on failure, 1 otherwise
  */
-int yuv2rgb_setup (yuv2rgb_t *this, 
+int yuv2rgb_setup (yuv2rgb_t *this,
 		   int source_width, int source_height,
 		   int y_stride, int uv_stride,
 		   int dest_width, int dest_height,
