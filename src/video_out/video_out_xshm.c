@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xshm.c,v 1.116 2003/10/22 20:38:10 komadori Exp $
+ * $Id: video_out_xshm.c,v 1.117 2003/10/23 15:17:07 mroi Exp $
  * 
  * video_out_xshm.c, X11 shared memory extension interface for xine
  *
@@ -307,15 +307,14 @@ static void dispose_ximage (xshm_driver_t *this,
  */
 
 static uint32_t xshm_get_capabilities (vo_driver_t *this_gen) {
-  return VO_CAP_YV12 | VO_CAP_YUY2 |
-	 VO_CAP_BRIGHTNESS | VO_CAP_CONTRAST | VO_CAP_SATURATION;
+  return VO_CAP_YV12 | VO_CAP_YUY2;
 }
 
 static void xshm_frame_proc_slice (vo_frame_t *vo_img, uint8_t **src) {
   xshm_frame_t  *frame = (xshm_frame_t *) vo_img ;
   /*xshm_driver_t *this = (xshm_driver_t *) vo_img->driver; */
 
-  vo_img->copy_called = 1;
+  vo_img->proc_called = 1;
   
 #ifdef LOG
   printf ("video_out_xshm: copy... (format %d)\n", frame->format);

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2002 the xine project and Fredrik Noring
+ * Copyright (C) 2000-2003 the xine project and Fredrik Noring
  * 
  * This file is part of xine, a free video player.
  * 
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_fb.c,v 1.29 2003/10/22 20:38:10 komadori Exp $
+ * $Id: video_out_fb.c,v 1.30 2003/10/23 15:17:07 mroi Exp $
  * 
  * video_out_fb.c, frame buffer xine driver by Miguel Freitas
  *
@@ -149,16 +149,14 @@ typedef struct
 
 static uint32_t fb_get_capabilities(vo_driver_t *this_gen)
 {
-  return VO_CAP_YV12    |
-    VO_CAP_YUY2         |
-    VO_CAP_BRIGHTNESS;
+  return VO_CAP_YV12 | VO_CAP_YUY2;
 }
 
 static void fb_frame_proc_slice(vo_frame_t *vo_img, uint8_t **src)
 {
   fb_frame_t *frame = (fb_frame_t *)vo_img ;
   
-  vo_img->copy_called = 1;
+  vo_img->proc_called = 1;
   if(frame->format == XINE_IMGFMT_YV12)
     frame->yuv2rgb->yuv2rgb_fun(frame->yuv2rgb, frame->rgb_dst,
 				 src[0], src[1], src[2]);

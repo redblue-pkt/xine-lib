@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: post.c,v 1.16 2003/10/22 20:38:10 komadori Exp $
+ * $Id: post.c,v 1.17 2003/10/23 15:17:07 mroi Exp $
  */
  
 /*
@@ -132,10 +132,10 @@ static void post_frame_proc_slice(vo_frame_t *vo_img, uint8_t **src) {
   vo_img->port = &port->port;
 }
 
-static void post_frame_proc_frame(vo_frame_t *vo_img, uint8_t **src) {
+static void post_frame_proc_frame(vo_frame_t *vo_img) {
   post_video_port_t *port = (post_video_port_t *)vo_img->port;
   vo_img->port = port->original_port;
-  port->original_frame.proc_frame(vo_img, src);
+  port->original_frame.proc_frame(vo_img);
   vo_img->port = &port->port;
 }
 
@@ -193,25 +193,25 @@ static void post_frame_proc_macro_block(int x,
 
 
 void post_intercept_video_frame(vo_frame_t *frame, post_video_port_t *port) {
-  port->original_frame.port       = frame->port;
-  port->original_frame.free       = frame->free;
-  port->original_frame.proc_slice = frame->proc_slice;
-  port->original_frame.proc_frame = frame->proc_frame;
-  port->original_frame.field      = frame->field;
-  port->original_frame.draw       = frame->draw;
-  port->original_frame.lock       = frame->lock;
-  port->original_frame.dispose    = frame->dispose;
+  port->original_frame.port             = frame->port;
+  port->original_frame.free             = frame->free;
+  port->original_frame.proc_slice       = frame->proc_slice;
+  port->original_frame.proc_frame       = frame->proc_frame;
   port->original_frame.proc_macro_block = frame->proc_macro_block;
+  port->original_frame.field            = frame->field;
+  port->original_frame.draw             = frame->draw;
+  port->original_frame.lock             = frame->lock;
+  port->original_frame.dispose          = frame->dispose;
   
   frame->port                     = &port->port;
   frame->free                     = post_frame_free;
-  frame->proc_slice               = frame->proc_slice ? post_frame_proc_slice : NULL;
-  frame->proc_frame               = frame->proc_frame ? post_frame_proc_frame : NULL;
+  frame->proc_slice               = frame->proc_slice       ? post_frame_proc_slice       : NULL;
+  frame->proc_frame               = frame->proc_frame       ? post_frame_proc_frame       : NULL;
+  frame->proc_macro_block         = frame->proc_macro_block ? post_frame_proc_macro_block : NULL;
   frame->field                    = post_frame_field;
   frame->draw                     = post_frame_draw;
   frame->lock                     = post_frame_lock;
   frame->dispose                  = post_frame_dispose;
-  frame->proc_macro_block         = post_frame_proc_macro_block;
 }
 
 void post_restore_video_frame(vo_frame_t *frame, post_video_port_t *port) {
@@ -219,11 +219,11 @@ void post_restore_video_frame(vo_frame_t *frame, post_video_port_t *port) {
   frame->free                     = port->original_frame.free;
   frame->proc_slice               = port->original_frame.proc_slice;
   frame->proc_frame               = port->original_frame.proc_frame;
+  frame->proc_macro_block         = port->original_frame.proc_macro_block;
   frame->field                    = port->original_frame.field;
   frame->draw                     = port->original_frame.draw;
   frame->lock                     = port->original_frame.lock;
   frame->dispose                  = port->original_frame.dispose;
-  frame->proc_macro_block         = port->original_frame.proc_macro_block;
 }
 
 

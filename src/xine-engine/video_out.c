@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.174 2003/10/22 20:38:10 komadori Exp $
+ * $Id: video_out.c,v 1.175 2003/10/23 15:17:07 mroi Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -48,6 +48,16 @@
 */
 
 #define NUM_FRAME_BUFFERS     15
+
+typedef struct {
+  vo_frame_t        *first;
+  vo_frame_t        *last;
+  int                num_buffers;
+
+  int                locked_for_read;
+  pthread_mutex_t    mutex;
+  pthread_cond_t     not_empty;
+} img_buf_fifo_t;
 
 typedef struct {
   
@@ -100,19 +110,10 @@ typedef struct {
   int                       frame_drop_cpt;
 } vos_t;
 
+
 /*
  * frame queue (fifo) util functions
  */
-
-struct img_buf_fifo_s {
-  vo_frame_t        *first;
-  vo_frame_t        *last;
-  int                num_buffers;
-
-  int                locked_for_read;
-  pthread_mutex_t    mutex;
-  pthread_cond_t     not_empty;
-} ;
 
 static img_buf_fifo_t *vo_new_img_buf_queue () {
 
@@ -219,13 +220,15 @@ static void vo_frame_dec_lock (vo_frame_t *img) {
   pthread_mutex_unlock (&img->mutex);
 }
 
-/* call vo_driver->copy method for the entire frame */
-static void vo_frame_driver_copy(vo_frame_t *img)
+/* call vo_driver->proc methods for the entire frame */
+static void vo_frame_driver_proc(vo_frame_t *img)
 {
   if (img->proc_frame) {
-    img->proc_frame(img, img->base);
+    img->proc_frame(img);
   }
-  else if (img->proc_slice) {
+  if (img->proc_called) return;
+  
+  if (img->proc_slice) {
     if (img->format == XINE_IMGFMT_YV12) {
       int height = img->height;
       uint8_t* src[3];
@@ -294,7 +297,7 @@ static vo_frame_t *vo_get_frame (xine_video_port_t *this_gen,
   img->ratio          = ratio;
   img->format         = format;
   img->flags          = flags;
-  img->copy_called    = 0;
+  img->proc_called    = 0;
   img->bad_frame      = 0;
   img->progressive_frame  = 0;
   img->repeat_first_field = 0;
@@ -391,9 +394,9 @@ static int vo_frame_draw (vo_frame_t *img, xine_stream_t *stream) {
 
   if (!img->bad_frame) {
 
-    /* do not call copy() for frames that will be dropped */
-    if( !frames_to_skip && !img->copy_called )
-      vo_frame_driver_copy(img);
+    /* do not call proc_*() for frames that will be dropped */
+    if( !frames_to_skip && !img->proc_called )
+      vo_frame_driver_proc(img);
     
     /*
      * put frame into FIFO-Buffer
@@ -564,18 +567,18 @@ static vo_frame_t * duplicate_frame( vos_t *this, vo_frame_t *img ) {
       xine_fast_memcpy(dupl->base[0], img->base[0], image_size);
   }  
   
-  dupl->bad_frame = 0;
-  dupl->pts       = 0;
-  dupl->vpts      = 0;
-  dupl->copy_called    = 0;
+  dupl->bad_frame   = 0;
+  dupl->pts         = 0;
+  dupl->vpts        = 0;
+  dupl->proc_called = 0;
 
   dupl->duration  = img->duration;
 
   dupl->stream    = img->stream;
   memcpy( dupl->extra_info, img->extra_info, sizeof(extra_info_t) );
   
-  /* delay frame copying for now, we might not even need it (eg. frame will be discarded) */
-  /* vo_frame_driver_copy(dupl); */
+  /* delay frame processing for now, we might not even need it (eg. frame will be discarded) */
+  /* vo_frame_driver_proc(dupl); */
   
   return dupl;
 }
@@ -789,11 +792,11 @@ static void overlay_and_display_frame (vos_t *this,
 	  img->vpts);
 #endif
 
-  /* no, this is not were copy() is usually called.
+  /* no, this is not were proc_*() is usually called.
    * it's just to catch special cases like late or duplicated frames.
    */
-  if(!img->copy_called )
-    vo_frame_driver_copy(img);
+  if(!img->proc_called )
+    vo_frame_driver_proc(img);
   
   pthread_mutex_lock( &img->stream->current_extra_info_lock );
   {

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2002 the xine project
+ * Copyright (C) 2000-2003 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_syncfb.c,v 1.90 2003/10/22 20:38:10 komadori Exp $
+ * $Id: video_out_syncfb.c,v 1.91 2003/10/23 15:17:07 mroi Exp $
  * 
  * video_out_syncfb.c, SyncFB (for Matrox G200/G400 cards) interface for xine
  * 
@@ -683,9 +683,9 @@ static int syncfb_set_property(vo_driver_t* this_gen, int property, int value)
       break;
      
     case VO_PROP_ZOOM_X:
-      if ((value >= VO_ZOOM_MIN) && (value <= VO_ZOOM_MAX)) {
+      if ((value >= XINE_VO_ZOOM_MIN) && (value <= XINE_VO_ZOOM_MAX)) {
         this->props[property].value = value;
-	this->sc.zoom_factor_x = (double)value / (double)VO_ZOOM_STEP;
+	this->sc.zoom_factor_x = (double)value / (double)XINE_VO_ZOOM_STEP;
 	           
 	syncfb_compute_ideal_size (this);
       
@@ -697,9 +697,9 @@ static int syncfb_set_property(vo_driver_t* this_gen, int property, int value)
       break;
 
     case VO_PROP_ZOOM_Y:
-      if ((value >= VO_ZOOM_MIN) && (value <= VO_ZOOM_MAX)) {
+      if ((value >= XINE_VO_ZOOM_MIN) && (value <= XINE_VO_ZOOM_MAX)) {
         this->props[property].value = value;
-	this->sc.zoom_factor_y = (double)value / (double)VO_ZOOM_STEP;
+	this->sc.zoom_factor_y = (double)value / (double)XINE_VO_ZOOM_STEP;
 	           
 	syncfb_compute_ideal_size (this);
       
@@ -933,8 +933,6 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *vi
       this->props[VO_PROP_BRIGHTNESS].value = this->params.brightness;
       this->props[VO_PROP_BRIGHTNESS].min   = -128;
       this->props[VO_PROP_BRIGHTNESS].max   = 127;
-
-      this->supported_capabilities |=  (VO_CAP_CONTRAST | VO_CAP_BRIGHTNESS);
    } else {
       printf("video_out_syncfb: info. (brightness/contrast control won\'t be available because your SyncFB kernel module seems to be outdated. Please refer to README.syncfb for informations on how to update it.)\n");
    }

@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2000-2002 the xine project
+ * Copyright (C) 2000-2003 the xine project
  * 
  * This file is part of xine, a free video player.
  * 
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  *
- * $Id: video_out_pgx64.c,v 1.41 2003/10/22 20:38:10 komadori Exp $
+ * $Id: video_out_pgx64.c,v 1.42 2003/10/23 15:17:07 mroi Exp $
  *
  * video_out_pgx64.c, Sun PGX64/PGX24 output plugin for xine
  *
@@ -267,14 +267,14 @@ static int vram_alloc(pgx64_driver_t* this, int size)
  * XINE VIDEO DRIVER FUNCTIONS
  */
 
-static void pgx64_frame_proc_frame(pgx64_frame_t *frame, uint8_t **src)
+static void pgx64_frame_proc_frame(pgx64_frame_t *frame)
 {
   int i;
 
-  frame->vo_frame.copy_called = 1;
+  frame->vo_frame.proc_called = 1;
 
   for (i=0; i<frame->planes; i++) {
-    memcpy(frame->buffer_ptrs[i], src[i], frame->lengths[i]);
+    memcpy(frame->buffer_ptrs[i], frame->vo_frame.base[i], frame->lengths[i]);
   }
 }
 
@@ -282,7 +282,7 @@ static void pgx64_frame_proc_slice(pgx64_frame_t *frame, uint8_t **src)
 {
   int i, len;
 
-  frame->vo_frame.copy_called = 1;
+  frame->vo_frame.proc_called = 1;
 
   for (i=0; i<frame->planes; i++) {
     len = (frame->lengths[i] - frame->stripe_offsets[i] < frame->stripe_lengths[i]) ? frame->lengths[i] - frame->stripe_offsets[i] : frame->stripe_lengths[i];
@@ -306,10 +306,7 @@ static void pgx64_frame_dispose(pgx64_frame_t *frame)
 static uint32_t pgx64_get_capabilities(pgx64_driver_t *this)
 {
   return VO_CAP_YV12 |
-         VO_CAP_YUY2 |
-         VO_CAP_COLORKEY |
-         VO_CAP_SATURATION |
-         VO_CAP_BRIGHTNESS;
+         VO_CAP_YUY2;
 }
 
 static pgx64_frame_t* pgx64_alloc_frame(pgx64_driver_t *this)

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.177 2003/10/22 20:38:10 komadori Exp $
+ * $Id: video_out_xv.c,v 1.178 2003/10/23 15:17:07 mroi Exp $
  *
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -833,13 +833,13 @@ static int xv_set_property (vo_driver_t *this_gen,
       break;
 
     case VO_PROP_ZOOM_X:
-      if ((value >= VO_ZOOM_MIN) && (value <= VO_ZOOM_MAX)) {
+      if ((value >= XINE_VO_ZOOM_MIN) && (value <= XINE_VO_ZOOM_MAX)) {
         this->props[property].value = value;
 	if (this->xine->verbosity >= XINE_VERBOSITY_LOG) 
 	  printf ("video_out_xv: VO_PROP_ZOOM_X = %d\n",
 		  this->props[property].value);
 
-	this->sc.zoom_factor_x = (double)value / (double)VO_ZOOM_STEP;
+	this->sc.zoom_factor_x = (double)value / (double)XINE_VO_ZOOM_STEP;
 
 	xv_compute_ideal_size (this);
 
@@ -848,13 +848,13 @@ static int xv_set_property (vo_driver_t *this_gen,
       break;
 
     case VO_PROP_ZOOM_Y:
-      if ((value >= VO_ZOOM_MIN) && (value <= VO_ZOOM_MAX)) {
+      if ((value >= XINE_VO_ZOOM_MIN) && (value <= XINE_VO_ZOOM_MAX)) {
         this->props[property].value = value;
 	if (this->xine->verbosity >= XINE_VERBOSITY_LOG) 
 	  printf ("video_out_xv: VO_PROP_ZOOM_Y = %d\n",
 		  this->props[property].value);
 
-	this->sc.zoom_factor_y = (double)value / (double)VO_ZOOM_STEP;
+	this->sc.zoom_factor_y = (double)value / (double)XINE_VO_ZOOM_STEP;
 
 	xv_compute_ideal_size (this);
 
@@ -1015,7 +1015,6 @@ static int xv_check_yv12 (Display *display, XvPortID port) {
 
 /* called xlocked */
 static void xv_check_capability (xv_driver_t *this,
-				 uint32_t capability,
 				 int property, XvAttribute attr,
 				 int base_id, char *str_prop,
 				 char *config_name,
@@ -1023,8 +1022,6 @@ static void xv_check_capability (xv_driver_t *this,
   int          int_default;
   cfg_entry_t *entry;
   
-  this->capabilities |= capability;
-
   /*
    * some Xv drivers (Gatos ATI) report some ~0 as max values, this is confusing.
    */
@@ -1071,7 +1068,7 @@ static void xv_check_capability (xv_driver_t *this,
 
     xv_set_property (&this->vo_driver, property, entry->num_value);
 
-    if (capability == VO_CAP_COLORKEY) {
+    if (strcmp(str_prop, "XV_COLORKEY") == 0) {
       this->use_colorkey = 1;
       this->colorkey = entry->num_value;
     }
@@ -1222,39 +1219,33 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *vi
     for(k = 0; k < nattr; k++) {
       if((attr[k].flags & XvSettable) && (attr[k].flags & XvGettable)) {
 	if(!strcmp(attr[k].name, "XV_HUE")) {
-	  xv_check_capability (this, VO_CAP_HUE,
-			       VO_PROP_HUE, attr[k],
+	  xv_check_capability (this, VO_PROP_HUE, attr[k],
 			       class->adaptor_info[class->adaptor_num].base_id, "XV_HUE",
 			       NULL, NULL);
 
 	} else if(!strcmp(attr[k].name, "XV_SATURATION")) {
-	  xv_check_capability (this, VO_CAP_SATURATION,
-			       VO_PROP_SATURATION, attr[k],
+	  xv_check_capability (this, VO_PROP_SATURATION, attr[k],
 			       class->adaptor_info[class->adaptor_num].base_id, "XV_SATURATION",
 			       NULL, NULL);
 
 	} else if(!strcmp(attr[k].name, "XV_BRIGHTNESS")) {
-	  xv_check_capability (this, VO_CAP_BRIGHTNESS,
-			       VO_PROP_BRIGHTNESS, attr[k],
+	  xv_check_capability (this, VO_PROP_BRIGHTNESS, attr[k],
 			       class->adaptor_info[class->adaptor_num].base_id, "XV_BRIGHTNESS",
 			       NULL, NULL);
 
 	} else if(!strcmp(attr[k].name, "XV_CONTRAST")) {
-	  xv_check_capability (this, VO_CAP_CONTRAST,
-			       VO_PROP_CONTRAST, attr[k],
+	  xv_check_capability (this, VO_PROP_CONTRAST, attr[k],
 			       class->adaptor_info[class->adaptor_num].base_id, "XV_CONTRAST",
 			       NULL, NULL);
 
 	} else if(!strcmp(attr[k].name, "XV_COLORKEY")) {
-	  xv_check_capability (this, VO_CAP_COLORKEY,
-			       VO_PROP_COLORKEY, attr[k],
+	  xv_check_capability (this, VO_PROP_COLORKEY, attr[k],
 			       class->adaptor_info[class->adaptor_num].base_id, "XV_COLORKEY",
 			       "video.xv_colorkey",
 			       _("Colorkey used for Xv video overlay"));
 
 	} else if(!strcmp(attr[k].name, "XV_AUTOPAINT_COLORKEY")) {
-	  xv_check_capability (this, VO_CAP_AUTOPAINT_COLORKEY,
-			       VO_PROP_AUTOPAINT_COLORKEY, attr[k],
+	  xv_check_capability (this, VO_PROP_AUTOPAINT_COLORKEY, attr[k],
 			       class->adaptor_info[class->adaptor_num].base_id, "XV_AUTOPAINT_COLORKEY",
 			       "video.xv_autopaint_colorkey",
 			       _("Make Xv autopaint its colorkey"));

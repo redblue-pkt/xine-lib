@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_vidix.c,v 1.48 2003/10/22 20:38:10 komadori Exp $
+ * $Id: video_out_vidix.c,v 1.49 2003/10/23 15:17:07 mroi Exp $
  * 
  * video_out_vidix.c
  *
@@ -692,14 +692,14 @@ static int vidix_set_property (vo_driver_t *this_gen,
   } 
 
   if ( property == VO_PROP_ZOOM_X ) {
-      this->sc.zoom_factor_x = (double)value / (double)VO_ZOOM_STEP;
+      this->sc.zoom_factor_x = (double)value / (double)XINE_VO_ZOOM_STEP;
 
       vidix_compute_ideal_size (this);
       this->sc.force_redraw = 1;
   } 
 
   if ( property == VO_PROP_ZOOM_Y ) {
-      this->sc.zoom_factor_y = (double)value / (double)VO_ZOOM_STEP;
+      this->sc.zoom_factor_y = (double)value / (double)XINE_VO_ZOOM_STEP;
 
       vidix_compute_ideal_size (this);
       this->sc.force_redraw = 1;
@@ -906,32 +906,24 @@ static vidix_driver_t *open_plugin (video_driver_class_t *class_gen) {
         printf("video_out_vidix: couldn't get equalizer capabilities: %s\n", strerror(err));
     } else {
       if(this->vidix_eq.cap & VEQ_CAP_BRIGHTNESS) {
-        this->capabilities |= VO_CAP_BRIGHTNESS;
-        
         this->props[VO_PROP_BRIGHTNESS].value = 0;
         this->props[VO_PROP_BRIGHTNESS].min = -1000;
         this->props[VO_PROP_BRIGHTNESS].max = 1000;
      }
       
       if(this->vidix_eq.cap & VEQ_CAP_CONTRAST) {
-        this->capabilities |= VO_CAP_CONTRAST;
-        
         this->props[VO_PROP_CONTRAST].value = 0;
         this->props[VO_PROP_CONTRAST].min = -1000;
         this->props[VO_PROP_CONTRAST].max = 1000;
       }
       
       if(this->vidix_eq.cap & VEQ_CAP_SATURATION) {
-        this->capabilities |= VO_CAP_SATURATION;
-        
         this->props[VO_PROP_SATURATION].value = 0;
         this->props[VO_PROP_SATURATION].min = -1000;
         this->props[VO_PROP_SATURATION].max = 1000;
       }
             
       if(this->vidix_eq.cap & VEQ_CAP_HUE) {
-        this->capabilities |= VO_CAP_HUE;
-        
         this->props[VO_PROP_HUE].value = 0;
         this->props[VO_PROP_HUE].min = -1000;
         this->props[VO_PROP_HUE].max = 1000;
@@ -972,12 +964,12 @@ static vidix_driver_t *open_plugin (video_driver_class_t *class_gen) {
   this->props[VO_PROP_ASPECT_RATIO].max = XINE_VO_ASPECT_NUM_RATIOS;
   
   this->props[VO_PROP_ZOOM_X].value = 100;
-  this->props[VO_PROP_ZOOM_X].min = VO_ZOOM_MIN;
-  this->props[VO_PROP_ZOOM_X].max = VO_ZOOM_MAX;
+  this->props[VO_PROP_ZOOM_X].min = XINE_VO_ZOOM_MIN;
+  this->props[VO_PROP_ZOOM_X].max = XINE_VO_ZOOM_MAX;
   
   this->props[VO_PROP_ZOOM_Y].value = 100;
-  this->props[VO_PROP_ZOOM_Y].min = VO_ZOOM_MIN;
-  this->props[VO_PROP_ZOOM_Y].max = VO_ZOOM_MAX;
+  this->props[VO_PROP_ZOOM_Y].min = XINE_VO_ZOOM_MIN;
+  this->props[VO_PROP_ZOOM_Y].max = XINE_VO_ZOOM_MAX;
      
   this->vo_driver.get_capabilities     = vidix_get_capabilities;
   this->vo_driver.alloc_frame          = vidix_alloc_frame;
@@ -1097,7 +1089,6 @@ static vo_driver_t *vidix_open_plugin (video_driver_class_t *class_gen, const vo
   
   /* We'll assume all drivers support colour keying (which they do 
      at the moment) */
-  this->capabilities |= VO_CAP_COLORKEY;
   this->vidix_grkey.ckey.op = CKEY_TRUE;
   
   /* Colour key components */

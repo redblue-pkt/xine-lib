@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2002 the xine project
+ * Copyright (C) 2000-2003 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_sdl.c,v 1.28 2003/10/22 20:38:10 komadori Exp $
+ * $Id: video_out_sdl.c,v 1.29 2003/10/23 15:17:07 mroi Exp $
  *
  * video_out_sdl.c, Simple DirectMedia Layer
  *

@@ -19,6 +19,8 @@
  *
  * video_out_directx.c, direct draw video output plugin for xine
  * by Matthew Grooms <elon@altavista.com>
+ *
+ * $Id: video_out_directx.c,v 1.8 2003/10/23 15:17:07 mroi Exp $
  */
 
 typedef unsigned char boolean;

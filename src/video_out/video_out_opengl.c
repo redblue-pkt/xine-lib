@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2002 the xine project
+ * Copyright (C) 2000-2003 the xine project
  * 
  * This file is part of xine, a free video player.
  * 
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_opengl.c,v 1.29 2003/10/22 20:38:10 komadori Exp $
+ * $Id: video_out_opengl.c,v 1.30 2003/10/23 15:17:07 mroi Exp $
  * 
  * video_out_glut.c, glut based OpenGL rendering interface for xine
  * Matthias Hopf <mat@mshopf.de>
@@ -189,14 +189,14 @@ enum { CONTEXT_BAD = 0, CONTEXT_SAME_DRAWABLE, CONTEXT_RELOAD, CONTEXT_SET };
 
 
 static uint32_t opengl_get_capabilities (vo_driver_t *this_gen) {
-    return VO_CAP_YV12 | VO_CAP_YUY2 | VO_CAP_BRIGHTNESS;
+    return VO_CAP_YV12 | VO_CAP_YUY2;
 }
 
 
 static void opengl_frame_proc_slice (vo_frame_t *vo_img, uint8_t **src) {
     opengl_frame_t  *frame = (opengl_frame_t *) vo_img ;
   
-    vo_img->copy_called = 1;
+    vo_img->proc_called = 1;
 
 /*  DEBUGF ((stderr, "*** %p: frame_copy src %p/%p/%p to %p\n", frame, src[0], src[1], src[2], frame->rgb_dst)); */
 
@@ -286,7 +286,7 @@ static vo_frame_t *opengl_alloc_frame (vo_driver_t *this_gen) {
      * supply required functions/fields
      */
     frame->vo_frame.proc_slice = opengl_frame_proc_slice;
-    frame->vo_frame.proc_frame = opengl_frame_proc_frame;
+    frame->vo_frame.proc_frame = NULL;
     frame->vo_frame.field      = opengl_frame_field; 
     frame->vo_frame.dispose    = opengl_frame_dispose;
     frame->vo_frame.driver     = this_gen;

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3.c,v 1.88 2003/10/06 21:52:43 miguelfreitas Exp $
+ * $Id: video_out_dxr3.c,v 1.89 2003/10/23 15:17:06 mroi Exp $
  */
  
 /* mpeg1 encoding video out plugin for the dxr3.  
@@ -107,7 +107,8 @@ static void         dxr3_vo_class_dispose(video_driver_class_t *class_gen);
 /* plugin instance functions */
 static uint32_t    dxr3_get_capabilities(vo_driver_t *this_gen);
 static vo_frame_t *dxr3_alloc_frame(vo_driver_t *this_gen);
-static void        dxr3_frame_copy(vo_frame_t *frame_gen, uint8_t **src);
+static void        dxr3_frame_proc_frame(vo_frame_t *frame_gen);
+static void        dxr3_frame_proc_slice(vo_frame_t *frame_gen, uint8_t **src);
 static void        dxr3_frame_field(vo_frame_t *vo_img, int which_field);
 static void        dxr3_frame_dispose(vo_frame_t *frame_gen);
 static void        dxr3_update_frame_format(vo_driver_t *this_gen, vo_frame_t *frame_gen,
@@ -495,48 +496,52 @@ static vo_driver_t *dxr3_vo_open_plugin(video_driver_class_t *class_gen, const v
 
 static uint32_t dxr3_get_capabilities(vo_driver_t *this_gen)
 {
-  return VO_CAP_YV12 | VO_CAP_YUY2 |
-    VO_CAP_SATURATION | VO_CAP_BRIGHTNESS | VO_CAP_CONTRAST;
+  return VO_CAP_YV12 | VO_CAP_YUY2;
 }
 
 static vo_frame_t *dxr3_alloc_frame(vo_driver_t *this_gen)
 {
   dxr3_frame_t *frame;
-#if 0
   dxr3_driver_t *this = (dxr3_driver_t *)this_gen;
-#endif
   
   frame = (dxr3_frame_t *)malloc(sizeof(dxr3_frame_t));
   memset(frame, 0, sizeof(dxr3_frame_t));
   
   pthread_mutex_init(&frame->vo_frame.mutex, NULL);
 
-#if 1
-  /* always call frame_copy since we do some little vpts tweaking there */
-  frame->vo_frame.copy    = dxr3_frame_copy;
-#else
-  if (this->enc && this->enc->on_frame_copy)
-    frame->vo_frame.copy = dxr3_frame_copy;
-  else
-    frame->vo_frame.copy = NULL;
-#endif
-  frame->vo_frame.field   = dxr3_frame_field; 
+  if (this->enc && this->enc->on_frame_copy) {
+    frame->vo_frame.proc_frame = NULL;
+    frame->vo_frame.proc_slice = dxr3_frame_proc_slice;
+  } else {
+    frame->vo_frame.proc_frame = dxr3_frame_proc_frame;
+    frame->vo_frame.proc_slice = NULL;
+  }
+  frame->vo_frame.field   = dxr3_frame_field;
   frame->vo_frame.dispose = dxr3_frame_dispose;
   frame->vo_frame.driver  = this_gen;
 
   return &frame->vo_frame;
 }
 
-static void dxr3_frame_copy(vo_frame_t *frame_gen, uint8_t **src)
+static void dxr3_frame_proc_frame(vo_frame_t *frame_gen)
+{
+  /* we reduce the vpts to give the card some extra decoding time */
+  if (frame_gen->format != XINE_IMGFMT_DXR3 && !frame_gen->proc_called)
+    frame_gen->vpts -= DECODE_PIPE_PREBUFFER;
+  
+  frame_gen->proc_called = 1;
+}
+
+static void dxr3_frame_proc_slice(vo_frame_t *frame_gen, uint8_t **src)
 {
   dxr3_frame_t *frame = (dxr3_frame_t *)frame_gen;
   dxr3_driver_t *this = (dxr3_driver_t *)frame_gen->driver;
   
-  /* vpts hack: we reduce the vpts to give the card some extra decoding time */
-  if (frame_gen->format != XINE_IMGFMT_DXR3 && !frame_gen->copy_called)
+  /* we reduce the vpts to give the card some extra decoding time */
+  if (frame_gen->format != XINE_IMGFMT_DXR3 && !frame_gen->proc_called)
     frame_gen->vpts -= DECODE_PIPE_PREBUFFER;
   
-  frame_gen->copy_called = 1;
+  frame_gen->proc_called = 1;
 
   if (frame_gen->format != XINE_IMGFMT_DXR3 && this->enc && this->enc->on_frame_copy)
     this->enc->on_frame_copy(this, frame, src);
