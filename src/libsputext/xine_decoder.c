@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.43 2003/01/11 03:47:01 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.44 2003/01/11 11:34:15 mroi Exp $
  *
  */
 
@@ -68,12 +68,8 @@ typedef struct sputext_decoder_s {
   sputext_class_t   *class;
   xine_stream_t     *stream;
 
-  int                output_open;
-
   int                lines;
   char               text[SUB_MAX_TEXT][SUB_BUFSIZE];
-
-  float              mpsub_position;  
 
   int                width;          /* frame width                */
   int                height;         /* frame height               */
@@ -204,10 +200,10 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
   }
   
   printf("libsputext: decoder data [%s]\n", this->text[0]);
-  printf("libsputext: mode %d timming %d->%d\n", uses_time, start, end);
+  printf("libsputext: mode %d timing %d->%d\n", uses_time, start, end);
 
   if( end <= start ) {
-    printf("libsputext: discarding subtitle with invalid timming\n");
+    printf("libsputext: discarding subtitle with invalid timing\n");
   }
   
   if( this->stream->master_stream )
@@ -324,7 +320,7 @@ static void spudec_dispose (spu_decoder_t *this_gen) {
     this->renderer->free_object (this->osd);
     this->osd = NULL;
   }
-
+  free(this);
 }
 
 static void update_osd_font(void *this_gen, xine_cfg_entry_t *entry)
@@ -393,8 +389,6 @@ static spu_decoder_t *sputext_class_open_plugin (spu_decoder_class_t *class_gen,
 			        _("subtitle time offset in 1/100 sec"), 
 			        NULL, 10, update_time_offset, this);
 
-
-  this->mpsub_position     = 0;
 
   return (spu_decoder_t *) this;
 }

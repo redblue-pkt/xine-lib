@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_sputext.c,v 1.7 2003/01/11 03:47:01 miguelfreitas Exp $
+ * $Id: demux_sputext.c,v 1.8 2003/01/11 11:34:15 mroi Exp $
  *
  * code based on old libsputext/xine_decoder.c
  *
@@ -53,9 +53,7 @@
 */
 
 #define ERR (void *)-1
-
 #define SUB_MAX_TEXT  5
-
 #define SUB_BUFSIZE 1024
 
 /*
@@ -67,8 +65,8 @@ typedef struct {
 
   int lines;
 
-  unsigned long start; /* hsecs */
-  unsigned long end;   /* hsecs */
+  unsigned long start; /* csecs */
+  unsigned long end;   /* csecs */
     
   char *text[SUB_MAX_TEXT];
 
