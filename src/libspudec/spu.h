@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: spu.h,v 1.2 2001/07/04 20:32:29 uid32519 Exp $
+ * $Id: spu.h,v 1.3 2001/08/13 12:52:33 ehasenle Exp $
  *
  * This file was originally part of the OMS program.
  *
@@ -59,11 +59,40 @@ typedef struct spu_clut_struct {
 #endif
 } spu_clut_t;
 
+typedef struct {
+  uint8_t *buf;
+  u_int    ra_offs; /* reassembly offset */
+  u_int    seq_len;
+  u_int    buf_len;
 
-void  spuInit (void);
-void  decode_spu (u_char *data_start, u_char *data_end);
-u_int buffer_spupack (u_int *length, u_char **start, u_char *end);
-int   spuParseHdr (vo_overlay_t *spu, u_char *pkt_data, u_int pkt_len);
-void  spuParseData (vo_overlay_t *spu);
+  u_int    cmd_offs;
+
+  u_int PTS;        /* Base PTS of this sequence */
+  int finished;     /* Has this sequence been finished? */
+} spu_seq_t;
+
+typedef struct {
+  uint8_t *cmd_ptr;
+
+  int field_offs[2];
+  int b_top,    o_top;
+  int b_bottom, o_bottom;
+  int b_left,   o_left;
+  int b_right,  o_right;
+
+  u_int next_pts;   /* pts of next sub-sequence */
+  int modified;     /* Was the sub-picture modified? */
+  int visible;      /* Must the sub-picture be shown? */
+  int menu;         /* This overlay is a menu */
+  int b_show;       /* is a button shown? */
+
+  uint32_t clut[16];
+} spu_state_t;
+
+int spuReassembly (spu_seq_t *seq, int start, uint8_t *pkt_data, u_int pkt_len);
+int spuNextEvent (spu_state_t *state, spu_seq_t* seq, int pts);
+void spuDoCommands (spu_state_t *state, spu_seq_t* seq, vo_overlay_t *ovl);
+void spuDrawPicture (spu_state_t *state, spu_seq_t* seq, vo_overlay_t *ovl);
+void spuUpdateMenu (spu_state_t *state, vo_overlay_t *ovl);
 
 #endif

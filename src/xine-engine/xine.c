@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.39 2001/08/12 15:12:54 guenter Exp $
+ * $Id: xine.c,v 1.40 2001/08/13 12:52:33 ehasenle Exp $
  *
  * top-level xine functions
  *
@@ -50,6 +50,7 @@
 #include "libw32dll/w32codec.h"
 #endif
 #include "libspudec/spu_decoder_api.h"
+/* TODO: who uses spu_decoder.h ? */
 #include "spu_decoder.h"
 #include "input/input_plugin.h"
 #include "metronom.h"
@@ -389,29 +390,10 @@ static void event_handler(xine_t *xine, event_t *event, void *data) {
       }
     }
     break;
-  case XINE_OVERLAY_EVENT:
-    {
-      overlay_event_t *oevent = (overlay_event_t*)event;
-      if(xine->video_out != NULL) {
-	int i;
-	vo_overlay_t *overlay = xine->video_out->get_overlay (xine->video_out);
-	if(overlay != NULL) {
-	  overlay->data = oevent->overlay.data;
-	  overlay->x = oevent->overlay.x;
-	  overlay->y = oevent->overlay.y;
-	  overlay->width = oevent->overlay.width;
-	  overlay->height = oevent->overlay.height;
-	  for(i=0; i<4; i++) {
-	    overlay->clut[i] = oevent->overlay.clut[i];
-	    overlay->trans[i] = oevent->overlay.trans[i];
-	  }
-	  overlay->PTS = oevent->overlay.PTS;
-	  overlay->clut_tbl = oevent->overlay.clut_tbl;
-	  overlay->duration = oevent->overlay.duration;
-	  xine->video_out->queue_overlay (xine->video_out, overlay);
-	}
-      }
-    }
+  case XINE_SPU_EVENT:
+    if (xine->cur_spu_decoder_plugin)
+      xine->cur_spu_decoder_plugin->event(xine->cur_spu_decoder_plugin,
+		(spu_event_t*) event);
     break;
   }
 }

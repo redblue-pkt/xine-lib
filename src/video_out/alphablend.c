@@ -138,10 +138,10 @@ void blend_tux_rgb16 (uint8_t * img, int dst_width, int dst_height)
         for (y=0; y<img_overl->height; y++) {				\
 		dst += img_overl->x;					\
                 for (x=0; x<img_overl->width; x++) {			\
-			o = img_overl->trans[*src&0x0f];		\
+			o = img_overl->trans[*src];		\
 									\
-			if ((*src) >> 4 & 0xf)		/* if alpha is != 0 */		\
-				*dst = blendpixel_rgb##bpp (*dst, myclut[img_overl->clut[(*src&0x0f)]], o);   \
+			if (o)		/* if alpha is != 0 */		\
+				*dst = blendpixel_rgb##bpp (*dst, myclut[*src], o);   \
 			src++;						\
 			dst++;						\
                 }							\
@@ -256,9 +256,10 @@ static clut_t __default_clut[] = {
 };
 
 void blend_yuv (uint8_t * dst_img, vo_overlay_t * img_overl,
-		int dst_width, int dst_height)
+                int dst_width, int dst_height)
 {
   clut_t *my_clut;
+  uint8_t *my_trans;
 
   int src_width = img_overl->width;
   int src_height = img_overl->height;
@@ -275,36 +276,36 @@ void blend_yuv (uint8_t * dst_img, vo_overlay_t * img_overl,
 
   int x, y;
 
-  /* If there is a CLUT palette specified, use it instead. */
-  if(img_overl->clut_tbl != NULL) {
-    my_clut = (clut_t*)img_overl->clut_tbl;
-  } else {
-    my_clut = __default_clut;
-  }
+  my_clut = (clut_t*) img_overl->color;
+  my_trans = img_overl->trans;
 
   for (y = 0; y < src_height; y++) {
     for (x = 0; x < src_width; x++) {
       uint8_t clr;
-      uint8_t mask;
       uint16_t o;
 
-      mask = (*src_data) >> 4 ;
+      clr = *src_data & 3;
+      o   = my_trans[clr];
 
-      clr = img_overl->clut[*src_data & 0x03];
-      o = img_overl->trans[*src_data & 0x03];
-      if(o)
-	*dst_y = BLEND_YUV (*dst_y, my_clut[clr].y, o);
+      /* OK, this looks time consuming.
+       * But it gets only evaluated if (o != 0) */
+      if (o) if (img_overl->clip_left   >  x ||
+		 img_overl->clip_right  <= x ||
+		 img_overl->clip_top    >  y ||
+		 img_overl->clip_bottom <= y)
+		   o = 0;
+
+     if (o) 
+        *dst_y = BLEND_YUV (*dst_y, my_clut[clr].y, o);
       dst_y++;
 
       if (y & x & 1) {
-	if (mask) {
-	  if(o) {
-	    *dst_cr = BLEND_YUV (*dst_cr, my_clut[clr].cr, o);
-	    *dst_cb = BLEND_YUV (*dst_cb, my_clut[clr].cb, o); 
-	  }
+	if(o) {
+	  *dst_cr = BLEND_YUV (*dst_cr, my_clut[clr].cr, o);
+	  *dst_cb = BLEND_YUV (*dst_cb, my_clut[clr].cb, o);
 	}
-	dst_cr++;
-	dst_cb++;
+        dst_cr++;
+        dst_cb++;
       }
       src_data++;
     }

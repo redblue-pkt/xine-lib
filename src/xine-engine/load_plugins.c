@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.35 2001/07/30 17:13:22 guenter Exp $
+ * $Id: load_plugins.c,v 1.36 2001/08/13 12:52:33 ehasenle Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -371,7 +371,7 @@ void load_decoder_plugins (xine_t *this,
             spu_decoder_t *sdp;
             int            streamtype;
 
-            sdp = (spu_decoder_t *) initplug(iface_version, config);
+            sdp = (spu_decoder_t *) initplug(3, config);
 	    if (sdp) {
 	      sdp->metronom = this->metronom;
 

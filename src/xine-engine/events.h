@@ -63,6 +63,16 @@ typedef struct overlay_event_s {
   vo_overlay_t overlay;
 } overlay_event_t;
 
+/**
+ * SPU event - send control events to the spu decoder
+ */
+#define XINE_SPU_EVENT 0x0003
+typedef struct spu_event_s {
+  event_t event;
+  int sub_type;
+  void *data;
+} spu_event_t;
+
 #ifdef __cplusplus
 }
 #endif

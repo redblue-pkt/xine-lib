@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.36 2001/07/30 17:13:22 guenter Exp $
+ * $Id: xine_internal.h,v 1.37 2001/08/13 12:52:33 ehasenle Exp $
  *
  */
 
@@ -36,8 +36,8 @@ extern "C" {
 #include "audio_out.h"
 #include "metronom.h"
 #include "spu_decoder.h"
-#include "libspudec/spu_decoder_api.h"
 #include "events.h"
+#include "libspudec/spu_decoder_api.h"
 
 #define INPUT_PLUGIN_MAX       50
 #define DEMUXER_PLUGIN_MAX     50

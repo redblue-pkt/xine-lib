@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.h,v 1.15 2001/07/25 23:26:14 richwareham Exp $
+ * $Id: video_out.h,v 1.16 2001/08/13 12:52:33 ehasenle Exp $
  *
  *
  * xine version of video_out.h 
@@ -95,6 +95,13 @@ struct vo_frame_s {
   void (*dispose) (vo_frame_t *vo_img);
 };
 
+typedef struct ovl_src_s ovl_src_t;
+
+struct ovl_src_s {
+  void *src_gen;
+  vo_overlay_t* (*get_overlay) (ovl_src_t* self, int pts);
+  metronom_t* metronom;
+};
 
 struct vo_instance_s {
 
@@ -119,8 +126,9 @@ struct vo_instance_s {
 			    int flags);
   
   /* overlay stuff */
-  vo_overlay_t* (*get_overlay) (vo_instance_t *this);
-  void (*queue_overlay) (vo_instance_t *this, vo_overlay_t *overlay);
+  void (*register_ovl_src) (vo_instance_t *this, ovl_src_t *ovl_src);
+  void (*unregister_ovl_src) (vo_instance_t *this, ovl_src_t *ovl_src);
+  ovl_src_t         *overlay_source;
 
   /* video driver is no longer used by decoder => close */
   void (*close) (vo_instance_t *this);
@@ -131,8 +139,6 @@ struct vo_instance_s {
   /* private stuff */
 
   vo_driver_t       *driver;
-  vo_overlay_t      *first_overlay;
-  vo_overlay_t      *last_overlay;
   metronom_t        *metronom;
   
   img_buf_fifo_t    *free_img_buf_queue;
@@ -257,34 +263,22 @@ struct vo_driver_s {
 
 };
 
-#define OVERLAY_FREE			0
-#define OVERLAY_CREATING		1
-#define OVERLAY_READY_TO_SHOW		2
-#define OVERLAY_SHOWING			3
-#define OVERLAY_READY_TO_FREE		4
-
 struct vo_overlay_s {
   uint8_t          *data;          /* 7-4: mixer key, 3-0: color index */
+  int               data_size;     /* useful for deciding realloc      */
   int               x;             /* x start of subpicture area       */
   int               y;             /* y start of subpicture area       */
   int               width;         /* width of subpicture area         */
   int               height;        /* height of subpicture area        */
   
-  uint8_t           clut[4];       /* color lookup table               */
+  uint32_t          color[4];      /* color lookup table               */
   uint8_t           trans[4];      /* mixer key table                  */
+
+  int               clip_top;
+  int               clip_bottom;
+  int               clip_left;
+  int               clip_right;
   
-  uint32_t          PTS, duration; /* 1/90000 s                        */
-
-  vo_overlay_t     *next;          /* optionally more overlays         */
-  vo_overlay_t     *priv;          /* optionally more overlays         */
-  int              state;          /* State:FREE,SHOWING etc.          */
-
-  uint32_t         *clut_tbl;      /* Pointer to CLUT palette          */
-
-  /* private stuff */
-  int	_x;		/* current destination x, y */
-  int	_y;
-  int	offset[2];	/* address in PXD to fetch next rle-code from, one per field */
 };
 
 /*

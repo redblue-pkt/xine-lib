@@ -44,6 +44,8 @@ struct spu_decoder_s {
 
   void (*decode_data) (spu_decoder_t *this, buf_element_t *buf);
 
+  void (*event) (spu_decoder_t *this, spu_event_t *event);
+
   void (*close) (spu_decoder_t *this);
 
   char* (*get_identifier) (void);
@@ -68,6 +70,22 @@ struct spudec_s {
 
   void (*spudec_start) (spudec_t *this,	clut_t *clut);
 
+};
+
+#define SPU_EVENT_BUTTON 0x100
+typedef struct spu_button_s spu_button_t;
+struct spu_button_s {
+  int show;
+  uint8_t color[4];
+  uint8_t trans[4];
+  int left, right;
+  int top, bottom;
+};
+
+#define SPU_EVENT_CLUT 0x101
+typedef struct spu_cltbl_s spu_cltbl_t;
+struct spu_cltbl_s {
+  uint32_t clut[16];
 };
 
 #endif /* HAVE_SPUDEC_H */

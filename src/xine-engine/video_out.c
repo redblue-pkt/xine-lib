@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.38 2001/08/05 08:24:56 ehasenle Exp $
+ * $Id: video_out.c,v 1.39 2001/08/13 12:52:33 ehasenle Exp $
  *
  */
 
@@ -140,8 +140,6 @@ static void *video_out_loop (void *this_gen) {
   uint32_t           cur_pts;
   int                pts_absdiff, diff, absdiff, pts=0;
   vo_frame_t        *img;
-  vo_overlay_t      *overlay;
-  int count;
   uint32_t           video_step, video_step_new;
   vo_instance_t     *this = (vo_instance_t *) this_gen;
   sigset_t           vo_mask;
@@ -276,64 +274,18 @@ static void *video_out_loop (void *this_gen) {
 
     xprintf (VERBOSE|VIDEO, "video_out : passing to video driver, image with pts = %d\n", pts);
 
-    
-    overlay=this->first_overlay;
-    while (overlay) {
-      if(overlay->state==OVERLAY_SHOWING) {
-        if (this->driver->overlay_blend) this->driver->overlay_blend (this->driver, img, overlay);
-      }
-      overlay=overlay->next;
+    if (this->overlay_source) {
+      /* This is the only way for the spu decoder to get pts values
+       * for flushing it's buffers. So don't remove it! */
+      vo_overlay_t *ovl =
+       this->overlay_source->get_overlay (this->overlay_source, img->PTS);
+      if (ovl && this->driver->overlay_blend)
+	this->driver->overlay_blend (this->driver, img, ovl); 
     }
     
     this->driver->display_frame (this->driver, img); 
 
-    /* Control Overlay SHOW/HIDE based on PTS */
-    overlay=this->first_overlay;
-    count=1;
-    while (overlay) {
-      switch(overlay->state) {
-      case OVERLAY_FREE:
-	break;
-      case OVERLAY_CREATING:
-	break;
-      case OVERLAY_READY_TO_SHOW:
-	if (cur_pts>overlay->PTS) overlay->state=OVERLAY_SHOWING;
-	if (abs(cur_pts-overlay->PTS) > pts_absdiff ) overlay->state=OVERLAY_READY_TO_FREE;          
-	break;
-      case OVERLAY_SHOWING:
-	/* duration is in frames, Who knows why div 4 ? */
-	if ((cur_pts>overlay->PTS+(overlay->duration*video_step/4))) overlay->state=OVERLAY_READY_TO_FREE;
-	break;
-      case OVERLAY_READY_TO_FREE:
-	/* remove overlay from list */
-	if (overlay->next) {
-	  if (overlay->priv)
-	    overlay->priv->next=overlay->next;
-	  else
-	    this->first_overlay=overlay->next;
-	  overlay->next->priv=overlay->priv;
-	} else { 
-	  overlay->state=OVERLAY_FREE;
-	  break; 
-	} 
-	/* Set status to free */
-	overlay->state=OVERLAY_FREE;
-	/* Insert at end of list */
-	overlay->priv=this->last_overlay;
-	this->last_overlay->next=overlay; 
-	overlay->next=NULL;
-	this->last_overlay=overlay;
-	break;
-      default: 
-	printf("OVERLAY in UNKNOWN state\n"); 
-      }
-      overlay=overlay->next;
-    }
-
   }
-
-
-
 
   /*
    * throw away undisplayed frames
@@ -365,15 +317,6 @@ static void vo_open (vo_instance_t *this) {
 
   if (!this->video_loop_running) {
     this->video_loop_running = 1;
-    if(this->first_overlay) {
-      vo_overlay_t      *overlay;
-      overlay=this->first_overlay;
-      while (overlay) {
-        overlay->state=OVERLAY_FREE;
-        overlay->clut_tbl=NULL;
-        overlay=overlay->next;
-      }
-    }
 
     pthread_create (&this->video_thread, NULL, video_out_loop, this) ; 
     printf ("video_out: thread created\n");
@@ -558,57 +501,17 @@ static int vo_frame_draw (vo_frame_t *img) {
   return frames_to_skip;
 }
 
-/****************************************************************
- * Current assumption is that only one thread will call vo_get_overlay at a time 
- * Also mutex locks have not yet been considered or used 
- * Also, when one is FREEed, it is moved to the end of the queue, so it will be the first one used 
- * The design is based around a dynamic buffer size. 
- * The buffer starts at nothing, then increases as needed. 
- * If a buffer entry is free, it will be reused. 
- * If all buffers are full, xmalloc is called. 
- * FIXME: Can someone make this simpler ? It seems a bit long winded to me. 
- ***************************************************************/
-static vo_overlay_t *vo_get_overlay (vo_instance_t *this) {
-  vo_overlay_t *next_overlay;
-  vo_overlay_t *prev_overlay;
-  int	count_overlay=0;
-  if (this->first_overlay==NULL) {
-    this->first_overlay = this->last_overlay = xmalloc (sizeof (vo_overlay_t)) ;
-    this->first_overlay->data=NULL;
-    this->first_overlay->clut_tbl=NULL;
-    this->first_overlay->next=NULL;
-    this->first_overlay->priv=NULL;
-    this->first_overlay->state=OVERLAY_CREATING;
-    count_overlay++;
-    return this->first_overlay;
-  }
-  prev_overlay=this->first_overlay;
-  next_overlay=this->first_overlay->next;
-  while (next_overlay && (prev_overlay->state!=OVERLAY_FREE)) {
-    count_overlay++;
-    prev_overlay=next_overlay;
-    next_overlay=prev_overlay->next;
-  }
-  if (prev_overlay->state==OVERLAY_FREE) {
-    prev_overlay->state=OVERLAY_CREATING;
-    return prev_overlay;
-  }
-  prev_overlay->next = next_overlay = this->last_overlay = xmalloc (sizeof (vo_overlay_t)) ;
-  count_overlay++;
-  next_overlay->data=NULL;
-  next_overlay->next=NULL;
-  next_overlay->priv=prev_overlay;
-  next_overlay->state=OVERLAY_CREATING;
-  return next_overlay;
+static void vo_register_ovl_src (vo_instance_t *this, ovl_src_t *ovl_src)
+{
+  this->overlay_source = ovl_src;
+  ovl_src->metronom = this->metronom;
 }
 
-static void vo_queue_overlay (vo_instance_t *this, vo_overlay_t *overlay) {
-  overlay->PTS = this->metronom->got_spu_packet (this->metronom, overlay->PTS,overlay->duration);
-  if (overlay->data==NULL) {
-    overlay->state=OVERLAY_FREE;
-  } else {
-    overlay->state=OVERLAY_READY_TO_SHOW;
-  }
+static void vo_unregister_ovl_src (vo_instance_t *this, ovl_src_t *ovl_src)
+{
+  /* only remove the source if it is the same as registered */
+  if (this->overlay_source == ovl_src)
+    this->overlay_source = NULL;
 }
 
 vo_instance_t *vo_new_instance (vo_driver_t *driver, metronom_t *metronom) {
@@ -617,8 +520,6 @@ vo_instance_t *vo_new_instance (vo_driver_t *driver, metronom_t *metronom) {
   int            i;
 
   this = xmalloc (sizeof (vo_instance_t)) ;
-  this->first_overlay=NULL;
-  this->last_overlay=NULL;
   this->driver                = driver;
   this->metronom              = metronom;
 
@@ -627,8 +528,8 @@ vo_instance_t *vo_new_instance (vo_driver_t *driver, metronom_t *metronom) {
   this->close                 = vo_close;
   this->exit                  = vo_exit;
   this->get_capabilities      = vo_get_capabilities;
-  this->get_overlay           = vo_get_overlay;
-  this->queue_overlay         = vo_queue_overlay;
+  this->register_ovl_src      = vo_register_ovl_src;
+  this->unregister_ovl_src    = vo_unregister_ovl_src;
 
   this->num_frames_delivered  = 0;
   this->num_frames_skipped    = 0;

@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.7 2001/08/05 08:24:56 ehasenle Exp $
+ * $Id: xine_decoder.c,v 1.8 2001/08/13 12:52:33 ehasenle Exp $
  *
  * stuff needed to turn libspu into a xine decoder plugin
  */
@@ -38,31 +38,48 @@
 
 #include "spu.h"
 #include "buffer.h"
+#include "events.h"
 #include "xine_internal.h"
 
-#define FRAME_SIZE 4096
+static clut_t __default_clut[] = {
+  {y: 0x00, cr: 0x80, cb:0x80},
+  {y: 0xbf, cr: 0x80, cb:0x80},
+  {y: 0x10, cr: 0x80, cb:0x80},
+  {y: 0x28, cr: 0x6d, cb:0xef},
+  {y: 0x51, cr: 0xef, cb:0x5a},
+  {y: 0xbf, cr: 0x80, cb:0x80},
+  {y: 0x36, cr: 0x80, cb:0x80},
+  {y: 0x28, cr: 0x6d, cb:0xef},
+  {y: 0xbf, cr: 0x80, cb:0x80},
+  {y: 0x51, cr: 0x80, cb:0x80},
+  {y: 0xbf, cr: 0x80, cb:0x80},
+  {y: 0x10, cr: 0x80, cb:0x80},
+  {y: 0x28, cr: 0x6d, cb:0xef},
+  {y: 0x5c, cr: 0x80, cb:0x80},
+  {y: 0xbf, cr: 0x80, cb:0x80},
+  {y: 0x1c, cr: 0x80, cb:0x80},
+  {y: 0x28, cr: 0x6d, cb:0xef}
+};
 
+#define NUM_SEQ_BUFFERS 5
 
 typedef struct spudec_decoder_s {
   spu_decoder_t    spu_decoder;
+  ovl_src_t        ovl_src;
 
-  uint32_t         pts;
+  spu_seq_t	   seq_list[NUM_SEQ_BUFFERS];
+  spu_seq_t       *cur_seq;
+  spu_seq_t       *ra_seq;
+  int              ra_complete;
 
-  uint8_t          frame_buffer[FRAME_SIZE];
-  uint8_t         *frame_ptr;
-  int              sync_todo;
-  int              frame_length, frame_todo;
-  uint16_t         syncword;
+  uint32_t         ovl_pts;
+  uint32_t         buf_pts;
+  spu_state_t      state;
 
   vo_instance_t   *vo_out;
-  vo_overlay_t    *spu;
-  uint32_t        *clut;
-  int              spu_caps;
-  int              bypass_mode;
-  int              max_num_channels;
-  int              output_sampling_rate;
+  vo_overlay_t     ovl;
+  int              ovl_caps;
   int              output_open;
-  int              output_mode;
 
 } spudec_decoder_t;
 
@@ -71,107 +88,155 @@ int spudec_can_handle (spu_decoder_t *this_gen, int buf_type) {
   return (type == BUF_SPU_PACKAGE || type == BUF_SPU_CLUT) ;
 }
 
+static void spudec_reset (spudec_decoder_t *this) {
+  int i;
+
+  this->ovl_pts = 0;
+  this->buf_pts = 0;
+
+  this->state.visible = 0;
+
+  for (i = 0; i < NUM_SEQ_BUFFERS; i++) {
+    this->seq_list[i].finished = 1;
+  }
+  this->ra_complete = 1;
+  this->cur_seq = this->ra_seq = this->seq_list;
+}
+
 
 void spudec_init (spu_decoder_t *this_gen, vo_instance_t *vo_out) {
 
   spudec_decoder_t *this = (spudec_decoder_t *) this_gen;
+
   this->vo_out      = vo_out;
-  this->spu_caps    = vo_out->get_capabilities(vo_out);
-  this->syncword    = 0;
-  this->sync_todo   = 6;
+  this->ovl_caps    = vo_out->get_capabilities(vo_out);
   this->output_open = 0;
 
-}
-
-/* overlay_txt is just for test purposes */
-u_int *overlay_txt (vo_overlay_t *spu, float o1)
-{
-  u_int x, y;
-  u_char tmp;
-  /*        u_char *clr_ptr1 = (u_char *) img1; */
-  u_char *clr_ptr2;
-  u_char *spu_data_ptr = (u_char *) spu->data;
-  float o;
-  
-  /* don't know why this can happen - but it does happen */
-  if ((spu->width <= 0) || (spu->height <= 0) ||
-      (spu->width > 1024) || (spu->height > 1024)) {
-    fprintf (stderr, "width || height out of range.\n");
-    return NULL;
-  }
-  
-  for (y = spu->y; y < (spu->height + spu->y); y++) {
-    //     clr_ptr1 = (u_char *) (img1 + y * 720 + spu->x);
-    for (x = spu->x; x < (spu->width + spu->x); x++) {
-      o = ((float) (*spu_data_ptr>>4) / 15.0) * o1;
-      //clr_ptr2 = (u_char *) &spu_clut[*spu_data_ptr&0x0f];
-      *clr_ptr2 = *spu_data_ptr&0x0f;
-      tmp=*spu_data_ptr;
-      //printf("%X%X",tmp&0x0f,((tmp>>4)&0x0f));
-      spu_data_ptr ++;
-      
-      //   printf("%d ",(*clr_ptr2++));
-      //   printf("%d ",(*clr_ptr2++));
-      //   printf("%d ",(*clr_ptr2++));
-      //   printf("%d \n",(*clr_ptr2++));
-    }
-    printf("\n");
-  }
-  
-  return 0;
+  spudec_reset(this);
+  memcpy(this->state.clut, __default_clut, sizeof(this->state.clut));
+  vo_out->register_ovl_src(vo_out, &this->ovl_src);
 }
 
 void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
 
   spudec_decoder_t *this = (spudec_decoder_t *) this_gen;
 
-  uint8_t     *current = buf->content;
-
   if (buf->type == BUF_SPU_CLUT) {
-    if (this->clut == NULL)
-      this->clut = malloc(sizeof(clut_t)*16);
-
-    memcpy(this->clut, buf->content, sizeof(clut_t)*16);
+    memcpy(this->state.clut, buf->content, sizeof(int32_t)*16);
     return;
   }
-  
-  if (!this->spu) {
-    this->spu = this->vo_out->get_overlay (this->vo_out);
+
+  if (buf->PTS) {
+    metronom_t *metronom = this->ovl_src.metronom;
+    uint32_t pts = metronom->got_spu_packet(metronom, buf->PTS, 0);
+    if (pts < this->buf_pts)
+      spudec_reset(this);
+
+    this->buf_pts = pts;
   }
 
-  /* FIXME: shouldn't happen, but get_overlay function isn't implemented yet */
-  if (!this->spu)
-    return;
-
-  this->spu->PTS = buf->PTS;
-  if (this->clut)
-    this->spu->clut_tbl = this->clut;
-  
-  if (!spuParseHdr (this->spu, current, buf->size)) {
-    spuParseData (this->spu);
-    /* overlay_txt(this->spu,1.0); Just for test purposes */
-    this->vo_out->queue_overlay (this->vo_out, this->spu);
-    this->spu = NULL;
-  } else {
-    this->spu->data=NULL;
-    this->vo_out->queue_overlay (this->vo_out, this->spu);
-    this->spu = NULL;
+  if (this->ra_complete) {
+    spu_seq_t *tmp_seq = this->ra_seq + 1;
+    if (tmp_seq >= this->seq_list + NUM_SEQ_BUFFERS)
+      tmp_seq = this->seq_list;
+    
+    if (tmp_seq->finished) {
+      this->ra_seq = tmp_seq;
+      this->ra_seq->PTS = this->buf_pts;
+    }
   }
+  this->ra_complete = 
+   spuReassembly(this->ra_seq, this->ra_complete, buf->content, buf->size);
 }
 
 void spudec_close (spu_decoder_t *this_gen) {
   spudec_decoder_t *this = (spudec_decoder_t *) this_gen;
+  
+  this->vo_out->unregister_ovl_src(this->vo_out, &this->ovl_src);
+}
 
-  if (this->clut) {
-    free(this->clut);
-    this->clut = 0;
+static void spudec_nextseq(spudec_decoder_t* this) {
+  spu_seq_t *tmp_seq = this->cur_seq + 1;
+  if (tmp_seq >= this->seq_list + NUM_SEQ_BUFFERS)
+    tmp_seq = this->seq_list;
+  
+  if (!tmp_seq->finished) { /* is the next seq ready for process? */
+    this->cur_seq = tmp_seq;
+    this->state.cmd_ptr = this->cur_seq->buf + this->cur_seq->cmd_offs;
+    this->state.next_pts = -1; /* invalidate timestamp */
+    this->state.modified = 1;
+    this->state.visible = 0;
+    this->state.menu = 0;
+  }
+}
+
+static vo_overlay_t* spudec_get_overlay(ovl_src_t *ovl_src, int pts) {
+  spudec_decoder_t *this = (spudec_decoder_t*) ovl_src->src_gen;
+  int pending = 0;
+
+  if (this->ovl_pts > pts)
+    spudec_reset(this);
+
+  this->ovl_pts = pts;
+
+  do {
+    if (this->cur_seq->finished)
+      spudec_nextseq(this);
+
+    if (!this->cur_seq->finished) {
+      pending = spuNextEvent(&this->state, this->cur_seq, pts);
+
+      if (pending)
+        spuDoCommands(&this->state, this->cur_seq, &this->ovl);
+    } else
+      pending = 0;
+
+  } while (pending);
+
+  if (this->state.visible) {
+    if (this->state.modified) {
+      spuDrawPicture(&this->state, this->cur_seq, &this->ovl);
+    }
+
+    return &this->ovl;
   }
 
-/* FIXME not implemented */
-//  if (this->output_open) 
-//    this->spu_out->close (this->spu_out);
+  return NULL;
+}
 
-  /* close (spufile); */
+static void spudec_event(spu_decoder_t *this_gen, spu_event_t *event) {
+  spudec_decoder_t *this = (spudec_decoder_t*) this_gen;
+
+  switch (event->sub_type) {
+  case SPU_EVENT_BUTTON:
+    {
+      spu_button_t *but = event->data;
+      if (!this->state.menu) return;
+      
+      if (but->show) {
+	int i;
+	for (i = 0; i < 4; i++) {
+	  this->ovl.color[i] = this->state.clut[but->color[i]];
+	  this->ovl.trans[i] = but->trans[i];
+	}
+	
+	this->state.b_left   = but->left;
+	this->state.b_right  = but->right;
+	this->state.b_top    = but->top;
+	this->state.b_bottom = but->bottom;
+      }
+
+      this->state.b_show = but->show;
+      spuUpdateMenu(&this->state, &this->ovl);
+    }
+    break;
+  case SPU_EVENT_CLUT:
+    {
+      spu_cltbl_t *clut = event->data;
+      memcpy(this->state.clut, clut->clut, sizeof(int32_t)*16);
+    }
+    break;
+  }
 }
 
 static char *spudec_get_id(void) {
@@ -182,18 +247,28 @@ spu_decoder_t *init_spu_decoder_plugin (int iface_version, config_values_t *cfg)
 
   spudec_decoder_t *this ;
 
-  if (iface_version != 2)
+  if (iface_version != 3) {
+    fprintf(stderr,
+     "libspudec: Doesn't support plugin API version %d.\n"
+     "libspudec: This means there is a version mismatch between XINE and\n"
+     "libspudec: this plugin.\n", iface_version);
     return NULL;
+  }
 
   this = (spudec_decoder_t *) malloc (sizeof (spudec_decoder_t));
+  memset (this, 0, sizeof(*this));
 
-  this->spu_decoder.interface_version   = 2;
+  this->spu_decoder.interface_version   = 3;
   this->spu_decoder.can_handle          = spudec_can_handle;
   this->spu_decoder.init                = spudec_init;
   this->spu_decoder.decode_data         = spudec_decode_data;
+  this->spu_decoder.event               = spudec_event;
   this->spu_decoder.close               = spudec_close;
   this->spu_decoder.get_identifier      = spudec_get_id;
   this->spu_decoder.priority            = 1;
+
+  this->ovl_src.src_gen                 = this;
+  this->ovl_src.get_overlay             = spudec_get_overlay;
   
   return (spu_decoder_t *) this;
 }

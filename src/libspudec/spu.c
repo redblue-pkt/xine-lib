@@ -65,26 +65,8 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
-//#include <oms/plugin/output_video.h>	// for clut_t
 #include "spu.h"
 
-static u_int field;		// which field we are currently decoding
-
-#define DISPLAY_INIT
-
-#define REASSEMBLY_START	0
-#define REASSEMBLY_MID		1
-#define REASSEMBLY_UNNEEDED	2
-
-static u_int reassembly_flag = REASSEMBLY_START;
-
-struct reassembly_s {
-  uint8_t *buf;
-  uint8_t *buf_ptr;	// actual pointer to still empty buffer
-  u_int buf_len;
-  u_int cmd_offset;
-} reassembly;
-	
 #define LOG_DEBUG 1
 
 #ifdef DEBUG
@@ -93,8 +75,168 @@ struct reassembly_s {
 #define LOG(lvl, fmt...)
 #endif
 
+void spuInit (void)
+{
+}	
 
-static u_int _get_bits (u_int bits, vo_overlay_t *spu)
+/* Return value: reassembly complete = 1 */
+int spuReassembly (spu_seq_t *seq, int start, uint8_t *pkt_data, u_int pkt_len)
+{
+  LOG (LOG_DEBUG, "pkt_len: %d", pkt_len);
+
+  if (start) {
+    seq->seq_len = (((u_int)pkt_data[0])<<8) | pkt_data[1];
+    seq->cmd_offs = (((u_int)pkt_data[2])<<8) | pkt_data[3];
+
+    if (seq->buf_len < seq->seq_len) {
+      if (seq->buf)
+        free(seq->buf);
+
+      seq->buf_len = seq->seq_len;
+      seq->buf = malloc(seq->buf_len);
+    }
+    seq->ra_offs = 0;
+    
+    LOG (LOG_DEBUG, "buf_len: %d", seq->buf_len);
+    LOG (LOG_DEBUG, "cmd_off: %d", seq->cmd_offs);
+  }
+
+  if (seq->ra_offs < seq->buf_len) {
+    if (seq->ra_offs + pkt_len > seq->seq_len)
+      pkt_len = seq->seq_len - seq->ra_offs;
+      
+    memcpy (seq->buf + seq->ra_offs, pkt_data, pkt_len);
+    seq->ra_offs += pkt_len;
+  }
+
+  if (seq->ra_offs == seq->seq_len) {
+    seq->finished = 0;
+    return 1; /* sequence ready */
+  }
+
+  return 0;	
+}
+
+int spuNextEvent(spu_state_t *state, spu_seq_t* seq, int pts)
+{
+  uint8_t *buf = state->cmd_ptr;
+
+  if (state->next_pts == -1) { /* timestamp valid? */
+    state->next_pts = seq->PTS + ((buf[0] << 8) + buf[1]) * 1100;
+    buf += 2;
+    state->cmd_ptr = buf;
+  }
+
+  return state->next_pts <= pts;
+}
+
+#define CMD_SPU_MENU		0x00
+#define CMD_SPU_SHOW		0x01
+#define CMD_SPU_HIDE		0x02
+#define CMD_SPU_SET_PALETTE	0x03
+#define CMD_SPU_SET_ALPHA	0x04
+#define CMD_SPU_SET_SIZE	0x05
+#define CMD_SPU_SET_PXD_OFFSET	0x06
+#define CMD_SPU_EOF		0xff
+
+void spuDoCommands(spu_state_t *state, spu_seq_t* seq, vo_overlay_t *ovl)
+{
+  uint8_t *buf = state->cmd_ptr;
+  uint8_t *next_seq;
+
+  next_seq = seq->buf + (buf[0] << 8) + buf[1];
+  buf += 2;
+
+  if (state->cmd_ptr >= next_seq)
+    next_seq = seq->buf + seq->seq_len; /* allow to run until end */
+
+  state->cmd_ptr = next_seq;
+	      
+  while (buf < next_seq && *buf != CMD_SPU_EOF) {
+    switch (*buf) {
+    case CMD_SPU_SHOW:		/* show subpicture */
+      LOG (LOG_DEBUG, "\tshow subpicture");
+      state->visible = 1;
+      buf++;
+      break;
+      
+    case CMD_SPU_HIDE:		/* hide subpicture */
+      LOG (LOG_DEBUG, "\thide subpicture");
+      state->visible = 0;
+      buf++;
+      break;
+      
+    case CMD_SPU_SET_PALETTE: {	/* CLUT */
+      spu_clut_t *clut = (spu_clut_t *) (buf+1);
+      
+      ovl->color[3] = state->clut[clut->entry0];
+      ovl->color[2] = state->clut[clut->entry1];
+      ovl->color[1] = state->clut[clut->entry2];
+      ovl->color[0] = state->clut[clut->entry3];
+      LOG (LOG_DEBUG, "\tclut [%x %x %x %x]",
+	   ovl->color[0], ovl->color[1], ovl->color[2], ovl->color[3]);
+      state->modified = 1;
+      buf += 3;
+      break;
+    }	
+    case CMD_SPU_SET_ALPHA:	{	/* transparency palette */
+      spu_clut_t *trans = (spu_clut_t *) (buf+1);
+      
+      /* TODO: bswap32? */
+      ovl->trans[3] = trans->entry0;
+      ovl->trans[2] = trans->entry1;
+      ovl->trans[1] = trans->entry2;
+      ovl->trans[0] = trans->entry3;
+      LOG (LOG_DEBUG, "\ttrans [%d %d %d %d]\n",
+	   ovl->trans[0], ovl->trans[1], ovl->trans[2], ovl->trans[3]);
+      state->modified = 1;
+      buf += 3;
+      break;
+    }
+    
+    case CMD_SPU_SET_SIZE:		/* image coordinates */
+      state->o_left  = (buf[1] << 4) | (buf[2] >> 4);
+      state->o_right = (((buf[2] & 0x0f) << 8) | buf[3]);
+						 
+      state->o_top    = (buf[4]  << 4) | (buf[5] >> 4);
+      state->o_bottom = (((buf[5] & 0x0f) << 8) | buf[6]);
+						    
+      LOG (LOG_DEBUG, "\ttop = %d bottom = %d left = %d right = %d",
+	   state->o_left, state->o_right, state->o_top, state->o_bottom);
+      state->modified = 1;
+      buf += 7;
+      break;
+      
+    case CMD_SPU_SET_PXD_OFFSET:	/* image 1 / image 2 offsets */
+      state->field_offs[0] = (((u_int)buf[1]) << 8) | buf[2];
+      state->field_offs[1] = (((u_int)buf[3]) << 8) | buf[4];
+      LOG (LOG_DEBUG, "\toffset[0] = %d offset[1] = %d",
+	   state->field_offs[0], state->field_offs[1]);
+      state->modified = 1;
+      buf += 5;
+      break;
+      
+    case CMD_SPU_MENU:
+      state->menu = 1;
+      buf++;
+      break;
+      
+    default:
+      fprintf(stderr, "libspudec: unknown seqence command (%02x)\n", buf[0]);
+      buf++;
+      break;
+    }
+  }
+  if (next_seq >= seq->buf + seq->seq_len)
+    seq->finished = 1;       /* last sub-sequence */
+  state->next_pts = -1;      /* invalidate timestamp */
+}
+
+static uint8_t *bit_ptr[2];
+static int field;		// which field we are currently decoding
+static int put_x, put_y;
+
+static u_int get_bits (u_int bits)
 {
   static u_int data;
   static u_int bits_left;
@@ -109,7 +251,7 @@ static u_int _get_bits (u_int bits, vo_overlay_t *spu)
       ret |= data << (bits - bits_left);
       bits -= bits_left;
 
-      data = reassembly.buf[spu->offset[field]++];
+      data = *bit_ptr[field]++;
       bits_left = 8;
     } else {
       bits_left -= bits;
@@ -122,236 +264,68 @@ static u_int _get_bits (u_int bits, vo_overlay_t *spu)
   return ret;	
 }
 
-
-void spuInit (void)
+static inline void spu_put_pixel (vo_overlay_t *spu, int len, uint8_t colorid)
 {
-}	
-
-
-static inline void _spu_put_pixel (vo_overlay_t *spu, u_int len, uint8_t colorid)
-{
-  uint8_t *spu_data_ptr = &spu->data[spu->_x + spu->_y * spu->width];
-	
-  spu->_x += len;
-
-  memset (spu_data_ptr, spu->trans[colorid]<<4 | colorid, len);
+  memset (spu->data + put_x + put_y * spu->width, colorid, len);
+  put_x += len;
 }
 
-
-static int _spu_next_line (vo_overlay_t *spu)
+static int spu_next_line (vo_overlay_t *spu)
 {
-  _get_bits (0, spu); // byte align rle data
+  get_bits (0); // byte align rle data
 	
-			   spu->_x = 0;
-  spu->_y++;
-  field = (field+1) & 0x01; // Toggle fields
+  put_x = 0;
+  put_y++;
+  field ^= 1; // Toggle fields
 	
-				 if (spu->_y >= spu->height) {
-				   LOG (LOG_DEBUG, ".");
-				   return -1;
-				 }
-  return 0;
-}
-
-
-// DENT: we need a mechanism here, when having non-linearities (like jumps, ff)
-     //	like pass NULL pkt_data to reset reassembly
-
-static struct reassembly_s *_reassembly (uint8_t *pkt_data, u_int pkt_len)
-{
-  LOG (LOG_DEBUG, "pkt_len: %d", pkt_len);
-
-  if (reassembly_flag == REASSEMBLY_UNNEEDED)
-    reassembly_flag = REASSEMBLY_START;
-
-  if (reassembly_flag == REASSEMBLY_START) {
-    reassembly.buf_len = (((u_int)pkt_data[0])<<8) | pkt_data[1];
-    reassembly.cmd_offset = (((u_int)pkt_data[2])<<8) | pkt_data[3];
-
-    LOG (LOG_DEBUG, "buf_len: %d", reassembly.buf_len);
-    LOG (LOG_DEBUG, "cmd_off: %d", reassembly.cmd_offset);
-
-    // the whole spu fits into the supplied packet
-	 if (pkt_len >= reassembly.buf_len) {
-	   reassembly.buf = pkt_data;
-	   reassembly_flag = REASSEMBLY_UNNEEDED;
-	   return &reassembly;
-	 } else {
-	   if (!(reassembly.buf = malloc (reassembly.buf_len + 1))) {
-	     LOG (LOG_DEBUG, "unable to alloc buffer");
-	     return NULL;
-	   }
-	   reassembly.buf_ptr = reassembly.buf;
-
-	   memcpy (reassembly.buf_ptr, pkt_data, pkt_len);
-	   reassembly.buf_ptr += pkt_len;
-	   reassembly_flag = REASSEMBLY_MID;
-	 }
-  } else {
-    if ((reassembly.buf_ptr+pkt_len) > (reassembly.buf+reassembly.buf_len))
-      pkt_len = reassembly.buf_len - (reassembly.buf_ptr - reassembly.buf);
-
-
-    memcpy (reassembly.buf_ptr, pkt_data, pkt_len);
-    reassembly.buf_ptr += pkt_len;
-
-    if (reassembly.buf_ptr >= (reassembly.buf+reassembly.buf_len)) {
-      reassembly_flag = REASSEMBLY_START;
-      return &reassembly;
-    }
-  }
-	
-  return NULL;	
-}
-
-
-#define CMD_SPU_MENU		0x00
-#define CMD_SPU_SHOW		0x01
-#define CMD_SPU_HIDE		0x02
-#define CMD_SPU_SET_PALETTE	0x03
-#define CMD_SPU_SET_ALPHA	0x04
-#define CMD_SPU_SET_SIZE	0x05
-#define CMD_SPU_SET_PXD_OFFSET	0x06
-#define CMD_SPU_EOF		0xff
-
-/* The time is given as an offset from the presentation time stamp
-   and it is measured in number of fields. If we play a NTSC movie
-   the time for each field is 1/(2*29.97) seconds. */
-#define TIME_UNIT 1000*1.0/(2*29.97)
-
-int spuParseHdr (vo_overlay_t *spu, uint8_t *pkt_data, u_int pkt_len)
-{
-  struct reassembly_s *reassembly;
-  uint8_t *buf; 
-  u_int DCSQ_offset, prev_DCSQ_offset = -1;
-
-  if (!(reassembly = _reassembly (pkt_data, pkt_len)))
+  if (put_y >= spu->height) {
+    LOG (LOG_DEBUG, ".");
     return -1;
-
-  buf = reassembly->buf;
-  DCSQ_offset = reassembly->cmd_offset;
-	
-  while (DCSQ_offset != prev_DCSQ_offset) { /* Display Control Sequences */
-    u_int i = DCSQ_offset;
-		
-    spu->duration = /* Frames + */ ((buf[i] << 8) + buf[i+1]) /* * TIME_UNIT */ ;
-    LOG (LOG_DEBUG, "duration = %d frames", spu->duration);
-    i += 2;
-		
-    prev_DCSQ_offset = DCSQ_offset;
-    DCSQ_offset = (buf[i] << 8) + buf[i+1];
-    i += 2;
-		
-    while (buf[i] != CMD_SPU_EOF) {		/* Command Sequence */
-      switch (buf[i]) {
-      case CMD_SPU_SHOW:		/* show subpicture */
-	LOG (LOG_DEBUG, "\tshow subpicture");
-	i++;
-	break;
-	
-      case CMD_SPU_HIDE:		/* hide subpicture */
-	LOG (LOG_DEBUG, "\thide subpicture");
-	i++;
-	break;
-	
-      case CMD_SPU_SET_PALETTE: {	/* CLUT */
-	spu_clut_t *clut = (spu_clut_t *) &buf[i+1];
-	
-	spu->clut[3] = clut->entry0;
-	spu->clut[2] = clut->entry1;
-	spu->clut[1] = clut->entry2;
-	spu->clut[0] = clut->entry3;
-	LOG (LOG_DEBUG, "\tclut [%d %d %d %d]",
-	     spu->clut[0], spu->clut[1], spu->clut[2], spu->clut[3]);
-	i += 3;
-	break;
-      }	
-      case CMD_SPU_SET_ALPHA:	{	/* transparency palette */
-	spu_clut_t *trans = (spu_clut_t *) &buf[i+1];
-	
-	spu->trans[3] = trans->entry0;
-	spu->trans[2] = trans->entry1;
-	spu->trans[1] = trans->entry2;
-	spu->trans[0] = trans->entry3;
-	LOG (LOG_DEBUG, "\ttrans [%d %d %d %d]\n",
-	     spu->trans[0], spu->trans[1], spu->trans[2], spu->trans[3]);
-	i += 3;
-	break;
-      }
-      
-      case CMD_SPU_SET_SIZE:		/* image coordinates */
-	spu->x = (buf[i+1] << 4) |
-	  (buf[i+2] >> 4);
-	spu->width = (((buf[i+2] & 0x0f) << 8) |
-		      buf[i+3]) - spu->x + 1; /* 1-720 */
-						   
-	spu->y = (buf[i+4]  << 4) |
-	  (buf[i+5] >> 4);
-	spu->height = (((buf[i+5] & 0x0f) << 8)
-		       | buf[i+6]) - spu->y + 1; /* 1-576 */
-						      
-	if (spu->data) spu->data = (uint8_t *) realloc (spu->data,spu->width * spu->height * sizeof (uint8_t));
-	else spu->data = (uint8_t *) malloc (spu->width * spu->height * sizeof (uint8_t));
-
-				/* Private stuff */
-	spu->_x = spu->_y = 0;
-	LOG (LOG_DEBUG, "\tx = %d y = %d width = %d height = %d",
-	     spu->x, spu->y, spu->width, spu->height);
-	i += 7;
-	break;
-	
-      case CMD_SPU_SET_PXD_OFFSET:	/* image 1 / image 2 offsets */
-	spu->offset[0] = (((u_int)buf[i+1]) << 8) | buf[i+2];
-	spu->offset[1] = (((u_int)buf[i+3]) << 8) | buf[i+4];
-	LOG (LOG_DEBUG, "\toffset[0] = %d offset[1] = %d",
-	     spu->offset[0], spu->offset[1]);
-	i += 5;
-	break;
-	
-      case CMD_SPU_MENU:
-	/*
-	 * hardcoded menu clut, uncomment this and comment CMD_SPU_SET_PALETTE and
-	 * CMD_SPU_SET_ALPHA to see the menu buttons
-	 */
-	i++;
-	break;
-	
-      default:
-	LOG (LOG_DEBUG, "invalid sequence in control header (%.2x)", buf[i]);
-	i++;
-	break;
-      }
-    }
-    i++; /* lose the CMD_SPU_EOF code (no need to, really) */
-	      
-    /* Until we change the interface we parse all 'Command Sequence's 
-       but just overwrite the data in spu. Should be a list instead. */
   }
-  
-  /* Here we should have a linked list of display commands ready to 
-     be decoded/executed by later calling some spu???() */
-
   return 0;
 }
 
-
-void spuParseData (vo_overlay_t *spu)
+void spuDrawPicture (spu_state_t *state, spu_seq_t* seq, vo_overlay_t *ovl)
 {
   field = 0;
-  _get_bits (0, spu);	/* Reset/init bit code */
-	
-  while ((spu->offset[1] < reassembly.cmd_offset)) {
+  bit_ptr[0] = seq->buf + state->field_offs[0];
+  bit_ptr[1] = seq->buf + state->field_offs[1];
+  put_x = put_y = 0;
+  get_bits (0);	/* Reset/init bit code */
+
+  ovl->x      = state->o_left;
+  ovl->y      = state->o_top;
+  ovl->width  = state->o_right - state->o_left;
+  ovl->height = state->o_bottom - state->o_top;
+
+  ovl->clip_top    = 0;
+  ovl->clip_bottom = ovl->height;
+  ovl->clip_left   = 0;
+  ovl->clip_right  = ovl->width;
+
+  spuUpdateMenu(state, ovl);
+
+  if (ovl->width * ovl->height > ovl->data_size) {
+    if (ovl->data)
+      free(ovl->data);
+    ovl->data_size = ovl->width * ovl->height;
+    ovl->data = malloc(ovl->data_size);
+  }
+
+  state->modified = 0; /* mark as already processed */
+
+  while (bit_ptr[1] < seq->buf + seq->cmd_offs) {
     u_int len;
     u_int color;
     u_int vlc;
     
-    vlc = _get_bits (4, spu);
+    vlc = get_bits (4);
     if (vlc < 0x0004) {
-      vlc = (vlc << 4) | _get_bits (4, spu);
+      vlc = (vlc << 4) | get_bits (4);
       if (vlc < 0x0010) {
-	vlc = (vlc << 4) | _get_bits (4, spu);
+	vlc = (vlc << 4) | get_bits (4);
 	if (vlc < 0x0040) {
-	  vlc = (vlc << 4) | _get_bits (4, spu);
+	  vlc = (vlc << 4) | get_bits (4);
 	}
       }
     }
@@ -360,26 +334,47 @@ void spuParseData (vo_overlay_t *spu)
     len = vlc>>2;
     
     /* if len == 0 -> end sequence - fill to end of line */
-    len = len ? : spu->width - spu->_x;
+    if (!len)
+      len = ovl->width - put_x;
     
-    _spu_put_pixel (spu, len, color);
+    spu_put_pixel (ovl, len, color);
     
-    if (spu->_x >= spu->width)
-      if (_spu_next_line (spu) < 0)
-	goto clean_up;
+    if (put_x >= ovl->width)
+      if (spu_next_line (ovl) < 0)
+        return;
   }
   
   /* Like the eof-line escape, fill the rest of the sp. with background */
-  _spu_put_pixel (spu, spu->width - spu->_x, 0);
-  while (!_spu_next_line (spu)) {
-    _spu_put_pixel (spu, spu->width - spu->_x, 0);
-  }
+  do {
+    spu_put_pixel (ovl, ovl->width, 0);
+  } while (!spu_next_line (ovl));
+}
 
- clean_up:
-  if (reassembly_flag != REASSEMBLY_UNNEEDED) {
-    LOG (LOG_DEBUG, "freeing reassembly.buf");
-    free (reassembly.buf);
-  }
+void spuUpdateMenu (spu_state_t *state, vo_overlay_t *ovl) {
 
-  reassembly_flag = REASSEMBLY_START;
+  if (!state->menu)
+    return;
+
+  if (state->b_show) {
+  
+    int left   = state->b_left;
+    int right  = state->b_right;
+    int top    = state->b_top;
+    int bottom = state->b_bottom;
+
+    if (left   < state->o_left)   left   = state->o_left;
+    if (right  > state->o_right)  right  = state->o_right;
+    if (top    < state->o_top)    top    = state->o_top;
+    if (bottom > state->o_bottom) bottom = state->o_bottom;
+    
+    ovl->clip_top    = top    - state->o_top;
+    ovl->clip_bottom = bottom - state->o_top;
+    ovl->clip_left   = left   - state->o_left;
+    ovl->clip_right  = right  - state->o_left;
+
+    state->visible = 1;
+
+  } else {
+    state->visible = 0;
+  }
 }
