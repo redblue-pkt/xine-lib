@@ -183,6 +183,7 @@ AC_CHECK_LIB(Xv, XvShmCreateImage,
                  echo "****************************************************************"
 		 echo "* if you don't have a libXv.so on your system, use:            *"
 		 echo "* ld --whole-archive -shared -o libXv.so.1 libXv.a             *"
+		 echo "* then: ln -s libXv.so.1 libXv.so                              *"
 	         echo "* to create it or try to use --with-xv-path to set the         *"
                  echo "* location of libXv.so                                         *"
                  echo "****************************************************************"
