@@ -22,6 +22,7 @@
 #include "config.h"
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <inttypes.h>
 #include <signal.h>
 #include <setjmp.h>
@@ -192,6 +193,9 @@ uint32_t xine_mm_accel (void)
 #endif /* _MSC_VER */
 #endif /* ARCH_X86 */
     
+    if( getenv("XINE_NO_ACCEL") )
+      accel = 0;
+
     initialized++;
   }
 
