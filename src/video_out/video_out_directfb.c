@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_directfb.c,v 1.11 2002/07/16 19:33:37 esnel Exp $
+ * $Id: video_out_directfb.c,v 1.12 2002/07/22 18:56:57 richwareham Exp $
  *
  * DirectFB based output plugin.
  * Rich Wareham <richwareham@users.sourceforge.net>
@@ -289,8 +289,8 @@ static void directfb_update_frame_format (vo_driver_t *this_gen,
       frame->vo_frame.pitches[1] = pitch/2;
       frame->vo_frame.pitches[2] = pitch/2;
       frame->vo_frame.base[0] = data;
-      frame->vo_frame.base[1] = data + pitch*height;
-      frame->vo_frame.base[2] = data + pitch*height + pitch*height/4;
+      frame->vo_frame.base[2] = data + pitch*height;
+      frame->vo_frame.base[1] = data + pitch*height + pitch*height/4;
       break;
      case IMGFMT_YUY2:
       frame->vo_frame.pitches[0] = 2*pitch;
@@ -491,6 +491,12 @@ fprintf (stderr, "done gui_data_exchange\n");
   return 0;
 }
 
+static int directfb_redraw_needed (vo_driver_t *this_gen) {
+    directfb_driver_t  *this = (directfb_driver_t *) this_gen;
+
+    return 0;
+}
+
 
 static void directfb_exit (vo_driver_t *this_gen) {
   /* directfb_driver_t *this = (directfb_driver_t *) this_gen; */
@@ -533,6 +539,7 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
   this->vo_driver.set_property         = directfb_set_property;
   this->vo_driver.get_property_min_max = directfb_get_property_min_max;
   this->vo_driver.gui_data_exchange    = directfb_gui_data_exchange;
+  this->vo_driver.redraw_needed        = directfb_redraw_needed;
   this->vo_driver.exit                 = directfb_exit;
 
   this->dfb = visual_info->dfb;
@@ -544,7 +551,7 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
 }
 
 static vo_info_t vo_info_directfb = {
-  4,
+  5,
   "DirectFB",
   NULL,
   VISUAL_TYPE_DFB,
