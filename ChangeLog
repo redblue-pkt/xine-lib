@@ -15,6 +15,8 @@ xine-lib (1-beta13)
   * move http proxy configuration to xine itself
   * add expand post video filter for displaying subtitles in borders
   * speex (http://www.speex.org) audio decoder support
+  * dxr3: libavcodec from xine's ffmpeg plugin can now be used for MPEG reencoding
+    (so reencoding is now possible without installing any additional libraries)
 	
 xine-lib (1-beta12)
   * enabled SVQ3 video decoding via ffmpeg
