@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.17 2001/10/20 17:51:59 jcdutton Exp $
+ * $Id: xine_decoder.c,v 1.18 2001/10/20 20:13:08 jcdutton Exp $
  *
  * stuff needed to turn libspu into a xine decoder plugin
  */
@@ -87,10 +87,11 @@ static clut_t __default_clut[] = {
 #define EVENT_NULL 0
 #define EVENT_SHOW_SPU 1
 #define EVENT_HIDE_SPU 2
-#define EVENT_MENU_SPU 3
-#define EVENT_MENU_BUTTON 4
-#define EVENT_DELETE_RESOURCE 5 /* Maybe release handle will do this */
-#define EVENT_SHOW_OSD 6 /* Not yet implemented */
+#define EVENT_HIDE_MENU 3
+#define EVENT_MENU_SPU 4
+#define EVENT_MENU_BUTTON 5
+#define EVENT_DELETE_RESOURCE 6 /* Maybe release handle will do this */
+#define EVENT_SHOW_OSD 7 /* Not yet implemented */
 
 typedef struct spu_object_s {
   int32_t	 handle; /* Used to match Show and Hide events. */
@@ -354,6 +355,11 @@ void spu_process (spudec_decoder_t *this, uint32_t stream_id) {
        *        For subtitles, open event.
        *        For menus, store it for later.
        */
+      if (this->xine->spu_channel != stream_id) {
+        LOG (LOG_DEBUG, "Wrong SPU channel\n");
+        spu_free_handle(this, handle);
+        return;
+      }
       if ((this->state.modified) ) { 
         spu_draw_picture(&this->state, this->cur_seq, &this->overlay);
       }
@@ -376,7 +382,7 @@ void spu_process (spudec_decoder_t *this, uint32_t stream_id) {
         this->event.object.handle = spu_get_menu_handle(this);
         this->event.object.overlay = &this->overlay;
         this->event.event_type = EVENT_MENU_SPU;
-        this->event.vpts = 0; /* Activate it NOW */
+        this->event.vpts = this->spu_stream_state[stream_id].vpts+(this->state.delay*1000); 
       }
       spu_add_event(this, &this->event);
     } else {
@@ -496,6 +502,12 @@ void spu_process_event( spudec_decoder_t *this, int vpts ) {
       LOG (LOG_DEBUG, "HIDE SPU NOW\n");
       this->spu_showing[1].handle = -1;
       spu_free_handle( this, handle );
+      break;
+
+    case EVENT_HIDE_MENU:
+      LOG (LOG_DEBUG, "HIDE MENU NOW\n");
+      this->spu_showing[1].handle = -1;
+      //spu_free_handle( this, handle );
       break;
 
     case EVENT_MENU_SPU:
@@ -664,6 +676,11 @@ static void spudec_event_listener(void *this_gen, xine_event_t *event_gen) {
           overlay->trans[2] = but->trans[2];
           overlay->trans[3] = but->trans[3];
         }
+        spu_add_event(this, overlay_event);
+      } else {
+        overlay_event->object.handle = spu_get_menu_handle(this);
+        overlay_event->event_type = EVENT_HIDE_MENU;
+        overlay_event->vpts = 0; /* Activate it NOW */
         spu_add_event(this, overlay_event);
       }
     }
