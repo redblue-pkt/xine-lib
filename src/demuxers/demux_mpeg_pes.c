@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_pes.c,v 1.11 2003/09/13 19:46:53 jcdutton Exp $
+ * $Id: demux_mpeg_pes.c,v 1.12 2003/10/12 13:40:43 jcdutton Exp $
  *
  * demultiplexer for mpeg 2 PES (Packetized Elementary Streams)
  * reads streams of variable blocksizes
@@ -37,8 +37,6 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <string.h>
-
-#include <assert.h>
 
 #include "xine_internal.h"
 #include "xineutils.h"
@@ -319,7 +317,7 @@ static void demux_mpeg_pes_parse_pack (demux_mpeg_pes_t *this, int preview_mode)
       xine_log (this->stream->xine, XINE_LOG_MSG,
 		_("demux_mpeg_pes: warning: PACK stream id=0x%x decode failed.\n"), this->stream_id);
       /* What to do here? */
-      assert(0);
+      return;
     }
   return ;
 }
@@ -668,7 +666,6 @@ static int32_t parse_pes_for_pts(demux_mpeg_pes_t *this, uint8_t *p, buf_element
     if ((p[6] & 0xC0) != 0x80) {
       xine_log (this->stream->xine, XINE_LOG_MSG,
 		_("demux_mpeg_pes: warning: PES header reserved 10 bits not found\n"));
-      assert(0);
       buf->free_buffer(buf);
       return -1;
     }
@@ -683,7 +680,6 @@ static int32_t parse_pes_for_pts(demux_mpeg_pes_t *this, uint8_t *p, buf_element
       xine_message (this->stream, XINE_MSG_ENCRYPTED_SOURCE,
                       "Media stream scrambled/encrypted", NULL);
       this->status = DEMUX_FINISHED;
-      assert(0);
       buf->free_buffer(buf);
       return -1;
     }
@@ -1098,7 +1094,6 @@ static int demux_mpeg_pes_estimate_rate (demux_mpeg_pes_t *this) {
     if (p[0] || p[1] || (p[2] != 1)) {
       printf ("demux_mpeg_pes: error %02x %02x %02x (should be 0x000001) \n",
 	      p[0], p[1], p[2]);
-      assert(0);
       buf->free_buffer (buf);
       return rate;
     }
@@ -1108,7 +1103,6 @@ static int demux_mpeg_pes_estimate_rate (demux_mpeg_pes_t *this) {
 
     if ((stream_id < 0xbc) || ((stream_id & 0xf0) != 0xe0)) {
       pos += (off_t) 2048;
-      assert(0);
       buf->free_buffer (buf);
       continue; /* only use video packets */
     }
@@ -1174,7 +1168,6 @@ static int demux_mpeg_pes_estimate_rate (demux_mpeg_pes_t *this) {
     } else
       pos += 2048;
 
-    assert(0);
     buf->free_buffer (buf);
 
     if (pos > mpeg_length || this->input->seek (this->input, pos, SEEK_SET) == (off_t)-1)
