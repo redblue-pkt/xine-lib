@@ -22,7 +22,7 @@
  * For more information on the MVE file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_wc3movie.c,v 1.8 2002/09/21 19:18:37 tmmm Exp $
+ * $Id: demux_wc3movie.c,v 1.9 2002/09/28 22:06:31 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -58,6 +58,9 @@
 #define PC_TAG   FOURCC_TAG('_', 'P', 'C', '_')
 #define SOND_TAG FOURCC_TAG('S', 'O', 'N', 'D')
 #define PALT_TAG FOURCC_TAG('P', 'A', 'L', 'T')
+#define INDX_TAG FOURCC_TAG('I', 'N', 'D', 'X')
+#define BNAM_TAG FOURCC_TAG('B', 'N', 'A', 'N')
+#define SIZE_TAG FOURCC_TAG('S', 'I', 'Z', 'E')
 #define BRCH_TAG FOURCC_TAG('B', 'R', 'C', 'H')
 #define SHOT_TAG FOURCC_TAG('S', 'H', 'O', 'T')
 #define VGA_TAG  FOURCC_TAG('V', 'G', 'A', ' ')
@@ -102,8 +105,11 @@ typedef struct {
 
   xine_waveformatex    wave;
 
-  unsigned int         number_of_palettes;
   palette_entry_t     *palettes;
+  unsigned int         number_of_shots;
+  unsigned int         current_shot;
+  off_t               *shot_offsets;
+  int                  seek_flag;   /* this is set when a seek occurs */
 
   off_t                data_start;
   off_t                data_size;
@@ -161,6 +167,7 @@ static void *demux_mve_loop (void *this_gen) {
   unsigned int palette_number;
 
   pthread_mutex_lock( &this->mutex );
+  this->seek_flag = 0;
 
   /* do-while needed to seek after demux finished */
   do {
@@ -189,6 +196,22 @@ static void *demux_mve_loop (void *this_gen) {
 
         } else if (chunk_tag == SHOT_TAG) {
 
+          if (this->seek_flag) {
+
+            /* reset pts */
+            video_pts = total_frames = 0;
+            xine_demux_control_newpts(this->xine, 0, BUF_FLAG_SEEK);
+            this->seek_flag = 0;
+
+          } else {
+
+            /* record the offset of the SHOT chunk */
+            this->shot_offsets[this->current_shot] = 
+              this->input->get_current_pos(this->input) - PREAMBLE_SIZE;
+          }
+
+          this->current_shot++;
+
           /* this is the start of a new shot; send a new palette */
           if (this->input->read(this->input, preamble, 4) != 4) {
             this->status = DEMUX_FINISHED;
@@ -196,10 +219,10 @@ static void *demux_mve_loop (void *this_gen) {
           }
           palette_number = LE_32(&preamble[0]);
 
-          if (palette_number >= this->number_of_palettes) {
+          if (palette_number >= this->number_of_shots) {
             xine_log(this->xine, XINE_LOG_MSG,
               _("demux_wc3movie: SHOT chunk referenced invalid palette (%d >= %d)\n"),
-              palette_number, this->number_of_palettes);
+              palette_number, this->number_of_shots);
             this->status = DEMUX_FINISHED;
             break;
           }
@@ -330,6 +353,8 @@ static void *demux_mve_loop (void *this_gen) {
 static int load_mve_and_send_headers(demux_mve_t *this) {
 
   unsigned char preamble[PREAMBLE_SIZE];
+  unsigned int chunk_tag;
+  unsigned int chunk_size;
   unsigned char disk_palette[PALETTE_CHUNK_SIZE];
   int i, j;
   unsigned char r, g, b;
@@ -355,15 +380,21 @@ static int load_mve_and_send_headers(demux_mve_t *this) {
     pthread_mutex_unlock(&this->mutex);
     return DEMUX_CANNOT_HANDLE;
   }
-  this->number_of_palettes = LE_32(&preamble[0]);
+  this->number_of_shots = LE_32(&preamble[0]);
+
+  /* allocate space for the shot offset index and set offsets to 0 */
+  this->shot_offsets = xine_xmalloc(this->number_of_shots * sizeof(off_t));
+  this->current_shot = 0;
+  for (i = 0; i < this->number_of_shots; i++)
+    this->shot_offsets[i] = 0;
 
   /* skip the SOND chunk */
   this->input->seek(this->input, 12, SEEK_CUR);
 
   /* load the palette chunks */
-  this->palettes = xine_xmalloc(this->number_of_palettes * PALETTE_SIZE *
+  this->palettes = xine_xmalloc(this->number_of_shots * PALETTE_SIZE *
     sizeof(palette_entry_t));
-  for (i = 0; i < this->number_of_palettes; i++) {
+  for (i = 0; i < this->number_of_shots; i++) {
     /* make sure there was a valid palette chunk preamble */
     if (this->input->read(this->input, preamble, PREAMBLE_SIZE) !=
       PREAMBLE_SIZE) {
@@ -407,16 +438,73 @@ static int load_mve_and_send_headers(demux_mve_t *this) {
     }
   }
 
-  /* next should be the INDX chunk; skip it */
-  if (this->input->read(this->input, preamble, PREAMBLE_SIZE) !=
-    PREAMBLE_SIZE) {
-    this->status = DEMUX_FINISHED;
-    pthread_mutex_unlock(&this->mutex);
-    return DEMUX_CANNOT_HANDLE;
-  }
-  this->input->seek(this->input, BE_32(&preamble[4]), SEEK_CUR);
+  /* after the palette chunks comes any number of chunks such as INDX,
+   * BNAM, SIZE and perhaps others; traverse chunks until first BRCH
+   * chunk is found */
+  chunk_tag = 0;
+  while (chunk_tag != BRCH_TAG) {
 
-  /* note the data start offset right after the INDEX chunks */
+    if (this->input->read(this->input, preamble, PREAMBLE_SIZE) !=
+      PREAMBLE_SIZE) {
+      this->status = DEMUX_FINISHED;
+      pthread_mutex_unlock(&this->mutex);
+      return DEMUX_CANNOT_HANDLE;
+    }
+
+    chunk_tag = BE_32(&preamble[0]);
+    /* round up to the nearest even size */
+    chunk_size = (BE_32(&preamble[4]) + 1) & (~1);
+
+    switch (chunk_tag) {
+
+      case BRCH_TAG:
+        /* time to start demuxing */
+        break;
+
+      case BNAM_TAG:
+        /* load the name into the stream attributes */
+        this->xine->meta_info[XINE_META_INFO_TITLE] = xine_xmalloc(chunk_size);
+        if (this->input->read(this->input, 
+          this->xine->meta_info[XINE_META_INFO_TITLE], chunk_size) !=
+          chunk_size) {
+          this->status = DEMUX_FINISHED;
+          pthread_mutex_unlock(&this->mutex);
+          return DEMUX_CANNOT_HANDLE;
+        }
+        break;
+
+      case SIZE_TAG:
+        /* override the default width and height */
+        /* reuse the preamble bytes */
+        if (this->input->read(this->input, preamble, PREAMBLE_SIZE) !=
+          PREAMBLE_SIZE) {
+          this->status = DEMUX_FINISHED;
+          pthread_mutex_unlock(&this->mutex);
+          return DEMUX_CANNOT_HANDLE;
+        }
+        this->video_width = BE_32(&preamble[0]);
+        this->video_height = BE_32(&preamble[4]);
+        break;
+
+      case INDX_TAG:
+        /* index is not useful for this demuxer */
+        this->input->seek(this->input, chunk_size, SEEK_CUR);
+        break;
+
+      default:
+        /* report an unknown chunk and skip it */
+        printf (_("demux_wc3movie: encountered unknown chunk: %c%c%c%c\n"),
+          (chunk_tag >> 24) & 0xFF,
+          (chunk_tag >> 16) & 0xFF,
+          (chunk_tag >>  8) & 0xFF,
+          (chunk_tag >>  0) & 0xFF);
+        this->input->seek(this->input, chunk_size, SEEK_CUR);
+        break;
+    }
+
+  }
+
+  /* note the data start offset right */
   this->data_start = this->input->get_current_pos(this->input);
 
   this->data_size = this->input->get_length(this->input) - this->data_start;
@@ -567,7 +655,84 @@ static int demux_mve_start (demux_plugin_t *this_gen,
 static int demux_mve_seek (demux_plugin_t *this_gen,
                            off_t start_pos, int start_time) {
 
-  /* MVE files are not meant to be seekable; don't even bother */
+  /*
+   * MVE files are comprised of a series of SHOTs. A SHOT begins when the
+   * camera angle changes. The first frame of a SHOT is effectively a
+   * keyframe so it is safe to seek to the start of a SHOT. A/V sync is
+   * not a concern since each video or audio chunk represents exactly
+   * 1/15 sec.
+   *
+   * When a seek is requested, traverse the list of SHOT offsets and find
+   * the best match. If not enough SHOT boundaries have been crossed while
+   * demuxing the file, traverse the file until enough SHOTs are found.
+   */
+
+  demux_mve_t *this = (demux_mve_t *) this_gen;
+  int i;
+  unsigned char preamble[PREAMBLE_SIZE];
+  unsigned int chunk_tag;
+  unsigned int chunk_size;
+  int new_shot = -1;
+
+  pthread_mutex_lock(&this->mutex);
+
+  /* compensate for data at start of file */
+  start_pos += this->data_start;
+  for (i = 0; i < this->number_of_shots - 1; i++) {
+
+    /* at the very least, the first shot offset will have a non-zero value;
+     * if the next shot offset has been recorded, traverse through the file
+     * until it is found */
+    if (this->shot_offsets[i + 1] == 0) {
+
+      while (1) {
+
+        if (this->input->read(this->input, preamble, PREAMBLE_SIZE) !=
+          PREAMBLE_SIZE) {
+          this->status = DEMUX_FINISHED;
+          pthread_mutex_unlock(&this->mutex);
+          return 1;
+        }
+
+        chunk_tag = BE_32(&preamble[0]);
+        /* round up to the nearest even size */
+        chunk_size = (BE_32(&preamble[4]) + 1) & (~1);
+
+        if (chunk_tag == SHOT_TAG) {
+          this->shot_offsets[i + 1] = 
+            this->input->get_current_pos(this->input) - PREAMBLE_SIZE;
+          /* skip the four SHOT data bytes (palette index) */
+          this->input->seek(this->input, 4, SEEK_CUR);
+          break;  /* get out of the infinite while loop */
+        } else {
+          this->input->seek(this->input, chunk_size, SEEK_CUR);
+        }
+      }
+    }
+
+    /* check if the seek-to offset falls in between this shot offset and
+     * the next one */
+    if ((start_pos >= this->shot_offsets[i]) && 
+        (start_pos <  this->shot_offsets[i + 1])) {
+
+      new_shot = i;
+      break;
+    }
+  }
+
+  /* if no new shot was found in the loop, the new shot must be the last
+   * shot */
+  if (new_shot == -1)
+    new_shot = this->number_of_shots - 1;
+
+  /* reposition the stream and signal the demux loop to reset pts */
+  this->input->seek(this->input, this->shot_offsets[new_shot], SEEK_SET);
+  this->seek_flag = 1;
+
+  this->status = DEMUX_OK;
+
+  xine_demux_flush_engine(this->xine);
+  pthread_mutex_unlock(&this->mutex);
 
   return 0;
 }
