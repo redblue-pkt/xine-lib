@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.140 2004/04/26 17:50:09 mroi Exp $
+ * $Id: w32codec.c,v 1.141 2004/05/04 21:49:00 jstembridge Exp $
  *
  * routines for using w32 codecs
  * DirectShow support by Miguel Freitas (Nov/2001)
@@ -323,6 +323,8 @@ static int get_vids_codec_n_name(w32v_decoder_t *this, int buf_type)
   case BUF_VIDEO_DV:
   case BUF_VIDEO_VP31:
   case BUF_VIDEO_VP4:
+  case BUF_VIDEO_VP5:
+  case BUF_VIDEO_VP6:
   case BUF_VIDEO_MSS1:
   case BUF_VIDEO_TSCC:
   case BUF_VIDEO_UCOD:
@@ -502,6 +504,20 @@ static char* get_vids_codec_name(w32v_decoder_t *this,
     _x_meta_info_set(this->stream, XINE_META_INFO_VIDEOCODEC,
       "On2 VP4 (win32)");
     return "vp4vfw.dll";
+    
+  case BUF_VIDEO_VP5:
+    this->yuv_supported=1;
+    this->ex_functions=1;
+    _x_meta_info_set(this->stream, XINE_META_INFO_VIDEOCODEC,
+      "On2 VP5 (win32)");
+    return "vp5vfw.dll";
+    
+  case BUF_VIDEO_VP6:
+    this->yuv_supported=1;
+    this->ex_functions=1;
+    _x_meta_info_set(this->stream, XINE_META_INFO_VIDEOCODEC,
+      "On2 VP6 (win32)");
+    return "vp6vfw.dll";
   
   case BUF_VIDEO_MSS1:
     this->driver_type = DRIVER_DS;
@@ -1669,7 +1685,7 @@ static uint32_t video_types[] = {
   BUF_VIDEO_ATIVCR2, BUF_VIDEO_I263, BUF_VIDEO_MSVC,
   BUF_VIDEO_DV, BUF_VIDEO_WMV7, BUF_VIDEO_WMV8, BUF_VIDEO_WMV9, 
   BUF_VIDEO_VP31, BUF_VIDEO_MSS1, BUF_VIDEO_TSCC, BUF_VIDEO_UCOD,
-  BUF_VIDEO_VP4,
+  BUF_VIDEO_VP4, BUF_VIDEO_VP5, BUF_VIDEO_VP6,
   0
  };
 
