@@ -4,14 +4,9 @@
 #include "interfaces.h"
 #include "cmediasample.h"
 
-typedef struct avm_list_t
-{
-    struct avm_list_t* next;
-    struct avm_list_t* prev;
-    void* member;
-} avm_list_t;
-
+typedef struct _avm_list_t avm_list_t;
 typedef struct _MemAllocator MemAllocator;
+
 struct _MemAllocator
 {
     IMemAllocator_vt* vt;
@@ -27,6 +22,6 @@ struct _MemAllocator
     void ( *ResetPointer )(MemAllocator* This);
 };
 
-MemAllocator* MemAllocatorCreate();
+MemAllocator* MemAllocatorCreate(void);
 
 #endif /* DS_ALLOCATOR_H */

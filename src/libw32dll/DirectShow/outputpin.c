@@ -4,6 +4,7 @@
 #include "outputpin.h"
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 
 /*
     An object beyond interface IEnumMediaTypes.
@@ -24,6 +25,15 @@ typedef struct CEnumMediaTypes
     GUID interfaces[2];
 } CEnumMediaTypes;
 
+struct _COutputMemPin
+{
+    IMemInputPin_vt* vt;
+    DECLARE_IUNKNOWN();
+    char** frame_pointer;
+    long* frame_size_pointer;
+    MemAllocator* pAllocator;
+    COutputPin* parent;
+};
 
 static HRESULT STDCALL CEnumMediaTypes_Next(IEnumMediaTypes * This,
 					    /* [in] */ ULONG cMediaTypes,
@@ -74,7 +84,7 @@ static HRESULT STDCALL CEnumMediaTypes_Clone(IEnumMediaTypes * This,
     return E_NOTIMPL;
 }
 
-void CEnumMediaTypes_Destroy(CEnumMediaTypes* This)
+static void CEnumMediaTypes_Destroy(CEnumMediaTypes* This)
 {
     free(This->vt);
     free(This);
@@ -83,7 +93,7 @@ void CEnumMediaTypes_Destroy(CEnumMediaTypes* This)
 // IPin->IUnknown methods
 IMPLEMENT_IUNKNOWN(CEnumMediaTypes)
 
-CEnumMediaTypes* CEnumMediaTypesCreate(const AM_MEDIA_TYPE* amt)
+static CEnumMediaTypes* CEnumMediaTypesCreate(const AM_MEDIA_TYPE* amt)
 {
     CEnumMediaTypes *This = (CEnumMediaTypes*) malloc(sizeof(CEnumMediaTypes)) ;
 
@@ -120,7 +130,7 @@ CEnumMediaTypes* CEnumMediaTypesCreate(const AM_MEDIA_TYPE* amt)
  *************/
 
 
-static HRESULT STDCALL COutputPin_QueryInterface(IUnknown* This, GUID* iid, void** ppv)
+static HRESULT STDCALL COutputPin_QueryInterface(IUnknown* This, const GUID* iid, void** ppv)
 {
     COutputPin* p = (COutputPin*) This;
 
@@ -284,7 +294,7 @@ static HRESULT STDCALL COutputPin_NewSegment(IPin * This,
 
 // IMemInputPin->IUnknown methods
 
-static HRESULT STDCALL COutputPin_M_QueryInterface(IUnknown* This, GUID* iid, void** ppv)
+static HRESULT STDCALL COutputPin_M_QueryInterface(IUnknown* This, const GUID* iid, void** ppv)
 {
     COutputPin* p = (COutputPin*)This;
 
