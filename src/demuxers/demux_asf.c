@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.29 2002/03/17 19:22:10 guenter Exp $
+ * $Id: demux_asf.c,v 1.30 2002/03/18 22:45:53 guenter Exp $
  *
  * demultiplexer for asf streams
  *
@@ -46,6 +46,10 @@
 #include "libw32dll/wine/windef.h"
 #include "libw32dll/wine/vfw.h"
 #include "libw32dll/wine/mmreg.h"
+
+/*
+#define LOG
+*/
 
 #define PACKET_SIZE        3200
 #define PACKET_HEADER_SIZE   12
@@ -222,7 +226,9 @@ static uint8_t get_byte (demux_asf_t *this) {
   /* printf ("%02x ", buf); */
   
   if (i != 1) {
+#ifdef LOG
     printf ("demux_asf: end of data\n");
+#endif
     this->status = DEMUX_FINISHED;
   }
 
@@ -348,7 +354,9 @@ static void asf_send_audio_header (demux_asf_t *this, int stream_id) {
   buf->content = buf->mem;
   memcpy (buf->content, this->wavex, this->wavex_size);
 
+#ifdef LOG
   printf ("demux_asf: wavex header is %d bytes long\n", this->wavex_size);
+#endif
 
   buf->size = this->wavex_size;
   buf->type = this->streams[this->num_streams].buf_type;
@@ -388,9 +396,6 @@ static void asf_send_video_header (demux_asf_t *this, int stream_id) {
   this->streams[this->num_streams].frag_offset  = 0;
   this->streams[this->num_streams].defrag = 0;
   
-  /* 
-  printf ("demux_asf: video format : %.4s\n", (char*)&bih->biCompression);
-  */
   xine_log (this->xine, XINE_LOG_FORMAT,
 	    _("demux_asf: video format : %s\n"), 
 	    buf_video_name(this->streams[this->num_streams].buf_type));
@@ -604,7 +609,9 @@ static int asf_get_packet(demux_asf_t *this) {
     /* packet size given */
 
     packet_size = get_le16(this);
+#ifdef LOG
     printf ("demux_asf: absolute packet size is %d\n", packet_size);
+#endif
     hdr_size += 2;
 
     if (this->packet_flags & 0x10) {
@@ -845,8 +852,10 @@ static void asf_send_buffer_defrag (demux_asf_t *this, asf_stream_t *stream,
 		if (buf->pts && this->last_video_pts) 
 		  this->frame_duration = (3* this->frame_duration + (buf->pts - this->last_video_pts)) / 4;
 
+#ifdef LOG
 		printf ("demux_asf: frame_duration is %d\n", this->frame_duration);
-	
+#endif	
+
 		this->last_video_pts = buf->pts;
 
 		buf->decoder_flags   = BUF_FLAG_FRAME_END | BUF_FLAG_FRAMERATE;
@@ -889,11 +898,6 @@ static void asf_send_buffer_defrag (demux_asf_t *this, asf_stream_t *stream,
     this->input->read (this->input, &stream->buffer[stream->frag_offset], frag_len);
     stream->frag_offset += frag_len;
   }
-  
-  /*
-    printf ("demux_asf: read %d bytes :", frag_len);
-    hexdump (buf->content, frag_len, this->xine);
-  */
 }
 
 
@@ -908,8 +912,10 @@ static void asf_read_packet(demux_asf_t *this) {
       (++this->frame == (this->nb_frames & 0x3f)) ) {
     /* fail safe */
 
-    /* printf ("demux_asf: reading new packet, packet size left %d\n", this->packet_size_left);
-     */
+#ifdef LOG
+    printf ("demux_asf: reading new packet, packet size left %d\n", this->packet_size_left);
+#endif
+
     if (this->packet_size_left)
       this->input->seek (this->input, this->packet_size_left, SEEK_CUR);
     
@@ -926,7 +932,7 @@ static void asf_read_packet(demux_asf_t *this) {
   stream_id  = raw_id & 0x7f;
 
   stream    = NULL;
-  if ( (raw_id & 0x80) || this->keyframe_found ) {
+  if ( (raw_id & 0x80) || this->keyframe_found || (this->num_video_streams==0)) {
     for (i=0; i<this->num_streams; i++)
       if (this->streams[i].stream_id == stream_id)
 	stream = &this->streams[i];
@@ -954,10 +960,10 @@ static void asf_read_packet(demux_asf_t *this) {
   }
   flags         = get_byte(this); 
 
-  /*
-    printf ("\ndemux_asf: segment header, stream id %02x, frag_offset %d, flags : %02x\n", 
-    stream_id, frag_offset, flags);
-  */
+#ifdef LOG
+    printf ("demux_asf: segment header, stream id %02x, frag_offset %d, flags : %02x\n", 
+	    stream_id, frag_offset, flags);
+#endif
 
   if (flags == 1) {
     int data_length, data_sent=0;
@@ -999,6 +1005,10 @@ static void asf_read_packet(demux_asf_t *this) {
       */
 
       if (stream) {
+#ifdef LOG
+      printf ("demux_asf: sending buffer of type %08x\n", stream->buf_type);
+#endif
+
 	if (stream->defrag)
           asf_send_buffer_defrag (this, stream, 0, seq, timestamp, 
 				  object_length, object_length);
@@ -1007,9 +1017,9 @@ static void asf_read_packet(demux_asf_t *this) {
 				    object_length, object_length);
       }
       else {
-        /*
-	  printf ("demux_asf: unhandled stream type, id %d\n", stream_id);
-        */
+#ifdef LOG
+	printf ("demux_asf: unhandled stream type, id %d\n", stream_id);
+#endif
 	this->input->seek (this->input, object_length, SEEK_CUR);
       }
 
@@ -1050,6 +1060,11 @@ static void asf_read_packet(demux_asf_t *this) {
 
     
     if (stream) {
+
+#ifdef LOG
+      printf ("demux_asf: sending buffer of type %08x\n", stream->buf_type);
+#endif
+
       if (stream->defrag)
         asf_send_buffer_defrag (this, stream, frag_offset, seq, timestamp, 
                                 frag_len, payload_size);
@@ -1057,9 +1072,10 @@ static void asf_read_packet(demux_asf_t *this) {
         asf_send_buffer_nodefrag (this, stream, frag_offset, seq, timestamp,
                                   frag_len, payload_size);
     } else {
-      /*
-	printf ("demux_asf: unhandled stream type, id %d\n", stream_id);
-      */
+
+#ifdef LOG
+      printf ("demux_asf: unhandled stream type, id %d\n", stream_id);
+#endif
       this->input->seek (this->input, frag_len, SEEK_CUR);
     }  
   }

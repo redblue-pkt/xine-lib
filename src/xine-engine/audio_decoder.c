@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.65 2002/03/11 19:49:07 jkeil Exp $
+ * $Id: audio_decoder.c,v 1.66 2002/03/18 22:45:53 guenter Exp $
  *
  *
  * functions that implement audio decoding
@@ -215,10 +215,8 @@ void *audio_decoder_loop (void *this_gen) {
 	      
 	      if (decoder) {
 		xine_event_t event;
-		printf ("audio_decoder: using decoder >%s< \n",
-			decoder->get_identifier());
 		xine_log (this, XINE_LOG_FORMAT, 
-			  "using audio decoder plugin '%s'\n",
+			  "audio_decoder: using audio decoder plugin '%s'\n",
 			  decoder->get_identifier());
 
 		this->cur_audio_decoder_plugin = decoder;

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.65 2002/03/16 20:53:50 guenter Exp $
+ * $Id: w32codec.c,v 1.66 2002/03/18 22:45:53 guenter Exp $
  *
  * routines for using w32 codecs
  * DirectShow support by Miguel Freitas (Nov/2001)
@@ -1066,12 +1066,12 @@ static void w32a_decode_audio (w32a_decoder_t *this,
     ash.pbDst=this->outbuf;
     ash.cbDstLength=this->outsize;
     
-    /*
+#ifdef LOG
     printf ("decoding %d of %d bytes (%02x %02x %02x %02x ... %02x %02x)\n", 
 	    this->rec_audio_src_size, this->size,
 	    this->buf[0], this->buf[1], this->buf[2], this->buf[3],
 	    this->buf[this->rec_audio_src_size-2], this->buf[this->rec_audio_src_size-1]); 
-    */
+#endif
     
     if( !this->ds_driver ) {
       hr=acmStreamPrepareHeader(this->srcstream,&ash,0);
@@ -1091,16 +1091,17 @@ static void w32a_decode_audio (w32a_decoder_t *this,
     }
    
     if(hr){
-      printf("w32codec: stream convert error %d, used %d bytes\n",(int)hr,(int)ash.cbSrcLengthUsed);
+      printf ("w32codec: stream convert error %d, used %d bytes\n",
+	      (int)hr,(int)ash.cbSrcLengthUsed);
       this->size-=ash.cbSrcLength;
     } else {
       int DstLengthUsed, bufsize;
       audio_buffer_t *audio_buffer;
       char *p;
-      /*
+#ifdef LOG
       printf ("acmStreamConvert worked, used %d bytes, generated %d bytes\n",
 	      ash.cbSrcLengthUsed, ash.cbDstLengthUsed);
-      */
+#endif
       DstLengthUsed = ash.cbDstLengthUsed;
       p = this->outbuf;
       
@@ -1150,8 +1151,16 @@ static void w32a_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
   if (buf->decoder_flags & BUF_FLAG_HEADER) {
     /* init package containing bih */
 
+#ifdef LOG
+    printf ("w32codec: got audio header\n");
+#endif
+
     this->decoder_ok = w32a_init_audio (this, (WAVEFORMATEX *)buf->content, buf->type);
   } else if (this->decoder_ok) {
+#ifdef LOG
+    printf ("w32codec: decoding %d data bytes...\n", buf->size);
+#endif
+
     if( (int)buf->size <= 0 )
       return;
 

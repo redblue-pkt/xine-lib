@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2000, 2001 the xine project
+ * Copyright (C) 2000-2002 the xine project
  * 
  * This file is part of xine, a free video player.
  * 
@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.46 2002/03/16 13:25:05 esnel Exp $
+ * $Id: audio_out.c,v 1.47 2002/03/18 22:45:53 guenter Exp $
  * 
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -389,7 +389,7 @@ static int ao_open(ao_instance_t *this,
   int output_sample_rate, err;
 
   xine_log (this->xine, XINE_LOG_FORMAT,
-	    "stream audio format is %d kHz sampling rate, %d bits. mode is %d.\n",
+	    "audio_out: stream audio format is %d kHz sampling rate, %d bits. mode is %d.\n",
 	    rate, bits, mode);
 
   if ((output_sample_rate=this->driver->open(this->driver,bits,(this->force_rate ? this->force_rate : rate),mode)) == 0) {
