@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.83 2001/12/01 23:01:18 guenter Exp $
+ * $Id: video_out_xv.c,v 1.84 2001/12/09 21:07:34 guenter Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -162,6 +162,8 @@ struct xv_driver_s {
 
   char               scratch[256];
 
+  int                use_colorkey;
+  uint32_t           colorkey;
 };
 
 int gX11Fail;
@@ -531,11 +533,19 @@ static void xv_deinterlace_frame (xv_driver_t *this) {
 }
 
 static void xv_clear_unused_output_area (xv_driver_t *this,
-				     int dest_x, int dest_y,
-				     int dest_width, int dest_height) {
+					 int dest_x, int dest_y,
+					 int dest_width, int dest_height) {
 
   XLockDisplay (this->display);
+
+  if (this->use_colorkey) {
+    XSetForeground (this->display, this->gc, this->colorkey);
+    XFillRectangle (this->display, this->drawable, this->gc,
+		    dest_x, dest_y, dest_width, dest_height);
+  }
+  /*
   XSetForeground (this->display, this->gc, this->black.pixel);
+  */
 
   /* top black band */
   XFillRectangle(this->display, this->drawable, this->gc,
@@ -556,6 +566,9 @@ static void xv_clear_unused_output_area (xv_driver_t *this,
 		 this->output_xoffset+this->output_width, dest_y, 
 		 dest_width - this->output_xoffset - this->output_width,
 		 dest_height);
+
+  
+
   XUnlockDisplay (this->display);
 }
 
@@ -936,7 +949,7 @@ static int xv_set_property (vo_driver_t *this_gen,
 	           this->props[property].value);
 	           
         xv_adapt_to_output_area (this, this->window_xoffset, this->window_yoffset,
-            this->window_width, this->window_height);
+				 this->window_width, this->window_height);
       }
       break;
     case VO_PROP_ZOOM_Y:
@@ -947,7 +960,7 @@ static int xv_set_property (vo_driver_t *this_gen,
 	           this->props[property].value);
 	           
         xv_adapt_to_output_area (this, this->window_xoffset, this->window_yoffset,
-            this->window_width, this->window_height);
+				 this->window_width, this->window_height);
       }
       break;
     case VO_PROP_OFFSET_X:
@@ -956,15 +969,15 @@ static int xv_set_property (vo_driver_t *this_gen,
           this->props[property].value);
 	           
       xv_adapt_to_output_area (this, this->window_xoffset, this->window_yoffset,
-          this->window_width, this->window_height);
+			       this->window_width, this->window_height);
       break;
     case VO_PROP_OFFSET_Y:
       this->props[property].value = value;
       printf("video_out_xv: VO_PROP_OFFSET_Y(%d) \n",
-          this->props[property].value);
+	     this->props[property].value);
 	           
       xv_adapt_to_output_area (this, this->window_xoffset, this->window_yoffset,
-          this->window_width, this->window_height);
+			       this->window_width, this->window_height);
       break;
     }
   }
@@ -1021,6 +1034,18 @@ static int xv_gui_data_exchange (vo_driver_t *this_gen,
     area = (x11_rectangle_t *) data;
     xv_adapt_to_output_area (this, area->x, area->y, area->w, area->h);
     break;
+
+  case GUI_DATA_EX_LOGO_VISIBILITY:
+
+    if (!data)
+      xv_clear_unused_output_area (this,
+				   this->window_xoffset,
+				   this->window_yoffset,
+				   this->window_width,
+				   this->window_height);
+    break;
+
+
   case GUI_DATA_EX_COMPLETION_EVENT: {
    
     XShmCompletionEvent *cev = (XShmCompletionEvent *) data;
@@ -1158,6 +1183,11 @@ static void xv_check_capability (xv_driver_t *this,
   this->props[property].entry = entry;
 
   xv_set_property (&this->vo_driver, property, entry->num_value);
+
+  if (capability == VO_CAP_COLORKEY) {
+    this->use_colorkey = 1;
+    this->colorkey = entry->num_value;
+  }
 }
 
 static void xv_update_deinterlace(void *this_gen, cfg_entry_t *entry)
@@ -1292,6 +1322,8 @@ vo_driver_t *init_video_out_plugin (config_values_t *config, void *visual_gen) {
   this->use_shm           = 1;
   this->deinterlace_method = 0;
   this->deinterlace_frame.image = NULL;
+  this->use_colorkey      = 0;
+  this->colorkey          = 0;
 
   XAllocNamedColor(this->display,
 		   DefaultColormap(this->display, this->screen),
