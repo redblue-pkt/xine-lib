@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_qt.c,v 1.8 2001/10/20 02:01:51 guenter Exp $
+ * $Id: demux_qt.c,v 1.9 2001/10/25 00:47:00 miguelfreitas Exp $
  *
  * demultiplexer for quicktime streams, based on:
  *
@@ -4367,6 +4367,11 @@ static char *demux_qt_get_id(void) {
   return "QUICKTIME";
 }
 
+static char *demux_qt_get_mimetypes(void) {
+  return "video/quicktime: mov,qt: Quicktime animation;"
+         "video/x-quicktime: mov,qt: Quicktime animation;";
+}
+
 static int demux_qt_get_stream_length (demux_plugin_t *this_gen) {
 
   demux_qt_t *this = (demux_qt_t *) this_gen;
@@ -4379,7 +4384,7 @@ demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
   demux_qt_t      *this;
   config_values_t *config;
 
-  if (iface != 5) {
+  if (iface != 6) {
     printf( "demux_qt: plugin doesn't support plugin API version %d.\n"
 	    "demux_qt: this means there's a version mismatch between xine and this "
 	    "demux_qt: demuxer plugin.\nInstalling current demux plugins should help.\n",
@@ -4399,6 +4404,7 @@ demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
   this->demux_plugin.get_status        = demux_qt_get_status;
   this->demux_plugin.get_identifier    = demux_qt_get_id;
   this->demux_plugin.get_stream_length = demux_qt_get_stream_length;
+  this->demux_plugin.get_mimetypes     = demux_qt_get_mimetypes;
     
   return (demux_plugin_t *) this;
 }

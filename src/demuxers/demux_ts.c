@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ts.c,v 1.19 2001/10/20 02:01:51 guenter Exp $
+ * $Id: demux_ts.c,v 1.20 2001/10/25 00:47:01 miguelfreitas Exp $
  *
  * Demultiplexer for MPEG2 Transport Streams.
  *
@@ -824,6 +824,10 @@ static char *demux_ts_get_id(void) {
   return "MPEG_TS";
 }
 
+static char *demux_ts_get_mimetypes(void) {
+  return "";
+}
+
 static int demux_ts_get_status(demux_plugin_t *this_gen) {
 
   demux_ts *this = (demux_ts *)this_gen;
@@ -971,7 +975,7 @@ demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
   config_values_t *config;
   int              i;
   
-  if (iface != 5) {
+  if (iface != 6) {
     printf("demux_ts: plugin doesn't support plugin API version %d.\n"
 	   "demux_ts: this means there's a version mismatch between xine and this "
 	   "demux_ts: demuxer plugin.\nInstalling current demux plugins should help.\n",
@@ -993,6 +997,7 @@ demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
   this->plugin.get_status        = demux_ts_get_status;
   this->plugin.get_identifier    = demux_ts_get_id;
   this->plugin.get_stream_length = demux_ts_get_stream_length;
+  this->plugin.get_mimetypes     = demux_ts_get_mimetypes;
   
   /*
    * Initialise our specialised data.

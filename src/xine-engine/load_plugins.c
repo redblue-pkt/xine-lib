@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.49 2001/10/23 21:51:11 jcdutton Exp $
+ * $Id: load_plugins.c,v 1.50 2001/10/25 00:47:02 miguelfreitas Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -127,6 +127,67 @@ void load_demux_plugins (xine_t *this,
    */
   
   this->cur_demuxer_plugin = NULL;
+}
+
+void xine_list_demux_plugins (config_values_t *config,
+                          char **identifiers, char **mimetypes) {
+  DIR *dir;
+  xine_t *this = xmalloc (sizeof (xine_t));
+  
+  *identifiers = xmalloc (1024);
+  *mimetypes = xmalloc (8192);
+  
+  this->config          = config;
+  xine_debug            = config->lookup_int (config, "xine_debug", 0);
+
+  dir = opendir (XINE_PLUGINDIR) ;
+  
+  if (dir) {
+    struct dirent *pEntry;
+    
+    while ((pEntry = readdir (dir)) != NULL) {
+      char str[1024];
+      void *plugin;
+      
+      int nLen = strlen (pEntry->d_name);
+      
+      if ((strncasecmp(pEntry->d_name, 
+		       XINE_DEMUXER_PLUGIN_PREFIXNAME, 
+		       XINE_DEMUXER_PLUGIN_PREFIXNAME_LENGTH) == 0) && 
+	  ((pEntry->d_name[nLen-3]=='.') 
+	   && (pEntry->d_name[nLen-2]=='s')
+	   && (pEntry->d_name[nLen-1]=='o'))) {
+	
+	/*
+	 * demux plugin found => load it
+	 */
+	
+	sprintf (str, "%s/%s", XINE_PLUGINDIR, pEntry->d_name);
+	
+	if(!(plugin = dlopen (str, RTLD_LAZY))) {
+	  fprintf(stderr, "load_plugins: cannot open demux plugin %s:\n%s\n",
+		  str, dlerror());
+	}
+	else {
+	  void *(*initplug) (int, xine_t *);
+	  
+	  if((initplug = dlsym(plugin, "init_demuxer_plugin")) != NULL) {
+	    demux_plugin_t *dxp;
+	      
+	    dxp = (demux_plugin_t *) initplug(DEMUXER_PLUGIN_IFACE_VERSION, this);
+	    if (dxp) {
+	      strcat(*identifiers,dxp->get_identifier());
+              strcat(*identifiers,"\n");
+	      strcat(*mimetypes,dxp->get_mimetypes());
+	    }
+	  }
+          dlclose(plugin);
+	}
+      }
+    }
+  }
+  
+  free(this);
 }
 
 /** ***************************************************************

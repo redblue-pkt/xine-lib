@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.52 2001/10/22 17:10:21 guenter Exp $
+ * $Id: xine_internal.h,v 1.53 2001/10/25 00:47:03 miguelfreitas Exp $
  *
  */
 
@@ -432,7 +432,13 @@ void audio_decoder_shutdown (xine_t *this);
  */
 void load_demux_plugins (xine_t *this, 
 			 config_values_t *config, int iface_version);
-
+                         
+/*
+ *  list (open and close) all available demuxer plugins
+ */
+void xine_list_demux_plugins (config_values_t *config,
+                          char **identifiers, char **mimetypes);
+                          
 /*
  * load all available input plugins
  */

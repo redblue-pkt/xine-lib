@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg.c,v 1.39 2001/10/22 23:24:34 guenter Exp $
+ * $Id: demux_mpeg.c,v 1.40 2001/10/25 00:46:59 miguelfreitas Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  * reads streams of variable blocksizes
@@ -829,6 +829,11 @@ static char *demux_mpeg_get_id(void) {
   return "MPEG";
 }
 
+static char *demux_mpeg_get_mimetypes(void) {
+  return "video/mpeg: mpeg, mpg, mpe: MPEG animation;"
+         "video/x-mpeg: mpeg, mpg, mpe: MPEG animation;";
+}
+
 static void demux_mpeg_close (demux_plugin_t *this) {
   /* nothing */
 }
@@ -849,7 +854,7 @@ demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
   demux_mpeg_t    *this;
   config_values_t *config;
 
-  if (iface != 5) {
+  if (iface != 6) {
     printf( "demux_mpeg: plugin doesn't support plugin API version %d.\n"
 	    "demux_mpeg: this means there's a version mismatch between xine and this "
 	    "demux_mpeg: demuxer plugin.\nInstalling current demux plugins should help.\n",
@@ -869,6 +874,7 @@ demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
   this->demux_plugin.get_status        = demux_mpeg_get_status;
   this->demux_plugin.get_identifier    = demux_mpeg_get_id;
   this->demux_plugin.get_stream_length = demux_mpeg_get_stream_length;
+  this->demux_plugin.get_mimetypes     = demux_mpeg_get_mimetypes;
   
   return (demux_plugin_t *) this;
 }

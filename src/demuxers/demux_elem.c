@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_elem.c,v 1.24 2001/10/20 02:01:51 guenter Exp $
+ * $Id: demux_elem.c,v 1.25 2001/10/25 00:46:58 miguelfreitas Exp $
  *
  * demultiplexer for elementary mpeg streams
  * 
@@ -312,6 +312,10 @@ static char *demux_mpeg_elem_get_id(void) {
   return "MPEG_ELEM";
 }
 
+static char *demux_mpeg_elem_get_mimetypes(void) {
+  return "";
+}
+
 static void demux_mpeg_elem_close (demux_plugin_t *this) {
   /* nothing */
 }
@@ -327,7 +331,7 @@ demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
   demux_mpeg_elem_t *this;
   config_values_t   *config;
 
-  if (iface != 5) {
+  if (iface != 6) {
     printf( "demux_elem: plugin doesn't support plugin API version %d.\n"
 	    "demux_elem: this means there's a version mismatch between xine and this "
 	    "demux_elem: demuxer plugin.\nInstalling current demux plugins should help.\n",
@@ -347,6 +351,7 @@ demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
   this->demux_plugin.get_status        = demux_mpeg_elem_get_status;
   this->demux_plugin.get_identifier    = demux_mpeg_elem_get_id;
   this->demux_plugin.get_stream_length = demux_mpeg_elem_get_stream_length;
+  this->demux_plugin.get_mimetypes     = demux_mpeg_elem_get_mimetypes;
   
   return &this->demux_plugin;
 }

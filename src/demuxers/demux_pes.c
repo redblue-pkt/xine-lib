@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_pes.c,v 1.10 2001/10/20 02:01:51 guenter Exp $
+ * $Id: demux_pes.c,v 1.11 2001/10/25 00:46:59 miguelfreitas Exp $
  *
  * demultiplexer for mpeg 2 PES (Packetized Elementary Streams)
  * reads streams of variable blocksizes
@@ -546,6 +546,10 @@ static char *demux_pes_get_id(void) {
   return "MPEG_PES";
 }
 
+static char *demux_pes_get_mimetypes(void) {
+  return "";
+}
+
 static void demux_pes_close (demux_plugin_t *this) {
   /* nothing */
 }
@@ -562,7 +566,7 @@ demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
   demux_pes_t     *this;
   config_values_t *config;
 
-  if (iface != 5) {
+  if (iface != 6) {
     printf( "demux_pes: plugin doesn't support plugin API version %d.\n"
 	    "demux_pes: this means there's a version mismatch between xine and this "
 	    "demux_pes: demuxer plugin.\nInstalling current demux plugins should help.\n",
@@ -574,7 +578,7 @@ demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
   config      = xine->config;
   xine_debug  = config->lookup_int (config, "xine_debug", 0);
 
-  this->demux_plugin.interface_version = 3;
+  this->demux_plugin.interface_version = DEMUXER_PLUGIN_IFACE_VERSION;
   this->demux_plugin.open              = demux_pes_open;
   this->demux_plugin.start             = demux_pes_start;
   this->demux_plugin.stop              = demux_pes_stop;
@@ -582,6 +586,7 @@ demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
   this->demux_plugin.get_status        = demux_pes_get_status;
   this->demux_plugin.get_identifier    = demux_pes_get_id;
   this->demux_plugin.get_stream_length = demux_pes_get_stream_length;
+  this->demux_plugin.get_mimetypes     = demux_pes_get_mimetypes;
   
   return (demux_plugin_t *) this;
 }

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_avi.c,v 1.46 2001/10/20 02:01:51 guenter Exp $
+ * $Id: demux_avi.c,v 1.47 2001/10/25 00:46:58 miguelfreitas Exp $
  *
  * demultiplexer for avi streams
  *
@@ -1181,6 +1181,11 @@ static char *demux_avi_get_id(void) {
   return "AVI";
 }
 
+static char *demux_avi_get_mimetypes(void) {
+  return "video/msvideo: avi: AVI animation;"
+         "video/x-msvideo: avi: AVI animation;";
+}
+
 static int demux_avi_get_stream_length (demux_plugin_t *this_gen) {
 
   demux_avi_t *this = (demux_avi_t *) this_gen;
@@ -1197,7 +1202,7 @@ demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
   demux_avi_t     *this;
   config_values_t *config;
 
-  if (iface != 5) {
+  if (iface != 6) {
     printf( "demux_avi: this plugin doesn't support plugin API version %d.\n"
 	    "demux_avi: this means there's a version mismatch between xine and this "
 	    "demux_avi: demuxer plugin.\nInstalling current demuxer plugins should help.\n",
@@ -1217,6 +1222,7 @@ demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
   this->demux_plugin.get_status        = demux_avi_get_status;
   this->demux_plugin.get_identifier    = demux_avi_get_id;
   this->demux_plugin.get_stream_length = demux_avi_get_stream_length;
+  this->demux_plugin.get_mimetypes     = demux_avi_get_mimetypes;
   
   return (demux_plugin_t *) this;
 }

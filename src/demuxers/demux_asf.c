@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.3 2001/10/20 02:01:51 guenter Exp $
+ * $Id: demux_asf.c,v 1.4 2001/10/25 00:46:58 miguelfreitas Exp $
  *
  * demultiplexer for asf streams
  *
@@ -1067,6 +1067,10 @@ static char *demux_asf_get_id(void) {
   return "ASF";
 }
 
+static char *demux_asf_get_mimetypes(void) {
+  return "";
+}
+
 static int demux_asf_get_stream_length (demux_plugin_t *this_gen) {
 
   demux_asf_t *this = (demux_asf_t *) this_gen;
@@ -1079,7 +1083,7 @@ demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
   demux_asf_t     *this;
   config_values_t *config;
 
-  if (iface != 5) {
+  if (iface != 6) {
     printf( "demux_asf: plugin doesn't support plugin API version %d.\n"
 	    "demux_asf: this means there's a version mismatch between xine and this "
 	    "demux_asf: demuxer plugin.\nInstalling current demux plugins should help.\n",
@@ -1099,6 +1103,7 @@ demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
   this->demux_plugin.get_status        = demux_asf_get_status;
   this->demux_plugin.get_identifier    = demux_asf_get_id;
   this->demux_plugin.get_stream_length = demux_asf_get_stream_length;
+  this->demux_plugin.get_mimetypes     = demux_asf_get_mimetypes;
   
   return (demux_plugin_t *) this;
 }

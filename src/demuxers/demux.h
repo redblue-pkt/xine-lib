@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux.h,v 1.11 2001/10/20 02:01:51 guenter Exp $
+ * $Id: demux.h,v 1.12 2001/10/25 00:46:58 miguelfreitas Exp $
  */
 
 #ifndef HAVE_DEMUX_H
@@ -35,7 +35,7 @@ extern "C" {
 #include "input_plugin.h"
 #endif
 
-#define DEMUXER_PLUGIN_IFACE_VERSION    5
+#define DEMUXER_PLUGIN_IFACE_VERSION    6
 
 #define DEMUX_OK                  0
 #define DEMUX_FINISHED            1
@@ -116,7 +116,12 @@ struct demux_plugin_s
    */
 
   char* (*get_identifier) (void);
+  
+ /*
+   * return MIME types supported for this plugin
+   */
 
+  char* (*get_mimetypes) (void);
   /*
    * estimate stream length in seconds
    * may return 0 for non-seekable streams
