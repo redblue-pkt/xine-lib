@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.24 2001/09/11 11:30:56 miguelfreitas Exp $
+ * $Id: input_dvd.c,v 1.25 2001/09/28 09:18:52 jkeil Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -257,7 +257,7 @@ static buf_element_t *dvd_plugin_read_block (input_plugin_t *this_gen,
     return NULL;
   }
 
-  if ((buf = read_cache_read_block (this->read_cache, this->file_lbcur*DVD_VIDEO_LB_LEN))) {
+  if ((buf = read_cache_read_block (this->read_cache, (off_t)this->file_lbcur*DVD_VIDEO_LB_LEN))) {
 
     this->file_lbcur++;
     this->file_size_left -= DVD_VIDEO_LB_LEN;
