@@ -1,5 +1,5 @@
 /*
-  $Id: xineplug_inp_vcd.c,v 1.4 2003/10/20 01:14:33 rockyb Exp $
+  $Id: xineplug_inp_vcd.c,v 1.5 2003/10/20 01:17:47 rockyb Exp $
  
   Copyright (C) 2002,2003 Rocky Bernstein <rocky@panix.com>
   
@@ -460,8 +460,6 @@ vcd_parse_mrl(/*in*/ const char *default_vcd_device, /*in*/ char *mrl,
   char *p;
   unsigned int num = 0;
 
-  printf("1111\n");
-  
   dbg_print(INPUT_DBG_CALL, "called mrl %s\n", mrl);
 
   type_str[0]   ='\0';
@@ -474,7 +472,6 @@ vcd_parse_mrl(/*in*/ const char *default_vcd_device, /*in*/ char *mrl,
     return false;
   }
 
-  printf("222\n");
   count = sscanf (p, "%[^@]@%1[EePpSsTt]%u", 
 		  device_str, type_str, &num);
   itemid->num = num;
@@ -526,8 +523,6 @@ vcd_parse_mrl(/*in*/ const char *default_vcd_device, /*in*/ char *mrl,
       }
     }
   }
-
-  printf("3333\n");
 
   /* We have some sort of track/selection/entry number */
   switch (type_str[0]) {
