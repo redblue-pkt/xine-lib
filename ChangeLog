@@ -5,6 +5,8 @@
   * new deinterlace method using Xv scaling for slower systems
   * mmx/mmxext/sse optimized memcpy functions
   * oss softsync fixes
+  * EXPERIMENTAL mpeg1 encoding driver for displaying non-mpeg streams on dxr3
+  * version checking of external libdivxdecore.so in divx4 decoder plugin
   
 xine (0.9.2) unstable; urgency=low
 
