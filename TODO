@@ -37,6 +37,10 @@ Assigned tasks
   James Courtier-Dutton, 
   Rich Wareham
 
+- subtitle decoder
+
+  James Courtier-Dutton
+
 - aalib output
 
   Heiko, Guenter
@@ -49,7 +53,6 @@ Open Tasks
 ==========
 
 - make win32 codecs work again
-- fix the subtitle decoder
 - a qt/kde gui
 - an OpenDivX decoder plugin (should be very easy)
 - SDL based video and audio output plugins
