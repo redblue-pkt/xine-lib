@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_pes.c,v 1.40 2002/10/26 22:00:53 guenter Exp $
+ * $Id: demux_pes.c,v 1.41 2002/11/01 17:41:22 mroi Exp $
  *
  * demultiplexer for mpeg 2 PES (Packetized Elementary Streams)
  * reads streams of variable blocksizes
@@ -529,7 +529,7 @@ static int demux_pes_open(demux_plugin_t *this_gen,
 							    _("valid mrls for pes demuxer"),
 							    NULL, 20, NULL, NULL)));
     
-    media = strstr(MRL, "://");
+    media = strstr(MRL, ":/");
     if(media) {
       while((m = xine_strsep(&valid_mrls, ",")) != NULL) { 
 	
@@ -568,6 +568,9 @@ static int demux_pes_open(demux_plugin_t *this_gen,
       }
     }
   }
+  break;
+
+  case METHOD_EXPLICIT:
   break;
 
   default:

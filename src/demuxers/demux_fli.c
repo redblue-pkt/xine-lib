@@ -22,7 +22,7 @@
  * avoid while programming a FLI decoder, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_fli.c,v 1.24 2002/10/28 05:21:20 tmmm Exp $
+ * $Id: demux_fli.c,v 1.25 2002/11/01 17:41:11 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -297,6 +297,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   switch (stream->content_detection_method) {
 
   case METHOD_BY_CONTENT:
+  case METHOD_EXPLICIT:
 
     if (!open_fli_file(this)) {
       free (this);

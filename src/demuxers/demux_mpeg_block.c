@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.134 2002/10/28 03:24:43 miguelfreitas Exp $
+ * $Id: demux_mpeg_block.c,v 1.135 2002/11/01 17:41:15 mroi Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -1042,6 +1042,27 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
     }
   }
   break;
+
+  case METHOD_EXPLICIT: {
+
+    this->blocksize = input->get_blocksize(input);
+#ifdef LOG
+    printf("demux_mpeg_block:open_plugin:blocksize=%d\n",this->blocksize);
+#endif
+
+    if (!this->blocksize &&
+	((input->get_capabilities(input) & INPUT_CAP_SEEKABLE) != 0))
+      this->blocksize = demux_mpeg_detect_blocksize( this, input );
+
+    if (!this->blocksize) {
+      free (this);
+      return NULL;
+    }
+
+    demux_mpeg_block_accept_input (this, input);
+  }
+  break;
+
   default:
     free (this);
     return NULL;

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_cda.c,v 1.30 2002/10/28 03:24:43 miguelfreitas Exp $
+ * $Id: demux_cda.c,v 1.31 2002/11/01 17:41:06 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -208,7 +208,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
     char *media;
     char *MRL = input->get_mrl(input);
     
-    media = strstr(MRL, "://");
+    media = strstr(MRL, ":/");
     if(media) {
       if(strncasecmp(MRL, "cda", 3) != 0) {
         free (this);
@@ -216,6 +216,10 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
       }
     }
   }
+  break;
+
+  case METHOD_EXPLICIT:
+  break;
 
   default:
     free (this);

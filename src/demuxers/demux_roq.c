@@ -21,7 +21,7 @@
  * For more information regarding the RoQ file format, visit:
  *   http://www.csse.monash.edu.au/~timf/
  *
- * $Id: demux_roq.c,v 1.27 2002/11/01 03:36:24 tmmm Exp $
+ * $Id: demux_roq.c,v 1.28 2002/11/01 17:41:26 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -418,6 +418,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   switch (stream->content_detection_method) {
 
   case METHOD_BY_CONTENT:
+  case METHOD_EXPLICIT:
 
     if (!open_roq_file(this)) {
       free (this);

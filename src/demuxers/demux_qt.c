@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.107 2002/10/29 00:37:26 tmmm Exp $
+ * $Id: demux_qt.c,v 1.108 2002/11/01 17:41:23 mroi Exp $
  *
  */
 
@@ -1865,6 +1865,10 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
       free (this);
       return NULL;
     }
+  }
+
+  /* we want to fall through here */
+  case METHOD_EXPLICIT: {
 
     if (!is_qt_file(this->input)) {
       free (this);
@@ -1878,9 +1882,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
       free (this);
       return NULL;
     }
-
   }
-
   break;
 
   default:

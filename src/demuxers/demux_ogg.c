@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ogg.c,v 1.49 2002/10/28 03:24:43 miguelfreitas Exp $
+ * $Id: demux_ogg.c,v 1.50 2002/11/01 17:41:20 mroi Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -974,11 +974,14 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen,
     if (strncasecmp(ending, ".ogg", 4) &&
         strncasecmp(ending, ".ogm", 4)) {
       return NULL;
-    }
-    
+    } 
 
   }
   break;
+
+  case METHOD_EXPLICIT:
+  break;
+
   default:
     return NULL;
   }

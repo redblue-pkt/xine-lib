@@ -20,7 +20,7 @@
  * MS WAV File Demuxer by Mike Melanson (melanson@pcisys.net)
  * based on WAV specs that are available far and wide
  *
- * $Id: demux_wav.c,v 1.23 2002/10/28 03:24:43 miguelfreitas Exp $
+ * $Id: demux_wav.c,v 1.24 2002/11/01 17:41:28 mroi Exp $
  *
  */
 
@@ -325,6 +325,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   switch (stream->content_detection_method) {
 
   case METHOD_BY_CONTENT:
+  case METHOD_EXPLICIT:
 
     if (!open_wav_file(this)) {
       free (this);

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ts.c,v 1.58 2002/10/26 22:00:54 guenter Exp $
+ * $Id: demux_ts.c,v 1.59 2002/11/01 17:41:28 mroi Exp $
  *
  * Demultiplexer for MPEG2 Transport Streams.
  *
@@ -1469,7 +1469,7 @@ static int demux_ts_open(demux_plugin_t *this_gen, input_plugin_t *input,
 						NULL, 20, NULL, NULL)));
     
     mrl = input->get_mrl(input);
-    media = strstr(mrl, "://");
+    media = strstr(mrl, ":/");
 
     if (media) {
       LOG_MSG_STDERR (this->xine, _("demux %u ts_open!\n"), __LINE__);
@@ -1512,6 +1512,8 @@ static int demux_ts_open(demux_plugin_t *this_gen, input_plugin_t *input,
       }
     }
     return DEMUX_CANNOT_HANDLE;
+
+  case METHOD_EXPLICIT:
     break;
 
   default:

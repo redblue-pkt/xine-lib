@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_elem.c,v 1.58 2002/10/29 01:28:41 guenter Exp $
+ * $Id: demux_elem.c,v 1.59 2002/11/01 17:41:06 mroi Exp $
  *
  * demultiplexer for elementary mpeg streams
  * 
@@ -273,7 +273,9 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
       return NULL;
     }
   }
+  break;
 
+  case METHOD_EXPLICIT:
   break;
 
   default:

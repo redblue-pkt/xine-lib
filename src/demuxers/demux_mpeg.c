@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg.c,v 1.93 2002/10/28 05:26:35 tmmm Exp $
+ * $Id: demux_mpeg.c,v 1.94 2002/11/01 17:41:13 mroi Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  * reads streams of variable blocksizes
@@ -1067,6 +1067,9 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
       return NULL;
     }
   }
+    break;
+
+  case METHOD_EXPLICIT:
     break;
 
   default:

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpgaudio.c,v 1.74 2002/11/01 01:47:51 guenter Exp $
+ * $Id: demux_mpgaudio.c,v 1.75 2002/11/01 17:41:18 mroi Exp $
  *
  * demultiplexer for mpeg audio (i.e. mp3) streams
  *
@@ -531,7 +531,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
     printf ("demux_mpgaudio: stage by extension %s\n", MRL);
 #endif
 
-    if (strncmp (MRL, "ice ://", 7)) {
+    if (strncmp (MRL, "ice:/", 5)) {
     
       suffix = strrchr(MRL, '.');
     
@@ -545,6 +545,9 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
 	return NULL;
     }
   }
+  break;
+
+  case METHOD_EXPLICIT:
   break;
   
   default:

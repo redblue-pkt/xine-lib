@@ -23,7 +23,7 @@
  * It will only play that block if it is PCM data. More variations will be
  * supported as they are encountered.
  *
- * $Id: demux_voc.c,v 1.15 2002/10/28 03:24:43 miguelfreitas Exp $
+ * $Id: demux_voc.c,v 1.16 2002/11/01 17:41:28 mroi Exp $
  *
  */
 
@@ -326,6 +326,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   switch (stream->content_detection_method) {
 
   case METHOD_BY_CONTENT:
+  case METHOD_EXPLICIT:
 
     if (!open_voc_file(this)) {
       free (this);

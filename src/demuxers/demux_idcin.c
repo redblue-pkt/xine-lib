@@ -63,7 +63,7 @@
  *     - if any bytes exceed 63, do not shift the bytes at all before
  *       transmitting them to the video decoder
  *
- * $Id: demux_idcin.c,v 1.25 2002/11/01 03:36:24 tmmm Exp $
+ * $Id: demux_idcin.c,v 1.26 2002/11/01 17:41:13 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -472,6 +472,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   switch (stream->content_detection_method) {
 
   case METHOD_BY_CONTENT:
+  case METHOD_EXPLICIT:
 
     if (!open_idcin_file(this)) {
       free (this);

@@ -19,7 +19,7 @@
  *
  * AIFF File Demuxer by Mike Melanson (melanson@pcisys.net)
  *
- * $Id: demux_aiff.c,v 1.14 2002/10/28 03:24:43 miguelfreitas Exp $
+ * $Id: demux_aiff.c,v 1.15 2002/11/01 17:41:03 mroi Exp $
  *
  */
 
@@ -350,6 +350,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   switch (stream->content_detection_method) {
 
   case METHOD_BY_CONTENT:
+  case METHOD_EXPLICIT:
 
     if (!open_aiff_file(this)) {
       free (this);

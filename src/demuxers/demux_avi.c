@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_avi.c,v 1.130 2002/10/28 03:24:43 miguelfreitas Exp $
+ * $Id: demux_avi.c,v 1.131 2002/11/01 17:41:04 mroi Exp $
  *
  * demultiplexer for avi streams
  *
@@ -1533,6 +1533,10 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
       free (this);
       return NULL;
     }
+  }
+
+  /* we want to fall through here */
+  case METHOD_EXPLICIT: {
 
     this->avi = AVI_init (this);
 

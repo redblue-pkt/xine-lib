@@ -21,7 +21,7 @@
  * For more information on the SMJPEG file format, visit:
  *   http://www.lokigames.com/development/smjpeg.php3
  *
- * $Id: demux_smjpeg.c,v 1.23 2002/10/28 03:24:43 miguelfreitas Exp $
+ * $Id: demux_smjpeg.c,v 1.24 2002/11/01 17:41:27 mroi Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -429,6 +429,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   switch (stream->content_detection_method) {
 
   case METHOD_BY_CONTENT:
+  case METHOD_EXPLICIT:
 
     if (!open_smjpeg_file(this)) {
       free (this);

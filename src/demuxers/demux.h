@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux.h,v 1.22 2002/10/28 03:24:43 miguelfreitas Exp $
+ * $Id: demux.h,v 1.23 2002/11/01 17:41:02 mroi Exp $
  */
 
 #ifndef HAVE_DEMUX_H
@@ -41,6 +41,7 @@
 
 #define METHOD_BY_CONTENT          1
 #define METHOD_BY_EXTENSION        2
+#define METHOD_EXPLICIT            3
 
 typedef struct demux_class_s demux_class_t ;
 typedef struct demux_plugin_s demux_plugin_t;
