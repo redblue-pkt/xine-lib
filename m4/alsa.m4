@@ -217,7 +217,8 @@ int main() {
   #define SND_LIB_MINOR SOUNDLIB_VERSION_MINOR
   #endif
 
-  if((SND_LIB_MAJOR >= 0) && (SND_LIB_MINOR >= 9))
+  if(((SND_LIB_MAJOR == 0) && (SND_LIB_MINOR == 9)) ||
+     ((SND_LIB_MAJOR == 1) && (SND_LIB_MINOR == 0)))
     return 0;
 
   return 1;
