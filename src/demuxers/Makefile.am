@@ -9,11 +9,9 @@ libdir = $(XINE_PLUGINDIR)
 # ---------
 # All of xine demuxer plugins should be named like the scheme "xineplug_dmx_"
 #
-#lib_LTLIBRARIES = xineplug_dmx_avi.la xineplug_dmx_mpeg_block.la \
-#	xineplug_dmx_mpeg.la xineplug_dmx_mpeg_audio.la \
-#	xineplug_dmx_mpeg_elem.la
 lib_LTLIBRARIES = xineplug_dmx_avi.la xineplug_dmx_mpeg_block.la \
-	xineplug_dmx_mpeg.la xineplug_dmx_mpeg_elem.la
+	xineplug_dmx_mpeg.la xineplug_dmx_mpeg_elem.la \
+	xineplug_dmx_mpeg_audio.la
 
 xineplug_dmx_avi_la_SOURCES = demux_avi.c
 xineplug_dmx_avi_la_LDFLAGS = -avoid-version -module
@@ -24,8 +22,8 @@ xineplug_dmx_mpeg_block_la_LDFLAGS = -avoid-version -module
 xineplug_dmx_mpeg_la_SOURCES = demux_mpeg.c
 xineplug_dmx_mpeg_la_LDFLAGS = -avoid-version -module
 
-#xineplug_dmx_mpeg_audio_la_SOURCES = demux_mpgaudio.c
-#xineplug_dmx_mpeg_audio_la_LDFLAGS = -avoid-version -module
+xineplug_dmx_mpeg_audio_la_SOURCES = demux_mpgaudio.c
+xineplug_dmx_mpeg_audio_la_LDFLAGS = -avoid-version -module
 
 xineplug_dmx_mpeg_elem_la_SOURCES = demux_elem.c
 xineplug_dmx_mpeg_elem_la_LDFLAGS = -avoid-version -module

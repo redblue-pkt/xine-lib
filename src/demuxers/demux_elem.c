@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_elem.c,v 1.3 2001/04/29 18:56:19 f1rmb Exp $
+ * $Id: demux_elem.c,v 1.4 2001/04/29 22:42:46 f1rmb Exp $
  *
  * demultiplexer for elementary mpeg streams
  * 
@@ -54,6 +54,8 @@ typedef struct {
   int              status;
 
 } demux_mpeg_elem_t ;
+
+static uint32_t xine_debug;
 
 /*
  *
@@ -282,3 +284,4 @@ demux_plugin_t *init_demuxer_plugin(int iface, config_values_t *config) {
     return NULL;
   }
 }
+

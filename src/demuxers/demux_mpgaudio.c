@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpgaudio.c,v 1.2 2001/04/19 09:46:57 f1rmb Exp $
+ * $Id: demux_mpgaudio.c,v 1.3 2001/04/29 22:42:46 f1rmb Exp $
  *
  * demultiplexer for mpeg audio (i.e. mp3) streams
  *
@@ -41,23 +41,23 @@
 #include "libmpg123/mpg123.h"
 #include "libmpg123/mpglib.h"
 
-/* The following variable indicates the kind of error */
+#define DEMUX_MPGAUDIO_IFACE_VERSION 1
+
+typedef struct {
+
+  demux_plugin_t       demux_plugin;
+
+  fifo_buffer_t       *audio_fifo;
+  fifo_buffer_t       *video_fifo;
+
+  input_plugin_t      *input;
+
+  pthread_t            thread;
+
+  int                  status;
+} demux_mpgaudio_t ;
 
 static uint32_t xine_debug;
-
-typedef struct _demux_mpgaudio_globals {
-  fifo_buffer_t       *mBufAudio;
-  fifo_buffer_t       *mBufVideo;
-
-  input_plugin_t      *mInput;
-
-  pthread_t            mThread;
-
-  int                  mnStatus;
-} demux_mpgaudio_globals_t ;
-
-static demux_mpgaudio_globals_t gDemuxMpgAudio;
-static fifobuf_functions_t *Ffb;
 
 /* 
  * *********************************************************************** 
@@ -71,11 +71,11 @@ static int grp_9tab[1024 * 3] = {0,};
 static real mpg123_muls[27][64];
 static int tabsel_123[2][3][16] = {
   {
-    {0, 32, 64, 96, 128, 160, 192, 224, 256, 288, 320, 352, 384, 416, 448,},
+    {0, 32, 64, 96, 128, 160, 192, 224, 256, 288, 320, 352, 384, 416, 448,}, 
     {0, 32, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320, 384,},
-    {0, 32, 40, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320,}},
+    {0, 32, 40, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320,}}, 
   
-  {
+  { 
     {0, 32, 48, 56, 64, 80, 96, 112, 128, 144, 160, 176, 192, 224, 256,},
     {0, 8, 16, 24, 32, 40, 48, 56, 64, 80, 96, 112, 128, 144, 160,},
     {0, 8, 16, 24, 32, 40, 48, 56, 64, 80, 96, 112, 128, 144, 160,}}
@@ -147,7 +147,7 @@ static int mpg123_decode_header(struct frame *fr, unsigned long newhead) {
 
   fr->error_protection = ((newhead >> 16) & 0x1) ^ 0x1;
   
-  if (fr->mpeg25)		/* allow Bitrate change for 2.5 ... */
+  if (fr->mpeg25)
     fr->bitrate_index = ((newhead >> 12) & 0xf);
   
   fr->bitrate_index = ((newhead >> 12) & 0xf);
@@ -168,13 +168,13 @@ static int mpg123_decode_header(struct frame *fr, unsigned long newhead) {
   
   switch (fr->lay) {
   case 1:
-    mpg123_init_layer2();	/* inits also shared tables with layer1 */
+    mpg123_init_layer2();
     fr->framesize = (long) tabsel_123[fr->lsf][0][fr->bitrate_index] * 12000;
     fr->framesize /= mpg123_freqs[fr->sampling_frequency];
     fr->framesize = ((fr->framesize + fr->padding) << 2) - 4;
     break;
   case 2:
-    mpg123_init_layer2();	/* inits also shared tables with layer1 */
+    mpg123_init_layer2();
     fr->framesize = (long) tabsel_123[fr->lsf][1][fr->bitrate_index] * 144000;
     fr->framesize /= mpg123_freqs[fr->sampling_frequency];
     fr->framesize += fr->padding - 4;
@@ -225,97 +225,109 @@ static int mpg123_head_check(unsigned long head) {
  ************************************************************************
  */
 
-int demux_mpgaudio_next (void) {
+static int demux_mpgaudio_next (demux_mpgaudio_t *this) {
 
-  buf_element_t *pBuf;
+  buf_element_t *buf;
 
-  pBuf = Ffb->buffer_pool_alloc ();
+  buf = this->input->read_block(this->input, 
+				this->video_fifo, 2048);
 
-  pBuf->pContent  = pBuf->pMem;
-  pBuf->nDTS      = 0 ; /* FIXME ? */
-  pBuf->nPTS      = 0 ; /* FIXME ? */
-  pBuf->nSize     = gDemuxMpgAudio.mInput->read (pBuf->pMem, 2048) ;
-  pBuf->nType     = BUF_MPEGAUDIO; /* FIXME */
-  pBuf->nInputPos = gDemuxMpgAudio.mInput->seek (0, SEEK_CUR);
+  if (buf == NULL) {
+    this->status = DEMUX_FINISHED;
+    return 0;
+  }
 
-  Ffb->fifo_buffer_put (gDemuxMpgAudio.mBufAudio, pBuf);
+  buf->content   = buf->mem;
+  buf->DTS       = 0;
+  buf->PTS       = 0;
+  buf->size      = this->input->read(this->input, buf->mem, 2048);
+  buf->input_pos = this->input->seek(this->input, 0, SEEK_CUR);
+  buf->type      = BUF_AUDIO_AVI;
 
-  return (pBuf->nSize==2048);
+  this->video_fifo->put(this->video_fifo, buf);
+
+  return (buf->size == 2048);
 }
 
-static void *demux_mpgaudio_loop (void *dummy) {
-
-  buf_element_t *pBuf;
+static void *demux_mpgaudio_loop (void *this_gen) {
+  buf_element_t *buf;
+  demux_mpgaudio_t *this = (demux_mpgaudio_t *) this_gen;
 
   do {
-    if (!demux_mpgaudio_next())
-      gDemuxMpgAudio.mnStatus = DEMUX_FINISHED;
 
-  } while (gDemuxMpgAudio.mnStatus == DEMUX_OK) ;
+    if (!demux_mpgaudio_next(this))
+      this->status = DEMUX_FINISHED;
 
-  xprintf (VERBOSE|DEMUX, "mpgaudio demux loop finished (status: %d)\n",
-	  gDemuxMpgAudio.mnStatus);
+  } while (this->status == DEMUX_OK) ;
 
-  pBuf = Ffb->buffer_pool_alloc ();
-  pBuf->nType    = BUF_STREAMEND;
-  Ffb->fifo_buffer_put (gDemuxMpgAudio.mBufVideo, pBuf);
-  pBuf = Ffb->buffer_pool_alloc ();
-  pBuf->nType    = BUF_STREAMEND;
-  Ffb->fifo_buffer_put (gDemuxMpgAudio.mBufAudio, pBuf);
+  xprintf (VERBOSE|DEMUX, "demux loop finished (status: %d)\n", this->status);
+
+  this->status = DEMUX_FINISHED;
+
+  buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
+  buf->type    = BUF_CONTROL_END;
+  this->video_fifo->put (this->video_fifo, buf);
+
+  buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
+  buf->type    = BUF_CONTROL_END;
+  this->audio_fifo->put (this->audio_fifo, buf);
 
   return NULL;
 }
 
-static void demux_mpgaudio_stop (void) {
+static void demux_mpgaudio_stop (demux_plugin_t *this_gen) {
+  demux_mpgaudio_t *this = (demux_mpgaudio_t *) this_gen;
   void *p;
 
-  gDemuxMpgAudio.mnStatus = DEMUX_FINISHED;
+  this->status = DEMUX_FINISHED;
+
+  pthread_join (this->thread, &p);
+}
+
+static int demux_mpgaudio_get_status (demux_plugin_t *this_gen) {
+  demux_mpgaudio_t *this = (demux_mpgaudio_t *) this_gen;
+
+  return this->status;
+}
+
+static void demux_mpgaudio_start (demux_plugin_t *this_gen,
+				 fifo_buffer_t *video_fifo, 
+				 fifo_buffer_t *audio_fifo,
+				 fifo_buffer_t *spu_fifo,
+				 off_t pos) {
+  demux_mpgaudio_t *this = (demux_mpgaudio_t *) this_gen;
+  buf_element_t *buf;
+
+  this->video_fifo  = video_fifo;
+  this->audio_fifo  = audio_fifo;
   
-  Ffb->fifo_buffer_clear(gDemuxMpgAudio.mBufVideo);
-  Ffb->fifo_buffer_clear(gDemuxMpgAudio.mBufAudio);
-
-  pthread_join (gDemuxMpgAudio.mThread, &p);
-}
-
-static int demux_mpgaudio_get_status (void) {
-  return gDemuxMpgAudio.mnStatus;
-}
-
-static void demux_mpgaudio_start (input_plugin_t *input_plugin,
-				  fifo_buffer_t *bufVideo, 
-				  fifo_buffer_t *bufAudio,
-				  fifo_buffer_t *bufSPU, off_t pos) 
-{
-  buf_element_t *pBuf;
-
-  gDemuxMpgAudio.mInput       = input_plugin;
-  gDemuxMpgAudio.mBufVideo    = bufVideo;
-  gDemuxMpgAudio.mBufAudio    = bufAudio;
-
-  gDemuxMpgAudio.mnStatus     = DEMUX_OK;
-
-  if((gDemuxMpgAudio.mInput->get_capabilities() & INPUT_CAP_SEEKABLE) != 0)
-    gDemuxMpgAudio.mInput->seek (pos, SEEK_SET);
-
-  pBuf = Ffb->buffer_pool_alloc ();
-  pBuf->nType    = BUF_RESET;
-  Ffb->fifo_buffer_put (gDemuxMpgAudio.mBufVideo, pBuf);
-  pBuf = Ffb->buffer_pool_alloc ();
-  pBuf->nType    = BUF_RESET;
-  Ffb->fifo_buffer_put (gDemuxMpgAudio.mBufAudio, pBuf);
-
-  pthread_create (&gDemuxMpgAudio.mThread, NULL, demux_mpgaudio_loop, NULL) ;
-}
-
-static void demux_mpgaudio_select_audio_channel (int nChannel) {
-}
-
-static void demux_mpgaudio_select_spu_channel (int nChannel) {
-}
-
-static int demux_mpgaudio_open(input_plugin_t *ip, 
-			       const char *MRL, int stage) {
+  this->status = DEMUX_OK;
   
+  if((this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) != 0) {
+    xprintf (VERBOSE|DEMUX, "=>seek to %Ld\n",pos);
+    this->input->seek (this->input, pos, SEEK_SET);
+  }
+  
+  buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
+  buf->type    = BUF_CONTROL_START;
+  this->video_fifo->put (this->video_fifo, buf);
+  buf = this->audio_fifo->buffer_pool_alloc (this->video_fifo);
+  buf->type    = BUF_CONTROL_START;
+  this->audio_fifo->put (this->audio_fifo, buf);
+
+  /*
+   * now start demuxing
+   */
+
+  pthread_create (&this->thread, NULL, demux_mpgaudio_loop, this) ;
+}
+
+static int demux_mpgaudio_open(demux_plugin_t *this_gen,
+			       input_plugin_t *input, int stage) {
+  demux_mpgaudio_t *this = (demux_mpgaudio_t *) this_gen;
+
+  this->input = input;
+
   switch(stage) {
     
   case STAGE_BY_CONTENT: {
@@ -326,14 +338,14 @@ static int demux_mpgaudio_open(input_plugin_t *ip,
     int in_buf, i;
     int bs = 0;
     
-    if(!ip)
+    if(!input)
       return DEMUX_CANNOT_HANDLE;
 
-    if((ip->get_capabilities() & INPUT_CAP_SEEKABLE) != 0) {
-      ip->seek(0, SEEK_SET);
-      
-      if(ip->get_blocksize)
-	bs = ip->get_blocksize();
+    if((input->get_capabilities(input) & INPUT_CAP_SEEKABLE) != 0) {
+      input->seek(input, 0, SEEK_SET);
+
+      if(input->get_blocksize)
+	bs = input->get_blocksize(input);
       
       if(bs > 4) 
 	return DEMUX_CANNOT_HANDLE;
@@ -341,7 +353,7 @@ static int demux_mpgaudio_open(input_plugin_t *ip,
       if(!bs) 
 	bs = 4;
 
-      if(ip->read(buf, bs)) {
+      if(input->read(input, buf, bs)) {
 
 	/* Not an AVI ?? */
 	if(buf[0] || buf[1] || (buf[2] != 0x01) || (buf[3] != 0x46)) {
@@ -351,7 +363,7 @@ static int demux_mpgaudio_open(input_plugin_t *ip,
 	  
 	  while(!mpg123_head_check(head)) {
 	    
-	    in_buf = ip->read(pbuf, 1024);
+	    in_buf = input->read(input, pbuf, 1024);
 	    
 	    if(in_buf == 0) {
 	      free(pbuf);
@@ -363,19 +375,19 @@ static int demux_mpgaudio_open(input_plugin_t *ip,
 	      head |= pbuf[i];
 	      
 	      if(mpg123_head_check(head)) {
-		ip->seek(i+1-in_buf, SEEK_CUR);
+		input->seek(input, i+1-in_buf, SEEK_CUR);
 		break;
 	      }
 	    }
 	  }
 	  free(pbuf);
 	  
-	  if(decode_header(&fr, head)) {
+	  if(mpg123_decode_header(&fr, head)) {
 	    
-	    if((ip->seek(fr.framesize, SEEK_CUR)) <= 0)
+	    if((input->seek(input, fr.framesize, SEEK_CUR)) <= 0)
 	      return DEMUX_CANNOT_HANDLE;
 	    
-	    if((ip->read(buf, 4)) != 4)
+	    if((input->read(input, buf, 4)) != 4)
 	      return DEMUX_CANNOT_HANDLE;
 	  }
 	  
@@ -393,10 +405,12 @@ static int demux_mpgaudio_open(input_plugin_t *ip,
   
   case STAGE_BY_EXTENSION: {
     char *suffix;
+    char *MRL;
     
+    MRL = input->get_mrl (input);
+
     suffix = strrchr(MRL, '.');
-    xprintf(VERBOSE|DEMUX, "demux_mpgaudio_can_handle: suffix %s of %s\n", 
-	    suffix, MRL);
+    xprintf(VERBOSE|DEMUX, "%s: suffix %s of %s\n", __FUNCTION, suffix, MRL);
     
     if(!suffix)
       return DEMUX_CANNOT_HANDLE;
@@ -416,25 +430,45 @@ static int demux_mpgaudio_open(input_plugin_t *ip,
   return DEMUX_CANNOT_HANDLE;
 }
 
+/*
+ *
+ */
 static char *demux_mpgaudio_get_id(void) {
-  return "MPEGAUDIO";
+  return "MPGAUDIO";
 }
 
-static demux_functions_t demux_mpgaudio_functions = {
-  NULL,
-  NULL,
-  demux_mpgaudio_open,
-  demux_mpgaudio_start,
-  demux_mpgaudio_stop,
-  demux_mpgaudio_get_status,
-  demux_mpgaudio_select_audio_channel,
-  demux_mpgaudio_select_spu_channel,
-  demux_mpgaudio_get_id
-};
-
-demux_functions_t *init_demux_mpeg_audio(fifobuf_functions_t *f, uint32_t xd) {
-  
-  Ffb = f;
-  xine_debug = xd;
-  return &demux_mpgaudio_functions;
+static void demux_mpgaudio_close (demux_plugin_t *this) {
+  /* nothing */
 }
+
+demux_plugin_t *init_demuxer_plugin(int iface, config_values_t *config) {
+  demux_mpgaudio_t *this = malloc (sizeof (demux_mpgaudio_t));
+
+  xine_debug  = config->lookup_int (config, "xine_debug", 0);
+
+  switch (iface) {
+
+  case 1:
+
+    this->demux_plugin.interface_version = DEMUX_MPGAUDIO_IFACE_VERSION;
+    this->demux_plugin.open              = demux_mpgaudio_open;
+    this->demux_plugin.start             = demux_mpgaudio_start;
+    this->demux_plugin.stop              = demux_mpgaudio_stop;
+    this->demux_plugin.close             = demux_mpgaudio_close;
+    this->demux_plugin.get_status        = demux_mpgaudio_get_status;
+    this->demux_plugin.get_identifier    = demux_mpgaudio_get_id;
+    
+    return &this->demux_plugin;
+    break;
+
+  default:
+    fprintf(stderr,
+	    "Demuxer plugin doesn't support plugin API version %d.\n"
+	    "PLUGIN DISABLED.\n"
+	    "This means there's a version mismatch between xine and this "
+	    "demuxer plugin.\nInstalling current input plugins should help.\n",
+	    iface);
+    return NULL;
+  }
+}
+
