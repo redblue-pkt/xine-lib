@@ -104,16 +104,12 @@ static Window               window[2];
 static int                  xpos, ypos, width, height, fullscreen;
 static double               pixel_aspect;
 
-static int                  running = 0;
+static int                  running = 1;
 
 
 /* this will be called by xine, if it wants to know the target size of a frame */
 static void dest_size_cb(void *data, int video_width, int video_height, double video_pixel_aspect,
                          int *dest_width, int *dest_height, double *dest_pixel_aspect)  {
-
-  if(!running)
-    return;
-  
   *dest_width        = width;
   *dest_height       = height;
   *dest_pixel_aspect = pixel_aspect;
@@ -124,9 +120,6 @@ static void frame_output_cb(void *data, int video_width, int video_height,
                             double video_pixel_aspect, int *dest_x, int *dest_y,
                             int *dest_width, int *dest_height, 
                             double *dest_pixel_aspect, int *win_x, int *win_y) {
-  if(!running)
-    return;
-  
   *dest_x            = 0;
   *dest_y            = 0;
   *win_x             = xpos;
@@ -261,8 +254,6 @@ int main(int argc, char **argv) {
     printf("Unable to open mrl '%s'\n", mrl);
     return 1;
   }
-
-  running = 1;
 
   while (running) {
     XEvent   xevent;
