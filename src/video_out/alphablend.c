@@ -28,6 +28,10 @@
  *
  */
 
+/*
+#define LOG_BLEND_YUV
+*/
+
 #include <string.h>
 #include <stdlib.h>
 #include <inttypes.h>
@@ -395,7 +399,6 @@ void blend_yuv (uint8_t * dst_img, vo_overlay_t * img_overl,
 {
   clut_t *my_clut;
   uint8_t *my_trans;
-  int i;
 
   int src_width = img_overl->width;
   int src_height = img_overl->height;
@@ -403,78 +406,183 @@ void blend_yuv (uint8_t * dst_img, vo_overlay_t * img_overl,
   rle_elem_t *rle_limit = rle + img_overl->num_rle;
   int x_off = img_overl->x;
   int y_off = img_overl->y;
-  int mask;
+  int ymask,xmask;
+  int rle_this_bite;
+  int rle_remainder;
+  int rlelen;
   int x, y;
-
+  
   uint8_t *dst_y = dst_img + dst_width * y_off + x_off;
   uint8_t *dst_cr = dst_img + dst_width * dst_height +
     (y_off / 2) * (dst_width / 2) + (x_off / 2) + 1;
   uint8_t *dst_cb = dst_cr + (dst_width * dst_height) / 4;
-
+#ifdef LOG_BLEND_YUV
+  printf("overlay_blend started x=%d, y=%d, w=%d h=%d\n",img_overl->x,img_overl->y,img_overl->width,img_overl->height);
+#endif
   my_clut = (clut_t*) img_overl->clip_color;
   my_trans = img_overl->clip_trans;
 
-  for(i=0;i<4;i++) {
-//    printf("video_out:[%d] clut=0x%04x trans=0x%02x\n",i, img_overl->clip_color[i],my_trans[i]);
-  }
+  rlelen=rle_remainder=0;
   for (y = 0; y < src_height; y++) {
-    mask = !(img_overl->clip_top > y || img_overl->clip_bottom < y);
+    ymask = ((img_overl->clip_top > y) || (img_overl->clip_bottom < y));
+    xmask = 0;
+#ifdef LOG_BLEND_YUV
+    printf("X started ymask=%d y=%d src_height=%d\n",ymask, y, src_height);
+#endif
 
     for (x = 0; x < src_width;) {
-      uint8_t clr;
-      uint16_t o;
-      int rlelen;
+      uint8_t clr=0;
+      uint16_t o=0;
+#ifdef LOG_BLEND_YUV
+      printf("1:rle_len=%d, remainder=%d, x=%d\n",rlelen, rle_remainder, x);
+#endif
 
-      clr = rle->color;
+      if (rlelen < 0 || rle_remainder < 0) {
+        printf("alphablend: major bug in blend_yuv < 0\n");
+      } 
+      if (rlelen == 0) {
+        rle_remainder = rlelen = rle->len;
+        clr = rle->color;
+        rle++;
+      }
+      if (rle_remainder == 0) {
+        rle_remainder = rlelen;
+      }
+      if (rle_remainder + x > src_width) {
+        /* Do something for long rlelengths */
+        rle_remainder = src_width - x; 
+        ;
+      }
+#ifdef LOG_BLEND_YUV
+      printf("2:rle_len=%d, remainder=%d, x=%d\n",rlelen, rle_remainder, x);
+#endif
+
+      if (ymask == 0) {
+        if (x <= img_overl->clip_left) { 
+          /* Starts outside clip area */
+          if (x + rle_remainder > img_overl->clip_left ) {
+#ifdef LOG_BLEND_YUV
+            printf("Outside clip left %d, ending inside\n", img_overl->clip_left); 
+#endif
+            /* Cutting needed, starts outside, ends inside */
+            rle_this_bite = (img_overl->clip_left - x + 1);
+            rle_remainder -= rle_this_bite;
+            rlelen -= rle_this_bite;
+            my_clut = (clut_t*) img_overl->color;
+            my_trans = img_overl->trans;
+            xmask = 0;
+          } else {
+#ifdef LOG_BLEND_YUV
+            printf("Outside clip left %d, ending outside\n", img_overl->clip_left); 
+#endif
+          /* no cutting needed, starts outside, ends outside */
+            rle_this_bite = rle_remainder;
+            rle_remainder = 0;
+            rlelen -= rle_this_bite;
+            my_clut = (clut_t*) img_overl->color;
+            my_trans = img_overl->trans;
+            xmask = 0;
+          }
+        } else if (x < img_overl->clip_right) {
+          /* Starts inside clip area */
+          if (x + rle_remainder >= img_overl->clip_right ) { 
+#ifdef LOG_BLEND_YUV
+            printf("Inside clip right %d, ending outside\n", img_overl->clip_right); 
+#endif
+            /* Cutting needed, starts inside, ends outside */
+            rle_this_bite = (img_overl->clip_right - x + 1);
+            rle_remainder -= rle_this_bite;
+            rlelen -= rle_this_bite;
+            my_clut = (clut_t*) img_overl->clip_color;
+            my_trans = img_overl->clip_trans;
+            xmask++;
+          } else {
+#ifdef LOG_BLEND_YUV
+            printf("Inside clip right %d, ending inside\n", img_overl->clip_right); 
+#endif
+          /* no cutting needed, starts inside, ends inside */
+            rle_this_bite = rle_remainder;
+            rle_remainder = 0;
+            rlelen -= rle_this_bite;
+            my_clut = (clut_t*) img_overl->clip_color;
+            my_trans = img_overl->clip_trans;
+            xmask++;
+          }
+        } else if (x >= img_overl->clip_right) {
+          /* Starts outside clip area, ends outsite clip area */
+          if (x + rle_remainder > src_width ) { 
+#ifdef LOG_BLEND_YUV
+            printf("Outside clip right %d, ending eol\n", img_overl->clip_right); 
+#endif
+            /* Cutting needed, starts outside, ends at right edge */
+            /* It should never reach here due to the earlier test of src_width */
+            rle_this_bite = (src_width - x );
+            rle_remainder -= rle_this_bite;
+            rlelen -= rle_this_bite;
+            my_clut = (clut_t*) img_overl->color;
+            my_trans = img_overl->trans;
+            xmask = 0;
+          } else {
+          /* no cutting needed, starts outside, ends outside */
+#ifdef LOG_BLEND_YUV
+            printf("Outside clip right %d, ending outside\n", img_overl->clip_right); 
+#endif
+            rle_this_bite = rle_remainder;
+            rle_remainder = 0;
+            rlelen -= rle_this_bite;
+            my_clut = (clut_t*) img_overl->color;
+            my_trans = img_overl->trans;
+            xmask = 0;
+          }
+        }
+      } else {
+        /* Outside clip are due to y */
+        /* no cutting needed, starts outside, ends outside */
+        rle_this_bite = rle_remainder;
+        rle_remainder = 0;
+        rlelen -= rle_this_bite;
+        my_clut = (clut_t*) img_overl->color;
+        my_trans = img_overl->trans;
+        xmask = 0;
+      }
       o   = my_trans[clr];
-      rlelen = rle->len;
-
-      if (o && mask) {
-        /* threat cases where clipping border is inside rle->len pixels */
-        if ( img_overl->clip_left > x ) {
-          if( img_overl->clip_left < x + rlelen ) {
-            rlelen -= img_overl->clip_left - x;
-            x += img_overl->clip_left - x;
-          } else {
-            o = 0;
-          }
-        } else if( img_overl->clip_right < x + rlelen ) {
-          if( img_overl->clip_right > x ) {
-            mem_blend8(dst_y + x, my_clut[clr].y, o, (img_overl->clip_right-x) );
-            if (y & 1) {
-              mem_blend8(dst_cr + (x >> 1), my_clut[clr].cr, o, 
-                         (img_overl->clip_right-x+1) >> 1);
-              mem_blend8(dst_cb + (x >> 1), my_clut[clr].cb, o,
-                         (img_overl->clip_right-x+1) >> 1);
-            } 
-            o = 0;            
-          } else {
-            o = 0;
-          }
-        } 
-      }
-
-      if (o && mask) {
-	if (o >= 15) {
-	  memset(dst_y + x, my_clut[clr].y, rlelen);
+#ifdef LOG_BLEND_YUV
+      printf("Trans=%d clr=%d xmask=%d my_clut[clr]=%d\n",o, clr, xmask, my_clut[clr].y);
+#endif
+      if (o) {
+        if(o >= 15) {
+	  memset(dst_y + x, my_clut[clr].y, rle_this_bite);
 	  if (y & 1) {
-	    memset(dst_cr + (x >> 1), my_clut[clr].cr, (rlelen+1) >> 1);
-	    memset(dst_cb + (x >> 1), my_clut[clr].cb, (rlelen+1) >> 1);
+	    memset(dst_cr + (x >> 1), my_clut[clr].cr, (rle_this_bite+1) >> 1);
+	    memset(dst_cb + (x >> 1), my_clut[clr].cb, (rle_this_bite+1) >> 1);
 	  }
-	} else {
-	  mem_blend8(dst_y + x, my_clut[clr].y, o, rlelen);
+        } else {
+	  mem_blend8(dst_y + x, my_clut[clr].y, o, rle_this_bite);
 	  if (y & 1) {
-	    mem_blend8(dst_cr + (x >> 1), my_clut[clr].cr, o, (rlelen+1) >> 1);
-	    mem_blend8(dst_cb + (x >> 1), my_clut[clr].cb, o, (rlelen+1) >> 1);
+            /* Blending cr and cb should use a different function, with pre -128 to each sample */
+	    mem_blend8(dst_cr + (x >> 1), my_clut[clr].cr, o, (rle_this_bite+1) >> 1);
+	    mem_blend8(dst_cb + (x >> 1), my_clut[clr].cb, o, (rle_this_bite+1) >> 1);
 	  }
-	}
-      }
+        }
 
-      x += rlelen;
-      rle++;
-      if (rle >= rle_limit) break;
+      }
+#ifdef LOG_BLEND_YUV
+      printf("rle_this_bite=%d, remainder=%d, x=%d\n",rle_this_bite, rle_remainder, x);
+#endif
+      x += rle_this_bite;
+      if (rle >= rle_limit) {
+#ifdef LOG_BLEND_YUV
+        printf("x-rle_limit\n");
+#endif
+        break;
+      }
     }
-    if (rle >= rle_limit) break;
+    if (rle >= rle_limit) {
+#ifdef LOG_BLEND_YUV
+        printf("x-rle_limit\n");
+#endif
+        break;
+    }
 
     dst_y += dst_width;
 
@@ -483,8 +591,11 @@ void blend_yuv (uint8_t * dst_img, vo_overlay_t * img_overl,
       dst_cb += (dst_width + 1) / 2;
     }
   }
+#ifdef LOG_BLEND_YUV
+  printf("overlay_blend ended\n");
+#endif
 }
-
+            
 void blend_yuy2 (uint8_t * dst_img, vo_overlay_t * img_overl,
                 int dst_width, int dst_height)
 {
