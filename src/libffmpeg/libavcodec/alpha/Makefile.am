@@ -6,8 +6,12 @@ EXTRA_DIST = asm.h \
 	regdef.h
 
 all:
+
 debug:
-install-debug:
+	@$(MAKE) CFLAGS="$(DEBUG_CFLAGS) $(LIBFFMPEG_CFLAGS)"
+
+install-debug: debug
+	@$(MAKE) $(AM_MAKEFLAGS) install-exec-am install-data-am
 
 mostlyclean-generic:
 	-rm -f *~ \#* .*~ .\#*

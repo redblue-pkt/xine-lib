@@ -1,7 +1,6 @@
 SUBDIRS = fonts
 
-EXTRA_DIST = autogen.sh \
-	build_rpms.sh \
+EXTRA_DIST = build_rpms.sh \
 	SlackBuild.in \
 	SlackBuild \
 	vga.xinefont.gz \

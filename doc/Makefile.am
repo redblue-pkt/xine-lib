@@ -28,7 +28,7 @@ uninstall-local:
 	done
 
 debug:
-install-debug:
+install-debug: install
 
 mostlyclean-generic:
 	-rm -f *~ \#* .*~ .\#*

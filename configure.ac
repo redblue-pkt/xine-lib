@@ -757,6 +757,9 @@ case "$host_or_hostalias" in
 	dnl special check for k7 cpu CC support
         AC_TRY_CFLAGS("$sarchopt=athlon", k7cpu="athlon", k7cpu="i686")
 
+        AC_TRY_CFLAGS("-mmmx",f_mmmx="-mmmx", f_mmmx="")
+        AC_TRY_CFLAGS("-msse",f_msse="-msse", f_msse="")
+
 	dnl add x86 specific gcc CFLAGS
 	CFLAGS="$CFLAGS -O3 -pipe -fomit-frame-pointer $f_af $f_al $f_aj $m_wm $m_psb -fexpensive-optimizations $f_si $f_nsa -ffast-math -funroll-loops -finline-functions"
 
@@ -772,7 +775,9 @@ case "$host_or_hostalias" in
 	    i486-*) # oh dear!
 		archopt_val="i486" ;;
 	    i586-*)
-		archopt_val="pentium" ;;
+		archopt_val="pentium" 
+                CFLAGS="$CFLAGS $f_mmmx"
+                ;;
 	    i686-*)
 		archopt_val="pentiumpro"
 		if test x"$check_athlon" = "xyes"; then
@@ -784,6 +789,7 @@ case "$host_or_hostalias" in
 			esac
 		    fi 
 		fi
+                CFLAGS="$CFLAGS $f_mmmx $f_msse"
 		;;
 	    k6-*)
 		archopt_val="k6" ;;

@@ -8,7 +8,7 @@ ACLOCAL_AMFLAGS = -I m4
 
 SUBDIRS = doc m4 intl po misc include src
 
-EXTRA_DIST = cvscompile.sh automake.diff \
+EXTRA_DIST = autogen.sh automake.diff \
              debian/README.Debian debian/changelog debian/control \
              debian/copyright debian/dirs debian/docs debian/libxine0.postinst \
              debian/postrm debian/preinst debian/prerm debian/rules \
