@@ -22,12 +22,12 @@ libdvdnav			0.1.10			Michael Roitzsch
 libfaad				2.0			Miguel Freitas
 libmad				0.15.1b			Miguel Freitas
 libmpeg2			0.2.1 [*]
+libmusepack			svn 13/01/05		James Stembridge
 libvcd				0.7.21 [o]
 nosefart                        1.92                    Mike Melanson
 tvtime				0.9.8.4			Miguel Freitas
 wine
 vidix				0.9.9			James Stembridge
-libmusepack			svn 13/01/05		James Stembridge
 
 -----------------------------------------------------------------------
 
