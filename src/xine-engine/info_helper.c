@@ -37,6 +37,8 @@ static void chomp (char *str) {
   int i, len;
 
   len = strlen(str);
+  if (!len)
+    return;
   i = len - 1;
   
   while (((unsigned char)str[i] <= 32) && (i >= 0)) {
@@ -69,7 +71,7 @@ void xine_set_stream_info(xine_stream_t *stream, int info, int value) {
 }
 
 void xine_set_meta_info(xine_stream_t *stream, int info, const char *str) {
-  if(meta_valid(info)) {
+  if(str && meta_valid(info)) {
     if (stream->meta_info [info])
       free(stream->meta_info [info]);
     stream->meta_info [info] = strdup(str);
