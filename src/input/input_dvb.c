@@ -758,7 +758,11 @@ static int extract_channel_from_string(channel_t * channel,char * str,fe_type_t 
 			channel->front_param.u.qam.modulation = find_param(qam_list, field);
 		break;
 		case FE_OFDM:
-			channel->front_param.frequency = freq;
+  		        /* DVB-T frequency is in kHz - workaround broken channels.confs */
+  		        if (freq < 1000000) 
+  		          freq*=1000;
+		        
+		        channel->front_param.frequency = freq;
 
 			/* find out the inversion */
 			if(!(field = strsep(&tmp, ":")))return -1;
