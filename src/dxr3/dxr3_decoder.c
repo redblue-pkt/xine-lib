@@ -17,13 +17,34 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decoder.c,v 1.38 2001/11/24 11:52:19 mlampard Exp $
+ * $Id: dxr3_decoder.c,v 1.39 2001/11/25 20:21:25 hrm Exp $
  *
  * dxr3 video and spu decoder plugin. Accepts the video and spu data
  * from XINE and sends it directly to the corresponding dxr3 devices.
  * Takes precedence over the libmpeg2 and libspudec due to a higher
  * priority.
  * also incorporates an scr plugin for metronom
+ *
+ * update 25/11/01 by Harm:
+ * Major retooling; so much so that I've decided to cvs-tag the dxr3 sources
+ * as DXR3_095 before commiting.
+ * - major retooling of dxr3_decode_data; Mike Lampard's comments indicate
+ * that dxr3_decode_data is called once every 12 frames or so. This seems
+ * no longer true; we're in fact called on average more than once per frame.
+ * This gives us some interesting possibilities to lead metronom up the garden
+ * path (and administer it a healthy beating behind the toolshed ;-).
+ * Read the comments for details, but the short version is that we take a
+ * look at the scr clock to guestimate when we should call get_frame/draw/free.
+ * - renamed update_aspect to parse_mpeg_header.
+ * - replaced printing to stderr by stdout, following xine practice and
+ * to make it easier to write messages to a log.
+ * - replaced 6667 flag with proper define in dxr3_video_out.h
+ *
+ * The upshot of all this is that sync is a lot better now; I get good
+ * a/v sync within a few seconds of playing after start/seek. I also
+ * get a lot of "throwing away frame..." messages, especially just
+ * after start/seek, but those are relatively harmless. (I guess we
+ * call img->draw a tad too often).
  */
 
 
@@ -44,6 +65,9 @@
 #include "buffer.h"
 #include "xine-engine/bswap.h"
 
+/* for DXR3_VO_UPDATE_FLAG */
+#include "dxr3_video_out.h"
+
 #define LOOKUP_DEV "dxr3.devicename"
 #define DEFAULT_DEV "/dev/em8300"
 static char *devname;
@@ -61,6 +85,7 @@ typedef struct dxr3_decoder_s {
 	int fd_control;
 	int fd_video;
 	int last_pts;
+	int last_scr;
 	scr_plugin_t *scr;
 	int scr_prio;
 	int width;
@@ -84,12 +109,12 @@ static void dxr3_presence_test()
 	dxr3_ok = 0;
 	
 	if ((fd = open(devname, O_WRONLY))<0) {
-		fprintf(stderr, "dxr3: not detected (%s: %s)\n",
+		printf("dxr3: not detected (%s: %s)\n",
 			devname, strerror(errno));
 		return;
 	}
 	if (ioctl(fd, EM8300_IOCTL_GET_AUDIOMODE, &val)<0) {
-		fprintf(stderr, "dxr3: ioctl failed (%s)\n", strerror(errno));
+		printf("dxr3: ioctl failed (%s)\n", strerror(errno));
 		return;
 	}
 	close(fd);
@@ -176,10 +201,10 @@ static int dxr3scr_set_speed (scr_plugin_t *scr, int speed) {
 		scanning_mode=0;
 
 	if(dxr3_mvcommand(self->fd_control,playmode))
-		fprintf(stderr, "dxr3scr: failed to playmode (%s)\n", strerror(errno));
+		printf("dxr3scr: failed to playmode (%s)\n", strerror(errno));
 		
 	if (ioctl(self->fd_control, EM8300_IOCTL_SCR_SETSPEED, &em_speed))
-		fprintf(stderr, "dxr3scr: failed to set speed (%s)\n", strerror(errno));
+		printf("dxr3scr: failed to set speed (%s)\n", strerror(errno));
 
 	return speed;
 }
@@ -195,7 +220,7 @@ static void dxr3scr_adjust (scr_plugin_t *scr, uint32_t vpts) {
 	vpts >>= 1;
 
 	if (ioctl(self->fd_control, EM8300_IOCTL_SCR_SET, &vpts))
-		fprintf(stderr, "dxr3scr: adjust failed (%s)\n", strerror(errno));
+		printf("dxr3scr: adjust failed (%s)\n", strerror(errno));
 
 }
 
@@ -209,7 +234,7 @@ static void dxr3scr_start (scr_plugin_t *scr, uint32_t start_vpts) {
 	start_vpts >>= 1;
 
 	if (ioctl(self->fd_control, EM8300_IOCTL_SCR_SET, &start_vpts))
-		fprintf(stderr, "dxr3scr: start failed (%s)\n", strerror(errno));
+		printf("dxr3scr: start failed (%s)\n", strerror(errno));
 	/* mis-use start_vpts */
 	start_vpts = 0x900;
 	ioctl(self->fd_control, EM8300_IOCTL_SCR_SETSPEED, &start_vpts);
@@ -226,7 +251,7 @@ static uint32_t dxr3scr_get_current (scr_plugin_t *scr) {
 	uint32_t pts;
 
 	if (ioctl(self->fd_control, EM8300_IOCTL_SCR_GET, &pts))
-		fprintf(stderr, "dxr3scr: get current failed (%s)\n", strerror(errno));
+		printf("dxr3scr: get current failed (%s)\n", strerror(errno));
 
 	return pts << 1;
 }
@@ -249,7 +274,7 @@ static scr_plugin_t* dxr3scr_init (dxr3_decoder_t *dxr3) {
 	self->scr.get_current       = dxr3scr_get_current;
 
 	if ((self->fd_control = open (devname, O_WRONLY)) < 0) {
-		fprintf(stderr, "dxr3scr: Failed to open control device %s (%s)\n",
+		printf("dxr3scr: Failed to open control device %s (%s)\n",
 		 devname, strerror(errno));
 		return NULL;
 	}
@@ -276,13 +301,13 @@ static void dxr3_init (video_decoder_t *this_gen, vo_instance_t *video_out)
 	/* open video device */
 	snprintf (tmpstr, sizeof(tmpstr), "%s_mv", devname);
 	if ((this->fd_video = open (tmpstr, O_WRONLY)) < 0) {
-		fprintf(stderr, "dxr3: Failed to open video device %s (%s)\n",
+		printf("dxr3: Failed to open video device %s (%s)\n",
 		 tmpstr, strerror(errno));
 		return;
 	}
 
 	if ((this->fd_control = open (devname, O_WRONLY)) < 0) {
-		fprintf(stderr, "dxr3: Failed to open control device %s (%s)\n",
+		printf("dxr3: Failed to open control device %s (%s)\n",
 		 devname, strerror(errno));
 		return;
 	}
@@ -296,19 +321,25 @@ static void dxr3_init (video_decoder_t *this_gen, vo_instance_t *video_out)
 	this->video_decoder.metronom->register_scr(
 	 this->video_decoder.metronom, this->scr);
 
+	if (this->video_decoder.metronom->scr_master == this->scr) {
+		printf("dxr3: dxr3scr plugin is master\n");
+	}
+	else {
+		printf("dxr3: dxr3scr plugin is NOT master\n");
+	}
 	/* dxr3_init is called while the master scr already runs.
 	   therefore the scr must be started here */
 	this->scr->start(this->scr, 0);
 }
 
 
-/* *** find_aspect ***
+/* *** parse_mpeg_header ***
    Does a partial parse of the mpeg buffer, extracting information such as
    frame width & height, aspect ratio, and framerate, and sends it to the 
    video_out plugin via get_frame 
 */
 #define HEADER_OFFSET 4
-static void find_aspect(dxr3_decoder_t *this, uint8_t * buffer)
+static void parse_mpeg_header(dxr3_decoder_t *this, uint8_t * buffer)
 {
 	/* only carry on if we have a legitimate mpeg header... */
 	if (buffer[1]==0 && buffer[0]==0 && buffer[2]==1 && buffer[3]==0xb3) {
@@ -353,6 +384,10 @@ static void find_aspect(dxr3_decoder_t *this, uint8_t * buffer)
 			this->duration=1509;
 			break;
 		default:
+			/* only print this warning once */
+			if (this->duration != 3600) {
+				printf("dxr3: warning: unknown frame rate code %d: using PAL\n", framecode);
+			}
 			this->duration=3600;  /* PAL 25fps */
 			break;
 		}
@@ -362,9 +397,12 @@ static void find_aspect(dxr3_decoder_t *this, uint8_t * buffer)
 		if (old_h!=this->height || old_w!=this->width || old_a!=this->aspect)
 		{
 			vo_frame_t *img;
+			/* call with flags=DXR3_VO_UPDATE_FLAG, so that the 
+			   dxr3 vo driver will update sizes and aspect ratio */
 			img = this->video_out->get_frame(this->video_out,
 				 this->width,this->height,this->aspect,
-				 IMGFMT_YV12, this->duration, 6667);  /* dxr3_decoder = 6667 */
+				 IMGFMT_YV12, this->duration, 
+				 DXR3_VO_UPDATE_FLAG); 
 			img->free(img);				 
 		}
 	}
@@ -378,7 +416,7 @@ static void find_aspect(dxr3_decoder_t *this, uint8_t * buffer)
 static void dxr3_flush (video_decoder_t *this_gen) 
 {
 	dxr3_decoder_t *this = (dxr3_decoder_t *) this_gen;
-	fprintf(stderr,"dxr3_decoder: flushing\n");
+	printf("dxr3_decoder: flushing\n");
 	dxr3_mvcommand(this->fd_control, 0x11); 
 }
 
@@ -387,57 +425,94 @@ static void dxr3_decode_data (video_decoder_t *this_gen, buf_element_t *buf)
 {
 	dxr3_decoder_t *this = (dxr3_decoder_t *) this_gen;
 	ssize_t written;
-	int x;
+	int vpts;
+        vo_frame_t *img;
 	
 	/* The dxr3 does not need the preview-data */
-	if (buf->decoder_info[0] == 0) return;
+	if (buf->decoder_info[0] == 0) {
+		return;
+	}
 
-	/* A buffer type of BUF_VIDEO_FILL is used when still frames are 
-	   required (after an initial frame is sent for display, BUF_VIDEO_FILL
-	   grabs and re-displays the last frame) - the dxr3 doesn't
-	   require this functionality, but for interoperability purposes
+	/* examine mpeg header, if this buffer's contents has one, and
+	   send an update message to the dxr3 vo driver if needed */
+	parse_mpeg_header(this, buf->content);	
+
+	/* not sure if this is supposed to ever happen, but 
+	   checking is cheap enough... */	
+	if (buf->SCR < this->last_scr) { /* wrapped ? */
+		this->last_scr = buf->SCR; 
+	}
+
+	/* Now try to make metronom happy by calling get_frame,draw,free.
+	   There are two conditions when we need to do this:
+	   (1) Normal mpeg decoding; we want to make the calls for each
+	   frame, but the problem is that dxr3_decode_data is called more 
+	   frequently than once per frame (not sure why). We'd have to analyse
+	   the mpeg data to find out whether or not a new frame should be
+	   announced. That defeats the point of hardware mpeg decoding
+	   somewhat, so we'll just look at the clock value; if the time
+	   elapsed since the previous image get_frame/draw/free trio is
+	   more than the frame's duration, we draw. 
+	   (2) Still pictures; A buffer type of BUF_VIDEO_FILL is used 
+	   when still frames are required (after an initial frame is sent 
+	   for display, BUF_VIDEO_FILL grabs and re-displays the last frame) 
+	   the dxr3 doesn't require this functionality (just do nothing and
+	   the last frame will stick), but for interoperability purposes
 	   this plugin must implement it in order to override xine's 
-	   builtin version - this also allows metronom to keep its
-	   idea of pts in sync with reality during still frames */
-	if(buf->type == BUF_VIDEO_FILL) {
-	    	vo_frame_t *img;
-	    	img = this->video_out->get_frame (this->video_out,
+	   builtin version - so we just pretend to be outputting the same
+	   old frame at the correct frame rate.  
+	*/
+	vpts = 0;
+	if ( buf->SCR >= this->last_scr + this->duration || /* time to draw */
+	     buf->type==BUF_VIDEO_FILL) /* static picture; always draw */
+	{ 
+    		img = this->video_out->get_frame (this->video_out,
                              this->width,
                              this->height,
                              this->aspect,
                              IMGFMT_YV12,
                              this->duration,
                              VO_BOTH_FIELDS);
-		img->PTS=0;
+		/* copy PTS and SCR from buffer to img, img->draw uses them */
+		img->PTS=buf->PTS;
+		img->SCR=buf->SCR;
+		/* draw calls metronom->got_video_frame with img pts and scr
+		   and stores the return value back in img->PTS
+		   Calling draw with buf->PTS==0 is okay; metronome will
+		   extrapolate a value. */
 	        img->draw(img);
-	 	img->free(img);
+		vpts = img->PTS; /* copy so we can free img */
+		/* store at what time we called draw last */
+		this->last_scr = img->SCR;
+		img->free(img);
+		vpts = this->video_decoder.metronom->got_video_frame(
+		 this->video_decoder.metronom, buf->PTS, buf->SCR );
+	}
+
+	/* for stills we're done now */
+	if(buf->type == BUF_VIDEO_FILL) {
 		return;
 	}
 
-	/* Each buffer has (at least 1) PTS value associated with it.  
-	   From my testing a buffer contains around 12-13 frames, and 
-	   is sent here every .5 seconds or so...*/
-	if (buf->PTS) {
-		long vpts;
-
-		/* receive an updated (perhaps interpolated) pts value
-		   from metronom... This function is apparently meant to
-		   be called for _every_ frame, with or without a pts.
-		   ie. if the frame PTS is unknown, a value of zero
-		   should be sent, and metronom will send an interpolated
-		   value... this function (dxr3_decode_data), is only called 
-		   every 12-13 frames... perhaps we need to create another
-		   thread that automatically calls got_video_frame every
-		   nth of a second??? */
-		   
+	/* Every once in a while a buffer has a PTS value associated with it.  
+	   From my testing, once around every 12-13 frames, the 
+	   buf->PTS is non-zero, which is around every .5 seconds or so...
+	   If vpts is non-zero, we already called img->draw which in 
+	   turn has called got_video_frame, so we have vpts already */
+	if (buf->PTS && vpts == 0) {
+		/* receive an updated pts value from metronom... */
 		vpts = this->video_decoder.metronom->got_video_frame(
 		 this->video_decoder.metronom, buf->PTS, buf->SCR );
-		if (this->last_pts < vpts)
-		{
-			this->last_pts = vpts;
-			/* update the dxr3's current pts value */	
-			if (ioctl(this->fd_video, EM8300_IOCTL_VIDEO_SETPTS, &vpts))
-				fprintf(stderr, "dxr3: set video pts failed (%s)\n",
+	}
+	/* Now that we have a PTS value from the stream, not a metronom
+	   interpolated one, it's a good time to make sure the dxr3 pts
+           is in sync. Checking every 0.5 seconds should be enough... */
+	if (buf->PTS && this->last_pts < vpts)
+	{
+		this->last_pts = vpts;
+		/* update the dxr3's current pts value */	
+		if (ioctl(this->fd_video, EM8300_IOCTL_VIDEO_SETPTS, &vpts)) {
+				printf("dxr3: set video pts failed (%s)\n",
 				 strerror(errno));
 		}
 	}
@@ -446,19 +521,18 @@ static void dxr3_decode_data (video_decoder_t *this_gen, buf_element_t *buf)
 	if(this->enhanced_mode && !scanning_mode)
 		dxr3_mvcommand(this->fd_control, 6);
 	
+	/* now write the content to the dxr3 mpeg device and, in a dramatic
+	   break with open source tradition, check the return value */
 	written = write(this->fd_video, buf->content, buf->size);
 	if (written < 0) {
-		fprintf(stderr, "dxr3: video device write failed (%s)\n",
+		printf("dxr3: video device write failed (%s)\n",
 		 strerror(errno));
 		return;
 	}
-	
 	if (written != buf->size)
-		fprintf(stderr, "dxr3: Could only write %d of %d video bytes.\n",
+		printf("dxr3: Could only write %d of %d video bytes.\n",
 		 written, buf->size);
 
-	/* run the header parser here... otherwise the dxr3 tends to block... */
-	find_aspect(this, buf->content);	
 }
 
 static void dxr3_close (video_decoder_t *this_gen)
@@ -553,7 +627,7 @@ static void spudec_init (spu_decoder_t *this_gen, vo_instance_t *vo_out)
 	/* open spu device */
 	snprintf (tmpstr, sizeof(tmpstr), "%s_sp", devname);
 	if ((this->fd_spu = open (tmpstr, O_WRONLY)) < 0) {
-		fprintf(stderr, "dxr3: Failed to open spu device %s (%s)\n",
+		printf("dxr3: Failed to open spu device %s (%s)\n",
 		 tmpstr, strerror(errno));
 		return;
 	}
@@ -579,7 +653,7 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf, uin
 		if (buf->content[0] == 0)  /* cheap endianess detection */
 			swab_clut((int*)buf->content);
 		if (ioctl(this->fd_spu, EM8300_IOCTL_SPU_SETPALETTE, buf->content))
-			fprintf(stderr, "dxr3: failed to set CLUT (%s)\n", strerror(errno));
+			printf("dxr3: failed to set CLUT (%s)\n", strerror(errno));
 		return;
 	}
 
@@ -603,19 +677,19 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf, uin
 		 (this->spu_decoder.metronom, buf->PTS, 0, buf->SCR);
 
 		if (ioctl(this->fd_spu, EM8300_IOCTL_SPU_SETPTS, &vpts))
-			fprintf(stderr, "dxr3: spu setpts failed (%s)\n", strerror(errno));
+			printf("dxr3: spu setpts failed (%s)\n", strerror(errno));
 	}
 
         if (this->xine->spu_channel != stream_id && this->menu!=1 ) return; 
 
 	written = write(this->fd_spu, buf->content, buf->size);
 	if (written < 0) {
-		fprintf(stderr, "dxr3: spu device write failed (%s)\n",
+		printf("dxr3: spu device write failed (%s)\n",
 		 strerror(errno));
 		return;
 	}
 	if (written != buf->size)
-		fprintf(stderr, "dxr3: Could only write %d of %d spu bytes.\n",
+		printf("dxr3: Could only write %d of %d spu bytes.\n",
 		 written, buf->size);
 }
 
@@ -656,7 +730,7 @@ static void spudec_event_listener (void *this_gen, xine_event_t *event_gen) {
       btn.bottom = but->bottom;
       
       if (ioctl(this->fd_spu, EM8300_IOCTL_SPU_BUTTON, &btn))
-	fprintf(stderr, "dxr3: failed to set spu button (%s)\n",
+	printf("dxr3: failed to set spu button (%s)\n",
 		strerror(errno));
     }
     break;
@@ -669,7 +743,7 @@ static void spudec_event_listener (void *this_gen, xine_event_t *event_gen) {
 #endif
       
       if (ioctl(this->fd_spu, EM8300_IOCTL_SPU_SETPALETTE, clut->clut))
-	fprintf(stderr, "dxr3: failed to set CLUT (%s)\n",
+	printf("dxr3: failed to set CLUT (%s)\n",
 		strerror(errno));
     }
     break;

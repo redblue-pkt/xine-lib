@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_video_out.h,v 1.6 2001/11/19 17:07:15 mlampard Exp $
+ * $Id: dxr3_video_out.h,v 1.7 2001/11/25 20:21:25 hrm Exp $
  *
  */
 
@@ -53,6 +53,10 @@
 
 #define LOOKUP_DEV "dxr3.devicename"
 #define DEFAULT_DEV "/dev/em8300"
+
+/* flag for video_out->get_frame, to tell dxr3 vo to update
+   image size and aspect ratio */
+#define DXR3_VO_UPDATE_FLAG 6667
 
 struct coeff {
     	float 	k,m;

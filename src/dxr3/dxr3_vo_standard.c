@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_vo_standard.c,v 1.6 2001/11/19 15:06:12 mlampard Exp $
+ * $Id: dxr3_vo_standard.c,v 1.7 2001/11/25 20:21:25 hrm Exp $
  *
  *******************************************************************
  * Dummy video out plugin for the dxr3. Is responsible for setting *
@@ -117,7 +117,7 @@ static void dxr3_update_frame_format (vo_driver_t *this_gen,
         frame->height = height;
         frame->format = format;
 
-	if(flags == 6667){  		/* dxr3 flag anyone? :) */
+	if(flags == DXR3_VO_UPDATE_FLAG){ /* dxr3 flag anyone? :) */
 		int aspect;
 		this->video_width  = width;
 		this->video_height = height;
