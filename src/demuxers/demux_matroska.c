@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_matroska.c,v 1.8 2004/01/10 21:42:04 mroi Exp $
+ * $Id: demux_matroska.c,v 1.9 2004/01/11 04:49:34 tmmm Exp $
  *
  * demultiplexer for matroska streams
  *
@@ -1546,7 +1546,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   demux_matroska_t *this;
   ebml_parser_t    *ebml = NULL;
 
-  lprintf("trying to open %s...\n", input->get_mrl(input));
+//  lprintf("trying to open %s...\n", input->get_mrl(input));
 
   switch (stream->content_detection_method) {
 
