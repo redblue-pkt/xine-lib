@@ -24,7 +24,7 @@ libxineutils_la_SOURCES = $(pppc_files) \
 	xmllexer.c \
 	xmlparser.c 
 
-libxineutils_la_LIBADD = $(THREAD_LIBS)
+libxineutils_la_LIBADD = $(THREAD_LIBS) -L/usr/X11R6/lib -lX11
 
 
 include_HEADERS = attributes.h \
