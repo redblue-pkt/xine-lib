@@ -4,7 +4,7 @@
  * Copyright (C) Christian Vogler 
  *               cvogler@gradient.cis.upenn.edu - December 2001
  *
- * This file is part of xine, a unix video player.
+ * This file is part of xine, a free video player.
  * 
  * xine is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,7 +20,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: cc_decoder.h,v 1.4 2002/03/11 12:31:26 guenter Exp $
+ * $Id: cc_decoder.h,v 1.5 2002/03/31 23:14:48 cvogler Exp $
  *
  * stuff needed to provide closed captioning decoding and display
  *
@@ -32,6 +32,9 @@
 typedef struct cc_decoder_s cc_decoder_t;
 typedef struct cc_renderer_s cc_renderer_t;
 
+#define NUM_CC_PALETTES 2
+extern char *cc_schemes[NUM_CC_PALETTES + 1];
+
 #define CC_FONT_MAX 256
 
 typedef struct cc_config_s {
@@ -41,6 +44,7 @@ typedef struct cc_config_s {
   char italic_font[CC_FONT_MAX];   /* italic captioning font & size */
   int center;                 /* true if captions should be centered */
                               /* according to text width */
+  int cc_scheme;              /* which captioning scheme to use */
 
   /* the following variables are not controlled by configuration files; they */
   /* are intrinsic to the properties of the configuration options and the */

@@ -20,7 +20,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: cc_decoder.c,v 1.13 2002/03/30 20:11:34 cvogler Exp $
+ * $Id: cc_decoder.c,v 1.14 2002/03/31 23:14:48 cvogler Exp $
  *
  * stuff needed to provide closed captioning decoding and display
  *
@@ -77,12 +77,12 @@ static int text_colormap[NUM_FG_COL] = {
 };
 
 
-/* text colors */
+/* -------------------- caption text colors -----------------------------*/
 /* FIXME: The colors look fine on an XShm display, but they look *terrible*
    with the Xv display on the NVidia driver on a GeForce 3. The colors bleed
-   into each other. Not sure at this moment whether the YUV values
-   may be off, whether it is a bug in the NVidia Xv driver, or whether
-   it is a bug in the blending functions.
+   into each other more than I'd expect from the downsampling into YUV
+   colorspace. 
+   At this moment, it looks like a problem in the Xv YUV blending functions.
 */
 typedef struct colorinfo_s {
   clut_t bgcol;           /* text background color */
@@ -194,7 +194,6 @@ static colorinfo_t cc_text_solid[NUM_FG_COL] = {
 };
 
 
-
 static uint8_t cc_text_trans_alpha[TEXT_PALETTE_SIZE] = {
   0, 8, 9, 10, 11, 12, 15, 15, 15, 15, 15
 };
@@ -203,9 +202,25 @@ static uint8_t cc_text_solid_alpha[TEXT_PALETTE_SIZE] = {
   0, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15
 };
 
-/* caption palette and alpha channel */
-static uint32_t cc_palette[OVL_PALETTE_SIZE];
-static uint8_t cc_trans[OVL_PALETTE_SIZE];
+
+static colorinfo_t *cc_text_palettes[NUM_CC_PALETTES] = {
+  cc_text_trans,
+  cc_text_solid
+};
+
+static uint8_t *cc_alpha_palettes[NUM_CC_PALETTES] = {
+  cc_text_trans_alpha,
+  cc_text_solid_alpha
+};
+
+
+char *cc_schemes[NUM_CC_PALETTES + 1] = {
+  "White/Gray/Translucent",
+  "White/Black/Solid",
+  NULL
+};
+
+/* --------------------- misc. EIA 608 definitions -------------------*/
 
 #define TRANSP_SPACE 0x19   /* code for transparent space, essentially 
 			       arbitrary */
@@ -264,6 +279,10 @@ struct cc_renderer_s {
   */
   int64_t last_hide_vpts;
      
+  /* caption palette and alpha channel */
+  uint32_t cc_palette[OVL_PALETTE_SIZE];
+  uint8_t cc_trans[OVL_PALETTE_SIZE];
+
   metronom_t *metronom;       /* the active xine metronom */
 
   cc_config_t *cc_cfg;        /* captioning configuration */
@@ -439,48 +458,9 @@ static clut_t interpolate_color(clut_t src, clut_t dest, int steps,
   return res;
 }
 
-static void build_palette(void)
-{
-  int i, j;
-
-  memset(cc_palette, 0, sizeof (cc_palette));
-  memset(cc_trans, 0, sizeof (cc_trans));
-  for (i = 0; i < NUM_FG_COL; i++) {
-    /* background color */
-    cc_palette[i * TEXT_PALETTE_SIZE + 1 + OSD_TEXT1] =
-      *(uint32_t *) &cc_text_trans[i].bgcol;
-    /* background -> border */
-    for (j = 2; j <= 5; j++) {
-      clut_t col = interpolate_color(cc_text_trans[i].bgcol,
-				     cc_text_trans[i].bordercol, 4, j - 1);
-      cc_palette[i * TEXT_PALETTE_SIZE + j + OSD_TEXT1] =
-	*(uint32_t *) &col;
-    }
-    /* border color */
-    cc_palette[i * TEXT_PALETTE_SIZE + 6 + OSD_TEXT1] =
-      *(uint32_t *) &cc_text_trans[i].bordercol;
-    /* border -> foreground */
-    for (j = 7; j <= 9; j++) {
-      clut_t col = interpolate_color(cc_text_trans[i].bordercol,
-				     cc_text_trans[i].textcol, 3, j - 6);
-      cc_palette[i * TEXT_PALETTE_SIZE + j + OSD_TEXT1] =
-	*(uint32_t *) &col;
-    }
-    /* foreground color */
-    cc_palette[i * TEXT_PALETTE_SIZE + 10 + OSD_TEXT1] =
-      *(uint32_t *) &cc_text_trans[i].textcol;
-
-    /* alpha values */
-    for (j = 0; j <= 10; j++)
-      cc_trans[i * TEXT_PALETTE_SIZE + j + OSD_TEXT1] = cc_text_trans_alpha[j];
-  }
-}
-
-
 /*----------------- cc_row_t methods --------------------------------*/
 
-static void ccrow_fill_transp(cc_row_t *rowbuf)
-{
+static void ccrow_fill_transp(cc_row_t *rowbuf){
   int i;
 
 #ifdef LOG_DEBUG
@@ -805,6 +785,46 @@ static void ccmem_exit(cc_memory_t *this)
 
 /*----------------- cc_renderer_t methods -------------------------------*/
 
+static void cc_renderer_build_palette(cc_renderer_t *this)
+{
+  int i, j;
+  colorinfo_t *cc_text = cc_text_palettes[this->cc_cfg->cc_scheme];
+  uint8_t *cc_alpha = cc_alpha_palettes[this->cc_cfg->cc_scheme];
+  
+  memset(this->cc_palette, 0, sizeof (this->cc_palette));
+  memset(this->cc_trans, 0, sizeof (this->cc_trans));
+  for (i = 0; i < NUM_FG_COL; i++) {
+    /* background color */
+    this->cc_palette[i * TEXT_PALETTE_SIZE + 1 + OSD_TEXT1] =
+      *(uint32_t *) &cc_text[i].bgcol;
+    /* background -> border */
+    for (j = 2; j <= 5; j++) {
+      clut_t col = interpolate_color(cc_text[i].bgcol,
+				     cc_text[i].bordercol, 4, j - 1);
+      this->cc_palette[i * TEXT_PALETTE_SIZE + j + OSD_TEXT1] =
+	*(uint32_t *) &col;
+    }
+    /* border color */
+    this->cc_palette[i * TEXT_PALETTE_SIZE + 6 + OSD_TEXT1] =
+      *(uint32_t *) &cc_text[i].bordercol;
+    /* border -> foreground */
+    for (j = 7; j <= 9; j++) {
+      clut_t col = interpolate_color(cc_text[i].bordercol,
+				     cc_text[i].textcol, 3, j - 6);
+      this->cc_palette[i * TEXT_PALETTE_SIZE + j + OSD_TEXT1] =
+	*(uint32_t *) &col;
+    }
+    /* foreground color */
+    this->cc_palette[i * TEXT_PALETTE_SIZE + 10 + OSD_TEXT1] =
+      *(uint32_t *) &cc_text[i].textcol;
+
+    /* alpha values */
+    for (j = 0; j <= 10; j++)
+      this->cc_trans[i * TEXT_PALETTE_SIZE + j + OSD_TEXT1] = cc_alpha[j];
+  }
+}
+
+
 static int64_t cc_renderer_calc_vpts(cc_renderer_t *this, int64_t pts,
 				      uint32_t ntsc_frame_offset)
 {
@@ -880,7 +900,8 @@ static void cc_renderer_adjust_osd_object(cc_renderer_t *this)
   this->cap_display = this->osd_renderer->new_object(this->osd_renderer,
 						     this->width,
 						     this->height);
-  this->osd_renderer->set_palette(this->cap_display, cc_palette, cc_trans);
+  this->osd_renderer->set_palette(this->cap_display, this->cc_palette,
+				  this->cc_trans);
 }
 
 
@@ -920,6 +941,9 @@ void cc_renderer_update_cfg(cc_renderer_t *this_obj, int video_width,
 
   this_obj->video_width = video_width;
   this_obj->video_height = video_height;
+
+  /* fill in text palette */
+  cc_renderer_build_palette(this_obj);
 
   /* calculate preferred captioning area, as per the EIA-608 standard */
   this_obj->x =  this_obj->video_width * 10 / 100;
@@ -1443,6 +1467,5 @@ void cc_decoder_init(void)
 {
   build_parity_table();
   build_char_table();
-  build_palette();
 }
 

@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 2000-2002 the xine project
  * 
- * This file is part of xine, a unix video player.
+ * This file is part of xine, a free video player.
  * 
  * xine is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.5 2002/03/11 12:31:26 guenter Exp $
+ * $Id: xine_decoder.c,v 1.6 2002/03/31 23:14:48 cvogler Exp $
  *
  * closed caption spu decoder. receive data by events. 
  *
@@ -33,9 +33,9 @@
 #include "xineutils.h"
 #include "cc_decoder.h"
 
-
+/*
 #define LOG_DEBUG 1
-
+*/
 
 typedef struct spucc_decoder_s {
   spu_decoder_t      spu_decoder;
@@ -116,7 +116,6 @@ static void spucc_do_init (spucc_decoder_t *this, vo_instance_t *vo_out)
 					     this->video_width,
 					     this->video_height);
     spucc_update_intrinsics(this);
-
     /* initialize CC decoder */
     this->ccdec = cc_decoder_open(&this->cc_cfg);
     this->cc_open = 1;
@@ -145,6 +144,23 @@ static void spucc_cfg_enable_change(void *this_gen, cfg_entry_t *value)
 	 "enabled" : "disabled");
 #endif
 
+  pthread_mutex_unlock(&this->cc_mutex);
+}
+
+
+static void spucc_cfg_scheme_change(void *this_gen, cfg_entry_t *value)
+{
+  spucc_decoder_t *this = (spucc_decoder_t *) this_gen;
+  cc_config_t *cc_cfg = &this->cc_cfg;
+
+  pthread_mutex_lock(&this->cc_mutex);
+
+  cc_cfg->cc_scheme = value->num_value;
+#ifdef LOG_DEBUG
+  printf("spucc: closed captioning scheme is now %s.\n",
+	 cc_schemes[cc_cfg->cc_scheme]);
+#endif
+  spucc_update_intrinsics(this);
   pthread_mutex_unlock(&this->cc_mutex);
 }
 
@@ -204,6 +220,13 @@ static void spucc_register_cfg_vars(spucc_decoder_t *this,
 						"Enable closed captions in MPEG-2 streams",
 						NULL, spucc_cfg_enable_change,
 						this);
+
+  cc_vars->cc_scheme = xine_cfg->register_enum(xine_cfg,
+					       "misc.cc_scheme", 0,
+					       cc_schemes,
+					       "Closed-captioning foreground/background scheme",
+					       NULL, spucc_cfg_scheme_change,
+					       this);
 
   copy_str(cc_vars->font, 
 	   xine_cfg->register_string(xine_cfg, "misc.cc_font", "cc",
