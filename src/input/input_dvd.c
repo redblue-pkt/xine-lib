@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.110 2002/11/01 17:51:57 mroi Exp $
+ * $Id: input_dvd.c,v 1.111 2002/11/02 03:13:44 f1rmb Exp $
  *
  */
 
@@ -1566,8 +1566,10 @@ static void *init_class (xine_t *xine, void *data) {
   void *dvdcss;
 
   trace_print("Called\n");
+#ifdef INPUT_DEBUG
   printf("input_dvd.c: init_class called.\n");
   printf("input_dvd.c: config = %p\n", config);
+#endif
 
   this = (dvd_input_class_t *) malloc (sizeof (dvd_input_class_t));
   
@@ -1662,13 +1664,18 @@ static void *init_class (xine_t *xine, void *data) {
 #ifdef __sun
   check_solaris_vold_device(this);
 #endif
+#ifdef INPUT_DEBUG
   printf("input_dvd.c: init_class finished.\n");
+#endif
   return this;
 }
 
 
 /*
  * $Log: input_dvd.c,v $
+ * Revision 1.111  2002/11/02 03:13:44  f1rmb
+ * Less verbosity.
+ *
  * Revision 1.110  2002/11/01 17:51:57  mroi
  * be less strict with MRL syntax, people are used to ://
  *
