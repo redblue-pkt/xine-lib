@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_elem.c,v 1.19 2001/09/10 03:04:48 guenter Exp $
+ * $Id: demux_elem.c,v 1.20 2001/10/03 15:08:06 jkeil Exp $
  *
  * demultiplexer for elementary mpeg streams
  * 
@@ -37,6 +37,10 @@
 #include "xine_internal.h"
 #include "monitor.h"
 #include "demux.h"
+
+#ifndef	__GNUC__
+#define	__FUNCTION__	__func__
+#endif
 
 #define NUM_PREVIEW_BUFFERS 50
 
