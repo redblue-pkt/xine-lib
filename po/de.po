@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: xine-lib 1.0.0\n"
-"POT-Creation-Date: 2003-04-06 16:13+0200\n"
+"POT-Creation-Date: 2003-04-08 19:47+0200\n"
 "PO-Revision-Date: 2003-03-14 08:53+0100\n"
 "Last-Translator: Philipp Hahn <pmhahn@users.sf.net>\n"
 "Language-Team: German <de@li.org>\n"
@@ -136,7 +136,7 @@ msgstr "Gültige MRLs für PES-Demultiplexer"
 msgid "valid mrls ending for pes demuxer"
 msgstr "Gültige MRL-Endungen für PES-Demultiplexer"
 
-#: src/demuxers/demux_ogg.c:390
+#: src/demuxers/demux_ogg.c:473
 msgid "ogg: vorbis audio track indicated but no vorbis stream header found.\n"
 msgstr "ogg: vorbis Tonspur erkannt, aber kein Heder im Datenstrom gefunden.\n"
 
@@ -148,7 +148,7 @@ msgstr "Ungültige Größe des FILM-Pakets\n"
 msgid "unrecognized FILM chunk\n"
 msgstr "Nicht erkanntes FILM-Paket\n"
 
-#: src/demuxers/demux_mpeg_block.c:302
+#: src/demuxers/demux_mpeg_block.c:297 src/demuxers/demux_mpeg_block.c:455
 msgid ""
 "demux_mpeg_block: too many errors, stopping playback. Maybe this stream is "
 "scrambled?\n"
@@ -156,7 +156,7 @@ msgstr ""
 "demux_mpeg_block: Zu viele Fehler, breche den Abspielvorgang ab. Ist dieser "
 "Datenstrom möglicherweise fehlerhaft ?\n"
 
-#: src/demuxers/demux_mpeg_block.c:417
+#: src/demuxers/demux_mpeg_block.c:450
 #, c-format
 msgid ""
 "demux_mpeg_block: warning: pes header indicates that this stream may be "
@@ -313,23 +313,23 @@ msgstr "Standardeingabe Streaming-Plugin"
 msgid "input_file: read error (%s)\n"
 msgstr "input_file: Lesefehler (%s)\n"
 
-#: src/input/input_file.c:440
+#: src/input/input_file.c:443
 msgid "file input plugin"
 msgstr "Datei Plugin"
 
-#: src/input/input_file.c:799
+#: src/input/input_file.c:802
 msgid "file browsing start location"
 msgstr "Startverzeichnis für Dateisuche"
 
-#: src/input/input_file.c:806
+#: src/input/input_file.c:809
 msgid "list hidden files"
 msgstr "Versteckte Dateien anzeigen"
 
-#: src/input/input_vcd.c:912
+#: src/input/input_vcd.c:913
 msgid "Video CD input plugin"
 msgstr "Video-CD Plugin"
 
-#: src/input/input_vcd.c:1141
+#: src/input/input_vcd.c:1083
 msgid "path to your local vcd device file"
 msgstr "Pfad zum lokalen VideoCD-Laufwerk"
 
@@ -405,7 +405,7 @@ msgstr "http Plugin"
 msgid "Buffering..."
 msgstr "Puffern..."
 
-#: src/libw32dll/w32codec.c:1500 src/libw32dll/w32codec.c:1572
+#: src/libw32dll/w32codec.c:1502 src/libw32dll/w32codec.c:1574
 msgid "path to win32 codec dlls"
 msgstr "Pfad zu win32-Codec-DLLs"
 
@@ -499,12 +499,12 @@ msgstr "xine Videoausgabe benutzt libvidix für Linux Framebuffer"
 msgid "NVidia TV-Out support."
 msgstr "Unterstützung für NVidia TV-Ausgang"
 
-#: src/xine-engine/video_out.c:416
+#: src/xine-engine/video_out.c:396
 #, c-format
 msgid "%d frames delivered, %d frames skipped, %d frames discarded\n"
 msgstr "%d Bilder angezeigt, %d Bilder übersprungen, %d Bilder verworfen\n"
 
-#: src/xine-engine/video_out.c:541
+#: src/xine-engine/video_out.c:510
 #, c-format
 msgid ""
 "video_out: throwing away image with pts %lld because it's too old (diff : %"
@@ -513,13 +513,13 @@ msgstr ""
 "video_out : Verwerfe Bild mit pts %lld, weil es zu alt ist (Unterschied: %"
 "lld).\n"
 
-#: src/xine-engine/video_out.c:1465
+#: src/xine-engine/video_out.c:1451
 #, c-format
 msgid "video_out: can't create thread (%s)\n"
 msgstr "video_out: Kann Thread (%s) nicht erzeugen\n"
 
 #. FIXME: how does this happen ?
-#: src/xine-engine/video_out.c:1468
+#: src/xine-engine/video_out.c:1454
 msgid "video_out: sorry, this should not happen. please restart xine.\n"
 msgstr ""
 "video_out : Ups, das sollte eigentlich nicht passieren, bitte xine "
@@ -552,7 +552,7 @@ msgstr "xine: Demultiplexer-Plugins startete nicht\n"
 msgid "xine_play: no demux available\n"
 msgstr "xine_play: Kein Demultiplexer vorhanden\n"
 
-#: src/xine-engine/xine.c:951
+#: src/xine-engine/xine.c:948
 msgid "xine_play: demux failed to start\n"
 msgstr "xine_play: Demultiplexer startete nicht\n"
 
@@ -564,11 +564,11 @@ msgstr "Nachrichten"
 msgid "plugin"
 msgstr "Plugin"
 
-#: src/xine-engine/audio_out.c:1591
+#: src/xine-engine/audio_out.c:1583
 msgid "choose method to sync audio and video"
 msgstr "Methode für Audio/Videosynchronisation wählen"
 
-#: src/xine-engine/audio_out.c:1592
+#: src/xine-engine/audio_out.c:1584
 msgid ""
 "'resample' might be better if you use a DXR3/H+ card and (analog) audio is "
 "processed by your sound card"
@@ -576,58 +576,58 @@ msgstr ""
 "'resample' kann besser sein, falls eine DXR3/H+ Karte verwendet wird und "
 "(analoges) Audio über die Soundkarte wiedergegeben wird"
 
-#: src/xine-engine/audio_out.c:1600
+#: src/xine-engine/audio_out.c:1592
 msgid "adjust whether resampling is done or not"
 msgstr "Audiofrequenz anpassen oder nicht"
 
-#: src/xine-engine/audio_out.c:1603
+#: src/xine-engine/audio_out.c:1595
 msgid "if !=0 always resample to given rate"
 msgstr "Wenn !=0, immer auf diese Frequenz anpassen"
 
-#: src/xine-engine/audio_out.c:1609
+#: src/xine-engine/audio_out.c:1601
 msgid "adjust if audio is offsync"
 msgstr "Anpassen, wenn Audio nicht synchron ist"
 
-#: src/xine-engine/audio_out.c:1656
+#: src/xine-engine/audio_out.c:1648
 msgid "Audio volume"
 msgstr "Lautstärke"
 
-#: src/xine-engine/audio_out.c:1660
+#: src/xine-engine/audio_out.c:1652
 msgid "restore volume level at startup"
 msgstr "Läustärke beim Starten wiederherstellen"
 
-#: src/xine-engine/audio_out.c:1661
+#: src/xine-engine/audio_out.c:1653
 msgid "if this not set, xine will not touch any mixer settings at startup"
 msgstr ""
 "Wenn nicht angewählte, wird xine die Lautstärke beim Starten unverändert "
 "lassen"
 
-#: src/xine-engine/osd.c:703
+#: src/xine-engine/osd.c:758
 msgid "osd: font isn't defined\n"
 msgstr ""
 
-#: src/xine-engine/osd.c:717
+#: src/xine-engine/osd.c:773
 msgid "osd: can't find out current locale character set\n"
 msgstr ""
 
-#: src/xine-engine/osd.c:729
+#: src/xine-engine/osd.c:785
 #, c-format
 msgid "osd: unsupported conversion %s -> UCS-2\n"
 msgstr ""
 
-#: src/xine-engine/osd.c:733
+#: src/xine-engine/osd.c:789
 msgid "osd: iconv_open() failed\n"
 msgstr ""
 
 #. unknown character or character wider than 16 bits, try skip one byte
-#: src/xine-engine/osd.c:749
+#: src/xine-engine/osd.c:805
 #, c-format
 msgid ""
 "osd: unknown sequence starting with byte 0x%02X in encoding \"%s\", "
 "skipping\n"
 msgstr ""
 
-#: src/xine-engine/osd.c:1019
+#: src/xine-engine/osd.c:1167
 msgid "Palette (foreground-border-background) to use on subtitles"
 msgstr "Farbpalette (Vordergrund,Rand,Hintergrund) für Untertitel"
 
@@ -821,25 +821,21 @@ msgstr "Zu überprüfende Divx-Version (Falls unsicher, Standardwert 0 belassen)"
 msgid "Memcopy method to use in xine for large data chunks."
 msgstr "Kopiermethode für große Datenbereiche."
 
-#: src/libsputext/xine_decoder.c:500
+#: src/libsputext/xine_decoder.c:419
 #, fuzzy
 msgid "font for external subtitles"
 msgstr "Zeichensatz für AVI-Untertitel"
 
-#: src/libsputext/xine_decoder.c:506
+#: src/libsputext/xine_decoder.c:425
 msgid "subtitle size (relative window size)"
 msgstr "Untertitelgröße (Relativ zu Fenstergröße)"
 
-#: src/libsputext/xine_decoder.c:512
+#: src/libsputext/xine_decoder.c:431
 #, fuzzy
 msgid "subtitle vertical offset (relative window size)"
 msgstr "Untertitelgröße (Relativ zu Fenstergröße)"
 
-#: src/libsputext/xine_decoder.c:523
-msgid "subtitle color"
-msgstr ""
-
-#: src/libsputext/xine_decoder.c:574
+#: src/libsputext/xine_decoder.c:477
 #, fuzzy
 msgid "encoding of subtitles"
 msgstr "Zeichenkodierung für Untertitel"

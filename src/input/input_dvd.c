@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2000-2002 the xine project, 
+ * Copyright (C) 2000-2003 the xine project, 
  *                         Rich Wareham <richwareham@users.sourceforge.net>
  * 
  * This file is part of xine, a free video player.
@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.150 2003/04/08 13:58:11 mroi Exp $
+ * $Id: input_dvd.c,v 1.151 2003/04/08 17:51:58 guenter Exp $
  *
  */
 
@@ -1580,6 +1580,9 @@ static void *init_class (xine_t *xine, void *data) {
 
 /*
  * $Log: input_dvd.c,v $
+ * Revision 1.151  2003/04/08 17:51:58  guenter
+ * beta10
+ *
  * Revision 1.150  2003/04/08 13:58:11  mroi
  * fix compilation problems
  *

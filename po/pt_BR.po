@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: xine-lib 0.9.13\n"
-"POT-Creation-Date: 2003-04-06 16:13+0200\n"
+"POT-Creation-Date: 2003-04-08 19:47+0200\n"
 "PO-Revision-Date: 2002-01-22 18:31GMT-3\n"
 "Last-Translator: Marcelo Roberto Jimenez <mroberto@cetuc.puc-rio.br>\n"
 "Language-Team: Portuguese (Brazilian) <pt_BR@li.org>\n"
@@ -134,7 +134,7 @@ msgstr ""
 msgid "valid mrls ending for pes demuxer"
 msgstr ""
 
-#: src/demuxers/demux_ogg.c:390
+#: src/demuxers/demux_ogg.c:473
 msgid "ogg: vorbis audio track indicated but no vorbis stream header found.\n"
 msgstr ""
 
@@ -146,7 +146,7 @@ msgstr ""
 msgid "unrecognized FILM chunk\n"
 msgstr ""
 
-#: src/demuxers/demux_mpeg_block.c:302
+#: src/demuxers/demux_mpeg_block.c:297 src/demuxers/demux_mpeg_block.c:455
 msgid ""
 "demux_mpeg_block: too many errors, stopping playback. Maybe this stream is "
 "scrambled?\n"
@@ -154,7 +154,7 @@ msgstr ""
 "demux_mpeg_block: excesso de erros, parando o playback. Talvez este stream "
 "esteja embaralhado?\n"
 
-#: src/demuxers/demux_mpeg_block.c:417
+#: src/demuxers/demux_mpeg_block.c:450
 #, c-format
 msgid ""
 "demux_mpeg_block: warning: pes header indicates that this stream may be "
@@ -311,24 +311,24 @@ msgstr "http network stream input plugin"
 msgid "input_file: read error (%s)\n"
 msgstr "input_file: erro de leitura (%s)\n"
 
-#: src/input/input_file.c:440
+#: src/input/input_file.c:443
 msgid "file input plugin"
 msgstr ""
 
-#: src/input/input_file.c:799
+#: src/input/input_file.c:802
 msgid "file browsing start location"
 msgstr ""
 
-#: src/input/input_file.c:806
+#: src/input/input_file.c:809
 msgid "list hidden files"
 msgstr ""
 
-#: src/input/input_vcd.c:912
+#: src/input/input_vcd.c:913
 #, fuzzy
 msgid "Video CD input plugin"
 msgstr "http network stream input plugin"
 
-#: src/input/input_vcd.c:1141
+#: src/input/input_vcd.c:1083
 msgid "path to your local vcd device file"
 msgstr ""
 
@@ -406,7 +406,7 @@ msgstr "http network stream input plugin"
 msgid "Buffering..."
 msgstr ""
 
-#: src/libw32dll/w32codec.c:1500 src/libw32dll/w32codec.c:1572
+#: src/libw32dll/w32codec.c:1502 src/libw32dll/w32codec.c:1574
 msgid "path to win32 codec dlls"
 msgstr ""
 
@@ -499,12 +499,12 @@ msgstr ""
 msgid "NVidia TV-Out support."
 msgstr ""
 
-#: src/xine-engine/video_out.c:416
+#: src/xine-engine/video_out.c:396
 #, c-format
 msgid "%d frames delivered, %d frames skipped, %d frames discarded\n"
 msgstr "%d quadros enviados, %d quadros pulados, %d quadros descartados\n"
 
-#: src/xine-engine/video_out.c:541
+#: src/xine-engine/video_out.c:510
 #, fuzzy, c-format
 msgid ""
 "video_out: throwing away image with pts %lld because it's too old (diff : %"
@@ -513,13 +513,13 @@ msgstr ""
 "video_out : descartando imagem com pts %d porque é muito velha (diff : %d > %"
 "d).\n"
 
-#: src/xine-engine/video_out.c:1465
+#: src/xine-engine/video_out.c:1451
 #, fuzzy, c-format
 msgid "video_out: can't create thread (%s)\n"
 msgstr "video_out : não consigo criar thread (%s)\n"
 
 #. FIXME: how does this happen ?
-#: src/xine-engine/video_out.c:1468
+#: src/xine-engine/video_out.c:1454
 #, fuzzy
 msgid "video_out: sorry, this should not happen. please restart xine.\n"
 msgstr ""
@@ -555,7 +555,7 @@ msgstr "xine_play: demuxer falhou em começar\n"
 msgid "xine_play: no demux available\n"
 msgstr "xine_play: demuxer falhou em começar\n"
 
-#: src/xine-engine/xine.c:951
+#: src/xine-engine/xine.c:948
 #, fuzzy
 msgid "xine_play: demux failed to start\n"
 msgstr "xine_play: demuxer falhou em começar\n"
@@ -568,66 +568,66 @@ msgstr "menssagens"
 msgid "plugin"
 msgstr "plugin"
 
-#: src/xine-engine/audio_out.c:1591
+#: src/xine-engine/audio_out.c:1583
 msgid "choose method to sync audio and video"
 msgstr ""
 
-#: src/xine-engine/audio_out.c:1592
+#: src/xine-engine/audio_out.c:1584
 msgid ""
 "'resample' might be better if you use a DXR3/H+ card and (analog) audio is "
 "processed by your sound card"
 msgstr ""
 
-#: src/xine-engine/audio_out.c:1600
+#: src/xine-engine/audio_out.c:1592
 msgid "adjust whether resampling is done or not"
 msgstr ""
 
-#: src/xine-engine/audio_out.c:1603
+#: src/xine-engine/audio_out.c:1595
 msgid "if !=0 always resample to given rate"
 msgstr ""
 
-#: src/xine-engine/audio_out.c:1609
+#: src/xine-engine/audio_out.c:1601
 msgid "adjust if audio is offsync"
 msgstr ""
 
-#: src/xine-engine/audio_out.c:1656
+#: src/xine-engine/audio_out.c:1648
 msgid "Audio volume"
 msgstr ""
 
-#: src/xine-engine/audio_out.c:1660
+#: src/xine-engine/audio_out.c:1652
 msgid "restore volume level at startup"
 msgstr ""
 
-#: src/xine-engine/audio_out.c:1661
+#: src/xine-engine/audio_out.c:1653
 msgid "if this not set, xine will not touch any mixer settings at startup"
 msgstr ""
 
-#: src/xine-engine/osd.c:703
+#: src/xine-engine/osd.c:758
 msgid "osd: font isn't defined\n"
 msgstr ""
 
-#: src/xine-engine/osd.c:717
+#: src/xine-engine/osd.c:773
 msgid "osd: can't find out current locale character set\n"
 msgstr ""
 
-#: src/xine-engine/osd.c:729
+#: src/xine-engine/osd.c:785
 #, c-format
 msgid "osd: unsupported conversion %s -> UCS-2\n"
 msgstr ""
 
-#: src/xine-engine/osd.c:733
+#: src/xine-engine/osd.c:789
 msgid "osd: iconv_open() failed\n"
 msgstr ""
 
 #. unknown character or character wider than 16 bits, try skip one byte
-#: src/xine-engine/osd.c:749
+#: src/xine-engine/osd.c:805
 #, c-format
 msgid ""
 "osd: unknown sequence starting with byte 0x%02X in encoding \"%s\", "
 "skipping\n"
 msgstr ""
 
-#: src/xine-engine/osd.c:1019
+#: src/xine-engine/osd.c:1167
 msgid "Palette (foreground-border-background) to use on subtitles"
 msgstr ""
 
@@ -816,23 +816,19 @@ msgstr ""
 msgid "Memcopy method to use in xine for large data chunks."
 msgstr ""
 
-#: src/libsputext/xine_decoder.c:500
+#: src/libsputext/xine_decoder.c:419
 msgid "font for external subtitles"
 msgstr ""
 
-#: src/libsputext/xine_decoder.c:506
+#: src/libsputext/xine_decoder.c:425
 msgid "subtitle size (relative window size)"
 msgstr ""
 
-#: src/libsputext/xine_decoder.c:512
+#: src/libsputext/xine_decoder.c:431
 msgid "subtitle vertical offset (relative window size)"
 msgstr ""
 
-#: src/libsputext/xine_decoder.c:523
-msgid "subtitle color"
-msgstr ""
-
-#: src/libsputext/xine_decoder.c:574
+#: src/libsputext/xine_decoder.c:477
 msgid "encoding of subtitles"
 msgstr ""
 
