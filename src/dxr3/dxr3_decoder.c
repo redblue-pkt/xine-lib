@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decoder.c,v 1.50 2001/12/23 04:27:33 hrm Exp $
+ * $Id: dxr3_decoder.c,v 1.51 2001/12/23 18:13:35 hrm Exp $
  *
  * dxr3 video and spu decoder plugin. Accepts the video and spu data
  * from XINE and sends it directly to the corresponding dxr3 devices.
@@ -61,6 +61,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <signal.h>
 
 #include <linux/soundcard.h>
 #include <linux/em8300.h>
@@ -109,6 +110,7 @@ typedef struct dxr3_decoder_s {
 	int enhanced_mode;
 	int have_header_info;
 	int in_buffer_fill;
+	pthread_t decoder_thread; /* reference to self */
 } dxr3_decoder_t;
 
 /* Function to check whether the dxr3 video out plugin is active.
@@ -353,6 +355,8 @@ static void dxr3_init (video_decoder_t *this_gen, vo_instance_t *video_out)
 	this->video_out = video_out;
 
 	this->last_pts = 0;
+	this->decoder_thread = pthread_self();
+
 	this->scr = dxr3scr_init(this);
 	this->video_decoder.metronom->register_scr(
 	 this->video_decoder.metronom, this->scr);
@@ -685,7 +689,15 @@ static void dxr3_update_sync_mode(void *this_gen, cfg_entry_t *entry)
 
 static void dxr3_flush_decoder(void *this_gen, cfg_entry_t *entry)
 {
+	/* dxr3_decoder_t *this = (dxr3_decoder_t*)this_gen; */
 	printf("dxr3: flush requested\n");
+/*
+	pthread_kill(this->decoder_thread, SIGINT);
+	if (this->fd_video >= 0) {
+		close(this->fd_video);
+		this->fd_video = -1;
+	}
+*/
 	dxr3_flush(this_gen);
 	/* reset to false, so it'll look like a button in the gui :-) */
 	entry->num_value = 0;	
@@ -729,7 +741,7 @@ video_decoder_t *init_video_decoder_plugin (int iface_version,
         
 	this->sync_every_frame = cfg->register_bool(cfg,
 		"dxr3.sync_every_frame", 
-		1, 
+		0, 
 		"Try to sync video every frame",
 		"This is relevant for progressive video only (most PAL films)",
 		dxr3_update_sync_mode, this);
