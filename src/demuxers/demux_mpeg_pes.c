@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_pes.c,v 1.7 2003/08/28 16:42:09 jcdutton Exp $
+ * $Id: demux_mpeg_pes.c,v 1.8 2003/09/05 00:12:04 jcdutton Exp $
  *
  * demultiplexer for mpeg 2 PES (Packetized Elementary Streams)
  * reads streams of variable blocksizes
@@ -216,7 +216,6 @@ static void demux_mpeg_pes_parse_pack (demux_mpeg_pes_t *this, int preview_mode)
     }
 
   }
-
     this->stream_id  = p[3];
     if (this->stream_id == 0xBA) {
       this->wait_for_program_stream_pack_header=0;
@@ -232,11 +231,14 @@ static void demux_mpeg_pes_parse_pack (demux_mpeg_pes_t *this, int preview_mode)
       buf->free_buffer (buf);
       return;
     }
+#if 0
+    /* FIXME: #if 0 while trying to detect mpeg1 in parse_pes_for_pts() */
     if (this->wait_for_program_stream_pack_header==1) {
       /* Wait until this->mpeg1 has been initialised. */
       buf->free_buffer (buf);
       return;
     }
+#endif
 
     this->packet_len = p[4] << 8 | p[5];
 #ifdef LOG
@@ -597,6 +599,14 @@ static int32_t parse_pes_for_pts(demux_mpeg_pes_t *this, uint8_t *p, buf_element
   if (this->rate && !buf->extra_info->input_time)
     buf->extra_info->input_time = (int)((int64_t)buf->extra_info->input_pos 
                                         * 1000 / (this->rate * 50));
+
+  /* FIXME: This was determined by comparing a single MPEG1 and a single MPEG2 stream */
+  if ((p[6] & 0xC0) != 0x80) {
+    this->mpeg1 = 1;
+  } else {
+    this->mpeg1 = 0;
+  }
+
   if (this->mpeg1) {
     header_len = 6;
     p   += 6; /* packet_len -= 6; */
