@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.100 2003/01/26 00:12:07 tmattern Exp $
+ * $Id: demux_asf.c,v 1.101 2003/01/26 17:38:41 tmattern Exp $
  *
  * demultiplexer for asf streams
  *
@@ -130,6 +130,7 @@ typedef struct demux_asf_s {
   /* only for reading */
   uint32_t          packet_padsize;
   int               nb_frames;
+  uint8_t           frame_flag;
   uint8_t           segtype;
   int               frame;
 
@@ -600,23 +601,33 @@ static uint32_t asf_get_packet(demux_asf_t *this) {
 
   int64_t   timestamp;
   int       duration;
-  uint8_t   ecc_flags = 0;
+  uint8_t   ecd_flags;
   uint8_t   buf[16];
-  uint32_t  p_hdr_size = 0;
-#ifdef LOG
-  int       i;
-#endif
+  uint32_t  p_hdr_size;
+  int       invalid_packet;
   
-  ecc_flags = get_byte(this); p_hdr_size += 1;
-  if (ecc_flags & 0x80)
-    p_hdr_size += this->input->read (this->input, buf, ecc_flags & 15);
+  do {
+    ecd_flags = get_byte(this); p_hdr_size = 1;
+    invalid_packet = 0;
+  
+    /* skip ecd */
+    if (ecd_flags & 0x80)
+      p_hdr_size += this->input->read (this->input, buf, ecd_flags & 0x0F);
+    
+    /* skip invalid packet */
+    if (ecd_flags & 0x70) {
 #ifdef LOG
-  printf("ecc_flags: %d ", ecc_flags);
-  for (i = 0; i < (ecc_flags & 15); i++) 
-    printf(", %d", buf[i]);
-  printf("\n");
+      printf("demux_asf: skip invalid packet: %d\n", ecd_flags);
 #endif
+      this->input->seek (this->input, this->packet_size - p_hdr_size, SEEK_CUR);
+      invalid_packet = 1;
+    }  
 
+    if( this->status != DEMUX_OK )
+      return 0;
+
+  } while (invalid_packet);
+  
   if( this->status != DEMUX_OK )
     return 0;
   
@@ -626,57 +637,40 @@ static uint32_t asf_get_packet(demux_asf_t *this) {
   /* packet size */
   switch((this->packet_flags >> 5) & 3) {
     case 1:
-      this->data_size = get_byte(this); p_hdr_size += 1;
-      break;
+      this->data_size = get_byte(this); p_hdr_size += 1; break;
     case 2:
-      this->data_size = get_le16(this); p_hdr_size += 2;
-      break;
+      this->data_size = get_le16(this); p_hdr_size += 2; break;
     case 3:
-      this->data_size = get_le32(this); p_hdr_size += 4;
-      break;
+      this->data_size = get_le32(this); p_hdr_size += 4; break;
     default:
       this->data_size = 0;
   }
-
+  
   /* sequence */
   switch ((this->packet_flags >> 1) & 3) {
     case 1:
-      get_byte(this); p_hdr_size += 1;
-      break;
+      get_byte(this); p_hdr_size += 1; break;
     case 2:
-      get_le16(this); p_hdr_size += 2;
-      break;
+      get_le16(this); p_hdr_size += 2; break;
     case 3:
-      get_le32(this); p_hdr_size += 4;
-      break;
+      get_le32(this); p_hdr_size += 4; break;
   }
 
   /* padding size */
   switch ((this->packet_flags >> 3) & 3){
     case 1:
-      this->packet_padsize = get_byte(this); p_hdr_size += 1;
-      break;
+      this->packet_padsize = get_byte(this); p_hdr_size += 1; break;
     case 2:
-      this->packet_padsize = get_le16(this); p_hdr_size += 2;
-      break;
+      this->packet_padsize = get_le16(this); p_hdr_size += 2; break;
     case 3:
-      this->packet_padsize = get_le32(this); p_hdr_size += 4;
-      break;
+      this->packet_padsize = get_le32(this); p_hdr_size += 4; break;
     default:
       this->packet_padsize = 0;
   }
-
+  
   timestamp = get_le32(this); p_hdr_size += 4;
   duration  = get_le16(this); p_hdr_size += 2;
-  
-  if (this->packet_flags & 0x01) {
-    this->nb_frames = get_byte(this) & 0x3F; p_hdr_size += 1;
-  } else {
-    this->nb_frames = 1;
-  }
-    
-  this->frame = 0;
-    
+
   if ((this->packet_flags >> 5) & 3) {
     /* absolute data size */
 #ifdef LOG
@@ -973,14 +967,12 @@ static void asf_send_buffer_defrag (demux_asf_t *this, asf_stream_t *stream,
 
 static void asf_read_packet(demux_asf_t *this) {
 
-  uint8_t        raw_id,  stream_id;
+  uint8_t        raw_id, stream_id;
   uint32_t       seq, frag_offset, payload_size, frag_len, rlen;
   int            i;
   int64_t        timestamp;
   asf_stream_t  *stream;
-  
   uint32_t       s_hdr_size = 0;
-  
   uint64_t       current_pos;
   uint32_t       mod;
   uint32_t       psl;
@@ -992,7 +984,7 @@ static void asf_read_packet(demux_asf_t *this) {
     this->packet_size_left = mod ? this->packet_size - mod : 0;
         
 #ifdef LOG
-    printf ("demux_asf: reading new packet, packet size left %d, %d\n", psl, this->packet_size_left);
+    printf ("demux_asf: reading new packet, packet size left psl=%d, pad=%d, %d\n", psl, this->packet_padsize, this->packet_size_left);
 #endif
 
     if (this->packet_size_left)
@@ -1010,10 +1002,22 @@ static void asf_read_packet(demux_asf_t *this) {
       this->frame = this->nb_frames - 1;
       return;
     }
+    
+    /* Multiple frames */
+    this->frame = 0;
+    if (this->packet_flags & 0x01) {
+      this->frame_flag = get_byte(this); s_hdr_size += 1;
+      this->nb_frames = this->frame_flag & 0x3F;
+#ifdef LOG
+      printf ("demux_asf: multiple frames %d\n", this->nb_frames);
+#endif
+    } else {
+      this->frame_flag = 0;
+      this->nb_frames = 1;
+    }
   }
 
   /* read segment header, find stream */
-
   raw_id     = get_byte(this); s_hdr_size += 1;
   stream_id  = raw_id & 0x7f;
 
@@ -1021,7 +1025,7 @@ static void asf_read_packet(demux_asf_t *this) {
 #ifdef LOG
   printf ("demux_asf: got raw_id =%d keyframe_found=%d\n", raw_id, this->keyframe_found);
 #endif
-  
+
   if ( (raw_id & 0x80) || this->keyframe_found || (this->num_video_streams==0)) {
     for (i = 0; i < this->num_streams; i++){
       if (this->streams[i].stream_id == stream_id &&
@@ -1041,40 +1045,30 @@ static void asf_read_packet(demux_asf_t *this) {
       return;
     }
 #endif
-
   }
   
   switch ((this->segtype >> 4) & 3){
   case 1:
-    seq = get_byte(this); s_hdr_size += 1;
-    break;
+    seq = get_byte(this); s_hdr_size += 1; break;
   case 2:
-    seq = get_le16(this); s_hdr_size += 2;
-    break;
+    seq = get_le16(this); s_hdr_size += 2; break;
   case 3:
-    seq = get_le32(this); s_hdr_size += 4;
-    break;
+    seq = get_le32(this); s_hdr_size += 4; break;
   default:
+    printf ("demux_asf: seq=0\n");
     seq = 0;
-    break;
   }
   
   switch ((this->segtype >> 2) & 3) {
     case 1:
-      frag_offset = get_byte(this); s_hdr_size += 1;
-      break;
+      frag_offset = get_byte(this); s_hdr_size += 1; break;
     case 2:
-      frag_offset = get_le16(this); s_hdr_size += 2;
-      break;
+      frag_offset = get_le16(this); s_hdr_size += 2; break;
     case 3:
-      frag_offset = get_le32(this); s_hdr_size += 4;
-      break;
+      frag_offset = get_le32(this); s_hdr_size += 4; break;
     default:
-      printf ("demux_asf: unknown segtype %x\n", this->segtype);
-      /* skip packet */
-      this->frame = this->nb_frames - 1;
-      return;
-      break;
+      printf ("demux_asf: frag_offset=0\n");
+      frag_offset = 0;
   }
 
   /* only set keyframe_found if we have it's beginning */
@@ -1083,19 +1077,15 @@ static void asf_read_packet(demux_asf_t *this) {
 
   switch (this->segtype & 3) {
     case 1:
-      rlen = get_byte(this); s_hdr_size += 1;
-      break;
+      rlen = get_byte(this); s_hdr_size += 1; break;
     case 2:
-      rlen = get_le16(this); s_hdr_size += 2;
-      break;
+      rlen = get_le16(this); s_hdr_size += 2; break;
     case 3:
-      rlen = get_le32(this); s_hdr_size += 4;
-      break;
+      rlen = get_le32(this); s_hdr_size += 4; break;
     default:
       rlen = 0;
-      break;
   }
-
+  
   if (rlen > this->packet_size_left) {
     /* skip packet */
     printf ("demux_asf: invalid rlen %d\n", rlen); 
@@ -1111,23 +1101,22 @@ static void asf_read_packet(demux_asf_t *this) {
   if (rlen == 1) {
     int data_length, data_sent=0;
 
+    /* multiple part segment */
     timestamp = frag_offset;
     get_byte (this); s_hdr_size += 1;
 
     if (this->packet_flags & 0x01) {
-      switch ((this->nb_frames >> 6) & 3) {
+      /* multiple frames */
+      switch ((this->frame_flag >> 6) & 3) {
         case 1:
-          data_length = get_byte(this); s_hdr_size += 1;
-          break;
+          data_length = get_byte(this); s_hdr_size += 1; break;
         case 2:
-          data_length = get_le16(this); s_hdr_size += 2;
-          break;
+          data_length = get_le16(this); s_hdr_size += 2; break;
         case 3:
-          data_length = get_le32(this); s_hdr_size += 4;
-          break;
+          data_length = get_le32(this); s_hdr_size += 4; break;
         default:
 #ifdef LOG
-          printf ("demux_asf: this->nb_frames is null\n"); 
+          printf ("demux_asf: invalid frame_flag %d\n", this->frame_flag); 
 #endif
           data_length = get_le16(this); s_hdr_size += 2;
       }
@@ -1137,7 +1126,6 @@ static void asf_read_packet(demux_asf_t *this) {
 #endif
 
     } else {
-
       data_length = this->packet_size_left - s_hdr_size;
 #ifdef LOG
       printf ("demux_asf: reading grouping single segment, size = %d\n", data_length); 
@@ -1186,6 +1174,7 @@ static void asf_read_packet(demux_asf_t *this) {
 
   } else {
 
+    /* single part segment */
     if (rlen >= 8) {
       payload_size  = get_le32(this); s_hdr_size += 4;
       timestamp     = get_le32(this); s_hdr_size += 4;
@@ -1200,11 +1189,20 @@ static void asf_read_packet(demux_asf_t *this) {
     }
     
     if (this->packet_flags & 0x01) {
-      if( (this->nb_frames & 0xc0) == 0x40 ) {
-        frag_len    = get_byte(this); s_hdr_size += 1;
-      } else {
-        frag_len      = get_le16(this); s_hdr_size += 2;
-      }        
+      switch ((this->frame_flag >> 6) & 3) {
+        case 1:
+          frag_len = get_byte(this); s_hdr_size += 1; break;
+        case 2:
+          frag_len = get_le16(this); s_hdr_size += 2; break;
+        case 3:
+          frag_len = get_le32(this); s_hdr_size += 4; break;
+        default:
+#ifdef LOG
+          printf ("demux_asf: invalid frame_flag %d\n", this->frame_flag); 
+#endif
+          frag_len = get_le16(this); s_hdr_size += 2;
+      }
+      
 #ifdef LOG
       printf ("demux_asf: reading part segment, size = %d\n", frag_len);
 #endif
