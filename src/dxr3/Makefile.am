@@ -1,4 +1,4 @@
-CFLAGS = @CFLAGS@ $(X_CFLAGS) $(LINUX_INCLUDE)
+CFLAGS = @CFLAGS@ $(X_CFLAGS)
 
 LIBTOOL = $(SHELL) $(top_builddir)/libtool-nofpic
 
@@ -29,7 +29,7 @@ xineplug_vo_out_dxr3_la_LDFLAGS = -avoid-version -module $(link_fame) $(link_rte
 noinst_HEADERS = dxr3.h dxr3_scr.h video_out_dxr3.h nav_types.h nav_read.h alphablend.h bswap.h
 
 debug:
-	@$(MAKE) CFLAGS="$(DEBUG_CFLAGS) $(LINUX_INCLUDE)"
+	@$(MAKE) CFLAGS="$(DEBUG_CFLAGS)"
 
 install-debug: debug
 	@$(MAKE) $(AM_MAKEFLAGS) install-exec-am install-data-am
