@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  *
- * $Id: video_out_pgx64.c,v 1.63 2004/05/02 20:13:23 mroi Exp $
+ * $Id: video_out_pgx64.c,v 1.64 2004/05/23 15:11:34 komadori Exp $
  *
  * video_out_pgx64.c, Sun PGX64/PGX24 output plugin for xine
  *
@@ -467,7 +467,7 @@ static void pgx64_display_frame(vo_driver_t *this_gen, vo_frame_t *frame_gen)
       while ((cx0 = *cliprects++) != DGA_X_EOL) {
         cx1 = *cliprects++;
 
-        if (((cx0 >= wx0) && (cy0 >= wy0)) || ((cx1 <= wx1) && (cy1 <= wy1))) {
+        if ((cx0 < wx1) && (cy0 < wy1) && (cx1 > wx0) && (cy1 > wy0)) {
           dgavis = DGA_VIS_PARTIALLY_OBSCURED;
         }
         if ((cx0 <= wx0) && (cy0 <= wy0) && (cx1 >= wx1) && (cy1 >= wy1)) {
@@ -475,6 +475,7 @@ static void pgx64_display_frame(vo_driver_t *this_gen, vo_frame_t *frame_gen)
         }
       }
     }
+
     DGA_DRAW_UNLOCK(this->dgadraw);
     XUnlockDisplay(this->display);
 
