@@ -67,6 +67,7 @@ noinst_HEADERS = \
 	dvdata.h \
 	fastmemcpy.h \
 	golomb.h \
+	imgconvert_template.h \
 	indeo3data.h \
 	h263data.h \
 	h264data.h \
