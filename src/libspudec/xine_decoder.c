@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.98 2003/05/03 14:24:07 mroi Exp $
+ * $Id: xine_decoder.c,v 1.99 2003/08/15 14:36:55 mroi Exp $
  *
  * stuff needed to turn libspu into a xine decoder plugin
  */
@@ -149,18 +149,18 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
 
 static void spudec_reset (spu_decoder_t *this_gen) {
   spudec_decoder_t *this = (spudec_decoder_t *) this_gen;
-  video_overlay_instance_t *ovl_instance = this->stream->video_out->get_overlay_instance (this->stream->video_out);
+  video_overlay_manager_t *ovl_manager = this->stream->video_out->get_overlay_manager (this->stream->video_out);
   int i;
   
   if( this->menu_handle >= 0 )
-    ovl_instance->free_handle(ovl_instance,
-			      this->menu_handle);
+    ovl_manager->free_handle(ovl_manager,
+			     this->menu_handle);
   this->menu_handle = -1;
   
   for (i=0; i < MAX_STREAMS; i++) {
     if( this->spudec_stream_state[i].overlay_handle >= 0 )
-      ovl_instance->free_handle(ovl_instance,
-				this->spudec_stream_state[i].overlay_handle);
+      ovl_manager->free_handle(ovl_manager,
+			       this->spudec_stream_state[i].overlay_handle);
     this->spudec_stream_state[i].overlay_handle = -1;
     this->spudec_stream_state[i].ra_seq.complete = 1;
     this->spudec_stream_state[i].ra_seq.broken = 0;
@@ -175,17 +175,17 @@ static void spudec_dispose (spu_decoder_t *this_gen) {
 
   spudec_decoder_t         *this = (spudec_decoder_t *) this_gen;
   int                       i;
-  video_overlay_instance_t *ovl_instance = this->stream->video_out->get_overlay_instance (this->stream->video_out);
+  video_overlay_manager_t  *ovl_manager = this->stream->video_out->get_overlay_manager (this->stream->video_out);
 
   if( this->menu_handle >= 0 )
-    ovl_instance->free_handle(ovl_instance,
-			      this->menu_handle);
+    ovl_manager->free_handle(ovl_manager,
+			     this->menu_handle);
   this->menu_handle = -1;
 
   for (i=0; i < MAX_STREAMS; i++) {
     if( this->spudec_stream_state[i].overlay_handle >= 0 )
-      ovl_instance->free_handle(ovl_instance,
-				this->spudec_stream_state[i].overlay_handle);
+      ovl_manager->free_handle(ovl_manager,
+			       this->spudec_stream_state[i].overlay_handle);
     this->spudec_stream_state[i].overlay_handle = -1;
     free (this->spudec_stream_state[i].ra_seq.buf);
   }
@@ -218,7 +218,7 @@ static void spudec_set_button (spu_decoder_t *this_gen, int32_t button, int32_t 
   /* This function will move to video_overlay
   * when video_overlay does menus */
 
-  video_overlay_instance_t *ovl_instance;
+  video_overlay_manager_t *ovl_manager;
   video_overlay_event_t *overlay_event = NULL;
   vo_overlay_t        *overlay = NULL;
   overlay_event = xine_xmalloc (sizeof(video_overlay_event_t));
@@ -229,8 +229,8 @@ static void spudec_set_button (spu_decoder_t *this_gen, int32_t button, int32_t 
 
   if( this->menu_handle < 0 ) {
     if (this->stream->video_out) {
-      ovl_instance = this->stream->video_out->get_overlay_instance (this->stream->video_out);
-      this->menu_handle = ovl_instance->get_handle(ovl_instance,1);
+      ovl_manager = this->stream->video_out->get_overlay_manager (this->stream->video_out);
+      this->menu_handle = ovl_manager->get_handle(ovl_manager,1);
     }
   }
 #ifdef LOG_BUTTON
@@ -277,14 +277,14 @@ static void spudec_set_button (spu_decoder_t *this_gen, int32_t button, int32_t 
   }
   overlay_event->vpts = 0;
   if (this->stream->video_out) {
-    ovl_instance = this->stream->video_out->get_overlay_instance (this->stream->video_out);
+    ovl_manager = this->stream->video_out->get_overlay_manager (this->stream->video_out);
 #ifdef LOG_BUTTON
     fprintf(stderr, "libspudec: add_event type=%d : current time=%lld, spu vpts=%lli\n",
             overlay_event->event_type,
             this->stream->xine->clock->get_current_time(this->stream->xine->clock),
             overlay_event->vpts);
 #endif
-    ovl_instance->add_event (ovl_instance, (void *)overlay_event);
+    ovl_manager->add_event (ovl_manager, (void *)overlay_event);
     free(overlay_event);
     free(overlay);
   } else {

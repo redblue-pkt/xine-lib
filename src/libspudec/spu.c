@@ -35,7 +35,7 @@
  * along with this program; see the file COPYING.  If not, write to
  * the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: spu.c,v 1.67 2003/08/05 15:08:40 mroi Exp $
+ * $Id: spu.c,v 1.68 2003/08/15 14:36:55 mroi Exp $
  *
  */
 
@@ -71,14 +71,16 @@
 */
 
 void spudec_reassembly (spudec_seq_t *seq, uint8_t *pkt_data, u_int pkt_len);
-void spudec_process( spudec_decoder_t *this, uint32_t stream_id);
+void spudec_process( spudec_decoder_t *this, int stream_id);
 void spudec_decode_nav( spudec_decoder_t *this, buf_element_t *buf);
 void spudec_copy_nav_to_overlay(pci_t* nav_pci, uint32_t* clut, int32_t button, int32_t mode,
                                 vo_overlay_t * overlay, vo_overlay_t * base );
 static void spudec_do_commands (spudec_state_t *state, spudec_seq_t* seq, vo_overlay_t *ovl);
 static void spudec_draw_picture (spudec_state_t *state, spudec_seq_t* seq, vo_overlay_t *ovl);
 static void spudec_discover_clut (spudec_state_t *state, vo_overlay_t *ovl);
+#ifdef LOG_DEBUG
 static void spudec_print_overlay( vo_overlay_t *overlay );
+#endif
 
 void spudec_decode_nav(spudec_decoder_t *this, buf_element_t *buf) {
   uint8_t                  *p;
@@ -87,7 +89,7 @@ void spudec_decode_nav(spudec_decoder_t *this, buf_element_t *buf) {
   uint32_t                  header_len;
   pci_t                     pci;
   dsi_t                     dsi;
-  video_overlay_instance_t *ovl_instance = this->stream->video_out->get_overlay_instance (this->stream->video_out);
+  video_overlay_manager_t  *ovl_manager = this->stream->video_out->get_overlay_manager (this->stream->video_out);
 
   p = buf->content;
   if (p[0] || p[1] || (p[2] != 1)) {
@@ -162,19 +164,21 @@ void spudec_decode_nav(spudec_decoder_t *this, buf_element_t *buf) {
         printf("libspudec:nav:SHOULD HIDE SPU here\n");
 #endif
         if( this->menu_handle < 0 ) {
-          this->menu_handle = ovl_instance->get_handle(ovl_instance,1);
+          this->menu_handle = ovl_manager->get_handle(ovl_manager,1);
         }
         if( this->menu_handle >= 0 ) {
           this->event.object.handle = this->menu_handle;
           this->event.event_type = OVERLAY_EVENT_HIDE;
 	  /* hide menu right now */
 	  this->event.vpts = 0;
-          ovl_instance->add_event(ovl_instance, (void *)&this->event);
+          ovl_manager->add_event(ovl_manager, (void *)&this->event);
         } else {
           printf("libspudec: No video_overlay handles left for menu\n");
         }
       }
       xine_fast_memcpy(&this->pci, &pci, sizeof(pci_t));
+      /* incoming SPUs will be plain subtitles */
+      this->event.object.object_type = 0;
       if (this->button_filter) {
 	/* we possibly had buttons before, so we update the UI info */
 	xine_event_t   event;
@@ -193,6 +197,8 @@ void spudec_decode_nav(spudec_decoder_t *this, buf_element_t *buf) {
     case 1: 
       /* All New Highlight information for this VOBU */
       xine_fast_memcpy(&this->pci, &pci, sizeof(pci_t));
+      /* incoming SPUs will be menus */
+      this->event.object.object_type = 1;
       if (!this->button_filter) {
 	/* we possibly entered a menu, so we update the UI button info */
 	xine_event_t   event;
@@ -301,9 +307,9 @@ void spudec_reassembly (spudec_seq_t *seq, uint8_t *pkt_data, u_int pkt_len)
   return;
 }
 
-void spudec_process (spudec_decoder_t *this, uint32_t stream_id) {
+void spudec_process (spudec_decoder_t *this, int stream_id) {
   spudec_seq_t    *cur_seq;
-  video_overlay_instance_t *ovl_instance = this->stream->video_out->get_overlay_instance (this->stream->video_out);
+  video_overlay_manager_t *ovl_manager = this->stream->video_out->get_overlay_manager (this->stream->video_out);
   int pending = 1;
   cur_seq = &this->spudec_stream_state[stream_id].ra_seq;
 
@@ -400,7 +406,7 @@ void spudec_process (spudec_decoder_t *this, uint32_t stream_id) {
       
       /* Subtitle */
       if( this->menu_handle < 0 ) {
-        this->menu_handle = ovl_instance->get_handle(ovl_instance,1);
+        this->menu_handle = ovl_manager->get_handle(ovl_manager,1);
       }
  
       if( this->menu_handle < 0 ) {
@@ -440,7 +446,7 @@ void spudec_process (spudec_decoder_t *this, uint32_t stream_id) {
         this->stream->xine->clock->get_current_time(this->stream->metronom),
         this->event.vpts);
 #endif 
-      ovl_instance->add_event(ovl_instance, (void *)&this->event);
+      ovl_manager->add_event(ovl_manager, (void *)&this->event);
     } else {
       pending = 0;
     }
@@ -833,6 +839,7 @@ static void spudec_discover_clut(spudec_state_t *state, vo_overlay_t *ovl)
   }
 }
 
+#ifdef LOG_DEBUG
 static void spudec_print_overlay( vo_overlay_t *ovl ) {
   printf ("spu: OVERLAY to show\n");
   printf ("spu: \tx = %d y = %d width = %d height = %d\n",
@@ -848,7 +855,9 @@ static void spudec_print_overlay( vo_overlay_t *ovl ) {
   printf ("spu: \tclip_trans [%d %d %d %d]\n",
 	  ovl->clip_trans[0], ovl->clip_trans[1], ovl->clip_trans[2], ovl->clip_trans[3]);
   return;
-} 
+}
+#endif
+
 void spudec_copy_nav_to_overlay(pci_t* nav_pci, uint32_t* clut, int32_t button, int32_t mode,
                                 vo_overlay_t * overlay, vo_overlay_t * base ) {
   btni_t *button_ptr = NULL;
