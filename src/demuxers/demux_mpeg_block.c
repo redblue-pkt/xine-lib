@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.140 2002/11/16 12:22:15 mroi Exp $
+ * $Id: demux_mpeg_block.c,v 1.141 2002/11/17 16:33:39 mroi Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -839,7 +839,7 @@ static void demux_mpeg_block_send_headers (demux_plugin_t *this_gen) {
   if (!this->rate)
     this->rate = demux_mpeg_block_estimate_rate (this);
   
-  /*  if((this->input->get_capabilities(this->input) & INPUT_CAP_PREVIEW) != 0)*/
+  if((this->input->get_capabilities(this->input) & INPUT_CAP_PREVIEW) != 0)
   {
     
     int num_buffers = NUM_PREVIEW_BUFFERS;
