@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ts.c,v 1.107 2004/10/18 19:08:05 miguelfreitas Exp $
+ * $Id: demux_ts.c,v 1.108 2004/10/21 14:50:29 mlampard Exp $
  *
  * Demultiplexer for MPEG2 Transport Streams.
  *
@@ -1173,6 +1173,9 @@ static void demux_ts_parse_pmt (demux_ts_t     *this,
           demux_ts_get_reg_desc(this, &format_identifier,
                                 stream + 5, stream_info_length);
           if (format_identifier == 0x41432d33) /* AC-3 */
+            demux_ts_pes_new(this, this->media_num, pid,
+                             this->audio_fifo, 0x81);
+          else if((stream[i+1]>1) && (stream[i+2] & 0x80 ) && (stream[3] & 0x40)) /* AC3 Full Service */
             demux_ts_pes_new(this, this->media_num, pid,
                              this->audio_fifo, 0x81);
           else
