@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.133 2003/12/05 15:55:00 f1rmb Exp $
+ * $Id: w32codec.c,v 1.134 2003/12/09 19:08:28 hadess Exp $
  *
  * routines for using w32 codecs
  * DirectShow support by Miguel Freitas (Nov/2001)
@@ -87,6 +87,12 @@ static GUID wmv3_clsid =
 {
 	0x724bb6a4, 0xe526, 0x450f,
 	{0xaf, 0xfa, 0xab, 0x9b, 0x45, 0x12, 0x91, 0x11}
+};
+
+static GUID wmvdmo_clsid =
+{
+	0x82d353df, 0x90bd, 0x4382,
+	{0x8b, 0xc2, 0x3f, 0x61, 0x92, 0xb7, 0x6e, 0x34}
 };
 
 static GUID dvsd_clsid =
@@ -299,8 +305,40 @@ static void w32v_init_rgb_ycc(void)
 #endif
 }
 
+static int get_vids_codec_n_name(w32v_decoder_t *this, int buf_type)
+{
+  buf_type &= 0xffff0000;
+
+  switch (buf_type) {
+  case BUF_VIDEO_MSMPEG4_V1:
+  case BUF_VIDEO_MSMPEG4_V2:
+  case BUF_VIDEO_MSMPEG4_V3:
+  case BUF_VIDEO_IV50:
+  case BUF_VIDEO_IV41:
+  case BUF_VIDEO_IV32:
+  case BUF_VIDEO_IV31:
+  case BUF_VIDEO_CINEPAK:
+  case BUF_VIDEO_ATIVCR2:
+  case BUF_VIDEO_I263:
+  case BUF_VIDEO_MSVC:
+  case BUF_VIDEO_DV:
+  case BUF_VIDEO_VP31:
+  case BUF_VIDEO_VP4:
+  case BUF_VIDEO_MSS1:
+  case BUF_VIDEO_TSCC:
+  case BUF_VIDEO_UCOD:
+    return 1;
+  case BUF_VIDEO_WMV7:
+  case BUF_VIDEO_WMV8:
+  case BUF_VIDEO_WMV9:
+    return 2;
+  }
+
+  return 0;
+}
+
 static char* get_vids_codec_name(w32v_decoder_t *this,
-				 int buf_type) {
+				 int buf_type, int n) {
 
   this->yuv_supported=0;
   this->yuv_hack_needed=0;
@@ -415,27 +453,41 @@ static char* get_vids_codec_name(w32v_decoder_t *this,
   
   case BUF_VIDEO_WMV7:
     this->yuv_supported=1;
-    this->driver_type = DRIVER_DS;
-    this->guid=&wmv1_clsid;
     _x_meta_info_set(this->stream, XINE_META_INFO_VIDEOCODEC, 
       "MS WMV 7 (win32)");
+    if (n == 2) {
+      this->driver_type = DRIVER_DMO;
+      this->guid=&wmvdmo_clsid;
+      return "wmvdmod.dll";
+    }
+    this->driver_type = DRIVER_DS;
+    this->guid=&wmv1_clsid;
     return "wmvds32.ax";    
   
   case BUF_VIDEO_WMV8:
     this->yuv_supported=1;
-    this->driver_type = DRIVER_DS;
-    this->guid=&wmv2_clsid;
     _x_meta_info_set(this->stream, XINE_META_INFO_VIDEOCODEC, 
       "MS WMV 8 (win32)");
-    return "wmv8ds32.ax";    
-  
+    if (n == 2) {
+      this->driver_type = DRIVER_DMO;
+      this->guid=&wmvdmo_clsid;
+      return "wmvdmod.dll";
+    }
+    this->driver_type = DRIVER_DS;
+    this->guid=&wmv2_clsid;
+    return "wmv8ds32.ax";
+ 
   case BUF_VIDEO_WMV9:
     this->yuv_supported=1;
     this->driver_type = DRIVER_DMO;
-    this->guid=&wmv3_clsid;
     _x_meta_info_set(this->stream, XINE_META_INFO_VIDEOCODEC, 
       "MS WMV 9 (win32)");
-    return "wmv9dmod.dll";    
+    if (n == 2) {
+      this->guid=&wmvdmo_clsid;
+      return "wmvdmod.dll";
+    }
+    this->guid=&wmv3_clsid;
+    return "wmv9dmod.dll";
   
   case BUF_VIDEO_VP31:
     this->yuv_supported=1;
@@ -700,6 +752,8 @@ static void w32v_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
     return;
   
   if (buf->decoder_flags & BUF_FLAG_HEADER) {
+    int num_decoders;
+
     if ( buf->type & 0xff )
       return;
     
@@ -721,13 +775,24 @@ static void w32v_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
     lprintf ("video_step is %lld\n", this->video_step);
 
     pthread_mutex_lock(&win32_codec_mutex);
-    win32_codec_name = get_vids_codec_name (this, buf->type);
+    num_decoders = get_vids_codec_n_name (this, buf->type);
+    if (num_decoders != 0) {
+      int i;
 
-    if( this->driver_type == DRIVER_STD )
-      w32v_init_codec (this, buf->type);
-    else if( this->driver_type == DRIVER_DS || this->driver_type == DRIVER_DMO )
-      w32v_init_ds_dmo_codec (this, buf->type);
-    
+      for (i = 1; i <= num_decoders; i++) {
+        win32_codec_name = get_vids_codec_name (this, buf->type, i);
+
+        if( this->driver_type == DRIVER_STD )
+          w32v_init_codec (this, buf->type);
+        else if( this->driver_type == DRIVER_DS
+		|| this->driver_type == DRIVER_DMO )
+          w32v_init_ds_dmo_codec (this, buf->type);
+
+	if (this->decoder_ok)
+          break;
+      }
+    }
+
     if( !this->decoder_ok ) {
       xine_log (this->stream->xine, XINE_LOG_MSG,
 		_("w32codec: decoder failed to start. Is '%s' installed?\n"), 
@@ -736,7 +801,7 @@ static void w32v_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
       _x_message(this->stream, XINE_MSG_LIBRARY_LOAD_ERROR,
                    win32_codec_name, NULL);
     }
-                                         
+
     pthread_mutex_unlock(&win32_codec_mutex);
       
     this->stream_id = -1;
