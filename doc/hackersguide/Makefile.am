@@ -17,13 +17,13 @@ docsdir = $(prefix)/share/doc/xine/hackersguide
 docs: $(docs_DATA)
 
 dist-hook:
-	@touch $(EXTRA_DIST)
+	@touch $(addprefix $(srcdir)/, $(EXTRA_DIST))
 	@make fail_if_missing=yes docs
-	cp $(docs_DATA) $(distdir)
+	cp $(addprefix $(srcdir)/, $(docs_DATA)) $(distdir)
 
-hackersguide.html: $(hackersguide_sgml)
+hackersguide.html: $(addprefix $(srcdir)/, $(hackersguide_sgml))
 	@if test "$(SGMLTOOLS)" != "no"; then \
-	  $(SGMLTOOLS) -b onehtml hackersguide.sgml; \
+	  $(SGMLTOOLS) -b onehtml $(srcdir)/hackersguide.sgml; \
 	else if test "$(fail_if_missing)" = "yes"; then \
 	    echo "Please install sgmltools-lite."; \
 	    exit 1; \
@@ -31,7 +31,7 @@ hackersguide.html: $(hackersguide_sgml)
 	  fi; \
 	fi
 
-%.png: %.fig
+%.png: $(srcdir)/%.fig
 	@if test "$(FIG2DEV)" != "no"; then \
 	  $(FIG2DEV) -L png -S 4 $< $@; \
 	else if test "$(fail_if_missing)" = "yes"; then \
