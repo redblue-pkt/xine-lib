@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decode_spu.c,v 1.12 2002/07/16 16:19:58 mroi Exp $
+ * $Id: dxr3_decode_spu.c,v 1.13 2002/07/17 14:59:18 mroi Exp $
  */
  
 /* dxr3 spu decoder plugin.
@@ -85,6 +85,7 @@ typedef struct dxr3_spudec_s {
   
   dxr3_spu_stream_state_t  spu_stream_state[MAX_SPU_STREAMS];
   int                      menu;         /* are we in a menu? */
+  int                      button_filter;
   pci_t                    pci;
   uint32_t                 buttonN;      /* currently highlighted button */
   
@@ -146,6 +147,7 @@ spu_decoder_t *init_spu_decoder_plugin(int iface_version, xine_t *xine)
   this->xine                          = xine;
   this->fd_spu                        = 0;
   this->menu                          = 0;
+  this->button_filter                 = 1;
   this->pci.hli.hl_gi.hli_ss          = 0;
   this->buttonN                       = 1;
   
@@ -238,11 +240,12 @@ static void dxr3_spudec_decode_data(spu_decoder_t *this_gen, buf_element_t *buf)
         
         /* menu ahead, remember pci for later evaluation */
         xine_fast_memcpy(&this->pci, &pci, sizeof(pci_t));
+        this->menu = 1;
+	this->button_filter = 0;
         if ((dxr3_spudec_copy_nav_to_btn(this, 0, &btn ) > 0))
           if (ioctl(this->fd_spu, EM8300_IOCTL_SPU_BUTTON, &btn))
             printf("dxr3_decode_spu: failed to set spu button (%s)\n",
               strerror(errno));
-        this->menu = 1;
       }
       
       if ((pci.hli.hl_gi.hli_ss == 0) && (this->pci.hli.hl_gi.hli_ss == 1)) {
@@ -257,6 +260,7 @@ static void dxr3_spudec_decode_data(spu_decoder_t *this_gen, buf_element_t *buf)
         /* leaving menu */
         this->pci.hli.hl_gi.hli_ss = 0;
 	this->menu = 0;
+	this->button_filter = 1;
         ioctl(this->fd_spu, EM8300_IOCTL_SPU_BUTTON, NULL);
         write(this->fd_spu, empty_spu, sizeof(empty_spu));
       }
@@ -429,11 +433,12 @@ static void dxr3_spudec_event_listener(void *this_gen, xine_event_t *event_gen)
       printf("dxr3_decode_spu: got SPU_BUTTON\n");
 #endif
       this->buttonN = but->buttonN;
-      if ((but->show > 0) && (dxr3_spudec_copy_nav_to_btn(
-        this, but->show - 1, &btn) > 0))
+      if ((but->show > 0) && !this->button_filter &&
+          (dxr3_spudec_copy_nav_to_btn(this, but->show - 1, &btn) > 0))
         if (ioctl(this->fd_spu, EM8300_IOCTL_SPU_BUTTON, &btn))
           printf("dxr3_decode_spu: failed to set spu button (%s)\n",
             strerror(errno));
+      if (but->show == 2) this->button_filter = 1;
 #if LOG_BTN
       printf("dxr3_decode_spu: buttonN = %u\n",but->buttonN);
 #endif
