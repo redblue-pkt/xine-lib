@@ -47,6 +47,7 @@ static jmp_buf sigill_return;
 static void sigill_handler (int n) {
   longjmp(sigill_return, 1);
 }
+
 static uint32_t arch_accel (void)
 {
   uint32_t caps;
