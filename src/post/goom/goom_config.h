@@ -30,7 +30,7 @@
 
 /*  for pc users with mmx processors. */
 #ifdef ARCH_X86
-#define MMX
+#define HAVE_MMX
 #endif
 
 #ifdef ARCH_PPC

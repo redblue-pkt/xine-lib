@@ -16,10 +16,10 @@
    typedef Pixel * GoomBuffer;
 */
 
-#define NB_FX 8
+#define NB_FX 10
 
-void    goom_init (guint32 resx, guint32 resy, int cinemascope);
-void    goom_set_resolution (guint32 resx, guint32 resy, int cinemascope);
+void  goom_init (guint32 resx, guint32 resy, int cinemascope);
+void  goom_set_resolution (guint32 resx, guint32 resy, int cinemascope);
 
 /*
  * forceMode == 0 : do nothing
@@ -30,14 +30,11 @@ void    goom_set_resolution (guint32 resx, guint32 resy, int cinemascope);
  *      - NULL if it is not the start of the song
  *      - only have a value at the start of the song
  */
-guint32 *goom_update (gint16 data[2][512], int forceMode, float fps,
+guint32 * goom_update ( gint16 data[2][512], int forceMode, float fps,
 											char *songTitle, char *message);
 
-void    goom_close (void);
+void     goom_close ();
 
 void    goom_set_font (int ***chars, int *width, int *height);
 
-void goom_setAsmUse (int useIt);
-
-int goom_getAsmUse (void);
 #endif

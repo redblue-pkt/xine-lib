@@ -14,4 +14,17 @@ unsigned int HEIGHT;
 unsigned int WIDTH;
 
 int    *rand_tab = 0;
-unsigned short int rand_pos = 0;
+//unsigned short int rand_pos = 0;
+/*
+inline unsigned int RAND(void)
+{
+    rand_pos++;
+    return rand_tab[rand_pos];
+}
+
+inline unsigned int iRAND(int i)
+{
+    rand_pos++;
+    return (rand_tab[rand_pos])%i;
+}
+*/

@@ -10,7 +10,7 @@
 *		la vitesse est maintenant comprise dans [0..128] au lieu de [0..100]
 */
 
-/* #define _DEBUG_PIXEL; */
+//#define _DEBUG_PIXEL;
 
 #include "filters.h"
 #include "graphic.h"
@@ -19,7 +19,7 @@
 #include <math.h>
 #include <stdio.h>
 
-#ifdef MMX
+#ifdef HAVE_MMX
 #define USE_ASM
 #endif
 #ifdef POWERPC
@@ -27,16 +27,49 @@
 #endif
 
 #define EFFECT_DISTORS 4
-
+#define EFFECT_DISTORS_SL 2
 
 extern volatile guint32 resolx;
 extern volatile guint32 c_resoly;
-extern volatile int     use_asm;
 
+void c_zoom (unsigned int *expix1, unsigned int *expix2, unsigned int prevX, unsigned int prevY, signed int *brutS, signed int *brutD);
 
-#ifdef MMX
-/*int mmx_zoom () ;*/
-#include "zoom_filter_mmx.h"
+#ifdef HAVE_MMX
+//#include "mmx.h"
+
+void    zoom_filter_xmmx (int prevX, int prevY,
+													unsigned int *expix1, unsigned int *expix2,
+													int *brutS, int *brutD, int buffratio,
+													int precalCoef[16][16]);
+int zoom_filter_xmmx_supported ();
+
+void    zoom_filter_mmx (int prevX, int prevY,
+												 unsigned int *expix1, unsigned int *expix2,
+												 int *brutS, int *brutD, int buffratio,
+												 int precalCoef[16][16]);
+int zoom_filter_mmx_supported ();
+
+static int zf_use_xmmx = 0;
+static int zf_use_mmx = 0;
+
+static void select_zoom_filter () {
+	static int firsttime = 1;
+	if (firsttime){
+		if (zoom_filter_xmmx_supported()) {
+			zf_use_xmmx = 1;
+			printf ("Extented MMX detected. Using the fastest method !\n");
+		}
+		else if (zoom_filter_mmx_supported()) {
+			zf_use_mmx = 1;
+			printf ("MMX detected. Using fast method !\n");
+		}
+		else {
+			printf ("Too bad ! No MMX detected.\n");
+		}
+		firsttime = 0;
+	}
+}
+
 #endif /* MMX */
 
 
@@ -45,35 +78,31 @@ guint32 mmx_zoom_size;
 #ifdef USE_ASM
 
 #ifdef POWERPC
-/* extern unsigned int useAltivec; */
-extern void ppc_zoom (unsigned int *frompixmap, unsigned int *topixmap,
-											unsigned int sizex, unsigned int sizey,
-											unsigned int *brutS, unsigned int *brutD,
+#include "altivec.h"
+extern unsigned int useAltivec;
+extern const void ppc_zoom (unsigned int *frompixmap, unsigned int *topixmap, unsigned int sizex, unsigned int sizey, unsigned int *brutS, unsigned int *brutD, unsigned int buffratio, int precalCoef[16][16]);
 
-											unsigned int buffratio);
-/* extern void ppc_zoom_altivec (void); */
-
-/*extern void ppc_zoom(void);*/
-unsigned int ppcsize4;
 #endif /* PowerPC */
 
 #endif /* ASM */
 
 
-/* A VIRER */
-unsigned int *coeffs = 0, *freecoeffs = 0;	/* ne sont plus utilisé */
+unsigned int *coeffs = 0, *freecoeffs = 0;
 
-signed int *brutS = 0, *freebrutS = 0;	/* source */
-signed int *brutD = 0, *freebrutD = 0;	/* dest */
-signed int *brutT = 0, *freebrutT = 0;	/* temp (en cours de génération) */
+signed int *brutS = 0, *freebrutS = 0;	// source
+signed int *brutD = 0, *freebrutD = 0;	// dest
+signed int *brutT = 0, *freebrutT = 0;	// temp (en cours de génération)
 
-guint32 *expix1 = 0;						/* pointeur exporte vers p1 */
-guint32 *expix2 = 0;						/* pointeur exporte vers p2 */
+// TODO : virer
+guint32 *expix1 = 0;						// pointeur exporte vers p1
+guint32 *expix2 = 0;						// pointeur exporte vers p2
+// fin TODO
+
 guint32 zoom_width;
 
-int     prevX = 0, prevY = 0;
+unsigned int     prevX = 0, prevY = 0;
 
-static int sintable[0xffff];
+static int sintable[0x10000];
 static int vitesse = 127;
 static char theMode = AMULETTE_MODE;
 static int waveEffect = 0;
@@ -83,10 +112,10 @@ static int hPlaneEffect = 0;
 static char noisify = 2;
 static int middleX, middleY;
 
-/*static unsigned char sqrtperte = 16 ; */
+//static unsigned char sqrtperte = 16 ;
 
 /** modif by jeko : fixedpoint : buffration = (16:16) (donc 0<=buffration<=2^16) */
-/*static int buffratio = 0; */
+//static int buffratio = 0;
 int     buffratio = 0;
 
 #define BUFFPOINTNB 16
@@ -94,28 +123,22 @@ int     buffratio = 0;
 #define BUFFINCR 0xff
 
 #define sqrtperte 16
-/* faire : a % sqrtperte <=> a & pertemask */
+// faire : a % sqrtperte <=> a & pertemask
 #define PERTEMASK 0xf
-/* faire : a / sqrtperte <=> a >> PERTEDEC */
+// faire : a / sqrtperte <=> a >> PERTEDEC
 #define PERTEDEC 4
 
 static int *firedec = 0;
 
 
-/* retourne x>>s , en testant le signe de x */
-static int ShiftRight (int x, const unsigned char s)
-{
-	if (x < 0)
-		return -(-x >> s);
-	else
-		return x >> s;
-}
-
+// retourne x>>s , en testant le signe de x
+#define ShiftRight(_x,_s) (((_x)<0) ? -(-(_x)>>(_s)) : ((_x)>>(_s)))
 
 /** modif d'optim by Jeko : precalcul des 4 coefs résultant des 2 pos */
 int     precalCoef[16][16];
 
-static void generatePrecalCoef (void)
+void
+generatePrecalCoef ()
 {
 	static int firstime = 1;
 
@@ -124,10 +147,7 @@ static void generatePrecalCoef (void)
 
 		firstime = 0;
 
-/*              precalCoef = (int**) malloc (17*sizeof (int*)); */
-
 		for (coefh = 0; coefh < 16; coefh++) {
-/*                      precalCoef [coefh] = (int *) malloc (17*sizeof (int)); */
 
 			for (coefv = 0; coefv < 16; coefv++) {
 				int     i;
@@ -137,8 +157,8 @@ static void generatePrecalCoef (void)
 				diffcoeffh = sqrtperte - coefh;
 				diffcoeffv = sqrtperte - coefv;
 
-				/* coeffs[myPos] = ((px >> PERTEDEC) + prevX * (py >> PERTEDEC)) << */
-				/* 2; */
+				// coeffs[myPos] = ((px >> PERTEDEC) + prevX * (py >> PERTEDEC)) <<
+				// 2;
 				if (!(coefh || coefv))
 					i = 255;
 				else {
@@ -170,7 +190,8 @@ static void generatePrecalCoef (void)
  px et py indique la nouvelle position (en sqrtperte ieme de pixel)
  (valeur * 16)
  */
-static void calculatePXandPY (int x, int y, int *px, int *py)
+inline void
+calculatePXandPY (int x, int y, int *px, int *py)
 {
 	if (theMode == WATER_MODE) {
 		static int wave = 0;
@@ -184,7 +205,7 @@ static void calculatePXandPY (int x, int y, int *px, int *py)
 			yy = c_resoly - 1;
 
 		*px = (x << 4) + firedec[yy] + (wave / 10);
-		*py = (y << 4) + 132 - ((vitesse < 132) ? vitesse : 131);
+		*py = (y << 4) + 132 - ((vitesse < 131) ? vitesse : 130);
 
 		wavesp += RAND () % 3 - RAND () % 3;
 		if (wave < -10)
@@ -197,7 +218,7 @@ static void calculatePXandPY (int x, int y, int *px, int *py)
 	}
 	else {
 		int     dist = 0, vx9, vy9;
-		register int vx, vy;
+	  int     vx, vy;
 		int     ppx, ppy;
 		int     fvitesse = vitesse << 4;
 
@@ -210,17 +231,17 @@ static void calculatePXandPY (int x, int y, int *px, int *py)
 
 		if (hPlaneEffect)
 			vx += hPlaneEffect * (y - middleY);
-		/* else vx = (x - middleX) << 9 ; */
+		// else vx = (x - middleX) << 9 ;
 
 		if (vPlaneEffect)
 			vy += vPlaneEffect * (x - middleX);
-		/* else vy = (y - middleY) << 9 ; */
+		// else vy = (y - middleY) << 9 ;
 
 		if (waveEffect) {
 			fvitesse *=
 				1024 +
 				ShiftRight (sintable
-										[(unsigned short) (0xffff * dist * EFFECT_DISTORS)], 6);
+										[(unsigned short) (dist * 0xffff + EFFECT_DISTORS)], 6);
 			fvitesse /= 1024;
 		}
 
@@ -238,17 +259,17 @@ static void calculatePXandPY (int x, int y, int *px, int *py)
 			fvitesse *=
 				1024 +
 				ShiftRight (sintable
-										[(unsigned short) (0xffff * dist * EFFECT_DISTORS)], 6);
-			fvitesse /= 1024;
+										[(unsigned short) (dist * 0xffff * EFFECT_DISTORS)], 6);
+			fvitesse>>=10;///=1024;
 			break;
 		case CRYSTAL_BALL_MODE:
-			fvitesse += (dist * EFFECT_DISTORS >> 10);
+			fvitesse += (dist >> (10-EFFECT_DISTORS_SL));
 			break;
 		case AMULETTE_MODE:
-			fvitesse -= (dist * EFFECT_DISTORS >> 4);
+			fvitesse -= (dist >> (4 - EFFECT_DISTORS_SL));
 			break;
 		case SCRUNCH_MODE:
-			fvitesse -= (dist * EFFECT_DISTORS >> 9);
+			fvitesse -= (dist >> (10 - EFFECT_DISTORS_SL));
 			break;
 		case HYPERCOS1_MODE:
 			vx = vx + ShiftRight (sintable[(-vy + dist) & 0xffff], 1);
@@ -261,15 +282,22 @@ static void calculatePXandPY (int x, int y, int *px, int *py)
 				vy + ShiftRight (sintable[(ShiftRight (vx, 1) + dist) & 0xffff], 0);
 			fvitesse = 128 << 4;
 			break;
+		case YONLY_MODE:
+			fvitesse *= 1024 + ShiftRight (sintable[vy & 0xffff], 6);
+			fvitesse >>= 10;
+			break;
+		case SPEEDWAY_MODE:
+			fvitesse -= (ShiftRight(vy,10-EFFECT_DISTORS_SL));
+			break;
 		}
 
 		if (fvitesse < -3024)
 			fvitesse = -3024;
 
-		if (vx < 0)									/* pb avec decalage sur nb negatif  */
+		if (vx < 0)									// pb avec decalage sur nb negatif
 			ppx = -(-(vx * fvitesse) >> 16);
-		/* 16 = 9 + 7 (7 = nb chiffre virgule de vitesse * (v = 128 => immobile) */
-		/* * * * * * 9 = nb chiffre virgule de vx) */
+		/* 16 = 9 + 7 (7 = nb chiffre virgule de vitesse * (v = 128 => immobile)
+		 * * * * * 9 = nb chiffre virgule de vx) */
 		else
 			ppx = ((vx * fvitesse) >> 16);
 
@@ -283,91 +311,69 @@ static void calculatePXandPY (int x, int y, int *px, int *py)
 	}
 }
 
-/*#define _DEBUG */
+//#define _DEBUG
 
-void setPixelRGB (Uint * buffer, Uint x, Uint y, Color c)
+inline void
+setPixelRGB (Uint * buffer, Uint x, Uint y, Color c)
 {
-	/* buffer[ y*WIDTH + x ] = (c.r<<16)|(c.v<<8)|c.b */
+	// buffer[ y*WIDTH + x ] = (c.r<<16)|(c.v<<8)|c.b
 #ifdef _DEBUG_PIXEL
 	if (x + y * resolx >= resolx * resoly) {
 		fprintf (stderr, "setPixel ERROR : hors du tableau... %i, %i\n", x, y);
-		/* exit (1) ; */
+		// exit (1) ;
 	}
 #endif
 
-/*#ifdef USE_DGA */
-/*    buffer[ y*resolx + x ] = (c.b<<16)|(c.v<<8)|c.r ; */
-/*#else */
-/*#ifdef COLOR_BGRA */
 	buffer[y * resolx + x] =
 		(c.b << (BLEU * 8)) | (c.v << (VERT * 8)) | (c.r << (ROUGE * 8));
-/*#else */
-/*    buffer[ y*resolx + x ] = (c.r<<16)|(c.v<<8)|c.b ; */
-/*#endif */
-/*#endif */
 }
 
 
-static void setPixelRGB_ (Uint * buffer, Uint x, Color c)
+inline void
+setPixelRGB_ (Uint * buffer, Uint x, Color c)
 {
 #ifdef _DEBUG
 	if (x >= resolx * c_resoly) {
 		printf ("setPixel ERROR : hors du tableau... %i\n", x);
-		/* exit (1) ; */
+		// exit (1) ;
 	}
 #endif
 
-/*#ifdef USE_DGA */
-/*    buffer[ x ] = (c.b<<16)|(c.v<<8)|c.r ; */
-/*#else */
-/*#ifdef COLOR_BGRA */
-/*    buffer[ x ] = (c.b<<24)|(c.v<<16)|(c.r<<8) ; */
-/*#else */
 	buffer[x] = (c.r << (ROUGE * 8)) | (c.v << (VERT * 8)) | c.b << (BLEU * 8);
-/*#endif */
-/*#endif */
 }
 
 
 
-void getPixelRGB (Uint * buffer, Uint x, Uint y, Color * c)
+inline void
+getPixelRGB (Uint * buffer, Uint x, Uint y, Color * c)
 {
-/*    register unsigned char *tmp8; */
+//    register unsigned char *tmp8;
 	unsigned int i;
 
 #ifdef _DEBUG
 	if (x + y * resolx >= resolx * c_resoly) {
 		printf ("getPixel ERROR : hors du tableau... %i, %i\n", x, y);
-		/* exit (1) ; */
+		// exit (1) ;
 	}
 #endif
 
-	/* #ifdef __BIG_ENDIAN__ */
-	/* c->b = *(unsigned char *)(tmp8 = (unsigned char*)(buffer + (x + */
-	/* y*resolx))); */
-	/* c->r = *(unsigned char *)(++tmp8); */
-	/* c->v = *(unsigned char *)(++tmp8); */
-	/* c->b = *(unsigned char *)(++tmp8); */
-
-	/* #else */
 	/* ATTENTION AU PETIT INDIEN  */
 	i = *(buffer + (x + y * resolx));
 	c->b = (i >> (BLEU * 8)) & 0xff;
 	c->v = (i >> (VERT * 8)) & 0xff;
 	c->r = (i >> (ROUGE * 8)) & 0xff;
-	/* *c = (Color) buffer[x+y*WIDTH] ; */
-/*#endif */
 }
 
 
-static void getPixelRGB_ (Uint * buffer, Uint x, Color * c)
+inline void
+getPixelRGB_ (Uint * buffer, Uint x, Color * c)
 {
 	register unsigned char *tmp8;
 
 #ifdef _DEBUG
 	if (x >= resolx * c_resoly) {
 		printf ("getPixel ERROR : hors du tableau... %i\n", x);
-		/* exit (1) ; */
+		// exit (1) ;
 	}
 #endif
 
@@ -382,20 +388,23 @@ static void getPixelRGB_ (Uint * buffer, Uint x, Color * c)
 	c->b = *(unsigned char *) (tmp8 = (unsigned char *) (buffer + x));
 	c->v = *(unsigned char *) (++tmp8);
 	c->r = *(unsigned char *) (++tmp8);
-	/* *c = (Color) buffer[x+y*WIDTH] ; */
+	// *c = (Color) buffer[x+y*WIDTH] ;
 #endif
 }
 
 
-static void c_zoom (void)
+void c_zoom (unsigned int *expix1, unsigned int *expix2, unsigned int prevX, unsigned int prevY, signed int *brutS, signed int *brutD)
 {
 	int     myPos, myPos2;
 	Color   couleur;
+//	unsigned int coefv, coefh;
 
 	unsigned int ax = (prevX - 1) << PERTEDEC, ay = (prevY - 1) << PERTEDEC;
 
 	int     bufsize = prevX * prevY * 2;
 	int     bufwidth = prevX;
+
+	expix1[0]=expix1[prevX-1]=expix1[prevX*prevY-1]=expix1[prevX*prevY-prevX]=0;
 
 	for (myPos = 0; myPos < bufsize; myPos += 2) {
 		Color   col1, col2, col3, col4;
@@ -414,15 +423,14 @@ static void c_zoom (void)
 			brutSmypos +
 			(((brutD[myPos2] - brutSmypos) * buffratio) >> BUFFPOINTNB);
 
+		pos = ((px >> PERTEDEC) + prevX * (py >> PERTEDEC));
+		// coef en modulo 15
+		coeffs = precalCoef[px & PERTEMASK][py & PERTEMASK];
+
 		if ((py >= ay) || (px >= ax)) {
 			pos = coeffs = 0;
 		}
-		else {
-			pos = ((px >> PERTEDEC) + prevX * (py >> PERTEDEC));
-			/* coef en modulo 15 */
-			coeffs = precalCoef[px & PERTEMASK][py & PERTEMASK];
-		}
-
+		
 		getPixelRGB_ (expix1, pos, &col1);
 		getPixelRGB_ (expix1, pos + 1, &col2);
 		getPixelRGB_ (expix1, pos + bufwidth, &col3);
@@ -453,6 +461,21 @@ static void c_zoom (void)
 	}
 }
 
+#ifdef USE_ASM
+static int use_asm = 1;
+void
+setAsmUse (int useIt)
+{
+	use_asm = useIt;
+}
+
+int
+getAsmUse ()
+{
+	return use_asm;
+}
+#endif
+
 /*===============================================================*/
 void
 zoomFilterFastRGB (Uint * pix1,
@@ -461,13 +484,21 @@ zoomFilterFastRGB (Uint * pix1,
 									 Uint resx, Uint resy, int switchIncr, float switchMult)
 {
 	register Uint x, y;
+//	unsigned int *temp = brutD;
 
-	static char reverse = 0;			/* vitesse inversé..(zoom out) */
+	static char reverse = 0;			// vitesse inversé..(zoom out)
 	static unsigned char pertedec = 8;
 	static char firstTime = 1;
 
+#define INTERLACE_INCR 16
+#define INTERLACE_ADD 9
+#define INTERLACE_AND 0xf
+	static int interlace_start = -2;
+
+/* TODO virer */
 	expix1 = pix1;
 	expix2 = pix2;
+/* */
 
 	/** changement de taille **/
 	if ((prevX != resx) || (prevY != resy)) {
@@ -492,6 +523,9 @@ zoomFilterFastRGB (Uint * pix1,
 		firedec = 0;
 	}
 
+	if (interlace_start != -2)
+		zf = NULL;
+
 	/** changement de config **/
 	if (zf) {
 		reverse = zf->reverse;
@@ -512,30 +546,25 @@ zoomFilterFastRGB (Uint * pix1,
 	/** generation d'un effet **/
 	if (firstTime || zf) {
 
-		/* generation d'une table de sinus */
+		// generation d'une table de sinus
 		if (firstTime) {
 			unsigned short us;
 			int     yofs;
 
 			firstTime = 0;
 			generatePrecalCoef ();
+			select_zoom_filter ();
 
 			freebrutS =
-				(unsigned int *) malloc (resx * resy * 2 * sizeof (unsigned int) +
-
-																 128);
+				(unsigned int *) calloc (resx * resy * 2 + 128, sizeof(unsigned int));
 			brutS = (guint32 *) ((1 + ((unsigned int) (freebrutS)) / 128) * 128);
 
 			freebrutD =
-				(unsigned int *) malloc (resx * resy * 2 * sizeof (unsigned int) +
-
-																 128);
+				(unsigned int *) calloc (resx * resy * 2 + 128, sizeof(unsigned int));
 			brutD = (guint32 *) ((1 + ((unsigned int) (freebrutD)) / 128) * 128);
 
 			freebrutT =
-				(unsigned int *) malloc (resx * resy * 2 * sizeof (unsigned int) +
-
-																 128);
+				(unsigned int *) calloc (resx * resy * 2 + 128, sizeof(unsigned int));
 			brutT = (guint32 *) ((1 + ((unsigned int) (freebrutT)) / 128) * 128);
 
 			/** modif here by jeko : plus de multiplications **/
@@ -577,7 +606,7 @@ zoomFilterFastRGB (Uint * pix1,
 					loopv--;
 					firedec[loopv] = decc;
 					decc += spdc / 10;
-					spdc = spdc + RAND () % 3 - RAND () % 3;
+					spdc += RAND () % 3 - RAND () % 3;
 
 					if (decc > 4)
 						spdc -= 1;
@@ -607,16 +636,63 @@ zoomFilterFastRGB (Uint * pix1,
 			}
 		}
 
-/*        buffratio = 0; */
+//        buffratio = 0;
+        interlace_start = 0;
+        }
+		// generation du buffer de trans
+        if (interlace_start==-1) {
+			//int     yprevx = 0;
+			//unsigned int ax = (prevX - 1) << PERTEDEC, ay = (prevY - 1) << PERTEDEC;
 
-		/* generation du buffer de trans */
-		{
 			/* sauvegarde de l'etat actuel dans la nouvelle source */
+
+#if 0
+			volatile mmx_t ratiox;
+
+			ratiox.d[0] = buffratio;
+			ratiox.d[1] = buffratio;
+			movq_m2r (ratiox, mm6);
+			pslld_i2r (16,mm6);
+
+			y = prevX * prevY;
+			for (x=0;x<y;++x) {
+				static volatile mmx_t *brutSm;
+				static volatile mmx_t *brutDm;
+				brutSm = (mmx_t*)brutS;
+				brutDm = (mmx_t*)brutD;
+				/*
+				 * pre : mm6 = [buffratio<<16|buffratio<<16]
+				 * post : mm0 = S + ((D-S)*buffratio)>>16 format [X|Y]
+				 * modified = mm0,mm1,mm2
+				 */
+				
+				__asm__ __volatile__ (
+					"movq %0,%%mm0\n"
+					"movq %1,%%mm1\n"
+					: :"X"(brutSm[x]),"X"(brutDm[x])
+					);               /* mm0 = S */
+				
+				psubd_r2r (mm0,mm1);           /* mm1 = D - S */
+				movq_r2r (mm1, mm2);           /* mm2 = D - S */
+				
+				pslld_i2r (16,mm1);
+				mmx_r2r (pmulhuw, mm6, mm1);   /* mm1 = ?? */
+				pmullw_r2r (mm6, mm2);
+				
+				paddd_r2r (mm2, mm1);     /* mm1 = (D - S) * buffratio >> 16 */
+				pslld_i2r (16,mm0);
+				
+				paddd_r2r (mm1, mm0);     /* mm0 = S + mm1 */
+				psrld_i2r (16, mm0);
+				movq_r2m (mm0,brutSm[x]);
+			}
+			emms();
+#else
 			y = prevX * prevY * 2;
 			for (x = 0; x < y; x += 2) {
 				int     brutSmypos = brutS[x];
 				int     x2 = x + 1;
-
+				
 				brutS[x] =
 					brutSmypos + (((brutD[x] - brutSmypos) * buffratio) >> BUFFPOINTNB);
 				brutSmypos = brutS[x2];
@@ -624,40 +700,88 @@ zoomFilterFastRGB (Uint * pix1,
 					brutSmypos +
 					(((brutD[x2] - brutSmypos) * buffratio) >> BUFFPOINTNB);
 			}
+#endif
+			buffratio = 0;
+        }
+	
+        if (interlace_start==-1) {
+            signed int * tmp;
+            //int i,prevXY = prevX*prevY*2;
+            //for (i=0;i<prevXY;i++)
+            tmp = brutD;
+            brutD=brutT;
+            brutT=tmp;
+            tmp = freebrutD;
+            freebrutD=freebrutT;
+            freebrutT=tmp;
+            interlace_start = -2;
+						/*            TODO: virer si ca marche
+													int i,prevXY = prevX*prevY*2;
+													for (i=0;i<prevXY;i++)
+													brutD[i]=brutT[i];
+													interlace_start = -2;*/
+        }
+/*
+	if (interlace_start>=0) {
+		/* creation de la nouvelle destination *
+		for (y = interlace_start; y < prevY; y+=INTERLACE_INCR) {
+			Uint premul_y_prevX = y * prevX * 2;
+			for (x = 0; x < prevX; x++) {
+				int     px, py;
+				
+				// unsigned char coefv,coefh;
+				
+				calculatePXandPY (x, y, &px, &py);
+				
+				/*				if (py>ay<<16)
+									py = iRAND (32);
+									if (px>ax<<16)
+									px = iRAND (32);
+				*
+				
+				/*
+					if ((px == x << 4) && (py == y << 4)) {
+					if (x > middleX)
+					py += 2;
+					else
+					py -= 2;
+					if (y > middleY)
+					px += 2;
+					else
+					px -= 2;
+					}
+				*
+				
+				brutT[premul_y_prevX] = px;
+				brutT[premul_y_prevX + 1] = py;
+				premul_y_prevX += 2;
+			}
+		}
+		interlace_start += INTERLACE_ADD;
+		interlace_start &= INTERLACE_AND;
+		if (interlace_start == 0)
+			interlace_start = -1;
+	}
 
-			/* creation de la nouvelle destination */
-			for (y = 0; y < prevY; y++) {
-				for (x = 0; x < prevX; x++) {
-					int     px, py;
-
-					/* unsigned char coefv,coefh; */
-
-					calculatePXandPY (x, y, &px, &py);
-
-/*				if (py>ay<<16)
-				  py = iRAND (32);
-				if (px>ax<<16)
-				  px = iRAND (32);
 */
 
-					if ((px == x << 4) && (py == y << 4)) {
-						if (x > middleX)
-							py += 2;
-						else
-							py -= 2;
-						if (y > middleY)
-							px += 2;
-						else
-							px -= 2;
-					}
-
-					brutD[(y * prevX + x) << 1] = px;
-					brutD[((y * prevX + x) << 1) + 1] = py;
-				}
+	if (interlace_start>=0) {
+            int maxEnd = (interlace_start+INTERLACE_INCR);
+		/* creation de la nouvelle destination */
+		for (y = interlace_start; (y < prevY) && (y<maxEnd); y++) {
+			Uint premul_y_prevX = y * prevX * 2;
+			for (x = 0; x < prevX; x++) {
+				int     px, py;
+				
+				calculatePXandPY (x, y, &px, &py);
+				
+				brutT[premul_y_prevX] = px;
+				brutT[premul_y_prevX + 1] = py;
+				premul_y_prevX += 2;
 			}
-
-			buffratio = 0;
 		}
+		interlace_start += INTERLACE_INCR;
+		if (y >= prevY-1) interlace_start = -1;
 	}
 
 	if (switchIncr != 0) {
@@ -676,34 +800,39 @@ zoomFilterFastRGB (Uint * pix1,
 	mmx_zoom_size = prevX * prevY;
 
 #ifdef USE_ASM
-#ifdef MMX
-/*  mmx_zoom () ; */
-	if (use_asm) {
-		zoom_filter_mmx (prevX, prevY, expix1, expix2, brutS, brutD, buffratio, precalCoef);
-	}
-	else {
-		c_zoom ();
-	}
+#ifdef HAVE_MMX
+	if (zf_use_xmmx)
+		zoom_filter_xmmx (prevX, prevY,expix1, expix2,
+											brutS, brutD, buffratio, precalCoef);
+	else if (zf_use_mmx)
+		zoom_filter_mmx (prevX, prevY,expix1, expix2,
+										 brutS, brutD, buffratio, precalCoef);
+	else c_zoom (expix1, expix2, prevX, prevY, brutS, brutD);
 #endif
 
 #ifdef POWERPC
-	if (use_asm) {
-		ppc_zoom (expix1, expix2, prevX, prevY, brutS, brutD, buffratio);
-	}
-	else {
-		c_zoom ();
-	}
+	if (useAltivec)
+{
+            ppc_zoom (expix1, expix2, prevX, prevY, brutS, brutD, buffratio,precalCoef);
+            //c_zoom (expix1, expix2, prevX, prevY, brutS, brutD);
+            //ppc_zoom_altivec (expix1, expix2, prevX, prevY, brutS, brutD, buffratio,precalCoef);	// FIXME:rewrite alitvec
+}
+	else
+            ppc_zoom (expix1, expix2, prevX, prevY, brutS, brutD, buffratio,precalCoef);
 #endif
 #else
-	c_zoom ();
+	c_zoom (expix1, expix2, prevX, prevY, brutS, brutD);
 #endif
 }
 
-void pointFilter (Uint * pix1, Color c,
+void
+pointFilter (Uint * pix1, Color c,
 						 float t1, float t2, float t3, float t4, Uint cycle)
 {
-	Uint    x = (Uint) ((int) middleX + (int) (t1 * cos ((float) cycle / t3)));
-	Uint    y = (Uint) ((int) middleY + (int) (t2 * sin ((float) cycle / t4)));
+	Uint    x = (Uint) ((int) (resolx/2)
+											+ (int) (t1 * cos ((float) cycle / t3)));
+	Uint    y = (Uint) ((int) (c_resoly/2)
+											+ (int) (t2 * sin ((float) cycle / t4)));
 
 	if ((x > 1) && (y > 1) && (x < resolx - 2) && (y < c_resoly - 2)) {
 		setPixelRGB (pix1, x + 1, y, c);

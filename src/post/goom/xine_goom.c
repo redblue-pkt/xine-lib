@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_goom.c,v 1.34 2003/08/04 03:47:10 miguelfreitas Exp $
+ * $Id: xine_goom.c,v 1.35 2003/09/14 15:45:55 tmattern Exp $
  *
  * GOOM post plugin.
  *
@@ -98,6 +98,11 @@ struct post_plugin_goom_s {
   
   /* frame skipping */
   int skip_frame;
+  int title_flag;
+  char *msg;
+  int msg_index;
+  int msg_flag;
+  char msg_buf[1024];
 };
 
 typedef struct post_goom_out_s post_goom_out_t;
@@ -174,16 +179,6 @@ static void height_changed_cb(void *data, xine_cfg_entry_t *cfg) {
   }
 }
 
-static void use_asm_changed_cb(void *data, xine_cfg_entry_t *cfg) {
-  post_class_goom_t *class = (post_class_goom_t*) data;
-  
-  if(class->ip) {
-    post_plugin_goom_t *this = class->ip;
-    this->use_asm = cfg->num_value;
-    goom_setAsmUse(this->use_asm);
-  }
-}
-
 static void csc_method_changed_cb(void *data, xine_cfg_entry_t *cfg) {
   post_class_goom_t *class = (post_class_goom_t*) data;
   
@@ -223,20 +218,6 @@ static void *goom_init_plugin(xine_t *xine, void *data)
                                     NULL, 20, height_changed_cb, this);
   
 
-#ifdef ARCH_X86
-  if (xine_mm_accel() & MM_ACCEL_X86_MMX) {
-    cfg->register_bool (cfg, "post.goom_use_asm", 1,
-                             _("Use Goom asm optimizations"),
-                             NULL, 10, use_asm_changed_cb, this);
-  }
-#endif
-  
-#ifdef ARCH_PPC
-  cfg->register_bool (cfg, "post.goom_use_asm", 1,
-                           _("Use Goom asm optimizations"),
-                           NULL, 10, use_asm_changed_cb, this);
-#endif
-  
   cfg->register_enum (cfg, "post.goom_csc_method", 0,
                            (char **)goom_csc_methods,
                            _("Colorspace conversion method used by Goom"),
@@ -292,16 +273,18 @@ static post_plugin_t *goom_open_plugin(post_class_t *class_gen, int inputs,
                               &height_entry)) 
     height_changed_cb(class, &height_entry);
 
-  if(xine_config_lookup_entry(class->xine, "post.goom_use_asm",
-                              &use_asm_entry)) 
-    use_asm_changed_cb(class, &use_asm_entry);
-
   if(xine_config_lookup_entry(class->xine, "post.goom_csc_method",
                               &csc_method_entry)) 
     csc_method_changed_cb(class, &csc_method_entry);
 
   this->width_back  = this->width;
   this->height_back = this->height;
+
+  this->title_flag = 0;
+  this->msg_flag = 0;
+  this->msg_index = 0;
+  this->msg = NULL;
+
   goom_init (this->width_back, this->height_back, 0);
 
   this->ratio = (double)this->width_back/(double)this->height_back;
@@ -581,6 +564,7 @@ static void goom_port_put_buffer (xine_audio_port_t *port_gen,
       if (!this->skip_frame) {
         /* Try to be fast */
         goom_frame = (uint8_t *)goom_update (this->data, 0, 0, NULL, NULL);
+
         dest_ptr = frame -> base[0];
         goom_frame_end = goom_frame + 4 * (this->width_back * this->height_back);
 

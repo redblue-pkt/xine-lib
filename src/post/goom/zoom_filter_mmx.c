@@ -2,7 +2,7 @@
 #include "xineutils.h"
 #include "zoom_filter_mmx.h"
 
-#ifdef MMX
+#ifdef HAVE_MMX
 #define BUFFPOINTNB 16
 #define BUFFPOINTMASK 0xffff
 #define BUFFINCR 0xff
@@ -12,6 +12,10 @@
 #define PERTEMASK 0xf
 /* faire : a / sqrtperte <=> a >> PERTEDEC */
 #define PERTEDEC 4
+
+int zoom_filter_mmx_supported () {
+	return (xine_mm_accel() & MM_ACCEL_X86_MMX);
+}
 
 void zoom_filter_mmx (int prevX, int prevY,
 		      unsigned int *expix1, unsigned int *expix2,

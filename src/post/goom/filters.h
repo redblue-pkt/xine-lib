@@ -14,8 +14,8 @@ typedef struct
 	unsigned char sqrtperte;
 	int     middleX, middleY;			/* milieu de l'effet */
 	char    reverse;							/* inverse la vitesse */
-	char    mode;									/* type d'effet à appliquer (cf les #define) 
-																 * * * * * */ /** @since June 2001 */
+	char    mode;									/* type d'effet à appliquer (cf les #define)
+																 * * * * * /** @since June 2001 */
 	int     hPlaneEffect;					/* deviation horitontale */
 	int     vPlaneEffect;					/* deviation verticale */
 	/** @since April 2002 */
@@ -36,6 +36,8 @@ ZoomFilterData;
 #define WATER_MODE 5
 #define HYPERCOS1_MODE 6
 #define HYPERCOS2_MODE 7
+#define YONLY_MODE 8
+#define SPEEDWAY_MODE 9
 
 void    pointFilter (guint32 * pix1, Color c,
 										 float t1, float t2, float t3, float t4, guint32 cycle);
@@ -74,5 +76,8 @@ void sinFilter(Uint *pix1,Uint *pix2,
 #define SIN_MUL 1
 #define SIN_ADD 2
 
+//#ifdef USE_ASM
+//void setAsmUse (int useIt);
+//#endif
 
 #endif
