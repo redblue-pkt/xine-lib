@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.14 2001/06/09 18:40:41 guenter Exp $
+ * $Id: video_out.c,v 1.15 2001/06/10 01:26:46 guenter Exp $
  *
  */
 
@@ -382,7 +382,7 @@ static int vo_frame_draw (vo_frame_t *img) {
   cur_vpts = this->metronom->get_current_time(this->metronom);
 
   diff = pic_vpts - cur_vpts;
-  frames_to_skip = (-1 * diff) / this->pts_per_frame + 1;
+  frames_to_skip = ((-1 * diff) / this->pts_per_frame + 1) * 2;
 
   xprintf (VERBOSE|VIDEO,"video_out:: delivery diff : %d\n",diff);
 

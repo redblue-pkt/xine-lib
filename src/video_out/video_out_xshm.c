@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xshm.c,v 1.3 2001/06/04 15:04:13 guenter Exp $
+ * $Id: video_out_xshm.c,v 1.4 2001/06/10 01:26:46 guenter Exp $
  * 
  * video_out_xshm.c, X11 shared memory extension interface for xine
  *
@@ -65,8 +65,11 @@ typedef struct xshm_frame_s {
 
   int                width, height;
   int                rgb_width, rgb_height;
+  int                ratio_code;
 
   XImage            *image;
+  uint8_t           *rgb_dst;
+  int                stripe_inc;
   XShmSegmentInfo    shminfo;
 
 } xshm_frame_t;
@@ -101,6 +104,7 @@ typedef struct xshm_driver_s {
   int              output_height;
   int              output_xoffset;
   int              output_yoffset;
+  int              stripe_height;
 
   int              user_ratio;
 
@@ -297,10 +301,19 @@ static uint32_t xshm_get_capabilities (vo_driver_t *this_gen) {
 }
 
 static void xshm_frame_copy (vo_frame_t *vo_img, uint8_t **src) {
-  /* FIXME: implement */
+  xshm_frame_t  *frame = (xshm_frame_t *) vo_img ;
+  xshm_driver_t *this = (xshm_driver_t *) vo_img->instance->driver;
 
+  if (! frame->stripe_inc) {
+    printf ("ALARM 1\n");
+  }
+  if (! frame->image) {
+    printf ("ALARM 2\n");
+  }
+  this->yuv2rgb->yuv2rgb_fun (this->yuv2rgb, frame->rgb_dst,
+			      src[0], src[1], src[2]);
 
-
+  frame->rgb_dst += frame->stripe_inc; 
 }
 
 static void xshm_frame_field (vo_frame_t *vo_img, int which_field) {
@@ -351,6 +364,7 @@ static void xshm_calc_output_size (xshm_driver_t *this) {
   double image_ratio, desired_ratio;
   double corr_factor;
   int ideal_width, ideal_height;
+  int dest_width, dest_height;
 
   /*
    * aspect ratio calculation
@@ -413,9 +427,32 @@ static void xshm_calc_output_size (xshm_driver_t *this) {
     ideal_height *=2;
   }
 
-  this->calc_dest_size (ideal_width, ideal_height, 
-			&this->output_width, &this->output_height);
+  ideal_width &= 0xFFFFFE0;
 
+  this->calc_dest_size (ideal_width, ideal_height, 
+			&dest_width, &dest_height);
+
+
+  /*
+   * make the frames fit into the given destination area
+   */
+
+  if ( ((double) dest_width / this->ratio_factor) < dest_height ) {
+
+    this->output_width   = dest_width ;
+    this->output_height  = (double) dest_width / this->ratio_factor ;
+    this->output_xoffset = 0;
+    this->output_yoffset = (dest_height - this->output_height) / 2;
+
+  } else {
+    
+    this->output_width    = (double) dest_height * this->ratio_factor ;
+    this->output_height   = dest_height;
+
+    this->output_xoffset  = (dest_width - this->output_width) / 2;
+    this->output_yoffset  = 0;
+
+  } 
 }
 
 static void xshm_update_frame_format (vo_driver_t *this_gen,
@@ -426,30 +463,21 @@ static void xshm_update_frame_format (vo_driver_t *this_gen,
   xshm_driver_t  *this = (xshm_driver_t *) this_gen;
   xshm_frame_t   *frame = (xshm_frame_t *) frame_gen;
 
-  if ( (width != this->delivered_width) || (height != this->delivered_width)
-       || (ratio_code != this->delivered_ratio_code) ) {
+  if ((frame->rgb_width != this->output_width) 
+      || (frame->rgb_height != this->output_height)
+      || (frame->width != width)
+      || (frame->height != height)
+      || (frame->ratio_code != ratio_code)) {
+
+    int image_size;
 
     this->delivered_width      = width;
     this->delivered_height     = height;
     this->delivered_ratio_code = ratio_code;
 
     xshm_calc_output_size (this);
-    /*
-    yuv2rgb_setup (this->yuv2rgb,
-		   this->delivered_width,
-		   this->delivered_height,
-		   this->delivered_width,
-		   this->delivered_width/2,
-		   this->output_width,
-		   this->output_height,
-		   this->output_width*this->bytes_per_pixel);
-	*/	   
-  }
 
-  if ((frame->width != this->output_width) 
-      || (frame->height != this->output_height)) {
-
-    int image_size;
+    this->stripe_height = 16 * this->output_height / this->delivered_height;
 
     /*
     printf ("video_out_xshm: updating frame to %d x %d\n",
@@ -465,11 +493,17 @@ static void xshm_update_frame_format (vo_driver_t *this_gen,
     if (frame->image) {
 
       dispose_ximage (this, &frame->shminfo, frame->image);
+
+      /* FIXME: free yuv (base) memory !!!!! */
+
+
       frame->image = NULL;
     }
 
     frame->image = create_ximage (this, &frame->shminfo, 
 				  this->output_width, this->output_height);
+
+    XUnlockDisplay (this->display); 
 
     image_size = width * height;
     frame->vo_frame.base[0] = xmalloc_aligned(16,image_size);
@@ -481,8 +515,24 @@ static void xshm_update_frame_format (vo_driver_t *this_gen,
 
     frame->rgb_width  = this->output_width;
     frame->rgb_height = this->output_height;
+
+    frame->ratio_code = ratio_code;
   
-    XUnlockDisplay (this->display); 
+    yuv2rgb_setup (this->yuv2rgb,
+		   this->delivered_width,
+		   16,
+		   this->delivered_width,
+		   this->delivered_width/2,
+		   this->output_width,
+		   this->stripe_height,
+		   frame->image->bytes_per_line);
+
+    printf ("alloc image done\n");
+  }
+
+  if (frame->image) {
+    frame->rgb_dst    = frame->image->data;
+    frame->stripe_inc = this->stripe_height * frame->image->bytes_per_line;
   }
 }
 
@@ -515,15 +565,15 @@ static void xshm_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
     
       XShmPutImage(this->display, 
 		   this->drawable, this->gc, frame->image,
-		   0, 0,  frame->rgb_width, frame->rgb_height,
+		   0, 0,  this->output_xoffset, this->output_yoffset,
 		   frame->rgb_width, frame->rgb_height, True);
-    
+
       this->expecting_event = 1;
 
     } else {
       XPutImage(this->display, 
 		this->drawable, this->gc, frame->image,
-		0, 0,  frame->rgb_width, frame->rgb_height,
+		0, 0,  0, 0,
 		frame->rgb_width, frame->rgb_height);
     }
     
@@ -557,6 +607,9 @@ static int xshm_set_property (vo_driver_t *this_gen,
     if (value>ASPECT_DVB)
       value = ASPECT_AUTO;
     this->user_ratio = value;
+
+    xshm_calc_output_size (this);
+
   } else {
     printf ("video_out_xshm: tried to set unsupported property %d\n", property);
   }

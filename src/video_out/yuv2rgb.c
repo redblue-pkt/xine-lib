@@ -60,13 +60,29 @@ static void yuv2rgb_c (yuv2rgb_t *this, uint8_t *image,
   } while (--height);
 }
 
+static void *my_malloc_aligned (size_t alignment, size_t size, void **chunk) {
+
+  void *pMem;
+
+  pMem = xmalloc (size+alignment);
+
+  *chunk = pMem;
+
+  while ((int) pMem % alignment)
+    pMem++;
+
+  return pMem;
+}
+
+
 int yuv2rgb_setup (yuv2rgb_t *this, 
 		   int source_width, int source_height,
 		   int y_stride, int uv_stride,
 		   int dest_width, int dest_height,
 		   int rgb_stride) {
 
-  
+  printf ("yuv2rgb setup (%d x %d => %d x %d)\n", source_width, source_height,
+	  dest_width, dest_height);
   this->source_width  = source_width;
   this->source_height = source_height;
   this->y_stride      = y_stride;
@@ -83,17 +99,17 @@ int yuv2rgb_setup (yuv2rgb_t *this,
     this->step_dx = source_width  * 32768 / dest_width;
     this->step_dy = source_height * 32768 / dest_height;
     
-    if (this->y_buffer) free (this->y_buffer);
-    if (this->u_buffer) free (this->u_buffer);
-    if (this->v_buffer) free (this->v_buffer);
+    if (this->y_chunk) free (this->y_chunk);
+    if (this->u_chunk) free (this->u_chunk);
+    if (this->v_chunk) free (this->v_chunk);
     
-    this->y_buffer = xmalloc_aligned (16, dest_width);
+    this->y_buffer = my_malloc_aligned (16, dest_width, &this->y_chunk);
     if (!this->y_buffer)
       return 0;
-    this->u_buffer = xmalloc_aligned (16, dest_width);
+    this->u_buffer = my_malloc_aligned (16, dest_width, &this->u_chunk);
     if (!this->u_buffer)
       return 0;
-    this->v_buffer = xmalloc_aligned (16, dest_width);
+    this->v_buffer = my_malloc_aligned (16, dest_width, &this->v_chunk);
     if (!this->v_buffer)
       return 0;
   }

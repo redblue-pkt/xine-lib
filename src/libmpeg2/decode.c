@@ -123,7 +123,7 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 	  /* find out if we want to skip this frame */
 	  mpeg2dec->drop_frame = 0;
 	  
-	  picture->skip_non_intra_dct = (mpeg2dec->frames_to_drop>0) ;
+	  /* picture->skip_non_intra_dct = (mpeg2dec->frames_to_drop>0) ; */
 	  
 	  switch (picture->picture_coding_type) {
 	  case B_TYPE:

@@ -36,9 +36,9 @@ struct yuv2rgb_s {
   int           rgb_stride;
   int           step_dx, step_dy;
   int           do_scale;
-  uint8_t      *y_buffer;
-  uint8_t      *u_buffer;
-  uint8_t      *v_buffer;
+  uint8_t      *y_buffer, *y_chunk;
+  uint8_t      *u_buffer, *u_chunk;
+  uint8_t      *v_buffer, *v_chunk;
 
   void         *table_rV[256];
   void         *table_gU[256];
