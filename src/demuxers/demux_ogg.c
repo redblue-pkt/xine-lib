@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ogg.c,v 1.86 2003/04/30 08:49:39 heinchen Exp $
+ * $Id: demux_ogg.c,v 1.87 2003/04/30 09:38:21 heinchen Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -46,9 +46,9 @@
 #include "xineutils.h"
 #include "demux.h"
 
-
+/*
 #define LOG
-
+*/
 
 #define CHUNKSIZE                8500
 #define PACKET_TYPE_HEADER       0x01
@@ -889,12 +889,25 @@ static void demux_ogg_send_header (demux_ogg_t *this) {
 	  }
 	} else if (!strncmp (&op.packet[1], "text", 4)) {
 	  int channel=0;
+	  uint32_t *val;
+	  buf_element_t *buf;
+
 #ifdef LOG
 	  printf ("demux_ogg: textstream detected.\n");
 #endif
 	  this->preview_buffers[stream_num] = 2;
 	  channel= this->num_spu_streams++;
 	  this->buf_types[stream_num] = BUF_SPU_OGM | channel;
+
+	  /*send an empty spu to inform the video_decoder, that there is a stream*/
+	  buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
+	  buf->type = this->buf_types[stream_num];
+	  buf->pts = 0;
+	  val = (uint32_t * )buf->content;
+	  *val++=0;
+	  *val++=0;
+	  *val++=0;
+	  this->video_fifo->put (this->video_fifo, buf);
 
 #ifdef HAVE_THEORA
 	} else if (!strncmp (&op.packet[1], "theora", 4)) {
@@ -1040,10 +1053,10 @@ static void demux_ogg_send_content (demux_ogg_t *this) {
   ogg_stream_pagein(&this->oss[stream_num], &this->og);
     
   if (ogg_page_bos(&this->og)) {
-
+#ifdef LOG
     printf ("demux_ogg: beginning of stream\ndemux_ogg: serial number %d - discard\n",
 	    ogg_page_serialno (&this->og));
-
+#endif
     while (ogg_stream_packetout(&this->oss[stream_num], &op) == 1) ;
     return;
   }
@@ -1207,6 +1220,11 @@ static int demux_ogg_seek (demux_plugin_t *this_gen,
     }
 
     ogg_sync_reset(&this->oy);
+	 
+    /*some strange streams have no syncpoint flag set at the beginning*/	 
+    if (start_pos == 0)	 
+      this->keyframe_needed = 0;	 
+ 
     this->input->seek (this->input, start_pos, SEEK_SET);
   }
 
@@ -1395,10 +1413,6 @@ static void *init_class (xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_DEMUX, 20, "ogg", XINE_VERSION_CODE, NULL, init_class },
+  { PLUGIN_DEMUX, 21, "ogg", XINE_VERSION_CODE, NULL, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
-
-
-
-
