@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_aa.c,v 1.2 2001/06/11 01:27:42 heikos Exp $
+ * $Id: video_out_aa.c,v 1.3 2001/06/11 03:18:55 heikos Exp $
  *
  * video_out_aa.c, ascii-art output plugin for xine
  *
@@ -169,8 +169,8 @@ static void aa_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
   for (y = 0; y<aa_imgheight (this->context); y++) {
     for (x = 0; x<aa_imgwidth (this->context); x++) {
       
-      *img++ = src_image[(int) (((double) x * x_fact) +
-				frame->width * ((double) y * y_fact))];
+      *img++ = src_image[((int)((double) x * x_fact) +
+			  frame->width * (int)((double) y * y_fact))];
       
     }
   }
