@@ -22,7 +22,7 @@
  *
  * FFT code by Steve Haehnichen, originally licensed under GPL v1
  *
- * $Id: fftscope.c,v 1.8 2003/02/11 08:58:15 tmattern Exp $
+ * $Id: fftscope.c,v 1.9 2003/02/12 00:43:33 tmattern Exp $
  *
  */
 
@@ -393,8 +393,8 @@ static void draw_fftscope(post_plugin_fftscope_t *this, vo_frame_t *frame) {
       /* persistence of top */
       if (this->amp_age[c][i] >= 10) {
         x = this->amp_age[c][i] - 10;
-        x = 0x4f - x;
-        if (x < 0) x = 0;
+        x = 0x5f - x;
+        if (x < 0x10) x = 0x10;
         ((uint32_t *)frame->base[0])[map_ptr_bkp -
           this->amp_max[c][i] * (FFT_WIDTH / 2)] =
             be2me_32((x << 24) | (0x80 << 16) | (x << 8) | 0x80);
