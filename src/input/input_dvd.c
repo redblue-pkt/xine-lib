@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.94 2002/10/22 07:36:05 jcdutton Exp $
+ * $Id: input_dvd.c,v 1.95 2002/10/22 17:16:57 jkeil Exp $
  *
  */
 
@@ -1154,7 +1154,7 @@ check_solaris_vold_device(dvd_input_plugin_t *this)
       free(device);
       return;
     }
-    this->dvd_device = device;
+/*    this->dvd_device = device; */
   }
 }
 #endif
@@ -1563,7 +1563,7 @@ static void *init_plugin (xine_t *xine, void *data) {
   
 /*  pthread_mutex_init(&this->buf_mutex, NULL);
   this->mem_stack              = 0;
-/*
+*/
   
 /* FIXME */
 /*  xine_register_event_listener(this->stream, dvd_event_listener, this);*/
@@ -1645,6 +1645,9 @@ this->dvd_device = "/dev/dvd";
 
 /*
  * $Log: input_dvd.c,v $
+ * Revision 1.95  2002/10/22 17:16:57  jkeil
+ * Fix bad comment, and disable some piece of code to enable compilation on solaris
+ *
  * Revision 1.94  2002/10/22 07:36:05  jcdutton
  * Update input_dvd.c to new api.
  * Plays DVDs now, but not menu buttons work yet.
