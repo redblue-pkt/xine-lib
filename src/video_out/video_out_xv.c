@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.79 2001/11/20 18:35:11 miguelfreitas Exp $
+ * $Id: video_out_xv.c,v 1.80 2001/11/23 22:29:45 f1rmb Exp $
  * 
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -1046,19 +1046,19 @@ static int xv_gui_data_exchange (vo_driver_t *this_gen,
 	XLockDisplay (this->display);
 
 	if (this->use_shm) {
-      XvShmPutImage(this->display, this->xv_port,
-		    this->drawable, this->gc, this->cur_frame->image,
-		    this->displayed_xoffset, this->displayed_yoffset,
-		    this->displayed_width, this->displayed_height - 5,
-		    this->output_xoffset, this->output_yoffset,
-		    this->output_width, this->output_height, True);
+	  XvShmPutImage(this->display, this->xv_port,
+			this->drawable, this->gc, this->cur_frame->image,
+			this->displayed_xoffset, this->displayed_yoffset,
+			this->displayed_width, this->displayed_height - 5,
+			this->output_xoffset, this->output_yoffset,
+			this->output_width, this->output_height, True);
 	} else {
 	  XvPutImage(this->display, this->xv_port,
-		    this->drawable, this->gc, this->cur_frame->image,
-		    this->displayed_xoffset, this->displayed_yoffset,
-		    this->displayed_width, this->displayed_height - 5,
-		    this->output_xoffset, this->output_yoffset,
-		    this->output_width, this->output_height);
+		     this->drawable, this->gc, this->cur_frame->image,
+		     this->displayed_xoffset, this->displayed_yoffset,
+		     this->displayed_width, this->displayed_height - 5,
+		     this->output_xoffset, this->output_yoffset,
+		     this->output_width, this->output_height);
 	}
 	XFlush(this->display);
 
@@ -1151,7 +1151,8 @@ static void xv_check_capability (xv_driver_t *this,
 
   sprintf (this->scratch, "video.%s", str_prop);
 
-  this->config->register_num (this->config, this->scratch, int_default,
+  this->config->register_range (this->config, this->scratch, int_default,
+			      this->props[property].min, this->props[property].max,   
 			      "Xv property", NULL, xv_property_callback, &this->props[property]);
 
   entry = this->config->lookup_entry (this->config, this->scratch);
