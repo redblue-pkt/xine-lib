@@ -1,6 +1,6 @@
 xine-lib (1-rc3a)
   * new subtitle formats: jacobsub, subviewer 2.0, subrip 0.9
-  * auto hidding of the subtitles
+  * auto hiding of the subtitles
   * raw AAC file demuxer
   * fix starvation problem with kernel 2.6 NPTL
   * not overwrite the files by saving plugin

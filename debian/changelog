@@ -1,3 +1,19 @@
+xine-lib (1-rc3a-1) unstable; urgency=high
+
+  * new upstream release
+    * fixes ABI compatibility (closes: 224931)
+  * audio demuxer group is loaded again (closes: 225158)
+
+ -- Siggi Langauf <siggi@debian.org>  Sun, 28 Dec 2003 11:56:16 +0100
+
+xine-lib (1-rc3-2) unstable; urgency=low
+
+  * merged some updates from upstream CVS:
+    * define SCSI_BLK_MAJOR macro for kernel 2.6 (closes: 224695)
+    * fix endianness for arts audio (closes: 190356)
+
+ -- Siggi Langauf <siggi@debian.org>  Tue, 23 Dec 2003 01:38:29 +0100
+
 xine-lib (1-rc3-1) unstable; urgency=low
 
   * new upstream release
