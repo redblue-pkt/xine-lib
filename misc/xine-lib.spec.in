@@ -118,6 +118,7 @@ Obsoletes:      xine-devel
 Obsoletes:      libxine0-devel
 Provides:       %{shortname}-devel = %{version}-%{release}
 Provides:       xine-devel
+Requires:       %{libname} = %{version}-%{release}
 
 %description devel
 This package contains header files and documentation required to develope
@@ -190,6 +191,7 @@ Summary(fi):    libxine-Ddnilisdke uudelle Linux:n ddniarkkitehtuurille (ALSA >=
 Group:          Development/Libraries
 Obsoletes:      xine-lib-alsa09
 Obsoletes:      libxine0-alsa09
+Requires:       %{libname} = %{version}-%{release}
 
 %description alsa09
 libxine sound output plugin for alsa >= 0.9
@@ -213,6 +215,7 @@ Summary(fi):    libxine-Ddnilisdke Arts ddnipalvelimelle (KDE:n ddnipalvelin)
 Group:          Development/Libraries
 Obsoletes:      xine-lib-arts
 Obsoletes:      libxine0-arts
+Requires:       %{libname} = %{version}-%{release}
 
 %description arts
 libxine sound output plugin for arts (KDE-soundserver)
@@ -236,6 +239,7 @@ Summary(fi):    libxine-ddnilisdke Enlightmend ddnipalvelimelle
 Group:          Development/Libraries
 Obsoletes:      xine-lib-esd
 Obsoletes:      libxine0-esd
+Requires:       %{libname} = %{version}-%{release}
 
 %description esd
 libxine sound output plugin for enlightmend sound daemon (Gnome and Enlightment)
@@ -259,6 +263,7 @@ Summary(fi):    libxine-Videolisdke SDL grafiikkakirjastolle (Simple DirectMedia
 Group:          Development/Libraries
 Obsoletes:      xine-lib-sdl
 Obsoletes:      libxine0-sdl
+Requires:       %{libname} = %{version}-%{release}
 
 %description sdl
 libxine video output plugin for SDL-library (Simple DirectMedia Layer)
@@ -284,6 +289,7 @@ Obsoletes:      xine-lib-aa
 Obsoletes:      libxine0-aa
 Obsoletes:      xine-extra
 Provides:       xine-extra
+Requires:       %{libname} = %{version}-%{release}
 
 %description aa
 libxine video output plugin for aa-library (ASCII Art)
@@ -306,6 +312,7 @@ Summary(de):    libxine Videoausgabeplugin per OpenGL (3D Grafikkarte)
 Group:          Development/Libraries
 Obsoletes:      xine-lib-opengl
 Obsoletes:      libxine0-opengl
+Requires:       %{libname} = %{version}-%{release}
 
 %description opengl
 libxine video output plugin using OpenGL (3D graphic cards)
@@ -325,6 +332,7 @@ Summary(de):    libxine Videoausgabeplugin per synchronisiertem Framebuffer (Mat
 Summary(fi):    libxine-Videolisdke Matrox-ndyttvkorttien synkronisoitua ndyttvmuistia varten.
 Group:          Development/Libraries
 Obsoletes:      libxine0-syncfb
+Requires:       %{libname} = %{version}-%{release}
 
 %description syncfb
 libxine video output plugin using synchroniced framebuffer (Matrox cards)
@@ -348,6 +356,7 @@ Summary(de):    libxine Inputplugin zum abspielen von Video-DVDs mit DVD-Navigat
 Summary(fi):    libxine-Lukulisdke, jolla kdyttdjd voi soittaa DVD-levyjd
 Group:          Development/Libraries
 Obsoletes:      xine-dvdnav
+Requires:       %{libname} = %{version}-%{release}
 
 %description dvd
 libxine input plugin for playing video-dvd's with dvd-navigation
@@ -369,6 +378,7 @@ Summary(cs):    Vstupní modul libxine pro karty digitální TV
 Summary(de):    libxine Einabeplugin für digitale TV-Karten
 Summary(fi):    libxine-Lukulisdke, jolla kdyttdjd voi katsella DigitalTV-korttien ohjelmia
 Group:          Development/Libraries
+Requires:       %{libname} = %{version}-%{release}
 
 %description dvb
 libxine input plugin for Digital TV (Digital Video Broadcast - DVB) devices
@@ -395,6 +405,7 @@ Summary(cs):    Vstupní modul libxine pro totem (frontend GNOME)
 Summary(de):    libxine Einabeplugin für totem (ein Gnome Frontend)
 Summary(fi):    libxine-Lukulisdke Totem ohjelmaa varten, joka on libxine:n Gnome2 kdyttvliittymd
 Group:          Development/Libraries
+Requires:       %{libname} = %{version}-%{release}
 
 %description gnome-vfs
 libxine input plugin for totem (a gnome frontend)
@@ -416,6 +427,7 @@ Summary(cs):    Zvukový modul libxine pro dekódování souborů FLAC (Free Los
 Summary(de):    libxine Soundeinabeplugin für flac-Dateien (Free Lossless Audio Codec)
 Summary(fi):    libxine-Ddnilisdke flac-tiedostojen toistamiseen (Free Lossless Audio Codec)
 Group:          Development/Libraries
+Requires:       %{libname} = %{version}-%{release}
 
 %description flac
 libxine sound input plugin for flac-files (Free Lossless Audio Codec)
@@ -437,6 +449,7 @@ Summary(cs):    Zvukový modul libxine pro dekódování souborů OGG a OGM
 Summary(de):    libxine Sound-/Videoeinabeplugin für ogg/ogm-Dateien
 Summary(fi):    libxine-Ddni/Videolisdke Ogg/Ogm tiedostojen toistamiseen
 Group:          Development/Libraries
+Requires:       %{libname} = %{version}-%{release}
 Obsoletes:      xine-lib-oggvorbis
 Obsoletes:      %{libname}-oggvorbis
 Obsoletes:      %{libname}-oggtheora
@@ -463,6 +476,7 @@ Summary:        libxine video output plugin using libdirectfb
 Summary(cs):    Videovýstupní modul libxine používající libdirectfb
 Summary(de):    libxine Videoausgabeplugin per libdirectfb
 Group:          Development/Libraries
+Requires:       %{libname} = %{version}-%{release}
 
 %description directfb
 libxine video output plugin using libdirectfb
@@ -480,6 +494,7 @@ Summary:        libxine video output plugin using libstk
 Summary(cs):    Videovýstupní modul libxine používající libstk
 Summary(de):    libxine Videoausgabeplugin per libstk
 Group:          Development/Libraries
+Requires:       %{libname} = %{version}-%{release}
 
 %description stk
 libxine video output plugin using libstk (Set-top Toolkit)
@@ -501,6 +516,7 @@ Summary(fi):    libxine-Videolisdke MPEG2-videopurkukorteille, joissa on DXR3 pu
 Group:          Development/Libraries
 Obsoletes:      xine-lib-dxr3
 Obsoletes:      libxine0-dxr3
+Requires:       %{libname} = %{version}-%{release}
 
 %description dxr3
 libxine video output plugin using mpeg2 decoding cards with dxr3 decoder-chip
@@ -526,6 +542,7 @@ Summary(de):    libxine Videoausgabeplugin per XVideo-Erweiterung mit Motion Com
 Group:          Development/Libraries
 Obsoletes:      libxine0-xvmc
 Autoreqprov:    Off
+Requires:       %{libname} = %{version}-%{release}
 
 %description xvmc
 libxine video output plugin using XVideo-extension with motion compensation
@@ -542,22 +559,23 @@ libxine Videoausgabeplugin per XVideo-Erweiterung mit Motion Compensation
 %ifarch i386 i486 i586 i686 i786 i868 i986 k6 k7 athlon
 %package w32dll
 Summary:        libxine decoding plugin using win32 dlls for native not supported formats
-Summary(cs):    Dekódovací modul libxine, který používá DLL knihovny WIN32 
+Summary(cs):    Dekódovací modul libxine, který používá DLL knihovny WIN32
 Summary(de):    libxine Dekodierplugin, nutzt Win32 dlls für natvie nicht unterstützte Formate
 Summary(fi):    libxine-Purkulisdke, joka mahdollistaa Win32 DLL:n kdytvn.
 Group:          Development/Libraries
 Obsoletes:      xine-lib-w32dll
 Obsoletes:      libxine0-w32dll
+Requires:       %{libname} = %{version}-%{release}
 
 %description w32dll
 libxine decoding plugin using win32 dlls for native not supported formats
 
-%description w32dll -l de
-libxine Dekodierplugin, nutzt Win32 dlls für native nicht unterstützte Formate
-
 %description w32dll -l cs
 Dekódovací modul libxine, který používá DLL knihovny WIN32 pro formáty
 nepodporované přímo.
+
+%description w32dll -l de
+libxine Dekodierplugin, nutzt Win32 dlls für native nicht unterstützte Formate
 
 %description w32dll -l fi
 libxine-Purkulisdke, joka mahdollistaa Win32 DLL:n kdytvn.
@@ -851,9 +869,11 @@ rm ${RPM_BUILD_DIR}/filelist_libxine1_old
 %endif
 
 %changelog
+* Sat Sep 11 2004 Manfred Tremmel <Manfred.Tremmel@iiv.de>
+- added missing Requires-Statements in the subpackages
 * Fri Sep 03 2004 František Dvořák <valtri@users.sourceforge.net>
 - Czech translation update
-* Thu Sep 01 2004 Manfred Tremmel <Manfred.Tremmel@iiv.de>
+* Thu Sep 02 2004 Manfred Tremmel <Manfred.Tremmel@iiv.de>
 - konverted to UTF8
 - some fixes for non IA32 systems (especialy Athlon64/Opteron)
 * Sat May 01 2004 Manfred Tremmel <Manfred.Tremmel@iiv.de>
