@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_overlay.c,v 1.4 2001/11/30 17:35:32 jcdutton Exp $
+ * $Id: video_overlay.c,v 1.5 2001/11/30 19:31:55 jcdutton Exp $
  *
  */
 
@@ -336,6 +336,9 @@ static void video_overlay_event( video_overlay_t *this, int vpts ) {
         printf ("video_overlay: SHOW SPU NOW\n");
 #endif
         if (this->video_overlay_events[this_event].event->object.overlay != NULL) {
+#ifdef LOG_DEBUG
+          video_overlay_print_overlay( this->video_overlay_events[this_event].event->object.overlay ) ;
+#endif
           internal_video_overlay_free_handle( this, handle );
           
           this->video_overlay_objects[handle].handle = handle;
@@ -381,6 +384,9 @@ static void video_overlay_event( video_overlay_t *this, int vpts ) {
         if (this->video_overlay_events[this_event].event->object.overlay != NULL) {
           vo_overlay_t *event_overlay = this->video_overlay_events[this_event].event->object.overlay;
           vo_overlay_t *overlay;
+#ifdef LOG_DEBUG
+          video_overlay_print_overlay( this->video_overlay_events[this_event].event->object.overlay ) ;
+#endif
 
           /* we need to allocate overlay on first EVENT_MENU_SPU */          
           if( !this->video_overlay_objects[handle].overlay ) {

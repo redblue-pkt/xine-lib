@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.40 2001/11/30 17:35:32 jcdutton Exp $
+ * $Id: xine_decoder.c,v 1.41 2001/11/30 19:31:55 jcdutton Exp $
  *
  * stuff needed to turn libspu into a xine decoder plugin
  */
@@ -101,7 +101,7 @@ static void spudec_init (spu_decoder_t *this_gen, vo_instance_t *vo_out) {
 
   spudec_reset(this);
 /* FIXME:Do we really need a default clut? */
-  memcpy(this->state.clut, __default_clut, sizeof(this->state.clut));
+  xine_fast_memcpy(this->state.clut, __default_clut, sizeof(this->state.clut));
   this->state.need_clut = 1;
 }
 
@@ -168,7 +168,7 @@ static void spu_process (spudec_decoder_t *this, uint32_t stream_id) {
         
         this->event.object.handle = this->spu_stream_state[stream_id].overlay_handle;
        
-        memcpy(this->event.object.overlay, 
+        xine_fast_memcpy(this->event.object.overlay, 
                &this->overlay,
                sizeof(vo_overlay_t));
         this->overlay.rle=NULL;
@@ -197,7 +197,7 @@ static void spu_process (spudec_decoder_t *this, uint32_t stream_id) {
         }
         this->event.object.handle = this->menu_handle;
         
-        memcpy(this->event.object.overlay, 
+        xine_fast_memcpy(this->event.object.overlay, 
                &this->overlay,
                sizeof(vo_overlay_t));
         this->overlay.rle=NULL;
@@ -222,7 +222,7 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
 
   if (buf->type == BUF_SPU_CLUT) {
     if (buf->content[0]) { /* cheap endianess detection */
-      memcpy(this->state.clut, buf->content, sizeof(uint32_t)*16);
+      xine_fast_memcpy(this->state.clut, buf->content, sizeof(uint32_t)*16);
     } else {
       int i;
       uint32_t *clut = (uint32_t*) buf->content;
@@ -429,7 +429,7 @@ static void spudec_event_listener(void *this_gen, xine_event_t *event_gen) {
     /* FIXME: This function will need checking before it works. */
       spu_cltbl_t *clut = event->data;
       if (clut) {
-        memcpy(this->state.clut, clut->clut, sizeof(int32_t)*16);
+        xine_fast_memcpy(this->state.clut, clut->clut, sizeof(uint32_t)*16);
         this->state.need_clut = 0;
       }
     }
