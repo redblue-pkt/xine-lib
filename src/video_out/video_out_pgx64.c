@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  *
- * $Id: video_out_pgx64.c,v 1.12 2002/11/02 04:31:06 komadori Exp $
+ * $Id: video_out_pgx64.c,v 1.13 2002/11/02 22:30:21 komadori Exp $
  *
  * video_out_pgx64.c, Sun PGX64/PGX24 output plugin for xine
  *
@@ -370,6 +370,7 @@ static void pgx64_display_frame(pgx64_driver_t *this, pgx64_frame_t *frame)
       }
       break;
 
+#ifdef ENABLE_VIS
       case DEINTERLACE_LINEARBLEND_VIS: {
         register uint32_t *first = (uint32_t *)(frame->vo_frame.base[0]);
         register uint32_t *second = (uint32_t *)(frame->vo_frame.base[0]+frame->width);
@@ -402,6 +403,7 @@ static void pgx64_display_frame(pgx64_driver_t *this, pgx64_frame_t *frame)
         memcpy(dest, second, frame->width);
       }
       break;
+#endif
 
       default: {
         memcpy(this->fbbase+frame->buf_y, frame->vo_frame.base[0], frame->lengths[0]);

@@ -209,9 +209,9 @@ AC_ARG_ENABLE(altivec,
 		enable_altivec=yes)
 
 AC_ARG_ENABLE(vis, 
-	[  --enable-vis            use assembly codes for Sun UltraSPARC cpus],
-         	enable_vis=yes,
-		enable_vis=no)
+	[  --disable-vis            use assembly codes for Sun UltraSPARC cpus],
+         	enable_vis=no,
+		enable_vis=yes)
 
 if test x$enable_mlib = x; then
 AC_ARG_ENABLE(mlib,
@@ -399,13 +399,9 @@ AM_PATH_AALIB(1.4,, AC_MSG_RESULT([*** All of AALIB dependent parts will be disa
 AM_CONDITIONAL(HAVE_AA, test x$no_aalib != "xyes")
 
 dnl ---------------------------------------------
-dnl Check solaris framebuffer device support (only on Solaris SPARC)
+dnl Check solaris framebuffer device support
 dnl ---------------------------------------------
 AC_CHECK_HEADER(sys/fbio.h, ac_have_sunfb=yes,)
-case $host in
-sparc*) ;;
-*)	ac_have_sunfb=no ;;
-esac
 AM_CONDITIONAL(HAVE_SUNFB, [test x"$ac_have_sunfb" = "xyes"])
 
 dnl ---------------------------------------------
@@ -852,13 +848,13 @@ case "$host_or_hostalias" in
   sparc*-*-linux*)
     case $host_alias in
     sparc-*)    cpu_cflags="-mcpu=supersparc -mtune=supersparc" ;;
-    sparc64-*)  cpu_cflags="-mcpu=supersparc -mtune=ultrasparc" ;;
-    esac
-
-    if test x$enable_vis = xyes; then
+    sparc64-*)
+      cpu_cflags="-mcpu=ultrasparc -mtune=ultrasparc"
+      if test x$enable_vis = xyes; then
         AC_DEFINE_UNQUOTED(ENABLE_VIS,,[Define this if you have Sun UltraSPARC CPU])
-        cpu_cflags="-mcpu=ultrasparc"
-    fi
+      fi
+    ;;
+    esac
 
     CFLAGS="$CFLAGS -O3 $cpu_cflags -funroll-loops -funroll-all-loops -finline-functions"
     DEBUG_CFLAGS="$DEBUG_CFLAGS -O $cpu_cflags -funroll-loops -funroll-all-loops -finline-functions"
@@ -871,14 +867,14 @@ case "$host_or_hostalias" in
 	case `uname -m` in
 	sun4c) cpu_cflags="-mcpu=v7 -mtune=supersparc" ;;
 	sun4m) cpu_cflags="-mcpu=v8 -mtune=supersparc" ;;
-	sun4u) cpu_cflags="-mcpu=supersparc -mtune=ultrasparc" ;;
+	sun4u)
+          cpu_cflags="-mcpu=ultrasparc -mtune=ultrasparc"
+          if test x$enable_vis = xyes; then
+	    AC_DEFINE_UNQUOTED(ENABLE_VIS,,[Define this if you have Sun UltraSPARC CPU])
+          fi
+          ;;
 	*)     cpu_cflags= ;;
 	esac
-
-        if test x$enable_vis = xyes; then
-	    AC_DEFINE_UNQUOTED(ENABLE_VIS,,[Define this if you have Sun UltraSPARC CPU])
-            cpu_cflags="-mcpu=ultrasparc"
-        fi
 
 	cc_optimize_cflags="-O3 $cpu_cflags -funroll-loops -funroll-all-loops -finline-functions"
 	cc_debug_cflags="-O $cpu_cflags -funroll-loops -funroll-all-loops -finline-functions"
