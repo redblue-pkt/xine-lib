@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_mpeg_encoders.c,v 1.1 2002/05/24 22:09:44 miguelfreitas Exp $
+ * $Id: dxr3_mpeg_encoders.c,v 1.2 2002/06/01 17:21:28 mroi Exp $
  */
  
 /* mpeg encoders for the dxr3 video out plugin.
@@ -457,7 +457,14 @@ static int fame_on_display_frame(dxr3_driver_t *drv, dxr3_frame_t *frame)
     return 1;
 
   fame_prepare_frame(this, drv, frame);
+#ifdef HAVE_NEW_LIBFAME
+  fame_start_frame(this->context, &this->yuv, NULL);
+  size = fame_encode_slice(this->context);
+  fame_end_frame(this->context, NULL);
+#else
   size = fame_encode_frame(this->context, &this->yuv, NULL);
+#endif
+
   frame->vo_frame.displayed(&frame->vo_frame); 
   
   if (drv->fd_video == CLOSED_FOR_ENCODER) {

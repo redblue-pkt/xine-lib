@@ -107,6 +107,9 @@
 /* Define this if you have libfame mpeg encoder installed (fame.sf.net) */
 #undef HAVE_LIBFAME
 
+/* Define this if you have libfame 0.8.10 or above */
+#undef HAVE_NEW_LIBFAME
+
 /* Define this if you have librte mpeg encoder installed (zapping.sf.net) */
 #undef HAVE_LIBRTE
 
