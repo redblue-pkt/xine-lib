@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: xine-lib 0.9.13\n"
-"POT-Creation-Date: 2002-10-08 01:29+0200\n"
+"POT-Creation-Date: 2002-11-04 09:07+0100\n"
 "PO-Revision-Date: 2002-09-20 08:24+0200\n"
 "Last-Translator: Philipp Hahn <pmhahn@users.sf.net>\n"
 "Language-Team: German <de@li.org>\n"
@@ -14,39 +14,39 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
 
-#: src/audio_out/audio_alsa_out.c:181 src/audio_out/audio_alsa_out.c:737
-#: src/audio_out/audio_alsa_out.c:921 src/audio_out/audio_alsa_out.c:965
+#: src/audio_out/audio_alsa_out.c:191 src/audio_out/audio_alsa_out.c:825
+#: src/audio_out/audio_alsa_out.c:1011 src/audio_out/audio_alsa_out.c:1055
 msgid "device used for mono output"
 msgstr "Gerät für Monoausgabe"
 
-#: src/audio_out/audio_alsa_out.c:191 src/audio_out/audio_alsa_out.c:928
+#: src/audio_out/audio_alsa_out.c:201 src/audio_out/audio_alsa_out.c:1018
 msgid "device used for stereo output"
 msgstr "Gerät für Stereoausgabe"
 
-#: src/audio_out/audio_alsa_out.c:201 src/audio_out/audio_alsa_out.c:935
+#: src/audio_out/audio_alsa_out.c:211 src/audio_out/audio_alsa_out.c:1025
 msgid "device used for 4-channel output"
 msgstr "Gerät für 4-Kanalausgabe"
 
-#: src/audio_out/audio_alsa_out.c:211 src/audio_out/audio_alsa_out.c:942
+#: src/audio_out/audio_alsa_out.c:221 src/audio_out/audio_alsa_out.c:1032
 msgid "device used for 5-channel output"
 msgstr "Gerät für 5-Kanalausgabe"
 
-#: src/audio_out/audio_alsa_out.c:221 src/audio_out/audio_alsa_out.c:232
-#: src/audio_out/audio_alsa_out.c:949 src/audio_out/audio_alsa_out.c:956
+#: src/audio_out/audio_alsa_out.c:231 src/audio_out/audio_alsa_out.c:242
+#: src/audio_out/audio_alsa_out.c:1039 src/audio_out/audio_alsa_out.c:1046
 msgid "device used for 5.1-channel output"
 msgstr "Gerät für 5.1-Kanalausgabe"
 
-#: src/audio_out/audio_alsa_out.c:869 src/audio_out/audio_alsa_out.c:1080
+#: src/audio_out/audio_alsa_out.c:957 src/audio_out/audio_alsa_out.c:1178
 msgid "alsa mixer device"
 msgstr "ALSA Mixergerät"
 
-#: src/audio_out/audio_alsa_out.c:1017 src/audio_out/audio_alsa_out.c:1030
-#: src/audio_out/audio_alsa_out.c:1043 src/audio_out/audio_alsa_out.c:1061
+#: src/audio_out/audio_alsa_out.c:1117 src/audio_out/audio_alsa_out.c:1130
+#: src/audio_out/audio_alsa_out.c:1143 src/audio_out/audio_alsa_out.c:1161
 msgid "used to inform xine about what the sound card can do"
 msgstr ""
 "Wird gebraucht, um xine über die Fähigkeiten der Soundkarte zu informieren"
 
-#: src/audio_out/audio_alsa_out.c:1111
+#: src/audio_out/audio_alsa_out.c:1217
 msgid "xine audio output plugin using alsa-compliant audio devices/drivers"
 msgstr "xine Soundausgabe benutzt ALSA-kompatibles Gerät/Treiber"
 
@@ -58,53 +58,53 @@ msgstr "Verzögerung der esd Audioausgabe (Verändert A/V Synchronisation)"
 msgid "xine audio output plugin using esd"
 msgstr "xine Soundausgabe benutzt esd"
 
-#: src/audio_out/audio_oss_out.c:641
+#: src/audio_out/audio_oss_out.c:694
 msgid "/dev/dsp# device to use for oss output, -1 => auto_detect"
 msgstr "/dev/dsp# Gerät für OSS-Soundausgabe, -1 für automatische Erkennung"
 
-#: src/audio_out/audio_oss_out.c:709
+#: src/audio_out/audio_oss_out.c:762
 msgid "A/V sync method to use by OSS, depends on driver/hardware"
 msgstr "A/V Synchronisationmethode für OSS, abhängig von Treiber/Hardware"
 
-#: src/audio_out/audio_oss_out.c:776
+#: src/audio_out/audio_oss_out.c:829
 msgid "Adjust a/v sync for OSS softsync"
 msgstr "A/V Synchronisationsanpassung für OSS SoftSync"
 
-#: src/audio_out/audio_oss_out.c:777
+#: src/audio_out/audio_oss_out.c:830
 msgid "Use this to manually adjust a/v sync if you're using softsync"
 msgstr ""
 "Benutze dies um die A/V Synchronisation manuell anzupassen, falls SoftSync "
 "benutzt wird"
 
-#: src/audio_out/audio_oss_out.c:803
+#: src/audio_out/audio_oss_out.c:856
 msgid "Enable 4.0 channel analog surround output"
 msgstr "Aktiviere analogen 4.0-Kanalraumklang"
 
-#: src/audio_out/audio_oss_out.c:814
+#: src/audio_out/audio_oss_out.c:867
 msgid "Enable 5.0 channel analog surround output"
 msgstr "Aktiviere analogen 5.0-Kanalraumklang"
 
-#: src/audio_out/audio_oss_out.c:825
+#: src/audio_out/audio_oss_out.c:878
 msgid "Enable 5.1 channel analog surround output"
 msgstr "Aktiviere analogen 5.1-Kanalraumklang"
 
-#: src/audio_out/audio_oss_out.c:836
+#: src/audio_out/audio_oss_out.c:889
 msgid "Enable A52 / AC5 digital audio output via spdif"
 msgstr "Aktiviere digitalen A52 / AC5 Raumklang via SPDIF"
 
-#: src/audio_out/audio_oss_out.c:852
+#: src/audio_out/audio_oss_out.c:905
 msgid "oss mixer device"
 msgstr "OSS Mixergerät"
 
-#: src/audio_out/audio_oss_out.c:923
+#: src/audio_out/audio_oss_out.c:981
 msgid "xine audio output plugin using oss-compliant audio devices/drivers"
 msgstr "xine Soundausgabe benutzt OSS-kompatibles Gerät/Treiber"
 
-#: src/audio_out/audio_sun_out.c:853
+#: src/audio_out/audio_sun_out.c:878
 msgid "device used for audio output with the 'Sun' audio plugin"
 msgstr "Gerät für Soundausgabe mit 'Sun'-Audio-Plugin"
 
-#: src/audio_out/audio_sun_out.c:938
+#: src/audio_out/audio_sun_out.c:966
 msgid "xine audio output plugin using sun-compliant audio devices/drivers"
 msgstr "xine Soundausgabe benutzt SUN-kompatibles Gerät/Treiber"
 
@@ -120,18 +120,18 @@ msgstr "Maximaler Zwischenraum für IRIXAL Soundausgabe in 1/90000s"
 msgid "xine audio output plugin using IRIX libaudio"
 msgstr "xine Soundausgabe benutzt IRIX-kompatibles Gerät/Treiber"
 
-#: src/demuxers/demux_ts.c:337
+#: src/demuxers/demux_ts.c:338
 msgid "demux_ts: FIXME: (unsupported )PAT spans multiple TS packets\n"
 msgstr "demux_ts: FIXME: (nicht unterstützt) PAT umfasst mehrere TS Packete\n"
 
-#: src/demuxers/demux_ts.c:343
+#: src/demuxers/demux_ts.c:344
 #, c-format
 msgid "demux_ts: FIXME: (unsupported) PAT consists of multiple (%d) sections\n"
 msgstr ""
 "demux_ts: FIXME: (nicht unterstützt) PAT besteht aus mehreren (%d) "
 "Sektionen\n"
 
-#: src/demuxers/demux_ts.c:353
+#: src/demuxers/demux_ts.c:354
 #, c-format
 msgid ""
 "demux_ts: demux error! PAT with invalid CRC32: packet_crc32: %.8x "
@@ -140,30 +140,30 @@ msgstr ""
 "demux_ts: demux Fehler! PAT mit fehlerhaftem CRC32: packet_crc32: %.8x "
 "calc_crc32: %.8x\n"
 
-#: src/demuxers/demux_ts.c:430
+#: src/demuxers/demux_ts.c:431
 #, c-format
 msgid "demux_ts: error %02x %02x %02x (should be 0x000001)\n"
 msgstr "demux_ts: Fehler %02x %02x %02x (sollte 0x000001 sein)\n"
 
-#: src/demuxers/demux_ts.c:571
+#: src/demuxers/demux_ts.c:572
 #, c-format
 msgid "fifo unavailable (%d)\n"
 msgstr "fifo nicht verfügbar (%d)\n"
 
-#: src/demuxers/demux_ts.c:580
+#: src/demuxers/demux_ts.c:581
 #, c-format
 msgid "demux_ts: unexpected cc %d (expected %d)\n"
 msgstr "demux_ts: Unerwarteter Untertitel %d (%d erwartet)\n"
 
-#: src/demuxers/demux_ts.c:603
+#: src/demuxers/demux_ts.c:604
 msgid "demux_ts: corrupted pes encountered\n"
 msgstr "demux_ts: Fehlerhaften PES entdeckt\n"
 
-#: src/demuxers/demux_ts.c:707
+#: src/demuxers/demux_ts.c:708
 msgid "demux error! PMT with invalid pointer\n"
 msgstr "demux Fehler! PMT mit fehlerhaftem Zeiger\n"
 
-#: src/demuxers/demux_ts.c:811
+#: src/demuxers/demux_ts.c:812
 #, c-format
 msgid ""
 "demux_ts: demux error! PMT with invalid CRC32: packet_crc32: %#.8x "
@@ -172,152 +172,132 @@ msgstr ""
 "demux_ts: demux Fehler! PMT mit fehlerhaftem CRC32: packet_crc32: %#.8x "
 "calc_crc32: %#.8x\n"
 
-#: src/demuxers/demux_ts.c:826
+#: src/demuxers/demux_ts.c:827
 msgid "demux error! PMT with inconsistent progInfo length\n"
 msgstr "demux Fehler! PMT mit inkosistenter progInfo-Länge\n"
 
-#: src/demuxers/demux_ts.c:843
+#: src/demuxers/demux_ts.c:844
 msgid "demux error! PMT with inconsistent streamInfo length\n"
 msgstr "demux Fehler! PMT mit inkosistenter streamInfo-Länge\n"
 
-#: src/demuxers/demux_ts.c:1200
+#: src/demuxers/demux_ts.c:1201
 #, c-format
 msgid "demux error! invalid ts sync byte %.2x\n"
 msgstr "demux Fehler! Fehlerhaftes TS-Sync-Byte %.2x\n"
 
-#: src/demuxers/demux_ts.c:1205
+#: src/demuxers/demux_ts.c:1206
 msgid "demux error! transport error\n"
 msgstr "demux Fehler! Transportfehler\n"
 
-#: src/demuxers/demux_ts.c:1268
+#: src/demuxers/demux_ts.c:1269
 #, c-format
 msgid "demux_ts: demux error! invalid payload size %d\n"
 msgstr "demux_ts: demux Fehler! Fehlerhafte Nutzdaten Größe %d\n"
 
-#: src/demuxers/demux_ts.c:1465 src/demuxers/demux_ts.c:1669
+#: src/demuxers/demux_ts.c:1468 src/demuxers/demux_ts.c:1674
 msgid "valid mrls for ts demuxer"
 msgstr "Gültige MRLs für TS-Demultiplexer"
 
-#: src/demuxers/demux_ts.c:1472
+#: src/demuxers/demux_ts.c:1475
 #, c-format
 msgid "demux %u ts_open!\n"
 msgstr "demux %u ts_open!\n"
 
-#: src/demuxers/demux_ts.c:1500 src/demuxers/demux_ts.c:1673
+#: src/demuxers/demux_ts.c:1503 src/demuxers/demux_ts.c:1678
 msgid "valid mrls ending for ts demuxer"
 msgstr "Gültige MRL-Endungen für TS-Demultiplexer"
 
-#: src/demuxers/demux_ts.c:1573
+#: src/demuxers/demux_ts.c:1578
 #, c-format
 msgid "demux_ts: can't create new thread (%s)\n"
 msgstr "demux_ts: Kann neuen Thread (%s) nicht erzeugen\n"
 
-#: src/demuxers/demux_avi.c:651
+#: src/demuxers/demux_avi.c:424
+msgid "Restoring index..."
+msgstr "Stelle Index wiederher..."
+
+#: src/demuxers/demux_avi.c:654
 msgid "demux_avi: avi index is broken\n"
 msgstr "demux_avi: AVI-Index ist fehlerhaft\n"
 
-#: src/demuxers/demux_avi.c:1541 src/demuxers/demux_avi.c:1609
-msgid "valid mrls ending for avi demuxer"
-msgstr "Gültige MRL-Endungen für AVI-Demultiplexer"
-
-#: src/demuxers/demux_elem.c:312 src/demuxers/demux_elem.c:363
-msgid "valid mrls ending for elementary demuxer"
-msgstr "Gültige MRL-Endungen für 'elementary'-Demultiplexer"
-
-#: src/demuxers/demux_mpeg.c:1066 src/demuxers/demux_mpeg.c:1155
-msgid "valid mrls for mpeg demuxer"
-msgstr "Gültige MRLs für MPEG-Demultiplexer"
-
-#: src/demuxers/demux_mpeg.c:1085
-msgid "demux_mpeg: please specify mpeg(mpeg1/mpeg2) stream type.\n"
-msgstr "demug_mpeg: Bitte mpeg(mpeg1/mpeg2) Datenstromtyp angeben.\n"
-
-#: src/demuxers/demux_mpeg.c:1099 src/demuxers/demux_mpeg.c:1159
-msgid "valid mrls ending for mpeg demuxer"
-msgstr "Gültige MRL-Endungen für MPEG-Demultiplexer"
-
-#: src/demuxers/demux_mpgaudio.c:446
+#: src/demuxers/demux_mpgaudio.c:469
 msgid "demux_mpgaudio: no audio driver!\n"
 msgstr "demux_mpgaudio: Kein Audio-Treiber!\n"
 
-#: src/demuxers/demux_mpgaudio.c:612 src/demuxers/demux_mpgaudio.c:671
-msgid "valid mrls ending for mpeg audio demuxer"
-msgstr "Gültige MRL-Endungen für MPEG-Audio-Demultiplexer"
-
-#: src/demuxers/demux_pes.c:526 src/demuxers/demux_pes.c:606
+#: src/demuxers/demux_pes.c:529 src/demuxers/demux_pes.c:612
 msgid "valid mrls for pes demuxer"
 msgstr "Gültige MRLs für PES-Demultiplexer"
 
-#: src/demuxers/demux_pes.c:556 src/demuxers/demux_pes.c:610
+#: src/demuxers/demux_pes.c:559 src/demuxers/demux_pes.c:616
 msgid "valid mrls ending for pes demuxer"
 msgstr "Gültige MRL-Endungen für PES-Demultiplexer"
 
-#: src/demuxers/demux_qt.c:1715 src/demuxers/demux_qt.c:1996
-msgid "valid mrls ending for qt demuxer"
-msgstr "Gültige MRL-Endungen für QT-Demultiplexer"
+#: src/demuxers/demux_qt.c:1808
+msgid "demux_qt.c: input not seekable, can not handle!\n"
+msgstr "demux_qt.c: Quelle nicht spulbar, wird nicht unterstützt!\n"
 
-#: src/demuxers/demux_qt.c:1758
+#: src/demuxers/demux_qt.c:1813
+msgid "demux_qt.c: input is block organized, can not handle!\n"
+msgstr "demux_qt.c: Quelle ist blockbasiert, wird nicht unterstützt!\n"
+
+#: src/demuxers/demux_qt.c:1897
 #, c-format
 msgid "demux_qt: Apple Quicktime file, %srunning time: %d min, %d sec\n"
 msgstr "demux_qt: Apple Quicktime Datei, %sLaufzeit: %d min, %d sek\n"
 
-#: src/demuxers/demux_qt.c:1764
+#: src/demuxers/demux_qt.c:1903
 #, c-format
 msgid "demux_qt: '%c%c%c%c' video @ %dx%d\n"
 msgstr "demux_qt: '%c%c%c%c' Video @ %dx%d\n"
 
-#: src/demuxers/demux_qt.c:1773
+#: src/demuxers/demux_qt.c:1912
 #, c-format
 msgid "demux_qt: '%c%c%c%c' audio @ %d Hz, %d bits, %d %s\n"
 msgstr "demux_qt: '%c%c%c%c' Audio @ %d Hz, %d Bits, %d %s\n"
 
-#: src/demuxers/demux_qt.c:1781 src/demuxers/demux_smjpeg.c:471
-#: src/demuxers/demux_wav.c:340
+#: src/demuxers/demux_qt.c:1920 src/demuxers/demux_smjpeg.c:498
+#: src/demuxers/demux_wav.c:377
 msgid "channel"
 msgid_plural "channels"
 msgstr[0] "Kanal"
 msgstr[1] "Kanäle"
 
-#: src/demuxers/demux_ogg.c:413
+#: src/demuxers/demux_ogg.c:416
 msgid "ogg: vorbis audio track indicated but no vorbis stream header found.\n"
 msgstr "ogg: vorbis Tonspur erkannt, aber kein Heder im Datenstrom gefunden.\n"
 
-#: src/demuxers/demux_ogg.c:1084 src/demuxers/demux_ogg.c:1130
-msgid "valid mrls ending for ogg demuxer"
-msgstr "Gültige MRL-Endungen für OGG-Demultiplexer"
+#: src/demuxers/demux_cda.c:179
+msgid "demux_cda.c: input not seekable, can not handle!\n"
+msgstr "demux_cda.c: Quelle nicht spulbar, wird nicht unterstützt!\n"
 
-#: src/demuxers/demux_asf.c:1419 src/demuxers/demux_asf.c:1463
-msgid "valid mrls ending for asf demuxer"
-msgstr "Gültige MRL-Endungen für ASF-Demultiplexer"
-
-#: src/demuxers/demux_film.c:168
+#: src/demuxers/demux_film.c:176
 msgid "invalid FILM chunk size\n"
 msgstr "Ungültige Größe des FILM-Pakets\n"
 
-#: src/demuxers/demux_film.c:243
+#: src/demuxers/demux_film.c:259
 msgid "unrecognized FILM chunk\n"
 msgstr "Nicht erkanntes FILM-Paket\n"
 
-#: src/demuxers/demux_film.c:571 src/demuxers/demux_film.c:818
-msgid "valid mrls ending for film demuxer"
-msgstr "Gültige MRL-Endungen für FILM-Demultiplexer"
+#: src/demuxers/demux_film.c:649
+msgid "demux_film.c: input not seekable, can not handle!\n"
+msgstr "demux_film.c: Quelle nicht spulbar, wird nicht unterstützt!\n"
 
-#: src/demuxers/demux_film.c:613
+#: src/demuxers/demux_film.c:716
 #, c-format
 msgid "demux_film: FILM version %c%c%c%c, running time: %d min, %d sec\n"
 msgstr "demux_film: FILM Version %c%c%c%c, Laufzeit: %d min, %d sek\n"
 
-#: src/demuxers/demux_film.c:621
+#: src/demuxers/demux_film.c:725
 #, c-format
 msgid "demux_film: %c%c%c%c video @ %dx%d, %d Hz playback clock\n"
 msgstr "demux_film: %c%c%c%c Video @ %dx%d, %d Hz Wiedergabegeschwindigkeit\n"
 
-#: src/demuxers/demux_film.c:631
+#: src/demuxers/demux_film.c:735
 #, c-format
 msgid "demux_film: %d Hz, %d-bit %s%s PCM audio\n"
 msgstr "demux_film: %d Hz, %d-Bits %s%s PCM Audio\n"
 
-#: src/demuxers/demux_mpeg_block.c:348
+#: src/demuxers/demux_mpeg_block.c:297
 msgid ""
 "demux_mpeg_block: too many errors, stopping playback. Maybe this stream is "
 "scrambled?\n"
@@ -325,7 +305,7 @@ msgstr ""
 "demux_mpeg_block: Zu viele Fehler, breche den Abspielvorgang ab. Ist dieser "
 "Datenstrom möglicherweise fehlerhaft ?\n"
 
-#: src/demuxers/demux_mpeg_block.c:460
+#: src/demuxers/demux_mpeg_block.c:409
 #, c-format
 msgid ""
 "demux_mpeg_block: warning: pes header indicates that this stream may be "
@@ -334,139 +314,135 @@ msgstr ""
 "demux_mpeg_block: Warnung: PES-Header deutet an, das dieser Datenstrom "
 "verschlüsselt sein könnte (Verschlüsselungsmodus %d)\n"
 
-#: src/demuxers/demux_mpeg_block.c:1105 src/demuxers/demux_mpeg_block.c:1201
-msgid "valid mrls for mpeg block demuxer"
-msgstr "Gültige MRLs für MPEG-Block-Demultiplexer"
+#: src/demuxers/demux_roq.c:400
+msgid "demux_roq.c: input not seekable, can not handle!\n"
+msgstr "demux_roq.c: Quelle nicht spulbar, wird nicht unterstützt!\n"
 
-#: src/demuxers/demux_mpeg_block.c:1146 src/demuxers/demux_mpeg_block.c:1205
-msgid "valid mrls ending for mpeg block demuxer"
-msgstr "Gültige MRL-Endungen für MPEG-Block-Demultiplexer"
-
-#: src/demuxers/demux_roq.c:392 src/demuxers/demux_roq.c:548
-msgid "valid mrls ending for roq demuxer"
-msgstr "Gültige MRL-Endungen für RoQ-Demultiplexer"
-
-#: src/demuxers/demux_roq.c:428
+#: src/demuxers/demux_roq.c:465
 #, c-format
 msgid "demux_roq: RoQ file, video is %dx%d, %d frames/sec\n"
 msgstr "demux_roq: RoQ Datei, Video ist %dx%d, %d Bilder/s\n"
 
-#: src/demuxers/demux_roq.c:432
+#: src/demuxers/demux_roq.c:469
 #, c-format
 msgid "demux_roq: 16-bit, 22050 Hz %s RoQ DPCM audio\n"
 msgstr "demux_roq: 16-Bit, 22050 Hz %s RoQ DPCM Audio\n"
 
-#: src/demuxers/demux_fli.c:319
+#: src/demuxers/demux_fli.c:279
+msgid "demux_fli.c: input not seekable, can not handle!\n"
+msgstr "demux_fli.c: Quelle nicht spulbar, wird nicht unterstützt!\n"
+
+#: src/demuxers/demux_fli.c:345
 #, c-format
 msgid "demux_fli: FLI type: %04X, speed: %d/%d\n"
 msgstr "demux_fli: FLI Typ: %04X, Geschwindigkeit: %d/%d\n"
 
-#: src/demuxers/demux_fli.c:323
+#: src/demuxers/demux_fli.c:349
 #, c-format
 msgid "demux_fli: %d frames, %dx%d\n"
 msgstr "demux_fli: %d Frames, %dx%d\n"
 
-#: src/demuxers/demux_fli.c:326
+#: src/demuxers/demux_fli.c:352
 #, c-format
 msgid "demux_fli: running time: %d min, %d sec\n"
 msgstr "demux_fli: Laufzeit: %d min, %d sek\n"
 
-#: src/demuxers/demux_idcin.c:438 src/demuxers/demux_idcin.c:620
-msgid "valid mrls ending for idcin demuxer"
-msgstr "Gültige MRL-Endungen für IdCIN-Demultiplexer"
+#: src/demuxers/demux_idcin.c:454
+msgid "demux_idcin.c: input not seekable, can not handle!\n"
+msgstr "demux_idcin.c: Quelle nicht spulbar, wird nicht unterstützt!\n"
 
-#: src/demuxers/demux_idcin.c:472
+#: src/demuxers/demux_idcin.c:519
 #, c-format
 msgid "demux_idcin: Id CIN file, video is %dx%d, 14 frames/sec\n"
 msgstr "demux_idcin: Id CIN Datei, Video ist %dx%d, 14 Bilder/s\n"
 
-#: src/demuxers/demux_idcin.c:477
+#: src/demuxers/demux_idcin.c:524
 #, c-format
 msgid "demux_idcin: %d-bit, %d Hz %s PCM audio\n"
 msgstr "demux_idcin: %d Bits, %d Hz %s PCM Audio\n"
 
-#: src/demuxers/demux_smjpeg.c:413 src/demuxers/demux_smjpeg.c:583
-msgid "valid mrls ending for smjpeg demuxer"
-msgstr "Gültige MRL-Endungen für SMJPEG-Demultiplexer"
+#: src/demuxers/demux_smjpeg.c:411
+msgid "demux_smjpeg.c: input not seekable, can not handle!\n"
+msgstr "demux_smjpeg.c: Quelle nicht spulbar, wird nicht unterstützt!\n"
 
-#: src/demuxers/demux_smjpeg.c:449
+#: src/demuxers/demux_smjpeg.c:476
 #, c-format
 msgid "demux_smjpeg: SMJPEG file, running time: %d min, %d sec\n"
 msgstr "demux_smjpeg: SMJPEG Datei, Laufzeit: %d min, %d sek\n"
 
-#: src/demuxers/demux_smjpeg.c:454
+#: src/demuxers/demux_smjpeg.c:481
 #, c-format
 msgid "demux_smjpeg: '%c%c%c%c' video @ %dx%d\n"
 msgstr "demux_smjpeg: '%c%c%c%c' Video @ %dx%d\n"
 
-#: src/demuxers/demux_smjpeg.c:463
+#: src/demuxers/demux_smjpeg.c:490
 #, c-format
 msgid "demux_smjpeg: '%c%c%c%c' audio @ %d Hz, %d bits, %d %s\n"
 msgstr "demux_smjpeg: '%c%c%c%c' Audio @ %d Hz, %d Bits, %d %s\n"
 
-#: src/demuxers/demux_wav.c:296 src/demuxers/demux_wav.c:490
-msgid "valid mrls ending for wav demuxer"
-msgstr "Gültige MRL-Endungen für WAV-Demultiplexer"
+#: src/demuxers/demux_wav.c:307
+msgid "demux_wav.c: input not seekable, can not handle!\n"
+msgstr "demux_wav.c: Quelle nicht spulbar, wird nicht unterstützt!\n"
 
-#: src/demuxers/demux_wav.c:335
+#: src/demuxers/demux_wav.c:372
 #, c-format
 msgid "demux_wav: format 0x%X audio, %d Hz, %d bits/sample, %d %s\n"
 msgstr "demux_wav: Format 0x%X Audio, %d Hz, %d Bits/Sample, %d %s\n"
 
-#: src/demuxers/demux_wav.c:342
+#: src/demuxers/demux_wav.c:379
 #, c-format
 msgid "demux_wav: running time = %lld min, %lld sec\n"
 msgstr "demux_wav: Laufzeit: %lld min, %lld sek\n"
 
-#: src/demuxers/demux_wav.c:346
+#: src/demuxers/demux_wav.c:383
 #, c-format
 msgid "demux_wav: average bytes/sec = %d, block alignment = %d\n"
 msgstr "demux_wav: Durchschnitt: %d Bytes/s, Blockausrichtung: %d\n"
 
-#: src/demuxers/demux_aiff.c:321 src/demuxers/demux_aiff.c:505
-msgid "valid mrls ending for aiff demuxer"
-msgstr "Gültige MRL-Endungen für AIFF-Demultiplexer"
+#: src/demuxers/demux_aiff.c:332
+msgid "demux_aiff.c: input not seekable, can not handle!\n"
+msgstr "demux_aiff.c: Quelle nicht spulbar, wird nicht unterstützt!\n"
 
-#: src/demuxers/demux_aiff.c:361
+#: src/demuxers/demux_aiff.c:397
 #, c-format
 msgid "demux_aiff: %d Hz, %d channels, %d bits, %d frames\n"
 msgstr "demux_aiff: '%d Hz, %d Kanäle, %d Bits, %d Bilder\n"
 
-#: src/demuxers/demux_aiff.c:367
+#: src/demuxers/demux_aiff.c:403
 #, c-format
 msgid "demux_aiff: running time: %d min, %d sec\n"
 msgstr "demux_aiff: Laufzeit: %d min, %d sek\n"
 
-#: src/demuxers/demux_snd.c:206
+#: src/demuxers/demux_snd.c:121
 msgid "demux_snd: bad header parameters\n"
 msgstr "demux_snd: Ungültige Header-Parameter\n"
 
-#: src/demuxers/demux_snd.c:243
+#: src/demuxers/demux_snd.c:156
 #, c-format
 msgid "demux_snd: unsupported audio type: %d\n"
 msgstr "demux_snd: Unbekannter Audiotyp: %d\n"
 
-#: src/demuxers/demux_snd.c:306 src/demuxers/demux_snd.c:489
-msgid "valid mrls ending for snd demuxer"
-msgstr "Gültige MRL-Endungen für SND-Demultiplexer"
+#: src/demuxers/demux_snd.c:315
+msgid "demux_snd.c: input not seekable, can not handle!\n"
+msgstr "demux_snd.c: Quelle nicht spulbar, wird nicht unterstützt!\n"
 
-#: src/demuxers/demux_snd.c:345
+#: src/demuxers/demux_snd.c:381
 #, c-format
 msgid "demux_snd: %d Hz, %d channels, %d bits, %d frames\n"
 msgstr "demux_snd: %d Hz, %d Kanäle, %d Bits, %d Bilder\n"
 
-#: src/demuxers/demux_snd.c:351
+#: src/demuxers/demux_snd.c:387
 #, c-format
 msgid "demux_snd: running time: %d min, %d sec\n"
 msgstr "demux_snd: Laufzeit: %d min, %d sek\n"
 
-#: src/demuxers/demux_voc.c:215
+#: src/demuxers/demux_voc.c:126
 #, c-format
 msgid "unknown VOC block type (0x%02X); please report to xine developers\n"
 msgstr ""
 "Unbekannter VOC-Blocktyp (0x%02X); bitte bei den xine-Entwicklern melden\n"
 
-#: src/demuxers/demux_voc.c:236
+#: src/demuxers/demux_voc.c:142
 #, c-format
 msgid ""
 "unknown VOC compression type (0x%02X); please report to xine developers\n"
@@ -474,42 +450,42 @@ msgstr ""
 "Unbekannter VOC-Kompressionstyp (0x%02X); bitte bei den xine-Entwicklern "
 "melden\n"
 
-#: src/demuxers/demux_voc.c:305 src/demuxers/demux_voc.c:484
-msgid "valid mrls ending for voc demuxer"
-msgstr "Gültige MRL-Endungen für VOC-Demultiplexer"
+#: src/demuxers/demux_voc.c:308
+msgid "demux_voc.c: input not seekable, can not handle!\n"
+msgstr "demux_voc.c: Quelle nicht spulbar, wird nicht unterstützt!\n"
 
-#: src/demuxers/demux_voc.c:345
+#: src/demuxers/demux_voc.c:373
 #, c-format
 msgid "demux_voc: VOC format 0x%X audio, %d Hz, running time: %d min, %d sec\n"
 msgstr "demux_voc: VOC Format 0x%X Audio, %d Hz, Laufzeit: %d min, %d sek\n"
 
-#: src/demuxers/demux_vqa.c:347 src/demuxers/demux_vqa.c:513
-msgid "valid mrls ending for vqa demuxer"
-msgstr "Gültige MRL-Endungen für VQA-Demultiplexer"
+#: src/demuxers/demux_vqa.c:362
+msgid "demux_vqa.c: input not seekable, can not handle!\n"
+msgstr "demux_vqa.c: Quelle nicht spulbar, wird nicht unterstützt!\n"
 
-#: src/demuxers/demux_vqa.c:383
+#: src/demuxers/demux_vqa.c:427
 #, c-format
 msgid "demux_vqa: %dx%d VQA video; %d-channel %d Hz IMA ADPCM audio\n"
 msgstr "demux_vqa: %dx%d VQA-Video; %d-Kanal %d Hz IMA ADPCM Audio\n"
 
-#: src/demuxers/demux_wc3movie.c:218
+#: src/demuxers/demux_wc3movie.c:210
 #, c-format
 msgid "demux_wc3movie: SHOT chunk referenced invalid palette (%d >= %d)\n"
 msgstr "demux_wc3movie: SHOT Paket referenziert ungültige Palette (%d >= %d)\n"
 
 #. report an unknown chunk and skip it
-#: src/demuxers/demux_wc3movie.c:305 src/demuxers/demux_wc3movie.c:486
+#: src/demuxers/demux_wc3movie.c:297 src/demuxers/demux_wc3movie.c:502
 #, c-format
 msgid "demux_wc3movie: encountered unknown chunk: %c%c%c%c\n"
 msgstr "demux_wc3movie: Unbekanntes Paket entdeckt: %c%c%c%c\n"
 
-#: src/demuxers/demux_wc3movie.c:399
+#: src/demuxers/demux_wc3movie.c:428
 msgid "demux_wc3movie: There was a problem while loading palette chunks\n"
 msgstr "demux_wc3movie: Beim Laden der Palette ist ein Problem aufgetreten\n"
 
-#: src/demuxers/demux_wc3movie.c:558 src/demuxers/demux_wc3movie.c:822
-msgid "valid mrls ending for mve demuxer"
-msgstr "Gültige MRL-Endungen für MVE-Demultiplexer"
+#: src/demuxers/demux_wc3movie.c:666
+msgid "demux_mve.c: input not seekable, can not handle!\n"
+msgstr "demux_mve.c: Quelle nicht spulbar, wird nicht unterstützt!\n"
 
 #: src/input/input_net.c:102
 #, c-format
@@ -587,7 +563,7 @@ msgstr "Mit xine ausgeliefertes rtp Plugin"
 msgid "unable to allocate input buffer.\n"
 msgstr "Puffer kann nicht eingerichtet werden.\n"
 
-#: src/input/input_stdin_fifo.c:323
+#: src/input/input_stdin_fifo.c:311
 msgid "stdin/fifo input plugin as shipped with xine"
 msgstr "Mit xine ausgeliefertes stdin/fifi Plugin"
 
@@ -596,22 +572,22 @@ msgstr "Mit xine ausgeliefertes stdin/fifi Plugin"
 msgid "input_file: read error (%s)\n"
 msgstr "input_file: Lesefehler (%s)\n"
 
-#: src/input/input_file.c:257
+#: src/input/input_file.c:286
 #, c-format
 msgid "input_file: trying to open subtitle file '%s'\n"
 msgstr "input_file: Versuche Datei mit Untertitle '%s' zu öffnen\n"
 
-#: src/input/input_file.c:475
+#: src/input/input_file.c:504
 msgid "file input plugin"
-msgstr ""
+msgstr "Datei Plugin"
 
-#: src/input/input_file.c:827
+#: src/input/input_file.c:863
 msgid "file browsing start location"
-msgstr ""
+msgstr "Startverzeichnis für Dateisuche"
 
-#: src/input/input_file.c:834
+#: src/input/input_file.c:870
 msgid "list hidden files"
-msgstr ""
+msgstr "Versteckte Dateien anzeigen"
 
 #: src/input/input_vcd.c:157 src/input/input_vcd.c:194
 msgid "input_vcd : error in ioctl CDROMREADTOCHDR\n"
@@ -635,141 +611,150 @@ msgstr "input_vcd: Fehler in ioctl CDROMREADTOCENTRY\n"
 msgid "scsi command failed with status %d\n"
 msgstr "SCSI-Kommando schlug mit dem Status %d fehl\n"
 
-#: src/input/input_vcd.c:369
-msgid "input_vcd: malformed MRL. Use vcd://<track #>\n"
-msgstr "input_vcd: Ungültige MRL: Benutze vcd://<Track #>\n"
+#: src/input/input_vcd.c:370
+msgid "input_vcd: malformed MRL. Use vcd:/<track #>\n"
+msgstr "input_vcd: Ungültige MRL: Benutze vcd:/<Track #>\n"
 
-#: src/input/input_vcd.c:376
+#: src/input/input_vcd.c:377
 #, c-format
 msgid "input_vcd: invalid track %d (valid range: 0 .. %d)\n"
 msgstr "input_vcd: Fehlerhafter Track %d (Gültiger Bereich: 0 .. %d)\n"
 
-#: src/input/input_vcd.c:391
+#: src/input/input_vcd.c:392
 #, c-format
 msgid "input_vcd: error in CDRIOCSETBLOCKSIZE %d\n"
 msgstr "input_vcd: Fehler in CDRIOCSETBLOCKSIZE %d\n"
 
-#: src/input/input_vcd.c:441 src/input/input_vcd.c:578
+#: src/input/input_vcd.c:442 src/input/input_vcd.c:579
 msgid "input_vcd: error in CDROMREADRAW\n"
 msgstr "input_vcd: Fehler in CDROMREADRAW\n"
 
-#: src/input/input_vcd.c:476 src/input/input_vcd.c:618
+#: src/input/input_vcd.c:477 src/input/input_vcd.c:619
 #, c-format
 msgid "input_vcd: seek error %d\n"
 msgstr "input_vcd: Positionierungsfehler %d\n"
 
-#: src/input/input_vcd.c:480 src/input/input_vcd.c:622
+#: src/input/input_vcd.c:481 src/input/input_vcd.c:623
 #, c-format
 msgid "input_vcd: read error %d\n"
 msgstr "input_vcd: Lesefehler %d\n"
 
-#: src/input/input_vcd.c:517 src/input/input_vcd.c:664
+#: src/input/input_vcd.c:518 src/input/input_vcd.c:665
 msgid "input_vcd: read data failed\n"
 msgstr "input_vcd: Das Lesen der Daten schlug fehl\n"
 
-#: src/input/input_vcd.c:735 src/input/input_vcd.c:786
+#: src/input/input_vcd.c:736 src/input/input_vcd.c:787
 msgid "input_vcd: SEEK_CUR not implemented for offset != 0\n"
 msgstr "input_vcd: SEEK_CUR nicht implementiert für Versatz != 0\n"
 
-#: src/input/input_vcd.c:753 src/input/input_vcd.c:794
+#: src/input/input_vcd.c:754 src/input/input_vcd.c:795
 #, c-format
 msgid "input_vcd: error seek to origin %d not implemented!\n"
 msgstr "input_vcd: Fehler Positionierung auf %d nicht implementiert!\n"
 
-#: src/input/input_vcd.c:887
+#: src/input/input_vcd.c:888
 #, c-format
 msgid "input_vcd: CDROMCLOSETRAY failed: %s\n"
 msgstr "input_vcd: Das Einziegen der VCD schlug fehl: %s\n"
 
-#: src/input/input_vcd.c:892 src/input/input_vcd.c:934
+#: src/input/input_vcd.c:893 src/input/input_vcd.c:935
 #, c-format
 msgid "input_vcd: CDROMEJECT failed: %s\n"
 msgstr "input_vcd: Das Auswerfen der VCD schlug fehl: %s\n"
 
-#: src/input/input_vcd.c:898
+#: src/input/input_vcd.c:899
 #, c-format
 msgid "input_vcd: CDROM_DRIVE_STATUS failed: %s\n"
 msgstr "input_vcd: Auslesen vom Status des VCD-Laufwerks schlug fehl: %s\n"
 
-#: src/input/input_vcd.c:964
+#: src/input/input_vcd.c:965
 msgid "vcd device input plugin as shipped with xine"
 msgstr "Mit xine ausgeliefertes VCD Plugin"
 
-#: src/input/input_vcd.c:992 src/input/input_vcd.c:1072
+#: src/input/input_vcd.c:993 src/input/input_vcd.c:1073
 #, c-format
 msgid "unable to open %s: %s.\n"
 msgstr "Kann %s nicht öffnen: %s.\n"
 
-#: src/input/input_vcd.c:1000 src/input/input_vcd.c:1080
+#: src/input/input_vcd.c:1001 src/input/input_vcd.c:1081
 msgid "vcd_read_toc failed\n"
 msgstr "vcd_read_toc schlug fehl\n"
 
-#: src/input/input_vcd.c:1175
+#: src/input/input_vcd.c:1176
 msgid "path to your local vcd device file"
 msgstr "Pfad zum lokalen VideoCD-Laufwerk"
 
-#: src/input/input_http.c:103
+#: src/input/input_http.c:111
 msgid "input_http: failed to open socket\n"
 msgstr "input_http: Öffnen des Sockets schlug fehl\n"
 
-#: src/input/input_http.c:112
+#: src/input/input_http.c:120
 msgid "input_http: cannot connect to host\n"
 msgstr "input_http: Kann keine Verbindung zum Rechner aufbauen\n"
 
-#: src/input/input_http.c:127
+#: src/input/input_http.c:135
 #, c-format
 msgid "input_http: unable to resolve >%s<\n"
 msgstr "input_http: Kann >%s< nicht auflösen\n"
 
-#: src/input/input_http.c:139
+#: src/input/input_http.c:147
 #, c-format
 msgid "http: unable to connect to >%s<\n"
 msgstr "http: Kann keine Verbindung zu >%s< aufbauen\n"
 
-#: src/input/input_http.c:340
+#: src/input/input_http.c:331 src/input/input_http.c:606
+msgid "input_http: EAGAIN\n"
+msgstr "input_http: EAGAIN\n"
+
+#: src/input/input_http.c:334
+#, c-format
+msgid "input_http: read error %d\n"
+msgstr "input_http: Lesefehler %d\n"
+
+#: src/input/input_http.c:416
+msgid "http network stream input plugin"
+msgstr "http Netzwerkdatenstrom-Plugin"
+
+#: src/input/input_http.c:523
 #, c-format
 msgid "input_http: opening >/%s< on host >%s<"
 msgstr "input_http: Öffne >/%s< auf Rechner >%s<"
 
-#: src/input/input_http.c:343
+#: src/input/input_http.c:527
 #, c-format
 msgid "%s via proxy >%s<"
 msgstr "%s über Proxy >%s<"
 
-#: src/input/input_http.c:419 src/input/input_http.c:548
-msgid "input_http: EAGAIN\n"
-msgstr "input_http: EAGAIN\n"
-
-#: src/input/input_http.c:422 src/input/input_http.c:551
+#: src/input/input_http.c:609
 msgid "input_http: read error\n"
 msgstr "input_http: Lesefehler\n"
 
-#: src/input/input_http.c:453
+#: src/input/input_http.c:641
 msgid "input_http: invalid http answer\n"
 msgstr "input_http: Ungültige http-Antwort\n"
 
-#: src/input/input_http.c:464
+#: src/input/input_http.c:654
 #, c-format
 msgid "input_http: 3xx redirection not implemented: >%d %s<\n"
 msgstr "input_http: 3xx Weiterleitung nicht implementiert: >%d %s<\n"
 
-#: src/input/input_http.c:469
+#: src/input/input_http.c:661
 #, c-format
 msgid "input_http: http status not 2xx: >%d %s<\n"
 msgstr "input_http: http-Status ungleich 2xx: >%d %s<\n"
 
-#: src/input/input_http.c:478
+#: src/input/input_http.c:672
 #, c-format
 msgid "input_http: content length = %Ld bytes\n"
 msgstr "input_http: Inhaltslänge = %Ld bytes\n"
 
-#: src/input/input_http.c:485
+#: src/input/input_http.c:678
 msgid "input_http: Location redirection not implemented\n"
 msgstr "input_http: Weiterleitung nicht implementiert\n"
 
-#: src/input/input_http.c:654
-msgid "http network stream input plugin"
-msgstr "http Netzwerkdatenstrom-Plugin"
+#: src/input/input_http.c:727
+msgid "http input plugin"
+msgstr "http Plugin"
 
 #: src/input/input_cda.c:435 src/input/input_cda.c:493
 #, c-format
@@ -867,49 +852,49 @@ msgstr "input_cda: ioctl(CDIOREADTOCENTRYS) schlug fehl: %s.\n"
 msgid "input_cda: ioctl(CDROMREADTOCENTRY) failed: %s.\n"
 msgstr "input_cda: ioctl(CDROMREADTOCRNTRY) schlug fehl: %s.\n"
 
-#: src/input/input_cda.c:1402
-msgid "input_cda: malformed MRL. Use cda://<track #>\n"
-msgstr "input_cda: Ungültige MRL. Benutze cda://<Track #>\n"
+#: src/input/input_cda.c:1403
+msgid "input_cda: malformed MRL. Use cda:/<track #>\n"
+msgstr "input_cda: Ungültige MRL. Benutze cda:/<Track #>\n"
 
-#: src/input/input_cda.c:1408
+#: src/input/input_cda.c:1409
 #, c-format
 msgid "input_cda: invalid track %d (valid range: 1 .. %d)\n"
 msgstr "input_cda: Fehlerfafter Track %d (Gültiger Bereich: 1 .. %d)\n"
 
-#: src/input/input_cda.c:1491
+#: src/input/input_cda.c:1492
 #, c-format
 msgid "input_cda: error seek to origin %d not implemented!\n"
 msgstr "input_cda: Fehler Positionierung auf %d nicht implementiert!\n"
 
-#: src/input/input_cda.c:1607
+#: src/input/input_cda.c:1608
 msgid "cd audio plugin as shipped with xine"
 msgstr "Mit xine ausgeliefertes Audio-CD Plugin"
 
-#: src/input/input_cda.c:1833
+#: src/input/input_cda.c:1834
 msgid "path to your local cd audio device file"
 msgstr "Pfad zum lokalen Audio-CD-Laufwerk"
 
-#: src/input/input_cda.c:1838
+#: src/input/input_cda.c:1839
 msgid "cddbp server name"
 msgstr "CDDBp Servername"
 
-#: src/input/input_cda.c:1842
+#: src/input/input_cda.c:1843
 msgid "cddbp server port"
 msgstr "CDDBp Serverport"
 
-#: src/input/input_cda.c:1849
+#: src/input/input_cda.c:1850
 msgid "cddbp cache directory"
 msgstr "CDDBp Cacheverzeichnis"
 
-#: src/input/net_buf_ctrl.c:67
-msgid "buffering..."
+#: src/input/net_buf_ctrl.c:55
+msgid "Buffering..."
 msgstr "Puffern..."
 
-#: src/libw32dll/w32codec.c:1365 src/libw32dll/w32codec.c:1402
+#: src/libw32dll/w32codec.c:1369 src/libw32dll/w32codec.c:1448
 msgid "path to win32 codec dlls"
 msgstr "Pfad zu win32-Codec-DLLs"
 
-#: src/video_out/video_out_aa.c:299
+#: src/video_out/video_out_aa.c:301
 msgid "xine video output plugin using the ascii-art library"
 msgstr "xine Videoausgabe benutzt ASCII-Art Bibliothek"
 
@@ -922,36 +907,40 @@ msgid ""
 "xine video output plugin using the SyncFB module for Matrox G200/G400 cards"
 msgstr "xine Videoausgabe benutzt SyncFB-Modul für Matrox G200/G400-Karten"
 
-#: src/video_out/video_out_xshm.c:1062 src/video_out/video_out_fb.c:645
+#: src/video_out/video_out_xshm.c:1065 src/video_out/video_out_fb.c:645
 msgid "disable all video scaling (faster!)"
 msgstr "Alle Videoskalierungen deaktivieren (schneller!)"
 
-#: src/video_out/video_out_xshm.c:1209
+#: src/video_out/video_out_xshm.c:1212
 msgid "gamma correction for XShm driver"
 msgstr "Gamma-Korrektur für XShm-Treiber"
 
-#: src/video_out/video_out_xshm.c:1226
+#: src/video_out/video_out_xshm.c:1231
 msgid "xine video output plugin using the MIT X shared memory extension"
 msgstr "xine Videoausgabe benutzt 'MIX X Shared Memory' Erweiterung"
 
-#: src/video_out/video_out_xv.c:1012 src/video_out/video_out_xv.c:1018
-msgid "Xv property"
-msgstr "Xv Eingenschaften"
+#: src/video_out/video_out_xv.c:1201
+msgid "Colorkey used for Xv video overlay"
+msgstr "Farbschlüssel für Xv Videooverlay"
 
-#: src/video_out/video_out_xv.c:1252
+#: src/video_out/video_out_xv.c:1208
+msgid "Make Xv autopaint it's colorkey"
+msgstr "Xv automatisch Farbschlüssel zeichnen lassen"
+
+#: src/video_out/video_out_xv.c:1215
 msgid "bilinear scaling mode (permedia 2/3)"
 msgstr "Bilineare Skalierung (Permedia 2/3)"
 
-#: src/video_out/video_out_xv.c:1258
+#: src/video_out/video_out_xv.c:1221
 msgid "double buffer to sync video to the retrace"
 msgstr "Schattenpuffer zur Synchronisation mit Strahlenrücklauf"
 
-#: src/video_out/video_out_xv.c:1307
+#: src/video_out/video_out_xv.c:1268
 msgid "Software deinterlace method (Key I toggles deinterlacer on/off)"
 msgstr ""
 "Software Deinterlacing Methode (Taste 'i' schaltet Deinterlacing ein/aus)"
 
-#: src/video_out/video_out_xv.c:1321
+#: src/video_out/video_out_xv.c:1284
 msgid "xine video output plugin using the MIT X video extension"
 msgstr "xine Videoausgabe benutzt 'MIX XVideo' Erweiterung"
 
@@ -987,12 +976,12 @@ msgstr "xine Videoausgabe benutzt libvidix"
 msgid "NVidia TV-Out support."
 msgstr "Unterstützung für NVidia TV-Ausgang"
 
-#: src/xine-engine/video_out.c:307
+#: src/xine-engine/video_out.c:329
 #, c-format
 msgid "%d frames delivered, %d frames skipped, %d frames discarded\n"
 msgstr "%d Bilder angezeigt, %d Bilder übersprungen, %d Bilder verworfen\n"
 
-#: src/xine-engine/video_out.c:443
+#: src/xine-engine/video_out.c:465
 #, c-format
 msgid ""
 "video_out: throwing away image with pts %lld because it's too old (diff : %"
@@ -1001,61 +990,73 @@ msgstr ""
 "video_out : Verwerfe Bild mit pts %lld, weil es zu alt ist (Unterschied: %"
 "lld).\n"
 
-#: src/xine-engine/video_out.c:968
+#: src/xine-engine/video_out.c:1013
 #, c-format
 msgid "video_out: can't create thread (%s)\n"
 msgstr "video_out: Kann Thread (%s) nicht erzeugen\n"
 
 #. FIXME: how does this happen ?
-#: src/xine-engine/video_out.c:971
+#: src/xine-engine/video_out.c:1016
 msgid "video_out: sorry, this should not happen. please restart xine.\n"
 msgstr ""
 "video_out : Ups, das sollte eigentlich nicht passieren, bitte xine "
 "neustarten.\n"
 
-#: src/xine-engine/xine.c:288
+#: src/xine-engine/xine.c:402 src/xine-engine/xine.c:569
 msgid "xine: cannot find input plugin for this MRL\n"
 msgstr "xine: Kann kein Plugin für diese MRL finden\n"
 
-#: src/xine-engine/xine.c:303
-#, fuzzy, c-format
+#: src/xine-engine/xine.c:436
+#, c-format
+msgid "xine: specified demuxer %s failed to start\n"
+msgstr "xine: Demultiplexer-Plugins %s startete nicht\n"
+
+#: src/xine-engine/xine.c:592
+#, c-format
 msgid "xine: couldn't find demux for >%s<\n"
 msgstr "xine: Kann keinen Demultiplexer für >%s< finden\n"
 
-#: src/xine-engine/xine.c:394
-#, fuzzy
-msgid "xine_play: demux failed to start\n"
-msgstr "xine_play: Der Start des Demultiplexer-Plugins schlug fehl\n"
+#: src/xine-engine/xine.c:624
+msgid "xine: demuxer failed to start\n"
+msgstr "xine: Demultiplexer-Plugins startete nicht\n"
 
-#: src/xine-engine/xine.c:761
+#: src/xine-engine/xine.c:713
+msgid "xine_play: no demux available\n"
+msgstr "xine_play: Kein Demultiplexer vorhanden\n"
+
+#: src/xine-engine/xine.c:728
+msgid "xine_play: demux failed to start\n"
+msgstr "xine_play: Demultiplexer startete nicht\n"
+
+#: src/xine-engine/xine.c:1104
 msgid "messages"
 msgstr "Nachrichten"
 
-#: src/xine-engine/xine.c:762
+#: src/xine-engine/xine.c:1105
 msgid "plugin"
 msgstr "Plugin"
 
-#: src/xine-engine/audio_out.c:846
+#: src/xine-engine/audio_out.c:1031
 msgid "adjust whether resampling is done or not"
 msgstr "Audiofrequenz anpassen oder nicht"
 
-#: src/xine-engine/audio_out.c:849
+#: src/xine-engine/audio_out.c:1034
 msgid "if !=0 always resample to given rate"
 msgstr "Wenn !=0, immer auf diese Frequenz anpassen"
 
-#: src/xine-engine/audio_out.c:855
+#: src/xine-engine/audio_out.c:1040
 msgid "adjust if audio is offsync"
 msgstr "Anpassen, wenn Audio nicht synchron ist"
 
-#: src/xine-engine/audio_out.c:895
+#: src/xine-engine/audio_out.c:1084
 msgid "Audio volume"
 msgstr "Lautstärke"
 
-#: src/xine-engine/audio_out.c:899
+#: src/xine-engine/audio_out.c:1088
 msgid "restore volume level at startup"
 msgstr "Läustärke beim Starten wiederherstellen"
 
-#: src/xine-engine/audio_out.c:900
+#: src/xine-engine/audio_out.c:1089
 msgid "if this not set, xine will not touch any mixer settings at startup"
 msgstr ""
 "Wenn nicht angewählte, wird xine die Lautstärke beim Starten unverändert "
@@ -1065,22 +1066,22 @@ msgstr ""
 msgid "Palette (foreground-border-background) to use on subtitles"
 msgstr "Farbpalette (Vordergrund,Rand,Hintergrund) für Untertitel"
 
-#: src/xine-engine/load_plugins.c:238
+#: src/xine-engine/load_plugins.c:237
 #, c-format
 msgid "load_plugins: unable to stat %s\n"
 msgstr "load_plugins: Kann %s nicht untersuchen\n"
 
-#: src/xine-engine/load_plugins.c:269
+#: src/xine-engine/load_plugins.c:267
 #, c-format
 msgid "load_plugins: plugin %s found\n"
 msgstr "load_plugins: Plugin %s gefunden\n"
 
-#: src/xine-engine/load_plugins.c:302
+#: src/xine-engine/load_plugins.c:300
 #, c-format
 msgid "load_plugins: unknown plugin type %d in %s\n"
 msgstr "load_plugins: Unbekannter Plugintyp %d in %s\n"
 
-#: src/xine-engine/load_plugins.c:312
+#: src/xine-engine/load_plugins.c:310
 #, c-format
 msgid ""
 "load_plugins: can't get plugin info from %s:\n"
@@ -1089,7 +1090,7 @@ msgstr ""
 "load_plugins: Kann Plugininformation von %s nicht lesen:\n"
 "%s\n"
 
-#: src/xine-engine/load_plugins.c:344
+#: src/xine-engine/load_plugins.c:342
 #, c-format
 msgid ""
 "load_plugins: cannot (stage 2) open plugin lib %s:\n"
@@ -1098,35 +1099,35 @@ msgstr ""
 "load_plugins: (Stufe 2) Kann Pluginbibliothek %s nicht öffnen:\n"
 "%s\n"
 
-#: src/libffmpeg/xine_decoder.c:661
+#: src/libffmpeg/xine_decoder.c:744
 msgid "allow illegal vlc codes in mpeg4 streams"
 msgstr "Akzeptiere illegale 'vlc'-Codes in MPEG4 Strömen"
 
-#: src/dxr3/video_out_dxr3.c:162
+#: src/dxr3/video_out_dxr3.c:223
 msgid "swap odd and even lines"
 msgstr "Vertausche gerade und ungerade Zeilen"
 
-#: src/dxr3/video_out_dxr3.c:165
+#: src/dxr3/video_out_dxr3.c:226
 msgid "Add black bars to correct aspect ratio"
 msgstr "Verwende schwarze Balken zur Korrektur des Seitenverhältnisses"
 
-#: src/dxr3/video_out_dxr3.c:166
+#: src/dxr3/video_out_dxr3.c:227
 msgid "If disabled, will assume source has 4:3 aspect ratio."
 msgstr "Falls deaktiviert, geht xine von einem 4:3 Seitenverhältniss aus."
 
-#: src/dxr3/video_out_dxr3.c:170
+#: src/dxr3/video_out_dxr3.c:231
 msgid "dxr3: use alternate play mode for mpeg encoder playback"
 msgstr "dxr3: Benutze alternativen Wiedergabemodus für MPEG-Wiedergabe"
 
-#: src/dxr3/video_out_dxr3.c:171 src/dxr3/dxr3_decode_video.c:183
+#: src/dxr3/video_out_dxr3.c:232 src/dxr3/dxr3_decode_video.c:249
 msgid "Enabling this option will utilise a smoother play mode."
 msgstr "Das Aktivieren dieser Option sorgt für eine flüssigere Wiedergabe."
 
-#: src/dxr3/video_out_dxr3.c:233
+#: src/dxr3/video_out_dxr3.c:279
 msgid "the encoder for non mpeg content"
 msgstr "Der Enkodierer für nicht-MPEG-Inhalte"
 
-#: src/dxr3/video_out_dxr3.c:234
+#: src/dxr3/video_out_dxr3.c:280
 msgid ""
 "Content other than mpeg has to pass an additional reencoding stage, because "
 "the dxr3 handles mpeg only."
@@ -1134,36 +1135,36 @@ msgstr ""
 "Nicht-MPEG-Inhalte müssen eine zusätzliche Reenkodierungsstufe durchlaufen, "
 "da die DXR3 nur MPEG kann."
 
-#: src/dxr3/video_out_dxr3.c:264
+#: src/dxr3/video_out_dxr3.c:309
 msgid "Dxr3: contrast control"
 msgstr "DXR3: Kontrasteinstellung"
 
-#: src/dxr3/video_out_dxr3.c:266
+#: src/dxr3/video_out_dxr3.c:311
 msgid "Dxr3: saturation control"
 msgstr "DXR3: Sättigungseinstellung"
 
-#: src/dxr3/video_out_dxr3.c:268
+#: src/dxr3/video_out_dxr3.c:313
 msgid "Dxr3: brightness control"
 msgstr "DXR3: Helligkeitseinstellung"
 
-#: src/dxr3/video_out_dxr3.c:272
+#: src/dxr3/video_out_dxr3.c:322
 msgid "Dxr3: videoout mode (tv or overlay)"
 msgstr "DXR3: Videoausgabemodus (TV oder Overlay)"
 
-#: src/dxr3/video_out_dxr3.c:300
+#: src/dxr3/video_out_dxr3.c:349
 msgid "Dxr3: overlay colorkey value"
 msgstr "DXR3: Farbwert für Overlay"
 
-#: src/dxr3/video_out_dxr3.c:303
+#: src/dxr3/video_out_dxr3.c:352
 msgid "Dxr3: overlay colorkey range"
 msgstr "DXR3: Farbbereich für Overlay"
 
-#: src/dxr3/video_out_dxr3.c:304
+#: src/dxr3/video_out_dxr3.c:353
 msgid "A greater value widens the tolerance for the overlay keycolor"
 msgstr ""
 "Ein größerer Wert vergrößert die Toleranz für die den Farbwert des Overlays"
 
-#: src/dxr3/video_out_dxr3.c:317
+#: src/dxr3/video_out_dxr3.c:366
 msgid "dxr3 preferred tv mode"
 msgstr "Bevorzugter TV-Modues der DXR3"
 
@@ -1176,32 +1177,32 @@ msgstr "DXR3: Gerätepfad"
 msgid "The device file of the dxr3 mpeg decoder card control device."
 msgstr "Der Gerätepfad für das Steuergerät der DXR3-MPEG-Dekoderkarte."
 
-#: src/dxr3/dxr3_decode_video.c:178
+#: src/dxr3/dxr3_decode_video.c:244
 msgid "Try to sync video every frame"
 msgstr "Versuche Video mit jedem Bild zu synchonisieren"
 
-#: src/dxr3/dxr3_decode_video.c:179
+#: src/dxr3/dxr3_decode_video.c:245
 msgid "This is relevant for progressive video only (most PAL films)."
 msgstr ""
 "Dies ist nur für progessive Videos (die meisten PAL-Filme) interessant."
 
-#: src/dxr3/dxr3_decode_video.c:182
+#: src/dxr3/dxr3_decode_video.c:248
 msgid "Use alternate Play mode"
 msgstr "Alternativen Wiedergabemodus benutzen"
 
-#: src/dxr3/dxr3_decode_video.c:186
+#: src/dxr3/dxr3_decode_video.c:252
 msgid "Correct frame durations in broken streams"
 msgstr "Korrigiere Frame-Dauer in kaputten Streams"
 
-#: src/dxr3/dxr3_decode_video.c:187
+#: src/dxr3/dxr3_decode_video.c:253
 msgid "Enable this for streams with wrong frame durations."
 msgstr "Aktivieren Sie dies für Streams mit falscher Anzeigedauer für Bilder."
 
-#: src/dxr3/dxr3_scr.c:81
+#: src/dxr3/dxr3_scr.c:80
 msgid "Dxr3: SCR plugin priority"
 msgstr "DXR3: SCR-Plugin Priorität"
 
-#: src/dxr3/dxr3_scr.c:82
+#: src/dxr3/dxr3_scr.c:81
 msgid "Scr priorities greater 5 make the dxr3 xine's master clock."
 msgstr "SCR-Prioritäten größer 5 machen die DXR3 zu xine's Hauptzeitgeber."
 
@@ -1224,15 +1225,15 @@ msgstr "DXR3enc: fame-MPEG-Enkodierungsqualität"
 msgid "The encoding quality of the libfame mpeg encoder library."
 msgstr "Die Enkodierungsqualität für die MPEC-Encoderbibliothek libfame."
 
-#: src/liba52/xine_decoder.c:556
+#: src/liba52/xine_decoder.c:484
 msgid "a/52 volume control"
 msgstr "A/52 Lautstärke"
 
-#: src/liba52/xine_decoder.c:559
+#: src/liba52/xine_decoder.c:487
 msgid "enable a/52 dynamic range compensation"
 msgstr "Aktiviere dynamische A/52 Kompensation"
 
-#: src/liba52/xine_decoder.c:562
+#: src/liba52/xine_decoder.c:490
 msgid "enable audio downmixing to 2.0 surround stereo"
 msgstr "Aktivierte Audiozusammenmischung zu Stereo-2.0-Raumklang"
 
@@ -1253,7 +1254,7 @@ msgstr "Benutzte divx4-Plugin für MSmpeg4v3-Ströme"
 msgid "Divx version to check for (set to 0 (default) if unsure)"
 msgstr "Zu überprüfende Divx-Version (Falls unsicher, Standardwert 0 belassen)"
 
-#: src/xine-utils/memcpy.c:442
+#: src/xine-utils/memcpy.c:447
 msgid "Memcopy method to use in xine for large data chunks."
 msgstr "Kopiermethode für große Datenbereiche."
 
@@ -1315,7 +1316,7 @@ msgstr ""
 "      (%d.%d). Das Neuübersetzten mit der momentanen Bibliothek sollte "
 "hefen.\n"
 
-#: src/libxinevdec/fli.c:350
+#: src/libxinevdec/fli.c:356
 #, c-format
 msgid ""
 "FLI: in chunk FLI_COPY : source data (%d bytes) bigger than image, skipping "
@@ -1324,12 +1325,12 @@ msgstr ""
 "FLI: In Paket FLI_COPY : Quelldaten (%d Bytes) größer als Bild, überspringe "
 "Paket\n"
 
-#: src/libxinevdec/fli.c:366
+#: src/libxinevdec/fli.c:372
 #, c-format
 msgid "FLI: Unrecognized chunk type: %d\n"
 msgstr "FLI: Nicht erkanntes PaketTyp: %d\n"
 
-#: src/libxinevdec/fli.c:394
+#: src/libxinevdec/fli.c:400
 #, c-format
 msgid ""
 "  warning: processed FLI chunk where chunk size = %d\n"
@@ -1341,26 +1342,92 @@ msgstr ""
 #. *************************************************************************
 #. * MS RLE specific decode functions
 #. ************************************************************************
-#: src/libxinevdec/msrle.c:69
+#: src/libxinevdec/msrle.c:75
 msgid "MS RLE: stream ptr just went out of bounds (1)\n"
 msgstr "MS RLE: Datenstromzeiger außerhalb des gültigen Bereichs (1)\n"
 
-#: src/libxinevdec/msrle.c:109
+#: src/libxinevdec/msrle.c:115
 msgid "MS RLE: frame ptr just went out of bounds (1)\n"
 msgstr "MS RLE: Bildzeiger außerhalb des gültigen Bereichs (1)\n"
 
-#: src/libxinevdec/msrle.c:116
+#: src/libxinevdec/msrle.c:122
 msgid "MS RLE: stream ptr just went out of bounds (2)\n"
 msgstr "MS RLE: Datenstromzeiger außerhalb des gültigen Bereichs (2)\n"
 
-#: src/libxinevdec/msrle.c:139
+#: src/libxinevdec/msrle.c:145
 msgid "MS RLE: frame ptr just went out of bounds (2)\n"
 msgstr "MS RLE: Bildzeiger außerhalb des gültigen Bereichs (2)\n"
 
-#: src/libxinevdec/msrle.c:160
+#: src/libxinevdec/msrle.c:166
 #, c-format
 msgid "MS RLE: ended frame decode with bytes left over (%d < %d)\n"
 msgstr "MS RLE: Dekodierung beende mit überschüssigen Bytes (%d < %d)\n"
+
+#~ msgid "valid mrls ending for avi demuxer"
+#~ msgstr "Gültige MRL-Endungen für AVI-Demultiplexer"
+
+#~ msgid "valid mrls ending for elementary demuxer"
+#~ msgstr "Gültige MRL-Endungen für 'elementary'-Demultiplexer"
+
+#~ msgid "valid mrls for mpeg demuxer"
+#~ msgstr "Gültige MRLs für MPEG-Demultiplexer"
+
+#~ msgid "demux_mpeg: please specify mpeg(mpeg1/mpeg2) stream type.\n"
+#~ msgstr "demug_mpeg: Bitte mpeg(mpeg1/mpeg2) Datenstromtyp angeben.\n"
+
+#~ msgid "valid mrls ending for mpeg demuxer"
+#~ msgstr "Gültige MRL-Endungen für MPEG-Demultiplexer"
+
+#~ msgid "valid mrls ending for mpeg audio demuxer"
+#~ msgstr "Gültige MRL-Endungen für MPEG-Audio-Demultiplexer"
+
+#~ msgid "valid mrls ending for qt demuxer"
+#~ msgstr "Gültige MRL-Endungen für QT-Demultiplexer"
+
+#~ msgid "valid mrls ending for ogg demuxer"
+#~ msgstr "Gültige MRL-Endungen für OGG-Demultiplexer"
+
+#~ msgid "valid mrls ending for asf demuxer"
+#~ msgstr "Gültige MRL-Endungen für ASF-Demultiplexer"
+
+#~ msgid "valid mrls ending for film demuxer"
+#~ msgstr "Gültige MRL-Endungen für FILM-Demultiplexer"
+
+#~ msgid "valid mrls for mpeg block demuxer"
+#~ msgstr "Gültige MRLs für MPEG-Block-Demultiplexer"
+
+#~ msgid "valid mrls ending for mpeg block demuxer"
+#~ msgstr "Gültige MRL-Endungen für MPEG-Block-Demultiplexer"
+
+#~ msgid "valid mrls ending for roq demuxer"
+#~ msgstr "Gültige MRL-Endungen für RoQ-Demultiplexer"
+
+#~ msgid "valid mrls ending for idcin demuxer"
+#~ msgstr "Gültige MRL-Endungen für IdCIN-Demultiplexer"
+
+#~ msgid "valid mrls ending for smjpeg demuxer"
+#~ msgstr "Gültige MRL-Endungen für SMJPEG-Demultiplexer"
+
+#~ msgid "valid mrls ending for wav demuxer"
+#~ msgstr "Gültige MRL-Endungen für WAV-Demultiplexer"
+
+#~ msgid "valid mrls ending for aiff demuxer"
+#~ msgstr "Gültige MRL-Endungen für AIFF-Demultiplexer"
+
+#~ msgid "valid mrls ending for snd demuxer"
+#~ msgstr "Gültige MRL-Endungen für SND-Demultiplexer"
+
+#~ msgid "valid mrls ending for voc demuxer"
+#~ msgstr "Gültige MRL-Endungen für VOC-Demultiplexer"
+
+#~ msgid "valid mrls ending for vqa demuxer"
+#~ msgstr "Gültige MRL-Endungen für VQA-Demultiplexer"
+
+#~ msgid "valid mrls ending for mve demuxer"
+#~ msgstr "Gültige MRL-Endungen für MVE-Demultiplexer"
+
+#~ msgid "Xv property"
+#~ msgstr "Xv Eingenschaften"
 
 #~ msgid ""
 #~ "demux_film: This is not a FILM file (why was it sent to this demuxer?\n"
