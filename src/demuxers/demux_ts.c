@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ts.c,v 1.87 2003/08/09 17:50:16 jcdutton Exp $
+ * $Id: demux_ts.c,v 1.88 2003/08/09 19:27:35 jcdutton Exp $
  *
  * Demultiplexer for MPEG2 Transport Streams.
  *
@@ -34,6 +34,9 @@
  *
  * Date        Author
  * ----        ------
+ *
+ *  9-Aug-2003 James Courtier-Dutton <jcdutton>
+ *                  - Improve readability of code. Added some FIXME comments.
  *
  * 25-Nov-2002 Peter Liljenberg
  *                  - Added DVBSUB support
@@ -66,7 +69,7 @@
  *                  - added in synchronisation code
  *
  *  1-Aug-2001 James Courtier-Dutton <jcdutton>  Reviewed by: n/a
- *                  - TS Streams with zero PES lenght should now work
+ *                  - TS Streams with zero PES length should now work
  *
  * 30-Jul-2001 shaheedhaque     Reviewed by: n/a
  *                  - PATs and PMTs seem to work
@@ -139,13 +142,12 @@
 #include "demux.h"
 
 /*
-#define TS_LOG
-*/
-
-/*
+  #define TS_LOG
   #define TS_PMT_LOG
+  #define TS_PAT_LOG
   #define TS_READ_STATS // activates read statistics generation
-*/
+  #define TS_HEADER_LOG // prints out the Transport packet header.
+ */
 
 /*
  *  The maximum number of PIDs we are prepared to handle in a single program
@@ -470,7 +472,7 @@ static void demux_ts_parse_pat (demux_ts_t*this, unsigned char *original_pkt,
   crc32 |= (uint32_t)pkt[6+section_length] << 8;
   crc32 |= (uint32_t)pkt[7+section_length] ;
 
-#ifdef TS_LOG
+#ifdef TS_PAT_LOG
   printf ("demux_ts: PAT table_id: %.2x\n", table_id);
   printf ("              section_syntax: %d\n", section_syntax_indicator);
   printf ("              section_length: %d (%#.3x)\n",
@@ -504,7 +506,12 @@ static void demux_ts_parse_pat (demux_ts_t*this, unsigned char *original_pkt,
     printf ("demux_ts: demux error! PAT with invalid CRC32: packet_crc32: %.8x calc_crc32: %.8x\n",
 	    crc32,calc_crc32);
     return;
+  } 
+#ifdef TS_PAT_LOG
+  else {
+    printf ("demux_ts: PAT CRC32 ok.\n");
   }
+#endif
 
   /*
    * Process all programs in the program loop.
@@ -549,7 +556,7 @@ static void demux_ts_parse_pat (demux_ts_t*this, unsigned char *original_pkt,
       this->pmt[program_count] = NULL;
       this->pmt_write_ptr[program_count] = NULL;
     }
-#ifdef TS_LOG
+#ifdef TS_PAT_LOG
     if (this->program_number[program_count] != INVALID_PROGRAM)
       printf ("demux_ts: PAT acquired count=%d programNumber=0x%04x "
               "pmtPid=0x%04x\n",
@@ -1024,6 +1031,11 @@ static void demux_ts_parse_pmt (demux_ts_t     *this,
 	    crc32,calc_crc32); 
     return;
   }
+#ifdef TS_PMT_LOG
+  else {
+    printf ("demux_ts: PMT CRC32 ok.\n");
+  }
+#endif
 
   /*
    * ES definitions start here...we are going to learn upto one video
@@ -1441,12 +1453,23 @@ static void demux_ts_parse_packet (demux_ts_t*this) {
   adaptation_field_control       = (originalPkt[3] >> 4) & 0x03;
   continuity_counter             = originalPkt[3] & 0x0f;
 
+
+#ifdef TS_HEADER_LOG
+  printf("demux_ts:ts_header:sync_byte=0x%.2x\n",sync_byte);
+  printf("demux_ts:ts_header:transport_error_indicator=%d\n", transport_error_indicator);
+  printf("demux_ts:ts_header:payload_unit_start_indicator=%d\n", payload_unit_start_indicator);
+  printf("demux_ts:ts_header:transport_priority=%d\n", transport_priority);
+  printf("demux_ts:ts_header:pid=0x%.4x\n", pid);
+  printf("demux_ts:ts_header:transport_scrambling_control=0x%.1x\n", transport_scrambling_control);
+  printf("demux_ts:ts_header:adaptation_field_control=0x%.1x\n", adaptation_field_control);
+  printf("demux_ts:ts_header:continuity_counter=0x%.1x\n", continuity_counter);
+#endif
   /*
    * Discard packets that are obviously bad.
    */
   if (sync_byte != 0x47) {
     printf ("demux error! invalid ts sync byte %.2x\n",
-	    originalPkt[0]);
+	    sync_byte);
     return;
   }
   if (transport_error_indicator) {
@@ -1490,11 +1513,17 @@ static void demux_ts_parse_packet (demux_ts_t*this) {
    * audio/video pid auto-detection, if necessary
    */
     
-  if (originalPkt[1] & 0x40){
+  if (payload_unit_start_indicator){
+    /* FIXME: This is faulty assumption.
+     *        This might be a PAT or PMT and not a PES.
+     */ 
+    int pes_stream_id = originalPkt[data_offset+3];
+
+#ifdef TS_HEADER_LOG
+    printf("demux_ts:ts_pes_header:stream_id=0x%.2x\n",pes_stream_id);
+#endif
     
-    int t = originalPkt[data_offset+3];
-    
-    if (t >= VIDEO_STREAM_S && t <= VIDEO_STREAM_E) {
+    if ( (pes_stream_id >= VIDEO_STREAM_S) && (pes_stream_id <= VIDEO_STREAM_E) ) {
       if ( this->videoPid == INVALID_PID) {
 
 	printf ("demux_ts: auto-detected video pid 0x%.4x\n",
@@ -1502,9 +1531,9 @@ static void demux_ts_parse_packet (demux_ts_t*this) {
 
 	this->videoPid = pid;
 	this->videoMedia = this->media_num;
-	demux_ts_pes_new(this, this->media_num++, pid, this->video_fifo, t);
+	demux_ts_pes_new(this, this->media_num++, pid, this->video_fifo, pes_stream_id);
       }
-    } else if (t >= AUDIO_STREAM_S && t <= AUDIO_STREAM_E) {
+    } else if ( (pes_stream_id >= AUDIO_STREAM_S) && (pes_stream_id <= AUDIO_STREAM_E) ) {
       if ( this->audioPid == INVALID_PID) {
 
 	printf ("demux_ts: auto-detected audio pid 0x%.4x\n",
@@ -1512,7 +1541,7 @@ static void demux_ts_parse_packet (demux_ts_t*this) {
 
 	this->audioPid = pid;
 	this->audioMedia = this->media_num;
-	demux_ts_pes_new(this, this->media_num++, pid, this->audio_fifo, t);
+	demux_ts_pes_new(this, this->media_num++, pid, this->audio_fifo, pes_stream_id);
       }
     }
   }
