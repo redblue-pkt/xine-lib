@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: matroska.h,v 1.5 2004/01/22 00:41:53 tmattern Exp $
+ * $Id: matroska.h,v 1.6 2004/02/12 23:31:19 jstembridge Exp $
  *
  */
 #ifndef MATROSKA_H
@@ -190,6 +190,8 @@ typedef struct {
   int                      flag_interlaced;
   int                      pixel_width;
   int                      pixel_height;
+  int                      display_width;
+  int                      display_height;
 } matroska_video_track_t;
 
 typedef struct {

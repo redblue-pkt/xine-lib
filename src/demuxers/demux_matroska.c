@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_matroska.c,v 1.21 2004/02/12 18:02:17 mroi Exp $
+ * $Id: demux_matroska.c,v 1.22 2004/02/12 23:31:19 jstembridge Exp $
  *
  * demultiplexer for matroska streams
  *
@@ -231,6 +231,18 @@ static int parse_video_track (demux_matroska_t *this, matroska_video_track_t *vt
           return 0;
         vt->pixel_height = val;
         break;
+      case MATROSKA_ID_TV_VIDEODISPLAYWIDTH:
+        lprintf("MATROSKA_ID_TV_VIDEODISPLAYWIDTH\n");
+        if (!ebml_read_uint(ebml, &elem, &val))
+          return 0;
+        vt->display_width = val;
+        break;
+      case MATROSKA_ID_TV_VIDEODISPLAYHEIGHT:
+        lprintf("MATROSKA_ID_TV_VIDEODISPLAYHEIGHT\n");
+        if (!ebml_read_uint(ebml, &elem, &val))
+          return 0;
+        vt->display_height = val;
+        break;
       default:
         lprintf("Unhandled ID: 0x%x\n", elem.id);
         if (!ebml_skip(ebml, &elem))
@@ -291,10 +303,39 @@ static int parse_audio_track (demux_matroska_t *this, matroska_audio_track_t *at
 
 
 static void init_codec_video(demux_matroska_t *this, matroska_track_t *track) {
-
-  _x_demux_send_data(track->fifo, track->codec_private, track->codec_private_len,
-                        0, track->buf_type, BUF_FLAG_HEADER | BUF_FLAG_STDHEADER,
-                        0, 0, 0, 0, 0);
+  buf_element_t *buf;
+  
+  buf = track->fifo->buffer_pool_alloc (track->fifo);
+  
+  buf->decoder_flags = BUF_FLAG_HEADER | BUF_FLAG_STDHEADER | BUF_FLAG_FRAME_END;
+  buf->type          = track->buf_type;
+  buf->pts           = 0;
+    
+  if (track->codec_private_len > buf->max_size) {
+    buf->size = buf->max_size;
+  } else {
+    buf->size = track->codec_private_len;
+  }    
+  
+  if (buf->size)
+    xine_fast_memcpy (buf->content, track->codec_private, buf->size);
+  else
+    buf->content = NULL;
+  
+  if(track->default_duration) {
+    buf->decoder_flags   |= BUF_FLAG_FRAMERATE;
+    buf->decoder_info[0]  = (int64_t)track->default_duration * 
+                            (int64_t)90 / (int64_t)1000000;
+  }
+  
+  if(track->video_track && track->video_track->display_width && 
+     track->video_track->display_height) {
+    buf->decoder_flags   |= BUF_FLAG_ASPECT;
+    buf->decoder_info[1]  = track->video_track->display_width;
+    buf->decoder_info[2]  = track->video_track->display_height;
+  }
+    
+  track->fifo->put (track->fifo, buf);
 }
 
 
@@ -339,9 +380,39 @@ static void init_codec_audio(demux_matroska_t *this, matroska_track_t *track) {
 
 
 static void init_codec_real(demux_matroska_t *this, matroska_track_t * track) {
-
-  _x_demux_send_data(track->fifo, track->codec_private, track->codec_private_len,
-                     0, track->buf_type, BUF_FLAG_HEADER, 0, 0, 0, 0, 0);
+  buf_element_t *buf;
+  
+  buf = track->fifo->buffer_pool_alloc (track->fifo);
+  
+  buf->decoder_flags = BUF_FLAG_HEADER | BUF_FLAG_FRAME_END;
+  buf->type          = track->buf_type;
+  buf->pts           = 0;
+    
+  if (track->codec_private_len > buf->max_size) {
+    buf->size = buf->max_size;
+  } else {
+    buf->size = track->codec_private_len;
+  }    
+  
+  if (buf->size)
+    xine_fast_memcpy (buf->content, track->codec_private, buf->size);
+  else
+    buf->content = NULL;
+  
+  if(track->default_duration) {
+    buf->decoder_flags   |= BUF_FLAG_FRAMERATE;
+    buf->decoder_info[0]  = (int64_t)track->default_duration * 
+                            (int64_t)90 / (int64_t)1000000;
+  }
+  
+  if(track->video_track && track->video_track->display_width && 
+     track->video_track->display_height) {
+    buf->decoder_flags   |= BUF_FLAG_ASPECT;
+    buf->decoder_info[1]  = track->video_track->display_width;
+    buf->decoder_info[2]  = track->video_track->display_height;
+  }
+    
+  track->fifo->put (track->fifo, buf);
 }
 
 
