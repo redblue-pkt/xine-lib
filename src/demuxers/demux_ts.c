@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ts.c,v 1.43 2002/04/29 23:31:59 jcdutton Exp $
+ * $Id: demux_ts.c,v 1.44 2002/05/17 21:24:10 miguelfreitas Exp $
  *
  * Demultiplexer for MPEG2 Transport Streams.
  *
@@ -34,6 +34,8 @@
  *
  * Date        Author
  * ----        ------
+ * 16-May-2002 Thibaut Mattern <tmattern@noos.fr>
+ *                              Fix demux loop
  * 07-Jan-2002 Andr Draszik <andid@gmx.net>
  *                              - added support for single-section PMTs
  *                                spanning multiple TS packets.
@@ -134,7 +136,7 @@ typedef struct {
   uint8_t         *content;
   uint32_t         size;
   uint32_t         type;
-  uint32_t         PTS;
+  int64_t          pts;
   buf_element_t   *buf;
   int              pes_buf_next;
   int              pes_len;
@@ -151,7 +153,7 @@ typedef struct {
   demux_plugin_t   plugin;
 
   xine_t          *xine;
-  
+
   config_values_t *config;
 
   fifo_buffer_t   *audio_fifo;
@@ -160,6 +162,7 @@ typedef struct {
   input_plugin_t  *input;
 
   pthread_t        thread;
+  int              thread_running;
   pthread_mutex_t  mutex;
 
   int              status;
@@ -186,7 +189,7 @@ typedef struct {
   unsigned int     audioPid;
   unsigned int     videoMedia;
   unsigned int     audioMedia;
- 
+
   int              send_end_buffers;
   int              ignore_scr_discont;
   int              send_newpts;
@@ -217,9 +220,9 @@ static uint32_t demux_ts_compute_crc32(demux_ts *this, uint8_t *data, uint32_t l
 static void check_newpts( demux_ts *this, int64_t pts )
 {
   if( this->send_newpts && pts ) {
-    
+
     buf_element_t *buf;
-  
+
     buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
     buf->type = BUF_CONTROL_NEWPTS;
     buf->disc_off = pts;
@@ -331,7 +334,7 @@ static void demux_ts_parse_pat (demux_ts *this, unsigned char *original_pkt,
   if (crc32 != calc_crc32) {
     LOG_MSG (this->xine, _("demux_ts: demux error! PAT with invalid CRC32: "
                            "packet_crc32: %.8x calc_crc32: %.8x\n"),
-                         crc32,calc_crc32); 
+                         crc32,calc_crc32);
     return;
   }
 
@@ -377,13 +380,13 @@ static void demux_ts_parse_pat (demux_ts *this, unsigned char *original_pkt,
   }
 }
 
-static int demux_ts_parse_pes_header (demux_ts_media *m, 
+static int demux_ts_parse_pes_header (demux_ts_media *m,
 				      uint8_t *buf, int packet_len,
                                       xine_t *xine) {
 
   unsigned char *p;
   uint32_t       header_len;
-  uint32_t       PTS;
+  int64_t        pts;
   uint32_t       stream_id;
 
   p = buf;
@@ -410,16 +413,15 @@ static int demux_ts_parse_pes_header (demux_ts_media *m,
           stream_id, packet_len, packet_len);
 #endif
 
-  if (p[7] & 0x80) { /* PTS avail */
+  if (p[7] & 0x80) { /* pts avail */
 
-    PTS  = (p[ 9] & 0x0E) << 29 ;
-    PTS |=  p[10]         << 22 ;
-    PTS |= (p[11] & 0xFE) << 14 ;
-    PTS |=  p[12]         <<  7 ;
-    PTS |= (p[13] & 0xFE) >>  1 ;
-
+    pts  = (int64_t)(p[ 9] & 0x0E) << 29 ;
+    pts |=  p[10]         << 22 ;
+    pts |= (p[11] & 0xFE) << 14 ;
+    pts |=  p[12]         <<  7 ;
+    pts |= (p[13] & 0xFE) >>  1 ;
   } else
-    PTS = 0;
+    pts = 0;
 
   /* code works but not used in xine
   if (p[7] & 0x40) {
@@ -434,7 +436,7 @@ static int demux_ts_parse_pes_header (demux_ts_media *m,
     DTS = 0;
   */
 
-  m->PTS       = PTS;
+  m->pts       = pts;
 //  buf->input_pos = this->input->get_current_pos(this->input);
   /* FIXME: not working correctly */
 //  buf->input_time = buf->input_pos / (this->rate * 50);
@@ -529,8 +531,9 @@ static void demux_ts_buffer_pes(demux_ts *this, unsigned char *ts,
 
   demux_ts_media *m = &this->media[mediaIndex];
   if (!m->fifo) {
-
+#ifdef TS_LOG
     LOG_MSG(this->xine, _("fifo unavailable (%d)\n"), mediaIndex);
+#endif
 
     return; /* To avoid segfault if video out or audio out plugin not loaded */
 
@@ -566,16 +569,15 @@ static void demux_ts_buffer_pes(demux_ts *this, unsigned char *ts,
       m->broken_pes = 1;
       LOG_MSG (this->xine, _("demux_ts: broken pes encountered\n"));
     } else {
-      check_newpts( this, m->PTS );
-      
+      check_newpts( this, m->pts );
+
       m->broken_pes = 0;
       buf = m->fifo->buffer_pool_alloc(m->fifo);
       memcpy (buf->mem, ts+len-m->size, m->size); /* FIXME: reconstruct parser to do without memcpys */
       buf->content         = buf->mem;
       buf->size            = m->size;
       buf->type            = m->type;
-      buf->pts             = m->PTS;
-      /* buf->scr             = this->PCR; */
+      buf->pts             = m->pts;
       buf->decoder_info[0] = 1;
       m->fifo->put (m->fifo, buf);
     }
@@ -587,7 +589,6 @@ static void demux_ts_buffer_pes(demux_ts *this, unsigned char *ts,
     buf->size            = len;
     buf->type            = m->type;
     buf->pts             = 0;
-    /* buf->scr             = 0; */
     buf->input_pos       = this->input->get_current_pos(this->input);
     buf->decoder_info[0] = 1;
     m->fifo->put (m->fifo, buf);
@@ -1190,18 +1191,29 @@ static void *demux_ts_loop(void *gen_this) {
   demux_ts *this = (demux_ts *)gen_this;
   buf_element_t *buf;
 
-  while(1) {
-    
-    pthread_mutex_lock( &this->mutex );
-    
-    if( this->status != DEMUX_OK)
-      break;
-    
-    demux_ts_parse_packet(this);
-    
-    pthread_mutex_unlock( &this->mutex );
-  
-  }
+  /* do-while needed to seek after demux finished */
+  do {
+
+    /* main demuxer loop */
+    while(this->status == DEMUX_OK) {
+
+      demux_ts_parse_packet(this);
+
+      /* someone may want to interrupt us */
+      pthread_mutex_unlock( &this->mutex );
+      pthread_mutex_lock( &this->mutex );
+    }
+
+    /* wait before sending end buffers: user might want to do a new seek */
+    while(this->send_end_buffers && this->video_fifo->size(this->video_fifo) &&
+          this->status != DEMUX_OK){
+      pthread_mutex_unlock( &this->mutex );
+      xine_usec_sleep(100000);
+      pthread_mutex_lock( &this->mutex );
+    }
+
+  } while( this->status == DEMUX_OK );
+
   
 #ifdef TS_LOG
   printf ("demux_ts: demux loop finished (status: %d)\n", this->status);
@@ -1222,6 +1234,7 @@ static void *demux_ts_loop(void *gen_this) {
     }
   }
 
+  this->thread_running = 0;
   pthread_mutex_unlock( &this->mutex );
   pthread_exit(NULL);
   return NULL;
@@ -1243,7 +1256,7 @@ static int demux_ts_get_status(demux_plugin_t *this_gen) {
 
   demux_ts *this = (demux_ts *)this_gen;
 
-  return this->status;
+  return (this->thread_running?DEMUX_OK:DEMUX_FINISHED);
 }
 
 static int demux_ts_open(demux_plugin_t *this_gen, input_plugin_t *input,
@@ -1358,7 +1371,7 @@ static void demux_ts_start(demux_plugin_t *this_gen,
 
   pthread_mutex_lock( &this->mutex );
 
-  if( this->status != DEMUX_OK ) {
+  if( !this->thread_running ) {
     this->video_fifo  = video_fifo;
     this->audio_fifo  = audio_fifo;
 
@@ -1390,13 +1403,14 @@ static void demux_ts_start(demux_plugin_t *this_gen,
   
   demux_ts_build_crc32_table(this);
   
-  if( this->status != DEMUX_OK ) {
+  if( !this->thread_running ) {
     /*
      * Now start demuxing.
      */
     this->status = DEMUX_OK ;
     this->send_end_buffers = 1;
     this->last_PCR = 0;
+    this->thread_running = 1;
   
     if ((err = pthread_create(&this->thread, NULL, demux_ts_loop, this)) != 0) {
       LOG_MSG_STDERR(this->xine, _("demux_ts: can't create new thread (%s)\n"), strerror(err));
@@ -1425,7 +1439,7 @@ static void demux_ts_stop(demux_plugin_t *this_gen)
 
   pthread_mutex_lock( &this->mutex );
   
-  if (this->status != DEMUX_OK) {
+  if (!this->thread_running) {
     printf ("demux_ts: stop...ignored\n");
     pthread_mutex_unlock( &this->mutex );
     return;
