@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.135 2002/12/22 02:15:45 tmmm Exp $
+ * $Id: demux_qt.c,v 1.136 2002/12/22 16:09:30 esnel Exp $
  *
  */
 
@@ -2202,7 +2202,7 @@ static int demux_qt_seek (demux_plugin_t *this_gen,
 	}
       } while (left < right);
 
-      best_index = middle;
+      best_index = left;
     }
   }
 
