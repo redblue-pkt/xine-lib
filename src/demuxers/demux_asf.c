@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.2 2001/10/17 20:33:09 guenter Exp $
+ * $Id: demux_asf.c,v 1.3 2001/10/20 02:01:51 guenter Exp $
  *
  * demultiplexer for asf streams
  *
@@ -943,9 +943,7 @@ static int demux_asf_get_status (demux_plugin_t *this_gen) {
 static void demux_asf_start (demux_plugin_t *this_gen,
 			     fifo_buffer_t *video_fifo, 
 			     fifo_buffer_t *audio_fifo,
-			     off_t start_pos, int start_time,
-			     gui_get_next_mrl_cb_t next_mrl_cb,
-			     gui_branched_cb_t branched_cb) {
+			     off_t start_pos, int start_time) {
 
   demux_asf_t *this = (demux_asf_t *) this_gen;
   buf_element_t *buf;
@@ -1081,7 +1079,7 @@ demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
   demux_asf_t     *this;
   config_values_t *config;
 
-  if (iface != 4) {
+  if (iface != 5) {
     printf( "demux_asf: plugin doesn't support plugin API version %d.\n"
 	    "demux_asf: this means there's a version mismatch between xine and this "
 	    "demux_asf: demuxer plugin.\nInstalling current demux plugins should help.\n",

@@ -28,7 +28,7 @@
  \endverbatim
  */
 /*
- * $Id: xine.h.tmpl.in,v 1.47 2001/10/14 23:19:59 f1rmb Exp $
+ * $Id: xine.h.tmpl.in,v 1.48 2001/10/20 02:01:51 guenter Exp $
  *
  */
 
@@ -47,9 +47,7 @@ extern "C" {
 #include <xine/video_out.h>
 #endif
 
-#ifndef DOC_HIDDEN
 #include <xine/events.h>
-#endif
 
 /**
  * \def XINE_SKINDIR
@@ -517,22 +515,6 @@ config_values_t *config_file_init (char *filename);
 		*
 		*/
 
-/**
- * Notify UI when the stream is finished.
- * \sa xine_init()
- */
-typedef void (*gui_stream_end_cb_t) (int nStatus);
-/**
- * Called when xine tries to branch seamlessly to the next mrl.
- * \sa xine_init()
- */
-typedef char* (*gui_get_next_mrl_cb_t) (void);
-/**
- * Called when xine branched successfully to the next mrl.
- * \sa xine_init()
- */
-typedef void (*gui_branched_cb_t) (void);
-
                /** @} end of ui_callbacks */
 
                /**
@@ -570,14 +552,11 @@ typedef void (*gui_branched_cb_t) (void);
                /** @} end of demux_strategy */
 
 /**
- * \fn xine_t *xine_init (vo_driver_t *vo, ao_driver_t *ao, config_values_t *config, gui_stream_end_cb_t stream_end_cb, gui_get_next_mrl_cb_t get_next_mrl_cb, gui_branched_cb_t branched_cb);
+ * \fn xine_t *xine_init (vo_driver_t *vo, ao_driver_t *ao, config_values_t *config, void *user_data);
  * \brief Initialisation of xine.
  * \param vo video driver ( #see @ref xine_load_video_output_plugin() )
  * \param ao audio driver ( #see @ref xine_load_audio_output_plugin() )
  * \param config current configuration ( #see config_file_init() )
- * \param stream_end cb called on stream end 
- * \param get_next_mrl_cb called to find out next mrl for seamless branching
- * \param branched_cb called if seamless branch was taken
  * \return Current xine engine configuration
  * \sa vo_driver_t, ao_driver_t, config_values_t, gui_stream_end_cb_t, gui_get_next_mrl_cb_t, gui_branched_cb_t
  * \warning This function should be called before any other xine_*() function.
@@ -589,10 +568,7 @@ typedef void (*gui_branched_cb_t) (void);
  */
 xine_t *xine_init (vo_driver_t *vo, 
 		   ao_driver_t *ao,
-		   config_values_t *config,
-		   gui_stream_end_cb_t stream_end_cb,
-		   gui_get_next_mrl_cb_t get_next_mrl_cb,
-		   gui_branched_cb_t branched_cb);
+		   config_values_t *config);
 
 /**
  * \fn void xine_exit (xine_t *self)
@@ -768,18 +744,8 @@ int xine_get_current_time (xine_t *self);
 int xine_get_stream_length (xine_t *self);
 
 /**
- * \fn int xine_get_audio_channel (xine_t *self)
- * \brief Get current audio channel
- * \param self Current xine engine configuration ( #see xine_init() )
- * \return Current audio chennel
- *
- * Get current audio channel.
- */
-int xine_get_audio_channel (xine_t *self);
-
-/**
  * \fn void xine_select_audio_channel (xine_t *self, int channel)
- * \brief Set audio channel
+ * \brief Set logical audio channel (-1 => auto)
  * \param self Current xine engine configuration ( #see xine_init() )
  * \return Nothing
  *
@@ -788,14 +754,45 @@ int xine_get_audio_channel (xine_t *self);
 void xine_select_audio_channel (xine_t *self, int channel);
 
 /**
- * \fn int xine_get_spu_channel (xine_t *self)
- * \brief Get current sub-title channel.
+ * \fn int xine_get_audio_selection (xine_t *self)
+ * \brief Get current logical audio channel
  * \param self Current xine engine configuration ( #see xine_init() )
- * \return Current sub-title channel
+ * \return Current audio channel
+ *
+ * Get current audio channel.
+ */
+int xine_get_audio_selection (xine_t *self);
+
+/**
+ * \fn void xine_get_audio_lang (xine_t *self, char *str)
+ * \brief  try to find out current audio language
+ * \param self current xine engine configuration ( #see xine_init() )
+ * \param str current audio language or number
+ *
+ * try to find out current audio language
+ */
+void xine_get_audio_lang (xine_t *self, char *str);
+
+/**
+ * \fn int xine_get_spu_channel (xine_t *self)
+ * \brief get current sub-title channel.
+ * \param self current xine engine configuration ( #see xine_init() )
+ * \return current sub-title channel
  *
  * Get current sub-title channel.
  */
 int xine_get_spu_channel (xine_t *self);
+
+/**
+ * \fn void xine_get_spu_lang (xine_t *self, char *str)
+ * \brief  try to find out current spu language
+ * \param self current xine engine configuration ( #see xine_init() )
+ * \param str current spu language or number
+ *
+ * try to find out current spu language
+ */
+void xine_get_spu_lang (xine_t *self, char *str);
+
 
 /**
  * \fn void xine_select_spu_channel (xine_t *self, int channel)
@@ -1325,29 +1322,23 @@ ao_driver_t *xine_load_audio_output_plugin(config_values_t *config, char *id);
 	   * @{
 	   */
 
-#ifdef DOC_HIDDEN
-/**
- * Opaque data type.
- * \sa event_listener_t, xine_send_event
- */
-typedef void event_t;
-#endif
 
 /**
  * Event listener callback.
  * \sa xine_register_event_listener, xine_remove_event_listener
  */
-typedef void (*event_listener_t) (xine_t *xine, event_t *event, void *data);
+typedef void (*event_listener_t) (void *user_data, xine_event_t *event);
 
 /**
  * \fn int xine_register_event_listener(xine_t *self, event_listener_t listener)
  * \param self Current xine engine configuration ( #see xine_init() )
  * \param listener callback function.
+ * \param user_data - will be used as first parameter to callback
  * \brief registers an event listener callback.
  * \return 0 if the listener was registerd, non-zero if it could not.
  * \sa event_listener_t
  */
-int xine_register_event_listener(xine_t *self, event_listener_t listener);
+int xine_register_event_listener(xine_t *self, event_listener_t listener, void *user_data);
 
 /**
  * \fn int xine_remove_event_listener(xine_t *self, event_listener_t listener)
@@ -1360,14 +1351,13 @@ int xine_register_event_listener(xine_t *self, event_listener_t listener);
 int xine_remove_event_listener(xine_t *self, event_listener_t listener);
 
 /**
- * \fn void xine_send_event(xine_t *self, event_t *event, void *data)
+ * \fn void xine_send_event(xine_t *self, event_t *event)
  * \param self Current xine engine configuration ( #see xine_init() )
- * \param event FILLME
- * \param data FILLME.
+ * \param event event to send
  * \brief sends an event to all listeners.
  * \sa event_t
  */
-void xine_send_event(xine_t *self, event_t *event, void *data);
+void xine_send_event(xine_t *self, xine_event_t *event);
 
           /** @} end of event_group */
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.47 2001/10/18 18:50:53 guenter Exp $
+ * $Id: audio_decoder.c,v 1.48 2001/10/20 02:01:51 guenter Exp $
  *
  *
  * functions that implement audio decoding
@@ -73,6 +73,7 @@ void *audio_decoder_loop (void *this_gen) {
       if (this->cur_audio_decoder_plugin) {
 	this->cur_audio_decoder_plugin->close (this->cur_audio_decoder_plugin);
 	this->cur_audio_decoder_plugin = NULL;
+	this->audio_type = 0;
       }
       
       pthread_mutex_lock (&this->finished_lock);
@@ -90,6 +91,7 @@ void *audio_decoder_loop (void *this_gen) {
       if (this->cur_audio_decoder_plugin) {
 	this->cur_audio_decoder_plugin->close (this->cur_audio_decoder_plugin);
 	this->cur_audio_decoder_plugin = NULL;
+	this->audio_type = 0;
       }
       
       pthread_mutex_lock (&this->finished_lock);
@@ -104,6 +106,8 @@ void *audio_decoder_loop (void *this_gen) {
 
       pthread_mutex_unlock (&this->finished_lock);
 
+      this->audio_channel_suggested = -1;
+
       /* future magic - coming soon
       lrb_flush (this->audio_temp);
       */
@@ -114,6 +118,7 @@ void *audio_decoder_loop (void *this_gen) {
       if (this->cur_audio_decoder_plugin) {
 	this->cur_audio_decoder_plugin->close (this->cur_audio_decoder_plugin);
 	this->cur_audio_decoder_plugin = NULL;
+	this->audio_type = 0;
       }
       running = 0;
       break;
@@ -130,22 +135,18 @@ void *audio_decoder_loop (void *this_gen) {
       break;
 
     case BUF_CONTROL_AUDIO_CHANNEL:
+      {
+	xine_event_t event;
 
-      printf ("audio_decoder: switching to streamtype %08x\n",
-	      buf->decoder_info[0]);
-	if (this->audio_channel != (buf->decoder_info[0] & 0xff) ) {
-	  /* close old audio decoder */
-	  if (this->cur_audio_decoder_plugin) {
-	    this->cur_audio_decoder_plugin->close (this->cur_audio_decoder_plugin);
-	    this->cur_audio_decoder_plugin = NULL;
-	  }
-	}
-      this->audio_channel = buf->decoder_info[0] & 0xff;
+	printf ("audio_decoder: suggested switching to streamtype %08x\n",
+		buf->decoder_info[0]);
+	
+	this->audio_channel_suggested = buf->decoder_info[0] & 0xff;
 
-      /* future magic - coming soon
-      lrb_feedback (this->audio_temp, this->audio_fifo);
-      */
+	event.type = XINE_EVENT_UI_CHANNELS_CHANGED;
+	xine_send_event(this, &event);
 
+      }
       break;
 
     default:
@@ -154,42 +155,83 @@ void *audio_decoder_loop (void *this_gen) {
 	xine_usec_sleep (50000);
       }
 
-      if (this->audio_mute)
+      if (this->audio_mute) {
+	/*
+	lrb_add (this->audio_temp, buf);
+	continue;
+	*/
 	break;
+      }
 
       profiler_start_count (prof_audio_decode);
 
       if ( (buf->type & 0xFF000000) == BUF_AUDIO_BASE ) {
 	
-	/* now, decode this buffer if it's the right track */
-	  
-	if (this->audio_channel == (buf->type & 0xFF) ) {
+	uint32_t audio_type = 0;
+	int      i,j;
+
+        /* update track map */
+        
+        i = 0;
+        while ( (i<this->audio_track_map_entries) && (this->audio_track_map[i]<buf->type) ) 
+          i++;
+        
+        if ( (i==this->audio_track_map_entries) || (this->audio_track_map[i] != buf->type) ) {
+          
+          j = this->audio_track_map_entries;
+          while (j>i) {
+            this->audio_track_map[j] = this->audio_track_map[j-1];
+            j--;
+          }
+          this->audio_track_map[i] = buf->type;
+          this->audio_track_map_entries++;
+        }
+
+	/* find out which audio type to decode */
+
+	if (this->audio_channel == -1) {
+
+	  if ((this->audio_channel_suggested>=0) && 
+	      ((buf->type & 0xFF) == this->audio_channel_suggested) ) 
+	    audio_type = buf->type;
+	  else 
+	    audio_type = this->audio_track_map[0];
+
+	} else 
+	  audio_type = this->audio_track_map[this->audio_channel];
+
+	/* now, decode this buffer if it's the right audio type */
+
+	if (buf->type == audio_type) {
 	    
 	  int streamtype = (buf->type>>16) & 0xFF;
+
 	  decoder = this->audio_decoder_plugins [streamtype];
-	  if (decoder) {
-	    if (this->cur_audio_decoder_plugin != decoder) {
-	      if (this->cur_audio_decoder_plugin) 
-		this->cur_audio_decoder_plugin->close (this->cur_audio_decoder_plugin);
 
-	      this->cur_audio_decoder_plugin = decoder;
-	      this->cur_audio_decoder_plugin->init (this->cur_audio_decoder_plugin, this->audio_out);
+	  /* close old decoder of audio type has changed */
 
+	  if (audio_type != this->audio_type) {
+
+	    if (this->cur_audio_decoder_plugin) {
+	      this->cur_audio_decoder_plugin->close (this->cur_audio_decoder_plugin);
+	      this->cur_audio_decoder_plugin = NULL;
+	    }
+
+	    if (decoder) {
 	      printf ("audio_loop: using decoder >%s< \n",
 		      decoder->get_identifier());
-
+	      this->cur_audio_decoder_plugin = decoder;
+	      this->cur_audio_decoder_plugin->init (this->cur_audio_decoder_plugin, this->audio_out);
+	      
+	      this->audio_type = audio_type;
 	    }
-	    /* printf ("audio_loop: sending data to decoder\n");  */
-	    decoder->decode_data (decoder, buf);
-	    /* printf ("audio_loop: decoding is done\n");  */
 	  }
-	} else {
-	  /*
-	  printf ("audio_decoder: wrong channel\n");
-	  lrb_add (this->audio_temp, buf);
-	  continue;
-	  */
-	}
+
+	  /* finally - decode data */
+
+	  if (decoder) 
+	    decoder->decode_data (decoder, buf);
+	} 
       } else
 	printf ("audio_loop: unknown buffer type: %08x\n", buf->type);
 
@@ -215,6 +257,9 @@ void audio_decoder_init (xine_t *this) {
   }
   
   this->audio_fifo = fifo_buffer_new (1500, 8192);
+  this->audio_channel = -1;
+  this->audio_channel_suggested = -1;
+  this->audio_type = 0;
 
   /* future magic - coming soon
   this->audio_temp = lrb_new (100, this->audio_fifo);
@@ -254,3 +299,29 @@ void audio_decoder_shutdown (xine_t *this) {
 
 }
 
+int xine_get_audio_channel (xine_t *this) {
+
+  printf ("audio type : %d\n", this->audio_type);
+
+  return 0;
+
+  /* return this->audio_type & 0xFFFF; */
+}
+
+void xine_select_audio_channel (xine_t *this, int channel) {
+
+  pthread_mutex_lock (&this->xine_lock);
+
+  if (channel < -1)
+    channel = -1;
+
+  this->audio_channel = channel;
+
+  pthread_mutex_unlock (&this->xine_lock);
+}
+
+int xine_get_audio_selection (xine_t *this) {
+
+
+  return this->audio_channel;
+}

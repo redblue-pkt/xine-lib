@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.15 2001/10/18 14:42:59 richwareham Exp $
+ * $Id: xine_decoder.c,v 1.16 2001/10/20 02:01:51 guenter Exp $
  *
  * stuff needed to turn libspu into a xine decoder plugin
  */
@@ -68,6 +68,8 @@ static clut_t __default_clut[] = {
 typedef struct spudec_decoder_s {
   spu_decoder_t    spu_decoder;
   ovl_src_t        ovl_src;
+
+  xine_t          *xine;
 
   spu_seq_t	   seq_list[NUM_SEQ_BUFFERS];
   spu_seq_t       *cur_seq;
@@ -223,15 +225,16 @@ static vo_overlay_t* spudec_get_overlay(ovl_src_t *ovl_src, int pts) {
   return NULL;
 }
 
-static void spudec_event(spu_decoder_t *this_gen, spu_event_t *event) {
-  spudec_decoder_t *this = (spudec_decoder_t*) this_gen;
+static void spudec_event_listener (void *this_gen, xine_event_t *event_gen) {
+  spudec_decoder_t *this  = (spudec_decoder_t *) this_gen;
+  xine_spu_event_t *event = (xine_spu_event_t *) event_gen;
 
   if((!this) || (!event)) {
     return;
   }
   
-  switch (event->sub_type) {
-  case SPU_EVENT_BUTTON:
+  switch (event->event.type) {
+  case XINE_EVENT_SPU_BUTTON:
     {
       spu_button_t *but = event->data;
       if (!this->state.menu) return;
@@ -253,18 +256,22 @@ static void spudec_event(spu_decoder_t *this_gen, spu_event_t *event) {
       spuUpdateMenu(&this->state, &this->ovl);
     }
     break;
-  case SPU_EVENT_CLUT:
+  case XINE_EVENT_SPU_CLUT:
     {
       spu_cltbl_t *clut = event->data;
-      memcpy(this->state.clut, clut->clut, sizeof(int32_t)*16);
-      this->state.need_clut = 0;
+      if (clut){
+	memcpy(this->state.clut, clut->clut, sizeof(int32_t)*16);
+	this->state.need_clut = 0;
+      }
     }
     break;
+    /* FIXME
   case XINE_UI_GET_SPU_LANG:
     {
       this->state.need_clut = 1;
     }
     break;
+    */
   }
 }
 
@@ -272,11 +279,11 @@ static char *spudec_get_id(void) {
   return "spudec";
 }
 
-spu_decoder_t *init_spu_decoder_plugin (int iface_version, config_values_t *cfg) {
+spu_decoder_t *init_spu_decoder_plugin (int iface_version, xine_t *xine) {
 
   spudec_decoder_t *this ;
 
-  if (iface_version != 3) {
+  if (iface_version != 4) {
     fprintf(stderr,
      "libspudec: Doesn't support plugin API version %d.\n"
      "libspudec: This means there is a version mismatch between XINE and\n"
@@ -287,17 +294,19 @@ spu_decoder_t *init_spu_decoder_plugin (int iface_version, config_values_t *cfg)
   this = (spudec_decoder_t *) malloc (sizeof (spudec_decoder_t));
   memset (this, 0, sizeof(*this));
 
-  this->spu_decoder.interface_version   = 3;
+  this->spu_decoder.interface_version   = 4;
   this->spu_decoder.can_handle          = spudec_can_handle;
   this->spu_decoder.init                = spudec_init;
   this->spu_decoder.decode_data         = spudec_decode_data;
-  this->spu_decoder.event               = spudec_event;
   this->spu_decoder.close               = spudec_close;
   this->spu_decoder.get_identifier      = spudec_get_id;
   this->spu_decoder.priority            = 1;
 
   this->ovl_src.src_gen                 = this;
   this->ovl_src.get_overlay             = spudec_get_overlay;
+  this->xine                            = xine;
+
+  xine_register_event_listener(xine, spudec_event_listener, this);
   
   return (spu_decoder_t *) this;
 }

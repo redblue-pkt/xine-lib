@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.55 2001/10/18 14:29:44 jkeil Exp $
+ * $Id: demux_mpeg_block.c,v 1.56 2001/10/20 02:01:51 guenter Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -46,6 +46,8 @@ static uint32_t xine_debug;
 typedef struct demux_mpeg_block_s {
   demux_plugin_t        demux_plugin;
 
+  xine_t               *xine;
+
   fifo_buffer_t        *audio_fifo;
   fifo_buffer_t        *video_fifo;
 
@@ -60,9 +62,6 @@ typedef struct demux_mpeg_block_s {
 
   int                   send_end_buffers;
   int                   warned; /* encryption warning */
-
-  gui_get_next_mrl_cb_t next_mrl_cb;
-  gui_branched_cb_t     branched_cb;
 
   char                  cur_mrl[256];
 
@@ -84,7 +83,7 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
   buf = this->input->read_block (this->input, this->video_fifo, this->blocksize);
 
   if (buf==NULL) {
-    char *next_mrl;
+    xine_next_mrl_event_t event;
 
     printf ("demux_mpeg_block: read_block failed\n");
 
@@ -92,8 +91,14 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
      * check if seamless branching is possible
      */
 
-    if (this->next_mrl_cb 
-	&& (next_mrl = this->next_mrl_cb () )) {
+    event.event.type = XINE_EVENT_NEED_NEXT_MRL;
+    event.handled = 0;
+    xine_send_event (this->xine, &event.event);
+
+    if (event.handled) {
+
+      char *next_mrl = event.mrl;
+      
       printf ("demux_mpeg_block: checking if we can branch to %s\n", next_mrl);
 
       if (this->input->is_branch_possible 
@@ -103,10 +108,10 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
 
 	this->input->close (this->input);
         this->input->open (this->input, next_mrl);
-	
-	if (this->branched_cb)
-	  this->branched_cb ();
 
+	event.event.type = XINE_EVENT_BRANCHED;
+	xine_send_event (this->xine, &event.event);
+	
 	buf = this->input->read_block (this->input, this->video_fifo, this->blocksize);
 	if (!buf) {
 	  this->status = DEMUX_FINISHED;
@@ -711,10 +716,7 @@ static int demux_mpeg_block_get_status (demux_plugin_t *this_gen) {
 static void demux_mpeg_block_start (demux_plugin_t *this_gen,
 				    fifo_buffer_t *video_fifo,
 				    fifo_buffer_t *audio_fifo,
-				    off_t start_pos, int start_time,
-				    gui_get_next_mrl_cb_t next_mrl_cb,
-				    gui_branched_cb_t branched_cb) 
-{
+				    off_t start_pos, int start_time) {
 
   demux_mpeg_block_t *this = (demux_mpeg_block_t *) this_gen;
   buf_element_t *buf;
@@ -722,8 +724,6 @@ static void demux_mpeg_block_start (demux_plugin_t *this_gen,
 
   this->video_fifo  = video_fifo;
   this->audio_fifo  = audio_fifo;
-  this->next_mrl_cb = next_mrl_cb;
-  this->branched_cb = branched_cb;
 
   /* 
    * send start buffer
@@ -947,15 +947,16 @@ demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
   demux_mpeg_block_t *this;
   config_values_t    *config;
 
-  if (iface != 4) {
-    printf( "demux_mpeg: plugin doesn't support plugin API version %d.\n"
-	    "demux_mpeg: this means there's a version mismatch between xine and this "
-	    "demux_mpeg: demuxer plugin.\nInstalling current demux plugins should help.\n",
+  if (iface != 5) {
+    printf( "demux_mpeg_block: plugin doesn't support plugin API version %d.\n"
+	    "demux_mpeg_block: this means there's a version mismatch between xine and this "
+	    "demux_mpeg_block: demuxer plugin.\nInstalling current demux plugins should help.\n",
 	    iface);
     return NULL;
   }
 
   this        = xmalloc (sizeof (demux_mpeg_block_t));
+  this->xine  = xine;
   config      = xine->config;
   xine_debug  = config->lookup_int (config, "xine_debug", 0);
 

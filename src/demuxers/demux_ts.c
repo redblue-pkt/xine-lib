@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ts.c,v 1.18 2001/10/17 20:33:09 guenter Exp $
+ * $Id: demux_ts.c,v 1.19 2001/10/20 02:01:51 guenter Exp $
  *
  * Demultiplexer for MPEG2 Transport Streams.
  *
@@ -877,9 +877,7 @@ static int demux_ts_open(demux_plugin_t *this_gen, input_plugin_t *input,
 static void demux_ts_start(demux_plugin_t *this_gen, 
 			   fifo_buffer_t *fifoVideo,
 			   fifo_buffer_t *fifoAudio,
-			   off_t start_pos, int start_time,
-			   gui_get_next_mrl_cb_t next_mrl_cb,
-			   gui_branched_cb_t branched_cb) {
+			   off_t start_pos, int start_time) {
 
   demux_ts *this = (demux_ts *)this_gen;
   buf_element_t *buf;
@@ -973,7 +971,7 @@ demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
   config_values_t *config;
   int              i;
   
-  if (iface != 4) {
+  if (iface != 5) {
     printf("demux_ts: plugin doesn't support plugin API version %d.\n"
 	   "demux_ts: this means there's a version mismatch between xine and this "
 	   "demux_ts: demuxer plugin.\nInstalling current demux plugins should help.\n",

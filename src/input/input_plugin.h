@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_plugin.h,v 1.14 2001/10/18 23:46:40 guenter Exp $
+ * $Id: input_plugin.h,v 1.15 2001/10/20 02:01:51 guenter Exp $
  */
 
 #ifndef HAVE_INPUT_PLUGIN_H
@@ -33,7 +33,7 @@ extern "C" {
 #include "buffer.h"
 #include "configfile.h"
 
-#define INPUT_PLUGIN_IFACE_VERSION   4
+#define INPUT_PLUGIN_IFACE_VERSION   5
  
 /*
  * Return pointer of allocate/cleaned memory size *size*.
@@ -267,16 +267,9 @@ struct input_plugin_s
 
 
   /*
-   * Request optional datas from input plugin.
+   * request optional data from input plugin.
    */
   int (*get_optional_data) (input_plugin_t *this, void *data, int data_type);
-
-  /*
-   * deliver an input event (mouse press/move, keypress)
-   * optional: may be NULL
-   */
-  void (*handle_input_event) (input_plugin_t *this, int event_type, int key,
-			      int x, int y);
 
   /*
    * check if it is possible/valid to directly branch to this MRL
@@ -297,6 +290,7 @@ struct input_plugin_s
 #define INPUT_CAP_BROWSABLE   0x00000010
 #define INPUT_CAP_CLUT        0x00000020
 #define INPUT_CAP_AUDIOLANG   0x00000040
+#define INPUT_CAP_SPULANG     0x00000080
 
 
 #define INPUT_OPTIONAL_UNSUPPORTED    0
@@ -304,17 +298,7 @@ struct input_plugin_s
 
 #define INPUT_OPTIONAL_DATA_CLUT      1
 #define INPUT_OPTIONAL_DATA_AUDIOLANG 2
-
-#define INPUT_EVENT_MOUSEBUTTON 1
-#define INPUT_EVENT_KEYPRESS    2
-#define INPUT_EVENT_MOUSEMOVE   3
-#define INPUT_EVENT_UP          4
-#define INPUT_EVENT_DOWN        5
-#define INPUT_EVENT_LEFT        6
-#define INPUT_EVENT_RIGHT       7
-#define INPUT_EVENT_MENU1       8
-#define INPUT_EVENT_MENU2       9
-#define INPUT_EVENT_MENU3       10
+#define INPUT_OPTIONAL_DATA_SPULANG   3
 
 /*
  * each input plugin _must_ implement this function:

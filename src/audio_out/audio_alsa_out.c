@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.31 2001/10/14 17:47:45 guenter Exp $
+ * $Id: audio_alsa_out.c,v 1.32 2001/10/20 02:01:51 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -122,26 +122,26 @@ static snd_output_t *jcd_out;
 
 static int ao_alsa_get_percent_from_volume(long val, long min, long max)
 {
-        int range = max - min;
-        int tmp;
-
-        if (range == 0)
-                return 0;
-        val -= min;
-        tmp = rint((double)val / (double)range * 100);
-        return tmp;
+  int range = max - min;
+  int tmp;
+  
+  if (range == 0)
+    return 0;
+  val -= min;
+  tmp = rint((double)val / (double)range * 100);
+  return tmp;
 }
 
 static long ao_alsa_get_volume_from_percent(int val, long min, long max)
 {
-        int range = max - min;
-        long tmp;
-
-        if (range == 0)
-                return 0;
-        val -= min;
-        tmp = (long) ((range * val) / 100);
-        return tmp;
+  int range = max - min;
+  long tmp;
+  
+  if (range == 0)
+    return 0;
+  val -= min;
+  tmp = (long) ((range * val) / 100);
+  return tmp;
 }
 
 
@@ -198,7 +198,7 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
     pcm_device = this->audio_a52_device;
     break;
   default:
-    error ("ALSA Driver does not support the requested mode: 0x%X",mode);
+    printf ("audio_alsa_out: ALSA Driver does not support the requested mode: 0x%X\n",mode);
     return 0;
   } 
 
@@ -222,8 +222,8 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
 
   err=snd_pcm_open(&this->audio_fd, pcm_device, direction, open_mode);      
   if(err <0 ) {                                                           
-    error("snd_pcm_open() failed: %s", snd_strerror(err));               
-    error(">>> Check if another program don't already use PCM <<<");     
+    printf ("audio_alsa_out: snd_pcm_open() failed: %s\n", snd_strerror(err));               
+    printf ("audio_alsa_out: >>> check if another program don't already use PCM <<<\n");     
     return 0;
   }
 
@@ -234,8 +234,9 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
       fprintf(stderr, "info: %s\n", snd_strerror(err));
       goto __close;
     }
-    printf("device: %d, subdevice: %d\n", snd_pcm_info_get_device(info),
-      snd_pcm_info_get_subdevice(info));
+    printf ("audio_alsa_out: device: %d, subdevice: %d\n", 
+	    snd_pcm_info_get_device(info),
+	    snd_pcm_info_get_subdevice(info));
 
     spdif.status[0] = IEC958_AES0_NONAUDIO |
                       IEC958_AES0_CON_EMPHASIS_NONE;
@@ -252,18 +253,19 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
     snd_ctl_elem_value_set_iec958(ctl, &spdif);
     ctl_card = snd_pcm_info_get_card(info);
     if (ctl_card < 0) {
-      fprintf(stderr, "Unable to setup the IEC958 (S/PDIF) interface - PCM has no assigned card");
+      printf ("audio_alsa_out: unable to setup the IEC958 (S/PDIF) interface - PCM has no assigned card");
       goto __close;
     }
     sprintf(ctl_name, "hw:%d", ctl_card);
     printf("hw:%d\n", ctl_card);
     if ((err = snd_ctl_open(&ctl_handle, ctl_name, 0)) < 0) {
-      fprintf(stderr, "Unable to open the control interface '%s':
-                       %s", ctl_name, snd_strerror(err));
+      printf ("audio_alsa_out: unable to open the control interface '%s':%s", 
+	      ctl_name, snd_strerror(err));
       goto __close;
     }
     if ((err = snd_ctl_elem_write(ctl_handle, ctl)) < 0) {
-      fprintf(stderr, "Unable to update the IEC958 control: %s", snd_strerror(err));
+      printf ("audio_alsa_out: unable to update the IEC958 control: %s", 
+	      snd_strerror(err));
       goto __close;
     }
     snd_ctl_close(ctl_handle);
@@ -276,35 +278,35 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
    */
   err = snd_pcm_hw_params_any(this->audio_fd, params);
   if (err < 0) {
-    error("Broken configuration for this PCM: no configurations available");
+    printf ("audio_alsa_out: broken configuration for this PCM: no configurations available\n");
     goto __close;
   }
   /* set interleaved access */
   err = snd_pcm_hw_params_set_access(this->audio_fd, params,
                                      SND_PCM_ACCESS_RW_INTERLEAVED);
   if (err < 0) {
-    error("Access type not available");
+    printf ("audio_alsa_out: access type not available\n");
     goto __close;
   }
   err = snd_pcm_hw_params_set_format(this->audio_fd, params, bits == 16 ? SND_PCM_FORMAT_S16_LE : SND_PCM_FORMAT_U8);
   if (err < 0) {
-    error("Sample format non available");
+    printf ("audio_alsa_out: sample format non available\n");
     goto __close;
   }
   err = snd_pcm_hw_params_set_channels(this->audio_fd, params, this->num_channels);
   if (err < 0) {
-    error("Channels count non available");
+    printf ("audio_alsa_out: channels count non available\n");
     goto __close;
   }
   err = snd_pcm_hw_params_set_rate_near(this->audio_fd, params, rate, 0);
     if (err < 0) {
-      error("Rate not available");
+      printf ("audio_alsa_out: rate not available\n");
       goto __close;
     }
   buffer_time = snd_pcm_hw_params_set_buffer_time_near(this->audio_fd, params,
                                                        500000, 0);
   if (buffer_time < 0) {
-    error("Buffer time not available");
+    printf ("audio_alsa_out: buffer time not available\n");
     goto __close;
   }
   step = 2;
@@ -321,16 +323,16 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
         period_time = 10000 * 2;
     }
     if (period_time < 0) {
-      fprintf(stderr, "Period time not available");
+      printf ("audio_alsa_out: period time not available");
       goto __close;
     }
   } while (buffer_time == period_time && period_time > 10000);
   if (buffer_time == period_time) {
-    error("Buffer time and period time match, could not use");
+    printf ("audio_alsa_out: buffer time and period time match, could not use\n");
     goto __close;
   }
   if ((err = snd_pcm_hw_params(this->audio_fd, params)) < 0) {
-    error("PCM hw_params failed: %s", snd_strerror(err));
+    printf ("audio_alsa_out: pcm hw_params failed: %s\n", snd_strerror(err));
     goto __close;
   }
   this->output_sample_rate = this->input_sample_rate;
@@ -393,7 +395,7 @@ void xrun(alsa_driver_t *this)
 
   snd_pcm_status_alloca(&status);
   if ((res = snd_pcm_status(this->audio_fd, status))<0) {
-    printf("status error: %s", snd_strerror(res));
+    printf ("audio_alsa_out: status error: %s\n", snd_strerror(res));
     return;
   }
   if (snd_pcm_status_get_state(status) == SND_PCM_STATE_XRUN) {
@@ -401,9 +403,9 @@ void xrun(alsa_driver_t *this)
     gettimeofday(&now, 0);
     snd_pcm_status_get_trigger_tstamp(status, &tstamp);
     timersub(&now, &tstamp, &diff);
-    fprintf(stderr, "xrun!!! (at least %.3f ms long)\n", diff.tv_sec * 1000 + diff.tv_usec / 1000.0);
+    printf ("audio_alsa_out: xrun!!! (at least %.3f ms long)\n", diff.tv_sec * 1000 + diff.tv_usec / 1000.0);
     if ((res = snd_pcm_prepare(this->audio_fd))<0) {
-      printf("xrun: prepare error: %s", snd_strerror(res));
+      printf ("audio_alsa_out: xrun: prepare error: %s", snd_strerror(res));
       return;
     }
     return;         /* ok, data should be accepted again */
@@ -471,13 +473,13 @@ static int ao_alsa_get_property (ao_driver_t *this_gen, int property) {
     if(this->mixer.elem) {
       if((err = snd_mixer_selem_get_playback_volume(this->mixer.elem, SND_MIXER_SCHN_FRONT_LEFT,
 						    &this->mixer.left_vol)) < 0) {
-	printf("snd_mixer_selem_get_playback_volume(): %s\n",  snd_strerror(err));
+	printf("audio_alsa_out: snd_mixer_selem_get_playback_volume(): %s\n",  snd_strerror(err));
 	goto __done;
       }
       
       if((err = snd_mixer_selem_get_playback_volume(this->mixer.elem, SND_MIXER_SCHN_FRONT_RIGHT,
 						    &this->mixer.right_vol)) < 0) {
-	printf("snd_mixer_selem_get_playback_volume(): %s\n",  snd_strerror(err));
+	printf("audio_alsa_out: snd_mixer_selem_get_playback_volume(): %s\n",  snd_strerror(err));
 	goto __done;
       }
       
@@ -513,13 +515,13 @@ static int ao_alsa_set_property (ao_driver_t *this_gen, int property, int value)
       
       if((err = snd_mixer_selem_set_playback_volume(this->mixer.elem, SND_MIXER_SCHN_FRONT_LEFT,
 						    this->mixer.left_vol)) < 0) {
-	printf("snd_mixer_selem_get_playback_volume(): %s\n",  snd_strerror(err));
+	printf("audio_alsa_out: snd_mixer_selem_get_playback_volume(): %s\n",  snd_strerror(err));
 	return ~value;
       }
 
       if((err = snd_mixer_selem_set_playback_volume(this->mixer.elem, SND_MIXER_SCHN_FRONT_RIGHT,
 						    this->mixer.right_vol)) < 0) {
-	printf("snd_mixer_selem_get_playback_volume(): %s\n",  snd_strerror(err));
+	printf("audio_alsa_out: snd_mixer_selem_get_playback_volume(): %s\n",  snd_strerror(err));
 	return ~value;
       }
 
@@ -579,12 +581,12 @@ static void ao_alsa_mixer_init(ao_driver_t *this_gen) {
   snd_ctl_card_info_alloca(&hw_info);
   
   if ((err = snd_ctl_open (&ctl_handle, this->audio_default_device, 0)) < 0) {
-    printf("snd_ctl_open(): %s\n", snd_strerror(err));
+    printf ("audio_alsa_out: snd_ctl_open(): %s\n", snd_strerror(err));
     return;
   }
   
   if ((err = snd_ctl_card_info (ctl_handle, hw_info)) < 0) {
-    printf("snd_ctl_card_info(): %s\n", snd_strerror(err));
+    printf ("audio_alsa_out: snd_ctl_card_info(): %s\n", snd_strerror(err));
     snd_ctl_close(ctl_handle);
     return;
   }
@@ -595,18 +597,18 @@ static void ao_alsa_mixer_init(ao_driver_t *this_gen) {
    * Open mixer device
    */
   if ((err = snd_mixer_open (&this->mixer.handle, 0)) < 0) {
-    printf("snd_mixer_open(): %s\n", snd_strerror(err));
+    printf ("audio_alsa_out: snd_mixer_open(): %s\n", snd_strerror(err));
     return;
   }
   
   if ((err = snd_mixer_attach (this->mixer.handle, this->audio_default_device)) < 0) {
-    printf("snd_mixer_attach(): %s\n", snd_strerror(err));
+    printf ("audio_alsa_out: snd_mixer_attach(): %s\n", snd_strerror(err));
     snd_mixer_close(this->mixer.handle);
     return;
   }
   
   if ((err = snd_mixer_selem_register (this->mixer.handle, NULL, NULL)) < 0) {
-    printf("snd_mixer_selem_register(): %s\n", snd_strerror(err));
+    printf ("audio_alsa_out: snd_mixer_selem_register(): %s\n", snd_strerror(err));
     snd_mixer_close(this->mixer.handle);
     return;
   }
@@ -614,14 +616,14 @@ static void ao_alsa_mixer_init(ao_driver_t *this_gen) {
   //    snd_mixer_set_callback (mixer_handle, mixer_event);
   
   if ((err = snd_mixer_load (this->mixer.handle)) < 0) {
-    printf("snd_mixer_load(): %s\n", snd_strerror(err));
+    printf ("audio_alsa_out: snd_mixer_load(): %s\n", snd_strerror(err));
     snd_mixer_close(this->mixer.handle);
     return;
   }
   
   mixer_sid = alloca(snd_mixer_selem_id_sizeof() * snd_mixer_get_count(this->mixer.handle));
   if (mixer_sid == NULL) {
-    printf("alloca() failed: %s\n", strerror(errno));
+    printf ("audio_alsa_out: alloca() failed: %s\n", strerror(errno));
     snd_mixer_close(this->mixer.handle);
     return;
   }
@@ -649,14 +651,14 @@ static void ao_alsa_mixer_init(ao_driver_t *this_gen) {
 						&this->mixer.min, &this->mixer.max);
       if((err = snd_mixer_selem_get_playback_volume(this->mixer.elem, SND_MIXER_SCHN_FRONT_LEFT,
 						    &this->mixer.left_vol)) < 0) {
-	printf("snd_mixer_selem_get_playback_volume(): %s\n",  snd_strerror(err));
+	printf("audio_alsa_out: snd_mixer_selem_get_playback_volume(): %s\n",  snd_strerror(err));
 	snd_mixer_close(this->mixer.handle);
 	return;
       }
       
       if((err = snd_mixer_selem_get_playback_volume(this->mixer.elem, SND_MIXER_SCHN_FRONT_RIGHT,
 						    &this->mixer.right_vol)) < 0) {
-	printf("snd_mixer_selem_get_playback_volume(): %s\n",  snd_strerror(err));
+	printf ("audio_alsa_out: snd_mixer_selem_get_playback_volume(): %s\n",  snd_strerror(err));
 	snd_mixer_close(this->mixer.handle);
 	return;
       }
@@ -766,13 +768,13 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
    */
   err = snd_pcm_hw_params_any(this->audio_fd, params);
   if (err < 0) {
-    error("Broken configuration for this PCM: no configurations available");
+    printf ("audio_alsa_out: broken configuration for this PCM: no configurations available\n");
     return NULL;
   }
   err = snd_pcm_hw_params_set_access(this->audio_fd, params,
                                      SND_PCM_ACCESS_RW_INTERLEAVED);
   if (err < 0) {
-    error("Access type not available");
+    printf ("audio_alsa_out: access type not available");
     return NULL;
   }
   this->capabilities = 0;
@@ -797,7 +799,7 @@ ao_driver_t *init_audio_out_plugin (config_values_t *config) {
     this->capabilities |= AO_CAP_MODE_A52;
     this->capabilities |= AO_CAP_MODE_AC5;
   }
-  printf("audio_alsa_out: Capabilities 0x%X\n",this->capabilities);
+  printf("audio_alsa_out: capabilities 0x%X\n",this->capabilities);
 
   this->config                        = config;
 

@@ -362,6 +362,7 @@ void mpeg2_close (mpeg2dec_t * mpeg2dec)
     }
     */
 
+    /*
     if (picture->forward_reference_frame) {
       printf ("libmpeg2: blasting out forward reference frame on close\n");
       picture->forward_reference_frame->PTS = 0;
@@ -369,7 +370,7 @@ void mpeg2_close (mpeg2dec_t * mpeg2dec)
       picture->forward_reference_frame->draw (picture->forward_reference_frame); 
       picture->forward_reference_frame->free (picture->forward_reference_frame);
     }
-
+    */
     if (picture->throwaway_frame) {
       printf ("libmpeg2: blasting out throwaway frame on close\n");
       picture->throwaway_frame->PTS = 0;

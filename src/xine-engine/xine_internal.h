@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.50 2001/10/18 18:50:53 guenter Exp $
+ * $Id: xine_internal.h,v 1.51 2001/10/20 02:01:51 guenter Exp $
  *
  */
 
@@ -120,9 +120,6 @@ struct audio_decoder_s {
  *
  */
 
-/* called when xine has finished a stream (_not_ if xine was stopped/paused) */
-typedef void (*gui_stream_end_cb_t)(int nStatus);
-
 /*
  * player status constants:
  */
@@ -133,7 +130,7 @@ typedef void (*gui_stream_end_cb_t)(int nStatus);
 
 typedef struct xine_s xine_t;
 
-typedef void (*event_listener_t) (xine_t *, event_t *, void *);
+typedef void (*xine_event_listener_t) (void *user_data, xine_event_t *);
 
 struct xine_s {
   
@@ -166,6 +163,7 @@ struct xine_s {
   int                        spu_finished;
 
   int                        audio_channel;
+  int                        audio_channel_suggested;
   int                        spu_channel;
 
   vo_instance_t             *video_out;
@@ -186,10 +184,7 @@ struct xine_s {
   int                        audio_track_map_entries;
   int                        audio_finished;
   int                        audio_mute;
-
-  gui_stream_end_cb_t        stream_end_cb;
-  gui_get_next_mrl_cb_t      get_next_mrl_cb;
-  gui_branched_cb_t          branched_cb;
+  uint32_t                   audio_type;
 
   /* Lock for xine player functions */
   pthread_mutex_t            xine_lock;
@@ -198,9 +193,9 @@ struct xine_s {
   pthread_mutex_t            finished_lock;
 
   /* Array of event handlers. */
-  event_listener_t           event_listeners[XINE_MAX_EVENT_LISTENERS];
+  xine_event_listener_t      event_listeners[XINE_MAX_EVENT_LISTENERS];
+  void                      *event_listener_user_data[XINE_MAX_EVENT_LISTENERS];
   uint16_t                   num_event_listeners;
-
 };
 
 /*
@@ -211,15 +206,11 @@ config_values_t *config_file_init (char *filename);
 
 /*
  * init xine - call once at startup
- *
  */
 
 xine_t *xine_init (vo_driver_t *vo, 
 		   ao_driver_t *ao,
-		   config_values_t *config,
-		   gui_stream_end_cb_t stream_end_cb,
-		   gui_get_next_mrl_cb_t get_next_mrl_cb,
-		   gui_branched_cb_t branched_cb);
+		   config_values_t *config);
 
 /*
  * open a stream sekk to a given position and play it
@@ -292,12 +283,22 @@ int xine_get_current_time (xine_t *this);
 int xine_get_stream_length (xine_t *this);
 
 /*
- * return the current audio channel
+ * return the current physical audio channel
  */
 int xine_get_audio_channel (xine_t *this);
 
 /*
- * set desired audio channel
+ * return the current logical audio channel
+ */
+int xine_get_audio_selection (xine_t *this);
+
+/*
+ * try to find out current audio language
+ */
+void xine_get_audio_lang (xine_t *this, char *str);
+
+/*
+ * set desired logical audio channel (-1 => auto)
  */
 void xine_select_audio_channel (xine_t *this, int channel);
 
@@ -310,6 +311,11 @@ int xine_get_spu_channel (xine_t *this);
  * set desired SPU channel
  */
 void xine_select_spu_channel (xine_t *this, int channel);
+
+/*
+ * try to find out current spu language
+ */
+void xine_get_spu_lang (xine_t *this, char *str);
 
 /*
  * exit xine
@@ -495,20 +501,21 @@ ao_driver_t *xine_load_audio_output_plugin(config_values_t *config, char *id);
  * returns 0 if the listener was registerd, non-zero if it could not.
  */
 
-int xine_register_event_listener(xine_t *this, event_listener_t listener);
+int xine_register_event_listener(xine_t *this, xine_event_listener_t listener,
+				 void *user_data);
 
 /*
  * attempt to remove a registered event listener.
  * returns 0 if the listener was removed, non-zero if not (e.g. not found).
  */
 
-int xine_remove_event_listener(xine_t *this, event_listener_t listener);
+int xine_remove_event_listener(xine_t *this, xine_event_listener_t listener);
 
 /*
  * send an event to all listeners.
  */
 
-void xine_send_event(xine_t *this, event_t *event, void *data);
+void xine_send_event(xine_t *this, xine_event_t *event);
 
 /*
  * snapshot function

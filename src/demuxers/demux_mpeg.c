@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg.c,v 1.37 2001/10/17 20:33:09 guenter Exp $
+ * $Id: demux_mpeg.c,v 1.38 2001/10/20 02:01:51 guenter Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  * reads streams of variable blocksizes
@@ -660,10 +660,8 @@ static int demux_mpeg_get_status (demux_plugin_t *this_gen) {
 static void demux_mpeg_start (demux_plugin_t *this_gen,
 			      fifo_buffer_t *video_fifo,
 			      fifo_buffer_t *audio_fifo,
-			      off_t start_pos, int start_time,
-			      gui_get_next_mrl_cb_t next_mrl_cb,
-			      gui_branched_cb_t branched_cb) 
-{
+			      off_t start_pos, int start_time) {
+
   demux_mpeg_t *this = (demux_mpeg_t *) this_gen;
   buf_element_t *buf;
   int err;
@@ -852,7 +850,7 @@ demux_plugin_t *init_demuxer_plugin(int iface, xine_t *xine) {
   demux_mpeg_t    *this;
   config_values_t *config;
 
-  if (iface != 4) {
+  if (iface != 5) {
     printf( "demux_mpeg: plugin doesn't support plugin API version %d.\n"
 	    "demux_mpeg: this means there's a version mismatch between xine and this "
 	    "demux_mpeg: demuxer plugin.\nInstalling current demux plugins should help.\n",

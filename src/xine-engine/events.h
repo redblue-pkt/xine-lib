@@ -30,85 +30,76 @@ extern "C" {
 
 #include <inttypes.h>
 
-/**
- * This file defines types for many events which can be sent in Xine.
+/*
+ * This file defines types for many events which can be sent in xine.
  */
 
-/**
- * Generic Event type.
+/* event types */
+
+#define XINE_EVENT_MOUSE_BUTTON          1
+#define XINE_EVENT_MOUSE_MOVE            2
+#define XINE_EVENT_SPU_BUTTON            3
+#define XINE_EVENT_SPU_CLUT              4
+#define XINE_EVENT_UI_CHANNELS_CHANGED   5 /* inform ui that new channel info is available */
+#define XINE_EVENT_UI_SET_TITLE          6 /* request title display change in ui */
+#define XINE_EVENT_INPUT_MENU1           7
+#define XINE_EVENT_INPUT_MENU2           8
+#define XINE_EVENT_INPUT_MENU3           9
+#define XINE_EVENT_INPUT_UP             10
+#define XINE_EVENT_INPUT_DOWN           11
+#define XINE_EVENT_INPUT_LEFT           12
+#define XINE_EVENT_INPUT_RIGHT          13
+#define XINE_EVENT_INPUT_SELECT         14
+#define XINE_EVENT_PLAYBACK_FINISHED    15
+#define XINE_EVENT_BRANCHED             16
+#define XINE_EVENT_NEED_NEXT_MRL        17 
+
+/*
+ * generic event type.
  */
 typedef struct {
   uint32_t type;  /* The event type (determines remainder of struct) */
 
   /* Event dependent data goes after this. */
-} event_t;
+} xine_event_t;
 
-/**
- * Mouse event.
+/*
+ * input events
  */
-#define XINE_MOUSE_EVENT 0x0001
 typedef struct {
-  event_t event;
-  uint8_t button; /* Generally 1 = left, 2 = mid, 3 = right */
-  uint16_t x,y;   /* In Image space */
-} mouse_event_t;
+  xine_event_t     event;
+  uint8_t          button; /* Generally 1 = left, 2 = mid, 3 = right */
+  uint16_t         x,y;    /* In Image space */
+} xine_input_event_t;
 
-/**
- * Overlay event - used for plugins/UIs to request that a specific overlay be
- * displayed.
- */
-#define XINE_OVERLAY_EVENT 0x0002
-typedef struct overlay_event_s {
-  event_t event;
-  vo_overlay_t overlay;
-} overlay_event_t;
-
-/**
+/*
  * SPU event - send control events to the spu decoder
  */
-#define XINE_SPU_EVENT 0x0003
-typedef struct spu_event_s {
-  event_t event;
-  int sub_type;
-  void *data;
-} spu_event_t;
+typedef struct {
+  xine_event_t     event;
+  void            *data;
+} xine_spu_event_t;
 
-/**
+/*
  * UI event - send information to/from UI.
  */
-#define XINE_UI_EVENT 0x0004
-typedef struct ui_event_s {
-  event_t event;
-  int sub_type;
-  void *data;
-  uint32_t data_len;
-  int handled;
-} ui_event_t;
 
-/* UI sub-types */
+typedef struct {
+  xine_event_t     event;
+  void            *data;
+  uint32_t         data_len;
+  int              handled;
+} xine_ui_event_t;
 
-/* Warn Xine UI that spu/audio stream has changed and to 
- * update accordingly, data is unused. */
-#define XINE_UI_UPDATE_CHANNEL  0x0001
-/* UI asks for conversion of spu stream number into language.
- * if the listener can do it, it sets handled to 1 and writes
- * the string into data. data_len is how big this buffer is*/
-#define XINE_UI_GET_SPU_LANG 0x0002
-/* As above but for audio streams */
-#define XINE_UI_GET_AUDIO_LANG 0x0003
-/* Change the title label to the contents of the NULL-terminated
- * array of chars pointed to by data.
+/*
+ * next_mrl
  */
-#define XINE_UI_SET_TITLE 0x0004
+typedef struct {
+  xine_event_t     event;
+  char            *mrl;
+  int              handled;
+} xine_next_mrl_event_t;
 
-/* EOF UI sub-types */
-
-/**
- * MENU events
- */
-#define XINE_MENU1_EVENT 0x0005
-#define XINE_MENU2_EVENT 0x0006
-#define XINE_MENU3_EVENT 0x0007
 
 #ifdef __cplusplus
 }

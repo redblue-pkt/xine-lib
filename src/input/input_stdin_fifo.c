@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_stdin_fifo.c,v 1.14 2001/10/17 20:33:09 guenter Exp $
+ * $Id: input_stdin_fifo.c,v 1.15 2001/10/20 02:01:51 guenter Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -256,7 +256,7 @@ input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
   stdin_input_plugin_t *this;
   config_values_t      *config;
 
-  if (iface != 4) {
+  if (iface != 5) {
     printf("rtp input plugin doesn't support plugin API version %d.\n"
 	   "PLUGIN DISABLED.\n"
 	   "This means there's a version mismatch between xine and this input"
@@ -287,7 +287,6 @@ input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
   this->input_plugin.get_identifier    = stdin_plugin_get_identifier;
   this->input_plugin.get_autoplay_list = NULL;
   this->input_plugin.get_optional_data = stdin_plugin_get_optional_data;
-  this->input_plugin.handle_input_event= NULL;
   this->input_plugin.is_branch_possible= NULL;
 
   this->fh      = -1;

@@ -29,7 +29,7 @@
  *
  * for a dynamic plugin make sure you provide this function call:
  * spu_decoder_t *init_spu_decoder_plugin (int iface_version,
- *                                             config_values_t *cfg);
+ *                                         xine_t *xine);
  */
 
 typedef struct spu_decoder_s spu_decoder_t;
@@ -44,8 +44,6 @@ struct spu_decoder_s {
 
   void (*decode_data) (spu_decoder_t *this, buf_element_t *buf);
 
-  void (*event) (spu_decoder_t *this, spu_event_t *event);
-
   void (*close) (spu_decoder_t *this);
 
   char* (*get_identifier) (void);
@@ -56,7 +54,6 @@ struct spu_decoder_s {
 
 };
 
-#define SPU_EVENT_BUTTON 0x100
 typedef struct spu_button_s spu_button_t;
 struct spu_button_s {
   int show;
@@ -66,7 +63,6 @@ struct spu_button_s {
   int top, bottom;
 };
 
-#define SPU_EVENT_CLUT 0x101
 typedef struct spu_cltbl_s spu_cltbl_t;
 struct spu_cltbl_s {
   uint32_t clut[16];

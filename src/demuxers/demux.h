@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux.h,v 1.10 2001/10/17 20:33:09 guenter Exp $
+ * $Id: demux.h,v 1.11 2001/10/20 02:01:51 guenter Exp $
  */
 
 #ifndef HAVE_DEMUX_H
@@ -35,7 +35,7 @@ extern "C" {
 #include "input_plugin.h"
 #endif
 
-#define DEMUXER_PLUGIN_IFACE_VERSION    4
+#define DEMUXER_PLUGIN_IFACE_VERSION    5
 
 #define DEMUX_OK                  0
 #define DEMUX_FINISHED            1
@@ -50,11 +50,6 @@ extern "C" {
 
 #define STAGE_BY_CONTENT          1
 #define STAGE_BY_EXTENSION        2
-
-/* called when xine tries to branch seamlessly to the next mrl */
-typedef char* (*gui_get_next_mrl_cb_t) (void);
-/* called when xine branched successfully to the next mrl */
-typedef void (*gui_branched_cb_t) (void);
 
 /*
  * a demux plugin must implement these functions
@@ -95,9 +90,7 @@ struct demux_plugin_s
 
   void (*start) (demux_plugin_t *this, fifo_buffer_t *video_fifo, 
 		 fifo_buffer_t *audio_fifo, 
-		 off_t start_pos, int start_time,
-		 gui_get_next_mrl_cb_t next_mrl_cb,
-		 gui_branched_cb_t branched_cb) ;
+		 off_t start_pos, int start_time);
   
   /*
    * stop & kill demux thread, free resources associated with current

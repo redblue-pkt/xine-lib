@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.56 2001/10/18 18:50:53 guenter Exp $
+ * $Id: video_decoder.c,v 1.57 2001/10/20 02:01:51 guenter Exp $
  *
  */
 
@@ -226,26 +226,6 @@ void *video_decoder_loop (void *this_gen) {
   pthread_exit(NULL);
 }
 
-static void spu_event_handler(xine_t *this, event_t *event, void *data) {
-  /* Check Xine handle is not NULL */
-  if (this == NULL) {
-    return;
-  }
-  
-  switch(event->type) {
-  case XINE_SPU_EVENT:
-   /* -- This can cause a segfault!
-    if (!this->cur_spu_decoder_plugin)
-      update_spu_decoder(this, BUF_SPU_CLUT);
-   */
-   
-    if (this->cur_spu_decoder_plugin)
-      this->cur_spu_decoder_plugin->event(this->cur_spu_decoder_plugin,
-		(spu_event_t*) event);
-    break;
-  }
-}
-
 void video_decoder_init (xine_t *this) {
   
   pthread_attr_t       pth_attrs;
@@ -253,10 +233,6 @@ void video_decoder_init (xine_t *this) {
   int		       err;
 
   this->video_fifo = fifo_buffer_new (500, 4096);
-
-  if((xine_register_event_listener(this, spu_event_handler)) < 1) {
-    fprintf(stderr, "xine_register_event_listener() failed.\n");
-  }
 
   pthread_attr_init(&pth_attrs);
   pthread_attr_getschedparam(&pth_attrs, &pth_params);
@@ -276,8 +252,6 @@ void video_decoder_shutdown (xine_t *this) {
 
   buf_element_t *buf;
   void          *p;
-
-  xine_remove_event_listener(this, spu_event_handler);
 
   /* this->video_fifo->clear(this->video_fifo); */
 

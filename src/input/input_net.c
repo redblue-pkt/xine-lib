@@ -301,7 +301,7 @@ input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
   net_input_plugin_t *this;
   config_values_t    *config;
 
-  if (iface != 4) {
+  if (iface != 5) {
     printf("net input plugin doesn't support plugin API version %d.\n"
 	   "PLUGIN DISABLED.\n"
 	   "This means there's a version mismatch between xine and this input"
@@ -332,7 +332,6 @@ input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
   this->input_plugin.get_identifier    = net_plugin_get_identifier;
   this->input_plugin.get_autoplay_list = NULL;
   this->input_plugin.get_optional_data = net_plugin_get_optional_data;
-  this->input_plugin.handle_input_event= NULL;
   this->input_plugin.is_branch_possible= NULL;
 
   this->fh      = -1;

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_vcd.c,v 1.28 2001/10/17 20:33:09 guenter Exp $
+ * $Id: input_vcd.c,v 1.29 2001/10/20 02:01:51 guenter Exp $
  *
  */
 
@@ -1099,7 +1099,7 @@ input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
   config_values_t    *config;
   int                 i;
 
-  if (iface != 4) {
+  if (iface != 5) {
     printf("vcd input plugin doesn't support plugin API version %d.\n"
 	   "PLUGIN DISABLED.\n"
 	   "This means there's a version mismatch between xine and this input"
@@ -1134,7 +1134,6 @@ input_plugin_t *init_input_plugin (int iface, xine_t *xine) {
   this->input_plugin.get_mrl           = vcd_plugin_get_mrl;
   this->input_plugin.get_autoplay_list = vcd_plugin_get_autoplay_list;
   this->input_plugin.get_optional_data = vcd_plugin_get_optional_data;
-  this->input_plugin.handle_input_event= NULL;
   this->input_plugin.is_branch_possible= NULL;
   
   this->device = config->lookup_str(config, "vcd_device", CDROM);

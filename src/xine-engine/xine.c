@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.69 2001/10/18 23:46:40 guenter Exp $
+ * $Id: xine.c,v 1.70 2001/10/20 02:01:51 guenter Exp $
  *
  * top-level xine functions
  *
@@ -62,11 +62,13 @@ uint32_t   xine_debug;
 
 void * xine_notify_stream_finished_thread (void * this_gen) {
   xine_t *this = this_gen;
+  xine_event_t event;
 
   xine_stop (this);
 
-  if (this->stream_end_cb)
-    this->stream_end_cb (this->status);
+  event.type = XINE_EVENT_PLAYBACK_FINISHED;
+
+  xine_send_event (this, &event);
 
   return NULL;
 }
@@ -291,9 +293,7 @@ void xine_play (xine_t *this, char *mrl,
   this->cur_demuxer_plugin->start (this->cur_demuxer_plugin,
 				   this->video_fifo,
 				   this->audio_fifo, 
-				   pos, start_time,
-				   this->get_next_mrl_cb,
-				   this->branched_cb);
+				   pos, start_time);
   
   if (this->cur_demuxer_plugin->get_status(this->cur_demuxer_plugin) != DEMUX_OK) {
     printf("xine_play: demuxer failed to start\n");
@@ -381,69 +381,13 @@ void xine_exit (xine_t *this) {
 
 }
 
-static void event_handler(xine_t *xine, event_t *event, void *data) {
-  /* Check Xine handle/current input plugin is not NULL */
-  if((xine == NULL) || (xine->cur_input_plugin == NULL)) {
-    return;
-  }
-  
-  switch(event->type) {
-  case XINE_MOUSE_EVENT: 
-    {
-      mouse_event_t *mevent = (mouse_event_t*)event;
-      
-      /* Send event to imput plugin if appropriate. */
-      if(xine->cur_input_plugin->handle_input_event != NULL) {
-	if(mevent->button != 0) {
-	  /* Click event. */
-  	  xine->cur_input_plugin->handle_input_event(xine->cur_input_plugin,
-						     INPUT_EVENT_MOUSEBUTTON,
-						     0, mevent->x, mevent->y);
-	} else {
-	  /* Motion event */
-	  xine->cur_input_plugin->handle_input_event(xine->cur_input_plugin,
-						     INPUT_EVENT_MOUSEMOVE,
-						     0, mevent->x, mevent->y);
-	}
-      }
-    }
-    break;
-  case XINE_MENU1_EVENT:
-    xine->cur_input_plugin->handle_input_event(xine->cur_input_plugin,
-					       INPUT_EVENT_MENU1,
-					       0, 0, 0);
-    break;
-  case XINE_MENU2_EVENT:
-    xine->cur_input_plugin->handle_input_event(xine->cur_input_plugin,
-					       INPUT_EVENT_MENU2,
-					       0, 0, 0);
-    break;
-  case XINE_MENU3_EVENT:
-    xine->cur_input_plugin->handle_input_event(xine->cur_input_plugin,
-					       INPUT_EVENT_MENU3,
-					       0, 0, 0);
-    break;
-  case XINE_SPU_EVENT:
-    if (xine->cur_spu_decoder_plugin)
-      xine->cur_spu_decoder_plugin->event(xine->cur_spu_decoder_plugin,
-					  (spu_event_t*) event);
-    break;
-  }
-}
-
 xine_t *xine_init (vo_driver_t *vo, 
 		   ao_driver_t *ao,
-		   config_values_t *config,
-		   gui_stream_end_cb_t stream_end_cb,
-		   gui_get_next_mrl_cb_t get_next_mrl_cb,
-		   gui_branched_cb_t branched_cb) {
+		   config_values_t *config) {
 
   xine_t *this = xmalloc (sizeof (xine_t));
   printf("xine_init entered\n");
 
-  this->stream_end_cb   = stream_end_cb;
-  this->get_next_mrl_cb = get_next_mrl_cb;
-  this->branched_cb     = branched_cb;
   this->config          = config;
   xine_debug            = config->lookup_int (config, "xine_debug", 0);
 
@@ -498,27 +442,7 @@ xine_t *xine_init (vo_driver_t *vo,
   audio_decoder_init (this);
   printf("xine_init returning\n");
 
-  /* Add an event listener */
-  
-  if((xine_register_event_listener(this, event_handler)) < 1) {
-    fprintf(stderr, "xine_register_event_listener() failed.\n");
-  }
-
   return this;
-}
-
-int xine_get_audio_channel (xine_t *this) {
-
-  return this->audio_channel;
-}
-
-void xine_select_audio_channel (xine_t *this, int channel) {
-
-  pthread_mutex_lock (&this->xine_lock);
-
-  this->audio_channel = channel;
-
-  pthread_mutex_unlock (&this->xine_lock);
 }
 
 int xine_get_spu_channel (xine_t *this) {
@@ -715,4 +639,31 @@ int xine_get_current_frame (xine_t *this, int *width, int *height,
 
   return 1;
 }
+
+void xine_get_spu_lang (xine_t *this, char *str) {
+
+  if (this->cur_input_plugin) {
+    if (this->cur_input_plugin->get_capabilities (this->cur_input_plugin) & INPUT_CAP_SPULANG) {
+      this->cur_input_plugin->get_optional_data (this->cur_input_plugin, str, 
+						 INPUT_OPTIONAL_DATA_SPULANG);
+      return;
+    }
+  } 
+
+  sprintf (str, "%3d", this->spu_channel);
+}
+
+void xine_get_audio_lang (xine_t *this, char *str) {
+
+  if (this->cur_input_plugin) {
+    if (this->cur_input_plugin->get_capabilities (this->cur_input_plugin) & INPUT_CAP_AUDIOLANG) {
+      this->cur_input_plugin->get_optional_data (this->cur_input_plugin, str, 
+						 INPUT_OPTIONAL_DATA_AUDIOLANG);
+      return;
+    }
+  } 
+
+  sprintf (str, "%3d", this->audio_channel);
+}
+
 

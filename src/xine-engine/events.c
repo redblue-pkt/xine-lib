@@ -29,7 +29,8 @@
 
 #include "xine_internal.h"
 
-int xine_register_event_listener(xine_t *this, event_listener_t listener) {
+int xine_register_event_listener(xine_t *this, xine_event_listener_t listener,
+				 void *user_data) {
   /* Ensure the listener is non-NULL */
   if(listener == NULL) {
     return 0;
@@ -37,23 +38,28 @@ int xine_register_event_listener(xine_t *this, event_listener_t listener) {
 
   /* Check we hava a slot free */
   if(this->num_event_listeners < XINE_MAX_EVENT_LISTENERS) {
-    this->event_listeners[this->num_event_listeners++] = listener;
+    
+    this->event_listeners[this->num_event_listeners] = listener;
+    this->event_listener_user_data[this->num_event_listeners] = user_data;
+
+    this->num_event_listeners++;
+
     return 1;
   } 
 
   return 0;
 }
 
-void xine_send_event(xine_t *this, event_t *event, void *data) {
+void xine_send_event(xine_t *this, xine_event_t *event) {
   uint16_t i;
   
   /* Itterate through all event handlers */
   for(i=0; i < this->num_event_listeners; i++) {
-    (this->event_listeners[i]) (this, event, data);
+    (this->event_listeners[i]) (this->event_listener_user_data[i], event);
   }
 }
 
-int xine_remove_event_listener(xine_t *this, event_listener_t listener) {
+int xine_remove_event_listener(xine_t *this, xine_event_listener_t listener) {
   uint16_t i, found;
 
   found = 1; i = 0;
@@ -69,6 +75,7 @@ int xine_remove_event_listener(xine_t *this, event_listener_t listener) {
       /* If possible, move the last listener to the hole thats left */
       if(this->num_event_listeners > 1) {
 	this->event_listeners[i] = this->event_listeners[this->num_event_listeners - 1];
+	this->event_listener_user_data[i] = this->event_listener_user_data[this->num_event_listeners - 1];
 	this->event_listeners[this->num_event_listeners - 1] = NULL;
       }
 
