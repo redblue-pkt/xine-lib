@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2000-2002 the xine project
+* Copyright (C) 2000-2003 the xine project
 *
 * This file is part of xine, a free video player.
 *
@@ -175,11 +175,10 @@ xine_health_check_t* xine_health_check_mtrr (xine_health_check_t* hc) {
   hc->explanation = "Make sure your kernel has MTRR support compiled in.";
 
   fd = fopen(file, "r");
-  if (fd < 0) {
+  if (!fd) {
     set_hc_result (hc, XINE_HEALTH_CHECK_FAIL, 
 		   "FAILED: mtrr is not enabled.");
-  }
-  else {
+  } else {
     hc->status = XINE_HEALTH_CHECK_OK;
     fclose (fd);
   }
