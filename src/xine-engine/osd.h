@@ -18,7 +18,7 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
  * OSD stuff (text and graphic primitives)
- * $Id: osd.h,v 1.7 2002/01/08 16:47:57 cvogler Exp $
+ * $Id: osd.h,v 1.8 2002/03/14 04:31:49 miguelfreitas Exp $
  */
 
 #ifndef HAVE_OSD_H
@@ -138,7 +138,7 @@ struct osd_renderer_s {
   void (*close) (osd_renderer_t *this);
 
   /*
-   * clear an osd object
+   * clear an osd object (empty drawing area)
    */
   void (*clear) (osd_object_t *osd );
     

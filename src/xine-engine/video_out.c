@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.79 2002/03/12 19:51:29 guenter Exp $
+ * $Id: video_out.c,v 1.80 2002/03/14 04:31:49 miguelfreitas Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -842,6 +842,10 @@ static void vo_exit (vo_instance_t *this_gen) {
 #ifdef LOG
   printf ("video_out: vo_exit... done\n");
 #endif
+
+  if (this->overlay_source) {
+    this->overlay_source->dispose (this->overlay_source);
+  }
 
   free (this->free_img_buf_queue);
   free (this->display_img_buf_queue);

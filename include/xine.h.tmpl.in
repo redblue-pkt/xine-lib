@@ -28,7 +28,7 @@
  \endverbatim
  */
 /*
- * $Id: xine.h.tmpl.in,v 1.84 2002/03/05 22:31:06 jcdutton Exp $
+ * $Id: xine.h.tmpl.in,v 1.85 2002/03/14 04:31:49 miguelfreitas Exp $
  *
  */
 
@@ -1834,7 +1834,7 @@ struct osd_renderer_s {
   void (*close) (osd_renderer_t *self);
   
   /*
-   * clear an osd object
+   * clear an osd object (empty drawing area)
    */
   void (*clear) (osd_object_t *osd );
   

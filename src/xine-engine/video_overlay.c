@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_overlay.c,v 1.14 2002/01/15 20:22:44 jcdutton Exp $
+ * $Id: video_overlay.c,v 1.15 2002/03/14 04:31:49 miguelfreitas Exp $
  *
  */
 
@@ -101,11 +101,12 @@ static void remove_showing_handle( video_overlay_t *this, int32_t handle )
   pthread_mutex_unlock( &this->video_overlay_showing_mutex );
 }
 
-static void remove_events_handle( video_overlay_t *this, int32_t handle )
+static void remove_events_handle( video_overlay_t *this, int32_t handle, int lock )
 {
   uint32_t   last_event,this_event;
 
-  pthread_mutex_lock( &this->video_overlay_events_mutex );
+  if( lock )
+    pthread_mutex_lock( &this->video_overlay_events_mutex );
   
   this_event=0;
   do {
@@ -134,7 +135,8 @@ static void remove_events_handle( video_overlay_t *this, int32_t handle )
     }
   } while ( this_event );
  
-  pthread_mutex_unlock( &this->video_overlay_events_mutex );
+  if( lock )
+    pthread_mutex_unlock( &this->video_overlay_events_mutex );
 }
 
 
@@ -187,7 +189,7 @@ static void video_overlay_free_handle(video_overlay_instance_t *this_gen, int32_
   video_overlay_t *this = (video_overlay_t *) this_gen;
 
   remove_showing_handle(this,handle);
-  remove_events_handle(this,handle);
+  remove_events_handle(this,handle,1);
   internal_video_overlay_free_handle(this,handle);
 }
 
@@ -346,9 +348,15 @@ static void video_overlay_event( video_overlay_t *this, int vpts ) {
 #ifdef LOG_DEBUG
           video_overlay_print_overlay( this->video_overlay_events[this_event].event->object.overlay ) ;
 #endif
-          /* This should not happen, the calling routine should do the free */
-          /* FIXME: Need to add new event to free handle */
-/* internal_video_overlay_free_handle( this, handle ); */
+          /* this->video_overlay_objects[handle].overlay is about to be
+           * overwritten by this event data. make sure we free it if needed.
+           */
+          if( this->video_overlay_objects[handle].overlay ) {
+            if( this->video_overlay_objects[handle].overlay->rle )
+              free( this->video_overlay_objects[handle].overlay->rle );
+            free( this->video_overlay_objects[handle].overlay );
+            this->video_overlay_objects[handle].overlay = NULL; 
+          }
           
           this->video_overlay_objects[handle].handle = handle;
           if( this->video_overlay_objects[handle].overlay ) {
@@ -368,10 +376,16 @@ static void video_overlay_event( video_overlay_t *this, int vpts ) {
 #ifdef LOG_DEBUG
         printf ("video_overlay: FREE SPU NOW\n");
 #endif
-        free(this->video_overlay_events[this_event].event->object.overlay);
+        /* free any overlay associated with this event */
+        if (this->video_overlay_events[this_event].event->object.overlay != NULL) {
+          free(this->video_overlay_events[this_event].event->object.overlay);
           this->video_overlay_events[this_event].event->object.overlay = NULL; 
+        }
+        /* this avoid removing this_event from the queue
+         * (it will be removed at the end of this loop) */
+        this->video_overlay_events[this_event].event->object.handle = -1;
         remove_showing_handle(this,handle);
-        remove_events_handle(this,handle);
+        remove_events_handle(this,handle,0);
         internal_video_overlay_free_handle( this, handle );
         break;
 
@@ -382,24 +396,23 @@ static void video_overlay_event( video_overlay_t *this, int vpts ) {
 #ifdef LOG_DEBUG
         printf ("video_overlay: HIDE SPU NOW\n");
 #endif
-        free(this->video_overlay_events[this_event].event->object.overlay);
+        /* free any overlay associated with this event */
+        if (this->video_overlay_events[this_event].event->object.overlay != NULL) {
+          free(this->video_overlay_events[this_event].event->object.overlay);
           this->video_overlay_events[this_event].event->object.overlay = NULL; 
+        }
         remove_showing_handle( this, handle );
-        /* This should not happen, the calling routine should do the free */
-        /* FIXME: Need to add new event to free handle */
-        /* internal_video_overlay_free_handle( this, handle ); */
         break;
   
       case EVENT_HIDE_MENU:
 #ifdef LOG_DEBUG
         printf ("video_overlay: HIDE MENU NOW %d\n",handle);
 #endif
-        free(this->video_overlay_events[this_event].event->object.overlay);
+        if (this->video_overlay_events[this_event].event->object.overlay != NULL) {
+          free(this->video_overlay_events[this_event].event->object.overlay);
           this->video_overlay_events[this_event].event->object.overlay = NULL; 
+        }
         remove_showing_handle( this, handle );
-        /* This should not happen, the calling routine should do the free */
-        /* FIXME: Need to add new event to free handle */
-        /* internal_video_overlay_free_handle( this, handle ); */
         break;
   
       case EVENT_MENU_SPU:
@@ -623,6 +636,20 @@ static void video_overlay_flush_events(video_overlay_instance_t *this_gen )
   video_overlay_event( this, 0 );
 }
 
+static void video_overlay_dispose(video_overlay_instance_t *this_gen) {
+
+  video_overlay_t *this = (video_overlay_t *) this_gen;
+  int i;
+
+  for (i=0; i < MAX_EVENTS; i++) {
+    if (this->video_overlay_events[i].event != NULL) {
+      free (this->video_overlay_events[i].event);
+    }
+  }
+
+  free (this);
+}
+
 
 video_overlay_instance_t *video_overlay_new_instance () {
 
@@ -631,6 +658,7 @@ video_overlay_instance_t *video_overlay_new_instance () {
   this = (video_overlay_t *) xine_xmalloc (sizeof (video_overlay_t));
 
   this->video_overlay.init                = video_overlay_init;
+  this->video_overlay.dispose             = video_overlay_dispose;
   this->video_overlay.get_handle          = video_overlay_get_handle;
   this->video_overlay.free_handle         = video_overlay_free_handle;
   this->video_overlay.add_event           = video_overlay_add_event;

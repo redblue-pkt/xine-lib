@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.h,v 1.48 2002/03/10 21:16:14 miguelfreitas Exp $
+ * $Id: video_out.h,v 1.49 2002/03/14 04:31:49 miguelfreitas Exp $
  *
  *
  * xine version of video_out.h 
@@ -343,6 +343,8 @@ struct vo_overlay_s {
 /* API to video_overlay */
 struct video_overlay_instance_s {
   void (*init) (video_overlay_instance_t *this_gen);
+  
+  void (*dispose) (video_overlay_instance_t *this_gen);
   
   int32_t (*get_handle) (video_overlay_instance_t *this_gen, int object_type );
   

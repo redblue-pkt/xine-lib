@@ -104,27 +104,6 @@ static osd_object_t *osd_new_object (osd_renderer_t *this, int width, int height
      
   osd_object_t *osd;
   
-#if 0
-  static clut_t default_color[] = {
-    CLUT_Y_CR_CB_INIT(0x00, 0x00, 0x00),
-    CLUT_Y_CR_CB_INIT(0x00, 0x80, 0x80),
-    CLUT_Y_CR_CB_INIT(0x8d, 0x7f, 0x85),
-    CLUT_Y_CR_CB_INIT(0xc9, 0x7f, 0x85),
-    CLUT_Y_CR_CB_INIT(0x00, 0x00, 0x00),
-    CLUT_Y_CR_CB_INIT(0x00, 0x00, 0x00),
-    CLUT_Y_CR_CB_INIT(0x00, 0x00, 0x00)
-  
-    /*
-    CLUT_Y_CR_CB_INIT(0x19, 0x7e, 0x89),
-    CLUT_Y_CR_CB_INIT(0x32, 0x7c, 0x93),
-    CLUT_Y_CR_CB_INIT(0x4b, 0x7b, 0x9c),
-    CLUT_Y_CR_CB_INIT(0x64, 0x79, 0xa6),
-    CLUT_Y_CR_CB_INIT(0x7d, 0x78, 0xaf)
-    */
-  };
-  static uint8_t default_trans[] = {0, 10, 12, 15, 15, 15, 15};
-#endif
-
   pthread_mutex_lock (&this->osd_mutex);  
   
   osd = xine_xmalloc( sizeof(osd_object_t) );
@@ -172,11 +151,6 @@ static int osd_show (osd_object_t *osd, uint32_t vpts ) {
   printf("osd_show %p vpts=%d\n", osd, vpts);
 #endif
       
-//  if( osd->handle >= 0 )
-//    return 0;   /* must hide first */
-      
-//  if( (osd->handle = this->video_overlay->get_handle(this->video_overlay,0)) == -1 )
-//    return 0;
   if( osd->handle < 0 ) {
     if( (osd->handle = this->video_overlay->get_handle(this->video_overlay,0)) == -1 ) {
       return 0;
@@ -270,7 +244,6 @@ static int osd_hide (osd_object_t *osd, uint32_t vpts) {
   pthread_mutex_lock (&this->osd_mutex);  
   
   this->event.object.handle = osd->handle;
-//  osd->handle = -1; /* handle will be freed after hide */
   
   /* not really needed this, but good pratice to clean it up */
   memset( this->event.object.overlay, 0, sizeof(this->event.object.overlay) );
@@ -278,6 +251,12 @@ static int osd_hide (osd_object_t *osd, uint32_t vpts) {
   this->event.event_type = EVENT_HIDE_SPU;
   this->event.vpts = vpts;
   this->video_overlay->add_event(this->video_overlay,(void *)&this->event);
+
+  this->event.event_type = EVENT_FREE_HANDLE;
+  this->event.vpts = vpts+1;
+  this->video_overlay->add_event(this->video_overlay,(void *)&this->event);
+  
+  osd->handle = -1; /* handle will be freed */
 
   pthread_mutex_unlock (&this->osd_mutex);  
   
@@ -797,8 +776,6 @@ static void osd_free_object (osd_object_t *osd_to_close) {
   osd_object_t *osd, *last;
 
   if( osd_to_close->handle >= 0 ) {
-/* FIXME:This should be replaced by a video_overlay free object. */
-    printf("osd.c:osd_free_object:trying to free overlay object\n");
     osd_hide(osd_to_close,0);
   }
   
@@ -830,6 +807,8 @@ static void osd_renderer_close (osd_renderer_t *this) {
   
   while( this->fonts )
     osd_renderer_unload_font( this, this->fonts->name );
+
+  pthread_mutex_destroy (&this->osd_mutex);
 
   free(this->event.object.overlay);
   free(this);
