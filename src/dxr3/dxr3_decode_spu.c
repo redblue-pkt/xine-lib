@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decode_spu.c,v 1.11 2002/07/10 14:09:55 mroi Exp $
+ * $Id: dxr3_decode_spu.c,v 1.12 2002/07/16 16:19:58 mroi Exp $
  */
  
 /* dxr3 spu decoder plugin.
@@ -461,42 +461,6 @@ static void dxr3_spudec_event_listener(void *this_gen, xine_event_t *event_gen)
     printf("dxr3_decode_spu: aspect changed to %d\n", this->aspect);
 #endif
     break;
-#if 0
-  case XINE_EVENT_ASPECT_CHANGE:
-    switch (((xine_aspect_ratio_event_t *)event)->ratio_code) {
-    case ASPECT_FULL:
-      this->aspect = XINE_ASPECT_RATIO_4_3;
-#if LOG_BTN
-      printf("dxr3_decode_spu: aspect changed to %d\n", this->aspect);
-#endif
-      break;
-    case ASPECT_ANAMORPHIC:
-      this->aspect = XINE_ASPECT_RATIO_ANAMORPHIC;
-#if LOG_BTN
-      printf("dxr3_decode_spu: aspect changed to %d\n", this->aspect);
-#endif
-      break;
-    }
-    if ((((xine_aspect_ratio_event_t *)event)->scale_permission == 1) != this->pan_scan) {
-      this->pan_scan = !this->pan_scan;
-      this->xine->video_driver->set_property(this->xine->video_driver,
-        VO_PROP_ZOOM_FACTOR, this->pan_scan ? 1 : -1);
-    }
-    break;
-#endif
-#if 0
-  /* FIXME: I think this event is not necessary any more
-   * We know from nav packet decoding, if we are in a menu. */
-  case XINE_EVENT_SPU_FORCEDISPLAY:
-    {
-      this->menu = (int)event->data;
-#if LOG_SPU
-      printf("dxr3_decode_spu: got SPU_FORCEDISPLAY, force display is %s\n",
-        this->menu ? "on" : "off");
-#endif
-    }
-    break;
-#endif
   }  
 }
 
