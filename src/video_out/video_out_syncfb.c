@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_syncfb.c,v 1.6 2001/06/21 17:34:24 guenter Exp $
+ * $Id: video_out_syncfb.c,v 1.7 2001/07/04 14:01:50 uid56437 Exp $
  * 
  * video_out_syncfb.c, Matrox G400 video extension interface for xine
  *
@@ -211,9 +211,6 @@ static void setup_window_mga () {
 
   XWindowAttributes     wattr;
 
-  Atom                  prop;
-  MWMHints              mwmhints;
-   
   XGetWindowAttributes(_mga_priv.lDisplay, DefaultRootWindow(_mga_priv.lDisplay), &wattr);
    
   _display.width  = wattr.width;
@@ -349,6 +346,9 @@ printf("setup_window_mga: unscaled size should be %d x %d \n",_mga_priv.orig_wid
 #if 0
    // create a simple window without anything. Just make overlay clickable. :)
    if (!_window.clasped_window) {
+     Atom       prop;
+     MWMHints	mwmhints;
+   
      _window.clasped_window = XCreateSimpleWindow(_mga_priv.lDisplay, RootWindow(_mga_priv.lDisplay, _display.default_screen), 0, 0, _mga_priv.dest_width, _mga_priv.dest_height, 0, 0, 0);
 //     gVideoWin = _window.clasped_window;
 
@@ -484,14 +484,14 @@ static void mga_update_frame_format (vo_driver_t *this_gen, vo_frame_t *frame_ge
       exit (1);
   }
 
-  frame->vo_frame.base[0] = (char *) shmat(frame->id, 0, 0);
+  frame->vo_frame.base[0] = shmat(frame->id, 0, 0);
 
   if (frame->vo_frame.base[0] == NULL) {
       fprintf(stderr, "syncfb: shared memory error (address error NULL)\n");
       exit (1);
   }
 
-  if (frame->vo_frame.base[0] == ((char *) -1)) {
+  if (frame->vo_frame.base[0] == (void *) -1) {
       fprintf(stderr, "syncfb: shared memory error (address error)\n");
       exit (1);
   }
@@ -547,7 +547,7 @@ static void mga_display_frame(vo_driver_t *this, vo_frame_t *frame_gen) {
     ioctl(_mga_priv.fd,SYNCFB_COMMIT_BUFFER,&_mga_priv.bufinfo);
   }
   /* Image is copied so release buffer */
-  frame->vo_frame.displayed (frame);
+  frame->vo_frame.displayed (&frame->vo_frame);
 }
 
 #if 0

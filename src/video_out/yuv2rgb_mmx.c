@@ -425,7 +425,7 @@ static inline void yuv420_rgb16 (yuv2rgb_t *this,
 	dy += this->step_dy;
 	image += rgb_stride;
 
-	while (dy <= 32768) {
+	while (dy < 32768) {
 
 	  memcpy (image, image-rgb_stride, this->dest_width*2); 
 
@@ -531,7 +531,7 @@ static inline void yuv420_rgb15 (yuv2rgb_t *this,
 	dy += this->step_dy;
 	image += rgb_stride;
 
-	while (dy <= 32768) {
+	while (dy < 32768) {
 
 	  memcpy (image, image-rgb_stride, this->dest_width*2); 
 
@@ -635,7 +635,7 @@ static inline void yuv420_rgb24 (yuv2rgb_t *this,
 	dy += this->step_dy;
 	image += rgb_stride;
 
-	while (dy <= 32768) {
+	while (dy < 32768) {
 
 	  memcpy (image, image-rgb_stride, this->dest_width*3);
 
@@ -740,7 +740,7 @@ static inline void yuv420_argb32 (yuv2rgb_t *this,
 	dy += this->step_dy;
 	image += rgb_stride;
 
-	while (dy <= 32768) {
+	while (dy < 32768) {
 
 	  memcpy (image, image-rgb_stride, this->dest_width*4); 
 

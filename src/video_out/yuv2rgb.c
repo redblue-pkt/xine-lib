@@ -23,6 +23,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <inttypes.h>
 
 #include "yuv2rgb.h"
@@ -95,13 +96,17 @@ int yuv2rgb_setup (yuv2rgb_t *this,
     this->step_dx = source_width  * 32768 / dest_width;
     this->step_dy = source_height * 32768 / dest_height;
     
-    this->y_buffer = my_malloc_aligned (16, dest_width, &this->y_chunk);
+    /*
+     * space for two y-lines (for yuv2rgb_mlib)
+     * u,v subsampled 2:1
+     */
+    this->y_buffer = my_malloc_aligned (16, 2*dest_width, &this->y_chunk);
     if (!this->y_buffer)
       return 0;
-    this->u_buffer = my_malloc_aligned (16, dest_width, &this->u_chunk);
+    this->u_buffer = my_malloc_aligned (16, (dest_width+1)/2, &this->u_chunk);
     if (!this->u_buffer)
       return 0;
-    this->v_buffer = my_malloc_aligned (16, dest_width, &this->v_chunk);
+    this->v_buffer = my_malloc_aligned (16, (dest_width+1)/2, &this->v_chunk);
     if (!this->v_buffer)
       return 0;
   }
@@ -121,7 +126,7 @@ static void scale_line (uint8_t *source, uint8_t *dest,
 
   while (width) {
 
-    *dest = (p1 * (32768 - dx) + p2 * dx)  / 32768;
+    *dest = (p1 * (32768 - dx) + p2 * dx) / 32768;
 
     dx += step;
     while (dx > 32768) {
@@ -231,7 +236,7 @@ static void yuv2rgb_c_32 (yuv2rgb_t *this, uint8_t * _dst,
       dy += this->step_dy;
       _dst += this->rgb_stride;
 
-      while (dy <= 32768) {
+      while (dy < 32768) {
 
 	memcpy (_dst, (uint8_t*)_dst-this->rgb_stride, this->dest_width*4); 
 
@@ -357,7 +362,7 @@ static void yuv2rgb_c_24_rgb (yuv2rgb_t *this, uint8_t * _dst,
       dy += this->step_dy;
       _dst += this->rgb_stride;
 
-      while (dy <= 32768) {
+      while (dy < 32768) {
 
 	memcpy (_dst, _dst-this->rgb_stride, this->dest_width*3); 
 
@@ -483,7 +488,7 @@ static void yuv2rgb_c_24_bgr (yuv2rgb_t *this, uint8_t * _dst,
       dy += this->step_dy;
       _dst += this->rgb_stride;
 
-      while (dy <= 32768) {
+      while (dy < 32768) {
 
 	memcpy (_dst, _dst-this->rgb_stride, this->dest_width*3); 
 
@@ -609,7 +614,7 @@ static void yuv2rgb_c_16 (yuv2rgb_t *this, uint8_t * _dst,
       dy += this->step_dy;
       _dst += this->rgb_stride;
 
-      while (dy <= 32768) {
+      while (dy < 32768) {
 
 	memcpy (_dst, (uint8_t*)_dst-this->rgb_stride, this->dest_width*2); 
 
@@ -830,6 +835,13 @@ yuv2rgb_t *yuv2rgb_init (int mode) {
     yuv2rgb_init_mmx (this, mode);
     if (this->yuv2rgb_fun != NULL)
       printf ("yuv2rgb: using MMX for colorspace transform\n"); 
+  }
+#endif
+#if HAVE_MLIB
+  if (this->yuv2rgb_fun == NULL) {
+    yuv2rgb_init_mlib (this, mode);
+    if (this->yuv2rgb_fun != NULL)
+      printf ("yuv2rgb: using medialib for colorspace transform\n"); 
   }
 #endif
   if (this->yuv2rgb_fun == NULL) {

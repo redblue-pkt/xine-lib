@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xshm.c,v 1.12 2001/06/25 09:51:47 guenter Exp $
+ * $Id: video_out_xshm.c,v 1.13 2001/07/04 14:01:50 uid56437 Exp $
  * 
  * video_out_xshm.c, X11 shared memory extension interface for xine
  *
@@ -69,7 +69,6 @@ typedef struct xshm_frame_s {
 
   XImage            *image;
   uint8_t           *rgb_dst;
-  int		     rgb_row;
   int                stripe_inc;
   XShmSegmentInfo    shminfo;
 
@@ -312,6 +311,24 @@ static void dispose_ximage (xshm_driver_t *this,
   }
 }
 
+#ifdef ARCH_X86
+#undef	DETAILED_TIMING		/* define as 1 to get cpu cycle timing for */
+				/* the yuv2rgb conversion below */
+
+#define	CPU_MHZ		908	/* your cpu's frequency, in Mhz */
+				/* My A7V board operates the 900Mhz T'bird */
+				/* at 908Mhz? */
+#endif
+
+#ifdef	DETAILED_TIMING
+static inline uint64_t rdtsc()
+{
+    uint64_t tsc;
+    __asm__ __volatile__("rdtsc" : "=A"(tsc));
+    return tsc;
+}
+#endif
+
 /*
  * and now, the driver functions
  */
@@ -324,25 +341,20 @@ static void xshm_frame_copy (vo_frame_t *vo_img, uint8_t **src) {
   xshm_frame_t  *frame = (xshm_frame_t *) vo_img ;
   xshm_driver_t *this = (xshm_driver_t *) vo_img->instance->driver;
 
-#if 0
-#warning FIXME
-  /*
-   * A complete stripe may not fit into the destination rgb image.
-   * Ignore the stripe for now, instead of crashing inside yuv2rgb_fun().
-   */
-  if (frame->rgb_row + this->stripe_height > frame->rgb_height) {
-    printf("xshm_frame_copy: stripe %d..%d out of rgb image bounds %d\n",
-	   frame->rgb_row, frame->rgb_row+this->stripe_height-1,
-	   frame->rgb_height);
-    return;
-  }
+#ifdef DETAILED_TIMING
+  uint64_t tsc = rdtsc();
+  uint32_t cycles;
 #endif
 
   this->yuv2rgb->yuv2rgb_fun (this->yuv2rgb, frame->rgb_dst,
 			      src[0], src[1], src[2]);
+  
+#ifdef DETAILED_TIMING
+  cycles = rdtsc() - tsc;
+  printf("yuv2rgb: %u cycles, %d µsec\n", cycles, cycles/CPU_MHZ);
+#endif
 
   frame->rgb_dst += frame->stripe_inc; 
-  frame->rgb_row += this->stripe_height;
 }
 
 static void xshm_frame_field (vo_frame_t *vo_img, int which_field) {
@@ -401,6 +413,22 @@ static void xshm_calc_output_size (xshm_driver_t *this) {
 
   if (this->delivered_width == 0 && this->delivered_height == 0)
     return; /* ConfigureNotify/VisibilityNotify, no decoder output size known */
+
+
+#if	0
+  /*
+   * quick hack to allow testing of unscaled yuv2rgb conversion routines
+   */
+  if (getenv("VIDEO_OUT_NOSCALE")) {
+      this->output_width   = this->delivered_width;
+      this->output_height  = this->delivered_height;
+      this->output_xoffset = 0;
+      this->output_yoffset = 0;
+      this->ratio_factor   = 1.0;
+      return;
+  }
+#endif
+
 
   image_ratio = 
     (double) this->delivered_width / (double) this->delivered_height;
@@ -563,7 +591,6 @@ static void xshm_update_frame_format (vo_driver_t *this_gen,
 
   if (frame->image) {
     frame->rgb_dst    = frame->image->data;
-    frame->rgb_row    = 0;
     frame->stripe_inc = this->stripe_height * frame->image->bytes_per_line;
   }
 }
