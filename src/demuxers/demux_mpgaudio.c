@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpgaudio.c,v 1.133 2004/03/01 21:03:19 tmattern Exp $
+ * $Id: demux_mpgaudio.c,v 1.134 2004/03/03 00:39:15 tmattern Exp $
  *
  * demultiplexer for mpeg audio (i.e. mp3) streams
  *
@@ -529,17 +529,23 @@ static int demux_mpgaudio_next (demux_mpgaudio_t *this, int decoder_flags) {
         xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
                 "demux_mpgaudio: ID3V2.2 tag\n");
         if (!id3v22_parse_tag(this->input, this->stream, header_buf)) {
-          return 0;
+          xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
+                  "demux_mpgaudio: ID3V2.2 tag parsing error\n");
+          bytes = 1; /* resync */
+        } else {
+          bytes = 4;
         }
-        bytes = 4;
 
       } else if ((BE_32(header_buf)) == ID3V23_TAG) {
         xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
                 "demux_mpgaudio: ID3V2.3 tag\n");
         if (!id3v23_parse_tag(this->input, this->stream, header_buf)) {
-          return 0;
+          xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
+                  "demux_mpgaudio: ID3V2.3 tag parsing error\n");
+          bytes = 1; /* resync */
+        } else {
+          bytes = 4;
         }
-        bytes = 4;
 
       } else if ((BE_32(header_buf)) == ID3V24_TAG) {
         xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
