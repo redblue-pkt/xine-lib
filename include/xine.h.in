@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.31 2002/10/31 16:58:13 mroi Exp $
+ * $Id: xine.h.in,v 1.32 2002/11/02 02:55:46 storri Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -499,7 +499,7 @@ char **xine_get_autoplay_mrls (xine_t *self,
 			       int *num_mrls);
 
 /* get a list of file extensions for file types supported by xine
- * the list is separated by spaces 
+ * the list is separated by spaces
  *
  * the pointer returned can be free()ed when no longer used */
 char *xine_get_file_extensions (xine_t *self);
@@ -632,10 +632,22 @@ typedef struct {
 #define XINE_GUI_SEND_SELECT_VISUAL          8
 
 /*
- * xine-config stuff
+ * xine health check stuff
  */
 
-int xine_health_check(char* cdrom_dev, char* dvd_dev);
+#define XINE_HEALTH_CHECK_OK            0
+#define XINE_HEALTH_CHECK_FAIL          1
+#define XINE_HEALTH_CHECK_UNSUPPORTED   2
+
+struct xine_health_check_s {
+  int status;
+  const char* cdrom_dev;
+  const char* dvd_dev;
+  char* msg;
+};
+
+typedef struct xine_health_check_s xine_health_check_t;
+xine_health_check_t* xine_health_check(xine_health_check_t*);
 
 /*
  * config entry data types
