@@ -178,5 +178,11 @@ inline static unsigned long long int ByteSwap64(unsigned long long int x)
         ( (uint32_t)(unsigned char)(ch1) << 8 ) |   \
         ( (uint32_t)(unsigned char)(ch2) << 16 ) |  \
         ( (uint32_t)(unsigned char)(ch3) << 24 ) )
+        
+#ifdef WORDS_BIGENDIAN
+#define ME_FOURCC BE_FOURCC
+#else
+#define ME_FOURCC LE_FOURCC
+#endif
 
 #endif
