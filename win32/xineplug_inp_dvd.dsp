@@ -70,7 +70,7 @@ LINK32=link.exe
 # PROP Target_Dir ""
 LIB32=link.exe
 # ADD BASE CPP /nologo /MTd /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "XINEPLUG_INP_DVD_EXPORTS" /YX /FD /GZ /c
-# ADD CPP /nologo /MDd /W3 /Gm /GX /ZI /Od /I "." /I ".." /I "include" /I "contrib/pthreads" /I "contrib/timer" /I "contrib/dirent" /I "../include" /I "../src" /I "../src/xine-engine" /I "../src/xine-utils" /I "../src/input/libdvdread" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "XINEPLUG_INP_DVD_EXPORTS" /D "XINE_COMPILE" /D "HAVE_CONFIG_H" /YX /FD /GZ /c
+# ADD CPP /nologo /MDd /W3 /Gm /GX /ZI /Od /I "." /I ".." /I "include" /I "contrib/pthreads" /I "contrib/timer" /I "contrib/dirent" /I "../include" /I "../src" /I "../src/xine-engine" /I "../src/xine-utils" /I "../src/input/libdvdnav" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "XINEPLUG_INP_DVD_EXPORTS" /D "XINE_COMPILE" /D "HAVE_CONFIG_H" /YX /FD /GZ /c
 # ADD BASE MTL /nologo /D "_DEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "_DEBUG" /mktyplib203 /win32
 # ADD BASE RSC /l 0x409 /d "_DEBUG"

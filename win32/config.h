@@ -94,7 +94,7 @@
 #define HAVE_DLFCN_H 1
 
 /* Define this if you have a suitable version of libdvdnav */
-#define HAVE_DVDNAV 1
+/* #undef HAVE_DVDNAV */
 
 /* Define this if you have ESD (libesd) installed */
 /* #undef HAVE_ESD */

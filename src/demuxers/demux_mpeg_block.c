@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.189 2003/05/20 01:23:56 tchamp Exp $
+ * $Id: demux_mpeg_block.c,v 1.190 2003/05/26 13:57:51 tchamp Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  * used with fixed blocksize devices (like dvd/vcd)
@@ -28,14 +28,11 @@
 #include "config.h"
 #endif
 
+#include <stdlib.h>
 #include <stdio.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <string.h>
-
-#ifndef WIN32
-#include <stdlib.h>
-#endif /* WIN32 */
 
 #include <assert.h>
 
