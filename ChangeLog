@@ -6,6 +6,7 @@ xine-lib (1-rc1)
   * DVD menu button group handling in spu decoders (software and dxr3)
     (fixes wrong initial menu highlights on "Star Trek 3" SE RC2 for the dxr3)
   * get the correct duration and bitrate for MP3s with Xing headers (VBR)
+  * fix alignment check in configure (fixes weird colours with MPEG2 on PPC)
 
 xine-lib (1-rc0a)
   * includes ffmpeg's MPEG encode in dist tarball (fixes DXR3 support)
