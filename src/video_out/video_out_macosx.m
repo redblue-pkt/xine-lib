@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_macosx.m,v 1.9 2004/10/20 04:58:13 athp Exp $
+ * $Id: video_out_macosx.m,v 1.10 2004/11/12 06:38:36 athp Exp $
  *
  * This output driver makes use of xine's objective-c video_output 
  * classes located in the macosx folder.
@@ -92,7 +92,7 @@ static void macosx_frame_field(vo_frame_t *vo_frame, int which_field) {
 
 static uint32_t macosx_get_capabilities(vo_driver_t *vo_driver) {
   /* both styles, country and western */
-  return VO_CAP_YV12 | VO_CAP_YUY2;
+  return VO_CAP_YV12 | VO_CAP_YUY2 | VO_CAP_UNSCALED_OVERLAY;
 }
 
 static vo_frame_t *macosx_alloc_frame(vo_driver_t *vo_driver) {
