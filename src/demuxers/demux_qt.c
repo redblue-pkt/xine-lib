@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.182 2004/05/16 18:01:44 tmattern Exp $
+ * $Id: demux_qt.c,v 1.183 2004/05/30 01:33:59 tmmm Exp $
  *
  */
 
@@ -94,6 +94,7 @@ typedef unsigned int qt_atom;
 
 #define IMA4_FOURCC QT_ATOM('i', 'm', 'a', '4')
 #define MP4A_FOURCC QT_ATOM('m', 'p', '4', 'a')
+#define SAMR_FOURCC QT_ATOM('s', 'a', 'm', 'r')
 #define DRMS_FOURCC QT_ATOM('d', 'r', 'm', 's')
 #define TWOS_FOURCC QT_ATOM('t', 'w', 'o', 's')
 #define SOWT_FOURCC QT_ATOM('s', 'o', 'w', 't')
@@ -1116,6 +1117,9 @@ static qt_error parse_trak_atom (qt_trak *trak,
 
           /* if this is MP4 audio, mark the trak as VBR */
           if (BE_32(&trak_atom[atom_pos + 0x0]) == MP4A_FOURCC)
+            trak->stsd_atoms[k].audio.vbr = 1;
+
+          if (BE_32(&trak_atom[atom_pos + 0x0]) == SAMR_FOURCC)
             trak->stsd_atoms[k].audio.vbr = 1;
 
           if (BE_32(&trak_atom[atom_pos + 0x0]) == DRMS_FOURCC) {
