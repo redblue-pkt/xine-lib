@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.89 2002/04/11 22:27:11 jcdutton Exp $
+ * $Id: demux_mpeg_block.c,v 1.90 2002/04/15 00:58:21 jcdutton Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  *
@@ -859,6 +859,12 @@ static void demux_mpeg_block_start (demux_plugin_t *this_gen,
   demux_mpeg_block_t *this = (demux_mpeg_block_t *) this_gen;
   buf_element_t *buf;
   int err;
+
+  /* If dvdnav was on a still menu, and someone does a seek.
+   * The mutex lock here would hang xine.
+   * So force dvdnav to come out of sleep and return from get_next_block.
+   */
+  this->input->stop(this->input);
 
   pthread_mutex_lock( &this->mutex );
 
